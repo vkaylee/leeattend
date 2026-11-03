@@ -7,18 +7,13 @@ import { describe, it, expect, vi } from "vitest";
 import * as api from "@/lib/api";
 
 import {
-  useWorkspaces,
   useWorkspaceMembers,
   useMemberRoles,
 } from "../use-workspace";
 
 
-
-
 // Mock the API
 vi.mock("@/lib/api", () => ({
-  fetchWorkspaces: vi.fn(),
-  createWorkspace: vi.fn(),
   fetchWorkspaceMembers: vi.fn(),
   addWorkspaceMember: vi.fn(),
   fetchWorkspaceRoles: vi.fn(),
@@ -30,9 +25,6 @@ vi.mock("@/lib/api", () => ({
   fetchMemberRoles: vi.fn(),
   assignExtraRole: vi.fn(),
   revokeExtraRole: vi.fn(),
-  getCurrentUserId: vi.fn().mockReturnValue("user-123"),
-  getCurrentWorkspaceId: vi.fn().mockReturnValue("ws-123"),
-  setCurrentWorkspaceId: vi.fn(),
 }));
 
 const createWrapper = () => {
@@ -50,61 +42,6 @@ const createWrapper = () => {
   return Wrapper;
 };
 
-describe("useWorkspaces", () => {
-  it("fetches workspaces successfully", async () => {
-      const mockWorkspaces = [
-        {
-          id: "ws-1",
-          name: "Workspace 1",
-          work_unit_minutes: 30,
-          rounding_policy: "none",
-          date_format: "DD/MM/YYYY",
-          time_format: "24h",
-          timezone: "Asia/Ho_Chi_Minh",
-          theme_primary_color: "#10b981",
-          default_language: "en",
-          default_holiday_ot_multiplier: "2.0",
-          holiday_overnight_strategy: "split",
-          created_at: new Date().toISOString()
-        },
-      ];
- 
-        vi.mocked(api.fetchWorkspaces).mockResolvedValue(mockWorkspaces);
-
-    const { result } = renderHook(() => useWorkspaces(), {
-      wrapper: createWrapper(),
-    });
-
-    await waitFor(() => { expect(result.current.isLoading).toBe(false); });
-    expect(result.current.workspaces).toEqual(mockWorkspaces);
-  });
-
-  it("creates a workspace and invalidates queries", async () => {
-        const newWs = { 
-          id: "ws-new", 
-          name: "New WS", 
-          work_unit_minutes: 30, 
-          rounding_policy: "none", 
-          date_format: "DD/MM/YYYY", 
-          time_format: "24h", 
-          timezone: "Asia/Ho_Chi_Minh", 
-          theme_primary_color: "#10b981",
-          default_language: "en",
-          default_holiday_ot_multiplier: "2.0",
-          holiday_overnight_strategy: "split",
-          created_at: new Date().toISOString() 
- 
-        };    vi.mocked(api.createWorkspace).mockResolvedValue(newWs);
-
-    const { result } = renderHook(() => useWorkspaces(), {
-      wrapper: createWrapper(),
-    });
-
-    const created = await result.current.createWorkspace({ name: "New WS", database_url: "postgres://u:p@h:5432/db" });
-    expect(created).toEqual(newWs);
-    expect(api.createWorkspace).toHaveBeenCalled();
-  });
-});
 
 describe("useWorkspaceMembers", () => {
   it("fetches members successfully", async () => {

@@ -4,7 +4,7 @@ Single-company Linux appliance. No SaaS control plane, telemetry, activation cal
 
 ## Topology
 
-`docker-compose.standalone.yml` runs one PostgreSQL database, Redis, MinIO, Go API, and local React Dashboard. Database, Redis, and MinIO have no host ports. Frontend and API networks are internal; publish only a customer-managed TLS reverse proxy to the LAN.
+`docker-compose.yml` runs one PostgreSQL database, Redis, MinIO, Go API, and local React Dashboard. Database, Redis, and MinIO have no host ports. Frontend and API networks are internal; publish only a customer-managed TLS reverse proxy to the LAN.
 
 System and tenant tables share that PostgreSQL database. Tenant transaction queries reuse the API transaction pool; tenant session queries reuse the worker/session pool. No standalone tenant pool is opened, cached, evicted, or assigned a `tenant_<workspace_id>` database name.
 
@@ -42,7 +42,7 @@ Secrets MUST come from a protected secret store or root-readable file. Never com
 5. Apply the reviewed Compose file:
 
    ```sh
-   docker compose -f docker-compose.standalone.yml up -d
+   docker compose -f docker-compose.yml up -d
    ```
 
 6. Watch `apiserver` logs for successful license verification and bootstrap. Bootstrap creates exactly one organization and first administrator. A second organization or mismatched configured workspace fails closed.

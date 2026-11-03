@@ -356,15 +356,12 @@ def resolve_test_targets(target: str = "all") -> list[str]:
     return selected or ["all"]
 
 
-# ── Mode map & Rust version injection (extracted from Orchestrator) ────────
+
+# ── Mode map ────────────────────────────────────────────────────────────────
 
 
 def build_mode_map(project_root: Path | None = None) -> dict[str, str]:
-    """Build mode_map from leedevkit.toml services.
-
-    Maps each service to its test mode: Rust → 'api', TypeScript → 'web'.
-    Falls back to hardcoded defaults for backward compatibility.
-    """
+    """Build test modes from configured service languages."""
     if project_root is None:
         project_root = _find_project_root()
 
@@ -373,16 +370,14 @@ def build_mode_map(project_root: Path | None = None) -> dict[str, str]:
         config_toml = project_root / "leedevkit.toml"
         if config_toml.exists():
             cfg = _load_toml(config_toml)
-            services = cfg.get("services", {})
-            for name, svc in services.items():
-                if isinstance(svc, dict):
-                    lang = svc.get("lang", "")
-                    if lang == "rust":
-                        mode_map[name] = "api"
-                    elif lang in ("typescript", "javascript"):
-                        mode_map[name] = "web"
-                    elif lang == "go":
-                        mode_map[name] = "go"
+            for name, service in cfg.get("services", {}).items():
+                if not isinstance(service, dict):
+                    continue
+                language = service.get("lang", "")
+                if language == "go":
+                    mode_map[str(name)] = "go"
+                elif language in ("typescript", "javascript", "web"):
+                    mode_map[str(name)] = "web"
             api_services = cfg.get("targets", {}).get("api", [])
             if isinstance(api_services, list) and api_services:
                 api_service = str(api_services[0])
@@ -390,39 +385,18 @@ def build_mode_map(project_root: Path | None = None) -> dict[str, str]:
                     mode_map["api"] = mode_map[api_service]
     except (OSError, ValueError, KeyError):
         pass
-    # Backward-compat fallbacks
-    mode_map.setdefault("apiserver", "api")
+
+    mode_map.setdefault("apiserver", "go")
     mode_map.setdefault("webdashboard", "web")
-    mode_map.setdefault("api", "api")
+    mode_map.setdefault("api", "go")
     mode_map.setdefault("web", "web")
     mode_map.setdefault("go", "go")
     return mode_map
 
 
-def inject_rust_version_env(project_root: Path | None = None) -> None:
-    """Read rust_version from leedevkit.toml and set RUST_VERSION env var.
+# ── CLI ────────────────────────────────────────────────────────────────────
 
-    Defaults to '1.85' if not configured. Users can override with:
-      [services.<name>]
-      rust_version = "1.83"
-    or via environment: RUST_VERSION=1.83 ./leedevkit test all
-    """
-    if "RUST_VERSION" in os.environ:
-        return  # Explicit env override wins
-    if project_root is None:
-        project_root = _find_project_root()
-    try:
-        config_toml = project_root / "leedevkit.toml"
-        if config_toml.exists():
-            cfg = _load_toml(config_toml)
-            services = cfg.get("services", {})
-            for _svc in services.values():
-                if isinstance(_svc, dict) and "rust_version" in _svc:
-                    os.environ["RUST_VERSION"] = str(_svc["rust_version"])
-                    return
-    except (OSError, ValueError, KeyError):
-        pass
-    os.environ.setdefault("RUST_VERSION", "1.85")
+
 
 
 # ── CLI ────────────────────────────────────────────────────────────────────

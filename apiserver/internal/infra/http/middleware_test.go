@@ -131,15 +131,3 @@ func TestStandaloneWorkspaceMiddleware_RejectsOtherWorkspace(t *testing.T) {
 		t.Fatalf("expected forbidden workspace, got %d", rec.Code)
 	}
 }
-
-func TestStandaloneSaaSRouteMiddleware_BlocksProvisioning(t *testing.T) {
-	handler := StandaloneSaaSRouteMiddleware()(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		w.WriteHeader(http.StatusOK)
-	}))
-	req := httptest.NewRequest(http.MethodPost, "/api/v1/workspaces", nil)
-	rec := httptest.NewRecorder()
-	handler.ServeHTTP(rec, req)
-	if rec.Code != http.StatusNotFound {
-		t.Fatalf("expected hidden provisioning route, got %d", rec.Code)
-	}
-}

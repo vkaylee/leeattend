@@ -1,15 +1,12 @@
 # ==============================================================================
-# Podman Compose — Go/Web Test Environment (SaaS-shaped integration fixture)
-# ==============================================================================
+# Podman Compose — Go/Web Test Environment
 # This file is fully standalone — it does NOT merge with docker-compose.yml.
 # Profiles isolate backend (db, redis, apiserver) from frontend
-# (webdashboard, bun_init) so phases that only need one side don't
+# (webdashboard, bun_init) so phases that only need one side do not
 # launch the other.
 #
-# db_system and db_workspace intentionally remain separate: this fixture tests
-# SaaS tenant database isolation. Standalone shared-database behavior is tested
-# by apiserver/internal/db/pool and apiserver/internal/standalone plus the
-# standalone Compose smoke, not by collapsing this fixture's two databases.
+# One PostgreSQL service hosts system and workspace tables in one database.
+
 
 networks:
   test_net:
@@ -17,11 +14,10 @@ networks:
 
 
 services:
-  db_system:
+  db:
     image: public.ecr.aws/docker/library/postgres:18-alpine
     profiles:
       - infra-db
-      - infra-pooler
     networks:
       - test_net
     command: postgres -c fsync=off -c synchronous_commit=off -c full_page_writes=off -c max_connections=1000
@@ -39,27 +35,6 @@ services:
     tmpfs:
       - /var/lib/postgresql:size=3072M
 
-  db_workspace:
-    image: public.ecr.aws/docker/library/postgres:18-alpine
-    profiles:
-      - infra-db
-      - infra-pooler
-    networks:
-      - test_net
-    command: postgres -c fsync=off -c synchronous_commit=off -c full_page_writes=off -c max_connections=1000
-    environment:
-      - POSTGRES_DB=tenant_test_db
-      - POSTGRES_USER=tenant_test_user
-      - POSTGRES_PASSWORD=tenant_test_password
-      - POSTGRES_HOST_AUTH_METHOD=trust
-    shm_size: 512mb
-    healthcheck:
-      test: "pg_isready -U tenant_test_user -d tenant_test_db"
-      interval: 5s
-      timeout: 5s
-      retries: 5
-    tmpfs:
-      - /var/lib/postgresql:size=1024M
 
   redis:
     image: public.ecr.aws/docker/library/redis:7-alpine
@@ -74,127 +49,9 @@ services:
       timeout: 5s
       retries: 5
 
-  pgbouncer_tx:
-    image: docker.io/edoburu/pgbouncer:v1.25.2-p0
-    profiles:
-      - infra-pooler
-    networks:
-      - test_net
-    depends_on:
-      db_system:
-        condition: service_healthy
-    environment:
-      - DB_HOST=db_system
-      - DB_PORT=5432
-      - DB_USER=test_user
-      - DB_PASSWORD=test_password
-      - DB_NAME=*
-      - LISTEN_PORT=6543
-      - POOL_MODE=transaction
-      - MAX_CLIENT_CONN=2000
-      - DEFAULT_POOL_SIZE=50
-      - MIN_POOL_SIZE=10
-      - RESERVE_POOL_SIZE=5
-      - RESERVE_POOL_TIMEOUT=5
-      - MAX_PREPARED_STATEMENTS=250
-      - ADMIN_USERS=tenant_test_user,test_user,postgres
-      - AUTH_TYPE=trust
-    healthcheck:
-      test: ["CMD", "pg_isready", "-h", "localhost", "-p", "6543"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
 
-  pgbouncer_sess:
-    image: docker.io/edoburu/pgbouncer:v1.25.2-p0
-    profiles:
-      - infra-pooler
-    networks:
-      - test_net
-    depends_on:
-      db_system:
-        condition: service_healthy
-    environment:
-      - DB_HOST=db_system
-      - DB_PORT=5432
-      - DB_USER=test_user
-      - DB_PASSWORD=test_password
-      - DB_NAME=*
-      - LISTEN_PORT=5452
-      - POOL_MODE=session
-      - MAX_CLIENT_CONN=2000
-      - DEFAULT_POOL_SIZE=50
-      - MIN_POOL_SIZE=10
-      - RESERVE_POOL_SIZE=5
-      - RESERVE_POOL_TIMEOUT=5
-      - ADMIN_USERS=tenant_test_user,test_user,postgres
-      - AUTH_TYPE=trust
-    healthcheck:
-      test: ["CMD", "pg_isready", "-h", "localhost", "-p", "5452"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
 
-  pgbouncer_tenant_tx:
-    image: docker.io/edoburu/pgbouncer:v1.25.2-p0
-    profiles:
-      - infra-pooler
-    networks:
-      - test_net
-    depends_on:
-      db_workspace:
-        condition: service_healthy
-    environment:
-      - DB_HOST=db_workspace
-      - DB_PORT=5432
-      - DB_USER=tenant_test_user
-      - DB_PASSWORD=tenant_test_password
-      - DB_NAME=*
-      - LISTEN_PORT=6543
-      - POOL_MODE=transaction
-      - MAX_CLIENT_CONN=2000
-      - DEFAULT_POOL_SIZE=50
-      - MIN_POOL_SIZE=10
-      - RESERVE_POOL_SIZE=5
-      - RESERVE_POOL_TIMEOUT=5
-      - MAX_PREPARED_STATEMENTS=250
-      - ADMIN_USERS=tenant_test_user,postgres
-      - AUTH_TYPE=trust
-    healthcheck:
-      test: ["CMD", "pg_isready", "-h", "localhost", "-p", "6543"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
 
-  pgbouncer_tenant_sess:
-    image: docker.io/edoburu/pgbouncer:v1.25.2-p0
-    profiles:
-      - infra-pooler
-    networks:
-      - test_net
-    depends_on:
-      db_workspace:
-        condition: service_healthy
-    environment:
-      - DB_HOST=db_workspace
-      - DB_PORT=5432
-      - DB_USER=tenant_test_user
-      - DB_PASSWORD=tenant_test_password
-      - DB_NAME=*
-      - LISTEN_PORT=5452
-      - POOL_MODE=session
-      - MAX_CLIENT_CONN=2000
-      - DEFAULT_POOL_SIZE=50
-      - MIN_POOL_SIZE=10
-      - RESERVE_POOL_SIZE=5
-      - RESERVE_POOL_TIMEOUT=5
-      - ADMIN_USERS=tenant_test_user,postgres
-      - AUTH_TYPE=trust
-    healthcheck:
-      test: ["CMD", "pg_isready", "-h", "localhost", "-p", "5452"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
 
 
 
@@ -223,6 +80,17 @@ services:
       retries: 12
     environment:
       - GOFLAGS=-mod=mod -buildvcs=false
+      - DB_PRIMARY_URL=postgres://test_user:test_password@db:5432/test_database?sslmode=disable
+      - DB_POOLER_TX_URL=postgres://test_user:test_password@db:5432/test_database?sslmode=disable
+      - DB_POOLER_SESS_URL=postgres://test_user:test_password@db:5432/test_database?sslmode=disable
+      - DB_READER_URL=postgres://test_user:test_password@db:5432/test_database?sslmode=disable
+      - STANDALONE_WORKSPACE_ID=00000000-0000-7000-8000-000000000001
+      - STANDALONE_WORKSPACE_NAME=Test Workspace
+      - STANDALONE_ADMIN_EMAIL=admin@example.invalid
+      - STANDALONE_ADMIN_PASSWORD=test-password
+      - LICENSE_PATH=/tmp/license.json
+      - LICENSE_PUBLIC_KEY=AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+      - JWT_SECRET=test-jwt-secret-at-least-32-characters-long
     volumes:
       - ${PROJECT_ROOT}:/workspace
       - go-module-cache:/go/pkg/mod

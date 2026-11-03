@@ -24,14 +24,8 @@ func (m mockAuthorizer) HasPermission(_ context.Context, _, _ uuid.UUID, perm st
 
 type mockWorkspaceRepo struct{}
 
-func (m mockWorkspaceRepo) ListWorkspaces(_ context.Context, _ uuid.UUID) ([]WorkspaceRecord, error) {
-	return []WorkspaceRecord{{Name: "Mock WS"}}, nil
-}
 func (m mockWorkspaceRepo) GetWorkspace(_ context.Context, id uuid.UUID) (WorkspaceRecord, error) {
 	return WorkspaceRecord{ID: id, Name: "Mock WS"}, nil
-}
-func (m mockWorkspaceRepo) CreateWorkspace(_ context.Context, req CreateWorkspaceRequest, _ uuid.UUID) (WorkspaceRecord, error) {
-	return WorkspaceRecord{Name: req.Name}, nil
 }
 func (m mockWorkspaceRepo) UpdateWorkspace(_ context.Context, _ uuid.UUID, _ WorkspacePatch) (WorkspaceRecord, error) {
 	return WorkspaceRecord{}, nil
@@ -76,18 +70,6 @@ func (m mockWorkspaceRepo) GetConfig(_ context.Context, _ uuid.UUID, key string)
 }
 func (m mockWorkspaceRepo) DeleteConfig(_ context.Context, _ uuid.UUID, _ uuid.UUID) error {
 	return nil
-}
-
-func TestWorkspaceHandler_CreateForbiddenForRegularUser(t *testing.T) {
-	h := WorkspaceHandler{Repository: mockWorkspaceRepo{}, Authorizer: mockAuthorizer{admin: false}}
-	req := httptest.NewRequest(http.MethodPost, "/api/v1/workspaces", bytes.NewBufferString(`{"name":"Acme","database_url":"postgres://..."}`))
-	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
-	rec := httptest.NewRecorder()
-
-	h.Create(rec, req)
-	if rec.Code != http.StatusForbidden {
-		t.Fatalf("expected 403, got %d", rec.Code)
-	}
 }
 
 func TestWorkspaceHandler_PatchEmptyPayloadFailsValidation(t *testing.T) {
@@ -199,26 +181,14 @@ func TestWorkspaceHandler_FeatureFlagsCRUD(t *testing.T) {
 	}
 }
 
-func TestWorkspaceHandler_ListAndGet(t *testing.T) {
+func TestWorkspaceHandler_Get(t *testing.T) {
 	wsID, userID := uuid.New(), uuid.New()
 	h := WorkspaceHandler{Repository: mockWorkspaceRepo{}, Authorizer: mockAuthorizer{}}
 
-	req := httptest.NewRequest(http.MethodGet, "/api/v1/workspaces", nil)
-	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), userID))
-	rec := httptest.NewRecorder()
-	h.List(rec, req)
-	if rec.Code != http.StatusOK {
-		t.Fatalf("expected 200 for list, got %d", rec.Code)
-	}
-	var listed []WorkspaceRecord
-	if err := json.Unmarshal(rec.Body.Bytes(), &listed); err != nil || len(listed) != 1 {
-		t.Fatalf("expected one workspace, got %s (err=%v)", rec.Body.String(), err)
-	}
-
-	req = httptest.NewRequest(http.MethodGet, "/api/v1/workspaces/"+wsID.String(), nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/workspaces/"+wsID.String(), nil)
 	req.SetPathValue("ws_id", wsID.String())
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), userID))
-	rec = httptest.NewRecorder()
+	rec := httptest.NewRecorder()
 	h.Get(rec, req)
 	if rec.Code != http.StatusOK {
 		t.Fatalf("expected 200 for get, got %d", rec.Code)

@@ -302,17 +302,7 @@ describe("api.ts comprehensive tests", () => {
   });
 
   describe("Workspace & Auth Management", () => {
-    it("fetchWorkspaces", async () => {
-      mockSuccess([]);
-      await api.fetchWorkspaces();
-      expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/workspaces"), expect.any(Object));
-    });
 
-    it("createWorkspace", async () => {
-      mockSuccess({});
-      await api.createWorkspace({ name: "N", database_url: "postgres://u:p@h:5432/db" });
-      expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/workspaces"), expect.objectContaining({ method: "POST" }));
-    });
 
     it("fetchWorkspace", async () => {
       mockSuccess({});

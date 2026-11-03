@@ -1,10 +1,8 @@
 import { useEffect, useRef, type RefObject } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { getCurrentWorkspaceId } from '@/lib/api';
 
-import { useProfile } from './use-profile';
-import { useWorkspaces } from './use-workspace';
+import { useWorkspace } from './use-workspace';
 
 interface SyncLangOptions {
   currentWorkspaceDefaultLang?: string;
@@ -31,9 +29,7 @@ function syncLanguage({ hasInitialized, userPreferredLang, currentWorkspaceDefau
 export function useI18nSync() {
   const { i18n } = useTranslation();
   const { user } = useProfile();
-  const { workspaces } = useWorkspaces();
-  const currentWsId = getCurrentWorkspaceId();
-  const currentWorkspace = workspaces.find(ws => ws.id === currentWsId);
+  const { workspace: currentWorkspace } = useWorkspace();
   const hasInitialized = useRef(false);
 
   useEffect(() => {

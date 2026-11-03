@@ -46,10 +46,6 @@ func (p WorkspacePatch) Empty() bool {
 	return p.Name == nil && p.DateFormat == nil && p.TimeFormat == nil && p.Timezone == nil && p.ThemePrimaryColor == nil && p.DefaultLanguage == nil && p.LogoURL == nil && p.Tagline == nil
 }
 
-type CreateWorkspaceRequest struct {
-	Name        string `json:"name"`
-	DatabaseURL string `json:"database_url"`
-}
 type CreateRoleRequest struct {
 	Name        string `json:"name"`
 	Description string `json:"description"`
@@ -120,9 +116,7 @@ type ResolvedConfig struct {
 	ScopeID   *uuid.UUID  `json:"scope_id"`
 }
 type WorkspaceRepository interface {
-	ListWorkspaces(context.Context, uuid.UUID) ([]WorkspaceRecord, error)
 	GetWorkspace(context.Context, uuid.UUID) (WorkspaceRecord, error)
-	CreateWorkspace(context.Context, CreateWorkspaceRequest, uuid.UUID) (WorkspaceRecord, error)
 	UpdateWorkspace(context.Context, uuid.UUID, WorkspacePatch) (WorkspaceRecord, error)
 	CreateRole(context.Context, uuid.UUID, CreateRoleRequest) error
 	ListFeatureFlags(context.Context, uuid.UUID) ([]FeatureFlagRecord, error)
@@ -146,20 +140,6 @@ type WorkspaceAuthorizer interface {
 type WorkspaceHandler struct {
 	Repository WorkspaceRepository
 	Authorizer WorkspaceAuthorizer
-}
-
-func (h WorkspaceHandler) List(w http.ResponseWriter, r *http.Request) {
-	userID, ok := httpinfra.UserIDFromContext(r.Context())
-	if !ok {
-		apperror.WriteError(w, r, apperror.Unauthorized(apperror.KeyAuthenticationRequired))
-		return
-	}
-	workspaces, err := h.Repository.ListWorkspaces(r.Context(), userID)
-	if err != nil {
-		h.writeRepositoryError(w, r, err)
-		return
-	}
-	apperror.WriteJSON(w, http.StatusOK, workspaces)
 }
 
 func (h WorkspaceHandler) Get(w http.ResponseWriter, r *http.Request) {
@@ -245,25 +225,6 @@ func (h WorkspaceHandler) DeleteConfig(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.WriteHeader(http.StatusOK)
-}
-
-func (h WorkspaceHandler) Create(w http.ResponseWriter, r *http.Request) {
-	userID, ok := httpinfra.UserIDFromContext(r.Context())
-	if !ok || h.Authorizer == nil || !h.Authorizer.IsSystemAdmin(r.Context(), userID) {
-		apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
-		return
-	}
-	request, err := DecodeJSON[CreateWorkspaceRequest](r, 1<<20)
-	if err != nil || strings.TrimSpace(request.Name) == "" || strings.TrimSpace(request.DatabaseURL) == "" {
-		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
-		return
-	}
-	workspace, err := h.Repository.CreateWorkspace(r.Context(), request, userID)
-	if err != nil {
-		h.writeRepositoryError(w, r, err)
-		return
-	}
-	apperror.WriteJSON(w, http.StatusOK, workspace)
 }
 
 func (h WorkspaceHandler) Patch(w http.ResponseWriter, r *http.Request) {

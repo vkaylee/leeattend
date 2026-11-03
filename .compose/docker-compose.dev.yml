@@ -2,19 +2,12 @@
 # Podman Compose — Development Override
 # ==============================================================================
 services:
-  db_system:
+  db:
     command: postgres -c fsync=off -c synchronous_commit=off -c full_page_writes=off -c max_connections=200
     ports:
       - "5434:5432"
     volumes:
-      - postgres_system_dev_data:/var/lib/postgresql
-
-  db_workspace:
-    command: postgres -c fsync=off -c synchronous_commit=off -c full_page_writes=off -c max_connections=200
-    ports:
-      - "5435:5432"
-    volumes:
-      - postgres_workspace_dev_data:/var/lib/postgresql
+      - postgres_dev_data:/var/lib/postgresql/data
 
   redis:
     volumes:
@@ -63,7 +56,7 @@ services:
       - ./.compose/cloudbeaver-initial-data-sources.conf:/opt/cloudbeaver/conf/initial-data-sources.conf.tpl:ro
     entrypoint: /opt/cloudbeaver/cloudbeaver-entrypoint.sh
     depends_on:
-      db_system:
+      db:
         condition: service_healthy
 
   apiserver:
@@ -74,32 +67,28 @@ services:
       - APP_ENV=development
       - APP_HOST=0.0.0.0
       - APP_PORT=3000
-      - DB_PRIMARY_URL=postgres://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@db_system:5432/${DB_NAME:-leeattend_system}
-      - DB_POOLER_TX_URL=postgres://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@pgbouncer_tx:6543/${DB_NAME:-leeattend_system}
-      - DB_POOLER_SESS_URL=postgres://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@pgbouncer_sess:5452/${DB_NAME:-leeattend_system}
-      - DB_TENANT_POOLER_TX_URL=postgres://tenant_user:tenant_password@pgbouncer_tenant_tx:6543/tenant_db
-      - DB_TENANT_POOLER_SESS_URL=postgres://tenant_user:tenant_password@pgbouncer_tenant_sess:5452/tenant_db
+      - DB_PRIMARY_URL=postgres://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@db:5432/${DB_NAME:-leeattend}
+      - DB_POOLER_TX_URL=postgres://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@db:5432/${DB_NAME:-leeattend}
+      - DB_POOLER_SESS_URL=postgres://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@db:5432/${DB_NAME:-leeattend}
+      - DB_READER_URL=postgres://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@db:5432/${DB_NAME:-leeattend}
       - REDIS_URL=redis://:${REDIS_PASSWORD:-}@redis:6379
       - JWT_SECRET=${JWT_SECRET:-development_jwt_secret_change_me}
       - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-*}
-      - LOG_PULL_ENABLED=${LOG_PULL_ENABLED:-false}
-      - LOG_PULL_BASE_URL=${LOG_PULL_BASE_URL:-https://provider.example.invalid}
-      - LOG_PULL_TOKEN=${LOG_PULL_TOKEN:-}
-      - LOG_PULL_ACCOUNT_ID=${LOG_PULL_ACCOUNT_ID:-}
-      - LOG_PULL_MODE=${LOG_PULL_MODE:-shadow}
+      - STANDALONE_WORKSPACE_ID=${STANDALONE_WORKSPACE_ID:-00000000-0000-7000-8000-000000000001}
+      - STANDALONE_WORKSPACE_NAME=${STANDALONE_WORKSPACE_NAME:-Development Workspace}
+      - STANDALONE_ADMIN_EMAIL=${STANDALONE_ADMIN_EMAIL:-admin@example.invalid}
+      - STANDALONE_ADMIN_PASSWORD=${STANDALONE_ADMIN_PASSWORD:-development-password}
+      - LICENSE_PATH=/tmp/license.json
+      - LICENSE_PUBLIC_KEY=${LICENSE_PUBLIC_KEY:-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA}
     volumes:
       - .:/app
       - go-module-cache:/go/pkg/mod
     depends_on:
-      db_system:
-        condition: service_healthy
-      db_workspace:
+      db:
         condition: service_healthy
       redis:
         condition: service_healthy
-
   webdashboard:
-    image: localhost/leeattend_dev_webdashboard
     build:
       context: ./webdashboard
       dockerfile: Dockerfile
@@ -134,8 +123,7 @@ services:
       - ./Caddyfile-dev:/etc/caddy/Caddyfile:ro
 
 volumes:
-  postgres_system_dev_data:
-  postgres_workspace_dev_data:
+  postgres_dev_data:
   redis_dev_data:
   webdashboard-node-modules:
   cloudbeaver_dev_data:

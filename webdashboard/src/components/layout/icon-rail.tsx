@@ -25,7 +25,6 @@ interface IconRailProps {
   activeGroup: NavGroup | null;
   isPinned: boolean;
   onClickGroup: (g: NavGroup) => void;
-  onClickWorkspaceSwitcher: () => void;
   onHoverGroup: (g: NavGroup | null) => void;
   onTogglePin: () => void;
   workspaceLogoUrl?: string;
@@ -47,7 +46,6 @@ const IconRail = memo(function IconRail({
   workspaceName,
   workspaceLogoUrl,
   workspaceTagline,
-  onClickWorkspaceSwitcher,
 }: IconRailProps) {
   const { t } = useTranslation();
   const { dashboard, settings, groups } = useFilteredMenuItems();
@@ -79,7 +77,7 @@ const IconRail = memo(function IconRail({
         aria-label={workspaceName ?? "LeeAttend"}
         className="flex items-center justify-center h-14 w-full shrink-0 hover:bg-slate-50 dark:hover:bg-slate-900 transition-colors group"
         data-testid="nav-rail-logo"
-        onClick={onClickWorkspaceSwitcher}
+        onClick={() => { window.location.href = ROUTES.HOME; }}
         type="button"
       >
         {workspaceLogoUrl ? (

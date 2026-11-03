@@ -14,7 +14,6 @@ import { Route as RegisterRouteImport } from "./routes/register"
 import { Route as LoginRouteImport } from "./routes/login"
 import { Route as ForgotPasswordRouteImport } from "./routes/forgot-password"
 import { Route as AuthenticatedRouteImport } from "./routes/_authenticated"
-import { Route as AuthenticatedOnboardingRouteImport } from "./routes/_authenticated/onboarding"
 import { Route as AuthenticatedWorkspaceRouteImport } from "./routes/_authenticated/_workspace"
 import { Route as AuthenticatedInfraRouteImport } from "./routes/_authenticated/_infra"
 import { Route as AuthenticatedWorkspaceIndexRouteImport } from "./routes/_authenticated/_workspace/index"
@@ -53,10 +52,8 @@ import { Route as AuthenticatedWorkspaceEssAttendanceRouteImport } from "./route
 import { Route as AuthenticatedWorkspaceDocumentsTemplatesRouteImport } from "./routes/_authenticated/_workspace/documents.templates"
 import { Route as AuthenticatedWorkspaceAssignmentRulesNewRouteImport } from "./routes/_authenticated/_workspace/assignment-rules.new"
 import { Route as AuthenticatedWorkspaceApprovalsOtRouteImport } from "./routes/_authenticated/_workspace/approvals/ot"
-import { Route as AuthenticatedInfraSystemTenantsRouteImport } from "./routes/_authenticated/_infra/system/tenants"
 import { Route as AuthenticatedInfraSystemSmtpRouteImport } from "./routes/_authenticated/_infra/system/smtp"
 import { Route as AuthenticatedInfraSystemRolesRouteImport } from "./routes/_authenticated/_infra/system/roles"
-import { Route as AuthenticatedInfraSystemDbClustersRouteImport } from "./routes/_authenticated/_infra/system/db-clusters"
 import { Route as AuthenticatedInfraInfraMonitorRouteImport } from "./routes/_authenticated/_infra/infra/monitor"
 import { Route as AuthenticatedWorkspaceWorkspaceSettingsIndexRouteImport } from "./routes/_authenticated/_workspace/workspace/settings/index"
 import { Route as AuthenticatedWorkspaceShiftsRulesIndexRouteImport } from "./routes/_authenticated/_workspace/shifts.rules.index"
@@ -118,13 +115,6 @@ const AuthenticatedRoute = AuthenticatedRouteImport.update({
   id: "/_authenticated",
   getParentRoute: () => rootRouteImport,
 } as any)
-const AuthenticatedOnboardingRoute = AuthenticatedOnboardingRouteImport.update({
-  id: "/onboarding",
-  path: "/onboarding",
-  getParentRoute: () => AuthenticatedRoute,
-} as any).lazy(() =>
-  import("./routes/_authenticated/onboarding.lazy").then((d) => d.Route),
-)
 const AuthenticatedWorkspaceRoute = AuthenticatedWorkspaceRouteImport.update({
   id: "/_workspace",
   getParentRoute: () => AuthenticatedRoute,
@@ -473,16 +463,6 @@ const AuthenticatedWorkspaceApprovalsOtRoute =
       (d) => d.Route,
     ),
   )
-const AuthenticatedInfraSystemTenantsRoute =
-  AuthenticatedInfraSystemTenantsRouteImport.update({
-    id: "/system/tenants",
-    path: "/system/tenants",
-    getParentRoute: () => AuthenticatedInfraRoute,
-  } as any).lazy(() =>
-    import("./routes/_authenticated/_infra/system/tenants.lazy").then(
-      (d) => d.Route,
-    ),
-  )
 const AuthenticatedInfraSystemSmtpRoute =
   AuthenticatedInfraSystemSmtpRouteImport.update({
     id: "/system/smtp",
@@ -500,16 +480,6 @@ const AuthenticatedInfraSystemRolesRoute =
     getParentRoute: () => AuthenticatedInfraRoute,
   } as any).lazy(() =>
     import("./routes/_authenticated/_infra/system/roles.lazy").then(
-      (d) => d.Route,
-    ),
-  )
-const AuthenticatedInfraSystemDbClustersRoute =
-  AuthenticatedInfraSystemDbClustersRouteImport.update({
-    id: "/system/db-clusters",
-    path: "/system/db-clusters",
-    getParentRoute: () => AuthenticatedInfraRoute,
-  } as any).lazy(() =>
-    import("./routes/_authenticated/_infra/system/db-clusters.lazy").then(
       (d) => d.Route,
     ),
   )
@@ -841,7 +811,6 @@ export interface FileRoutesByFullPath {
   "/login": typeof LoginRoute
   "/register": typeof RegisterRoute
   "/reset-password": typeof ResetPasswordRoute
-  "/onboarding": typeof AuthenticatedOnboardingRoute
   "/assignment-rules": typeof AuthenticatedWorkspaceAssignmentRulesRouteWithChildren
   "/attendance-adjustments": typeof AuthenticatedWorkspaceAttendanceAdjustmentsRoute
   "/attendance-logs": typeof AuthenticatedWorkspaceAttendanceLogsRoute
@@ -861,10 +830,8 @@ export interface FileRoutesByFullPath {
   "/shifts": typeof AuthenticatedWorkspaceShiftsRouteWithChildren
   "/working-patterns": typeof AuthenticatedWorkspaceWorkingPatternsRouteWithChildren
   "/infra/monitor": typeof AuthenticatedInfraInfraMonitorRoute
-  "/system/db-clusters": typeof AuthenticatedInfraSystemDbClustersRoute
   "/system/roles": typeof AuthenticatedInfraSystemRolesRoute
   "/system/smtp": typeof AuthenticatedInfraSystemSmtpRoute
-  "/system/tenants": typeof AuthenticatedInfraSystemTenantsRoute
   "/approvals/ot": typeof AuthenticatedWorkspaceApprovalsOtRoute
   "/assignment-rules/new": typeof AuthenticatedWorkspaceAssignmentRulesNewRoute
   "/documents/templates": typeof AuthenticatedWorkspaceDocumentsTemplatesRoute
@@ -920,7 +887,6 @@ export interface FileRoutesByTo {
   "/login": typeof LoginRoute
   "/register": typeof RegisterRoute
   "/reset-password": typeof ResetPasswordRoute
-  "/onboarding": typeof AuthenticatedOnboardingRoute
   "/attendance-adjustments": typeof AuthenticatedWorkspaceAttendanceAdjustmentsRoute
   "/attendance-logs": typeof AuthenticatedWorkspaceAttendanceLogsRoute
   "/dashboard": typeof AuthenticatedWorkspaceDashboardRoute
@@ -937,10 +903,8 @@ export interface FileRoutesByTo {
   "/reports": typeof AuthenticatedWorkspaceReportsRoute
   "/shift-swaps": typeof AuthenticatedWorkspaceShiftSwapsRoute
   "/infra/monitor": typeof AuthenticatedInfraInfraMonitorRoute
-  "/system/db-clusters": typeof AuthenticatedInfraSystemDbClustersRoute
   "/system/roles": typeof AuthenticatedInfraSystemRolesRoute
   "/system/smtp": typeof AuthenticatedInfraSystemSmtpRoute
-  "/system/tenants": typeof AuthenticatedInfraSystemTenantsRoute
   "/approvals/ot": typeof AuthenticatedWorkspaceApprovalsOtRoute
   "/assignment-rules/new": typeof AuthenticatedWorkspaceAssignmentRulesNewRoute
   "/documents/templates": typeof AuthenticatedWorkspaceDocumentsTemplatesRoute
@@ -996,7 +960,6 @@ export interface FileRoutesById {
   "/reset-password": typeof ResetPasswordRoute
   "/_authenticated/_infra": typeof AuthenticatedInfraRouteWithChildren
   "/_authenticated/_workspace": typeof AuthenticatedWorkspaceRouteWithChildren
-  "/_authenticated/onboarding": typeof AuthenticatedOnboardingRoute
   "/_authenticated/_workspace/assignment-rules": typeof AuthenticatedWorkspaceAssignmentRulesRouteWithChildren
   "/_authenticated/_workspace/attendance-adjustments": typeof AuthenticatedWorkspaceAttendanceAdjustmentsRoute
   "/_authenticated/_workspace/attendance-logs": typeof AuthenticatedWorkspaceAttendanceLogsRoute
@@ -1017,10 +980,8 @@ export interface FileRoutesById {
   "/_authenticated/_workspace/working-patterns": typeof AuthenticatedWorkspaceWorkingPatternsRouteWithChildren
   "/_authenticated/_workspace/": typeof AuthenticatedWorkspaceIndexRoute
   "/_authenticated/_infra/infra/monitor": typeof AuthenticatedInfraInfraMonitorRoute
-  "/_authenticated/_infra/system/db-clusters": typeof AuthenticatedInfraSystemDbClustersRoute
   "/_authenticated/_infra/system/roles": typeof AuthenticatedInfraSystemRolesRoute
   "/_authenticated/_infra/system/smtp": typeof AuthenticatedInfraSystemSmtpRoute
-  "/_authenticated/_infra/system/tenants": typeof AuthenticatedInfraSystemTenantsRoute
   "/_authenticated/_workspace/approvals/ot": typeof AuthenticatedWorkspaceApprovalsOtRoute
   "/_authenticated/_workspace/assignment-rules/new": typeof AuthenticatedWorkspaceAssignmentRulesNewRoute
   "/_authenticated/_workspace/documents/templates": typeof AuthenticatedWorkspaceDocumentsTemplatesRoute
@@ -1078,7 +1039,6 @@ export interface FileRouteTypes {
     | "/login"
     | "/register"
     | "/reset-password"
-    | "/onboarding"
     | "/assignment-rules"
     | "/attendance-adjustments"
     | "/attendance-logs"
@@ -1098,10 +1058,8 @@ export interface FileRouteTypes {
     | "/shifts"
     | "/working-patterns"
     | "/infra/monitor"
-    | "/system/db-clusters"
     | "/system/roles"
     | "/system/smtp"
-    | "/system/tenants"
     | "/approvals/ot"
     | "/assignment-rules/new"
     | "/documents/templates"
@@ -1157,7 +1115,6 @@ export interface FileRouteTypes {
     | "/login"
     | "/register"
     | "/reset-password"
-    | "/onboarding"
     | "/attendance-adjustments"
     | "/attendance-logs"
     | "/dashboard"
@@ -1174,10 +1131,8 @@ export interface FileRouteTypes {
     | "/reports"
     | "/shift-swaps"
     | "/infra/monitor"
-    | "/system/db-clusters"
     | "/system/roles"
     | "/system/smtp"
-    | "/system/tenants"
     | "/approvals/ot"
     | "/assignment-rules/new"
     | "/documents/templates"
@@ -1232,7 +1187,6 @@ export interface FileRouteTypes {
     | "/reset-password"
     | "/_authenticated/_infra"
     | "/_authenticated/_workspace"
-    | "/_authenticated/onboarding"
     | "/_authenticated/_workspace/assignment-rules"
     | "/_authenticated/_workspace/attendance-adjustments"
     | "/_authenticated/_workspace/attendance-logs"
@@ -1253,10 +1207,8 @@ export interface FileRouteTypes {
     | "/_authenticated/_workspace/working-patterns"
     | "/_authenticated/_workspace/"
     | "/_authenticated/_infra/infra/monitor"
-    | "/_authenticated/_infra/system/db-clusters"
     | "/_authenticated/_infra/system/roles"
     | "/_authenticated/_infra/system/smtp"
-    | "/_authenticated/_infra/system/tenants"
     | "/_authenticated/_workspace/approvals/ot"
     | "/_authenticated/_workspace/assignment-rules/new"
     | "/_authenticated/_workspace/documents/templates"
@@ -1351,13 +1303,6 @@ declare module "@tanstack/react-router" {
       fullPath: "/"
       preLoaderRoute: typeof AuthenticatedRouteImport
       parentRoute: typeof rootRouteImport
-    }
-    "/_authenticated/onboarding": {
-      id: "/_authenticated/onboarding"
-      path: "/onboarding"
-      fullPath: "/onboarding"
-      preLoaderRoute: typeof AuthenticatedOnboardingRouteImport
-      parentRoute: typeof AuthenticatedRoute
     }
     "/_authenticated/_workspace": {
       id: "/_authenticated/_workspace"
@@ -1625,13 +1570,6 @@ declare module "@tanstack/react-router" {
       preLoaderRoute: typeof AuthenticatedWorkspaceApprovalsOtRouteImport
       parentRoute: typeof AuthenticatedWorkspaceRoute
     }
-    "/_authenticated/_infra/system/tenants": {
-      id: "/_authenticated/_infra/system/tenants"
-      path: "/system/tenants"
-      fullPath: "/system/tenants"
-      preLoaderRoute: typeof AuthenticatedInfraSystemTenantsRouteImport
-      parentRoute: typeof AuthenticatedInfraRoute
-    }
     "/_authenticated/_infra/system/smtp": {
       id: "/_authenticated/_infra/system/smtp"
       path: "/system/smtp"
@@ -1644,13 +1582,6 @@ declare module "@tanstack/react-router" {
       path: "/system/roles"
       fullPath: "/system/roles"
       preLoaderRoute: typeof AuthenticatedInfraSystemRolesRouteImport
-      parentRoute: typeof AuthenticatedInfraRoute
-    }
-    "/_authenticated/_infra/system/db-clusters": {
-      id: "/_authenticated/_infra/system/db-clusters"
-      path: "/system/db-clusters"
-      fullPath: "/system/db-clusters"
-      preLoaderRoute: typeof AuthenticatedInfraSystemDbClustersRouteImport
       parentRoute: typeof AuthenticatedInfraRoute
     }
     "/_authenticated/_infra/infra/monitor": {
@@ -1882,19 +1813,14 @@ declare module "@tanstack/react-router" {
 
 interface AuthenticatedInfraRouteChildren {
   AuthenticatedInfraInfraMonitorRoute: typeof AuthenticatedInfraInfraMonitorRoute
-  AuthenticatedInfraSystemDbClustersRoute: typeof AuthenticatedInfraSystemDbClustersRoute
   AuthenticatedInfraSystemRolesRoute: typeof AuthenticatedInfraSystemRolesRoute
   AuthenticatedInfraSystemSmtpRoute: typeof AuthenticatedInfraSystemSmtpRoute
-  AuthenticatedInfraSystemTenantsRoute: typeof AuthenticatedInfraSystemTenantsRoute
 }
 
 const AuthenticatedInfraRouteChildren: AuthenticatedInfraRouteChildren = {
   AuthenticatedInfraInfraMonitorRoute: AuthenticatedInfraInfraMonitorRoute,
-  AuthenticatedInfraSystemDbClustersRoute:
-    AuthenticatedInfraSystemDbClustersRoute,
   AuthenticatedInfraSystemRolesRoute: AuthenticatedInfraSystemRolesRoute,
   AuthenticatedInfraSystemSmtpRoute: AuthenticatedInfraSystemSmtpRoute,
-  AuthenticatedInfraSystemTenantsRoute: AuthenticatedInfraSystemTenantsRoute,
 }
 
 const AuthenticatedInfraRouteWithChildren =
@@ -2177,13 +2103,11 @@ const AuthenticatedWorkspaceRouteWithChildren =
 interface AuthenticatedRouteChildren {
   AuthenticatedInfraRoute: typeof AuthenticatedInfraRouteWithChildren
   AuthenticatedWorkspaceRoute: typeof AuthenticatedWorkspaceRouteWithChildren
-  AuthenticatedOnboardingRoute: typeof AuthenticatedOnboardingRoute
 }
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedInfraRoute: AuthenticatedInfraRouteWithChildren,
   AuthenticatedWorkspaceRoute: AuthenticatedWorkspaceRouteWithChildren,
-  AuthenticatedOnboardingRoute: AuthenticatedOnboardingRoute,
 }
 
 const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(

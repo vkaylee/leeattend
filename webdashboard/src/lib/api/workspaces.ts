@@ -5,17 +5,6 @@ import { ApiError } from "./errors";
 import { apiFetch } from "./helpers";
 import { Workspace, WorkspaceMember, MemberRolesResponse, MemberExtraRole, MemberExtraPermission, PermissionCatalogItem, WorkspaceRole } from "./types";
 
-export async function fetchWorkspaces(): Promise<Workspace[]> {
-  const { data: resData } = await client.GET("/workspaces");
-  return resData;
-}
-
-export async function createWorkspace(data: { name: string; database_url?: string }): Promise<Workspace> {
-  const { data: resData } = await client.POST("/workspaces", {
-    body: data,
-  });
-  return resData;
-}
 
 export async function fetchWorkspace(wsId: string): Promise<Workspace> {
   const { data: resData } = await client.GET("/workspaces/{ws_id}", {

@@ -5,13 +5,6 @@ import (
 	"crypto/ed25519"
 	"encoding/base64"
 	"fmt"
-	"log/slog"
-	"net"
-	"net/http"
-	"os"
-	"strconv"
-	"time"
-
 	"github.com/google/uuid"
 	"github.com/vkaylee/leeattend/apiserver/internal/api"
 	"github.com/vkaylee/leeattend/apiserver/internal/app"
@@ -25,9 +18,13 @@ import (
 	"github.com/vkaylee/leeattend/apiserver/internal/license"
 	"github.com/vkaylee/leeattend/apiserver/internal/observability"
 	"github.com/vkaylee/leeattend/apiserver/internal/repository"
-	"github.com/vkaylee/leeattend/apiserver/internal/scheduler"
 	"github.com/vkaylee/leeattend/apiserver/internal/service"
 	standalonebootstrap "github.com/vkaylee/leeattend/apiserver/internal/standalone"
+	"log/slog"
+	"net"
+	"net/http"
+	"os"
+	"strconv"
 )
 
 // Version is the current apiserver Go component version.
@@ -39,42 +36,34 @@ func main() {
 		fmt.Fprintf(os.Stderr, "CONFIGURATION FAILED: %v\n", err)
 		os.Exit(1)
 	}
-
 	logger := observability.NewLogger(os.Stderr, slog.LevelInfo)
 	logger.Info("Starting LeeAttend Go API Server", "version", Version, "env", cfg.AppEnv)
-	if cfg.Standalone {
-		key, keyErr := base64.RawURLEncoding.DecodeString(cfg.LicensePublicKey)
-		if keyErr != nil {
-			fmt.Fprintf(os.Stderr, "CONFIGURATION FAILED: invalid LICENSE_PUBLIC_KEY\n")
-			os.Exit(1)
-		}
-		verifier, verifierErr := license.NewVerifier(ed25519.PublicKey(key), license.Product)
-		if verifierErr != nil {
-			fmt.Fprintf(os.Stderr, "CONFIGURATION FAILED: invalid standalone license verifier\n")
-			os.Exit(1)
-		}
-		status, verifyErr := verifier.VerifyFile(cfg.LicensePath)
-		if verifyErr != nil || !status.Valid {
-			fmt.Fprintf(os.Stderr, "CONFIGURATION FAILED: standalone license verification failed\n")
-			os.Exit(1)
-		}
-		logger.Info("Standalone license verified", "edition", status.Edition, "entitlements", len(status.Entitlements))
+
+	key, keyErr := base64.RawURLEncoding.DecodeString(cfg.LicensePublicKey)
+	if keyErr != nil {
+		fmt.Fprintf(os.Stderr, "CONFIGURATION FAILED: invalid LICENSE_PUBLIC_KEY\n")
+		os.Exit(1)
 	}
+	verifier, verifierErr := license.NewVerifier(ed25519.PublicKey(key), license.Product)
+	if verifierErr != nil {
+		fmt.Fprintf(os.Stderr, "CONFIGURATION FAILED: invalid standalone license verifier\n")
+		os.Exit(1)
+	}
+	status, verifyErr := verifier.VerifyFile(cfg.LicensePath)
+	if verifyErr != nil || !status.Valid {
+		fmt.Fprintf(os.Stderr, "CONFIGURATION FAILED: standalone license verification failed\n")
+		os.Exit(1)
+	}
+	logger.Info("Standalone license verified", "edition", status.Edition, "entitlements", len(status.Entitlements))
 
 	dbCfg := dbpool.DefaultConfig()
 	dbCfg.PrimaryURL = string(cfg.DBPrimaryURL)
 	dbCfg.PoolerTxURL = string(cfg.DBPoolerTxURL)
 	dbCfg.PoolerSessURL = string(cfg.DBPoolerSessURL)
-	dbCfg.TenantPoolerTxURL = string(cfg.DBTenantPoolerTxURL)
-	dbCfg.TenantPoolerSessURL = string(cfg.DBTenantPoolerSessURL)
 	dbCfg.ReaderURL = string(cfg.DBReaderURL)
-	dbCfg.Standalone = cfg.Standalone
-	dbCfg.StandaloneWorkspaceID = cfg.StandaloneWorkspaceID
+	dbCfg.WorkspaceID = cfg.StandaloneWorkspaceID
 	if cfg.DBAPIMaxConn > 0 {
 		dbCfg.APIMaxConn = int32(cfg.DBAPIMaxConn)
-	}
-	if cfg.DBTenantMaxConn > 0 {
-		dbCfg.TenantMaxConn = int32(cfg.DBTenantMaxConn)
 	}
 
 	poolMgr := dbpool.NewManager(dbCfg, nil)
@@ -84,11 +73,9 @@ func main() {
 		logger.Warn("database connection deferred or offline", "error", err)
 	} else if sysPool, err := poolMgr.SystemPool(); err == nil {
 		authRepo = repository.AuthRepository{DB: sysPool}
-		if cfg.Standalone {
-			if err := standalonebootstrap.Bootstrap(context.Background(), sysPool, cfg.StandaloneWorkspaceID, cfg.StandaloneWorkspaceName, cfg.StandaloneAdminEmail, cfg.StandaloneAdminPassword.Expose()); err != nil {
-				fmt.Fprintf(os.Stderr, "CONFIGURATION FAILED: standalone bootstrap failed\n")
-				os.Exit(1)
-			}
+		if err := standalonebootstrap.Bootstrap(context.Background(), sysPool, cfg.StandaloneWorkspaceID, cfg.StandaloneWorkspaceName, cfg.StandaloneAdminEmail, cfg.StandaloneAdminPassword.Expose()); err != nil {
+			fmt.Fprintf(os.Stderr, "CONFIGURATION FAILED: standalone bootstrap failed\n")
+			os.Exit(1)
 		}
 	}
 
@@ -148,7 +135,6 @@ func main() {
 	}
 	authHandler.Authorizer = workspaceAuthorizer
 
-	mux.HandleFunc("POST /api/v1/workspaces", workspaceHandler.Create)
 	mux.HandleFunc("PATCH /api/v1/workspaces/{ws_id}", workspaceHandler.Patch)
 	mux.HandleFunc("GET /api/v1/workspaces/{ws_id}/feature-flags", workspaceHandler.ListFeatureFlags)
 	mux.HandleFunc("GET /api/v1/workspaces/{ws_id}/members", rbacHandler.ListMembers)
@@ -183,7 +169,6 @@ func main() {
 	mux.HandleFunc("GET /api/v1/workspaces/{ws_id}/configs", workspaceHandler.ListConfigs)
 	mux.HandleFunc("GET /api/v1/workspaces/{ws_id}/configs/{key}", workspaceHandler.GetConfig)
 	mux.HandleFunc("DELETE /api/v1/workspaces/{ws_id}/configs/{key}", workspaceHandler.DeleteConfig)
-	mux.HandleFunc("GET /api/v1/workspaces", workspaceHandler.List)
 	mux.HandleFunc("GET /api/v1/workspaces/{ws_id}", workspaceHandler.Get)
 	healthHandler := health.NewHandler(Version, nil, nil)
 	healthHandler.SetLive(true)
@@ -623,16 +608,11 @@ func main() {
 
 	systemAdminRepo := repository.SystemAdminRepository{DB: workspaceRepo.SystemDB}
 	systemAdminHandler := api.SystemAdminHandler{
-		RolesRepo:     systemAdminRepo,
-		Clusters:      systemAdminRepo,
-		Settings:      systemAdminRepo,
-		Tenants:       systemAdminRepo,
-		Roles:         authRepo,
-		Crypto:        cryptoService,
-		EmailSender:   service.EmailService{Settings: systemAdminRepo},
-		Redis:         redisClient,
-		PgBouncerHost: cfg.PgBouncerHost,
-		PgBouncerPort: cfg.PgBouncerPort,
+		RolesRepo:   systemAdminRepo,
+		Settings:    systemAdminRepo,
+		Roles:       authRepo,
+		EmailSender: service.EmailService{Settings: systemAdminRepo},
+		Redis:       redisClient,
 	}
 	mux.HandleFunc("GET /api/v1/system/smtp/config", systemAdminHandler.GetSMTPConfig)
 	mux.HandleFunc("PUT /api/v1/system/smtp/config", systemAdminHandler.SetSMTPConfig)
@@ -641,15 +621,6 @@ func main() {
 	mux.HandleFunc("GET /api/v1/system/users/{user_id}/roles", systemAdminHandler.GetUserRoles)
 	mux.HandleFunc("POST /api/v1/system/users/{user_id}/roles", systemAdminHandler.AssignRole)
 	mux.HandleFunc("DELETE /api/v1/system/users/{user_id}/roles/{role_name}", systemAdminHandler.RevokeRole)
-	mux.HandleFunc("GET /api/v1/system/db-clusters", systemAdminHandler.ListDbClusters)
-	mux.HandleFunc("POST /api/v1/system/db-clusters", systemAdminHandler.CreateDbCluster)
-	mux.HandleFunc("DELETE /api/v1/system/db-clusters/{id}", systemAdminHandler.DeleteDbCluster)
-	mux.HandleFunc("PATCH /api/v1/system/db-clusters/{id}/status", systemAdminHandler.UpdateDbClusterStatus)
-	mux.HandleFunc("GET /api/v1/system/tenants", systemAdminHandler.ListTenants)
-	mux.HandleFunc("POST /api/v1/system/tenants", systemAdminHandler.CreateTenant)
-	mux.HandleFunc("DELETE /api/v1/system/tenants/{tenant_id}", systemAdminHandler.DeleteTenant)
-	mux.HandleFunc("GET /api/v1/system/tenants/{tenant_id}/stats", systemAdminHandler.GetTenantStats)
-	mux.HandleFunc("PUT /api/v1/system/tenants/{tenant_id}/database", systemAdminHandler.UpdateTenantDatabase)
 
 	monitorRepo := repository.MonitorRepository(workspaceRepo)
 	monitorHandler := api.MonitorHandler{
@@ -693,7 +664,6 @@ func main() {
 	mux.HandleFunc("POST /api/v1/auth/login", authHandler.Login)
 	mux.HandleFunc("POST /api/v1/auth/refresh", authHandler.Refresh)
 	mux.HandleFunc("POST /api/v1/auth/logout", authHandler.Logout)
-	mux.HandleFunc("POST /api/v1/auth/register", authHandler.Register)
 	mux.HandleFunc("POST /api/v1/auth/forgot-password", authHandler.ForgotPassword)
 	mux.HandleFunc("POST /api/v1/auth/reset-password", authHandler.ResetPassword)
 	mux.HandleFunc("POST /api/v1/auth/change-password", authHandler.ChangePassword)
@@ -725,7 +695,6 @@ func main() {
 	mux.HandleFunc("POST /auth/login", authHandler.Login)
 	mux.HandleFunc("POST /auth/refresh", authHandler.Refresh)
 	mux.HandleFunc("POST /auth/logout", authHandler.Logout)
-	mux.HandleFunc("POST /auth/register", authHandler.Register)
 	mux.HandleFunc("POST /auth/forgot-password", authHandler.ForgotPassword)
 	mux.HandleFunc("POST /auth/reset-password", authHandler.ResetPassword)
 	mux.HandleFunc("POST /auth/change-password", authHandler.ChangePassword)
@@ -733,18 +702,6 @@ func main() {
 	mux.HandleFunc("PATCH /me", authHandler.UpdateMe)
 	mux.HandleFunc("GET /me/permissions", authHandler.MyPermissions)
 	mux.HandleFunc("GET /users", authHandler.WorkspaceUsers)
-	sourceRepo := repository.AttendanceSourceRepository{TenantDB: workspaceRepo.TenantDB}
-	var pullRunner *scheduler.Runner
-	if cfg.LogPullEnabled {
-		httpClient := external.NewHTTPClient(time.Duration(cfg.LogPullTimeoutSecs) * time.Second)
-		provider := external.AttendanceEventsClient{HTTP: httpClient, BaseURL: cfg.LogPullBaseURL, Token: cfg.LogPullToken.Expose(), PageLimit: cfg.LogPullPageSize}
-		pullRepository := repository.ExternalAttendancePullRepository{TenantDB: workspaceRepo.TenantDB, BeginTx: func(ctx context.Context, workspaceID uuid.UUID) (repository.TxBeginner, error) {
-			return poolMgr.GetTenantTxPool(ctx, workspaceID)
-		}}
-		pullService := service.ExternalAttendancePullService{Sources: sourceRepo, Events: provider, Pulls: pullRepository, AccountID: cfg.LogPullAccountID, Owner: "apiserver", LeaseDuration: time.Duration(cfg.LogPullTimeoutSecs) * time.Second, Shadow: cfg.LogPullMode == "shadow"}
-		pullRunner = &scheduler.Runner{Source: workspaceRepo, Puller: pullService, Config: scheduler.Config{Interval: time.Duration(cfg.LogPullIntervalSecs) * time.Second, Timeout: time.Duration(cfg.LogPullTimeoutSecs) * time.Second, MaxConcurrent: cfg.LogPullMaxConcurrentRequests, Shadow: cfg.LogPullMode == "shadow"}, Logger: logger}
-		pullRunner.Start(context.Background())
-	}
 
 	publicPrefixes := []string{
 		"/health",
@@ -755,10 +712,8 @@ func main() {
 		"/api/v1/auth/refresh",
 		"/auth/login",
 		"/auth/refresh",
-		"/api/v1/auth/register",
 		"/api/v1/auth/forgot-password",
 		"/api/v1/auth/reset-password",
-		"/auth/register",
 		"/auth/forgot-password",
 		"/auth/reset-password",
 		"/api/v1/ws/reports/",
@@ -786,10 +741,7 @@ func main() {
 		httpinfra.BodyLimitMiddleware(cfg.MaxRequestBodyBytes),
 		httpinfra.AuthMiddlewareWithRevocation(cfg.JWTSecret.Expose(), publicPrefixes, revocationChecker),
 	)(mux)
-	if cfg.Standalone {
-		handler = httpinfra.StandaloneSaaSRouteMiddleware()(handler)
-		handler = httpinfra.StandaloneWorkspaceMiddleware(cfg.StandaloneWorkspaceID)(handler)
-	}
+	handler = httpinfra.StandaloneWorkspaceMiddleware(cfg.StandaloneWorkspaceID)(handler)
 	addr := net.JoinHostPort(cfg.AppHost, strconv.Itoa(cfg.AppPort))
 	server := &http.Server{
 		Addr:    addr,
@@ -797,9 +749,6 @@ func main() {
 	}
 
 	var hooks []func(context.Context) error
-	if pullRunner != nil {
-		hooks = append(hooks, func(ctx context.Context) error { return pullRunner.Stop(ctx) })
-	}
 	application := app.New(server, hooks...)
 	ctx, cancel := app.NotifySignals(context.Background())
 	defer cancel()

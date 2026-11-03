@@ -10,17 +10,15 @@ LeeAttend is an attendance and payroll system with a Go API server and React/Vit
 
 Go `net/http` service using `pgx/v5` and PostgreSQL. Responsibilities:
 
-- authenticated REST APIs for workspaces, employees, attendance, payroll, files, and monitoring;
-- scheduled external attendance-event pull with HTTPS provider adapter;
-- durable per-workspace/source cursors and idempotent processed-event metadata;
-- existing raw, staging, and attendance import semantics;
-- report export jobs streamed through Redis Pub/Sub and WebSocket endpoints.
+- authenticated REST APIs for workspace-scoped employees, attendance, payroll, files, and monitoring;
+- transactional bootstrap of exactly one configured workspace and administrator.
 
-`LOG_PULL_ENABLED` gates the scheduler. `LOG_PULL_MODE=shadow` normalizes provider events without attendance writes; `write` commits events and cursors transactionally.
+All system and workspace tables share one PostgreSQL database. The runtime rejects workspace IDs other than the configured singleton before repository access.
 
 ### `webdashboard/`
 
-React 19, Vite, TypeScript, Tailwind CSS 4, TanStack Query, and Tauri. The dashboard manages workspaces, employees, attendance, payroll, files, and monitoring. Playwright tests mock API calls through `page.route`.
+React 19, Vite, TypeScript, Tailwind CSS 4, TanStack Query, and Tauri. The dashboard manages the configured workspace, employees, attendance, payroll, files, and monitoring.
+
 
 ### Supporting infrastructure
 

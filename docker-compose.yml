@@ -1,290 +1,116 @@
-# ==============================================================================
-# Podman Compose — Production Base
-# ==============================================================================
-networks:
-  backend_net:
-    driver: bridge
-  frontend_net:
-    driver: bridge
-
-x-healthcheck-base: &healthcheck-base
-  interval: 10s
-  timeout: 5s
-  retries: 5
-
+# LeeAttend single-organization Linux appliance.
+# Bind this file to a private LAN and place TLS termination in front of webdashboard.
+# Production release bundles MUST pin every image by digest before deployment.
 services:
-  db_system:
-    image: public.ecr.aws/docker/library/postgres:18-alpine
-    restart: always
-    networks:
-      - backend_net
+  db:
+    image: ${POSTGRES_IMAGE:?set POSTGRES_IMAGE}
+    restart: unless-stopped
     environment:
-      - TZ=Asia/Bangkok
-      - PGTZ=Asia/Bangkok
-      - POSTGRES_DB=${DB_NAME}
-      - POSTGRES_USER=${DB_USER}
-      - POSTGRES_PASSWORD=${DB_PASSWORD}
-    healthcheck:
-      <<: *healthcheck-base
-      test: "pg_isready -U ${DB_USER} -d ${DB_NAME}"
-
-  db_workspace:
-    image: public.ecr.aws/docker/library/postgres:18-alpine
-    restart: always
-    networks:
-      - backend_net
-    environment:
-      - TZ=Asia/Bangkok
-      - PGTZ=Asia/Bangkok
-      - POSTGRES_DB=tenant_db
-      - POSTGRES_USER=tenant_user
-      - POSTGRES_PASSWORD=tenant_password
-    healthcheck:
-      <<: *healthcheck-base
-      test: "pg_isready -U tenant_user -d tenant_db"
-
-
-  db_legacy:
-    image: public.ecr.aws/docker/library/postgres:18-alpine
-    profiles: ["migration"]
-    restart: "no"
-    ports:
-      - "5433:5432"
-    networks:
-      - backend_net
-    environment:
-      - POSTGRES_DB=postgres
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=postgres
-      - POSTGRES_HOST_AUTH_METHOD=trust
+      POSTGRES_DB: ${DB_NAME:?set DB_NAME}
+      POSTGRES_USER: ${DB_USER:?set DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?set DB_PASSWORD}
+      TZ: ${TZ:-Asia/Ho_Chi_Minh}
+      PGTZ: ${TZ:-Asia/Ho_Chi_Minh}
+    command:
+      - postgres
+      - -c
+      - ssl=on
+      - -c
+      - ssl_cert_file=/run/postgres/tls/server.crt
+      - -c
+      - ssl_key_file=/run/postgres/tls/server.key
     volumes:
-      - ./dbbackup:/dbbackup:ro
+      - standalone_db:/var/lib/postgresql/data
+      - ${POSTGRES_TLS_DIR:?set POSTGRES_TLS_DIR}:/run/postgres/tls:ro
+    networks: [backend]
     healthcheck:
-      <<: *healthcheck-base
-      test: "pg_isready -U postgres"
-
-
+      test: ["CMD-SHELL", "pg_isready -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\""]
+      interval: 10s
+      timeout: 5s
+      retries: 10
   redis:
-    image: public.ecr.aws/docker/library/redis:7-alpine
-    restart: always
-    networks:
-      - backend_net
-    command: redis-server --requirepass ${REDIS_PASSWORD}
-    healthcheck:
-      <<: *healthcheck-base
-      test: [ "CMD", "sh", "-c", "redis-cli -a ${REDIS_PASSWORD} ping" ]
-
-  pgbouncer_tx:
-    image: docker.io/edoburu/pgbouncer:v1.25.2-p0
-    restart: always
-    networks:
-      - backend_net
-    depends_on:
-      db_system:
-        condition: service_healthy
+    image: ${REDIS_IMAGE:?set REDIS_IMAGE}
+    command: ["redis-server", "--requirepass", "${REDIS_PASSWORD:?set REDIS_PASSWORD}"]
     environment:
-      - DB_HOST=db_system
-      - DB_PORT=5432
-      - DB_USER=${DB_USER}
-      - DB_PASSWORD=${DB_PASSWORD}
-      - DB_NAME=*
-      - LISTEN_PORT=6543
-      - POOL_MODE=transaction
-      - MAX_CLIENT_CONN=2000
-      - DEFAULT_POOL_SIZE=50
-      - MIN_POOL_SIZE=10
-      - RESERVE_POOL_SIZE=5
-      - RESERVE_POOL_TIMEOUT=5
-      - MAX_PREPARED_STATEMENTS=250
-      - ADMIN_USERS=tenant_user,postgres
-      - AUTH_TYPE=scram-sha-256
-    healthcheck:
-      <<: *healthcheck-base
-      test: ["CMD", "pg_isready", "-h", "localhost", "-p", "6543"]
-
-  pgbouncer_sess:
-    image: docker.io/edoburu/pgbouncer:v1.25.2-p0
-    restart: always
-    networks:
-      - backend_net
-    depends_on:
-      db_system:
-        condition: service_healthy
-    environment:
-      - DB_HOST=db_system
-      - DB_PORT=5432
-      - DB_USER=${DB_USER}
-      - DB_PASSWORD=${DB_PASSWORD}
-      - DB_NAME=*
-      - LISTEN_PORT=5452
-      - POOL_MODE=session
-      - MAX_CLIENT_CONN=2000
-      - DEFAULT_POOL_SIZE=50
-      - MIN_POOL_SIZE=10
-      - RESERVE_POOL_SIZE=5
-      - RESERVE_POOL_TIMEOUT=5
-      - ADMIN_USERS=tenant_user,postgres
-      - AUTH_TYPE=scram-sha-256
-    healthcheck:
-      <<: *healthcheck-base
-      test: ["CMD", "pg_isready", "-h", "localhost", "-p", "5452"]
-
-  pgbouncer_tenant_tx:
-    image: docker.io/edoburu/pgbouncer:v1.25.2-p0
-    restart: always
-    networks:
-      - backend_net
-    depends_on:
-      db_workspace:
-        condition: service_healthy
-    environment:
-      - DB_HOST=db_workspace
-      - DB_PORT=5432
-      - DB_USER=tenant_user
-      - DB_PASSWORD=tenant_password
-      - DB_NAME=*
-      - LISTEN_PORT=6543
-      - POOL_MODE=transaction
-      - MAX_CLIENT_CONN=2000
-      - DEFAULT_POOL_SIZE=50
-      - MIN_POOL_SIZE=10
-      - RESERVE_POOL_SIZE=5
-      - RESERVE_POOL_TIMEOUT=5
-      - MAX_PREPARED_STATEMENTS=250
-      - ADMIN_USERS=tenant_user,postgres
-      - AUTH_TYPE=scram-sha-256
-    healthcheck:
-      <<: *healthcheck-base
-      test: ["CMD", "pg_isready", "-h", "localhost", "-p", "6543"]
-
-  pgbouncer_tenant_sess:
-    image: docker.io/edoburu/pgbouncer:v1.25.2-p0
-    restart: always
-    networks:
-      - backend_net
-    depends_on:
-      db_workspace:
-        condition: service_healthy
-    environment:
-      - DB_HOST=db_workspace
-      - DB_PORT=5432
-      - DB_USER=tenant_user
-      - DB_PASSWORD=tenant_password
-      - DB_NAME=*
-      - LISTEN_PORT=5452
-      - POOL_MODE=session
-      - MAX_CLIENT_CONN=2000
-      - DEFAULT_POOL_SIZE=50
-      - MIN_POOL_SIZE=10
-      - RESERVE_POOL_SIZE=5
-      - RESERVE_POOL_TIMEOUT=5
-      - ADMIN_USERS=tenant_user,postgres
-      - AUTH_TYPE=scram-sha-256
-    healthcheck:
-      <<: *healthcheck-base
-      test: ["CMD", "pg_isready", "-h", "localhost", "-p", "5452"]
-
-  # ── API Server: Go (P9 Production Cutover — Rust retired) ──
-  apiserver:
-    image: localhost/leeattend_apiserver
-    build:
-      context: .
-      dockerfile: apiserver/Dockerfile.go
-      target: runtime
-    environment:
-      - APP_ENV=${APP_ENV:-production}
-      - APP_HOST=0.0.0.0
-      - APP_PORT=3000
-      - DB_PRIMARY_URL=postgres://${DB_USER}:${DB_PASSWORD}@db_system:5432/${DB_NAME}
-      - DB_POOLER_TX_URL=postgres://${DB_USER}:${DB_PASSWORD}@pgbouncer_tx:6543/${DB_NAME}
-      - DB_POOLER_SESS_URL=postgres://${DB_USER}:${DB_PASSWORD}@pgbouncer_sess:5452/${DB_NAME}
-      - DB_TENANT_POOLER_TX_URL=postgres://tenant_user:tenant_password@pgbouncer_tenant_tx:6543/tenant_db
-      - DB_TENANT_POOLER_SESS_URL=postgres://tenant_user:tenant_password@pgbouncer_tenant_sess:5452/tenant_db
-      - DB_API_MAX_CONN=${DB_API_MAX_CONN:-20}
-      - WORKER_MAX_CONCURRENT_JOBS=${WORKER_MAX_CONCURRENT_JOBS:-5}
-      - REDIS_URL=redis://:${REDIS_PASSWORD}@redis:6379
-      - JWT_SECRET=${JWT_SECRET}
-      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-}
-      - COOKIE_DOMAIN=${COOKIE_DOMAIN:-}
-      - STORAGE_DIR=/app/storage
-      - 'ENCRYPTION_KEYS_JSON=${ENCRYPTION_KEYS_JSON:-{"keys":{"v1":"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="},"active_key":"v1"}}'
-      - S3_ENDPOINT_URL=http://minio:9000
-      - S3_BUCKET_NAME=${S3_BUCKET_NAME:-leeattend-files}
-      - S3_ACCESS_KEY=${MINIO_ROOT_USER:-leeattend}
-      - S3_SECRET_KEY=${MINIO_ROOT_PASSWORD}
-      - S3_REGION=${S3_REGION:-us-east-1}
-      - S3_USE_PATH_STYLE=${S3_USE_PATH_STYLE:-true}
-      - FILE_PROXY_THRESHOLD_BYTES=${FILE_PROXY_THRESHOLD_BYTES:-1048576}
-      - PRESIGNED_URL_TTL_SECS=${PRESIGNED_URL_TTL_SECS:-900}
-      - LOG_PULL_ENABLED=${LOG_PULL_ENABLED:-false}
-      - LOG_PULL_BASE_URL=${LOG_PULL_BASE_URL:-https://provider.example.invalid}
-      - LOG_PULL_TOKEN=${LOG_PULL_TOKEN:-}
-      - LOG_PULL_ACCOUNT_ID=${LOG_PULL_ACCOUNT_ID:-}
-      - LOG_PULL_MODE=${LOG_PULL_MODE:-shadow}
-      - LOG_PULL_INTERVAL_SECS=${LOG_PULL_INTERVAL_SECS:-60}
-      - LOG_PULL_TIMEOUT_SECS=${LOG_PULL_TIMEOUT_SECS:-30}
-      - LOG_PULL_PAGE_SIZE=${LOG_PULL_PAGE_SIZE:-100}
-      - LOG_PULL_MAX_CONCURRENT_REQUESTS=${LOG_PULL_MAX_CONCURRENT_REQUESTS:-4}
-      - GOMEMLIMIT=768MiB
-    restart: always
-    networks:
-      - backend_net
-      - frontend_net
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?set REDIS_PASSWORD}
     volumes:
-      - apiserver_storage:/app/storage
-    depends_on:
-      db_system:
-        condition: service_healthy
-      db_workspace:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-      minio:
-        condition: service_healthy
-      pgbouncer_tx:
-        condition: service_healthy
-      pgbouncer_sess:
-        condition: service_healthy
-      pgbouncer_tenant_tx:
-        condition: service_healthy
-      pgbouncer_tenant_sess:
-        condition: service_healthy
+      - standalone_redis:/data
+    networks: [backend]
     healthcheck:
-      <<: *healthcheck-base
-      test: "wget -qO- http://localhost:3000/api/v1/health > /dev/null || exit 1"
-
+      test: ["CMD-SHELL", "redis-cli --no-auth-warning -a \"$${REDIS_PASSWORD}\" ping | grep PONG"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
   minio:
-    image: quay.io/minio/minio:latest
-    restart: always
-    networks:
-      - backend_net
-    ports:
-      - "9000:9000"
-      - "9001:9001"
-    command: server /data --console-address ":9001"
+    image: ${MINIO_IMAGE:?set MINIO_IMAGE}
+    restart: unless-stopped
+    command: ["server", "/data"]
     environment:
-      - MINIO_ROOT_USER=${MINIO_ROOT_USER:-leeattend}
-      - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD}
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:?set MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?set MINIO_ROOT_PASSWORD}
     volumes:
-      - minio_data:/data
+      - standalone_files:/data
+    networks: [backend]
     healthcheck:
-      <<: *healthcheck-base
       test: ["CMD", "mc", "ready", "local"]
-
-  webdashboard:
-    image: localhost/leeattend_webdashboard
-    build:
-      context: ./webdashboard
-      dockerfile: Dockerfile
-      target: runtime
-    restart: always
-    networks:
-      - frontend_net
+      interval: 10s
+      timeout: 5s
+      retries: 10
+  apiserver:
+    image: ${APISERVER_IMAGE:?set APISERVER_IMAGE}
+    read_only: true
+    tmpfs:
+      - /tmp
+    environment:
+      APP_PORT: "3000"
+      DB_PRIMARY_URL: postgres://${DB_USER}:${DB_PASSWORD}@db:5432/${DB_NAME}?sslmode=require
+      DB_POOLER_TX_URL: postgres://${DB_USER}:${DB_PASSWORD}@db:5432/${DB_NAME}?sslmode=require
+      DB_POOLER_SESS_URL: postgres://${DB_USER}:${DB_PASSWORD}@db:5432/${DB_NAME}?sslmode=require
+      DB_READER_URL: postgres://${DB_USER}:${DB_PASSWORD}@db:5432/${DB_NAME}?sslmode=require
+      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
+      JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET}
+      ENCRYPTION_KEYS_JSON: ${ENCRYPTION_KEYS_JSON:?set ENCRYPTION_KEYS_JSON}
+      S3_ENDPOINT_URL: http://minio:9000
+      S3_BUCKET_NAME: ${S3_BUCKET_NAME:-leeattend}
+      S3_ACCESS_KEY: ${MINIO_ROOT_USER}
+      S3_SECRET_KEY: ${MINIO_ROOT_PASSWORD}
+      S3_USE_PATH_STYLE: "true"
+      STORAGE_DIR: /app/storage
+      STANDALONE_WORKSPACE_ID: ${STANDALONE_WORKSPACE_ID:?set STANDALONE_WORKSPACE_ID}
+      STANDALONE_WORKSPACE_NAME: ${STANDALONE_WORKSPACE_NAME:?set STANDALONE_WORKSPACE_NAME}
+      STANDALONE_ADMIN_EMAIL: ${STANDALONE_ADMIN_EMAIL:?set STANDALONE_ADMIN_EMAIL}
+      STANDALONE_ADMIN_PASSWORD: ${STANDALONE_ADMIN_PASSWORD:?set STANDALONE_ADMIN_PASSWORD}
+      LICENSE_PATH: /run/leeattend/license.json
+      LICENSE_PUBLIC_KEY: ${LICENSE_PUBLIC_KEY:?set LICENSE_PUBLIC_KEY}
+    volumes:
+      - standalone_storage:/app/storage
+      - ${LICENSE_FILE:?set LICENSE_FILE}:/run/leeattend/license.json:ro
+    networks: [backend, frontend]
     depends_on:
-      apiserver:
-        condition: service_started
+      db: { condition: service_healthy }
+      redis: { condition: service_healthy }
+      minio: { condition: service_healthy }
+  webdashboard:
+    image: ${WEBDASHBOARD_IMAGE:?set WEBDASHBOARD_IMAGE}
+    restart: unless-stopped
+    networks: [frontend]
+    depends_on:
+      apiserver: { condition: service_started }
 
+networks:
+  backend:
+    internal: true
+    name: ${COMPOSE_PROJECT_NAME:-leeattend}_backend
+  frontend:
+    internal: true
+    name: ${COMPOSE_PROJECT_NAME:-leeattend}_frontend
+  backend_net:
+    name: ${COMPOSE_PROJECT_NAME:-leeattend}_backend
+  frontend_net:
+    name: ${COMPOSE_PROJECT_NAME:-leeattend}_frontend
 
 volumes:
-  apiserver_storage:
-  minio_data:
+  standalone_db:
+  standalone_redis:
+  standalone_files:
+  standalone_storage:

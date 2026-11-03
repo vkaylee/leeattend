@@ -1,10 +1,9 @@
-import { createFileRoute, redirect } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import React from "react";
 
 import AppShell from "@/components/layout/app-shell";
 import { Typography } from "@/components/ui/typography";
-import { workspaceKeys } from "@/hooks/use-workspace";
-import { fetchWorkspaces, getCurrentWorkspaceId, setCurrentWorkspaceId } from "@/lib/api";
+import { fetchWorkspace, getCurrentWorkspaceId } from "@/lib/api";
 
 function WorkspacePendingComponent() {
   return (
@@ -18,24 +17,10 @@ function WorkspacePendingComponent() {
 }
 
 export const Route = createFileRoute("/_authenticated/_workspace")({
-  beforeLoad: async ({ context }) => {
-    const workspaces = await context.queryClient.ensureQueryData({
-      queryKey: workspaceKeys.all,
-      queryFn: fetchWorkspaces,
-    });
-
-    if (workspaces.length === 0) {
-      // eslint-disable-next-line @typescript-eslint/only-throw-error
-      throw redirect({ to: "/onboarding" });
-    }
-
-    // Auto-set first workspace if none active
-    const activeId = getCurrentWorkspaceId();
-    if (!activeId && workspaces.length > 0) {
-      setCurrentWorkspaceId(workspaces[0].id);
-    }
-
-    return { workspaces };
+  beforeLoad: async () => {
+    const workspaceID = getCurrentWorkspaceId();
+    if (!workspaceID) return {};
+    return { workspace: await fetchWorkspace(workspaceID) };
   },
   pendingComponent: WorkspacePendingComponent,
   component: AppShell,

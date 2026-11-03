@@ -6,14 +6,22 @@ import (
 	"fmt"
 	"strings"
 	"testing"
+
+	"github.com/google/uuid"
 )
 
 func minimumDevEnv() map[string]string {
 	return map[string]string{
-		"DB_PRIMARY_URL":     "postgres://user:pass@localhost:5432/db",
-		"DB_POOLER_TX_URL":   "postgres://user:pass@localhost:6543/db",
-		"DB_POOLER_SESS_URL": "postgres://user:pass@localhost:5452/db",
-		"REDIS_URL":          "redis://localhost:6379",
+		"DB_PRIMARY_URL":            "postgres://user:pass@localhost:5432/db",
+		"DB_POOLER_TX_URL":          "postgres://user:pass@localhost:6543/db",
+		"DB_POOLER_SESS_URL":        "postgres://user:pass@localhost:5452/db",
+		"REDIS_URL":                 "redis://localhost:6379",
+		"STANDALONE_WORKSPACE_ID":   "00000000-0000-7000-8000-000000000001",
+		"STANDALONE_WORKSPACE_NAME": "Example Company",
+		"STANDALONE_ADMIN_EMAIL":    "admin@example.invalid",
+		"STANDALONE_ADMIN_PASSWORD": "strong-password",
+		"LICENSE_PATH":              "/secure/license.json",
+		"LICENSE_PUBLIC_KEY":        base64.RawURLEncoding.EncodeToString(make([]byte, ed25519.PublicKeySize)),
 	}
 }
 
@@ -25,33 +33,18 @@ func mockLookup(env map[string]string) LookupEnvFunc {
 }
 
 func TestLoad_MinimumDevSuccess(t *testing.T) {
-	env := minimumDevEnv()
-	cfg, err := LoadWithLookup(mockLookup(env))
+	cfg, err := LoadWithLookup(mockLookup(minimumDevEnv()))
 	if err != nil {
 		t.Fatalf("unexpected load error: %v", err)
 	}
-
-	if cfg.AppEnv != "development" {
-		t.Errorf("expected AppEnv 'development', got %q", cfg.AppEnv)
-	}
-	if cfg.AppPort != 3000 {
-		t.Errorf("expected AppPort 3000, got %d", cfg.AppPort)
-	}
-	if cfg.AppHost != "0.0.0.0" {
-		t.Errorf("expected AppHost '0.0.0.0', got %q", cfg.AppHost)
-	}
-	if cfg.PortFileName != ".api_port" {
-		t.Errorf("expected PortFileName '.api_port', got %q", cfg.PortFileName)
+	if cfg.AppEnv != "development" || cfg.AppPort != 3000 || cfg.AppHost != "0.0.0.0" {
+		t.Fatalf("unexpected basic config: %+v", cfg)
 	}
 	if cfg.DBPrimaryURL.Expose() != "postgres://user:pass@localhost:5432/db" {
 		t.Errorf("unexpected DBPrimaryURL: %s", cfg.DBPrimaryURL.Expose())
 	}
-	// Fallback check
-	if cfg.DBTenantPoolerTxURL.Expose() != cfg.DBPoolerTxURL.Expose() {
-		t.Errorf("expected DBTenantPoolerTxURL to fall back to DBPoolerTxURL")
-	}
 	if cfg.JWTSecret.Expose() != "dev_secret_key_leeattend_2026" {
-		t.Errorf("expected dev JWTSecret fallback, got %s", cfg.JWTSecret.Expose())
+		t.Errorf("unexpected development JWT secret")
 	}
 	if cfg.S3BucketName != "leeattend" {
 		t.Errorf("expected default bucket 'leeattend', got %q", cfg.S3BucketName)
@@ -61,73 +54,23 @@ func TestLoad_MinimumDevSuccess(t *testing.T) {
 	}
 }
 
-func TestLoad_LogPullDefaultsDisabled(t *testing.T) {
-	cfg, err := LoadWithLookup(mockLookup(minimumDevEnv()))
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if cfg.LogPullEnabled || cfg.LogPullMode != "shadow" {
-		t.Fatalf("expected disabled shadow defaults, got enabled=%t mode=%q", cfg.LogPullEnabled, cfg.LogPullMode)
-	}
-}
-
-func TestLoad_StandaloneRequiresLicenseAndWorkspaceSettings(t *testing.T) {
+func TestLoad_StandaloneRequiresSettings(t *testing.T) {
 	env := minimumDevEnv()
-	env["STANDALONE_ENABLED"] = "true"
+	delete(env, "STANDALONE_WORKSPACE_NAME")
+	delete(env, "LICENSE_PUBLIC_KEY")
 	_, err := LoadWithLookup(mockLookup(env))
-	if err == nil {
-		t.Fatal("expected standalone required-setting validation failure")
-	}
-	for _, key := range []string{"STANDALONE_WORKSPACE_NAME", "STANDALONE_ADMIN_EMAIL", "STANDALONE_ADMIN_PASSWORD", "STANDALONE_WORKSPACE_ID", "LICENSE_PATH", "LICENSE_PUBLIC_KEY"} {
-		if !strings.Contains(err.Error(), key) {
-			t.Errorf("expected validation error for %s, got %v", key, err)
-		}
+	if err == nil || !strings.Contains(err.Error(), "STANDALONE_WORKSPACE_NAME") || !strings.Contains(err.Error(), "LICENSE_PUBLIC_KEY") {
+		t.Fatalf("expected mandatory standalone validation errors, got %v", err)
 	}
 }
 
-func TestLoad_StandaloneAcceptsValidLicenseKey(t *testing.T) {
-	env := minimumDevEnv()
-	env["STANDALONE_ENABLED"] = "true"
-	env["STANDALONE_WORKSPACE_ID"] = "00000000-0000-7000-8000-000000000001"
-	env["STANDALONE_WORKSPACE_NAME"] = "Example Company"
-	env["STANDALONE_ADMIN_EMAIL"] = "admin@example.invalid"
-	env["STANDALONE_ADMIN_PASSWORD"] = "strong-password"
-	env["LICENSE_PATH"] = "/secure/license.json"
-	env["LICENSE_PUBLIC_KEY"] = base64.RawURLEncoding.EncodeToString(make([]byte, ed25519.PublicKeySize))
-	cfg, err := LoadWithLookup(mockLookup(env))
+func TestLoad_StandaloneAcceptsValidConfig(t *testing.T) {
+	cfg, err := LoadWithLookup(mockLookup(minimumDevEnv()))
 	if err != nil {
 		t.Fatalf("unexpected standalone config error: %v", err)
 	}
-	if !cfg.Standalone || cfg.StandaloneWorkspaceID.String() != env["STANDALONE_WORKSPACE_ID"] {
-		t.Fatalf("unexpected standalone config: %+v", cfg)
-	}
-}
-
-func TestLoad_LogPullEnabledRequiresProviderSettings(t *testing.T) {
-	env := minimumDevEnv()
-	env["LOG_PULL_ENABLED"] = "true"
-	_, err := LoadWithLookup(mockLookup(env))
-	if err == nil {
-		t.Fatal("expected enabled log pull validation failure")
-	}
-	message := err.Error()
-	for _, key := range []string{"LOG_PULL_BASE_URL", "LOG_PULL_TOKEN", "LOG_PULL_ACCOUNT_ID"} {
-		if !strings.Contains(message, key) {
-			t.Errorf("expected validation error for %s, got %s", key, message)
-		}
-	}
-}
-
-func TestLoad_LogPullRejectsNonHTTPSAndInvalidMode(t *testing.T) {
-	env := minimumDevEnv()
-	env["LOG_PULL_ENABLED"] = "true"
-	env["LOG_PULL_BASE_URL"] = "http://provider.example.test"
-	env["LOG_PULL_TOKEN"] = "token"
-	env["LOG_PULL_ACCOUNT_ID"] = "account"
-	env["LOG_PULL_MODE"] = "invalid"
-	_, err := LoadWithLookup(mockLookup(env))
-	if err == nil || !strings.Contains(err.Error(), "LOG_PULL_BASE_URL") || !strings.Contains(err.Error(), "LOG_PULL_MODE") {
-		t.Fatalf("expected URL and mode validation errors, got %v", err)
+	if cfg.StandaloneWorkspaceID == (uuid.UUID{}) {
+		t.Fatal("expected configured standalone workspace")
 	}
 }
 
@@ -276,15 +219,16 @@ func TestLoad_InvalidURLPrefixes(t *testing.T) {
 }
 
 func TestLoad_AliasResolution(t *testing.T) {
-	env := map[string]string{
-		"DATABASE_URL":             "postgres://u:p@localhost:5432/primary",
-		"DATABASE_POOLER_TX_URL":   "postgres://u:p@localhost:6543/tx",
-		"DATABASE_POOLER_SESS_URL": "postgres://u:p@localhost:5452/sess",
-		"REDIS_URL":                "redis://localhost:6379",
-		"API_PORT":                 "8080",
-		"API_HOST":                 "127.0.0.1",
-		"PGPORT":                   "6432",
-	}
+	env := minimumDevEnv()
+	env["DATABASE_URL"] = env["DB_PRIMARY_URL"]
+	env["DATABASE_POOLER_TX_URL"] = env["DB_POOLER_TX_URL"]
+	env["DATABASE_POOLER_SESS_URL"] = env["DB_POOLER_SESS_URL"]
+	delete(env, "DB_PRIMARY_URL")
+	delete(env, "DB_POOLER_TX_URL")
+	delete(env, "DB_POOLER_SESS_URL")
+	env["API_PORT"] = "8080"
+	env["API_HOST"] = "127.0.0.1"
+	env["PGPORT"] = "6432"
 
 	cfg, err := LoadWithLookup(mockLookup(env))
 	if err != nil {
@@ -300,7 +244,7 @@ func TestLoad_AliasResolution(t *testing.T) {
 	if cfg.PgBouncerPort != 6432 {
 		t.Errorf("expected PGPORT 6432, got %d", cfg.PgBouncerPort)
 	}
-	if cfg.DBPrimaryURL.Expose() != "postgres://u:p@localhost:5432/primary" {
+	if cfg.DBPrimaryURL.Expose() != "postgres://user:pass@localhost:5432/db" {
 		t.Errorf("expected DB_PRIMARY_URL resolved from DATABASE_URL")
 	}
 }

@@ -2,14 +2,13 @@ package repository
 
 import (
 	"context"
-	"strings"
-	"testing"
-	"time"
-
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/vkaylee/leeattend/apiserver/internal/api"
+	"strings"
+	"testing"
+	"time"
 )
 
 type workspaceRows struct {
@@ -65,38 +64,6 @@ func (r *workspaceRows) Scan(dest ...any) error {
 func (r *workspaceRows) Values() ([]any, error) { return r.data[r.index-1], nil }
 func (r *workspaceRows) RawValues() [][]byte    { return nil }
 func (r *workspaceRows) Conn() *pgx.Conn        { return nil }
-
-func TestWorkspaceRepository_ListWorkspacesQueriesMembership(t *testing.T) {
-	userID := uuid.New()
-	wsID := uuid.New()
-	now := time.Now().UTC()
-	var query string
-	var args []any
-	db := &fakeDBTX{
-		queryFn: func(_ context.Context, gotQuery string, gotArgs ...any) (pgx.Rows, error) {
-			query, args = gotQuery, gotArgs
-			return &workspaceRows{
-				data: [][]any{
-					{wsID, "Acme Corp", "YYYY-MM-DD", "24h", "UTC", "#7c3aed", "en", nil, nil, now},
-				},
-			}, nil
-		},
-	}
-	repo := WorkspaceRepository{SystemDB: db}
-	records, err := repo.ListWorkspaces(context.Background(), userID)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if len(records) != 1 || records[0].ID != wsID || records[0].Name != "Acme Corp" {
-		t.Fatalf("unexpected records: %+v", records)
-	}
-	if !strings.Contains(query, "workspace_members") || !strings.Contains(query, "WHERE wm.user_id = $1") {
-		t.Fatalf("unexpected query: %s", query)
-	}
-	if len(args) != 1 || args[0] != userID {
-		t.Fatalf("unexpected args: %#v", args)
-	}
-}
 
 func TestWorkspaceRepository_GetWorkspaceByID(t *testing.T) {
 	wsID := uuid.New()

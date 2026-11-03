@@ -160,23 +160,9 @@ def lifecycle_up(mode: str = "all") -> bool:
             ("main service", f"{project_name}_apiserver_1", "apiserver")
         )
         timeout = 60
-    elif (
-        mode == "all"
-        and (PROJECT_ROOT / "go.mod").exists()
-        and not (PROJECT_ROOT / "Cargo.toml").exists()
-    ):
-        health_services.append(
-            ("main service", f"{project_name}_apiserver_1", "apiserver")
-        )
-        timeout = 60
-    elif mode == "infra-pooler":
-        health_services.append(
-            ("main service", f"{project_name}_pgbouncer_tx_1", "pgbouncer_tx")
-        )  # pragma: no cover
-        timeout = 60  # pragma: no cover
     elif mode == "infra-db":  # pragma: no cover
         health_services.append(
-            ("main service", f"{project_name}_db_init_1", "db_init")
+            ("main service", f"{project_name}_db_1", "db")
         )  # pragma: no cover
         timeout = 60  # pragma: no cover
     elif mode == "infra-redis":  # pragma: no cover
@@ -188,10 +174,8 @@ def lifecycle_up(mode: str = "all") -> bool:
         health_services.append(
             ("main service", f"{project_name}_apiserver_1", "apiserver")
         )
-        if mode in ("api", "int-api", "integration", "all"):
-            health_services.append(
-                ("main service", f"{project_name}_db_system_1", "db_system")
-            )
+        if mode in ("api", "int-api", "integration", "all", "go", "int-go"):
+            health_services.append(("main service", f"{project_name}_db_1", "db"))
             health_services.append(("main service", f"{project_name}_redis_1", "redis"))
         timeout = 60
 
@@ -363,17 +347,10 @@ def sweep_stale_environments() -> None:
 
 
 # Containers per lifecycle profile — used for force-kill fallback
-# when compose down fails to stop PID 1 (e.g. tail -f /dev/null ignoring SIGTERM)
+# when compose down fails to stop PID 1 (e.g. sleep infinity ignoring SIGTERM)
 _PROFILE_CONTAINERS: dict[str, list[str]] = {
     "frontend": ["bun_init", "webdashboard"],
-    "backend": [
-        "apiserver",
-        "db_system",
-        "db_init",
-        "redis",
-        "pgbouncer_tx",
-        "pgbouncer_sess",
-    ],
+    "backend": ["apiserver", "db", "redis"],
 }
 
 

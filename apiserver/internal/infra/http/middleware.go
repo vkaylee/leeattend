@@ -196,25 +196,6 @@ func StandaloneWorkspaceMiddleware(workspaceID uuid.UUID) Middleware {
 	}
 }
 
-// StandaloneSaaSRouteMiddleware blocks control-plane and self-registration routes.
-func StandaloneSaaSRouteMiddleware() Middleware {
-	blocked := map[string]bool{
-		http.MethodPost + " /api/v1/workspaces":    true,
-		http.MethodGet + " /api/v1/workspaces":     true,
-		http.MethodPost + " /api/v1/auth/register": true,
-		http.MethodPost + " /auth/register":        true,
-	}
-	return func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			if blocked[r.Method+" "+r.URL.Path] || strings.HasPrefix(r.URL.Path, "/api/v1/system/tenants") || strings.HasPrefix(r.URL.Path, "/api/v1/system/db-clusters") {
-				apperror.WriteError(w, r, apperror.NotFound(apperror.KeyNotFound))
-				return
-			}
-			next.ServeHTTP(w, r)
-		})
-	}
-}
-
 func bearerToken(r *http.Request) string {
 	if header := r.Header.Get("Authorization"); strings.HasPrefix(header, "Bearer ") {
 		return strings.TrimSpace(strings.TrimPrefix(header, "Bearer "))

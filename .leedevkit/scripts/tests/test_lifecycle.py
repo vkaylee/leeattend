@@ -59,22 +59,6 @@ class TestLifecycleUp:
             result = lifecycle_up("web")
             assert result is True
 
-    def test_lint_and_unit_modes_use_no_deps(self) -> None:
-        """Verify that lint- and unit- modes append --no-deps so heavy infra is not started."""
-        with (
-            patch("_lifecycle._run") as mock_run,
-            patch("_lifecycle._container_healthy", return_value=True),
-            patch("_lifecycle.time.sleep"),
-        ):
-            # Test lint- mode
-            lifecycle_up("lint-api")
-            lint_call_args = " ".join(mock_run.call_args_list[-1][0][0])
-            assert "--no-deps" in lint_call_args
-
-            # Test unit- mode
-            lifecycle_up("unit-api")
-            unit_call_args = " ".join(mock_run.call_args_list[-1][0][0])
-            assert "--no-deps" in unit_call_args
 
     def test_health_check_timeout_returns_false(self) -> None:
         with (
@@ -329,7 +313,7 @@ class TestStaleSweep:
         mock_is_locked.return_value = False
 
         mock_run.return_value = MagicMock(
-            stdout="pod_leeattend-test-12345678\nleeattend-test-87654321_db_system_1"
+            stdout="pod_leeattend-test-12345678\nleeattend-test-87654321_db_1"
         )
         sweep_stale_environments()
         # Should call pod rm -f and rm -f
@@ -347,7 +331,7 @@ class TestStaleSweep:
         mock_engine.return_value = "docker"
         mock_is_locked.return_value = False
 
-        mock_run.return_value = MagicMock(stdout="leeattend-test-12345678_db_system_1")
+        mock_run.return_value = MagicMock(stdout="leeattend-test-12345678_db_1")
         sweep_stale_environments()
         assert mock_run.call_count == 2  # ps, rm containers
 

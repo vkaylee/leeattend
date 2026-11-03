@@ -2,34 +2,15 @@
 
 ## Runtime ownership
 
-LeeAttend runs two application services:
+LeeAttend runs one application service pair:
 
-- `apiserver/`: Go HTTP API, scheduled external attendance pull, durable import state, background jobs, and report-stream WebSockets.
+- `apiserver/`: Go HTTP API, background jobs, and report-stream WebSockets.
 - `webdashboard/`: React/Vite browser and Tauri client.
 
-PostgreSQL stores system, tenant, attendance, and pull-state data. Redis provides rate limiting, queue coordination, and report Pub/Sub. MinIO stores uploaded files.
+PostgreSQL stores system, workspace, attendance, and payroll data in one database. Redis provides rate limiting, queue coordination, and report Pub/Sub. MinIO stores uploaded files.
 
-No edge process, ingestion WebSocket protocol, or local attendance database is required.
+No edge process, tenant database, external attendance provider, or online activation service is required.
 
-## Attendance pull flow
-
-1. `scheduler.Runner` enumerates enabled attendance sources by workspace at the configured interval.
-2. `external.AttendanceEventsClient` requests bounded pages from the configured provider over HTTPS.
-3. The provider adapter sends account, workspace/source identity, cursor, and page-size parameters. Tokens stay in process memory and never enter logs.
-4. `service.ExternalAttendancePullService` normalizes events and delegates persistence to the tenant pull repository.
-5. A tenant transaction records processed event identity, routes attendance data through existing raw/staging/error semantics, and advances the cursor only after all rows commit.
-6. Provider retries are limited to temporary transport, 429, and 5xx failures. Authentication, validation, and decode failures stop the page.
-
-Processed event identity is scoped to `(workspace_id, source_id, external_event_id)`. Provider replay, process restart, and concurrent scheduler attempts therefore remain idempotent. Provider credentials and attendance payloads are not logged.
-
-## Migration modes
-
-`LOG_PULL_ENABLED=false` disables the scheduler. When enabled:
-
-- `LOG_PULL_MODE=shadow` fetches and normalizes events for reconciliation without attendance writes or write-cursor advancement.
-- `LOG_PULL_MODE=write` enables transactional attendance import and cursor advancement.
-
-Required provider configuration and bounded numeric settings are validated at startup. Shutdown cancels in-flight requests and stops the runner after the current bounded operation.
 
 ## HTTP API
 
@@ -57,18 +38,16 @@ Metrics cover pull success/failure, provider latency, lag, fetched/imported/dedu
 
 ```text
 [Web Dashboard] --HTTP/WebSocket--> [Go apiserver]
-                                  |--REST/SQL--> [PostgreSQL]
+                                  |--REST/SQL--> [PostgreSQL system + workspace]
                                   |--queue/pubsub--> [Redis]
                                   |--object storage--> [MinIO]
-                                  |--HTTPS pull--> [External attendance API]
 ```
 
-Compose deploys `apiserver`, `webdashboard`, PostgreSQL, Redis, MinIO, and supporting poolers. No separate edge service or Rust application build belongs in the runtime topology.
+Compose deploys `apiserver`, `webdashboard`, one PostgreSQL database, Redis, and MinIO. No tenant pooler, external attendance provider, or Rust application build belongs in the runtime topology.
 
 ## Verification boundaries
 
-- API: `./leedevkit test api-go`
+- API: `./leedevkit test api`
 - Web: `./leedevkit test web`
 - Compose: `./leedevkit validate-compose`
 
-Tests must cover cursor commit ordering, duplicate provider events, concurrent lease attempts, provider timeout/rate-limit behavior, shadow-mode non-write behavior, and report WebSocket streaming.

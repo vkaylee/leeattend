@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"net/url"
 	"strings"
 	"sync"
 	"time"
@@ -17,40 +16,32 @@ var (
 	ErrInvalidURL     = errors.New("db pool: connection url must start with postgres:// or postgresql://")
 	ErrPoolClosed     = errors.New("db pool: pool manager is closed")
 	ErrContextTimeout = errors.New("db pool: operation timed out")
-	ErrEmptyBaseURL   = errors.New("db pool: base url is empty")
 	ErrAcquireTimeout = errors.New("db pool: connection acquire timed out")
 	ErrNilPoolConfig  = errors.New("db pool: configuration is nil")
 )
 
-// Config defines connection pool settings for system and standalone workloads.
+// Config defines connection pool settings for the standalone database.
 type Config struct {
-	PrimaryURL             string
-	PoolerTxURL            string
-	PoolerSessURL          string
-	TenantPoolerTxURL      string
-	TenantPoolerSessURL    string
-	ReaderURL              string
-	APIMaxConn             int32
-	APIAcquireTimeout      time.Duration
-	WorkerMaxConn          int32
-	WorkerAcquireTimeout   time.Duration
-	TenantMaxConn          int32
-	TenantIdleEvictTimeout time.Duration
-	ConnectTimeout         time.Duration
-	Standalone             bool
-	StandaloneWorkspaceID  uuid.UUID
+	PrimaryURL           string
+	PoolerTxURL          string
+	PoolerSessURL        string
+	ReaderURL            string
+	APIMaxConn           int32
+	APIAcquireTimeout    time.Duration
+	WorkerMaxConn        int32
+	WorkerAcquireTimeout time.Duration
+	ConnectTimeout       time.Duration
+	WorkspaceID          uuid.UUID
 }
 
 // DefaultConfig returns safe defaults matching LeeAttend configuration contracts.
 func DefaultConfig() Config {
 	return Config{
-		APIMaxConn:             20,
-		APIAcquireTimeout:      5 * time.Second,
-		WorkerMaxConn:          5,
-		WorkerAcquireTimeout:   30 * time.Second,
-		TenantMaxConn:          5,
-		TenantIdleEvictTimeout: 30 * time.Minute,
-		ConnectTimeout:         5 * time.Second,
+		APIMaxConn:           20,
+		APIAcquireTimeout:    5 * time.Second,
+		WorkerMaxConn:        5,
+		WorkerAcquireTimeout: 30 * time.Second,
+		ConnectTimeout:       5 * time.Second,
 	}
 }
 
@@ -92,67 +83,10 @@ func BuildPgxConfig(connString string, maxConns int32, acquireTimeout, connectTi
 	return poolCfg, nil
 }
 
-// TenantDBName computes the canonical isolated PostgreSQL database name for a workspace.
-func TenantDBName(workspaceID uuid.UUID) string {
-	clean := strings.ReplaceAll(workspaceID.String(), "-", "")
-	return "tenant_" + clean
-}
-
-// BuildTenantURL swaps database name and optional credentials onto a template connection URL.
-func BuildTenantURL(baseURL string, workspaceID uuid.UUID, overrideUser, overridePassword, overrideDBName string) (string, error) {
-	if strings.TrimSpace(baseURL) == "" {
-		return "", ErrEmptyBaseURL
-	}
-	parsed, err := url.Parse(baseURL)
-	if err != nil {
-		return "", fmt.Errorf("db pool: parse tenant base url: %w", err)
-	}
-	if parsed.Scheme != "postgres" && parsed.Scheme != "postgresql" {
-		return "", ErrInvalidURL
-	}
-
-	targetDB := TenantDBName(workspaceID)
-	if overrideDBName != "" {
-		targetDB = overrideDBName
-	}
-	parsed.Path = "/" + targetDB
-
-	if overrideUser != "" || overridePassword != "" {
-		currentUser := ""
-		currentPass := ""
-		if parsed.User != nil {
-			currentUser = parsed.User.Username()
-			currentPass, _ = parsed.User.Password()
-		}
-		userToUse := currentUser
-		if overrideUser != "" {
-			userToUse = overrideUser
-		}
-		passToUse := currentPass
-		if overridePassword != "" {
-			passToUse = overridePassword
-		}
-
-		if passToUse != "" {
-			parsed.User = url.UserPassword(userToUse, passToUse)
-		} else if userToUse != "" {
-			parsed.User = url.User(userToUse)
-		}
-	}
-
-	return parsed.String(), nil
-}
-
 // PoolOpener abstracts opening a pgx pool for networkless unit testing.
 type PoolOpener func(ctx context.Context, config *pgxpool.Config) (*pgxpool.Pool, error)
 
-// TenantPoolEntry tracks tenant pool with last accessed timestamp for idle management.
-type TenantPoolEntry struct {
-	Pool       *pgxpool.Pool
-	LastAccess time.Time
-}
-
-// Manager manages system pools and dynamic workspace tenant pools.
+// Manager manages the API and worker pools for one standalone organization.
 type Manager struct {
 	cfg        Config
 	poolOpener PoolOpener
@@ -161,8 +95,6 @@ type Manager struct {
 	closed     bool
 	systemPool *pgxpool.Pool
 	workerPool *pgxpool.Pool
-	tenantTx   map[uuid.UUID]*TenantPoolEntry
-	tenantSess map[uuid.UUID]*TenantPoolEntry
 }
 
 // NewManager creates a database pool manager.
@@ -172,12 +104,7 @@ func NewManager(cfg Config, opener PoolOpener) *Manager {
 			return pgxpool.NewWithConfig(ctx, pcfg)
 		}
 	}
-	return &Manager{
-		cfg:        cfg,
-		poolOpener: opener,
-		tenantTx:   make(map[uuid.UUID]*TenantPoolEntry),
-		tenantSess: make(map[uuid.UUID]*TenantPoolEntry),
-	}
+	return &Manager{cfg: cfg, poolOpener: opener}
 }
 
 // InitSystemPools initializes system primary/API and worker pools with fail-closed timeout.
@@ -261,118 +188,33 @@ func (m *Manager) WorkerPool() (*pgxpool.Pool, error) {
 	return m.workerPool, nil
 }
 
-// GetTenantTxPool returns standalone's shared API pool or SaaS's workspace transaction pool.
-func (m *Manager) GetTenantTxPool(ctx context.Context, workspaceID uuid.UUID) (*pgxpool.Pool, error) {
-	if m.cfg.Standalone {
-		return m.standalonePool(workspaceID, true)
-	}
-	return m.getOrCreateTenantPool(ctx, workspaceID, true)
-}
-
-// GetTenantSessPool returns standalone's shared worker pool or SaaS's workspace session pool.
-func (m *Manager) GetTenantSessPool(ctx context.Context, workspaceID uuid.UUID) (*pgxpool.Pool, error) {
-	if m.cfg.Standalone {
-		return m.standalonePool(workspaceID, false)
-	}
-	return m.getOrCreateTenantPool(ctx, workspaceID, false)
-}
-
-func (m *Manager) standalonePool(workspaceID uuid.UUID, txMode bool) (*pgxpool.Pool, error) {
+// GetTenantTxPool returns the shared API pool after validating the singleton workspace.
+func (m *Manager) GetTenantTxPool(_ context.Context, workspaceID uuid.UUID) (*pgxpool.Pool, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 	if m.closed {
 		return nil, ErrPoolClosed
 	}
-	if m.cfg.StandaloneWorkspaceID == uuid.Nil || workspaceID != m.cfg.StandaloneWorkspaceID {
-		return nil, fmt.Errorf("db pool: workspace is not standalone organization")
+	if m.cfg.WorkspaceID == uuid.Nil || workspaceID != m.cfg.WorkspaceID {
+		return nil, fmt.Errorf("db pool: workspace is not configured organization")
 	}
-	if txMode {
-		return m.systemPool, nil
+	return m.systemPool, nil
+}
+
+// GetTenantSessPool returns the shared worker pool after validating the singleton workspace.
+func (m *Manager) GetTenantSessPool(_ context.Context, workspaceID uuid.UUID) (*pgxpool.Pool, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	if m.closed {
+		return nil, ErrPoolClosed
+	}
+	if m.cfg.WorkspaceID == uuid.Nil || workspaceID != m.cfg.WorkspaceID {
+		return nil, fmt.Errorf("db pool: workspace is not configured organization")
 	}
 	return m.workerPool, nil
 }
 
-func (m *Manager) getOrCreateTenantPool(ctx context.Context, workspaceID uuid.UUID, txMode bool) (*pgxpool.Pool, error) {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-	if m.closed {
-		return nil, ErrPoolClosed
-	}
-	targetMap := m.tenantTx
-	baseURL := m.cfg.TenantPoolerTxURL
-	if !txMode {
-		targetMap = m.tenantSess
-		baseURL = m.cfg.TenantPoolerSessURL
-	}
-	if baseURL == "" {
-		if txMode {
-			baseURL = m.cfg.PoolerTxURL
-		} else {
-			baseURL = m.cfg.PoolerSessURL
-		}
-	}
-	if baseURL == "" {
-		baseURL = m.cfg.PrimaryURL
-	}
-	now := time.Now()
-	if entry, exists := targetMap[workspaceID]; exists {
-		entry.LastAccess = now
-		return entry.Pool, nil
-	}
-	poolURL, err := BuildTenantURL(baseURL, workspaceID, "", "", "")
-	if err != nil {
-		return nil, err
-	}
-	connectTimeout := m.cfg.ConnectTimeout
-	if connectTimeout <= 0 {
-		connectTimeout = 5 * time.Second
-	}
-	poolCfg, err := BuildPgxConfig(poolURL, m.cfg.TenantMaxConn, m.cfg.APIAcquireTimeout, connectTimeout)
-	if err != nil {
-		return nil, err
-	}
-	openCtx, cancel := context.WithTimeout(ctx, connectTimeout)
-	defer cancel()
-	pool, err := m.poolOpener(openCtx, poolCfg)
-	if err != nil {
-		return nil, fmt.Errorf("db pool: open workspace pool %s failed: %w", workspaceID, err)
-	}
-	targetMap[workspaceID] = &TenantPoolEntry{Pool: pool, LastAccess: now}
-	return pool, nil
-}
-
-// EvictIdleTenants closes and clears tenant pools idle longer than maxIdle duration.
-func (m *Manager) EvictIdleTenants(maxIdle time.Duration) int {
-	if maxIdle <= 0 {
-		return 0
-	}
-	m.mu.Lock()
-	defer m.mu.Unlock()
-	if m.closed {
-		return 0
-	}
-
-	now := time.Now()
-	evicted := 0
-
-	evictFromMap := func(tmap map[uuid.UUID]*TenantPoolEntry) {
-		for id, entry := range tmap {
-			if now.Sub(entry.LastAccess) > maxIdle {
-				if entry.Pool != nil {
-					entry.Pool.Close()
-				}
-				delete(tmap, id)
-				evicted++
-			}
-		}
-	}
-
-	evictFromMap(m.tenantTx)
-	evictFromMap(m.tenantSess)
-	return evicted
-}
-
-// Close closes all open system and tenant pools cleanly.
+// Close closes both standalone pools cleanly.
 func (m *Manager) Close() {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -388,19 +230,5 @@ func (m *Manager) Close() {
 	if m.workerPool != nil {
 		m.workerPool.Close()
 		m.workerPool = nil
-	}
-
-	for id, entry := range m.tenantTx {
-		if entry.Pool != nil {
-			entry.Pool.Close()
-		}
-		delete(m.tenantTx, id)
-	}
-
-	for id, entry := range m.tenantSess {
-		if entry.Pool != nil {
-			entry.Pool.Close()
-		}
-		delete(m.tenantSess, id)
 	}
 }

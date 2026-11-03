@@ -110,13 +110,10 @@ type Config struct {
 	DBPrimaryURL               ConnectionURL
 	DBPoolerTxURL              ConnectionURL
 	DBPoolerSessURL            ConnectionURL
-	DBTenantPoolerTxURL        ConnectionURL
-	DBTenantPoolerSessURL      ConnectionURL
 	DBReaderURL                ConnectionURL
 	DBAPIMaxConn               int
 	DBAPIAcquireTimeoutSecs    int
 	DBWorkerAcquireTimeoutSecs int
-	DBTenantMaxConn            int
 	PgBouncerHost              string
 	PgBouncerPort              int
 
@@ -161,51 +158,16 @@ type Config struct {
 	ClamdHost string
 	ClamdPort int
 
-	// 2.9 Integration
-	SupavisorAPIURL string
-	APIJWTSecret    Secret
-
-	// 2.10 Attendance log pull
-	LogPullBaseURL               string
-	LogPullToken                 Secret
-	LogPullAccountID             string
-	LogPullMode                  string
-	LogPullIntervalSecs          int
-	LogPullTimeoutSecs           int
-	LogPullPageSize              int
-	LogPullMaxConcurrentRequests int
-	LogPullEnabled               bool
-
 	// 2.11 Feature Flags
 	FFNoShowTimeline bool
 
 	// 2.12 Standalone deployment
-	Standalone              bool
 	StandaloneWorkspaceID   uuid.UUID
 	StandaloneWorkspaceName string
 	StandaloneAdminEmail    string
 	StandaloneAdminPassword Secret
 	LicensePath             string
 	LicensePublicKey        string
-}
-
-// Standalone deployment settings bind every request to one local organization.
-// LicensePublicKey is base64.RawURLEncoding-encoded Ed25519 public key material.
-// LicensePath points to a local, read-only perpetual license file.
-type StandaloneSettings struct {
-	Enabled          bool
-	WorkspaceID      uuid.UUID
-	LicensePath      string
-	LicensePublicKey string
-}
-
-func (c *Config) StandaloneSettings() StandaloneSettings {
-	return StandaloneSettings{
-		Enabled:          c.Standalone,
-		WorkspaceID:      c.StandaloneWorkspaceID,
-		LicensePath:      c.LicensePath,
-		LicensePublicKey: c.LicensePublicKey,
-	}
 }
 
 // IsProduction returns true if APP_ENV is "production".
@@ -379,20 +341,6 @@ func LoadWithLookup(lookup LookupEnvFunc) (*Config, error) {
 		validatePostgresURL(dbPoolerSessRaw, "DB_POOLER_SESS_URL")
 	}
 
-	dbTenantPoolerTxRaw, ok := get("DB_TENANT_POOLER_TX_URL", "DATABASE_TENANT_POOLER_TX_URL")
-	if !ok {
-		dbTenantPoolerTxRaw = dbPoolerTxRaw
-	} else {
-		validatePostgresURL(dbTenantPoolerTxRaw, "DB_TENANT_POOLER_TX_URL")
-	}
-
-	dbTenantPoolerSessRaw, ok := get("DB_TENANT_POOLER_SESS_URL", "DATABASE_TENANT_POOLER_SESS_URL")
-	if !ok {
-		dbTenantPoolerSessRaw = dbPoolerSessRaw
-	} else {
-		validatePostgresURL(dbTenantPoolerSessRaw, "DB_TENANT_POOLER_SESS_URL")
-	}
-
 	dbReaderRaw, ok := get("DB_READER_URL", "DATABASE_READER_URL")
 	if !ok {
 		dbReaderRaw = dbPoolerTxRaw
@@ -403,7 +351,6 @@ func LoadWithLookup(lookup LookupEnvFunc) (*Config, error) {
 	dbAPIMaxConn := getInt("DB_API_MAX_CONN", 20, 1, 1000)
 	dbAPIAcquireTimeoutSecs := getInt("DB_API_ACQUIRE_TIMEOUT_SECS", 5, 1, 3600)
 	dbWorkerAcquireTimeoutSecs := getInt("DB_WORKER_ACQUIRE_TIMEOUT_SECS", 30, 1, 3600)
-	dbTenantMaxConn := getInt("DB_TENANT_MAX_CONN", 5, 1, 100)
 
 	pgBouncerHost, ok := get("PGBOUNCER_HOST", "DATABASE_HOST")
 	if !ok {
@@ -548,89 +495,39 @@ func LoadWithLookup(lookup LookupEnvFunc) (*Config, error) {
 	clamdHost, _ := get("CLAMD_HOST")
 	clamdPort := getInt("CLAMD_PORT", 3310, 1, 65535)
 
-	// 2.9 Integration Category
-	supavisorAPIURL, _ := get("SUPAVISOR_API_URL")
-	if supavisorAPIURL != "" {
-		if u, err := url.Parse(supavisorAPIURL); err != nil || (u.Scheme != "http" && u.Scheme != "https") {
-			addErr("SUPAVISOR_API_URL", "must be a valid HTTP/HTTPS URL")
-		}
-	}
-	apiJWTSecretRaw, _ := get("API_JWT_SECRET", "SUPAVISOR_API_JWT")
-
-	// 2.10 Attendance log pull Category
-	logPullEnabled := getBool("LOG_PULL_ENABLED", false)
-	logPullBaseURL, _ := get("LOG_PULL_BASE_URL")
-	logPullToken, _ := get("LOG_PULL_TOKEN")
-	logPullAccountID, _ := get("LOG_PULL_ACCOUNT_ID")
-	logPullMode, _ := get("LOG_PULL_MODE")
-	if logPullMode == "" {
-		logPullMode = "shadow"
-	}
-	// Standalone configuration is validated only when explicitly enabled.
-	standaloneEnabled := getBool("STANDALONE_ENABLED", false)
+	// Standalone deployment is mandatory.
 	standaloneWorkspaceID := uuid.Nil
 	licensePath, _ := get("LICENSE_PATH")
 	licensePublicKey, _ := get("LICENSE_PUBLIC_KEY")
 	standaloneWorkspaceName, _ := get("STANDALONE_WORKSPACE_NAME")
 	standaloneAdminEmail, _ := get("STANDALONE_ADMIN_EMAIL")
 	standaloneAdminPassword, _ := get("STANDALONE_ADMIN_PASSWORD")
-	if standaloneEnabled {
-		if standaloneWorkspaceName == "" {
-			addErr("STANDALONE_WORKSPACE_NAME", "is required when STANDALONE_ENABLED is true")
-		}
-		if standaloneAdminEmail == "" {
-			addErr("STANDALONE_ADMIN_EMAIL", "is required when STANDALONE_ENABLED is true")
-		}
-		if standaloneAdminPassword == "" {
-			addErr("STANDALONE_ADMIN_PASSWORD", "is required when STANDALONE_ENABLED is true")
-		}
-		workspaceRaw, workspaceOK := get("STANDALONE_WORKSPACE_ID")
-		if !workspaceOK {
-			addErr("STANDALONE_WORKSPACE_ID", "is required when STANDALONE_ENABLED is true")
-		} else if parsed, parseErr := uuid.Parse(workspaceRaw); parseErr != nil || parsed == uuid.Nil {
-			addErr("STANDALONE_WORKSPACE_ID", "must be a non-zero UUID")
-		} else {
-			standaloneWorkspaceID = parsed
-		}
-		if licensePath == "" {
-			addErr("LICENSE_PATH", "is required when STANDALONE_ENABLED is true")
-		}
-		if licensePublicKey == "" {
-			addErr("LICENSE_PUBLIC_KEY", "is required when STANDALONE_ENABLED is true")
-		} else if decoded, decodeErr := base64.RawURLEncoding.DecodeString(licensePublicKey); decodeErr != nil || len(decoded) != ed25519.PublicKeySize {
-			addErr("LICENSE_PUBLIC_KEY", "must be a base64url Ed25519 public key")
-		}
+	if standaloneWorkspaceName == "" {
+		addErr("STANDALONE_WORKSPACE_NAME", "is required")
 	}
-	if standaloneEnabled && logPullEnabled {
-		addErr("LOG_PULL_ENABLED", "must be false when STANDALONE_ENABLED is true")
+	if standaloneAdminEmail == "" {
+		addErr("STANDALONE_ADMIN_EMAIL", "is required")
 	}
-	if standaloneEnabled && supavisorAPIURL != "" {
-		addErr("SUPAVISOR_API_URL", "must be empty when STANDALONE_ENABLED is true")
+	if standaloneAdminPassword == "" {
+		addErr("STANDALONE_ADMIN_PASSWORD", "is required")
+	}
+	workspaceRaw, workspaceOK := get("STANDALONE_WORKSPACE_ID")
+	if !workspaceOK {
+		addErr("STANDALONE_WORKSPACE_ID", "is required")
+	} else if parsed, parseErr := uuid.Parse(workspaceRaw); parseErr != nil || parsed == uuid.Nil {
+		addErr("STANDALONE_WORKSPACE_ID", "must be a non-zero UUID")
+	} else {
+		standaloneWorkspaceID = parsed
+	}
+	if licensePath == "" {
+		addErr("LICENSE_PATH", "is required")
+	}
+	if licensePublicKey == "" {
+		addErr("LICENSE_PUBLIC_KEY", "is required")
+	} else if decoded, decodeErr := base64.RawURLEncoding.DecodeString(licensePublicKey); decodeErr != nil || len(decoded) != ed25519.PublicKeySize {
+		addErr("LICENSE_PUBLIC_KEY", "must be a base64url Ed25519 public key")
 	}
 
-	// 2.11 Feature Flags Category
-
-	// 2.11 Feature Flags Category
-	if logPullEnabled {
-		if logPullBaseURL == "" {
-			addErr("LOG_PULL_BASE_URL", "is required when LOG_PULL_ENABLED is true")
-		} else if u, err := url.Parse(logPullBaseURL); err != nil || u.Scheme != "https" || u.Host == "" {
-			addErr("LOG_PULL_BASE_URL", "must be a valid HTTPS URL when log pull is enabled")
-		}
-		if logPullToken == "" {
-			addErr("LOG_PULL_TOKEN", "is required when LOG_PULL_ENABLED is true")
-		}
-		if logPullAccountID == "" {
-			addErr("LOG_PULL_ACCOUNT_ID", "is required when LOG_PULL_ENABLED is true")
-		}
-	}
-	if logPullMode != "shadow" && logPullMode != "write" {
-		addErr("LOG_PULL_MODE", "must be shadow or write")
-	}
-	logPullIntervalSecs := getInt("LOG_PULL_INTERVAL_SECS", 60, 1, 86400)
-	logPullTimeoutSecs := getInt("LOG_PULL_TIMEOUT_SECS", 30, 1, 300)
-	logPullPageSize := getInt("LOG_PULL_PAGE_SIZE", 100, 1, 1000)
-	logPullMaxConcurrentRequests := getInt("LOG_PULL_MAX_CONCURRENT_REQUESTS", 4, 1, 100)
 	// 2.11 Feature Flags Category
 	ffNoShowTimeline := getBool("FF_NO_SHOW_TIMELINE", false)
 
@@ -639,70 +536,55 @@ func LoadWithLookup(lookup LookupEnvFunc) (*Config, error) {
 	}
 
 	return &Config{
-		AppEnv:                       appEnv,
-		AppPort:                      appPort,
-		AppHost:                      appHost,
-		PortFileName:                 portFileName,
-		DBPrimaryURL:                 ConnectionURL(dbPrimaryRaw),
-		DBPoolerTxURL:                ConnectionURL(dbPoolerTxRaw),
-		DBPoolerSessURL:              ConnectionURL(dbPoolerSessRaw),
-		DBTenantPoolerTxURL:          ConnectionURL(dbTenantPoolerTxRaw),
-		DBTenantPoolerSessURL:        ConnectionURL(dbTenantPoolerSessRaw),
-		DBReaderURL:                  ConnectionURL(dbReaderRaw),
-		DBAPIMaxConn:                 dbAPIMaxConn,
-		DBAPIAcquireTimeoutSecs:      dbAPIAcquireTimeoutSecs,
-		DBWorkerAcquireTimeoutSecs:   dbWorkerAcquireTimeoutSecs,
-		DBTenantMaxConn:              dbTenantMaxConn,
-		PgBouncerHost:                pgBouncerHost,
-		PgBouncerPort:                pgBouncerPort,
-		RedisURL:                     RedisURL(redisRaw),
-		JWTSecret:                    JWTSecret(jwtSecretRaw),
-		EncryptionKeysJSON:           EncryptionKeysJSON(encryptionKeysRaw),
-		EncryptionKeys:               parsedKeys,
-		AllowedOrigins:               allowedOrigins,
-		CookieDomain:                 cookieDomain,
-		MaxRequestBodyBytes:          maxRequestBodyBytes,
-		MaxFileUploadBodyBytes:       maxFileUploadBodyBytes,
-		MaxBulkUploadBodyBytes:       maxBulkUploadBodyBytes,
-		S3EndpointURL:                s3EndpointURL,
-		S3BucketName:                 s3BucketName,
-		S3AccessKey:                  S3SecretKey(s3AccessKeyRaw),
-		S3SecretKey:                  S3SecretKey(s3SecretKeyRaw),
-		S3Region:                     s3Region,
-		S3UsePathStyle:               s3UsePathStyle,
-		FileProxyThresholdBytes:      fileProxyThresholdBytes,
-		PresignedURLTTLSecs:          presignedURLTTLSecs,
-		StorageDir:                   storageDir,
-		WorkerMaxConcurrentJobs:      workerMaxConcurrentJobs,
-		WorkerPollTimeoutSecs:        workerPollTimeoutSecs,
-		WorkerMaxRetries:             workerMaxRetries,
-		WorkerJobTimeoutSecs:         workerJobTimeoutSecs,
-		ImportChunkSize:              importChunkSize,
-		PairingSweepIntervalSecs:     pairingSweepIntervalSecs,
-		RateLimitMaxRead:             rateLimitMaxRead,
-		RateLimitMaxWrite:            rateLimitMaxWrite,
-		RateLimitWindowSecs:          rateLimitWindowSecs,
-		ClamdHost:                    clamdHost,
-		ClamdPort:                    clamdPort,
-		SupavisorAPIURL:              supavisorAPIURL,
-		APIJWTSecret:                 Secret(apiJWTSecretRaw),
-		LogPullBaseURL:               logPullBaseURL,
-		LogPullToken:                 Secret(logPullToken),
-		LogPullAccountID:             logPullAccountID,
-		LogPullMode:                  logPullMode,
-		LogPullIntervalSecs:          logPullIntervalSecs,
-		LogPullTimeoutSecs:           logPullTimeoutSecs,
-		LogPullPageSize:              logPullPageSize,
-		LogPullMaxConcurrentRequests: logPullMaxConcurrentRequests,
-		LogPullEnabled:               logPullEnabled,
-		FFNoShowTimeline:             ffNoShowTimeline,
-		Standalone:                   standaloneEnabled,
-		StandaloneWorkspaceID:        standaloneWorkspaceID,
-		StandaloneWorkspaceName:      standaloneWorkspaceName,
-		StandaloneAdminEmail:         standaloneAdminEmail,
-		StandaloneAdminPassword:      Secret(standaloneAdminPassword),
-		LicensePath:                  licensePath,
-		LicensePublicKey:             licensePublicKey,
+		AppEnv:                     appEnv,
+		AppPort:                    appPort,
+		AppHost:                    appHost,
+		PortFileName:               portFileName,
+		DBPrimaryURL:               ConnectionURL(dbPrimaryRaw),
+		DBPoolerTxURL:              ConnectionURL(dbPoolerTxRaw),
+		DBPoolerSessURL:            ConnectionURL(dbPoolerSessRaw),
+		DBReaderURL:                ConnectionURL(dbReaderRaw),
+		DBAPIMaxConn:               dbAPIMaxConn,
+		DBAPIAcquireTimeoutSecs:    dbAPIAcquireTimeoutSecs,
+		DBWorkerAcquireTimeoutSecs: dbWorkerAcquireTimeoutSecs,
+		PgBouncerHost:              pgBouncerHost,
+		PgBouncerPort:              pgBouncerPort,
+		RedisURL:                   RedisURL(redisRaw),
+		JWTSecret:                  JWTSecret(jwtSecretRaw),
+		EncryptionKeysJSON:         EncryptionKeysJSON(encryptionKeysRaw),
+		EncryptionKeys:             parsedKeys,
+		AllowedOrigins:             allowedOrigins,
+		CookieDomain:               cookieDomain,
+		MaxRequestBodyBytes:        maxRequestBodyBytes,
+		MaxFileUploadBodyBytes:     maxFileUploadBodyBytes,
+		MaxBulkUploadBodyBytes:     maxBulkUploadBodyBytes,
+		S3EndpointURL:              s3EndpointURL,
+		S3BucketName:               s3BucketName,
+		S3AccessKey:                S3SecretKey(s3AccessKeyRaw),
+		S3SecretKey:                S3SecretKey(s3SecretKeyRaw),
+		S3Region:                   s3Region,
+		S3UsePathStyle:             s3UsePathStyle,
+		FileProxyThresholdBytes:    fileProxyThresholdBytes,
+		PresignedURLTTLSecs:        presignedURLTTLSecs,
+		StorageDir:                 storageDir,
+		WorkerMaxConcurrentJobs:    workerMaxConcurrentJobs,
+		WorkerPollTimeoutSecs:      workerPollTimeoutSecs,
+		WorkerMaxRetries:           workerMaxRetries,
+		WorkerJobTimeoutSecs:       workerJobTimeoutSecs,
+		ImportChunkSize:            importChunkSize,
+		PairingSweepIntervalSecs:   pairingSweepIntervalSecs,
+		RateLimitMaxRead:           rateLimitMaxRead,
+		RateLimitMaxWrite:          rateLimitMaxWrite,
+		RateLimitWindowSecs:        rateLimitWindowSecs,
+		ClamdHost:                  clamdHost,
+		ClamdPort:                  clamdPort,
+		FFNoShowTimeline:           ffNoShowTimeline,
+		StandaloneWorkspaceID:      standaloneWorkspaceID,
+		StandaloneWorkspaceName:    standaloneWorkspaceName,
+		StandaloneAdminEmail:       standaloneAdminEmail,
+		StandaloneAdminPassword:    Secret(standaloneAdminPassword),
+		LicensePath:                licensePath,
+		LicensePublicKey:           licensePublicKey,
 	}, nil
 }
 
@@ -720,7 +602,6 @@ func (c *Config) RedactedSummary() string {
 	b.WriteString(fmt.Sprintf("S3 Endpoint: %s (Bucket: %s)\n", c.S3EndpointURL, c.S3BucketName))
 	b.WriteString(fmt.Sprintf("Worker Concurrency: %d, Retries: %d\n", c.WorkerMaxConcurrentJobs, c.WorkerMaxRetries))
 	b.WriteString(fmt.Sprintf("Rate Limit: Read %d / Write %d per %ds\n", c.RateLimitMaxRead, c.RateLimitMaxWrite, c.RateLimitWindowSecs))
-	b.WriteString(fmt.Sprintf("Log pull: enabled=%t mode=%s base_url=%s account_id=%s interval=%ds timeout=%ds page_size=%d concurrency=%d\n", c.LogPullEnabled, c.LogPullMode, c.LogPullBaseURL, c.LogPullAccountID, c.LogPullIntervalSecs, c.LogPullTimeoutSecs, c.LogPullPageSize, c.LogPullMaxConcurrentRequests))
 	b.WriteString("==========================================\n")
 	return b.String()
 }

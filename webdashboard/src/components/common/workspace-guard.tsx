@@ -1,36 +1,17 @@
-import { Navigate, Outlet } from "@tanstack/react-router";
-import React, { useMemo } from "react";
+import { Outlet } from "@tanstack/react-router";
+import React from "react";
 import { useTranslation } from "react-i18next";
 
 import Button from "@/components/ui/button";
 import { Typography } from "@/components/ui/typography";
-import { useWorkspaces } from "@/hooks/use-workspace";
-import { getCurrentWorkspaceId, setCurrentWorkspaceId } from "@/lib/api";
-import { ROUTES } from "@/lib/routes";
+import { useWorkspace } from "@/hooks/use-workspace";
+import { getCurrentWorkspaceId } from "@/lib/api";
 
-/**
- * WorkspaceGuard: Đảm bảo người dùng luôn thuộc về ít nhất một Workspace.
- * - Nếu không có workspace nào: Chuyển hướng tới /onboarding.
- * - Nếu có workspace nhưng chưa chọn workspace active: Tự động chọn cái đầu tiên.
- */
+/** Ensures standalone workspace context is loaded before rendering protected routes. */
 export default function WorkspaceGuard() {
   const { t } = useTranslation();
-  const { workspaces, isLoading, isError } = useWorkspaces();
-  const storedId = getCurrentWorkspaceId();
-
-  // Compute the active workspace ID during render — no useEffect needed.
-  // If the stored ID is still valid, keep it; otherwise fall back to the first workspace.
-  const activeWsId = useMemo(() => {
-    if (!isLoading && workspaces.length > 0) {
-      const isValid = storedId && workspaces.some((w) => w.id === storedId);
-      if (!storedId || !isValid) {
-        setCurrentWorkspaceId(workspaces[0].id);
-        return workspaces[0].id;
-      }
-      return storedId;
-    }
-    return storedId;
-  }, [workspaces, isLoading, storedId]);
+  const configuredWorkspaceID = getCurrentWorkspaceId();
+  const { workspace, isLoading, isError } = useWorkspace(configuredWorkspaceID ?? undefined);
 
   if (isLoading) {
     return (
@@ -60,14 +41,7 @@ export default function WorkspaceGuard() {
       </div>
     );
   }
-
-  if (workspaces.length === 0) {
-    return <Navigate replace to={ROUTES.ONBOARDING} />;
-  }
-
-  if (!activeWsId) {
-    return <Navigate replace to={ROUTES.ONBOARDING} />;
-  }
+  if (!workspace) return null;
 
   return <Outlet />;
 }

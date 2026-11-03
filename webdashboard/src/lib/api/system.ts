@@ -1,13 +1,10 @@
 import type { components } from "@/types/api-generated";
 
-import { client, fetch, fire } from "./client";
+import { client, fetch } from "./client";
 
-// Re-exported for downstream consumers that imported these from here.
 export type SystemRoleAssignment = components["schemas"]["SystemRoleAssignment"];
 export type SystemRoleInfo = components["schemas"]["SystemRoleInfo"];
 export type AssignSystemRoleRequest = components["schemas"]["AssignSystemRoleRequest"];
-export type SystemDbCluster = components["schemas"]["SystemDbCluster"];
-export type CreateDbClusterRequestPayload = components["schemas"]["CreateDbClusterRequest"];
 
 export async function fetchSystemRoles(): Promise<SystemRoleInfo[]> {
   const { data: resData } = await client.GET("/system/roles");
@@ -40,61 +37,3 @@ export async function fetchSystemHealth(): Promise<unknown> {
   return resData;
 }
 
-export type SystemTenant = components["schemas"]["SystemTenantResponse"];
-export type CreateTenantRequestPayload = components["schemas"]["CreateTenantRequest"];
-export type TenantConnectionStats = components["schemas"]["TenantStatsResponse"];
-
-export async function fetchSystemTenants(): Promise<SystemTenant[]> {
-  const { data: resData } = await fetch<SystemTenant[]>("GET", "/system/tenants", {});
-  return resData;
-}
-
-export async function createSystemTenant(request: CreateTenantRequestPayload): Promise<void> {
-  await fire("POST", "/system/tenants", { body: request });
-}
-
-export async function deleteSystemTenant(tenantId: string): Promise<void> {
-  await fire("DELETE", "/system/tenants/{tenant_id}", {
-    params: { path: { tenant_id: tenantId } }
-  });
-}
-
-export async function fetchSystemTenantStats(tenantId: string): Promise<TenantConnectionStats> {
-  const { data: resData } = await fetch<TenantConnectionStats>("GET", "/system/tenants/{tenant_id}/stats", {
-    params: { path: { tenant_id: tenantId } },
-  });
-  return resData;
-}
-
-export async function updateTenantDatabase(tenantId: string, customDbUrl: string): Promise<void> {
-  await fire("PUT", "/system/tenants/{tenant_id}/database", {
-    params: { path: { tenant_id: tenantId } },
-    body: { database_url: customDbUrl },
-  });
-}
-
-export async function fetchSystemDbClusters(): Promise<SystemDbCluster[]> {
-  const { data: resData } = await client.GET("/system/db-clusters");
-  return resData;
-}
-
-export async function createSystemDbCluster(request: CreateDbClusterRequestPayload): Promise<SystemDbCluster> {
-  const { data: resData } = await client.POST("/system/db-clusters", {
-    body: request,
-  });
-  return resData;
-}
-
-export async function deleteSystemDbCluster(id: string): Promise<void> {
-  await client.DELETE("/system/db-clusters/{id}", {
-    params: { path: { id } }
-  });
-}
-
-export async function updateSystemDbClusterStatus(id: string, isActive: boolean): Promise<SystemDbCluster> {
-  const { data: resData } = await client.PATCH("/system/db-clusters/{id}/status", {
-    params: { path: { id } },
-    body: { is_active: isActive },
-  });
-  return resData;
-}

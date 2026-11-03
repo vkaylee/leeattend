@@ -17,5 +17,4 @@ cd "$ROOT"
 "${COMPOSE[@]}" -f docker-compose.yml config >/dev/null
 "${COMPOSE[@]}" -f docker-compose.yml -f .compose/docker-compose.dev.yml config >/dev/null
 PROJECT_ROOT="$ROOT" "${COMPOSE[@]}" -f .compose/docker-compose.test.yml config >/dev/null
-"${COMPOSE[@]}" -f docker-compose.standalone.yml config >/dev/null
-printf '%s\n' 'Compose configuration valid: production, development, test, standalone'
+printf '%s\n' 'Compose configuration valid: production, development, test'
