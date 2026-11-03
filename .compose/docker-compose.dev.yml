@@ -75,6 +75,8 @@ services:
       - APP_HOST=0.0.0.0
       - APP_PORT=3000
       - DB_PRIMARY_URL=postgres://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@db_system:5432/${DB_NAME:-leeattend_system}
+      - DB_POOLER_TX_URL=postgres://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@pgbouncer_tx:6543/${DB_NAME:-leeattend_system}
+      - DB_POOLER_SESS_URL=postgres://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@pgbouncer_sess:5452/${DB_NAME:-leeattend_system}
       - DB_TENANT_POOLER_TX_URL=postgres://tenant_user:tenant_password@pgbouncer_tenant_tx:6543/tenant_db
       - DB_TENANT_POOLER_SESS_URL=postgres://tenant_user:tenant_password@pgbouncer_tenant_sess:5452/tenant_db
       - REDIS_URL=redis://:${REDIS_PASSWORD:-}@redis:6379

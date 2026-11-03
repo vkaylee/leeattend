@@ -261,14 +261,35 @@ func (m *Manager) WorkerPool() (*pgxpool.Pool, error) {
 	return m.workerPool, nil
 }
 
-// GetTenantTxPool retrieves or lazily opens a transaction-mode connection pool for workspace.
+// GetTenantTxPool returns standalone's shared API pool or SaaS's workspace transaction pool.
 func (m *Manager) GetTenantTxPool(ctx context.Context, workspaceID uuid.UUID) (*pgxpool.Pool, error) {
+	if m.cfg.Standalone {
+		return m.standalonePool(workspaceID, true)
+	}
 	return m.getOrCreateTenantPool(ctx, workspaceID, true)
 }
 
-// GetTenantSessPool retrieves or lazily opens a session-mode connection pool for workspace.
+// GetTenantSessPool returns standalone's shared worker pool or SaaS's workspace session pool.
 func (m *Manager) GetTenantSessPool(ctx context.Context, workspaceID uuid.UUID) (*pgxpool.Pool, error) {
+	if m.cfg.Standalone {
+		return m.standalonePool(workspaceID, false)
+	}
 	return m.getOrCreateTenantPool(ctx, workspaceID, false)
+}
+
+func (m *Manager) standalonePool(workspaceID uuid.UUID, txMode bool) (*pgxpool.Pool, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	if m.closed {
+		return nil, ErrPoolClosed
+	}
+	if m.cfg.StandaloneWorkspaceID == uuid.Nil || workspaceID != m.cfg.StandaloneWorkspaceID {
+		return nil, fmt.Errorf("db pool: workspace is not standalone organization")
+	}
+	if txMode {
+		return m.systemPool, nil
+	}
+	return m.workerPool, nil
 }
 
 func (m *Manager) getOrCreateTenantPool(ctx context.Context, workspaceID uuid.UUID, txMode bool) (*pgxpool.Pool, error) {
@@ -277,12 +298,6 @@ func (m *Manager) getOrCreateTenantPool(ctx context.Context, workspaceID uuid.UU
 	if m.closed {
 		return nil, ErrPoolClosed
 	}
-	if m.cfg.Standalone {
-		if m.cfg.StandaloneWorkspaceID == uuid.Nil || workspaceID != m.cfg.StandaloneWorkspaceID {
-			return nil, fmt.Errorf("db pool: workspace is not standalone organization")
-		}
-	}
-
 	targetMap := m.tenantTx
 	baseURL := m.cfg.TenantPoolerTxURL
 	if !txMode {
@@ -304,13 +319,9 @@ func (m *Manager) getOrCreateTenantPool(ctx context.Context, workspaceID uuid.UU
 		entry.LastAccess = now
 		return entry.Pool, nil
 	}
-	poolURL := baseURL
-	if !m.cfg.Standalone {
-		var err error
-		poolURL, err = BuildTenantURL(baseURL, workspaceID, "", "", "")
-		if err != nil {
-			return nil, err
-		}
+	poolURL, err := BuildTenantURL(baseURL, workspaceID, "", "", "")
+	if err != nil {
+		return nil, err
 	}
 	connectTimeout := m.cfg.ConnectTimeout
 	if connectTimeout <= 0 {

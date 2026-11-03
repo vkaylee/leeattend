@@ -24,9 +24,9 @@ bun = true
 
 
 [targets]
-api = ["api-go"]
+api = ["apiserver"]
 web = ["webdashboard"]
-all = ["api-go", "webdashboard"]
+all = ["apiserver", "webdashboard"]
 
 [test.dependencies]
 lint-api = ["apiserver"]

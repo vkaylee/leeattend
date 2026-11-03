@@ -27,19 +27,16 @@ The `apiserver` container runs the Go binary. `LOG_PULL_*` configuration is inje
 podman-compose -f docker-compose.yml -f .compose/docker-compose.dev.yml up --build
 ```
 
-The development API uses `apiserver/Dockerfile` and Go tooling. The dashboard uses Vite. Database and Redis volumes are isolated by the development override.
+The development API uses the canonical `apiserver` Compose service and Go tooling. The dashboard uses Vite. Database and Redis volumes are isolated by the development override.
 
 ## Test gates
 
-```bash
 ./leedevkit validate-compose
-./leedevkit test api-go
+./leedevkit test api
 ./leedevkit test web
 ```
 
 The pinned Go gate image in `.compose/go/Dockerfile` provides `gofmt`, `go vet`, `staticcheck`, `govulncheck`, `sqlc`, and `oapi-codegen`. API tests use the Go module under `apiserver/`; web tests use Bun and Playwright.
-
-## Caching and isolation
 
 - Go module and build caches use named volumes.
 - Web dependencies use a named Bun cache and isolated `node_modules` volume.

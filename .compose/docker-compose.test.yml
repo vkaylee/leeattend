@@ -1,10 +1,15 @@
 # ==============================================================================
-# Podman Compose — Test Environment (Self-Contained)
+# Podman Compose — Go/Web Test Environment (SaaS-shaped integration fixture)
 # ==============================================================================
 # This file is fully standalone — it does NOT merge with docker-compose.yml.
-# Profiles isolate backend (db, redis, api-go) from frontend
+# Profiles isolate backend (db, redis, apiserver) from frontend
 # (webdashboard, bun_init) so phases that only need one side don't
 # launch the other.
+#
+# db_system and db_workspace intentionally remain separate: this fixture tests
+# SaaS tenant database isolation. Standalone shared-database behavior is tested
+# by apiserver/internal/db/pool and apiserver/internal/standalone plus the
+# standalone Compose smoke, not by collapsing this fixture's two databases.
 
 networks:
   test_net:
@@ -193,8 +198,12 @@ services:
 
 
 
-  api-go:
+  apiserver:
     profiles:
+      - api
+      - int-api
+      - lint-api
+      - unit-api
       - lint-go
       - unit-go
       - int-go
@@ -207,6 +216,11 @@ services:
       - test_net
     working_dir: /workspace/apiserver
     entrypoint: ["sleep", "infinity"]
+    healthcheck:
+      test: ["CMD", "go", "version"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
     environment:
       - GOFLAGS=-mod=mod -buildvcs=false
     volumes:

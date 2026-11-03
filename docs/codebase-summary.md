@@ -47,9 +47,8 @@ No separate edge process, ingestion WebSocket protocol, or local attendance data
 
 ## Verification
 
-```bash
 ./leedevkit validate-compose
-./leedevkit test api-go
+./leedevkit test api
 ./leedevkit test web
 ```
 

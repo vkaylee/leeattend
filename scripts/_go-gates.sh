@@ -16,7 +16,7 @@ SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "$0")")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 export PROJECT_ROOT
 COMPOSE_FILE="$PROJECT_ROOT/.compose/docker-compose.test.yml"
-SERVICE="api-go"
+SERVICE="apiserver"
 PROJECT_NAME="${COMPOSE_PROJECT_NAME:-leeattend-test}"
 
 MODE="all"

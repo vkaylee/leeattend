@@ -1,15 +1,15 @@
 # Database Architecture
 
-## Overview
+LeeAttend supports two database topologies:
 
-LeeAttend uses a **dual-database model** separated by responsibility:
+| Mode | System tables | Tenant tables | Runtime routing |
+|---|---|---|---|
+| **SaaS** | Shared system database | One database per workspace, named `tenant_{workspace_id}` | System API/worker pools plus dynamic tenant transaction/session pools through pooler |
+| **Standalone** | Same PostgreSQL database | Same PostgreSQL database | Tenant transaction requests reuse API pool; tenant session requests reuse worker/session pool; no dynamic tenant pool |
 
-| Database | Purpose | Location | Management |
-|----------|---------|----------|------------|
-| **System DB** | Global platform tables | Same Postgres cluster (usually) | Migrations in `migrations/system/` |
-| **Tenant DBs** | Per-workspace business data | One database per workspace, named `tenant_{workspace_id}` | Migrations in `migrations/tenant/` |
+The logical split remains: system migrations define platform/workspace/auth tables, tenant migrations define business tables. Standalone applies both migration directories to one database; SaaS applies tenant migrations per workspace database.
 
-All runtime queries are routed through **Supavisor** (connection pooler), which acts as the database orchestrator and provides connection pooling, tenant-aware routing, and SSL enforcement.
+SaaS runtime queries use Supavisor/connection poolers where configured. Standalone Compose uses one PostgreSQL service and one database; pool URLs retain transaction/session semantics but resolve to the same database.
 
 ---
 
@@ -36,7 +36,7 @@ Created by system migrations (`migrations/system/`). Stored in a single shared d
 
 ### Tenant Tables
 
-Created by tenant migrations (`migrations/tenant/`). Each workspace gets an independent copy.
+Created by tenant migrations (`migrations/tenant/`). In SaaS, each workspace gets an independent copy. In standalone, the same tables exist in the shared appliance database and remain scoped by `workspace_id`.
 
 - `employees`, `departments`, `shifts`
 - `time_entries`, `raw_attendance_logs`, `attendance_daily_summaries`
@@ -47,60 +47,41 @@ Created by tenant migrations (`migrations/tenant/`). Each workspace gets an inde
 
 ### Why the Split?
 
-- **Data isolation**: A workspace's business data is physically separate from other workspaces.
-- **Scaling**: Different databases can be on different Postgres servers.
-- **Backup granularity**: Per-tenant backup/restore without affecting others.
-- **BYOD**: Workspaces can use their own external database (`custom_db_url_encrypted`).
+- **SaaS data isolation**: A workspace's business data is physically separate from other workspaces.
+- **Standalone compatibility**: One workspace keeps the same logical tenant tables and authorization predicates without a second database.
+- **Scaling**: SaaS databases can be placed on different Postgres servers.
+- **Backup granularity**: SaaS supports per-tenant backup/restore; standalone backs up one appliance database.
+- **BYOD**: SaaS workspaces can use their own external database (`custom_db_url_encrypted`).
 
 ---
 
 ## Connection Architecture
 
-```
-┌─────────────────────────────────────────────────────────┐
-│                    APPLICATION STARTUP                   │
-├─────────────────────────────────────────────────────────┤
-│                                                          │
-│  1. run_system_migrations()  ───→ Direct (DATABASE_URL) │
-│  2. Supavisor init_tenant()   ───→ HTTP to Supavisor    │
-│  3. DieselPools::connect()    ───→ DATABASE_POOLER_URL  │
-│  4. register_workspace_tenants_and_migrate()              │
-│     ├── Query workspaces from system DB                  │
-│     ├── Register each with Supavisor (HTTP PUT)          │
-│     └── run_tenant_migrations()  ───→ DATABASE_POOLER_URL│
-│                                                          │
-└─────────────────────────────────────────────────────────┘
+### Standalone
 
-┌─────────────────────────────────────────────────────────┐
-│                    RUNTIME QUERIES                       │
-├─────────────────────────────────────────────────────────┤
-│                                                          │
-│  System queries  → api pool  → Supavisor → System DB    │
-│  Tenant queries  → ten pool  → Supavisor → Tenant DB    │
-│                                                          │
-└─────────────────────────────────────────────────────────┘
+```
+System queries  ──→ system/API pool ──→ shared PostgreSQL database
+Tenant TX       ──→ same system/API pool ──→ shared PostgreSQL database
+Tenant session  ──→ worker/session pool ──→ shared PostgreSQL database
 ```
 
-### Pool Architecture
+`GetTenantTxPool(standaloneWorkspaceID)` and `GetTenantSessPool(standaloneWorkspaceID)` validate the configured workspace, then return the owned shared pools. Other workspace IDs fail closed. Shared pools never enter tenant cache, eviction, or tenant close paths.
 
-```rust
-pub struct DieselPools {
-    pub api: DieselPool,        // System DB — through Supavisor
-    pub worker: DieselPool,     // System DB — through Supavisor (unused)
-    pub tenants: Arc<dyn TenantPoolProvider>,  // Tenant DBs — through Supavisor
-}
+### SaaS
+
+```
+System queries  ──→ API/worker pool ──→ system database
+Tenant TX       ──→ dynamic tenant TX pool ──→ tenant_<workspace_id>
+Tenant session  ──→ dynamic tenant session pool ──→ tenant_<workspace_id>
 ```
 
-**TenantPoolProvider** trait:
+SaaS dynamic pools remain cached per workspace and are independently evictable.
 
-```rust
-pub trait TenantPoolProvider: Send + Sync {
-    async fn get_pool(&self, workspace_id: &Uuid) -> Result<DieselPool, AppError>;
-}
-```
+### Pool ownership
 
-- **ProductionTenantPoolManager**: Caches pools per workspace. Constructs pooler-aware URLs.
-- **TestTenantPoolManager**: Returns a single shared pool for all workspaces (used in tests).
+- `systemPool`: system and standalone tenant transaction queries.
+- `workerPool`: worker/system session queries and standalone tenant session queries.
+- `tenantTx`/`tenantSess`: SaaS-only dynamic pool caches.
 
 ### URL Resolution
 
@@ -132,25 +113,18 @@ When `DATABASE_POOLER_URL` is not set (dev/test), `DATABASE_URL` is used as fall
 
 ```
 apiserver/migrations/
-├── system/          # Applied to the system DB
-│   ├── 20260101000000_initial_schema/
-│   ├── 20260505010000_phase1_triggers_and_gin_indexes/
+├── system/          # System tables; shared DB in both modes
 │   └── ...
-└── tenant/          # Applied to each tenant DB
-    ├── 20260101000001_initial_schema/
-    ├── 20260505010001_phase1_triggers_and_gin_indexes/
+└── tenant/          # Tenant tables; shared DB in standalone, per-workspace DB in SaaS
     └── ...
 ```
 
-### Startup Migration Order
+### Application order
 
-1. **`run_system_migrations()`** — Direct connection via `DATABASE_URL`. Runs before Supavisor is available.
-2. **Supavisor initialization** — Registers the system tenant with Supavisor.
-3. **Pool connection** — API and tenant pools connect through Supavisor.
-4. **`register_workspace_tenants_and_migrate()`**:
-   a. Query all workspaces from system DB (via direct connection, before pools are needed).
-   b. For each workspace, register an idempotent tenant config with Supavisor (HTTP PUT).
-   c. `run_tenant_migrations()` — Through Supavisor (fallback to direct if no pooler configured).
+- **Standalone release**: apply `migrations/system/`, then `migrations/tenant/`, to the same PostgreSQL database using shared migration history before API bootstrap.
+- **SaaS release**: apply system migrations to the system database; apply tenant migrations independently to each workspace database during provisioning/reconciliation.
+
+Migration directory versions must remain globally unique when both directories share one standalone migration history.
 
 ### Tenant Provision Flow (BYOD)
 

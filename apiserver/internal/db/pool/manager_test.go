@@ -184,3 +184,84 @@ func TestEvictIdleTenants(t *testing.T) {
 		t.Fatalf("expected 1 evicted, got %d", evicted)
 	}
 }
+
+func TestStandaloneTenantPoolsReuseOwnedPools(t *testing.T) {
+	workspaceID := uuid.New()
+	openCount := 0
+	opener := func(ctx context.Context, cfg *pgxpool.Config) (*pgxpool.Pool, error) {
+		openCount++
+		return pgxpool.NewWithConfig(ctx, cfg)
+	}
+	cfg := pool.DefaultConfig()
+	cfg.Standalone = true
+	cfg.StandaloneWorkspaceID = workspaceID
+	cfg.PrimaryURL = "postgres://user:pass@localhost:5432/standalone"
+	cfg.PoolerTxURL = "postgres://user:pass@localhost:6543/standalone"
+	cfg.PoolerSessURL = "postgres://user:pass@localhost:5452/standalone"
+
+	mgr := pool.NewManager(cfg, opener)
+	if err := mgr.InitSystemPools(context.Background()); err != nil {
+		t.Fatalf("InitSystemPools failed: %v", err)
+	}
+	defer mgr.Close()
+
+	systemPool, err := mgr.SystemPool()
+	if err != nil {
+		t.Fatalf("SystemPool failed: %v", err)
+	}
+	workerPool, err := mgr.WorkerPool()
+	if err != nil {
+		t.Fatalf("WorkerPool failed: %v", err)
+	}
+	txPool, err := mgr.GetTenantTxPool(context.Background(), workspaceID)
+	if err != nil {
+		t.Fatalf("GetTenantTxPool failed: %v", err)
+	}
+	sessPool, err := mgr.GetTenantSessPool(context.Background(), workspaceID)
+	if err != nil {
+		t.Fatalf("GetTenantSessPool failed: %v", err)
+	}
+	if txPool != systemPool || sessPool != workerPool {
+		t.Fatal("standalone tenant pools did not reuse owned pools")
+	}
+	if openCount != 2 {
+		t.Fatalf("expected only system and worker pools, got %d opens", openCount)
+	}
+	if evicted := mgr.EvictIdleTenants(time.Nanosecond); evicted != 0 {
+		t.Fatalf("expected no standalone tenant pool eviction, got %d", evicted)
+	}
+	if got, err := mgr.GetTenantTxPool(context.Background(), workspaceID); err != nil || got != systemPool {
+		t.Fatalf("shared pool changed after eviction: pool=%p err=%v", got, err)
+	}
+	if _, err := mgr.GetTenantTxPool(context.Background(), uuid.New()); err == nil {
+		t.Fatal("expected standalone workspace rejection")
+	}
+}
+
+func TestSaaSTenantPoolsDeriveAndIsolateWorkspaceDatabases(t *testing.T) {
+	var databases []string
+	opener := func(ctx context.Context, cfg *pgxpool.Config) (*pgxpool.Pool, error) {
+		databases = append(databases, cfg.ConnConfig.Database)
+		return pgxpool.NewWithConfig(ctx, cfg)
+	}
+	cfg := pool.DefaultConfig()
+	cfg.TenantPoolerTxURL = "postgres://user:pass@localhost:6543/template"
+	mgr := pool.NewManager(cfg, opener)
+	defer mgr.Close()
+
+	firstID, secondID := uuid.New(), uuid.New()
+	firstPool, err := mgr.GetTenantTxPool(context.Background(), firstID)
+	if err != nil {
+		t.Fatalf("first tenant pool failed: %v", err)
+	}
+	secondPool, err := mgr.GetTenantTxPool(context.Background(), secondID)
+	if err != nil {
+		t.Fatalf("second tenant pool failed: %v", err)
+	}
+	if firstPool == secondPool {
+		t.Fatal("SaaS tenant pools are not isolated")
+	}
+	if len(databases) != 2 || databases[0] != pool.TenantDBName(firstID) || databases[1] != pool.TenantDBName(secondID) {
+		t.Fatalf("unexpected tenant databases: %v", databases)
+	}
+}

@@ -8,7 +8,6 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/vkaylee/leeattend/apiserver/internal/auth"
 )
 
@@ -17,7 +16,9 @@ var ErrInvalidBootstrap = errors.New("standalone: invalid bootstrap configuratio
 // Bootstrap creates the singleton organization and its first administrator.
 // It is idempotent for an already-complete installation and refuses conflicting
 // existing state, preventing accidental takeover of a non-standalone database.
-func Bootstrap(ctx context.Context, db *pgxpool.Pool, workspaceID uuid.UUID, workspaceName, email, password string) error {
+func Bootstrap(ctx context.Context, db interface {
+	Begin(context.Context) (pgx.Tx, error)
+}, workspaceID uuid.UUID, workspaceName, email, password string) error {
 	if db == nil || workspaceID == uuid.Nil || strings.TrimSpace(workspaceName) == "" || strings.TrimSpace(email) == "" || strings.TrimSpace(password) == "" {
 		return ErrInvalidBootstrap
 	}

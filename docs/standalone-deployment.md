@@ -6,6 +6,8 @@ Single-company Linux appliance. No SaaS control plane, telemetry, activation cal
 
 `docker-compose.standalone.yml` runs one PostgreSQL database, Redis, MinIO, Go API, and local React Dashboard. Database, Redis, and MinIO have no host ports. Frontend and API networks are internal; publish only a customer-managed TLS reverse proxy to the LAN.
 
+System and tenant tables share that PostgreSQL database. Tenant transaction queries reuse the API transaction pool; tenant session queries reuse the worker/session pool. No standalone tenant pool is opened, cached, evicted, or assigned a `tenant_<workspace_id>` database name.
+
 The database keeps one internal `workspace_id` for compatibility with existing business tables and authorization queries. Standalone mode rejects every other workspace ID and blocks workspace provisioning, tenant administration, public registration, Supavisor, and external attendance log pull.
 
 ## Prerequisites
@@ -34,16 +36,17 @@ Secrets MUST come from a protected secret store or root-readable file. Never com
 ## Install
 
 1. Import the offline image bundle and verify image digests against the release manifest.
-2. Place the license file on encrypted storage with mode `0600`.
-3. Configure TLS termination and proxy `/api/` to `apiserver:3000`; do not expose API, database, Redis, or MinIO directly.
-4. Apply the reviewed Compose file:
+2. Provision the release-pre-migrated PostgreSQL data volume. It applies `migrations/system/` then `migrations/tenant/` to the same database with shared migration history; migration directory versions must remain globally unique.
+3. Place the license file on encrypted storage with mode `0600`.
+4. Configure TLS termination and proxy `/api/` to `apiserver:3000`; do not expose API, database, Redis, or MinIO directly.
+5. Apply the reviewed Compose file:
 
    ```sh
    docker compose -f docker-compose.standalone.yml up -d
    ```
 
-5. Watch `apiserver` logs for successful license verification and bootstrap. Bootstrap creates exactly one organization and first administrator. A second organization or mismatched configured workspace fails closed.
-6. Open the Dashboard through HTTPS and rotate the bootstrap administrator password immediately.
+6. Watch `apiserver` logs for successful license verification and bootstrap. Bootstrap creates exactly one organization and first administrator. A second organization or mismatched configured workspace fails closed.
+7. Open the Dashboard through HTTPS and rotate the bootstrap administrator password immediately.
 
 ## Network policy
 

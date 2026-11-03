@@ -74,9 +74,8 @@ Run the Go apiserver binary under the selected Windows service manager. Apply th
 
 ## Verification
 
-```bash
 ./leedevkit validate-compose
-./leedevkit test api-go
+./leedevkit test api
 ./leedevkit test web
 ```
 
