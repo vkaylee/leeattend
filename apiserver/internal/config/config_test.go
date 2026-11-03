@@ -6,8 +6,6 @@ import (
 	"fmt"
 	"strings"
 	"testing"
-
-	"github.com/google/uuid"
 )
 
 func minimumDevEnv() map[string]string {
@@ -16,8 +14,7 @@ func minimumDevEnv() map[string]string {
 		"DB_POOLER_TX_URL":          "postgres://user:pass@localhost:6543/db",
 		"DB_POOLER_SESS_URL":        "postgres://user:pass@localhost:5452/db",
 		"REDIS_URL":                 "redis://localhost:6379",
-		"STANDALONE_WORKSPACE_ID":   "00000000-0000-7000-8000-000000000001",
-		"STANDALONE_WORKSPACE_NAME": "Example Company",
+		"ORGANIZATION_NAME":         "Example Company",
 		"STANDALONE_ADMIN_EMAIL":    "admin@example.invalid",
 		"STANDALONE_ADMIN_PASSWORD": "strong-password",
 		"LICENSE_PATH":              "/secure/license.json",
@@ -56,10 +53,10 @@ func TestLoad_MinimumDevSuccess(t *testing.T) {
 
 func TestLoad_StandaloneRequiresSettings(t *testing.T) {
 	env := minimumDevEnv()
-	delete(env, "STANDALONE_WORKSPACE_NAME")
+	delete(env, "ORGANIZATION_NAME")
 	delete(env, "LICENSE_PUBLIC_KEY")
 	_, err := LoadWithLookup(mockLookup(env))
-	if err == nil || !strings.Contains(err.Error(), "STANDALONE_WORKSPACE_NAME") || !strings.Contains(err.Error(), "LICENSE_PUBLIC_KEY") {
+	if err == nil || !strings.Contains(err.Error(), "ORGANIZATION_NAME") || !strings.Contains(err.Error(), "LICENSE_PUBLIC_KEY") {
 		t.Fatalf("expected mandatory standalone validation errors, got %v", err)
 	}
 }
@@ -69,8 +66,8 @@ func TestLoad_StandaloneAcceptsValidConfig(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected standalone config error: %v", err)
 	}
-	if cfg.StandaloneWorkspaceID == (uuid.UUID{}) {
-		t.Fatal("expected configured standalone workspace")
+	if cfg.OrganizationName != "Example Company" {
+		t.Fatalf("expected organization name, got %q", cfg.OrganizationName)
 	}
 }
 

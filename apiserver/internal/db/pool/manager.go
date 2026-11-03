@@ -8,7 +8,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -31,7 +30,6 @@ type Config struct {
 	WorkerMaxConn        int32
 	WorkerAcquireTimeout time.Duration
 	ConnectTimeout       time.Duration
-	WorkspaceID          uuid.UUID
 }
 
 // DefaultConfig returns safe defaults matching LeeAttend configuration contracts.
@@ -184,32 +182,6 @@ func (m *Manager) WorkerPool() (*pgxpool.Pool, error) {
 	defer m.mu.RUnlock()
 	if m.closed {
 		return nil, ErrPoolClosed
-	}
-	return m.workerPool, nil
-}
-
-// GetTenantTxPool returns the shared API pool after validating the singleton workspace.
-func (m *Manager) GetTenantTxPool(_ context.Context, workspaceID uuid.UUID) (*pgxpool.Pool, error) {
-	m.mu.RLock()
-	defer m.mu.RUnlock()
-	if m.closed {
-		return nil, ErrPoolClosed
-	}
-	if m.cfg.WorkspaceID == uuid.Nil || workspaceID != m.cfg.WorkspaceID {
-		return nil, fmt.Errorf("db pool: workspace is not configured organization")
-	}
-	return m.systemPool, nil
-}
-
-// GetTenantSessPool returns the shared worker pool after validating the singleton workspace.
-func (m *Manager) GetTenantSessPool(_ context.Context, workspaceID uuid.UUID) (*pgxpool.Pool, error) {
-	m.mu.RLock()
-	defer m.mu.RUnlock()
-	if m.closed {
-		return nil, ErrPoolClosed
-	}
-	if m.cfg.WorkspaceID == uuid.Nil || workspaceID != m.cfg.WorkspaceID {
-		return nil, fmt.Errorf("db pool: workspace is not configured organization")
 	}
 	return m.workerPool, nil
 }

@@ -10,8 +10,6 @@ import (
 	"strconv"
 	"strings"
 	"time"
-
-	"github.com/google/uuid"
 )
 
 // Secret wraps sensitive string data to prevent accidental leakage in logs and formatters.
@@ -162,8 +160,7 @@ type Config struct {
 	FFNoShowTimeline bool
 
 	// 2.12 Standalone deployment
-	StandaloneWorkspaceID   uuid.UUID
-	StandaloneWorkspaceName string
+	OrganizationName        string
 	StandaloneAdminEmail    string
 	StandaloneAdminPassword Secret
 	LicensePath             string
@@ -496,28 +493,19 @@ func LoadWithLookup(lookup LookupEnvFunc) (*Config, error) {
 	clamdPort := getInt("CLAMD_PORT", 3310, 1, 65535)
 
 	// Standalone deployment is mandatory.
-	standaloneWorkspaceID := uuid.Nil
 	licensePath, _ := get("LICENSE_PATH")
 	licensePublicKey, _ := get("LICENSE_PUBLIC_KEY")
-	standaloneWorkspaceName, _ := get("STANDALONE_WORKSPACE_NAME")
+	organizationName, _ := get("ORGANIZATION_NAME")
 	standaloneAdminEmail, _ := get("STANDALONE_ADMIN_EMAIL")
 	standaloneAdminPassword, _ := get("STANDALONE_ADMIN_PASSWORD")
-	if standaloneWorkspaceName == "" {
-		addErr("STANDALONE_WORKSPACE_NAME", "is required")
+	if organizationName == "" {
+		addErr("ORGANIZATION_NAME", "is required")
 	}
 	if standaloneAdminEmail == "" {
 		addErr("STANDALONE_ADMIN_EMAIL", "is required")
 	}
 	if standaloneAdminPassword == "" {
 		addErr("STANDALONE_ADMIN_PASSWORD", "is required")
-	}
-	workspaceRaw, workspaceOK := get("STANDALONE_WORKSPACE_ID")
-	if !workspaceOK {
-		addErr("STANDALONE_WORKSPACE_ID", "is required")
-	} else if parsed, parseErr := uuid.Parse(workspaceRaw); parseErr != nil || parsed == uuid.Nil {
-		addErr("STANDALONE_WORKSPACE_ID", "must be a non-zero UUID")
-	} else {
-		standaloneWorkspaceID = parsed
 	}
 	if licensePath == "" {
 		addErr("LICENSE_PATH", "is required")
@@ -579,8 +567,7 @@ func LoadWithLookup(lookup LookupEnvFunc) (*Config, error) {
 		ClamdHost:                  clamdHost,
 		ClamdPort:                  clamdPort,
 		FFNoShowTimeline:           ffNoShowTimeline,
-		StandaloneWorkspaceID:      standaloneWorkspaceID,
-		StandaloneWorkspaceName:    standaloneWorkspaceName,
+		OrganizationName:           organizationName,
 		StandaloneAdminEmail:       standaloneAdminEmail,
 		StandaloneAdminPassword:    Secret(standaloneAdminPassword),
 		LicensePath:                licensePath,

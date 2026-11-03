@@ -84,8 +84,7 @@ services:
       - DB_POOLER_TX_URL=postgres://test_user:test_password@db:5432/test_database?sslmode=disable
       - DB_POOLER_SESS_URL=postgres://test_user:test_password@db:5432/test_database?sslmode=disable
       - DB_READER_URL=postgres://test_user:test_password@db:5432/test_database?sslmode=disable
-      - STANDALONE_WORKSPACE_ID=00000000-0000-7000-8000-000000000001
-      - STANDALONE_WORKSPACE_NAME=Test Workspace
+      - ORGANIZATION_NAME=Test Organization
       - STANDALONE_ADMIN_EMAIL=admin@example.invalid
       - STANDALONE_ADMIN_PASSWORD=test-password
       - LICENSE_PATH=/tmp/license.json

@@ -14,9 +14,8 @@ const testSecret = "test-jwt-secret-with-minimum-entropy-32-chars!!"
 
 func TestGenerateAndVerifyToken(t *testing.T) {
 	userID := uuid.New()
-	wsID := uuid.New()
 
-	tokenStr, err := GenerateTokenWithWorkspace(userID, &wsID, testSecret, 15*time.Minute)
+	tokenStr, err := GenerateToken(userID, testSecret, 15*time.Minute)
 	if err != nil {
 		t.Fatalf("GenerateToken failed: %v", err)
 	}
@@ -28,9 +27,6 @@ func TestGenerateAndVerifyToken(t *testing.T) {
 
 	if claims.Subject != userID.String() {
 		t.Errorf("got subject %s, want %s", claims.Subject, userID.String())
-	}
-	if claims.WorkspaceID == nil || *claims.WorkspaceID != wsID {
-		t.Errorf("got workspace %v, want %s", claims.WorkspaceID, wsID)
 	}
 
 	parsedID, err := VerifyToken(tokenStr, testSecret)

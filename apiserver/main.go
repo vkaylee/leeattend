@@ -5,6 +5,12 @@ import (
 	"crypto/ed25519"
 	"encoding/base64"
 	"fmt"
+	"log/slog"
+	"net"
+	"net/http"
+	"os"
+	"strconv"
+
 	"github.com/google/uuid"
 	"github.com/vkaylee/leeattend/apiserver/internal/api"
 	"github.com/vkaylee/leeattend/apiserver/internal/app"
@@ -20,11 +26,6 @@ import (
 	"github.com/vkaylee/leeattend/apiserver/internal/repository"
 	"github.com/vkaylee/leeattend/apiserver/internal/service"
 	standalonebootstrap "github.com/vkaylee/leeattend/apiserver/internal/standalone"
-	"log/slog"
-	"net"
-	"net/http"
-	"os"
-	"strconv"
 )
 
 // Version is the current apiserver Go component version.
@@ -61,7 +62,6 @@ func main() {
 	dbCfg.PoolerTxURL = string(cfg.DBPoolerTxURL)
 	dbCfg.PoolerSessURL = string(cfg.DBPoolerSessURL)
 	dbCfg.ReaderURL = string(cfg.DBReaderURL)
-	dbCfg.WorkspaceID = cfg.StandaloneWorkspaceID
 	if cfg.DBAPIMaxConn > 0 {
 		dbCfg.APIMaxConn = int32(cfg.DBAPIMaxConn)
 	}
@@ -73,7 +73,7 @@ func main() {
 		logger.Warn("database connection deferred or offline", "error", err)
 	} else if sysPool, err := poolMgr.SystemPool(); err == nil {
 		authRepo = repository.AuthRepository{DB: sysPool}
-		if err := standalonebootstrap.Bootstrap(context.Background(), sysPool, cfg.StandaloneWorkspaceID, cfg.StandaloneWorkspaceName, cfg.StandaloneAdminEmail, cfg.StandaloneAdminPassword.Expose()); err != nil {
+		if err := standalonebootstrap.Bootstrap(context.Background(), sysPool, cfg.OrganizationName, cfg.StandaloneAdminEmail, cfg.StandaloneAdminPassword.Expose()); err != nil {
 			fmt.Fprintf(os.Stderr, "CONFIGURATION FAILED: standalone bootstrap failed\n")
 			os.Exit(1)
 		}
@@ -112,8 +112,8 @@ func main() {
 			}
 			return pool
 		}(),
-		TenantDB: func(ctx context.Context, workspaceID uuid.UUID) (repository.DBTX, error) {
-			return poolMgr.GetTenantTxPool(ctx, workspaceID)
+		TenantDB: func(context.Context, uuid.UUID) (repository.DBTX, error) {
+			return poolMgr.SystemPool()
 		},
 	}
 	workspaceAuthorizer := repository.WorkspaceAuthorizer{DB: workspaceRepo.SystemDB, TenantDB: workspaceRepo.TenantDB}
@@ -741,7 +741,7 @@ func main() {
 		httpinfra.BodyLimitMiddleware(cfg.MaxRequestBodyBytes),
 		httpinfra.AuthMiddlewareWithRevocation(cfg.JWTSecret.Expose(), publicPrefixes, revocationChecker),
 	)(mux)
-	handler = httpinfra.StandaloneWorkspaceMiddleware(cfg.StandaloneWorkspaceID)(handler)
+
 	addr := net.JoinHostPort(cfg.AppHost, strconv.Itoa(cfg.AppPort))
 	server := &http.Server{
 		Addr:    addr,

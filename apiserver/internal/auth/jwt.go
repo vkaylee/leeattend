@@ -32,37 +32,28 @@ var (
 	ErrTokenRevoked   = errors.New("token has been revoked")
 )
 
-// Claims matches Rust Claims (sub, workspace_id, exp, iat).
+// Claims identifies an authenticated user and token lifetime.
 // ponytail: HMAC-SHA256 symmetric secret matches Rust apiserver. Upgrade to RS256/EdDSA asymmetric keys if public key verification needed without sharing secret.
 type Claims struct {
 	jwt.RegisteredClaims
-	WorkspaceID *uuid.UUID `json:"workspace_id,omitempty"`
 }
 
 // GenerateToken creates an HMAC-SHA256 access token for the given user ID.
 func GenerateToken(userID uuid.UUID, secret string, duration time.Duration) (string, error) {
-	return GenerateTokenWithWorkspace(userID, nil, secret, duration)
-}
-
-// GenerateTokenWithWorkspace creates an HMAC-SHA256 access token with optional workspace context.
-func GenerateTokenWithWorkspace(userID uuid.UUID, workspaceID *uuid.UUID, secret string, duration time.Duration) (string, error) {
 	if duration <= 0 {
 		duration = AccessTokenDuration
 	}
 	now := time.Now().UTC()
-	return GenerateTokenWithTimes(userID, workspaceID, secret, now, now.Add(duration))
+	return GenerateTokenWithTimes(userID, secret, now, now.Add(duration))
 }
 
 // GenerateTokenWithTimes creates an HMAC-SHA256 access token with explicit issued-at and expiration timestamps.
-func GenerateTokenWithTimes(userID uuid.UUID, workspaceID *uuid.UUID, secret string, issuedAt, expiresAt time.Time) (string, error) {
-	claims := Claims{
-		RegisteredClaims: jwt.RegisteredClaims{
-			Subject:   userID.String(),
-			ExpiresAt: jwt.NewNumericDate(expiresAt),
-			IssuedAt:  jwt.NewNumericDate(issuedAt),
-		},
-		WorkspaceID: workspaceID,
-	}
+func GenerateTokenWithTimes(userID uuid.UUID, secret string, issuedAt, expiresAt time.Time) (string, error) {
+	claims := Claims{RegisteredClaims: jwt.RegisteredClaims{
+		Subject:   userID.String(),
+		ExpiresAt: jwt.NewNumericDate(expiresAt),
+		IssuedAt:  jwt.NewNumericDate(issuedAt),
+	}}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	signed, err := token.SignedString([]byte(secret))

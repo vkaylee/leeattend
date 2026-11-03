@@ -8,11 +8,10 @@ LeeAttend is being converted to a single-tenant appliance. Phase 1 establishes o
 |---|---|
 | PostgreSQL | One database, one `public` schema |
 | Migration directory | `apiserver/migrations/20261103000000_init/` |
-| Migration order | System objects first, tenant/business objects second inside one `up.sql` |
-| Runtime pools | Existing API and worker pools point to the same database |
-| Workspace compatibility | `workspace_id` columns and workspace tables remain temporarily until backend/API phases complete |
+| Runtime pools | API and worker pools connect to the same database; no tenant routing |
+| Workspace compatibility | `workspace_id` columns and workspace tables remain temporarily in schema only |
 
-Physical database split is gone. Logical system/tenant ordering remains inside the baseline only so existing Go code can continue running during the phased cutover.
+Physical database split is gone. Logical system/tenant ordering remains inside baseline only so existing repository/API data contracts can migrate incrementally.
 
 ## Schema groups
 
@@ -22,7 +21,7 @@ The unified baseline contains all existing system and business objects:
 - Business objects: employees, departments, shifts, attendance, leave, payroll, contracts, workflows, files, reports, and outbox tables.
 - Partitioned objects: audit and staging-log parents plus their monthly/default partitions.
 
-`workspace_id` remains present in this phase because current authentication, authorization, repository SQL, response contracts, and tests still consume it. Phase 2 removes runtime routing/configuration dependence; Phase 3 removes repository predicates and API data dependencies; the final schema contract removes the column and obsolete workspace tables only after those consumers are migrated.
+`workspace_id` remains present in this phase because repository SQL, response contracts, and tests still consume it. Phase 2 removed runtime pool/configuration dependence; Phase 3 removes repository predicates and API data dependencies; the final schema contract removes the column and obsolete workspace tables only after those consumers are migrated.
 
 ## Connection architecture
 
@@ -32,7 +31,7 @@ Business TX     ──→ same API pool ──→ one PostgreSQL database
 Worker/session  ──→ worker pool  ──→ one PostgreSQL database
 ```
 
-No tenant database is created, selected, cached, evicted, or provisioned in the target architecture. Phase 1 still validates the configured workspace ID at runtime for compatibility; that check is removed in the backend-core phase.
+No tenant database is created, selected, cached, evicted, or provisioned. Runtime pool management uses one database without workspace-ID validation; repository/API compatibility fields remain until later phases.
 
 ## Migrations
 

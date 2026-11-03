@@ -136,23 +136,23 @@ func TestKeyBuildersAndTTLPolicy(t *testing.T) {
 		t.Errorf("KeyRateLimit mismatch: %s", k)
 	}
 
-	// Cache keys
-	if k := redis.KeyCacheWorkspace(wsID); k != "cache:workspace:b0000000-0000-0000-0000-000000000001" {
+	// Single-organization cache keys
+	if k := redis.KeyCacheWorkspace(); k != "cache:workspace" {
 		t.Errorf("KeyCacheWorkspace mismatch: %s", k)
 	}
-	if k := redis.KeyCacheShifts(wsID); k != "cache:shifts:b0000000-0000-0000-0000-000000000001" {
+	if k := redis.KeyCacheShifts(); k != "cache:shifts" {
 		t.Errorf("KeyCacheShifts mismatch: %s", k)
 	}
-	if k := redis.KeyCacheWorkspaceConfig(wsID); k != "cache:workspace_config:b0000000-0000-0000-0000-000000000001" {
+	if k := redis.KeyCacheWorkspaceConfig(); k != "cache:workspace_config" {
 		t.Errorf("KeyCacheWorkspaceConfig mismatch: %s", k)
 	}
-	if k := redis.KeyRosterVersion(wsID); k != "roster:version:b0000000-0000-0000-0000-000000000001" {
+	if k := redis.KeyRosterVersion(); k != "roster:version" {
 		t.Errorf("KeyRosterVersion mismatch: %s", k)
 	}
-	if k := redis.KeyCacheAuthPermissions(wsID, userID); k != "cache:auth:permissions:b0000000-0000-0000-0000-000000000001:c0000000-0000-0000-0000-000000000002" {
+	if k := redis.KeyCacheAuthPermissions(userID); k != "cache:auth:permissions:c0000000-0000-0000-0000-000000000002" {
 		t.Errorf("KeyCacheAuthPermissions mismatch: %s", k)
 	}
-	if k := redis.KeyCacheAuthPermissionsPattern(wsID); k != "cache:auth:permissions:b0000000-0000-0000-0000-000000000001:*" {
+	if k := redis.KeyCacheAuthPermissionsPattern(); k != "cache:auth:permissions:*" {
 		t.Errorf("KeyCacheAuthPermissionsPattern mismatch: %s", k)
 	}
 	if k := redis.KeyCacheSystemRoles(userID); k != "cache:system:roles:c0000000-0000-0000-0000-000000000002" {

@@ -77,25 +77,15 @@ Loại bỏ hoàn toàn kiến trúc multi-tenant/workspace trong toàn bộ h�
 ---
 
 ### Phase 2: Refactor Connection Pool, Config & Bootstrap (Backend Core)
-- [ ] **Task 2.1:** Đơn giản hóa `apiserver/internal/db/pool/manager.go`:
-  - Xóa bỏ `GetTenantTxPool(ctx, workspaceID)`.
-  - Xóa bỏ `WorkspaceID` khỏi pool config.
-  - Giữ lại cấu trúc tinh gọn: 1 API Pool + 1 Worker Pool kết nối trực tiếp vào database duy nhất.
-- [ ] **Task 2.2:** Cập nhật `apiserver/internal/config/config.go`:
-  - Xóa bỏ `StandaloneWorkspaceID`, `StandaloneWorkspaceName`.
-  - Bổ sung cấu hình `OrganizationName`.
-- [ ] **Task 2.3:** Cập nhật `apiserver/internal/auth/jwt.go` & `permissions.go`:
-  - Xóa `WorkspaceID` khỏi `auth.Claims`, `MemberContext`, `EmployeeContext`.
-  - Đơn giản hóa phân quyền: User có role trực tiếp trong tổ chức.
-- [ ] **Task 2.4:** Cập nhật `apiserver/internal/standalone/bootstrap.go` & `catalog.go`:
-  - Khởi tạo trực tiếp `organization_settings` và super-admin mà không cần cấp phát UUID workspace.
-  - Cập nhật test `bootstrap_test.go`.
-- [ ] **Task 2.5:** Cập nhật Redis Cache Keys trong `apiserver/internal/infra/redis/keys.go`:
-  - Đơn giản hóa các key builder bỏ tham số `workspaceID`.
-- [ ] **Task 2.6:** **[DOCS UPDATE]** Cập nhật `docs/standalone-deployment.md`:
-  - Loại bỏ các biến môi trường `STANDALONE_WORKSPACE_ID`.
-- **Xác minh (Verify):**
-  - Chạy `go test ./internal/db/pool/...`, `go test ./internal/standalone/...`, `go test ./internal/auth/...`.
+- [x] **Task 2.1:** Removed `GetTenantTxPool(ctx, workspaceID)` and `WorkspaceID` from pool config. API and worker pools remain separate connections to one database.
+- [x] **Task 2.2:** Removed `StandaloneWorkspaceID` and `StandaloneWorkspaceName`; added required `OrganizationName`.
+- [x] **Task 2.3:** Removed workspace claims from JWTs and workspace identity fields from authorization contexts. Repository/API workspace compatibility remains for Phase 3–4.
+- [x] **Task 2.4:** Bootstrap now generates or reads the single compatibility organization ID from the database; configuration no longer supplies it.
+- [x] **Task 2.5:** Redis cache keys no longer include workspace namespaces.
+- [x] **Task 2.6:** Updated standalone deployment environment examples and documentation to use `ORGANIZATION_NAME`.
+- **Verification:**
+  - `./scripts/_go-gates.sh --unit-only --package './internal/db/pool/... ./internal/auth/... ./internal/config/... ./internal/standalone/... ./internal/infra/redis/... ./internal/infra/http/...'` passed.
+  - `./scripts/_go-gates.sh` passed: gofmt, vet, staticcheck, govulncheck, module verification, and full race tests.
 
 ---
 

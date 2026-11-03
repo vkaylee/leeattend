@@ -50,7 +50,6 @@ func TestMemberContextDefaultDeny(t *testing.T) {
 	// 2. Context with empty permissions MUST default-deny
 	emptyCtx := &MemberContext{
 		UserID:      uuid.New(),
-		WorkspaceID: uuid.New(),
 		Permissions: map[Permission]bool{},
 	}
 	if emptyCtx.HasPermission(PermissionEmployeesRead) {
@@ -60,8 +59,7 @@ func TestMemberContextDefaultDeny(t *testing.T) {
 
 	// 3. Context with specific permissions MUST deny unassigned permissions
 	memberCtx := &MemberContext{
-		UserID:      uuid.New(),
-		WorkspaceID: uuid.New(),
+		UserID: uuid.New(),
 		Permissions: map[Permission]bool{
 			PermissionEmployeesRead: true,
 		},
@@ -86,7 +84,6 @@ func TestMemberContextScopedPermissions(t *testing.T) {
 	// 1. Global scope (ManagedDepartmentIDs == nil) allows any department
 	adminCtx := &MemberContext{
 		UserID:               uuid.New(),
-		WorkspaceID:          uuid.New(),
 		Permissions:          map[Permission]bool{PermissionShiftsAssign: true},
 		ManagedDepartmentIDs: nil, // global scope
 	}
@@ -100,7 +97,6 @@ func TestMemberContextScopedPermissions(t *testing.T) {
 	// 2. Department-scoped context restricts access
 	teamLeadCtx := &MemberContext{
 		UserID:      uuid.New(),
-		WorkspaceID: uuid.New(),
 		Permissions: map[Permission]bool{PermissionShiftsAssign: true},
 		ManagedDepartmentIDs: map[uuid.UUID]bool{
 			deptA: true,
@@ -125,8 +121,7 @@ func TestMemberContextScopedPermissions(t *testing.T) {
 func TestMemberContextRequireAnyScopedPermission(t *testing.T) {
 	deptA := uuid.New()
 	ctx := &MemberContext{
-		UserID:      uuid.New(),
-		WorkspaceID: uuid.New(),
+		UserID: uuid.New(),
 		Permissions: map[Permission]bool{
 			PermissionOvertimeClaimOnBehalf: true,
 		},

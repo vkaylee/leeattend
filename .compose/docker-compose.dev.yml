@@ -74,8 +74,7 @@ services:
       - REDIS_URL=redis://:${REDIS_PASSWORD:-}@redis:6379
       - JWT_SECRET=${JWT_SECRET:-development_jwt_secret_change_me}
       - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-*}
-      - STANDALONE_WORKSPACE_ID=${STANDALONE_WORKSPACE_ID:-00000000-0000-7000-8000-000000000001}
-      - STANDALONE_WORKSPACE_NAME=${STANDALONE_WORKSPACE_NAME:-Development Workspace}
+      - ORGANIZATION_NAME=${ORGANIZATION_NAME:-Development Organization}
       - STANDALONE_ADMIN_EMAIL=${STANDALONE_ADMIN_EMAIL:-admin@example.invalid}
       - STANDALONE_ADMIN_PASSWORD=${STANDALONE_ADMIN_PASSWORD:-development-password}
       - LICENSE_PATH=/tmp/license.json

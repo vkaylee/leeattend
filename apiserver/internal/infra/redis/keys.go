@@ -78,29 +78,29 @@ func KeyRateLimit(identity, tier, matchedPath string) string {
 	return fmt.Sprintf("rate:%s:%s:%s", identity, tier, matchedPath)
 }
 
-// Key Builders — Cache family
-func KeyCacheWorkspace(workspaceID uuid.UUID) string {
-	return fmt.Sprintf("cache:workspace:%s", workspaceID.String())
+// Key Builders — single-organization cache family
+func KeyCacheWorkspace() string {
+	return "cache:workspace"
 }
 
-func KeyCacheShifts(workspaceID uuid.UUID) string {
-	return fmt.Sprintf("cache:shifts:%s", workspaceID.String())
+func KeyCacheShifts() string {
+	return "cache:shifts"
 }
 
-func KeyCacheWorkspaceConfig(workspaceID uuid.UUID) string {
-	return fmt.Sprintf("cache:workspace_config:%s", workspaceID.String())
+func KeyCacheWorkspaceConfig() string {
+	return "cache:workspace_config"
 }
 
-func KeyRosterVersion(workspaceID uuid.UUID) string {
-	return fmt.Sprintf("roster:version:%s", workspaceID.String())
+func KeyRosterVersion() string {
+	return "roster:version"
 }
 
-func KeyCacheAuthPermissions(workspaceID, userID uuid.UUID) string {
-	return fmt.Sprintf("cache:auth:permissions:%s:%s", workspaceID.String(), userID.String())
+func KeyCacheAuthPermissions(userID uuid.UUID) string {
+	return fmt.Sprintf("cache:auth:permissions:%s", userID.String())
 }
 
-func KeyCacheAuthPermissionsPattern(workspaceID uuid.UUID) string {
-	return fmt.Sprintf("cache:auth:permissions:%s:*", workspaceID.String())
+func KeyCacheAuthPermissionsPattern() string {
+	return "cache:auth:permissions:*"
 }
 
 func KeyCacheSystemRoles(userID uuid.UUID) string {

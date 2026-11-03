@@ -83,12 +83,11 @@ func (tx *bootstrapTx) Prepare(context.Context, string, string) (*pgconn.Stateme
 }
 
 func TestBootstrapInitializesSharedSchemaTransactionIdempotently(t *testing.T) {
-	workspaceID := uuid.New()
-	tx := &bootstrapTx{workspaceID: workspaceID, roleID: uuid.New()}
-	if err := Bootstrap(context.Background(), tx, workspaceID, "Example Company", "admin@example.invalid", "password"); err != nil {
+	tx := &bootstrapTx{roleID: uuid.New()}
+	if err := Bootstrap(context.Background(), tx, "Example Company", "admin@example.invalid", "password"); err != nil {
 		t.Fatalf("first bootstrap failed: %v", err)
 	}
-	if err := Bootstrap(context.Background(), tx, workspaceID, "Example Company", "admin@example.invalid", "password"); err != nil {
+	if err := Bootstrap(context.Background(), tx, "Example Company", "admin@example.invalid", "password"); err != nil {
 		t.Fatalf("second bootstrap failed: %v", err)
 	}
 	if tx.commits != 2 {

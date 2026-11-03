@@ -332,16 +332,15 @@ func (s *SystemContext) RequireAnyRole(roles ...SystemRoleType) error {
 	return apperror.Forbidden(apperror.KeyForbidden)
 }
 
-// Workspace Context & Member Context Types
-type WorkspaceContext = MemberContext
+// Organization-level authorization context types.
+type OrganizationContext = MemberContext
 
-// MemberContext models authenticated caller active workspace membership.
+// MemberContext models an authenticated caller's organization membership.
 // ponytail: permissions stored as map[Permission]bool for O(1) checks. Upgrade to bitset if memory critical for high-concurrency pools.
 type MemberContext struct {
 	UserID               uuid.UUID
 	UserName             string
 	UserEmail            string
-	WorkspaceID          uuid.UUID
 	Roles                []uuid.UUID
 	Permissions          map[Permission]bool
 	ManagedDepartmentIDs map[uuid.UUID]bool // nil = global scope (admin/owner); non-nil = department scope (team lead)
@@ -420,10 +419,9 @@ func (m *MemberContext) RequireAnyScopedPermission(perms []Permission, targetDep
 	return nil
 }
 
-// EmployeeContext models self-service employee context linked to an active MemberContext.
+// EmployeeContext models self-service employee context linked to an organization member.
 type EmployeeContext struct {
-	UserID      uuid.UUID
-	EmployeeID  uuid.UUID
-	WorkspaceID uuid.UUID
-	Member      *MemberContext
+	UserID     uuid.UUID
+	EmployeeID uuid.UUID
+	Member     *MemberContext
 }

@@ -6,7 +6,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/vkaylee/leeattend/apiserver/internal/db/pool"
 )
@@ -63,9 +62,7 @@ func TestManagerLifecycleAndTimeout(t *testing.T) {
 		}
 	}
 
-	workspaceID := uuid.New()
 	cfg := pool.DefaultConfig()
-	cfg.WorkspaceID = workspaceID
 	cfg.PrimaryURL = "postgres://user:pass@localhost:5432/standalone"
 	cfg.PoolerTxURL = cfg.PrimaryURL
 	cfg.PoolerSessURL = cfg.PrimaryURL
@@ -78,24 +75,14 @@ func TestManagerLifecycleAndTimeout(t *testing.T) {
 	if openCount != 2 {
 		t.Fatalf("expected 2 pools opened, got %d", openCount)
 	}
-	txPool, err := mgr.GetTenantTxPool(ctx, workspaceID)
-	if err != nil {
-		t.Fatalf("GetTenantTxPool failed: %v", err)
+	if _, err := mgr.SystemPool(); err != nil {
+		t.Fatalf("SystemPool failed: %v", err)
 	}
-	sessPool, err := mgr.GetTenantSessPool(ctx, workspaceID)
-	if err != nil {
-		t.Fatalf("GetTenantSessPool failed: %v", err)
-	}
-	systemPool, _ := mgr.SystemPool()
-	workerPool, _ := mgr.WorkerPool()
-	if txPool != systemPool || sessPool != workerPool {
-		t.Fatal("tenant access did not reuse standalone pools")
-	}
-	if _, err := mgr.GetTenantTxPool(ctx, uuid.New()); err == nil {
-		t.Fatal("expected foreign workspace rejection")
+	if _, err := mgr.WorkerPool(); err != nil {
+		t.Fatalf("WorkerPool failed: %v", err)
 	}
 	mgr.Close()
-	if _, err := mgr.GetTenantTxPool(ctx, workspaceID); !errors.Is(err, pool.ErrPoolClosed) {
+	if _, err := mgr.SystemPool(); !errors.Is(err, pool.ErrPoolClosed) {
 		t.Fatalf("expected ErrPoolClosed, got %v", err)
 	}
 }

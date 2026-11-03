@@ -18,8 +18,8 @@ var ErrInvalidBootstrap = errors.New("standalone: invalid bootstrap configuratio
 // existing state, preventing accidental takeover of a non-standalone database.
 func Bootstrap(ctx context.Context, db interface {
 	Begin(context.Context) (pgx.Tx, error)
-}, workspaceID uuid.UUID, workspaceName, email, password string) error {
-	if db == nil || workspaceID == uuid.Nil || strings.TrimSpace(workspaceName) == "" || strings.TrimSpace(email) == "" || strings.TrimSpace(password) == "" {
+}, organizationName, email, password string) error {
+	if db == nil || strings.TrimSpace(organizationName) == "" || strings.TrimSpace(email) == "" || strings.TrimSpace(password) == "" {
 		return ErrInvalidBootstrap
 	}
 	passwordHash, err := auth.HashPassword(password)
@@ -44,16 +44,16 @@ func Bootstrap(ctx context.Context, db interface {
 		return fmt.Errorf("%w: multiple organizations exist", ErrInvalidBootstrap)
 	}
 
-	var existingWorkspace uuid.UUID
+	var workspaceID uuid.UUID
 	if workspaceCount == 1 {
-		if err := tx.QueryRow(ctx, `SELECT id FROM workspaces LIMIT 1`).Scan(&existingWorkspace); err != nil {
+		if err := tx.QueryRow(ctx, `SELECT id FROM workspaces LIMIT 1`).Scan(&workspaceID); err != nil {
 			return fmt.Errorf("standalone: read organization: %w", err)
 		}
-		if existingWorkspace != workspaceID {
-			return fmt.Errorf("%w: configured organization does not match database", ErrInvalidBootstrap)
+	} else {
+		workspaceID = uuid.New()
+		if _, err := tx.Exec(ctx, `INSERT INTO workspaces (id, name) VALUES ($1, $2)`, workspaceID, strings.TrimSpace(organizationName)); err != nil {
+			return fmt.Errorf("standalone: create organization: %w", err)
 		}
-	} else if _, err := tx.Exec(ctx, `INSERT INTO workspaces (id, name) VALUES ($1, $2)`, workspaceID, strings.TrimSpace(workspaceName)); err != nil {
-		return fmt.Errorf("standalone: create organization: %w", err)
 	}
 
 	var userID uuid.UUID

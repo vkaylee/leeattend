@@ -6,9 +6,9 @@ Single-company Linux appliance. No SaaS control plane, telemetry, activation cal
 
 `docker-compose.yml` runs one PostgreSQL database, Redis, MinIO, Go API, and local React Dashboard. Database, Redis, and MinIO have no host ports. Frontend and API networks are internal; publish only a customer-managed TLS reverse proxy to the LAN.
 
-System and business tables share one PostgreSQL database. The Phase 1 baseline is `apiserver/migrations/20261103000000_init/`; it applies both schema groups in one ordered migration. Existing workspace-compatible columns remain temporarily while later phases remove workspace routing and contracts.
+System and business tables share one PostgreSQL database. The Phase 1 baseline is `apiserver/migrations/20261103000000_init/`; it applies both schema groups in one ordered migration. Existing workspace-compatible columns remain temporarily while later phases remove workspace data contracts.
 
-The target architecture is one company, one database, and one schema. Phase 1 still accepts the configured workspace compatibility values because the current Go authentication and repository contracts consume them. They are removed only after the backend, repository, API, and frontend phases are complete.
+The target architecture is one company, one database, and one schema. Backend core no longer accepts workspace identity configuration or routes pools by workspace; repository and API compatibility fields remain temporarily for later phases.
 
 ## Prerequisites
 
@@ -27,7 +27,7 @@ Copy the release `.env.standalone.example` to a root-owned runtime environment f
 - `MINIO_ROOT_USER`, `MINIO_ROOT_PASSWORD`
 - `JWT_SECRET`, `ENCRYPTION_KEYS_JSON`
 - `ALLOWED_ORIGINS` to the HTTPS Dashboard origin
-- `STANDALONE_WORKSPACE_ID`, `STANDALONE_WORKSPACE_NAME`
+- `ORGANIZATION_NAME`
 - `STANDALONE_ADMIN_EMAIL`, `STANDALONE_ADMIN_PASSWORD`
 - `LICENSE_PUBLIC_KEY`, `LICENSE_FILE`
 
@@ -45,7 +45,7 @@ Secrets MUST come from a protected secret store or root-readable file. Never com
    docker compose -f docker-compose.yml up -d
    ```
 
-6. Watch `apiserver` logs for successful license verification and bootstrap. Bootstrap creates exactly one organization and first administrator. A second organization or mismatched configured workspace fails closed.
+6. Watch `apiserver` logs for successful license verification and bootstrap. Bootstrap creates exactly one organization and first administrator; a second organization fails closed.
 7. Open the Dashboard through HTTPS and rotate the bootstrap administrator password immediately.
 
 ## Network policy

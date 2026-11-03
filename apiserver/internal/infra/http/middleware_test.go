@@ -117,17 +117,3 @@ func TestAuthMiddleware_Authorized(t *testing.T) {
 		t.Errorf("expected user id %s, got %s", userID, extractedID)
 	}
 }
-
-func TestStandaloneWorkspaceMiddleware_RejectsOtherWorkspace(t *testing.T) {
-	workspaceID := uuid.New()
-	handler := StandaloneWorkspaceMiddleware(workspaceID)(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		w.WriteHeader(http.StatusOK)
-	}))
-	req := httptest.NewRequest(http.MethodGet, "/api/v1/workspaces/"+uuid.NewString()+"/employees", nil)
-	req.SetPathValue("ws_id", uuid.NewString())
-	rec := httptest.NewRecorder()
-	handler.ServeHTTP(rec, req)
-	if rec.Code != http.StatusForbidden {
-		t.Fatalf("expected forbidden workspace, got %d", rec.Code)
-	}
-}
