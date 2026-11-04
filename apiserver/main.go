@@ -31,20 +31,25 @@ import (
 // Version is the current apiserver Go component version.
 const Version = "0.1.0"
 
-func singleWorkspaceHandler(db repository.DBTX, handler http.HandlerFunc) http.HandlerFunc {
+func singleOrganizationHandler(organizationID uuid.UUID, handler http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		if db == nil {
-			http.Error(w, "database unavailable", http.StatusServiceUnavailable)
-			return
-		}
-		var organizationID uuid.UUID
-		if err := db.QueryRow(r.Context(), `SELECT id FROM workspaces ORDER BY id LIMIT 1`).Scan(&organizationID); err != nil {
+		if organizationID == uuid.Nil {
 			http.Error(w, "organization unavailable", http.StatusServiceUnavailable)
 			return
 		}
 		r = r.WithContext(httpinfra.WithWorkspaceID(r.Context(), organizationID))
 		handler(w, r)
 	}
+}
+func resolveOrganizationID(ctx context.Context, db repository.DBTX) (uuid.UUID, error) {
+	if db == nil {
+		return uuid.Nil, fmt.Errorf("database unavailable")
+	}
+	var organizationID uuid.UUID
+	if err := db.QueryRow(ctx, `SELECT id FROM workspaces ORDER BY id LIMIT 1`).Scan(&organizationID); err != nil {
+		return uuid.Nil, fmt.Errorf("organization unavailable: %w", err)
+	}
+	return organizationID, nil
 }
 
 func main() {
@@ -85,12 +90,18 @@ func main() {
 	poolMgr := dbpool.NewManager(dbCfg, nil)
 	defer poolMgr.Close()
 	var authRepo repository.AuthRepository
+	var organizationID uuid.UUID
 	if err := poolMgr.InitSystemPools(context.Background()); err != nil {
 		logger.Warn("database connection deferred or offline", "error", err)
 	} else if sysPool, err := poolMgr.SystemPool(); err == nil {
 		authRepo = repository.AuthRepository{DB: sysPool}
 		if err := standalonebootstrap.Bootstrap(context.Background(), sysPool, cfg.OrganizationName, cfg.StandaloneAdminEmail, cfg.StandaloneAdminPassword.Expose()); err != nil {
 			fmt.Fprintf(os.Stderr, "CONFIGURATION FAILED: standalone bootstrap failed\n")
+			os.Exit(1)
+		}
+		organizationID, err = resolveOrganizationID(context.Background(), sysPool)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "CONFIGURATION FAILED: organization context unavailable\n")
 			os.Exit(1)
 		}
 	}
@@ -139,7 +150,7 @@ func main() {
 	workspaceAuthorizer := repository.WorkspaceAuthorizer{DB: workspaceRepo.SystemDB}
 	workspaceHandler := api.WorkspaceHandler{Repository: workspaceRepo, Authorizer: workspaceAuthorizer}
 	singleWorkspace := func(handler http.HandlerFunc) http.HandlerFunc {
-		return singleWorkspaceHandler(workspaceRepo.SystemDB, handler)
+		return singleOrganizationHandler(organizationID, handler)
 	}
 	var cryptoService *crypto.Service
 	if encJSON := cfg.EncryptionKeysJSON.Expose(); encJSON != "" {

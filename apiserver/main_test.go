@@ -35,10 +35,18 @@ func (routeTestDB) Exec(context.Context, string, ...any) (pgconn.CommandTag, err
 	return pgconn.CommandTag{}, nil
 }
 
-func TestSingleWorkspaceHandlerInjectsOrganizationContext(t *testing.T) {
+func TestResolveOrganizationID(t *testing.T) {
+	organizationID := uuid.MustParse("018d0000-0000-7000-8000-000000000001")
+	got, err := resolveOrganizationID(context.Background(), routeTestDB{row: routeTestRow{}})
+	if err != nil || got != organizationID {
+		t.Fatalf("expected organization %s, got %s (err=%v)", organizationID, got, err)
+	}
+}
+
+func TestSingleOrganizationHandlerInjectsOrganizationContext(t *testing.T) {
 	called := false
 	organizationID := uuid.MustParse("018d0000-0000-7000-8000-000000000001")
-	handler := singleWorkspaceHandler(routeTestDB{row: routeTestRow{}}, func(w http.ResponseWriter, r *http.Request) {
+	handler := singleOrganizationHandler(organizationID, func(w http.ResponseWriter, r *http.Request) {
 		called = true
 		if got, ok := httpinfra.WorkspaceIDFromContext(r.Context()); !ok || got != organizationID {
 			t.Errorf("expected organization context %s, got %s (ok=%v)", organizationID, got, ok)
@@ -56,19 +64,9 @@ func TestSingleWorkspaceHandlerInjectsOrganizationContext(t *testing.T) {
 	}
 }
 
-func TestSingleWorkspaceHandlerRejectsUnavailableDatabase(t *testing.T) {
+func TestSingleOrganizationHandlerRejectsUnavailableOrganization(t *testing.T) {
 	rec := httptest.NewRecorder()
-	singleWorkspaceHandler(nil, func(http.ResponseWriter, *http.Request) {
-		t.Fatal("wrapped handler must not run when database is unavailable")
-	})(rec, httptest.NewRequest(http.MethodGet, "/api/v1/employees", nil))
-	if rec.Code != http.StatusServiceUnavailable {
-		t.Fatalf("expected 503, got %d", rec.Code)
-	}
-}
-
-func TestSingleWorkspaceHandlerRejectsMissingOrganization(t *testing.T) {
-	rec := httptest.NewRecorder()
-	singleWorkspaceHandler(routeTestDB{row: routeTestRow{err: pgx.ErrNoRows}}, func(http.ResponseWriter, *http.Request) {
+	singleOrganizationHandler(uuid.Nil, func(http.ResponseWriter, *http.Request) {
 		t.Fatal("wrapped handler must not run when organization is unavailable")
 	})(rec, httptest.NewRequest(http.MethodGet, "/api/v1/employees", nil))
 	if rec.Code != http.StatusServiceUnavailable {
