@@ -59,6 +59,8 @@ Baseline safety constraints: only `apiserver/migrations/20261103000000_init/` ex
 - Verification: `./leedevkit test api` passed; `git diff --check` passed; no `X-Workspace-Id` references remain under `apiserver/`.
 - Completed twenty-first reversible backend slice: `pathUUID` now prefers resolved organization context for `ws_id` and retains path parsing fallback; flat and legacy route handlers can migrate incrementally without changing public method contracts.
 - Verification: `./leedevkit test api` passed; `git diff --check` passed.
+- Completed twenty-second reversible backend slice: monitor workspace handlers now use context-aware `pathUUID`; direct `PathValue("ws_id")` parsing is gone while legacy route fallback remains supported.
+- Verification: `./leedevkit test api` passed; `git diff --check` passed; no raw workspace path parsing remains under `apiserver/internal/api/`.
 
 ## Ordered work
 

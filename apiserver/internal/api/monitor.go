@@ -1501,8 +1501,8 @@ func writeWSCloseFrame(w io.Writer) error {
 
 // 10. GET /api/v1/workspaces/{ws_id}/audit-logs
 func (h MonitorHandler) GetAuditLogs(w http.ResponseWriter, r *http.Request) {
-	wsID, err := uuid.Parse(r.PathValue("ws_id"))
-	if err != nil {
+	wsID, ok := pathUUID(r, "ws_id")
+	if !ok {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}
@@ -1577,8 +1577,8 @@ func (h MonitorHandler) GetAuditLogs(w http.ResponseWriter, r *http.Request) {
 
 // 11. GET /api/v1/workspaces/{ws_id}/jobs/{job_id}
 func (h MonitorHandler) GetWorkspaceJobStatus(w http.ResponseWriter, r *http.Request) {
-	wsID, err := uuid.Parse(r.PathValue("ws_id"))
-	if err != nil {
+	wsID, ok := pathUUID(r, "ws_id")
+	if !ok {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}
@@ -1656,8 +1656,8 @@ func (h MonitorHandler) GetWorkspaceJobStatus(w http.ResponseWriter, r *http.Req
 
 // 12. GET /api/v1/workspaces/{ws_id}/monitor/jobs/{job_id}
 func (h MonitorHandler) GetWorkspaceMonitorJob(w http.ResponseWriter, r *http.Request) {
-	wsID, err := uuid.Parse(r.PathValue("ws_id"))
-	if err != nil {
+	wsID, ok := pathUUID(r, "ws_id")
+	if !ok {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}
