@@ -18,9 +18,9 @@ type DepartmentRepository struct {
 	DB DBTX
 }
 
-func (r DepartmentRepository) db(ctx context.Context, workspaceID uuid.UUID) (DBTX, error) {
+func (r DepartmentRepository) db(ctx context.Context) (DBTX, error) {
 	if r.DB == nil {
-		return nil, errors.New("department repository: tenant database is not configured")
+		return nil, errors.New("department repository: database is not configured")
 	}
 	return r.DB, nil
 }
@@ -56,7 +56,7 @@ func scanDepartment(row pgx.Row) (api.DepartmentRecord, error) {
 }
 
 func (r DepartmentRepository) ListDepartments(ctx context.Context, workspaceID uuid.UUID, page, limit int) (api.DepartmentListResponse, error) {
-	db, err := r.db(ctx, workspaceID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return api.DepartmentListResponse{}, err
 	}
@@ -91,7 +91,7 @@ func (r DepartmentRepository) ListDepartments(ctx context.Context, workspaceID u
 }
 
 func (r DepartmentRepository) GetDepartmentByID(ctx context.Context, workspaceID, deptID uuid.UUID) (api.DepartmentRecord, error) {
-	db, err := r.db(ctx, workspaceID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return api.DepartmentRecord{}, err
 	}
@@ -107,7 +107,7 @@ func (r DepartmentRepository) GetDepartmentByID(ctx context.Context, workspaceID
 }
 
 func (r DepartmentRepository) CreateDepartment(ctx context.Context, workspaceID uuid.UUID, req api.CreateDepartmentRequest) (api.DepartmentRecord, error) {
-	db, err := r.db(ctx, workspaceID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return api.DepartmentRecord{}, err
 	}
@@ -125,7 +125,7 @@ func (r DepartmentRepository) CreateDepartment(ctx context.Context, workspaceID 
 }
 
 func (r DepartmentRepository) UpdateDepartment(ctx context.Context, workspaceID, deptID uuid.UUID, req api.UpdateDepartmentRequest) (api.DepartmentRecord, error) {
-	db, err := r.db(ctx, workspaceID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return api.DepartmentRecord{}, err
 	}
@@ -161,7 +161,7 @@ func (r DepartmentRepository) UpdateDepartment(ctx context.Context, workspaceID,
 }
 
 func (r DepartmentRepository) DeleteDepartment(ctx context.Context, workspaceID, deptID uuid.UUID) error {
-	db, err := r.db(ctx, workspaceID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return err
 	}
@@ -176,7 +176,7 @@ func (r DepartmentRepository) DeleteDepartment(ctx context.Context, workspaceID,
 }
 
 func (r DepartmentRepository) GetDepartmentPayrollConfigs(ctx context.Context, workspaceID, deptID uuid.UUID) ([]api.DepartmentPayrollConfig, error) {
-	db, err := r.db(ctx, workspaceID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -243,7 +243,7 @@ func (r DepartmentRepository) GetDepartmentPayrollConfigs(ctx context.Context, w
 }
 
 func (r DepartmentRepository) SetDepartmentPayrollConfig(ctx context.Context, workspaceID, deptID uuid.UUID, req api.SetDepartmentPayrollConfigRequest, actorID uuid.UUID) (api.DepartmentPayrollConfig, error) {
-	db, err := r.db(ctx, workspaceID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return api.DepartmentPayrollConfig{}, err
 	}

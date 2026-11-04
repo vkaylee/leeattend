@@ -31,6 +31,8 @@ Baseline safety constraints: only `apiserver/migrations/20261103000000_init/` ex
 - Verification: `./leedevkit test api` passed; `git diff --check` passed.
 - Completed seventh reversible backend slice: compensation, custom-field, dashboard-analytics, and dashboard-preferences repositories now return their direct DB fields from helper methods; dashboard-preferences recursion was removed. Workspace filters, response fields, and public method signatures remain unchanged.
 - Verification: `./leedevkit test api` passed; `git diff --check` passed.
+- Completed eighth reversible backend slice: department, document, and employee-condition repositories now return direct DB fields from helper methods; workspace-scoped SQL, membership checks, and public methods remain unchanged.
+- Verification: `./leedevkit test api` passed; `git diff --check` passed.
 
 ## Ordered work
 

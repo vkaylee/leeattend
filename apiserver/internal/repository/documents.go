@@ -15,15 +15,15 @@ type DocumentRepository struct {
 	SystemDB DBTX
 }
 
-func (r DocumentRepository) db(ctx context.Context, wsID uuid.UUID) (DBTX, error) {
+func (r DocumentRepository) db(ctx context.Context) (DBTX, error) {
 	if r.DB == nil {
-		return nil, errors.New("document repository: tenant database is not configured")
+		return nil, errors.New("document repository: database is not configured")
 	}
 	return r.DB, nil
 }
 
 func (r DocumentRepository) ListFolders(ctx context.Context, wsID uuid.UUID) ([]api.DocumentFolderDto, error) {
-	db, err := r.db(ctx, wsID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -45,7 +45,7 @@ func (r DocumentRepository) ListFolders(ctx context.Context, wsID uuid.UUID) ([]
 }
 
 func (r DocumentRepository) CreateFolder(ctx context.Context, wsID uuid.UUID, req api.CreateFolderRequest) (api.DocumentFolderDto, error) {
-	db, err := r.db(ctx, wsID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return api.DocumentFolderDto{}, err
 	}
@@ -72,7 +72,7 @@ func (r DocumentRepository) CreateFolder(ctx context.Context, wsID uuid.UUID, re
 }
 
 func (r DocumentRepository) GetFolder(ctx context.Context, wsID, folderID uuid.UUID) (api.DocumentFolderDto, error) {
-	db, err := r.db(ctx, wsID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return api.DocumentFolderDto{}, err
 	}
@@ -88,7 +88,7 @@ func (r DocumentRepository) GetFolder(ctx context.Context, wsID, folderID uuid.U
 }
 
 func (r DocumentRepository) RenameFolder(ctx context.Context, wsID, folderID uuid.UUID, name string) (api.DocumentFolderDto, error) {
-	db, err := r.db(ctx, wsID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return api.DocumentFolderDto{}, err
 	}
@@ -104,7 +104,7 @@ func (r DocumentRepository) RenameFolder(ctx context.Context, wsID, folderID uui
 }
 
 func (r DocumentRepository) DeleteFolder(ctx context.Context, wsID, folderID uuid.UUID) error {
-	db, err := r.db(ctx, wsID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return err
 	}
@@ -119,7 +119,7 @@ func (r DocumentRepository) DeleteFolder(ctx context.Context, wsID, folderID uui
 }
 
 func (r DocumentRepository) DistributeDocument(ctx context.Context, wsID uuid.UUID, req api.DistributeDocumentRequest) (int, error) {
-	db, err := r.db(ctx, wsID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return 0, err
 	}
@@ -148,7 +148,7 @@ func (r DocumentRepository) GetTemplateVariables(ctx context.Context, wsID, empl
 
 	vars["DOCUMENT_DATE"] = time.Now().UTC().Format("02/01/2006")
 
-	db, err := r.db(ctx, wsID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return vars, nil
 	}

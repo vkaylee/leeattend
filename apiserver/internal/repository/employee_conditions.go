@@ -13,9 +13,9 @@ type EmployeeConditionRepository struct {
 	DB DBTX
 }
 
-func (r EmployeeConditionRepository) db(ctx context.Context, workspaceID uuid.UUID) (DBTX, error) {
+func (r EmployeeConditionRepository) db(ctx context.Context) (DBTX, error) {
 	if r.DB == nil {
-		return nil, errors.New("employee condition repository: tenant database is not configured")
+		return nil, errors.New("employee condition repository: database is not configured")
 	}
 	return r.DB, nil
 }
@@ -57,7 +57,7 @@ func scanEmployeeCondition(row interface{ Scan(...any) error }) (api.EmployeeCon
 }
 
 func (r EmployeeConditionRepository) ListEmployeeConditions(ctx context.Context, workspaceID, employeeID uuid.UUID, page, limit int) (api.EmployeeConditionListResponse, error) {
-	db, err := r.db(ctx, workspaceID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return api.EmployeeConditionListResponse{}, err
 	}
@@ -90,7 +90,7 @@ func (r EmployeeConditionRepository) ListEmployeeConditions(ctx context.Context,
 }
 
 func (r EmployeeConditionRepository) CreateEmployeeCondition(ctx context.Context, workspaceID, employeeID uuid.UUID, req api.CreateEmployeeConditionRequest) (api.EmployeeCondition, error) {
-	db, err := r.db(ctx, workspaceID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return api.EmployeeCondition{}, err
 	}
@@ -123,7 +123,7 @@ func (r EmployeeConditionRepository) CreateEmployeeCondition(ctx context.Context
 }
 
 func (r EmployeeConditionRepository) DeleteEmployeeCondition(ctx context.Context, workspaceID, employeeID, conditionID uuid.UUID) error {
-	db, err := r.db(ctx, workspaceID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return err
 	}
@@ -142,7 +142,7 @@ func (r EmployeeConditionRepository) DeleteEmployeeCondition(ctx context.Context
 }
 
 func (r EmployeeConditionRepository) CurrentEmployeeDepartment(ctx context.Context, workspaceID, employeeID uuid.UUID) (*uuid.UUID, error) {
-	db, err := r.db(ctx, workspaceID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return nil, err
 	}
