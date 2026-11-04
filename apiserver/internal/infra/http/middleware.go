@@ -77,7 +77,7 @@ func CORSMiddleware(allowedOrigins []string) Middleware {
 				if allowed {
 					w.Header().Set("Access-Control-Allow-Origin", origin)
 					w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS")
-					w.Header().Set("Access-Control-Allow-Headers", "Authorization, Content-Type, x-request-id, X-Workspace-Id")
+					w.Header().Set("Access-Control-Allow-Headers", "Authorization, Content-Type, x-request-id")
 					w.Header().Set("Access-Control-Allow-Credentials", "true")
 				}
 			}
@@ -156,12 +156,6 @@ func AuthMiddlewareWithRevocation(jwtSecret string, publicPrefixes []string, rev
 			ctx := context.WithValue(r.Context(), contextKeyUserID, userID)
 			ctx = context.WithValue(ctx, contextKeyClaims, claims)
 			ctx = observability.WithActorID(ctx, userID.String())
-			if wsHeader := r.Header.Get("X-Workspace-Id"); wsHeader != "" {
-				if wsID, parseErr := uuid.Parse(wsHeader); parseErr == nil {
-					ctx = context.WithValue(ctx, contextKeyWorkspaceID, wsID)
-					ctx = observability.WithWorkspaceID(ctx, wsID.String())
-				}
-			}
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}
@@ -194,7 +188,13 @@ func WorkspaceIDFromContext(ctx context.Context) (uuid.UUID, bool) {
 	return val, ok
 }
 
+// WithWorkspaceID attaches the resolved organization UUID to a request context.
+func WithWorkspaceID(ctx context.Context, id uuid.UUID) context.Context {
+	ctx = context.WithValue(ctx, contextKeyWorkspaceID, id)
+	return observability.WithWorkspaceID(ctx, id.String())
+}
+
 // WithWorkspaceIDForTest is a package test helper for handler contract tests.
 func WithWorkspaceIDForTest(ctx context.Context, id uuid.UUID) context.Context {
-	return context.WithValue(ctx, contextKeyWorkspaceID, id)
+	return WithWorkspaceID(ctx, id)
 }

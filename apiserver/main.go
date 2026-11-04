@@ -43,6 +43,7 @@ func singleWorkspaceHandler(db repository.DBTX, handler http.HandlerFunc) http.H
 			return
 		}
 		r.SetPathValue("ws_id", organizationID.String())
+		r = r.WithContext(httpinfra.WithWorkspaceID(r.Context(), organizationID))
 		handler(w, r)
 	}
 }
@@ -278,7 +279,7 @@ func main() {
 	mux.HandleFunc("PUT /api/v1/recruitment-sources/{id}", singleWorkspace(recruitmentHandler.Update))
 	mux.HandleFunc("DELETE /api/v1/workspaces/{ws_id}/recruitment-sources/{id}", recruitmentHandler.Delete)
 	mux.HandleFunc("DELETE /api/v1/recruitment-sources/{id}", singleWorkspace(recruitmentHandler.Delete))
-	mux.HandleFunc("GET /api/v1/dashboard/recruitment-sources", recruitmentHandler.Dashboard)
+	mux.HandleFunc("GET /api/v1/dashboard/recruitment-sources", singleWorkspace(recruitmentHandler.Dashboard))
 	employeeRepo := repository.EmployeeRepository{DB: workspaceRepo.DB}
 	employeeHandler := api.EmployeeHandler{Repository: employeeRepo, Authorizer: workspaceAuthorizer}
 	employeeImportRepo := repository.EmployeeImportRepository{DB: workspaceRepo.DB}
@@ -611,7 +612,7 @@ func main() {
 	mux.HandleFunc("GET /api/v1/employees/{id}/leave/history", singleWorkspace(leaveHandler.EmployeeHistory))
 	mux.HandleFunc("POST /api/v1/workspaces/{ws_id}/employees/{id}/leave/adjust", leaveHandler.AdjustBalance)
 	mux.HandleFunc("POST /api/v1/employees/{id}/leave/adjust", singleWorkspace(leaveHandler.AdjustBalance))
-	mux.HandleFunc("GET /api/v1/employees/{id}/leave/requests", leaveHandler.MyRequests)
+	mux.HandleFunc("GET /api/v1/employees/{id}/leave/requests", singleWorkspace(leaveHandler.MyRequests))
 	mux.HandleFunc("GET /api/v1/workspaces/{ws_id}/leave/policies", leaveHandler.ListPolicies)
 	mux.HandleFunc("GET /api/v1/leave/policies", singleWorkspace(leaveHandler.ListPolicies))
 	mux.HandleFunc("POST /api/v1/workspaces/{ws_id}/leave/policies", leaveHandler.CreatePolicy)
@@ -671,24 +672,24 @@ func main() {
 		Leaves:     leaveRepo,
 		ShiftSwaps: swapRepo,
 	}
-	mux.HandleFunc("GET /api/v1/ess/profile", essHandler.GetProfile)
-	mux.HandleFunc("PUT /api/v1/ess/profile", essHandler.UpdateProfile)
-	mux.HandleFunc("GET /api/v1/ess/emergency-contacts", essHandler.GetContacts)
-	mux.HandleFunc("POST /api/v1/ess/emergency-contacts", essHandler.AddContact)
-	mux.HandleFunc("DELETE /api/v1/ess/emergency-contacts/{contact_id}", essHandler.DeleteContact)
-	mux.HandleFunc("GET /api/v1/ess/documents/pending", essHandler.GetPendingDocuments)
-	mux.HandleFunc("POST /api/v1/ess/documents/{id}/acknowledge", essHandler.AcknowledgeDocument)
-	mux.HandleFunc("GET /api/v1/ess/documents", essHandler.GetDocuments)
-	mux.HandleFunc("GET /api/v1/ess/payslips", essHandler.GetPayslips)
-	mux.HandleFunc("GET /api/v1/ess/attendance", essHandler.GetAttendance)
-	mux.HandleFunc("POST /api/v1/ess/punch", essHandler.Punch)
-	mux.HandleFunc("GET /api/v1/ess/time-entries", essHandler.GetTimeEntries)
-	mux.HandleFunc("GET /api/v1/ess/leave/balances", essHandler.GetLeaveBalances)
-	mux.HandleFunc("GET /api/v1/ess/leave/requests", essHandler.GetLeaveRequests)
-	mux.HandleFunc("GET /api/v1/ess/shift-swaps", essHandler.GetShiftSwaps)
-	mux.HandleFunc("POST /api/v1/ess/shift-swaps", essHandler.CreateShiftSwap)
-	mux.HandleFunc("PUT /api/v1/ess/shift-swaps/{id}/respond", essHandler.RespondShiftSwap)
-	mux.HandleFunc("DELETE /api/v1/ess/shift-swaps/{id}", essHandler.CancelShiftSwap)
+	mux.HandleFunc("GET /api/v1/ess/profile", singleWorkspace(essHandler.GetProfile))
+	mux.HandleFunc("PUT /api/v1/ess/profile", singleWorkspace(essHandler.UpdateProfile))
+	mux.HandleFunc("GET /api/v1/ess/emergency-contacts", singleWorkspace(essHandler.GetContacts))
+	mux.HandleFunc("POST /api/v1/ess/emergency-contacts", singleWorkspace(essHandler.AddContact))
+	mux.HandleFunc("DELETE /api/v1/ess/emergency-contacts/{contact_id}", singleWorkspace(essHandler.DeleteContact))
+	mux.HandleFunc("GET /api/v1/ess/documents/pending", singleWorkspace(essHandler.GetPendingDocuments))
+	mux.HandleFunc("POST /api/v1/ess/documents/{id}/acknowledge", singleWorkspace(essHandler.AcknowledgeDocument))
+	mux.HandleFunc("GET /api/v1/ess/documents", singleWorkspace(essHandler.GetDocuments))
+	mux.HandleFunc("GET /api/v1/ess/payslips", singleWorkspace(essHandler.GetPayslips))
+	mux.HandleFunc("GET /api/v1/ess/attendance", singleWorkspace(essHandler.GetAttendance))
+	mux.HandleFunc("POST /api/v1/ess/punch", singleWorkspace(essHandler.Punch))
+	mux.HandleFunc("GET /api/v1/ess/time-entries", singleWorkspace(essHandler.GetTimeEntries))
+	mux.HandleFunc("GET /api/v1/ess/leave/balances", singleWorkspace(essHandler.GetLeaveBalances))
+	mux.HandleFunc("GET /api/v1/ess/leave/requests", singleWorkspace(essHandler.GetLeaveRequests))
+	mux.HandleFunc("GET /api/v1/ess/shift-swaps", singleWorkspace(essHandler.GetShiftSwaps))
+	mux.HandleFunc("POST /api/v1/ess/shift-swaps", singleWorkspace(essHandler.CreateShiftSwap))
+	mux.HandleFunc("PUT /api/v1/ess/shift-swaps/{id}/respond", singleWorkspace(essHandler.RespondShiftSwap))
+	mux.HandleFunc("DELETE /api/v1/ess/shift-swaps/{id}", singleWorkspace(essHandler.CancelShiftSwap))
 	workflowRepo := repository.ApprovalWorkflowRepository{DB: workspaceRepo.DB, SystemDB: workspaceRepo.SystemDB}
 	workflowHandler := api.ApprovalWorkflowHandler{Repository: workflowRepo, Authorizer: workspaceAuthorizer}
 	mux.HandleFunc("GET /api/v1/workspaces/{ws_id}/approval-workflows", workflowHandler.List)
@@ -1024,29 +1025,29 @@ func main() {
 	mux.HandleFunc("POST /api/v1/auth/change-password", authHandler.ChangePassword)
 	mux.HandleFunc("GET /api/v1/me", authHandler.Me)
 	mux.HandleFunc("PATCH /api/v1/me", authHandler.UpdateMe)
-	mux.HandleFunc("GET /api/v1/me/permissions", authHandler.MyPermissions)
-	mux.HandleFunc("GET /api/v1/users", authHandler.WorkspaceUsers)
+	mux.HandleFunc("GET /api/v1/me/permissions", singleWorkspace(authHandler.MyPermissions))
+	mux.HandleFunc("GET /api/v1/users", singleWorkspace(authHandler.WorkspaceUsers))
 	preferencesRepo := repository.DashboardPreferencesRepository{DB: workspaceRepo.DB}
 	preferencesHandler := api.DashboardPreferencesHandler{Repository: preferencesRepo, Authorizer: workspaceAuthorizer}
-	mux.HandleFunc("GET /api/v1/dashboard/preferences", preferencesHandler.Get)
-	mux.HandleFunc("PUT /api/v1/dashboard/preferences", preferencesHandler.Put)
+	mux.HandleFunc("GET /api/v1/dashboard/preferences", singleWorkspace(preferencesHandler.Get))
+	mux.HandleFunc("PUT /api/v1/dashboard/preferences", singleWorkspace(preferencesHandler.Put))
 	dashboardAnalyticsRepo := repository.DashboardAnalyticsRepository{DB: workspaceRepo.DB}
 	dashboardAnalyticsHandler := api.DashboardAnalyticsHandler{
 		Repository: dashboardAnalyticsRepo,
 		Authorizer: workspaceAuthorizer,
 	}
-	mux.HandleFunc("GET /api/v1/dashboard/executive-overview", dashboardAnalyticsHandler.ExecutiveOverview)
-	mux.HandleFunc("GET /api/v1/dashboard/overtime-breakdown", dashboardAnalyticsHandler.OvertimeBreakdown)
-	mux.HandleFunc("GET /api/v1/dashboard/workspace-stats", dashboardAnalyticsHandler.WorkspaceStats)
-	mux.HandleFunc("GET /api/v1/dashboard/attendance-trend", dashboardAnalyticsHandler.AttendanceTrend)
-	mux.HandleFunc("GET /api/v1/dashboard/department-attendance", dashboardAnalyticsHandler.DepartmentAttendance)
-	mux.HandleFunc("GET /api/v1/dashboard/unexcused-absences", dashboardAnalyticsHandler.UnexcusedAbsences)
-	mux.HandleFunc("GET /api/v1/dashboard/overtime-trend", dashboardAnalyticsHandler.OvertimeTrend)
-	mux.HandleFunc("GET /api/v1/dashboard/peak-times", dashboardAnalyticsHandler.PeakTimes)
-	mux.HandleFunc("GET /api/v1/dashboard/leave-types", dashboardAnalyticsHandler.LeaveTypes)
-	mux.HandleFunc("GET /api/v1/dashboard/lateness-by-day", dashboardAnalyticsHandler.LatenessByDay)
-	mux.HandleFunc("GET /api/v1/dashboard/turnover-analytics", dashboardAnalyticsHandler.TurnoverAnalytics)
-	mux.HandleFunc("GET /api/v1/dashboard/recruitment-effectiveness", dashboardAnalyticsHandler.RecruitmentEffectiveness)
+	mux.HandleFunc("GET /api/v1/dashboard/executive-overview", singleWorkspace(dashboardAnalyticsHandler.ExecutiveOverview))
+	mux.HandleFunc("GET /api/v1/dashboard/overtime-breakdown", singleWorkspace(dashboardAnalyticsHandler.OvertimeBreakdown))
+	mux.HandleFunc("GET /api/v1/dashboard/workspace-stats", singleWorkspace(dashboardAnalyticsHandler.WorkspaceStats))
+	mux.HandleFunc("GET /api/v1/dashboard/attendance-trend", singleWorkspace(dashboardAnalyticsHandler.AttendanceTrend))
+	mux.HandleFunc("GET /api/v1/dashboard/department-attendance", singleWorkspace(dashboardAnalyticsHandler.DepartmentAttendance))
+	mux.HandleFunc("GET /api/v1/dashboard/unexcused-absences", singleWorkspace(dashboardAnalyticsHandler.UnexcusedAbsences))
+	mux.HandleFunc("GET /api/v1/dashboard/overtime-trend", singleWorkspace(dashboardAnalyticsHandler.OvertimeTrend))
+	mux.HandleFunc("GET /api/v1/dashboard/peak-times", singleWorkspace(dashboardAnalyticsHandler.PeakTimes))
+	mux.HandleFunc("GET /api/v1/dashboard/leave-types", singleWorkspace(dashboardAnalyticsHandler.LeaveTypes))
+	mux.HandleFunc("GET /api/v1/dashboard/lateness-by-day", singleWorkspace(dashboardAnalyticsHandler.LatenessByDay))
+	mux.HandleFunc("GET /api/v1/dashboard/turnover-analytics", singleWorkspace(dashboardAnalyticsHandler.TurnoverAnalytics))
+	mux.HandleFunc("GET /api/v1/dashboard/recruitment-effectiveness", singleWorkspace(dashboardAnalyticsHandler.RecruitmentEffectiveness))
 	mux.HandleFunc("POST /auth/login", authHandler.Login)
 	mux.HandleFunc("POST /auth/refresh", authHandler.Refresh)
 	mux.HandleFunc("POST /auth/logout", authHandler.Logout)
