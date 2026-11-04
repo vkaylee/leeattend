@@ -132,35 +132,28 @@ export interface StagingLogsResponse {
 }
 
 export async function fetchStagingLogs(
-  wsId: string,
   page = 1,
   limit = 50
 ): Promise<StagingLogsResponse> {
-  const { data: resData } = await client.GET("/v1/workspaces/{ws_id}/attendance/staging-logs", {
-    params: {
-      path: { ws_id: wsId },
-      query: { page, limit },
-    },
-  });
-  return resData as StagingLogsResponse;
+  const res = await apiFetch(`/v1/attendance/staging-logs?page=${page}&limit=${limit}`);
+  if (!res.ok) await ApiError.rejectResponse(res);
+  return res.json() as Promise<StagingLogsResponse>;
 }
 
 export async function resolveStagingLog(
-  wsId: string,
   logId: string,
   employeeId: string
 ): Promise<void> {
-  await client.POST("/v1/workspaces/{ws_id}/attendance/staging-logs/{id}/resolve", {
-    params: { path: { ws_id: wsId, id: logId } },
-    body: { employee_id: employeeId }
+  const res = await apiFetch(`/v1/attendance/staging-logs/${encodeURIComponent(logId)}/resolve`, {
+    method: "POST",
+    body: JSON.stringify({ employee_id: employeeId }),
   });
+  if (!res.ok) await ApiError.rejectResponse(res);
 }
 
-export async function dismissStagingLog(
-  wsId: string,
-  logId: string
-): Promise<void> {
-  await client.DELETE("/v1/workspaces/{ws_id}/attendance/staging-logs/{id}", {
-    params: { path: { ws_id: wsId, id: logId } }
+export async function dismissStagingLog(logId: string): Promise<void> {
+  const res = await apiFetch(`/v1/attendance/staging-logs/${encodeURIComponent(logId)}`, {
+    method: "DELETE",
   });
+  if (!res.ok) await ApiError.rejectResponse(res);
 }

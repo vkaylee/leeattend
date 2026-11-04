@@ -112,13 +112,13 @@ describe("api.ts comprehensive tests", () => {
 
     it("fetchLatestImportJob", async () => {
       vi.mocked(fetch).mockResolvedValueOnce({ ok: true, headers: new Headers({ "content-type": "application/json" }), json: () => Promise.resolve({ id: "job-1" }), text: () => Promise.resolve(JSON.stringify({ id: "job-1" })) } as unknown as Response);
-      await api.fetchLatestImportJob("ws-1", "adjustment");
+      await api.fetchLatestImportJob("adjustment");
       expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/v1/attendance/import-jobs/latest?target_type=adjustment"), expect.anything());
     });
 
     it("fetchImportJobStatus", async () => {
       mockSuccess({});
-      await api.fetchImportJobStatus("ws-1", "j1");
+      await api.fetchImportJobStatus("j1");
       expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/v1/attendance/import-jobs/j1"), expect.any(Object));
     });
 

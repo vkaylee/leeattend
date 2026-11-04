@@ -58,7 +58,7 @@ function useAttendanceMutations(wsId: string | null) {
   const queryClient = useQueryClient();
 
   const dismissMutation = useMutation({
-    mutationFn: (logId: string) => wsId ? dismissStagingLog(wsId, logId) : Promise.reject(new Error("No workspace ID")),
+    mutationFn: (logId: string) => wsId ? dismissStagingLog(logId) : Promise.reject(new Error("No workspace ID")),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["staging-logs"] });
       void queryClient.invalidateQueries({ queryKey: ["staging-logs-count"] });
@@ -66,7 +66,7 @@ function useAttendanceMutations(wsId: string | null) {
   });
 
   const resolveMutation = useMutation({
-    mutationFn: ({ logId, employeeId }: { logId: string; employeeId: string }) => wsId ? resolveStagingLog(wsId, logId, employeeId) : Promise.reject(new Error("No workspace ID")),
+    mutationFn: ({ logId, employeeId }: { logId: string; employeeId: string }) => wsId ? resolveStagingLog(logId, employeeId) : Promise.reject(new Error("No workspace ID")),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["staging-logs"] });
       void queryClient.invalidateQueries({ queryKey: ["staging-logs-count"] });
@@ -99,7 +99,7 @@ function useAttendanceData(wsId: string | null, employeeId: string, dateRange: {
 
   const { data: stagingPages, isLoading: stagingLoading, fetchNextPage: fetchNextStagingPage, hasNextPage: hasNextStagingPage, isFetchingNextPage: isFetchingNextStagingPage } = useInfiniteQuery<StagingLogsResponse>({
     queryKey: ["staging-logs", wsId],
-    queryFn: ({ pageParam }) => wsId ? fetchStagingLogs(wsId, pageParam as number, PAGE_SIZE) : Promise.reject(new Error("No workspace ID")),
+    queryFn: ({ pageParam }) => wsId ? fetchStagingLogs(pageParam as number, PAGE_SIZE) : Promise.reject(new Error("No workspace ID")),
     getNextPageParam: (lastPage, allPages) => {
       const totalLoaded = allPages.reduce((sum, p) => sum + (p.data.length || 0), 0);
       return totalLoaded >= (lastPage.total || 0) ? undefined : allPages.length + 1;
@@ -113,7 +113,7 @@ function useAttendanceData(wsId: string | null, employeeId: string, dateRange: {
 
   const { data: stagingCount } = useQuery({
     queryKey: ["staging-logs-count", wsId],
-    queryFn: async () => wsId ? (await fetchStagingLogs(wsId, 1, 1)).total : 0,
+    queryFn: async () => wsId ? (await fetchStagingLogs(1, 1)).total : 0,
     enabled: !!wsId,
   });
 

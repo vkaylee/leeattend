@@ -77,7 +77,9 @@ export async function uploadAttendance(
 
   const url = endpoint === "/employees/upload"
     ? `/v1/workspaces/${wsId}/employees/upload`
-    : `/v1/workspaces/${wsId}/attendance/upload`;
+    : endpoint === "/attendance/logs/upload"
+      ? "/v1/attendance/logs/upload"
+      : `/v1/workspaces/${wsId}/attendance/upload`;
 
   const res = await apiFetch(url, {
     method: "POST",
@@ -88,23 +90,18 @@ export async function uploadAttendance(
 }
 
 export async function fetchLatestImportJob(
-  wsId: string,
   targetType?: "log" | "adjustment" | "employee" | "leave_import"
 ) {
-  const { data: resData } = await client.GET("/v1/workspaces/{ws_id}/attendance/import-jobs/latest", {
-    params: { path: { ws_id: wsId }, query: { target_type: targetType } }
-  });
-  return resData;
+  const query = targetType ? `?target_type=${encodeURIComponent(targetType)}` : "";
+  const res = await apiFetch(`/v1/attendance/import-jobs/latest${query}`);
+  if (!res.ok) await ApiError.rejectResponse(res);
+  return res.json() as Promise<AttendanceImportJob | null>;
 }
 
-export async function fetchImportJobStatus(
-  wsId: string,
-  jobId: string
-): Promise<AttendanceImportJob> {
-  const { data: resData } = await client.GET("/v1/workspaces/{ws_id}/attendance/import-jobs/{id}", {
-    params: { path: { ws_id: wsId, id: jobId } }
-  });
-  return resData;
+export async function fetchImportJobStatus(jobId: string): Promise<AttendanceImportJob> {
+  const res = await apiFetch(`/v1/attendance/import-jobs/${encodeURIComponent(jobId)}`);
+  if (!res.ok) await ApiError.rejectResponse(res);
+  return res.json() as Promise<AttendanceImportJob>;
 }
 
 export async function reprocessAttendance(

@@ -290,8 +290,8 @@ export default function AttendanceImportDialog({
 
   const { data: jobStatus } = useQuery({
     queryKey: ["import-job", activeJobId],
-    queryFn: () => wsId && activeJobId ? fetchImportJobStatus(wsId, activeJobId) : Promise.reject(new Error("Missing workspace ID or Job ID")),
-    enabled: !!activeJobId && !!wsId,
+    queryFn: () => activeJobId ? fetchImportJobStatus(activeJobId) : Promise.reject(new Error("Missing Job ID")),
+    enabled: !!activeJobId,
     refetchInterval: (query) => {
         const status = query.state.data?.status;
         return (status === "processing" || status === "pending") ? 1000 : false;
@@ -299,9 +299,9 @@ export default function AttendanceImportDialog({
   });
 
   const { data: latestJob } = useQuery({
-    queryKey: ["latest-import-job", wsId, targetType],
-    queryFn: () => wsId ? fetchLatestImportJob(wsId, targetType) : Promise.reject(new Error("Missing workspace ID")),
-    enabled: isOpen && !!wsId,
+    queryKey: ["latest-import-job", targetType],
+    queryFn: () => fetchLatestImportJob(targetType),
+    enabled: isOpen,
   });
 
   const [previousLatestJob, setPreviousLatestJob] = useState(latestJob);

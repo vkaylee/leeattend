@@ -156,16 +156,20 @@ describe("attendance API (extended)", () => {
     expect(vi.mocked(apiFetch).mock.calls[0][0]).toContain("/attendance/upload");
   });
 
-  it("fetchLatestImportJob: GET latest", async () => {
+  it("fetchLatestImportJob: GET flat latest route", async () => {
     vi.mocked(apiFetch).mockResolvedValueOnce(okRes({ id: "j-1", status: "completed" }));
-    const result = await fetchLatestImportJob("test-ws-id", "log");
+    const result = await fetchLatestImportJob("log");
     expect(result).toEqual({ id: "j-1", status: "completed" });
+    expect(vi.mocked(apiFetch).mock.calls[0][0]).toContain("/attendance/import-jobs/latest");
+    expect(vi.mocked(apiFetch).mock.calls[0][0]).not.toContain("/workspaces/");
   });
 
-  it("fetchImportJobStatus: GET job", async () => {
+  it("fetchImportJobStatus: GET flat job route", async () => {
     vi.mocked(apiFetch).mockResolvedValueOnce(okRes({ id: "j-1", status: "processing" }));
-    const result = await fetchImportJobStatus("test-ws-id", "j-1");
+    const result = await fetchImportJobStatus("j-1");
     expect(result).toEqual({ id: "j-1", status: "processing" });
+    expect(vi.mocked(apiFetch).mock.calls[0][0]).toContain("/attendance/import-jobs/j-1");
+    expect(vi.mocked(apiFetch).mock.calls[0][0]).not.toContain("/workspaces/");
   });
 
   it("reprocessAttendance: POST with date range", async () => {
@@ -232,25 +236,29 @@ describe("attendance API (extended)", () => {
     expect(result.total_rows).toBe(1);
   });
 
-  it("fetchStagingLogs: GET paginated", async () => {
+  it("fetchStagingLogs: GET flat paginated route", async () => {
     vi.mocked(apiFetch).mockResolvedValueOnce(okRes({ data: [], total: 0, page: 1, limit: 50 }));
-    const result = await fetchStagingLogs("test-ws-id", 1, 50);
+    const result = await fetchStagingLogs(1, 50);
     expect(result.total).toBe(0);
+    expect(vi.mocked(apiFetch).mock.calls[0][0]).toContain("/attendance/staging-logs");
+    expect(vi.mocked(apiFetch).mock.calls[0][0]).not.toContain("/workspaces/");
   });
 
-  it("resolveStagingLog: POST resolve", async () => {
+  it("resolveStagingLog: POST flat resolve route", async () => {
     vi.mocked(apiFetch).mockResolvedValueOnce(okRes(undefined));
-    await resolveStagingLog("test-ws-id", "sl-1", "e1");
+    await resolveStagingLog("sl-1", "e1");
     const call = vi.mocked(apiFetch).mock.calls[0];
-    expect(call[0]).toContain("/staging-logs/sl-1/resolve");
+    expect(call[0]).toContain("/attendance/staging-logs/sl-1/resolve");
+    expect(call[0]).not.toContain("/workspaces/");
     expect(JSON.parse((call[1] as RequestInit).body as string).employee_id).toBe("e1");
   });
 
-  it("dismissStagingLog: DELETE", async () => {
+  it("dismissStagingLog: DELETE flat route", async () => {
     vi.mocked(apiFetch).mockResolvedValueOnce(okRes(undefined));
-    await dismissStagingLog("test-ws-id", "sl-1");
+    await dismissStagingLog("sl-1");
     const call = vi.mocked(apiFetch).mock.calls[0];
-    expect(call[0]).toContain("/staging-logs/sl-1");
+    expect(call[0]).toContain("/attendance/staging-logs/sl-1");
+    expect(call[0]).not.toContain("/workspaces/");
     expect((call[1] as RequestInit).method).toBe("DELETE");
   });
 
