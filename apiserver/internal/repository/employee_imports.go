@@ -20,9 +20,9 @@ type EmployeeImportRepository struct {
 	BeginTx func(context.Context, uuid.UUID) (TxBeginner, error)
 }
 
-func (r EmployeeImportRepository) db(ctx context.Context, wsID uuid.UUID) (DBTX, error) {
+func (r EmployeeImportRepository) db(ctx context.Context) (DBTX, error) {
 	if r.DB == nil {
-		return nil, errors.New("employee import repository: tenant database is not configured")
+		return nil, errors.New("employee import repository: database is not configured")
 	}
 	return r.DB, nil
 }
@@ -31,7 +31,7 @@ func (r EmployeeImportRepository) begin(ctx context.Context, wsID uuid.UUID) (Tx
 	if r.BeginTx != nil {
 		return r.BeginTx(ctx, wsID)
 	}
-	db, err := r.db(ctx, wsID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -43,7 +43,7 @@ func (r EmployeeImportRepository) begin(ctx context.Context, wsID uuid.UUID) (Tx
 }
 
 func (r EmployeeImportRepository) CreateEmployeeImportJob(ctx context.Context, workspaceID, userID uuid.UUID, filePath string, jobID uuid.UUID) error {
-	db, err := r.db(ctx, workspaceID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return err
 	}
@@ -58,7 +58,7 @@ func (r EmployeeImportRepository) TerminationCandidates(ctx context.Context, wor
 	if len(codes) == 0 {
 		return nil, nil
 	}
-	db, err := r.db(ctx, workspaceID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -192,7 +192,7 @@ func (r EmployeeImportRepository) TerminationStatuses(ctx context.Context, works
 	if len(employmentIDs) == 0 {
 		return make(map[uuid.UUID]string), nil
 	}
-	db, err := r.db(ctx, workspaceID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return nil, err
 	}

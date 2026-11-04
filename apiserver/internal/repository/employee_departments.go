@@ -16,9 +16,9 @@ type EmployeeDepartmentRepository struct {
 	BeginTx func(context.Context, uuid.UUID) (TxBeginner, error)
 }
 
-func (r EmployeeDepartmentRepository) db(ctx context.Context, workspaceID uuid.UUID) (DBTX, error) {
+func (r EmployeeDepartmentRepository) db(ctx context.Context) (DBTX, error) {
 	if r.DB == nil {
-		return nil, errors.New("employee department repository: tenant database is not configured")
+		return nil, errors.New("employee department repository: database is not configured")
 	}
 	return r.DB, nil
 }
@@ -27,7 +27,7 @@ func (r EmployeeDepartmentRepository) begin(ctx context.Context, workspaceID uui
 	if r.BeginTx != nil {
 		return r.BeginTx(ctx, workspaceID)
 	}
-	db, err := r.db(ctx, workspaceID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -39,7 +39,7 @@ func (r EmployeeDepartmentRepository) begin(ctx context.Context, workspaceID uui
 }
 
 func (r EmployeeDepartmentRepository) CurrentEmployeeDepartment(ctx context.Context, workspaceID, employeeID uuid.UUID) (*uuid.UUID, error) {
-	db, err := r.db(ctx, workspaceID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -55,7 +55,7 @@ func (r EmployeeDepartmentRepository) CurrentEmployeeDepartment(ctx context.Cont
 }
 
 func (r EmployeeDepartmentRepository) GetEmployeeDepartmentHistory(ctx context.Context, workspaceID, employeeID uuid.UUID) ([]api.EmployeeDepartmentHistory, error) {
-	db, err := r.db(ctx, workspaceID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return nil, err
 	}

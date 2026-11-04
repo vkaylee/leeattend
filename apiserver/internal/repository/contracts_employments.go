@@ -18,9 +18,9 @@ type ContractRepository struct {
 	BeginTx func(context.Context, uuid.UUID) (TxBeginner, error)
 }
 
-func (r ContractRepository) db(ctx context.Context, wsID uuid.UUID) (DBTX, error) {
+func (r ContractRepository) db(ctx context.Context) (DBTX, error) {
 	if r.DB == nil {
-		return nil, errors.New("contract repository: tenant database is not configured")
+		return nil, errors.New("contract repository: database is not configured")
 	}
 	return r.DB, nil
 }
@@ -29,7 +29,7 @@ func (r ContractRepository) begin(ctx context.Context, wsID uuid.UUID) (TxBeginn
 	if r.BeginTx != nil {
 		return r.BeginTx(ctx, wsID)
 	}
-	db, err := r.db(ctx, wsID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -52,7 +52,7 @@ func scanContract(row interface{ Scan(...any) error }) (api.EmployeeContract, er
 }
 
 func (r ContractRepository) ListWorkspaceContracts(ctx context.Context, wsID uuid.UUID) ([]api.EmployeeContractWithEmployee, error) {
-	db, err := r.db(ctx, wsID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -93,7 +93,7 @@ func (r ContractRepository) ListWorkspaceContracts(ctx context.Context, wsID uui
 }
 
 func (r ContractRepository) ListEmployeeContracts(ctx context.Context, wsID, employeeID uuid.UUID) ([]api.EmployeeContract, error) {
-	db, err := r.db(ctx, wsID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -124,7 +124,7 @@ func (r ContractRepository) ListEmployeeContracts(ctx context.Context, wsID, emp
 }
 
 func (r ContractRepository) GetContract(ctx context.Context, wsID, contractID uuid.UUID) (api.EmployeeContract, error) {
-	db, err := r.db(ctx, wsID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return api.EmployeeContract{}, err
 	}
@@ -157,7 +157,7 @@ func (r ContractRepository) CreateContract(ctx context.Context, wsID uuid.UUID, 
 		})
 		return created, err
 	}
-	db, err := r.db(ctx, wsID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return api.EmployeeContract{}, err
 	}
@@ -227,7 +227,7 @@ func (r ContractRepository) createContractTx(ctx context.Context, db DBTX, wsID 
 }
 
 func (r ContractRepository) UpdateContract(ctx context.Context, wsID, contractID uuid.UUID, req api.UpdateContractRequest) (api.EmployeeContract, error) {
-	db, err := r.db(ctx, wsID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return api.EmployeeContract{}, err
 	}
@@ -282,7 +282,7 @@ func (r ContractRepository) UpdateContract(ctx context.Context, wsID, contractID
 }
 
 func (r ContractRepository) SoftDeleteContract(ctx context.Context, wsID, contractID uuid.UUID) error {
-	db, err := r.db(ctx, wsID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return err
 	}
@@ -294,9 +294,9 @@ type EmploymentRepository struct {
 	DB DBTX
 }
 
-func (r EmploymentRepository) db(ctx context.Context, wsID uuid.UUID) (DBTX, error) {
+func (r EmploymentRepository) db(ctx context.Context) (DBTX, error) {
 	if r.DB == nil {
-		return nil, errors.New("employment repository: tenant database is not configured")
+		return nil, errors.New("employment repository: database is not configured")
 	}
 	return r.DB, nil
 }
@@ -321,7 +321,7 @@ const employmentColumns = `id, workspace_id, employee_id, employer_id, primary_l
 	created_at, updated_at, termination_reason, notes`
 
 func (r EmploymentRepository) ListEmployments(ctx context.Context, wsID, employeeID uuid.UUID) ([]api.Employment, error) {
-	db, err := r.db(ctx, wsID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -344,7 +344,7 @@ func (r EmploymentRepository) ListEmployments(ctx context.Context, wsID, employe
 }
 
 func (r EmploymentRepository) CreateEmployment(ctx context.Context, wsID uuid.UUID, req api.CreateEmploymentRequest) (api.Employment, error) {
-	db, err := r.db(ctx, wsID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return api.Employment{}, err
 	}
@@ -361,7 +361,7 @@ func (r EmploymentRepository) CreateEmployment(ctx context.Context, wsID uuid.UU
 }
 
 func (r EmploymentRepository) GetEmployment(ctx context.Context, wsID, id uuid.UUID) (api.Employment, error) {
-	db, err := r.db(ctx, wsID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return api.Employment{}, err
 	}
@@ -374,7 +374,7 @@ func (r EmploymentRepository) GetEmployment(ctx context.Context, wsID, id uuid.U
 }
 
 func (r EmploymentRepository) UpdateEmployment(ctx context.Context, wsID, id uuid.UUID, req api.UpdateEmploymentRequest) (api.Employment, error) {
-	db, err := r.db(ctx, wsID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return api.Employment{}, err
 	}
@@ -444,7 +444,7 @@ func (r EmploymentRepository) UpdateEmployment(ctx context.Context, wsID, id uui
 }
 
 func (r EmploymentRepository) SoftDeleteEmployment(ctx context.Context, wsID, id uuid.UUID) error {
-	db, err := r.db(ctx, wsID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return err
 	}
