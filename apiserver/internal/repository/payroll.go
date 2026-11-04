@@ -30,9 +30,9 @@ func isConflictError(err error) bool {
 	var pgErr *pgconn.PgError
 	return errors.As(err, &pgErr) && (pgErr.Code == "23505" || pgErr.Code == "23P01")
 }
-func (r PayrollRepository) db(ctx context.Context, wsID uuid.UUID) (DBTX, error) {
+func (r PayrollRepository) db(ctx context.Context) (DBTX, error) {
 	if r.DB == nil {
-		return nil, errors.New("payroll repository: tenant database is not configured")
+		return nil, errors.New("payroll repository: database is not configured")
 	}
 	return r.DB, nil
 }
@@ -54,7 +54,7 @@ func scanPayslip(row interface{ Scan(...any) error }) (api.PayslipRecord, error)
 	return p, nil
 }
 func (r PayrollRepository) ListWorkspacePayslips(ctx context.Context, wsID uuid.UUID, start, end time.Time) ([]api.PayslipRecord, error) {
-	db, err := r.db(ctx, wsID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -74,7 +74,7 @@ func (r PayrollRepository) ListWorkspacePayslips(ctx context.Context, wsID uuid.
 	return result, rows.Err()
 }
 func (r PayrollRepository) ListEmployeePayslips(ctx context.Context, wsID, empID uuid.UUID) ([]api.PayslipRecord, error) {
-	db, err := r.db(ctx, wsID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -95,7 +95,7 @@ func (r PayrollRepository) ListEmployeePayslips(ctx context.Context, wsID, empID
 }
 
 func (r PayrollRepository) ListSalaryComponents(ctx context.Context, wsID uuid.UUID) ([]api.SalaryComponentDefinition, error) {
-	db, err := r.db(ctx, wsID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -119,7 +119,7 @@ func (r PayrollRepository) ListSalaryComponents(ctx context.Context, wsID uuid.U
 }
 
 func (r PayrollRepository) CreateSalaryComponent(ctx context.Context, wsID uuid.UUID, req api.CreateSalaryComponentRequest) (api.SalaryComponentDefinition, error) {
-	db, err := r.db(ctx, wsID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return api.SalaryComponentDefinition{}, err
 	}
@@ -164,7 +164,7 @@ func (r PayrollRepository) CreateSalaryComponent(ctx context.Context, wsID uuid.
 }
 
 func (r PayrollRepository) ListEmploymentSalaryComponents(ctx context.Context, wsID, employmentID uuid.UUID) ([]api.EmploymentSalaryComponentResponse, error) {
-	db, err := r.db(ctx, wsID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -205,7 +205,7 @@ func (r PayrollRepository) ListEmploymentSalaryComponents(ctx context.Context, w
 }
 
 func (r PayrollRepository) AssignEmploymentSalaryComponent(ctx context.Context, wsID, employmentID uuid.UUID, req api.AssignSalaryComponentRequest) (api.EmployeeSalaryComponent, error) {
-	db, err := r.db(ctx, wsID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return api.EmployeeSalaryComponent{}, err
 	}
@@ -243,7 +243,7 @@ func (r PayrollRepository) AssignEmploymentSalaryComponent(ctx context.Context, 
 }
 
 func (r PayrollRepository) ListSalaryBases(ctx context.Context, wsID uuid.UUID) (api.SalaryBasesResponse, error) {
-	db, err := r.db(ctx, wsID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return api.SalaryBasesResponse{}, err
 	}
@@ -297,7 +297,7 @@ ORDER BY scbm.created_at ASC`, wsID)
 }
 
 func (r PayrollRepository) CreateSalaryBase(ctx context.Context, wsID uuid.UUID, req api.CreateSalaryBaseRequest) (api.SalaryBaseGroup, error) {
-	db, err := r.db(ctx, wsID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return api.SalaryBaseGroup{}, err
 	}
@@ -315,7 +315,7 @@ func (r PayrollRepository) CreateSalaryBase(ctx context.Context, wsID uuid.UUID,
 }
 
 func (r PayrollRepository) AssignBaseMember(ctx context.Context, wsID, baseID, componentID uuid.UUID) error {
-	db, err := r.db(ctx, wsID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return err
 	}
@@ -343,7 +343,7 @@ func (r PayrollRepository) AssignBaseMember(ctx context.Context, wsID, baseID, c
 }
 
 func (r PayrollRepository) UnassignBaseMember(ctx context.Context, wsID, baseID, componentID uuid.UUID) error {
-	db, err := r.db(ctx, wsID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return err
 	}
@@ -356,7 +356,7 @@ WHERE component_definition_id = $1
 }
 
 func (r PayrollRepository) GetPayrollSettings(ctx context.Context, wsID uuid.UUID) (*api.PayrollSettings, error) {
-	db, err := r.db(ctx, wsID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -462,7 +462,7 @@ ORDER BY effective_from DESC, created_at DESC`, wsID, today)
 }
 
 func (r PayrollRepository) GetPayrollSettingsHistory(ctx context.Context, wsID uuid.UUID) ([]api.PayrollSettings, error) {
-	db, err := r.db(ctx, wsID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -580,7 +580,7 @@ ORDER BY effective_from DESC, created_at DESC`, wsID)
 }
 
 func (r PayrollRepository) UpdatePayrollSettings(ctx context.Context, wsID uuid.UUID, req api.UpdatePayrollSettingsRequest) (api.PayrollSettings, error) {
-	db, err := r.db(ctx, wsID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return api.PayrollSettings{}, err
 	}
@@ -730,7 +730,7 @@ WHERE workspace_id = $1 AND scope_type = 'workspace' AND scope_id IS NULL AND co
 }
 
 func (r PayrollRepository) GetEmployeePayrollConfigs(ctx context.Context, wsID, employeeID uuid.UUID) ([]api.EmployeePayrollConfig, error) {
-	db, err := r.db(ctx, wsID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -806,7 +806,7 @@ ORDER BY effective_from DESC, created_at DESC`
 }
 
 func (r PayrollRepository) SetEmployeePayrollConfig(ctx context.Context, wsID, employeeID uuid.UUID, req api.SetEmployeePayrollConfigRequest, actorID uuid.UUID) (api.EmployeePayrollConfig, error) {
-	db, err := r.db(ctx, wsID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return api.EmployeePayrollConfig{}, err
 	}
@@ -858,7 +858,7 @@ RETURNING id, created_at`
 }
 
 func (r PayrollRepository) GetIncentivePolicies(ctx context.Context, wsID uuid.UUID) ([]api.PayrollIncentivePolicyResponse, error) {
-	db, err := r.db(ctx, wsID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -932,7 +932,7 @@ ORDER BY priority ASC`, policyIDs)
 }
 
 func (r PayrollRepository) CreateIncentivePolicy(ctx context.Context, wsID uuid.UUID, req api.CreatePayrollIncentivePolicyRequest) (api.PayrollIncentivePolicy, error) {
-	db, err := r.db(ctx, wsID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return api.PayrollIncentivePolicy{}, err
 	}
@@ -976,7 +976,7 @@ VALUES ($1, $2, $3, $4, $5)`, tierID, policyID, tier.Priority, tier.PayoutAmount
 }
 
 func (r PayrollRepository) DeleteIncentivePolicy(ctx context.Context, wsID, policyID uuid.UUID) error {
-	db, err := r.db(ctx, wsID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return err
 	}
@@ -985,7 +985,7 @@ func (r PayrollRepository) DeleteIncentivePolicy(ctx context.Context, wsID, poli
 }
 
 func (r PayrollRepository) CloneIncentivePolicy(ctx context.Context, wsID, policyID uuid.UUID) (api.PayrollIncentivePolicy, error) {
-	db, err := r.db(ctx, wsID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return api.PayrollIncentivePolicy{}, err
 	}
@@ -1068,7 +1068,7 @@ VALUES ($1, $2, $3, $4, $5)`, tierID, newPolicyID, t.priority, t.payout.InexactF
 }
 
 func (r PayrollRepository) ListPayrollRules(ctx context.Context, wsID uuid.UUID) ([]api.PayrollRuleDefinition, error) {
-	db, err := r.db(ctx, wsID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -1100,7 +1100,7 @@ ORDER BY display_order ASC, created_at DESC`, wsID)
 }
 
 func (r PayrollRepository) CreatePayrollRule(ctx context.Context, wsID uuid.UUID, req api.CreatePayrollRuleDefinitionRequest) (api.PayrollRuleDefinition, error) {
-	db, err := r.db(ctx, wsID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return api.PayrollRuleDefinition{}, err
 	}
@@ -1161,7 +1161,7 @@ RETURNING created_at, updated_at`, ruleID, wsID, strings.TrimSpace(req.Name), re
 }
 
 func (r PayrollRepository) ListPayrollRuleTiers(ctx context.Context, wsID, ruleID uuid.UUID) ([]api.PayrollRuleTier, error) {
-	db, err := r.db(ctx, wsID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -1205,7 +1205,7 @@ ORDER BY tier_order ASC`, ruleID)
 }
 
 func (r PayrollRepository) CreatePayrollRuleTier(ctx context.Context, wsID, ruleID uuid.UUID, req api.CreatePayrollRuleTierRequest) (api.PayrollRuleTier, error) {
-	db, err := r.db(ctx, wsID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return api.PayrollRuleTier{}, err
 	}
@@ -1254,7 +1254,7 @@ RETURNING created_at`, tierID, ruleID, req.TierOrder, req.MinAmount.String(), ma
 }
 
 func (r PayrollRepository) DeletePayrollRuleTier(ctx context.Context, wsID, ruleID, tierID uuid.UUID) error {
-	db, err := r.db(ctx, wsID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return err
 	}
@@ -1263,7 +1263,7 @@ func (r PayrollRepository) DeletePayrollRuleTier(ctx context.Context, wsID, rule
 }
 
 func (r PayrollRepository) ListPayrollRuleAssignments(ctx context.Context, wsID, ruleID uuid.UUID) ([]api.PayrollRuleAssignment, error) {
-	db, err := r.db(ctx, wsID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -1307,7 +1307,7 @@ ORDER BY created_at DESC`, wsID, ruleID)
 }
 
 func (r PayrollRepository) AssignPayrollRule(ctx context.Context, wsID, ruleID uuid.UUID, req api.AssignPayrollRuleRequest) (api.PayrollRuleAssignment, error) {
-	db, err := r.db(ctx, wsID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return api.PayrollRuleAssignment{}, err
 	}
@@ -1349,7 +1349,7 @@ RETURNING created_at`, assignID, wsID, ruleID, req.AssigneeType, req.AssigneeID,
 }
 
 func (r PayrollRepository) DeletePayrollRuleAssignment(ctx context.Context, wsID, ruleID, assignmentID uuid.UUID) error {
-	db, err := r.db(ctx, wsID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return err
 	}
@@ -1358,7 +1358,7 @@ func (r PayrollRepository) DeletePayrollRuleAssignment(ctx context.Context, wsID
 }
 
 func (r PayrollRepository) CalculateEmployeePayroll(ctx context.Context, wsID, employeeID uuid.UUID, year, month int) (api.FullPayslipResponse, error) {
-	db, err := r.db(ctx, wsID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return api.FullPayslipResponse{}, err
 	}
@@ -1385,7 +1385,7 @@ func (r PayrollRepository) CalculateEmployeePayroll(ctx context.Context, wsID, e
 }
 
 func (r PayrollRepository) CalculateBatchPayroll(ctx context.Context, wsID uuid.UUID, req api.BatchCalculatePayrollRequest) (api.BatchCalculatePayrollResponse, error) {
-	db, err := r.db(ctx, wsID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return api.BatchCalculatePayrollResponse{}, err
 	}

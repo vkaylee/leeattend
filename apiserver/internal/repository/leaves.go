@@ -24,9 +24,9 @@ type LeaveRepository struct {
 	BeginTx func(context.Context, uuid.UUID) (TxBeginner, error)
 }
 
-func (r LeaveRepository) db(ctx context.Context, workspaceID uuid.UUID) (DBTX, error) {
+func (r LeaveRepository) db(ctx context.Context) (DBTX, error) {
 	if r.DB == nil {
-		return nil, errors.New("leave repository: tenant database is not configured")
+		return nil, errors.New("leave repository: database is not configured")
 	}
 	return r.DB, nil
 }
@@ -35,19 +35,19 @@ func (r LeaveRepository) begin(ctx context.Context, workspaceID uuid.UUID) (TxBe
 	if r.BeginTx != nil {
 		return r.BeginTx(ctx, workspaceID)
 	}
-	db, err := r.db(ctx, workspaceID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return nil, err
 	}
 	beginner, ok := db.(TxBeginner)
 	if !ok {
-		return nil, errors.New("leave repository: tenant database does not support transactions")
+		return nil, errors.New("leave repository: database does not support transactions")
 	}
 	return beginner, nil
 }
 
 func (r LeaveRepository) CreateLeaveType(ctx context.Context, workspaceID uuid.UUID, req api.CreateLeaveTypeRequest) (api.LeaveTypeRecord, error) {
-	db, err := r.db(ctx, workspaceID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return api.LeaveTypeRecord{}, err
 	}
@@ -77,7 +77,7 @@ func (r LeaveRepository) CreateLeaveType(ctx context.Context, workspaceID uuid.U
 }
 
 func (r LeaveRepository) ListLeaveTypes(ctx context.Context, workspaceID uuid.UUID) ([]api.LeaveTypeRecord, error) {
-	db, err := r.db(ctx, workspaceID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -102,7 +102,7 @@ func (r LeaveRepository) ListLeaveTypes(ctx context.Context, workspaceID uuid.UU
 }
 
 func (r LeaveRepository) UpdateLeaveTypeConfig(ctx context.Context, workspaceID, leaveTypeID uuid.UUID, policyConfig json.RawMessage) (api.LeaveTypeRecord, error) {
-	db, err := r.db(ctx, workspaceID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return api.LeaveTypeRecord{}, err
 	}
@@ -123,7 +123,7 @@ func (r LeaveRepository) UpdateLeaveTypeConfig(ctx context.Context, workspaceID,
 }
 
 func (r LeaveRepository) DeleteLeaveType(ctx context.Context, workspaceID, leaveTypeID uuid.UUID) error {
-	db, err := r.db(ctx, workspaceID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return err
 	}
@@ -146,7 +146,7 @@ func (r LeaveRepository) DeleteLeaveType(ctx context.Context, workspaceID, leave
 }
 
 func (r LeaveRepository) RestoreLeaveType(ctx context.Context, workspaceID, leaveTypeID uuid.UUID) (api.LeaveTypeRecord, error) {
-	db, err := r.db(ctx, workspaceID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return api.LeaveTypeRecord{}, err
 	}
@@ -219,7 +219,7 @@ func (r LeaveRepository) SubmitLeaveRequest(ctx context.Context, workspaceID, re
 }
 
 func (r LeaveRepository) ListWorkspaceLeaveRequests(ctx context.Context, workspaceID uuid.UUID, status *string) ([]api.LeaveRequestRecord, error) {
-	db, err := r.db(ctx, workspaceID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -262,7 +262,7 @@ func (r LeaveRepository) ApproveLeaveRequest(ctx context.Context, workspaceID, a
 }
 
 func (r LeaveRepository) GetEmployeeLeaveBalances(ctx context.Context, workspaceID, employeeID uuid.UUID, year int) ([]api.EmployeeLeaveBalanceRecord, error) {
-	db, err := r.db(ctx, workspaceID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -290,7 +290,7 @@ func (r LeaveRepository) GetEmployeeLeaveBalances(ctx context.Context, workspace
 }
 
 func (r LeaveRepository) ResolveEmployeeForUser(ctx context.Context, workspaceID, userID uuid.UUID) (uuid.UUID, error) {
-	db, err := r.db(ctx, workspaceID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return uuid.Nil, err
 	}
@@ -317,7 +317,7 @@ func weekdayCount(startDate, endDate string) int {
 }
 
 func (r LeaveRepository) GetWorkspaceLeaveBalances(ctx context.Context, wsID uuid.UUID, year, page, limit int, q string) ([]api.WorkspaceLeaveBalance, int64, error) {
-	db, err := r.db(ctx, wsID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -440,7 +440,7 @@ func (r LeaveRepository) GetWorkspaceLeaveBalances(ctx context.Context, wsID uui
 }
 
 func (r LeaveRepository) GetEmployeeLeaveHistory(ctx context.Context, wsID, employeeID uuid.UUID, year int, leaveTypeID *uuid.UUID) ([]api.LeaveHistoryItem, error) {
-	db, err := r.db(ctx, wsID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -574,7 +574,7 @@ func (r LeaveRepository) AdjustLeaveBalance(ctx context.Context, wsID, employeeI
 }
 
 func (r LeaveRepository) ListEmployeeLeaveRequests(ctx context.Context, wsID, employeeID uuid.UUID) ([]api.LeaveRequestRecord, error) {
-	db, err := r.db(ctx, wsID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -605,7 +605,7 @@ func (r LeaveRepository) ListEmployeeLeaveRequests(ctx context.Context, wsID, em
 }
 
 func (r LeaveRepository) ListLeavePolicies(ctx context.Context, wsID uuid.UUID) ([]api.LeavePolicyDefinition, error) {
-	db, err := r.db(ctx, wsID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -637,7 +637,7 @@ func (r LeaveRepository) ListLeavePolicies(ctx context.Context, wsID uuid.UUID) 
 }
 
 func (r LeaveRepository) CreateLeavePolicy(ctx context.Context, wsID uuid.UUID, req api.CreateLeavePolicyRequest) (api.LeavePolicyDefinition, error) {
-	db, err := r.db(ctx, wsID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return api.LeavePolicyDefinition{}, err
 	}
@@ -670,7 +670,7 @@ func (r LeaveRepository) CreateLeavePolicy(ctx context.Context, wsID uuid.UUID, 
 }
 
 func (r LeaveRepository) UpdateLeavePolicy(ctx context.Context, wsID, policyID uuid.UUID, req api.UpdateLeavePolicyRequest) (api.LeavePolicyDefinition, error) {
-	db, err := r.db(ctx, wsID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return api.LeavePolicyDefinition{}, err
 	}
@@ -825,7 +825,7 @@ func (r LeaveRepository) AssignLeavePolicy(ctx context.Context, wsID uuid.UUID, 
 }
 
 func (r LeaveRepository) ListLeavePolicyAssignments(ctx context.Context, wsID uuid.UUID) ([]api.LeavePolicyAssignmentDetail, error) {
-	db, err := r.db(ctx, wsID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -922,7 +922,7 @@ func (r LeaveRepository) DeleteLeavePolicyAssignment(ctx context.Context, wsID, 
 }
 
 func (r LeaveRepository) CreateAccrualJob(ctx context.Context, wsID, userID uuid.UUID, dateStr string) (uuid.UUID, error) {
-	db, err := r.db(ctx, wsID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return uuid.Nil, err
 	}
@@ -943,7 +943,7 @@ func (r LeaveRepository) CreateAccrualJob(ctx context.Context, wsID, userID uuid
 }
 
 func (r LeaveRepository) GetJobStatus(ctx context.Context, wsID, jobID uuid.UUID) (api.LeaveJobStatusResponse, error) {
-	db, err := r.db(ctx, wsID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return api.LeaveJobStatusResponse{}, err
 	}
@@ -990,7 +990,7 @@ func (r LeaveRepository) GetJobStatus(ctx context.Context, wsID, jobID uuid.UUID
 }
 
 func (r LeaveRepository) CreateLeaveImportJob(ctx context.Context, wsID, userID uuid.UUID, filePath string) (api.LeaveImportJob, error) {
-	db, err := r.db(ctx, wsID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return api.LeaveImportJob{}, err
 	}
@@ -1006,7 +1006,7 @@ func (r LeaveRepository) CreateLeaveImportJob(ctx context.Context, wsID, userID 
 }
 
 func (r LeaveRepository) ProcessLeaveImport(ctx context.Context, wsID, userID uuid.UUID, job api.LeaveImportJob, rows []api.LeaveImportRow, autoApprove bool) error {
-	db, err := r.db(ctx, wsID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return err
 	}
@@ -1075,7 +1075,7 @@ func (r LeaveRepository) ProcessLeaveImport(ctx context.Context, wsID, userID uu
 }
 
 func (r LeaveRepository) GetLatestLeaveImport(ctx context.Context, wsID uuid.UUID) (*api.LeaveImportJob, error) {
-	db, err := r.db(ctx, wsID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -1098,7 +1098,7 @@ func (r LeaveRepository) GetLatestLeaveImport(ctx context.Context, wsID uuid.UUI
 }
 
 func (r LeaveRepository) GetLeaveImport(ctx context.Context, wsID, jobID uuid.UUID) (*api.LeaveImportJob, error) {
-	db, err := r.db(ctx, wsID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return nil, err
 	}
