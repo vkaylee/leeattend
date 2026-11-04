@@ -18,9 +18,9 @@ type OvertimeRepository struct {
 	BeginTx func(context.Context, uuid.UUID) (TxBeginner, error)
 }
 
-func (r OvertimeRepository) db(ctx context.Context, ws uuid.UUID) (DBTX, error) {
+func (r OvertimeRepository) db(ctx context.Context) (DBTX, error) {
 	if r.DB == nil {
-		return nil, errors.New("overtime repository: tenant database is not configured")
+		return nil, errors.New("overtime repository: database is not configured")
 	}
 	return r.DB, nil
 }
@@ -29,13 +29,13 @@ func (r OvertimeRepository) begin(ctx context.Context, ws uuid.UUID) (TxBeginner
 	if r.BeginTx != nil {
 		return r.BeginTx(ctx, ws)
 	}
-	db, err := r.db(ctx, ws)
+	db, err := r.db(ctx)
 	if err != nil {
 		return nil, err
 	}
 	tx, ok := db.(TxBeginner)
 	if !ok {
-		return nil, errors.New("overtime repository: tenant database does not support transactions")
+		return nil, errors.New("overtime repository: database does not support transactions")
 	}
 	return tx, nil
 }
@@ -70,7 +70,7 @@ func scanPolicy(row interface{ Scan(...any) error }) (api.OvertimePolicy, error)
 }
 
 func (r OvertimeRepository) ListOvertimePolicies(ctx context.Context, ws uuid.UUID, page, limit int) (api.OvertimePolicyListResponse, error) {
-	db, err := r.db(ctx, ws)
+	db, err := r.db(ctx)
 	if err != nil {
 		return api.OvertimePolicyListResponse{}, err
 	}
@@ -94,7 +94,7 @@ func (r OvertimeRepository) ListOvertimePolicies(ctx context.Context, ws uuid.UU
 }
 
 func (r OvertimeRepository) CreateOvertimePolicy(ctx context.Context, ws uuid.UUID, req api.CreateOvertimePolicyRequest) (api.OvertimePolicy, error) {
-	db, err := r.db(ctx, ws)
+	db, err := r.db(ctx)
 	if err != nil {
 		return api.OvertimePolicy{}, err
 	}
@@ -113,7 +113,7 @@ func scanRule(row interface{ Scan(...any) error }) (api.OvertimeRule, error) {
 }
 
 func (r OvertimeRepository) GetOvertimePolicy(ctx context.Context, ws, id uuid.UUID) (api.OvertimePolicyDetail, error) {
-	db, err := r.db(ctx, ws)
+	db, err := r.db(ctx)
 	if err != nil {
 		return api.OvertimePolicyDetail{}, err
 	}
@@ -138,7 +138,7 @@ func (r OvertimeRepository) GetOvertimePolicy(ctx context.Context, ws, id uuid.U
 }
 
 func (r OvertimeRepository) AddOvertimeRule(ctx context.Context, ws, policyID uuid.UUID, req api.CreateOvertimeRuleRequest) (api.OvertimeRule, error) {
-	db, err := r.db(ctx, ws)
+	db, err := r.db(ctx)
 	if err != nil {
 		return api.OvertimeRule{}, err
 	}
@@ -161,7 +161,7 @@ func (r OvertimeRepository) AddOvertimeRule(ctx context.Context, ws, policyID uu
 }
 
 func (r OvertimeRepository) AssignOvertimePolicy(ctx context.Context, ws uuid.UUID, req api.AssignOvertimePolicyRequest) error {
-	db, err := r.db(ctx, ws)
+	db, err := r.db(ctx)
 	if err != nil {
 		return err
 	}
@@ -199,7 +199,7 @@ func scanOvertimeRequest(row interface{ Scan(...any) error }) (api.OvertimeReque
 }
 
 func (r OvertimeRepository) ListOvertimeRequests(ctx context.Context, ws uuid.UUID, page, limit int) (api.OvertimeRequestListResponse, error) {
-	db, err := r.db(ctx, ws)
+	db, err := r.db(ctx)
 	if err != nil {
 		return api.OvertimeRequestListResponse{}, err
 	}
@@ -261,7 +261,7 @@ func (r OvertimeRepository) CreateOvertimeRequest(ctx context.Context, ws, user 
 }
 
 func (r OvertimeRepository) GetOvertimeRequest(ctx context.Context, ws, id uuid.UUID) (api.OvertimeRequestDetail, error) {
-	db, err := r.db(ctx, ws)
+	db, err := r.db(ctx)
 	if err != nil {
 		return api.OvertimeRequestDetail{}, err
 	}
@@ -375,7 +375,7 @@ func (r OvertimeRepository) SubmitOvertimeRequest(ctx context.Context, ws, id uu
 }
 
 func (r OvertimeRepository) ConsentOvertimeRequest(ctx context.Context, ws, requestID, employeeID uuid.UUID, req api.EmployeeConsentRequest) error {
-	db, err := r.db(ctx, ws)
+	db, err := r.db(ctx)
 	if err != nil {
 		return err
 	}
@@ -390,7 +390,7 @@ func (r OvertimeRepository) ConsentOvertimeRequest(ctx context.Context, ws, requ
 }
 
 func (r OvertimeRepository) GetEmployee(ctx context.Context, ws, id uuid.UUID) (api.EmployeeRecord, error) {
-	db, err := r.db(ctx, ws)
+	db, err := r.db(ctx)
 	if err != nil {
 		return api.EmployeeRecord{}, err
 	}
@@ -402,7 +402,7 @@ func (r OvertimeRepository) GetEmployee(ctx context.Context, ws, id uuid.UUID) (
 
 // EmployeeDepartmentID resolves the target department for scoped OvertimeApprove checks.
 func (r OvertimeRepository) EmployeeDepartmentID(ctx context.Context, ws, employeeID uuid.UUID) (*uuid.UUID, error) {
-	db, err := r.db(ctx, ws)
+	db, err := r.db(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -435,7 +435,7 @@ func (r OvertimeRepository) ClaimOvertime(ctx context.Context, ws, employeeID uu
 }
 
 func (r OvertimeRepository) ApproveOvertime(ctx context.Context, ws, employeeID uuid.UUID, req api.ApproveOTRequest, _ uuid.UUID) error {
-	db, err := r.db(ctx, ws)
+	db, err := r.db(ctx)
 	if err != nil {
 		return err
 	}

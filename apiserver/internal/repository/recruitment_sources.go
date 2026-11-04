@@ -17,9 +17,9 @@ type RecruitmentSourceRepository struct {
 	DB DBTX
 }
 
-func (r RecruitmentSourceRepository) db(ctx context.Context, workspaceID uuid.UUID) (DBTX, error) {
+func (r RecruitmentSourceRepository) db(ctx context.Context) (DBTX, error) {
 	if r.DB == nil {
-		return nil, errors.New("recruitment source repository: tenant database is not configured")
+		return nil, errors.New("recruitment source repository: database is not configured")
 	}
 	return r.DB, nil
 }
@@ -57,7 +57,7 @@ func scanRecruitmentSource(row interface{ Scan(...any) error }) (api.Recruitment
 }
 
 func (r RecruitmentSourceRepository) ListRecruitmentSources(ctx context.Context, workspaceID uuid.UUID, page, limit int) (api.RecruitmentSourceListResponse, error) {
-	db, err := r.db(ctx, workspaceID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return api.RecruitmentSourceListResponse{}, err
 	}
@@ -81,7 +81,7 @@ func (r RecruitmentSourceRepository) ListRecruitmentSources(ctx context.Context,
 }
 
 func (r RecruitmentSourceRepository) CreateRecruitmentSource(ctx context.Context, workspaceID uuid.UUID, req api.CreateRecruitmentSourceRequest) (api.RecruitmentSource, error) {
-	db, err := r.db(ctx, workspaceID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return api.RecruitmentSource{}, err
 	}
@@ -95,7 +95,7 @@ func (r RecruitmentSourceRepository) CreateRecruitmentSource(ctx context.Context
 }
 
 func (r RecruitmentSourceRepository) UpdateRecruitmentSource(ctx context.Context, workspaceID, id uuid.UUID, req api.UpdateRecruitmentSourceRequest) (api.RecruitmentSource, error) {
-	db, err := r.db(ctx, workspaceID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return api.RecruitmentSource{}, err
 	}
@@ -142,7 +142,7 @@ func (r RecruitmentSourceRepository) UpdateRecruitmentSource(ctx context.Context
 }
 
 func (r RecruitmentSourceRepository) DeleteRecruitmentSource(ctx context.Context, workspaceID, id uuid.UUID) error {
-	db, err := r.db(ctx, workspaceID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return err
 	}
@@ -157,7 +157,7 @@ func (r RecruitmentSourceRepository) DeleteRecruitmentSource(ctx context.Context
 }
 
 func (r RecruitmentSourceRepository) RecruitmentSourceBreakdown(ctx context.Context, workspaceID uuid.UUID) ([]api.RecruitmentSourceBreakdown, error) {
-	db, err := r.db(ctx, workspaceID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return nil, err
 	}

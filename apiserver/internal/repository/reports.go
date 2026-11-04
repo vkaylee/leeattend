@@ -18,15 +18,15 @@ type ReportRepository struct {
 	DB DBTX
 }
 
-func (r ReportRepository) db(ctx context.Context, wsID uuid.UUID) (DBTX, error) {
+func (r ReportRepository) db(ctx context.Context) (DBTX, error) {
 	if r.DB == nil {
-		return nil, errors.New("report repository: tenant database is not configured")
+		return nil, errors.New("report repository: database is not configured")
 	}
 	return r.DB, nil
 }
 
 func (r ReportRepository) CreateExportJob(ctx context.Context, job api.ReportJob, req api.ExportReportRequest) error {
-	db, err := r.db(ctx, job.WorkspaceID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return err
 	}
@@ -46,7 +46,7 @@ func (r ReportRepository) CreateExportJob(ctx context.Context, job api.ReportJob
 	return err
 }
 func (r ReportRepository) ResolveBehalfEmployeeIDs(ctx context.Context, wsID, userID uuid.UUID) ([]uuid.UUID, error) {
-	db, err := r.db(ctx, wsID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -76,7 +76,7 @@ WHERE ba.workspace_id = $1
 }
 
 func (r ReportRepository) GetAttendanceReport(ctx context.Context, params api.AttendanceReportFilter) (api.PaginatedReportResponse, error) {
-	db, err := r.db(ctx, params.WorkspaceID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return api.PaginatedReportResponse{}, err
 	}
@@ -280,7 +280,7 @@ LEFT JOIN attendance_daily_summaries ads ON ads.employment_id = emp.id AND ads.d
 }
 
 func (r ReportRepository) GetNoShowReport(ctx context.Context, params api.NoShowReportFilter) (api.PaginatedReportResponse, error) {
-	db, err := r.db(ctx, params.WorkspaceID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return api.PaginatedReportResponse{}, err
 	}
