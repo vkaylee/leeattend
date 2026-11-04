@@ -17,9 +17,9 @@ type RosterRepository struct {
 	BeginTx func(context.Context, uuid.UUID) (TxBeginner, error)
 }
 
-func (r RosterRepository) db(ctx context.Context, workspaceID uuid.UUID) (DBTX, error) {
+func (r RosterRepository) db(ctx context.Context) (DBTX, error) {
 	if r.DB == nil {
-		return nil, errors.New("roster repository: tenant database is not configured")
+		return nil, errors.New("roster repository: database is not configured")
 	}
 	return r.DB, nil
 }
@@ -28,13 +28,13 @@ func (r RosterRepository) begin(ctx context.Context, workspaceID uuid.UUID) (TxB
 	if r.BeginTx != nil {
 		return r.BeginTx(ctx, workspaceID)
 	}
-	db, err := r.db(ctx, workspaceID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return nil, err
 	}
 	beginner, ok := db.(TxBeginner)
 	if !ok {
-		return nil, errors.New("roster repository: tenant database does not support transactions")
+		return nil, errors.New("roster repository: database does not support transactions")
 	}
 	return beginner, nil
 }
@@ -42,7 +42,7 @@ func (r RosterRepository) begin(ctx context.Context, workspaceID uuid.UUID) (TxB
 const rosterSelect = `SELECT id, employment_id, template_id, date::text, status, notes, created_at, updated_at FROM shift_rosters`
 
 func (r RosterRepository) ResolveActiveEmployment(ctx context.Context, workspaceID, employeeID uuid.UUID) (uuid.UUID, error) {
-	db, err := r.db(ctx, workspaceID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return uuid.Nil, err
 	}
@@ -55,7 +55,7 @@ func (r RosterRepository) ResolveActiveEmployment(ctx context.Context, workspace
 }
 
 func (r RosterRepository) ListRosters(ctx context.Context, workspaceID, employmentID uuid.UUID, startDate, endDate string, page, limit int) (api.PaginatedShiftRosters, error) {
-	db, err := r.db(ctx, workspaceID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return api.PaginatedShiftRosters{}, err
 	}
@@ -145,7 +145,7 @@ func (r RosterRepository) DeleteRoster(ctx context.Context, workspaceID, employm
 }
 
 func (r RosterRepository) getRoster(ctx context.Context, workspaceID, employmentID uuid.UUID, date string) (api.ShiftRoster, error) {
-	db, err := r.db(ctx, workspaceID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return api.ShiftRoster{}, err
 	}

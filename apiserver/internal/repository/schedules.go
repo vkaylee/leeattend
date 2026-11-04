@@ -14,9 +14,9 @@ type ScheduleRepository struct {
 	DB DBTX
 }
 
-func (r ScheduleRepository) db(ctx context.Context, workspaceID uuid.UUID) (DBTX, error) {
+func (r ScheduleRepository) db(ctx context.Context) (DBTX, error) {
 	if r.DB == nil {
-		return nil, errors.New("schedule repository: tenant database is not configured")
+		return nil, errors.New("schedule repository: database is not configured")
 	}
 	return r.DB, nil
 }
@@ -98,7 +98,7 @@ type assignmentRuleWithDetails struct {
 }
 
 func (r ScheduleRepository) GetWorkspaceSchedules(ctx context.Context, workspaceID uuid.UUID, startDate, endDate time.Time, employmentIDs []uuid.UUID, page, limit int) (api.PaginatedEmployeeSchedules, error) {
-	db, err := r.db(ctx, workspaceID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return api.PaginatedEmployeeSchedules{}, err
 	}

@@ -16,9 +16,9 @@ type LocationRepository struct {
 	DB DBTX
 }
 
-func (r LocationRepository) db(ctx context.Context, workspaceID uuid.UUID) (DBTX, error) {
+func (r LocationRepository) db(ctx context.Context) (DBTX, error) {
 	if r.DB == nil {
-		return nil, errors.New("location repository: tenant database is not configured")
+		return nil, errors.New("location repository: database is not configured")
 	}
 	return r.DB, nil
 }
@@ -36,7 +36,7 @@ func scanLocation(row interface{ Scan(...any) error }) (api.WorkLocation, error)
 }
 
 func (r LocationRepository) ListLocations(ctx context.Context, wsID uuid.UUID, page, limit int) (api.LocationListResponse, error) {
-	db, err := r.db(ctx, wsID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return api.LocationListResponse{}, err
 	}
@@ -61,7 +61,7 @@ func (r LocationRepository) ListLocations(ctx context.Context, wsID uuid.UUID, p
 }
 
 func (r LocationRepository) CreateLocation(ctx context.Context, wsID uuid.UUID, req api.CreateLocationRequest) (api.WorkLocation, error) {
-	db, err := r.db(ctx, wsID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return api.WorkLocation{}, err
 	}
@@ -83,7 +83,7 @@ func (r LocationRepository) CreateLocation(ctx context.Context, wsID uuid.UUID, 
 }
 
 func (r LocationRepository) GetLocation(ctx context.Context, wsID, id uuid.UUID) (api.WorkLocation, error) {
-	db, err := r.db(ctx, wsID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return api.WorkLocation{}, err
 	}
@@ -105,7 +105,7 @@ func (r LocationRepository) UpdateLocation(ctx context.Context, wsID, id uuid.UU
 			return api.WorkLocation{}, api.ErrLocationHQCannotChange
 		}
 	}
-	db, err := r.db(ctx, wsID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return api.WorkLocation{}, err
 	}
@@ -144,7 +144,7 @@ func (r LocationRepository) DeleteLocation(ctx context.Context, wsID, id uuid.UU
 	if existing.IsHeadquarters {
 		return api.ErrLocationHQCannotDelete
 	}
-	db, err := r.db(ctx, wsID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return err
 	}

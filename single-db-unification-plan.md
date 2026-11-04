@@ -37,6 +37,8 @@ Baseline safety constraints: only `apiserver/migrations/20261103000000_init/` ex
 - Verification: `./leedevkit test api` passed; `git diff --check` passed.
 - Completed tenth reversible backend slice: employee, employer, employment-phase, and ESS repositories now use direct DB helper access; transaction callbacks, workspace SQL predicates, and public methods remain unchanged.
 - Verification: `./leedevkit test api` passed; `git diff --check` passed.
+- Completed eleventh reversible backend slice: file, holiday, location, roster, and schedule repositories now use direct DB helper access; workspace filters, invalidation keys, transactions, and public methods remain unchanged.
+- Verification: `./leedevkit test api` passed; `git diff --check` passed.
 
 ## Ordered work
 

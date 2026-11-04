@@ -19,9 +19,9 @@ type HolidayRepository struct {
 	BeginTx func(context.Context, uuid.UUID) (TxBeginner, error)
 }
 
-func (r HolidayRepository) db(ctx context.Context, workspaceID uuid.UUID) (DBTX, error) {
+func (r HolidayRepository) db(ctx context.Context) (DBTX, error) {
 	if r.DB == nil {
-		return nil, errors.New("holiday repository: tenant database is not configured")
+		return nil, errors.New("holiday repository: database is not configured")
 	}
 	return r.DB, nil
 }
@@ -30,13 +30,13 @@ func (r HolidayRepository) begin(ctx context.Context, workspaceID uuid.UUID) (Tx
 	if r.BeginTx != nil {
 		return r.BeginTx(ctx, workspaceID)
 	}
-	db, err := r.db(ctx, workspaceID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return nil, err
 	}
 	beginner, ok := db.(TxBeginner)
 	if !ok {
-		return nil, errors.New("holiday repository: tenant database does not support transactions")
+		return nil, errors.New("holiday repository: database does not support transactions")
 	}
 	return beginner, nil
 }
@@ -55,7 +55,7 @@ func scanHoliday(row pgx.Row) (api.HolidayRecord, error) {
 }
 
 func (r HolidayRepository) ListHolidays(ctx context.Context, workspaceID uuid.UUID, year *int32, locationID *uuid.UUID, page, limit int64) (api.PaginatedHolidays, error) {
-	db, err := r.db(ctx, workspaceID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return api.PaginatedHolidays{}, err
 	}
@@ -97,7 +97,7 @@ func (r HolidayRepository) ListHolidays(ctx context.Context, workspaceID uuid.UU
 }
 
 func (r HolidayRepository) GetHolidayByID(ctx context.Context, workspaceID, holidayID uuid.UUID) (api.HolidayRecord, error) {
-	db, err := r.db(ctx, workspaceID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return api.HolidayRecord{}, err
 	}
@@ -109,7 +109,7 @@ func (r HolidayRepository) GetHolidayByID(ctx context.Context, workspaceID, holi
 }
 
 func (r HolidayRepository) CreateHoliday(ctx context.Context, workspaceID uuid.UUID, req api.CreateHolidayRequest) (api.HolidayRecord, error) {
-	db, err := r.db(ctx, workspaceID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return api.HolidayRecord{}, err
 	}
@@ -139,7 +139,7 @@ func (r HolidayRepository) CreateHoliday(ctx context.Context, workspaceID uuid.U
 }
 
 func (r HolidayRepository) UpdateHoliday(ctx context.Context, workspaceID, holidayID uuid.UUID, req api.UpdateHolidayRequest) (api.HolidayRecord, error) {
-	db, err := r.db(ctx, workspaceID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return api.HolidayRecord{}, err
 	}
@@ -193,7 +193,7 @@ func (r HolidayRepository) UpdateHoliday(ctx context.Context, workspaceID, holid
 }
 
 func (r HolidayRepository) DeleteHoliday(ctx context.Context, workspaceID, holidayID uuid.UUID) error {
-	db, err := r.db(ctx, workspaceID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return err
 	}
