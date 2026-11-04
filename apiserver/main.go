@@ -42,7 +42,6 @@ func singleWorkspaceHandler(db repository.DBTX, handler http.HandlerFunc) http.H
 			http.Error(w, "organization unavailable", http.StatusServiceUnavailable)
 			return
 		}
-		r.SetPathValue("ws_id", organizationID.String())
 		r = r.WithContext(httpinfra.WithWorkspaceID(r.Context(), organizationID))
 		handler(w, r)
 	}

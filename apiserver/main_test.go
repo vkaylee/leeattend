@@ -10,6 +10,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/vkaylee/leeattend/apiserver/internal/infra/health"
+	httpinfra "github.com/vkaylee/leeattend/apiserver/internal/infra/http"
 )
 
 type routeTestRow struct {
@@ -34,13 +35,16 @@ func (routeTestDB) Exec(context.Context, string, ...any) (pgconn.CommandTag, err
 	return pgconn.CommandTag{}, nil
 }
 
-func TestSingleWorkspaceHandlerInjectsOrganization(t *testing.T) {
+func TestSingleWorkspaceHandlerInjectsOrganizationContext(t *testing.T) {
 	called := false
-	organizationID := "018d0000-0000-7000-8000-000000000001"
+	organizationID := uuid.MustParse("018d0000-0000-7000-8000-000000000001")
 	handler := singleWorkspaceHandler(routeTestDB{row: routeTestRow{}}, func(w http.ResponseWriter, r *http.Request) {
 		called = true
-		if got := r.PathValue("ws_id"); got != organizationID {
-			t.Errorf("expected injected organization ID %q, got %q", organizationID, got)
+		if got, ok := httpinfra.WorkspaceIDFromContext(r.Context()); !ok || got != organizationID {
+			t.Errorf("expected organization context %s, got %s (ok=%v)", organizationID, got, ok)
+		}
+		if got := r.PathValue("ws_id"); got != "" {
+			t.Errorf("expected no synthetic ws_id path value, got %q", got)
 		}
 		w.WriteHeader(http.StatusNoContent)
 	})
