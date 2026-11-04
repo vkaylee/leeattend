@@ -359,7 +359,7 @@ func (r AttendanceRepository) begin(ctx context.Context, workspaceID uuid.UUID) 
 		return r.BeginTx(ctx, workspaceID)
 	}
 	if r.DB == nil {
-		return nil, errors.New("attendance repository: tenant database is not configured")
+		return nil, errors.New("attendance repository: database is not configured")
 	}
 	db, err := r.db(ctx)
 	if err != nil {
@@ -367,7 +367,7 @@ func (r AttendanceRepository) begin(ctx context.Context, workspaceID uuid.UUID) 
 	}
 	beginner, ok := db.(TxBeginner)
 	if !ok {
-		return nil, errors.New("attendance repository: tenant database does not support transactions")
+		return nil, errors.New("attendance repository: database does not support transactions")
 	}
 	return beginner, nil
 }

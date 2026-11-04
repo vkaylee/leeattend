@@ -33,7 +33,7 @@ func (r ESSRepository) begin(ctx context.Context, workspaceID uuid.UUID) (TxBegi
 	}
 	beginner, ok := db.(TxBeginner)
 	if !ok {
-		return nil, errors.New("ess repository: tenant database does not support transactions")
+		return nil, errors.New("ess repository: database does not support transactions")
 	}
 	return beginner, nil
 }

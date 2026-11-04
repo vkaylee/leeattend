@@ -47,6 +47,8 @@ Baseline safety constraints: only `apiserver/migrations/20261103000000_init/` ex
 - Verification: `./leedevkit test api` passed; `git diff --check` passed.
 - Completed fifteenth reversible backend slice: leave and payroll repositories now use direct DB helper access; leave imports, payroll rule tiers/assignments, transactions, workspace filters, and public methods remain unchanged.
 - Verification: `./leedevkit test api` passed; `git diff --check` passed.
+- Completed sixteenth reversible backend slice: repository transaction errors now use neutral database wording; tenant-scoped SQL predicates, transaction callbacks, and public method contracts remain unchanged.
+- Verification: `./leedevkit test api` passed; `git diff --check` passed.
 
 ## Ordered work
 
