@@ -21,6 +21,8 @@ Baseline safety constraints: only `apiserver/migrations/20261103000000_init/` ex
 - Verification: `./leedevkit test api` passed (unit, integration, format, vet, generated diff, module verification, govulncheck, staticcheck); `git diff --check` passed.
 - Completed second reversible backend slice: `ConditionTypeRepository.db` no longer accepts an unused workspace argument and now reports generic database configuration failure; all public method signatures, workspace predicates, and response fields remain unchanged.
 - Verification: `./leedevkit test api` passed; `git diff --check` passed.
+- Completed third reversible backend slice: `ApprovalWorkflowRepository.db` no longer accepts an unused workspace argument and its configuration errors no longer claim a tenant database; transaction callbacks, workspace arguments, and all SQL workspace predicates remain unchanged.
+- Verification: `./leedevkit test api` passed; `git diff --check` passed.
 
 ## Ordered work
 

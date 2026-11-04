@@ -20,9 +20,9 @@ type ApprovalWorkflowRepository struct {
 	BeginTx  func(context.Context, uuid.UUID) (TxBeginner, error)
 }
 
-func (r ApprovalWorkflowRepository) db(ctx context.Context, workspaceID uuid.UUID) (DBTX, error) {
+func (r ApprovalWorkflowRepository) db(ctx context.Context) (DBTX, error) {
 	if r.DB == nil {
-		return nil, errors.New("approval workflow repository: tenant database is not configured")
+		return nil, errors.New("approval workflow repository: database is not configured")
 	}
 	return r.DB, nil
 }
@@ -31,19 +31,19 @@ func (r ApprovalWorkflowRepository) begin(ctx context.Context, workspaceID uuid.
 	if r.BeginTx != nil {
 		return r.BeginTx(ctx, workspaceID)
 	}
-	db, err := r.db(ctx, workspaceID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return nil, err
 	}
 	beginner, ok := db.(TxBeginner)
 	if !ok {
-		return nil, errors.New("approval workflow repository: tenant database does not support transactions")
+		return nil, errors.New("approval workflow repository: database does not support transactions")
 	}
 	return beginner, nil
 }
 
 func (r ApprovalWorkflowRepository) ListWorkflows(ctx context.Context, workspaceID uuid.UUID, entityType *string, page, limit int) (api.ApprovalWorkflowListResponse, error) {
-	db, err := r.db(ctx, workspaceID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return api.ApprovalWorkflowListResponse{}, err
 	}
@@ -126,7 +126,7 @@ func (r ApprovalWorkflowRepository) CreateWorkflow(ctx context.Context, workspac
 }
 
 func (r ApprovalWorkflowRepository) GetWorkflow(ctx context.Context, workspaceID, workflowID uuid.UUID) (api.ApprovalWorkflowRecord, error) {
-	db, err := r.db(ctx, workspaceID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return api.ApprovalWorkflowRecord{}, err
 	}
@@ -162,7 +162,7 @@ func (r ApprovalWorkflowRepository) GetWorkflow(ctx context.Context, workspaceID
 }
 
 func (r ApprovalWorkflowRepository) UpdateWorkflow(ctx context.Context, workspaceID, workflowID uuid.UUID, req api.UpdateWorkflowRequest) (api.ApprovalWorkflowRecord, error) {
-	db, err := r.db(ctx, workspaceID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return api.ApprovalWorkflowRecord{}, err
 	}
@@ -193,7 +193,7 @@ func (r ApprovalWorkflowRepository) UpdateWorkflow(ctx context.Context, workspac
 }
 
 func (r ApprovalWorkflowRepository) DeleteWorkflow(ctx context.Context, workspaceID, workflowID uuid.UUID) error {
-	db, err := r.db(ctx, workspaceID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return err
 	}
@@ -255,7 +255,7 @@ func normalizeApprovalAction(action string) string {
 }
 
 func (r ApprovalWorkflowRepository) ListHistory(ctx context.Context, workspaceID uuid.UUID, entityType string, entityID uuid.UUID) ([]api.ApprovalActionLogRecord, error) {
-	db, err := r.db(ctx, workspaceID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -279,7 +279,7 @@ func (r ApprovalWorkflowRepository) ListHistory(ctx context.Context, workspaceID
 
 // GetPendingTasksForUser returns pending approval workflow tasks matching the caller.
 func (r ApprovalWorkflowRepository) GetPendingTasksForUser(ctx context.Context, workspaceID, userID uuid.UUID, page, limit int) (api.PaginatedTasksResponse, error) {
-	db, err := r.db(ctx, workspaceID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return api.PaginatedTasksResponse{}, err
 	}
