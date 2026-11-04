@@ -146,7 +146,7 @@ func loadPatternComplianceRosters(ctx context.Context, db DBTX, employmentID uui
 }
 
 func (r WorkingPatternRepository) CheckPatternCompliance(ctx context.Context, workspaceID, employmentID uuid.UUID, req api.AssignPatternRequest) error {
-	db, err := r.db(ctx, workspaceID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return err
 	}
@@ -154,7 +154,7 @@ func (r WorkingPatternRepository) CheckPatternCompliance(ctx context.Context, wo
 }
 
 func (r WorkingPatternRepository) CheckBulkPatternCompliance(ctx context.Context, workspaceID uuid.UUID, req api.BulkAssignPatternRequest) error {
-	db, err := r.db(ctx, workspaceID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return err
 	}

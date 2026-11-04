@@ -16,9 +16,9 @@ type WorkingPatternRepository struct {
 	BeginTx func(context.Context, uuid.UUID) (TxBeginner, error)
 }
 
-func (r WorkingPatternRepository) db(ctx context.Context, workspaceID uuid.UUID) (DBTX, error) {
+func (r WorkingPatternRepository) db(ctx context.Context) (DBTX, error) {
 	if r.DB == nil {
-		return nil, errors.New("working pattern repository: tenant database is not configured")
+		return nil, errors.New("working pattern repository: database is not configured")
 	}
 	return r.DB, nil
 }
@@ -27,13 +27,13 @@ func (r WorkingPatternRepository) begin(ctx context.Context, workspaceID uuid.UU
 	if r.BeginTx != nil {
 		return r.BeginTx(ctx, workspaceID)
 	}
-	db, err := r.db(ctx, workspaceID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return nil, err
 	}
 	beginner, ok := db.(TxBeginner)
 	if !ok {
-		return nil, errors.New("working pattern repository: tenant database does not support transactions")
+		return nil, errors.New("working pattern repository: database does not support transactions")
 	}
 	return beginner, nil
 }
@@ -81,7 +81,7 @@ func (r WorkingPatternRepository) CreatePattern(ctx context.Context, workspaceID
 }
 
 func (r WorkingPatternRepository) ListPatterns(ctx context.Context, workspaceID uuid.UUID) ([]api.WorkingPattern, error) {
-	db, err := r.db(ctx, workspaceID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -105,7 +105,7 @@ func (r WorkingPatternRepository) ListPatterns(ctx context.Context, workspaceID 
 }
 
 func (r WorkingPatternRepository) GetPatternDetails(ctx context.Context, workspaceID, patternID uuid.UUID) ([]api.WorkingPatternDetail, error) {
-	db, err := r.db(ctx, workspaceID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -178,7 +178,7 @@ func (r WorkingPatternRepository) UpdatePattern(ctx context.Context, workspaceID
 }
 
 func (r WorkingPatternRepository) DeletePattern(ctx context.Context, workspaceID, patternID uuid.UUID) error {
-	db, err := r.db(ctx, workspaceID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return err
 	}
@@ -301,7 +301,7 @@ func (r WorkingPatternRepository) BulkAssignPattern(ctx context.Context, workspa
 }
 
 func (r WorkingPatternRepository) EmploymentPatternHistory(ctx context.Context, workspaceID, employmentID uuid.UUID) ([]api.EmployeeWorkingPattern, error) {
-	db, err := r.db(ctx, workspaceID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return nil, err
 	}

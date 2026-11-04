@@ -18,9 +18,9 @@ type ShiftRepository struct {
 	BeginTx func(context.Context, uuid.UUID) (TxBeginner, error)
 }
 
-func (r ShiftRepository) db(ctx context.Context, workspaceID uuid.UUID) (DBTX, error) {
+func (r ShiftRepository) db(ctx context.Context) (DBTX, error) {
 	if r.DB == nil {
-		return nil, errors.New("shift repository: tenant database is not configured")
+		return nil, errors.New("shift repository: database is not configured")
 	}
 	return r.DB, nil
 }
@@ -29,13 +29,13 @@ func (r ShiftRepository) begin(ctx context.Context, workspaceID uuid.UUID) (TxBe
 	if r.BeginTx != nil {
 		return r.BeginTx(ctx, workspaceID)
 	}
-	db, err := r.db(ctx, workspaceID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return nil, err
 	}
 	beginner, ok := db.(TxBeginner)
 	if !ok {
-		return nil, errors.New("shift repository: tenant database does not support transactions")
+		return nil, errors.New("shift repository: database does not support transactions")
 	}
 	return beginner, nil
 }
@@ -79,7 +79,7 @@ func (r ShiftRepository) CreateShift(ctx context.Context, workspaceID, actorID u
 }
 
 func (r ShiftRepository) ListShifts(ctx context.Context, workspaceID uuid.UUID, locationID, employerID *uuid.UUID, page, limit int) (api.PaginatedShifts, error) {
-	db, err := r.db(ctx, workspaceID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return api.PaginatedShifts{}, err
 	}
@@ -206,7 +206,7 @@ func (r ShiftRepository) UpdateShift(ctx context.Context, workspaceID, templateI
 }
 
 func (r ShiftRepository) ListShiftVersions(ctx context.Context, workspaceID, templateID uuid.UUID) ([]api.ShiftVersionRecord, error) {
-	db, err := r.db(ctx, workspaceID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return nil, err
 	}

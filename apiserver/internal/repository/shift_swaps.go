@@ -17,9 +17,9 @@ type ShiftSwapRepository struct {
 	BeginTx func(context.Context, uuid.UUID) (TxBeginner, error)
 }
 
-func (r ShiftSwapRepository) db(ctx context.Context, workspaceID uuid.UUID) (DBTX, error) {
+func (r ShiftSwapRepository) db(ctx context.Context) (DBTX, error) {
 	if r.DB == nil {
-		return nil, errors.New("shift swap repository: tenant database is not configured")
+		return nil, errors.New("shift swap repository: database is not configured")
 	}
 	return r.DB, nil
 }
@@ -28,13 +28,13 @@ func (r ShiftSwapRepository) begin(ctx context.Context, workspaceID uuid.UUID) (
 	if r.BeginTx != nil {
 		return r.BeginTx(ctx, workspaceID)
 	}
-	db, err := r.db(ctx, workspaceID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return nil, err
 	}
 	beginner, ok := db.(TxBeginner)
 	if !ok {
-		return nil, errors.New("shift swap repository: tenant database does not support transactions")
+		return nil, errors.New("shift swap repository: database does not support transactions")
 	}
 	return beginner, nil
 }
@@ -108,7 +108,7 @@ func (r ShiftSwapRepository) CreateSwap(ctx context.Context, workspaceID, userID
 }
 
 func (r ShiftSwapRepository) ListSwaps(ctx context.Context, workspaceID uuid.UUID, status *api.ShiftSwapStatus) ([]api.ShiftSwapRequestWithNames, error) {
-	db, err := r.db(ctx, workspaceID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -226,7 +226,7 @@ func (r ShiftSwapRepository) ApproveSwap(ctx context.Context, workspaceID, reque
 }
 
 func (r ShiftSwapRepository) Stats(ctx context.Context, workspaceID uuid.UUID) (api.SwapStats, error) {
-	db, err := r.db(ctx, workspaceID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return api.SwapStats{}, err
 	}
@@ -236,7 +236,7 @@ func (r ShiftSwapRepository) Stats(ctx context.Context, workspaceID uuid.UUID) (
 }
 
 func (r ShiftSwapRepository) ListEmployeeSwaps(ctx context.Context, workspaceID, employeeID uuid.UUID) ([]api.ShiftSwapRequestWithNames, error) {
-	db, err := r.db(ctx, workspaceID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return nil, err
 	}

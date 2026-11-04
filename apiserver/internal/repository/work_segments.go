@@ -19,9 +19,9 @@ type WorkSegmentRepository struct {
 	BeginTx func(context.Context, uuid.UUID) (TxBeginner, error)
 }
 
-func (r WorkSegmentRepository) db(ctx context.Context, workspaceID uuid.UUID) (DBTX, error) {
+func (r WorkSegmentRepository) db(ctx context.Context) (DBTX, error) {
 	if r.DB == nil {
-		return nil, errors.New("work segment repository: tenant database is not configured")
+		return nil, errors.New("work segment repository: database is not configured")
 	}
 	return r.DB, nil
 }
@@ -30,7 +30,7 @@ func (r WorkSegmentRepository) begin(ctx context.Context, workspaceID uuid.UUID)
 	if r.BeginTx != nil {
 		return r.BeginTx(ctx, workspaceID)
 	}
-	db, err := r.db(ctx, workspaceID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -44,7 +44,7 @@ func (r WorkSegmentRepository) begin(ctx context.Context, workspaceID uuid.UUID)
 const segmentSelect = `SELECT id, workspace_id, employment_id, date::text, template_id, interval_id, sort_order, scheduled_start::text, scheduled_end::text, segment_type::text, segment_status::text, compensation_rate::text, gap_compensation_before::text, gap_compensation_rate_before::text, break_config_override, ot_config_override, source, source_detail, notes, generation_metadata, created_at, updated_at FROM work_segments`
 
 func (r WorkSegmentRepository) ListSegments(ctx context.Context, workspaceID uuid.UUID, filter api.WorkSegmentFilter, page, limit int) (api.WorkSegmentListResponse, error) {
-	db, err := r.db(ctx, workspaceID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return api.WorkSegmentListResponse{}, err
 	}
@@ -71,7 +71,7 @@ func (r WorkSegmentRepository) ListSegments(ctx context.Context, workspaceID uui
 }
 
 func (r WorkSegmentRepository) GetSegment(ctx context.Context, workspaceID, segmentID uuid.UUID) (api.WorkSegment, error) {
-	db, err := r.db(ctx, workspaceID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return api.WorkSegment{}, err
 	}
@@ -140,7 +140,7 @@ func (r WorkSegmentRepository) UpdateSegment(ctx context.Context, workspaceID, s
 }
 
 func (r WorkSegmentRepository) DeleteSegment(ctx context.Context, workspaceID, segmentID uuid.UUID) error {
-	db, err := r.db(ctx, workspaceID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return err
 	}
