@@ -1,14 +1,12 @@
 import type { AuditLog, PaginatedResponse } from "./types";
 
-import { client } from "./client";
+import { fetch } from "./client";
 
 export const fetchAuditLogs = async (
-  workspaceId: string,
   params: { page: number; limit: number; action?: string; startDate?: string; endDate?: string }
 ): Promise<PaginatedResponse<AuditLog>> => {
-  const { data: resData } = await client.GET("/workspaces/{ws_id}/audit-logs", {
+  const { data: resData } = await fetch<PaginatedResponse<AuditLog>>("GET", "/v1/audit-logs", {
     params: {
-      path: { ws_id: workspaceId },
       query: {
         page: params.page,
         limit: params.limit,
@@ -18,6 +16,5 @@ export const fetchAuditLogs = async (
       },
     },
   });
-  return resData as PaginatedResponse<AuditLog>;
+  return resData;
 };
-

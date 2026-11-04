@@ -424,10 +424,5 @@ describe("api.ts comprehensive tests", () => {
       expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/v1/members/u1/roles/rid1"), expect.objectContaining({ method: "DELETE" }));
     });
 
-    it("fetchDevSuperUser", async () => {
-      mockSuccess({});
-      await api.fetchDevSuperUser();
-      expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/dev/super-user"), expect.any(Object));
-    });
   });
 });

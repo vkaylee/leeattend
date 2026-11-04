@@ -1,11 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-// attendance.ts resolves organization context through getStandaloneOrganizationId + apiFetch.
-// Mock both at the same boundary.
-// intercept at apiFetch. Mock both at the same boundary.
+// Intercept attendance requests at apiFetch.
 vi.mock("../helpers", () => ({
   apiFetch: vi.fn(),
-  getStandaloneOrganizationId: vi.fn().mockReturnValue("test-ws-id"),
   TIMEOUT: { REPORT_OPERATION: 180000 },
 }));
 
@@ -139,6 +136,8 @@ describe("attendance API (extended)", () => {
     vi.mocked(apiFetch).mockResolvedValueOnce(okRes({ data: [], total: 0, page: 1, limit: 20 }));
     const result = await fetchRawAttendanceLogs({});
     expect(result.total).toBe(0);
+    expect(vi.mocked(apiFetch).mock.calls[0][0]).toContain("/attendance/raw-logs");
+    expect(vi.mocked(apiFetch).mock.calls[0][0]).not.toContain("/workspaces/");
   });
 
   it("uploadAttendance: POST /employees/upload branch", async () => {

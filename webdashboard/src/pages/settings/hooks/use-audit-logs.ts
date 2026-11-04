@@ -1,10 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 
-import { getStandaloneOrganizationId, fetchAuditLogs } from "@/lib/api";
+import { fetchAuditLogs } from "@/lib/api";
 
 export function useAuditLogs() {
-    const workspaceId = getStandaloneOrganizationId();
     const [page, setPage] = useState(1);
     const limit = 20;
 
@@ -13,18 +12,14 @@ export function useAuditLogs() {
     const [endDateFilter, setEndDateFilter] = useState("");
 
     const { data, isLoading, isError } = useQuery({
-        queryKey: ["audit_logs", workspaceId, page, actionFilter, startDateFilter, endDateFilter],
-        queryFn: () => {
-            if (!workspaceId) throw new Error("Workspace ID is required");
-            return fetchAuditLogs(workspaceId, {
-                page,
-                limit,
-                action: actionFilter || undefined,
-                startDate: startDateFilter ? new Date(startDateFilter).toISOString() : undefined,
-                endDate: endDateFilter ? new Date(endDateFilter).toISOString() : undefined,
-            });
-        },
-        enabled: !!workspaceId,
+        queryKey: ["audit_logs", page, actionFilter, startDateFilter, endDateFilter],
+        queryFn: () => fetchAuditLogs({
+            page,
+            limit,
+            action: actionFilter || undefined,
+            startDate: startDateFilter ? new Date(startDateFilter).toISOString() : undefined,
+            endDate: endDateFilter ? new Date(endDateFilter).toISOString() : undefined,
+        }),
     });
 
     const handleActionFilterChange = (value: string) => {

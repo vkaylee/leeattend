@@ -13,36 +13,30 @@ Hệ thống sử dụng JWT (JSON Web Token) để xác thực người dùng.
 
 - **Access Token**: Gửi trong header `Authorization: Bearer <token>`. Hết hạn sau 1 giờ.
 - **Refresh Token**: Dùng để lấy Access Token mới. Hết hạn sau 7 ngày.
-- **X-Workspace-Id**: Header dùng để xác định tổ chức (Workspace). 
-    - **Lưu ý quan trọng**: Đối với hầu hết các yêu cầu có chứa `:ws_id` hoặc `:id` trong đường dẫn (Path), backend sẽ ưu tiên trích xuất ID từ URI. Trong trường hợp này, header `X-Workspace-Id` là không bắt buộc (redundant).
-    - Header này vẫn cần thiết cho các endpoint "vùng đệm" (ví dụ: ESS portal) nơi ID không xuất hiện trong đường dẫn.
+- **Organization context**: The server resolves the single organization from the shared database. Clients MUST NOT send `X-Workspace-Id`.
 
 #### 🌐 API URL Resolution Strategy (Client-side)
 Đối với các ứng dụng Web (đặc biệt trong môi trường Development với Vite), client sẽ ưu tiên gọi API thông qua đường dẫn tương đối `/api`. Vite sẽ tự động proxy các request này đến backend server đang chạy trên một port ngẫu nhiên.
 - `VITE_API_URL` trong `.env` chỉ được sử dụng cho các môi trường yêu cầu URL tuyệt đối (ví dụ: Tauri, hoặc Production khi API đặt ở một domain khác và không có proxy). Trong môi trường phát triển web tiêu chuẩn, việc set `VITE_API_URL` sẽ khiến client bỏ qua proxy và gọi thẳng vào địa chỉ hardcode, gây ra lỗi `ERR_CONNECTION_REFUSED`.
 - **Resilient URL Construction**: Tiện ích `apiFetch` được thiết kế để tự động xử lý các định dạng path khác nhau, ngăn chặn lỗi "double-prefixing" khi truyền vào các path đã có sẵn tiền tố hoặc URL tuyệt đối.
 
-#### POST /auth/register
+#### POST /api/v1/auth/register
 Đăng ký tài khoản người dùng mới.
 - **Request**: `{ "email": "...", "password": "...", "full_name": "..." }`
 - **Response (200)**: `{ "access_token": "...", "refresh_token": "...", "user_id": "..." }`
 
-#### POST /auth/login
+#### POST /api/v1/auth/login
 Đăng nhập để lấy token.
 - **Request**: `{ "email": "...", "password": "..." }`
 - **Response (200)**: `{ "access_token": "...", "refresh_token": "...", "user": { ... } }`
 
-#### GET /dev/super-user (Debug Mode Only)
-Tự động đăng nhập với tư cách Superuser (admin@leeattend.com).
-- **Mục đích**: Phục vụ phát triển nhanh (Onboarding) và Testing.
-- **Response (200)**: `{ "access_token": "...", "workspace_id": "...", "user_id": "..." }`
 
-#### POST /auth/refresh
+#### POST /api/v1/auth/refresh
 Làm mới Access Token.
-- **Request**: `{ "refresh_token": "..." }`
+- **Request**: Refresh token cookie.
 - **Response (200)**: `{ "access_token": "...", "refresh_token": "..." }`
 
-#### POST /auth/change-password
+#### POST /api/v1/auth/change-password
 Đổi mật khẩu người dùng hiện tại.
 - **Headers**: `Authorization: Bearer <token>`
 - **Request**: `{ "old_password": "...", "new_password": "..." }`
@@ -54,18 +48,18 @@ Làm mới Access Token.
 
 Quản lý thông tin định danh toàn cầu.
 
-#### GET /me
+#### GET /api/v1/me
 Lấy thông tin hồ sơ của người dùng hiện tại.
-- **Headers**: `X-User-Id`
+- **Headers**: `Authorization: Bearer <token>`
 - **Response (200)**: `User` object (`id`, `email`, `full_name`, `avatar_url`, `bio`, `preferred_language`, `created_at`)
 
-#### PATCH /me
+#### PATCH /api/v1/me
 Cập nhật thông tin hồ sơ.
-- **Headers**: `X-User-Id`
+- **Headers**: `Authorization: Bearer <token>`
 - **Request**: `{ "full_name": "...", "avatar_url": "...", "bio": "...", "preferred_language": "vi|en|zh" }`
 - **Response (200 OK)**
 
-#### GET /users (Dev Only)
+#### GET /api/v1/users (Dev Only)
 Lấy danh sách tất cả người dùng trong hệ thống (phục vụ giả lập login).
 - **Response (200)**: `Array<User>`
 
@@ -566,21 +560,26 @@ Lấy danh sách các phiên làm việc (sessions) đã được ghép cặp.
   ]
   ```
 
-#### GET /workspaces/:ws_id/attendance/raw-logs (New)
+#### GET /attendance/raw-logs
 Lấy danh sách nhật ký quẹt thẻ thô (nguyên bản) từ thiết bị hoặc file import.
 - **Query Params**: Giống `/attendance/logs`.
-- **Response (200)**: `Array<RawAttendanceLog>`
+- **Response (200)**: `{ "data": Array<RawAttendanceLog>, "total": number, "page": number, "limit": number }`
   ```json
-  [
-    {
-      "id": "uuid",
-      "employee_id": "uuid",
-      "workspace_id": "uuid",
-      "punch_time": "2026-01-14T08:00:00Z",
-      "source": "import|manual",
-      "created_at": "datetime"
-    }
-  ]
+  {
+    "data": [
+      {
+        "id": "uuid",
+        "employee_id": "uuid",
+        "workspace_id": "uuid",
+        "punch_time": "2026-01-14T08:00:00Z",
+        "source": "import|manual",
+        "created_at": "datetime"
+      }
+    ],
+    "total": 1,
+    "page": 1,
+    "limit": 20
+  }
   ```
 
 #### POST /workspaces/:ws_id/attendance/reprocess/:employee_id (New)
@@ -1290,10 +1289,6 @@ Dọn dẹp nhanh dữ liệu theo nhóm trong một workspace.
     - `seed`: Tạo dữ liệu mẫu cho Workspace (2 Phòng ban: Engineering/HR, 1 Ca làm việc: Morning Shift, 5 Nhân viên mẫu).
 - **Response (200 OK)**
 
-#### GET /dev/super-user
-Tự động đăng nhập với tư cách Superuser (admin@leeattend.com).
-- **Mục đích**: Phục vụ phát triển nhanh (Onboarding) và Testing.
-- **Response (200)**: `{ "access_token": "...", "workspace_id": "...", "user_id": "..." }`
 
 ---
 

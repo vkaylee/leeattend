@@ -1047,16 +1047,6 @@ func main() {
 	mux.HandleFunc("GET /api/v1/dashboard/lateness-by-day", singleWorkspace(dashboardAnalyticsHandler.LatenessByDay))
 	mux.HandleFunc("GET /api/v1/dashboard/turnover-analytics", singleWorkspace(dashboardAnalyticsHandler.TurnoverAnalytics))
 	mux.HandleFunc("GET /api/v1/dashboard/recruitment-effectiveness", singleWorkspace(dashboardAnalyticsHandler.RecruitmentEffectiveness))
-	mux.HandleFunc("POST /auth/login", authHandler.Login)
-	mux.HandleFunc("POST /auth/refresh", authHandler.Refresh)
-	mux.HandleFunc("POST /auth/logout", authHandler.Logout)
-	mux.HandleFunc("POST /auth/forgot-password", authHandler.ForgotPassword)
-	mux.HandleFunc("POST /auth/reset-password", authHandler.ResetPassword)
-	mux.HandleFunc("POST /auth/change-password", authHandler.ChangePassword)
-	mux.HandleFunc("GET /me", authHandler.Me)
-	mux.HandleFunc("PATCH /me", authHandler.UpdateMe)
-	mux.HandleFunc("GET /me/permissions", authHandler.MyPermissions)
-	mux.HandleFunc("GET /users", authHandler.WorkspaceUsers)
 
 	publicPrefixes := []string{
 		"/health",
@@ -1065,12 +1055,8 @@ func main() {
 		"/api/v1/health/ready",
 		"/api/v1/auth/login",
 		"/api/v1/auth/refresh",
-		"/auth/login",
-		"/auth/refresh",
 		"/api/v1/auth/forgot-password",
 		"/api/v1/auth/reset-password",
-		"/auth/forgot-password",
-		"/auth/reset-password",
 		"/api/v1/ws/reports/",
 		"/v1/ws/reports/",
 		"/ws/reports/",

@@ -32,7 +32,6 @@ import {
   fetchMe,
   updateMe,
   fetchUsers,
-  fetchDevSuperUser,
   fetchMyPermissions,
 } from "../auth";
 import { client } from "../client";
@@ -289,32 +288,18 @@ describe("fetchMe / updateMe", () => {
   });
 });
 
-describe("fetchUsers / fetchDevSuperUser / fetchMyPermissions", () => {
+describe("fetchUsers", () => {
   beforeEach(() => vi.clearAllMocks());
-  it("fetchUsers GETs /users", async () => {
+  it("GETs /users", async () => {
     (client.GET as Mock).mockResolvedValueOnce({ data: [{ id: "u-1" }, { id: "u-2" }] });
     const users = await fetchUsers();
     expect(client.GET).toHaveBeenCalledWith("/users");
     expect(users).toHaveLength(2);
   });
-  it("fetchDevSuperUser uses raw apiFetch and returns parsed JSON", async () => {
-    // fetchDevSuperUser bypasses the typed client — drive apiFetch directly.
-    // restoreAllMocks would wipe the top-level mock set by vi.mock, so just
-    // clear call history and re-program the existing apiFetch mock.
-    (apiFetch as Mock).mockClear();
-    (apiFetch as Mock).mockResolvedValue(
-      new Response(JSON.stringify({ user_id: "u", workspace_id: "w" }), { status: 200 }),
-    );
-    const r = await fetchDevSuperUser();
-    expect(apiFetch).toHaveBeenCalledWith("/v1/dev/super-user");
-    expect(r).toEqual({ user_id: "u", workspace_id: "w" });
-  });
-  it("fetchDevSuperUser throws on non-OK response", async () => {
-    (apiFetch as Mock).mockClear();
-    (apiFetch as Mock).mockResolvedValue(new Response("nope", { status: 500 }));
-    await expect(fetchDevSuperUser()).rejects.toThrow("[500]");
-  });
-  it("fetchMyPermissions GETs /me/permissions via fetch<T>()", async () => {
+});
+describe("fetchMyPermissions", () => {
+  beforeEach(() => vi.clearAllMocks());
+  it("GETs /me/permissions via fetch<T>()", async () => {
     const { fetch: fetchMock } = await import("../client");
     (fetchMock as Mock).mockResolvedValueOnce({
       data: { permissions: ["p"], roles: ["r"], managed_department_ids: null },

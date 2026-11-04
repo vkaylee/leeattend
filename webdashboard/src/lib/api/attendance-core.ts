@@ -1,5 +1,4 @@
 import { client, fetch } from "./client";
-import { getStandaloneOrganizationId } from "./helpers";
 import {
   TimeEntry,
   AttendanceAdjustmentRequest,
@@ -89,12 +88,8 @@ export async function fetchRawAttendanceLogs(params: {
   page?: number;
   limit?: number;
 }): Promise<{ data: RawAttendanceLog[]; total: number; page: number; limit: number }> {
-  const wsId = getStandaloneOrganizationId();
-  if (!wsId) throw new Error("Workspace not selected");
-
-  const { data: resData } = await fetch<{ data: RawAttendanceLog[]; total: number; page: number; limit: number }>("GET", "/workspaces/{workspace_id}/attendance/raw-logs", {
+  const { data: resData } = await fetch<{ data: RawAttendanceLog[]; total: number; page: number; limit: number }>("GET", "/attendance/raw-logs", {
     params: {
-      path: { workspace_id: wsId },
       query: {
         employee_id: params.employee_id ?? undefined,
         from: params.from ?? undefined,

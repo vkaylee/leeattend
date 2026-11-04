@@ -59,16 +59,6 @@ export async function fetchUsers(): Promise<User[]> {
   return data;
 }
 
-export async function fetchDevSuperUser(): Promise<{
-  user_id: string;
-  workspace_id: string;
-  access_token?: string;
-  refresh_token?: string;
-}> {
-  const response = await apiFetch(`/v1/dev/super-user`);
-  if (!response.ok) await ApiError.rejectResponse(response);
-  return response.json() as Promise<{ user_id: string; workspace_id: string; access_token?: string; refresh_token?: string; }>;
-}
 
 export async function fetchMyPermissions(): Promise<{
   permissions: string[];
