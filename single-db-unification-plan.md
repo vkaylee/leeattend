@@ -1,10 +1,59 @@
 # Plan: Chuyển đổi toàn diện sang Single-Tenant & Hợp nhất Single Database (Mức 3)
 
-**Status:** Phase 1 complete; Phase 2 pending
-**Architecture Target:** 100% Single-Tenant Standalone Appliance (Zero-SaaS, Zero-Workspace Abstraction)
-**Estimated Scope:** Database (140 tables) + Backend DAL (~50 repos) + API (~200 endpoints) + Frontend (120+ components/hooks) + Test Suites + Docs + Scripts
+**Status:** Approved
+**Architecture target:** Single-tenant appliance with one PostgreSQL database, one `public` schema, and no workspace/tenant abstraction.
+**Execution mode:** Expand → migrate → verify → contract. Destructive schema/API removal only after zero-consumer proof and explicit approval.
+**Scope:** Database schema, Go backend, REST API, authentication, React frontend, tests, scripts, docs, deployment, and observability.
 
 ---
+# Execution plan
+
+## Current baseline
+
+- Phase 1 baseline migration exists at `apiserver/migrations/20261103000000_init/`.
+- Runtime already uses one database; tenant pool/provisioning topology is removed.
+- Active backend blockers: `apiserver/internal/repository/workspace_authz.go`, `apiserver/internal/tenant/scope.go`, `apiserver/internal/infra/http/middleware.go`, `apiserver/internal/standalone/bootstrap.go`, and domain handlers/repositories carrying `workspaceID` and `ws_id`.
+- Active frontend blockers: `webdashboard/src/hooks/use-workspace.ts`, `use-workspace-query.ts`, `lib/api/workspaces.ts`, workspace settings routes, generated API contracts, workspace query keys, and component props carrying `workspaceId`.
+- Active operational blockers: `scripts/migrate_legacy_data.py`, `scripts/run_differential_tests.py`, `scripts/run_performance_benchmarks.py`, and `scripts/security_audit.sh` still assume tenant/workspace routing or scoping.
+- Schema/public-contract blockers: baseline `up.sql` contains `workspaces`, `workspace_*` tables, and approximately 99 `workspace_id` columns; handlers and response DTOs expose `/workspaces/{ws_id}`, `X-Workspace-Id`, and `workspace_id`.
+Baseline safety constraints: only `apiserver/migrations/20261103000000_init/` exists; it contains one unified baseline with workspace-compatible schema. The architecture record reports 99 `workspace_id` columns. Auth data is split between `system_roles` and workspace role/member/extra-permission tables; direct replacement must preserve global/scoped role behavior, department restrictions, expiry semantics, and last-platform-admin protection. No live database row counts or production status are assumed; before any destructive migration, capture backup, table/column counts, FK/index/partition inventory, per-workspace cardinality, orphan rows, duplicate role/permission conflicts, and representative business totals.
+- Completed first reversible slice: removed unused `apiserver/internal/tenant/` `WorkspaceScope`/`Predicate` abstraction and its tests; no production callers existed, so current auth/API behavior is unchanged.
+- Verification: `./leedevkit test api` passed (unit, integration, format, vet, generated diff, module verification, govulncheck, staticcheck); `git diff --check` passed.
+
+## Ordered work
+
+1. **Freeze target contract and inventory consumers.** Define canonical organization identity (`OrganizationName` plus direct user roles), final API paths, auth/error semantics, data-retention rules, and removal list. Inventory every `workspace`, `tenant`, `ws_id`, `workspace_id`, `X-Workspace-Id`, `active_workspace_id`, `TenantDB`, authorizer, cache key, migration script, fixture, and document. Produce a zero-reference baseline report.
+2. **Prepare schema and data migration.** On disposable database copies, prove row counts, foreign-key graph, duplicate/conflict handling, backup/restore, and idempotent bounded backfills. Add required direct FKs and organization-level role data additively. Do not drop columns or tables yet.
+3. **Flatten backend data access.** Remove `workspaceID` parameters, workspace predicates, tenant authorizers, context extractors, compatibility adapters, and workspace-namespaced cache keys from repositories/services. Preserve authorization through authenticated user and direct role/permission checks. Add cross-entity integrity and unauthorized-access tests.
+4. **Flatten authentication and HTTP contracts.** Remove workspace JWT claims, `X-Workspace-Id`, `ws_id` parsing, workspace path aliases, and compatibility route injection. Make flat `/api/v1/...` routes the sole contract. Update OpenAPI, errors, pagination, authorization, generated clients, and API docs together. This is a breaking-contract cutover requiring explicit release approval.
+5. **Flatten frontend state and client.** Remove `useWorkspace`, workspace context/query keys, workspace ID parameters, `active_workspace_id`, workspace selector/transition code, `/workspace/settings` naming, and `/workspaces/{id}` URL construction. Replace with direct organization configuration and user permission queries. Preserve organization name, timezone, locale, branding, and settings behavior.
+6. **Contract the database.** After zero-reference verification, run a dedicated destructive migration removing `workspace_id` columns, `workspaces`, obsolete `workspace_*` tables, workspace-only constraints/indexes, and compatibility data. Preserve business records; validate counts, FKs, indexes, partitions, triggers, and representative payroll/attendance/reporting outputs. Production rollback uses backup restore or roll-forward, not `down.sql` on live data.
+7. **Remove operational and documentation residue.** Update migration runners, security audits, benchmarks, compose/env examples, deployment scripts, generated schema/client artifacts, ADRs, rulebooks, API reference, database architecture, and runbooks. Delete compatibility flags, aliases, dead fixtures, and stale tests only after the zero-reference report is clean.
+8. **Cut over and observe.** Deploy in controlled stages. Monitor errors, authorization denials, query latency, lock duration, row reconciliation, and business metrics. Define abort thresholds, last safe rollback point, restore procedure, and post-cutover cleanup date before production execution.
+
+## Interfaces after cutover
+
+- JWT remains, but claims contain no workspace identity.
+- Flat API paths remain paginated and return explicit API error envelopes.
+- Direct user roles and permissions replace workspace membership/role resolution.
+- One database connection topology remains; tenant selection/provisioning cannot return.
+- Organization display/configuration remains available without an organization/workspace ID contract.
+
+## Required verification
+
+- Static zero-reference scans for forbidden symbols, paths, headers, columns, tables, and config keys.
+- API schema diff plus success, malformed-input, forbidden, pagination, retry, and mixed-version contract tests.
+- Disposable forward migration, idempotent backfill, reconciliation, rollback/restore, and re-apply tests.
+- `./leedevkit test api` and `./leedevkit test web`.
+- Fresh production build, deployment smoke test, browser E2E, and representative attendance/payroll/report exports.
+
+## Done when
+
+- No workspace/tenant topology remains in runtime code or public contracts, except historical migration notes retained for audit.
+- Database has no `workspaces` table, `workspace_*` compatibility tables, or `workspace_id` columns.
+- No `/workspaces/{ws_id}` route, workspace header, workspace JWT claim, workspace localStorage key, or workspace ID parameter remains.
+- Data, authorization, pagination, observability, rollback, and business-output checks pass.
+- Deployment and recovery runbooks describe only the single-tenant architecture.
 
 ## 💎 Tuân thủ quy tắc kiến trúc (Rule Compliance)
 - **`database-rules.md#3` (Transactions & Data Integrity):** Duy trì toàn vẹn dữ liệu, các ràng buộc UNIQUE và Foreign Keys được chuẩn hóa khi bỏ `workspace_id`. Tận dụng việc hợp nhất vào 1 DB để tạo trực tiếp Foreign Key giữa `employees.user_id` và `users.id`.
