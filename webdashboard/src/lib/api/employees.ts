@@ -17,22 +17,19 @@ export type UpdateEmployeeRequest = components["schemas"]["UpdateEmployeeRequest
 // Employment is already exported from types.ts; re-exporting here causes
 // a duplicate when both modules are barrel-re-exported together.
 
-import { client } from "./client";
+import { client, fetch as apiFetchPath } from "./client";
 
 export * from "./employee-phases";
 export * from "./employee-conditions";
 
 export async function fetchEmployees(
-  wsId: string,
+  _wsId: string,
   page = 1,
   limit = 50,
   permission?: string
 ): Promise<PaginatedResponse<Employee>> {
-  const { data } = await client.GET("/workspaces/{workspace_id}/employees", {
-    params: {
-      path: { workspace_id: wsId },
-      query: { page, limit, permission },
-    },
+  const { data } = await apiFetchPath<PaginatedResponse<Employee>>("GET", "/employees", {
+    params: { query: { page, limit, permission } },
   });
   return data;
 }
@@ -54,7 +51,6 @@ export async function searchEmployees(
   params: SearchEmployeesParams
 ): Promise<PaginatedResponse<Employee>> {
   const {
-    wsId,
     query,
     page,
     limit,
@@ -66,9 +62,8 @@ export async function searchEmployees(
     status,
   } = params;
 
-  const { data } = await client.GET("/workspaces/{workspace_id}/employees", {
+  const { data } = await apiFetchPath<PaginatedResponse<Employee>>("GET", "/employees", {
     params: {
-      path: { workspace_id: wsId },
       query: {
         page,
         limit,
@@ -85,12 +80,8 @@ export async function searchEmployees(
   return data;
 }
 
-export async function fetchEmployee(wsId: string, id: string): Promise<Employee> {
-  const { data } = await client.GET("/workspaces/{workspace_id}/employees/{id}", {
-    params: {
-      path: { workspace_id: wsId, id },
-    },
-  });
+export async function fetchEmployee(_wsId: string, id: string): Promise<Employee> {
+  const { data } = await apiFetchPath<Employee>("GET", `/employees/${encodeURIComponent(id)}`);
   return data;
 }
 
@@ -116,60 +107,39 @@ export async function rehireEmployee(
 }
 
 export async function createEmployee(
-  wsId: string,
+  _wsId: string,
   employee: CreateEmployeeRequest,
 ): Promise<Employee> {
-  const { data } = await client.POST("/workspaces/{workspace_id}/employees", {
-    params: {
-      path: { workspace_id: wsId },
-    },
-    body: employee,
-  });
+  const { data } = await apiFetchPath<Employee>("POST", "/employees", { body: employee });
   return data;
 }
 
 export async function updateEmployee(
-  wsId: string,
+  _wsId: string,
   id: string,
   employee: UpdateEmployeeRequest,
 ): Promise<Employee> {
-  const { data } = await client.PUT("/workspaces/{workspace_id}/employees/{id}", {
-    params: {
-      path: { workspace_id: wsId, id },
-    },
-    body: employee,
-  });
+  const { data } = await apiFetchPath<Employee>("PUT", `/employees/${encodeURIComponent(id)}`, { body: employee });
   return data;
 }
 
-export async function deleteEmployee(wsId: string, id: string): Promise<void> {
-  await client.DELETE("/workspaces/{workspace_id}/employees/{id}", {
-    params: {
-      path: { workspace_id: wsId, id },
-    },
-  });
+export async function deleteEmployee(_wsId: string, id: string): Promise<void> {
+  await apiFetchPath<undefined>("DELETE", `/employees/${encodeURIComponent(id)}`);
 }
 
 export async function transferEmployee(
-  wsId: string,
+  _wsId: string,
   employeeId: string,
   data: { department_id: string; effective_date: string; notes?: string }
 ): Promise<EmployeeDepartmentHistory> {
-  const { data: result } = await client.POST("/workspaces/{workspace_id}/employees/{id}/departments", {
-    params: {
-      path: { workspace_id: wsId, id: employeeId },
-    },
-    body: data,
-  });
+  const { data: result } = await apiFetchPath<EmployeeDepartmentHistory>("POST", `/employees/${encodeURIComponent(employeeId)}/departments`, { body: data });
   return result;
 }
 
-export async function fetchEmployeeDepartmentHistory(wsId: string, employeeId: string): Promise<EmployeeDepartmentHistory[]> {
-  const { data } = await client.GET("/workspaces/{workspace_id}/employees/{id}/departments", { params: { path: { workspace_id: wsId, id: employeeId } } });
+export async function fetchEmployeeDepartmentHistory(_wsId: string, employeeId: string): Promise<EmployeeDepartmentHistory[]> {
+  const { data } = await apiFetchPath<EmployeeDepartmentHistory[]>("GET", `/employees/${encodeURIComponent(employeeId)}/departments`);
   return data;
 }
-
-
 export async function fetchEmployeeEmployments(
   wsId: string,
   employeeId: string

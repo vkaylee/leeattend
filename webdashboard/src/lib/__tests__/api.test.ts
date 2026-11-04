@@ -29,34 +29,47 @@ describe("api.ts comprehensive tests", () => {
 
 
   describe("Employee & Department API", () => {
-    it("fetchEmployees", async () => {
+    it("fetchEmployees uses flat route", async () => {
       mockSuccess([]);
       await api.fetchEmployees("ws-1");
-      expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/v1/employees"), expect.any(Object));
+      const [url] = vi.mocked(fetch).mock.calls[0];
+      expect(url).toContain("/v1/employees");
+      expect(url).not.toContain("/workspaces/");
     });
 
-    it("fetchEmployee", async () => {
+    it("fetchEmployee uses flat route", async () => {
       mockSuccess({});
       await api.fetchEmployee("ws-1", "e1");
-      expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/v1/employees/e1"), expect.any(Object));
+      const [url] = vi.mocked(fetch).mock.calls[0];
+      expect(url).toContain("/v1/employees/e1");
+      expect(url).not.toContain("/workspaces/");
     });
 
-    it("createEmployee", async () => {
+    it("createEmployee uses flat route", async () => {
       mockSuccess({});
       await api.createEmployee("ws-1", { full_name: "A", employee_id_number: "E001", employer_id: "emp-1", hire_date: "2024-01-01" });
-      expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/v1/employees"), expect.objectContaining({ method: "POST" }));
+      const [url, init] = vi.mocked(fetch).mock.calls[0];
+      expect(url).toContain("/v1/employees");
+      expect(url).not.toContain("/workspaces/");
+      expect(init).toMatchObject({ method: "POST" });
     });
 
-    it("updateEmployee", async () => {
+    it("updateEmployee uses flat route", async () => {
       mockSuccess({});
       await api.updateEmployee("ws-1", "e1", { full_name: "B" });
-      expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/v1/employees/e1"), expect.objectContaining({ method: "PUT" }));
+      const [url, init] = vi.mocked(fetch).mock.calls[0];
+      expect(url).toContain("/v1/employees/e1");
+      expect(url).not.toContain("/workspaces/");
+      expect(init).toMatchObject({ method: "PUT" });
     });
 
-    it("deleteEmployee", async () => {
+    it("deleteEmployee uses flat route", async () => {
       mockSuccess({});
       await api.deleteEmployee("ws-1", "e1");
-      expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/v1/employees/e1"), expect.objectContaining({ method: "DELETE" }));
+      const [url, init] = vi.mocked(fetch).mock.calls[0];
+      expect(url).toContain("/v1/employees/e1");
+      expect(url).not.toContain("/workspaces/");
+      expect(init).toMatchObject({ method: "DELETE" });
     });
 
     it("fetchDepartments", async () => {
@@ -71,16 +84,20 @@ describe("api.ts comprehensive tests", () => {
       expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/v1/departments"), expect.objectContaining({ method: "POST" }));
     });
 
-    it("transferEmployee", async () => {
+    it("transferEmployee uses flat route", async () => {
       mockSuccess({});
       await api.transferEmployee("ws-1", "emp-1", { department_id: "d1", effective_date: "..." });
-      expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/v1/employees/emp-1/departments"), expect.objectContaining({ method: "POST" }));
+      const [url] = vi.mocked(fetch).mock.calls[0];
+      expect(url).toContain("/v1/employees/emp-1/departments");
+      expect(url).not.toContain("/workspaces/");
     });
 
-    it("fetchEmployeeDepartmentHistory", async () => {
+    it("fetchEmployeeDepartmentHistory uses flat route", async () => {
       mockSuccess([]);
       await api.fetchEmployeeDepartmentHistory("ws-1", "emp-1");
-      expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/v1/employees/emp-1/departments"), expect.any(Object));
+      const [url] = vi.mocked(fetch).mock.calls[0];
+      expect(url).toContain("/v1/employees/emp-1/departments");
+      expect(url).not.toContain("/workspaces/");
     });
   });
 
