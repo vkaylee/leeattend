@@ -20,11 +20,14 @@ type WorkspaceRepository struct {
 	DB       DBTX
 }
 
-func (r WorkspaceRepository) tenant(ctx context.Context, workspaceID uuid.UUID) (DBTX, error) {
-	if r.DB == nil {
-		return r.SystemDB, nil
+func (r WorkspaceRepository) tenant(ctx context.Context) (DBTX, error) {
+	if r.DB != nil {
+		return r.DB, nil
 	}
-	return r.DB, nil
+	if r.SystemDB == nil {
+		return nil, errors.New("workspace repository: database is not configured")
+	}
+	return r.SystemDB, nil
 }
 
 func (r WorkspaceRepository) GetWorkspace(ctx context.Context, id uuid.UUID) (api.WorkspaceRecord, error) {
@@ -97,7 +100,7 @@ func (r WorkspaceRepository) CreateRole(ctx context.Context, workspaceID uuid.UU
 }
 
 func (r WorkspaceRepository) PutConfig(ctx context.Context, workspaceID uuid.UUID, req api.ConfigEntryRequest, actorID uuid.UUID) error {
-	db, err := r.tenant(ctx, workspaceID)
+	db, err := r.tenant(ctx)
 	if err != nil {
 		return err
 	}
@@ -142,7 +145,7 @@ func (r WorkspaceRepository) PutConfig(ctx context.Context, workspaceID uuid.UUI
 }
 
 func (r WorkspaceRepository) ListConfigs(ctx context.Context, workspaceID uuid.UUID) ([]api.WorkspaceConfigEntry, error) {
-	db, err := r.tenant(ctx, workspaceID)
+	db, err := r.tenant(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -195,7 +198,7 @@ ORDER BY created_at DESC`, workspaceID)
 }
 
 func (r WorkspaceRepository) GetConfig(ctx context.Context, workspaceID uuid.UUID, key string) (api.ResolvedConfig, error) {
-	db, err := r.tenant(ctx, workspaceID)
+	db, err := r.tenant(ctx)
 	if err != nil {
 		return api.ResolvedConfig{}, err
 	}
@@ -246,7 +249,7 @@ ORDER BY effective_from DESC LIMIT 1`, workspaceID, key)
 }
 
 func (r WorkspaceRepository) DeleteConfig(ctx context.Context, workspaceID, entryID uuid.UUID) error {
-	db, err := r.tenant(ctx, workspaceID)
+	db, err := r.tenant(ctx)
 	if err != nil {
 		return err
 	}
@@ -280,7 +283,7 @@ func scanFeatureFlag(row pgx.Row) (api.FeatureFlagRecord, error) {
 const featureFlagColumns = `id, workspace_id, flag_key, enabled, description, metadata, created_at, updated_at`
 
 func (r WorkspaceRepository) ListFeatureFlags(ctx context.Context, workspaceID uuid.UUID) ([]api.FeatureFlagRecord, error) {
-	db, err := r.tenant(ctx, workspaceID)
+	db, err := r.tenant(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -312,7 +315,7 @@ func (r WorkspaceRepository) ListFeatureFlags(ctx context.Context, workspaceID u
 }
 
 func (r WorkspaceRepository) CreateFeatureFlag(ctx context.Context, workspaceID uuid.UUID, req api.FeatureFlagRequest) (api.FeatureFlagRecord, error) {
-	db, err := r.tenant(ctx, workspaceID)
+	db, err := r.tenant(ctx)
 	if err != nil {
 		return api.FeatureFlagRecord{}, err
 	}
@@ -327,7 +330,7 @@ func (r WorkspaceRepository) CreateFeatureFlag(ctx context.Context, workspaceID 
 }
 
 func (r WorkspaceRepository) UpdateFeatureFlag(ctx context.Context, workspaceID, flagID uuid.UUID, patch api.FeatureFlagPatch) (api.FeatureFlagRecord, error) {
-	db, err := r.tenant(ctx, workspaceID)
+	db, err := r.tenant(ctx)
 	if err != nil {
 		return api.FeatureFlagRecord{}, err
 	}
@@ -354,7 +357,7 @@ func (r WorkspaceRepository) UpdateFeatureFlag(ctx context.Context, workspaceID,
 }
 
 func (r WorkspaceRepository) GetFeatureFlag(ctx context.Context, workspaceID uuid.UUID, key string) (api.FeatureFlagRecord, error) {
-	db, err := r.tenant(ctx, workspaceID)
+	db, err := r.tenant(ctx)
 	if err != nil {
 		return api.FeatureFlagRecord{}, err
 	}
@@ -365,7 +368,7 @@ func (r WorkspaceRepository) GetFeatureFlag(ctx context.Context, workspaceID uui
 }
 
 func (r WorkspaceRepository) GetFeatureFlagByID(ctx context.Context, workspaceID, flagID uuid.UUID) (api.FeatureFlagRecord, error) {
-	db, err := r.tenant(ctx, workspaceID)
+	db, err := r.tenant(ctx)
 	if err != nil {
 		return api.FeatureFlagRecord{}, err
 	}
@@ -376,7 +379,7 @@ func (r WorkspaceRepository) GetFeatureFlagByID(ctx context.Context, workspaceID
 }
 
 func (r WorkspaceRepository) DeleteFeatureFlag(ctx context.Context, workspaceID, flagID uuid.UUID) (bool, error) {
-	db, err := r.tenant(ctx, workspaceID)
+	db, err := r.tenant(ctx)
 	if err != nil {
 		return false, err
 	}
@@ -388,7 +391,7 @@ func (r WorkspaceRepository) DeleteFeatureFlag(ctx context.Context, workspaceID,
 }
 
 func (r WorkspaceRepository) UpsertFeatureFlag(ctx context.Context, workspaceID uuid.UUID, req api.FeatureFlagRequest) (api.FeatureFlagRecord, error) {
-	db, err := r.tenant(ctx, workspaceID)
+	db, err := r.tenant(ctx)
 	if err != nil {
 		return api.FeatureFlagRecord{}, err
 	}

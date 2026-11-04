@@ -49,6 +49,8 @@ Baseline safety constraints: only `apiserver/migrations/20261103000000_init/` ex
 - Verification: `./leedevkit test api` passed; `git diff --check` passed.
 - Completed sixteenth reversible backend slice: repository transaction errors now use neutral database wording; tenant-scoped SQL predicates, transaction callbacks, and public method contracts remain unchanged.
 - Verification: `./leedevkit test api` passed; `git diff --check` passed.
+- Completed seventeenth reversible backend slice: workspace repository database selection no longer accepts a workspace selector; DB fallback, workspace SQL predicates, authorization inputs, and public methods remain unchanged.
+- Verification: `./leedevkit test api` passed; `git diff --check` passed.
 
 ## Ordered work
 
