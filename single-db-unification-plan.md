@@ -27,6 +27,8 @@ Baseline safety constraints: only `apiserver/migrations/20261103000000_init/` ex
 - Verification: `./leedevkit test api` passed; `git diff --check` passed.
 - Completed fifth reversible backend slice: `EmployeeAssignmentRepository` and `AssignmentRuleRepository` database helpers no longer accept unused workspace arguments and now report generic database configuration failures; all public methods, workspace arguments, and SQL predicates remain unchanged.
 - Verification: `./leedevkit test api` passed; `git diff --check` passed.
+- Completed sixth reversible backend slice: `AttendanceRepository` and `AttendancePolicyRepository` database helpers no longer accept unused workspace arguments; `attendance_logs.go` forwarding now uses the shared helper. Existing workspace predicates, membership validation, transactions, and public methods remain unchanged.
+- Verification: `./leedevkit test api` passed; `git diff --check` passed.
 
 ## Ordered work
 

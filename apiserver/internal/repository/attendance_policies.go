@@ -21,9 +21,9 @@ type AttendancePolicyRepository struct {
 	BeginTx  func(context.Context, uuid.UUID) (TxBeginner, error)
 }
 
-func (r AttendancePolicyRepository) db(ctx context.Context, workspaceID uuid.UUID) (DBTX, error) {
+func (r AttendancePolicyRepository) db(ctx context.Context) (DBTX, error) {
 	if r.DB == nil {
-		return nil, errors.New("attendance policy repository: tenant database is not configured")
+		return nil, errors.New("attendance policy repository: database is not configured")
 	}
 	return r.DB, nil
 }
@@ -32,13 +32,13 @@ func (r AttendancePolicyRepository) begin(ctx context.Context, workspaceID uuid.
 	if r.BeginTx != nil {
 		return r.BeginTx(ctx, workspaceID)
 	}
-	db, err := r.db(ctx, workspaceID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return nil, err
 	}
 	beginner, ok := db.(TxBeginner)
 	if !ok {
-		return nil, errors.New("attendance policy repository: tenant database does not support transactions")
+		return nil, errors.New("attendance policy repository: database does not support transactions")
 	}
 	return beginner, nil
 }
@@ -110,7 +110,7 @@ func policyVersionResponse(id uuid.UUID, rules api.AttendanceRules, validFrom ti
 }
 
 func (r AttendancePolicyRepository) GetDefaultPolicyRules(ctx context.Context, workspaceID uuid.UUID) (api.AttendanceRules, error) {
-	db, err := r.db(ctx, workspaceID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return api.AttendanceRules{}, err
 	}
@@ -126,7 +126,7 @@ func (r AttendancePolicyRepository) GetDefaultPolicyRules(ctx context.Context, w
 }
 
 func (r AttendancePolicyRepository) GetDefaultPolicyVersions(ctx context.Context, workspaceID uuid.UUID) ([]api.AttendancePolicyVersionResponse, error) {
-	db, err := r.db(ctx, workspaceID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -210,7 +210,7 @@ func (r AttendancePolicyRepository) UpdateDefaultPolicyRules(ctx context.Context
 }
 
 func (r AttendancePolicyRepository) ListPolicyAssignments(ctx context.Context, workspaceID uuid.UUID) ([]api.PolicyAssignmentResponse, error) {
-	db, err := r.db(ctx, workspaceID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -280,7 +280,7 @@ func (r AttendancePolicyRepository) UpsertPolicyAssignment(ctx context.Context, 
 }
 
 func (r AttendancePolicyRepository) DeletePolicyAssignment(ctx context.Context, workspaceID, assignmentID uuid.UUID) error {
-	db, err := r.db(ctx, workspaceID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return err
 	}
@@ -301,7 +301,7 @@ func scanBehalf(row interface{ Scan(...any) error }) (api.BehalfAssignment, erro
 const behalfColumns = `ba.id, ba.workspace_id, ba.assignee_user_id, ba.target_employee_id, ba.target_department_id, ba.assignment_type, ba.created_at, ba.updated_at, ba.employer_id, te.full_name, te.employee_id_number, d.name`
 
 func (r AttendancePolicyRepository) CreateBehalfAssignment(ctx context.Context, workspaceID uuid.UUID, req api.CreateBehalfAssignmentRequest, assignmentType string) (api.BehalfAssignment, error) {
-	db, err := r.db(ctx, workspaceID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return api.BehalfAssignment{}, err
 	}
@@ -315,7 +315,7 @@ func (r AttendancePolicyRepository) CreateBehalfAssignment(ctx context.Context, 
 }
 
 func (r AttendancePolicyRepository) ListBehalfAssignments(ctx context.Context, workspaceID uuid.UUID, assignmentType string) ([]api.BehalfAssignment, error) {
-	db, err := r.db(ctx, workspaceID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -336,7 +336,7 @@ func (r AttendancePolicyRepository) ListBehalfAssignments(ctx context.Context, w
 }
 
 func (r AttendancePolicyRepository) DeleteBehalfAssignment(ctx context.Context, workspaceID, assignmentID uuid.UUID) error {
-	db, err := r.db(ctx, workspaceID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return err
 	}
@@ -351,7 +351,7 @@ func (r AttendancePolicyRepository) DeleteBehalfAssignment(ctx context.Context, 
 }
 
 func (r AttendancePolicyRepository) ListMyBehalfTargets(ctx context.Context, workspaceID, userID uuid.UUID, assignmentType string) ([]api.EmployeeRecord, error) {
-	db, err := r.db(ctx, workspaceID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return nil, err
 	}
