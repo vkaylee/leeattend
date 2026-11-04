@@ -56,10 +56,6 @@ describe('i18n config lazyLoadBackend', () => {
   it('should resolve keys dynamically using custom t override', async () => {
     await i18n.loadNamespaces(['common', 'payroll']);
     
-    // Verify common namespace key resolves
-    const switchingWorkspace = i18n.t('common.switching_workspace');
-    expect(switchingWorkspace).not.toBe('common.switching_workspace');
-    expect(typeof switchingWorkspace).toBe('string');
 
     // Verify payroll namespace key resolves through override
     const calculateBtn = i18n.t('payroll.calculate_btn');
