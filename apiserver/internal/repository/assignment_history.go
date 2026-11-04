@@ -13,9 +13,9 @@ type AssignmentHistoryRepository struct {
 	DB DBTX
 }
 
-func (r AssignmentHistoryRepository) db(ctx context.Context, workspaceID uuid.UUID) (DBTX, error) {
+func (r AssignmentHistoryRepository) db(ctx context.Context) (DBTX, error) {
 	if r.DB == nil {
-		return nil, errors.New("assignment history repository: tenant database is not configured")
+		return nil, errors.New("assignment history repository: database is not configured")
 	}
 	return r.DB, nil
 }
@@ -67,7 +67,7 @@ const assignmentHistoryQuery = `
 `
 
 func (r AssignmentHistoryRepository) ListAssignmentHistory(ctx context.Context, workspaceID uuid.UUID, page, limit int) ([]api.AssignmentHistory, int64, error) {
-	db, err := r.db(ctx, workspaceID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return nil, 0, err
 	}
