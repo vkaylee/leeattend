@@ -17,9 +17,9 @@ type LifecycleRepository struct {
 	BeginTx func(context.Context, uuid.UUID) (TxBeginner, error)
 }
 
-func (r LifecycleRepository) db(ctx context.Context, wsID uuid.UUID) (DBTX, error) {
+func (r LifecycleRepository) db(ctx context.Context) (DBTX, error) {
 	if r.DB == nil {
-		return nil, errors.New("lifecycle repository: tenant database is not configured")
+		return nil, errors.New("lifecycle repository: database is not configured")
 	}
 	return r.DB, nil
 }
@@ -28,7 +28,7 @@ func (r LifecycleRepository) begin(ctx context.Context, wsID uuid.UUID) (TxBegin
 	if r.BeginTx != nil {
 		return r.BeginTx(ctx, wsID)
 	}
-	d, err := r.db(ctx, wsID)
+	d, err := r.db(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -129,7 +129,7 @@ func (r LifecycleRepository) CreateTemplate(ctx context.Context, wsID uuid.UUID,
 		})
 		return created, err
 	}
-	db, err := r.db(ctx, wsID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return api.LifecycleChecklistTemplate{}, err
 	}
@@ -152,7 +152,7 @@ func (r LifecycleRepository) createTemplateTx(ctx context.Context, db DBTX, wsID
 }
 
 func (r LifecycleRepository) GetTemplate(ctx context.Context, wsID, id uuid.UUID) (api.LifecycleChecklistTemplate, error) {
-	db, err := r.db(ctx, wsID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return api.LifecycleChecklistTemplate{}, err
 	}
@@ -166,7 +166,7 @@ func (r LifecycleRepository) GetTemplate(ctx context.Context, wsID, id uuid.UUID
 }
 
 func (r LifecycleRepository) ListTemplates(ctx context.Context, wsID uuid.UUID, checklistType *string) ([]api.LifecycleChecklistTemplate, error) {
-	db, err := r.db(ctx, wsID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -212,7 +212,7 @@ func (r LifecycleRepository) UpdateTemplate(ctx context.Context, wsID, id uuid.U
 		})
 		return updated, err
 	}
-	db, err := r.db(ctx, wsID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return api.LifecycleChecklistTemplate{}, err
 	}
@@ -261,7 +261,7 @@ func (r LifecycleRepository) updateTemplateTx(ctx context.Context, db DBTX, wsID
 }
 
 func (r LifecycleRepository) DeleteTemplate(ctx context.Context, wsID, id uuid.UUID) error {
-	db, err := r.db(ctx, wsID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return err
 	}
@@ -277,7 +277,7 @@ func (r LifecycleRepository) DeleteTemplate(ctx context.Context, wsID, id uuid.U
 }
 
 func (r LifecycleRepository) CreateTemplateItem(ctx context.Context, wsID, templateID uuid.UUID, req api.CreateLifecycleChecklistTemplateItemRequest) (api.LifecycleChecklistTemplateItem, error) {
-	db, err := r.db(ctx, wsID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return api.LifecycleChecklistTemplateItem{}, err
 	}
@@ -304,7 +304,7 @@ const templateItemJoin = ` FROM lifecycle_checklist_template_items i
 	INNER JOIN lifecycle_checklist_templates t ON t.id = i.template_id`
 
 func (r LifecycleRepository) GetTemplateItem(ctx context.Context, wsID, itemID uuid.UUID) (api.LifecycleChecklistTemplateItem, error) {
-	db, err := r.db(ctx, wsID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return api.LifecycleChecklistTemplateItem{}, err
 	}
@@ -317,7 +317,7 @@ func (r LifecycleRepository) GetTemplateItem(ctx context.Context, wsID, itemID u
 }
 
 func (r LifecycleRepository) ListTemplateItems(ctx context.Context, wsID, templateID uuid.UUID) ([]api.LifecycleChecklistTemplateItem, error) {
-	db, err := r.db(ctx, wsID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -340,7 +340,7 @@ func (r LifecycleRepository) ListTemplateItems(ctx context.Context, wsID, templa
 }
 
 func (r LifecycleRepository) UpdateTemplateItem(ctx context.Context, wsID, itemID uuid.UUID, req api.UpdateLifecycleChecklistTemplateItemRequest) (api.LifecycleChecklistTemplateItem, error) {
-	db, err := r.db(ctx, wsID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return api.LifecycleChecklistTemplateItem{}, err
 	}
@@ -396,7 +396,7 @@ func (r LifecycleRepository) UpdateTemplateItem(ctx context.Context, wsID, itemI
 }
 
 func (r LifecycleRepository) DeleteTemplateItem(ctx context.Context, wsID, itemID uuid.UUID) error {
-	db, err := r.db(ctx, wsID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return err
 	}
@@ -436,7 +436,7 @@ func (r LifecycleRepository) CreateChecklistFromTemplate(ctx context.Context, ws
 		})
 		return created, err
 	}
-	d, err := r.db(ctx, wsID)
+	d, err := r.db(ctx)
 	if err != nil {
 		return api.LifecycleChecklistResponse{}, err
 	}
@@ -654,7 +654,7 @@ func (r LifecycleRepository) getChecklist(ctx context.Context, db DBTX, wsID, ch
 }
 
 func (r LifecycleRepository) GetChecklist(ctx context.Context, wsID, checklistID uuid.UUID) (api.LifecycleChecklistResponse, error) {
-	db, err := r.db(ctx, wsID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return api.LifecycleChecklistResponse{}, err
 	}
@@ -662,7 +662,7 @@ func (r LifecycleRepository) GetChecklist(ctx context.Context, wsID, checklistID
 }
 
 func (r LifecycleRepository) ListChecklistsForEmployment(ctx context.Context, wsID, employmentID uuid.UUID) ([]api.LifecycleChecklistResponse, error) {
-	db, err := r.db(ctx, wsID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -716,7 +716,7 @@ func (r LifecycleRepository) ListChecklistsForEmployment(ctx context.Context, ws
 }
 
 func (r LifecycleRepository) GetItemAssigneeAndChecklist(ctx context.Context, wsID, itemID uuid.UUID) (*uuid.UUID, uuid.UUID, error) {
-	db, err := r.db(ctx, wsID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return nil, uuid.Nil, err
 	}
@@ -749,7 +749,7 @@ func (r LifecycleRepository) UpdateChecklistItemStatus(ctx context.Context, wsID
 		})
 		return updated, err
 	}
-	d, err := r.db(ctx, wsID)
+	d, err := r.db(ctx)
 	if err != nil {
 		return api.LifecycleChecklistResponse{}, err
 	}
@@ -803,7 +803,7 @@ func (r LifecycleRepository) updateItemStatusTx(ctx context.Context, db DBTX, ws
 }
 
 func (r LifecycleRepository) GetPendingTasksForUser(ctx context.Context, wsID, userID uuid.UUID) ([]api.PendingTaskResponse, error) {
-	db, err := r.db(ctx, wsID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return nil, err
 	}
