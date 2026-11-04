@@ -17,15 +17,15 @@ type CustomFieldRepository struct {
 	DB DBTX
 }
 
-func (r CustomFieldRepository) db(ctx context.Context, wsID uuid.UUID) (DBTX, error) {
+func (r CustomFieldRepository) db(ctx context.Context) (DBTX, error) {
 	if r.DB == nil {
-		return nil, errors.New("custom field repository: tenant database is not configured")
+		return nil, errors.New("custom field repository: database is not configured")
 	}
 	return r.DB, nil
 }
 
 func (r CustomFieldRepository) CreateDefinition(ctx context.Context, record api.CustomFieldDefinitionRecord) (api.CustomFieldDefinitionRecord, error) {
-	db, err := r.db(ctx, record.WorkspaceID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return api.CustomFieldDefinitionRecord{}, err
 	}
@@ -50,7 +50,7 @@ func (r CustomFieldRepository) CreateDefinition(ctx context.Context, record api.
 }
 
 func (r CustomFieldRepository) GetDefinition(ctx context.Context, wsID, id uuid.UUID) (api.CustomFieldDefinitionRecord, error) {
-	db, err := r.db(ctx, wsID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return api.CustomFieldDefinitionRecord{}, err
 	}
@@ -78,7 +78,7 @@ func (r CustomFieldRepository) GetDefinition(ctx context.Context, wsID, id uuid.
 }
 
 func (r CustomFieldRepository) ListDefinitions(ctx context.Context, wsID uuid.UUID, entityType *string) ([]api.CustomFieldDefinitionRecord, error) {
-	db, err := r.db(ctx, wsID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -119,7 +119,7 @@ func (r CustomFieldRepository) ListDefinitions(ctx context.Context, wsID uuid.UU
 }
 
 func (r CustomFieldRepository) UpdateDefinition(ctx context.Context, wsID, id uuid.UUID, req api.UpdateCustomFieldDefinitionRequest) (api.CustomFieldDefinitionRecord, error) {
-	db, err := r.db(ctx, wsID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return api.CustomFieldDefinitionRecord{}, err
 	}
@@ -172,7 +172,7 @@ func (r CustomFieldRepository) UpdateDefinition(ctx context.Context, wsID, id uu
 }
 
 func (r CustomFieldRepository) DeleteDefinition(ctx context.Context, wsID, id uuid.UUID) error {
-	db, err := r.db(ctx, wsID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return err
 	}
@@ -187,7 +187,7 @@ func (r CustomFieldRepository) DeleteDefinition(ctx context.Context, wsID, id uu
 }
 
 func (r CustomFieldRepository) GetValues(ctx context.Context, wsID, entityID uuid.UUID) ([]api.CustomFieldValueResponse, error) {
-	db, err := r.db(ctx, wsID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -236,7 +236,7 @@ func (r CustomFieldRepository) GetValues(ctx context.Context, wsID, entityID uui
 }
 
 func (r CustomFieldRepository) SetValues(ctx context.Context, wsID, entityID uuid.UUID, entityType string, values []api.SetCustomFieldValueItem) ([]api.CustomFieldValueResponse, error) {
-	db, err := r.db(ctx, wsID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return nil, err
 	}

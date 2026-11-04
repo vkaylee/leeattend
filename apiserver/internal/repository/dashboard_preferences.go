@@ -19,19 +19,13 @@ var defaultVisibleWidgetsJSON = []byte(`{"kpi_cards":true,"donut_chart":true,"qu
 var defaultWidgetOrderJSON = []byte(`["kpi_cards","donut_chart","quick_stats","attendance_trend","department_chart","overtime_trend","peak_times","leave_types","lateness_by_day","recruitment_sources","turnover_analytics","unexcused_absences","promo_cards"]`)
 var defaultCollapsedSectionsJSON = []byte(`{"summary":false,"charts":false,"actions":true}`)
 
-func (r DashboardPreferencesRepository) db(ctx context.Context, workspaceID uuid.UUID) (DBTX, error) {
+func (r DashboardPreferencesRepository) db(ctx context.Context) (DBTX, error) {
 	if r.DB == nil {
-		return nil, errors.New("dashboard preferences: nil tenant database")
-	}
-	db, err := r.db(ctx, workspaceID)
-	if err != nil {
-		return nil, err
-	}
-	if db == nil {
 		return nil, errors.New("dashboard preferences: nil database")
 	}
-	return db, nil
+	return r.DB, nil
 }
+
 func scanDashboardPreferences(row interface{ Scan(...any) error }) (api.DashboardPreferences, error) {
 	var p api.DashboardPreferences
 	var created, updated time.Time
@@ -39,7 +33,7 @@ func scanDashboardPreferences(row interface{ Scan(...any) error }) (api.Dashboar
 	return p, err
 }
 func (r DashboardPreferencesRepository) GetDashboardPreferences(ctx context.Context, userID, workspaceID uuid.UUID) (api.DashboardPreferences, error) {
-	db, err := r.db(ctx, workspaceID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return api.DashboardPreferences{}, err
 	}
@@ -53,7 +47,7 @@ func (r DashboardPreferencesRepository) GetDashboardPreferences(ctx context.Cont
 	return api.DashboardPreferences{UserID: userID, WorkspaceID: workspaceID, VisibleWidgets: append([]byte(nil), defaultVisibleWidgetsJSON...), WidgetOrder: append([]byte(nil), defaultWidgetOrderJSON...), CollapsedSections: append([]byte(nil), defaultCollapsedSectionsJSON...), ActiveView: "overview"}, nil
 }
 func (r DashboardPreferencesRepository) UpdateDashboardPreferences(ctx context.Context, userID, workspaceID uuid.UUID, req api.UpdateDashboardPreferences) (api.DashboardPreferences, error) {
-	db, err := r.db(ctx, workspaceID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return api.DashboardPreferences{}, err
 	}

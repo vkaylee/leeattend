@@ -18,15 +18,15 @@ type DashboardAnalyticsRepository struct {
 	DB DBTX
 }
 
-func (r DashboardAnalyticsRepository) db(ctx context.Context, wsID uuid.UUID) (DBTX, error) {
+func (r DashboardAnalyticsRepository) db(ctx context.Context) (DBTX, error) {
 	if r.DB == nil {
-		return nil, errors.New("dashboard analytics repository: tenant database is not configured")
+		return nil, errors.New("dashboard analytics repository: database is not configured")
 	}
 	return r.DB, nil
 }
 
 func (r DashboardAnalyticsRepository) GetWorkspaceTimezone(ctx context.Context, wsID uuid.UUID) (string, error) {
-	db, err := r.db(ctx, wsID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return "UTC", err
 	}
@@ -39,7 +39,7 @@ func (r DashboardAnalyticsRepository) GetWorkspaceTimezone(ctx context.Context, 
 }
 
 func (r DashboardAnalyticsRepository) GetOvertimeTrend(ctx context.Context, wsID uuid.UUID, today time.Time) ([]api.OvertimeTrendPoint, error) {
-	db, err := r.db(ctx, wsID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -75,7 +75,7 @@ func (r DashboardAnalyticsRepository) GetOvertimeTrend(ctx context.Context, wsID
 }
 
 func (r DashboardAnalyticsRepository) GetPeakTimes(ctx context.Context, wsID uuid.UUID, today time.Time, tzName string) ([]api.PeakTimeSlot, error) {
-	db, err := r.db(ctx, wsID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -148,7 +148,7 @@ ORDER BY sl.slot_index`
 }
 
 func (r DashboardAnalyticsRepository) GetLeaveTypesBreakdown(ctx context.Context, wsID uuid.UUID, today time.Time) ([]api.LeaveTypeBreakdown, error) {
-	db, err := r.db(ctx, wsID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -186,7 +186,7 @@ ORDER BY count DESC`
 }
 
 func (r DashboardAnalyticsRepository) GetOvertimeBreakdown(ctx context.Context, wsID uuid.UUID, q api.OvertimeBreakdownQuery, allowOvertimeCost bool) (api.OvertimeBreakdownResponse, error) {
-	db, err := r.db(ctx, wsID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return api.OvertimeBreakdownResponse{}, err
 	}
@@ -310,7 +310,7 @@ ORDER BY COALESCE(h.system_ot_minutes, 0) DESC`
 }
 
 func (r DashboardAnalyticsRepository) GetWorkspaceStats(ctx context.Context, wsID uuid.UUID, tzName string, deptIDs []uuid.UUID) (api.WorkspaceStats, error) {
-	db, err := r.db(ctx, wsID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return api.WorkspaceStats{}, err
 	}
@@ -421,7 +421,7 @@ SELECT COALESCE(SUM(amount), 0)::numeric FROM latest_components WHERE component_
 }
 
 func (r DashboardAnalyticsRepository) GetAttendanceTrend(ctx context.Context, wsID uuid.UUID, startDate, endDate time.Time, tzName string, deptIDs []uuid.UUID) ([]api.AttendanceTrendPoint, error) {
-	db, err := r.db(ctx, wsID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -554,7 +554,7 @@ ORDER BY d.date ASC`
 }
 
 func (r DashboardAnalyticsRepository) GetDepartmentAttendance(ctx context.Context, wsID uuid.UUID, startDate, endDate time.Time, tzName string, deptIDs []uuid.UUID, topN *int) ([]api.DepartmentAttendancePoint, error) {
-	db, err := r.db(ctx, wsID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -655,7 +655,7 @@ ORDER BY d.department_name ASC`
 }
 
 func (r DashboardAnalyticsRepository) GetUnexcusedAbsences(ctx context.Context, wsID uuid.UUID, startDate, endDate time.Time, tzName string, groupBy string, deptIDs []uuid.UUID) ([]api.UnexcusedAbsencesPoint, error) {
-	db, err := r.db(ctx, wsID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -772,7 +772,7 @@ GROUP BY ae.department_id, ae.department_name, ae.employee_id, ae.employee_name`
 }
 
 func (r DashboardAnalyticsRepository) GetLatenessByDay(ctx context.Context, wsID uuid.UUID, startDate, endDate time.Time, tzName string, deptIDs []uuid.UUID) ([]api.LatenessByDay, error) {
-	db, err := r.db(ctx, wsID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -821,7 +821,7 @@ func (r DashboardAnalyticsRepository) GetLatenessByDay(ctx context.Context, wsID
 }
 
 func (r DashboardAnalyticsRepository) GetTurnoverAnalytics(ctx context.Context, wsID uuid.UUID, q api.TurnoverAnalyticsQuery) (api.TurnoverAnalytics, error) {
-	db, err := r.db(ctx, wsID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return api.TurnoverAnalytics{}, err
 	}
@@ -1190,7 +1190,7 @@ ORDER BY c.cohort_month ASC, o.months_since_hire ASC`, wsID, startStr, endStr, 3
 }
 
 func (r DashboardAnalyticsRepository) GetRecruitmentEffectiveness(ctx context.Context, wsID uuid.UUID, q api.RecruitmentEffectivenessQuery) (api.RecruitmentEffectivenessAnalytics, error) {
-	db, err := r.db(ctx, wsID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return api.RecruitmentEffectivenessAnalytics{}, err
 	}
@@ -1489,7 +1489,7 @@ ORDER BY m.m ASC`, wsID, startStr, endStr, deptFilter, locFilter, jobRolesFilter
 }
 
 func (r DashboardAnalyticsRepository) GetExecutiveOverview(ctx context.Context, wsID uuid.UUID, q api.NormalizedDashboardMetricsQuery, allowOvertimeCost bool) (api.DashboardMetricsResponse, error) {
-	db, err := r.db(ctx, wsID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return api.DashboardMetricsResponse{}, err
 	}
