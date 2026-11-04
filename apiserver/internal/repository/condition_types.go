@@ -15,15 +15,15 @@ type ConditionTypeRepository struct {
 	DB DBTX
 }
 
-func (r ConditionTypeRepository) db(ctx context.Context, wsID uuid.UUID) (DBTX, error) {
+func (r ConditionTypeRepository) db(ctx context.Context) (DBTX, error) {
 	if r.DB == nil {
-		return nil, errors.New("condition type repository: tenant database is not configured")
+		return nil, errors.New("condition type repository: database is not configured")
 	}
 	return r.DB, nil
 }
 
 func (r ConditionTypeRepository) List(ctx context.Context, wsID uuid.UUID, activeOnly bool) ([]api.ConditionTypeRecord, error) {
-	db, err := r.db(ctx, wsID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -62,7 +62,7 @@ func (r ConditionTypeRepository) List(ctx context.Context, wsID uuid.UUID, activ
 }
 
 func (r ConditionTypeRepository) Get(ctx context.Context, wsID, id uuid.UUID) (api.ConditionTypeRecord, error) {
-	db, err := r.db(ctx, wsID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return api.ConditionTypeRecord{}, err
 	}
@@ -89,9 +89,8 @@ func (r ConditionTypeRepository) Get(ctx context.Context, wsID, id uuid.UUID) (a
 	rec.UpdatedAt = updated.UTC().Format(time.RFC3339)
 	return rec, nil
 }
-
 func (r ConditionTypeRepository) Create(ctx context.Context, record api.ConditionTypeRecord) (api.ConditionTypeRecord, error) {
-	db, err := r.db(ctx, record.WorkspaceID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return api.ConditionTypeRecord{}, err
 	}
@@ -116,7 +115,7 @@ func (r ConditionTypeRepository) Create(ctx context.Context, record api.Conditio
 }
 
 func (r ConditionTypeRepository) Update(ctx context.Context, wsID, id uuid.UUID, req api.UpdateConditionTypeRequest) (api.ConditionTypeRecord, error) {
-	db, err := r.db(ctx, wsID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return api.ConditionTypeRecord{}, err
 	}
@@ -166,7 +165,7 @@ func (r ConditionTypeRepository) Update(ctx context.Context, wsID, id uuid.UUID,
 }
 
 func (r ConditionTypeRepository) Delete(ctx context.Context, wsID, id uuid.UUID) error {
-	db, err := r.db(ctx, wsID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return err
 	}

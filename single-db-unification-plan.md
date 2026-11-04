@@ -19,6 +19,8 @@
 Baseline safety constraints: only `apiserver/migrations/20261103000000_init/` exists; it contains one unified baseline with workspace-compatible schema. The architecture record reports 99 `workspace_id` columns. Auth data is split between `system_roles` and workspace role/member/extra-permission tables; direct replacement must preserve global/scoped role behavior, department restrictions, expiry semantics, and last-platform-admin protection. No live database row counts or production status are assumed; before any destructive migration, capture backup, table/column counts, FK/index/partition inventory, per-workspace cardinality, orphan rows, duplicate role/permission conflicts, and representative business totals.
 - Completed first reversible slice: removed unused `apiserver/internal/tenant/` `WorkspaceScope`/`Predicate` abstraction and its tests; no production callers existed, so current auth/API behavior is unchanged.
 - Verification: `./leedevkit test api` passed (unit, integration, format, vet, generated diff, module verification, govulncheck, staticcheck); `git diff --check` passed.
+- Completed second reversible backend slice: `ConditionTypeRepository.db` no longer accepts an unused workspace argument and now reports generic database configuration failure; all public method signatures, workspace predicates, and response fields remain unchanged.
+- Verification: `./leedevkit test api` passed; `git diff --check` passed.
 
 ## Ordered work
 
