@@ -55,6 +55,8 @@ Baseline safety constraints: only `apiserver/migrations/20261103000000_init/` ex
 - Verification: `./leedevkit test api` passed; `git diff --check` passed.
 - Completed nineteenth reversible backend slice: flat API wrappers now attach resolved organization context, context-dependent flat routes use that wrapper, and authentication no longer reads or advertises `X-Workspace-Id`; legacy workspace path injection remains temporarily for existing handlers.
 - Verification: `./leedevkit test api` passed; `git diff --check` passed.
+- Completed twentieth reversible backend slice: removed remaining runtime/test `X-Workspace-Id` references and changed workspace-context error text to organization-context wording; error keys and handler contracts remain stable.
+- Verification: `./leedevkit test api` passed; `git diff --check` passed; no `X-Workspace-Id` references remain under `apiserver/`.
 
 ## Ordered work
 

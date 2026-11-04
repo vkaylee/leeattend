@@ -179,7 +179,6 @@ func (m *mockESSShiftSwapRepo) CancelSwap(_ context.Context, _, _, _ uuid.UUID) 
 func essRequest(t *testing.T, method, path, body string, wsID uuid.UUID) *http.Request {
 	t.Helper()
 	req := httptest.NewRequest(method, path, strings.NewReader(body))
-	req.Header.Set("X-Workspace-Id", wsID.String())
 	ctx := httpinfra.WithUserIDForTest(req.Context(), uuid.New())
 	ctx = httpinfra.WithWorkspaceIDForTest(ctx, wsID)
 	return req.WithContext(ctx)

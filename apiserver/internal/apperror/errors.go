@@ -470,14 +470,14 @@ var i18nCatalog = map[string]translationEntry{
 		zh: "服务暂不可用。",
 	},
 	"error.missing_workspace": {
-		en: "Missing Workspace Context. Provide 'ws_id' in path or 'X-Workspace-Id' header.",
-		vi: "Thiếu thông tin Workspace. Vui lòng truyền 'ws_id' trong URL hoặc header 'X-Workspace-Id'.",
-		zh: "缺少工作空间上下文。请在路径中提供 'ws_id' 或在 'X-Workspace-Id' 请求头中提供。",
+		en: "Missing organization context. Provide the organization route context.",
+		vi: "Thiếu thông tin tổ chức. Vui lòng cung cấp ngữ cảnh tổ chức từ tuyến API.",
+		zh: "缺少组织上下文。请提供 API 路由中的组织上下文。",
 	},
 	"error.invalid_workspace_id": {
-		en: "Invalid Workspace ID format",
-		vi: "Định dạng ID Workspace không hợp lệ",
-		zh: "工作空间 ID 格式无效",
+		en: "Invalid organization ID format",
+		vi: "Định dạng ID tổ chức không hợp lệ",
+		zh: "组织 ID 格式无效",
 	},
 	"error.no_employee_record": {
 		en: "No employee record linked to your account",
