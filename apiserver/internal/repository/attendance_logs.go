@@ -15,13 +15,13 @@ import (
 	"github.com/vkaylee/leeattend/apiserver/internal/service"
 )
 
-func (r AttendanceRepository) attendanceDB(ctx context.Context, workspaceID uuid.UUID) (DBTX, error) {
+func (r AttendanceRepository) attendanceDB(ctx context.Context) (DBTX, error) {
 	return r.db(ctx)
 }
 
 // CreateAttendanceImportJob inserts a processing job scoped to the workspace.
 func (r AttendanceRepository) CreateAttendanceImportJob(ctx context.Context, workspaceID, userID uuid.UUID, filePath, target string) (api.AttendanceImportJob, error) {
-	db, err := r.attendanceDB(ctx, workspaceID)
+	db, err := r.attendanceDB(ctx)
 	if err != nil {
 		return api.AttendanceImportJob{}, err
 	}
@@ -37,7 +37,7 @@ func (r AttendanceRepository) CreateAttendanceImportJob(ctx context.Context, wor
 // ProcessAttendanceImport persists parsed rows for a job. Unknown employees are staged,
 // parse failures are recorded in attendance_log_errors, and duplicate punches are skipped.
 func (r AttendanceRepository) ProcessAttendanceImport(ctx context.Context, workspaceID, userID, jobID uuid.UUID, filePath, target string, rows []api.AttendanceImportRow) error {
-	db, err := r.attendanceDB(ctx, workspaceID)
+	db, err := r.attendanceDB(ctx)
 	if err != nil {
 		return err
 	}
@@ -157,7 +157,7 @@ func scanAttendanceJob(row pgx.Row) (*api.AttendanceImportJob, error) {
 
 // GetLatestAttendanceImportJob returns the newest workspace job, optionally filtered by target type.
 func (r AttendanceRepository) GetLatestAttendanceImportJob(ctx context.Context, ws uuid.UUID, target *string) (*api.AttendanceImportJob, error) {
-	db, err := r.attendanceDB(ctx, ws)
+	db, err := r.attendanceDB(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -178,7 +178,7 @@ func (r AttendanceRepository) GetLatestAttendanceImportJob(ctx context.Context, 
 
 // GetAttendanceImportJob returns one workspace-scoped job.
 func (r AttendanceRepository) GetAttendanceImportJob(ctx context.Context, ws, id uuid.UUID) (*api.AttendanceImportJob, error) {
-	db, err := r.attendanceDB(ctx, ws)
+	db, err := r.attendanceDB(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -249,7 +249,7 @@ func rawFilter(ws uuid.UUID, employee *uuid.UUID, from, to *time.Time) (string, 
 
 // ListAttendanceLogs returns paginated paired entries joined with employee identity.
 func (r AttendanceRepository) ListAttendanceLogs(ctx context.Context, ws uuid.UUID, employee *uuid.UUID, from, to *time.Time, page, limit int) ([]api.AttendanceLogRecord, int64, error) {
-	db, err := r.attendanceDB(ctx, ws)
+	db, err := r.attendanceDB(ctx)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -287,7 +287,7 @@ func (r AttendanceRepository) ListAttendanceLogs(ctx context.Context, ws uuid.UU
 
 // ListRawAttendanceLogs returns paginated raw punches joined with employee identity.
 func (r AttendanceRepository) ListRawAttendanceLogs(ctx context.Context, ws uuid.UUID, employee *uuid.UUID, from, to *time.Time, page, limit int) ([]api.RawAttendanceLogRecord, int64, error) {
-	db, err := r.attendanceDB(ctx, ws)
+	db, err := r.attendanceDB(ctx)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -322,7 +322,7 @@ func (r AttendanceRepository) ListRawAttendanceLogs(ctx context.Context, ws uuid
 
 // ListStagingLogs returns open staging logs (pending and ambiguous).
 func (r AttendanceRepository) ListStagingLogs(ctx context.Context, ws uuid.UUID, page, limit int) ([]api.AttendanceStagingLog, int64, error) {
-	db, err := r.attendanceDB(ctx, ws)
+	db, err := r.attendanceDB(ctx)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -400,7 +400,7 @@ func (r AttendanceRepository) ResolveStagingLog(ctx context.Context, ws, id, emp
 
 // DismissStagingLog marks an open staging entry dismissed.
 func (r AttendanceRepository) DismissStagingLog(ctx context.Context, ws, id uuid.UUID) (bool, error) {
-	db, err := r.attendanceDB(ctx, ws)
+	db, err := r.attendanceDB(ctx)
 	if err != nil {
 		return false, err
 	}
@@ -410,7 +410,7 @@ func (r AttendanceRepository) DismissStagingLog(ctx context.Context, ws, id uuid
 
 // EnterPaperOT upserts a paper-form OT claim against the active employment.
 func (r AttendanceRepository) EnterPaperOT(ctx context.Context, ws, employee uuid.UUID, req api.PaperOTRequest, user uuid.UUID) (api.AttendanceDailySummary, error) {
-	db, err := r.attendanceDB(ctx, ws)
+	db, err := r.attendanceDB(ctx)
 	if err != nil {
 		return api.AttendanceDailySummary{}, err
 	}
@@ -454,7 +454,7 @@ func upsertPaperOT(ctx context.Context, db DBTX, ws, employmentID uuid.UUID, req
 // BulkPaperOT applies each CSV row independently and reports per-row failures.
 func (r AttendanceRepository) BulkPaperOT(ctx context.Context, ws uuid.UUID, rows []api.BulkPaperOTRow, user uuid.UUID) api.BulkPaperOTResult {
 	result := api.BulkPaperOTResult{TotalRows: len(rows), Errors: make([]api.BulkOTError, 0)}
-	db, err := r.attendanceDB(ctx, ws)
+	db, err := r.attendanceDB(ctx)
 	if err != nil {
 		result.FailedCount = len(rows)
 		for _, row := range rows {
