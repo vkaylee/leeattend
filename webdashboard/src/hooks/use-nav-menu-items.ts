@@ -27,6 +27,7 @@ import {
   Activity,
   Zap,
   Mail,
+  ShieldCheck,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
@@ -146,6 +147,8 @@ export function useNavMenuItems(): NavMenuStructure {
       label: t("common.sections.system"),
       testId: "sidebar-section-system",
       items: [
+        { to: ROUTES.SYSTEM_TENANTS, icon: Building2, label: t("system_admin.tenants.title", "Tenants"), testId: "sidebar-link-system-tenants", systemRoles: ["platform_admin"] },
+        { to: ROUTES.SYSTEM_ROLES, icon: ShieldCheck, label: t("system_roles.title", "System Roles"), testId: "sidebar-link-system-roles", systemRoles: ["platform_admin"] },
         { to: ROUTES.SYSTEM_SMTP, icon: Mail, label: t("smtp.title", "SMTP Settings"), testId: "sidebar-link-system-smtp", systemRoles: ["platform_admin"] },
       ],
     },

@@ -30,6 +30,112 @@ export async function setupApiMocks(page: Page) {
     ],
     collapsed_sections: { summary: false, charts: false, actions: true },
   };
+  const executiveOverview = {
+    contract_version: "executive-dashboard.v1",
+    workspace: { timezone: "Asia/Ho_Chi_Minh", currency: "VND" },
+    context: {
+      period: {
+        key: "this_month",
+        start_date: "2026-01-01",
+        end_date: "2026-01-31",
+        timezone: "Asia/Ho_Chi_Minh",
+        as_of: "2026-01-31T00:00:00Z",
+      },
+      comparison: "previous_period",
+      filters: {},
+      scope: { kind: "workspace", department_ids: [], location_ids: [], omitted_dimensions: [] },
+    },
+    metrics: [{
+      key: "system_ot_hours",
+      value: 5.5,
+      unit: "hours",
+      numerator: null,
+      denominator: null,
+      status: "available",
+      health: "ok",
+      null_reason: null,
+      definition_version: "1",
+      direction: "neutral",
+      freshness: { as_of: "2026-01-31T00:00:00Z", lag_seconds: 0 },
+      quality_flags: [],
+      comparison: {
+        basis: "none",
+        period_start: "2026-01-01",
+        period_end: "2026-01-31",
+        value: null,
+        delta: null,
+        delta_percent: null,
+        delta_percentage_points: null,
+        status: "not_applicable",
+      },
+      target: null,
+    }, {
+      key: "approved_ot_hours",
+      value: 4,
+      unit: "hours",
+      numerator: null,
+      denominator: null,
+      status: "available",
+      health: "ok",
+      null_reason: null,
+      definition_version: "1",
+      direction: "neutral",
+      freshness: { as_of: "2026-01-31T00:00:00Z", lag_seconds: 0 },
+      quality_flags: [],
+      comparison: null,
+      target: null,
+    }, {
+      key: "unapproved_ot_hours",
+      value: 1.5,
+      unit: "hours",
+      numerator: null,
+      denominator: null,
+      status: "available",
+      health: "ok",
+      null_reason: null,
+      definition_version: "1",
+      direction: "neutral",
+      freshness: { as_of: "2026-01-31T00:00:00Z", lag_seconds: 0 },
+      quality_flags: [],
+      comparison: null,
+      target: null,
+    }],
+    insights: [],
+    actions: { total: 0, overdue: 0, by_type: [] },
+    data_quality: { status: "complete", sources: [] },
+    generated_at: "2026-01-31T00:00:00Z",
+  };
+  const recruitmentEffectiveness = {
+    period_start: "2026-01-01",
+    period_end: "2026-01-31",
+    total_hires: 1,
+    overview: {
+      hires: 1,
+      average_cost_per_hire: "500000",
+      cost_available: true,
+      retained_90d: 1,
+      retention_90d: "100",
+      turnover_in_range: 0,
+      comparison_hires: 1,
+      comparison_hires_delta: 0,
+    },
+    funnel: [],
+    by_source: [{
+      source_id: "source-1",
+      source_type: "referral",
+      source_name: "Referral",
+      hires: 1,
+      hires_ratio: "100",
+      retained_90d: 1,
+      retention_90d: "100",
+      cost_per_hire: "500000",
+      cost_per_hire_available: true,
+      turnover_in_range: 0,
+    }],
+    hires_trend: [{ month: "2026-01-01", hires: 1 }],
+    data_gaps: [],
+    warnings: [],
+  };
 
   // Chặn các request gọi đến Backend API (/api/...)
   // Loại trừ các file tĩnh (.ts, .js, .css, .jsx, .tsx) của Vite
@@ -104,7 +210,15 @@ export async function setupApiMocks(page: Page) {
       });
     }
 
-    // 3. Workspaces
+    if (pathname === '/api/v1') {
+      if (method === 'GET') return fulfill(activeWorkspace);
+      if (method === 'PATCH' || method === 'PUT') {
+        const body = JSON.parse(route.request().postData() ?? '{}');
+        activeWorkspace = { ...activeWorkspace, ...body };
+        return fulfill(activeWorkspace);
+      }
+    }
+
     if (pathname === '/api/workspaces' || pathname === '/api/workspaces/') {
       if (method === 'GET') return fulfill([activeWorkspace]);
       if (method === 'POST') return fulfill(activeWorkspace, 201);
@@ -206,6 +320,60 @@ export async function setupApiMocks(page: Page) {
         late_rate: { value: "9.1", numerator: 2, denominator: 22, unit: "employees" },
       }]);
     }
+    if (/\/api\/dashboard\/overtime-breakdown/.exec(pathname)) {
+      return fulfill({
+        contract_version: "overtime-breakdown.v1",
+        workspace: { timezone: "Asia/Ho_Chi_Minh", currency: "VND" },
+        rows: [{
+          department_id: "dept-1",
+          department_name: "Kỹ thuật",
+          system_ot_hours: 5.5,
+          approved_ot_hours: 4,
+          unapproved_ot_hours: 1.5,
+          overtime_cost: "500000",
+          cost_available: true,
+        }],
+        generated_at: "2026-01-31T00:00:00Z",
+      });
+    }
+
+    if (pathname === '/api/employers' && method === 'GET') {
+      return fulfill({ data: [], total: 0, page: 1, limit: 50 });
+    }
+
+    if (pathname === '/api/reports/attendance' && method === 'GET') {
+      return fulfill({ data: [], total: 0, page: 1, limit: 50 });
+    }
+
+    if (pathname === '/api/reports/export' && method === 'POST') {
+      exportJobCalls = 0;
+      return fulfill({ job_id: "job-mock-123", total_batches: 5 }, 201);
+    }
+
+    if (/^\/api\/reports\/jobs\/[^/]+$/.exec(pathname) && method === 'GET') {
+      exportJobCalls++;
+      return fulfill({
+        job_id: "job-mock-123",
+        status: exportJobCalls < 3 ? "processing" : "completed",
+        progress: {
+          total_batches: 5,
+          completed_batches: exportJobCalls < 3 ? exportJobCalls * 2 : 5,
+          failed_batches: 0,
+          percentage: exportJobCalls < 3 ? (exportJobCalls * 2 / 5) * 100 : 100,
+        },
+        created_at: new Date().toISOString(),
+      });
+    }
+
+    if (/^\/api\/reports\/jobs\/[^/]+\/download$/.exec(pathname) && method === 'GET') {
+      return route.fulfill({ status: 200, contentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', body: 'mock-file-content' });
+    }
+
+    if (pathname === '/api/employers' && ['POST', 'PUT', 'DELETE'].includes(method)) {
+      return fulfill({ error: "unhandled endpoint" }, 404);
+    }
+
+    // 7. Dashboard Stats & Trends
 
     if (/\/api\/dashboard\/unexcused-absences/.exec(pathname)) {
       return fulfill([]);
@@ -255,6 +423,13 @@ export async function setupApiMocks(page: Page) {
         tenure_distribution: [{ bucket: "0-1 year", count: 1 }],
         total_terminated: 1,
       });
+    }
+    if (/\/api\/dashboard\/executive-overview/.exec(pathname)) {
+      return fulfill(executiveOverview);
+    }
+
+    if (/\/api\/dashboard\/recruitment-effectiveness/.exec(pathname)) {
+      return fulfill(recruitmentEffectiveness);
     }
 
     if (/\/api\/dashboard\/preferences/.exec(pathname)) {

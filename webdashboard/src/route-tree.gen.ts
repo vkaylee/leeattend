@@ -52,6 +52,7 @@ import { Route as AuthenticatedWorkspaceEssAttendanceRouteImport } from "./route
 import { Route as AuthenticatedWorkspaceDocumentsTemplatesRouteImport } from "./routes/_authenticated/_workspace/documents.templates"
 import { Route as AuthenticatedWorkspaceAssignmentRulesNewRouteImport } from "./routes/_authenticated/_workspace/assignment-rules.new"
 import { Route as AuthenticatedWorkspaceApprovalsOtRouteImport } from "./routes/_authenticated/_workspace/approvals/ot"
+import { Route as AuthenticatedInfraSystemTenantsRouteImport } from "./routes/_authenticated/_infra/system/tenants"
 import { Route as AuthenticatedInfraSystemSmtpRouteImport } from "./routes/_authenticated/_infra/system/smtp"
 import { Route as AuthenticatedInfraSystemRolesRouteImport } from "./routes/_authenticated/_infra/system/roles"
 import { Route as AuthenticatedInfraInfraMonitorRouteImport } from "./routes/_authenticated/_infra/infra/monitor"
@@ -463,6 +464,16 @@ const AuthenticatedWorkspaceApprovalsOtRoute =
       (d) => d.Route,
     ),
   )
+const AuthenticatedInfraSystemTenantsRoute =
+  AuthenticatedInfraSystemTenantsRouteImport.update({
+    id: "/system/tenants",
+    path: "/system/tenants",
+    getParentRoute: () => AuthenticatedInfraRoute,
+  } as any).lazy(() =>
+    import("./routes/_authenticated/_infra/system/tenants.lazy").then(
+      (d) => d.Route,
+    ),
+  )
 const AuthenticatedInfraSystemSmtpRoute =
   AuthenticatedInfraSystemSmtpRouteImport.update({
     id: "/system/smtp",
@@ -832,6 +843,7 @@ export interface FileRoutesByFullPath {
   "/infra/monitor": typeof AuthenticatedInfraInfraMonitorRoute
   "/system/roles": typeof AuthenticatedInfraSystemRolesRoute
   "/system/smtp": typeof AuthenticatedInfraSystemSmtpRoute
+  "/system/tenants": typeof AuthenticatedInfraSystemTenantsRoute
   "/approvals/ot": typeof AuthenticatedWorkspaceApprovalsOtRoute
   "/assignment-rules/new": typeof AuthenticatedWorkspaceAssignmentRulesNewRoute
   "/documents/templates": typeof AuthenticatedWorkspaceDocumentsTemplatesRoute
@@ -905,6 +917,7 @@ export interface FileRoutesByTo {
   "/infra/monitor": typeof AuthenticatedInfraInfraMonitorRoute
   "/system/roles": typeof AuthenticatedInfraSystemRolesRoute
   "/system/smtp": typeof AuthenticatedInfraSystemSmtpRoute
+  "/system/tenants": typeof AuthenticatedInfraSystemTenantsRoute
   "/approvals/ot": typeof AuthenticatedWorkspaceApprovalsOtRoute
   "/assignment-rules/new": typeof AuthenticatedWorkspaceAssignmentRulesNewRoute
   "/documents/templates": typeof AuthenticatedWorkspaceDocumentsTemplatesRoute
@@ -982,6 +995,7 @@ export interface FileRoutesById {
   "/_authenticated/_infra/infra/monitor": typeof AuthenticatedInfraInfraMonitorRoute
   "/_authenticated/_infra/system/roles": typeof AuthenticatedInfraSystemRolesRoute
   "/_authenticated/_infra/system/smtp": typeof AuthenticatedInfraSystemSmtpRoute
+  "/_authenticated/_infra/system/tenants": typeof AuthenticatedInfraSystemTenantsRoute
   "/_authenticated/_workspace/approvals/ot": typeof AuthenticatedWorkspaceApprovalsOtRoute
   "/_authenticated/_workspace/assignment-rules/new": typeof AuthenticatedWorkspaceAssignmentRulesNewRoute
   "/_authenticated/_workspace/documents/templates": typeof AuthenticatedWorkspaceDocumentsTemplatesRoute
@@ -1060,6 +1074,7 @@ export interface FileRouteTypes {
     | "/infra/monitor"
     | "/system/roles"
     | "/system/smtp"
+    | "/system/tenants"
     | "/approvals/ot"
     | "/assignment-rules/new"
     | "/documents/templates"
@@ -1133,6 +1148,7 @@ export interface FileRouteTypes {
     | "/infra/monitor"
     | "/system/roles"
     | "/system/smtp"
+    | "/system/tenants"
     | "/approvals/ot"
     | "/assignment-rules/new"
     | "/documents/templates"
@@ -1209,6 +1225,7 @@ export interface FileRouteTypes {
     | "/_authenticated/_infra/infra/monitor"
     | "/_authenticated/_infra/system/roles"
     | "/_authenticated/_infra/system/smtp"
+    | "/_authenticated/_infra/system/tenants"
     | "/_authenticated/_workspace/approvals/ot"
     | "/_authenticated/_workspace/assignment-rules/new"
     | "/_authenticated/_workspace/documents/templates"
@@ -1570,6 +1587,13 @@ declare module "@tanstack/react-router" {
       preLoaderRoute: typeof AuthenticatedWorkspaceApprovalsOtRouteImport
       parentRoute: typeof AuthenticatedWorkspaceRoute
     }
+    "/_authenticated/_infra/system/tenants": {
+      id: "/_authenticated/_infra/system/tenants"
+      path: "/system/tenants"
+      fullPath: "/system/tenants"
+      preLoaderRoute: typeof AuthenticatedInfraSystemTenantsRouteImport
+      parentRoute: typeof AuthenticatedInfraRoute
+    }
     "/_authenticated/_infra/system/smtp": {
       id: "/_authenticated/_infra/system/smtp"
       path: "/system/smtp"
@@ -1815,12 +1839,14 @@ interface AuthenticatedInfraRouteChildren {
   AuthenticatedInfraInfraMonitorRoute: typeof AuthenticatedInfraInfraMonitorRoute
   AuthenticatedInfraSystemRolesRoute: typeof AuthenticatedInfraSystemRolesRoute
   AuthenticatedInfraSystemSmtpRoute: typeof AuthenticatedInfraSystemSmtpRoute
+  AuthenticatedInfraSystemTenantsRoute: typeof AuthenticatedInfraSystemTenantsRoute
 }
 
 const AuthenticatedInfraRouteChildren: AuthenticatedInfraRouteChildren = {
   AuthenticatedInfraInfraMonitorRoute: AuthenticatedInfraInfraMonitorRoute,
   AuthenticatedInfraSystemRolesRoute: AuthenticatedInfraSystemRolesRoute,
   AuthenticatedInfraSystemSmtpRoute: AuthenticatedInfraSystemSmtpRoute,
+  AuthenticatedInfraSystemTenantsRoute: AuthenticatedInfraSystemTenantsRoute,
 }
 
 const AuthenticatedInfraRouteWithChildren =

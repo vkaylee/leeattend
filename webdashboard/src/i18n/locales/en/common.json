@@ -1134,7 +1134,11 @@
         "submit_btn": "Assign Role"
       },
       "no_users": "No users assigned to this role.",
-      "revoke_role": "Revoke role",
+      "roles": "System Roles",
+      "tenants": "Tenants",
+      "tenants_subtitle": "Manage platform workspaces and tenant database mode.",
+      "tenants_empty": "No tenants found.",
+      "tenants_error": "Unable to load tenants.",
       "subtitle": "Manage system-level roles that bypass workspace boundaries",
       "system_label": "System",
       "title": "Platform Administrators",

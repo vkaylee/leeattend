@@ -69,8 +69,21 @@ function GeneralSettingsContent({ workspace }: { workspace: Workspace }) {
 
   const updateWsMutation = useMutation({
     mutationFn: (data: Partial<Workspace>) => updateWorkspace(wsId, data),
-    onSuccess: () => {
+    onMutate: async (data) => {
+      const queryKey = ["workspace", wsId];
+      await queryClient.cancelQueries({ queryKey: ["workspace"] });
+      const previousWorkspace = queryClient.getQueryData<Workspace>(queryKey);
+      const mergeWorkspace = (current: Workspace | undefined): Workspace => ({ ...current, ...data } as Workspace);
+      queryClient.setQueriesData<Workspace>({ queryKey: ["workspace"] }, mergeWorkspace);
+      return { previousWorkspace };
+    },
+    onError: (_error, _data, context) => {
+      queryClient.setQueryData(["workspace", wsId], context?.previousWorkspace);
+    },
+    onSuccess: (updatedWorkspace, data) => {
       toast.success(t("common.success"));
+      const mergeWorkspace = (current: Workspace | undefined): Workspace => ({ ...current, ...data, ...updatedWorkspace } as Workspace);
+      queryClient.setQueriesData<Workspace>({ queryKey: ["workspace"] }, mergeWorkspace);
       void queryClient.invalidateQueries({ queryKey: ["workspace", wsId] });
       void queryClient.invalidateQueries({ queryKey: ["workspaces"] });
     },

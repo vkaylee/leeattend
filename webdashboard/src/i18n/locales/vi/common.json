@@ -1135,7 +1135,11 @@
         "submit_btn": "Gán Vai trò"
       },
       "no_users": "Chưa có người dùng nào được gán vai trò này.",
-      "revoke_role": "Thu hồi vai trò",
+      "roles": "Vai trò hệ thống",
+      "tenants": "Workspace",
+      "tenants_subtitle": "Quản lý workspace nền tảng và chế độ cơ sở dữ liệu tenant.",
+      "tenants_empty": "Chưa có workspace nào.",
+      "tenants_error": "Không thể tải danh sách workspace.",
       "subtitle": "Quản lý các vai trò cấp hệ thống vượt qua ranh giới workspace",
       "system_label": "Hệ thống",
       "title": "Quản trị viên Nền tảng",

@@ -1135,7 +1135,11 @@
         "submit_btn": "分配角色"
       },
       "no_users": "尚未为该角色分配用户。",
-      "revoke_role": "撤销角色",
+      "roles": "系统角色",
+      "tenants": "工作区",
+      "tenants_subtitle": "管理平台工作区和租户数据库模式。",
+      "tenants_empty": "暂无工作区。",
+      "tenants_error": "无法加载工作区。",
       "subtitle": "管理跨越工作区边界的系统级角色",
       "system_label": "系统",
       "title": "平台管理员",

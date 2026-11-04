@@ -5,9 +5,15 @@ import { client, fetch } from "./client";
 export type SystemRoleAssignment = components["schemas"]["SystemRoleAssignment"];
 export type SystemRoleInfo = components["schemas"]["SystemRoleInfo"];
 export type AssignSystemRoleRequest = components["schemas"]["AssignSystemRoleRequest"];
+export type SystemTenant = components["schemas"]["SystemTenantResponse"];
 
 export async function fetchSystemRoles(): Promise<SystemRoleInfo[]> {
   const { data: resData } = await client.GET("/system/roles");
+  return resData;
+}
+
+export async function fetchSystemTenants(): Promise<SystemTenant[]> {
+  const { data: resData } = await client.GET("/system/tenants");
   return resData;
 }
 
@@ -28,7 +34,7 @@ export async function assignSystemRole(userId: string, request: AssignSystemRole
 
 export async function revokeSystemRole(userId: string, roleName: string): Promise<void> {
   await client.DELETE("/system/users/{user_id}/roles/{role_name}", {
-    params: { path: { user_id: userId, role_name: roleName } }
+    params: { path: { user_id: userId, role_name: roleName } },
   });
 }
 
@@ -36,4 +42,3 @@ export async function fetchSystemHealth(): Promise<unknown> {
   const { data: resData } = await client.GET("/system/health");
   return resData;
 }
-

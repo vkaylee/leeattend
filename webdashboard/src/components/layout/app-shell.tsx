@@ -5,6 +5,7 @@ import { ErrorBoundary } from "@/components/common/error-boundary";
 import { HeaderActionsProvider } from "@/hooks/use-header-actions";
 import { useI18nSync } from "@/hooks/use-i18n-sync";
 import { useNavSidebar } from "@/hooks/use-nav-sidebar";
+import { useWorkspace } from "@/hooks/use-workspace";
 import { useNotifications } from "@/hooks/use-notifications";
 import { cn } from "@/lib/utils";
 
@@ -24,6 +25,7 @@ export default function AppShell({ variant: _variant }: AppShellProps) {
   useTheme();
   useI18nSync();
   const location = useLocation();
+  const { workspace: currentWorkspace } = useWorkspace();
   const { unreadCount } = useNotifications();
 
   const {
@@ -68,9 +70,9 @@ export default function AppShell({ variant: _variant }: AppShellProps) {
         onClickGroup={handleGroupClick}
         onHoverGroup={handleGroupHover}
         onTogglePin={togglePin}
-        workspaceLogoUrl={undefined}
-        workspaceName="LeeAttend"
-        workspaceTagline={undefined}
+        workspaceLogoUrl={currentWorkspace?.logo_url ?? undefined}
+        workspaceName={currentWorkspace?.name ?? "LeeAttend"}
+        workspaceTagline={currentWorkspace?.tagline ?? undefined}
       />
 
       {/* Desktop: Floating Panel */}
@@ -94,10 +96,10 @@ export default function AppShell({ variant: _variant }: AppShellProps) {
             : "lg:ml-[var(--nav-rail-width)]",
         )}
       >
-        <Navbar
-          currentWorkspaceName="LeeAttend"
-        />
 
+        <Navbar
+          currentWorkspaceName={currentWorkspace?.name ?? "Workspace"}
+        />
         <main
           data-app-scroll-container
           className={cn(
