@@ -15,15 +15,15 @@ type EmployeeRepository struct {
 	DB DBTX
 }
 
-func (r EmployeeRepository) db(ctx context.Context, workspaceID uuid.UUID) (DBTX, error) {
+func (r EmployeeRepository) db(ctx context.Context) (DBTX, error) {
 	if r.DB == nil {
-		return nil, errors.New("employee repository: tenant database is not configured")
+		return nil, errors.New("employee repository: database is not configured")
 	}
 	return r.DB, nil
 }
 
 func (r EmployeeRepository) CreateEmployee(ctx context.Context, workspaceID uuid.UUID, req api.CreateEmployeeRequest) (api.EmployeeRecord, error) {
-	db, err := r.db(ctx, workspaceID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return api.EmployeeRecord{}, err
 	}
@@ -36,7 +36,7 @@ func (r EmployeeRepository) CreateEmployee(ctx context.Context, workspaceID uuid
 }
 
 func (r EmployeeRepository) ListEmployees(ctx context.Context, workspaceID uuid.UUID, page, limit int, search string) (api.EmployeeListResponse, error) {
-	db, err := r.db(ctx, workspaceID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return api.EmployeeListResponse{}, err
 	}
@@ -65,7 +65,7 @@ func (r EmployeeRepository) ListEmployees(ctx context.Context, workspaceID uuid.
 }
 
 func (r EmployeeRepository) GetEmployee(ctx context.Context, workspaceID, employeeID uuid.UUID) (api.EmployeeRecord, error) {
-	db, err := r.db(ctx, workspaceID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return api.EmployeeRecord{}, err
 	}
@@ -79,7 +79,7 @@ func (r EmployeeRepository) GetEmployee(ctx context.Context, workspaceID, employ
 }
 
 func (r EmployeeRepository) UpdateEmployee(ctx context.Context, workspaceID, employeeID uuid.UUID, req api.UpdateEmployeeRequest) (api.EmployeeRecord, error) {
-	db, err := r.db(ctx, workspaceID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return api.EmployeeRecord{}, err
 	}
@@ -124,7 +124,7 @@ func (r EmployeeRepository) UpdateEmployee(ctx context.Context, workspaceID, emp
 }
 
 func (r EmployeeRepository) SoftDeleteEmployee(ctx context.Context, workspaceID, employeeID uuid.UUID) error {
-	db, err := r.db(ctx, workspaceID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return err
 	}
@@ -139,7 +139,7 @@ func (r EmployeeRepository) SoftDeleteEmployee(ctx context.Context, workspaceID,
 }
 
 func (r EmployeeRepository) RehireEmployee(ctx context.Context, workspaceID, employeeID uuid.UUID, _ api.RehireEmployeeRequest) (api.EmployeeRecord, error) {
-	db, err := r.db(ctx, workspaceID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return api.EmployeeRecord{}, err
 	}

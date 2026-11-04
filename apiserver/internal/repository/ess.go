@@ -16,9 +16,9 @@ type ESSRepository struct {
 	BeginTx func(context.Context, uuid.UUID) (TxBeginner, error)
 }
 
-func (r ESSRepository) db(ctx context.Context, workspaceID uuid.UUID) (DBTX, error) {
+func (r ESSRepository) db(ctx context.Context) (DBTX, error) {
 	if r.DB == nil {
-		return nil, errors.New("ess repository: tenant database is not configured")
+		return nil, errors.New("ess repository: database is not configured")
 	}
 	return r.DB, nil
 }
@@ -27,7 +27,7 @@ func (r ESSRepository) begin(ctx context.Context, workspaceID uuid.UUID) (TxBegi
 	if r.BeginTx != nil {
 		return r.BeginTx(ctx, workspaceID)
 	}
-	db, err := r.db(ctx, workspaceID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -39,7 +39,7 @@ func (r ESSRepository) begin(ctx context.Context, workspaceID uuid.UUID) (TxBegi
 }
 
 func (r ESSRepository) ResolveEmployeeForUser(ctx context.Context, workspaceID, userID uuid.UUID) (uuid.UUID, error) {
-	db, err := r.db(ctx, workspaceID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return uuid.Nil, err
 	}
@@ -52,7 +52,7 @@ func (r ESSRepository) ResolveEmployeeForUser(ctx context.Context, workspaceID, 
 }
 
 func (r ESSRepository) GetMyProfile(ctx context.Context, workspaceID, employeeID uuid.UUID) (api.MyProfileResponse, error) {
-	db, err := r.db(ctx, workspaceID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return api.MyProfileResponse{}, err
 	}
@@ -97,7 +97,7 @@ func (r ESSRepository) GetMyProfile(ctx context.Context, workspaceID, employeeID
 }
 
 func (r ESSRepository) UpsertProfile(ctx context.Context, workspaceID, employeeID uuid.UUID, req api.UpdateEmployeeProfileRequest) (api.EmployeeProfileRecord, error) {
-	db, err := r.db(ctx, workspaceID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return api.EmployeeProfileRecord{}, err
 	}
@@ -115,7 +115,7 @@ func (r ESSRepository) UpsertProfile(ctx context.Context, workspaceID, employeeI
 }
 
 func (r ESSRepository) GetEmergencyContacts(ctx context.Context, workspaceID, employeeID uuid.UUID) ([]api.EmployeeEmergencyContactRecord, error) {
-	db, err := r.db(ctx, workspaceID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -165,7 +165,7 @@ func (r ESSRepository) AddEmergencyContact(ctx context.Context, workspaceID, emp
 }
 
 func (r ESSRepository) DeleteEmergencyContact(ctx context.Context, workspaceID, employeeID, contactID uuid.UUID) error {
-	db, err := r.db(ctx, workspaceID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return err
 	}
@@ -180,7 +180,7 @@ func (r ESSRepository) DeleteEmergencyContact(ctx context.Context, workspaceID, 
 }
 
 func (r ESSRepository) GetPendingDocuments(ctx context.Context, workspaceID, employeeID uuid.UUID) ([]api.AcknowledgementRecord, error) {
-	db, err := r.db(ctx, workspaceID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -201,7 +201,7 @@ func (r ESSRepository) GetPendingDocuments(ctx context.Context, workspaceID, emp
 }
 
 func (r ESSRepository) AcknowledgeDocument(ctx context.Context, workspaceID, employeeID, docID uuid.UUID) error {
-	db, err := r.db(ctx, workspaceID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return err
 	}
@@ -210,7 +210,7 @@ func (r ESSRepository) AcknowledgeDocument(ctx context.Context, workspaceID, emp
 }
 
 func (r ESSRepository) GetEmployeeDocuments(ctx context.Context, workspaceID, employeeID uuid.UUID) ([]api.EmployeeDocumentRecord, error) {
-	db, err := r.db(ctx, workspaceID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return nil, err
 	}

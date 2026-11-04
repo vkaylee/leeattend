@@ -16,9 +16,9 @@ type EmployerRepository struct {
 	DB DBTX
 }
 
-func (r EmployerRepository) db(ctx context.Context, workspaceID uuid.UUID) (DBTX, error) {
+func (r EmployerRepository) db(ctx context.Context) (DBTX, error) {
 	if r.DB == nil {
-		return nil, errors.New("employer repository: tenant database is not configured")
+		return nil, errors.New("employer repository: database is not configured")
 	}
 	return r.DB, nil
 }
@@ -41,7 +41,7 @@ func scanEmployer(row interface{ Scan(...any) error }) (api.Employer, error) {
 }
 
 func (r EmployerRepository) ListEmployers(ctx context.Context, workspaceID uuid.UUID, page, limit int) (api.EmployerListResponse, error) {
-	db, err := r.db(ctx, workspaceID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return api.EmployerListResponse{}, err
 	}
@@ -65,7 +65,7 @@ func (r EmployerRepository) ListEmployers(ctx context.Context, workspaceID uuid.
 }
 
 func (r EmployerRepository) CreateEmployer(ctx context.Context, workspaceID uuid.UUID, req api.CreateEmployerRequest) (api.Employer, error) {
-	db, err := r.db(ctx, workspaceID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return api.Employer{}, err
 	}
@@ -79,7 +79,7 @@ func (r EmployerRepository) CreateEmployer(ctx context.Context, workspaceID uuid
 }
 
 func (r EmployerRepository) GetEmployer(ctx context.Context, workspaceID, id uuid.UUID) (api.Employer, error) {
-	db, err := r.db(ctx, workspaceID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return api.Employer{}, err
 	}
@@ -91,7 +91,7 @@ func (r EmployerRepository) GetEmployer(ctx context.Context, workspaceID, id uui
 }
 
 func (r EmployerRepository) UpdateEmployer(ctx context.Context, workspaceID, id uuid.UUID, req api.UpdateEmployerRequest) (api.Employer, error) {
-	db, err := r.db(ctx, workspaceID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return api.Employer{}, err
 	}
@@ -158,7 +158,7 @@ func (r EmployerRepository) UpdateEmployer(ctx context.Context, workspaceID, id 
 }
 
 func (r EmployerRepository) DeleteEmployer(ctx context.Context, workspaceID, id uuid.UUID) error {
-	db, err := r.db(ctx, workspaceID)
+	db, err := r.db(ctx)
 	if err != nil {
 		return err
 	}
