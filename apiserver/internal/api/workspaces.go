@@ -478,6 +478,11 @@ func (h WorkspaceHandler) writeRepositoryError(w http.ResponseWriter, r *http.Re
 }
 
 func pathUUID(r *http.Request, key string) (uuid.UUID, bool) {
+	if key == "ws_id" {
+		if id, ok := httpinfra.WorkspaceIDFromContext(r.Context()); ok && id != uuid.Nil {
+			return id, true
+		}
+	}
 	id, err := uuid.Parse(r.PathValue(key))
 	return id, err == nil
 }

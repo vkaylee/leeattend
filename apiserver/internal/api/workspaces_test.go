@@ -72,6 +72,30 @@ func (m mockWorkspaceRepo) DeleteConfig(_ context.Context, _ uuid.UUID, _ uuid.U
 	return nil
 }
 
+func TestPathUUID_PrefersResolvedWorkspaceContext(t *testing.T) {
+	resolvedID := uuid.New()
+	pathID := uuid.New()
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/workspaces/"+pathID.String(), nil)
+	req.SetPathValue("ws_id", pathID.String())
+	req = req.WithContext(httpinfra.WithWorkspaceIDForTest(req.Context(), resolvedID))
+
+	got, ok := pathUUID(req, "ws_id")
+	if !ok || got != resolvedID {
+		t.Fatalf("expected resolved workspace %s, got %s (ok=%v)", resolvedID, got, ok)
+	}
+}
+
+func TestPathUUID_FallsBackToPathValue(t *testing.T) {
+	pathID := uuid.New()
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/workspaces/"+pathID.String(), nil)
+	req.SetPathValue("ws_id", pathID.String())
+
+	got, ok := pathUUID(req, "ws_id")
+	if !ok || got != pathID {
+		t.Fatalf("expected path workspace %s, got %s (ok=%v)", pathID, got, ok)
+	}
+}
+
 func TestWorkspaceHandler_PatchEmptyPayloadFailsValidation(t *testing.T) {
 	wsID, userID := uuid.New(), uuid.New()
 	h := WorkspaceHandler{Repository: mockWorkspaceRepo{}, Authorizer: mockAuthorizer{perms: map[string]bool{"workspace:settings:write": true}}}
