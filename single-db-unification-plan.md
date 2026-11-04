@@ -25,6 +25,8 @@ Baseline safety constraints: only `apiserver/migrations/20261103000000_init/` ex
 - Verification: `./leedevkit test api` passed; `git diff --check` passed.
 - Completed fourth reversible backend slice: `AssignmentHistoryRepository.db` no longer accepts an unused workspace argument and now reports generic database configuration failure; history SQL and the public workspace-scoped method remain unchanged.
 - Verification: `./leedevkit test api` passed; `git diff --check` passed.
+- Completed fifth reversible backend slice: `EmployeeAssignmentRepository` and `AssignmentRuleRepository` database helpers no longer accept unused workspace arguments and now report generic database configuration failures; all public methods, workspace arguments, and SQL predicates remain unchanged.
+- Verification: `./leedevkit test api` passed; `git diff --check` passed.
 
 ## Ordered work
 
