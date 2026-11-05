@@ -7,9 +7,9 @@ trigger: always_on
 > 🔴 **MANDATORY:** You MUST read and understand this document in its entirety before taking any action. This is the supreme law of this workspace.
 
 <project_soul>
-**LeeAttend** is an Enterprise-Grade Premium Pro Max HRM & Attendance system. 
-- **Architecture:** Zero-compromise Rust/Axum backend + React/TS SPA frontend.
-- **Quality:** No MVP code. UI must feature premium micro-interactions, skeletons, and flawless i18n. Backend must have zero N+1 queries, strict transaction boundaries, and explicit AppError handling.
+**LeeAttend** is an Enterprise-Grade Premium Pro Max HRM & Attendance system.
+- **Architecture:** Go 1.26+ `net/http` API backend + React/Vite/TypeScript SPA frontend.
+- **Runtime:** PostgreSQL, Redis, and MinIO support the Go API and React dashboard. Rust is historical migration context only, not an active LeeAttend runtime component.
 - **Security:** Total PII masking. Zero hardcoded secrets. Strict Hermetic containerized execution.
 - **Mindset:** Project Context is King. External skills serve the project, not the other way around. Leave the codebase cleaner than you found it (Boy Scout).
 </project_soul>
@@ -96,7 +96,7 @@ To prevent capability limitations, this workspace supports external AI skills:
 ## 🤖 Layer 5: AGENTS & SKILLS (Concurrent Pre-fetching)
 To activate an agent, use the `view_file` tool to load their profile AND their dependencies IN PARALLEL:
 - **Frontend / React / UI:** `@[.agent/agents/frontend-specialist.md]` (Dependencies: `design-rules.md`, `coding-standards.md`)
-- **Backend / Rust / API:** `@[.agent/agents/backend-specialist.md]` (Dependencies: `coding-standards.md`, `database-rules.md`, `access-control.md`, `data-governance.md`)
+- **Backend / Go / API:** `@[.agent/agents/backend-specialist.md]` (Dependencies: `coding-standards.md`, `database-rules.md`, `access-control.md`, `data-governance.md`)
 - **Database / Postgres:** `@[.agent/agents/database-expert.md]` (Dependencies: `database-rules.md`, `data-governance.md`, `encryption-rules.md`)
 - **DevOps / Infra:** `@[.agent/agents/devops-engineer.md]` (Dependencies: `execution-pty-safety.md`, `testing-standards.md`, `observability-rules.md`, `business-continuity.md`, `supply-chain-security.md`)
 - **Security / Audit:** `@[.agent/agents/security-auditor.md]` (Dependencies: `access-control.md`, `encryption-rules.md`, `incident-response.md`, `data-governance.md`)

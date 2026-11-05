@@ -13,23 +13,18 @@ leeattend/
 
 ## Project Components
 
-1.  **apiserver**: Built with **Go** (`net/http`, `pgx/v5`, `sqlc`), responsible for attendance management, log ingestion, and providing API for the Dashboard. Migrated from Rust/Axum in October 2026 — see `docs/migration/rust-go/final-evidence.md`.
-2.  **webdashboard**: Built with **React (Vite)**, a web interface for system management and monitoring.
-3.  **docs**: Detailed guidance and documentation.
+1. **`apiserver`**: Go 1.26+ (`net/http`, `pgx/v5`, `sqlc`) API for attendance, payroll, files, monitoring, and dashboard access.
+2. **`webdashboard`**: React, Vite, and TypeScript web interface for system management and monitoring.
+3. **`docs`**: Detailed guidance and operational documentation. The Rust-to-Go migration record remains under `docs/migration/rust-go/` as historical context only.
 
 
 ## 🤖 For AI Agents & Developers
 
-> [!IMPORTANT]
-> **MANDATORY RULES:** Before running any commands or starting implementation, you MUST read:
-> 👉 **[PROJECT_OS.md](./PROJECT_OS.md)**
->
-> This file contains the mandatory technical protocols, build/test commands (via `test.sh`), and the Definition of Done required for this project.
+> **Current project context:** The active application runtime is Go plus React/Vite/TypeScript. Use `AGENTS.md`, `GEMINI.md`, or `CLAUDE.md` for repository rules; `PROJECT_OS.md` and `manage.sh` are not active LeeAttend entrypoints.
 
 ### Quick Start (Dev Mode)
-To spin up the entire environment with hot-reloading:
 ```bash
-./manage.sh up
+./leedevkit manage up dev
 ```
 
 
@@ -52,26 +47,21 @@ The project uses a highly optimized testing infrastructure designed for speed an
 
 ### Running Tests
 Always use the unified orchestrator:
-- **For Humans**:
+- **For humans:**
   ```bash
-  ./leedevkit test --all             # Run full suite
-  ./leedevkit test --api [pattern]   # Run backend tests (cargo nextest)
-  ./leedevkit test --web [pattern]   # Run frontend & E2E tests (playwright)
+  ./leedevkit test all             # Full Go + web regression suite
+  ./leedevkit test api [--pattern PATTERN]
+  ./leedevkit test web [--pattern PATTERN]
   ```
-- **For AI Agents (IMPORTANT: prevents PTY hangs)**:
-  ```bash
-  ./leedevkit test --all </dev/null             # Run full suite
-  ./leedevkit test --api [pattern] </dev/null   # Run backend tests
-  ./leedevkit test --web [pattern] </dev/null   # Run frontend tests
-  ```
+- **For AI agents:** append `</dev/null` to commands that can block.
 
 ### Key Features
-- **Smart Worker Pool**: High-efficiency orchestrator that strictly respects `NUM_WORKERS` limits (auto-capped at 2 for WSL stability).
-- **Comprehensive Summary Report**: Generates a detailed, colorized report at the end of every run with per-task status and duration.
-- **Cargo Nextest & Go Test Harness**: Isolated test runners for backend Go API and Rust agent tests.
-- **Docker Isolation**: All tests run inside containers. Database is internal (`test_db:5432`) with no host port mapping.
-### ⚠️ WSL Performance Note
-On WSL2, direct test execution (`cargo test`) will likely freeze your system due to Disk I/O issues. **Always use `./leedevkit test`** which runs tests inside Podman containers. AI Agents should append `</dev/null`.
+- **Hermetic Go gates:** formatting, vet, static analysis, vulnerability checks, module verification, and Go tests.
+- **Web gates:** Bun unit tests, TypeScript checks, linting, i18n checks, and Playwright E2E tests.
+- **Docker isolation:** All tests run inside containers with isolated database and dependency volumes.
+
+### WSL Performance Note
+Use `./leedevkit test` instead of direct host dependency commands. The orchestrator runs the Go and web checks inside Podman containers.
 
 ## 📝 Changelog
 See [CHANGELOG.md](./CHANGELOG.md) for version history.

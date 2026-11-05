@@ -24,10 +24,10 @@ Central high-performance API server for LeeAttend, built with Go 1.26+, standard
    ```bash
    go build -o bin/apiserver .
    ```
-### 🏃 Running as Windows Service
+### 🏃 Running as a Windows Service
 
 1. Copy `nssm.exe` to the `apiserver/` directory.
-2. Build the project in release mode: `cargo build --release`.
+2. Build the Go binary: `go build -o bin/apiserver .`.
 3. Right-click `install_service.bat` and select **Run as Administrator**.
 4. The service `LeeAttendAPIServer` will be installed and started.
 5. Logs can be found in `apiserver/logs/`.
@@ -36,19 +36,15 @@ To remove the service, run `uninstall_service.bat` as Administrator.
 
 ### Running the Server
 
-#### Development mode (with auto-reload)
-
-
-
 ```bash
 go run .
 ```
 
-Via devkit orchestrator:
+Via the repository orchestrator:
 ```bash
-./leedevkit test api-go
+./leedevkit test api
 ```
-The server will start at `http://127.0.0.1:3000`.
+The server listens on `http://127.0.0.1:3000` when started directly.
 
 ### API Endpoints
 
@@ -64,19 +60,12 @@ The server will start at `http://127.0.0.1:3000`.
 - **Authentication**: `golang-jwt/jwt/v5` + `argon2id`
 ## 🧪 Testing
 
-The project uses a **Dynamic Test Database** pattern for integration tests to ensure isolation and allow parallel execution.
+Run API unit, integration, lint, and static-analysis gates through the repository orchestrator:
 
-### Prerequisites
-- Postgres server running.
-- `DATABASE_URL_FOR_TEST_GENERATION` environment variable set in `.env.test` pointing to a user with `CREATEDB` permissions.
-
-### Running Tests
 ```bash
-# Run all tests in parallel
-cargo test
-
-# Run a specific test suite
-cargo test --test health_check
+./leedevkit test api
 ```
+
+The test environment runs the Go module under `apiserver/`, applies database fixtures as required, and isolates integration resources in containers.
 
 Integration tests automatically create a fresh database, run migrations, and drop the database after completion.

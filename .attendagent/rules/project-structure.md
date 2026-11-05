@@ -3,10 +3,10 @@
 ## 1. Component Map
 | Component | Language | Path |
 |-----------|----------|------|
-| API Server | Rust (Axum) | `apiserver/` |
+| API Server | Go (`net/http`) | `apiserver/` |
 | Web Dashboard | React + TypeScript | `webdashboard/` |
 | Containers | Compose | `docker-compose*.yml` |
-| Tests | Rust + Playwright | `./leedevkit test` |
+| Tests | Go + Playwright/Bun | `./leedevkit test` |
 
 ## 2. Commit Convention
 Use conventional commits for all changes: 
@@ -18,41 +18,28 @@ Use conventional commits for all changes:
 
 ## 4. Directory Map
 | Directory | Purpose |
-|-----------|---------|
-| `apiserver/src/main.rs` | Entry point, Tokio runtime bootstrap |
-| `apiserver/src/lib.rs` | Crate root, module declarations, crate-level lints |
-| `apiserver/src/routes/` | 18 domain route modules, each exports `pub fn router()` |
-| `apiserver/src/handlers/` | Request handlers with `#[utoipa::path]` + `#[tracing::instrument]` |
-| `apiserver/src/services/` | Business logic layer between handlers and repositories |
-| `apiserver/src/repositories/` | `#[async_trait]` traits + `diesel_*` implementations |
-| `apiserver/src/diesel_pool/` | `DieselPools`, `TenantPoolManager`, connection wrappers |
-| `apiserver/src/models/` | Domain models (private fields), DTOs, `PaginatedResponse<T>` |
-| `apiserver/src/models/diesel/` | Diesel entities: `XxxEntity` with `Queryable/Insertable` |
-| `apiserver/src/errors.rs` | `AppError` enum, `AppResult<T>`, `IntoResponse` impl |
-| `apiserver/src/mw/` | Middleware: `RateLimitLayer`, auth extractors, i18n |
-| `apiserver/src/utils/` | Helpers: `I18nKey`, i18n utilities |
-| `apiserver/migrations/tenant/` | Tenant migrations (`YYYYMMDDHHMMSS_description/up.sql`+`down.sql`) |
-| `apiserver/migrations/system/` | System-wide migrations |
+| `apiserver/main.go` | API entry point and startup |
+| `apiserver/internal/api/` | HTTP handlers and API contracts |
+| `apiserver/internal/service/` | Business logic and orchestration |
+| `apiserver/internal/repository/` | PostgreSQL repositories and SQL access |
+| `apiserver/internal/dbpool/` | `pgx/v5` pool management |
+| `apiserver/internal/config/` | Environment and runtime configuration |
+| `apiserver/migrations/` | PostgreSQL migrations |
 | `webdashboard/` | React + TypeScript SPA frontend |
-| `scripts/` | Hermetic wrappers: `_cargo.sh`, `_npm.sh`, `_diesel.sh` |
+| `scripts/` | Hermetic build, test, migration, and validation wrappers |
 
 ## 5. Dependency Flow
 ```
-Request → Middleware (RateLimitLayer → UserId → WorkspaceId → MemberContext)
-        → Router (18 domain modules)
-        → Handler (src/handlers/)
-        → Service (src/services/ — business logic)
-        → Repository trait (src/repositories/)
-        → Diesel implementation (src/repositories/diesel_*)
-        → DieselPools (api/worker/tenants_tx/tenants_sess)
-        → PostgreSQL
+HTTP request → API middleware → Go handler → service → repository → pgx/PostgreSQL
+                                  └──────→ Redis / MinIO as required
+Web dashboard → REST/WebSocket API
 ```
 
 **Rules:**
-- Handler → Service ONLY (never call Repository directly from Handler)
-- Service → Repository trait ONLY (never depend on `diesel_*` impl directly)
-- Repository → DieselPools ONLY (never access pool from Service or Handler)
-- NEVER skip a layer
+- Handler → Service only; handlers must not access repositories directly.
+- Service → Repository only; keep PostgreSQL access behind repository boundaries.
+- Infrastructure clients (Redis, MinIO) stay behind the service/repository boundary that owns their operation.
+- NEVER skip a layer without documenting the exception.
 
 ## 6. Frontend Type Architecture (Web Dashboard)
 
