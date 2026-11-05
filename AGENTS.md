@@ -29,7 +29,7 @@ trigger: always_on
    - **Pre-Flight Check for Multiline:** ALWAYS check if your command requires multiline inputs, complex formatting, or inline execution (`python -c`, `bash -c`, multiline `echo`/`cat`). If it does, YOU MUST USE the `write_to_file` tool to save it as a physical file first. Multiline strings in the terminal break the PTY parser and cause system hangs. Use `write_to_file` as your best friend!
    - **Log Monitoring Pattern:** Use **periodic sampling** (e.g., one-shot reads via `tail -n 100`, `cat`, or native `view_file` tool) to inspect states safely.
    - **Anti-pattern:** Using infinite-blocking streams (`tail -f`, `watch`, `top`, `ping`) via `run_command` in background mode. These commands hang the PTY and pollute the task list forever.
-6. **Hermetic Wrappers (CRITICAL):** DO NOT call `cargo`, `npm`, or `diesel` directly. Use `./leedevkit test` for testing and wrapper scripts in `scripts/` (e.g., `./scripts/_cargo.sh`) for individual tool commands. See `execution-wrappers.md` for details.
+6. **Hermetic Wrappers (CRITICAL):** Do not call host dependency tools directly. Use `./leedevkit test` for tests and the repository wrappers in `scripts/` for Go, Bun, Python, and container operations. See `.agent/rules/execution-wrappers.md`.
 7. **AI MUST BE CALM & PATIENT (CRITICAL):** This is a fundamental mindset for all situations. DO NOT RUSH.
     - Read requirements carefully before starting.
     - Cross-check risks before modifying source code.
@@ -68,9 +68,9 @@ trigger: always_on
 ### 💻 Code & Architecture
 - **Coding Standards:** `@[.agent/rules/coding-standards.md]` (Clean code, errors, security, enterprise grade)
 - **Testing Standards:** `@[.agent/rules/testing-standards.md]`
-- **Database:** `@[.agent/rules/database-rules.md]` (Diesel, migrations, indexing)
+- **Database:** `@[.agent/rules/database-rules.md]` (PostgreSQL, pgx, sqlc, migrations, indexing)
 - **Project Structure:** `@[.agent/rules/project-structure.md]`
-- **Execution Wrappers:** `@[.agent/rules/execution-wrappers.md]` (cargo, npm, diesel, python scripts)
+- **Execution Wrappers:** `@[.agent/rules/execution-wrappers.md]` (Go, Bun, Python, container commands)
 - **Change Management:** `@[.agent/rules/change-management.md]` (Code review, branch protection, deployment gates, feature flags)
 - **Configuration Management:** `@[.agent/rules/configuration-management.md]` (Env vars, fail-fast validation, environment parity)
 
@@ -181,7 +181,7 @@ missing capability. Never invent a tool call the harness does not provide.
 | `powershell-windows` | PowerShell Windows patterns. Critical pitfalls, operator syntax, error handling. | `.leedevkit/.agent/skills/powershell-windows/SKILL.md` |
 | `python-patterns` | Python development principles and decision-making. Framework selection, async patterns, type hints, project structure. Teaches thinking, not copying. | `.leedevkit/.agent/skills/python-patterns/SKILL.md` |
 | `red-team-tactics` | Red team tactics principles based on MITRE ATT&CK. Attack phases, detection evasion, reporting. | `.leedevkit/.agent/skills/red-team-tactics/SKILL.md` |
-| `rust-pro` | Master Rust 1.75+ with modern async patterns, advanced type system features, production-ready systems programming, Tokio, axum, and cutting-edge crates. Use proactively for Rust development, performance optimization, or systems programming. | `.leedevkit/.agent/skills/rust-pro/SKILL.md` |
+| `rust-pro` | Generic LeeDevKit capability retained for other projects; not part of LeeAttend runtime. | `.leedevkit/.agent/skills/rust-pro/SKILL.md` |
 | `security-and-hardening` | Hardens code against vulnerabilities. Use when handling user input, authentication, data storage, or external integrations. Use when building any feature that accepts untrusted data, manages user sessions, or interacts with third-party services. | `.leedevkit/skills.d/agent-skills/skills/security-and-hardening/SKILL.md` |
 | `seo-fundamentals` | SEO fundamentals, E-E-A-T, Core Web Vitals, and Google algorithm principles. | `.leedevkit/.agent/skills/seo-fundamentals/SKILL.md` |
 | `server-management` | Server management principles and decision-making. Process management, monitoring strategy, and scaling decisions. Teaches thinking, not commands. | `.leedevkit/.agent/skills/server-management/SKILL.md` |

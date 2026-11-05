@@ -30,7 +30,7 @@ db_backup() {
     # Load .env for DB credentials
     set -a
     # shellcheck disable=SC1091
-    [ -f "$SCRIPT_DIR/.env" ] && source "$SCRIPT_DIR/_.env"
+    [ -f "$SCRIPT_DIR/.env" ] && source "$SCRIPT_DIR/.env"
     set +a
     local db_user="${DB_USER:-postgres}"
     local db_name="${DB_NAME:-leeattend}"
@@ -41,7 +41,7 @@ db_backup() {
     # Check that db container is running and ready
     if ! $_DEV_COMPOSE_CMD exec -T db pg_isready -U "$db_user" -d "$db_name" </dev/null >/dev/null 2>&1; then
         echo -e "${RED}❌ Database container is not running or not ready.${NC}"
-        echo -e "${YELLOW}Start it first: ./run-tests.sh --docker=dev up -d db${NC}"
+        echo -e "${YELLOW}Start it first: ./leedevkit manage up dev${NC}"
         exit 1
     fi
 
@@ -83,7 +83,7 @@ db_restore() {
     # Load .env for DB credentials
     set -a
     # shellcheck disable=SC1091
-    [ -f "$SCRIPT_DIR/.env" ] && source "$SCRIPT_DIR/_.env"
+    [ -f "$SCRIPT_DIR/.env" ] && source "$SCRIPT_DIR/.env"
     set +a
     local db_user="${DB_USER:-postgres}"
     local db_name="${DB_NAME:-leeattend}"
@@ -104,7 +104,7 @@ db_restore() {
     # Check that db container is running and ready
     if ! $_DEV_COMPOSE_CMD exec -T db pg_isready -U "$db_user" -d "$db_name" </dev/null >/dev/null 2>&1; then
         echo -e "${RED}❌ Database container is not running or not ready.${NC}"
-        echo -e "${YELLOW}Start it first: ./run-tests.sh --docker=dev up -d db${NC}"
+        echo -e "${YELLOW}Start it first: ./leedevkit manage up dev${NC}"
         exit 1
     fi
 

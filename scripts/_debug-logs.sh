@@ -1,15 +1,10 @@
 #!/bin/bash
 
-# ==============================================================================
-# ⚠️ INTERNAL MODULE — DO NOT RUN DIRECTLY
-# Sourced by: ./run-tests.sh
-# ==============================================================================
+# Internal module; source from the LeeDevKit test runner.
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
-    echo "❌ This script is an internal module. Do not run directly."
-    echo "👉 Use: ./run-tests.sh --logs  (or --tail-logs)"
+    echo "This script is an internal module. Use ./leedevkit test for project checks."
     exit 1
 fi
-# ==============================================================================
 
 # Default log directory if not set
 DEBUG_LOG_DIR="${LOG_DIR:-.test_logs}"
@@ -88,31 +83,23 @@ leeattend_debug_tail() {
 leeattend_summarize_failures() {
     local dir="${1:-$DEBUG_LOG_DIR}"
     local failed_found=false
-    
+
     echo -e "\n${RED}${BOLD}🔍 FAILED TEST SUMMARY:${NC}"
-    
+
     for log in "$dir"/*.log; do
         [ -e "$log" ] || continue
-        
-        # Check if the log actually contains a failure
-        if grep -Ei "FAIL|panic|error" "$log" > /dev/null; then
+
+        if grep -Eiq "FAIL|panic|error" "$log"; then
             failed_found=true
             local name
             name=$(basename "$log" | sed 's/\.log$//')
             echo -e "${YELLOW}● $name:${NC}"
-            
-            # Extract specific failed test names based on runner type
-            if grep -q "Nextest" "$log"; then
-                # Rust Nextest format: FAIL [ 0.1s] crate::module::test_name
-                grep "FAIL \[" "$log" | awk '{print "  ✖ " $NF}'
-            elif grep -q "pytest" "$log"; then
-                # Python Pytest format: FAILED tests/path.py::test_name - Error
+
+            if grep -q "pytest" "$log"; then
                 grep "FAILED " "$log" | cut -d' ' -f2 | awk '{print "  ✖ " $1}'
-            elif grep -q "playwright" "$log"; then
-                # Playwright format: 1) [chromium] › test.spec.ts:12:3 › test name
+            elif grep -qi "playwright" "$log"; then
                 grep -E "[0-9]+\) \[" "$log" | awk -F " › " '{print "  ✖ " $NF}'
             else
-                # Fallback: show last few lines if pattern unknown
                 tail -n 5 "$log" | sed 's/^/  /'
             fi
         fi

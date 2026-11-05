@@ -37,8 +37,8 @@ unit-go = ["apiserver"]
 int-go = ["apiserver"]
 
 [ai]
-rules_dir = ".attendagent/rules"
-override_manifest = ".attendagent/overrides.yaml"
+rules_dir = ".agent/rules"
+override_manifest = ".agent/overrides.yaml"
 
 [addons]
 skills = [
