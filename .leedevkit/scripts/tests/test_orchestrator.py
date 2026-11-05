@@ -46,6 +46,7 @@ class TestResolveTargets:
         assert isinstance(targets, list)
         assert len(targets) > 0
         assert "all" in targets
+        assert "infra" in targets
 
 
 class TestColors:
@@ -62,17 +63,22 @@ class TestToolMap:
         with patch.object(Orchestrator, "register_traps", return_value=None):
             orch = Orchestrator()
             assert orch.tool_map["npm"] == "webdashboard"
-            assert orch.tool_map["go"] == "apiserver"
+            assert orch.tool_map["cargo"] == "apiserver"
 
 
 class TestGetComposeFiles:
-    def test_dev_environment(self):
+    def test_dev_environment_is_standalone(self):
         from _orchestrator import Orchestrator
 
         with patch.object(Orchestrator, "register_traps", return_value=None):
             orch = Orchestrator()
             files = orch.get_compose_files("dev")
-            assert any("docker-compose.yml" in f for f in files)
+            assert files == [
+                "-p",
+                "leedevkit-dev",
+                "-f",
+                ".compose/docker-compose.dev.yml",
+            ]
 
     def test_test_environment(self):
         from _orchestrator import Orchestrator
@@ -415,14 +421,15 @@ class TestHandleManageDispatch:
 
 
 class TestOrchestratorRun:
-    def test_run_go_parser_round_trip(self):
+    def test_run_cargo_test_converts_to_nextest(self):
         from _orchestrator import Orchestrator
 
         with patch.object(Orchestrator, "register_traps", return_value=None):
             orch = Orchestrator()
-            args = orch.parser.parse_args(["run", "go", "test", "./..."])
-            assert args.tool == "go"
-            assert args.args == ["test", "./..."]
+            compose_cmd = ["podman-compose", "-p", "test"]
+            tool_args = ["test", "--lib"]
+            orch._run_handler._handle_run_cargo(compose_cmd, tool_args, "apiserver")
+            assert "nextest" in compose_cmd
 
     def test_run_parser_accepts_dev_project(self):
         from _orchestrator import Orchestrator
@@ -526,45 +533,62 @@ class TestModeMap:
     def test_mode_mapping(self):
         mode_map = {
             "all": "all",
-            "api": "go",
+            "api": "api",
             "web": "web",
             "go": "go",
-            "apiserver": "go",
+            "apiserver": "api",
+            "agent-main": "api",
             "webdashboard": "web",
         }
         assert mode_map["all"] == "all"
-        assert mode_map["apiserver"] == "go"
+        assert mode_map["apiserver"] == "api"
         assert mode_map["webdashboard"] == "web"
         assert mode_map["go"] == "go"
 
     def test_build_mode_map_go_service(self, tmp_path, monkeypatch):
-        """build_mode_map maps configured API service and target to Go mode."""
+        """build_mode_map maps [services.x] lang=go → 'go'."""
         from _devkit_config import build_mode_map
 
         proj = tmp_path / "project"
         proj.mkdir()
         (proj / "leedevkit.toml").write_text(
-            '[services.backend]\nlang = "go"\n'
-            '[targets]\napi = ["backend"]\n'
+            '[services.backend]\nlang = "go"\ngo = true\n'
         )
         mode_map = build_mode_map(project_root=proj)
         assert mode_map["backend"] == "go"
-        assert mode_map["api"] == "go"
         assert mode_map["go"] == "go"
 
     def test_build_mode_map_mixed(self, tmp_path, monkeypatch):
-        """build_mode_map distinguishes Go and web services."""
+        """build_mode_map distinguishes rust / typescript / go services."""
         from _devkit_config import build_mode_map
 
         proj = tmp_path / "project"
         proj.mkdir()
         (proj / "leedevkit.toml").write_text(
-            '[services.apiserver]\nlang = "go"\n\n'
-            '[services.webdashboard]\nlang = "typescript"\n'
+            '[services.apiserver]\nlang = "rust"\ncargo = true\n\n'
+            '[services.webdashboard]\nlang = "typescript"\n\n'
+            '[services.backend]\nlang = "go"\ngo = true\n'
         )
         mode_map = build_mode_map(project_root=proj)
-        assert mode_map["apiserver"] == "go"
+        assert mode_map["apiserver"] == "api"
         assert mode_map["webdashboard"] == "web"
+        assert mode_map["backend"] == "go"
+
+    def test_build_mode_map_project_targets_use_declared_language(self, tmp_path):
+        from _devkit_config import build_mode_map
+
+        project = tmp_path / "project"
+        project.mkdir()
+        (project / "leedevkit.toml").write_text(
+            '[services.apiserver]\nlang = "go"\n\n'
+            '[services.webdashboard]\nlang = "typescript"\n\n'
+            '[targets]\napi = ["apiserver"]\nweb = ["webdashboard"]\n'
+        )
+
+        mode_map = build_mode_map(project_root=project)
+        assert mode_map["api"] == "go"
+        assert mode_map["web"] == "web"
+
 
 class TestOrchestratorToolMapGo:
     def test_tool_map_contains_go(self, tmp_path, monkeypatch):
@@ -624,6 +648,22 @@ class TestOrchestratorEdgeCases:
             orch = Orchestrator()
             orch.handle_test_infra()
 
+    def test_handle_db_query(self):
+        from _orchestrator import Orchestrator
+
+        with patch.object(Orchestrator, "register_traps", return_value=None):
+            orch = Orchestrator()
+            orch.dry_run = True
+            args = argparse.Namespace(sql="SELECT 1", json=False)
+            orch.handle_db_query(args)
+
+    def test_handle_diesel(self):
+        from _orchestrator import Orchestrator
+
+        with patch.object(Orchestrator, "register_traps", return_value=None):
+            orch = Orchestrator()
+            orch.dry_run = True
+            orch.handle_diesel(["migration", "list"])
 
     def test_log_error_with_file(self, tmp_path):
         from _logging import log_error
@@ -802,6 +842,33 @@ class TestHandleRunMocked:
                 )
                 orch.handle_run(args)
 
+    def test_handle_run_cargo_dry(self):
+        from _orchestrator import Orchestrator
+
+        with patch.object(Orchestrator, "register_traps", return_value=None):
+            orch = Orchestrator()
+            orch.dry_run = True
+            args = argparse.Namespace(
+                command="run",
+                tool="cargo",
+                pooler=False,
+                args=["build"],
+            )
+            orch.handle_run(args)
+
+    def test_handle_run_cargo_cwd_detection(self):
+        from _orchestrator import Orchestrator
+
+        with patch.object(Orchestrator, "register_traps", return_value=None):
+            orch = Orchestrator()
+            orch.dry_run = True
+            args = argparse.Namespace(
+                command="run",
+                tool="cargo",
+                pooler=False,
+                args=["build"],
+            )
+            orch.handle_run(args)
 
 
 class TestRunPhaseMocked:
@@ -813,8 +880,12 @@ class TestRunPhaseMocked:
         with patch.object(Orchestrator, "register_traps", return_value=None):
             orch = Orchestrator()
             orch.dry_run = True
-            args = argparse.Namespace(component="", fix=False, pattern="")
-            orch.run_phase("Linting", "go", args)
+            args = argparse.Namespace(
+                component="",
+                fix=False,
+                pattern="",
+            )
+            orch.run_phase("Linting", "api", args)
 
     def test_run_phase_unit_web(self):
         from _orchestrator import Orchestrator
@@ -829,14 +900,19 @@ class TestRunPhaseMocked:
             )
             orch.run_phase("Unit Tests", "web", args)
 
-    def test_run_phase_lint_api(self):
+    def test_run_phase_coverage_api(self):
         from _orchestrator import Orchestrator
 
         with patch.object(Orchestrator, "register_traps", return_value=None):
             orch = Orchestrator()
             orch.dry_run = True
-            args = argparse.Namespace(component="", fix=False, pattern="")
-            orch.run_phase("Linting", "go", args)
+            args = argparse.Namespace(
+                component="",
+                fix=False,
+                pattern="",
+                unit_only=False,
+            )
+            orch.run_phase("Coverage", "api", args)
 
     def test_run_phase_startup(self):
         from _orchestrator import Orchestrator
@@ -892,6 +968,23 @@ class TestHandleManageMocked:
             args = argparse.Namespace(subcommand="sync:api")
             orch.handle_manage(args)
 
+    def test_handle_manage_migrate_run_dry(self):
+        from _orchestrator import Orchestrator
+
+        with patch.object(Orchestrator, "register_traps", return_value=None):
+            orch = Orchestrator()
+            orch.dry_run = True
+            args = argparse.Namespace(subcommand="migrate:run")
+            orch.handle_manage(args)
+
+    def test_handle_manage_migrate_revert_dry(self):
+        from _orchestrator import Orchestrator
+
+        with patch.object(Orchestrator, "register_traps", return_value=None):
+            orch = Orchestrator()
+            orch.dry_run = True
+            args = argparse.Namespace(subcommand="migrate:revert")
+            orch.handle_manage(args)
 
     def test_handle_manage_prebuild_dry(self):
         from _orchestrator import Orchestrator
@@ -914,28 +1007,60 @@ class TestBuildModeMap:
 
         with patch("_devkit_config._find_project_root", return_value=tmp_path):
             result = build_mode_map()
-        assert result["apiserver"] == "go"
+        assert result["apiserver"] == "api"
         assert result["webdashboard"] == "web"
         assert result["all"] == "all"
 
-    def test_parses_go_service_from_config(self, tmp_path):
+    def test_parses_rust_service_from_config(self, tmp_path):
         from _devkit_config import build_mode_map
 
         config_toml = tmp_path / "leedevkit.toml"
-        config_toml.write_text('[services.myservice]\nlang = "go"\n')
+        config_toml.write_text("""
+[services.myservice]
+lang = "rust"
+""")
         with patch("_devkit_config._find_project_root", return_value=tmp_path):
             result = build_mode_map()
-        assert result["myservice"] == "go"
+        assert result.get("myservice") == "api"
 
     def test_parses_typescript_service_from_config(self, tmp_path):
         from _devkit_config import build_mode_map
 
         config_toml = tmp_path / "leedevkit.toml"
-        config_toml.write_text('[services.frontend]\nlang = "typescript"\n')
+        config_toml.write_text("""
+[services.frontend]
+lang = "typescript"
+""")
         with patch("_devkit_config._find_project_root", return_value=tmp_path):
             result = build_mode_map()
-        assert result["frontend"] == "web"
+        assert result.get("frontend") == "web"
 
+
+class TestInjectRustVersionEnv:
+    """Tests for _inject_rust_version_env."""
+
+    def test_default_when_no_config(self):
+        from _orchestrator import Orchestrator
+
+        with patch.object(Orchestrator, "register_traps", return_value=None):
+            orch = Orchestrator()
+            orch._inject_rust_version_env()
+        import os
+
+        assert os.environ.get("RUST_VERSION") == "1.85"
+
+    def test_env_override_wins(self):
+        from _orchestrator import Orchestrator
+        import os
+
+        os.environ["RUST_VERSION"] = "1.99"
+        try:
+            with patch.object(Orchestrator, "register_traps", return_value=None):
+                orch = Orchestrator()
+                orch._inject_rust_version_env()
+            assert os.environ["RUST_VERSION"] == "1.99"
+        finally:
+            del os.environ["RUST_VERSION"]
 
 
 class TestComposeEngineCmd:
@@ -1022,6 +1147,14 @@ class TestRunMethod:
                 orch.run()
         mock_update.assert_called_once()
 
+    def test_handle_manage_db_setup_dry(self):
+        from _orchestrator import Orchestrator
+
+        with patch.object(Orchestrator, "register_traps", return_value=None):
+            orch = Orchestrator()
+            orch.dry_run = True
+            args = argparse.Namespace(subcommand="db:setup")
+            orch.handle_manage(args)
 
     def test_handle_manage_verify_infra_dry(self):
         from _orchestrator import Orchestrator
@@ -1573,6 +1706,29 @@ class TestOrchestratorCoverageGaps:
             orch.handle_manage(args)
         assert called == [True]
 
+    def test_handle_manage_dispatch_db_query(self, monkeypatch):
+        """handle_manage dispatches 'db:query' to handle_db_query."""
+        from _orchestrator import Orchestrator
+
+        with patch.object(Orchestrator, "register_traps", return_value=None):
+            orch = Orchestrator()
+            dispatched = []
+            monkeypatch.setattr(orch, "handle_db_query", lambda a: dispatched.append(a))
+            args = type("Args", (), {"subcommand": "db:query", "sql": "SELECT 1"})()
+            orch.handle_manage(args)
+        assert len(dispatched) == 1
+
+    def test_handle_manage_dispatch_migrate(self, monkeypatch):
+        """handle_manage dispatches migrate commands to handle_diesel."""
+        from _orchestrator import Orchestrator
+
+        with patch.object(Orchestrator, "register_traps", return_value=None):
+            orch = Orchestrator()
+            dispatched = []
+            monkeypatch.setattr(orch, "handle_diesel", lambda a: dispatched.append(a))
+            args = type("Args", (), {"subcommand": "migrate:status"})()
+            orch.handle_manage(args)
+        assert dispatched == [["migration", "list"]]
 
     def test_handle_run_dispatches(self, monkeypatch):
         """handle_run delegates to RunHandler.handle_run."""
@@ -1587,7 +1743,7 @@ class TestOrchestratorCoverageGaps:
                 called.append(args)
 
             monkeypatch.setattr(RunHandler, "handle_run", fake_handle_run)
-            args = type("Args", (), {"tool": "go", "args": [], "pooler": False})()
+            args = type("Args", (), {"tool": "cargo", "args": [], "pooler": False})()
             orch.handle_run(args)
         assert len(called) == 1
 
@@ -1627,6 +1783,16 @@ class TestOrchestratorCoverageGaps:
             orch.print_test_summary("api")
         assert called == ["api"]
 
+    def test_handle_db_setup_phase_delegates(self, monkeypatch):
+        """handle_db_setup_phase delegates to DbHandler."""
+        from _orchestrator import Orchestrator
+        from _db_handler import DbHandler
+
+        with patch.object(Orchestrator, "register_traps", return_value=None):
+            orch = Orchestrator()
+            monkeypatch.setattr(DbHandler, "handle_db_setup_phase", lambda self: True)
+            result = orch.handle_db_setup_phase()
+        assert result is True
 
     def test_handle_prebuild_phase_delegates(self, monkeypatch):
         """handle_prebuild_phase delegates to DbHandler."""
@@ -1651,3 +1817,32 @@ class TestOrchestratorCoverageGaps:
             )
             result = orch.get_compose_files("dev")
         assert result == ["file-dev"]
+
+    def test_handle_diesel_delegates(self, monkeypatch):
+        """handle_diesel delegates to DbHandler."""
+        from _orchestrator import Orchestrator
+        from _db_handler import DbHandler
+
+        with patch.object(Orchestrator, "register_traps", return_value=None):
+            orch = Orchestrator()
+            dispatched = []
+            monkeypatch.setattr(
+                DbHandler, "handle_diesel", lambda self, a: dispatched.append(a)
+            )
+            orch.handle_diesel(["migration", "run"])
+        assert dispatched == [["migration", "run"]]
+
+    def test_handle_db_query_delegates(self, monkeypatch):
+        """handle_db_query delegates to DbHandler."""
+        from _orchestrator import Orchestrator
+        from _db_handler import DbHandler
+
+        with patch.object(Orchestrator, "register_traps", return_value=None):
+            orch = Orchestrator()
+            dispatched = []
+            monkeypatch.setattr(
+                DbHandler, "handle_db_query", lambda self, a: dispatched.append(a)
+            )
+            args = type("Args", (), {"sql": "SELECT 1"})()
+            orch.handle_db_query(args)
+        assert len(dispatched) == 1

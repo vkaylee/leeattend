@@ -24,10 +24,10 @@ The `apiserver` container runs the Go binary. `LOG_PULL_*` configuration is inje
 ## Development
 
 ```bash
-podman-compose -f docker-compose.yml -f .compose/docker-compose.dev.yml up --build
+podman-compose -f .compose/docker-compose.dev.yml up --build
 ```
 
-The development API uses the canonical `apiserver` Compose service and Go tooling. The dashboard uses Vite. Database and Redis volumes are isolated by the development override.
+The development API skips standalone license verification; production retains mandatory offline license verification. Database and Redis volumes are isolated by the development configuration.
 
 ## Test gates
 

@@ -149,6 +149,11 @@ services:
     networks:
       - test_net
     entrypoint: sleep infinity
+    healthcheck:
+      test: ["CMD-SHELL", "test -d /workspace/webdashboard"]
+      interval: 2s
+      timeout: 5s
+      retries: 30
     working_dir: /workspace/webdashboard
     environment:
       - NODE_ENV=test

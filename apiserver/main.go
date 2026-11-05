@@ -61,22 +61,26 @@ func main() {
 	logger := observability.NewLogger(os.Stderr, slog.LevelInfo)
 	logger.Info("Starting LeeAttend Go API Server", "version", Version, "env", cfg.AppEnv)
 
-	key, keyErr := base64.RawURLEncoding.DecodeString(cfg.LicensePublicKey)
-	if keyErr != nil {
-		fmt.Fprintf(os.Stderr, "CONFIGURATION FAILED: invalid LICENSE_PUBLIC_KEY\n")
-		os.Exit(1)
+	if cfg.IsDevelopment() {
+		logger.Info("Development license verification skipped")
+	} else {
+		key, keyErr := base64.RawURLEncoding.DecodeString(cfg.LicensePublicKey)
+		if keyErr != nil {
+			fmt.Fprintf(os.Stderr, "CONFIGURATION FAILED: invalid LICENSE_PUBLIC_KEY\n")
+			os.Exit(1)
+		}
+		verifier, verifierErr := license.NewVerifier(ed25519.PublicKey(key), license.Product)
+		if verifierErr != nil {
+			fmt.Fprintf(os.Stderr, "CONFIGURATION FAILED: invalid standalone license verifier\n")
+			os.Exit(1)
+		}
+		status, verifyErr := verifier.VerifyFile(cfg.LicensePath)
+		if verifyErr != nil || !status.Valid {
+			fmt.Fprintf(os.Stderr, "CONFIGURATION FAILED: standalone license verification failed\n")
+			os.Exit(1)
+		}
+		logger.Info("Standalone license verified", "edition", status.Edition, "entitlements", len(status.Entitlements))
 	}
-	verifier, verifierErr := license.NewVerifier(ed25519.PublicKey(key), license.Product)
-	if verifierErr != nil {
-		fmt.Fprintf(os.Stderr, "CONFIGURATION FAILED: invalid standalone license verifier\n")
-		os.Exit(1)
-	}
-	status, verifyErr := verifier.VerifyFile(cfg.LicensePath)
-	if verifyErr != nil || !status.Valid {
-		fmt.Fprintf(os.Stderr, "CONFIGURATION FAILED: standalone license verification failed\n")
-		os.Exit(1)
-	}
-	logger.Info("Standalone license verified", "edition", status.Edition, "entitlements", len(status.Entitlements))
 
 	dbCfg := dbpool.DefaultConfig()
 	dbCfg.PrimaryURL = string(cfg.DBPrimaryURL)

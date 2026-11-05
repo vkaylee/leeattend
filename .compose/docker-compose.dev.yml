@@ -1,17 +1,37 @@
-# ==============================================================================
-# Podman Compose — Development Override
-# ==============================================================================
+# LeeAttend development environment. Standalone by design: production-only
+# image, TLS, and license inputs must not block local startup.
 services:
   db:
+    image: public.ecr.aws/docker/library/postgres:18-alpine
     command: postgres -c fsync=off -c synchronous_commit=off -c full_page_writes=off -c max_connections=200
+    environment:
+      POSTGRES_DB: ${DB_NAME:-leeattend}
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
+      TZ: ${TZ:-Asia/Ho_Chi_Minh}
+      PGTZ: ${TZ:-Asia/Ho_Chi_Minh}
     ports:
       - "5434:5432"
     volumes:
-      - postgres_dev_data:/var/lib/postgresql/data
+      - postgres_dev_data_v18:/var/lib/postgresql
+    networks: [backend_net]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\""]
+      interval: 10s
+      timeout: 5s
+      retries: 10
 
   redis:
+    image: public.ecr.aws/docker/library/redis:7-alpine
+    command: ["redis-server"]
     volumes:
       - redis_dev_data:/data
+    networks: [backend_net]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
 
   redisinsight:
     image: ghcr.io/redis-developer/redisinsight:latest
@@ -19,42 +39,71 @@ services:
     profiles: ["manual"]
     ports:
       - "5540:5540"
-    networks:
-      - backend_net
+    networks: [backend_net]
     environment:
-      - RI_REDIS_HOST=redis
-      - RI_REDIS_PORT=6379
-      - RI_REDIS_PASSWORD=${REDIS_PASSWORD}
-      - RI_REDIS_ALIAS=LeeAttend-Redis
+      RI_REDIS_HOST: redis
+      RI_REDIS_PORT: 6379
+      RI_REDIS_ALIAS: LeeAttend-Redis
     depends_on:
       redis:
         condition: service_healthy
+
+  minio:
+    image: docker.io/rustfs/rustfs:latest
+    command: ["server", "/data"]
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-leeattend}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-development-password}
+    volumes:
+      - minio_dev_data:/data
+    networks: [backend_net]
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:9000/health/ready >/dev/null"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
 
   cloudbeaver:
     image: docker.io/dbeaver/cloudbeaver:latest
     pull_policy: missing
     ports:
       - "8978:8978"
-    networks:
-      - backend_net
+    networks: [backend_net]
     environment:
-      # --- Credentials for entrypoint to inject into data-sources ---
-      - DB_NAME=${DB_NAME}
-      - DB_USER=${DB_USER}
-      - DB_PASSWORD=${DB_PASSWORD}
-      # --- CloudBeaver auto-config (skip setup wizard) ---
-      - CB_SERVER_NAME=LeeAttend Dev
-      - CB_SERVER_URL=http://localhost:8978
-      - CB_ADMIN_NAME=cbadmin
-      - CB_ADMIN_PASSWORD=admin
-      # --- Anonymous access for local dev ---
-      - CLOUDBEAVER_APP_ANONYMOUS_ACCESS_ENABLED=true
-      - CLOUDBEAVER_APP_GRANT_CONNECTIONS_ACCESS_TO_ANONYMOUS_TEAM=true
+      DB_NAME: ${DB_NAME:-leeattend}
+      DB_USER: ${DB_USER:-postgres}
+      DB_PASSWORD: ${DB_PASSWORD:-postgres}
+      CB_SERVER_NAME: LeeAttend Dev
+      CB_SERVER_URL: http://localhost:8978
+      CB_ADMIN_NAME: cbadmin
+      CB_ADMIN_PASSWORD: admin
+      CLOUDBEAVER_APP_ANONYMOUS_ACCESS_ENABLED: "true"
+      CLOUDBEAVER_APP_GRANT_CONNECTIONS_ACCESS_TO_ANONYMOUS_TEAM: "true"
     volumes:
       - cloudbeaver_dev_data:/opt/cloudbeaver/workspace
-      - ./.compose/cloudbeaver-entrypoint.sh:/opt/cloudbeaver/cloudbeaver-entrypoint.sh:ro
-      - ./.compose/cloudbeaver-initial-data-sources.conf:/opt/cloudbeaver/conf/initial-data-sources.conf.tpl:ro
+      - ../.compose/cloudbeaver-entrypoint.sh:/opt/cloudbeaver/cloudbeaver-entrypoint.sh:ro
+      - ../.compose/cloudbeaver-initial-data-sources.conf:/opt/cloudbeaver/conf/initial-data-sources.conf.tpl:ro
     entrypoint: /opt/cloudbeaver/cloudbeaver-entrypoint.sh
+    depends_on:
+      db:
+        condition: service_healthy
+
+  db-migrate:
+    image: public.ecr.aws/docker/library/postgres:18-alpine
+    command:
+      - sh
+      - -c
+      - >-
+        until pg_isready -h db -U "$${POSTGRES_USER}" -d "$${POSTGRES_DB}"; do sleep 1; done;
+        psql -h db -U "$${POSTGRES_USER}" -d "$${POSTGRES_DB}"
+        -f /workspace/apiserver/migrations/20261103000000_init/up.sql
+    environment:
+      POSTGRES_DB: ${DB_NAME:-leeattend}
+      POSTGRES_USER: ${DB_USER:-postgres}
+      PGPASSWORD: ${DB_PASSWORD:-postgres}
+    volumes:
+      - ..:/workspace:ro
+    networks: [backend_net]
     depends_on:
       db:
         condition: service_healthy
@@ -64,53 +113,66 @@ services:
     working_dir: /app/apiserver
     command: go run .
     environment:
-      - APP_ENV=development
-      - APP_HOST=0.0.0.0
-      - APP_PORT=3000
-      - DB_PRIMARY_URL=postgres://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@db:5432/${DB_NAME:-leeattend}
-      - DB_POOLER_TX_URL=postgres://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@db:5432/${DB_NAME:-leeattend}
-      - DB_POOLER_SESS_URL=postgres://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@db:5432/${DB_NAME:-leeattend}
-      - DB_READER_URL=postgres://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@db:5432/${DB_NAME:-leeattend}
-      - REDIS_URL=redis://:${REDIS_PASSWORD:-}@redis:6379
-      - JWT_SECRET=${JWT_SECRET:-development_jwt_secret_change_me}
-      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-*}
-      - ORGANIZATION_NAME=${ORGANIZATION_NAME:-Development Organization}
-      - STANDALONE_ADMIN_EMAIL=${STANDALONE_ADMIN_EMAIL:-admin@example.invalid}
-      - STANDALONE_ADMIN_PASSWORD=${STANDALONE_ADMIN_PASSWORD:-development-password}
-      - LICENSE_PATH=/tmp/license.json
-      - LICENSE_PUBLIC_KEY=${LICENSE_PUBLIC_KEY:-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA}
+      APP_ENV: development
+      APP_HOST: 0.0.0.0
+      APP_PORT: 3000
+      DB_PRIMARY_URL: postgres://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@db:5432/${DB_NAME:-leeattend}
+      DB_POOLER_TX_URL: postgres://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@db:5432/${DB_NAME:-leeattend}
+      DB_POOLER_SESS_URL: postgres://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@db:5432/${DB_NAME:-leeattend}
+      DB_READER_URL: postgres://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@db:5432/${DB_NAME:-leeattend}
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: ${JWT_SECRET:-development_jwt_secret_change_me}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-*}
+      ORGANIZATION_NAME: ${ORGANIZATION_NAME:-Development Organization}
+      STANDALONE_ADMIN_EMAIL: ${STANDALONE_ADMIN_EMAIL:-admin@example.invalid}
+      STANDALONE_ADMIN_PASSWORD: ${STANDALONE_ADMIN_PASSWORD:-development-password}
+      LICENSE_PATH: /tmp/license.json
+      LICENSE_PUBLIC_KEY: ${LICENSE_PUBLIC_KEY:-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA}
+      S3_ENDPOINT_URL: http://minio:9000
+      S3_BUCKET_NAME: ${S3_BUCKET_NAME:-leeattend}
+      S3_ACCESS_KEY: ${MINIO_ROOT_USER:-leeattend}
+      S3_SECRET_KEY: ${MINIO_ROOT_PASSWORD:-development-password}
+      S3_USE_PATH_STYLE: "true"
     volumes:
-      - .:/app
+      - ..:/app
       - go-module-cache:/go/pkg/mod
+    networks: [backend_net, frontend_net]
     depends_on:
+      db-migrate:
+        condition: service_completed_successfully
       db:
         condition: service_healthy
       redis:
         condition: service_healthy
+      minio:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3000/api/v1/health >/dev/null"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
   webdashboard:
     build:
-      context: ./webdashboard
+      context: ../webdashboard
       dockerfile: Dockerfile
       target: dev
     command: >-
       sh -c 'mkdir -p /var/log/app &&
       bun run dev --host 0.0.0.0 2>&1 | tee -a /var/log/app/webdashboard.log'
     environment:
-      - VITE_API_URL=http://apiserver:3000/api
-# Ports are handled by Caddy proxy on port 8080
-    # No direct exposure needed for dev server or HMR
-
+      VITE_API_URL: http://apiserver:3000/api
+    networks: [frontend_net]
     volumes:
-      - ./webdashboard:/app
+      - ../webdashboard:/app
       - webdashboard-node-modules:/app/node_modules
-      - ./logs:/var/log/app
+      - ../logs:/var/log/app
 
   caddy:
     image: public.ecr.aws/docker/library/caddy:alpine
     pull_policy: missing
     restart: unless-stopped
-    networks:
-      - frontend_net
+    networks: [frontend_net]
     depends_on:
       apiserver:
         condition: service_healthy
@@ -119,11 +181,18 @@ services:
     ports:
       - "${DEV_PORT:-8080}:80"
     volumes:
-      - ./Caddyfile-dev:/etc/caddy/Caddyfile:ro
+      - ../Caddyfile-dev:/etc/caddy/Caddyfile:ro
+
+networks:
+  backend_net:
+    name: ${COMPOSE_PROJECT_NAME:-leedevkit-dev}_backend
+  frontend_net:
+    name: ${COMPOSE_PROJECT_NAME:-leedevkit-dev}_frontend
 
 volumes:
-  postgres_dev_data:
+  postgres_dev_data_v18:
   redis_dev_data:
+  minio_dev_data:
   webdashboard-node-modules:
   cloudbeaver_dev_data:
   go-module-cache:

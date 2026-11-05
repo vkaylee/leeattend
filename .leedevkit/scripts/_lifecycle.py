@@ -150,19 +150,35 @@ def lifecycle_up(mode: str = "all") -> bool:
             )
             return False
     health_services: list[tuple[str, str, str]] = []
-    if mode in ("web", "unit-web", "lint-web", "e2e-web"):
+    if mode in ("go", "unit-go", "lint-go", "int-go"):
+        from _test_modules import _resolve_go_service
+
+        go_service = _resolve_go_service()
         health_services.append(
-            ("main service", f"{project_name}_bun_init_1", "bun_init")
-        )
-        timeout = 120
-    elif mode in ("go", "unit-go", "lint-go", "int-go"):
-        health_services.append(
-            ("main service", f"{project_name}_apiserver_1", "apiserver")
+            ("main service", f"{project_name}_{go_service}_1", go_service)
         )
         timeout = 60
+    elif mode == "all":
+        from _test_modules import _has_go_service, _resolve_go_service
+
+        if _has_go_service():
+            go_service = _resolve_go_service()
+            health_services.append(
+                ("main service", f"{project_name}_{go_service}_1", go_service)
+            )
+        else:
+            health_services.append(
+                ("main service", f"{project_name}_apiserver_1", "apiserver")
+            )
+        timeout = 60
+    elif mode == "infra-pooler":
+        health_services.append(
+            ("main service", f"{project_name}_pgbouncer_tx_1", "pgbouncer_tx")
+        )  # pragma: no cover
+        timeout = 60  # pragma: no cover
     elif mode == "infra-db":  # pragma: no cover
         health_services.append(
-            ("main service", f"{project_name}_db_1", "db")
+            ("main service", f"{project_name}_db_init_1", "db_init")
         )  # pragma: no cover
         timeout = 60  # pragma: no cover
     elif mode == "infra-redis":  # pragma: no cover
@@ -170,11 +186,19 @@ def lifecycle_up(mode: str = "all") -> bool:
             ("main service", f"{project_name}_redis_1", "redis")
         )  # pragma: no cover
         timeout = 30  # pragma: no cover
+    elif mode in ("web", "frontend", "unit-web", "e2e-web", "lint-web"):
+        from _test_modules import _resolve_web_service
+
+        web_service = _resolve_web_service()
+        health_services.append(
+            ("main service", f"{project_name}_{web_service}_1", web_service)
+        )
+        timeout = 60
     else:
         health_services.append(
             ("main service", f"{project_name}_apiserver_1", "apiserver")
         )
-        if mode in ("api", "int-api", "integration", "all", "go", "int-go"):
+        if mode in ("api", "int-api", "integration", "all"):
             health_services.append(("main service", f"{project_name}_db_1", "db"))
             health_services.append(("main service", f"{project_name}_redis_1", "redis"))
         timeout = 60
@@ -347,10 +371,18 @@ def sweep_stale_environments() -> None:
 
 
 # Containers per lifecycle profile — used for force-kill fallback
-# when compose down fails to stop PID 1 (e.g. sleep infinity ignoring SIGTERM)
+# when compose down fails to stop PID 1 (e.g. tail -f /dev/null ignoring SIGTERM)
 _PROFILE_CONTAINERS: dict[str, list[str]] = {
     "frontend": ["bun_init", "webdashboard"],
-    "backend": ["apiserver", "db", "redis"],
+    "backend": [
+        "apiserver",
+        "agent-main",
+        "db_system",
+        "db_init",
+        "redis",
+        "pgbouncer_tx",
+        "pgbouncer_sess",
+    ],
 }
 
 
