@@ -1,8 +1,8 @@
 
-
 import { User, Workspace, WorkspaceMember } from "@/lib/api";
+import { generateUUID } from "@/utils/uuid";
 export const userFactory = (overrides: Partial<User> = {}): User => {
-  const id = crypto.randomUUID();
+  const id = generateUUID();
   return {
     id,
     email: `user_${id.slice(0, 8)}@example.com`,
@@ -17,7 +17,7 @@ export const userFactory = (overrides: Partial<User> = {}): User => {
 export const workspaceFactory = (
   overrides: Partial<Workspace> = {},
 ): Workspace => {
-  const id = crypto.randomUUID();
+  const id = generateUUID();
   return {
     id,
     name: `Workspace ${id.slice(0, 8)}`,
@@ -39,8 +39,8 @@ export const memberFactory = (
   overrides: Partial<WorkspaceMember> = {},
 ): WorkspaceMember => {
   return {
-    workspace_id: crypto.randomUUID(),
-    user_id: crypto.randomUUID(),
+    workspace_id: generateUUID(),
+    user_id: generateUUID(),
     role_id: "role-member",
     extra_role_ids: [],
     email: "test@example.com",

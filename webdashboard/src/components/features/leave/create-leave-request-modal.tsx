@@ -4,6 +4,8 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { CalendarDays } from "lucide-react";
 import React, { useState } from "react";
 
+import { generateUUID } from "@/utils/uuid";
+
 import type { LeaveDurationType, LeaveType } from "@/lib/api/types";
 
 import Modal from "@/components/ui/modal";
@@ -49,7 +51,7 @@ export function CreateLeaveRequestModal({ isOpen, onClose, wsId, leaveTypes, t }
   const [startDate, setStartDate] = useState<string>("");
   const [endDate, setEndDate] = useState<string>("");
   const [attachmentFileIds, setAttachmentFileIds] = useState<string[]>([]);
-  const [ownerId] = useState<string>(() => crypto.randomUUID());
+  const [ownerId] = useState<string>(() => generateUUID());
 
   const handleClose = () => {
     setSelectedEmpId(""); setDurationType("full_day");

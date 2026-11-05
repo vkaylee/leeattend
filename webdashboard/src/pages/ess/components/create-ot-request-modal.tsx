@@ -13,6 +13,7 @@ import { useToast } from "@/components/ui/toast";
 import { Typography } from "@/components/ui/typography";
 import { useCreateOvertimeRequest } from "@/hooks/use-overtime-requests";
 import { logError } from "@/lib/logger";
+import { generateUUID } from "@/utils/uuid";
 
 const otRequestSchema = z.object({
   planned_date: z.string().min(1, "Date is required"),
@@ -40,7 +41,7 @@ export function CreateOtRequestModal({
   const toast = useToast();
   const { mutateAsync: createRequest, isPending } = useCreateOvertimeRequest();
 
-  const [ownerId] = useState<string>(() => crypto.randomUUID());
+  const [ownerId] = useState<string>(() => generateUUID());
   const [attachmentFileIds, setAttachmentFileIds] = useState<string[]>([]);
 
   const form = useForm<OtRequestFormValues>({

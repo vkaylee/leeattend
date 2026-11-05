@@ -13,6 +13,7 @@ import { useToast } from "@/components/ui/toast";
 import { useBehalfEmployees } from "@/hooks/use-behalf-employees";
 import { submitAttendanceAdjustment } from "@/lib/api";
 import { toUTCISO } from "@/lib/datetime";
+import { generateUUID } from "@/utils/uuid";
 
 export interface CreateAdjustmentModalProps {
   isOpen: boolean;
@@ -37,7 +38,7 @@ function useCreateAdjustmentForm({ wsId, timezone, onClose }: CreateAdjustmentFo
   const [punchTime, setPunchTime] = useState<string>("08:00");
   const [reason, setReason] = useState<string>("");
   const [attachmentFileIds, setAttachmentFileIds] = useState<string[]>([]);
-  const [ownerId] = useState<string>(() => crypto.randomUUID());
+  const [ownerId] = useState<string>(() => generateUUID());
 
   const handleClose = () => {
     setSelectedEmpId("");
