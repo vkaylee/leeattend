@@ -18,8 +18,7 @@ test.describe('System Admin Flow', () => {
     await page.getByTestId('sidebar-link-system-tenants').click();
     await expect(page).toHaveURL(/.*\/system\/tenants/);
 
-    // Check page title
-    await expect(page.getByRole('heading', { name: /tenant/i })).toBeVisible({ timeout: 30000 });
+    await expect(page.getByRole('heading', { name: 'Tenants Management', exact: true })).toBeVisible({ timeout: 30000 });
 
     // Verify Create Tenant button exists
     const createBtn = page.getByRole('button', { name: /create|add/i });

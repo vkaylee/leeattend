@@ -216,6 +216,15 @@ describe('forceRefreshToken failure path', () => {
     );
     errorSpy.mockRestore();
   });
+
+  it("returns false when refresh succeeds without a usable access token", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ refresh_token: "rotated" }), { status: 200 }),
+    ));
+
+    expect(await forceRefreshToken()).toBe(false);
+    expect(getAccessToken()).toBeNull();
+  });
 });
 
 describe('handleUnauthorized (401 retry-on-refresh) via apiFetch', () => {

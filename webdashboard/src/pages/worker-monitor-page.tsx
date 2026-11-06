@@ -11,7 +11,7 @@ import { useTranslation } from "react-i18next";
 import { TFunction } from "i18next";
 
 import type { MonitorStreamStatus } from "@/hooks/use-monitor-stream";
-import type { WorkerMonitorStats } from "@/lib/api/types-monitoring";
+import type { MonitorMetric, WorkerMonitorStats } from "@/lib/api/types-monitoring";
 
 import JobStatusDistributionChart from "@/components/features/monitor/job-status-distribution-chart";
 import QueuePressureChart from "@/components/features/monitor/queue-pressure-chart";
@@ -273,7 +273,7 @@ function JobTypeStatsSection({ jobTypeStats, t }: JobTypeStatsSectionProps) {
 
 interface MonitorMetricCardProps {
   label: string;
-  metric?: { value?: number | null; unit?: string; formula?: string; source?: string; observed_at?: string; time_window?: { start?: string; end?: string; duration_seconds?: number }; unknown?: { reason: string } | null };
+  metric?: MonitorMetric;
   t: TFunction;
 }
 
@@ -311,7 +311,7 @@ function MonitorMetricCard({ label, metric, t }: MonitorMetricCardProps) {
 function OperationalMetricsSections({ stats, t }: { stats: WorkerMonitorStats; t: TFunction }) {
   const queue = stats.queue_health;
   const reliability = stats.reliability;
-  const queueMetrics = queue ? [
+  const queueMetrics: [string, MonitorMetric][] = queue ? [
     [t("monitor.queue_depth_total", { defaultValue: "Queue depth" }), queue.depth_total],
     [t("monitor.oldest_queued_age", { defaultValue: "Oldest queued age" }), queue.oldest_queued_age_seconds],
     [t("monitor.enqueue_rate", { defaultValue: "Enqueue rate" }), queue.enqueue_rate_per_second],
@@ -321,7 +321,7 @@ function OperationalMetricsSections({ stats, t }: { stats: WorkerMonitorStats; t
     [t("monitor.queue_wait_p50", { defaultValue: "Queue wait p50" }), queue.queue_wait_seconds_p50],
     [t("monitor.dead_letter_depth", { defaultValue: "Dead-letter depth" }), queue.dead_letter_depth],
   ] : [];
-  const reliabilityMetrics = reliability ? [
+  const reliabilityMetrics: [string, MonitorMetric][] = reliability ? [
     [t("monitor.success_rate", { defaultValue: "Success rate" }), reliability.success_rate],
     [t("monitor.failure_rate", { defaultValue: "Failure rate" }), reliability.failure_rate],
     [t("monitor.consecutive_failures", { defaultValue: "Consecutive failures" }), reliability.consecutive_failures],

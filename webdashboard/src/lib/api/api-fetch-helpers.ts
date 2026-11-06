@@ -22,6 +22,31 @@ export const TIMEOUT = {
 } as const;
 
 let refreshPromise: Promise<boolean> | null = null;
+const TOKEN_REFRESH_WINDOW_MS = 60_000;
+
+export function isAccessTokenExpiring(token: string, now = Date.now()): boolean {
+  const payload = token.split(".")[1];
+  if (!payload) return false;
+
+  try {
+    const normalizedPayload = payload.replace(/-/g, "+").replace(/_/g, "/");
+    const paddedPayload = normalizedPayload.padEnd(Math.ceil(normalizedPayload.length / 4) * 4, "=");
+    const claims = JSON.parse(atob(paddedPayload)) as { exp?: unknown };
+    return typeof claims.exp === "number" && Number.isFinite(claims.exp)
+      && claims.exp * 1000 <= now + TOKEN_REFRESH_WINDOW_MS;
+  } catch {
+    return false;
+  }
+}
+
+export function handleSessionExpired(): never {
+  logError("Session expired (401). Redirecting to login...", { component: "apiFetch" });
+  clearAuthSession();
+  if (window.location.pathname !== ROUTES.LOGIN) {
+    window.location.href = ROUTES.LOGIN;
+  }
+  throw new Error("Session expired");
+}
 
 export async function forceRefreshToken(): Promise<boolean> {
   if (refreshPromise) {
@@ -44,9 +69,12 @@ export async function forceRefreshToken(): Promise<boolean> {
       }
 
       const data = (await refreshResponse.json()) as {
-        access_token: string;
-        refresh_token: string;
+        access_token?: unknown;
+        refresh_token?: unknown;
       };
+      if (typeof data.access_token !== "string" || data.access_token.trim() === "") {
+        return false;
+      }
       setAccessToken(data.access_token);
       // NOTE: we deliberately IGNORE the returned refresh_token. The new
       // refresh token is rotated inside the HttpOnly cookie by the backend
@@ -98,12 +126,7 @@ export async function handleUnauthorized({
     return retryResponse;
   }
 
-  logError("Session expired (401). Redirecting to login...", { component: "apiFetch" });
-  clearAuthSession();
-  if (window.location.pathname !== ROUTES.LOGIN) {
-    window.location.href = ROUTES.LOGIN;
-  }
-  throw new Error("Session expired");
+  handleSessionExpired();
 }
 
 /** Removes legacy organization path segments before requests reach flat API routes. */

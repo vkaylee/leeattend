@@ -1,6 +1,9 @@
 import {
   getFullUrl,
+  handleSessionExpired,
   handleUnauthorized,
+  isAccessTokenExpiring,
+  forceRefreshToken,
   TIMEOUT,
 } from "./api-fetch-helpers";
 import { API_BASE_URL } from "./config";
@@ -102,20 +105,25 @@ export async function apiFetch(
   url: string,
   options: ApiFetchOptions = {},
 ): Promise<Response> {
+  const fullUrl = getFullUrl(url);
+  const isPublicAuthEndpoint = /\/auth\/(?:login|register|refresh|logout|forgot-password|reset-password)(?:$|[/?])/.test(fullUrl);
+  const token = getAccessToken();
+
+  if (token && !isPublicAuthEndpoint && isAccessTokenExpiring(token)) {
+    const refreshed = await forceRefreshToken();
+    if (!refreshed) handleSessionExpired();
+  }
+
   const controller = new AbortController();
-  // Default timeout: 10 seconds for normal API calls
   const timeoutMs = options.timeout ?? TIMEOUT.DEFAULT;
   const id = setTimeout(() => { controller.abort(); }, timeoutMs);
-
   const headers = new Headers();
-  
-  // Add base headers
+
   const baseHeaders = getHeaders();
   Object.entries(baseHeaders).forEach(([k, v]) => {
     if (v) headers.set(k, v);
   });
 
-  // Add custom headers (overriding base headers)
   if (options.headers) {
     if (options.headers instanceof Headers) {
       options.headers.forEach((v, k) => { headers.set(k, v); });
@@ -128,31 +136,28 @@ export async function apiFetch(
     }
   }
 
-  // Remove timeout from options to avoid passing it to fetch
   const { timeout: _timeout, ...fetchOptions } = options;
 
   if (fetchOptions.body instanceof FormData) {
     headers.delete("Content-Type");
   }
 
-  const fullUrl = getFullUrl(url);
-
   try {
     const response = await fetch(fullUrl, {
       ...fetchOptions,
       headers,
       credentials: "include",
-      signal: controller.signal
+      signal: controller.signal,
     });
     clearTimeout(id);
-    
-    if (response.status === 401 && !fullUrl.includes("/auth/login")) {
+
+    if (response.status === 401 && !isPublicAuthEndpoint) {
       return await handleUnauthorized({
         fullUrl,
         fetchOptions,
         headers,
         controller,
-        timeoutId: id
+        timeoutId: id,
       });
     }
 

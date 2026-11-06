@@ -2,6 +2,11 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
 import { apiFetch, getAccessToken, getCurrentUserId, setAccessToken, setCurrentUserId } from "../api/helpers";
 
+function makeToken(expiresAtSeconds: number): string {
+  const payload = btoa(JSON.stringify({ exp: expiresAtSeconds }));
+  return `header.${payload.replace(/=/g, "")}.signature`;
+}
+
 describe("apiFetch utility", () => {
   beforeEach(() => {
     vi.stubGlobal("fetch", vi.fn());
@@ -87,6 +92,63 @@ describe("apiFetch utility", () => {
     const callHeaders = (vi.mocked(fetch).mock.calls[0][1]!).headers as Headers;
     expect(callHeaders.get("Authorization")).toBe("Bearer token-abc");
   });
+
+  it("refreshes an access token before requesting a protected endpoint when it is near expiry", async () => {
+    setAccessToken(makeToken(Math.floor(Date.now() / 1000) + 30));
+
+    vi.mocked(fetch)
+      .mockResolvedValueOnce(new Response(JSON.stringify({ access_token: "fresh-token" }), { status: 200 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ ok: true }), { status: 200 }));
+
+    const response = await apiFetch("/test");
+
+    expect(response.status).toBe(200);
+    expect(fetch).toHaveBeenCalledTimes(2);
+    expect(vi.mocked(fetch).mock.calls[0][0]).toContain("/auth/refresh");
+    expect(vi.mocked(fetch).mock.calls[1][0]).toContain("/test");
+    expect(((vi.mocked(fetch).mock.calls[1][1] as RequestInit).headers as Headers).get("Authorization")).toBe("Bearer fresh-token");
+  });
+
+  it("does not call a protected endpoint when preflight refresh reports an expired session", async () => {
+    setAccessToken(makeToken(Math.floor(Date.now() / 1000) - 1));
+    vi.mocked(fetch).mockResolvedValue(new Response(JSON.stringify({ ok: true }), { status: 200 }));
+    vi.mocked(fetch).mockResolvedValueOnce(new Response(null, { status: 401 }));
+
+    await expect(apiFetch("/test")).rejects.toThrow("Session expired");
+
+    expect(fetch).toHaveBeenCalledTimes(2);
+    expect(vi.mocked(fetch).mock.calls[0][0]).toContain("/auth/refresh");
+    expect(vi.mocked(fetch).mock.calls[1][0]).toContain("/auth/logout");
+    expect(getAccessToken()).toBeNull();
+  });
+
+  it("refreshes once and lets concurrent protected requests continue with the new token", async () => {
+    setAccessToken(makeToken(Math.floor(Date.now() / 1000) + 30));
+
+    const { promise: refreshResponse, resolve: resolveRefresh } = Promise.withResolvers<Response>();
+    const mockFetch = vi.mocked(fetch);
+    mockFetch.mockImplementation((input) => {
+      if (String(input).includes("/auth/refresh")) return refreshResponse;
+      return Promise.resolve(new Response(JSON.stringify({ ok: true }), { status: 200 }));
+    });
+
+    const requests = [apiFetch("/employees"), apiFetch("/departments"), apiFetch("/notifications")];
+    await Promise.resolve();
+
+    expect(mockFetch.mock.calls.filter(([input]) => String(input).includes("/auth/refresh"))).toHaveLength(1);
+    expect(mockFetch.mock.calls.filter(([input]) => String(input).includes("/employees"))).toHaveLength(0);
+
+    resolveRefresh(new Response(JSON.stringify({ access_token: "fresh-token" }), { status: 200 }));
+    const responses = await Promise.all(requests);
+
+    expect(responses).toHaveLength(3);
+    const protectedCalls = mockFetch.mock.calls.filter(([input]) => !String(input).includes("/auth/refresh"));
+    expect(protectedCalls).toHaveLength(3);
+    for (const [, init] of protectedCalls) {
+      expect((init?.headers as Headers).get("Authorization")).toBe("Bearer fresh-token");
+    }
+  });
+
 
   describe("401 Unauthorized handling", () => {
     const originalLocation = window.location;
