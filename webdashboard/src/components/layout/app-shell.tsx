@@ -14,7 +14,7 @@ import BottomNav from "./bottom-nav";
 import FloatingPanel from "./floating-panel";
 import IconRail from "./icon-rail";
 import Navbar from "./navbar";
-
+import { DsmLauncherOverlay, useDsmLauncher } from "@/components/features/dsm-launcher";
 export interface AppShellProps {
   variant?: "workspace" | "infra";
 }
@@ -27,6 +27,7 @@ export default function AppShell({ variant: _variant }: AppShellProps) {
   const location = useLocation();
   const { workspace: currentWorkspace } = useWorkspace();
   const { unreadCount } = useNotifications();
+  const dsmLauncher = useDsmLauncher();
 
   const {
     isPinned,
@@ -69,6 +70,7 @@ export default function AppShell({ variant: _variant }: AppShellProps) {
         isPinned={isPinned}
         onClickGroup={handleGroupClick}
         onHoverGroup={handleGroupHover}
+        onOpenLauncher={dsmLauncher.open}
         onTogglePin={togglePin}
         workspaceLogoUrl={currentWorkspace?.logo_url ?? undefined}
         workspaceName={currentWorkspace?.name ?? "LeeAttend"}
@@ -99,6 +101,7 @@ export default function AppShell({ variant: _variant }: AppShellProps) {
 
         <Navbar
           currentWorkspaceName={currentWorkspace?.name ?? "Workspace"}
+          onOpenLauncher={dsmLauncher.open}
         />
         <main
           data-app-scroll-container
@@ -133,6 +136,12 @@ export default function AppShell({ variant: _variant }: AppShellProps) {
       <BottomDrawer
         isOpen={isBottomDrawerOpen}
         onClose={() => { setBottomDrawerOpen(false); }}
+      />
+
+      {/* DSM 7 Main Menu & Feature Launcher Overlay */}
+      <DsmLauncherOverlay
+        isOpen={dsmLauncher.isOpen}
+        onClose={dsmLauncher.close}
       />
 
     </div>

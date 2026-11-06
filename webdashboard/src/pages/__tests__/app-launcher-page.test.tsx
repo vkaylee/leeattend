@@ -142,6 +142,17 @@ describe("AppLauncherPage", () => {
     expect(screen.getByTestId("launcher-quick-stats")).toBeInTheDocument();
   });
 
+  it("renders hero search trigger and triggers open event", () => {
+    grantAllPermissions();
+    const dispatchSpy = vi.spyOn(window, "dispatchEvent");
+    render(<AppLauncherPage />, { wrapper: Wrapper });
+    const searchBtn = screen.getByTestId("launcher-hero-search").querySelector("button");
+    expect(searchBtn).toBeInTheDocument();
+    fireEvent.click(searchBtn!);
+    expect(dispatchSpy).toHaveBeenCalled();
+    dispatchSpy.mockRestore();
+  });
+
   it("renders all apps section when user has permissions", () => {
     grantAllPermissions();
     render(<AppLauncherPage />, { wrapper: Wrapper });

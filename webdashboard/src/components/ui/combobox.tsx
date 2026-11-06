@@ -5,7 +5,7 @@ import { useTranslation } from "react-i18next";
 
 import { Command } from "cmdk";
 
-import { cn } from "@/lib/utils";
+import { cn, removeDiacritics } from "@/lib/utils";
 
 interface ComboboxOption {
   description?: string | React.ReactNode;
@@ -93,13 +93,6 @@ function useComboboxKeyboardShortcut({
   }, [keyboardShortcut, onSearchChange, open, clearOnEscape, value, onChange, setOpen]);
 }
 
-function removeDiacritics(str: string): string {
-  return str
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/đ/g, "d")
-    .replace(/Đ/g, "D");
-}
 
 function getFirstItemValue(options: ComboboxOption[]): string {
   if (options.length === 0) return "";

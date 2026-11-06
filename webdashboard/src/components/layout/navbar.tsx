@@ -1,16 +1,18 @@
+/* eslint-disable react/forbid-elements */
 import { useLocation } from "@tanstack/react-router";
-import { ChevronRight as BreadcrumbSeparator } from "lucide-react";
+import { ChevronRight as BreadcrumbSeparator, Search } from "lucide-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
 
 import { useHeaderActions } from "@/hooks/use-header-actions";
 import { ROUTES } from "@/lib/routes";
-
+import { cn } from "@/lib/utils";
 interface NavbarProps {
   currentWorkspaceName: string;
+  onOpenLauncher?: () => void;
 }
 
-export default function Navbar({ currentWorkspaceName }: NavbarProps) {
+export default function Navbar({ currentWorkspaceName, onOpenLauncher }: NavbarProps) {
   const { t } = useTranslation(["common", "dashboard", "employees", "leave", "payroll", "settings"]);
   const location = useLocation();
   const { actions } = useHeaderActions();
@@ -55,6 +57,30 @@ export default function Navbar({ currentWorkspaceName }: NavbarProps) {
           {getPageName(location.pathname).toUpperCase()}
         </span>
       </nav>
+
+      {/* Quick Feature Search Trigger (DSM 7 Launcher) */}
+      {Boolean(onOpenLauncher) && (
+        <button
+          type="button"
+          data-testid="navbar-dsm-launcher-btn"
+          onClick={onOpenLauncher}
+          aria-label={t("appLauncher.openSearch", "Mở tìm kiếm tính năng DSM 7")}
+          className={cn(
+            "flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs",
+            "bg-slate-100/80 dark:bg-slate-800/80 hover:bg-slate-200/80 dark:hover:bg-slate-700/80",
+            "border border-slate-200/60 dark:border-slate-700/60 text-slate-500 dark:text-slate-400",
+            "transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500",
+          )}
+        >
+          <Search className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+          <span className="hidden md:inline font-normal text-slate-600 dark:text-slate-300">
+            {t("appLauncher.quickSearchPlaceholder", "Tìm tính năng, ứng dụng...")}
+          </span>
+          <kbd className="hidden md:inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[10px] font-semibold text-slate-400 dark:text-slate-400 bg-white dark:bg-slate-900 rounded border border-slate-200 dark:border-slate-700 shadow-xs">
+            ⌘K
+          </kbd>
+        </button>
+      )}
 
       {/* Quick Actions slot (injected by child pages via context) */}
       {!!actions && (

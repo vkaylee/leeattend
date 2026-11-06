@@ -3,7 +3,7 @@
  * absolute-positioned active indicators) that the design-system <Button>
  * does not yet support. */
 import { Link } from "@tanstack/react-router";
-import { Bell, LogOut, Moon, Pin, PinOff, Sun, UserCircle } from "lucide-react";
+import { Bell, LayoutGrid, LogOut, Moon, Pin, PinOff, Sun, UserCircle } from "lucide-react";
 import React, { memo, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -26,6 +26,7 @@ interface IconRailProps {
   isPinned: boolean;
   onClickGroup: (g: NavGroup) => void;
   onHoverGroup: (g: NavGroup | null) => void;
+  onOpenLauncher?: () => void;
   onTogglePin: () => void;
   workspaceLogoUrl?: string;
   workspaceName?: string;
@@ -42,6 +43,7 @@ const IconRail = memo(function IconRail({
   isPinned,
   onClickGroup,
   onHoverGroup,
+  onOpenLauncher,
   onTogglePin,
   workspaceName,
   workspaceLogoUrl,
@@ -99,6 +101,17 @@ const IconRail = memo(function IconRail({
           </span>
         ) : null}
       </button>
+
+      {onOpenLauncher ? (
+        <div className="px-1.5 py-1 shrink-0">
+          <IconTooltipButton
+            data-testid="nav-rail-dsm-launcher-btn"
+            icon={LayoutGrid}
+            label={t("appLauncher.dsmLauncher", "Main Menu (⌘K)")}
+            onClick={onOpenLauncher}
+          />
+        </div>
+      ) : null}
 
       <div className="h-px bg-slate-100 dark:bg-slate-800 mx-3 shrink-0" />
 
