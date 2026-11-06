@@ -1,0 +1,119 @@
+import {
+  Clock,
+  Activity,
+  Users,
+  CheckSquare,
+  Sparkles,
+  TrendingUp,
+} from "lucide-react";
+
+import type { DesktopWidgetDefinition } from "./types";
+
+import { ExecutiveKpiWidget } from "./widgets/executive-kpi-widget";
+import { DesktopPendingTasksWidget } from "./widgets/pending-tasks-widget";
+import { QuickPunchWidget } from "./widgets/quick-punch-widget";
+import { QuickShortcutsWidget } from "./widgets/quick-shortcuts-widget";
+import { SystemHealthWidget } from "./widgets/system-health-widget";
+import { TodayOverviewWidget } from "./widgets/today-overview-widget";
+
+export const DESKTOP_WIDGET_REGISTRY: DesktopWidgetDefinition[] = [
+  {
+    id: "quick-punch",
+    titleFallback: "Bấm giờ chấm công",
+    descriptionFallback: "Đồng hồ thời gian thực và ghi nhận vào/ra ca nhanh",
+    category: "attendance",
+    defaultEnabled: true,
+    defaultOrder: 1,
+    colSpan: "col-span-1",
+    icon: Clock,
+    component: QuickPunchWidget,
+  },
+  {
+    id: "today-overview",
+    titleFallback: "Chuyên cần hôm nay",
+    descriptionFallback: "Số lượng nhân sự có mặt, vắng mặt, nghỉ phép và tỷ lệ chuyên cần",
+    category: "overview",
+    defaultEnabled: true,
+    defaultOrder: 2,
+    colSpan: "col-span-1",
+    icon: Users,
+    component: TodayOverviewWidget,
+    permissions: ["attendance:logs:read"],
+  },
+  {
+    id: "quick-shortcuts",
+    titleFallback: "Thao tác nhanh & Main Menu",
+    descriptionFallback: "Lối tắt đến các chức năng thường dùng và phím tắt DSM 7",
+    category: "overview",
+    defaultEnabled: true,
+    defaultOrder: 3,
+    colSpan: "col-span-1",
+    icon: Sparkles,
+    component: QuickShortcutsWidget,
+  },
+  {
+    id: "system-health",
+    titleFallback: "Trạng thái hệ thống",
+    descriptionFallback: "Giám sát thời gian thực API, Database, Redis, MinIO và Workers",
+    category: "system",
+    defaultEnabled: true,
+    defaultOrder: 4,
+    colSpan: "col-span-1",
+    icon: Activity,
+    component: SystemHealthWidget,
+  },
+  {
+    id: "pending-tasks",
+    titleFallback: "Việc cần xử lý ngay",
+    descriptionFallback: "Checklist quy trình tiếp nhận và thủ tục nhân sự cần giải quyết",
+    category: "tasks",
+    defaultEnabled: true,
+    defaultOrder: 5,
+    colSpan: "col-span-1 md:col-span-2",
+    icon: CheckSquare,
+    component: DesktopPendingTasksWidget,
+  },
+  {
+    id: "executive-kpi",
+    titleFallback: "Chỉ số điều hành",
+    descriptionFallback: "Dự toán quỹ lương tháng và tỷ lệ hoàn thành công việc",
+    category: "analytics",
+    defaultEnabled: true,
+    defaultOrder: 6,
+    colSpan: "col-span-1 md:col-span-2",
+    icon: TrendingUp,
+    component: ExecutiveKpiWidget,
+    permissions: ["payroll:read", "reports:read"],
+  },
+];
+
+export function filterDesktopWidgets(
+  widgets: DesktopWidgetDefinition[],
+  hasAnyPermission: (...perms: string[]) => boolean,
+  systemRoles: string[] = [],
+): DesktopWidgetDefinition[] {
+  return widgets.filter((w) => {
+    // Check system roles
+    if (w.systemRoles && w.systemRoles.length > 0) {
+      const hasRole = w.systemRoles.some((r) => systemRoles.includes(r));
+      if (!hasRole) return false;
+    }
+
+    // Check permissions
+    if (w.permissions && w.permissions.length > 0) {
+      if (!hasAnyPermission(...w.permissions)) return false;
+    }
+
+    return true;
+  });
+}
+
+export function getDefaultEnabledWidgetIds(): string[] {
+  return DESKTOP_WIDGET_REGISTRY.filter((w) => w.defaultEnabled).map((w) => w.id);
+}
+
+export function getDefaultWidgetOrder(): string[] {
+  return [...DESKTOP_WIDGET_REGISTRY]
+    .sort((a, b) => a.defaultOrder - b.defaultOrder)
+    .map((w) => w.id);
+}

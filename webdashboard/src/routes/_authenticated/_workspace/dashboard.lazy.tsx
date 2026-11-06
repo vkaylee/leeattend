@@ -1,13 +1,17 @@
 import { createLazyFileRoute } from "@tanstack/react-router";
+import { Suspense, lazy } from "react";
 
 import { ErrorBoundary } from "@/components/common/error-boundary";
-import DashboardPage from "@/pages/dashboard-page";
+import { Skeleton } from "@/components/ui/skeleton";
 
+const DesktopPage = lazy(() => import("@/pages/desktop-page"));
 
 function DashboardPageWithErrorBoundary() {
   return (
     <ErrorBoundary variant="full">
-      <DashboardPage />
+      <Suspense fallback={<Skeleton className="h-96 w-full rounded-3xl" />}>
+        <DesktopPage />
+      </Suspense>
     </ErrorBoundary>
   );
 }
