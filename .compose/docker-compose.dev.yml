@@ -90,13 +90,7 @@ services:
 
   db-migrate:
     image: public.ecr.aws/docker/library/postgres:18-alpine
-    command:
-      - sh
-      - -c
-      - >-
-        until pg_isready -h db -U "$${POSTGRES_USER}" -d "$${POSTGRES_DB}"; do sleep 1; done;
-        psql -h db -U "$${POSTGRES_USER}" -d "$${POSTGRES_DB}"
-        -f /workspace/apiserver/migrations/20261103000000_init/up.sql
+    command: ["sh", "/workspace/apiserver/migrations/run-dev.sh"]
     environment:
       POSTGRES_DB: ${DB_NAME:-leeattend}
       POSTGRES_USER: ${DB_USER:-postgres}

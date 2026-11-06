@@ -28,6 +28,10 @@ podman-compose -f .compose/docker-compose.dev.yml up --build
 ```
 
 The development API skips standalone license verification; production retains mandatory offline license verification. Database and Redis volumes are isolated by the development configuration.
+Development migration gate:
+
+`db-migrate` runs `apiserver/migrations/run-dev.sh`. It records the baseline migration in `schema_migrations`, skips an already-applied baseline, and exits non-zero on SQL errors. Existing development volumes containing the baseline schema are marked applied without replaying the dump.
+
 
 ## Test gates
 
