@@ -22,24 +22,28 @@ export function LeaveSettingsTabs({ activeTab, onTabChange }: LeaveSettingsTabsP
   ] as const;
 
   return (
-    <div className="flex bg-slate-100 dark:bg-slate-700/50 p-1.5 rounded-[22px] w-fit border border-slate-200 dark:border-slate-700/50 shadow-inner mb-8">
+    <div className="inline-flex items-center gap-1 rounded-xl bg-slate-100/90 dark:bg-slate-800/80 p-1 border border-slate-200/60 dark:border-slate-700/60 mb-6" role="tablist">
       {tabs.map((tab) => {
         const Icon = tab.icon;
+        const isSelected = activeTab === tab.id;
         return (
-          <Button className={cn(
-              "flex items-center gap-3 px-8 py-2.5 rounded-[18px] text-xs font-bold uppercase tracking-widest transition-all duration-300",
-              activeTab === tab.id
-                ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100 dark:border-slate-800"
-                : "text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:text-slate-100"
+          <button
+            aria-selected={isSelected}
+            className={cn(
+              "flex items-center gap-2 px-4 py-1.5 rounded-lg text-xs font-semibold transition-all duration-150 select-none",
+              isSelected
+                ? "bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 shadow-2xs font-bold"
+                : "text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"
             )}
             data-testid={`leave-tab-${tab.id}`}
             key={tab.id}
             onClick={() => { onTabChange(tab.id); }}
-            variant="ghost"
+            role="tab"
+            type="button"
           >
-            <Icon className="w-4 h-4" />
-            {tab.label}
-          </Button>
+            <Icon className="w-3.5 h-3.5" />
+            <span>{tab.label}</span>
+          </button>
         );
       })}
     </div>

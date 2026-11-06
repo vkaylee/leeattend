@@ -75,12 +75,18 @@ export default function PayrollSettings() {
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 px-2">
-        <div className="flex items-center gap-4">
-          <div className="w-12 h-12 rounded-[1.25rem] bg-primary-50 dark:bg-primary-950 flex items-center justify-center text-primary-600 dark:text-primary-400 shadow-sm border border-primary-100 dark:border-primary-800/50"><Coins size={24} /></div>
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-2 border-b border-slate-200/60 dark:border-slate-800/60">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-primary-50 dark:bg-primary-950/70 flex items-center justify-center text-primary-600 dark:text-primary-400 shadow-2xs border border-primary-100/50 dark:border-primary-900/50">
+            <Coins size={20} />
+          </div>
           <div>
-            <Typography className="text-2xl font-bold tracking-tight text-slate-850 dark:text-slate-100 normal-case mb-0.5" variant="h3">{t("common.settings.categories.payroll")}</Typography>
-            <Typography className="text-xs text-slate-500 dark:text-slate-400 font-medium normal-case tracking-normal" variant="small">{t("common.settings.categories.payroll_desc")}</Typography>
+            <Typography className="text-xl font-bold tracking-tight text-slate-800 dark:text-slate-100 normal-case" variant="h3">
+              {t("common.settings.categories.payroll")}
+            </Typography>
+            <Typography className="text-xs text-slate-500 dark:text-slate-400 font-medium normal-case tracking-normal" variant="small">
+              {t("common.settings.categories.payroll_desc")}
+            </Typography>
           </div>
         </div>
       </div>
@@ -105,7 +111,7 @@ export default function PayrollSettings() {
       </div>
 
       {/* Card Container holding Level-2 tabs and Panel Content */}
-      <div className="bg-white dark:bg-slate-900 rounded-2xl sm:rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden">
+      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800/80 shadow-2xs overflow-hidden">
         {/* Level-2 Sub-tabs header */}
         <div className="border-b border-slate-100 dark:border-slate-800/60 px-8 pt-6 bg-slate-50/50 dark:bg-slate-900/50">
           <Tabs onValueChange={(tabId) => { setActiveTab(tabId as TabType); }} value={activeTab}>
@@ -114,7 +120,7 @@ export default function PayrollSettings() {
                 .filter((item) => subTabMapping[activeParentGroup].includes(item.id))
                 .map((item) => (
                   <TabsTrigger
-                    className="flex items-center gap-2 px-4 pb-4 pt-2 text-xs font-bold uppercase tracking-widest transition-all border-b-2"
+                    className="flex items-center gap-2 px-4 pb-3 pt-2 text-xs font-semibold transition-all border-b-2"
                     data-testid={item.testId}
                     key={item.id}
                     value={item.id}

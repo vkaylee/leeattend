@@ -15,24 +15,24 @@ export default function OvertimeSettings() {
 
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <div className="flex flex-col gap-2">
-        <div className="flex items-center gap-4">
-          <div className="w-12 h-12 rounded-[1.25rem] bg-blue-50 dark:bg-blue-950/30 flex items-center justify-center text-blue-600 dark:text-blue-400 shadow-sm border border-blue-100 dark:border-blue-900/50">
-            <Clock size={24} />
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-2 border-b border-slate-200/60 dark:border-slate-800/60">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-950/70 flex items-center justify-center text-blue-600 dark:text-blue-400 shadow-2xs border border-blue-100/50 dark:border-blue-900/50">
+            <Clock size={20} />
           </div>
           <div>
-            <Typography className="text-2xl font-bold tracking-tight text-slate-850 dark:text-slate-100 normal-case mb-0.5" variant="h3">
-              {t("settings.categories.overtime", { defaultValue: "Overtime Settings" })}
+            <Typography className="text-xl font-bold tracking-tight text-slate-800 dark:text-slate-100 normal-case" variant="h3">
+              {t("settings.categories.overtime", { defaultValue: "Cài đặt tăng ca" })}
             </Typography>
             <Typography className="text-xs text-slate-500 dark:text-slate-400 font-medium normal-case tracking-normal" variant="small">
-              {t("settings.categories.overtime_desc", { defaultValue: "Manage overtime quotas and approvals" })}
+              {t("settings.categories.overtime_desc", { defaultValue: "Quản lý hạn mức tăng ca và luồng phê duyệt" })}
             </Typography>
           </div>
         </div>
       </div>
 
-      <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-100 dark:border-slate-800 p-8 shadow-sm">
-        <div className="animate-in fade-in slide-in-from-bottom-2 duration-500">
+      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800/80 p-6 sm:p-8 shadow-2xs">
+        <div className="animate-in fade-in duration-300">
           <OvertimeQuotasTab wsId={ws.id} />
         </div>
       </div>

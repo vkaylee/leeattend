@@ -35,17 +35,17 @@ export default function LeaveSettings() {
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <LeaveSettingsHeader />
 
-      <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-100 dark:border-slate-800 p-8 shadow-sm">
+      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800/80 p-6 sm:p-8 shadow-2xs">
         <LeaveSettingsTabs activeTab={activeTab} onTabChange={setActiveTab} />
 
         <div className="animate-in fade-in slide-in-from-bottom-2 duration-500">
           {activeTab === "types" && (
             <div>
               <div className="mb-8 border-b border-slate-50 dark:border-slate-800 pb-6">
-                <Typography className="text-xl font-bold text-slate-800 dark:text-slate-100 tracking-tight uppercase" variant="h3">
+                <Typography className="text-lg font-bold text-slate-800 dark:text-slate-100 tracking-tight" variant="h3">
                   {t("settings.leave.tabs.types")}
                 </Typography>
-                <Typography className="text-xs font-bold text-slate-500 dark:text-slate-400 mt-1 uppercase tracking-tight" variant="p">
+                <Typography className="text-xs text-slate-500 dark:text-slate-400 mt-1" variant="p">
                   {t("settings.leave.tabs.types_desc")}
                 </Typography>
               </div>
@@ -56,10 +56,10 @@ export default function LeaveSettings() {
           {activeTab === "policies" && (
             <div>
               <div className="mb-8 border-b border-slate-50 dark:border-slate-800 pb-6">
-                <Typography className="text-xl font-bold text-slate-800 dark:text-slate-100 tracking-tight uppercase" variant="h3">
+                <Typography className="text-lg font-bold text-slate-800 dark:text-slate-100 tracking-tight" variant="h3">
                   {t("settings.leave.tabs.policies")}
                 </Typography>
-                <Typography className="text-xs font-bold text-slate-500 dark:text-slate-400 mt-1 uppercase tracking-tight" variant="p">
+                <Typography className="text-xs text-slate-500 dark:text-slate-400 mt-1" variant="p">
                   {t("settings.leave.tabs.policies_desc")}
                 </Typography>
               </div>
