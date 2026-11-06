@@ -13,7 +13,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 import StaggerChildren from "@/components/ui/stagger-children";
 import { Typography } from "@/components/ui/typography";
 import { useMyPermissions } from "@/hooks/use-permissions";
-import { useProfile } from "@/hooks/use-profile";
 import { useQuickAccess } from "@/hooks/use-quick-access";
 import { APP_REGISTRY, GROUP_LABEL_KEYS, type AppDefinition } from "@/lib/app-registry";
 import { isFeatureEnabled } from "@/lib/feature-flags";
@@ -23,18 +22,10 @@ import { isFeatureEnabled } from "@/lib/feature-flags";
 function filterApps(
   apps: AppDefinition[],
   hasAnyPermission: (...perms: string[]) => boolean,
-  systemRoles: string[],
 ): AppDefinition[] {
   return apps.filter((app) => {
-    if (app.featureFlag && !isFeatureEnabled(app.featureFlag)) {
-      return false;
-    }
-    if (app.systemRoles && app.systemRoles.length > 0) {
-      return app.systemRoles.some((role) => systemRoles.includes(role));
-    }
-    if (app.permissions && app.permissions.length > 0) {
-      return hasAnyPermission(...app.permissions);
-    }
+    if (app.featureFlag && !isFeatureEnabled(app.featureFlag)) return false;
+    if (app.permissions && app.permissions.length > 0) return hasAnyPermission(...app.permissions);
     return true;
   });
 }
@@ -47,15 +38,13 @@ const GROUP_ORDER: NavGroup[] = ["dashboard", "org", "time", "shifts", "payroll"
 export default function AppLauncherPage() {
   const { t } = useTranslation();
   const { hasAnyPermission, isLoading: permsLoading } = useMyPermissions();
-  const { user } = useProfile();
   const { top3, recordAccess } = useQuickAccess();
 
   // Filter apps by permissions
   const visibleApps = useMemo(() => {
     if (permsLoading) return [];
-    return filterApps(APP_REGISTRY, hasAnyPermission, user?.system_roles ?? []);
-  }, [permsLoading, hasAnyPermission, user?.system_roles]);
-
+    return filterApps(APP_REGISTRY, hasAnyPermission);
+  }, [permsLoading, hasAnyPermission]);
   // Quick Access apps (respect permission filtering)
   const quickAccessApps = useMemo(() => {
     return top3

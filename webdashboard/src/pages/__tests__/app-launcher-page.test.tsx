@@ -9,13 +9,11 @@ import AppLauncherPage from "@/pages/app-launcher-page";
 // ── Mocks ─────────────────────────────────────────────────────────
 
 const activePermissions = new Set<string>();
-let mockSystemRoles: string[] = [];
 let mockPermsLoading = false;
 
 const mockHasAnyPermission = vi.fn((...perms: string[]) =>
-  perms.length === 0 || perms.some((p) => activePermissions.has(p))
+  perms.length === 0 || perms.some((p) => activePermissions.has(p)),
 );
-
 vi.mock("@/hooks/use-permissions", () => ({
   useMyPermissions: () => ({
     hasAnyPermission: mockHasAnyPermission,
@@ -29,22 +27,6 @@ vi.mock("@/hooks/use-permissions", () => ({
   }),
 }));
 
-vi.mock("@/hooks/use-profile", () => ({
-  useProfile: () => ({
-    user: {
-      id: "x",
-      email: "a@b.com",
-      full_name: "Test",
-      system_roles: mockSystemRoles,
-    },
-    isLoading: false,
-    isError: false,
-    error: null,
-    refetch: vi.fn(),
-    updateProfile: vi.fn(),
-    isUpdating: false,
-  }),
-}));
 
 const mockStats = {
   total_employees: 100,
@@ -97,10 +79,10 @@ function grantAllPermissions() {
     "attendance:adjustments:submit_on_behalf", "shift_swaps:manage", "reports:read",
     "overtime:approve", "overtime:claim_on_behalf", "shifts:read",
     "payroll:read", "workspace:settings:read", "members:roles:manage",
+    "security:settings:manage", "infra:monitor",
     "ess:profile", "ess:attendance", "ess:clock",
   ];
-  for (const p of allPerms) activePermissions.add(p);
-  mockSystemRoles = ["platform_admin"];
+  for (const permission of allPerms) activePermissions.add(permission);
 }
 
 // ── Tests ─────────────────────────────────────────────────────────
@@ -108,7 +90,6 @@ function grantAllPermissions() {
 describe("AppLauncherPage", () => {
   beforeEach(() => {
     activePermissions.clear();
-    mockSystemRoles = [];
     mockPermsLoading = false;
     localStorage.clear();
     vi.clearAllMocks();
@@ -200,40 +181,6 @@ describe("AppLauncherPage", () => {
     expect(screen.queryByTestId("launcher-quick-access")).not.toBeInTheDocument();
   });
 
-  // ── Role-based visibility ───────────────────────────────────
-
-  it("hides system-role-gated items from non-platform_admin", () => {
-    activePermissions.add("employees:read");
-    activePermissions.add("members:read");
-    activePermissions.add("workspace:settings:read");
-    activePermissions.add("ess:profile");
-    mockSystemRoles = [];
-
-    render(<AppLauncherPage />, { wrapper: Wrapper });
-
-    // Non-admin should NOT see system-role-gated items
-    expect(screen.queryByTestId("app-card-system-roles")).not.toBeInTheDocument();
-    expect(screen.queryByTestId("app-card-infra-monitor")).not.toBeInTheDocument();
-
-    // But should see permission-gated settings
-    expect(screen.getByTestId("app-card-settings")).toBeInTheDocument();
-  });
-
-  it("shows system items for platform_admin", () => {
-    mockSystemRoles = ["platform_admin"];
-    render(<AppLauncherPage />, { wrapper: Wrapper });
-
-    expect(screen.getByTestId("app-card-system-roles")).toBeInTheDocument();
-    expect(screen.getByTestId("app-card-infra-monitor")).toBeInTheDocument();
-  });
-
-  it("shows system items for unified admin", () => {
-    mockSystemRoles = ["admin"];
-    render(<AppLauncherPage />, { wrapper: Wrapper });
-
-    expect(screen.getByTestId("app-card-system-roles")).toBeInTheDocument();
-    expect(screen.getByTestId("app-card-infra-monitor")).toBeInTheDocument();
-  });
 
   it("shows ESS apps only when user has corresponding permissions", () => {
     activePermissions.add("ess:profile");

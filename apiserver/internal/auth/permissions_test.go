@@ -145,34 +145,6 @@ func TestMemberContextRequireAnyScopedPermission(t *testing.T) {
 	assertForbidden(t, errNone)
 }
 
-func TestSystemContextDefaultDeny(t *testing.T) {
-	var nilCtx *SystemContext
-	assertForbidden(t, nilCtx.RequireRole(SystemRolePlatformAdmin))
-
-	userCtx := &SystemContext{
-		UserID: uuid.New(),
-		Roles:  []SystemRoleType{SystemRoleSupport},
-	}
-
-	if !userCtx.HasRole(SystemRoleSupport) {
-		t.Error("expected user to have Support role")
-	}
-	if userCtx.HasRole(SystemRolePlatformAdmin) {
-		t.Error("user should not have PlatformAdmin role")
-	}
-
-	if err := userCtx.RequireRole(SystemRoleSupport); err != nil {
-		t.Errorf("expected success for granted role: %v", err)
-	}
-	assertForbidden(t, userCtx.RequireRole(SystemRolePlatformAdmin))
-
-	// RequireAnyRole
-	if err := userCtx.RequireAnyRole(SystemRolePlatformAdmin, SystemRoleSupport); err != nil {
-		t.Errorf("expected success when holding one of the roles: %v", err)
-	}
-	assertForbidden(t, userCtx.RequireAnyRole(SystemRolePlatformAdmin))
-}
-
 func assertForbidden(t *testing.T, err error) {
 	t.Helper()
 	if err == nil {

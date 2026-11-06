@@ -41,8 +41,6 @@ import { Route as AuthenticatedWorkspaceEssOtRouteImport } from "./routes/_authe
 import { Route as AuthenticatedWorkspaceEssClockRouteImport } from "./routes/_authenticated/_workspace/ess/clock"
 import { Route as AuthenticatedWorkspaceEssAttendanceRouteImport } from "./routes/_authenticated/_workspace/ess/attendance"
 import { Route as AuthenticatedWorkspaceApprovalsOtRouteImport } from "./routes/_authenticated/_workspace/approvals/ot"
-import { Route as AuthenticatedInfraSystemTenantsRouteImport } from "./routes/_authenticated/_infra/system/tenants"
-import { Route as AuthenticatedInfraSystemRolesRouteImport } from "./routes/_authenticated/_infra/system/roles"
 import { Route as AuthenticatedInfraSystemDbClustersRouteImport } from "./routes/_authenticated/_infra/system/db-clusters"
 import { Route as AuthenticatedInfraInfraMonitorRouteImport } from "./routes/_authenticated/_infra/infra/monitor"
 import { Route as AuthenticatedWorkspaceWorkspaceSettingsIndexRouteImport } from "./routes/_authenticated/_workspace/workspace/settings/index"
@@ -338,26 +336,6 @@ const AuthenticatedWorkspaceApprovalsOtRoute =
     getParentRoute: () => AuthenticatedWorkspaceRoute,
   } as any).lazy(() =>
     import("./routes/_authenticated/_workspace/approvals/ot.lazy").then(
-      (d) => d.Route,
-    ),
-  )
-const AuthenticatedInfraSystemTenantsRoute =
-  AuthenticatedInfraSystemTenantsRouteImport.update({
-    id: "/system/tenants",
-    path: "/system/tenants",
-    getParentRoute: () => AuthenticatedInfraRoute,
-  } as any).lazy(() =>
-    import("./routes/_authenticated/_infra/system/tenants.lazy").then(
-      (d) => d.Route,
-    ),
-  )
-const AuthenticatedInfraSystemRolesRoute =
-  AuthenticatedInfraSystemRolesRouteImport.update({
-    id: "/system/roles",
-    path: "/system/roles",
-    getParentRoute: () => AuthenticatedInfraRoute,
-  } as any).lazy(() =>
-    import("./routes/_authenticated/_infra/system/roles.lazy").then(
       (d) => d.Route,
     ),
   )

@@ -133,7 +133,6 @@ type WorkspaceRepository interface {
 }
 
 type WorkspaceAuthorizer interface {
-	IsSystemAdmin(context.Context, uuid.UUID) bool
 	HasPermission(context.Context, uuid.UUID, uuid.UUID, string) bool
 }
 

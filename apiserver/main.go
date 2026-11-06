@@ -970,57 +970,51 @@ func main() {
 
 	mux.HandleFunc("GET /api/v1/health", healthHandler.Liveness)
 	mux.HandleFunc("GET /api/v1/health/ready", healthHandler.Readiness)
-	systemHealthHandler := api.SystemHealthHandler{Roles: authRepo}
-	mux.HandleFunc("GET /api/v1/system/health", systemHealthHandler.Get)
+	systemHealthHandler := api.SystemHealthHandler{Authorizer: workspaceAuthorizer}
+	mux.HandleFunc("GET /api/v1/system/health", singleWorkspace(systemHealthHandler.Get))
 
-	systemAdminRepo := repository.SystemAdminRepository{DB: workspaceRepo.SystemDB}
+	systemSettingsRepo := repository.SystemSettingsRepository{DB: workspaceRepo.SystemDB}
 	systemAdminHandler := api.SystemAdminHandler{
-		RolesRepo:   systemAdminRepo,
-		Settings:    systemAdminRepo,
-		Roles:       authRepo,
-		EmailSender: service.EmailService{Settings: systemAdminRepo},
+		Authorizer:  workspaceAuthorizer,
+		Settings:    systemSettingsRepo,
+		EmailSender: service.EmailService{Settings: systemSettingsRepo},
 		Redis:       redisClient,
 	}
-	mux.HandleFunc("GET /api/v1/system/smtp/config", systemAdminHandler.GetSMTPConfig)
-	mux.HandleFunc("PUT /api/v1/system/smtp/config", systemAdminHandler.SetSMTPConfig)
-	mux.HandleFunc("POST /api/v1/system/smtp/test", systemAdminHandler.TestSMTP)
-	mux.HandleFunc("GET /api/v1/system/roles", systemAdminHandler.ListRoles)
-	mux.HandleFunc("GET /api/v1/system/users/{user_id}/roles", systemAdminHandler.GetUserRoles)
-	mux.HandleFunc("POST /api/v1/system/users/{user_id}/roles", systemAdminHandler.AssignRole)
-	mux.HandleFunc("DELETE /api/v1/system/users/{user_id}/roles/{role_name}", systemAdminHandler.RevokeRole)
+	mux.HandleFunc("GET /api/v1/system/smtp/config", singleWorkspace(systemAdminHandler.GetSMTPConfig))
+	mux.HandleFunc("PUT /api/v1/system/smtp/config", singleWorkspace(systemAdminHandler.SetSMTPConfig))
+	mux.HandleFunc("POST /api/v1/system/smtp/test", singleWorkspace(systemAdminHandler.TestSMTP))
 
 	monitorRepo := repository.MonitorRepository(workspaceRepo)
 	monitorHandler := api.MonitorHandler{
 		Repo:       monitorRepo,
 		Authorizer: workspaceAuthorizer,
-		RolesRepo:  authRepo,
 		Redis:      redisClient,
 		JWTSecret:  cfg.JWTSecret.Expose(),
 	}
-	mux.HandleFunc("GET /api/v1/monitor/overview", monitorHandler.GetOverview)
-	mux.HandleFunc("GET /v1/monitor/overview", monitorHandler.GetOverview)
-	mux.HandleFunc("GET /monitor/overview", monitorHandler.GetOverview)
-	mux.HandleFunc("GET /api/v1/monitor/jobs", monitorHandler.GetMonitorJobs)
-	mux.HandleFunc("GET /v1/monitor/jobs", monitorHandler.GetMonitorJobs)
-	mux.HandleFunc("GET /monitor/jobs", monitorHandler.GetMonitorJobs)
-	mux.HandleFunc("GET /api/v1/monitor/correlations", monitorHandler.GetMonitorCorrelations)
-	mux.HandleFunc("GET /v1/monitor/correlations", monitorHandler.GetMonitorCorrelations)
-	mux.HandleFunc("GET /monitor/correlations", monitorHandler.GetMonitorCorrelations)
-	mux.HandleFunc("GET /api/v1/monitor/stream", monitorHandler.Stream)
-	mux.HandleFunc("GET /v1/monitor/stream", monitorHandler.Stream)
-	mux.HandleFunc("GET /monitor/stream", monitorHandler.Stream)
-	mux.HandleFunc("GET /api/v1/monitor/alerts", monitorHandler.ListAlerts)
-	mux.HandleFunc("GET /v1/monitor/alerts", monitorHandler.ListAlerts)
-	mux.HandleFunc("GET /monitor/alerts", monitorHandler.ListAlerts)
-	mux.HandleFunc("GET /api/v1/monitor/alerts/{alert_id}", monitorHandler.GetAlert)
-	mux.HandleFunc("GET /v1/monitor/alerts/{alert_id}", monitorHandler.GetAlert)
-	mux.HandleFunc("GET /monitor/alerts/{alert_id}", monitorHandler.GetAlert)
-	mux.HandleFunc("POST /api/v1/monitor/alerts/{alert_id}/acknowledge", monitorHandler.AcknowledgeAlert)
-	mux.HandleFunc("POST /v1/monitor/alerts/{alert_id}/acknowledge", monitorHandler.AcknowledgeAlert)
-	mux.HandleFunc("POST /monitor/alerts/{alert_id}/acknowledge", monitorHandler.AcknowledgeAlert)
-	mux.HandleFunc("POST /api/v1/monitor/alerts/{alert_id}/resolve", monitorHandler.ResolveAlert)
-	mux.HandleFunc("POST /v1/monitor/alerts/{alert_id}/resolve", monitorHandler.ResolveAlert)
-	mux.HandleFunc("POST /monitor/alerts/{alert_id}/resolve", monitorHandler.ResolveAlert)
+	mux.HandleFunc("GET /api/v1/monitor/overview", singleWorkspace(monitorHandler.GetOverview))
+	mux.HandleFunc("GET /v1/monitor/overview", singleWorkspace(monitorHandler.GetOverview))
+	mux.HandleFunc("GET /monitor/overview", singleWorkspace(monitorHandler.GetOverview))
+	mux.HandleFunc("GET /api/v1/monitor/jobs", singleWorkspace(monitorHandler.GetMonitorJobs))
+	mux.HandleFunc("GET /v1/monitor/jobs", singleWorkspace(monitorHandler.GetMonitorJobs))
+	mux.HandleFunc("GET /monitor/jobs", singleWorkspace(monitorHandler.GetMonitorJobs))
+	mux.HandleFunc("GET /api/v1/monitor/correlations", singleWorkspace(monitorHandler.GetMonitorCorrelations))
+	mux.HandleFunc("GET /v1/monitor/correlations", singleWorkspace(monitorHandler.GetMonitorCorrelations))
+	mux.HandleFunc("GET /monitor/correlations", singleWorkspace(monitorHandler.GetMonitorCorrelations))
+	mux.HandleFunc("GET /api/v1/monitor/stream", singleWorkspace(monitorHandler.Stream))
+	mux.HandleFunc("GET /v1/monitor/stream", singleWorkspace(monitorHandler.Stream))
+	mux.HandleFunc("GET /monitor/stream", singleWorkspace(monitorHandler.Stream))
+	mux.HandleFunc("GET /api/v1/monitor/alerts", singleWorkspace(monitorHandler.ListAlerts))
+	mux.HandleFunc("GET /v1/monitor/alerts", singleWorkspace(monitorHandler.ListAlerts))
+	mux.HandleFunc("GET /monitor/alerts", singleWorkspace(monitorHandler.ListAlerts))
+	mux.HandleFunc("GET /api/v1/monitor/alerts/{alert_id}", singleWorkspace(monitorHandler.GetAlert))
+	mux.HandleFunc("GET /v1/monitor/alerts/{alert_id}", singleWorkspace(monitorHandler.GetAlert))
+	mux.HandleFunc("GET /monitor/alerts/{alert_id}", singleWorkspace(monitorHandler.GetAlert))
+	mux.HandleFunc("POST /api/v1/monitor/alerts/{alert_id}/acknowledge", singleWorkspace(monitorHandler.AcknowledgeAlert))
+	mux.HandleFunc("POST /v1/monitor/alerts/{alert_id}/acknowledge", singleWorkspace(monitorHandler.AcknowledgeAlert))
+	mux.HandleFunc("POST /monitor/alerts/{alert_id}/acknowledge", singleWorkspace(monitorHandler.AcknowledgeAlert))
+	mux.HandleFunc("POST /api/v1/monitor/alerts/{alert_id}/resolve", singleWorkspace(monitorHandler.ResolveAlert))
+	mux.HandleFunc("POST /v1/monitor/alerts/{alert_id}/resolve", singleWorkspace(monitorHandler.ResolveAlert))
+	mux.HandleFunc("POST /monitor/alerts/{alert_id}/resolve", singleWorkspace(monitorHandler.ResolveAlert))
 	mux.HandleFunc("GET /api/v1/ws/reports/{job_id}", monitorHandler.ReportStreamWS)
 	mux.HandleFunc("GET /v1/ws/reports/{job_id}", monitorHandler.ReportStreamWS)
 	mux.HandleFunc("GET /ws/reports/{job_id}", monitorHandler.ReportStreamWS)

@@ -16,7 +16,6 @@ type mockOvertimeAuthorizer struct {
 	scoped  map[string]bool
 }
 
-func (m mockOvertimeAuthorizer) IsSystemAdmin(_ context.Context, _ uuid.UUID) bool { return false }
 func (m mockOvertimeAuthorizer) HasPermission(_ context.Context, _, _ uuid.UUID, permission string) bool {
 	return m.allowed[permission]
 }

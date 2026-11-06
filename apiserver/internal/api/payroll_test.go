@@ -488,7 +488,6 @@ type payrollAuthorizer struct {
 	isMember     bool
 }
 
-func (payrollAuthorizer) IsSystemAdmin(context.Context, uuid.UUID) bool { return false }
 func (a payrollAuthorizer) HasPermission(_ context.Context, _ uuid.UUID, _ uuid.UUID, perm string) bool {
 	if a.allowedPerms == nil {
 		return true

@@ -1104,42 +1104,6 @@
     "system": "System",
     "system_connection_error": "System connection error",
     "system_error": "System Error",
-    "system_roles": {
-      "assign_to_user": "Assign to user",
-      "assigned_date": "Assigned: {{date}}",
-      "assigned_users": "Assigned Users",
-      "assignees_count": "{{count}} Assignees",
-      "confirm": {
-        "revoke_message": "Are you sure you want to revoke this system role? This may lock the user out of system-level access.",
-        "revoke_title": "Revoke System Role"
-      },
-      "descriptions": {
-        "billing_admin": "Manage platform billing, subscriptions, and quotas across all workspaces.",
-        "default": "System level role.",
-        "platform_admin": "Full platform access. Can manage workspaces, global settings, and other system roles.",
-        "support": "Read-only access to infrastructure monitoring and cross-workspace support data."
-      },
-      "grant_privileges": "Grant system-level privileges to a user",
-      "messages": {
-        "assign_error": "Failed to assign role",
-        "revoke_error": "Failed to revoke role"
-      },
-      "modal": {
-        "assign_title": "Assign {{role}} Role",
-        "assigning": "Assigning...",
-        "submit_btn": "Assign Role"
-      },
-      "no_users": "No users assigned to this role.",
-      "roles": "System Roles",
-      "tenants": "Tenants",
-      "tenants_subtitle": "Manage platform workspaces and tenant database mode.",
-      "tenants_empty": "No tenants found.",
-      "tenants_error": "Unable to load tenants.",
-      "subtitle": "Manage system-level roles that bypass workspace boundaries",
-      "system_label": "System",
-      "title": "Platform Administrators",
-      "user_id_label": "User ID (UUID)"
-    },
     "tags": "Tags",
     "theme": {
       "dark": "Dark",
@@ -2080,6 +2044,10 @@
     "language": "Language",
     "quickAccess": "📌 Quick Access",
     "allApps": "🗂️ All Apps",
+    "dsmLauncher": "Main Menu (⌘K)",
+    "openSearch": "Open DSM 7 Feature Search",
+    "quickSearchPlaceholder": "Search features, apps...",
+    "searchHeroPlaceholder": "Quickly search apps, features, or system settings...",
     "empty": {
       "title": "No Apps Available",
       "desc": "You don't have access to any applications. Contact your administrator."
@@ -2109,6 +2077,42 @@
       "status_final": "Dual-Run Final Day",
       "status_closed": "Dual-Run Closed",
       "warning_modifiers": "Modifiers and exceptions created during this window may be lost if rollback occurs."
+    }
+  },
+  "dsmLauncher": {
+    "title": "DSM 7 Main Menu & Feature Launcher",
+    "desc": "Launch applications and search features",
+    "searchPlaceholder": "Search apps, features, settings (e.g. 'leave', 'wifi', 'ot')...",
+    "recent": "Recently Accessed",
+    "allApps": "All Applications",
+    "appsHeading": "Core Applications",
+    "actionsHeading": "Quick Actions & Features",
+    "emptyTitle": "No matching features or applications found",
+    "emptyDesc": "Try searching with keywords like 'leave', 'attendance', 'wifi', 'ot', 'payroll'...",
+    "hints": {
+      "navigate": "navigate",
+      "select": "select",
+      "exit": "exit"
+    },
+    "aria": {
+      "clearSearch": "Clear search term",
+      "close": "Close launcher",
+      "preview": "Feature preview details"
+    },
+    "badges": {
+      "app": "App",
+      "action": "Action",
+      "setting": "Setting"
+    },
+    "preview": {
+      "title": "Feature Details",
+      "selectHint": "Select an item from results to view details",
+      "route": "Route",
+      "category": "Category",
+      "permissions": "Permissions",
+      "noPermissionRequired": "No special permissions required",
+      "openAction": "Open feature",
+      "pressEnter": "Press ↵ to open"
     }
   }
 }

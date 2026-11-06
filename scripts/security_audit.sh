@@ -86,10 +86,10 @@ echo ""
 echo "--- Check 5: JWT Token Signature & Revocation Verifications ---"
 REVOCATION_SRC="$PROJECT_ROOT/apiserver/internal/infra/redis/revocation.go"
 if [ -f "$REVOCATION_SRC" ]; then
-    if grep -q "IsTokenRevoked" "$REVOCATION_SRC" || grep -q "RevokeToken" "$REVOCATION_SRC"; then
-        pass_check "Redis JWT token blocklist and session revocation mechanism verified"
+    if grep -q "IsSignatureRevoked" "$REVOCATION_SRC" && grep -q "UserRevokedAt" "$REVOCATION_SRC" && grep -q "SetUserRevocation" "$REVOCATION_SRC"; then
+        pass_check "Redis JWT signature blocklist and user-wide session revocation mechanisms verified"
     else
-        fail_check "Token Revocation" "Missing IsTokenRevoked / RevokeToken logic"
+        fail_check "Token Revocation" "Missing signature blocklist or user-wide revocation implementation"
     fi
 fi
 

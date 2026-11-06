@@ -109,8 +109,6 @@ const LEGACY_VIOLATIONS = new Set([
   "pages/shifts/__tests__/shifts-components.test.tsx",
   "pages/shifts/header.tsx",
   "pages/shifts/tabs.tsx",
-  "pages/system-roles/components/assign-role-modal.tsx",
-  "pages/system-roles/components/system-role-card.tsx",
   "pages/working-patterns-editor-page.tsx",
   "pages/workspace/components/permissions-header.tsx",
   "pages/workspace/components/permissions-matrix-subcomponents.tsx",

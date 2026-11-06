@@ -104,7 +104,6 @@ func (m *mockCustomFieldRepo) SetValues(ctx context.Context, wsID, entityID uuid
 
 type mockCustomFieldAuthorizer struct{}
 
-func (mockCustomFieldAuthorizer) IsSystemAdmin(context.Context, uuid.UUID) bool { return false }
 func (mockCustomFieldAuthorizer) HasPermission(context.Context, uuid.UUID, uuid.UUID, string) bool {
 	return true
 }

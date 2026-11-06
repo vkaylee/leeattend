@@ -4,11 +4,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"strings"
-	"time"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/vkaylee/leeattend/apiserver/internal/api"
+	"strings"
+	"time"
 )
 
 type EmployeeRepository struct {

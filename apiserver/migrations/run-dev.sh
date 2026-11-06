@@ -21,40 +21,43 @@ applied=$(psql \
   --command="SELECT 1 FROM public.schema_migrations WHERE version = '20261103000000_init';"
 )
 
-if [ "$applied" = "1" ]; then
-  exit 0
-fi
-
-baseline_present=$(psql \
-  -h db \
-  -U "$POSTGRES_USER" \
-  -d "$POSTGRES_DB" \
-  --tuples-only \
-  --no-align \
-  --command="SELECT (to_regclass('public.users') IS NOT NULL AND to_regclass('public.workspaces') IS NOT NULL AND to_regclass('public.employees') IS NOT NULL);"
-)
-
-if [ "$baseline_present" = "t" ]; then
-  psql \
+if [ "$applied" != "1" ]; then
+  baseline_present=$(psql \
     -h db \
     -U "$POSTGRES_USER" \
     -d "$POSTGRES_DB" \
-    -v ON_ERROR_STOP=1 \
-    --command="INSERT INTO public.schema_migrations(version) VALUES ('20261103000000_init') ON CONFLICT DO NOTHING;"
-  exit 0
+    --tuples-only \
+    --no-align \
+    --command="SELECT (to_regclass('public.users') IS NOT NULL AND to_regclass('public.workspaces') IS NOT NULL AND to_regclass('public.employees') IS NOT NULL);"
+  )
+
+  if [ "$baseline_present" = "t" ]; then
+    psql \
+      -h db \
+      -U "$POSTGRES_USER" \
+      -d "$POSTGRES_DB" \
+      -v ON_ERROR_STOP=1 \
+      --command="INSERT INTO public.schema_migrations(version) VALUES ('20261103000000_init') ON CONFLICT DO NOTHING;"
+  else
+    psql \
+      -h db \
+      -U "$POSTGRES_USER" \
+      -d "$POSTGRES_DB" \
+      -v ON_ERROR_STOP=1 \
+      --single-transaction \
+      -f /workspace/apiserver/migrations/20261103000000_init/up.sql
+
+    psql \
+      -h db \
+      -U "$POSTGRES_USER" \
+      -d "$POSTGRES_DB" \
+      -v ON_ERROR_STOP=1 \
+      --command="INSERT INTO public.schema_migrations(version) VALUES ('20261103000000_init');"
+  fi
 fi
 
-psql \
-  -h db \
-  -U "$POSTGRES_USER" \
-  -d "$POSTGRES_DB" \
-  -v ON_ERROR_STOP=1 \
-  --single-transaction \
-  -f /workspace/apiserver/migrations/20261103000000_init/up.sql
-
-psql \
-  -h db \
-  -U "$POSTGRES_USER" \
-  -d "$POSTGRES_DB" \
-  -v ON_ERROR_STOP=1 \
-  --command="INSERT INTO public.schema_migrations(version) VALUES ('20261103000000_init');"
+if [ "$(psql -h db -U "$POSTGRES_USER" -d "$POSTGRES_DB" --tuples-only --no-align --command="SELECT 1 FROM public.schema_migrations WHERE version = '20261106000000_remove_system_roles';")" != "1" ]; then
+  psql -h db -U "$POSTGRES_USER" -d "$POSTGRES_DB" -v ON_ERROR_STOP=1 -f /workspace/apiserver/migrations/20261106000000_remove_system_roles/up.sql
+  psql -h db -U "$POSTGRES_USER" -d "$POSTGRES_DB" -v ON_ERROR_STOP=1 --command="INSERT INTO public.schema_migrations(version) VALUES ('20261106000000_remove_system_roles');"
+fi
+exit 0

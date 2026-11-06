@@ -74,7 +74,6 @@ func (m *mockConditionTypeRepo) Delete(ctx context.Context, wsID, id uuid.UUID) 
 
 type mockConditionTypeAuthorizer struct{}
 
-func (mockConditionTypeAuthorizer) IsSystemAdmin(context.Context, uuid.UUID) bool { return false }
 func (mockConditionTypeAuthorizer) HasPermission(context.Context, uuid.UUID, uuid.UUID, string) bool {
 	return true
 }

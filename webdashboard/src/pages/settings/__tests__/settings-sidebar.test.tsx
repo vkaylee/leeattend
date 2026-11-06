@@ -83,9 +83,7 @@ describe("SettingsSidebar (macOS 2-column layout)", () => {
 
     render(<SettingsSidebar />);
     expect(screen.getByTestId("settings-sidebar")).toBeInTheDocument();
-    expect(
-      screen.getByText("settings.layout.control_panel")
-    ).toBeInTheDocument();
+    expect(screen.getByText("Bảng điều khiển")).toBeInTheDocument();
   });
 
   it("renders all four sections when items are populated", () => {
@@ -170,8 +168,6 @@ describe("SettingsSidebar (macOS 2-column layout)", () => {
     const searchInput = screen.getByTestId("settings-search-input");
     fireEvent.change(searchInput, { target: { value: "NonExistentSettingXYZ" } });
 
-    expect(
-      screen.getByText("common.no_results")
-    ).toBeInTheDocument();
+    expect(screen.getByText("Không tìm thấy cài đặt phù hợp")).toBeInTheDocument();
   });
 });

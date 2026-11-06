@@ -40,7 +40,7 @@ vi.mock("@/hooks/use-notifications", () => ({
 
 vi.mock("@/hooks/use-profile", () => ({
   useProfile: () => ({
-    user: { full_name: "Tony Stark", email: "tony@stark.com", system_roles: [] },
+    user: { full_name: "Tony Stark", email: "tony@stark.com" },
     isLoading: false,
   }),
 }));

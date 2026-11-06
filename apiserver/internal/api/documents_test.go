@@ -17,7 +17,6 @@ type mockDocAuthorizer struct {
 	notMember bool
 }
 
-func (mockDocAuthorizer) IsSystemAdmin(context.Context, uuid.UUID) bool { return false }
 func (mockDocAuthorizer) HasPermission(context.Context, uuid.UUID, uuid.UUID, string) bool {
 	return true
 }

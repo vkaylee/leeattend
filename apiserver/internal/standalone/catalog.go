@@ -11,12 +11,6 @@ type dbExecutor interface {
 	Exec(context.Context, string, ...any) (pgconn.CommandTag, error)
 }
 
-const seedSystemRolesSQL = `
-INSERT INTO public.system_roles (id, name, description) VALUES
-    ('c0000000-0000-0000-0000-000000000001', 'admin', 'System Administrator with full access to infrastructure and global configuration')
-ON CONFLICT (name) DO NOTHING;
-`
-
 const seedWorkspaceRolesSQL = `
 INSERT INTO public.workspace_roles (id, workspace_id, name, description, color, is_system, scope_type) VALUES
     ('a0000000-0000-0000-0000-000000000002', NULL, 'admin', 'Administrator with full access', 'rose', TRUE, 'global'),
@@ -214,9 +208,6 @@ END $$;
 // EnsureDefaultRolesAndPermissions seeds the baseline platform roles, workspace template roles,
 // granular permissions, and salary groups idempotently.
 func EnsureDefaultRolesAndPermissions(ctx context.Context, tx dbExecutor) error {
-	if _, err := tx.Exec(ctx, seedSystemRolesSQL); err != nil {
-		return fmt.Errorf("standalone: seed system roles: %w", err)
-	}
 	if _, err := tx.Exec(ctx, seedWorkspaceRolesSQL); err != nil {
 		return fmt.Errorf("standalone: seed workspace roles: %w", err)
 	}

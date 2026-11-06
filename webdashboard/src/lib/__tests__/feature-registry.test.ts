@@ -16,48 +16,33 @@ describe("Feature Registry & Search Indexer", () => {
     expect(appFeatures.length).toBe(APP_REGISTRY.length);
   });
 
-  it("includes action and setting categories", () => {
+  it("includes app and action categories without child Settings Hub entries", () => {
     const allFeatures = getAllFeatures();
     const actions = allFeatures.filter((f) => f.category === "action");
-    const settings = allFeatures.filter((f) => f.category === "setting");
 
     expect(actions.length).toBeGreaterThan(0);
-    expect(settings.length).toBeGreaterThan(0);
+    expect(allFeatures.some((f) => f.id === "set-general")).toBe(false);
   });
 
   it("applies permission filters correctly", () => {
     const allFeatures = getAllFeatures();
 
-    // User with no permissions and no system roles
-    const noPerms = filterFeatures(allFeatures, () => false, []);
-    // Dashboard and features with no permissions should still be visible
+    const noPerms = filterFeatures(allFeatures, () => false);
     expect(noPerms.some((f) => f.id === "app-dashboard")).toBe(true);
-    // Protected app should be hidden
     expect(noPerms.some((f) => f.id === "app-employees")).toBe(false);
+    expect(noPerms.some((f) => f.id === "app-infra-monitor")).toBe(false);
 
-    // User with employees:read
-    const hrPerms = filterFeatures(
-      allFeatures,
-      (perm) => perm === "employees:read",
-      [],
-    );
+    const hrPerms = filterFeatures(allFeatures, (perm) => perm === "employees:read");
     expect(hrPerms.some((f) => f.id === "app-employees")).toBe(true);
     expect(hrPerms.some((f) => f.id === "act-new-employee")).toBe(true);
-    // Setting for roles should still be hidden
-    expect(hrPerms.some((f) => f.id === "set-roles")).toBe(false);
-  });
 
-  it("applies systemRoles filters correctly", () => {
-    const allFeatures = getAllFeatures();
-
-    // Regular employee without admin role
-    const regular = filterFeatures(allFeatures, () => true, []);
-    expect(regular.some((f) => f.id === "app-infra-monitor")).toBe(false);
-
-    // Admin role
-    const admin = filterFeatures(allFeatures, () => true, ["admin"]);
-    expect(admin.some((f) => f.id === "app-infra-monitor")).toBe(true);
-    expect(admin.some((f) => f.id === "set-infra-monitor")).toBe(true);
+    const adminPerms = filterFeatures(
+      allFeatures,
+      (perm) => perm === "infra:monitor" || perm === "security:settings:manage" || perm === "audit_logs:read" || perm === "workspace:settings:read",
+    );
+    expect(adminPerms.some((f) => f.id === "app-infra-monitor")).toBe(true);
+    expect(adminPerms.some((f) => f.id === "app-settings")).toBe(true);
+    expect(adminPerms.some((f) => f.id === "app-audit-logs")).toBe(true);
   });
 
   it("builds search index with and without Vietnamese diacritics", () => {
@@ -94,34 +79,4 @@ describe("Feature Registry & Search Indexer", () => {
     expect(feature.gradient).toContain("from-indigo-500");
   });
 
-  it("covers all settings routes and key system management features", () => {
-    const allFeatures = getAllFeatures();
-    const settingsRoutes = allFeatures
-      .filter((f) => f.category === "setting")
-      .map((f) => f.to);
-
-    // All major settings routes must be present
-    expect(settingsRoutes).toContain("/workspace/settings/general");
-    expect(settingsRoutes).toContain("/workspace/settings/time");
-    expect(settingsRoutes).toContain("/workspace/settings/overtime");
-    expect(settingsRoutes).toContain("/workspace/settings/leave");
-    expect(settingsRoutes).toContain("/workspace/settings/holidays");
-    expect(settingsRoutes).toContain("/workspace/settings/workflows");
-    expect(settingsRoutes).toContain("/workspace/settings/locations");
-    expect(settingsRoutes).toContain("/workspace/settings/roles");
-    expect(settingsRoutes).toContain("/workspace/settings/permissions");
-    expect(settingsRoutes).toContain("/workspace/settings/organization");
-    expect(settingsRoutes).toContain("/workspace/settings/payroll");
-    expect(settingsRoutes).toContain("/workspace/settings/billing");
-    expect(settingsRoutes).toContain("/workspace/settings/custom-fields");
-    expect(settingsRoutes).toContain("/workspace/settings/lifecycle-templates");
-    expect(settingsRoutes).toContain("/workspace/settings/condition-types");
-    expect(settingsRoutes).toContain("/workspace/settings/storage");
-    expect(settingsRoutes).toContain("/workspace/settings/econtracts");
-    expect(settingsRoutes).toContain("/workspace/settings/audit-logs");
-    expect(settingsRoutes).toContain("/system/smtp");
-    expect(settingsRoutes).toContain("/system/tenants");
-    expect(settingsRoutes).toContain("/system/roles");
-    expect(settingsRoutes).toContain("/infra/monitor");
-  });
 });

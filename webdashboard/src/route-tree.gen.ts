@@ -54,9 +54,7 @@ import { Route as AuthenticatedWorkspaceEssAttendanceRouteImport } from "./route
 import { Route as AuthenticatedWorkspaceDocumentsTemplatesRouteImport } from "./routes/_authenticated/_workspace/documents.templates"
 import { Route as AuthenticatedWorkspaceAssignmentRulesNewRouteImport } from "./routes/_authenticated/_workspace/assignment-rules.new"
 import { Route as AuthenticatedWorkspaceApprovalsOtRouteImport } from "./routes/_authenticated/_workspace/approvals/ot"
-import { Route as AuthenticatedInfraSystemTenantsRouteImport } from "./routes/_authenticated/_infra/system/tenants"
 import { Route as AuthenticatedInfraSystemSmtpRouteImport } from "./routes/_authenticated/_infra/system/smtp"
-import { Route as AuthenticatedInfraSystemRolesRouteImport } from "./routes/_authenticated/_infra/system/roles"
 import { Route as AuthenticatedInfraInfraMonitorRouteImport } from "./routes/_authenticated/_infra/infra/monitor"
 import { Route as AuthenticatedWorkspaceWorkspaceSettingsIndexRouteImport } from "./routes/_authenticated/_workspace/workspace/settings/index"
 import { Route as AuthenticatedWorkspaceShiftsRulesIndexRouteImport } from "./routes/_authenticated/_workspace/shifts.rules.index"
@@ -484,16 +482,6 @@ const AuthenticatedWorkspaceApprovalsOtRoute =
       (d) => d.Route,
     ),
   )
-const AuthenticatedInfraSystemTenantsRoute =
-  AuthenticatedInfraSystemTenantsRouteImport.update({
-    id: "/system/tenants",
-    path: "/system/tenants",
-    getParentRoute: () => AuthenticatedInfraRoute,
-  } as any).lazy(() =>
-    import("./routes/_authenticated/_infra/system/tenants.lazy").then(
-      (d) => d.Route,
-    ),
-  )
 const AuthenticatedInfraSystemSmtpRoute =
   AuthenticatedInfraSystemSmtpRouteImport.update({
     id: "/system/smtp",
@@ -501,16 +489,6 @@ const AuthenticatedInfraSystemSmtpRoute =
     getParentRoute: () => AuthenticatedInfraRoute,
   } as any).lazy(() =>
     import("./routes/_authenticated/_infra/system/smtp.lazy").then(
-      (d) => d.Route,
-    ),
-  )
-const AuthenticatedInfraSystemRolesRoute =
-  AuthenticatedInfraSystemRolesRouteImport.update({
-    id: "/system/roles",
-    path: "/system/roles",
-    getParentRoute: () => AuthenticatedInfraRoute,
-  } as any).lazy(() =>
-    import("./routes/_authenticated/_infra/system/roles.lazy").then(
       (d) => d.Route,
     ),
   )
@@ -710,16 +688,6 @@ const AuthenticatedWorkspaceWorkspaceSettingsBillingRoute =
       (d) => d.Route,
     ),
   )
-const AuthenticatedWorkspaceWorkspaceSettingsAuditLogsRoute =
-  AuthenticatedWorkspaceWorkspaceSettingsAuditLogsRouteImport.update({
-    id: "/audit-logs",
-    path: "/audit-logs",
-    getParentRoute: () => AuthenticatedWorkspaceWorkspaceSettingsRoute,
-  } as any).lazy(() =>
-    import("./routes/_authenticated/_workspace/workspace/settings/audit-logs.lazy").then(
-      (d) => d.Route,
-    ),
-  )
 const AuthenticatedWorkspaceWorkingPatternsPatternIdEditRoute =
   AuthenticatedWorkspaceWorkingPatternsPatternIdEditRouteImport.update({
     id: "/$patternId/edit",
@@ -852,9 +820,7 @@ export interface FileRoutesByFullPath {
   "/shifts": typeof AuthenticatedWorkspaceShiftsRouteWithChildren
   "/working-patterns": typeof AuthenticatedWorkspaceWorkingPatternsRouteWithChildren
   "/infra/monitor": typeof AuthenticatedInfraInfraMonitorRoute
-  "/system/roles": typeof AuthenticatedInfraSystemRolesRoute
   "/system/smtp": typeof AuthenticatedInfraSystemSmtpRoute
-  "/system/tenants": typeof AuthenticatedInfraSystemTenantsRoute
   "/approvals/ot": typeof AuthenticatedWorkspaceApprovalsOtRoute
   "/assignment-rules/new": typeof AuthenticatedWorkspaceAssignmentRulesNewRoute
   "/documents/templates": typeof AuthenticatedWorkspaceDocumentsTemplatesRoute
@@ -926,9 +892,7 @@ export interface FileRoutesByTo {
   "/reports": typeof AuthenticatedWorkspaceReportsRoute
   "/shift-swaps": typeof AuthenticatedWorkspaceShiftSwapsRoute
   "/infra/monitor": typeof AuthenticatedInfraInfraMonitorRoute
-  "/system/roles": typeof AuthenticatedInfraSystemRolesRoute
   "/system/smtp": typeof AuthenticatedInfraSystemSmtpRoute
-  "/system/tenants": typeof AuthenticatedInfraSystemTenantsRoute
   "/approvals/ot": typeof AuthenticatedWorkspaceApprovalsOtRoute
   "/assignment-rules/new": typeof AuthenticatedWorkspaceAssignmentRulesNewRoute
   "/documents/templates": typeof AuthenticatedWorkspaceDocumentsTemplatesRoute
@@ -1004,9 +968,7 @@ export interface FileRoutesById {
   "/_authenticated/_workspace/working-patterns": typeof AuthenticatedWorkspaceWorkingPatternsRouteWithChildren
   "/_authenticated/_workspace/": typeof AuthenticatedWorkspaceIndexRoute
   "/_authenticated/_infra/infra/monitor": typeof AuthenticatedInfraInfraMonitorRoute
-  "/_authenticated/_infra/system/roles": typeof AuthenticatedInfraSystemRolesRoute
   "/_authenticated/_infra/system/smtp": typeof AuthenticatedInfraSystemSmtpRoute
-  "/_authenticated/_infra/system/tenants": typeof AuthenticatedInfraSystemTenantsRoute
   "/_authenticated/_workspace/approvals/ot": typeof AuthenticatedWorkspaceApprovalsOtRoute
   "/_authenticated/_workspace/assignment-rules/new": typeof AuthenticatedWorkspaceAssignmentRulesNewRoute
   "/_authenticated/_workspace/documents/templates": typeof AuthenticatedWorkspaceDocumentsTemplatesRoute
@@ -1028,7 +990,6 @@ export interface FileRoutesById {
   "/_authenticated/_workspace/assignment-rules/$ruleId/edit": typeof AuthenticatedWorkspaceAssignmentRulesRuleIdEditRoute
   "/_authenticated/_workspace/shifts/$shiftId/edit": typeof AuthenticatedWorkspaceShiftsShiftIdEditRoute
   "/_authenticated/_workspace/working-patterns/$patternId/edit": typeof AuthenticatedWorkspaceWorkingPatternsPatternIdEditRoute
-  "/_authenticated/_workspace/workspace/settings/audit-logs": typeof AuthenticatedWorkspaceWorkspaceSettingsAuditLogsRoute
   "/_authenticated/_workspace/workspace/settings/billing": typeof AuthenticatedWorkspaceWorkspaceSettingsBillingRoute
   "/_authenticated/_workspace/workspace/settings/condition-types": typeof AuthenticatedWorkspaceWorkspaceSettingsConditionTypesRoute
   "/_authenticated/_workspace/workspace/settings/custom-fields": typeof AuthenticatedWorkspaceWorkspaceSettingsCustomFieldsRoute
@@ -1067,6 +1028,7 @@ export interface FileRouteTypes {
     | "/assignment-rules"
     | "/attendance-adjustments"
     | "/attendance-logs"
+    | "/audit-logs"
     | "/dashboard"
     | "/departments"
     | "/econtracts"
@@ -1083,9 +1045,7 @@ export interface FileRouteTypes {
     | "/shifts"
     | "/working-patterns"
     | "/infra/monitor"
-    | "/system/roles"
     | "/system/smtp"
-    | "/system/tenants"
     | "/approvals/ot"
     | "/assignment-rules/new"
     | "/documents/templates"
@@ -1107,7 +1067,6 @@ export interface FileRouteTypes {
     | "/assignment-rules/$ruleId/edit"
     | "/shifts/$shiftId/edit"
     | "/working-patterns/$patternId/edit"
-    | "/workspace/settings/audit-logs"
     | "/workspace/settings/billing"
     | "/workspace/settings/condition-types"
     | "/workspace/settings/custom-fields"
@@ -1143,6 +1102,7 @@ export interface FileRouteTypes {
     | "/reset-password"
     | "/attendance-adjustments"
     | "/attendance-logs"
+    | "/audit-logs"
     | "/dashboard"
     | "/departments"
     | "/econtracts"
@@ -1157,9 +1117,7 @@ export interface FileRouteTypes {
     | "/reports"
     | "/shift-swaps"
     | "/infra/monitor"
-    | "/system/roles"
     | "/system/smtp"
-    | "/system/tenants"
     | "/approvals/ot"
     | "/assignment-rules/new"
     | "/documents/templates"
@@ -1179,7 +1137,6 @@ export interface FileRouteTypes {
     | "/assignment-rules/$ruleId/edit"
     | "/shifts/$shiftId/edit"
     | "/working-patterns/$patternId/edit"
-    | "/workspace/settings/audit-logs"
     | "/workspace/settings/billing"
     | "/workspace/settings/condition-types"
     | "/workspace/settings/custom-fields"
@@ -1217,6 +1174,7 @@ export interface FileRouteTypes {
     | "/_authenticated/_workspace/assignment-rules"
     | "/_authenticated/_workspace/attendance-adjustments"
     | "/_authenticated/_workspace/attendance-logs"
+    | "/_authenticated/_workspace/audit-logs"
     | "/_authenticated/_workspace/dashboard"
     | "/_authenticated/_workspace/departments"
     | "/_authenticated/_workspace/econtracts"
@@ -1234,9 +1192,7 @@ export interface FileRouteTypes {
     | "/_authenticated/_workspace/working-patterns"
     | "/_authenticated/_workspace/"
     | "/_authenticated/_infra/infra/monitor"
-    | "/_authenticated/_infra/system/roles"
     | "/_authenticated/_infra/system/smtp"
-    | "/_authenticated/_infra/system/tenants"
     | "/_authenticated/_workspace/approvals/ot"
     | "/_authenticated/_workspace/assignment-rules/new"
     | "/_authenticated/_workspace/documents/templates"
@@ -1258,7 +1214,6 @@ export interface FileRouteTypes {
     | "/_authenticated/_workspace/assignment-rules/$ruleId/edit"
     | "/_authenticated/_workspace/shifts/$shiftId/edit"
     | "/_authenticated/_workspace/working-patterns/$patternId/edit"
-    | "/_authenticated/_workspace/workspace/settings/audit-logs"
     | "/_authenticated/_workspace/workspace/settings/billing"
     | "/_authenticated/_workspace/workspace/settings/condition-types"
     | "/_authenticated/_workspace/workspace/settings/custom-fields"
@@ -1458,6 +1413,13 @@ declare module "@tanstack/react-router" {
       preLoaderRoute: typeof AuthenticatedWorkspaceDashboardRouteImport
       parentRoute: typeof AuthenticatedWorkspaceRoute
     }
+    "/_authenticated/_workspace/audit-logs": {
+      id: "/_authenticated/_workspace/audit-logs"
+      path: "/audit-logs"
+      fullPath: "/audit-logs"
+      preLoaderRoute: typeof AuthenticatedWorkspaceAuditLogsRouteImport
+      parentRoute: typeof AuthenticatedWorkspaceRoute
+    }
     "/_authenticated/_workspace/attendance-logs": {
       id: "/_authenticated/_workspace/attendance-logs"
       path: "/attendance-logs"
@@ -1605,25 +1567,11 @@ declare module "@tanstack/react-router" {
       preLoaderRoute: typeof AuthenticatedWorkspaceApprovalsOtRouteImport
       parentRoute: typeof AuthenticatedWorkspaceRoute
     }
-    "/_authenticated/_infra/system/tenants": {
-      id: "/_authenticated/_infra/system/tenants"
-      path: "/system/tenants"
-      fullPath: "/system/tenants"
-      preLoaderRoute: typeof AuthenticatedInfraSystemTenantsRouteImport
-      parentRoute: typeof AuthenticatedInfraRoute
-    }
     "/_authenticated/_infra/system/smtp": {
       id: "/_authenticated/_infra/system/smtp"
       path: "/system/smtp"
       fullPath: "/system/smtp"
       preLoaderRoute: typeof AuthenticatedInfraSystemSmtpRouteImport
-      parentRoute: typeof AuthenticatedInfraRoute
-    }
-    "/_authenticated/_infra/system/roles": {
-      id: "/_authenticated/_infra/system/roles"
-      path: "/system/roles"
-      fullPath: "/system/roles"
-      preLoaderRoute: typeof AuthenticatedInfraSystemRolesRouteImport
       parentRoute: typeof AuthenticatedInfraRoute
     }
     "/_authenticated/_infra/infra/monitor": {
@@ -1766,13 +1714,6 @@ declare module "@tanstack/react-router" {
       preLoaderRoute: typeof AuthenticatedWorkspaceWorkspaceSettingsBillingRouteImport
       parentRoute: typeof AuthenticatedWorkspaceWorkspaceSettingsRoute
     }
-    "/_authenticated/_workspace/workspace/settings/audit-logs": {
-      id: "/_authenticated/_workspace/workspace/settings/audit-logs"
-      path: "/audit-logs"
-      fullPath: "/workspace/settings/audit-logs"
-      preLoaderRoute: typeof AuthenticatedWorkspaceWorkspaceSettingsAuditLogsRouteImport
-      parentRoute: typeof AuthenticatedWorkspaceWorkspaceSettingsRoute
-    }
     "/_authenticated/_workspace/working-patterns/$patternId/edit": {
       id: "/_authenticated/_workspace/working-patterns/$patternId/edit"
       path: "/$patternId/edit"
@@ -1848,16 +1789,12 @@ declare module "@tanstack/react-router" {
 
 interface AuthenticatedInfraRouteChildren {
   AuthenticatedInfraInfraMonitorRoute: typeof AuthenticatedInfraInfraMonitorRoute
-  AuthenticatedInfraSystemRolesRoute: typeof AuthenticatedInfraSystemRolesRoute
   AuthenticatedInfraSystemSmtpRoute: typeof AuthenticatedInfraSystemSmtpRoute
-  AuthenticatedInfraSystemTenantsRoute: typeof AuthenticatedInfraSystemTenantsRoute
 }
 
 const AuthenticatedInfraRouteChildren: AuthenticatedInfraRouteChildren = {
   AuthenticatedInfraInfraMonitorRoute: AuthenticatedInfraInfraMonitorRoute,
-  AuthenticatedInfraSystemRolesRoute: AuthenticatedInfraSystemRolesRoute,
   AuthenticatedInfraSystemSmtpRoute: AuthenticatedInfraSystemSmtpRoute,
-  AuthenticatedInfraSystemTenantsRoute: AuthenticatedInfraSystemTenantsRoute,
 }
 
 const AuthenticatedInfraRouteWithChildren =
@@ -1977,7 +1914,6 @@ const AuthenticatedWorkspaceWorkspaceSettingsWorkflowsRouteWithChildren =
   )
 
 interface AuthenticatedWorkspaceWorkspaceSettingsRouteChildren {
-  AuthenticatedWorkspaceWorkspaceSettingsAuditLogsRoute: typeof AuthenticatedWorkspaceWorkspaceSettingsAuditLogsRoute
   AuthenticatedWorkspaceWorkspaceSettingsBillingRoute: typeof AuthenticatedWorkspaceWorkspaceSettingsBillingRoute
   AuthenticatedWorkspaceWorkspaceSettingsConditionTypesRoute: typeof AuthenticatedWorkspaceWorkspaceSettingsConditionTypesRoute
   AuthenticatedWorkspaceWorkspaceSettingsCustomFieldsRoute: typeof AuthenticatedWorkspaceWorkspaceSettingsCustomFieldsRoute
@@ -2000,8 +1936,6 @@ interface AuthenticatedWorkspaceWorkspaceSettingsRouteChildren {
 
 const AuthenticatedWorkspaceWorkspaceSettingsRouteChildren: AuthenticatedWorkspaceWorkspaceSettingsRouteChildren =
   {
-    AuthenticatedWorkspaceWorkspaceSettingsAuditLogsRoute:
-      AuthenticatedWorkspaceWorkspaceSettingsAuditLogsRoute,
     AuthenticatedWorkspaceWorkspaceSettingsBillingRoute:
       AuthenticatedWorkspaceWorkspaceSettingsBillingRoute,
     AuthenticatedWorkspaceWorkspaceSettingsConditionTypesRoute:
@@ -2049,6 +1983,7 @@ interface AuthenticatedWorkspaceRouteChildren {
   AuthenticatedWorkspaceAssignmentRulesRoute: typeof AuthenticatedWorkspaceAssignmentRulesRouteWithChildren
   AuthenticatedWorkspaceAttendanceAdjustmentsRoute: typeof AuthenticatedWorkspaceAttendanceAdjustmentsRoute
   AuthenticatedWorkspaceAttendanceLogsRoute: typeof AuthenticatedWorkspaceAttendanceLogsRoute
+  AuthenticatedWorkspaceAuditLogsRoute: typeof AuthenticatedWorkspaceAuditLogsRoute
   AuthenticatedWorkspaceDashboardRoute: typeof AuthenticatedWorkspaceDashboardRoute
   AuthenticatedWorkspaceDepartmentsRoute: typeof AuthenticatedWorkspaceDepartmentsRoute
   AuthenticatedWorkspaceEcontractsRoute: typeof AuthenticatedWorkspaceEcontractsRoute
@@ -2086,6 +2021,7 @@ const AuthenticatedWorkspaceRouteChildren: AuthenticatedWorkspaceRouteChildren =
       AuthenticatedWorkspaceAttendanceAdjustmentsRoute,
     AuthenticatedWorkspaceAttendanceLogsRoute:
       AuthenticatedWorkspaceAttendanceLogsRoute,
+    AuthenticatedWorkspaceAuditLogsRoute: AuthenticatedWorkspaceAuditLogsRoute,
     AuthenticatedWorkspaceDashboardRoute: AuthenticatedWorkspaceDashboardRoute,
     AuthenticatedWorkspaceDepartmentsRoute:
       AuthenticatedWorkspaceDepartmentsRoute,

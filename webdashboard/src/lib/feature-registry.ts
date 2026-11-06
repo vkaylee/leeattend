@@ -2,41 +2,25 @@
 
 import type React from "react";
 import {
-  Activity,
   ArrowLeftRight,
-  Banknote,
-  Braces,
-  Building2,
   Calendar,
   CalendarCheck,
   CalendarPlus,
   CheckCircle,
   ClipboardList,
   Clock,
-  CreditCard,
-  Database,
   DollarSign,
   FileSpreadsheet,
   FileText,
   FolderTree,
-  GitMerge,
   History,
-  KeyRound,
-  ListTodo,
-  Lock,
-  Mail,
-  MapPin,
   PlusCircle,
   Scale,
-  Settings,
-  Sliders,
-  Tags,
   UserPlus,
   Users,
-  Workflow,
+  Wifi,
   Zap,
 } from "lucide-react";
-
 import type { NavGroup } from "@/hooks/use-nav-menu-items";
 import type { FeatureFlagName } from "@/lib/feature-flags";
 
@@ -45,7 +29,7 @@ import { isFeatureEnabled } from "@/lib/feature-flags";
 import { ROUTES } from "@/lib/routes";
 import { removeDiacritics } from "@/lib/utils";
 
-export type FeatureCategory = "app" | "action" | "setting";
+export type FeatureCategory = "app" | "action";
 
 export interface FeatureItem {
   category: FeatureCategory;
@@ -58,7 +42,6 @@ export interface FeatureItem {
   id: string;
   keywords?: string[];
   permissions?: string[];
-  systemRoles?: string[];
   testId: string;
   titleFallback: string;
   titleKey?: string;
@@ -88,7 +71,6 @@ export const APP_GRADIENTS: Record<string, string> = {
   payroll: "from-emerald-600 to-teal-700 shadow-emerald-600/25",
   documents: "from-blue-500 to-slate-600 shadow-blue-500/25",
   "infra-monitor": "from-cyan-500 to-blue-700 shadow-cyan-500/25",
-  "system-roles": "from-rose-600 to-red-700 shadow-rose-600/25",
   settings: "from-slate-600 to-slate-800 shadow-slate-600/25",
   "ess-profile": "from-violet-500 to-purple-700 shadow-violet-500/25",
   "ess-attendance": "from-orange-500 to-rose-600 shadow-orange-500/25",
@@ -110,7 +92,6 @@ export function appToFeature(app: AppDefinition): FeatureItem {
     gradient: APP_GRADIENTS[app.id] ?? "from-primary-500 to-primary-700 shadow-primary-500/25",
     group: app.group,
     permissions: app.permissions,
-    systemRoles: app.systemRoles,
     featureFlag: app.featureFlag,
     keywords: [app.id, app.group, "app", "ung dung"],
     testId: `dsm-app-${app.id}`,
@@ -314,258 +295,27 @@ export const ACTION_FEATURES: FeatureItem[] = [
     keywords: ["tai lieu cua toi", "my documents", "ho so ca nhan", "hop dong cua toi", "giay to"],
     testId: "dsm-action-my-documents",
   },
-];
-
-// ── Settings & System Configuration ─────────────────────────────────
-
-export const SETTING_FEATURES: FeatureItem[] = [
   {
-    id: "set-general",
-    category: "setting",
-    titleFallback: "Cài đặt chung Workspace",
-    descriptionFallback: "Tên tổ chức, logo, múi giờ và định dạng hiển thị",
-    to: ROUTES.SETTINGS.GENERAL,
-    icon: Settings,
-    gradient: "from-slate-600 to-slate-800 shadow-slate-600/25",
-    permissions: ["workspace:settings:read"],
-    keywords: ["ten cong ty", "logo", "general settings", "cai dat chung", "mui gio"],
-    testId: "dsm-setting-general",
-  },
-  {
-    id: "set-time",
-    category: "setting",
-    titleFallback: "Cấu hình chấm công & Wi-Fi / GPS",
-    descriptionFallback: "Khóa mạng Wi-Fi, tọa độ văn phòng, ngưỡng đi muộn",
+    id: "act-setting-time-wifi",
+    category: "action",
+    titleKey: "settings.categories.time",
+    titleFallback: "Cài đặt Wi-Fi & Chấm công",
+    descriptionFallback: "Cấu hình IP mạng và danh sách địa chỉ Wi-Fi BSSID hợp lệ",
     to: ROUTES.SETTINGS.TIME,
-    icon: Sliders,
-    gradient: "from-cyan-600 to-blue-700 shadow-cyan-600/25",
-    permissions: ["workspace:settings:read", "attendance:logs:read"],
-    keywords: ["wifi", "gps", "dia chi ip", "ip lock", "gio lam viec", "cham cong wifi", "toa do"],
-    testId: "dsm-setting-time",
-  },
-  {
-    id: "set-overtime",
-    category: "setting",
-    titleFallback: "Quy định làm thêm giờ (Overtime Policy)",
-    descriptionFallback: "Hệ số lương OT ngày thường, ngày nghỉ, ngày lễ",
-    to: ROUTES.SETTINGS.OVERTIME,
-    icon: Clock,
-    gradient: "from-amber-600 to-orange-700 shadow-amber-600/25",
-    permissions: ["workspace:settings:read", "approval_workflows:read"],
-    keywords: ["quy dinh ot", "he so luong", "overtime policy", "chinh sach tang ca", "he so ot"],
-    testId: "dsm-setting-overtime",
-  },
-  {
-    id: "set-leave",
-    category: "setting",
-    titleFallback: "Chính sách & Chế độ nghỉ phép",
-    descriptionFallback: "Số ngày phép chuẩn, thâm niên, trừ phép lũy kế",
-    to: ROUTES.SETTINGS.LEAVE,
-    icon: CalendarCheck,
-    gradient: "from-sky-600 to-indigo-700 shadow-sky-600/25",
-    permissions: ["workspace:settings:read", "leave:policies:manage"],
-    keywords: ["chinh sach nghi phep", "phep nam", "che do nghi", "leave policy", "ngay phep"],
-    testId: "dsm-setting-leave",
-  },
-  {
-    id: "set-holidays",
-    category: "setting",
-    titleFallback: "Danh mục ngày nghỉ lễ & Tết",
-    descriptionFallback: "Lịch nghỉ lễ quốc gia và quy định hưởng lương",
-    to: ROUTES.SETTINGS.HOLIDAYS,
-    icon: Calendar,
-    gradient: "from-rose-500 to-red-600 shadow-rose-500/25",
-    permissions: ["workspace:settings:read", "holidays:manage"],
-    keywords: ["nghi le", "ngay tet", "lich nghi le", "public holidays", "nghi le huong luong"],
-    testId: "dsm-setting-holidays",
-  },
-  {
-    id: "set-workflows",
-    category: "setting",
-    titleFallback: "Quy trình xét duyệt đa cấp (Approval Workflows)",
-    descriptionFallback: "Phân cấp phê duyệt đơn phép, OT và điều chỉnh công",
-    to: ROUTES.SETTINGS.WORKFLOWS,
-    icon: GitMerge,
-    gradient: "from-violet-600 to-purple-700 shadow-violet-600/25",
-    permissions: ["workspace:settings:read", "approval_workflows:read"],
-    keywords: ["quy trinh duyet", "phe duyet", "workflow", "cap duyet", "multi level approval"],
-    testId: "dsm-setting-workflows",
-  },
-  {
-    id: "set-locations",
-    category: "setting",
-    titleFallback: "Quản lý địa điểm & Chi nhánh làm việc",
-    descriptionFallback: "Thiết lập trụ sở, văn phòng, bán kính chấm công",
-    to: ROUTES.SETTINGS.LOCATIONS,
-    icon: MapPin,
-    gradient: "from-emerald-600 to-green-700 shadow-emerald-600/25",
-    permissions: ["workspace:settings:read"],
-    keywords: ["chi nhanh", "van phong", "dia diem", "locations", "toa nha", "tru so"],
-    testId: "dsm-setting-locations",
-  },
-  {
-    id: "set-roles",
-    category: "setting",
-    titleFallback: "Phân quyền & Vai trò thành viên",
-    descriptionFallback: "Ma trận quyền hạn, vai trò quản lý và nhân viên",
-    to: ROUTES.SETTINGS.ROLES,
-    icon: Lock,
-    gradient: "from-red-600 to-rose-700 shadow-red-600/25",
-    permissions: ["members:roles:manage"],
-    keywords: ["phan quyen", "vai tro", "roles", "permissions", "ma tran quyen"],
-    testId: "dsm-setting-roles",
-  },
-  {
-    id: "set-audit-logs",
-    category: "setting",
-    titleFallback: "Nhật ký kiểm toán hệ thống (Audit Logs)",
-    descriptionFallback: "Truy vết toàn bộ thao tác, thay đổi dữ liệu và đăng nhập",
-    to: ROUTES.SETTINGS.AUDIT_LOGS,
-    icon: ListTodo,
-    gradient: "from-slate-700 to-slate-900 shadow-slate-700/25",
-    permissions: ["workspace:settings:read", "infra:monitor"],
-    keywords: ["audit log", "nhat ky", "lich su thao tac", "truy vet", "kiem toan"],
-    testId: "dsm-setting-audit-logs",
-  },
-  {
-    id: "set-infra-monitor",
-    category: "setting",
-    titleFallback: "Giám sát tiến trình nền (Worker Monitor)",
-    descriptionFallback: "Trạng thái Redis, queue jobs, worker throughput",
-    to: ROUTES.INFRA_MONITOR,
-    icon: Activity,
-    gradient: "from-cyan-500 to-blue-700 shadow-cyan-500/25",
-    systemRoles: ["admin", "platform_admin"],
-    keywords: ["giam sat", "worker monitor", "queue", "system health", "redis", "tien trinh"],
-    testId: "dsm-setting-infra-monitor",
-  },
-  {
-    id: "set-organization",
-    category: "setting",
-    titleFallback: "Cơ cấu tổ chức & Giai đoạn việc làm",
-    descriptionFallback: "Quản lý phòng ban, chu kỳ thử việc và chức danh",
-    to: ROUTES.SETTINGS.ORGANIZATION,
-    icon: Building2,
-    gradient: "from-blue-600 to-slate-800 shadow-blue-600/25",
-    permissions: ["employees:read", "departments:read"],
-    keywords: ["co cau to chuc", "giai doan viec lam", "employment phases", "phong ban", "organization"],
-    testId: "dsm-setting-organization",
-  },
-  {
-    id: "set-payroll-config",
-    category: "setting",
-    titleFallback: "Cấu hình bảng lương & Thuế",
-    descriptionFallback: "Chu kỳ trả lương, công thức tính thuế và bảo hiểm xã hội",
-    to: ROUTES.SETTINGS.PAYROLL,
-    icon: Banknote,
-    gradient: "from-emerald-600 to-teal-800 shadow-emerald-600/25",
-    permissions: ["payroll:read", "payroll:settings:manage"],
-    keywords: ["cau hinh luong", "chu ky luong", "bao hiem", "thue thu nhap", "payroll settings"],
-    testId: "dsm-setting-payroll-config",
-  },
-  {
-    id: "set-billing",
-    category: "setting",
-    titleFallback: "Gói cước & Đăng ký dịch vụ (Billing)",
-    descriptionFallback: "Quản lý gói doanh nghiệp, dung lượng và thông tin thanh toán",
-    to: ROUTES.SETTINGS.BILLING,
-    icon: CreditCard,
-    gradient: "from-purple-600 to-indigo-800 shadow-purple-600/25",
-    permissions: ["workspace:settings:read"],
-    keywords: ["goi cuoc", "billing", "thanh toan", "gia han", "dung luong", "hoa don"],
-    testId: "dsm-setting-billing",
-  },
-  {
-    id: "set-custom-fields",
-    category: "setting",
-    titleFallback: "Trường dữ liệu tùy biến (Custom Fields)",
-    descriptionFallback: "Tạo thêm trường thông tin cho nhân sự, hợp đồng và phòng ban",
-    to: ROUTES.SETTINGS.CUSTOM_FIELDS,
-    icon: Braces,
-    gradient: "from-cyan-600 to-teal-800 shadow-cyan-600/25",
-    permissions: ["workspace:settings:read"],
-    keywords: ["truong tuy bien", "custom fields", "them cot", "thong tin bo sung", "truong du lieu"],
-    testId: "dsm-setting-custom-fields",
-  },
-  {
-    id: "set-permissions-matrix",
-    category: "setting",
-    titleFallback: "Ma trận quyền hạn chi tiết (Permissions)",
-    descriptionFallback: "Xem chi tiết từng quyền hạn hành động trong hệ thống",
-    to: ROUTES.SETTINGS.PERMISSIONS,
-    icon: KeyRound,
-    gradient: "from-red-600 to-rose-800 shadow-red-600/25",
-    permissions: ["members:roles:manage"],
-    keywords: ["ma tran quyen", "danh sach quyen", "permissions", "chi tiet quyen", "access rights"],
-    testId: "dsm-setting-permissions-matrix",
-  },
-  {
-    id: "set-lifecycle-templates",
-    category: "setting",
-    titleFallback: "Mẫu danh sách kiểm tra Onboarding & Offboarding",
-    descriptionFallback: "Quy trình thủ tục tiếp nhận nhân viên mới và bàn giao nghỉ việc",
-    to: ROUTES.SETTINGS.LIFECYCLE_TEMPLATES,
-    icon: ClipboardList,
-    gradient: "from-indigo-600 to-blue-800 shadow-indigo-600/25",
-    permissions: ["workspace:settings:read"],
-    keywords: ["onboarding", "offboarding", "checklist", "thu tuc tiep nhan", "ban giao", "nghi viec"],
-    testId: "dsm-setting-lifecycle-templates",
-  },
-  {
-    id: "set-condition-types",
-    category: "setting",
-    titleFallback: "Danh mục loại điều kiện làm việc",
-    descriptionFallback: "Thiết lập các điều kiện lao động đặc thù và phụ cấp",
-    to: ROUTES.SETTINGS.CONDITION_TYPES,
-    icon: Tags,
-    gradient: "from-teal-600 to-cyan-800 shadow-teal-600/25",
-    permissions: ["workspace:settings:read"],
-    keywords: ["dieu kien lam viec", "condition types", "phu cap", "lao dong nang nhoc", "che do"],
-    testId: "dsm-setting-condition-types",
-  },
-  {
-    id: "set-storage",
-    category: "setting",
-    titleFallback: "Cấu hình lưu trữ tệp & MinIO (Storage)",
-    descriptionFallback: "Quản lý kho lưu trữ tài liệu, bucket và chứng chỉ S3",
-    to: ROUTES.SETTINGS.STORAGE,
-    icon: Database,
-    gradient: "from-slate-700 to-zinc-900 shadow-slate-700/25",
-    permissions: ["workspace:settings:read"],
-    keywords: ["luu tru", "minio", "s3", "storage", "dung luong tep", "bucket"],
-    testId: "dsm-setting-storage",
-  },
-  {
-    id: "set-econtracts-integration",
-    category: "setting",
-    titleFallback: "Tích hợp ký số hợp đồng điện tử",
-    descriptionFallback: "Cấu hình nhà cung cấp dịch vụ e-Sign và chứng thư",
-    to: ROUTES.SETTINGS.ECONTRACTS,
-    icon: Scale,
-    gradient: "from-blue-600 to-indigo-800 shadow-blue-600/25",
-    permissions: ["workspace:settings:read"],
-    keywords: ["ky so", "chu ky so", "e-sign", "econtracts integration", "chung thu so"],
-    testId: "dsm-setting-econtracts-integration",
-  },
-  {
-    id: "set-system-smtp",
-    category: "setting",
-    titleFallback: "Cấu hình máy chủ gửi thư SMTP",
-    descriptionFallback: "Thiết lập tài khoản email gửi thông báo hệ thống và mã OTP",
-    to: ROUTES.SYSTEM_SMTP,
-    icon: Mail,
-    gradient: "from-sky-600 to-blue-800 shadow-sky-600/25",
-    systemRoles: ["admin", "platform_admin"],
-    keywords: ["smtp", "email", "gui thu", "mail server", "otp email", "thong bao"],
-    testId: "dsm-setting-system-smtp",
+    icon: Wifi,
+    gradient: "from-blue-600 to-cyan-600 shadow-blue-500/25",
+    permissions: ["settings:time", "settings:read"],
+    keywords: ["wifi", "bssid", "ip", "cham cong wifi", "diem danh wifi", "cai dat wifi", "time settings"],
+    testId: "dsm-action-setting-time-wifi",
   },
 ];
+
 
 // ── Master Feature Registry ─────────────────────────────────────────
 
 export function getAllFeatures(): FeatureItem[] {
   const appFeatures = APP_REGISTRY.map(appToFeature);
-  return [...appFeatures, ...ACTION_FEATURES, ...SETTING_FEATURES];
+  return [...appFeatures, ...ACTION_FEATURES];
 }
 
 // ── Permission Filtering ────────────────────────────────────────────
@@ -573,14 +323,10 @@ export function getAllFeatures(): FeatureItem[] {
 export function filterFeatures(
   features: FeatureItem[],
   hasAnyPermission: (...perms: string[]) => boolean,
-  systemRoles: string[],
 ): FeatureItem[] {
   return features.filter((item) => {
     if (item.featureFlag && !isFeatureEnabled(item.featureFlag)) {
       return false;
-    }
-    if (item.systemRoles && item.systemRoles.length > 0) {
-      return item.systemRoles.some((role) => systemRoles.includes(role));
     }
     if (item.permissions && item.permissions.length > 0) {
       return hasAnyPermission(...item.permissions);

@@ -40,7 +40,6 @@ type userResponse struct {
 	Bio               *string   `json:"bio"`
 	PreferredLanguage *string   `json:"preferred_language"`
 	CreatedAt         time.Time `json:"created_at"`
-	SystemRoles       []string  `json:"system_roles"`
 	AvatarFileID      *string   `json:"avatar_file_id"`
 }
 type updateMeRequest struct {
@@ -148,7 +147,6 @@ func (h AuthHandler) UpdateMe(w http.ResponseWriter, r *http.Request) {
 		apperror.WriteError(w, r, apperror.Internal(err))
 		return
 	}
-	user.SystemRoles = []string{}
 	apperror.WriteJSON(w, http.StatusOK, toUserResponse(user))
 }
 
@@ -158,14 +156,10 @@ func toUserResponse(user service.UserRecord) userResponse {
 		value := user.AvatarFileID.String()
 		avatarFileID = &value
 	}
-	roles := user.SystemRoles
-	if roles == nil {
-		roles = []string{}
-	}
 	return userResponse{
 		ID: user.ID.String(), Email: user.Email, FullName: user.FullName, AvatarURL: user.AvatarURL,
 		Bio: user.Bio, PreferredLanguage: user.PreferredLanguage, CreatedAt: user.CreatedAt,
-		SystemRoles: roles, AvatarFileID: avatarFileID,
+		AvatarFileID: avatarFileID,
 	}
 }
 

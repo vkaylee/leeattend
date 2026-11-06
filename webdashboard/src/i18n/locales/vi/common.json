@@ -1105,42 +1105,6 @@
     "system": "Hệ thống",
     "system_connection_error": "Lỗi kết nối hệ thống",
     "system_error": "Lỗi hệ thống",
-    "system_roles": {
-      "assign_to_user": "Gán cho người dùng",
-      "assigned_date": "Đã gán: {{date}}",
-      "assigned_users": "Người dùng được gán",
-      "assignees_count": "{{count}} người được gán",
-      "confirm": {
-        "revoke_message": "Bạn có chắc chắn muốn thu hồi vai trò hệ thống này? Hành động này có thể khóa người dùng khỏi quyền truy cập cấp hệ thống.",
-        "revoke_title": "Thu hồi Vai trò Hệ thống"
-      },
-      "descriptions": {
-        "billing_admin": "Quản lý thanh toán nền tảng, đăng ký và hạn ngạch trên tất cả workspace.",
-        "default": "System level role.",
-        "platform_admin": "Toàn quyền nền tảng. Có thể quản lý workspace, cài đặt toàn cục và các vai trò hệ thống khác.",
-        "support": "Chỉ xem dữ liệu theo dõi cơ sở hạ tầng và hỗ trợ đa workspace."
-      },
-      "grant_privileges": "Cấp đặc quyền cấp hệ thống cho người dùng",
-      "messages": {
-        "assign_error": "Không thể gán vai trò",
-        "revoke_error": "Không thể thu hồi vai trò"
-      },
-      "modal": {
-        "assign_title": "Gán Vai trò {{role}}",
-        "assigning": "Đang gán...",
-        "submit_btn": "Gán Vai trò"
-      },
-      "no_users": "Chưa có người dùng nào được gán vai trò này.",
-      "roles": "Vai trò hệ thống",
-      "tenants": "Workspace",
-      "tenants_subtitle": "Quản lý workspace nền tảng và chế độ cơ sở dữ liệu tenant.",
-      "tenants_empty": "Chưa có workspace nào.",
-      "tenants_error": "Không thể tải danh sách workspace.",
-      "subtitle": "Quản lý các vai trò cấp hệ thống vượt qua ranh giới workspace",
-      "system_label": "Hệ thống",
-      "title": "Quản trị viên Nền tảng",
-      "user_id_label": "ID người dùng (UUID)"
-    },
     "tags": "Nhãn (Tags)",
     "theme": {
       "dark": "Tối",
@@ -2081,6 +2045,10 @@
     "language": "Ngôn ngữ",
     "quickAccess": "📌 Truy cập nhanh",
     "allApps": "🗂️ Tất cả ứng dụng",
+    "dsmLauncher": "Menu chính (⌘K)",
+    "openSearch": "Mở tìm kiếm tính năng DSM 7",
+    "quickSearchPlaceholder": "Tìm tính năng, ứng dụng...",
+    "searchHeroPlaceholder": "Tìm nhanh ứng dụng, chức năng hoặc cài đặt hệ thống...",
     "empty": {
       "title": "Không có ứng dụng nào",
       "desc": "Bạn không có quyền truy cập ứng dụng nào. Liên hệ quản trị viên."
@@ -2110,6 +2078,42 @@
       "status_final": "Dual-Run Ngày Cuối",
       "status_closed": "Dual-Run Đã Đóng",
       "warning_modifiers": "Các điều chỉnh và ngoại lệ được tạo trong cửa sổ này có thể bị mất nếu rollback."
+    }
+  },
+  "dsmLauncher": {
+    "title": "DSM 7 Main Menu & Feature Launcher",
+    "desc": "Khởi chạy ứng dụng và tìm kiếm tính năng",
+    "searchPlaceholder": "Tìm kiếm ứng dụng, tính năng, cài đặt (ví dụ: 'nghỉ phép', 'wifi', 'ot')...",
+    "recent": "Truy cập gần đây",
+    "allApps": "Tất cả ứng dụng",
+    "appsHeading": "Ứng dụng chính",
+    "actionsHeading": "Thao tác & Tính năng nhanh",
+    "emptyTitle": "Không tìm thấy tính năng hoặc ứng dụng phù hợp",
+    "emptyDesc": "Thử tìm kiếm với các từ khóa thông dụng như: 'nghỉ phép', 'chấm công', 'wifi', 'ot', 'bảng lương'...",
+    "hints": {
+      "navigate": "di chuyển",
+      "select": "chọn",
+      "exit": "thoát"
+    },
+    "aria": {
+      "clearSearch": "Xóa từ khóa tìm kiếm",
+      "close": "Đóng launcher",
+      "preview": "Xem trước chi tiết tính năng"
+    },
+    "badges": {
+      "app": "App",
+      "action": "Thao tác",
+      "setting": "Cài đặt"
+    },
+    "preview": {
+      "title": "Chi tiết tính năng",
+      "selectHint": "Chọn một mục từ danh sách kết quả để xem chi tiết",
+      "route": "Đường dẫn",
+      "category": "Phân loại",
+      "permissions": "Quyền truy cập",
+      "noPermissionRequired": "Không yêu cầu quyền đặc biệt",
+      "openAction": "Mở tính năng",
+      "pressEnter": "Nhấn ↵ để truy cập"
     }
   }
 }

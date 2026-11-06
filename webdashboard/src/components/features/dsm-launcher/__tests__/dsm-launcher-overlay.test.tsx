@@ -130,14 +130,38 @@ describe("DsmLauncherOverlay", () => {
     expect(screen.getByTestId("dsm-action-clock-in")).toBeInTheDocument();
   });
 
-  it("does not expose deep settings when searching from the launcher", async () => {
+  it("finds wifi setting action shortcut when searching 'wifi' and does not expose deep setting items", async () => {
     const user = userEvent.setup();
     render(<DsmLauncherOverlay isOpen={true} onClose={vi.fn()} />);
 
     const searchInput = screen.getByTestId("dsm-launcher-search-input");
     await user.type(searchInput, "wifi");
 
+    // Does not expose raw child setting tab
     expect(screen.queryByTestId("dsm-setting-time")).not.toBeInTheDocument();
+    // Exposes quick action shortcut
+    expect(screen.getByTestId("dsm-action-setting-time-wifi")).toBeInTheDocument();
+    // Desktop side preview displays preview
+    expect(screen.getByTestId("dsm-side-preview")).toBeInTheDocument();
+  });
+
+  it("shows search empty state when no features match query", async () => {
+    const user = userEvent.setup();
+    render(<DsmLauncherOverlay isOpen={true} onClose={vi.fn()} />);
+
+    const searchInput = screen.getByTestId("dsm-launcher-search-input");
+    await user.type(searchInput, "nonexistent-keyword-xyz");
+
     expect(screen.getByTestId("dsm-search-empty")).toBeInTheDocument();
+  });
+
+  it("navigates grid via ArrowDown from search input", () => {
+    render(<DsmLauncherOverlay isOpen={true} onClose={vi.fn()} />);
+
+    const searchInput = screen.getByTestId("dsm-launcher-search-input");
+    fireEvent.keyDown(searchInput, { key: "ArrowDown" });
+
+    const firstApp = screen.getByTestId("dsm-app-dashboard");
+    expect(firstApp).toHaveAttribute("data-focused", "true");
   });
 });

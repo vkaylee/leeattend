@@ -100,7 +100,6 @@ func (m *mockReportQueue) GetResultData(ctx context.Context, jobID uuid.UUID) ([
 
 type mockReportAuthorizer struct{}
 
-func (mockReportAuthorizer) IsSystemAdmin(context.Context, uuid.UUID) bool { return false }
 func (mockReportAuthorizer) HasPermission(context.Context, uuid.UUID, uuid.UUID, string) bool {
 	return true
 }
@@ -406,7 +405,6 @@ func TestAttendanceReportDateValidation(t *testing.T) {
 
 type mockDenyAuthorizer struct{}
 
-func (mockDenyAuthorizer) IsSystemAdmin(context.Context, uuid.UUID) bool { return false }
 func (mockDenyAuthorizer) HasPermission(context.Context, uuid.UUID, uuid.UUID, string) bool {
 	return false
 }

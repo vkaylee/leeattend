@@ -349,10 +349,6 @@ type MonitorAuthorizer interface {
 	HasPermission(ctx context.Context, userID, workspaceID uuid.UUID, permission string) bool
 }
 
-type MonitorSystemRoles interface {
-	GetSystemRolesForUser(ctx context.Context, userID uuid.UUID) ([]string, error)
-}
-
 type MonitorRedis interface {
 	Shared() (*goredis.Client, error)
 }
@@ -360,43 +356,20 @@ type MonitorRedis interface {
 type MonitorHandler struct {
 	Repo       MonitorRepository
 	Authorizer MonitorAuthorizer
-	RolesRepo  MonitorSystemRoles
 	Redis      MonitorRedis
 	JWTSecret  string
 }
 
-func (h MonitorHandler) requirePlatformAdminOrSupport(r *http.Request) (uuid.UUID, *apperror.AppError) {
+func (h MonitorHandler) requireInfraMonitor(r *http.Request) (uuid.UUID, *apperror.AppError) {
 	userID, ok := httpinfra.UserIDFromContext(r.Context())
-	if !ok || h.RolesRepo == nil {
+	workspaceID, hasWorkspace := httpinfra.WorkspaceIDFromContext(r.Context())
+	if !ok || !hasWorkspace {
 		return uuid.Nil, apperror.Unauthorized(apperror.KeyUnauthorized)
 	}
-	roles, err := h.RolesRepo.GetSystemRolesForUser(r.Context(), userID)
-	if err != nil {
-		return uuid.Nil, apperror.Internal(err)
+	if h.Authorizer == nil || !h.Authorizer.HasPermission(r.Context(), userID, workspaceID, string(auth.PermissionInfraMonitor)) {
+		return uuid.Nil, apperror.Forbidden(apperror.KeyForbidden)
 	}
-	for _, role := range roles {
-		if role == "admin" || role == "platform_admin" || role == "support" {
-			return userID, nil
-		}
-	}
-	return uuid.Nil, apperror.Forbidden(apperror.KeyForbidden)
-}
-
-func (h MonitorHandler) requirePlatformAdminOnly(r *http.Request) (uuid.UUID, *apperror.AppError) {
-	userID, ok := httpinfra.UserIDFromContext(r.Context())
-	if !ok || h.RolesRepo == nil {
-		return uuid.Nil, apperror.Unauthorized(apperror.KeyUnauthorized)
-	}
-	roles, err := h.RolesRepo.GetSystemRolesForUser(r.Context(), userID)
-	if err != nil {
-		return uuid.Nil, apperror.Internal(err)
-	}
-	for _, role := range roles {
-		if role == "admin" || role == "platform_admin" {
-			return userID, nil
-		}
-	}
-	return uuid.Nil, apperror.Forbidden(apperror.KeyForbidden)
+	return userID, nil
 }
 
 func (h MonitorHandler) requireWorkspaceMember(r *http.Request, wsID uuid.UUID) (uuid.UUID, *apperror.AppError) {
@@ -702,7 +675,7 @@ func (h MonitorHandler) buildOperationalSnapshot(ctx context.Context) (MonitorOp
 				Source:     "redis",
 			},
 		},
-		Reliability:        reliability,
+		Reliability: reliability,
 		Thresholds: MonitorOperationalThresholds{
 			QueuePressure: MonitorQueueThresholds{
 				MediumAt:   100,
@@ -798,7 +771,7 @@ func (h MonitorHandler) buildOperationalSnapshot(ctx context.Context) (MonitorOp
 
 // 1. GET /api/v1/monitor/overview
 func (h MonitorHandler) GetOverview(w http.ResponseWriter, r *http.Request) {
-	if _, appErr := h.requirePlatformAdminOrSupport(r); appErr != nil {
+	if _, appErr := h.requireInfraMonitor(r); appErr != nil {
 		apperror.WriteError(w, r, appErr)
 		return
 	}
@@ -812,7 +785,7 @@ func (h MonitorHandler) GetOverview(w http.ResponseWriter, r *http.Request) {
 
 // 2. GET /api/v1/monitor/jobs
 func (h MonitorHandler) GetMonitorJobs(w http.ResponseWriter, r *http.Request) {
-	if _, appErr := h.requirePlatformAdminOrSupport(r); appErr != nil {
+	if _, appErr := h.requireInfraMonitor(r); appErr != nil {
 		apperror.WriteError(w, r, appErr)
 		return
 	}
@@ -1000,7 +973,7 @@ func (h MonitorHandler) GetMonitorJobs(w http.ResponseWriter, r *http.Request) {
 
 // 3. GET /api/v1/monitor/correlations
 func (h MonitorHandler) GetMonitorCorrelations(w http.ResponseWriter, r *http.Request) {
-	if _, appErr := h.requirePlatformAdminOrSupport(r); appErr != nil {
+	if _, appErr := h.requireInfraMonitor(r); appErr != nil {
 		apperror.WriteError(w, r, appErr)
 		return
 	}
@@ -1061,7 +1034,7 @@ func (h MonitorHandler) GetMonitorCorrelations(w http.ResponseWriter, r *http.Re
 
 // 4. GET /api/v1/monitor/stream
 func (h MonitorHandler) Stream(w http.ResponseWriter, r *http.Request) {
-	if _, appErr := h.requirePlatformAdminOrSupport(r); appErr != nil {
+	if _, appErr := h.requireInfraMonitor(r); appErr != nil {
 		apperror.WriteError(w, r, appErr)
 		return
 	}
@@ -1113,7 +1086,7 @@ func (h MonitorHandler) Stream(w http.ResponseWriter, r *http.Request) {
 
 // 5. GET /api/v1/monitor/alerts
 func (h MonitorHandler) ListAlerts(w http.ResponseWriter, r *http.Request) {
-	if _, appErr := h.requirePlatformAdminOrSupport(r); appErr != nil {
+	if _, appErr := h.requireInfraMonitor(r); appErr != nil {
 		apperror.WriteError(w, r, appErr)
 		return
 	}
@@ -1170,7 +1143,7 @@ func (h MonitorHandler) ListAlerts(w http.ResponseWriter, r *http.Request) {
 
 // 6. GET /api/v1/monitor/alerts/{alert_id}
 func (h MonitorHandler) GetAlert(w http.ResponseWriter, r *http.Request) {
-	if _, appErr := h.requirePlatformAdminOrSupport(r); appErr != nil {
+	if _, appErr := h.requireInfraMonitor(r); appErr != nil {
 		apperror.WriteError(w, r, appErr)
 		return
 	}
@@ -1209,7 +1182,7 @@ func (h MonitorHandler) GetAlert(w http.ResponseWriter, r *http.Request) {
 
 // 7. POST /api/v1/monitor/alerts/{alert_id}/acknowledge
 func (h MonitorHandler) AcknowledgeAlert(w http.ResponseWriter, r *http.Request) {
-	userID, appErr := h.requirePlatformAdminOnly(r)
+	userID, appErr := h.requireInfraMonitor(r)
 	if appErr != nil {
 		apperror.WriteError(w, r, appErr)
 		return
@@ -1263,7 +1236,7 @@ func (h MonitorHandler) AcknowledgeAlert(w http.ResponseWriter, r *http.Request)
 
 // 8. POST /api/v1/monitor/alerts/{alert_id}/resolve
 func (h MonitorHandler) ResolveAlert(w http.ResponseWriter, r *http.Request) {
-	userID, appErr := h.requirePlatformAdminOnly(r)
+	userID, appErr := h.requireInfraMonitor(r)
 	if appErr != nil {
 		apperror.WriteError(w, r, appErr)
 		return

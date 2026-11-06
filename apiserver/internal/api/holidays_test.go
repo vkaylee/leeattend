@@ -66,7 +66,6 @@ func (m *mockHolidayRepository) ProcessHolidayLeave(ctx context.Context, wsID, i
 
 type mockHolidayAuthorizer struct {
 	isMember    bool
-	isSysAdmin  bool
 	permissions map[string]bool
 }
 
@@ -76,10 +75,6 @@ func (a mockHolidayAuthorizer) IsMember(context.Context, uuid.UUID, uuid.UUID) (
 
 func (a mockHolidayAuthorizer) EffectivePermissions(context.Context, uuid.UUID, uuid.UUID) ([]string, []string, error) {
 	return nil, nil, nil
-}
-
-func (a mockHolidayAuthorizer) IsSystemAdmin(context.Context, uuid.UUID) bool {
-	return a.isSysAdmin
 }
 
 func (a mockHolidayAuthorizer) HasPermission(_ context.Context, _, _ uuid.UUID, perm string) bool {

@@ -14,12 +14,10 @@ import Button from "@/components/ui/button";
 import EmptyState from "@/components/ui/empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useMyPermissions } from "@/hooks/use-permissions";
-import { useProfile } from "@/hooks/use-profile";
 
 export default function DesktopPage() {
   const { t } = useTranslation();
   const { hasAnyPermission, isLoading: permsLoading } = useMyPermissions();
-  const { user } = useProfile();
 
   const {
     enabledIds,
@@ -32,11 +30,11 @@ export default function DesktopPage() {
     closeCustomizer,
   } = useDesktopLayout();
 
-  // Filter available widgets based on RBAC and system roles
+  // Filter available widgets based on standalone permissions.
   const availableWidgets = useMemo(() => {
     if (permsLoading) return [];
-    return filterDesktopWidgets(DESKTOP_WIDGET_REGISTRY, hasAnyPermission, user?.system_roles ?? []);
-  }, [permsLoading, hasAnyPermission, user?.system_roles]);
+    return filterDesktopWidgets(DESKTOP_WIDGET_REGISTRY, hasAnyPermission);
+  }, [permsLoading, hasAnyPermission]);
 
   // Order active enabled widgets
   const activeWidgets = useMemo(() => {

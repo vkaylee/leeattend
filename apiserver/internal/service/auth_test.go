@@ -100,13 +100,6 @@ func (m *memoryTokenStore) SetUserRevocation(_ context.Context, uid uuid.UUID, t
 	return nil
 }
 
-func (m *memoryAuthRepo) GetSystemRolesForUser(_ context.Context, uid uuid.UUID) ([]string, error) {
-	if m.user.ID == uid {
-		return []string{}, nil
-	}
-	return nil, ErrSessionNotFound
-}
-
 func (m *memoryAuthRepo) UpdateUserProfile(_ context.Context, uid uuid.UUID, req UpdateUserProfileRequest) (UserRecord, error) {
 	if m.user.ID != uid {
 		return UserRecord{}, ErrSessionNotFound

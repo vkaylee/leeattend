@@ -43,29 +43,6 @@ func (r AuthRepository) findUser(ctx context.Context, query string, arg any) (se
 	return user, nil
 }
 
-func (r AuthRepository) GetSystemRolesForUser(ctx context.Context, userID uuid.UUID) ([]string, error) {
-	if r.DB == nil {
-		return nil, errors.New("auth repository: nil database")
-	}
-	rows, err := r.DB.Query(ctx, `SELECT sr.name FROM user_system_roles usr JOIN system_roles sr ON sr.id = usr.role_id WHERE usr.user_id = $1`, userID)
-	if err != nil {
-		return nil, fmt.Errorf("query system roles: %w", err)
-	}
-	defer rows.Close()
-	roles := []string{}
-	for rows.Next() {
-		var role string
-		if err := rows.Scan(&role); err != nil {
-			return nil, fmt.Errorf("scan system role: %w", err)
-		}
-		roles = append(roles, role)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("iterate system roles: %w", err)
-	}
-	return roles, nil
-}
-
 func (r AuthRepository) UpdateUserProfile(ctx context.Context, userID uuid.UUID, req service.UpdateUserProfileRequest) (service.UserRecord, error) {
 	if r.DB == nil {
 		return service.UserRecord{}, errors.New("auth repository: nil database")
@@ -94,7 +71,6 @@ func (r AuthRepository) UpdateUserProfile(ctx context.Context, userID uuid.UUID,
 	if err != nil {
 		return service.UserRecord{}, err
 	}
-	user.SystemRoles = []string{}
 	return user, nil
 }
 
@@ -123,7 +99,6 @@ ORDER BY u.created_at DESC`, workspaceID)
 		} else {
 			user.CreatedAt = createdAt.UTC()
 		}
-		user.SystemRoles = []string{}
 		users = append(users, user)
 	}
 	if err := rows.Err(); err != nil {
@@ -200,18 +175,13 @@ func (r AuthRepository) CreateUserWithAdminCheck(ctx context.Context, user servi
 	if err := tx.QueryRow(ctx, `SELECT count(*) FROM users`).Scan(&count); err != nil {
 		return false, fmt.Errorf("count users: %w", err)
 	}
+	isFirst := count == 0
 	if _, err := tx.Exec(ctx, `INSERT INTO users (id, email, password_hash, created_at, full_name) VALUES ($1, $2, $3, NOW(), $4)`, user.ID, user.Email, user.PasswordHash, user.FullName); err != nil {
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
 			return false, service.ErrEmailExists
 		}
 		return false, fmt.Errorf("insert user: %w", err)
-	}
-	isFirst := count == 0
-	if isFirst {
-		if _, err := tx.Exec(ctx, `INSERT INTO user_system_roles (user_id, role_id) SELECT $1, id FROM system_roles WHERE name IN ('admin', 'platform_admin') ORDER BY (name = 'admin') DESC LIMIT 1`, user.ID); err != nil {
-			return false, fmt.Errorf("assign platform admin: %w", err)
-		}
 	}
 	if err := tx.Commit(ctx); err != nil {
 		return false, fmt.Errorf("commit register transaction: %w", err)

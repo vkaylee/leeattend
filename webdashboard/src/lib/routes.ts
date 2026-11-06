@@ -52,8 +52,6 @@ export const ROUTES = {
 
   // Infra & System
   INFRA_MONITOR: "/infra/monitor",
-  SYSTEM_TENANTS: "/system/tenants",
-  SYSTEM_ROLES: "/system/roles",
   SYSTEM_SMTP: "/system/smtp",
   AUDIT_LOGS: "/audit-logs",
   // Employee Self-Service

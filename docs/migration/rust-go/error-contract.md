@@ -314,23 +314,18 @@ Every key in `apiserver/src/utils/i18n.rs:54-210` is enumerated below with canon
 | `MissingWorkspace` | `error.missing_workspace` | Missing Workspace Context. Provide 'ws_id' in path or 'X-Workspace-Id' header. | Thiếu thông tin Workspace. Vui lòng truyền 'ws_id' trong URL hoặc header 'X-Workspace-Id'. | 缺少工作空间上下文。请在路径中提供 'ws_id' 或在 'X-Workspace-Id' 请求头中提供。 |
 | `InvalidWorkspaceId` | `error.invalid_workspace_id` | Invalid Workspace ID format | Định dạng ID Workspace không hợp lệ | 工作空间 ID 格式无效 |
 | `NoEmployeeRecord` | `error.no_employee_record` | No employee record linked to your account | Không có thông tin nhân viên nào liên kết với tài khoản của bạn | 您的账户未关联任何员工档案 |
-| `SystemRouteTenantContext` | `error.system_route_tenant_context` | Cannot use Tenant context (MemberContext) in a System route | Không thể sử dụng context Tenant (MemberContext) trong route hệ thống | 系统路由中无法使用租户上下文 (MemberContext) |
 | `NotWorkspaceMember` | `error.not_workspace_member` | Not a member of this workspace | Bạn không phải là thành viên của workspace này | 您不是该工作空间的成员 |
 | `UserNotFound` | `error.user_not_found` | User not found | Không tìm thấy người dùng | 未找到该用户 |
 | `EmployeeNotFound` | `error.employee_not_found` | Employee not found | Không tìm thấy nhân viên | 未找到员工 |
 | `EmploymentNotFound` | `error.employment_not_found` | Employment not found | Không tìm thấy quan hệ công việc | 未找到工作关系 |
 | `DepartmentNotFound` | `error.department_not_found` | Department not found | Không tìm thấy phòng ban | 未找到部门 |
 | `DatabaseError` | `error.database_error` | Database error | Lỗi cơ sở dữ liệu | 数据库错误 |
-| `CannotRevokeLastAdmin` | `error.cannot_revoke_last_admin` | Cannot revoke the last platform_admin. Assign another admin first. | Không thể thu hồi platform_admin cuối cùng. Hãy gán quản trị viên khác trước. | 无法撤销最后一个 platform_admin。请先分配另一个管理员。 |
 | `BehalfAssignmentMissingTarget` | `error.behalf_assignment_missing_target` | Either target employee or target department must be specified | Phải chỉ định nhân viên đích hoặc phòng ban đích | 必须指定目标员工或目标部门 |
 | `BehalfAssignmentDualTarget` | `error.behalf_assignment_dual_target` | Cannot specify both target employee and target department | Không thể chỉ định cả nhân viên đích và phòng ban đích | 不能同时指定目标员工和目标部门 |
 | `UploadMultipart` | `error.upload_multipart` | Multipart form upload error | Lỗi tải lên dữ liệu dạng multipart | 多部分表单上传错误 |
 | `UploadReadFailed` | `error.upload_read_failed` | Failed to read uploaded file bytes | Không thể đọc dữ liệu file tải lên | 无法读取上传的文件字节 |
 | `UploadFileTooLarge` | `error.upload_file_too_large` | Uploaded file is too large | File tải lên vượt quá dung lượng cho phép | 上传的文件太大 |
 | `UploadNoFile` | `error.upload_no_file` | No file was uploaded | Không có file nào được tải lên | 未上传文件 |
-| `TenantMismatch` | `error.tenant_mismatch` | Tenant mismatch | Không khớp tenant | 租户不匹配 |
-| `SupavisorApiUrlRequired` | `error.supavisor_api_url_required` | SUPAVISOR_API_URL environment variable is required | Yêu cầu biến môi trường SUPAVISOR_API_URL | 需要 SUPAVISOR_API_URL 环境变量 |
-| `ApiJwtSecretRequired` | `error.api_jwt_secret_required` | API_JWT_SECRET (or SUPAVISOR_API_JWT) environment variable is required | Yêu cầu biến môi trường API_JWT_SECRET (hoặc SUPAVISOR_API_JWT) | API_JWT_SECRET (or SUPAVISOR_API_JWT) 环境变量 |
 | `StagingLogNotFound` | `error.staging_log_not_found` | Staging log not found | Không tìm thấy log tạm thời | 未找到临时日志 |
 | `StagingLogProcessed` | `error.staging_log_processed` | Log already processed | Log đã được xử lý | 日志已处理 |
 | `StagingLogConflict` | `error.staging_log_conflict` | Log is being processed by another request | Log đang được xử lý bởi yêu cầu khác | 日志正在被另一个请求处理 |
@@ -376,10 +371,6 @@ Every key in `apiserver/src/utils/i18n.rs:54-210` is enumerated below with canon
 | `CsvParsingError` | `error.csv_parsing_error` | CSV parsing failed | Lỗi parse CSV | CSV 解析失败 |
 | `MaxRowsExceeded` | `error.max_rows_exceeded` | Maximum allowed rows exceeded | Vượt quá số dòng tối đa cho phép | 超过最大允许行数 |
 | `RosterBatchTooLarge` | `error.roster_batch_too_large` | Too many days selected in one request. Please select fewer days. | Chọn quá nhiều ngày trong một yêu cầu. Vui lòng chọn ít ngày hơn. | 单次请求选择的日期过多。请减少选择的日期数量。 |
-| `SystemRoleNotFound` | `error.system_role_not_found` | System role not found | Không tìm thấy vai trò hệ thống | 未找到系统角色 |
-| `UnknownSystemRole` | `error.unknown_system_role` | Unknown system role | Vai trò hệ thống không xác định | 未知系统角色 |
-| `RoleNameRequired` | `error.role_name_required` | Role name is required | Tên vai trò là bắt buộc | 角色名称是必填项 |
-| `SystemUserNotFound` | `error.system_user_not_found` | System user not found | Không tìm thấy người dùng hệ thống | 未找到系统用户 |
 | `PasswordTooShort` | `error.password_too_short` | Password must be at least 8 characters | Mật khẩu phải có ít nhất 8 ký tự | 密码必须至少为 8 个字符 |
 | `PasswordTooLong` | `error.password_too_long` | Password must not exceed 128 characters | Mật khẩu không được vượt quá 128 ký tự | 密码不能超过 128 个字符 |
 | `PasswordComplexity` | `error.password_complexity` | Password must contain at least one digit or special character | Mật khẩu phải chứa ít nhất một chữ số hoặc ký tự đặc biệt | 密码必须包含至少一个数字或特殊字符 |
@@ -396,7 +387,6 @@ Every key in `apiserver/src/utils/i18n.rs:54-210` is enumerated below with canon
 | `AgentNotFound` | `error.agent_not_found` | Agent not found | Không tìm thấy Agent | 未找到 Agent |
 | `NoFieldsToUpdate` | `error.no_fields_to_update` | No fields to update | Không có trường nào để cập nhật | 没有要更新的字段 |
 | `InvalidGroup` | `error.invalid_group` | Invalid group | Nhóm không hợp lệ | 无效的组 |
-| `InvalidTenantIdFormat` | `error.invalid_tenant_id_format` | Invalid tenant ID format | Định dạng ID tenant không hợp lệ | 无效的租户 ID 格式 |
 | `InvalidScopeType` | `error.invalid_scope_type` | Invalid scope type | Phạm vi không hợp lệ | 无效的范围类型 |
 | `LocationNotFound` | `error.location_not_found` | Location not found | Không tìm thấy địa điểm | 未找到地点 |
 | `EmployerNotFound` | `error.employer_not_found` | Employer not found | Không tìm thấy người sử dụng lao động | 未找到雇主 |

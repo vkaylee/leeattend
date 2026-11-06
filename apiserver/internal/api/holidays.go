@@ -410,7 +410,7 @@ func (h HolidayHandler) checkManagePermission(w http.ResponseWriter, r *http.Req
 		apperror.WriteError(w, r, apperror.Unauthorized(apperror.KeyAuthenticationRequired))
 		return false
 	}
-	if h.Authorizer == nil || (!h.Authorizer.IsSystemAdmin(r.Context(), userID) && !h.Authorizer.HasPermission(r.Context(), userID, wsID, string(auth.PermissionHolidaysManage))) {
+	if h.Authorizer == nil || !h.Authorizer.HasPermission(r.Context(), userID, wsID, string(auth.PermissionHolidaysManage)) {
 		apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
 		return false
 	}

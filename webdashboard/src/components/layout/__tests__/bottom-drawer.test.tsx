@@ -27,7 +27,7 @@ vi.mock("@/hooks/use-permissions", () => ({
 
 vi.mock("@/hooks/use-profile", () => ({
   useProfile: () => ({
-    user: { id: "x", email: "a@b.com", full_name: "Test User", system_roles: ["platform_admin"] },
+    user: { id: "x", email: "a@b.com", full_name: "Test User" },
     isLoading: false,
   }),
 }));
@@ -307,5 +307,18 @@ describe("BottomDrawer", () => {
     expect(() => {
       render(<BottomDrawer isOpen={true} onClose={undefined as any} />, { wrapper: Wrapper });
     }).not.toThrow();
+  });
+
+  it("renders DSM 7 Launcher trigger and opens launcher on click", async () => {
+    const handleClose = vi.fn();
+    const dispatchSpy = vi.spyOn(window, "dispatchEvent");
+    render(<BottomDrawer isOpen={true} onClose={handleClose} />, { wrapper: Wrapper });
+
+    const launcherTrigger = screen.getByTestId("bottom-drawer-launcher-trigger");
+    expect(launcherTrigger).toBeInTheDocument();
+
+    fireEvent.click(launcherTrigger);
+    expect(handleClose).toHaveBeenCalled();
+    expect(dispatchSpy).toHaveBeenCalledWith(expect.objectContaining({ type: "open-dsm-launcher" }));
   });
 });

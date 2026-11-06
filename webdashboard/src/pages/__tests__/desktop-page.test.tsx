@@ -1,8 +1,18 @@
 import { render, screen, fireEvent } from "@testing-library/react";
 import React from "react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 import DesktopPage from "../desktop-page";
+
+const renderDesktop = () => {
+  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  return render(
+    <QueryClientProvider client={queryClient}>
+      <DesktopPage />
+    </QueryClientProvider>,
+  );
+};
 
 const mockNavigate = vi.fn();
 
@@ -39,11 +49,8 @@ vi.mock("@/hooks/use-permissions", () => ({
 }));
 
 vi.mock("@/hooks/use-profile", () => ({
-  useProfile: () => ({
-    user: { id: "test-user", full_name: "John Doe", system_roles: ["admin"] },
-  }),
+  useProfile: () => ({ user: { id: "test-user", full_name: "John Doe" } }),
 }));
-
 vi.mock("@/hooks/use-dashboard", () => ({
   useDashboardStats: () => ({
     data: {
@@ -87,7 +94,7 @@ describe("DesktopPage", () => {
   });
 
   it("renders desktop header and core widgets", () => {
-    render(<DesktopPage />);
+    renderDesktop();
 
     expect(screen.getByTestId("desktop-page")).toBeInTheDocument();
     expect(screen.getByTestId("desktop-search-trigger")).toBeInTheDocument();
@@ -100,7 +107,7 @@ describe("DesktopPage", () => {
   });
 
   it("opens customization modal when 'Gắn Widget' button is clicked", () => {
-    render(<DesktopPage />);
+    renderDesktop();
 
     const customizeBtn = screen.getByTestId("desktop-customize-btn");
     fireEvent.click(customizeBtn);
@@ -109,7 +116,7 @@ describe("DesktopPage", () => {
   });
 
   it("toggles widget visibility", () => {
-    render(<DesktopPage />);
+    renderDesktop();
 
     // Open customizer
     fireEvent.click(screen.getByTestId("desktop-customize-btn"));
@@ -128,7 +135,7 @@ describe("DesktopPage", () => {
       JSON.stringify({ enabledIds: [], order: [] }),
     );
 
-    render(<DesktopPage />);
+    renderDesktop();
 
     expect(screen.getByTestId("desktop-empty-state")).toBeInTheDocument();
     expect(screen.getByTestId("desktop-empty-add-widget-btn")).toBeInTheDocument();

@@ -101,7 +101,6 @@ type mockPhaseAuthorizer struct {
 	allowed map[string]bool
 }
 
-func (m mockPhaseAuthorizer) IsSystemAdmin(context.Context, uuid.UUID) bool { return false }
 func (m mockPhaseAuthorizer) HasPermission(ctx context.Context, userID, workspaceID uuid.UUID, perm string) bool {
 	return m.allowed[perm]
 }

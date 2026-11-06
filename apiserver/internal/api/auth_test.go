@@ -71,12 +71,6 @@ func (r *authTestRepository) UpdatePasswordHash(_ context.Context, userID uuid.U
 	}
 	return nil
 }
-func (r *authTestRepository) GetSystemRolesForUser(_ context.Context, uid uuid.UUID) ([]string, error) {
-	if r.user.ID == uid {
-		return []string{}, nil
-	}
-	return nil, service.ErrSessionNotFound
-}
 func (r *authTestRepository) UpdateUserProfile(_ context.Context, uid uuid.UUID, req service.UpdateUserProfileRequest) (service.UserRecord, error) {
 	if r.user.ID != uid {
 		return service.UserRecord{}, service.ErrSessionNotFound
@@ -273,17 +267,10 @@ func TestAuthHandler_ProfileUsersAndPermissions(t *testing.T) {
 	userID := repo.user.ID
 	workspaceID := uuid.New()
 
-	req := httptest.NewRequest(http.MethodGet, "/api/v1/me", nil)
+	req := httptest.NewRequest(http.MethodPatch, "/api/v1/me", bytes.NewBufferString(`{"preferred_language":"vi"}`))
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), userID))
 	rec := httptest.NewRecorder()
-	h.Me(rec, req)
-	if rec.Code != http.StatusOK || !bytes.Contains(rec.Body.Bytes(), []byte(`"system_roles":[]`)) {
-		t.Fatalf("expected full profile response, got %d: %s", rec.Code, rec.Body.String())
-	}
 
-	req = httptest.NewRequest(http.MethodPatch, "/api/v1/me", bytes.NewBufferString(`{"preferred_language":"vi"}`))
-	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), userID))
-	rec = httptest.NewRecorder()
 	h.UpdateMe(rec, req)
 	if rec.Code != http.StatusOK || !bytes.Contains(rec.Body.Bytes(), []byte(`"preferred_language":"vi"`)) {
 		t.Fatalf("expected updated profile response, got %d: %s", rec.Code, rec.Body.String())

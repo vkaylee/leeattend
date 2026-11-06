@@ -286,52 +286,6 @@ func ParsePermission(s string) (Permission, bool) {
 	return "", false
 }
 
-// System Role Primitives
-type SystemRoleType string
-
-const (
-	SystemRolePlatformAdmin SystemRoleType = "PlatformAdmin"
-	SystemRoleSupport       SystemRoleType = "Support"
-)
-
-// SystemContext holds platform identity and role claims.
-// DEFAULT-DENY: extraction alone does not grant access; RequireRole must be invoked.
-type SystemContext struct {
-	UserID uuid.UUID
-	Roles  []SystemRoleType
-}
-
-func (s *SystemContext) HasRole(r SystemRoleType) bool {
-	if s == nil {
-		return false
-	}
-	for _, role := range s.Roles {
-		if role == r {
-			return true
-		}
-	}
-	return false
-}
-
-func (s *SystemContext) RequireRole(r SystemRoleType) error {
-	if !s.HasRole(r) {
-		return apperror.Forbidden(apperror.KeyForbidden)
-	}
-	return nil
-}
-
-func (s *SystemContext) RequireAnyRole(roles ...SystemRoleType) error {
-	if s == nil {
-		return apperror.Forbidden(apperror.KeyForbidden)
-	}
-	for _, target := range roles {
-		if s.HasRole(target) {
-			return nil
-		}
-	}
-	return apperror.Forbidden(apperror.KeyForbidden)
-}
-
 // Organization-level authorization context types.
 type OrganizationContext = MemberContext
 

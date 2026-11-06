@@ -1,6 +1,7 @@
-import { useCallback, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 const STORAGE_KEY = "leeattend-quick-access";
+const EVENT_NAME = "leeattend-quick-access-change";
 const MAX_ITEMS = 10;
 const DISPLAY_COUNT = 3;
 
@@ -20,7 +21,11 @@ function getQuickAccess(): string[] {
 
 function setQuickAccess(ids: string[]): void {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(ids.slice(0, MAX_ITEMS)));
+    const sliced = ids.slice(0, MAX_ITEMS);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(sliced));
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent(EVENT_NAME, { detail: sliced }));
+    }
   } catch { /* localStorage unavailable — quick-access won't persist */ /* noop */ }
 }
 
@@ -31,7 +36,31 @@ function setQuickAccess(ids: string[]): void {
  * Records an app access and returns the top N most recent.
  */
 export function useQuickAccess() {
-  const allIds = useMemo(() => getQuickAccess(), []);
+  const [allIds, setAllIds] = useState<string[]>(() => getQuickAccess());
+
+  useEffect(() => {
+    const handleLocalChange = (e: Event) => {
+      const customEvent = e as CustomEvent<string[]>;
+      if (customEvent.detail && Array.isArray(customEvent.detail)) {
+        setAllIds(customEvent.detail);
+      } else {
+        setAllIds(getQuickAccess());
+      }
+    };
+
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === STORAGE_KEY) {
+        setAllIds(getQuickAccess());
+      }
+    };
+
+    window.addEventListener(EVENT_NAME, handleLocalChange);
+    window.addEventListener("storage", handleStorageChange);
+    return () => {
+      window.removeEventListener(EVENT_NAME, handleLocalChange);
+      window.removeEventListener("storage", handleStorageChange);
+    };
+  }, []);
 
   const top3 = useMemo(() => allIds.slice(0, DISPLAY_COUNT), [allIds]);
 
@@ -39,7 +68,9 @@ export function useQuickAccess() {
     const current = getQuickAccess();
     const filtered = current.filter((id) => id !== appId);
     filtered.unshift(appId);
-    setQuickAccess(filtered);
+    const next = filtered.slice(0, MAX_ITEMS);
+    setQuickAccess(next);
+    setAllIds(next);
   }, []);
 
   return { top3, all: allIds, recordAccess };

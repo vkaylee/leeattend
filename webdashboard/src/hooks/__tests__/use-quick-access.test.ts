@@ -77,4 +77,31 @@ describe("useQuickAccess", () => {
     const { result } = renderHook(() => useQuickAccess());
     expect(result.current.top3).toEqual([]);
   });
+
+  it("updates react state immediately on recordAccess without page reload", () => {
+    const { result } = renderHook(() => useQuickAccess());
+    expect(result.current.top3).toEqual([]);
+
+    act(() => {
+      result.current.recordAccess("dashboard");
+    });
+
+    expect(result.current.top3).toEqual(["dashboard"]);
+    expect(result.current.all).toEqual(["dashboard"]);
+  });
+
+  it("syncs state between two concurrently mounted hooks via custom event", () => {
+    const hook1 = renderHook(() => useQuickAccess());
+    const hook2 = renderHook(() => useQuickAccess());
+
+    expect(hook1.result.current.top3).toEqual([]);
+    expect(hook2.result.current.top3).toEqual([]);
+
+    act(() => {
+      hook1.result.current.recordAccess("employees");
+    });
+
+    expect(hook1.result.current.top3).toEqual(["employees"]);
+    expect(hook2.result.current.top3).toEqual(["employees"]);
+  });
 });

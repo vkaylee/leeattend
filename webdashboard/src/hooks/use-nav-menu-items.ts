@@ -27,13 +27,10 @@ import {
   Activity,
   Zap,
   Mail,
-  ShieldCheck,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import { useMyPermissions } from "@/hooks/use-permissions";
-import { useProfile } from "@/hooks/use-profile";
-import { getStandaloneOrganizationId } from "@/lib/api";
 import { isFeatureEnabled } from "@/lib/feature-flags";
 import { ROUTES } from "@/lib/routes";
 
@@ -44,7 +41,6 @@ export interface MenuLinkType {
   icon?: React.ElementType;
   label: string;
   permissions?: string[];
-  systemRoles?: string[];
   testId: string;
   to: string;
 }
@@ -74,7 +70,6 @@ export interface NavMenuStructure {
 export function useNavMenuItems(): NavMenuStructure {
   const { t } = useTranslation([
     "common", "employees", "attendance", "leave", "shift_swaps",
-    "payroll", "settings", "system_roles",
   ]);
 
   const dashboard: MenuLinkType = {
@@ -147,9 +142,7 @@ export function useNavMenuItems(): NavMenuStructure {
       label: t("common.sections.system"),
       testId: "sidebar-section-system",
       items: [
-        { to: ROUTES.SYSTEM_TENANTS, icon: Building2, label: t("system_admin.tenants.title", "Tenants"), testId: "sidebar-link-system-tenants", systemRoles: ["admin", "platform_admin"] },
-        { to: ROUTES.SYSTEM_ROLES, icon: ShieldCheck, label: t("system_roles.title", "System Roles"), testId: "sidebar-link-system-roles", systemRoles: ["admin", "platform_admin"] },
-        { to: ROUTES.SYSTEM_SMTP, icon: Mail, label: t("smtp.title", "SMTP Settings"), testId: "sidebar-link-system-smtp", systemRoles: ["admin", "platform_admin"] },
+        { to: ROUTES.SYSTEM_SMTP, icon: Mail, label: t("smtp.title", "SMTP Settings"), testId: "sidebar-link-system-smtp", permissions: ["security:settings:manage"] },
       ],
     },
     {
@@ -171,37 +164,16 @@ export function useNavMenuItems(): NavMenuStructure {
 }
 
 // ── Filtering logic (identical to sidebar.tsx lines 228-249) ───────
+// ── Filtering logic ────────────────────────────────────────────────
 
-/**
- * Filters menu groups by the current user's permissions and system roles.
- * Mirrors the exact logic from sidebar.tsx.
- */
+/** Filter menu groups by standalone organization permissions. */
 export function useFilteredMenuItems(): NavMenuStructure {
   const { dashboard, settings, groups } = useNavMenuItems();
   const { hasAnyPermission } = useMyPermissions();
-  const { user } = useProfile();
-
-  // When there is no active workspace but the user has system-level roles
-  // (e.g. platform_admin, support), we are in a cross-workspace / infra
-  // context. Workspace-scoped permissions are not available — skip the
-  // permission check so the icon rail isn't stripped bare. Sub-items are
-  // still filtered by systemRoles at the item level below, and routes
-  // retain their own guards.
-  const hasSystemRoles = (user?.system_roles?.length ?? 0) > 0;
-  const wsId = getStandaloneOrganizationId();
-  const isSystemContext = !wsId && hasSystemRoles;
 
   const filteredGroups = groups
     .map((group) => {
       const filteredItems = group.items.filter((item) => {
-        // System role check first (mirrors sidebar.tsx)
-        if (item.systemRoles && item.systemRoles.length > 0) {
-          return item.systemRoles.some((role) => user?.system_roles?.includes(role));
-        }
-        // System context: keep the item (no workspace-scoped permissions to
-        // check against). Navigate is still gated by route-level guards.
-        if (isSystemContext) return true;
-        // Permission check
         const permissions = item.permissions;
         return !permissions || permissions.length === 0 || hasAnyPermission(...permissions);
       });

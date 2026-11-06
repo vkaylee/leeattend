@@ -157,7 +157,6 @@ type rbacAuthorizer struct {
 	perms map[string]bool
 }
 
-func (a rbacAuthorizer) IsSystemAdmin(_ context.Context, _ uuid.UUID) bool { return false }
 func (a rbacAuthorizer) HasPermission(_ context.Context, _, _ uuid.UUID, p string) bool {
 	return a.perms[p]
 }

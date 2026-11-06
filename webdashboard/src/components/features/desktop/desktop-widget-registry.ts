@@ -90,20 +90,11 @@ export const DESKTOP_WIDGET_REGISTRY: DesktopWidgetDefinition[] = [
 export function filterDesktopWidgets(
   widgets: DesktopWidgetDefinition[],
   hasAnyPermission: (...perms: string[]) => boolean,
-  systemRoles: string[] = [],
 ): DesktopWidgetDefinition[] {
   return widgets.filter((w) => {
-    // Check system roles
-    if (w.systemRoles && w.systemRoles.length > 0) {
-      const hasRole = w.systemRoles.some((r) => systemRoles.includes(r));
-      if (!hasRole) return false;
-    }
-
-    // Check permissions
     if (w.permissions && w.permissions.length > 0) {
-      if (!hasAnyPermission(...w.permissions)) return false;
+      return hasAnyPermission(...w.permissions);
     }
-
     return true;
   });
 }

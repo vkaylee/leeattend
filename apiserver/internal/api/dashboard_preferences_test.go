@@ -58,10 +58,6 @@ func (a prefAuthz) HasPermission(ctx context.Context, u, w uuid.UUID, p string) 
 	return a.allowed && p == "dashboard:preferences"
 }
 
-func (prefAuthz) IsSystemAdmin(context.Context, uuid.UUID) bool {
-	return false
-}
-
 func TestDashboardPreferencesHandler_Get(t *testing.T) {
 	u := uuid.New()
 	w := uuid.New()

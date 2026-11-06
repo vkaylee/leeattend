@@ -146,7 +146,6 @@ type mockFileAuthorizer struct {
 	notMember bool
 }
 
-func (mockFileAuthorizer) IsSystemAdmin(context.Context, uuid.UUID) bool { return false }
 func (mockFileAuthorizer) HasPermission(context.Context, uuid.UUID, uuid.UUID, string) bool {
 	return true
 }

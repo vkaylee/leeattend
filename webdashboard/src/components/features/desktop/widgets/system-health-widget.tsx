@@ -3,7 +3,7 @@ import { Server, Database, Cpu, HardDrive, CheckCircle, ExternalLink, Zap } from
 import React from "react";
 import { useTranslation } from "react-i18next";
 
-import { useProfile } from "@/hooks/use-profile";
+import { useMyPermissions } from "@/hooks/use-permissions";
 import { ROUTES } from "@/lib/routes";
 
 interface ServiceItem {
@@ -24,9 +24,8 @@ const SERVICES: ServiceItem[] = [
 
 export function SystemHealthWidget() {
   const { t } = useTranslation();
-  const { user } = useProfile();
-  const isAdmin = user?.system_roles?.some((r) => r === "admin" || r === "platform_admin");
-
+  const { hasAnyPermission } = useMyPermissions();
+  const canViewMonitor = hasAnyPermission("infra:monitor", "system:manage");
   return (
     <div className="flex flex-col justify-between h-full space-y-4">
       {/* Top Overview Banner */}
@@ -71,7 +70,7 @@ export function SystemHealthWidget() {
       </div>
 
       {/* Footer Details */}
-      {isAdmin && (
+      {canViewMonitor && (
         <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs text-slate-400">
           <span>LeeAttend v1.26 Enterprise</span>
           <Link

@@ -46,7 +46,7 @@ vi.mock("@/hooks/use-permissions", () => ({
 
 vi.mock("@/hooks/use-profile", () => ({
   useProfile: () => ({
-    user: { full_name: "Test User", email: "test@test.com", system_roles: [] },
+    user: { full_name: "Test User", email: "test@test.com" },
     isLoading: false,
   }),
 }));

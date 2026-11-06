@@ -34,29 +34,11 @@ describe("Desktop Widget Registry", () => {
 
   it("filters widgets by permissions correctly", () => {
     const mockHasPermission = (perm: string) => perm !== "attendance:logs:read";
-    const filtered = filterDesktopWidgets(
-      DESKTOP_WIDGET_REGISTRY,
-      mockHasPermission,
-      [],
-    );
+    const filtered = filterDesktopWidgets(DESKTOP_WIDGET_REGISTRY, mockHasPermission);
 
     const ids = filtered.map((w) => w.id);
     expect(ids).not.toContain("today-overview");
     expect(ids).toContain("quick-punch");
   });
 
-  it("filters widgets by system roles correctly", () => {
-    const customWidget = {
-      ...DESKTOP_WIDGET_REGISTRY[0],
-      id: "admin-only",
-      systemRoles: ["admin"],
-    };
-
-    const widgets = [customWidget];
-    const nonAdmin = filterDesktopWidgets(widgets, () => true, ["member"]);
-    expect(nonAdmin).toHaveLength(0);
-
-    const admin = filterDesktopWidgets(widgets, () => true, ["admin"]);
-    expect(admin).toHaveLength(1);
-  });
 });

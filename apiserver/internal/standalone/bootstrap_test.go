@@ -105,15 +105,6 @@ func TestBootstrapInitializesSharedSchemaTransactionIdempotently(t *testing.T) {
 	if workspaceInserts != 1 || userInserts != 1 {
 		t.Fatalf("bootstrap was not idempotent: workspaces=%d users=%d", workspaceInserts, userInserts)
 	}
-	systemAdminAssigned := false
-	for _, sql := range tx.executed {
-		if strings.Contains(sql, "INSERT INTO user_system_roles") && strings.Contains(sql, "'admin'") {
-			systemAdminAssigned = true
-		}
-	}
-	if !systemAdminAssigned {
-		t.Fatalf("expected bootstrap to assign admin system role")
-	}
 }
 
 func TestEnsureDefaultRolesAndPermissions(t *testing.T) {
@@ -121,11 +112,8 @@ func TestEnsureDefaultRolesAndPermissions(t *testing.T) {
 	if err := EnsureDefaultRolesAndPermissions(context.Background(), tx); err != nil {
 		t.Fatalf("expected EnsureDefaultRolesAndPermissions to succeed, got %v", err)
 	}
-	hasSystemRoles, hasWorkspaceRoles, hasPermissions, hasSalaryGroups := false, false, false, false
+	hasWorkspaceRoles, hasPermissions, hasSalaryGroups := false, false, false
 	for _, sql := range tx.executed {
-		if strings.Contains(sql, "INSERT INTO public.system_roles") {
-			hasSystemRoles = true
-		}
 		if strings.Contains(sql, "INSERT INTO public.workspace_roles") {
 			hasWorkspaceRoles = true
 		}
@@ -136,8 +124,7 @@ func TestEnsureDefaultRolesAndPermissions(t *testing.T) {
 			hasSalaryGroups = true
 		}
 	}
-	if !hasSystemRoles || !hasWorkspaceRoles || !hasPermissions || !hasSalaryGroups {
-		t.Fatalf("missing catalog seed statements: system=%v workspace=%v perms=%v salary=%v",
-			hasSystemRoles, hasWorkspaceRoles, hasPermissions, hasSalaryGroups)
+	if !hasWorkspaceRoles || !hasPermissions || !hasSalaryGroups {
+		t.Fatalf("missing catalog seed statements: workspace=%v perms=%v salary=%v", hasWorkspaceRoles, hasPermissions, hasSalaryGroups)
 	}
 }

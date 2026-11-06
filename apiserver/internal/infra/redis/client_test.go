@@ -155,9 +155,6 @@ func TestKeyBuildersAndTTLPolicy(t *testing.T) {
 	if k := redis.KeyCacheAuthPermissionsPattern(); k != "cache:auth:permissions:*" {
 		t.Errorf("KeyCacheAuthPermissionsPattern mismatch: %s", k)
 	}
-	if k := redis.KeyCacheSystemRoles(userID); k != "cache:system:roles:c0000000-0000-0000-0000-000000000002" {
-		t.Errorf("KeyCacheSystemRoles mismatch: %s", k)
-	}
 	if k := redis.KeyCacheEmployment(userID); k != "cache:employment:c0000000-0000-0000-0000-000000000002" {
 		t.Errorf("KeyCacheEmployment mismatch: %s", k)
 	}

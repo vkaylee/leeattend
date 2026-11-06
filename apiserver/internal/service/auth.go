@@ -38,7 +38,6 @@ type UserRecord struct {
 	Bio               *string
 	PreferredLanguage *string
 	CreatedAt         time.Time
-	SystemRoles       []string
 	AvatarFileID      *uuid.UUID
 }
 
@@ -60,7 +59,6 @@ type SessionRecord struct {
 type AuthRepository interface {
 	FindUserByEmail(context.Context, string) (UserRecord, error)
 	FindUserByID(context.Context, uuid.UUID) (UserRecord, error)
-	GetSystemRolesForUser(context.Context, uuid.UUID) ([]string, error)
 	UpdateUserProfile(context.Context, uuid.UUID, UpdateUserProfileRequest) (UserRecord, error)
 	ListWorkspaceUsers(context.Context, uuid.UUID) ([]UserRecord, error)
 	CreateUserWithAdminCheck(context.Context, UserRecord) (bool, error)
@@ -156,11 +154,6 @@ func (s AuthService) Refresh(ctx context.Context, refreshToken string) (AuthResp
 }
 
 func (s AuthService) issueSession(ctx context.Context, user UserRecord) (AuthResponse, error) {
-	if len(user.SystemRoles) == 0 && s.Repository != nil {
-		if roles, err := s.Repository.GetSystemRolesForUser(ctx, user.ID); err == nil && len(roles) > 0 {
-			user.SystemRoles = roles
-		}
-	}
 	accessTTL := s.AccessTTL
 	if accessTTL <= 0 {
 		accessTTL = auth.AccessTokenDuration
@@ -348,14 +341,6 @@ func (s AuthService) Profile(ctx context.Context, userID uuid.UUID) (UserRecord,
 	if user.ID != userID {
 		return UserRecord{}, ErrSessionNotFound
 	}
-	roles, err := s.Repository.GetSystemRolesForUser(ctx, userID)
-	if err != nil {
-		return UserRecord{}, err
-	}
-	if roles == nil {
-		roles = []string{}
-	}
-	user.SystemRoles = roles
 	return user, nil
 }
 

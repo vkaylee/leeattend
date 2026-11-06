@@ -11,13 +11,13 @@ LeeAttend is being converted to a single-tenant appliance. Phase 1 establishes o
 | Runtime pools | API and worker pools connect to the same database; no tenant routing |
 | Workspace compatibility | `workspace_id` columns and workspace tables remain temporarily in schema only |
 
-Physical database split is gone. Logical system/tenant ordering remains inside baseline only so existing repository/API data contracts can migrate incrementally.
+Physical database split is gone. Logical system/tenant ordering remains inside baseline only so existing repository/API data contracts can migrate incrementally. Legacy platform tables (`system_roles`, `user_system_roles`, and `system_db_clusters`) are removed by `apiserver/migrations/20261106000000_remove_system_roles/`; standalone authorization uses the singleton organization's global `workspace_roles` and `workspace_members` records.
 
 ## Schema groups
 
 The unified baseline contains all existing system and business objects:
 
-- Authentication and platform objects: `users`, `sessions`, `system_roles`, `user_system_roles`, workspace-compatible role/member tables, notifications, storage, and infrastructure ledger tables.
+- Authentication and platform objects: `users`, `sessions`, workspace-compatible role/member tables, notifications, storage, and infrastructure ledger tables. Legacy platform tables exist only during pre-migration compatibility and are removed by the post-baseline migration.
 - Business objects: employees, departments, shifts, attendance, leave, payroll, contracts, workflows, files, reports, and outbox tables.
 - Partitioned objects: audit and staging-log parents plus their monthly/default partitions.
 
@@ -37,11 +37,12 @@ No tenant database is created, selected, cached, evicted, or provisioned. Runtim
 
 ```text
 apiserver/migrations/
-├── .diesel_lock
-└── 20261103000000_init/
+├── 20261103000000_init/
+│   ├── up.sql
+│   └── down.sql
+└── 20261106000000_remove_system_roles/
     ├── up.sql
     └── down.sql
-```
 
 Apply the baseline once against the target database. `up.sql` is ordered system-first then business-schema. `down.sql` drops and recreates `public`; it is a destructive recovery operation and requires a verified backup before use.
 

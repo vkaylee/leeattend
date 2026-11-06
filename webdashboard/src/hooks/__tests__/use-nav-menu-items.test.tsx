@@ -13,7 +13,6 @@ const mockHasAnyPermission = vi.fn((...perms: string[]) =>
   perms.length === 0 || perms.some((p) => activePermissions.has(p))
 );
 
-let mockSystemRoles: string[] = [];
 
 vi.mock("@/hooks/use-permissions", () => ({
   useMyPermissions: () => ({
@@ -28,22 +27,6 @@ vi.mock("@/hooks/use-permissions", () => ({
   }),
 }));
 
-vi.mock("@/hooks/use-profile", () => ({
-  useProfile: () => ({
-    user: {
-      id: "test-user",
-      email: "test@example.com",
-      full_name: "Test User",
-      system_roles: mockSystemRoles,
-    },
-    isLoading: false,
-    isError: false,
-    error: null,
-    refetch: vi.fn(),
-    updateProfile: vi.fn(),
-    isUpdating: false,
-  }),
-}));
 
 // ── Providers wrapper ─────────────────────────────────────────────
 
@@ -62,7 +45,6 @@ function wrapper({ children }: { children: React.ReactNode }) {
 describe("useNavMenuItems", () => {
   beforeEach(() => {
     activePermissions.clear();
-    mockSystemRoles = [];
     vi.clearAllMocks();
   });
 
@@ -105,20 +87,25 @@ describe("useNavMenuItems", () => {
 describe("useFilteredMenuItems", () => {
   beforeEach(() => {
     activePermissions.clear();
-    mockSystemRoles = [];
     vi.clearAllMocks();
   });
 
   it("hides all sections when user has no permissions", () => {
     const { result } = renderHook(() => useFilteredMenuItems(), { wrapper });
-
-    // Only dashboard + sections with zero-permission items or system roles
-    // With no permissions, sections with all items gated should be empty
     const groupsWithItems = result.current.groups.filter((g) => g.items.length > 0);
-    // ESS items all require permissions, so none show
-    // Org/Time/Shifts/Payroll all require permissions too
-    // Only "system" has system-role items (platform_admin), which won't match
-    expect(groupsWithItems.length).toBeLessThanOrEqual(1); // Maybe system if no roles, OR just dashboard always visible
+
+    // Every navigation item is gated by a standalone workspace permission.
+    // No permission means no visible groups; the dashboard remains separate.
+    expect(groupsWithItems).toHaveLength(0);
+  });
+
+  it("shows retained system navigation only with SMTP permission", () => {
+    activePermissions.add("security:settings:manage");
+
+    const { result } = renderHook(() => useFilteredMenuItems(), { wrapper });
+
+    const systemGroup = result.current.groups.find((g) => g.section === "system");
+    expect(systemGroup?.items.map((item) => item.to)).toEqual(["/system/smtp"]);
   });
 
   it("shows org section items when user has org permissions", () => {
@@ -152,36 +139,6 @@ describe("useFilteredMenuItems", () => {
     expect(lrItem).toBeUndefined();
   });
 
-  it("shows system items for platform_admin", () => {
-    mockSystemRoles = ["platform_admin"];
-
-    const { result } = renderHook(() => useFilteredMenuItems(), { wrapper });
-
-    const systemGroup = result.current.groups.find((g) => g.section === "system");
-    expect(systemGroup).toBeDefined();
-    // Standalone keeps SMTP as its only system navigation item.
-    expect(systemGroup!.items.length).toBeGreaterThanOrEqual(1);
-  });
-
-  it("shows system items for unified admin", () => {
-    mockSystemRoles = ["admin"];
-
-    const { result } = renderHook(() => useFilteredMenuItems(), { wrapper });
-
-    const systemGroup = result.current.groups.find((g) => g.section === "system");
-    expect(systemGroup).toBeDefined();
-    expect(systemGroup!.items.length).toBeGreaterThanOrEqual(1);
-  });
-
-  it("hides system items for non-admin", () => {
-    mockSystemRoles = [];
-
-    const { result } = renderHook(() => useFilteredMenuItems(), { wrapper });
-
-    const systemGroup = result.current.groups.find((g) => g.section === "system");
-    // Without system roles, system group should be empty (all items gated behind roles)
-    expect(systemGroup).toBeUndefined();
-  });
 });
 
 // ── Path detection ────────────────────────────────────────────────
@@ -232,9 +189,6 @@ describe("getActiveNavGroup", () => {
     expect(getActiveNavGroup("/workspace/settings/time")).toBe("settings");
   });
 
-  it('returns "system" for /system/roles', () => {
-    expect(getActiveNavGroup("/system/roles")).toBe("system");
-  });
 
   it('returns "system" for /infra/monitor', () => {
     expect(getActiveNavGroup("/infra/monitor")).toBe("system");

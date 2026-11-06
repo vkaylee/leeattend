@@ -112,10 +112,6 @@ func (a mockRecruitmentAuthz) HasPermission(_ context.Context, _, _ uuid.UUID, p
 	return a.permissions[perm]
 }
 
-func (a mockRecruitmentAuthz) IsSystemAdmin(_ context.Context, _ uuid.UUID) bool {
-	return false
-}
-
 func recruitmentRequest(method, path, body string, wsID uuid.UUID) *http.Request {
 	req := httptest.NewRequest(method, path, bytes.NewBufferString(body))
 	req.SetPathValue("ws_id", wsID.String())

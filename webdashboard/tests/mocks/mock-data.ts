@@ -19,7 +19,6 @@ export const MOCK_USER = {
   full_name: "Mock Admin",
   avatar_url: null,
   preferred_language: "vi",
-  system_roles: ["platform_admin"]
 };
 
 export const MOCK_EMPLOYEES = [

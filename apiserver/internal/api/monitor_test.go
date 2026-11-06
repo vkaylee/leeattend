@@ -182,35 +182,46 @@ func (m *mockMonitorRepo) ListAuditLogs(_ context.Context, workspaceID uuid.UUID
 type mockMonitorAuthz struct {
 	members     map[string]bool
 	permissions map[string]bool
+	infraUsers  map[uuid.UUID]bool
 }
 
 func (a *mockMonitorAuthz) IsMember(_ context.Context, userID, workspaceID uuid.UUID) (bool, error) {
-	key := fmt.Sprintf("%s:%s", userID, workspaceID)
-	return a.members[key], nil
+	return a.members[fmt.Sprintf("%s:%s", userID, workspaceID)], nil
 }
 
 func (a *mockMonitorAuthz) HasPermission(_ context.Context, userID, workspaceID uuid.UUID, permission string) bool {
-	key := fmt.Sprintf("%s:%s:%s", userID, workspaceID, permission)
-	return a.permissions[key]
+	if permission == string(auth.PermissionInfraMonitor) {
+		return a.infraUsers[userID]
+	}
+	return a.permissions[fmt.Sprintf("%s:%s:%s", userID, workspaceID, permission)]
 }
 
-type mockMonitorRoles struct {
-	roles map[uuid.UUID][]string
-}
-
-func (r *mockMonitorRoles) GetSystemRolesForUser(_ context.Context, userID uuid.UUID) ([]string, error) {
-	return r.roles[userID], nil
-}
+var monitorTestWorkspaceID = uuid.New()
 
 func setReqContext(r *http.Request, userID uuid.UUID) *http.Request {
 	return r.WithContext(httpinfra.WithUserIDForTest(r.Context(), userID))
 }
 
-func TestMonitorOverview_Auth(t *testing.T) {
-	roles := &mockMonitorRoles{roles: make(map[uuid.UUID][]string)}
-	handler := MonitorHandler{
-		RolesRepo: roles,
+func setInfraReqContext(r *http.Request, userID uuid.UUID) *http.Request {
+	ctx := httpinfra.WithUserIDForTest(r.Context(), userID)
+	return r.WithContext(httpinfra.WithWorkspaceIDForTest(ctx, monitorTestWorkspaceID))
+}
+
+func monitorInfraAuthz(users ...uuid.UUID) *mockMonitorAuthz {
+	infraUsers := make(map[uuid.UUID]bool, len(users))
+	for _, userID := range users {
+		infraUsers[userID] = true
 	}
+	return &mockMonitorAuthz{members: map[string]bool{}, permissions: map[string]bool{}, infraUsers: infraUsers}
+}
+
+func TestMonitorOverview_Auth(t *testing.T) {
+	userNormal := uuid.New()
+	userAdmin := uuid.New()
+	userSupport := uuid.New()
+	userUnifiedAdmin := uuid.New()
+	authz := monitorInfraAuthz(userAdmin, userSupport, userUnifiedAdmin)
+	handler := MonitorHandler{Authorizer: authz}
 
 	// 1. Missing user context -> 401
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/monitor/overview", nil)
@@ -220,46 +231,24 @@ func TestMonitorOverview_Auth(t *testing.T) {
 		t.Fatalf("expected 401, got %d", w.Code)
 	}
 
-	// 2. Regular user (no platform_admin or support) -> 403
-	userNormal := uuid.New()
-	roles.roles[userNormal] = []string{"billing_admin"}
-	req = setReqContext(httptest.NewRequest(http.MethodGet, "/api/v1/monitor/overview", nil), userNormal)
+	// 2. Regular user -> 403
+	req = setInfraReqContext(httptest.NewRequest(http.MethodGet, "/api/v1/monitor/overview", nil), userNormal)
 	w = httptest.NewRecorder()
 	handler.GetOverview(w, req)
 	if w.Code != http.StatusForbidden {
 		t.Fatalf("expected 403, got %d", w.Code)
 	}
 
-	// 3. PlatformAdmin -> 200
-	userAdmin := uuid.New()
-	roles.roles[userAdmin] = []string{"platform_admin"}
-	req = setReqContext(httptest.NewRequest(http.MethodGet, "/api/v1/monitor/overview", nil), userAdmin)
-	w = httptest.NewRecorder()
-	handler.GetOverview(w, req)
-	if w.Code != http.StatusOK {
-		t.Fatalf("expected 200, got %d", w.Code)
-	}
-
-	// 4. Support -> 200
-	userSupport := uuid.New()
-	roles.roles[userSupport] = []string{"support"}
-	req = setReqContext(httptest.NewRequest(http.MethodGet, "/api/v1/monitor/overview", nil), userSupport)
-	w = httptest.NewRecorder()
-	handler.GetOverview(w, req)
-	if w.Code != http.StatusOK {
-		t.Fatalf("expected 200, got %d", w.Code)
-	}
-
-	// 5. Unified Admin -> 200
-	userUnifiedAdmin := uuid.New()
-	roles.roles[userUnifiedAdmin] = []string{"admin"}
-	req = setReqContext(httptest.NewRequest(http.MethodGet, "/api/v1/monitor/overview", nil), userUnifiedAdmin)
-	w = httptest.NewRecorder()
-	handler.GetOverview(w, req)
-	if w.Code != http.StatusOK {
-		t.Fatalf("expected 200 for unified admin, got %d", w.Code)
+	for _, userID := range []uuid.UUID{userAdmin, userSupport, userUnifiedAdmin} {
+		req = setInfraReqContext(httptest.NewRequest(http.MethodGet, "/api/v1/monitor/overview", nil), userID)
+		w = httptest.NewRecorder()
+		handler.GetOverview(w, req)
+		if w.Code != http.StatusOK {
+			t.Fatalf("expected 200 for authorized user, got %d", w.Code)
+		}
 	}
 }
+
 func TestMonitorOverview_BuildOperationalSnapshot(t *testing.T) {
 	handler := MonitorHandler{}
 	snapshot, err := handler.buildOperationalSnapshot(context.Background())
@@ -283,15 +272,12 @@ func TestMonitorOverview_BuildOperationalSnapshot(t *testing.T) {
 	}
 }
 
-
 func TestMonitorJobs_Validation(t *testing.T) {
-	roles := &mockMonitorRoles{roles: make(map[uuid.UUID][]string)}
 	admin := uuid.New()
-	roles.roles[admin] = []string{"platform_admin"}
-	handler := MonitorHandler{RolesRepo: roles}
+	handler := MonitorHandler{Authorizer: monitorInfraAuthz(admin)}
 
 	// Invalid status
-	req := setReqContext(httptest.NewRequest(http.MethodGet, "/api/v1/monitor/jobs?status=bogus", nil), admin)
+	req := setInfraReqContext(httptest.NewRequest(http.MethodGet, "/api/v1/monitor/jobs?status=bogus", nil), admin)
 	w := httptest.NewRecorder()
 	handler.GetMonitorJobs(w, req)
 	if w.Code != http.StatusBadRequest {
@@ -299,7 +285,7 @@ func TestMonitorJobs_Validation(t *testing.T) {
 	}
 
 	// Overlong search (>64)
-	req = setReqContext(httptest.NewRequest(http.MethodGet, "/api/v1/monitor/jobs?search="+strings.Repeat("a", 65), nil), admin)
+	req = setInfraReqContext(httptest.NewRequest(http.MethodGet, "/api/v1/monitor/jobs?search="+strings.Repeat("a", 65), nil), admin)
 	w = httptest.NewRecorder()
 	handler.GetMonitorJobs(w, req)
 	if w.Code != http.StatusBadRequest {
@@ -307,7 +293,7 @@ func TestMonitorJobs_Validation(t *testing.T) {
 	}
 
 	// Invalid state
-	req = setReqContext(httptest.NewRequest(http.MethodGet, "/api/v1/monitor/jobs?state=nonexistent", nil), admin)
+	req = setInfraReqContext(httptest.NewRequest(http.MethodGet, "/api/v1/monitor/jobs?state=nonexistent", nil), admin)
 	w = httptest.NewRecorder()
 	handler.GetMonitorJobs(w, req)
 	if w.Code != http.StatusBadRequest {
@@ -315,7 +301,7 @@ func TestMonitorJobs_Validation(t *testing.T) {
 	}
 
 	// Valid request
-	req = setReqContext(httptest.NewRequest(http.MethodGet, "/api/v1/monitor/jobs?status=pending&state=queued", nil), admin)
+	req = setInfraReqContext(httptest.NewRequest(http.MethodGet, "/api/v1/monitor/jobs?status=pending&state=queued", nil), admin)
 	w = httptest.NewRecorder()
 	handler.GetMonitorJobs(w, req)
 	if w.Code != http.StatusOK {
@@ -324,13 +310,11 @@ func TestMonitorJobs_Validation(t *testing.T) {
 }
 
 func TestMonitorCorrelations_Validation(t *testing.T) {
-	roles := &mockMonitorRoles{roles: make(map[uuid.UUID][]string)}
 	admin := uuid.New()
-	roles.roles[admin] = []string{"platform_admin"}
-	handler := MonitorHandler{RolesRepo: roles}
+	handler := MonitorHandler{Authorizer: monitorInfraAuthz(admin)}
 
 	// Both empty -> 400
-	req := setReqContext(httptest.NewRequest(http.MethodGet, "/api/v1/monitor/correlations", nil), admin)
+	req := setInfraReqContext(httptest.NewRequest(http.MethodGet, "/api/v1/monitor/correlations", nil), admin)
 	w := httptest.NewRecorder()
 	handler.GetMonitorCorrelations(w, req)
 	if w.Code != http.StatusBadRequest {
@@ -338,7 +322,7 @@ func TestMonitorCorrelations_Validation(t *testing.T) {
 	}
 
 	// Both provided -> 400
-	req = setReqContext(httptest.NewRequest(http.MethodGet, "/api/v1/monitor/correlations?request_id="+uuid.NewString()+"&trace_id=trace-1", nil), admin)
+	req = setInfraReqContext(httptest.NewRequest(http.MethodGet, "/api/v1/monitor/correlations?request_id="+uuid.NewString()+"&trace_id=trace-1", nil), admin)
 	w = httptest.NewRecorder()
 	handler.GetMonitorCorrelations(w, req)
 	if w.Code != http.StatusBadRequest {
@@ -346,7 +330,7 @@ func TestMonitorCorrelations_Validation(t *testing.T) {
 	}
 
 	// Invalid UUID request_id -> 400
-	req = setReqContext(httptest.NewRequest(http.MethodGet, "/api/v1/monitor/correlations?request_id=not-a-uuid", nil), admin)
+	req = setInfraReqContext(httptest.NewRequest(http.MethodGet, "/api/v1/monitor/correlations?request_id=not-a-uuid", nil), admin)
 	w = httptest.NewRecorder()
 	handler.GetMonitorCorrelations(w, req)
 	if w.Code != http.StatusBadRequest {
@@ -354,7 +338,7 @@ func TestMonitorCorrelations_Validation(t *testing.T) {
 	}
 
 	// Invalid trace_id chars -> 400
-	req = setReqContext(httptest.NewRequest(http.MethodGet, "/api/v1/monitor/correlations?trace_id=trace%20with%20spaces", nil), admin)
+	req = setInfraReqContext(httptest.NewRequest(http.MethodGet, "/api/v1/monitor/correlations?trace_id=trace%20with%20spaces", nil), admin)
 	w = httptest.NewRecorder()
 	handler.GetMonitorCorrelations(w, req)
 	if w.Code != http.StatusBadRequest {
@@ -362,7 +346,7 @@ func TestMonitorCorrelations_Validation(t *testing.T) {
 	}
 
 	// Valid trace_id -> 200
-	req = setReqContext(httptest.NewRequest(http.MethodGet, "/api/v1/monitor/correlations?trace_id=valid-trace_123.abc", nil), admin)
+	req = setInfraReqContext(httptest.NewRequest(http.MethodGet, "/api/v1/monitor/correlations?trace_id=valid-trace_123.abc", nil), admin)
 	w = httptest.NewRecorder()
 	handler.GetMonitorCorrelations(w, req)
 	if w.Code != http.StatusOK {
@@ -371,13 +355,11 @@ func TestMonitorCorrelations_Validation(t *testing.T) {
 }
 
 func TestMonitorStream_SSE(t *testing.T) {
-	roles := &mockMonitorRoles{roles: make(map[uuid.UUID][]string)}
 	admin := uuid.New()
-	roles.roles[admin] = []string{"platform_admin"}
-	handler := MonitorHandler{RolesRepo: roles}
+	handler := MonitorHandler{Authorizer: monitorInfraAuthz(admin)}
 
 	ctx, cancel := context.WithCancel(context.Background())
-	req := setReqContext(httptest.NewRequest(http.MethodGet, "/api/v1/monitor/stream", nil).WithContext(ctx), admin)
+	req := setInfraReqContext(httptest.NewRequest(http.MethodGet, "/api/v1/monitor/stream", nil).WithContext(ctx), admin)
 	w := httptest.NewRecorder()
 
 	go func() {
@@ -398,18 +380,10 @@ func TestMonitorStream_SSE(t *testing.T) {
 
 func TestMonitorAlerts_CRUD_And_Permissions(t *testing.T) {
 	repo := newMockMonitorRepo()
-	roles := &mockMonitorRoles{roles: make(map[uuid.UUID][]string)}
 	admin := uuid.New()
-	support := uuid.New()
 	regular := uuid.New()
-	roles.roles[admin] = []string{"platform_admin"}
-	roles.roles[support] = []string{"support"}
-	roles.roles[regular] = []string{"viewer"}
-
-	handler := MonitorHandler{
-		Repo:      repo,
-		RolesRepo: roles,
-	}
+	authz := monitorInfraAuthz(admin)
+	handler := MonitorHandler{Repo: repo, Authorizer: authz}
 
 	alertID := uuid.New()
 	now := time.Now().UTC()
@@ -426,16 +400,14 @@ func TestMonitorAlerts_CRUD_And_Permissions(t *testing.T) {
 		OccurrenceCount: 1,
 	}
 
-	// 1. List alerts (Support -> 200)
-	req := setReqContext(httptest.NewRequest(http.MethodGet, "/api/v1/monitor/alerts", nil), support)
+	req := setInfraReqContext(httptest.NewRequest(http.MethodGet, "/api/v1/monitor/alerts", nil), admin)
 	w := httptest.NewRecorder()
 	handler.ListAlerts(w, req)
 	if w.Code != http.StatusOK {
 		t.Fatalf("expected 200, got %d", w.Code)
 	}
 
-	// 2. Get alert (Support -> 200)
-	req = setReqContext(httptest.NewRequest(http.MethodGet, "/api/v1/monitor/alerts/"+alertID.String(), nil), support)
+	req = setInfraReqContext(httptest.NewRequest(http.MethodGet, "/api/v1/monitor/alerts/"+alertID.String(), nil), admin)
 	req.SetPathValue("alert_id", alertID.String())
 	w = httptest.NewRecorder()
 	handler.GetAlert(w, req)
@@ -443,18 +415,18 @@ func TestMonitorAlerts_CRUD_And_Permissions(t *testing.T) {
 		t.Fatalf("expected 200, got %d", w.Code)
 	}
 
-	// 3. Acknowledge with Support -> MUST return 403 Forbidden!
+	// 3. Regular user -> 403
 	ackBody := `{"reason":"Investigating incident"}`
-	req = setReqContext(httptest.NewRequest(http.MethodPost, "/api/v1/monitor/alerts/"+alertID.String()+"/acknowledge", strings.NewReader(ackBody)), support)
+	req = setInfraReqContext(httptest.NewRequest(http.MethodPost, "/api/v1/monitor/alerts/"+alertID.String()+"/acknowledge", strings.NewReader(ackBody)), regular)
 	req.SetPathValue("alert_id", alertID.String())
 	w = httptest.NewRecorder()
 	handler.AcknowledgeAlert(w, req)
 	if w.Code != http.StatusForbidden {
-		t.Fatalf("expected 403 for Support acknowledge, got %d", w.Code)
+		t.Fatalf("expected 403 for regular user acknowledge, got %d", w.Code)
 	}
 
 	// 4. Acknowledge with PlatformAdmin -> 200 OK
-	req = setReqContext(httptest.NewRequest(http.MethodPost, "/api/v1/monitor/alerts/"+alertID.String()+"/acknowledge", strings.NewReader(ackBody)), admin)
+	req = setInfraReqContext(httptest.NewRequest(http.MethodPost, "/api/v1/monitor/alerts/"+alertID.String()+"/acknowledge", strings.NewReader(ackBody)), admin)
 	req.SetPathValue("alert_id", alertID.String())
 	w = httptest.NewRecorder()
 	handler.AcknowledgeAlert(w, req)
@@ -463,7 +435,7 @@ func TestMonitorAlerts_CRUD_And_Permissions(t *testing.T) {
 	}
 
 	// 5. Idempotent acknowledge -> 200 OK
-	req = setReqContext(httptest.NewRequest(http.MethodPost, "/api/v1/monitor/alerts/"+alertID.String()+"/acknowledge", strings.NewReader(ackBody)), admin)
+	req = setInfraReqContext(httptest.NewRequest(http.MethodPost, "/api/v1/monitor/alerts/"+alertID.String()+"/acknowledge", strings.NewReader(ackBody)), admin)
 	req.SetPathValue("alert_id", alertID.String())
 	w = httptest.NewRecorder()
 	handler.AcknowledgeAlert(w, req)
@@ -471,18 +443,18 @@ func TestMonitorAlerts_CRUD_And_Permissions(t *testing.T) {
 		t.Fatalf("expected 200 for idempotent acknowledge, got %d", w.Code)
 	}
 
-	// 6. Resolve with Support -> MUST return 403 Forbidden!
+	// 6. Regular user -> 403
 	resBody := `{"reason":"Issue resolved"}`
-	req = setReqContext(httptest.NewRequest(http.MethodPost, "/api/v1/monitor/alerts/"+alertID.String()+"/resolve", strings.NewReader(resBody)), support)
+	req = setInfraReqContext(httptest.NewRequest(http.MethodPost, "/api/v1/monitor/alerts/"+alertID.String()+"/resolve", strings.NewReader(resBody)), regular)
 	req.SetPathValue("alert_id", alertID.String())
 	w = httptest.NewRecorder()
 	handler.ResolveAlert(w, req)
 	if w.Code != http.StatusForbidden {
-		t.Fatalf("expected 403 for Support resolve, got %d", w.Code)
+		t.Fatalf("expected 403 for regular user resolve, got %d", w.Code)
 	}
 
 	// 7. Resolve with PlatformAdmin -> 200 OK
-	req = setReqContext(httptest.NewRequest(http.MethodPost, "/api/v1/monitor/alerts/"+alertID.String()+"/resolve", strings.NewReader(resBody)), admin)
+	req = setInfraReqContext(httptest.NewRequest(http.MethodPost, "/api/v1/monitor/alerts/"+alertID.String()+"/resolve", strings.NewReader(resBody)), admin)
 	req.SetPathValue("alert_id", alertID.String())
 	w = httptest.NewRecorder()
 	handler.ResolveAlert(w, req)
@@ -491,7 +463,7 @@ func TestMonitorAlerts_CRUD_And_Permissions(t *testing.T) {
 	}
 
 	// 8. Subsequent acknowledge on resolved alert -> 409 Conflict!
-	req = setReqContext(httptest.NewRequest(http.MethodPost, "/api/v1/monitor/alerts/"+alertID.String()+"/acknowledge", strings.NewReader(ackBody)), admin)
+	req = setInfraReqContext(httptest.NewRequest(http.MethodPost, "/api/v1/monitor/alerts/"+alertID.String()+"/acknowledge", strings.NewReader(ackBody)), admin)
 	req.SetPathValue("alert_id", alertID.String())
 	w = httptest.NewRecorder()
 	handler.AcknowledgeAlert(w, req)
@@ -513,6 +485,7 @@ func TestWorkspaceAuditLogs(t *testing.T) {
 		permissions: map[string]bool{
 			fmt.Sprintf("%s:%s:%s", userWithPerm, wsID, auth.PermissionAuditLogsRead): true,
 		},
+		infraUsers: map[uuid.UUID]bool{},
 	}
 	repo := newMockMonitorRepo()
 	repo.auditLogs = append(repo.auditLogs, AuditLogRecord{
@@ -559,9 +532,9 @@ func TestWorkspaceJobStatus(t *testing.T) {
 	user := uuid.New()
 
 	authz := &mockMonitorAuthz{
-		members: map[string]bool{
-			fmt.Sprintf("%s:%s", user, wsID): true,
-		},
+		members:     map[string]bool{fmt.Sprintf("%s:%s", user, wsID): true},
+		permissions: map[string]bool{},
+		infraUsers:  map[uuid.UUID]bool{},
 	}
 
 	handler := MonitorHandler{

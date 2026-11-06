@@ -74,9 +74,6 @@ func Bootstrap(ctx context.Context, db interface {
 	if _, err := tx.Exec(ctx, `INSERT INTO workspace_members (workspace_id, user_id, role_id) VALUES ($1, $2, $3) ON CONFLICT DO NOTHING`, workspaceID, userID, roleID); err != nil {
 		return fmt.Errorf("standalone: assign admin role: %w", err)
 	}
-	if _, err := tx.Exec(ctx, `INSERT INTO user_system_roles (user_id, role_id) SELECT $1, id FROM system_roles WHERE name = 'admin' ON CONFLICT DO NOTHING`, userID); err != nil {
-		return fmt.Errorf("standalone: assign admin system role: %w", err)
-	}
 	if err := tx.Commit(ctx); err != nil {
 		return fmt.Errorf("standalone: commit bootstrap: %w", err)
 	}

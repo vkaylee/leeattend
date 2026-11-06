@@ -96,10 +96,6 @@ type testAuthorizer struct {
 	permissions map[string]bool
 }
 
-func (a testAuthorizer) IsSystemAdmin(_ context.Context, _ uuid.UUID) bool {
-	return false
-}
-
 func (a testAuthorizer) HasPermission(_ context.Context, userID, workspaceID uuid.UUID, perm string) bool {
 	key := userID.String() + ":" + workspaceID.String() + ":" + perm
 	return a.permissions[key]

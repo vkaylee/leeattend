@@ -1105,42 +1105,6 @@
     "system": "系统",
     "system_connection_error": "系统连接错误",
     "system_error": "系统错误",
-    "system_roles": {
-      "assign_to_user": "分配给用户",
-      "assigned_date": "分配日期：{{date}}",
-      "assigned_users": "已分配用户",
-      "assignees_count": "{{count}} 名被分配者",
-      "confirm": {
-        "revoke_message": "您确定要撤销此系统角色吗？这可能会导致用户失去系统级访问权限。",
-        "revoke_title": "撤销系统角色"
-      },
-      "descriptions": {
-        "billing_admin": "管理所有工作区的平台账单、订阅和配额。",
-        "default": "系统级角色。",
-        "platform_admin": "完整的平台访问权限。可以管理工作区、全局设置和其他系统角色。",
-        "support": "对基础架构监控和跨工作区支持数据的只读访问。"
-      },
-      "grant_privileges": "授予用户系统级权限",
-      "messages": {
-        "assign_error": "分配角色失败",
-        "revoke_error": "撤销角色失败"
-      },
-      "modal": {
-        "assign_title": "分配 {{role}} 角色",
-        "assigning": "正在分配...",
-        "submit_btn": "分配角色"
-      },
-      "no_users": "尚未为该角色分配用户。",
-      "roles": "系统角色",
-      "tenants": "工作区",
-      "tenants_subtitle": "管理平台工作区和租户数据库模式。",
-      "tenants_empty": "暂无工作区。",
-      "tenants_error": "无法加载工作区。",
-      "subtitle": "管理跨越工作区边界的系统级角色",
-      "system_label": "系统",
-      "title": "平台管理员",
-      "user_id_label": "用户 ID (UUID)"
-    },
     "tags": "标签",
     "theme": {
       "dark": "深色",
@@ -2073,6 +2037,10 @@
     "language": "语言",
     "quickAccess": "📌 快速访问",
     "allApps": "🗂️ 全部应用",
+    "dsmLauncher": "主菜单 (⌘K)",
+    "openSearch": "打开 DSM 7 功能搜索",
+    "quickSearchPlaceholder": "搜索功能、应用...",
+    "searchHeroPlaceholder": "快速搜索应用、功能或系统设置...",
     "empty": {
       "title": "没有可用应用",
       "desc": "您没有访问任何应用的权限。请联系管理员。"
@@ -2110,6 +2078,42 @@
     },
     "monthly": {
       "copy": "复制"
+    }
+  },
+  "dsmLauncher": {
+    "title": "DSM 7 主菜单与功能启动器",
+    "desc": "启动应用程序和搜索功能",
+    "searchPlaceholder": "搜索应用、功能、设置（例如：'请假'、'wifi'、'加班'）...",
+    "recent": "最近访问",
+    "allApps": "全部应用",
+    "appsHeading": "核心应用",
+    "actionsHeading": "快捷操作与功能",
+    "emptyTitle": "未找到匹配的功能或应用",
+    "emptyDesc": "尝试搜索关键字，例如：'请假'、'考勤'、'wifi'、'加班'、'薪资'...",
+    "hints": {
+      "navigate": "移动",
+      "select": "选择",
+      "exit": "退出"
+    },
+    "aria": {
+      "clearSearch": "清除搜索关键字",
+      "close": "关闭启动器",
+      "preview": "功能详情预览"
+    },
+    "badges": {
+      "app": "应用",
+      "action": "操作",
+      "setting": "设置"
+    },
+    "preview": {
+      "title": "功能详情",
+      "selectHint": "从结果列表中选择一项以查看详细信息",
+      "route": "路由路径",
+      "category": "分类",
+      "permissions": "访问权限",
+      "noPermissionRequired": "无需特殊权限",
+      "openAction": "打开功能",
+      "pressEnter": "按 ↵ 立即打开"
     }
   }
 }

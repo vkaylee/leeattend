@@ -6,55 +6,36 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/vkaylee/leeattend/apiserver/internal/apperror"
+	"github.com/vkaylee/leeattend/apiserver/internal/auth"
 	httpinfra "github.com/vkaylee/leeattend/apiserver/internal/infra/http"
 )
 
-type SystemRoleRepository interface {
-	GetSystemRolesForUser(context.Context, uuid.UUID) ([]string, error)
+type SystemHealthAuthorizer interface {
+	HasPermission(context.Context, uuid.UUID, uuid.UUID, string) bool
 }
 
 type SystemHealthHandler struct {
-	Roles SystemRoleRepository
+	Authorizer SystemHealthAuthorizer
 }
 
 type systemHealthResponse struct {
-	Status       string   `json:"status"`
-	ViewerUserID string   `json:"viewer_user_id"`
-	ViewerRoles  []string `json:"viewer_roles"`
+	Status       string `json:"status"`
+	ViewerUserID string `json:"viewer_user_id"`
 }
 
 func (h SystemHealthHandler) Get(w http.ResponseWriter, r *http.Request) {
 	userID, ok := httpinfra.UserIDFromContext(r.Context())
-	if !ok || h.Roles == nil {
+	workspaceID, hasWorkspace := httpinfra.WorkspaceIDFromContext(r.Context())
+	if !ok || !hasWorkspace {
 		apperror.WriteError(w, r, apperror.Unauthorized(apperror.KeyUnauthorized))
 		return
 	}
-	roles, err := h.Roles.GetSystemRolesForUser(r.Context(), userID)
-	if err != nil {
-		apperror.WriteError(w, r, apperror.Internal(err))
-		return
-	}
-	known := make([]string, 0, len(roles))
-	allowed := false
-	for _, role := range roles {
-		switch role {
-		case "admin", "platform_admin":
-			known = append(known, role)
-			allowed = true
-		case "support":
-			known = append(known, role)
-			allowed = true
-		case "billing_admin":
-			known = append(known, role)
-		}
-	}
-	if !allowed {
+	if h.Authorizer == nil || !h.Authorizer.HasPermission(r.Context(), userID, workspaceID, string(auth.PermissionInfraMonitor)) {
 		apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
 		return
 	}
 	apperror.WriteJSON(w, http.StatusOK, systemHealthResponse{
 		Status:       "ok",
 		ViewerUserID: userID.String(),
-		ViewerRoles:  known,
 	})
 }

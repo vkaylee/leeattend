@@ -258,7 +258,6 @@ type mockLifecycleAuth struct {
 	allowed map[string]bool
 }
 
-func (m mockLifecycleAuth) IsSystemAdmin(context.Context, uuid.UUID) bool { return false }
 func (m mockLifecycleAuth) HasPermission(ctx context.Context, userID, workspaceID uuid.UUID, perm string) bool {
 	return m.allowed[perm]
 }

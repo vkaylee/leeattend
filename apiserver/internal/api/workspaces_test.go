@@ -13,11 +13,9 @@ import (
 )
 
 type mockAuthorizer struct {
-	admin bool
 	perms map[string]bool
 }
 
-func (m mockAuthorizer) IsSystemAdmin(_ context.Context, _ uuid.UUID) bool { return m.admin }
 func (m mockAuthorizer) HasPermission(_ context.Context, _, _ uuid.UUID, perm string) bool {
 	return m.perms[perm]
 }

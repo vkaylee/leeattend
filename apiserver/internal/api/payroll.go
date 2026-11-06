@@ -921,9 +921,6 @@ func (h PayrollHandler) allowedCalculate(r *http.Request, wsID uuid.UUID) bool {
 	if !ok || h.Authorizer == nil {
 		return false
 	}
-	if h.Authorizer.IsSystemAdmin(r.Context(), u) {
-		return true
-	}
 	return h.Authorizer.HasPermission(r.Context(), u, wsID, "payroll:calculate")
 }
 
@@ -955,9 +952,6 @@ func (h PayrollHandler) allowedMember(r *http.Request, wsID uuid.UUID) bool {
 	if !ok || h.Authorizer == nil {
 		return false
 	}
-	if h.Authorizer.IsSystemAdmin(r.Context(), u) {
-		return true
-	}
 	if memAuth, ok := h.Authorizer.(interface {
 		IsMember(context.Context, uuid.UUID, uuid.UUID) (bool, error)
 	}); ok {
@@ -973,9 +967,6 @@ func (h PayrollHandler) allowedManage(r *http.Request, wsID uuid.UUID) bool {
 	u, ok := httpinfra.UserIDFromContext(r.Context())
 	if !ok || h.Authorizer == nil {
 		return false
-	}
-	if h.Authorizer.IsSystemAdmin(r.Context(), u) {
-		return true
 	}
 	return h.Authorizer.HasPermission(r.Context(), u, wsID, "payroll:components:manage")
 }

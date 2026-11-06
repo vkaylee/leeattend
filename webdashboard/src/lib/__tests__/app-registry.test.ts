@@ -40,14 +40,12 @@ describe("APP_REGISTRY", () => {
     const dash = APP_REGISTRY.find((a) => a.id === "dashboard");
     expect(dash).toBeDefined();
     expect(dash!.permissions).toBeUndefined();
-    expect(dash!.systemRoles).toBeUndefined();
   });
 
   it("dashboard-analytics app has no permission guard", () => {
     const analytics = APP_REGISTRY.find((a) => a.id === "dashboard-analytics");
     expect(analytics).toBeDefined();
     expect(analytics!.permissions).toBeUndefined();
-    expect(analytics!.systemRoles).toBeUndefined();
   });
 
   it("registers Audit Logs as a standalone system app", () => {
@@ -70,15 +68,6 @@ describe("APP_REGISTRY", () => {
     }
   });
 
-  it("system apps with systemRoles target platform_admin", () => {
-    const systemApps = APP_REGISTRY.filter(
-      (a) => a.group === "system" && a.systemRoles,
-    );
-    expect(systemApps.length).toBeGreaterThanOrEqual(2);
-    for (const app of systemApps) {
-      expect(app.systemRoles).toContain("admin");
-    }
-  });
 
   it("all app routes reference valid ROUTES constants or paths", () => {
     const validPaths = new Set<string>(Object.values(ROUTES).flatMap((v) =>
@@ -111,22 +100,13 @@ describe("APP_REGISTRY", () => {
 
 // ── Filtering logic (mirrors app-launcher-page) ──────────────────
 
-function filterApps(
-  apps: AppDefinition[],
-  permissions: string[],
-  systemRoles: string[],
-): AppDefinition[] {
+function filterApps(apps: AppDefinition[], permissions: string[]): AppDefinition[] {
   const permSet = new Set(permissions);
   const hasAnyPermission = (...perms: string[]) =>
     perms.length === 0 || perms.some((p) => permSet.has(p));
 
   return apps.filter((app) => {
-    if (app.featureFlag && !isFeatureEnabled(app.featureFlag)) {
-      return false;
-    }
-    if (app.systemRoles && app.systemRoles.length > 0) {
-      return app.systemRoles.some((role) => systemRoles.includes(role));
-    }
+    if (app.featureFlag && !isFeatureEnabled(app.featureFlag)) return false;
     if (app.permissions && app.permissions.length > 0) {
       return hasAnyPermission(...app.permissions);
     }
@@ -140,15 +120,13 @@ describe("app filtering logic", () => {
   });
 
   it("hides feature-flagged apps by default even with matching permissions", () => {
-    const visible = filterApps(APP_REGISTRY, ["employees:update"], []);
-
+    const visible = filterApps(APP_REGISTRY, ["employees:update"]);
     expect(visible.find((a) => a.id === "econtracts")).toBeUndefined();
   });
 
   it("shows a feature-flagged app when the flag is enabled", () => {
     localStorage.setItem("ff_econtracts", "true");
-
-    const visible = filterApps(APP_REGISTRY, ["employees:update"], []);
+    const visible = filterApps(APP_REGISTRY, ["employees:update"]);
     expect(visible.find((a) => a.id === "econtracts")).toBeDefined();
   });
 
@@ -159,65 +137,26 @@ describe("app filtering logic", () => {
   });
 
   it("non-privileged employee sees only dashboard + ESS apps", () => {
-    const visible = filterApps(
-      APP_REGISTRY,
-      ["ess:profile", "ess:attendance", "ess:clock"],
-      [],
-    );
-
+    const visible = filterApps(APP_REGISTRY, ["ess:profile", "ess:attendance", "ess:clock"]);
     expect(visible.find((a) => a.id === "dashboard")).toBeDefined();
     expect(visible.find((a) => a.id === "dashboard-analytics")).toBeDefined();
     expect(visible.find((a) => a.id === "ess-profile")).toBeDefined();
     expect(visible.find((a) => a.id === "ess-attendance")).toBeDefined();
     expect(visible.find((a) => a.id === "ess-clock")).toBeDefined();
-
-    // Should NOT see admin-only items
     expect(visible.find((a) => a.id === "employees")).toBeUndefined();
-    expect(visible.find((a) => a.id === "system-roles")).toBeUndefined();
     expect(visible.find((a) => a.id === "payroll")).toBeUndefined();
   });
 
   it("manager with HR perms sees org + time + shifts + payroll", () => {
-    const visible = filterApps(
-      APP_REGISTRY,
-      [
-        "employees:read", "members:read", "departments:read",
-        "attendance:logs:read", "leave:requests:approve", "leave:balances:read",
-        "shifts:read", "payroll:read", "reports:read",
-        "ess:profile", "ess:attendance",
-      ],
-      [],
-    );
-
+    const visible = filterApps(APP_REGISTRY, [
+      "employees:read", "members:read", "departments:read",
+      "attendance:logs:read", "leave:requests:approve", "leave:balances:read",
+      "shifts:read", "payroll:read", "reports:read",
+      "ess:profile", "ess:attendance",
+    ]);
     expect(visible.find((a) => a.id === "employees")).toBeDefined();
     expect(visible.find((a) => a.id === "payroll")).toBeDefined();
     expect(visible.find((a) => a.id === "shifts")).toBeDefined();
-
-    // Should NOT see system/platform items
-    expect(visible.find((a) => a.id === "system-roles")).toBeUndefined();
     expect(visible.find((a) => a.id === "infra-monitor")).toBeUndefined();
-  });
-
-  it("platform_admin sees everything including system items", () => {
-    const visible = filterApps(
-      APP_REGISTRY,
-      [
-        "employees:read", "members:read", "departments:read",
-        "attendance:logs:read", "leave:requests:approve",
-        "shifts:read", "payroll:read", "reports:read",
-        "ess:profile", "ess:attendance", "ess:clock",
-      ],
-      ["platform_admin"],
-    );
-
-    expect(visible.find((a) => a.id === "system-roles")).toBeDefined();
-    expect(visible.find((a) => a.id === "infra-monitor")).toBeDefined();
-  });
-
-  it("admin sees infra-monitor and system-roles", () => {
-    const visible = filterApps(APP_REGISTRY, [], ["admin"]);
-
-    expect(visible.find((a) => a.id === "infra-monitor")).toBeDefined();
-    expect(visible.find((a) => a.id === "system-roles")).toBeDefined();
   });
 });

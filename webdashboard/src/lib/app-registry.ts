@@ -43,7 +43,6 @@ export interface AppDefinition {
   id: string;
   labelKey: string;
   permissions?: string[];
-  systemRoles?: string[];
   testId: string;
   to: string;
 }
@@ -267,7 +266,7 @@ export const APP_REGISTRY: AppDefinition[] = [
     descriptionKey: "appLauncher.descriptions.infra_monitor",
     to: ROUTES.INFRA_MONITOR,
     group: "system",
-    systemRoles: ["admin", "platform_admin"],
+    permissions: ["infra:monitor"],
     testId: "app-card-infra-monitor",
   },
   {

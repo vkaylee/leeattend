@@ -66,7 +66,6 @@ const (
 	KeyMissingWorkspace           = "error.missing_workspace"
 	KeyInvalidWorkspaceId         = "error.invalid_workspace_id"
 	KeyNoEmployeeRecord           = "error.no_employee_record"
-	KeySystemRouteTenantContext   = "error.system_route_tenant_context"
 	KeyNotWorkspaceMember         = "error.not_workspace_member"
 	KeyUserNotFound               = "error.user_not_found"
 	KeyEmployeeNotFound           = "error.employee_not_found"
@@ -89,9 +88,6 @@ const (
 	KeyRoleNotFoundOrSystem       = "error.role_not_found_or_system"
 	KeyCannotRemoveSelf           = "error.cannot_remove_self"
 	KeyExpirationFuture           = "error.expiration_future"
-	KeyCannotRevokeLastAdmin      = "error.cannot_revoke_last_admin"
-	KeySystemRoleNotFound         = "error.system_role_not_found"
-	KeyUnknownSystemRole          = "error.unknown_system_role"
 	KeyInvalidTimezone            = "error.invalid_timezone"
 	KeyInvalidDateFormat          = "error.invalid_date_format"
 	KeyInvalidStartDate           = "error.invalid_start_date_format"
@@ -484,11 +480,6 @@ var i18nCatalog = map[string]translationEntry{
 		vi: "Không có thông tin nhân viên nào liên kết với tài khoản của bạn",
 		zh: "您的账户未关联任何员工档案",
 	},
-	"error.system_route_tenant_context": {
-		en: "Cannot use Tenant context (MemberContext) in a System route",
-		vi: "Không thể sử dụng context Tenant (MemberContext) trong route hệ thống",
-		zh: "系统路由中无法使用租户上下文 (MemberContext)",
-	},
 	"error.not_workspace_member": {
 		en: "Not a member of this workspace",
 		vi: "Bạn không phải là thành viên của workspace này",
@@ -519,11 +510,6 @@ var i18nCatalog = map[string]translationEntry{
 		vi: "Lỗi cơ sở dữ liệu",
 		zh: "数据库错误",
 	},
-	"error.cannot_revoke_last_admin": {
-		en: "Cannot revoke the last platform_admin. Assign another admin first.",
-		vi: "Không thể thu hồi platform_admin cuối cùng. Hãy gán quản trị viên khác trước.",
-		zh: "无法撤销最后一个 platform_admin。请先分配另一个管理员。",
-	},
 	"error.behalf_assignment_missing_target": {
 		en: "Either target employee or target department must be specified",
 		vi: "Phải chỉ định nhân viên đích hoặc phòng ban đích",
@@ -553,21 +539,6 @@ var i18nCatalog = map[string]translationEntry{
 		en: "No file was uploaded",
 		vi: "Không có file nào được tải lên",
 		zh: "未上传文件",
-	},
-	"error.tenant_mismatch": {
-		en: "Tenant mismatch",
-		vi: "Không khớp tenant",
-		zh: "租户不匹配",
-	},
-	"error.supavisor_api_url_required": {
-		en: "SUPAVISOR_API_URL environment variable is required",
-		vi: "Yêu cầu biến môi trường SUPAVISOR_API_URL",
-		zh: "需要 SUPAVISOR_API_URL 环境变量",
-	},
-	"error.api_jwt_secret_required": {
-		en: "API_JWT_SECRET (or SUPAVISOR_API_JWT) environment variable is required",
-		vi: "Yêu cầu biến môi trường API_JWT_SECRET (hoặc SUPAVISOR_API_JWT)",
-		zh: "API_JWT_SECRET (or SUPAVISOR_API_JWT) 环境变量",
 	},
 	"error.staging_log_not_found": {
 		en: "Staging log not found",
@@ -794,25 +765,10 @@ var i18nCatalog = map[string]translationEntry{
 		vi: "Chọn quá nhiều ngày trong một yêu cầu. Vui lòng chọn ít ngày hơn.",
 		zh: "单次请求选择的日期过多。请减少选择的日期数量。",
 	},
-	"error.system_role_not_found": {
-		en: "System role not found",
-		vi: "Không tìm thấy vai trò hệ thống",
-		zh: "未找到系统角色",
-	},
-	"error.unknown_system_role": {
-		en: "Unknown system role",
-		vi: "Vai trò hệ thống không xác định",
-		zh: "未知系统角色",
-	},
 	"error.role_name_required": {
 		en: "Role name is required",
 		vi: "Tên vai trò là bắt buộc",
 		zh: "角色名称是必填项",
-	},
-	"error.system_user_not_found": {
-		en: "System user not found",
-		vi: "Không tìm thấy người dùng hệ thống",
-		zh: "未找到系统用户",
 	},
 	"error.password_too_short": {
 		en: "Password must be at least 8 characters",
@@ -883,11 +839,6 @@ var i18nCatalog = map[string]translationEntry{
 		en: "Invalid group",
 		vi: "Nhóm không hợp lệ",
 		zh: "无效的组",
-	},
-	"error.invalid_tenant_id_format": {
-		en: "Invalid tenant ID format",
-		vi: "Định dạng ID tenant không hợp lệ",
-		zh: "无效的租户 ID 格式",
 	},
 	"error.invalid_scope_type": {
 		en: "Invalid scope type",

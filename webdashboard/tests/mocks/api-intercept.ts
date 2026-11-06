@@ -496,34 +496,6 @@ export async function setupApiMocks(page: Page) {
       return fulfill({ status: "ok" });
     }
 
-    if (pathname === '/api/system/tenants') {
-      return fulfill([
-        {
-          id: "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee",
-          name: "Mock Tenant Workspace",
-          is_byod: false,
-          timezone: "UTC",
-          created_at: new Date().toISOString()
-        }
-      ]);
-    }
-
-    if (pathname === '/api/system/roles') {
-      return fulfill([
-        {
-          id: "role-1",
-          name: "platform_admin",
-          description: "Full control over the system",
-          assignees: []
-        },
-        {
-          id: "role-2",
-          name: "support",
-          description: "Read-only access for support staff",
-          assignees: []
-        }
-      ]);
-    }
 
     if (/\/api\/notifications\/unread-count/.exec(pathname)) {
       return fulfill({ count: 0 });

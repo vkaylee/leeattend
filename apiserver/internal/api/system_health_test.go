@@ -2,74 +2,53 @@ package api
 
 import (
 	"context"
-	"errors"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
 	"github.com/google/uuid"
+	"github.com/vkaylee/leeattend/apiserver/internal/auth"
 	httpinfra "github.com/vkaylee/leeattend/apiserver/internal/infra/http"
 )
 
-type systemHealthRepoMock struct {
-	roles []string
-	err   error
+type systemHealthAuthzMock struct {
+	allowed bool
 }
 
-func (m systemHealthRepoMock) GetSystemRolesForUser(context.Context, uuid.UUID) ([]string, error) {
-	return m.roles, m.err
+func (m systemHealthAuthzMock) HasPermission(context.Context, uuid.UUID, uuid.UUID, string) bool {
+	return m.allowed
 }
 
-func systemHealthRequest(userID uuid.UUID) *http.Request {
+func systemHealthRequest(userID, workspaceID uuid.UUID) *http.Request {
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/system/health", nil)
-	return req.WithContext(httpinfra.WithUserIDForTest(req.Context(), userID))
+	ctx := httpinfra.WithUserIDForTest(req.Context(), userID)
+	return req.WithContext(httpinfra.WithWorkspaceIDForTest(ctx, workspaceID))
 }
 
-func TestSystemHealthHandlerPlatformAdmin(t *testing.T) {
-	userID := uuid.New()
-	h := SystemHealthHandler{Roles: systemHealthRepoMock{roles: []string{"platform_admin", "unknown_role"}}}
+func TestSystemHealthHandlerRequiresInfraPermission(t *testing.T) {
+	userID, workspaceID := uuid.New(), uuid.New()
+	h := SystemHealthHandler{Authorizer: systemHealthAuthzMock{allowed: true}}
 	rec := httptest.NewRecorder()
-	h.Get(rec, systemHealthRequest(userID))
+	h.Get(rec, systemHealthRequest(userID, workspaceID))
 	if rec.Code != http.StatusOK {
 		t.Fatalf("expected 200, got %d: %s", rec.Code, rec.Body.String())
 	}
-	want := `{"status":"ok","viewer_user_id":"` + userID.String() + `","viewer_roles":["platform_admin"]}`
-	if rec.Body.String() != want+"\n" {
+	if rec.Body.String() != `{"status":"ok","viewer_user_id":"`+userID.String()+`"}`+"\n" {
 		t.Fatalf("unexpected response: %s", rec.Body.String())
 	}
 }
 
-func TestSystemHealthHandlerSupport(t *testing.T) {
-	h := SystemHealthHandler{Roles: systemHealthRepoMock{roles: []string{"support"}}}
+func TestSystemHealthHandlerRejectsWithoutInfraPermission(t *testing.T) {
+	h := SystemHealthHandler{Authorizer: systemHealthAuthzMock{allowed: false}}
 	rec := httptest.NewRecorder()
-	h.Get(rec, systemHealthRequest(uuid.New()))
-	if rec.Code != http.StatusOK {
-		t.Fatalf("expected support role 200, got %d", rec.Code)
+	h.Get(rec, systemHealthRequest(uuid.New(), uuid.New()))
+	if rec.Code != http.StatusForbidden {
+		t.Fatalf("expected 403, got %d", rec.Code)
 	}
 }
 
-func TestSystemHealthHandlerRejectsBillingAndEmptyRoles(t *testing.T) {
-	for _, roles := range [][]string{{"billing_admin"}, {}} {
-		h := SystemHealthHandler{Roles: systemHealthRepoMock{roles: roles}}
-		rec := httptest.NewRecorder()
-		h.Get(rec, systemHealthRequest(uuid.New()))
-		if rec.Code != http.StatusForbidden {
-			t.Fatalf("expected 403 for roles %v, got %d", roles, rec.Code)
-		}
-	}
-}
-
-func TestSystemHealthHandlerRepositoryError(t *testing.T) {
-	h := SystemHealthHandler{Roles: systemHealthRepoMock{err: errors.New("role query failed")}}
-	rec := httptest.NewRecorder()
-	h.Get(rec, systemHealthRequest(uuid.New()))
-	if rec.Code != http.StatusInternalServerError {
-		t.Fatalf("expected 500, got %d", rec.Code)
-	}
-}
-
-func TestSystemHealthHandlerRequiresUserContext(t *testing.T) {
-	h := SystemHealthHandler{Roles: systemHealthRepoMock{roles: []string{"platform_admin"}}}
+func TestSystemHealthHandlerRequiresContext(t *testing.T) {
+	h := SystemHealthHandler{Authorizer: systemHealthAuthzMock{allowed: true}}
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/system/health", nil)
 	rec := httptest.NewRecorder()
 	h.Get(rec, req)
@@ -77,3 +56,5 @@ func TestSystemHealthHandlerRequiresUserContext(t *testing.T) {
 		t.Fatalf("expected 401, got %d", rec.Code)
 	}
 }
+
+var _ = auth.PermissionInfraMonitor

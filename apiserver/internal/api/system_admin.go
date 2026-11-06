@@ -13,55 +13,12 @@ import (
 	"github.com/google/uuid"
 	goredis "github.com/redis/go-redis/v9"
 	"github.com/vkaylee/leeattend/apiserver/internal/apperror"
+	"github.com/vkaylee/leeattend/apiserver/internal/auth"
 	httpinfra "github.com/vkaylee/leeattend/apiserver/internal/infra/http"
 )
 
-type SystemRoleType string
-
-const (
-	SystemRoleAdmin         SystemRoleType = "admin"
-	SystemRolePlatformAdmin SystemRoleType = "platform_admin"
-	SystemRoleSupport       SystemRoleType = "support"
-	SystemRoleBillingAdmin  SystemRoleType = "billing_admin"
-)
-
-func ParseSystemRoleType(raw string) (SystemRoleType, bool) {
-	switch raw {
-	case "admin":
-		return SystemRoleAdmin, true
-	case "platform_admin":
-		return SystemRolePlatformAdmin, true
-	case "support":
-		return SystemRoleSupport, true
-	case "billing_admin":
-		return SystemRoleBillingAdmin, true
-	default:
-		return "", false
-	}
-}
-
-var (
-	ErrSystemRoleNotFound = errors.New("system role not found")
-	ErrSystemRoleUnknown  = errors.New("unknown system role")
-	ErrLastPlatformAdmin  = errors.New("cannot revoke last platform admin")
-)
-
-type SystemRoleAssignment struct {
-	UserID     uuid.UUID  `json:"user_id"`
-	RoleName   string     `json:"role_name"`
-	AssignedBy *uuid.UUID `json:"assigned_by"`
-	AssignedAt time.Time  `json:"assigned_at"`
-}
-
-type SystemRoleInfo struct {
-	ID          uuid.UUID              `json:"id"`
-	Name        string                 `json:"name"`
-	Description string                 `json:"description"`
-	Assignees   []SystemRoleAssignment `json:"assignees"`
-}
-
-type AssignSystemRoleRequest struct {
-	RoleName string `json:"role_name"`
+type StandaloneAuthorizer interface {
+	HasPermission(context.Context, uuid.UUID, uuid.UUID, string) bool
 }
 
 type SMTPTestRequest struct {
@@ -71,13 +28,6 @@ type SMTPTestRequest struct {
 type SMTPTestResponse struct {
 	Success bool   `json:"success"`
 	Message string `json:"message"`
-}
-
-type SystemRoleAdminRepository interface {
-	ListSystemRoles(context.Context) ([]SystemRoleInfo, error)
-	GetUserSystemRoles(context.Context, uuid.UUID) ([]string, error)
-	AssignSystemRole(context.Context, uuid.UUID, uuid.UUID, SystemRoleType) error
-	RevokeSystemRole(context.Context, uuid.UUID, string) error
 }
 
 type SystemSettingsRepository interface {
@@ -94,28 +44,22 @@ type RedisClient interface {
 }
 
 type SystemAdminHandler struct {
-	RolesRepo   SystemRoleAdminRepository
+	Authorizer  StandaloneAuthorizer
 	Settings    SystemSettingsRepository
-	Roles       SystemRoleRepository
 	EmailSender EmailSender
 	Redis       RedisClient
 }
 
-func (h SystemAdminHandler) requirePlatformAdmin(r *http.Request) (uuid.UUID, *apperror.AppError) {
+func (h SystemAdminHandler) requireStandalonePermission(r *http.Request, permission string) (uuid.UUID, *apperror.AppError) {
 	userID, ok := httpinfra.UserIDFromContext(r.Context())
-	if !ok || h.Roles == nil {
+	if !ok || userID == uuid.Nil {
 		return uuid.Nil, apperror.Unauthorized(apperror.KeyUnauthorized)
 	}
-	roles, err := h.Roles.GetSystemRolesForUser(r.Context(), userID)
-	if err != nil {
-		return uuid.Nil, apperror.Internal(err)
+	workspaceID, ok := httpinfra.WorkspaceIDFromContext(r.Context())
+	if !ok || h.Authorizer == nil || !h.Authorizer.HasPermission(r.Context(), userID, workspaceID, permission) {
+		return uuid.Nil, apperror.Forbidden(apperror.KeyForbidden)
 	}
-	for _, role := range roles {
-		if role == "admin" || role == "platform_admin" {
-			return userID, nil
-		}
-	}
-	return uuid.Nil, apperror.Forbidden(apperror.KeyForbidden)
+	return userID, nil
 }
 
 func (h SystemAdminHandler) invalidateRedisKey(ctx context.Context, key string) {
@@ -131,7 +75,7 @@ func (h SystemAdminHandler) invalidateRedisKey(ctx context.Context, key string) 
 
 // 1. GET /api/v1/system/smtp/config
 func (h SystemAdminHandler) GetSMTPConfig(w http.ResponseWriter, r *http.Request) {
-	if _, appErr := h.requirePlatformAdmin(r); appErr != nil {
+	if _, appErr := h.requireStandalonePermission(r, string(auth.PermissionSecuritySettingsManage)); appErr != nil {
 		apperror.WriteError(w, r, appErr)
 		return
 	}
@@ -147,7 +91,6 @@ func (h SystemAdminHandler) GetSMTPConfig(w http.ResponseWriter, r *http.Request
 	if !ok || len(val) == 0 {
 		val = json.RawMessage(`{}`)
 	}
-	// Never return SMTP credentials. Rust stores arbitrary JSON, so preserve typed JSON while masking secret keys.
 	val = maskSMTPConfig(val)
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
@@ -156,7 +99,7 @@ func (h SystemAdminHandler) GetSMTPConfig(w http.ResponseWriter, r *http.Request
 
 // 2. PUT /api/v1/system/smtp/config
 func (h SystemAdminHandler) SetSMTPConfig(w http.ResponseWriter, r *http.Request) {
-	if _, appErr := h.requirePlatformAdmin(r); appErr != nil {
+	if _, appErr := h.requireStandalonePermission(r, string(auth.PermissionSecuritySettingsManage)); appErr != nil {
 		apperror.WriteError(w, r, appErr)
 		return
 	}
@@ -165,11 +108,7 @@ func (h SystemAdminHandler) SetSMTPConfig(w http.ResponseWriter, r *http.Request
 		return
 	}
 	body, err := io.ReadAll(http.MaxBytesReader(w, r.Body, 1<<20))
-	if err != nil {
-		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
-		return
-	}
-	if !json.Valid(body) {
+	if err != nil || !json.Valid(body) {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}
@@ -183,7 +122,7 @@ func (h SystemAdminHandler) SetSMTPConfig(w http.ResponseWriter, r *http.Request
 
 // 3. POST /api/v1/system/smtp/test
 func (h SystemAdminHandler) TestSMTP(w http.ResponseWriter, r *http.Request) {
-	if _, appErr := h.requirePlatformAdmin(r); appErr != nil {
+	if _, appErr := h.requireStandalonePermission(r, string(auth.PermissionSecuritySettingsManage)); appErr != nil {
 		apperror.WriteError(w, r, appErr)
 		return
 	}
@@ -198,19 +137,12 @@ func (h SystemAdminHandler) TestSMTP(w http.ResponseWriter, r *http.Request) {
 	if h.EmailSender != nil {
 		msg, sendErr = h.EmailSender.SendTestEmail(r.Context(), req.ToEmail)
 	} else {
-		//lint:ignore ST1005 preserve Rust-compatible SMTP diagnostic text
-		sendErr = errors.New("Email is not configured. Insert a 'smtp' record into system_settings with either SMTP host/port or an 'http_api' block.")
+		sendErr = errors.New("email is not configured; insert a 'smtp' record into system_settings with either SMTP host/port or an 'http_api' block")
 	}
-
 	if sendErr != nil {
-		// Rust parity: SMTP failure returns 200 with success: false
-		apperror.WriteJSON(w, http.StatusOK, SMTPTestResponse{
-			Success: false,
-			Message: sendErr.Error(),
-		})
+		apperror.WriteJSON(w, http.StatusOK, SMTPTestResponse{Success: false, Message: sendErr.Error()})
 		return
 	}
-
 	if raw, ok, err := h.Settings.Get(r.Context(), "smtp"); err == nil {
 		var config map[string]json.RawMessage
 		if ok && len(raw) > 0 {
@@ -225,139 +157,10 @@ func (h SystemAdminHandler) TestSMTP(w http.ResponseWriter, r *http.Request) {
 			_ = h.Settings.Set(r.Context(), "smtp", updated)
 		}
 	}
-
 	if msg == "" {
 		msg = fmt.Sprintf("Test email sent successfully. Check %s for the message.", req.ToEmail)
 	}
-	apperror.WriteJSON(w, http.StatusOK, SMTPTestResponse{
-		Success: true,
-		Message: msg,
-	})
-}
-
-// 4. GET /api/v1/system/roles
-func (h SystemAdminHandler) ListRoles(w http.ResponseWriter, r *http.Request) {
-	if _, appErr := h.requirePlatformAdmin(r); appErr != nil {
-		apperror.WriteError(w, r, appErr)
-		return
-	}
-	if h.RolesRepo == nil {
-		apperror.WriteError(w, r, apperror.Internal(errors.New("roles repository not configured")))
-		return
-	}
-	roles, err := h.RolesRepo.ListSystemRoles(r.Context())
-	if err != nil {
-		apperror.WriteError(w, r, apperror.Internal(err))
-		return
-	}
-	if roles == nil {
-		roles = []SystemRoleInfo{}
-	}
-	apperror.WriteJSON(w, http.StatusOK, roles)
-}
-
-// 5. GET /api/v1/system/users/{user_id}/roles
-func (h SystemAdminHandler) GetUserRoles(w http.ResponseWriter, r *http.Request) {
-	if _, appErr := h.requirePlatformAdmin(r); appErr != nil {
-		apperror.WriteError(w, r, appErr)
-		return
-	}
-	userID, err := uuid.Parse(r.PathValue("user_id"))
-	if err != nil {
-		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
-		return
-	}
-	if h.RolesRepo == nil {
-		apperror.WriteError(w, r, apperror.Internal(errors.New("roles repository not configured")))
-		return
-	}
-	roles, err := h.RolesRepo.GetUserSystemRoles(r.Context(), userID)
-	if err != nil {
-		apperror.WriteError(w, r, apperror.Internal(err))
-		return
-	}
-	if roles == nil {
-		roles = []string{}
-	}
-	apperror.WriteJSON(w, http.StatusOK, roles)
-}
-
-// 6. POST /api/v1/system/users/{user_id}/roles
-func (h SystemAdminHandler) AssignRole(w http.ResponseWriter, r *http.Request) {
-	actorID, appErr := h.requirePlatformAdmin(r)
-	if appErr != nil {
-		apperror.WriteError(w, r, appErr)
-		return
-	}
-	userID, err := uuid.Parse(r.PathValue("user_id"))
-	if err != nil {
-		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
-		return
-	}
-	req, err := DecodeJSON[AssignSystemRoleRequest](r, 1<<20)
-	if err != nil {
-		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
-		return
-	}
-	parsedRole, ok := ParseSystemRoleType(req.RoleName)
-	if !ok {
-		apperror.WriteError(w, r, apperror.Validation(apperror.KeyUnknownSystemRole))
-		return
-	}
-	if h.RolesRepo == nil {
-		apperror.WriteError(w, r, apperror.Internal(errors.New("roles repository not configured")))
-		return
-	}
-	if err := h.RolesRepo.AssignSystemRole(r.Context(), userID, actorID, parsedRole); err != nil {
-		if errors.Is(err, ErrSystemRoleNotFound) {
-			apperror.WriteError(w, r, apperror.NotFound(apperror.KeySystemRoleNotFound))
-			return
-		}
-		apperror.WriteError(w, r, apperror.Internal(err))
-		return
-	}
-	h.invalidateRedisKey(r.Context(), fmt.Sprintf("system_roles:%s", userID))
-	w.WriteHeader(http.StatusNoContent)
-}
-
-// 7. DELETE /api/v1/system/users/{user_id}/roles/{role_name}
-func (h SystemAdminHandler) RevokeRole(w http.ResponseWriter, r *http.Request) {
-	if _, appErr := h.requirePlatformAdmin(r); appErr != nil {
-		apperror.WriteError(w, r, appErr)
-		return
-	}
-	userID, err := uuid.Parse(r.PathValue("user_id"))
-	if err != nil {
-		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
-		return
-	}
-	roleName := r.PathValue("role_name")
-	if _, ok := ParseSystemRoleType(roleName); !ok {
-		apperror.WriteError(w, r, apperror.Validation(apperror.KeyUnknownSystemRole))
-		return
-	}
-	if h.RolesRepo == nil {
-		apperror.WriteError(w, r, apperror.Internal(errors.New("roles repository not configured")))
-		return
-	}
-	if err := h.RolesRepo.RevokeSystemRole(r.Context(), userID, roleName); err != nil {
-		if errors.Is(err, ErrLastPlatformAdmin) {
-			apperror.WriteError(w, r, apperror.Validation(apperror.KeyCannotRevokeLastAdmin))
-			return
-		}
-		if errors.Is(err, ErrSystemRoleNotFound) {
-			apperror.WriteError(w, r, apperror.NotFound(apperror.KeySystemRoleNotFound))
-			return
-		}
-		if errors.Is(err, ErrSystemRoleUnknown) {
-			apperror.WriteError(w, r, apperror.Validation(apperror.KeyUnknownSystemRole))
-			return
-		}
-		apperror.WriteError(w, r, apperror.Internal(err))
-		return
-	}
-	h.invalidateRedisKey(r.Context(), fmt.Sprintf("system_roles:%s", userID))
-	w.WriteHeader(http.StatusNoContent)
+	apperror.WriteJSON(w, http.StatusOK, SMTPTestResponse{Success: true, Message: msg})
 }
 
 func maskSMTPConfig(raw json.RawMessage) json.RawMessage {

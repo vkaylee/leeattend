@@ -22,7 +22,6 @@ const (
 	TTLRateLimitDefault     time.Duration = 60 * time.Second
 	TTLDefaultCache         time.Duration = 300 * time.Second
 	TTLAuthPermissionsCache time.Duration = 3600 * time.Second
-	TTLSystemRolesCache     time.Duration = 1800 * time.Second
 	TTLEmailRateMin         time.Duration = 60 * time.Second
 	TTLEmailRateHour        time.Duration = 3600 * time.Second
 	TTLEmailRateDay         time.Duration = 86400 * time.Second
@@ -101,10 +100,6 @@ func KeyCacheAuthPermissions(userID uuid.UUID) string {
 
 func KeyCacheAuthPermissionsPattern() string {
 	return "cache:auth:permissions:*"
-}
-
-func KeyCacheSystemRoles(userID uuid.UUID) string {
-	return fmt.Sprintf("cache:system:roles:%s", userID.String())
 }
 
 func KeyCacheEmployment(employmentID uuid.UUID) string {

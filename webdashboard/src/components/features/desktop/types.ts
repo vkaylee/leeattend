@@ -26,7 +26,6 @@ export interface DesktopWidgetDefinition {
   icon: React.ElementType;
   component: React.ComponentType;
   permissions?: string[];
-  systemRoles?: string[];
 }
 
 export interface DesktopLayoutState {
