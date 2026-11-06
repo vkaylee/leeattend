@@ -1,16 +1,18 @@
 import { forwardRef, memo } from "react";
 import { useTranslation } from "react-i18next";
+
 import { motion } from "framer-motion";
 
 import type { FeatureItem } from "@/lib/feature-registry";
+
 import { cn } from "@/lib/utils";
 
 export interface DsmSquircleIconProps {
+  isFocused?: boolean;
   item: FeatureItem;
   onClick: (item: FeatureItem) => void;
   size?: "md" | "lg" | "xl";
   testId?: string;
-  isFocused?: boolean;
 }
 
 export const DsmSquircleIcon = memo(forwardRef<HTMLButtonElement, DsmSquircleIconProps>(
@@ -31,10 +33,23 @@ export const DsmSquircleIcon = memo(forwardRef<HTMLButtonElement, DsmSquircleIco
       ? t(item.titleKey, { defaultValue: item.titleFallback })
       : item.titleFallback;
 
+    // ponytail: clean 64px max tile with 2-line fixed baseline; upgrade if sublabels or badges are requested
     const sizeClasses = {
-      md: { box: "w-12 h-12 sm:w-14 sm:h-14", icon: "w-6 h-6 sm:w-7 sm:h-7", text: "text-[11px] sm:text-xs max-w-[88px]" },
-      lg: { box: "w-16 h-16 sm:w-20 sm:h-20", icon: "w-8 h-8 sm:w-10 sm:h-10", text: "text-xs sm:text-sm max-w-[100px]" },
-      xl: { box: "w-20 h-20 sm:w-24 sm:h-24", icon: "w-10 h-10 sm:w-12 sm:h-12", text: "text-xs sm:text-sm max-w-[110px] sm:max-w-[130px]" },
+      md: {
+        box: "w-11 h-11 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl",
+        icon: "w-5 h-5 sm:w-6 sm:h-6",
+        text: "text-[11px] sm:text-xs max-w-[80px]",
+      },
+      lg: {
+        box: "w-14 h-14 sm:w-16 sm:h-16 rounded-2xl",
+        icon: "w-7 h-7 sm:w-8 sm:h-8",
+        text: "text-xs max-w-[92px] sm:max-w-[96px]",
+      },
+      xl: {
+        box: "w-16 h-16 sm:w-18 sm:h-18 rounded-2xl",
+        icon: "w-8 h-8 sm:w-9 sm:h-9",
+        text: "text-xs max-w-[96px] sm:max-w-[104px]",
+      },
     }[size];
 
     return (
@@ -47,8 +62,8 @@ export const DsmSquircleIcon = memo(forwardRef<HTMLButtonElement, DsmSquircleIco
         data-testid={testId ?? item.testId}
         data-focused={isFocused ? "true" : undefined}
         onClick={() => onClick(item)}
-        whileHover={{ scale: 1.06, y: -3 }}
-        whileTap={{ scale: 0.95 }}
+        whileHover={{ scale: 1.05, y: -2 }}
+        whileTap={{ scale: 0.96 }}
         transition={{ type: "spring", stiffness: 400, damping: 25 }}
         className={cn(
           "group flex flex-col items-center text-center p-2 rounded-2xl cursor-pointer select-none relative",
@@ -57,32 +72,28 @@ export const DsmSquircleIcon = memo(forwardRef<HTMLButtonElement, DsmSquircleIco
           isFocused && "ring-2 ring-primary-400 ring-offset-2 ring-offset-slate-900 scale-105 z-10 shadow-2xl",
         )}
       >
-        {/* DSM 7 Squircle Tile */}
+        {/* Clean Squircle Tile (No Skeuomorphic Gloss) */}
         <div
           className={cn(
-            "relative flex items-center justify-center shrink-0 rounded-2xl sm:rounded-3xl bg-gradient-to-br shadow-xl border border-white/20 dark:border-white/10",
-            "transition-all duration-300 group-hover:shadow-2xl",
+            "relative flex items-center justify-center shrink-0 bg-gradient-to-br shadow-md group-hover:shadow-xl border border-white/15 dark:border-white/10",
+            "transition-all duration-200",
             item.gradient,
             sizeClasses.box,
           )}
         >
-          {/* Gloss / Sheen Highlight on Top Half */}
-          <div className="absolute inset-x-0 top-0 h-1/2 bg-gradient-to-b from-white/25 to-transparent rounded-t-2xl sm:rounded-t-3xl pointer-events-none" />
-
           {/* Icon */}
           <Icon
             className={cn(
-              "text-white drop-shadow-md transition-transform duration-300 group-hover:scale-110",
+              "text-white drop-shadow-sm transition-transform duration-200 group-hover:scale-105",
               sizeClasses.icon,
             )}
           />
         </div>
-
-        {/* App Label */}
+        {/* App Label - Uniform 2-line baseline height */}
         <span
           className={cn(
-            "mt-2 text-slate-100 font-medium leading-snug line-clamp-2 drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]",
-            "group-hover:text-white transition-colors duration-200",
+            "mt-2 text-slate-200 font-medium leading-snug line-clamp-2 min-h-[2rem] flex items-center justify-center text-center",
+            "group-hover:text-white transition-colors duration-150",
             sizeClasses.text,
           )}
         >

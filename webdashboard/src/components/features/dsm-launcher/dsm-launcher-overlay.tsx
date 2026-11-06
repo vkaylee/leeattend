@@ -300,7 +300,6 @@ export function DsmLauncherOverlay({ isOpen, onClose }: DsmLauncherOverlayProps)
                 <Search className="absolute left-3.5 sm:left-4 w-4 h-4 text-slate-400 pointer-events-none" />
                 <Command.Input
                   ref={inputRef}
-                  autoFocus
                   data-testid="dsm-launcher-search-input"
                   placeholder={t(
                     "dsmLauncher.searchPlaceholder",
@@ -363,16 +362,16 @@ export function DsmLauncherOverlay({ isOpen, onClose }: DsmLauncherOverlayProps)
                 <div
                   key="dsm-grid-view"
                   data-testid="dsm-grid-view"
-                  className="max-w-7xl mx-auto w-full space-y-8 sm:space-y-10 animate-in fade-in duration-200"
+                  className="max-w-6xl mx-auto w-full space-y-6 sm:space-y-8 animate-in fade-in duration-200"
                 >
                   {/* Quick Access Section */}
                   {quickAccessApps.length > 0 && (
-                    <div data-testid="dsm-quick-access-section" className="space-y-4">
+                    <div data-testid="dsm-quick-access-section" className="space-y-3">
                       <div className="flex items-center gap-2 text-xs font-bold tracking-wider text-slate-400 uppercase">
-                        <Clock className="w-4 h-4 text-primary-400" />
+                        <Clock className="w-3.5 h-3.5 text-primary-400" />
                         <span>{t("dsmLauncher.recent", "Truy cập gần đây")}</span>
                       </div>
-                      <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-4 sm:gap-6 justify-items-center">
+                      <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-3 sm:gap-5 justify-items-center">
                         {quickAccessApps.map((item) => (
                           <DsmSquircleIcon
                             key={item.id}
@@ -383,21 +382,20 @@ export function DsmLauncherOverlay({ isOpen, onClose }: DsmLauncherOverlayProps)
                           />
                         ))}
                       </div>
-                      <div className="border-b border-white/10 pt-4" />
+                      <div className="border-b border-white/10 pt-3" />
                     </div>
                   )}
 
                   {/* All Applications Grid */}
-                  <div data-testid="dsm-all-apps-section" className="space-y-4">
+                  <div data-testid="dsm-all-apps-section" className="space-y-3">
                     <div className="flex items-center gap-2 text-xs font-bold tracking-wider text-slate-400 uppercase">
-                      <Layers className="w-4 h-4 text-primary-400" />
+                      <Layers className="w-3.5 h-3.5 text-primary-400" />
                       <span>{t("dsmLauncher.allApps", "Tất cả ứng dụng")}</span>
                       <span className="text-xs font-normal text-slate-500">
                         ({gridFeatures.length})
                       </span>
                     </div>
-
-                    <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-7 xl:grid-cols-8 gap-4 sm:gap-8 lg:gap-10 justify-items-center py-4">
+                    <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-7 xl:grid-cols-8 gap-3 sm:gap-5 lg:gap-6 justify-items-center py-2 sm:py-3">
                       {gridFeatures.map((item, index) => (
                         <DsmSquircleIcon
                           key={item.id}
@@ -405,7 +403,7 @@ export function DsmLauncherOverlay({ isOpen, onClose }: DsmLauncherOverlayProps)
                             gridButtonRefs.current[index] = el;
                           }}
                           item={item}
-                          size="xl"
+                          size="lg"
                           isFocused={focusedGridIndex === index}
                           onClick={handleSelectItem}
                         />
