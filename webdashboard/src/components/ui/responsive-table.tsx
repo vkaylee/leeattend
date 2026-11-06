@@ -13,7 +13,8 @@ import { cn } from "@/lib/utils";
 
 // Re-export SmartTable types that consumers need for callbacks
 export type { ContextMenuItem, EditableCellValue, SmartTableColumnMeta } from "@/components/ui/smart-table";
-
+export type { TableDensity } from "./table-density-toggle";
+import type { TableDensity } from "./table-density-toggle";
 // ── Types ──────────────────────────────────────────────────────────
 
 /**
@@ -52,8 +53,9 @@ interface ResponsiveTableBase<T> {
 interface ResponsiveTableSmartMode<T> extends ResponsiveTableBase<T> {
   /** Columns for desktop SmartTable view */
   columns: (ColumnDef<T> & { meta?: SmartTableColumnMeta })[];
-  /** Context menu items (desktop-only, right-click on rows) */
   contextMenuItems?: (row: T) => ContextMenuItem[];
+  /** Table row density: compact (32px), normal (44px), comfortable (56px) */
+  density?: TableDensity;
   /** Enable drag-to-select (desktop-only) */
   enableDragSelect?: boolean;
   /** Optional footer row rendered below all data rows (desktop-only) */
@@ -163,6 +165,7 @@ export default function ResponsiveTable<T>(
         columns={props.columns}
         contextMenuItems={props.contextMenuItems}
         data={data}
+        density={props.density}
         emptyMessage={emptyState?.title ?? t("attendance_logs.messages.no_data", "No data")}
         enableDragSelect={props.enableDragSelect}
         footerRow={props.footerRow}

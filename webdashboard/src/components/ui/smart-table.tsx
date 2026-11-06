@@ -18,9 +18,11 @@ import { useSmartTable } from "./smart-table-hooks/use-smart-table";
 import SmartTableContextMenu from "./smart-table/smart-table-context-menu";
 import { SmartTableHeader } from "./smart-table/smart-table-header";
 import { SmartTableRow } from "./smart-table/smart-table-row";
+import type { TableDensity } from "./table-density-toggle";
 
 // Re-export for consumers that import from the SmartTable barrel
 export type { CellEditPayload, ContextMenuItem, EditableCellValue, SmartTableColumnMeta } from "./smart-table/types";
+export type { TableDensity } from "./table-density-toggle";
 
 declare module "@tanstack/react-table" {
   // augments @tanstack/react-table ColumnMeta using SmartTableColumnMeta from shared types
@@ -33,6 +35,7 @@ export interface SmartTableProps<T> {
   columns: (ColumnDef<T> & { meta?: SmartTableColumnMeta })[];
   contextMenuItems?: (row: T) => ContextMenuItem[];
   data: T[];
+  density?: TableDensity;
   emptyMessage?: string;
   enableDragSelect?: boolean;
   footerRow?: React.ReactNode;
@@ -82,6 +85,7 @@ export default function SmartTable<T>({
   renderExpandedRow,
   renderSkeletonRow,
   skeletonCount = 5,
+  density = "normal",
 }: SmartTableProps<T>) {
   const smart = useSmartTable<T>({
     data,
@@ -109,7 +113,7 @@ export default function SmartTable<T>({
       <div className="flex-1 overflow-auto scrollbar-thin border border-slate-200 dark:border-slate-800 rounded-3xl bg-white dark:bg-slate-900 shadow-sm relative">
         <table className="w-full border-collapse text-left table-fixed" style={{ width: smart.table.getTotalSize() }}>
           {/* Header */}
-          <SmartTableHeader getPinStyles={smart.getPinStyles} table={smart.table} />
+          <SmartTableHeader density={density} getPinStyles={smart.getPinStyles} table={smart.table} />
 
           {/* Body */}
           <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
@@ -135,10 +139,11 @@ export default function SmartTable<T>({
               </tr>
             ) : (
               smart.rows.map((row: Row<T>, rowIndex: number) => (
-                <SmartTableRow
+                <SmartTableRow<T>
                   cellErrors={smart.cellErrors}
                   cellRefs={smart.cellRefs}
                   colCount={smart.colCount}
+                  density={density}
                   dragCurrentRow={smart.dragCurrentRow}
                   dragStartRow={smart.dragStartRow}
                   editingCell={smart.editingCell}

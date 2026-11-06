@@ -8,6 +8,7 @@ import React, { memo, useCallback, useMemo } from "react";
 import { cn } from "@/lib/utils";
 
 import type { CellCoordinate, EditableCellValue } from "./types";
+import type { TableDensity } from "../table-density-toggle";
 
 import { SmartTableCell } from "./smart-table-cell";
 
@@ -18,6 +19,7 @@ export interface SmartTableRowProps<T> {
   cellRefs: React.RefObject<Record<string, HTMLTableCellElement | null>>;
   /** Number of visible columns — used as colSpan for the expanded detail row. */
   colCount: number;
+  density?: TableDensity;
   dragCurrentRow: number | null;
   dragStartRow: number | null;
   editingCell: CellCoordinate | null;
@@ -55,6 +57,7 @@ function SmartTableRowInner<T>(props: SmartTableRowProps<T>) {
     cellErrors, cellRefs, editingCell, editValue, focusedCell, getPinStyles,
     handleCellKeyDown, localCellValues, saveCellEdit, setEditValue,
     setFocusedCell, startCellEdit, getRowClassName, renderExpandedRow, colCount,
+    density = "normal",
   } = props;
 
   const isSelected = selectedRowIds?.has(row.id) ?? false;
@@ -110,6 +113,7 @@ function SmartTableRowInner<T>(props: SmartTableRowProps<T>) {
               cellError={cellErrors[errorKey]}
               cellRefs={cellRefs}
               colIndex={colIndex}
+              density={density}
               editingCell={editingCell}
               editValue={editValue}
               focusedCell={focusedCell}

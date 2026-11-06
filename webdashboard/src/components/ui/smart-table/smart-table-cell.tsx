@@ -14,10 +14,12 @@ import type { CellCoordinate, EditableCellValue } from "./types";
 
 import CellEditControl from "./cell-edit-control";
 import CellErrorTooltip from "./cell-error-tooltip";
+import type { TableDensity } from "../table-density-toggle";
 
 interface SmartTableCellProps<T> {
   cell: Cell<T, unknown>;
   cellError?: string;
+  density?: TableDensity;
   cellRefs: React.RefObject<Record<string, HTMLTableCellElement | null>>;
   colIndex: number;
   editingCell: CellCoordinate | null;
@@ -38,6 +40,7 @@ interface SmartTableCellProps<T> {
 function SmartTableCellInner<T>({
   cell,
   cellError,
+  density = "normal",
   cellRefs,
   colIndex,
   editingCell,
@@ -111,7 +114,12 @@ function SmartTableCellInner<T>({
   }
 
   const cellClass = useMemo(() => cn(
-    "group relative px-6 py-4 text-sm font-medium text-slate-700 dark:text-slate-200 border-r border-slate-100 dark:border-slate-800 last:border-r-0 truncate outline-none",
+    "group relative font-medium text-slate-700 dark:text-slate-200 border-r border-slate-100 dark:border-slate-800 last:border-r-0 truncate outline-none",
+    density === "compact"
+      ? "px-3 py-1.5 text-xs"
+      : density === "comfortable"
+        ? "px-6 py-4 text-sm"
+        : "px-5 py-2.5 text-sm",
     isPinned && "bg-white dark:bg-slate-900 group-hover/row:bg-slate-50/50 dark:group-hover/row:bg-slate-800/30",
     isCellFocused && (hasError ? "ring-2 ring-rose-500 ring-inset z-10" : "ring-2 ring-primary-500 ring-inset z-10"),
     isCellEditing && "p-0.5",

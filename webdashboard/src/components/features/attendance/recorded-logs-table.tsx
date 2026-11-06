@@ -5,7 +5,8 @@ import { useTranslation } from 'react-i18next';
 
 import InfiniteScrollSentinel from '@/components/common/infinite-scroll-sentinel';
 import ResponsiveTable from '@/components/ui/responsive-table';
-import StatusBadge from '@/components/ui/status-badge';
+import { TableDensityToggle, useTableDensity } from '@/components/ui/table-density-toggle';
+import { AttendanceStatusBadge } from './attendance-status-badge';
 import { useToast } from "@/components/ui/toast";
 import { useInfiniteScroll } from '@/hooks/use-infinite-scroll';
 import { RawAttendanceLog } from '@/lib/api/types';
@@ -39,7 +40,7 @@ export function RecordedLogsTable({
 }: RecordedLogsTableProps) {
   const { t } = useTranslation();
   const toast = useToast();
-
+  const { density, setDensity } = useTableDensity("attendance_recorded_logs_density");
   const columns: ColumnDef<RawAttendanceLog>[] = useMemo(() => [
     {
       id: "time",
@@ -85,7 +86,11 @@ export function RecordedLogsTable({
     {
       id: "status",
       header: () => <div className="text-right w-full">{t("common.status")}</div>,
-      cell: () => <div className="flex justify-end w-full"><StatusBadge variant="success">{t("attendance_logs.status.recorded")}</StatusBadge></div>,
+      cell: () => (
+        <div className="flex justify-end w-full">
+          <AttendanceStatusBadge status="recorded" />
+        </div>
+      ),
       size: 160,
       meta: { headerClassName: "text-right", cellClassName: "text-right" },
     },
@@ -129,11 +134,19 @@ export function RecordedLogsTable({
 
   return (
     <div className="bg-white dark:bg-slate-900 rounded-2xl lg:rounded-[2.5rem] border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden lg:h-[600px] flex flex-col p-3 lg:p-6">
+      <div className="flex items-center justify-between pb-3 mb-2 border-b border-slate-100 dark:border-slate-800">
+        <span className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+          {t("attendance_logs.recorded_logs", "Nhật ký điểm danh thực tế")} ({logs.length})
+        </span>
+        <TableDensityToggle density={density} onDensityChange={setDensity} />
+      </div>
       <div className="flex-1 min-h-0">
         <ResponsiveTable<RawAttendanceLog>
           columns={columns}
           contextMenuItems={contextMenuItems}
           data={logs}
+          density={density}
+          stickyLeftColumns={2}
           emptyState={{ icon: <Clock className="h-10 w-10" />, title: t("attendance_logs.messages.no_data") }}
           footerRow={footerRow}
           getCardKey={(log) => log.id}
@@ -148,7 +161,7 @@ export function RecordedLogsTable({
                   <div className="text-sm font-bold uppercase tracking-tight text-slate-800 dark:text-slate-100">{formatDate(log.punch_time)}</div>
                   <div className="mt-1 font-mono text-xs font-bold text-slate-500 dark:text-slate-400">{formatTime(log.punch_time)}</div>
                 </div>
-                <StatusBadge variant="success">{t("attendance_logs.status.recorded")}</StatusBadge>
+                <AttendanceStatusBadge status="recorded" />
               </div>
               <div className="mt-4 border-t border-slate-100 pt-4 dark:border-slate-800">
                 <div className="text-sm font-bold uppercase tracking-tight text-slate-800 dark:text-slate-100">{getEmployeeName(log)}</div>

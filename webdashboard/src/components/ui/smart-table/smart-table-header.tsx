@@ -10,13 +10,14 @@ import { ChevronUp, ChevronDown } from "lucide-react";
 import React, { memo } from "react";
 
 import { cn } from "@/lib/utils";
+import type { TableDensity } from "../table-density-toggle";
 
 export interface SmartTableHeaderProps<T> {
+  density?: TableDensity;
   getPinStyles: (column: Column<T>) => React.CSSProperties;
   table: Table<T>;
 }
-
-function SmartTableHeaderInner<T>({ table, getPinStyles }: SmartTableHeaderProps<T>) {
+function SmartTableHeaderInner<T>({ table, getPinStyles, density = "normal" }: SmartTableHeaderProps<T>) {
   return (
     <thead className="sticky top-0 z-20 bg-white/95 dark:bg-slate-900/95 backdrop-blur border-b border-slate-100 dark:border-slate-800 shadow-sm">
       {table.getHeaderGroups().map((headerGroup: HeaderGroup<T>) => (
@@ -31,7 +32,12 @@ function SmartTableHeaderInner<T>({ table, getPinStyles }: SmartTableHeaderProps
             return (
               <th
                 className={cn(
-                  "group relative px-6 py-4 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest bg-slate-50/50 dark:bg-slate-900/50 transition-colors border-r border-b border-slate-100 dark:border-slate-800 last:border-r-0 select-none",
+                  "group relative font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest bg-slate-50/50 dark:bg-slate-900/50 transition-colors border-r border-b border-slate-100 dark:border-slate-800 last:border-r-0 select-none",
+                  density === "compact"
+                    ? "px-3 py-2 text-[9px]"
+                    : density === "comfortable"
+                      ? "px-6 py-4 text-[10px]"
+                      : "px-5 py-3 text-[10px]",
                   isPinned && "bg-slate-100/60 dark:bg-slate-900",
                   isLastPinnedLeft && "border-r border-r-slate-200 dark:border-r-slate-700 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]",
                   isFirstPinnedRight && "border-l border-l-slate-200 dark:border-l-slate-700 shadow-[-2px_0_5px_-2px_rgba(0,0,0,0.1)]",

@@ -15,6 +15,7 @@ import { useTranslation } from "react-i18next";
 
 import PaginationControls from "@/components/common/pagination-controls";
 import ResponsiveTable, { type EditableCellValue } from "@/components/ui/responsive-table";
+import { useTableDensity } from "@/components/ui/table-density-toggle";
 import { useToast } from "@/components/ui/toast";
 import { useCurrency } from "@/hooks/use-currency";
 import { useMyPermissions } from "@/hooks/use-permissions";
@@ -214,6 +215,7 @@ export default function PayrollSummaryTable({
   onSearchChange
 }: PayrollSummaryTableProps) {
   const { t } = useTranslation();
+  const { density, setDensity } = useTableDensity("payroll_summary_density");
   const toast = useToast();
   const { hasPermission } = useMyPermissions();
   const canReadSensitive = hasPermission("payroll:sensitive:read");
@@ -305,7 +307,9 @@ export default function PayrollSummaryTable({
   return (
     <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[2.5rem] overflow-hidden shadow-sm flex flex-col h-full animate-in fade-in duration-700">
       <SummarySearchHeader 
+        density={density}
         filteredCount={filteredEmployees.length}
+        onDensityChange={setDensity}
         onSearchChange={onSearchChange}
         searchTerm={searchTerm}
         t={t}
@@ -331,6 +335,9 @@ export default function PayrollSummaryTable({
               columns={columns}
               contextMenuItems={contextMenuItems}
               data={paginatedEmployees}
+              density={density}
+              stickyLeftColumns={2}
+              stickyRightColumns={1}
               emptyState={{
                 title: t("common.no_records_found"),
                 icon: <User className="h-10 w-10" />,

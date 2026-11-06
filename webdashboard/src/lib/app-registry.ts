@@ -23,9 +23,8 @@ import {
   History,
   Clock,
   Activity,
-  ShieldCheck,
-  FileText,
   Inbox,
+  FileText,
 } from "lucide-react";
 
 import type { NavGroup } from "@/hooks/use-nav-menu-items";
@@ -269,16 +268,6 @@ export const APP_REGISTRY: AppDefinition[] = [
     group: "system",
     systemRoles: ["admin", "platform_admin"],
     testId: "app-card-infra-monitor",
-  },
-  {
-    id: "system-roles",
-    icon: ShieldCheck,
-    labelKey: "system_roles.title",
-    descriptionKey: "system_roles.subtitle",
-    to: ROUTES.SYSTEM_ROLES,
-    group: "system",
-    systemRoles: ["admin", "platform_admin"],
-    testId: "app-card-system-roles",
   },
   {
     id: "settings",

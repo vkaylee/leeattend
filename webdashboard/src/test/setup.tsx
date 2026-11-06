@@ -9,8 +9,6 @@ import leave from "../i18n/locales/vi/leave.json";
 import payroll from "../i18n/locales/vi/payroll.json";
 import settings from "../i18n/locales/vi/settings.json";
 import shift_swaps from "../i18n/locales/vi/shift_swaps.json";
-import system_roles from "../i18n/locales/vi/system_roles.json";
-
 const viLocale = {
   ...common,
   ...payroll,
@@ -20,7 +18,6 @@ const viLocale = {
   ...attendance,
   ...leave,
   ...settings,
-  ...system_roles,
 };
 
 // Ignore Happy DOM AbortError caused by pending async tasks during teardown
