@@ -25,11 +25,6 @@ vi.mock("@/hooks/use-permissions", () => ({
   }),
 }));
 
-vi.mock("@/hooks/use-profile", () => ({
-  useProfile: () => ({
-    user: { id: "test-user", system_roles: ["admin"] },
-  }),
-}));
 
 vi.mock("@/hooks/use-quick-access", () => ({
   useQuickAccess: () => ({
@@ -80,15 +75,16 @@ describe("DsmLauncherOverlay", () => {
     expect(mockNavigate).toHaveBeenCalledWith({ to: "/" });
     expect(handleClose).toHaveBeenCalled();
   });
-  it("renders setting hub items directly in the main grid and allows clicking them", () => {
+  it("keeps the Settings Hub entry in the launcher and does not expose child settings", () => {
     const handleClose = vi.fn();
     render(<DsmLauncherOverlay isOpen={true} onClose={handleClose} />);
 
-    const generalSettingIcon = screen.getByTestId("dsm-setting-general");
-    expect(generalSettingIcon).toBeInTheDocument();
+    const settingsHubIcon = screen.getByTestId("dsm-app-settings");
+    expect(settingsHubIcon).toBeInTheDocument();
+    expect(screen.queryByTestId("dsm-setting-general")).not.toBeInTheDocument();
 
-    fireEvent.click(generalSettingIcon);
-    expect(mockNavigate).toHaveBeenCalledWith({ to: "/workspace/settings/general" });
+    fireEvent.click(settingsHubIcon);
+    expect(mockNavigate).toHaveBeenCalledWith({ to: "/workspace/settings" });
     expect(handleClose).toHaveBeenCalled();
   });
 
@@ -122,18 +118,14 @@ describe("DsmLauncherOverlay", () => {
     expect(screen.getByTestId("dsm-action-clock-in")).toBeInTheDocument();
   });
 
-  it("navigates to deep setting when selected from search results", async () => {
+  it("does not expose deep settings when searching from the launcher", async () => {
     const user = userEvent.setup();
-    const handleClose = vi.fn();
-    render(<DsmLauncherOverlay isOpen={true} onClose={handleClose} />);
+    render(<DsmLauncherOverlay isOpen={true} onClose={vi.fn()} />);
 
     const searchInput = screen.getByTestId("dsm-launcher-search-input");
     await user.type(searchInput, "wifi");
 
-    const settingItem = screen.getByTestId("dsm-setting-time");
-    await user.click(settingItem);
-
-    expect(mockNavigate).toHaveBeenCalledWith({ to: "/workspace/settings/time" });
-    expect(handleClose).toHaveBeenCalled();
+    expect(screen.queryByTestId("dsm-setting-time")).not.toBeInTheDocument();
+    expect(screen.getByTestId("dsm-search-empty")).toBeInTheDocument();
   });
 });

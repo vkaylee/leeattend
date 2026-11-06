@@ -16,7 +16,6 @@ import React, { useCallback, useId, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { useMyPermissions } from "@/hooks/use-permissions";
-import { useProfile } from "@/hooks/use-profile";
 import { useQuickAccess } from "@/hooks/use-quick-access";
 import {
   buildFeatureSearchIndex,
@@ -41,15 +40,13 @@ export function DsmLauncherOverlay({ isOpen, onClose }: DsmLauncherOverlayProps)
   const [search, setSearch] = useState("");
 
   const { hasAnyPermission, isLoading: permsLoading } = useMyPermissions();
-  const { user } = useProfile();
   const { top3, recordAccess } = useQuickAccess();
 
-  // Filter all features according to permissions & system roles
+  // Filter all features according to standalone permissions.
   const authorizedFeatures = useMemo(() => {
     if (permsLoading) return [];
-    const all = getAllFeatures();
-    return filterFeatures(all, hasAnyPermission, user?.system_roles ?? []);
-  }, [permsLoading, hasAnyPermission, user?.system_roles]);
+    return filterFeatures(getAllFeatures(), hasAnyPermission);
+  }, [permsLoading, hasAnyPermission]);
 
   // App-category features
   const appFeatures = useMemo(
@@ -63,15 +60,8 @@ export function DsmLauncherOverlay({ isOpen, onClose }: DsmLauncherOverlayProps)
     [authorizedFeatures],
   );
 
-  // Setting-category features
-  const settingFeatures = useMemo(
-    () => authorizedFeatures.filter((f) => f.category === "setting"),
-    [authorizedFeatures],
-  );
-  // Unified Grid features: all accessible apps and settings
-  const gridFeatures = useMemo(() => {
-    return [...appFeatures, ...settingFeatures];
-  }, [appFeatures, settingFeatures]);
+  // Launcher owns app and action shortcuts; Settings Hub owns settings navigation.
+  const gridFeatures = appFeatures;
 
   // Quick Access apps
   const quickAccessApps = useMemo(() => {
@@ -79,6 +69,7 @@ export function DsmLauncherOverlay({ isOpen, onClose }: DsmLauncherOverlayProps)
       .map((id) => appFeatures.find((f) => f.id === `app-${id}`))
       .filter(Boolean) as FeatureItem[];
   }, [top3, appFeatures]);
+
   // Search state and diacritic-normalized filtering
   const isSearching = search.trim().length > 0;
 
@@ -102,12 +93,7 @@ export function DsmLauncherOverlay({ isOpen, onClose }: DsmLauncherOverlayProps)
     [actionFeatures, searchFilter],
   );
 
-  const displayedSettings = useMemo(
-    () => settingFeatures.filter(searchFilter),
-    [settingFeatures, searchFilter],
-  );
-
-  const totalResults = displayedApps.length + displayedActions.length + displayedSettings.length;
+  const totalResults = displayedApps.length + displayedActions.length;
   // Handle selecting an item
   const handleSelectItem = useCallback(
     (item: FeatureItem) => {
@@ -252,11 +238,11 @@ export function DsmLauncherOverlay({ isOpen, onClose }: DsmLauncherOverlayProps)
                       </div>
                     )}
 
-                    {/* Unified Applications & Settings Grid */}
+                    {/* Applications and the Settings Hub entry */}
                     <div data-testid="dsm-all-apps-section" className="space-y-4">
                       <div className="flex items-center gap-2 text-xs font-bold tracking-wider text-slate-400 uppercase">
                         <Layers className="w-4 h-4 text-primary-400" />
-                        <span>{t("appLauncher.allAppsAndSettings", "Tất cả ứng dụng & Cài đặt")}</span>
+                        <span>{t("appLauncher.allApps", "Tất cả ứng dụng")}</span>
                         <span className="text-xs font-normal text-slate-500">
                           ({gridFeatures.length})
                         </span>
@@ -326,24 +312,6 @@ export function DsmLauncherOverlay({ isOpen, onClose }: DsmLauncherOverlayProps)
                               >
                                 <div className="space-y-1">
                                   {displayedActions.map((item) => (
-                                    <DsmSearchItem
-                                      key={item.id}
-                                      item={item}
-                                      onSelect={handleSelectItem}
-                                    />
-                                  ))}
-                                </div>
-                              </Command.Group>
-                            )}
-
-                            {/* Settings Group */}
-                            {displayedSettings.length > 0 && (
-                              <Command.Group
-                                heading="Cài đặt & Cấu hình"
-                                className="[&_[cmdk-group-heading]]:text-xs [&_[cmdk-group-heading]]:font-bold [&_[cmdk-group-heading]]:text-purple-400 [&_[cmdk-group-heading]]:uppercase [&_[cmdk-group-heading]]:tracking-wider [&_[cmdk-group-heading]]:px-3 [&_[cmdk-group-heading]]:py-1.5"
-                              >
-                                <div className="space-y-1">
-                                  {displayedSettings.map((item) => (
                                     <DsmSearchItem
                                       key={item.id}
                                       item={item}
