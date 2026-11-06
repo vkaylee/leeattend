@@ -5,6 +5,7 @@ import React from "react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 import { useWorkerMonitor, useWorkerJobs } from "@/hooks/use-worker-monitor";
+import type { WorkerMonitorStats } from "@/lib/api/types-monitoring";
 
 vi.mock("react-i18next", () => ({
     useTranslation: () => ({
@@ -41,6 +42,14 @@ vi.mock("@/hooks/use-monitor-charts", () => ({
         { status: "failed", count: 1, color: "#ef4444" },
     ],
 }));
+interface UseWorkerJobsTestMock {
+    data?: { pages: { jobs: unknown[]; next_cursor: string | null }[] };
+    jobs: unknown[];
+    hasNextPage: boolean;
+    fetchNextPage: () => void;
+    isFetchingNextPage: boolean;
+    isLoading: boolean;
+}
 
 const testMetric = (unit = "jobs") => ({
     value: 0,
@@ -395,5 +404,35 @@ describe("WorkerMonitorPage", () => {
 
         renderPage();
         expect(screen.getByText("Failed to load monitoring data. Retrying...")).toBeInTheDocument();
+    });
+
+    // --- Partial / Undefined Reliability Resilience ---
+    it("renders without crashing when reliability or task_type_reliability is undefined", async () => {
+        const partialData = {
+            ...mockMonitorData,
+            reliability: undefined,
+            task_type_reliability: undefined,
+        };
+        vi.mocked(useWorkerMonitor).mockReturnValue({
+            stats: partialData as unknown as WorkerMonitorStats,
+            workers: mockMonitorData.workers,
+            recentJobs: mockMonitorData.recent_jobs,
+            isLoading: false,
+            isFetching: false,
+            error: null,
+            refetch: vi.fn(),
+        });
+        vi.mocked(useWorkerJobs).mockReturnValue({
+            data: { pages: [{ jobs: mockMonitorData.recent_jobs, next_cursor: null }] },
+            jobs: mockMonitorData.recent_jobs,
+            hasNextPage: false,
+            fetchNextPage: vi.fn(),
+            isFetchingNextPage: false,
+            isLoading: false,
+        } as unknown as UseWorkerJobsTestMock);
+        renderPage();
+        expect(screen.getByText("Queue health")).toBeInTheDocument();
+        // Should not crash even without reliability section
+        expect(screen.queryByText("Job reliability")).not.toBeInTheDocument();
     });
 });

@@ -63,15 +63,15 @@ export function useLeaveRequests(wsId: string | null) {
       });
     },
     getNextPageParam: (lastPage, allPages) => {
-      const totalLoaded = allPages.reduce((sum, p) => sum + (p.data.length || 0), 0);
-      return totalLoaded >= (lastPage.total || 0) ? undefined : allPages.length + 1;
+      const totalLoaded = allPages.reduce((sum, p) => sum + (p?.data?.length || 0), 0);
+      return totalLoaded >= (lastPage?.total || 0) ? undefined : allPages.length + 1;
     },
     initialPageParam: 1,
     enabled: !!wsId && activeTab !== "behalf_assignments",
   });
 
   const requests = useMemo(
-    () => paginatedRequests?.pages.flatMap((p) => p.data) ?? [],
+    () => paginatedRequests?.pages.flatMap((p) => p?.data ?? []) ?? [],
     [paginatedRequests]
   );
   const requestsTotal = paginatedRequests?.pages[0]?.total ?? 0;

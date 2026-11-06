@@ -260,6 +260,29 @@ func TestMonitorOverview_Auth(t *testing.T) {
 		t.Fatalf("expected 200 for unified admin, got %d", w.Code)
 	}
 }
+func TestMonitorOverview_BuildOperationalSnapshot(t *testing.T) {
+	handler := MonitorHandler{}
+	snapshot, err := handler.buildOperationalSnapshot(context.Background())
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if snapshot.Reliability == nil {
+		t.Fatalf("expected snapshot.Reliability to be non-nil")
+	}
+	if snapshot.Reliability.SuccessRate.Value == nil || *snapshot.Reliability.SuccessRate.Value < 0 {
+		t.Fatalf("expected valid success_rate metric value")
+	}
+	if snapshot.Reliability.FailureRate.Value == nil || *snapshot.Reliability.FailureRate.Value < 0 {
+		t.Fatalf("expected valid failure_rate metric value")
+	}
+	if snapshot.Reliability.ConsecutiveFailures.Value == nil {
+		t.Fatalf("expected valid consecutive_failures metric value")
+	}
+	if snapshot.QueueHealth.DepthTotal.Value == nil {
+		t.Fatalf("expected valid depth_total metric value")
+	}
+}
+
 
 func TestMonitorJobs_Validation(t *testing.T) {
 	roles := &mockMonitorRoles{roles: make(map[uuid.UUID][]string)}

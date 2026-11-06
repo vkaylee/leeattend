@@ -31,6 +31,16 @@ function buildVersionPlugin(): Plugin {
   const buildHash = getBuildHash();
   return {
     name: "build-version",
+    configureServer(server) {
+      server.middlewares.use((req, res, next) => {
+        if (req.url && req.url.split("?")[0] === "/version.json") {
+          res.setHeader("Content-Type", "application/json");
+          res.end(`${JSON.stringify({ buildId: buildHash })}\n`);
+          return;
+        }
+        next();
+      });
+    },
     transformIndexHtml(html) {
       return html.replace(
         "</head>",

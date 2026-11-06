@@ -1725,7 +1725,7 @@ WHERE h.period = $8`
 	if cur.eligibleDays > 0 {
 		rate := decimal.NewFromInt(cur.presentDays).Div(decimal.NewFromInt(cur.eligibleDays)).Mul(decimal.NewFromInt(100))
 		target := decimal.NewFromInt(95)
-		health := "healthy"
+		health := "ok"
 		if rate.LessThan(target) {
 			health = "warning"
 		}
@@ -1764,7 +1764,7 @@ WHERE h.period = $8`
 	if cur.eligibleDays > 0 {
 		rate := decimal.NewFromInt(cur.absentDays).Div(decimal.NewFromInt(cur.eligibleDays)).Mul(decimal.NewFromInt(100))
 		target := decimal.NewFromInt(5)
-		health := "healthy"
+		health := "ok"
 		if rate.GreaterThan(target) {
 			health = "warning"
 		}
@@ -1818,7 +1818,7 @@ WHERE h.period = $8`
 	if meanHc > 0 {
 		rate := decimal.NewFromInt(cur.terminations).Div(decimal.NewFromInt(meanHc)).Mul(decimal.NewFromInt(100))
 		target := decimal.NewFromInt(15)
-		health := "healthy"
+		health := "ok"
 		if rate.GreaterThan(target) {
 			health = "warning"
 		}

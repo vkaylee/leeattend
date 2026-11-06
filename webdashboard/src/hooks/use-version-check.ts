@@ -74,17 +74,25 @@ function clearReloadAttempt(): void {
 
 /** Extract and validate build ID from manifest JSON response. */
 async function fetchServerBuildId(): Promise<string | null> {
-  const res = await fetch(`/version.json?_v=${Date.now()}`, {
-    method: "GET",
-    cache: "no-store",
-    headers: { "Cache-Control": "no-cache" },
-  });
-  if (!res.ok) return null;
-  const manifest = await res.json() as { buildId?: unknown };
-  if (typeof manifest.buildId === "string" && manifest.buildId.length > 0) {
-    return manifest.buildId;
+  try {
+    const res = await fetch(`/version.json?_v=${Date.now()}`, {
+      method: "GET",
+      cache: "no-store",
+      headers: { "Cache-Control": "no-cache" },
+    });
+    if (!res.ok) return null;
+    const contentType = res.headers?.get?.("content-type");
+    if (contentType && !contentType.includes("application/json")) {
+      return null;
+    }
+    const manifest = (await res.json()) as { buildId?: unknown };
+    if (typeof manifest?.buildId === "string" && manifest.buildId.length > 0) {
+      return manifest.buildId;
+    }
+    return null;
+  } catch {
+    return null;
   }
-  return null;
 }
 
 export function useVersionCheck() {

@@ -25,8 +25,10 @@ export const dashboardMetricStatusSchema = z.enum([
 
 export const dashboardMetricHealthSchema = z.enum([
   "ok",
+  "healthy",
   "warning",
   "critical",
+  "neutral",
   "not_applicable",
   "data_gap",
 ]);

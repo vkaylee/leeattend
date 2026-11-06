@@ -273,14 +273,24 @@ function JobTypeStatsSection({ jobTypeStats, t }: JobTypeStatsSectionProps) {
 
 interface MonitorMetricCardProps {
   label: string;
-  metric: { value?: number | null; unit: string; formula: string; source: string; observed_at: string; time_window: { start: string; end: string; duration_seconds: number }; unknown?: { reason: string } | null };
+  metric?: { value?: number | null; unit?: string; formula?: string; source?: string; observed_at?: string; time_window?: { start?: string; end?: string; duration_seconds?: number }; unknown?: { reason: string } | null };
   t: TFunction;
 }
 
 function MonitorMetricCard({ label, metric, t }: MonitorMetricCardProps) {
+  if (!metric) {
+    return (
+      <div className="rounded-2xl border border-slate-100 bg-slate-50/80 p-4 dark:border-slate-800 dark:bg-slate-800/40">
+        <div className="text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500">{label}</div>
+        <div className="mt-2 text-xl font-black tabular-nums text-slate-700 dark:text-slate-200">
+          {t("monitor.metric_unavailable", { defaultValue: "Unavailable" })}
+        </div>
+      </div>
+    );
+  }
   const value = metric.value === null || metric.value === undefined
     ? t("monitor.metric_unavailable", { defaultValue: "Unavailable" })
-    : `${metric.value} ${metric.unit}`;
+    : `${metric.value} ${metric.unit || ""}`.trim();
   return (
     <div className="rounded-2xl border border-slate-100 bg-slate-50/80 p-4 dark:border-slate-800 dark:bg-slate-800/40">
       <div className="text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500">{label}</div>
@@ -289,9 +299,9 @@ function MonitorMetricCard({ label, metric, t }: MonitorMetricCardProps) {
       <details className="mt-2 text-[10px] text-slate-400 dark:text-slate-500">
         <summary className="cursor-pointer">{t("monitor.metric_details", { defaultValue: "Metric details" })}</summary>
         <div className="mt-1 space-y-0.5">
-          <div>{metric.formula}</div>
-          <div>{metric.source}</div>
-          <div>{metric.time_window.duration_seconds}s window · {formatSnapshotObservedAt(metric.observed_at)}</div>
+          {metric.formula ? <div>{metric.formula}</div> : null}
+          {metric.source ? <div>{metric.source}</div> : null}
+          {metric.time_window && metric.observed_at ? <div>{metric.time_window.duration_seconds}s window · {formatSnapshotObservedAt(metric.observed_at)}</div> : null}
         </div>
       </details>
     </div>
@@ -301,7 +311,7 @@ function MonitorMetricCard({ label, metric, t }: MonitorMetricCardProps) {
 function OperationalMetricsSections({ stats, t }: { stats: WorkerMonitorStats; t: TFunction }) {
   const queue = stats.queue_health;
   const reliability = stats.reliability;
-  const queueMetrics = [
+  const queueMetrics = queue ? [
     [t("monitor.queue_depth_total", { defaultValue: "Queue depth" }), queue.depth_total],
     [t("monitor.oldest_queued_age", { defaultValue: "Oldest queued age" }), queue.oldest_queued_age_seconds],
     [t("monitor.enqueue_rate", { defaultValue: "Enqueue rate" }), queue.enqueue_rate_per_second],
@@ -310,8 +320,8 @@ function OperationalMetricsSections({ stats, t }: { stats: WorkerMonitorStats; t
     [t("monitor.estimated_drain", { defaultValue: "Estimated drain" }), queue.estimated_drain_seconds],
     [t("monitor.queue_wait_p50", { defaultValue: "Queue wait p50" }), queue.queue_wait_seconds_p50],
     [t("monitor.dead_letter_depth", { defaultValue: "Dead-letter depth" }), queue.dead_letter_depth],
-  ] as const;
-  const reliabilityMetrics = [
+  ] : [];
+  const reliabilityMetrics = reliability ? [
     [t("monitor.success_rate", { defaultValue: "Success rate" }), reliability.success_rate],
     [t("monitor.failure_rate", { defaultValue: "Failure rate" }), reliability.failure_rate],
     [t("monitor.consecutive_failures", { defaultValue: "Consecutive failures" }), reliability.consecutive_failures],
@@ -320,7 +330,7 @@ function OperationalMetricsSections({ stats, t }: { stats: WorkerMonitorStats; t
     [t("monitor.lost_count", { defaultValue: "Lost" }), reliability.lost_count],
     [t("monitor.timeout_count", { defaultValue: "Timeouts" }), reliability.timeout_count],
     [t("monitor.execution_p95", { defaultValue: "Execution p95" }), reliability.execution_seconds_p95],
-  ] as const;
+  ] : [];
   const oldestJobs: {
     label: string;
     job: WorkerMonitorStats["oldest_queued_job"];
@@ -343,12 +353,14 @@ function OperationalMetricsSections({ stats, t }: { stats: WorkerMonitorStats; t
           {queueMetrics.map(([label, metric]) => <MonitorMetricCard key={label} label={label} metric={metric} t={t} />)}
         </div>
       </section>
-      <section aria-label={t("monitor.job_reliability", { defaultValue: "Job reliability" })} className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:p-6">
-        <Typography className="mb-4 text-lg font-bold uppercase tracking-tight text-slate-700 dark:text-slate-200" variant="h4">{t("monitor.job_reliability", { defaultValue: "Job reliability" })}</Typography>
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          {reliabilityMetrics.map(([label, metric]) => <MonitorMetricCard key={label} label={label} metric={metric} t={t} />)}
-        </div>
-      </section>
+      {reliability && (
+        <section aria-label={t("monitor.job_reliability", { defaultValue: "Job reliability" })} className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:p-6">
+          <Typography className="mb-4 text-lg font-bold uppercase tracking-tight text-slate-700 dark:text-slate-200" variant="h4">{t("monitor.job_reliability", { defaultValue: "Job reliability" })}</Typography>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            {reliabilityMetrics.map(([label, metric]) => <MonitorMetricCard key={label} label={label} metric={metric} t={t} />)}
+          </div>
+        </section>
+      )}
       </div>
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
         {oldestJobs.map(({ label, job }) => (
@@ -360,7 +372,7 @@ function OperationalMetricsSections({ stats, t }: { stats: WorkerMonitorStats; t
         <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
           <Typography className="text-[10px] font-bold uppercase tracking-widest text-slate-400" variant="h5">{t("monitor.task_type_reliability", { defaultValue: "Reliability by task type" })}</Typography>
           <div className="mt-3 space-y-2 text-sm text-slate-600 dark:text-slate-300">
-            {stats.task_type_reliability.length === 0 ? <span className="text-slate-400">{t("monitor.metric_unavailable", { defaultValue: "Unavailable" })}</span> : stats.task_type_reliability.slice(0, 5).map((item) => <div className="flex justify-between gap-3" key={item.task_type}><span>{item.task_type}</span><span>{item.success_rate.value === null || item.success_rate.value === undefined ? "—" : `${Math.round(item.success_rate.value * 100)}%`}</span></div>)}
+            {(!stats.task_type_reliability || stats.task_type_reliability.length === 0) ? <span className="text-slate-400">{t("monitor.metric_unavailable", { defaultValue: "Unavailable" })}</span> : stats.task_type_reliability.slice(0, 5).map((item) => <div className="flex justify-between gap-3" key={item.task_type}><span>{item.task_type}</span><span>{item.success_rate?.value === null || item.success_rate?.value === undefined ? "—" : `${Math.round(item.success_rate.value * 100)}%`}</span></div>)}
           </div>
         </div>
       </div>

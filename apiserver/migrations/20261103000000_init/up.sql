@@ -1583,7 +1583,9 @@ CREATE TABLE public.attendance_daily_summaries (
     early_ot_minutes integer DEFAULT 0 NOT NULL,
     late_ot_minutes integer DEFAULT 0 NOT NULL,
     break_ot_minutes integer DEFAULT 0 NOT NULL,
-    is_weekend boolean DEFAULT false NOT NULL
+    is_weekend boolean DEFAULT false NOT NULL,
+    late_minutes integer DEFAULT 0 NOT NULL,
+    early_departure_minutes integer DEFAULT 0 NOT NULL
 );
 
 --

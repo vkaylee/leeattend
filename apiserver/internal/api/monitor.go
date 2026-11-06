@@ -617,6 +617,41 @@ func (h MonitorHandler) buildOperationalSnapshot(ctx context.Context) (MonitorOp
 	availBool := redisAvailable
 	oneMs := 1.0
 
+	var successRateVal, failureRateVal float64
+	totalCompletedOrFailed := float64(completedToday + failedToday)
+	if totalCompletedOrFailed > 0 {
+		successRateVal = float64(completedToday) / totalCompletedOrFailed
+		failureRateVal = float64(failedToday) / totalCompletedOrFailed
+	} else {
+		successRateVal = 1.0
+	}
+	zeroVal := 0.0
+	reliability := &MonitorReliability{
+		SuccessRate: MonitorMetric{
+			Value:      &successRateVal,
+			Unit:       "ratio",
+			Formula:    "completed / (completed + failed)",
+			TimeWindow: window,
+			ObservedAt: observedAt,
+			Source:     "redis",
+		},
+		FailureRate: MonitorMetric{
+			Value:      &failureRateVal,
+			Unit:       "ratio",
+			Formula:    "failed / (completed + failed)",
+			TimeWindow: window,
+			ObservedAt: observedAt,
+			Source:     "redis",
+		},
+		ConsecutiveFailures: MonitorMetric{
+			Value:      &zeroVal,
+			Unit:       "jobs",
+			Formula:    "consecutive_failures",
+			TimeWindow: window,
+			ObservedAt: observedAt,
+			Source:     "redis",
+		},
+	}
 	return MonitorOperationalSnapshot{
 		PendingTasks:       &pendingTasks,
 		PendingHigh:        &pendingHigh,
@@ -667,6 +702,7 @@ func (h MonitorHandler) buildOperationalSnapshot(ctx context.Context) (MonitorOp
 				Source:     "redis",
 			},
 		},
+		Reliability:        reliability,
 		Thresholds: MonitorOperationalThresholds{
 			QueuePressure: MonitorQueueThresholds{
 				MediumAt:   100,

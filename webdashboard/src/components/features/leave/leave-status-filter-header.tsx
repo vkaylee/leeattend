@@ -15,8 +15,7 @@ export function LeaveStatusFilterHeader({ statusFilter, setStatusFilter }: Leave
   const { t } = useTranslation();
 
   return (
-    <th className="py-6 text-[10px] font-bold uppercase tracking-[0.25em] text-center px-8" key="status-header">
-      <div className="flex justify-center">
+    <div className="flex justify-center" key="status-header">
         <FilterPanel
           container="dropdown"
           data-testid="leave-status-filter"
@@ -41,7 +40,6 @@ export function LeaveStatusFilterHeader({ statusFilter, setStatusFilter }: Leave
             />
           }
         />
-      </div>
-    </th>
+    </div>
   );
 }

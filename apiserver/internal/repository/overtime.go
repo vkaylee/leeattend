@@ -395,9 +395,15 @@ func (r OvertimeRepository) GetEmployee(ctx context.Context, ws, id uuid.UUID) (
 		return api.EmployeeRecord{}, err
 	}
 	var record api.EmployeeRecord
+	var createdAt, updatedAt time.Time
 	err = db.QueryRow(ctx, `SELECT e.id, e.workspace_id, e.user_id, e.full_name, e.employee_id_number, e.tags, e.created_at, e.updated_at, NULL::text, (SELECT em.id FROM employments em WHERE em.workspace_id = e.workspace_id AND em.employee_id = e.id AND em.status = 'active' AND em.deleted_at IS NULL ORDER BY em.start_date DESC LIMIT 1), NULL::uuid, NULL::uuid FROM employees e WHERE e.id = $1 AND e.workspace_id = $2 AND e.deleted_at IS NULL`, id, ws).
-		Scan(&record.ID, &record.WorkspaceID, &record.UserID, &record.FullName, &record.EmployeeIDNumber, &record.Tags, &record.CreatedAt, &record.UpdatedAt, &record.DepartmentName, &record.ActiveEmploymentID, &record.EmployerID, &record.PrimaryLocationID)
-	return record, err
+		Scan(&record.ID, &record.WorkspaceID, &record.UserID, &record.FullName, &record.EmployeeIDNumber, &record.Tags, &createdAt, &updatedAt, &record.DepartmentName, &record.ActiveEmploymentID, &record.EmployerID, &record.PrimaryLocationID)
+	if err != nil {
+		return api.EmployeeRecord{}, err
+	}
+	record.CreatedAt = createdAt.UTC().Format(time.RFC3339)
+	record.UpdatedAt = updatedAt.UTC().Format(time.RFC3339)
+	return record, nil
 }
 
 // EmployeeDepartmentID resolves the target department for scoped OvertimeApprove checks.

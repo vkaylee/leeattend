@@ -100,4 +100,11 @@ describe("dashboard metric contract", () => {
   it("rejects unknown fields at contract boundary", () => {
     expect(dashboardMetricSchema.safeParse({ ...metric, extra: true }).success).toBe(false);
   });
+
+  it("accepts valid health values including neutral and healthy", () => {
+    for (const health of ["ok", "healthy", "warning", "critical", "neutral", "not_applicable", "data_gap"] as const) {
+      const result = dashboardMetricSchema.safeParse({ ...metric, health });
+      expect(result.success).toBe(true);
+    }
+  });
 });

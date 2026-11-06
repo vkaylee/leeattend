@@ -5,7 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
-
+	"time"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/vkaylee/leeattend/apiserver/internal/api"
@@ -28,10 +28,13 @@ func (r EmployeeRepository) CreateEmployee(ctx context.Context, workspaceID uuid
 		return api.EmployeeRecord{}, err
 	}
 	var record api.EmployeeRecord
-	err = db.QueryRow(ctx, `INSERT INTO employees (workspace_id, employee_id_number, full_name, tags) VALUES ($1, $2, $3, $4) RETURNING id, workspace_id, user_id, full_name, employee_id_number, tags, created_at, updated_at`, workspaceID, req.EmployeeIDNumber, strings.TrimSpace(req.FullName), req.Tags).Scan(&record.ID, &record.WorkspaceID, &record.UserID, &record.FullName, &record.EmployeeIDNumber, &record.Tags, &record.CreatedAt, &record.UpdatedAt)
+	var createdAt, updatedAt time.Time
+	err = db.QueryRow(ctx, `INSERT INTO employees (workspace_id, employee_id_number, full_name, tags) VALUES ($1, $2, $3, $4) RETURNING id, workspace_id, user_id, full_name, employee_id_number, tags, created_at, updated_at`, workspaceID, req.EmployeeIDNumber, strings.TrimSpace(req.FullName), req.Tags).Scan(&record.ID, &record.WorkspaceID, &record.UserID, &record.FullName, &record.EmployeeIDNumber, &record.Tags, &createdAt, &updatedAt)
 	if err != nil {
 		return api.EmployeeRecord{}, mapConstraintError(err)
 	}
+	record.CreatedAt = createdAt.UTC().Format(time.RFC3339)
+	record.UpdatedAt = updatedAt.UTC().Format(time.RFC3339)
 	return record, nil
 }
 
@@ -50,9 +53,12 @@ func (r EmployeeRepository) ListEmployees(ctx context.Context, workspaceID uuid.
 	result := api.EmployeeListResponse{Data: make([]api.EmployeeRecord, 0), Page: page, Limit: limit}
 	for rows.Next() {
 		var record api.EmployeeRecord
-		if err := rows.Scan(&record.ID, &record.WorkspaceID, &record.UserID, &record.FullName, &record.EmployeeIDNumber, &record.Tags, &record.CreatedAt, &record.UpdatedAt, &record.DepartmentName, &record.ActiveEmploymentID, &record.EmployerID, &record.PrimaryLocationID); err != nil {
+		var createdAt, updatedAt time.Time
+		if err := rows.Scan(&record.ID, &record.WorkspaceID, &record.UserID, &record.FullName, &record.EmployeeIDNumber, &record.Tags, &createdAt, &updatedAt, &record.DepartmentName, &record.ActiveEmploymentID, &record.EmployerID, &record.PrimaryLocationID); err != nil {
 			return api.EmployeeListResponse{}, err
 		}
+		record.CreatedAt = createdAt.UTC().Format(time.RFC3339)
+		record.UpdatedAt = updatedAt.UTC().Format(time.RFC3339)
 		result.Data = append(result.Data, record)
 	}
 	if err := rows.Err(); err != nil {
@@ -70,11 +76,14 @@ func (r EmployeeRepository) GetEmployee(ctx context.Context, workspaceID, employ
 		return api.EmployeeRecord{}, err
 	}
 	var record api.EmployeeRecord
+	var createdAt, updatedAt time.Time
 	err = db.QueryRow(ctx, `SELECT id, workspace_id, user_id, full_name, employee_id_number, tags, created_at, updated_at, NULL::text, NULL::uuid, NULL::uuid, NULL::uuid FROM employees WHERE id = $1 AND workspace_id = $2 AND deleted_at IS NULL`, employeeID, workspaceID).
-		Scan(&record.ID, &record.WorkspaceID, &record.UserID, &record.FullName, &record.EmployeeIDNumber, &record.Tags, &record.CreatedAt, &record.UpdatedAt, &record.DepartmentName, &record.ActiveEmploymentID, &record.EmployerID, &record.PrimaryLocationID)
+		Scan(&record.ID, &record.WorkspaceID, &record.UserID, &record.FullName, &record.EmployeeIDNumber, &record.Tags, &createdAt, &updatedAt, &record.DepartmentName, &record.ActiveEmploymentID, &record.EmployerID, &record.PrimaryLocationID)
 	if err != nil {
 		return api.EmployeeRecord{}, err
 	}
+	record.CreatedAt = createdAt.UTC().Format(time.RFC3339)
+	record.UpdatedAt = updatedAt.UTC().Format(time.RFC3339)
 	return record, nil
 }
 
@@ -116,10 +125,13 @@ func (r EmployeeRepository) UpdateEmployee(ctx context.Context, workspaceID, emp
 	wsIdx := len(args)
 	query := fmt.Sprintf(`UPDATE employees SET %s WHERE id = $%d AND workspace_id = $%d AND deleted_at IS NULL RETURNING id, workspace_id, user_id, full_name, employee_id_number, tags, created_at, updated_at`, strings.Join(sets, ", "), idIdx, wsIdx)
 	var record api.EmployeeRecord
-	err = db.QueryRow(ctx, query, args...).Scan(&record.ID, &record.WorkspaceID, &record.UserID, &record.FullName, &record.EmployeeIDNumber, &record.Tags, &record.CreatedAt, &record.UpdatedAt)
+	var createdAt, updatedAt time.Time
+	err = db.QueryRow(ctx, query, args...).Scan(&record.ID, &record.WorkspaceID, &record.UserID, &record.FullName, &record.EmployeeIDNumber, &record.Tags, &createdAt, &updatedAt)
 	if err != nil {
 		return api.EmployeeRecord{}, mapConstraintError(err)
 	}
+	record.CreatedAt = createdAt.UTC().Format(time.RFC3339)
+	record.UpdatedAt = updatedAt.UTC().Format(time.RFC3339)
 	return record, nil
 }
 
@@ -144,6 +156,12 @@ func (r EmployeeRepository) RehireEmployee(ctx context.Context, workspaceID, emp
 		return api.EmployeeRecord{}, err
 	}
 	var record api.EmployeeRecord
-	err = db.QueryRow(ctx, `UPDATE employees SET deleted_at = NULL, updated_at = CURRENT_TIMESTAMP WHERE id = $1 AND workspace_id = $2 RETURNING id, workspace_id, user_id, full_name, employee_id_number, tags, created_at, updated_at`, employeeID, workspaceID).Scan(&record.ID, &record.WorkspaceID, &record.UserID, &record.FullName, &record.EmployeeIDNumber, &record.Tags, &record.CreatedAt, &record.UpdatedAt)
-	return record, err
+	var createdAt, updatedAt time.Time
+	err = db.QueryRow(ctx, `UPDATE employees SET deleted_at = NULL, updated_at = CURRENT_TIMESTAMP WHERE id = $1 AND workspace_id = $2 RETURNING id, workspace_id, user_id, full_name, employee_id_number, tags, created_at, updated_at`, employeeID, workspaceID).Scan(&record.ID, &record.WorkspaceID, &record.UserID, &record.FullName, &record.EmployeeIDNumber, &record.Tags, &createdAt, &updatedAt)
+	if err != nil {
+		return api.EmployeeRecord{}, err
+	}
+	record.CreatedAt = createdAt.UTC().Format(time.RFC3339)
+	record.UpdatedAt = updatedAt.UTC().Format(time.RFC3339)
+	return record, nil
 }

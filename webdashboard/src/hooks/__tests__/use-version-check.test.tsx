@@ -252,4 +252,20 @@ describe("useVersionCheck", () => {
     await fireCheck();
     expect(result.current.hasNewVersion).toBe(false);
   });
+
+  it("gracefully handles HTML fallback response with non-JSON content-type", async () => {
+    vi.mocked(globalThis.fetch).mockResolvedValue({
+      ok: true,
+      headers: {
+        get: (header: string) => (header.toLowerCase() === "content-type" ? "text/html; charset=utf-8" : null),
+      },
+      json: () => Promise.reject(new SyntaxError("Unexpected token < in JSON")),
+    } as unknown as Response);
+
+    const { result } = renderHook(() => useVersionCheck());
+
+    await flush();
+    await fireCheck();
+    expect(result.current.hasNewVersion).toBe(false);
+  });
 });
