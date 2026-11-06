@@ -80,6 +80,18 @@ describe("DsmLauncherOverlay", () => {
     expect(mockNavigate).toHaveBeenCalledWith({ to: "/" });
     expect(handleClose).toHaveBeenCalled();
   });
+  it("renders setting hub items directly in the main grid and allows clicking them", () => {
+    const handleClose = vi.fn();
+    render(<DsmLauncherOverlay isOpen={true} onClose={handleClose} />);
+
+    const generalSettingIcon = screen.getByTestId("dsm-setting-general");
+    expect(generalSettingIcon).toBeInTheDocument();
+
+    fireEvent.click(generalSettingIcon);
+    expect(mockNavigate).toHaveBeenCalledWith({ to: "/workspace/settings/general" });
+    expect(handleClose).toHaveBeenCalled();
+  });
+
 
   it("switches to search view when typing in search input", async () => {
     const user = userEvent.setup();

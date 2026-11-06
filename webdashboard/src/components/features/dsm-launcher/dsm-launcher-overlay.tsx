@@ -68,6 +68,10 @@ export function DsmLauncherOverlay({ isOpen, onClose }: DsmLauncherOverlayProps)
     () => authorizedFeatures.filter((f) => f.category === "setting"),
     [authorizedFeatures],
   );
+  // Unified Grid features: all accessible apps and settings
+  const gridFeatures = useMemo(() => {
+    return [...appFeatures, ...settingFeatures];
+  }, [appFeatures, settingFeatures]);
 
   // Quick Access apps
   const quickAccessApps = useMemo(() => {
@@ -246,18 +250,18 @@ export function DsmLauncherOverlay({ isOpen, onClose }: DsmLauncherOverlayProps)
                       </div>
                     )}
 
-                    {/* All Applications Grid */}
+                    {/* Unified Applications & Settings Grid */}
                     <div data-testid="dsm-all-apps-section" className="space-y-4">
                       <div className="flex items-center gap-2 text-xs font-bold tracking-wider text-slate-400 uppercase">
                         <Layers className="w-4 h-4 text-primary-400" />
-                        <span>{t("appLauncher.allApps", "Tất cả ứng dụng")}</span>
+                        <span>{t("appLauncher.allAppsAndSettings", "Tất cả ứng dụng & Cài đặt")}</span>
                         <span className="text-xs font-normal text-slate-500">
-                          ({appFeatures.length})
+                          ({gridFeatures.length})
                         </span>
                       </div>
 
                       <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-7 xl:grid-cols-8 gap-6 sm:gap-8 lg:gap-10 justify-items-center py-4">
-                        {appFeatures.map((item) => (
+                        {gridFeatures.map((item) => (
                           <DsmSquircleIcon
                             key={item.id}
                             item={item}
