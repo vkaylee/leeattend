@@ -19,6 +19,7 @@ import (
 type SystemRoleType string
 
 const (
+	SystemRoleAdmin         SystemRoleType = "admin"
 	SystemRolePlatformAdmin SystemRoleType = "platform_admin"
 	SystemRoleSupport       SystemRoleType = "support"
 	SystemRoleBillingAdmin  SystemRoleType = "billing_admin"
@@ -26,6 +27,8 @@ const (
 
 func ParseSystemRoleType(raw string) (SystemRoleType, bool) {
 	switch raw {
+	case "admin":
+		return SystemRoleAdmin, true
 	case "platform_admin":
 		return SystemRolePlatformAdmin, true
 	case "support":
@@ -108,7 +111,7 @@ func (h SystemAdminHandler) requirePlatformAdmin(r *http.Request) (uuid.UUID, *a
 		return uuid.Nil, apperror.Internal(err)
 	}
 	for _, role := range roles {
-		if role == "platform_admin" {
+		if role == "admin" || role == "platform_admin" {
 			return userID, nil
 		}
 	}

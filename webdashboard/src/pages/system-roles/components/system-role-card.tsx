@@ -26,12 +26,14 @@ interface SystemRoleCardProps {
 }
 
 const roleDescriptions: Record<string, string> = {
+  admin: "system_roles.descriptions.platform_admin",
   billing_admin: "system_roles.descriptions.billing_admin",
   platform_admin: "system_roles.descriptions.platform_admin",
   support: "system_roles.descriptions.support",
 };
 
 const roleIcons: Record<string, React.ElementType> = {
+  admin: ShieldAlert,
   billing_admin: ShieldHalf,
   platform_admin: ShieldAlert,
   support: ShieldCheck,

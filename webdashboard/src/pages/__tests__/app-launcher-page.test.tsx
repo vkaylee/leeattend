@@ -216,6 +216,14 @@ describe("AppLauncherPage", () => {
     expect(screen.getByTestId("app-card-infra-monitor")).toBeInTheDocument();
   });
 
+  it("shows system items for unified admin", () => {
+    mockSystemRoles = ["admin"];
+    render(<AppLauncherPage />, { wrapper: Wrapper });
+
+    expect(screen.getByTestId("app-card-system-roles")).toBeInTheDocument();
+    expect(screen.getByTestId("app-card-infra-monitor")).toBeInTheDocument();
+  });
+
   it("shows ESS apps only when user has corresponding permissions", () => {
     activePermissions.add("ess:profile");
     activePermissions.add("ess:attendance");

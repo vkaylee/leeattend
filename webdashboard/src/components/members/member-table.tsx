@@ -101,7 +101,7 @@ function MemberMobileCard({
                 roleColorMap[primaryRole.color] || roleColorMap.slate
               )}
             >
-              {primaryRole.is_system && primaryRole.name.toLowerCase() === "owner" ? <Shield size={10} /> : null}
+              {primaryRole.is_system && (primaryRole.name.toLowerCase() === "admin" || primaryRole.name.toLowerCase() === "owner") ? <Shield size={10} /> : null}
               {primaryRole.name}
             </span>
           )}
@@ -177,7 +177,7 @@ function MemberRoleCell({ member, roles }: { member: WorkspaceMember; roles: Wor
           roleColorMap[primaryRole.color] || roleColorMap.slate
         )}
       >
-        {primaryRole.is_system && primaryRole.name.toLowerCase() === "owner" ? <Shield size={10} /> : null}
+        {primaryRole.is_system && (primaryRole.name.toLowerCase() === "admin" || primaryRole.name.toLowerCase() === "owner") ? <Shield size={10} /> : null}
         {primaryRole.name}
       </span>
 

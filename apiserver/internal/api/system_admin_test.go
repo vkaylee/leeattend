@@ -42,14 +42,14 @@ func (m *mockSystemAdminMock) AssignSystemRole(_ context.Context, userID, _ uuid
 }
 
 func (m *mockSystemAdminMock) RevokeSystemRole(_ context.Context, userID uuid.UUID, role string) error {
-	if role == "platform_admin" && m.countPlatformAdmins <= 1 {
+	if (role == "platform_admin" || role == "admin") && m.countPlatformAdmins <= 1 {
 		return ErrLastPlatformAdmin
 	}
 	roles := m.userRoles[userID]
 	for index, existing := range roles {
 		if existing == role {
 			m.userRoles[userID] = append(roles[:index], roles[index+1:]...)
-			if role == "platform_admin" {
+			if role == "platform_admin" || role == "admin" {
 				m.countPlatformAdmins--
 			}
 			return nil
@@ -160,5 +160,25 @@ func TestSystemAdminRoles(t *testing.T) {
 	handler.RevokeRole(record, request)
 	if record.Code != http.StatusBadRequest {
 		t.Fatalf("expected 400 when revoking last platform admin, got %d", record.Code)
+	}
+
+	// Test assigning and revoking unified admin role
+	request = adminRequest(http.MethodPost, "/api/v1/system/users/"+targetUser.String()+"/roles", `{"role_name":"admin"}`, adminID)
+	request.SetPathValue("user_id", targetUser.String())
+	record = httptest.NewRecorder()
+	handler.AssignRole(record, request)
+	if record.Code != http.StatusNoContent {
+		t.Fatalf("expected 204 when assigning admin role, got %d", record.Code)
+	}
+
+	mock.countPlatformAdmins = 1
+	mock.userRoles[targetUser] = []string{"admin"}
+	request = adminRequest(http.MethodDelete, "/api/v1/system/users/"+targetUser.String()+"/roles/admin", "", adminID)
+	request.SetPathValue("user_id", targetUser.String())
+	request.SetPathValue("role_name", "admin")
+	record = httptest.NewRecorder()
+	handler.RevokeRole(record, request)
+	if record.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400 when revoking last admin, got %d", record.Code)
 	}
 }

@@ -375,7 +375,7 @@ func (h MonitorHandler) requirePlatformAdminOrSupport(r *http.Request) (uuid.UUI
 		return uuid.Nil, apperror.Internal(err)
 	}
 	for _, role := range roles {
-		if role == "platform_admin" || role == "support" {
+		if role == "admin" || role == "platform_admin" || role == "support" {
 			return userID, nil
 		}
 	}
@@ -392,7 +392,7 @@ func (h MonitorHandler) requirePlatformAdminOnly(r *http.Request) (uuid.UUID, *a
 		return uuid.Nil, apperror.Internal(err)
 	}
 	for _, role := range roles {
-		if role == "platform_admin" {
+		if role == "admin" || role == "platform_admin" {
 			return userID, nil
 		}
 	}

@@ -256,7 +256,7 @@ export const APP_REGISTRY: AppDefinition[] = [
     descriptionKey: "appLauncher.descriptions.infra_monitor",
     to: ROUTES.INFRA_MONITOR,
     group: "system",
-    systemRoles: ["platform_admin", "support"],
+    systemRoles: ["admin", "platform_admin"],
     testId: "app-card-infra-monitor",
   },
   {
@@ -266,7 +266,7 @@ export const APP_REGISTRY: AppDefinition[] = [
     descriptionKey: "system_roles.subtitle",
     to: ROUTES.SYSTEM_ROLES,
     group: "system",
-    systemRoles: ["platform_admin"],
+    systemRoles: ["admin", "platform_admin"],
     testId: "app-card-system-roles",
   },
   {

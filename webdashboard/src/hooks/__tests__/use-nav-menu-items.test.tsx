@@ -163,6 +163,16 @@ describe("useFilteredMenuItems", () => {
     expect(systemGroup!.items.length).toBeGreaterThanOrEqual(1);
   });
 
+  it("shows system items for unified admin", () => {
+    mockSystemRoles = ["admin"];
+
+    const { result } = renderHook(() => useFilteredMenuItems(), { wrapper });
+
+    const systemGroup = result.current.groups.find((g) => g.section === "system");
+    expect(systemGroup).toBeDefined();
+    expect(systemGroup!.items.length).toBeGreaterThanOrEqual(1);
+  });
+
   it("hides system items for non-admin", () => {
     mockSystemRoles = [];
 

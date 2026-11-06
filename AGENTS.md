@@ -14,6 +14,12 @@ trigger: always_on
 - **Mindset:** Project Context is King. External skills serve the project, not the other way around. Leave the codebase cleaner than you found it (Boy Scout).
 </project_soul>
 
+## 🧪 Development Test Accounts
+- **Account reference:** `docs/dev-accounts.md`
+- Before authenticated UI/API testing, AI MUST read `docs/dev-accounts.md` and select the least-privileged account matching the scenario.
+- These credentials are development-only. NEVER use them against production, expose passwords in responses, or write credentials/tokens to logs, screenshots, commits, or test artifacts.
+- Mask account identifiers and PII in reports; use the account document only as an operational reference.
+
 ## 💎 Layer 0: CORE PRINCIPLES (The "Big Five")
 > These universal rules CANNOT be overridden by any external skill or lazy-loaded rule.
 1. **Enterprise Premium Standard:** EVERY feature MUST be production-ready (Skeleton loaders, Empty States, i18n, Rate Limiting, UUID validation).

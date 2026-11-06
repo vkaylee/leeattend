@@ -16,7 +16,7 @@ func (a WorkspaceAuthorizer) IsSystemAdmin(ctx context.Context, userID uuid.UUID
 		return false
 	}
 	var allowed bool
-	err := a.DB.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM user_system_roles usr JOIN system_roles sr ON sr.id = usr.role_id WHERE usr.user_id = $1 AND sr.name IN ('platform_admin', 'system_admin'))`, userID).Scan(&allowed)
+	err := a.DB.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM user_system_roles usr JOIN system_roles sr ON sr.id = usr.role_id WHERE usr.user_id = $1 AND sr.name IN ('admin', 'platform_admin', 'system_admin'))`, userID).Scan(&allowed)
 	return err == nil && allowed
 }
 

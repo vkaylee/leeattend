@@ -126,9 +126,9 @@ func (r SystemAdminRepository) RevokeSystemRole(ctx context.Context, userID uuid
 	if !ok {
 		return ErrSystemRoleUnknown
 	}
-	if parsed == api.SystemRolePlatformAdmin {
+	if parsed == api.SystemRoleAdmin || parsed == api.SystemRolePlatformAdmin {
 		var count int64
-		if err := r.DB.QueryRow(ctx, `SELECT COUNT(*) FROM user_system_roles usr JOIN system_roles sr ON sr.id = usr.role_id WHERE sr.name = 'platform_admin'`).Scan(&count); err != nil {
+		if err := r.DB.QueryRow(ctx, `SELECT COUNT(*) FROM user_system_roles usr JOIN system_roles sr ON sr.id = usr.role_id WHERE sr.name IN ('admin', 'platform_admin')`).Scan(&count); err != nil {
 			return err
 		}
 		if count <= 1 {

@@ -65,7 +65,7 @@ describe("APP_REGISTRY", () => {
     );
     expect(systemApps.length).toBeGreaterThanOrEqual(2);
     for (const app of systemApps) {
-      expect(app.systemRoles).toContain("platform_admin");
+      expect(app.systemRoles).toContain("admin");
     }
   });
 
@@ -203,10 +203,10 @@ describe("app filtering logic", () => {
     expect(visible.find((a) => a.id === "infra-monitor")).toBeDefined();
   });
 
-  it("support role sees infra-monitor", () => {
-    const visible = filterApps(APP_REGISTRY, [], ["support"]);
+  it("admin sees infra-monitor and system-roles", () => {
+    const visible = filterApps(APP_REGISTRY, [], ["admin"]);
 
     expect(visible.find((a) => a.id === "infra-monitor")).toBeDefined();
-    expect(visible.find((a) => a.id === "system-roles")).toBeUndefined();
+    expect(visible.find((a) => a.id === "system-roles")).toBeDefined();
   });
 });

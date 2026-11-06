@@ -38,7 +38,7 @@ func (h SystemHealthHandler) Get(w http.ResponseWriter, r *http.Request) {
 	allowed := false
 	for _, role := range roles {
 		switch role {
-		case "platform_admin":
+		case "admin", "platform_admin":
 			known = append(known, role)
 			allowed = true
 		case "support":

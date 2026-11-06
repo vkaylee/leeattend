@@ -209,7 +209,7 @@ func (r AuthRepository) CreateUserWithAdminCheck(ctx context.Context, user servi
 	}
 	isFirst := count == 0
 	if isFirst {
-		if _, err := tx.Exec(ctx, `INSERT INTO user_system_roles (user_id, role_id) SELECT $1, id FROM system_roles WHERE name = 'platform_admin'`, user.ID); err != nil {
+		if _, err := tx.Exec(ctx, `INSERT INTO user_system_roles (user_id, role_id) SELECT $1, id FROM system_roles WHERE name IN ('admin', 'platform_admin') ORDER BY (name = 'admin') DESC LIMIT 1`, user.ID); err != nil {
 			return false, fmt.Errorf("assign platform admin: %w", err)
 		}
 	}

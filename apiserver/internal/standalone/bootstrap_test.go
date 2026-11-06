@@ -105,6 +105,15 @@ func TestBootstrapInitializesSharedSchemaTransactionIdempotently(t *testing.T) {
 	if workspaceInserts != 1 || userInserts != 1 {
 		t.Fatalf("bootstrap was not idempotent: workspaces=%d users=%d", workspaceInserts, userInserts)
 	}
+	systemAdminAssigned := false
+	for _, sql := range tx.executed {
+		if strings.Contains(sql, "INSERT INTO user_system_roles") && strings.Contains(sql, "'admin'") {
+			systemAdminAssigned = true
+		}
+	}
+	if !systemAdminAssigned {
+		t.Fatalf("expected bootstrap to assign admin system role")
+	}
 }
 
 func TestEnsureDefaultRolesAndPermissions(t *testing.T) {

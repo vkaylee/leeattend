@@ -156,6 +156,11 @@ func (s AuthService) Refresh(ctx context.Context, refreshToken string) (AuthResp
 }
 
 func (s AuthService) issueSession(ctx context.Context, user UserRecord) (AuthResponse, error) {
+	if len(user.SystemRoles) == 0 && s.Repository != nil {
+		if roles, err := s.Repository.GetSystemRolesForUser(ctx, user.ID); err == nil && len(roles) > 0 {
+			user.SystemRoles = roles
+		}
+	}
 	accessTTL := s.AccessTTL
 	if accessTTL <= 0 {
 		accessTTL = auth.AccessTokenDuration

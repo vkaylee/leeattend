@@ -249,6 +249,16 @@ func TestMonitorOverview_Auth(t *testing.T) {
 	if w.Code != http.StatusOK {
 		t.Fatalf("expected 200, got %d", w.Code)
 	}
+
+	// 5. Unified Admin -> 200
+	userUnifiedAdmin := uuid.New()
+	roles.roles[userUnifiedAdmin] = []string{"admin"}
+	req = setReqContext(httptest.NewRequest(http.MethodGet, "/api/v1/monitor/overview", nil), userUnifiedAdmin)
+	w = httptest.NewRecorder()
+	handler.GetOverview(w, req)
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200 for unified admin, got %d", w.Code)
+	}
 }
 
 func TestMonitorJobs_Validation(t *testing.T) {
