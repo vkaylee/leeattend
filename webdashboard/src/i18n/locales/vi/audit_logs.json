@@ -1,0 +1,16 @@
+{
+  "audit_logs": {
+    "title": "Nhật ký kiểm toán",
+    "subtitle": "Theo dõi các sự kiện bảo mật và quản trị trong không gian làm việc của bạn.",
+    "section_title": "Sự kiện bảo mật",
+    "filters": {
+      "all_actions": "Tất cả hành động",
+      "start_date": "Từ ngày",
+      "end_date": "Đến ngày",
+      "groups": { "user_auth": "Người dùng & Xác thực", "roles_perms": "Vai trò & Quyền hạn", "domain": "Miền" }
+    },
+    "table": { "timestamp": "Thời gian", "action": "Hành động", "actor_target": "Tác nhân / Mục tiêu", "details": "Chi tiết", "context": "Ngữ cảnh" },
+    "messages": { "error_loading": "Lỗi khi tải nhật ký kiểm toán.", "no_logs": "Không tìm thấy nhật ký kiểm toán nào.", "no_details": "Không có chi tiết", "target": "Mục tiêu:", "system": "Hệ thống" },
+    "pagination": { "showing": "Đang hiển thị", "to": "đến", "of": "trên", "entries": "mục", "previous": "Trước", "next": "Sau" }
+  }
+}

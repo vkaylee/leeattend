@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { UserX } from "lucide-react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { TFunction } from "i18next";
@@ -20,7 +20,9 @@ import { toUTCISO } from "@/lib/datetime";
 
 import { HistoryTable } from "./components/history-table";
 import { MyClockSkeleton } from "./components/my-clock-skeleton";
-
+import { PunchGeofenceStatus } from "./components/punch-geofence-status";
+import { Shift24hTimeline } from "./components/shift-24h-timeline";
+import { TodayHoursSummary } from "./components/today-hours-summary";
 export default function MyClockPage() {
   const { t } = useTranslation();
   const toast = useToast();
@@ -43,9 +45,31 @@ export default function MyClockPage() {
     },
     queryKey: ["workspace", wsId],
   });
-
   const [isAdjustmentModalOpen, setIsAdjustmentModalOpen] = useState(false);
 
+  const todayStr = useMemo(() => new Date().toISOString().split("T")[0], []);
+
+  const todayPunches = useMemo(() => {
+    return (entries ?? [])
+      .filter((e) => e.punch_in_time.startsWith(todayStr))
+      .map((e) => ({
+        punchInTime: e.punch_in_time,
+        punchOutTime: e.punch_out_time,
+      }));
+  }, [entries, todayStr]);
+
+  const todayActualMinutes = useMemo(() => {
+    let total = 0;
+    const nowMs = Date.now();
+    for (const p of todayPunches) {
+      const inMs = new Date(p.punchInTime).getTime();
+      const outMs = p.punchOutTime ? new Date(p.punchOutTime).getTime() : nowMs;
+      if (outMs > inMs) {
+        total += Math.round((outMs - inMs) / 60000);
+      }
+    }
+    return total;
+  }, [todayPunches]);
   const handlePunch = async () => {
     try {
       await punch({});
@@ -87,6 +111,17 @@ export default function MyClockPage() {
   return (
     <PageContainer>
       <PageHeader data-testid="ess-clock-title" subtitle={t("ess.clock.subtitle")} title={t("ess.clock.title")} />
+
+      <PunchGeofenceStatus />
+
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <div className="lg:col-span-8">
+          <Shift24hTimeline actualPunches={todayPunches} />
+        </div>
+        <div className="lg:col-span-4">
+          <TodayHoursSummary actualMinutes={todayActualMinutes} />
+        </div>
+      </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         <div className="lg:col-span-5">

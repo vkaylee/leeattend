@@ -15,8 +15,8 @@ export const namespaces = [
   'leave',
   'monitor',
   'settings',
-  'system_roles',
   'custom_fields',
+  'audit_logs',
 ];
 
 export const lazyLoadBackend: BackendModule = {
@@ -90,9 +90,6 @@ const customT = (
   }
 
   let ns = key.split('.')[0];
-  if (["system_admin", "audit_logs", "rolesPage"].includes(ns)) {
-    ns = "system_roles";
-  }
   if (!namespaces.includes(ns)) {
     return originalT(key, optionsOrFallbackValue, options);
   }
