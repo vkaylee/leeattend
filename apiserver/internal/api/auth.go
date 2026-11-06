@@ -71,7 +71,7 @@ func (h AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		h.writeAuthError(w, r, err)
 		return
 	}
-	h.writeResponse(w, result)
+	h.writeResponse(w, r, result)
 }
 
 func (h AuthHandler) Refresh(w http.ResponseWriter, r *http.Request) {
@@ -88,7 +88,7 @@ func (h AuthHandler) Refresh(w http.ResponseWriter, r *http.Request) {
 		h.writeAuthError(w, r, err)
 		return
 	}
-	h.writeResponse(w, result)
+	h.writeResponse(w, r, result)
 }
 
 func (h AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
@@ -104,7 +104,7 @@ func (h AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
 			_ = h.Service.Repository.RevokeSession(r.Context(), session.ID, time.Now().UTC())
 		}
 	}
-	clearAuthCookies(w, h.CookieDomain)
+	clearAuthCookies(w, r, h.CookieDomain)
 	w.WriteHeader(http.StatusOK)
 }
 
@@ -239,12 +239,13 @@ func (h AuthHandler) WorkspaceUsers(w http.ResponseWriter, r *http.Request) {
 	apperror.WriteJSON(w, http.StatusOK, response)
 }
 
-func clearAuthCookies(w http.ResponseWriter, domain string) {
-	http.SetCookie(w, &http.Cookie{Name: "access_token", Value: "", Path: "/", Domain: domain, HttpOnly: true, SameSite: http.SameSiteNoneMode, MaxAge: -1})
-	http.SetCookie(w, &http.Cookie{Name: "refresh_token", Value: "", Path: "/", Domain: domain, HttpOnly: true, SameSite: http.SameSiteNoneMode, MaxAge: -1})
+func clearAuthCookies(w http.ResponseWriter, r *http.Request, domain string) {
+	secure, sameSite := authCookiePolicy(r)
+	http.SetCookie(w, &http.Cookie{Name: "access_token", Value: "", Path: "/", Domain: domain, HttpOnly: true, Secure: secure, SameSite: sameSite, MaxAge: -1})
+	http.SetCookie(w, &http.Cookie{Name: "refresh_token", Value: "", Path: "/", Domain: domain, HttpOnly: true, Secure: secure, SameSite: sameSite, MaxAge: -1})
 }
-func (h AuthHandler) writeResponse(w http.ResponseWriter, result service.AuthResponse) {
-	setAuthCookies(w, result.AccessToken, result.RefreshToken, h.CookieDomain)
+func (h AuthHandler) writeResponse(w http.ResponseWriter, r *http.Request, result service.AuthResponse) {
+	setAuthCookies(w, r, result.AccessToken, result.RefreshToken, h.CookieDomain)
 	apperror.WriteJSON(w, http.StatusOK, authResponse{AccessToken: result.AccessToken, RefreshToken: result.RefreshToken, User: toUserResponse(result.User)})
 }
 
@@ -318,7 +319,7 @@ func (h AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 		h.writeAuthError(w, r, err)
 		return
 	}
-	h.writeResponse(w, result)
+	h.writeResponse(w, r, result)
 }
 
 func (h AuthHandler) ForgotPassword(w http.ResponseWriter, r *http.Request) {
@@ -359,7 +360,17 @@ func (h AuthHandler) ChangePassword(w http.ResponseWriter, r *http.Request) {
 	}
 	w.WriteHeader(http.StatusOK)
 }
-func setAuthCookies(w http.ResponseWriter, accessToken, refreshToken, domain string) {
-	http.SetCookie(w, &http.Cookie{Name: "access_token", Value: accessToken, Path: "/", Domain: domain, HttpOnly: true, Secure: true, SameSite: http.SameSiteNoneMode, MaxAge: 900})
-	http.SetCookie(w, &http.Cookie{Name: "refresh_token", Value: refreshToken, Path: "/", Domain: domain, HttpOnly: true, Secure: true, SameSite: http.SameSiteNoneMode, MaxAge: 30 * 24 * 60 * 60})
+func setAuthCookies(w http.ResponseWriter, r *http.Request, accessToken, refreshToken, domain string) {
+	secure, sameSite := authCookiePolicy(r)
+	http.SetCookie(w, &http.Cookie{Name: "access_token", Value: accessToken, Path: "/", Domain: domain, HttpOnly: true, Secure: secure, SameSite: sameSite, MaxAge: 900})
+	http.SetCookie(w, &http.Cookie{Name: "refresh_token", Value: refreshToken, Path: "/", Domain: domain, HttpOnly: true, Secure: secure, SameSite: sameSite, MaxAge: 30 * 24 * 60 * 60})
+}
+
+func authCookiePolicy(r *http.Request) (bool, http.SameSite) {
+	forwardedProto := strings.TrimSpace(strings.Split(r.Header.Get("X-Forwarded-Proto"), ",")[0])
+	secure := r.TLS != nil || strings.EqualFold(forwardedProto, "https")
+	if secure {
+		return true, http.SameSiteNoneMode
+	}
+	return false, http.SameSiteLaxMode
 }

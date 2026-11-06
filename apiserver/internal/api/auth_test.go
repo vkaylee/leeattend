@@ -125,6 +125,26 @@ func TestAuthHandler_LoginSuccessSetsCookies(t *testing.T) {
 	if len(rec.Result().Cookies()) != 2 {
 		t.Fatalf("expected access and refresh cookies, got %d", len(rec.Result().Cookies()))
 	}
+	for _, cookie := range rec.Result().Cookies() {
+		if cookie.Secure || cookie.SameSite != http.SameSiteLaxMode {
+			t.Fatalf("expected HTTP auth cookie to be non-secure and Lax, got %s secure=%v sameSite=%v", cookie.Name, cookie.Secure, cookie.SameSite)
+		}
+	}
+}
+
+func TestAuthCookiePolicyUsesRequestTransport(t *testing.T) {
+	httpRequest := httptest.NewRequest(http.MethodPost, "http://localhost/api/v1/auth/login", nil)
+	secure, sameSite := authCookiePolicy(httpRequest)
+	if secure || sameSite != http.SameSiteLaxMode {
+		t.Fatalf("expected HTTP cookies to be non-secure and Lax, got secure=%v sameSite=%v", secure, sameSite)
+	}
+
+	forwardedRequest := httptest.NewRequest(http.MethodPost, "http://localhost/api/v1/auth/login", nil)
+	forwardedRequest.Header.Set("X-Forwarded-Proto", "https")
+	secure, sameSite = authCookiePolicy(forwardedRequest)
+	if !secure || sameSite != http.SameSiteNoneMode {
+		t.Fatalf("expected forwarded HTTPS cookies to be secure and SameSite=None, got secure=%v sameSite=%v", secure, sameSite)
+	}
 }
 
 func TestAuthHandler_RefreshRequiresToken(t *testing.T) {

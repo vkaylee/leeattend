@@ -28,7 +28,7 @@ export const Route = createFileRoute("/_authenticated")({
         queryKey: profileKeys.me,
         queryFn: fetchMe,
       });
-      if (!maybeNull(user)) {
+      if (maybeNull(user) === null || maybeNull(user) === undefined) {
         clearAuthSession();
         // eslint-disable-next-line @typescript-eslint/only-throw-error
         throw redirect({ to: "/login" });
@@ -37,11 +37,11 @@ export const Route = createFileRoute("/_authenticated")({
     } catch (error: unknown) {
       // If it's already a redirect, rethrow
       if (error && typeof error === 'object' && 'isRedirect' in error) throw error;
-      
-      // Prevent infinite redirect loops by clearing the session 
+
+      // Prevent infinite redirect loops by clearing the session
       // before sending the user back to the login page.
       clearAuthSession();
-      
+
       // Auth failure or network error → redirect to login
       // eslint-disable-next-line @typescript-eslint/only-throw-error
       throw redirect({ to: "/login" });
