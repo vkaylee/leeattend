@@ -89,6 +89,18 @@ describe("DsmLauncherOverlay", () => {
   });
 
 
+  it("renders Audit Logs as a standalone app and navigates to its route", () => {
+    const handleClose = vi.fn();
+    render(<DsmLauncherOverlay isOpen={true} onClose={handleClose} />);
+
+    const auditLogsIcon = screen.getByTestId("dsm-app-audit-logs");
+    expect(auditLogsIcon).toBeInTheDocument();
+
+    fireEvent.click(auditLogsIcon);
+
+    expect(mockNavigate).toHaveBeenCalledWith({ to: "/audit-logs" });
+    expect(handleClose).toHaveBeenCalled();
+  });
   it("switches to search view when typing in search input", async () => {
     const user = userEvent.setup();
     render(<DsmLauncherOverlay isOpen={true} onClose={vi.fn()} />);

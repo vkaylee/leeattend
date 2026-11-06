@@ -3,7 +3,6 @@ import {
   ShieldAlert,
   KeyRound,
   CreditCard,
-  ShieldCheck,
   Clock,
   Banknote,
   CalendarDays,
@@ -149,13 +148,6 @@ const getOperationsGroup = (t: TFunction): SettingItem[] => [
 ];
 
 const getSystemGroup = (t: TFunction): SettingItem[] => [
-  {
-    description: t("common.security_events"),
-    icon: <ShieldCheck className="w-4 h-4" />,
-    label: t("common.logs"),
-    path: ROUTES.SETTINGS.AUDIT_LOGS,
-    permissions: ["workspace:settings:read", "infra:monitor"],
-  },
   {
     description: t("settings.categories.storage_desc", { defaultValue: "Manage storage providers and file configuration" }),
     icon: <Database className="w-4 h-4" />,

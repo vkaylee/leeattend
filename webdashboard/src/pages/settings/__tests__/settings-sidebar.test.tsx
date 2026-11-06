@@ -94,7 +94,7 @@ describe("SettingsSidebar (macOS 2-column layout)", () => {
         workspaceGroup: [makeItem("General", "/workspace/settings/general")],
         accessGroup: [makeItem("Roles", "/workspace/settings/roles")],
         operationsGroup: [makeItem("Time", "/workspace/settings/time")],
-        systemGroup: [makeItem("Audit Logs", "/workspace/settings/audit-logs")],
+        systemGroup: [makeItem("Storage", "/workspace/settings/storage")],
       })
     );
 
@@ -108,7 +108,7 @@ describe("SettingsSidebar (macOS 2-column layout)", () => {
     expect(screen.getByText("General")).toBeInTheDocument();
     expect(screen.getByText("Roles")).toBeInTheDocument();
     expect(screen.getByText("Time")).toBeInTheDocument();
-    expect(screen.getByText("Audit Logs")).toBeInTheDocument();
+    expect(screen.getByText("Storage")).toBeInTheDocument();
   });
 
   it("hides empty sections when no items exist in that section", () => {

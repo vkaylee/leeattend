@@ -1,9 +1,9 @@
 import React from "react";
 
-import { AuditLogFilters } from "./components/audit-logs/audit-log-filters";
-import { AuditLogHeader } from "./components/audit-logs/audit-log-header";
-import { AuditLogPagination } from "./components/audit-logs/audit-log-pagination";
-import { AuditLogTable } from "./components/audit-logs/audit-log-table";
+import { AuditLogFilters } from "./components/audit-log-filters";
+import { AuditLogHeader } from "./components/audit-log-header";
+import { AuditLogPagination } from "./components/audit-log-pagination";
+import { AuditLogTable } from "./components/audit-log-table";
 import { useAuditLogs } from "./hooks/use-audit-logs";
 
 export default function AuditLogPage() {

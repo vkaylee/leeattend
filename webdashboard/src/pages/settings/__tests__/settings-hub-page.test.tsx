@@ -143,13 +143,13 @@ describe("SettingsHubPage", () => {
     vi.spyOn(hooks, "useSettingsNav").mockReturnValue(
       makeNavState({
         systemGroup: [
-          makeItem("Audit Logs", "/workspace/settings/audit-logs"),
+          makeItem("Storage", "/workspace/settings/storage"),
         ],
       }),
     );
     render(<SettingsHubPage />);
     expect(screen.getByTestId("settings-section-system")).toBeInTheDocument();
-    expect(screen.getByText("Audit Logs")).toBeInTheDocument();
+    expect(screen.getByText("Storage")).toBeInTheDocument();
   });
 
   // ── Empty sections are hidden ──────────────────────────────────
@@ -191,7 +191,7 @@ describe("SettingsHubPage", () => {
         workspaceGroup: [makeItem("General", "/workspace/settings/general")],
         accessGroup: [makeItem("Roles", "/workspace/settings/roles")],
         operationsGroup: [makeItem("Time", "/workspace/settings/time")],
-        systemGroup: [makeItem("Audit Logs", "/workspace/settings/audit-logs")],
+        systemGroup: [makeItem("Storage", "/workspace/settings/storage")],
       }),
     );
     render(<SettingsHubPage />);
@@ -203,7 +203,7 @@ describe("SettingsHubPage", () => {
     expect(screen.getByText("General")).toBeInTheDocument();
     expect(screen.getByText("Roles")).toBeInTheDocument();
     expect(screen.getByText("Time")).toBeInTheDocument();
-    expect(screen.getByText("Audit Logs")).toBeInTheDocument();
+    expect(screen.getByText("Storage")).toBeInTheDocument();
   });
 
   // ── Header ─────────────────────────────────────────────────────

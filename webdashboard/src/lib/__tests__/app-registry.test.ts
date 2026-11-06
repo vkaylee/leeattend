@@ -50,6 +50,17 @@ describe("APP_REGISTRY", () => {
     expect(analytics!.systemRoles).toBeUndefined();
   });
 
+  it("registers Audit Logs as a standalone system app", () => {
+    const auditLogs = APP_REGISTRY.find((app) => app.id === "audit-logs");
+
+    expect(auditLogs).toMatchObject({
+      descriptionKey: "audit_logs.subtitle",
+      group: "system",
+      labelKey: "audit_logs.title",
+      permissions: ["audit_logs:read"],
+      to: ROUTES.AUDIT_LOGS,
+    });
+  });
   it("ESS apps require ess:* permissions", () => {
     const essApps = APP_REGISTRY.filter((a) => a.group === "ess");
     expect(essApps.length).toBeGreaterThanOrEqual(3);

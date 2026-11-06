@@ -55,7 +55,7 @@ export const ROUTES = {
   SYSTEM_TENANTS: "/system/tenants",
   SYSTEM_ROLES: "/system/roles",
   SYSTEM_SMTP: "/system/smtp",
-
+  AUDIT_LOGS: "/audit-logs",
   // Employee Self-Service
   ESS_PROFILE: "/ess/profile",
   ESS_ATTENDANCE: "/ess/attendance",
@@ -74,7 +74,6 @@ export const ROUTES = {
     PAYROLL: "/workspace/settings/payroll",
     LEAVE: "/workspace/settings/leave",
     HOLIDAYS: "/workspace/settings/holidays",
-    AUDIT_LOGS: "/workspace/settings/audit-logs",
     BILLING: "/workspace/settings/billing",
     OVERTIME: "/workspace/settings/overtime",
     LOCATIONS: "/workspace/settings/locations",

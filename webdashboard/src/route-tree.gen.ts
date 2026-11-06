@@ -32,6 +32,7 @@ import { Route as AuthenticatedWorkspaceEmployeesRouteImport } from "./routes/_a
 import { Route as AuthenticatedWorkspaceEcontractsRouteImport } from "./routes/_authenticated/_workspace/econtracts"
 import { Route as AuthenticatedWorkspaceDepartmentsRouteImport } from "./routes/_authenticated/_workspace/departments"
 import { Route as AuthenticatedWorkspaceDashboardRouteImport } from "./routes/_authenticated/_workspace/dashboard"
+import { Route as AuthenticatedWorkspaceAuditLogsRouteImport } from "./routes/_authenticated/_workspace/audit-logs"
 import { Route as AuthenticatedWorkspaceAttendanceLogsRouteImport } from "./routes/_authenticated/_workspace/attendance-logs"
 import { Route as AuthenticatedWorkspaceAttendanceAdjustmentsRouteImport } from "./routes/_authenticated/_workspace/attendance-adjustments"
 import { Route as AuthenticatedWorkspaceAssignmentRulesRouteImport } from "./routes/_authenticated/_workspace/assignment-rules"
@@ -76,7 +77,6 @@ import { Route as AuthenticatedWorkspaceWorkspaceSettingsEcontractsRouteImport }
 import { Route as AuthenticatedWorkspaceWorkspaceSettingsCustomFieldsRouteImport } from "./routes/_authenticated/_workspace/workspace/settings/custom-fields"
 import { Route as AuthenticatedWorkspaceWorkspaceSettingsConditionTypesRouteImport } from "./routes/_authenticated/_workspace/workspace/settings/condition-types"
 import { Route as AuthenticatedWorkspaceWorkspaceSettingsBillingRouteImport } from "./routes/_authenticated/_workspace/workspace/settings/billing"
-import { Route as AuthenticatedWorkspaceWorkspaceSettingsAuditLogsRouteImport } from "./routes/_authenticated/_workspace/workspace/settings/audit-logs"
 import { Route as AuthenticatedWorkspaceWorkingPatternsPatternIdEditRouteImport } from "./routes/_authenticated/_workspace/working-patterns.$patternId.edit"
 import { Route as AuthenticatedWorkspaceShiftsShiftIdEditRouteImport } from "./routes/_authenticated/_workspace/shifts.$shiftId.edit"
 import { Route as AuthenticatedWorkspaceAssignmentRulesRuleIdEditRouteImport } from "./routes/_authenticated/_workspace/assignment-rules.$ruleId.edit"
@@ -273,6 +273,16 @@ const AuthenticatedWorkspaceDashboardRoute =
     getParentRoute: () => AuthenticatedWorkspaceRoute,
   } as any).lazy(() =>
     import("./routes/_authenticated/_workspace/dashboard.lazy").then(
+      (d) => d.Route,
+    ),
+  )
+const AuthenticatedWorkspaceAuditLogsRoute =
+  AuthenticatedWorkspaceAuditLogsRouteImport.update({
+    id: "/audit-logs",
+    path: "/audit-logs",
+    getParentRoute: () => AuthenticatedWorkspaceRoute,
+  } as any).lazy(() =>
+    import("./routes/_authenticated/_workspace/audit-logs.lazy").then(
       (d) => d.Route,
     ),
   )
@@ -825,6 +835,7 @@ export interface FileRoutesByFullPath {
   "/assignment-rules": typeof AuthenticatedWorkspaceAssignmentRulesRouteWithChildren
   "/attendance-adjustments": typeof AuthenticatedWorkspaceAttendanceAdjustmentsRoute
   "/attendance-logs": typeof AuthenticatedWorkspaceAttendanceLogsRoute
+  "/audit-logs": typeof AuthenticatedWorkspaceAuditLogsRoute
   "/dashboard": typeof AuthenticatedWorkspaceDashboardRoute
   "/departments": typeof AuthenticatedWorkspaceDepartmentsRoute
   "/econtracts": typeof AuthenticatedWorkspaceEcontractsRoute
@@ -865,7 +876,6 @@ export interface FileRoutesByFullPath {
   "/assignment-rules/$ruleId/edit": typeof AuthenticatedWorkspaceAssignmentRulesRuleIdEditRoute
   "/shifts/$shiftId/edit": typeof AuthenticatedWorkspaceShiftsShiftIdEditRoute
   "/working-patterns/$patternId/edit": typeof AuthenticatedWorkspaceWorkingPatternsPatternIdEditRoute
-  "/workspace/settings/audit-logs": typeof AuthenticatedWorkspaceWorkspaceSettingsAuditLogsRoute
   "/workspace/settings/billing": typeof AuthenticatedWorkspaceWorkspaceSettingsBillingRoute
   "/workspace/settings/condition-types": typeof AuthenticatedWorkspaceWorkspaceSettingsConditionTypesRoute
   "/workspace/settings/custom-fields": typeof AuthenticatedWorkspaceWorkspaceSettingsCustomFieldsRoute
@@ -901,6 +911,7 @@ export interface FileRoutesByTo {
   "/reset-password": typeof ResetPasswordRoute
   "/attendance-adjustments": typeof AuthenticatedWorkspaceAttendanceAdjustmentsRoute
   "/attendance-logs": typeof AuthenticatedWorkspaceAttendanceLogsRoute
+  "/audit-logs": typeof AuthenticatedWorkspaceAuditLogsRoute
   "/dashboard": typeof AuthenticatedWorkspaceDashboardRoute
   "/departments": typeof AuthenticatedWorkspaceDepartmentsRoute
   "/econtracts": typeof AuthenticatedWorkspaceEcontractsRoute
@@ -937,7 +948,6 @@ export interface FileRoutesByTo {
   "/assignment-rules/$ruleId/edit": typeof AuthenticatedWorkspaceAssignmentRulesRuleIdEditRoute
   "/shifts/$shiftId/edit": typeof AuthenticatedWorkspaceShiftsShiftIdEditRoute
   "/working-patterns/$patternId/edit": typeof AuthenticatedWorkspaceWorkingPatternsPatternIdEditRoute
-  "/workspace/settings/audit-logs": typeof AuthenticatedWorkspaceWorkspaceSettingsAuditLogsRoute
   "/workspace/settings/billing": typeof AuthenticatedWorkspaceWorkspaceSettingsBillingRoute
   "/workspace/settings/condition-types": typeof AuthenticatedWorkspaceWorkspaceSettingsConditionTypesRoute
   "/workspace/settings/custom-fields": typeof AuthenticatedWorkspaceWorkspaceSettingsCustomFieldsRoute
@@ -976,6 +986,7 @@ export interface FileRoutesById {
   "/_authenticated/_workspace/assignment-rules": typeof AuthenticatedWorkspaceAssignmentRulesRouteWithChildren
   "/_authenticated/_workspace/attendance-adjustments": typeof AuthenticatedWorkspaceAttendanceAdjustmentsRoute
   "/_authenticated/_workspace/attendance-logs": typeof AuthenticatedWorkspaceAttendanceLogsRoute
+  "/_authenticated/_workspace/audit-logs": typeof AuthenticatedWorkspaceAuditLogsRoute
   "/_authenticated/_workspace/dashboard": typeof AuthenticatedWorkspaceDashboardRoute
   "/_authenticated/_workspace/departments": typeof AuthenticatedWorkspaceDepartmentsRoute
   "/_authenticated/_workspace/econtracts": typeof AuthenticatedWorkspaceEcontractsRoute

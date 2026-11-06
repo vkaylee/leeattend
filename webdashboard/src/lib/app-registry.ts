@@ -25,6 +25,7 @@ import {
   Activity,
   Inbox,
   FileText,
+  ShieldCheck,
 } from "lucide-react";
 
 import type { NavGroup } from "@/hooks/use-nav-menu-items";
@@ -278,6 +279,16 @@ export const APP_REGISTRY: AppDefinition[] = [
     group: "system",
     permissions: ["workspace:settings:read", "members:roles:manage"],
     testId: "app-card-settings",
+  },
+  {
+    id: "audit-logs",
+    icon: ShieldCheck,
+    labelKey: "audit_logs.title",
+    descriptionKey: "audit_logs.subtitle",
+    to: ROUTES.AUDIT_LOGS,
+    group: "system",
+    permissions: ["audit_logs:read"],
+    testId: "app-card-audit-logs",
   },
 
   // ── Self-Service (ESS) ─────────────────────────────────────────

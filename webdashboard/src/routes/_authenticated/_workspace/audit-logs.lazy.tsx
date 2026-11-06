@@ -1,8 +1,7 @@
 import { createLazyFileRoute } from "@tanstack/react-router";
 
 import { ErrorBoundary } from "@/components/common/error-boundary";
-import AuditLogPage from "@/pages/settings/audit-log-page";
-
+import AuditLogPage from "@/pages/audit-logs/audit-log-page";
 
 function AuditLogPageWithErrorBoundary() {
   return (
@@ -12,6 +11,6 @@ function AuditLogPageWithErrorBoundary() {
   );
 }
 
-export const Route = createLazyFileRoute('/_authenticated/_workspace/workspace/settings/audit-logs')({
+export const Route = createLazyFileRoute("/_authenticated/_workspace/audit-logs")({
   component: AuditLogPageWithErrorBoundary,
 });
