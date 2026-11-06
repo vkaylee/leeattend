@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 
 import Button from "@/components/ui/button";
 import { LABEL_BASE } from "@/components/ui/form-field";
+import { SettingsSwitch } from "@/components/ui/settings/settings-switch";
 import { Typography } from "@/components/ui/typography";
 
 import type { FormState } from "./storage-types";
@@ -16,28 +17,29 @@ interface StorageHeaderProps {
 export function StorageHeader({ isSaving, onSave }: StorageHeaderProps) {
   const { t } = useTranslation();
   return (
-    <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 px-2">
-      <div className="flex items-center gap-4">
-        <div className="w-12 h-12 rounded-[1.25rem] bg-primary-50 dark:bg-primary-950 flex items-center justify-center text-primary-600 dark:text-primary-400 shadow-sm border border-primary-100 dark:border-primary-800/50">
-          <Database size={24} />
+    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-2 border-b border-slate-200/60 dark:border-slate-800/60">
+      <div className="flex items-center gap-3">
+        <div className="w-10 h-10 rounded-xl bg-primary-50 dark:bg-primary-950/70 flex items-center justify-center text-primary-600 dark:text-primary-400 shadow-2xs border border-primary-100/50 dark:border-primary-900/50">
+          <Database size={20} />
         </div>
         <div>
-          <Typography className="text-2xl font-bold tracking-tight text-slate-850 dark:text-slate-100 normal-case mb-0.5" variant="h3">
-            {t("settings.storage.title", "Storage Configuration")}
+          <Typography className="text-xl font-bold tracking-tight text-slate-800 dark:text-slate-100 normal-case" variant="h3">
+            {t("settings.storage.title", "Cấu hình lưu trữ")}
           </Typography>
           <Typography className="text-xs text-slate-500 dark:text-slate-400 font-medium normal-case tracking-normal" variant="small">
-            {t("settings.storage.description", "Configure S3-compatible backend. Use Central Storage or your own bucket.")}
+            {t("settings.storage.description", "Cấu hình S3/MinIO lưu trữ tệp tài liệu và hồ sơ")}
           </Typography>
         </div>
       </div>
       <Button
+        className="rounded-xl px-4 py-2 text-xs font-semibold shadow-xs"
         data-testid="save-storage-btn"
-        icon={<Save size={18} />}
+        icon={<Save size={15} />}
         loading={isSaving}
         onClick={onSave}
         variant="primary"
       >
-        {t("common.save_changes", "SAVE CHANGES").toUpperCase()}
+        {t("common.save_changes", "Lưu thay đổi")}
       </Button>
     </div>
   );
@@ -71,28 +73,23 @@ export function StorageCredentialForm({
   };
 
   return (
-    <div className="bg-white dark:bg-slate-900 p-6 sm:p-10 rounded-2xl sm:rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-sm space-y-10">
+    <div className="bg-white dark:bg-slate-900/90 p-6 sm:p-8 rounded-2xl border border-slate-200/80 dark:border-slate-800/80 shadow-2xs space-y-6">
       {/* Toggle Custom Storage */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between p-6 bg-slate-50 dark:bg-slate-800/50 rounded-[1.5rem] border border-slate-100 dark:border-slate-700 shadow-sm gap-4">
-        <div className="space-y-1">
-          <Typography className="text-base font-bold text-slate-800 dark:text-slate-200" variant="h4">
-            {t("settings.storage.use_custom", "Use Custom Storage Bucket")}
+      <div className="flex flex-col md:flex-row md:items-center justify-between p-5 bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-slate-200/70 dark:border-slate-700/70 gap-4">
+        <div className="space-y-0.5">
+          <Typography className="text-sm font-bold text-slate-800 dark:text-slate-200" variant="h4">
+            {t("settings.storage.use_custom", "Sử dụng Bucket lưu trữ riêng")}
           </Typography>
-          <Typography className="text-sm text-slate-500 dark:text-slate-400" variant="p">
-            {t("settings.storage.use_custom_desc", "Store files in your own AWS S3 or MinIO instance instead of the global server.")}
+          <Typography className="text-xs text-slate-500 dark:text-slate-400" variant="p">
+            {t("settings.storage.use_custom_desc", "Lưu trữ tệp tại AWS S3 hoặc MinIO do doanh nghiệp tự quản lý.")}
           </Typography>
         </div>
-        <label className="relative inline-flex items-center cursor-pointer flex-shrink-0" htmlFor="use-custom-storage">
-          <span className="sr-only">{t("settings.storage.use_custom", "Use Custom Storage Bucket")}</span>
-          <input
-            checked={form.isCustom}
-            className="sr-only peer"
-            id="use-custom-storage"
-            onChange={handleToggle}
-            type="checkbox"
-          />
-          <div className="w-14 h-8 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[4px] after:left-[4px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all dark:border-slate-600 peer-checked:bg-primary-600"></div>
-        </label>
+        <SettingsSwitch
+          ariaLabel={t("settings.storage.use_custom", "Use Custom Storage Bucket")}
+          checked={form.isCustom}
+          id="use-custom-storage"
+          onCheckedChange={onToggleCustom}
+        />
       </div>
 
       {/* Custom Storage Fields */}

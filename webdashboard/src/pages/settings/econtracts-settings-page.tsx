@@ -13,15 +13,17 @@ export default function EContractsSettingsPage() {
   return (
     <PageContainer>
       <PageHeader
-        icon={<Scale size={24} />}
+        icon={<Scale size={20} />}
         subtitle="Manage legal entity e-signing credentials, routing precedence rules, and tracking transactions"
         title="e-Contracts Integration"
       />
-      <EmptyState
-        description="The e-signature backend is under active development. Check back soon."
-        icon={<Scale size={36} />}
-        title="Coming Soon"
-      />
+      <div className="bg-white dark:bg-slate-900/90 rounded-2xl border border-slate-200/80 dark:border-slate-800/80 p-8 shadow-2xs">
+        <EmptyState
+          description="The e-signature backend is under active development. Check back soon."
+          icon={<Scale size={32} />}
+          title="Coming Soon"
+        />
+      </div>
     </PageContainer>
   );
 }

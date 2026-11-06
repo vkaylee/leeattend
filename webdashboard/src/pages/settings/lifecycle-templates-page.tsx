@@ -24,11 +24,12 @@ export default function LifecycleTemplatesPage() {
       <PageHeader
         actions={
           <Button
-            icon={<Plus size={18} />}
+            className="rounded-xl px-4 py-2 text-xs font-semibold shadow-xs"
+            icon={<Plus size={16} />}
             onClick={ctx.handleCreateTemplate}
-            variant="ghost"
+            variant="primary"
           >
-            CREATE TEMPLATE
+            Create Template
           </Button>
         }
         icon={<ClipboardList size={24} />}
@@ -37,28 +38,30 @@ export default function LifecycleTemplatesPage() {
       />
 
       {/* Tabs */}
-      <div className="flex bg-slate-100 dark:bg-slate-700/50 p-1.5 rounded-[22px] w-fit border border-slate-200 dark:border-slate-700/50 shadow-inner">
+      <div className="inline-flex items-center gap-1 rounded-xl bg-slate-100/90 dark:bg-slate-800/80 p-1 border border-slate-200/60 dark:border-slate-700/60" role="tablist">
         {TABS.map((tab) => (
-          <Button
+          <button
+            aria-selected={ctx.activeTab === tab}
             className={cn(
-              "flex items-center gap-2 px-6 py-2.5 rounded-[18px] text-xs font-bold uppercase tracking-widest transition-all",
+              "flex items-center gap-2 px-4 py-1.5 rounded-lg text-xs font-semibold transition-all select-none capitalize",
               ctx.activeTab === tab
-                ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100 dark:border-slate-800"
-                : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
+                ? "bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 shadow-2xs font-bold"
+                : "text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"
             )}
             key={tab}
             onClick={() => { ctx.setActiveTab(tab); }}
-            variant="ghost"
+            role="tab"
+            type="button"
           >
             {tab.replace("_", " ")}
-          </Button>
+          </button>
         ))}
       </div>
 
       {ctx.isTemplatesLoading ? (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <div className="lg:col-span-1 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-5 sm:p-6 rounded-2xl sm:rounded-[2.5rem] shadow-sm animate-pulse h-96" />
-          <div className="lg:col-span-2 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-5 sm:p-6 rounded-2xl sm:rounded-[2.5rem] shadow-sm animate-pulse h-96" />
+          <div className="lg:col-span-1 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 p-6 rounded-2xl shadow-2xs animate-pulse h-96" />
+          <div className="lg:col-span-2 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 p-6 rounded-2xl shadow-2xs animate-pulse h-96" />
         </div>
       ) : ctx.filteredTemplates.length === 0 ? (
         <EmptyState

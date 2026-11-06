@@ -50,24 +50,24 @@ export default function LocationsSettings() {
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 px-2">
-        <div className="flex items-center gap-4">
-          <div className="w-12 h-12 rounded-[1.25rem] bg-primary-50 dark:bg-primary-950 flex items-center justify-center text-primary-600 dark:text-primary-400 shadow-sm border border-primary-100 dark:border-primary-800/50">
-            <MapPin size={24} />
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-2 border-b border-slate-200/60 dark:border-slate-800/60">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-primary-50 dark:bg-primary-950/70 flex items-center justify-center text-primary-600 dark:text-primary-400 shadow-2xs border border-primary-100/50 dark:border-primary-900/50">
+            <MapPin size={20} />
           </div>
           <div>
-            <Typography className="text-2xl font-bold tracking-tight text-slate-850 dark:text-slate-100 normal-case mb-0.5" variant="h3">
-              {t("settings.categories.locations", { defaultValue: "Locations" })}
+            <Typography className="text-xl font-bold tracking-tight text-slate-800 dark:text-slate-100 normal-case" variant="h3">
+              {t("settings.categories.locations", { defaultValue: "Địa điểm làm việc" })}
             </Typography>
             <Typography className="text-xs text-slate-500 dark:text-slate-400 font-medium normal-case tracking-normal" variant="small">
-              {t("settings.categories.locations_desc", { defaultValue: "Manage work locations and timezones" })}
+              {t("settings.categories.locations_desc", { defaultValue: "Quản lý chi nhánh văn phòng và múi giờ" })}
             </Typography>
           </div>
         </div>
         
-        <Button className="rounded-2xl px-6" onClick={handleAdd} variant="primary">
-          <Plus className="mr-2" size={16} />
-          {t("settings.locations.add", { defaultValue: "Add Location" })}
+        <Button className="rounded-xl px-4 py-2 text-xs font-semibold shadow-xs" onClick={handleAdd} variant="primary">
+          <Plus className="mr-1.5" size={15} />
+          {t("settings.locations.add", { defaultValue: "Thêm địa điểm" })}
         </Button>
       </div>
 
@@ -75,7 +75,7 @@ export default function LocationsSettings() {
         {isLoading ? (
           Array.from({ length: 3 }).map((_, index) => (
             <div 
-              className="bg-white dark:bg-slate-900 rounded-[1.75rem] border border-slate-100 dark:border-slate-800 p-5 flex flex-col md:flex-row md:items-center justify-between gap-6 animate-pulse"
+              className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800/80 p-5 flex flex-col md:flex-row md:items-center justify-between gap-6 animate-pulse"
               key={index}
             >
               <div className="flex items-center gap-4 min-w-[240px]">
@@ -115,7 +115,7 @@ export default function LocationsSettings() {
           locations?.map((location) => (
             <div 
               className={cn(
-                "group relative bg-white dark:bg-slate-900 rounded-[1.75rem] border p-5 shadow-sm hover:shadow-md transition-all duration-300",
+                "group relative bg-white dark:bg-slate-900 rounded-2xl border p-5 shadow-2xs transition-all duration-200",
                 "flex flex-col md:flex-row md:items-center justify-between gap-6",
                 location.is_headquarters 
                   ? "border-primary-200 dark:border-primary-800" 
