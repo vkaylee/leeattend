@@ -75,7 +75,6 @@ export const ROUTES = {
     HOLIDAYS: "/workspace/settings/holidays",
     AUDIT_LOGS: "/workspace/settings/audit-logs",
     BILLING: "/workspace/settings/billing",
-    DANGER: "/workspace/settings/danger",
     OVERTIME: "/workspace/settings/overtime",
     LOCATIONS: "/workspace/settings/locations",
     WORKFLOWS: "/workspace/settings/workflows",

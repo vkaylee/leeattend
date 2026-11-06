@@ -56,7 +56,6 @@ function makeNavState(overrides: Partial<ReturnType<typeof hooks.useSettingsNav>
     accessGroup: [],
     operationsGroup: [],
     systemGroup: [],
-    dangerItem: null,
     ...overrides,
   };
 }
@@ -80,38 +79,18 @@ describe("SettingsHubPage", () => {
   // ── Empty state ────────────────────────────────────────────────
 
   it("shows empty state when user has no settings access", () => {
-    vi.spyOn(hooks, "useSettingsNav").mockReturnValue(
-      makeNavState({ dangerItem: null }),
-    );
+    vi.spyOn(hooks, "useSettingsNav").mockReturnValue(makeNavState());
     render(<SettingsHubPage />);
     expect(screen.getByTestId("settings-hub-empty")).toBeInTheDocument();
   });
 
-  it("shows empty state when all groups are empty and dangerItem is null", () => {
-    vi.spyOn(hooks, "useSettingsNav").mockReturnValue(
-      makeNavState({
-        workspaceGroup: [],
-        accessGroup: [],
-        operationsGroup: [],
-        systemGroup: [],
-        dangerItem: null,
-      }),
-    );
+  it("shows empty state when all groups are empty", () => {
+    vi.spyOn(hooks, "useSettingsNav").mockReturnValue(makeNavState());
     render(<SettingsHubPage />);
     expect(screen.getByTestId("settings-hub-empty")).toBeInTheDocument();
     expect(screen.queryByTestId("settings-section-workspace")).not.toBeInTheDocument();
   });
 
-  it("does NOT show empty state when dangerItem exists even if groups are empty", () => {
-    vi.spyOn(hooks, "useSettingsNav").mockReturnValue(
-      makeNavState({
-        dangerItem: makeItem("Danger Zone", "/workspace/settings/danger"),
-      }),
-    );
-    render(<SettingsHubPage />);
-    expect(screen.queryByTestId("settings-hub-empty")).not.toBeInTheDocument();
-    expect(screen.getByTestId("settings-section-danger")).toBeInTheDocument();
-  });
 
   // ── Section rendering ──────────────────────────────────────────
 
@@ -203,41 +182,16 @@ describe("SettingsHubPage", () => {
     expect(screen.queryByTestId("settings-section-system")).not.toBeInTheDocument();
   });
 
-  // ── Danger section ─────────────────────────────────────────────
-
-  it("renders danger section when dangerItem exists", () => {
-    vi.spyOn(hooks, "useSettingsNav").mockReturnValue(
-      makeNavState({
-        workspaceGroup: [makeItem("General", "/workspace/settings/general")],
-        dangerItem: makeItem("Danger Zone", "/workspace/settings/danger"),
-      }),
-    );
-    render(<SettingsHubPage />);
-    expect(screen.getByTestId("settings-section-danger")).toBeInTheDocument();
-    expect(screen.getByText("Danger Zone")).toBeInTheDocument();
-  });
-
-  it("hides danger section when dangerItem is null", () => {
-    vi.spyOn(hooks, "useSettingsNav").mockReturnValue(
-      makeNavState({
-        workspaceGroup: [makeItem("General", "/workspace/settings/general")],
-        dangerItem: null,
-      }),
-    );
-    render(<SettingsHubPage />);
-    expect(screen.queryByTestId("settings-section-danger")).not.toBeInTheDocument();
-  });
 
   // ── All sections together ──────────────────────────────────────
 
-  it("renders all four sections and danger zone simultaneously", () => {
+  it("renders all four sections simultaneously", () => {
     vi.spyOn(hooks, "useSettingsNav").mockReturnValue(
       makeNavState({
         workspaceGroup: [makeItem("General", "/workspace/settings/general")],
         accessGroup: [makeItem("Roles", "/workspace/settings/roles")],
         operationsGroup: [makeItem("Time", "/workspace/settings/time")],
         systemGroup: [makeItem("Audit Logs", "/workspace/settings/audit-logs")],
-        dangerItem: makeItem("Danger Zone", "/workspace/settings/danger"),
       }),
     );
     render(<SettingsHubPage />);
@@ -246,12 +200,10 @@ describe("SettingsHubPage", () => {
     expect(screen.getByTestId("settings-section-access")).toBeInTheDocument();
     expect(screen.getByTestId("settings-section-operations")).toBeInTheDocument();
     expect(screen.getByTestId("settings-section-system")).toBeInTheDocument();
-    expect(screen.getByTestId("settings-section-danger")).toBeInTheDocument();
-
     expect(screen.getByText("General")).toBeInTheDocument();
     expect(screen.getByText("Roles")).toBeInTheDocument();
     expect(screen.getByText("Time")).toBeInTheDocument();
-    expect(screen.getByText("Danger Zone")).toBeInTheDocument();
+    expect(screen.getByText("Audit Logs")).toBeInTheDocument();
   });
 
   // ── Header ─────────────────────────────────────────────────────

@@ -99,10 +99,6 @@ export async function fetchWorkspaceRoles(wsId: string): Promise<WorkspaceRole[]
   return data.data;
 }
 
-export async function clearWorkspaceData(wsId: string, group: string): Promise<void> {
-  const response = await apiFetch(`/v1/dev/workspaces/${wsId}/clear?group=${group}`, { method: "DELETE" });
-  if (!response.ok) await ApiError.rejectResponse(response);
-}
 
 // --- Extra Permissions ---
 

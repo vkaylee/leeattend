@@ -220,7 +220,6 @@ describe("getActiveNavGroup", () => {
   it('returns "settings" for /workspace/settings sub-pages', () => {
     expect(getActiveNavGroup("/workspace/settings/general")).toBe("settings");
     expect(getActiveNavGroup("/workspace/settings/time")).toBe("settings");
-    expect(getActiveNavGroup("/workspace/settings/danger")).toBe("settings");
   });
 
   it('returns "system" for /system/roles', () => {

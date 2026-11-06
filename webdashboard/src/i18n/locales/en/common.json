@@ -1894,21 +1894,6 @@
       "clear_error": "Error clearing data:"
     }
   },
-  "danger": {
-    "title": "Danger Zone",
-    "subtitle": "Destructive operations for this workspace",
-    "clearDataTitle": "Clear Workspace Data",
-    "clearDataDesc": "Delete all employees, time entries, leaves, and other data. This action cannot be undone.",
-    "clearAllData": "CLEAR ALL DATA",
-    "modalTitle": "Clear Workspace Data",
-    "warningDesc1": "This will permanently delete all data in the workspace, including employees, shifts, time entries, and leaves.",
-    "warningDesc2": "Members and settings will be preserved.",
-    "typeToConfirmPrefix": "Type",
-    "typeToConfirmSuffix": "to confirm",
-    "permanentlyDelete": "PERMANENTLY DELETE DATA",
-    "successMessage": "Workspace data cleared successfully",
-    "errorMessage": "Failed to clear data"
-  },
   "billing": {
     "comingSoon": "Coming Soon",
     "comingSoonDesc": "Coming soon description",

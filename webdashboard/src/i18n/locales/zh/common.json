@@ -1895,21 +1895,6 @@
       "clear_error": "清除数据时出错："
     }
   },
-  "danger": {
-    "title": "危险区域",
-    "subtitle": "此工作区的破坏性操作",
-    "clearDataTitle": "清除工作区数据",
-    "clearDataDesc": "删除所有员工、考勤记录、请假和其他数据。此操作无法撤销。",
-    "clearAllData": "清除所有数据",
-    "modalTitle": "清除工作区数据",
-    "warningDesc1": "这将永久删除工作区中的所有数据，包括员工、班次、考勤记录和请假。",
-    "warningDesc2": "成员和设置将被保留。",
-    "typeToConfirmPrefix": "输入",
-    "typeToConfirmSuffix": "以确认",
-    "permanentlyDelete": "永久删除数据",
-    "successMessage": "工作区数据清除成功",
-    "errorMessage": "清除数据失败"
-  },
   "billing": {
     "comingSoon": "敬请期待",
     "comingSoonDesc": "账单和订阅管理功能正在开发中。",

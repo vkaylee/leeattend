@@ -1895,21 +1895,6 @@
       "clear_error": "Lỗi khi xóa dữ liệu:"
     }
   },
-  "danger": {
-    "title": "Vùng nguy hiểm",
-    "subtitle": "Các thao tác phá hủy dữ liệu cho không gian làm việc này",
-    "clearDataTitle": "Xóa dữ liệu không gian làm việc",
-    "clearDataDesc": "Xóa tất cả nhân viên, chấm công, nghỉ phép và dữ liệu khác. Hành động này không thể hoàn tác.",
-    "clearAllData": "XÓA TOÀN BỘ DỮ LIỆU",
-    "modalTitle": "Xóa dữ liệu",
-    "warningDesc1": "Hành động này sẽ xóa vĩnh viễn toàn bộ dữ liệu trong không gian làm việc, bao gồm nhân viên, ca làm, chấm công và nghỉ phép.",
-    "warningDesc2": "Thành viên và cấu hình sẽ được giữ lại.",
-    "typeToConfirmPrefix": "Nhập",
-    "typeToConfirmSuffix": "để xác nhận",
-    "permanentlyDelete": "XÓA VĨNH VIỄN DỮ LIỆU",
-    "successMessage": "Đã xóa dữ liệu không gian làm việc",
-    "errorMessage": "Không thể xóa dữ liệu"
-  },
   "billing": {
     "comingSoon": "Sắp ra mắt",
     "comingSoonDesc": "Tính năng quản lý thanh toán và gói dịch vụ đang được phát triển.",

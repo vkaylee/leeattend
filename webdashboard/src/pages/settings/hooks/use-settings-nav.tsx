@@ -3,7 +3,6 @@ import {
   ShieldAlert,
   KeyRound,
   CreditCard,
-  AlertTriangle,
   ShieldCheck,
   Clock,
   Banknote,
@@ -173,13 +172,6 @@ const getSystemGroup = (t: TFunction): SettingItem[] => [
   },
 ];
 
-const getDangerItem = (t: TFunction): SettingItem => ({
-  description: t("common.destructive_operations"),
-  icon: <AlertTriangle className="w-4 h-4" />,
-  label: t("common.danger_zone"),
-  path: ROUTES.SETTINGS.DANGER,
-  permissions: ["workspace:delete"],
-});
 
 export function useSettingsNav() {
   const { t } = useTranslation();
@@ -189,14 +181,11 @@ export function useSettingsNav() {
   const accessGroup = useMemo(() => getAccessGroup(t), [t]);
   const operationsGroup = useMemo(() => getOperationsGroup(t), [t]);
   const systemGroup = useMemo(() => getSystemGroup(t), [t]);
-  const dangerItem = useMemo(() => getDangerItem(t), [t]);
-
   const filterItems = (items: SettingItem[]) =>
     items.filter(item => !item.permissions || item.permissions.length === 0 || hasAnyPermission(...item.permissions));
 
   return {
     accessGroup: filterItems(accessGroup),
-    dangerItem: hasAnyPermission(...(dangerItem.permissions ?? [])) ? dangerItem : null,
     operationsGroup: filterItems(operationsGroup),
     systemGroup: filterItems(systemGroup),
     workspaceGroup: filterItems(workspaceGroup),
