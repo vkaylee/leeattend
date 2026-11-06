@@ -63,21 +63,15 @@ test.describe("Responsive layout contracts", () => {
     }
   });
 
-  test("keeps the pinned desktop panel beside the app content", async ({ page }, testInfo) => {
-    test.skip(testInfo.project.name !== "responsive-desktop", "Pinned panel layout is asserted at the lg desktop boundary.");
+  test("keeps the floating dock visible on desktop", async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== "responsive-desktop", "Floating dock layout is asserted at the desktop boundary.");
 
-    await page.evaluate(() => localStorage.setItem("nav-rail-pinned", "true"));
     await page.goto("/employees");
 
-    const mainShell = page.locator("[data-app-scroll-container]").locator("..");
-    const panel = page.getByTestId("nav-panel-org");
-    await expect(panel).toBeVisible();
-    await expect.poll(() => mainShell.getAttribute("class")).toContain("lg:ml-[calc(var(--nav-rail-width)+var(--nav-panel-width))]");
+    const dock = page.getByTestId("floating-dock");
+    await expect(dock).toBeVisible();
 
-    const panelBox = await panel.boundingBox();
-    const shellBox = await mainShell.boundingBox();
-    expect(panelBox).not.toBeNull();
-    expect(shellBox).not.toBeNull();
-    expect(shellBox!.x).toBeGreaterThanOrEqual(panelBox!.x + panelBox!.width);
+    const dockBox = await dock.boundingBox();
+    expect(dockBox).not.toBeNull();
   });
 });

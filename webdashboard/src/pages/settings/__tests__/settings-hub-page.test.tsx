@@ -50,7 +50,7 @@ function makeItem(label: string, path: string): any {
   };
 }
 
-function makeNavState(overrides: Partial<ReturnType<typeof hooks.useSettingsNav>> = {}) {
+function makeNavState(overrides: Partial<hooks.SettingsNavState> = {}) {
   return {
     workspaceGroup: [],
     accessGroup: [],

@@ -55,7 +55,7 @@ export function NavigableListHeaderWrapper({
       {smartHeaderEnabled ? (
         <div
           className={cn(
-            "fixed top-0 left-0 lg:left-[var(--nav-rail-width)] right-0 z-40 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-100 dark:border-slate-800 transition-all duration-300",
+            "fixed top-0 left-0 right-0 z-40 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-100 dark:border-slate-800 transition-all duration-300",
             smartHeaderVisible ? "translate-y-0 opacity-100" : "-translate-y-full opacity-0"
           )}
           ref={smartHeaderRef}

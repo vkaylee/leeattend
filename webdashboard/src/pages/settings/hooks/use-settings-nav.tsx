@@ -172,8 +172,14 @@ const getSystemGroup = (t: TFunction): SettingItem[] => [
   },
 ];
 
+export interface SettingsNavState {
+  accessGroup: SettingItem[];
+  operationsGroup: SettingItem[];
+  systemGroup: SettingItem[];
+  workspaceGroup: SettingItem[];
+}
 
-export function useSettingsNav() {
+export function useSettingsNav(): SettingsNavState {
   const { t } = useTranslation();
   const { hasAnyPermission } = useMyPermissions();
 
