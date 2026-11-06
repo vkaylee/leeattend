@@ -25,10 +25,10 @@ import {
   type FeatureItem,
 } from "@/lib/feature-registry";
 import { cn, removeDiacritics } from "@/lib/utils";
+import Button from "@/components/ui/button";
 
 import { DsmSearchItem } from "./dsm-search-item";
 import { DsmSquircleIcon } from "./dsm-squircle-icon";
-
 interface DsmLauncherOverlayProps {
   isOpen: boolean;
   onClose: () => void;
@@ -192,14 +192,15 @@ export function DsmLauncherOverlay({ isOpen, onClose }: DsmLauncherOverlayProps)
                     )}
                   />
                   {search && (
-                    <button
-                      type="button"
+                    <Button
                       aria-label="Xóa từ khóa tìm kiếm"
+                      className="absolute right-3.5 text-slate-400 hover:text-white p-1 h-auto"
                       onClick={() => setSearch("")}
-                      className="absolute right-3.5 text-slate-400 hover:text-white p-1"
+                      size="sm"
+                      variant="ghost"
                     >
                       <X className="w-4 h-4" />
-                    </button>
+                    </Button>
                   )}
                 </div>
 
@@ -208,15 +209,16 @@ export function DsmLauncherOverlay({ isOpen, onClose }: DsmLauncherOverlayProps)
                   <kbd className="hidden md:inline-flex items-center px-2.5 py-1 text-xs font-semibold text-slate-400 bg-white/10 rounded-xl border border-white/10">
                     ESC
                   </kbd>
-                  <button
-                    type="button"
+                  <Button
                     aria-label="Đóng launcher"
+                    className="p-2.5 rounded-2xl text-slate-400 hover:text-white hover:bg-white/10 transition-colors h-auto"
                     data-testid="dsm-launcher-close-btn"
                     onClick={() => { onClose(); setSearch(""); }}
-                    className="p-2.5 rounded-2xl text-slate-400 hover:text-white hover:bg-white/10 transition-colors"
+                    size="sm"
+                    variant="ghost"
                   >
                     <X className="w-5 h-5" />
-                  </button>
+                  </Button>
                 </div>
               </div>
               {/* Body: Fullscreen Grid View vs Centered Search Results */}

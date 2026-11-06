@@ -33,6 +33,7 @@ export const ROUTES = {
   LEAVE_REQUESTS: "/leave-requests",
   LEAVE_BALANCES: "/leave-balances",
   ATTENDANCE_ADJUSTMENTS: "/attendance-adjustments",
+  APPROVALS: "/approvals",
   APPROVALS_OT: "/approvals/ot",
 
   // Operations

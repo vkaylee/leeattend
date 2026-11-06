@@ -7,6 +7,7 @@ import type { NavGroup } from "@/hooks/use-nav-menu-items";
 import AppCard from "@/components/features/app-launcher/app-card";
 import QuickStatsBar from "@/components/features/app-launcher/quick-stats-bar";
 import { openDsmLauncher } from "@/components/features/dsm-launcher";
+import Button from "@/components/ui/button";
 import EmptyState from "@/components/ui/empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
 import StaggerChildren from "@/components/ui/stagger-children";
@@ -126,10 +127,10 @@ export default function AppLauncherPage() {
 
       {/* DSM 7 Feature Search Trigger Bar */}
       <section aria-label="Tìm kiếm tính năng" data-testid="launcher-hero-search">
-        <button
-          type="button"
+        <Button
           onClick={openDsmLauncher}
-          className="w-full flex items-center justify-between p-4 rounded-2xl glass-premium hover:shadow-xl transition-all duration-300 border border-slate-200/80 dark:border-slate-800/80 group cursor-pointer text-left"
+          className="w-full h-auto flex items-center justify-between p-4 rounded-2xl glass-premium hover:shadow-xl transition-all duration-300 border border-slate-200/80 dark:border-slate-800/80 group cursor-pointer text-left font-normal"
+          variant="ghost"
         >
           <div className="flex items-center gap-3 text-slate-500 dark:text-slate-400">
             <Search className="w-5 h-5 text-primary-500 group-hover:scale-110 transition-transform" />
@@ -143,7 +144,7 @@ export default function AppLauncherPage() {
               ⌘K / Ctrl+K
             </kbd>
           </div>
-        </button>
+        </Button>
       </section>
 
       {/* Quick Access */}

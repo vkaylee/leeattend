@@ -39,6 +39,7 @@ import { Route as AuthenticatedWorkspaceWorkingPatternsIndexRouteImport } from "
 import { Route as AuthenticatedWorkspaceShiftsIndexRouteImport } from "./routes/_authenticated/_workspace/shifts.index"
 import { Route as AuthenticatedWorkspaceDocumentsIndexRouteImport } from "./routes/_authenticated/_workspace/documents.index"
 import { Route as AuthenticatedWorkspaceAssignmentRulesIndexRouteImport } from "./routes/_authenticated/_workspace/assignment-rules.index"
+import { Route as AuthenticatedWorkspaceApprovalsIndexRouteImport } from "./routes/_authenticated/_workspace/approvals/index"
 import { Route as AuthenticatedWorkspaceWorkspaceSettingsRouteImport } from "./routes/_authenticated/_workspace/workspace/settings"
 import { Route as AuthenticatedWorkspaceWorkspacePeopleRouteImport } from "./routes/_authenticated/_workspace/workspace/people"
 import { Route as AuthenticatedWorkspaceWorkingPatternsNewRouteImport } from "./routes/_authenticated/_workspace/working-patterns.new"
@@ -338,6 +339,16 @@ const AuthenticatedWorkspaceAssignmentRulesIndexRoute =
     getParentRoute: () => AuthenticatedWorkspaceAssignmentRulesRoute,
   } as any).lazy(() =>
     import("./routes/_authenticated/_workspace/assignment-rules.index.lazy").then(
+      (d) => d.Route,
+    ),
+  )
+const AuthenticatedWorkspaceApprovalsIndexRoute =
+  AuthenticatedWorkspaceApprovalsIndexRouteImport.update({
+    id: "/approvals/",
+    path: "/approvals/",
+    getParentRoute: () => AuthenticatedWorkspaceRoute,
+  } as any).lazy(() =>
+    import("./routes/_authenticated/_workspace/approvals/index.lazy").then(
       (d) => d.Route,
     ),
   )
@@ -846,6 +857,7 @@ export interface FileRoutesByFullPath {
   "/working-patterns/new": typeof AuthenticatedWorkspaceWorkingPatternsNewRoute
   "/workspace/people": typeof AuthenticatedWorkspaceWorkspacePeopleRoute
   "/workspace/settings": typeof AuthenticatedWorkspaceWorkspaceSettingsRouteWithChildren
+  "/approvals/": typeof AuthenticatedWorkspaceApprovalsIndexRoute
   "/assignment-rules/": typeof AuthenticatedWorkspaceAssignmentRulesIndexRoute
   "/documents/": typeof AuthenticatedWorkspaceDocumentsIndexRoute
   "/shifts/": typeof AuthenticatedWorkspaceShiftsIndexRoute
@@ -917,6 +929,7 @@ export interface FileRoutesByTo {
   "/shifts/new": typeof AuthenticatedWorkspaceShiftsNewRoute
   "/working-patterns/new": typeof AuthenticatedWorkspaceWorkingPatternsNewRoute
   "/workspace/people": typeof AuthenticatedWorkspaceWorkspacePeopleRoute
+  "/approvals": typeof AuthenticatedWorkspaceApprovalsIndexRoute
   "/assignment-rules": typeof AuthenticatedWorkspaceAssignmentRulesIndexRoute
   "/documents": typeof AuthenticatedWorkspaceDocumentsIndexRoute
   "/shifts": typeof AuthenticatedWorkspaceShiftsIndexRoute
@@ -996,6 +1009,7 @@ export interface FileRoutesById {
   "/_authenticated/_workspace/working-patterns/new": typeof AuthenticatedWorkspaceWorkingPatternsNewRoute
   "/_authenticated/_workspace/workspace/people": typeof AuthenticatedWorkspaceWorkspacePeopleRoute
   "/_authenticated/_workspace/workspace/settings": typeof AuthenticatedWorkspaceWorkspaceSettingsRouteWithChildren
+  "/_authenticated/_workspace/approvals/": typeof AuthenticatedWorkspaceApprovalsIndexRoute
   "/_authenticated/_workspace/assignment-rules/": typeof AuthenticatedWorkspaceAssignmentRulesIndexRoute
   "/_authenticated/_workspace/documents/": typeof AuthenticatedWorkspaceDocumentsIndexRoute
   "/_authenticated/_workspace/shifts/": typeof AuthenticatedWorkspaceShiftsIndexRoute
@@ -1074,6 +1088,7 @@ export interface FileRouteTypes {
     | "/working-patterns/new"
     | "/workspace/people"
     | "/workspace/settings"
+    | "/approvals/"
     | "/assignment-rules/"
     | "/documents/"
     | "/shifts/"
@@ -1145,6 +1160,7 @@ export interface FileRouteTypes {
     | "/shifts/new"
     | "/working-patterns/new"
     | "/workspace/people"
+    | "/approvals"
     | "/assignment-rules"
     | "/documents"
     | "/shifts"
@@ -1223,6 +1239,7 @@ export interface FileRouteTypes {
     | "/_authenticated/_workspace/working-patterns/new"
     | "/_authenticated/_workspace/workspace/people"
     | "/_authenticated/_workspace/workspace/settings"
+    | "/_authenticated/_workspace/approvals/"
     | "/_authenticated/_workspace/assignment-rules/"
     | "/_authenticated/_workspace/documents/"
     | "/_authenticated/_workspace/shifts/"
@@ -1478,6 +1495,13 @@ declare module "@tanstack/react-router" {
       fullPath: "/assignment-rules/"
       preLoaderRoute: typeof AuthenticatedWorkspaceAssignmentRulesIndexRouteImport
       parentRoute: typeof AuthenticatedWorkspaceAssignmentRulesRoute
+    }
+    "/_authenticated/_workspace/approvals/": {
+      id: "/_authenticated/_workspace/approvals/"
+      path: "/approvals"
+      fullPath: "/approvals/"
+      preLoaderRoute: typeof AuthenticatedWorkspaceApprovalsIndexRouteImport
+      parentRoute: typeof AuthenticatedWorkspaceRoute
     }
     "/_authenticated/_workspace/workspace/settings": {
       id: "/_authenticated/_workspace/workspace/settings"
@@ -2039,6 +2063,7 @@ interface AuthenticatedWorkspaceRouteChildren {
   AuthenticatedWorkspaceEssProfileRoute: typeof AuthenticatedWorkspaceEssProfileRoute
   AuthenticatedWorkspaceWorkspacePeopleRoute: typeof AuthenticatedWorkspaceWorkspacePeopleRoute
   AuthenticatedWorkspaceWorkspaceSettingsRoute: typeof AuthenticatedWorkspaceWorkspaceSettingsRouteWithChildren
+  AuthenticatedWorkspaceApprovalsIndexRoute: typeof AuthenticatedWorkspaceApprovalsIndexRoute
   AuthenticatedWorkspaceDocumentsIndexRoute: typeof AuthenticatedWorkspaceDocumentsIndexRoute
 }
 
@@ -2090,6 +2115,8 @@ const AuthenticatedWorkspaceRouteChildren: AuthenticatedWorkspaceRouteChildren =
       AuthenticatedWorkspaceWorkspacePeopleRoute,
     AuthenticatedWorkspaceWorkspaceSettingsRoute:
       AuthenticatedWorkspaceWorkspaceSettingsRouteWithChildren,
+    AuthenticatedWorkspaceApprovalsIndexRoute:
+      AuthenticatedWorkspaceApprovalsIndexRoute,
     AuthenticatedWorkspaceDocumentsIndexRoute:
       AuthenticatedWorkspaceDocumentsIndexRoute,
   }

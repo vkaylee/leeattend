@@ -82,6 +82,7 @@ export const APP_GRADIENTS: Record<string, string> = {
   "attendance-adjustments": "from-amber-400 to-yellow-600 shadow-amber-500/25",
   "shift-swaps": "from-violet-500 to-fuchsia-600 shadow-violet-500/25",
   reports: "from-blue-600 to-indigo-700 shadow-blue-600/25",
+  approvals: "from-emerald-500 to-teal-700 shadow-emerald-500/25",
   "approvals-ot": "from-emerald-500 to-teal-600 shadow-emerald-500/25",
   shifts: "from-purple-500 to-indigo-600 shadow-purple-500/25",
   "shifts-rules": "from-fuchsia-500 to-pink-600 shadow-fuchsia-500/25",

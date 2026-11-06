@@ -25,6 +25,7 @@ import {
   Activity,
   ShieldCheck,
   FileText,
+  Inbox,
 } from "lucide-react";
 
 import type { NavGroup } from "@/hooks/use-nav-menu-items";
@@ -192,6 +193,16 @@ export const APP_REGISTRY: AppDefinition[] = [
     group: "time",
     permissions: ["reports:read"],
     testId: "app-card-reports",
+  },
+  {
+    id: "approvals",
+    icon: Inbox,
+    labelKey: "approvals.inbox.title",
+    descriptionKey: "approvals.inbox.subtitle",
+    to: ROUTES.APPROVALS,
+    group: "time",
+    permissions: ["leave:requests:read", "overtime:approve", "attendance:adjustments:read"],
+    testId: "app-card-approvals",
   },
   {
     id: "approvals-ot",
