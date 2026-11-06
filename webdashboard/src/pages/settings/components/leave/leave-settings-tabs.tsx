@@ -6,7 +6,6 @@ import Button from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 import type { TabType } from "../../hooks/use-leave-settings";
-
 interface LeaveSettingsTabsProps {
   activeTab: TabType;
   onTabChange: (tab: TabType) => void;
@@ -27,7 +26,7 @@ export function LeaveSettingsTabs({ activeTab, onTabChange }: LeaveSettingsTabsP
         const Icon = tab.icon;
         const isSelected = activeTab === tab.id;
         return (
-          <button
+          <Button
             aria-selected={isSelected}
             className={cn(
               "flex items-center gap-2 px-4 py-1.5 rounded-lg text-xs font-semibold transition-all duration-150 select-none",
@@ -43,7 +42,7 @@ export function LeaveSettingsTabs({ activeTab, onTabChange }: LeaveSettingsTabsP
           >
             <Icon className="w-3.5 h-3.5" />
             <span>{tab.label}</span>
-          </button>
+          </Button>
         );
       })}
     </div>

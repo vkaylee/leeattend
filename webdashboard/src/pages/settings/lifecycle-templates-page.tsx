@@ -40,7 +40,7 @@ export default function LifecycleTemplatesPage() {
       {/* Tabs */}
       <div className="inline-flex items-center gap-1 rounded-xl bg-slate-100/90 dark:bg-slate-800/80 p-1 border border-slate-200/60 dark:border-slate-700/60" role="tablist">
         {TABS.map((tab) => (
-          <button
+          <Button
             aria-selected={ctx.activeTab === tab}
             className={cn(
               "flex items-center gap-2 px-4 py-1.5 rounded-lg text-xs font-semibold transition-all select-none capitalize",
@@ -54,7 +54,7 @@ export default function LifecycleTemplatesPage() {
             type="button"
           >
             {tab.replace("_", " ")}
-          </button>
+          </Button>
         ))}
       </div>
 

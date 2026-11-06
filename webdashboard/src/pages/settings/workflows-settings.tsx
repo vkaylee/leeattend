@@ -66,7 +66,7 @@ export default function WorkflowsSettings() {
             { id: "leave", label: t("settings.leave.title", { defaultValue: "Nghỉ phép" }) },
             { id: "attendance", label: t("settings.attendance.title", { defaultValue: "Điều chỉnh công" }) },
           ].map((tab) => (
-            <button
+            <Button
               aria-selected={activeTab === tab.id}
               className={`px-4 py-1.5 rounded-lg text-xs font-semibold transition-all select-none ${
                 activeTab === tab.id
@@ -79,7 +79,7 @@ export default function WorkflowsSettings() {
               type="button"
             >
               {tab.label}
-            </button>
+            </Button>
           ))}
         </div>
 

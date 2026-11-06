@@ -1,5 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { Settings, ShieldCheck } from "lucide-react";
+import React from "react";
 import { useTranslation } from "react-i18next";
 
 import EmptyState from "@/components/ui/empty-state";
@@ -11,15 +12,15 @@ import { cn } from "@/lib/utils";
 
 import { SettingItem, useSettingsNav } from "./hooks/use-settings-nav";
 
-// ── SettingCategoryCard ─────────────────────────────────────────────
+// ── SettingCategoryCard (Apple HIG Inset Card) ─────────────────────────
 
 function SettingCategoryCard({ item }: { item: SettingItem }) {
   return (
     <Link
       className={cn(
-        "group flex flex-row items-start gap-4 p-4 rounded-2xl transition-all duration-300 h-full",
-        "glass-premium",
-        "hover:scale-[1.03] hover:shadow-2xl hover:shadow-primary-100/10 dark:hover:shadow-primary-900/10",
+        "group flex flex-row items-start gap-3.5 p-4 rounded-2xl transition-all duration-200 h-full",
+        "bg-white dark:bg-slate-900/90 border border-slate-200/80 dark:border-slate-800/80 shadow-2xs",
+        "hover:border-primary-500/40 hover:shadow-xs",
         "focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-slate-900",
         "outline-none",
       )}
@@ -27,20 +28,18 @@ function SettingCategoryCard({ item }: { item: SettingItem }) {
     >
       <div
         className={cn(
-          "w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-all duration-300",
-          "bg-primary-50 dark:bg-primary-950",
-          "group-hover:bg-primary-100 dark:group-hover:bg-primary-900",
-          "group-hover:shadow-md group-hover:shadow-primary-200/50 dark:group-hover:shadow-primary-900/30",
-          "text-primary-600 dark:text-primary-400",
+          "w-9 h-9 rounded-xl flex items-center justify-center shrink-0 transition-colors duration-200",
+          "bg-primary-50 dark:bg-primary-950/70 border border-primary-100/50 dark:border-primary-900/50",
+          "text-primary-600 dark:text-primary-400 shadow-2xs",
         )}
       >
         {item.icon}
       </div>
       <div className="flex flex-col gap-0.5 min-w-0 flex-1">
-        <span className="text-sm font-bold text-slate-700 dark:text-slate-200 truncate leading-snug group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors">
+        <span className="text-xs font-semibold text-slate-800 dark:text-slate-100 truncate leading-snug group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors">
           {item.label}
         </span>
-        <span className="text-[11px] text-slate-500 dark:text-slate-400 line-clamp-2 leading-relaxed">
+        <span className="text-[11px] text-slate-400 dark:text-slate-500 line-clamp-2 leading-relaxed">
           {item.description}
         </span>
       </div>
@@ -48,29 +47,28 @@ function SettingCategoryCard({ item }: { item: SettingItem }) {
   );
 }
 
-
 // ── SettingsHubHeader ────────────────────────────────────────────────
 
 function SettingsHubHeader() {
   const { t } = useTranslation();
   return (
-    <div className="mb-10 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-      <div className="flex items-center gap-4">
-        <div className="p-3 bg-primary-50 dark:bg-primary-950 rounded-2xl border border-primary-100 dark:border-primary-900/50">
-          <Settings className="w-7 h-7 text-primary-600 dark:text-primary-400" />
+    <div className="mb-8 flex flex-col md:flex-row md:items-center md:justify-between gap-4 pb-4 border-b border-slate-200/60 dark:border-slate-800/60">
+      <div className="flex items-center gap-3">
+        <div className="w-10 h-10 rounded-xl bg-primary-50 dark:bg-primary-950/70 flex items-center justify-center text-primary-600 dark:text-primary-400 border border-primary-100/50 dark:border-primary-900/50 shadow-2xs">
+          <Settings className="w-5 h-5" />
         </div>
         <div>
-          <Typography className="text-2xl font-black text-slate-800 dark:text-slate-100" variant="h1">
+          <Typography className="text-xl font-bold tracking-tight text-slate-800 dark:text-slate-100" variant="h1">
             {t("common.settings.title")}
           </Typography>
-          <Typography className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] mt-0.5" variant="p">
+          <Typography className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mt-0.5" variant="p">
             {t("settings.layout.control_panel")}
           </Typography>
         </div>
       </div>
-      <div className="flex items-center gap-2 px-4 py-2 rounded-2xl bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700">
-        <ShieldCheck className="w-4 h-4 text-slate-400 dark:text-slate-500" />
-        <span className="text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">
+      <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-800 border border-slate-200/60 dark:border-slate-700/60">
+        <ShieldCheck className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500" />
+        <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
           {t("settings.admin_only")}
         </span>
       </div>
@@ -82,13 +80,13 @@ function SettingsHubHeader() {
 
 function SettingsHubSkeleton() {
   return (
-    <div className="space-y-8 animate-in fade-in duration-500" data-testid="settings-hub-skeleton">
+    <div className="space-y-8 animate-in fade-in duration-300" data-testid="settings-hub-skeleton">
       {[4, 2, 7, 4].map((count, i) => (
         <div key={i}>
-          <Skeleton className="h-4 w-32 mb-4" />
+          <Skeleton className="h-4 w-32 mb-4 rounded-md" />
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
             {Array.from({ length: count }).map((_, j) => (
-              <Skeleton className="h-28 rounded-2xl" key={j} />
+              <Skeleton className="h-24 rounded-2xl" key={j} />
             ))}
           </div>
         </div>
@@ -108,7 +106,7 @@ export default function SettingsHubPage() {
   const totalItems = workspaceGroup.length + accessGroup.length + operationsGroup.length + systemGroup.length;
   if (totalItems === 0) {
     return (
-      <div className="flex items-center justify-center min-h-[60vh]" data-testid="settings-hub-empty">
+      <div className="flex items-center justify-center min-h-[50vh]" data-testid="settings-hub-empty">
         <EmptyState
           description={t("settings.hub.empty.desc", "You don't have permission to access any settings. Contact your administrator.")}
           icon={<Settings className="h-10 w-10" />}
@@ -126,26 +124,25 @@ export default function SettingsHubPage() {
   ];
 
   return (
-    <div className="space-y-10 animate-in fade-in duration-700">
+    <div className="space-y-8 animate-in fade-in duration-300">
       <SettingsHubHeader />
 
       {sections.filter((s) => s.items.length > 0).map((section) => (
         <section aria-label={t(section.titleKey)} data-testid={`settings-section-${section.key}`} key={section.key}>
           <Typography
-            className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] mb-4 flex items-center gap-2"
+            className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-3 flex items-center gap-2 select-none"
             variant="p"
           >
-            <span className="w-1.5 h-4 rounded-full bg-primary-500 dark:bg-primary-400 inline-block shrink-0" />
+            <span className="w-1.5 h-3.5 rounded-full bg-primary-500 dark:bg-primary-400 inline-block shrink-0" />
             {section.emoji} {t(section.titleKey)}
           </Typography>
-          <StaggerChildren className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4" delay={40}>
+          <StaggerChildren className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4" delay={30}>
             {section.items.map((item) => (
               <SettingCategoryCard item={item} key={item.path} />
             ))}
           </StaggerChildren>
         </section>
       ))}
-
     </div>
   );
 }

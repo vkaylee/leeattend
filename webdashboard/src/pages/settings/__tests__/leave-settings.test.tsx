@@ -132,9 +132,9 @@ describe("LeaveSettings Page", () => {
     );
 
     // Query buttons specifically to avoid duplicate text in headings/desc
-    expect(screen.getByRole("button", { name: /Leave Types/i })).toBeDefined();
-    expect(screen.getByRole("button", { name: /Accrual Policies/i })).toBeDefined();
-    expect(screen.getByRole("button", { name: /Policy Assignments/i })).toBeDefined();
+    expect(screen.getByRole("tab", { name: /Leave Types/i })).toBeDefined();
+    expect(screen.getByRole("tab", { name: /Accrual Policies/i })).toBeDefined();
+    expect(screen.getByRole("tab", { name: /Policy Assignments/i })).toBeDefined();
   });
 
   it("switches to assignments tab and shows content", async () => {
@@ -144,7 +144,7 @@ describe("LeaveSettings Page", () => {
       </QueryClientProvider>
     );
 
-    const assignTab = screen.getByRole("button", { name: /Policy Assignments/i });
+    const assignTab = screen.getByRole("tab", { name: /Policy Assignments/i });
     fireEvent.click(assignTab);
 
     // Check for the heading in the Assignments tab
@@ -159,7 +159,7 @@ describe("LeaveSettings Page", () => {
       </QueryClientProvider>
     );
 
-    const assignTab = screen.getByRole("button", { name: /Policy Assignments/i });
+    const assignTab = screen.getByRole("tab", { name: /Policy Assignments/i });
     fireEvent.click(assignTab);
 
     // Wait for data to load — use getAllByText since ResponsiveTable renders both mobile+desktop
@@ -184,7 +184,7 @@ describe("LeaveSettings Page", () => {
       </QueryClientProvider>
     );
 
-    const assignTab = screen.getByRole("button", { name: /Policy Assignments/i });
+    const assignTab = screen.getByRole("tab", { name: /Policy Assignments/i });
     fireEvent.click(assignTab);
 
     // Verify first assignment is rendered
@@ -214,7 +214,7 @@ describe("LeaveSettings Page", () => {
       </QueryClientProvider>
     );
 
-    const assignTab = screen.getByRole("button", { name: /Policy Assignments/i });
+    const assignTab = screen.getByRole("tab", { name: /Policy Assignments/i });
     fireEvent.click(assignTab);
 
     // Wait for data to load
