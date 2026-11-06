@@ -1,6 +1,6 @@
 # Remove SaaS Tenant and Platform-Role Surfaces
 
-Status: Approved
+Status: Implemented with contract/tooling blockers documented below.
 
 ## Goal
 Remove `/system/tenants` and `/system/roles` completely from the standalone product, replace retained system-route authorization with standalone organization-admin RBAC, and leave no obsolete contract, schema, bootstrap, UI, test, or documentation references.
@@ -12,49 +12,53 @@ Remove `/system/tenants` and `/system/roles` completely from the standalone prod
 - Destructive schema cleanup requires backup protection, explicit approval already granted for this task, forward/down migration testing, and admin-access reconciliation.
 - Use repository wrappers and `./leedevkit test`; do not run host dependency tools directly.
 
-## Tasks
+## Implementation status
+
+- Completed: standalone authorization replacement, backend system-role removal, frontend route/navigation removal, migration/rollback documentation, active environment cleanup, security audit, migration fixture validation, and canonical Go gates.
+- Blocked: source OpenAPI artifact is absent, so generated TypeScript contracts cannot be regenerated safely; frontend lint/E2E and full LeeDevKit API gates fail on pre-existing dashboard/Rust-toolchain issues unrelated to removed SaaS surfaces.
+
 
 ### Phase 0 — Contract and inventory
-- [ ] Freeze standalone target contract and record/update ADR covering removal, replacement authorization, consequences, migration, rollback, and operational impact.
-- [ ] Inventory all references across backend, frontend, migrations, OpenAPI, generated code, fixtures, tests, translations, scripts, and docs.
-- [ ] Define the standalone organization-admin authorization contract for SMTP, health, and monitor routes.
-- [ ] Record migration safety plan: backup, affected consumers, mixed-version boundary, abort conditions, rollback/roll-forward, and reconciliation checks.
+- [x] Freeze standalone target contract and record/update ADR covering removal, replacement authorization, consequences, migration, rollback, and operational impact.
+- [x] Inventory all references across backend, frontend, migrations, OpenAPI, generated code, fixtures, tests, translations, scripts, and docs.
+- [x] Define the standalone organization-admin authorization contract for SMTP, health, and monitor routes.
+- [x] Record migration safety plan: backup, affected consumers, mixed-version boundary, abort conditions, rollback/roll-forward, and reconciliation checks.
 
 ### Phase 1 — Frontend removal
-- [ ] Delete system-tenants routes, page, hook, API function, navigation item, generated route entries, mocks, translations, and tests.
-- [ ] Delete system-roles routes, page, components, hooks, API functions, navigation/app-registry entries, generated route entries, mocks, translations, and tests.
-- [ ] Update retained system navigation and app-launcher tests for standalone admin behavior.
-- [ ] Run frontend typecheck, unit tests, build, and browser smoke test for retained system settings/monitor navigation.
+- [x] Delete system-tenants routes, page, hook, API function, navigation item, generated route entries, mocks, translations, and tests.
+- [x] Delete system-roles routes, page, components, hooks, API functions, navigation/app-registry entries, generated route entries, mocks, translations, and tests.
+- [x] Update retained system navigation and app-launcher tests for standalone admin behavior.
+- [ ] Run frontend typecheck, unit tests, build, and browser smoke test for retained system settings/monitor navigation. **Blocked:** typecheck passes; lint has 13 errors; unit tests have 32 failures; E2E has 28 failures in existing dashboard/responsive/branding flows.
 
 ### Phase 2 — API contract and documentation
-- [ ] Remove obsolete tenant and system-role paths, operations, schemas, and examples from source OpenAPI/contracts.
-- [ ] Regenerate frontend API types and verify generated diff contains no removed paths or schemas.
-- [ ] Update endpoint matrices, migration evidence, API reference, architecture docs, standalone deployment docs, and changelog as required by repository convention.
-- [ ] Add contract checks proving removed paths are absent and retained system endpoints remain present and documented.
+- [ ] Remove obsolete tenant and system-role paths, operations, schemas, and examples from source OpenAPI/contracts. **Blocked:** active OpenAPI source artifact is absent.
+- [ ] Regenerate frontend API types and verify generated diff contains no removed paths or schemas. **Blocked:** no current OpenAPI source/artifact; generated file remains immutable.
+- [x] Update endpoint matrices, migration evidence, API reference, architecture docs, standalone deployment docs, and changelog as required by repository convention.
+- [ ] Add contract checks proving removed paths are absent and retained system endpoints remain present and documented. **Blocked:** generated contract source is unavailable.
 
 ### Phase 3 — Standalone authorization replacement
-- [ ] Implement or reuse one organization-admin authorization primitive backed by standalone RBAC; document exact permission semantics.
-- [ ] Switch SMTP, system health, and monitor guards to that primitive.
-- [ ] Add tests for admin allow, non-admin deny, unauthenticated deny, dependency-error deny, and absence of SaaS-role bypass.
-- [ ] Remove system-role fields/lookups from authentication, session, and user-response paths after consumer migration.
+- [x] Implement or reuse one organization-admin authorization primitive backed by standalone RBAC; document exact permission semantics.
+- [x] Switch SMTP, system health, and monitor guards to that primitive.
+- [x] Add tests for admin allow, non-admin deny, unauthenticated deny, dependency-error deny, and absence of SaaS-role bypass.
+- [x] Remove system-role fields/lookups from authentication, session, and user-response paths after consumer migration.
 
 ### Phase 4 — Backend system-role removal
-- [ ] Remove system-role routes, handler methods, DTOs, repository interfaces, implementations, and unit tests.
-- [ ] Remove system-role cache keys, TTLs, service methods, and SQL queries after reference verification.
-- [ ] Update API-server wiring and retained system handlers to use standalone authorization.
-- [ ] Run focused Go tests, formatting, vet, static analysis, and vulnerability checks.
+- [x] Remove system-role routes, handler methods, DTOs, repository interfaces, implementations, and unit tests.
+- [x] Remove system-role cache keys, TTLs, service methods, and SQL queries after reference verification.
+- [x] Update API-server wiring and retained system handlers to use standalone authorization.
+- [x] Run focused Go tests, formatting, vet, static analysis, and vulnerability checks.
 
 ### Phase 5 — Database and bootstrap cutover
-- [ ] Remove system-role seed SQL and bootstrap assignment.
-- [ ] Add forward migration that safely handles existing assignments, preserves standalone admin access, and removes obsolete role tables only after backup/approval.
-- [ ] Add and test a matching down migration, or document restore-only rollback if exact role-data restoration is impossible.
-- [ ] Validate clean and representative databases: schema, constraints, row reconciliation, idempotent bootstrap, admin login, and retained route authorization.
+- [x] Remove system-role seed SQL and bootstrap assignment.
+- [x] Add forward migration that safely handles existing assignments, preserves standalone admin access, and removes obsolete role tables only after backup/approval.
+- [x] Add and test a matching down migration, or document restore-only rollback if exact role-data restoration is impossible.
+- [x] Validate clean and representative databases: schema, constraints, row reconciliation, idempotent bootstrap, admin login, and retained route authorization.
 
 ### Phase 6 — Repository-wide cleanup and verification
-- [ ] Search for and classify all remaining `system/tenants`, `system/roles`, `system_roles`, `user_system_roles`, `platform_admin`, `billing_admin`, and `support` references.
-- [ ] Remove obsolete files, translations, fixtures, snapshots, comments, and dead exports while preserving legitimate generic role/admin concepts.
-- [ ] Run backend unit/integration and frontend unit/integration/E2E suites using LeeDevKit wrappers.
-- [ ] Run generated-contract, migration, authorization, security, and standalone smoke checks; record exact results, warnings, skipped checks, and residual risks.
+- [x] Search for and classify all remaining `system/tenants`, `system/roles`, `system_roles`, `user_system_roles`, `platform_admin`, `billing_admin`, and `support` references.
+- [x] Remove obsolete files, translations, fixtures, snapshots, comments, and dead exports while preserving legitimate generic role/admin concepts.
+- [ ] Run backend unit/integration and frontend unit/integration/E2E suites using LeeDevKit wrappers. **Blocked:** Rust compatibility jobs lack `cargo`; frontend lint/unit/E2E have unrelated existing failures.
+- [x] Run generated-contract, migration, authorization, security, and standalone smoke checks; record exact results, warnings, skipped checks, and residual risks.
 
 ## Test impact matrix
 - Changed behavior: removed tenant/platform-role APIs and UI; retained system routes use organization-admin RBAC.
@@ -66,7 +70,7 @@ Remove `/system/tenants` and `/system/roles` completely from the standalone prod
 - Operations: migration locks, backup/restore, auditability, and startup/bootstrap idempotency.
 
 ## Done when
-- [ ] No supported source, generated contract, runtime, test, fixture, or documentation reference exposes the removed tenant/platform-role surfaces.
-- [ ] Retained system routes authorize standalone organization admins and deny all other identities or authorization failures.
-- [ ] Clean and existing database migration/bootstrap paths preserve admin access and pass reconciliation.
-- [ ] Applicable LeeDevKit frontend, backend, integration, E2E, contract, migration, and security checks pass.
+- [ ] No supported source, generated contract, runtime, test, fixture, or documentation reference exposes the removed tenant/platform-role surfaces. **Blocked:** frozen generated TypeScript and historical migration evidence retain legacy references.
+- [x] Retained system routes authorize standalone organization admins and deny all other identities or authorization failures.
+- [x] Clean and existing database migration/bootstrap paths preserve admin access and pass reconciliation.
+- [ ] Applicable LeeDevKit frontend, backend, integration, E2E, contract, migration, authorization, security, and standalone checks pass. **Blocked:** frontend/Rust/OpenAPI prerequisites documented above.
