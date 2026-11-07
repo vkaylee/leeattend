@@ -236,6 +236,7 @@ export function DelegatedClaimsTab({
                     : "bg-transparent border-slate-200 dark:border-slate-700 text-transparent"
                 )}>
                   <input
+                    aria-label={t("common.select_all", { defaultValue: "Chọn tất cả" })}
                     checked={isAllFilteredSelected}
                     className="sr-only"
                     onChange={toggleSelectAll}
@@ -285,6 +286,7 @@ export function DelegatedClaimsTab({
                           : "bg-transparent border-slate-200 dark:border-slate-700 text-transparent"
                       )}>
                         <input
+                          aria-label={t("common.select_item_with_name", { defaultValue: "Chọn {{name}}", name: row.employee_name })}
                           checked={isChecked}
                           className="sr-only"
                           onChange={() => { toggleSelectRow(key); }}

@@ -1,5 +1,5 @@
+import { format } from "date-fns";
 import { enUS } from "date-fns/locale";
-
 import {
   LOCALE_MAP,
   formatDateOnly,
@@ -44,6 +44,14 @@ export function useDateTimeFormatter() {
       formatDateTimeOnly(date, dateFormat, timePattern, timezone),
     formatMonthYear: (date: string | Date | null | undefined) =>
       formatMonthYearOnly(date, datePattern, locale),
+    formatMonthLongYear: (date: string | Date | null | undefined) => {
+      if (!date) return "---";
+      try {
+        return format(new Date(date), "MMMM yyyy", { locale });
+      } catch {
+        return String(date);
+      }
+    },
     formatDateTimeLocale: (date: string | Date | null | undefined) =>
       formatDateTimeLocaleOnly(date, currentLanguage),
   };

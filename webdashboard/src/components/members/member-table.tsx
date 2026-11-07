@@ -16,6 +16,7 @@ import PermissionManagementModal from "@/components/features/settings/permission
 import RoleManagementModal from "@/components/features/settings/role-management-modal";
 import Button from "@/components/ui/button";
 import ResponsiveTable from "@/components/ui/responsive-table";
+import TableEmptyRow from "@/components/ui/table-empty-row";
 import {
   Table,
   TableHeader,
@@ -31,6 +32,22 @@ import { useWorkspaceMembers, useWorkspaceRoles } from "@/hooks/use-workspace";
 import { WorkspaceRole, WorkspaceMember } from "@/lib/api";
 import { logError } from "@/lib/logger";
 import { cn, maskEmail } from "@/lib/utils";
+
+export function formatRoleName(
+  name: string,
+  t: (key: string, options?: { defaultValue?: string }) => string,
+): string {
+  const roleKey = name.toLowerCase().replace(/[\s-]+/g, "_");
+  const knownRoles: Record<string, string> = {
+    admin: t("roles.admin", { defaultValue: "Quản trị viên" }),
+    owner: t("roles.owner", { defaultValue: "Chủ sở hữu" }),
+    hr_manager: t("roles.hr_manager", { defaultValue: "Quản lý nhân sự" }),
+    shift_manager: t("roles.shift_manager", { defaultValue: "Quản lý ca" }),
+    team_lead: t("roles.team_lead", { defaultValue: "Trưởng nhóm" }),
+    employee: t("roles.employee", { defaultValue: "Nhân viên" }),
+  };
+  return knownRoles[roleKey] ?? name;
+}
 
 /**
  * MemberMobileCard — mobile card for workspace members.
@@ -102,7 +119,7 @@ function MemberMobileCard({
               )}
             >
               {primaryRole.is_system && (primaryRole.name.toLowerCase() === "admin" || primaryRole.name.toLowerCase() === "owner") ? <Shield size={10} /> : null}
-              {primaryRole.name}
+              {formatRoleName(primaryRole.name, t)}
             </span>
           )}
           {extraRoles.length > 0 && (
@@ -162,6 +179,7 @@ const roleColorMap: Record<string, string> = {
 };
 
 function MemberRoleCell({ member, roles }: { member: WorkspaceMember; roles: WorkspaceRole[] }) {
+  const { t } = useTranslation();
   const primaryRole = roles.find((r) => r.id === member.role_id);
   if (!primaryRole) return <div className="h-6 w-16 bg-slate-200 dark:bg-slate-800 rounded-full animate-pulse"></div>;
 
@@ -178,7 +196,7 @@ function MemberRoleCell({ member, roles }: { member: WorkspaceMember; roles: Wor
         )}
       >
         {primaryRole.is_system && (primaryRole.name.toLowerCase() === "admin" || primaryRole.name.toLowerCase() === "owner") ? <Shield size={10} /> : null}
-        {primaryRole.name}
+        {formatRoleName(primaryRole.name, t)}
       </span>
 
       {extraRoles.length > 0 && (
@@ -201,7 +219,7 @@ function MemberRoleCell({ member, roles }: { member: WorkspaceMember; roles: Wor
                   )}
                   key={er.id}
                 >
-                  {er.name}
+                  {formatRoleName(er.name, t)}
                 </span>
               ))}
             </div>
@@ -267,14 +285,12 @@ export default function MemberTable() {
               {isLoading ? (
                 <TableSkeleton rows={5} />
               ) : members.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={3}>
-                    <div className="py-32 text-center bg-slate-50 dark:bg-slate-800/30 flex flex-col items-center">
-                      <UserIcon className="w-20 h-20 mb-6 text-slate-200 dark:text-slate-700" />
-                      <Typography className="text-[10px] font-bold text-slate-300 dark:text-slate-600 uppercase tracking-[0.25em]" variant="p">{t("members.table.messages.no_members")}</Typography>
-                    </div>
-                  </TableCell>
-                </TableRow>
+                <TableEmptyRow
+                  colSpan={3}
+                  description={t("members.table.empty_desc", { defaultValue: "Mời thành viên đầu tiên tham gia không gian làm việc." })}
+                  icon={<UserIcon className="w-16 h-16 text-slate-300 dark:text-slate-600" />}
+                  title={t("members.table.messages.no_members", { defaultValue: "Chưa có thành viên nào" })}
+                />
               ) : (
                 members.map((member) => (
                   <TableRow className="group" key={member.user_id}>

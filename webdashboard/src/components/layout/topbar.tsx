@@ -16,8 +16,8 @@ import { LanguageSwitcher } from "@/components/ui/language-switcher";
 import { useDarkModeContext } from "@/context/use-dark-mode-context";
 import { useNotifications } from "@/hooks/use-notifications";
 import { useProfile } from "@/hooks/use-profile";
+import { getRouteMetadata } from "@/lib/route-metadata";
 import { ROUTES } from "@/lib/routes";
-
 export interface TopbarProps {
   onOpenMobileMenu?: () => void;
   onOpenSearch?: () => void;
@@ -42,54 +42,10 @@ export function Topbar({
   const { user } = useProfile();
   const { unreadCount } = useNotifications();
 
-  const getPageTitle = (path: string): string => {
-    const titles: Record<string, string> = {
-      [ROUTES.HOME]: t("common.dashboard"),
-      [ROUTES.DASHBOARD]: t("dashboard.catalog.title", "Tổng quan"),
-      [ROUTES.PEOPLE]: t("common.people", "Nhân sự"),
-      [ROUTES.EMPLOYEES]: t("common.employees", "Nhân viên"),
-      [ROUTES.DEPARTMENTS]: t("common.departments", "Phòng ban"),
-      [ROUTES.ORG_CHART]: t("common.org_chart", "Sơ đồ tổ chức"),
-      [ROUTES.ATTENDANCE_LOGS]: t("common.logs", "Bảng chấm công"),
-      [ROUTES.LEAVE_REQUESTS]: t("leave_requests.title", "Yêu cầu nghỉ phép"),
-      [ROUTES.LEAVE_BALANCES]: t("common.leave_balances", "Quỹ phép"),
-      [ROUTES.ATTENDANCE_ADJUSTMENTS]: t("common.attendance_confirm", "Xác nhận công"),
-      [ROUTES.SHIFTS]: t("common.shifts", "Ca làm việc"),
-      [ROUTES.SHIFTS_RULES]: t("common.sections.shifts_rules", "Quy tắc xếp ca"),
-      [ROUTES.SHIFT_SWAPS]: t("shift_swaps.title", "Đổi ca"),
-      [ROUTES.PAYROLL]: t("payroll.title", "Tính lương"),
-      [ROUTES.REPORTS]: t("common.reports", "Báo cáo"),
-      [ROUTES.APPROVALS]: t("ot_approvals.title", "Phê duyệt"),
-      [ROUTES.APPROVALS_OT]: t("ot_approvals.title", "Duyệt tăng ca"),
-      [ROUTES.AUDIT_LOGS]: t("audit_logs.title", "Audit Logs"),
-      [ROUTES.SETTINGS.ROOT]: t("settings.title", "Cài đặt"),
-      [ROUTES.SETTINGS.GENERAL]: t("settings.categories.general", "Cài đặt chung"),
-      [ROUTES.SETTINGS.ORGANIZATION]: t("settings.categories.organization", "Tổ chức"),
-      [ROUTES.SETTINGS.TIME]: t("settings.categories.time", "Thời gian & Chấm công"),
-      [ROUTES.SETTINGS.PAYROLL]: t("settings.categories.payroll", "Lương & Thưởng"),
-      [ROUTES.SETTINGS.WORKFLOWS]: t("settings.categories.workflows", "Quy trình duyệt"),
-      [ROUTES.NOTIFICATIONS]: t("common.notifications", "Thông báo"),
-      [ROUTES.PROFILE]: t("common.profile", "Hồ sơ"),
-      [ROUTES.ESS_PROFILE]: t("common.my_profile", "Hồ sơ của tôi"),
-    };
-
-    if (titles[path]) {
-      return titles[path];
-    }
-
-    // Match prefix route if exact match not found
-    for (const [routePath, title] of Object.entries(titles)) {
-      if (routePath !== "/" && path.startsWith(`${routePath}/`)) {
-        return title;
-      }
-    }
-
-    const segments = path.split("/").filter(Boolean);
-    const last = segments[segments.length - 1];
-    return last ? last.replace(/-/g, " ") : t("common.dashboard");
-  };
-
-  const pageTitle = getPageTitle(location.pathname);
+  const routeMeta = getRouteMetadata(location.pathname);
+  const pageTitle = routeMeta.breadcrumbKey
+    ? t(routeMeta.breadcrumbKey, routeMeta.defaultBreadcrumb)
+    : routeMeta.defaultBreadcrumb;
 
   return (
     <header

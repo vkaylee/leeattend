@@ -24,10 +24,10 @@ import Button from "@/components/ui/button";
 import { FilterPanel } from "@/components/ui/filter-panel";
 import { FilterTrigger } from "@/components/ui/filter-trigger";
 import { PageContainer } from "@/components/ui/page-container";
+import { PageHeader } from "@/components/ui/page-header";
 import { PageTabs, PageTab } from "@/components/ui/page-tabs";
 import ResponsiveTable from "@/components/ui/responsive-table";
 import ResponsiveToolbar from "@/components/ui/responsive-toolbar";
-import { Typography } from "@/components/ui/typography";
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
 import { useMyPermissions } from "@/hooks/use-permissions";
 import { getStandaloneOrganizationId, Employee, LeaveRequest } from "@/lib/api";
@@ -127,17 +127,20 @@ export default function LeaveRequestsPage() {
 
   return (
     <PageContainer>
-      <div className="flex flex-col items-stretch gap-4 border-b border-slate-50 pb-4 px-1 dark:border-slate-800 sm:flex-row sm:items-center sm:justify-between">
-        <Typography className="text-2xl font-bold text-slate-850 dark:text-slate-100 tracking-tight normal-case" variant="h3">{t("leave_requests.title")}</Typography>
-        <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row">
-          <Button className="h-10 w-full rounded-xl text-xs font-bold uppercase tracking-wider shadow-sm sm:w-auto" onClick={() => { setIsImportModalOpen(true); }} variant="outline">
-            <Upload className="w-4 h-4 mr-2" />{t("leave_requests.import_excel")}
-          </Button>
-          <Button className="h-10 w-full rounded-xl text-xs font-bold uppercase tracking-wider shadow-md sm:w-auto" onClick={() => { setIsModalOpen(true); }} variant="primary">
-            <Plus className="w-4 h-4 mr-2" />{t("leave_requests.add")}
-          </Button>
-        </div>
-      </div>
+      <PageHeader
+        actions={
+          <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row">
+            <Button className="h-10 w-full rounded-xl text-xs font-bold uppercase tracking-wider shadow-sm sm:w-auto" onClick={() => { setIsImportModalOpen(true); }} variant="outline">
+              <Upload className="w-4 h-4 mr-2" />{t("leave_requests.import_excel")}
+            </Button>
+            <Button className="h-10 w-full rounded-xl text-xs font-bold uppercase tracking-wider shadow-md sm:w-auto" onClick={() => { setIsModalOpen(true); }} variant="primary">
+              <Plus className="w-4 h-4 mr-2" />{t("leave_requests.add")}
+            </Button>
+          </div>
+        }
+        className="border-b border-slate-50 pb-4 px-1 dark:border-slate-800"
+        title={t("leave_requests.title")}
+      />
 
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <PageTabs activeTab={activeTab} onTabChange={(id) => { setActiveTab(id as TabType); }} tabs={tabs} />

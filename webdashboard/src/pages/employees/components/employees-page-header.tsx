@@ -27,52 +27,54 @@ export const EmployeesPageHeader = ({
   return (
     <PageHeader
       actions={
-        <>
+        <div className="flex items-center gap-2.5 flex-wrap sm:flex-nowrap">
           <Link to="/econtracts">
             <Button
-              icon={<FileText size={18} />}
+              icon={<FileText size={16} />}
               variant="outline"
             >
-              {t("common.econtracts", { defaultValue: "e-Contracts Hub" }).toUpperCase()}
+              {t("common.econtracts", { defaultValue: "Hợp đồng điện tử" })}
             </Button>
           </Link>
           <PermissionGate permission="employees:update">
             <Button
               data-testid="import-termination-btn"
-              icon={<Upload size={18} />}
+              icon={<Upload size={16} />}
               onClick={() => {
                 setIsTerminationImportOpen(true);
               }}
               variant="outline"
             >
-              {t("employees.bulk_termination_btn").toUpperCase()}
+              {t("employees.bulk_termination_btn")}
             </Button>
           </PermissionGate>
           <PermissionGate permission="employees:create">
             <Button
               data-testid="import-employee-btn"
-              icon={<Upload size={18} />}
+              icon={<Upload size={16} />}
               onClick={() => {
                 setIsImportDialogOpen(true);
               }}
               variant="outline"
             >
-              {t("employees.bulk_import_btn").toUpperCase()}
+              {t("employees.bulk_import_btn")}
             </Button>
           </PermissionGate>
           <PermissionGate permission="employees:create">
-            <Button data-testid="add-employee-btn"
-              icon={<UserPlus size={18} />}
+            <Button
+              className="shrink-0 font-bold shadow-sm"
+              data-testid="add-employee-btn"
+              icon={<UserPlus size={16} />}
               onClick={() => {
                 setEditingEmployee(null);
                 setIsModalOpen(true);
               }}
               variant="primary"
             >
-              {t("employees.add_btn").toUpperCase()}
+              {t("employees.add_btn")}
             </Button>
           </PermissionGate>
-        </>
+        </div>
       }
       data-testid="employees-title"
       subtitle={t("employees.subtitle")}

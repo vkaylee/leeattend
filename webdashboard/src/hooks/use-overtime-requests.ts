@@ -113,5 +113,6 @@ export const useEmployeeQuota = (employeeId: string, date: string) => {
     queryKey: overtimeRequestKeys.quotaDetail(workspace?.id ?? '', employeeId, date),
     queryFn: (wsId) => overtimeRequestsApi.getEmployeeQuota(wsId, employeeId, date),
     enabled: !!employeeId && !!date,
+    meta: { suppressErrorToast: [404] },
   });
 };

@@ -33,6 +33,7 @@ interface WorkspaceQueryOptions<TData> {
    * Default: true (query fires when workspace is available).
    */
   staleTime?: number;
+  meta?: Record<string, unknown>;
 }
 
 export function useOrganizationQuery<TData>(
@@ -48,8 +49,10 @@ export function useOrganizationQuery<TData>(
     placeholderData: options.placeholderData === "keepPreviousData" ? keepPreviousData : undefined,
     refetchInterval: options.refetchInterval,
     refetchOnWindowFocus: options.refetchOnWindowFocus,
+    meta: options.meta,
   });
 }
+
 
 // ── useWorkspaceMutation ──────────────────────────────────────────────────
 //

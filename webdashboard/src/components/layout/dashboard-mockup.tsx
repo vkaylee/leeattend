@@ -1,8 +1,10 @@
+import { useTranslation } from "react-i18next";
 import { Typography } from "@/components/ui/typography";
 
 import { ATTENDANCE_BARS, DAY_LABELS, MOCK_EMPLOYEES, STATUS_STYLE, STAT_CARDS } from "./auth-mock-data";
 
 export function DashboardMockup() {
+  const { t } = useTranslation();
   return (
     <div
       aria-hidden="true"
@@ -25,20 +27,28 @@ export function DashboardMockup() {
 
           {/* Stat cards row */}
           <div className="grid grid-cols-3 gap-2">
-            {STAT_CARDS.map(({ value, label, color, border }) => (
-              <div
-                className={`rounded-xl p-3 bg-gradient-to-br ${color} border ${border} animate-[auth-fade-in_0.5s_ease-out_both]`}
-                key={label}
-              >
-                <Typography className="text-white font-bold text-lg leading-none" variant="p">{value}</Typography>
-                <Typography className="text-white/50 text-[10px] font-medium mt-1 uppercase tracking-wide" variant="p">{label}</Typography>
-              </div>
-            ))}
+            {STAT_CARDS.map(({ value, label, color, border }) => {
+              const localizedLabel =
+                label === "Employees"
+                  ? t("common.employees", { defaultValue: "Nhân viên" })
+                  : label === "On Time"
+                    ? t("attendance.on_time", { defaultValue: "Đúng giờ" })
+                    : t("attendance.on_leave", { defaultValue: "Nghỉ phép" });
+              return (
+                <div
+                  className={`rounded-xl p-3 bg-gradient-to-br ${color} border ${border} animate-[auth-fade-in_0.5s_ease-out_both]`}
+                  key={label}
+                >
+                  <Typography className="text-white font-bold text-lg leading-none" variant="p">{value}</Typography>
+                  <Typography className="text-white/50 text-[10px] font-medium mt-1 uppercase tracking-wide" variant="p">{localizedLabel}</Typography>
+                </div>
+              );
+            })}
           </div>
 
           {/* Attendance chart */}
           <div className="rounded-xl p-3 bg-white/[0.04]">
-            <Typography className="text-white/50 text-[10px] font-semibold uppercase tracking-widest mb-3" variant="p">Weekly Attendance</Typography>
+            <Typography className="text-white/50 text-[10px] font-semibold uppercase tracking-widest mb-3" variant="p">{t("dashboard.weekly_attendance", { defaultValue: "Weekly Attendance" })}</Typography>
             <div className="flex items-end gap-1.5 h-14">
               {ATTENDANCE_BARS.map((h, i) => (
                 <div className="flex-1 flex flex-col items-center gap-1" key={i}>
@@ -61,7 +71,7 @@ export function DashboardMockup() {
 
           {/* Employee list */}
           <div className="space-y-1.5">
-            <Typography className="text-white/50 text-[10px] font-semibold uppercase tracking-widest mb-2" variant="p">Today&apos;s Status</Typography>
+            <Typography className="text-white/50 text-[10px] font-semibold uppercase tracking-widest mb-2" variant="p">{t("dashboard.todays_status", { defaultValue: "Today's Status" })}</Typography>
             {MOCK_EMPLOYEES.map(({ name, role, status, time, initials, hue }, idx) => {
               const s = STATUS_STYLE[status];
               return (

@@ -50,7 +50,7 @@ export default function DepartmentsPage() {
     <PageContainer>
       <PageHeader
         actions={
-          <Button data-testid="add-dept-btn" icon={<Plus size={18} />} onClick={() => { setEditingDept(null); setIsModalOpen(true); }} variant="primary">{t("departments.add_btn").toUpperCase()}</Button>
+          <Button data-testid="add-dept-btn" icon={<Plus size={18} />} onClick={() => { setEditingDept(null); setIsModalOpen(true); }} variant="primary">{t("departments.add_btn")}</Button>
         }
         data-testid="departments-title"
         icon={<Building2 size={24} />}
@@ -124,7 +124,7 @@ export default function DepartmentsPage() {
               }}
               variant="primary"
             >
-              {t("departments.add_btn").toUpperCase()}
+              {t("departments.add_btn")}
             </Button>
           }
           description={t("departments.messages.empty_desc")}
@@ -141,7 +141,7 @@ export default function DepartmentsPage() {
               }}
               variant="secondary"
             >
-              {t("common.reset", { defaultValue: "Reset" }).toUpperCase()}
+              {t("common.reset", { defaultValue: "Reset" })}
             </Button>
           }
           description={t("departments.messages.empty_desc")}
@@ -204,8 +204,8 @@ export default function DepartmentsPage() {
                 <div className="mt-4 grid grid-cols-2 gap-3 border-t border-slate-100 pt-4 dark:border-slate-800">
                   <div>
                     <div className="text-[9px] font-bold uppercase tracking-wider text-slate-400">{t("departments.columns.manager")}</div>
-                    <div className="mt-1 text-xs font-bold uppercase tracking-tight text-slate-600 dark:text-slate-300">
-                      {manager ? manager.full_name : t("departments.not_assigned").toUpperCase()}
+                    <div className="mt-1 text-xs font-medium text-slate-600 dark:text-slate-300">
+                      {manager ? manager.full_name : t("departments.not_assigned")}
                     </div>
                   </div>
                   <div>
@@ -282,8 +282,8 @@ export default function DepartmentsPage() {
                         <td className="px-8 py-6 max-w-xs truncate text-slate-500 dark:text-slate-400 text-xs font-semibold uppercase tracking-tight opacity-65 leading-relaxed italic">
                           {dept.description ?? t("common.no_description")}
                         </td>
-                        <td className="px-8 py-6 text-slate-600 dark:text-slate-300 text-xs font-bold uppercase tracking-tight">
-                          {manager ? manager.full_name : t("departments.not_assigned").toUpperCase()}
+                        <td className="px-8 py-6 text-slate-600 dark:text-slate-300 text-xs font-medium">
+                          {manager ? manager.full_name : t("departments.not_assigned")}
                         </td>
                         <td className="px-8 py-6 text-center text-slate-700 dark:text-slate-300 text-xs font-bold">
                           {dept.active_employee_count}

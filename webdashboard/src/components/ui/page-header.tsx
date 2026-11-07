@@ -65,4 +65,5 @@ const PageHeader = memo(function PageHeader({
   );
 });
 
+export { PageHeader };
 export default PageHeader;

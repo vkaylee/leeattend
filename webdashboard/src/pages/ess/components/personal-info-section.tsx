@@ -81,11 +81,11 @@ export function PersonalInfoSection({
               setFormData({ ...formData, gender: value });
             }}
             options={[
-              { label: t("ess.gender_male").toUpperCase(), value: "male" },
-              { label: t("ess.gender_female").toUpperCase(), value: "female" },
-              { label: t("ess.gender_other").toUpperCase(), value: "other" },
+              { label: t("ess.gender_male"), value: "male" },
+              { label: t("ess.gender_female"), value: "female" },
+              { label: t("ess.gender_other"), value: "other" },
             ]}
-            placeholder={t("common.select").toUpperCase()}
+            placeholder={t("common.select")}
             value={formData.gender}
           />
         </div>
@@ -111,7 +111,7 @@ export function PersonalInfoSection({
           type="submit"
           variant="primary"
         >
-          {isUpdating ? t("common.saving").toUpperCase() : t("common.save").toUpperCase()}
+          {isUpdating ? t("common.saving") : t("common.save")}
         </Button>
       </div>
     </form>

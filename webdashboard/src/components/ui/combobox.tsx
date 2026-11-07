@@ -179,10 +179,10 @@ function ComboboxTrigger({
           {selectedOption ? (
             selectedOption.label
           ) : (
-            <span className="text-primary-400 font-bold opacity-60 flex items-center gap-2">
-              {placeholder}
+            <span className="text-primary-400 font-bold opacity-60 flex items-center gap-2 min-w-0">
+              <span className="truncate">{placeholder}</span>
               {Boolean(keyboardShortcut) && (
-                <kbd className="hidden sm:inline-flex items-center h-5 px-1.5 text-[10px] uppercase font-mono bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded text-slate-400 dark:text-slate-500 shadow-sm ml-2">
+                <kbd aria-hidden="true" className="hidden sm:inline-flex shrink-0 items-center h-5 px-1.5 text-[10px] uppercase font-mono bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded text-slate-400 dark:text-slate-500 shadow-sm ml-2">
                   {Array.isArray(keyboardShortcut) ? keyboardShortcut[0] : keyboardShortcut}
                 </kbd>
               )}

@@ -187,6 +187,7 @@ export const buildEdge = ({
   targetPosition
 }: BuildEdgeParams): Edge => {
   return {
+    ariaLabel: "Đường nối sơ đồ tổ chức",
     id: `edge-${parentId}-${childId}`,
     source: parentId,
     sourceHandle,

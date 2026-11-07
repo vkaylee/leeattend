@@ -2,6 +2,7 @@ import { Clock, History } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import ResponsiveTable from "@/components/ui/responsive-table";
+import TableEmptyRow from "@/components/ui/table-empty-row";
 import { Typography } from "@/components/ui/typography";
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
 import { AttendanceEntry } from "@/lib/api/types";
@@ -89,8 +90,15 @@ export function HistoryTable({ entries }: HistoryTableProps) {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
-                {entries.map((entry) => (
-                  <tr className="transition-all group hover:bg-slate-50 dark:hover:bg-slate-800/50" key={entry.id}>
+                {entries.length === 0 ? (
+                  <TableEmptyRow
+                    colSpan={3}
+                    description={t("ess.clock.empty_history_desc", { defaultValue: "Lịch sử bấm giờ 7 ngày gần nhất sẽ xuất hiện tại đây khi bạn chấm công." })}
+                    title={t("ess.clock.empty_history", { defaultValue: "Chưa có lượt chấm công nào trong 7 ngày qua" })}
+                  />
+                ) : (
+                  entries.map((entry) => (
+                    <tr className="transition-all group hover:bg-slate-50 dark:hover:bg-slate-800/50" key={entry.id}>
                     <td className="px-8 py-5">
                       <div className="flex items-center gap-3">
                         <span className="text-sm font-bold text-slate-700 dark:text-slate-200">

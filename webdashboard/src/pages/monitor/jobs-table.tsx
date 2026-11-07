@@ -8,6 +8,7 @@ import Button from "@/components/ui/button";
 import { FilterPanel } from "@/components/ui/filter-panel";
 import { FilterTrigger } from "@/components/ui/filter-trigger";
 import ResponsiveTable from "@/components/ui/responsive-table";
+import TableEmptyRow from "@/components/ui/table-empty-row";
 import { Typography } from "@/components/ui/typography";
 import { useDebounce } from "@/hooks/use-debounce";
 import { useInfiniteScroll } from "@/hooks/use-infinite-scroll";
@@ -309,6 +310,12 @@ export function JobsTable({ uniqueTypes, t }: JobsTableProps) {
                 <tbody>
                   {isLoading ? (
                     Array.from({ length: 5 }).map((_, i) => <SkeletonRow key={`skel-${i}`} />)
+                  ) : jobs.length === 0 ? (
+                    <TableEmptyRow
+                      colSpan={6}
+                      description={t("monitor.no_jobs_description", { defaultValue: "Thử điều chỉnh bộ lọc hoặc kiểm tra lại sau." })}
+                      title={t("monitor.no_jobs_found", { defaultValue: "Không có tác vụ nào phù hợp bộ lọc" })}
+                    />
                   ) : (
                     jobs.map((job) => {
                       const taskTypeKey = job.task_type ?? job.report_type;

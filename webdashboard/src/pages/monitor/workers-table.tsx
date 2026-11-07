@@ -5,6 +5,7 @@ import { formatDistanceToNow } from "date-fns";
 import { TFunction } from "i18next";
 
 import ResponsiveTable from "@/components/ui/responsive-table";
+import TableEmptyRow from "@/components/ui/table-empty-row";
 import { Typography } from "@/components/ui/typography";
 import { WorkerHeartbeat } from "@/lib/api/types";
 import { cn } from "@/lib/utils";
@@ -183,11 +184,18 @@ export function WorkersTable({ isUnavailable = false, t, workers }: WorkersTable
                 </tr>
               </thead>
               <tbody>
-                {workers.map((worker) => (
-                  <tr
-                    className="border-t border-slate-50 motion-safe:transition-colors hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-800/50"
-                    key={worker.id}
-                  >
+                {workers.length === 0 ? (
+                  <TableEmptyRow
+                    colSpan={6}
+                    description={t("monitor.no_workers_description", { defaultValue: "Không có worker nào đang kết nối tới cụm dịch vụ." })}
+                    title={t("monitor.no_workers", { defaultValue: "Chưa có tiến trình worker nào hoạt động" })}
+                  />
+                ) : (
+                  workers.map((worker) => (
+                    <tr
+                      className="border-t border-slate-50 motion-safe:transition-colors hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-800/50"
+                      key={worker.id}
+                    >
                     <td className="px-6 py-4">
                       <code
                         className="cursor-help rounded bg-slate-100 px-2 py-1 font-mono text-xs text-slate-600 dark:bg-slate-700 dark:text-slate-300"

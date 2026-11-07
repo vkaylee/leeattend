@@ -141,12 +141,12 @@ export default function QueuePressureChart({ data, isLoading }: Props) {
         </ResponsiveContainer>
       )}
 
-      <div className="text-center">
+      <div className="flex items-baseline justify-center gap-2 text-center">
         <span className="text-2xl font-black text-slate-700 dark:text-slate-200 tracking-tighter tabular-nums">
           {data.total ?? "—"}
         </span>
-        <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1.5">
-          {t("monitor.total_pending", { defaultValue: "total" })}
+        <span className="text-xs font-medium text-slate-500 dark:text-slate-400">
+          {t("monitor.total_pending", { defaultValue: "tổng số đang chờ" })}
         </span>
       </div>
 

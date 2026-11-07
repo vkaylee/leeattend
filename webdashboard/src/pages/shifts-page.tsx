@@ -5,7 +5,7 @@ import { useTranslation } from "react-i18next";
 
 import { useMonthlyRoster } from "@/components/shifts/hooks/use-monthly-roster";
 import { RosterToolbar } from "@/components/shifts/roster-toolbar";
-import { Typography } from "@/components/ui/typography";
+import { PageHeader } from "@/components/ui/page-header";
 import { ROUTES } from "@/lib/routes";
 
 import { ShiftsContent } from "./shifts/content";
@@ -38,18 +38,11 @@ export default function ShiftsPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <Typography className="font-bold mb-0.5 normal-case"
-          data-testid="shifts-title"
-          variant="h3"
-        >
-          {t("shifts.title")}
-        </Typography>
-        <Typography className="text-xs text-slate-500 dark:text-slate-400 font-medium opacity-80" variant="small">
-          {t("shifts.subtitle")}
-        </Typography>
-      </div>
-
+      <PageHeader
+        data-testid="shifts-title"
+        subtitle={t("shifts.subtitle")}
+        title={t("shifts.title")}
+      />
       <div className="flex flex-wrap items-center justify-between gap-3">
         <ShiftsTabs
           activeTab={activeTab}

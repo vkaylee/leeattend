@@ -42,6 +42,17 @@ const queryClient = new QueryClient({
   },
   queryCache: new QueryCache({
     onError: (_error, query) => {
+      const meta = query.meta;
+      if (meta && typeof meta === "object" && "suppressErrorToast" in meta) {
+        const suppress = meta.suppressErrorToast;
+        if (suppress === true) return;
+        if (Array.isArray(suppress)) {
+          const status = typeof _error === "object" && _error !== null && "status" in _error && typeof _error.status === "number"
+            ? _error.status
+            : undefined;
+          if (status !== undefined && suppress.includes(status)) return;
+        }
+      }
       // Suppress toast for background refetch (query already has data)
       if (query.state.data === undefined) {
         showErrorToast(_error);

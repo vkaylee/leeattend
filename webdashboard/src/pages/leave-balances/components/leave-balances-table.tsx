@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 
 import Button from "@/components/ui/button";
 import ResponsiveTable from "@/components/ui/responsive-table";
+import TableEmptyRow from "@/components/ui/table-empty-row";
 import { WorkspaceLeaveBalance } from "@/lib/api/types";
 import { cn } from "@/lib/utils";
 
@@ -144,14 +145,22 @@ export const LeaveBalancesTable: React.FC<LeaveBalancesTableProps> = ({
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
-              {data.map((balance, index) => (
-                <DesktopBalanceRow
-                  balance={balance}
-                  key={`${balance.employee_id}-${balance.leave_type_id}-${index}`}
-                  onViewDetails={() => { onViewDetails(balance); }}
-                  onViewHistory={() => { handleHistory(balance); }}
+              {data.length === 0 ? (
+                <TableEmptyRow
+                  colSpan={5}
+                  description={t("leave_balances.empty.description", { defaultValue: "Hệ thống sẽ cập nhật khi có lịch sử công tác hoặc phân bổ phép năm." })}
+                  title={t("leave_balances.empty.title", { defaultValue: "Chưa có dữ liệu số dư nghỉ phép" })}
                 />
-              ))}
+              ) : (
+                data.map((balance, index) => (
+                  <DesktopBalanceRow
+                    balance={balance}
+                    key={`${balance.employee_id}-${balance.leave_type_id}-${index}`}
+                    onViewDetails={() => { onViewDetails(balance); }}
+                    onViewHistory={() => { handleHistory(balance); }}
+                  />
+                ))
+              )}
             </tbody>
           </table>
         </div>

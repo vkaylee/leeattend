@@ -197,13 +197,29 @@ export function RosterNavHeader({
       </div>
       <div className="flex items-center justify-between sm:justify-end gap-3 w-full sm:w-auto">
         <div className="flex items-center gap-1">
-          <Button className="p-2 rounded-xl hover:bg-slate-100 border border-slate-100" onClick={() => { if (viewMode === "week") hook.handleNavigateWeek("prev"); else hook.handleNavigateMonth("prev"); }} type="button" variant="ghost"><ChevronLeft size={16} /></Button>
+          <Button
+            aria-label={viewMode === "week" ? t("shifts.prev_week", { defaultValue: "Tuần trước" }) : t("common.prev_period", { defaultValue: "Kỳ trước" })}
+            className="p-2 rounded-xl hover:bg-slate-100 border border-slate-100"
+            onClick={() => { if (viewMode === "week") hook.handleNavigateWeek("prev"); else hook.handleNavigateMonth("prev"); }}
+            type="button"
+            variant="ghost"
+          >
+            <ChevronLeft size={16} />
+          </Button>
           <span className="min-w-[140px] text-center font-bold text-xs uppercase tracking-widest text-slate-700">
             {viewMode === "week"
               ? `${formatDate(hook.weekDays[0])} - ${formatDate(hook.weekDays[6])}`
               : format(hook.currentMonth, "MMMM yyyy", { locale: currentLocale })}
           </span>
-          <Button className="p-2 rounded-xl hover:bg-slate-100 border border-slate-100" onClick={() => { if (viewMode === "week") hook.handleNavigateWeek("next"); else hook.handleNavigateMonth("next"); }} type="button" variant="ghost"><ChevronRight size={16} /></Button>
+          <Button
+            aria-label={viewMode === "week" ? t("shifts.next_week", { defaultValue: "Tuần tiếp theo" }) : t("common.next_period", { defaultValue: "Kỳ tiếp theo" })}
+            className="p-2 rounded-xl hover:bg-slate-100 border border-slate-100"
+            onClick={() => { if (viewMode === "week") hook.handleNavigateWeek("next"); else hook.handleNavigateMonth("next"); }}
+            type="button"
+            variant="ghost"
+          >
+            <ChevronRight size={16} />
+          </Button>
         </div>
         {viewMode === "month" && !!onCopyMonth && (
           <Button loading={isCopying} onClick={onCopyMonth} size="sm" variant="ghost">
