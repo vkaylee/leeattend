@@ -175,7 +175,9 @@ export function ReportsTable(props: ReportsTableProps) {
         itemKey={(row) => `${row.employee_id}:${row.employer_id ?? "none"}`}
         items={filteredData}
         maxHeightClass=""
+        onKeyDownRef={keyDownRef}
         onSelect={(row) => { handleEmployeeClick(row.employee_id, row.employee_name, row.employer_id); }}
+        searchInputRef={searchInputRef}
         renderMobileCard={(row) => (
           <ReportMobileCard
             onSelect={() => { handleEmployeeClick(row.employee_id, row.employee_name, row.employer_id); }}

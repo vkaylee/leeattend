@@ -675,6 +675,19 @@
       "error_currency_code_invalid": "货币代码必须恰好是3个字符（例如：VND、USD）"
     },
     "lifecycle": {
+      "title": "员工生命周期模板",
+      "subtitle": "为员工配置入职、离职和调动流程清单",
+      "create_template": "创建流程模板",
+      "tabs": {
+        "onboarding": "入职流程",
+        "offboarding": "离职交接",
+        "transfer": "工作调动",
+        "probation_end": "试用期评估"
+      },
+      "empty": {
+        "title": "暂无流程模板",
+        "description": "尚未为该生命周期阶段配置任何模板。"
+      },
       "template": {
         "category_hr_admin": "人事管理",
         "category_it_setup": "IT 配置",

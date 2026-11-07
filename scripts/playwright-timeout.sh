@@ -23,6 +23,9 @@ playwright_timeout_init() {
 
 playwright_timeout_run() {
   local status=0
+  if [[ -z "${PLAYWRIGHT_MCP_MAX_RUNTIME:-}" ]]; then
+    playwright_timeout_init
+  fi
   timeout --foreground \
     --signal=TERM \
     --kill-after="${PLAYWRIGHT_MCP_KILL_GRACE}s" \

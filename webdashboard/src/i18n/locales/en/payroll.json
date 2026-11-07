@@ -47,6 +47,19 @@
       "loading_payslips": "Loading payslips...",
       "no_payslips": "No payslips yet"
     },
+    "lifecycle": {
+      "draft": "Draft",
+      "calculated": "Calculated",
+      "locked": "Locked",
+      "lock_btn": "Lock Payroll Period",
+      "unlock_btn": "Unlock Period",
+      "lock_confirm_title": "Confirm Lock Payroll Period?",
+      "lock_confirm_desc": "Once locked, the payroll period will be read-only to preserve accounting and tax data immutability. Recalculation will be temporarily disabled.",
+      "unlock_confirm_title": "Unlock Payroll Period?",
+      "unlock_confirm_desc": "Unlocking allows recalculation and adjustments. Ensure you have authorized C&B permissions before proceeding.",
+      "locked_badge": "LOCKED",
+      "locked_tooltip": "Payroll period securely locked by C&B."
+    },
     "status": {
       "paid": "PAID",
       "finalized": "FINALIZED"

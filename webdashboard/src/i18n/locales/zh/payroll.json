@@ -47,6 +47,19 @@
       "loading_payslips": "正在加载工资单...",
       "no_payslips": "暂无工资单"
     },
+    "lifecycle": {
+      "draft": "草稿",
+      "calculated": "已核算",
+      "locked": "已锁定",
+      "lock_btn": "锁定薪资周期",
+      "unlock_btn": "解锁周期",
+      "lock_confirm_title": "确认锁定薪资周期？",
+      "lock_confirm_desc": "锁定后，薪资周期将变为只读，以确保财务和税务数据不可变。重新计算功能将被暂时禁用。",
+      "unlock_confirm_title": "解锁薪资周期？",
+      "unlock_confirm_desc": "解锁后可重新计算或调整数据。请确保您具有相应的薪酬福利权限。",
+      "locked_badge": "已封账",
+      "locked_tooltip": "薪资周期已被薪酬福利专员安全锁定。"
+    },
     "status": {
       "paid": "已支付",
       "finalized": "已结算"

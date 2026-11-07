@@ -47,16 +47,13 @@ export function ContractExpirationAlerts({
           </div>
           <div>
             <h4 className="text-sm font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
-              <span>{t("employees.alerts.title", "Cảnh báo nghiệp vụ HĐLĐ & Thử việc")}</span>
+              <span>{t("employees.alerts.title")}</span>
               <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
-                {activeCount} {t("employees.alerts.active_count", "đang làm việc")}
+                {activeCount} {t("employees.alerts.active_count")}
               </span>
             </h4>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-              {t(
-                "employees.alerts.subtitle",
-                "Theo dõi hạn đánh giá thử việc và tái ký hợp đồng lao động theo BLLĐ 2019"
-              )}
+              {t("employees.alerts.subtitle")}
             </p>
           </div>
         </div>
@@ -70,7 +67,7 @@ export function ContractExpirationAlerts({
               <AlertTriangle size={14} className="text-amber-600 dark:text-amber-400" />
               <span>
                 {probationCandidates.length}{" "}
-                {t("employees.alerts.probation_review_due", "cần đánh giá thử việc")}
+                {t("employees.alerts.probation_review_due")}
               </span>
             </div>
           )}
@@ -80,11 +77,11 @@ export function ContractExpirationAlerts({
             title="Tuân thủ Điều 20 Bộ luật Lao động 2019"
           >
             <FileCheck size={14} className="text-blue-600 dark:text-blue-400" />
-            <span>{t("employees.alerts.contract_compliant", "HĐLĐ chuẩn hóa")}</span>
+            <span>{t("employees.alerts.contract_compliant")}</span>
           </div>
 
           <Button
-            aria-label={isExpanded ? "Thu gọn cảnh báo" : "Mở rộng danh sách"}
+            aria-label={isExpanded ? t("employees.alerts.collapse") : t("employees.alerts.expand")}
             className="h-8 w-8 flex items-center justify-center p-0 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500"
             onClick={() => {
               setIsExpanded(!isExpanded);

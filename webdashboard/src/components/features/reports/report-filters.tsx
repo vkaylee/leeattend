@@ -202,14 +202,15 @@ export default function ReportFilters({
             value={searchQuery}
           />
           {searchQuery && (
-            <button
+            <Button
               aria-label="Xóa tìm kiếm"
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors h-6 w-6 p-0"
               onClick={() => onSearchQueryChange("")}
               type="button"
+              variant="ghost"
             >
               <X size={14} />
-            </button>
+            </Button>
           )}
         </div>
       </div>

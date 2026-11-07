@@ -255,3 +255,58 @@ func TestCustomFieldsValues(t *testing.T) {
 		t.Fatalf("expected 1 custom field value, got %d: %v", len(vals), err)
 	}
 }
+type scopedCustomFieldAuthorizer struct {
+	allowedPerms map[string]bool
+}
+
+func (s scopedCustomFieldAuthorizer) HasPermission(_ context.Context, _, _ uuid.UUID, perm string) bool {
+	return s.allowedPerms[perm]
+}
+
+func TestCustomFieldsListPermissions(t *testing.T) {
+	wsID := uuid.New()
+	userID := uuid.New()
+	repo := &mockCustomFieldRepo{
+		Defs: map[uuid.UUID]CustomFieldDefinitionRecord{
+			uuid.New(): {ID: uuid.New(), WorkspaceID: wsID, EntityType: "employee", FieldKey: "badge_code", FieldLabel: "Badge Code"},
+		},
+	}
+
+	// Case 1: user only has employees:read, entity_type=employee -> allowed
+	empHandler := CustomFieldHandler{
+		Repository: repo,
+		Authorizer: scopedCustomFieldAuthorizer{allowedPerms: map[string]bool{"employees:read": true}},
+	}
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/workspaces/"+wsID.String()+"/custom-fields/definitions?entity_type=employee", nil)
+	req.SetPathValue("ws_id", wsID.String())
+	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), userID))
+	rec := httptest.NewRecorder()
+	empHandler.ListDefinitions(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200 OK for employees:read with entity_type=employee, got %d: %s", rec.Code, rec.Body.String())
+	}
+
+	// Case 2: user only has employees:read, entity_type missing -> forbidden
+	reqNoEntity := httptest.NewRequest(http.MethodGet, "/api/v1/workspaces/"+wsID.String()+"/custom-fields/definitions", nil)
+	reqNoEntity.SetPathValue("ws_id", wsID.String())
+	reqNoEntity = reqNoEntity.WithContext(httpinfra.WithUserIDForTest(reqNoEntity.Context(), userID))
+	recNoEntity := httptest.NewRecorder()
+	empHandler.ListDefinitions(recNoEntity, reqNoEntity)
+	if recNoEntity.Code != http.StatusForbidden {
+		t.Fatalf("expected 403 Forbidden without entity_type, got %d", recNoEntity.Code)
+	}
+
+	// Case 3: user has workspace:settings:read -> allowed for all
+	adminHandler := CustomFieldHandler{
+		Repository: repo,
+		Authorizer: scopedCustomFieldAuthorizer{allowedPerms: map[string]bool{"workspace:settings:read": true}},
+	}
+	reqAdmin := httptest.NewRequest(http.MethodGet, "/api/v1/workspaces/"+wsID.String()+"/custom-fields/definitions", nil)
+	reqAdmin.SetPathValue("ws_id", wsID.String())
+	reqAdmin = reqAdmin.WithContext(httpinfra.WithUserIDForTest(reqAdmin.Context(), userID))
+	recAdmin := httptest.NewRecorder()
+	adminHandler.ListDefinitions(recAdmin, reqAdmin)
+	if recAdmin.Code != http.StatusOK {
+		t.Fatalf("expected 200 OK for workspace:settings:read, got %d", recAdmin.Code)
+	}
+}

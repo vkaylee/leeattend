@@ -183,7 +183,28 @@
       "active": "Hoạt động",
       "terminated": "Đã nghỉ việc"
     },
+    "alerts": {
+      "title": "Cảnh báo nghiệp vụ HĐLĐ & Thử việc",
+      "active_count": "đang làm việc",
+      "subtitle": "Theo dõi hạn đánh giá thử việc và tái ký hợp đồng lao động theo BLLĐ 2019",
+      "probation_review_due": "cần đánh giá thử việc",
+      "contract_compliant": "HĐLĐ chuẩn hóa",
+      "expand": "Mở rộng danh sách",
+      "collapse": "Thu gọn danh sách"
+    },
     "details": {
+      "tabs": {
+        "profile": "Hồ sơ",
+        "documents": "Tài liệu & Hồ sơ",
+        "contracts": "Hợp đồng",
+        "phases": "Hành trình",
+        "assignments": "Phái cử",
+        "salary": "Mức lương & Đãi ngộ",
+        "compensation": "Lịch sử lương",
+        "working_conditions": "Điều kiện làm việc",
+        "attendance_policy": "Chính sách chuyên cần",
+        "lifecycle": "Quy trình & Checklist"
+      },
       "edit_profile": "Sửa hồ sơ",
       "original_hire_date": "Ngày gia nhập gốc",
       "terminate": "Nghỉ việc",
@@ -194,6 +215,10 @@
       "current_dept": "Phòng ban hiện tại",
       "transfer": "Điều chuyển",
       "not_assigned_dept": "Chưa được gán phòng ban",
+      "work_location": "Địa điểm làm việc",
+      "unknown_location": "Chưa gán địa điểm",
+      "no_timezone": "Chưa có múi giờ",
+      "select_new_location": "Chọn địa điểm làm việc mới",
       "salary_benefits": "Mức lương & Đãi ngộ",
       "special_policies": "Chính sách đặc biệt",
       "compensation_history": "Lịch sử lương",

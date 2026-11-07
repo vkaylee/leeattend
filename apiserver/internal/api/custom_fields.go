@@ -169,13 +169,26 @@ func (h CustomFieldHandler) GetDefinition(w http.ResponseWriter, r *http.Request
 
 func (h CustomFieldHandler) ListDefinitions(w http.ResponseWriter, r *http.Request) {
 	wsID, ok := pathUUID(r, "ws_id")
-	if !ok || !h.allowed(r, wsID, "workspace:settings:read") {
+	if !ok {
 		h.forbidden(w, r)
 		return
 	}
 	var entityType *string
 	if raw := r.URL.Query().Get("entity_type"); raw != "" {
 		entityType = &raw
+	}
+	allowed := h.allowed(r, wsID, "workspace:settings:read")
+	if !allowed && entityType != nil {
+		switch *entityType {
+		case "employee", "employment":
+			allowed = h.allowed(r, wsID, "employees:read")
+		case "department":
+			allowed = h.allowed(r, wsID, "departments:read")
+		}
+	}
+	if !allowed {
+		h.forbidden(w, r)
+		return
 	}
 	if h.Repository == nil {
 		apperror.WriteJSON(w, http.StatusOK, []CustomFieldDefinitionRecord{})

@@ -1,6 +1,7 @@
 import { Briefcase } from "lucide-react";
 import React from "react";
 
+import Button from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 export interface EmployeeIdentityCellProps {
@@ -65,14 +66,15 @@ export const EmployeeIdentityCell: React.FC<EmployeeIdentityCellProps> = ({
 
   if (onClick) {
     return (
-      <button
+      <Button
         aria-label={`Chi tiết nhân sự: ${name}`}
-        className="text-left w-full focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 rounded-lg group"
+        className="text-left w-full h-auto p-0 justify-start focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 rounded-lg group"
         onClick={onClick}
         type="button"
+        variant="ghost"
       >
         {content}
-      </button>
+      </Button>
     );
   }
 

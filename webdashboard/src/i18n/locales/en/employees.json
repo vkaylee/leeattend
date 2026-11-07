@@ -183,7 +183,28 @@
       "active": "Active",
       "terminated": "Terminated"
     },
+    "alerts": {
+      "title": "Labor Contract & Probation Alerts",
+      "active_count": "active",
+      "subtitle": "Track probation evaluation deadlines and labor contract renewals per Labor Code 2019",
+      "probation_review_due": "needs probation review",
+      "contract_compliant": "Standardized Contract",
+      "expand": "Expand list",
+      "collapse": "Collapse list"
+    },
     "details": {
+      "tabs": {
+        "profile": "Profile",
+        "documents": "Documents & Records",
+        "contracts": "Contracts",
+        "phases": "Career Phases",
+        "assignments": "Assignments",
+        "salary": "Salary & Benefits",
+        "compensation": "Compensation History",
+        "working_conditions": "Working Conditions",
+        "attendance_policy": "Attendance Policy",
+        "lifecycle": "Checklists"
+      },
       "edit_profile": "Edit Profile",
       "original_hire_date": "Original Hire Date",
       "terminate": "Terminate",
@@ -194,6 +215,10 @@
       "current_dept": "Current Department",
       "transfer": "Transfer",
       "not_assigned_dept": "Not assigned to a department",
+      "work_location": "Work Location",
+      "unknown_location": "No location assigned",
+      "no_timezone": "No timezone configured",
+      "select_new_location": "Select new work location",
       "salary_benefits": "Salary & Benefits",
       "special_policies": "Special Policies",
       "compensation_history": "Compensation History",

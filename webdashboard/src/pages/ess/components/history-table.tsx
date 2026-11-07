@@ -140,7 +140,7 @@ export function HistoryTable({ entries }: HistoryTableProps) {
                       )}
                     </td>
                   </tr>
-                ))}
+                 )))}
               </tbody>
             </table>
           </div>

@@ -98,9 +98,9 @@ describe("useNavMenuItems", () => {
     const EXCLUDED_APP_ROUTES = new Set<string>(["/dashboard"]);
 
     const missingFromSidebar = APP_REGISTRY
+      .filter((app) => !app.featureFlag || isFeatureEnabled(app.featureFlag))
       .map((app) => app.to)
       .filter((route) => !EXCLUDED_APP_ROUTES.has(route) && !sidebarRoutes.has(route));
-
     expect(
       missingFromSidebar,
       `Found apps in APP_REGISTRY missing from sidebar navigation: ${missingFromSidebar.join(", ")}`

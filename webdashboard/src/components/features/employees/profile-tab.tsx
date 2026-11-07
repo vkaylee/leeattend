@@ -54,11 +54,12 @@ export function ProfileActions({
                     <Button className="flex items-center justify-center gap-3 py-4 bg-rose-50 dark:bg-rose-950 text-rose-600 dark:text-rose-300 font-bold rounded-2xl hover:bg-rose-100 dark:bg-rose-900 transition-all text-xs uppercase tracking-widest active:scale-95 shadow-sm shadow-rose-900/5 h-auto" data-testid="employees-btn-terminate" onClick={() => { onTerminate(employee); }} type="button" variant="destructive"><Trash2 size={18} /> {t("employees.details.terminate").toUpperCase()}</Button>
                 ) : (
                     <div className="flex flex-col gap-2 w-full justify-between h-full">
-                        <div className="flex items-center justify-center gap-2 py-3 px-4 bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-bold rounded-2xl border border-slate-100 dark:border-slate-700/50 text-[10px] uppercase tracking-wider h-11 shadow-inner relative group">
+                        <div className="flex items-center justify-center gap-2 py-3 px-4 bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-semibold rounded-2xl border border-slate-100 dark:border-slate-700/50 text-xs uppercase tracking-wider h-11 shadow-inner relative group">
                             <span className="w-1.5 h-1.5 rounded-full bg-slate-400 dark:bg-slate-500 animate-pulse" />
                             {t("employees.details.terminated_at")}: {terminationDate ? formatDate(terminationDate) : "—"}
                             {!!showEditTerminationDate && !!onEditTerminationDate && (
                                 <Button
+                                    aria-label={t("employees.terminate.edit_date_title")}
                                     className="ml-2 !h-auto !min-w-0 !p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors cursor-pointer"
                                     data-testid="edit-termination-date-btn"
                                     onClick={onEditTerminationDate}
@@ -71,8 +72,8 @@ export function ProfileActions({
                               )}
                         </div>
                         <div className="flex gap-4 w-full">
-                            <Button className="flex items-center justify-center gap-2 py-2.5 bg-primary-600 hover:bg-primary-700 text-white font-bold rounded-2xl transition-all text-[10px] uppercase tracking-widest shadow-md active:scale-95 h-9 flex-1" data-testid="employees-btn-rehire" onClick={() => { onRehire(employee); }} type="button" variant="primary"><UserPlus size={14} /> {t("employees.details.rehire").toUpperCase()}</Button>
-                            <Button className="flex items-center justify-center gap-2 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 font-bold rounded-2xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-all text-[10px] uppercase tracking-widest shadow-sm active:scale-95 h-9 flex-1" data-testid="employees-btn-undo-terminate" onClick={() => { onUndoTerminate?.(employee); }} type="button" variant="outline"><RotateCcw size={14} /> {t("employees.details.undo_terminate").toUpperCase()}</Button>
+                            <Button className="flex items-center justify-center gap-2 py-2.5 bg-primary-600 hover:bg-primary-700 text-white font-bold rounded-2xl transition-all text-xs uppercase tracking-wider shadow-md active:scale-95 h-9 flex-1" data-testid="employees-btn-rehire" onClick={() => { onRehire(employee); }} type="button" variant="primary"><UserPlus size={14} /> {t("employees.details.rehire").toUpperCase()}</Button>
+                            <Button className="flex items-center justify-center gap-2 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 font-bold rounded-2xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-all text-xs uppercase tracking-wider shadow-sm active:scale-95 h-9 flex-1" data-testid="employees-btn-undo-terminate" onClick={() => { onUndoTerminate?.(employee); }} type="button" variant="outline"><RotateCcw size={14} /> {t("employees.details.undo_terminate").toUpperCase()}</Button>
                         </div>
                     </div>
                 )}

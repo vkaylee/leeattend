@@ -183,7 +183,28 @@
       "active": "活跃",
       "terminated": "已离职"
     },
+    "alerts": {
+      "title": "劳动合同与试用期提醒",
+      "active_count": "在职",
+      "subtitle": "根据《2019年劳动法》跟踪试用期评估期限和劳动合同续签",
+      "probation_review_due": "需试用期评估",
+      "contract_compliant": "规范化合同",
+      "expand": "展开列表",
+      "collapse": "收起列表"
+    },
     "details": {
+      "tabs": {
+        "profile": "个人档案",
+        "documents": "文档与档案",
+        "contracts": "劳动合同",
+        "phases": "职业历程",
+        "assignments": "调派记录",
+        "salary": "薪资与福利",
+        "compensation": "薪资历史",
+        "working_conditions": "工作条件",
+        "attendance_policy": "考勤政策",
+        "lifecycle": "流程清单"
+      },
       "edit_profile": "编辑档案",
       "original_hire_date": "原始入职日期",
       "terminate": "终止",
@@ -194,6 +215,10 @@
       "current_dept": "当前部门",
       "transfer": "调动",
       "not_assigned_dept": "未分配部门",
+      "work_location": "工作地点",
+      "unknown_location": "未分配地点",
+      "no_timezone": "未配置时区",
+      "select_new_location": "选择新的工作地点",
       "salary_benefits": "薪资与福利",
       "special_policies": "特殊政策",
       "compensation_history": "薪资历史",

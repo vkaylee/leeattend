@@ -16,12 +16,31 @@ import { cn } from "@/lib/utils";
 
 export type DetailTabType = "profile" | "documents" | "contracts" | "phases" | "assignments" | "salary" | "compensation" | "working-conditions" | "attendance-policy" | "lifecycle";
 
+export interface TabDefinition {
+  id: DetailTabType;
+  i18nKey: string;
+  icon: ComponentType<{ size?: number; className?: string }>;
+}
+
+export const EMPLOYEE_DRAWER_TAB_CONFIG: readonly TabDefinition[] = [
+  { id: "profile", i18nKey: "employees.details.tabs.profile", icon: User },
+  { id: "documents", i18nKey: "employees.details.tabs.documents", icon: FolderOpen },
+  { id: "contracts", i18nKey: "employees.details.tabs.contracts", icon: FileText },
+  { id: "phases", i18nKey: "employees.details.tabs.phases", icon: Milestone },
+  { id: "assignments", i18nKey: "employees.details.tabs.assignments", icon: ArrowLeftRight },
+  { id: "salary", i18nKey: "employees.details.tabs.salary", icon: DollarSign },
+  { id: "compensation", i18nKey: "employees.details.tabs.compensation", icon: History },
+  { id: "working-conditions", i18nKey: "employees.details.tabs.working_conditions", icon: Calendar },
+  { id: "attendance-policy", i18nKey: "employees.details.tabs.attendance_policy", icon: ShieldCheck },
+  { id: "lifecycle", i18nKey: "employees.details.tabs.lifecycle", icon: CheckSquare },
+] as const;
+
 export interface DrawerHeaderProps {
     activeDetailTab: DetailTabType;
     employee: Employee;
     onClose: () => void;
     setActiveDetailTab: (tab: DetailTabType) => void;
-    t: (k: string) => string;
+    t: (k: string, defaultValue?: string) => string;
 }
 
 // ── Scrollable tab nav with overflow indicators ─────────────
@@ -29,10 +48,12 @@ function DesktopTabNav({
   activeDetailTab,
   setActiveDetailTab,
   tabs,
+  t,
 }: {
   activeDetailTab: DetailTabType;
   setActiveDetailTab: (tab: DetailTabType) => void;
-  tabs: { id: DetailTabType; label: string; icon: ComponentType<{ size?: number }> }[];
+  tabs: { id: DetailTabType; label: string; icon: ComponentType<{ size?: number; className?: string }> }[];
+  t: (k: string, defaultValue?: string) => string;
 }) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
@@ -72,6 +93,7 @@ function DesktopTabNav({
     <div className="hidden md:flex items-center gap-1">
       <button
         aria-hidden={!canScrollLeft}
+        aria-label={t("common.scroll_left", "Scroll tabs left")}
         className={cn(
           "shrink-0 size-9 rounded-[14px] flex items-center justify-center transition-all border",
           canScrollLeft
@@ -104,21 +126,27 @@ function DesktopTabNav({
         />
 
         <div
+          aria-label={t("employees.details.tabs_nav", "Employee sections")}
           className="flex overflow-x-auto scrollbar-hide bg-white dark:bg-slate-900/50 p-1.5 rounded-[22px] border border-slate-200 dark:border-slate-700/50 shadow-inner w-full scroll-smooth"
           data-testid="employees-tab-scroll-container"
           ref={scrollRef}
+          role="tablist"
         >
           {tabs.map(tab => (
             <Button
+              aria-controls={`employees-tabpanel-${tab.id}`}
+              aria-selected={activeDetailTab === tab.id}
               className={cn(
-                "px-5 py-2.5 shrink-0 whitespace-nowrap rounded-[18px] text-[10px] font-bold uppercase tracking-widest transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 h-auto shadow-none border border-transparent",
+                "px-5 py-2.5 shrink-0 whitespace-nowrap rounded-[18px] text-xs font-semibold uppercase tracking-wider transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 h-auto shadow-none border border-transparent",
                 activeDetailTab === tab.id
-                  ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100 dark:border-slate-800 hover:bg-white dark:hover:bg-slate-900"
+                  ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100 dark:border-slate-800 hover:bg-white dark:hover:bg-slate-900 font-bold"
                   : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-transparent",
               )}
               data-testid={`employees-tab-${tab.id}`}
+              id={`employees-tab-${tab.id}`}
               key={tab.id}
               onClick={() => { setActiveDetailTab(tab.id); }}
+              role="tab"
               type="button"
               variant="ghost"
             >
@@ -130,6 +158,7 @@ function DesktopTabNav({
 
       <button
         aria-hidden={!canScrollRight}
+        aria-label={t("common.scroll_right", "Scroll tabs right")}
         className={cn(
           "shrink-0 size-9 rounded-[14px] flex items-center justify-center transition-all border",
           canScrollRight
@@ -154,18 +183,11 @@ export default function DrawerHeader({
     setActiveDetailTab,
     t
 }: DrawerHeaderProps) {
-    const tabs = [
-        { id: "profile" as DetailTabType, label: t("common.profile"), icon: User },
-        { id: "documents" as DetailTabType, label: "Tài liệu & Hồ sơ", icon: FolderOpen },
-        { id: "contracts" as DetailTabType, label: "Hợp đồng", icon: FileText },
-        { id: "phases" as DetailTabType, label: "Hành trình", icon: Milestone },
-        { id: "assignments" as DetailTabType, label: "Phái cử", icon: ArrowLeftRight },
-        { id: "salary" as DetailTabType, label: t("employees.details.salary_benefits"), icon: DollarSign },
-        { id: "compensation" as DetailTabType, label: t("employees.details.compensation_history"), icon: History },
-        { id: "working-conditions" as DetailTabType, label: "Điều kiện LV", icon: Calendar },
-        { id: "attendance-policy" as DetailTabType, label: t("employees.details.special_policies"), icon: ShieldCheck },
-        { id: "lifecycle" as DetailTabType, label: "Checklist", icon: CheckSquare }
-    ];
+    const tabs = EMPLOYEE_DRAWER_TAB_CONFIG.map(tab => ({
+        id: tab.id,
+        label: t(tab.i18nKey),
+        icon: tab.icon,
+    }));
     const activeTabObj = tabs.find(tab => tab.id === activeDetailTab) ?? tabs[0];
 
     return (
@@ -186,14 +208,14 @@ export default function DrawerHeader({
             </div>
 
             {/* Desktop Navigation Tabs */}
-            <DesktopTabNav activeDetailTab={activeDetailTab} setActiveDetailTab={setActiveDetailTab} tabs={tabs} />
+            <DesktopTabNav activeDetailTab={activeDetailTab} setActiveDetailTab={setActiveDetailTab} t={t} tabs={tabs} />
 
             {/* Mobile Navigation Dropdown */}
             <div className="flex md:hidden w-full relative">
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                         <Button
-                            className="w-full flex items-center justify-between px-6 py-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700/50 rounded-[18px] shadow-sm text-[10px] font-bold uppercase tracking-widest text-slate-700 dark:text-slate-200 transition-all hover:bg-slate-50 dark:hover:bg-slate-800 h-auto"
+                            className="w-full flex items-center justify-between px-6 py-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700/50 rounded-[18px] shadow-sm text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-200 transition-all hover:bg-slate-50 dark:hover:bg-slate-800 h-auto"
                             type="button"
                             variant="ghost"
                         >
@@ -208,7 +230,7 @@ export default function DrawerHeader({
                         {tabs.map((tab) => (
                             <DropdownMenuItem
                                 className={cn(
-                                    "flex items-center gap-3 px-5 py-3 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all",
+                                    "flex items-center gap-3 px-5 py-3 rounded-xl text-xs font-semibold uppercase tracking-wider transition-all",
                                     activeDetailTab === tab.id
                                         ? "bg-primary-50 dark:bg-primary-950/50 text-primary-600 dark:text-primary-400"
                                         : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"

@@ -130,7 +130,13 @@ export default function EmployeeDetailDrawer({
                 t={t}
             />
 
-            <div className="p-10 pb-20 space-y-10" ref={scrollRef}>
+            <div
+                aria-labelledby={`employees-tab-${activeDetailTab}`}
+                className="p-10 pb-20 space-y-10 min-w-0 max-w-full overflow-x-hidden"
+                id={`employees-tabpanel-${activeDetailTab}`}
+                ref={scrollRef}
+                role="tabpanel"
+            >
                 <DrawerTabContent
                     activeDetailTab={activeDetailTab}
                     activeEmployment={activeEmployment}

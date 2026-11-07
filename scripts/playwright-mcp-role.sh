@@ -3,6 +3,7 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "$(readlink -f "$0")")/.." && pwd)"
 source "$ROOT/scripts/playwright-timeout.sh"
+playwright_timeout_init
 
 ROLE="${1:-employee}"
 shift || true

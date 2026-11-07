@@ -1,17 +1,7 @@
 [
   {
     "file": "src/components/features/attendance/timesheet-matrix-grid.tsx",
-    "key": "attendance.search_employees",
-    "lang": "en"
-  },
-  {
-    "file": "src/components/features/attendance/timesheet-matrix-grid.tsx",
-    "key": "attendance.search_employees",
-    "lang": "vi"
-  },
-  {
-    "file": "src/components/features/attendance/timesheet-matrix-grid.tsx",
-    "key": "attendance.search_employees",
+    "key": "reports.timesheet_matrix_31_days",
     "lang": "zh"
   },
   {
@@ -46,17 +36,7 @@
   },
   {
     "file": "src/components/features/attendance/timesheet-matrix-grid.tsx",
-    "key": "attendance.matrix.legend_title",
-    "lang": "en"
-  },
-  {
-    "file": "src/components/features/attendance/timesheet-matrix-grid.tsx",
-    "key": "attendance.matrix.legend_title",
-    "lang": "vi"
-  },
-  {
-    "file": "src/components/features/attendance/timesheet-matrix-grid.tsx",
-    "key": "attendance.matrix.legend_title",
+    "key": "reports.legend_rules",
     "lang": "zh"
   },
   {
@@ -76,32 +56,7 @@
   },
   {
     "file": "src/components/features/attendance/timesheet-matrix-grid.tsx",
-    "key": "attendance.matrix.emp_code",
-    "lang": "en"
-  },
-  {
-    "file": "src/components/features/attendance/timesheet-matrix-grid.tsx",
-    "key": "attendance.matrix.emp_code",
-    "lang": "vi"
-  },
-  {
-    "file": "src/components/features/attendance/timesheet-matrix-grid.tsx",
-    "key": "attendance.matrix.emp_code",
-    "lang": "zh"
-  },
-  {
-    "file": "src/components/features/attendance/timesheet-matrix-grid.tsx",
-    "key": "attendance.matrix.emp_name",
-    "lang": "en"
-  },
-  {
-    "file": "src/components/features/attendance/timesheet-matrix-grid.tsx",
-    "key": "attendance.matrix.emp_name",
-    "lang": "vi"
-  },
-  {
-    "file": "src/components/features/attendance/timesheet-matrix-grid.tsx",
-    "key": "attendance.matrix.emp_name",
+    "key": "reports.table.employee",
     "lang": "zh"
   },
   {
@@ -148,6 +103,61 @@
     "file": "src/components/features/attendance/timesheet-matrix-grid.tsx",
     "key": "attendance.matrix.col_paid_total",
     "lang": "zh"
+  },
+  {
+    "file": "src/components/features/employees/drawer-header.tsx",
+    "key": "common.scroll_left",
+    "lang": "en"
+  },
+  {
+    "file": "src/components/features/employees/drawer-header.tsx",
+    "key": "common.scroll_left",
+    "lang": "vi"
+  },
+  {
+    "file": "src/components/features/employees/drawer-header.tsx",
+    "key": "common.scroll_left",
+    "lang": "zh"
+  },
+  {
+    "file": "src/components/features/employees/drawer-header.tsx",
+    "key": "employees.details.tabs_nav",
+    "lang": "en"
+  },
+  {
+    "file": "src/components/features/employees/drawer-header.tsx",
+    "key": "employees.details.tabs_nav",
+    "lang": "vi"
+  },
+  {
+    "file": "src/components/features/employees/drawer-header.tsx",
+    "key": "employees.details.tabs_nav",
+    "lang": "zh"
+  },
+  {
+    "file": "src/components/features/employees/drawer-header.tsx",
+    "key": "common.scroll_right",
+    "lang": "en"
+  },
+  {
+    "file": "src/components/features/employees/drawer-header.tsx",
+    "key": "common.scroll_right",
+    "lang": "vi"
+  },
+  {
+    "file": "src/components/features/employees/drawer-header.tsx",
+    "key": "common.scroll_right",
+    "lang": "zh"
+  },
+  {
+    "file": "src/components/features/reports/daily-report-table.tsx",
+    "key": "reports.messages.no_data_desc",
+    "lang": "zh"
+  },
+  {
+    "file": "src/components/features/reports/report-filters.tsx",
+    "key": "reports.all_departments",
+    "lang": "vi"
   },
   {
     "file": "src/components/layout/dashboard-mockup.tsx",
@@ -462,96 +472,6 @@
   {
     "file": "src/pages/attendance/components/adjustments-table/empty-state.tsx",
     "key": "adjustments.empty.description",
-    "lang": "zh"
-  },
-  {
-    "file": "src/pages/attendance/components/attendance-logs-tabs.tsx",
-    "key": "attendance_logs.tabs.matrix",
-    "lang": "en"
-  },
-  {
-    "file": "src/pages/attendance/components/attendance-logs-tabs.tsx",
-    "key": "attendance_logs.tabs.matrix",
-    "lang": "vi"
-  },
-  {
-    "file": "src/pages/attendance/components/attendance-logs-tabs.tsx",
-    "key": "attendance_logs.tabs.matrix",
-    "lang": "zh"
-  },
-  {
-    "file": "src/pages/employees/components/contract-expiration-alerts.tsx",
-    "key": "employees.alerts.title",
-    "lang": "en"
-  },
-  {
-    "file": "src/pages/employees/components/contract-expiration-alerts.tsx",
-    "key": "employees.alerts.title",
-    "lang": "vi"
-  },
-  {
-    "file": "src/pages/employees/components/contract-expiration-alerts.tsx",
-    "key": "employees.alerts.title",
-    "lang": "zh"
-  },
-  {
-    "file": "src/pages/employees/components/contract-expiration-alerts.tsx",
-    "key": "employees.alerts.active_count",
-    "lang": "en"
-  },
-  {
-    "file": "src/pages/employees/components/contract-expiration-alerts.tsx",
-    "key": "employees.alerts.active_count",
-    "lang": "vi"
-  },
-  {
-    "file": "src/pages/employees/components/contract-expiration-alerts.tsx",
-    "key": "employees.alerts.active_count",
-    "lang": "zh"
-  },
-  {
-    "file": "src/pages/employees/components/contract-expiration-alerts.tsx",
-    "key": "employees.alerts.subtitle",
-    "lang": "en"
-  },
-  {
-    "file": "src/pages/employees/components/contract-expiration-alerts.tsx",
-    "key": "employees.alerts.subtitle",
-    "lang": "vi"
-  },
-  {
-    "file": "src/pages/employees/components/contract-expiration-alerts.tsx",
-    "key": "employees.alerts.subtitle",
-    "lang": "zh"
-  },
-  {
-    "file": "src/pages/employees/components/contract-expiration-alerts.tsx",
-    "key": "employees.alerts.probation_review_due",
-    "lang": "en"
-  },
-  {
-    "file": "src/pages/employees/components/contract-expiration-alerts.tsx",
-    "key": "employees.alerts.probation_review_due",
-    "lang": "vi"
-  },
-  {
-    "file": "src/pages/employees/components/contract-expiration-alerts.tsx",
-    "key": "employees.alerts.probation_review_due",
-    "lang": "zh"
-  },
-  {
-    "file": "src/pages/employees/components/contract-expiration-alerts.tsx",
-    "key": "employees.alerts.contract_compliant",
-    "lang": "en"
-  },
-  {
-    "file": "src/pages/employees/components/contract-expiration-alerts.tsx",
-    "key": "employees.alerts.contract_compliant",
-    "lang": "vi"
-  },
-  {
-    "file": "src/pages/employees/components/contract-expiration-alerts.tsx",
-    "key": "employees.alerts.contract_compliant",
     "lang": "zh"
   },
   {
@@ -912,6 +832,46 @@
   {
     "file": "src/pages/payroll/components/payroll-header.tsx",
     "key": "payroll.lifecycle.lock_confirm_title",
+    "lang": "zh"
+  },
+  {
+    "file": "src/pages/reports/components/reports-header.tsx",
+    "key": "reports.view_mode_group",
+    "lang": "zh"
+  },
+  {
+    "file": "src/pages/reports/components/reports-header.tsx",
+    "key": "reports.view_matrix",
+    "lang": "zh"
+  },
+  {
+    "file": "src/pages/reports/components/reports-header.tsx",
+    "key": "reports.view_matrix",
+    "lang": "zh"
+  },
+  {
+    "file": "src/pages/reports/components/reports-header.tsx",
+    "key": "reports.view_summary",
+    "lang": "zh"
+  },
+  {
+    "file": "src/pages/reports/components/reports-header.tsx",
+    "key": "reports.view_summary",
+    "lang": "zh"
+  },
+  {
+    "file": "src/pages/reports/components/reports-header.tsx",
+    "key": "reports.export_matrix_csv",
+    "lang": "zh"
+  },
+  {
+    "file": "src/pages/reports/components/reports-table/columns.tsx",
+    "key": "reports.table.employee",
+    "lang": "zh"
+  },
+  {
+    "file": "src/pages/reports/components/reports-table/columns.tsx",
+    "key": "reports.table.notes",
     "lang": "zh"
   },
   {

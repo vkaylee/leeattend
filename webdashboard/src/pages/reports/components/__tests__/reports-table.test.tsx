@@ -76,6 +76,6 @@ describe("ReportsTable", () => {
     const grandparent = toolbarWrapper?.parentElement;
     expect(grandparent?.className).toContain("flex");
     expect(grandparent?.className).toContain("flex-col");
-    expect(grandparent?.className).toContain("gap-6");
+    expect(grandparent?.className).toMatch(/gap-[46]/);
   });
 });

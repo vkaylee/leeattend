@@ -36,8 +36,8 @@ describe("ReportFilters — day-31 month arithmetic", () => {
 
     // Current month = July (7), previous month = June (6)
     // The bug was: both buttons showed "THÁNG 7/2026"
-    expect(screen.getByText("THÁNG 7/2026")).toBeDefined();
-    expect(screen.getByText("THÁNG 6/2026")).toBeDefined();
+    expect(screen.getByText(/Tháng 7\/2026/i)).toBeDefined();
+    expect(screen.getByText(/Tháng 6\/2026/i)).toBeDefined();
   });
 
   it("shows distinct labels when today is March 31 (prev = February)", () => {
@@ -46,8 +46,8 @@ describe("ReportFilters — day-31 month arithmetic", () => {
 
     render(<ReportFilters {...baseProps} />);
 
-    expect(screen.getByText("THÁNG 3/2026")).toBeDefined();
-    expect(screen.getByText("THÁNG 2/2026")).toBeDefined();
+    expect(screen.getByText(/Tháng 3\/2026/i)).toBeDefined();
+    expect(screen.getByText(/Tháng 2\/2026/i)).toBeDefined();
   });
 
   it("handles year boundary: January 31 → previous December", () => {
@@ -56,8 +56,8 @@ describe("ReportFilters — day-31 month arithmetic", () => {
 
     render(<ReportFilters {...baseProps} />);
 
-    expect(screen.getByText("THÁNG 1/2026")).toBeDefined();
-    expect(screen.getByText("THÁNG 12/2025")).toBeDefined();
+    expect(screen.getByText(/Tháng 1\/2026/i)).toBeDefined();
+    expect(screen.getByText(/Tháng 12\/2025/i)).toBeDefined();
   });
 
   it("works correctly on non-31st days too", () => {
@@ -66,8 +66,8 @@ describe("ReportFilters — day-31 month arithmetic", () => {
 
     render(<ReportFilters {...baseProps} />);
 
-    expect(screen.getByText("THÁNG 7/2026")).toBeDefined();
-    expect(screen.getByText("THÁNG 6/2026")).toBeDefined();
+    expect(screen.getByText(/Tháng 7\/2026/i)).toBeDefined();
+    expect(screen.getByText(/Tháng 6\/2026/i)).toBeDefined();
   });
 
   it("handles October 31 → September (30-day previous month)", () => {
@@ -76,7 +76,7 @@ describe("ReportFilters — day-31 month arithmetic", () => {
 
     render(<ReportFilters {...baseProps} />);
 
-    expect(screen.getByText("THÁNG 10/2026")).toBeDefined();
-    expect(screen.getByText("THÁNG 9/2026")).toBeDefined();
+    expect(screen.getByText(/Tháng 10\/2026/i)).toBeDefined();
+    expect(screen.getByText(/Tháng 9\/2026/i)).toBeDefined();
   });
 });

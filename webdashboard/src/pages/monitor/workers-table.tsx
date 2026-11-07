@@ -244,7 +244,7 @@ export function WorkersTable({ isUnavailable = false, t, workers }: WorkersTable
                       </span>
                     </td>
                   </tr>
-                ))}
+                )))}
               </tbody>
             </table>
           </div>

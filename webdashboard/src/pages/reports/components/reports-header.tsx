@@ -83,7 +83,7 @@ export function ReportsHeader({
             }}
             to="/attendance-logs"
           >
-            <CalendarCheck size={16} /> {t("reports.view_raw_logs", "Nhật ký thô")}
+            <CalendarCheck size={16} /> {t("reports.view_raw_logs", "Xem nhật ký thô")}
           </Link>
 
           <Button

@@ -675,6 +675,19 @@
       "error_currency_code_invalid": "Currency code must be exactly 3 characters (e.g., VND, USD)"
     },
     "lifecycle": {
+      "title": "Employee Lifecycle Templates",
+      "subtitle": "Configure onboarding, offboarding, and transfer procedure checklists for employees",
+      "create_template": "Create Lifecycle Template",
+      "tabs": {
+        "onboarding": "Onboarding",
+        "offboarding": "Offboarding",
+        "transfer": "Job Transfer",
+        "probation_end": "Probation Review"
+      },
+      "empty": {
+        "title": "No Lifecycle Templates",
+        "description": "No templates have been configured for this lifecycle stage."
+      },
       "template": {
         "category_hr_admin": "HR Admin",
         "category_it_setup": "IT Setup",
