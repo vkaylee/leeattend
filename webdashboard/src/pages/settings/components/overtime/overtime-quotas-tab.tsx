@@ -82,6 +82,7 @@ export function OvertimeQuotasTab({ wsId }: { wsId: string }) {
           </Typography>
         </div>
         <Button
+          className="rounded-xl px-4 py-2 text-xs font-semibold shadow-xs normal-case tracking-normal"
           icon={<Plus className="w-4 h-4" />}
           onClick={handleCreate}
           variant="primary"
@@ -97,7 +98,12 @@ export function OvertimeQuotasTab({ wsId }: { wsId: string }) {
       ) : otConfigs.length === 0 ? (
         <EmptyState
           action={
-            <Button icon={<Plus size={16} />} onClick={handleCreate} variant="outline">
+            <Button
+              className="rounded-xl px-4 py-2 text-xs font-semibold shadow-xs normal-case tracking-normal"
+              icon={<Plus size={16} />}
+              onClick={handleCreate}
+              variant="primary"
+            >
               {t("common.add_new", "Thêm cấu hình")}
             </Button>
           }

@@ -4,6 +4,8 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import Button from "@/components/ui/button";
+import EmptyState from "@/components/ui/empty-state";
+import { SettingsHeader } from "@/components/ui/settings/settings-header";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Typography } from "@/components/ui/typography";
 import { useConfirm } from "@/hooks/use-confirm";
@@ -117,31 +119,23 @@ export default function ConditionTypesPage() {
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-        <div className="flex items-center gap-4">
-          <div className="w-12 h-12 rounded-2xl bg-primary-50 dark:bg-primary-950 flex items-center justify-center text-primary-600 dark:text-primary-400 shadow-sm border border-primary-100 dark:border-primary-800/50">
-            <Tags size={22} />
-          </div>
-          <div>
-            <Typography className="text-xl font-bold tracking-tight text-slate-800 dark:text-slate-100" variant="h1">
-              {t("settings.categories.condition_types", { defaultValue: "Điều kiện làm việc" })}
-            </Typography>
-            <Typography className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-0.5" variant="p">
-              {t("settings.condition_types.subtitle", { defaultValue: "Cấu hình các loại điều kiện làm việc áp dụng cho nhân viên" })}
-            </Typography>
-          </div>
-        </div>
-        {!isAdding && (
-          <Button
-            className="flex items-center justify-center gap-2 bg-primary-600 text-white px-4 py-2 rounded-xl font-semibold text-xs hover:bg-primary-700 transition-all shadow-xs active:scale-95"
-            onClick={() => { setIsAdding(true); setEditingId(null); }}
-            variant="ghost"
-          >
-            <Plus size={14} /> {t("common.add_new", "Thêm mới")}
-          </Button>
-        )}
-      </div>
+      <SettingsHeader
+        actions={
+          !isAdding ? (
+            <Button
+              className="rounded-xl px-4 py-2 text-xs font-semibold shadow-xs normal-case tracking-normal"
+              icon={<Plus size={16} />}
+              onClick={() => { setIsAdding(true); setEditingId(null); }}
+              variant="primary"
+            >
+              {t("common.add_new", "Thêm mới")}
+            </Button>
+          ) : undefined
+        }
+        description={t("settings.condition_types.subtitle", { defaultValue: "Cấu hình các loại điều kiện làm việc áp dụng cho nhân viên" })}
+        icon={<Tags size={20} />}
+        title={t("settings.categories.condition_types", { defaultValue: "Điều kiện làm việc" })}
+      />
 
       {/* Add Form */}
       {isAdding ? (
@@ -163,11 +157,21 @@ export default function ConditionTypesPage() {
       {/* Type Cards */}
       <div className="grid grid-cols-1 gap-4">
         {types.length === 0 ? (
-          <div className="bg-slate-50 dark:bg-slate-800/50 border border-dashed border-slate-200 dark:border-slate-700 rounded-[2rem] p-16 text-center">
-            <Typography className="text-sm font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest" variant="h4">
-              {t("settings.condition_types.no_types", { defaultValue: "No condition types defined" })}
-            </Typography>
-          </div>
+          <EmptyState
+            action={
+              <Button
+                className="rounded-xl px-4 py-2 text-xs font-semibold shadow-xs normal-case tracking-normal"
+                icon={<Plus size={16} />}
+                onClick={() => { setIsAdding(true); setEditingId(null); }}
+                variant="primary"
+              >
+                {t("common.add_new", "Thêm mới")}
+              </Button>
+            }
+            description={t("settings.condition_types.no_types_desc", { defaultValue: "Thêm điều kiện làm việc đầu tiên để thiết lập chế độ làm việc cho nhân sự." })}
+            icon={<Tags size={40} />}
+            title={t("settings.condition_types.no_types", { defaultValue: "Chưa có loại điều kiện làm việc" })}
+          />
         ) : (
           types.map((item) => (
             <div

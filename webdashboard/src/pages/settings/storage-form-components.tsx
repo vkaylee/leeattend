@@ -4,6 +4,9 @@ import { useTranslation } from "react-i18next";
 
 import Button from "@/components/ui/button";
 import { LABEL_BASE } from "@/components/ui/form-field";
+import { SettingsGroup } from "@/components/ui/settings/settings-group";
+import { SettingsHeader } from "@/components/ui/settings/settings-header";
+import { SettingsRow } from "@/components/ui/settings/settings-row";
 import { SettingsSwitch } from "@/components/ui/settings/settings-switch";
 import { Typography } from "@/components/ui/typography";
 
@@ -17,31 +20,23 @@ interface StorageHeaderProps {
 export function StorageHeader({ isSaving, onSave }: StorageHeaderProps) {
   const { t } = useTranslation();
   return (
-    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-2 border-b border-slate-200/60 dark:border-slate-800/60">
-      <div className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-xl bg-primary-50 dark:bg-primary-950/70 flex items-center justify-center text-primary-600 dark:text-primary-400 shadow-2xs border border-primary-100/50 dark:border-primary-900/50">
-          <Database size={20} />
-        </div>
-        <div>
-          <Typography className="text-xl font-bold tracking-tight text-slate-800 dark:text-slate-100 normal-case" variant="h1">
-            {t("settings.storage.title", "Cấu hình lưu trữ")}
-          </Typography>
-          <Typography className="text-xs text-slate-500 dark:text-slate-400 font-medium normal-case tracking-normal" variant="small">
-            {t("settings.storage.description", "Cấu hình S3/MinIO lưu trữ tệp tài liệu và hồ sơ")}
-          </Typography>
-        </div>
-      </div>
-      <Button
-        className="rounded-xl px-4 py-2 text-xs font-semibold shadow-xs"
-        data-testid="save-storage-btn"
-        icon={<Save size={15} />}
-        loading={isSaving}
-        onClick={onSave}
-        variant="primary"
-      >
-        {t("common.save_changes", "Lưu thay đổi")}
-      </Button>
-    </div>
+    <SettingsHeader
+      actions={
+        <Button
+          className="rounded-xl px-4 py-2 text-xs font-semibold shadow-xs normal-case tracking-normal"
+          data-testid="save-storage-btn"
+          icon={<Save size={15} />}
+          loading={isSaving}
+          onClick={onSave}
+          variant="primary"
+        >
+          {t("common.save_changes", "Lưu thay đổi")}
+        </Button>
+      }
+      description={t("settings.storage.description", "Cấu hình S3/MinIO lưu trữ tệp tài liệu và hồ sơ")}
+      icon={<Database size={20} />}
+      title={t("settings.storage.title", "Cấu hình lưu trữ")}
+    />
   );
 }
 
@@ -74,23 +69,24 @@ export function StorageCredentialForm({
 
   return (
     <div className="bg-white dark:bg-slate-900/90 p-6 sm:p-8 rounded-2xl border border-slate-200/80 dark:border-slate-800/80 shadow-2xs space-y-6">
-      {/* Toggle Custom Storage */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between p-5 bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-slate-200/70 dark:border-slate-700/70 gap-4">
-        <div className="space-y-0.5">
-          <Typography className="text-sm font-bold text-slate-800 dark:text-slate-200" variant="h4">
-            {t("settings.storage.use_custom", "Sử dụng Bucket lưu trữ riêng")}
-          </Typography>
-          <Typography className="text-xs text-slate-500 dark:text-slate-400" variant="p">
-            {t("settings.storage.use_custom_desc", "Lưu trữ tệp tại AWS S3 hoặc MinIO do doanh nghiệp tự quản lý.")}
-          </Typography>
-        </div>
-        <SettingsSwitch
-          ariaLabel={t("settings.storage.use_custom", "Use Custom Storage Bucket")}
-          checked={form.isCustom}
-          id="use-custom-storage"
-          onCheckedChange={onToggleCustom}
+      {/* Toggle Custom Storage using SettingsGroup & SettingsRow */}
+      <SettingsGroup testId="custom-storage-group">
+        <SettingsRow
+          control={
+            <SettingsSwitch
+              ariaLabel={t("settings.storage.use_custom", "Use Custom Storage Bucket")}
+              checked={form.isCustom}
+              id="use-custom-storage"
+              onCheckedChange={onToggleCustom}
+            />
+          }
+          description={t("settings.storage.use_custom_desc", "Lưu trữ tệp tại AWS S3 hoặc MinIO do doanh nghiệp tự quản lý.")}
+          icon={<Server size={18} />}
+          iconBg="bg-blue-500/10 text-blue-600 dark:text-blue-400"
+          label={t("settings.storage.use_custom", "Sử dụng Bucket lưu trữ riêng")}
+          testId="use-custom-storage-row"
         />
-      </div>
+      </SettingsGroup>
 
       {/* Custom Storage Fields */}
       {form.isCustom ? (

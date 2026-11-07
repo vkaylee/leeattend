@@ -1,8 +1,10 @@
-import { Calculator, CheckCircle2, Clock, History } from "lucide-react";
+import { Calculator, CheckCircle2, Clock, History, Plus } from "lucide-react";
 import React from "react";
 
 import { TFunction } from "i18next";
 
+import Button from "@/components/ui/button";
+import EmptyState from "@/components/ui/empty-state";
 import { Typography } from "@/components/ui/typography";
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
 import { AttendancePolicyVersion } from "@/lib/api";
@@ -12,17 +14,18 @@ import { maybeNull } from "@/types/api-overrides";
 import { roundingLabel, workUnitLabel } from "./utils";
 
 interface AttendanceVersionTimelineProps {
+  onNewVersion?: () => void;
   t: TFunction;
   versions: AttendancePolicyVersion[];
 }
 
-export function AttendanceVersionTimeline({ t, versions }: AttendanceVersionTimelineProps) {
+export function AttendanceVersionTimeline({ onNewVersion, t, versions }: AttendanceVersionTimelineProps) {
   return (
     <div className="bg-white dark:bg-slate-900 p-6 sm:p-10 rounded-2xl sm:rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-sm space-y-8">
       <TimelineHeader count={versions.length} t={t} />
 
       {versions.length === 0 ? (
-        <EmptyTimeline t={t} />
+        <EmptyTimeline onNewVersion={onNewVersion} t={t} />
       ) : (
         <div className="space-y-4">
           {versions.map((v, index) => (
@@ -44,30 +47,36 @@ function TimelineHeader({ count, t }: { count: number; t: TFunction }) {
     <div className="flex items-center justify-between border-b border-slate-50 dark:border-slate-800 pb-6">
       <div className="flex items-center gap-3">
         <History className="w-6 h-6 text-primary-500" />
-        <Typography className="text-xl font-bold text-slate-800 dark:text-slate-100 tracking-tight uppercase" variant="h2">
+        <Typography className="text-lg font-bold text-slate-800 dark:text-slate-100 tracking-tight" variant="h2">
           {t("common.workspace_settings.attendance_config")}
         </Typography>
       </div>
-      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-        {count} {count === 1 ? "VERSION" : "VERSIONS"}
+      <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
+        {count} {count === 1 ? t("common.version", "phiên bản") : t("common.versions", "phiên bản")}
       </span>
     </div>
   );
 }
 
-function EmptyTimeline({ t }: { t: TFunction }) {
+function EmptyTimeline({ onNewVersion, t }: { onNewVersion?: () => void; t: TFunction }) {
   return (
-    <div className="py-16 text-center border-2 border-dashed border-slate-100 dark:border-slate-800 rounded-[2rem] bg-slate-50 dark:bg-slate-800/30 flex flex-col items-center">
-      <div className="w-20 h-20 bg-white dark:bg-slate-900 rounded-full flex items-center justify-center shadow-sm mb-5 border border-slate-100 dark:border-slate-800">
-        <Calculator className="text-slate-200 dark:text-slate-700" size={36} />
-      </div>
-      <Typography className="text-lg font-bold text-slate-700 dark:text-slate-200 uppercase tracking-tight" variant="h3">
-        {t("common.workspace_settings.no_versions") || "No configuration yet"}
-      </Typography>
-      <Typography className="text-slate-500 dark:text-slate-400 text-xs font-bold uppercase tracking-widest mt-1 opacity-50 italic" variant="p">
-        {t("common.workspace_settings.no_versions_desc") || "Create the first version to get started"}
-      </Typography>
-    </div>
+    <EmptyState
+      action={
+        onNewVersion ? (
+          <Button
+            className="rounded-xl px-4 py-2 text-xs font-semibold shadow-xs normal-case tracking-normal"
+            icon={<Plus size={16} />}
+            onClick={onNewVersion}
+            variant="primary"
+          >
+            {t("common.workspace_settings.new_version", { defaultValue: "Tạo phiên bản đầu tiên" })}
+          </Button>
+        ) : undefined
+      }
+      description={t("common.workspace_settings.no_versions_desc") || "Nếu không tạo phiên bản cụ thể, cấu hình chấm công mặc định sẽ được áp dụng."}
+      icon={<Calculator size={40} />}
+      title={t("common.workspace_settings.no_versions") || "Chưa có phiên bản cấu hình"}
+    />
   );
 }
 

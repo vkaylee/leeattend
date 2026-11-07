@@ -4,7 +4,8 @@ import { useTranslation } from "react-i18next";
 
 import Button from "@/components/ui/button";
 import EmptyState from "@/components/ui/empty-state";
-import PageHeader from "@/components/ui/page-header";
+import { SettingsHeader } from "@/components/ui/settings/settings-header";
+import { SettingsSegmentedControl } from "@/components/ui/settings/settings-segmented-control";
 import { cn } from "@/lib/utils";
 import { ChecklistItemsPanel } from "./components/checklist-items-panel";
 import { TemplateDrawer } from "./components/template-drawer";
@@ -29,10 +30,10 @@ export default function LifecycleTemplatesPage() {
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500 pb-20">
-      <PageHeader
+      <SettingsHeader
         actions={
           <Button
-            className="rounded-xl px-4 py-2 text-xs font-semibold shadow-xs"
+            className="rounded-xl px-4 py-2 text-xs font-semibold shadow-xs normal-case tracking-normal"
             icon={<Plus size={16} />}
             onClick={ctx.handleCreateTemplate}
             variant="primary"
@@ -40,30 +41,22 @@ export default function LifecycleTemplatesPage() {
             {t("settings.lifecycle.create_template", { defaultValue: "Tạo mẫu quy trình" })}
           </Button>
         }
-        icon={<ClipboardList size={24} />}
-        subtitle={t("settings.lifecycle.subtitle", { defaultValue: "Cấu hình danh mục kiểm tra tiếp nhận, thôi việc và luân chuyển nhân sự cho nhân viên." })}
+        description={t("settings.lifecycle.subtitle", { defaultValue: "Cấu hình danh mục kiểm tra tiếp nhận, thôi việc và luân chuyển nhân sự cho nhân viên." })}
+        icon={<ClipboardList size={20} />}
         title={t("settings.lifecycle.title", { defaultValue: "Mẫu quy trình nhân sự" })}
       />
 
       {/* Tabs */}
-      <div className="inline-flex items-center gap-1 rounded-xl bg-slate-100/90 dark:bg-slate-800/80 p-1 border border-slate-200/60 dark:border-slate-700/60" role="tablist">
-        {TABS.map((tab) => (
-          <Button
-            aria-selected={ctx.activeTab === tab}
-            className={cn(
-              "flex items-center gap-2 px-4 py-1.5 rounded-lg text-xs font-semibold transition-all select-none capitalize",
-              ctx.activeTab === tab
-                ? "bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 shadow-2xs font-bold"
-                : "text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"
-            )}
-            key={tab}
-            onClick={() => { ctx.setActiveTab(tab); }}
-            role="tab"
-            type="button"
-          >
-            {t(TAB_LABELS[tab], { defaultValue: tab.replace("_", " ") })}
-          </Button>
-        ))}
+      <div className="overflow-x-auto max-w-full pb-1">
+        <SettingsSegmentedControl
+          onChange={(tab) => ctx.setActiveTab(tab as typeof TABS[number])}
+          options={TABS.map((tab) => ({
+            label: t(TAB_LABELS[tab], { defaultValue: tab.replace("_", " ") }),
+            value: tab,
+          }))}
+          testId="lifecycle-tabs"
+          value={ctx.activeTab}
+        />
       </div>
 
       {ctx.isTemplatesLoading ? (
@@ -73,6 +66,16 @@ export default function LifecycleTemplatesPage() {
         </div>
       ) : ctx.filteredTemplates.length === 0 ? (
         <EmptyState
+          action={
+            <Button
+              className="rounded-xl px-4 py-2 text-xs font-semibold shadow-xs normal-case tracking-normal"
+              icon={<Plus size={16} />}
+              onClick={ctx.handleCreateTemplate}
+              variant="primary"
+            >
+              {t("settings.lifecycle.create_template", { defaultValue: "Tạo mẫu quy trình" })}
+            </Button>
+          }
           description={t("settings.lifecycle.empty.description", { defaultValue: "Chưa có mẫu danh mục nào được cấu hình cho quy trình này." })}
           icon={<ClipboardList size={40} />}
           title={t("settings.lifecycle.empty.title", { defaultValue: "Chưa có mẫu quy trình" })}

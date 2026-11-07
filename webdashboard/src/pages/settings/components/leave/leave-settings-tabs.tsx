@@ -1,50 +1,59 @@
 import { CalendarDays, ShieldCheck, UserPlus } from "lucide-react";
-import React from "react";
+import React, { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 
-import Button from "@/components/ui/button";
-import { cn } from "@/lib/utils";
+import {
+  SettingsSegmentedControl,
+  type SegmentedOption,
+} from "@/components/ui/settings/settings-segmented-control";
 
 import type { TabType } from "../../hooks/use-leave-settings";
+
 interface LeaveSettingsTabsProps {
   activeTab: TabType;
   onTabChange: (tab: TabType) => void;
 }
 
-export function LeaveSettingsTabs({ activeTab, onTabChange }: LeaveSettingsTabsProps) {
+export function LeaveSettingsTabs({
+  activeTab,
+  onTabChange,
+}: LeaveSettingsTabsProps) {
   const { t } = useTranslation();
 
-  const tabs = [
-    { icon: CalendarDays, id: "types", label: t("settings.leave.tabs.types") },
-    { icon: ShieldCheck, id: "policies", label: t("settings.leave.tabs.policies") },
-    { icon: UserPlus, id: "assignments", label: t("settings.leave.tabs.assignments") },
-  ] as const;
+  const options: SegmentedOption<TabType>[] = useMemo(
+    () => [
+      {
+        icon: <CalendarDays className="w-3.5 h-3.5" />,
+        label: t("settings.leave.tabs.types"),
+        testId: "leave-tab-types",
+        value: "types",
+      },
+      {
+        icon: <ShieldCheck className="w-3.5 h-3.5" />,
+        label: t("settings.leave.tabs.policies"),
+        testId: "leave-tab-policies",
+        value: "policies",
+      },
+      {
+        icon: <UserPlus className="w-3.5 h-3.5" />,
+        label: t("settings.leave.tabs.assignments"),
+        testId: "leave-tab-assignments",
+        value: "assignments",
+      },
+    ],
+    [t]
+  );
 
   return (
-    <div className="inline-flex items-center gap-1 rounded-xl bg-slate-100/90 dark:bg-slate-800/80 p-1 border border-slate-200/60 dark:border-slate-700/60 mb-6" role="tablist">
-      {tabs.map((tab) => {
-        const Icon = tab.icon;
-        const isSelected = activeTab === tab.id;
-        return (
-          <Button
-            aria-selected={isSelected}
-            className={cn(
-              "flex items-center gap-2 px-4 py-1.5 rounded-lg text-xs font-semibold transition-all duration-150 select-none",
-              isSelected
-                ? "bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 shadow-2xs font-bold"
-                : "text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"
-            )}
-            data-testid={`leave-tab-${tab.id}`}
-            key={tab.id}
-            onClick={() => { onTabChange(tab.id); }}
-            role="tab"
-            type="button"
-          >
-            <Icon className="w-3.5 h-3.5" />
-            <span>{tab.label}</span>
-          </Button>
-        );
-      })}
+    <div className="mb-6 overflow-x-auto max-w-full pb-1">
+      <SettingsSegmentedControl
+        onChange={onTabChange}
+        options={options}
+        testId="leave-settings-tabs"
+        value={activeTab}
+      />
     </div>
   );
 }
+
+export default LeaveSettingsTabs;

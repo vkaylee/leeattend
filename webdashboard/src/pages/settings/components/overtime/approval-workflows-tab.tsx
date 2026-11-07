@@ -135,20 +135,21 @@ export function ApprovalWorkflowsTab({ entityType = "ot_request" }: { entityType
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center border-b border-slate-50 dark:border-slate-800 pb-6">
+      <div className="flex justify-between items-center pb-4 border-b border-slate-100 dark:border-slate-800">
         <div>
-          <Typography className="text-xl font-bold text-slate-800 dark:text-slate-100 tracking-tight" variant="h3">
-            {t("settings.overtime.tabs.workflows", { defaultValue: "Quy trình phê duyệt" })}
+          <Typography className="text-base font-bold text-slate-800 dark:text-slate-100 tracking-tight" variant="h3">
+            {t("settings.overtime.tabs.workflows", { defaultValue: "Danh sách quy trình phê duyệt" })}
           </Typography>
-          <Typography className="text-xs font-medium text-slate-500 dark:text-slate-400 mt-1" variant="p">
+          <Typography className="text-xs font-medium text-slate-500 dark:text-slate-400 mt-0.5" variant="p">
             {t("settings.overtime.workflows_desc", { defaultValue: "Cấu hình luồng duyệt nhiều cấp cho đơn từ và yêu cầu." })}
           </Typography>
         </div>
         <Button
+          className="rounded-xl px-4 py-2 text-xs font-semibold shadow-xs normal-case tracking-normal"
           icon={<Plus className="w-4 h-4" />}
           onClick={handleCreate}
         >
-          {t("common.add_new")}
+          {t("common.add_new", "Thêm quy trình")}
         </Button>
       </div>
 
@@ -159,7 +160,12 @@ export function ApprovalWorkflowsTab({ entityType = "ot_request" }: { entityType
       ) : !workflows || workflows.length === 0 ? (
         <EmptyState
           action={
-            <Button icon={<Plus className="w-4 h-4" />} onClick={handleCreate} variant="outline">
+            <Button
+              className="rounded-xl px-4 py-2 text-xs font-semibold shadow-xs normal-case tracking-normal"
+              icon={<Plus className="w-4 h-4" />}
+              onClick={handleCreate}
+              variant="primary"
+            >
               {t("common.add_new", "Thêm quy trình")}
             </Button>
           }

@@ -6,6 +6,7 @@ export interface SegmentedOption<T extends string = string> {
   disabled?: boolean;
   icon?: React.ReactNode;
   label: React.ReactNode;
+  testId?: string;
   value: T;
 }
 
@@ -39,13 +40,14 @@ export function SettingsSegmentedControl<T extends string = string>({
           <button
             aria-selected={isSelected}
             className={cn(
-              "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-150 select-none",
+              "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-150 select-none whitespace-nowrap shrink-0",
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500",
               isSelected
                 ? "bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 shadow-2xs font-bold"
                 : "text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200",
               opt.disabled && "opacity-40 pointer-events-none"
             )}
+            data-testid={opt.testId}
             disabled={opt.disabled}
             key={opt.value}
             onClick={() => onChange(opt.value)}
