@@ -111,10 +111,12 @@ export const TimesheetMatrixGrid = React.forwardRef<
         });
         const payableDays = workDays + leaveDays;
 
+        const empCode = emp.employee_id_number || (emp as { employee_code?: string }).employee_code || (emp.id ? emp.id.slice(0, 8) : "");
+        const deptName = emp.department_name || (emp as { department?: string }).department || "";
         return [
-          `"${emp.employee_code ?? ""}"`,
+          `"${empCode}"`,
           `"${emp.full_name ?? ""}"`,
-          `"${emp.department ?? ""}"`,
+          `"${deptName}"`,
           ...dayCodes.map((c) => `"${c}"`),
           `"${workDays.toFixed(1)}"`,
           `"${leaveDays.toFixed(1)}"`,
@@ -264,8 +266,8 @@ export const TimesheetMatrixGrid = React.forwardRef<
                       <td className="sticky left-0 z-10 bg-white dark:bg-slate-900 group-hover:bg-slate-50 dark:group-hover:bg-slate-800 px-4 py-2 border-r border-slate-200 dark:border-slate-700 shadow-xs">
                         <EmployeeIdentityCell
                           avatarSize="sm"
-                          code={emp.employee_code ?? emp.id.slice(0, 8)}
-                          employerName={emp.department}
+                          code={emp.employee_id_number || (emp as { employee_code?: string }).employee_code || (emp.id ? emp.id.slice(0, 8) : "—")}
+                          employerName={emp.department_name || (emp as { department?: string }).department || "Toàn công ty"}
                           name={emp.full_name}
                           onClick={() => {
                             onEmployeeClick?.(emp);

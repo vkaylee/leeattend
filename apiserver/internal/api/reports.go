@@ -91,8 +91,10 @@ type DailyAttendanceRow struct {
 	ActualPunchIn     *string   `json:"actual_punch_in,omitempty"`
 	ActualPunchOut    *string   `json:"actual_punch_out,omitempty"`
 	ActualWorkMinutes int       `json:"actual_work_minutes"`
-	StdWorkUnits      int       `json:"std_work_units"`
-	OTWorkUnits       int       `json:"ot_work_units"`
+	ComputedStdHours  float64   `json:"computed_std_hours"`
+	ComputedOTHours   float64   `json:"computed_ot_hours"`
+	StdWorkUnits      float64   `json:"std_work_units"`
+	OTWorkUnits       float64   `json:"ot_work_units"`
 	Status            string    `json:"status"`
 	Timezone          *string   `json:"timezone,omitempty"`
 }

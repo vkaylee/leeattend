@@ -58,10 +58,28 @@ export default function ReportsPage() {
 
   const matrixGridRef = React.useRef<TimesheetMatrixGridHandle>(null);
 
+  // Active month & year for matrix should be synchronized with dateRange and specificMonth!
+  const activeMonthYear = React.useMemo(() => {
+    if (filterMode === "specific_month") {
+      return specificMonth;
+    }
+    if (dateRange?.start) {
+      const parts = dateRange.start.split("-");
+      if (parts.length >= 2) {
+        const y = parseInt(parts[0], 10);
+        const m = parseInt(parts[1], 10);
+        if (!isNaN(y) && !isNaN(m) && m >= 1 && m <= 12) {
+          return { month: m, year: y };
+        }
+      }
+    }
+    return specificMonth;
+  }, [filterMode, dateRange?.start, specificMonth]);
+
   const { attendanceMap, isLoading: isLoadingAttendance } = useMonthlyTimesheetData({
     wsId,
-    month: specificMonth.month,
-    year: specificMonth.year,
+    month: activeMonthYear.month,
+    year: activeMonthYear.year,
     enabled: viewMode === "matrix",
   });
 
@@ -74,8 +92,10 @@ export default function ReportsPage() {
       result = result.filter(
         (emp) =>
           emp.full_name?.toLowerCase().includes(q) ||
-          emp.employee_code?.toLowerCase().includes(q) ||
-          emp.department?.toLowerCase().includes(q)
+          emp.employee_id_number?.toLowerCase().includes(q) ||
+          emp.department_name?.toLowerCase().includes(q) ||
+          (emp as { employee_code?: string }).employee_code?.toLowerCase().includes(q) ||
+          (emp as { department?: string }).department?.toLowerCase().includes(q)
       );
     }
 
@@ -175,12 +195,12 @@ export default function ReportsPage() {
             employees={matrixFilteredEmployees}
             isLoading={isLoading}
             isLoadingAttendance={isLoadingAttendance}
-            month={specificMonth.month}
+            month={activeMonthYear.month}
             onEmployeeClick={(emp) => {
               handleEmployeeClick(emp.id, emp.full_name);
             }}
             ref={matrixGridRef}
-            year={specificMonth.year}
+            year={activeMonthYear.year}
           />
         </div>
       ) : (

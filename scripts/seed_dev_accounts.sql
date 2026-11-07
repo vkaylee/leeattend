@@ -103,11 +103,14 @@ BEGIN
     INSERT INTO employees (id, workspace_id, user_id, employee_id_number, full_name, hire_date, original_hire_date, is_active)
     VALUES
         ('f0000000-0000-0000-0000-000000000001', v_ws_id, 'e80200c2-eec3-4fc1-8135-de9f8f264396', 'EMP001', 'System Administrator', CURRENT_DATE - INTERVAL '365 days', CURRENT_DATE - INTERVAL '365 days', true),
+        ('f0000000-0000-0000-0000-000000000002', v_ws_id, 'e80200c2-0000-0000-0000-000000000002', 'EMP002', 'Platform Support Specialist', CURRENT_DATE - INTERVAL '300 days', CURRENT_DATE - INTERVAL '300 days', true),
+        ('f0000000-0000-0000-0000-000000000003', v_ws_id, 'e80200c2-0000-0000-0000-000000000003', 'EMP003', 'Platform Billing Specialist', CURRENT_DATE - INTERVAL '250 days', CURRENT_DATE - INTERVAL '250 days', true),
+        ('f0000000-0000-0000-0000-000000000004', v_ws_id, 'e80200c2-0000-0000-0000-000000000004', 'EMP004', 'Workspace Administrator', CURRENT_DATE - INTERVAL '220 days', CURRENT_DATE - INTERVAL '220 days', true),
         ('f0000000-0000-0000-0000-000000000005', v_ws_id, 'e80200c2-0000-0000-0000-000000000005', 'EMP005', 'HR Manager', CURRENT_DATE - INTERVAL '200 days', CURRENT_DATE - INTERVAL '200 days', true),
         ('f0000000-0000-0000-0000-000000000006', v_ws_id, 'e80200c2-0000-0000-0000-000000000006', 'EMP006', 'Shift Operations Manager', CURRENT_DATE - INTERVAL '180 days', CURRENT_DATE - INTERVAL '180 days', true),
         ('f0000000-0000-0000-0000-000000000007', v_ws_id, 'e80200c2-0000-0000-0000-000000000007', 'EMP007', 'Technical Team Lead', CURRENT_DATE - INTERVAL '150 days', CURRENT_DATE - INTERVAL '150 days', true),
         ('f0000000-0000-0000-0000-000000000008', v_ws_id, 'e80200c2-0000-0000-0000-000000000008', 'EMP008', 'Standard Staff Member', CURRENT_DATE - INTERVAL '120 days', CURRENT_DATE - INTERVAL '120 days', true)
-    ON CONFLICT (id) DO UPDATE SET full_name = EXCLUDED.full_name;
+    ON CONFLICT (id) DO UPDATE SET full_name = EXCLUDED.full_name, employee_id_number = EXCLUDED.employee_id_number;
 
     -- =========================================================================
     -- 5. Employments (active employment records)
@@ -115,13 +118,65 @@ BEGIN
     INSERT INTO employments (id, workspace_id, employee_id, employer_id, department_id, status, start_date, job_title, employment_type)
     VALUES
         ('b0000000-0000-0000-0000-000000000001', v_ws_id, 'f0000000-0000-0000-0000-000000000001', v_employer_id, v_dept_exec, 'active', CURRENT_DATE - INTERVAL '365 days', 'Chief Executive Officer', 'full_time'),
+        ('b0000000-0000-0000-0000-000000000002', v_ws_id, 'f0000000-0000-0000-0000-000000000002', v_employer_id, v_dept_tech, 'active', CURRENT_DATE - INTERVAL '300 days', 'IT Support Specialist', 'full_time'),
+        ('b0000000-0000-0000-0000-000000000003', v_ws_id, 'f0000000-0000-0000-0000-000000000003', v_employer_id, v_dept_exec, 'active', CURRENT_DATE - INTERVAL '250 days', 'Billing Analyst', 'full_time'),
+        ('b0000000-0000-0000-0000-000000000004', v_ws_id, 'f0000000-0000-0000-0000-000000000004', v_employer_id, v_dept_exec, 'active', CURRENT_DATE - INTERVAL '220 days', 'Workspace Admin', 'full_time'),
         ('b0000000-0000-0000-0000-000000000005', v_ws_id, 'f0000000-0000-0000-0000-000000000005', v_employer_id, v_dept_hr, 'active', CURRENT_DATE - INTERVAL '200 days', 'HR Director', 'full_time'),
         ('b0000000-0000-0000-0000-000000000006', v_ws_id, 'f0000000-0000-0000-0000-000000000006', v_employer_id, v_dept_tech, 'active', CURRENT_DATE - INTERVAL '180 days', 'Shift Planning Lead', 'full_time'),
         ('b0000000-0000-0000-0000-000000000007', v_ws_id, 'f0000000-0000-0000-0000-000000000007', v_employer_id, v_dept_tech, 'active', CURRENT_DATE - INTERVAL '150 days', 'Tech Lead', 'full_time'),
         ('b0000000-0000-0000-0000-000000000008', v_ws_id, 'f0000000-0000-0000-0000-000000000008', v_employer_id, v_dept_tech, 'active', CURRENT_DATE - INTERVAL '120 days', 'Software Engineer', 'full_time')
-    ON CONFLICT (id) DO NOTHING;
+    ON CONFLICT (id) DO UPDATE SET department_id = EXCLUDED.department_id, job_title = EXCLUDED.job_title;
 
     -- Update department managers
     UPDATE departments SET manager_id = 'f0000000-0000-0000-0000-000000000005' WHERE id = v_dept_hr;
     UPDATE departments SET manager_id = 'f0000000-0000-0000-0000-000000000007' WHERE id = v_dept_tech;
+
+    -- =========================================================================
+    -- 6. Realistic Attendance Daily Summaries for Past 60 Days
+    -- =========================================================================
+    INSERT INTO attendance_daily_summaries (
+        id, workspace_id, employment_id, date,
+        actual_work_minutes, standard_minutes, approved_ot_minutes,
+        is_weekend, is_holiday, ot_status
+    )
+    SELECT
+        gen_random_uuid(),
+        emp.workspace_id,
+        emp.id,
+        d.dt::date,
+        CASE
+            WHEN EXTRACT(DOW FROM d.dt) IN (0, 6) THEN 0
+            WHEN EXTRACT(DAY FROM d.dt) IN (5, 20) AND emp.id IN ('b0000000-0000-0000-0000-000000000007', 'b0000000-0000-0000-0000-000000000008') THEN 240
+            WHEN EXTRACT(DAY FROM d.dt) = 12 AND emp.id = 'b0000000-0000-0000-0000-000000000005' THEN 0
+            WHEN EXTRACT(DAY FROM d.dt) = 18 THEN 600
+            ELSE 480
+        END AS actual_work_minutes,
+        CASE
+            WHEN EXTRACT(DOW FROM d.dt) IN (0, 6) THEN 0
+            WHEN EXTRACT(DAY FROM d.dt) IN (5, 20) AND emp.id IN ('b0000000-0000-0000-0000-000000000007', 'b0000000-0000-0000-0000-000000000008') THEN 240
+            WHEN EXTRACT(DAY FROM d.dt) = 12 AND emp.id = 'b0000000-0000-0000-0000-000000000005' THEN 0
+            ELSE 480
+        END AS standard_minutes,
+        CASE
+            WHEN EXTRACT(DOW FROM d.dt) NOT IN (0, 6) AND EXTRACT(DAY FROM d.dt) = 18 THEN 120
+            ELSE 0
+        END AS approved_ot_minutes,
+        CASE
+            WHEN EXTRACT(DOW FROM d.dt) IN (0, 6) THEN true
+            ELSE false
+        END AS is_weekend,
+        false AS is_holiday,
+        CASE
+            WHEN EXTRACT(DOW FROM d.dt) NOT IN (0, 6) AND EXTRACT(DAY FROM d.dt) = 18 THEN 'approved'::public.ot_status_type
+            ELSE 'none'::public.ot_status_type
+        END AS ot_status
+    FROM employments emp
+    CROSS JOIN generate_series(CURRENT_DATE - INTERVAL '60 days', CURRENT_DATE, INTERVAL '1 day') AS d(dt)
+    WHERE emp.workspace_id = v_ws_id
+    ON CONFLICT (employment_id, date) DO UPDATE SET
+        actual_work_minutes = EXCLUDED.actual_work_minutes,
+        standard_minutes = EXCLUDED.standard_minutes,
+        approved_ot_minutes = EXCLUDED.approved_ot_minutes,
+        is_weekend = EXCLUDED.is_weekend,
+        ot_status = EXCLUDED.ot_status;
 END $$;

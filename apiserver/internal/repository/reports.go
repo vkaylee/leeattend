@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math"
 	"sync"
 	"time"
 
@@ -153,9 +154,10 @@ LIMIT $%d OFFSET $%d`, whereClause, filterClause, argIndex, argIndex+1)
 			var row api.DailyAttendanceRow
 			var actMins, stdMins, otMins int
 			var shiftName, schedStart, schedEnd, punchIn, punchOut *string
+			var otStatus string
 			if err := rows.Scan(&row.Date, &row.EmploymentID, &row.EmployeeID, &row.EmployeeName, &row.EmployeeIDNumber,
 				&shiftName, &schedStart, &schedEnd, &punchIn, &punchOut,
-				&actMins, &stdMins, &otMins, &row.Status); err != nil {
+				&actMins, &stdMins, &otMins, &otStatus); err != nil {
 				return api.PaginatedReportResponse{}, err
 			}
 			row.ShiftName = shiftName
@@ -164,8 +166,15 @@ LIMIT $%d OFFSET $%d`, whereClause, filterClause, argIndex, argIndex+1)
 			row.ActualPunchIn = punchIn
 			row.ActualPunchOut = punchOut
 			row.ActualWorkMinutes = actMins
-			row.StdWorkUnits = stdMins / 480
-			row.OTWorkUnits = otMins / 480
+			row.ComputedStdHours = math.Round((float64(stdMins)/60.0)*100) / 100
+			row.ComputedOTHours = math.Round((float64(otMins)/60.0)*100) / 100
+			row.StdWorkUnits = math.Round((float64(stdMins)/480.0)*100) / 100
+			row.OTWorkUnits = math.Round((float64(otMins)/480.0)*100) / 100
+			if actMins > 0 || stdMins > 0 || (punchIn != nil && punchOut != nil) {
+				row.Status = "present"
+			} else {
+				row.Status = "absent"
+			}
 			results = append(results, row)
 		}
 		if err := rows.Err(); err != nil {

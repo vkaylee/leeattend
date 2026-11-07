@@ -31,8 +31,17 @@ export function useReportsHandlers({
     setFilterMode(mode);
     let range;
     focusSearch();
-    if (mode === "this_month") range = getMonthRange(0);
-    else if (mode === "last_month") range = getMonthRange(-1);
+    if (mode === "this_month") {
+      range = getMonthRange(0);
+      const d = new Date();
+      setSpecificMonth({ month: d.getMonth() + 1, year: d.getFullYear() });
+    } else if (mode === "last_month") {
+      range = getMonthRange(-1);
+      const d = new Date();
+      d.setDate(1);
+      d.setMonth(d.getMonth() - 1);
+      setSpecificMonth({ month: d.getMonth() + 1, year: d.getFullYear() });
+    }
 
     if (range) {
       setDateRange(range);
@@ -49,6 +58,16 @@ export function useReportsHandlers({
 
   const handleDateRangeChange = (newRange: { start: string; end: string }) => {
     setDateRange(newRange);
+    if (newRange?.start) {
+      const parts = newRange.start.split("-");
+      if (parts.length >= 2) {
+        const y = parseInt(parts[0], 10);
+        const m = parseInt(parts[1], 10);
+        if (!isNaN(y) && !isNaN(m) && m >= 1 && m <= 12) {
+          setSpecificMonth({ month: m, year: y });
+        }
+      }
+    }
   };
 
   const handleDepartmentChange = (departmentId: string | null) => {

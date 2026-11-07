@@ -45,7 +45,7 @@ func (r EmployeeRepository) ListEmployees(ctx context.Context, workspaceID uuid.
 	}
 	offset := (page - 1) * limit
 	pattern := "%" + search + "%"
-	rows, err := db.Query(ctx, `SELECT id, workspace_id, user_id, full_name, employee_id_number, tags, created_at, updated_at, NULL::text, NULL::uuid, NULL::uuid, NULL::uuid FROM employees WHERE workspace_id = $1 AND deleted_at IS NULL AND ($2 = '%%' OR full_name ILIKE $2 OR employee_id_number ILIKE $2) ORDER BY id LIMIT $3 OFFSET $4`, workspaceID, pattern, limit, offset)
+	rows, err := db.Query(ctx, `SELECT e.id, e.workspace_id, e.user_id, e.full_name, e.employee_id_number, e.tags, e.created_at, e.updated_at, d.name AS department_name, emp.id AS active_employment_id, emp.employer_id, NULL::uuid AS primary_location_id FROM employees e LEFT JOIN employments emp ON emp.employee_id = e.id AND emp.status = 'active' AND emp.deleted_at IS NULL LEFT JOIN departments d ON d.id = emp.department_id WHERE e.workspace_id = $1 AND e.deleted_at IS NULL AND ($2 = '%%' OR e.full_name ILIKE $2 OR e.employee_id_number ILIKE $2) ORDER BY e.employee_id_number ASC, e.id ASC LIMIT $3 OFFSET $4`, workspaceID, pattern, limit, offset)
 	if err != nil {
 		return api.EmployeeListResponse{}, err
 	}
@@ -77,7 +77,7 @@ func (r EmployeeRepository) GetEmployee(ctx context.Context, workspaceID, employ
 	}
 	var record api.EmployeeRecord
 	var createdAt, updatedAt time.Time
-	err = db.QueryRow(ctx, `SELECT id, workspace_id, user_id, full_name, employee_id_number, tags, created_at, updated_at, NULL::text, NULL::uuid, NULL::uuid, NULL::uuid FROM employees WHERE id = $1 AND workspace_id = $2 AND deleted_at IS NULL`, employeeID, workspaceID).
+	err = db.QueryRow(ctx, `SELECT e.id, e.workspace_id, e.user_id, e.full_name, e.employee_id_number, e.tags, e.created_at, e.updated_at, d.name AS department_name, emp.id AS active_employment_id, emp.employer_id, NULL::uuid AS primary_location_id FROM employees e LEFT JOIN employments emp ON emp.employee_id = e.id AND emp.status = 'active' AND emp.deleted_at IS NULL LEFT JOIN departments d ON d.id = emp.department_id WHERE e.id = $1 AND e.workspace_id = $2 AND e.deleted_at IS NULL`, employeeID, workspaceID).
 		Scan(&record.ID, &record.WorkspaceID, &record.UserID, &record.FullName, &record.EmployeeIDNumber, &record.Tags, &createdAt, &updatedAt, &record.DepartmentName, &record.ActiveEmploymentID, &record.EmployerID, &record.PrimaryLocationID)
 	if err != nil {
 		return api.EmployeeRecord{}, err
