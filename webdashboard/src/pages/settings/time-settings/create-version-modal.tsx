@@ -314,7 +314,7 @@ function ModalFooter({
         variant="outline"
   // eslint-disable-next-line max-lines
       >
-        {t("common.cancel").toUpperCase()}
+        {t("common.cancel", "Hủy")}
       </Button>
       <Button
         loading={isPending}
@@ -322,7 +322,7 @@ function ModalFooter({
         size="lg"
         variant="secondary"
       >
-        {(t("common.workspace_settings.save_config") || "SAVE").toUpperCase()}
+        {t("common.workspace_settings.save_config", "Lưu cấu hình")}
       </Button>
     </div>
   );

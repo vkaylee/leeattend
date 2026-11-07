@@ -46,7 +46,7 @@ function CustomFieldMobileCard({
       {/* Header: Field label and type */}
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
-          <div className="truncate text-sm font-bold uppercase tracking-tight text-slate-800 dark:text-slate-100">
+          <div className="truncate text-sm font-semibold tracking-tight text-slate-800 dark:text-slate-100">
             {field.field_label}
           </div>
           <code className="mt-1 block truncate font-mono text-xs text-slate-400">
@@ -175,7 +175,7 @@ export default function CustomFieldsPage() {
             onClick={handleCreate}
             variant="ghost"
           >
-            {t("create_field").toUpperCase()}
+            {t("create_field", "Tạo trường tùy chỉnh")}
           </Button>
         }
         icon={<Braces size={24} />}
@@ -187,7 +187,7 @@ export default function CustomFieldsPage() {
       <div className="flex bg-slate-100 dark:bg-slate-700/50 p-1.5 rounded-[22px] w-fit border border-slate-200 dark:border-slate-700/50 shadow-inner">
         <Button
           className={cn(
-            "flex items-center gap-2 px-8 py-2.5 rounded-[18px] text-xs font-bold uppercase tracking-widest transition-all",
+            "flex items-center gap-2 px-6 py-2 rounded-xl text-xs font-semibold transition-all",
             activeTab === "employee"
               ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100 dark:border-slate-800"
               : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
@@ -199,7 +199,7 @@ export default function CustomFieldsPage() {
         </Button>
         <Button
           className={cn(
-            "flex items-center gap-2 px-8 py-2.5 rounded-[18px] text-xs font-bold uppercase tracking-widest transition-all",
+            "flex items-center gap-2 px-6 py-2 rounded-xl text-xs font-semibold transition-all",
             activeTab === "employment"
               ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100 dark:border-slate-800"
               : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
@@ -211,7 +211,7 @@ export default function CustomFieldsPage() {
         </Button>
         <Button
           className={cn(
-            "flex items-center gap-2 px-8 py-2.5 rounded-[18px] text-xs font-bold uppercase tracking-widest transition-all",
+            "flex items-center gap-2 px-6 py-2 rounded-xl text-xs font-semibold transition-all",
             activeTab === "department"
               ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100 dark:border-slate-800"
               : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"

@@ -37,7 +37,9 @@ export const PayrollHeader: React.FC<PayrollHeaderProps> = ({
       actions={
         <div className="flex items-center gap-4 bg-white dark:bg-slate-900 p-2 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
           <div className="flex items-center bg-slate-100 dark:bg-slate-700/50 rounded-xl p-1 shadow-inner border border-slate-200 dark:border-slate-700/50">
-            <Button className="w-10 h-10 flex items-center justify-center text-slate-500 dark:text-slate-400 hover:text-primary-600 dark:text-primary-400 hover:bg-white dark:hover:bg-slate-900 hover:shadow-sm rounded-xl transition-all" 
+            <Button
+              aria-label={t("payroll.prev_period", "Kỳ trước")}
+              className="w-10 h-10 flex items-center justify-center text-slate-500 dark:text-slate-400 hover:text-primary-600 dark:text-primary-400 hover:bg-white dark:hover:bg-slate-900 hover:shadow-sm rounded-xl transition-all" 
               onClick={() => { onChangeMonth(-1); }} 
               variant="ghost"
             >
@@ -67,7 +69,9 @@ export const PayrollHeader: React.FC<PayrollHeaderProps> = ({
               </DropdownMenuContent>
             </DropdownMenu>
 
-            <Button className="w-10 h-10 flex items-center justify-center text-slate-500 dark:text-slate-400 hover:text-primary-600 dark:text-primary-400 hover:bg-white dark:hover:bg-slate-900 hover:shadow-sm rounded-xl transition-all" 
+            <Button
+              aria-label={t("payroll.next_period", "Kỳ sau")}
+              className="w-10 h-10 flex items-center justify-center text-slate-500 dark:text-slate-400 hover:text-primary-600 dark:text-primary-400 hover:bg-white dark:hover:bg-slate-900 hover:shadow-sm rounded-xl transition-all" 
               onClick={() => { onChangeMonth(1); }} 
               variant="ghost"
             >

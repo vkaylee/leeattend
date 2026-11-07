@@ -67,7 +67,7 @@ export default function PayrollSettings() {
   const navItems = [
     { id: "policy" as TabType, icon: FileText, label: t("common.settings.tabs.payroll_policy"), testId: "payroll-tab-policy" },
     { id: "components" as TabType, icon: Blocks, label: t("common.settings.tabs.salary_components"), testId: "payroll-tab-components" },
-    { id: "bases" as TabType, icon: Coins, label: "Salary Bases", testId: "payroll-tab-bases" },
+    { id: "bases" as TabType, icon: Coins, label: t("common.settings.tabs.salary_bases", "Lương cơ sở"), testId: "payroll-tab-bases" },
     { id: "incentives" as TabType, icon: Sparkles, label: t("common.settings.tabs.incentives"), testId: "payroll-tab-incentives" },
     { id: "overtime" as TabType, icon: Calculator, label: t("common.settings.tabs.overtime_policy"), testId: "payroll-tab-overtime" },
     { id: "statutory_rules" as TabType, icon: FileText, label: t("common.settings.tabs.statutory_rules"), testId: "payroll-tab-rules" },
@@ -81,7 +81,7 @@ export default function PayrollSettings() {
             <Coins size={20} />
           </div>
           <div>
-            <Typography className="text-xl font-bold tracking-tight text-slate-800 dark:text-slate-100 normal-case" variant="h3">
+            <Typography className="text-xl font-bold tracking-tight text-slate-800 dark:text-slate-100 normal-case" variant="h1">
               {t("common.settings.categories.payroll")}
             </Typography>
             <Typography className="text-xs text-slate-500 dark:text-slate-400 font-medium normal-case tracking-normal" variant="small">

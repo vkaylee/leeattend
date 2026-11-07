@@ -6,9 +6,10 @@ import (
 	"errors"
 	"net/http"
 
-	"github.com/google/uuid"
-	"github.com/vkaylee/leeattend/apiserver/internal/apperror"
-	httpinfra "github.com/vkaylee/leeattend/apiserver/internal/infra/http"
+    "github.com/google/uuid"
+    "github.com/vkaylee/leeattend/apiserver/internal/apperror"
+    "github.com/vkaylee/leeattend/apiserver/internal/auth"
+    httpinfra "github.com/vkaylee/leeattend/apiserver/internal/infra/http"
 )
 
 type DashboardPreferences struct {
@@ -150,7 +151,7 @@ func (h DashboardPreferencesHandler) Put(w http.ResponseWriter, r *http.Request)
 func (h DashboardPreferencesHandler) handle(w http.ResponseWriter, r *http.Request, put bool) {
 	uid, uok := httpinfra.UserIDFromContext(r.Context())
 	ws, wok := httpinfra.WorkspaceIDFromContext(r.Context())
-	if !uok || !wok || h.Authorizer == nil || !h.Authorizer.HasPermission(r.Context(), uid, ws, "dashboard:preferences") {
+    if !uok || !wok || h.Authorizer == nil || !h.Authorizer.HasPermission(r.Context(), uid, ws, string(auth.PermissionDashboardPreferences)) {
 		apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
 		return
 	}

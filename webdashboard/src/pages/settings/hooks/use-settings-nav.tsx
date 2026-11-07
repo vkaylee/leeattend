@@ -23,10 +23,12 @@ import { useTranslation } from "react-i18next";
 import { TFunction } from "i18next";
 
 import { useMyPermissions } from "@/hooks/use-permissions";
+import { isFeatureEnabled, type FeatureFlagName } from "@/lib/feature-flags";
 import { ROUTES } from "@/lib/routes";
 
 export interface SettingItem {
   description: string;
+  featureFlag?: FeatureFlagName;
   icon: React.ReactNode;
   label: string;
   path: string;
@@ -150,6 +152,7 @@ const getSystemGroup = (t: TFunction): SettingItem[] => [
   },
   {
     description: t("settings.categories.econtracts_desc", { defaultValue: "Cấu hình tích hợp và chữ ký số hợp đồng" }),
+    featureFlag: "ff_econtracts",
     icon: <Scale className="w-4 h-4" />,
     label: t("settings.categories.econtracts", { defaultValue: "Hợp đồng điện tử" }),
     path: ROUTES.SETTINGS.ECONTRACTS,
@@ -173,8 +176,11 @@ export function useSettingsNav(): SettingsNavState {
   const operationsGroup = useMemo(() => getOperationsGroup(t), [t]);
   const systemGroup = useMemo(() => getSystemGroup(t), [t]);
   const filterItems = (items: SettingItem[]) =>
-    items.filter(item => !item.permissions || item.permissions.length === 0 || hasAnyPermission(...item.permissions));
-
+    items.filter(
+      (item) =>
+        (!item.permissions || item.permissions.length === 0 || hasAnyPermission(...item.permissions)) &&
+        (!item.featureFlag || isFeatureEnabled(item.featureFlag))
+    );
   return {
     accessGroup: filterItems(accessGroup),
     operationsGroup: filterItems(operationsGroup),

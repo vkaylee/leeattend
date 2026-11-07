@@ -23,7 +23,7 @@ export function StorageHeader({ isSaving, onSave }: StorageHeaderProps) {
           <Database size={20} />
         </div>
         <div>
-          <Typography className="text-xl font-bold tracking-tight text-slate-800 dark:text-slate-100 normal-case" variant="h3">
+          <Typography className="text-xl font-bold tracking-tight text-slate-800 dark:text-slate-100 normal-case" variant="h1">
             {t("settings.storage.title", "Cấu hình lưu trữ")}
           </Typography>
           <Typography className="text-xs text-slate-500 dark:text-slate-400 font-medium normal-case tracking-normal" variant="small">
@@ -96,8 +96,8 @@ export function StorageCredentialForm({
       {form.isCustom ? (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 animate-in slide-in-from-top-4 duration-300">
           <div className="col-span-full border-b border-slate-50 dark:border-slate-800 pb-4">
-            <Typography className="text-lg font-bold text-slate-800 dark:text-slate-100 tracking-tight uppercase" variant="h2">
-              {t("settings.storage.s3_credentials", "S3 Credentials")}
+            <Typography className="text-base font-bold text-slate-800 dark:text-slate-100 tracking-tight" variant="h2">
+              {t("settings.storage.s3_credentials", "Thông tin chứng thực S3")}
             </Typography>
           </div>
 
@@ -182,8 +182,8 @@ export function StorageCredentialForm({
                 type="checkbox"
               />
               <div>
-                <Typography className="text-sm font-bold text-slate-700 dark:text-slate-200">{t("settings.storage.path_style", "Use Path-Style URLs")}</Typography>
-                <Typography className="text-[10px] text-slate-500 dark:text-slate-400" variant="p">{t("settings.storage.path_style_desc", "Enable this if you are using MinIO or a local S3 clone. Disable for AWS S3 (Virtual Hosted-Style).")}</Typography>
+                <Typography className="text-sm font-semibold text-slate-700 dark:text-slate-200">{t("settings.storage.path_style", "Sử dụng Path-Style URLs")}</Typography>
+                <Typography className="text-xs text-slate-500 dark:text-slate-400" variant="p">{t("settings.storage.path_style_desc", "Bật tùy chọn này nếu dùng MinIO hoặc máy chủ S3 nội bộ. Tắt nếu dùng AWS S3.")}</Typography>
               </div>
             </label>
           </div>

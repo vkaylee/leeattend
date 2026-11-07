@@ -41,6 +41,7 @@ const getSelectColumn = ({
     <div className="flex items-center justify-center w-full" onClick={(e) => { e.stopPropagation(); }} onKeyDown={(e) => { e.stopPropagation(); }} role="presentation">
       <div
         aria-checked={isPageSelected}
+        aria-label="Chọn tất cả nhân viên trên trang"
         className={cn(
           "w-6 h-6 rounded-xl border-2 flex items-center justify-center transition-all cursor-pointer",
           isPageSelected ? "bg-primary-600 border-primary-600 text-white shadow-lg shadow-primary-100" : "border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 group-hover:border-primary-300"
@@ -66,6 +67,7 @@ const getSelectColumn = ({
       <div className="flex items-center justify-center w-full" onClick={(e) => { e.stopPropagation(); }} onKeyDown={(e) => { e.stopPropagation(); }} role="presentation">
         <div
           aria-checked={isSelected}
+          aria-label={`Chọn nhân viên ${emp.full_name}`}
           className={cn(
             "w-6 h-6 rounded-xl border-2 flex items-center justify-center transition-all cursor-pointer",
             isSelected ? "bg-primary-600 border-primary-600 text-white shadow-lg shadow-primary-100" : "border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 group-hover:border-primary-300"

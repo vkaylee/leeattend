@@ -675,6 +675,19 @@
       "error_currency_code_invalid": "Mã tiền tệ phải gồm đúng 3 ký tự (Ví dụ: VND, USD)"
     },
     "lifecycle": {
+      "title": "Mẫu quy trình nhân sự",
+      "subtitle": "Cấu hình danh mục kiểm tra tiếp nhận, thôi việc và luân chuyển nhân sự cho nhân viên",
+      "create_template": "Tạo mẫu quy trình",
+      "tabs": {
+        "onboarding": "Tiếp nhận nhân sự",
+        "offboarding": "Thôi việc bàn giao",
+        "transfer": "Điều chuyển công tác",
+        "probation_end": "Đánh giá thử việc"
+      },
+      "empty": {
+        "title": "Chưa có mẫu quy trình",
+        "description": "Chưa có mẫu danh mục nào được cấu hình cho quy trình này."
+      },
       "template": {
         "category_hr_admin": "HR Admin",
         "category_it_setup": "IT Setup",
@@ -692,26 +705,26 @@
     "collapse_sidebar": "Thu gọn thanh bên",
     "storage": {
       "missing_fields": "Vui lòng điền đầy đủ thông tin S3 trước khi lưu.",
-      "test_missing_fields": "Please fill all fields before testing.",
-      "test_success": "Connection successful!",
-      "test_error": "Connection failed. Please check your credentials.",
-      "save_success": "Storage configuration saved.",
-      "save_error": "Failed to save configuration.",
-      "revert_success": "Reverted to Central Storage.",
-      "revert_error": "Failed to revert configuration.",
-      "title": "Storage Configuration",
-      "description": "Configure S3-compatible backend. Use Central Storage or your own bucket.",
-      "use_custom": "Use Custom Storage Bucket",
-      "use_custom_desc": "Store files in your own AWS S3 or MinIO instance instead of the global server.",
-      "s3_credentials": "S3 Credentials",
-      "endpoint": "Endpoint URL",
-      "bucket": "Bucket Name",
-      "region": "Region",
-      "access_key": "Access Key",
-      "secret_key": "Secret Key",
-      "path_style": "Use Path-Style URLs",
-      "path_style_desc": "Enable this if you are using MinIO or a local S3 clone. Disable for AWS S3 (Virtual Hosted-Style).",
-      "test_btn": "Test Connection"
+      "test_missing_fields": "Vui lòng điền đầy đủ tất cả các trường trước khi thử nghiệm kết nối.",
+      "test_success": "Kết nối thành công!",
+      "test_error": "Kết nối thất bại. Vui lòng kiểm tra lại thông tin chứng thực S3.",
+      "save_success": "Đã lưu cấu hình lưu trữ thành công.",
+      "save_error": "Lưu cấu hình thất bại.",
+      "revert_success": "Đã khôi phục về hệ thống lưu trữ mặc định.",
+      "revert_error": "Khôi phục cấu hình thất bại.",
+      "title": "Cấu hình lưu trữ",
+      "description": "Cấu hình hạ tầng lưu trữ S3/MinIO. Sử dụng hệ thống trung tâm hoặc bucket riêng của doanh nghiệp.",
+      "use_custom": "Sử dụng Storage Bucket riêng",
+      "use_custom_desc": "Lưu trữ tệp tài liệu và hồ sơ trên cụm AWS S3 hoặc MinIO riêng của doanh nghiệp.",
+      "s3_credentials": "Thông tin chứng thực S3",
+      "endpoint": "Địa chỉ Endpoint URL",
+      "bucket": "Tên Bucket (Bucket Name)",
+      "region": "Vùng lưu trữ (Region)",
+      "access_key": "Khóa truy cập (Access Key)",
+      "secret_key": "Khóa bí mật (Secret Key)",
+      "path_style": "Sử dụng Path-Style URLs",
+      "path_style_desc": "Bật tùy chọn này nếu dùng MinIO hoặc máy chủ S3 nội bộ. Tắt nếu dùng AWS S3.",
+      "test_btn": "Kiểm tra kết nối"
     },
     "condition_types": {
       "subtitle": "Cấu hình các loại điều kiện làm việc cho nhân viên",

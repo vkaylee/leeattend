@@ -1,11 +1,11 @@
 import { ClipboardList, Plus } from "lucide-react";
 import React from "react";
+import { useTranslation } from "react-i18next";
 
 import Button from "@/components/ui/button";
 import EmptyState from "@/components/ui/empty-state";
 import PageHeader from "@/components/ui/page-header";
 import { cn } from "@/lib/utils";
-
 import { ChecklistItemsPanel } from "./components/checklist-items-panel";
 import { TemplateDrawer } from "./components/template-drawer";
 import { TemplateItemDrawer } from "./components/template-item-drawer";
@@ -16,7 +16,15 @@ type ChecklistType = "onboarding" | "offboarding" | "transfer" | "probation_end"
 
 const TABS: ChecklistType[] = ["onboarding", "offboarding", "transfer", "probation_end"];
 
+const TAB_LABELS: Record<ChecklistType, string> = {
+  onboarding: "settings.lifecycle.tabs.onboarding",
+  offboarding: "settings.lifecycle.tabs.offboarding",
+  transfer: "settings.lifecycle.tabs.transfer",
+  probation_end: "settings.lifecycle.tabs.probation_end",
+};
+
 export default function LifecycleTemplatesPage() {
+  const { t } = useTranslation();
   const ctx = useLifecycleTemplatesPage();
 
   return (
@@ -29,12 +37,12 @@ export default function LifecycleTemplatesPage() {
             onClick={ctx.handleCreateTemplate}
             variant="primary"
           >
-            Create Template
+            {t("settings.lifecycle.create_template", { defaultValue: "Tạo mẫu quy trình" })}
           </Button>
         }
         icon={<ClipboardList size={24} />}
-        subtitle="Configure onboarding, offboarding, and transition checklist templates for employees."
-        title="Lifecycle Checklist Templates"
+        subtitle={t("settings.lifecycle.subtitle", { defaultValue: "Cấu hình danh mục kiểm tra tiếp nhận, thôi việc và luân chuyển nhân sự cho nhân viên." })}
+        title={t("settings.lifecycle.title", { defaultValue: "Mẫu quy trình nhân sự" })}
       />
 
       {/* Tabs */}
@@ -53,7 +61,7 @@ export default function LifecycleTemplatesPage() {
             role="tab"
             type="button"
           >
-            {tab.replace("_", " ")}
+            {t(TAB_LABELS[tab], { defaultValue: tab.replace("_", " ") })}
           </Button>
         ))}
       </div>
@@ -65,9 +73,9 @@ export default function LifecycleTemplatesPage() {
         </div>
       ) : ctx.filteredTemplates.length === 0 ? (
         <EmptyState
-          description={`No templates configured for ${ctx.activeTab.replace("_", " ")}.`}
+          description={t("settings.lifecycle.empty.description", { defaultValue: "Chưa có mẫu danh mục nào được cấu hình cho quy trình này." })}
           icon={<ClipboardList size={40} />}
-          title="No Templates Configured"
+          title={t("settings.lifecycle.empty.title", { defaultValue: "Chưa có mẫu quy trình" })}
         />
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">

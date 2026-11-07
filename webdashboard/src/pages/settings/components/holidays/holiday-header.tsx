@@ -18,7 +18,7 @@ export function HolidayHeader({ onAdd }: HolidayHeaderProps) {
           <Palmtree size={20} />
         </div>
         <div>
-          <Typography className="text-xl font-bold text-slate-900 dark:text-white tracking-tight" variant="h3">
+          <Typography className="text-xl font-bold text-slate-900 dark:text-white tracking-tight" variant="h1">
             {t("holidays.title")}
           </Typography>
           <Typography className="text-xs text-slate-500 dark:text-slate-400 font-medium" variant="p">

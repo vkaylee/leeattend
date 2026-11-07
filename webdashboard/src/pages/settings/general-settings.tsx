@@ -112,7 +112,7 @@ function GeneralSettingsContent({ workspace }: { workspace: Workspace }) {
             <Settings2 size={20} />
           </div>
           <div>
-            <Typography className="text-xl font-bold tracking-tight text-slate-800 dark:text-slate-100" data-testid="general-settings-title" variant="h3">
+            <Typography className="text-xl font-bold tracking-tight text-slate-800 dark:text-slate-100" data-testid="general-settings-title" variant="h1">
               {t("common.settings.categories.general")}
             </Typography>
             <Typography className="text-xs text-slate-500 dark:text-slate-400 font-medium" variant="small">

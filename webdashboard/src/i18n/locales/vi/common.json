@@ -2357,16 +2357,16 @@
     "categories_menu": "Danh mục"
   },
   "rolesPage": {
-    "title": "Roles",
-    "editRole": "Edit Role",
-    "matrix": "Matrix",
-    "deleteRole": "Delete Role",
-    "roleId": "Role ID:",
-    "noDescription": "No description provided.",
-    "manageAccess": "Manage Access",
-    "deleteTitle": "Delete Role",
-    "confirmDelete": "Are you sure you want to delete this role?",
-    "subtitle": "Define custom roles and manage access levels across the workspace",
-    "createRole": "Create Role"
+    "title": "Quản lý vai trò & phân quyền",
+    "editRole": "Chỉnh sửa vai trò",
+    "matrix": "Ma trận quyền",
+    "deleteRole": "Xóa vai trò",
+    "roleId": "Mã vai trò:",
+    "noDescription": "Chưa có mô tả cho vai trò này.",
+    "manageAccess": "Phân quyền truy cập",
+    "deleteTitle": "Xác nhận xóa vai trò",
+    "confirmDelete": "Bạn có chắc chắn muốn xóa vai trò này? Thao tác này không thể hoàn tác.",
+    "subtitle": "Định nghĩa vai trò người dùng và quản lý cấp độ truy cập trong workspace",
+    "createRole": "Tạo vai trò mới"
   }
 }

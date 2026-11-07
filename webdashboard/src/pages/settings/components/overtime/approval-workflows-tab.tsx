@@ -1,13 +1,13 @@
 import { useNavigate } from "@tanstack/react-router";
-import { Loader2, Plus, Edit2, Trash2, ArrowRight } from "lucide-react";
+import { Loader2, Plus, Edit2, Trash2, ArrowRight, Workflow } from "lucide-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
 
 import type { ApprovalWorkflow, ApprovalWorkflowStep } from "@/lib/api/types";
 
 import Button from "@/components/ui/button";
+import EmptyState from "@/components/ui/empty-state";
 import { Typography } from "@/components/ui/typography";
-import { useApprovalWorkflows, useDeleteApprovalWorkflow } from "@/hooks/use-approval-workflows";
 import { useConfirm } from "@/hooks/use-confirm";
 
 interface WorkflowCardProps {
@@ -68,6 +68,7 @@ function WorkflowCard({ workflow, isDeleting, onEdit, onDelete }: WorkflowCardPr
       
       <div className="flex gap-2 shrink-0">
         <Button
+          aria-label={t("common.edit", "Chỉnh sửa")}
           className="text-slate-400 hover:text-blue-600"
           onClick={() => { onEdit(workflow); }}
           size="icon"
@@ -76,6 +77,7 @@ function WorkflowCard({ workflow, isDeleting, onEdit, onDelete }: WorkflowCardPr
           <Edit2 className="w-4 h-4" />
         </Button>
         <Button
+          aria-label={t("common.delete", "Xóa")}
           className="text-slate-400 hover:text-rose-600"
           disabled={isDeleting}
           onClick={() => { onDelete(workflow.id); }}
@@ -135,11 +137,11 @@ export function ApprovalWorkflowsTab({ entityType = "ot_request" }: { entityType
     <div className="space-y-6">
       <div className="flex justify-between items-center border-b border-slate-50 dark:border-slate-800 pb-6">
         <div>
-          <Typography className="text-xl font-bold text-slate-800 dark:text-slate-100 tracking-tight uppercase" variant="h3">
-            {t("settings.overtime.tabs.workflows", { defaultValue: "Approval Workflows" })}
+          <Typography className="text-xl font-bold text-slate-800 dark:text-slate-100 tracking-tight" variant="h3">
+            {t("settings.overtime.tabs.workflows", { defaultValue: "Quy trình phê duyệt" })}
           </Typography>
-          <Typography className="text-xs font-bold text-slate-500 dark:text-slate-400 mt-1 uppercase tracking-tight" variant="p">
-            {t("settings.overtime.workflows_desc", { defaultValue: "Define multi-step approval processes for requests." })}
+          <Typography className="text-xs font-medium text-slate-500 dark:text-slate-400 mt-1" variant="p">
+            {t("settings.overtime.workflows_desc", { defaultValue: "Cấu hình luồng duyệt nhiều cấp cho đơn từ và yêu cầu." })}
           </Typography>
         </div>
         <Button
@@ -155,11 +157,16 @@ export function ApprovalWorkflowsTab({ entityType = "ot_request" }: { entityType
           <Loader2 className="w-8 h-8 animate-spin text-slate-400" />
         </div>
       ) : !workflows || workflows.length === 0 ? (
-        <div className="text-center py-16 border-2 border-dashed border-slate-100 dark:border-slate-800 rounded-3xl">
-          <Typography className="text-slate-500 font-medium">
-            {t("common.no_data")}
-          </Typography>
-        </div>
+        <EmptyState
+          action={
+            <Button icon={<Plus className="w-4 h-4" />} onClick={handleCreate} variant="outline">
+              {t("common.add_new", "Thêm quy trình")}
+            </Button>
+          }
+          description={t("settings.overtime.no_workflows_desc", { defaultValue: "Chưa có quy trình phê duyệt nào được cấu hình cho danh mục này." })}
+          icon={<Workflow className="w-8 h-8" />}
+          title={t("settings.overtime.no_workflows", { defaultValue: "Chưa có quy trình phê duyệt" })}
+        />
       ) : (
         <div className="grid grid-cols-1 gap-4">
           {workflows.map((wf) => (

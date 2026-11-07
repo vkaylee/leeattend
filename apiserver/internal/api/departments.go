@@ -6,11 +6,12 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5"
-	"github.com/shopspring/decimal"
-	"github.com/vkaylee/leeattend/apiserver/internal/apperror"
-	httpinfra "github.com/vkaylee/leeattend/apiserver/internal/infra/http"
+    "github.com/google/uuid"
+    "github.com/jackc/pgx/v5"
+    "github.com/shopspring/decimal"
+    "github.com/vkaylee/leeattend/apiserver/internal/apperror"
+    "github.com/vkaylee/leeattend/apiserver/internal/auth"
+    httpinfra "github.com/vkaylee/leeattend/apiserver/internal/infra/http"
 )
 
 var (
@@ -109,7 +110,7 @@ func (h DepartmentHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	userID, userOK := httpinfra.UserIDFromContext(r.Context())
-	if !userOK || h.Authorizer == nil || !h.Authorizer.HasPermission(r.Context(), userID, wsID, "departments:create") {
+    if !userOK || h.Authorizer == nil || !h.Authorizer.HasPermission(r.Context(), userID, wsID, string(auth.PermissionDepartmentsCreate)) {
 		apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
 		return
 	}
@@ -135,7 +136,7 @@ func (h DepartmentHandler) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	userID, userOK := httpinfra.UserIDFromContext(r.Context())
-	if !userOK || h.Authorizer == nil || !h.Authorizer.HasPermission(r.Context(), userID, wsID, "departments:update") {
+    if !userOK || h.Authorizer == nil || !h.Authorizer.HasPermission(r.Context(), userID, wsID, string(auth.PermissionDepartmentsUpdate)) {
 		apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
 		return
 	}
@@ -164,7 +165,7 @@ func (h DepartmentHandler) Delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	userID, userOK := httpinfra.UserIDFromContext(r.Context())
-	if !userOK || h.Authorizer == nil || !h.Authorizer.HasPermission(r.Context(), userID, wsID, "departments:delete") {
+    if !userOK || h.Authorizer == nil || !h.Authorizer.HasPermission(r.Context(), userID, wsID, string(auth.PermissionDepartmentsDelete)) {
 		apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
 		return
 	}

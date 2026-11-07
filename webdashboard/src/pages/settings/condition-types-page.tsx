@@ -124,21 +124,21 @@ export default function ConditionTypesPage() {
             <Tags size={22} />
           </div>
           <div>
-            <Typography className="text-xl font-black text-slate-800 dark:text-slate-100" variant="h2">
-              {t("settings.categories.condition_types", { defaultValue: "Condition Types" })}
+            <Typography className="text-xl font-bold tracking-tight text-slate-800 dark:text-slate-100" variant="h1">
+              {t("settings.categories.condition_types", { defaultValue: "Điều kiện làm việc" })}
             </Typography>
-            <Typography className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mt-0.5" variant="p">
-              {t("settings.condition_types.subtitle", { defaultValue: "Configure working condition types available for employees" })}
+            <Typography className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-0.5" variant="p">
+              {t("settings.condition_types.subtitle", { defaultValue: "Cấu hình các loại điều kiện làm việc áp dụng cho nhân viên" })}
             </Typography>
           </div>
         </div>
         {!isAdding && (
           <Button
-            className="flex items-center justify-center gap-2 bg-primary-600 text-white px-6 py-2.5 rounded-2xl font-bold text-[10px] uppercase tracking-widest hover:bg-primary-700 transition-all shadow-lg active:scale-95"
+            className="flex items-center justify-center gap-2 bg-primary-600 text-white px-4 py-2 rounded-xl font-semibold text-xs hover:bg-primary-700 transition-all shadow-xs active:scale-95"
             onClick={() => { setIsAdding(true); setEditingId(null); }}
             variant="ghost"
           >
-            <Plus size={14} /> {t("common.add_new").toUpperCase()}
+            <Plus size={14} /> {t("common.add_new", "Thêm mới")}
           </Button>
         )}
       </div>

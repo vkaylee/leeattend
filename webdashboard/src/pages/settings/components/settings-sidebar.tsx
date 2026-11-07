@@ -107,7 +107,7 @@ export const SettingsSidebar = memo(function SettingsSidebar({
           <div className="flex items-center gap-1.5">
             <Typography
               className="text-sm font-bold text-slate-800 dark:text-slate-100 truncate leading-snug"
-              variant="h2"
+              variant="p"
             >
               {t("common.settings.title", "Cài đặt")}
             </Typography>

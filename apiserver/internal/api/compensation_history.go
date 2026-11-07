@@ -5,11 +5,12 @@ import (
 	"errors"
 	"net/http"
 
-	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5"
-	"github.com/shopspring/decimal"
-	"github.com/vkaylee/leeattend/apiserver/internal/apperror"
-	httpinfra "github.com/vkaylee/leeattend/apiserver/internal/infra/http"
+    "github.com/google/uuid"
+    "github.com/jackc/pgx/v5"
+    "github.com/shopspring/decimal"
+    "github.com/vkaylee/leeattend/apiserver/internal/apperror"
+    "github.com/vkaylee/leeattend/apiserver/internal/auth"
+    httpinfra "github.com/vkaylee/leeattend/apiserver/internal/infra/http"
 )
 
 type SalaryComponentDefinition struct {
@@ -77,7 +78,7 @@ func (h CompensationHistoryHandler) Get(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 	userID, ok := httpinfra.UserIDFromContext(r.Context())
-	if !ok || h.Authorizer == nil || !h.Authorizer.HasPermission(r.Context(), userID, wsID, "employees:read") {
+    if !ok || h.Authorizer == nil || !h.Authorizer.HasPermission(r.Context(), userID, wsID, string(auth.PermissionEmployeesRead)) {
 		apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
 		return
 	}

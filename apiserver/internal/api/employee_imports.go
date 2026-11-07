@@ -12,15 +12,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/google/uuid"
-	"github.com/vkaylee/leeattend/apiserver/internal/apperror"
-	httpinfra "github.com/vkaylee/leeattend/apiserver/internal/infra/http"
+    "github.com/google/uuid"
+    "github.com/vkaylee/leeattend/apiserver/internal/apperror"
+    "github.com/vkaylee/leeattend/apiserver/internal/auth"
+    httpinfra "github.com/vkaylee/leeattend/apiserver/internal/infra/http"
 )
 
-const (
-	EmployeeImportUploadPermission = "employees:upload"
-	EmployeeImportUpdatePermission = "employees:update"
-)
 
 var terminationReasons = map[string]struct{}{
 	"voluntary_resignation": {}, "involuntary_termination": {}, "end_of_contract": {}, "retirement": {},
@@ -148,7 +145,7 @@ func (h EmployeeImportHandler) userID(r *http.Request) (uuid.UUID, bool) {
 func (h EmployeeImportHandler) Upload(w http.ResponseWriter, r *http.Request) {
 	workspaceID, ok := pathUUID(r, "ws_id")
 	userID, userOK := h.userID(r)
-	if !ok || !userOK || !h.allowed(r, workspaceID, EmployeeImportUploadPermission) {
+    if !ok || !userOK || !h.allowed(r, workspaceID, string(auth.PermissionEmployeesUpload)) {
 		h.forbidden(w, r)
 		return
 	}
@@ -190,7 +187,7 @@ func (h EmployeeImportHandler) Upload(w http.ResponseWriter, r *http.Request) {
 
 func (h EmployeeImportHandler) PreviewTermination(w http.ResponseWriter, r *http.Request) {
 	workspaceID, ok := pathUUID(r, "ws_id")
-	if !ok || !h.allowed(r, workspaceID, EmployeeImportUpdatePermission) {
+    if !ok || !h.allowed(r, workspaceID, string(auth.PermissionEmployeesUpdate)) {
 		h.forbidden(w, r)
 		return
 	}

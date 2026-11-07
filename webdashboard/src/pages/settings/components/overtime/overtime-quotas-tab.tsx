@@ -3,6 +3,7 @@ import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import Button from "@/components/ui/button";
+import EmptyState from "@/components/ui/empty-state";
 import ResponsiveTable from "@/components/ui/responsive-table";
 import { Typography } from "@/components/ui/typography";
 import { useConfirm } from "@/hooks/use-confirm";
@@ -73,11 +74,11 @@ export function OvertimeQuotasTab({ wsId }: { wsId: string }) {
     <div className="space-y-6">
       <div className="flex justify-between items-center border-b border-slate-50 dark:border-slate-800 pb-6">
         <div>
-          <Typography className="text-xl font-bold text-slate-800 dark:text-slate-100 tracking-tight uppercase" variant="h3">
-            {t("settings.overtime.tabs.quotas", { defaultValue: "Quotas & EAV Configs" })}
+          <Typography className="text-xl font-bold text-slate-800 dark:text-slate-100 tracking-tight" variant="h3">
+            {t("settings.overtime.tabs.quotas", { defaultValue: "Hạn mức & Cấu hình tăng ca" })}
           </Typography>
-          <Typography className="text-xs font-bold text-slate-500 dark:text-slate-400 mt-1 uppercase tracking-tight" variant="p">
-            {t("settings.overtime.quotas_desc", { defaultValue: "Manage EAV properties for Overtime like monthly limits or warning enforcement." })}
+          <Typography className="text-xs text-slate-500 font-medium mt-1">
+            {t("settings.overtime.quotas_desc", { defaultValue: "Cấu hình hạn mức giờ làm thêm cho các cấp độ phòng ban và cá nhân" })}
           </Typography>
         </div>
         <Button
@@ -94,11 +95,16 @@ export function OvertimeQuotasTab({ wsId }: { wsId: string }) {
           <Loader2 className="w-8 h-8 animate-spin text-slate-400" />
         </div>
       ) : otConfigs.length === 0 ? (
-        <div className="text-center py-16 border-2 border-dashed border-slate-100 dark:border-slate-800 rounded-3xl">
-          <Typography className="text-slate-500 font-medium">
-            {t("common.no_data")}
-          </Typography>
-        </div>
+        <EmptyState
+          action={
+            <Button icon={<Plus size={16} />} onClick={handleCreate} variant="outline">
+              {t("common.add_new", "Thêm cấu hình")}
+            </Button>
+          }
+          description={t("settings.overtime.no_configs_desc", { defaultValue: "Chưa có hạn mức tăng ca nào được thiết lập cho tổ chức." })}
+          icon={<Key className="w-8 h-8" />}
+          title={t("settings.overtime.no_configs", { defaultValue: "Chưa có cấu hình hạn mức" })}
+        />
       ) : (
         <ResponsiveTable<WorkspaceConfigEntry>
           data={otConfigs}
@@ -147,6 +153,7 @@ export function OvertimeQuotasTab({ wsId }: { wsId: string }) {
               {/* Actions */}
               <div className="mt-4 flex items-center justify-end gap-2 border-t border-slate-100 pt-4 dark:border-slate-800">
                 <Button
+                  aria-label={t("common.edit", "Chỉnh sửa")}
                   onClick={() => { handleEdit(cfg); }}
                   size="icon"
                   variant="outline"
@@ -154,6 +161,7 @@ export function OvertimeQuotasTab({ wsId }: { wsId: string }) {
                   <Edit2 className="w-4 h-4" />
                 </Button>
                 <Button
+                  aria-label={t("common.delete", "Xóa")}
                   disabled={isDeleting}
                   onClick={() => handleDelete(cfg.id)}
                   size="icon"
@@ -195,6 +203,7 @@ export function OvertimeQuotasTab({ wsId }: { wsId: string }) {
                       <td className="p-4 text-right">
                         <div className="flex justify-end gap-2">
                           <Button
+                            aria-label={t("common.edit", "Chỉnh sửa")}
                             onClick={() => { handleEdit(cfg); }}
                             size="icon"
                             variant="outline"
@@ -202,6 +211,7 @@ export function OvertimeQuotasTab({ wsId }: { wsId: string }) {
                             <Edit2 className="w-4 h-4" />
                           </Button>
                           <Button
+                            aria-label={t("common.delete", "Xóa")}
                             disabled={isDeleting}
                             onClick={() => handleDelete(cfg.id)}
                             size="icon"

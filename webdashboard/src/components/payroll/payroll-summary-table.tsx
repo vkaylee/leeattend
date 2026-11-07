@@ -83,6 +83,7 @@ function PayrollMobileCard({
       <div className="flex items-start gap-3">
         <div
           aria-checked={isSelected}
+          aria-label={`Chọn nhân viên ${employee.full_name}`}
           className={cn(
             "mt-1 w-6 h-6 shrink-0 rounded-xl border-2 flex items-center justify-center transition-all cursor-pointer",
             isSelected

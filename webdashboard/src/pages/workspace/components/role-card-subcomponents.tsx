@@ -78,7 +78,9 @@ export const RoleCardActions = ({
   return (
     <PermissionGate permission="members:roles:manage">
       <div className="relative">
-        <Button className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl transition-colors"
+        <Button
+          aria-label={t("common.actions", "Thao tác")}
+          className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl transition-colors"
           onClick={() => { setActiveMenu(activeMenu === role.id ? null : role.id); }}
           type="button"
           variant="ghost"

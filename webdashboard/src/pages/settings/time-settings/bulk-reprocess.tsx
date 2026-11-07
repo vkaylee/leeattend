@@ -29,8 +29,8 @@ export function BulkReprocessSection({
       <div className="flex items-center justify-between border-b border-slate-50 dark:border-slate-800 pb-6">
         <div className="flex items-center gap-3">
           <RefreshCw className="w-6 h-6 text-orange-500" />
-          <Typography className="text-xl font-bold text-slate-800 dark:text-slate-100 tracking-tight uppercase" variant="h2">
-            {t("reports.reprocess.bulk_tooltip") || "Reprocess Attendance"}
+          <Typography className="text-xl font-bold text-slate-800 dark:text-slate-100 tracking-tight" variant="h2">
+            {t("reports.reprocess.bulk_tooltip", "Tính toán lại công")}
           </Typography>
         </div>
       </div>
@@ -70,7 +70,7 @@ export function BulkReprocessSection({
             }}
             variant="outline"
           >
-            {(t("reports.reprocess.bulk_tooltip") || "REPROCESS DATA").toUpperCase()}
+            {t("reports.reprocess.bulk_tooltip", "Tính toán lại dữ liệu")}
           </Button>
         </div>
       </div>

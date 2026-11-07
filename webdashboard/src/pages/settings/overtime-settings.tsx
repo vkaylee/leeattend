@@ -21,7 +21,7 @@ export default function OvertimeSettings() {
             <Clock size={20} />
           </div>
           <div>
-            <Typography className="text-xl font-bold tracking-tight text-slate-800 dark:text-slate-100 normal-case" variant="h3">
+            <Typography className="text-xl font-bold tracking-tight text-slate-800 dark:text-slate-100 normal-case" variant="h1">
               {t("settings.categories.overtime", { defaultValue: "Cài đặt tăng ca" })}
             </Typography>
             <Typography className="text-xs text-slate-500 dark:text-slate-400 font-medium normal-case tracking-normal" variant="small">
