@@ -11,6 +11,7 @@ import { useTranslation } from "react-i18next";
 
 import Button from "@/components/ui/button";
 import { LanguageSwitcher } from "@/components/ui/language-switcher";
+import { SearchTriggerButton } from "@/components/ui/search-input";
 import { ThemeSwitch } from "@/components/ui/theme-switch";
 import { useNotifications } from "@/hooks/use-notifications";
 import { useProfile } from "@/hooks/use-profile";
@@ -86,24 +87,13 @@ export function Topbar({
 
       {/* ── Center: Search Bar Trigger (Cmd+K) ── */}
       <div className="flex-1 max-w-md mx-3 hidden sm:flex">
-        <Button
+        <SearchTriggerButton
           aria-label="Open command palette (⌘K)"
-          className="flex h-9 w-full items-center justify-between rounded-lg border border-border bg-muted/50 px-3 text-xs text-muted-foreground hover:bg-muted hover:text-foreground transition-colors shadow-2xs outline-none focus-visible:ring-2 focus-visible:ring-primary"
           data-testid="topbar-search-trigger"
           onClick={onOpenSearch}
-          type="button"
-          variant="ghost"
-        >
-          <span className="flex items-center gap-2">
-            <Search className="h-3.5 w-3.5 text-muted-foreground" />
-            <span className="truncate">
-              {t("common.search_placeholder", "Tìm kiếm tính năng, nhân sự...")}
-            </span>
-          </span>
-          <kbd className="rounded border border-border bg-background px-1.5 py-0.5 text-[10px] font-mono text-muted-foreground">
-            ⌘K
-          </kbd>
-        </Button>
+          placeholder={t("common.search_placeholder", "Tìm kiếm tính năng, nhân sự...")}
+          shortcut="⌘K"
+        />
       </div>
 
       {/* ── Right: Quick Actions ── */}

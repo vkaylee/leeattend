@@ -3,7 +3,8 @@ import React, { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 
 import { openCommandPalette } from "@/components/layout/command-palette";
- import Button from "@/components/ui/button";
+import Button from "@/components/ui/button";
+import { GradientText } from "@/components/ui/typography";
 import { useProfile } from "@/hooks/use-profile";
 
 interface DesktopHeaderProps {
@@ -48,7 +49,7 @@ export function DesktopHeader({ onOpenCustomizer }: DesktopHeaderProps) {
           <GreetingIcon className={`w-5 h-5 ${greeting.color}`} />
           <h1 className="text-xl sm:text-2xl font-black tracking-tight text-slate-800 dark:text-slate-100">
             {greeting.text},{" "}
-            <span className="text-primary-600 dark:text-primary-400">{displayName}</span>
+            <GradientText>{displayName}</GradientText>
           </h1>
         </div>
         <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">

@@ -233,6 +233,12 @@
   outline-offset: 2px !important;
 }
 
+/* Modal and command palette search inputs don't need harsh separate inner outline */
+[cmdk-input]:focus-visible,
+[data-no-focus-outline]:focus-visible {
+  outline: none !important;
+}
+
 /* Roster Table Scrollbar - thicker for easier dragging */
 .roster-scrollbar::-webkit-scrollbar {
   height: 10px;

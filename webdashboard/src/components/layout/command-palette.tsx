@@ -112,10 +112,10 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
             filter={filterCommandItem}
           >
             {/* Search Input Bar */}
-            <div className="flex items-center border-b border-border px-3.5 py-2.5 gap-2.5">
-              <Search className="h-4 w-4 shrink-0 text-muted-foreground" />
+            <div className="flex items-center border-b border-border bg-slate-50/50 dark:bg-slate-900/40 px-4 py-3 gap-3">
+              <Search className="h-4 w-4 shrink-0 text-slate-400 dark:text-slate-500" />
               <Command.Input
-                className="flex-1 bg-transparent text-sm font-medium text-foreground placeholder:text-muted-foreground outline-none"
+                className="flex-1 bg-transparent text-sm font-medium text-foreground placeholder:text-muted-foreground border-none outline-none focus:outline-none focus:ring-0 focus-visible:outline-none shadow-none"
                 data-testid="command-palette-input"
                 onValueChange={setSearch}
                 placeholder={t(

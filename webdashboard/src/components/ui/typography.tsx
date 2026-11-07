@@ -7,6 +7,8 @@ import { cn } from "../../lib/utils";
 const typographyVariants = cva("text-slate-900 dark:text-slate-100", {
   variants: {
     variant: {
+      hero: "text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight leading-tight",
+      tagline: "text-base sm:text-lg font-medium text-slate-500 dark:text-slate-400 leading-relaxed",
       h1: "text-2xl font-bold tracking-tight",
       h2: "text-3xl font-semibold tracking-tight transition-colors first:mt-0",
       h3: "text-2xl font-semibold tracking-tight",
@@ -20,6 +22,8 @@ const typographyVariants = cva("text-slate-900 dark:text-slate-100", {
     },
     color: {
       default: "",
+      gradient: "bg-gradient-to-r from-violet-600 via-indigo-500 to-sky-400 bg-clip-text text-transparent font-extrabold",
+      gradientEmerald: "bg-gradient-to-r from-emerald-600 via-teal-500 to-cyan-400 bg-clip-text text-transparent font-extrabold",
       primary: "text-primary-700 dark:text-primary-400",
       secondary: "text-secondary-700 dark:text-secondary-400",
       muted: "text-slate-500 dark:text-slate-400",
@@ -49,6 +53,8 @@ export interface TypographyProps
 }
 
 const variantElementMap: Record<NonNullable<VariantProps<typeof typographyVariants>["variant"]>, React.ElementType> = {
+  hero: "h1",
+  tagline: "p",
   h1: "h1",
   h2: "h2",
   h3: "h3",
@@ -60,7 +66,6 @@ const variantElementMap: Record<NonNullable<VariantProps<typeof typographyVarian
   overline: "span",
   label: "label",
 };
-
 export const Typography = React.forwardRef<HTMLElement, TypographyProps>(
   ({ className, variant, color, align, noWrap, as, ...props }, ref) => {
     const Comp = as ?? (variant ? variantElementMap[variant] : "p");
@@ -75,3 +80,42 @@ export const Typography = React.forwardRef<HTMLElement, TypographyProps>(
   }
 );
 Typography.displayName = "Typography";
+
+export interface GradientTextProps extends React.HTMLAttributes<HTMLSpanElement> {
+  from?: string;
+  via?: string;
+  to?: string;
+}
+
+/**
+ * Clean VitePress-inspired gradient text clip component
+ * Replicates the hero name clip styling from nginxproxymanager.com
+ */
+export const GradientText = React.forwardRef<HTMLSpanElement, GradientTextProps>(
+  (
+    {
+      className,
+      from = "from-violet-600",
+      via = "via-indigo-500",
+      to = "to-sky-400",
+      children,
+      ...props
+    },
+    ref
+  ) => (
+    <span
+      className={cn(
+        "bg-gradient-to-r bg-clip-text text-transparent font-extrabold",
+        from,
+        via,
+        to,
+        className
+      )}
+      ref={ref}
+      {...props}
+    >
+      {children}
+    </span>
+  )
+);
+GradientText.displayName = "GradientText";

@@ -84,7 +84,9 @@ export const ThemeSwitch = memo(function ThemeSwitch({
   'aria-label': ariaLabel,
   enableViewTransition = true,
 }: ThemeSwitchProps) {
-  const { isDark, setMode } = useDarkModeContext();
+  const darkModeContext = useDarkModeContext();
+  const isDark = darkModeContext.isDark ?? (darkModeContext.mode === 'dark');
+  const setMode = darkModeContext.setMode;
 
   const handleToggle = useCallback(
     (event: React.MouseEvent<HTMLButtonElement>) => {
