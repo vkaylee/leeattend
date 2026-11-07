@@ -28,6 +28,8 @@ import {
   Zap,
   Mail,
   Inbox,
+  FileText,
+  ShieldCheck,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
@@ -70,7 +72,7 @@ export interface NavMenuStructure {
  */
 export function useNavMenuItems(): NavMenuStructure {
   const { t } = useTranslation([
-    "common", "employees", "attendance", "leave", "shift_swaps",
+    "common", "employees", "attendance", "leave", "shift_swaps", "monitor", "audit_logs",
   ]);
 
   const dashboard: MenuLinkType = {
@@ -136,6 +138,7 @@ export function useNavMenuItems(): NavMenuStructure {
       testId: "sidebar-section-payroll",
       items: [
         { to: ROUTES.PAYROLL, icon: DollarSign, label: t("payroll.title"), testId: "sidebar-link-payroll", permissions: ["payroll:read"] },
+        { to: ROUTES.DOCUMENTS, icon: FileText, label: t("common.my_documents", { defaultValue: "Documents" }), testId: "sidebar-link-documents", permissions: ["payroll:read"] },
       ],
     },
     {
@@ -144,6 +147,8 @@ export function useNavMenuItems(): NavMenuStructure {
       label: t("common.sections.system"),
       testId: "sidebar-section-system",
       items: [
+        { to: ROUTES.INFRA_MONITOR, icon: Activity, label: t("monitor.title", { defaultValue: "Worker Monitor" }), testId: "sidebar-link-infra-monitor", permissions: ["infra:monitor"] },
+        { to: ROUTES.AUDIT_LOGS, icon: ShieldCheck, label: t("audit_logs.title", { defaultValue: "Audit Logs" }), testId: "sidebar-link-audit-logs", permissions: ["audit_logs:read"] },
         { to: ROUTES.SYSTEM_SMTP, icon: Mail, label: t("smtp.title", "SMTP Settings"), testId: "sidebar-link-system-smtp", permissions: ["security:settings:manage"] },
       ],
     },
@@ -197,7 +202,7 @@ const TIME_PATHS: string[] = [
   ROUTES.REPORTS, ROUTES.LEAVE_BALANCES, ROUTES.SHIFT_SWAPS, ROUTES.APPROVALS, ROUTES.APPROVALS_OT,
 ];
 const SHIFTS_PATHS: string[] = [ROUTES.SHIFTS, ROUTES.SHIFTS_RULES];
-const PAYROLL_PATHS: string[] = [ROUTES.PAYROLL];
+const PAYROLL_PATHS: string[] = [ROUTES.PAYROLL, ROUTES.DOCUMENTS];
 
 /**
  * Determines which nav group is active based on the current route path.
@@ -211,7 +216,7 @@ export function getActiveNavGroup(pathname: string): NavGroup | null {
   if (SHIFTS_PATHS.some((p) => pathname === p || pathname.startsWith(p + "/"))) return "shifts";
   if (PAYROLL_PATHS.some((p) => pathname === p || pathname.startsWith(p + "/"))) return "payroll";
   if (pathname.startsWith(ROUTES.SETTINGS.ROOT)) return "settings";
-  if (pathname.startsWith("/system/") || pathname.startsWith("/infra/")) return "system";
+  if (pathname === ROUTES.AUDIT_LOGS || pathname.startsWith("/system/") || pathname.startsWith("/infra/")) return "system";
   if (pathname.startsWith("/ess/")) return "ess";
   return null;
 }

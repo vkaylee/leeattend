@@ -80,6 +80,7 @@ describe("ROUTES constants", () => {
     "/attendance-adjustments",
     "/approvals",
     "/approvals/ot",
+    "/documents",
     "/reports",
     "/shifts",
     "/shifts/rules",

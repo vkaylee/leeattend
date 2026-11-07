@@ -5,6 +5,7 @@ import React from "react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 import { useFilteredMenuItems, useNavMenuItems, getActiveNavGroup } from "@/hooks/use-nav-menu-items";
+import { APP_REGISTRY } from "@/lib/app-registry";
 
 // ── Mock dependencies ─────────────────────────────────────────────
 
@@ -79,6 +80,31 @@ describe("useNavMenuItems", () => {
         expect(item.testId).toMatch(/^sidebar-link-/);
       }
     }
+  });
+
+  it("includes all registered apps from APP_REGISTRY in sidebar menu (drift-detection)", () => {
+    const { result } = renderHook(() => useNavMenuItems(), { wrapper });
+    const sidebarRoutes = new Set<string>();
+    sidebarRoutes.add(result.current.dashboard.to);
+    sidebarRoutes.add(result.current.settings.to);
+    for (const group of result.current.groups) {
+      for (const item of group.items) {
+        sidebarRoutes.add(item.to);
+      }
+    }
+
+    // Explicit intentional exclusions:
+    // - "/dashboard": Secondary analytics catalog route, opened via in-page customization
+    const EXCLUDED_APP_ROUTES = new Set<string>(["/dashboard"]);
+
+    const missingFromSidebar = APP_REGISTRY
+      .map((app) => app.to)
+      .filter((route) => !EXCLUDED_APP_ROUTES.has(route) && !sidebarRoutes.has(route));
+
+    expect(
+      missingFromSidebar,
+      `Found apps in APP_REGISTRY missing from sidebar navigation: ${missingFromSidebar.join(", ")}`
+    ).toEqual([]);
   });
 });
 
@@ -157,6 +183,36 @@ describe("useFilteredMenuItems", () => {
     expect(lrItem).toBeUndefined();
   });
 
+  it("shows worker monitor when user has infra:monitor permission", () => {
+    activePermissions.add("infra:monitor");
+
+    const { result } = renderHook(() => useFilteredMenuItems(), { wrapper });
+
+    const systemGroup = result.current.groups.find((g) => g.section === "system");
+    const monitorItem = systemGroup?.items.find((i) => i.to === "/infra/monitor");
+    expect(monitorItem?.testId).toBe("sidebar-link-infra-monitor");
+  });
+
+  it("shows audit-logs when user has audit_logs:read permission", () => {
+    activePermissions.add("audit_logs:read");
+
+    const { result } = renderHook(() => useFilteredMenuItems(), { wrapper });
+
+    const systemGroup = result.current.groups.find((g) => g.section === "system");
+    const auditItem = systemGroup?.items.find((i) => i.to === "/audit-logs");
+    expect(auditItem?.testId).toBe("sidebar-link-audit-logs");
+  });
+
+  it("shows documents hub when user has payroll:read permission", () => {
+    activePermissions.add("payroll:read");
+
+    const { result } = renderHook(() => useFilteredMenuItems(), { wrapper });
+
+    const payrollGroup = result.current.groups.find((g) => g.section === "payroll");
+    const docItem = payrollGroup?.items.find((i) => i.to === "/documents");
+    expect(docItem?.testId).toBe("sidebar-link-documents");
+  });
+
 });
 
 // ── Path detection ────────────────────────────────────────────────
@@ -202,6 +258,10 @@ describe("getActiveNavGroup", () => {
     expect(getActiveNavGroup("/payroll")).toBe("payroll");
   });
 
+  it('returns "payroll" for /documents', () => {
+    expect(getActiveNavGroup("/documents")).toBe("payroll");
+  });
+
   it('returns "settings" for /workspace/settings', () => {
     expect(getActiveNavGroup("/workspace/settings")).toBe("settings");
   });
@@ -214,6 +274,10 @@ describe("getActiveNavGroup", () => {
 
   it('returns "system" for /infra/monitor', () => {
     expect(getActiveNavGroup("/infra/monitor")).toBe("system");
+  });
+
+  it('returns "system" for /audit-logs', () => {
+    expect(getActiveNavGroup("/audit-logs")).toBe("system");
   });
 
   it('returns "ess" for /ess/profile', () => {

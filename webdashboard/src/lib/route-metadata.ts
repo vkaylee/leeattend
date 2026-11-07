@@ -128,6 +128,12 @@ export const ROUTE_METADATA_MAP: Record<string, RouteMetadata> = {
     titleKey: "payroll.title",
     defaultTitle: "Tính lương",
   },
+  [ROUTES.DOCUMENTS]: {
+    breadcrumbKey: "common.my_documents",
+    defaultBreadcrumb: "Tài liệu & Biểu mẫu",
+    titleKey: "common.my_documents",
+    defaultTitle: "Tài liệu & Biểu mẫu",
+  },
   [ROUTES.PROFILE]: {
     breadcrumbKey: "common.profile",
     defaultBreadcrumb: "Hồ sơ",

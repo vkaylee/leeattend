@@ -252,7 +252,7 @@ export const APP_REGISTRY: AppDefinition[] = [
     icon: FileText,
     labelKey: "common.my_documents",
     descriptionKey: "appLauncher.descriptions.documents",
-    to: "/documents",
+    to: ROUTES.DOCUMENTS,
     group: "payroll",
     permissions: ["payroll:read"],
     testId: "app-card-documents",
