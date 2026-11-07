@@ -183,6 +183,7 @@ services:
       bun run dev --host 0.0.0.0 2>&1 | tee -a /var/log/app/webdashboard.log'
     environment:
       VITE_API_URL: http://apiserver:3000/api
+      CHOKIDAR_USEPOLLING: "true"
     networks: [frontend_net]
     volumes:
       - ../webdashboard:/app

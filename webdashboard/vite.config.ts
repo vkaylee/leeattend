@@ -181,6 +181,17 @@ export default defineConfig(async ({ mode }: ConfigEnv) => {
       },
     },
     server: {
+      watch: {
+        // ponytail: polling uses 500ms interval with ignored heavy paths; upgrade to native inotify if running outside container bind mounts
+        usePolling: process.env.CHOKIDAR_USEPOLLING === "true" || process.env.VITE_USE_POLLING === "true",
+        interval: 500,
+        ignored: [
+          "**/node_modules/**",
+          "**/.git/**",
+          "**/dist/**",
+          "**/.tanstack/**",
+        ],
+      },
       host: process.env.VITE_DEV_SERVER_HOST ?? "127.0.0.1",
       port,
       strictPort: true,
