@@ -84,7 +84,6 @@ describe("DailyReportTable", () => {
     const defaultProps = {
         data: mockData,
         isLoading: false,
-        isDebugMode: false,
         expandedDebugRows: new Set<string>(),
         reprocessingRow: null,
         confirmingRow: null,
@@ -602,7 +601,6 @@ describe("DailyReportTable", () => {
             <DailyReportTable
                 {...defaultProps}
                 hideEmployeeName={false}
-                isDebugMode
                 isLoading
             />
         );
@@ -611,7 +609,7 @@ describe("DailyReportTable", () => {
         const tableHeaderRows = rows.filter(r => r.tagName === "TH" || r.closest("thead"));
         const dataRows = rows.filter(r => !tableHeaderRows.includes(r) && r.querySelector("td"));
         dataRows.slice(0, 5).forEach(row => {
-            expect(row.children.length).toBe(13);
+            expect(row.children.length).toBe(12);
         });
     });
 

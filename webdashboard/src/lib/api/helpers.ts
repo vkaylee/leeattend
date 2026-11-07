@@ -60,20 +60,6 @@ function getHeaders() {
   }
 
 
-  // Debug Headers (only in development)
-  if (import.meta.env.DEV) {
-    const isEnabled = localStorage.getItem("debug_enabled") === "true";
-    if (isEnabled) {
-      const impId = localStorage.getItem("debug_impersonate_id");
-      if (impId) {
-        headers["X-Debug-Impersonate-Id"] = impId;
-      }
-      const mockDate = localStorage.getItem("debug_mock_date");
-      if (mockDate) {
-        headers["X-Debug-Mock-Date"] = mockDate;
-      }
-    }
-  }
 
   // Set Accept-Language to sync with frontend's active locale
   const lng = localStorage.getItem("i18nextLng");

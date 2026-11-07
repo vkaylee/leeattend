@@ -112,10 +112,6 @@ vi.mock("@/lib/api", async (importOriginal) => {
     };
 });
 
-vi.mock("@/components/debug/debug-toolbar", () => ({
-    DebugToolbar: () => null,
-}));
-
 class MockIntersectionObserver {
     observe = vi.fn();
     unobserve = vi.fn();

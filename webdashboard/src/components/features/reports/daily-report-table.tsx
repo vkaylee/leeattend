@@ -1,4 +1,4 @@
-import { CalendarDays, RefreshCw, CheckCircle, Bug } from "lucide-react";
+import { CalendarDays, RefreshCw, CheckCircle } from "lucide-react";
 import { useCallback, useMemo } from "react";
 
 import Button from "@/components/ui/button";
@@ -22,7 +22,6 @@ export interface DailyReportTableProps {
   formatDate: (date: string) => string;
   formatTime: (time: string | null) => string;
   hideEmployeeName?: boolean;
-  isDebugMode: boolean;
   isLoading: boolean;
   onApproveOt?: (row: DailyAttendanceReport, action: "approved" | "rejected") => void;
   onConfirmClick: (row: DailyAttendanceReport, existing?: AttendanceAdjustmentRequest) => void;
@@ -35,7 +34,7 @@ export interface DailyReportTableProps {
 
 // ── Skeleton ───────────────────────────────────────────────────────
 
-function SkeletonRow({ hideEmployeeName, isDebugMode }: { hideEmployeeName: boolean; isDebugMode: boolean }) {
+function SkeletonRow({ hideEmployeeName }: { hideEmployeeName: boolean }) {
   return (
     <tr className="animate-pulse border-b border-slate-50 dark:border-slate-800/50">
       <td className="px-4 py-4"><div className="h-4 w-6 bg-slate-200 dark:bg-slate-800 rounded"></div></td>
@@ -56,7 +55,6 @@ function SkeletonRow({ hideEmployeeName, isDebugMode }: { hideEmployeeName: bool
       <td className="px-4 py-4"><div className="h-4 w-10 bg-slate-200 dark:bg-slate-800 rounded ml-auto"></div></td>
       <td className="px-4 py-4"><div className="h-4 w-10 bg-slate-200 dark:bg-slate-800 rounded ml-auto"></div></td>
       <td className="px-4 py-4"><div className="h-6 w-16 bg-slate-200 dark:bg-slate-800 rounded-full mx-auto"></div></td>
-      {isDebugMode ? <td className="px-4 py-4"><div className="h-4 w-8 bg-slate-200 dark:bg-slate-800 rounded mx-auto"></div></td> : null}
       <td className="px-4 py-4"><div className="h-6 w-6 bg-slate-200 dark:bg-slate-800 rounded ml-auto"></div></td>
     </tr>
   );
@@ -67,7 +65,7 @@ function SkeletonRow({ hideEmployeeName, isDebugMode }: { hideEmployeeName: bool
 /**
  * DailyReportMobileCard — mobile card for a daily attendance report row.
  * Complexity (21) is driven by numerous JSX conditionals: OT approval, multi-segment,
- * debug mode, approval/repro buttons. Decomposed into separate sub-components
+ * approval/repro buttons. Decomposed into separate sub-components
  * (SkeletonRow, TableHeader, ReportStatusBadge, ReportOtStatusBadge) already.
  * Further splitting of the card body would reduce readability more than complexity.
  */
@@ -80,7 +78,6 @@ function DailyReportMobileCard({
   formatDate,
   formatTime,
   hideEmployeeName,
-  isDebugMode,
   onApproveOt,
   onConfirmClick,
   onReprocessClick,
@@ -95,7 +92,6 @@ function DailyReportMobileCard({
   formatDate: (date: string) => string;
   formatTime: (time: string | null) => string;
   hideEmployeeName: boolean;
-  isDebugMode: boolean;
   onApproveOt?: (row: DailyAttendanceReport, action: "approved" | "rejected") => void;
   onConfirmClick: (row: DailyAttendanceReport, existing?: AttendanceAdjustmentRequest) => void;
   onReprocessClick: (row: DailyAttendanceReport) => void;
@@ -222,15 +218,6 @@ function DailyReportMobileCard({
         >
           <RefreshCw className={cn(isReprocessing && "animate-spin")} size={16} />
         </Button>
-        {isDebugMode ? (
-          <Button
-            className={cn("rounded-lg border p-2 transition-all", isExpanded ? "border-amber-200 bg-amber-100 text-amber-700 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-300" : "border-slate-200 bg-white text-amber-600 hover:bg-amber-50 dark:border-slate-700 dark:bg-slate-800 dark:hover:bg-amber-950/30")}
-            onClick={() => { onToggleExpandRow(segmentKey); }}
-            variant="ghost"
-          >
-            <Bug size={16} />
-          </Button>
-        ) : null}
       </div>
     </div>
   );
@@ -246,7 +233,6 @@ export default function DailyReportTable({
   formatDate,
   formatTime,
   hideEmployeeName = false,
-  isDebugMode,
   isLoading,
   onApproveOt,
   onConfirmClick,
@@ -283,14 +269,14 @@ export default function DailyReportTable({
     () => buildDailyReportColumns(
       {
         adjustmentMap, confirmingRow, expandedDebugRows, formatDate, formatTime,
-        hideEmployeeName, isDebugMode, onApproveOt, onConfirmClick, onReprocessClick,
+        hideEmployeeName, onApproveOt, onConfirmClick, onReprocessClick,
         onResolveUnscheduled, onToggleExpandRow, reprocessingRow, t,
       },
       isFirstInGroup,
     ),
     [
       adjustmentMap, confirmingRow, expandedDebugRows, formatDate, formatTime,
-      hideEmployeeName, isDebugMode, onApproveOt, onConfirmClick, onReprocessClick,
+      hideEmployeeName, onApproveOt, onConfirmClick, onReprocessClick,
       onResolveUnscheduled, onToggleExpandRow, reprocessingRow, t, isFirstInGroup,
     ],
   );
@@ -312,16 +298,15 @@ export default function DailyReportTable({
     return (
       <DailyReportExpandedPanel
         formatTime={formatTime}
-        isDebugMode={isDebugMode}
         row={row}
         t={t}
       />
     );
-  }, [expandedDebugRows, formatTime, isDebugMode, t]);
+  }, [expandedDebugRows, formatTime, t]);
 
   const renderSkeletonRow = useCallback(
-    () => <SkeletonRow hideEmployeeName={hideEmployeeName} isDebugMode={isDebugMode} />,
-    [hideEmployeeName, isDebugMode],
+    () => <SkeletonRow hideEmployeeName={hideEmployeeName} />,
+    [hideEmployeeName],
   );
 
   return (
@@ -345,7 +330,6 @@ export default function DailyReportTable({
             formatDate={formatDate}
             formatTime={formatTime}
             hideEmployeeName={hideEmployeeName}
-            isDebugMode={isDebugMode}
             onApproveOt={onApproveOt}
             onConfirmClick={onConfirmClick}
             onReprocessClick={onReprocessClick}

@@ -171,7 +171,7 @@ describe('Translation Usage', () => {
     const attributeRegex = /\b(placeholder|title|label)\s*=\s*['"]([^'"]+)['"]/g;
 
     files.forEach((file) => {
-      if (file.includes('lib/api') || file.includes('lib/utils') || file.includes('DebugToolbar')) return;
+      if (file.includes('lib/api') || file.includes('lib/utils')) return;
 
       const content = fs.readFileSync(file, 'utf-8');
       const lines = content.split('\n');

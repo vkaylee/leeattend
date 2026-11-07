@@ -263,7 +263,6 @@ export default tseslint.config(
       'src/**/*.test.tsx',
       'src/**/__tests__/**/*',
       // Legacy files violating max-lines limits (> 300 lines)
-      'src/components/debug/debug-toolbar.tsx',
       'src/components/features/attendance/attendance-import-dialog.tsx',
       'src/components/features/dashboard/turnover-analytics-chart.tsx',
       'src/components/features/reports/report-export-dialog.tsx',

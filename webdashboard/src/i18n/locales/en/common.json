@@ -171,18 +171,6 @@
       "wednesday_short": "Wed"
     },
     "days_short": "days",
-    "debug_tools": {
-      "click_to_clear": "Click to clear",
-      "full_reset_label": "FULL RESET (Careful!)",
-      "messages": {
-        "clear_error": "Error clearing data:",
-        "clear_success": "Cleared [{{label}}] data successfully.",
-        "confirm_clear": "Are you sure you want to clear ALL [{{label}}] data for this Workspace? This cannot be undone."
-      },
-      "subtitle": "Quick data clearing tools for testing support.",
-      "title": "Debug Tools (Dev Only)",
-      "warning": "Warning: Deleted data cannot be recovered!"
-    },
     "definite": "Definite",
     "delete": "Delete",
     "delete_confirm": "Confirm Delete",
@@ -1715,8 +1703,6 @@
       "approve": "Approve Request",
       "missing_out": "Missing Clock Out"
     },
-    "debug_mode_on": "Debug: ON",
-    "debug_mode_off": "Debug: OFF",
     "ot_status": {
       "pending_employee": "Pending Emp",
       "pending_manager": "Pending Approval",
@@ -1756,18 +1742,6 @@
     "saturday_short": "Sat",
     "sunday_short": "Sun",
     "label": "days"
-  },
-  "debug_tools": {
-    "title": "Debug Tools (Dev Only)",
-    "subtitle": "Quick data clearing tools for testing support.",
-    "warning": "Warning: Deleted data cannot be recovered!",
-    "full_reset_label": "FULL RESET (Careful!)",
-    "click_to_clear": "Click to clear",
-    "messages": {
-      "confirm_clear": "Are you sure you want to clear ALL [{{label}}] data for this Workspace? This cannot be undone.",
-      "clear_success": "Cleared [{{label}}] data successfully.",
-      "clear_error": "Error clearing data:"
-    }
   },
   "billing": {
     "comingSoon": "Coming Soon",

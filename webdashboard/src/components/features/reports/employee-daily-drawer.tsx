@@ -13,7 +13,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import Sheet from "@/components/ui/sheet";
-import { useDebug } from "@/context/debug-context";
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
 import { cn } from "@/lib/utils";
 
@@ -354,7 +353,6 @@ export default function EmployeeDailyDrawer(props: EmployeeDailyDrawerProps) {
     const { isOpen, onClose, employeeName, dateRange } = props;
     const { t } = useTranslation();
     const { formatDate, formatTime } = useDateTimeFormatter();
-    const { isEnabled: isDebugMode } = useDebug();
     const contentRef = useRef<HTMLDivElement>(null);
     const tabIdPrefix = useId();
     const dailyTabRef = useRef<HTMLButtonElement>(null);
@@ -415,7 +413,6 @@ export default function EmployeeDailyDrawer(props: EmployeeDailyDrawerProps) {
                                 formatDate={formatDate}
                                 formatTime={formatTime}
                                 hideEmployeeName
-                                isDebugMode={isDebugMode}
                                 isLoading={data.isLoading}
                                 onApproveOt={data.handleApproveOt}
                                 onConfirmClick={data.handleConfirmClick}

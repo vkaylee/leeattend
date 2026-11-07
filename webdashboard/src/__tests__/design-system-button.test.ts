@@ -14,7 +14,6 @@ const LEGACY_VIOLATIONS = new Set([
   "components/common/pagination-controls.tsx",
   "components/common/search-box.tsx",
   "components/common/temporal-config-table.tsx",
-  "components/debug/debug-toolbar.tsx",
   "components/employees/working-condition-config.tsx",
   "components/features/settings/permission-management-modal.tsx",
   "components/features/settings/role-form-modal.tsx",

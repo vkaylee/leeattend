@@ -55,10 +55,6 @@ vi.mock("../../lib/api", () => ({
   adminConfirmAttendance: vi.fn(),
 }));
 
-// Mock DebugContext
-vi.mock("@/context/debug-context", () => ({
-  useDebug: () => ({ isEnabled: false }),
-}));
 
 describe("ReportsPage", () => {
   let queryClient: QueryClient;

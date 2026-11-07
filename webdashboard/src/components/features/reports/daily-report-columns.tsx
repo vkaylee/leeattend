@@ -1,6 +1,6 @@
 import type { ColumnDef } from "@tanstack/react-table";
 
-import { Bug, ChevronRight } from "lucide-react";
+import { ChevronRight } from "lucide-react";
 import React from "react";
 
 import type { SmartTableColumnMeta } from "@/components/ui/smart-table";
@@ -44,7 +44,6 @@ export interface DailyReportColumnsOptions {
   formatDate: (date: string) => string;
   formatTime: (time: string | null) => string;
   hideEmployeeName: boolean;
-  isDebugMode: boolean;
   onApproveOt?: (row: DailyAttendanceReport, action: "approved" | "rejected") => void;
   onConfirmClick: (row: DailyAttendanceReport, existing?: AttendanceAdjustmentRequest) => void;
   onReprocessClick: (row: DailyAttendanceReport) => void;
@@ -96,7 +95,7 @@ export function buildDailyReportColumns(
   isFirstInGroup: (row: DailyAttendanceReport) => boolean,
 ): DailyReportColumn[] {
   const {
-    t, formatDate, formatTime, hideEmployeeName, isDebugMode, expandedDebugRows,
+    t, formatDate, formatTime, hideEmployeeName, expandedDebugRows,
     onToggleExpandRow, onApproveOt, onResolveUnscheduled, onConfirmClick,
     onReprocessClick, adjustmentMap, confirmingRow, reprocessingRow,
   } = opts;
@@ -254,33 +253,6 @@ export function buildDailyReportColumns(
     },
   );
 
-  if (isDebugMode) {
-    columns.push({
-      id: "debug",
-      header: "DEBUG",
-      size: 90,
-      meta: {
-        cellClassName: `${CELL_BASE} px-4 py-2.5 text-center`,
-        headerClassName: "px-4 py-2.5 text-[10px] font-bold text-amber-600 dark:text-amber-300 uppercase tracking-widest text-center",
-      },
-      cell: ({ row }) => {
-        const key = segmentKeyOf(row.original);
-        const isExpanded = expandedDebugRows.has(key);
-        return (
-          <Button
-            className={cn(
-              "p-1.5 rounded-lg transition-all shadow-sm border h-auto",
-              isExpanded ? "bg-amber-100 text-amber-700 border-amber-200" : "bg-white text-amber-600 border-slate-100 hover:bg-amber-50",
-            )}
-            onClick={() => { onToggleExpandRow(key); }}
-            variant="ghost"
-          >
-            <Bug size={16} />
-          </Button>
-        );
-      },
-    });
-  }
 
   columns.push({
     id: "actions",

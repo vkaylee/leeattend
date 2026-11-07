@@ -103,7 +103,6 @@ describe("DailyReportTable — segment cells and grouping", () => {
         formatDate: mockFormatDate,
         formatTime: mockFormatTime,
         hideEmployeeName: false,
-        isDebugMode: false,
         expandedDebugRows: new Set<string>(),
         reprocessingRow: null,
         confirmingRow: null,
@@ -365,7 +364,7 @@ describe("DailyReportTable — segment cells and grouping", () => {
     it("spans the expanded detail row across every visible column", () => {
         const expandedSet = new Set<string>(["EMP001-2024-03-20-seg-1"]);
         const { container } = render(
-            <DailyReportTable {...defaultProps} expandedDebugRows={expandedSet} isDebugMode />,
+            <DailyReportTable {...defaultProps} expandedDebugRows={expandedSet} />,
         );
         const expandedCell = screen.getByText("reports.timeline.title").closest("td");
         const headerCells = container.querySelectorAll(".hidden.lg\\:block thead th");

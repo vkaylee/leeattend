@@ -8,7 +8,6 @@ import { GlobalLoader } from "./components/common/global-loader";
 import { NewVersionBanner } from "./components/common/new-version-banner";
 import { toast } from "./components/ui/toast-imperative";
 import { DarkModeProvider } from "./context/dark-mode-context";
-import { DebugProvider } from "./context/debug-context";
 import { useVersionCheck } from "./hooks/use-version-check";
 import i18n from "./i18n/config";
 import { parseApiError } from "./lib/api/error-handler";
@@ -77,7 +76,6 @@ function AppContent() {
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <DebugProvider>
         <DarkModeProvider>
           <Sentry.ErrorBoundary fallback={(_error: unknown) => <ErrorBoundary>{null}</ErrorBoundary>}>
             <Suspense fallback={<GlobalLoader />}>
@@ -85,7 +83,6 @@ function App() {
             </Suspense>
           </Sentry.ErrorBoundary>
         </DarkModeProvider>
-      </DebugProvider>
     </QueryClientProvider>
   );
 }

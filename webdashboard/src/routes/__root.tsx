@@ -14,13 +14,6 @@ const TanStackRouterDevtools = import.meta.env.DEV
     )
   : () => null;
 
-const DebugToolbar = import.meta.env.DEV
-  ? lazy(() =>
-      import("@/components/debug/debug-toolbar").then((res) => ({
-        default: res.DebugToolbar,
-      }))
-    )
-  : () => null;
 
 export interface RouterContext {
   queryClient: QueryClient;
@@ -48,7 +41,6 @@ export const Route = createRootRouteWithContext<RouterContext>()({
     <ErrorBoundary>
       <Outlet />
       <Suspense fallback={null}>
-        <DebugToolbar />
         <TanStackRouterDevtools position="bottom-right" />
       </Suspense>
     </ErrorBoundary>

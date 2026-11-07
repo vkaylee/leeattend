@@ -171,18 +171,6 @@
       "wednesday_short": "T4"
     },
     "days_short": "ngày",
-    "debug_tools": {
-      "click_to_clear": "Nhấn để xóa",
-      "full_reset_label": "Đặt lại TOÀN BỘ (Cẩn thận!)",
-      "messages": {
-        "clear_error": "Lỗi khi xóa dữ liệu:",
-        "clear_success": "Đã xóa dữ liệu [{{label}}] thành công.",
-        "confirm_clear": "Bạn có chắc chắn muốn xóa TOÀN BỘ dữ liệu [{{label}}] cho Workspace này không? Thao tác này không thể hoàn tác."
-      },
-      "subtitle": "Các công cụ xóa dữ liệu nhanh để hỗ trợ kiểm thử.",
-      "title": "Công cụ Gỡ lỗi (Chỉ dành cho Dev)",
-      "warning": "Cảnh báo: Dữ liệu đã xóa không thể khôi phục!"
-    },
     "definite": "Có thời hạn",
     "delete": "Xóa",
     "delete_confirm": "Xác nhận xóa",
@@ -1715,8 +1703,6 @@
       "approve": "Duyệt yêu cầu",
       "missing_out": "Thiếu giờ ra"
     },
-    "debug_mode_on": "Gỡ lỗi: Bật",
-    "debug_mode_off": "Gỡ lỗi: Tắt",
     "ot_status": {
       "pending_employee": "Chờ NV",
       "pending_manager": "Chờ duyệt",
@@ -1756,18 +1742,6 @@
     "saturday_short": "T7",
     "sunday_short": "CN",
     "label": "ngày"
-  },
-  "debug_tools": {
-    "title": "Debug Tools (Chỉ dành cho Dev)",
-    "subtitle": "Các công cụ dọn dẹp nhanh dữ liệu để hỗ trợ testing.",
-    "warning": "Cảnh báo: Dữ liệu bị xóa sẽ không thể phục hồi!",
-    "full_reset_label": "FULL RESET (Cẩn thận!)",
-    "click_to_clear": "Click để dọn dẹp",
-    "messages": {
-      "confirm_clear": "Bạn có chắc chắn muốn xóa TOÀN BỘ dữ liệu [{{label}}] của Workspace này không? Thao tác này không thể hoàn tác.",
-      "clear_success": "Đã xóa dữ liệu [{{label}}] thành công.",
-      "clear_error": "Lỗi khi xóa dữ liệu:"
-    }
   },
   "billing": {
     "comingSoon": "Sắp ra mắt",

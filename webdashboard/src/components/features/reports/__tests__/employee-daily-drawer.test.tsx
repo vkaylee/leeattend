@@ -40,10 +40,6 @@ vi.mock("@/lib/api", async (importOriginal) => {
     };
 });
 
-// Mock DebugContext
-vi.mock("@/context/debug-context", () => ({
-    useDebug: () => ({ isEnabled: false }),
-}));
 
 describe("EmployeeDailyDrawer", () => {
     let queryClient: QueryClient;
