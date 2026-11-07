@@ -1,8 +1,8 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
-
 import EmployeeDailyDrawer from "@/components/features/reports/employee-daily-drawer";
 import ReportExportDialog from "@/components/features/reports/report-export-dialog";
+import { TimesheetMatrixGrid } from "@/components/features/attendance/timesheet-matrix-grid";
 
 import { ReportsHeader } from "./reports/components/reports-header";
 import { ReportsTable } from "./reports/components/reports-table";
@@ -12,8 +12,9 @@ import { useReportsPage } from "./reports/hooks/use-reports-page";
 export default function ReportsPage() {
   const { t } = useTranslation();
   const {
-    wsId,
+    allEmployees,
     dateRange,
+    wsId,
     filterMode,
     specificMonth,
     searchQuery,
@@ -44,8 +45,9 @@ export default function ReportsPage() {
     handleSort,
     handleEmployeeClick,
     handleDrawerClose,
+    viewMode,
+    setViewMode,
   } = useReportsPage();
-
   const clickedEmployeeSummaryRows = selectedEmployee?.id
     ? filteredData.filter(row => row.employee_id === selectedEmployee.id)
     : [];
@@ -69,37 +71,54 @@ export default function ReportsPage() {
       <ReportsHeader
         dateRange={dateRange}
         onExportClick={() => { setIsExportDialogOpen(true); }}
+        onViewModeChange={setViewMode}
+        viewMode={viewMode}
       />
 
-      <ReportsTable
-        dateRange={dateRange}
-        departments={departments}
-        employeeStatus={employeeStatus}
-        employers={employers}
-        fetchNextPage={fetchNextPage}
-        filteredData={filteredData}
-        filterMode={filterMode}
-        handleDateRangeChange={handleDateRangeChange}
-        handleDepartmentChange={handleDepartmentChange}
-        handleEmployeeClick={handleEmployeeClick}
-        handleEmployerChange={handleEmployerChange}
-        handleFilterModeChange={handleFilterModeChange}
-        handleSort={handleSort}
-        handleSpecificMonthChange={handleSpecificMonthChange}
-        hasNextPage={hasNextPage}
-        isFetchingNextPage={isFetchingNextPage}
-        isLoading={isLoading}
-        keyDownRef={keyDownRef}
-        onEmployeeStatusChange={setEmployeeStatus}
-        quickStats={quickStats}
-        searchInputRef={searchInputRef}
-        searchQuery={searchQuery}
-        selectedDepartmentId={selectedDepartmentId}
-        selectedEmployerId={selectedEmployerId}
-        setSearchQuery={setSearchQuery}
-        sortBy={sortBy}
-        specificMonth={specificMonth}
-      />
+      {viewMode === "matrix" ? (
+        <div className="h-[calc(100vh-16rem)] min-h-[500px]">
+          <TimesheetMatrixGrid
+            employees={allEmployees}
+            isLoading={isLoading}
+            month={specificMonth.month}
+            onEmployeeClick={(emp) => {
+              handleEmployeeClick(emp.id, emp.full_name);
+            }}
+            year={specificMonth.year}
+          />
+        </div>
+      ) : (
+        <ReportsTable
+          dateRange={dateRange}
+          departments={departments}
+          employeeStatus={employeeStatus}
+          employers={employers}
+          fetchNextPage={fetchNextPage}
+          filteredData={filteredData}
+          filterMode={filterMode}
+          handleDateRangeChange={handleDateRangeChange}
+          handleDepartmentChange={handleDepartmentChange}
+          handleEmployeeClick={handleEmployeeClick}
+          handleEmployerChange={handleEmployerChange}
+          handleFilterModeChange={handleFilterModeChange}
+          handleSort={handleSort}
+          handleSpecificMonthChange={handleSpecificMonthChange}
+          hasNextPage={hasNextPage}
+          isFetchingNextPage={isFetchingNextPage}
+          isLoading={isLoading}
+          keyDownRef={keyDownRef}
+          onEmployeeStatusChange={setEmployeeStatus}
+          quickStats={quickStats}
+          searchInputRef={searchInputRef}
+          searchQuery={searchQuery}
+          selectedDepartmentId={selectedDepartmentId}
+          selectedEmployerId={selectedEmployerId}
+          setSearchQuery={setSearchQuery}
+          sortBy={sortBy}
+          specificMonth={specificMonth}
+        />
+      )}
+
 
       <EmployeeDailyDrawer
         dateRange={dateRange}

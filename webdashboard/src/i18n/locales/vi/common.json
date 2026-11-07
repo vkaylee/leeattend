@@ -1612,8 +1612,10 @@
     "timeline": {
       "title": "Phân tích dòng thời gian chấm công"
     },
+    "view_mode_group": "Chế độ xem báo cáo",
+    "view_matrix": "Bảng công tháng",
+    "view_summary": "Tổng hợp giờ",
     "export_excel": "Xuất Excel",
-    "view_raw_logs": "Xem Nhật Ký Thô",
     "view_raw_logs_short": "Nhật ký thô",
     "all_departments": "Tất cả",
     "all_employers": "Tất cả",

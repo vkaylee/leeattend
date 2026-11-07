@@ -1,4 +1,14 @@
 {
+  "search_employees": "Search employees...",
+  "matrix": {
+    "export_btn": "Export Matrix",
+    "export_csv": "Export CSV Timesheet",
+    "legend": "Attendance Codes",
+    "legend_title": "Code Conventions:",
+    "toggle_legend": "Toggle Code Legend",
+    "view_matrix": "Monthly Timesheet",
+    "view_summary": "Summary Hours"
+  },
   "adjustments": {
     "status": {
       "approved": "Approved",

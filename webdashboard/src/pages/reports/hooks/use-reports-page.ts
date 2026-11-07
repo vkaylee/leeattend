@@ -1,10 +1,12 @@
 import React from "react";
 
+import { useAllEmployees } from "@/hooks/use-employees";
 import { useDebounce } from "@/hooks/use-debounce";
 import {
   AttendanceReportSort,
   AttendanceSummary,
   Department,
+  Employee,
   Employer,
   getStandaloneOrganizationId,
 } from "@/lib/api";
@@ -13,9 +15,11 @@ import { FilterMode, useReportsFilters } from "./use-reports-filters";
 import { useReportsHandlers } from "./use-reports-handlers";
 import { useReportsQueries } from "./use-reports-queries";
 
+export type ReportViewMode = "summary" | "matrix";
 export type { FilterMode };
 
 export interface UseReportsPageReturn {
+  allEmployees: Employee[];
   dateRange: { end: string; start: string };
   departments: Department[] | undefined;
   employeeStatus: string;
@@ -50,6 +54,8 @@ export interface UseReportsPageReturn {
   setSortBy: (v: AttendanceReportSort | undefined) => void;
   sortBy: AttendanceReportSort | undefined;
   specificMonth: { month: number; year: number };
+  viewMode: ReportViewMode;
+  setViewMode: (mode: ReportViewMode) => void;
   wsId: string | null;
 }
 
@@ -71,6 +77,27 @@ export function useReportsPage(): UseReportsPageReturn {
     keyDownRef,
     focusSearch
   } = useReportsFilters();
+  const [viewMode, setViewModeState] = React.useState<ReportViewMode>(() => {
+    if (typeof window === "undefined") return "summary";
+    try {
+      const stored = localStorage.getItem("leeattend_reports_view_mode");
+      if (stored === "matrix" || stored === "summary") return stored;
+    } catch {
+      // ignore
+    }
+    return "summary";
+  });
+
+  const setViewMode = React.useCallback((mode: ReportViewMode) => {
+    setViewModeState(mode);
+    try {
+      localStorage.setItem("leeattend_reports_view_mode", mode);
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  const { employees: allEmployees } = useAllEmployees(wsId);
 
   const debouncedSearch = useDebounce(searchQuery, 400);
 
@@ -115,6 +142,7 @@ export function useReportsPage(): UseReportsPageReturn {
   });
 
   return {
+    allEmployees,
     dateRange,
     departments,
     employers,
@@ -147,8 +175,10 @@ export function useReportsPage(): UseReportsPageReturn {
     setSelectedDepartmentId,
     setSelectedEmployee,
     setSortBy,
+    setViewMode,
     sortBy,
     specificMonth,
+    viewMode,
     wsId,
   };
 }

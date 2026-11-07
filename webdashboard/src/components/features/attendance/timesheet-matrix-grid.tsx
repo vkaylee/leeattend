@@ -1,4 +1,4 @@
-import { Calendar, ChevronLeft, ChevronRight, HelpCircle, User } from "lucide-react";
+import { Calendar, ChevronLeft, ChevronRight, Download, HelpCircle, User } from "lucide-react";
 import React, { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -81,8 +81,55 @@ export const TimesheetMatrixGrid: React.FC<TimesheetMatrixGridProps> = ({
 
   const registeredCodes = useMemo(() => getAllAttendanceCodes(), []);
 
+  const handleExportMatrixCSV = () => {
+    const headers = [
+      "Mã NV",
+      "Họ và tên",
+      "Phòng ban",
+      ...daysList.map((d) => `${d.dayNum} (${d.dayName})`),
+      "Tổng ngày công",
+      "Số ngày phép",
+      "Tổng công tính lương",
+    ];
+
+    const rows = filteredEmployees.map((emp) => {
+      let workDays = 0;
+      let leaveDays = 0;
+      const dayCodes = daysList.map((d) => {
+        const code = getEmployeeDayCode(emp.id, d.dayNum, d.isWeekend);
+        if (code === "X") workDays += 1;
+        if (code === "P") leaveDays += 1;
+        return code;
+      });
+      const payableDays = workDays + leaveDays;
+
+      return [
+        `"${emp.employee_code ?? ""}"`,
+        `"${emp.full_name ?? ""}"`,
+        `"${emp.department ?? ""}"`,
+        ...dayCodes.map((c) => `"${c}"`),
+        `"${workDays}"`,
+        `"${leaveDays}"`,
+        `"${payableDays}"`,
+      ].join(",");
+    });
+
+    const csvContent = "\uFEFF" + [headers.join(","), ...rows].join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute("download", `Bang_cong_thang_${month}_${year}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
   return (
-    <div className="flex flex-col h-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-sm overflow-hidden animate-in fade-in duration-300">
+    <div
+      className="flex flex-col h-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-sm overflow-hidden animate-in fade-in duration-300"
+      data-testid="timesheet-matrix-grid"
+    >
       {/* Header bar: search & legend toggle */}
       <div className="flex flex-wrap items-center justify-between gap-4 p-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30">
         <div className="flex items-center gap-3">
@@ -101,6 +148,15 @@ export const TimesheetMatrixGrid: React.FC<TimesheetMatrixGridProps> = ({
         </div>
 
         <div className="flex items-center gap-2">
+          <Button
+            aria-label={t("attendance.matrix.export_csv", "Xuất bảng công CSV")}
+            className="flex items-center gap-1.5 text-xs text-primary-600 dark:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-950 px-3 py-1.5 rounded-xl border border-primary-200 dark:border-primary-800 transition-all font-semibold"
+            onClick={handleExportMatrixCSV}
+            variant="ghost"
+          >
+            <Download size={14} />
+            <span>{t("attendance.matrix.export_btn", "Xuất ma trận")}</span>
+          </Button>
           <Button
             aria-label={t("attendance.matrix.toggle_legend", "Bảng giải thích ký hiệu")}
             className="flex items-center gap-1.5 text-xs text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 px-3 py-1.5 rounded-xl transition-all"

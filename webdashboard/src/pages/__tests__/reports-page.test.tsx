@@ -8,7 +8,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { ToastProvider } from "../../components/ui/toast";
 import i18n from "../../i18n/config";
 import * as api from "../../lib/api";
-import { PaginatedResponse, AttendanceSummary, DailyAttendanceReport } from "../../lib/api/types";
+import { PaginatedResponse, AttendanceSummary, DailyAttendanceReport, Employee } from "../../lib/api/types";
 import ReportsPage from "../reports-page";
 
 // Mock TanStack Router
@@ -61,6 +61,7 @@ describe("ReportsPage", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    localStorage.clear();
     void i18n.changeLanguage("en");
     queryClient = new QueryClient({
       defaultOptions: {
@@ -70,7 +71,6 @@ describe("ReportsPage", () => {
           staleTime: 0,
         },
       },
- 
     });
  
     vi.mocked(api.getStandaloneOrganizationId).mockReturnValue("test-ws-id");
@@ -717,5 +717,46 @@ describe("ReportsPage", () => {
     // Verify overflow-x-auto is removed
     expect(chipsContainer.className).not.toContain("overflow-x-auto");
     expect(chipsContainer.className).not.toContain("scrollbar-thin");
+  });
+
+  it("toggles between summary hours and 31-day timesheet matrix views", async () => {
+    const user = userEvent.setup();
+    vi.mocked(api.fetchEmployees).mockResolvedValue({
+      data: [
+        {
+          id: "emp-1",
+          full_name: "Nguyen Van A",
+          employee_code: "EMP001",
+          department: "Engineering",
+          active: true,
+          created_at: "2025-01-01T00:00:00Z",
+          updated_at: "2025-01-01T00:00:00Z",
+          workspace_id: "test-ws-id",
+        } as unknown as Employee,
+      ],
+      meta: { total: 1, page: 1, limit: 10, total_pages: 1 },
+    });
+
+    renderWithProviders(<ReportsPage />);
+    expect((await screen.findAllByText(/John Doe/i, {}, { timeout: 10000 })).length).toBeGreaterThan(0);
+
+    // Both view switch buttons exist
+    const matrixBtn = await screen.findByRole("button", { name: /Monthly Timesheet|Bảng công tháng/i });
+    const summaryBtn = await screen.findByRole("button", { name: /Summary Hours|Tổng hợp giờ/i });
+    expect(matrixBtn).toBeInTheDocument();
+    expect(summaryBtn).toBeInTheDocument();
+
+    // Click matrix button to toggle view
+    await user.click(matrixBtn);
+
+    // Timesheet matrix grid should render
+    expect(await screen.findByTestId("timesheet-matrix-grid")).toBeInTheDocument();
+
+    // Click summary button to switch back
+    await user.click(summaryBtn);
+    await waitFor(() => {
+      expect(screen.getByTestId("reports-page")).toBeInTheDocument();
+      expect(screen.queryByTestId("timesheet-matrix-grid")).not.toBeInTheDocument();
+    });
   });
 });

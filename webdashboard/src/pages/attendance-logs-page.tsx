@@ -5,7 +5,6 @@ import FloatingRecordBadge from "@/components/common/floating-record-badge";
 import AttendanceImportDialog from "@/components/features/attendance/attendance-import-dialog";
 import { RecordedLogsTable } from "@/components/features/attendance/recorded-logs-table";
 import { StagingLogsTable } from "@/components/features/attendance/staging-logs-table";
-import { TimesheetMatrixGrid } from "@/components/features/attendance/timesheet-matrix-grid";
 import { AttendanceLogsFilters } from "./attendance/components/attendance-logs-filters";
 import { AttendanceLogsHeader } from "./attendance/components/attendance-logs-header";
 import { AttendanceLogsTabs } from "./attendance/components/attendance-logs-tabs";
@@ -52,21 +51,6 @@ function TabContent({ state }: { state: AttendanceLogsState }) {
     return <UnrecordedShiftsTab />;
   }
 
-  if (activeTab === "matrix") {
-    const currentYear = specificMonth?.year ?? new Date().getFullYear();
-    const currentMonth = specificMonth?.month ?? (new Date().getMonth() + 1);
-
-    return (
-      <div className="flex-1 min-h-0 h-full">
-        <TimesheetMatrixGrid
-          employees={state.employees ?? []}
-          isLoading={isLoading}
-          month={currentMonth}
-          year={currentYear}
-        />
-      </div>
-    );
-  }
   if (activeTab === "recorded") {
     return (
       <>

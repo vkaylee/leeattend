@@ -1612,6 +1612,9 @@
     "timeline": {
       "title": "Attendance Timeline Analysis"
     },
+    "view_mode_group": "Report View Mode",
+    "view_matrix": "Monthly Timesheet",
+    "view_summary": "Summary Hours",
     "export_excel": "Export Excel",
     "view_raw_logs": "View Raw Logs",
     "view_raw_logs_short": "Raw Logs",

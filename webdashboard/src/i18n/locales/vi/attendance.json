@@ -1,4 +1,14 @@
 {
+  "search_employees": "Tìm nhân viên...",
+  "matrix": {
+    "export_btn": "Xuất ma trận",
+    "export_csv": "Xuất bảng công CSV",
+    "legend": "Ký hiệu công",
+    "legend_title": "Quy ước ký hiệu:",
+    "toggle_legend": "Bảng giải thích ký hiệu",
+    "view_matrix": "Bảng công tháng",
+    "view_summary": "Tổng hợp giờ"
+  },
   "adjustments": {
     "status": {
       "approved": "Đã duyệt",
