@@ -1487,6 +1487,7 @@
       "due": "Due: {{date}}",
       "overdue": "Overdue: {{date}}",
       "pending_tasks_title": "YOUR PENDING TASKS",
+      "task_completed_error": "Failed to update task status",
       "task_completed_failed": "Failed to complete task",
       "task_completed_success": "Task marked as completed",
       "task_for_employee": "For {{name}}"
@@ -2163,6 +2164,8 @@
     "customizeTitle": "Customize Desktop & Widgets",
     "customizeSubtitle": "Toggle widgets displayed on your dashboard",
     "enabled": "Enabled",
+    "enableWidget": "Enable widget",
+    "disableWidget": "Disable widget",
     "add": "Add",
     "resetDefault": "Reset to Default",
     "goodMorning": "Good morning",
@@ -2191,6 +2194,8 @@
     "emptyTitle": "No widgets on display",
     "emptyDesc": "You have hidden all widgets. Click below to choose and attach widgets to your dashboard.",
     "attachWidgetsNow": "Attach Widgets to Desktop",
+    "noPendingTasks": "No pending tasks",
+    "noPendingTasksDesc": "All onboarding and HR procedures are fully caught up.",
     "widgets": {
       "quickPunch": {
         "title": "Quick Clock",

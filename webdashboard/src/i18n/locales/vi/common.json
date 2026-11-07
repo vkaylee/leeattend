@@ -1487,6 +1487,7 @@
       "due": "Hạn chót: {{date}}",
       "overdue": "Quá hạn: {{date}}",
       "pending_tasks_title": "NHIỆM VỤ ĐANG CHỜ",
+      "task_completed_error": "Cập nhật trạng thái nhiệm vụ thất bại",
       "task_completed_failed": "Hoàn thành nhiệm vụ thất bại",
       "task_completed_success": "Đã đánh dấu hoàn thành nhiệm vụ",
       "task_for_employee": "Dành cho {{name}}"
@@ -2163,6 +2164,8 @@
     "customizeTitle": "Tùy biến Desktop & Widget",
     "customizeSubtitle": "Bật hoặc tắt các widget hiển thị trên màn hình chính của bạn",
     "enabled": "Đã bật",
+    "enableWidget": "Bật widget",
+    "disableWidget": "Tắt widget",
     "add": "Gắn vào",
     "resetDefault": "Khôi phục mặc định",
     "goodMorning": "Chào buổi sáng",
@@ -2191,6 +2194,8 @@
     "emptyTitle": "Màn hình chưa có Widget nào",
     "emptyDesc": "Bạn đã ẩn tất cả các widget. Bấm vào nút bên dưới để chọn và gắn các widget hữu ích lên Desktop.",
     "attachWidgetsNow": "Gắn Widget vào Desktop",
+    "noPendingTasks": "Không có công việc tồn đọng",
+    "noPendingTasksDesc": "Bạn đã hoàn thành tất cả thủ tục và quy trình nhân sự cần giải quyết.",
     "widgets": {
       "quickPunch": {
         "title": "Bấm giờ chấm công",

@@ -1487,6 +1487,7 @@
       "due": "截止日期: {{date}}",
       "overdue": "已逾期: {{date}}",
       "pending_tasks_title": "待办任务",
+      "task_completed_error": "更新任务状态失败",
       "task_completed_failed": "完成任务失败",
       "task_completed_success": "任务已标记为完成",
       "task_for_employee": "针对 {{name}}"
@@ -2163,6 +2164,8 @@
     "customizeTitle": "Tùy biến Desktop & Widget",
     "customizeSubtitle": "Bật hoặc tắt các widget hiển thị trên màn hình chính của bạn",
     "enabled": "Đã bật",
+    "enableWidget": "启用组件",
+    "disableWidget": "禁用组件",
     "add": "Gắn vào",
     "resetDefault": "Khôi phục mặc định",
     "goodMorning": "Chào buổi sáng",
@@ -2191,6 +2194,8 @@
     "emptyTitle": "Màn hình chưa có Widget nào",
     "emptyDesc": "Bạn đã ẩn tất cả các widget. Bấm vào nút bên dưới để chọn và gắn các widget hữu ích lên Desktop.",
     "attachWidgetsNow": "添加小组件到桌面",
+    "noPendingTasks": "没有待处理事项",
+    "noPendingTasksDesc": "所有入职与人事手续均已处理完毕。",
     "widgets": {
       "quickPunch": {
         "title": "打卡考勤",

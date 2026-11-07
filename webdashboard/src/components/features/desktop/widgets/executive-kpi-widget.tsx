@@ -39,7 +39,7 @@ export function ExecutiveKpiWidget() {
             <DollarSign className="w-4 h-4" />
           </div>
           <div>
-            <div className="text-[11px] text-slate-400">
+            <div className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">
               {t("desktop.estimatedPayroll", "Dự toán quỹ lương tháng")}
             </div>
             <div className="text-base font-bold text-slate-800 dark:text-slate-100 font-mono">
@@ -51,7 +51,7 @@ export function ExecutiveKpiWidget() {
         </div>
         <Link
           to={ROUTES.PAYROLL}
-          className="p-1.5 rounded-lg text-slate-400 hover:text-primary-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+          className="p-1.5 rounded-lg text-slate-400 hover:text-primary-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
           aria-label={t("desktop.viewPayroll", "Xem bảng tính lương")}
         >
           <ArrowUpRight className="w-4 h-4" />
@@ -65,7 +65,7 @@ export function ExecutiveKpiWidget() {
             <Award className="w-4 h-4" />
           </div>
           <div>
-            <div className="text-[11px] text-slate-400">
+            <div className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">
               {t("desktop.punctualityRate", "Chỉ số hoàn thành công chuẩn")}
             </div>
             <div className="text-base font-bold text-slate-800 dark:text-slate-100 font-mono">
@@ -78,7 +78,7 @@ export function ExecutiveKpiWidget() {
 
         <Link
           to={ROUTES.REPORTS}
-          className="p-1.5 rounded-lg text-slate-400 hover:text-primary-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+          className="p-1.5 rounded-lg text-slate-400 hover:text-primary-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
           aria-label={t("desktop.viewReports", "Xem báo cáo chuyên cần")}
         >
           <ArrowUpRight className="w-4 h-4" />

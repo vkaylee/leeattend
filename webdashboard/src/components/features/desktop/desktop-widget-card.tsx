@@ -47,7 +47,7 @@ export const DesktopWidgetCard = memo(function DesktopWidgetCard({
             <h2 className="text-sm font-bold text-slate-800 dark:text-slate-100 leading-tight">
               {title}
             </h2>
-            <p className="text-[11px] text-slate-400 line-clamp-1">
+            <p className="text-[11px] text-slate-500 dark:text-slate-400 line-clamp-2 leading-relaxed">
               {description}
             </p>
           </div>

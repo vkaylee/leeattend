@@ -50,6 +50,7 @@ export const LanguageSwitcher = memo(function LanguageSwitcher({ compact = false
           )}
           data-testid="language-switcher-trigger"
           type="button"
+          aria-label={`Select language: currently ${currentOption.name}`}
         >
           {compact ? (
             <Globe size={18} />

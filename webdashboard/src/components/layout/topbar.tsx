@@ -158,7 +158,7 @@ export function Topbar({
         {/* Mobile search trigger icon */}
         <Button
           aria-label="Open search"
-          className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground sm:hidden"
+          className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground transition-colors focus-visible:ring-2 focus-visible:ring-primary sm:hidden"
           data-testid="topbar-search-trigger-mobile"
           onClick={onOpenSearch}
           size="sm"
@@ -187,7 +187,7 @@ export function Topbar({
         {/* Theme Toggle */}
         <Button
           aria-label="Toggle theme"
-          className="h-8 w-8 p-0 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+          className="h-8 w-8 p-0 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors focus-visible:ring-2 focus-visible:ring-primary"
           data-testid="topbar-theme-toggle"
           onClick={() => {
             setMode(isDark ? "light" : "dark");

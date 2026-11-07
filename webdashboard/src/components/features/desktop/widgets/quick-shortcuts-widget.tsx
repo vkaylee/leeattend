@@ -68,25 +68,25 @@ export function QuickShortcutsWidget() {
               key={item.to}
               to={item.to}
               aria-label={`${title}: ${desc}`}
-              className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50/70 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800/60 hover:bg-white dark:hover:bg-slate-800 hover:shadow-2xs hover:border-slate-200 dark:hover:border-slate-700 transition-all text-xs group"
+              className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50/70 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800/60 hover:bg-white dark:hover:bg-slate-800 hover:shadow-2xs hover:border-slate-200 dark:hover:border-slate-700 transition-all text-xs group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             >
               <div className="flex items-center gap-2.5 min-w-0">
                 <div
-                  className={`w-7 h-7 rounded-lg bg-gradient-to-br flex items-center justify-center text-white shrink-0 group-hover:scale-105 transition-transform ${item.gradient}`}
+                  className={`w-8 h-8 rounded-xl bg-gradient-to-br flex items-center justify-center text-white shrink-0 group-hover:scale-105 transition-transform ${item.gradient}`}
                 >
-                  <Icon className="w-3.5 h-3.5" />
+                  <Icon className="w-4 h-4" />
                 </div>
                 <div className="min-w-0">
-                  <span className="font-semibold text-slate-700 dark:text-slate-200 text-xs block leading-tight truncate">
+                  <span className="font-semibold text-slate-800 dark:text-slate-100 text-xs block leading-tight">
                     {title}
                   </span>
-                  <span className="text-[10px] text-slate-400 dark:text-slate-500 block leading-tight truncate mt-0.5">
+                  <span className="text-[10px] text-slate-500 dark:text-slate-400 block leading-tight mt-0.5">
                     {desc}
                   </span>
                 </div>
               </div>
 
-              <ChevronRight className="w-4 h-4 text-slate-300 dark:text-slate-600 group-hover:text-primary-500 group-hover:translate-x-0.5 transition-all shrink-0 ml-2" />
+              <ChevronRight className="w-4 h-4 text-slate-400 dark:text-slate-500 group-hover:text-primary-500 group-hover:translate-x-0.5 transition-all shrink-0 ml-2" />
             </Link>
           );
         })}

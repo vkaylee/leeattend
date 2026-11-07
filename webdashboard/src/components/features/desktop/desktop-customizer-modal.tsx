@@ -64,10 +64,10 @@ export function DesktopCustomizerModal({
                   </div>
                   <div className="min-w-0">
                     <div className="text-xs font-bold text-slate-800 dark:text-slate-100 truncate">
-                      {widget.titleFallback}
+                      {widget.titleKey ? t(widget.titleKey, { defaultValue: widget.titleFallback }) : widget.titleFallback}
                     </div>
                     <div className="text-[11px] text-slate-500 dark:text-slate-400 line-clamp-1">
-                      {widget.descriptionFallback}
+                      {widget.descriptionKey ? t(widget.descriptionKey, { defaultValue: widget.descriptionFallback }) : widget.descriptionFallback}
                     </div>
                   </div>
                 </div>
@@ -82,6 +82,7 @@ export function DesktopCustomizerModal({
                       ? "bg-primary-600 hover:bg-primary-700 text-white"
                       : "text-slate-600 dark:text-slate-300"
                   }`}
+                  aria-label={`${enabled ? t("desktop.disableWidget", "Tắt widget") : t("desktop.enableWidget", "Bật widget")} ${widget.titleFallback}`}
                   data-testid={`toggle-widget-${widget.id}`}
                 >
                   {enabled ? (

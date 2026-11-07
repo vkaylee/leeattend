@@ -9,11 +9,14 @@ import { useTranslation } from "react-i18next";
  */
 const LOCALE_CURRENCY_MAP: Record<string, { locale: string; currency: string }> = {
   vi: { locale: "vi-VN", currency: "VND" },
+  "vi-VN": { locale: "vi-VN", currency: "VND" },
   zh: { locale: "zh-CN", currency: "CNY" },
+  "zh-CN": { locale: "zh-CN", currency: "CNY" },
   en: { locale: "en-US", currency: "USD" },
+  "en-US": { locale: "en-US", currency: "USD" },
 };
 
-const DEFAULT_LOCALE = { locale: "en-US", currency: "USD" };
+const DEFAULT_LOCALE = { locale: "vi-VN", currency: "VND" };
 
 // ── Hook ───────────────────────────────────────────────────────────
 
@@ -30,8 +33,12 @@ export function useCurrency() {
 
   const formatCurrency = useCallback(
     (value: string | number): string => {
+      const rawLang = i18n.language || "vi";
+      const baseLang = rawLang.split("-")[0].toLowerCase();
       const { locale, currency } =
-        LOCALE_CURRENCY_MAP[i18n.language] ?? DEFAULT_LOCALE;
+        LOCALE_CURRENCY_MAP[rawLang] ??
+        LOCALE_CURRENCY_MAP[baseLang] ??
+        DEFAULT_LOCALE;
       return new Intl.NumberFormat(locale, {
         style: "currency",
         currency,

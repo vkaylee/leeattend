@@ -50,7 +50,7 @@ export function TodayOverviewWidget() {
           </div>
         </div>
         <div className="text-right">
-          <div className="text-xs text-slate-400">{t("desktop.totalHeadcount", "Tổng nhân sự")}</div>
+          <div className="text-xs text-slate-500 dark:text-slate-400 font-medium">{t("desktop.totalHeadcount", "Tổng nhân sự")}</div>
           <div className="text-lg font-bold text-slate-700 dark:text-slate-200">
             {stats.total_employees}
           </div>
@@ -67,7 +67,7 @@ export function TodayOverviewWidget() {
           <div className="text-base font-bold text-slate-800 dark:text-slate-100">
             {stats.present_today}
           </div>
-          <div className="text-[11px] text-slate-400">{t("desktop.present", "Có mặt")}</div>
+          <div className="text-[11px] text-slate-600 dark:text-slate-400 font-medium">{t("desktop.present", "Có mặt")}</div>
         </div>
 
         {/* On Leave */}
@@ -78,7 +78,7 @@ export function TodayOverviewWidget() {
           <div className="text-base font-bold text-slate-800 dark:text-slate-100">
             {stats.on_leave_today}
           </div>
-          <div className="text-[11px] text-slate-400">{t("desktop.onLeave", "Nghỉ phép")}</div>
+          <div className="text-[11px] text-slate-600 dark:text-slate-400 font-medium">{t("desktop.onLeave", "Nghỉ phép")}</div>
         </div>
 
         {/* Late or Pending */}
@@ -89,7 +89,7 @@ export function TodayOverviewWidget() {
           <div className="text-base font-bold text-slate-800 dark:text-slate-100">
             {stats.pending_leave_requests}
           </div>
-          <div className="text-[11px] text-slate-400">{t("desktop.pending", "Chờ duyệt")}</div>
+          <div className="text-[11px] text-slate-600 dark:text-slate-400 font-medium">{t("desktop.pending", "Chờ duyệt")}</div>
         </div>
       </div>
 
@@ -98,7 +98,7 @@ export function TodayOverviewWidget() {
         <Link
           to={ROUTES.ATTENDANCE_LOGS}
           search={{ tab: "recorded", mode: "this_month" }}
-          className="text-primary-500 hover:text-primary-600 font-semibold flex items-center gap-1"
+          className="text-primary-600 dark:text-primary-400 hover:underline font-semibold flex items-center gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-md px-1"
         >
           <span>{t("desktop.viewAttendanceLogs", "Xem bảng công đầy đủ")}</span>
           <ArrowRight className="w-3.5 h-3.5" />

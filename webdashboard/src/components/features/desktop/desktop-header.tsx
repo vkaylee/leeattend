@@ -58,22 +58,18 @@ export function DesktopHeader({ onOpenCustomizer }: DesktopHeaderProps) {
 
       {/* Right: Actions */}
       <div className="flex items-center gap-3">
-        {/* Spotlight Trigger */}
+        {/* Spotlight Trigger - Hidden as Topbar provides global ⌘K search */}
         <Button
           type="button"
           variant="outline"
           onClick={openCommandPalette}
           data-testid="desktop-search-trigger"
           aria-label={t("desktop.searchApps", "Tìm ứng dụng & tính năng (⌘K)")}
-          className="sm:hidden flex items-center gap-2.5 px-4 h-10 rounded-2xl bg-slate-100/80 dark:bg-slate-800/80 hover:bg-slate-200/80 dark:hover:bg-slate-700/80 border border-slate-200/60 dark:border-slate-700/60 text-xs text-slate-600 dark:text-slate-300 transition-all shadow-2xs group"
+          className="hidden"
         >
-          <Search className="w-4 h-4 text-primary-500 group-hover:scale-110 transition-transform" />
-          <span className="font-medium">
-            {t("desktop.searchApps", "Tìm ứng dụng & tính năng...")}
-          </span>
-          <kbd className="px-2 py-0.5 text-[10px] font-semibold text-slate-400 bg-white/60 dark:bg-black/40 rounded-lg border border-slate-200 dark:border-slate-700">
-            ⌘K
-          </kbd>
+          <Search className="w-4 h-4 text-primary-500" />
+          <span>{t("desktop.searchApps", "Tìm ứng dụng & tính năng...")}</span>
+          <kbd>⌘K</kbd>
         </Button>
 
         {/* Customize Desktop Button */}
@@ -81,7 +77,7 @@ export function DesktopHeader({ onOpenCustomizer }: DesktopHeaderProps) {
           type="button"
           onClick={onOpenCustomizer}
           variant="secondary"
-          className="h-10 px-4 rounded-2xl text-xs font-bold flex items-center gap-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-2xs hover:shadow-xs"
+          className="h-10 px-4 rounded-2xl text-xs font-bold flex items-center gap-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-2xs hover:shadow-xs focus-visible:ring-2 focus-visible:ring-primary"
           aria-label={t("desktop.customizeWidgets", "Gắn Widget")}
           data-testid="desktop-customize-btn"
         >
