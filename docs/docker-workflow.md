@@ -41,9 +41,56 @@ The repository MCP configuration starts it through `scripts/playwright-mcp.sh`:
 ./leedevkit manage up dev
 ```
 
-Reload the MCP client after changing `.mcp.json`. Navigate to `http://caddy/` from Playwright MCP; do not use `http://localhost:8080` from inside the MCP browser. The wrapper selects Podman Compose or Docker Compose and builds the MCP image on first use.
+Reload the MCP client after changing `.mcp.json`. Build the image once with `./scripts/playwright-auth-role.sh employee` or `podman-compose -p leedevkit-dev -f .compose/docker-compose.dev.yml --profile mcp build playwright-mcp`. Navigate to `http://caddy/` from Playwright MCP; do not use `http://localhost:8080` from inside the MCP browser. Role wrappers use the existing image and mount only the selected role state.
 
-The MCP server runs headless with isolated browser state and enables `network`, `storage`, `testing`, and `devtools` capabilities. No credentials or storage state are included in the image.
+The MCP server runs headless with isolated browser state and enables every capability supported by the pinned CLI: `vision`, `pdf`, and `devtools`, plus all core navigation, interaction, snapshot, screenshot, console, and network-inspection tools. It also includes element bounding boxes in snapshots and exposes informational console messages. Browser requests remain restricted to `http://caddy`; no credentials or storage state are included in the image.
+
+### Role-isolated authenticated MCP sessions
+
+One storage state cannot safely represent five roles. The repository exposes one MCP entry per role, each with its own read-only state file:
+
+| MCP server | Role | State |
+|---|---|---|
+| `playwright` / `playwright-employee` | `employee` | `.secrets/playwright-auth/employee.json` |
+| `playwright-team-lead` | `team_lead` | `.secrets/playwright-auth/team-lead.json` |
+| `playwright-shift-manager` | `shift_manager` | `.secrets/playwright-auth/shift-manager.json` |
+| `playwright-hr-manager` | `hr_manager` | `.secrets/playwright-auth/hr-manager.json` |
+| `playwright-admin` | `admin` | `.secrets/playwright-auth/admin.json` |
+
+Use the least-privileged profile that covers the scenario. `playwright` defaults to `employee`; use `playwright-admin` only when the scenario requires administrator permissions. Never switch roles inside one browser session. For authorization tests, run the same flow separately with the expected-deny and expected-allow profiles.
+
+Create all required states from a local ignored credentials file. The file must contain only these role-specific keys as needed:
+
+```dotenv
+PLAYWRIGHT_EMPLOYEE_EMAIL=employee@example.invalid
+PLAYWRIGHT_EMPLOYEE_PASSWORD=change-me
+PLAYWRIGHT_TEAM_LEAD_EMAIL=team.lead@example.invalid
+PLAYWRIGHT_TEAM_LEAD_PASSWORD=change-me
+PLAYWRIGHT_SHIFT_MANAGER_EMAIL=shift.manager@example.invalid
+PLAYWRIGHT_SHIFT_MANAGER_PASSWORD=change-me
+PLAYWRIGHT_HR_MANAGER_EMAIL=hr.manager@example.invalid
+PLAYWRIGHT_HR_MANAGER_PASSWORD=change-me
+PLAYWRIGHT_ADMIN_EMAIL=admin@example.invalid
+PLAYWRIGHT_ADMIN_PASSWORD=change-me
+```
+
+Generate only the role needed:
+
+```bash
+./scripts/playwright-auth-role.sh employee
+./scripts/playwright-auth-role.sh team-lead
+./scripts/playwright-auth-role.sh shift-manager
+./scripts/playwright-auth-role.sh hr-manager
+./scripts/playwright-auth-role.sh admin
+```
+
+Every role wrapper performs a session preflight before starting MCP. It checks the selected state against `GET http://caddy/api/v1/me`; valid state is reused immediately. Missing or invalid state triggers `scripts/playwright-auth-role.sh <role>`, which recreates only that role's state from the ignored credentials file. If credentials are unavailable or login fails, MCP fails closed with an actionable error instead of starting with an anonymous or wrong-role session.
+
+```bash
+rm -f .secrets/playwright-auth/team-lead.json
+```
+
+`.secrets/` is ignored by Git. Never copy role states to production or include them in screenshots, reports, logs, or commits.
 Development migration gate:
 
 `db-migrate` runs `apiserver/migrations/run-dev.sh` through PgBouncer. It records the baseline migration in `schema_migrations`, skips an already-applied baseline, and exits non-zero on SQL errors. Existing development volumes containing the baseline schema are marked applied without replaying the dump.

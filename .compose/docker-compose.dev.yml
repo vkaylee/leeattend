@@ -212,7 +212,11 @@ services:
     command:
       - --headless
       - --isolated
-      - --caps=network,storage,testing,devtools
+      - --no-sandbox
+      - --browser=chrome
+      - --caps=vision,pdf,devtools
+      - --console-level=info
+      - --snapshot-boxes
       - --allowed-origins=http://caddy
     networks: [frontend_net]
 

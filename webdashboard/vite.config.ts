@@ -195,7 +195,7 @@ export default defineConfig(async ({ mode }: ConfigEnv) => {
       host: process.env.VITE_DEV_SERVER_HOST ?? "127.0.0.1",
       port,
       strictPort: true,
-      allowedHosts: ["leeattend.nport.link"],
+      allowedHosts: ["leeattend.nport.link", "caddy"],
       proxy: isTest ? {} : {
         // WebSocket proxy for report streaming (must be before /api)
         "/api/ws": {
