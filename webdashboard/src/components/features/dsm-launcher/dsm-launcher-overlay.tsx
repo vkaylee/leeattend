@@ -232,6 +232,21 @@ export function DsmLauncherOverlay({ isOpen, onClose }: DsmLauncherOverlayProps)
     },
     [isSearching, focusedGridIndex, gridFeatures, handleSelectItem],
   );
+  const handleEmptySpaceClick = useCallback(
+    (e: React.MouseEvent<HTMLDivElement>) => {
+      const target = e.target as HTMLElement;
+      const interactive = target.closest(
+        "button, input, a, [role='button'], [role='option'], [contenteditable='true']",
+      );
+
+      if (!interactive && !window.getSelection()?.toString()) {
+        onClose();
+        setSearch("");
+        setFocusedGridIndex(null);
+      }
+    },
+    [onClose],
+  );
 
   return (
     <Dialog.Root
@@ -249,7 +264,7 @@ export function DsmLauncherOverlay({ isOpen, onClose }: DsmLauncherOverlayProps)
         <Dialog.Overlay
           data-testid="dsm-launcher-overlay"
           className={cn(
-            "fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-3xl transition-opacity duration-300",
+            "fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md transition-opacity duration-200 ease-out motion-safe:will-change-[opacity]",
           )}
         />
 
@@ -257,9 +272,11 @@ export function DsmLauncherOverlay({ isOpen, onClose }: DsmLauncherOverlayProps)
         <Dialog.Content
           data-testid="dsm-launcher-modal"
           onKeyDown={handleGridKeyDown}
+          onClick={handleEmptySpaceClick}
           className={cn(
             "fixed inset-0 z-50 w-screen h-screen flex flex-col",
-            "bg-slate-950/85 backdrop-blur-3xl overflow-hidden text-white outline-none animate-in fade-in duration-200",
+            "bg-slate-950/85 overflow-hidden text-white outline-none",
+            "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=open]:fade-in-0 data-[state=closed]:fade-out-0 data-[state=open]:zoom-in-95 data-[state=closed]:zoom-out-95 duration-200 ease-out motion-safe:transform-gpu motion-safe:will-change-[transform,opacity]",
           )}
         >
           {/* Accessible Dialog Title & Description */}

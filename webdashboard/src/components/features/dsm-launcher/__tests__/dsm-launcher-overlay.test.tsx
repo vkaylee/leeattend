@@ -164,4 +164,14 @@ describe("DsmLauncherOverlay", () => {
     const firstApp = screen.getByTestId("dsm-app-dashboard");
     expect(firstApp).toHaveAttribute("data-focused", "true");
   });
+  it("closes when clicking launcher empty space but keeps interactive controls open", () => {
+    const handleClose = vi.fn();
+    render(<DsmLauncherOverlay isOpen={true} onClose={handleClose} />);
+
+    fireEvent.click(screen.getByTestId("dsm-grid-view"));
+    expect(handleClose).toHaveBeenCalledTimes(1);
+
+    fireEvent.click(screen.getByTestId("dsm-launcher-search-input"));
+    expect(handleClose).toHaveBeenCalledTimes(1);
+  });
 });
