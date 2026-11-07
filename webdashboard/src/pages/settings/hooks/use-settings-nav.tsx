@@ -80,7 +80,7 @@ const getAccessGroup = (t: TFunction): SettingItem[] => [
     description: t("settings.categories.members_desc", { defaultValue: "Quản lý tài khoản người dùng và lời mời" }),
     icon: <Users className="w-4 h-4" />,
     label: t("members.title", { defaultValue: "Tài khoản người dùng" }),
-    path: ROUTES.SETTINGS.MEMBERS,
+    path: ROUTES.PEOPLE,
     permissions: ["members:read"],
   },
 ];
@@ -146,7 +146,7 @@ const getOperationsGroup = (t: TFunction): SettingItem[] => [
     description: t("shifts.rules.subtitle", { defaultValue: "Mẫu lịch xoay ca và quy tắc gán ca tự động" }),
     icon: <Zap className="w-4 h-4" />,
     label: t("common.sections.shifts_rules", { defaultValue: "Mẫu ca & Quy tắc phân ca" }),
-    path: ROUTES.SETTINGS.SHIFTS_RULES,
+    path: ROUTES.SHIFTS_RULES,
     permissions: ["shifts:read"],
   },
 ];
@@ -163,7 +163,7 @@ const getSystemGroup = (t: TFunction): SettingItem[] => [
     description: t("smtp.subtitle", { defaultValue: "Cấu hình kết nối máy chủ gửi email thông báo" }),
     icon: <Mail className="w-4 h-4" />,
     label: t("smtp.title", { defaultValue: "Máy chủ Email (SMTP)" }),
-    path: ROUTES.SETTINGS.SMTP,
+    path: ROUTES.SYSTEM_SMTP,
     permissions: ["security:settings:manage"],
   },
   {

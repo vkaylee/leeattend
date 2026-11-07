@@ -35,7 +35,7 @@ export const ROUTES = {
   ATTENDANCE_ADJUSTMENTS: "/attendance-adjustments",
   APPROVALS: "/approvals",
   APPROVALS_OT: "/approvals/ot",
-  HOLIDAYS: "/workspace/settings/holidays",
+  HOLIDAYS: "/holidays",
 
   // Operations
   REPORTS: "/reports",
@@ -68,13 +68,11 @@ export const ROUTES = {
     ROOT: "/workspace/settings",
     ROLES: "/workspace/settings/roles",
     PERMISSIONS: "/workspace/settings/permissions",
-    MEMBERS: "/workspace/people",
     GENERAL: "/workspace/settings/general",
     ORGANIZATION: "/workspace/settings/organization",
     TIME: "/workspace/settings/time",
     PAYROLL: "/workspace/settings/payroll",
     LEAVE: "/workspace/settings/leave",
-    HOLIDAYS: "/workspace/settings/holidays",
     BILLING: "/workspace/settings/billing",
     OVERTIME: "/workspace/settings/overtime",
     LOCATIONS: "/workspace/settings/locations",
@@ -84,7 +82,5 @@ export const ROUTES = {
     CONDITION_TYPES: "/workspace/settings/condition-types",
     STORAGE: "/workspace/settings/storage",
     ECONTRACTS: "/workspace/settings/econtracts",
-    SMTP: "/system/smtp",
-    SHIFTS_RULES: "/shifts/rules",
   },
 } as const;

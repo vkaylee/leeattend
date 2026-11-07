@@ -1,17 +1,9 @@
-import { createLazyFileRoute } from "@tanstack/react-router";
+import { createLazyFileRoute, Navigate } from "@tanstack/react-router";
 
-import { ErrorBoundary } from "@/components/common/error-boundary";
-import HolidaysPage from "@/pages/settings/holidays-page";
+import { ROUTES } from "@/lib/routes";
 
-
-function HolidaysPageWithErrorBoundary() {
-  return (
-    <ErrorBoundary variant="full">
-      <HolidaysPage />
-    </ErrorBoundary>
-  );
-}
-
-export const Route = createLazyFileRoute('/_authenticated/_workspace/workspace/settings/holidays')({
-  component: HolidaysPageWithErrorBoundary,
+export const Route = createLazyFileRoute(
+  "/_authenticated/_workspace/workspace/settings/holidays",
+)({
+  component: () => <Navigate to={ROUTES.HOLIDAYS} replace />,
 });

@@ -30,6 +30,7 @@ import {
   Inbox,
   FileText,
   ShieldCheck,
+  ShieldAlert,
   Palmtree,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
@@ -100,6 +101,7 @@ export function useNavMenuItems(): NavMenuStructure {
       testId: "sidebar-section-org",
       items: [
         { to: ROUTES.EMPLOYEES, icon: UserRound, label: t("common.employees"), testId: "sidebar-link-employees", permissions: ["employees:read"] },
+        { to: ROUTES.PEOPLE, icon: Users, label: t("members.title", { defaultValue: "Tài khoản người dùng" }), testId: "sidebar-link-people", permissions: ["members:read"] },
         { to: ROUTES.DEPARTMENTS, icon: Building2, label: t("common.departments"), testId: "sidebar-link-departments", permissions: ["departments:read"] },
         { to: ROUTES.ORG_CHART, icon: FolderTree, label: t("common.org_chart"), testId: "sidebar-link-org-chart", permissions: ["departments:read"] },
         ...(isFeatureEnabled("ff_econtracts") ? [{ to: ROUTES.ECONTRACTS, icon: Scale, label: t("common.econtracts", { defaultValue: "e-Contracts Hub" }), testId: "sidebar-link-econtracts", permissions: ["employees:update"] }] : []),
@@ -148,6 +150,7 @@ export function useNavMenuItems(): NavMenuStructure {
       items: [
         { to: ROUTES.INFRA_MONITOR, icon: Activity, label: t("monitor.title", { defaultValue: "Worker Monitor" }), testId: "sidebar-link-infra-monitor", permissions: ["infra:monitor"] },
         { to: ROUTES.AUDIT_LOGS, icon: ShieldCheck, label: t("audit_logs.title", { defaultValue: "Audit Logs" }), testId: "sidebar-link-audit-logs", permissions: ["audit_logs:read"] },
+        { to: ROUTES.SETTINGS.ROLES, icon: ShieldAlert, label: t("settings.categories.roles", { defaultValue: "Vai trò & Phân quyền" }), testId: "sidebar-link-roles", permissions: ["members:roles:manage"] },
       ],
     },
     {
@@ -192,6 +195,7 @@ export function useFilteredMenuItems(): NavMenuStructure {
 // ── Path-based active group detection ──────────────────────────────
 
 const ORG_PATHS: string[] = [
+  ROUTES.PEOPLE,
   ROUTES.EMPLOYEES, ROUTES.DEPARTMENTS,
   ROUTES.ORG_CHART, ROUTES.ECONTRACTS,
 ];

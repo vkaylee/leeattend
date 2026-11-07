@@ -96,6 +96,12 @@ export const ROUTE_METADATA_MAP: Record<string, RouteMetadata> = {
     titleKey: "ot_approvals.ot_title",
     defaultTitle: "Phê duyệt Tăng ca",
   },
+  [ROUTES.HOLIDAYS]: {
+    breadcrumbKey: "settings.categories.holidays",
+    defaultBreadcrumb: "Ngày nghỉ lễ",
+    titleKey: "settings.categories.holidays",
+    defaultTitle: "Ngày nghỉ lễ",
+  },
 
   // Operations
   [ROUTES.REPORTS]: {
@@ -229,12 +235,6 @@ export const ROUTE_METADATA_MAP: Record<string, RouteMetadata> = {
     defaultBreadcrumb: "Chính sách nghỉ phép",
     titleKey: "settings.categories.leave",
     defaultTitle: "Chính sách nghỉ phép",
-  },
-  [ROUTES.SETTINGS.HOLIDAYS]: {
-    breadcrumbKey: "settings.categories.holidays",
-    defaultBreadcrumb: "Ngày nghỉ lễ",
-    titleKey: "settings.categories.holidays",
-    defaultTitle: "Ngày nghỉ lễ",
   },
   [ROUTES.SETTINGS.OVERTIME]: {
     breadcrumbKey: "settings.categories.overtime",

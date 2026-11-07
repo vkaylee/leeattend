@@ -236,6 +236,9 @@ describe("getActiveNavGroup", () => {
     expect(getActiveNavGroup("/departments")).toBe("org");
   });
 
+  it('returns "org" for /workspace/people', () => {
+    expect(getActiveNavGroup("/workspace/people")).toBe("org");
+  });
   it('returns "time" for /attendance-logs', () => {
     expect(getActiveNavGroup("/attendance-logs")).toBe("time");
   });
@@ -248,8 +251,8 @@ describe("getActiveNavGroup", () => {
     expect(getActiveNavGroup("/approvals")).toBe("time");
   });
 
-  it('returns "time" for /workspace/settings/holidays', () => {
-    expect(getActiveNavGroup("/workspace/settings/holidays")).toBe("time");
+  it('returns "time" for /holidays', () => {
+    expect(getActiveNavGroup("/holidays")).toBe("time");
   });
 
   it('returns "shifts" for /shifts', () => {

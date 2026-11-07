@@ -95,7 +95,7 @@ export const APP_REGISTRY: AppDefinition[] = [
     labelKey: "members.title",
     descriptionKey: "appLauncher.descriptions.directory",
     to: ROUTES.PEOPLE,
-    group: "settings",
+    group: "org",
     permissions: ["members:read"],
     testId: "app-card-people",
   },
