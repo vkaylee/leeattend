@@ -87,18 +87,22 @@ Generate only the role needed:
 Every role wrapper performs a session preflight before starting MCP. It checks the selected state against `GET http://caddy/api/v1/me`; valid state is reused immediately. Missing or invalid state triggers `scripts/playwright-auth-role.sh <role>`, which recreates only that role's state from the ignored credentials file. If credentials are unavailable or login fails, MCP fails closed with an actionable error instead of starting with an anonymous or wrong-role session.
 ### MCP process and browser timeouts
 
-The role wrapper limits each MCP and auth Compose process to 2 minutes (120s) by default. It sends `TERM` when the limit is reached, waits 15 seconds for cleanup, then sends `KILL` if the process remains alive. Compose runs keep `--rm --no-deps`, so exited MCP containers are removed.
+The interactive role wrapper tracks MCP stdio requests. It starts graceful shutdown 15 seconds before the 60-second idle deadline, sends `TERM`, then sends `KILL` at the deadline if needed. This bounds each MCP container to at most 60 seconds after its last request. Compose runs keep `--rm --no-deps`, so exited MCP containers are removed.
 
-Override only for unusually long local flows:
+The idle limit is fixed at 60 seconds maximum. `PLAYWRIGHT_MCP_IDLE_TIMEOUT_SECS` may reduce it for local diagnostics (`1..60` seconds); the watchdog uses the remaining idle window for graceful cleanup. Invalid values fail before Compose starts. Idle cleanup reports `Playwright MCP idle` and returns non-zero.
+
+Auth image build, session preflight, and login remain bounded by `PLAYWRIGHT_MCP_MAX_RUNTIME` and `PLAYWRIGHT_MCP_KILL_GRACE`; these are job timeouts, not idle timers:
 
 ```bash
 PLAYWRIGHT_MCP_MAX_RUNTIME=1800 PLAYWRIGHT_MCP_KILL_GRACE=30 \
-  ./scripts/playwright-mcp-role.sh team-lead
+  ./scripts/playwright-auth-role.sh team-lead
 ```
 
-`PLAYWRIGHT_MCP_MAX_RUNTIME` accepts `1..3600` seconds. `PLAYWRIGHT_MCP_KILL_GRACE` accepts `1..300` seconds. Invalid values fail before Compose starts. A timeout reports `Playwright process timed out` and returns non-zero.
+Browser-level defaults are explicit: action `5s`, navigation `30s`, and settle `1s`. These stop individual browser operations from waiting indefinitely. The `/api/v1/me` session preflight remains bounded to `10s`.
 
-Browser-level defaults are explicit: action `5s`, navigation `30s`, and settle `1s`. These stop individual browser operations from waiting indefinitely; they do not end an otherwise healthy MCP session. The `/api/v1/me` session preflight remains bounded to `10s`.
+### Playwright runtime storage
+
+The MCP service uses a read-only container root. Runtime-writable paths (`/tmp`, Chromium cache/config directories, and `/dev/shm`) are memory-backed through `tmpfs`; they disappear when the container exits. MCP has no persistent Playwright volume. Auth state is the deliberate disk exception: role JSON is created under `.secrets/playwright-auth/` on the host, mounted read-only during MCP sessions, and mounted read-write only during auth-state creation. Temporary login credentials are removed by the auth wrapper on exit.
 
 ```bash
 rm -f .secrets/playwright-auth/team-lead.json

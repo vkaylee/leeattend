@@ -221,6 +221,13 @@ services:
       - --timeout-action=5000
       - --timeout-navigation=30000
       - --timeout-settle=1000
+    read_only: true
+    shm_size: 256m
+    tmpfs:
+      - /tmp
+      - /root/.cache
+      - /root/.config
+      - /root/.local
     networks: [frontend_net]
 
 

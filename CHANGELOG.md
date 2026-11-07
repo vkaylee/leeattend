@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+### Changed
+- Playwright MCP containers now terminate within 60 seconds after the last MCP request, while auth setup keeps its bounded job timeout.
+
+### Security
+- Playwright MCP runtime filesystem is read-only with Chromium temporary paths backed by `tmpfs`; role auth state remains the only deliberate persistent runtime file.
+
 
 
 ### Added

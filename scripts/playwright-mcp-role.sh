@@ -3,7 +3,6 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "$(readlink -f "$0")")/.." && pwd)"
 source "$ROOT/scripts/playwright-timeout.sh"
-playwright_timeout_init
 
 ROLE="${1:-employee}"
 shift || true
@@ -70,7 +69,8 @@ MCP_COMMAND=(
 )
 
 
-playwright_timeout_run "${COMPOSE[@]}" \
+playwright_idle_run "$ROOT/scripts/_python.sh" "$ROOT/scripts/playwright-idle-watchdog.py" \
+  "${COMPOSE[@]}" \
   -p leedevkit-dev \
   -f "$ROOT/.compose/docker-compose.dev.yml" \
   --profile mcp \
