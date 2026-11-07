@@ -1,7 +1,7 @@
 # ADR 001: Multi-Tenant Architecture (System DB + Tenant DBs)
 
 ## Status
-**Accepted** (Date: 2026-05-17)
+**Superseded** by [ADR 0004](0004-remove-saas-tenant-platform-role-surfaces.md) and [.ai/plans/standalone-onprem-plan.md](../plans/standalone-onprem-plan.md). The system has transitioned from multi-tenant SaaS to a Single-Tenant On-Premise appliance with a unified PostgreSQL database.
 
 ## Context
 LeeAttend định hướng là một hệ thống HRM & Attendance chuẩn Enterprise (Premium Pro Max). Với số lượng khách hàng B2B lớn, cần có một chiến lược rõ ràng về mức độ cô lập dữ liệu (Data Isolation) giữa các workspace để đảm bảo bảo mật, tuân thủ pháp lý (Compliance), và khả năng mở rộng (Scalability) dài hạn.

@@ -101,12 +101,12 @@ export default function UnifiedInboxPage() {
     }
   };
 
-  const typeTabs: Array<{
+  const typeTabs: {
     id: ApprovalType | "all";
     label: string;
     count: number;
     icon: React.ReactNode;
-  }> = [
+  }[] = [
     {
       id: "all",
       label: t("common.all", "Tất cả"),
@@ -139,7 +139,7 @@ export default function UnifiedInboxPage() {
     },
   ];
 
-  const statusTabs: Array<{ id: ApprovalItemStatus | "all"; label: string }> = [
+  const statusTabs: { id: ApprovalItemStatus | "all"; label: string }[] = [
     { id: "pending", label: t("approvals.status.pending", "Chờ duyệt") },
     { id: "approved", label: t("approvals.status.approved", "Đã duyệt") },
     { id: "rejected", label: t("approvals.status.rejected", "Đã từ chối") },

@@ -737,5 +737,7 @@
       "strategy_block": "阻止",
       "strategy_clamp": "限制"
     }
-  }
+  },
+  "searchPlaceholder": "Tìm cài đặt & tính năng...",
+  "categories_menu": "Danh mục"
 }

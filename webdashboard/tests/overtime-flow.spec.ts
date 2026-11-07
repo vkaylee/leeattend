@@ -11,8 +11,8 @@ test.describe("Overtime Flow", () => {
     page.on('console', _message => { /* empty */ });
     page.on('pageerror', _error => { /* empty */ });
 
-    // Wait for dashboard to load (use Quick Stats region which is always visible)
-    await expect(page.getByRole('region', { name: /Quick Stats/i })).toBeVisible({ timeout: 15000 });
+    // Wait for standalone desktop page to load
+    await expect(page.getByTestId('desktop-page')).toBeVisible({ timeout: 15000 });
 
     // Navigate to OT Approvals Page
     await page.goto("/approvals/ot");

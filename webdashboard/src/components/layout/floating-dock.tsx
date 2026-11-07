@@ -126,8 +126,7 @@ export const FloatingDock = memo(function FloatingDock({
       aria-label={t("common.settings.navigation", "Navigation")}
       data-testid="floating-dock"
       className={cn(
-        "hidden md:flex fixed bottom-5 left-1/2 -translate-x-1/2 z-40 items-center gap-1.5 md:gap-2",
-        "px-3.5 py-2 rounded-2xl md:rounded-3xl",
+        "hidden lg:flex fixed bottom-5 left-1/2 -translate-x-1/2 z-40 items-center gap-1.5 md:gap-2",
         "bg-white/90 dark:bg-slate-950/90 backdrop-blur-2xl",
         "border border-slate-200/80 dark:border-slate-800/80",
         "shadow-2xl shadow-slate-900/10 dark:shadow-black/60",

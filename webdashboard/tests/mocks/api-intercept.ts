@@ -531,6 +531,10 @@ export async function setupApiMocks(page: Page) {
       });
     }
 
+    if (pathname.includes('/behalf-assignments/my-targets')) {
+      return fulfill(MOCK_EMPLOYEES);
+    }
+
     if (pathname.includes('/overtime/requests')) {
       if (method === 'GET') {
         return fulfill({

@@ -106,35 +106,6 @@
       "upload_limit": "Excel (最大 10MB)",
       "upload_prompt": "点击或拖拽文件到这里"
     },
-    "attendance_logs": {
-      "assign": "分配",
-      "create_employee": "创建",
-      "export_btn": "导出数据",
-      "import_btn": "导入数据",
-      "messages": {
-        "unknown_source": "外部考勤来源",
-        "loading": "正在加载日志...",
-        "no_data": "未找到打卡日志。",
-        "no_data_hint": "尝试调整日期范围筛选器或选择其他员工以查找您需要的内容。",
-        "no_unknown_logs": "没有未识别的记录"
-      },
-      "modal": {
-        "import_title": "从文件导入打卡记录"
-      },
-      "not_in_system": "不在系统中",
-      "select_employee": "选择员工...",
-      "status": {
-        "recorded": "已记录"
-      },
-      "subtitle": "来自考勤机和打卡源的原始数据。",
-      "tabs": {
-        "recorded": "打卡记录",
-        "unknown": "未识别"
-      },
-      "title": "打卡日志",
-      "unknown_id": "未知 ID",
-      "view_reports": "查看摘要报告"
-    },
     "auto": "自动",
     "back": "返回",
     "back_to_workspace": "返回工作区",
@@ -248,103 +219,6 @@
       "widget_error": "组件错误"
     },
     "error_occurred": "发生错误",
-    "ess": {
-      "account_number": "账号",
-      "add_contact": "添加联系人",
-      "add_emergency_contact": "添加紧急联系人",
-      "address": "地址",
-      "address_placeholder": "输入您的当前居住地址",
-      "attendance": {
-        "active_status": "活跃中...",
-        "check_in": "上班打卡",
-        "check_out": "下班打卡",
-        "claim_btn": "申请",
-        "date": "日期",
-        "duration": "时长",
-        "generation_info": "处理信息（可追溯性）",
-        "no_data": "本月未找到考勤数据。",
-        "ot_status": "加班状态",
-        "status": "状态",
-        "subtitle": "查看您的每日打卡/签退历史。",
-        "system_ot_suffix": "{{minutes}}分钟 加班",
-        "title": "我的考勤"
-      },
-      "bank_branch": "支行名称",
-      "bank_details": "银行账户信息",
-      "bank_name": "银行名称",
-      "branch_placeholder": "输入支行名称",
-      "clock": {
-        "adjustment_requested": "调整请求已提交",
-        "break_start_success": "开始休息",
-        "no_entries": "没有最近的时间条目",
-        "punch_in_success": "上班打卡成功",
-        "punch_out_success": "下班打卡成功",
-        "recent_history": "最近活动（过去 7 天）",
-        "subtitle": "记录工作和休息的打卡/签退时间",
-        "title": "打卡机"
-      },
-      "contact_hr": "请联系人力资源部将您的账号与员工档案关联。",
-      "contact_name": "联系人姓名",
-      "date_of_birth": "出生日期",
-      "documents": {
-        "title": "我的文档"
-      },
-      "emergency_contact": {
-        "add_error": "添加联系人时出错",
-        "add_success": "联系人添加成功",
-        "confirm_delete": "您确定要删除此联系人吗？",
-        "delete_error": "删除联系人时出错",
-        "delete_success": "联系人删除成功",
-        "subtitle": "紧急情况下通知的亲属。"
-      },
-      "emergency_contacts": "紧急联系人",
-      "gender": "性别",
-      "gender_female": "女",
-      "gender_male": "男",
-      "gender_other": "其他",
-      "my_profile": "我的档案",
-      "national_id": "身份证号",
-      "no_emergency_contacts": "未找到紧急联系人。",
-      "no_employee_linked": "未关联员工",
-      "ot": {
-        "attachment": "Attachment (PDF ONLY)",
-        "claim_desc": "提交您的加班申请以供批准",
-        "claim_title": "申请加班",
-        "claimed_minutes": "申请分钟数",
-        "close": "关闭",
-        "error_exceeds_system": "申请时长不能超过系统检测到的加班时长",
-        "error_zero_minutes": "分钟数必须大于 0",
-        "no_assignments": "No Overtime Assignments",
-        "no_assignments_desc": "You don't have any pending overtime requests or assignments.",
-        "no_quota": "No quota configured",
-        "quota_subtitle": "Your limits and usage",
-        "quota_title": "Overtime Quota",
-        "reason_placeholder": "您为什么加班？",
-        "request": "Request OT",
-        "request_success": "Overtime request created successfully",
-        "request_title": "Request Overtime",
-        "subtitle": "Request overtime or respond to assignments",
-        "system_detected": "系统检测到",
-        "title": "My Overtime"
-      },
-      "personal_info": "个人信息",
-      "phone": "电话号码",
-      "primary": "主要",
-      "profile": {
-        "subtitle": "查看并管理您的个人信息。",
-        "title": "我的档案",
-        "update_error": "更新档案时出错",
-        "update_success": "档案更新成功"
-      },
-      "relationship": "关系",
-      "relationship_child": "子女",
-      "relationship_friend": "朋友",
-      "relationship_other": "其他",
-      "relationship_parent": "父母",
-      "relationship_sibling": "兄弟姐妹",
-      "relationship_spouse": "配偶",
-      "set_as_primary": "设为主要联系人"
-    },
     "exit_fullscreen": "退出全屏",
     "expand": "展开",
     "expand_all": "全部展开",
@@ -988,98 +862,6 @@
     "selected_count": "已选 {{selected}}/{{total}}",
     "sending": "正在发送...",
     "set": "设置",
-    "settings": {
-      "admin_only": "仅限管理员",
-      "categories": {
-        "general": "常规",
-        "general_desc": "品牌和基本工作区选项。",
-        "organization": "组织",
-        "organization_desc": "管理公司详细信息和品牌。",
-        "general_desc": "品牌和基本工作区选项。",
-        "leave": "休假管理",
-        "payroll": "薪资",
-        "payroll_desc": "管理标准工作日和薪资公式。",
-        "people": "人员",
-        "people_desc": "管理员工、部门和角色。",
-        "time": "时间与考勤",
-        "time_desc": "配置班次、排班和考勤规则。"
-      },
-      "layout": {
-        "access": "访问控制",
-        "control_panel": "控制面板",
-        "operations": "运营",
-        "security_system": "安全与系统",
-        "workspace": "工作空间"
-      },
-      "leave": {
-        "actions": {
-          "assign": "分配政策"
-        },
-        "desc": "为您的工作区配置休假类型和累算政策。",
-        "fields": {
-          "approval": "批准",
-          "days_per_period": "天 / 周期",
-          "document": "文档"
-        },
-        "messages": {
-          "assignment_note": "政策分配定义了每个人的假期计算方式。更改将在下次计划的累算运行时应用，或通过通用设置中的“累算运行”工具强制执行。",
-          "create_success": "政策创建成功",
-          "delete_success": "政策删除成功",
-          "loading": "正在加载分配...",
-          "no_assignments": "未找到政策分配",
-          "update_error": "更新休假类型失败",
-          "update_success": "休假类型更新成功"
-        },
-        "table": {
-          "assignee": "被分配人",
-          "created_at": "创建于",
-          "effective_date": "生效日期",
-          "policy": "政策",
-          "type": "类型"
-        },
-        "tabs": {
-          "assignments": "政策分配",
-          "assignments_desc": "将政策分配给员工或部门",
-          "policies": "累算政策",
-          "policies_desc": "设置假期随时间累积的方式",
-          "types": "休假类型",
-          "types_desc": "定义可用的休假类型及其规则"
-        },
-        "title": "休假设置",
-        "types": {
-          "paid": "带薪假",
-          "unpaid": "无薪假"
-        }
-      },
-      "navigation": "导航",
-      "notes_title": "注意",
-      "tabs": {
-        "agents": "连接的应用程序",
-        "appearance": "外观",
-        "departments": "部门",
-        "employment_phases": "雇佣阶段",
-        "general": "常规配置",
-        "incentives": "激励与奖金",
-        "incentives_benefits": "福利与激励",
-        "localization": "本地化",
-        "members": "成员",
-        "overtime_policy": "加班政策",
-        "patterns": "工作模式",
-        "payroll_policy": "薪资政策",
-        "rules": "自动分配规则",
-        "rules_policies": "规则与政策",
-        "salary_components": "薪资组成部分",
-        "salary_structures": "薪资结构",
-        "statutory_rules": "法定规则"
-      },
-      "time": {
-        "error_desc": "获取设置规则时发生意外错误。请重试。",
-        "error_title": "无法加载时间设置",
-        "missing_desc": "未为此工作区配置工作区详情或默认规则。",
-        "missing_title": "未找到数据"
-      },
-      "title": "设置中心"
-    },
     "shift": "班次",
     "shift_name": "班次名称",
     "shifts": "排班管理",
@@ -1236,22 +1018,84 @@
       },
       "workspace_logo": "工作区标志",
       "workspace_name": "工作空间名称",
-      "workspace_name_placeholder": "例如：LeeAttend Corp"
+      "workspace_name_placeholder": "例如：LeeAttend Corp",
+      "dark_mode_preference": "Chế độ hiển thị"
     },
     "year": "年",
     "yes": "是",
     "zoom_in": "放大",
     "zoom_out": "缩小",
-    "zoom_reset": "重置缩放"
+    "zoom_reset": "重置缩放",
+    "common": {
+      "done": "Xong",
+      "approved": "Đã duyệt",
+      "rejected": "Đã từ chối",
+      "no_results": "Không tìm thấy cài đặt phù hợp"
+    },
+    "done": "Xong",
+    "approved": "Đã duyệt",
+    "rejected": "Đã từ chối",
+    "no_results": "Không tìm thấy cài đặt phù hợp",
+    "settings": {
+      "navigation": "Settings navigation",
+      "notes_title": "Notes",
+      "title": "Settings",
+      "categories": {
+        "general": "General",
+        "organization": "Organization",
+        "organization_desc": "Manage organization settings",
+        "payroll": "Payroll",
+        "payroll_desc": "Manage payroll settings",
+        "time": "Time and attendance",
+        "time_desc": "Manage time settings"
+      },
+      "tabs": {
+        "localization": "Localization",
+        "appearance": "Appearance",
+        "departments": "Departments",
+        "rules_policies": "Rules and policies",
+        "salary_structures": "Salary structures",
+        "incentives_benefits": "Incentives and benefits",
+        "payroll_policy": "Payroll policy",
+        "salary_components": "Salary components",
+        "incentives": "Incentives",
+        "overtime_policy": "Overtime policy",
+        "statutory_rules": "Statutory rules"
+      },
+      "time": {
+        "error_title": "Time settings error",
+        "error_desc": "Time settings could not be loaded.",
+        "missing_title": "Time settings unavailable",
+        "missing_desc": "Configure time settings to continue."
+      }
+    }
   },
   "dashboard": {
     "title": "仪表板",
     "welcome": "欢迎回来！这是您的工作空间活动摘要。",
     "filters": {
       "label": "高管仪表板筛选器",
-      "period": { "label": "报告周期", "today": "今天", "this_week": "本周", "this_month": "本月", "this_quarter": "本季度", "year_to_date": "年初至今", "custom": "自定义范围" },
-      "comparison": { "label": "比较", "none": "不比较", "previous_period": "上一周期", "same_period_last_year": "去年同期", "target": "目标", "budget": "预算", "benchmark": "基准" },
-      "department": { "label": "部门" },
+      "period": {
+        "label": "报告周期",
+        "today": "今天",
+        "this_week": "本周",
+        "this_month": "本月",
+        "this_quarter": "本季度",
+        "year_to_date": "年初至今",
+        "custom": "自定义范围"
+      },
+      "comparison": {
+        "label": "比较",
+        "none": "不比较",
+        "previous_period": "上一周期",
+        "same_period_last_year": "去年同期",
+        "target": "目标",
+        "budget": "预算",
+        "benchmark": "基准"
+      },
+      "department": {
+        "label": "部门"
+      },
       "start_date": "开始日期",
       "end_date": "结束日期",
       "custom_date_error": "请输入有效的自定义开始和结束日期。",
@@ -1273,15 +1117,26 @@
       "comparison_help": "与对比期间的变化",
       "comparison_unavailable": "无对比数据",
       "freshness_help": "最近数据刷新时间",
-      "units": { "hours": "小时", "hours_short": "h" },
-      "status": { "available": "可用", "not_applicable": "不适用", "data_gap": "数据缺口", "restricted": "受限" },
+      "units": {
+        "hours": "小时",
+        "hours_short": "h"
+      },
+      "status": {
+        "available": "可用",
+        "not_applicable": "不适用",
+        "data_gap": "数据缺口",
+        "restricted": "受限"
+      },
       "null_reason": {
         "no_paid_payslips": "本期间内没有已支付或已结算的工资单。",
         "budget_config_missing": "未为此指标配置预算。",
         "forecast_source_unavailable": "尚无薪资预测来源。",
         "zero_denominator": "本期间没有分母数据。"
       },
-      "view_selector": { "hours": "小时", "cost": "成本" },
+      "view_selector": {
+        "hours": "小时",
+        "cost": "成本"
+      },
       "panel": {
         "title": "加班与人工成本",
         "view_selector": "加班视图",
@@ -1304,24 +1159,78 @@
         "cost_no_payroll_tooltip": "本期间内没有已支付或已结算的工资。"
       },
       "metrics": {
-        "headcount": { "label": "员工人数", "formula": "期末在职员工" },
-        "attendance_rate": { "label": "出勤率", "formula": "出勤员工日 / 符合条件员工日" },
-        "absence_rate": { "label": "缺勤率", "formula": "缺勤员工日 / 符合条件员工日" },
-        "late_rate": { "label": "迟到率", "formula": "排班迟到员工日 / 排班员工日" },
-        "turnover_rate": { "label": "流动率", "formula": "离职人数 / 平均员工人数" },
-        "system_ot_hours": { "label": "系统OT小时", "formula": "系统检测的加班小时" },
-        "approved_ot_hours": { "label": "已批准OT小时", "formula": "已批准的加班小时" },
-        "unapproved_ot_hours": { "label": "未批准OT小时", "formula": "尚未批准的系统加班" },
-        "ot_approval_rate": { "label": "OT批准率", "formula": "已批准加班 / 系统检测加班" },
-        "overtime": { "label": "加班", "formula": "已批准加班小时（或授权后的费用）" },
-        "overtime_hours": { "label": "加班小时", "formula": "已批准加班分钟 / 60" },
-        "overtime_cost": { "label": "加班费用", "formula": "期间内已结算的加班工资" },
-        "ot_cost_per_employee": { "label": "人均OT成本", "formula": "加班成本 ÷ 在职员工数" },
-        "labor_cost": { "label": "人工成本", "formula": "基本工资 + 加班 + 节假日补贴（已支付且已结算）" },
-        "payroll_actual": { "label": "实际薪资", "formula": "已支付且已结算工资单的净工资" },
-        "payroll_forecast": { "label": "薪资预测", "formula": "预测功能尚未可用" },
-        "budget_variance": { "label": "预算差异", "formula": "人工成本 − 人工预算" },
-        "pending_hr_actions": { "label": "待处理人事事项", "formula": "待处理人事工作流事项" }
+        "headcount": {
+          "label": "员工人数",
+          "formula": "期末在职员工"
+        },
+        "attendance_rate": {
+          "label": "出勤率",
+          "formula": "出勤员工日 / 符合条件员工日"
+        },
+        "absence_rate": {
+          "label": "缺勤率",
+          "formula": "缺勤员工日 / 符合条件员工日"
+        },
+        "late_rate": {
+          "label": "迟到率",
+          "formula": "排班迟到员工日 / 排班员工日"
+        },
+        "turnover_rate": {
+          "label": "流动率",
+          "formula": "离职人数 / 平均员工人数"
+        },
+        "system_ot_hours": {
+          "label": "系统OT小时",
+          "formula": "系统检测的加班小时"
+        },
+        "approved_ot_hours": {
+          "label": "已批准OT小时",
+          "formula": "已批准的加班小时"
+        },
+        "unapproved_ot_hours": {
+          "label": "未批准OT小时",
+          "formula": "尚未批准的系统加班"
+        },
+        "ot_approval_rate": {
+          "label": "OT批准率",
+          "formula": "已批准加班 / 系统检测加班"
+        },
+        "overtime": {
+          "label": "加班",
+          "formula": "已批准加班小时（或授权后的费用）"
+        },
+        "overtime_hours": {
+          "label": "加班小时",
+          "formula": "已批准加班分钟 / 60"
+        },
+        "overtime_cost": {
+          "label": "加班费用",
+          "formula": "期间内已结算的加班工资"
+        },
+        "ot_cost_per_employee": {
+          "label": "人均OT成本",
+          "formula": "加班成本 ÷ 在职员工数"
+        },
+        "labor_cost": {
+          "label": "人工成本",
+          "formula": "基本工资 + 加班 + 节假日补贴（已支付且已结算）"
+        },
+        "payroll_actual": {
+          "label": "实际薪资",
+          "formula": "已支付且已结算工资单的净工资"
+        },
+        "payroll_forecast": {
+          "label": "薪资预测",
+          "formula": "预测功能尚未可用"
+        },
+        "budget_variance": {
+          "label": "预算差异",
+          "formula": "人工成本 − 人工预算"
+        },
+        "pending_hr_actions": {
+          "label": "待处理人事事项",
+          "formula": "待处理人事工作流事项"
+        }
       }
     },
     "tabs": {
@@ -2115,5 +2024,325 @@
       "openAction": "打开功能",
       "pressEnter": "按 ↵ 立即打开"
     }
+  },
+  "recorded_logs": "Nhật ký điểm danh thực tế",
+  "customizeTitle": "Tùy biến Desktop & Widget",
+  "customizeSubtitle": "Bật hoặc tắt các widget hiển thị trên màn hình chính của bạn",
+  "enabled": "Đã bật",
+  "add": "Gắn vào",
+  "resetDefault": "Khôi phục mặc định",
+  "done": "Xong",
+  "goodMorning": "Chào buổi sáng",
+  "goodAfternoon": "Chào buổi chiều",
+  "goodEvening": "Chào buổi tối",
+  "subtitle": "Không gian làm việc & Bảng điều khiển Synology DSM 7",
+  "searchApps": "Tìm ứng dụng & tính năng...",
+  "customizeWidgets": "Gắn Widget",
+  "hideWidget": "Ẩn widget",
+  "kpiUnavailable": "Không thể tải số liệu KPI điều hành",
+  "estimatedPayroll": "Dự toán quỹ lương tháng",
+  "viewPayroll": "Xem bảng tính lương",
+  "punctualityRate": "Chỉ số hoàn thành công chuẩn",
+  "viewReports": "Xem báo cáo chuyên cần",
+  "punchOutSuccess": "Đã ghi nhận tan ca",
+  "punchInSuccess": "Đã ghi nhận vào ca thành công",
+  "punchErrorDesc": "Vui lòng thử lại hoặc kiểm tra kết nối mạng",
+  "punchError": "Không thể thực hiện chấm công",
+  "clockedIn": "Đang trong ca",
+  "notClockedIn": "Chưa vào ca",
+  "startedAt": "Vào ca lúc",
+  "clockOutNow": "Bấm giờ tan ca",
+  "clockInNow": "Bấm giờ vào ca",
+  "viewMyClock": "Xem chi tiết chấm công",
+  "openDsmTitle": "Main Menu & Tìm kiếm",
+  "openDsmSubtitle": "Duyệt toàn bộ 45 ứng dụng & cài đặt",
+  "systemNormal": "Tất cả dịch vụ hoạt động bình thường",
+  "openMonitor": "Chi tiết giám sát",
+  "statsUnavailable": "Không thể tải số liệu chuyên cần hôm nay",
+  "attendanceRate": "Tỷ lệ có mặt hôm nay",
+  "totalHeadcount": "Tổng nhân sự",
+  "present": "Có mặt",
+  "onLeave": "Nghỉ phép",
+  "pending": "Chờ duyệt",
+  "viewAttendanceLogs": "Xem bảng công đầy đủ",
+  "density": {
+    "compact": "Nhỏ gọn",
+    "normal": "Tiêu chuẩn",
+    "comfortable": "Rộng rãi",
+    "label": "Mật độ hiển thị bảng"
+  },
+  "batch": {
+    "toolbar_label": "Thanh thao tác hàng loạt",
+    "selected_count": "yêu cầu đã chọn",
+    "approve_btn": "Duyệt tất cả",
+    "reject_btn": "Từ chối",
+    "approve_success": "Đã duyệt thành công {{count}} yêu cầu",
+    "reject_success": "Đã từ chối {{count}} yêu cầu",
+    "partial_failure": "Thành công {{succeeded}}, thất bại {{failed}}"
+  },
+  "drawer": {
+    "team_context": "Bối cảnh lịch làm việc đội ngũ",
+    "details_title": "Thông tin chi tiết yêu cầu",
+    "target_date": "Thời gian áp dụng",
+    "duration": "Thời lượng",
+    "status": "Trạng thái",
+    "reason": "Lý do"
+  },
+  "select_item": "Chọn yêu cầu của {{name}}",
+  "quick_approve": "Duyệt nhanh",
+  "quick_reject": "Từ chối",
+  "approved": "Đã duyệt",
+  "rejected": "Đã từ chối",
+  "rejection": {
+    "reason_required": "Vui lòng nhập lý do từ chối yêu cầu",
+    "subtitle": "Lý do này sẽ được gửi thông báo đến nhân sự liên quan",
+    "title": "Xác nhận từ chối {{count}} yêu cầu",
+    "reason_label": "Lý do từ chối *",
+    "placeholder": "Nhập lý do cụ thể (ví dụ: Thiếu nhân sự trực ca, thời gian tăng ca chưa được duyệt trước)...",
+    "confirm_btn": "Xác nhận từ chối"
+  },
+  "impact": {
+    "no_conflict_title": "Không có xung đột nhân sự",
+    "no_conflict_dept": "Không có thành viên nào khác trong phòng {{dept}} nghỉ ngày {{date}}.",
+    "no_conflict_generic": "Lịch làm việc của đội ngũ đảm bảo an toàn vận hành.",
+    "understaffing_alert": "Cảnh báo thiếu hụt nhân sự",
+    "colleagues_away": "Nhân sự vắng mặt cùng ngày",
+    "people_count": "người vắng",
+    "away_list": "Đã có người nghỉ phép:"
+  },
+  "type": {
+    "leave": "Đơn xin nghỉ phép",
+    "adjustment": "Giải trình chấm công",
+    "shift_swap": "Đổi ca làm việc",
+    "overtime": "Xác nhận tăng ca (OT)"
+  },
+  "tabs": {
+    "leave": "Nghỉ phép",
+    "overtime": "Tăng ca",
+    "adjustment": "Giải trình",
+    "shift_swap": "Đổi ca"
+  },
+  "status": {
+    "pending": "Chờ duyệt",
+    "approved": "Đã duyệt",
+    "rejected": "Đã từ chối",
+    "all_status": "Tất cả trạng thái"
+  },
+  "inbox": {
+    "title": "Hộp thư Phê duyệt",
+    "pending_badge": "chờ duyệt",
+    "subtitle": "Quản lý và phê duyệt tập trung các yêu cầu Nghỉ phép, Tăng ca, Giải trình công và Đổi ca",
+    "empty_desc": "Không tìm thấy yêu cầu phê duyệt nào phù hợp với bộ lọc hiện tại",
+    "empty_title": "Không có yêu cầu chờ xử lý"
+  },
+  "type_tabs_label": "Loại yêu cầu",
+  "search_placeholder": "Tìm kiếm nhân sự, lý do...",
+  "select_all": "Chọn tất cả đơn chờ duyệt",
+  "unselect_all": "Bỏ chọn tất cả",
+  "showing_count": "Hiển thị {{count}} yêu cầu",
+  "emptyTitle": "Màn hình chưa có Widget nào",
+  "emptyDesc": "Bạn đã ẩn tất cả các widget. Bấm vào nút bên dưới để chọn và gắn các widget hữu ích lên Desktop.",
+  "attachWidgetsNow": "Gắn Widget vào Desktop",
+  "clock": {
+    "geofence_status_label": "Trạng thái vị trí chấm công",
+    "wifi_verified": "(Wi-Fi hợp lệ)",
+    "wifi_invalid": "(Ngoài mạng)",
+    "security_notice": "Vị trí được xác thực tự động",
+    "timeline_label": "Trực quan hóa ca làm việc 24h",
+    "timeline_title": "Dòng thời gian ca làm việc 24h",
+    "now_time": "Hiện tại:",
+    "break_tooltip": "Giờ nghỉ trưa",
+    "legend_shift": "Ca quy định",
+    "legend_break": "Nghỉ giữa ca",
+    "legend_punch": "Giờ làm thực tế",
+    "legend_now": "Thời điểm hiện tại",
+    "summary_label": "Tóm tắt giờ làm việc hôm nay",
+    "today_progress": "Tiến độ giờ làm hôm nay",
+    "goal_reached": "Chúc mừng! Bạn đã hoàn thành đủ số giờ làm tiêu chuẩn",
+    "goal_remaining": "Còn {{remaining}} để đạt 8 tiếng",
+    "actual_time": "Thực tế",
+    "standard_time": "Tiêu chuẩn",
+    "break_time": "Nghỉ trưa",
+    "ot_time": "Tăng ca"
+  },
+  "no_results": "Không tìm thấy cài đặt phù hợp",
+  "workspace_settings": {
+    "dark_mode_preference": "Chế độ hiển thị"
+  },
+  "title": "Roles",
+  "editRole": "Edit Role",
+  "matrix": "Matrix",
+  "deleteRole": "Delete Role",
+  "roleId": "Role ID:",
+  "noDescription": "No description provided.",
+  "manageAccess": "Manage Access",
+  "deleteTitle": "Delete Role",
+  "confirmDelete": "Are you sure you want to delete this role?",
+  "createRole": "Create Role",
+  "searchPlaceholder": "Tìm cài đặt & tính năng...",
+  "categories_menu": "Danh mục",
+  "attendance_logs": {
+    "recorded_logs": "Nhật ký điểm danh thực tế"
+  },
+  "desktop": {
+    "customizeTitle": "Tùy biến Desktop & Widget",
+    "customizeSubtitle": "Bật hoặc tắt các widget hiển thị trên màn hình chính của bạn",
+    "enabled": "Đã bật",
+    "add": "Gắn vào",
+    "resetDefault": "Khôi phục mặc định",
+    "goodMorning": "Chào buổi sáng",
+    "goodAfternoon": "Chào buổi chiều",
+    "goodEvening": "Chào buổi tối",
+    "subtitle": "Không gian làm việc & Bảng điều khiển Synology DSM 7",
+    "searchApps": "Tìm ứng dụng & tính năng...",
+    "customizeWidgets": "Gắn Widget",
+    "hideWidget": "Ẩn widget",
+    "kpiUnavailable": "Không thể tải số liệu KPI điều hành",
+    "estimatedPayroll": "Dự toán quỹ lương tháng",
+    "viewPayroll": "Xem bảng tính lương",
+    "punctualityRate": "Chỉ số hoàn thành công chuẩn",
+    "viewReports": "Xem báo cáo chuyên cần",
+    "openDsmTitle": "Main Menu & Tìm kiếm",
+    "openDsmSubtitle": "Duyệt toàn bộ 45 ứng dụng & cài đặt",
+    "systemNormal": "Tất cả dịch vụ hoạt động bình thường",
+    "openMonitor": "Chi tiết giám sát",
+    "statsUnavailable": "Không thể tải số liệu chuyên cần hôm nay",
+    "attendanceRate": "Tỷ lệ có mặt hôm nay",
+    "totalHeadcount": "Tổng nhân sự",
+    "present": "Có mặt",
+    "onLeave": "Nghỉ phép",
+    "pending": "Chờ duyệt",
+    "viewAttendanceLogs": "Xem bảng công đầy đủ",
+    "emptyTitle": "Màn hình chưa có Widget nào",
+    "emptyDesc": "Bạn đã ẩn tất cả các widget. Bấm vào nút bên dưới để chọn và gắn các widget hữu ích lên Desktop.",
+    "attachWidgetsNow": "Gắn Widget vào Desktop"
+  },
+  "ess": {
+    "punchOutSuccess": "Đã ghi nhận tan ca",
+    "punchInSuccess": "Đã ghi nhận vào ca thành công",
+    "punchErrorDesc": "Vui lòng thử lại hoặc kiểm tra kết nối mạng",
+    "punchError": "Không thể thực hiện chấm công",
+    "clockedIn": "Đang trong ca",
+    "notClockedIn": "Chưa vào ca",
+    "startedAt": "Vào ca lúc",
+    "clockOutNow": "Bấm giờ tan ca",
+    "clockInNow": "Bấm giờ vào ca",
+    "viewMyClock": "Xem chi tiết chấm công",
+    "clock": {
+      "geofence_status_label": "Trạng thái vị trí chấm công",
+      "wifi_verified": "(Wi-Fi hợp lệ)",
+      "wifi_invalid": "(Ngoài mạng)",
+      "security_notice": "Vị trí được xác thực tự động",
+      "timeline_label": "Trực quan hóa ca làm việc 24h",
+      "timeline_title": "Dòng thời gian ca làm việc 24h",
+      "now_time": "Hiện tại:",
+      "break_tooltip": "Giờ nghỉ trưa",
+      "legend_shift": "Ca quy định",
+      "legend_break": "Nghỉ giữa ca",
+      "legend_punch": "Giờ làm thực tế",
+      "legend_now": "Thời điểm hiện tại",
+      "summary_label": "Tóm tắt giờ làm việc hôm nay",
+      "today_progress": "Tiến độ giờ làm hôm nay",
+      "goal_reached": "Chúc mừng! Bạn đã hoàn thành đủ số giờ làm tiêu chuẩn",
+      "goal_remaining": "Còn {{remaining}} để đạt 8 tiếng",
+      "actual_time": "Thực tế",
+      "standard_time": "Tiêu chuẩn",
+      "break_time": "Nghỉ trưa",
+      "ot_time": "Tăng ca"
+    }
+  },
+  "table": {
+    "density": {
+      "compact": "Nhỏ gọn",
+      "normal": "Tiêu chuẩn",
+      "comfortable": "Rộng rãi",
+      "label": "Mật độ hiển thị bảng"
+    }
+  },
+  "approvals": {
+    "batch": {
+      "toolbar_label": "Thanh thao tác hàng loạt",
+      "selected_count": "yêu cầu đã chọn",
+      "approve_btn": "Duyệt tất cả",
+      "reject_btn": "Từ chối",
+      "approve_success": "Đã duyệt thành công {{count}} yêu cầu",
+      "reject_success": "Đã từ chối {{count}} yêu cầu",
+      "partial_failure": "Thành công {{succeeded}}, thất bại {{failed}}"
+    },
+    "drawer": {
+      "team_context": "Bối cảnh lịch làm việc đội ngũ",
+      "details_title": "Thông tin chi tiết yêu cầu",
+      "target_date": "Thời gian áp dụng",
+      "duration": "Thời lượng",
+      "status": "Trạng thái",
+      "reason": "Lý do"
+    },
+    "select_item": "Chọn yêu cầu của {{name}}",
+    "quick_approve": "Duyệt nhanh",
+    "quick_reject": "Từ chối",
+    "rejection": {
+      "reason_required": "Vui lòng nhập lý do từ chối yêu cầu",
+      "subtitle": "Lý do này sẽ được gửi thông báo đến nhân sự liên quan",
+      "title": "Xác nhận từ chối {{count}} yêu cầu",
+      "reason_label": "Lý do từ chối *",
+      "placeholder": "Nhập lý do cụ thể (ví dụ: Thiếu nhân sự trực ca, thời gian tăng ca chưa được duyệt trước)...",
+      "confirm_btn": "Xác nhận từ chối"
+    },
+    "impact": {
+      "no_conflict_title": "Không có xung đột nhân sự",
+      "no_conflict_dept": "Không có thành viên nào khác trong phòng {{dept}} nghỉ ngày {{date}}.",
+      "no_conflict_generic": "Lịch làm việc của đội ngũ đảm bảo an toàn vận hành.",
+      "understaffing_alert": "Cảnh báo thiếu hụt nhân sự",
+      "colleagues_away": "Nhân sự vắng mặt cùng ngày",
+      "people_count": "người vắng",
+      "away_list": "Đã có người nghỉ phép:"
+    },
+    "type": {
+      "leave": "Đơn xin nghỉ phép",
+      "adjustment": "Giải trình chấm công",
+      "shift_swap": "Đổi ca làm việc",
+      "overtime": "Xác nhận tăng ca (OT)"
+    },
+    "tabs": {
+      "leave": "Nghỉ phép",
+      "overtime": "Tăng ca",
+      "adjustment": "Giải trình",
+      "shift_swap": "Đổi ca"
+    },
+    "status": {
+      "pending": "Chờ duyệt",
+      "approved": "Đã duyệt",
+      "rejected": "Đã từ chối",
+      "all_status": "Tất cả trạng thái"
+    },
+    "inbox": {
+      "title": "Hộp thư Phê duyệt",
+      "pending_badge": "chờ duyệt",
+      "subtitle": "Quản lý và phê duyệt tập trung các yêu cầu Nghỉ phép, Tăng ca, Giải trình công và Đổi ca",
+      "empty_desc": "Không tìm thấy yêu cầu phê duyệt nào phù hợp với bộ lọc hiện tại",
+      "empty_title": "Không có yêu cầu chờ xử lý"
+    },
+    "type_tabs_label": "Loại yêu cầu",
+    "search_placeholder": "Tìm kiếm nhân sự, lý do...",
+    "select_all": "Chọn tất cả đơn chờ duyệt",
+    "unselect_all": "Bỏ chọn tất cả",
+    "showing_count": "Hiển thị {{count}} yêu cầu"
+  },
+  "settings": {
+    "searchPlaceholder": "Tìm cài đặt & tính năng...",
+    "categories_menu": "Danh mục"
+  },
+  "rolesPage": {
+    "title": "Roles",
+    "editRole": "Edit Role",
+    "matrix": "Matrix",
+    "deleteRole": "Delete Role",
+    "roleId": "Role ID:",
+    "noDescription": "No description provided.",
+    "manageAccess": "Manage Access",
+    "deleteTitle": "Delete Role",
+    "confirmDelete": "Are you sure you want to delete this role?",
+    "subtitle": "Define custom roles and manage access levels across the workspace",
+    "createRole": "Create Role"
   }
 }

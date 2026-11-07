@@ -7,16 +7,16 @@ test.describe("Responsive layout contracts", () => {
 
   test("uses the correct navigation for the viewport", async ({ page }, testInfo) => {
     const bottomNav = page.getByTestId("bottom-nav-more");
-    const navRail = page.getByTestId("nav-rail-logo");
+    const activePage = page.getByTestId("navbar-active-page");
 
     if (testInfo.project.name === "responsive-mobile" || testInfo.project.name === "responsive-tablet") {
       await expect(bottomNav).toBeVisible();
-      await expect(navRail).toBeHidden();
+      await expect(activePage).toBeVisible();
       return;
     }
 
     await expect(bottomNav).toBeHidden();
-    await expect(navRail).toBeVisible();
+    await expect(activePage).toBeVisible();
   });
 
   test("does not create horizontal page overflow", async ({ page }) => {

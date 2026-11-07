@@ -38,10 +38,10 @@ Target domains: P6-02, P6-03, P6-11
   - Interfaces: `internal/api/employers.go`, `internal/api/recruitment_sources.go`, `internal/repository/employers.go`, `internal/repository/recruitment_sources.go`.
   - Constraints: Circular parent employer prevention, active employee reference checks prior to deletion, audit logging.
   - Verify: `./scripts/_go-gates.sh` passes; handler tests verify parent loop rejection and 404/409 handling.
-- [ ] **Task 1.2: System Admin & SMTP & Tenants (16 routes)**
-  - Routes: `GET/PUT/POST /api/v1/system/smtp/*`, `GET/POST/DELETE /api/v1/system/roles`, `GET/POST/DELETE /api/v1/system/users/{user_id}/roles`, `GET/POST/DELETE/PATCH /api/v1/system/db-clusters/*`, `GET/POST/DELETE/PUT /api/v1/system/tenants/*`.
+- [x] **Task 1.2: System Admin & SMTP (Retained routes per ADR 0004)**
+  - Routes: `GET/PUT/POST /api/v1/system/smtp/*`, `GET /api/v1/system/health`, `GET /api/v1/monitor/*`.
+  - Note: Per ADR 0004 and Standalone On-Prem Plan, legacy SaaS surfaces (`/api/v1/system/tenants/*`, `/api/v1/system/roles`, `/api/v1/system/users/{user_id}/roles`, `/api/v1/system/db-clusters/*`) are removed. Retained system routes are guarded by standalone organization `admin` RBAC.
   - Interfaces: `internal/api/system_admin.go`, `internal/repository/system_admin.go`.
-  - Constraints: Protected by `SystemRoleType::PlatformAdmin`.
   - Verify: Unauthenticated or non-admin calls return 401/403.
 - [ ] **Task 1.3: Workspace Roles, Members & Settings Remaining (19 routes)**
   - Routes: `/workspaces/{ws_id}/roles/*`, `/workspaces/{ws_id}/members/*`, `/workspaces/{ws_id}/settings/*`.

@@ -22,7 +22,7 @@ React 19, Vite, TypeScript, Tailwind CSS 4, TanStack Query, and Tauri. The dashb
 
 ### Supporting infrastructure
 
-- PostgreSQL system and tenant databases.
+- PostgreSQL unified database for all system and application tables.
 - Redis for rate limiting, queue coordination, and report Pub/Sub.
 - MinIO for S3-compatible object storage.
 - Compose files for production, development, CI, and isolated test environments.
@@ -31,14 +31,14 @@ React 19, Vite, TypeScript, Tailwind CSS 4, TanStack Query, and Tauri. The dashb
 
 1. The scheduler enumerates enabled attendance sources within each workspace.
 2. The configured provider adapter pulls bounded pages using a durable cursor.
-3. A tenant transaction inserts processed-event identity, imports attendance data, stages unknown employees, records errors, and advances the cursor only after commit.
+3. A database transaction inserts processed-event identity, imports attendance data, stages unknown employees, records errors, and advances the cursor only after commit.
 4. Provider retries and page replay are safe because event identity is unique per workspace/source.
 
 No separate edge process, ingestion WebSocket protocol, or local attendance database remains in the runtime topology.
 
 ## Security and tenancy
 
-- Workspace predicates scope every tenant query.
+- Singleton workspace binding scopes application queries.
 - JWT authentication and workspace RBAC protect API routes.
 - Provider tokens stay out of logs, metrics, traces, and error payloads.
 - Attendance payloads and employee identifiers are treated as sensitive data.

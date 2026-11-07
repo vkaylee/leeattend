@@ -110,7 +110,7 @@ export function useBatchApproval(): UseBatchApprovalReturn {
 
     setIsProcessing(true);
     const succeeded: string[] = [];
-    const failed: Array<{ id: string; error: string }> = [];
+    const failed: { id: string; error: string }[] = [];
 
     try {
       const results = await Promise.allSettled(

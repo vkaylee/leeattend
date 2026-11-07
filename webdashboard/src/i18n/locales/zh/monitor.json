@@ -56,8 +56,15 @@
     "status_lost": "丢失",
     "status_pending": "待处理",
     "status_dispatching": "分发中",
-    "worker_status": { "idle": "空闲", "processing": "处理中" },
-    "worker_liveness": { "live": "在线", "stale": "过期", "offline": "离线" },
+    "worker_status": {
+      "idle": "空闲",
+      "processing": "处理中"
+    },
+    "worker_liveness": {
+      "live": "在线",
+      "stale": "过期",
+      "offline": "离线"
+    },
     "dependency_health": "依赖健康度",
     "dependency_health_subtitle": "仅显示真实测量来源；没有可靠来源的指标会标记为不可用。",
     "dependency_redis": "Redis",
@@ -125,11 +132,27 @@
     "health_unknown_description": "目前没有可信的监控快照。",
     "unknown_status": "状态不可用",
     "unknown_source": "来源不可用",
-    "alert_severity": { "critical": "严重", "high": "高", "medium": "中", "low": "低" },
-    "alert_status": { "active": "活动", "acknowledged": "已确认", "resolved": "已解决" },
-    "alert_source": { "redis": "Redis", "postgres": "PostgreSQL" },
-    "alert_event": { "alert_created": "已创建告警", "alert_updated": "已更新告警", "alert_acknowledged": "已确认告警", "alert_resolved": "已解决告警" },
-    "source_redis": "Redis",
+    "alert_severity": {
+      "critical": "严重",
+      "high": "高",
+      "medium": "中",
+      "low": "低"
+    },
+    "alert_status": {
+      "active": "活动",
+      "acknowledged": "已确认",
+      "resolved": "已解决"
+    },
+    "alert_source": {
+      "redis": "Redis",
+      "postgres": "PostgreSQL"
+    },
+    "alert_event": {
+      "alert_created": "已创建告警",
+      "alert_updated": "已更新告警",
+      "alert_acknowledged": "已确认告警",
+      "alert_resolved": "已解决告警"
+    },
     "source_postgres": "PostgreSQL",
     "source_durable_db": "持久化任务",
     "sources": {

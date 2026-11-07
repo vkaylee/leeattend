@@ -33,6 +33,7 @@ export function SettingsRow({
   const isClickable = Boolean(onClick) && !disabled;
 
   const content = (
+    // eslint-disable-next-line jsx-a11y/no-static-element-interactions
     <div
       className={cn(
         "flex min-h-[50px] items-center justify-between gap-4 px-4 py-3 text-xs transition-colors",

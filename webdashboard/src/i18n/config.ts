@@ -89,7 +89,7 @@ const customT = (
     return originalT(key, optionsOrFallbackValue, options);
   }
 
-  let ns = key.split('.')[0];
+  const ns = key.split('.')[0];
   if (!namespaces.includes(ns)) {
     return originalT(key, optionsOrFallbackValue, options);
   }

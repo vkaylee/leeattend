@@ -70,8 +70,8 @@ export default function AppShell({ variant: _variant }: AppShellProps) {
         {/* Desktop & Tablet: Modern Floating OS Dock */}
         <FloatingDock onOpenLauncher={dsmLauncher.open} />
 
-        {/* Mobile: Bottom Navigation Bar (< md) */}
-        <div className="md:hidden">
+        {/* Mobile and tablet: Bottom Navigation Bar (< lg) */}
+        <div className="lg:hidden">
           <BottomNav
             activeGroup={currentNavGroup}
             onMoreClick={() => {

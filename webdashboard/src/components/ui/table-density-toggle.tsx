@@ -56,11 +56,11 @@ export function TableDensityToggle({
 }: TableDensityToggleProps) {
   const { t } = useTranslation();
 
-  const options: Array<{
+  const options: {
     id: TableDensity;
     label: string;
     icon: React.ReactNode;
-  }> = [
+  }[] = [
     {
       id: "compact",
       label: t("table.density.compact", "Nhỏ gọn"),

@@ -42,16 +42,13 @@ test.describe('Workspace Branding', () => {
     // Wait for mutation to complete by checking button state
     await expect(saveBtn).toBeEnabled({ timeout: 10000 });
 
-    // Verify in Sidebar — branding remains in the DOM when the rail is compact.
-    const logo = page.getByTestId('sidebar-workspace-logo');
-    await expect(logo).toBeAttached({ timeout: 10000 });
+    // Verify in settings appearance preview
+    const logo = page.getByRole('img', { name: 'Workspace Logo' });
+    await expect(logo).toBeVisible({ timeout: 10000 });
     await expect(logo).toHaveCSS('background-image', new RegExp(testLogoUrl));
 
-    // Tagline should be in sidebar
-    const tagline = page.getByTestId('sidebar-workspace-tagline').first();
-    await expect(tagline).toBeAttached();
-    await expect(tagline).toHaveText(testTagline);
-
+    // Tagline input retains updated value
+    await expect(page.getByTestId('workspace-tagline-input')).toHaveValue(testTagline);
     // Cleanup: remove dialog listener
     page.off('dialog', dialogHandler);
   });

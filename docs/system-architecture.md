@@ -16,7 +16,7 @@ No edge process, tenant database, external attendance provider, or online activa
 
 The API server exposes authenticated REST resources for workspaces, employees, attendance, payroll, files, monitoring, and attendance-source operations.
 
-Workspace isolation is enforced through workspace context and tenant database predicates. Public routes are limited to health and authentication entrypoints.
+Singleton organization binding is enforced through configuration and shared database context. Public routes are limited to health and authentication entrypoints.
 
 ## Report streaming
 

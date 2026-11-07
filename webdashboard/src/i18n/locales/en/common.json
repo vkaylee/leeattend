@@ -106,35 +106,6 @@
       "upload_limit": "Excel (Max 10MB)",
       "upload_prompt": "Click or drag file here"
     },
-    "attendance_logs": {
-      "assign": "Assign",
-      "create_employee": "Create",
-      "export_btn": "Export Data",
-      "import_btn": "Import Data",
-      "messages": {
-        "unknown_source": "External attendance source",
-        "loading": "Loading logs...",
-        "no_data": "No punch logs found.",
-        "no_data_hint": "Try adjusting your date range filter or selecting a different employee to find what you're looking for.",
-        "no_unknown_logs": "No unidentified logs"
-      },
-      "modal": {
-        "import_title": "Import punch logs from file"
-      },
-      "not_in_system": "Not in system",
-      "select_employee": "Select employee...",
-      "status": {
-        "recorded": "Recorded"
-      },
-      "subtitle": "Raw data from timekeepers and punch sources.",
-      "tabs": {
-        "recorded": "Recorded Logs",
-        "unknown": "Unidentified"
-      },
-      "title": "Punch Logs",
-      "unknown_id": "Unknown ID",
-      "view_reports": "View Summary Report"
-    },
     "auto": "Auto",
     "back": "Back",
     "back_to_workspace": "Back to Workspace",
@@ -248,103 +219,6 @@
       "widget_error": "Widget Error"
     },
     "error_occurred": "An error occurred",
-    "ess": {
-      "account_number": "Account Number",
-      "add_contact": "Add Contact",
-      "add_emergency_contact": "Add emergency contact",
-      "address": "Address",
-      "address_placeholder": "Enter your current residence address",
-      "attendance": {
-        "active_status": "Active...",
-        "check_in": "Punch In",
-        "check_out": "Punch Out",
-        "claim_btn": "Claim",
-        "date": "Date",
-        "duration": "Duration",
-        "generation_info": "Processing Info (Traceability)",
-        "no_data": "No attendance data found for this month.",
-        "ot_status": "OT Status",
-        "status": "Status",
-        "subtitle": "View your daily clock-in/out history.",
-        "system_ot_suffix": "{{minutes}}m OT",
-        "title": "My Attendance"
-      },
-      "bank_branch": "Branch Name",
-      "bank_details": "Bank Account Information",
-      "bank_name": "Bank Name",
-      "branch_placeholder": "Enter bank branch",
-      "clock": {
-        "adjustment_requested": "Adjustment request submitted",
-        "break_start_success": "Break started",
-        "no_entries": "No recent time entries",
-        "punch_in_success": "Clocked in successfully",
-        "punch_out_success": "Clocked out successfully",
-        "recent_history": "Recent Activity (Last 7 Days)",
-        "subtitle": "Clock in and out for work and breaks",
-        "title": "Time Clock"
-      },
-      "contact_hr": "Please contact HR to link your account with an employee profile.",
-      "contact_name": "Contact Name",
-      "date_of_birth": "Date of Birth",
-      "documents": {
-        "title": "My Documents"
-      },
-      "emergency_contact": {
-        "add_error": "Error adding contact",
-        "add_success": "Contact added successfully",
-        "confirm_delete": "Are you sure you want to delete this contact?",
-        "delete_error": "Error deleting contact",
-        "delete_success": "Contact deleted successfully",
-        "subtitle": "Relatives to notify in case of emergency."
-      },
-      "emergency_contacts": "Emergency Contacts",
-      "gender": "Gender",
-      "gender_female": "Female",
-      "gender_male": "Male",
-      "gender_other": "Other",
-      "my_profile": "My Profile",
-      "national_id": "National ID",
-      "no_emergency_contacts": "No emergency contacts found.",
-      "no_employee_linked": "No employee linked",
-      "ot": {
-        "attachment": "Attachment (PDF ONLY)",
-        "claim_desc": "Submit your overtime claim for approval",
-        "claim_title": "Claim Overtime",
-        "claimed_minutes": "Minutes to Claim",
-        "close": "Close",
-        "error_exceeds_system": "Cannot claim more than system detected OT",
-        "error_zero_minutes": "Minutes must be greater than 0",
-        "no_assignments": "No Overtime Assignments",
-        "no_assignments_desc": "You don't have any pending overtime requests or assignments.",
-        "no_quota": "No quota configured",
-        "quota_subtitle": "Your limits and usage",
-        "quota_title": "Overtime Quota",
-        "reason_placeholder": "Why did you work overtime?",
-        "request": "Request OT",
-        "request_success": "Overtime request created successfully",
-        "request_title": "Request Overtime",
-        "subtitle": "Request overtime or respond to assignments",
-        "system_detected": "System Detected",
-        "title": "My Overtime"
-      },
-      "personal_info": "Personal Information",
-      "phone": "Phone Number",
-      "primary": "Primary",
-      "profile": {
-        "subtitle": "View and manage your personal information.",
-        "title": "My Profile",
-        "update_error": "Error updating profile",
-        "update_success": "Profile updated successfully"
-      },
-      "relationship": "Relationship",
-      "relationship_child": "Child",
-      "relationship_friend": "Friend",
-      "relationship_other": "Other",
-      "relationship_parent": "Parent",
-      "relationship_sibling": "Sibling",
-      "relationship_spouse": "Spouse",
-      "set_as_primary": "Set as primary"
-    },
     "exit_fullscreen": "Exit Fullscreen",
     "expand": "Expand",
     "expand_all": "Expand All",
@@ -988,97 +862,6 @@
     "selected_count": "Selected {{selected}}/{{total}}",
     "sending": "Sending...",
     "set": "Set",
-    "settings": {
-      "admin_only": "Administrators only",
-      "categories": {
-        "general": "General",
-        "general_desc": "Branding and basic workspace options.",
-        "leave": "Leave Management",
-        "organization": "Organization",
-        "organization_desc": "Manage company details and branding.",
-        "payroll": "Payroll",
-        "payroll_desc": "Manage standard work days and formulas.",
-        "people": "People",
-        "people_desc": "Manage employees, departments and roles.",
-        "time": "Time & Attendance",
-        "time_desc": "Configure shifts, rosters and attendance rules."
-      },
-      "layout": {
-        "access": "Access",
-        "control_panel": "Control Panel",
-        "operations": "Operations",
-        "security_system": "Security & System",
-        "workspace": "Workspace"
-      },
-      "leave": {
-        "actions": {
-          "assign": "Assign Policy"
-        },
-        "desc": "Configure leave types and accrual policies for your workspace.",
-        "fields": {
-          "approval": "Approval",
-          "days_per_period": "days / period",
-          "document": "Document"
-        },
-        "messages": {
-          "assignment_note": "Policy assignments define how leave is calculated for each person. Changes will be applied during the next scheduled accrual run or can be forced via the \"Accrual Run\" tool in General Settings.",
-          "create_success": "Policy created successfully",
-          "delete_success": "Policy deleted successfully",
-          "loading": "Loading assignments...",
-          "no_assignments": "No policy assignments found",
-          "update_error": "Failed to update leave type",
-          "update_success": "Leave type updated successfully"
-        },
-        "table": {
-          "assignee": "Assignee",
-          "created_at": "Created At",
-          "effective_date": "Effective Date",
-          "policy": "Policy",
-          "type": "Type"
-        },
-        "tabs": {
-          "assignments": "Policy Assignments",
-          "assignments_desc": "Assign policies to employees or departments",
-          "policies": "Accrual Policies",
-          "policies_desc": "Set up how leave is earned over time",
-          "types": "Leave Types",
-          "types_desc": "Define available leave types and their rules"
-        },
-        "title": "Leave Settings",
-        "types": {
-          "paid": "Paid Leave",
-          "unpaid": "Unpaid Leave"
-        }
-      },
-      "navigation": "Navigation",
-      "notes_title": "Note",
-      "tabs": {
-        "agents": "Connected Agents",
-        "appearance": "Appearance",
-        "departments": "Departments",
-        "employment_phases": "Employment Phases",
-        "general": "General Config",
-        "incentives": "Incentives & Bonuses",
-        "incentives_benefits": "Incentives & Benefits",
-        "localization": "Localization",
-        "members": "Members",
-        "overtime_policy": "Overtime Policy",
-        "patterns": "Working Patterns",
-        "payroll_policy": "Payroll Policy",
-        "rules": "Auto Rules",
-        "rules_policies": "Rules & Policies",
-        "salary_components": "Salary Components",
-        "salary_structures": "Salary Structures",
-        "statutory_rules": "Statutory Rules"
-      },
-      "time": {
-        "error_desc": "An unexpected error occurred while fetching the settings rules. Please try again.",
-        "error_title": "Failed to Load Time Settings",
-        "missing_desc": "Workspace details or default rules are not configured for this workspace.",
-        "missing_title": "No Data Found"
-      },
-      "title": "Settings Hub"
-    },
     "shift": "Shift",
     "shift_name": "Shift Name",
     "shifts": "Shifts & Roster",
@@ -1235,22 +1018,84 @@
       },
       "workspace_logo": "Workspace Logo",
       "workspace_name": "Workspace Name",
-      "workspace_name_placeholder": "e.g., LeeAttend Corp"
+      "workspace_name_placeholder": "e.g., LeeAttend Corp",
+      "dark_mode_preference": "Chế độ hiển thị"
     },
     "year": "Year",
     "yes": "Yes",
     "zoom_in": "Zoom In",
     "zoom_out": "Zoom Out",
-    "zoom_reset": "Reset Zoom"
+    "zoom_reset": "Reset Zoom",
+    "common": {
+      "done": "Xong",
+      "approved": "Đã duyệt",
+      "rejected": "Đã từ chối",
+      "no_results": "Không tìm thấy cài đặt phù hợp"
+    },
+    "done": "Xong",
+    "approved": "Đã duyệt",
+    "rejected": "Đã từ chối",
+    "no_results": "Không tìm thấy cài đặt phù hợp",
+    "settings": {
+      "navigation": "Settings navigation",
+      "notes_title": "Notes",
+      "title": "Settings",
+      "categories": {
+        "general": "General",
+        "organization": "Organization",
+        "organization_desc": "Manage organization settings",
+        "payroll": "Payroll",
+        "payroll_desc": "Manage payroll settings",
+        "time": "Time and attendance",
+        "time_desc": "Manage time settings"
+      },
+      "tabs": {
+        "localization": "Localization",
+        "appearance": "Appearance",
+        "departments": "Departments",
+        "rules_policies": "Rules and policies",
+        "salary_structures": "Salary structures",
+        "incentives_benefits": "Incentives and benefits",
+        "payroll_policy": "Payroll policy",
+        "salary_components": "Salary components",
+        "incentives": "Incentives",
+        "overtime_policy": "Overtime policy",
+        "statutory_rules": "Statutory rules"
+      },
+      "time": {
+        "error_title": "Time settings error",
+        "error_desc": "Time settings could not be loaded.",
+        "missing_title": "Time settings unavailable",
+        "missing_desc": "Configure time settings to continue."
+      }
+    }
   },
   "dashboard": {
     "title": "Dashboard",
     "welcome": "Welcome back! Here is a summary of your workspace activities.",
     "filters": {
       "label": "Executive dashboard filters",
-      "period": { "label": "Reporting period", "today": "Today", "this_week": "This week", "this_month": "This month", "this_quarter": "This quarter", "year_to_date": "Year to date", "custom": "Custom range" },
-      "comparison": { "label": "Comparison", "none": "No comparison", "previous_period": "Previous period", "same_period_last_year": "Same period last year", "target": "Target", "budget": "Budget", "benchmark": "Benchmark" },
-      "department": { "label": "Department" },
+      "period": {
+        "label": "Reporting period",
+        "today": "Today",
+        "this_week": "This week",
+        "this_month": "This month",
+        "this_quarter": "This quarter",
+        "year_to_date": "Year to date",
+        "custom": "Custom range"
+      },
+      "comparison": {
+        "label": "Comparison",
+        "none": "No comparison",
+        "previous_period": "Previous period",
+        "same_period_last_year": "Same period last year",
+        "target": "Target",
+        "budget": "Budget",
+        "benchmark": "Benchmark"
+      },
+      "department": {
+        "label": "Department"
+      },
       "start_date": "Start date",
       "end_date": "End date",
       "custom_date_error": "Enter valid custom start and end dates.",
@@ -1272,15 +1117,26 @@
       "comparison_help": "Change from comparison period",
       "comparison_unavailable": "No comparison",
       "freshness_help": "Last data refresh",
-      "units": { "hours": "hours", "hours_short": "h" },
-      "status": { "available": "Available", "not_applicable": "Not applicable", "data_gap": "Data gap", "restricted": "Restricted" },
+      "units": {
+        "hours": "hours",
+        "hours_short": "h"
+      },
+      "status": {
+        "available": "Available",
+        "not_applicable": "Not applicable",
+        "data_gap": "Data gap",
+        "restricted": "Restricted"
+      },
       "null_reason": {
         "no_paid_payslips": "No paid or finalized payslips in this period.",
         "budget_config_missing": "No budget configured for this metric.",
         "forecast_source_unavailable": "No payroll forecast source is available yet.",
         "zero_denominator": "No denominator data for this period."
       },
-      "view_selector": { "hours": "Hours", "cost": "Cost" },
+      "view_selector": {
+        "hours": "Hours",
+        "cost": "Cost"
+      },
       "panel": {
         "title": "Overtime & Labor Cost",
         "view_selector": "Overtime view",
@@ -1303,24 +1159,78 @@
         "cost_no_payroll_tooltip": "No paid or finalized payroll in this period."
       },
       "metrics": {
-        "headcount": { "label": "Headcount", "formula": "Active employees at period end" },
-        "attendance_rate": { "label": "Attendance rate", "formula": "Present employee-days / eligible employee-days" },
-        "absence_rate": { "label": "Absence rate", "formula": "Absent employee-days / eligible employee-days" },
-        "late_rate": { "label": "Late rate", "formula": "Scheduled late employee-days / scheduled employee-days" },
-        "turnover_rate": { "label": "Turnover rate", "formula": "Terminations / average headcount" },
-        "system_ot_hours": { "label": "System OT hours", "formula": "System-detected overtime hours" },
-        "approved_ot_hours": { "label": "Approved OT hours", "formula": "Approved overtime hours" },
-        "unapproved_ot_hours": { "label": "Unapproved OT hours", "formula": "System overtime not yet approved" },
-        "ot_approval_rate": { "label": "OT approval rate", "formula": "Approved overtime / system-detected overtime" },
-        "overtime": { "label": "Overtime", "formula": "Approved overtime hours (or cost when authorized)" },
-        "overtime_hours": { "label": "Overtime hours", "formula": "Approved overtime minutes / 60" },
-        "overtime_cost": { "label": "Overtime cost", "formula": "Finalized overtime pay in period" },
-        "ot_cost_per_employee": { "label": "OT cost / employee", "formula": "Overtime cost ÷ active headcount" },
-        "labor_cost": { "label": "Labor cost", "formula": "Base pay + overtime + holiday premium (paid & finalized)" },
-        "payroll_actual": { "label": "Payroll actual", "formula": "Net pay on paid & finalized payslips" },
-        "payroll_forecast": { "label": "Payroll forecast", "formula": "Forecast not yet available" },
-        "budget_variance": { "label": "Budget variance", "formula": "Labor cost − labor budget" },
-        "pending_hr_actions": { "label": "Pending HR actions", "formula": "Pending HR workflow items" }
+        "headcount": {
+          "label": "Headcount",
+          "formula": "Active employees at period end"
+        },
+        "attendance_rate": {
+          "label": "Attendance rate",
+          "formula": "Present employee-days / eligible employee-days"
+        },
+        "absence_rate": {
+          "label": "Absence rate",
+          "formula": "Absent employee-days / eligible employee-days"
+        },
+        "late_rate": {
+          "label": "Late rate",
+          "formula": "Scheduled late employee-days / scheduled employee-days"
+        },
+        "turnover_rate": {
+          "label": "Turnover rate",
+          "formula": "Terminations / average headcount"
+        },
+        "system_ot_hours": {
+          "label": "System OT hours",
+          "formula": "System-detected overtime hours"
+        },
+        "approved_ot_hours": {
+          "label": "Approved OT hours",
+          "formula": "Approved overtime hours"
+        },
+        "unapproved_ot_hours": {
+          "label": "Unapproved OT hours",
+          "formula": "System overtime not yet approved"
+        },
+        "ot_approval_rate": {
+          "label": "OT approval rate",
+          "formula": "Approved overtime / system-detected overtime"
+        },
+        "overtime": {
+          "label": "Overtime",
+          "formula": "Approved overtime hours (or cost when authorized)"
+        },
+        "overtime_hours": {
+          "label": "Overtime hours",
+          "formula": "Approved overtime minutes / 60"
+        },
+        "overtime_cost": {
+          "label": "Overtime cost",
+          "formula": "Finalized overtime pay in period"
+        },
+        "ot_cost_per_employee": {
+          "label": "OT cost / employee",
+          "formula": "Overtime cost ÷ active headcount"
+        },
+        "labor_cost": {
+          "label": "Labor cost",
+          "formula": "Base pay + overtime + holiday premium (paid & finalized)"
+        },
+        "payroll_actual": {
+          "label": "Payroll actual",
+          "formula": "Net pay on paid & finalized payslips"
+        },
+        "payroll_forecast": {
+          "label": "Payroll forecast",
+          "formula": "Forecast not yet available"
+        },
+        "budget_variance": {
+          "label": "Budget variance",
+          "formula": "Labor cost − labor budget"
+        },
+        "pending_hr_actions": {
+          "label": "Pending HR actions",
+          "formula": "Pending HR workflow items"
+        }
       }
     },
     "tabs": {
@@ -2114,5 +2024,325 @@
       "openAction": "Open feature",
       "pressEnter": "Press ↵ to open"
     }
+  },
+  "recorded_logs": "Nhật ký điểm danh thực tế",
+  "customizeTitle": "Tùy biến Desktop & Widget",
+  "customizeSubtitle": "Bật hoặc tắt các widget hiển thị trên màn hình chính của bạn",
+  "enabled": "Đã bật",
+  "add": "Gắn vào",
+  "resetDefault": "Khôi phục mặc định",
+  "done": "Xong",
+  "goodMorning": "Chào buổi sáng",
+  "goodAfternoon": "Chào buổi chiều",
+  "goodEvening": "Chào buổi tối",
+  "subtitle": "Không gian làm việc & Bảng điều khiển Synology DSM 7",
+  "searchApps": "Tìm ứng dụng & tính năng...",
+  "customizeWidgets": "Gắn Widget",
+  "hideWidget": "Ẩn widget",
+  "kpiUnavailable": "Không thể tải số liệu KPI điều hành",
+  "estimatedPayroll": "Dự toán quỹ lương tháng",
+  "viewPayroll": "Xem bảng tính lương",
+  "punctualityRate": "Chỉ số hoàn thành công chuẩn",
+  "viewReports": "Xem báo cáo chuyên cần",
+  "punchOutSuccess": "Đã ghi nhận tan ca",
+  "punchInSuccess": "Đã ghi nhận vào ca thành công",
+  "punchErrorDesc": "Vui lòng thử lại hoặc kiểm tra kết nối mạng",
+  "punchError": "Không thể thực hiện chấm công",
+  "clockedIn": "Đang trong ca",
+  "notClockedIn": "Chưa vào ca",
+  "startedAt": "Vào ca lúc",
+  "clockOutNow": "Bấm giờ tan ca",
+  "clockInNow": "Bấm giờ vào ca",
+  "viewMyClock": "Xem chi tiết chấm công",
+  "openDsmTitle": "Main Menu & Tìm kiếm",
+  "openDsmSubtitle": "Duyệt toàn bộ 45 ứng dụng & cài đặt",
+  "systemNormal": "Tất cả dịch vụ hoạt động bình thường",
+  "openMonitor": "Chi tiết giám sát",
+  "statsUnavailable": "Không thể tải số liệu chuyên cần hôm nay",
+  "attendanceRate": "Tỷ lệ có mặt hôm nay",
+  "totalHeadcount": "Tổng nhân sự",
+  "present": "Có mặt",
+  "onLeave": "Nghỉ phép",
+  "pending": "Chờ duyệt",
+  "viewAttendanceLogs": "Xem bảng công đầy đủ",
+  "density": {
+    "compact": "Nhỏ gọn",
+    "normal": "Tiêu chuẩn",
+    "comfortable": "Rộng rãi",
+    "label": "Mật độ hiển thị bảng"
+  },
+  "batch": {
+    "toolbar_label": "Thanh thao tác hàng loạt",
+    "selected_count": "yêu cầu đã chọn",
+    "approve_btn": "Duyệt tất cả",
+    "reject_btn": "Từ chối",
+    "approve_success": "Đã duyệt thành công {{count}} yêu cầu",
+    "reject_success": "Đã từ chối {{count}} yêu cầu",
+    "partial_failure": "Thành công {{succeeded}}, thất bại {{failed}}"
+  },
+  "drawer": {
+    "team_context": "Bối cảnh lịch làm việc đội ngũ",
+    "details_title": "Thông tin chi tiết yêu cầu",
+    "target_date": "Thời gian áp dụng",
+    "duration": "Thời lượng",
+    "status": "Trạng thái",
+    "reason": "Lý do"
+  },
+  "select_item": "Chọn yêu cầu của {{name}}",
+  "quick_approve": "Duyệt nhanh",
+  "quick_reject": "Từ chối",
+  "approved": "Đã duyệt",
+  "rejected": "Đã từ chối",
+  "rejection": {
+    "reason_required": "Vui lòng nhập lý do từ chối yêu cầu",
+    "subtitle": "Lý do này sẽ được gửi thông báo đến nhân sự liên quan",
+    "title": "Xác nhận từ chối {{count}} yêu cầu",
+    "reason_label": "Lý do từ chối *",
+    "placeholder": "Nhập lý do cụ thể (ví dụ: Thiếu nhân sự trực ca, thời gian tăng ca chưa được duyệt trước)...",
+    "confirm_btn": "Xác nhận từ chối"
+  },
+  "impact": {
+    "no_conflict_title": "Không có xung đột nhân sự",
+    "no_conflict_dept": "Không có thành viên nào khác trong phòng {{dept}} nghỉ ngày {{date}}.",
+    "no_conflict_generic": "Lịch làm việc của đội ngũ đảm bảo an toàn vận hành.",
+    "understaffing_alert": "Cảnh báo thiếu hụt nhân sự",
+    "colleagues_away": "Nhân sự vắng mặt cùng ngày",
+    "people_count": "người vắng",
+    "away_list": "Đã có người nghỉ phép:"
+  },
+  "type": {
+    "leave": "Đơn xin nghỉ phép",
+    "adjustment": "Giải trình chấm công",
+    "shift_swap": "Đổi ca làm việc",
+    "overtime": "Xác nhận tăng ca (OT)"
+  },
+  "tabs": {
+    "leave": "Nghỉ phép",
+    "overtime": "Tăng ca",
+    "adjustment": "Giải trình",
+    "shift_swap": "Đổi ca"
+  },
+  "status": {
+    "pending": "Chờ duyệt",
+    "approved": "Đã duyệt",
+    "rejected": "Đã từ chối",
+    "all_status": "Tất cả trạng thái"
+  },
+  "inbox": {
+    "title": "Hộp thư Phê duyệt",
+    "pending_badge": "chờ duyệt",
+    "subtitle": "Quản lý và phê duyệt tập trung các yêu cầu Nghỉ phép, Tăng ca, Giải trình công và Đổi ca",
+    "empty_desc": "Không tìm thấy yêu cầu phê duyệt nào phù hợp với bộ lọc hiện tại",
+    "empty_title": "Không có yêu cầu chờ xử lý"
+  },
+  "type_tabs_label": "Loại yêu cầu",
+  "search_placeholder": "Tìm kiếm nhân sự, lý do...",
+  "select_all": "Chọn tất cả đơn chờ duyệt",
+  "unselect_all": "Bỏ chọn tất cả",
+  "showing_count": "Hiển thị {{count}} yêu cầu",
+  "emptyTitle": "Màn hình chưa có Widget nào",
+  "emptyDesc": "Bạn đã ẩn tất cả các widget. Bấm vào nút bên dưới để chọn và gắn các widget hữu ích lên Desktop.",
+  "attachWidgetsNow": "Gắn Widget vào Desktop",
+  "clock": {
+    "geofence_status_label": "Trạng thái vị trí chấm công",
+    "wifi_verified": "(Wi-Fi hợp lệ)",
+    "wifi_invalid": "(Ngoài mạng)",
+    "security_notice": "Vị trí được xác thực tự động",
+    "timeline_label": "Trực quan hóa ca làm việc 24h",
+    "timeline_title": "Dòng thời gian ca làm việc 24h",
+    "now_time": "Hiện tại:",
+    "break_tooltip": "Giờ nghỉ trưa",
+    "legend_shift": "Ca quy định",
+    "legend_break": "Nghỉ giữa ca",
+    "legend_punch": "Giờ làm thực tế",
+    "legend_now": "Thời điểm hiện tại",
+    "summary_label": "Tóm tắt giờ làm việc hôm nay",
+    "today_progress": "Tiến độ giờ làm hôm nay",
+    "goal_reached": "Chúc mừng! Bạn đã hoàn thành đủ số giờ làm tiêu chuẩn",
+    "goal_remaining": "Còn {{remaining}} để đạt 8 tiếng",
+    "actual_time": "Thực tế",
+    "standard_time": "Tiêu chuẩn",
+    "break_time": "Nghỉ trưa",
+    "ot_time": "Tăng ca"
+  },
+  "no_results": "Không tìm thấy cài đặt phù hợp",
+  "workspace_settings": {
+    "dark_mode_preference": "Chế độ hiển thị"
+  },
+  "title": "Roles",
+  "editRole": "Edit Role",
+  "matrix": "Matrix",
+  "deleteRole": "Delete Role",
+  "roleId": "Role ID:",
+  "noDescription": "No description provided.",
+  "manageAccess": "Manage Access",
+  "deleteTitle": "Delete Role",
+  "confirmDelete": "Are you sure you want to delete this role?",
+  "createRole": "Create Role",
+  "searchPlaceholder": "Tìm cài đặt & tính năng...",
+  "categories_menu": "Danh mục",
+  "attendance_logs": {
+    "recorded_logs": "Nhật ký điểm danh thực tế"
+  },
+  "desktop": {
+    "customizeTitle": "Tùy biến Desktop & Widget",
+    "customizeSubtitle": "Bật hoặc tắt các widget hiển thị trên màn hình chính của bạn",
+    "enabled": "Đã bật",
+    "add": "Gắn vào",
+    "resetDefault": "Khôi phục mặc định",
+    "goodMorning": "Chào buổi sáng",
+    "goodAfternoon": "Chào buổi chiều",
+    "goodEvening": "Chào buổi tối",
+    "subtitle": "Không gian làm việc & Bảng điều khiển Synology DSM 7",
+    "searchApps": "Tìm ứng dụng & tính năng...",
+    "customizeWidgets": "Gắn Widget",
+    "hideWidget": "Ẩn widget",
+    "kpiUnavailable": "Không thể tải số liệu KPI điều hành",
+    "estimatedPayroll": "Dự toán quỹ lương tháng",
+    "viewPayroll": "Xem bảng tính lương",
+    "punctualityRate": "Chỉ số hoàn thành công chuẩn",
+    "viewReports": "Xem báo cáo chuyên cần",
+    "openDsmTitle": "Main Menu & Tìm kiếm",
+    "openDsmSubtitle": "Duyệt toàn bộ 45 ứng dụng & cài đặt",
+    "systemNormal": "Tất cả dịch vụ hoạt động bình thường",
+    "openMonitor": "Chi tiết giám sát",
+    "statsUnavailable": "Không thể tải số liệu chuyên cần hôm nay",
+    "attendanceRate": "Tỷ lệ có mặt hôm nay",
+    "totalHeadcount": "Tổng nhân sự",
+    "present": "Có mặt",
+    "onLeave": "Nghỉ phép",
+    "pending": "Chờ duyệt",
+    "viewAttendanceLogs": "Xem bảng công đầy đủ",
+    "emptyTitle": "Màn hình chưa có Widget nào",
+    "emptyDesc": "Bạn đã ẩn tất cả các widget. Bấm vào nút bên dưới để chọn và gắn các widget hữu ích lên Desktop.",
+    "attachWidgetsNow": "Gắn Widget vào Desktop"
+  },
+  "ess": {
+    "punchOutSuccess": "Đã ghi nhận tan ca",
+    "punchInSuccess": "Đã ghi nhận vào ca thành công",
+    "punchErrorDesc": "Vui lòng thử lại hoặc kiểm tra kết nối mạng",
+    "punchError": "Không thể thực hiện chấm công",
+    "clockedIn": "Đang trong ca",
+    "notClockedIn": "Chưa vào ca",
+    "startedAt": "Vào ca lúc",
+    "clockOutNow": "Bấm giờ tan ca",
+    "clockInNow": "Bấm giờ vào ca",
+    "viewMyClock": "Xem chi tiết chấm công",
+    "clock": {
+      "geofence_status_label": "Trạng thái vị trí chấm công",
+      "wifi_verified": "(Wi-Fi hợp lệ)",
+      "wifi_invalid": "(Ngoài mạng)",
+      "security_notice": "Vị trí được xác thực tự động",
+      "timeline_label": "Trực quan hóa ca làm việc 24h",
+      "timeline_title": "Dòng thời gian ca làm việc 24h",
+      "now_time": "Hiện tại:",
+      "break_tooltip": "Giờ nghỉ trưa",
+      "legend_shift": "Ca quy định",
+      "legend_break": "Nghỉ giữa ca",
+      "legend_punch": "Giờ làm thực tế",
+      "legend_now": "Thời điểm hiện tại",
+      "summary_label": "Tóm tắt giờ làm việc hôm nay",
+      "today_progress": "Tiến độ giờ làm hôm nay",
+      "goal_reached": "Chúc mừng! Bạn đã hoàn thành đủ số giờ làm tiêu chuẩn",
+      "goal_remaining": "Còn {{remaining}} để đạt 8 tiếng",
+      "actual_time": "Thực tế",
+      "standard_time": "Tiêu chuẩn",
+      "break_time": "Nghỉ trưa",
+      "ot_time": "Tăng ca"
+    }
+  },
+  "table": {
+    "density": {
+      "compact": "Nhỏ gọn",
+      "normal": "Tiêu chuẩn",
+      "comfortable": "Rộng rãi",
+      "label": "Mật độ hiển thị bảng"
+    }
+  },
+  "approvals": {
+    "batch": {
+      "toolbar_label": "Thanh thao tác hàng loạt",
+      "selected_count": "yêu cầu đã chọn",
+      "approve_btn": "Duyệt tất cả",
+      "reject_btn": "Từ chối",
+      "approve_success": "Đã duyệt thành công {{count}} yêu cầu",
+      "reject_success": "Đã từ chối {{count}} yêu cầu",
+      "partial_failure": "Thành công {{succeeded}}, thất bại {{failed}}"
+    },
+    "drawer": {
+      "team_context": "Bối cảnh lịch làm việc đội ngũ",
+      "details_title": "Thông tin chi tiết yêu cầu",
+      "target_date": "Thời gian áp dụng",
+      "duration": "Thời lượng",
+      "status": "Trạng thái",
+      "reason": "Lý do"
+    },
+    "select_item": "Chọn yêu cầu của {{name}}",
+    "quick_approve": "Duyệt nhanh",
+    "quick_reject": "Từ chối",
+    "rejection": {
+      "reason_required": "Vui lòng nhập lý do từ chối yêu cầu",
+      "subtitle": "Lý do này sẽ được gửi thông báo đến nhân sự liên quan",
+      "title": "Xác nhận từ chối {{count}} yêu cầu",
+      "reason_label": "Lý do từ chối *",
+      "placeholder": "Nhập lý do cụ thể (ví dụ: Thiếu nhân sự trực ca, thời gian tăng ca chưa được duyệt trước)...",
+      "confirm_btn": "Xác nhận từ chối"
+    },
+    "impact": {
+      "no_conflict_title": "Không có xung đột nhân sự",
+      "no_conflict_dept": "Không có thành viên nào khác trong phòng {{dept}} nghỉ ngày {{date}}.",
+      "no_conflict_generic": "Lịch làm việc của đội ngũ đảm bảo an toàn vận hành.",
+      "understaffing_alert": "Cảnh báo thiếu hụt nhân sự",
+      "colleagues_away": "Nhân sự vắng mặt cùng ngày",
+      "people_count": "người vắng",
+      "away_list": "Đã có người nghỉ phép:"
+    },
+    "type": {
+      "leave": "Đơn xin nghỉ phép",
+      "adjustment": "Giải trình chấm công",
+      "shift_swap": "Đổi ca làm việc",
+      "overtime": "Xác nhận tăng ca (OT)"
+    },
+    "tabs": {
+      "leave": "Nghỉ phép",
+      "overtime": "Tăng ca",
+      "adjustment": "Giải trình",
+      "shift_swap": "Đổi ca"
+    },
+    "status": {
+      "pending": "Chờ duyệt",
+      "approved": "Đã duyệt",
+      "rejected": "Đã từ chối",
+      "all_status": "Tất cả trạng thái"
+    },
+    "inbox": {
+      "title": "Hộp thư Phê duyệt",
+      "pending_badge": "chờ duyệt",
+      "subtitle": "Quản lý và phê duyệt tập trung các yêu cầu Nghỉ phép, Tăng ca, Giải trình công và Đổi ca",
+      "empty_desc": "Không tìm thấy yêu cầu phê duyệt nào phù hợp với bộ lọc hiện tại",
+      "empty_title": "Không có yêu cầu chờ xử lý"
+    },
+    "type_tabs_label": "Loại yêu cầu",
+    "search_placeholder": "Tìm kiếm nhân sự, lý do...",
+    "select_all": "Chọn tất cả đơn chờ duyệt",
+    "unselect_all": "Bỏ chọn tất cả",
+    "showing_count": "Hiển thị {{count}} yêu cầu"
+  },
+  "settings": {
+    "searchPlaceholder": "Tìm cài đặt & tính năng...",
+    "categories_menu": "Danh mục"
+  },
+  "rolesPage": {
+    "title": "Roles",
+    "editRole": "Edit Role",
+    "matrix": "Matrix",
+    "deleteRole": "Delete Role",
+    "roleId": "Role ID:",
+    "noDescription": "No description provided.",
+    "manageAccess": "Manage Access",
+    "deleteTitle": "Delete Role",
+    "confirmDelete": "Are you sure you want to delete this role?",
+    "subtitle": "Define custom roles and manage access levels across the workspace",
+    "createRole": "Create Role"
   }
 }

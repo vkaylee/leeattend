@@ -116,10 +116,6 @@ export function ApprovalItemRow({
       <div className="flex items-start gap-3.5 min-w-0">
         {/* Checkbox for batch select */}
         {isPending ? (
-          <div
-            className="pt-1 flex items-center"
-            onClick={(e) => e.stopPropagation()}
-          >
             <input
               aria-label={t(
                 "approvals.select_item",
@@ -133,7 +129,6 @@ export function ApprovalItemRow({
               onChange={() => onToggleSelect(item.id)}
               type="checkbox"
             />
-          </div>
         ) : (
           <div className="w-4" />
         )}
@@ -208,10 +203,7 @@ export function ApprovalItemRow({
 
         {/* Quick inline action buttons (if pending) */}
         {isPending ? (
-          <div
-            className="flex items-center gap-1.5"
-            onClick={(e) => e.stopPropagation()}
-          >
+          <>
             <Button
               aria-label={t("approvals.quick_approve", "Duyệt nhanh")}
               className="h-8 w-8 p-0 rounded-xl bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white dark:bg-emerald-950/60 dark:text-emerald-400 dark:hover:bg-emerald-600 border border-emerald-200 dark:border-emerald-800 transition-all active:scale-95"
@@ -234,7 +226,7 @@ export function ApprovalItemRow({
             >
               <X className="h-4 w-4 stroke-[2.5]" />
             </Button>
-          </div>
+          </>
         ) : (
           <span
             className={cn(

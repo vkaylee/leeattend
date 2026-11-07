@@ -23,7 +23,7 @@ podman-compose -f docker-compose.yml down
 
 - `apiserver`: Go REST API and report WebSockets.
 - `webdashboard`: React dashboard.
-- `db`: single PostgreSQL database for system and tenant tables.
+- `db`: single PostgreSQL database for all application tables.
 - `redis`: rate limiting, queues, and report Pub/Sub.
 - `minio`: S3-compatible file storage.
 Report progress remains available through `/api/v1/ws/reports/{job_id}` and its compatibility aliases.

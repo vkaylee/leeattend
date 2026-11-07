@@ -46,6 +46,7 @@ export default function MyClockPage() {
     queryKey: ["workspace", wsId],
   });
   const [isAdjustmentModalOpen, setIsAdjustmentModalOpen] = useState(false);
+  const [nowMs] = useState(() => Date.now());
 
   const todayStr = useMemo(() => new Date().toISOString().split("T")[0], []);
 
@@ -60,7 +61,6 @@ export default function MyClockPage() {
 
   const todayActualMinutes = useMemo(() => {
     let total = 0;
-    const nowMs = Date.now();
     for (const p of todayPunches) {
       const inMs = new Date(p.punchInTime).getTime();
       const outMs = p.punchOutTime ? new Date(p.punchOutTime).getTime() : nowMs;
@@ -69,7 +69,7 @@ export default function MyClockPage() {
       }
     }
     return total;
-  }, [todayPunches]);
+  }, [nowMs, todayPunches]);
   const handlePunch = async () => {
     try {
       await punch({});

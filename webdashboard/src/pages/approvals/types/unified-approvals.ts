@@ -51,5 +51,5 @@ export interface UnifiedInboxFilter {
 
 export interface BatchApprovalResult {
   succeeded: string[];
-  failed: Array<{ id: string; error: string }>;
+  failed: { id: string; error: string }[];
 }

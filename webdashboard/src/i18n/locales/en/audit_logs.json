@@ -7,10 +7,33 @@
       "all_actions": "All Actions",
       "start_date": "Start Date",
       "end_date": "End Date",
-      "groups": { "user_auth": "User & Auth", "roles_perms": "Roles & Permissions", "domain": "Domain" }
+      "groups": {
+        "user_auth": "User & Auth",
+        "roles_perms": "Roles & Permissions",
+        "domain": "Domain"
+      }
     },
-    "table": { "timestamp": "Timestamp", "action": "Action", "actor_target": "Actor / Target", "details": "Details", "context": "Context" },
-    "messages": { "error_loading": "Error loading audit logs.", "no_logs": "No audit logs found.", "no_details": "No details", "target": "Target:", "system": "System" },
-    "pagination": { "showing": "Showing", "to": "to", "of": "of", "entries": "entries", "previous": "Previous", "next": "Next" }
+    "table": {
+      "timestamp": "Timestamp",
+      "action": "Action",
+      "actor_target": "Actor / Target",
+      "details": "Details",
+      "context": "Context"
+    },
+    "messages": {
+      "error_loading": "Error loading audit logs.",
+      "no_logs": "No audit logs found.",
+      "no_details": "No details",
+      "target": "Target:",
+      "system": "System"
+    },
+    "pagination": {
+      "showing": "Showing",
+      "to": "to",
+      "of": "of",
+      "entries": "entries",
+      "previous": "Previous",
+      "next": "Next"
+    }
   }
 }

@@ -106,35 +106,6 @@
       "upload_limit": "Excel (Tối đa 10MB)",
       "upload_prompt": "Click hoặc kéo thả file vào đây"
     },
-    "attendance_logs": {
-      "assign": "Gán",
-      "create_employee": "Tạo mới",
-      "export_btn": "Xuất dữ liệu",
-      "import_btn": "Nhập dữ liệu",
-      "messages": {
-        "unknown_source": "Nguồn chấm công bên ngoài",
-        "loading": "Đang tải nhật ký...",
-        "no_data": "Không tìm thấy nhật ký chấm công.",
-        "no_data_hint": "Hãy thử điều chỉnh bộ lọc phạm vi ngày hoặc chọn một nhân viên khác để tìm nội dung bạn đang tìm kiếm.",
-        "no_unknown_logs": "Không có nhật ký không xác định"
-      },
-      "modal": {
-        "import_title": "Nhập nhật ký chấm công từ file"
-      },
-      "not_in_system": "Không có trong hệ thống",
-      "select_employee": "Chọn nhân viên...",
-      "status": {
-        "recorded": "Đã ghi nhận"
-      },
-      "subtitle": "Dữ liệu thô từ máy chấm công và các nguồn khác.",
-      "tabs": {
-        "recorded": "Nhật ký đã ghi",
-        "unknown": "Không xác định"
-      },
-      "title": "Nhật ký chấm công",
-      "unknown_id": "ID lạ",
-      "view_reports": "Xem Báo Cáo Tổng Hợp"
-    },
     "auto": "Tự động",
     "back": "Quay lại",
     "back_to_workspace": "Quay lại Workspace",
@@ -248,103 +219,6 @@
       "widget_error": "Lỗi Widget"
     },
     "error_occurred": "Đã xảy ra lỗi",
-    "ess": {
-      "account_number": "Số tài khoản",
-      "add_contact": "Thêm liên hệ",
-      "add_emergency_contact": "Thêm liên hệ khẩn cấp",
-      "address": "Địa chỉ",
-      "address_placeholder": "Nhập địa chỉ cư trú hiện tại của bạn",
-      "attendance": {
-        "active_status": "Đang hoạt động...",
-        "check_in": "Giờ vào",
-        "check_out": "Giờ ra",
-        "claim_btn": "Gửi yêu cầu",
-        "date": "Ngày",
-        "duration": "Thời lượng",
-        "generation_info": "Thông tin xử lý (Truy xuất nguồn gốc)",
-        "no_data": "Không tìm thấy dữ liệu chấm công cho tháng này.",
-        "ot_status": "Trạng thái OT",
-        "status": "Trạng thái",
-        "subtitle": "Xem lịch sử clock-in/out hàng ngày của bạn.",
-        "system_ot_suffix": "{{minutes}}p OT",
-        "title": "Chấm công của tôi"
-      },
-      "bank_branch": "Tên chi nhánh",
-      "bank_details": "Thông tin tài khoản ngân hàng",
-      "bank_name": "Tên ngân hàng",
-      "branch_placeholder": "Nhập chi nhánh ngân hàng",
-      "clock": {
-        "adjustment_requested": "Yêu cầu điều chỉnh đã được gửi",
-        "break_start_success": "Bắt đầu nghỉ",
-        "no_entries": "Không có bản ghi thời gian gần đây",
-        "punch_in_success": "Clock in thành công",
-        "punch_out_success": "Clock out thành công",
-        "recent_history": "Hoạt động gần đây (7 ngày qua)",
-        "subtitle": "Clock in và out cho công việc và nghỉ ngơi",
-        "title": "Máy chấm công"
-      },
-      "contact_hr": "Vui lòng liên hệ Nhân sự để liên kết tài khoản của bạn với hồ sơ nhân viên.",
-      "contact_name": "Tên người liên hệ",
-      "date_of_birth": "Ngày sinh",
-      "documents": {
-        "title": "Tài liệu của tôi"
-      },
-      "emergency_contact": {
-        "add_error": "Lỗi khi thêm liên hệ",
-        "add_success": "Đã thêm liên hệ thành công",
-        "confirm_delete": "Bạn có chắc chắn muốn xóa liên hệ này không?",
-        "delete_error": "Lỗi khi xóa liên hệ",
-        "delete_success": "Đã xóa liên hệ thành công",
-        "subtitle": "Người thân để thông báo trong trường hợp khẩn cấp."
-      },
-      "emergency_contacts": "Liên hệ khẩn cấp",
-      "gender": "Giới tính",
-      "gender_female": "Nữ",
-      "gender_male": "Nam",
-      "gender_other": "Khác",
-      "my_profile": "Hồ sơ của tôi",
-      "national_id": "Số CMND/CCCD",
-      "no_emergency_contacts": "Không tìm thấy liên hệ khẩn cấp nào.",
-      "no_employee_linked": "Chưa liên kết với nhân viên",
-      "ot": {
-        "attachment": "Attachment (PDF ONLY)",
-        "claim_desc": "Gửi yêu cầu làm thêm giờ của bạn để phê duyệt",
-        "claim_title": "Yêu cầu làm thêm giờ (OT)",
-        "claimed_minutes": "Số phút yêu cầu",
-        "close": "Đóng",
-        "error_exceeds_system": "Không thể yêu cầu nhiều hơn số phút OT hệ thống ghi nhận",
-        "error_zero_minutes": "Số phút phải lớn hơn 0",
-        "no_assignments": "No Overtime Assignments",
-        "no_assignments_desc": "You don't have any pending overtime requests or assignments.",
-        "no_quota": "No quota configured",
-        "quota_subtitle": "Your limits and usage",
-        "quota_title": "Overtime Quota",
-        "reason_placeholder": "Tại sao bạn làm thêm giờ?",
-        "request": "Request OT",
-        "request_success": "Overtime request created successfully",
-        "request_title": "Request Overtime",
-        "subtitle": "Request overtime or respond to assignments",
-        "system_detected": "Hệ thống ghi nhận",
-        "title": "My Overtime"
-      },
-      "personal_info": "Thông tin cá nhân",
-      "phone": "Số điện thoại",
-      "primary": "Chính",
-      "profile": {
-        "subtitle": "Xem và quản lý thông tin cá nhân của bạn.",
-        "title": "Hồ sơ của tôi",
-        "update_error": "Lỗi khi cập nhật hồ sơ",
-        "update_success": "Đã cập nhật hồ sơ thành công"
-      },
-      "relationship": "Mối quan hệ",
-      "relationship_child": "Con",
-      "relationship_friend": "Bạn bè",
-      "relationship_other": "Khác",
-      "relationship_parent": "Bố/Mẹ",
-      "relationship_sibling": "Anh/Chị/Em",
-      "relationship_spouse": "Vợ/Chồng",
-      "set_as_primary": "Đặt làm liên hệ chính"
-    },
     "exit_fullscreen": "Thoát toàn màn hình",
     "expand": "Mở rộng",
     "expand_all": "Mở rộng tất cả",
@@ -988,98 +862,6 @@
     "selected_count": "Đã chọn {{selected}}/{{total}}",
     "sending": "Đang gửi...",
     "set": "Đặt",
-    "settings": {
-      "admin_only": "Chỉ dành cho Quản trị viên",
-      "categories": {
-        "general": "Chung",
-        "general_desc": "Thương hiệu và các tùy chọn cơ bản.",
-        "organization": "Tổ chức",
-        "organization_desc": "Quản lý thông tin tổ chức và thương hiệu.",
-        "general_desc": "Thương hiệu và các tùy chọn cơ bản.",
-        "leave": "Quản lý nghỉ phép",
-        "payroll": "Lương",
-        "payroll_desc": "Quản lý ngày công tiêu chuẩn và công thức tính lương.",
-        "people": "Nhân sự",
-        "people_desc": "Quản lý nhân viên, phòng ban và vai trò.",
-        "time": "Thời gian & Chấm công",
-        "time_desc": "Cấu hình ca làm, phân ca và quy tắc chấm công."
-      },
-      "layout": {
-        "access": "Truy cập",
-        "control_panel": "Bảng điều khiển",
-        "operations": "Vận hành",
-        "security_system": "An ninh & Hệ thống",
-        "workspace": "Không gian làm việc"
-      },
-      "leave": {
-        "actions": {
-          "assign": "Gán chính sách"
-        },
-        "desc": "Cấu hình các loại nghỉ phép và chính sách tích lũy cho workspace của bạn.",
-        "fields": {
-          "approval": "Phê duyệt",
-          "days_per_period": "ngày / kỳ",
-          "document": "Chứng từ"
-        },
-        "messages": {
-          "assignment_note": "Gán chính sách xác định cách tính toán nghỉ phép cho mỗi người. Các thay đổi sẽ được áp dụng trong đợt tích lũy định kỳ tiếp theo hoặc có thể chạy thủ công qua công cụ \"Chạy tích lũy\" trong Cài đặt chung.",
-          "create_success": "Đã tạo chính sách thành công",
-          "delete_success": "Đã xóa chính sách thành công",
-          "loading": "Đang tải dữ liệu gán...",
-          "no_assignments": "Không tìm thấy thông tin gán chính sách nào",
-          "update_error": "Lỗi khi cập nhật loại nghỉ phép",
-          "update_success": "Đã cập nhật loại nghỉ phép thành công"
-        },
-        "table": {
-          "assignee": "Đối tượng gán",
-          "created_at": "Ngày tạo",
-          "effective_date": "Ngày hiệu lực",
-          "policy": "Chính sách",
-          "type": "Loại"
-        },
-        "tabs": {
-          "assignments": "Gán chính sách",
-          "assignments_desc": "Gán chính sách cho nhân viên hoặc phòng ban",
-          "policies": "Chính sách tích lũy",
-          "policies_desc": "Thiết lập cách tích lũy ngày phép theo thời gian",
-          "types": "Các loại nghỉ",
-          "types_desc": "Định nghĩa các loại nghỉ phép và quy tắc đi kèm"
-        },
-        "title": "Cài đặt Nghỉ phép",
-        "types": {
-          "paid": "Nghỉ hưởng lương",
-          "unpaid": "Nghỉ không lương"
-        }
-      },
-      "navigation": "Điều hướng",
-      "notes_title": "Lưu ý",
-      "tabs": {
-        "agents": "Agent đã kết nối",
-        "appearance": "Giao diện",
-        "departments": "Phòng ban",
-        "employment_phases": "Giai đoạn việc làm",
-        "general": "Cấu hình chung",
-        "incentives": "Thưởng & Khuyến khích",
-        "incentives_benefits": "Chế độ đãi ngộ",
-        "localization": "Định dạng & Ngôn ngữ",
-        "members": "Thành viên",
-        "overtime_policy": "Chính sách tăng ca",
-        "patterns": "Ca làm việc",
-        "payroll_policy": "Chính sách lương",
-        "rules": "Quy tắc tự động",
-        "rules_policies": "Quy định & Chính sách",
-        "salary_components": "Thành phần lương",
-        "salary_structures": "Thành phần & Công thức",
-        "statutory_rules": "Quy định pháp lý"
-      },
-      "time": {
-        "error_desc": "Đã xảy ra lỗi không mong muốn khi tải các quy tắc cấu hình. Vui lòng thử lại.",
-        "error_title": "Không thể tải cấu hình thời gian",
-        "missing_desc": "Thông tin không gian làm việc hoặc các quy tắc mặc định chưa được cấu hình.",
-        "missing_title": "Không tìm thấy dữ liệu"
-      },
-      "title": "Trung tâm Cài đặt"
-    },
     "shift": "Ca làm việc",
     "shift_name": "Tên ca",
     "shifts": "Ca làm & Lịch trực",
@@ -1236,22 +1018,84 @@
       },
       "workspace_logo": "Logo Không gian làm việc",
       "workspace_name": "Tên Workspace",
-      "workspace_name_placeholder": "VD: LeeAttend Corp"
+      "workspace_name_placeholder": "VD: LeeAttend Corp",
+      "dark_mode_preference": "Chế độ hiển thị"
     },
     "year": "Năm",
     "yes": "Có",
     "zoom_in": "Phóng to",
     "zoom_out": "Thu nhỏ",
-    "zoom_reset": "Đặt lại thu phóng"
+    "zoom_reset": "Đặt lại thu phóng",
+    "common": {
+      "done": "Xong",
+      "approved": "Đã duyệt",
+      "rejected": "Đã từ chối",
+      "no_results": "Không tìm thấy cài đặt phù hợp"
+    },
+    "done": "Xong",
+    "approved": "Đã duyệt",
+    "rejected": "Đã từ chối",
+    "no_results": "Không tìm thấy cài đặt phù hợp",
+    "settings": {
+      "navigation": "Settings navigation",
+      "notes_title": "Notes",
+      "title": "Settings",
+      "categories": {
+        "general": "General",
+        "organization": "Organization",
+        "organization_desc": "Manage organization settings",
+        "payroll": "Payroll",
+        "payroll_desc": "Manage payroll settings",
+        "time": "Time and attendance",
+        "time_desc": "Manage time settings"
+      },
+      "tabs": {
+        "localization": "Localization",
+        "appearance": "Appearance",
+        "departments": "Departments",
+        "rules_policies": "Rules and policies",
+        "salary_structures": "Salary structures",
+        "incentives_benefits": "Incentives and benefits",
+        "payroll_policy": "Payroll policy",
+        "salary_components": "Salary components",
+        "incentives": "Incentives",
+        "overtime_policy": "Overtime policy",
+        "statutory_rules": "Statutory rules"
+      },
+      "time": {
+        "error_title": "Time settings error",
+        "error_desc": "Time settings could not be loaded.",
+        "missing_title": "Time settings unavailable",
+        "missing_desc": "Configure time settings to continue."
+      }
+    }
   },
   "dashboard": {
     "title": "Bảng điều khiển",
     "welcome": "Chào mừng trở lại! Đây là tóm tắt hoạt động trong không gian làm việc của bạn.",
     "filters": {
       "label": "Bộ lọc dashboard điều hành",
-      "period": { "label": "Kỳ báo cáo", "today": "Hôm nay", "this_week": "Tuần này", "this_month": "Tháng này", "this_quarter": "Quý này", "year_to_date": "Từ đầu năm", "custom": "Khoảng tùy chọn" },
-      "comparison": { "label": "So sánh", "none": "Không so sánh", "previous_period": "Kỳ trước", "same_period_last_year": "Cùng kỳ năm trước", "target": "Mục tiêu", "budget": "Ngân sách", "benchmark": "Đối chuẩn" },
-      "department": { "label": "Phòng ban" },
+      "period": {
+        "label": "Kỳ báo cáo",
+        "today": "Hôm nay",
+        "this_week": "Tuần này",
+        "this_month": "Tháng này",
+        "this_quarter": "Quý này",
+        "year_to_date": "Từ đầu năm",
+        "custom": "Khoảng tùy chọn"
+      },
+      "comparison": {
+        "label": "So sánh",
+        "none": "Không so sánh",
+        "previous_period": "Kỳ trước",
+        "same_period_last_year": "Cùng kỳ năm trước",
+        "target": "Mục tiêu",
+        "budget": "Ngân sách",
+        "benchmark": "Đối chuẩn"
+      },
+      "department": {
+        "label": "Phòng ban"
+      },
       "start_date": "Ngày bắt đầu",
       "end_date": "Ngày kết thúc",
       "custom_date_error": "Nhập ngày bắt đầu và kết thúc hợp lệ.",
@@ -1273,15 +1117,26 @@
       "comparison_help": "Thay đổi so với kỳ đối chiếu",
       "comparison_unavailable": "Không có đối chiếu",
       "freshness_help": "Thời điểm cập nhật dữ liệu gần nhất",
-      "units": { "hours": "giờ", "hours_short": "h" },
-      "status": { "available": "Có dữ liệu", "not_applicable": "Không áp dụng", "data_gap": "Thiếu dữ liệu", "restricted": "Bị giới hạn" },
+      "units": {
+        "hours": "giờ",
+        "hours_short": "h"
+      },
+      "status": {
+        "available": "Có dữ liệu",
+        "not_applicable": "Không áp dụng",
+        "data_gap": "Thiếu dữ liệu",
+        "restricted": "Bị giới hạn"
+      },
       "null_reason": {
         "no_paid_payslips": "Không có phiếu lương đã thanh toán hoặc chốt trong kỳ.",
         "budget_config_missing": "Chưa cấu hình ngân sách cho chỉ số này.",
         "forecast_source_unavailable": "Chưa có nguồn dự báo lương.",
         "zero_denominator": "Không có dữ liệu mẫu số cho kỳ này."
       },
-      "view_selector": { "hours": "Giờ", "cost": "Chi phí" },
+      "view_selector": {
+        "hours": "Giờ",
+        "cost": "Chi phí"
+      },
       "panel": {
         "title": "Làm thêm & Chi phí nhân công",
         "view_selector": "Chế độ xem làm thêm",
@@ -1304,24 +1159,78 @@
         "cost_no_payroll_tooltip": "Không có lương đã thanh toán hoặc chốt trong kỳ."
       },
       "metrics": {
-        "headcount": { "label": "Quy mô nhân sự", "formula": "Nhân viên đang hoạt động cuối kỳ" },
-        "attendance_rate": { "label": "Tỷ lệ đi làm", "formula": "Ngày-công có mặt / ngày-công đủ điều kiện" },
-        "absence_rate": { "label": "Tỷ lệ vắng mặt", "formula": "Ngày-công vắng / ngày-công đủ điều kiện" },
-        "late_rate": { "label": "Tỷ lệ đi trễ", "formula": "Ngày-công trễ theo lịch / ngày-công theo lịch" },
-        "turnover_rate": { "label": "Tỷ lệ biến động", "formula": "Số nghỉ việc / nhân sự bình quân" },
-        "system_ot_hours": { "label": "Giờ OT hệ thống", "formula": "Giờ làm thêm hệ thống phát hiện" },
-        "approved_ot_hours": { "label": "Giờ OT được duyệt", "formula": "Giờ làm thêm được duyệt" },
-        "unapproved_ot_hours": { "label": "Giờ OT chưa duyệt", "formula": "Giờ làm thêm hệ thống chưa duyệt" },
-        "ot_approval_rate": { "label": "Tỷ lệ duyệt OT", "formula": "OT được duyệt / OT hệ thống phát hiện" },
-        "overtime": { "label": "Làm thêm giờ", "formula": "Giờ làm thêm được duyệt (hoặc chi phí khi được cấp quyền)" },
-        "overtime_hours": { "label": "Giờ làm thêm", "formula": "Phút làm thêm được duyệt / 60" },
-        "overtime_cost": { "label": "Chi phí làm thêm", "formula": "Lương làm thêm đã chốt trong kỳ" },
-        "ot_cost_per_employee": { "label": "Chi phí OT / nhân viên", "formula": "Chi phí làm thêm ÷ nhân sự hoạt động" },
-        "labor_cost": { "label": "Chi phí nhân công", "formula": "Lương cơ bản + làm thêm + phụ cấp lễ (đã thanh toán & chốt)" },
-        "payroll_actual": { "label": "Lương thực chi", "formula": "Lương thực nhận trên phiếu lương đã thanh toán & chốt" },
-        "payroll_forecast": { "label": "Dự báo lương", "formula": "Chưa có nguồn dự báo" },
-        "budget_variance": { "label": "Chênh lệch ngân sách", "formula": "Chi phí nhân công − ngân sách nhân công" },
-        "pending_hr_actions": { "label": "Tác vụ nhân sự chờ xử lý", "formula": "Các mục quy trình nhân sự đang chờ" }
+        "headcount": {
+          "label": "Quy mô nhân sự",
+          "formula": "Nhân viên đang hoạt động cuối kỳ"
+        },
+        "attendance_rate": {
+          "label": "Tỷ lệ đi làm",
+          "formula": "Ngày-công có mặt / ngày-công đủ điều kiện"
+        },
+        "absence_rate": {
+          "label": "Tỷ lệ vắng mặt",
+          "formula": "Ngày-công vắng / ngày-công đủ điều kiện"
+        },
+        "late_rate": {
+          "label": "Tỷ lệ đi trễ",
+          "formula": "Ngày-công trễ theo lịch / ngày-công theo lịch"
+        },
+        "turnover_rate": {
+          "label": "Tỷ lệ biến động",
+          "formula": "Số nghỉ việc / nhân sự bình quân"
+        },
+        "system_ot_hours": {
+          "label": "Giờ OT hệ thống",
+          "formula": "Giờ làm thêm hệ thống phát hiện"
+        },
+        "approved_ot_hours": {
+          "label": "Giờ OT được duyệt",
+          "formula": "Giờ làm thêm được duyệt"
+        },
+        "unapproved_ot_hours": {
+          "label": "Giờ OT chưa duyệt",
+          "formula": "Giờ làm thêm hệ thống chưa duyệt"
+        },
+        "ot_approval_rate": {
+          "label": "Tỷ lệ duyệt OT",
+          "formula": "OT được duyệt / OT hệ thống phát hiện"
+        },
+        "overtime": {
+          "label": "Làm thêm giờ",
+          "formula": "Giờ làm thêm được duyệt (hoặc chi phí khi được cấp quyền)"
+        },
+        "overtime_hours": {
+          "label": "Giờ làm thêm",
+          "formula": "Phút làm thêm được duyệt / 60"
+        },
+        "overtime_cost": {
+          "label": "Chi phí làm thêm",
+          "formula": "Lương làm thêm đã chốt trong kỳ"
+        },
+        "ot_cost_per_employee": {
+          "label": "Chi phí OT / nhân viên",
+          "formula": "Chi phí làm thêm ÷ nhân sự hoạt động"
+        },
+        "labor_cost": {
+          "label": "Chi phí nhân công",
+          "formula": "Lương cơ bản + làm thêm + phụ cấp lễ (đã thanh toán & chốt)"
+        },
+        "payroll_actual": {
+          "label": "Lương thực chi",
+          "formula": "Lương thực nhận trên phiếu lương đã thanh toán & chốt"
+        },
+        "payroll_forecast": {
+          "label": "Dự báo lương",
+          "formula": "Chưa có nguồn dự báo"
+        },
+        "budget_variance": {
+          "label": "Chênh lệch ngân sách",
+          "formula": "Chi phí nhân công − ngân sách nhân công"
+        },
+        "pending_hr_actions": {
+          "label": "Tác vụ nhân sự chờ xử lý",
+          "formula": "Các mục quy trình nhân sự đang chờ"
+        }
       }
     },
     "tabs": {
@@ -2115,5 +2024,325 @@
       "openAction": "Mở tính năng",
       "pressEnter": "Nhấn ↵ để truy cập"
     }
+  },
+  "recorded_logs": "Nhật ký điểm danh thực tế",
+  "customizeTitle": "Tùy biến Desktop & Widget",
+  "customizeSubtitle": "Bật hoặc tắt các widget hiển thị trên màn hình chính của bạn",
+  "enabled": "Đã bật",
+  "add": "Gắn vào",
+  "resetDefault": "Khôi phục mặc định",
+  "done": "Xong",
+  "goodMorning": "Chào buổi sáng",
+  "goodAfternoon": "Chào buổi chiều",
+  "goodEvening": "Chào buổi tối",
+  "subtitle": "Không gian làm việc & Bảng điều khiển Synology DSM 7",
+  "searchApps": "Tìm ứng dụng & tính năng...",
+  "customizeWidgets": "Gắn Widget",
+  "hideWidget": "Ẩn widget",
+  "kpiUnavailable": "Không thể tải số liệu KPI điều hành",
+  "estimatedPayroll": "Dự toán quỹ lương tháng",
+  "viewPayroll": "Xem bảng tính lương",
+  "punctualityRate": "Chỉ số hoàn thành công chuẩn",
+  "viewReports": "Xem báo cáo chuyên cần",
+  "punchOutSuccess": "Đã ghi nhận tan ca",
+  "punchInSuccess": "Đã ghi nhận vào ca thành công",
+  "punchErrorDesc": "Vui lòng thử lại hoặc kiểm tra kết nối mạng",
+  "punchError": "Không thể thực hiện chấm công",
+  "clockedIn": "Đang trong ca",
+  "notClockedIn": "Chưa vào ca",
+  "startedAt": "Vào ca lúc",
+  "clockOutNow": "Bấm giờ tan ca",
+  "clockInNow": "Bấm giờ vào ca",
+  "viewMyClock": "Xem chi tiết chấm công",
+  "openDsmTitle": "Main Menu & Tìm kiếm",
+  "openDsmSubtitle": "Duyệt toàn bộ 45 ứng dụng & cài đặt",
+  "systemNormal": "Tất cả dịch vụ hoạt động bình thường",
+  "openMonitor": "Chi tiết giám sát",
+  "statsUnavailable": "Không thể tải số liệu chuyên cần hôm nay",
+  "attendanceRate": "Tỷ lệ có mặt hôm nay",
+  "totalHeadcount": "Tổng nhân sự",
+  "present": "Có mặt",
+  "onLeave": "Nghỉ phép",
+  "pending": "Chờ duyệt",
+  "viewAttendanceLogs": "Xem bảng công đầy đủ",
+  "density": {
+    "compact": "Nhỏ gọn",
+    "normal": "Tiêu chuẩn",
+    "comfortable": "Rộng rãi",
+    "label": "Mật độ hiển thị bảng"
+  },
+  "batch": {
+    "toolbar_label": "Thanh thao tác hàng loạt",
+    "selected_count": "yêu cầu đã chọn",
+    "approve_btn": "Duyệt tất cả",
+    "reject_btn": "Từ chối",
+    "approve_success": "Đã duyệt thành công {{count}} yêu cầu",
+    "reject_success": "Đã từ chối {{count}} yêu cầu",
+    "partial_failure": "Thành công {{succeeded}}, thất bại {{failed}}"
+  },
+  "drawer": {
+    "team_context": "Bối cảnh lịch làm việc đội ngũ",
+    "details_title": "Thông tin chi tiết yêu cầu",
+    "target_date": "Thời gian áp dụng",
+    "duration": "Thời lượng",
+    "status": "Trạng thái",
+    "reason": "Lý do"
+  },
+  "select_item": "Chọn yêu cầu của {{name}}",
+  "quick_approve": "Duyệt nhanh",
+  "quick_reject": "Từ chối",
+  "approved": "Đã duyệt",
+  "rejected": "Đã từ chối",
+  "rejection": {
+    "reason_required": "Vui lòng nhập lý do từ chối yêu cầu",
+    "subtitle": "Lý do này sẽ được gửi thông báo đến nhân sự liên quan",
+    "title": "Xác nhận từ chối {{count}} yêu cầu",
+    "reason_label": "Lý do từ chối *",
+    "placeholder": "Nhập lý do cụ thể (ví dụ: Thiếu nhân sự trực ca, thời gian tăng ca chưa được duyệt trước)...",
+    "confirm_btn": "Xác nhận từ chối"
+  },
+  "impact": {
+    "no_conflict_title": "Không có xung đột nhân sự",
+    "no_conflict_dept": "Không có thành viên nào khác trong phòng {{dept}} nghỉ ngày {{date}}.",
+    "no_conflict_generic": "Lịch làm việc của đội ngũ đảm bảo an toàn vận hành.",
+    "understaffing_alert": "Cảnh báo thiếu hụt nhân sự",
+    "colleagues_away": "Nhân sự vắng mặt cùng ngày",
+    "people_count": "người vắng",
+    "away_list": "Đã có người nghỉ phép:"
+  },
+  "type": {
+    "leave": "Đơn xin nghỉ phép",
+    "adjustment": "Giải trình chấm công",
+    "shift_swap": "Đổi ca làm việc",
+    "overtime": "Xác nhận tăng ca (OT)"
+  },
+  "tabs": {
+    "leave": "Nghỉ phép",
+    "overtime": "Tăng ca",
+    "adjustment": "Giải trình",
+    "shift_swap": "Đổi ca"
+  },
+  "status": {
+    "pending": "Chờ duyệt",
+    "approved": "Đã duyệt",
+    "rejected": "Đã từ chối",
+    "all_status": "Tất cả trạng thái"
+  },
+  "inbox": {
+    "title": "Hộp thư Phê duyệt",
+    "pending_badge": "chờ duyệt",
+    "subtitle": "Quản lý và phê duyệt tập trung các yêu cầu Nghỉ phép, Tăng ca, Giải trình công và Đổi ca",
+    "empty_desc": "Không tìm thấy yêu cầu phê duyệt nào phù hợp với bộ lọc hiện tại",
+    "empty_title": "Không có yêu cầu chờ xử lý"
+  },
+  "type_tabs_label": "Loại yêu cầu",
+  "search_placeholder": "Tìm kiếm nhân sự, lý do...",
+  "select_all": "Chọn tất cả đơn chờ duyệt",
+  "unselect_all": "Bỏ chọn tất cả",
+  "showing_count": "Hiển thị {{count}} yêu cầu",
+  "emptyTitle": "Màn hình chưa có Widget nào",
+  "emptyDesc": "Bạn đã ẩn tất cả các widget. Bấm vào nút bên dưới để chọn và gắn các widget hữu ích lên Desktop.",
+  "attachWidgetsNow": "Gắn Widget vào Desktop",
+  "clock": {
+    "geofence_status_label": "Trạng thái vị trí chấm công",
+    "wifi_verified": "(Wi-Fi hợp lệ)",
+    "wifi_invalid": "(Ngoài mạng)",
+    "security_notice": "Vị trí được xác thực tự động",
+    "timeline_label": "Trực quan hóa ca làm việc 24h",
+    "timeline_title": "Dòng thời gian ca làm việc 24h",
+    "now_time": "Hiện tại:",
+    "break_tooltip": "Giờ nghỉ trưa",
+    "legend_shift": "Ca quy định",
+    "legend_break": "Nghỉ giữa ca",
+    "legend_punch": "Giờ làm thực tế",
+    "legend_now": "Thời điểm hiện tại",
+    "summary_label": "Tóm tắt giờ làm việc hôm nay",
+    "today_progress": "Tiến độ giờ làm hôm nay",
+    "goal_reached": "Chúc mừng! Bạn đã hoàn thành đủ số giờ làm tiêu chuẩn",
+    "goal_remaining": "Còn {{remaining}} để đạt 8 tiếng",
+    "actual_time": "Thực tế",
+    "standard_time": "Tiêu chuẩn",
+    "break_time": "Nghỉ trưa",
+    "ot_time": "Tăng ca"
+  },
+  "no_results": "Không tìm thấy cài đặt phù hợp",
+  "workspace_settings": {
+    "dark_mode_preference": "Chế độ hiển thị"
+  },
+  "title": "Roles",
+  "editRole": "Edit Role",
+  "matrix": "Matrix",
+  "deleteRole": "Delete Role",
+  "roleId": "Role ID:",
+  "noDescription": "No description provided.",
+  "manageAccess": "Manage Access",
+  "deleteTitle": "Delete Role",
+  "confirmDelete": "Are you sure you want to delete this role?",
+  "createRole": "Create Role",
+  "searchPlaceholder": "Tìm cài đặt & tính năng...",
+  "categories_menu": "Danh mục",
+  "attendance_logs": {
+    "recorded_logs": "Nhật ký điểm danh thực tế"
+  },
+  "desktop": {
+    "customizeTitle": "Tùy biến Desktop & Widget",
+    "customizeSubtitle": "Bật hoặc tắt các widget hiển thị trên màn hình chính của bạn",
+    "enabled": "Đã bật",
+    "add": "Gắn vào",
+    "resetDefault": "Khôi phục mặc định",
+    "goodMorning": "Chào buổi sáng",
+    "goodAfternoon": "Chào buổi chiều",
+    "goodEvening": "Chào buổi tối",
+    "subtitle": "Không gian làm việc & Bảng điều khiển Synology DSM 7",
+    "searchApps": "Tìm ứng dụng & tính năng...",
+    "customizeWidgets": "Gắn Widget",
+    "hideWidget": "Ẩn widget",
+    "kpiUnavailable": "Không thể tải số liệu KPI điều hành",
+    "estimatedPayroll": "Dự toán quỹ lương tháng",
+    "viewPayroll": "Xem bảng tính lương",
+    "punctualityRate": "Chỉ số hoàn thành công chuẩn",
+    "viewReports": "Xem báo cáo chuyên cần",
+    "openDsmTitle": "Main Menu & Tìm kiếm",
+    "openDsmSubtitle": "Duyệt toàn bộ 45 ứng dụng & cài đặt",
+    "systemNormal": "Tất cả dịch vụ hoạt động bình thường",
+    "openMonitor": "Chi tiết giám sát",
+    "statsUnavailable": "Không thể tải số liệu chuyên cần hôm nay",
+    "attendanceRate": "Tỷ lệ có mặt hôm nay",
+    "totalHeadcount": "Tổng nhân sự",
+    "present": "Có mặt",
+    "onLeave": "Nghỉ phép",
+    "pending": "Chờ duyệt",
+    "viewAttendanceLogs": "Xem bảng công đầy đủ",
+    "emptyTitle": "Màn hình chưa có Widget nào",
+    "emptyDesc": "Bạn đã ẩn tất cả các widget. Bấm vào nút bên dưới để chọn và gắn các widget hữu ích lên Desktop.",
+    "attachWidgetsNow": "Gắn Widget vào Desktop"
+  },
+  "ess": {
+    "punchOutSuccess": "Đã ghi nhận tan ca",
+    "punchInSuccess": "Đã ghi nhận vào ca thành công",
+    "punchErrorDesc": "Vui lòng thử lại hoặc kiểm tra kết nối mạng",
+    "punchError": "Không thể thực hiện chấm công",
+    "clockedIn": "Đang trong ca",
+    "notClockedIn": "Chưa vào ca",
+    "startedAt": "Vào ca lúc",
+    "clockOutNow": "Bấm giờ tan ca",
+    "clockInNow": "Bấm giờ vào ca",
+    "viewMyClock": "Xem chi tiết chấm công",
+    "clock": {
+      "geofence_status_label": "Trạng thái vị trí chấm công",
+      "wifi_verified": "(Wi-Fi hợp lệ)",
+      "wifi_invalid": "(Ngoài mạng)",
+      "security_notice": "Vị trí được xác thực tự động",
+      "timeline_label": "Trực quan hóa ca làm việc 24h",
+      "timeline_title": "Dòng thời gian ca làm việc 24h",
+      "now_time": "Hiện tại:",
+      "break_tooltip": "Giờ nghỉ trưa",
+      "legend_shift": "Ca quy định",
+      "legend_break": "Nghỉ giữa ca",
+      "legend_punch": "Giờ làm thực tế",
+      "legend_now": "Thời điểm hiện tại",
+      "summary_label": "Tóm tắt giờ làm việc hôm nay",
+      "today_progress": "Tiến độ giờ làm hôm nay",
+      "goal_reached": "Chúc mừng! Bạn đã hoàn thành đủ số giờ làm tiêu chuẩn",
+      "goal_remaining": "Còn {{remaining}} để đạt 8 tiếng",
+      "actual_time": "Thực tế",
+      "standard_time": "Tiêu chuẩn",
+      "break_time": "Nghỉ trưa",
+      "ot_time": "Tăng ca"
+    }
+  },
+  "table": {
+    "density": {
+      "compact": "Nhỏ gọn",
+      "normal": "Tiêu chuẩn",
+      "comfortable": "Rộng rãi",
+      "label": "Mật độ hiển thị bảng"
+    }
+  },
+  "approvals": {
+    "batch": {
+      "toolbar_label": "Thanh thao tác hàng loạt",
+      "selected_count": "yêu cầu đã chọn",
+      "approve_btn": "Duyệt tất cả",
+      "reject_btn": "Từ chối",
+      "approve_success": "Đã duyệt thành công {{count}} yêu cầu",
+      "reject_success": "Đã từ chối {{count}} yêu cầu",
+      "partial_failure": "Thành công {{succeeded}}, thất bại {{failed}}"
+    },
+    "drawer": {
+      "team_context": "Bối cảnh lịch làm việc đội ngũ",
+      "details_title": "Thông tin chi tiết yêu cầu",
+      "target_date": "Thời gian áp dụng",
+      "duration": "Thời lượng",
+      "status": "Trạng thái",
+      "reason": "Lý do"
+    },
+    "select_item": "Chọn yêu cầu của {{name}}",
+    "quick_approve": "Duyệt nhanh",
+    "quick_reject": "Từ chối",
+    "rejection": {
+      "reason_required": "Vui lòng nhập lý do từ chối yêu cầu",
+      "subtitle": "Lý do này sẽ được gửi thông báo đến nhân sự liên quan",
+      "title": "Xác nhận từ chối {{count}} yêu cầu",
+      "reason_label": "Lý do từ chối *",
+      "placeholder": "Nhập lý do cụ thể (ví dụ: Thiếu nhân sự trực ca, thời gian tăng ca chưa được duyệt trước)...",
+      "confirm_btn": "Xác nhận từ chối"
+    },
+    "impact": {
+      "no_conflict_title": "Không có xung đột nhân sự",
+      "no_conflict_dept": "Không có thành viên nào khác trong phòng {{dept}} nghỉ ngày {{date}}.",
+      "no_conflict_generic": "Lịch làm việc của đội ngũ đảm bảo an toàn vận hành.",
+      "understaffing_alert": "Cảnh báo thiếu hụt nhân sự",
+      "colleagues_away": "Nhân sự vắng mặt cùng ngày",
+      "people_count": "người vắng",
+      "away_list": "Đã có người nghỉ phép:"
+    },
+    "type": {
+      "leave": "Đơn xin nghỉ phép",
+      "adjustment": "Giải trình chấm công",
+      "shift_swap": "Đổi ca làm việc",
+      "overtime": "Xác nhận tăng ca (OT)"
+    },
+    "tabs": {
+      "leave": "Nghỉ phép",
+      "overtime": "Tăng ca",
+      "adjustment": "Giải trình",
+      "shift_swap": "Đổi ca"
+    },
+    "status": {
+      "pending": "Chờ duyệt",
+      "approved": "Đã duyệt",
+      "rejected": "Đã từ chối",
+      "all_status": "Tất cả trạng thái"
+    },
+    "inbox": {
+      "title": "Hộp thư Phê duyệt",
+      "pending_badge": "chờ duyệt",
+      "subtitle": "Quản lý và phê duyệt tập trung các yêu cầu Nghỉ phép, Tăng ca, Giải trình công và Đổi ca",
+      "empty_desc": "Không tìm thấy yêu cầu phê duyệt nào phù hợp với bộ lọc hiện tại",
+      "empty_title": "Không có yêu cầu chờ xử lý"
+    },
+    "type_tabs_label": "Loại yêu cầu",
+    "search_placeholder": "Tìm kiếm nhân sự, lý do...",
+    "select_all": "Chọn tất cả đơn chờ duyệt",
+    "unselect_all": "Bỏ chọn tất cả",
+    "showing_count": "Hiển thị {{count}} yêu cầu"
+  },
+  "settings": {
+    "searchPlaceholder": "Tìm cài đặt & tính năng...",
+    "categories_menu": "Danh mục"
+  },
+  "rolesPage": {
+    "title": "Roles",
+    "editRole": "Edit Role",
+    "matrix": "Matrix",
+    "deleteRole": "Delete Role",
+    "roleId": "Role ID:",
+    "noDescription": "No description provided.",
+    "manageAccess": "Manage Access",
+    "deleteTitle": "Delete Role",
+    "confirmDelete": "Are you sure you want to delete this role?",
+    "subtitle": "Define custom roles and manage access levels across the workspace",
+    "createRole": "Create Role"
   }
 }

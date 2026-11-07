@@ -2,11 +2,10 @@ import { createFileRoute, Outlet } from "@tanstack/react-router";
 import { Sliders, ChevronDown } from "lucide-react";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
-
+import Button from "@/components/ui/button";
 import { ErrorBoundary } from "@/components/common/error-boundary";
 import { cn } from "@/lib/utils";
 import { SettingsSidebar } from "@/pages/settings/components/settings-sidebar";
-
 export const Route = createFileRoute(
   "/_authenticated/_workspace/workspace/settings"
 )({
@@ -21,7 +20,7 @@ function SettingsPageLayout() {
     <div className="space-y-4">
       {/* Mobile Selector Bar */}
       <div className="flex md:hidden items-center justify-between p-3 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 shadow-2xs">
-        <button
+        <Button
           className="flex items-center justify-between w-full text-xs font-semibold text-slate-700 dark:text-slate-200"
           onClick={() => setMobileMenuOpen((prev) => !prev)}
           type="button"
@@ -34,7 +33,7 @@ function SettingsPageLayout() {
             {mobileMenuOpen ? t("common.close", "Đóng") : t("settings.categories_menu", "Danh mục")}
             <ChevronDown className={cn("w-3.5 h-3.5 transition-transform", mobileMenuOpen && "rotate-180")} />
           </span>
-        </button>
+        </Button>
       </div>
 
       <div className="flex flex-col md:flex-row gap-6 min-h-[calc(100vh-10rem)]">

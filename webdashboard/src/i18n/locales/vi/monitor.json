@@ -56,8 +56,15 @@
     "status_lost": "Thất lạc",
     "status_pending": "Đang chờ xử lý",
     "status_dispatching": "Đang phân phối",
-    "worker_status": { "idle": "Đang rảnh", "processing": "Đang xử lý" },
-    "worker_liveness": { "live": "Đang hoạt động", "stale": "Cũ", "offline": "Ngoại tuyến" },
+    "worker_status": {
+      "idle": "Đang rảnh",
+      "processing": "Đang xử lý"
+    },
+    "worker_liveness": {
+      "live": "Đang hoạt động",
+      "stale": "Cũ",
+      "offline": "Ngoại tuyến"
+    },
     "dependency_health": "Sức khỏe phụ thuộc",
     "dependency_health_subtitle": "Chỉ hiển thị nguồn đã đo; chỉ số không có nguồn vẫn được đánh dấu không khả dụng.",
     "dependency_redis": "Redis",
@@ -125,11 +132,27 @@
     "health_unknown_description": "Chưa có snapshot giám sát đáng tin cậy.",
     "unknown_status": "Trạng thái không khả dụng",
     "unknown_source": "Nguồn không khả dụng",
-    "alert_severity": { "critical": "Nghiêm trọng", "high": "Cao", "medium": "Trung bình", "low": "Thấp" },
-    "alert_status": { "active": "Đang hoạt động", "acknowledged": "Đã ghi nhận", "resolved": "Đã xử lý" },
-    "alert_source": { "redis": "Redis", "postgres": "PostgreSQL" },
-    "alert_event": { "alert_created": "Đã tạo cảnh báo", "alert_updated": "Đã cập nhật cảnh báo", "alert_acknowledged": "Đã ghi nhận cảnh báo", "alert_resolved": "Đã xử lý cảnh báo" },
-    "source_redis": "Redis",
+    "alert_severity": {
+      "critical": "Nghiêm trọng",
+      "high": "Cao",
+      "medium": "Trung bình",
+      "low": "Thấp"
+    },
+    "alert_status": {
+      "active": "Đang hoạt động",
+      "acknowledged": "Đã ghi nhận",
+      "resolved": "Đã xử lý"
+    },
+    "alert_source": {
+      "redis": "Redis",
+      "postgres": "PostgreSQL"
+    },
+    "alert_event": {
+      "alert_created": "Đã tạo cảnh báo",
+      "alert_updated": "Đã cập nhật cảnh báo",
+      "alert_acknowledged": "Đã ghi nhận cảnh báo",
+      "alert_resolved": "Đã xử lý cảnh báo"
+    },
     "source_postgres": "PostgreSQL",
     "source_durable_db": "Công việc bền vững",
     "sources": {

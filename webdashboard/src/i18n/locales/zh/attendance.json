@@ -918,5 +918,73 @@
       "rule": "分配规则"
     },
     "title": "工作时段"
-  }
+  },
+  "recorded_logs": "Nhật ký điểm danh thực tế",
+  "batch": {
+    "toolbar_label": "Thanh thao tác hàng loạt",
+    "selected_count": "yêu cầu đã chọn",
+    "approve_btn": "Duyệt tất cả",
+    "reject_btn": "Từ chối",
+    "approve_success": "Đã duyệt thành công {{count}} yêu cầu",
+    "reject_success": "Đã từ chối {{count}} yêu cầu",
+    "partial_failure": "Thành công {{succeeded}}, thất bại {{failed}}"
+  },
+  "drawer": {
+    "team_context": "Bối cảnh lịch làm việc đội ngũ",
+    "details_title": "Thông tin chi tiết yêu cầu",
+    "target_date": "Thời gian áp dụng",
+    "duration": "Thời lượng",
+    "status": "Trạng thái",
+    "reason": "Lý do"
+  },
+  "select_item": "Chọn yêu cầu của {{name}}",
+  "quick_approve": "Duyệt nhanh",
+  "quick_reject": "Từ chối",
+  "rejection": {
+    "reason_required": "Vui lòng nhập lý do từ chối yêu cầu",
+    "subtitle": "Lý do này sẽ được gửi thông báo đến nhân sự liên quan",
+    "title": "Xác nhận từ chối {{count}} yêu cầu",
+    "reason_label": "Lý do từ chối *",
+    "placeholder": "Nhập lý do cụ thể (ví dụ: Thiếu nhân sự trực ca, thời gian tăng ca chưa được duyệt trước)...",
+    "confirm_btn": "Xác nhận từ chối"
+  },
+  "impact": {
+    "no_conflict_title": "Không có xung đột nhân sự",
+    "no_conflict_dept": "Không có thành viên nào khác trong phòng {{dept}} nghỉ ngày {{date}}.",
+    "no_conflict_generic": "Lịch làm việc của đội ngũ đảm bảo an toàn vận hành.",
+    "understaffing_alert": "Cảnh báo thiếu hụt nhân sự",
+    "colleagues_away": "Nhân sự vắng mặt cùng ngày",
+    "people_count": "người vắng",
+    "away_list": "Đã có người nghỉ phép:"
+  },
+  "type": {
+    "leave": "Đơn xin nghỉ phép",
+    "adjustment": "Giải trình chấm công",
+    "shift_swap": "Đổi ca làm việc",
+    "overtime": "Xác nhận tăng ca (OT)"
+  },
+  "tabs": {
+    "leave": "Nghỉ phép",
+    "overtime": "Tăng ca",
+    "adjustment": "Giải trình",
+    "shift_swap": "Đổi ca"
+  },
+  "status": {
+    "pending": "Chờ duyệt",
+    "approved": "Đã duyệt",
+    "rejected": "Đã từ chối",
+    "all_status": "Tất cả trạng thái"
+  },
+  "inbox": {
+    "title": "Hộp thư Phê duyệt",
+    "pending_badge": "chờ duyệt",
+    "subtitle": "Quản lý và phê duyệt tập trung các yêu cầu Nghỉ phép, Tăng ca, Giải trình công và Đổi ca",
+    "empty_desc": "Không tìm thấy yêu cầu phê duyệt nào phù hợp với bộ lọc hiện tại",
+    "empty_title": "Không có yêu cầu chờ xử lý"
+  },
+  "type_tabs_label": "Loại yêu cầu",
+  "search_placeholder": "Tìm kiếm nhân sự, lý do...",
+  "select_all": "Chọn tất cả đơn chờ duyệt",
+  "unselect_all": "Bỏ chọn tất cả",
+  "showing_count": "Hiển thị {{count}} yêu cầu"
 }
