@@ -25,8 +25,8 @@ interface UseEmployeesDataProps {
   filterDeptIds: string[];
   filterStatus: string;
   selectedEmployee: Employee | null;
-  setEditingEmployee: (emp: Employee | null) => void;
-  setIsModalOpen: (open: boolean) => void;
+  setEditingEmployee?: (emp: Employee | null) => void;
+  setIsModalOpen?: (open: boolean) => void;
   setSelectedEmployee?: (emp: Employee | null) => void;
   sortDir: SortDir;
   sortKey: SortKey | null;
@@ -124,8 +124,8 @@ export const useEmployeesData = ({
     keys: [employeeKeys.all(wsId)],
     mutationFn: (workspaceId, data) => updateEmployee(workspaceId, data.id, data.employee),
     onSuccess: () => {
-      setIsModalOpen(false);
-      setEditingEmployee(null);
+      setIsModalOpen?.(false);
+      setEditingEmployee?.(null);
       toast.success(t("common.success"));
     },
   });

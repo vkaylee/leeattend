@@ -9,16 +9,23 @@ import StatusBadge from "@/components/ui/status-badge";
 import type { Employee, Department } from "../../../lib/api/types";
 import type { SortKey, SortDir } from "./use-employees-page";
 
+import { EmployeeRowActions } from "../components/employee-row-actions";
 import { DepartmentFilterHeader, EmployeeNameCell, StatusFilterHeader } from "../components/employee-table-subcomponents";
-
+import type { EmployeeModalState } from "../types/employee-modals";
 interface UseEmployeeColumnsProps {
   departments: Department[] | undefined;
   filterDeptIds: string[];
   filterStatus: string;
+  formatDate?: (date: string) => string;
+  isAllSelected?: boolean;
+  onOpenModal?: (modal: EmployeeModalState) => void;
+  onSelectEmployee?: (emp: Employee) => void;
+  onToggleSelectAll?: () => void;
+  onToggleSelectRow?: (id: string) => void;
   selectedEmployee: Employee | null;
+  selectedRowIds?: string[];
   setFilterDeptIds: (ids: string[]) => void;
   setFilterStatus: (status: string) => void;
-  sortDir: SortDir;
   sortKey: SortKey | null;
   toggleDeptFilter: (id: string) => void;
   toggleSort: (key: SortKey) => void;
@@ -28,7 +35,14 @@ export const useEmployeeColumns = ({
   departments,
   filterDeptIds,
   filterStatus,
+  formatDate,
+  isAllSelected,
+  onOpenModal,
+  onSelectEmployee,
+  onToggleSelectAll,
+  onToggleSelectRow,
   selectedEmployee,
+  selectedRowIds,
   setFilterDeptIds,
   setFilterStatus,
   sortDir,
@@ -49,6 +63,35 @@ export const useEmployeeColumns = ({
   }, [sortKey, sortDir]);
 
   const columns: NavigableListColumn<Employee>[] = useMemo(() => [
+    ...(onToggleSelectRow ? [{
+      cellClassName: "py-6 pl-4 w-10",
+      header: (
+        <div className="flex items-center pl-4 w-10" onClick={(e) => { e.stopPropagation(); }}>
+          <input
+            aria-label={t("common.select_all", "Chọn tất cả")}
+            checked={isAllSelected}
+            className="size-4 rounded border-slate-300 dark:border-slate-700 text-primary-600 focus:ring-primary-500 cursor-pointer"
+            data-testid="select-all-employees"
+            onChange={onToggleSelectAll}
+            type="checkbox"
+          />
+        </div>
+      ),
+      headerClassName: "pl-4 w-10",
+      key: "select",
+      render: (emp: Employee) => (
+        <div className="flex items-center pl-4" onClick={(e) => { e.stopPropagation(); }}>
+          <input
+            aria-label={`Select ${emp.full_name}`}
+            checked={selectedRowIds?.includes(emp.id)}
+            className="size-4 rounded border-slate-300 dark:border-slate-700 text-primary-600 focus:ring-primary-500 cursor-pointer"
+            data-testid={`select-employee-${emp.id}`}
+            onChange={() => { onToggleSelectRow(emp.id); }}
+            type="checkbox"
+          />
+        </div>
+      ),
+    }] : []),
     {
       render: (emp) => (
         <EmployeeNameCell employee={emp} isSelected={selectedEmployee?.id === emp.id} />
@@ -94,6 +137,34 @@ export const useEmployeeColumns = ({
     },
     {
       render: (emp) => (
+        emp.job_title ? (
+          <span className="text-xs font-semibold text-slate-700 dark:text-slate-300 truncate block max-w-[160px]">
+            {emp.job_title}
+          </span>
+        ) : (
+          <span className="text-slate-300 dark:text-slate-600">—</span>
+        )
+      ),
+      cellClassName: "py-6",
+      header: <span>{t("employees.job_title", "Chức danh")}</span>,
+      key: "job_title",
+    },
+    {
+      render: (emp) => (
+        emp.hire_date ? (
+          <span className="font-mono text-xs text-slate-600 dark:text-slate-300">
+            {formatDate ? formatDate(emp.hire_date) : emp.hire_date}
+          </span>
+        ) : (
+          <span className="text-slate-300 dark:text-slate-600">—</span>
+        )
+      ),
+      cellClassName: "py-6",
+      header: <span>{t("employees.table.hire_date", "Ngày vào làm")}</span>,
+      key: "hire_date",
+    },
+    {
+      render: (emp) => (
         <StatusBadge variant={emp.active_employment_id ? "success" : "neutral"}>
           {emp.active_employment_id ? t("employees.table.active").toUpperCase() : t("employees.table.terminated").toUpperCase()}
         </StatusBadge>
@@ -111,6 +182,19 @@ export const useEmployeeColumns = ({
       headerClassName: "text-center",
       key: "status",
     },
+    {
+      render: (emp) => (
+        <EmployeeRowActions
+          employee={emp}
+          onOpenModal={onOpenModal}
+          onSelect={(selected) => { onSelectEmployee?.(selected); }}
+        />
+      ),
+      cellClassName: "py-6 text-right pr-4",
+      header: <span className="sr-only">{t("common.actions", "Thao tác")}</span>,
+      headerClassName: "text-right pr-4",
+      key: "actions",
+    },
   ], [
     renderSortIcon,
     t,
@@ -121,8 +205,14 @@ export const useEmployeeColumns = ({
     toggleSort,
     setFilterDeptIds,
     setFilterStatus,
-    toggleDeptFilter
+    toggleDeptFilter,
+    formatDate,
+    isAllSelected,
+    onOpenModal,
+    onSelectEmployee,
+    onToggleSelectAll,
+    onToggleSelectRow,
+    selectedRowIds,
   ]);
-
   return columns;
 };

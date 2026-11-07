@@ -8,15 +8,18 @@ import Button from "@/components/ui/button";
 import PageHeader from "@/components/ui/page-header";
 
 import type { Employee } from "../../../lib/api/types";
+import type { EmployeeModalState } from "../types/employee-modals";
 
 interface EmployeesPageHeaderProps {
-  setEditingEmployee: (emp: Employee | null) => void;
-  setIsImportDialogOpen: (open: boolean) => void;
-  setIsModalOpen: (open: boolean) => void;
-  setIsTerminationImportOpen: (open: boolean) => void;
+  openModal?: (modal: EmployeeModalState) => void;
+  setEditingEmployee?: (emp: Employee | null) => void;
+  setIsImportDialogOpen?: (open: boolean) => void;
+  setIsModalOpen?: (open: boolean) => void;
+  setIsTerminationImportOpen?: (open: boolean) => void;
 }
 
 export const EmployeesPageHeader = ({
+  openModal,
   setIsImportDialogOpen,
   setIsTerminationImportOpen,
   setEditingEmployee,
@@ -41,9 +44,9 @@ export const EmployeesPageHeader = ({
               data-testid="import-termination-btn"
               icon={<Upload size={16} />}
               onClick={() => {
-                setIsTerminationImportOpen(true);
+                if (openModal) openModal({ type: "import-termination" });
+                else setIsTerminationImportOpen?.(true);
               }}
-              variant="outline"
             >
               {t("employees.bulk_termination_btn")}
             </Button>
@@ -53,9 +56,9 @@ export const EmployeesPageHeader = ({
               data-testid="import-employee-btn"
               icon={<Upload size={16} />}
               onClick={() => {
-                setIsImportDialogOpen(true);
+                if (openModal) openModal({ type: "import" });
+                else setIsImportDialogOpen?.(true);
               }}
-              variant="outline"
             >
               {t("employees.bulk_import_btn")}
             </Button>
@@ -66,10 +69,12 @@ export const EmployeesPageHeader = ({
               data-testid="add-employee-btn"
               icon={<UserPlus size={16} />}
               onClick={() => {
-                setEditingEmployee(null);
-                setIsModalOpen(true);
+                if (openModal) openModal({ type: "create" });
+                else {
+                  setEditingEmployee?.(null);
+                  setIsModalOpen?.(true);
+                }
               }}
-              variant="primary"
             >
               {t("employees.add_btn")}
             </Button>

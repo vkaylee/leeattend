@@ -11,6 +11,7 @@ import StatusBadge from "@/components/ui/status-badge";
 import { cn } from "@/lib/utils";
 
 import type { Employee, Department } from "../../../lib/api/types";
+import type { EmployeeModalState } from "../types/employee-modals";
 import type { SortKey, SortDir } from "../hooks/use-employees-page";
 
 import { useEmployeeColumns } from "../hooks/use-employee-columns";
@@ -45,7 +46,14 @@ function EmployeeMobileCard({ employee, isSelected, onSelect }: {
         </div>
         <div className="min-w-0 flex-1">
           <div className="truncate text-sm font-bold uppercase tracking-tight text-slate-800 dark:text-slate-100">{employee.full_name}</div>
-          <div className="mt-1 font-mono text-[10px] font-bold uppercase tracking-wider text-slate-400">{employee.employee_id_number}</div>
+          <div className="mt-1 flex items-center gap-2">
+            <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-slate-400">{employee.employee_id_number}</span>
+            {employee.job_title && (
+              <span className="truncate text-[10px] font-semibold text-slate-500 dark:text-slate-400">
+                • {employee.job_title}
+              </span>
+            )}
+          </div>
         </div>
         <ChevronRight className="mt-1 h-4 w-4 shrink-0 text-slate-300 dark:text-slate-600" />
       </div>
@@ -70,14 +78,20 @@ interface EmployeeTableProps {
   fetchNextPage: () => void;
   filterDeptIds: string[];
   filterStatus: string;
+  formatDate?: (date: string) => string;
   hasNextPage: boolean | undefined;
+  isAllSelected?: boolean;
   isFetching: boolean;
   isFetchingNextPage: boolean;
   isLoading: boolean;
   isPlaceholderData: boolean;
+  onOpenModal?: (modal: EmployeeModalState) => void;
+  onToggleSelectAll?: () => void;
+  onToggleSelectRow?: (id: string) => void;
   searchInputRef: React.RefObject<HTMLInputElement | null>;
   searchTerm: string;
   selectedEmployee: Employee | null;
+  selectedRowIds?: string[];
   setCustomFieldFilters: (filters: Record<string, string>) => void;
   setFilterDeptIds: (ids: string[]) => void;
   setFilterStatus: (status: string) => void;
@@ -93,19 +107,27 @@ interface EmployeeTableProps {
 export function EmployeeTable(props: EmployeeTableProps) {
   const { t } = useTranslation();
   const {
+    customFieldFilters,
     departments,
     employees,
     fetchNextPage,
     filterDeptIds,
     filterStatus,
+    formatDate,
     hasNextPage,
+    isAllSelected,
     isFetching,
     isFetchingNextPage,
     isLoading,
     isPlaceholderData,
+    onOpenModal,
+    onToggleSelectAll,
+    onToggleSelectRow,
     searchInputRef,
     searchTerm,
     selectedEmployee,
+    selectedRowIds,
+    setCustomFieldFilters,
     setFilterDeptIds,
     setFilterStatus,
     setSearchTerm,
@@ -114,15 +136,20 @@ export function EmployeeTable(props: EmployeeTableProps) {
     sortKey,
     toggleDeptFilter,
     toggleSort,
-    customFieldFilters,
-    setCustomFieldFilters,
   } = props;
 
   const employeeColumns = useEmployeeColumns({
     departments,
     filterDeptIds,
     filterStatus,
+    formatDate,
+    isAllSelected,
+    onOpenModal,
+    onSelectEmployee: setSelectedEmployee,
+    onToggleSelectAll,
+    onToggleSelectRow,
     selectedEmployee,
+    selectedRowIds,
     setFilterDeptIds,
     setFilterStatus,
     sortDir,
@@ -130,7 +157,6 @@ export function EmployeeTable(props: EmployeeTableProps) {
     toggleDeptFilter,
     toggleSort,
   });
-
   const departmentOptions = [
     { label: t("common.all"), value: "all" },
     ...(departments ?? []).map((department) => ({ label: department.name, value: department.id })),

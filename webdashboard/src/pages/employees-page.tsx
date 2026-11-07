@@ -1,13 +1,14 @@
-import { Building2, UserX } from "lucide-react";
-
 import FloatingRecordBadge from "@/components/common/floating-record-badge";
 import { FilterChips } from "@/components/ui/filter-chips";
 import { ContractExpirationAlerts } from "./employees/components/contract-expiration-alerts";
 import { EmployeeOverlays } from "./employees/components/employee-overlays";
 import { EmployeeTable } from "./employees/components/employee-table";
 import { EmployeesPageHeader } from "./employees/components/employees-page-header";
+import { EmployeeBulkActionBar } from "./employees/components/employee-bulk-action-bar";
+import { EmployeeQuickTabs } from "./employees/components/employee-quick-tabs";
+import { useEmployeeBulkSelection } from "./employees/hooks/use-employee-bulk-selection";
+import { useEmployeeFilterChips } from "./employees/hooks/use-employee-filter-chips";
 import { useEmployeesPage } from "./employees/hooks/use-employees-page";
-
 export default function EmployeesPage() {
   const page = useEmployeesPage();
   const {
@@ -17,36 +18,23 @@ export default function EmployeesPage() {
     t,
   } = page;
 
-  // Build filter chips for the generic FilterChips component
-  const statusChip = page.filterStatus !== "active" ? [{
-    key: `status-${page.filterStatus}`,
-    label: page.filterStatus === "terminated"
-      ? t("employees.table.terminated", "Đã nghỉ việc")
-      : t("common.all", "Tất cả"),
-    category: "status",
-    icon: <UserX size={10} />,
-  }] : [];
-
-  const deptChips = (page.departments ?? [])
-    .filter(d => page.filterDeptIds.includes(d.id))
-    .map(d => ({
-      key: `dept-${d.id}`,
-      label: d.name,
-      category: "department",
-      icon: <Building2 size={10} />,
-    }));
-
-  const cfChips = Object.entries(page.customFieldFilters).map(([k, v]) => ({
-    key: `cf-${k}`,
-    label: `${k}: ${v}`,
-    category: "custom",
-  }));
-
-  const activeChips = [...statusChip, ...deptChips, ...cfChips];
-
+  const bulk = useEmployeeBulkSelection(employees);
+  const { activeChips, handleClearAll, handleRemove } = useEmployeeFilterChips({
+    customFieldFilters: page.customFieldFilters,
+    departments: page.departments,
+    filterDeptIds: page.filterDeptIds,
+    filterStatus: page.filterStatus,
+    setCustomFieldFilters: page.setCustomFieldFilters,
+    setFilterDeptIds: page.setFilterDeptIds,
+    setFilterStatus: page.setFilterStatus,
+    t,
+    toggleDeptFilter: page.toggleDeptFilter,
+    updateCustomFieldFilter: page.updateCustomFieldFilter,
+  });
   return (
     <div className="space-y-6 pb-20 animate-in fade-in duration-700">
       <EmployeesPageHeader
+        openModal={page.openModal}
         setEditingEmployee={page.setEditingEmployee}
         setIsImportDialogOpen={page.setIsImportDialogOpen}
         setIsModalOpen={page.setIsModalOpen}
@@ -59,18 +47,16 @@ export default function EmployeesPage() {
         chips={activeChips}
         data-testid="active-filter-chips"
         label={t("employees.filtering_by", "Đang lọc")}
-        onClearAll={() => {
-          page.setFilterStatus("active");
-          page.setFilterDeptIds([]);
-          page.setCustomFieldFilters({});
-        }}
-        onRemove={(key) => {
-          if (key.startsWith("status-")) page.setFilterStatus("active");
-          else if (key.startsWith("dept-")) page.toggleDeptFilter(key.replace("dept-", ""));
-          else if (key.startsWith("cf-")) page.updateCustomFieldFilter(key.replace("cf-", ""), "");
-        }}
+        onClearAll={handleClearAll}
+        onRemove={handleRemove}
       />
 
+      <EmployeeQuickTabs
+        activeCount={page.employees.filter((e) => Boolean(e.active_employment_id)).length}
+        filterStatus={page.filterStatus}
+        setFilterStatus={page.setFilterStatus}
+        totalCount={totalItems}
+      />
       <EmployeeTable
         customFieldFilters={page.customFieldFilters}
         departments={page.departments}
@@ -78,14 +64,20 @@ export default function EmployeesPage() {
         fetchNextPage={page.fetchNextPage}
         filterDeptIds={page.filterDeptIds}
         filterStatus={page.filterStatus}
+        formatDate={page.formatDate}
         hasNextPage={page.hasNextPage}
+        isAllSelected={bulk.isAllSelected}
         isFetching={page.isFetching}
         isFetchingNextPage={page.isFetchingNextPage}
         isLoading={isLoading}
         isPlaceholderData={page.isPlaceholderData}
+        onOpenModal={page.openModal}
+        onToggleSelectAll={bulk.toggleSelectAll}
+        onToggleSelectRow={bulk.toggleSelect}
         searchInputRef={page.searchInputRef}
         searchTerm={page.searchTerm}
         selectedEmployee={page.selectedEmployee}
+        selectedRowIds={bulk.selectedIds}
         setCustomFieldFilters={page.setCustomFieldFilters}
         setFilterDeptIds={page.setFilterDeptIds}
         setFilterStatus={page.setFilterStatus}
@@ -99,6 +91,12 @@ export default function EmployeesPage() {
       />
 
       <EmployeeOverlays {...page} />
+
+      <EmployeeBulkActionBar
+        employees={employees}
+        onClearSelection={bulk.clearSelection}
+        selectedIds={bulk.selectedIds}
+      />
 
       <FloatingRecordBadge label={t("common.pagination.records")} loaded={employees.length} total={totalItems} />
     </div>
