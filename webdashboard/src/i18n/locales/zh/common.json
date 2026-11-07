@@ -211,6 +211,7 @@
     "end": "结束",
     "endDate": "结束日期",
     "end_date": "结束日期",
+    "start_date": "开始日期",
     "error": "错误",
     "error_boundary": {
       "reload_page": "重新加载页面",

@@ -309,7 +309,7 @@ describe("BottomDrawer", () => {
     }).not.toThrow();
   });
 
-  it("renders DSM 7 Launcher trigger and opens launcher on click", async () => {
+  it("renders Command Palette trigger and opens launcher on click", async () => {
     const handleClose = vi.fn();
     const dispatchSpy = vi.spyOn(window, "dispatchEvent");
     render(<BottomDrawer isOpen={true} onClose={handleClose} />, { wrapper: Wrapper });
@@ -319,6 +319,6 @@ describe("BottomDrawer", () => {
 
     fireEvent.click(launcherTrigger);
     expect(handleClose).toHaveBeenCalled();
-    expect(dispatchSpy).toHaveBeenCalledWith(expect.objectContaining({ type: "open-dsm-launcher" }));
+    expect(dispatchSpy).toHaveBeenCalledWith(expect.objectContaining({ type: "open-command-palette" }));
   });
 });

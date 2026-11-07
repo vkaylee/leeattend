@@ -2,8 +2,8 @@ import { Search, SlidersHorizontal, Sparkles, Sun, Moon, Sunset } from "lucide-r
 import React, { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 
-import { openDsmLauncher } from "@/components/features/dsm-launcher";
-import Button from "@/components/ui/button";
+import { openCommandPalette } from "@/components/layout/command-palette";
+ import Button from "@/components/ui/button";
 import { useProfile } from "@/hooks/use-profile";
 
 interface DesktopHeaderProps {
@@ -51,9 +51,9 @@ export function DesktopHeader({ onOpenCustomizer }: DesktopHeaderProps) {
             <span className="text-primary-600 dark:text-primary-400">{displayName}</span>
           </h1>
         </div>
-        <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">
-          {t("desktop.subtitle", "Không gian làm việc & Bảng điều khiển Synology DSM 7")}
-        </p>
+         <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">
+          {t("desktop.subtitle", "Không gian làm việc & Bảng điều khiển quản trị")}
+         </p>
       </div>
 
       {/* Right: Actions */}
@@ -61,9 +61,9 @@ export function DesktopHeader({ onOpenCustomizer }: DesktopHeaderProps) {
         {/* Spotlight Trigger */}
         <Button
           type="button"
-          variant="outline"
-          onClick={openDsmLauncher}
-          data-testid="desktop-search-trigger"
+           variant="outline"
+          onClick={openCommandPalette}
+           data-testid="desktop-search-trigger"
           className="flex items-center gap-2.5 px-4 h-10 rounded-2xl bg-slate-100/80 dark:bg-slate-800/80 hover:bg-slate-200/80 dark:hover:bg-slate-700/80 border border-slate-200/60 dark:border-slate-700/60 text-xs text-slate-600 dark:text-slate-300 transition-all shadow-2xs group"
         >
           <Search className="w-4 h-4 text-primary-500 group-hover:scale-110 transition-transform" />

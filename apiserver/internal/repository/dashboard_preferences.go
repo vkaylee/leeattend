@@ -18,6 +18,7 @@ type DashboardPreferencesRepository struct {
 var defaultVisibleWidgetsJSON = []byte(`{"kpi_cards":true,"donut_chart":true,"quick_stats":true,"attendance_trend":true,"department_chart":true,"overtime_trend":false,"peak_times":false,"leave_types":false,"lateness_by_day":false,"recruitment_sources":true,"turnover_analytics":false,"unexcused_absences":false,"promo_cards":false}`)
 var defaultWidgetOrderJSON = []byte(`["kpi_cards","donut_chart","quick_stats","attendance_trend","department_chart","overtime_trend","peak_times","leave_types","lateness_by_day","recruitment_sources","turnover_analytics","unexcused_absences","promo_cards"]`)
 var defaultCollapsedSectionsJSON = []byte(`{"summary":false,"charts":false,"actions":true}`)
+var defaultWindowLayoutJSON = []byte(`{}`)
 
 func (r DashboardPreferencesRepository) db(ctx context.Context) (DBTX, error) {
 	if r.DB == nil {
@@ -29,7 +30,7 @@ func (r DashboardPreferencesRepository) db(ctx context.Context) (DBTX, error) {
 func scanDashboardPreferences(row interface{ Scan(...any) error }) (api.DashboardPreferences, error) {
 	var p api.DashboardPreferences
 	var created, updated time.Time
-	err := row.Scan(&p.ID, &p.UserID, &p.WorkspaceID, &p.ActiveView, &p.VisibleWidgets, &p.WidgetOrder, &p.CollapsedSections, &created, &updated)
+	err := row.Scan(&p.ID, &p.UserID, &p.WorkspaceID, &p.ActiveView, &p.VisibleWidgets, &p.WidgetOrder, &p.CollapsedSections, &p.WindowLayout, &created, &updated)
 	return p, err
 }
 func (r DashboardPreferencesRepository) GetDashboardPreferences(ctx context.Context, userID, workspaceID uuid.UUID) (api.DashboardPreferences, error) {
@@ -37,21 +38,21 @@ func (r DashboardPreferencesRepository) GetDashboardPreferences(ctx context.Cont
 	if err != nil {
 		return api.DashboardPreferences{}, err
 	}
-	p, err := scanDashboardPreferences(db.QueryRow(ctx, `SELECT id,user_id,workspace_id,active_view,visible_widgets,widget_order,collapsed_sections,created_at,updated_at FROM dashboard_preferences WHERE user_id=$1 AND workspace_id=$2 LIMIT 1`, userID, workspaceID))
+	p, err := scanDashboardPreferences(db.QueryRow(ctx, `SELECT id,user_id,workspace_id,active_view,visible_widgets,widget_order,collapsed_sections,window_layout,created_at,updated_at FROM dashboard_preferences WHERE user_id=$1 AND workspace_id=$2 LIMIT 1`, userID, workspaceID))
 	if err == nil {
 		return p, nil
 	}
 	if !errors.Is(err, pgx.ErrNoRows) {
 		return api.DashboardPreferences{}, err
 	}
-	return api.DashboardPreferences{UserID: userID, WorkspaceID: workspaceID, VisibleWidgets: append([]byte(nil), defaultVisibleWidgetsJSON...), WidgetOrder: append([]byte(nil), defaultWidgetOrderJSON...), CollapsedSections: append([]byte(nil), defaultCollapsedSectionsJSON...), ActiveView: "overview"}, nil
+	return api.DashboardPreferences{UserID: userID, WorkspaceID: workspaceID, VisibleWidgets: append([]byte(nil), defaultVisibleWidgetsJSON...), WidgetOrder: append([]byte(nil), defaultWidgetOrderJSON...), CollapsedSections: append([]byte(nil), defaultCollapsedSectionsJSON...), WindowLayout: append([]byte(nil), defaultWindowLayoutJSON...), ActiveView: "overview"}, nil
 }
 func (r DashboardPreferencesRepository) UpdateDashboardPreferences(ctx context.Context, userID, workspaceID uuid.UUID, req api.UpdateDashboardPreferences) (api.DashboardPreferences, error) {
 	db, err := r.db(ctx)
 	if err != nil {
 		return api.DashboardPreferences{}, err
 	}
-	_, err = db.Exec(ctx, `INSERT INTO dashboard_preferences (id,user_id,workspace_id,active_view,visible_widgets,widget_order,collapsed_sections,created_at,updated_at) VALUES ($1,$2,$3,'overview',$4,$5,$6,NOW(),NOW()) ON CONFLICT (user_id,workspace_id) DO NOTHING`, uuid.New(), userID, workspaceID, defaultVisibleWidgetsJSON, defaultWidgetOrderJSON, defaultCollapsedSectionsJSON)
+	_, err = db.Exec(ctx, `INSERT INTO dashboard_preferences (id,user_id,workspace_id,active_view,visible_widgets,widget_order,collapsed_sections,window_layout,created_at,updated_at) VALUES ($1,$2,$3,'overview',$4,$5,$6,$7,NOW(),NOW()) ON CONFLICT (user_id,workspace_id) DO NOTHING`, uuid.New(), userID, workspaceID, defaultVisibleWidgetsJSON, defaultWidgetOrderJSON, defaultCollapsedSectionsJSON, defaultWindowLayoutJSON)
 	if err != nil {
 		return api.DashboardPreferences{}, err
 	}
@@ -72,6 +73,9 @@ func (r DashboardPreferencesRepository) UpdateDashboardPreferences(ctx context.C
 	}
 	if req.CollapsedSections != nil {
 		add("collapsed_sections", *req.CollapsedSections)
+	}
+	if req.WindowLayout != nil {
+		add("window_layout", *req.WindowLayout)
 	}
 	if len(sets) > 0 {
 		args = append(args, userID, workspaceID)

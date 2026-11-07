@@ -211,6 +211,7 @@
     "end": "Kết thúc",
     "endDate": "Ngày kết thúc",
     "end_date": "Ngày kết thúc",
+    "start_date": "Ngày bắt đầu",
     "error": "Lỗi",
     "error_boundary": {
       "reload_page": "Tải lại trang",

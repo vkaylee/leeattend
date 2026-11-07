@@ -68,6 +68,7 @@ func TestDashboardPreferencesHandler_Get(t *testing.T) {
 			VisibleWidgets:    json.RawMessage(`{"kpi_cards":true}`),
 			WidgetOrder:       json.RawMessage(`["kpi_cards"]`),
 			CollapsedSections: json.RawMessage(`{"summary":false}`),
+			WindowLayout:      json.RawMessage(`{"app-employees":{"x":100,"y":100}}`),
 		},
 	}
 	h := DashboardPreferencesHandler{
@@ -108,7 +109,7 @@ func TestDashboardPreferencesHandler_Put(t *testing.T) {
 		Authorizer: prefAuthz{allowed: true},
 	}
 
-	body := `{"active_view":"attendance","visible_widgets":{"kpi_cards":false},"widget_order":["kpi_cards"],"collapsed_sections":{"charts":true}}`
+	body := `{"active_view":"attendance","visible_widgets":{"kpi_cards":false},"widget_order":["kpi_cards"],"collapsed_sections":{"charts":true},"window_layout":{"app-attendance":{"x":200,"y":150}}}`
 	req := httptest.NewRequest(http.MethodPut, "/api/v1/dashboard/preferences", bytes.NewBufferString(body))
 	ctx := httpinfra.WithUserIDForTest(req.Context(), u)
 	ctx = httpinfra.WithWorkspaceIDForTest(ctx, w)
@@ -121,6 +122,9 @@ func TestDashboardPreferencesHandler_Put(t *testing.T) {
 	}
 	if repo.req.ActiveView == nil || *repo.req.ActiveView != "attendance" {
 		t.Fatalf("expected updated active_view: %+v", repo.req)
+	}
+	if repo.req.WindowLayout == nil || string(*repo.req.WindowLayout) != `{"app-attendance":{"x":200,"y":150}}` {
+		t.Fatalf("expected updated window_layout: %+v", repo.req)
 	}
 }
 

@@ -19,12 +19,14 @@ type DashboardPreferences struct {
 	VisibleWidgets    json.RawMessage `json:"visible_widgets"`
 	WidgetOrder       json.RawMessage `json:"widget_order"`
 	CollapsedSections json.RawMessage `json:"collapsed_sections"`
+	WindowLayout      json.RawMessage `json:"window_layout"`
 }
 type UpdateDashboardPreferences struct {
 	ActiveView        *string          `json:"active_view"`
 	VisibleWidgets    *json.RawMessage `json:"visible_widgets"`
 	WidgetOrder       *json.RawMessage `json:"widget_order"`
 	CollapsedSections *json.RawMessage `json:"collapsed_sections"`
+	WindowLayout      *json.RawMessage `json:"window_layout"`
 }
 type DashboardPreferencesRepository interface {
 	GetDashboardPreferences(context.Context, uuid.UUID, uuid.UUID) (DashboardPreferences, error)
@@ -105,6 +107,12 @@ func normalizePreferences(req UpdateDashboardPreferences) (UpdateDashboardPrefer
 		encoded := json.RawMessage(b)
 		req.CollapsedSections = &encoded
 	}
+	if req.WindowLayout != nil {
+		var raw map[string]json.RawMessage
+		if err := json.Unmarshal(*req.WindowLayout, &raw); err != nil || raw == nil {
+			return req, errors.New("invalid window layout")
+		}
+	}
 	return req, nil
 }
 
@@ -113,7 +121,14 @@ func normalizedPreferences(p DashboardPreferences) (DashboardPreferences, error)
 	visible := p.VisibleWidgets
 	order := p.WidgetOrder
 	collapsed := p.CollapsedSections
-	req, err := normalizePreferences(UpdateDashboardPreferences{ActiveView: &active, VisibleWidgets: &visible, WidgetOrder: &order, CollapsedSections: &collapsed})
+	layout := p.WindowLayout
+	req, err := normalizePreferences(UpdateDashboardPreferences{
+		ActiveView:        &active,
+		VisibleWidgets:    &visible,
+		WidgetOrder:       &order,
+		CollapsedSections: &collapsed,
+		WindowLayout:      &layout,
+	})
 	if err != nil {
 		return DashboardPreferences{}, err
 	}
@@ -121,6 +136,9 @@ func normalizedPreferences(p DashboardPreferences) (DashboardPreferences, error)
 	p.VisibleWidgets = *req.VisibleWidgets
 	p.WidgetOrder = *req.WidgetOrder
 	p.CollapsedSections = *req.CollapsedSections
+	if req.WindowLayout != nil {
+		p.WindowLayout = *req.WindowLayout
+	}
 	return p, nil
 }
 func (h DashboardPreferencesHandler) Get(w http.ResponseWriter, r *http.Request) {

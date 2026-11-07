@@ -2,9 +2,9 @@ import { Link } from "@tanstack/react-router";
 import { Clock, CalendarPlus, Zap, Banknote, Search, Sparkles } from "lucide-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
-import Button from "@/components/ui/button";
-import { openDsmLauncher } from "@/components/features/dsm-launcher";
-import { ROUTES } from "@/lib/routes";
+ import Button from "@/components/ui/button";
+import { openCommandPalette } from "@/components/layout/command-palette";
+ import { ROUTES } from "@/lib/routes";
 
 interface ShortcutItem {
   to: string;
@@ -47,9 +47,9 @@ export function QuickShortcutsWidget() {
     <div className="flex flex-col justify-between h-full space-y-4">
       {/* DSM 7 Launcher Trigger Banner */}
       <Button
-        type="button"
-        onClick={openDsmLauncher}
-        className="w-full h-auto flex items-center justify-between p-3.5 rounded-2xl bg-gradient-to-r from-slate-900 to-slate-800 text-white shadow-lg hover:shadow-xl hover:from-slate-800 hover:to-slate-700 transition-all duration-300 border border-white/10 group cursor-pointer text-left"
+         type="button"
+        onClick={openCommandPalette}
+         className="w-full h-auto flex items-center justify-between p-3.5 rounded-2xl bg-gradient-to-r from-slate-900 to-slate-800 text-white shadow-lg hover:shadow-xl hover:from-slate-800 hover:to-slate-700 transition-all duration-300 border border-white/10 group cursor-pointer text-left"
         data-testid="desktop-dsm-launcher-shortcut"
       >
         <div className="flex items-center gap-3">

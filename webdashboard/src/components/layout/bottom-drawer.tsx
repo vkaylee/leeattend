@@ -6,7 +6,7 @@ import { useTranslation } from "react-i18next";
 
 import type { NavGroup } from "@/hooks/use-nav-menu-items";
 
-import { openDsmLauncher } from "@/components/features/dsm-launcher";
+import { openCommandPalette } from "@/components/layout/command-palette";
 import Button from "@/components/ui/button";
 import { Typography } from "@/components/ui/typography";
 import { useDarkModeContext } from "@/context/use-dark-mode-context";
@@ -184,14 +184,14 @@ export default function BottomDrawer({ isOpen, onClose }: BottomDrawerProps) {
             variant="ghost"
           />
         </div>
-        {/* Quick DSM 7 Launcher Trigger on Mobile */}
+        {/* Quick Command Palette Trigger on Mobile */}
         <div className="px-4 pt-3 pb-1 shrink-0">
           <Button
             type="button"
             variant="ghost"
             onClick={() => {
               onClose();
-              openDsmLauncher();
+              openCommandPalette();
             }}
             className="w-full h-auto flex items-center justify-between p-3.5 rounded-2xl bg-gradient-to-r from-primary-600 to-indigo-600 text-white shadow-md hover:from-primary-700 hover:to-indigo-700 active:scale-[0.98] transition-all text-left group"
             data-testid="bottom-drawer-launcher-trigger"
@@ -201,9 +201,9 @@ export default function BottomDrawer({ isOpen, onClose }: BottomDrawerProps) {
                 <LayoutGrid className="w-4 h-4 text-white" />
               </div>
               <div className="flex flex-col">
-                <span className="text-xs font-bold leading-tight">DSM 7 Launcher</span>
+                <span className="text-xs font-bold leading-tight">Command Palette</span>
                 <span className="text-[10px] text-white/80 leading-tight">
-                  {t("dsmLauncher.searchPlaceholder", "Tìm kiếm & mở nhanh tính năng...")}
+                  {t("common.search_placeholder", "Tìm kiếm & mở nhanh tính năng...")}
                 </span>
               </div>
             </div>

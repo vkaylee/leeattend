@@ -14,9 +14,10 @@ import { CreateLeaveRequestModal } from "@/components/features/leave/create-leav
 import { LeaveImportBanner } from "@/components/features/leave/leave-import-banner";
 import LeaveImportDialog from "@/components/features/leave/leave-import-dialog";
 import { LeaveRequestMobileCard } from "@/components/features/leave/leave-request-mobile-card";
-import { LeaveRequestRow } from "@/components/features/leave/leave-request-row";
-import { LeaveStatusFilterHeader } from "@/components/features/leave/leave-status-filter-header";
-import { useLeaveRequests, TabType, LeaveStatusFilter } from "@/components/features/leave/use-leave-requests";
+ import { LeaveRequestRow } from "@/components/features/leave/leave-request-row";
+import { LeaveDetailSheet } from "@/components/features/leave/leave-detail-sheet";
+ import { LeaveStatusFilterHeader } from "@/components/features/leave/leave-status-filter-header";
+ import { useLeaveRequests, TabType, LeaveStatusFilter } from "@/components/features/leave/use-leave-requests";
 import { PDFPreviewModal } from "@/components/files/pdf-preview-modal";
 import ApprovalListLayout from "@/components/templates/approval-list-layout";
 import Button from "@/components/ui/button";
@@ -71,9 +72,10 @@ export default function LeaveRequestsPage() {
 
   const [previewFileUrl, setPreviewFileUrl] = useState<string | null>(null);
   const [previewTitle, setPreviewTitle] = useState<string>("");
-  const [isPreviewOpen, setIsPreviewOpen] = useState<boolean>(false);
-
-  const {
+   const [isPreviewOpen, setIsPreviewOpen] = useState<boolean>(false);
+  const [selectedRequest, setSelectedRequest] = useState<LeaveRequest | null>(null);
+ 
+   const {
     isModalOpen, setIsModalOpen,
     isImportModalOpen, setIsImportModalOpen,
     activeTab, setActiveTab,
@@ -203,6 +205,7 @@ export default function LeaveRequestsPage() {
                       leaveTypes={leaveTypes}
                       onApprove={handleApprove}
                       onPreviewAttachment={handlePreview}
+                      onSelect={(req) => setSelectedRequest(req)}
                       request={request}
                       t={t}
                     />
@@ -214,8 +217,16 @@ export default function LeaveRequestsPage() {
               )}
             />
 
-            <CreateLeaveRequestModal isOpen={isModalOpen} leaveTypes={leaveTypes} onClose={() => { setIsModalOpen(false); }} t={t} wsId={wsId} />
-            <LeaveImportDialog isOpen={isImportModalOpen} onClose={() => { setIsImportModalOpen(false); }} onImportComplete={handleImportComplete} />
+            <LeaveDetailSheet
+              emp={selectedRequest ? employeeMap.get(selectedRequest.employment_id) : undefined}
+              formatDate={formatDate}
+              isOpen={Boolean(selectedRequest)}
+              leaveTypes={leaveTypes}
+              onApprove={handleApprove}
+              onClose={() => setSelectedRequest(null)}
+              request={selectedRequest}
+            />
+             <CreateLeaveRequestModal isOpen={isModalOpen} leaveTypes={leaveTypes} onClose={() => { setIsModalOpen(false); }} t={t} wsId={wsId} />
             <PDFPreviewModal fileUrl={previewFileUrl} isOpen={isPreviewOpen} onClose={() => { setIsPreviewOpen(false); }} title={previewTitle} />
           </div>
         </ResilientWidget>

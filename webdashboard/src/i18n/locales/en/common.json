@@ -211,6 +211,7 @@
     "end": "End",
     "endDate": "End Date",
     "end_date": "End Date",
+    "start_date": "Start Date",
     "error": "Error",
     "error_boundary": {
       "reload_page": "Reload page",

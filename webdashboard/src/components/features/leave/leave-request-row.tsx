@@ -18,10 +18,10 @@ export interface LeaveRequestRowProps {
   leaveTypes: LeaveType[];
   onApprove: (id: string, status: string) => void;
   onPreviewAttachment?: (fileUrl: string, title: string) => void;
+  onSelect?: (request: LeaveRequestItem) => void;
   request: LeaveRequestItem;
   t: TFunction;
 }
-
 function getDurationBadgeStyle(type: string | null) {
   switch (type) {
     case "first_half":
@@ -109,17 +109,17 @@ function ActionsCell({
       {status === "pending" && (
         <div className="flex justify-end gap-3 opacity-0 group-hover:opacity-100 transition-all duration-300 translate-x-2 group-hover:translate-x-0">
           <Button
-            className="border-primary-100 bg-white text-emerald-400 hover:text-emerald-600 dark:border-primary-800/50 dark:bg-slate-900 dark:text-emerald-300 h-11 w-11 p-3"
-            onClick={() => { onApprove(id, "approved"); }}
-            size="icon"
-            title={t("common.approve")}
-            variant="outline"
-          >
-            <CheckCircle2 size={20} />
-          </Button>
+             className="border-primary-100 bg-white text-emerald-400 hover:text-emerald-600 dark:border-primary-800/50 dark:bg-slate-900 dark:text-emerald-300 h-11 w-11 p-3"
+            onClick={(e) => { e.stopPropagation(); onApprove(id, "approved"); }}
+             size="icon"
+             title={t("common.approve")}
+             variant="outline"
+           >
+             <CheckCircle2 size={20} />
+           </Button>
           <Button
             className="border-primary-100 bg-white text-rose-400 hover:text-rose-600 dark:border-primary-800/50 dark:bg-slate-900 dark:text-rose-300 h-11 w-11 p-3"
-            onClick={() => { onApprove(id, "rejected"); }}
+            onClick={(e) => { e.stopPropagation(); onApprove(id, "rejected"); }}
             size="icon"
             title={t("common.reject")}
             variant="outline"
@@ -139,14 +139,18 @@ export function LeaveRequestRow({
   formatDate,
   t,
   onApprove,
-  onPreviewAttachment,
-}: LeaveRequestRowProps) {
+   onPreviewAttachment,
+  onSelect,
+ }: LeaveRequestRowProps) {
   const { workspace } = useWorkspace();
   const wsId = workspace?.id ?? "";
   const leaveTypeName = (leaveTypes.find(tOption => tOption.id === request.leave_type_id)?.name ?? "Unknown").toUpperCase();
 
   return (
-    <tr className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-all group">
+    <tr
+      className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-all group cursor-pointer"
+      onClick={() => onSelect?.(request)}
+    >
       <EmployeeCell emp={emp} />
       <td className="px-8 py-6">
         <span className="px-3 py-1 bg-slate-100 dark:bg-slate-700 text-primary-700 dark:text-primary-300 rounded-lg text-[9px] font-bold uppercase tracking-widest border border-primary-200 dark:border-primary-800/50 shadow-sm">
