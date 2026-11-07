@@ -101,7 +101,7 @@ export const SettingsSidebar = memo(function SettingsSidebar({
       data-testid="settings-sidebar"
     >
       {/* 0. Focus Mode Return Button */}
-      <div className="pb-2.5 mb-1">
+      <div className="pb-2 mb-1 hidden md:block">
         <Link
           className="inline-flex items-center gap-2 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:text-primary-600 dark:hover:text-primary-400 px-2.5 py-1.5 rounded-xl hover:bg-slate-200/60 dark:hover:bg-slate-800/60 transition-colors w-full group outline-none focus-visible:ring-2 focus-visible:ring-primary"
           data-testid="settings-back-to-app"
@@ -113,7 +113,7 @@ export const SettingsSidebar = memo(function SettingsSidebar({
       </div>
 
       {/* 1. Header (macOS Ventura/Sonoma style) */}
-      <div className="pb-3.5 mb-3 border-b border-slate-200/60 dark:border-slate-800/60 flex items-center gap-2.5">
+      <div className="pb-3.5 mb-3 px-1 border-b border-slate-200/60 dark:border-slate-800/60 hidden md:flex items-center gap-2.5">
         <div className="w-8 h-8 rounded-lg bg-primary-600 text-white flex items-center justify-center shrink-0 shadow-2xs">
           <Settings className="w-4 h-4" />
         </div>
@@ -131,7 +131,7 @@ export const SettingsSidebar = memo(function SettingsSidebar({
             </span>
           </div>
           <Typography
-            className="text-[10px] font-medium text-slate-400 dark:text-slate-500 truncate"
+            className="text-[10px] font-medium text-slate-500 dark:text-slate-400 truncate"
             variant="p"
           >
             {t("settings.layout.control_panel", "Bảng điều khiển")}
@@ -176,7 +176,7 @@ export const SettingsSidebar = memo(function SettingsSidebar({
             data-testid={section.testId}
             key={section.id}
           >
-            <div className="px-2 py-1 text-[11px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider select-none">
+            <div className="px-2 py-1 text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider select-none">
               {t(section.titleKey, section.defaultTitle)}
             </div>
 
@@ -200,6 +200,7 @@ export const SettingsSidebar = memo(function SettingsSidebar({
                   >
                     <div
                       className={cn(
+                        "w-6 h-6 rounded-lg flex items-center justify-center shrink-0 transition-colors",
                         isActive
                           ? "bg-white/20 text-white"
                           : "bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 group-hover:text-primary-600 dark:group-hover:text-primary-400"
@@ -218,7 +219,7 @@ export const SettingsSidebar = memo(function SettingsSidebar({
                             "text-[10px] truncate leading-normal",
                             isActive
                               ? "text-white/80 font-normal"
-                              : "text-slate-400 dark:text-slate-500"
+                              : "text-slate-500 dark:text-slate-400"
                           )}
                         >
                           {item.description}

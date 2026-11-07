@@ -1,11 +1,13 @@
-import { Mail, Save, ShieldCheck, AlertTriangle } from "lucide-react";
+import { Mail, Save, ShieldCheck, AlertTriangle, Eye, EyeOff } from "lucide-react";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import type { SmtpConfigData } from "@/lib/api/smtp-config";
 
 import Button from "@/components/ui/button";
 import ConfirmDialog from "@/components/ui/confirm-dialog";
-import PageHeader from "@/components/ui/page-header";
+import { SettingsHeader } from "@/components/ui/settings/settings-header";
+import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Typography } from "@/components/ui/typography";
 
@@ -16,6 +18,7 @@ import { useSmtpConfig } from "./hooks/use-smtp-config";
 export default function SmtpSettingsPage() {
   const { t } = useTranslation();
   const inputValue = (v: unknown): string => (typeof v === "string" || typeof v === "number") ? String(v) : "";
+  const [showPassword, setShowPassword] = useState(false);
   const {
     isLoading,
     dirty,
@@ -69,25 +72,38 @@ export default function SmtpSettingsPage() {
 
   return (
     <div className="space-y-6 p-8 animate-in fade-in duration-300">
-      {/* Header with verification badge */}
-      <div className="space-y-1">
-        <PageHeader
-          icon={<Mail className="w-5 h-5" />}
-          subtitle={t("smtp.description", "Configure outgoing email for password resets and notifications.")}
-          title={t("smtp.title", "SMTP Email Settings")}
-        />
-        {verifiedAt ? (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
-            <ShieldCheck className="w-3.5 h-3.5" />
-            {t("smtp.verified_badge", "Verified")} — {verifiedTime}
-          </span>
-        ) : (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
-            <AlertTriangle className="w-3.5 h-3.5" />
-            {t("smtp.untested_badge", "Untested — send a test email to verify")}
-          </span>
-        )}
-      </div>
+      {/* Header via SettingsHeader */}
+      <SettingsHeader
+        actions={
+          <Button
+            className="rounded-xl px-4 py-2 text-xs font-semibold shadow-xs normal-case tracking-normal"
+            data-testid="smtp-save-btn"
+            disabled={!dirty || saveMutation.isPending}
+            loading={saveMutation.isPending}
+            onClick={handleSave}
+            variant="primary"
+          >
+            <Save className="w-4 h-4 mr-1.5" />
+            {t("common.save")}
+          </Button>
+        }
+        badge={
+          verifiedAt ? (
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
+              <ShieldCheck className="w-3.5 h-3.5" />
+              {t("smtp.verified_badge", "Verified")} — {verifiedTime}
+            </span>
+          ) : (
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
+              <AlertTriangle className="w-3.5 h-3.5" />
+              {t("smtp.untested_badge", "Untested — send a test email to verify")}
+            </span>
+          )
+        }
+        description={t("smtp.description", "Configure outgoing email for password resets and notifications.")}
+        icon={<Mail className="w-5 h-5" />}
+        title={t("smtp.title", "SMTP Email Settings")}
+      />
 
       {/* Config form card */}
       <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 space-y-5 shadow-sm">
@@ -96,25 +112,46 @@ export default function SmtpSettingsPage() {
         </Typography>
 
         <div className="grid gap-4 sm:grid-cols-2">
-          {fields.map(({ key, label, type, placeholder, hint }) => (
-            <div className="space-y-1.5" key={key}>
-              <label className="text-sm font-medium text-slate-600 dark:text-slate-400">{label}</label>
-              <input
-                className="block w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-400 transition-all text-sm placeholder:text-slate-300 dark:placeholder:text-slate-600"
-                data-testid={`smtp-field-${key}`}
-                onChange={(e) => {
-                  const val = type === "number" ? Number(e.target.value) || 0 : e.target.value;
-                  updateField(key, val);
-                }}
-                placeholder={placeholder}
-                type={type}
-                value={inputValue(form[key])}
-              />
-              {hint ? (
-                <Typography className="text-[11px] text-slate-400 dark:text-slate-500" variant="p">{hint}</Typography>
-              ) : null}
-            </div>
-          ))}
+          {fields.map(({ key, label, type, placeholder, hint }) => {
+            const isPasswordField = key === "password";
+            const actualType = isPasswordField && showPassword ? "text" : type;
+
+            return (
+              <div className="space-y-1.5" key={key}>
+                <label className="text-sm font-medium text-slate-600 dark:text-slate-400">{label}</label>
+                <div className="relative">
+                  <input
+                    className={cn(
+                      "block w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-400 transition-all text-sm placeholder:text-slate-300 dark:placeholder:text-slate-600",
+                      isPasswordField && "pr-10"
+                    )}
+                    data-testid={`smtp-field-${key}`}
+                    onChange={(e) => {
+                      const val = type === "number" ? Number(e.target.value) || 0 : e.target.value;
+                      updateField(key, val);
+                    }}
+                    placeholder={placeholder}
+                    type={actualType}
+                    value={inputValue(form[key])}
+                  />
+                  {isPasswordField && (
+                    <Button
+                      aria-label={showPassword ? "Hide password" : "Show password"}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 !h-7 !w-7 !min-w-0 p-0 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 shadow-none border-none"
+                      onClick={() => setShowPassword((prev) => !prev)}
+                      type="button"
+                      variant="ghost"
+                    >
+                      {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                    </Button>
+                  )}
+                </div>
+                {hint ? (
+                  <Typography className="text-[11px] text-slate-400 dark:text-slate-500" variant="p">{hint}</Typography>
+                ) : null}
+              </div>
+            );
+          })}
         </div>
 
         <SmtpHttpApiSection
@@ -128,18 +165,6 @@ export default function SmtpSettingsPage() {
           onToggle={() => { setShowHttpApi((p) => !p); }}
         />
 
-        <div className="flex justify-end pt-2">
-          <Button
-            data-testid="smtp-save-btn"
-            disabled={!dirty || saveMutation.isPending}
-            loading={saveMutation.isPending}
-            onClick={handleSave}
-            variant="primary"
-          >
-            <Save className="w-4 h-4 mr-1.5" />
-            {t("common.save")}
-          </Button>
-        </div>
       </div>
 
       <SmtpTestCard

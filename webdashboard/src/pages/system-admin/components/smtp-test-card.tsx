@@ -53,6 +53,7 @@ export function SmtpTestCard({
           />
         </div>
         <Button
+          className="rounded-xl px-4 py-2 text-xs font-semibold normal-case tracking-normal shadow-xs"
           data-testid="smtp-test-btn"
           disabled={!testEmail.trim() || testing}
           loading={testing}

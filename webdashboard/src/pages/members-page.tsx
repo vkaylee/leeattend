@@ -6,7 +6,7 @@ import PermissionGate from "@/components/common/permission-gate";
 import InviteMemberDialog from "@/components/members/invite-member-dialog";
 import MemberTable from "@/components/members/member-table";
 import Button from "@/components/ui/button";
-import PageHeader from "@/components/ui/page-header";
+import { SettingsHeader } from "@/components/ui/settings/settings-header";
 
 export default function MembersPage() {
   const { t } = useTranslation();
@@ -14,21 +14,23 @@ export default function MembersPage() {
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
-      <PageHeader
+      <SettingsHeader
         actions={
           <PermissionGate permission="members:invite">
-            <Button data-testid="invite-member-trigger"
-              icon={<UserPlus size={18} />}
+            <Button
+              className="rounded-xl px-4 py-2 text-xs font-semibold shadow-xs normal-case tracking-normal"
+              data-testid="invite-member-trigger"
+              icon={<UserPlus size={16} />}
               onClick={() => { setIsInviteOpen(true); }}
               variant="primary"
             >
-              {t("members.invite.title").toUpperCase()}
+              {t("members.invite.title")}
             </Button>
           </PermissionGate>
         }
         data-testid="members-title"
-        icon={<Users size={24} />}
-        subtitle={t("members.subtitle")}
+        description={t("members.subtitle")}
+        icon={<Users size={20} />}
         title={t("members.title")}
       />
 

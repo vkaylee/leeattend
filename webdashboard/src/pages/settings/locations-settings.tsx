@@ -12,6 +12,7 @@ import { getStandaloneOrganizationId } from "@/lib/api";
 import { WorkLocation } from "@/lib/api/locations";
 import { cn } from "@/lib/utils";
 
+import { SettingsHeader } from "@/components/ui/settings/settings-header";
 import LocationFormDrawer from "./components/location-form-drawer";
 import { useLocations, useDeleteLocation } from "./hooks/use-locations";
 
@@ -50,26 +51,17 @@ export default function LocationsSettings() {
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-2 border-b border-slate-200/60 dark:border-slate-800/60">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-primary-50 dark:bg-primary-950/70 flex items-center justify-center text-primary-600 dark:text-primary-400 shadow-2xs border border-primary-100/50 dark:border-primary-900/50">
-            <MapPin size={20} />
-          </div>
-          <div>
-            <Typography className="text-xl font-bold tracking-tight text-slate-800 dark:text-slate-100 normal-case" variant="h1">
-              {t("settings.categories.locations", { defaultValue: "Địa điểm làm việc" })}
-            </Typography>
-            <Typography className="text-xs text-slate-500 dark:text-slate-400 font-medium normal-case tracking-normal" variant="small">
-              {t("settings.categories.locations_desc", { defaultValue: "Quản lý chi nhánh văn phòng và múi giờ" })}
-            </Typography>
-          </div>
-        </div>
-        
-        <Button className="rounded-xl px-4 py-2 text-xs font-semibold shadow-xs" onClick={handleAdd} variant="primary">
-          <Plus className="mr-1.5" size={15} />
-          {t("settings.locations.add", { defaultValue: "Thêm địa điểm" })}
-        </Button>
-      </div>
+      <SettingsHeader
+        actions={
+          <Button className="rounded-xl px-4 py-2 text-xs font-semibold shadow-xs normal-case tracking-normal" onClick={handleAdd} variant="primary">
+            <Plus className="mr-1.5" size={15} />
+            {t("settings.locations.add", { defaultValue: "Thêm địa điểm" })}
+          </Button>
+        }
+        description={t("settings.categories.locations_desc", { defaultValue: "Quản lý chi nhánh văn phòng và múi giờ" })}
+        icon={<MapPin size={20} />}
+        title={t("settings.categories.locations", { defaultValue: "Địa điểm làm việc" })}
+      />
 
       <div className="flex flex-col gap-4 animate-in slide-in-from-bottom-4 duration-500">
         {isLoading ? (
@@ -102,9 +94,9 @@ export default function LocationsSettings() {
         ) : locations?.length === 0 ? (
           <EmptyState
             action={
-              <Button className="rounded-2xl px-6" onClick={handleAdd} variant="primary">
+              <Button className="rounded-2xl px-6 normal-case tracking-normal" onClick={handleAdd} variant="primary">
                 <Plus className="mr-2" size={16} />
-                {t("settings.locations.add", { defaultValue: "Add Location" })}
+                {t("settings.locations.add", { defaultValue: "Thêm địa điểm" })}
               </Button>
             }
             description={t("settings.locations.empty_desc", { defaultValue: "Add your first work location to get started." })}

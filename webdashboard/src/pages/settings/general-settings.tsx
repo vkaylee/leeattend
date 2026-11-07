@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Settings2, Save, Clock, Palette, Globe, Calendar, Languages, Sun, Moon, Monitor, ImagePlus, Trash2, Type, Building2, UploadCloud } from "lucide-react";
+import { Settings2, Save, Clock, Palette, Globe, Calendar, Languages, Sun, Moon, Monitor, Type, Building2 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -16,6 +16,9 @@ import { useDarkModeContext } from "@/context/use-dark-mode-context";
 import { useTheme } from "@/hooks/use-theme";
 import { fetchWorkspace, updateWorkspace, getStandaloneOrganizationId, Workspace } from "@/lib/api";
 import { cn } from "@/lib/utils";
+import { SettingsHeader } from "@/components/ui/settings/settings-header";
+import { WorkspaceLogoField } from "./components/workspace-logo-field";
+import { ThemeColorPicker } from "./components/theme-color-picker";
 
 type TabType = "localization" | "appearance";
 
@@ -105,40 +108,36 @@ function GeneralSettingsContent({ workspace }: { workspace: Workspace }) {
 
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
-      {/* Apple HIG Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-slate-200/60 dark:border-slate-800/60">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-primary-50 dark:bg-primary-950/70 flex items-center justify-center text-primary-600 dark:text-primary-400 border border-primary-100/50 dark:border-primary-900/50 shadow-2xs">
-            <Settings2 size={20} />
-          </div>
-          <div>
-            <Typography className="text-xl font-bold tracking-tight text-slate-800 dark:text-slate-100" data-testid="general-settings-title" variant="h1">
-              {t("common.settings.categories.general")}
-            </Typography>
-            <Typography className="text-xs text-slate-500 dark:text-slate-400 font-medium" variant="small">
-              {t("common.workspace_settings.description")}
-            </Typography>
-          </div>
-        </div>
-        <Button
-          className="rounded-xl px-5 py-2 text-xs font-semibold shadow-xs normal-case tracking-normal"
-          data-testid="save-workspace-config-btn"
-          icon={<Save size={15} />}
-          loading={updateWsMutation.isPending}
-          onClick={handleSaveConfig}
-          variant="primary"
-        >
-          {t("common.workspace_settings.save_config", { defaultValue: "Lưu thay đổi" })}
-        </Button>
-      </div>
+      {/* Apple HIG Header via SettingsHeader */}
+      <SettingsHeader
+        actions={
+          <Button
+            className="rounded-xl px-5 py-2 text-xs font-semibold shadow-xs normal-case tracking-normal"
+            data-testid="save-workspace-config-btn"
+            icon={<Save size={15} />}
+            loading={updateWsMutation.isPending}
+            onClick={handleSaveConfig}
+            variant="primary"
+          >
+            {t("common.workspace_settings.save_config", { defaultValue: "Lưu thay đổi" })}
+          </Button>
+        }
+        description={t("common.workspace_settings.description")}
+        icon={<Settings2 size={20} />}
+        title={
+          <Typography className="text-xl font-bold tracking-tight text-slate-800 dark:text-slate-100" data-testid="general-settings-title" variant="h1">
+            {t("common.settings.categories.general")}
+          </Typography>
+        }
+      />
 
-      {/* Apple HIG Segmented Control */}
-      <div className="flex items-center">
-        <div className="inline-flex items-center gap-1 rounded-xl bg-slate-100/90 dark:bg-slate-800/80 p-1 border border-slate-200/60 dark:border-slate-700/60" role="tablist">
+      {/* Apple HIG Segmented Control with mobile horizontal scroll */}
+      <div className="flex items-center overflow-x-auto pb-1 max-w-full">
+        <div className="inline-flex items-center gap-1 rounded-xl bg-slate-100/90 dark:bg-slate-800/80 p-1 border border-slate-200/60 dark:border-slate-700/60 shrink-0" role="tablist">
           <button
             aria-selected={activeTab === "localization"}
             className={cn(
-              "flex items-center gap-2 px-4 py-1.5 rounded-lg text-xs font-semibold transition-all duration-150 select-none",
+              "flex items-center gap-2 px-4 py-1.5 rounded-lg text-xs font-semibold transition-all duration-150 select-none whitespace-nowrap shrink-0",
               activeTab === "localization"
                 ? "bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 shadow-2xs font-bold"
                 : "text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"
@@ -154,7 +153,7 @@ function GeneralSettingsContent({ workspace }: { workspace: Workspace }) {
           <button
             aria-selected={activeTab === "appearance"}
             className={cn(
-              "flex items-center gap-2 px-4 py-1.5 rounded-lg text-xs font-semibold transition-all duration-150 select-none",
+              "flex items-center gap-2 px-4 py-1.5 rounded-lg text-xs font-semibold transition-all duration-150 select-none whitespace-nowrap shrink-0",
               activeTab === "appearance"
                 ? "bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 shadow-2xs font-bold"
                 : "text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"
@@ -247,58 +246,11 @@ function GeneralSettingsContent({ workspace }: { workspace: Workspace }) {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <label className={SETTINGS_LABEL}>{t("common.workspace_settings.workspace_logo", { defaultValue: "Logo Workspace" })}</label>
-                  {logoUrl ? (
-                    <div className="relative group rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 flex flex-col items-center justify-center p-4 h-32">
-                      <div 
-                        aria-label="Workspace Logo"
-                        className="h-16 w-full bg-contain bg-no-repeat bg-center drop-shadow-2xs"
-                        role="img"
-                        style={{ backgroundImage: `url(${logoUrl})` }}
-                      />
-                      <div className="absolute inset-0 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xs opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 rounded-xl">
-                        <Button className="p-2 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-lg shadow-2xs hover:text-primary-600 border border-slate-200 dark:border-slate-700 transition-colors" 
-                          data-testid="edit-logo-btn"
-                          onClick={() => {
-                            const url = prompt(t("common.workspace_settings.enter_logo_url", { defaultValue: "Enter image URL:" }), logoUrl);
-                            if (url !== null) setLogoUrl(url);
-                          }}
-                          title={t("common.edit", { defaultValue: "Edit" })}
-                          variant="ghost"
-                        >
-                          <ImagePlus size={16} />
-                        </Button>
-                        <Button className="p-2 bg-white dark:bg-slate-800 text-rose-500 rounded-lg shadow-2xs hover:bg-rose-50 border border-slate-200 dark:border-slate-700 transition-colors" 
-                          data-testid="delete-logo-btn"
-                          onClick={() => { setLogoUrl(""); }}
-                          title={t("common.delete", { defaultValue: "Delete" })}
-                          variant="ghost"
-                        >
-                          <Trash2 size={16} />
-                        </Button>
-                      </div>
-                    </div>
-                  ) : (
-                    <Button className="w-full h-32 rounded-xl border-2 border-dashed border-slate-200 dark:border-slate-700 hover:border-primary-400 dark:hover:border-primary-500 bg-slate-50 dark:bg-slate-800/30 hover:bg-primary-50/50 dark:hover:bg-primary-900/10 transition-all flex flex-col items-center justify-center gap-2 group" 
-                      data-testid="upload-logo-btn"
-                      onClick={() => {
-                        const url = prompt(t("common.workspace_settings.enter_logo_url", { defaultValue: "Enter image URL:" }));
-                        if (url) setLogoUrl(url);
-                      }}
-                      variant="ghost"
-                    >
-                      <div className="w-9 h-9 rounded-full bg-white dark:bg-slate-800 shadow-2xs flex items-center justify-center text-slate-400 group-hover:text-primary-500 transition-all">
-                        <UploadCloud size={18} />
-                      </div>
-                      <div className="text-center">
-                        <Typography className="text-xs font-semibold text-slate-600 dark:text-slate-300 group-hover:text-primary-600" variant="p">{t("common.workspace_settings.upload_logo", { defaultValue: "Nhấp để cài đặt logo URL" })}</Typography>
-                      </div>
-                    </Button>
-                  )}
-                </div>
-              </div>
+              <WorkspaceLogoField
+                labelClassName={SETTINGS_LABEL}
+                logoUrl={logoUrl}
+                onLogoChange={setLogoUrl}
+              />
             </div>
 
             {/* Theme & Palette Inset Card */}
@@ -310,24 +262,11 @@ function GeneralSettingsContent({ workspace }: { workspace: Workspace }) {
                 </Typography>
               </div>
               <div className="space-y-6">
-                <div className="space-y-3">
-                  <label className={SETTINGS_LABEL}>{t("common.workspace_settings.primary_color")}</label>
-                  <div className="flex flex-wrap gap-3 items-center">
-                    {[
-                      { name: t("common.colors.emerald"), color: '#10b981' }, { name: t("common.colors.blue"), color: '#2563eb' },
-                      { name: t("common.colors.emerald"), color: '#059669' }, { name: t("common.colors.amber"), color: '#d97706' }, { name: t("common.colors.rose"), color: '#e11d48' }, { name: t("common.colors.slate"), color: '#475569' },
-                    ].map((preset) => (
-                      <Button className={cn("w-10 h-10 rounded-xl transition-all border-2 flex items-center justify-center shadow-2xs group active:scale-95", themePrimaryColor === preset.color ? 'border-slate-900 dark:border-white scale-105' : 'border-transparent hover:scale-105')} key={preset.color} onClick={() => { setThemePrimaryColor(preset.color); }} style={{ backgroundColor: preset.color }} title={preset.name} variant="ghost">
-                        {themePrimaryColor === preset.color && <div className="w-2.5 h-2.5 bg-white dark:bg-slate-900 rounded-full shadow-xs" />}
-                      </Button>
-                    ))}
-                    <div className="h-8 w-px bg-slate-200 dark:bg-slate-700 mx-1" />
-                    <div className="flex items-center gap-2 bg-slate-50 dark:bg-slate-800 px-3 py-1.5 rounded-xl border border-slate-200/80 dark:border-slate-700/80 shadow-2xs">
-                      <input className="w-6 h-6 rounded-md cursor-pointer bg-transparent border-none p-0" onChange={(e) => { setThemePrimaryColor(e.target.value); }} type="color" value={themePrimaryColor} />
-                      <input className="bg-transparent border-none text-xs font-mono font-semibold text-slate-600 dark:text-slate-300 w-20 outline-none" onChange={(e) => { setThemePrimaryColor(e.target.value); }} type="text" value={themePrimaryColor} />
-                    </div>
-                  </div>
-                </div>
+                <ThemeColorPicker
+                  labelClassName={SETTINGS_LABEL}
+                  onThemeColorChange={setThemePrimaryColor}
+                  themePrimaryColor={themePrimaryColor}
+                />
 
                 {/* Dark Mode Preference */}
                 <DarkModeSelector />

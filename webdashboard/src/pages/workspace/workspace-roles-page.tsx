@@ -1,10 +1,10 @@
-import { Plus } from "lucide-react";
+import { Plus, ShieldCheck } from "lucide-react";
 import React from "react";
 
 import PermissionGate from "@/components/common/permission-gate";
 import RoleFormModal from "@/components/features/settings/role-form-modal";
 import Button from "@/components/ui/button";
-import PageHeader from "@/components/ui/page-header";
+import { SettingsHeader } from "@/components/ui/settings/settings-header";
 
 import { RoleCard } from "./components/role-card";
 import { useWorkspaceRolesPage } from "./hooks/use-workspace-roles-page";
@@ -27,24 +27,26 @@ export default function WorkspaceRolesPage() {
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <PageHeader
-          subtitle={t("rolesPage.subtitle", {
-            defaultValue: "Define custom roles and manage access levels across the workspace",
-          })}
-          title={t("rolesPage.title", { defaultValue: "Role Management" })}
-        />
-        <PermissionGate permission="members:roles:manage">
-          <Button className="flex items-center gap-2 bg-primary-600 hover:bg-primary-700 text-white px-5 py-2.5 rounded-2xl font-bold text-sm transition-all shadow-lg shadow-primary-200 dark:shadow-primary-900/20 hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0"
-            onClick={handleCreate}
-            type="button"
-            variant="primary"
-          >
-            <Plus size={18} />
-            {t("rolesPage.createRole", { defaultValue: "Create Role" })}
-          </Button>
-        </PermissionGate>
-      </div>
+      <SettingsHeader
+        actions={
+          <PermissionGate permission="members:roles:manage">
+            <Button
+              className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold normal-case tracking-normal shadow-xs"
+              onClick={handleCreate}
+              type="button"
+              variant="primary"
+            >
+              <Plus size={16} />
+              {t("rolesPage.createRole", { defaultValue: "Create Role" })}
+            </Button>
+          </PermissionGate>
+        }
+        description={t("rolesPage.subtitle", {
+          defaultValue: "Define custom roles and manage access levels across the workspace",
+        })}
+        icon={<ShieldCheck size={20} />}
+        title={t("rolesPage.title", { defaultValue: "Role Management" })}
+      />
 
       {isLoading ? (
         <div className="flex justify-center p-20">
