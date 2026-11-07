@@ -5,18 +5,23 @@ import { useTranslation } from "react-i18next";
 import Button from "@/components/ui/button";
 import EmptyState from "@/components/ui/empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
+import type { DailyAttendanceReport } from "@/lib/api";
 import { Employee } from "@/lib/api/types";
 import { cn } from "@/lib/utils";
+import { formatDayKey, makeTimesheetCellKey } from "@/pages/reports/hooks/use-monthly-timesheet-data";
 
 import {
   ATTENDANCE_CODE_REGISTRY,
   getAllAttendanceCodes,
   getAttendanceCodeConfig,
 } from "./attendance-code-registry";
+import { resolveDailyAttendanceCode } from "./attendance-code-resolver";
 
 interface TimesheetMatrixGridProps {
+  attendanceMap?: Map<string, DailyAttendanceReport>;
   employees: Employee[];
   isLoading?: boolean;
+  isLoadingAttendance?: boolean;
   month: number;
   onEmployeeClick?: (employee: Employee) => void;
   year: number;
@@ -26,8 +31,10 @@ interface TimesheetMatrixGridProps {
 const DAY_NAMES = ["CN", "T2", "T3", "T4", "T5", "T6", "T7"];
 
 export const TimesheetMatrixGrid: React.FC<TimesheetMatrixGridProps> = ({
+  attendanceMap,
   employees,
   isLoading = false,
+  isLoadingAttendance = false,
   month,
   onEmployeeClick,
   year,
@@ -68,15 +75,16 @@ export const TimesheetMatrixGrid: React.FC<TimesheetMatrixGridProps> = ({
     );
   }, [employees, searchTerm]);
 
-  // Deterministic mock code generator for display when raw logs are processed
+  // Real attendance code resolver using O(1) indexed attendanceMap
   const getEmployeeDayCode = (empId: string, day: number, isWeekend: boolean) => {
-    if (isWeekend) return "Ro";
-    // Deterministic distribution for demonstration of full matrix
-    const hash = (empId.charCodeAt(0) + day * 7) % 30;
-    if (hash === 2) return "P";
-    if (hash === 5) return "CT";
-    if (hash === 9) return "O";
-    return "X";
+    if (attendanceMap) {
+      const dateStr = formatDayKey(year, month, day);
+      const cellKey = makeTimesheetCellKey(empId, dateStr);
+      const row = attendanceMap.get(cellKey);
+      return resolveDailyAttendanceCode(row, { isWeekend });
+    }
+    if (isWeekend) return getAttendanceCodeConfig("Ro");
+    return getAttendanceCodeConfig("-");
   };
 
   const registeredCodes = useMemo(() => getAllAttendanceCodes(), []);
@@ -96,10 +104,10 @@ export const TimesheetMatrixGrid: React.FC<TimesheetMatrixGridProps> = ({
       let workDays = 0;
       let leaveDays = 0;
       const dayCodes = daysList.map((d) => {
-        const code = getEmployeeDayCode(emp.id, d.dayNum, d.isWeekend);
-        if (code === "X") workDays += 1;
-        if (code === "P") leaveDays += 1;
-        return code;
+        const config = getEmployeeDayCode(emp.id, d.dayNum, d.isWeekend);
+        if (config.category === "work") workDays += config.paidMultiplier;
+        if (config.category === "paid_leave") leaveDays += config.paidMultiplier;
+        return config.code;
       });
       const payableDays = workDays + leaveDays;
 
@@ -108,9 +116,9 @@ export const TimesheetMatrixGrid: React.FC<TimesheetMatrixGridProps> = ({
         `"${emp.full_name ?? ""}"`,
         `"${emp.department ?? ""}"`,
         ...dayCodes.map((c) => `"${c}"`),
-        `"${workDays}"`,
-        `"${leaveDays}"`,
-        `"${payableDays}"`,
+        `"${workDays.toFixed(1)}"`,
+        `"${leaveDays.toFixed(1)}"`,
+        `"${payableDays.toFixed(1)}"`,
       ].join(",");
     });
 
@@ -199,9 +207,8 @@ export const TimesheetMatrixGrid: React.FC<TimesheetMatrixGridProps> = ({
 
       {/* Main Matrix Table */}
       <div className="flex-1 min-h-0 overflow-auto">
-        {isLoading ? (
+        {isLoading || isLoadingAttendance ? (
           <div className="p-12 space-y-3">
-            {Array.from({ length: 6 }).map((_, i) => (
               <Skeleton className="h-10 w-full rounded-xl" key={i} />
             ))}
           </div>
@@ -279,9 +286,7 @@ export const TimesheetMatrixGrid: React.FC<TimesheetMatrixGridProps> = ({
 
                     {/* Day Cells */}
                     {daysList.map((d) => {
-                      const code = getEmployeeDayCode(emp.id, d.dayNum, d.isWeekend);
-                      const config = getAttendanceCodeConfig(code);
-
+                      const config = getEmployeeDayCode(emp.id, d.dayNum, d.isWeekend);
                       if (config.category === "work") {
                         totalWork += config.paidMultiplier;
                       } else if (config.category === "paid_leave") {

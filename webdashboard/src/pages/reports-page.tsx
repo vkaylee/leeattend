@@ -6,6 +6,7 @@ import { TimesheetMatrixGrid } from "@/components/features/attendance/timesheet-
 
 import { ReportsHeader } from "./reports/components/reports-header";
 import { ReportsTable } from "./reports/components/reports-table";
+import { useMonthlyTimesheetData } from "./reports/hooks/use-monthly-timesheet-data";
 import { useReportsPage } from "./reports/hooks/use-reports-page";
 
   // eslint-disable-next-line complexity
@@ -48,6 +49,14 @@ export default function ReportsPage() {
     viewMode,
     setViewMode,
   } = useReportsPage();
+
+  const { attendanceMap, isLoading: isLoadingAttendance } = useMonthlyTimesheetData({
+    wsId,
+    month: specificMonth.month,
+    year: specificMonth.year,
+    enabled: viewMode === "matrix",
+  });
+
   const clickedEmployeeSummaryRows = selectedEmployee?.id
     ? filteredData.filter(row => row.employee_id === selectedEmployee.id)
     : [];
@@ -78,8 +87,10 @@ export default function ReportsPage() {
       {viewMode === "matrix" ? (
         <div className="h-[calc(100vh-16rem)] min-h-[500px]">
           <TimesheetMatrixGrid
+            attendanceMap={attendanceMap}
             employees={allEmployees}
             isLoading={isLoading}
+            isLoadingAttendance={isLoadingAttendance}
             month={specificMonth.month}
             onEmployeeClick={(emp) => {
               handleEmployeeClick(emp.id, emp.full_name);
