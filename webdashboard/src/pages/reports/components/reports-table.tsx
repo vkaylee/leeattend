@@ -77,6 +77,7 @@ interface ReportsTableProps {
   handleSort: (field: "leave_days" | "name" | "ot_hours" | "total_hours" | "work_hours") => void;
   handleSpecificMonthChange: (m: number, y: number) => void;
   hasNextPage: boolean | undefined;
+  hideFilters?: boolean;
   isFetchingNextPage: boolean;
   isLoading: boolean;
   keyDownRef: React.RefObject<((e: React.KeyboardEvent<HTMLInputElement>) => void) | null>;
@@ -131,36 +132,38 @@ export function ReportsTable(props: ReportsTableProps) {
 
   return (
     <div className="flex flex-col gap-6">
-      <ResponsiveToolbar
-        filterCount={[
-          filterMode !== "this_month",
-          employeeStatus !== "active",
-          selectedDepartmentId !== null,
-          selectedEmployerId !== null,
-        ].filter(Boolean).length}
-      >
-        <ReportFilters
-          dateRange={dateRange}
-          departments={departments}
-          employeeStatus={employeeStatus}
-          employers={employers}
-          filterMode={filterMode}
-          onDateRangeChange={handleDateRangeChange}
-          onDepartmentChange={handleDepartmentChange}
-          onEmployeeStatusChange={onEmployeeStatusChange}
-          onEmployerChange={handleEmployerChange}
-          onFilterModeChange={handleFilterModeChange}
-          onSearchKeyDown={(e) => keyDownRef.current?.(e)}
-          onSearchQueryChange={setSearchQuery}
-          onSpecificMonthChange={handleSpecificMonthChange}
-          searchInputRef={searchInputRef}
-          searchQuery={searchQuery}
-          selectedDepartmentId={selectedDepartmentId}
-          selectedEmployerId={selectedEmployerId}
-          specificMonth={specificMonth}
-          t={t}
-        />
-      </ResponsiveToolbar>
+      {!props.hideFilters && (
+        <ResponsiveToolbar
+          filterCount={[
+            filterMode !== "this_month",
+            employeeStatus !== "active",
+            selectedDepartmentId !== null,
+            selectedEmployerId !== null,
+          ].filter(Boolean).length}
+        >
+          <ReportFilters
+            dateRange={dateRange}
+            departments={departments}
+            employeeStatus={employeeStatus}
+            employers={employers}
+            filterMode={filterMode}
+            onDateRangeChange={handleDateRangeChange}
+            onDepartmentChange={handleDepartmentChange}
+            onEmployeeStatusChange={onEmployeeStatusChange}
+            onEmployerChange={handleEmployerChange}
+            onFilterModeChange={handleFilterModeChange}
+            onSearchKeyDown={(e) => keyDownRef.current?.(e)}
+            onSearchQueryChange={setSearchQuery}
+            onSpecificMonthChange={handleSpecificMonthChange}
+            searchInputRef={searchInputRef}
+            searchQuery={searchQuery}
+            selectedDepartmentId={selectedDepartmentId}
+            selectedEmployerId={selectedEmployerId}
+            specificMonth={specificMonth}
+            t={t}
+          />
+        </ResponsiveToolbar>
+      )}
       <NavigableList<AttendanceSummary>
         className="animate-in slide-in-from-bottom-8 duration-700"
         columns={reportColumns}

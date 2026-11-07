@@ -93,7 +93,9 @@ export function ReportsHeader({
             onClick={onExportClick}
             variant="outline"
           >
-            {t("reports.export_excel")}
+            {viewMode === "matrix"
+              ? t("reports.export_matrix_csv", "Xuất ma trận (CSV)")
+              : t("reports.export_excel", "Xuất Excel")}
           </Button>
         </div>
       }

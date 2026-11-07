@@ -1616,6 +1616,7 @@
     "view_matrix": "Monthly Timesheet",
     "view_summary": "Summary Hours",
     "export_excel": "Export Excel",
+    "export_matrix_csv": "Export Matrix (CSV)",
     "view_raw_logs": "View Raw Logs",
     "view_raw_logs_short": "Raw Logs",
     "all_departments": "All",

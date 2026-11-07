@@ -1616,6 +1616,7 @@
     "view_matrix": "Bảng công tháng",
     "view_summary": "Tổng hợp giờ",
     "export_excel": "Xuất Excel",
+    "export_matrix_csv": "Xuất ma trận (CSV)",
     "view_raw_logs_short": "Nhật ký thô",
     "all_departments": "Tất cả",
     "all_employers": "Tất cả",
