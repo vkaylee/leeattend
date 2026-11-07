@@ -93,6 +93,8 @@ describe("ROUTES constants", () => {
     "/workspace/settings/time",
     "/workspace/settings/payroll",
     "/workspace/settings/leave",
+    "/workspace/settings/smtp",
+    "/workspace/settings/members",
     "/holidays",
     "/audit-logs",
     "/ess/profile",

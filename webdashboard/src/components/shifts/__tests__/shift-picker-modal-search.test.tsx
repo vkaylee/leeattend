@@ -298,7 +298,7 @@ describe("ShiftPickerModal", () => {
 
       // Click clear search in empty state (shouldn't exist when there are results)
       // Instead, look for the X clear button in SearchBox
-      const clearBtn = screen.getByLabelText("common.clear");
+      const clearBtn = screen.getByLabelText(/clear/i);
       await user.click(clearBtn);
 
       expect(input).toHaveValue("");

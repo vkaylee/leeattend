@@ -284,6 +284,12 @@ export const ROUTE_METADATA_MAP: Record<string, RouteMetadata> = {
     titleKey: "settings.categories.econtracts",
     defaultTitle: "Hợp đồng điện tử",
   },
+  [ROUTES.SETTINGS.SMTP]: {
+    breadcrumbKey: "smtp.title",
+    defaultBreadcrumb: "Máy chủ Email (SMTP)",
+    titleKey: "smtp.title",
+    defaultTitle: "Máy chủ Email (SMTP)",
+  },
   [ROUTES.SETTINGS.ROLES]: {
     breadcrumbKey: "settings.categories.roles",
     defaultBreadcrumb: "Vai trò & Chức danh",
@@ -295,6 +301,12 @@ export const ROUTE_METADATA_MAP: Record<string, RouteMetadata> = {
     defaultBreadcrumb: "Phân quyền người dùng",
     titleKey: "settings.categories.permissions",
     defaultTitle: "Phân quyền người dùng",
+  },
+  [ROUTES.SETTINGS.MEMBERS]: {
+    breadcrumbKey: "members.title",
+    defaultBreadcrumb: "Tài khoản người dùng",
+    titleKey: "members.title",
+    defaultTitle: "Tài khoản người dùng",
   },
 };
 

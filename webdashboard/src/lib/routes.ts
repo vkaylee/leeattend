@@ -68,6 +68,7 @@ export const ROUTES = {
     ROOT: "/workspace/settings",
     ROLES: "/workspace/settings/roles",
     PERMISSIONS: "/workspace/settings/permissions",
+    MEMBERS: "/workspace/settings/members",
     GENERAL: "/workspace/settings/general",
     ORGANIZATION: "/workspace/settings/organization",
     TIME: "/workspace/settings/time",
@@ -82,5 +83,6 @@ export const ROUTES = {
     CONDITION_TYPES: "/workspace/settings/condition-types",
     STORAGE: "/workspace/settings/storage",
     ECONTRACTS: "/workspace/settings/econtracts",
+    SMTP: "/workspace/settings/smtp",
   },
 } as const;

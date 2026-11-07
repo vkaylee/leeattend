@@ -6,7 +6,6 @@ import PermissionGate from "@/components/common/permission-gate";
 import InviteMemberDialog from "@/components/members/invite-member-dialog";
 import MemberTable from "@/components/members/member-table";
 import Button from "@/components/ui/button";
-import { PageContainer } from "@/components/ui/page-container";
 import PageHeader from "@/components/ui/page-header";
 
 export default function MembersPage() {
@@ -14,7 +13,7 @@ export default function MembersPage() {
   const [isInviteOpen, setIsInviteOpen] = useState(false);
 
   return (
-    <PageContainer>
+    <div className="space-y-8 animate-in fade-in duration-500">
       <PageHeader
         actions={
           <PermissionGate permission="members:invite">
@@ -41,6 +40,6 @@ export default function MembersPage() {
         isOpen={isInviteOpen}
         onClose={() => { setIsInviteOpen(false); }}
       />
-    </PageContainer>
+    </div>
   );
 }

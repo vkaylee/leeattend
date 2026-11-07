@@ -80,7 +80,7 @@ const getAccessGroup = (t: TFunction): SettingItem[] => [
     description: t("settings.categories.members_desc", { defaultValue: "Quản lý tài khoản người dùng và lời mời" }),
     icon: <Users className="w-4 h-4" />,
     label: t("members.title", { defaultValue: "Tài khoản người dùng" }),
-    path: ROUTES.PEOPLE,
+    path: ROUTES.SETTINGS.MEMBERS,
     permissions: ["members:read"],
   },
 ];
@@ -163,7 +163,7 @@ const getSystemGroup = (t: TFunction): SettingItem[] => [
     description: t("smtp.subtitle", { defaultValue: "Cấu hình kết nối máy chủ gửi email thông báo" }),
     icon: <Mail className="w-4 h-4" />,
     label: t("smtp.title", { defaultValue: "Máy chủ Email (SMTP)" }),
-    path: ROUTES.SYSTEM_SMTP,
+    path: ROUTES.SETTINGS.SMTP,
     permissions: ["security:settings:manage"],
   },
   {

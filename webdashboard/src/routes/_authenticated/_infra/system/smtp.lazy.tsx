@@ -1,7 +1,7 @@
-import { createLazyFileRoute } from "@tanstack/react-router";
+import { createLazyFileRoute, Navigate } from "@tanstack/react-router";
 
-import SmtpSettingsPage from "@/pages/system-admin/smtp-settings-page";
+import { ROUTES } from "@/lib/routes";
 
 export const Route = createLazyFileRoute("/_authenticated/_infra/system/smtp")({
-  component: SmtpSettingsPage,
+  component: () => <Navigate to={ROUTES.SETTINGS.SMTP} replace />,
 });

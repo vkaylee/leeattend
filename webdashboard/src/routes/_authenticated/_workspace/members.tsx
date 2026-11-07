@@ -1,3 +1,10 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 
-export const Route = createFileRoute('/_authenticated/_workspace/members')({});
+import { ROUTES } from "@/lib/routes";
+
+export const Route = createFileRoute("/_authenticated/_workspace/members")({
+  beforeLoad: () => {
+    // eslint-disable-next-line @typescript-eslint/only-throw-error
+    throw redirect({ to: ROUTES.SETTINGS.MEMBERS });
+  },
+});

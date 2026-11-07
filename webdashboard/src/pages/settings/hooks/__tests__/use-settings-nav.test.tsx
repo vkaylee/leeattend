@@ -25,9 +25,10 @@ describe("useSettingsNav", () => {
 
     expect(systemPaths).not.toContain("/audit-logs");
     expect(systemPaths).toContain("/workspace/settings/storage");
-    expect(systemPaths).toContain("/system/smtp");
+    expect(systemPaths).toContain("/workspace/settings/smtp");
     expect(operationsPaths).toContain("/shifts/rules");
     expect(operationsPaths).not.toContain("/workspace/settings/holidays");
-    expect(accessPaths).toContain("/workspace/people");
+    expect(accessPaths).toContain("/workspace/settings/members");
+    expect(accessPaths).not.toContain("/workspace/people");
   });
 });

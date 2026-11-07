@@ -63,11 +63,13 @@ import { Route as AuthenticatedWorkspaceShiftsRulesIndexRouteImport } from "./ro
 import { Route as AuthenticatedWorkspaceWorkspaceSettingsWorkflowsRouteImport } from "./routes/_authenticated/_workspace/workspace/settings/workflows"
 import { Route as AuthenticatedWorkspaceWorkspaceSettingsTimeRouteImport } from "./routes/_authenticated/_workspace/workspace/settings/time"
 import { Route as AuthenticatedWorkspaceWorkspaceSettingsStorageRouteImport } from "./routes/_authenticated/_workspace/workspace/settings/storage"
+import { Route as AuthenticatedWorkspaceWorkspaceSettingsSmtpRouteImport } from "./routes/_authenticated/_workspace/workspace/settings/smtp"
 import { Route as AuthenticatedWorkspaceWorkspaceSettingsRolesRouteImport } from "./routes/_authenticated/_workspace/workspace/settings/roles"
 import { Route as AuthenticatedWorkspaceWorkspaceSettingsPermissionsRouteImport } from "./routes/_authenticated/_workspace/workspace/settings/permissions"
 import { Route as AuthenticatedWorkspaceWorkspaceSettingsPayrollRouteImport } from "./routes/_authenticated/_workspace/workspace/settings/payroll"
 import { Route as AuthenticatedWorkspaceWorkspaceSettingsOvertimeRouteImport } from "./routes/_authenticated/_workspace/workspace/settings/overtime"
 import { Route as AuthenticatedWorkspaceWorkspaceSettingsOrganizationRouteImport } from "./routes/_authenticated/_workspace/workspace/settings/organization"
+import { Route as AuthenticatedWorkspaceWorkspaceSettingsMembersRouteImport } from "./routes/_authenticated/_workspace/workspace/settings/members"
 import { Route as AuthenticatedWorkspaceWorkspaceSettingsLocationsRouteImport } from "./routes/_authenticated/_workspace/workspace/settings/locations"
 import { Route as AuthenticatedWorkspaceWorkspaceSettingsLifecycleTemplatesRouteImport } from "./routes/_authenticated/_workspace/workspace/settings/lifecycle-templates"
 import { Route as AuthenticatedWorkspaceWorkspaceSettingsLeaveRouteImport } from "./routes/_authenticated/_workspace/workspace/settings/leave"
@@ -570,6 +572,16 @@ const AuthenticatedWorkspaceWorkspaceSettingsStorageRoute =
       (d) => d.Route,
     ),
   )
+const AuthenticatedWorkspaceWorkspaceSettingsSmtpRoute =
+  AuthenticatedWorkspaceWorkspaceSettingsSmtpRouteImport.update({
+    id: "/smtp",
+    path: "/smtp",
+    getParentRoute: () => AuthenticatedWorkspaceWorkspaceSettingsRoute,
+  } as any).lazy(() =>
+    import("./routes/_authenticated/_workspace/workspace/settings/smtp.lazy").then(
+      (d) => d.Route,
+    ),
+  )
 const AuthenticatedWorkspaceWorkspaceSettingsRolesRoute =
   AuthenticatedWorkspaceWorkspaceSettingsRolesRouteImport.update({
     id: "/roles",
@@ -617,6 +629,16 @@ const AuthenticatedWorkspaceWorkspaceSettingsOrganizationRoute =
     getParentRoute: () => AuthenticatedWorkspaceWorkspaceSettingsRoute,
   } as any).lazy(() =>
     import("./routes/_authenticated/_workspace/workspace/settings/organization.lazy").then(
+      (d) => d.Route,
+    ),
+  )
+const AuthenticatedWorkspaceWorkspaceSettingsMembersRoute =
+  AuthenticatedWorkspaceWorkspaceSettingsMembersRouteImport.update({
+    id: "/members",
+    path: "/members",
+    getParentRoute: () => AuthenticatedWorkspaceWorkspaceSettingsRoute,
+  } as any).lazy(() =>
+    import("./routes/_authenticated/_workspace/workspace/settings/members.lazy").then(
       (d) => d.Route,
     ),
   )
@@ -875,11 +897,13 @@ export interface FileRoutesByFullPath {
   "/workspace/settings/leave": typeof AuthenticatedWorkspaceWorkspaceSettingsLeaveRoute
   "/workspace/settings/lifecycle-templates": typeof AuthenticatedWorkspaceWorkspaceSettingsLifecycleTemplatesRoute
   "/workspace/settings/locations": typeof AuthenticatedWorkspaceWorkspaceSettingsLocationsRoute
+  "/workspace/settings/members": typeof AuthenticatedWorkspaceWorkspaceSettingsMembersRoute
   "/workspace/settings/organization": typeof AuthenticatedWorkspaceWorkspaceSettingsOrganizationRoute
   "/workspace/settings/overtime": typeof AuthenticatedWorkspaceWorkspaceSettingsOvertimeRoute
   "/workspace/settings/payroll": typeof AuthenticatedWorkspaceWorkspaceSettingsPayrollRoute
   "/workspace/settings/permissions": typeof AuthenticatedWorkspaceWorkspaceSettingsPermissionsRoute
   "/workspace/settings/roles": typeof AuthenticatedWorkspaceWorkspaceSettingsRolesRoute
+  "/workspace/settings/smtp": typeof AuthenticatedWorkspaceWorkspaceSettingsSmtpRoute
   "/workspace/settings/storage": typeof AuthenticatedWorkspaceWorkspaceSettingsStorageRoute
   "/workspace/settings/time": typeof AuthenticatedWorkspaceWorkspaceSettingsTimeRoute
   "/workspace/settings/workflows": typeof AuthenticatedWorkspaceWorkspaceSettingsWorkflowsRouteWithChildren
@@ -947,11 +971,13 @@ export interface FileRoutesByTo {
   "/workspace/settings/leave": typeof AuthenticatedWorkspaceWorkspaceSettingsLeaveRoute
   "/workspace/settings/lifecycle-templates": typeof AuthenticatedWorkspaceWorkspaceSettingsLifecycleTemplatesRoute
   "/workspace/settings/locations": typeof AuthenticatedWorkspaceWorkspaceSettingsLocationsRoute
+  "/workspace/settings/members": typeof AuthenticatedWorkspaceWorkspaceSettingsMembersRoute
   "/workspace/settings/organization": typeof AuthenticatedWorkspaceWorkspaceSettingsOrganizationRoute
   "/workspace/settings/overtime": typeof AuthenticatedWorkspaceWorkspaceSettingsOvertimeRoute
   "/workspace/settings/payroll": typeof AuthenticatedWorkspaceWorkspaceSettingsPayrollRoute
   "/workspace/settings/permissions": typeof AuthenticatedWorkspaceWorkspaceSettingsPermissionsRoute
   "/workspace/settings/roles": typeof AuthenticatedWorkspaceWorkspaceSettingsRolesRoute
+  "/workspace/settings/smtp": typeof AuthenticatedWorkspaceWorkspaceSettingsSmtpRoute
   "/workspace/settings/storage": typeof AuthenticatedWorkspaceWorkspaceSettingsStorageRoute
   "/workspace/settings/time": typeof AuthenticatedWorkspaceWorkspaceSettingsTimeRoute
   "/shifts/rules": typeof AuthenticatedWorkspaceShiftsRulesIndexRoute
@@ -1027,11 +1053,13 @@ export interface FileRoutesById {
   "/_authenticated/_workspace/workspace/settings/leave": typeof AuthenticatedWorkspaceWorkspaceSettingsLeaveRoute
   "/_authenticated/_workspace/workspace/settings/lifecycle-templates": typeof AuthenticatedWorkspaceWorkspaceSettingsLifecycleTemplatesRoute
   "/_authenticated/_workspace/workspace/settings/locations": typeof AuthenticatedWorkspaceWorkspaceSettingsLocationsRoute
+  "/_authenticated/_workspace/workspace/settings/members": typeof AuthenticatedWorkspaceWorkspaceSettingsMembersRoute
   "/_authenticated/_workspace/workspace/settings/organization": typeof AuthenticatedWorkspaceWorkspaceSettingsOrganizationRoute
   "/_authenticated/_workspace/workspace/settings/overtime": typeof AuthenticatedWorkspaceWorkspaceSettingsOvertimeRoute
   "/_authenticated/_workspace/workspace/settings/payroll": typeof AuthenticatedWorkspaceWorkspaceSettingsPayrollRoute
   "/_authenticated/_workspace/workspace/settings/permissions": typeof AuthenticatedWorkspaceWorkspaceSettingsPermissionsRoute
   "/_authenticated/_workspace/workspace/settings/roles": typeof AuthenticatedWorkspaceWorkspaceSettingsRolesRoute
+  "/_authenticated/_workspace/workspace/settings/smtp": typeof AuthenticatedWorkspaceWorkspaceSettingsSmtpRoute
   "/_authenticated/_workspace/workspace/settings/storage": typeof AuthenticatedWorkspaceWorkspaceSettingsStorageRoute
   "/_authenticated/_workspace/workspace/settings/time": typeof AuthenticatedWorkspaceWorkspaceSettingsTimeRoute
   "/_authenticated/_workspace/workspace/settings/workflows": typeof AuthenticatedWorkspaceWorkspaceSettingsWorkflowsRouteWithChildren
@@ -1106,11 +1134,13 @@ export interface FileRouteTypes {
     | "/workspace/settings/leave"
     | "/workspace/settings/lifecycle-templates"
     | "/workspace/settings/locations"
+    | "/workspace/settings/members"
     | "/workspace/settings/organization"
     | "/workspace/settings/overtime"
     | "/workspace/settings/payroll"
     | "/workspace/settings/permissions"
     | "/workspace/settings/roles"
+    | "/workspace/settings/smtp"
     | "/workspace/settings/storage"
     | "/workspace/settings/time"
     | "/workspace/settings/workflows"
@@ -1178,11 +1208,13 @@ export interface FileRouteTypes {
     | "/workspace/settings/leave"
     | "/workspace/settings/lifecycle-templates"
     | "/workspace/settings/locations"
+    | "/workspace/settings/members"
     | "/workspace/settings/organization"
     | "/workspace/settings/overtime"
     | "/workspace/settings/payroll"
     | "/workspace/settings/permissions"
     | "/workspace/settings/roles"
+    | "/workspace/settings/smtp"
     | "/workspace/settings/storage"
     | "/workspace/settings/time"
     | "/shifts/rules"
@@ -1257,11 +1289,13 @@ export interface FileRouteTypes {
     | "/_authenticated/_workspace/workspace/settings/leave"
     | "/_authenticated/_workspace/workspace/settings/lifecycle-templates"
     | "/_authenticated/_workspace/workspace/settings/locations"
+    | "/_authenticated/_workspace/workspace/settings/members"
     | "/_authenticated/_workspace/workspace/settings/organization"
     | "/_authenticated/_workspace/workspace/settings/overtime"
     | "/_authenticated/_workspace/workspace/settings/payroll"
     | "/_authenticated/_workspace/workspace/settings/permissions"
     | "/_authenticated/_workspace/workspace/settings/roles"
+    | "/_authenticated/_workspace/workspace/settings/smtp"
     | "/_authenticated/_workspace/workspace/settings/storage"
     | "/_authenticated/_workspace/workspace/settings/time"
     | "/_authenticated/_workspace/workspace/settings/workflows"
@@ -1664,6 +1698,13 @@ declare module "@tanstack/react-router" {
       preLoaderRoute: typeof AuthenticatedWorkspaceWorkspaceSettingsStorageRouteImport
       parentRoute: typeof AuthenticatedWorkspaceWorkspaceSettingsRoute
     }
+    "/_authenticated/_workspace/workspace/settings/smtp": {
+      id: "/_authenticated/_workspace/workspace/settings/smtp"
+      path: "/smtp"
+      fullPath: "/workspace/settings/smtp"
+      preLoaderRoute: typeof AuthenticatedWorkspaceWorkspaceSettingsSmtpRouteImport
+      parentRoute: typeof AuthenticatedWorkspaceWorkspaceSettingsRoute
+    }
     "/_authenticated/_workspace/workspace/settings/roles": {
       id: "/_authenticated/_workspace/workspace/settings/roles"
       path: "/roles"
@@ -1697,6 +1738,13 @@ declare module "@tanstack/react-router" {
       path: "/organization"
       fullPath: "/workspace/settings/organization"
       preLoaderRoute: typeof AuthenticatedWorkspaceWorkspaceSettingsOrganizationRouteImport
+      parentRoute: typeof AuthenticatedWorkspaceWorkspaceSettingsRoute
+    }
+    "/_authenticated/_workspace/workspace/settings/members": {
+      id: "/_authenticated/_workspace/workspace/settings/members"
+      path: "/members"
+      fullPath: "/workspace/settings/members"
+      preLoaderRoute: typeof AuthenticatedWorkspaceWorkspaceSettingsMembersRouteImport
       parentRoute: typeof AuthenticatedWorkspaceWorkspaceSettingsRoute
     }
     "/_authenticated/_workspace/workspace/settings/locations": {
@@ -1971,11 +2019,13 @@ interface AuthenticatedWorkspaceWorkspaceSettingsRouteChildren {
   AuthenticatedWorkspaceWorkspaceSettingsLeaveRoute: typeof AuthenticatedWorkspaceWorkspaceSettingsLeaveRoute
   AuthenticatedWorkspaceWorkspaceSettingsLifecycleTemplatesRoute: typeof AuthenticatedWorkspaceWorkspaceSettingsLifecycleTemplatesRoute
   AuthenticatedWorkspaceWorkspaceSettingsLocationsRoute: typeof AuthenticatedWorkspaceWorkspaceSettingsLocationsRoute
+  AuthenticatedWorkspaceWorkspaceSettingsMembersRoute: typeof AuthenticatedWorkspaceWorkspaceSettingsMembersRoute
   AuthenticatedWorkspaceWorkspaceSettingsOrganizationRoute: typeof AuthenticatedWorkspaceWorkspaceSettingsOrganizationRoute
   AuthenticatedWorkspaceWorkspaceSettingsOvertimeRoute: typeof AuthenticatedWorkspaceWorkspaceSettingsOvertimeRoute
   AuthenticatedWorkspaceWorkspaceSettingsPayrollRoute: typeof AuthenticatedWorkspaceWorkspaceSettingsPayrollRoute
   AuthenticatedWorkspaceWorkspaceSettingsPermissionsRoute: typeof AuthenticatedWorkspaceWorkspaceSettingsPermissionsRoute
   AuthenticatedWorkspaceWorkspaceSettingsRolesRoute: typeof AuthenticatedWorkspaceWorkspaceSettingsRolesRoute
+  AuthenticatedWorkspaceWorkspaceSettingsSmtpRoute: typeof AuthenticatedWorkspaceWorkspaceSettingsSmtpRoute
   AuthenticatedWorkspaceWorkspaceSettingsStorageRoute: typeof AuthenticatedWorkspaceWorkspaceSettingsStorageRoute
   AuthenticatedWorkspaceWorkspaceSettingsTimeRoute: typeof AuthenticatedWorkspaceWorkspaceSettingsTimeRoute
   AuthenticatedWorkspaceWorkspaceSettingsWorkflowsRoute: typeof AuthenticatedWorkspaceWorkspaceSettingsWorkflowsRouteWithChildren
@@ -2002,6 +2052,8 @@ const AuthenticatedWorkspaceWorkspaceSettingsRouteChildren: AuthenticatedWorkspa
       AuthenticatedWorkspaceWorkspaceSettingsLifecycleTemplatesRoute,
     AuthenticatedWorkspaceWorkspaceSettingsLocationsRoute:
       AuthenticatedWorkspaceWorkspaceSettingsLocationsRoute,
+    AuthenticatedWorkspaceWorkspaceSettingsMembersRoute:
+      AuthenticatedWorkspaceWorkspaceSettingsMembersRoute,
     AuthenticatedWorkspaceWorkspaceSettingsOrganizationRoute:
       AuthenticatedWorkspaceWorkspaceSettingsOrganizationRoute,
     AuthenticatedWorkspaceWorkspaceSettingsOvertimeRoute:
@@ -2012,6 +2064,8 @@ const AuthenticatedWorkspaceWorkspaceSettingsRouteChildren: AuthenticatedWorkspa
       AuthenticatedWorkspaceWorkspaceSettingsPermissionsRoute,
     AuthenticatedWorkspaceWorkspaceSettingsRolesRoute:
       AuthenticatedWorkspaceWorkspaceSettingsRolesRoute,
+    AuthenticatedWorkspaceWorkspaceSettingsSmtpRoute:
+      AuthenticatedWorkspaceWorkspaceSettingsSmtpRoute,
     AuthenticatedWorkspaceWorkspaceSettingsStorageRoute:
       AuthenticatedWorkspaceWorkspaceSettingsStorageRoute,
     AuthenticatedWorkspaceWorkspaceSettingsTimeRoute:

@@ -1,16 +1,7 @@
-import { createLazyFileRoute } from "@tanstack/react-router";
+import { createLazyFileRoute, Navigate } from "@tanstack/react-router";
 
-import { ErrorBoundary } from "@/components/common/error-boundary";
-import MembersPage from "@/pages/members-page";
+import { ROUTES } from "@/lib/routes";
 
-
-function MembersPageWithErrorBoundary() {
-  return (
-    <ErrorBoundary variant="full">
-      <MembersPage />
-    </ErrorBoundary>
-  );
-}
-export const Route = createLazyFileRoute('/_authenticated/_workspace/members')({
-  component: MembersPageWithErrorBoundary,
+export const Route = createLazyFileRoute("/_authenticated/_workspace/members")({
+  component: () => <Navigate to={ROUTES.SETTINGS.MEMBERS} replace />,
 });

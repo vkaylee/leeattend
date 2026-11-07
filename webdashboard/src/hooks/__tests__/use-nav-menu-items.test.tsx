@@ -101,6 +101,7 @@ describe("useNavMenuItems", () => {
     const EXCLUDED_APP_ROUTES: Record<string, true> = {
       "/dashboard": true,
       "/workspace/people": true,
+      "/workspace/settings/members": true,
       "/shifts/rules": true,
     };
 
@@ -236,8 +237,8 @@ describe("getActiveNavGroup", () => {
     expect(getActiveNavGroup("/departments")).toBe("org");
   });
 
-  it('returns "org" for /workspace/people', () => {
-    expect(getActiveNavGroup("/workspace/people")).toBe("org");
+  it('returns "settings" for /workspace/settings/members', () => {
+    expect(getActiveNavGroup("/workspace/settings/members")).toBe("settings");
   });
   it('returns "time" for /attendance-logs', () => {
     expect(getActiveNavGroup("/attendance-logs")).toBe("time");

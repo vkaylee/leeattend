@@ -272,26 +272,27 @@ export default function EmployeeDetailPage() {
           {tabs.map((tab) => {
             const isTabActive = activeDetailTab === tab.id;
             return (
-              <button
+              <Button
                 aria-selected={isTabActive}
                 className={cn(
-                  "flex items-center gap-2 py-2.5 px-4 rounded-xl text-xs font-bold uppercase tracking-wider transition-all whitespace-nowrap cursor-pointer shrink-0",
+                  "flex items-center gap-2 h-auto py-2.5 px-4 rounded-xl text-xs font-bold uppercase tracking-wider transition-all whitespace-nowrap cursor-pointer shrink-0 shadow-none border",
                   isTabActive
-                    ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-200 dark:border-slate-700"
-                    : "text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/50"
+                    ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 border-slate-200 dark:border-slate-700 shadow-sm"
+                    : "bg-transparent text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/50 border-transparent"
                 )}
                 data-testid={`tab-${tab.id}`}
                 key={tab.id}
                 onClick={() => { handleTabChange(tab.id); }}
                 role="tab"
                 type="button"
+                variant="ghost"
               >
                 {createElement(tab.icon, {
                   size: 14,
                   className: isTabActive ? "text-primary-600 dark:text-primary-400" : "opacity-60",
                 })}
                 <span>{tab.label}</span>
-              </button>
+              </Button>
             );
           })}
         </div>
