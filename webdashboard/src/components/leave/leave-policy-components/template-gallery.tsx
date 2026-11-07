@@ -1,8 +1,9 @@
-import { Search, ChevronRight } from "lucide-react";
+import { ChevronRight } from "lucide-react";
 import React, { useState, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 
 import Button from "@/components/ui/button";
+import { SearchInput } from "@/components/ui/search-input";
 import { Typography } from "@/components/ui/typography";
 import { cn } from "@/lib/utils";
 
@@ -64,15 +65,12 @@ export function TemplateGallery({ onSelectTemplate, onSkip }: TemplateGalleryPro
       {/* Header with Search */}
       <div className="px-8 pt-6 pb-6 border-b border-slate-50 dark:border-slate-800 bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm sticky top-0 z-10">
         <div className="flex items-center justify-between gap-4">
-          <div className="relative flex-1">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
-            <input
-              className="w-full bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 rounded-2xl py-3 pl-11 pr-4 text-xs focus:ring-2 focus:ring-primary-500/20 outline-none transition-all"
-              onChange={(e) => {
-                setSearch(e.target.value);
-              }}
+          <div className="flex-1">
+            <SearchInput
+              onChange={(e) => setSearch(e.target.value)}
+              onClear={() => setSearch("")}
               placeholder={t("settings.leave.gallery.search_placeholder", "Search templates (e.g. 'Annual', 'Sick')...")}
-              type="text"
+              size="sm"
               value={search}
             />
           </div>

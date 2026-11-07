@@ -100,4 +100,12 @@ describe("PageHeader Component", () => {
       screen.getByRole("button", { name: "Action" }),
     ).toBeInTheDocument();
   });
+
+  it("renders gradient title when gradientTitle is true", () => {
+    render(<PageHeader gradientTitle title="Gradient Title" />);
+    const heading = screen.getByRole("heading", { level: 1 });
+    expect(heading).toHaveTextContent("Gradient Title");
+    const gradientSpan = heading.querySelector("span");
+    expect(gradientSpan?.className).toContain("bg-clip-text");
+  });
 });

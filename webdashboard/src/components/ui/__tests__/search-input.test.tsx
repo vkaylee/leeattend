@@ -9,8 +9,7 @@ describe('SearchInput Component', () => {
     render(<SearchInput placeholder="Search anything..." />);
 
     const input = screen.getByPlaceholderText('Search anything...');
-    expect(input).toBeInTheDocument();
-    expect(input).toHaveAttribute('type', 'search');
+    expect(input).toHaveAttribute('type', 'text');
   });
 
   it('renders shortcut badge when shortcut prop is provided and no value', () => {

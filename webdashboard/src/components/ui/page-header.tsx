@@ -1,6 +1,6 @@
 import React, { memo } from "react";
 
-import { Typography } from "@/components/ui/typography";
+import { GradientText, Typography } from "@/components/ui/typography";
 import { cn } from "@/lib/utils";
 
 // ── Component ──────────────────────────────────────────────────────
@@ -17,6 +17,8 @@ export interface PageHeaderProps {
   icon?: React.ReactNode;
   subtitle?: string;
   title: string;
+  /** Whether to apply VitePress-style gradient clip to title */
+  gradientTitle?: boolean;
 }
 
 const PageHeader = memo(function PageHeader({
@@ -27,6 +29,7 @@ const PageHeader = memo(function PageHeader({
   "data-testid": testId,
   className,
   hideTitle,
+  gradientTitle,
 }: PageHeaderProps) {
   return (
     <div
@@ -45,11 +48,17 @@ const PageHeader = memo(function PageHeader({
             </div>
           )}
           <div>
-            <Typography as="h1" className="font-bold mb-0.5 normal-case" data-testid={testId} variant="h3">
-              {title}
-            </Typography>
+            {gradientTitle ? (
+              <h1 className="text-2xl font-black tracking-tight mb-0.5 normal-case" data-testid={testId}>
+                <GradientText>{title}</GradientText>
+              </h1>
+            ) : (
+              <Typography as="h1" className="font-bold mb-0.5 normal-case" data-testid={testId} variant="h3">
+                {title}
+              </Typography>
+            )}
             {!!subtitle && (
-              <Typography className="text-xs text-slate-500 dark:text-slate-400 font-medium opacity-80" variant="small">
+              <Typography className="text-xs text-slate-500 dark:text-slate-400 font-medium opacity-80" variant="tagline">
                 {subtitle}
               </Typography>
             )}

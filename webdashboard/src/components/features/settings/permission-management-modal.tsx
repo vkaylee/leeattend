@@ -1,9 +1,10 @@
-import { KeyRound, Plus, Trash2, Clock, Search } from "lucide-react";
+import { KeyRound, Plus, Trash2, Clock } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import Button from "@/components/ui/button";
 import Modal from "@/components/ui/modal";
+import { SearchInput } from "@/components/ui/search-input";
 import { Typography } from "@/components/ui/typography";
 import { useConfirm } from "@/hooks/use-confirm";
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
@@ -42,19 +43,19 @@ function AssignPermissionForm({
                     <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">
                         {t("members.permissions.permission_label", { defaultValue: "Permission" })}
                     </label>
-                    <div className="relative">
-                        <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
-                        <input
-                            className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl pl-12 pr-6 py-4 focus:ring-4 focus:ring-amber-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all font-bold text-sm tracking-tight shadow-sm"
-                            onChange={(e) => {
-                                setSearchTerm(e.target.value);
-                                setNewPermission("");
-                            }}
-                            placeholder={t("members.permissions.search_placeholder", { defaultValue: "Search permissions..." })}
-                            type="text"
-                            value={searchTerm}
-                        />
-                    </div>
+                    <SearchInput
+                        onChange={(e) => {
+                            setSearchTerm(e.target.value);
+                            setNewPermission("");
+                        }}
+                        onClear={() => {
+                            setSearchTerm("");
+                            setNewPermission("");
+                        }}
+                        placeholder={t("members.permissions.search_placeholder", { defaultValue: "Search permissions..." })}
+                        size="md"
+                        value={searchTerm}
+                    />
                     {!!searchTerm && filteredAvailable.length > 0 && (
                         <div className="max-h-48 overflow-y-auto rounded-2xl border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-lg">
                             {filteredAvailable.map((permission) => (

@@ -1,8 +1,9 @@
-import { Filter, Search } from "lucide-react";
+import { Filter } from "lucide-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
 
 import { Combobox } from "@/components/ui/combobox";
+import { SearchInput } from "@/components/ui/search-input";
 
 export interface EContractsFiltersProps {
   onSearchChange: (value: string) => void;
@@ -25,14 +26,14 @@ export function EContractsFilters({
 
   return (
     <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-6 rounded-[2rem] shadow-sm flex flex-col md:flex-row items-center justify-between gap-4">
-      <div className="relative w-full md:w-80">
-        <Search className="absolute left-3.5 top-3 text-slate-400" size={16} />
-        <input
+      <div className="w-full md:w-80">
+        <SearchInput
           aria-label={t("employees.details.contracts.search_label", { defaultValue: "Search contracts" })}
-          className="w-full pl-10 pr-4 h-10 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 dark:bg-slate-855 dark:border-slate-800 text-xs font-medium"
-          onChange={(e: React.ChangeEvent<HTMLInputElement>) => { onSearchChange(e.target.value); }}
+          containerClassName="h-10"
+          onChange={(e) => onSearchChange(e.target.value)}
+          onClear={() => onSearchChange("")}
           placeholder={t("employees.details.contracts.search_placeholder_input", { defaultValue: "Search employee, ID or contract..." })}
-          type="text"
+          size="sm"
           value={search}
         />
       </div>

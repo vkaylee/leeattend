@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 
 import Button from "@/components/ui/button";
 import Modal from "@/components/ui/modal";
+import { SearchInput } from "@/components/ui/search-input";
 import { useDebounce } from "@/hooks/use-debounce";
 import { Department, Employee } from "@/lib/api/types";
 
@@ -217,11 +218,12 @@ export function BulkEmployeePickerModal({
     >
       <div className="flex flex-col gap-4 px-6 py-4 flex-1 min-h-0">
         <div className="flex items-center gap-3">
-          <input
-            className="flex-1 h-10 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-4 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
-            onChange={(e) => { setSearchTerm(e.target.value); }}
+          <SearchInput
+            containerClassName="flex-1"
+            onChange={(e) => setSearchTerm(e.target.value)}
+            onClear={() => setSearchTerm("")}
             placeholder={t("shifts.monthly.bulk_search_placeholder")}
-            type="text"
+            size="sm"
             value={searchTerm}
           />
           <span className="text-xs font-bold text-slate-500 uppercase tracking-widest whitespace-nowrap">

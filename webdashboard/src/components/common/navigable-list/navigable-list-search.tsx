@@ -1,6 +1,6 @@
-import { Search } from "lucide-react";
 import React from "react";
 
+import { SearchInput } from "@/components/ui/search-input";
 import { cn } from "@/lib/utils";
 
 import type { SearchProps } from "./types";
@@ -14,20 +14,19 @@ export function NavigableListSearchContent({
   searchTestId,
 }: SearchProps) {
   if (searchValue === undefined) return null;
-
   return (
     <div className="relative group">
-      <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-300 dark:text-slate-600 group-focus-within:text-primary-500 transition-colors" size={18} />
-      <input
-        className="w-full bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[2rem] pl-16 pr-8 py-5 text-sm font-bold shadow-sm focus:ring-4 focus:ring-primary-500/10 focus:border-primary-200 dark:focus:border-primary-800 outline-none transition-all placeholder:text-slate-300 dark:placeholder:text-slate-700"
+      <SearchInput
+        containerClassName="bg-white dark:bg-slate-900 rounded-[2rem] px-5 h-14"
+        data-testid={searchTestId}
         onChange={(e) => onSearchChange?.(e.target.value)}
-        onFocus={(e) => { e.target.select(); }}
+        onClear={() => onSearchChange?.("")}
+        onFocus={(e) => e.target.select()}
         onKeyDown={listNav.onKeyDown}
         placeholder={searchPlaceholder}
         ref={searchInputRef}
-        type="text"
+        size="lg"
         value={searchValue}
-        {...(searchTestId ? { "data-testid": searchTestId } : {})}
       />
     </div>
   );

@@ -1,10 +1,11 @@
-import { Search, ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import type { WidgetId } from "@/hooks/use-dashboard-layout";
 
 import Button from "@/components/ui/button";
+import { SearchInput } from "@/components/ui/search-input";
 import { Typography } from "@/components/ui/typography";
 import {
   CATEGORY_LABEL_KEYS,
@@ -206,28 +207,14 @@ export default function ChartCatalogSidebar({
           </Typography>
 
           {/* Search */}
-          <div className="relative">
-            <Search
-              className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500"
-              size={14}
-            />
-            <input
-              aria-label={t("dashboard.catalog.search_placeholder")}
-              className={cn(
-                "w-full pl-8 pr-3 py-2 rounded-xl text-xs",
-                "bg-slate-50 dark:bg-slate-800",
-                "border border-slate-200 dark:border-slate-700",
-                "text-slate-700 dark:text-slate-200",
-                "placeholder:text-slate-400 dark:placeholder:text-slate-500",
-                "focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500",
-                "transition-colors",
-              )}
-              onChange={(e) => { setSearchQuery(e.target.value); }}
-              placeholder={t("dashboard.catalog.search_placeholder")}
-              type="text"
-              value={searchQuery}
-            />
-          </div>
+          <SearchInput
+            aria-label={t("dashboard.catalog.search_placeholder")}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            onClear={() => setSearchQuery("")}
+            placeholder={t("dashboard.catalog.search_placeholder")}
+            size="sm"
+            value={searchQuery}
+          />
         </div>
       )}
 

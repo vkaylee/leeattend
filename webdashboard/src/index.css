@@ -235,7 +235,8 @@
 
 /* Modal and command palette search inputs don't need harsh separate inner outline */
 [cmdk-input]:focus-visible,
-[data-no-focus-outline]:focus-visible {
+[data-no-focus-outline]:focus-visible,
+[data-search-input]:focus-visible {
   outline: none !important;
 }
 
