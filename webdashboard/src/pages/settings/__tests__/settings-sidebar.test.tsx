@@ -85,6 +85,19 @@ describe("SettingsSidebar (macOS 2-column layout)", () => {
     expect(screen.getByTestId("settings-sidebar")).toBeInTheDocument();
     expect(screen.getByText("Bảng điều khiển")).toBeInTheDocument();
   });
+
+  it("renders back to workspace link for Focus Mode", () => {
+    vi.spyOn(hooks, "useSettingsNav").mockReturnValue(
+      makeNavState({
+        workspaceGroup: [makeItem("General", "/workspace/settings/general")],
+      })
+    );
+
+    render(<SettingsSidebar />);
+    const backLink = screen.getByTestId("settings-back-to-app");
+    expect(backLink).toBeInTheDocument();
+    expect(backLink).toHaveAttribute("href", "/");
+  });
   it("renders a bounded touch-enabled scroll region for settings items", () => {
     vi.spyOn(hooks, "useSettingsNav").mockReturnValue(
       makeNavState({

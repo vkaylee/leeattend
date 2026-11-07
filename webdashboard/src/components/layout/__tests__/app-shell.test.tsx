@@ -5,6 +5,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import AppShell from "../app-shell";
 
 // Mock TanStack Router
+let mockPathname = "/dashboard";
 vi.mock("@tanstack/react-router", () => ({
   Outlet: () => <div data-testid="mock-router-outlet">Router Content</div>,
   Link: ({
@@ -17,7 +18,7 @@ vi.mock("@tanstack/react-router", () => ({
       {children}
     </a>
   ),
-  useLocation: () => ({ pathname: "/dashboard" }),
+  useLocation: () => ({ pathname: mockPathname }),
   useNavigate: () => vi.fn(),
 }));
 
@@ -84,6 +85,7 @@ describe("AppShell Component", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     localStorage.clear();
+    mockPathname = "/dashboard";
   });
 
   it("renders Sidebar, Topbar, and Router Outlet viewport with responsive padding gutters", () => {
@@ -118,5 +120,14 @@ describe("AppShell Component", () => {
     fireEvent.click(mobileBtn);
 
     expect(screen.getByTestId("sidebar-mobile-drawer")).toBeInTheDocument();
+  });
+
+  it("hides main Sidebar in Focus Mode when navigating to /workspace/settings", () => {
+    mockPathname = "/workspace/settings/general";
+    render(<AppShell />);
+
+    expect(screen.queryByTestId("sidebar-container")).not.toBeInTheDocument();
+    expect(screen.getByTestId("topbar-container")).toBeInTheDocument();
+    expect(screen.getByTestId("main-content-viewport")).toHaveClass("overflow-hidden");
   });
 });

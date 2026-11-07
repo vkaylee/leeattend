@@ -23,6 +23,7 @@ export default function AppShell({ variant: _variant }: AppShellProps) {
   const { workspace: currentWorkspace } = useWorkspace();
   const location = useLocation();
   const isOrgChart = location.pathname.endsWith("/org-chart");
+  const isSettings = location.pathname.startsWith("/workspace/settings");
 
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(() => {
     try {
@@ -67,16 +68,19 @@ export default function AppShell({ variant: _variant }: AppShellProps) {
     <HeaderActionsProvider>
       <div className="flex h-screen w-screen overflow-hidden bg-background text-foreground font-sans">
         {/* ── Left Collapsible Navigation Sidebar ── */}
-        <Sidebar
-          isCollapsed={isSidebarCollapsed}
-          isMobileOpen={isMobileSidebarOpen}
-          onMobileClose={() => setIsMobileSidebarOpen(false)}
-          onToggleCollapse={toggleSidebarCollapse}
-        />
+        {!isSettings && (
+          <Sidebar
+            isCollapsed={isSidebarCollapsed}
+            isMobileOpen={isMobileSidebarOpen}
+            onMobileClose={() => setIsMobileSidebarOpen(false)}
+            onToggleCollapse={toggleSidebarCollapse}
+          />
+        )}
 
         {/* ── Main Application Viewport ── */}
         <div className="flex flex-1 flex-col overflow-hidden min-w-0">
           <Topbar
+            isSettings={isSettings}
             onOpenMobileMenu={() => setIsMobileSidebarOpen(true)}
             onOpenSearch={() => setIsCommandPaletteOpen(true)}
             workspaceName={currentWorkspace?.name ?? "Workspace"}
@@ -87,7 +91,9 @@ export default function AppShell({ variant: _variant }: AppShellProps) {
               "flex-1 bg-muted/20 min-w-0",
               isOrgChart
                 ? "overflow-hidden p-0"
-                : "overflow-y-auto p-4 md:p-6 lg:p-8"
+                : isSettings
+                  ? "overflow-hidden p-3 md:p-5 lg:p-6"
+                  : "overflow-y-auto p-4 md:p-6 lg:p-8"
             )}
             data-testid="main-content-viewport"
           >

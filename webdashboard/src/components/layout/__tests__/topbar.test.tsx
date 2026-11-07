@@ -140,4 +140,20 @@ describe("Topbar Layout Component", () => {
     fireEvent.click(themeBtn);
     expect(mockSetMode).toHaveBeenCalledWith("dark");
   });
+
+  it("renders back button instead of mobile hamburger when isSettings is true", () => {
+    render(
+      <Topbar
+        isSettings={true}
+        onOpenMobileMenu={onOpenMobileMenu}
+        onOpenSearch={onOpenSearch}
+        workspaceName="Acme Corp"
+      />
+    );
+
+    const backBtn = screen.getByTestId("topbar-back-btn");
+    expect(backBtn).toBeInTheDocument();
+    expect(backBtn).toHaveAttribute("href", "/");
+    expect(screen.queryByTestId("topbar-mobile-menu-btn")).not.toBeInTheDocument();
+  });
 });

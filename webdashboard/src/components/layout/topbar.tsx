@@ -1,5 +1,6 @@
 import { Link, useLocation } from "@tanstack/react-router";
 import {
+  ArrowLeft,
   Bell,
   ChevronRight,
   Menu,
@@ -18,12 +19,14 @@ import { useProfile } from "@/hooks/use-profile";
 import { getRouteMetadata } from "@/lib/route-metadata";
 import { ROUTES } from "@/lib/routes";
 export interface TopbarProps {
+  isSettings?: boolean;
   onOpenMobileMenu?: () => void;
   onOpenSearch?: () => void;
   workspaceName?: string;
 }
 
 export function Topbar({
+  isSettings = false,
   onOpenMobileMenu,
   onOpenSearch,
   workspaceName = "LeeAttend",
@@ -51,9 +54,19 @@ export function Topbar({
       className="flex h-14 shrink-0 items-center justify-between border-b border-border bg-card/80 px-3 md:px-5 backdrop-blur-md shadow-2xs z-20"
       data-testid="topbar-container"
     >
-      {/* ── Left: Mobile Hamburger & Breadcrumb ── */}
+      {/* ── Left: Mobile Hamburger / Back to App & Breadcrumb ── */}
       <div className="flex items-center gap-2 md:gap-3 min-w-0">
-        {onOpenMobileMenu && (
+        {isSettings ? (
+          <Link
+            aria-label={t("common.back_to_workspace", "Quay lại bảng làm việc")}
+            className="flex items-center justify-center h-8 px-2.5 gap-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted text-xs font-medium transition-colors outline-none focus-visible:ring-2 focus-visible:ring-primary shrink-0"
+            data-testid="topbar-back-btn"
+            to={ROUTES.HOME}
+          >
+            <ArrowLeft className="h-4 w-4" />
+            <span className="hidden sm:inline">{t("common.back", "Quay lại")}</span>
+          </Link>
+        ) : onOpenMobileMenu ? (
           <Button
             aria-label="Open navigation menu"
             className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground md:hidden"
@@ -65,7 +78,7 @@ export function Topbar({
           >
             <Menu className="h-4 w-4" />
           </Button>
-        )}
+        ) : null}
 
         <nav
           aria-label="Breadcrumbs"

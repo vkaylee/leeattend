@@ -55,7 +55,7 @@ function SettingsPageLayout() {
         </div>
 
         {/* Right Column: Active Setting Detail Pane */}
-        <div className={cn("flex-1 min-w-0 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800/80 shadow-xs p-6 md:p-8 lg:p-10", mobileMenuOpen && "hidden md:block")}>
+        <div className={cn("flex-1 min-w-0 overflow-y-auto bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800/80 shadow-xs p-6 md:p-8 lg:p-10", mobileMenuOpen && "hidden md:block")}>
           <ErrorBoundary>
             <Outlet />
           </ErrorBoundary>

@@ -1,5 +1,6 @@
 import { Link, useLocation } from "@tanstack/react-router";
 import {
+  ArrowLeft,
   Search,
   Settings,
   ShieldCheck,
@@ -10,6 +11,7 @@ import { useTranslation } from "react-i18next";
 
 import Button from "@/components/ui/button";
 import { Typography } from "@/components/ui/typography";
+import { ROUTES } from "@/lib/routes";
 import { cn, removeDiacritics } from "@/lib/utils";
 
 import { SettingItem, useSettingsNav } from "../hooks/use-settings-nav";
@@ -98,6 +100,18 @@ export const SettingsSidebar = memo(function SettingsSidebar({
       )}
       data-testid="settings-sidebar"
     >
+      {/* 0. Focus Mode Return Button */}
+      <div className="pb-2.5 mb-1">
+        <Link
+          className="inline-flex items-center gap-2 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:text-primary-600 dark:hover:text-primary-400 px-2.5 py-1.5 rounded-xl hover:bg-slate-200/60 dark:hover:bg-slate-800/60 transition-colors w-full group outline-none focus-visible:ring-2 focus-visible:ring-primary"
+          data-testid="settings-back-to-app"
+          to={ROUTES.HOME}
+        >
+          <ArrowLeft className="w-3.5 h-3.5 transition-transform group-hover:-translate-x-0.5 text-slate-400 group-hover:text-primary-600 dark:group-hover:text-primary-400" />
+          <span>{t("settings.back_to_workspace", "Quay lại bảng làm việc")}</span>
+        </Link>
+      </div>
+
       {/* 1. Header (macOS Ventura/Sonoma style) */}
       <div className="pb-3.5 mb-3 border-b border-slate-200/60 dark:border-slate-800/60 flex items-center gap-2.5">
         <div className="w-8 h-8 rounded-lg bg-primary-600 text-white flex items-center justify-center shrink-0 shadow-2xs">
