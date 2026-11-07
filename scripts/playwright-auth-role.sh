@@ -2,6 +2,9 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$(readlink -f "$0")")/.." && pwd)"
+source "$ROOT/scripts/playwright-timeout.sh"
+playwright_timeout_init
+
 ROLE="${1:-employee}"
 shift || true
 case "$ROLE" in
@@ -51,8 +54,8 @@ trap 'rm -f "$LOGIN_FILE"' EXIT
 chmod 600 "$LOGIN_FILE"
 printf 'PLAYWRIGHT_LOGIN_EMAIL=%s\nPLAYWRIGHT_LOGIN_PASSWORD=%s\n' "$EMAIL" "$PASSWORD" > "$LOGIN_FILE"
 
-"${COMPOSE[@]}" -p leedevkit-dev -f "$ROOT/.compose/docker-compose.dev.yml" --profile mcp build playwright-mcp >&2
-"${COMPOSE[@]}" -p leedevkit-dev -f "$ROOT/.compose/docker-compose.dev.yml" --profile mcp run --rm --no-deps -T \
+playwright_timeout_run "${COMPOSE[@]}" -p leedevkit-dev -f "$ROOT/.compose/docker-compose.dev.yml" --profile mcp build playwright-mcp >&2
+playwright_timeout_run "${COMPOSE[@]}" -p leedevkit-dev -f "$ROOT/.compose/docker-compose.dev.yml" --profile mcp run --rm --no-deps -T \
   -v "$AUTH_DIR:/run/secrets:rw" \
   -e PLAYWRIGHT_LOGIN_FILE=/run/secrets/$(basename "$LOGIN_FILE") \
   -e PLAYWRIGHT_BASE_URL=http://caddy \

@@ -2,6 +2,9 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$(readlink -f "$0")")/.." && pwd)"
+source "$ROOT/scripts/playwright-timeout.sh"
+playwright_timeout_init
+
 ROLE="${1:-employee}"
 shift || true
 case "$ROLE" in
@@ -27,7 +30,7 @@ AUTH_DIR="${PLAYWRIGHT_AUTH_DIR:-$ROOT/.secrets/playwright-auth}"
 AUTH_STATE="$AUTH_DIR/$ROLE.json"
 
 if [[ -f "$AUTH_STATE" ]]; then
-  if ! "${COMPOSE[@]}" \
+  if ! playwright_timeout_run "${COMPOSE[@]}" \
     -p leedevkit-dev \
     -f "$ROOT/.compose/docker-compose.dev.yml" \
     --profile mcp \
@@ -44,17 +47,32 @@ else
 fi
 
 RUN_ARGS=(run --rm --no-deps -T)
-MCP_ARGS=()
 if [[ -f "$AUTH_STATE" ]]; then
   RUN_ARGS+=(
     -v "$AUTH_STATE:/run/secrets/playwright-auth.json:ro"
+    -e PLAYWRIGHT_MCP_STORAGE_STATE=/run/secrets/playwright-auth.json
   )
-  MCP_ARGS+=(--storage-state /run/secrets/playwright-auth.json)
 fi
 
-exec "${COMPOSE[@]}" \
+MCP_COMMAND=(
+  --headless
+  --isolated
+  --no-sandbox
+  --browser=chrome
+  --caps=vision,pdf,devtools
+  --console-level=info
+  --snapshot-boxes
+  --allowed-origins=http://caddy
+  --timeout-action=5000
+  --timeout-navigation=30000
+  --timeout-settle=1000
+  "$@"
+)
+
+
+playwright_timeout_run "${COMPOSE[@]}" \
   -p leedevkit-dev \
   -f "$ROOT/.compose/docker-compose.dev.yml" \
   --profile mcp \
   "${RUN_ARGS[@]}" playwright-mcp \
-  "${MCP_ARGS[@]}" "$@"
+  "${MCP_COMMAND[@]}"

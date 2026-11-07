@@ -218,6 +218,9 @@ services:
       - --console-level=info
       - --snapshot-boxes
       - --allowed-origins=http://caddy
+      - --timeout-action=5000
+      - --timeout-navigation=30000
+      - --timeout-settle=1000
     networks: [frontend_net]
 
 
