@@ -2190,7 +2190,51 @@
     "viewAttendanceLogs": "Xem bảng công đầy đủ",
     "emptyTitle": "Màn hình chưa có Widget nào",
     "emptyDesc": "Bạn đã ẩn tất cả các widget. Bấm vào nút bên dưới để chọn và gắn các widget hữu ích lên Desktop.",
-    "attachWidgetsNow": "Gắn Widget vào Desktop"
+    "attachWidgetsNow": "添加小组件到桌面",
+    "widgets": {
+      "quickPunch": {
+        "title": "打卡考勤",
+        "description": "实时时钟与快速上下班打卡"
+      },
+      "todayOverview": {
+        "title": "今日考勤",
+        "description": "在岗、缺勤、请假人数及出勤率"
+      },
+      "quickShortcuts": {
+        "title": "快捷操作",
+        "description": "常用功能与操作快捷方式"
+      },
+      "systemHealth": {
+        "title": "系统状态",
+        "description": "实时监控 API、数据库、Redis、MinIO 和 Worker"
+      },
+      "pendingTasks": {
+        "title": "待办事项",
+        "description": "入职流程与紧急人事事项清单"
+      },
+      "executiveKpi": {
+        "title": "管理指标",
+        "description": "月度薪酬预算与标准工时达成率"
+      }
+    },
+    "shortcuts": {
+      "clock": {
+        "title": "打卡考勤",
+        "desc": "上班 / 下班"
+      },
+      "leave": {
+        "title": "请假申请",
+        "desc": "提交请假单"
+      },
+      "ot": {
+        "title": "加班申报",
+        "desc": "登记加班工时"
+      },
+      "payroll": {
+        "title": "工资条",
+        "desc": "薪资与奖金明细"
+      }
+    }
   },
   "ess": {
     "punchOutSuccess": "Đã ghi nhận tan ca",

@@ -39,11 +39,11 @@ if [[ -f "$AUTH_STATE" ]]; then
     -e PLAYWRIGHT_AUTH_STATE=/run/secrets/playwright-auth.json \
     -e PLAYWRIGHT_BASE_URL=http://caddy \
     --entrypoint node playwright-mcp \
-    /opt/playwright-mcp/check-auth.cjs >/dev/null 2>&1; then
-    "$ROOT/scripts/playwright-auth-role.sh" "$ROLE"
+    /opt/playwright-mcp/check-auth.cjs </dev/null >/dev/null 2>&1; then
+    "$ROOT/scripts/playwright-auth-role.sh" "$ROLE" </dev/null
   fi
 else
-  "$ROOT/scripts/playwright-auth-role.sh" "$ROLE"
+  "$ROOT/scripts/playwright-auth-role.sh" "$ROLE" </dev/null
 fi
 
 RUN_ARGS=(run --rm --no-deps -T)

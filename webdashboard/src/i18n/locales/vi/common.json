@@ -2190,7 +2190,51 @@
     "viewAttendanceLogs": "Xem bảng công đầy đủ",
     "emptyTitle": "Màn hình chưa có Widget nào",
     "emptyDesc": "Bạn đã ẩn tất cả các widget. Bấm vào nút bên dưới để chọn và gắn các widget hữu ích lên Desktop.",
-    "attachWidgetsNow": "Gắn Widget vào Desktop"
+    "attachWidgetsNow": "Gắn Widget vào Desktop",
+    "widgets": {
+      "quickPunch": {
+        "title": "Bấm giờ chấm công",
+        "description": "Đồng hồ thời gian thực và ghi nhận vào/ra ca nhanh"
+      },
+      "todayOverview": {
+        "title": "Chuyên cần hôm nay",
+        "description": "Số lượng nhân sự có mặt, vắng mặt, nghỉ phép và tỷ lệ chuyên cần"
+      },
+      "quickShortcuts": {
+        "title": "Thao tác nhanh",
+        "description": "Lối tắt đến các chức năng thường dùng"
+      },
+      "systemHealth": {
+        "title": "Trạng thái hệ thống",
+        "description": "Giám sát thời gian thực API, Database, Redis, MinIO và Workers"
+      },
+      "pendingTasks": {
+        "title": "Việc cần xử lý ngay",
+        "description": "Checklist quy trình tiếp nhận và thủ tục nhân sự cần giải quyết"
+      },
+      "executiveKpi": {
+        "title": "Chỉ số điều hành",
+        "description": "Dự toán quỹ lương tháng và tỷ lệ hoàn thành công việc"
+      }
+    },
+    "shortcuts": {
+      "clock": {
+        "title": "Bấm giờ",
+        "desc": "Vào / ra ca"
+      },
+      "leave": {
+        "title": "Nghỉ phép",
+        "desc": "Tạo đơn xin nghỉ"
+      },
+      "ot": {
+        "title": "Tăng ca (OT)",
+        "desc": "Đăng ký thêm giờ"
+      },
+      "payroll": {
+        "title": "Phiếu lương",
+        "desc": "Bảng lương & thưởng"
+      }
+    }
   },
   "ess": {
     "punchOutSuccess": "Đã ghi nhận tan ca",

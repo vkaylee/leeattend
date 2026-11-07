@@ -19,7 +19,9 @@ import { TodayOverviewWidget } from "./widgets/today-overview-widget";
 export const DESKTOP_WIDGET_REGISTRY: DesktopWidgetDefinition[] = [
   {
     id: "quick-punch",
+    titleKey: "desktop.widgets.quickPunch.title",
     titleFallback: "Bấm giờ chấm công",
+    descriptionKey: "desktop.widgets.quickPunch.description",
     descriptionFallback: "Đồng hồ thời gian thực và ghi nhận vào/ra ca nhanh",
     category: "attendance",
     defaultEnabled: true,
@@ -30,7 +32,9 @@ export const DESKTOP_WIDGET_REGISTRY: DesktopWidgetDefinition[] = [
   },
   {
     id: "today-overview",
+    titleKey: "desktop.widgets.todayOverview.title",
     titleFallback: "Chuyên cần hôm nay",
+    descriptionKey: "desktop.widgets.todayOverview.description",
     descriptionFallback: "Số lượng nhân sự có mặt, vắng mặt, nghỉ phép và tỷ lệ chuyên cần",
     category: "overview",
     defaultEnabled: true,
@@ -42,8 +46,10 @@ export const DESKTOP_WIDGET_REGISTRY: DesktopWidgetDefinition[] = [
   },
   {
     id: "quick-shortcuts",
-    titleFallback: "Thao tác nhanh & Main Menu",
-    descriptionFallback: "Lối tắt đến các chức năng thường dùng và phím tắt DSM 7",
+    titleKey: "desktop.widgets.quickShortcuts.title",
+    titleFallback: "Thao tác nhanh",
+    descriptionKey: "desktop.widgets.quickShortcuts.description",
+    descriptionFallback: "Lối tắt đến các chức năng thường dùng",
     category: "overview",
     defaultEnabled: true,
     defaultOrder: 3,
@@ -53,7 +59,9 @@ export const DESKTOP_WIDGET_REGISTRY: DesktopWidgetDefinition[] = [
   },
   {
     id: "system-health",
+    titleKey: "desktop.widgets.systemHealth.title",
     titleFallback: "Trạng thái hệ thống",
+    descriptionKey: "desktop.widgets.systemHealth.description",
     descriptionFallback: "Giám sát thời gian thực API, Database, Redis, MinIO và Workers",
     category: "system",
     defaultEnabled: true,
@@ -64,7 +72,9 @@ export const DESKTOP_WIDGET_REGISTRY: DesktopWidgetDefinition[] = [
   },
   {
     id: "pending-tasks",
+    titleKey: "desktop.widgets.pendingTasks.title",
     titleFallback: "Việc cần xử lý ngay",
+    descriptionKey: "desktop.widgets.pendingTasks.description",
     descriptionFallback: "Checklist quy trình tiếp nhận và thủ tục nhân sự cần giải quyết",
     category: "tasks",
     defaultEnabled: true,
@@ -75,7 +85,9 @@ export const DESKTOP_WIDGET_REGISTRY: DesktopWidgetDefinition[] = [
   },
   {
     id: "executive-kpi",
+    titleKey: "desktop.widgets.executiveKpi.title",
     titleFallback: "Chỉ số điều hành",
+    descriptionKey: "desktop.widgets.executiveKpi.description",
     descriptionFallback: "Dự toán quỹ lương tháng và tỷ lệ hoàn thành công việc",
     category: "analytics",
     defaultEnabled: true,

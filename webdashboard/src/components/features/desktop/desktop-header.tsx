@@ -1,4 +1,4 @@
-import { Search, SlidersHorizontal, Sparkles, Sun, Moon, Sunset } from "lucide-react";
+import { Search, SlidersHorizontal, Sun, Moon, Sunset } from "lucide-react";
 import React, { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -61,13 +61,14 @@ export function DesktopHeader({ onOpenCustomizer }: DesktopHeaderProps) {
         {/* Spotlight Trigger */}
         <Button
           type="button"
-           variant="outline"
+          variant="outline"
           onClick={openCommandPalette}
-           data-testid="desktop-search-trigger"
-          className="flex items-center gap-2.5 px-4 h-10 rounded-2xl bg-slate-100/80 dark:bg-slate-800/80 hover:bg-slate-200/80 dark:hover:bg-slate-700/80 border border-slate-200/60 dark:border-slate-700/60 text-xs text-slate-600 dark:text-slate-300 transition-all shadow-2xs group"
+          data-testid="desktop-search-trigger"
+          aria-label={t("desktop.searchApps", "Tìm ứng dụng & tính năng (⌘K)")}
+          className="sm:hidden flex items-center gap-2.5 px-4 h-10 rounded-2xl bg-slate-100/80 dark:bg-slate-800/80 hover:bg-slate-200/80 dark:hover:bg-slate-700/80 border border-slate-200/60 dark:border-slate-700/60 text-xs text-slate-600 dark:text-slate-300 transition-all shadow-2xs group"
         >
           <Search className="w-4 h-4 text-primary-500 group-hover:scale-110 transition-transform" />
-          <span className="font-medium hidden sm:inline">
+          <span className="font-medium">
             {t("desktop.searchApps", "Tìm ứng dụng & tính năng...")}
           </span>
           <kbd className="px-2 py-0.5 text-[10px] font-semibold text-slate-400 bg-white/60 dark:bg-black/40 rounded-lg border border-slate-200 dark:border-slate-700">
@@ -81,6 +82,7 @@ export function DesktopHeader({ onOpenCustomizer }: DesktopHeaderProps) {
           onClick={onOpenCustomizer}
           variant="secondary"
           className="h-10 px-4 rounded-2xl text-xs font-bold flex items-center gap-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-2xs hover:shadow-xs"
+          aria-label={t("desktop.customizeWidgets", "Gắn Widget")}
           data-testid="desktop-customize-btn"
         >
           <SlidersHorizontal className="w-4 h-4 text-primary-500" />

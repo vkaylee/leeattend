@@ -2160,70 +2160,114 @@
     "recorded_logs": "Nhật ký điểm danh thực tế"
   },
   "desktop": {
-    "customizeTitle": "Tùy biến Desktop & Widget",
-    "customizeSubtitle": "Bật hoặc tắt các widget hiển thị trên màn hình chính của bạn",
-    "enabled": "Đã bật",
-    "add": "Gắn vào",
-    "resetDefault": "Khôi phục mặc định",
-    "goodMorning": "Chào buổi sáng",
-    "goodAfternoon": "Chào buổi chiều",
-    "goodEvening": "Chào buổi tối",
+    "customizeTitle": "Customize Desktop & Widgets",
+    "customizeSubtitle": "Toggle widgets displayed on your dashboard",
+    "enabled": "Enabled",
+    "add": "Add",
+    "resetDefault": "Reset to Default",
+    "goodMorning": "Good morning",
+    "goodAfternoon": "Good afternoon",
+    "goodEvening": "Good evening",
     "subtitle": "LeeAttend Human Resource Management Dashboard",
-    "searchApps": "Tìm ứng dụng & tính năng...",
-    "customizeWidgets": "Gắn Widget",
-    "hideWidget": "Ẩn widget",
-    "kpiUnavailable": "Không thể tải số liệu KPI điều hành",
-    "estimatedPayroll": "Dự toán quỹ lương tháng",
-    "viewPayroll": "Xem bảng tính lương",
-    "punctualityRate": "Chỉ số hoàn thành công chuẩn",
-    "viewReports": "Xem báo cáo chuyên cần",
+    "searchApps": "Search apps & features...",
+    "customizeWidgets": "Customize Widgets",
+    "hideWidget": "Hide widget",
+    "kpiUnavailable": "Unable to load executive KPI metrics",
+    "estimatedPayroll": "Estimated monthly payroll",
+    "viewPayroll": "View payroll statement",
+    "punctualityRate": "Attendance compliance rate",
+    "viewReports": "View attendance reports",
     "openDsmTitle": "Quick Actions & Search",
     "openDsmSubtitle": "Open command palette or pick a common action",
-    "systemNormal": "Tất cả dịch vụ hoạt động bình thường",
-    "openMonitor": "Chi tiết giám sát",
-    "statsUnavailable": "Không thể tải số liệu chuyên cần hôm nay",
-    "attendanceRate": "Tỷ lệ có mặt hôm nay",
-    "totalHeadcount": "Tổng nhân sự",
-    "present": "Có mặt",
-    "onLeave": "Nghỉ phép",
-    "pending": "Chờ duyệt",
-    "viewAttendanceLogs": "Xem bảng công đầy đủ",
-    "emptyTitle": "Màn hình chưa có Widget nào",
-    "emptyDesc": "Bạn đã ẩn tất cả các widget. Bấm vào nút bên dưới để chọn và gắn các widget hữu ích lên Desktop.",
-    "attachWidgetsNow": "Gắn Widget vào Desktop"
+    "systemNormal": "All services operating normally",
+    "openMonitor": "Monitoring details",
+    "statsUnavailable": "Unable to load today's attendance stats",
+    "attendanceRate": "Today's attendance rate",
+    "totalHeadcount": "Total headcount",
+    "present": "Present",
+    "onLeave": "On leave",
+    "pending": "Pending",
+    "viewAttendanceLogs": "View full attendance logs",
+    "emptyTitle": "No widgets on display",
+    "emptyDesc": "You have hidden all widgets. Click below to choose and attach widgets to your dashboard.",
+    "attachWidgetsNow": "Attach Widgets to Desktop",
+    "widgets": {
+      "quickPunch": {
+        "title": "Quick Clock",
+        "description": "Real-time clock and quick check-in / check-out"
+      },
+      "todayOverview": {
+        "title": "Today's Attendance",
+        "description": "Headcount present, absent, on leave, and attendance rate"
+      },
+      "quickShortcuts": {
+        "title": "Quick Shortcuts",
+        "description": "Shortcuts to frequent tasks and actions"
+      },
+      "systemHealth": {
+        "title": "System Health",
+        "description": "Real-time monitoring for API, Database, Redis, MinIO, and Workers"
+      },
+      "pendingTasks": {
+        "title": "Pending Action Items",
+        "description": "Onboarding checklist and urgent HR tasks"
+      },
+      "executiveKpi": {
+        "title": "Executive KPIs",
+        "description": "Monthly payroll estimate and attendance compliance"
+      }
+    },
+    "shortcuts": {
+      "clock": {
+        "title": "Clock In/Out",
+        "desc": "Punch attendance"
+      },
+      "leave": {
+        "title": "Leave Request",
+        "desc": "Apply for time off"
+      },
+      "ot": {
+        "title": "Overtime (OT)",
+        "desc": "Register extra shift"
+      },
+      "payroll": {
+        "title": "Payslips",
+        "desc": "Salary & statements"
+      }
+    }
   },
   "ess": {
-    "punchOutSuccess": "Đã ghi nhận tan ca",
-    "punchInSuccess": "Đã ghi nhận vào ca thành công",
-    "punchErrorDesc": "Vui lòng thử lại hoặc kiểm tra kết nối mạng",
-    "punchError": "Không thể thực hiện chấm công",
-    "clockedIn": "Đang trong ca",
-    "notClockedIn": "Chưa vào ca",
-    "startedAt": "Vào ca lúc",
-    "clockOutNow": "Bấm giờ tan ca",
-    "clockInNow": "Bấm giờ vào ca",
-    "viewMyClock": "Xem chi tiết chấm công",
+    "punchOutSuccess": "Clock-out recorded successfully",
+    "punchInSuccess": "Clock-in recorded successfully",
+    "punchErrorDesc": "Please try again or check your network connection",
+    "punchError": "Failed to submit punch",
+    "clockedIn": "In Shift",
+    "notClockedIn": "Not In Shift",
+    "startedAt": "Clocked in at",
+    "clockOutNow": "Clock Out Now",
+    "clockInNow": "Clock In Now",
+    "viewMyClock": "View clock details",
     "clock": {
-      "geofence_status_label": "Trạng thái vị trí chấm công",
-      "wifi_verified": "(Wi-Fi hợp lệ)",
-      "wifi_invalid": "(Ngoài mạng)",
-      "security_notice": "Vị trí được xác thực tự động",
-      "timeline_label": "Trực quan hóa ca làm việc 24h",
-      "timeline_title": "Dòng thời gian ca làm việc 24h",
-      "now_time": "Hiện tại:",
-      "break_tooltip": "Giờ nghỉ trưa",
-      "legend_shift": "Ca quy định",
-      "legend_break": "Nghỉ giữa ca",
-      "legend_punch": "Giờ làm thực tế",
-      "legend_now": "Thời điểm hiện tại",
-      "summary_label": "Tóm tắt giờ làm việc hôm nay",
-      "today_progress": "Tiến độ giờ làm hôm nay",
-      "goal_reached": "Chúc mừng! Bạn đã hoàn thành đủ số giờ làm tiêu chuẩn",
-      "goal_remaining": "Còn {{remaining}} để đạt 8 tiếng",
-      "actual_time": "Thực tế",
-      "standard_time": "Tiêu chuẩn",
-      "break_time": "Nghỉ trưa",
-      "ot_time": "Tăng ca"
+      "geofence_status_label": "Attendance location status",
+      "wifi_verified": "(Verified Wi-Fi)",
+      "wifi_invalid": "(Off-network)",
+      "security_notice": "Location automatically verified",
+      "timeline_label": "24h shift visualization",
+      "timeline_title": "24h shift timeline",
+      "now_time": "Current:",
+      "break_tooltip": "Lunch break",
+      "legend_shift": "Scheduled shift",
+      "legend_break": "Break",
+      "legend_punch": "Actual punch time",
+      "legend_now": "Current time",
+      "summary_label": "Today's work summary",
+      "today_progress": "Today's work progress",
+      "goal_reached": "Congratulations! Standard work hours completed",
+      "goal_remaining": "{{remaining}} remaining for 8 hours",
+      "actual_time": "Actual",
+      "standard_time": "Standard",
+      "break_time": "Lunch break",
+      "ot_time": "Overtime"
     }
   },
   "table": {

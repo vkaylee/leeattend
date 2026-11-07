@@ -16,7 +16,7 @@ interface ServiceItem {
 
 const SERVICES: ServiceItem[] = [
   { id: "api", name: "Core API (Go 1.26+)", icon: Server, status: "healthy", latency: "14ms" },
-  { id: "db", name: "PostgreSQL 16", icon: Database, status: "healthy", latency: "4ms" },
+  { id: "db", name: "PostgreSQL 18", icon: Database, status: "healthy", latency: "4ms" },
   { id: "cache", name: "Redis In-Memory", icon: Zap, status: "healthy", latency: "1ms" },
   { id: "storage", name: "MinIO S3 Storage", icon: HardDrive, status: "healthy", latency: "8ms" },
   { id: "workers", name: "Async Job Workers", icon: Cpu, status: "healthy", latency: "Active" },

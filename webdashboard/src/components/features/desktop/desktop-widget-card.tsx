@@ -23,7 +23,9 @@ export const DesktopWidgetCard = memo(function DesktopWidgetCard({
   const title = widget.titleKey
     ? t(widget.titleKey, { defaultValue: widget.titleFallback })
     : widget.titleFallback;
-
+  const description = widget.descriptionKey
+    ? t(widget.descriptionKey, { defaultValue: widget.descriptionFallback })
+    : widget.descriptionFallback;
   return (
     <section
       data-testid={`desktop-widget-${widget.id}`}
@@ -46,7 +48,7 @@ export const DesktopWidgetCard = memo(function DesktopWidgetCard({
               {title}
             </h2>
             <p className="text-[11px] text-slate-400 line-clamp-1">
-              {widget.descriptionFallback}
+              {description}
             </p>
           </div>
         </div>
@@ -59,7 +61,7 @@ export const DesktopWidgetCard = memo(function DesktopWidgetCard({
             onClick={() => onHideWidget(widget.id)}
             aria-label={`${t("desktop.hideWidget", "Ẩn widget")} ${title}`}
             title={t("desktop.hideWidget", "Ẩn widget này")}
-            className="p-1.5 h-auto min-w-0 rounded-lg text-slate-300 dark:text-slate-600 hover:text-slate-500 dark:hover:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+            className="p-1.5 h-auto min-w-0 rounded-lg text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors focus-visible:ring-2 focus-visible:ring-primary"
           >
             <EyeOff className="w-3.5 h-3.5" />
           </Button>

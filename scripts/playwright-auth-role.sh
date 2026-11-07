@@ -54,13 +54,13 @@ trap 'rm -f "$LOGIN_FILE"' EXIT
 chmod 600 "$LOGIN_FILE"
 printf 'PLAYWRIGHT_LOGIN_EMAIL=%s\nPLAYWRIGHT_LOGIN_PASSWORD=%s\n' "$EMAIL" "$PASSWORD" > "$LOGIN_FILE"
 
-playwright_timeout_run "${COMPOSE[@]}" -p leedevkit-dev -f "$ROOT/.compose/docker-compose.dev.yml" --profile mcp build playwright-mcp >&2
+playwright_timeout_run "${COMPOSE[@]}" -p leedevkit-dev -f "$ROOT/.compose/docker-compose.dev.yml" --profile mcp build playwright-mcp </dev/null >&2
 playwright_timeout_run "${COMPOSE[@]}" -p leedevkit-dev -f "$ROOT/.compose/docker-compose.dev.yml" --profile mcp run --rm --no-deps -T \
   -v "$AUTH_DIR:/run/secrets:rw" \
   -e PLAYWRIGHT_LOGIN_FILE=/run/secrets/$(basename "$LOGIN_FILE") \
   -e PLAYWRIGHT_BASE_URL=http://caddy \
   -e PLAYWRIGHT_AUTH_STATE=/run/secrets/$ROLE.json \
-  --entrypoint node playwright-mcp /opt/playwright-mcp/prepare-auth.cjs
+  --entrypoint node playwright-mcp /opt/playwright-mcp/prepare-auth.cjs </dev/null >&2
 
 chmod 600 "$AUTH_STATE"
-printf 'Playwright auth state saved for role %s.\n' "$ROLE"
+printf 'Playwright auth state saved for role %s.\n' "$ROLE" >&2
