@@ -89,11 +89,9 @@ export default function AppShell({ variant: _variant }: AppShellProps) {
           <main
             className={cn(
               "flex-1 bg-muted/20 min-w-0",
-              isOrgChart
-                ? "overflow-hidden p-0"
-                : isSettings
-                  ? "overflow-hidden p-3 md:p-5 lg:p-6"
-                  : "overflow-y-auto p-4 md:p-6 lg:p-8"
+              isOrgChart || isSettings
+                ? "overflow-hidden p-0 h-full flex flex-col"
+                : "overflow-y-auto p-4 md:p-6 lg:p-8"
             )}
             data-testid="main-content-viewport"
           >

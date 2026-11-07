@@ -47,13 +47,13 @@ describe("SettingsPageLayout (Apple HIG 2-column & Drill-down)", () => {
     expect(screen.getByTestId("mock-settings-sidebar")).toBeInTheDocument();
     expect(screen.getByTestId("settings-outlet")).toBeInTheDocument();
   });
-  it("gives the settings sidebar a bounded viewport for mouse and touch scrolling", () => {
+  it("gives the settings sidebar a bounded full-height viewport for mouse and touch scrolling", () => {
     const routeWithComponent = Route as unknown as MockRouteOptions;
     const Component = routeWithComponent.options.component;
     render(<Component />);
 
     const sidebarPanel = screen.getByTestId("settings-sidebar-panel");
-    expect(sidebarPanel).toHaveClass("min-h-0", "h-[calc(100dvh-10rem)]", "md:h-full");
+    expect(sidebarPanel).toHaveClass("min-h-0", "h-full");
   });
 
 

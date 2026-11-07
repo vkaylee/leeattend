@@ -15,12 +15,9 @@ vi.mock("@tanstack/react-router", () => ({
     children,
     to,
     className,
-  }: {
-    children: React.ReactNode;
-    to: string;
-    className?: string;
-  }) => (
-    <a className={className} href={to}>
+    ...props
+  }: React.AnchorHTMLAttributes<HTMLAnchorElement> & { to?: string }) => (
+    <a className={className} href={to} {...props}>
       {children}
     </a>
   ),

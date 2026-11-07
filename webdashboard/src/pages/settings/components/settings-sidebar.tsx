@@ -95,7 +95,7 @@ export const SettingsSidebar = memo(function SettingsSidebar({
     <aside
       aria-label={t("common.settings.title", "Cài đặt")}
       className={cn(
-        "flex flex-col bg-slate-50/80 dark:bg-slate-900/80 backdrop-blur-xl border border-slate-200/80 dark:border-slate-800/80 rounded-2xl p-3.5 md:p-4 h-full overflow-hidden shrink-0 shadow-2xs",
+        "flex flex-col bg-card/60 backdrop-blur-xl h-full overflow-hidden shrink-0 p-3.5 md:p-4",
         className
       )}
       data-testid="settings-sidebar"
