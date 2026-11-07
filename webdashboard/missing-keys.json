@@ -1,1 +1,1042 @@
-[]
+[
+  {
+    "file": "src/components/features/attendance/timesheet-matrix-grid.tsx",
+    "key": "attendance.search_employees",
+    "lang": "en"
+  },
+  {
+    "file": "src/components/features/attendance/timesheet-matrix-grid.tsx",
+    "key": "attendance.search_employees",
+    "lang": "vi"
+  },
+  {
+    "file": "src/components/features/attendance/timesheet-matrix-grid.tsx",
+    "key": "attendance.search_employees",
+    "lang": "zh"
+  },
+  {
+    "file": "src/components/features/attendance/timesheet-matrix-grid.tsx",
+    "key": "attendance.matrix.toggle_legend",
+    "lang": "en"
+  },
+  {
+    "file": "src/components/features/attendance/timesheet-matrix-grid.tsx",
+    "key": "attendance.matrix.toggle_legend",
+    "lang": "vi"
+  },
+  {
+    "file": "src/components/features/attendance/timesheet-matrix-grid.tsx",
+    "key": "attendance.matrix.toggle_legend",
+    "lang": "zh"
+  },
+  {
+    "file": "src/components/features/attendance/timesheet-matrix-grid.tsx",
+    "key": "attendance.matrix.legend",
+    "lang": "en"
+  },
+  {
+    "file": "src/components/features/attendance/timesheet-matrix-grid.tsx",
+    "key": "attendance.matrix.legend",
+    "lang": "vi"
+  },
+  {
+    "file": "src/components/features/attendance/timesheet-matrix-grid.tsx",
+    "key": "attendance.matrix.legend",
+    "lang": "zh"
+  },
+  {
+    "file": "src/components/features/attendance/timesheet-matrix-grid.tsx",
+    "key": "attendance.matrix.legend_title",
+    "lang": "en"
+  },
+  {
+    "file": "src/components/features/attendance/timesheet-matrix-grid.tsx",
+    "key": "attendance.matrix.legend_title",
+    "lang": "vi"
+  },
+  {
+    "file": "src/components/features/attendance/timesheet-matrix-grid.tsx",
+    "key": "attendance.matrix.legend_title",
+    "lang": "zh"
+  },
+  {
+    "file": "src/components/features/attendance/timesheet-matrix-grid.tsx",
+    "key": "attendance.matrix.empty_title",
+    "lang": "en"
+  },
+  {
+    "file": "src/components/features/attendance/timesheet-matrix-grid.tsx",
+    "key": "attendance.matrix.empty_title",
+    "lang": "vi"
+  },
+  {
+    "file": "src/components/features/attendance/timesheet-matrix-grid.tsx",
+    "key": "attendance.matrix.empty_title",
+    "lang": "zh"
+  },
+  {
+    "file": "src/components/features/attendance/timesheet-matrix-grid.tsx",
+    "key": "attendance.matrix.emp_code",
+    "lang": "en"
+  },
+  {
+    "file": "src/components/features/attendance/timesheet-matrix-grid.tsx",
+    "key": "attendance.matrix.emp_code",
+    "lang": "vi"
+  },
+  {
+    "file": "src/components/features/attendance/timesheet-matrix-grid.tsx",
+    "key": "attendance.matrix.emp_code",
+    "lang": "zh"
+  },
+  {
+    "file": "src/components/features/attendance/timesheet-matrix-grid.tsx",
+    "key": "attendance.matrix.emp_name",
+    "lang": "en"
+  },
+  {
+    "file": "src/components/features/attendance/timesheet-matrix-grid.tsx",
+    "key": "attendance.matrix.emp_name",
+    "lang": "vi"
+  },
+  {
+    "file": "src/components/features/attendance/timesheet-matrix-grid.tsx",
+    "key": "attendance.matrix.emp_name",
+    "lang": "zh"
+  },
+  {
+    "file": "src/components/features/attendance/timesheet-matrix-grid.tsx",
+    "key": "attendance.matrix.col_work",
+    "lang": "en"
+  },
+  {
+    "file": "src/components/features/attendance/timesheet-matrix-grid.tsx",
+    "key": "attendance.matrix.col_work",
+    "lang": "vi"
+  },
+  {
+    "file": "src/components/features/attendance/timesheet-matrix-grid.tsx",
+    "key": "attendance.matrix.col_work",
+    "lang": "zh"
+  },
+  {
+    "file": "src/components/features/attendance/timesheet-matrix-grid.tsx",
+    "key": "attendance.matrix.col_leave",
+    "lang": "en"
+  },
+  {
+    "file": "src/components/features/attendance/timesheet-matrix-grid.tsx",
+    "key": "attendance.matrix.col_leave",
+    "lang": "vi"
+  },
+  {
+    "file": "src/components/features/attendance/timesheet-matrix-grid.tsx",
+    "key": "attendance.matrix.col_leave",
+    "lang": "zh"
+  },
+  {
+    "file": "src/components/features/attendance/timesheet-matrix-grid.tsx",
+    "key": "attendance.matrix.col_paid_total",
+    "lang": "en"
+  },
+  {
+    "file": "src/components/features/attendance/timesheet-matrix-grid.tsx",
+    "key": "attendance.matrix.col_paid_total",
+    "lang": "vi"
+  },
+  {
+    "file": "src/components/features/attendance/timesheet-matrix-grid.tsx",
+    "key": "attendance.matrix.col_paid_total",
+    "lang": "zh"
+  },
+  {
+    "file": "src/components/layout/dashboard-mockup.tsx",
+    "key": "attendance.on_time",
+    "lang": "en"
+  },
+  {
+    "file": "src/components/layout/dashboard-mockup.tsx",
+    "key": "attendance.on_time",
+    "lang": "vi"
+  },
+  {
+    "file": "src/components/layout/dashboard-mockup.tsx",
+    "key": "attendance.on_time",
+    "lang": "zh"
+  },
+  {
+    "file": "src/components/layout/dashboard-mockup.tsx",
+    "key": "attendance.on_leave",
+    "lang": "en"
+  },
+  {
+    "file": "src/components/layout/dashboard-mockup.tsx",
+    "key": "attendance.on_leave",
+    "lang": "vi"
+  },
+  {
+    "file": "src/components/layout/dashboard-mockup.tsx",
+    "key": "attendance.on_leave",
+    "lang": "zh"
+  },
+  {
+    "file": "src/components/layout/dashboard-mockup.tsx",
+    "key": "dashboard.weekly_attendance",
+    "lang": "en"
+  },
+  {
+    "file": "src/components/layout/dashboard-mockup.tsx",
+    "key": "dashboard.weekly_attendance",
+    "lang": "vi"
+  },
+  {
+    "file": "src/components/layout/dashboard-mockup.tsx",
+    "key": "dashboard.weekly_attendance",
+    "lang": "zh"
+  },
+  {
+    "file": "src/components/layout/dashboard-mockup.tsx",
+    "key": "dashboard.todays_status",
+    "lang": "en"
+  },
+  {
+    "file": "src/components/layout/dashboard-mockup.tsx",
+    "key": "dashboard.todays_status",
+    "lang": "vi"
+  },
+  {
+    "file": "src/components/layout/dashboard-mockup.tsx",
+    "key": "dashboard.todays_status",
+    "lang": "zh"
+  },
+  {
+    "file": "src/components/members/member-table.tsx",
+    "key": "roles.admin",
+    "lang": "en"
+  },
+  {
+    "file": "src/components/members/member-table.tsx",
+    "key": "roles.admin",
+    "lang": "vi"
+  },
+  {
+    "file": "src/components/members/member-table.tsx",
+    "key": "roles.admin",
+    "lang": "zh"
+  },
+  {
+    "file": "src/components/members/member-table.tsx",
+    "key": "roles.owner",
+    "lang": "en"
+  },
+  {
+    "file": "src/components/members/member-table.tsx",
+    "key": "roles.owner",
+    "lang": "vi"
+  },
+  {
+    "file": "src/components/members/member-table.tsx",
+    "key": "roles.owner",
+    "lang": "zh"
+  },
+  {
+    "file": "src/components/members/member-table.tsx",
+    "key": "roles.hr_manager",
+    "lang": "en"
+  },
+  {
+    "file": "src/components/members/member-table.tsx",
+    "key": "roles.hr_manager",
+    "lang": "vi"
+  },
+  {
+    "file": "src/components/members/member-table.tsx",
+    "key": "roles.hr_manager",
+    "lang": "zh"
+  },
+  {
+    "file": "src/components/members/member-table.tsx",
+    "key": "roles.shift_manager",
+    "lang": "en"
+  },
+  {
+    "file": "src/components/members/member-table.tsx",
+    "key": "roles.shift_manager",
+    "lang": "vi"
+  },
+  {
+    "file": "src/components/members/member-table.tsx",
+    "key": "roles.shift_manager",
+    "lang": "zh"
+  },
+  {
+    "file": "src/components/members/member-table.tsx",
+    "key": "roles.team_lead",
+    "lang": "en"
+  },
+  {
+    "file": "src/components/members/member-table.tsx",
+    "key": "roles.team_lead",
+    "lang": "vi"
+  },
+  {
+    "file": "src/components/members/member-table.tsx",
+    "key": "roles.team_lead",
+    "lang": "zh"
+  },
+  {
+    "file": "src/components/members/member-table.tsx",
+    "key": "roles.employee",
+    "lang": "en"
+  },
+  {
+    "file": "src/components/members/member-table.tsx",
+    "key": "roles.employee",
+    "lang": "vi"
+  },
+  {
+    "file": "src/components/members/member-table.tsx",
+    "key": "roles.employee",
+    "lang": "zh"
+  },
+  {
+    "file": "src/components/members/member-table.tsx",
+    "key": "members.table.empty_desc",
+    "lang": "en"
+  },
+  {
+    "file": "src/components/members/member-table.tsx",
+    "key": "members.table.empty_desc",
+    "lang": "vi"
+  },
+  {
+    "file": "src/components/members/member-table.tsx",
+    "key": "members.table.empty_desc",
+    "lang": "zh"
+  },
+  {
+    "file": "src/components/payroll/payslip-document.tsx",
+    "key": "common.show_amount",
+    "lang": "en"
+  },
+  {
+    "file": "src/components/payroll/payslip-document.tsx",
+    "key": "common.show_amount",
+    "lang": "vi"
+  },
+  {
+    "file": "src/components/payroll/payslip-document.tsx",
+    "key": "common.show_amount",
+    "lang": "zh"
+  },
+  {
+    "file": "src/components/payroll/payslip-document.tsx",
+    "key": "common.mask_amount",
+    "lang": "en"
+  },
+  {
+    "file": "src/components/payroll/payslip-document.tsx",
+    "key": "common.mask_amount",
+    "lang": "vi"
+  },
+  {
+    "file": "src/components/payroll/payslip-document.tsx",
+    "key": "common.mask_amount",
+    "lang": "zh"
+  },
+  {
+    "file": "src/components/shifts/roster-toolbar-parts.tsx",
+    "key": "shifts.prev_week",
+    "lang": "en"
+  },
+  {
+    "file": "src/components/shifts/roster-toolbar-parts.tsx",
+    "key": "shifts.prev_week",
+    "lang": "vi"
+  },
+  {
+    "file": "src/components/shifts/roster-toolbar-parts.tsx",
+    "key": "shifts.prev_week",
+    "lang": "zh"
+  },
+  {
+    "file": "src/components/shifts/roster-toolbar-parts.tsx",
+    "key": "common.prev_period",
+    "lang": "en"
+  },
+  {
+    "file": "src/components/shifts/roster-toolbar-parts.tsx",
+    "key": "common.prev_period",
+    "lang": "vi"
+  },
+  {
+    "file": "src/components/shifts/roster-toolbar-parts.tsx",
+    "key": "common.prev_period",
+    "lang": "zh"
+  },
+  {
+    "file": "src/components/shifts/roster-toolbar-parts.tsx",
+    "key": "shifts.next_week",
+    "lang": "en"
+  },
+  {
+    "file": "src/components/shifts/roster-toolbar-parts.tsx",
+    "key": "shifts.next_week",
+    "lang": "vi"
+  },
+  {
+    "file": "src/components/shifts/roster-toolbar-parts.tsx",
+    "key": "shifts.next_week",
+    "lang": "zh"
+  },
+  {
+    "file": "src/components/shifts/roster-toolbar-parts.tsx",
+    "key": "common.next_period",
+    "lang": "en"
+  },
+  {
+    "file": "src/components/shifts/roster-toolbar-parts.tsx",
+    "key": "common.next_period",
+    "lang": "vi"
+  },
+  {
+    "file": "src/components/shifts/roster-toolbar-parts.tsx",
+    "key": "common.next_period",
+    "lang": "zh"
+  },
+  {
+    "file": "src/pages/approvals/components/delegated-claims-tab.tsx",
+    "key": "common.select_item_with_name",
+    "lang": "en"
+  },
+  {
+    "file": "src/pages/approvals/components/delegated-claims-tab.tsx",
+    "key": "common.select_item_with_name",
+    "lang": "vi"
+  },
+  {
+    "file": "src/pages/approvals/components/delegated-claims-tab.tsx",
+    "key": "common.select_item_with_name",
+    "lang": "zh"
+  },
+  {
+    "file": "src/pages/approvals/components/ot-approvals-header.tsx",
+    "key": "common.prev_period",
+    "lang": "en"
+  },
+  {
+    "file": "src/pages/approvals/components/ot-approvals-header.tsx",
+    "key": "common.prev_period",
+    "lang": "vi"
+  },
+  {
+    "file": "src/pages/approvals/components/ot-approvals-header.tsx",
+    "key": "common.prev_period",
+    "lang": "zh"
+  },
+  {
+    "file": "src/pages/approvals/components/ot-approvals-header.tsx",
+    "key": "common.next_period",
+    "lang": "en"
+  },
+  {
+    "file": "src/pages/approvals/components/ot-approvals-header.tsx",
+    "key": "common.next_period",
+    "lang": "vi"
+  },
+  {
+    "file": "src/pages/approvals/components/ot-approvals-header.tsx",
+    "key": "common.next_period",
+    "lang": "zh"
+  },
+  {
+    "file": "src/pages/attendance/components/adjustments-table/empty-state.tsx",
+    "key": "adjustments.empty.description",
+    "lang": "en"
+  },
+  {
+    "file": "src/pages/attendance/components/adjustments-table/empty-state.tsx",
+    "key": "adjustments.empty.description",
+    "lang": "vi"
+  },
+  {
+    "file": "src/pages/attendance/components/adjustments-table/empty-state.tsx",
+    "key": "adjustments.empty.description",
+    "lang": "zh"
+  },
+  {
+    "file": "src/pages/attendance/components/attendance-logs-tabs.tsx",
+    "key": "attendance_logs.tabs.matrix",
+    "lang": "en"
+  },
+  {
+    "file": "src/pages/attendance/components/attendance-logs-tabs.tsx",
+    "key": "attendance_logs.tabs.matrix",
+    "lang": "vi"
+  },
+  {
+    "file": "src/pages/attendance/components/attendance-logs-tabs.tsx",
+    "key": "attendance_logs.tabs.matrix",
+    "lang": "zh"
+  },
+  {
+    "file": "src/pages/employees/components/contract-expiration-alerts.tsx",
+    "key": "employees.alerts.title",
+    "lang": "en"
+  },
+  {
+    "file": "src/pages/employees/components/contract-expiration-alerts.tsx",
+    "key": "employees.alerts.title",
+    "lang": "vi"
+  },
+  {
+    "file": "src/pages/employees/components/contract-expiration-alerts.tsx",
+    "key": "employees.alerts.title",
+    "lang": "zh"
+  },
+  {
+    "file": "src/pages/employees/components/contract-expiration-alerts.tsx",
+    "key": "employees.alerts.active_count",
+    "lang": "en"
+  },
+  {
+    "file": "src/pages/employees/components/contract-expiration-alerts.tsx",
+    "key": "employees.alerts.active_count",
+    "lang": "vi"
+  },
+  {
+    "file": "src/pages/employees/components/contract-expiration-alerts.tsx",
+    "key": "employees.alerts.active_count",
+    "lang": "zh"
+  },
+  {
+    "file": "src/pages/employees/components/contract-expiration-alerts.tsx",
+    "key": "employees.alerts.subtitle",
+    "lang": "en"
+  },
+  {
+    "file": "src/pages/employees/components/contract-expiration-alerts.tsx",
+    "key": "employees.alerts.subtitle",
+    "lang": "vi"
+  },
+  {
+    "file": "src/pages/employees/components/contract-expiration-alerts.tsx",
+    "key": "employees.alerts.subtitle",
+    "lang": "zh"
+  },
+  {
+    "file": "src/pages/employees/components/contract-expiration-alerts.tsx",
+    "key": "employees.alerts.probation_review_due",
+    "lang": "en"
+  },
+  {
+    "file": "src/pages/employees/components/contract-expiration-alerts.tsx",
+    "key": "employees.alerts.probation_review_due",
+    "lang": "vi"
+  },
+  {
+    "file": "src/pages/employees/components/contract-expiration-alerts.tsx",
+    "key": "employees.alerts.probation_review_due",
+    "lang": "zh"
+  },
+  {
+    "file": "src/pages/employees/components/contract-expiration-alerts.tsx",
+    "key": "employees.alerts.contract_compliant",
+    "lang": "en"
+  },
+  {
+    "file": "src/pages/employees/components/contract-expiration-alerts.tsx",
+    "key": "employees.alerts.contract_compliant",
+    "lang": "vi"
+  },
+  {
+    "file": "src/pages/employees/components/contract-expiration-alerts.tsx",
+    "key": "employees.alerts.contract_compliant",
+    "lang": "zh"
+  },
+  {
+    "file": "src/pages/employees/components/contract-expiration-alerts.tsx",
+    "key": "employees.alerts.legal_note_title",
+    "lang": "en"
+  },
+  {
+    "file": "src/pages/employees/components/contract-expiration-alerts.tsx",
+    "key": "employees.alerts.legal_note_title",
+    "lang": "vi"
+  },
+  {
+    "file": "src/pages/employees/components/contract-expiration-alerts.tsx",
+    "key": "employees.alerts.legal_note_title",
+    "lang": "zh"
+  },
+  {
+    "file": "src/pages/employees/components/contract-expiration-alerts.tsx",
+    "key": "employees.alerts.legal_note_desc",
+    "lang": "en"
+  },
+  {
+    "file": "src/pages/employees/components/contract-expiration-alerts.tsx",
+    "key": "employees.alerts.legal_note_desc",
+    "lang": "vi"
+  },
+  {
+    "file": "src/pages/employees/components/contract-expiration-alerts.tsx",
+    "key": "employees.alerts.legal_note_desc",
+    "lang": "zh"
+  },
+  {
+    "file": "src/pages/ess/components/attendance-header.tsx",
+    "key": "common.prev_period",
+    "lang": "en"
+  },
+  {
+    "file": "src/pages/ess/components/attendance-header.tsx",
+    "key": "common.prev_period",
+    "lang": "vi"
+  },
+  {
+    "file": "src/pages/ess/components/attendance-header.tsx",
+    "key": "common.prev_period",
+    "lang": "zh"
+  },
+  {
+    "file": "src/pages/ess/components/attendance-header.tsx",
+    "key": "common.next_period",
+    "lang": "en"
+  },
+  {
+    "file": "src/pages/ess/components/attendance-header.tsx",
+    "key": "common.next_period",
+    "lang": "vi"
+  },
+  {
+    "file": "src/pages/ess/components/attendance-header.tsx",
+    "key": "common.next_period",
+    "lang": "zh"
+  },
+  {
+    "file": "src/pages/ess/components/history-table.tsx",
+    "key": "ess.clock.empty_history_desc",
+    "lang": "en"
+  },
+  {
+    "file": "src/pages/ess/components/history-table.tsx",
+    "key": "ess.clock.empty_history_desc",
+    "lang": "vi"
+  },
+  {
+    "file": "src/pages/ess/components/history-table.tsx",
+    "key": "ess.clock.empty_history_desc",
+    "lang": "zh"
+  },
+  {
+    "file": "src/pages/ess/components/history-table.tsx",
+    "key": "ess.clock.empty_history",
+    "lang": "en"
+  },
+  {
+    "file": "src/pages/ess/components/history-table.tsx",
+    "key": "ess.clock.empty_history",
+    "lang": "vi"
+  },
+  {
+    "file": "src/pages/ess/components/history-table.tsx",
+    "key": "ess.clock.empty_history",
+    "lang": "zh"
+  },
+  {
+    "file": "src/pages/leave-balances/components/leave-balances-table.tsx",
+    "key": "leave_balances.empty.description",
+    "lang": "en"
+  },
+  {
+    "file": "src/pages/leave-balances/components/leave-balances-table.tsx",
+    "key": "leave_balances.empty.description",
+    "lang": "vi"
+  },
+  {
+    "file": "src/pages/leave-balances/components/leave-balances-table.tsx",
+    "key": "leave_balances.empty.description",
+    "lang": "zh"
+  },
+  {
+    "file": "src/pages/leave-balances/components/leave-balances-table.tsx",
+    "key": "leave_balances.empty.title",
+    "lang": "en"
+  },
+  {
+    "file": "src/pages/leave-balances/components/leave-balances-table.tsx",
+    "key": "leave_balances.empty.title",
+    "lang": "vi"
+  },
+  {
+    "file": "src/pages/leave-balances/components/leave-balances-table.tsx",
+    "key": "leave_balances.empty.title",
+    "lang": "zh"
+  },
+  {
+    "file": "src/pages/monitor/jobs-table.tsx",
+    "key": "monitor.no_jobs_description",
+    "lang": "en"
+  },
+  {
+    "file": "src/pages/monitor/jobs-table.tsx",
+    "key": "monitor.no_jobs_description",
+    "lang": "vi"
+  },
+  {
+    "file": "src/pages/monitor/jobs-table.tsx",
+    "key": "monitor.no_jobs_description",
+    "lang": "zh"
+  },
+  {
+    "file": "src/pages/monitor/jobs-table.tsx",
+    "key": "monitor.no_jobs_found",
+    "lang": "en"
+  },
+  {
+    "file": "src/pages/monitor/jobs-table.tsx",
+    "key": "monitor.no_jobs_found",
+    "lang": "vi"
+  },
+  {
+    "file": "src/pages/monitor/jobs-table.tsx",
+    "key": "monitor.no_jobs_found",
+    "lang": "zh"
+  },
+  {
+    "file": "src/pages/monitor/workers-table.tsx",
+    "key": "monitor.no_workers_description",
+    "lang": "en"
+  },
+  {
+    "file": "src/pages/monitor/workers-table.tsx",
+    "key": "monitor.no_workers_description",
+    "lang": "vi"
+  },
+  {
+    "file": "src/pages/monitor/workers-table.tsx",
+    "key": "monitor.no_workers_description",
+    "lang": "zh"
+  },
+  {
+    "file": "src/pages/payroll/components/payroll-header.tsx",
+    "key": "payroll.lifecycle.locked_by",
+    "lang": "en"
+  },
+  {
+    "file": "src/pages/payroll/components/payroll-header.tsx",
+    "key": "payroll.lifecycle.locked_by",
+    "lang": "vi"
+  },
+  {
+    "file": "src/pages/payroll/components/payroll-header.tsx",
+    "key": "payroll.lifecycle.locked_by",
+    "lang": "zh"
+  },
+  {
+    "file": "src/pages/payroll/components/payroll-header.tsx",
+    "key": "payroll.lifecycle.locked_tooltip",
+    "lang": "en"
+  },
+  {
+    "file": "src/pages/payroll/components/payroll-header.tsx",
+    "key": "payroll.lifecycle.locked_tooltip",
+    "lang": "zh"
+  },
+  {
+    "file": "src/pages/payroll/components/payroll-header.tsx",
+    "key": "payroll.lifecycle.locked_badge",
+    "lang": "en"
+  },
+  {
+    "file": "src/pages/payroll/components/payroll-header.tsx",
+    "key": "payroll.lifecycle.locked_badge",
+    "lang": "zh"
+  },
+  {
+    "file": "src/pages/payroll/components/payroll-header.tsx",
+    "key": "payroll.lifecycle.calculated",
+    "lang": "en"
+  },
+  {
+    "file": "src/pages/payroll/components/payroll-header.tsx",
+    "key": "payroll.lifecycle.calculated",
+    "lang": "zh"
+  },
+  {
+    "file": "src/pages/payroll/components/payroll-header.tsx",
+    "key": "payroll.lifecycle.draft",
+    "lang": "en"
+  },
+  {
+    "file": "src/pages/payroll/components/payroll-header.tsx",
+    "key": "payroll.lifecycle.draft",
+    "lang": "zh"
+  },
+  {
+    "file": "src/pages/payroll/components/payroll-header.tsx",
+    "key": "payroll.prev_period",
+    "lang": "en"
+  },
+  {
+    "file": "src/pages/payroll/components/payroll-header.tsx",
+    "key": "payroll.prev_period",
+    "lang": "vi"
+  },
+  {
+    "file": "src/pages/payroll/components/payroll-header.tsx",
+    "key": "payroll.prev_period",
+    "lang": "zh"
+  },
+  {
+    "file": "src/pages/payroll/components/payroll-header.tsx",
+    "key": "payroll.next_period",
+    "lang": "en"
+  },
+  {
+    "file": "src/pages/payroll/components/payroll-header.tsx",
+    "key": "payroll.next_period",
+    "lang": "vi"
+  },
+  {
+    "file": "src/pages/payroll/components/payroll-header.tsx",
+    "key": "payroll.next_period",
+    "lang": "zh"
+  },
+  {
+    "file": "src/pages/payroll/components/payroll-header.tsx",
+    "key": "payroll.lifecycle.unlock_btn",
+    "lang": "en"
+  },
+  {
+    "file": "src/pages/payroll/components/payroll-header.tsx",
+    "key": "payroll.lifecycle.unlock_btn",
+    "lang": "zh"
+  },
+  {
+    "file": "src/pages/payroll/components/payroll-header.tsx",
+    "key": "payroll.lifecycle.lock_btn",
+    "lang": "en"
+  },
+  {
+    "file": "src/pages/payroll/components/payroll-header.tsx",
+    "key": "payroll.lifecycle.lock_btn",
+    "lang": "zh"
+  },
+  {
+    "file": "src/pages/payroll/components/payroll-header.tsx",
+    "key": "payroll.lifecycle.unlock_btn",
+    "lang": "en"
+  },
+  {
+    "file": "src/pages/payroll/components/payroll-header.tsx",
+    "key": "payroll.lifecycle.unlock_btn",
+    "lang": "zh"
+  },
+  {
+    "file": "src/pages/payroll/components/payroll-header.tsx",
+    "key": "payroll.lifecycle.lock_btn",
+    "lang": "en"
+  },
+  {
+    "file": "src/pages/payroll/components/payroll-header.tsx",
+    "key": "payroll.lifecycle.lock_btn",
+    "lang": "zh"
+  },
+  {
+    "file": "src/pages/payroll/components/payroll-header.tsx",
+    "key": "payroll.lifecycle.locked_tooltip",
+    "lang": "en"
+  },
+  {
+    "file": "src/pages/payroll/components/payroll-header.tsx",
+    "key": "payroll.lifecycle.locked_tooltip",
+    "lang": "zh"
+  },
+  {
+    "file": "src/pages/payroll/components/payroll-header.tsx",
+    "key": "payroll.lifecycle.unlock_btn",
+    "lang": "en"
+  },
+  {
+    "file": "src/pages/payroll/components/payroll-header.tsx",
+    "key": "payroll.lifecycle.unlock_btn",
+    "lang": "zh"
+  },
+  {
+    "file": "src/pages/payroll/components/payroll-header.tsx",
+    "key": "payroll.lifecycle.lock_btn",
+    "lang": "en"
+  },
+  {
+    "file": "src/pages/payroll/components/payroll-header.tsx",
+    "key": "payroll.lifecycle.lock_btn",
+    "lang": "zh"
+  },
+  {
+    "file": "src/pages/payroll/components/payroll-header.tsx",
+    "key": "payroll.lifecycle.unlock_confirm_desc",
+    "lang": "en"
+  },
+  {
+    "file": "src/pages/payroll/components/payroll-header.tsx",
+    "key": "payroll.lifecycle.unlock_confirm_desc",
+    "lang": "zh"
+  },
+  {
+    "file": "src/pages/payroll/components/payroll-header.tsx",
+    "key": "payroll.lifecycle.lock_confirm_desc",
+    "lang": "en"
+  },
+  {
+    "file": "src/pages/payroll/components/payroll-header.tsx",
+    "key": "payroll.lifecycle.lock_confirm_desc",
+    "lang": "zh"
+  },
+  {
+    "file": "src/pages/payroll/components/payroll-header.tsx",
+    "key": "payroll.lifecycle.unlock_confirm_title",
+    "lang": "en"
+  },
+  {
+    "file": "src/pages/payroll/components/payroll-header.tsx",
+    "key": "payroll.lifecycle.unlock_confirm_title",
+    "lang": "zh"
+  },
+  {
+    "file": "src/pages/payroll/components/payroll-header.tsx",
+    "key": "payroll.lifecycle.lock_confirm_title",
+    "lang": "en"
+  },
+  {
+    "file": "src/pages/payroll/components/payroll-header.tsx",
+    "key": "payroll.lifecycle.lock_confirm_title",
+    "lang": "zh"
+  },
+  {
+    "file": "src/pages/settings/components/overtime/approval-workflows-tab.tsx",
+    "key": "settings.overtime.no_workflows_desc",
+    "lang": "en"
+  },
+  {
+    "file": "src/pages/settings/components/overtime/approval-workflows-tab.tsx",
+    "key": "settings.overtime.no_workflows_desc",
+    "lang": "vi"
+  },
+  {
+    "file": "src/pages/settings/components/overtime/approval-workflows-tab.tsx",
+    "key": "settings.overtime.no_workflows_desc",
+    "lang": "zh"
+  },
+  {
+    "file": "src/pages/settings/components/overtime/approval-workflows-tab.tsx",
+    "key": "settings.overtime.no_workflows",
+    "lang": "en"
+  },
+  {
+    "file": "src/pages/settings/components/overtime/approval-workflows-tab.tsx",
+    "key": "settings.overtime.no_workflows",
+    "lang": "vi"
+  },
+  {
+    "file": "src/pages/settings/components/overtime/approval-workflows-tab.tsx",
+    "key": "settings.overtime.no_workflows",
+    "lang": "zh"
+  },
+  {
+    "file": "src/pages/settings/components/overtime/overtime-quotas-tab.tsx",
+    "key": "settings.overtime.no_configs_desc",
+    "lang": "en"
+  },
+  {
+    "file": "src/pages/settings/components/overtime/overtime-quotas-tab.tsx",
+    "key": "settings.overtime.no_configs_desc",
+    "lang": "vi"
+  },
+  {
+    "file": "src/pages/settings/components/overtime/overtime-quotas-tab.tsx",
+    "key": "settings.overtime.no_configs_desc",
+    "lang": "zh"
+  },
+  {
+    "file": "src/pages/settings/components/overtime/overtime-quotas-tab.tsx",
+    "key": "settings.overtime.no_configs",
+    "lang": "en"
+  },
+  {
+    "file": "src/pages/settings/components/overtime/overtime-quotas-tab.tsx",
+    "key": "settings.overtime.no_configs",
+    "lang": "vi"
+  },
+  {
+    "file": "src/pages/settings/components/overtime/overtime-quotas-tab.tsx",
+    "key": "settings.overtime.no_configs",
+    "lang": "zh"
+  },
+  {
+    "file": "src/pages/settings/lifecycle-templates-page.tsx",
+    "key": "settings.lifecycle.create_template",
+    "lang": "en"
+  },
+  {
+    "file": "src/pages/settings/lifecycle-templates-page.tsx",
+    "key": "settings.lifecycle.create_template",
+    "lang": "zh"
+  },
+  {
+    "file": "src/pages/settings/lifecycle-templates-page.tsx",
+    "key": "settings.lifecycle.subtitle",
+    "lang": "en"
+  },
+  {
+    "file": "src/pages/settings/lifecycle-templates-page.tsx",
+    "key": "settings.lifecycle.subtitle",
+    "lang": "zh"
+  },
+  {
+    "file": "src/pages/settings/lifecycle-templates-page.tsx",
+    "key": "settings.lifecycle.title",
+    "lang": "en"
+  },
+  {
+    "file": "src/pages/settings/lifecycle-templates-page.tsx",
+    "key": "settings.lifecycle.title",
+    "lang": "zh"
+  },
+  {
+    "file": "src/pages/settings/lifecycle-templates-page.tsx",
+    "key": "settings.lifecycle.empty.description",
+    "lang": "en"
+  },
+  {
+    "file": "src/pages/settings/lifecycle-templates-page.tsx",
+    "key": "settings.lifecycle.empty.description",
+    "lang": "zh"
+  },
+  {
+    "file": "src/pages/settings/lifecycle-templates-page.tsx",
+    "key": "settings.lifecycle.empty.title",
+    "lang": "en"
+  },
+  {
+    "file": "src/pages/settings/lifecycle-templates-page.tsx",
+    "key": "settings.lifecycle.empty.title",
+    "lang": "zh"
+  },
+  {
+    "file": "src/pages/settings/payroll-settings.tsx",
+    "key": "common.settings.tabs.salary_bases",
+    "lang": "en"
+  },
+  {
+    "file": "src/pages/settings/payroll-settings.tsx",
+    "key": "common.settings.tabs.salary_bases",
+    "lang": "vi"
+  },
+  {
+    "file": "src/pages/settings/payroll-settings.tsx",
+    "key": "common.settings.tabs.salary_bases",
+    "lang": "zh"
+  }
+]

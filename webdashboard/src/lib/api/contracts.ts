@@ -1,7 +1,6 @@
-import type { EmployeeContract, CreateContractRequest, UpdateContractRequest } from "./contract-types";
+import type { EmployeeContract, EmployeeContractWithEmployee, CreateContractRequest, UpdateContractRequest } from "./api-generated-reexports";
 
 import { client } from "./client";
-
 
 export async function fetchEmployeeContracts(wsId: string, employeeId: string): Promise<EmployeeContract[]> {
   const { data } = await client.GET("/api/v1/workspaces/{ws_id}/employees/{employee_id}/contracts", {
@@ -58,11 +57,6 @@ export async function deleteEmployeeContract(wsId: string, employeeId: string, c
   });
 }
 
-export type EmployeeContractWithEmployee = EmployeeContract & {
-  employee_code: string;
-  employee_id: string;
-  employee_name: string;
-};
 
 export async function fetchWorkspaceContracts(wsId: string): Promise<EmployeeContractWithEmployee[]> {
   const { data } = await client.GET("/api/v1/workspaces/{ws_id}/contracts", {

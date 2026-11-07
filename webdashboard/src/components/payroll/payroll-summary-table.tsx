@@ -8,7 +8,8 @@ import {
   Gift,
   Wallet,
   AlertCircle,
-  CheckCircle2
+  CheckCircle2,
+  Lock
 } from "lucide-react";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -196,6 +197,9 @@ interface PayrollSummaryTableProps {
   onViewDetail: (employee: Employee) => void;
   payslips: Payslip[];
   searchTerm: string;
+  isLocked?: boolean;
+  lockedAt?: string | null;
+  lockedBy?: string | null;
   selectedIds: Set<string>;
 }
 
@@ -213,7 +217,10 @@ export default function PayrollSummaryTable({
   onToggleSelectAll,
   onViewDetail,
   searchTerm,
-  onSearchChange
+  onSearchChange,
+  isLocked = false,
+  lockedAt,
+  lockedBy,
 }: PayrollSummaryTableProps) {
   const { t } = useTranslation();
   const { density, setDensity } = useTableDensity("payroll_summary_density");
@@ -322,6 +329,20 @@ export default function PayrollSummaryTable({
         </div>
       ) : (
         <>
+          {isLocked && (
+            <div className="mx-6 my-2 px-4 py-2.5 rounded-2xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-between text-xs text-rose-700 dark:text-rose-300">
+              <div className="flex items-center gap-2">
+                <Lock className="w-4 h-4 text-rose-600 dark:text-rose-400 shrink-0" />
+                <span className="font-semibold">Kỳ lương đã khóa chốt sổ:</span>
+                <span>Dữ liệu ở chế độ chỉ đọc để đảm bảo tính bất biến số liệu kế toán và thuế.</span>
+              </div>
+              {lockedBy && (
+                <span className="text-[11px] opacity-80 shrink-0">
+                  Khóa bởi {lockedBy} {lockedAt ? `(${new Date(lockedAt).toLocaleDateString("vi-VN")})` : ""}
+                </span>
+              )}
+            </div>
+          )}
           <SelectionBanner 
             filteredCount={filteredEmployees.length}
             isAllFilteredSelected={isAllFilteredSelected}

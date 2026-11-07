@@ -37,6 +37,11 @@ export default function PayrollPage() {
     employeeNames,
     handleAdjustmentResolved,
     changeMonth,
+    isLocked,
+    lifecycleAudit,
+    lifecycleStatus,
+    lockPeriod,
+    unlockPeriod,
   } = usePayroll();
 
   if (!wsId) return <div className="p-8 text-center">{t("common.select_workspace")}</div>;
@@ -52,6 +57,17 @@ export default function PayrollPage() {
           setCalcYear(y);
         }}
         onOpenBatchCalc={() => { setIsBatchCalcModalOpen(true); }}
+        onToggleLock={() => {
+          if (isLocked) {
+            unlockPeriod();
+          } else {
+            lockPeriod();
+          }
+        }}
+        isLocked={isLocked}
+        lifecycleStatus={lifecycleStatus}
+        lockedAt={lifecycleAudit.lockedAt}
+        lockedBy={lifecycleAudit.lockedBy}
         selectedCount={selectedIds.size}
       />
 
@@ -66,6 +82,9 @@ export default function PayrollPage() {
           payslips={workspacePayslips}
           searchTerm={searchTerm}
           selectedIds={selectedIds}
+          isLocked={isLocked}
+          lockedAt={lifecycleAudit.lockedAt}
+          lockedBy={lifecycleAudit.lockedBy}
         />
       </div>
 

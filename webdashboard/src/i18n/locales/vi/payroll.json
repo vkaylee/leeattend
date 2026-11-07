@@ -47,6 +47,19 @@
       "loading_payslips": "Đang tải phiếu lương...",
       "no_payslips": "Chưa có phiếu lương nào"
     },
+    "lifecycle": {
+      "draft": "Bản nháp",
+      "calculated": "Đã tính lương",
+      "locked": "Đã khóa chốt",
+      "lock_btn": "Khóa kỳ lương",
+      "unlock_btn": "Mở khóa kỳ",
+      "lock_confirm_title": "Xác nhận khóa chốt kỳ lương?",
+      "lock_confirm_desc": "Sau khi khóa, kỳ lương sẽ ở trạng thái chỉ đọc để đảm bảo tính bất biến của số liệu kế toán và thuế. Toàn bộ thao tác tính lại sẽ bị tạm khóa.",
+      "unlock_confirm_title": "Mở khóa kỳ lương?",
+      "unlock_confirm_desc": "Mở khóa kỳ lương cho phép tính toán lại hoặc điều chỉnh số liệu. Hãy đảm bảo bạn có thẩm quyền C&B trước khi mở lại.",
+      "locked_badge": "ĐÃ KHÓA SỔ",
+      "locked_tooltip": "Kỳ lương đã được khóa an toàn bởi C&B."
+    },
     "status": {
       "paid": "ĐÃ CHI TRẢ",
       "finalized": "ĐÃ CHỐT"

@@ -152,8 +152,10 @@ export const SettingsSidebar = memo(function SettingsSidebar({
         )}
       </div>
 
-      {/* 3. Categorized Items List (Apple Inset Menu) */}
-      <div className="flex-1 overflow-y-auto overscroll-contain custom-scrollbar space-y-4 pr-0.5">
+      <div
+        className="min-h-0 flex-1 overflow-y-auto overscroll-contain touch-pan-y custom-scrollbar space-y-4 pr-0.5"
+        data-testid="settings-sidebar-scroll-region"
+      >
         {sections.map((section) => (
           <div
             className="space-y-0.5"

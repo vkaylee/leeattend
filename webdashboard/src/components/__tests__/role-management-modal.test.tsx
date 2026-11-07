@@ -5,7 +5,6 @@ import React from "react";
 import userEvent from "@testing-library/user-event";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-import { RoleScopeType } from "@/lib/api/types";
 
 import * as api from "../../lib/api";
 import RoleManagementModal from "../features/settings/role-management-modal";
@@ -20,10 +19,10 @@ const EMPLOYEE_ROLE_ID = "a0000000-0000-0000-0000-000000000006";
 const TEAM_LEAD_ROLE_ID = "a0000000-0000-0000-0000-000000000005";
 
 const mockWorkspaceRoles = [
-  { id: OWNER_ROLE_ID, name: "owner", description: "Full access", color: "rose", is_system: true, scope_type: RoleScopeType.Global, created_at: "", updated_at: "" },
-  { id: ADMIN_ROLE_ID, name: "admin", description: "Admin access", color: "rose", is_system: true, scope_type: RoleScopeType.Global, created_at: "", updated_at: "" },
-  { id: TEAM_LEAD_ROLE_ID, name: "team_lead", description: "Team management", color: "blue", is_system: true, scope_type: RoleScopeType.Scoped, created_at: "", updated_at: "" },
-  { id: EMPLOYEE_ROLE_ID, name: "employee", description: "Default access", color: "slate", is_system: true, scope_type: RoleScopeType.Scoped, created_at: "", updated_at: "" },
+  { id: OWNER_ROLE_ID, name: "owner", description: "Full access", color: "rose", is_system: true, scope_type: "global", created_at: "", updated_at: "" },
+  { id: ADMIN_ROLE_ID, name: "admin", description: "Admin access", color: "rose", is_system: true, scope_type: "global", created_at: "", updated_at: "" },
+  { id: TEAM_LEAD_ROLE_ID, name: "team_lead", description: "Team management", color: "blue", is_system: true, scope_type: "scoped", created_at: "", updated_at: "" },
+  { id: EMPLOYEE_ROLE_ID, name: "employee", description: "Default access", color: "slate", is_system: true, scope_type: "scoped", created_at: "", updated_at: "" },
 ];
 
 // Mock the API library

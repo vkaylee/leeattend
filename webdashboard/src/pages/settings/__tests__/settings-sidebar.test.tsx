@@ -85,6 +85,22 @@ describe("SettingsSidebar (macOS 2-column layout)", () => {
     expect(screen.getByTestId("settings-sidebar")).toBeInTheDocument();
     expect(screen.getByText("Bảng điều khiển")).toBeInTheDocument();
   });
+  it("renders a bounded touch-enabled scroll region for settings items", () => {
+    vi.spyOn(hooks, "useSettingsNav").mockReturnValue(
+      makeNavState({
+        workspaceGroup: [makeItem("General", "/workspace/settings/general")],
+      })
+    );
+
+    render(<SettingsSidebar />);
+
+    expect(screen.getByTestId("settings-sidebar-scroll-region")).toHaveClass(
+      "min-h-0",
+      "overflow-y-auto",
+      "touch-pan-y"
+    );
+  });
+
 
   it("renders all four sections when items are populated", () => {
     vi.spyOn(hooks, "useSettingsNav").mockReturnValue(

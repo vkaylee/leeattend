@@ -2,7 +2,7 @@ import { Building2, UserX } from "lucide-react";
 
 import FloatingRecordBadge from "@/components/common/floating-record-badge";
 import { FilterChips } from "@/components/ui/filter-chips";
-
+import { ContractExpirationAlerts } from "./employees/components/contract-expiration-alerts";
 import { EmployeeOverlays } from "./employees/components/employee-overlays";
 import { EmployeeTable } from "./employees/components/employee-table";
 import { EmployeesPageHeader } from "./employees/components/employees-page-header";
@@ -52,6 +52,8 @@ export default function EmployeesPage() {
         setIsModalOpen={page.setIsModalOpen}
         setIsTerminationImportOpen={page.setIsTerminationImportOpen}
       />
+
+      <ContractExpirationAlerts employees={employees} />
 
       <FilterChips
         chips={activeChips}

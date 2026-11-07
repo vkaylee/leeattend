@@ -12,6 +12,13 @@
 
 import type { components } from "@/types/api-generated";
 
+export type RoleScopeType = components["schemas"]["RoleScopeType"];
+export type ContractStatus = components["schemas"]["ContractStatus"];
+export type EmployeeContract = components["schemas"]["EmployeeContract"];
+export type EmployeeContractWithEmployee = components["schemas"]["EmployeeContractWithEmployee"];
+export type CreateContractRequest = components["schemas"]["CreateContractRequest"];
+export type UpdateContractRequest = components["schemas"]["UpdateContractRequest"];
+
 export type MonitorAlert = components["schemas"]["MonitorAlertResponse"];
 export type MonitorAlertDetail = components["schemas"]["MonitorAlertDetailResponse"];
 export type MonitorAlertEvent = components["schemas"]["MonitorAlertEventResponse"];

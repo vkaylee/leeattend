@@ -42,9 +42,15 @@ function SettingsPageLayout() {
         </Button>
       </div>
 
-      <div className="flex flex-col md:flex-row gap-6 min-h-[calc(100vh-10rem)]">
+      <div className="flex flex-col md:flex-row gap-6 min-h-0 md:h-[calc(100dvh-10rem)]">
         {/* Left Column: macOS System Settings Style Master Sidebar */}
-        <div className={cn("w-full md:w-72 lg:w-80 shrink-0", !mobileMenuOpen && "hidden md:block")}>
+        <div
+          className={cn(
+            "w-full md:w-72 lg:w-80 shrink-0 min-h-0 h-[calc(100dvh-10rem)] md:h-full",
+            !mobileMenuOpen && "hidden md:block"
+          )}
+          data-testid="settings-sidebar-panel"
+        >
           <SettingsSidebar onItemClick={() => setMobileMenuOpen(false)} />
         </div>
 

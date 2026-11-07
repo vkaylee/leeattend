@@ -42,11 +42,6 @@ export interface WorkspaceMember {
   workspace_id: string;
 }
 
-export enum RoleScopeType {
-  Global = 'global',
-  Scoped = 'scoped',
-}
-
 export type WorkspaceRole = Omit<components["schemas"]["WorkspaceRole"], "description"> & {
   description?: string | null;
 };
@@ -65,7 +60,6 @@ export interface MemberRolesResponse {
   primary: string;
 }
 
-export * from "./contract-types";
 
 // --- Workspace Config (EAV) ---
 export interface CreateConfigEntryRequest {

@@ -8,11 +8,11 @@ import (
 	"strings"
 	"time"
 
-    "github.com/google/uuid"
-    "github.com/jackc/pgx/v5"
-    "github.com/vkaylee/leeattend/apiserver/internal/apperror"
-    "github.com/vkaylee/leeattend/apiserver/internal/auth"
-    httpinfra "github.com/vkaylee/leeattend/apiserver/internal/infra/http"
+	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
+	"github.com/vkaylee/leeattend/apiserver/internal/apperror"
+	"github.com/vkaylee/leeattend/apiserver/internal/auth"
+	httpinfra "github.com/vkaylee/leeattend/apiserver/internal/infra/http"
 )
 
 var (
@@ -241,7 +241,7 @@ func (h ApprovalWorkflowHandler) Update(w http.ResponseWriter, r *http.Request) 
 func (h ApprovalWorkflowHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	wsID, ok := pathUUID(r, "ws_id")
 	id, idOK := pathUUID(r, "id")
-    if !ok || !idOK || !h.allowed(r, wsID, string(auth.PermissionApprovalWorkflowsManage)) {
+	if !ok || !idOK || !h.allowed(r, wsID, string(auth.PermissionApprovalWorkflowsManage)) {
 		h.forbidden(w, r)
 		return
 	}
@@ -264,7 +264,7 @@ func (h ApprovalWorkflowHandler) Process(w http.ResponseWriter, r *http.Request)
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}
-    if req.EntityType == "ot_request" && !h.Authorizer.HasPermission(r.Context(), userID, wsID, string(auth.PermissionOvertimeApproveWorkflow)) {
+	if req.EntityType == "ot_request" && !h.Authorizer.HasPermission(r.Context(), userID, wsID, string(auth.PermissionOvertimeApproveWorkflow)) {
 		h.forbidden(w, r)
 		return
 	}

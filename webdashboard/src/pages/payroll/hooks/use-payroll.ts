@@ -8,9 +8,9 @@ import {
 } from "@/lib/api";
 
 import { usePayrollData } from "./use-payroll-data";
+import { usePayrollLifecycle } from "./use-payroll-lifecycle";
 import { usePayrollPeriod } from "./use-payroll-period";
 import { usePayrollSelection } from "./use-payroll-selection";
-
 export function usePayroll() {
   const { t } = useTranslation();
   const wsId = getStandaloneOrganizationId() ?? "";
@@ -49,6 +49,18 @@ export function usePayroll() {
 
   const { selectedIds, setSelectedIds, toggleSelect, toggleSelectAll } = usePayrollSelection(employees);
 
+  const {
+    audit: lifecycleAudit,
+    isLocked,
+    lockPeriod,
+    status: lifecycleStatus,
+    unlockPeriod,
+  } = usePayrollLifecycle({
+    calcMonth,
+    calcYear,
+    hasCalculatedPayslips: workspacePayslips.length > 0,
+    wsId,
+  });
   const handleViewDetail = (employee: Employee) => {
     setSelectedEmployee(employee);
     setIsDetailDrawerOpen(true);
@@ -98,5 +110,10 @@ export function usePayroll() {
     employeeNames,
     handleAdjustmentResolved,
     changeMonth,
+    isLocked,
+    lifecycleAudit,
+    lifecycleStatus,
+    lockPeriod,
+    unlockPeriod,
   };
 }

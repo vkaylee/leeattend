@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/vkaylee/leeattend/apiserver/internal/auth"
 	httpinfra "github.com/vkaylee/leeattend/apiserver/internal/infra/http"
 )
 
@@ -97,7 +98,7 @@ func TestEmployeeImport_Upload_Forbidden(t *testing.T) {
 func TestEmployeeImport_Upload_InvalidFormat(t *testing.T) {
 	wsID := uuid.New()
 	h := EmployeeImportHandler{
-		Authorizer: mockAuthorizer{perms: map[string]bool{EmployeeImportUploadPermission: true}},
+		Authorizer: mockAuthorizer{perms: map[string]bool{string(auth.PermissionEmployeesUpload): true}},
 	}
 	ct, body, _ := createMultipartExcel("file", "test.csv", []byte("a,b,c\n1,2,3"))
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/workspaces/"+wsID.String()+"/employees/upload", body)
@@ -119,7 +120,7 @@ func TestEmployeeImport_Upload_Success(t *testing.T) {
 	h := EmployeeImportHandler{
 		Repository: repo,
 		Queue:      q,
-		Authorizer: mockAuthorizer{perms: map[string]bool{EmployeeImportUploadPermission: true}},
+		Authorizer: mockAuthorizer{perms: map[string]bool{string(auth.PermissionEmployeesUpload): true}},
 		StorageDir: t.TempDir(),
 	}
 	xlsxBytes := sampleXLSX([][]string{{"header"}, {"row"}})
@@ -211,7 +212,7 @@ func TestEmployeeImport_Preview_Flow(t *testing.T) {
 	h := EmployeeImportHandler{
 		Repository: repo,
 		Queue:      &mockImportQueue{},
-		Authorizer: mockAuthorizer{perms: map[string]bool{EmployeeImportUpdatePermission: true}},
+		Authorizer: mockAuthorizer{perms: map[string]bool{string(auth.PermissionEmployeesUpdate): true}},
 	}
 
 	xlsxData := sampleXLSX([][]string{
@@ -276,7 +277,7 @@ func TestEmployeeImport_Confirm_ValidationAndSuccess(t *testing.T) {
 	h := EmployeeImportHandler{
 		Repository: repo,
 		Queue:      q,
-		Authorizer: mockAuthorizer{perms: map[string]bool{EmployeeImportUpdatePermission: true}},
+		Authorizer: mockAuthorizer{perms: map[string]bool{string(auth.PermissionEmployeesUpdate): true}},
 	}
 
 	// 1. Confirm with already terminated employment should fail 400
@@ -334,7 +335,7 @@ func TestEmployeeImport_Confirm_ValidationAndSuccess(t *testing.T) {
 func TestEmployeeImport_Template_Download(t *testing.T) {
 	wsID := uuid.New()
 	h := EmployeeImportHandler{
-		Authorizer: mockAuthorizer{perms: map[string]bool{EmployeeImportUpdatePermission: true}},
+		Authorizer: mockAuthorizer{perms: map[string]bool{string(auth.PermissionEmployeesUpdate): true}},
 	}
 
 	// English template

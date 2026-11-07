@@ -6,6 +6,10 @@ const date = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Expected YYYY-MM-DD");
 const rfc3339 = z.string().datetime({ offset: true });
 const uuid = z.string().uuid();
 
+const metricStatusValues = ["available", "not_applicable", "data_gap", "restricted"] as const;
+const comparisonBasisValues = ["none", "previous_period", "same_period_last_year", "target", "budget", "benchmark"] as const;
+const dataQualityStatusValues = ["complete", "partial", "data_gap"] as const;
+
 export const dashboardMetricUnitSchema = z.enum([
   "count",
   "rate",
@@ -16,12 +20,7 @@ export const dashboardMetricUnitSchema = z.enum([
   "percentage_point_delta",
 ]);
 
-export const dashboardMetricStatusSchema = z.enum([
-  "available",
-  "not_applicable",
-  "data_gap",
-  "restricted",
-]);
+export const dashboardMetricStatusSchema = z.enum(metricStatusValues);
 
 export const dashboardMetricHealthSchema = z.enum([
   "ok",
@@ -50,14 +49,7 @@ export const dashboardMetricFreshnessSchema = z.object({
 }).strict();
 
 export const dashboardMetricComparisonSchema = z.object({
-  basis: z.enum([
-    "none",
-    "previous_period",
-    "same_period_last_year",
-    "target",
-    "budget",
-    "benchmark",
-  ]),
+  basis: z.enum(comparisonBasisValues),
   period_start: date,
   period_end: date,
   value: decimalValue.nullable(),
@@ -111,10 +103,10 @@ export const dashboardInsightSchema = z.object({
 }).strict();
 
 export const dashboardDataQualitySchema = z.object({
-  status: z.enum(["complete", "partial", "data_gap"]),
+  status: z.enum(dataQualityStatusValues),
   sources: z.array(z.object({
     key: z.string().min(1),
-    status: z.enum(["complete", "partial", "data_gap"]),
+    status: z.enum(dataQualityStatusValues),
     coverage_ratio: z.number().finite().min(0).max(1).nullable(),
     freshness: dashboardMetricFreshnessSchema,
     warnings: z.array(z.string().min(1)),
@@ -129,14 +121,7 @@ export const dashboardMetricsResponseSchema = z.object({
   }).strict(),
   context: z.object({
     period: dashboardReportingPeriodSchema,
-    comparison: z.enum([
-      "none",
-      "previous_period",
-      "same_period_last_year",
-      "target",
-      "budget",
-      "benchmark",
-    ]),
+    comparison: z.enum(comparisonBasisValues),
     filters: z.record(z.string(), z.string()),
     scope: z.object({
       kind: z.enum(["workspace", "department", "location"]),

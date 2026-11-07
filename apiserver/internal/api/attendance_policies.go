@@ -9,16 +9,23 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
-    "github.com/vkaylee/leeattend/apiserver/internal/apperror"
-    "github.com/vkaylee/leeattend/apiserver/internal/auth"
-    httpinfra "github.com/vkaylee/leeattend/apiserver/internal/infra/http"
+	"github.com/vkaylee/leeattend/apiserver/internal/apperror"
+	"github.com/vkaylee/leeattend/apiserver/internal/auth"
+	httpinfra "github.com/vkaylee/leeattend/apiserver/internal/infra/http"
 )
 
 const (
-    AttendanceAdjustmentAssignmentType = "attendance_adjustment"
-    AttendanceTargetUser               = "USER"
-    AttendanceTargetGroup              = "GROUP"
-    DefaultGracePeriodMinutes          = 15
+	AttendanceAdjustmentAssignmentType = "attendance_adjustment"
+	AttendanceTargetUser               = "USER"
+	AttendanceTargetGroup              = "GROUP"
+	AttendanceRoundingFloor            = "floor"
+	AttendanceRoundingRound            = "round"
+	AttendanceRoundingCeil             = "ceil"
+	AttendanceRoundingNone             = "none"
+	EarlyArrivalAllow                  = "allow"
+	EarlyArrivalBlock                  = "block"
+	EarlyArrivalClamp                  = "clamp"
+	DefaultGracePeriodMinutes          = 15
 )
 
 // AttendanceRules is the typed attendance policy rules payload.
@@ -30,7 +37,7 @@ type AttendanceRules struct {
 }
 
 func DefaultAttendanceRules() AttendanceRules {
-	return AttendanceRules{WorkUnitMinutes: 30, RoundingPolicy: "floor", EarlyArrivalStrategy: "block"}
+	return AttendanceRules{WorkUnitMinutes: 30, RoundingPolicy: AttendanceRoundingFloor, EarlyArrivalStrategy: EarlyArrivalBlock}
 }
 
 // UpdateAttendanceRulesRequest partially updates workspace default rules.
@@ -141,10 +148,10 @@ func (h AttendancePolicyHandler) fail(w http.ResponseWriter, r *http.Request, er
 }
 
 func validRules(workUnit int, rounding, early string) bool {
-	if workUnit <= 0 || (rounding != "floor" && rounding != "round" && rounding != "ceil" && rounding != "none") {
+	if workUnit <= 0 || (rounding != AttendanceRoundingFloor && rounding != AttendanceRoundingRound && rounding != AttendanceRoundingCeil && rounding != AttendanceRoundingNone) {
 		return false
 	}
-	return early == "allow" || early == "block" || early == "clamp"
+	return early == EarlyArrivalAllow || early == EarlyArrivalBlock || early == EarlyArrivalClamp
 }
 
 func validPolicyTarget(target string) bool {
@@ -153,7 +160,7 @@ func validPolicyTarget(target string) bool {
 
 func (h AttendancePolicyHandler) GetRules(w http.ResponseWriter, r *http.Request) {
 	workspaceID, ok := pathUUID(r, "ws_id")
-    if !ok || !h.allowed(r, workspaceID, string(auth.PermissionWorkspaceSettingsRead)) {
+	if !ok || !h.allowed(r, workspaceID, string(auth.PermissionWorkspaceSettingsRead)) {
 		h.forbidden(w, r)
 		return
 	}
@@ -168,7 +175,7 @@ func (h AttendancePolicyHandler) GetRules(w http.ResponseWriter, r *http.Request
 func (h AttendancePolicyHandler) UpdateRules(w http.ResponseWriter, r *http.Request) {
 	workspaceID, ok := pathUUID(r, "ws_id")
 	userID, userOK := httpinfra.UserIDFromContext(r.Context())
-    if !ok || !userOK || !h.allowed(r, workspaceID, string(auth.PermissionWorkspaceSettingsWrite)) {
+	if !ok || !userOK || !h.allowed(r, workspaceID, string(auth.PermissionWorkspaceSettingsWrite)) {
 		h.forbidden(w, r)
 		return
 	}
@@ -177,7 +184,7 @@ func (h AttendancePolicyHandler) UpdateRules(w http.ResponseWriter, r *http.Requ
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}
-	if req.WorkUnitMinutes != nil && *req.WorkUnitMinutes <= 0 || req.RoundingPolicy != nil && !validRules(30, *req.RoundingPolicy, "block") || req.EarlyArrivalStrategy != nil && !validRules(30, "floor", *req.EarlyArrivalStrategy) || req.GracePeriodMinutes != nil && *req.GracePeriodMinutes < 0 {
+	if req.WorkUnitMinutes != nil && *req.WorkUnitMinutes <= 0 || req.RoundingPolicy != nil && !validRules(30, *req.RoundingPolicy, EarlyArrivalBlock) || req.EarlyArrivalStrategy != nil && !validRules(30, AttendanceRoundingFloor, *req.EarlyArrivalStrategy) || req.GracePeriodMinutes != nil && *req.GracePeriodMinutes < 0 {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}
@@ -197,7 +204,7 @@ func (h AttendancePolicyHandler) UpdateRules(w http.ResponseWriter, r *http.Requ
 
 func (h AttendancePolicyHandler) ListRuleVersions(w http.ResponseWriter, r *http.Request) {
 	workspaceID, ok := pathUUID(r, "ws_id")
-    if !ok || !h.allowed(r, workspaceID, string(auth.PermissionWorkspaceSettingsRead)) {
+	if !ok || !h.allowed(r, workspaceID, string(auth.PermissionWorkspaceSettingsRead)) {
 		h.forbidden(w, r)
 		return
 	}
@@ -211,7 +218,7 @@ func (h AttendancePolicyHandler) ListRuleVersions(w http.ResponseWriter, r *http
 
 func (h AttendancePolicyHandler) ListAssignments(w http.ResponseWriter, r *http.Request) {
 	workspaceID, ok := pathUUID(r, "ws_id")
-    if !ok || !h.allowed(r, workspaceID, string(auth.PermissionWorkspaceSettingsRead)) {
+	if !ok || !h.allowed(r, workspaceID, string(auth.PermissionWorkspaceSettingsRead)) {
 		h.forbidden(w, r)
 		return
 	}
@@ -226,7 +233,7 @@ func (h AttendancePolicyHandler) ListAssignments(w http.ResponseWriter, r *http.
 func (h AttendancePolicyHandler) UpsertAssignment(w http.ResponseWriter, r *http.Request) {
 	workspaceID, ok := pathUUID(r, "ws_id")
 	userID, userOK := httpinfra.UserIDFromContext(r.Context())
-    if !ok || !userOK || !h.allowed(r, workspaceID, string(auth.PermissionWorkspaceSettingsWrite)) {
+	if !ok || !userOK || !h.allowed(r, workspaceID, string(auth.PermissionWorkspaceSettingsWrite)) {
 		h.forbidden(w, r)
 		return
 	}
@@ -252,7 +259,7 @@ func (h AttendancePolicyHandler) UpsertAssignment(w http.ResponseWriter, r *http
 func (h AttendancePolicyHandler) DeleteAssignment(w http.ResponseWriter, r *http.Request) {
 	workspaceID, ok := pathUUID(r, "ws_id")
 	assignmentID, assignmentOK := pathUUID(r, "assignment_id")
-    if !ok || !assignmentOK || !h.allowed(r, workspaceID, string(auth.PermissionWorkspaceSettingsWrite)) {
+	if !ok || !assignmentOK || !h.allowed(r, workspaceID, string(auth.PermissionWorkspaceSettingsWrite)) {
 		h.forbidden(w, r)
 		return
 	}
@@ -265,7 +272,7 @@ func (h AttendancePolicyHandler) DeleteAssignment(w http.ResponseWriter, r *http
 
 func (h AttendancePolicyHandler) ListBehalfAssignments(w http.ResponseWriter, r *http.Request) {
 	workspaceID, ok := pathUUID(r, "ws_id")
-    if !ok || !h.allowed(r, workspaceID, string(auth.PermissionAttendanceAdjustmentsManageBehalf)) {
+	if !ok || !h.allowed(r, workspaceID, string(auth.PermissionAttendanceAdjustmentsManageBehalf)) {
 		h.forbidden(w, r)
 		return
 	}
@@ -279,7 +286,7 @@ func (h AttendancePolicyHandler) ListBehalfAssignments(w http.ResponseWriter, r 
 
 func (h AttendancePolicyHandler) CreateBehalfAssignment(w http.ResponseWriter, r *http.Request) {
 	workspaceID, ok := pathUUID(r, "ws_id")
-    if !ok || !h.allowed(r, workspaceID, string(auth.PermissionAttendanceAdjustmentsManageBehalf)) {
+	if !ok || !h.allowed(r, workspaceID, string(auth.PermissionAttendanceAdjustmentsManageBehalf)) {
 		h.forbidden(w, r)
 		return
 	}
@@ -299,7 +306,7 @@ func (h AttendancePolicyHandler) CreateBehalfAssignment(w http.ResponseWriter, r
 func (h AttendancePolicyHandler) DeleteBehalfAssignment(w http.ResponseWriter, r *http.Request) {
 	workspaceID, ok := pathUUID(r, "ws_id")
 	assignmentID, assignmentOK := pathUUID(r, "id")
-    if !ok || !assignmentOK || !h.allowed(r, workspaceID, string(auth.PermissionAttendanceAdjustmentsManageBehalf)) {
+	if !ok || !assignmentOK || !h.allowed(r, workspaceID, string(auth.PermissionAttendanceAdjustmentsManageBehalf)) {
 		h.forbidden(w, r)
 		return
 	}

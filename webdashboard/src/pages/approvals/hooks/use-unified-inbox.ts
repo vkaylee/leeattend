@@ -151,6 +151,37 @@ export function useUnifiedInbox(): UseUnifiedInboxReturn {
     ]);
   }, [leavesQuery, adjustmentsQuery, swapsQuery, otQuery]);
 
+  // ── Helper: Compute Team Impact across any approval item (LSP & DRY) ──
+  const approvedLeaves = useMemo(() => {
+    const rawLeaves = leavesQuery.data?.data ?? [];
+    return rawLeaves.filter((l) => l.status === "approved");
+  }, [leavesQuery.data?.data]);
+
+  const getTeamImpact = useCallback(
+    (targetDate: string, deptName?: string, itemId?: string): TeamImpactInfo | undefined => {
+      if (!deptName || !targetDate) return undefined;
+      const dateStr = targetDate.split("T")[0];
+
+      const colleaguesAway = approvedLeaves
+        .filter(
+          (l) =>
+            l.id !== itemId &&
+            l.start_date <= dateStr &&
+            l.end_date >= dateStr &&
+            employeeMap.get(l.employment_id)?.departmentName === deptName
+        )
+        .map((l) => employeeMap.get(l.employment_id)?.name || l.employment_id);
+
+      return {
+        departmentName: deptName,
+        colleaguesAwayCount: colleaguesAway.length,
+        colleaguesAwayNames: colleaguesAway,
+        isHighImpact: colleaguesAway.length >= 2,
+      };
+    },
+    [approvedLeaves, employeeMap]
+  );
+
   // ── Mapping to UnifiedApprovalItem[] ──────────────────────────────────
   const allItems = useMemo<UnifiedApprovalItem[]>(() => {
     const items: UnifiedApprovalItem[] = [];
@@ -163,26 +194,7 @@ export function useUnifiedInbox(): UseUnifiedInboxReturn {
         name: l.employment_id,
       };
 
-      // Calculate team impact on same date & department
-      const colleaguesAway = leaves
-        .filter(
-          (other) =>
-            other.id !== l.id &&
-            other.status === "approved" &&
-            other.start_date <= l.end_date &&
-            other.end_date >= l.start_date &&
-            req.departmentName &&
-            employeeMap.get(other.employment_id)?.departmentName === req.departmentName
-        )
-        .map((o) => employeeMap.get(o.employment_id)?.name || o.employment_id);
-
-      const impact: TeamImpactInfo = {
-        departmentName: req.departmentName,
-        colleaguesAwayCount: colleaguesAway.length,
-        colleaguesAwayNames: colleaguesAway,
-        isHighImpact: colleaguesAway.length >= 2,
-      };
-
+      const impact = getTeamImpact(l.start_date, req.departmentName, l.id);
       items.push({
         id: l.id,
         type: "leave",
@@ -213,13 +225,16 @@ export function useUnifiedInbox(): UseUnifiedInboxReturn {
         name: a.employment_id,
       };
 
+      const targetDate = a.requested_punch_time.split("T")[0] || a.created_at;
+      const impact = getTeamImpact(targetDate, req.departmentName, a.id);
+
       items.push({
         id: a.id,
         type: "adjustment",
         status: (a.status as ApprovalItemStatus) || "pending",
         requester: req,
         submittedAt: a.created_at || new Date().toISOString(),
-        targetDate: a.requested_punch_time.split("T")[0] || a.created_at,
+        targetDate,
         title: t("approvals.type.adjustment", "Giải trình chấm công"),
         subtitle: `Thời gian yêu cầu: ${a.requested_punch_time.replace("T", " ").slice(0, 16)}`,
         details: {
@@ -227,6 +242,7 @@ export function useUnifiedInbox(): UseUnifiedInboxReturn {
           reason: a.reason ?? undefined,
           rawPayload: a as unknown as Record<string, unknown>,
         },
+        impact,
       });
     }
 
@@ -243,6 +259,8 @@ export function useUnifiedInbox(): UseUnifiedInboxReturn {
           ? "pending"
           : (s.status as ApprovalItemStatus) || "pending";
 
+      const impact = getTeamImpact(s.swap_date, req.departmentName, s.id);
+
       items.push({
         id: s.id,
         type: "shift_swap",
@@ -257,6 +275,7 @@ export function useUnifiedInbox(): UseUnifiedInboxReturn {
           reason: s.reason ?? undefined,
           rawPayload: s as unknown as Record<string, unknown>,
         },
+        impact,
       });
     }
 
@@ -278,6 +297,8 @@ export function useUnifiedInbox(): UseUnifiedInboxReturn {
             : "pending";
 
       const claimedMins = ot.claimed_ot_minutes || 60;
+      const impact = getTeamImpact(ot.date, req.departmentName, ot.id);
+
       items.push({
         id: ot.id || `${ot.employment_id}_${ot.date}`,
         type: "overtime",
@@ -293,6 +314,7 @@ export function useUnifiedInbox(): UseUnifiedInboxReturn {
           durationLabel: `${claimedMins} phút`,
           rawPayload: ot as unknown as Record<string, unknown>,
         },
+        impact,
       });
     }
 
@@ -308,6 +330,7 @@ export function useUnifiedInbox(): UseUnifiedInboxReturn {
     swapsQuery.data,
     otQuery.data,
     employeeMap,
+    getTeamImpact,
     t,
   ]);
 

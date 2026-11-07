@@ -1,6 +1,6 @@
-import React from 'react';
+import { Eye, EyeOff } from 'lucide-react';
+import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-
 import { Typography } from "@/components/ui/typography";
 import { useDateTimeFormatter } from '@/hooks/use-datetime';
 import { Employee, Payslip, Workspace, IncentiveEvaluationResult } from '@/lib/api/types';
@@ -18,6 +18,7 @@ interface PayslipDocumentProps {
 
 export default function PayslipDocument({ employee, payslip, workspace }: PayslipDocumentProps) {
   const { t } = useTranslation();
+  const [isMasked, setIsMasked] = useState(false);
   const { formatMonthYear, formatDate } = useDateTimeFormatter();
   const currencyFormatter = new Intl.NumberFormat('vi-VN', {
     style: 'currency',
@@ -26,6 +27,7 @@ export default function PayslipDocument({ employee, payslip, workspace }: Paysli
   });
 
   const formatAmount = (value: string | number) => {
+    if (isMasked) return "•••••• ₫";
     return currencyFormatter.format(typeof value === 'string' ? parseFloat(value) : value);
   };
 
@@ -34,6 +36,17 @@ export default function PayslipDocument({ employee, payslip, workspace }: Paysli
 
   return (
     <div className='bg-white dark:bg-slate-900 p-8 md:p-16 max-w-[210mm] mx-auto shadow-sm print:shadow-none print:p-0 text-slate-700 dark:text-slate-200 font-sans' data-testid="payslip-document" id='payslip-document'>
+      <div className="flex justify-end pb-4 print:hidden">
+        <button
+          aria-label={isMasked ? "Hiển thị số tiền" : "Ẩn số tiền bảo mật"}
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors border border-slate-200 dark:border-slate-700"
+          onClick={() => setIsMasked(!isMasked)}
+          type="button"
+        >
+          {isMasked ? <Eye size={14} /> : <EyeOff size={14} />}
+          <span>{isMasked ? t("common.show_amount", "Hiện số tiền") : t("common.mask_amount", "Bảo mật số tiền")}</span>
+        </button>
+      </div>
       <PayslipHeader formatDate={formatDate} formatMonthYear={formatMonthYear} payslip={payslip} t={t} workspace={workspace} />
       <EmployeeDetails employee={employee} formatAmount={formatAmount} payslip={payslip} t={t} />
 

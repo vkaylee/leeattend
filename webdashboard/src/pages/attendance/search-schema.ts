@@ -10,7 +10,7 @@ import { z } from "zod";
  */
 export const attendanceLogsSearchSchema = z
   .object({
-    tab: z.enum(["recorded", "unknown", "unrecorded"]).catch("recorded"),
+    tab: z.enum(["recorded", "unknown", "unrecorded", "matrix"]).catch("recorded"),
     employee: z.string().optional().catch(undefined),
     mode: z
       .enum(["this_month", "last_month", "custom", "specific_month"])

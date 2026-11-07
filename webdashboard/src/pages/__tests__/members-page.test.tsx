@@ -8,7 +8,6 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { ToastProvider } from "../../components/ui/toast";
 import i18n from "../../i18n/config";
 import * as api from "../../lib/api";
-import { RoleScopeType } from "../../lib/api/types";
 import MembersPage from "../members-page";
 
 // Mock TanStack Router
@@ -64,9 +63,9 @@ describe("MembersPage", () => {
         { workspace_id: "test-ws-id", user_id: "user-2", email: "admin@example.com", full_name: "Admin User", role_id: "role-admin", extra_role_ids: [] }
     ]);
     vi.mocked(api.fetchWorkspaceRoles).mockResolvedValue([
-      { id: "role-owner", name: "Owner", is_system: true, color: "rose", scope_type: RoleScopeType.Global, created_at: "", updated_at: "" },
-      { id: "role-admin", name: "Admin", is_system: true, color: "primary", scope_type: RoleScopeType.Global, created_at: "", updated_at: "" },
-      { id: "role-member", name: "Member", is_system: true, color: "slate", scope_type: RoleScopeType.Global, created_at: "", updated_at: "" }
+      { id: "role-owner", name: "Owner", is_system: true, color: "rose", scope_type: "global", created_at: "", updated_at: "" },
+      { id: "role-admin", name: "Admin", is_system: true, color: "primary", scope_type: "global", created_at: "", updated_at: "" },
+      { id: "role-member", name: "Member", is_system: true, color: "slate", scope_type: "global", created_at: "", updated_at: "" }
     ]);
   });
 

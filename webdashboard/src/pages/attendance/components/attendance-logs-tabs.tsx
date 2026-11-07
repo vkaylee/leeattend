@@ -1,4 +1,4 @@
-import { AlertTriangle, Clock, UserX } from "lucide-react";
+import { AlertTriangle, Clock, LayoutGrid, UserX } from "lucide-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
 
@@ -34,6 +34,18 @@ export function AttendanceLogsTabs({ activeTab, setActiveTab, stagingCount, unre
       </Button>
       <Button className={cn(
           "px-6 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all flex items-center gap-2",
+          activeTab === "matrix"
+            ? "bg-purple-50 dark:bg-purple-950 text-purple-600 dark:text-purple-400 shadow-sm border border-purple-100 dark:border-purple-800"
+            : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800"
+        )}
+        onClick={() => { setActiveTab("matrix"); }}
+        type="button"
+        variant="ghost"
+      >
+        <LayoutGrid size={14} />
+        {t("attendance_logs.tabs.matrix", "Bảng công tháng")}
+      </Button>
+      <Button className={cn(
           activeTab === "unknown"
             ? "bg-amber-50 dark:bg-amber-950 text-amber-600 dark:text-amber-300 shadow-sm border border-amber-100 dark:border-amber-800"
             : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800"

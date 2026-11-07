@@ -21,6 +21,17 @@ var (
 	ErrEmploymentOverlap = errors.New("employment: overlapping employment")
 )
 
+const (
+	ContractTypeProbation    = "probation"
+	ContractTypeTraining     = "training"
+	ContractTypeFixedTerm    = "fixed_term"
+	ContractTypeIndefinite   = "indefinite"
+	ContractStatusDraft      = "draft"
+	ContractStatusActive     = "active"
+	ContractStatusExpired    = "expired"
+	ContractStatusTerminated = "terminated"
+)
+
 type EmployeeContract struct {
 	ID             uuid.UUID  `json:"id"`
 	WorkspaceID    uuid.UUID  `json:"workspace_id"`
@@ -194,14 +205,14 @@ type ContractEmploymentHandler struct {
 
 func validContractType(v string) bool {
 	switch v {
-	case "probation", "training", "fixed_term", "indefinite":
+	case ContractTypeProbation, ContractTypeTraining, ContractTypeFixedTerm, ContractTypeIndefinite:
 		return true
 	}
 	return false
 }
 func validContractStatus(v string) bool {
 	switch v {
-	case "draft", "active", "expired", "terminated":
+	case ContractStatusDraft, ContractStatusActive, ContractStatusExpired, ContractStatusTerminated:
 		return true
 	}
 	return false
