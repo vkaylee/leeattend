@@ -209,6 +209,7 @@ export const TimesheetMatrixGrid: React.FC<TimesheetMatrixGridProps> = ({
       <div className="flex-1 min-h-0 overflow-auto">
         {isLoading || isLoadingAttendance ? (
           <div className="p-12 space-y-3">
+            {Array.from({ length: 6 }).map((_, i) => (
               <Skeleton className="h-10 w-full rounded-xl" key={i} />
             ))}
           </div>
