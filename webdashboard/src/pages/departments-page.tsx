@@ -50,7 +50,7 @@ export default function DepartmentsPage() {
     <PageContainer>
       <PageHeader
         actions={
-          <Button data-testid="add-dept-btn" icon={<Plus size={18} />} onClick={() => { setEditingDept(null); setIsModalOpen(true); }} variant="ghost">{t("departments.add_btn").toUpperCase()}</Button>
+          <Button data-testid="add-dept-btn" icon={<Plus size={18} />} onClick={() => { setEditingDept(null); setIsModalOpen(true); }} variant="primary">{t("departments.add_btn").toUpperCase()}</Button>
         }
         data-testid="departments-title"
         icon={<Building2 size={24} />}
@@ -115,6 +115,18 @@ export default function DepartmentsPage() {
         </div>
       ) : departments.length === 0 ? (
         <EmptyState
+          action={
+            <Button
+              icon={<Plus size={16} />}
+              onClick={() => {
+                setEditingDept(null);
+                setIsModalOpen(true);
+              }}
+              variant="primary"
+            >
+              {t("departments.add_btn").toUpperCase()}
+            </Button>
+          }
           description={t("departments.messages.empty_desc")}
           icon={<Building2 size={40} />}
           title={t("departments.messages.no_departments")}

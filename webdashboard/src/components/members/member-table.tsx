@@ -61,12 +61,12 @@ function MemberMobileCard({
     .filter(Boolean) as WorkspaceRole[];
 
   const roleColorMap: Record<string, string> = {
-    teal: "bg-teal-50 dark:bg-teal-950 text-teal-600 dark:text-teal-300 border-teal-100",
-    blue: "bg-blue-50 dark:bg-blue-950 text-blue-600 dark:text-blue-300 border-blue-100 dark:border-blue-800",
-    slate: "bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border-slate-100 dark:border-slate-800",
-    rose: "bg-rose-50 dark:bg-rose-950 text-rose-600 dark:text-rose-300 border-rose-100",
-    primary: "bg-primary-50 dark:bg-primary-950 text-primary-600 dark:text-primary-300 border-primary-100",
-    emerald: "bg-emerald-50 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-300 border-emerald-100",
+    teal: "bg-teal-50 dark:bg-teal-950 text-teal-700 dark:text-teal-300 border-teal-200 dark:border-teal-800",
+    blue: "bg-blue-50 dark:bg-blue-950 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800",
+    slate: "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700",
+    rose: "bg-rose-50 dark:bg-rose-950 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-800",
+    primary: "bg-primary-50 dark:bg-primary-950 text-primary-700 dark:text-primary-300 border-primary-200 dark:border-primary-800",
+    emerald: "bg-emerald-50 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800",
   };
 
   return (
@@ -153,12 +153,12 @@ function MemberMobileCard({
 }
 
 const roleColorMap: Record<string, string> = {
-  teal: "bg-teal-50 dark:bg-teal-950 text-teal-600 dark:text-teal-300 border-teal-100",
-  blue: "bg-blue-50 dark:bg-blue-950 text-blue-600 dark:text-blue-300 border-blue-100 dark:border-blue-800",
-  slate: "bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border-slate-100 dark:border-slate-800",
-  rose: "bg-rose-50 dark:bg-rose-950 text-rose-600 dark:text-rose-300 border-rose-100",
-  primary: "bg-primary-50 dark:bg-primary-950 text-primary-600 dark:text-primary-300 border-primary-100",
-  emerald: "bg-emerald-50 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-300 border-emerald-100",
+  teal: "bg-teal-50 dark:bg-teal-950 text-teal-700 dark:text-teal-300 border-teal-200 dark:border-teal-800",
+  blue: "bg-blue-50 dark:bg-blue-950 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800",
+  slate: "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700",
+  rose: "bg-rose-50 dark:bg-rose-950 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-800",
+  primary: "bg-primary-50 dark:bg-primary-950 text-primary-700 dark:text-primary-300 border-primary-200 dark:border-primary-800",
+  emerald: "bg-emerald-50 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800",
 };
 
 function MemberRoleCell({ member, roles }: { member: WorkspaceMember; roles: WorkspaceRole[] }) {

@@ -100,8 +100,8 @@ const getEmployeeColumn = (t: TFunction): ColumnDef<Employee> => ({
         <div className="w-10 h-10 rounded-2xl bg-slate-100 dark:bg-slate-700 border border-slate-100 dark:border-slate-800 flex items-center justify-center font-bold text-slate-500 dark:text-slate-400 group-hover:bg-primary-50 dark:group-hover:bg-primary-950 group-hover:text-primary-600 dark:group-hover:text-primary-400 group-hover:border-primary-100 dark:border-primary-800 group-hover:shadow-md transition-all shadow-inner uppercase">
           {emp.full_name[0]}
         </div>
-        <div className="truncate">
-          <Typography className="font-bold text-slate-700 dark:text-slate-200 text-sm tracking-tight uppercase leading-tight truncate" variant="p">
+        <div className="min-w-0">
+          <Typography className="font-bold text-slate-700 dark:text-slate-200 text-sm tracking-tight uppercase leading-tight truncate max-w-[220px]" variant="p">
             {emp.full_name}
           </Typography>
           <Typography className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mt-1 opacity-70 tracking-tighter font-mono leading-none" variant="p">
@@ -230,7 +230,7 @@ const getStatusColumn = (
     if (!slip) {
       return (
         <div className="flex justify-center w-full">
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 rounded-full text-[9px] font-bold uppercase tracking-widest border border-slate-200 dark:border-slate-700 opacity-60">
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 rounded-full text-[10px] font-bold uppercase tracking-wider border border-amber-200 dark:border-amber-800 shadow-xs">
             <Calculator size={12} /> {t("common.pending")}
           </span>
         </div>

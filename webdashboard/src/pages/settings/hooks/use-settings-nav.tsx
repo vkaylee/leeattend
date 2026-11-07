@@ -35,30 +35,23 @@ export interface SettingItem {
 
 const getWorkspaceGroup = (t: TFunction): SettingItem[] => [
   {
-    description: t("settings.categories.general_desc"),
+    description: t("settings.categories.general_desc", { defaultValue: "Cấu hình chung và thông tin tổ chức" }),
     icon: <Settings2 className="w-4 h-4" />,
-    label: t("settings.categories.general"),
+    label: t("settings.categories.general", { defaultValue: "Cài đặt chung" }),
     path: ROUTES.SETTINGS.GENERAL,
     permissions: ["workspace:settings:read"],
   },
   {
-    description: t("settings.categories.billing_desc"),
-    icon: <CreditCard className="w-4 h-4" />,
-    label: t("common.billing"),
-    path: ROUTES.SETTINGS.BILLING,
-    permissions: ["workspace:settings:read"],
-  },
-  {
-    description: t("settings.categories.locations_desc", { defaultValue: "Manage work locations and timezones" }),
+    description: t("settings.categories.locations_desc", { defaultValue: "Quản lý các chi nhánh và địa điểm làm việc" }),
     icon: <MapPin className="w-4 h-4" />,
-    label: t("settings.categories.locations", { defaultValue: "Locations" }),
+    label: t("settings.categories.locations", { defaultValue: "Địa điểm làm việc" }),
     path: ROUTES.SETTINGS.LOCATIONS,
     permissions: ["workspace:settings:read"],
   },
   {
-    description: t("description", { ns: "custom_fields", defaultValue: "Manage custom fields for employees, employments, and departments." }),
+    description: t("description", { ns: "custom_fields", defaultValue: "Quản lý trường dữ liệu tùy chỉnh cho nhân sự" }),
     icon: <Braces className="w-4 h-4" />,
-    label: t("title", { ns: "custom_fields", defaultValue: "Custom Fields" }),
+    label: t("title", { ns: "custom_fields", defaultValue: "Trường tùy chỉnh" }),
     path: ROUTES.SETTINGS.CUSTOM_FIELDS,
     permissions: ["workspace:settings:read"],
   },
@@ -83,9 +76,9 @@ const getAccessGroup = (t: TFunction): SettingItem[] => [
 
 const getOperationsGroup = (t: TFunction): SettingItem[] => [
   {
-    description: t("settings.categories.organization_desc", { defaultValue: "Manage departments and employment phases" }),
+    description: t("settings.categories.organization_desc", { defaultValue: "Quản lý cơ cấu phòng ban và giai đoạn công tác" }),
     icon: <Building2 className="w-4 h-4" />,
-    label: t("settings.categories.organization", { defaultValue: "Organization" }),
+    label: t("settings.categories.organization", { defaultValue: "Cơ cấu tổ chức" }),
     path: ROUTES.SETTINGS.ORGANIZATION,
     permissions: ["employees:read", "departments:read"],
   },
@@ -118,30 +111,30 @@ const getOperationsGroup = (t: TFunction): SettingItem[] => [
     permissions: ["holidays:manage"],
   },
   {
-    description: t("settings.categories.overtime_desc", { defaultValue: "Manage overtime quotas and approvals" }),
+    description: t("settings.categories.overtime_desc", { defaultValue: "Quản lý hạn mức tăng ca và luồng phê duyệt OT" }),
     icon: <Clock className="w-4 h-4" />,
-    label: t("settings.categories.overtime", { defaultValue: "Overtime" }),
+    label: t("settings.categories.overtime", { defaultValue: "Quy định Tăng ca" }),
     path: ROUTES.SETTINGS.OVERTIME,
     permissions: ["workspace:settings:read", "approval_workflows:read"],
   },
   {
-    description: t("settings.categories.workflows_desc", { defaultValue: "Manage approval workflows for requests" }),
+    description: t("settings.categories.workflows_desc", { defaultValue: "Thiết lập quy trình phê duyệt đa cấp" }),
     icon: <Workflow className="w-4 h-4" />,
-    label: t("settings.categories.workflows", { defaultValue: "Approval Workflows" }),
+    label: t("settings.categories.workflows", { defaultValue: "Quy trình phê duyệt" }),
     path: ROUTES.SETTINGS.WORKFLOWS,
     permissions: ["workspace:settings:read", "approval_workflows:read"],
   },
   {
-    description: t("settings.categories.lifecycle_desc", { defaultValue: "Manage onboarding and offboarding checklist templates" }),
+    description: t("settings.categories.lifecycle_desc", { defaultValue: "Mẫu danh mục thủ tục tiếp nhận và bàn giao" }),
     icon: <ClipboardList className="w-4 h-4" />,
-    label: t("settings.categories.lifecycle", { defaultValue: "Lifecycle Checklists" }),
+    label: t("settings.categories.lifecycle", { defaultValue: "Quy trình Onboarding" }),
     path: ROUTES.SETTINGS.LIFECYCLE_TEMPLATES,
     permissions: ["workspace:settings:read"],
   },
   {
-    description: t("settings.categories.condition_types_desc", { defaultValue: "Configure working condition types available for employees" }),
+    description: t("settings.categories.condition_types_desc", { defaultValue: "Cấu hình điều kiện làm việc đặc thù" }),
     icon: <Tags className="w-4 h-4" />,
-    label: t("settings.categories.condition_types", { defaultValue: "Condition Types" }),
+    label: t("settings.categories.condition_types", { defaultValue: "Điều kiện làm việc" }),
     path: ROUTES.SETTINGS.CONDITION_TYPES,
     permissions: ["workspace:settings:read"],
   },
@@ -149,16 +142,16 @@ const getOperationsGroup = (t: TFunction): SettingItem[] => [
 
 const getSystemGroup = (t: TFunction): SettingItem[] => [
   {
-    description: t("settings.categories.storage_desc", { defaultValue: "Manage storage providers and file configuration" }),
+    description: t("settings.categories.storage_desc", { defaultValue: "Cấu hình lưu trữ MinIO S3 và tài liệu" }),
     icon: <Database className="w-4 h-4" />,
-    label: t("settings.categories.storage", { defaultValue: "Storage" }),
+    label: t("settings.categories.storage", { defaultValue: "Lưu trữ tài liệu" }),
     path: ROUTES.SETTINGS.STORAGE,
     permissions: ["workspace:settings:read"],
   },
   {
-    description: t("settings.categories.econtracts_desc", { defaultValue: "Manage e-signing integrations and credentials" }),
+    description: t("settings.categories.econtracts_desc", { defaultValue: "Cấu hình tích hợp và chữ ký số hợp đồng" }),
     icon: <Scale className="w-4 h-4" />,
-    label: t("settings.categories.econtracts", { defaultValue: "e-Contracts Integration" }),
+    label: t("settings.categories.econtracts", { defaultValue: "Hợp đồng điện tử" }),
     path: ROUTES.SETTINGS.ECONTRACTS,
     permissions: ["workspace:settings:read"],
   },

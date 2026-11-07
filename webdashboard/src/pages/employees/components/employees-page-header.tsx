@@ -67,7 +67,7 @@ export const EmployeesPageHeader = ({
                 setEditingEmployee(null);
                 setIsModalOpen(true);
               }}
-              variant="ghost"
+              variant="primary"
             >
               {t("employees.add_btn").toUpperCase()}
             </Button>

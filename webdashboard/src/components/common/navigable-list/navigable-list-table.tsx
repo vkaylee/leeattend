@@ -216,7 +216,7 @@ export function NavigableListTable<T>({
               {visibleColumns.map((col) => (
                 <th
                   className={cn(
-                    "px-8 py-5 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em]",
+                    "px-8 py-4 text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider",
                     col.onHeaderClick && "cursor-pointer hover:text-primary-600 dark:hover:text-primary-400 transition-colors group",
                     col.headerClassName
                   )}

@@ -94,7 +94,7 @@ function EmptyState() {
       <Typography className="text-xl font-bold text-slate-700 dark:text-slate-200 uppercase tracking-tight" variant="h3">
         {t("ess.attendance.no_data")}
       </Typography>
-      <Typography className="text-slate-500 dark:text-slate-400 text-[10px] font-bold uppercase tracking-widest mt-2 opacity-50 italic" variant="p">
+      <Typography className="text-slate-500 dark:text-slate-400 text-xs font-medium mt-2" variant="p">
         {t("common.no_records_found")}
       </Typography>
     </div>

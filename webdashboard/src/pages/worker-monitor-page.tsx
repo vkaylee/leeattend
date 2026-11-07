@@ -427,24 +427,22 @@ export default function WorkerMonitorPage() {
       <MonitorHeader isFetching={isFetching} onRefresh={() => void refetch()} t={t} />
 
       <section className={cn("rounded-2xl border p-5 shadow-sm sm:p-6", healthTone[healthState])} aria-live="polite">
-        <div className="flex items-start gap-3">
-          <HealthIcon aria-hidden="true" className={cn("mt-0.5 shrink-0", healthState === "loading" && "motion-safe:animate-spin", healthState === "error" ? "text-rose-600" : healthState === "healthy" ? "text-emerald-600" : healthState === "degraded" ? "text-amber-600" : "text-slate-500")} size={20} />
-          <div>
-            <Typography className="text-xl font-black tracking-tight text-slate-900 dark:text-slate-100" variant="h2">{t(`monitor.${healthLabelKey}`, { defaultValue: healthLabelKey })}</Typography>
-            <Typography className="mt-1 text-sm text-slate-700 dark:text-slate-300" variant="p">{t(`monitor.${healthDescriptionKey}`, { defaultValue: healthDescriptionKey === "error_loading" ? "Failed to load monitoring data. Retrying..." : "Monitoring state is not yet available." })}</Typography>
+        <div className="flex items-start justify-between gap-4 flex-wrap">
+          <div className="flex items-start gap-3">
+            <HealthIcon aria-hidden="true" className={cn("mt-0.5 shrink-0", healthState === "loading" && "motion-safe:animate-spin", healthState === "error" ? "text-rose-600" : healthState === "healthy" ? "text-emerald-600" : healthState === "degraded" ? "text-amber-600" : "text-slate-500")} size={20} />
+            <div>
+              <Typography className="text-xl font-black tracking-tight text-slate-900 dark:text-slate-100" variant="h2">{t(`monitor.${healthLabelKey}`, { defaultValue: healthLabelKey })}</Typography>
+              <Typography className="mt-1 text-sm text-slate-700 dark:text-slate-300" variant="p">{t(`monitor.${healthDescriptionKey}`, { defaultValue: healthDescriptionKey === "error_loading" ? "Failed to load monitoring data. Retrying..." : "Monitoring state is not yet available." })}</Typography>
+            </div>
           </div>
+          {quality && quality.data_quality !== "complete" ? (
+            <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-amber-100 dark:bg-amber-900/60 text-amber-800 dark:text-amber-200 border border-amber-200 dark:border-amber-800">
+              <AlertTriangle className="w-3.5 h-3.5" />
+              <span>{t("monitor.partial_data", { defaultValue: "Một số nguồn số liệu không khả dụng" })}</span>
+            </div>
+          ) : null}
         </div>
       </section>
-
-      {quality && quality.data_quality !== "complete" ? (
-        <div className="flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 text-sm font-medium text-amber-800 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-200" role="status">
-          <AlertTriangle aria-hidden="true" className="mt-0.5 shrink-0" size={18} />
-          <div>
-            <div>{t("monitor.partial_data", { defaultValue: "Some monitoring sources are unavailable. Unknown values are not zero." })}</div>
-            <div className="mt-1 text-xs font-normal opacity-80">{t(`monitor.data_quality.${quality.data_quality}`, { defaultValue: "Some sources are degraded." })}</div>
-          </div>
-        </div>
-      ) : null}
 
       {stats ? <SnapshotMetadata stats={stats} t={t} /> : null}
       <MonitorAlertsSection t={t} />

@@ -574,7 +574,7 @@
     "days_selected": "{{count}} days selected",
     "directory_title": "Shift Types List",
     "empty_state": {
-      "desc": "Please select an employee from the left list to start scheduling.",
+      "desc": "Please select an employee from the selector above to start scheduling.",
       "title": "Select personnel to continue"
     },
     "fixed_assignment_subtitle": "Assign fixed or long-term schedules",

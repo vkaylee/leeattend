@@ -86,7 +86,7 @@ export function QuickShortcutsWidget() {
               >
                 <Icon className="w-3.5 h-3.5" />
               </div>
-              <span className="font-semibold text-slate-700 dark:text-slate-200 line-clamp-1">
+              <span className="font-semibold text-slate-700 dark:text-slate-200 text-xs leading-tight line-clamp-2">
                 {item.label}
               </span>
             </Link>

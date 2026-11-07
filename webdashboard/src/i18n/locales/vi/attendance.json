@@ -574,7 +574,7 @@
     "days_selected": "Đã chọn {{count}} ngày",
     "directory_title": "Danh sách các loại ca",
     "empty_state": {
-      "desc": "Vui lòng chọn một nhân viên từ danh sách bên trái để bắt đầu sắp xếp lịch làm việc.",
+      "desc": "Vui lòng chọn một nhân sự từ bộ chọn phía trên để bắt đầu sắp xếp lịch làm việc.",
       "title": "Chọn nhân sự để tiếp tục"
     },
     "fixed_assignment_subtitle": "Gán lịch trình cố định hoặc dài hạn",

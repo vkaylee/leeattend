@@ -55,7 +55,7 @@ export function AttendanceHeader({
                   {t("payroll.table.period").toUpperCase()}
                 </span>
                 <span className="text-sm font-bold text-slate-700 dark:text-slate-200 group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors uppercase tracking-tight">
-                  {format(currentMonth, "MMMM yyyy")}
+                  {currentMonth.getMonth() + 1} / {currentMonth.getFullYear()}
                 </span>
               </Button>
             </Popover.Trigger>

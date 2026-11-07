@@ -49,7 +49,7 @@ export const Route = createRootRouteWithContext<RouterContext>()({
       <Outlet />
       <Suspense fallback={null}>
         <DebugToolbar />
-        <TanStackRouterDevtools />
+        <TanStackRouterDevtools position="bottom-right" />
       </Suspense>
     </ErrorBoundary>
   ),

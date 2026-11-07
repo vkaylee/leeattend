@@ -63,7 +63,7 @@ export const TableHead = forwardRef<
 >(({ className, ...props }, ref) => (
   <th
     className={cn(
-      "px-8 py-6 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em] first:pl-10 last:pr-10 align-middle",
+      "px-8 py-4 text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider first:pl-10 last:pr-10 align-middle",
       className
     )}
     ref={ref}

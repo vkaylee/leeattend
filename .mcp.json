@@ -5,6 +5,9 @@
         ".leedevkit/scripts/_task_assessor_mcp.py"
       ],
       "command": ".leedevkit/.venv/bin/python3"
+    },
+    "playwright": {
+      "command": "scripts/playwright-mcp.sh"
     }
   }
 }

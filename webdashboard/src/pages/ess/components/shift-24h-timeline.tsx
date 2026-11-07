@@ -121,7 +121,7 @@ export function Shift24hTimeline({
         <div className="relative w-full h-10 rounded-2xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/80 overflow-visible">
           {/* 1. Scheduled Shift Box */}
           <div
-            className="absolute top-0 bottom-0 bg-primary-100/70 dark:bg-primary-950/50 border-x-2 border-primary-400/80 dark:border-primary-500/80 rounded-lg flex items-center justify-center transition-all"
+            className="absolute top-0 bottom-0 bg-primary-100/70 dark:bg-primary-950/50 border-x-2 border-primary-400/80 dark:border-primary-500/80 rounded-lg flex items-center justify-start pl-3 transition-all"
             data-testid="scheduled-shift-box"
             style={{ left: `${shiftLeft}%`, width: `${shiftWidth}%` }}
           >

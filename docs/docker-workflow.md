@@ -10,6 +10,8 @@ LeeAttend uses layered Compose files for development, testing, CI, and productio
 | Development | `.compose/docker-compose.dev.yml` | Go API and Vite hot reload with local mounts |
 | Test | `.compose/docker-compose.test.yml` | Isolated databases, Redis, Go gates, Bun, Playwright |
 | CI | `.compose/docker-compose.ci.yml` | CI-specific cache and resource settings |
+| AI browser | `.compose/docker-compose.dev.yml` profile `mcp` | Playwright MCP browser on the internal frontend network |
+
 
 ## Production
 
@@ -28,6 +30,20 @@ podman-compose -f .compose/docker-compose.dev.yml up --build
 ```
 
 The development API skips standalone license verification; production retains mandatory offline license verification. Database and Redis volumes are isolated by the development configuration.
+
+## Playwright MCP without Caddy host port
+
+The development Compose file includes a `playwright-mcp` profile. Its Chromium browser runs on `frontend_net` beside Caddy, so AI browser checks use `http://caddy/` and do not require `${DEV_PORT}` or any Caddy port published on the host.
+
+The repository MCP configuration starts it through `scripts/playwright-mcp.sh`:
+
+```bash
+./leedevkit manage up dev
+```
+
+Reload the MCP client after changing `.mcp.json`. Navigate to `http://caddy/` from Playwright MCP; do not use `http://localhost:8080` from inside the MCP browser. The wrapper selects Podman Compose or Docker Compose and builds the MCP image on first use.
+
+The MCP server runs headless with isolated browser state and enables `network`, `storage`, `testing`, and `devtools` capabilities. No credentials or storage state are included in the image.
 Development migration gate:
 
 `db-migrate` runs `apiserver/migrations/run-dev.sh` through PgBouncer. It records the baseline migration in `schema_migrations`, skips an already-applied baseline, and exits non-zero on SQL errors. Existing development volumes containing the baseline schema are marked applied without replaying the dump.

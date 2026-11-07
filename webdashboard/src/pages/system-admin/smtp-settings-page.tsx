@@ -134,7 +134,7 @@ export default function SmtpSettingsPage() {
             disabled={!dirty || saveMutation.isPending}
             loading={saveMutation.isPending}
             onClick={handleSave}
-            variant="secondary"
+            variant="primary"
           >
             <Save className="w-4 h-4 mr-1.5" />
             {t("common.save")}

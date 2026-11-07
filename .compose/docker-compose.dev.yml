@@ -204,6 +204,18 @@ services:
       - "${DEV_PORT:-8080}:80"
     volumes:
       - ../Caddyfile-dev:/etc/caddy/Caddyfile:ro
+  playwright-mcp:
+    profiles: ["mcp"]
+    build:
+      context: ./playwright-mcp
+      dockerfile: Dockerfile
+    command:
+      - --headless
+      - --isolated
+      - --caps=network,storage,testing,devtools
+      - --allowed-origins=http://caddy
+    networks: [frontend_net]
+
 
 networks:
   backend_net:

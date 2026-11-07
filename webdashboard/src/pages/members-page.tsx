@@ -21,7 +21,7 @@ export default function MembersPage() {
             <Button data-testid="invite-member-trigger"
               icon={<UserPlus size={18} />}
               onClick={() => { setIsInviteOpen(true); }}
-              variant="ghost"
+              variant="primary"
             >
               {t("members.invite.title").toUpperCase()}
             </Button>

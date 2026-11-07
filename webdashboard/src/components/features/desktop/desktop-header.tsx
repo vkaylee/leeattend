@@ -51,9 +51,9 @@ export function DesktopHeader({ onOpenCustomizer }: DesktopHeaderProps) {
             <span className="text-primary-600 dark:text-primary-400">{displayName}</span>
           </h1>
         </div>
-         <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">
-          {t("desktop.subtitle", "Không gian làm việc & Bảng điều khiển quản trị")}
-         </p>
+        <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">
+          {t("desktop.subtitle", "Bảng điều khiển quản trị nhân sự LeeAttend")}
+        </p>
       </div>
 
       {/* Right: Actions */}
