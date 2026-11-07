@@ -16,8 +16,8 @@ import { SettingItem, useSettingsNav } from "../hooks/use-settings-nav";
 
 interface SettingsSidebarProps {
   className?: string;
+  onItemClick?: () => void;
 }
-
 interface SectionDefinition {
   defaultTitle: string;
   id: string;
@@ -28,6 +28,7 @@ interface SectionDefinition {
 
 export const SettingsSidebar = memo(function SettingsSidebar({
   className,
+  onItemClick,
 }: SettingsSidebarProps) {
   const { t } = useTranslation();
   const location = useLocation();
@@ -60,28 +61,28 @@ export const SettingsSidebar = memo(function SettingsSidebar({
       {
         id: "workspace",
         testId: "settings-section-workspace",
-        titleKey: "settings.categories.workspace",
+        titleKey: "settings.layout.workspace",
         defaultTitle: "Không gian làm việc",
         items: filterGroup(workspaceGroup),
       },
       {
         id: "access",
         testId: "settings-section-access",
-        titleKey: "settings.categories.access",
+        titleKey: "settings.layout.access",
         defaultTitle: "Phân quyền & Tài khoản",
         items: filterGroup(accessGroup),
       },
       {
         id: "operations",
         testId: "settings-section-operations",
-        titleKey: "settings.categories.operations",
+        titleKey: "settings.layout.operations",
         defaultTitle: "Vận hành & Nghiệp vụ",
         items: filterGroup(operationsGroup),
       },
       {
         id: "system",
         testId: "settings-section-system",
-        titleKey: "settings.categories.system",
+        titleKey: "settings.layout.security_system",
         defaultTitle: "Bảo mật & Hệ thống",
         items: filterGroup(systemGroup),
       },
@@ -98,32 +99,29 @@ export const SettingsSidebar = memo(function SettingsSidebar({
       data-testid="settings-sidebar"
     >
       {/* 1. Header (macOS Ventura/Sonoma style) */}
-      <div className="pb-3.5 mb-3 border-b border-slate-200/60 dark:border-slate-800/60 flex items-center justify-between gap-3">
-        <div className="flex items-center gap-2.5 min-w-0">
-          <div className="w-8 h-8 rounded-lg bg-primary-600 text-white flex items-center justify-center shrink-0 shadow-2xs">
-            <Settings className="w-4 h-4" />
-          </div>
-          <div className="min-w-0">
+      <div className="pb-3.5 mb-3 border-b border-slate-200/60 dark:border-slate-800/60 flex items-center gap-2.5">
+        <div className="w-8 h-8 rounded-lg bg-primary-600 text-white flex items-center justify-center shrink-0 shadow-2xs">
+          <Settings className="w-4 h-4" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-1.5">
             <Typography
               className="text-sm font-bold text-slate-800 dark:text-slate-100 truncate leading-snug"
               variant="h2"
             >
               {t("common.settings.title", "Cài đặt")}
             </Typography>
-            <Typography
-              className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider truncate"
-              variant="p"
-            >
-              {t("settings.layout.control_panel", "Bảng điều khiển")}
-            </Typography>
+            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-slate-200/70 dark:bg-slate-800 border border-slate-300/50 dark:border-slate-700/60 text-[9px] font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider shrink-0">
+              <ShieldCheck className="w-2.5 h-2.5 text-primary-600 dark:text-primary-400" />
+              {t("settings.admin_tag", "Admin")}
+            </span>
           </div>
-        </div>
-
-        <div className="hidden sm:flex items-center gap-1 px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 border border-slate-200/60 dark:border-slate-700/60 shrink-0">
-          <ShieldCheck className="w-3 h-3 text-slate-400 dark:text-slate-500" />
-          <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-            {t("settings.admin_only", "Admin")}
-          </span>
+          <Typography
+            className="text-[10px] font-medium text-slate-400 dark:text-slate-500 truncate"
+            variant="p"
+          >
+            {t("settings.layout.control_panel", "Bảng điều khiển")}
+          </Typography>
         </div>
       </div>
 
@@ -181,11 +179,11 @@ export const SettingsSidebar = memo(function SettingsSidebar({
                         : "text-slate-700 dark:text-slate-300 hover:bg-slate-200/60 dark:hover:bg-slate-800/70"
                     )}
                     key={item.path}
+                    onClick={onItemClick}
                     to={item.path as "/"}
                   >
                     <div
                       className={cn(
-                        "w-6 h-6 rounded-lg flex items-center justify-center shrink-0 transition-colors",
                         isActive
                           ? "bg-white/20 text-white"
                           : "bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 group-hover:text-primary-600 dark:group-hover:text-primary-400"

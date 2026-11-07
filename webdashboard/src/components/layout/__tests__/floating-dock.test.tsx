@@ -108,6 +108,13 @@ describe("FloatingDock Component", () => {
     expect(screen.getByTestId("dock-app-settings")).toBeInTheDocument();
   });
 
+  it("highlights settings app icon when on /workspace/settings route", () => {
+    mockLocationPath = "/workspace/settings/general";
+    renderFloatingDock();
+
+    const settingsApp = screen.getByTestId("dock-app-settings");
+    expect(settingsApp.className).toContain("bg-primary-50");
+  });
   it("renders unread notifications badge when unreadCount > 0", () => {
     mockUnreadCount = 7;
     renderFloatingDock();

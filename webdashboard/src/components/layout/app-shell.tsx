@@ -1,4 +1,4 @@
-import { Outlet } from "@tanstack/react-router";
+import { Outlet, useLocation } from "@tanstack/react-router";
 import React, { useCallback, useEffect, useState } from "react";
 
 import { ErrorBoundary } from "@/components/common/error-boundary";
@@ -6,6 +6,7 @@ import { HeaderActionsProvider } from "@/hooks/use-header-actions";
 import { useI18nSync } from "@/hooks/use-i18n-sync";
 import { useTheme } from "@/hooks/use-theme";
 import { useWorkspace } from "@/hooks/use-workspace";
+import { cn } from "@/lib/utils";
 
 import { CommandPalette } from "./command-palette";
 import { Sidebar } from "./sidebar";
@@ -20,6 +21,8 @@ export default function AppShell({ variant: _variant }: AppShellProps) {
   useTheme();
   useI18nSync();
   const { workspace: currentWorkspace } = useWorkspace();
+  const location = useLocation();
+  const isOrgChart = location.pathname.endsWith("/org-chart");
 
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(() => {
     try {
@@ -80,7 +83,12 @@ export default function AppShell({ variant: _variant }: AppShellProps) {
           />
 
           <main
-            className="flex-1 overflow-y-auto bg-muted/20"
+            className={cn(
+              "flex-1 bg-muted/20 min-w-0",
+              isOrgChart
+                ? "overflow-hidden p-0"
+                : "overflow-y-auto p-4 md:p-6 lg:p-8"
+            )}
             data-testid="main-content-viewport"
           >
             <ErrorBoundary>

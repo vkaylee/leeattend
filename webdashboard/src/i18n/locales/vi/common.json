@@ -1028,28 +1028,28 @@
     "settings": {
       "navigation": "Settings navigation",
       "notes_title": "Notes",
-      "title": "Settings",
+      "title": "Cài đặt",
       "categories": {
-        "general": "General",
-        "organization": "Organization",
-        "organization_desc": "Manage organization settings",
-        "payroll": "Payroll",
-        "payroll_desc": "Manage payroll settings",
-        "time": "Time and attendance",
-        "time_desc": "Manage time settings"
+        "general": "Cài đặt chung",
+        "organization": "Cơ cấu tổ chức",
+        "organization_desc": "Quản lý cơ cấu phòng ban và tổ chức",
+        "payroll": "Bảng lương & Công thức",
+        "payroll_desc": "Quản lý ngày công tiêu chuẩn và công thức tính lương",
+        "time": "Thời gian & Chấm công",
+        "time_desc": "Cấu hình ca làm việc và quy tắc chấm công"
       },
       "tabs": {
-        "localization": "Localization",
-        "appearance": "Appearance",
-        "departments": "Departments",
-        "rules_policies": "Rules and policies",
-        "salary_structures": "Salary structures",
-        "incentives_benefits": "Incentives and benefits",
-        "payroll_policy": "Payroll policy",
-        "salary_components": "Salary components",
-        "incentives": "Incentives",
-        "overtime_policy": "Overtime policy",
-        "statutory_rules": "Statutory rules"
+        "localization": "Khu vực & Ngôn ngữ",
+        "appearance": "Giao diện & Thương hiệu",
+        "departments": "Phòng ban",
+        "rules_policies": "Quy tắc & Chính sách",
+        "salary_structures": "Cơ cấu lương",
+        "incentives_benefits": "Phụ cấp & Phúc lợi",
+        "payroll_policy": "Chính sách lương",
+        "salary_components": "Thành phần lương",
+        "incentives": "Thưởng & Khuyến khích",
+        "overtime_policy": "Quy định tăng ca",
+        "statutory_rules": "Quy định bắt buộc"
       },
       "time": {
         "error_title": "Time settings error",

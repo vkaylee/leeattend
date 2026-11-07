@@ -87,7 +87,7 @@ Generate only the role needed:
 Every role wrapper performs a session preflight before starting MCP. It checks the selected state against `GET http://caddy/api/v1/me`; valid state is reused immediately. Missing or invalid state triggers `scripts/playwright-auth-role.sh <role>`, which recreates only that role's state from the ignored credentials file. If credentials are unavailable or login fails, MCP fails closed with an actionable error instead of starting with an anonymous or wrong-role session.
 ### MCP process and browser timeouts
 
-The role wrapper limits each MCP and auth Compose process to 15 minutes by default. It sends `TERM` when the limit is reached, waits 15 seconds for cleanup, then sends `KILL` if the process remains alive. Compose runs keep `--rm --no-deps`, so exited MCP containers are removed.
+The role wrapper limits each MCP and auth Compose process to 2 minutes (120s) by default. It sends `TERM` when the limit is reached, waits 15 seconds for cleanup, then sends `KILL` if the process remains alive. Compose runs keep `--rm --no-deps`, so exited MCP containers are removed.
 
 Override only for unusually long local flows:
 

@@ -86,12 +86,14 @@ describe("AppShell Component", () => {
     localStorage.clear();
   });
 
-  it("renders Sidebar, Topbar, and Router Outlet viewport", () => {
+  it("renders Sidebar, Topbar, and Router Outlet viewport with responsive padding gutters", () => {
     render(<AppShell />);
 
     expect(screen.getByTestId("sidebar-container")).toBeInTheDocument();
     expect(screen.getByTestId("topbar-container")).toBeInTheDocument();
-    expect(screen.getByTestId("main-content-viewport")).toBeInTheDocument();
+    const viewport = screen.getByTestId("main-content-viewport");
+    expect(viewport).toBeInTheDocument();
+    expect(viewport).toHaveClass("p-4", "md:p-6", "lg:p-8");
     expect(screen.getByTestId("mock-router-outlet")).toBeInTheDocument();
   });
 

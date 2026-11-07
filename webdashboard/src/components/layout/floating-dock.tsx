@@ -94,7 +94,7 @@ const DOCK_APPS: DockAppItem[] = [
     to: ROUTES.SETTINGS.ROOT,
     icon: Settings,
     testId: "dock-app-settings",
-    isActive: (pathname) => pathname.startsWith("/settings"),
+    isActive: (pathname) => pathname.startsWith(ROUTES.SETTINGS.ROOT) || pathname.startsWith("/settings"),
   },
 ];
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 playwright_timeout_init() {
-  local runtime="${PLAYWRIGHT_MCP_MAX_RUNTIME:-900}"
+  local runtime="${PLAYWRIGHT_MCP_MAX_RUNTIME:-120}"
   local grace="${PLAYWRIGHT_MCP_KILL_GRACE:-15}"
 
   if ! command -v timeout >/dev/null 2>&1; then

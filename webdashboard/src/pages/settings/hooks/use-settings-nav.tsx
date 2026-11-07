@@ -49,9 +49,9 @@ const getWorkspaceGroup = (t: TFunction): SettingItem[] => [
     permissions: ["workspace:settings:read"],
   },
   {
-    description: t("description", { ns: "custom_fields", defaultValue: "Quản lý trường dữ liệu tùy chỉnh cho nhân sự" }),
+    description: t("settings.categories.custom_fields_desc", { defaultValue: "Quản lý trường dữ liệu tùy chỉnh cho nhân sự" }),
     icon: <Braces className="w-4 h-4" />,
-    label: t("title", { ns: "custom_fields", defaultValue: "Trường tùy chỉnh" }),
+    label: t("settings.categories.custom_fields", { defaultValue: "Trường tùy chỉnh" }),
     path: ROUTES.SETTINGS.CUSTOM_FIELDS,
     permissions: ["workspace:settings:read"],
   },
@@ -59,16 +59,16 @@ const getWorkspaceGroup = (t: TFunction): SettingItem[] => [
 
 const getAccessGroup = (t: TFunction): SettingItem[] => [
   {
-    description: t("common.members.roles.subtitle"),
+    description: t("settings.categories.roles_desc", { defaultValue: "Quản lý vai trò và phân quyền chức vụ" }),
     icon: <ShieldAlert className="w-4 h-4" />,
-    label: t("rolesPage.title", { defaultValue: "Roles" }),
+    label: t("settings.categories.roles", { defaultValue: "Vai trò & Chức danh" }),
     path: ROUTES.SETTINGS.ROLES,
     permissions: ["members:roles:manage"],
   },
   {
-    description: t("common.members.permissions.modal_subtitle"),
+    description: t("settings.categories.permissions_desc", { defaultValue: "Cấp phát hoặc thu hồi quyền hạn cá nhân" }),
     icon: <KeyRound className="w-4 h-4" />,
-    label: t("common.permissions"),
+    label: t("settings.categories.permissions", { defaultValue: "Phân quyền người dùng" }),
     path: ROUTES.SETTINGS.PERMISSIONS,
     permissions: ["members:roles:manage"],
   },
@@ -104,9 +104,9 @@ const getOperationsGroup = (t: TFunction): SettingItem[] => [
     permissions: ["leave:policies:manage"],
   },
   {
-    description: t("common.public_holidays"),
+    description: t("settings.categories.holidays_desc", { defaultValue: "Lịch nghỉ lễ và quy tắc chấm công ngày lễ" }),
     icon: <Palmtree className="w-4 h-4" />,
-    label: t("common.holidays"),
+    label: t("settings.categories.holidays", { defaultValue: "Ngày nghỉ lễ" }),
     path: ROUTES.SETTINGS.HOLIDAYS,
     permissions: ["holidays:manage"],
   },
