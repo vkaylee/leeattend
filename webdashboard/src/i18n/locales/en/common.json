@@ -1619,6 +1619,9 @@
     "export_matrix_csv": "Export Matrix (CSV)",
     "view_raw_logs": "View Raw Logs",
     "view_raw_logs_short": "Raw Logs",
+    "timesheet_matrix_31_days": "31-Day Timesheet Matrix",
+    "legend": "Legend",
+    "legend_rules": "Legend Rules",
     "all_departments": "All",
     "all_employers": "All",
     "search_placeholder": "Search by employee name...",
@@ -1654,11 +1657,12 @@
       "unscheduled_tooltip": "Employee punched in without a scheduled shift"
     },
     "table": {
+      "employee": "Employee",
       "total_hours": "Total Hours",
       "std_hours": "Regular Hours",
       "ot_hours": "Overtime",
       "leave_days": "Leave Days",
-      "hours": "Hours",
+      "notes": "Notes",
       "units": "Units",
       "scheduled": "Scheduled",
       "segment_type": "Segment",
@@ -1688,7 +1692,8 @@
     },
     "messages": {
       "generating": "Generating report...",
-      "no_data": "No data found for this period."
+      "no_data": "No data found for this period.",
+      "no_data_desc": "Please select a different date range or verify shift assignments."
     },
     "confirm": {
       "tooltip": "Confirm attendance for this day",

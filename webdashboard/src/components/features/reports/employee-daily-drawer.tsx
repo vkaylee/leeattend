@@ -79,8 +79,8 @@ function DrawerMetric({ icon, isLoading, label, shortLabel, tone, value }: Drawe
         >
             {icon}
             <span className={cn(
-                "min-w-0 truncate text-[10px] font-bold uppercase tracking-wide",
-                isOvertime ? "text-orange-200/80" : "text-slate-300",
+                "min-w-0 truncate text-xs font-semibold tracking-normal",
+                isOvertime ? "text-orange-200/90" : "text-slate-300",
             )}>
                 <span className="sm:hidden">{shortLabel}</span>
                 <span className="hidden sm:inline">{label}</span>
@@ -167,7 +167,7 @@ function EmployeeDailyDrawerHeader({
                     aria-controls={`${tabIdPrefix}-daily-panel`}
                     aria-selected={viewMode === "daily"}
                     className={cn(
-                        "min-h-9 flex-1 rounded-md px-3 text-[11px] font-bold uppercase tracking-wide transition-all sm:min-h-10 sm:flex-none sm:text-[10px] sm:tracking-widest",
+                        "min-h-9 flex-1 rounded-md px-3 text-xs font-semibold tracking-normal transition-all sm:min-h-10 sm:flex-none",
                         viewMode === "daily"
                             ? "bg-white text-primary-600 shadow-sm hover:bg-white dark:bg-slate-700 dark:text-primary-400 dark:hover:bg-slate-700"
                             : "text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200",
@@ -187,7 +187,7 @@ function EmployeeDailyDrawerHeader({
                     aria-controls={`${tabIdPrefix}-raw-panel`}
                     aria-selected={viewMode === "raw"}
                     className={cn(
-                        "min-h-9 flex-1 rounded-md px-3 text-[11px] font-bold uppercase tracking-wide transition-all sm:min-h-10 sm:flex-none sm:text-[10px] sm:tracking-widest",
+                        "min-h-9 flex-1 rounded-md px-3 text-xs font-semibold tracking-normal transition-all sm:min-h-10 sm:flex-none",
                         viewMode === "raw"
                             ? "bg-white text-primary-600 shadow-sm hover:bg-white dark:bg-slate-700 dark:text-primary-400 dark:hover:bg-slate-700"
                             : "text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200",

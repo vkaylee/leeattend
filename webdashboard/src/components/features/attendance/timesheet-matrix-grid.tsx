@@ -151,18 +151,18 @@ export const TimesheetMatrixGrid = React.forwardRef<
         {/* Header bar: info & legend toggle */}
         <div className="flex flex-wrap items-center justify-between gap-4 px-5 py-3.5 border-b border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30">
           <div className="flex items-center gap-2.5">
-            <span className="text-xs font-bold text-slate-800 dark:text-slate-100 uppercase tracking-wider">
-              {t("attendance.matrix.title", "Bảng công 31 ngày")}
+            <span className="text-sm font-semibold text-slate-800 dark:text-slate-100">
+              {t("reports.timesheet_matrix_31_days", "Bảng công 31 ngày")}
             </span>
-            <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
-              • {employees.length} {t("common.employees", "nhân viên")}
+            <span className="text-xs font-medium text-slate-500 dark:text-slate-400">
+              • {employees.length} {t("reports.employees", "nhân viên")}
             </span>
           </div>
 
           <div className="flex items-center gap-2">
             <Button
               aria-label={t("attendance.matrix.toggle_legend", "Bảng giải thích ký hiệu")}
-              className="flex items-center gap-1.5 text-xs text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 px-3 py-1.5 rounded-xl transition-all font-semibold"
+              className="flex items-center gap-1.5 text-xs text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 px-3 py-1.5 rounded-xl transition-all font-semibold normal-case tracking-normal"
               onClick={() => {
                 setIsLegendOpen((prev) => !prev);
               }}
@@ -176,13 +176,12 @@ export const TimesheetMatrixGrid = React.forwardRef<
 
         {/* Expandable Legend Bar */}
         {isLegendOpen && (
-          <div className="px-5 py-3 border-b border-slate-200 dark:border-slate-800 bg-slate-100/60 dark:bg-slate-800/60 flex flex-wrap items-center gap-3 text-xs animate-in slide-in-from-top-2 duration-200">
-            <span className="font-semibold text-slate-700 dark:text-slate-200">
-              {t("attendance.matrix.legend_title", "Quy ước ký hiệu:")}
+          <div className="px-4 py-2.5 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/60 flex flex-wrap items-center gap-2 text-xs animate-in slide-in-from-top-2 duration-200">
+            <span className="font-semibold text-slate-700 dark:text-slate-200 shrink-0">
+              {t("reports.legend_rules", "Quy ước ký hiệu:")}
             </span>
             {registeredCodes.map((c) => (
               <div
-                className="flex items-center gap-1.5 px-2 py-0.5 rounded-lg border bg-white dark:bg-slate-900 shadow-2xs"
                 key={c.code}
                 title={c.description}
               >
@@ -220,7 +219,7 @@ export const TimesheetMatrixGrid = React.forwardRef<
                 <tr className="bg-slate-100/80 dark:bg-slate-800/80 sticky top-0 z-20 backdrop-blur-xs border-b border-slate-200 dark:border-slate-700">
                   {/* Fixed Left Employee Column */}
                   <th className="sticky left-0 z-30 bg-slate-100 dark:bg-slate-800 px-4 py-3 font-semibold text-slate-700 dark:text-slate-200 w-64 min-w-[16rem] border-r border-slate-200 dark:border-slate-700 shadow-xs">
-                    {t("common.employee", "Nhân viên")}
+                    {t("reports.table.employee", "Nhân viên")}
                   </th>
 
                   {/* Day Columns */}

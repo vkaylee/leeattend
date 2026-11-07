@@ -126,14 +126,14 @@ export default function SmartTable<T>({
                 ))
               ) : (
                 <tr>
-                  <td className="px-8 py-20 text-center text-xs font-bold uppercase tracking-wider text-slate-400 animate-pulse" colSpan={smart.colCount}>
+                  <td className="px-8 py-20 text-center text-xs font-medium text-slate-400 animate-pulse" colSpan={smart.colCount}>
                     Loading...
                   </td>
                 </tr>
               )
             ) : smart.rowCount === 0 ? (
               <tr>
-                <td className="px-8 py-20 text-center text-xs font-bold uppercase tracking-wider text-slate-400/80" colSpan={smart.colCount}>
+                <td className="px-8 py-20 text-center text-xs font-medium text-slate-400/90 dark:text-slate-500" colSpan={smart.colCount}>
                   {emptyMessage}
                 </td>
               </tr>

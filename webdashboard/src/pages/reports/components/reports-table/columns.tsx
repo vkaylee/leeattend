@@ -3,8 +3,10 @@ import React from "react";
 
 import { TFunction } from "i18next";
 
+import { EmployeeIdentityCell } from "@/components/common/employee-identity-cell";
 import { NavigableListColumn } from "@/components/common/navigable-list";
 import { AttendanceSummary, AttendanceReportSort } from "@/lib/api/types";
+import { cn } from "@/lib/utils";
 import { formatHours } from "@/lib/utils/attendance";
 
 interface GetReportColumnsProps {
@@ -27,32 +29,26 @@ export const getReportColumns = ({
   return [
     {
       render: (row) => (
-        <div className="flex flex-col gap-0.5">
-          <div className="font-bold text-slate-700 dark:text-slate-200 text-sm tracking-tight uppercase leading-tight">{row.employee_name}</div>
-          <div className="text-[9px] font-bold text-primary-600 dark:text-primary-400 uppercase tracking-widest leading-none">{row.employee_id_number ?? "—"}</div>
-          {!!row.employer_name && (
-            <div 
-              className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wide leading-tight mt-0.5 break-words max-w-[240px]" 
-              title={row.employer_name}
-            >
-              {row.employer_name}
-            </div>
-          )}
-        </div>
+        <EmployeeIdentityCell
+          avatarClassName="h-9 w-9 text-xs"
+          code={row.employee_id_number}
+          name={row.employee_name}
+          subtitle={row.employer_name}
+        />
       ),
-      cellClassName: "px-10 py-6 min-w-[260px]",
-      header: <div className="flex items-center">{t("common.employee")}{getSortIcon("name")}</div>,
-      headerClassName: "px-10 min-w-[260px]",
+      cellClassName: "px-6 py-4 min-w-[260px]",
+      header: <div className="flex items-center">{t("reports.table.employee", "Nhân viên")}{getSortIcon("name")}</div>,
+      headerClassName: "px-6 min-w-[260px]",
       key: "name",
       onHeaderClick: () => { handleSort("name"); },
     },
     {
       render: (row) => (
-        <div className="font-mono font-bold text-primary-600 dark:text-primary-400 text-base tracking-tighter cursor-default" title={`${row.total_std_units} units`}>
+        <div className="font-mono font-semibold text-slate-800 dark:text-slate-100 text-sm tracking-tight cursor-default" title={`${row.total_std_units} units`}>
           {formatHours(row.computed_std_hours)}h
         </div>
       ),
-      cellClassName: "py-6 text-right",
+      cellClassName: "py-4 text-right",
       header: <div className="flex items-center justify-end">{t("reports.table.std_hours")}{getSortIcon("work_hours")}</div>,
       headerClassName: "text-right",
       key: "std_hours",
@@ -60,43 +56,54 @@ export const getReportColumns = ({
     },
     {
       render: (row) => row.total_ot_units > 0 ? (
-        <div className="font-mono font-bold text-orange-600 dark:text-orange-400 text-base tracking-tighter cursor-default" title={`${row.total_ot_units} OT units`}>
+        <div className="font-mono font-semibold text-amber-600 dark:text-amber-400 text-sm tracking-tight cursor-default" title={`${row.total_ot_units} OT units`}>
           {formatHours(row.computed_ot_hours)}h
         </div>
       ) : (
-        <span className="text-slate-200 dark:text-slate-700 font-bold">—</span>
+        <span className="text-slate-300 dark:text-slate-600 font-normal">—</span>
       ),
-      cellClassName: "py-6 text-right",
+      cellClassName: "py-4 text-right",
       header: <div className="flex items-center justify-end">{t("reports.table.ot_hours")}{getSortIcon("ot_hours")}</div>,
-      headerClassName: "text-right text-orange-500 dark:text-orange-400",
+      headerClassName: "text-right",
       key: "ot_hours",
       onHeaderClick: () => { handleSort("ot_hours"); },
     },
     {
       render: (row) => (
-        <div className="font-mono font-bold text-slate-700 dark:text-slate-200 text-base tracking-tighter cursor-default" title={`${row.total_std_units + row.total_ot_units} total units`}>
+        <div className="font-mono font-semibold text-slate-900 dark:text-white text-sm tracking-tight cursor-default" title={`${row.total_std_units + row.total_ot_units} total units`}>
           {formatHours(row.computed_std_hours + row.computed_ot_hours)}h
         </div>
       ),
-      cellClassName: "py-6 text-right",
+      cellClassName: "py-4 text-right",
       header: <div className="flex items-center justify-end">{t("reports.table.total_hours")}{getSortIcon("total_hours")}</div>,
       headerClassName: "text-right",
       key: "total_hours",
       onHeaderClick: () => { handleSort("total_hours"); },
     },
     {
-      render: (row) => <span className="font-mono font-bold text-orange-600 dark:text-orange-300 text-base tracking-tighter">{row.total_leave_days} {t("common.days_short")}</span>,
-      cellClassName: "px-10 py-6 text-right",
+      render: (row) => (
+        <span
+          className={cn(
+            "font-mono text-sm tracking-tight",
+            row.total_leave_days > 0
+              ? "font-semibold text-primary-600 dark:text-primary-400"
+              : "font-normal text-slate-400 dark:text-slate-500"
+          )}
+        >
+          {row.total_leave_days} {t("common.days_short", "ngày")}
+        </span>
+      ),
+      cellClassName: "px-6 py-4 text-right",
       header: <div className="flex items-center justify-end">{t("reports.table.leave_days")}{getSortIcon("leave_days")}</div>,
-      headerClassName: "px-10 text-right",
+      headerClassName: "px-6 text-right",
       key: "leave_days",
       onHeaderClick: () => { handleSort("leave_days"); },
     },
     {
-      render: () => <span className="text-slate-200 dark:text-slate-700 font-bold tracking-widest">—</span>,
-      cellClassName: "px-10 py-6 text-right",
-      header: t("common.notes"),
-      headerClassName: "px-10 text-right",
+      render: () => <span className="text-slate-200 dark:text-slate-700 font-normal">—</span>,
+      cellClassName: "px-6 py-4 text-right",
+      header: t("reports.table.notes", "Ghi chú"),
+      headerClassName: "px-6 text-right",
       key: "notes",
     },
   ];

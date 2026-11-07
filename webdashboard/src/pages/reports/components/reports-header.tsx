@@ -39,7 +39,7 @@ export function ReportsHeader({
                 aria-label={t("reports.view_matrix", "Bảng công tháng (Lưới 31 ngày)")}
                 aria-pressed={viewMode === "matrix"}
                 className={cn(
-                  "flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all",
+                  "flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-semibold normal-case tracking-normal transition-all",
                   viewMode === "matrix"
                     ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm"
                     : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
@@ -57,7 +57,7 @@ export function ReportsHeader({
                 aria-label={t("reports.view_summary", "Tổng hợp số giờ")}
                 aria-pressed={viewMode === "summary"}
                 className={cn(
-                  "flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all",
+                  "flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-semibold normal-case tracking-normal transition-all",
                   viewMode === "summary"
                     ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm"
                     : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
@@ -74,7 +74,7 @@ export function ReportsHeader({
           )}
 
           <Link
-            className="flex items-center gap-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-primary-600 dark:text-primary-400 px-5 py-2 rounded-xl hover:bg-primary-50 dark:hover:bg-primary-950 transition-all font-bold text-xs uppercase tracking-widest shadow-sm active:scale-95"
+            className="flex items-center gap-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 px-4 py-2 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-all font-semibold text-xs tracking-wide shadow-sm active:scale-95"
             search={{
               tab: "recorded" as const,
               mode: "custom" as const,
@@ -83,11 +83,11 @@ export function ReportsHeader({
             }}
             to="/attendance-logs"
           >
-            <CalendarCheck size={16} /> {t("reports.view_raw_logs")}
+            <CalendarCheck size={16} /> {t("reports.view_raw_logs", "Nhật ký thô")}
           </Link>
 
           <Button
-            className="flex items-center gap-2 h-10 px-5 rounded-xl font-bold text-xs uppercase tracking-widest shadow-sm"
+            className="flex items-center gap-2 h-10 px-4 rounded-xl font-semibold text-xs normal-case tracking-normal shadow-sm"
             data-testid="export-report-btn"
             icon={<Download size={16} />}
             onClick={onExportClick}

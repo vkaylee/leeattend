@@ -101,12 +101,12 @@ function SheetHeader({
         </div>
         <div className="min-w-0">
           {title ? (
-            <Typography className="break-words text-xl font-bold uppercase tracking-tight text-slate-700 dark:text-slate-200" id={titleId} variant="h2">
+            <Typography className="break-words text-xl font-bold tracking-tight text-slate-800 dark:text-slate-100" id={titleId} variant="h2">
               {title}
             </Typography>
           ) : null}
           {subtitle ? (
-            <Typography className="mt-1 text-[10px] font-bold uppercase tracking-widest text-slate-500 opacity-70 dark:text-slate-400" variant="p">
+            <Typography className="mt-1 text-xs font-medium text-slate-500 dark:text-slate-400" variant="p">
               {subtitle}
             </Typography>
           ) : null}

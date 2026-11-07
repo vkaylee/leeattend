@@ -315,8 +315,9 @@ export default function DailyReportTable({
         columns={columns}
         data={data}
         emptyState={{
-          icon: <CalendarDays className="h-8 w-8" />,
-          title: t("reports.messages.no_data"),
+          description: t("reports.messages.no_data_desc", "Vui lòng chọn khoảng thời gian khác hoặc kiểm tra lại lịch làm việc."),
+          icon: <CalendarDays className="h-8 w-8 text-slate-400" />,
+          title: t("reports.messages.no_data", "Không có dữ liệu trong khoảng thời gian này."),
         }}
         getCardKey={(row) => segmentKeyOf(row)}
         getRowClassName={getRowClassName}

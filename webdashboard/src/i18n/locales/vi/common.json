@@ -1617,8 +1617,11 @@
     "view_summary": "Tổng hợp giờ",
     "export_excel": "Xuất Excel",
     "export_matrix_csv": "Xuất ma trận (CSV)",
+    "view_raw_logs": "Nhật ký thô",
     "view_raw_logs_short": "Nhật ký thô",
-    "all_departments": "Tất cả",
+    "timesheet_matrix_31_days": "Bảng công 31 ngày",
+    "legend": "Ký hiệu công",
+    "legend_rules": "Quy ước ký hiệu",
     "all_employers": "Tất cả",
     "search_placeholder": "Tìm theo tên nhân viên...",
     "no_shift": "Không có ca",
@@ -1653,11 +1656,12 @@
       "unscheduled_tooltip": "Nhân viên chấm công khi không có ca được sắp xếp"
     },
     "table": {
+      "employee": "Nhân viên",
       "total_hours": "Tổng giờ công",
       "std_hours": "Giờ trong ca",
       "ot_hours": "Tăng ca",
       "leave_days": "Số ngày nghỉ",
-      "hours": "Giờ công",
+      "notes": "Ghi chú",
       "units": "Đơn vị",
       "scheduled": "Phân ca",
       "segment_type": "Phân đoạn",
@@ -1687,7 +1691,8 @@
     },
     "messages": {
       "generating": "Đang tạo báo cáo...",
-      "no_data": "Không có dữ liệu trong khoảng thời gian này."
+      "no_data": "Không có dữ liệu trong khoảng thời gian này.",
+      "no_data_desc": "Vui lòng chọn khoảng thời gian khác hoặc kiểm tra lại lịch làm việc."
     },
     "confirm": {
       "tooltip": "Xác nhận công cho ngày này",

@@ -34,11 +34,11 @@ const EmptyState = memo(function EmptyState({
       <div className="w-24 h-24 bg-white dark:bg-slate-900 rounded-full flex items-center justify-center shadow-sm mb-6 border border-slate-100 dark:border-slate-800 text-slate-200 dark:text-slate-700">
         {icon}
       </div>
-      <Typography className="text-xl font-bold text-slate-700 dark:text-slate-200 uppercase tracking-tight" variant="h3">
+      <Typography className="text-lg font-bold text-slate-700 dark:text-slate-200 tracking-tight" variant="h3">
         {title}
       </Typography>
       {!!description && (
-        <Typography className="text-slate-500 dark:text-slate-400 text-[11px] font-bold uppercase tracking-widest leading-relaxed max-w-sm mx-auto" variant="p">
+        <Typography className="text-slate-500 dark:text-slate-400 text-xs font-normal leading-relaxed max-w-sm mx-auto mt-1" variant="p">
           {description}
         </Typography>
       )}
