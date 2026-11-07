@@ -31,6 +31,8 @@ import {
   ShieldCheck,
   ShieldAlert,
   Palmtree,
+  HeartHandshake,
+  ClipboardList,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
@@ -100,6 +102,9 @@ export function useNavMenuItems(): NavMenuStructure {
       testId: "sidebar-section-org",
       items: [
         { to: ROUTES.EMPLOYEES, icon: UserRound, label: t("common.employees"), testId: "sidebar-link-employees", permissions: ["employees:read"] },
+        { to: ROUTES.ASSIGNMENTS, icon: ArrowLeftRight, label: t("common.assignments", { defaultValue: "Phái cử & Luân chuyển" }), testId: "sidebar-link-assignments", permissions: ["employees:read"] },
+        { to: ROUTES.WORKING_CONDITIONS, icon: HeartHandshake, label: t("common.working_conditions", { defaultValue: "Điều kiện làm việc" }), testId: "sidebar-link-working-conditions", permissions: ["employees:read"] },
+        { to: ROUTES.LIFECYCLE, icon: ClipboardList, label: t("common.lifecycle", { defaultValue: "Quy trình & Vòng đời" }), testId: "sidebar-link-lifecycle", permissions: ["employees:read"] },
         { to: ROUTES.DEPARTMENTS, icon: Building2, label: t("common.departments"), testId: "sidebar-link-departments", permissions: ["departments:read"] },
         { to: ROUTES.ORG_CHART, icon: FolderTree, label: t("common.org_chart"), testId: "sidebar-link-org-chart", permissions: ["departments:read"] },
         ...(isFeatureEnabled("ff_econtracts") ? [{ to: ROUTES.ECONTRACTS, icon: Scale, label: t("common.econtracts", { defaultValue: "e-Contracts Hub" }), testId: "sidebar-link-econtracts", permissions: ["employees:update"] }] : []),

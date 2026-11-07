@@ -1,110 +1,5 @@
 [
   {
-    "file": "src/components/features/attendance/timesheet-matrix-grid.tsx",
-    "key": "reports.timesheet_matrix_31_days",
-    "lang": "zh"
-  },
-  {
-    "file": "src/components/features/attendance/timesheet-matrix-grid.tsx",
-    "key": "attendance.matrix.toggle_legend",
-    "lang": "en"
-  },
-  {
-    "file": "src/components/features/attendance/timesheet-matrix-grid.tsx",
-    "key": "attendance.matrix.toggle_legend",
-    "lang": "vi"
-  },
-  {
-    "file": "src/components/features/attendance/timesheet-matrix-grid.tsx",
-    "key": "attendance.matrix.toggle_legend",
-    "lang": "zh"
-  },
-  {
-    "file": "src/components/features/attendance/timesheet-matrix-grid.tsx",
-    "key": "attendance.matrix.legend",
-    "lang": "en"
-  },
-  {
-    "file": "src/components/features/attendance/timesheet-matrix-grid.tsx",
-    "key": "attendance.matrix.legend",
-    "lang": "vi"
-  },
-  {
-    "file": "src/components/features/attendance/timesheet-matrix-grid.tsx",
-    "key": "attendance.matrix.legend",
-    "lang": "zh"
-  },
-  {
-    "file": "src/components/features/attendance/timesheet-matrix-grid.tsx",
-    "key": "reports.legend_rules",
-    "lang": "zh"
-  },
-  {
-    "file": "src/components/features/attendance/timesheet-matrix-grid.tsx",
-    "key": "attendance.matrix.empty_title",
-    "lang": "en"
-  },
-  {
-    "file": "src/components/features/attendance/timesheet-matrix-grid.tsx",
-    "key": "attendance.matrix.empty_title",
-    "lang": "vi"
-  },
-  {
-    "file": "src/components/features/attendance/timesheet-matrix-grid.tsx",
-    "key": "attendance.matrix.empty_title",
-    "lang": "zh"
-  },
-  {
-    "file": "src/components/features/attendance/timesheet-matrix-grid.tsx",
-    "key": "reports.table.employee",
-    "lang": "zh"
-  },
-  {
-    "file": "src/components/features/attendance/timesheet-matrix-grid.tsx",
-    "key": "attendance.matrix.col_work",
-    "lang": "en"
-  },
-  {
-    "file": "src/components/features/attendance/timesheet-matrix-grid.tsx",
-    "key": "attendance.matrix.col_work",
-    "lang": "vi"
-  },
-  {
-    "file": "src/components/features/attendance/timesheet-matrix-grid.tsx",
-    "key": "attendance.matrix.col_work",
-    "lang": "zh"
-  },
-  {
-    "file": "src/components/features/attendance/timesheet-matrix-grid.tsx",
-    "key": "attendance.matrix.col_leave",
-    "lang": "en"
-  },
-  {
-    "file": "src/components/features/attendance/timesheet-matrix-grid.tsx",
-    "key": "attendance.matrix.col_leave",
-    "lang": "vi"
-  },
-  {
-    "file": "src/components/features/attendance/timesheet-matrix-grid.tsx",
-    "key": "attendance.matrix.col_leave",
-    "lang": "zh"
-  },
-  {
-    "file": "src/components/features/attendance/timesheet-matrix-grid.tsx",
-    "key": "attendance.matrix.col_paid_total",
-    "lang": "en"
-  },
-  {
-    "file": "src/components/features/attendance/timesheet-matrix-grid.tsx",
-    "key": "attendance.matrix.col_paid_total",
-    "lang": "vi"
-  },
-  {
-    "file": "src/components/features/attendance/timesheet-matrix-grid.tsx",
-    "key": "attendance.matrix.col_paid_total",
-    "lang": "zh"
-  },
-  {
     "file": "src/components/features/employees/drawer-header.tsx",
     "key": "common.scroll_left",
     "lang": "en"
@@ -150,14 +45,244 @@
     "lang": "zh"
   },
   {
-    "file": "src/components/features/reports/daily-report-table.tsx",
-    "key": "reports.messages.no_data_desc",
+    "file": "src/components/features/employees/drawer-header.tsx",
+    "key": "employees.details.open_full_page",
+    "lang": "en"
+  },
+  {
+    "file": "src/components/features/employees/drawer-header.tsx",
+    "key": "employees.details.open_full_page",
+    "lang": "vi"
+  },
+  {
+    "file": "src/components/features/employees/drawer-header.tsx",
+    "key": "employees.details.open_full_page",
     "lang": "zh"
   },
   {
-    "file": "src/components/features/reports/report-filters.tsx",
-    "key": "reports.all_departments",
+    "file": "src/components/features/employees/drawer-header.tsx",
+    "key": "common.minimize",
+    "lang": "en"
+  },
+  {
+    "file": "src/components/features/employees/drawer-header.tsx",
+    "key": "common.minimize",
     "lang": "vi"
+  },
+  {
+    "file": "src/components/features/employees/drawer-header.tsx",
+    "key": "common.minimize",
+    "lang": "zh"
+  },
+  {
+    "file": "src/components/features/employees/drawer-header.tsx",
+    "key": "common.maximize",
+    "lang": "en"
+  },
+  {
+    "file": "src/components/features/employees/drawer-header.tsx",
+    "key": "common.maximize",
+    "lang": "vi"
+  },
+  {
+    "file": "src/components/features/employees/drawer-header.tsx",
+    "key": "common.maximize",
+    "lang": "zh"
+  },
+  {
+    "file": "src/components/features/employees/working-condition-form-modal.tsx",
+    "key": "working_conditions.create_success",
+    "lang": "en"
+  },
+  {
+    "file": "src/components/features/employees/working-condition-form-modal.tsx",
+    "key": "working_conditions.create_success",
+    "lang": "vi"
+  },
+  {
+    "file": "src/components/features/employees/working-condition-form-modal.tsx",
+    "key": "working_conditions.create_success",
+    "lang": "zh"
+  },
+  {
+    "file": "src/components/features/employees/working-condition-form-modal.tsx",
+    "key": "working_conditions.modal_subtitle",
+    "lang": "en"
+  },
+  {
+    "file": "src/components/features/employees/working-condition-form-modal.tsx",
+    "key": "working_conditions.modal_subtitle",
+    "lang": "vi"
+  },
+  {
+    "file": "src/components/features/employees/working-condition-form-modal.tsx",
+    "key": "working_conditions.modal_subtitle",
+    "lang": "zh"
+  },
+  {
+    "file": "src/components/features/employees/working-condition-form-modal.tsx",
+    "key": "working_conditions.modal_title",
+    "lang": "en"
+  },
+  {
+    "file": "src/components/features/employees/working-condition-form-modal.tsx",
+    "key": "working_conditions.modal_title",
+    "lang": "vi"
+  },
+  {
+    "file": "src/components/features/employees/working-condition-form-modal.tsx",
+    "key": "working_conditions.modal_title",
+    "lang": "zh"
+  },
+  {
+    "file": "src/components/features/employees/working-condition-form-modal.tsx",
+    "key": "working_conditions.fields.employee",
+    "lang": "en"
+  },
+  {
+    "file": "src/components/features/employees/working-condition-form-modal.tsx",
+    "key": "working_conditions.fields.employee",
+    "lang": "vi"
+  },
+  {
+    "file": "src/components/features/employees/working-condition-form-modal.tsx",
+    "key": "working_conditions.fields.employee",
+    "lang": "zh"
+  },
+  {
+    "file": "src/components/features/employees/working-condition-form-modal.tsx",
+    "key": "working_conditions.placeholders.select_employee",
+    "lang": "en"
+  },
+  {
+    "file": "src/components/features/employees/working-condition-form-modal.tsx",
+    "key": "working_conditions.placeholders.select_employee",
+    "lang": "vi"
+  },
+  {
+    "file": "src/components/features/employees/working-condition-form-modal.tsx",
+    "key": "working_conditions.placeholders.select_employee",
+    "lang": "zh"
+  },
+  {
+    "file": "src/components/features/employees/working-condition-form-modal.tsx",
+    "key": "working_conditions.fields.type",
+    "lang": "en"
+  },
+  {
+    "file": "src/components/features/employees/working-condition-form-modal.tsx",
+    "key": "working_conditions.fields.type",
+    "lang": "vi"
+  },
+  {
+    "file": "src/components/features/employees/working-condition-form-modal.tsx",
+    "key": "working_conditions.fields.type",
+    "lang": "zh"
+  },
+  {
+    "file": "src/components/features/employees/working-condition-form-modal.tsx",
+    "key": "working_conditions.fields.start_date",
+    "lang": "en"
+  },
+  {
+    "file": "src/components/features/employees/working-condition-form-modal.tsx",
+    "key": "working_conditions.fields.start_date",
+    "lang": "vi"
+  },
+  {
+    "file": "src/components/features/employees/working-condition-form-modal.tsx",
+    "key": "working_conditions.fields.start_date",
+    "lang": "zh"
+  },
+  {
+    "file": "src/components/features/employees/working-condition-form-modal.tsx",
+    "key": "working_conditions.fields.end_date",
+    "lang": "en"
+  },
+  {
+    "file": "src/components/features/employees/working-condition-form-modal.tsx",
+    "key": "working_conditions.fields.end_date",
+    "lang": "vi"
+  },
+  {
+    "file": "src/components/features/employees/working-condition-form-modal.tsx",
+    "key": "working_conditions.fields.end_date",
+    "lang": "zh"
+  },
+  {
+    "file": "src/components/features/employees/working-condition-form-modal.tsx",
+    "key": "working_conditions.fields.payment_regime",
+    "lang": "en"
+  },
+  {
+    "file": "src/components/features/employees/working-condition-form-modal.tsx",
+    "key": "working_conditions.fields.payment_regime",
+    "lang": "vi"
+  },
+  {
+    "file": "src/components/features/employees/working-condition-form-modal.tsx",
+    "key": "working_conditions.fields.payment_regime",
+    "lang": "zh"
+  },
+  {
+    "file": "src/components/features/personnel/assignments-table.tsx",
+    "key": "common.clear_filters",
+    "lang": "en"
+  },
+  {
+    "file": "src/components/features/personnel/assignments-table.tsx",
+    "key": "common.clear_filters",
+    "lang": "vi"
+  },
+  {
+    "file": "src/components/features/personnel/assignments-table.tsx",
+    "key": "common.clear_filters",
+    "lang": "zh"
+  },
+  {
+    "file": "src/components/features/personnel/assignments-table.tsx",
+    "key": "common.clear_filters",
+    "lang": "en"
+  },
+  {
+    "file": "src/components/features/personnel/assignments-table.tsx",
+    "key": "common.clear_filters",
+    "lang": "vi"
+  },
+  {
+    "file": "src/components/features/personnel/assignments-table.tsx",
+    "key": "common.clear_filters",
+    "lang": "zh"
+  },
+  {
+    "file": "src/components/features/personnel/working-conditions-table.tsx",
+    "key": "common.clear_filters",
+    "lang": "en"
+  },
+  {
+    "file": "src/components/features/personnel/working-conditions-table.tsx",
+    "key": "common.clear_filters",
+    "lang": "vi"
+  },
+  {
+    "file": "src/components/features/personnel/working-conditions-table.tsx",
+    "key": "common.clear_filters",
+    "lang": "zh"
+  },
+  {
+    "file": "src/components/features/personnel/working-conditions-table.tsx",
+    "key": "common.clear_filters",
+    "lang": "en"
+  },
+  {
+    "file": "src/components/features/personnel/working-conditions-table.tsx",
+    "key": "common.clear_filters",
+    "lang": "vi"
+  },
+  {
+    "file": "src/components/features/personnel/working-conditions-table.tsx",
+    "key": "common.clear_filters",
+    "lang": "zh"
   },
   {
     "file": "src/components/layout/dashboard-mockup.tsx",
@@ -325,36 +450,6 @@
     "lang": "zh"
   },
   {
-    "file": "src/components/payroll/payslip-document.tsx",
-    "key": "common.show_amount",
-    "lang": "en"
-  },
-  {
-    "file": "src/components/payroll/payslip-document.tsx",
-    "key": "common.show_amount",
-    "lang": "vi"
-  },
-  {
-    "file": "src/components/payroll/payslip-document.tsx",
-    "key": "common.show_amount",
-    "lang": "zh"
-  },
-  {
-    "file": "src/components/payroll/payslip-document.tsx",
-    "key": "common.mask_amount",
-    "lang": "en"
-  },
-  {
-    "file": "src/components/payroll/payslip-document.tsx",
-    "key": "common.mask_amount",
-    "lang": "vi"
-  },
-  {
-    "file": "src/components/payroll/payslip-document.tsx",
-    "key": "common.mask_amount",
-    "lang": "zh"
-  },
-  {
     "file": "src/components/shifts/roster-toolbar-parts.tsx",
     "key": "shifts.prev_week",
     "lang": "en"
@@ -502,6 +597,126 @@
   {
     "file": "src/pages/employees/components/contract-expiration-alerts.tsx",
     "key": "employees.alerts.legal_note_desc",
+    "lang": "zh"
+  },
+  {
+    "file": "src/pages/employees/components/employee-bulk-action-bar.tsx",
+    "key": "employees.bulk_selected",
+    "lang": "en"
+  },
+  {
+    "file": "src/pages/employees/components/employee-bulk-action-bar.tsx",
+    "key": "employees.bulk_selected",
+    "lang": "vi"
+  },
+  {
+    "file": "src/pages/employees/components/employee-bulk-action-bar.tsx",
+    "key": "employees.bulk_selected",
+    "lang": "zh"
+  },
+  {
+    "file": "src/pages/employees/components/employee-bulk-action-bar.tsx",
+    "key": "common.export_csv",
+    "lang": "en"
+  },
+  {
+    "file": "src/pages/employees/components/employee-bulk-action-bar.tsx",
+    "key": "common.export_csv",
+    "lang": "vi"
+  },
+  {
+    "file": "src/pages/employees/components/employee-bulk-action-bar.tsx",
+    "key": "common.export_csv",
+    "lang": "zh"
+  },
+  {
+    "file": "src/pages/employees/components/employee-bulk-action-bar.tsx",
+    "key": "common.clear_selection",
+    "lang": "en"
+  },
+  {
+    "file": "src/pages/employees/components/employee-bulk-action-bar.tsx",
+    "key": "common.clear_selection",
+    "lang": "vi"
+  },
+  {
+    "file": "src/pages/employees/components/employee-bulk-action-bar.tsx",
+    "key": "common.clear_selection",
+    "lang": "zh"
+  },
+  {
+    "file": "src/pages/employees/components/employee-row-actions.tsx",
+    "key": "employees.details.view_profile",
+    "lang": "en"
+  },
+  {
+    "file": "src/pages/employees/components/employee-row-actions.tsx",
+    "key": "employees.details.view_profile",
+    "lang": "vi"
+  },
+  {
+    "file": "src/pages/employees/components/employee-row-actions.tsx",
+    "key": "employees.details.view_profile",
+    "lang": "zh"
+  },
+  {
+    "file": "src/pages/employees/employee-detail-page.tsx",
+    "key": "employees.not_found",
+    "lang": "en"
+  },
+  {
+    "file": "src/pages/employees/employee-detail-page.tsx",
+    "key": "employees.not_found",
+    "lang": "vi"
+  },
+  {
+    "file": "src/pages/employees/employee-detail-page.tsx",
+    "key": "employees.not_found",
+    "lang": "zh"
+  },
+  {
+    "file": "src/pages/employees/employee-detail-page.tsx",
+    "key": "common.back_to_list",
+    "lang": "en"
+  },
+  {
+    "file": "src/pages/employees/employee-detail-page.tsx",
+    "key": "common.back_to_list",
+    "lang": "vi"
+  },
+  {
+    "file": "src/pages/employees/employee-detail-page.tsx",
+    "key": "common.back_to_list",
+    "lang": "zh"
+  },
+  {
+    "file": "src/pages/employees/employee-detail-page.tsx",
+    "key": "common.back_to_list",
+    "lang": "en"
+  },
+  {
+    "file": "src/pages/employees/employee-detail-page.tsx",
+    "key": "common.back_to_list",
+    "lang": "vi"
+  },
+  {
+    "file": "src/pages/employees/employee-detail-page.tsx",
+    "key": "common.back_to_list",
+    "lang": "zh"
+  },
+  {
+    "file": "src/pages/employees/hooks/use-employee-columns.tsx",
+    "key": "employees.job_title",
+    "lang": "en"
+  },
+  {
+    "file": "src/pages/employees/hooks/use-employee-columns.tsx",
+    "key": "employees.job_title",
+    "lang": "vi"
+  },
+  {
+    "file": "src/pages/employees/hooks/use-employee-columns.tsx",
+    "key": "employees.job_title",
     "lang": "zh"
   },
   {
@@ -656,46 +871,6 @@
   },
   {
     "file": "src/pages/payroll/components/payroll-header.tsx",
-    "key": "payroll.lifecycle.locked_tooltip",
-    "lang": "en"
-  },
-  {
-    "file": "src/pages/payroll/components/payroll-header.tsx",
-    "key": "payroll.lifecycle.locked_tooltip",
-    "lang": "zh"
-  },
-  {
-    "file": "src/pages/payroll/components/payroll-header.tsx",
-    "key": "payroll.lifecycle.locked_badge",
-    "lang": "en"
-  },
-  {
-    "file": "src/pages/payroll/components/payroll-header.tsx",
-    "key": "payroll.lifecycle.locked_badge",
-    "lang": "zh"
-  },
-  {
-    "file": "src/pages/payroll/components/payroll-header.tsx",
-    "key": "payroll.lifecycle.calculated",
-    "lang": "en"
-  },
-  {
-    "file": "src/pages/payroll/components/payroll-header.tsx",
-    "key": "payroll.lifecycle.calculated",
-    "lang": "zh"
-  },
-  {
-    "file": "src/pages/payroll/components/payroll-header.tsx",
-    "key": "payroll.lifecycle.draft",
-    "lang": "en"
-  },
-  {
-    "file": "src/pages/payroll/components/payroll-header.tsx",
-    "key": "payroll.lifecycle.draft",
-    "lang": "zh"
-  },
-  {
-    "file": "src/pages/payroll/components/payroll-header.tsx",
     "key": "payroll.prev_period",
     "lang": "en"
   },
@@ -722,156 +897,6 @@
   {
     "file": "src/pages/payroll/components/payroll-header.tsx",
     "key": "payroll.next_period",
-    "lang": "zh"
-  },
-  {
-    "file": "src/pages/payroll/components/payroll-header.tsx",
-    "key": "payroll.lifecycle.unlock_btn",
-    "lang": "en"
-  },
-  {
-    "file": "src/pages/payroll/components/payroll-header.tsx",
-    "key": "payroll.lifecycle.unlock_btn",
-    "lang": "zh"
-  },
-  {
-    "file": "src/pages/payroll/components/payroll-header.tsx",
-    "key": "payroll.lifecycle.lock_btn",
-    "lang": "en"
-  },
-  {
-    "file": "src/pages/payroll/components/payroll-header.tsx",
-    "key": "payroll.lifecycle.lock_btn",
-    "lang": "zh"
-  },
-  {
-    "file": "src/pages/payroll/components/payroll-header.tsx",
-    "key": "payroll.lifecycle.unlock_btn",
-    "lang": "en"
-  },
-  {
-    "file": "src/pages/payroll/components/payroll-header.tsx",
-    "key": "payroll.lifecycle.unlock_btn",
-    "lang": "zh"
-  },
-  {
-    "file": "src/pages/payroll/components/payroll-header.tsx",
-    "key": "payroll.lifecycle.lock_btn",
-    "lang": "en"
-  },
-  {
-    "file": "src/pages/payroll/components/payroll-header.tsx",
-    "key": "payroll.lifecycle.lock_btn",
-    "lang": "zh"
-  },
-  {
-    "file": "src/pages/payroll/components/payroll-header.tsx",
-    "key": "payroll.lifecycle.locked_tooltip",
-    "lang": "en"
-  },
-  {
-    "file": "src/pages/payroll/components/payroll-header.tsx",
-    "key": "payroll.lifecycle.locked_tooltip",
-    "lang": "zh"
-  },
-  {
-    "file": "src/pages/payroll/components/payroll-header.tsx",
-    "key": "payroll.lifecycle.unlock_btn",
-    "lang": "en"
-  },
-  {
-    "file": "src/pages/payroll/components/payroll-header.tsx",
-    "key": "payroll.lifecycle.unlock_btn",
-    "lang": "zh"
-  },
-  {
-    "file": "src/pages/payroll/components/payroll-header.tsx",
-    "key": "payroll.lifecycle.lock_btn",
-    "lang": "en"
-  },
-  {
-    "file": "src/pages/payroll/components/payroll-header.tsx",
-    "key": "payroll.lifecycle.lock_btn",
-    "lang": "zh"
-  },
-  {
-    "file": "src/pages/payroll/components/payroll-header.tsx",
-    "key": "payroll.lifecycle.unlock_confirm_desc",
-    "lang": "en"
-  },
-  {
-    "file": "src/pages/payroll/components/payroll-header.tsx",
-    "key": "payroll.lifecycle.unlock_confirm_desc",
-    "lang": "zh"
-  },
-  {
-    "file": "src/pages/payroll/components/payroll-header.tsx",
-    "key": "payroll.lifecycle.lock_confirm_desc",
-    "lang": "en"
-  },
-  {
-    "file": "src/pages/payroll/components/payroll-header.tsx",
-    "key": "payroll.lifecycle.lock_confirm_desc",
-    "lang": "zh"
-  },
-  {
-    "file": "src/pages/payroll/components/payroll-header.tsx",
-    "key": "payroll.lifecycle.unlock_confirm_title",
-    "lang": "en"
-  },
-  {
-    "file": "src/pages/payroll/components/payroll-header.tsx",
-    "key": "payroll.lifecycle.unlock_confirm_title",
-    "lang": "zh"
-  },
-  {
-    "file": "src/pages/payroll/components/payroll-header.tsx",
-    "key": "payroll.lifecycle.lock_confirm_title",
-    "lang": "en"
-  },
-  {
-    "file": "src/pages/payroll/components/payroll-header.tsx",
-    "key": "payroll.lifecycle.lock_confirm_title",
-    "lang": "zh"
-  },
-  {
-    "file": "src/pages/reports/components/reports-header.tsx",
-    "key": "reports.view_mode_group",
-    "lang": "zh"
-  },
-  {
-    "file": "src/pages/reports/components/reports-header.tsx",
-    "key": "reports.view_matrix",
-    "lang": "zh"
-  },
-  {
-    "file": "src/pages/reports/components/reports-header.tsx",
-    "key": "reports.view_matrix",
-    "lang": "zh"
-  },
-  {
-    "file": "src/pages/reports/components/reports-header.tsx",
-    "key": "reports.view_summary",
-    "lang": "zh"
-  },
-  {
-    "file": "src/pages/reports/components/reports-header.tsx",
-    "key": "reports.view_summary",
-    "lang": "zh"
-  },
-  {
-    "file": "src/pages/reports/components/reports-header.tsx",
-    "key": "reports.export_matrix_csv",
-    "lang": "zh"
-  },
-  {
-    "file": "src/pages/reports/components/reports-table/columns.tsx",
-    "key": "reports.table.employee",
-    "lang": "zh"
-  },
-  {
-    "file": "src/pages/reports/components/reports-table/columns.tsx",
-    "key": "reports.table.notes",
     "lang": "zh"
   },
   {
@@ -935,53 +960,63 @@
     "lang": "zh"
   },
   {
-    "file": "src/pages/settings/lifecycle-templates-page.tsx",
-    "key": "settings.lifecycle.create_template",
+    "file": "src/pages/settings/components/settings-sidebar.tsx",
+    "key": "settings.back_to_workspace",
     "lang": "en"
   },
   {
-    "file": "src/pages/settings/lifecycle-templates-page.tsx",
-    "key": "settings.lifecycle.create_template",
+    "file": "src/pages/settings/components/settings-sidebar.tsx",
+    "key": "settings.back_to_workspace",
+    "lang": "vi"
+  },
+  {
+    "file": "src/pages/settings/components/settings-sidebar.tsx",
+    "key": "settings.back_to_workspace",
     "lang": "zh"
   },
   {
-    "file": "src/pages/settings/lifecycle-templates-page.tsx",
-    "key": "settings.lifecycle.subtitle",
+    "file": "src/pages/settings/condition-types-page.tsx",
+    "key": "settings.condition_types.no_types_desc",
     "lang": "en"
   },
   {
-    "file": "src/pages/settings/lifecycle-templates-page.tsx",
-    "key": "settings.lifecycle.subtitle",
+    "file": "src/pages/settings/condition-types-page.tsx",
+    "key": "settings.condition_types.no_types_desc",
+    "lang": "vi"
+  },
+  {
+    "file": "src/pages/settings/condition-types-page.tsx",
+    "key": "settings.condition_types.no_types_desc",
     "lang": "zh"
   },
   {
-    "file": "src/pages/settings/lifecycle-templates-page.tsx",
-    "key": "settings.lifecycle.title",
+    "file": "src/pages/settings/hooks/use-settings-nav.tsx",
+    "key": "settings.categories.members_desc",
     "lang": "en"
   },
   {
-    "file": "src/pages/settings/lifecycle-templates-page.tsx",
-    "key": "settings.lifecycle.title",
+    "file": "src/pages/settings/hooks/use-settings-nav.tsx",
+    "key": "settings.categories.members_desc",
+    "lang": "vi"
+  },
+  {
+    "file": "src/pages/settings/hooks/use-settings-nav.tsx",
+    "key": "settings.categories.members_desc",
     "lang": "zh"
   },
   {
-    "file": "src/pages/settings/lifecycle-templates-page.tsx",
-    "key": "settings.lifecycle.empty.description",
+    "file": "src/pages/settings/hooks/use-settings-nav.tsx",
+    "key": "smtp.subtitle",
     "lang": "en"
   },
   {
-    "file": "src/pages/settings/lifecycle-templates-page.tsx",
-    "key": "settings.lifecycle.empty.description",
-    "lang": "zh"
+    "file": "src/pages/settings/hooks/use-settings-nav.tsx",
+    "key": "smtp.subtitle",
+    "lang": "vi"
   },
   {
-    "file": "src/pages/settings/lifecycle-templates-page.tsx",
-    "key": "settings.lifecycle.empty.title",
-    "lang": "en"
-  },
-  {
-    "file": "src/pages/settings/lifecycle-templates-page.tsx",
-    "key": "settings.lifecycle.empty.title",
+    "file": "src/pages/settings/hooks/use-settings-nav.tsx",
+    "key": "smtp.subtitle",
     "lang": "zh"
   },
   {
@@ -997,6 +1032,36 @@
   {
     "file": "src/pages/settings/payroll-settings.tsx",
     "key": "common.settings.tabs.salary_bases",
+    "lang": "zh"
+  },
+  {
+    "file": "src/pages/settings/time-settings/timeline.tsx",
+    "key": "common.version",
+    "lang": "en"
+  },
+  {
+    "file": "src/pages/settings/time-settings/timeline.tsx",
+    "key": "common.version",
+    "lang": "vi"
+  },
+  {
+    "file": "src/pages/settings/time-settings/timeline.tsx",
+    "key": "common.version",
+    "lang": "zh"
+  },
+  {
+    "file": "src/pages/settings/time-settings/timeline.tsx",
+    "key": "common.versions",
+    "lang": "en"
+  },
+  {
+    "file": "src/pages/settings/time-settings/timeline.tsx",
+    "key": "common.versions",
+    "lang": "vi"
+  },
+  {
+    "file": "src/pages/settings/time-settings/timeline.tsx",
+    "key": "common.versions",
     "lang": "zh"
   }
 ]

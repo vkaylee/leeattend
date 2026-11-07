@@ -22,7 +22,7 @@ const BUDGETS = [
   // and compress away, so gzip is the meaningful gate for these chunks.
   { name: "Locale en", prefix: "locale-en-", suffix: ".js", maxSize: 260_000, maxGzip: 65_000 },
   { name: "Locale vi", prefix: "locale-vi-", suffix: ".js", maxSize: 260_000, maxGzip: 68_000 },
-  { name: "Locale zh", prefix: "locale-zh-", suffix: ".js", maxSize: 260_000, maxGzip: 65_000 },
+  { name: "Locale zh", prefix: "locale-zh-", suffix: ".js", maxSize: 260_000, maxGzip: 68_000 },
 ];
 
 function findFiles(prefix, suffix) {

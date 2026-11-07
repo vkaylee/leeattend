@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 
-import { fetchEmployees, fetchWorkingConditions, getStandaloneOrganizationId } from "@/lib/api";
+import { fetchEmployees, fetchWorkingConditions, fetchWorkspaceWorkingConditions, getStandaloneOrganizationId, type WorkingConditionWithEmployee } from "@/lib/api";
 import { employeeKeys } from "@/lib/query-keys";
 import { useOrganizationQuery } from "@/hooks/common/use-workspace-query";
 
@@ -46,10 +46,27 @@ export function useAllEmployees(
   };
 }
 
+export const workingConditionKeys = {
+  all: ["working-conditions"] as const,
+  list: (employeeId: string) => [...workingConditionKeys.all, employeeId] as const,
+  workspace: (wsId: string) => [...workingConditionKeys.all, wsId, "workspace"] as const,
+};
+
+export function useWorkspaceWorkingConditions(wsId: string | null | undefined) {
+  return useQuery<WorkingConditionWithEmployee[]>({
+    queryKey: wsId ? workingConditionKeys.workspace(wsId) : [],
+    queryFn: () => {
+      if (!wsId) throw new Error("Workspace ID is required");
+      return fetchWorkspaceWorkingConditions(wsId);
+    },
+    enabled: !!wsId,
+  });
+}
+
 export function useWorkingConditions(employeeId: string) {
   const wsId = getStandaloneOrganizationId();
   return useQuery({
-    queryKey: ["working-conditions", employeeId],
+    queryKey: workingConditionKeys.list(employeeId),
     queryFn: () => {
       if (!wsId) throw new Error("Workspace ID is required");
       return fetchWorkingConditions(wsId, employeeId);

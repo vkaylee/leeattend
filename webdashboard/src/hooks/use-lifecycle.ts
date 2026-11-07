@@ -23,6 +23,7 @@ import {
   createLifecycleChecklist,
   updateChecklistItemStatus,
   fetchMyPendingTasks,
+  fetchWorkspaceLifecycleInstances,
 } from "@/lib/api/lifecycle";
 
 export const lifecycleKeys = {
@@ -34,6 +35,7 @@ export const lifecycleKeys = {
     [...lifecycleKeys.all, workspaceId, "checklists", employmentId] as const,
   checklist: (workspaceId: string, id: string) => [...lifecycleKeys.all, workspaceId, "checklist", id] as const,
   pendingTasks: (workspaceId: string) => [...lifecycleKeys.all, workspaceId, "pending-tasks"] as const,
+  instances: (workspaceId: string) => [...lifecycleKeys.all, workspaceId, "instances"] as const,
 };
 
 // Templates Hooks
@@ -252,6 +254,20 @@ export const useMyPendingTasks = () => {
     queryFn: () => {
       if (!workspaceId) throw new Error("No workspace ID");
       return fetchMyPendingTasks(workspaceId);
+    },
+    enabled: !!workspaceId,
+  });
+};
+
+export const useWorkspaceLifecycleInstances = (wsIdOverride?: string) => {
+  const { workspace } = useWorkspace();
+  const workspaceId = wsIdOverride || workspace?.id;
+
+  return useQuery({
+    queryKey: lifecycleKeys.instances(workspaceId ?? ""),
+    queryFn: () => {
+      if (!workspaceId) throw new Error("No workspace ID");
+      return fetchWorkspaceLifecycleInstances(workspaceId);
     },
     enabled: !!workspaceId,
   });

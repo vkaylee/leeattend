@@ -11,7 +11,40 @@ import type {
   UpdateChecklistItemStatusRequest,
 } from "./types";
 
+import { ApiError } from "./errors";
+import { apiFetch } from "./helpers";
 import { client } from "./client";
+
+export interface LifecycleInstanceSummary {
+  id: string;
+  workspace_id: string;
+  employment_id: string;
+  employee_id: string;
+  employee_name: string;
+  employee_code: string;
+  department_name?: string | null;
+  template_id?: string | null;
+  template_name?: string | null;
+  checklist_type: string;
+  status: string;
+  progress_percent: number;
+  total_items: number;
+  completed_items: number;
+  started_at: string;
+  completed_at?: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export async function fetchWorkspaceLifecycleInstances(
+  wsId: string
+): Promise<LifecycleInstanceSummary[]> {
+  const res = await apiFetch(`/api/v1/workspaces/${wsId}/lifecycle/instances`);
+  if (!res.ok) {
+    throw new ApiError(res.status, "Failed to fetch workspace lifecycle instances");
+  }
+  return res.json() as Promise<LifecycleInstanceSummary[]>;
+}
 
 export async function fetchLifecycleTemplates(
   wsId: string

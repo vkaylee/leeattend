@@ -211,6 +211,35 @@ func (m *mockLifecycleRepo) ListChecklistsForEmployment(ctx context.Context, wsI
 	}
 	return list, nil
 }
+func (m *mockLifecycleRepo) ListWorkspaceChecklists(ctx context.Context, wsID uuid.UUID) ([]LifecycleInstanceSummary, error) {
+	var list []LifecycleInstanceSummary
+	for _, cl := range m.checklists {
+		if cl.WorkspaceID == wsID {
+			tmplName := "Standard Onboarding"
+			deptName := "Engineering"
+			list = append(list, LifecycleInstanceSummary{
+				ID:              cl.ID,
+				WorkspaceID:     cl.WorkspaceID,
+				EmploymentID:    cl.EmploymentID,
+				EmployeeID:      uuid.New(),
+				EmployeeName:    "Nguyen Van A",
+				EmployeeCode:    "EMP-001",
+				DepartmentName:  &deptName,
+				TemplateID:      cl.TemplateID,
+				TemplateName:    &tmplName,
+				ChecklistType:   cl.ChecklistType,
+				Status:          cl.Status,
+				ProgressPercent: cl.ProgressPercent,
+				TotalItems:      len(cl.Items),
+				CompletedItems:  0,
+				StartedAt:       cl.StartedAt,
+				CreatedAt:       cl.CreatedAt,
+				UpdatedAt:       cl.UpdatedAt,
+			})
+		}
+	}
+	return list, nil
+}
 
 func (m *mockLifecycleRepo) UpdateChecklistItemStatus(ctx context.Context, wsID, itemID uuid.UUID, status string, notes *string, completedBy *uuid.UUID) (LifecycleChecklistResponse, error) {
 	for clID, cl := range m.checklists {
@@ -386,5 +415,39 @@ func TestChecklistProgressAndAssigneeAuth(t *testing.T) {
 	_ = json.Unmarshal(recAllowed.Body.Bytes(), &updatedCl)
 	if updatedCl.ProgressPercent != 100 || updatedCl.Status != "completed" {
 		t.Fatalf("expected 100 percent progress and completed status, got progress %d status %s", updatedCl.ProgressPercent, updatedCl.Status)
+	}
+}
+func TestListWorkspaceChecklists(t *testing.T) {
+	wsID := uuid.New()
+	empID := uuid.New()
+	repo := &mockLifecycleRepo{}
+	auth := mockLifecycleAuth{allowed: map[string]bool{"employees:read": true}}
+	handler := LifecycleHandler{
+		Repository: repo,
+		Authorizer: auth,
+	}
+
+	tmplID := uuid.New()
+	_, _ = repo.CreateChecklistFromTemplate(context.Background(), wsID, empID, tmplID, nil, nil)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/workspaces/"+wsID.String()+"/lifecycle/instances", nil)
+	req.SetPathValue("ws_id", wsID.String())
+	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
+	rec := httptest.NewRecorder()
+
+	handler.ListWorkspaceChecklists(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200 OK, got %d: %s", rec.Code, rec.Body.String())
+	}
+
+	var list []LifecycleInstanceSummary
+	if err := json.Unmarshal(rec.Body.Bytes(), &list); err != nil {
+		t.Fatalf("failed to decode response: %v", err)
+	}
+	if len(list) != 1 {
+		t.Fatalf("expected 1 checklist instance, got %d", len(list))
+	}
+	if list[0].EmployeeName != "Nguyen Van A" {
+		t.Fatalf("expected employee name Nguyen Van A, got %s", list[0].EmployeeName)
 	}
 }

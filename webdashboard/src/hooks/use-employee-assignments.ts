@@ -9,14 +9,29 @@ import {
   createEmployeeAssignment,
   deleteEmployeeAssignment,
   fetchEmployeeAssignments,
+  fetchWorkspaceAssignments,
   updateEmployeeAssignment,
+  type EmployeeAssignmentWithEmployee,
 } from "@/lib/api/employee-assignments";
 
 export const employeeAssignmentKeys = {
   all: ["employee-assignments"] as const,
   list: (wsId: string, employeeId: string) =>
     [...employeeAssignmentKeys.all, wsId, employeeId] as const,
+  workspace: (wsId: string) =>
+    [...employeeAssignmentKeys.all, wsId, "workspace"] as const,
 };
+
+export function useWorkspaceAssignments(wsId: string | null | undefined) {
+  return useQuery<EmployeeAssignmentWithEmployee[]>({
+    queryKey: wsId ? employeeAssignmentKeys.workspace(wsId) : [],
+    queryFn: () => {
+      if (!wsId) throw new Error("Missing params");
+      return fetchWorkspaceAssignments(wsId);
+    },
+    enabled: !!wsId,
+  });
+}
 
 export function useEmployeeAssignments(wsId: string | null | undefined, employeeId: string | null | undefined) {
   return useQuery({
@@ -44,7 +59,7 @@ export function useCreateEmployeeAssignment() {
     }) => createEmployeeAssignment(wsId, employeeId, data),
     onSuccess: (data, variables) => {
       void queryClient.invalidateQueries({
-        queryKey: employeeAssignmentKeys.list(variables.wsId, variables.employeeId),
+        queryKey: employeeAssignmentKeys.all,
       });
     },
   });
@@ -67,7 +82,7 @@ export function useUpdateEmployeeAssignment() {
     }) => updateEmployeeAssignment(wsId, employeeId, assignmentId, data),
     onSuccess: (data, variables) => {
       void queryClient.invalidateQueries({
-        queryKey: employeeAssignmentKeys.list(variables.wsId, variables.employeeId),
+        queryKey: employeeAssignmentKeys.all,
       });
     },
   });
@@ -88,7 +103,7 @@ export function useDeleteEmployeeAssignment() {
     }) => deleteEmployeeAssignment(wsId, employeeId, assignmentId),
     onSuccess: (_, variables) => {
       void queryClient.invalidateQueries({
-        queryKey: employeeAssignmentKeys.list(variables.wsId, variables.employeeId),
+        queryKey: employeeAssignmentKeys.all,
       });
     },
   });

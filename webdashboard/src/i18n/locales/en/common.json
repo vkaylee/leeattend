@@ -196,6 +196,9 @@
     "employee": "Employee",
     "employee_id": "Employee ID",
     "employees": "Employees",
+    "assignments": "Assignments",
+    "working_conditions": "Working Conditions",
+    "lifecycle": "Lifecycle Hub",
     "employer": "Employer",
     "enable": "Enable",
     "end": "End",
@@ -2379,5 +2382,167 @@
     "confirmDelete": "Are you sure you want to delete this role?",
     "subtitle": "Define custom roles and manage access levels across the workspace",
     "createRole": "Create Role"
+  },
+  "assignments": {
+    "title": "Personnel Assignments Hub",
+    "subtitle": "Centralized management of employee secondments, transfers, and assignments across the organization",
+    "search_label": "Search assignments",
+    "search_placeholder": "Search employee, ID or note...",
+    "status": {
+      "all": "ALL STATUS",
+      "active": "ACTIVE",
+      "scheduled": "SCHEDULED",
+      "completed": "COMPLETED",
+      "cancelled": "CANCELLED"
+    },
+    "metrics": {
+      "total": "Total Assignments",
+      "active": "Active",
+      "scheduled": "Scheduled",
+      "completed": "Completed"
+    },
+    "table": {
+      "employee": "EMPLOYEE",
+      "locations": "LOCATIONS (FROM → TO)",
+      "duration": "DURATION",
+      "reason": "REASON / NOTE"
+    },
+    "home_location": "Headquarters",
+    "host_location": "Host Location",
+    "indefinite": "Indefinite",
+    "no_assignments_found": "No Assignments Found",
+    "search_no_results": "No assignments match your search criteria.",
+    "empty_state": "No employee assignments have been recorded in this workspace yet.",
+    "actions": {
+      "create": "CREATE ASSIGNMENT",
+      "edit": "Edit assignment",
+      "delete": "Delete assignment"
+    },
+    "delete_title": "Delete Assignment",
+    "delete_confirm": "Are you sure you want to delete this assignment?",
+    "delete_success": "Assignment deleted successfully.",
+    "fields": {
+      "employee": "Employee"
+    },
+    "placeholders": {
+      "select_employee": "Select employee..."
+    }
+  }
+,
+  "working_conditions": {
+    "title": "Working Conditions Hub",
+    "subtitle": "Centralized management of special working arrangements (childcare, maternity, hazardous, remote) across the organization",
+    "search_label": "Search working conditions",
+    "search_placeholder": "Search employee, ID or condition type...",
+    "search_no_results": "No working conditions match your search criteria.",
+    "empty_state": "No special working conditions have been recorded in this workspace yet.",
+    "no_conditions_found": "No Working Conditions Found",
+    "paid": "Paid",
+    "unpaid": "Unpaid",
+    "delete_title": "Delete Working Condition",
+    "delete_confirm": "Are you sure you want to delete this working condition for {{name}}?",
+    "delete_success": "Working condition deleted successfully.",
+    "metrics": {
+      "total": "Total Records",
+      "active": "Active Now",
+      "paid": "Paid Regime",
+      "unpaid": "Unpaid Regime"
+    },
+    "filters": {
+      "all_types": "ALL CONDITION TYPES",
+      "payment": "PAYMENT REGIME",
+      "all_payment": "ALL REGIMES"
+    },
+    "table": {
+      "employee": "EMPLOYEE",
+      "condition_type": "CONDITION TYPE",
+      "duration": "EFFECTIVE PERIOD",
+      "payment_regime": "PAYMENT STATUS"
+    },
+    "actions": {
+      "create": "ASSIGN CONDITION",
+      "delete": "Delete condition"
+    },
+    "modal": {
+      "title_assign": "Assign Working Condition",
+      "title_employee": "Add Working Condition for {{name}}",
+      "subtitle": "Configure special working condition (childcare, maternity, hazard, etc.)",
+      "employee_label": "Target Employee",
+      "select_employee_placeholder": "Select employee...",
+      "type_label": "Condition Type",
+      "select_type_placeholder": "Select condition type...",
+      "start_date": "Start Date",
+      "end_date": "End Date",
+      "end_date_hint": "Leave blank if indefinite / until further notice",
+      "paid_label": "Maintain regular salary under this condition",
+      "create_success": "Working condition assigned successfully"
+    }
+  }
+,
+  "lifecycle": {
+    "title": "Personnel Lifecycle Hub",
+    "subtitle": "Centralized tracking of onboarding, probation, role transfer, and offboarding workflows across the company",
+    "search_label": "Search lifecycle processes",
+    "search_placeholder": "Search employee, ID, department, checklist template...",
+    "search_no_results": "No employee lifecycle processes match your search criteria.",
+    "empty_state": "No onboarding, probation, or offboarding workflows have been created yet.",
+    "no_instances_found": "No Lifecycle Processes Found",
+    "items_label": "tasks",
+    "progress": "Progress",
+    "started_at": "Started",
+    "view_detail": "View checklist",
+    "assign_success": "Lifecycle workflow initialized successfully for {{name}}",
+    "metrics": {
+      "total": "Total Workflows",
+      "in_progress": "In Progress",
+      "onboarding": "Active Onboarding",
+      "offboarding": "Active Offboarding"
+    },
+    "filters": {
+      "all_types": "ALL WORKFLOW TYPES",
+      "all_statuses": "ALL STATUSES"
+    },
+    "types": {
+      "onboarding": "Onboarding",
+      "probation": "Probation End",
+      "offboarding": "Offboarding",
+      "transfer": "Role Transfer"
+    },
+    "status": {
+      "in_progress": "In Progress",
+      "completed": "Completed"
+    },
+    "table": {
+      "employee": "EMPLOYEE",
+      "process_name": "CHECKLIST PROCESS",
+      "progress": "PROGRESS",
+      "status": "STATUS",
+      "started_date": "STARTED DATE"
+    },
+    "actions": {
+      "create": "INITIALIZE WORKFLOW",
+      "submit_assign": "INITIALIZE WORKFLOW"
+    },
+    "modal": {
+      "title": "Initialize Lifecycle Workflow",
+      "subtitle_employee": "Assign checklist process for employee",
+      "subtitle_hub": "Start new lifecycle workflow (Onboarding, Probation, Offboarding) for employee"
+    },
+    "fields": {
+      "employee": "Target Employee",
+      "template": "Checklist Template"
+    },
+    "placeholders": {
+      "select_employee": "Search active employee...",
+      "select_template": "Select template (Onboarding, Probation, Offboarding...)"
+    },
+    "labels": {
+      "active_employment": "Active Employment Profile"
+    },
+    "errors": {
+      "no_active_employment": "Selected employee has no active employment profile.",
+      "no_template_selected": "Please select a workflow checklist template.",
+      "employee_has_no_employment": "This employee does not currently have an active employment profile."
+    }
   }
 }

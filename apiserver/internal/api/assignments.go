@@ -41,6 +41,15 @@ type EmployeeAssignment struct {
 	EmploymentID   uuid.UUID        `json:"employment_id"`
 }
 
+type EmployeeAssignmentWithEmployee struct {
+	EmployeeAssignment
+	EmployeeID       uuid.UUID `json:"employee_id"`
+	EmployeeName     string    `json:"employee_name"`
+	EmployeeCode     string    `json:"employee_code"`
+	HomeLocationName string    `json:"home_location_name"`
+	HostLocationName string    `json:"host_location_name"`
+}
+
 type CreateEmployeeAssignmentRequest struct {
 	HostLocationID uuid.UUID `json:"host_location_id"`
 	StartDate      string    `json:"start_date"`
@@ -174,6 +183,7 @@ type ActiveEmployment struct {
 }
 
 type EmployeeAssignmentRepository interface {
+	ListWorkspaceAssignments(context.Context, uuid.UUID) ([]EmployeeAssignmentWithEmployee, error)
 	ListEmployeeAssignments(context.Context, uuid.UUID, uuid.UUID) ([]EmployeeAssignment, error)
 	GetEmployeeAssignment(context.Context, uuid.UUID, uuid.UUID, uuid.UUID) (EmployeeAssignment, error)
 	GetActiveEmployment(context.Context, uuid.UUID, uuid.UUID, string) (ActiveEmployment, error)
@@ -276,6 +286,19 @@ func (h AssignmentHandler) assignmentError(w http.ResponseWriter, r *http.Reques
 	default:
 		apperror.WriteError(w, r, apperror.Internal(err))
 	}
+}
+
+func (h AssignmentHandler) ListWorkspaceAssignments(w http.ResponseWriter, r *http.Request) {
+	workspaceID, _, ok := assignmentIDs(r)
+	if !ok || !h.member(w, r, workspaceID) {
+		return
+	}
+	items, err := h.Assignments.ListWorkspaceAssignments(r.Context(), workspaceID)
+	if err != nil {
+		h.assignmentError(w, r, err)
+		return
+	}
+	apperror.WriteJSON(w, http.StatusOK, items)
 }
 
 func (h AssignmentHandler) ListEmployeeAssignments(w http.ResponseWriter, r *http.Request) {

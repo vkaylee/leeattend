@@ -12,13 +12,13 @@ import FormField from "@/components/ui/form-field";
 import Modal from "@/components/ui/modal";
 import { useToast } from "@/components/ui/toast";
 import { Typography } from "@/components/ui/typography";
+import { useAllEmployees } from "@/hooks/use-employees";
 import {
   useCreateEmployeeAssignment,
   useUpdateEmployeeAssignment,
 } from "@/hooks/use-employee-assignments";
 import { type EmployeeAssignment } from "@/lib/api";
 import { useLocations } from "@/pages/settings/hooks/use-locations";
-
 const assignmentSchema = z
   .object({
     host_location_id: z.string().optional(),
@@ -41,9 +41,9 @@ const assignmentSchema = z
 
 type AssignmentFormValues = z.infer<typeof assignmentSchema>;
 
-interface EmployeeAssignmentFormModalProps {
-  editingAssignment: EmployeeAssignment | null;
-  employeeId: string;
+export interface EmployeeAssignmentFormModalProps {
+  editingAssignment: (EmployeeAssignment & { employee_id?: string; employee_name?: string; employee_code?: string }) | null;
+  employeeId?: string;
   isOpen: boolean;
   onClose: () => void;
   wsId: string;
@@ -58,15 +58,16 @@ function useAssignmentForm({
 }: {
   isOpen: boolean;
   wsId: string;
-  employeeId: string;
-  editingAssignment: EmployeeAssignment | null;
+  employeeId?: string;
+  editingAssignment: (EmployeeAssignment & { employee_id?: string; employee_name?: string; employee_code?: string }) | null;
   onClose: () => void;
 }) {
   const toast = useToast();
   const createAssignment = useCreateEmployeeAssignment();
   const updateAssignment = useUpdateEmployeeAssignment();
   const { data: locations } = useLocations(wsId);
-
+  const { data: employees } = useAllEmployees(wsId, { enabled: isOpen && !employeeId });
+  const [selectedEmployeeId, setSelectedEmployeeId] = React.useState<string>("");
   const {
     register,
     handleSubmit,
@@ -87,6 +88,7 @@ function useAssignmentForm({
   useEffect(() => {
     if (isOpen) {
       if (editingAssignment) {
+        setSelectedEmployeeId(editingAssignment.employee_id ?? employeeId ?? "");
         reset({
           status: editingAssignment.status,
           start_date: editingAssignment.start_date,
@@ -95,6 +97,7 @@ function useAssignmentForm({
           reason: editingAssignment.reason ?? "",
         });
       } else {
+        setSelectedEmployeeId(employeeId ?? "");
         reset({
           status: "scheduled",
           start_date: new Date().toISOString().split("T")[0],
@@ -104,17 +107,23 @@ function useAssignmentForm({
         });
       }
     }
-  }, [isOpen, editingAssignment, reset]);
+  }, [isOpen, editingAssignment, employeeId, reset]);
 
   const onSubmit = async (data: AssignmentFormValues) => {
     try {
+      const targetEmployeeId = employeeId || editingAssignment?.employee_id || selectedEmployeeId;
+      if (!targetEmployeeId) {
+        toast.error("Vui lòng chọn nhân sự");
+        return;
+      }
+
       const payloadDate = data.end_date ?? null;
       const payloadLocationId = data.host_location_id ?? null;
 
       if (editingAssignment) {
         await updateAssignment.mutateAsync({
           wsId,
-          employeeId,
+          employeeId: targetEmployeeId,
           assignmentId: editingAssignment.id,
           data: {
             end_date: payloadDate,
@@ -130,7 +139,7 @@ function useAssignmentForm({
         }
         await createAssignment.mutateAsync({
           wsId,
-          employeeId,
+          employeeId: targetEmployeeId,
           data: {
             start_date: data.start_date,
             end_date: payloadDate,
@@ -154,6 +163,9 @@ function useAssignmentForm({
     errors,
     isSubmitting,
     locations,
+    employees,
+    selectedEmployeeId,
+    setSelectedEmployeeId,
     onSubmit,
   };
 }
@@ -173,6 +185,9 @@ export default function EmployeeAssignmentFormModal({
     errors,
     isSubmitting,
     locations,
+    employees,
+    selectedEmployeeId,
+    setSelectedEmployeeId,
     onSubmit,
   } = useAssignmentForm({
     isOpen,
@@ -197,6 +212,36 @@ export default function EmployeeAssignmentFormModal({
     >
       <form className="space-y-6 pt-4" onSubmit={handleSubmit(onSubmit)}>
         <div className="space-y-4">
+          {!employeeId && (
+            <div className="space-y-2">
+              <label
+                className="text-[11px] font-bold text-slate-500 uppercase tracking-widest"
+                htmlFor="assignment-employee-combobox"
+              >
+                {t("assignments.fields.employee", "Nhân sự")} *
+              </label>
+              {editingAssignment ? (
+                <div className="px-3 py-2.5 bg-slate-100 dark:bg-slate-800 rounded-xl text-sm font-semibold text-slate-800 dark:text-slate-200">
+                  {editingAssignment.employee_name || "Nhân sự"} {editingAssignment.employee_code ? `(${editingAssignment.employee_code})` : ""}
+                </div>
+              ) : (
+                <Combobox
+                  clearOnEscape
+                  data-testid="assignment-employee-combobox"
+                  id="assignment-employee-combobox"
+                  onChange={setSelectedEmployeeId}
+                  options={(employees ?? []).map((emp) => ({
+                    value: emp.id,
+                    label: `${emp.full_name} (${emp.employee_id_number})`,
+                    description: emp.department_name ?? emp.job_title ?? undefined,
+                  }))}
+                  placeholder={t("assignments.placeholders.select_employee", "Chọn nhân sự phái cử...")}
+                  value={selectedEmployeeId}
+                />
+              )}
+            </div>
+          )}
+
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1">
               <FormField

@@ -78,6 +78,26 @@ type LifecycleChecklistResponse struct {
 	UpdatedAt       string                   `json:"updated_at"`
 	Items           []LifecycleChecklistItem `json:"items"`
 }
+type LifecycleInstanceSummary struct {
+	ID              uuid.UUID  `json:"id"`
+	WorkspaceID     uuid.UUID  `json:"workspace_id"`
+	EmploymentID    uuid.UUID  `json:"employment_id"`
+	EmployeeID      uuid.UUID  `json:"employee_id"`
+	EmployeeName    string     `json:"employee_name"`
+	EmployeeCode    string     `json:"employee_code"`
+	DepartmentName  *string    `json:"department_name"`
+	TemplateID      *uuid.UUID `json:"template_id"`
+	TemplateName    *string    `json:"template_name"`
+	ChecklistType   string     `json:"checklist_type"`
+	Status          string     `json:"status"`
+	ProgressPercent int        `json:"progress_percent"`
+	TotalItems      int        `json:"total_items"`
+	CompletedItems  int        `json:"completed_items"`
+	StartedAt       string     `json:"started_at"`
+	CompletedAt     *string    `json:"completed_at"`
+	CreatedAt       string     `json:"created_at"`
+	UpdatedAt       string     `json:"updated_at"`
+}
 
 type PendingTaskResponse struct {
 	ID            uuid.UUID `json:"id"`
@@ -184,6 +204,7 @@ type LifecycleRepository interface {
 	CreateChecklistFromTemplate(ctx context.Context, wsID, employmentID, templateID uuid.UUID, actorID *uuid.UUID, usersResolver func(string) []uuid.UUID) (LifecycleChecklistResponse, error)
 	GetChecklist(ctx context.Context, wsID, checklistID uuid.UUID) (LifecycleChecklistResponse, error)
 	ListChecklistsForEmployment(ctx context.Context, wsID, employmentID uuid.UUID) ([]LifecycleChecklistResponse, error)
+	ListWorkspaceChecklists(ctx context.Context, wsID uuid.UUID) ([]LifecycleInstanceSummary, error)
 	UpdateChecklistItemStatus(ctx context.Context, wsID, itemID uuid.UUID, status string, notes *string, completedBy *uuid.UUID) (LifecycleChecklistResponse, error)
 	GetItemAssigneeAndChecklist(ctx context.Context, wsID, itemID uuid.UUID) (assigneeID *uuid.UUID, checklistID uuid.UUID, err error)
 	GetPendingTasksForUser(ctx context.Context, wsID, userID uuid.UUID) ([]PendingTaskResponse, error)
@@ -488,6 +509,23 @@ func (h LifecycleHandler) ListChecklists(w http.ResponseWriter, r *http.Request)
 		return
 	}
 	list, err := h.Repository.ListChecklistsForEmployment(r.Context(), wsID, empID)
+	if err != nil {
+		h.writeErr(w, r, err)
+		return
+	}
+	apperror.WriteJSON(w, http.StatusOK, list)
+}
+func (h LifecycleHandler) ListWorkspaceChecklists(w http.ResponseWriter, r *http.Request) {
+	wsID, ok := pathUUID(r, "ws_id")
+	if !ok || !h.allowed(r, wsID, "employees:read") {
+		h.deny(w, r)
+		return
+	}
+	if h.Repository == nil {
+		apperror.WriteError(w, r, apperror.NotFound(apperror.KeyNotFound))
+		return
+	}
+	list, err := h.Repository.ListWorkspaceChecklists(r.Context(), wsID)
 	if err != nil {
 		h.writeErr(w, r, err)
 		return

@@ -196,6 +196,9 @@
     "employee": "员工",
     "employee_id": "员工 ID",
     "employees": "员工",
+    "assignments": "外派与调动",
+    "working_conditions": "工作条件",
+    "lifecycle": "员工生命周期",
     "employer": "雇主",
     "enable": "启用",
     "end": "结束",
@@ -2379,5 +2382,167 @@
     "confirmDelete": "Are you sure you want to delete this role?",
     "subtitle": "Define custom roles and manage access levels across the workspace",
     "createRole": "Create Role"
+  },
+  "assignments": {
+    "title": "外派与调动管理",
+    "subtitle": "集中管理全公司员工的外派、调动与出差记录",
+    "search_label": "搜索外派记录",
+    "search_placeholder": "搜索员工姓名、工号、备注...",
+    "status": {
+      "all": "所有状态",
+      "active": "生效中",
+      "scheduled": "已排期",
+      "completed": "已完成",
+      "cancelled": "已取消"
+    },
+    "metrics": {
+      "total": "外派总数",
+      "active": "生效中",
+      "scheduled": "已排期",
+      "completed": "已完成"
+    },
+    "table": {
+      "employee": "员工",
+      "locations": "地点 (原地点 → 接收地)",
+      "duration": "期限",
+      "reason": "原因 / 备注"
+    },
+    "home_location": "总部",
+    "host_location": "接收地",
+    "indefinite": "未确定 / 长期",
+    "no_assignments_found": "未找到外派记录",
+    "search_no_results": "未找到匹配条件的外派记录。",
+    "empty_state": "当前工作区暂无外派记录。",
+    "actions": {
+      "create": "新建外派",
+      "edit": "编辑外派",
+      "delete": "删除外派"
+    },
+    "delete_title": "删除外派指令",
+    "delete_confirm": "确定要删除此外派指令吗？此操作无法撤销。",
+    "delete_success": "删除外派指令成功。",
+    "fields": {
+      "employee": "员工"
+    },
+    "placeholders": {
+      "select_employee": "选择外派员工..."
+    }
+  }
+,
+  "working_conditions": {
+    "title": "特殊工作条件管理",
+    "subtitle": "全公司集中管理特殊劳动制度（育儿、产假、特殊津贴、远程工作等）",
+    "search_label": "搜索工作条件",
+    "search_placeholder": "搜索员工姓名、工号或条件类型...",
+    "search_no_results": "未找到符合筛选条件的工作条件记录。",
+    "empty_state": "当前工作区暂未记录任何特殊工作条件。",
+    "no_conditions_found": "未找到工作条件",
+    "paid": "有薪",
+    "unpaid": "无薪",
+    "delete_title": "删除工作条件",
+    "delete_confirm": "您确定要删除员工 {{name}} 的此项工作条件吗？",
+    "delete_success": "已成功删除工作条件。",
+    "metrics": {
+      "total": "总记录数",
+      "active": "当前生效",
+      "paid": "有薪制度",
+      "unpaid": "无薪制度"
+    },
+    "filters": {
+      "all_types": "所有条件类型",
+      "payment": "薪资制度",
+      "all_payment": "全部薪资模式"
+    },
+    "table": {
+      "employee": "员工",
+      "condition_type": "条件类型",
+      "duration": "适用期限",
+      "payment_regime": "薪资待遇"
+    },
+    "actions": {
+      "create": "分配工作条件",
+      "delete": "删除条件"
+    },
+    "modal": {
+      "title_assign": "分配特殊工作条件",
+      "title_employee": "为 {{name}} 添加工作条件",
+      "subtitle": "配置特殊工作条件与待遇（育儿、产假、高空等）",
+      "employee_label": "适用员工",
+      "select_employee_placeholder": "选择员工...",
+      "type_label": "工作条件类型",
+      "select_type_placeholder": "选择条件类型...",
+      "start_date": "开始日期",
+      "end_date": "结束日期",
+      "end_date_hint": "留空表示长期有效 / 直至另行通知",
+      "paid_label": "适用此条件期间享有全额薪资",
+      "create_success": "工作条件分配成功"
+    }
+  }
+,
+  "lifecycle": {
+    "title": "员工生命周期管理",
+    "subtitle": "集中跟踪全公司入职、试用、调岗和离职交接等流程执行进度",
+    "search_label": "搜索生命周期流程",
+    "search_placeholder": "搜索员工姓名、工号、部门、清单模板...",
+    "search_no_results": "未找到符合筛选条件的生命周期流程记录。",
+    "empty_state": "当前暂未创建任何入职、试用或离职清单流程。",
+    "no_instances_found": "未找到生命周期流程",
+    "items_label": "项任务",
+    "progress": "完成进度",
+    "started_at": "开始时间",
+    "view_detail": "查看清单",
+    "assign_success": "已成功为 {{name}} 发起生命周期流程",
+    "metrics": {
+      "total": "总流程数",
+      "in_progress": "进行中",
+      "onboarding": "入职中",
+      "offboarding": "离职交接中"
+    },
+    "filters": {
+      "all_types": "所有流程类型",
+      "all_statuses": "所有状态"
+    },
+    "types": {
+      "onboarding": "入职导引 (Onboarding)",
+      "probation": "转正考核 (Probation)",
+      "offboarding": "离职交接 (Offboarding)",
+      "transfer": "调动交接 (Transfer)"
+    },
+    "status": {
+      "in_progress": "进行中",
+      "completed": "已完成"
+    },
+    "table": {
+      "employee": "员工",
+      "process_name": "流程与模板",
+      "progress": "执行进度",
+      "status": "状态",
+      "started_date": "开始日期"
+    },
+    "actions": {
+      "create": "发起新流程",
+      "submit_assign": "发起新流程"
+    },
+    "modal": {
+      "title": "发起员工生命周期流程",
+      "subtitle_employee": "为指定员工分配待办清单流程",
+      "subtitle_hub": "为员工发起新流程（入职、试用、离职交接）"
+    },
+    "fields": {
+      "employee": "适用员工",
+      "template": "清单流程模板"
+    },
+    "placeholders": {
+      "select_employee": "搜索当前在职员工...",
+      "select_template": "选择模板（入职、转正、离职交接...）"
+    },
+    "labels": {
+      "active_employment": "当前有效雇佣档案"
+    },
+    "errors": {
+      "no_active_employment": "所选员工没有处于生效状态的雇佣档案。",
+      "no_template_selected": "请选择一个清单模板。",
+      "employee_has_no_employment": "该员工当前没有有效的雇佣关系。"
+    }
   }
 }

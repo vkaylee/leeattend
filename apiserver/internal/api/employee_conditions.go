@@ -28,6 +28,13 @@ type EmployeeCondition struct {
 	EndDate         *string    `json:"end_date"`
 }
 
+type EmployeeConditionWithEmployee struct {
+	EmployeeCondition
+	EmployeeID   uuid.UUID `json:"employee_id"`
+	EmployeeName string    `json:"employee_name"`
+	EmployeeCode string    `json:"employee_code"`
+}
+
 type CreateEmployeeConditionRequest struct {
 	Type            string     `json:"type_"`
 	ConditionTypeID *uuid.UUID `json:"condition_type_id"`
@@ -46,6 +53,7 @@ type EmployeeConditionListResponse struct {
 }
 
 type EmployeeConditionRepository interface {
+	ListWorkspaceConditions(context.Context, uuid.UUID) ([]EmployeeConditionWithEmployee, error)
 	ListEmployeeConditions(context.Context, uuid.UUID, uuid.UUID, int, int) (EmployeeConditionListResponse, error)
 	CreateEmployeeCondition(context.Context, uuid.UUID, uuid.UUID, CreateEmployeeConditionRequest) (EmployeeCondition, error)
 	DeleteEmployeeCondition(context.Context, uuid.UUID, uuid.UUID, uuid.UUID) error
@@ -61,6 +69,29 @@ type ScopedWorkspaceAuthorizer interface {
 type EmployeeConditionHandler struct {
 	Repository EmployeeConditionRepository
 	Authorizer WorkspaceAuthorizer
+}
+
+func (h EmployeeConditionHandler) ListWorkspaceConditions(w http.ResponseWriter, r *http.Request) {
+	wsID, ok := pathUUID(r, "ws_id")
+	if !ok {
+		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
+		return
+	}
+	userID, ok := httpinfra.UserIDFromContext(r.Context())
+	if !ok {
+		apperror.WriteError(w, r, apperror.Unauthorized(apperror.KeyAuthenticationRequired))
+		return
+	}
+	if h.Authorizer != nil && !h.Authorizer.HasPermission(r.Context(), userID, wsID, "employees:read") {
+		h.forbidden(w, r)
+		return
+	}
+	items, err := h.Repository.ListWorkspaceConditions(r.Context(), wsID)
+	if err != nil {
+		h.writeError(w, r, err)
+		return
+	}
+	apperror.WriteJSON(w, http.StatusOK, items)
 }
 
 func (h EmployeeConditionHandler) List(w http.ResponseWriter, r *http.Request) {

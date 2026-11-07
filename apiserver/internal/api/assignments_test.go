@@ -78,6 +78,26 @@ func newMockEmployeeAssignmentRepo() *mockEmployeeAssignmentRepo {
 	}
 }
 
+func (m *mockEmployeeAssignmentRepo) ListWorkspaceAssignments(_ context.Context, wsID uuid.UUID) ([]EmployeeAssignmentWithEmployee, error) {
+	res := make([]EmployeeAssignmentWithEmployee, 0)
+	for _, a := range m.assignments {
+		if a.WorkspaceID == wsID {
+			res = append(res, EmployeeAssignmentWithEmployee{
+				EmployeeAssignment: a,
+				EmployeeID:         uuid.New(),
+				EmployeeName:       "Test Employee",
+				EmployeeCode:       "EMP-001",
+				HomeLocationName:   "HQ",
+				HostLocationName:   "Branch 1",
+			})
+		}
+	}
+	sort.Slice(res, func(i, j int) bool {
+		return res[i].StartDate > res[j].StartDate
+	})
+	return res, nil
+}
+
 func (m *mockEmployeeAssignmentRepo) ListEmployeeAssignments(_ context.Context, wsID, employeeID uuid.UUID) ([]EmployeeAssignment, error) {
 	res := make([]EmployeeAssignment, 0)
 	for _, a := range m.assignments {
@@ -386,6 +406,18 @@ func TestEmployeeAssignments_ValidationAndCRUD(t *testing.T) {
 	var list []EmployeeAssignment
 	if err := json.Unmarshal(rec.Body.Bytes(), &list); err != nil || len(list) != 1 {
 		t.Fatalf("expected 1 assignment in list, got %d (err: %v)", len(list), err)
+	}
+
+	// 6b. List workspace assignments: 200 []EmployeeAssignmentWithEmployee
+	rec = httptest.NewRecorder()
+	req = makeAssignmentRequest(http.MethodGet, "/api/v1/workspaces/"+wsID.String()+"/assignments", "", wsID)
+	handler.ListWorkspaceAssignments(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200 for list workspace assignments, got %d", rec.Code)
+	}
+	var wsList []EmployeeAssignmentWithEmployee
+	if err := json.Unmarshal(rec.Body.Bytes(), &wsList); err != nil || len(wsList) != 1 {
+		t.Fatalf("expected 1 assignment in workspace list, got %d (err: %v)", len(wsList), err)
 	}
 
 	// 7. PATCH: Status enum valid and invalid

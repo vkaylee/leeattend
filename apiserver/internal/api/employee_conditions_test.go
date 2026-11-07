@@ -18,6 +18,22 @@ type mockConditionRepo struct {
 	deptID     *uuid.UUID
 }
 
+func (m mockConditionRepo) ListWorkspaceConditions(_ context.Context, _ uuid.UUID) ([]EmployeeConditionWithEmployee, error) {
+	if m.notFound {
+		return nil, ErrEmployeeNotFound
+	}
+	res := make([]EmployeeConditionWithEmployee, len(m.conditions))
+	for i, c := range m.conditions {
+		res[i] = EmployeeConditionWithEmployee{
+			EmployeeCondition: c,
+			EmployeeID:        uuid.New(),
+			EmployeeName:      "Test Employee",
+			EmployeeCode:      "EMP-001",
+		}
+	}
+	return res, nil
+}
+
 func (m mockConditionRepo) ListEmployeeConditions(_ context.Context, _, _ uuid.UUID, page, limit int) (EmployeeConditionListResponse, error) {
 	if m.notFound {
 		return EmployeeConditionListResponse{}, ErrEmployeeNotFound
@@ -176,5 +192,31 @@ func TestEmployeeConditions_CreateAndDelete(t *testing.T) {
 	hDelNotFound.Delete(recDelNotFound, delReq)
 	if recDelNotFound.Code != http.StatusNotFound {
 		t.Fatalf("expected 404, got %d", recDelNotFound.Code)
+	}
+}
+
+func TestEmployeeConditions_ListWorkspaceConditions(t *testing.T) {
+	wsID, userID := uuid.New(), uuid.New()
+	cond := EmployeeCondition{
+		ID:              uuid.New(),
+		EmploymentID:    uuid.New(),
+		Type:            "maternity",
+		MinuteAllowance: 60,
+		IsPaid:          true,
+		StartDate:       "2026-01-01",
+	}
+	h := EmployeeConditionHandler{
+		Repository: mockConditionRepo{conditions: []EmployeeCondition{cond}},
+		Authorizer: mockAuthorizer{perms: map[string]bool{"employees:read": true}},
+	}
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/workspaces/"+wsID.String()+"/working-conditions", nil)
+	req.SetPathValue("ws_id", wsID.String())
+	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), userID))
+	rec := httptest.NewRecorder()
+	h.ListWorkspaceConditions(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", rec.Code, rec.Body.String())
 	}
 }

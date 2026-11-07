@@ -55,6 +55,42 @@ func scanEmployeeCondition(row interface{ Scan(...any) error }) (api.EmployeeCon
 	c.StartDate, c.EndDate = startDate, endDate
 	return c, nil
 }
+func (r EmployeeConditionRepository) ListWorkspaceConditions(ctx context.Context, workspaceID uuid.UUID) ([]api.EmployeeConditionWithEmployee, error) {
+	db, err := r.db(ctx)
+	if err != nil {
+		return nil, err
+	}
+	rows, err := db.Query(ctx, `SELECT
+		wc.id, wc.employment_id, wc.type, wc.condition_type_id, wc.minute_allowance, wc.is_paid,
+		wc.start_date::text, wc.end_date::text,
+		e.id, e.full_name, e.employee_id_number
+		FROM working_conditions wc
+		JOIN employments em ON em.id = wc.employment_id
+		JOIN employees e ON e.id = em.employee_id
+		WHERE em.workspace_id = $1 AND em.deleted_at IS NULL AND e.deleted_at IS NULL
+		ORDER BY wc.start_date DESC`, workspaceID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := make([]api.EmployeeConditionWithEmployee, 0)
+	for rows.Next() {
+		var item api.EmployeeConditionWithEmployee
+		var startDate string
+		var endDate *string
+		if err := rows.Scan(
+			&item.ID, &item.EmploymentID, &item.Type, &item.ConditionTypeID,
+			&item.MinuteAllowance, &item.IsPaid, &startDate, &endDate,
+			&item.EmployeeID, &item.EmployeeName, &item.EmployeeCode,
+		); err != nil {
+			return nil, err
+		}
+		item.StartDate = startDate
+		item.EndDate = endDate
+		items = append(items, item)
+	}
+	return items, rows.Err()
+}
 
 func (r EmployeeConditionRepository) ListEmployeeConditions(ctx context.Context, workspaceID, employeeID uuid.UUID, page, limit int) (api.EmployeeConditionListResponse, error) {
 	db, err := r.db(ctx)

@@ -714,6 +714,90 @@ func (r LifecycleRepository) ListChecklistsForEmployment(ctx context.Context, ws
 	}
 	return checklists, itemRows.Err()
 }
+func (r LifecycleRepository) ListWorkspaceChecklists(ctx context.Context, wsID uuid.UUID) ([]api.LifecycleInstanceSummary, error) {
+	db, err := r.db(ctx)
+	if err != nil {
+		return nil, err
+	}
+	query := `SELECT 
+		c.id,
+		c.workspace_id,
+		c.employment_id,
+		em.employee_id,
+		e.full_name,
+		e.employee_id_number,
+		d.name,
+		c.template_id,
+		t.name,
+		c.checklist_type,
+		c.status,
+		c.progress_percent,
+		COALESCE(item_counts.total_items, 0),
+		COALESCE(item_counts.completed_items, 0),
+		c.started_at,
+		c.completed_at,
+		c.created_at,
+		c.updated_at
+	FROM lifecycle_checklists c
+	INNER JOIN employments em ON em.id = c.employment_id AND em.workspace_id = c.workspace_id
+	INNER JOIN employees e ON e.id = em.employee_id AND e.workspace_id = c.workspace_id
+	LEFT JOIN departments d ON d.id = em.department_id AND d.workspace_id = c.workspace_id
+	LEFT JOIN lifecycle_checklist_templates t ON t.id = c.template_id AND t.workspace_id = c.workspace_id
+	LEFT JOIN (
+		SELECT 
+			checklist_id,
+			COUNT(*)::int AS total_items,
+			COUNT(*) FILTER (WHERE status = 'completed')::int AS completed_items
+		FROM lifecycle_checklist_items
+		GROUP BY checklist_id
+	) item_counts ON item_counts.checklist_id = c.id
+	WHERE c.workspace_id = $1
+	ORDER BY c.created_at DESC`
+
+	rows, err := db.Query(ctx, query, wsID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	summaries := make([]api.LifecycleInstanceSummary, 0)
+	for rows.Next() {
+		var s api.LifecycleInstanceSummary
+		var started, created, updated time.Time
+		var completed *time.Time
+		if err := rows.Scan(
+			&s.ID,
+			&s.WorkspaceID,
+			&s.EmploymentID,
+			&s.EmployeeID,
+			&s.EmployeeName,
+			&s.EmployeeCode,
+			&s.DepartmentName,
+			&s.TemplateID,
+			&s.TemplateName,
+			&s.ChecklistType,
+			&s.Status,
+			&s.ProgressPercent,
+			&s.TotalItems,
+			&s.CompletedItems,
+			&started,
+			&completed,
+			&created,
+			&updated,
+		); err != nil {
+			return nil, err
+		}
+		s.StartedAt = started.UTC().Format(time.RFC3339)
+		s.CreatedAt = created.UTC().Format(time.RFC3339)
+		s.UpdatedAt = updated.UTC().Format(time.RFC3339)
+		if completed != nil {
+			formatted := completed.UTC().Format(time.RFC3339)
+			s.CompletedAt = &formatted
+		}
+		summaries = append(summaries, s)
+	}
+	return summaries, rows.Err()
+}
 
 func (r LifecycleRepository) GetItemAssigneeAndChecklist(ctx context.Context, wsID, itemID uuid.UUID) (*uuid.UUID, uuid.UUID, error) {
 	db, err := r.db(ctx)

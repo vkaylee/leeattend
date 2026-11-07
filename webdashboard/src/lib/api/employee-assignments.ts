@@ -1,3 +1,5 @@
+import { ApiError } from "./errors";
+import { apiFetch } from "./helpers";
 import type {
   CreateEmployeeAssignmentRequest,
   EmployeeAssignment,
@@ -5,6 +7,14 @@ import type {
 } from "./types";
 
 import { client } from "./client";
+
+export interface EmployeeAssignmentWithEmployee extends EmployeeAssignment {
+  employee_id: string;
+  employee_name: string;
+  employee_code?: string;
+  home_location_name?: string;
+  host_location_name?: string;
+}
 
 export type {
   CreateEmployeeAssignmentRequest,
@@ -63,4 +73,12 @@ export const deleteEmployeeAssignment = async (
       path: { ws_id: workspaceId, employee_id: employeeId, assignment_id: assignmentId },
     },
   });
+};
+
+export const fetchWorkspaceAssignments = async (
+  workspaceId: string,
+): Promise<EmployeeAssignmentWithEmployee[]> => {
+  const res = await apiFetch(`/v1/workspaces/${encodeURIComponent(workspaceId)}/assignments`);
+  if (!res.ok) await ApiError.rejectResponse(res);
+  return (await res.json()) as EmployeeAssignmentWithEmployee[];
 };

@@ -41,6 +41,47 @@ const employeeAssignmentColumns = `ea.id, ea.workspace_id, ea.home_location_id, 
 	ea.start_date::text, ea.end_date::text, ea.reason, ea.status::text,
 	ea.created_at, ea.updated_at, ea.employment_id`
 
+func (r EmployeeAssignmentRepository) ListWorkspaceAssignments(ctx context.Context, workspaceID uuid.UUID) ([]api.EmployeeAssignmentWithEmployee, error) {
+	db, err := r.db(ctx)
+	if err != nil {
+		return nil, err
+	}
+	rows, err := db.Query(ctx, `SELECT `+employeeAssignmentColumns+`,
+		e.id, e.full_name, e.employee_id_number,
+		COALESCE(hl.name, ''), COALESCE(hostl.name, '')
+		FROM employee_assignments ea
+		JOIN employments em ON em.id = ea.employment_id
+		JOIN employees e ON e.id = em.employee_id
+		LEFT JOIN work_locations hl ON hl.id = ea.home_location_id
+		LEFT JOIN work_locations hostl ON hostl.id = ea.host_location_id
+		WHERE ea.workspace_id = $1 AND em.deleted_at IS NULL AND e.deleted_at IS NULL
+		ORDER BY ea.start_date DESC`, workspaceID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := make([]api.EmployeeAssignmentWithEmployee, 0)
+	for rows.Next() {
+		var item api.EmployeeAssignmentWithEmployee
+		var created, updated time.Time
+		var status string
+		if err := rows.Scan(
+			&item.ID, &item.WorkspaceID, &item.HomeLocationID, &item.HostLocationID,
+			&item.StartDate, &item.EndDate, &item.Reason, &status,
+			&created, &updated, &item.EmploymentID,
+			&item.EmployeeID, &item.EmployeeName, &item.EmployeeCode,
+			&item.HomeLocationName, &item.HostLocationName,
+		); err != nil {
+			return nil, err
+		}
+		item.Status = api.AssignmentStatus(status)
+		item.CreatedAt = created.UTC().Format(time.RFC3339)
+		item.UpdatedAt = updated.UTC().Format(time.RFC3339)
+		items = append(items, item)
+	}
+	return items, rows.Err()
+}
+
 func (r EmployeeAssignmentRepository) ListEmployeeAssignments(ctx context.Context, workspaceID, employeeID uuid.UUID) ([]api.EmployeeAssignment, error) {
 	db, err := r.db(ctx)
 	if err != nil {

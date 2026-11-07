@@ -255,6 +255,7 @@ func TestCustomFieldsValues(t *testing.T) {
 		t.Fatalf("expected 1 custom field value, got %d: %v", len(vals), err)
 	}
 }
+
 type scopedCustomFieldAuthorizer struct {
 	allowedPerms map[string]bool
 }

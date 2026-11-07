@@ -196,6 +196,9 @@
     "employee": "Nhân viên",
     "employee_id": "Mã nhân viên",
     "employees": "Nhân viên",
+    "assignments": "Phái cử & Luân chuyển",
+    "working_conditions": "Điều kiện làm việc",
+    "lifecycle": "Quy trình & Vòng đời",
     "employer": "Công ty",
     "enable": "Bật",
     "end": "Kết thúc",
@@ -2379,5 +2382,167 @@
     "confirmDelete": "Bạn có chắc chắn muốn xóa vai trò này? Thao tác này không thể hoàn tác.",
     "subtitle": "Định nghĩa vai trò người dùng và quản lý cấp độ truy cập trong workspace",
     "createRole": "Tạo vai trò mới"
+  },
+  "assignments": {
+    "title": "Quản lý Phái cử & Luân chuyển",
+    "subtitle": "Quản lý tập trung các đợt phái cử, luân chuyển và công tác của nhân sự toàn công ty",
+    "search_label": "Tìm kiếm phái cử",
+    "search_placeholder": "Tìm nhân sự, mã NV, ghi chú...",
+    "status": {
+      "all": "TẤT CẢ TRẠNG THÁI",
+      "active": "ĐANG HIỆU LỰC",
+      "scheduled": "ĐÃ LÊN LỊCH",
+      "completed": "ĐÃ HOÀN THÀNH",
+      "cancelled": "ĐÃ HỦY BỎ"
+    },
+    "metrics": {
+      "total": "Tổng đợt phái cử",
+      "active": "Đang hiệu lực",
+      "scheduled": "Đã lên lịch",
+      "completed": "Đã hoàn thành"
+    },
+    "table": {
+      "employee": "NHÂN SỰ",
+      "locations": "ĐỊA ĐIỂM (TỪ → ĐẾN)",
+      "duration": "THỜI HẠN",
+      "reason": "LÝ DO / GHI CHÚ"
+    },
+    "home_location": "Trụ sở chính",
+    "host_location": "Điểm phái cử",
+    "indefinite": "Chưa xác định",
+    "no_assignments_found": "Không tìm thấy phái cử",
+    "search_no_results": "Không tìm thấy đợt phái cử nào khớp với điều kiện tìm kiếm.",
+    "empty_state": "Chưa có đợt phái cử nào được ghi nhận trong không gian làm việc này.",
+    "actions": {
+      "create": "TẠO PHÁI CỬ MỚI",
+      "edit": "Chỉnh sửa phái cử",
+      "delete": "Xóa phái cử"
+    },
+    "delete_title": "Xóa Lệnh Phái cử",
+    "delete_confirm": "Bạn có chắc chắn muốn xóa lệnh phái cử này không?",
+    "delete_success": "Đã xóa lệnh phái cử thành công.",
+    "fields": {
+      "employee": "Nhân sự"
+    },
+    "placeholders": {
+      "select_employee": "Chọn nhân sự phái cử..."
+    }
+  }
+,
+  "working_conditions": {
+    "title": "Quản lý Điều kiện Làm việc Đặc thù",
+    "subtitle": "Quản lý tập trung các chế độ lao động đặc thù (con nhỏ, thai sản, độc hại, làm việc từ xa) toàn công ty",
+    "search_label": "Tìm kiếm điều kiện làm việc",
+    "search_placeholder": "Tìm nhân sự, mã NV, loại chế độ...",
+    "search_no_results": "Không tìm thấy hồ sơ điều kiện làm việc nào phù hợp với bộ lọc.",
+    "empty_state": "Chưa có điều kiện làm việc đặc thù nào được ghi nhận trong không gian làm việc này.",
+    "no_conditions_found": "Không tìm thấy điều kiện làm việc",
+    "paid": "Có hưởng lương",
+    "unpaid": "Không hưởng lương",
+    "delete_title": "Xóa Điều kiện Làm việc",
+    "delete_confirm": "Bạn có chắc chắn muốn xóa chế độ điều kiện làm việc này của nhân sự {{name}} không?",
+    "delete_success": "Đã xóa điều kiện làm việc thành công.",
+    "metrics": {
+      "total": "Tổng hồ sơ áp dụng",
+      "active": "Đang hiệu lực",
+      "paid": "Có hưởng lương",
+      "unpaid": "Không hưởng lương"
+    },
+    "filters": {
+      "all_types": "TẤT CẢ LOẠI ĐIỀU KIỆN",
+      "payment": "CHẾ ĐỘ LƯƠNG",
+      "all_payment": "TẤT CẢ CHẾ ĐỘ"
+    },
+    "table": {
+      "employee": "NHÂN SỰ",
+      "condition_type": "LOẠI ĐIỀU KIỆN",
+      "duration": "THỜI HẠN ÁP DỤNG",
+      "payment_regime": "CHẾ ĐỘ HƯỞNG LƯƠNG"
+    },
+    "actions": {
+      "create": "GÁN ĐIỀU KIỆN MỚI",
+      "delete": "Xóa điều kiện"
+    },
+    "modal": {
+      "title_assign": "Gán Điều kiện Làm việc Đặc thù",
+      "title_employee": "Thêm Điều kiện Làm việc cho {{name}}",
+      "subtitle": "Thiết lập chế độ áp dụng đặc biệt (con nhỏ, thai sản, độc hại, v.v.)",
+      "employee_label": "Nhân sự thụ hưởng",
+      "select_employee_placeholder": "Chọn nhân sự...",
+      "type_label": "Loại điều kiện lao động",
+      "select_type_placeholder": "Chọn loại điều kiện...",
+      "start_date": "Ngày bắt đầu áp dụng",
+      "end_date": "Ngày kết thúc",
+      "end_date_hint": "Để trống nếu chế độ áp dụng vô thời hạn / đến khi có quyết định mới",
+      "paid_label": "Chế độ hưởng nguyên lương khi áp dụng điều kiện này",
+      "create_success": "Gán điều kiện làm việc thành công"
+    }
+  }
+,
+  "lifecycle": {
+    "title": "Quản lý Quy trình & Vòng đời Nhân sự",
+    "subtitle": "Quản lý tập trung tiến độ onboarding, thử việc, điều chuyển và bàn giao nghỉ việc của nhân sự",
+    "search_label": "Tìm kiếm quy trình nhân sự",
+    "search_placeholder": "Tìm nhân sự, mã NV, phòng ban, mẫu checklist...",
+    "search_no_results": "Không tìm thấy quy trình vòng đời nhân sự nào phù hợp với bộ lọc.",
+    "empty_state": "Chưa có quy trình onboarding, thử việc hay bàn giao nào được khởi tạo.",
+    "no_instances_found": "Không tìm thấy quy trình nhân sự",
+    "items_label": "việc",
+    "progress": "Tiến độ",
+    "started_at": "Bắt đầu",
+    "view_detail": "Xem checklist",
+    "assign_success": "Đã khởi tạo quy trình thành công cho {{name}}",
+    "metrics": {
+      "total": "Tổng quy trình",
+      "in_progress": "Đang tiến hành",
+      "onboarding": "Đang Onboarding",
+      "offboarding": "Đang Bàn giao"
+    },
+    "filters": {
+      "all_types": "TẤT CẢ QUY TRÌNH",
+      "all_statuses": "TẤT CẢ TRẠNG THÁI"
+    },
+    "types": {
+      "onboarding": "Onboarding (Tiếp nhận)",
+      "probation": "Thử việc (Đánh giá)",
+      "offboarding": "Offboarding (Nghỉ việc)",
+      "transfer": "Điều chuyển (Luân chuyển)"
+    },
+    "status": {
+      "in_progress": "Đang tiến hành",
+      "completed": "Đã hoàn thành"
+    },
+    "table": {
+      "employee": "NHÂN SỰ",
+      "process_name": "QUY TRÌNH CHECKLIST",
+      "progress": "TIẾN ĐỘ THỰC HIỆN",
+      "status": "TRẠNG THÁI",
+      "started_date": "NGÀY BẮT ĐẦU"
+    },
+    "actions": {
+      "create": "KHỞI TẠO QUY TRÌNH",
+      "submit_assign": "KHỞI TẠO QUY TRÌNH"
+    },
+    "modal": {
+      "title": "Khởi tạo Quy trình Vòng đời",
+      "subtitle_employee": "Gán checklist công việc cho nhân sự",
+      "subtitle_hub": "Khởi tạo quy trình mới (Onboarding, Thử việc, Bàn giao) cho nhân sự"
+    },
+    "fields": {
+      "employee": "Nhân sự áp dụng",
+      "template": "Mẫu quy trình Checklist"
+    },
+    "placeholders": {
+      "select_employee": "Tìm kiếm nhân sự đang công tác...",
+      "select_template": "Chọn mẫu quy trình (Onboarding, Thử việc, Bàn giao...)"
+    },
+    "labels": {
+      "active_employment": "Hồ sơ công tác hiện hành"
+    },
+    "errors": {
+      "no_active_employment": "Nhân sự được chọn không có hồ sơ việc làm (employment) đang hoạt động.",
+      "no_template_selected": "Vui lòng chọn một mẫu quy trình.",
+      "employee_has_no_employment": "Nhân sự này hiện không có hồ sơ công tác hợp lệ."
+    }
   }
 }

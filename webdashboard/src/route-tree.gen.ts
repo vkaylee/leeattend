@@ -18,6 +18,7 @@ import { Route as AuthenticatedWorkspaceRouteImport } from "./routes/_authentica
 import { Route as AuthenticatedInfraRouteImport } from "./routes/_authenticated/_infra"
 import { Route as AuthenticatedWorkspaceIndexRouteImport } from "./routes/_authenticated/_workspace/index"
 import { Route as AuthenticatedWorkspaceWorkingPatternsRouteImport } from "./routes/_authenticated/_workspace/working-patterns"
+import { Route as AuthenticatedWorkspaceWorkingConditionsRouteImport } from "./routes/_authenticated/_workspace/working-conditions"
 import { Route as AuthenticatedWorkspaceShiftsRouteImport } from "./routes/_authenticated/_workspace/shifts"
 import { Route as AuthenticatedWorkspaceShiftSwapsRouteImport } from "./routes/_authenticated/_workspace/shift-swaps"
 import { Route as AuthenticatedWorkspaceReportsRouteImport } from "./routes/_authenticated/_workspace/reports"
@@ -26,6 +27,7 @@ import { Route as AuthenticatedWorkspacePayrollRouteImport } from "./routes/_aut
 import { Route as AuthenticatedWorkspaceOrgChartRouteImport } from "./routes/_authenticated/_workspace/org-chart"
 import { Route as AuthenticatedWorkspaceNotificationsRouteImport } from "./routes/_authenticated/_workspace/notifications"
 import { Route as AuthenticatedWorkspaceMembersRouteImport } from "./routes/_authenticated/_workspace/members"
+import { Route as AuthenticatedWorkspaceLifecycleRouteImport } from "./routes/_authenticated/_workspace/lifecycle"
 import { Route as AuthenticatedWorkspaceLeaveRequestsRouteImport } from "./routes/_authenticated/_workspace/leave-requests"
 import { Route as AuthenticatedWorkspaceLeaveBalancesRouteImport } from "./routes/_authenticated/_workspace/leave-balances"
 import { Route as AuthenticatedWorkspaceHolidaysRouteImport } from "./routes/_authenticated/_workspace/holidays"
@@ -36,6 +38,7 @@ import { Route as AuthenticatedWorkspaceDashboardRouteImport } from "./routes/_a
 import { Route as AuthenticatedWorkspaceAuditLogsRouteImport } from "./routes/_authenticated/_workspace/audit-logs"
 import { Route as AuthenticatedWorkspaceAttendanceLogsRouteImport } from "./routes/_authenticated/_workspace/attendance-logs"
 import { Route as AuthenticatedWorkspaceAttendanceAdjustmentsRouteImport } from "./routes/_authenticated/_workspace/attendance-adjustments"
+import { Route as AuthenticatedWorkspaceAssignmentsRouteImport } from "./routes/_authenticated/_workspace/assignments"
 import { Route as AuthenticatedWorkspaceAssignmentRulesRouteImport } from "./routes/_authenticated/_workspace/assignment-rules"
 import { Route as AuthenticatedWorkspaceWorkingPatternsIndexRouteImport } from "./routes/_authenticated/_workspace/working-patterns.index"
 import { Route as AuthenticatedWorkspaceShiftsIndexRouteImport } from "./routes/_authenticated/_workspace/shifts.index"
@@ -142,6 +145,16 @@ const AuthenticatedWorkspaceWorkingPatternsRoute =
     path: "/working-patterns",
     getParentRoute: () => AuthenticatedWorkspaceRoute,
   } as any)
+const AuthenticatedWorkspaceWorkingConditionsRoute =
+  AuthenticatedWorkspaceWorkingConditionsRouteImport.update({
+    id: "/working-conditions",
+    path: "/working-conditions",
+    getParentRoute: () => AuthenticatedWorkspaceRoute,
+  } as any).lazy(() =>
+    import("./routes/_authenticated/_workspace/working-conditions.lazy").then(
+      (d) => d.Route,
+    ),
+  )
 const AuthenticatedWorkspaceShiftsRoute =
   AuthenticatedWorkspaceShiftsRouteImport.update({
     id: "/shifts",
@@ -215,6 +228,16 @@ const AuthenticatedWorkspaceMembersRoute =
     getParentRoute: () => AuthenticatedWorkspaceRoute,
   } as any).lazy(() =>
     import("./routes/_authenticated/_workspace/members.lazy").then(
+      (d) => d.Route,
+    ),
+  )
+const AuthenticatedWorkspaceLifecycleRoute =
+  AuthenticatedWorkspaceLifecycleRouteImport.update({
+    id: "/lifecycle",
+    path: "/lifecycle",
+    getParentRoute: () => AuthenticatedWorkspaceRoute,
+  } as any).lazy(() =>
+    import("./routes/_authenticated/_workspace/lifecycle.lazy").then(
       (d) => d.Route,
     ),
   )
@@ -315,6 +338,16 @@ const AuthenticatedWorkspaceAttendanceAdjustmentsRoute =
     getParentRoute: () => AuthenticatedWorkspaceRoute,
   } as any).lazy(() =>
     import("./routes/_authenticated/_workspace/attendance-adjustments.lazy").then(
+      (d) => d.Route,
+    ),
+  )
+const AuthenticatedWorkspaceAssignmentsRoute =
+  AuthenticatedWorkspaceAssignmentsRouteImport.update({
+    id: "/assignments",
+    path: "/assignments",
+    getParentRoute: () => AuthenticatedWorkspaceRoute,
+  } as any).lazy(() =>
+    import("./routes/_authenticated/_workspace/assignments.lazy").then(
       (d) => d.Route,
     ),
   )
@@ -845,6 +878,7 @@ export interface FileRoutesByFullPath {
   "/register": typeof RegisterRoute
   "/reset-password": typeof ResetPasswordRoute
   "/assignment-rules": typeof AuthenticatedWorkspaceAssignmentRulesRouteWithChildren
+  "/assignments": typeof AuthenticatedWorkspaceAssignmentsRoute
   "/attendance-adjustments": typeof AuthenticatedWorkspaceAttendanceAdjustmentsRoute
   "/attendance-logs": typeof AuthenticatedWorkspaceAttendanceLogsRoute
   "/audit-logs": typeof AuthenticatedWorkspaceAuditLogsRoute
@@ -855,6 +889,7 @@ export interface FileRoutesByFullPath {
   "/holidays": typeof AuthenticatedWorkspaceHolidaysRoute
   "/leave-balances": typeof AuthenticatedWorkspaceLeaveBalancesRoute
   "/leave-requests": typeof AuthenticatedWorkspaceLeaveRequestsRoute
+  "/lifecycle": typeof AuthenticatedWorkspaceLifecycleRoute
   "/members": typeof AuthenticatedWorkspaceMembersRoute
   "/notifications": typeof AuthenticatedWorkspaceNotificationsRoute
   "/org-chart": typeof AuthenticatedWorkspaceOrgChartRoute
@@ -863,6 +898,7 @@ export interface FileRoutesByFullPath {
   "/reports": typeof AuthenticatedWorkspaceReportsRoute
   "/shift-swaps": typeof AuthenticatedWorkspaceShiftSwapsRoute
   "/shifts": typeof AuthenticatedWorkspaceShiftsRouteWithChildren
+  "/working-conditions": typeof AuthenticatedWorkspaceWorkingConditionsRoute
   "/working-patterns": typeof AuthenticatedWorkspaceWorkingPatternsRouteWithChildren
   "/infra/monitor": typeof AuthenticatedInfraInfraMonitorRoute
   "/system/smtp": typeof AuthenticatedInfraSystemSmtpRoute
@@ -923,6 +959,7 @@ export interface FileRoutesByTo {
   "/login": typeof LoginRoute
   "/register": typeof RegisterRoute
   "/reset-password": typeof ResetPasswordRoute
+  "/assignments": typeof AuthenticatedWorkspaceAssignmentsRoute
   "/attendance-adjustments": typeof AuthenticatedWorkspaceAttendanceAdjustmentsRoute
   "/attendance-logs": typeof AuthenticatedWorkspaceAttendanceLogsRoute
   "/audit-logs": typeof AuthenticatedWorkspaceAuditLogsRoute
@@ -933,6 +970,7 @@ export interface FileRoutesByTo {
   "/holidays": typeof AuthenticatedWorkspaceHolidaysRoute
   "/leave-balances": typeof AuthenticatedWorkspaceLeaveBalancesRoute
   "/leave-requests": typeof AuthenticatedWorkspaceLeaveRequestsRoute
+  "/lifecycle": typeof AuthenticatedWorkspaceLifecycleRoute
   "/members": typeof AuthenticatedWorkspaceMembersRoute
   "/notifications": typeof AuthenticatedWorkspaceNotificationsRoute
   "/org-chart": typeof AuthenticatedWorkspaceOrgChartRoute
@@ -940,6 +978,7 @@ export interface FileRoutesByTo {
   "/profile": typeof AuthenticatedWorkspaceProfileRoute
   "/reports": typeof AuthenticatedWorkspaceReportsRoute
   "/shift-swaps": typeof AuthenticatedWorkspaceShiftSwapsRoute
+  "/working-conditions": typeof AuthenticatedWorkspaceWorkingConditionsRoute
   "/infra/monitor": typeof AuthenticatedInfraInfraMonitorRoute
   "/system/smtp": typeof AuthenticatedInfraSystemSmtpRoute
   "/approvals/ot": typeof AuthenticatedWorkspaceApprovalsOtRoute
@@ -1000,6 +1039,7 @@ export interface FileRoutesById {
   "/_authenticated/_infra": typeof AuthenticatedInfraRouteWithChildren
   "/_authenticated/_workspace": typeof AuthenticatedWorkspaceRouteWithChildren
   "/_authenticated/_workspace/assignment-rules": typeof AuthenticatedWorkspaceAssignmentRulesRouteWithChildren
+  "/_authenticated/_workspace/assignments": typeof AuthenticatedWorkspaceAssignmentsRoute
   "/_authenticated/_workspace/attendance-adjustments": typeof AuthenticatedWorkspaceAttendanceAdjustmentsRoute
   "/_authenticated/_workspace/attendance-logs": typeof AuthenticatedWorkspaceAttendanceLogsRoute
   "/_authenticated/_workspace/audit-logs": typeof AuthenticatedWorkspaceAuditLogsRoute
@@ -1010,6 +1050,7 @@ export interface FileRoutesById {
   "/_authenticated/_workspace/holidays": typeof AuthenticatedWorkspaceHolidaysRoute
   "/_authenticated/_workspace/leave-balances": typeof AuthenticatedWorkspaceLeaveBalancesRoute
   "/_authenticated/_workspace/leave-requests": typeof AuthenticatedWorkspaceLeaveRequestsRoute
+  "/_authenticated/_workspace/lifecycle": typeof AuthenticatedWorkspaceLifecycleRoute
   "/_authenticated/_workspace/members": typeof AuthenticatedWorkspaceMembersRoute
   "/_authenticated/_workspace/notifications": typeof AuthenticatedWorkspaceNotificationsRoute
   "/_authenticated/_workspace/org-chart": typeof AuthenticatedWorkspaceOrgChartRoute
@@ -1018,6 +1059,7 @@ export interface FileRoutesById {
   "/_authenticated/_workspace/reports": typeof AuthenticatedWorkspaceReportsRoute
   "/_authenticated/_workspace/shift-swaps": typeof AuthenticatedWorkspaceShiftSwapsRoute
   "/_authenticated/_workspace/shifts": typeof AuthenticatedWorkspaceShiftsRouteWithChildren
+  "/_authenticated/_workspace/working-conditions": typeof AuthenticatedWorkspaceWorkingConditionsRoute
   "/_authenticated/_workspace/working-patterns": typeof AuthenticatedWorkspaceWorkingPatternsRouteWithChildren
   "/_authenticated/_workspace/": typeof AuthenticatedWorkspaceIndexRoute
   "/_authenticated/_infra/infra/monitor": typeof AuthenticatedInfraInfraMonitorRoute
@@ -1082,6 +1124,7 @@ export interface FileRouteTypes {
     | "/register"
     | "/reset-password"
     | "/assignment-rules"
+    | "/assignments"
     | "/attendance-adjustments"
     | "/attendance-logs"
     | "/audit-logs"
@@ -1092,6 +1135,7 @@ export interface FileRouteTypes {
     | "/holidays"
     | "/leave-balances"
     | "/leave-requests"
+    | "/lifecycle"
     | "/members"
     | "/notifications"
     | "/org-chart"
@@ -1100,6 +1144,7 @@ export interface FileRouteTypes {
     | "/reports"
     | "/shift-swaps"
     | "/shifts"
+    | "/working-conditions"
     | "/working-patterns"
     | "/infra/monitor"
     | "/system/smtp"
@@ -1160,6 +1205,7 @@ export interface FileRouteTypes {
     | "/login"
     | "/register"
     | "/reset-password"
+    | "/assignments"
     | "/attendance-adjustments"
     | "/attendance-logs"
     | "/audit-logs"
@@ -1170,6 +1216,7 @@ export interface FileRouteTypes {
     | "/holidays"
     | "/leave-balances"
     | "/leave-requests"
+    | "/lifecycle"
     | "/members"
     | "/notifications"
     | "/org-chart"
@@ -1177,6 +1224,7 @@ export interface FileRouteTypes {
     | "/profile"
     | "/reports"
     | "/shift-swaps"
+    | "/working-conditions"
     | "/infra/monitor"
     | "/system/smtp"
     | "/approvals/ot"
@@ -1236,6 +1284,7 @@ export interface FileRouteTypes {
     | "/_authenticated/_infra"
     | "/_authenticated/_workspace"
     | "/_authenticated/_workspace/assignment-rules"
+    | "/_authenticated/_workspace/assignments"
     | "/_authenticated/_workspace/attendance-adjustments"
     | "/_authenticated/_workspace/attendance-logs"
     | "/_authenticated/_workspace/audit-logs"
@@ -1246,6 +1295,7 @@ export interface FileRouteTypes {
     | "/_authenticated/_workspace/holidays"
     | "/_authenticated/_workspace/leave-balances"
     | "/_authenticated/_workspace/leave-requests"
+    | "/_authenticated/_workspace/lifecycle"
     | "/_authenticated/_workspace/members"
     | "/_authenticated/_workspace/notifications"
     | "/_authenticated/_workspace/org-chart"
@@ -1254,6 +1304,7 @@ export interface FileRouteTypes {
     | "/_authenticated/_workspace/reports"
     | "/_authenticated/_workspace/shift-swaps"
     | "/_authenticated/_workspace/shifts"
+    | "/_authenticated/_workspace/working-conditions"
     | "/_authenticated/_workspace/working-patterns"
     | "/_authenticated/_workspace/"
     | "/_authenticated/_infra/infra/monitor"
@@ -1383,6 +1434,13 @@ declare module "@tanstack/react-router" {
       preLoaderRoute: typeof AuthenticatedWorkspaceWorkingPatternsRouteImport
       parentRoute: typeof AuthenticatedWorkspaceRoute
     }
+    "/_authenticated/_workspace/working-conditions": {
+      id: "/_authenticated/_workspace/working-conditions"
+      path: "/working-conditions"
+      fullPath: "/working-conditions"
+      preLoaderRoute: typeof AuthenticatedWorkspaceWorkingConditionsRouteImport
+      parentRoute: typeof AuthenticatedWorkspaceRoute
+    }
     "/_authenticated/_workspace/shifts": {
       id: "/_authenticated/_workspace/shifts"
       path: "/shifts"
@@ -1437,6 +1495,13 @@ declare module "@tanstack/react-router" {
       path: "/members"
       fullPath: "/members"
       preLoaderRoute: typeof AuthenticatedWorkspaceMembersRouteImport
+      parentRoute: typeof AuthenticatedWorkspaceRoute
+    }
+    "/_authenticated/_workspace/lifecycle": {
+      id: "/_authenticated/_workspace/lifecycle"
+      path: "/lifecycle"
+      fullPath: "/lifecycle"
+      preLoaderRoute: typeof AuthenticatedWorkspaceLifecycleRouteImport
       parentRoute: typeof AuthenticatedWorkspaceRoute
     }
     "/_authenticated/_workspace/leave-requests": {
@@ -1507,6 +1572,13 @@ declare module "@tanstack/react-router" {
       path: "/attendance-adjustments"
       fullPath: "/attendance-adjustments"
       preLoaderRoute: typeof AuthenticatedWorkspaceAttendanceAdjustmentsRouteImport
+      parentRoute: typeof AuthenticatedWorkspaceRoute
+    }
+    "/_authenticated/_workspace/assignments": {
+      id: "/_authenticated/_workspace/assignments"
+      path: "/assignments"
+      fullPath: "/assignments"
+      preLoaderRoute: typeof AuthenticatedWorkspaceAssignmentsRouteImport
       parentRoute: typeof AuthenticatedWorkspaceRoute
     }
     "/_authenticated/_workspace/assignment-rules": {
@@ -2083,6 +2155,7 @@ const AuthenticatedWorkspaceWorkspaceSettingsRouteWithChildren =
 
 interface AuthenticatedWorkspaceRouteChildren {
   AuthenticatedWorkspaceAssignmentRulesRoute: typeof AuthenticatedWorkspaceAssignmentRulesRouteWithChildren
+  AuthenticatedWorkspaceAssignmentsRoute: typeof AuthenticatedWorkspaceAssignmentsRoute
   AuthenticatedWorkspaceAttendanceAdjustmentsRoute: typeof AuthenticatedWorkspaceAttendanceAdjustmentsRoute
   AuthenticatedWorkspaceAttendanceLogsRoute: typeof AuthenticatedWorkspaceAttendanceLogsRoute
   AuthenticatedWorkspaceAuditLogsRoute: typeof AuthenticatedWorkspaceAuditLogsRoute
@@ -2093,6 +2166,7 @@ interface AuthenticatedWorkspaceRouteChildren {
   AuthenticatedWorkspaceHolidaysRoute: typeof AuthenticatedWorkspaceHolidaysRoute
   AuthenticatedWorkspaceLeaveBalancesRoute: typeof AuthenticatedWorkspaceLeaveBalancesRoute
   AuthenticatedWorkspaceLeaveRequestsRoute: typeof AuthenticatedWorkspaceLeaveRequestsRoute
+  AuthenticatedWorkspaceLifecycleRoute: typeof AuthenticatedWorkspaceLifecycleRoute
   AuthenticatedWorkspaceMembersRoute: typeof AuthenticatedWorkspaceMembersRoute
   AuthenticatedWorkspaceNotificationsRoute: typeof AuthenticatedWorkspaceNotificationsRoute
   AuthenticatedWorkspaceOrgChartRoute: typeof AuthenticatedWorkspaceOrgChartRoute
@@ -2101,6 +2175,7 @@ interface AuthenticatedWorkspaceRouteChildren {
   AuthenticatedWorkspaceReportsRoute: typeof AuthenticatedWorkspaceReportsRoute
   AuthenticatedWorkspaceShiftSwapsRoute: typeof AuthenticatedWorkspaceShiftSwapsRoute
   AuthenticatedWorkspaceShiftsRoute: typeof AuthenticatedWorkspaceShiftsRouteWithChildren
+  AuthenticatedWorkspaceWorkingConditionsRoute: typeof AuthenticatedWorkspaceWorkingConditionsRoute
   AuthenticatedWorkspaceWorkingPatternsRoute: typeof AuthenticatedWorkspaceWorkingPatternsRouteWithChildren
   AuthenticatedWorkspaceIndexRoute: typeof AuthenticatedWorkspaceIndexRoute
   AuthenticatedWorkspaceApprovalsOtRoute: typeof AuthenticatedWorkspaceApprovalsOtRoute
@@ -2121,6 +2196,8 @@ const AuthenticatedWorkspaceRouteChildren: AuthenticatedWorkspaceRouteChildren =
   {
     AuthenticatedWorkspaceAssignmentRulesRoute:
       AuthenticatedWorkspaceAssignmentRulesRouteWithChildren,
+    AuthenticatedWorkspaceAssignmentsRoute:
+      AuthenticatedWorkspaceAssignmentsRoute,
     AuthenticatedWorkspaceAttendanceAdjustmentsRoute:
       AuthenticatedWorkspaceAttendanceAdjustmentsRoute,
     AuthenticatedWorkspaceAttendanceLogsRoute:
@@ -2137,6 +2214,7 @@ const AuthenticatedWorkspaceRouteChildren: AuthenticatedWorkspaceRouteChildren =
       AuthenticatedWorkspaceLeaveBalancesRoute,
     AuthenticatedWorkspaceLeaveRequestsRoute:
       AuthenticatedWorkspaceLeaveRequestsRoute,
+    AuthenticatedWorkspaceLifecycleRoute: AuthenticatedWorkspaceLifecycleRoute,
     AuthenticatedWorkspaceMembersRoute: AuthenticatedWorkspaceMembersRoute,
     AuthenticatedWorkspaceNotificationsRoute:
       AuthenticatedWorkspaceNotificationsRoute,
@@ -2148,6 +2226,8 @@ const AuthenticatedWorkspaceRouteChildren: AuthenticatedWorkspaceRouteChildren =
       AuthenticatedWorkspaceShiftSwapsRoute,
     AuthenticatedWorkspaceShiftsRoute:
       AuthenticatedWorkspaceShiftsRouteWithChildren,
+    AuthenticatedWorkspaceWorkingConditionsRoute:
+      AuthenticatedWorkspaceWorkingConditionsRoute,
     AuthenticatedWorkspaceWorkingPatternsRoute:
       AuthenticatedWorkspaceWorkingPatternsRouteWithChildren,
     AuthenticatedWorkspaceIndexRoute: AuthenticatedWorkspaceIndexRoute,
