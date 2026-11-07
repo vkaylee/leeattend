@@ -120,6 +120,24 @@ describe("useFilteredMenuItems", () => {
     expect(orgGroup!.items.length).toBeGreaterThanOrEqual(3);
   });
 
+  it("shows approval inbox when user has any inbox permission", () => {
+    activePermissions.add("attendance:adjustments:approve");
+
+    const { result } = renderHook(() => useFilteredMenuItems(), { wrapper });
+
+    const timeGroup = result.current.groups.find((g) => g.section === "time");
+    const approvalItem = timeGroup?.items.find((i) => i.to === "/approvals");
+    expect(approvalItem?.testId).toBe("sidebar-link-approvals");
+  });
+
+  it("hides approval inbox when user has none of its permissions", () => {
+    const { result } = renderHook(() => useFilteredMenuItems(), { wrapper });
+
+    const timeGroup = result.current.groups.find((g) => g.section === "time");
+    const approvalItem = timeGroup?.items.find((i) => i.to === "/approvals");
+    expect(approvalItem).toBeUndefined();
+  });
+
   it("shows leave-requests when user has any of its permissions (anyOf)", () => {
     activePermissions.add("leave:requests:approve");
 
@@ -162,6 +180,10 @@ describe("getActiveNavGroup", () => {
 
   it('returns "time" for /leave-requests', () => {
     expect(getActiveNavGroup("/leave-requests")).toBe("time");
+  });
+
+  it('returns "time" for /approvals', () => {
+    expect(getActiveNavGroup("/approvals")).toBe("time");
   });
 
   it('returns "time" for /approvals/ot', () => {

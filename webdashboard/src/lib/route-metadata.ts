@@ -85,10 +85,10 @@ export const ROUTE_METADATA_MAP: Record<string, RouteMetadata> = {
     defaultTitle: "Xác nhận công",
   },
   [ROUTES.APPROVALS]: {
-    breadcrumbKey: "ot_approvals.title",
-    defaultBreadcrumb: "Phê duyệt",
-    titleKey: "ot_approvals.title",
-    defaultTitle: "Phê duyệt",
+    breadcrumbKey: "approvals.inbox.title",
+    defaultBreadcrumb: "Hộp thư Phê duyệt",
+    titleKey: "approvals.inbox.title",
+    defaultTitle: "Hộp thư Phê duyệt",
   },
   [ROUTES.APPROVALS_OT]: {
     breadcrumbKey: "ot_approvals.ot_title",

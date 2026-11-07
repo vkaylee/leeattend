@@ -27,6 +27,7 @@ import {
   Activity,
   Zap,
   Mail,
+  Inbox,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
@@ -114,6 +115,7 @@ export function useNavMenuItems(): NavMenuStructure {
         { to: ROUTES.ATTENDANCE_ADJUSTMENTS, icon: ClipboardCheck, label: t("common.attendance_confirm"), testId: "sidebar-link-attendance-adjustments", permissions: ["attendance:adjustments:approve", "attendance:adjustments:submit_on_behalf"] },
         { to: ROUTES.SHIFT_SWAPS, icon: ArrowLeftRight, label: t("shift_swaps.title"), testId: "sidebar-link-shift-swaps", permissions: ["shift_swaps:manage"] },
         { to: ROUTES.REPORTS, icon: BarChart3, label: t("common.reports"), testId: "sidebar-link-reports", permissions: ["reports:read"] },
+        { to: ROUTES.APPROVALS, icon: Inbox, label: t("approvals.inbox.title", "Hộp thư Phê duyệt"), testId: "sidebar-link-approvals", permissions: ["leave:requests:read", "overtime:approve", "attendance:adjustments:approve", "shift_swaps:manage"] },
         { to: ROUTES.APPROVALS_OT, icon: CheckCircle, label: t("ot_approvals.title", "OT Approvals"), testId: "sidebar-link-approvals-ot", permissions: ["overtime:approve", "overtime:claim_on_behalf"] },
       ],
     },
@@ -192,7 +194,7 @@ const ORG_PATHS: string[] = [
 ];
 const TIME_PATHS: string[] = [
   ROUTES.ATTENDANCE_LOGS, ROUTES.LEAVE_REQUESTS, ROUTES.ATTENDANCE_ADJUSTMENTS,
-  ROUTES.REPORTS, ROUTES.LEAVE_BALANCES, ROUTES.SHIFT_SWAPS, ROUTES.APPROVALS_OT,
+  ROUTES.REPORTS, ROUTES.LEAVE_BALANCES, ROUTES.SHIFT_SWAPS, ROUTES.APPROVALS, ROUTES.APPROVALS_OT,
 ];
 const SHIFTS_PATHS: string[] = [ROUTES.SHIFTS, ROUTES.SHIFTS_RULES];
 const PAYROLL_PATHS: string[] = [ROUTES.PAYROLL];

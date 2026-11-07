@@ -200,7 +200,7 @@ export const APP_REGISTRY: AppDefinition[] = [
     descriptionKey: "approvals.inbox.subtitle",
     to: ROUTES.APPROVALS,
     group: "time",
-    permissions: ["leave:requests:read", "overtime:approve", "attendance:adjustments:read"],
+    permissions: ["leave:requests:read", "overtime:approve", "attendance:adjustments:approve", "shift_swaps:manage"],
     testId: "app-card-approvals",
   },
   {

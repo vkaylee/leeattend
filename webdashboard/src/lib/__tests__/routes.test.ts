@@ -78,6 +78,7 @@ describe("ROUTES constants", () => {
     "/leave-requests",
     "/leave-balances",
     "/attendance-adjustments",
+    "/approvals",
     "/approvals/ot",
     "/reports",
     "/shifts",
