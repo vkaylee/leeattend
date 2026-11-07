@@ -1,5 +1,6 @@
 /* eslint-disable react/forbid-elements */
-import { ChevronDown, ChevronLeft, ChevronRight, X, User, FolderOpen, FileText, Milestone, ArrowLeftRight, DollarSign, History, Calendar, ShieldCheck, CheckSquare, Maximize2, Minimize2 } from "lucide-react";
+import { Link } from "@tanstack/react-router";
+import { ChevronDown, ChevronLeft, ChevronRight, ExternalLink, X, User, FolderOpen, FileText, Milestone, ArrowLeftRight, DollarSign, History, Calendar, ShieldCheck, CheckSquare, Maximize2, Minimize2 } from "lucide-react";
 import { createElement, useCallback, useEffect, useRef, useState, type ComponentType } from "react";
 
 import type { Employee } from "@/lib/api";
@@ -209,6 +210,18 @@ export default function DrawerHeader({
                     </div>
                 </div>
                 <div className="flex items-center gap-2">
+                    <Link to={`/employees/${employee.id}`}>
+                        <Button
+                            aria-label={t("employees.details.open_full_page", "Mở toàn trang")}
+                            className="p-3 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-[1.25rem] transition-all shadow-md active:scale-90 border border-slate-100 dark:border-slate-800 text-slate-400 dark:text-slate-500 hover:text-primary-600 dark:hover:text-primary-400 h-auto w-auto shadow-none flex items-center justify-center"
+                            data-testid="open-full-page"
+                            size="icon"
+                            type="button"
+                            variant="ghost"
+                        >
+                            <ExternalLink size={20} />
+                        </Button>
+                    </Link>
                     {onToggleExpand && (
                         <Button
                             aria-label={isExpanded ? t("common.minimize", "Thu nhỏ") : t("common.maximize", "Phóng to")}

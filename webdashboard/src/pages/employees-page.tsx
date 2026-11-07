@@ -1,3 +1,7 @@
+import { useNavigate } from "@tanstack/react-router";
+
+import type { Employee } from "@/lib/api/types";
+
 import FloatingRecordBadge from "@/components/common/floating-record-badge";
 import { FilterChips } from "@/components/ui/filter-chips";
 import { ContractExpirationAlerts } from "./employees/components/contract-expiration-alerts";
@@ -17,6 +21,12 @@ export default function EmployeesPage() {
     totalItems,
     t,
   } = page;
+  const navigate = useNavigate();
+
+  const handleSelectEmployee = (emp: Employee) => {
+    page.setSelectedEmployee(emp);
+    void navigate({ to: `/employees/${emp.id}` });
+  };
 
   const bulk = useEmployeeBulkSelection(employees);
   const { activeChips, handleClearAll, handleRemove } = useEmployeeFilterChips({
@@ -82,7 +92,7 @@ export default function EmployeesPage() {
         setFilterDeptIds={page.setFilterDeptIds}
         setFilterStatus={page.setFilterStatus}
         setSearchTerm={page.setSearchTerm}
-        setSelectedEmployee={page.setSelectedEmployee}
+        setSelectedEmployee={handleSelectEmployee}
         sortDir={page.sortDir}
         sortKey={page.sortKey}
         toggleDeptFilter={page.toggleDeptFilter}

@@ -1,3 +1,4 @@
+import { Link } from "@tanstack/react-router";
 import { ArrowLeftRight, Eye, MoreHorizontal, Pencil, UserMinus, UserPlus } from "lucide-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
@@ -44,13 +45,19 @@ export function EmployeeRowActions({
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-48">
           <DropdownMenuItem
+            asChild
             className="flex items-center gap-2.5 text-xs cursor-pointer"
-            onClick={() => { onSelect(employee); }}
           >
-            <Eye className="text-slate-400" size={14} />
-            <span>{t("employees.details.view_profile", "Xem hồ sơ 360°")}</span>
+            <Link
+              className="flex items-center gap-2.5 w-full"
+              data-testid={`view-profile-${employee.id}`}
+              onClick={() => { onSelect(employee); }}
+              to={`/employees/${employee.id}`}
+            >
+              <Eye className="text-slate-400" size={14} />
+              <span>{t("employees.details.view_profile", "Xem hồ sơ 360°")}</span>
+            </Link>
           </DropdownMenuItem>
-
           <PermissionGate permission="employees:update">
             <DropdownMenuItem
               className="flex items-center gap-2.5 text-xs cursor-pointer"

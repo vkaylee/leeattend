@@ -28,6 +28,7 @@ import { Route as AuthenticatedWorkspaceNotificationsRouteImport } from "./route
 import { Route as AuthenticatedWorkspaceMembersRouteImport } from "./routes/_authenticated/_workspace/members"
 import { Route as AuthenticatedWorkspaceLeaveRequestsRouteImport } from "./routes/_authenticated/_workspace/leave-requests"
 import { Route as AuthenticatedWorkspaceLeaveBalancesRouteImport } from "./routes/_authenticated/_workspace/leave-balances"
+import { Route as AuthenticatedWorkspaceHolidaysRouteImport } from "./routes/_authenticated/_workspace/holidays"
 import { Route as AuthenticatedWorkspaceEmployeesRouteImport } from "./routes/_authenticated/_workspace/employees"
 import { Route as AuthenticatedWorkspaceEcontractsRouteImport } from "./routes/_authenticated/_workspace/econtracts"
 import { Route as AuthenticatedWorkspaceDepartmentsRouteImport } from "./routes/_authenticated/_workspace/departments"
@@ -51,6 +52,7 @@ import { Route as AuthenticatedWorkspaceEssOtRouteImport } from "./routes/_authe
 import { Route as AuthenticatedWorkspaceEssDocumentsRouteImport } from "./routes/_authenticated/_workspace/ess/documents"
 import { Route as AuthenticatedWorkspaceEssClockRouteImport } from "./routes/_authenticated/_workspace/ess/clock"
 import { Route as AuthenticatedWorkspaceEssAttendanceRouteImport } from "./routes/_authenticated/_workspace/ess/attendance"
+import { Route as AuthenticatedWorkspaceEmployeesEmployeeIdRouteImport } from "./routes/_authenticated/_workspace/employees_.$employeeId"
 import { Route as AuthenticatedWorkspaceDocumentsTemplatesRouteImport } from "./routes/_authenticated/_workspace/documents.templates"
 import { Route as AuthenticatedWorkspaceAssignmentRulesNewRouteImport } from "./routes/_authenticated/_workspace/assignment-rules.new"
 import { Route as AuthenticatedWorkspaceApprovalsOtRouteImport } from "./routes/_authenticated/_workspace/approvals/ot"
@@ -231,6 +233,16 @@ const AuthenticatedWorkspaceLeaveBalancesRoute =
     getParentRoute: () => AuthenticatedWorkspaceRoute,
   } as any).lazy(() =>
     import("./routes/_authenticated/_workspace/leave-balances.lazy").then(
+      (d) => d.Route,
+    ),
+  )
+const AuthenticatedWorkspaceHolidaysRoute =
+  AuthenticatedWorkspaceHolidaysRouteImport.update({
+    id: "/holidays",
+    path: "/holidays",
+    getParentRoute: () => AuthenticatedWorkspaceRoute,
+  } as any).lazy(() =>
+    import("./routes/_authenticated/_workspace/holidays.lazy").then(
       (d) => d.Route,
     ),
   )
@@ -449,6 +461,16 @@ const AuthenticatedWorkspaceEssAttendanceRoute =
     getParentRoute: () => AuthenticatedWorkspaceRoute,
   } as any).lazy(() =>
     import("./routes/_authenticated/_workspace/ess/attendance.lazy").then(
+      (d) => d.Route,
+    ),
+  )
+const AuthenticatedWorkspaceEmployeesEmployeeIdRoute =
+  AuthenticatedWorkspaceEmployeesEmployeeIdRouteImport.update({
+    id: "/employees_/$employeeId",
+    path: "/employees/$employeeId",
+    getParentRoute: () => AuthenticatedWorkspaceRoute,
+  } as any).lazy(() =>
+    import("./routes/_authenticated/_workspace/employees_.$employeeId.lazy").then(
       (d) => d.Route,
     ),
   )
@@ -808,6 +830,7 @@ export interface FileRoutesByFullPath {
   "/departments": typeof AuthenticatedWorkspaceDepartmentsRoute
   "/econtracts": typeof AuthenticatedWorkspaceEcontractsRoute
   "/employees": typeof AuthenticatedWorkspaceEmployeesRoute
+  "/holidays": typeof AuthenticatedWorkspaceHolidaysRoute
   "/leave-balances": typeof AuthenticatedWorkspaceLeaveBalancesRoute
   "/leave-requests": typeof AuthenticatedWorkspaceLeaveRequestsRoute
   "/members": typeof AuthenticatedWorkspaceMembersRoute
@@ -824,6 +847,7 @@ export interface FileRoutesByFullPath {
   "/approvals/ot": typeof AuthenticatedWorkspaceApprovalsOtRoute
   "/assignment-rules/new": typeof AuthenticatedWorkspaceAssignmentRulesNewRoute
   "/documents/templates": typeof AuthenticatedWorkspaceDocumentsTemplatesRoute
+  "/employees/$employeeId": typeof AuthenticatedWorkspaceEmployeesEmployeeIdRoute
   "/ess/attendance": typeof AuthenticatedWorkspaceEssAttendanceRoute
   "/ess/clock": typeof AuthenticatedWorkspaceEssClockRoute
   "/ess/documents": typeof AuthenticatedWorkspaceEssDocumentsRoute
@@ -882,6 +906,7 @@ export interface FileRoutesByTo {
   "/departments": typeof AuthenticatedWorkspaceDepartmentsRoute
   "/econtracts": typeof AuthenticatedWorkspaceEcontractsRoute
   "/employees": typeof AuthenticatedWorkspaceEmployeesRoute
+  "/holidays": typeof AuthenticatedWorkspaceHolidaysRoute
   "/leave-balances": typeof AuthenticatedWorkspaceLeaveBalancesRoute
   "/leave-requests": typeof AuthenticatedWorkspaceLeaveRequestsRoute
   "/members": typeof AuthenticatedWorkspaceMembersRoute
@@ -896,6 +921,7 @@ export interface FileRoutesByTo {
   "/approvals/ot": typeof AuthenticatedWorkspaceApprovalsOtRoute
   "/assignment-rules/new": typeof AuthenticatedWorkspaceAssignmentRulesNewRoute
   "/documents/templates": typeof AuthenticatedWorkspaceDocumentsTemplatesRoute
+  "/employees/$employeeId": typeof AuthenticatedWorkspaceEmployeesEmployeeIdRoute
   "/ess/attendance": typeof AuthenticatedWorkspaceEssAttendanceRoute
   "/ess/clock": typeof AuthenticatedWorkspaceEssClockRoute
   "/ess/documents": typeof AuthenticatedWorkspaceEssDocumentsRoute
@@ -955,6 +981,7 @@ export interface FileRoutesById {
   "/_authenticated/_workspace/departments": typeof AuthenticatedWorkspaceDepartmentsRoute
   "/_authenticated/_workspace/econtracts": typeof AuthenticatedWorkspaceEcontractsRoute
   "/_authenticated/_workspace/employees": typeof AuthenticatedWorkspaceEmployeesRoute
+  "/_authenticated/_workspace/holidays": typeof AuthenticatedWorkspaceHolidaysRoute
   "/_authenticated/_workspace/leave-balances": typeof AuthenticatedWorkspaceLeaveBalancesRoute
   "/_authenticated/_workspace/leave-requests": typeof AuthenticatedWorkspaceLeaveRequestsRoute
   "/_authenticated/_workspace/members": typeof AuthenticatedWorkspaceMembersRoute
@@ -972,6 +999,7 @@ export interface FileRoutesById {
   "/_authenticated/_workspace/approvals/ot": typeof AuthenticatedWorkspaceApprovalsOtRoute
   "/_authenticated/_workspace/assignment-rules/new": typeof AuthenticatedWorkspaceAssignmentRulesNewRoute
   "/_authenticated/_workspace/documents/templates": typeof AuthenticatedWorkspaceDocumentsTemplatesRoute
+  "/_authenticated/_workspace/employees_/$employeeId": typeof AuthenticatedWorkspaceEmployeesEmployeeIdRoute
   "/_authenticated/_workspace/ess/attendance": typeof AuthenticatedWorkspaceEssAttendanceRoute
   "/_authenticated/_workspace/ess/clock": typeof AuthenticatedWorkspaceEssClockRoute
   "/_authenticated/_workspace/ess/documents": typeof AuthenticatedWorkspaceEssDocumentsRoute
@@ -1033,6 +1061,7 @@ export interface FileRouteTypes {
     | "/departments"
     | "/econtracts"
     | "/employees"
+    | "/holidays"
     | "/leave-balances"
     | "/leave-requests"
     | "/members"
@@ -1049,6 +1078,7 @@ export interface FileRouteTypes {
     | "/approvals/ot"
     | "/assignment-rules/new"
     | "/documents/templates"
+    | "/employees/$employeeId"
     | "/ess/attendance"
     | "/ess/clock"
     | "/ess/documents"
@@ -1107,6 +1137,7 @@ export interface FileRouteTypes {
     | "/departments"
     | "/econtracts"
     | "/employees"
+    | "/holidays"
     | "/leave-balances"
     | "/leave-requests"
     | "/members"
@@ -1121,6 +1152,7 @@ export interface FileRouteTypes {
     | "/approvals/ot"
     | "/assignment-rules/new"
     | "/documents/templates"
+    | "/employees/$employeeId"
     | "/ess/attendance"
     | "/ess/clock"
     | "/ess/documents"
@@ -1179,6 +1211,7 @@ export interface FileRouteTypes {
     | "/_authenticated/_workspace/departments"
     | "/_authenticated/_workspace/econtracts"
     | "/_authenticated/_workspace/employees"
+    | "/_authenticated/_workspace/holidays"
     | "/_authenticated/_workspace/leave-balances"
     | "/_authenticated/_workspace/leave-requests"
     | "/_authenticated/_workspace/members"
@@ -1196,6 +1229,7 @@ export interface FileRouteTypes {
     | "/_authenticated/_workspace/approvals/ot"
     | "/_authenticated/_workspace/assignment-rules/new"
     | "/_authenticated/_workspace/documents/templates"
+    | "/_authenticated/_workspace/employees_/$employeeId"
     | "/_authenticated/_workspace/ess/attendance"
     | "/_authenticated/_workspace/ess/clock"
     | "/_authenticated/_workspace/ess/documents"
@@ -1385,6 +1419,13 @@ declare module "@tanstack/react-router" {
       preLoaderRoute: typeof AuthenticatedWorkspaceLeaveBalancesRouteImport
       parentRoute: typeof AuthenticatedWorkspaceRoute
     }
+    "/_authenticated/_workspace/holidays": {
+      id: "/_authenticated/_workspace/holidays"
+      path: "/holidays"
+      fullPath: "/holidays"
+      preLoaderRoute: typeof AuthenticatedWorkspaceHolidaysRouteImport
+      parentRoute: typeof AuthenticatedWorkspaceRoute
+    }
     "/_authenticated/_workspace/employees": {
       id: "/_authenticated/_workspace/employees"
       path: "/employees"
@@ -1544,6 +1585,13 @@ declare module "@tanstack/react-router" {
       path: "/ess/attendance"
       fullPath: "/ess/attendance"
       preLoaderRoute: typeof AuthenticatedWorkspaceEssAttendanceRouteImport
+      parentRoute: typeof AuthenticatedWorkspaceRoute
+    }
+    "/_authenticated/_workspace/employees_/$employeeId": {
+      id: "/_authenticated/_workspace/employees_/$employeeId"
+      path: "/employees/$employeeId"
+      fullPath: "/employees/$employeeId"
+      preLoaderRoute: typeof AuthenticatedWorkspaceEmployeesEmployeeIdRouteImport
       parentRoute: typeof AuthenticatedWorkspaceRoute
     }
     "/_authenticated/_workspace/documents/templates": {
@@ -1988,6 +2036,7 @@ interface AuthenticatedWorkspaceRouteChildren {
   AuthenticatedWorkspaceDepartmentsRoute: typeof AuthenticatedWorkspaceDepartmentsRoute
   AuthenticatedWorkspaceEcontractsRoute: typeof AuthenticatedWorkspaceEcontractsRoute
   AuthenticatedWorkspaceEmployeesRoute: typeof AuthenticatedWorkspaceEmployeesRoute
+  AuthenticatedWorkspaceHolidaysRoute: typeof AuthenticatedWorkspaceHolidaysRoute
   AuthenticatedWorkspaceLeaveBalancesRoute: typeof AuthenticatedWorkspaceLeaveBalancesRoute
   AuthenticatedWorkspaceLeaveRequestsRoute: typeof AuthenticatedWorkspaceLeaveRequestsRoute
   AuthenticatedWorkspaceMembersRoute: typeof AuthenticatedWorkspaceMembersRoute
@@ -2002,6 +2051,7 @@ interface AuthenticatedWorkspaceRouteChildren {
   AuthenticatedWorkspaceIndexRoute: typeof AuthenticatedWorkspaceIndexRoute
   AuthenticatedWorkspaceApprovalsOtRoute: typeof AuthenticatedWorkspaceApprovalsOtRoute
   AuthenticatedWorkspaceDocumentsTemplatesRoute: typeof AuthenticatedWorkspaceDocumentsTemplatesRoute
+  AuthenticatedWorkspaceEmployeesEmployeeIdRoute: typeof AuthenticatedWorkspaceEmployeesEmployeeIdRoute
   AuthenticatedWorkspaceEssAttendanceRoute: typeof AuthenticatedWorkspaceEssAttendanceRoute
   AuthenticatedWorkspaceEssClockRoute: typeof AuthenticatedWorkspaceEssClockRoute
   AuthenticatedWorkspaceEssDocumentsRoute: typeof AuthenticatedWorkspaceEssDocumentsRoute
@@ -2028,6 +2078,7 @@ const AuthenticatedWorkspaceRouteChildren: AuthenticatedWorkspaceRouteChildren =
     AuthenticatedWorkspaceEcontractsRoute:
       AuthenticatedWorkspaceEcontractsRoute,
     AuthenticatedWorkspaceEmployeesRoute: AuthenticatedWorkspaceEmployeesRoute,
+    AuthenticatedWorkspaceHolidaysRoute: AuthenticatedWorkspaceHolidaysRoute,
     AuthenticatedWorkspaceLeaveBalancesRoute:
       AuthenticatedWorkspaceLeaveBalancesRoute,
     AuthenticatedWorkspaceLeaveRequestsRoute:
@@ -2050,6 +2101,8 @@ const AuthenticatedWorkspaceRouteChildren: AuthenticatedWorkspaceRouteChildren =
       AuthenticatedWorkspaceApprovalsOtRoute,
     AuthenticatedWorkspaceDocumentsTemplatesRoute:
       AuthenticatedWorkspaceDocumentsTemplatesRoute,
+    AuthenticatedWorkspaceEmployeesEmployeeIdRoute:
+      AuthenticatedWorkspaceEmployeesEmployeeIdRoute,
     AuthenticatedWorkspaceEssAttendanceRoute:
       AuthenticatedWorkspaceEssAttendanceRoute,
     AuthenticatedWorkspaceEssClockRoute: AuthenticatedWorkspaceEssClockRoute,

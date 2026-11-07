@@ -37,7 +37,7 @@ interface EmployeeDetailDrawerProps {
     wsId: string;
 }
 
-interface DrawerTabContentProps {
+export interface DrawerTabContentProps {
     activeDetailTab: DetailTabType;
     activeEmployment?: Employment;
     departments?: Department[];
@@ -84,7 +84,7 @@ const TAB_CONTENT_MAP: Record<DetailTabType, (props: DrawerTabContentProps) => R
     salary: (props) => <EmployeeSalaryConfig employeeId={props.employee.id} employmentId={props.activeEmployment?.id ?? ""} wsId={props.wsId} />,
 };
 
-function DrawerTabContent(props: DrawerTabContentProps) {
+export function DrawerTabContent(props: DrawerTabContentProps) {
     const renderContent = TAB_CONTENT_MAP[props.activeDetailTab];
     return renderContent(props);
 }
