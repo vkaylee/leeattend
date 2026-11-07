@@ -8,8 +8,8 @@ import type { ApprovalWorkflow, ApprovalWorkflowStep } from "@/lib/api/types";
 import Button from "@/components/ui/button";
 import EmptyState from "@/components/ui/empty-state";
 import { Typography } from "@/components/ui/typography";
+import { useApprovalWorkflows, useDeleteApprovalWorkflow } from "@/hooks/use-approval-workflows";
 import { useConfirm } from "@/hooks/use-confirm";
-
 interface WorkflowCardProps {
   isDeleting: boolean;
   onDelete: (id: string) => void;
@@ -169,7 +169,7 @@ export function ApprovalWorkflowsTab({ entityType = "ot_request" }: { entityType
         />
       ) : (
         <div className="grid grid-cols-1 gap-4">
-          {workflows.map((wf) => (
+          {workflows.map((wf: ApprovalWorkflow) => (
             <WorkflowCard
               isDeleting={isDeleting}
               key={wf.id}

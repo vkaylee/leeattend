@@ -6,7 +6,6 @@ import {
   Clock,
   Banknote,
   CalendarDays,
-  Palmtree,
   Cpu,
   Settings2,
   MapPin,
@@ -114,13 +113,6 @@ const getOperationsGroup = (t: TFunction): SettingItem[] => [
     label: t("settings.categories.leave"),
     path: ROUTES.SETTINGS.LEAVE,
     permissions: ["leave:policies:manage"],
-  },
-  {
-    description: t("settings.categories.holidays_desc", { defaultValue: "Lịch nghỉ lễ và quy tắc chấm công ngày lễ" }),
-    icon: <Palmtree className="w-4 h-4" />,
-    label: t("settings.categories.holidays", { defaultValue: "Ngày nghỉ lễ" }),
-    path: ROUTES.SETTINGS.HOLIDAYS,
-    permissions: ["holidays:manage"],
   },
   {
     description: t("settings.categories.overtime_desc", { defaultValue: "Quản lý hạn mức tăng ca và luồng phê duyệt OT" }),
