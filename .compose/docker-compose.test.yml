@@ -35,6 +35,35 @@ services:
     tmpfs:
       - /var/lib/postgresql:size=3072M
 
+  pgbouncer:
+    image: ${PGBOUNCER_IMAGE:-edoburu/pgbouncer:v1.26.1-p0}
+    profiles:
+      - infra-db
+    networks:
+      - test_net
+    environment:
+      DB_HOST: db
+      DB_PORT: "5432"
+      DB_NAME: test_database
+      DB_USER: test_user
+      DB_PASSWORD: test_password
+      AUTH_TYPE: scram-sha-256
+      POOL_MODE: transaction
+      LISTEN_PORT: "6432"
+      MAX_CLIENT_CONN: "200"
+      DEFAULT_POOL_SIZE: "25"
+      MAX_PREPARED_STATEMENTS: "250"
+    ports:
+      - "127.0.0.1:${PGBOUNCER_TEST_HOST_PORT:-6433}:6432"
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "pg_isready", "-h", "127.0.0.1", "-p", "6432", "-U", "test_user", "-d", "test_database"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
 
   redis:
     image: public.ecr.aws/docker/library/redis:7-alpine
@@ -80,10 +109,12 @@ services:
       retries: 12
     environment:
       - GOFLAGS=-mod=mod -buildvcs=false
-      - DB_PRIMARY_URL=postgres://test_user:test_password@db:5432/test_database?sslmode=disable
-      - DB_POOLER_TX_URL=postgres://test_user:test_password@db:5432/test_database?sslmode=disable
-      - DB_POOLER_SESS_URL=postgres://test_user:test_password@db:5432/test_database?sslmode=disable
-      - DB_READER_URL=postgres://test_user:test_password@db:5432/test_database?sslmode=disable
+      - DB_PRIMARY_URL=postgres://test_user:test_password@pgbouncer:6432/test_database?sslmode=disable
+      - DB_POOLER_TX_URL=postgres://test_user:test_password@pgbouncer:6432/test_database?sslmode=disable
+      - DB_POOLER_SESS_URL=postgres://test_user:test_password@pgbouncer:6432/test_database?sslmode=disable
+      - DB_READER_URL=postgres://test_user:test_password@pgbouncer:6432/test_database?sslmode=disable
+      - PGBOUNCER_HOST=pgbouncer
+      - PGBOUNCER_PORT=6432
       - ORGANIZATION_NAME=Test Organization
       - STANDALONE_ADMIN_EMAIL=admin@example.invalid
       - STANDALONE_ADMIN_PASSWORD=test-password

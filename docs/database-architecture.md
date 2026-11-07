@@ -26,10 +26,12 @@ The unified baseline contains all existing system and business objects:
 ## Connection architecture
 
 ```
-System queries  ──→ API pool     ──→ one PostgreSQL database
-Business TX     ──→ same API pool ──→ one PostgreSQL database
-Worker/session  ──→ worker pool  ──→ one PostgreSQL database
+System/API      ──→ API pool     ──→ PgBouncer (transaction mode) ──→ one PostgreSQL database
+Business TX     ──→ same API pool ──→ PgBouncer                   ──→ one PostgreSQL database
+Worker/session  ──→ worker pool  ──→ same PgBouncer endpoint      ──→ one PostgreSQL database
 ```
+
+All application, migration, and operator-tool connections use PgBouncer. PostgreSQL's own healthcheck and PgBouncer's upstream connection are the only direct connections. Transaction pooling is enabled on the shared endpoint. PgBouncer prepared-statement tracking is enabled with `max_prepared_statements=250`; application code must not rely on session state outside a transaction.
 
 No tenant database is created, selected, cached, evicted, or provisioned. Runtime pool management uses one database without workspace-ID validation; repository/API compatibility fields remain until later phases.
 

@@ -14,11 +14,15 @@ else
 fi
 
 cd "$ROOT"
-if [[ -n "${POSTGRES_IMAGE:-}" && -n "${POSTGRES_TLS_DIR:-}" && -n "${LICENSE_FILE:-}" ]]; then
+if [[ -n "${POSTGRES_IMAGE:-}" && -n "${PGBOUNCER_IMAGE:-}" \
+  && -n "${POSTGRES_TLS_DIR:-}" && -n "${PGBOUNCER_TLS_DIR:-}" \
+  && -n "${LICENSE_FILE:-}" ]]; then
   "${COMPOSE[@]}" -f docker-compose.yml config >/dev/null
 else
   printf '%s\n' 'Production Compose validation skipped: standalone deployment variables are not configured.' >&2
 fi
 "${COMPOSE[@]}" -f .compose/docker-compose.dev.yml config >/dev/null
-PROJECT_ROOT="$ROOT" "${COMPOSE[@]}" -f .compose/docker-compose.test.yml config >/dev/null
+PROJECT_ROOT="$ROOT" "${COMPOSE[@]}" \
+  --profile infra-db --profile infra-redis --profile int-go --profile web \
+  -f .compose/docker-compose.test.yml config >/dev/null
 printf '%s\n' 'Compose configuration valid: production, development, test'

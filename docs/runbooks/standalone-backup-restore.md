@@ -4,13 +4,13 @@ Scope: one LeeAttend Linux appliance with PostgreSQL, MinIO, Redis, API, and Das
 
 ## Backup
 
-Run during a maintenance window or from a consistent snapshot-capable host. Store the output on encrypted media separate from the appliance.
+Run during a maintenance window or from a consistent snapshot-capable host. Store the output on encrypted media separate from the appliance. The `pg_dump` and `pg_restore` clients connect to PostgreSQL only through PgBouncer.
 
 ```sh
 mkdir -p backups/2026-11-03
 
-docker compose -f docker-compose.standalone.yml exec -T db \
-  pg_dump -U "$DB_USER" -d "$DB_NAME" --format=custom \
+docker compose -f docker-compose.yml exec -T db sh -c \
+  'PGPASSWORD="$POSTGRES_PASSWORD" pg_dump -h pgbouncer -p 6432 -U "$POSTGRES_USER" -d "$POSTGRES_DB" --format=custom --no-owner --no-acl' \
   > backups/2026-11-03/leeattend.dump
 
 docker run --rm \
@@ -32,8 +32,8 @@ Daily encrypted backups are the minimum production schedule. Retain copies accor
 
    ```sh
    cat backups/2026-11-03/leeattend.dump | \
-     docker compose -f docker-compose.standalone.yml exec -T db \
-     pg_restore -U "$DB_USER" -d "$DB_NAME" --clean --if-exists
+     docker compose -f docker-compose.yml exec -T db sh -c \
+     'PGPASSWORD="$POSTGRES_PASSWORD" pg_restore -h pgbouncer -p 6432 -U "$POSTGRES_USER" -d "$POSTGRES_DB" --clean --if-exists --no-owner --no-acl'
    ```
 
 4. Restore object storage into the standalone MinIO volume. Preserve ownership and permissions.

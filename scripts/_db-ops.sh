@@ -34,12 +34,16 @@ db_backup() {
     set +a
     local db_user="${DB_USER:-postgres}"
     local db_name="${DB_NAME:-leeattend}"
+    local db_password="${DB_PASSWORD:-postgres}"
+    local pooler_port="${PGBOUNCER_PORT:-6432}"
 
     echo -e "${BLUE}${BOLD}🗄️ PostgreSQL Backup${NC}"
     echo -e "${BLUE}  Database: ${db_name}  User: ${db_user}${NC}"
 
     # Check that db container is running and ready
-    if ! $_DEV_COMPOSE_CMD exec -T db pg_isready -U "$db_user" -d "$db_name" </dev/null >/dev/null 2>&1; then
+    if ! PGPASSWORD="$db_password" $_DEV_COMPOSE_CMD exec -T -e PGPASSWORD db \
+        pg_isready -h pgbouncer -p "$pooler_port" -U "$db_user" -d "$db_name" \
+        </dev/null >/dev/null 2>&1; then
         echo -e "${RED}❌ Database container is not running or not ready.${NC}"
         echo -e "${YELLOW}Start it first: ./leedevkit manage up dev${NC}"
         exit 1
@@ -48,8 +52,8 @@ db_backup() {
     mkdir -p "$backup_dir"
 
     echo -e "${BLUE}  Dumping to: ${YELLOW}./backups/$filename${NC}"
-    if $_DEV_COMPOSE_CMD exec -T db \
-        pg_dump -U "$db_user" -d "$db_name" -Fc --no-owner --no-acl \
+    if PGPASSWORD="$db_password" $_DEV_COMPOSE_CMD exec -T -e PGPASSWORD db \
+        pg_dump -h pgbouncer -p "$pooler_port" -U "$db_user" -d "$db_name" -Fc --no-owner --no-acl \
         </dev/null > "$filepath" 2>/dev/null; then
         local size
         size=$(du -h "$filepath" | cut -f1)
@@ -87,6 +91,8 @@ db_restore() {
     set +a
     local db_user="${DB_USER:-postgres}"
     local db_name="${DB_NAME:-leeattend}"
+    local db_password="${DB_PASSWORD:-postgres}"
+    local pooler_port="${PGBOUNCER_PORT:-6432}"
 
     echo -e "${BLUE}${BOLD}🗄️ PostgreSQL Restore${NC}"
     echo -e "${BLUE}  Database: ${db_name}  From: ${file}${NC}"
@@ -102,7 +108,9 @@ db_restore() {
     fi
 
     # Check that db container is running and ready
-    if ! $_DEV_COMPOSE_CMD exec -T db pg_isready -U "$db_user" -d "$db_name" </dev/null >/dev/null 2>&1; then
+    if ! PGPASSWORD="$db_password" $_DEV_COMPOSE_CMD exec -T -e PGPASSWORD db \
+        pg_isready -h pgbouncer -p "$pooler_port" -U "$db_user" -d "$db_name" \
+        </dev/null >/dev/null 2>&1; then
         echo -e "${RED}❌ Database container is not running or not ready.${NC}"
         echo -e "${YELLOW}Start it first: ./leedevkit manage up dev${NC}"
         exit 1
@@ -112,8 +120,8 @@ db_restore() {
     case "$ext" in
         dump)
             echo -e "${BLUE}  Restoring (pg_restore --clean)...${NC}"
-            if $_DEV_COMPOSE_CMD exec -T db \
-                pg_restore -U "$db_user" -d "$db_name" --clean --no-owner --no-acl \
+            if PGPASSWORD="$db_password" $_DEV_COMPOSE_CMD exec -T -e PGPASSWORD db \
+                pg_restore -h pgbouncer -p "$pooler_port" -U "$db_user" -d "$db_name" --clean --no-owner --no-acl \
                 < "$file" 2>/dev/null; then
                 echo -e "${GREEN}✅ Restore complete!${NC}"
             else
@@ -123,8 +131,8 @@ db_restore() {
             ;;
         sql)
             echo -e "${BLUE}  Restoring (psql)...${NC}"
-            if $_DEV_COMPOSE_CMD exec -T db \
-                psql -U "$db_user" -d "$db_name" --quiet \
+            if PGPASSWORD="$db_password" $_DEV_COMPOSE_CMD exec -T -e PGPASSWORD db \
+                psql -h pgbouncer -p "$pooler_port" -U "$db_user" -d "$db_name" --quiet \
                 < "$file" 2>/dev/null; then
                 echo -e "${GREEN}✅ Restore complete!${NC}"
             else
@@ -138,5 +146,4 @@ db_restore() {
             ;;
     esac
 }
-
 

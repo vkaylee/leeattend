@@ -1,6 +1,6 @@
 # Podman Workflow and Multi-Environment Setup
 
-LeeAttend uses layered Compose files for development, testing, CI, and production. Runtime services are the Go `apiserver`, React `webdashboard`, PostgreSQL, Redis, MinIO, and supporting poolers. No separate edge service is built or deployed.
+LeeAttend uses layered Compose files for development, testing, CI, and production. Runtime services are the Go `apiserver`, React `webdashboard`, PostgreSQL, PgBouncer, Redis, and MinIO. Every application and migration connection uses the single PgBouncer endpoint in transaction mode with prepared-statement tracking enabled; PostgreSQL healthchecks and PgBouncer's upstream connection are direct.
 
 ## Compose layers
 
@@ -30,7 +30,7 @@ podman-compose -f .compose/docker-compose.dev.yml up --build
 The development API skips standalone license verification; production retains mandatory offline license verification. Database and Redis volumes are isolated by the development configuration.
 Development migration gate:
 
-`db-migrate` runs `apiserver/migrations/run-dev.sh`. It records the baseline migration in `schema_migrations`, skips an already-applied baseline, and exits non-zero on SQL errors. Existing development volumes containing the baseline schema are marked applied without replaying the dump.
+`db-migrate` runs `apiserver/migrations/run-dev.sh` through PgBouncer. It records the baseline migration in `schema_migrations`, skips an already-applied baseline, and exits non-zero on SQL errors. Existing development volumes containing the baseline schema are marked applied without replaying the dump.
 
 
 ## Test gates
