@@ -80,6 +80,9 @@ export function EmployeeOverlays(props: EmployeeOverlaysProps) {
 
   const modalOpen = activeModal ? activeModal.type === "create" || activeModal.type === "edit" : Boolean(isModalOpen);
   const currentEditingEmployee = activeModal?.type === "edit" ? activeModal.employee : editingEmployee;
+  const currentTransferEmployee = activeModal?.type === "transfer" ? activeModal.employee : selectedEmployee;
+  const currentTerminateEmployee = activeModal?.type === "terminate" ? activeModal.employee : selectedEmployee;
+  const currentRehireEmployee = activeModal?.type === "rehire" ? activeModal.employee : selectedEmployee;
   const importOpen = activeModal ? activeModal.type === "import" : Boolean(isImportDialogOpen);
   const transferOpen = activeModal ? activeModal.type === "transfer" : Boolean(isTransferModalOpen);
   const terminateOpen = activeModal ? activeModal.type === "terminate" : Boolean(isTerminateModalOpen);
@@ -145,7 +148,7 @@ export function EmployeeOverlays(props: EmployeeOverlaysProps) {
       <Suspense fallback={<OverlayFallback />}>
         <TransferEmployeeModal
           departments={departments}
-          employeeId={selectedEmployee?.id ?? null}
+          employeeId={currentTransferEmployee?.id ?? null}
           isOpen={transferOpen}
           onClose={handleClose}
           selectedDeptId={selectedDeptId}
@@ -156,8 +159,8 @@ export function EmployeeOverlays(props: EmployeeOverlaysProps) {
 
       <Suspense fallback={<OverlayFallback />}>
         <TerminateEmployeeModal
-          activeEmploymentId={selectedEmployee?.active_employment_id ?? null}
-          employeeId={selectedEmployee?.id ?? null}
+          activeEmploymentId={currentTerminateEmployee?.active_employment_id ?? null}
+          employeeId={currentTerminateEmployee?.id ?? null}
           isOpen={terminateOpen}
           onClose={handleClose}
           onSuccess={() => {
@@ -174,7 +177,7 @@ export function EmployeeOverlays(props: EmployeeOverlaysProps) {
 
       <Suspense fallback={<OverlayFallback />}>
         <RehireEmployeeModal
-          employeeId={selectedEmployee?.id ?? null}
+          employeeId={currentRehireEmployee?.id ?? null}
           isOpen={rehireOpen}
           onClose={handleClose}
           onSuccess={(updatedEmp) => { setSelectedEmployee(updatedEmp); }}

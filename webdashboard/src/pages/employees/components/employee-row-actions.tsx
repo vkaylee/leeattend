@@ -51,8 +51,8 @@ export function EmployeeRowActions({
             <Link
               className="flex items-center gap-2.5 w-full"
               data-testid={`view-profile-${employee.id}`}
-              onClick={() => { onSelect(employee); }}
-              to={`/employees/${employee.id}`}
+              params={{ employeeId: employee.id }}
+              to="/employees/$employeeId"
             >
               <Eye className="text-slate-400" size={14} />
               <span>{t("employees.details.view_profile", "Xem hồ sơ 360°")}</span>

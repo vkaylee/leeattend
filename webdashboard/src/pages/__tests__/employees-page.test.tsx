@@ -12,9 +12,11 @@ import * as api from "../../lib/api";
 import EmployeesPage from "../employees-page";
 
 
+const mockNavigate = vi.fn();
+
 // Mock TanStack Router to avoid needing full route tree in unit tests
 vi.mock("@tanstack/react-router", () => ({
-  useNavigate: () => vi.fn(),
+  useNavigate: () => mockNavigate,
  
   useLocation: () => ({ pathname: "/", search: "", hash: "" }),
   Link: ({ to, children, ...props }: { to: string; children: React.ReactNode; [key: string]: unknown }) => <a href={to} {...props}>{children}</a>,
@@ -284,16 +286,16 @@ describe("EmployeesPage", () => {
     // Detail panel
     // ────────────────────────────────────────────────────────────
 
-    it("opens detail panel when clicking an employee row", async () => {
+    it("navigates to employee detail page when clicking an employee row", async () => {
         const user = userEvent.setup();
         renderPage();
         const row = (await screen.findAllByText("Alice Nguyen"))[0];
         await user.click(row);
 
-        // The detail drawer is lazy-loaded into a portal; wait for its dialog
-        // before asserting its header rather than racing the dynamic import.
-        const detailDrawer = await screen.findByRole("dialog");
-        expect(within(detailDrawer).getByText("Alice Nguyen")).toBeInTheDocument();
+        expect(mockNavigate).toHaveBeenCalledWith({
+            to: "/employees/$employeeId",
+            params: { employeeId: "1" },
+        });
     });
 
     // ────────────────────────────────────────────────────────────
@@ -317,13 +319,13 @@ describe("EmployeesPage", () => {
         const user = userEvent.setup();
         renderPage();
 
-        // click row to open drawer
-        const row = (await screen.findAllByText("Alice Nguyen"))[0];
-        await user.click(row);
+        // click row actions button to open action dropdown
+        const actionsButton = await screen.findByTestId("employee-actions-1");
+        await user.click(actionsButton);
 
-        // find terminate button in drawer
-        const terminateButton = await screen.findByTestId("employees-btn-terminate");
-        await user.click(terminateButton);
+        // find terminate button in actions menu
+        const terminateOption = await screen.findByText(/Thôi việc|employees\.details\.terminate/i);
+        await user.click(terminateOption);
 
         // terminate modal appears — must fill required fields before confirming
         const reasonSelect = await screen.findByRole("combobox");

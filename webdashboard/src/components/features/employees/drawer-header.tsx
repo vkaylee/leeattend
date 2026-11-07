@@ -210,7 +210,7 @@ export default function DrawerHeader({
                     </div>
                 </div>
                 <div className="flex items-center gap-2">
-                    <Link to={`/employees/${employee.id}`}>
+                    <Link params={{ employeeId: employee.id }} to="/employees/$employeeId">
                         <Button
                             aria-label={t("employees.details.open_full_page", "Mở toàn trang")}
                             className="p-3 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-[1.25rem] transition-all shadow-md active:scale-90 border border-slate-100 dark:border-slate-800 text-slate-400 dark:text-slate-500 hover:text-primary-600 dark:hover:text-primary-400 h-auto w-auto shadow-none flex items-center justify-center"

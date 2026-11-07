@@ -1,3 +1,4 @@
+import { Link } from "@tanstack/react-router";
 import { Building2, ListFilter, UserCheck, UserX, Users } from "lucide-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
@@ -24,7 +25,14 @@ export const EmployeeNameCell = ({ employee, isSelected }: EmployeeNameCellProps
       {employee.full_name[0]}
     </div>
     <div>
-      <div className="font-bold text-slate-700 dark:text-slate-200 text-sm tracking-tight uppercase leading-none">{employee.full_name}</div>
+      <Link
+        className="font-bold text-slate-700 dark:text-slate-200 text-sm tracking-tight uppercase leading-none hover:text-primary-600 dark:hover:text-primary-400 transition-colors"
+        data-testid={`employee-link-${employee.id}`}
+        params={{ employeeId: employee.id }}
+        to="/employees/$employeeId"
+      >
+        {employee.full_name}
+      </Link>
       <div className="font-mono font-bold text-[10px] text-slate-400 dark:text-slate-500 uppercase tracking-tighter mt-1.5">{employee.employee_id_number}</div>
     </div>
   </div>

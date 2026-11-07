@@ -24,8 +24,10 @@ export default function EmployeesPage() {
   const navigate = useNavigate();
 
   const handleSelectEmployee = (emp: Employee) => {
-    page.setSelectedEmployee(emp);
-    void navigate({ to: `/employees/${emp.id}` });
+    void navigate({
+      to: "/employees/$employeeId",
+      params: { employeeId: emp.id },
+    });
   };
 
   const bulk = useEmployeeBulkSelection(employees);

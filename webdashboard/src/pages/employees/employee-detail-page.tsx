@@ -338,7 +338,7 @@ export default function EmployeeDetailPage() {
         openModal={modals.openModal}
         prefillEnrollmentId={modals.prefillEnrollmentId}
         selectedDeptId={modals.selectedDeptId}
-        selectedEmployee={employee}
+        selectedEmployee={null}
         setSelectedDeptId={modals.setSelectedDeptId}
         setSelectedEmployee={() => { void refetch(); }}
         wsId={wsId}
