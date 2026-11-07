@@ -1,5 +1,5 @@
 /* eslint-disable react/forbid-elements */
-import { ChevronDown, ChevronLeft, ChevronRight, X, User, FolderOpen, FileText, Milestone, ArrowLeftRight, DollarSign, History, Calendar, ShieldCheck, CheckSquare } from "lucide-react";
+import { ChevronDown, ChevronLeft, ChevronRight, X, User, FolderOpen, FileText, Milestone, ArrowLeftRight, DollarSign, History, Calendar, ShieldCheck, CheckSquare, Maximize2, Minimize2 } from "lucide-react";
 import { createElement, useCallback, useEffect, useRef, useState, type ComponentType } from "react";
 
 import type { Employee } from "@/lib/api";
@@ -38,7 +38,9 @@ export const EMPLOYEE_DRAWER_TAB_CONFIG: readonly TabDefinition[] = [
 export interface DrawerHeaderProps {
     activeDetailTab: DetailTabType;
     employee: Employee;
+    isExpanded?: boolean;
     onClose: () => void;
+    onToggleExpand?: () => void;
     setActiveDetailTab: (tab: DetailTabType) => void;
     t: (k: string, defaultValue?: string) => string;
 }
@@ -181,6 +183,8 @@ export default function DrawerHeader({
     onClose,
     activeDetailTab,
     setActiveDetailTab,
+    isExpanded,
+    onToggleExpand,
     t
 }: DrawerHeaderProps) {
     const tabs = EMPLOYEE_DRAWER_TAB_CONFIG.map(tab => ({
@@ -191,12 +195,12 @@ export default function DrawerHeader({
     const activeTabObj = tabs.find(tab => tab.id === activeDetailTab) ?? tabs[0];
 
     return (
-        <div className="sticky top-0 z-20 p-10 border-b border-slate-50 dark:border-slate-800 bg-slate-50/95 dark:bg-slate-800/95 backdrop-blur-sm shadow-sm">
-            <div className="flex justify-between items-start mb-8">
-                <div className="flex items-center gap-6">
-                    <div className="w-20 h-20 bg-primary-600 text-white rounded-[2rem] flex items-center justify-center font-bold text-3xl shadow-xl shadow-primary-100 dark:shadow-black/30 border-4 border-white rotate-3 group hover:rotate-0 transition-transform duration-500 uppercase">{employee.full_name[0]}</div>
+        <div className="sticky top-0 z-20 px-6 py-5 sm:px-8 sm:py-6 border-b border-slate-50 dark:border-slate-800 bg-slate-50/95 dark:bg-slate-800/95 backdrop-blur-sm shadow-sm">
+            <div className="flex justify-between items-start mb-6">
+                <div className="flex items-center gap-4 sm:gap-6">
+                    <div className="w-14 h-14 sm:w-16 sm:h-16 bg-primary-600 text-white rounded-[1.5rem] flex items-center justify-center font-bold text-2xl sm:text-3xl shadow-xl shadow-primary-100 dark:shadow-black/30 border-4 border-white rotate-3 group hover:rotate-0 transition-transform duration-500 uppercase shrink-0">{employee.full_name[0]}</div>
                     <div>
-                        <Typography className="text-3xl font-bold text-slate-700 dark:text-slate-200 tracking-tighter uppercase leading-none mb-2" variant="h2">{employee.full_name}</Typography>
+                        <Typography className="text-2xl sm:text-3xl font-bold text-slate-700 dark:text-slate-200 tracking-tighter uppercase leading-none mb-2" variant="h2">{employee.full_name}</Typography>
                         <div className="flex items-center gap-3">
                             <span className="text-primary-600 dark:text-primary-400 font-mono text-xs font-bold tracking-widest uppercase bg-white dark:bg-slate-900 px-3 py-1 rounded-full border border-primary-100 dark:border-primary-800 shadow-sm">{employee.employee_id_number}</span>
                             <div className="w-1.5 h-1.5 bg-slate-200 dark:bg-slate-600 rounded-full" />
@@ -204,7 +208,22 @@ export default function DrawerHeader({
                         </div>
                     </div>
                 </div>
-                <Button aria-label={t("common.close")} className="p-3 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-[1.25rem] transition-all shadow-md active:scale-90 border border-slate-100 dark:border-slate-800 text-slate-300 dark:text-slate-600 hover:text-rose-600 dark:text-rose-300 h-auto w-auto shadow-none" onClick={onClose} size="icon" type="button" variant="ghost"><X size={24} /></Button>
+                <div className="flex items-center gap-2">
+                    {onToggleExpand && (
+                        <Button
+                            aria-label={isExpanded ? t("common.minimize", "Thu nhỏ") : t("common.maximize", "Phóng to")}
+                            className="p-3 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-[1.25rem] transition-all shadow-md active:scale-90 border border-slate-100 dark:border-slate-800 text-slate-400 dark:text-slate-500 hover:text-primary-600 dark:hover:text-primary-400 h-auto w-auto shadow-none hidden sm:flex items-center justify-center"
+                            data-testid="toggle-drawer-expand"
+                            onClick={onToggleExpand}
+                            size="icon"
+                            type="button"
+                            variant="ghost"
+                        >
+                            {isExpanded ? <Minimize2 size={20} /> : <Maximize2 size={20} />}
+                        </Button>
+                    )}
+                    <Button aria-label={t("common.close")} className="p-3 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-[1.25rem] transition-all shadow-md active:scale-90 border border-slate-100 dark:border-slate-800 text-slate-300 dark:text-slate-600 hover:text-rose-600 dark:text-rose-300 h-auto w-auto shadow-none" onClick={onClose} size="icon" type="button" variant="ghost"><X size={24} /></Button>
+                </div>
             </div>
 
             {/* Desktop Navigation Tabs */}

@@ -1,4 +1,5 @@
-import React from "react";
+import React, { useState } from "react";
+import { cn } from "@/lib/utils";
 import { useTranslation } from "react-i18next";
 
 import type { Department, Employee, Employment, WorkspaceMember } from "@/lib/api";
@@ -103,6 +104,7 @@ export default function EmployeeDetailDrawer({
     onEmployeeUpdate,
 }: EmployeeDetailDrawerProps) {
     const { t } = useTranslation();
+    const [isExpanded, setIsExpanded] = useState(false);
     const {
         activeDetailTab,
         activeEmployment,
@@ -111,12 +113,14 @@ export default function EmployeeDetailDrawer({
         scrollRef,
         setActiveDetailTab,
     } = useEmployeeDetail({ employee, isOpen, wsId });
-
     if (!employee) return null;
 
     return (
         <Sheet
-            className="!max-w-4xl"
+            className={cn(
+                "transition-all duration-300",
+                isExpanded ? "!max-w-[96vw]" : "!max-w-5xl 2xl:!max-w-6xl"
+            )}
             contentClassName="!p-0"
             hideHeader
             isOpen={isOpen}
@@ -125,14 +129,16 @@ export default function EmployeeDetailDrawer({
             <DrawerHeader
                 activeDetailTab={activeDetailTab}
                 employee={employee}
+                isExpanded={isExpanded}
                 onClose={onClose}
+                onToggleExpand={() => { setIsExpanded((prev) => !prev); }}
                 setActiveDetailTab={setActiveDetailTab}
                 t={t}
             />
 
             <div
                 aria-labelledby={`employees-tab-${activeDetailTab}`}
-                className="p-10 pb-20 space-y-10 min-w-0 max-w-full overflow-x-hidden"
+                className="px-6 py-6 sm:px-8 sm:py-8 pb-20 space-y-8 min-w-0 max-w-full overflow-x-hidden"
                 id={`employees-tabpanel-${activeDetailTab}`}
                 ref={scrollRef}
                 role="tabpanel"
