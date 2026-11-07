@@ -1,4 +1,14 @@
 {
+  "search_employees": "搜索员工...",
+  "matrix": {
+    "export_btn": "导出矩阵",
+    "export_csv": "导出 CSV 考勤表",
+    "legend": "考勤符号",
+    "legend_title": "符号约定：",
+    "toggle_legend": "切换符号图例",
+    "view_matrix": "月度排班表",
+    "view_summary": "工时汇总"
+  },
   "adjustments": {
     "status": {
       "approved": "已批准",

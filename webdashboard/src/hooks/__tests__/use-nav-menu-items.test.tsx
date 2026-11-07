@@ -6,6 +6,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 
 import { useFilteredMenuItems, useNavMenuItems, getActiveNavGroup } from "@/hooks/use-nav-menu-items";
 import { APP_REGISTRY } from "@/lib/app-registry";
+import { isFeatureEnabled } from "@/lib/feature-flags";
 
 // ── Mock dependencies ─────────────────────────────────────────────
 

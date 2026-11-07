@@ -210,7 +210,7 @@ describe("AttendanceAdjustmentsPage", () => {
     await user.click(requestButton);
 
     // 3. Verify modal title is displayed
-    expect(await screen.findByText("time_tracking.modal.new_title")).toBeDefined();
+    expect(await screen.findByRole("heading", { name: /time_tracking.modal.new_title/i })).toBeDefined();
 
     // 4. Fill form
     const selectElement = screen.getAllByTestId("mock-employee-search").find(el => el.id === "adj-emp")!;

@@ -161,7 +161,7 @@ export const TimesheetMatrixGrid = React.forwardRef<
 
           <div className="flex items-center gap-2">
             <Button
-              aria-label={t("attendance.matrix.toggle_legend", "Bảng giải thích ký hiệu")}
+              aria-label={t("reports.legend", "Bảng giải thích ký hiệu")}
               className="flex items-center gap-1.5 text-xs text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 px-3 py-1.5 rounded-xl transition-all font-semibold normal-case tracking-normal"
               onClick={() => {
                 setIsLegendOpen((prev) => !prev);
@@ -169,7 +169,7 @@ export const TimesheetMatrixGrid = React.forwardRef<
               variant="ghost"
             >
               <HelpCircle size={15} />
-              <span>{t("attendance.matrix.legend", "Ký hiệu công")}</span>
+              <span>{t("reports.legend", "Ký hiệu công")}</span>
             </Button>
           </div>
         </div>
@@ -211,7 +211,7 @@ export const TimesheetMatrixGrid = React.forwardRef<
             <EmptyState
               description={t("common.no_records_found")}
               icon={<User className="w-10 h-10 text-slate-400" />}
-              title={t("attendance.matrix.empty_title", "Không tìm thấy nhân viên")}
+              title={t("common.no_records_found", "Không tìm thấy nhân viên")}
             />
           ) : (
             <table className="w-full text-left border-collapse border-spacing-0 text-xs">
@@ -240,13 +240,13 @@ export const TimesheetMatrixGrid = React.forwardRef<
 
                   {/* Fixed Right Summary Header Columns */}
                   <th className="px-3 py-3 text-center font-semibold text-emerald-700 dark:text-emerald-300 bg-emerald-500/10 min-w-[56px] border-l border-slate-200 dark:border-slate-700">
-                    {t("attendance.matrix.col_work", "Công")}
+                    {t("reports.table.std_hours", "Công")}
                   </th>
                   <th className="px-3 py-3 text-center font-semibold text-blue-700 dark:text-blue-300 bg-blue-500/10 min-w-[56px]">
-                    {t("attendance.matrix.col_leave", "Phép")}
+                    {t("reports.table.leave_days", "Phép")}
                   </th>
                   <th className="px-3 py-3 text-center font-semibold text-purple-700 dark:text-purple-300 bg-purple-500/10 min-w-[56px]">
-                    {t("attendance.matrix.col_paid_total", "Tổng tính")}
+                    {t("reports.table.total_hours", "Tổng tính")}
                   </th>
                 </tr>
               </thead>

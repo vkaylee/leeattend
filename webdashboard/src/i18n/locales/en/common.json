@@ -74,6 +74,8 @@
     "all_employees": "All Employees",
     "all_selected": "All",
     "amount": "Amount",
+    "mask_amount": "Mask Amount",
+    "show_amount": "Show Amount",
     "apply": "Apply",
     "approve": "Approve",
     "assign": "Assign",

@@ -195,6 +195,7 @@ export default function ReportFilters({
             className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl pl-9 pr-8 py-2 text-xs font-medium text-slate-800 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all shadow-sm"
             data-testid="report-search-shared"
             onChange={(e) => onSearchQueryChange(e.target.value)}
+            onFocus={(e) => e.currentTarget.select()}
             onKeyDown={onSearchKeyDown}
             placeholder={t("reports.search_placeholder", "Tìm theo tên nhân viên...")}
             ref={searchInputRef}

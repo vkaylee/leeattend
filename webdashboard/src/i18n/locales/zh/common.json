@@ -74,6 +74,8 @@
     "all_employees": "所有员工",
     "all_selected": "全部",
     "amount": "金额",
+    "mask_amount": "隐藏金额",
+    "show_amount": "显示金额",
     "apply": "应用",
     "approve": "批准",
     "assign": "分配",
@@ -1612,9 +1614,16 @@
     "timeline": {
       "title": "出勤时间线分析"
     },
+    "view_mode_group": "报告视图模式",
+    "view_matrix": "月度排班表",
+    "view_summary": "工时汇总",
     "export_excel": "导出 Excel",
+    "export_matrix_csv": "导出矩阵 (CSV)",
     "view_raw_logs": "查看原始日志",
     "view_raw_logs_short": "原始日志",
+    "timesheet_matrix_31_days": "31天考勤矩阵",
+    "legend": "考勤符号",
+    "legend_rules": "符号规则",
     "all_departments": "全部",
     "all_employers": "全部",
     "search_placeholder": "按员工姓名搜索...",
@@ -1638,12 +1647,13 @@
       "unscheduled_tooltip": "员工在无排班的情况下打卡"
     },
     "table": {
+      "employee": "员工",
       "total_hours": "总工时",
-      "leave_days": "休假天数",
-      "hours": "小时",
-      "units": "单位",
       "std_hours": "标准工时",
       "ot_hours": "加班工时",
+      "leave_days": "休假天数",
+      "notes": "备注",
+      "units": "单位",
       "scheduled": "排班",
       "segment_type": "分段",
       "segment_number": "#"
@@ -1672,7 +1682,8 @@
     },
     "messages": {
       "generating": "正在生成报告...",
-      "no_data": "该期间内未找到数据。"
+      "no_data": "该期间内未找到数据。",
+      "no_data_desc": "请选择不同的日期范围或验证排班分配。"
     },
     "reprocess": {
       "button": "重新计算",

@@ -3,9 +3,7 @@ import {
   Bell,
   ChevronRight,
   Menu,
-  Moon,
   Search,
-  Sun,
   UserCircle,
 } from "lucide-react";
 import React from "react";
@@ -13,7 +11,7 @@ import { useTranslation } from "react-i18next";
 
 import Button from "@/components/ui/button";
 import { LanguageSwitcher } from "@/components/ui/language-switcher";
-import { useDarkModeContext } from "@/context/use-dark-mode-context";
+import { ThemeSwitch } from "@/components/ui/theme-switch";
 import { useNotifications } from "@/hooks/use-notifications";
 import { useProfile } from "@/hooks/use-profile";
 import { getRouteMetadata } from "@/lib/route-metadata";
@@ -38,7 +36,6 @@ export function Topbar({
     "settings",
   ]);
   const location = useLocation();
-  const { isDark, setMode } = useDarkModeContext();
   const { user } = useProfile();
   const { unreadCount } = useNotifications();
 
@@ -140,25 +137,10 @@ export function Topbar({
           )}
         </Link>
 
-        {/* Theme Toggle */}
-        <Button
-          aria-label="Toggle theme"
-          className="h-8 w-8 p-0 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors focus-visible:ring-2 focus-visible:ring-primary"
-          data-testid="topbar-theme-toggle"
-          onClick={() => {
-            setMode(isDark ? "light" : "dark");
-          }}
-          size="sm"
-          title={isDark ? "Light mode" : "Dark mode"}
-          type="button"
-          variant="ghost"
-        >
-          {isDark ? (
-            <Sun className="h-4 w-4 text-amber-400" />
-          ) : (
-            <Moon className="h-4 w-4" />
-          )}
-        </Button>
+        {/* Theme Toggle (VitePress appearance switch) */}
+        <div className="flex items-center px-1">
+          <ThemeSwitch data-testid="topbar-theme-toggle" />
+        </div>
 
         {/* Language Switcher */}
         <div data-testid="topbar-lang-toggle">

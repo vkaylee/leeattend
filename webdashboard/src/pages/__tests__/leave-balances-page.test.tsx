@@ -184,7 +184,7 @@ describe("LeaveBalancesPage", () => {
             expect(screen.getAllByText("Nguyen Van A").length).toBeGreaterThan(0);
         }, { timeout: 3000 });
 
-        fireEvent.click(screen.getByText("LEAVE_BALANCES.RUN_ACCRUAL"));
+        fireEvent.click(screen.getByText(/run_accrual/i));
         expect(screen.getByText("Confirm")).toBeDefined();
         expect(screen.getByText("Cancel")).toBeDefined();
     });
@@ -195,7 +195,7 @@ describe("LeaveBalancesPage", () => {
             expect(screen.getAllByText("Nguyen Van A").length).toBeGreaterThan(0);
         }, { timeout: 3000 });
 
-        fireEvent.click(screen.getByText("LEAVE_BALANCES.RUN_ACCRUAL"));
+        fireEvent.click(screen.getByText(/run_accrual/i));
         fireEvent.click(screen.getByText("Cancel"));
         expect(api.triggerAccrualRun).not.toHaveBeenCalled();
     });
@@ -206,7 +206,7 @@ describe("LeaveBalancesPage", () => {
             expect(screen.getAllByText("Nguyen Van A").length).toBeGreaterThan(0);
         }, { timeout: 3000 });
 
-        fireEvent.click(screen.getByText("LEAVE_BALANCES.RUN_ACCRUAL"));
+        fireEvent.click(screen.getByText(/run_accrual/i));
         fireEvent.click(screen.getByText("Confirm"));
 
         await waitFor(() => {
@@ -229,7 +229,7 @@ describe("LeaveBalancesPage", () => {
             expect(screen.getAllByText("Nguyen Van A").length).toBeGreaterThan(0);
         }, { timeout: 3000 });
 
-        const accrualButton = screen.getByText("LEAVE_BALANCES.RUN_ACCRUAL").closest("button");
+        const accrualButton = screen.getByText(/run_accrual/i).closest("button");
         expect(accrualButton).not.toBeDisabled();
 
         // Change year to prev year
@@ -299,7 +299,7 @@ describe("LeaveBalancesPage", () => {
         }, { timeout: 3000 });
 
         // Open confirm dialog and confirm
-        fireEvent.click(screen.getByText("LEAVE_BALANCES.RUN_ACCRUAL"));
+        fireEvent.click(screen.getByText(/run_accrual/i));
         fireEvent.click(screen.getByText("Confirm"));
 
         await waitFor(() => {
@@ -322,7 +322,7 @@ describe("LeaveBalancesPage", () => {
             expect(screen.getAllByText("Nguyen Van A").length).toBeGreaterThan(0);
         }, { timeout: 3000 });
 
-        fireEvent.click(screen.getByText("LEAVE_BALANCES.RUN_ACCRUAL"));
+        fireEvent.click(screen.getByText(/run_accrual/i));
         fireEvent.click(screen.getByText("Confirm"));
 
         await waitFor(() => {
@@ -349,7 +349,7 @@ describe("LeaveBalancesPage", () => {
             expect(screen.getAllByText("Nguyen Van A").length).toBeGreaterThan(0);
         }, { timeout: 3000 });
 
-        fireEvent.click(screen.getByText("LEAVE_BALANCES.RUN_ACCRUAL"));
+        fireEvent.click(screen.getByText(/run_accrual/i));
         fireEvent.click(screen.getByText("Confirm"));
 
         // Wait for mutation to fire
@@ -394,7 +394,7 @@ describe("LeaveBalancesPage", () => {
             expect(screen.getAllByText("Nguyen Van A").length).toBeGreaterThan(0);
         }, { timeout: 3000 });
 
-        fireEvent.click(screen.getByText("LEAVE_BALANCES.RUN_ACCRUAL"));
+        fireEvent.click(screen.getByText(/run_accrual/i));
         fireEvent.click(screen.getByText("Confirm"));
 
         await waitFor(() => {
