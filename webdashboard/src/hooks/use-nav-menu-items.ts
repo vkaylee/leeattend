@@ -30,6 +30,7 @@ import {
   Inbox,
   FileText,
   ShieldCheck,
+  Palmtree,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
@@ -99,7 +100,6 @@ export function useNavMenuItems(): NavMenuStructure {
       testId: "sidebar-section-org",
       items: [
         { to: ROUTES.EMPLOYEES, icon: UserRound, label: t("common.employees"), testId: "sidebar-link-employees", permissions: ["employees:read"] },
-        { to: ROUTES.PEOPLE, icon: Users, label: t("members.title", { defaultValue: "Directory" }), testId: "sidebar-link-people", permissions: ["members:read"] },
         { to: ROUTES.DEPARTMENTS, icon: Building2, label: t("common.departments"), testId: "sidebar-link-departments", permissions: ["departments:read"] },
         { to: ROUTES.ORG_CHART, icon: FolderTree, label: t("common.org_chart"), testId: "sidebar-link-org-chart", permissions: ["departments:read"] },
         ...(isFeatureEnabled("ff_econtracts") ? [{ to: ROUTES.ECONTRACTS, icon: Scale, label: t("common.econtracts", { defaultValue: "e-Contracts Hub" }), testId: "sidebar-link-econtracts", permissions: ["employees:update"] }] : []),
@@ -117,8 +117,8 @@ export function useNavMenuItems(): NavMenuStructure {
         { to: ROUTES.ATTENDANCE_ADJUSTMENTS, icon: ClipboardCheck, label: t("common.attendance_confirm"), testId: "sidebar-link-attendance-adjustments", permissions: ["attendance:adjustments:approve", "attendance:adjustments:submit_on_behalf"] },
         { to: ROUTES.SHIFT_SWAPS, icon: ArrowLeftRight, label: t("shift_swaps.title"), testId: "sidebar-link-shift-swaps", permissions: ["shift_swaps:manage"] },
         { to: ROUTES.REPORTS, icon: BarChart3, label: t("common.reports"), testId: "sidebar-link-reports", permissions: ["reports:read"] },
+        { to: ROUTES.HOLIDAYS, icon: Palmtree, label: t("settings.categories.holidays", { defaultValue: "Ngày nghỉ lễ" }), testId: "sidebar-link-holidays", permissions: ["holidays:manage", "attendance:logs:read"] },
         { to: ROUTES.APPROVALS, icon: Inbox, label: t("approvals.inbox.title", "Hộp thư Phê duyệt"), testId: "sidebar-link-approvals", permissions: ["leave:requests:read", "overtime:approve", "attendance:adjustments:approve", "shift_swaps:manage"] },
-        { to: ROUTES.APPROVALS_OT, icon: CheckCircle, label: t("ot_approvals.title", "OT Approvals"), testId: "sidebar-link-approvals-ot", permissions: ["overtime:approve", "overtime:claim_on_behalf"] },
       ],
     },
     {
@@ -128,7 +128,6 @@ export function useNavMenuItems(): NavMenuStructure {
       testId: "sidebar-section-shifts",
       items: [
         { to: ROUTES.SHIFTS, icon: CalendarRange, label: t("common.shifts"), testId: "sidebar-link-shifts", permissions: ["shifts:read"] },
-        { to: ROUTES.SHIFTS_RULES, icon: Zap, label: t("common.sections.shifts_rules", "Automation Policy"), testId: "sidebar-link-shifts-rules", permissions: ["shifts:read"] },
       ],
     },
     {
@@ -149,7 +148,6 @@ export function useNavMenuItems(): NavMenuStructure {
       items: [
         { to: ROUTES.INFRA_MONITOR, icon: Activity, label: t("monitor.title", { defaultValue: "Worker Monitor" }), testId: "sidebar-link-infra-monitor", permissions: ["infra:monitor"] },
         { to: ROUTES.AUDIT_LOGS, icon: ShieldCheck, label: t("audit_logs.title", { defaultValue: "Audit Logs" }), testId: "sidebar-link-audit-logs", permissions: ["audit_logs:read"] },
-        { to: ROUTES.SYSTEM_SMTP, icon: Mail, label: t("smtp.title", "SMTP Settings"), testId: "sidebar-link-system-smtp", permissions: ["security:settings:manage"] },
       ],
     },
     {
@@ -194,14 +192,15 @@ export function useFilteredMenuItems(): NavMenuStructure {
 // ── Path-based active group detection ──────────────────────────────
 
 const ORG_PATHS: string[] = [
-  ROUTES.PEOPLE, ROUTES.EMPLOYEES, ROUTES.DEPARTMENTS,
+  ROUTES.EMPLOYEES, ROUTES.DEPARTMENTS,
   ROUTES.ORG_CHART, ROUTES.ECONTRACTS,
 ];
 const TIME_PATHS: string[] = [
   ROUTES.ATTENDANCE_LOGS, ROUTES.LEAVE_REQUESTS, ROUTES.ATTENDANCE_ADJUSTMENTS,
   ROUTES.REPORTS, ROUTES.LEAVE_BALANCES, ROUTES.SHIFT_SWAPS, ROUTES.APPROVALS, ROUTES.APPROVALS_OT,
+  ROUTES.HOLIDAYS,
 ];
-const SHIFTS_PATHS: string[] = [ROUTES.SHIFTS, ROUTES.SHIFTS_RULES];
+const SHIFTS_PATHS: string[] = [ROUTES.SHIFTS];
 const PAYROLL_PATHS: string[] = [ROUTES.PAYROLL, ROUTES.DOCUMENTS];
 
 /**

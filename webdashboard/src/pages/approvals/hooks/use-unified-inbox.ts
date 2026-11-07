@@ -53,10 +53,20 @@ export function useUnifiedInbox(): UseUnifiedInboxReturn {
   const wsId = getStandaloneOrganizationId();
 
   // ── Filters & Selection ──────────────────────────────────────────────
-  const [filter, setFilterState] = useState<UnifiedInboxFilter>({
-    type: "all",
-    status: "pending",
-    searchQuery: "",
+  const [filter, setFilterState] = useState<UnifiedInboxFilter>(() => {
+    let initialType: ApprovalType | "all" = "all";
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const urlType = params.get("type");
+      if (urlType === "overtime" || urlType === "leave" || urlType === "adjustment" || urlType === "shift_swap") {
+        initialType = urlType;
+      }
+    }
+    return {
+      type: initialType,
+      status: "pending",
+      searchQuery: "",
+    };
   });
 
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());

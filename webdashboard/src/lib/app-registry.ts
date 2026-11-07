@@ -26,6 +26,7 @@ import {
   Inbox,
   FileText,
   ShieldCheck,
+  Palmtree,
 } from "lucide-react";
 
 import type { NavGroup } from "@/hooks/use-nav-menu-items";
@@ -94,7 +95,7 @@ export const APP_REGISTRY: AppDefinition[] = [
     labelKey: "members.title",
     descriptionKey: "appLauncher.descriptions.directory",
     to: ROUTES.PEOPLE,
-    group: "org",
+    group: "settings",
     permissions: ["members:read"],
     testId: "app-card-people",
   },
@@ -204,14 +205,14 @@ export const APP_REGISTRY: AppDefinition[] = [
     testId: "app-card-approvals",
   },
   {
-    id: "approvals-ot",
-    icon: CheckCircle,
-    labelKey: "ot_approvals.title",
-    descriptionKey: "appLauncher.descriptions.approvals_ot",
-    to: ROUTES.APPROVALS_OT,
+    id: "holidays",
+    icon: Palmtree,
+    labelKey: "settings.categories.holidays",
+    descriptionKey: "settings.categories.holidays_desc",
+    to: ROUTES.HOLIDAYS,
     group: "time",
-    permissions: ["overtime:approve", "overtime:claim_on_behalf"],
-    testId: "app-card-approvals-ot",
+    permissions: ["holidays:manage", "attendance:logs:read"],
+    testId: "app-card-holidays",
   },
 
   // ── Shifts ─────────────────────────────────────────────────────
@@ -231,7 +232,7 @@ export const APP_REGISTRY: AppDefinition[] = [
     labelKey: "common.sections.shifts_rules",
     descriptionKey: "shifts.rules.subtitle",
     to: ROUTES.SHIFTS_RULES,
-    group: "shifts",
+    group: "settings",
     permissions: ["shifts:read"],
     testId: "app-card-shifts-rules",
   },

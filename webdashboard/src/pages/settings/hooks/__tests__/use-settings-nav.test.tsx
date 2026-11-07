@@ -20,8 +20,13 @@ describe("useSettingsNav", () => {
     const { result } = renderHook(() => useSettingsNav());
 
     const systemPaths = result.current.systemGroup.map((item) => item.path);
+    const operationsPaths = result.current.operationsGroup.map((item) => item.path);
+    const accessPaths = result.current.accessGroup.map((item) => item.path);
 
     expect(systemPaths).not.toContain("/audit-logs");
     expect(systemPaths).toContain("/workspace/settings/storage");
+    expect(systemPaths).toContain("/system/smtp");
+    expect(operationsPaths).toContain("/shifts/rules");
+    expect(accessPaths).toContain("/workspace/people");
   });
 });

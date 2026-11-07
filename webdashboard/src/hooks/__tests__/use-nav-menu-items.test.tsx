@@ -96,12 +96,18 @@ describe("useNavMenuItems", () => {
 
     // Explicit intentional exclusions:
     // - "/dashboard": Secondary analytics catalog route, opened via in-page customization
-    const EXCLUDED_APP_ROUTES = new Set<string>(["/dashboard"]);
+    // - "/workspace/people": Managed under Settings Hub -> Access & Accounts
+    // - "/shifts/rules": Managed under Settings Hub -> Operations & Policies
+    const EXCLUDED_APP_ROUTES: Record<string, true> = {
+      "/dashboard": true,
+      "/workspace/people": true,
+      "/shifts/rules": true,
+    };
 
     const missingFromSidebar = APP_REGISTRY
       .filter((app) => !app.featureFlag || isFeatureEnabled(app.featureFlag))
       .map((app) => app.to)
-      .filter((route) => !EXCLUDED_APP_ROUTES.has(route) && !sidebarRoutes.has(route));
+      .filter((route) => !EXCLUDED_APP_ROUTES[route] && !sidebarRoutes.has(route));
     expect(
       missingFromSidebar,
       `Found apps in APP_REGISTRY missing from sidebar navigation: ${missingFromSidebar.join(", ")}`
@@ -126,25 +132,24 @@ describe("useFilteredMenuItems", () => {
     expect(groupsWithItems).toHaveLength(0);
   });
 
-  it("shows retained system navigation only with SMTP permission", () => {
-    activePermissions.add("security:settings:manage");
+  it("shows retained system navigation with infra:monitor permission", () => {
+    activePermissions.add("infra:monitor");
 
     const { result } = renderHook(() => useFilteredMenuItems(), { wrapper });
 
     const systemGroup = result.current.groups.find((g) => g.section === "system");
-    expect(systemGroup?.items.map((item) => item.to)).toEqual(["/system/smtp"]);
+    expect(systemGroup?.items.map((item) => item.to)).toEqual(["/infra/monitor"]);
   });
 
   it("shows org section items when user has org permissions", () => {
     activePermissions.add("employees:read");
-    activePermissions.add("members:read");
     activePermissions.add("departments:read");
 
     const { result } = renderHook(() => useFilteredMenuItems(), { wrapper });
 
     const orgGroup = result.current.groups.find((g) => g.section === "org");
     expect(orgGroup).toBeDefined();
-    expect(orgGroup!.items.length).toBeGreaterThanOrEqual(3);
+    expect(orgGroup!.items.length).toBeGreaterThanOrEqual(2);
   });
 
   it("shows approval inbox when user has any inbox permission", () => {
@@ -243,8 +248,8 @@ describe("getActiveNavGroup", () => {
     expect(getActiveNavGroup("/approvals")).toBe("time");
   });
 
-  it('returns "time" for /approvals/ot', () => {
-    expect(getActiveNavGroup("/approvals/ot")).toBe("time");
+  it('returns "time" for /workspace/settings/holidays', () => {
+    expect(getActiveNavGroup("/workspace/settings/holidays")).toBe("time");
   });
 
   it('returns "shifts" for /shifts', () => {

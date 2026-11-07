@@ -16,6 +16,9 @@ import {
   Database,
   Scale,
   Tags,
+  Mail,
+  Users,
+  Zap,
 } from "lucide-react";
 import React, { useMemo } from "react";
 import { useTranslation } from "react-i18next";
@@ -74,13 +77,20 @@ const getAccessGroup = (t: TFunction): SettingItem[] => [
     path: ROUTES.SETTINGS.PERMISSIONS,
     permissions: ["members:roles:manage"],
   },
+  {
+    description: t("settings.categories.members_desc", { defaultValue: "Quản lý tài khoản người dùng và lời mời" }),
+    icon: <Users className="w-4 h-4" />,
+    label: t("members.title", { defaultValue: "Tài khoản người dùng" }),
+    path: ROUTES.SETTINGS.MEMBERS,
+    permissions: ["members:read"],
+  },
 ];
 
 const getOperationsGroup = (t: TFunction): SettingItem[] => [
   {
-    description: t("settings.categories.organization_desc", { defaultValue: "Quản lý cơ cấu phòng ban và giai đoạn công tác" }),
+    description: t("settings.categories.organization_desc", { defaultValue: "Quản lý pháp nhân và lộ trình công tác" }),
     icon: <Building2 className="w-4 h-4" />,
-    label: t("settings.categories.organization", { defaultValue: "Cơ cấu tổ chức" }),
+    label: t("settings.categories.organization", { defaultValue: "Pháp nhân & Mốc công tác" }),
     path: ROUTES.SETTINGS.ORGANIZATION,
     permissions: ["employees:read", "departments:read"],
   },
@@ -140,6 +150,13 @@ const getOperationsGroup = (t: TFunction): SettingItem[] => [
     path: ROUTES.SETTINGS.CONDITION_TYPES,
     permissions: ["workspace:settings:read"],
   },
+  {
+    description: t("shifts.rules.subtitle", { defaultValue: "Mẫu lịch xoay ca và quy tắc gán ca tự động" }),
+    icon: <Zap className="w-4 h-4" />,
+    label: t("common.sections.shifts_rules", { defaultValue: "Mẫu ca & Quy tắc phân ca" }),
+    path: ROUTES.SETTINGS.SHIFTS_RULES,
+    permissions: ["shifts:read"],
+  },
 ];
 
 const getSystemGroup = (t: TFunction): SettingItem[] => [
@@ -149,6 +166,13 @@ const getSystemGroup = (t: TFunction): SettingItem[] => [
     label: t("settings.categories.storage", { defaultValue: "Lưu trữ tài liệu" }),
     path: ROUTES.SETTINGS.STORAGE,
     permissions: ["workspace:settings:read"],
+  },
+  {
+    description: t("smtp.subtitle", { defaultValue: "Cấu hình kết nối máy chủ gửi email thông báo" }),
+    icon: <Mail className="w-4 h-4" />,
+    label: t("smtp.title", { defaultValue: "Máy chủ Email (SMTP)" }),
+    path: ROUTES.SETTINGS.SMTP,
+    permissions: ["security:settings:manage"],
   },
   {
     description: t("settings.categories.econtracts_desc", { defaultValue: "Cấu hình tích hợp và chữ ký số hợp đồng" }),

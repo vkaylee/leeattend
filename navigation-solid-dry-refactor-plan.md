@@ -1,6 +1,6 @@
 # Kế Hoạch Tối Ưu Hóa Menu & Cài Đặt (SOLID & DRY Architecture)
 
-Status: Awaiting approval
+Status: Approved
 
 ## 🎯 Mục Tiêu
 Tái cấu trúc luồng điều hướng (Navigation Sidebar & Settings Hub) của LeeAttend theo chuẩn Enterprise HRM:
@@ -59,20 +59,20 @@ Tái cấu trúc luồng điều hướng (Navigation Sidebar & Settings Hub) c�
 ## 📋 Danh Sách Tác Vụ Cụ Thể (Actionable Tasks)
 
 ### Phase 1: Chuẩn Hóa Routing & Master Registry (DRY Foundation)
-- [ ] **Task 1: Cập nhật `ROUTES` constants**
+- [x] **Task 1: Cập nhật `ROUTES` constants**
   - File: `webdashboard/src/lib/routes.ts`
   - Bổ sung `SETTINGS.SMTP: "/workspace/settings/smtp"`, `SETTINGS.SHIFTS_RULES: "/workspace/settings/shifts-rules"`, `HOLIDAYS: "/holidays"`.
   - Giữ compatibility redirect nếu người dùng bookmark đường dẫn cũ.
   - Verify: `npx tsc --noEmit` không có lỗi cú pháp.
 
-- [ ] **Task 2: Đồng bộ `APP_REGISTRY` & Metadata**
+- [x] **Task 2: Đồng bộ `APP_REGISTRY` & Metadata**
   - File: `webdashboard/src/lib/app-registry.ts` & `webdashboard/src/lib/route-metadata.ts`
   - Cập nhật nhóm (`group`) cho các module được điều chuyển.
   - Loại bỏ entry rác `/approvals/ot`, liên kết trực tiếp vào unified inbox.
   - Verify: Drift-detection tests phản ánh cấu trúc mới.
 
 ### Phase 2: Tái Cấu Trúc Main Menu Hook & Sidebar (SRP Execution)
-- [ ] **Task 3: Refactor `useNavMenuItems()`**
+- [x] **Task 3: Refactor `useNavMenuItems()`**
   - File: `webdashboard/src/hooks/use-nav-menu-items.ts`
   - Nhóm `org`: Giữ `employees`, `departments`, `org-chart`, kích hoạt `econtracts`. Chuyển `people` sang Settings.
   - Nhóm `time`: Bổ sung `holidays`, giữ `attendance-logs`, `leave-requests`, `leave-balances`, `attendance-adjustments`, `shift-swaps`, `reports`, `approvals`. Xóa `approvals-ot`.
@@ -80,13 +80,13 @@ Tái cấu trúc luồng điều hướng (Navigation Sidebar & Settings Hub) c�
   - Nhóm `system`: Xóa `system-smtp`. Chỉ giữ `infra-monitor` và `audit-logs` (được bảo vệ nghiêm ngặt bởi quyền `admin`).
   - Verify: Hook trả về đúng danh sách items tinh gọn, không còn mục rác kỹ thuật.
 
-- [ ] **Task 4: Tinh gọn Unified Inbox Header & Linkings**
+- [x] **Task 4: Tinh gọn Unified Inbox Header & Linkings**
   - File: `webdashboard/src/pages/approvals/unified-inbox-page.tsx`
   - Đảm bảo query param `?type=overtime` tự động active filter tab Overtime khi người dùng truy cập từ notification hoặc liên kết nhanh.
   - Verify: Truy cập `/approvals?type=overtime` hiển thị ngay danh sách đơn tăng ca cần duyệt.
 
 ### Phase 3: Tái Cấu Trúc Settings Hub (Configuration Consolidation)
-- [ ] **Task 5: Refactor `use-settings-nav.tsx` & Sidebar**
+- [x] **Task 5: Refactor `use-settings-nav.tsx` & Sidebar**
   - File: `webdashboard/src/pages/settings/hooks/use-settings-nav.tsx`
   - Thêm `shifts-rules` vào `operationsGroup` (icon `Zap`, nhãn "Quy tắc phân ca & Mẫu ca").
   - Thêm `smtp` vào `systemGroup` (icon `Mail`, nhãn "Máy chủ Email SMTP").
@@ -94,20 +94,20 @@ Tái cấu trúc luồng điều hướng (Navigation Sidebar & Settings Hub) c�
   - Tối ưu `organization`: Đổi nhãn thành "Pháp nhân & Mốc công tác", gỡ tab rỗng redirect phòng ban.
   - Verify: Settings sidebar hiển thị trực quan, đúng 4 nhóm chức năng rõ ràng.
 
-- [ ] **Task 6: Tạo Route Settings cho SMTP & Shifts Rules**
+- [x] **Task 6: Tạo Route Settings cho SMTP & Shifts Rules**
   - File: `webdashboard/src/routes/_authenticated/_workspace/workspace/settings/`
   - Tạo route lazy load cho SMTP và Shifts Rules bên trong khung Layout của Settings Hub.
   - Tái sử dụng components đã có (`SmtpSettingsPage`, `ShiftsRulesPage`) theo chuẩn DRY.
   - Verify: Mở `/workspace/settings/smtp` và `/workspace/settings/shifts-rules` nằm trọn vẹn trong Settings Layout.
 
 ### Phase 4: Cập Nhật Test Suite & Drift-Detection (Verification Gate)
-- [ ] **Task 7: Cập nhật Navigation Unit Tests**
+- [x] **Task 7: Cập nhật Navigation Unit Tests**
   - File: `webdashboard/src/hooks/__tests__/use-nav-menu-items.test.tsx`
   - File: `webdashboard/src/pages/settings/hooks/__tests__/use-settings-nav.test.tsx`
   - Cập nhật assertions khớp với danh sách menu mới sau điều chuyển.
   - Verify: Chạy unit tests qua vitest pass 100%.
 
-- [ ] **Task 8: Kiểm thử tích hợp & E2E smoke check**
+- [x] **Task 8: Kiểm thử tích hợp & E2E smoke check**
   - Kiểm tra 5 vai trò mẫu (`admin`, `hr_manager`, `shift_manager`, `team_lead`, `employee`):
     - `admin`: Thấy Worker Monitor, Audit Logs, Settings đầy đủ.
     - `hr_manager`: Thấy Hồ sơ nhân viên, Phòng ban, Ngày nghỉ lễ, Bảng lương, Không bị loãng bởi SMTP.
