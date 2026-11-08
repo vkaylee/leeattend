@@ -71,7 +71,7 @@ describe("SettingsSidebar (macOS 2-column layout)", () => {
     mockLocationPath = "/workspace/settings/general";
   });
 
-  it("renders sidebar with header and control panel label", () => {
+  it("renders sidebar with header and admin badge", () => {
     vi.spyOn(hooks, "useSettingsNav").mockReturnValue(
       makeNavState({
         workspaceGroup: [makeItem("General", "/workspace/settings/general")],
@@ -80,7 +80,8 @@ describe("SettingsSidebar (macOS 2-column layout)", () => {
 
     render(<SettingsSidebar />);
     expect(screen.getByTestId("settings-sidebar")).toBeInTheDocument();
-    expect(screen.getByText("Cấu hình hệ thống")).toBeInTheDocument();
+    expect(screen.getByText("Cài đặt")).toBeInTheDocument();
+    expect(screen.getByText("Admin")).toBeInTheDocument();
   });
 
   it("renders back to workspace link for Focus Mode", () => {

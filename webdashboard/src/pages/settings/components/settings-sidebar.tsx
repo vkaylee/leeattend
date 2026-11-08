@@ -2,7 +2,6 @@ import { Link, useLocation } from "@tanstack/react-router";
 import {
   ArrowLeft,
   Search,
-  Settings,
   ShieldCheck,
   X,
 } from "lucide-react";
@@ -10,7 +9,6 @@ import React, { memo, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import Button from "@/components/ui/button";
-import { Typography } from "@/components/ui/typography";
 import { ROUTES } from "@/lib/routes";
 import { cn, removeDiacritics } from "@/lib/utils";
 
@@ -100,43 +98,23 @@ export const SettingsSidebar = memo(function SettingsSidebar({
       )}
       data-testid="settings-sidebar"
     >
-      {/* 0. Focus Mode Return Button */}
-      <div className="pb-2 mb-1 hidden md:block">
+      {/* 1. Header & Return to Workspace (Linear/Stripe style) */}
+      <div className="pb-3 mb-2.5 px-0.5 border-b border-slate-200/60 dark:border-slate-800/60 hidden md:flex items-center justify-between">
         <Link
-          className="inline-flex items-center gap-2 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:text-primary-600 dark:hover:text-primary-400 px-2.5 py-1.5 rounded-xl hover:bg-slate-200/60 dark:hover:bg-slate-800/60 transition-colors w-full group outline-none focus-visible:ring-2 focus-visible:ring-primary"
+          className="inline-flex items-center gap-2 py-1 px-1.5 -ml-1 rounded-lg text-slate-700 dark:text-slate-200 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-slate-100 dark:hover:bg-slate-800/60 transition-colors group outline-none focus-visible:ring-2 focus-visible:ring-primary"
           data-testid="settings-back-to-app"
+          title={t("settings.back_to_workspace", "Quay lại bảng làm việc")}
           to={ROUTES.HOME}
         >
-          <ArrowLeft className="w-3.5 h-3.5 transition-transform group-hover:-translate-x-0.5 text-slate-400 group-hover:text-primary-600 dark:group-hover:text-primary-400" />
-          <span>{t("settings.back_to_workspace", "Quay lại bảng làm việc")}</span>
+          <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-0.5 text-slate-400 group-hover:text-primary-600 dark:group-hover:text-primary-400" />
+          <span className="text-sm font-semibold tracking-tight text-slate-900 dark:text-slate-100 group-hover:text-primary-600 dark:group-hover:text-primary-400">
+            {t("common.settings.title", "Cài đặt")}
+          </span>
         </Link>
-      </div>
-
-      {/* 1. Header (macOS Ventura/Sonoma style) */}
-      <div className="pb-3.5 mb-3 px-1 border-b border-slate-200/60 dark:border-slate-800/60 hidden md:flex items-center gap-2.5">
-        <div className="w-8 h-8 rounded-lg bg-primary-600 text-white flex items-center justify-center shrink-0 shadow-2xs">
-          <Settings className="w-4 h-4" />
-        </div>
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-1.5">
-            <Typography
-              className="text-sm font-bold text-slate-800 dark:text-slate-100 truncate leading-snug"
-              variant="p"
-            >
-              {t("common.settings.title", "Cài đặt")}
-            </Typography>
-            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-slate-200/70 dark:bg-slate-800 border border-slate-300/50 dark:border-slate-700/60 text-[9px] font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider shrink-0">
-              <ShieldCheck className="w-2.5 h-2.5 text-primary-600 dark:text-primary-400" />
-              {t("settings.admin_tag", "Admin")}
-            </span>
-          </div>
-          <Typography
-            className="text-[10px] font-medium text-slate-500 dark:text-slate-400 truncate"
-            variant="p"
-          >
-            {t("settings.layout.control_panel", "Cấu hình hệ thống")}
-          </Typography>
-        </div>
+        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700/80 text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider shrink-0">
+          <ShieldCheck className="w-3 h-3 text-primary-600 dark:text-primary-400" />
+          {t("settings.admin_tag", "Admin")}
+        </span>
       </div>
 
       {/* 2. Fast Filter / Search Input */}
