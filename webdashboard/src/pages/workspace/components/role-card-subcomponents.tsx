@@ -17,6 +17,7 @@ import PermissionGate from "@/components/common/permission-gate";
 import Button from "@/components/ui/button";
 import { Typography } from "@/components/ui/typography";
 import { cn } from "@/lib/utils";
+import { ROUTES } from "@/lib/routes";
 
 import type { WorkspaceRole } from "../../../lib/api/types";
 
@@ -101,7 +102,7 @@ export const RoleCardActions = ({
             )}
             <Link
               className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
-              to="/workspace/settings/permissions"
+              to={ROUTES.SETTINGS.PERMISSIONS}
             >
               <CheckCircle2 size={16} /> {t("rolesPage.matrix", { defaultValue: "Matrix" })}
             </Link>

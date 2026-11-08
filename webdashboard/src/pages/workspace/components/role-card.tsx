@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 
 import PermissionGate from "@/components/common/permission-gate";
 import { Typography } from "@/components/ui/typography";
+import { ROUTES } from "@/lib/routes";
 
 import type { WorkspaceRole } from "../../../lib/api/types";
 
@@ -52,7 +53,7 @@ export function RoleCard({ role, activeMenu, setActiveMenu, onEdit, onDelete }: 
           <PermissionGate permission="members:roles:manage">
             <Link
               className="text-xs font-bold text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1"
-              to="/workspace/settings/permissions"
+              to={ROUTES.SETTINGS.PERMISSIONS}
             >
               {t("rolesPage.manageAccess", { defaultValue: "Manage Access" })} <ChevronRight size={14} />
             </Link>

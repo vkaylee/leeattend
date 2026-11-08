@@ -6,7 +6,8 @@ import { useTranslation } from "react-i18next";
 import { SettingsHeader } from "@/components/ui/settings/settings-header";
 import { SettingsSegmentedControl, type SegmentedOption } from "@/components/ui/settings/settings-segmented-control";
 import { useWorkspace } from "@/hooks/use-workspace";
-import { Route } from "@/routes/_authenticated/_workspace/workspace/settings/workflows";
+import { ROUTES } from "@/lib/routes";
+import { Route } from "@/routes/_authenticated/_workspace/settings/workflows";
 
 import { ApprovalWorkflowsTab } from "./components/overtime/approval-workflows-tab";
 
@@ -34,7 +35,7 @@ export default function WorkflowsSettings() {
 
   const setActiveTab = (tab: "overtime" | "leave" | "attendance") => {
     void navigate({
-      to: "/workspace/settings/workflows",
+      to: ROUTES.SETTINGS.WORKFLOWS,
       search: { tab },
     });
   };

@@ -108,8 +108,8 @@ describe("FloatingDock Component", () => {
     expect(screen.getByTestId("dock-app-settings")).toBeInTheDocument();
   });
 
-  it("highlights settings app icon when on /workspace/settings route", () => {
-    mockLocationPath = "/workspace/settings/general";
+  it("highlights settings app icon when on /settings route", () => {
+    mockLocationPath = "/settings/general";
     renderFloatingDock();
 
     const settingsApp = screen.getByTestId("dock-app-settings");

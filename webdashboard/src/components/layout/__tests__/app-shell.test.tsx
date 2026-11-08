@@ -122,8 +122,8 @@ describe("AppShell Component", () => {
     expect(screen.getByTestId("sidebar-mobile-drawer")).toBeInTheDocument();
   });
 
-  it("hides main Sidebar in Focus Mode when navigating to /workspace/settings", () => {
-    mockPathname = "/workspace/settings/general";
+  it("hides main Sidebar in Focus Mode when navigating to /settings", () => {
+    mockPathname = "/settings/general";
     render(<AppShell />);
 
     expect(screen.queryByTestId("sidebar-container")).not.toBeInTheDocument();

@@ -24,11 +24,11 @@ describe("useSettingsNav", () => {
     const accessPaths = result.current.accessGroup.map((item) => item.path);
 
     expect(systemPaths).not.toContain("/audit-logs");
-    expect(systemPaths).toContain("/workspace/settings/storage");
-    expect(systemPaths).toContain("/workspace/settings/smtp");
+    expect(systemPaths).toContain("/settings/storage");
+    expect(systemPaths).toContain("/settings/smtp");
     expect(operationsPaths).toContain("/shifts/rules");
-    expect(operationsPaths).not.toContain("/workspace/settings/holidays");
-    expect(accessPaths).toContain("/workspace/settings/members");
+    expect(operationsPaths).not.toContain("/settings/holidays");
+    expect(accessPaths).toContain("/settings/members");
     expect(accessPaths).not.toContain("/workspace/people");
   });
 });

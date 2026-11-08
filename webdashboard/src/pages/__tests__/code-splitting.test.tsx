@@ -159,7 +159,7 @@ describe("TanStack Router .lazy.tsx file structure", () => {
     });
 
     it("lazy route for settings/general exports Route with GeneralSettings", async () => {
-        const module_ = await import("../../routes/_authenticated/_workspace/workspace/settings/general.lazy");
+        const module_ = await import("../../routes/_authenticated/_workspace/settings/general.lazy");
         expect(module_.Route).toBeDefined();
         expect(module_.Route.options.component).toBeDefined();
     });
@@ -187,7 +187,7 @@ describe("TanStack Router .lazy.tsx file structure", () => {
     });
 
     it("settings layout retains SettingsLayout component", async () => {
-        const module_ = await import("../../routes/_authenticated/_workspace/workspace/settings");
+        const module_ = await import("../../routes/_authenticated/_workspace/settings");
         expect(module_.Route.options.component).toBeDefined();
     });
 

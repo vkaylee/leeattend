@@ -20,6 +20,7 @@ import { useConfirm } from "@/hooks/use-confirm";
 import { useAllEmployees } from "@/hooks/use-employees";
 import { deleteEmployeeContract, fetchWorkspaceContracts } from "@/lib/api/contracts";
 import { getStandaloneOrganizationId } from "@/lib/api/helpers";
+import { ROUTES } from "@/lib/routes";
 
 interface SelectEmployeeModalProps {
   employees: Employee[];
@@ -182,7 +183,7 @@ export default function EContractsPage() {
           <div className="flex flex-wrap items-center gap-3">
             <Link
               className="flex items-center gap-2 text-xs font-bold text-slate-600 dark:text-slate-400 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-2.5 hover:bg-slate-50 dark:hover:bg-slate-850 hover:text-primary-600 transition-all shadow-sm"
-              to="/workspace/settings/econtracts"
+              to={ROUTES.SETTINGS.ECONTRACTS}
             >
               <Settings size={14} /> CONFIGURATIONS
             </Link>

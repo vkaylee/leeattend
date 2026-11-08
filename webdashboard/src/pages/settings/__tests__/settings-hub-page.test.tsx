@@ -98,8 +98,8 @@ describe("SettingsHubPage", () => {
     vi.spyOn(hooks, "useSettingsNav").mockReturnValue(
       makeNavState({
         workspaceGroup: [
-          makeItem("General", "/workspace/settings/general"),
-          makeItem("Billing", "/workspace/settings/billing"),
+          makeItem("General", "/settings/general"),
+          makeItem("Billing", "/settings/billing"),
         ],
       }),
     );
@@ -113,8 +113,8 @@ describe("SettingsHubPage", () => {
     vi.spyOn(hooks, "useSettingsNav").mockReturnValue(
       makeNavState({
         accessGroup: [
-          makeItem("Roles", "/workspace/settings/roles"),
-          makeItem("Permissions", "/workspace/settings/permissions"),
+          makeItem("Roles", "/settings/roles"),
+          makeItem("Permissions", "/settings/permissions"),
         ],
       }),
     );
@@ -128,8 +128,8 @@ describe("SettingsHubPage", () => {
     vi.spyOn(hooks, "useSettingsNav").mockReturnValue(
       makeNavState({
         operationsGroup: [
-          makeItem("Time", "/workspace/settings/time"),
-          makeItem("Payroll", "/workspace/settings/payroll"),
+          makeItem("Time", "/settings/time"),
+          makeItem("Payroll", "/settings/payroll"),
         ],
       }),
     );
@@ -143,7 +143,7 @@ describe("SettingsHubPage", () => {
     vi.spyOn(hooks, "useSettingsNav").mockReturnValue(
       makeNavState({
         systemGroup: [
-          makeItem("Storage", "/workspace/settings/storage"),
+          makeItem("Storage", "/settings/storage"),
         ],
       }),
     );
@@ -158,7 +158,7 @@ describe("SettingsHubPage", () => {
     vi.spyOn(hooks, "useSettingsNav").mockReturnValue(
       makeNavState({
         workspaceGroup: [],
-        accessGroup: [makeItem("Roles", "/workspace/settings/roles")],
+        accessGroup: [makeItem("Roles", "/settings/roles")],
       }),
     );
     render(<SettingsHubPage />);
@@ -169,7 +169,7 @@ describe("SettingsHubPage", () => {
   it("hides all empty sections and only shows populated ones", () => {
     vi.spyOn(hooks, "useSettingsNav").mockReturnValue(
       makeNavState({
-        workspaceGroup: [makeItem("General", "/workspace/settings/general")],
+        workspaceGroup: [makeItem("General", "/settings/general")],
         accessGroup: [],
         operationsGroup: [],
       }),
@@ -188,10 +188,10 @@ describe("SettingsHubPage", () => {
   it("renders all four sections simultaneously", () => {
     vi.spyOn(hooks, "useSettingsNav").mockReturnValue(
       makeNavState({
-        workspaceGroup: [makeItem("General", "/workspace/settings/general")],
-        accessGroup: [makeItem("Roles", "/workspace/settings/roles")],
-        operationsGroup: [makeItem("Time", "/workspace/settings/time")],
-        systemGroup: [makeItem("Storage", "/workspace/settings/storage")],
+        workspaceGroup: [makeItem("General", "/settings/general")],
+        accessGroup: [makeItem("Roles", "/settings/roles")],
+        operationsGroup: [makeItem("Time", "/settings/time")],
+        systemGroup: [makeItem("Storage", "/settings/storage")],
       }),
     );
     render(<SettingsHubPage />);
@@ -211,7 +211,7 @@ describe("SettingsHubPage", () => {
   it("renders the header with title and control panel subtitle", () => {
     vi.spyOn(hooks, "useSettingsNav").mockReturnValue(
       makeNavState({
-        workspaceGroup: [makeItem("General", "/workspace/settings/general")],
+        workspaceGroup: [makeItem("General", "/settings/general")],
       }),
     );
     render(<SettingsHubPage />);

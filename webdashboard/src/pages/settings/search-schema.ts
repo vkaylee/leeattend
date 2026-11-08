@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 /**
- * URL search-param contracts for settings sub-pages under `/workspace/settings/*`.
+ * URL search-param contracts for settings sub-pages under `/settings/*`.
  * Each schema is owned by its specific route file — see ADR-006.
  */
 

@@ -23,7 +23,7 @@ export default function AppShell({ variant: _variant }: AppShellProps) {
   const { workspace: currentWorkspace } = useWorkspace();
   const location = useLocation();
   const isOrgChart = location.pathname.endsWith("/org-chart");
-  const isSettings = location.pathname.startsWith("/workspace/settings");
+  const isSettings = location.pathname.startsWith("/settings") || location.pathname.startsWith("/workspace/settings");
 
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(() => {
     try {

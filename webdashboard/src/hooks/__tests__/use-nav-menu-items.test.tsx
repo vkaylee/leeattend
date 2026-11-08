@@ -58,7 +58,7 @@ describe("useNavMenuItems", () => {
     expect(result.current.dashboard.testId).toBe("sidebar-link-dashboard");
 
     expect(result.current.settings).toBeDefined();
-    expect(result.current.settings.to).toBe("/workspace/settings");
+    expect(result.current.settings.to).toBe("/settings");
     expect(result.current.settings.testId).toBe("sidebar-link-settings");
     expect(result.current.settings.icon).toBeDefined();
 
@@ -101,7 +101,7 @@ describe("useNavMenuItems", () => {
     const EXCLUDED_APP_ROUTES: Record<string, true> = {
       "/dashboard": true,
       "/workspace/people": true,
-      "/workspace/settings/members": true,
+      "/settings/members": true,
       "/shifts/rules": true,
     };
 
@@ -237,8 +237,8 @@ describe("getActiveNavGroup", () => {
     expect(getActiveNavGroup("/departments")).toBe("org");
   });
 
-  it('returns "settings" for /workspace/settings/members', () => {
-    expect(getActiveNavGroup("/workspace/settings/members")).toBe("settings");
+  it('returns "settings" for /settings/members', () => {
+    expect(getActiveNavGroup("/settings/members")).toBe("settings");
   });
   it('returns "time" for /attendance-logs', () => {
     expect(getActiveNavGroup("/attendance-logs")).toBe("time");
@@ -272,13 +272,13 @@ describe("getActiveNavGroup", () => {
     expect(getActiveNavGroup("/documents")).toBe("payroll");
   });
 
-  it('returns "settings" for /workspace/settings', () => {
-    expect(getActiveNavGroup("/workspace/settings")).toBe("settings");
+  it('returns "settings" for /settings', () => {
+    expect(getActiveNavGroup("/settings")).toBe("settings");
   });
 
-  it('returns "settings" for /workspace/settings sub-pages', () => {
-    expect(getActiveNavGroup("/workspace/settings/general")).toBe("settings");
-    expect(getActiveNavGroup("/workspace/settings/time")).toBe("settings");
+  it('returns "settings" for /settings sub-pages', () => {
+    expect(getActiveNavGroup("/settings/general")).toBe("settings");
+    expect(getActiveNavGroup("/settings/time")).toBe("settings");
   });
 
 

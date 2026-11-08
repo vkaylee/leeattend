@@ -3,7 +3,7 @@ import React from "react";
 import { describe, it, expect, vi } from "vitest";
 
 import Button from "@/components/ui/button";
-import { Route } from "@/routes/_authenticated/_workspace/workspace/settings";
+import { Route } from "@/routes/_authenticated/_workspace/settings";
 
 interface MockRouteOptions {
   options: {
@@ -14,9 +14,9 @@ interface MockRouteOptions {
 vi.mock("@tanstack/react-router", () => ({
   createFileRoute: () => (config: Record<string, unknown>) => ({
     options: config,
-    useLocation: () => ({ pathname: "/workspace/settings/general" }),
+    useLocation: () => ({ pathname: "/settings/general" }),
   }),
-  useLocation: () => ({ pathname: "/workspace/settings/general" }),
+  useLocation: () => ({ pathname: "/settings/general" }),
   Outlet: () => <div data-testid="settings-outlet">Settings Outlet Content</div>,
   Link: ({ children, to }: { children: React.ReactNode; to: string }) => <a href={to}>{children}</a>,
 }));
