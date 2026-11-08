@@ -53,7 +53,6 @@ export default function ReportsPage() {
     sortBy,
     specificMonth,
     viewMode,
-    wsId,
   } = useReportsPage();
 
   const matrixGridRef = React.useRef<TimesheetMatrixGridHandle>(null);
@@ -77,7 +76,6 @@ export default function ReportsPage() {
   }, [filterMode, dateRange?.start, specificMonth]);
 
   const { attendanceMap, isLoading: isLoadingAttendance } = useMonthlyTimesheetData({
-    wsId,
     month: activeMonthYear.month,
     year: activeMonthYear.year,
     enabled: viewMode === "matrix",
@@ -135,13 +133,7 @@ export default function ReportsPage() {
     employerName: row.employer_name ?? t("common.employer"),
   }));
 
-  if (!wsId) {
-    return (
-      <div className="p-12 text-center text-slate-500 dark:text-slate-400 font-bold italic uppercase tracking-widest text-xs opacity-50">
-        {t("common.select_workspace")}
-      </div>
-    );
-  }
+  
 
   return (
     <div className="space-y-6 pb-20 animate-in fade-in duration-700" data-testid="reports-page">
@@ -236,39 +228,33 @@ export default function ReportsPage() {
         />
       )}
 
-      <EmployeeDailyDrawer
-        dateRange={dateRange}
-        employeeId={selectedEmployee?.id ?? ""}
-        employeeName={selectedEmployee?.name ?? ""}
-        employerId={selectedEmployee?.employerId}
-        employers={clickedEmployers}
-        isOpen={Boolean(selectedEmployee)}
-        key={
-          selectedEmployee
-            ? `${selectedEmployee.id}:${selectedEmployee.employerId ?? "none"}`
-            : "closed"
-        }
-        onClose={handleDrawerClose}
-        workspaceId={wsId}
-      />
+      <EmployeeDailyDrawer dateRange={dateRange}
+      employeeId={selectedEmployee?.id ?? ""}
+      employeeName={selectedEmployee?.name ?? ""}
+      employerId={selectedEmployee?.employerId}
+      employers={clickedEmployers}
+      isOpen={Boolean(selectedEmployee)}
+      key={
+        selectedEmployee
+          ? `${selectedEmployee.id}:${selectedEmployee.employerId ?? "none"}`
+          : "closed"
+      }
+      onClose={handleDrawerClose}  />
 
-      <ReportExportDialog
-        employeeIds={
-          searchQuery && filteredData.length > 0
-            ? filteredData
-                .map((d) => d.employee_id)
-                .filter((id): id is string => Boolean(id))
-            : undefined
-        }
-        endDate={dateRange.end}
-        isOpen={isExportDialogOpen}
-        onClose={() => {
-          setIsExportDialogOpen(false);
-        }}
-        reportType="detail"
-        startDate={dateRange.start}
-        wsId={wsId}
-      />
+      <ReportExportDialog employeeIds={
+        searchQuery && filteredData.length > 0
+          ? filteredData
+              .map((d) => d.employee_id)
+              .filter((id): id is string => Boolean(id))
+          : undefined
+      }
+      endDate={dateRange.end}
+      isOpen={isExportDialogOpen}
+      onClose={() => {
+        setIsExportDialogOpen(false);
+      }}
+      reportType="detail"
+      startDate={dateRange.start}  />
     </div>
   );
 }

@@ -7,7 +7,6 @@ import { useToast } from "@/components/ui/toast";
 import {
   createAssignmentRule,
   updateAssignmentRule,
-  getStandaloneOrganizationId,
   AssignmentRuleConditions,
 } from "@/lib/api";
 
@@ -18,7 +17,7 @@ export function useAssignmentRuleForm(ruleId?: string) {
   const navigate = useNavigate();
   const toast = useToast();
   const queryClient = useQueryClient();
-  const wsId = getStandaloneOrganizationId() ?? "";
+  
   const isEditMode = !!ruleId;
 
   // Form State
@@ -51,7 +50,7 @@ export function useAssignmentRuleForm(ruleId?: string) {
 
   // Mutations
   const createMutation = useMutation({
-    mutationFn: (data: Parameters<typeof createAssignmentRule>[1]) => createAssignmentRule(wsId, data),
+    mutationFn: (data: Parameters<typeof createAssignmentRule>[1]) => createAssignmentRule(data),
     onSuccess: () => {
       toast.success(t("rules.messages.create_success"));
       setIsDirty(false);
@@ -65,7 +64,7 @@ export function useAssignmentRuleForm(ruleId?: string) {
 
   const updateMutation = useMutation({
     mutationFn: ({ id, data }: { id: string; data: Parameters<typeof updateAssignmentRule>[2] }) =>
-      updateAssignmentRule(wsId, id, data),
+      updateAssignmentRule(id, data),
     onSuccess: () => {
       toast.success(t("rules.messages.update_success"));
       setIsDirty(false);
@@ -109,7 +108,6 @@ export function useAssignmentRuleForm(ruleId?: string) {
 
   return {
     t,
-    wsId,
     isEditMode,
     rulesLoading,
     patterns,

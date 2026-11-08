@@ -18,14 +18,9 @@ import {
   useUpdateLifecycleChecklistItem,
   useCompletePendingTask,
   useMyPendingTasks,
+  useWorkspaceLifecycleInstances,
   lifecycleKeys,
 } from "../use-lifecycle";
-
-const mockUseWorkspace = vi.hoisted(() => vi.fn());
-
-vi.mock("@/hooks/use-workspace", () => ({
-  useWorkspace: mockUseWorkspace,
-}));
 
 const api = vi.hoisted(() => ({
   fetchLifecycleTemplates: vi.fn(),
@@ -40,13 +35,10 @@ const api = vi.hoisted(() => ({
   createLifecycleChecklist: vi.fn(),
   updateChecklistItemStatus: vi.fn(),
   fetchMyPendingTasks: vi.fn(),
+  fetchWorkspaceLifecycleInstances: vi.fn(),
 }));
 
 vi.mock("@/lib/api/lifecycle", () => api);
-
-const WS_ID = "ws-test-123";
-const withWorkspace = { workspace: { id: WS_ID }, isLoading: false, isError: false };
-const withoutWorkspace = { workspace: undefined, isLoading: false, isError: false };
 
 let queryClient: QueryClient;
 
@@ -64,30 +56,30 @@ function createWrapper() {
 describe("lifecycleKeys", () => {
   it("generates stable query keys for all lifecycle domains", () => {
     expect(lifecycleKeys.all).toEqual(["lifecycle"]);
-    expect(lifecycleKeys.templates("ws-1")).toEqual(["lifecycle", "ws-1", "templates"]);
-    expect(lifecycleKeys.templateItems("ws-1", "tpl-1")).toEqual([
+    expect(lifecycleKeys.templates()).toEqual(["lifecycle", "templates"]);
+    expect(lifecycleKeys.templateItems("tpl-1")).toEqual([
       "lifecycle",
-      "ws-1",
       "templates",
       "tpl-1",
       "items",
     ]);
-    expect(lifecycleKeys.checklists("ws-1", "emp-1")).toEqual([
+    expect(lifecycleKeys.checklists("emp-1")).toEqual([
       "lifecycle",
-      "ws-1",
       "checklists",
       "emp-1",
     ]);
-    expect(lifecycleKeys.checklist("ws-1", "id-1")).toEqual([
+    expect(lifecycleKeys.checklist("id-1")).toEqual([
       "lifecycle",
-      "ws-1",
       "checklist",
       "id-1",
     ]);
-    expect(lifecycleKeys.pendingTasks("ws-1")).toEqual([
+    expect(lifecycleKeys.pendingTasks()).toEqual([
       "lifecycle",
-      "ws-1",
       "pending-tasks",
+    ]);
+    expect(lifecycleKeys.instances()).toEqual([
+      "lifecycle",
+      "instances",
     ]);
   });
 });
@@ -95,65 +87,48 @@ describe("lifecycleKeys", () => {
 describe("useLifecycleTemplates", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockUseWorkspace.mockReturnValue(withWorkspace);
     (api.fetchLifecycleTemplates as Mock).mockResolvedValue([{ id: "tpl-1", name: "Onboarding" }]);
   });
 
-  it("fetches templates for the active workspace", async () => {
+  it("fetches templates", async () => {
     const { result } = renderHook(() => useLifecycleTemplates(), { wrapper: createWrapper() });
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
 
-    expect(api.fetchLifecycleTemplates).toHaveBeenCalledWith(WS_ID);
+    expect(api.fetchLifecycleTemplates).toHaveBeenCalled();
     expect(result.current.data).toEqual([{ id: "tpl-1", name: "Onboarding" }]);
-  });
-
-  it("stays disabled and does not fetch without a workspace", () => {
-    mockUseWorkspace.mockReturnValue(withoutWorkspace);
-
-    const { result } = renderHook(() => useLifecycleTemplates(), { wrapper: createWrapper() });
-
-    expect(result.current.isFetching).toBe(false);
-    expect(api.fetchLifecycleTemplates).not.toHaveBeenCalled();
   });
 });
 
 describe("useCreateLifecycleTemplate", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockUseWorkspace.mockReturnValue(withWorkspace);
     (api.createLifecycleTemplate as Mock).mockResolvedValue({ id: "tpl-new", name: "Offboarding" });
   });
 
-  it("creates a template with the workspace id and invalidates all lifecycle queries", async () => {
+  it("creates a template and invalidates the lifecycle cache", async () => {
     const { result } = renderHook(() => useCreateLifecycleTemplate(), { wrapper: createWrapper() });
     const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries");
 
-    const payload = { name: "Offboarding" };
+    const payload = {
+      name: "Offboarding",
+      type: "offboarding" as const,
+      applicable_role: "engineer",
+    };
     await act(async () => {
       await result.current.mutateAsync(payload);
     });
 
-    expect(api.createLifecycleTemplate).toHaveBeenCalledWith(WS_ID, payload);
+    expect(api.createLifecycleTemplate).toHaveBeenCalledWith(payload);
     await waitFor(() => {
       expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: lifecycleKeys.all });
     });
-  });
-
-  it("rejects with an explicit error when no workspace is active", async () => {
-    mockUseWorkspace.mockReturnValue(withoutWorkspace);
-
-    const { result } = renderHook(() => useCreateLifecycleTemplate(), { wrapper: createWrapper() });
-
-    await expect(result.current.mutateAsync({ name: "x" } as never)).rejects.toThrow("No workspace ID");
-    expect(api.createLifecycleTemplate).not.toHaveBeenCalled();
   });
 });
 
 describe("useUpdateLifecycleTemplate", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockUseWorkspace.mockReturnValue(withWorkspace);
     (api.updateLifecycleTemplate as Mock).mockResolvedValue({ id: "tpl-1", name: "Updated" });
   });
 
@@ -165,27 +140,16 @@ describe("useUpdateLifecycleTemplate", () => {
       await result.current.mutateAsync({ id: "tpl-1", payload: { name: "Updated" } });
     });
 
-    expect(api.updateLifecycleTemplate).toHaveBeenCalledWith(WS_ID, "tpl-1", { name: "Updated" });
+    expect(api.updateLifecycleTemplate).toHaveBeenCalledWith("tpl-1", { name: "Updated" });
     await waitFor(() => {
       expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: lifecycleKeys.all });
     });
-  });
-
-  it("rejects without a workspace", async () => {
-    mockUseWorkspace.mockReturnValue(withoutWorkspace);
-
-    const { result } = renderHook(() => useUpdateLifecycleTemplate(), { wrapper: createWrapper() });
-
-    await expect(
-      result.current.mutateAsync({ id: "tpl-1", payload: { name: "x" } }),
-    ).rejects.toThrow("No workspace ID");
   });
 });
 
 describe("useDeleteLifecycleTemplate", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockUseWorkspace.mockReturnValue(withWorkspace);
     (api.deleteLifecycleTemplate as Mock).mockResolvedValue(undefined);
   });
 
@@ -197,38 +161,29 @@ describe("useDeleteLifecycleTemplate", () => {
       await result.current.mutateAsync("tpl-1");
     });
 
-    expect(api.deleteLifecycleTemplate).toHaveBeenCalledWith(WS_ID, "tpl-1");
+    expect(api.deleteLifecycleTemplate).toHaveBeenCalledWith("tpl-1");
     await waitFor(() => {
       expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: lifecycleKeys.all });
     });
-  });
-
-  it("rejects without a workspace", async () => {
-    mockUseWorkspace.mockReturnValue(withoutWorkspace);
-
-    const { result } = renderHook(() => useDeleteLifecycleTemplate(), { wrapper: createWrapper() });
-
-    await expect(result.current.mutateAsync("tpl-1")).rejects.toThrow("No workspace ID");
   });
 });
 
 describe("useLifecycleTemplateItems", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockUseWorkspace.mockReturnValue(withWorkspace);
     (api.fetchLifecycleTemplateItems as Mock).mockResolvedValue([{ id: "item-1", title: "Verify ID" }]);
   });
 
-  it("fetches items for a template", async () => {
+  it("fetches template items by template id", async () => {
     const { result } = renderHook(() => useLifecycleTemplateItems("tpl-1"), { wrapper: createWrapper() });
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
 
-    expect(api.fetchLifecycleTemplateItems).toHaveBeenCalledWith(WS_ID, "tpl-1");
+    expect(api.fetchLifecycleTemplateItems).toHaveBeenCalledWith("tpl-1");
     expect(result.current.data).toHaveLength(1);
   });
 
-  it("does not fetch when no template id is provided", () => {
+  it("does not fetch without a template id", () => {
     const { result } = renderHook(() => useLifecycleTemplateItems(""), { wrapper: createWrapper() });
 
     expect(result.current.isFetching).toBe(false);
@@ -239,11 +194,10 @@ describe("useLifecycleTemplateItems", () => {
 describe("template item mutations", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockUseWorkspace.mockReturnValue(withWorkspace);
   });
 
   it("creates a template item and invalidates the lifecycle cache", async () => {
-    (api.createLifecycleTemplateItem as Mock).mockResolvedValue({ id: "item-new", title: "Collect docs" });
+    (api.createLifecycleTemplateItem as Mock).mockResolvedValue({ id: "item-new" });
     const { result } = renderHook(() => useCreateLifecycleTemplateItem("tpl-1"), { wrapper: createWrapper() });
     const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries");
 
@@ -251,14 +205,14 @@ describe("template item mutations", () => {
       await result.current.mutateAsync({ title: "Collect docs" });
     });
 
-    expect(api.createLifecycleTemplateItem).toHaveBeenCalledWith(WS_ID, "tpl-1", { title: "Collect docs" });
+    expect(api.createLifecycleTemplateItem).toHaveBeenCalledWith("tpl-1", { title: "Collect docs" });
     await waitFor(() => {
       expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: lifecycleKeys.all });
     });
   });
 
   it("updates a template item and invalidates the lifecycle cache", async () => {
-    (api.updateLifecycleTemplateItem as Mock).mockResolvedValue({ id: "item-1", title: "Done" });
+    (api.updateLifecycleTemplateItem as Mock).mockResolvedValue({ id: "item-1" });
     const { result } = renderHook(() => useUpdateLifecycleTemplateItem("tpl-1"), { wrapper: createWrapper() });
     const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries");
 
@@ -266,7 +220,7 @@ describe("template item mutations", () => {
       await result.current.mutateAsync({ id: "item-1", payload: { title: "Done" } });
     });
 
-    expect(api.updateLifecycleTemplateItem).toHaveBeenCalledWith(WS_ID, "tpl-1", "item-1", { title: "Done" });
+    expect(api.updateLifecycleTemplateItem).toHaveBeenCalledWith("tpl-1", "item-1", { title: "Done" });
     await waitFor(() => {
       expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: lifecycleKeys.all });
     });
@@ -281,41 +235,25 @@ describe("template item mutations", () => {
       await result.current.mutateAsync("item-1");
     });
 
-    expect(api.deleteLifecycleTemplateItem).toHaveBeenCalledWith(WS_ID, "tpl-1", "item-1");
+    expect(api.deleteLifecycleTemplateItem).toHaveBeenCalledWith("tpl-1", "item-1");
     await waitFor(() => {
       expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: lifecycleKeys.all });
     });
-  });
-
-  it("rejects item mutations when no workspace is active", async () => {
-    mockUseWorkspace.mockReturnValue(withoutWorkspace);
-
-    const create = renderHook(() => useCreateLifecycleTemplateItem("tpl-1"), { wrapper: createWrapper() });
-    await expect(create.result.current.mutateAsync({ title: "x" })).rejects.toThrow("No workspace ID");
-
-    const update = renderHook(() => useUpdateLifecycleTemplateItem("tpl-1"), { wrapper: createWrapper() });
-    await expect(
-      update.result.current.mutateAsync({ id: "item-1", payload: { title: "x" } }),
-    ).rejects.toThrow("No workspace ID");
-
-    const del = renderHook(() => useDeleteLifecycleTemplateItem("tpl-1"), { wrapper: createWrapper() });
-    await expect(del.result.current.mutateAsync("item-1")).rejects.toThrow("No workspace ID");
   });
 });
 
 describe("useLifecycleChecklists", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockUseWorkspace.mockReturnValue(withWorkspace);
     (api.fetchLifecycleChecklists as Mock).mockResolvedValue([{ id: "cl-1", template_name: "Onboarding" }]);
   });
 
-  it("fetches checklists for an employment", async () => {
+  it("fetches checklists for an employment id", async () => {
     const { result } = renderHook(() => useLifecycleChecklists("emp-1"), { wrapper: createWrapper() });
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
 
-    expect(api.fetchLifecycleChecklists).toHaveBeenCalledWith(WS_ID, "emp-1");
+    expect(api.fetchLifecycleChecklists).toHaveBeenCalledWith("emp-1");
     expect(result.current.data).toHaveLength(1);
   });
 
@@ -330,11 +268,10 @@ describe("useLifecycleChecklists", () => {
 describe("useCreateLifecycleChecklist", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockUseWorkspace.mockReturnValue(withWorkspace);
     (api.createLifecycleChecklist as Mock).mockResolvedValue({ id: "cl-new", template_name: "Onboarding" });
   });
 
-  it("creates a checklist and invalidates that employment's checklist cache", async () => {
+  it("creates a checklist and invalidates checklist queries for that employment", async () => {
     const { result } = renderHook(() => useCreateLifecycleChecklist("emp-1"), { wrapper: createWrapper() });
     const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries");
 
@@ -343,122 +280,94 @@ describe("useCreateLifecycleChecklist", () => {
       await result.current.mutateAsync(payload);
     });
 
-    expect(api.createLifecycleChecklist).toHaveBeenCalledWith(WS_ID, "emp-1", payload);
+    expect(api.createLifecycleChecklist).toHaveBeenCalledWith("emp-1", payload);
     await waitFor(() => {
       expect(invalidateSpy).toHaveBeenCalledWith({
-        queryKey: lifecycleKeys.checklists(WS_ID, "emp-1"),
+        queryKey: lifecycleKeys.checklists("emp-1"),
       });
     });
-  });
-
-  it("rejects without a workspace", async () => {
-    mockUseWorkspace.mockReturnValue(withoutWorkspace);
-
-    const { result } = renderHook(() => useCreateLifecycleChecklist("emp-1"), { wrapper: createWrapper() });
-
-    await expect(result.current.mutateAsync({ template_id: "tpl-1" } as never)).rejects.toThrow(
-      "No workspace ID",
-    );
   });
 });
 
 describe("useUpdateLifecycleChecklistItem", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockUseWorkspace.mockReturnValue(withWorkspace);
     (api.updateChecklistItemStatus as Mock).mockResolvedValue({ id: "cl-1", status: "in_progress" });
   });
 
-  it("updates an item status and invalidates checklists plus pending tasks", async () => {
+  it("updates status and invalidates both checklist and pending tasks", async () => {
     const { result } = renderHook(() => useUpdateLifecycleChecklistItem("cl-1", "emp-1"), {
       wrapper: createWrapper(),
     });
     const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries");
 
-    const payload = { status: "in_progress" };
+    const payload = { status: "in_progress" as const };
     await act(async () => {
       await result.current.mutateAsync({ itemId: "item-1", payload });
     });
 
-    expect(api.updateChecklistItemStatus).toHaveBeenCalledWith(WS_ID, "cl-1", "item-1", payload);
+    expect(api.updateChecklistItemStatus).toHaveBeenCalledWith("cl-1", "item-1", payload);
     await waitFor(() => {
       expect(invalidateSpy).toHaveBeenCalledWith({
-        queryKey: lifecycleKeys.checklists(WS_ID, "emp-1"),
+        queryKey: lifecycleKeys.checklists("emp-1"),
       });
       expect(invalidateSpy).toHaveBeenCalledWith({
-        queryKey: lifecycleKeys.pendingTasks(WS_ID),
+        queryKey: lifecycleKeys.pendingTasks(),
       });
     });
-  });
-
-  it("rejects without a workspace", async () => {
-    mockUseWorkspace.mockReturnValue(withoutWorkspace);
-
-    const { result } = renderHook(() => useUpdateLifecycleChecklistItem("cl-1", "emp-1"), {
-      wrapper: createWrapper(),
-    });
-
-    await expect(
-      result.current.mutateAsync({ itemId: "item-1", payload: { status: "done" } }),
-    ).rejects.toThrow("No workspace ID");
   });
 });
 
 describe("useCompletePendingTask", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockUseWorkspace.mockReturnValue(withWorkspace);
     (api.updateChecklistItemStatus as Mock).mockResolvedValue({ id: "cl-1", status: "completed" });
   });
 
-  it("completes a pending task and invalidates all lifecycle queries", async () => {
+  it("completes a pending task and invalidates the lifecycle cache", async () => {
     const { result } = renderHook(() => useCompletePendingTask(), { wrapper: createWrapper() });
     const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries");
 
-    const payload = { status: "completed" };
+    const payload = { status: "completed" as const };
     await act(async () => {
       await result.current.mutateAsync({ checklistId: "cl-1", itemId: "item-1", payload });
     });
 
-    expect(api.updateChecklistItemStatus).toHaveBeenCalledWith(WS_ID, "cl-1", "item-1", payload);
+    expect(api.updateChecklistItemStatus).toHaveBeenCalledWith("cl-1", "item-1", payload);
     await waitFor(() => {
       expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: lifecycleKeys.all });
     });
-  });
-
-  it("rejects without a workspace", async () => {
-    mockUseWorkspace.mockReturnValue(withoutWorkspace);
-
-    const { result } = renderHook(() => useCompletePendingTask(), { wrapper: createWrapper() });
-
-    await expect(
-      result.current.mutateAsync({ checklistId: "cl-1", itemId: "item-1", payload: { status: "done" } }),
-    ).rejects.toThrow("No workspace ID");
   });
 });
 
 describe("useMyPendingTasks", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockUseWorkspace.mockReturnValue(withWorkspace);
     (api.fetchMyPendingTasks as Mock).mockResolvedValue([{ id: "task-1", title: "Verify documents" }]);
   });
 
-  it("fetches the dashboard pending tasks", async () => {
+  it("fetches pending tasks", async () => {
     const { result } = renderHook(() => useMyPendingTasks(), { wrapper: createWrapper() });
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
 
-    expect(api.fetchMyPendingTasks).toHaveBeenCalledWith(WS_ID);
+    expect(api.fetchMyPendingTasks).toHaveBeenCalled();
     expect(result.current.data).toHaveLength(1);
   });
+});
 
-  it("does not fetch without a workspace", () => {
-    mockUseWorkspace.mockReturnValue(withoutWorkspace);
+describe("useWorkspaceLifecycleInstances", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    (api.fetchWorkspaceLifecycleInstances as Mock).mockResolvedValue([{ id: "inst-1" }]);
+  });
 
-    const { result } = renderHook(() => useMyPendingTasks(), { wrapper: createWrapper() });
+  it("fetches lifecycle instances", async () => {
+    const { result } = renderHook(() => useWorkspaceLifecycleInstances(), { wrapper: createWrapper() });
 
-    expect(result.current.isFetching).toBe(false);
-    expect(api.fetchMyPendingTasks).not.toHaveBeenCalled();
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    expect(api.fetchWorkspaceLifecycleInstances).toHaveBeenCalled();
+    expect(result.current.data).toHaveLength(1);
   });
 });

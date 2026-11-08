@@ -6,25 +6,21 @@ import CompensationTimeline from "@/components/compensation/compensation-timelin
 import { Typography } from "@/components/ui/typography";
 import { fetchCompensationHistory } from "@/lib/api/employees";
 
-interface CompensationHistoryTabProps {
-  employeeId: string;
-  employmentId?: string;
-  formatDate: (date: string) => string;
-  wsId: string;
-}
+interface CompensationHistoryTabProps { employeeId: string;
+employmentId?: string;
+formatDate: (date: string) => string;  }
 
 export default function CompensationHistoryTab({
   employeeId,
   employmentId,
-  wsId,
   formatDate,
 }: CompensationHistoryTabProps) {
   const { t } = useTranslation();
 
   const { data, isLoading, error } = useQuery({
-    enabled: !!wsId && !!employeeId,
-    queryFn: () => fetchCompensationHistory(wsId, employeeId, employmentId),
-    queryKey: ["employee-compensation-history", wsId, employeeId, employmentId],
+    enabled: !!employeeId,
+    queryFn: () => fetchCompensationHistory(employeeId, employmentId),
+    queryKey: ["employee-compensation-history", employeeId, employmentId],
   });
 
   if (isLoading) {

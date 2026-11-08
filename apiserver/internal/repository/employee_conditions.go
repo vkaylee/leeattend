@@ -20,9 +20,9 @@ func (r EmployeeConditionRepository) db(ctx context.Context) (DBTX, error) {
 	return r.DB, nil
 }
 
-func employeeExists(ctx context.Context, db DBTX, workspaceID, employeeID uuid.UUID) error {
+func employeeExists(ctx context.Context, db DBTX, employeeID uuid.UUID) error {
 	var exists bool
-	if err := db.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM employees WHERE id = $1 AND workspace_id = $2 AND deleted_at IS NULL)`, employeeID, workspaceID).Scan(&exists); err != nil {
+	if err := db.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM employees WHERE id = $1 AND deleted_at IS NULL)`, employeeID).Scan(&exists); err != nil {
 		return err
 	}
 	if !exists {
@@ -31,12 +31,12 @@ func employeeExists(ctx context.Context, db DBTX, workspaceID, employeeID uuid.U
 	return nil
 }
 
-func activeEmployment(ctx context.Context, db DBTX, workspaceID, employeeID uuid.UUID) (uuid.UUID, error) {
-	if err := employeeExists(ctx, db, workspaceID, employeeID); err != nil {
+func activeEmployment(ctx context.Context, db DBTX, employeeID uuid.UUID) (uuid.UUID, error) {
+	if err := employeeExists(ctx, db, employeeID); err != nil {
 		return uuid.Nil, err
 	}
 	var employmentID uuid.UUID
-	if err := db.QueryRow(ctx, `SELECT id FROM employments WHERE employee_id = $1 AND workspace_id = $2 AND status = 'active' AND deleted_at IS NULL ORDER BY start_date DESC, id DESC LIMIT 1`, employeeID, workspaceID).Scan(&employmentID); err != nil {
+	if err := db.QueryRow(ctx, `SELECT id FROM employments WHERE employee_id = $1 AND status = 'active' AND deleted_at IS NULL ORDER BY start_date DESC, id DESC LIMIT 1`, employeeID).Scan(&employmentID); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return uuid.Nil, api.ErrNoActiveEmployment
 		}
@@ -55,7 +55,8 @@ func scanEmployeeCondition(row interface{ Scan(...any) error }) (api.EmployeeCon
 	c.StartDate, c.EndDate = startDate, endDate
 	return c, nil
 }
-func (r EmployeeConditionRepository) ListWorkspaceConditions(ctx context.Context, workspaceID uuid.UUID) ([]api.EmployeeConditionWithEmployee, error) {
+
+func (r EmployeeConditionRepository) ListOrganizationConditions(ctx context.Context) ([]api.EmployeeConditionWithEmployee, error) {
 	db, err := r.db(ctx)
 	if err != nil {
 		return nil, err
@@ -67,8 +68,8 @@ func (r EmployeeConditionRepository) ListWorkspaceConditions(ctx context.Context
 		FROM working_conditions wc
 		JOIN employments em ON em.id = wc.employment_id
 		JOIN employees e ON e.id = em.employee_id
-		WHERE em.workspace_id = $1 AND em.deleted_at IS NULL AND e.deleted_at IS NULL
-		ORDER BY wc.start_date DESC`, workspaceID)
+		WHERE em.deleted_at IS NULL AND e.deleted_at IS NULL
+		ORDER BY wc.start_date DESC`)
 	if err != nil {
 		return nil, err
 	}
@@ -92,21 +93,21 @@ func (r EmployeeConditionRepository) ListWorkspaceConditions(ctx context.Context
 	return items, rows.Err()
 }
 
-func (r EmployeeConditionRepository) ListEmployeeConditions(ctx context.Context, workspaceID, employeeID uuid.UUID, page, limit int) (api.EmployeeConditionListResponse, error) {
+func (r EmployeeConditionRepository) ListEmployeeConditions(ctx context.Context, employeeID uuid.UUID, page, limit int) (api.EmployeeConditionListResponse, error) {
 	db, err := r.db(ctx)
 	if err != nil {
 		return api.EmployeeConditionListResponse{}, err
 	}
-	employmentID, err := activeEmployment(ctx, db, workspaceID, employeeID)
+	employmentID, err := activeEmployment(ctx, db, employeeID)
 	if err != nil {
 		return api.EmployeeConditionListResponse{}, err
 	}
 	var total int64
-	if err := db.QueryRow(ctx, `SELECT count(*) FROM working_conditions wc JOIN employments e ON e.id = wc.employment_id WHERE wc.employment_id = $1 AND e.workspace_id = $2 AND e.deleted_at IS NULL`, employmentID, workspaceID).Scan(&total); err != nil {
+	if err := db.QueryRow(ctx, `SELECT count(*) FROM working_conditions WHERE employment_id = $1`, employmentID).Scan(&total); err != nil {
 		return api.EmployeeConditionListResponse{}, err
 	}
 	offset := (page - 1) * limit
-	rows, err := db.Query(ctx, `SELECT wc.id, wc.employment_id, wc.type, wc.condition_type_id, wc.minute_allowance, wc.is_paid, wc.start_date::text, wc.end_date::text FROM working_conditions wc JOIN employments e ON e.id = wc.employment_id WHERE wc.employment_id = $1 AND e.workspace_id = $2 AND e.deleted_at IS NULL ORDER BY wc.start_date DESC LIMIT $3 OFFSET $4`, employmentID, workspaceID, limit, offset)
+	rows, err := db.Query(ctx, `SELECT id, employment_id, type, condition_type_id, minute_allowance, is_paid, start_date::text, end_date::text FROM working_conditions WHERE employment_id = $1 ORDER BY start_date DESC LIMIT $2 OFFSET $3`, employmentID, limit, offset)
 	if err != nil {
 		return api.EmployeeConditionListResponse{}, err
 	}
@@ -125,26 +126,22 @@ func (r EmployeeConditionRepository) ListEmployeeConditions(ctx context.Context,
 	return api.EmployeeConditionListResponse{Data: data, Total: total, Page: page, Limit: limit, Truncated: nil}, nil
 }
 
-func (r EmployeeConditionRepository) CreateEmployeeCondition(ctx context.Context, workspaceID, employeeID uuid.UUID, req api.CreateEmployeeConditionRequest) (api.EmployeeCondition, error) {
+func (r EmployeeConditionRepository) CreateEmployeeCondition(ctx context.Context, employeeID uuid.UUID, req api.CreateEmployeeConditionRequest) (api.EmployeeCondition, error) {
 	db, err := r.db(ctx)
 	if err != nil {
 		return api.EmployeeCondition{}, err
 	}
-	employmentID, err := activeEmployment(ctx, db, workspaceID, employeeID)
+	employmentID, err := activeEmployment(ctx, db, employeeID)
 	if err != nil {
 		return api.EmployeeCondition{}, err
 	}
 	conditionID := uuid.New()
 	var startDate, endDate string
-	if req.EndDate == nil {
-		endDate = ""
+	endDateInput := ""
+	if req.EndDate != nil {
+		endDateInput = *req.EndDate
 	}
-	err = db.QueryRow(ctx, `INSERT INTO working_conditions (id, employment_id, type, condition_type_id, minute_allowance, is_paid, start_date, end_date) SELECT $1, e.id, $3, $4, $5, $6, $7::date, NULLIF($8, '')::date FROM employments e WHERE e.id = $2 AND e.workspace_id = $9 AND e.deleted_at IS NULL RETURNING start_date::text, end_date::text`, conditionID, employmentID, req.Type, req.ConditionTypeID, req.MinuteAllowance, req.IsPaid, req.StartDate, func() string {
-		if req.EndDate != nil {
-			return *req.EndDate
-		}
-		return ""
-	}(), workspaceID).Scan(&startDate, &endDate)
+	err = db.QueryRow(ctx, `INSERT INTO working_conditions (id, employment_id, type, condition_type_id, minute_allowance, is_paid, start_date, end_date) SELECT $1, id, $2, $3, $4, $5, $6::date, NULLIF($7, '')::date FROM employments WHERE id = $8 AND deleted_at IS NULL RETURNING start_date::text, end_date::text`, conditionID, req.Type, req.ConditionTypeID, req.MinuteAllowance, req.IsPaid, req.StartDate, endDateInput, employmentID).Scan(&startDate, &endDate)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return api.EmployeeCondition{}, api.ErrEmploymentNotFound
@@ -158,16 +155,16 @@ func (r EmployeeConditionRepository) CreateEmployeeCondition(ctx context.Context
 	return api.EmployeeCondition{ID: conditionID, EmploymentID: employmentID, Type: req.Type, ConditionTypeID: req.ConditionTypeID, MinuteAllowance: req.MinuteAllowance, IsPaid: req.IsPaid, StartDate: startDate, EndDate: end}, nil
 }
 
-func (r EmployeeConditionRepository) DeleteEmployeeCondition(ctx context.Context, workspaceID, employeeID, conditionID uuid.UUID) error {
+func (r EmployeeConditionRepository) DeleteEmployeeCondition(ctx context.Context, employeeID, conditionID uuid.UUID) error {
 	db, err := r.db(ctx)
 	if err != nil {
 		return err
 	}
-	employmentID, err := activeEmployment(ctx, db, workspaceID, employeeID)
+	employmentID, err := activeEmployment(ctx, db, employeeID)
 	if err != nil {
 		return err
 	}
-	command, err := db.Exec(ctx, `DELETE FROM working_conditions wc USING employments e WHERE wc.id = $1 AND wc.employment_id = $2 AND wc.employment_id = e.id AND e.workspace_id = $3 AND e.deleted_at IS NULL`, conditionID, employmentID, workspaceID)
+	command, err := db.Exec(ctx, `DELETE FROM working_conditions WHERE id = $1 AND employment_id = $2`, conditionID, employmentID)
 	if err != nil {
 		return err
 	}
@@ -177,16 +174,16 @@ func (r EmployeeConditionRepository) DeleteEmployeeCondition(ctx context.Context
 	return nil
 }
 
-func (r EmployeeConditionRepository) CurrentEmployeeDepartment(ctx context.Context, workspaceID, employeeID uuid.UUID) (*uuid.UUID, error) {
+func (r EmployeeConditionRepository) CurrentEmployeeDepartment(ctx context.Context, employeeID uuid.UUID) (*uuid.UUID, error) {
 	db, err := r.db(ctx)
 	if err != nil {
 		return nil, err
 	}
-	if err := employeeExists(ctx, db, workspaceID, employeeID); err != nil {
+	if err := employeeExists(ctx, db, employeeID); err != nil {
 		return nil, err
 	}
 	var departmentID *uuid.UUID
-	err = db.QueryRow(ctx, `SELECT department_id FROM employments WHERE employee_id = $1 AND workspace_id = $2 AND deleted_at IS NULL AND start_date <= CURRENT_DATE AND (end_date IS NULL OR end_date >= CURRENT_DATE) ORDER BY start_date DESC, id DESC LIMIT 1`, employeeID, workspaceID).Scan(&departmentID)
+	err = db.QueryRow(ctx, `SELECT department_id FROM employments WHERE employee_id = $1 AND deleted_at IS NULL AND start_date <= CURRENT_DATE AND (end_date IS NULL OR end_date >= CURRENT_DATE) ORDER BY start_date DESC, id DESC LIMIT 1`, employeeID).Scan(&departmentID)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, nil
 	}

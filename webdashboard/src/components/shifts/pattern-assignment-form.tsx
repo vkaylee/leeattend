@@ -6,7 +6,7 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import Button from "@/components/ui/button";
-import { Employee, fetchPatternDetails, getStandaloneOrganizationId } from "@/lib/api";
+import { Employee, fetchPatternDetails } from "@/lib/api";
 import { Shift, WorkingPattern } from "@/lib/api/types";
 
 import { PatternCard } from "./pattern-card";
@@ -39,16 +39,12 @@ function PatternSelector({
   shifts?: Shift[];
 }) {
   const { t } = useTranslation();
-  const wsId = getStandaloneOrganizationId() ?? "";
   const [expandedPatternId, setExpandedPatternId] = useState<string | null>(null);
 
   const patternDetailsQueries = useQueries({
-    queries: (patterns ?? []).map((pattern) => ({
-      queryKey: ["pattern-details", wsId, pattern.id],
-      queryFn: () => fetchPatternDetails(wsId, pattern.id),
-      enabled: !!wsId && !!pattern.id,
-      staleTime: 5 * 60 * 1000,
-    })),
+    queries: (patterns ?? []).map((pattern) => ({ queryKey: ["pattern-details", pattern.id], queryFn: () => fetchPatternDetails(pattern.id),
+    enabled: !!pattern.id,
+    staleTime: 5 * 60 * 1000, })),
   });
 
   return (

@@ -34,7 +34,6 @@ vi.mock("@/lib/api", async (importOriginal) => {
     fetchWorkspaceMembers: vi.fn(),
     fetchEmployeeEmployments: vi.fn(),
     fetchMyPermissions: vi.fn(),
-    getStandaloneOrganizationId: vi.fn(),
   };
 });
 
@@ -87,7 +86,6 @@ describe("EmployeeDetailPage", () => {
       },
     });
 
-    vi.mocked(api.getStandaloneOrganizationId).mockReturnValue("ws-1");
     vi.mocked(api.fetchEmployee).mockResolvedValue(mockEmployeeData);
     vi.mocked(api.fetchDepartments).mockResolvedValue([
       { id: "dept-1", name: "Engineering", workspace_id: "ws-1" },

@@ -19,6 +19,11 @@ type mockESSRepository struct {
 	profileRecord    EmployeeProfileRecord
 	contacts         []EmployeeEmergencyContactRecord
 	empID            uuid.UUID
+	resolveByUser    map[uuid.UUID]uuid.UUID
+	resolvedUserID   uuid.UUID
+	lastEmployeeID   uuid.UUID
+	lastContactID    uuid.UUID
+	lastDocumentID   uuid.UUID
 	resolveErr       error
 	getProfileErr    error
 	upsertProfileErr error
@@ -35,50 +40,65 @@ type mockESSRepository struct {
 	empDocsErr       error
 }
 
-func (m *mockESSRepository) ResolveEmployeeForUser(context.Context, uuid.UUID, uuid.UUID) (uuid.UUID, error) {
+func (m *mockESSRepository) ResolveEmployeeForUser(_ context.Context, userID uuid.UUID) (uuid.UUID, error) {
+	m.resolvedUserID = userID
 	if m.resolveErr != nil {
 		return uuid.Nil, m.resolveErr
 	}
+	if empID, ok := m.resolveByUser[userID]; ok {
+		return empID, nil
+	}
 	return m.empID, nil
 }
-func (m *mockESSRepository) GetMyProfile(context.Context, uuid.UUID, uuid.UUID) (MyProfileResponse, error) {
+
+func (m *mockESSRepository) GetMyProfile(_ context.Context, employeeID uuid.UUID) (MyProfileResponse, error) {
+	m.lastEmployeeID = employeeID
 	return m.profile, m.getProfileErr
 }
-func (m *mockESSRepository) UpsertProfile(context.Context, uuid.UUID, uuid.UUID, UpdateEmployeeProfileRequest) (EmployeeProfileRecord, error) {
+func (m *mockESSRepository) UpsertProfile(_ context.Context, employeeID uuid.UUID, _ UpdateEmployeeProfileRequest) (EmployeeProfileRecord, error) {
+	m.lastEmployeeID = employeeID
 	m.upsertCalls++
 	return m.profileRecord, m.upsertProfileErr
 }
-func (m *mockESSRepository) GetEmergencyContacts(context.Context, uuid.UUID, uuid.UUID) ([]EmployeeEmergencyContactRecord, error) {
+func (m *mockESSRepository) GetEmergencyContacts(_ context.Context, employeeID uuid.UUID) ([]EmployeeEmergencyContactRecord, error) {
+	m.lastEmployeeID = employeeID
 	return m.contacts, m.getContactsErr
 }
-func (m *mockESSRepository) AddEmergencyContact(context.Context, uuid.UUID, uuid.UUID, CreateEmergencyContactRequest) (EmployeeEmergencyContactRecord, error) {
+func (m *mockESSRepository) AddEmergencyContact(_ context.Context, employeeID uuid.UUID, _ CreateEmergencyContactRequest) (EmployeeEmergencyContactRecord, error) {
+	m.lastEmployeeID = employeeID
 	m.addCalls++
-	return EmployeeEmergencyContactRecord{ID: uuid.New(), ContactName: "Family", Relationship: "Spouse", Phone: "123456789"}, m.addContactErr
+	return EmployeeEmergencyContactRecord{ID: uuid.New(), EmployeeID: employeeID, ContactName: "Family", Relationship: "Spouse", Phone: "123456789"}, m.addContactErr
 }
-func (m *mockESSRepository) DeleteEmergencyContact(context.Context, uuid.UUID, uuid.UUID, uuid.UUID) error {
+func (m *mockESSRepository) DeleteEmergencyContact(_ context.Context, employeeID, contactID uuid.UUID) error {
+	m.lastEmployeeID, m.lastContactID = employeeID, contactID
 	m.deleteCalls++
 	return m.deleteContactErr
 }
 
-func (m *mockESSRepository) GetPendingDocuments(context.Context, uuid.UUID, uuid.UUID) ([]AcknowledgementRecord, error) {
+func (m *mockESSRepository) GetPendingDocuments(_ context.Context, employeeID uuid.UUID) ([]AcknowledgementRecord, error) {
+	m.lastEmployeeID = employeeID
 	return m.pendingDocs, m.pendingDocsErr
 }
-func (m *mockESSRepository) AcknowledgeDocument(context.Context, uuid.UUID, uuid.UUID, uuid.UUID) error {
+func (m *mockESSRepository) AcknowledgeDocument(_ context.Context, employeeID, docID uuid.UUID) error {
+	m.lastEmployeeID, m.lastDocumentID = employeeID, docID
 	return m.ackDocErr
 }
-func (m *mockESSRepository) GetEmployeeDocuments(context.Context, uuid.UUID, uuid.UUID) ([]EmployeeDocumentRecord, error) {
+func (m *mockESSRepository) GetEmployeeDocuments(_ context.Context, employeeID uuid.UUID) ([]EmployeeDocumentRecord, error) {
+	m.lastEmployeeID = employeeID
 	return m.empDocs, m.empDocsErr
 }
 
 type mockESSAttendanceRepo struct {
 	AttendanceRepository
-	punchErr     error
-	history      []TimeEntryRecord
-	historyErr   error
-	toggleStatus bool
+	punchErr       error
+	history        []TimeEntryRecord
+	historyErr     error
+	lastEmployeeID uuid.UUID
+	toggleStatus   bool
 }
 
-func (m *mockESSAttendanceRepo) ESSPunch(_ context.Context, wsID, empID uuid.UUID, entryType string, note *string, punchTime time.Time) (TimeEntryRecord, error) {
+func (m *mockESSAttendanceRepo) ESSPunch(_ context.Context, empID uuid.UUID, entryType string, note *string, punchTime time.Time) (TimeEntryRecord, error) {
+	m.lastEmployeeID = empID
 	if m.punchErr != nil {
 		return TimeEntryRecord{}, m.punchErr
 	}
@@ -86,7 +106,6 @@ func (m *mockESSAttendanceRepo) ESSPunch(_ context.Context, wsID, empID uuid.UUI
 		m.toggleStatus = true
 		return TimeEntryRecord{
 			ID:           uuid.New(),
-			WorkspaceID:  wsID,
 			EmploymentID: empID,
 			PunchInTime:  punchTime.Format(time.RFC3339),
 			EntryType:    entryType,
@@ -99,7 +118,6 @@ func (m *mockESSAttendanceRepo) ESSPunch(_ context.Context, wsID, empID uuid.UUI
 	dur := 480
 	return TimeEntryRecord{
 		ID:              uuid.New(),
-		WorkspaceID:     wsID,
 		EmploymentID:    empID,
 		PunchInTime:     inTime,
 		PunchOutTime:    &outTime,
@@ -109,56 +127,66 @@ func (m *mockESSAttendanceRepo) ESSPunch(_ context.Context, wsID, empID uuid.UUI
 	}, nil
 }
 
-func (m *mockESSAttendanceRepo) ListTimeHistory(_ context.Context, _, _ uuid.UUID, _, _ time.Time) ([]TimeEntryRecord, error) {
+func (m *mockESSAttendanceRepo) ListTimeHistory(_ context.Context, employeeID uuid.UUID, _, _ time.Time) ([]TimeEntryRecord, error) {
+	m.lastEmployeeID = employeeID
 	return m.history, m.historyErr
 }
 
 type mockESSPayrollRepo struct {
 	PayrollRepository
-	payslips    []PayslipRecord
-	payslipsErr error
+	payslips       []PayslipRecord
+	payslipsErr    error
+	lastEmployeeID uuid.UUID
 }
 
-func (m *mockESSPayrollRepo) ListEmployeePayslips(_ context.Context, _, _ uuid.UUID) ([]PayslipRecord, error) {
+func (m *mockESSPayrollRepo) ListEmployeePayslips(_ context.Context, employeeID uuid.UUID) ([]PayslipRecord, error) {
+	m.lastEmployeeID = employeeID
 	return m.payslips, m.payslipsErr
 }
 
 type mockESSLeaveRepo struct {
 	LeaveRepository
-	balances    []EmployeeLeaveBalanceRecord
-	balancesErr error
-	requests    []LeaveRequestRecord
-	requestsErr error
+	balances       []EmployeeLeaveBalanceRecord
+	balancesErr    error
+	requests       []LeaveRequestRecord
+	requestsErr    error
+	lastEmployeeID uuid.UUID
 }
 
-func (m *mockESSLeaveRepo) GetEmployeeLeaveBalances(_ context.Context, _, _ uuid.UUID, _ int) ([]EmployeeLeaveBalanceRecord, error) {
+func (m *mockESSLeaveRepo) GetEmployeeLeaveBalances(_ context.Context, employeeID uuid.UUID, _ int) ([]EmployeeLeaveBalanceRecord, error) {
+	m.lastEmployeeID = employeeID
 	return m.balances, m.balancesErr
 }
 
-func (m *mockESSLeaveRepo) ListEmployeeLeaveRequests(_ context.Context, _, _ uuid.UUID) ([]LeaveRequestRecord, error) {
+func (m *mockESSLeaveRepo) ListEmployeeLeaveRequests(_ context.Context, employeeID uuid.UUID) ([]LeaveRequestRecord, error) {
+	m.lastEmployeeID = employeeID
 	return m.requests, m.requestsErr
 }
 
 type mockESSShiftSwapRepo struct {
 	ShiftSwapRepository
-	swaps      []ShiftSwapRequestWithNames
-	swapsErr   error
-	createErr  error
-	respondErr error
-	cancelErr  error
+	swaps           []ShiftSwapRequestWithNames
+	swapsErr        error
+	createErr       error
+	respondErr      error
+	cancelErr       error
+	lastEmployeeID  uuid.UUID
+	lastRequesterID uuid.UUID
+	lastUserID      uuid.UUID
 }
 
-func (m *mockESSShiftSwapRepo) ListEmployeeSwaps(_ context.Context, _, _ uuid.UUID) ([]ShiftSwapRequestWithNames, error) {
+func (m *mockESSShiftSwapRepo) ListEmployeeSwaps(_ context.Context, employeeID uuid.UUID) ([]ShiftSwapRequestWithNames, error) {
+	m.lastEmployeeID = employeeID
 	return m.swaps, m.swapsErr
 }
 
-func (m *mockESSShiftSwapRepo) CreateESSSwap(_ context.Context, wsID, reqID, userID uuid.UUID, req EssCreateShiftSwapRequest) (ShiftSwapRequest, error) {
+func (m *mockESSShiftSwapRepo) CreateESSSwap(_ context.Context, reqID, userID uuid.UUID, req EssCreateShiftSwapRequest) (ShiftSwapRequest, error) {
+	m.lastRequesterID, m.lastUserID = reqID, userID
 	if m.createErr != nil {
 		return ShiftSwapRequest{}, m.createErr
 	}
 	return ShiftSwapRequest{
 		ID:                uuid.New(),
-		WorkspaceID:       wsID,
 		RequesterID:       reqID,
 		TargetID:          req.TargetID,
 		SwapDate:          req.SwapDate,
@@ -168,27 +196,32 @@ func (m *mockESSShiftSwapRepo) CreateESSSwap(_ context.Context, wsID, reqID, use
 	}, nil
 }
 
-func (m *mockESSShiftSwapRepo) RespondSwap(_ context.Context, _, _, _ uuid.UUID, _ bool) error {
+func (m *mockESSShiftSwapRepo) RespondSwap(_ context.Context, employeeID, _ uuid.UUID, _ bool) error {
+	m.lastEmployeeID = employeeID
 	return m.respondErr
 }
 
-func (m *mockESSShiftSwapRepo) CancelSwap(_ context.Context, _, _, _ uuid.UUID) error {
+func (m *mockESSShiftSwapRepo) CancelSwap(_ context.Context, employeeID, _ uuid.UUID) error {
+	m.lastEmployeeID = employeeID
 	return m.cancelErr
 }
 
-func essRequest(t *testing.T, method, path, body string, wsID uuid.UUID) *http.Request {
+func essRequest(t *testing.T, method, path, body string) *http.Request {
+	t.Helper()
+	return essRequestAs(t, uuid.New(), method, path, body)
+}
+
+func essRequestAs(t *testing.T, userID uuid.UUID, method, path, body string) *http.Request {
 	t.Helper()
 	req := httptest.NewRequest(method, path, strings.NewReader(body))
-	ctx := httpinfra.WithUserIDForTest(req.Context(), uuid.New())
-	ctx = httpinfra.WithOrganizationIDForTest(ctx, wsID)
+	ctx := httpinfra.WithUserIDForTest(req.Context(), userID)
 	return req.WithContext(ctx)
 }
 
 func TestESSGetProfileNoLinkedEmployeeForbidden(t *testing.T) {
-	wsID := uuid.New()
 	repo := &mockESSRepository{resolveErr: ErrESSNoEmployeeRecord}
 	handler := ESSHandler{Repository: repo}
-	req := essRequest(t, http.MethodGet, "/api/v1/ess/profile", "", wsID)
+	req := essRequest(t, http.MethodGet, "/api/v1/ess/profile", "")
 	rec := httptest.NewRecorder()
 	handler.GetProfile(rec, req)
 	if rec.Code != http.StatusForbidden {
@@ -196,18 +229,25 @@ func TestESSGetProfileNoLinkedEmployeeForbidden(t *testing.T) {
 	}
 }
 
-func TestESSGetProfileSuccess(t *testing.T) {
-	wsID, empID := uuid.New(), uuid.New()
+func TestESSGetProfileUsesAuthenticatedUserEmployee(t *testing.T) {
+	userID, empID := uuid.New(), uuid.New()
 	repo := &mockESSRepository{
-		empID:   empID,
-		profile: MyProfileResponse{Employee: EmployeeRecord{ID: empID, FullName: "John Doe"}},
+		empID:         uuid.New(),
+		resolveByUser: map[uuid.UUID]uuid.UUID{userID: empID},
+		profile:       MyProfileResponse{Employee: EmployeeRecord{ID: empID, FullName: "John Doe"}},
 	}
 	handler := ESSHandler{Repository: repo}
-	req := essRequest(t, http.MethodGet, "/api/v1/ess/profile", "", wsID)
+	req := essRequestAs(t, userID, http.MethodGet, "/api/v1/ess/profile", "")
 	rec := httptest.NewRecorder()
 	handler.GetProfile(rec, req)
 	if rec.Code != http.StatusOK {
 		t.Fatalf("expected 200, got %d: %s", rec.Code, rec.Body.String())
+	}
+	if repo.resolvedUserID != userID {
+		t.Fatalf("expected resolution for user %s, got %s", userID, repo.resolvedUserID)
+	}
+	if repo.lastEmployeeID != empID {
+		t.Fatalf("expected employee %s, got %s", empID, repo.lastEmployeeID)
 	}
 	if !strings.Contains(rec.Body.String(), "John Doe") {
 		t.Fatalf("profile body missing name: %s", rec.Body.String())
@@ -215,10 +255,10 @@ func TestESSGetProfileSuccess(t *testing.T) {
 }
 
 func TestESSUpdateProfileValidatesDOB(t *testing.T) {
-	wsID, empID := uuid.New(), uuid.New()
-	repo := &mockESSRepository{empID: empID}
+	userID, empID := uuid.New(), uuid.New()
+	repo := &mockESSRepository{empID: empID, resolveByUser: map[uuid.UUID]uuid.UUID{userID: empID}}
 	handler := ESSHandler{Repository: repo}
-	req := essRequest(t, http.MethodPut, "/api/v1/ess/profile", `{"date_of_birth":"invalid-date"}`, wsID)
+	req := essRequestAs(t, userID, http.MethodPut, "/api/v1/ess/profile", `{"date_of_birth":"invalid-date"}`)
 	rec := httptest.NewRecorder()
 	handler.UpdateProfile(rec, req)
 	if rec.Code != http.StatusBadRequest {
@@ -230,10 +270,10 @@ func TestESSUpdateProfileValidatesDOB(t *testing.T) {
 }
 
 func TestESSAddContactValidatesFields(t *testing.T) {
-	wsID, empID := uuid.New(), uuid.New()
-	repo := &mockESSRepository{empID: empID}
+	userID, empID := uuid.New(), uuid.New()
+	repo := &mockESSRepository{empID: empID, resolveByUser: map[uuid.UUID]uuid.UUID{userID: empID}}
 	handler := ESSHandler{Repository: repo}
-	req := essRequest(t, http.MethodPost, "/api/v1/ess/emergency-contacts", `{"contact_name":""}`, wsID)
+	req := essRequestAs(t, userID, http.MethodPost, "/api/v1/ess/emergency-contacts", `{"contact_name":""}`)
 	rec := httptest.NewRecorder()
 	handler.AddContact(rec, req)
 	if rec.Code != http.StatusBadRequest {
@@ -244,11 +284,11 @@ func TestESSAddContactValidatesFields(t *testing.T) {
 	}
 }
 
-func TestESSDeleteContactSuccess(t *testing.T) {
-	wsID, empID, contactID := uuid.New(), uuid.New(), uuid.New()
-	repo := &mockESSRepository{empID: empID}
+func TestESSDeleteContactScopesToAuthenticatedEmployee(t *testing.T) {
+	userID, empID, contactID := uuid.New(), uuid.New(), uuid.New()
+	repo := &mockESSRepository{empID: empID, resolveByUser: map[uuid.UUID]uuid.UUID{userID: empID}}
 	handler := ESSHandler{Repository: repo}
-	req := essRequest(t, http.MethodDelete, "/api/v1/ess/emergency-contacts/"+contactID.String(), "", wsID)
+	req := essRequestAs(t, userID, http.MethodDelete, "/api/v1/ess/emergency-contacts/"+contactID.String(), "")
 	req.SetPathValue("contact_id", contactID.String())
 	rec := httptest.NewRecorder()
 	handler.DeleteContact(rec, req)
@@ -258,33 +298,43 @@ func TestESSDeleteContactSuccess(t *testing.T) {
 	if repo.deleteCalls != 1 {
 		t.Fatalf("expected 1 delete call, got %d", repo.deleteCalls)
 	}
+	if repo.lastEmployeeID != empID || repo.lastContactID != contactID {
+		t.Fatalf("expected employee %s contact %s, got employee %s contact %s", empID, contactID, repo.lastEmployeeID, repo.lastContactID)
+	}
 }
 
-func TestESSMissingWorkspaceBadRequest(t *testing.T) {
+func TestESSRequiresAuthenticatedPrincipal(t *testing.T) {
 	repo := &mockESSRepository{}
 	handler := ESSHandler{Repository: repo}
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/ess/profile", nil)
 	rec := httptest.NewRecorder()
 	handler.GetProfile(rec, req)
-	if rec.Code != http.StatusBadRequest {
-		t.Fatalf("expected 400 for missing workspace, got %d", rec.Code)
+	if rec.Code != http.StatusForbidden {
+		t.Fatalf("expected 403 without an authenticated principal, got %d", rec.Code)
+	}
+	if repo.resolvedUserID != uuid.Nil {
+		t.Fatalf("employee resolution attempted without a principal: %s", repo.resolvedUserID)
 	}
 }
 
 func TestESSGetPendingDocumentsSuccess(t *testing.T) {
-	wsID, empID, docID := uuid.New(), uuid.New(), uuid.New()
+	userID, empID, docID := uuid.New(), uuid.New(), uuid.New()
 	repo := &mockESSRepository{
-		empID: empID,
+		empID:         empID,
+		resolveByUser: map[uuid.UUID]uuid.UUID{userID: empID},
 		pendingDocs: []AcknowledgementRecord{
 			{ID: uuid.New(), DocumentID: docID, EmployeeID: empID, Status: "pending"},
 		},
 	}
 	handler := ESSHandler{Repository: repo}
-	req := essRequest(t, http.MethodGet, "/api/v1/ess/documents/pending", "", wsID)
+	req := essRequestAs(t, userID, http.MethodGet, "/api/v1/ess/documents/pending", "")
 	rec := httptest.NewRecorder()
 	handler.GetPendingDocuments(rec, req)
 	if rec.Code != http.StatusOK {
 		t.Fatalf("expected 200, got %d", rec.Code)
+	}
+	if repo.lastEmployeeID != empID {
+		t.Fatalf("expected employee %s, got %s", empID, repo.lastEmployeeID)
 	}
 	var items []AcknowledgementRecord
 	if err := json.Unmarshal(rec.Body.Bytes(), &items); err != nil || len(items) != 1 {
@@ -293,15 +343,18 @@ func TestESSGetPendingDocumentsSuccess(t *testing.T) {
 }
 
 func TestESSAcknowledgeDocumentSuccess(t *testing.T) {
-	wsID, empID, ackID := uuid.New(), uuid.New(), uuid.New()
-	repo := &mockESSRepository{empID: empID}
+	userID, empID, ackID := uuid.New(), uuid.New(), uuid.New()
+	repo := &mockESSRepository{empID: empID, resolveByUser: map[uuid.UUID]uuid.UUID{userID: empID}}
 	handler := ESSHandler{Repository: repo}
-	req := essRequest(t, http.MethodPost, "/api/v1/ess/documents/"+ackID.String()+"/acknowledge", "", wsID)
+	req := essRequestAs(t, userID, http.MethodPost, "/api/v1/ess/documents/"+ackID.String()+"/acknowledge", "")
 	req.SetPathValue("id", ackID.String())
 	rec := httptest.NewRecorder()
 	handler.AcknowledgeDocument(rec, req)
 	if rec.Code != http.StatusOK {
 		t.Fatalf("expected 200, got %d: %s", rec.Code, rec.Body.String())
+	}
+	if repo.lastEmployeeID != empID || repo.lastDocumentID != ackID {
+		t.Fatalf("expected employee %s document %s, got employee %s document %s", empID, ackID, repo.lastEmployeeID, repo.lastDocumentID)
 	}
 	if !strings.Contains(rec.Body.String(), "acknowledged") {
 		t.Fatalf("unexpected body: %s", rec.Body.String())
@@ -309,19 +362,26 @@ func TestESSAcknowledgeDocumentSuccess(t *testing.T) {
 }
 
 func TestESSGetDocumentsSuccess(t *testing.T) {
-	wsID, empID := uuid.New(), uuid.New()
+	userID, empID := uuid.New(), uuid.New()
 	repo := &mockESSRepository{
-		empID: empID,
+		empID:         empID,
+		resolveByUser: map[uuid.UUID]uuid.UUID{userID: empID},
 		empDocs: []EmployeeDocumentRecord{
-			{ID: uuid.New(), EmployeeID: empID, WorkspaceID: wsID, DocumentType: "contract", FileName: "contract.pdf"},
+			{ID: uuid.New(), EmployeeID: empID, DocumentType: "contract", FileName: "contract.pdf"},
 		},
 	}
 	handler := ESSHandler{Repository: repo}
-	req := essRequest(t, http.MethodGet, "/api/v1/ess/documents", "", wsID)
+	req := essRequestAs(t, userID, http.MethodGet, "/api/v1/ess/documents", "")
 	rec := httptest.NewRecorder()
 	handler.GetDocuments(rec, req)
 	if rec.Code != http.StatusOK {
 		t.Fatalf("expected 200, got %d", rec.Code)
+	}
+	if repo.lastEmployeeID != empID {
+		t.Fatalf("expected employee %s, got %s", empID, repo.lastEmployeeID)
+	}
+	if strings.Contains(rec.Body.String(), "workspace_id") {
+		t.Fatalf("document body still exposes workspace scope: %s", rec.Body.String())
 	}
 	var docs []EmployeeDocumentRecord
 	if err := json.Unmarshal(rec.Body.Bytes(), &docs); err != nil || len(docs) != 1 {
@@ -330,19 +390,22 @@ func TestESSGetDocumentsSuccess(t *testing.T) {
 }
 
 func TestESSGetPayslipsSuccess(t *testing.T) {
-	wsID, empID := uuid.New(), uuid.New()
-	repo := &mockESSRepository{empID: empID}
+	userID, empID := uuid.New(), uuid.New()
+	repo := &mockESSRepository{empID: empID, resolveByUser: map[uuid.UUID]uuid.UUID{userID: empID}}
 	payroll := &mockESSPayrollRepo{
 		payslips: []PayslipRecord{
 			{ID: uuid.New(), EmploymentID: empID, NetPayAmount: decimal.RequireFromString("2500.00")},
 		},
 	}
 	handler := ESSHandler{Repository: repo, Payroll: payroll}
-	req := essRequest(t, http.MethodGet, "/api/v1/ess/payslips", "", wsID)
+	req := essRequestAs(t, userID, http.MethodGet, "/api/v1/ess/payslips", "")
 	rec := httptest.NewRecorder()
 	handler.GetPayslips(rec, req)
 	if rec.Code != http.StatusOK {
 		t.Fatalf("expected 200, got %d", rec.Code)
+	}
+	if payroll.lastEmployeeID != empID {
+		t.Fatalf("expected payslips for employee %s, got %s", empID, payroll.lastEmployeeID)
 	}
 	var payslips []PayslipRecord
 	if err := json.Unmarshal(rec.Body.Bytes(), &payslips); err != nil || len(payslips) != 1 {
@@ -351,19 +414,22 @@ func TestESSGetPayslipsSuccess(t *testing.T) {
 }
 
 func TestESSGetAttendanceSuccess(t *testing.T) {
-	wsID, empID := uuid.New(), uuid.New()
-	repo := &mockESSRepository{empID: empID}
+	userID, empID := uuid.New(), uuid.New()
+	repo := &mockESSRepository{empID: empID, resolveByUser: map[uuid.UUID]uuid.UUID{userID: empID}}
 	attendance := &mockESSAttendanceRepo{
 		history: []TimeEntryRecord{
-			{ID: uuid.New(), WorkspaceID: wsID, EmploymentID: empID, PunchInTime: "2026-10-20T08:00:00Z"},
+			{ID: uuid.New(), EmploymentID: empID, PunchInTime: "2026-10-20T08:00:00Z"},
 		},
 	}
 	handler := ESSHandler{Repository: repo, Attendance: attendance}
-	req := essRequest(t, http.MethodGet, "/api/v1/ess/attendance?start_date=2026-10-01&end_date=2026-10-20", "", wsID)
+	req := essRequestAs(t, userID, http.MethodGet, "/api/v1/ess/attendance?start_date=2026-10-01&end_date=2026-10-20", "")
 	rec := httptest.NewRecorder()
 	handler.GetAttendance(rec, req)
 	if rec.Code != http.StatusOK {
 		t.Fatalf("expected 200, got %d: %s", rec.Code, rec.Body.String())
+	}
+	if attendance.lastEmployeeID != empID {
+		t.Fatalf("expected attendance for employee %s, got %s", empID, attendance.lastEmployeeID)
 	}
 	var entries []TimeEntryRecord
 	if err := json.Unmarshal(rec.Body.Bytes(), &entries); err != nil || len(entries) != 1 {
@@ -372,17 +438,20 @@ func TestESSGetAttendanceSuccess(t *testing.T) {
 }
 
 func TestESSPunchToggle(t *testing.T) {
-	wsID, empID := uuid.New(), uuid.New()
-	repo := &mockESSRepository{empID: empID}
+	userID, empID := uuid.New(), uuid.New()
+	repo := &mockESSRepository{empID: empID, resolveByUser: map[uuid.UUID]uuid.UUID{userID: empID}}
 	attendance := &mockESSAttendanceRepo{}
 	handler := ESSHandler{Repository: repo, Attendance: attendance}
 
 	// 1. Punch In
-	req1 := essRequest(t, http.MethodPost, "/api/v1/ess/punch", `{"note":"starting shift"}`, wsID)
+	req1 := essRequestAs(t, userID, http.MethodPost, "/api/v1/ess/punch", `{"note":"starting shift"}`)
 	rec1 := httptest.NewRecorder()
 	handler.Punch(rec1, req1)
 	if rec1.Code != http.StatusCreated {
 		t.Fatalf("expected 201 for punch in, got %d: %s", rec1.Code, rec1.Body.String())
+	}
+	if attendance.lastEmployeeID != empID {
+		t.Fatalf("expected punch for employee %s, got %s", empID, attendance.lastEmployeeID)
 	}
 	var entry1 TimeEntryRecord
 	if err := json.Unmarshal(rec1.Body.Bytes(), &entry1); err != nil || entry1.PunchOutTime != nil {
@@ -390,11 +459,14 @@ func TestESSPunchToggle(t *testing.T) {
 	}
 
 	// 2. Punch Out
-	req2 := essRequest(t, http.MethodPost, "/api/v1/ess/punch", `{"note":"ending shift"}`, wsID)
+	req2 := essRequestAs(t, userID, http.MethodPost, "/api/v1/ess/punch", `{"note":"ending shift"}`)
 	rec2 := httptest.NewRecorder()
 	handler.Punch(rec2, req2)
 	if rec2.Code != http.StatusCreated {
 		t.Fatalf("expected 201 for punch out, got %d: %s", rec2.Code, rec2.Body.String())
+	}
+	if attendance.lastEmployeeID != empID {
+		t.Fatalf("expected punch for employee %s, got %s", empID, attendance.lastEmployeeID)
 	}
 	var entry2 TimeEntryRecord
 	if err := json.Unmarshal(rec2.Body.Bytes(), &entry2); err != nil || entry2.PunchOutTime == nil {
@@ -403,11 +475,11 @@ func TestESSPunchToggle(t *testing.T) {
 }
 
 func TestESSPunchNoActiveEmployment(t *testing.T) {
-	wsID, empID := uuid.New(), uuid.New()
-	repo := &mockESSRepository{empID: empID}
+	userID, empID := uuid.New(), uuid.New()
+	repo := &mockESSRepository{empID: empID, resolveByUser: map[uuid.UUID]uuid.UUID{userID: empID}}
 	attendance := &mockESSAttendanceRepo{punchErr: ErrNoActiveEmployment}
 	handler := ESSHandler{Repository: repo, Attendance: attendance}
-	req := essRequest(t, http.MethodPost, "/api/v1/ess/punch", `{}`, wsID)
+	req := essRequestAs(t, userID, http.MethodPost, "/api/v1/ess/punch", `{}`)
 	rec := httptest.NewRecorder()
 	handler.Punch(rec, req)
 	if rec.Code != http.StatusBadRequest {
@@ -416,19 +488,22 @@ func TestESSPunchNoActiveEmployment(t *testing.T) {
 }
 
 func TestESSGetTimeEntriesSuccess(t *testing.T) {
-	wsID, empID := uuid.New(), uuid.New()
-	repo := &mockESSRepository{empID: empID}
+	userID, empID := uuid.New(), uuid.New()
+	repo := &mockESSRepository{empID: empID, resolveByUser: map[uuid.UUID]uuid.UUID{userID: empID}}
 	attendance := &mockESSAttendanceRepo{
 		history: []TimeEntryRecord{
-			{ID: uuid.New(), WorkspaceID: wsID, EmploymentID: empID, PunchInTime: "2026-10-20T09:00:00Z"},
+			{ID: uuid.New(), EmploymentID: empID, PunchInTime: "2026-10-20T09:00:00Z"},
 		},
 	}
 	handler := ESSHandler{Repository: repo, Attendance: attendance}
-	req := essRequest(t, http.MethodGet, "/api/v1/ess/time-entries?start_date=2026-10-01T00:00:00Z&end_date=2026-10-20T23:59:59Z", "", wsID)
+	req := essRequestAs(t, userID, http.MethodGet, "/api/v1/ess/time-entries?start_date=2026-10-01T00:00:00Z&end_date=2026-10-20T23:59:59Z", "")
 	rec := httptest.NewRecorder()
 	handler.GetTimeEntries(rec, req)
 	if rec.Code != http.StatusOK {
 		t.Fatalf("expected 200, got %d", rec.Code)
+	}
+	if attendance.lastEmployeeID != empID {
+		t.Fatalf("expected time entries for employee %s, got %s", empID, attendance.lastEmployeeID)
 	}
 	var entries []TimeEntryRecord
 	if err := json.Unmarshal(rec.Body.Bytes(), &entries); err != nil || len(entries) != 1 {
@@ -437,8 +512,8 @@ func TestESSGetTimeEntriesSuccess(t *testing.T) {
 }
 
 func TestESSGetLeaveBalancesSuccess(t *testing.T) {
-	wsID, empID := uuid.New(), uuid.New()
-	repo := &mockESSRepository{empID: empID}
+	userID, empID := uuid.New(), uuid.New()
+	repo := &mockESSRepository{empID: empID, resolveByUser: map[uuid.UUID]uuid.UUID{userID: empID}}
 	leaves := &mockESSLeaveRepo{
 		balances: []EmployeeLeaveBalanceRecord{
 			{
@@ -452,11 +527,14 @@ func TestESSGetLeaveBalancesSuccess(t *testing.T) {
 		},
 	}
 	handler := ESSHandler{Repository: repo, Leaves: leaves}
-	req := essRequest(t, http.MethodGet, "/api/v1/ess/leave/balances", "", wsID)
+	req := essRequestAs(t, userID, http.MethodGet, "/api/v1/ess/leave/balances", "")
 	rec := httptest.NewRecorder()
 	handler.GetLeaveBalances(rec, req)
 	if rec.Code != http.StatusOK {
 		t.Fatalf("expected 200, got %d", rec.Code)
+	}
+	if leaves.lastEmployeeID != empID {
+		t.Fatalf("expected balances for employee %s, got %s", empID, leaves.lastEmployeeID)
 	}
 	var balances []EssLeaveBalance
 	if err := json.Unmarshal(rec.Body.Bytes(), &balances); err != nil || len(balances) != 1 {
@@ -468,19 +546,22 @@ func TestESSGetLeaveBalancesSuccess(t *testing.T) {
 }
 
 func TestESSGetLeaveRequestsSuccess(t *testing.T) {
-	wsID, empID := uuid.New(), uuid.New()
-	repo := &mockESSRepository{empID: empID}
+	userID, empID := uuid.New(), uuid.New()
+	repo := &mockESSRepository{empID: empID, resolveByUser: map[uuid.UUID]uuid.UUID{userID: empID}}
 	leaves := &mockESSLeaveRepo{
 		requests: []LeaveRequestRecord{
 			{ID: uuid.New(), EmploymentID: empID, Status: "pending"},
 		},
 	}
 	handler := ESSHandler{Repository: repo, Leaves: leaves}
-	req := essRequest(t, http.MethodGet, "/api/v1/ess/leave/requests", "", wsID)
+	req := essRequestAs(t, userID, http.MethodGet, "/api/v1/ess/leave/requests", "")
 	rec := httptest.NewRecorder()
 	handler.GetLeaveRequests(rec, req)
 	if rec.Code != http.StatusOK {
 		t.Fatalf("expected 200, got %d", rec.Code)
+	}
+	if leaves.lastEmployeeID != empID {
+		t.Fatalf("expected leave requests for employee %s, got %s", empID, leaves.lastEmployeeID)
 	}
 	var requests []LeaveRequestRecord
 	if err := json.Unmarshal(rec.Body.Bytes(), &requests); err != nil || len(requests) != 1 {
@@ -489,8 +570,8 @@ func TestESSGetLeaveRequestsSuccess(t *testing.T) {
 }
 
 func TestESSShiftSwapsCRUD(t *testing.T) {
-	wsID, empID, targetID, swapID := uuid.New(), uuid.New(), uuid.New(), uuid.New()
-	repo := &mockESSRepository{empID: empID}
+	userID, empID, targetID, swapID := uuid.New(), uuid.New(), uuid.New(), uuid.New()
+	repo := &mockESSRepository{empID: empID, resolveByUser: map[uuid.UUID]uuid.UUID{userID: empID}}
 	shiftSwaps := &mockESSShiftSwapRepo{
 		swaps: []ShiftSwapRequestWithNames{
 			{ShiftSwapRequest: ShiftSwapRequest{ID: swapID, RequesterID: empID, TargetID: targetID, Status: ShiftSwapPendingTarget}},
@@ -499,20 +580,26 @@ func TestESSShiftSwapsCRUD(t *testing.T) {
 	handler := ESSHandler{Repository: repo, ShiftSwaps: shiftSwaps}
 
 	// 1. List swaps
-	reqList := essRequest(t, http.MethodGet, "/api/v1/ess/shift-swaps", "", wsID)
+	reqList := essRequestAs(t, userID, http.MethodGet, "/api/v1/ess/shift-swaps", "")
 	recList := httptest.NewRecorder()
 	handler.GetShiftSwaps(recList, reqList)
 	if recList.Code != http.StatusOK {
 		t.Fatalf("expected 200 for list swaps, got %d", recList.Code)
 	}
+	if shiftSwaps.lastEmployeeID != empID {
+		t.Fatalf("expected swaps for employee %s, got %s", empID, shiftSwaps.lastEmployeeID)
+	}
 
 	// 2. Create swap
 	createBody := `{"target_id":"` + targetID.String() + `","swap_date":"2026-10-25","reason":"vacation"}`
-	reqCreate := essRequest(t, http.MethodPost, "/api/v1/ess/shift-swaps", createBody, wsID)
+	reqCreate := essRequestAs(t, userID, http.MethodPost, "/api/v1/ess/shift-swaps", createBody)
 	recCreate := httptest.NewRecorder()
 	handler.CreateShiftSwap(recCreate, reqCreate)
 	if recCreate.Code != http.StatusCreated {
 		t.Fatalf("expected 201 for create swap, got %d: %s", recCreate.Code, recCreate.Body.String())
+	}
+	if shiftSwaps.lastRequesterID != empID || shiftSwaps.lastUserID != userID {
+		t.Fatalf("expected requester %s user %s, got requester %s user %s", empID, userID, shiftSwaps.lastRequesterID, shiftSwaps.lastUserID)
 	}
 	var created ShiftSwapRequest
 	if err := json.Unmarshal(recCreate.Body.Bytes(), &created); err != nil || created.Status != ShiftSwapPendingTarget {
@@ -521,7 +608,7 @@ func TestESSShiftSwapsCRUD(t *testing.T) {
 
 	// 3. Create swap targeting self -> 400
 	selfBody := `{"target_id":"` + empID.String() + `","swap_date":"2026-10-25"}`
-	reqSelf := essRequest(t, http.MethodPost, "/api/v1/ess/shift-swaps", selfBody, wsID)
+	reqSelf := essRequestAs(t, userID, http.MethodPost, "/api/v1/ess/shift-swaps", selfBody)
 	recSelf := httptest.NewRecorder()
 	handler.CreateShiftSwap(recSelf, reqSelf)
 	if recSelf.Code != http.StatusBadRequest {
@@ -529,16 +616,19 @@ func TestESSShiftSwapsCRUD(t *testing.T) {
 	}
 
 	// 4. Respond to swap (accept) -> 200
-	reqRespond := essRequest(t, http.MethodPut, "/api/v1/ess/shift-swaps/"+swapID.String()+"/respond", `{"accept":true}`, wsID)
+	reqRespond := essRequestAs(t, userID, http.MethodPut, "/api/v1/ess/shift-swaps/"+swapID.String()+"/respond", `{"accept":true}`)
 	reqRespond.SetPathValue("id", swapID.String())
 	recRespond := httptest.NewRecorder()
 	handler.RespondShiftSwap(recRespond, reqRespond)
 	if recRespond.Code != http.StatusOK {
 		t.Fatalf("expected 200 for accept swap, got %d", recRespond.Code)
 	}
+	if shiftSwaps.lastEmployeeID != empID {
+		t.Fatalf("expected response from employee %s, got %s", empID, shiftSwaps.lastEmployeeID)
+	}
 
 	// 5. Respond to swap (reject) -> 200
-	reqReject := essRequest(t, http.MethodPut, "/api/v1/ess/shift-swaps/"+swapID.String()+"/respond", `{"accept":false}`, wsID)
+	reqReject := essRequestAs(t, userID, http.MethodPut, "/api/v1/ess/shift-swaps/"+swapID.String()+"/respond", `{"accept":false}`)
 	reqReject.SetPathValue("id", swapID.String())
 	recReject := httptest.NewRecorder()
 	handler.RespondShiftSwap(recReject, reqReject)
@@ -548,7 +638,7 @@ func TestESSShiftSwapsCRUD(t *testing.T) {
 
 	// 6. Respond forbidden -> 403
 	shiftSwaps.respondErr = ErrShiftSwapForbidden
-	reqForbidden := essRequest(t, http.MethodPut, "/api/v1/ess/shift-swaps/"+swapID.String()+"/respond", `{"accept":true}`, wsID)
+	reqForbidden := essRequestAs(t, userID, http.MethodPut, "/api/v1/ess/shift-swaps/"+swapID.String()+"/respond", `{"accept":true}`)
 	reqForbidden.SetPathValue("id", swapID.String())
 	recForbidden := httptest.NewRecorder()
 	handler.RespondShiftSwap(recForbidden, reqForbidden)
@@ -558,17 +648,20 @@ func TestESSShiftSwapsCRUD(t *testing.T) {
 	shiftSwaps.respondErr = nil
 
 	// 7. Cancel swap -> 204
-	reqCancel := essRequest(t, http.MethodDelete, "/api/v1/ess/shift-swaps/"+swapID.String(), "", wsID)
+	reqCancel := essRequestAs(t, userID, http.MethodDelete, "/api/v1/ess/shift-swaps/"+swapID.String(), "")
 	reqCancel.SetPathValue("id", swapID.String())
 	recCancel := httptest.NewRecorder()
 	handler.CancelShiftSwap(recCancel, reqCancel)
 	if recCancel.Code != http.StatusNoContent {
 		t.Fatalf("expected 204 for cancel swap, got %d", recCancel.Code)
 	}
+	if shiftSwaps.lastEmployeeID != empID {
+		t.Fatalf("expected cancel from employee %s, got %s", empID, shiftSwaps.lastEmployeeID)
+	}
 
 	// 8. Cancel forbidden -> 403
 	shiftSwaps.cancelErr = ErrShiftSwapForbidden
-	reqCancelForbid := essRequest(t, http.MethodDelete, "/api/v1/ess/shift-swaps/"+swapID.String(), "", wsID)
+	reqCancelForbid := essRequestAs(t, userID, http.MethodDelete, "/api/v1/ess/shift-swaps/"+swapID.String(), "")
 	reqCancelForbid.SetPathValue("id", swapID.String())
 	recCancelForbid := httptest.NewRecorder()
 	handler.CancelShiftSwap(recCancelForbid, reqCancelForbid)

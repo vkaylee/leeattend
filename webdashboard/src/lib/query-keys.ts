@@ -1,5 +1,3 @@
-export type WorkspaceId = string | null | undefined;
-
 function normalizeObject(value: Record<string, unknown>): Record<string, unknown> {
   const normalized: Record<string, unknown> = {};
   const keys = Object.keys(value).filter((key) => value[key] !== undefined).sort();
@@ -35,13 +33,13 @@ export type DepartmentFilters = Readonly<{
 }>;
 
 export const departmentKeys = {
-  all: (wsId: WorkspaceId) => ["departments", wsId] as const,
-  list: (wsId: WorkspaceId, filters?: DepartmentFilters) =>
-    [...departmentKeys.all(wsId), "list", normalizeFilters(filters)] as const,
-  detail: (wsId: WorkspaceId, departmentId: string) =>
-    [...departmentKeys.all(wsId), "detail", departmentId] as const,
-  lookup: (wsId: WorkspaceId, filters?: DepartmentFilters) =>
-    [...departmentKeys.all(wsId), "lookup", normalizeFilters(filters)] as const,
+  all: () => ["departments"] as const,
+  list: (filters?: DepartmentFilters) =>
+    [...departmentKeys.all(), "list", normalizeFilters(filters)] as const,
+  detail: (departmentId: string) =>
+    [...departmentKeys.all(), "detail", departmentId] as const,
+  lookup: (filters?: DepartmentFilters) =>
+    [...departmentKeys.all(), "lookup", normalizeFilters(filters)] as const,
 };
 
 export type EmployeeFilters = Readonly<{
@@ -69,13 +67,13 @@ function normalizeEmployeeFilters(filters?: EmployeeFilters) {
 }
 
 export const employeeKeys = {
-  all: (wsId: WorkspaceId) => ["employees", wsId] as const,
-  list: (wsId: WorkspaceId, filters?: EmployeeFilters) =>
-    [...employeeKeys.all(wsId), "list", normalizeEmployeeFilters(filters)] as const,
-  search: (wsId: WorkspaceId, filters?: EmployeeFilters) =>
-    [...employeeKeys.all(wsId), "search", normalizeEmployeeFilters(filters)] as const,
-  detail: (wsId: WorkspaceId, employeeId: string) =>
-    [...employeeKeys.all(wsId), "detail", employeeId] as const,
-  lookup: (wsId: WorkspaceId, filters?: EmployeeFilters) =>
-    [...employeeKeys.all(wsId), "lookup", normalizeEmployeeFilters(filters)] as const,
+  all: () => ["employees"] as const,
+  list: (filters?: EmployeeFilters) =>
+    [...employeeKeys.all(), "list", normalizeEmployeeFilters(filters)] as const,
+  search: (filters?: EmployeeFilters) =>
+    [...employeeKeys.all(), "search", normalizeEmployeeFilters(filters)] as const,
+  detail: (employeeId: string) =>
+    [...employeeKeys.all(), "detail", employeeId] as const,
+  lookup: (filters?: EmployeeFilters) =>
+    [...employeeKeys.all(), "lookup", normalizeEmployeeFilters(filters)] as const,
 };

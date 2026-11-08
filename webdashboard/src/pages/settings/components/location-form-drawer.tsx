@@ -17,14 +17,11 @@ const TIMEZONES = Intl.supportedValuesOf("timeZone").map(tz => ({
   label: tz,
 }));
 
-interface Props {
-  editingLocation: WorkLocation | null;
-  isOpen: boolean;
-  onClose: () => void;
-  wsId: string;
-}
+interface Props { editingLocation: WorkLocation | null;
+isOpen: boolean;
+onClose: () => void;  }
 
-export default function LocationFormDrawer({ isOpen, onClose, editingLocation, wsId }: Props) {
+export default function LocationFormDrawer({ isOpen, onClose, editingLocation }: Props) {
   const { t } = useTranslation();
 
   return (
@@ -34,11 +31,8 @@ export default function LocationFormDrawer({ isOpen, onClose, editingLocation, w
       title={editingLocation ? t("settings.locations.edit", { defaultValue: "Edit Location" }) : t("settings.locations.add", { defaultValue: "Add Location" })}
     >
       {isOpen ? (
-        <LocationFormContent 
-          editingLocation={editingLocation}
-          onClose={onClose}
-          wsId={wsId}
-        />
+        <LocationFormContent editingLocation={editingLocation}
+        onClose={onClose}  />
       ) : null}
     </Sheet>
   );
@@ -53,16 +47,13 @@ function getInitialValues(editingLocation: WorkLocation | null) {
   };
 }
 
-interface ContentProps {
-  editingLocation: WorkLocation | null;
-  onClose: () => void;
-  wsId: string;
-}
+interface ContentProps { editingLocation: WorkLocation | null;
+onClose: () => void;  }
 
-function LocationFormContent({ editingLocation, onClose, wsId }: ContentProps) {
+function LocationFormContent({ editingLocation, onClose }: ContentProps) {
   const { t } = useTranslation();
-  const createMutation = useCreateLocation(wsId);
-  const updateMutation = useUpdateLocation(wsId);
+  const createMutation = useCreateLocation();
+  const updateMutation = useUpdateLocation();
   const toast = useToast();
   
   const initialValues = getInitialValues(editingLocation);

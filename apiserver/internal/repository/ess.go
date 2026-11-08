@@ -13,7 +13,7 @@ import (
 
 type ESSRepository struct {
 	DB      DBTX
-	BeginTx func(context.Context, uuid.UUID) (TxBeginner, error)
+	BeginTx func(context.Context) (TxBeginner, error)
 }
 
 func (r ESSRepository) db(ctx context.Context) (DBTX, error) {
@@ -23,9 +23,9 @@ func (r ESSRepository) db(ctx context.Context) (DBTX, error) {
 	return r.DB, nil
 }
 
-func (r ESSRepository) begin(ctx context.Context, workspaceID uuid.UUID) (TxBeginner, error) {
+func (r ESSRepository) begin(ctx context.Context) (TxBeginner, error) {
 	if r.BeginTx != nil {
-		return r.BeginTx(ctx, workspaceID)
+		return r.BeginTx(ctx)
 	}
 	db, err := r.db(ctx)
 	if err != nil {
@@ -38,28 +38,28 @@ func (r ESSRepository) begin(ctx context.Context, workspaceID uuid.UUID) (TxBegi
 	return beginner, nil
 }
 
-func (r ESSRepository) ResolveEmployeeForUser(ctx context.Context, workspaceID, userID uuid.UUID) (uuid.UUID, error) {
+func (r ESSRepository) ResolveEmployeeForUser(ctx context.Context, userID uuid.UUID) (uuid.UUID, error) {
 	db, err := r.db(ctx)
 	if err != nil {
 		return uuid.Nil, err
 	}
 	var empID uuid.UUID
-	err = db.QueryRow(ctx, `SELECT id FROM employees WHERE user_id = $1 AND workspace_id = $2 AND deleted_at IS NULL LIMIT 1`, userID, workspaceID).Scan(&empID)
+	err = db.QueryRow(ctx, `SELECT id FROM employees WHERE user_id = $1 AND deleted_at IS NULL LIMIT 1`, userID).Scan(&empID)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return uuid.Nil, api.ErrESSNoEmployeeRecord
 	}
 	return empID, err
 }
 
-func (r ESSRepository) GetMyProfile(ctx context.Context, workspaceID, employeeID uuid.UUID) (api.MyProfileResponse, error) {
+func (r ESSRepository) GetMyProfile(ctx context.Context, employeeID uuid.UUID) (api.MyProfileResponse, error) {
 	db, err := r.db(ctx)
 	if err != nil {
 		return api.MyProfileResponse{}, err
 	}
 	var emp api.EmployeeRecord
 	var createdAt, updatedAt time.Time
-	err = db.QueryRow(ctx, `SELECT id, workspace_id, user_id, full_name, employee_id_number, tags, created_at, updated_at FROM employees WHERE id = $1 AND workspace_id = $2 AND deleted_at IS NULL`, employeeID, workspaceID).Scan(
-		&emp.ID, &emp.WorkspaceID, &emp.UserID, &emp.FullName, &emp.EmployeeIDNumber, &emp.Tags, &createdAt, &updatedAt,
+	err = db.QueryRow(ctx, `SELECT id, user_id, full_name, employee_id_number, tags, created_at, updated_at FROM employees WHERE id = $1 AND deleted_at IS NULL`, employeeID).Scan(
+		&emp.ID, &emp.UserID, &emp.FullName, &emp.EmployeeIDNumber, &emp.Tags, &createdAt, &updatedAt,
 	)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return api.MyProfileResponse{}, api.ErrESSNotFound
@@ -84,7 +84,7 @@ func (r ESSRepository) GetMyProfile(ctx context.Context, workspaceID, employeeID
 		return api.MyProfileResponse{}, err
 	}
 
-	contacts, err := r.GetEmergencyContacts(ctx, workspaceID, employeeID)
+	contacts, err := r.GetEmergencyContacts(ctx, employeeID)
 	if err != nil {
 		return api.MyProfileResponse{}, err
 	}
@@ -96,7 +96,7 @@ func (r ESSRepository) GetMyProfile(ctx context.Context, workspaceID, employeeID
 	}, nil
 }
 
-func (r ESSRepository) UpsertProfile(ctx context.Context, workspaceID, employeeID uuid.UUID, req api.UpdateEmployeeProfileRequest) (api.EmployeeProfileRecord, error) {
+func (r ESSRepository) UpsertProfile(ctx context.Context, employeeID uuid.UUID, req api.UpdateEmployeeProfileRequest) (api.EmployeeProfileRecord, error) {
 	db, err := r.db(ctx)
 	if err != nil {
 		return api.EmployeeProfileRecord{}, err
@@ -114,7 +114,7 @@ func (r ESSRepository) UpsertProfile(ctx context.Context, workspaceID, employeeI
 	return prof, nil
 }
 
-func (r ESSRepository) GetEmergencyContacts(ctx context.Context, workspaceID, employeeID uuid.UUID) ([]api.EmployeeEmergencyContactRecord, error) {
+func (r ESSRepository) GetEmergencyContacts(ctx context.Context, employeeID uuid.UUID) ([]api.EmployeeEmergencyContactRecord, error) {
 	db, err := r.db(ctx)
 	if err != nil {
 		return nil, err
@@ -137,8 +137,8 @@ func (r ESSRepository) GetEmergencyContacts(ctx context.Context, workspaceID, em
 	return contacts, rows.Err()
 }
 
-func (r ESSRepository) AddEmergencyContact(ctx context.Context, workspaceID, employeeID uuid.UUID, req api.CreateEmergencyContactRequest) (api.EmployeeEmergencyContactRecord, error) {
-	tx, err := r.begin(ctx, workspaceID)
+func (r ESSRepository) AddEmergencyContact(ctx context.Context, employeeID uuid.UUID, req api.CreateEmergencyContactRequest) (api.EmployeeEmergencyContactRecord, error) {
+	tx, err := r.begin(ctx)
 	if err != nil {
 		return api.EmployeeEmergencyContactRecord{}, err
 	}
@@ -164,7 +164,7 @@ func (r ESSRepository) AddEmergencyContact(ctx context.Context, workspaceID, emp
 	return record, nil
 }
 
-func (r ESSRepository) DeleteEmergencyContact(ctx context.Context, workspaceID, employeeID, contactID uuid.UUID) error {
+func (r ESSRepository) DeleteEmergencyContact(ctx context.Context, employeeID, contactID uuid.UUID) error {
 	db, err := r.db(ctx)
 	if err != nil {
 		return err
@@ -179,12 +179,12 @@ func (r ESSRepository) DeleteEmergencyContact(ctx context.Context, workspaceID, 
 	return nil
 }
 
-func (r ESSRepository) GetPendingDocuments(ctx context.Context, workspaceID, employeeID uuid.UUID) ([]api.AcknowledgementRecord, error) {
+func (r ESSRepository) GetPendingDocuments(ctx context.Context, employeeID uuid.UUID) ([]api.AcknowledgementRecord, error) {
 	db, err := r.db(ctx)
 	if err != nil {
 		return nil, err
 	}
-	rows, err := db.Query(ctx, `SELECT id, document_id, employee_id, status FROM file_acknowledgements WHERE workspace_id = $1 AND employee_id = $2 AND status = 'pending' ORDER BY created_at DESC`, workspaceID, employeeID)
+	rows, err := db.Query(ctx, `SELECT id, document_id, employee_id, status FROM file_acknowledgements WHERE employee_id = $1 AND status = 'pending' ORDER BY created_at DESC`, employeeID)
 	if err != nil {
 		return nil, err
 	}
@@ -200,21 +200,21 @@ func (r ESSRepository) GetPendingDocuments(ctx context.Context, workspaceID, emp
 	return items, rows.Err()
 }
 
-func (r ESSRepository) AcknowledgeDocument(ctx context.Context, workspaceID, employeeID, docID uuid.UUID) error {
+func (r ESSRepository) AcknowledgeDocument(ctx context.Context, employeeID, docID uuid.UUID) error {
 	db, err := r.db(ctx)
 	if err != nil {
 		return err
 	}
-	_, err = db.Exec(ctx, `UPDATE file_acknowledgements SET status = 'acknowledged', acknowledged_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP WHERE id = $1 AND workspace_id = $2`, docID, workspaceID)
+	_, err = db.Exec(ctx, `UPDATE file_acknowledgements SET status = 'acknowledged', acknowledged_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP WHERE id = $1 AND employee_id = $2 AND status = 'pending'`, docID, employeeID)
 	return err
 }
 
-func (r ESSRepository) GetEmployeeDocuments(ctx context.Context, workspaceID, employeeID uuid.UUID) ([]api.EmployeeDocumentRecord, error) {
+func (r ESSRepository) GetEmployeeDocuments(ctx context.Context, employeeID uuid.UUID) ([]api.EmployeeDocumentRecord, error) {
 	db, err := r.db(ctx)
 	if err != nil {
 		return nil, err
 	}
-	rows, err := db.Query(ctx, `SELECT id, employee_id, workspace_id, document_type, file_name, file_path, file_size, mime_type, expires_at::text, is_active, uploaded_by, created_at FROM employee_documents WHERE employee_id = $1 AND workspace_id = $2 ORDER BY created_at DESC`, employeeID, workspaceID)
+	rows, err := db.Query(ctx, `SELECT id, employee_id, document_type, file_name, file_path, file_size, mime_type, expires_at::text, is_active, uploaded_by, created_at FROM employee_documents WHERE employee_id = $1 ORDER BY created_at DESC`, employeeID)
 	if err != nil {
 		return nil, err
 	}
@@ -223,7 +223,7 @@ func (r ESSRepository) GetEmployeeDocuments(ctx context.Context, workspaceID, em
 	for rows.Next() {
 		var rec api.EmployeeDocumentRecord
 		var createdAt time.Time
-		if err := rows.Scan(&rec.ID, &rec.EmployeeID, &rec.WorkspaceID, &rec.DocumentType, &rec.FileName, &rec.FilePath, &rec.FileSize, &rec.MimeType, &rec.ExpiresAt, &rec.IsActive, &rec.UploadedBy, &createdAt); err != nil {
+		if err := rows.Scan(&rec.ID, &rec.EmployeeID, &rec.DocumentType, &rec.FileName, &rec.FilePath, &rec.FileSize, &rec.MimeType, &rec.ExpiresAt, &rec.IsActive, &rec.UploadedBy, &createdAt); err != nil {
 			return nil, err
 		}
 		rec.CreatedAt = createdAt.UTC().Format(time.RFC3339)

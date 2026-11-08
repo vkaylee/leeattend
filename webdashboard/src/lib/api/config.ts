@@ -4,11 +4,6 @@
 //   Standalone EXE:  http://127.0.0.1:3003/api  (frontend calls directly)
 //   Tauri App:       http://localhost:3000/api   (frontend calls directly)
 const BASE_URL_FROM_ENV: string | undefined = (import.meta.env.VITE_API_URL as string | undefined)?.replace(/\/$/, "");
-export const STANDALONE_ORGANIZATION_ID = "standalone";
-/** Returns backend-owned organization context without browser persistence. */
-export function getStandaloneOrganizationId(): string {
-	return STANDALONE_ORGANIZATION_ID;
-}
 
 // Dev mode: Vite proxy handles /api → apiserver, so frontend just uses "/api"
 // Production/Tauri: No proxy, use VITE_API_URL directly (must include /api)

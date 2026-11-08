@@ -12,11 +12,10 @@ import PageHeader from "@/components/ui/page-header";
 import { useToast } from "@/components/ui/toast";
 import { Typography } from "@/components/ui/typography";
 import { useConfirm } from "@/hooks/use-confirm";
-import { useWorkspaceWorkingConditions } from "@/hooks/use-employees";
+import { useWorkingConditions } from "@/hooks/use-employees";
 import {
   deleteWorkingCondition,
   fetchConditionTypes,
-  getStandaloneOrganizationId,
   type ConditionTypeDefinition,
 } from "@/lib/api";
 import type { WorkingConditionWithEmployee } from "@/lib/api/employee-conditions";
@@ -25,7 +24,7 @@ export default function PersonnelWorkingConditionsPage() {
   const { t, i18n } = useTranslation();
   const toast = useToast();
   const queryClient = useQueryClient();
-  const wsId = getStandaloneOrganizationId() ?? "";
+  
   const { confirm, ConfirmationDialog } = useConfirm();
   const currentLang = i18n.language.split("-")[0];
 
@@ -34,17 +33,16 @@ export default function PersonnelWorkingConditionsPage() {
   const [paymentFilter, setPaymentFilter] = useState<string>("all");
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  const { data: conditions = [], isLoading: isLoadingConditions } = useWorkspaceWorkingConditions(wsId);
+  const { data: conditions = [], isLoading: isLoadingConditions } = useWorkingConditions();
 
   const { data: typeDefs = [], isLoading: isLoadingTypes } = useQuery<ConditionTypeDefinition[]>({
-    queryKey: ["condition-types", wsId],
-    queryFn: () => (wsId ? fetchConditionTypes(wsId, false) : Promise.resolve([])),
-    enabled: !!wsId,
+    queryKey: ["condition-types"],
+    queryFn: () => fetchConditionTypes(false),
   });
 
   const deleteMutation = useMutation({
     mutationFn: async ({ employeeId, conditionId }: { employeeId: string; conditionId: string }) => {
-      await deleteWorkingCondition(wsId, employeeId, conditionId);
+      await deleteWorkingCondition(employeeId, conditionId);
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["working-conditions"] });
@@ -116,13 +114,7 @@ export default function PersonnelWorkingConditionsPage() {
     }
   };
 
-  if (!wsId) {
-    return (
-      <div className="p-12 text-center text-slate-500 dark:text-slate-400 font-bold italic uppercase tracking-widest text-xs opacity-50">
-        {t("common.select_workspace", { defaultValue: "Vui lòng chọn không gian làm việc" })}
-      </div>
-    );
-  }
+  
 
   const isLoading = isLoadingConditions || isLoadingTypes;
 
@@ -237,13 +229,10 @@ export default function PersonnelWorkingConditionsPage() {
 
       {/* ── Dual-Mode Working Condition Form Modal ─────────────────── */}
       {isModalOpen && (
-        <WorkingConditionFormModal
-          isOpen={isModalOpen}
-          onClose={() => {
-            setIsModalOpen(false);
-          }}
-          wsId={wsId}
-        />
+        <WorkingConditionFormModal isOpen={isModalOpen}
+        onClose={() => {
+          setIsModalOpen(false);
+        }}  />
       )}
 
       <ConfirmationDialog />

@@ -6,7 +6,7 @@ import { useTranslation } from "react-i18next";
 import Button from "@/components/ui/button";
 import { Typography } from "@/components/ui/typography";
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
-import { fetchWorkspaceAttendanceAdjustments, approveAttendanceAdjustment, getStandaloneOrganizationId } from "@/lib/api";
+import { fetchWorkspaceAttendanceAdjustments, approveAttendanceAdjustment } from "@/lib/api";
 
 import Sheet from "../ui/sheet";
 import { useToast } from "../ui/toast";
@@ -29,16 +29,12 @@ export default function AdjustmentDrawer({
   onAdjustmentResolved
 }: AdjustmentDrawerProps) {
   const { t } = useTranslation();
-  const wsId = getStandaloneOrganizationId() ?? "";
   const queryClient = useQueryClient();
   const toast = useToast();
   const { formatDate, formatTime } = useDateTimeFormatter();
 
-  const { data: paginatedAdjustments, isLoading } = useQuery({
-    queryKey: ["adjustments", wsId, "pending"],
-    queryFn: () => fetchWorkspaceAttendanceAdjustments(wsId, { status: "pending" }),
-    enabled: isOpen && !!wsId,
-  });
+  const { data: paginatedAdjustments, isLoading } = useQuery({ queryKey: ["adjustments", "pending"], queryFn: () => fetchWorkspaceAttendanceAdjustments({ status: "pending" }),
+  enabled: isOpen , });
 
   const employeeAdjustments = useMemo(() => {
     const list = paginatedAdjustments?.data ?? [];
@@ -47,7 +43,7 @@ export default function AdjustmentDrawer({
 
   const resolveMutation = useMutation({
     mutationFn: (data: { id: string; status: "approved" | "rejected" }) => 
-      approveAttendanceAdjustment(wsId, data.id, { status: data.status }),
+      approveAttendanceAdjustment(data.id, { status: data.status }),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["adjustments"] });
       toast.success(t("common.success"));

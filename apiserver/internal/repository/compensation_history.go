@@ -41,13 +41,13 @@ type timelineKey struct {
 	effectiveDate string
 }
 
-func (r CompensationHistoryRepository) GetEmployeeCompensationHistory(ctx context.Context, workspaceID, employeeID uuid.UUID, filterEmploymentID *uuid.UUID) (api.CompensationHistoryResponse, error) {
+func (r CompensationHistoryRepository) GetEmployeeCompensationHistory(ctx context.Context, employeeID uuid.UUID, filterEmploymentID *uuid.UUID) (api.CompensationHistoryResponse, error) {
 	db, err := r.db(ctx)
 	if err != nil {
 		return api.CompensationHistoryResponse{}, err
 	}
 
-	rows, err := db.Query(ctx, `SELECT em.id, em.employer_id, em.department_id, em.job_title, em.start_date::text FROM employments em JOIN employees e ON e.id = em.employee_id WHERE em.employee_id = $1 AND e.workspace_id = $2 AND em.deleted_at IS NULL ORDER BY em.start_date ASC`, employeeID, workspaceID)
+	rows, err := db.Query(ctx, `SELECT em.id, em.employer_id, em.department_id, em.job_title, em.start_date::text FROM employments em JOIN employees e ON e.id = em.employee_id WHERE em.employee_id = $1 AND em.deleted_at IS NULL ORDER BY em.start_date ASC`, employeeID)
 	if err != nil {
 		return api.CompensationHistoryResponse{}, err
 	}
@@ -94,7 +94,7 @@ func (r CompensationHistoryRepository) GetEmployeeCompensationHistory(ctx contex
 
 	employerNames := make(map[uuid.UUID]string)
 	if len(employerIDs) > 0 {
-		empRows, err := db.Query(ctx, `SELECT id, name FROM employers WHERE id = ANY($1) AND workspace_id = $2`, employerIDs, workspaceID)
+		empRows, err := db.Query(ctx, `SELECT id, name FROM employers WHERE id = ANY($1)`, employerIDs)
 		if err != nil {
 			return api.CompensationHistoryResponse{}, err
 		}
@@ -110,7 +110,7 @@ func (r CompensationHistoryRepository) GetEmployeeCompensationHistory(ctx contex
 
 	deptNames := make(map[uuid.UUID]string)
 	if len(deptIDs) > 0 {
-		deptRows, err := db.Query(ctx, `SELECT id, name FROM departments WHERE id = ANY($1) AND workspace_id = $2`, deptIDs, workspaceID)
+		deptRows, err := db.Query(ctx, `SELECT id, name FROM departments WHERE id = ANY($1)`, deptIDs)
 		if err != nil {
 			return api.CompensationHistoryResponse{}, err
 		}
@@ -124,7 +124,7 @@ func (r CompensationHistoryRepository) GetEmployeeCompensationHistory(ctx contex
 		}
 	}
 
-	compRows, err := db.Query(ctx, `SELECT esc.id, esc.employment_id, esc.component_definition_id, esc.amount::text, esc.effective_date::text, esc.created_at, esc.updated_at, scd.id, scd.workspace_id, scd.name, scd.code, scd.created_at, scd.updated_at FROM employee_salary_components esc JOIN salary_component_definitions scd ON scd.id = esc.component_definition_id WHERE esc.employment_id = ANY($1) AND scd.workspace_id = $2 ORDER BY esc.employment_id ASC, esc.effective_date ASC, esc.created_at ASC`, empIDs, workspaceID)
+	compRows, err := db.Query(ctx, `SELECT esc.id, esc.employment_id, esc.component_definition_id, esc.amount::text, esc.effective_date::text, esc.created_at, esc.updated_at, scd.id, scd.name, scd.code, scd.created_at, scd.updated_at FROM employee_salary_components esc JOIN salary_component_definitions scd ON scd.id = esc.component_definition_id WHERE esc.employment_id = ANY($1) ORDER BY esc.employment_id ASC, esc.effective_date ASC, esc.created_at ASC`, empIDs)
 	if err != nil {
 		return api.CompensationHistoryResponse{}, err
 	}
@@ -138,7 +138,7 @@ func (r CompensationHistoryRepository) GetEmployeeCompensationHistory(ctx contex
 		var scd api.SalaryComponentDefinition
 		var escAmt string
 		var escCreated, escUpdated, scdCreated, scdUpdated time.Time
-		if err := compRows.Scan(&esc.ID, &esc.EmploymentID, &esc.ComponentDefinitionID, &escAmt, &esc.EffectiveDate, &escCreated, &escUpdated, &scd.ID, &scd.WorkspaceID, &scd.Name, &scd.Code, &scdCreated, &scdUpdated); err != nil {
+		if err := compRows.Scan(&esc.ID, &esc.EmploymentID, &esc.ComponentDefinitionID, &escAmt, &esc.EffectiveDate, &escCreated, &escUpdated, &scd.ID, &scd.Name, &scd.Code, &scdCreated, &scdUpdated); err != nil {
 			return api.CompensationHistoryResponse{}, err
 		}
 		esc.Amount, _ = decimal.NewFromString(escAmt)
@@ -251,7 +251,7 @@ func (r CompensationHistoryRepository) GetEmployeeCompensationHistory(ctx contex
 		previousEmploymentID = &currEmpID
 	}
 
-	// Rust returns newest first
+	// Newest first.
 	slices.Reverse(timelineEvents)
 
 	return api.CompensationHistoryResponse{Timeline: timelineEvents}, nil

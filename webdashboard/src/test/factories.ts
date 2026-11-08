@@ -1,6 +1,7 @@
-
-import { User, Workspace, WorkspaceMember } from "@/lib/api";
+import type { Organization, OrganizationMember } from "@/types/organization";
+import type { User } from "@/lib/api";
 import { generateUUID } from "@/utils/uuid";
+
 export const userFactory = (overrides: Partial<User> = {}): User => {
   const id = generateUUID();
   return {
@@ -14,13 +15,12 @@ export const userFactory = (overrides: Partial<User> = {}): User => {
   };
 };
 
-export const workspaceFactory = (
-  overrides: Partial<Workspace> = {},
-): Workspace => {
+export const organizationFactory = (
+  overrides: Partial<Organization> = {},
+): Organization => {
   const id = generateUUID();
   return {
-    id,
-    name: `Workspace ${id.slice(0, 8)}`,
+    name: `Organization ${id.slice(0, 8)}`,
     date_format: "DD/MM/YYYY",
     time_format: "24h",
     timezone: "Asia/Ho_Chi_Minh",
@@ -33,13 +33,10 @@ export const workspaceFactory = (
   };
 };
 
-
-
 export const memberFactory = (
-  overrides: Partial<WorkspaceMember> = {},
-): WorkspaceMember => {
+  overrides: Partial<OrganizationMember> = {},
+): OrganizationMember => {
   return {
-    workspace_id: generateUUID(),
     user_id: generateUUID(),
     role_id: "role-member",
     extra_role_ids: [],

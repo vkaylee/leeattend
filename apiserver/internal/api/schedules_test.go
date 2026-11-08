@@ -15,7 +15,7 @@ type mockScheduleRepository struct {
 	called bool
 }
 
-func (m *mockScheduleRepository) GetWorkspaceSchedules(_ context.Context, _ uuid.UUID, _, _ time.Time, _ []uuid.UUID, page, limit int) (PaginatedEmployeeSchedules, error) {
+func (m *mockScheduleRepository) GetOrganizationSchedules(_ context.Context, _, _ time.Time, _ []uuid.UUID, page, limit int) (PaginatedEmployeeSchedules, error) {
 	m.called = true
 	return PaginatedEmployeeSchedules{
 		Data: []EmployeeSchedule{
@@ -45,22 +45,36 @@ type mockScheduleAuthorizer struct {
 	isMember bool
 }
 
-func (m mockScheduleAuthorizer) IsMember(_ context.Context, _, _ uuid.UUID) (bool, error) {
+func (m mockScheduleAuthorizer) IsMember(_ context.Context, _ uuid.UUID) (bool, error) {
 	return m.isMember, nil
 }
-func (m mockScheduleAuthorizer) EffectivePermissions(context.Context, uuid.UUID, uuid.UUID) ([]string, []string, error) {
+func (m mockScheduleAuthorizer) EffectivePermissions(context.Context, uuid.UUID) ([]string, []string, error) {
 	return nil, nil, nil
+}
+func (m mockScheduleAuthorizer) HasPermission(context.Context, uuid.UUID, string) bool {
+	return true
+}
+func (m mockScheduleAuthorizer) GetManagedDepartmentIDs(context.Context, uuid.UUID) ([]uuid.UUID, error) {
+	return nil, nil
+}
+func (m mockScheduleAuthorizer) IsGlobalManager(context.Context, uuid.UUID) bool {
+	return false
+}
+func (m mockScheduleAuthorizer) HasScopedPermission(context.Context, uuid.UUID, string, *uuid.UUID) bool {
+	return false
+}
+func (m mockScheduleAuthorizer) GetUsersWithPermission(context.Context, string) ([]uuid.UUID, error) {
+	return nil, nil
 }
 
 func TestScheduleHandler_Unauthenticated(t *testing.T) {
-	wsID := uuid.New()
 	handler := ScheduleHandler{
 		Repository: &mockScheduleRepository{},
 		Authorizer: mockScheduleAuthorizer{isMember: true},
 	}
 
-	req := httptest.NewRequest(http.MethodGet, "/api/v1/workspaces/"+wsID.String()+"/schedules?start_date=2026-10-01&end_date=2026-10-31", nil)
-	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
+	req := httptest.NewRequest(http.MethodGet, "/api/v1" + "/schedules?start_date=2026-10-01&end_date=2026-10-31", nil)
+	
 	rec := httptest.NewRecorder()
 
 	handler.List(rec, req)
@@ -70,15 +84,14 @@ func TestScheduleHandler_Unauthenticated(t *testing.T) {
 }
 
 func TestScheduleHandler_ForbiddenNonMember(t *testing.T) {
-	wsID := uuid.New()
 	userID := uuid.New()
 	handler := ScheduleHandler{
 		Repository: &mockScheduleRepository{},
 		Authorizer: mockScheduleAuthorizer{isMember: false},
 	}
 
-	req := httptest.NewRequest(http.MethodGet, "/api/v1/workspaces/"+wsID.String()+"/schedules?start_date=2026-10-01&end_date=2026-10-31", nil)
-	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
+	req := httptest.NewRequest(http.MethodGet, "/api/v1" + "/schedules?start_date=2026-10-01&end_date=2026-10-31", nil)
+	
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), userID))
 	rec := httptest.NewRecorder()
 
@@ -89,7 +102,6 @@ func TestScheduleHandler_ForbiddenNonMember(t *testing.T) {
 }
 
 func TestScheduleHandler_ValidationRequiredDates(t *testing.T) {
-	wsID := uuid.New()
 	userID := uuid.New()
 	handler := ScheduleHandler{
 		Repository: &mockScheduleRepository{},
@@ -111,8 +123,8 @@ func TestScheduleHandler_ValidationRequiredDates(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			req := httptest.NewRequest(http.MethodGet, "/api/v1/workspaces/"+wsID.String()+"/schedules?"+tc.query, nil)
-			req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
+			req := httptest.NewRequest(http.MethodGet, "/api/v1" + "/schedules?"+tc.query, nil)
+			
 			req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), userID))
 			rec := httptest.NewRecorder()
 
@@ -125,7 +137,6 @@ func TestScheduleHandler_ValidationRequiredDates(t *testing.T) {
 }
 
 func TestScheduleHandler_Success(t *testing.T) {
-	wsID := uuid.New()
 	userID := uuid.New()
 	repo := &mockScheduleRepository{}
 	handler := ScheduleHandler{
@@ -133,8 +144,8 @@ func TestScheduleHandler_Success(t *testing.T) {
 		Authorizer: mockScheduleAuthorizer{isMember: true},
 	}
 
-	req := httptest.NewRequest(http.MethodGet, "/api/v1/workspaces/"+wsID.String()+"/schedules?start_date=2026-10-01&end_date=2026-10-31&page=1&limit=50", nil)
-	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
+	req := httptest.NewRequest(http.MethodGet, "/api/v1" + "/schedules?start_date=2026-10-01&end_date=2026-10-31&page=1&limit=50", nil)
+	
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), userID))
 	rec := httptest.NewRecorder()
 

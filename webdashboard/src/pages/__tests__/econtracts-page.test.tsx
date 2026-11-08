@@ -20,11 +20,6 @@ vi.mock("react-i18next", () => ({
   }),
 }));
 
-// Mock current workspace ID
-let mockWorkspaceId = "ws-1";
-vi.mock("@/lib/api/helpers", () => ({
-  getStandaloneOrganizationId: () => mockWorkspaceId,
-}));
 
 // Mock TanStack Router
 vi.mock("@tanstack/react-router", () => ({
@@ -66,12 +61,11 @@ vi.mock("@/hooks/use-confirm", () => ({
 
 // Mock ContractFormModal
 vi.mock("@/components/features/employees/contract-form-modal", () => ({
-  default: ({ isOpen, onClose, editingContract, wsId, employeeId }: any) => {
+  default: ({ isOpen, onClose, editingContract, employeeId }: { isOpen: boolean; onClose: () => void; editingContract?: { id: string } | null; employeeId?: string }) => {
     if (!isOpen) return null;
     return (
       <div data-testid="mock-contract-form-modal">
         <div>Employee ID: {employeeId}</div>
-        <div>Workspace ID: {wsId}</div>
         {!!editingContract && <div>Editing: {editingContract.id}</div>}
         <Button onClick={onClose} type="button">Close Form</Button>
       </div>
@@ -114,7 +108,6 @@ describe("EContractsPage Component - Registry", () => {
   const mockConfirm = vi.fn();
 
   beforeEach(() => {
-    mockWorkspaceId = "ws-1";
     vi.clearAllMocks();
     queryClient = new QueryClient({
       defaultOptions: {
@@ -269,14 +262,9 @@ describe("EContractsPage Component - Registry", () => {
       await user.click(deleteBtn);
       expect(mockConfirm).toHaveBeenCalled();
       await waitFor(() => {
-        expect(deleteEmployeeContract).toHaveBeenCalledWith("ws-1", "emp-1", "contract-1");
+        expect(deleteEmployeeContract).toHaveBeenCalledWith("emp-1", "contract-1");
       });
     }
   });
 
-  it("shows workspace selection warning when wsId is empty", () => {
-    mockWorkspaceId = "";
-    renderPage();
-    expect(screen.getByText("common.select_workspace")).toBeInTheDocument();
-  });
 });

@@ -10,7 +10,7 @@ import { Combobox } from "@/components/ui/combobox";
 import FormField from "@/components/ui/form-field";
 import Modal from "@/components/ui/modal";
 import { useToast } from "@/components/ui/toast";
-import { useOrganizationMutation } from "@/hooks/common/use-workspace-query";
+import { useOrganizationMutation } from "@/hooks/common/use-organization-query";
 import { Typography } from "@/components/ui/typography";
 import { rehireEmployee, fetchEmployers, Employee } from "@/lib/api";
 import { employeeKeys } from "@/lib/query-keys";
@@ -20,45 +20,36 @@ interface RehireEmployeeModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess?: (employee: Employee) => void;
-  wsId: string;
 }
 
 export default function RehireEmployeeModal({
   isOpen,
   onClose,
-  employeeId,
-  wsId,
-  onSuccess,
+  employeeId,onSuccess,
 }: RehireEmployeeModalProps) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const toast = useToast();
   const [selectedEmployerId, setSelectedEmployerId] = useState("");
 
-  const { data: employers = [] } = useQuery({
-    queryKey: ["employers", wsId],
-    queryFn: () => fetchEmployers(wsId),
-    enabled: !!wsId && isOpen,
-  });
+  const { data: employers = [] } = useQuery({ queryKey: ["employers"], queryFn: () => fetchEmployers(),
+  enabled: isOpen, });
 
   const rehireMutation = useOrganizationMutation<
     { hire_date: string; employer_id: string },
     Employee
-  >({
-    workspaceId: wsId,
-    keys: [employeeKeys.all(wsId)],
-    mutationFn: (workspaceId, data) => {
-      if (!employeeId) throw new Error("No employee selected");
-      return rehireEmployee(workspaceId, employeeId, data);
-    },
-    onSuccess: (updatedEmp: Employee) => {
-      void queryClient.invalidateQueries({ queryKey: ["employmentHistory", employeeId] });
-      void queryClient.invalidateQueries({ queryKey: ["employee-employments", wsId, employeeId] });
-      onClose();
-      toast.success(t("common.success"));
-      onSuccess?.(updatedEmp);
-    },
-  });
+  >({ keys: [employeeKeys.all()],
+  mutationFn: (data) => {
+    if (!employeeId) throw new Error("No employee selected");
+    return rehireEmployee(employeeId, data);
+  },
+  onSuccess: (updatedEmp: Employee) => {
+    void queryClient.invalidateQueries({ queryKey: ["employmentHistory", employeeId] });
+    void queryClient.invalidateQueries({ queryKey: ["employee-employments",employeeId] });
+    onClose();
+    toast.success(t("common.success"));
+    onSuccess?.(updatedEmp);
+  }, });
 
   const handleRehireSubmit = (e: React.SyntheticEvent<HTMLFormElement>) => {
     e.preventDefault();

@@ -11,24 +11,21 @@ import { writeFrequentShift } from "@/lib/frequent-shifts-storage";
 
 type ToastApi = ReturnType<typeof useToast>;
 
-interface UseWeeklyRosterHandlersProps {
-  allSchedules: EmployeeSchedule[] | undefined;
-  endDate: string;
-  isForever: boolean;
-  mutations: {
-    assignPatternMutation: UseMutationResult<EmployeeWorkingPattern, Error, AssignPatternRequest>;
-    bulkRosterMutation: UseMutationResult<unknown, Error, { date: string; shift_id: string | null }[]>;
-  };
-  selectedDays: string[];
-  selectedEmployee: Employee | null;
-  selectedPatternId: string;
-  startDate: string;
-  startOfWeek: Date;
-  t: TFunction;
-  toast: ToastApi;
-  weekDays: Date[];
-  wsId: string;
-}
+interface UseWeeklyRosterHandlersProps { allSchedules: EmployeeSchedule[] | undefined;
+endDate: string;
+isForever: boolean;
+mutations: {
+  assignPatternMutation: UseMutationResult<EmployeeWorkingPattern, Error, AssignPatternRequest>;
+  bulkRosterMutation: UseMutationResult<unknown, Error, { date: string; shift_id: string | null }[]>;
+};
+selectedDays: string[];
+selectedEmployee: Employee | null;
+selectedPatternId: string;
+startDate: string;
+startOfWeek: Date;
+t: TFunction;
+toast: ToastApi;
+weekDays: Date[];  }
 
 interface UseWeeklyRosterHandlersReturn {
   handleApplyShift: (shiftId: string | null) => void;
@@ -43,7 +40,6 @@ interface UseWeeklyRosterHandlersReturn {
  * assignment, fill-entire-week, and copy-from-previous-week.
  */
 export function useWeeklyRosterHandlers({
-  wsId,
   selectedEmployee,
   selectedPatternId,
   startDate,
@@ -95,11 +91,8 @@ export function useWeeklyRosterHandlers({
     const previousWeekStart = addDays(startOfWeek, -7);
     const previousWeekEnd = addDays(startOfWeek, -1);
     try {
-      const previousSchedules = await fetchWorkspaceSchedules(
-        wsId,
-        format(previousWeekStart, "yyyy-MM-dd"),
-        format(previousWeekEnd, "yyyy-MM-dd"),
-      );
+      const previousSchedules = await fetchWorkspaceSchedules(format(previousWeekStart, "yyyy-MM-dd"),
+      format(previousWeekEnd, "yyyy-MM-dd"),);
       const empPrevious = previousSchedules.find(
         (s: EmployeeSchedule) =>
           s.employee_id === selectedEmployee.id ||

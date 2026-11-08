@@ -17,7 +17,7 @@ import (
 
 type EmployeeImportRepository struct {
 	DB      DBTX
-	BeginTx func(context.Context, uuid.UUID) (TxBeginner, error)
+	BeginTx func(context.Context) (TxBeginner, error)
 }
 
 func (r EmployeeImportRepository) db(ctx context.Context) (DBTX, error) {
@@ -27,9 +27,9 @@ func (r EmployeeImportRepository) db(ctx context.Context) (DBTX, error) {
 	return r.DB, nil
 }
 
-func (r EmployeeImportRepository) begin(ctx context.Context, wsID uuid.UUID) (TxBeginner, error) {
+func (r EmployeeImportRepository) begin(ctx context.Context) (TxBeginner, error) {
 	if r.BeginTx != nil {
-		return r.BeginTx(ctx, wsID)
+		return r.BeginTx(ctx)
 	}
 	db, err := r.db(ctx)
 	if err != nil {
@@ -42,19 +42,19 @@ func (r EmployeeImportRepository) begin(ctx context.Context, wsID uuid.UUID) (Tx
 	return beginner, nil
 }
 
-func (r EmployeeImportRepository) CreateEmployeeImportJob(ctx context.Context, workspaceID, userID uuid.UUID, filePath string, jobID uuid.UUID) error {
+func (r EmployeeImportRepository) CreateEmployeeImportJob(ctx context.Context, userID uuid.UUID, filePath string, jobID uuid.UUID) error {
 	db, err := r.db(ctx)
 	if err != nil {
 		return err
 	}
 	_, err = db.Exec(ctx, `INSERT INTO attendance_import_jobs
-		(id, workspace_id, user_id, status, total_rows, processed_rows, file_path, target_type, created_at, updated_at)
-		VALUES ($1, $2, $3, 'pending', 0, 0, $4, 'employee', NOW(), NOW())`,
-		jobID, workspaceID, userID, filePath)
+		(id, user_id, status, total_rows, processed_rows, file_path, target_type, created_at, updated_at)
+		VALUES ($1, $2, 'pending', 0, 0, $3, 'employee', NOW(), NOW())`,
+		jobID, userID, filePath)
 	return err
 }
 
-func (r EmployeeImportRepository) TerminationCandidates(ctx context.Context, workspaceID uuid.UUID, codes []string) ([]api.TerminationCandidate, error) {
+func (r EmployeeImportRepository) TerminationCandidates(ctx context.Context, codes []string) ([]api.TerminationCandidate, error) {
 	if len(codes) == 0 {
 		return nil, nil
 	}
@@ -69,8 +69,8 @@ func (r EmployeeImportRepository) TerminationCandidates(ctx context.Context, wor
 
 	empRows, err := db.Query(ctx, `SELECT id, employee_id_number, full_name
 		FROM employees
-		WHERE workspace_id = $1 AND deleted_at IS NULL AND UPPER(employee_id_number) = ANY($2)`,
-		workspaceID, upperCodes)
+		WHERE deleted_at IS NULL AND UPPER(employee_id_number) = ANY($1)`,
+		upperCodes)
 	if err != nil {
 		return nil, err
 	}
@@ -109,9 +109,9 @@ func (r EmployeeImportRepository) TerminationCandidates(ctx context.Context, wor
 
 	employmentsRows, err := db.Query(ctx, `SELECT id, employee_id, status, start_date
 		FROM employments
-		WHERE workspace_id = $1 AND employee_id = ANY($2) AND deleted_at IS NULL
+		WHERE employee_id = ANY($1) AND deleted_at IS NULL
 		ORDER BY start_date DESC`,
-		workspaceID, empIDs)
+		empIDs)
 	if err != nil {
 		return nil, err
 	}
@@ -188,7 +188,7 @@ func (r EmployeeImportRepository) TerminationCandidates(ctx context.Context, wor
 	return result, nil
 }
 
-func (r EmployeeImportRepository) TerminationStatuses(ctx context.Context, workspaceID uuid.UUID, employmentIDs []uuid.UUID) (map[uuid.UUID]string, error) {
+func (r EmployeeImportRepository) TerminationStatuses(ctx context.Context, employmentIDs []uuid.UUID) (map[uuid.UUID]string, error) {
 	if len(employmentIDs) == 0 {
 		return make(map[uuid.UUID]string), nil
 	}
@@ -196,8 +196,8 @@ func (r EmployeeImportRepository) TerminationStatuses(ctx context.Context, works
 	if err != nil {
 		return nil, err
 	}
-	rows, err := db.Query(ctx, `SELECT id, status FROM employments WHERE workspace_id = $1 AND id = ANY($2) AND deleted_at IS NULL`,
-		workspaceID, employmentIDs)
+	rows, err := db.Query(ctx, `SELECT id, status FROM employments WHERE id = ANY($1) AND deleted_at IS NULL`,
+		employmentIDs)
 	if err != nil {
 		return nil, err
 	}
@@ -215,11 +215,11 @@ func (r EmployeeImportRepository) TerminationStatuses(ctx context.Context, works
 	return result, rows.Err()
 }
 
-func (r EmployeeImportRepository) TerminateEmploymentsTransactional(ctx context.Context, workspaceID uuid.UUID, rows []api.TerminationJobRow) (int, error) {
+func (r EmployeeImportRepository) TerminateEmploymentsTransactional(ctx context.Context, rows []api.TerminationJobRow) (int, error) {
 	if len(rows) == 0 {
 		return 0, nil
 	}
-	txBeginner, err := r.begin(ctx, workspaceID)
+	txBeginner, err := r.begin(ctx)
 	if err != nil {
 		return 0, err
 	}
@@ -237,8 +237,8 @@ func (r EmployeeImportRepository) TerminateEmploymentsTransactional(ctx context.
 		}
 		var startDate time.Time
 		var currentStatus string
-		err = tx.QueryRow(ctx, `SELECT status, start_date FROM employments WHERE id = $1 AND workspace_id = $2 AND deleted_at IS NULL FOR UPDATE`,
-			row.EmploymentID, workspaceID).Scan(&currentStatus, &startDate)
+		err = tx.QueryRow(ctx, `SELECT status, start_date FROM employments WHERE id = $1 AND deleted_at IS NULL FOR UPDATE`,
+			row.EmploymentID).Scan(&currentStatus, &startDate)
 		if err != nil {
 			if errors.Is(err, pgx.ErrNoRows) {
 				continue
@@ -251,8 +251,8 @@ func (r EmployeeImportRepository) TerminateEmploymentsTransactional(ctx context.
 
 		_, err = tx.Exec(ctx, `UPDATE employments
 			SET status = 'terminated', end_date = $1::date, termination_reason = $2, notes = $3, updated_at = NOW()
-			WHERE id = $4 AND workspace_id = $5 AND deleted_at IS NULL`,
-			row.TerminationDate, row.TerminationReason, row.TerminationNotes, row.EmploymentID, workspaceID)
+			WHERE id = $4 AND deleted_at IS NULL`,
+			row.TerminationDate, row.TerminationReason, row.TerminationNotes, row.EmploymentID)
 		if err != nil {
 			return successCount, err
 		}
@@ -325,7 +325,6 @@ type queuedJob[T any] struct {
 	ParentJobID  uuid.UUID           `json:"parent_job_id"`
 	BatchIndex   int                 `json:"batch_index"`
 	TaskType     string              `json:"task_type"`
-	WorkspaceID  uuid.UUID           `json:"workspace_id"`
 	Payload      queuedJobPayload[T] `json:"payload"`
 	Priority     string              `json:"priority"`
 	CreatedAt    string              `json:"created_at"`
@@ -356,7 +355,6 @@ type jobMetadata struct {
 	TotalBatches     int       `json:"total_batches"`
 	CompletedBatches int       `json:"completed_batches"`
 	FailedBatches    int       `json:"failed_batches"`
-	WorkspaceID      uuid.UUID `json:"workspace_id"`
 	RequesterID      uuid.UUID `json:"requester_id"`
 	DateRange        *string   `json:"date_range"`
 	CreatedAt        string    `json:"created_at"`
@@ -397,7 +395,6 @@ func (q EmployeeImportQueue) EnqueueEmployeeImport(ctx context.Context, job api.
 		JobID:        job.JobID,
 		ParentJobID:  job.JobID,
 		TaskType:     "employee_import",
-		WorkspaceID:  job.WorkspaceID,
 		Payload:      queuedJobPayload[employeeImportJobData]{Type: "EmployeeImport", Data: employeeImportJobData{ImportJobID: job.JobID, UserID: job.UserID}},
 		Priority:     "normal",
 		CreatedAt:    time.Now().UTC().Format(time.RFC3339),
@@ -412,14 +409,13 @@ func (q EmployeeImportQueue) EnqueueTerminationImport(ctx context.Context, job a
 	if err != nil {
 		// Durable fallback: apply the same transactional termination effects the
 		// worker would perform when the queue backend is unavailable.
-		_, syncErr := q.Repo.TerminateEmploymentsTransactional(ctx, job.WorkspaceID, job.Rows)
+		_, syncErr := q.Repo.TerminateEmploymentsTransactional(ctx, job.Rows)
 		return syncErr
 	}
 	meta := jobMetadata{
 		JobID:        job.JobID,
 		Status:       "pending",
 		TotalBatches: len(job.Rows),
-		WorkspaceID:  job.WorkspaceID,
 		RequesterID:  job.UserID,
 		CreatedAt:    time.Now().UTC().Format(time.RFC3339),
 		TaskType:     "bulk_termination",
@@ -435,7 +431,6 @@ func (q EmployeeImportQueue) EnqueueTerminationImport(ctx context.Context, job a
 		JobID:        job.JobID,
 		ParentJobID:  job.JobID,
 		TaskType:     "bulk_termination",
-		WorkspaceID:  job.WorkspaceID,
 		Payload:      queuedJobPayload[terminationJobData]{Type: "BulkTermination", Data: terminationJobData{Rows: job.Rows}},
 		Priority:     "normal",
 		CreatedAt:    time.Now().UTC().Format(time.RFC3339),

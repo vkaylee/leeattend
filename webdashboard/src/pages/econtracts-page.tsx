@@ -19,7 +19,6 @@ import { useToast } from "@/components/ui/toast";
 import { useConfirm } from "@/hooks/use-confirm";
 import { useAllEmployees } from "@/hooks/use-employees";
 import { deleteEmployeeContract, fetchWorkspaceContracts } from "@/lib/api/contracts";
-import { getStandaloneOrganizationId } from "@/lib/api/helpers";
 import { ROUTES } from "@/lib/routes";
 
 interface SelectEmployeeModalProps {
@@ -105,7 +104,7 @@ export default function EContractsPage() {
   const { t } = useTranslation();
   const toast = useToast();
   const queryClient = useQueryClient();
-  const wsId = getStandaloneOrganizationId() ?? "";
+  
   const { confirm, ConfirmationDialog } = useConfirm();
 
   const searchParams = useSearch({ from: "/_authenticated/_workspace/econtracts" });
@@ -120,18 +119,17 @@ export default function EContractsPage() {
   const [editingContract, setEditingContract] = useState<EmployeeContract | null>(null);
 
   const { data: contracts = [], isLoading: isLoadingContracts } = useQuery({
-    queryKey: ["workspace-contracts", wsId],
-    queryFn: () => fetchWorkspaceContracts(wsId),
-    enabled: !!wsId,
+    queryKey: ["workspace-contracts"],
+    queryFn: () => fetchWorkspaceContracts(),
   });
 
-  const { employees, isLoading: isLoadingEmployees } = useAllEmployees(wsId);
+  const { employees, isLoading: isLoadingEmployees } = useAllEmployees();
 
   const deleteMutation = useMutation({
     mutationFn: ({ employeeId, contractId }: { employeeId: string; contractId: string }) =>
-      deleteEmployeeContract(wsId, employeeId, contractId),
+      deleteEmployeeContract(employeeId, contractId),
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ["workspace-contracts", wsId] });
+      void queryClient.invalidateQueries({ queryKey: ["workspace-contracts"] });
       toast.success(t("common.deleted_success", { defaultValue: "Contract deleted successfully" }));
     },
     onError: (err: unknown) => {
@@ -166,13 +164,7 @@ export default function EContractsPage() {
     });
   }, [contracts, search, selectedType, selectedStatus]);
 
-  if (!wsId) {
-    return (
-      <div className="p-12 text-center text-slate-500 dark:text-slate-400 font-bold italic uppercase tracking-widest text-xs opacity-50">
-        {t("common.select_workspace")}
-      </div>
-    );
-  }
+  
 
   const isPageLoading = isLoadingContracts || isLoadingEmployees;
 
@@ -246,17 +238,14 @@ export default function EContractsPage() {
       />
 
       {isContractFormOpen && activeEmployeeId ? (
-        <ContractFormModal
-          editingContract={editingContract}
-          employeeId={activeEmployeeId}
-          isOpen={isContractFormOpen}
-          onClose={() => {
-            setIsContractFormOpen(false);
-            setActiveEmployeeId(null);
-            setEditingContract(null);
-          }}
-          wsId={wsId}
-        />
+        <ContractFormModal editingContract={editingContract}
+        employeeId={activeEmployeeId}
+        isOpen={isContractFormOpen}
+        onClose={() => {
+          setIsContractFormOpen(false);
+          setActiveEmployeeId(null);
+          setEditingContract(null);
+        }}  />
       ) : null}
 
       <ConfirmationDialog />

@@ -80,7 +80,6 @@ type AcknowledgementRecord struct {
 type EmployeeDocumentRecord struct {
 	ID           uuid.UUID  `json:"id"`
 	EmployeeID   uuid.UUID  `json:"employee_id"`
-	WorkspaceID  uuid.UUID  `json:"workspace_id"`
 	DocumentType string     `json:"document_type"`
 	FileName     string     `json:"file_name"`
 	FilePath     string     `json:"file_path"`
@@ -107,15 +106,15 @@ type EssLeaveBalance struct {
 }
 
 type ESSRepository interface {
-	ResolveEmployeeForUser(ctx context.Context, workspaceID, userID uuid.UUID) (uuid.UUID, error)
-	GetMyProfile(ctx context.Context, workspaceID, employeeID uuid.UUID) (MyProfileResponse, error)
-	UpsertProfile(ctx context.Context, workspaceID, employeeID uuid.UUID, req UpdateEmployeeProfileRequest) (EmployeeProfileRecord, error)
-	GetEmergencyContacts(ctx context.Context, workspaceID, employeeID uuid.UUID) ([]EmployeeEmergencyContactRecord, error)
-	AddEmergencyContact(ctx context.Context, workspaceID, employeeID uuid.UUID, req CreateEmergencyContactRequest) (EmployeeEmergencyContactRecord, error)
-	DeleteEmergencyContact(ctx context.Context, workspaceID, employeeID, contactID uuid.UUID) error
-	GetPendingDocuments(ctx context.Context, workspaceID, employeeID uuid.UUID) ([]AcknowledgementRecord, error)
-	AcknowledgeDocument(ctx context.Context, workspaceID, employeeID, docID uuid.UUID) error
-	GetEmployeeDocuments(ctx context.Context, workspaceID, employeeID uuid.UUID) ([]EmployeeDocumentRecord, error)
+	ResolveEmployeeForUser(ctx context.Context, userID uuid.UUID) (uuid.UUID, error)
+	GetMyProfile(ctx context.Context, employeeID uuid.UUID) (MyProfileResponse, error)
+	UpsertProfile(ctx context.Context, employeeID uuid.UUID, req UpdateEmployeeProfileRequest) (EmployeeProfileRecord, error)
+	GetEmergencyContacts(ctx context.Context, employeeID uuid.UUID) ([]EmployeeEmergencyContactRecord, error)
+	AddEmergencyContact(ctx context.Context, employeeID uuid.UUID, req CreateEmergencyContactRequest) (EmployeeEmergencyContactRecord, error)
+	DeleteEmergencyContact(ctx context.Context, employeeID, contactID uuid.UUID) error
+	GetPendingDocuments(ctx context.Context, employeeID uuid.UUID) ([]AcknowledgementRecord, error)
+	AcknowledgeDocument(ctx context.Context, employeeID, docID uuid.UUID) error
+	GetEmployeeDocuments(ctx context.Context, employeeID uuid.UUID) ([]EmployeeDocumentRecord, error)
 }
 
 type ESSHandler struct {
@@ -127,33 +126,24 @@ type ESSHandler struct {
 }
 
 func (h ESSHandler) resolveContext(r *http.Request) (uuid.UUID, uuid.UUID, error) {
-	wsID, empID, _, err := h.resolveContextWithUser(r)
-	return wsID, empID, err
-}
-
-func (h ESSHandler) resolveContextWithUser(r *http.Request) (uuid.UUID, uuid.UUID, uuid.UUID, error) {
-	workspaceID, ok := organizationIDFromContext(r)
-	if !ok || workspaceID == uuid.Nil {
-		return uuid.Nil, uuid.Nil, uuid.Nil, ErrESSValidation
-	}
 	userID, ok := httpinfra.UserIDFromContext(r.Context())
-	if !ok {
-		return uuid.Nil, uuid.Nil, uuid.Nil, ErrESSNoEmployeeRecord
+	if !ok || userID == uuid.Nil {
+		return uuid.Nil, uuid.Nil, ErrESSNoEmployeeRecord
 	}
-	employeeID, err := h.Repository.ResolveEmployeeForUser(r.Context(), workspaceID, userID)
-	if err != nil {
-		return uuid.Nil, uuid.Nil, uuid.Nil, ErrESSNoEmployeeRecord
+	employeeID, err := h.Repository.ResolveEmployeeForUser(r.Context(), userID)
+	if err != nil || employeeID == uuid.Nil {
+		return uuid.Nil, uuid.Nil, ErrESSNoEmployeeRecord
 	}
-	return workspaceID, employeeID, userID, nil
+	return employeeID, userID, nil
 }
 
 func (h ESSHandler) GetProfile(w http.ResponseWriter, r *http.Request) {
-	wsID, empID, err := h.resolveContext(r)
+	empID, _, err := h.resolveContext(r)
 	if err != nil {
 		h.writeError(w, r, err)
 		return
 	}
-	profile, err := h.Repository.GetMyProfile(r.Context(), wsID, empID)
+	profile, err := h.Repository.GetMyProfile(r.Context(), empID)
 	if err != nil {
 		h.writeError(w, r, err)
 		return
@@ -162,7 +152,7 @@ func (h ESSHandler) GetProfile(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h ESSHandler) UpdateProfile(w http.ResponseWriter, r *http.Request) {
-	wsID, empID, err := h.resolveContext(r)
+	empID, _, err := h.resolveContext(r)
 	if err != nil {
 		h.writeError(w, r, err)
 		return
@@ -178,7 +168,7 @@ func (h ESSHandler) UpdateProfile(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	profile, err := h.Repository.UpsertProfile(r.Context(), wsID, empID, req)
+	profile, err := h.Repository.UpsertProfile(r.Context(), empID, req)
 	if err != nil {
 		h.writeError(w, r, err)
 		return
@@ -187,12 +177,12 @@ func (h ESSHandler) UpdateProfile(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h ESSHandler) GetContacts(w http.ResponseWriter, r *http.Request) {
-	wsID, empID, err := h.resolveContext(r)
+	empID, _, err := h.resolveContext(r)
 	if err != nil {
 		h.writeError(w, r, err)
 		return
 	}
-	contacts, err := h.Repository.GetEmergencyContacts(r.Context(), wsID, empID)
+	contacts, err := h.Repository.GetEmergencyContacts(r.Context(), empID)
 	if err != nil {
 		h.writeError(w, r, err)
 		return
@@ -201,7 +191,7 @@ func (h ESSHandler) GetContacts(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h ESSHandler) AddContact(w http.ResponseWriter, r *http.Request) {
-	wsID, empID, err := h.resolveContext(r)
+	empID, _, err := h.resolveContext(r)
 	if err != nil {
 		h.writeError(w, r, err)
 		return
@@ -211,7 +201,7 @@ func (h ESSHandler) AddContact(w http.ResponseWriter, r *http.Request) {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}
-	contact, err := h.Repository.AddEmergencyContact(r.Context(), wsID, empID, req)
+	contact, err := h.Repository.AddEmergencyContact(r.Context(), empID, req)
 	if err != nil {
 		h.writeError(w, r, err)
 		return
@@ -220,7 +210,7 @@ func (h ESSHandler) AddContact(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h ESSHandler) DeleteContact(w http.ResponseWriter, r *http.Request) {
-	wsID, empID, err := h.resolveContext(r)
+	empID, _, err := h.resolveContext(r)
 	if err != nil {
 		h.writeError(w, r, err)
 		return
@@ -230,7 +220,7 @@ func (h ESSHandler) DeleteContact(w http.ResponseWriter, r *http.Request) {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}
-	if err := h.Repository.DeleteEmergencyContact(r.Context(), wsID, empID, contactID); err != nil {
+	if err := h.Repository.DeleteEmergencyContact(r.Context(), empID, contactID); err != nil {
 		h.writeError(w, r, err)
 		return
 	}
@@ -238,12 +228,12 @@ func (h ESSHandler) DeleteContact(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h ESSHandler) GetPendingDocuments(w http.ResponseWriter, r *http.Request) {
-	wsID, empID, err := h.resolveContext(r)
+	empID, _, err := h.resolveContext(r)
 	if err != nil {
 		h.writeError(w, r, err)
 		return
 	}
-	pending, err := h.Repository.GetPendingDocuments(r.Context(), wsID, empID)
+	pending, err := h.Repository.GetPendingDocuments(r.Context(), empID)
 	if err != nil {
 		h.writeError(w, r, err)
 		return
@@ -255,7 +245,7 @@ func (h ESSHandler) GetPendingDocuments(w http.ResponseWriter, r *http.Request) 
 }
 
 func (h ESSHandler) AcknowledgeDocument(w http.ResponseWriter, r *http.Request) {
-	wsID, empID, err := h.resolveContext(r)
+	empID, _, err := h.resolveContext(r)
 	if err != nil {
 		h.writeError(w, r, err)
 		return
@@ -265,7 +255,7 @@ func (h ESSHandler) AcknowledgeDocument(w http.ResponseWriter, r *http.Request) 
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}
-	if err := h.Repository.AcknowledgeDocument(r.Context(), wsID, empID, id); err != nil {
+	if err := h.Repository.AcknowledgeDocument(r.Context(), empID, id); err != nil {
 		h.writeError(w, r, err)
 		return
 	}
@@ -273,12 +263,12 @@ func (h ESSHandler) AcknowledgeDocument(w http.ResponseWriter, r *http.Request) 
 }
 
 func (h ESSHandler) GetDocuments(w http.ResponseWriter, r *http.Request) {
-	wsID, empID, err := h.resolveContext(r)
+	empID, _, err := h.resolveContext(r)
 	if err != nil {
 		h.writeError(w, r, err)
 		return
 	}
-	docs, err := h.Repository.GetEmployeeDocuments(r.Context(), wsID, empID)
+	docs, err := h.Repository.GetEmployeeDocuments(r.Context(), empID)
 	if err != nil {
 		h.writeError(w, r, err)
 		return
@@ -290,12 +280,12 @@ func (h ESSHandler) GetDocuments(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h ESSHandler) GetPayslips(w http.ResponseWriter, r *http.Request) {
-	wsID, empID, err := h.resolveContext(r)
+	empID, _, err := h.resolveContext(r)
 	if err != nil {
 		h.writeError(w, r, err)
 		return
 	}
-	payslips, err := h.Payroll.ListEmployeePayslips(r.Context(), wsID, empID)
+	payslips, err := h.Payroll.ListEmployeePayslips(r.Context(), empID)
 	if err != nil {
 		h.writeError(w, r, err)
 		return
@@ -307,7 +297,7 @@ func (h ESSHandler) GetPayslips(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h ESSHandler) GetAttendance(w http.ResponseWriter, r *http.Request) {
-	wsID, empID, err := h.resolveContext(r)
+	empID, _, err := h.resolveContext(r)
 	if err != nil {
 		h.writeError(w, r, err)
 		return
@@ -335,7 +325,7 @@ func (h ESSHandler) GetAttendance(w http.ResponseWriter, r *http.Request) {
 		}
 		end = time.Date(parsed.Year(), parsed.Month(), parsed.Day(), 23, 59, 59, 999999999, time.UTC)
 	}
-	entries, err := h.Attendance.ListTimeHistory(r.Context(), wsID, empID, start, end)
+	entries, err := h.Attendance.ListTimeHistory(r.Context(), empID, start, end)
 	if err != nil {
 		h.writeError(w, r, err)
 		return
@@ -347,7 +337,7 @@ func (h ESSHandler) GetAttendance(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h ESSHandler) Punch(w http.ResponseWriter, r *http.Request) {
-	wsID, empID, err := h.resolveContext(r)
+	empID, _, err := h.resolveContext(r)
 	if err != nil {
 		h.writeError(w, r, err)
 		return
@@ -359,7 +349,7 @@ func (h ESSHandler) Punch(w http.ResponseWriter, r *http.Request) {
 			req = decoded
 		}
 	}
-	entry, err := h.Attendance.ESSPunch(r.Context(), wsID, empID, req.EntryType, req.Note, time.Now().UTC())
+	entry, err := h.Attendance.ESSPunch(r.Context(), empID, req.EntryType, req.Note, time.Now().UTC())
 	if err != nil {
 		h.writeError(w, r, err)
 		return
@@ -368,7 +358,7 @@ func (h ESSHandler) Punch(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h ESSHandler) GetTimeEntries(w http.ResponseWriter, r *http.Request) {
-	wsID, empID, err := h.resolveContext(r)
+	empID, _, err := h.resolveContext(r)
 	if err != nil {
 		h.writeError(w, r, err)
 		return
@@ -404,7 +394,7 @@ func (h ESSHandler) GetTimeEntries(w http.ResponseWriter, r *http.Request) {
 		}
 		end = parsed
 	}
-	entries, err := h.Attendance.ListTimeHistory(r.Context(), wsID, empID, start, end)
+	entries, err := h.Attendance.ListTimeHistory(r.Context(), empID, start, end)
 	if err != nil {
 		h.writeError(w, r, err)
 		return
@@ -416,13 +406,13 @@ func (h ESSHandler) GetTimeEntries(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h ESSHandler) GetLeaveBalances(w http.ResponseWriter, r *http.Request) {
-	wsID, empID, err := h.resolveContext(r)
+	empID, _, err := h.resolveContext(r)
 	if err != nil {
 		h.writeError(w, r, err)
 		return
 	}
 	year := time.Now().UTC().Year()
-	balances, err := h.Leaves.GetEmployeeLeaveBalances(r.Context(), wsID, empID, year)
+	balances, err := h.Leaves.GetEmployeeLeaveBalances(r.Context(), empID, year)
 	if err != nil {
 		h.writeError(w, r, err)
 		return
@@ -442,12 +432,12 @@ func (h ESSHandler) GetLeaveBalances(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h ESSHandler) GetLeaveRequests(w http.ResponseWriter, r *http.Request) {
-	wsID, empID, err := h.resolveContext(r)
+	empID, _, err := h.resolveContext(r)
 	if err != nil {
 		h.writeError(w, r, err)
 		return
 	}
-	requests, err := h.Leaves.ListEmployeeLeaveRequests(r.Context(), wsID, empID)
+	requests, err := h.Leaves.ListEmployeeLeaveRequests(r.Context(), empID)
 	if err != nil {
 		h.writeError(w, r, err)
 		return
@@ -459,12 +449,12 @@ func (h ESSHandler) GetLeaveRequests(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h ESSHandler) GetShiftSwaps(w http.ResponseWriter, r *http.Request) {
-	wsID, empID, err := h.resolveContext(r)
+	empID, _, err := h.resolveContext(r)
 	if err != nil {
 		h.writeError(w, r, err)
 		return
 	}
-	swaps, err := h.ShiftSwaps.ListEmployeeSwaps(r.Context(), wsID, empID)
+	swaps, err := h.ShiftSwaps.ListEmployeeSwaps(r.Context(), empID)
 	if err != nil {
 		h.writeError(w, r, err)
 		return
@@ -476,7 +466,7 @@ func (h ESSHandler) GetShiftSwaps(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h ESSHandler) CreateShiftSwap(w http.ResponseWriter, r *http.Request) {
-	wsID, empID, userID, err := h.resolveContextWithUser(r)
+	empID, userID, err := h.resolveContext(r)
 	if err != nil {
 		h.writeError(w, r, err)
 		return
@@ -486,7 +476,7 @@ func (h ESSHandler) CreateShiftSwap(w http.ResponseWriter, r *http.Request) {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}
-	swap, err := h.ShiftSwaps.CreateESSSwap(r.Context(), wsID, empID, userID, req)
+	swap, err := h.ShiftSwaps.CreateESSSwap(r.Context(), empID, userID, req)
 	if err != nil {
 		h.writeError(w, r, err)
 		return
@@ -495,7 +485,7 @@ func (h ESSHandler) CreateShiftSwap(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h ESSHandler) RespondShiftSwap(w http.ResponseWriter, r *http.Request) {
-	wsID, empID, err := h.resolveContext(r)
+	empID, _, err := h.resolveContext(r)
 	if err != nil {
 		h.writeError(w, r, err)
 		return
@@ -510,7 +500,7 @@ func (h ESSHandler) RespondShiftSwap(w http.ResponseWriter, r *http.Request) {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}
-	if err := h.ShiftSwaps.RespondSwap(r.Context(), wsID, empID, swapID, req.Accept); err != nil {
+	if err := h.ShiftSwaps.RespondSwap(r.Context(), empID, swapID, req.Accept); err != nil {
 		h.writeError(w, r, err)
 		return
 	}
@@ -518,7 +508,7 @@ func (h ESSHandler) RespondShiftSwap(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h ESSHandler) CancelShiftSwap(w http.ResponseWriter, r *http.Request) {
-	wsID, empID, err := h.resolveContext(r)
+	empID, _, err := h.resolveContext(r)
 	if err != nil {
 		h.writeError(w, r, err)
 		return
@@ -528,7 +518,7 @@ func (h ESSHandler) CancelShiftSwap(w http.ResponseWriter, r *http.Request) {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}
-	if err := h.ShiftSwaps.CancelSwap(r.Context(), wsID, empID, swapID); err != nil {
+	if err := h.ShiftSwaps.CancelSwap(r.Context(), empID, swapID); err != nil {
 		h.writeError(w, r, err)
 		return
 	}

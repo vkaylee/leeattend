@@ -33,30 +33,27 @@ export function PageHeader({ onNewVersion, t }: { onNewVersion: () => void; t: T
   );
 }
 
-interface TabContentProps {
-  earlyArrivalStrategy: "allow" | "block" | "clamp";
-  gracePeriodMinutes: number;
-  handleSaveNewVersion: () => void;
-  isPending: boolean;
-  newValidFrom: string;
-  reprocessEnd: string;
-  reprocessEndSetter: (v: string) => void;
-  reprocessStart: string;
-  reprocessStartSetter: (v: string) => void;
-  roundingPolicy: AttendancePolicyVersion["rounding_policy"];
-  setEarlyArrivalStrategy: (v: "allow" | "block" | "clamp") => void;
-  setGracePeriodMinutes: (v: number) => void;
-  setNewValidFrom: (v: string) => void;
-  setRoundingPolicy: (v: AttendancePolicyVersion["rounding_policy"]) => void;
-  setShowCreateModal: (v: boolean) => void;
-  setShowReprocessConfirm: (v: boolean) => void;
-  setWorkUnit: (v: number) => void;
-  showCreateModal: boolean;
-  t: TFunction;
-  versions: AttendancePolicyVersion[];
-  workUnit: number;
-  wsId: string;
-}
+interface TabContentProps { earlyArrivalStrategy: "allow" | "block" | "clamp";
+gracePeriodMinutes: number;
+handleSaveNewVersion: () => void;
+isPending: boolean;
+newValidFrom: string;
+reprocessEnd: string;
+reprocessEndSetter: (v: string) => void;
+reprocessStart: string;
+reprocessStartSetter: (v: string) => void;
+roundingPolicy: AttendancePolicyVersion["rounding_policy"];
+setEarlyArrivalStrategy: (v: "allow" | "block" | "clamp") => void;
+setGracePeriodMinutes: (v: number) => void;
+setNewValidFrom: (v: string) => void;
+setRoundingPolicy: (v: AttendancePolicyVersion["rounding_policy"]) => void;
+setShowCreateModal: (v: boolean) => void;
+setShowReprocessConfirm: (v: boolean) => void;
+setWorkUnit: (v: number) => void;
+showCreateModal: boolean;
+t: TFunction;
+versions: AttendancePolicyVersion[];
+workUnit: number;  }
 
 export function TabContent({
   earlyArrivalStrategy,
@@ -80,12 +77,11 @@ export function TabContent({
   t,
   versions,
   workUnit,
-  wsId,
 }: TabContentProps) {
   return (
     <>
       <AttendanceVersionTimeline onNewVersion={() => setShowCreateModal(true)} t={t} versions={versions} />
-      <PolicyAssignmentsSection wsId={wsId} />
+      <PolicyAssignmentsSection   />
       <BulkReprocessSection
         reprocessEnd={reprocessEnd}
         reprocessStart={reprocessStart}

@@ -1,10 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
 import { useCallback, useMemo } from "react";
 
-import { fetchMyPermissions, getStandaloneOrganizationId } from "@/lib/api";
+import { fetchMyPermissions } from "@/lib/api";
 
-export const myPermissionsKey = (wsId: string) =>
-    ["my-permissions", wsId] as const;
+export const myPermissionsKey = () => ["my-permissions"] as const;
 
 function checkHasRole(roles: string[], role: string): boolean {
   return roles.some((r) => r.toLowerCase() === role.toLowerCase());
@@ -26,16 +25,13 @@ function checkScopedPermission(permissionSet: Set<string>, allowedDepts: string[
  *   if (hasPermission("employees:create")) { ... }
  */
 export function useMyPermissions() {
-    const wsId = getStandaloneOrganizationId() ?? "";
-
     const { data, isLoading } = useQuery({
-        queryKey: myPermissionsKey(wsId),
+        queryKey: myPermissionsKey(),
         queryFn: async () => {
             const res = await fetchMyPermissions();
             const maybeRes = ((): typeof res | undefined => res)();
             return maybeRes ?? { permissions: [], roles: [], managed_department_ids: null };
         },
-        enabled: !!wsId,
         staleTime: 5 * 60 * 1000,
         gcTime: 10 * 60 * 1000,
     });

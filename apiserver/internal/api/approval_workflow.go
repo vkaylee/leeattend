@@ -46,7 +46,6 @@ type UpdateWorkflowRequest struct {
 
 type ApprovalWorkflowRecord struct {
 	ID          uuid.UUID            `json:"id"`
-	WorkspaceID uuid.UUID            `json:"workspace_id"`
 	EntityType  string               `json:"entity_type"`
 	Name        string               `json:"name"`
 	Description *string              `json:"description"`
@@ -86,7 +85,6 @@ type ProcessApprovalRequest struct {
 
 type ApprovalActionLogRecord struct {
 	ID            uuid.UUID `json:"id"`
-	WorkspaceID   uuid.UUID `json:"workspace_id"`
 	EntityType    string    `json:"entity_type"`
 	EntityID      uuid.UUID `json:"entity_id"`
 	StepOrder     int       `json:"step_order"`
@@ -120,24 +118,22 @@ type PaginatedTasksResponse struct {
 }
 
 type ApprovalWorkflowRepository interface {
-	ListWorkflows(context.Context, uuid.UUID, *string, int, int) (ApprovalWorkflowListResponse, error)
-	CreateWorkflow(context.Context, uuid.UUID, uuid.UUID, CreateWorkflowRequest) (ApprovalWorkflowRecord, error)
-	GetWorkflow(context.Context, uuid.UUID, uuid.UUID) (ApprovalWorkflowRecord, error)
-	UpdateWorkflow(context.Context, uuid.UUID, uuid.UUID, UpdateWorkflowRequest) (ApprovalWorkflowRecord, error)
-	DeleteWorkflow(context.Context, uuid.UUID, uuid.UUID) error
-	ProcessApproval(context.Context, uuid.UUID, uuid.UUID, ProcessApprovalRequest) error
-	ListHistory(context.Context, uuid.UUID, string, uuid.UUID) ([]ApprovalActionLogRecord, error)
-	GetPendingTasksForUser(context.Context, uuid.UUID, uuid.UUID, int, int) (PaginatedTasksResponse, error)
+	ListWorkflows(context.Context, *string, int, int) (ApprovalWorkflowListResponse, error)
+	CreateWorkflow(context.Context, uuid.UUID, CreateWorkflowRequest) (ApprovalWorkflowRecord, error)
+	GetWorkflow(context.Context, uuid.UUID) (ApprovalWorkflowRecord, error)
+	UpdateWorkflow(context.Context, uuid.UUID, UpdateWorkflowRequest) (ApprovalWorkflowRecord, error)
+	DeleteWorkflow(context.Context, uuid.UUID) error
+	ProcessApproval(context.Context, uuid.UUID, ProcessApprovalRequest) error
+	ListHistory(context.Context, string, uuid.UUID) ([]ApprovalActionLogRecord, error)
+	GetPendingTasksForUser(context.Context, uuid.UUID, int, int) (PaginatedTasksResponse, error)
 }
 
 type ApprovalWorkflowHandler struct {
 	Repository ApprovalWorkflowRepository
-	Authorizer WorkspaceAuthorizer
+	Authorizer Authorizer
 }
-
 func (h ApprovalWorkflowHandler) List(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := organizationIDFromContext(r)
-	if !ok || !h.allowed(r, wsID, "approval_workflows:read") {
+	if !h.allowed(r, "approval_workflows:read") {
 		h.forbidden(w, r)
 		return
 	}
@@ -150,7 +146,7 @@ func (h ApprovalWorkflowHandler) List(w http.ResponseWriter, r *http.Request) {
 	if value := strings.TrimSpace(r.URL.Query().Get("entity_type")); value != "" {
 		entityType = &value
 	}
-	items, err := h.Repository.ListWorkflows(r.Context(), wsID, entityType, pagination.Page, pagination.Limit)
+	items, err := h.Repository.ListWorkflows(r.Context(), entityType, pagination.Page, pagination.Limit)
 	if err != nil {
 		h.writeError(w, r, err)
 		return
@@ -158,10 +154,9 @@ func (h ApprovalWorkflowHandler) List(w http.ResponseWriter, r *http.Request) {
 	apperror.WriteJSON(w, http.StatusOK, items)
 }
 
-// PendingTasks handles GET /api/v1/workspaces/{ws_id}/approval-workflows/pending-tasks.
+// PendingTasks handles GET /api/v1/approval-workflows/pending-tasks.
 func (h ApprovalWorkflowHandler) PendingTasks(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := organizationIDFromContext(r)
-	if !ok || !h.allowed(r, wsID, "approval_workflows:read") {
+	if !h.allowed(r, "approval_workflows:read") {
 		h.forbidden(w, r)
 		return
 	}
@@ -175,7 +170,7 @@ func (h ApprovalWorkflowHandler) PendingTasks(w http.ResponseWriter, r *http.Req
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}
-	tasks, err := h.Repository.GetPendingTasksForUser(r.Context(), wsID, userID, pagination.Page, pagination.Limit)
+	tasks, err := h.Repository.GetPendingTasksForUser(r.Context(), userID, pagination.Page, pagination.Limit)
 	if err != nil {
 		h.writeError(w, r, err)
 		return
@@ -184,9 +179,8 @@ func (h ApprovalWorkflowHandler) PendingTasks(w http.ResponseWriter, r *http.Req
 }
 
 func (h ApprovalWorkflowHandler) Create(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := organizationIDFromContext(r)
 	userID, userOK := httpinfra.UserIDFromContext(r.Context())
-	if !ok || !userOK || !h.allowed(r, wsID, "approval_workflows:manage") {
+	if !userOK || !h.allowed(r, "approval_workflows:manage") {
 		h.forbidden(w, r)
 		return
 	}
@@ -195,7 +189,7 @@ func (h ApprovalWorkflowHandler) Create(w http.ResponseWriter, r *http.Request) 
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}
-	workflow, err := h.Repository.CreateWorkflow(r.Context(), wsID, userID, req)
+	workflow, err := h.Repository.CreateWorkflow(r.Context(), userID, req)
 	if err != nil {
 		h.writeError(w, r, err)
 		return
@@ -204,13 +198,12 @@ func (h ApprovalWorkflowHandler) Create(w http.ResponseWriter, r *http.Request) 
 }
 
 func (h ApprovalWorkflowHandler) Get(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := organizationIDFromContext(r)
 	id, idOK := pathUUID(r, "id")
-	if !ok || !idOK || !h.allowed(r, wsID, "approval_workflows:read") {
+	if !idOK || !h.allowed(r, "approval_workflows:read") {
 		h.forbidden(w, r)
 		return
 	}
-	workflow, err := h.Repository.GetWorkflow(r.Context(), wsID, id)
+	workflow, err := h.Repository.GetWorkflow(r.Context(), id)
 	if err != nil {
 		h.writeError(w, r, err)
 		return
@@ -219,9 +212,8 @@ func (h ApprovalWorkflowHandler) Get(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h ApprovalWorkflowHandler) Update(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := organizationIDFromContext(r)
 	id, idOK := pathUUID(r, "id")
-	if !ok || !idOK || !h.allowed(r, wsID, "approval_workflows:manage") {
+	if !idOK || !h.allowed(r, "approval_workflows:manage") {
 		h.forbidden(w, r)
 		return
 	}
@@ -230,7 +222,7 @@ func (h ApprovalWorkflowHandler) Update(w http.ResponseWriter, r *http.Request) 
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}
-	workflow, err := h.Repository.UpdateWorkflow(r.Context(), wsID, id, req)
+	workflow, err := h.Repository.UpdateWorkflow(r.Context(), id, req)
 	if err != nil {
 		h.writeError(w, r, err)
 		return
@@ -239,13 +231,12 @@ func (h ApprovalWorkflowHandler) Update(w http.ResponseWriter, r *http.Request) 
 }
 
 func (h ApprovalWorkflowHandler) Delete(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := organizationIDFromContext(r)
 	id, idOK := pathUUID(r, "id")
-	if !ok || !idOK || !h.allowed(r, wsID, string(auth.PermissionApprovalWorkflowsManage)) {
+	if !idOK || !h.allowed(r, string(auth.PermissionApprovalWorkflowsManage)) {
 		h.forbidden(w, r)
 		return
 	}
-	if err := h.Repository.DeleteWorkflow(r.Context(), wsID, id); err != nil {
+	if err := h.Repository.DeleteWorkflow(r.Context(), id); err != nil {
 		h.writeError(w, r, err)
 		return
 	}
@@ -253,9 +244,8 @@ func (h ApprovalWorkflowHandler) Delete(w http.ResponseWriter, r *http.Request) 
 }
 
 func (h ApprovalWorkflowHandler) Process(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := organizationIDFromContext(r)
 	userID, userOK := httpinfra.UserIDFromContext(r.Context())
-	if !ok || !userOK {
+	if !userOK {
 		h.forbidden(w, r)
 		return
 	}
@@ -264,11 +254,11 @@ func (h ApprovalWorkflowHandler) Process(w http.ResponseWriter, r *http.Request)
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}
-	if req.EntityType == "ot_request" && !h.Authorizer.HasPermission(r.Context(), userID, wsID, string(auth.PermissionOvertimeApproveWorkflow)) {
+	if req.EntityType == "ot_request" && (h.Authorizer == nil || !h.Authorizer.HasPermission(r.Context(), userID, string(auth.PermissionOvertimeApproveWorkflow))) {
 		h.forbidden(w, r)
 		return
 	}
-	if err := h.Repository.ProcessApproval(r.Context(), wsID, userID, req); err != nil {
+	if err := h.Repository.ProcessApproval(r.Context(), userID, req); err != nil {
 		h.writeError(w, r, err)
 		return
 	}
@@ -276,14 +266,13 @@ func (h ApprovalWorkflowHandler) Process(w http.ResponseWriter, r *http.Request)
 }
 
 func (h ApprovalWorkflowHandler) History(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := organizationIDFromContext(r)
 	entityID, entityOK := pathUUID(r, "id")
-	if !ok || !entityOK {
+	if !entityOK {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}
 	entityType := r.PathValue("type")
-	items, err := h.Repository.ListHistory(r.Context(), wsID, entityType, entityID)
+	items, err := h.Repository.ListHistory(r.Context(), entityType, entityID)
 	if err != nil {
 		h.writeError(w, r, err)
 		return
@@ -299,9 +288,9 @@ func validApprovalAction(action string) bool {
 		return false
 	}
 }
-func (h ApprovalWorkflowHandler) allowed(r *http.Request, wsID uuid.UUID, permission string) bool {
+func (h ApprovalWorkflowHandler) allowed(r *http.Request, permission string) bool {
 	userID, ok := httpinfra.UserIDFromContext(r.Context())
-	return ok && h.Authorizer != nil && h.Authorizer.HasPermission(r.Context(), userID, wsID, permission)
+	return ok && h.Authorizer != nil && h.Authorizer.HasPermission(r.Context(), userID, permission)
 }
 func (h ApprovalWorkflowHandler) forbidden(w http.ResponseWriter, r *http.Request) {
 	apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))

@@ -10,12 +10,9 @@ import { useMyPermissions } from "../use-permissions";
 
 const api = vi.hoisted(() => ({
   fetchMyPermissions: vi.fn(),
-  getStandaloneOrganizationId: vi.fn(() => WS_ID),
 }));
 
 vi.mock("@/lib/api", () => api);
-
-const WS_ID = "ws-rbac-42";
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -50,7 +47,6 @@ describe("useMyPermissions", () => {
   describe("initialization & loading", () => {
     beforeEach(() => {
       vi.clearAllMocks();
-      api.getStandaloneOrganizationId.mockReturnValue(WS_ID);
     });
 
     it("returns isLoading=true during fetch and isLoading=false after data arrives", async () => {
@@ -65,14 +61,6 @@ describe("useMyPermissions", () => {
       await waitFor(() => expect(result.current.isLoading).toBe(false));
 
       expect(result.current.permissions).toEqual(FULL_PERMISSIONS.permissions);
-    });
-
-    it("uses the standalone organization context", async () => {
-      (api.fetchMyPermissions as Mock).mockResolvedValue(EMPTY_PERMISSIONS);
-      const { result } = renderHook(() => useMyPermissions(), { wrapper: createWrapper() });
-      await waitFor(() => expect(result.current.isLoading).toBe(false));
-      expect(api.getStandaloneOrganizationId).toHaveBeenCalled();
-      expect(api.fetchMyPermissions).toHaveBeenCalled();
     });
 
     it("falls back to empty arrays when fetchMyPermissions returns undefined", async () => {
@@ -101,7 +89,6 @@ describe("useMyPermissions", () => {
   describe("hasPermission", () => {
     beforeEach(() => {
       vi.clearAllMocks();
-      api.getStandaloneOrganizationId.mockReturnValue(WS_ID);
       (api.fetchMyPermissions as Mock).mockResolvedValue(FULL_PERMISSIONS);
     });
 
@@ -142,7 +129,6 @@ describe("useMyPermissions", () => {
   describe("hasAnyPermission", () => {
     beforeEach(() => {
       vi.clearAllMocks();
-      api.getStandaloneOrganizationId.mockReturnValue(WS_ID);
       (api.fetchMyPermissions as Mock).mockResolvedValue(FULL_PERMISSIONS);
     });
 
@@ -174,7 +160,6 @@ describe("useMyPermissions", () => {
   describe("hasRole", () => {
     beforeEach(() => {
       vi.clearAllMocks();
-      api.getStandaloneOrganizationId.mockReturnValue(WS_ID);
       (api.fetchMyPermissions as Mock).mockResolvedValue(FULL_PERMISSIONS);
     });
 
@@ -216,7 +201,6 @@ describe("useMyPermissions", () => {
   describe("hasScopedPermission", () => {
     beforeEach(() => {
       vi.clearAllMocks();
-      api.getStandaloneOrganizationId.mockReturnValue(WS_ID);
       (api.fetchMyPermissions as Mock).mockResolvedValue(FULL_PERMISSIONS);
     });
 
@@ -290,7 +274,6 @@ describe("useMyPermissions", () => {
 
   describe("data shape", () => {
     it("exposes permissions, roles, managedDepartmentIds, and isLoading", async () => {
-      api.getStandaloneOrganizationId.mockReturnValue(WS_ID);
       (api.fetchMyPermissions as Mock).mockResolvedValue(FULL_PERMISSIONS);
 
       const { result } = renderHook(() => useMyPermissions(), { wrapper: createWrapper() });
@@ -303,7 +286,6 @@ describe("useMyPermissions", () => {
     });
 
     it("maintains referential stability for hasPermission between renders", async () => {
-      api.getStandaloneOrganizationId.mockReturnValue(WS_ID);
       (api.fetchMyPermissions as Mock).mockResolvedValue(FULL_PERMISSIONS);
 
       const { result, rerender } = renderHook(() => useMyPermissions(), { wrapper: createWrapper() });
@@ -319,7 +301,6 @@ describe("useMyPermissions", () => {
 
   describe("error handling", () => {
     it("does not expose raw error state but gracefully returns empty defaults on API failure", async () => {
-      api.getStandaloneOrganizationId.mockReturnValue(WS_ID);
       (api.fetchMyPermissions as Mock).mockRejectedValue(new Error("Network Error"));
 
       const { result } = renderHook(() => useMyPermissions(), { wrapper: createWrapper() });

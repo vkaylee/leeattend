@@ -31,7 +31,6 @@ interface EmployeeDailyDrawerProps {
     employers?: { employerId?: string; employerName: string; employeeIdNumber?: string }[];
     isOpen: boolean;
     onClose: () => void;
-    workspaceId: string;
 }
 
 interface DrawerTabRefs {

@@ -14,8 +14,8 @@ const { mockWorkspace } = vi.hoisted(() => ({
   mockWorkspace: { date_format: "DD/MM/YYYY", timezone: "UTC" },
 }));
 
-vi.mock("@/hooks/use-workspace", () => ({
-  useWorkspace: () => ({ workspace: mockWorkspace }),
+vi.mock("@/hooks/use-organization", () => ({
+  useOrganization: () => ({ organization: mockWorkspace }),
 }));
 
 vi.mock("@tanstack/react-router", () => {
@@ -67,7 +67,6 @@ vi.mock("../../lib/api", () => ({
   searchEmployees: vi.fn(),
   fetchEmployeePayslips: vi.fn(),
   fetchRawAttendanceLogs: vi.fn(),
-  getStandaloneOrganizationId: vi.fn(() => "test-ws-id"),
   fetchWorkspace: vi.fn(),
   submitAttendanceAdjustment: vi.fn(),
   fetchWorkspaceAttendanceAdjustments: vi.fn(),

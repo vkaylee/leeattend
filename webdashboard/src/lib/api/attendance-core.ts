@@ -1,5 +1,5 @@
-import { client, fetch } from "./client";
-import {
+import { client } from "./client";
+import type {
   TimeEntry,
   AttendanceAdjustmentRequest,
   RawAttendanceLog,
@@ -7,25 +7,20 @@ import {
 } from "./types";
 
 export async function punchIn(
-  wsId: string,
   data: { employment_id: string; entry_type?: "Work" | "Break" | "Overtime"; note?: string },
 ): Promise<TimeEntry> {
-  const { data: resData } = await client.POST("/workspaces/{workspace_id}/time/punch-in", {
-    params: {
-      path: { workspace_id: wsId },
-    },
+  const { data: resData } = await client.POST<TimeEntry>("/v1/time/punch-in", {
     body: data,
   });
   return resData;
 }
 
 export async function punchOut(
-  wsId: string,
   data: { employee_id: string; note?: string },
 ): Promise<TimeEntry> {
-  const { data: resData } = await client.POST("/workspaces/{workspace_id}/time/punch-out/{employee_id}", {
+  const { data: resData } = await client.POST<TimeEntry>("/v1/time/punch-out/{employee_id}", {
     params: {
-      path: { workspace_id: wsId, employee_id: data.employee_id },
+      path: { employee_id: data.employee_id },
     },
     body: {
       note: data.note,
@@ -35,7 +30,6 @@ export async function punchOut(
 }
 
 export async function submitAttendanceAdjustment(
-  wsId: string,
   data: {
     employment_id: string;
     time_entry_id?: string;
@@ -44,15 +38,13 @@ export async function submitAttendanceAdjustment(
     attachment_file_ids?: string[];
   }
 ): Promise<AttendanceAdjustmentRequest> {
-  const { data: resData } = await client.POST("/v1/workspaces/{ws_id}/attendance/adjustments", {
-    params: { path: { ws_id: wsId } },
-    body: data
+  const { data: resData } = await client.POST<AttendanceAdjustmentRequest>("/v1/attendance/adjustments", {
+    body: data,
   });
   return resData;
 }
 
 export async function fetchWorkspaceAttendanceAdjustments(
-  wsId: string,
   params?: {
     status?: string;
     employee_id?: string;
@@ -60,24 +52,26 @@ export async function fetchWorkspaceAttendanceAdjustments(
     limit?: number;
   }
 ): Promise<PaginatedResponse<AttendanceAdjustmentRequest>> {
-  const { data: resData } = await client.GET("/v1/workspaces/{ws_id}/attendance/adjustments", {
+  const { data: resData } = await client.GET<PaginatedResponse<AttendanceAdjustmentRequest>>("/v1/attendance/adjustments", {
     params: {
-      path: { ws_id: wsId },
       query: {
         status: params?.status as "pending" | "approved" | "rejected" | null | undefined,
         employee_id: params?.employee_id === "all" ? undefined : params?.employee_id,
         page: params?.page,
         limit: params?.limit,
       },
-    }
+    },
   });
   return resData;
 }
 
-export async function approveAttendanceAdjustment(wsId: string, requestId: string, data: { status: "pending" | "approved" | "rejected" }): Promise<void> {
-  await client.PUT("/v1/workspaces/{ws_id}/attendance/adjustments/{id}/approve", {
-    params: { path: { ws_id: wsId, id: requestId } },
-    body: data
+export async function approveAttendanceAdjustment(
+  requestId: string,
+  data: { status: "pending" | "approved" | "rejected" }
+): Promise<void> {
+  await client.PUT("/v1/attendance/adjustments/{id}/approve", {
+    params: { path: { id: requestId } },
+    body: data,
   });
 }
 
@@ -88,16 +82,19 @@ export async function fetchRawAttendanceLogs(params: {
   page?: number;
   limit?: number;
 }): Promise<{ data: RawAttendanceLog[]; total: number; page: number; limit: number }> {
-  const { data: resData } = await fetch<{ data: RawAttendanceLog[]; total: number; page: number; limit: number }>("GET", "/attendance/raw-logs", {
-    params: {
-      query: {
-        employee_id: params.employee_id ?? undefined,
-        from: params.from ?? undefined,
-        to: params.to ?? undefined,
-        page: params.page ?? undefined,
-        limit: params.limit ?? undefined,
+  const { data: resData } = await client.GET<{ data: RawAttendanceLog[]; total: number; page: number; limit: number }>(
+    "/v1/attendance/raw-logs",
+    {
+      params: {
+        query: {
+          employee_id: params.employee_id ?? undefined,
+          from: params.from ?? undefined,
+          to: params.to ?? undefined,
+          page: params.page ?? undefined,
+          limit: params.limit ?? undefined,
+        },
       },
     },
-  });
+  );
   return resData;
 }

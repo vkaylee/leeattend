@@ -1,10 +1,10 @@
  
 import { Page } from '@playwright/test';
-import { MOCK_WORKSPACE, MOCK_USER, MOCK_EMPLOYEES, MOCK_DEPARTMENTS } from './mock-data';
+import { MOCK_ORGANIZATION, MOCK_USER, MOCK_EMPLOYEES, MOCK_DEPARTMENTS } from './mock-data';
 
 export async function setupApiMocks(page: Page) {
   // --- Stateful mock stores (isolated per page instance via closures) ---
-  let activeWorkspace = structuredClone(MOCK_WORKSPACE);
+  let activeOrganization = structuredClone(MOCK_ORGANIZATION);
   let exportJobCalls = 0;
   const dashboardWidgetIds = new Set([
     "kpi_cards", "donut_chart", "quick_stats", "attendance_trend", "department_chart",
@@ -15,7 +15,6 @@ export async function setupApiMocks(page: Page) {
   let dashboardPreferences = {
     id: "dashboard-pref-mock-1",
     user_id: MOCK_USER.id,
-    workspace_id: MOCK_WORKSPACE.id,
     active_view: "overview",
     visible_widgets: {
       kpi_cards: true, donut_chart: true, quick_stats: true, attendance_trend: true,
@@ -32,7 +31,7 @@ export async function setupApiMocks(page: Page) {
   };
   const executiveOverview = {
     contract_version: "executive-dashboard.v1",
-    workspace: { timezone: "Asia/Ho_Chi_Minh", currency: "VND" },
+    organization: { timezone: "Asia/Ho_Chi_Minh", currency: "VND" },
     context: {
       period: {
         key: "this_month",
@@ -43,7 +42,7 @@ export async function setupApiMocks(page: Page) {
       },
       comparison: "previous_period",
       filters: {},
-      scope: { kind: "workspace", department_ids: [], location_ids: [], omitted_dimensions: [] },
+      scope: { kind: "organization", department_ids: [], location_ids: [], omitted_dimensions: [] },
     },
     metrics: [{
       key: "system_ot_hours",
@@ -144,7 +143,6 @@ export async function setupApiMocks(page: Page) {
     const method = route.request().method();
     let pathname = new URL(url).pathname;
     
-    // Normalize path by stripping /v1/ prefix if present to support both raw and versioned routes
     pathname = pathname.replace(/^\/api\/v1\//, "/api/");
 
     
@@ -172,7 +170,7 @@ export async function setupApiMocks(page: Page) {
       if (pathname.includes('/permissions')) {
         return fulfill({
           permissions: [
-            "members:read", "members:invite", "members:roles:manage", "members:remove",
+            "organization:settings:read", "organization:settings:write", "members:read", "members:invite", "members:roles:manage", "members:remove",
             "employees:read", "employees:create", "employees:update", "employees:delete", "employees:rehire", "employees:upload", "employees:bulk_edit",
             "departments:read", "departments:create", "departments:update", "departments:delete", "departments:transfer",
             "attendance:logs:read", "attendance:logs:import", "attendance:summaries:read", "attendance:adjustments:submit", "attendance:adjustments:approve", "attendance:adjustments:submit_on_behalf", "attendance:reprocess", "attendance:staging:manage", "attendance:force_clock_out",
@@ -211,41 +209,26 @@ export async function setupApiMocks(page: Page) {
     }
 
     if (pathname === '/api/v1') {
-      if (method === 'GET') return fulfill(activeWorkspace);
+      if (method === 'GET') return fulfill(activeOrganization);
       if (method === 'PATCH' || method === 'PUT') {
         const body = JSON.parse(route.request().postData() ?? '{}');
-        activeWorkspace = { ...activeWorkspace, ...body };
-        return fulfill(activeWorkspace);
+        activeOrganization = { ...activeOrganization, ...body };
+        return fulfill(activeOrganization);
       }
     }
 
-    if (pathname === '/api/workspaces' || pathname === '/api/workspaces/') {
-      if (method === 'GET') return fulfill([activeWorkspace]);
-      if (method === 'POST') return fulfill(activeWorkspace, 201);
-      return fulfill([activeWorkspace]);
-    }
-    
-    // Explicitly handle GET/PATCH /api/workspaces/{id} (without sub-resources)
-    if (/^\/api\/workspaces\/[^/]+$/.exec(pathname)) {
-      if (method === 'GET') return fulfill(activeWorkspace);
-      if (method === 'PATCH' || method === 'PUT') {
-        const body = JSON.parse(route.request().postData() ?? '{}');
-        activeWorkspace = { ...activeWorkspace, ...body };
-        return fulfill(activeWorkspace);
-      }
-      return fulfill(activeWorkspace);
+    if (pathname === '/api/members') {
+      return fulfill({
+        data: [ { id: "member-1", user_id: MOCK_USER.id, role: "admin", user: MOCK_USER } ],
+        total: 1,
+        page: 1,
+        limit: 50,
+      });
     }
 
-    if (/^\/api\/workspaces\/[^/]+\/preferences$/.exec(pathname)) {
-      return fulfill({ dashboard_layout: {}, theme: "light", notifications_enabled: true });
-    }
-
-    if (/^\/api\/workspaces\/[^/]+\/members$/.exec(pathname)) {
-      return fulfill([ { id: "member-1", user_id: MOCK_USER.id, role: "admin", user: MOCK_USER } ]);
-    }
 
     // 4. Employees
-    if (/\/api\/(workspaces\/[^/]+\/)?employees\/?$/.exec(pathname) || /\/api\/employees\/?$/.exec(pathname)) {
+    if (/\/api\/employees\/?$/.exec(pathname)) {
       return fulfill({
         data: MOCK_EMPLOYEES,
         pagination: { total_count: MOCK_EMPLOYEES.length, page: 1, page_size: 50, totalpages: 1 }
@@ -253,7 +236,7 @@ export async function setupApiMocks(page: Page) {
     }
 
     // 5. Departments
-    if (/\/api\/(workspaces\/[^/]+\/)?departments\/?$/.exec(pathname) || /\/api\/departments\/?$/.exec(pathname)) {
+    if (/\/api\/departments\/?$/.exec(pathname)) {
       return fulfill({
         data: MOCK_DEPARTMENTS,
         total: MOCK_DEPARTMENTS.length,
@@ -323,7 +306,7 @@ export async function setupApiMocks(page: Page) {
     if (/\/api\/dashboard\/overtime-breakdown/.exec(pathname)) {
       return fulfill({
         contract_version: "overtime-breakdown.v1",
-        workspace: { timezone: "Asia/Ho_Chi_Minh", currency: "VND" },
+        organization: { timezone: "Asia/Ho_Chi_Minh", currency: "VND" },
         rows: [{
           department_id: "dept-1",
           department_name: "Kỹ thuật",
@@ -547,7 +530,6 @@ export async function setupApiMocks(page: Page) {
       if (method === 'POST') {
         return fulfill({
           id: "ot-req-new",
-          workspace_id: "ws-mock-123",
           status: "draft",
           planned_date: new Date().toISOString().split('T')[0],
           planned_minutes: 120,
@@ -561,7 +543,7 @@ export async function setupApiMocks(page: Page) {
     }
 
 
-    // 11. Working Patterns, Shifts, Schedules, Holidays, Leaves (Common workspace resources)
+    // 11. Working Patterns, Shifts, Schedules, Holidays, Leaves (Common organization resources)
     if (pathname.includes('/working-patterns')) {
       return fulfill([]);
     }
@@ -604,7 +586,7 @@ export async function setupApiMocks(page: Page) {
     }
 
     // 12. Report Export
-    if ((/\/api\/workspaces\/[^/]+\/reports\/attendance/.exec(pathname)) && method === 'GET') {
+    if (pathname === '/api/reports/attendance' && method === 'GET') {
       return fulfill({
         data: [],
         total: 0,
@@ -613,13 +595,13 @@ export async function setupApiMocks(page: Page) {
       });
     }
 
-    if ((/\/api\/workspaces\/[^/]+\/reports\/export$/.exec(pathname)) && method === 'POST') {
+    if (pathname === '/api/reports/export' && method === 'POST') {
       exportJobCalls = 0; // Reset counter for new job
       const resp = { job_id: "job-mock-123", total_batches: 5 };
       
       return fulfill(resp, 201);
     }
-    if ((/\/api\/workspaces\/[^/]+\/reports\/jobs\/[^/]+$/.exec(pathname)) && method === 'GET') {
+    if (/^\/api\/reports\/jobs\/[^/]+$/.exec(pathname) && method === 'GET') {
       exportJobCalls++;
       if (exportJobCalls < 3) {
         return fulfill({
@@ -639,7 +621,7 @@ export async function setupApiMocks(page: Page) {
       });
     }
 
-    if ((/\/api\/workspaces\/[^/]+\/reports\/jobs\/[^/]+\/download$/.exec(pathname)) && method === 'GET') {
+    if ((/^\/api\/reports\/jobs\/[^/]+\/download$/.exec(pathname)) && method === 'GET') {
       return route.fulfill({
         status: 200,
         contentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',

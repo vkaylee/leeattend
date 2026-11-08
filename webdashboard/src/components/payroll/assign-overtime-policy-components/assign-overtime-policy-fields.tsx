@@ -51,9 +51,7 @@ export function AssigneeTypeSelector({
 export function AssigneePicker({
   selectedType,
   targetId,
-  setTargetId,
-  wsId,
-  departments,
+  setTargetId,departments,
   t
 }: {
   departments: Department[];
@@ -61,7 +59,6 @@ export function AssigneePicker({
   setTargetId: (val: string) => void;
   t: (key: string) => string;
   targetId: string;
-  wsId: string;
 }) {
   if (selectedType === 'workspace') return null;
 
@@ -69,15 +66,12 @@ export function AssigneePicker({
     return (
       <div className='space-y-2'>
         <label className='text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 ml-1'>{t('common.select_employee')}</label>
-        <EmployeeSearch
-          className='bg-slate-50 dark:bg-slate-800 border-slate-100 dark:border-slate-800 h-14'
-          data-testid='assign-employee-search'
-          departments={departments}
-          onChange={(value) => { setTargetId(Array.isArray(value) ? value[0] : value); }}
-          placeholder={t('common.select_employee')}
-          value={targetId}
-          workspaceId={wsId}
-        />
+        <EmployeeSearch className='bg-slate-50 dark:bg-slate-800 border-slate-100 dark:border-slate-800 h-14'
+        data-testid='assign-employee-search'
+        departments={departments}
+        onChange={(value) => { setTargetId(Array.isArray(value) ? value[0] : value); }}
+        placeholder={t('common.select_employee')}
+        value={targetId}  />
       </div>
     );
   }

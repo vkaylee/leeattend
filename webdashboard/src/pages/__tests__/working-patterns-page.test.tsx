@@ -30,7 +30,6 @@ vi.mock("../../lib/api", () => ({
   fetchShifts: vi.fn(),
   fetchEmployees: vi.fn(),
   bulkAssignPattern: vi.fn(),
-  getStandaloneOrganizationId: vi.fn(),
 }));
 
 // Mock EmployeeSearch
@@ -97,7 +96,6 @@ describe("WorkingPatternsPage", () => {
  
     });
  
-    vi.mocked(api.getStandaloneOrganizationId).mockReturnValue("ws-1");
     vi.mocked(api.fetchWorkingPatterns).mockResolvedValue([
       { id: "pat-1", name: "Standard Office", description: "Mon-Fri", is_active: true }
  

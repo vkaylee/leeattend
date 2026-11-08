@@ -5,7 +5,6 @@
 
 import { claimOt, fetchAttendanceSummaries } from "./attendance";
 import { client } from "./client";
-import { getStandaloneOrganizationId } from "./helpers";
 import {
   MyProfileResponse,
   EmployeeProfile,
@@ -149,26 +148,7 @@ export async function fetchMyAttendanceSummaries(
   start: string,
   end: string
 ): Promise<AttendanceDailySummary[]> {
-  // We need to get the employee ID.
-  // This is a bit tricky if we don"t have it stored.
-  // Option 1: Call fetchMyProfile first.
-  // Option 2: Backend supports "me" as employee ID? No, current implementation expects UUID.
-  
-  // Strategy: We will rely on the caller to provide employeeId or fetch it here.
-  // But wait, the backend `get_attendance_summaries` logic I just wrote supports `employee_id` query param.
-  // If I am not admin, I can only see my own.
-  // But I need to pass the workspace ID.
-  
-  const wsId = getStandaloneOrganizationId();
-  if (!wsId) throw new Error("Workspace not found");
-  
-  // We don"t necessarily need to pass employeeId if the backend resolves it from user_id for non-admins?
-  // Checking backend code:
-  // "let target_employee_id = if is_admin { query.employee_id } else { ... find my id ... }"
-  // So if I don"t pass employee_id, and I am not admin, it defaults to MY id.
-  // PERFECT!
-  
-  return fetchAttendanceSummaries(wsId, start, end);
+  return fetchAttendanceSummaries(start, end);
 }
 
 export async function submitMyOtClaim(
@@ -176,14 +156,8 @@ export async function submitMyOtClaim(
   minutes: number,
   reason: string
 ): Promise<void> {
-  const wsId = getStandaloneOrganizationId();
-  if (!wsId) throw new Error("Workspace not found");
-  
-  // We need employee ID for the PATH param.
-  // fetchMyProfile cached or stored?
-  // Let"s fetch profile quickly.
   const profile = await fetchMyProfile();
   const employeeId = profile.employee.id;
-  
-  return claimOt(wsId, employeeId, { date, claimed_minutes: minutes, reason });
+
+  return claimOt(employeeId, { date, claimed_minutes: minutes, reason });
 }

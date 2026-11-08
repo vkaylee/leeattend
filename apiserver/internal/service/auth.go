@@ -60,7 +60,7 @@ type AuthRepository interface {
 	FindUserByEmail(context.Context, string) (UserRecord, error)
 	FindUserByID(context.Context, uuid.UUID) (UserRecord, error)
 	UpdateUserProfile(context.Context, uuid.UUID, UpdateUserProfileRequest) (UserRecord, error)
-	ListWorkspaceUsers(context.Context, uuid.UUID) ([]UserRecord, error)
+ ListOrganizationUsers(context.Context) ([]UserRecord, error)
 	CreateUserWithAdminCheck(context.Context, UserRecord) (bool, error)
 	UpdatePasswordHash(context.Context, uuid.UUID, string) error
 	CreateSession(context.Context, SessionRecord) error
@@ -351,9 +351,10 @@ func (s AuthService) UpdateProfile(ctx context.Context, userID uuid.UUID, req Up
 	return s.Repository.UpdateUserProfile(ctx, userID, req)
 }
 
-func (s AuthService) WorkspaceUsers(ctx context.Context, workspaceID uuid.UUID) ([]UserRecord, error) {
-	if s.Repository == nil {
-		return nil, errors.New("auth service: nil repository")
-	}
-	return s.Repository.ListWorkspaceUsers(ctx, workspaceID)
+func (s AuthService) OrganizationUsers(ctx context.Context) ([]UserRecord, error) {
+ if s.Repository == nil {
+  return nil, errors.New("auth service: nil repository")
+ }
+ return s.Repository.ListOrganizationUsers(ctx)
 }
+

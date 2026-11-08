@@ -19,16 +19,13 @@ export interface DepartmentFormModalProps {
   isOpen: boolean;
   onClose: () => void;
   t: TFunction;
-  wsId: string;
 }
 
 export function DepartmentFormModal({ 
   departments, 
   editingDept, 
   isOpen, 
-  onClose, 
-  wsId, 
-  employees, 
+  onClose,employees, 
   t 
 }: DepartmentFormModalProps) {
   const { 
@@ -38,7 +35,7 @@ export function DepartmentFormModal({
     setSelectedParentId,
     handleSubmit,
     isLoading 
-  } = useDepartmentForm(wsId, editingDept, onClose, t);
+  } = useDepartmentForm(editingDept, onClose, t);
 
   const sortedEmployees = useMemo(() => {
     if (!editingDept) return employees;
@@ -50,7 +47,7 @@ export function DepartmentFormModal({
   // Load parent map from localStorage to filter out descendants and prevent cyclic parenting
   const parentMap = useMemo<Record<string, string>>(() => {
     try {
-      const saved = localStorage.getItem(`leeattend_dept_parents_${wsId}`);
+      const saved = localStorage.getItem("leeattend_dept_parents");
       if (!saved) return {};
       const parsed = JSON.parse(saved) as unknown;
       if (parsed && typeof parsed === "object") {
@@ -60,7 +57,7 @@ export function DepartmentFormModal({
     } catch { /* localStorage unavailable or corrupt — return empty fallback */
       return {};
     }
-  }, [wsId]);
+  }, []);
 
   const validParents = useMemo(() => {
     return departments.filter(d => {

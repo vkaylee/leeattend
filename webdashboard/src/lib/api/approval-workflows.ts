@@ -19,71 +19,64 @@ export interface WorkflowStepRequest {
 }
 
 export const approvalWorkflowsApi = {
-  listWorkflows: async (workspaceId: string, entityType?: string): Promise<ApprovalWorkflow[]> => {
-    const { data: resData } = await client.GET("/workspaces/{ws_id}/approval-workflows", {
+  listWorkflows: async (entityType?: string): Promise<ApprovalWorkflow[]> => {
+    const { data: resData } = await client.GET<{ data: ApprovalWorkflow[] }>("/v1/approval-workflows", {
       params: {
-        path: { ws_id: workspaceId },
-        query: entityType ? { entity_type: entityType } : undefined
-      }
+        query: entityType ? { entity_type: entityType } : undefined,
+      },
     });
     return resData.data;
   },
 
-  getWorkflow: async (workspaceId: string, id: string): Promise<ApprovalWorkflow> => {
-    const { data: resData } = await client.GET("/workspaces/{ws_id}/approval-workflows/{id}", {
+  getWorkflow: async (id: string): Promise<ApprovalWorkflow> => {
+    const { data: resData } = await client.GET<ApprovalWorkflow>("/v1/approval-workflows/{id}", {
       params: {
-        path: { ws_id: workspaceId, id }
-      }
-    });
-    return resData;
-  },
-
-  createWorkflow: async (workspaceId: string, payload: CreateWorkflowRequest): Promise<ApprovalWorkflow> => {
-    const { data: resData } = await client.POST("/workspaces/{ws_id}/approval-workflows", {
-      params: {
-        path: { ws_id: workspaceId }
+        path: { id },
       },
-      body: payload
     });
     return resData;
   },
 
-  updateWorkflow: async (workspaceId: string, id: string, payload: UpdateWorkflowRequest): Promise<ApprovalWorkflow> => {
-    const { data: resData } = await client.PUT("/workspaces/{ws_id}/approval-workflows/{id}", {
-      params: { path: { ws_id: workspaceId, id } },
+  createWorkflow: async (payload: CreateWorkflowRequest): Promise<ApprovalWorkflow> => {
+    const { data: resData } = await client.POST<ApprovalWorkflow>("/v1/approval-workflows", {
       body: payload,
     });
     return resData;
   },
 
-  deleteWorkflow: async (workspaceId: string, id: string): Promise<void> => {
-    await client.DELETE("/workspaces/{ws_id}/approval-workflows/{id}", {
-      params: {
-        path: { ws_id: workspaceId, id }
-      }
-    });
-  },
-
-  getApprovalHistory: async (workspaceId: string, entityType: string, entityId: string): Promise<ApprovalActionLog[]> => {
-    const { data: resData } = await client.GET("/workspaces/{ws_id}/approval-workflows/history/{type}/{id}", {
-      params: {
-        path: { ws_id: workspaceId, type: entityType, id: entityId }
-      }
+  updateWorkflow: async (id: string, payload: UpdateWorkflowRequest): Promise<ApprovalWorkflow> => {
+    const { data: resData } = await client.PUT<ApprovalWorkflow>("/v1/approval-workflows/{id}", {
+      params: { path: { id } },
+      body: payload,
     });
     return resData;
   },
 
-  processApproval: async (workspaceId: string, payload: {
+  deleteWorkflow: async (id: string): Promise<void> => {
+    await client.DELETE("/v1/approval-workflows/{id}", {
+      params: {
+        path: { id },
+      },
+    });
+  },
+
+  getApprovalHistory: async (entityType: string, entityId: string): Promise<ApprovalActionLog[]> => {
+    const { data: resData } = await client.GET<ApprovalActionLog[]>("/v1/approval-workflows/history/{type}/{id}", {
+      params: {
+        path: { type: entityType, id: entityId },
+      },
+    });
+    return resData;
+  },
+
+  processApproval: async (payload: {
     entity_type: string;
     entity_id: string;
     action: string;
     note?: string;
   }): Promise<void> => {
-    await client.POST("/workspaces/{ws_id}/approval-workflows/approve", {
-      params: {
-        path: { ws_id: workspaceId }
-      },
-      body: payload
+    await client.POST("/v1/approval-workflows/approve", {
+      body: payload,
     });
-  }
+  },
 };

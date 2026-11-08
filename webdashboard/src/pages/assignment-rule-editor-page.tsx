@@ -15,7 +15,6 @@ export default function AssignmentRuleEditorPage() {
 
   const {
     t,
-    wsId,
     isEditMode,
     rulesLoading,
     patterns,
@@ -50,13 +49,7 @@ export default function AssignmentRuleEditorPage() {
     void navigate({ to: "/shifts/rules", search: { tab: "rules" } });
   };
 
-  if (!wsId) {
-    return (
-      <div className="p-12 text-center text-slate-500 dark:text-slate-400 font-bold italic uppercase tracking-widest text-xs opacity-50">
-        {t("common.select_workspace")}
-      </div>
-    );
-  }
+  
 
   if (isEditMode && rulesLoading) {
     return (

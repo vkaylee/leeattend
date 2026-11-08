@@ -15,12 +15,9 @@ interface UseDailyDrawerMutationsProps {
     onConfirmSuccess: () => void;
     onReprocessSuccess: () => void;
     onResolveSuccess: () => void;
-    workspaceId: string;
 }
 
-export function useDailyDrawerMutations({
-    workspaceId,
-    employeeId,
+export function useDailyDrawerMutations({employeeId,
     onReprocessSuccess,
     onConfirmSuccess,
     onResolveSuccess,
@@ -31,7 +28,7 @@ export function useDailyDrawerMutations({
 
     const reprocessMutation = useMutation({
         mutationFn: ({ empId, date }: { empId: string; date: string }) =>
-            reprocessAttendance(workspaceId, empId, date, date),
+            reprocessAttendance(empId, date, date),
         onSuccess: () => {
             void queryClient.invalidateQueries({ queryKey: ["attendance-report"] });
             toast.success(t("common.success"));
@@ -48,7 +45,7 @@ export function useDailyDrawerMutations({
             row: DailyAttendanceReport;
             existingRequestId?: string;
             reason?: string;
-        }) => adminConfirmAttendance(workspaceId, row, existingRequestId, reason),
+        }) => adminConfirmAttendance(row, existingRequestId, reason),
         onSuccess: () => {
             void queryClient.invalidateQueries({ queryKey: ["attendance-report"] });
             void queryClient.invalidateQueries({ queryKey: ["attendance-adjustments"] });
@@ -62,7 +59,7 @@ export function useDailyDrawerMutations({
 
     const approveOtMutation = useMutation({
         mutationFn: ({ row, action }: { row: DailyAttendanceReport; action: "approved" | "rejected" }) =>
-            approveOt(workspaceId, employeeId ?? "", {
+            approveOt(employeeId ?? "", {
                 date: row.date,
                 approved_minutes: Math.round(row.computed_ot_hours * 60),
                 status: action,
@@ -83,11 +80,11 @@ export function useDailyDrawerMutations({
     const resolveUnscheduledMutation = useMutation({
         mutationFn: async ({ row, shiftId }: { row: DailyAttendanceReport; shiftId: string }) => {
             const empId = employeeId ?? "";
-            await upsertRoster(workspaceId, empId, {
+            await upsertRoster(empId, {
                 date: row.date,
                 shift_id: shiftId,
             });
-            await reprocessAttendance(workspaceId, empId, row.date, row.date);
+            await reprocessAttendance(empId, row.date, row.date);
         },
         onSuccess: () => {
             void queryClient.invalidateQueries({ queryKey: ["attendance-report"] });

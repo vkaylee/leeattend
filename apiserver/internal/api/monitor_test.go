@@ -109,11 +109,7 @@ func (m *mockMonitorRepo) MutateAlert(_ context.Context, alertID uuid.UUID, acti
 }
 
 func (m *mockMonitorRepo) ListDurableJobs(_ context.Context, params ListDurableJobsParams) ([]MonitorInfraJobRecord, *string, error) {
-	result := make([]MonitorInfraJobRecord, 0)
 	for _, j := range m.durableJobs {
-		if params.WorkspaceID != nil && j.WorkspaceID != *params.WorkspaceID {
-			continue
-		}
 		if params.JobID != nil && j.JobID != *params.JobID {
 			continue
 		}
@@ -149,24 +145,22 @@ func (m *mockMonitorRepo) ListCorrelations(_ context.Context, requestID *uuid.UU
 	return result, false, nil
 }
 
-func (m *mockMonitorRepo) GetWorkspaceDurableJob(_ context.Context, workspaceID, jobID uuid.UUID) (*MonitorInfraJobRecord, error) {
+func (m *mockMonitorRepo) GetDurableJob(_ context.Context, jobID uuid.UUID) (*MonitorInfraJobRecord, error) {
 	for _, j := range m.durableJobs {
-		if j.WorkspaceID == workspaceID && j.JobID == jobID {
+		if j.JobID == jobID {
 			return &j, nil
 		}
 	}
 	return nil, ErrMonitorNotFound
 }
 
-func (m *mockMonitorRepo) ListAuditLogs(_ context.Context, workspaceID uuid.UUID, limit, offset int, action *string, _, _ *time.Time) ([]AuditLogRecord, int64, error) {
+func (m *mockMonitorRepo) ListAuditLogs(_ context.Context, limit, offset int, action *string, _, _ *time.Time) ([]AuditLogRecord, int64, error) {
 	filtered := make([]AuditLogRecord, 0)
 	for _, l := range m.auditLogs {
-		if l.WorkspaceID == workspaceID {
-			if action != nil && !strings.EqualFold(l.Action, *action) {
-				continue
-			}
-			filtered = append(filtered, l)
+		if action != nil && !strings.EqualFold(l.Action, *action) {
+			continue
 		}
+		filtered = append(filtered, l)
 	}
 	total := int64(len(filtered))
 	if offset >= len(filtered) {
@@ -180,31 +174,49 @@ func (m *mockMonitorRepo) ListAuditLogs(_ context.Context, workspaceID uuid.UUID
 }
 
 type mockMonitorAuthz struct {
-	members     map[string]bool
+	members     map[uuid.UUID]bool
 	permissions map[string]bool
 	infraUsers  map[uuid.UUID]bool
 }
 
-func (a *mockMonitorAuthz) IsMember(_ context.Context, userID, workspaceID uuid.UUID) (bool, error) {
-	return a.members[fmt.Sprintf("%s:%s", userID, workspaceID)], nil
+func (a *mockMonitorAuthz) IsMember(_ context.Context, userID uuid.UUID) (bool, error) {
+	return a.members[userID], nil
 }
 
-func (a *mockMonitorAuthz) HasPermission(_ context.Context, userID, workspaceID uuid.UUID, permission string) bool {
+func (a *mockMonitorAuthz) HasPermission(_ context.Context, userID uuid.UUID, permission string) bool {
 	if permission == string(auth.PermissionInfraMonitor) {
 		return a.infraUsers[userID]
 	}
-	return a.permissions[fmt.Sprintf("%s:%s:%s", userID, workspaceID, permission)]
+	return a.permissions[userID.String()+":"+permission]
 }
 
-var monitorTestWorkspaceID = uuid.New()
+func (a *mockMonitorAuthz) HasScopedPermission(ctx context.Context, userID uuid.UUID, permission string, _ *uuid.UUID) bool {
+	return a.HasPermission(ctx, userID, permission)
+}
+
+func (a *mockMonitorAuthz) EffectivePermissions(context.Context, uuid.UUID) ([]string, []string, error) {
+	return nil, nil, nil
+}
+
+func (a *mockMonitorAuthz) GetUsersWithPermission(context.Context, string) ([]uuid.UUID, error) {
+	return nil, nil
+}
+func (a *mockMonitorAuthz) GetManagedDepartmentIDs(context.Context, uuid.UUID) ([]uuid.UUID, error) {
+	return nil, nil
+}
+
+func (a *mockMonitorAuthz) IsGlobalManager(context.Context, uuid.UUID) bool {
+	return false
+}
+
+var monitorTestUserID = uuid.New()
 
 func setReqContext(r *http.Request, userID uuid.UUID) *http.Request {
 	return r.WithContext(httpinfra.WithUserIDForTest(r.Context(), userID))
 }
 
 func setInfraReqContext(r *http.Request, userID uuid.UUID) *http.Request {
-	ctx := httpinfra.WithUserIDForTest(r.Context(), userID)
-	return r.WithContext(httpinfra.WithOrganizationIDForTest(ctx, monitorTestWorkspaceID))
+	return setReqContext(r, userID)
 }
 
 func monitorInfraAuthz(users ...uuid.UUID) *mockMonitorAuthz {
@@ -212,7 +224,7 @@ func monitorInfraAuthz(users ...uuid.UUID) *mockMonitorAuthz {
 	for _, userID := range users {
 		infraUsers[userID] = true
 	}
-	return &mockMonitorAuthz{members: map[string]bool{}, permissions: map[string]bool{}, infraUsers: infraUsers}
+	return &mockMonitorAuthz{members: make(map[uuid.UUID]bool), permissions: make(map[string]bool), infraUsers: infraUsers}
 }
 
 func TestMonitorOverview_Auth(t *testing.T) {
@@ -472,27 +484,25 @@ func TestMonitorAlerts_CRUD_And_Permissions(t *testing.T) {
 	}
 }
 
-func TestWorkspaceAuditLogs(t *testing.T) {
-	wsID := uuid.New()
+func TestAuditLogs(t *testing.T) {
 	userNoPerm := uuid.New()
 	userWithPerm := uuid.New()
 
 	authz := &mockMonitorAuthz{
-		members: map[string]bool{
-			fmt.Sprintf("%s:%s", userNoPerm, wsID):   true,
-			fmt.Sprintf("%s:%s", userWithPerm, wsID): true,
+		members: map[uuid.UUID]bool{
+			userNoPerm:   true,
+			userWithPerm: true,
 		},
 		permissions: map[string]bool{
-			fmt.Sprintf("%s:%s:%s", userWithPerm, wsID, auth.PermissionAuditLogsRead): true,
+			userWithPerm.String() + ":" + string(auth.PermissionAuditLogsRead): true,
 		},
 		infraUsers: map[uuid.UUID]bool{},
 	}
 	repo := newMockMonitorRepo()
 	repo.auditLogs = append(repo.auditLogs, AuditLogRecord{
-		ID:          uuid.New(),
-		WorkspaceID: wsID,
-		Action:      "member.invite",
-		CreatedAt:   time.Now().UTC(),
+		ID:        uuid.New(),
+		Action:    "member.invite",
+		CreatedAt: time.Now().UTC(),
 	})
 
 	handler := MonitorHandler{
@@ -501,8 +511,7 @@ func TestWorkspaceAuditLogs(t *testing.T) {
 	}
 
 	// 1. User without permission -> 403
-	req := setReqContext(httptest.NewRequest(http.MethodGet, "/api/v1/workspaces/"+wsID.String()+"/audit-logs", nil), userNoPerm)
-	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
+	req := setReqContext(httptest.NewRequest(http.MethodGet, "/api/v1/audit-logs", nil), userNoPerm)
 	w := httptest.NewRecorder()
 	handler.GetAuditLogs(w, req)
 	if w.Code != http.StatusForbidden {
@@ -510,8 +519,7 @@ func TestWorkspaceAuditLogs(t *testing.T) {
 	}
 
 	// 2. User with permission -> 200
-	req = setReqContext(httptest.NewRequest(http.MethodGet, "/api/v1/workspaces/"+wsID.String()+"/audit-logs", nil), userWithPerm)
-	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
+	req = setReqContext(httptest.NewRequest(http.MethodGet, "/api/v1/audit-logs", nil), userWithPerm)
 	w = httptest.NewRecorder()
 	handler.GetAuditLogs(w, req)
 	if w.Code != http.StatusOK {
@@ -526,13 +534,12 @@ func TestWorkspaceAuditLogs(t *testing.T) {
 	}
 }
 
-func TestWorkspaceJobStatus(t *testing.T) {
-	wsID := uuid.New()
-	otherWsID := uuid.New()
+func TestJobStatus(t *testing.T) {
 	user := uuid.New()
+	nonMember := uuid.New()
 
 	authz := &mockMonitorAuthz{
-		members:     map[string]bool{fmt.Sprintf("%s:%s", user, wsID): true},
+		members:     map[uuid.UUID]bool{user: true},
 		permissions: map[string]bool{},
 		infraUsers:  map[uuid.UUID]bool{},
 	}
@@ -542,34 +549,28 @@ func TestWorkspaceJobStatus(t *testing.T) {
 	}
 
 	// Non-member -> 403
-	req := setReqContext(httptest.NewRequest(http.MethodGet, "/api/v1/workspaces/"+otherWsID.String()+"/jobs/"+uuid.NewString(), nil), user)
-	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), otherWsID))
+	req := setReqContext(httptest.NewRequest(http.MethodGet, "/api/v1/jobs/"+uuid.NewString(), nil), nonMember)
 	req.SetPathValue("job_id", uuid.NewString())
 	w := httptest.NewRecorder()
-	handler.GetWorkspaceJobStatus(w, req)
+	handler.GetJobStatus(w, req)
 	if w.Code != http.StatusForbidden {
 		t.Fatalf("expected 403 for non-member, got %d", w.Code)
 	}
 }
-
-func TestWorkspaceDurableMonitorJob(t *testing.T) {
-	wsID := uuid.New()
+func TestDurableMonitorJob(t *testing.T) {
 	user := uuid.New()
 	jobID := uuid.New()
 
 	authz := &mockMonitorAuthz{
-		members: map[string]bool{
-			fmt.Sprintf("%s:%s", user, wsID): true,
-		},
+		members: map[uuid.UUID]bool{user: true},
 	}
 	repo := newMockMonitorRepo()
 	repo.durableJobs = append(repo.durableJobs, MonitorInfraJobRecord{
-		JobID:       jobID,
-		WorkspaceID: wsID,
-		TaskType:    "payroll_calc",
-		Priority:    "high",
-		State:       "completed",
-		CreatedAt:   time.Now().UTC(),
+		JobID:     jobID,
+		TaskType:  "payroll_calc",
+		Priority:  "high",
+		State:     "completed",
+		CreatedAt: time.Now().UTC(),
 	})
 
 	handler := MonitorHandler{
@@ -578,21 +579,19 @@ func TestWorkspaceDurableMonitorJob(t *testing.T) {
 	}
 
 	// 1. Not found -> 404
-	req := setReqContext(httptest.NewRequest(http.MethodGet, "/api/v1/workspaces/"+wsID.String()+"/monitor/jobs/"+uuid.NewString(), nil), user)
-	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
+	req := setReqContext(httptest.NewRequest(http.MethodGet, "/api/v1/monitor/jobs/"+uuid.NewString(), nil), user)
 	req.SetPathValue("job_id", uuid.NewString())
 	w := httptest.NewRecorder()
-	handler.GetWorkspaceMonitorJob(w, req)
+	handler.GetMonitorJob(w, req)
 	if w.Code != http.StatusNotFound {
 		t.Fatalf("expected 404, got %d", w.Code)
 	}
 
 	// 2. Found -> 200
-	req = setReqContext(httptest.NewRequest(http.MethodGet, "/api/v1/workspaces/"+wsID.String()+"/monitor/jobs/"+jobID.String(), nil), user)
-	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
+	req = setReqContext(httptest.NewRequest(http.MethodGet, "/api/v1/monitor/jobs/"+jobID.String(), nil), user)
 	req.SetPathValue("job_id", jobID.String())
 	w = httptest.NewRecorder()
-	handler.GetWorkspaceMonitorJob(w, req)
+	handler.GetMonitorJob(w, req)
 	if w.Code != http.StatusOK {
 		t.Fatalf("expected 200, got %d", w.Code)
 	}

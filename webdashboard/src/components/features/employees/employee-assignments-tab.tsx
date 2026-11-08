@@ -14,7 +14,6 @@ import EmployeeAssignmentFormModal from "./employee-assignment-form-modal";
 interface EmployeeAssignmentsTabProps {
   employeeId: string;
   formatDate: (date: string) => string;
-  wsId: string;
 }
 
 const getStatusColor = (status: AssignmentStatus) => {
@@ -37,8 +36,8 @@ const getLocationName = (locationId: string | null) => {
   return locationId; // Raw UUID for now
 };
 
-export default function EmployeeAssignmentsTab({ wsId, employeeId, formatDate }: EmployeeAssignmentsTabProps) {
-  const { data: assignments = [], isLoading } = useEmployeeAssignments(wsId, employeeId);
+export default function EmployeeAssignmentsTab({employeeId, formatDate }: EmployeeAssignmentsTabProps) {
+  const { data: assignments = [], isLoading } = useEmployeeAssignments(employeeId);
   const deleteAssignment = useDeleteEmployeeAssignment();
   const [editingAssignment, setEditingAssignment] = useState<EmployeeAssignment | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -130,7 +129,7 @@ export default function EmployeeAssignmentsTab({ wsId, employeeId, formatDate }:
                       <Button
                         className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/30 rounded-xl transition-colors h-auto w-auto shadow-none"
                         onClick={() => {
-                          deleteAssignment.mutate({ wsId, employeeId, assignmentId: assignment.id });
+                          deleteAssignment.mutate({employeeId, assignmentId: assignment.id });
                         }}
                         size="icon"
                         type="button"
@@ -163,15 +162,12 @@ export default function EmployeeAssignmentsTab({ wsId, employeeId, formatDate }:
         )}
       </div>
 
-      <EmployeeAssignmentFormModal
-        editingAssignment={editingAssignment}
-        employeeId={employeeId}
-        isOpen={isModalOpen}
-        onClose={() => {
-          setIsModalOpen(false);
-        }}
-        wsId={wsId}
-      />
+      <EmployeeAssignmentFormModal editingAssignment={editingAssignment}
+      employeeId={employeeId}
+      isOpen={isModalOpen}
+      onClose={() => {
+        setIsModalOpen(false);
+      }}  />
     </div>
   );
 }

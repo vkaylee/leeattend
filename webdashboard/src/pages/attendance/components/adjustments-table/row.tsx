@@ -5,7 +5,6 @@ import { useTranslation } from "react-i18next";
 import Button from "@/components/ui/button";
 import StatusBadge from "@/components/ui/status-badge";
 import { Typography } from "@/components/ui/typography";
-import { useWorkspace } from "@/hooks/use-workspace";
 import { AttendanceAdjustmentRequest } from "@/lib/api/types";
 
 interface AdjustmentsTableRowProps {
@@ -33,8 +32,6 @@ export function AdjustmentsTableRow({
   onPreviewAttachment,
 }: AdjustmentsTableRowProps) {
   const { t } = useTranslation();
-  const { workspace } = useWorkspace();
-  const wsId = workspace?.id ?? "";
 
   return (
     <tr className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-all group" key={request.id}>
@@ -76,7 +73,7 @@ export function AdjustmentsTableRow({
                   className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-bold bg-indigo-50 hover:bg-indigo-100 text-indigo-750 dark:bg-indigo-950/30 dark:hover:bg-indigo-900/40 dark:text-indigo-400 border border-indigo-150 dark:border-indigo-900/50 transition-colors cursor-pointer"
                   icon={<Paperclip className="w-3 h-3" />}
                   key={fileId}
-                  onClick={() => onPreviewAttachment?.(`/api/v1/workspaces/${wsId}/files/${fileId}/download`, `Adjustment Attachment #${index + 1}`)}
+                  onClick={() => onPreviewAttachment?.(`/api/v1/files/${fileId}/download`, `Adjustment Attachment #${index + 1}`)}
                   type="button"
                 >
                   Doc #{index + 1}

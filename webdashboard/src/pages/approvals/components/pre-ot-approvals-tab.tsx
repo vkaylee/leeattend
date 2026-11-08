@@ -20,11 +20,9 @@ const PRE_OT_PAGE_SIZE = 20;
 
   // eslint-disable-next-line max-lines-per-function
 export function PreOtApprovalsTab({
-  wsId,
   canApprove,
   onPreviewAttachment,
 }: {
-  wsId: string;
   canApprove: boolean;
   onPreviewAttachment?: (fileUrl: string, title: string) => void;
 }) {
@@ -40,9 +38,9 @@ export function PreOtApprovalsTab({
     hasNextPage,
     isFetchingNextPage,
   } = useInfiniteQuery<PaginatedResponse<OvertimeRequest>>({
-    queryKey: ["overtime-requests", wsId, "list", { limit: PRE_OT_PAGE_SIZE }],
+    queryKey: ["overtime-requests", "list", { limit: PRE_OT_PAGE_SIZE }],
     queryFn: ({ pageParam }) => {
-      return overtimeRequestsApi.listRequests(wsId, {
+      return overtimeRequestsApi.listRequests({
         page: pageParam as number,
         limit: PRE_OT_PAGE_SIZE,
       });
@@ -55,7 +53,6 @@ export function PreOtApprovalsTab({
       return totalLoaded >= (lastPage.total || 0) ? undefined : allPages.length + 1;
     },
     initialPageParam: 1,
-    enabled: !!wsId,
   });
 
   const allRequests = useMemo(
@@ -105,7 +102,7 @@ export function PreOtApprovalsTab({
       {
         onSuccess: () => {
           toast.success(action === "approve" ? t("ot_approvals.pre.success_approve") : t("ot_approvals.pre.success_reject"));
-          void queryClient.invalidateQueries({ queryKey: ["overtime-requests", wsId, "list"] });
+          void queryClient.invalidateQueries({ queryKey: ["overtime-requests", "list"] });
         },
         onError: () => {
           toast.error(t("ot_approvals.pre.fail_process"));
@@ -205,10 +202,10 @@ export function PreOtApprovalsTab({
                   if (!fileId) return null;
                   return (
                     <Button
-                      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-bold bg-indigo-50 hover:bg-indigo-100 text-indigo-750 dark:bg-indigo-950/30 dark:hover:bg-indigo-900/40 dark:text-indigo-400 border border-indigo-150 dark:border-indigo-900/50 transition-colors cursor-pointer"
+                      onClick={() => { onPreviewAttachment?.(`/api/v1/files/${fileId}/download`, `Pre-OT Attachment #${index + 1}`); }}
                       icon={<Paperclip className="w-3 h-3" />}
                       key={fileId}
-                      onClick={() => { onPreviewAttachment?.(`/api/v1/workspaces/${wsId}/files/${fileId}/download`, `Pre-OT Attachment #${index + 1}`); }}
+                      onClick={() => { onPreviewAttachment?.(`/api/v1/files/${fileId}/download`, `Pre-OT Attachment #${index + 1}`); }}
                       type="button"
                     >
                       Doc #{index + 1}

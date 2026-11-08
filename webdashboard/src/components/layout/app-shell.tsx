@@ -5,7 +5,7 @@ import { ErrorBoundary } from "@/components/common/error-boundary";
 import { HeaderActionsProvider } from "@/hooks/use-header-actions";
 import { useI18nSync } from "@/hooks/use-i18n-sync";
 import { useTheme } from "@/hooks/use-theme";
-import { useWorkspace } from "@/hooks/use-workspace";
+import { useOrganization } from "@/hooks/use-organization";
 import { cn } from "@/lib/utils";
 
 import { CommandPalette } from "./command-palette";
@@ -20,10 +20,10 @@ export interface AppShellProps {
 export default function AppShell({ variant: _variant }: AppShellProps) {
   useTheme();
   useI18nSync();
-  const { workspace: currentWorkspace } = useWorkspace();
+  const { organization } = useOrganization();
   const location = useLocation();
   const isOrgChart = location.pathname.endsWith("/org-chart");
-  const isSettings = location.pathname.startsWith("/settings") || location.pathname.startsWith("/workspace/settings");
+  const isSettings = location.pathname.startsWith("/settings");
 
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(() => {
     try {
@@ -83,7 +83,7 @@ export default function AppShell({ variant: _variant }: AppShellProps) {
             isSettings={isSettings}
             onOpenMobileMenu={() => setIsMobileSidebarOpen(true)}
             onOpenSearch={() => setIsCommandPaletteOpen(true)}
-            workspaceName={currentWorkspace?.name ?? "Workspace"}
+            organizationName={organization?.name ?? "LeeAttend"}
           />
 
           <main

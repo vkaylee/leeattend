@@ -119,20 +119,20 @@ describe('Navigation Layout Consistency', () => {
   });
 
   describe('Navbar', () => {
-    it('renders workspace name in breadcrumbs', () => {
+    it('renders organization name in breadcrumbs', () => {
       renderWithProviders(
         <Navbar
-          currentWorkspaceName="Test Workspace"
+          organizationName="Test Organization"
         />
       );
 
-      expect(screen.getByText('Test Workspace')).toBeInTheDocument();
+      expect(screen.getByText('Test Organization')).toBeInTheDocument();
     });
 
     it('renders page name from current path', () => {
       renderWithProviders(
         <Navbar
-          currentWorkspaceName="Test Workspace"
+          organizationName="Test Organization"
         />
       );
 
@@ -144,7 +144,7 @@ describe('Navigation Layout Consistency', () => {
     it('renders header at 56px height', () => {
       const { container } = renderWithProviders(
         <Navbar
-          currentWorkspaceName="Test Workspace"
+          organizationName="Test Organization"
         />
       );
 

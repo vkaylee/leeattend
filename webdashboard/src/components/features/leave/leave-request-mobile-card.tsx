@@ -6,7 +6,6 @@ import type { Employee, LeaveRequest, LeaveType } from "@/lib/api";
 
 import Button from "@/components/ui/button";
 import { Typography } from "@/components/ui/typography";
-import { useWorkspace } from "@/hooks/use-workspace";
 import { cn } from "@/lib/utils";
 
 interface LeaveRequestMobileCardProps {
@@ -29,8 +28,6 @@ export function LeaveRequestMobileCard({
   onApprove,
   onPreviewAttachment,
 }: LeaveRequestMobileCardProps) {
-  const { workspace } = useWorkspace();
-  const wsId = workspace?.id ?? "";
   const leaveTypeName = (leaveTypes.find(tOption => tOption.id === request.leave_type_id)?.name ?? "Unknown").toUpperCase();
 
   const getDurationBadge = () => {

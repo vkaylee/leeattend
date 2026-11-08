@@ -1,6 +1,6 @@
 import type { TFunction } from "i18next";
 
-import type { WorkspaceMember } from "@/lib/api";
+import type { OrganizationMember } from "@/lib/api";
 import type { WorkLocation } from "@/lib/api/locations";
 
 import { Combobox } from "@/components/ui/combobox";
@@ -12,7 +12,7 @@ interface Props {
   editingEmployee: Employee | null;
   employers: Employer[];
   locations: WorkLocation[];
-  members: WorkspaceMember[];
+  members: OrganizationMember[];
   prefillEnrollmentId: string;
   selectedEmployerId: string;
   selectedLocationId: string;

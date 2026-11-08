@@ -17,7 +17,6 @@ var ErrRecruitmentSourceNotFound = errors.New("recruitment source: not found")
 
 type RecruitmentSource struct {
 	ID                  uuid.UUID        `json:"id"`
-	WorkspaceID         uuid.UUID        `json:"workspace_id"`
 	SourceType          string           `json:"source_type"`
 	Name                string           `json:"name"`
 	ReferrerEmployeeID  *uuid.UUID       `json:"referrer_employee_id"`
@@ -70,26 +69,20 @@ type RecruitmentSourceBreakdown struct {
 }
 
 type RecruitmentSourceRepository interface {
-	ListRecruitmentSources(context.Context, uuid.UUID, int, int) (RecruitmentSourceListResponse, error)
-	CreateRecruitmentSource(context.Context, uuid.UUID, CreateRecruitmentSourceRequest) (RecruitmentSource, error)
-	UpdateRecruitmentSource(context.Context, uuid.UUID, uuid.UUID, UpdateRecruitmentSourceRequest) (RecruitmentSource, error)
-	DeleteRecruitmentSource(context.Context, uuid.UUID, uuid.UUID) error
-	RecruitmentSourceBreakdown(context.Context, uuid.UUID) ([]RecruitmentSourceBreakdown, error)
-}
-
-type RecruitmentSourceAuthorizer interface {
-	WorkspaceAuthorizer
-	WorkspaceMemberAuthorizer
+	ListRecruitmentSources(context.Context, int, int) (RecruitmentSourceListResponse, error)
+	CreateRecruitmentSource(context.Context, CreateRecruitmentSourceRequest) (RecruitmentSource, error)
+	UpdateRecruitmentSource(context.Context, uuid.UUID, UpdateRecruitmentSourceRequest) (RecruitmentSource, error)
+	DeleteRecruitmentSource(context.Context, uuid.UUID) error
+	RecruitmentSourceBreakdown(context.Context) ([]RecruitmentSourceBreakdown, error)
 }
 
 type RecruitmentSourceHandler struct {
 	Repository RecruitmentSourceRepository
-	Authorizer RecruitmentSourceAuthorizer
+	Authorizer Authorizer
 }
 
 func (h RecruitmentSourceHandler) List(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := organizationIDFromContext(r)
-	if !ok || !h.isMember(r, wsID) {
+	if !h.isMember(r) {
 		h.forbidden(w, r)
 		return
 	}
@@ -98,7 +91,7 @@ func (h RecruitmentSourceHandler) List(w http.ResponseWriter, r *http.Request) {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}
-	result, err := h.Repository.ListRecruitmentSources(r.Context(), wsID, p.Page, p.Limit)
+	result, err := h.Repository.ListRecruitmentSources(r.Context(), p.Page, p.Limit)
 	if err != nil {
 		h.writeError(w, r, err)
 		return
@@ -107,8 +100,7 @@ func (h RecruitmentSourceHandler) List(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h RecruitmentSourceHandler) Create(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := organizationIDFromContext(r)
-	if !ok || !h.allowed(r, wsID, "recruitment:manage") {
+	if !h.allowed(r, "recruitment:manage") {
 		h.forbidden(w, r)
 		return
 	}
@@ -118,7 +110,7 @@ func (h RecruitmentSourceHandler) Create(w http.ResponseWriter, r *http.Request)
 		return
 	}
 	req.Name = strings.TrimSpace(req.Name)
-	item, err := h.Repository.CreateRecruitmentSource(r.Context(), wsID, req)
+	item, err := h.Repository.CreateRecruitmentSource(r.Context(), req)
 	if err != nil {
 		h.writeError(w, r, err)
 		return
@@ -127,9 +119,8 @@ func (h RecruitmentSourceHandler) Create(w http.ResponseWriter, r *http.Request)
 }
 
 func (h RecruitmentSourceHandler) Update(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := organizationIDFromContext(r)
 	id, idOK := pathUUID(r, "id")
-	if !ok || !idOK || !h.allowed(r, wsID, "recruitment:manage") {
+	if !idOK || !h.allowed(r, "recruitment:manage") {
 		h.forbidden(w, r)
 		return
 	}
@@ -146,7 +137,7 @@ func (h RecruitmentSourceHandler) Update(w http.ResponseWriter, r *http.Request)
 		}
 		req.Name = &name
 	}
-	item, err := h.Repository.UpdateRecruitmentSource(r.Context(), wsID, id, req)
+	item, err := h.Repository.UpdateRecruitmentSource(r.Context(), id, req)
 	if err != nil {
 		h.writeError(w, r, err)
 		return
@@ -155,13 +146,12 @@ func (h RecruitmentSourceHandler) Update(w http.ResponseWriter, r *http.Request)
 }
 
 func (h RecruitmentSourceHandler) Delete(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := organizationIDFromContext(r)
 	id, idOK := pathUUID(r, "id")
-	if !ok || !idOK || !h.allowed(r, wsID, "recruitment:manage") {
+	if !idOK || !h.allowed(r, "recruitment:manage") {
 		h.forbidden(w, r)
 		return
 	}
-	if err := h.Repository.DeleteRecruitmentSource(r.Context(), wsID, id); err != nil {
+	if err := h.Repository.DeleteRecruitmentSource(r.Context(), id); err != nil {
 		h.writeError(w, r, err)
 		return
 	}
@@ -169,13 +159,11 @@ func (h RecruitmentSourceHandler) Delete(w http.ResponseWriter, r *http.Request)
 }
 
 func (h RecruitmentSourceHandler) Dashboard(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := organizationIDFromContext(r)
-	userID, userOK := httpinfra.UserIDFromContext(r.Context())
-	if !ok || !userOK || h.Authorizer == nil || !h.Authorizer.HasPermission(r.Context(), userID, wsID, "dashboard:read") {
+	if !h.allowed(r, "dashboard:read") {
 		h.forbidden(w, r)
 		return
 	}
-	result, err := h.Repository.RecruitmentSourceBreakdown(r.Context(), wsID)
+	result, err := h.Repository.RecruitmentSourceBreakdown(r.Context())
 	if err != nil {
 		h.writeError(w, r, err)
 		return
@@ -183,18 +171,18 @@ func (h RecruitmentSourceHandler) Dashboard(w http.ResponseWriter, r *http.Reque
 	apperror.WriteJSON(w, http.StatusOK, result)
 }
 
-func (h RecruitmentSourceHandler) isMember(r *http.Request, wsID uuid.UUID) bool {
+func (h RecruitmentSourceHandler) isMember(r *http.Request) bool {
 	userID, ok := httpinfra.UserIDFromContext(r.Context())
 	if !ok || h.Authorizer == nil {
 		return false
 	}
-	member, err := h.Authorizer.IsMember(r.Context(), userID, wsID)
+	member, err := h.Authorizer.IsMember(r.Context(), userID)
 	return err == nil && member
 }
 
-func (h RecruitmentSourceHandler) allowed(r *http.Request, wsID uuid.UUID, permission string) bool {
+func (h RecruitmentSourceHandler) allowed(r *http.Request, permission string) bool {
 	userID, ok := httpinfra.UserIDFromContext(r.Context())
-	return ok && h.Authorizer != nil && h.Authorizer.HasPermission(r.Context(), userID, wsID, permission)
+	return ok && h.Authorizer != nil && h.Authorizer.HasPermission(r.Context(), userID, permission)
 }
 
 func (h RecruitmentSourceHandler) forbidden(w http.ResponseWriter, r *http.Request) {

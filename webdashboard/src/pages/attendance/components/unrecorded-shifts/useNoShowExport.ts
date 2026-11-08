@@ -12,15 +12,12 @@ import { exportNoShowToExcel, type NoShowRow } from "@/lib/excel-no-show";
 import { computeNoShowRows } from "../../hooks/use-no-show-rows";
 import { zoneLabel } from "./utils";
 
-interface UseNoShowExportParams {
-  employeeMap: Map<string, { department_name: string; employee_id_number: string }>;
-  fetchNextPage: () => Promise<unknown>;
-  queryKey: unknown[];
-  selectedDate: string;
-  selectedDept: string;
-  workspaceTimezone: string;
-  wsId: string;
-}
+interface UseNoShowExportParams { employeeMap: Map<string, { department_name: string; employee_id_number: string }>;
+fetchNextPage: () => Promise<unknown>;
+queryKey: unknown[];
+selectedDate: string;
+selectedDept: string;
+workspaceTimezone: string;  }
 
 interface UseNoShowExportReturn {
   /** Start the export. Idempotent while already exporting. */
@@ -34,7 +31,6 @@ interface UseNoShowExportReturn {
  * and export them as an .xlsx file.
  */
 export function useNoShowExport({
-  wsId,
   queryKey,
   fetchNextPage,
   employeeMap,
@@ -47,7 +43,7 @@ export function useNoShowExport({
   const [isExporting, setIsExporting] = useState(false);
 
   const exportFn = useCallback(async () => {
-    if (!wsId) return;
+    
     setIsExporting(true);
     try {
       // Drain all remaining pages so we have the full dataset in cache.
@@ -101,17 +97,14 @@ export function useNoShowExport({
     } finally {
       setIsExporting(false);
     }
-  }, [
-    wsId,
-    queryClient,
-    queryKey,
-    fetchNextPage,
-    employeeMap,
-    selectedDate,
-    workspaceTimezone,
-    selectedDept,
-    t,
-  ]);
+  }, [queryClient,
+  queryKey,
+  fetchNextPage,
+  employeeMap,
+  selectedDate,
+  workspaceTimezone,
+  selectedDept,
+  t,]);
 
   return { exportFn, isExporting };
 }

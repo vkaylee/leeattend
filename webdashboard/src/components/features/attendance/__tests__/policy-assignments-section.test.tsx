@@ -55,7 +55,7 @@ describe("PolicyAssignmentsSection", () => {
   });
 
   it("renders correctly with empty state", async () => {
-    renderWithProviders(<PolicyAssignmentsSection wsId={mockWsId} />);
+    renderWithProviders(<PolicyAssignmentsSection   />);
     
     // Header should be rendered
     expect(await screen.findByText(/attendance_policy_overrides.title/i)).toBeDefined();
@@ -81,7 +81,7 @@ describe("PolicyAssignmentsSection", () => {
       }
     ]);
 
-    renderWithProviders(<PolicyAssignmentsSection wsId={mockWsId} />);
+    renderWithProviders(<PolicyAssignmentsSection   />);
     
     // Name resolved from mock departments
     expect(await screen.findByText(/Engineering/i)).toBeDefined();
@@ -92,7 +92,7 @@ describe("PolicyAssignmentsSection", () => {
   it("opens the drawer and submits a new override", async () => {
     (api.upsertPolicyAssignment as Mock).mockResolvedValue({ id: "new-1" });
     
-    renderWithProviders(<PolicyAssignmentsSection wsId={mockWsId} />);
+    renderWithProviders(<PolicyAssignmentsSection   />);
     
     // Click ADD OVERRIDE button
     const addButton = await screen.findByText(/attendance_policy_overrides.add_button/i);

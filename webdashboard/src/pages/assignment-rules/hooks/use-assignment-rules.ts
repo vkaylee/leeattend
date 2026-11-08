@@ -9,13 +9,13 @@ import { useAssignmentRulesData } from "./use-assignment-rules-data";
 
 export function useAssignmentRules() {
   const { t } = useTranslation();
-  const { wsId, rules, rulesLoading, patterns, departments, employers, locations } = useAssignmentRulesData();
+  const { rules, rulesLoading, patterns, departments, employers, locations } = useAssignmentRulesData();
   const queryClient = useQueryClient();
   const toast = useToast();
   const { confirm, ConfirmationDialog } = useConfirm();
 
   const deleteMutation = useMutation({
-    mutationFn: (id: string) => deleteAssignmentRule(wsId, id),
+    mutationFn: (id: string) => deleteAssignmentRule(id),
     onSuccess: () => {
       toast.success(t("rules.messages.delete_success"));
       void queryClient.invalidateQueries({ queryKey: ["assignment-rules"] });

@@ -60,7 +60,7 @@ describe("RuleAssignmentManager", () => {
     return render(
       <ToastProvider>
         <QueryClientProvider client={queryClient}>
-          <RuleAssignmentManager ruleId="rule-1" wsId="ws-1" {...props} />
+          <RuleAssignmentManager ruleId="rule-1" {...props} />
         </QueryClientProvider>
       </ToastProvider>
     );
@@ -144,9 +144,7 @@ describe("RuleAssignmentManager", () => {
     await user.click(submitButton);
 
     await waitFor(() => {
-      expect(payrollApi.createPayrollRuleAssignment).toHaveBeenCalledWith(
-        "ws-1",
-        "rule-1",
+      expect(payrollApi.createPayrollRuleAssignment).toHaveBeenCalledWith("rule-1",
         expect.objectContaining({
           assignee_type: "workspace",
           assignee_id: undefined,
@@ -208,7 +206,7 @@ describe("RuleAssignmentManager", () => {
     await user.click(confirmButton);
     
     await waitFor(() => {
-      expect(payrollApi.deletePayrollRuleAssignment).toHaveBeenCalledWith("ws-1", "rule-1", "a-1");
+      expect(payrollApi.deletePayrollRuleAssignment).toHaveBeenCalledWith("rule-1", "a-1");
     });
   });
 });

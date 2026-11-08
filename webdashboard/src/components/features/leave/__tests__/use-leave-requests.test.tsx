@@ -24,11 +24,10 @@ vi.mock("@tanstack/react-router", () => {
 });
 
 vi.mock("@/lib/api", () => ({
-  fetchWorkspaceLeaveRequests: vi.fn().mockResolvedValue({ data: [], total: 0, page: 1, limit: 20 }),
+  fetchLeaveRequests: vi.fn().mockResolvedValue({ data: [], total: 0, page: 1, limit: 20 }),
   approveLeaveRequest: vi.fn().mockResolvedValue({}),
   fetchLeaveTypes: vi.fn().mockResolvedValue([]),
-  fetchLatestLeaveImport: vi.fn(),
-  getStandaloneOrganizationId: vi.fn().mockReturnValue("ws-test"),
+  fetchLatestLeaveImport: vi.fn().mockResolvedValue(null),
 }));
 
 vi.mock("@/hooks/use-employees", () => ({

@@ -67,7 +67,7 @@ describe("EmployeeSearch Component", () => {
 
   it("calls onChange when an employee is selected", () => {
     const onChange = vi.fn();
-    render(<EmployeeSearch onChange={onChange} workspaceId="ws-1" />, { wrapper });
+    render(<EmployeeSearch onChange={onChange} />, { wrapper });
 
     expect(screen.getByRole("combobox")).toBeDefined();
   });
@@ -75,7 +75,7 @@ describe("EmployeeSearch Component", () => {
   it("renders chips in multiple mode", async () => {
     const onChange = vi.fn();
     const value = ["1"];
-    render(<EmployeeSearch multiple onChange={onChange} value={value} workspaceId="ws-1" />, { wrapper });
+    render(<EmployeeSearch multiple onChange={onChange} value={value} />, { wrapper });
 
     await waitFor(() => {
       expect(screen.getAllByText("John Doe").length).toBeGreaterThanOrEqual(1);
@@ -102,7 +102,7 @@ describe("EmployeeSearch Component", () => {
     } as any);
 
     const onChange = vi.fn();
-    render(<EmployeeSearch onChange={onChange} workspaceId="ws-1" />, { wrapper });
+    render(<EmployeeSearch onChange={onChange} />, { wrapper });
 
     const combobox = screen.getByRole("combobox");
     expect(combobox).toBeDefined();
@@ -116,7 +116,7 @@ describe("EmployeeSearch Component", () => {
   it("passes keyboardShortcut prop to Combobox", () => {
     const onChange = vi.fn();
     render(
-      <EmployeeSearch keyboardShortcut="/" onChange={onChange} workspaceId="ws-1" />,
+      <EmployeeSearch keyboardShortcut="/" onChange={onChange} />,
       { wrapper }
     );
 
@@ -131,7 +131,6 @@ describe("EmployeeSearch Component", () => {
       <EmployeeSearch
         onChange={onChange}
         onSelectEmployee={onSelectEmployee}
-        workspaceId="ws-1"
       />,
       { wrapper }
     );
@@ -157,7 +156,6 @@ describe("EmployeeSearch Component", () => {
       <EmployeeSearch
         onChange={onChange}
         onSelectEmployee={onSelectEmployee}
-        workspaceId="ws-1"
       />,
       { wrapper }
     );
@@ -182,7 +180,6 @@ describe("EmployeeSearch Component", () => {
       <EmployeeSearch
         emptyQueryBehavior="prompt-to-type"
         onChange={vi.fn()}
-        workspaceId="ws-1"
       />,
       { wrapper }
     );
@@ -197,7 +194,6 @@ describe("EmployeeSearch Component", () => {
       <EmployeeSearch
         onChange={onChange}
         permission="attendance:adjustments:submit_on_behalf"
-        workspaceId="ws-1"
       />,
       { wrapper }
     );
@@ -215,13 +211,13 @@ describe("EmployeeSearch Component", () => {
   });
 
   it("does NOT render the department filter button when no departments are provided", () => {
-    render(<EmployeeSearch onChange={vi.fn()} workspaceId="ws-1" />, { wrapper });
+    render(<EmployeeSearch onChange={vi.fn()} />, { wrapper });
 
     expect(screen.queryByTestId("employee-dept-filter")).toBeNull();
   });
 
   it("does NOT render the department filter button when departments is empty", () => {
-    render(<EmployeeSearch departments={[]} onChange={vi.fn()} workspaceId="ws-1" />, { wrapper });
+    render(<EmployeeSearch departments={[]} onChange={vi.fn()} />, { wrapper });
 
     expect(screen.queryByTestId("employee-dept-filter")).toBeNull();
   });
@@ -232,7 +228,7 @@ describe("EmployeeSearch Component", () => {
       { id: "d2", name: "Sales" },
     ] as any;
     render(
-      <EmployeeSearch departments={departments} onChange={vi.fn()} workspaceId="ws-1" />,
+      <EmployeeSearch departments={departments} onChange={vi.fn()} />,
       { wrapper }
     );
 
@@ -249,7 +245,6 @@ describe("EmployeeSearch Component", () => {
         departments={departments}
         onChange={vi.fn()}
         selectedDepartmentIds={["d1", "d2"]}
-        workspaceId="ws-1"
       />,
       { wrapper }
     );

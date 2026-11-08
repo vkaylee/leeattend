@@ -7,7 +7,6 @@ import type { Employee, LeaveType, LeaveRequest } from "@/lib/api/types";
 
 import Button from "@/components/ui/button";
 import { Typography } from "@/components/ui/typography";
-import { useWorkspace } from "@/hooks/use-workspace";
 import { cn } from "@/lib/utils";
 
 type LeaveRequestItem = LeaveRequest;
@@ -142,8 +141,6 @@ export function LeaveRequestRow({
    onPreviewAttachment,
   onSelect,
  }: LeaveRequestRowProps) {
-  const { workspace } = useWorkspace();
-  const wsId = workspace?.id ?? "";
   const leaveTypeName = (leaveTypes.find(tOption => tOption.id === request.leave_type_id)?.name ?? "Unknown").toUpperCase();
 
   return (

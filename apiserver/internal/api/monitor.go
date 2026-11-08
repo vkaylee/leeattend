@@ -74,7 +74,6 @@ type MonitorInfraJobEvent struct {
 type MonitorInfraJobRecord struct {
 	JobID        uuid.UUID              `json:"job_id"`
 	ParentJobID  *uuid.UUID             `json:"parent_job_id"`
-	WorkspaceID  uuid.UUID              `json:"workspace_id"`
 	TaskType     string                 `json:"task_type"`
 	Priority     string                 `json:"priority"`
 	State        string                 `json:"state"`
@@ -294,7 +293,6 @@ type PaginatedAuditLogs struct {
 
 type AuditLogRecord struct {
 	ID               uuid.UUID       `json:"id"`
-	WorkspaceID      uuid.UUID       `json:"workspace_id"`
 	ActorID          *uuid.UUID      `json:"actor_id"`
 	ActorType        *string         `json:"actor_type"`
 	ActorName        *string         `json:"actor_name"`
@@ -325,7 +323,6 @@ type GenericJobStatusResponse struct {
 }
 
 type ListDurableJobsParams struct {
-	WorkspaceID *uuid.UUID
 	JobID       *uuid.UUID
 	State       *string
 	TaskType    *string
@@ -340,13 +337,8 @@ type MonitorRepository interface {
 	MutateAlert(ctx context.Context, alertID uuid.UUID, action string, reason string, actorID uuid.UUID) (*MonitorAlertResponse, error)
 	ListDurableJobs(ctx context.Context, params ListDurableJobsParams) ([]MonitorInfraJobRecord, *string, error)
 	ListCorrelations(ctx context.Context, requestID *uuid.UUID, traceID *string, limit int) ([]MonitorInfraJobRecord, bool, error)
-	GetWorkspaceDurableJob(ctx context.Context, workspaceID, jobID uuid.UUID) (*MonitorInfraJobRecord, error)
-	ListAuditLogs(ctx context.Context, workspaceID uuid.UUID, limit, offset int, action *string, startDate, endDate *time.Time) ([]AuditLogRecord, int64, error)
-}
-
-type MonitorAuthorizer interface {
-	IsMember(ctx context.Context, userID, workspaceID uuid.UUID) (bool, error)
-	HasPermission(ctx context.Context, userID, workspaceID uuid.UUID, permission string) bool
+	GetDurableJob(ctx context.Context, jobID uuid.UUID) (*MonitorInfraJobRecord, error)
+	ListAuditLogs(ctx context.Context, limit, offset int, action *string, startDate, endDate *time.Time) ([]AuditLogRecord, int64, error)
 }
 
 type MonitorRedis interface {
@@ -355,45 +347,48 @@ type MonitorRedis interface {
 
 type MonitorHandler struct {
 	Repo       MonitorRepository
-	Authorizer MonitorAuthorizer
+	Authorizer Authorizer
 	Redis      MonitorRedis
 	JWTSecret  string
 }
 
 func (h MonitorHandler) requireInfraMonitor(r *http.Request) (uuid.UUID, *apperror.AppError) {
 	userID, ok := httpinfra.UserIDFromContext(r.Context())
-	workspaceID, hasWorkspace := organizationIDFromContext(r)
-	if !ok || !hasWorkspace {
+	if !ok {
 		return uuid.Nil, apperror.Unauthorized(apperror.KeyUnauthorized)
 	}
-	if h.Authorizer == nil || !h.Authorizer.HasPermission(r.Context(), userID, workspaceID, string(auth.PermissionInfraMonitor)) {
+	if h.Authorizer == nil || !h.Authorizer.HasPermission(r.Context(), userID, string(auth.PermissionInfraMonitor)) {
 		return uuid.Nil, apperror.Forbidden(apperror.KeyForbidden)
 	}
 	return userID, nil
 }
 
-func (h MonitorHandler) requireWorkspaceMember(r *http.Request, wsID uuid.UUID) (uuid.UUID, *apperror.AppError) {
+func (h MonitorHandler) requireMember(r *http.Request) (uuid.UUID, *apperror.AppError) {
 	userID, ok := httpinfra.UserIDFromContext(r.Context())
-	if !ok || h.Authorizer == nil {
+	if !ok {
 		return uuid.Nil, apperror.Unauthorized(apperror.KeyUnauthorized)
 	}
-	isMember, err := h.Authorizer.IsMember(r.Context(), userID, wsID)
+	if h.Authorizer == nil {
+		return uuid.Nil, apperror.Forbidden(apperror.KeyForbidden)
+	}
+	isMember, err := h.Authorizer.IsMember(r.Context(), userID)
 	if err != nil || !isMember {
 		return uuid.Nil, apperror.Forbidden(apperror.KeyForbidden)
 	}
 	return userID, nil
 }
 
-func (h MonitorHandler) requireWorkspaceAuditPermission(r *http.Request, wsID uuid.UUID) (uuid.UUID, *apperror.AppError) {
-	userID, appErr := h.requireWorkspaceMember(r, wsID)
+func (h MonitorHandler) requireAuditPermission(r *http.Request) (uuid.UUID, *apperror.AppError) {
+	userID, appErr := h.requireMember(r)
 	if appErr != nil {
 		return uuid.Nil, appErr
 	}
-	if !h.Authorizer.HasPermission(r.Context(), userID, wsID, string(auth.PermissionAuditLogsRead)) {
+	if !h.Authorizer.HasPermission(r.Context(), userID, string(auth.PermissionAuditLogsRead)) {
 		return uuid.Nil, apperror.Forbidden(apperror.KeyForbidden)
 	}
 	return userID, nil
 }
+
 
 func sanitizeSummary(val string) string {
 	val = strings.Join(strings.Fields(val), " ")
@@ -1363,7 +1358,7 @@ func (h MonitorHandler) ReportStreamWS(w http.ResponseWriter, r *http.Request) {
 
 	var meta struct {
 		JobID        uuid.UUID `json:"job_id"`
-		WorkspaceID  uuid.UUID `json:"workspace_id"`
+		RequesterID  string    `json:"requester_id"`
 		Status       string    `json:"status"`
 		TotalBatches uint32    `json:"total_batches"`
 		ErrorMessage *string   `json:"error_message"`
@@ -1375,14 +1370,13 @@ func (h MonitorHandler) ReportStreamWS(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if h.Authorizer != nil {
-		isMember, err := h.Authorizer.IsMember(r.Context(), userID, meta.WorkspaceID)
-		if err != nil || !isMember {
-			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(http.StatusForbidden)
-			_ = json.NewEncoder(w).Encode(map[string]string{"error": "Not authorized to access this report stream"})
-			return
-		}
+	requesterID, err := uuid.Parse(meta.RequesterID)
+	if err != nil || requesterID != userID || h.Authorizer == nil ||
+		!h.Authorizer.HasPermission(r.Context(), userID, string(auth.PermissionReportsRead)) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusForbidden)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "Not authorized to access this report stream"})
+		return
 	}
 
 	// Upgrade handshake
@@ -1508,15 +1502,9 @@ func writeWSCloseFrame(w io.Writer) error {
 	return err
 }
 
-// 10. GET /api/v1/workspaces/{ws_id}/audit-logs
+// 10. GET /api/v1/audit-logs
 func (h MonitorHandler) GetAuditLogs(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := organizationIDFromContext(r)
-	if !ok {
-		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
-		return
-	}
-
-	if _, appErr := h.requireWorkspaceAuditPermission(r, wsID); appErr != nil {
+	if _, appErr := h.requireAuditPermission(r); appErr != nil {
 		apperror.WriteError(w, r, appErr)
 		return
 	}
@@ -1570,7 +1558,7 @@ func (h MonitorHandler) GetAuditLogs(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	logs, total, err := h.Repo.ListAuditLogs(r.Context(), wsID, limit, offset, actionPtr, startDate, endDate)
+	logs, total, err := h.Repo.ListAuditLogs(r.Context(), limit, offset, actionPtr, startDate, endDate)
 	if err != nil {
 		apperror.WriteError(w, r, apperror.Internal(err))
 		return
@@ -1584,20 +1572,16 @@ func (h MonitorHandler) GetAuditLogs(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// 11. GET /api/v1/workspaces/{ws_id}/jobs/{job_id}
-func (h MonitorHandler) GetWorkspaceJobStatus(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := organizationIDFromContext(r)
-	if !ok {
-		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
-		return
-	}
+// 11. GET /api/v1/jobs/{job_id}
+func (h MonitorHandler) GetJobStatus(w http.ResponseWriter, r *http.Request) {
 	jobID, err := uuid.Parse(r.PathValue("job_id"))
 	if err != nil {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}
 
-	if _, appErr := h.requireWorkspaceMember(r, wsID); appErr != nil {
+	userID, appErr := h.requireMember(r)
+	if appErr != nil {
 		apperror.WriteError(w, r, appErr)
 		return
 	}
@@ -1624,7 +1608,7 @@ func (h MonitorHandler) GetWorkspaceJobStatus(w http.ResponseWriter, r *http.Req
 
 	var meta struct {
 		JobID            uuid.UUID `json:"job_id"`
-		WorkspaceID      uuid.UUID `json:"workspace_id"`
+		RequesterID      *string   `json:"requester_id"`
 		Status           string    `json:"status"`
 		TotalBatches     uint32    `json:"total_batches"`
 		CompletedBatches uint32    `json:"completed_batches"`
@@ -1638,9 +1622,13 @@ func (h MonitorHandler) GetWorkspaceJobStatus(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	if meta.WorkspaceID != wsID {
-		apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
-		return
+	if meta.RequesterID != nil && *meta.RequesterID != "" {
+		if reqID, err := uuid.Parse(*meta.RequesterID); err == nil && reqID != userID {
+			if h.Authorizer == nil || !h.Authorizer.HasPermission(r.Context(), userID, string(auth.PermissionInfraMonitor)) {
+				apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
+				return
+			}
+		}
 	}
 
 	var percentage float32
@@ -1663,20 +1651,15 @@ func (h MonitorHandler) GetWorkspaceJobStatus(w http.ResponseWriter, r *http.Req
 	})
 }
 
-// 12. GET /api/v1/workspaces/{ws_id}/monitor/jobs/{job_id}
-func (h MonitorHandler) GetWorkspaceMonitorJob(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := organizationIDFromContext(r)
-	if !ok {
-		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
-		return
-	}
+// 12. GET /api/v1/monitor/jobs/{job_id}
+func (h MonitorHandler) GetMonitorJob(w http.ResponseWriter, r *http.Request) {
 	jobID, err := uuid.Parse(r.PathValue("job_id"))
 	if err != nil {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}
 
-	if _, appErr := h.requireWorkspaceMember(r, wsID); appErr != nil {
+	if _, appErr := h.requireMember(r); appErr != nil {
 		apperror.WriteError(w, r, appErr)
 		return
 	}
@@ -1686,7 +1669,7 @@ func (h MonitorHandler) GetWorkspaceMonitorJob(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	job, err := h.Repo.GetWorkspaceDurableJob(r.Context(), wsID, jobID)
+	job, err := h.Repo.GetDurableJob(r.Context(), jobID)
 	if err != nil {
 		if errors.Is(err, ErrMonitorNotFound) {
 			apperror.WriteError(w, r, apperror.NotFound(apperror.KeyJobNotFound))
@@ -1702,3 +1685,4 @@ func (h MonitorHandler) GetWorkspaceMonitorJob(w http.ResponseWriter, r *http.Re
 
 	apperror.WriteJSON(w, http.StatusOK, job)
 }
+

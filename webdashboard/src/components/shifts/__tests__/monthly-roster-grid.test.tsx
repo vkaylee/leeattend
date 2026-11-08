@@ -233,9 +233,7 @@ const createMockHook = (overrides = {}) => {
     targetDates: [],
     updateShiftMutation: {} as unknown as ReturnType<typeof useShifts>["updateShiftMutation"],
     viewMode: "month",
-    weekDays: [],
-    wsId: "test-ws-id",
-    // Compliance modal state
+    weekDays: [],// Compliance modal state
     complianceModalOpen: false,
     complianceViolations: [],
     isComplianceResolving: false,

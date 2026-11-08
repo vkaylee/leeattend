@@ -17,18 +17,17 @@ export type UpdateEmployeeRequest = components["schemas"]["UpdateEmployeeRequest
 // Employment is already exported from types.ts; re-exporting here causes
 // a duplicate when both modules are barrel-re-exported together.
 
-import { client, fetch as apiFetchPath } from "./client";
+import { client } from "./client";
 
 export * from "./employee-phases";
 export * from "./employee-conditions";
 
 export async function fetchEmployees(
-  _wsId: string,
   page = 1,
   limit = 50,
-  permission?: string
+  permission?: string,
 ): Promise<PaginatedResponse<Employee>> {
-  const { data } = await apiFetchPath<PaginatedResponse<Employee>>("GET", "/employees", {
+  const { data } = await client.GET<PaginatedResponse<Employee>>("/v1/employees", {
     params: { query: { page, limit, permission } },
   });
   return data;
@@ -44,11 +43,11 @@ export interface SearchEmployeesParams {
   sortBy?: string;
   sortDir?: string;
   status?: string;
-  wsId: string;
+  wsId?: string;
 }
 
 export async function searchEmployees(
-  params: SearchEmployeesParams
+  params: SearchEmployeesParams,
 ): Promise<PaginatedResponse<Employee>> {
   const {
     query,
@@ -62,7 +61,7 @@ export async function searchEmployees(
     status,
   } = params;
 
-  const { data } = await apiFetchPath<PaginatedResponse<Employee>>("GET", "/employees", {
+  const { data } = await client.GET<PaginatedResponse<Employee>>("/v1/employees", {
     params: {
       query: {
         page,
@@ -80,26 +79,31 @@ export async function searchEmployees(
   return data;
 }
 
-export async function fetchEmployee(_wsId: string, id: string): Promise<Employee> {
-  const { data } = await apiFetchPath<Employee>("GET", `/employees/${encodeURIComponent(id)}`);
+export async function fetchEmployee(id: string): Promise<Employee> {
+  const { data } = await client.GET<Employee>("/v1/employees/{id}", {
+    params: { path: { id } },
+  });
   return data;
 }
 
-export async function fetchEmploymentHistory(_wsId: string, _id: string): Promise<EmploymentPeriod[]> { return Promise.resolve([]); }
+export async function fetchEmploymentHistory(_id: string): Promise<EmploymentPeriod[]> {
+  return Promise.resolve([]);
+}
+
+export interface RehireEmployeeRequest {
+  hire_date: string;
+  employer_id: string;
+  department_id?: string | null;
+  primary_location_id?: string | null;
+}
 
 export async function rehireEmployee(
-  wsId: string,
   id: string,
-  data: {
-    hire_date: string;
-    employer_id: string;
-    department_id?: string | null;
-    primary_location_id?: string | null;
-  }
+  data: RehireEmployeeRequest,
 ): Promise<Employee> {
-  const { data: result } = await client.POST("/workspaces/{workspace_id}/employees/{id}/rehire", {
+  const { data: result } = await client.POST<Employee>("/v1/employees/{id}/rehire", {
     params: {
-      path: { workspace_id: wsId, id },
+      path: { id },
     },
     body: data,
   });
@@ -107,60 +111,68 @@ export async function rehireEmployee(
 }
 
 export async function createEmployee(
-  _wsId: string,
   employee: CreateEmployeeRequest,
 ): Promise<Employee> {
-  const { data } = await apiFetchPath<Employee>("POST", "/employees", { body: employee });
+  const { data } = await client.POST<Employee>("/v1/employees", { body: employee });
   return data;
 }
 
 export async function updateEmployee(
-  _wsId: string,
   id: string,
   employee: UpdateEmployeeRequest,
 ): Promise<Employee> {
-  const { data } = await apiFetchPath<Employee>("PUT", `/employees/${encodeURIComponent(id)}`, { body: employee });
+  const { data } = await client.PUT<Employee>("/v1/employees/{id}", {
+    params: { path: { id } },
+    body: employee,
+  });
   return data;
 }
 
-export async function deleteEmployee(_wsId: string, id: string): Promise<void> {
-  await apiFetchPath<undefined>("DELETE", `/employees/${encodeURIComponent(id)}`);
+export async function deleteEmployee(id: string): Promise<void> {
+  await client.DELETE("/v1/employees/{id}", {
+    params: { path: { id } },
+  });
 }
 
 export async function transferEmployee(
-  _wsId: string,
   employeeId: string,
-  data: { department_id: string; effective_date: string; notes?: string }
+  data: { department_id: string; effective_date: string; notes?: string },
 ): Promise<EmployeeDepartmentHistory> {
-  const { data: result } = await apiFetchPath<EmployeeDepartmentHistory>("POST", `/employees/${encodeURIComponent(employeeId)}/departments`, { body: data });
+  const { data: result } = await client.POST<EmployeeDepartmentHistory>("/v1/employees/{id}/departments", {
+    params: { path: { id: employeeId } },
+    body: data,
+  });
   return result;
 }
 
-export async function fetchEmployeeDepartmentHistory(_wsId: string, employeeId: string): Promise<EmployeeDepartmentHistory[]> {
-  const { data } = await apiFetchPath<EmployeeDepartmentHistory[]>("GET", `/employees/${encodeURIComponent(employeeId)}/departments`);
+export async function fetchEmployeeDepartmentHistory(employeeId: string): Promise<EmployeeDepartmentHistory[]> {
+  const { data } = await client.GET<EmployeeDepartmentHistory[]>("/v1/employees/{id}/departments", {
+    params: { path: { id: employeeId } },
+  });
   return data;
 }
+
 export async function fetchEmployeeEmployments(
-  wsId: string,
-  employeeId: string
+  employeeId: string,
 ): Promise<Employment[]> {
-  const { data } = await client.GET("/api/v1/workspaces/{ws_id}/employees/{employee_id}/employments", {
+  const { data } = await client.GET<Employment[]>("/v1/employees/{employee_id}/employments", {
     params: {
-      path: { ws_id: wsId, employee_id: employeeId },
+      path: { employee_id: employeeId },
     },
   });
   return data;
 }
 
+export type UpdateEmploymentRequest = components["schemas"]["UpdateEmploymentRequest"];
+
 export async function updateEmployeeEmployment(
-  wsId: string,
   employeeId: string,
   employmentId: string,
-  body: components["schemas"]["UpdateEmploymentRequest"]
+  body: UpdateEmploymentRequest,
 ): Promise<Employment> {
-  const { data } = await client.PATCH("/api/v1/workspaces/{ws_id}/employees/{employee_id}/employments/{employment_id}", {
+  const { data } = await client.PATCH<Employment>("/v1/employees/{employee_id}/employments/{employment_id}", {
     params: {
-      path: { ws_id: wsId, employee_id: employeeId, employment_id: employmentId },
+      path: { employee_id: employeeId, employment_id: employmentId },
     },
     body,
   });
@@ -168,13 +180,12 @@ export async function updateEmployeeEmployment(
 }
 
 export async function fetchCompensationHistory(
-  wsId: string,
   employeeId: string,
-  employmentId?: string
+  employmentId?: string,
 ): Promise<CompensationHistoryResponse> {
-  const { data } = await client.GET("/workspaces/{workspace_id}/employees/{id}/compensation-history", {
+  const { data } = await client.GET<CompensationHistoryResponse>("/v1/employees/{id}/compensation-history", {
     params: {
-      path: { workspace_id: wsId, id: employeeId },
+      path: { id: employeeId },
       // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- || intentional: empty-string from form inputs must be coerced to undefined
       query: { employment_id: employmentId || undefined },
     },

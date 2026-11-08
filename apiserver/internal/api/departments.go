@@ -21,7 +21,6 @@ var (
 
 type DepartmentRecord struct {
 	ID                  uuid.UUID  `json:"id"`
-	WorkspaceID         uuid.UUID  `json:"workspace_id"`
 	Name                string     `json:"name"`
 	Description         *string    `json:"description"`
 	ManagerID           *uuid.UUID `json:"manager_id"`
@@ -65,26 +64,21 @@ type SetDepartmentPayrollConfigRequest struct {
 }
 
 type DepartmentRepository interface {
-	ListDepartments(ctx context.Context, workspaceID uuid.UUID, page, limit int) (DepartmentListResponse, error)
-	CreateDepartment(ctx context.Context, workspaceID uuid.UUID, req CreateDepartmentRequest) (DepartmentRecord, error)
-	GetDepartmentByID(ctx context.Context, workspaceID, deptID uuid.UUID) (DepartmentRecord, error)
-	UpdateDepartment(ctx context.Context, workspaceID, deptID uuid.UUID, req UpdateDepartmentRequest) (DepartmentRecord, error)
-	DeleteDepartment(ctx context.Context, workspaceID, deptID uuid.UUID) error
-	GetDepartmentPayrollConfigs(ctx context.Context, workspaceID, deptID uuid.UUID) ([]DepartmentPayrollConfig, error)
-	SetDepartmentPayrollConfig(ctx context.Context, workspaceID, deptID uuid.UUID, req SetDepartmentPayrollConfigRequest, actorID uuid.UUID) (DepartmentPayrollConfig, error)
+	ListDepartments(ctx context.Context, page, limit int) (DepartmentListResponse, error)
+	CreateDepartment(ctx context.Context, req CreateDepartmentRequest) (DepartmentRecord, error)
+	GetDepartmentByID(ctx context.Context, deptID uuid.UUID) (DepartmentRecord, error)
+	UpdateDepartment(ctx context.Context, deptID uuid.UUID, req UpdateDepartmentRequest) (DepartmentRecord, error)
+	DeleteDepartment(ctx context.Context, deptID uuid.UUID) error
+	GetDepartmentPayrollConfigs(ctx context.Context, deptID uuid.UUID) ([]DepartmentPayrollConfig, error)
+	SetDepartmentPayrollConfig(ctx context.Context, deptID uuid.UUID, req SetDepartmentPayrollConfigRequest, actorID uuid.UUID) (DepartmentPayrollConfig, error)
 }
 
 type DepartmentHandler struct {
 	Repository DepartmentRepository
-	Authorizer WorkspaceAuthorizer
+	Authorizer Authorizer
 }
 
 func (h DepartmentHandler) List(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := organizationIDFromContext(r)
-	if !ok {
-		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
-		return
-	}
 	_, userOK := httpinfra.UserIDFromContext(r.Context())
 	if !userOK {
 		apperror.WriteError(w, r, apperror.Unauthorized(apperror.KeyAuthenticationRequired))
@@ -95,7 +89,7 @@ func (h DepartmentHandler) List(w http.ResponseWriter, r *http.Request) {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}
-	res, err := h.Repository.ListDepartments(r.Context(), wsID, p.Page, p.Limit)
+	res, err := h.Repository.ListDepartments(r.Context(), p.Page, p.Limit)
 	if err != nil {
 		h.writeError(w, r, err)
 		return
@@ -104,13 +98,8 @@ func (h DepartmentHandler) List(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h DepartmentHandler) Create(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := organizationIDFromContext(r)
-	if !ok {
-		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
-		return
-	}
 	userID, userOK := httpinfra.UserIDFromContext(r.Context())
-	if !userOK || h.Authorizer == nil || !h.Authorizer.HasPermission(r.Context(), userID, wsID, string(auth.PermissionDepartmentsCreate)) {
+	if !userOK || h.Authorizer == nil || !h.Authorizer.HasPermission(r.Context(), userID, string(auth.PermissionDepartmentsCreate)) {
 		apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
 		return
 	}
@@ -120,7 +109,7 @@ func (h DepartmentHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	req.Name = strings.TrimSpace(req.Name)
-	dept, err := h.Repository.CreateDepartment(r.Context(), wsID, req)
+	dept, err := h.Repository.CreateDepartment(r.Context(), req)
 	if err != nil {
 		h.writeError(w, r, err)
 		return
@@ -129,14 +118,13 @@ func (h DepartmentHandler) Create(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h DepartmentHandler) Update(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := organizationIDFromContext(r)
 	deptID, deptOK := pathUUID(r, "id")
-	if !ok || !deptOK {
+	if !deptOK {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}
 	userID, userOK := httpinfra.UserIDFromContext(r.Context())
-	if !userOK || h.Authorizer == nil || !h.Authorizer.HasPermission(r.Context(), userID, wsID, string(auth.PermissionDepartmentsUpdate)) {
+	if !userOK || h.Authorizer == nil || !h.Authorizer.HasScopedPermission(r.Context(), userID, string(auth.PermissionDepartmentsUpdate), &deptID) {
 		apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
 		return
 	}
@@ -149,7 +137,7 @@ func (h DepartmentHandler) Update(w http.ResponseWriter, r *http.Request) {
 		trimmed := strings.TrimSpace(*req.Name)
 		req.Name = &trimmed
 	}
-	dept, err := h.Repository.UpdateDepartment(r.Context(), wsID, deptID, req)
+	dept, err := h.Repository.UpdateDepartment(r.Context(), deptID, req)
 	if err != nil {
 		h.writeError(w, r, err)
 		return
@@ -158,18 +146,17 @@ func (h DepartmentHandler) Update(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h DepartmentHandler) Delete(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := organizationIDFromContext(r)
 	deptID, deptOK := pathUUID(r, "id")
-	if !ok || !deptOK {
+	if !deptOK {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}
 	userID, userOK := httpinfra.UserIDFromContext(r.Context())
-	if !userOK || h.Authorizer == nil || !h.Authorizer.HasPermission(r.Context(), userID, wsID, string(auth.PermissionDepartmentsDelete)) {
+	if !userOK || h.Authorizer == nil || !h.Authorizer.HasScopedPermission(r.Context(), userID, string(auth.PermissionDepartmentsDelete), &deptID) {
 		apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
 		return
 	}
-	if err := h.Repository.DeleteDepartment(r.Context(), wsID, deptID); err != nil {
+	if err := h.Repository.DeleteDepartment(r.Context(), deptID); err != nil {
 		h.writeError(w, r, err)
 		return
 	}
@@ -177,9 +164,8 @@ func (h DepartmentHandler) Delete(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h DepartmentHandler) GetPayrollConfig(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := organizationIDFromContext(r)
 	deptID, deptOK := pathUUID(r, "id")
-	if !ok || !deptOK {
+	if !deptOK {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}
@@ -188,7 +174,7 @@ func (h DepartmentHandler) GetPayrollConfig(w http.ResponseWriter, r *http.Reque
 		apperror.WriteError(w, r, apperror.Unauthorized(apperror.KeyAuthenticationRequired))
 		return
 	}
-	configs, err := h.Repository.GetDepartmentPayrollConfigs(r.Context(), wsID, deptID)
+	configs, err := h.Repository.GetDepartmentPayrollConfigs(r.Context(), deptID)
 	if err != nil {
 		h.writeError(w, r, err)
 		return
@@ -197,9 +183,8 @@ func (h DepartmentHandler) GetPayrollConfig(w http.ResponseWriter, r *http.Reque
 }
 
 func (h DepartmentHandler) SetPayrollConfig(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := organizationIDFromContext(r)
 	deptID, deptOK := pathUUID(r, "id")
-	if !ok || !deptOK {
+	if !deptOK {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}
@@ -213,14 +198,13 @@ func (h DepartmentHandler) SetPayrollConfig(w http.ResponseWriter, r *http.Reque
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}
-	config, err := h.Repository.SetDepartmentPayrollConfig(r.Context(), wsID, deptID, req, userID)
+	config, err := h.Repository.SetDepartmentPayrollConfig(r.Context(), deptID, req, userID)
 	if err != nil {
 		h.writePayrollError(w, r, err)
 		return
 	}
 	apperror.WriteJSON(w, http.StatusCreated, config)
 }
-
 func (h DepartmentHandler) writeError(w http.ResponseWriter, r *http.Request, err error) {
 	if errors.Is(err, ErrDepartmentNotFound) || errors.Is(err, pgx.ErrNoRows) {
 		apperror.WriteError(w, r, apperror.NotFound(apperror.KeyNotFound))

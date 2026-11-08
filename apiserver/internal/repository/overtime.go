@@ -15,7 +15,7 @@ import (
 // OvertimeRepository persists overtime policies, requests, and attendance OT claims.
 type OvertimeRepository struct {
 	DB      DBTX
-	BeginTx func(context.Context, uuid.UUID) (TxBeginner, error)
+	BeginTx func(context.Context) (TxBeginner, error)
 }
 
 func (r OvertimeRepository) db(ctx context.Context) (DBTX, error) {
@@ -25,9 +25,9 @@ func (r OvertimeRepository) db(ctx context.Context) (DBTX, error) {
 	return r.DB, nil
 }
 
-func (r OvertimeRepository) begin(ctx context.Context, ws uuid.UUID) (TxBeginner, error) {
+func (r OvertimeRepository) begin(ctx context.Context) (TxBeginner, error) {
 	if r.BeginTx != nil {
-		return r.BeginTx(ctx, ws)
+		return r.BeginTx(ctx)
 	}
 	db, err := r.db(ctx)
 	if err != nil {
@@ -63,22 +63,22 @@ func formatClock(value *time.Time) *string {
 func scanPolicy(row interface{ Scan(...any) error }) (api.OvertimePolicy, error) {
 	var p api.OvertimePolicy
 	var created, updated time.Time
-	err := row.Scan(&p.ID, &p.WorkspaceID, &p.Name, &p.Description, &created, &updated)
+	err := row.Scan(&p.ID, &p.Name, &p.Description, &created, &updated)
 	p.CreatedAt = created.UTC().Format(time.RFC3339)
 	p.UpdatedAt = updated.UTC().Format(time.RFC3339)
 	return p, err
 }
 
-func (r OvertimeRepository) ListOvertimePolicies(ctx context.Context, ws uuid.UUID, page, limit int) (api.OvertimePolicyListResponse, error) {
+func (r OvertimeRepository) ListOvertimePolicies(ctx context.Context, page, limit int) (api.OvertimePolicyListResponse, error) {
 	db, err := r.db(ctx)
 	if err != nil {
 		return api.OvertimePolicyListResponse{}, err
 	}
 	out := api.OvertimePolicyListResponse{Data: []api.OvertimePolicy{}, Page: page, Limit: limit}
-	if err := db.QueryRow(ctx, `SELECT count(*) FROM overtime_policy_definitions WHERE workspace_id = $1`, ws).Scan(&out.Total); err != nil {
+	if err := db.QueryRow(ctx, `SELECT count(*) FROM overtime_policy_definitions`).Scan(&out.Total); err != nil {
 		return out, err
 	}
-	rows, err := db.Query(ctx, `SELECT id, workspace_id, name, description, created_at, updated_at FROM overtime_policy_definitions WHERE workspace_id = $1 ORDER BY created_at DESC LIMIT $2 OFFSET $3`, ws, limit, (page-1)*limit)
+	rows, err := db.Query(ctx, `SELECT id, name, description, created_at, updated_at FROM overtime_policy_definitions ORDER BY created_at DESC LIMIT $1 OFFSET $2`, limit, (page-1)*limit)
 	if err != nil {
 		return out, err
 	}
@@ -93,12 +93,12 @@ func (r OvertimeRepository) ListOvertimePolicies(ctx context.Context, ws uuid.UU
 	return out, rows.Err()
 }
 
-func (r OvertimeRepository) CreateOvertimePolicy(ctx context.Context, ws uuid.UUID, req api.CreateOvertimePolicyRequest) (api.OvertimePolicy, error) {
+func (r OvertimeRepository) CreateOvertimePolicy(ctx context.Context, req api.CreateOvertimePolicyRequest) (api.OvertimePolicy, error) {
 	db, err := r.db(ctx)
 	if err != nil {
 		return api.OvertimePolicy{}, err
 	}
-	return scanPolicy(db.QueryRow(ctx, `INSERT INTO overtime_policy_definitions (id, workspace_id, name, description, created_at, updated_at) VALUES ($1, $2, $3, $4, NOW(), NOW()) RETURNING id, workspace_id, name, description, created_at, updated_at`, uuid.New(), ws, req.Name, req.Description))
+	return scanPolicy(db.QueryRow(ctx, `INSERT INTO overtime_policy_definitions (id, name, description, created_at, updated_at) VALUES ($1, $2, $3, NOW(), NOW()) RETURNING id, name, description, created_at, updated_at`, uuid.New(), req.Name, req.Description))
 }
 
 func scanRule(row interface{ Scan(...any) error }) (api.OvertimeRule, error) {
@@ -112,12 +112,12 @@ func scanRule(row interface{ Scan(...any) error }) (api.OvertimeRule, error) {
 	return item, err
 }
 
-func (r OvertimeRepository) GetOvertimePolicy(ctx context.Context, ws, id uuid.UUID) (api.OvertimePolicyDetail, error) {
+func (r OvertimeRepository) GetOvertimePolicy(ctx context.Context, id uuid.UUID) (api.OvertimePolicyDetail, error) {
 	db, err := r.db(ctx)
 	if err != nil {
 		return api.OvertimePolicyDetail{}, err
 	}
-	policy, err := scanPolicy(db.QueryRow(ctx, `SELECT id, workspace_id, name, description, created_at, updated_at FROM overtime_policy_definitions WHERE id = $1 AND workspace_id = $2`, id, ws))
+	policy, err := scanPolicy(db.QueryRow(ctx, `SELECT id, name, description, created_at, updated_at FROM overtime_policy_definitions WHERE id = $1`, id))
 	if err != nil {
 		return api.OvertimePolicyDetail{}, err
 	}
@@ -137,13 +137,13 @@ func (r OvertimeRepository) GetOvertimePolicy(ctx context.Context, ws, id uuid.U
 	return out, rows.Err()
 }
 
-func (r OvertimeRepository) AddOvertimeRule(ctx context.Context, ws, policyID uuid.UUID, req api.CreateOvertimeRuleRequest) (api.OvertimeRule, error) {
+func (r OvertimeRepository) AddOvertimeRule(ctx context.Context, policyID uuid.UUID, req api.CreateOvertimeRuleRequest) (api.OvertimeRule, error) {
 	db, err := r.db(ctx)
 	if err != nil {
 		return api.OvertimeRule{}, err
 	}
 	var exists bool
-	if err := db.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM overtime_policy_definitions WHERE id = $1 AND workspace_id = $2)`, policyID, ws).Scan(&exists); err != nil {
+	if err := db.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM overtime_policy_definitions WHERE id = $1)`, policyID).Scan(&exists); err != nil {
 		return api.OvertimeRule{}, err
 	}
 	if !exists {
@@ -160,7 +160,7 @@ func (r OvertimeRepository) AddOvertimeRule(ctx context.Context, ws, policyID uu
 	return scanRule(db.QueryRow(ctx, `INSERT INTO overtime_rules (id, policy_id, priority, multiplier, time_start, time_end, days_of_week, is_holiday, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), NOW()) RETURNING id, policy_id, priority, multiplier, time_start, time_end, days_of_week, is_holiday, created_at, updated_at`, uuid.New(), policyID, req.Priority, req.Multiplier, start, end, req.DaysOfWeek, req.IsHoliday))
 }
 
-func (r OvertimeRepository) AssignOvertimePolicy(ctx context.Context, ws uuid.UUID, req api.AssignOvertimePolicyRequest) error {
+func (r OvertimeRepository) AssignOvertimePolicy(ctx context.Context, req api.AssignOvertimePolicyRequest) error {
 	db, err := r.db(ctx)
 	if err != nil {
 		return err
@@ -170,23 +170,23 @@ func (r OvertimeRepository) AssignOvertimePolicy(ctx context.Context, ws uuid.UU
 		return err
 	}
 	var exists bool
-	if err := db.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM overtime_policy_definitions WHERE id = $1 AND workspace_id = $2)`, req.PolicyID, ws).Scan(&exists); err != nil {
+	if err := db.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM overtime_policy_definitions WHERE id = $1)`, req.PolicyID).Scan(&exists); err != nil {
 		return err
 	}
 	if !exists {
 		return pgx.ErrNoRows
 	}
-	_, err = db.Exec(ctx, `INSERT INTO overtime_policy_assignments (id, workspace_id, assignee_type, assignee_id, policy_id, effective_from, created_at) VALUES ($1, $2, $3, $4, $5, $6, NOW())`, uuid.New(), ws, req.AssigneeType, req.AssigneeID, req.PolicyID, date)
+	_, err = db.Exec(ctx, `INSERT INTO overtime_policy_assignments (id, assignee_type, assignee_id, policy_id, effective_from, created_at) VALUES ($1, $2, $3, $4, $5, NOW())`, uuid.New(), req.AssigneeType, req.AssigneeID, req.PolicyID, date)
 	return err
 }
 
-const overtimeRequestColumns = `id, workspace_id, requested_by_user_id, department_id, planned_date, planned_start_time, planned_end_time, planned_minutes, reason, status::text, workflow_id, current_step, quota_warning, reconciled_at, reconciled_by, attachment_file_ids, created_at, updated_at`
+const overtimeRequestColumns = `id, requested_by_user_id, department_id, planned_date, planned_start_time, planned_end_time, planned_minutes, reason, status::text, workflow_id, current_step, quota_warning, reconciled_at, reconciled_by, attachment_file_ids, created_at, updated_at`
 
 func scanOvertimeRequest(row interface{ Scan(...any) error }) (api.OvertimeRequest, error) {
 	var item api.OvertimeRequest
 	var planned, created, updated time.Time
 	var start, end, reconciled *time.Time
-	err := row.Scan(&item.ID, &item.WorkspaceID, &item.RequestedByUserID, &item.DepartmentID, &planned, &start, &end, &item.PlannedMinutes, &item.Reason, &item.Status, &item.WorkflowID, &item.CurrentStep, &item.QuotaWarning, &reconciled, &item.ReconciledBy, &item.AttachmentFileIDs, &created, &updated)
+	err := row.Scan(&item.ID, &item.RequestedByUserID, &item.DepartmentID, &planned, &start, &end, &item.PlannedMinutes, &item.Reason, &item.Status, &item.WorkflowID, &item.CurrentStep, &item.QuotaWarning, &reconciled, &item.ReconciledBy, &item.AttachmentFileIDs, &created, &updated)
 	item.PlannedDate = planned.Format("2006-01-02")
 	item.PlannedStartTime, item.PlannedEndTime = formatClock(start), formatClock(end)
 	if reconciled != nil {
@@ -198,16 +198,16 @@ func scanOvertimeRequest(row interface{ Scan(...any) error }) (api.OvertimeReque
 	return item, err
 }
 
-func (r OvertimeRepository) ListOvertimeRequests(ctx context.Context, ws uuid.UUID, page, limit int) (api.OvertimeRequestListResponse, error) {
+func (r OvertimeRepository) ListOvertimeRequests(ctx context.Context, page, limit int) (api.OvertimeRequestListResponse, error) {
 	db, err := r.db(ctx)
 	if err != nil {
 		return api.OvertimeRequestListResponse{}, err
 	}
 	out := api.OvertimeRequestListResponse{Data: []api.OvertimeRequest{}, Page: page, Limit: limit}
-	if err := db.QueryRow(ctx, `SELECT count(*) FROM overtime_requests WHERE workspace_id = $1`, ws).Scan(&out.Total); err != nil {
+	if err := db.QueryRow(ctx, `SELECT count(*) FROM overtime_requests`).Scan(&out.Total); err != nil {
 		return out, err
 	}
-	rows, err := db.Query(ctx, `SELECT `+overtimeRequestColumns+` FROM overtime_requests WHERE workspace_id = $1 ORDER BY created_at DESC LIMIT $2 OFFSET $3`, ws, limit, (page-1)*limit)
+	rows, err := db.Query(ctx, `SELECT `+overtimeRequestColumns+` FROM overtime_requests ORDER BY created_at DESC LIMIT $1 OFFSET $2`, limit, (page-1)*limit)
 	if err != nil {
 		return out, err
 	}
@@ -222,8 +222,8 @@ func (r OvertimeRepository) ListOvertimeRequests(ctx context.Context, ws uuid.UU
 	return out, rows.Err()
 }
 
-func (r OvertimeRepository) CreateOvertimeRequest(ctx context.Context, ws, user uuid.UUID, req api.CreateOvertimeRequest) (api.OvertimeRequest, error) {
-	tx, err := r.begin(ctx, ws)
+func (r OvertimeRepository) CreateOvertimeRequest(ctx context.Context, user uuid.UUID, req api.CreateOvertimeRequest) (api.OvertimeRequest, error) {
+	tx, err := r.begin(ctx)
 	if err != nil {
 		return api.OvertimeRequest{}, err
 	}
@@ -242,13 +242,13 @@ func (r OvertimeRepository) CreateOvertimeRequest(ctx context.Context, ws, user 
 			return err
 		}
 		id := uuid.New()
-		out, err = scanOvertimeRequest(db.QueryRow(ctx, `INSERT INTO overtime_requests (id, workspace_id, requested_by_user_id, department_id, planned_date, planned_start_time, planned_end_time, planned_minutes, reason, status, current_step, attachment_file_ids, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'draft', 0, $10, NOW(), NOW()) RETURNING `+overtimeRequestColumns, id, ws, user, req.DepartmentID, planned, start, end, req.PlannedMinutes, req.Reason, req.AttachmentFileIDs))
+		out, err = scanOvertimeRequest(db.QueryRow(ctx, `INSERT INTO overtime_requests (id, requested_by_user_id, department_id, planned_date, planned_start_time, planned_end_time, planned_minutes, reason, status, current_step, attachment_file_ids, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'draft', 0, $9, NOW(), NOW()) RETURNING `+overtimeRequestColumns, id, user, req.DepartmentID, planned, start, end, req.PlannedMinutes, req.Reason, req.AttachmentFileIDs))
 		if err != nil {
 			return err
 		}
 		for _, employeeID := range req.Employees {
 			var employmentID uuid.UUID
-			if err := db.QueryRow(ctx, `SELECT id FROM employments WHERE workspace_id = $1 AND employee_id = $2 AND status = 'active' AND deleted_at IS NULL AND start_date <= $3 AND (end_date IS NULL OR end_date >= $3) ORDER BY start_date DESC LIMIT 1`, ws, employeeID, planned).Scan(&employmentID); err != nil {
+			if err := db.QueryRow(ctx, `SELECT id FROM employments WHERE employee_id = $1 AND status = 'active' AND deleted_at IS NULL AND start_date <= $2 AND (end_date IS NULL OR end_date >= $2) ORDER BY start_date DESC LIMIT 1`, employeeID, planned).Scan(&employmentID); err != nil {
 				return err
 			}
 			if _, err := db.Exec(ctx, `INSERT INTO overtime_request_employees (id, overtime_request_id, employment_id, consent_status, created_at) VALUES ($1, $2, $3, 'pending', NOW())`, uuid.New(), id, employmentID); err != nil {
@@ -260,12 +260,12 @@ func (r OvertimeRepository) CreateOvertimeRequest(ctx context.Context, ws, user 
 	return out, err
 }
 
-func (r OvertimeRepository) GetOvertimeRequest(ctx context.Context, ws, id uuid.UUID) (api.OvertimeRequestDetail, error) {
+func (r OvertimeRepository) GetOvertimeRequest(ctx context.Context, id uuid.UUID) (api.OvertimeRequestDetail, error) {
 	db, err := r.db(ctx)
 	if err != nil {
 		return api.OvertimeRequestDetail{}, err
 	}
-	request, err := scanOvertimeRequest(db.QueryRow(ctx, `SELECT `+overtimeRequestColumns+` FROM overtime_requests WHERE id = $1 AND workspace_id = $2`, id, ws))
+	request, err := scanOvertimeRequest(db.QueryRow(ctx, `SELECT `+overtimeRequestColumns+` FROM overtime_requests WHERE id = $1`, id))
 	if err != nil {
 		return api.OvertimeRequestDetail{}, err
 	}
@@ -303,9 +303,9 @@ type workflowStepSnapshot struct {
 	Status         string          `json:"status"`
 }
 
-func workflowSnapshot(ctx context.Context, db pgx.Tx, ws uuid.UUID, entityType string) (json.RawMessage, *uuid.UUID, error) {
+func workflowSnapshot(ctx context.Context, db pgx.Tx, entityType string) (json.RawMessage, *uuid.UUID, error) {
 	var workflowID uuid.UUID
-	err := db.QueryRow(ctx, `SELECT id FROM approval_workflows WHERE workspace_id = $1 AND entity_type = $2 AND is_active = TRUE ORDER BY created_at DESC LIMIT 1`, ws, entityType).Scan(&workflowID)
+	err := db.QueryRow(ctx, `SELECT id FROM approval_workflows WHERE entity_type = $1 AND is_active = TRUE ORDER BY created_at DESC LIMIT 1`, entityType).Scan(&workflowID)
 	if errors.Is(err, pgx.ErrNoRows) {
 		// ponytail: static fallback snapshot when workflow definition absent; upgrade path: load active workflow rules dynamically with custom SLA evaluator
 		fallback := []workflowStepSnapshot{{
@@ -341,45 +341,41 @@ func workflowSnapshot(ctx context.Context, db pgx.Tx, ws uuid.UUID, entityType s
 	return payload, &workflowID, err
 }
 
-func submitWorkflowInstance(ctx context.Context, db pgx.Tx, ws uuid.UUID, entityType string, entityID uuid.UUID) error {
-	snapshot, workflowID, err := workflowSnapshot(ctx, db, ws, entityType)
+func submitWorkflowInstance(ctx context.Context, db pgx.Tx, entityType string, entityID uuid.UUID) error {
+	snapshot, workflowID, err := workflowSnapshot(ctx, db, entityType)
 	if err != nil {
 		return err
 	}
-	if _, err = db.Exec(ctx, `UPDATE approval_workflow_instances SET status = 'cancelled', updated_at = NOW() WHERE workspace_id = $1 AND entity_type = $2 AND entity_id = $3 AND status = 'pending'`, ws, entityType, entityID); err != nil {
+	if _, err = db.Exec(ctx, `UPDATE approval_workflow_instances SET status = 'cancelled', updated_at = NOW() WHERE entity_type = $1 AND entity_id = $2 AND status = 'pending'`, entityType, entityID); err != nil {
 		return err
 	}
-	_, err = db.Exec(ctx, `INSERT INTO approval_workflow_instances (id, workspace_id, workflow_id, entity_type, entity_id, current_step_order, status, steps_snapshot, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, 1, 'pending', $6, NOW(), NOW())`, uuid.New(), ws, workflowID, entityType, entityID, snapshot)
+	_, err = db.Exec(ctx, `INSERT INTO approval_workflow_instances (id, workflow_id, entity_type, entity_id, current_step_order, status, steps_snapshot, created_at, updated_at) VALUES ($1, $2, $3, $4, 1, 'pending', $5, NOW(), NOW())`, uuid.New(), workflowID, entityType, entityID, snapshot)
 	return err
 }
 
-func (r OvertimeRepository) SubmitOvertimeRequest(ctx context.Context, ws, id uuid.UUID) error {
-	tx, err := r.begin(ctx, ws)
+func (r OvertimeRepository) SubmitOvertimeRequest(ctx context.Context, id uuid.UUID) error {
+	tx, err := r.begin(ctx)
 	if err != nil {
 		return err
 	}
 	return service.WithTx(ctx, tx, func(ctx context.Context, db pgx.Tx) error {
-		tag, err := db.Exec(ctx, `UPDATE overtime_requests SET status = 'pending_approval', current_step = 1, updated_at = NOW() WHERE id = $1 AND workspace_id = $2`, id, ws)
+		tag, err := db.Exec(ctx, `UPDATE overtime_requests SET status = 'pending_approval', current_step = 1, updated_at = NOW() WHERE id = $1`, id)
 		if err != nil {
 			return err
 		}
 		if tag.RowsAffected() == 0 {
 			return pgx.ErrNoRows
 		}
-		var employeeID uuid.UUID
-		if err := db.QueryRow(ctx, `SELECT e.employee_id FROM overtime_request_employees ore JOIN employments e ON e.id = ore.employment_id WHERE ore.overtime_request_id = $1 ORDER BY ore.created_at, ore.id LIMIT 1`, id).Scan(&employeeID); err != nil {
-			return err
-		}
-		return submitWorkflowInstance(ctx, db, ws, "ot_request", id)
+		return submitWorkflowInstance(ctx, db, "ot_request", id)
 	})
 }
 
-func (r OvertimeRepository) ConsentOvertimeRequest(ctx context.Context, ws, requestID, employeeID uuid.UUID, req api.EmployeeConsentRequest) error {
+func (r OvertimeRepository) ConsentOvertimeRequest(ctx context.Context, requestID, employeeID uuid.UUID, req api.EmployeeConsentRequest) error {
 	db, err := r.db(ctx)
 	if err != nil {
 		return err
 	}
-	tag, err := db.Exec(ctx, `UPDATE overtime_request_employees ore SET consent_status = $1, consent_at = NOW(), decline_reason = $2 WHERE ore.overtime_request_id = $3 AND ore.employment_id = (SELECT id FROM employments WHERE employee_id = $4 AND workspace_id = $5 ORDER BY start_date DESC LIMIT 1)`, req.Status, req.DeclineReason, requestID, employeeID, ws)
+	tag, err := db.Exec(ctx, `UPDATE overtime_request_employees ore SET consent_status = $1, consent_at = NOW(), decline_reason = $2 WHERE ore.overtime_request_id = $3 AND ore.employment_id = (SELECT id FROM employments WHERE employee_id = $4 ORDER BY start_date DESC LIMIT 1)`, req.Status, req.DeclineReason, requestID, employeeID)
 	if err != nil {
 		return err
 	}
@@ -389,15 +385,15 @@ func (r OvertimeRepository) ConsentOvertimeRequest(ctx context.Context, ws, requ
 	return nil
 }
 
-func (r OvertimeRepository) GetEmployee(ctx context.Context, ws, id uuid.UUID) (api.EmployeeRecord, error) {
+func (r OvertimeRepository) GetEmployee(ctx context.Context, id uuid.UUID) (api.EmployeeRecord, error) {
 	db, err := r.db(ctx)
 	if err != nil {
 		return api.EmployeeRecord{}, err
 	}
 	var record api.EmployeeRecord
 	var createdAt, updatedAt time.Time
-	err = db.QueryRow(ctx, `SELECT e.id, e.workspace_id, e.user_id, e.full_name, e.employee_id_number, e.tags, e.created_at, e.updated_at, NULL::text, (SELECT em.id FROM employments em WHERE em.workspace_id = e.workspace_id AND em.employee_id = e.id AND em.status = 'active' AND em.deleted_at IS NULL ORDER BY em.start_date DESC LIMIT 1), NULL::uuid, NULL::uuid FROM employees e WHERE e.id = $1 AND e.workspace_id = $2 AND e.deleted_at IS NULL`, id, ws).
-		Scan(&record.ID, &record.WorkspaceID, &record.UserID, &record.FullName, &record.EmployeeIDNumber, &record.Tags, &createdAt, &updatedAt, &record.DepartmentName, &record.ActiveEmploymentID, &record.EmployerID, &record.PrimaryLocationID)
+	err = db.QueryRow(ctx, `SELECT e.id, e.user_id, e.full_name, e.employee_id_number, e.tags, e.created_at, e.updated_at, NULL::text, (SELECT em.id FROM employments em WHERE em.employee_id = e.id AND em.status = 'active' AND em.deleted_at IS NULL ORDER BY em.start_date DESC LIMIT 1), NULL::uuid, NULL::uuid FROM employees e WHERE e.id = $1 AND e.deleted_at IS NULL`, id).
+		Scan(&record.ID, &record.UserID, &record.FullName, &record.EmployeeIDNumber, &record.Tags, &createdAt, &updatedAt, &record.DepartmentName, &record.ActiveEmploymentID, &record.EmployerID, &record.PrimaryLocationID)
 	if err != nil {
 		return api.EmployeeRecord{}, err
 	}
@@ -407,18 +403,18 @@ func (r OvertimeRepository) GetEmployee(ctx context.Context, ws, id uuid.UUID) (
 }
 
 // EmployeeDepartmentID resolves the target department for scoped OvertimeApprove checks.
-func (r OvertimeRepository) EmployeeDepartmentID(ctx context.Context, ws, employeeID uuid.UUID) (*uuid.UUID, error) {
+func (r OvertimeRepository) EmployeeDepartmentID(ctx context.Context, employeeID uuid.UUID) (*uuid.UUID, error) {
 	db, err := r.db(ctx)
 	if err != nil {
 		return nil, err
 	}
 	var id *uuid.UUID
-	err = db.QueryRow(ctx, `SELECT department_id FROM employments WHERE workspace_id = $1 AND employee_id = $2 AND status = 'active' AND deleted_at IS NULL ORDER BY start_date DESC LIMIT 1`, ws, employeeID).Scan(&id)
+	err = db.QueryRow(ctx, `SELECT department_id FROM employments WHERE employee_id = $1 AND status = 'active' AND deleted_at IS NULL ORDER BY start_date DESC LIMIT 1`, employeeID).Scan(&id)
 	return id, err
 }
 
-func (r OvertimeRepository) ClaimOvertime(ctx context.Context, ws, employeeID uuid.UUID, req api.ClaimOTRequest, user uuid.UUID) error {
-	tx, err := r.begin(ctx, ws)
+func (r OvertimeRepository) ClaimOvertime(ctx context.Context, employeeID uuid.UUID, req api.ClaimOTRequest, user uuid.UUID) error {
+	tx, err := r.begin(ctx)
 	if err != nil {
 		return err
 	}
@@ -428,19 +424,19 @@ func (r OvertimeRepository) ClaimOvertime(ctx context.Context, ws, employeeID uu
 			return err
 		}
 		var employmentID uuid.UUID
-		if err := db.QueryRow(ctx, `SELECT id FROM employments WHERE workspace_id = $1 AND employee_id = $2 AND status = 'active' AND deleted_at IS NULL ORDER BY start_date DESC LIMIT 1`, ws, employeeID).Scan(&employmentID); err != nil {
+		if err := db.QueryRow(ctx, `SELECT id FROM employments WHERE employee_id = $1 AND status = 'active' AND deleted_at IS NULL ORDER BY start_date DESC LIMIT 1`, employeeID).Scan(&employmentID); err != nil {
 			return err
 		}
 		var summaryID uuid.UUID
-		err = db.QueryRow(ctx, `INSERT INTO attendance_daily_summaries (id, workspace_id, employment_id, date, claimed_ot_minutes, ot_reason, ot_status, entered_via, claim_entered_by_user_id, claim_entered_at) VALUES ($1, $2, $3, $4, $5, $6, 'pending_manager', 'self_service', $7, NOW()) ON CONFLICT (employment_id, date) DO UPDATE SET claimed_ot_minutes = EXCLUDED.claimed_ot_minutes, ot_reason = EXCLUDED.ot_reason, ot_status = 'pending_manager', entered_via = 'self_service', claim_entered_by_user_id = EXCLUDED.claim_entered_by_user_id, claim_entered_at = NOW(), updated_at = NOW() WHERE attendance_daily_summaries.ot_status IN ('pending_employee', 'rejected') RETURNING id`, uuid.New(), ws, employmentID, date, req.ClaimedMinutes, req.Reason, user).Scan(&summaryID)
+		err = db.QueryRow(ctx, `INSERT INTO attendance_daily_summaries (id, employment_id, date, claimed_ot_minutes, ot_reason, ot_status, entered_via, claim_entered_by_user_id, claim_entered_at) VALUES ($1, $2, $3, $4, $5, 'pending_manager', 'self_service', $6, NOW()) ON CONFLICT (employment_id, date) DO UPDATE SET claimed_ot_minutes = EXCLUDED.claimed_ot_minutes, ot_reason = EXCLUDED.ot_reason, ot_status = 'pending_manager', entered_via = 'self_service', claim_entered_by_user_id = EXCLUDED.claim_entered_by_user_id, claim_entered_at = NOW(), updated_at = NOW() WHERE attendance_daily_summaries.ot_status IN ('pending_employee', 'rejected') RETURNING id`, uuid.New(), employmentID, date, req.ClaimedMinutes, req.Reason, user).Scan(&summaryID)
 		if err != nil {
 			return err
 		}
-		return submitWorkflowInstance(ctx, db, ws, "ot_claim", summaryID)
+		return submitWorkflowInstance(ctx, db, "ot_claim", summaryID)
 	})
 }
 
-func (r OvertimeRepository) ApproveOvertime(ctx context.Context, ws, employeeID uuid.UUID, req api.ApproveOTRequest, _ uuid.UUID) error {
+func (r OvertimeRepository) ApproveOvertime(ctx context.Context, employeeID uuid.UUID, req api.ApproveOTRequest, _ uuid.UUID) error {
 	db, err := r.db(ctx)
 	if err != nil {
 		return err
@@ -450,10 +446,10 @@ func (r OvertimeRepository) ApproveOvertime(ctx context.Context, ws, employeeID 
 		return err
 	}
 	var employmentID uuid.UUID
-	if err := db.QueryRow(ctx, `SELECT id FROM employments WHERE workspace_id = $1 AND employee_id = $2 AND status = 'active' AND deleted_at IS NULL ORDER BY start_date DESC LIMIT 1`, ws, employeeID).Scan(&employmentID); err != nil {
+	if err := db.QueryRow(ctx, `SELECT id FROM employments WHERE employee_id = $1 AND status = 'active' AND deleted_at IS NULL ORDER BY start_date DESC LIMIT 1`, employeeID).Scan(&employmentID); err != nil {
 		return err
 	}
-	tag, err := db.Exec(ctx, `UPDATE attendance_daily_summaries SET approved_ot_minutes = $1, manager_note = $2, ot_status = $3, updated_at = NOW() WHERE workspace_id = $4 AND employment_id = $5 AND date = $6 AND ot_status = 'pending_manager'`, req.ApprovedMinutes, req.ManagerNote, req.Status, ws, employmentID, date)
+	tag, err := db.Exec(ctx, `UPDATE attendance_daily_summaries SET approved_ot_minutes = $1, manager_note = $2, ot_status = $3, updated_at = NOW() WHERE employment_id = $4 AND date = $5 AND ot_status = 'pending_manager'`, req.ApprovedMinutes, req.ManagerNote, req.Status, employmentID, date)
 	if err != nil {
 		return err
 	}

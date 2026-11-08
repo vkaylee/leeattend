@@ -23,7 +23,7 @@
     "reports": "报表与仪表板",
     "security": "安全与审计",
     "shifts": "班次与排班",
-    "workspace": "工作空间与设置"
+    "workspace": "组织与设置"
   },
   "items": {
     "overtime:request:create_on_behalf": {

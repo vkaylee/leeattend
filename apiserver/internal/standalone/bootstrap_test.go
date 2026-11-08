@@ -31,13 +31,12 @@ func (r bootstrapRow) Scan(dest ...any) error {
 }
 
 type bootstrapTx struct {
-	workspaceID    uuid.UUID
-	workspaceCount int
-	userID         uuid.UUID
-	userExists     bool
-	roleID         uuid.UUID
-	commits        int
-	executed       []string
+	settingsCount int
+	userID        uuid.UUID
+	userExists    bool
+	roleID        uuid.UUID
+	commits       int
+	executed      []string
 }
 
 func (tx *bootstrapTx) Begin(context.Context) (pgx.Tx, error) { return tx, nil }
@@ -45,8 +44,8 @@ func (tx *bootstrapTx) Commit(context.Context) error          { tx.commits++; re
 func (tx *bootstrapTx) Rollback(context.Context) error        { return nil }
 func (tx *bootstrapTx) Exec(_ context.Context, sql string, _ ...any) (pgconn.CommandTag, error) {
 	tx.executed = append(tx.executed, sql)
-	if strings.Contains(sql, "INSERT INTO workspaces") {
-		tx.workspaceCount = 1
+	if strings.Contains(sql, "INSERT INTO organization_settings") {
+		tx.settingsCount = 1
 	}
 	if strings.Contains(sql, "INSERT INTO users") {
 		tx.userExists = true
@@ -57,16 +56,14 @@ func (tx *bootstrapTx) Exec(_ context.Context, sql string, _ ...any) (pgconn.Com
 func (tx *bootstrapTx) Query(context.Context, string, ...any) (pgx.Rows, error) { return nil, nil }
 func (tx *bootstrapTx) QueryRow(_ context.Context, sql string, _ ...any) pgx.Row {
 	switch {
-	case strings.Contains(sql, "count(*) FROM workspaces"):
-		return bootstrapRow{value: tx.workspaceCount}
-	case strings.Contains(sql, "SELECT id FROM workspaces"):
-		return bootstrapRow{value: tx.workspaceID}
+	case strings.Contains(sql, "count(*) FROM organization_settings"):
+		return bootstrapRow{value: tx.settingsCount}
 	case strings.Contains(sql, "SELECT id FROM users"):
 		if !tx.userExists {
 			return bootstrapRow{err: pgx.ErrNoRows}
 		}
 		return bootstrapRow{value: tx.userID}
-	case strings.Contains(sql, "SELECT id FROM workspace_roles"):
+	case strings.Contains(sql, "SELECT id FROM roles"):
 		return bootstrapRow{value: tx.roleID}
 	default:
 		return bootstrapRow{err: pgx.ErrNoRows}
@@ -93,17 +90,17 @@ func TestBootstrapInitializesSharedSchemaTransactionIdempotently(t *testing.T) {
 	if tx.commits != 2 {
 		t.Fatalf("expected two committed bootstrap transactions, got %d", tx.commits)
 	}
-	workspaceInserts, userInserts := 0, 0
+	settingsInserts, userInserts := 0, 0
 	for _, sql := range tx.executed {
-		if strings.Contains(sql, "INSERT INTO workspaces") {
-			workspaceInserts++
+		if strings.Contains(sql, "INSERT INTO organization_settings") {
+			settingsInserts++
 		}
 		if strings.Contains(sql, "INSERT INTO users") {
 			userInserts++
 		}
 	}
-	if workspaceInserts != 1 || userInserts != 1 {
-		t.Fatalf("bootstrap was not idempotent: workspaces=%d users=%d", workspaceInserts, userInserts)
+	if settingsInserts != 1 || userInserts != 1 {
+		t.Fatalf("bootstrap was not idempotent: settings=%d users=%d", settingsInserts, userInserts)
 	}
 }
 
@@ -112,19 +109,19 @@ func TestEnsureDefaultRolesAndPermissions(t *testing.T) {
 	if err := EnsureDefaultRolesAndPermissions(context.Background(), tx); err != nil {
 		t.Fatalf("expected EnsureDefaultRolesAndPermissions to succeed, got %v", err)
 	}
-	hasWorkspaceRoles, hasPermissions, hasSalaryGroups := false, false, false
+	hasRoles, hasPermissions, hasSalaryGroups := false, false, false
 	for _, sql := range tx.executed {
-		if strings.Contains(sql, "INSERT INTO public.workspace_roles") {
-			hasWorkspaceRoles = true
+		if strings.Contains(sql, "INSERT INTO public.roles") {
+			hasRoles = true
 		}
-		if strings.Contains(sql, "INSERT INTO workspace_role_permissions") {
+		if strings.Contains(sql, "INSERT INTO public.role_permissions") {
 			hasPermissions = true
 		}
 		if strings.Contains(sql, "salary_base_groups") {
 			hasSalaryGroups = true
 		}
 	}
-	if !hasWorkspaceRoles || !hasPermissions || !hasSalaryGroups {
-		t.Fatalf("missing catalog seed statements: workspace=%v perms=%v salary=%v", hasWorkspaceRoles, hasPermissions, hasSalaryGroups)
+	if !hasRoles || !hasPermissions || !hasSalaryGroups {
+		t.Fatalf("missing catalog seed statements: roles=%v perms=%v salary=%v", hasRoles, hasPermissions, hasSalaryGroups)
 	}
 }

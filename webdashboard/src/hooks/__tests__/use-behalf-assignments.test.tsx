@@ -34,10 +34,6 @@ vi.mock("@/lib/api", () => ({
   deleteAdjustmentBehalfAssignment: vi.fn(),
 }));
 
-// Mock backend-owned organization context.
-vi.mock("@/lib/api/helpers", () => ({
-  getStandaloneOrganizationId: vi.fn().mockReturnValue("ws-test-123"),
-}));
 
 function createWrapper() {
   const queryClient = new QueryClient({
@@ -53,7 +49,6 @@ function createWrapper() {
 const MOCK_OT_ASSIGNMENTS = [
   {
     id: "assign-1",
-    workspace_id: "ws-test-123",
     assignee_user_id: "user-1",
     target_employee_id: "emp-2",
     target_department_id: null,
@@ -66,7 +61,6 @@ const MOCK_OT_ASSIGNMENTS = [
 const MOCK_LEAVE_ASSIGNMENTS = [
   {
     id: "assign-leave-1",
-    workspace_id: "ws-test-123",
     assignee_user_id: "user-1",
     target_employee_id: "emp-2",
     target_department_id: null,
@@ -79,7 +73,6 @@ const MOCK_LEAVE_ASSIGNMENTS = [
 const MOCK_ADJUSTMENT_ASSIGNMENTS = [
   {
     id: "assign-adj-1",
-    workspace_id: "ws-test-123",
     assignee_user_id: "user-1",
     target_employee_id: "emp-2",
     target_department_id: null,
@@ -106,7 +99,7 @@ describe("useBehalfAssignments", () => {
 
       await waitFor(() => { expect(result.current.isLoading).toBe(false); });
 
-      expect(fetchBehalfAssignments).toHaveBeenCalledWith("ws-test-123");
+      expect(fetchBehalfAssignments).toHaveBeenCalledWith();
       expect(result.current.assignments).toHaveLength(1);
       expect(result.current.assignments[0].id).toBe("assign-1");
     });
@@ -133,7 +126,7 @@ describe("useBehalfAssignments", () => {
         });
       });
 
-      expect(createBehalfAssignment).toHaveBeenCalledWith("ws-test-123", {
+      expect(createBehalfAssignment).toHaveBeenCalledWith({
         assignee_user_id: "user-3",
         target_employee_id: "emp-4",
       });
@@ -152,7 +145,7 @@ describe("useBehalfAssignments", () => {
         await result.current.deleteAssignment("assign-1");
       });
 
-      expect(deleteBehalfAssignment).toHaveBeenCalledWith("ws-test-123", "assign-1");
+      expect(deleteBehalfAssignment).toHaveBeenCalledWith("assign-1");
     });
   });
 
@@ -168,7 +161,7 @@ describe("useBehalfAssignments", () => {
 
       await waitFor(() => { expect(result.current.isLoading).toBe(false); });
 
-      expect(fetchLeaveBehalfAssignments).toHaveBeenCalledWith("ws-test-123");
+      expect(fetchLeaveBehalfAssignments).toHaveBeenCalledWith();
       expect(result.current.assignments).toHaveLength(1);
       expect(result.current.assignments[0].id).toBe("assign-leave-1");
     });
@@ -195,7 +188,7 @@ describe("useBehalfAssignments", () => {
         });
       });
 
-      expect(createLeaveBehalfAssignment).toHaveBeenCalledWith("ws-test-123", {
+      expect(createLeaveBehalfAssignment).toHaveBeenCalledWith({
         assignee_user_id: "user-3",
         target_employee_id: "emp-4",
       });
@@ -214,7 +207,7 @@ describe("useBehalfAssignments", () => {
         await result.current.deleteAssignment("assign-leave-1");
       });
 
-      expect(deleteLeaveBehalfAssignment).toHaveBeenCalledWith("ws-test-123", "assign-leave-1");
+      expect(deleteLeaveBehalfAssignment).toHaveBeenCalledWith("assign-leave-1");
     });
   });
 
@@ -230,7 +223,7 @@ describe("useBehalfAssignments", () => {
 
       await waitFor(() => { expect(result.current.isLoading).toBe(false); });
 
-      expect(fetchAdjustmentBehalfAssignments).toHaveBeenCalledWith("ws-test-123");
+      expect(fetchAdjustmentBehalfAssignments).toHaveBeenCalledWith();
       expect(result.current.assignments).toHaveLength(1);
       expect(result.current.assignments[0].id).toBe("assign-adj-1");
     });
@@ -257,7 +250,7 @@ describe("useBehalfAssignments", () => {
         });
       });
 
-      expect(createAdjustmentBehalfAssignment).toHaveBeenCalledWith("ws-test-123", {
+      expect(createAdjustmentBehalfAssignment).toHaveBeenCalledWith({
         assignee_user_id: "user-3",
         target_employee_id: "emp-4",
       });
@@ -276,29 +269,26 @@ describe("useBehalfAssignments", () => {
         await result.current.deleteAssignment("assign-adj-1");
       });
 
-      expect(deleteAdjustmentBehalfAssignment).toHaveBeenCalledWith("ws-test-123", "assign-adj-1");
+      expect(deleteAdjustmentBehalfAssignment).toHaveBeenCalledWith("assign-adj-1");
     });
   });
 
   describe("Query Keys", () => {
     it("generates correct query keys", () => {
       expect(behalfKeys.all).toEqual(["behalf-assignments"]);
-      expect(behalfKeys.list("ws-abc", "ot")).toEqual([
+      expect(behalfKeys.list("ot")).toEqual([
         "behalf-assignments",
         "list",
-        "ws-abc",
         "ot",
       ]);
-      expect(behalfKeys.list("ws-abc", "leave")).toEqual([
+      expect(behalfKeys.list("leave")).toEqual([
         "behalf-assignments",
         "list",
-        "ws-abc",
         "leave",
       ]);
-      expect(behalfKeys.list("ws-abc", "attendance_adjustment")).toEqual([
+      expect(behalfKeys.list("attendance_adjustment")).toEqual([
         "behalf-assignments",
         "list",
-        "ws-abc",
         "attendance_adjustment",
       ]);
     });

@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 // work-segments.ts uses the untyped fetch/fire wrappers. Both ultimately call
-// client[method] → customFetch → apiFetch, so mocking apiFetch intercepts them.
+// client[method] -> customFetch -> apiFetch, so mocking apiFetch intercepts them.
 vi.mock("../helpers", () => ({
   apiFetch: vi.fn(),
 }));
@@ -56,43 +56,43 @@ describe("work-segments API", () => {
   });
 
   it("fetchWorkSegments: returns segments array", async () => {
-    const mock = [{ id: "ws-1", start_time: "09:00" }];
+    const mock = [{ id: "seg-1", start_time: "09:00" }];
     vi.mocked(apiFetch).mockResolvedValueOnce(okRes({ segments: mock, total_count: 1 }));
-    const result = await fetchWorkSegments("ws-1");
+    const result = await fetchWorkSegments();
     expect(result).toEqual(mock);
   });
 
   it("fetchWorkSegments: forwards query params", async () => {
     vi.mocked(apiFetch).mockResolvedValueOnce(okRes({ segments: [], total_count: 0 }));
-    await fetchWorkSegments("ws-1", { start_date: "2026-01-01", page: 1, limit: 20 });
+    await fetchWorkSegments({ start_date: "2026-01-01", page: 1, limit: 20 });
     expect(apiFetch).toHaveBeenCalledTimes(1);
   });
 
   it("fetchWorkSegments: ApiError on 500", async () => {
     vi.mocked(apiFetch).mockResolvedValueOnce(errRes(500, "Error", {}));
-    await expect(fetchWorkSegments("ws-1")).rejects.toThrow();
+    await expect(fetchWorkSegments()).rejects.toThrow();
   });
 
   it("createWorkSegment: POST returns segment", async () => {
-    const mock = { id: "ws-new", start_time: "09:00", end_time: "17:00" };
+    const mock = { id: "seg-new", start_time: "09:00", end_time: "17:00" };
     vi.mocked(apiFetch).mockResolvedValueOnce(okRes(mock));
-    const result = await createWorkSegment("ws-1", { start_time: "09:00" } as never);
+    const result = await createWorkSegment({ start_time: "09:00" } as never);
     expect(result).toEqual(mock);
     const opts = vi.mocked(apiFetch).mock.calls[0][1] as RequestInit;
     expect(opts.method).toBe("POST");
   });
 
   it("getWorkSegment: GET single", async () => {
-    const mock = { id: "ws-1" };
+    const mock = { id: "seg-1" };
     vi.mocked(apiFetch).mockResolvedValueOnce(okRes(mock));
-    const result = await getWorkSegment("ws-1", "ws-1");
+    const result = await getWorkSegment("seg-1");
     expect(result).toEqual(mock);
   });
 
   it("updateWorkSegment: PUT returns updated", async () => {
-    const mock = { id: "ws-1", end_time: "18:00" };
+    const mock = { id: "seg-1", end_time: "18:00" };
     vi.mocked(apiFetch).mockResolvedValueOnce(okRes(mock));
-    const result = await updateWorkSegment("ws-1", "ws-1", { end_time: "18:00" } as never);
+    const result = await updateWorkSegment("seg-1", { end_time: "18:00" } as never);
     expect(result).toEqual(mock);
     const opts = vi.mocked(apiFetch).mock.calls[0][1] as RequestInit;
     expect(opts.method).toBe("PUT");
@@ -100,45 +100,45 @@ describe("work-segments API", () => {
 
   it("deleteWorkSegment: DELETE", async () => {
     vi.mocked(apiFetch).mockResolvedValueOnce(okRes(undefined));
-    await deleteWorkSegment("ws-1", "ws-1");
+    await deleteWorkSegment("seg-1");
     const opts = vi.mocked(apiFetch).mock.calls[0][1] as RequestInit;
     expect(opts.method).toBe("DELETE");
-    expect(vi.mocked(apiFetch).mock.calls[0][0]).toContain("/work-segments/ws-1");
+    expect(vi.mocked(apiFetch).mock.calls[0][0]).toContain("/work-segments/seg-1");
   });
 
   it("bulkCreateWorkSegments: POST returns list", async () => {
-    const mock = [{ id: "ws-1" }, { id: "ws-2" }];
+    const mock = [{ id: "seg-1" }, { id: "seg-2" }];
     vi.mocked(apiFetch).mockResolvedValueOnce(okRes(mock));
-    const result = await bulkCreateWorkSegments("ws-1", { segments: [] } as never);
+    const result = await bulkCreateWorkSegments({ segments: [] } as never);
     expect(result).toEqual(mock);
     expect(vi.mocked(apiFetch).mock.calls[0][0]).toContain("/work-segments/bulk");
   });
 
   it("scheduleWorkSegments: returns scheduled/skipped", async () => {
     vi.mocked(apiFetch).mockResolvedValueOnce(okRes({ scheduled: 5, skipped: 1 }));
-    const result = await scheduleWorkSegments("ws-1", { start_date: "2026-01-01", end_date: "2026-01-31" });
+    const result = await scheduleWorkSegments({ start_date: "2026-01-01", end_date: "2026-01-31" });
     expect(result).toEqual({ scheduled: 5, skipped: 1 });
   });
 
   it("createWorkSegment: ApiError on 500", async () => {
     vi.mocked(apiFetch).mockResolvedValueOnce(errRes(500, "Error", {}));
-    await expect(createWorkSegment("ws-1", {} as never)).rejects.toThrow();
+    await expect(createWorkSegment({} as never)).rejects.toThrow();
   });
 
   it("bulkCreateWorkSegments: ApiError on 500", async () => {
     vi.mocked(apiFetch).mockResolvedValueOnce(errRes(500, "Error", {}));
-    await expect(bulkCreateWorkSegments("ws-1", { segments: [] } as never)).rejects.toThrow();
+    await expect(bulkCreateWorkSegments({ segments: [] } as never)).rejects.toThrow();
   });
 
   it("scheduleWorkSegments: ApiError on 500", async () => {
     vi.mocked(apiFetch).mockResolvedValueOnce(errRes(500, "Error", {}));
-    await expect(scheduleWorkSegments("ws-1", { start_date: "2026-01-01", end_date: "2026-01-31" })).rejects.toThrow();
+    await expect(scheduleWorkSegments({ start_date: "2026-01-01", end_date: "2026-01-31" })).rejects.toThrow();
   });
 
   it("fetchShiftIntervals: returns interval list", async () => {
     const mock = [{ id: "si-1", start_time: "09:00" }];
     vi.mocked(apiFetch).mockResolvedValueOnce(okRes(mock));
-    const result = await fetchShiftIntervals("ws-1", "shift-1");
+    const result = await fetchShiftIntervals("shift-1");
     expect(result).toEqual(mock);
     expect(vi.mocked(apiFetch).mock.calls[0][0]).toContain("/shifts/shift-1/intervals");
   });
@@ -146,14 +146,14 @@ describe("work-segments API", () => {
   it("createShiftInterval: POST returns interval", async () => {
     const mock = { id: "si-new" };
     vi.mocked(apiFetch).mockResolvedValueOnce(okRes(mock));
-    const result = await createShiftInterval("ws-1", "shift-1", { start_time: "09:00" } as never);
+    const result = await createShiftInterval("shift-1", { start_time: "09:00" } as never);
     expect(result).toEqual(mock);
   });
 
   it("updateShiftInterval: PUT returns interval", async () => {
     const mock = { id: "si-1", end_time: "18:00" };
     vi.mocked(apiFetch).mockResolvedValueOnce(okRes(mock));
-    const result = await updateShiftInterval("ws-1", "shift-1", "si-1", { end_time: "18:00" } as never);
+    const result = await updateShiftInterval("shift-1", "si-1", { end_time: "18:00" } as never);
     expect(result).toEqual(mock);
     const opts = vi.mocked(apiFetch).mock.calls[0][1] as RequestInit;
     expect(opts.method).toBe("PUT");
@@ -161,14 +161,14 @@ describe("work-segments API", () => {
 
   it("deleteShiftInterval: DELETE", async () => {
     vi.mocked(apiFetch).mockResolvedValueOnce(okRes(undefined));
-    await deleteShiftInterval("ws-1", "shift-1", "si-1");
+    await deleteShiftInterval("shift-1", "si-1");
     const opts = vi.mocked(apiFetch).mock.calls[0][1] as RequestInit;
     expect(opts.method).toBe("DELETE");
   });
 
   it("reorderShiftIntervals: POST forwards interval_ids", async () => {
     vi.mocked(apiFetch).mockResolvedValueOnce(okRes(undefined));
-    await reorderShiftIntervals("ws-1", "shift-1", ["si-1", "si-2"]);
+    await reorderShiftIntervals("shift-1", ["si-1", "si-2"]);
     const call = vi.mocked(apiFetch).mock.calls[0];
     expect(call[0]).toContain("/shifts/shift-1/intervals/reorder");
     const body = JSON.parse((call[1] as RequestInit).body as string);

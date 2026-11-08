@@ -1,7 +1,11 @@
 // ── Common / generic hooks ──────────────────────────────────────────────
 
 export { useAnimatedCounter } from "@/hooks/use-animated-counter";
-export { useOrganizationQuery, useOrganizationMutation } from "./use-workspace-query";
+export {
+  useOrganizationQuery,
+  useOrganizationMutation,
+  useOrganizationInfiniteQuery,
+} from "./use-organization-query"
 export { useConfirm } from "@/hooks/use-confirm";
 export { useCurrency } from "@/hooks/use-currency";
 export { useDarkMode } from "@/hooks/use-dark-mode";

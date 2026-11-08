@@ -60,7 +60,6 @@ function renderModal(overrides: Partial<React.ComponentProps<typeof BulkEmployee
         isOpen
         onClose={onClose}
         onCommit={onCommit}
-        wsId="ws-1"
         {...overrides}
       />
     </QueryClientProvider>,
@@ -102,7 +101,7 @@ describe("BulkEmployeePickerModal", () => {
       expect(screen.getByText("shifts.monthly.bulk_selected_count_3")).toBeDefined();
     });
     expect(searchEmployees).toHaveBeenCalledWith(
-      expect.objectContaining({ departmentIds: ["d-eng"], wsId: "ws-1" }),
+      expect.objectContaining({ departmentIds: ["d-eng"],}),
     );
   });
 

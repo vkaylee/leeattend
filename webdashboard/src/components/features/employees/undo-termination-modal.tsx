@@ -6,7 +6,7 @@ import { useTranslation } from "react-i18next";
 import Button from "@/components/ui/button";
 import Modal from "@/components/ui/modal";
 import { useToast } from "@/components/ui/toast";
-import { useOrganizationMutation } from "@/hooks/common/use-workspace-query";
+import { useOrganizationMutation } from "@/hooks/common/use-organization-query";
 import { Typography } from "@/components/ui/typography";
 import { updateEmployeeEmployment } from "@/lib/api";
 import { employeeKeys } from "@/lib/query-keys";
@@ -17,16 +17,13 @@ interface UndoTerminationModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess?: () => void;
-  wsId: string;
 }
 
 export default function UndoTerminationModal({
   isOpen,
   onClose,
   employeeId,
-  employmentId,
-  wsId,
-  onSuccess,
+  employmentId,onSuccess,
 }: UndoTerminationModalProps) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
@@ -35,25 +32,22 @@ export default function UndoTerminationModal({
   const undoMutation = useOrganizationMutation<
     undefined,
     Awaited<ReturnType<typeof updateEmployeeEmployment>>
-  >({
-    workspaceId: wsId,
-    keys: [employeeKeys.all(wsId)],
-    mutationFn: (workspaceId) => {
-      if (!employeeId) throw new Error("No employee selected");
-      if (!employmentId) throw new Error("No employment record found");
-      return updateEmployeeEmployment(workspaceId, employeeId, employmentId, {
-        status: "active",
-        end_date: null,
-      });
-    },
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ["deptHistory", employeeId] });
-      void queryClient.invalidateQueries({ queryKey: ["employee-employments", wsId, employeeId] });
-      onClose();
-      toast.success(t("common.success"));
-      onSuccess?.();
-    },
-  });
+  >({ keys: [employeeKeys.all()],
+  mutationFn: () => {
+    if (!employeeId) throw new Error("No employee selected");
+    if (!employmentId) throw new Error("No employment record found");
+    return updateEmployeeEmployment(employeeId, employmentId, {
+      status: "active",
+      end_date: null,
+    });
+  },
+  onSuccess: () => {
+    void queryClient.invalidateQueries({ queryKey: ["deptHistory", employeeId] });
+    void queryClient.invalidateQueries({ queryKey: ["employee-employments",employeeId] });
+    onClose();
+    toast.success(t("common.success"));
+    onSuccess?.();
+  }, });
 
   const handleSubmit = (e: React.SyntheticEvent<HTMLFormElement>) => {
     e.preventDefault();

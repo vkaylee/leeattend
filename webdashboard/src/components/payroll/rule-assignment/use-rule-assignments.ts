@@ -12,7 +12,7 @@ import {
 } from "@/lib/api/payroll";
 import { PayrollRuleAssignment, Department, AssigneeType } from "@/lib/api/types";
 
-export function useRuleAssignments(wsId: string, ruleId: string) {
+export function useRuleAssignments(ruleId: string) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const toast = useToast();
@@ -20,18 +20,18 @@ export function useRuleAssignments(wsId: string, ruleId: string) {
   const assignmentsQuery = useQuery({
     queryKey: ["payroll-rule-assignments", ruleId],
     queryFn: async () => {
-      const res = await fetchPayrollRuleAssignments(wsId, ruleId);
+      const res = await fetchPayrollRuleAssignments(ruleId);
       const maybeRes = ((): typeof res | undefined => res)();
       return maybeRes ?? [];
     },
     enabled: !!ruleId,
   });
 
-  const departmentsQuery = useDepartments(wsId);
+  const departmentsQuery = useDepartments();
 
   const createMutation = useMutation({
     mutationFn: (data: Parameters<typeof createPayrollRuleAssignment>[2]) =>
-      createPayrollRuleAssignment(wsId, ruleId, data),
+      createPayrollRuleAssignment(ruleId, data),
     onSuccess: () => {
       toast.success(t("common.success", "Success"));
       void queryClient.invalidateQueries({
@@ -43,7 +43,7 @@ export function useRuleAssignments(wsId: string, ruleId: string) {
 
   const deleteMutation = useMutation({
     mutationFn: (assignmentId: string) =>
-      deletePayrollRuleAssignment(wsId, ruleId, assignmentId),
+      deletePayrollRuleAssignment(ruleId, assignmentId),
     onSuccess: () => {
       toast.success(t("common.success", "Success"));
       void queryClient.invalidateQueries({

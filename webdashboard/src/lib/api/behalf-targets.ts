@@ -23,13 +23,10 @@ const DOMAIN_PATH_MAP: Record<BehalfDomain, string> = {
 };
 
 export async function fetchMyBehalfTargets(
-  wsId: string,
   domain: BehalfDomain,
 ): Promise<Employee[]> {
   const path = DOMAIN_PATH_MAP[domain];
-  const response = await apiFetch(
-    `/v1/workspaces/${wsId}/${path}`,
-  );
+  const response = await apiFetch(`/v1/${path}`);
 
   if (!response.ok) await ApiError.rejectResponse(response);
 

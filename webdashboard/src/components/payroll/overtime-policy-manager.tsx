@@ -19,11 +19,10 @@ import { useOvertimePolicies, useOvertimePolicy, useCreateOvertimePolicy } from 
 import OvertimeRuleEditor from './overtime-rule-editor';
 
 interface OvertimePolicyManagerProps {
-  wsId: string;
 }
 
-function OvertimePolicyCard({ policy, wsId }: { policy: OvertimePolicy, wsId: string }) {
-  const { data: detail, isLoading } = useOvertimePolicy(wsId, policy.id);
+function OvertimePolicyCard({ policy}: { policy: OvertimePolicy}) {
+  const { data: detail, isLoading } = useOvertimePolicy(policy.id);
 
   return (
     <div className='bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-3xl p-6 shadow-sm hover:shadow-md transition-all group'>
@@ -42,7 +41,7 @@ function OvertimePolicyCard({ policy, wsId }: { policy: OvertimePolicy, wsId: st
       {isLoading ? (
         <Skeleton className='h-20 bg-slate-50 dark:bg-slate-800 rounded-2xl' />
       ) : (
-        <OvertimeRuleEditor policyId={policy.id} rules={detail ? detail[1] : []} wsId={wsId} />
+        <OvertimeRuleEditor policyId={policy.id} rules={detail ? detail[1] : []}  />
       )}
     </div>
   );
@@ -128,14 +127,14 @@ function OvertimePolicySkeleton() {
   );
 }
 
-export default function OvertimePolicyManager({ wsId }: OvertimePolicyManagerProps) {
+export default function OvertimePolicyManager({}: OvertimePolicyManagerProps) {
   const { t } = useTranslation();
   const [isCreating, setIsCreating] = useState(false);
   const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
 
-  const { data: policies = [], isLoading } = useOvertimePolicies(wsId);
+  const { data: policies = [], isLoading } = useOvertimePolicies();
 
-  const createMutation = useCreateOvertimePolicy(wsId, {
+  const createMutation = useCreateOvertimePolicy({
     onSuccess: () => {
       setIsCreating(false);
     },
@@ -181,7 +180,7 @@ export default function OvertimePolicyManager({ wsId }: OvertimePolicyManagerPro
 
       <div className='grid grid-cols-1 gap-4'>
         {policies.map((policy: OvertimePolicy) => (
-          <OvertimePolicyCard key={policy.id} policy={policy} wsId={wsId} />
+          <OvertimePolicyCard key={policy.id} policy={policy}  />
         ))}
 
         {policies.length === 0 && !isCreating ? (
@@ -193,11 +192,8 @@ export default function OvertimePolicyManager({ wsId }: OvertimePolicyManagerPro
         ) : null}
       </div>
 
-      <AssignOvertimePolicyModal 
-        isOpen={isAssignModalOpen} 
-        onClose={() => { setIsAssignModalOpen(false); }} 
-        wsId={wsId} 
-      />
+      <AssignOvertimePolicyModal isOpen={isAssignModalOpen} 
+      onClose={() => { setIsAssignModalOpen(false); }}  />
     </div>
   );
 }

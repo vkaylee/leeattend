@@ -79,9 +79,7 @@ describe("EmployeeFormModal", () => {
     const defaultProps = {
         isOpen: true,
         onClose: vi.fn(),
-        editingEmployee: null,
-        wsId: "ws-1",
-        onSuccess: vi.fn(),
+        editingEmployee: null,onSuccess: vi.fn(),
     };
 
     beforeEach(() => {
@@ -150,9 +148,7 @@ describe("EmployeeFormModal", () => {
         await user.click(screen.getByTestId("save-employee-btn"));
 
         await waitFor(() => {
-            expect(api.createEmployee).toHaveBeenCalledWith(
-                "ws-1",
-                expect.objectContaining({
+            expect(api.createEmployee).toHaveBeenCalledWith(expect.objectContaining({
                     full_name: "New Emp",
                     employee_id_number: "EMP-100",
                     hire_date: "2025-01-01",
@@ -176,9 +172,7 @@ describe("EmployeeFormModal", () => {
         await user.click(screen.getByTestId("save-employee-btn"));
 
         await waitFor(() => {
-            expect(api.createEmployee).toHaveBeenCalledWith(
-                "ws-1",
-                expect.objectContaining({
+            expect(api.createEmployee).toHaveBeenCalledWith(expect.objectContaining({
                     full_name: "New Emp",
                     user_id: "user-xyz",
                 })
@@ -196,9 +190,7 @@ describe("EmployeeFormModal", () => {
         await user.click(screen.getByTestId("save-employee-btn"));
 
         await waitFor(() => {
-            expect(api.updateEmployee).toHaveBeenCalledWith(
-                "ws-1",
-                "emp-1",
+            expect(api.updateEmployee).toHaveBeenCalledWith("emp-1",
                 expect.objectContaining({
                     full_name: "Alice Nguyen",
                 })
@@ -216,9 +208,7 @@ describe("EmployeeFormModal", () => {
         await user.click(screen.getByTestId("save-employee-btn"));
 
         await waitFor(() => {
-            expect(api.updateEmployee).toHaveBeenCalledWith(
-                "ws-1",
-                "emp-1",
+            expect(api.updateEmployee).toHaveBeenCalledWith("emp-1",
                 expect.objectContaining({
                     full_name: "Alice Nguyen",
                     user_id: "user-abc",

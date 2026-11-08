@@ -5,7 +5,7 @@ import { useTranslation } from "react-i18next";
 import type { LeaveImportJob } from "@/lib/api/leaves";
 
 import Modal from "@/components/ui/modal";
-import { uploadLeaveExcel, fetchLatestLeaveImport, getStandaloneOrganizationId } from "@/lib/api";
+import { uploadLeaveExcel, fetchLatestLeaveImport } from "@/lib/api";
 import { logError } from "@/lib/logger";
 
 import { LeaveImportProgressView } from "./leave-import-progress-view";
@@ -17,14 +17,14 @@ interface LeaveImportDialogProps {
   onImportComplete?: () => void;
 }
 
-function useLeaveImportStatus(wsId: string | null, isOpen: boolean, onImportComplete?: () => void) {
+function useLeaveImportStatus(isOpen: boolean, onImportComplete?: () => void) {
   const [importJob, setImportJob] = useState<LeaveImportJob | null>(null);
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Check for latest import when dialog opens
   useEffect(() => {
-    if (!isOpen || !wsId) return;
-    void fetchLatestLeaveImport(wsId).then((job) => {
+    if (!isOpen) return;
+    void fetchLatestLeaveImport().then((job) => {
       if (job) {
         const created = new Date(job.created_at);
         const now = new Date();
@@ -33,25 +33,23 @@ function useLeaveImportStatus(wsId: string | null, isOpen: boolean, onImportComp
         }
       }
     }).catch((e: unknown) => { logError(e, { component: 'LeaveImportDialog.fetchLatest' }); });
-  }, [isOpen, wsId]);
+  }, [isOpen]);
 
   // Polling for job status
-  const startPolling = useCallback((wsIdValue: string) => {
-    if (pollingRef.current) clearInterval(pollingRef.current);
+  const startPolling = useCallback(() => {
+    clearInterval(pollingRef.current);
     pollingRef.current = setInterval(() => {
       void (async () => {
         try {
-          const job = await fetchLatestLeaveImport(wsIdValue);
-          if (job) {
-            setImportJob(job);
-            if (job.status !== "processing" && job.status !== "pending") {
-              if (pollingRef.current) clearInterval(pollingRef.current);
-              pollingRef.current = null;
-              onImportComplete?.();
-            }
+          const job = await fetchLatestLeaveImport();
+          if (!job) return;
+          setImportJob(job);
+          if (job.status !== "processing" && job.status !== "pending") {
+            clearInterval(pollingRef.current);
+            pollingRef.current = null;
+            onImportComplete?.();
           }
         } catch (e: unknown) {
-          // Network error — keep polling
           logError(e, { component: 'LeaveImportDialog.polling' });
         }
       })();
@@ -60,12 +58,12 @@ function useLeaveImportStatus(wsId: string | null, isOpen: boolean, onImportComp
 
   useEffect(() => {
     if (importJob?.status === "processing" || importJob?.status === "pending") {
-      if (wsId) startPolling(wsId);
+      startPolling();
     }
     return () => {
       if (pollingRef.current) clearInterval(pollingRef.current);
     };
-  }, [importJob?.status, wsId, startPolling]);
+  }, [importJob?.status,startPolling]);
 
   const isProcessing = Boolean(importJob && (importJob.status === "processing" || importJob.status === "pending"));
   const isFinished = Boolean(importJob && (importJob.status === "completed" || importJob.status === "failed" || importJob.status === "partially_failed"));
@@ -80,9 +78,7 @@ function getErrorInfo(job: LeaveImportJob) {
   } catch { /* JSON.parse on error_log — invalid JSON returns null gracefully */ return null; }
 }
 
-function useLeaveImportUpload({
-  wsId,
-  file,
+function useLeaveImportUpload({file,
   setFile,
   startPolling,
   setImportJob
@@ -90,16 +86,15 @@ function useLeaveImportUpload({
   file: File | null;
   setFile: (file: File | null) => void;
   setImportJob: (job: LeaveImportJob) => void;
-  startPolling: (wsId: string) => void;
-  wsId: string | null;
+  startPolling: () => void;
 }) {
   const [uploading, setUploading] = useState(false);
 
   const handleUpload = async () => {
-    if (!file || !wsId) return;
+    if (!file) return;
     setUploading(true);
     try {
-      const result = await uploadLeaveExcel(wsId, file);
+      const result = await uploadLeaveExcel(file);
       setImportJob({
         id: result.job_id,
         status: "pending",
@@ -110,7 +105,7 @@ function useLeaveImportUpload({
         updated_at: new Date().toISOString(),
       });
       setFile(null);
-      startPolling(wsId);
+      startPolling();
     } catch (e: unknown) {
       // Upload failure — error shown by parent toast handler
       logError(e, { component: 'LeaveImportDialog.upload' });
@@ -128,11 +123,10 @@ export default function LeaveImportDialog({
   onImportComplete,
 }: LeaveImportDialogProps) {
   const { t, i18n } = useTranslation();
-  const wsId = getStandaloneOrganizationId();
   const [file, setFile] = useState<File | null>(null);
   const [downloadingTemplate, setDownloadingTemplate] = useState(false);
-  const { importJob, setImportJob, startPolling, isProcessing, isFinished } = useLeaveImportStatus(wsId, isOpen, onImportComplete);
-  const { uploading, handleUpload } = useLeaveImportUpload({ wsId, file, setFile, startPolling, setImportJob });
+  const { importJob, setImportJob, startPolling, isProcessing, isFinished } = useLeaveImportStatus(isOpen, onImportComplete);
+  const { uploading, handleUpload } = useLeaveImportUpload({file, setFile, startPolling, setImportJob });
 
   // Reset state when dialog closes
   const [previousIsOpen, setPreviousIsOpen] = useState(isOpen);
@@ -152,29 +146,23 @@ export default function LeaveImportDialog({
       title={t("leave_import.title", "Import đơn nghỉ phép")}
     >
       {importJob && (isProcessing || isFinished) ? (
-        <LeaveImportProgressView
-          getErrorInfo={getErrorInfo}
-          importJob={importJob}
-          isFinished={isFinished}
-          isProcessing={isProcessing}
-          onClose={onClose}
-          setImportJob={setImportJob}
-          t={t}
-          wsId={wsId}
-        />
+        <LeaveImportProgressView getErrorInfo={getErrorInfo}
+        importJob={importJob}
+        isFinished={isFinished}
+        isProcessing={isProcessing}
+        onClose={onClose}
+        setImportJob={setImportJob}
+        t={t}  />
       ) : (
-        <LeaveImportUploadView
-          downloadingTemplate={downloadingTemplate}
-          file={file}
-          handleUpload={handleUpload}
-          i18n={i18n}
-          onClose={onClose}
-          setDownloadingTemplate={setDownloadingTemplate}
-          setFile={setFile}
-          t={t}
-          uploading={uploading}
-          wsId={wsId}
-        />
+        <LeaveImportUploadView downloadingTemplate={downloadingTemplate}
+        file={file}
+        handleUpload={handleUpload}
+        i18n={i18n}
+        onClose={onClose}
+        setDownloadingTemplate={setDownloadingTemplate}
+        setFile={setFile}
+        t={t}
+        uploading={uploading}  />
       )}
     </Modal>
   );

@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 
 import { apiFetch } from "@/lib/api/helpers";
 
@@ -19,7 +19,6 @@ import {
 
 export type { DashboardView, WidgetId } from "./use-dashboard-layout-presets";
 export { ALL_WIDGETS } from "./use-dashboard-layout-presets";
-import { useWorkspace } from "./use-workspace";
 
 export class DashboardPreferencesError extends Error {
     readonly status?: number;
@@ -45,7 +44,7 @@ const EMPTY_LOCAL_OVERRIDES: LocalOverrides = {
     widgetOrder: null,
 };
 
-type DashboardPreferencesUpdate = Partial<Omit<DashboardLayoutPreferences, "id" | "user_id" | "workspace_id">>;
+type DashboardPreferencesUpdate = Partial<Omit<DashboardLayoutPreferences, "id" | "user_id">>;
 
 interface PendingDashboardWrite {
     sequence: number;
@@ -55,9 +54,9 @@ interface PendingDashboardWrite {
 
 // ── Hook: useDashboardLayout ───────────────────────────────────────
 
-function useDashboardPreferences(workspaceId: string | undefined) {
+function useDashboardPreferences() {
     return useQuery<DashboardLayoutPreferences>({
-        queryKey: ["dashboard-preferences", workspaceId],
+        queryKey: ["dashboard-preferences"],
         queryFn: async () => {
             const response = await apiFetch("/v1/dashboard/preferences");
             if (!response.ok) {
@@ -69,7 +68,6 @@ function useDashboardPreferences(workspaceId: string | undefined) {
                 throw new DashboardPreferencesError("Dashboard preferences returned an invalid response.", response.status);
             }
         },
-        enabled: !!workspaceId,
     });
 }
 
@@ -93,30 +91,16 @@ function useDashboardMutation() {
 }
 
 export function useDashboardLayout() {
-    const { workspace } = useWorkspace();
-    const wsId = workspace ? workspace.id : undefined;
-    const { data: preferences, isLoading, error } = useDashboardPreferences(wsId);
+    const { data: preferences, isLoading, error } = useDashboardPreferences();
     const mutation = useDashboardMutation();
     const queryClient = useQueryClient();
-    const queryKey = ["dashboard-preferences", wsId];
+    const queryKey = ["dashboard-preferences"];
     const [local, setLocal] = useState<LocalOverrides>(EMPTY_LOCAL_OVERRIDES);
     const localRef = useRef<LocalOverrides>(EMPTY_LOCAL_OVERRIDES);
     const mutationSequence = useRef(0);
     const activeWriteRef = useRef<PendingDashboardWrite | null>(null);
     const queuedWriteRef = useRef<PendingDashboardWrite | null>(null);
     const [saveError, setSaveError] = useState<DashboardPreferencesError | null>(null);
-    const [prevWorkspaceId, setPrevWorkspaceId] = useState<string | undefined>(wsId);
-
-    useEffect(() => {
-        if (wsId === prevWorkspaceId) return;
-        setPrevWorkspaceId(wsId);
-        localRef.current = EMPTY_LOCAL_OVERRIDES;
-        activeWriteRef.current = null;
-        queuedWriteRef.current = null;
-        setLocal(EMPTY_LOCAL_OVERRIDES);
-        setSaveError(null);
-        mutationSequence.current += 1;
-    }, [prevWorkspaceId, wsId]);
 
     const getEffectiveState = () => {
         const currentActiveView = getActiveView(localRef.current.activeView, preferences);

@@ -16,7 +16,6 @@ interface Props {
   employeeId: string;
   isOpen: boolean;
   onClose: () => void;
-  wsId: string;
 }
 
 interface WarningProps {
@@ -50,9 +49,7 @@ function WarningAlert({ warning, title }: WarningProps) {
   // eslint-disable-next-line max-lines-per-function
 export default function AssignMilestoneModal({
   isOpen,
-  onClose,
-  wsId,
-  employeeId,
+  onClose,employeeId,
   definitions,
   contracts,
 }: Props) {
@@ -67,7 +64,7 @@ export default function AssignMilestoneModal({
   });
 
   const assignMutation = useMutation({
-    mutationFn: (data: typeof assignData) => assignEmployeePhase(wsId, employeeId, data),
+    mutationFn: (data: typeof assignData) => assignEmployeePhase(employeeId, data),
     onSuccess: () => {
       toast.success(t("common.success"));
       void queryClient.invalidateQueries({ queryKey: ["employee-phases", employeeId] });

@@ -3,9 +3,9 @@ import React from "react";
 import { useTranslation } from "react-i18next";
 
 import { Typography } from "@/components/ui/typography";
-import { WorkspaceLeaveBalance } from "@/lib/api";
+import { LeaveBalance } from "@/lib/api";
 
-export function LeaveBalanceBreakdown({ balance }: { balance: WorkspaceLeaveBalance }) {
+export function LeaveBalanceBreakdown({ balance }: { balance: LeaveBalance }) {
   const { t } = useTranslation();
   return (
     <div className="space-y-4">

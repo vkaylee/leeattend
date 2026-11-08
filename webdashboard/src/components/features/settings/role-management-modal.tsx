@@ -8,7 +8,7 @@ import Modal from "@/components/ui/modal";
 import { Typography } from "@/components/ui/typography";
 import { useConfirm } from "@/hooks/use-confirm";
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
-import { useMemberRoles, useWorkspaceRoles } from "@/hooks/use-workspace";
+import { useMemberRoles, useOrganizationRoles } from "@/hooks/use-organization";
 import { logError } from "@/lib/logger";
 
 interface RoleManagementModalProps {
@@ -137,7 +137,7 @@ export default function RoleManagementModal({
 }: RoleManagementModalProps) {
   const { t } = useTranslation();
   const { roles: memberRoles, isLoading, updatePrimaryRole, assignRole, revokeRole } = useMemberRoles(userId ?? "", undefined);
-  const { roles: workspaceRoles } = useWorkspaceRoles();
+  const { roles: workspaceRoles } = useOrganizationRoles();
   const { confirm, ConfirmationDialog } = useConfirm();
 
   const [newRoleId, setNewRoleId] = useState("");

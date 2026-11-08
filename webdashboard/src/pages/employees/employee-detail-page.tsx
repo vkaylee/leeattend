@@ -24,7 +24,6 @@ import { useDepartments } from "@/hooks/use-departments";
 import {
   fetchEmployee,
   fetchEmployeeDepartmentHistory,
-  getStandaloneOrganizationId,
   type Employee,
 } from "@/lib/api";
 import { employeeKeys } from "@/lib/query-keys";
@@ -41,7 +40,7 @@ import { useEmployeesModals } from "./hooks/use-employees-modals";
 
 export default function EmployeeDetailPage() {
   const { t } = useTranslation();
-  const wsId = getStandaloneOrganizationId() ?? "";
+  
   const { formatDate } = useDateTimeFormatter();
   const params = useParams({ strict: false }) as { employeeId?: string };
   const search = useSearch({ strict: false }) as { tab?: DetailTabType };
@@ -63,9 +62,9 @@ export default function EmployeeDetailPage() {
   };
 
   const { data: employee, isLoading, error, refetch } = useQuery({
-    enabled: Boolean(wsId && employeeId),
-    queryKey: ["employee", wsId, employeeId],
-    queryFn: () => fetchEmployee(wsId, employeeId),
+    enabled: Boolean(employeeId),
+    queryKey: ["employee", employeeId],
+    queryFn: () => fetchEmployee(employeeId),
   });
 
   const {
@@ -76,15 +75,14 @@ export default function EmployeeDetailPage() {
   } = useEmployeeDetail({
     employee: employee ?? null,
     isOpen: true,
-    wsId,
   });
 
-  const { data: departments } = useDepartments(wsId);
+  const { data: departments } = useDepartments();
 
   const { data: deptHistory } = useQuery({
-    enabled: Boolean(wsId && employeeId),
+    enabled: Boolean(employeeId),
     queryKey: ["deptHistory", employeeId],
-    queryFn: () => fetchEmployeeDepartmentHistory(wsId, employeeId),
+    queryFn: () => fetchEmployeeDepartmentHistory(employeeId),
   });
 
   const tabs = useMemo(
@@ -306,44 +304,38 @@ export default function EmployeeDetailPage() {
         ref={scrollRef}
         role="tabpanel"
       >
-        <DrawerTabContent
-          activeDetailTab={activeDetailTab}
-          activeEmployment={activeEmployment}
-          departments={departments}
-          deptHistory={deptHistory}
-          employee={employee}
-          formatDate={formatDate}
-          linkedUser={linkedUser}
-          locations={locations}
-          onEdit={() => { modals.openModal({ type: "edit", employee }); }}
-          onEmployeeUpdate={() => { void refetch(); }}
-          onRehire={() => { modals.openModal({ type: "rehire", employee }); }}
-          onTerminate={() => { modals.openModal({ type: "terminate", employee }); }}
-          onTransfer={(deptId) => {
-            modals.setSelectedDeptId(deptId);
-            modals.openModal({ type: "transfer", employee, departmentId: deptId });
-          }}
-          t={t}
-          wsId={wsId}
-        />
+        <DrawerTabContent activeDetailTab={activeDetailTab}
+        activeEmployment={activeEmployment}
+        departments={departments}
+        deptHistory={deptHistory}
+        employee={employee}
+        formatDate={formatDate}
+        linkedUser={linkedUser}
+        locations={locations}
+        onEdit={() => { modals.openModal({ type: "edit", employee }); }}
+        onEmployeeUpdate={() => { void refetch(); }}
+        onRehire={() => { modals.openModal({ type: "rehire", employee }); }}
+        onTerminate={() => { modals.openModal({ type: "terminate", employee }); }}
+        onTransfer={(deptId) => {
+          modals.setSelectedDeptId(deptId);
+          modals.openModal({ type: "transfer", employee, departmentId: deptId });
+        }}
+        t={t}  />
       </div>
 
       {/* ── Unified Overlays (Modals) ──────────────────────────────── */}
-      <EmployeeOverlays
-        activeModal={modals.activeModal}
-        closeModal={modals.closeModal}
-        departments={departments}
-        deptHistory={deptHistory}
-        formatDate={formatDate}
-        handleDrawerClose={() => {}}
-        openModal={modals.openModal}
-        prefillEnrollmentId={modals.prefillEnrollmentId}
-        selectedDeptId={modals.selectedDeptId}
-        selectedEmployee={null}
-        setSelectedDeptId={modals.setSelectedDeptId}
-        setSelectedEmployee={() => { void refetch(); }}
-        wsId={wsId}
-      />
+      <EmployeeOverlays activeModal={modals.activeModal}
+      closeModal={modals.closeModal}
+      departments={departments}
+      deptHistory={deptHistory}
+      formatDate={formatDate}
+      handleDrawerClose={() => {}}
+      openModal={modals.openModal}
+      prefillEnrollmentId={modals.prefillEnrollmentId}
+      selectedDeptId={modals.selectedDeptId}
+      selectedEmployee={null}
+      setSelectedDeptId={modals.setSelectedDeptId}
+      setSelectedEmployee={() => { void refetch(); }}  />
     </div>
   );
 }

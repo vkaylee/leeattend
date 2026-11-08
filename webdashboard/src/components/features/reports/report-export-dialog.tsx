@@ -17,7 +17,6 @@ interface ReportExportDialogProps {
   onClose: () => void;
   reportType: "summary" | "detail";
   startDate: string;
-  wsId: string;
 }
 
 export type ExportPhase = "idle" | "starting" | "polling" | "downloading" | "completed" | "failed";
@@ -238,10 +237,10 @@ function ExportActionsPanel({ phase, onClose, handleStartExport, handleDownload,
   );
 }
 
-export default function ReportExportDialog({ isOpen, onClose, wsId, startDate, endDate, reportType, employeeIds }: ReportExportDialogProps) {
+export default function ReportExportDialog({ isOpen, onClose,startDate, endDate, reportType, employeeIds }: ReportExportDialogProps) {
   const { t } = useTranslation();
   const { phase, error, totalBatches, useFallbackPolling, percentage, completedBatches, handleStartExport, handleDownload } = useExportDialog({
-    isOpen, wsId, startDate, endDate, reportType, employeeIds, onClose,
+    isOpen,startDate, endDate, reportType, employeeIds, onClose,
   });
 
   return (

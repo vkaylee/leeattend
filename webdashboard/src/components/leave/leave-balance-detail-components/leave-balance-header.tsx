@@ -4,9 +4,9 @@ import { useTranslation } from "react-i18next";
 
 import Button from "@/components/ui/button";
 import { Typography } from "@/components/ui/typography";
-import { WorkspaceLeaveBalance } from "@/lib/api";
+import { LeaveBalance } from "@/lib/api";
 
-export function LeaveBalanceHeader({ balance, onClose }: { balance: WorkspaceLeaveBalance; onClose: () => void }) {
+export function LeaveBalanceHeader({ balance, onClose }: { balance: LeaveBalance; onClose: () => void }) {
   const { t } = useTranslation();
   return (
     <div className="sticky top-0 bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800 px-6 md:px-8 py-5 md:py-6 rounded-t-3xl z-10 flex-shrink-0">

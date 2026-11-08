@@ -274,10 +274,10 @@ export const APP_REGISTRY: AppDefinition[] = [
     id: "settings",
     icon: Settings,
     labelKey: "settings.title",
-    descriptionKey: "workspace_settings.description",
+    descriptionKey: "organization_settings.description",
     to: ROUTES.SETTINGS.ROOT,
     group: "system",
-    permissions: ["workspace:settings:read", "members:roles:manage"],
+    permissions: ["organization:settings:read", "members:roles:manage"],
     testId: "app-card-settings",
   },
   {

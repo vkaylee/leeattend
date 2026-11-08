@@ -17,9 +17,6 @@ import (
 	httpinfra "github.com/vkaylee/leeattend/apiserver/internal/infra/http"
 )
 
-type StandaloneAuthorizer interface {
-	HasPermission(context.Context, uuid.UUID, uuid.UUID, string) bool
-}
 
 type SMTPTestRequest struct {
 	ToEmail string `json:"to_email"`
@@ -44,7 +41,7 @@ type RedisClient interface {
 }
 
 type SystemAdminHandler struct {
-	Authorizer  StandaloneAuthorizer
+	Authorizer  Authorizer
 	Settings    SystemSettingsRepository
 	EmailSender EmailSender
 	Redis       RedisClient
@@ -55,8 +52,7 @@ func (h SystemAdminHandler) requireStandalonePermission(r *http.Request, permiss
 	if !ok || userID == uuid.Nil {
 		return uuid.Nil, apperror.Unauthorized(apperror.KeyUnauthorized)
 	}
-	workspaceID, ok := organizationIDFromContext(r)
-	if !ok || h.Authorizer == nil || !h.Authorizer.HasPermission(r.Context(), userID, workspaceID, permission) {
+	if h.Authorizer == nil || !h.Authorizer.HasPermission(r.Context(), userID, permission) {
 		return uuid.Nil, apperror.Forbidden(apperror.KeyForbidden)
 	}
 	return userID, nil

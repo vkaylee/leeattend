@@ -11,8 +11,7 @@ import (
 )
 
 type DocumentRepository struct {
-	DB       DBTX
-	SystemDB DBTX
+	DB DBTX
 }
 
 func (r DocumentRepository) db(ctx context.Context) (DBTX, error) {
@@ -22,17 +21,16 @@ func (r DocumentRepository) db(ctx context.Context) (DBTX, error) {
 	return r.DB, nil
 }
 
-func (r DocumentRepository) ListFolders(ctx context.Context, wsID uuid.UUID) ([]api.DocumentFolderDto, error) {
+func (r DocumentRepository) ListFolders(ctx context.Context) ([]api.DocumentFolderDto, error) {
 	db, err := r.db(ctx)
 	if err != nil {
 		return nil, err
 	}
-	rows, err := db.Query(ctx, `SELECT id, name, parent_folder_id FROM document_folders WHERE workspace_id = $1 ORDER BY name ASC`, wsID)
+	rows, err := db.Query(ctx, `SELECT id, name, parent_folder_id FROM document_folders ORDER BY name ASC`)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-
 	result := make([]api.DocumentFolderDto, 0)
 	for rows.Next() {
 		var f api.DocumentFolderDto
@@ -44,14 +42,14 @@ func (r DocumentRepository) ListFolders(ctx context.Context, wsID uuid.UUID) ([]
 	return result, rows.Err()
 }
 
-func (r DocumentRepository) CreateFolder(ctx context.Context, wsID uuid.UUID, req api.CreateFolderRequest) (api.DocumentFolderDto, error) {
+func (r DocumentRepository) CreateFolder(ctx context.Context, req api.CreateFolderRequest) (api.DocumentFolderDto, error) {
 	db, err := r.db(ctx)
 	if err != nil {
 		return api.DocumentFolderDto{}, err
 	}
 	if req.ParentFolderID != nil {
 		var exists int
-		err := db.QueryRow(ctx, `SELECT 1 FROM document_folders WHERE workspace_id = $1 AND id = $2`, wsID, *req.ParentFolderID).Scan(&exists)
+		err := db.QueryRow(ctx, `SELECT 1 FROM document_folders WHERE id = $1`, *req.ParentFolderID).Scan(&exists)
 		if err != nil {
 			if errors.Is(err, pgx.ErrNoRows) {
 				return api.DocumentFolderDto{}, api.ErrInvalidParent
@@ -62,22 +60,22 @@ func (r DocumentRepository) CreateFolder(ctx context.Context, wsID uuid.UUID, re
 	var f api.DocumentFolderDto
 	folderID := uuid.New()
 	err = db.QueryRow(ctx, `INSERT INTO document_folders (
-		id, workspace_id, name, parent_folder_id, created_at, updated_at
-	) VALUES ($1, $2, $3, $4, NOW(), NOW())
-	RETURNING id, name, parent_folder_id`, folderID, wsID, req.Name, req.ParentFolderID).Scan(&f.ID, &f.Name, &f.ParentFolderID)
+		id, name, parent_folder_id, created_at, updated_at
+	) VALUES ($1, $2, $3, NOW(), NOW())
+	RETURNING id, name, parent_folder_id`, folderID, req.Name, req.ParentFolderID).Scan(&f.ID, &f.Name, &f.ParentFolderID)
 	if err != nil {
 		return api.DocumentFolderDto{}, err
 	}
 	return f, nil
 }
 
-func (r DocumentRepository) GetFolder(ctx context.Context, wsID, folderID uuid.UUID) (api.DocumentFolderDto, error) {
+func (r DocumentRepository) GetFolder(ctx context.Context, folderID uuid.UUID) (api.DocumentFolderDto, error) {
 	db, err := r.db(ctx)
 	if err != nil {
 		return api.DocumentFolderDto{}, err
 	}
 	var f api.DocumentFolderDto
-	err = db.QueryRow(ctx, `SELECT id, name, parent_folder_id FROM document_folders WHERE workspace_id = $1 AND id = $2`, wsID, folderID).Scan(&f.ID, &f.Name, &f.ParentFolderID)
+	err = db.QueryRow(ctx, `SELECT id, name, parent_folder_id FROM document_folders WHERE id = $1`, folderID).Scan(&f.ID, &f.Name, &f.ParentFolderID)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return api.DocumentFolderDto{}, api.ErrFolderNotFound
@@ -87,13 +85,13 @@ func (r DocumentRepository) GetFolder(ctx context.Context, wsID, folderID uuid.U
 	return f, nil
 }
 
-func (r DocumentRepository) RenameFolder(ctx context.Context, wsID, folderID uuid.UUID, name string) (api.DocumentFolderDto, error) {
+func (r DocumentRepository) RenameFolder(ctx context.Context, folderID uuid.UUID, name string) (api.DocumentFolderDto, error) {
 	db, err := r.db(ctx)
 	if err != nil {
 		return api.DocumentFolderDto{}, err
 	}
 	var f api.DocumentFolderDto
-	err = db.QueryRow(ctx, `UPDATE document_folders SET name = $1, updated_at = NOW() WHERE workspace_id = $2 AND id = $3 RETURNING id, name, parent_folder_id`, name, wsID, folderID).Scan(&f.ID, &f.Name, &f.ParentFolderID)
+	err = db.QueryRow(ctx, `UPDATE document_folders SET name = $1, updated_at = NOW() WHERE id = $2 RETURNING id, name, parent_folder_id`, name, folderID).Scan(&f.ID, &f.Name, &f.ParentFolderID)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return api.DocumentFolderDto{}, api.ErrFolderNotFound
@@ -103,12 +101,12 @@ func (r DocumentRepository) RenameFolder(ctx context.Context, wsID, folderID uui
 	return f, nil
 }
 
-func (r DocumentRepository) DeleteFolder(ctx context.Context, wsID, folderID uuid.UUID) error {
+func (r DocumentRepository) DeleteFolder(ctx context.Context, folderID uuid.UUID) error {
 	db, err := r.db(ctx)
 	if err != nil {
 		return err
 	}
-	tag, err := db.Exec(ctx, `DELETE FROM document_folders WHERE workspace_id = $1 AND id = $2`, wsID, folderID)
+	tag, err := db.Exec(ctx, `DELETE FROM document_folders WHERE id = $1`, folderID)
 	if err != nil {
 		return err
 	}
@@ -118,7 +116,7 @@ func (r DocumentRepository) DeleteFolder(ctx context.Context, wsID, folderID uui
 	return nil
 }
 
-func (r DocumentRepository) DistributeDocument(ctx context.Context, wsID uuid.UUID, req api.DistributeDocumentRequest) (int, error) {
+func (r DocumentRepository) DistributeDocument(ctx context.Context, req api.DistributeDocumentRequest) (int, error) {
 	db, err := r.db(ctx)
 	if err != nil {
 		return 0, err
@@ -126,9 +124,9 @@ func (r DocumentRepository) DistributeDocument(ctx context.Context, wsID uuid.UU
 	count := 0
 	for _, empID := range req.TargetEmployeeIDs {
 		_, err := db.Exec(ctx, `INSERT INTO file_acknowledgements (
-			id, workspace_id, document_id, employee_id, status, created_at, updated_at
-		) VALUES (gen_random_uuid(), $1, $2, $3, 'pending', NOW(), NOW())
-		ON CONFLICT DO NOTHING`, wsID, req.DocumentID, empID)
+			id, document_id, employee_id, status, created_at, updated_at
+		) VALUES (gen_random_uuid(), $1, $2, 'pending', NOW(), NOW())
+		ON CONFLICT DO NOTHING`, req.DocumentID, empID)
 		if err == nil {
 			count++
 		}
@@ -136,13 +134,13 @@ func (r DocumentRepository) DistributeDocument(ctx context.Context, wsID uuid.UU
 	return count, nil
 }
 
-func (r DocumentRepository) GetTemplateVariables(ctx context.Context, wsID, employeeID uuid.UUID) (map[string]string, error) {
+func (r DocumentRepository) GetTemplateVariables(ctx context.Context, employeeID uuid.UUID) (map[string]string, error) {
 	vars := make(map[string]string)
 	vars["COMPANY_NAME"] = "LeeAttend Corp"
-	if r.SystemDB != nil {
-		var wsName string
-		if err := r.SystemDB.QueryRow(ctx, `SELECT name FROM workspaces WHERE id = $1`, wsID).Scan(&wsName); err == nil && wsName != "" {
-			vars["COMPANY_NAME"] = wsName
+	if r.DB != nil {
+		var orgName string
+		if err := r.DB.QueryRow(ctx, `SELECT name FROM organization_settings LIMIT 1`).Scan(&orgName); err == nil && orgName != "" {
+			vars["COMPANY_NAME"] = orgName
 		}
 	}
 
@@ -154,7 +152,7 @@ func (r DocumentRepository) GetTemplateVariables(ctx context.Context, wsID, empl
 	}
 
 	var fullName, empNum string
-	if err := db.QueryRow(ctx, `SELECT full_name, employee_id_number FROM employees WHERE workspace_id = $1 AND id = $2 AND deleted_at IS NULL`, wsID, employeeID).Scan(&fullName, &empNum); err == nil {
+	if err := db.QueryRow(ctx, `SELECT full_name, employee_id_number FROM employees WHERE id = $1 AND deleted_at IS NULL`, employeeID).Scan(&fullName, &empNum); err == nil {
 		vars["EMPLOYEE_NAME"] = fullName
 		vars["EMPLOYEE_ID_NUMBER"] = empNum
 	}
@@ -162,14 +160,14 @@ func (r DocumentRepository) GetTemplateVariables(ctx context.Context, wsID, empl
 	var empID uuid.UUID
 	var jobTitle *string
 	var startDate time.Time
-	if err := db.QueryRow(ctx, `SELECT id, job_title, start_date FROM employments WHERE workspace_id = $1 AND employee_id = $2 AND deleted_at IS NULL ORDER BY (CASE WHEN status = 'active' THEN 0 ELSE 1 END), start_date DESC LIMIT 1`, wsID, employeeID).Scan(&empID, &jobTitle, &startDate); err == nil {
+	if err := db.QueryRow(ctx, `SELECT id, job_title, start_date FROM employments WHERE employee_id = $1 AND deleted_at IS NULL ORDER BY (CASE WHEN status = 'active' THEN 0 ELSE 1 END), start_date DESC LIMIT 1`, employeeID).Scan(&empID, &jobTitle, &startDate); err == nil {
 		vars["HIRE_DATE"] = startDate.Format("02/01/2006")
 		if jobTitle != nil && *jobTitle != "" {
 			vars["JOB_TITLE"] = *jobTitle
 		}
 
 		var contractNum *string
-		if err := db.QueryRow(ctx, `SELECT contract_number FROM employee_contracts WHERE workspace_id = $1 AND employment_id = $2 AND deleted_at IS NULL ORDER BY created_at ASC LIMIT 1`, wsID, empID).Scan(&contractNum); err == nil {
+		if err := db.QueryRow(ctx, `SELECT contract_number FROM employee_contracts WHERE employment_id = $1 AND deleted_at IS NULL ORDER BY created_at ASC LIMIT 1`, empID).Scan(&contractNum); err == nil {
 			if contractNum != nil && *contractNum != "" {
 				vars["CONTRACT_NUMBER"] = *contractNum
 			}

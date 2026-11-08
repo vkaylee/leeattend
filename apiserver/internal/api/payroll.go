@@ -53,7 +53,6 @@ type AssignSalaryComponentRequest struct {
 
 type SalaryBaseGroup struct {
 	ID          uuid.UUID  `json:"id"`
-	WorkspaceID *uuid.UUID `json:"workspace_id"`
 	Name        string     `json:"name"`
 	Slug        string     `json:"slug"`
 	Description *string    `json:"description"`
@@ -89,7 +88,6 @@ type PayrollQuery struct {
 }
 type PayslipRecord struct {
 	ID                       uuid.UUID       `json:"id"`
-	WorkspaceID              uuid.UUID       `json:"workspace_id"`
 	EmploymentID             uuid.UUID       `json:"employment_id"`
 	PeriodStart              string          `json:"period_start"`
 	PeriodEnd                string          `json:"period_end"`
@@ -105,7 +103,6 @@ type PayslipRecord struct {
 	UpdatedAt                string          `json:"updated_at"`
 }
 type PayrollSettings struct {
-	WorkspaceID        uuid.UUID        `json:"workspace_id"`
 	StdWorkingDayMode  string           `json:"std_working_day_mode"`
 	FixedStdDays       decimal.Decimal  `json:"fixed_std_days"`
 	WorkingDaysPerWeek int              `json:"working_days_per_week"`
@@ -158,7 +155,6 @@ type CreateIncentiveTierRequest struct {
 
 type PayrollIncentivePolicy struct {
 	ID            uuid.UUID       `json:"id"`
-	WorkspaceID   uuid.UUID       `json:"workspace_id"`
 	Name          string          `json:"name"`
 	BaseAmount    decimal.Decimal `json:"base_amount"`
 	PayoutType    string          `json:"payout_type"`
@@ -194,7 +190,6 @@ type CreatePayrollRuleDefinitionRequest struct {
 
 type PayrollRuleDefinition struct {
 	ID                uuid.UUID       `json:"id"`
-	WorkspaceID       uuid.UUID       `json:"workspace_id"`
 	Name              string          `json:"name"`
 	Description       *string         `json:"description"`
 	Code              string          `json:"code"`
@@ -238,7 +233,6 @@ type AssignPayrollRuleRequest struct {
 
 type PayrollRuleAssignment struct {
 	ID               uuid.UUID        `json:"id"`
-	WorkspaceID      uuid.UUID        `json:"workspace_id"`
 	RuleDefinitionID uuid.UUID        `json:"rule_definition_id"`
 	AssigneeType     string           `json:"assignee_type"`
 	AssigneeID       *uuid.UUID       `json:"assignee_id"`
@@ -307,44 +301,44 @@ type BatchCalculatePayrollResponse struct {
 }
 
 type PayrollRepository interface {
-	ListWorkspacePayslips(context.Context, uuid.UUID, time.Time, time.Time) ([]PayslipRecord, error)
-	ListEmployeePayslips(context.Context, uuid.UUID, uuid.UUID) ([]PayslipRecord, error)
-	ListSalaryComponents(context.Context, uuid.UUID) ([]SalaryComponentDefinition, error)
-	CreateSalaryComponent(context.Context, uuid.UUID, CreateSalaryComponentRequest) (SalaryComponentDefinition, error)
-	ListEmploymentSalaryComponents(context.Context, uuid.UUID, uuid.UUID) ([]EmploymentSalaryComponentResponse, error)
-	AssignEmploymentSalaryComponent(context.Context, uuid.UUID, uuid.UUID, AssignSalaryComponentRequest) (EmployeeSalaryComponent, error)
-	ListSalaryBases(context.Context, uuid.UUID) (SalaryBasesResponse, error)
-	CreateSalaryBase(context.Context, uuid.UUID, CreateSalaryBaseRequest) (SalaryBaseGroup, error)
-	AssignBaseMember(context.Context, uuid.UUID, uuid.UUID, uuid.UUID) error
-	UnassignBaseMember(context.Context, uuid.UUID, uuid.UUID, uuid.UUID) error
-	GetPayrollSettings(context.Context, uuid.UUID) (*PayrollSettings, error)
-	GetPayrollSettingsHistory(context.Context, uuid.UUID) ([]PayrollSettings, error)
-	UpdatePayrollSettings(context.Context, uuid.UUID, UpdatePayrollSettingsRequest) (PayrollSettings, error)
-	GetEmployeePayrollConfigs(context.Context, uuid.UUID, uuid.UUID) ([]EmployeePayrollConfig, error)
-	SetEmployeePayrollConfig(context.Context, uuid.UUID, uuid.UUID, SetEmployeePayrollConfigRequest, uuid.UUID) (EmployeePayrollConfig, error)
-	GetIncentivePolicies(context.Context, uuid.UUID) ([]PayrollIncentivePolicyResponse, error)
-	CreateIncentivePolicy(context.Context, uuid.UUID, CreatePayrollIncentivePolicyRequest) (PayrollIncentivePolicy, error)
-	DeleteIncentivePolicy(context.Context, uuid.UUID, uuid.UUID) error
-	CloneIncentivePolicy(context.Context, uuid.UUID, uuid.UUID) (PayrollIncentivePolicy, error)
-	ListPayrollRules(context.Context, uuid.UUID) ([]PayrollRuleDefinition, error)
-	CreatePayrollRule(context.Context, uuid.UUID, CreatePayrollRuleDefinitionRequest) (PayrollRuleDefinition, error)
-	ListPayrollRuleTiers(context.Context, uuid.UUID, uuid.UUID) ([]PayrollRuleTier, error)
-	CreatePayrollRuleTier(context.Context, uuid.UUID, uuid.UUID, CreatePayrollRuleTierRequest) (PayrollRuleTier, error)
-	DeletePayrollRuleTier(context.Context, uuid.UUID, uuid.UUID, uuid.UUID) error
-	ListPayrollRuleAssignments(context.Context, uuid.UUID, uuid.UUID) ([]PayrollRuleAssignment, error)
-	AssignPayrollRule(context.Context, uuid.UUID, uuid.UUID, AssignPayrollRuleRequest) (PayrollRuleAssignment, error)
-	DeletePayrollRuleAssignment(context.Context, uuid.UUID, uuid.UUID, uuid.UUID) error
-	CalculateEmployeePayroll(context.Context, uuid.UUID, uuid.UUID, int, int) (FullPayslipResponse, error)
-	CalculateBatchPayroll(context.Context, uuid.UUID, BatchCalculatePayrollRequest) (BatchCalculatePayrollResponse, error)
+	ListPayslips(context.Context, time.Time, time.Time) ([]PayslipRecord, error)
+	ListEmployeePayslips(context.Context, uuid.UUID) ([]PayslipRecord, error)
+	ListSalaryComponents(context.Context) ([]SalaryComponentDefinition, error)
+	CreateSalaryComponent(context.Context, CreateSalaryComponentRequest) (SalaryComponentDefinition, error)
+	ListEmploymentSalaryComponents(context.Context, uuid.UUID) ([]EmploymentSalaryComponentResponse, error)
+	AssignEmploymentSalaryComponent(context.Context, uuid.UUID, AssignSalaryComponentRequest) (EmployeeSalaryComponent, error)
+	ListSalaryBases(context.Context) (SalaryBasesResponse, error)
+	CreateSalaryBase(context.Context, CreateSalaryBaseRequest) (SalaryBaseGroup, error)
+	AssignBaseMember(context.Context, uuid.UUID, uuid.UUID) error
+	UnassignBaseMember(context.Context, uuid.UUID, uuid.UUID) error
+	GetPayrollSettings(context.Context) (*PayrollSettings, error)
+	GetPayrollSettingsHistory(context.Context) ([]PayrollSettings, error)
+	UpdatePayrollSettings(context.Context, UpdatePayrollSettingsRequest) (PayrollSettings, error)
+	GetEmployeePayrollConfigs(context.Context, uuid.UUID) ([]EmployeePayrollConfig, error)
+	SetEmployeePayrollConfig(context.Context, uuid.UUID, SetEmployeePayrollConfigRequest, uuid.UUID) (EmployeePayrollConfig, error)
+	GetIncentivePolicies(context.Context) ([]PayrollIncentivePolicyResponse, error)
+	CreateIncentivePolicy(context.Context, CreatePayrollIncentivePolicyRequest) (PayrollIncentivePolicy, error)
+	DeleteIncentivePolicy(context.Context, uuid.UUID) error
+	CloneIncentivePolicy(context.Context, uuid.UUID) (PayrollIncentivePolicy, error)
+	ListPayrollRules(context.Context) ([]PayrollRuleDefinition, error)
+	CreatePayrollRule(context.Context, CreatePayrollRuleDefinitionRequest) (PayrollRuleDefinition, error)
+	ListPayrollRuleTiers(context.Context, uuid.UUID) ([]PayrollRuleTier, error)
+	CreatePayrollRuleTier(context.Context, uuid.UUID, CreatePayrollRuleTierRequest) (PayrollRuleTier, error)
+	DeletePayrollRuleTier(context.Context, uuid.UUID, uuid.UUID) error
+	ListPayrollRuleAssignments(context.Context, uuid.UUID) ([]PayrollRuleAssignment, error)
+	AssignPayrollRule(context.Context, uuid.UUID, AssignPayrollRuleRequest) (PayrollRuleAssignment, error)
+	DeletePayrollRuleAssignment(context.Context, uuid.UUID, uuid.UUID) error
+	CalculateEmployeePayroll(context.Context, uuid.UUID, int, int) (FullPayslipResponse, error)
+	CalculateBatchPayroll(context.Context, BatchCalculatePayrollRequest) (BatchCalculatePayrollResponse, error)
 }
 type PayrollHandler struct {
 	Repository PayrollRepository
-	Authorizer WorkspaceAuthorizer
+	Authorizer Authorizer
 }
 
-func (h PayrollHandler) ListWorkspace(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := organizationIDFromContext(r)
-	if !ok || !h.allowed(r, wsID, "payroll:read") {
+func (h PayrollHandler) ListPayslips(w http.ResponseWriter, r *http.Request) {
+	
+	if !h.allowed(r, "payroll:read") {
 		h.forbidden(w, r)
 		return
 	}
@@ -353,7 +347,7 @@ func (h PayrollHandler) ListWorkspace(w http.ResponseWriter, r *http.Request) {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}
-	rows, err := h.Repository.ListWorkspacePayslips(r.Context(), wsID, start, end)
+	rows, err := h.Repository.ListPayslips(r.Context(), start, end)
 	if err != nil {
 		h.writeError(w, r, err)
 		return
@@ -361,13 +355,13 @@ func (h PayrollHandler) ListWorkspace(w http.ResponseWriter, r *http.Request) {
 	apperror.WriteJSON(w, http.StatusOK, rows)
 }
 func (h PayrollHandler) ListEmployee(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := organizationIDFromContext(r)
+	
 	empID, empOK := pathUUID(r, "employee_id")
-	if !ok || !empOK || !h.allowed(r, wsID, "payroll:read") {
+	if !empOK || !h.allowed(r, "payroll:read") {
 		h.forbidden(w, r)
 		return
 	}
-	rows, err := h.Repository.ListEmployeePayslips(r.Context(), wsID, empID)
+	rows, err := h.Repository.ListEmployeePayslips(r.Context(), empID)
 	if err != nil {
 		h.writeError(w, r, err)
 		return
@@ -375,12 +369,12 @@ func (h PayrollHandler) ListEmployee(w http.ResponseWriter, r *http.Request) {
 	apperror.WriteJSON(w, http.StatusOK, rows)
 }
 func (h PayrollHandler) ListSalaryComponents(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := organizationIDFromContext(r)
-	if !ok || !h.allowedRead(r, wsID) {
+	
+	if !h.allowedRead(r) {
 		h.forbidden(w, r)
 		return
 	}
-	rows, err := h.Repository.ListSalaryComponents(r.Context(), wsID)
+	rows, err := h.Repository.ListSalaryComponents(r.Context())
 	if err != nil {
 		h.writeError(w, r, err)
 		return
@@ -392,8 +386,8 @@ func (h PayrollHandler) ListSalaryComponents(w http.ResponseWriter, r *http.Requ
 }
 
 func (h PayrollHandler) CreateSalaryComponent(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := organizationIDFromContext(r)
-	if !ok || !h.allowedManage(r, wsID) {
+	
+	if !h.allowedManage(r) {
 		h.forbidden(w, r)
 		return
 	}
@@ -402,7 +396,7 @@ func (h PayrollHandler) CreateSalaryComponent(w http.ResponseWriter, r *http.Req
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}
-	comp, err := h.Repository.CreateSalaryComponent(r.Context(), wsID, req)
+	comp, err := h.Repository.CreateSalaryComponent(r.Context(), req)
 	if err != nil {
 		h.writeError(w, r, err)
 		return
@@ -411,13 +405,13 @@ func (h PayrollHandler) CreateSalaryComponent(w http.ResponseWriter, r *http.Req
 }
 
 func (h PayrollHandler) ListEmploymentSalaryComponents(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := organizationIDFromContext(r)
+	
 	empID, empOK := employmentIDFromRequest(r)
-	if !ok || !empOK || !h.allowedRead(r, wsID) {
+	if !empOK || !h.allowedRead(r) {
 		h.forbidden(w, r)
 		return
 	}
-	comps, err := h.Repository.ListEmploymentSalaryComponents(r.Context(), wsID, empID)
+	comps, err := h.Repository.ListEmploymentSalaryComponents(r.Context(), empID)
 	if err != nil {
 		h.writeError(w, r, err)
 		return
@@ -429,9 +423,9 @@ func (h PayrollHandler) ListEmploymentSalaryComponents(w http.ResponseWriter, r 
 }
 
 func (h PayrollHandler) AssignEmploymentSalaryComponent(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := organizationIDFromContext(r)
+	
 	empID, empOK := employmentIDFromRequest(r)
-	if !ok || !empOK || !h.allowedManage(r, wsID) {
+	if !empOK || !h.allowedManage(r) {
 		h.forbidden(w, r)
 		return
 	}
@@ -444,7 +438,7 @@ func (h PayrollHandler) AssignEmploymentSalaryComponent(w http.ResponseWriter, r
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}
-	comp, err := h.Repository.AssignEmploymentSalaryComponent(r.Context(), wsID, empID, req)
+	comp, err := h.Repository.AssignEmploymentSalaryComponent(r.Context(), empID, req)
 	if err != nil {
 		h.writeError(w, r, err)
 		return
@@ -453,12 +447,12 @@ func (h PayrollHandler) AssignEmploymentSalaryComponent(w http.ResponseWriter, r
 }
 
 func (h PayrollHandler) ListSalaryBases(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := organizationIDFromContext(r)
-	if !ok || !h.allowedRead(r, wsID) {
+	
+	if !h.allowedRead(r) {
 		h.forbidden(w, r)
 		return
 	}
-	bases, err := h.Repository.ListSalaryBases(r.Context(), wsID)
+	bases, err := h.Repository.ListSalaryBases(r.Context())
 	if err != nil {
 		h.writeError(w, r, err)
 		return
@@ -473,8 +467,8 @@ func (h PayrollHandler) ListSalaryBases(w http.ResponseWriter, r *http.Request) 
 }
 
 func (h PayrollHandler) CreateSalaryBase(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := organizationIDFromContext(r)
-	if !ok || !h.allowedManage(r, wsID) {
+	
+	if !h.allowedManage(r) {
 		h.forbidden(w, r)
 		return
 	}
@@ -483,7 +477,7 @@ func (h PayrollHandler) CreateSalaryBase(w http.ResponseWriter, r *http.Request)
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}
-	base, err := h.Repository.CreateSalaryBase(r.Context(), wsID, req)
+	base, err := h.Repository.CreateSalaryBase(r.Context(), req)
 	if err != nil {
 		h.writeError(w, r, err)
 		return
@@ -492,9 +486,9 @@ func (h PayrollHandler) CreateSalaryBase(w http.ResponseWriter, r *http.Request)
 }
 
 func (h PayrollHandler) AssignBaseMember(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := organizationIDFromContext(r)
+	
 	baseID, baseOK := pathUUID(r, "base_id")
-	if !ok || !baseOK || !h.allowedManage(r, wsID) {
+	if !baseOK || !h.allowedManage(r) {
 		h.forbidden(w, r)
 		return
 	}
@@ -503,7 +497,7 @@ func (h PayrollHandler) AssignBaseMember(w http.ResponseWriter, r *http.Request)
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}
-	if err := h.Repository.AssignBaseMember(r.Context(), wsID, baseID, req.ComponentDefinitionID); err != nil {
+	if err := h.Repository.AssignBaseMember(r.Context(), baseID, req.ComponentDefinitionID); err != nil {
 		h.writeError(w, r, err)
 		return
 	}
@@ -511,26 +505,26 @@ func (h PayrollHandler) AssignBaseMember(w http.ResponseWriter, r *http.Request)
 }
 
 func (h PayrollHandler) UnassignBaseMember(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := organizationIDFromContext(r)
+	
 	baseID, baseOK := pathUUID(r, "base_id")
 	compID, compOK := pathUUID(r, "component_id")
-	if !ok || !baseOK || !compOK || !h.allowedManage(r, wsID) {
+	if !baseOK || !compOK || !h.allowedManage(r) {
 		h.forbidden(w, r)
 		return
 	}
-	if err := h.Repository.UnassignBaseMember(r.Context(), wsID, baseID, compID); err != nil {
+	if err := h.Repository.UnassignBaseMember(r.Context(), baseID, compID); err != nil {
 		h.writeError(w, r, err)
 		return
 	}
 	apperror.WriteJSON(w, http.StatusOK, map[string]bool{"success": true})
 }
 func (h PayrollHandler) GetPayrollSettings(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := organizationIDFromContext(r)
-	if !ok || !h.allowedMember(r, wsID) {
+	
+	if !h.allowedMember(r) {
 		h.forbidden(w, r)
 		return
 	}
-	settings, err := h.Repository.GetPayrollSettings(r.Context(), wsID)
+	settings, err := h.Repository.GetPayrollSettings(r.Context())
 	if err != nil {
 		h.writeError(w, r, err)
 		return
@@ -539,8 +533,8 @@ func (h PayrollHandler) GetPayrollSettings(w http.ResponseWriter, r *http.Reques
 }
 
 func (h PayrollHandler) UpdatePayrollSettings(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := organizationIDFromContext(r)
-	if !ok || !h.allowedMember(r, wsID) {
+	
+	if !h.allowedMember(r) {
 		h.forbidden(w, r)
 		return
 	}
@@ -555,7 +549,7 @@ func (h PayrollHandler) UpdatePayrollSettings(w http.ResponseWriter, r *http.Req
 			return
 		}
 	}
-	settings, err := h.Repository.UpdatePayrollSettings(r.Context(), wsID, req)
+	settings, err := h.Repository.UpdatePayrollSettings(r.Context(), req)
 	if err != nil {
 		h.writeError(w, r, err)
 		return
@@ -564,12 +558,12 @@ func (h PayrollHandler) UpdatePayrollSettings(w http.ResponseWriter, r *http.Req
 }
 
 func (h PayrollHandler) GetPayrollSettingsHistory(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := organizationIDFromContext(r)
-	if !ok || !h.allowedMember(r, wsID) {
+	
+	if !h.allowedMember(r) {
 		h.forbidden(w, r)
 		return
 	}
-	history, err := h.Repository.GetPayrollSettingsHistory(r.Context(), wsID)
+	history, err := h.Repository.GetPayrollSettingsHistory(r.Context())
 	if err != nil {
 		h.writeError(w, r, err)
 		return
@@ -581,13 +575,13 @@ func (h PayrollHandler) GetPayrollSettingsHistory(w http.ResponseWriter, r *http
 }
 
 func (h PayrollHandler) GetEmployeePayrollConfig(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := organizationIDFromContext(r)
+	
 	empID, empOK := pathUUID(r, "id")
-	if !ok || !empOK || !h.allowedMember(r, wsID) {
+	if !empOK || !h.allowedMember(r) {
 		h.forbidden(w, r)
 		return
 	}
-	configs, err := h.Repository.GetEmployeePayrollConfigs(r.Context(), wsID, empID)
+	configs, err := h.Repository.GetEmployeePayrollConfigs(r.Context(), empID)
 	if err != nil {
 		h.writeError(w, r, err)
 		return
@@ -599,9 +593,9 @@ func (h PayrollHandler) GetEmployeePayrollConfig(w http.ResponseWriter, r *http.
 }
 
 func (h PayrollHandler) SetEmployeePayrollConfig(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := organizationIDFromContext(r)
+	
 	empID, empOK := pathUUID(r, "id")
-	if !ok || !empOK || !h.allowedMember(r, wsID) {
+	if !empOK || !h.allowedMember(r) {
 		h.forbidden(w, r)
 		return
 	}
@@ -619,7 +613,7 @@ func (h PayrollHandler) SetEmployeePayrollConfig(w http.ResponseWriter, r *http.
 		return
 	}
 	userID, _ := httpinfra.UserIDFromContext(r.Context())
-	config, err := h.Repository.SetEmployeePayrollConfig(r.Context(), wsID, empID, req, userID)
+	config, err := h.Repository.SetEmployeePayrollConfig(r.Context(), empID, req, userID)
 	if err != nil {
 		h.writeError(w, r, err)
 		return
@@ -628,12 +622,12 @@ func (h PayrollHandler) SetEmployeePayrollConfig(w http.ResponseWriter, r *http.
 }
 
 func (h PayrollHandler) GetIncentivePolicies(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := organizationIDFromContext(r)
-	if !ok || !h.allowedMember(r, wsID) {
+	
+	if !h.allowedMember(r) {
 		h.forbidden(w, r)
 		return
 	}
-	policies, err := h.Repository.GetIncentivePolicies(r.Context(), wsID)
+	policies, err := h.Repository.GetIncentivePolicies(r.Context())
 	if err != nil {
 		h.writeError(w, r, err)
 		return
@@ -645,8 +639,8 @@ func (h PayrollHandler) GetIncentivePolicies(w http.ResponseWriter, r *http.Requ
 }
 
 func (h PayrollHandler) CreateIncentivePolicy(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := organizationIDFromContext(r)
-	if !ok || !h.allowedMember(r, wsID) {
+	
+	if !h.allowedMember(r) {
 		h.forbidden(w, r)
 		return
 	}
@@ -662,7 +656,7 @@ func (h PayrollHandler) CreateIncentivePolicy(w http.ResponseWriter, r *http.Req
 	if req.PayoutType == "" {
 		req.PayoutType = "fixed"
 	}
-	policy, err := h.Repository.CreateIncentivePolicy(r.Context(), wsID, req)
+	policy, err := h.Repository.CreateIncentivePolicy(r.Context(), req)
 	if err != nil {
 		h.writeError(w, r, err)
 		return
@@ -671,13 +665,13 @@ func (h PayrollHandler) CreateIncentivePolicy(w http.ResponseWriter, r *http.Req
 }
 
 func (h PayrollHandler) DeleteIncentivePolicy(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := organizationIDFromContext(r)
+	
 	policyID, pOK := pathUUID(r, "policy_id")
-	if !ok || !pOK || !h.allowedMember(r, wsID) {
+	if !pOK || !h.allowedMember(r) {
 		h.forbidden(w, r)
 		return
 	}
-	if err := h.Repository.DeleteIncentivePolicy(r.Context(), wsID, policyID); err != nil {
+	if err := h.Repository.DeleteIncentivePolicy(r.Context(), policyID); err != nil {
 		h.writeError(w, r, err)
 		return
 	}
@@ -685,13 +679,13 @@ func (h PayrollHandler) DeleteIncentivePolicy(w http.ResponseWriter, r *http.Req
 }
 
 func (h PayrollHandler) CloneIncentivePolicy(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := organizationIDFromContext(r)
+	
 	policyID, pOK := pathUUID(r, "policy_id")
-	if !ok || !pOK || !h.allowedMember(r, wsID) {
+	if !pOK || !h.allowedMember(r) {
 		h.forbidden(w, r)
 		return
 	}
-	policy, err := h.Repository.CloneIncentivePolicy(r.Context(), wsID, policyID)
+	policy, err := h.Repository.CloneIncentivePolicy(r.Context(), policyID)
 	if err != nil {
 		h.writeError(w, r, err)
 		return
@@ -700,12 +694,12 @@ func (h PayrollHandler) CloneIncentivePolicy(w http.ResponseWriter, r *http.Requ
 }
 
 func (h PayrollHandler) ListPayrollRules(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := organizationIDFromContext(r)
-	if !ok || !h.allowedMember(r, wsID) {
+	
+	if !h.allowedMember(r) {
 		h.forbidden(w, r)
 		return
 	}
-	rules, err := h.Repository.ListPayrollRules(r.Context(), wsID)
+	rules, err := h.Repository.ListPayrollRules(r.Context())
 	if err != nil {
 		h.writeError(w, r, err)
 		return
@@ -717,8 +711,8 @@ func (h PayrollHandler) ListPayrollRules(w http.ResponseWriter, r *http.Request)
 }
 
 func (h PayrollHandler) CreatePayrollRule(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := organizationIDFromContext(r)
-	if !ok || !h.allowedMember(r, wsID) {
+	
+	if !h.allowedMember(r) {
 		h.forbidden(w, r)
 		return
 	}
@@ -727,7 +721,7 @@ func (h PayrollHandler) CreatePayrollRule(w http.ResponseWriter, r *http.Request
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}
-	rule, err := h.Repository.CreatePayrollRule(r.Context(), wsID, req)
+	rule, err := h.Repository.CreatePayrollRule(r.Context(), req)
 	if err != nil {
 		h.writeError(w, r, err)
 		return
@@ -736,13 +730,13 @@ func (h PayrollHandler) CreatePayrollRule(w http.ResponseWriter, r *http.Request
 }
 
 func (h PayrollHandler) ListPayrollRuleTiers(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := organizationIDFromContext(r)
+	
 	ruleID, rOK := pathUUID(r, "rule_id")
-	if !ok || !rOK || !h.allowedMember(r, wsID) {
+	if !rOK || !h.allowedMember(r) {
 		h.forbidden(w, r)
 		return
 	}
-	tiers, err := h.Repository.ListPayrollRuleTiers(r.Context(), wsID, ruleID)
+	tiers, err := h.Repository.ListPayrollRuleTiers(r.Context(), ruleID)
 	if err != nil {
 		h.writeError(w, r, err)
 		return
@@ -754,9 +748,9 @@ func (h PayrollHandler) ListPayrollRuleTiers(w http.ResponseWriter, r *http.Requ
 }
 
 func (h PayrollHandler) CreatePayrollRuleTier(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := organizationIDFromContext(r)
+	
 	ruleID, rOK := pathUUID(r, "rule_id")
-	if !ok || !rOK || !h.allowedMember(r, wsID) {
+	if !rOK || !h.allowedMember(r) {
 		h.forbidden(w, r)
 		return
 	}
@@ -769,7 +763,7 @@ func (h PayrollHandler) CreatePayrollRuleTier(w http.ResponseWriter, r *http.Req
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}
-	tier, err := h.Repository.CreatePayrollRuleTier(r.Context(), wsID, ruleID, req)
+	tier, err := h.Repository.CreatePayrollRuleTier(r.Context(), ruleID, req)
 	if err != nil {
 		h.writeError(w, r, err)
 		return
@@ -778,14 +772,14 @@ func (h PayrollHandler) CreatePayrollRuleTier(w http.ResponseWriter, r *http.Req
 }
 
 func (h PayrollHandler) DeletePayrollRuleTier(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := organizationIDFromContext(r)
+	
 	ruleID, rOK := pathUUID(r, "rule_id")
 	tierID, tOK := pathUUID(r, "tier_id")
-	if !ok || !rOK || !tOK || !h.allowedMember(r, wsID) {
+	if !rOK || !tOK || !h.allowedMember(r) {
 		h.forbidden(w, r)
 		return
 	}
-	if err := h.Repository.DeletePayrollRuleTier(r.Context(), wsID, ruleID, tierID); err != nil {
+	if err := h.Repository.DeletePayrollRuleTier(r.Context(), ruleID, tierID); err != nil {
 		h.writeError(w, r, err)
 		return
 	}
@@ -793,13 +787,13 @@ func (h PayrollHandler) DeletePayrollRuleTier(w http.ResponseWriter, r *http.Req
 }
 
 func (h PayrollHandler) ListPayrollRuleAssignments(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := organizationIDFromContext(r)
+	
 	ruleID, rOK := pathUUID(r, "rule_id")
-	if !ok || !rOK || !h.allowedMember(r, wsID) {
+	if !rOK || !h.allowedMember(r) {
 		h.forbidden(w, r)
 		return
 	}
-	assignments, err := h.Repository.ListPayrollRuleAssignments(r.Context(), wsID, ruleID)
+	assignments, err := h.Repository.ListPayrollRuleAssignments(r.Context(), ruleID)
 	if err != nil {
 		h.writeError(w, r, err)
 		return
@@ -811,20 +805,23 @@ func (h PayrollHandler) ListPayrollRuleAssignments(w http.ResponseWriter, r *htt
 }
 
 func (h PayrollHandler) AssignPayrollRule(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := organizationIDFromContext(r)
+	
 	ruleID, rOK := pathUUID(r, "rule_id")
-	if !ok || !rOK || !h.allowedMember(r, wsID) {
+	if !rOK || !h.allowedMember(r) {
 		h.forbidden(w, r)
 		return
 	}
 	req, err := DecodeJSON[AssignPayrollRuleRequest](r, 1<<20)
-	if err != nil || (req.AssigneeType != "workspace" && req.AssigneeType != "department" && req.AssigneeType != "employee" && req.AssigneeType != "user") {
+	if err != nil || (req.AssigneeType != "organization" && req.AssigneeType != "department" && req.AssigneeType != "employee") {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}
-	if req.AssigneeType != "workspace" && req.AssigneeID == nil {
+	if req.AssigneeType != "organization" && req.AssigneeID == nil {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
+	}
+	if req.AssigneeType == "organization" {
+		req.AssigneeID = nil
 	}
 	effFrom, err := time.Parse("2006-01-02", req.EffectiveFrom)
 	if err != nil {
@@ -838,7 +835,7 @@ func (h PayrollHandler) AssignPayrollRule(w http.ResponseWriter, r *http.Request
 			return
 		}
 	}
-	assignment, err := h.Repository.AssignPayrollRule(r.Context(), wsID, ruleID, req)
+	assignment, err := h.Repository.AssignPayrollRule(r.Context(), ruleID, req)
 	if err != nil {
 		h.writeError(w, r, err)
 		return
@@ -847,14 +844,14 @@ func (h PayrollHandler) AssignPayrollRule(w http.ResponseWriter, r *http.Request
 }
 
 func (h PayrollHandler) DeletePayrollRuleAssignment(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := organizationIDFromContext(r)
+	
 	ruleID, rOK := pathUUID(r, "rule_id")
 	assignmentID, aOK := pathUUID(r, "assignment_id")
-	if !ok || !rOK || !aOK || !h.allowedMember(r, wsID) {
+	if !rOK || !aOK || !h.allowedMember(r) {
 		h.forbidden(w, r)
 		return
 	}
-	if err := h.Repository.DeletePayrollRuleAssignment(r.Context(), wsID, ruleID, assignmentID); err != nil {
+	if err := h.Repository.DeletePayrollRuleAssignment(r.Context(), ruleID, assignmentID); err != nil {
 		h.writeError(w, r, err)
 		return
 	}
@@ -862,9 +859,9 @@ func (h PayrollHandler) DeletePayrollRuleAssignment(w http.ResponseWriter, r *ht
 }
 
 func (h PayrollHandler) CalculatePayroll(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := organizationIDFromContext(r)
+	
 	empID, eOK := pathUUID(r, "id")
-	if !ok || !eOK || !h.allowedCalculate(r, wsID) {
+	if !eOK || !h.allowedCalculate(r) {
 		h.forbidden(w, r)
 		return
 	}
@@ -878,7 +875,7 @@ func (h PayrollHandler) CalculatePayroll(w http.ResponseWriter, r *http.Request)
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}
-	resp, err := h.Repository.CalculateEmployeePayroll(r.Context(), wsID, empID, year, month)
+	resp, err := h.Repository.CalculateEmployeePayroll(r.Context(), empID, year, month)
 	if err != nil {
 		h.writeError(w, r, err)
 		return
@@ -887,8 +884,8 @@ func (h PayrollHandler) CalculatePayroll(w http.ResponseWriter, r *http.Request)
 }
 
 func (h PayrollHandler) CalculateBatchPayroll(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := organizationIDFromContext(r)
-	if !ok || !h.allowedCalculate(r, wsID) {
+	
+	if !h.allowedCalculate(r) {
 		h.forbidden(w, r)
 		return
 	}
@@ -908,7 +905,7 @@ func (h PayrollHandler) CalculateBatchPayroll(w http.ResponseWriter, r *http.Req
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}
-	resp, err := h.Repository.CalculateBatchPayroll(r.Context(), wsID, req)
+	resp, err := h.Repository.CalculateBatchPayroll(r.Context(), req)
 	if err != nil {
 		h.writeError(w, r, err)
 		return
@@ -916,12 +913,43 @@ func (h PayrollHandler) CalculateBatchPayroll(w http.ResponseWriter, r *http.Req
 	apperror.WriteJSON(w, http.StatusOK, resp)
 }
 
-func (h PayrollHandler) allowedCalculate(r *http.Request, wsID uuid.UUID) bool {
+func (h PayrollHandler) allowedCalculate(r *http.Request) bool {
 	u, ok := httpinfra.UserIDFromContext(r.Context())
 	if !ok || h.Authorizer == nil {
 		return false
 	}
-	return h.Authorizer.HasPermission(r.Context(), u, wsID, "payroll:calculate")
+	return h.Authorizer.HasPermission(r.Context(), u, "payroll:calculate")
+}
+
+func (h PayrollHandler) allowedRead(r *http.Request) bool {
+	u, ok := httpinfra.UserIDFromContext(r.Context())
+	if !ok || h.Authorizer == nil {
+		return false
+	}
+	if h.Authorizer.HasPermission(r.Context(), u, "payroll:read") {
+		return true
+	}
+	member, err := h.Authorizer.IsMember(r.Context(), u)
+	return err == nil && member
+}
+
+func (h PayrollHandler) allowedMember(r *http.Request) bool {
+	u, ok := httpinfra.UserIDFromContext(r.Context())
+	if !ok || h.Authorizer == nil {
+		return false
+	}
+	if member, err := h.Authorizer.IsMember(r.Context(), u); err == nil && member {
+		return true
+	}
+	return h.Authorizer.HasPermission(r.Context(), u, "payroll:read")
+}
+
+func (h PayrollHandler) allowedManage(r *http.Request) bool {
+	u, ok := httpinfra.UserIDFromContext(r.Context())
+	if !ok || h.Authorizer == nil {
+		return false
+	}
+	return h.Authorizer.HasPermission(r.Context(), u, "payroll:components:manage")
 }
 
 func employmentIDFromRequest(r *http.Request) (uuid.UUID, bool) {
@@ -931,45 +959,6 @@ func employmentIDFromRequest(r *http.Request) (uuid.UUID, bool) {
 	return pathUUID(r, "employment_id")
 }
 
-func (h PayrollHandler) allowedRead(r *http.Request, wsID uuid.UUID) bool {
-	u, ok := httpinfra.UserIDFromContext(r.Context())
-	if !ok || h.Authorizer == nil {
-		return false
-	}
-	if h.Authorizer.HasPermission(r.Context(), u, wsID, "payroll:read") {
-		return true
-	}
-	if memAuth, ok := h.Authorizer.(interface {
-		IsMember(context.Context, uuid.UUID, uuid.UUID) (bool, error)
-	}); ok {
-		m, err := memAuth.IsMember(r.Context(), u, wsID)
-		return err == nil && m
-	}
-	return false
-}
-func (h PayrollHandler) allowedMember(r *http.Request, wsID uuid.UUID) bool {
-	u, ok := httpinfra.UserIDFromContext(r.Context())
-	if !ok || h.Authorizer == nil {
-		return false
-	}
-	if memAuth, ok := h.Authorizer.(interface {
-		IsMember(context.Context, uuid.UUID, uuid.UUID) (bool, error)
-	}); ok {
-		m, err := memAuth.IsMember(r.Context(), u, wsID)
-		if err == nil && m {
-			return true
-		}
-	}
-	return h.Authorizer.HasPermission(r.Context(), u, wsID, "payroll:read")
-}
-
-func (h PayrollHandler) allowedManage(r *http.Request, wsID uuid.UUID) bool {
-	u, ok := httpinfra.UserIDFromContext(r.Context())
-	if !ok || h.Authorizer == nil {
-		return false
-	}
-	return h.Authorizer.HasPermission(r.Context(), u, wsID, "payroll:components:manage")
-}
 func parsePayrollPeriod(r *http.Request) (time.Time, time.Time, error) {
 	year, err := strconv.Atoi(r.URL.Query().Get("year"))
 	if err != nil {
@@ -982,9 +971,10 @@ func parsePayrollPeriod(r *http.Request) (time.Time, time.Time, error) {
 	start := time.Date(year, time.Month(month), 1, 0, 0, 0, 0, time.UTC)
 	return start, start.AddDate(0, 1, 0), nil
 }
-func (h PayrollHandler) allowed(r *http.Request, wsID uuid.UUID, p string) bool {
+
+func (h PayrollHandler) allowed(r *http.Request, permission string) bool {
 	u, ok := httpinfra.UserIDFromContext(r.Context())
-	return ok && h.Authorizer != nil && h.Authorizer.HasPermission(r.Context(), u, wsID, p)
+	return ok && h.Authorizer != nil && h.Authorizer.HasPermission(r.Context(), u, permission)
 }
 func (h PayrollHandler) forbidden(w http.ResponseWriter, r *http.Request) {
 	apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))

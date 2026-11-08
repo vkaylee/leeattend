@@ -15,7 +15,6 @@ type CreateIntervalRequest = components["schemas"]["CreateIntervalRequest"];
 import { useToast } from "@/components/ui/toast";
 import { useDerivedStateFrom } from "@/hooks/use-derived-state-from";
 import {
-  getStandaloneOrganizationId,
   fetchShifts,
   createShift,
   updateShift,
@@ -91,15 +90,15 @@ export function useShiftEditor(shiftId?: string) {
   const navigate = useNavigate();
   const toast = useToast();
   const queryClient = useQueryClient();
-  const wsId = getStandaloneOrganizationId() ?? "";
+  
 
   const isEditMode = !!shiftId;
 
   // Fetch all shifts to find editing shift — must come before useMemo that uses editingShift
   const { data: shifts, isLoading: isLoadingShifts } = useQuery<Shift[]>({
-    queryKey: ["shifts", wsId],
-    queryFn: () => fetchShifts(wsId),
-    enabled: !!wsId && isEditMode,
+    queryKey: ["shifts"],
+    queryFn: () => fetchShifts(),
+    enabled: isEditMode,
   });
 
   const editingShift = shifts?.find((s) => s.id === shiftId) ?? null;
@@ -166,9 +165,8 @@ export function useShiftEditor(shiftId?: string) {
   const [isDirty, setIsDirty] = useState(false);
 
   const { data: workspaceRules } = useQuery({
-    queryKey: ["attendance-rules", wsId],
-    queryFn: () => (wsId ? fetchDefaultAttendanceRules(wsId) : Promise.reject(new Error("No workspace ID"))),
-    enabled: !!wsId,
+    queryKey: ["attendance-rules"],
+    queryFn: () => fetchDefaultAttendanceRules(),
   });
 
   // Compute external intervals — stabilized via useMemo.
@@ -199,10 +197,10 @@ export function useShiftEditor(shiftId?: string) {
 
   // Mutations
   const createShiftMutation = useMutation<Shift, Error, CreateShiftRequest>({
-    mutationFn: (data) => createShift(wsId, data),
+    mutationFn: (data) => createShift(data),
     onSuccess: (data) => {
       toast.success(t("shifts.messages.create_shift_success", { name: data.name }));
-      void queryClient.invalidateQueries({ queryKey: ["shifts", wsId] });
+      void queryClient.invalidateQueries({ queryKey: ["shifts"] });
       setIsDirty(false);
       void navigate({ to: "/shifts", search: { tab: "directory", view: "week" } });
     },
@@ -212,10 +210,10 @@ export function useShiftEditor(shiftId?: string) {
   });
 
   const updateShiftMutation = useMutation<Shift, Error, { id: string; data: UpdateShiftRequest }>({
-    mutationFn: ({ id, data }) => updateShift(wsId, id, data),
+    mutationFn: ({ id, data }) => updateShift(id, data),
     onSuccess: () => {
       toast.success(t("shifts.messages.update_shift_success"));
-      void queryClient.invalidateQueries({ queryKey: ["shifts", wsId] });
+      void queryClient.invalidateQueries({ queryKey: ["shifts"] });
       void queryClient.invalidateQueries({ queryKey: ["schedules"] });
       void queryClient.invalidateQueries({ queryKey: ["assignment_history"] });
       setIsDirty(false);
@@ -283,7 +281,6 @@ export function useShiftEditor(shiftId?: string) {
   });
 
   return {
-    wsId,
     isEditMode,
     isLoadingShifts,
     shiftName,

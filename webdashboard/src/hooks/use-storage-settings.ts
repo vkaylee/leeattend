@@ -1,6 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
-import { useWorkspace } from "@/hooks/use-workspace";
 import {
   fetchStorageConfig,
   upsertStorageConfig,
@@ -11,33 +10,21 @@ import {
 
 export const storageConfigKeys = {
   all: ["workspace-storage"] as const,
-  detail: (workspaceId: string) => [...storageConfigKeys.all, workspaceId, "detail"] as const,
+  detail: () => [...storageConfigKeys.all, "detail"] as const,
 };
 
 export const useStorageConfig = () => {
-  const { workspace } = useWorkspace();
-  const workspaceId = workspace?.id;
-
   return useQuery({
-    queryKey: storageConfigKeys.detail(workspaceId ?? ""),
-    queryFn: () => {
-      if (!workspaceId) throw new Error("No workspace ID");
-      return fetchStorageConfig(workspaceId);
-    },
-    enabled: !!workspaceId,
+    queryKey: storageConfigKeys.detail(),
+    queryFn: () => fetchStorageConfig(),
   });
 };
 
 export const useUpsertStorageConfig = () => {
   const queryClient = useQueryClient();
-  const { workspace } = useWorkspace();
 
   return useMutation({
-    mutationFn: (payload: CreateStorageConfigRequest) => {
-      const workspaceId = workspace?.id;
-      if (!workspaceId) throw new Error("No workspace ID");
-      return upsertStorageConfig(workspaceId, payload);
-    },
+    mutationFn: (payload: CreateStorageConfigRequest) => upsertStorageConfig(payload),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: storageConfigKeys.all });
     },
@@ -45,27 +32,16 @@ export const useUpsertStorageConfig = () => {
 };
 
 export const useTestStorageConfig = () => {
-  const { workspace } = useWorkspace();
-
   return useMutation({
-    mutationFn: (payload: CreateStorageConfigRequest) => {
-      const workspaceId = workspace?.id;
-      if (!workspaceId) throw new Error("No workspace ID");
-      return testStorageConfig(workspaceId, payload);
-    },
+    mutationFn: (payload: CreateStorageConfigRequest) => testStorageConfig(payload),
   });
 };
 
 export const useDeleteStorageConfig = () => {
   const queryClient = useQueryClient();
-  const { workspace } = useWorkspace();
 
   return useMutation({
-    mutationFn: () => {
-      const workspaceId = workspace?.id;
-      if (!workspaceId) throw new Error("No workspace ID");
-      return deleteStorageConfig(workspaceId);
-    },
+    mutationFn: () => deleteStorageConfig(),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: storageConfigKeys.all });
     },

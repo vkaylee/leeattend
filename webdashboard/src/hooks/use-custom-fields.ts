@@ -4,8 +4,7 @@ import type {
   UpdateCustomFieldDefinitionRequest,
 } from "@/lib/api/types";
 
-import { useOrganizationQuery, useOrganizationMutation } from "@/hooks/common/use-workspace-query";
-import { useWorkspace } from "@/hooks/use-workspace";
+import { useOrganizationQuery, useOrganizationMutation } from "@/hooks/common/use-organization-query";
 import { departmentKeys, employeeKeys } from "@/lib/query-keys";
 import {
   createCustomFieldDefinition,
@@ -18,56 +17,47 @@ import {
 
 export const customFieldKeys = {
   all: ["custom-fields"] as const,
-  definitions: (workspaceId: string) => [...customFieldKeys.all, workspaceId, "definitions"] as const,
-  definitionList: (workspaceId: string, entityType?: string) =>
-    [...customFieldKeys.definitions(workspaceId), { entityType }] as const,
-  values: (workspaceId: string, entityType: string, entityId: string) =>
-    [...customFieldKeys.all, workspaceId, "values", entityType, entityId] as const,
+  definitions: () => [...customFieldKeys.all, "definitions"] as const,
+  definitionList: (entityType?: string) => [...customFieldKeys.definitions(), { entityType }] as const,
+  values: (entityType: string, entityId: string) => [...customFieldKeys.all, "values", entityType, entityId] as const,
 };
 
 export const useCustomFieldDefinitions = (entityType?: string) => {
-  const { workspace } = useWorkspace();
   return useOrganizationQuery({
-    queryKey: customFieldKeys.definitionList(workspace?.id ?? "", entityType),
-    queryFn: (wsId) => fetchCustomFieldDefinitions(wsId, entityType),
+    queryKey: customFieldKeys.definitionList(entityType),
+    queryFn: () => fetchCustomFieldDefinitions(entityType),
   });
 };
 
 export const useCreateCustomFieldDefinition = () =>
   useOrganizationMutation<CreateCustomFieldDefinitionRequest>({
-    mutationFn: (wsId, payload) => createCustomFieldDefinition(wsId, payload),
+    mutationFn: (payload) => createCustomFieldDefinition(payload),
     keys: [customFieldKeys.all],
   });
 
 export const useUpdateCustomFieldDefinition = () =>
   useOrganizationMutation<{ id: string; payload: UpdateCustomFieldDefinitionRequest }>({
-    mutationFn: (wsId, { id, payload }) => updateCustomFieldDefinition(wsId, id, payload),
+    mutationFn: ({ id, payload }) => updateCustomFieldDefinition(id, payload),
     keys: [customFieldKeys.all],
   });
 
 export const useDeleteCustomFieldDefinition = () =>
   useOrganizationMutation<string>({
-    mutationFn: (wsId, id) => deleteCustomFieldDefinition(wsId, id),
+    mutationFn: (id) => deleteCustomFieldDefinition(id),
     keys: [customFieldKeys.all],
   });
 
 export const useCustomFieldValues = (entityType: string, entityId: string) => {
-  const { workspace } = useWorkspace();
   return useOrganizationQuery({
-    queryKey: customFieldKeys.values(workspace?.id ?? "", entityType, entityId),
-    queryFn: (wsId) => fetchCustomFieldValues(wsId, entityType, entityId),
+    queryKey: customFieldKeys.values(entityType, entityId),
+    queryFn: () => fetchCustomFieldValues(entityType, entityId),
     enabled: !!entityType && !!entityId,
   });
 };
 
 export const useSetCustomFieldValues = (entityType: string, entityId: string) => {
-  const { workspace } = useWorkspace();
   return useOrganizationMutation<SetCustomFieldValueRequest[]>({
-    mutationFn: (wsId, values) => setCustomFieldValues(wsId, entityType, entityId, values),
-    keys: [
-      customFieldKeys.values(workspace?.id ?? "", entityType, entityId),
-      employeeKeys.all(workspace?.id),
-      departmentKeys.all(workspace?.id),
-    ],
+    mutationFn: (values) => setCustomFieldValues(entityType, entityId, values),
+    keys: [customFieldKeys.values(entityType, entityId), employeeKeys.all(), departmentKeys.all()],
   });
 };

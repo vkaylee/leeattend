@@ -24,7 +24,6 @@ export interface LeaveImportBannerProps {
   importJob: LeaveImportJob | null;
   setImportBannerDismissed: (val: boolean) => void;
   t: TFunction;
-  wsId: string;
 }
 
 function ProcessingState({ importJob, t }: { importJob: LeaveImportJob; t: TFunction }) {
@@ -61,7 +60,7 @@ function SuccessState({ importJob, t }: { importJob: LeaveImportJob; t: TFunctio
   );
 }
 
-function PartialSuccessState({ importJob, wsId, t }: { importJob: LeaveImportJob; wsId: string; t: TFunction }) {
+function PartialSuccessState({ importJob, t }: { importJob: LeaveImportJob; t: TFunction }) {
   if ((importJob.status !== 'completed' && importJob.status !== 'partially_failed') || !importJob.error_log) return null;
   const info = getImportErrorInfo(importJob);
   const successCount = info?.success_count ?? importJob.processed_rows;
@@ -79,7 +78,7 @@ function PartialSuccessState({ importJob, wsId, t }: { importJob: LeaveImportJob
       {info?.error_file_path ? (
         <Button
           className="ml-2 flex items-center gap-1.5 text-xs font-bold text-amber-600 hover:text-amber-800 dark:text-amber-400 dark:hover:text-amber-200 underline underline-offset-2 border-none shadow-none h-auto w-auto p-0 hover:bg-transparent"
-          onClick={() => { void downloadLeaveImportErrors(wsId, importJob.id).catch((e: unknown) => { logError(e, { component: 'LeaveImportBanner' }); toast.error(t("leave_requests.download_errors_failed", "Tải file lỗi thất bại")); }); }}
+          onClick={() => { void downloadLeaveImportErrors(importJob.id).catch((e: unknown) => { logError(e, { component: 'LeaveImportBanner' }); toast.error(t("leave_requests.download_errors_failed", "Tải file lỗi thất bại")); }); }}
           variant="ghost"
         >
           <Download size={14} /> {t("leave_requests.download_errors", "Tải file lỗi")}
@@ -89,7 +88,7 @@ function PartialSuccessState({ importJob, wsId, t }: { importJob: LeaveImportJob
   );
 }
 
-function FailedState({ importJob, wsId, t }: { importJob: LeaveImportJob; wsId: string; t: TFunction }) {
+function FailedState({ importJob, t }: { importJob: LeaveImportJob; t: TFunction }) {
   if (importJob.status !== 'failed') return null;
   const info = getImportErrorInfo(importJob);
   const errorCount = info?.error_count ?? 1;
@@ -107,7 +106,7 @@ function FailedState({ importJob, wsId, t }: { importJob: LeaveImportJob; wsId: 
         {info?.error_file_path ? (
           <Button
             className="flex items-center gap-1.5 text-xs font-bold text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-200 underline underline-offset-2 border-none shadow-none h-auto w-auto p-0 hover:bg-transparent"
-            onClick={() => { void downloadLeaveImportErrors(wsId, importJob.id).catch((e: unknown) => { logError(e, { component: 'LeaveImportBanner' }); toast.error(t("leave_requests.download_errors_failed", "Tải file lỗi thất bại")); }); }}
+            onClick={() => { void downloadLeaveImportErrors(importJob.id).catch((e: unknown) => { logError(e, { component: 'LeaveImportBanner' }); toast.error(t("leave_requests.download_errors_failed", "Tải file lỗi thất bại")); }); }}
             variant="ghost"
           >
             <Download size={14} /> {t("leave_requests.download_errors", "Tải file lỗi")}
@@ -131,7 +130,7 @@ function getBannerClassName(job: LeaveImportJob) {
   return "bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-800/50";
 }
 
-export function LeaveImportBanner({ importJob, importBannerDismissed, setImportBannerDismissed, t, wsId }: LeaveImportBannerProps) {
+export function LeaveImportBanner({ importJob, importBannerDismissed, setImportBannerDismissed, t}: LeaveImportBannerProps) {
   if (!importJob || importBannerDismissed) return null;
 
   const showCloseButton = importJob.status !== 'processing' && importJob.status !== 'pending';
@@ -144,8 +143,8 @@ export function LeaveImportBanner({ importJob, importBannerDismissed, setImportB
       <div className="flex items-center gap-3 flex-1 min-w-0">
         <ProcessingState importJob={importJob} t={t} />
         <SuccessState importJob={importJob} t={t} />
-        <PartialSuccessState importJob={importJob} t={t} wsId={wsId} />
-        <FailedState importJob={importJob} t={t} wsId={wsId} />
+        <PartialSuccessState importJob={importJob} t={t}  />
+        <FailedState importJob={importJob} t={t}  />
       </div>
       {showCloseButton ? (
         <Button 

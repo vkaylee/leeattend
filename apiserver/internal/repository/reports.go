@@ -32,6 +32,7 @@ func (r ReportRepository) CreateExportJob(ctx context.Context, job api.ReportJob
 		return err
 	}
 	payload, err := json.Marshal(map[string]any{
+		"job_id":       job.JobID,
 		"request": map[string]any{
 			"report_type":  req.ReportType,
 			"start_date":   req.StartDate,
@@ -43,10 +44,10 @@ func (r ReportRepository) CreateExportJob(ctx context.Context, job api.ReportJob
 	if err != nil {
 		return err
 	}
-	_, err = db.Exec(ctx, `INSERT INTO outbox_jobs (id, workspace_id, job_type, payload, status, created_at, updated_at) VALUES ($1, $2, 'AttendanceReport', $3, 'pending', NOW(), NOW())`, job.JobID, job.WorkspaceID, payload)
+	_, err = db.Exec(ctx, `INSERT INTO outbox_jobs (id, job_type, payload, status, created_at, updated_at) VALUES ($1, 'AttendanceReport', $2, 'pending', NOW(), NOW())`, job.JobID, payload)
 	return err
 }
-func (r ReportRepository) ResolveBehalfEmployeeIDs(ctx context.Context, wsID, userID uuid.UUID) ([]uuid.UUID, error) {
+func (r ReportRepository) ResolveBehalfEmployeeIDs(ctx context.Context, userID uuid.UUID) ([]uuid.UUID, error) {
 	db, err := r.db(ctx)
 	if err != nil {
 		return nil, err
@@ -58,9 +59,8 @@ JOIN employments emp ON (
     OR (ba.target_department_id IS NOT NULL AND emp.department_id = ba.target_department_id)
 )
 JOIN employees e ON e.id = emp.employee_id
-WHERE ba.workspace_id = $1
-  AND ba.assignee_user_id = $2
-  AND ba.assignment_type = 'overtime_claim'`, wsID, userID)
+WHERE ba.assignee_user_id = $1
+  AND ba.assignment_type = 'overtime_claim'`, userID)
 	if err != nil {
 		return nil, err
 	}
@@ -83,7 +83,7 @@ func (r ReportRepository) GetAttendanceReport(ctx context.Context, params api.At
 	}
 	if params.EmploymentID != nil {
 		var exists bool
-		if err := db.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM employments WHERE id = $1 AND workspace_id = $2 AND deleted_at IS NULL)`, *params.EmploymentID, params.WorkspaceID).Scan(&exists); err != nil {
+		if err := db.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM employments WHERE id = $1 AND deleted_at IS NULL)`, *params.EmploymentID).Scan(&exists); err != nil {
 			return api.PaginatedReportResponse{}, err
 		}
 		if !exists {
@@ -94,10 +94,10 @@ func (r ReportRepository) GetAttendanceReport(ctx context.Context, params api.At
 	offset := (params.Page - 1) * params.Limit
 
 	if params.ReportType == "daily" {
-		whereClause := `emp.workspace_id = $1 AND emp.deleted_at IS NULL AND e.deleted_at IS NULL AND ads.date >= $2::date AND ads.date <= $3::date`
+		whereClause := `emp.deleted_at IS NULL AND e.deleted_at IS NULL AND ads.date >= $1::date AND ads.date <= $2::date`
 		filterClause := ""
-		args := []any{params.WorkspaceID, params.StartDate, params.EndDate}
-		argIndex := 4
+		args := []any{params.StartDate, params.EndDate}
+		argIndex := 3
 
 		if len(params.EmployeeIDs) > 0 {
 			filterClause += fmt.Sprintf(" AND e.id = ANY($%d)", argIndex)
@@ -192,13 +192,13 @@ LIMIT $%d OFFSET $%d`, whereClause, filterClause, argIndex, argIndex+1)
 		}, nil
 	}
 
-	baseClause := `emp.workspace_id = $1 AND emp.deleted_at IS NULL AND e.deleted_at IS NULL`
+	baseClause := `emp.deleted_at IS NULL AND e.deleted_at IS NULL`
 	countFilterClause := ""
-	countArgs := []any{params.WorkspaceID}
-	countArgIndex := 2
+	countArgs := []any{}
+	countArgIndex := 1
 	dataFilterClause := ""
-	dataArgs := []any{params.WorkspaceID, params.StartDate, params.EndDate}
-	dataArgIndex := 4
+	dataArgs := []any{params.StartDate, params.EndDate}
+	dataArgIndex := 3
 
 	if len(params.EmployeeIDs) > 0 {
 		countFilterClause += fmt.Sprintf(" AND e.id = ANY($%d)", countArgIndex)
@@ -247,7 +247,7 @@ LIMIT $%d OFFSET $%d`, whereClause, filterClause, argIndex, argIndex+1)
 FROM employments emp
 JOIN employees e ON e.id = emp.employee_id
 LEFT JOIN employers em ON em.id = emp.employer_id
-LEFT JOIN attendance_daily_summaries ads ON ads.employment_id = emp.id AND ads.date >= $2::date AND ads.date <= $3::date
+LEFT JOIN attendance_daily_summaries ads ON ads.employment_id = emp.id AND ads.date >= $1::date AND ads.date <= $2::date
 		WHERE %s%s
 		GROUP BY emp.id, e.id, e.full_name, e.employee_id_number, emp.employer_id, em.name
 		ORDER BY e.full_name ASC
@@ -296,17 +296,17 @@ func (r ReportRepository) GetNoShowReport(ctx context.Context, params api.NoShow
 	offset := (params.Page - 1) * params.Limit
 
 	subquery := `(
-    SELECT id, employment_id, template_id, date, scheduled_start, scheduled_end, workspace_id FROM work_segments
+    SELECT id, employment_id, template_id, date, scheduled_start, scheduled_end FROM work_segments
     UNION ALL
-    SELECT sr.id, sr.employment_id, sr.template_id, sr.date, '09:00:00'::time, '17:00:00'::time, emp.workspace_id
+    SELECT sr.id, sr.employment_id, sr.template_id, sr.date, '09:00:00'::time, '17:00:00'::time
     FROM shift_rosters sr
     JOIN employments emp ON emp.id = sr.employment_id
     WHERE NOT EXISTS (SELECT 1 FROM work_segments ws2 WHERE ws2.employment_id = sr.employment_id AND ws2.date = sr.date)
 ) ws`
 
-	whereClause := `ws.workspace_id = $1 AND ws.date = $2::date AND te.id IS NULL AND emp.deleted_at IS NULL AND e.deleted_at IS NULL`
-	args := []any{params.WorkspaceID, params.Date}
-	idx := 3
+	whereClause := `ws.date = $1::date AND te.id IS NULL AND emp.deleted_at IS NULL AND e.deleted_at IS NULL`
+	args := []any{params.Date}
+	idx := 2
 
 	if len(params.EmployeeIDs) > 0 {
 		whereClause += fmt.Sprintf(" AND e.id = ANY($%d)", idx)
@@ -384,7 +384,6 @@ type RedisReportQueue struct {
 	Client          *redisinfra.Client
 	Fallback        sync.Map
 	ResultsFallback sync.Map
-	DB              DBTX
 }
 
 func (q *RedisReportQueue) EnqueueReport(ctx context.Context, job api.ReportJob, req api.ExportReportRequest) error {
@@ -393,7 +392,6 @@ func (q *RedisReportQueue) EnqueueReport(ctx context.Context, job api.ReportJob,
 	}
 	meta := map[string]any{
 		"job_id":            job.JobID.String(),
-		"workspace_id":      job.WorkspaceID.String(),
 		"requester_id":      job.RequesterID.String(),
 		"status":            job.Status,
 		"total_batches":     job.TotalBatches,
@@ -414,7 +412,7 @@ func (q *RedisReportQueue) EnqueueReport(ctx context.Context, job api.ReportJob,
 			pipe.Set(ctx, fmt.Sprintf("job:metadata:%s", job.JobID.String()), encoded, 24*time.Hour)
 			workerPayload, _ := json.Marshal(map[string]any{
 				"task_type":     "attendance_report",
-				"workspace_id":  job.WorkspaceID.String(),
+				"request_id":    job.JobID.String(),
 				"parent_job_id": job.JobID.String(),
 				"priority":      "high",
 			})
@@ -439,7 +437,6 @@ func (q *RedisReportQueue) GetReport(ctx context.Context, jobID uuid.UUID) (api.
 			if err == nil {
 				var meta struct {
 					JobID            string  `json:"job_id"`
-					WorkspaceID      string  `json:"workspace_id"`
 					RequesterID      string  `json:"requester_id"`
 					Status           string  `json:"status"`
 					TotalBatches     int     `json:"total_batches"`
@@ -451,7 +448,6 @@ func (q *RedisReportQueue) GetReport(ctx context.Context, jobID uuid.UUID) (api.
 				}
 				if json.Unmarshal([]byte(val), &meta) == nil {
 					parsedJobID, _ := uuid.Parse(meta.JobID)
-					parsedWsID, _ := uuid.Parse(meta.WorkspaceID)
 					parsedReqID, _ := uuid.Parse(meta.RequesterID)
 					createdAt := time.Now().UTC()
 					if meta.CreatedAt != nil {
@@ -467,7 +463,6 @@ func (q *RedisReportQueue) GetReport(ctx context.Context, jobID uuid.UUID) (api.
 					}
 					return api.ReportJob{
 						JobID:            parsedJobID,
-						WorkspaceID:      parsedWsID,
 						RequesterID:      parsedReqID,
 						Status:           meta.Status,
 						TotalBatches:     meta.TotalBatches,
@@ -488,10 +483,7 @@ func (q *RedisReportQueue) GetReport(ctx context.Context, jobID uuid.UUID) (api.
 			return job, nil
 		}
 	}
-	if q.DB != nil {
-		// Try resolving from outbox_jobs
-		// Search across DB if possible
-	}
+
 	return api.ReportJob{}, api.ErrReportNotFound
 }
 func (q *RedisReportQueue) CancelReport(ctx context.Context, jobID uuid.UUID) error {
@@ -518,7 +510,6 @@ func (q *RedisReportQueue) CancelReport(ctx context.Context, jobID uuid.UUID) er
 		if err == nil && shared != nil {
 			meta := map[string]any{
 				"job_id":            job.JobID.String(),
-				"workspace_id":      job.WorkspaceID.String(),
 				"requester_id":      job.RequesterID.String(),
 				"status":            "failed",
 				"total_batches":     job.TotalBatches,

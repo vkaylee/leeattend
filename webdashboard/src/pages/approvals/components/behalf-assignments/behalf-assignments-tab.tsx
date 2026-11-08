@@ -2,13 +2,13 @@ import { useQuery } from "@tanstack/react-query";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import type { BehalfAssignment, WorkspaceMember } from "@/lib/api/types";
+import type { BehalfAssignment, OrganizationMember } from "@/lib/api/types";
 
 import Modal from "@/components/ui/modal";
 import { useToast } from "@/components/ui/toast";
 import { useBehalfAssignments } from "@/hooks/use-behalf-assignments";
 import { useDepartments } from "@/hooks/use-departments";
-import { fetchAllWorkspaceMembers } from "@/lib/api";
+import { fetchAllOrganizationMembers } from "@/lib/api";
 import { logError } from "@/lib/logger";
 
 import type { AssignmentType, BehalfAssignmentInput } from "./types";
@@ -18,10 +18,8 @@ import { AssignmentItem } from "./assignment-item";
 import { BehalfAssignmentsEmptyState, BehalfAssignmentsHeader } from "./behalf-assignments-header";
 
 export function BehalfAssignmentsTab({
-  wsId,
   assignmentType = "ot",
 }: {
-  wsId: string;
   assignmentType?: AssignmentType;
 }) {
   const { t } = useTranslation();
@@ -36,7 +34,7 @@ export function BehalfAssignmentsTab({
     isDeleting,
   } = useBehalfAssignments(assignmentType);
 
-  const { data: departments = [], isLoading: deptsLoading } = useDepartments(wsId);
+  const { data: departments = [], isLoading: deptsLoading } = useDepartments();
 
   const [isOpen, setIsOpen] = useState(false);
   const [assigneeId, setAssigneeId] = useState("");
@@ -98,8 +96,8 @@ export function BehalfAssignmentsTab({
   };
 
   const { data: assignees = [], isLoading: assigneesLoading } = useQuery({
-    queryKey: ["workspace-members", wsId, "behalf-assignees"],
-    queryFn: () => fetchAllWorkspaceMembers(wsId),
+    queryKey: ["workspace-members", "behalf-assignees"],
+    queryFn: () => fetchAllOrganizationMembers(),
   });
 
   const isLoading = assignmentsLoading || deptsLoading || assigneesLoading;
@@ -160,27 +158,24 @@ export function BehalfAssignmentsTab({
         }}
         title={t("behalf_assignments.modal.add_title")}
       >
-        <AddAssignmentForm
-          assigneeId={assigneeId}
-          assigneeOptions={assigneeOptions}
-          assignmentType={assignmentType}
-          departmentOptions={departmentOptions}
-          departments={departments}
-          isCreating={isCreating}
-          isLoadingAssignees={assigneesLoading}
-          onCancel={() => {
-            setIsOpen(false);
-          }}
-          onSubmit={handleCreate}
-          setAssigneeId={setAssigneeId}
-          setTargetDepartmentId={setTargetDepartmentId}
-          setTargetEmployeeId={setTargetEmployeeId}
-          setTargetType={setTargetType}
-          targetDepartmentId={targetDepartmentId}
-          targetEmployeeId={targetEmployeeId}
-          targetType={targetType}
-          wsId={wsId}
-        />
+        <AddAssignmentForm assigneeId={assigneeId}
+        assigneeOptions={assigneeOptions}
+        assignmentType={assignmentType}
+        departmentOptions={departmentOptions}
+        departments={departments}
+        isCreating={isCreating}
+        isLoadingAssignees={assigneesLoading}
+        onCancel={() => {
+          setIsOpen(false);
+        }}
+        onSubmit={handleCreate}
+        setAssigneeId={setAssigneeId}
+        setTargetDepartmentId={setTargetDepartmentId}
+        setTargetEmployeeId={setTargetEmployeeId}
+        setTargetType={setTargetType}
+        targetDepartmentId={targetDepartmentId}
+        targetEmployeeId={targetEmployeeId}
+        targetType={targetType}  />
       </Modal>
     </div>
   );

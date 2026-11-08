@@ -4,7 +4,7 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 import { ToastProvider } from '../../components/ui/toast';
-import { useWorkspace } from "../../hooks/use-workspace";
+import { useOrganization } from "../../hooks/use-organization";
 import * as api from '../../lib/api';
 import { Payslip } from "../../lib/api/types";
 import PayrollPage from '../payroll-page';
@@ -20,14 +20,13 @@ vi.mock('../../lib/api', async () => {
     fetchEmployeePayslips: vi.fn(),
     fetchWorkspacePayslips: vi.fn(),
     calculateBatchPayslips: vi.fn(),
-    getStandaloneOrganizationId: vi.fn(() => "test-ws-id"),
     fetchWorkspaceAttendanceAdjustments: vi.fn(),
     fetchWorkspace: vi.fn(),
   };
 });
 
-vi.mock("../../hooks/use-workspace", () => ({
-  useWorkspace: vi.fn(),
+vi.mock("../../hooks/use-organization", () => ({
+  useOrganization: vi.fn(),
 }));
 
 describe('PayrollPage', () => {
@@ -59,19 +58,19 @@ describe('PayrollPage', () => {
       limit: 100,
  
     });
-    vi.mocked(useWorkspace).mockReturnValue({
-      workspace: {
+    vi.mocked(useOrganization).mockReturnValue({
+      organization: {
         id: "test-ws-id",
- 
         name: "Test Workspace",
       },
+      organizationName: "Test Workspace",
       isLoading: false,
       isError: false,
-    } as unknown as ReturnType<typeof useWorkspace>);
+      error: null,
+    } as unknown as ReturnType<typeof useOrganization>);
     vi.mocked(api.fetchEmployeePayslips).mockResolvedValue([]);
     vi.mocked(api.fetchWorkspacePayslips).mockResolvedValue([]);
     vi.mocked(api.fetchWorkspaceAttendanceAdjustments).mockResolvedValue({ data: [], total: 0, page: 1, limit: 20 });
-    vi.mocked(api.getStandaloneOrganizationId).mockReturnValue("test-ws-id");
   });
 
   it('renders employee list and summary table', async () => {
@@ -104,22 +103,16 @@ describe('PayrollPage', () => {
       page: 1,
       limit: 3000,
     });
-    vi.mocked(useWorkspace).mockReturnValue({
-      workspace: {
+    vi.mocked(useOrganization).mockReturnValue({
+      organization: {
         id: "test-ws-id",
         name: "Test Workspace",
-        timezone: "Asia/Ho_Chi_Minh",
-        created_at: "2024-01-01T00:00:00Z",
-        date_format: "DD/MM/YYYY",
-        time_format: "HH:mm",
-        theme_primary_color: "#000000",
-        default_holiday_ot_multiplier: "2.0",
-        default_language: "vi",
-        holiday_overnight_strategy: "split",
       },
+      organizationName: "Test Workspace",
       isLoading: false,
       isError: false,
-    } as unknown as ReturnType<typeof useWorkspace>);
+      error: null,
+    } as unknown as ReturnType<typeof useOrganization>);
     vi.mocked(api.fetchEmployeePayslips).mockResolvedValue([
       { 
         id: 'ps-1', 

@@ -11,7 +11,6 @@ import (
 	"github.com/vkaylee/leeattend/apiserver/internal/apperror"
 	httpinfra "github.com/vkaylee/leeattend/apiserver/internal/infra/http"
 )
-
 var (
 	ErrTemplateNotFound      = errors.New("lifecycle: template not found")
 	ErrTemplateItemNotFound  = errors.New("lifecycle: template item not found")
@@ -21,7 +20,6 @@ var (
 
 type LifecycleChecklistTemplate struct {
 	ID            uuid.UUID `json:"id"`
-	WorkspaceID   uuid.UUID `json:"workspace_id"`
 	Name          string    `json:"name"`
 	Description   *string   `json:"description"`
 	ChecklistType string    `json:"checklist_type"`
@@ -65,7 +63,6 @@ type LifecycleChecklistItem struct {
 
 type LifecycleChecklistResponse struct {
 	ID              uuid.UUID                `json:"id"`
-	WorkspaceID     uuid.UUID                `json:"workspace_id"`
 	EmploymentID    uuid.UUID                `json:"employment_id"`
 	TemplateID      *uuid.UUID               `json:"template_id"`
 	ChecklistType   string                   `json:"checklist_type"`
@@ -80,7 +77,6 @@ type LifecycleChecklistResponse struct {
 }
 type LifecycleInstanceSummary struct {
 	ID              uuid.UUID  `json:"id"`
-	WorkspaceID     uuid.UUID  `json:"workspace_id"`
 	EmploymentID    uuid.UUID  `json:"employment_id"`
 	EmployeeID      uuid.UUID  `json:"employee_id"`
 	EmployeeName    string     `json:"employee_name"`
@@ -189,36 +185,32 @@ func isValidItemStatus(s string) bool {
 }
 
 type LifecycleRepository interface {
-	CreateTemplate(ctx context.Context, wsID uuid.UUID, req CreateLifecycleChecklistTemplateRequest) (LifecycleChecklistTemplate, error)
-	GetTemplate(ctx context.Context, wsID, id uuid.UUID) (LifecycleChecklistTemplate, error)
-	ListTemplates(ctx context.Context, wsID uuid.UUID, checklistType *string) ([]LifecycleChecklistTemplate, error)
-	UpdateTemplate(ctx context.Context, wsID, id uuid.UUID, req UpdateLifecycleChecklistTemplateRequest) (LifecycleChecklistTemplate, error)
-	DeleteTemplate(ctx context.Context, wsID, id uuid.UUID) error
-
-	CreateTemplateItem(ctx context.Context, wsID, templateID uuid.UUID, req CreateLifecycleChecklistTemplateItemRequest) (LifecycleChecklistTemplateItem, error)
-	GetTemplateItem(ctx context.Context, wsID, itemID uuid.UUID) (LifecycleChecklistTemplateItem, error)
-	ListTemplateItems(ctx context.Context, wsID, templateID uuid.UUID) ([]LifecycleChecklistTemplateItem, error)
-	UpdateTemplateItem(ctx context.Context, wsID, itemID uuid.UUID, req UpdateLifecycleChecklistTemplateItemRequest) (LifecycleChecklistTemplateItem, error)
-	DeleteTemplateItem(ctx context.Context, wsID, itemID uuid.UUID) error
-
-	CreateChecklistFromTemplate(ctx context.Context, wsID, employmentID, templateID uuid.UUID, actorID *uuid.UUID, usersResolver func(string) []uuid.UUID) (LifecycleChecklistResponse, error)
-	GetChecklist(ctx context.Context, wsID, checklistID uuid.UUID) (LifecycleChecklistResponse, error)
-	ListChecklistsForEmployment(ctx context.Context, wsID, employmentID uuid.UUID) ([]LifecycleChecklistResponse, error)
-	ListWorkspaceChecklists(ctx context.Context, wsID uuid.UUID) ([]LifecycleInstanceSummary, error)
-	UpdateChecklistItemStatus(ctx context.Context, wsID, itemID uuid.UUID, status string, notes *string, completedBy *uuid.UUID) (LifecycleChecklistResponse, error)
-	GetItemAssigneeAndChecklist(ctx context.Context, wsID, itemID uuid.UUID) (assigneeID *uuid.UUID, checklistID uuid.UUID, err error)
-	GetPendingTasksForUser(ctx context.Context, wsID, userID uuid.UUID) ([]PendingTaskResponse, error)
+	CreateTemplate(ctx context.Context, req CreateLifecycleChecklistTemplateRequest) (LifecycleChecklistTemplate, error)
+	GetTemplate(ctx context.Context, id uuid.UUID) (LifecycleChecklistTemplate, error)
+	ListTemplates(ctx context.Context, checklistType *string) ([]LifecycleChecklistTemplate, error)
+	UpdateTemplate(ctx context.Context, id uuid.UUID, req UpdateLifecycleChecklistTemplateRequest) (LifecycleChecklistTemplate, error)
+	DeleteTemplate(ctx context.Context, id uuid.UUID) error
+	CreateTemplateItem(ctx context.Context, templateID uuid.UUID, req CreateLifecycleChecklistTemplateItemRequest) (LifecycleChecklistTemplateItem, error)
+	GetTemplateItem(ctx context.Context, itemID uuid.UUID) (LifecycleChecklistTemplateItem, error)
+	ListTemplateItems(ctx context.Context, templateID uuid.UUID) ([]LifecycleChecklistTemplateItem, error)
+	UpdateTemplateItem(ctx context.Context, itemID uuid.UUID, req UpdateLifecycleChecklistTemplateItemRequest) (LifecycleChecklistTemplateItem, error)
+	DeleteTemplateItem(ctx context.Context, itemID uuid.UUID) error
+	CreateChecklistFromTemplate(ctx context.Context, employmentID, templateID uuid.UUID, actorID *uuid.UUID, usersResolver func(context.Context, string) []uuid.UUID) (LifecycleChecklistResponse, error)
+	GetChecklist(ctx context.Context, checklistID uuid.UUID) (LifecycleChecklistResponse, error)
+	ListChecklistsForEmployment(ctx context.Context, employmentID uuid.UUID) ([]LifecycleChecklistResponse, error)
+	ListChecklists(ctx context.Context) ([]LifecycleInstanceSummary, error)
+	UpdateChecklistItemStatus(ctx context.Context, itemID uuid.UUID, status string, notes *string, completedBy *uuid.UUID) (LifecycleChecklistResponse, error)
+	GetItemAssigneeAndChecklist(ctx context.Context, itemID uuid.UUID) (assigneeID *uuid.UUID, checklistID uuid.UUID, err error)
+	GetPendingTasksForUser(ctx context.Context, userID uuid.UUID) ([]PendingTaskResponse, error)
 }
 
 type LifecycleHandler struct {
-	Repository          LifecycleRepository
-	Authorizer          WorkspaceAuthorizer
-	UsersWithPermission func(context.Context, uuid.UUID, string) []uuid.UUID
+	Repository LifecycleRepository
+	Authorizer Authorizer
 }
-
-func (h LifecycleHandler) allowed(r *http.Request, wsID uuid.UUID, permission string) bool {
+func (h LifecycleHandler) allowed(r *http.Request, permission string) bool {
 	uid, ok := httpinfra.UserIDFromContext(r.Context())
-	return ok && h.Authorizer != nil && h.Authorizer.HasPermission(r.Context(), uid, wsID, permission)
+	return ok && h.Authorizer != nil && h.Authorizer.HasPermission(r.Context(), uid, permission)
 }
 
 func (h LifecycleHandler) deny(w http.ResponseWriter, r *http.Request) {
@@ -245,8 +237,7 @@ func (h LifecycleHandler) writeErr(w http.ResponseWriter, r *http.Request, err e
 }
 
 func (h LifecycleHandler) CreateTemplate(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := organizationIDFromContext(r)
-	if !ok || !h.allowed(r, wsID, "workspace:settings:write") {
+	if !h.allowed(r, "organization:settings:write") {
 		h.deny(w, r)
 		return
 	}
@@ -259,7 +250,7 @@ func (h LifecycleHandler) CreateTemplate(w http.ResponseWriter, r *http.Request)
 		apperror.WriteError(w, r, apperror.Internal(errors.New("repository unavailable")))
 		return
 	}
-	created, err := h.Repository.CreateTemplate(r.Context(), wsID, req)
+	created, err := h.Repository.CreateTemplate(r.Context(), req)
 	if err != nil {
 		h.writeErr(w, r, err)
 		return
@@ -268,9 +259,8 @@ func (h LifecycleHandler) CreateTemplate(w http.ResponseWriter, r *http.Request)
 }
 
 func (h LifecycleHandler) GetTemplate(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := organizationIDFromContext(r)
-	id, ok2 := pathUUID(r, "id")
-	if !ok || !ok2 || !h.allowed(r, wsID, "workspace:settings:read") {
+	id, ok := pathUUID(r, "id")
+	if !ok || !h.allowed(r, "organization:settings:read") {
 		h.deny(w, r)
 		return
 	}
@@ -278,7 +268,7 @@ func (h LifecycleHandler) GetTemplate(w http.ResponseWriter, r *http.Request) {
 		apperror.WriteError(w, r, apperror.NotFound(apperror.KeyNotFound))
 		return
 	}
-	tmpl, err := h.Repository.GetTemplate(r.Context(), wsID, id)
+	tmpl, err := h.Repository.GetTemplate(r.Context(), id)
 	if err != nil {
 		h.writeErr(w, r, err)
 		return
@@ -287,8 +277,7 @@ func (h LifecycleHandler) GetTemplate(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h LifecycleHandler) ListTemplates(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := organizationIDFromContext(r)
-	if !ok || !h.allowed(r, wsID, "workspace:settings:read") {
+	if !h.allowed(r, "organization:settings:read") {
 		h.deny(w, r)
 		return
 	}
@@ -300,7 +289,7 @@ func (h LifecycleHandler) ListTemplates(w http.ResponseWriter, r *http.Request) 
 		apperror.WriteJSON(w, http.StatusOK, []LifecycleChecklistTemplate{})
 		return
 	}
-	list, err := h.Repository.ListTemplates(r.Context(), wsID, ct)
+	list, err := h.Repository.ListTemplates(r.Context(), ct)
 	if err != nil {
 		h.writeErr(w, r, err)
 		return
@@ -309,9 +298,8 @@ func (h LifecycleHandler) ListTemplates(w http.ResponseWriter, r *http.Request) 
 }
 
 func (h LifecycleHandler) UpdateTemplate(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := organizationIDFromContext(r)
-	id, ok2 := pathUUID(r, "id")
-	if !ok || !ok2 || !h.allowed(r, wsID, "workspace:settings:write") {
+	id, ok := pathUUID(r, "id")
+	if !ok || !h.allowed(r, "organization:settings:write") {
 		h.deny(w, r)
 		return
 	}
@@ -324,7 +312,7 @@ func (h LifecycleHandler) UpdateTemplate(w http.ResponseWriter, r *http.Request)
 		apperror.WriteError(w, r, apperror.NotFound(apperror.KeyNotFound))
 		return
 	}
-	updated, err := h.Repository.UpdateTemplate(r.Context(), wsID, id, req)
+	updated, err := h.Repository.UpdateTemplate(r.Context(), id, req)
 	if err != nil {
 		h.writeErr(w, r, err)
 		return
@@ -333,9 +321,8 @@ func (h LifecycleHandler) UpdateTemplate(w http.ResponseWriter, r *http.Request)
 }
 
 func (h LifecycleHandler) DeleteTemplate(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := organizationIDFromContext(r)
-	id, ok2 := pathUUID(r, "id")
-	if !ok || !ok2 || !h.allowed(r, wsID, "workspace:settings:write") {
+	id, ok := pathUUID(r, "id")
+	if !ok || !h.allowed(r, "organization:settings:write") {
 		h.deny(w, r)
 		return
 	}
@@ -343,7 +330,7 @@ func (h LifecycleHandler) DeleteTemplate(w http.ResponseWriter, r *http.Request)
 		apperror.WriteError(w, r, apperror.NotFound(apperror.KeyNotFound))
 		return
 	}
-	if err := h.Repository.DeleteTemplate(r.Context(), wsID, id); err != nil {
+	if err := h.Repository.DeleteTemplate(r.Context(), id); err != nil {
 		h.writeErr(w, r, err)
 		return
 	}
@@ -351,9 +338,8 @@ func (h LifecycleHandler) DeleteTemplate(w http.ResponseWriter, r *http.Request)
 }
 
 func (h LifecycleHandler) CreateTemplateItem(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := organizationIDFromContext(r)
-	tmplID, ok2 := pathUUID(r, "id")
-	if !ok || !ok2 || !h.allowed(r, wsID, "workspace:settings:write") {
+	tmplID, ok := pathUUID(r, "id")
+	if !ok || !h.allowed(r, "organization:settings:write") {
 		h.deny(w, r)
 		return
 	}
@@ -366,7 +352,7 @@ func (h LifecycleHandler) CreateTemplateItem(w http.ResponseWriter, r *http.Requ
 		apperror.WriteError(w, r, apperror.Internal(errors.New("repository unavailable")))
 		return
 	}
-	item, err := h.Repository.CreateTemplateItem(r.Context(), wsID, tmplID, req)
+	item, err := h.Repository.CreateTemplateItem(r.Context(), tmplID, req)
 	if err != nil {
 		h.writeErr(w, r, err)
 		return
@@ -375,9 +361,8 @@ func (h LifecycleHandler) CreateTemplateItem(w http.ResponseWriter, r *http.Requ
 }
 
 func (h LifecycleHandler) ListTemplateItems(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := organizationIDFromContext(r)
-	tmplID, ok2 := pathUUID(r, "id")
-	if !ok || !ok2 || !h.allowed(r, wsID, "workspace:settings:read") {
+	tmplID, ok := pathUUID(r, "id")
+	if !ok || !h.allowed(r, "organization:settings:read") {
 		h.deny(w, r)
 		return
 	}
@@ -385,7 +370,7 @@ func (h LifecycleHandler) ListTemplateItems(w http.ResponseWriter, r *http.Reque
 		apperror.WriteJSON(w, http.StatusOK, []LifecycleChecklistTemplateItem{})
 		return
 	}
-	items, err := h.Repository.ListTemplateItems(r.Context(), wsID, tmplID)
+	items, err := h.Repository.ListTemplateItems(r.Context(), tmplID)
 	if err != nil {
 		h.writeErr(w, r, err)
 		return
@@ -394,9 +379,8 @@ func (h LifecycleHandler) ListTemplateItems(w http.ResponseWriter, r *http.Reque
 }
 
 func (h LifecycleHandler) GetTemplateItem(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := organizationIDFromContext(r)
-	iid, ok2 := pathUUID(r, "iid")
-	if !ok || !ok2 || !h.allowed(r, wsID, "workspace:settings:read") {
+	iid, ok := pathUUID(r, "iid")
+	if !ok || !h.allowed(r, "organization:settings:read") {
 		h.deny(w, r)
 		return
 	}
@@ -404,7 +388,7 @@ func (h LifecycleHandler) GetTemplateItem(w http.ResponseWriter, r *http.Request
 		apperror.WriteError(w, r, apperror.NotFound(apperror.KeyNotFound))
 		return
 	}
-	item, err := h.Repository.GetTemplateItem(r.Context(), wsID, iid)
+	item, err := h.Repository.GetTemplateItem(r.Context(), iid)
 	if err != nil {
 		h.writeErr(w, r, err)
 		return
@@ -413,22 +397,13 @@ func (h LifecycleHandler) GetTemplateItem(w http.ResponseWriter, r *http.Request
 }
 
 func (h LifecycleHandler) UpdateTemplateItem(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := organizationIDFromContext(r)
-	iid, ok2 := pathUUID(r, "iid")
-	if !ok || !ok2 || !h.allowed(r, wsID, "workspace:settings:write") {
+	iid, ok := pathUUID(r, "iid")
+	if !ok || !h.allowed(r, "organization:settings:write") {
 		h.deny(w, r)
 		return
 	}
 	var req UpdateLifecycleChecklistTemplateItemRequest
-	if json.NewDecoder(r.Body).Decode(&req) != nil {
-		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
-		return
-	}
-	if req.Category != nil && !isValidCategory(*req.Category) {
-		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
-		return
-	}
-	if req.AssigneeType != nil && !isValidAssigneeType(*req.AssigneeType) {
+	if json.NewDecoder(r.Body).Decode(&req) != nil || (req.Category != nil && !isValidCategory(*req.Category)) || (req.AssigneeType != nil && !isValidAssigneeType(*req.AssigneeType)) {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}
@@ -436,7 +411,7 @@ func (h LifecycleHandler) UpdateTemplateItem(w http.ResponseWriter, r *http.Requ
 		apperror.WriteError(w, r, apperror.NotFound(apperror.KeyNotFound))
 		return
 	}
-	updated, err := h.Repository.UpdateTemplateItem(r.Context(), wsID, iid, req)
+	updated, err := h.Repository.UpdateTemplateItem(r.Context(), iid, req)
 	if err != nil {
 		h.writeErr(w, r, err)
 		return
@@ -445,9 +420,8 @@ func (h LifecycleHandler) UpdateTemplateItem(w http.ResponseWriter, r *http.Requ
 }
 
 func (h LifecycleHandler) DeleteTemplateItem(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := organizationIDFromContext(r)
-	iid, ok2 := pathUUID(r, "iid")
-	if !ok || !ok2 || !h.allowed(r, wsID, "workspace:settings:write") {
+	iid, ok := pathUUID(r, "iid")
+	if !ok || !h.allowed(r, "organization:settings:write") {
 		h.deny(w, r)
 		return
 	}
@@ -455,7 +429,7 @@ func (h LifecycleHandler) DeleteTemplateItem(w http.ResponseWriter, r *http.Requ
 		apperror.WriteError(w, r, apperror.NotFound(apperror.KeyNotFound))
 		return
 	}
-	if err := h.Repository.DeleteTemplateItem(r.Context(), wsID, iid); err != nil {
+	if err := h.Repository.DeleteTemplateItem(r.Context(), iid); err != nil {
 		h.writeErr(w, r, err)
 		return
 	}
@@ -463,9 +437,8 @@ func (h LifecycleHandler) DeleteTemplateItem(w http.ResponseWriter, r *http.Requ
 }
 
 func (h LifecycleHandler) CreateChecklist(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := organizationIDFromContext(r)
-	empID, ok2 := pathUUID(r, "emp_id")
-	if !ok || !ok2 || !h.allowed(r, wsID, "employees:update") {
+	employmentID, ok := pathUUID(r, "emp_id")
+	if !ok || !h.allowed(r, "employees:update") {
 		h.deny(w, r)
 		return
 	}
@@ -479,17 +452,18 @@ func (h LifecycleHandler) CreateChecklist(w http.ResponseWriter, r *http.Request
 	if uid != uuid.Nil {
 		actorID = &uid
 	}
-	resolver := func(permission string) []uuid.UUID {
-		if h.UsersWithPermission == nil {
+	resolver := func(ctx context.Context, permission string) []uuid.UUID {
+		if h.Authorizer == nil {
 			return nil
 		}
-		return h.UsersWithPermission(r.Context(), wsID, permission)
+		users, _ := h.Authorizer.GetUsersWithPermission(ctx, permission)
+		return users
 	}
 	if h.Repository == nil {
 		apperror.WriteError(w, r, apperror.Internal(errors.New("repository unavailable")))
 		return
 	}
-	checklist, err := h.Repository.CreateChecklistFromTemplate(r.Context(), wsID, empID, req.TemplateID, actorID, resolver)
+	checklist, err := h.Repository.CreateChecklistFromTemplate(r.Context(), employmentID, req.TemplateID, actorID, resolver)
 	if err != nil {
 		h.writeErr(w, r, err)
 		return
@@ -497,10 +471,9 @@ func (h LifecycleHandler) CreateChecklist(w http.ResponseWriter, r *http.Request
 	apperror.WriteJSON(w, http.StatusCreated, checklist)
 }
 
-func (h LifecycleHandler) ListChecklists(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := organizationIDFromContext(r)
-	empID, ok2 := pathUUID(r, "emp_id")
-	if !ok || !ok2 || !h.allowed(r, wsID, "employees:read") {
+func (h LifecycleHandler) ListEmploymentChecklists(w http.ResponseWriter, r *http.Request) {
+	employmentID, ok := pathUUID(r, "emp_id")
+	if !ok || !h.allowed(r, "employees:read") {
 		h.deny(w, r)
 		return
 	}
@@ -508,16 +481,16 @@ func (h LifecycleHandler) ListChecklists(w http.ResponseWriter, r *http.Request)
 		apperror.WriteJSON(w, http.StatusOK, []LifecycleChecklistResponse{})
 		return
 	}
-	list, err := h.Repository.ListChecklistsForEmployment(r.Context(), wsID, empID)
+	list, err := h.Repository.ListChecklistsForEmployment(r.Context(), employmentID)
 	if err != nil {
 		h.writeErr(w, r, err)
 		return
 	}
 	apperror.WriteJSON(w, http.StatusOK, list)
 }
-func (h LifecycleHandler) ListWorkspaceChecklists(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := organizationIDFromContext(r)
-	if !ok || !h.allowed(r, wsID, "employees:read") {
+
+func (h LifecycleHandler) ListChecklists(w http.ResponseWriter, r *http.Request) {
+	if !h.allowed(r, "employees:read") {
 		h.deny(w, r)
 		return
 	}
@@ -525,7 +498,7 @@ func (h LifecycleHandler) ListWorkspaceChecklists(w http.ResponseWriter, r *http
 		apperror.WriteError(w, r, apperror.NotFound(apperror.KeyNotFound))
 		return
 	}
-	list, err := h.Repository.ListWorkspaceChecklists(r.Context(), wsID)
+	list, err := h.Repository.ListChecklists(r.Context())
 	if err != nil {
 		h.writeErr(w, r, err)
 		return
@@ -534,9 +507,8 @@ func (h LifecycleHandler) ListWorkspaceChecklists(w http.ResponseWriter, r *http
 }
 
 func (h LifecycleHandler) GetChecklist(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := organizationIDFromContext(r)
-	id, ok2 := pathUUID(r, "id")
-	if !ok || !ok2 || !h.allowed(r, wsID, "employees:read") {
+	id, ok := pathUUID(r, "id")
+	if !ok || !h.allowed(r, "employees:read") {
 		h.deny(w, r)
 		return
 	}
@@ -544,7 +516,7 @@ func (h LifecycleHandler) GetChecklist(w http.ResponseWriter, r *http.Request) {
 		apperror.WriteError(w, r, apperror.NotFound(apperror.KeyNotFound))
 		return
 	}
-	cl, err := h.Repository.GetChecklist(r.Context(), wsID, id)
+	cl, err := h.Repository.GetChecklist(r.Context(), id)
 	if err != nil {
 		h.writeErr(w, r, err)
 		return
@@ -553,9 +525,8 @@ func (h LifecycleHandler) GetChecklist(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h LifecycleHandler) UpdateItemStatus(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := organizationIDFromContext(r)
-	iid, ok2 := pathUUID(r, "iid")
-	if !ok || !ok2 {
+	iid, ok := pathUUID(r, "iid")
+	if !ok {
 		h.deny(w, r)
 		return
 	}
@@ -573,17 +544,17 @@ func (h LifecycleHandler) UpdateItemStatus(w http.ResponseWriter, r *http.Reques
 		apperror.WriteError(w, r, apperror.NotFound(apperror.KeyNotFound))
 		return
 	}
-	assigneeID, _, err := h.Repository.GetItemAssigneeAndChecklist(r.Context(), wsID, iid)
+	assigneeID, _, err := h.Repository.GetItemAssigneeAndChecklist(r.Context(), iid)
 	if err != nil {
 		h.writeErr(w, r, err)
 		return
 	}
 	isAssignee := assigneeID != nil && *assigneeID == uid
-	if !isAssignee && !h.allowed(r, wsID, "employees:update") {
+	if !isAssignee && !h.allowed(r, "employees:update") {
 		h.deny(w, r)
 		return
 	}
-	res, err := h.Repository.UpdateChecklistItemStatus(r.Context(), wsID, iid, req.Status, req.Notes, &uid)
+	res, err := h.Repository.UpdateChecklistItemStatus(r.Context(), iid, req.Status, req.Notes, &uid)
 	if err != nil {
 		h.writeErr(w, r, err)
 		return
@@ -592,11 +563,6 @@ func (h LifecycleHandler) UpdateItemStatus(w http.ResponseWriter, r *http.Reques
 }
 
 func (h LifecycleHandler) GetMyTasks(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := organizationIDFromContext(r)
-	if !ok {
-		h.deny(w, r)
-		return
-	}
 	uid, hasUID := httpinfra.UserIDFromContext(r.Context())
 	if !hasUID {
 		h.deny(w, r)
@@ -606,7 +572,7 @@ func (h LifecycleHandler) GetMyTasks(w http.ResponseWriter, r *http.Request) {
 		apperror.WriteJSON(w, http.StatusOK, []PendingTaskResponse{})
 		return
 	}
-	tasks, err := h.Repository.GetPendingTasksForUser(r.Context(), wsID, uid)
+	tasks, err := h.Repository.GetPendingTasksForUser(r.Context(), uid)
 	if err != nil {
 		h.writeErr(w, r, err)
 		return

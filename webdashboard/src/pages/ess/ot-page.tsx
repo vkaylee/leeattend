@@ -7,7 +7,7 @@ import { PageContainer } from "@/components/ui/page-container";
 import PageHeader from "@/components/ui/page-header";
 import { useMyProfile } from "@/hooks/use-ess";
 import { useMyOtAssignments, useEmployeeQuota } from "@/hooks/use-overtime-requests";
-import { useWorkspace } from "@/hooks/use-workspace";
+import { useOrganization } from "@/hooks/use-organization";
 
 import { CreateOtRequestModal } from "./components/create-ot-request-modal";
 import { MyOtAssignmentsList } from "./components/my-ot-assignments-list";
@@ -15,9 +15,7 @@ import { OtQuotaWidget } from "./components/ot-quota-widget";
 
 export default function EssOtPage() {
   const { t } = useTranslation();
-  const { workspace: ws } = useWorkspace();
   const { employee } = useMyProfile();
-  const wsId = ws?.id;
   const employeeId = employee?.id;
 
   const [createModalOpen, setCreateModalOpen] = useState(false);
@@ -25,7 +23,7 @@ export default function EssOtPage() {
   const { data: assignments, isLoading: loadingAssignments } = useMyOtAssignments(employee?.active_employment_id ?? undefined);
   const { data: quota, isLoading: loadingQuota } = useEmployeeQuota(employeeId ?? "", new Date().toISOString().split("T")[0]);
 
-  if (!wsId || !employeeId) return null;
+  if (!employeeId) return null;
 
   return (
     <PageContainer>
@@ -47,7 +45,7 @@ export default function EssOtPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2 space-y-8">
-          <MyOtAssignmentsList assignments={assignments ?? []} isLoading={loadingAssignments} wsId={wsId} />
+          <MyOtAssignmentsList assignments={assignments ?? []} isLoading={loadingAssignments}  />
         </div>
         <div className="space-y-8">
           <OtQuotaWidget isLoading={loadingQuota} quota={quota} />
@@ -55,12 +53,9 @@ export default function EssOtPage() {
       </div>
 
       {createModalOpen ? (
-        <CreateOtRequestModal
-          employeeId={employeeId}
-          isOpen={createModalOpen}
-          onClose={() => { setCreateModalOpen(false); }}
-          wsId={wsId}
-        />
+        <CreateOtRequestModal employeeId={employeeId}
+        isOpen={createModalOpen}
+        onClose={() => { setCreateModalOpen(false); }}  />
       ) : null}
     </PageContainer>
   );

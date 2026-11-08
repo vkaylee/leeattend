@@ -7,6 +7,8 @@ import (
 	"net/http/httptest"
 	"sync/atomic"
 	"testing"
+	"time"
+
 
 	"github.com/google/uuid"
 	httpinfra "github.com/vkaylee/leeattend/apiserver/internal/infra/http"
@@ -17,40 +19,50 @@ type mockFailingDBRepo struct {
 	failCount atomic.Int32
 }
 
-func (m *mockFailingDBRepo) ListDepartments(ctx context.Context, wsID uuid.UUID, page, limit int) (DepartmentListResponse, error) {
+func (m *mockFailingDBRepo) ListDepartments(ctx context.Context, page, limit int) (DepartmentListResponse, error) {
 	if m.failCount.Add(1) <= 2 {
 		return DepartmentListResponse{}, errors.New("connection reset by peer: postgres pool lost")
 	}
 	return DepartmentListResponse{
-		Data:  []DepartmentRecord{{ID: uuid.New(), WorkspaceID: wsID, Name: "Recovered Department"}},
+		Data:  []DepartmentRecord{{ID: uuid.New(), Name: "Recovered Department"}},
 		Total: 1,
 		Page:  page,
 		Limit: limit,
 	}, nil
 }
 
-func (m *mockFailingDBRepo) CreateDepartment(ctx context.Context, wsID uuid.UUID, req CreateDepartmentRequest) (DepartmentRecord, error) {
+func (m *mockFailingDBRepo) CreateDepartment(ctx context.Context, req CreateDepartmentRequest) (DepartmentRecord, error) {
 	return DepartmentRecord{}, nil
 }
 
-func (m *mockFailingDBRepo) GetDepartmentByID(ctx context.Context, wsID, deptID uuid.UUID) (DepartmentRecord, error) {
+func (m *mockFailingDBRepo) GetDepartmentByID(ctx context.Context, deptID uuid.UUID) (DepartmentRecord, error) {
 	return DepartmentRecord{}, nil
 }
 
-func (m *mockFailingDBRepo) UpdateDepartment(ctx context.Context, wsID, deptID uuid.UUID, req UpdateDepartmentRequest) (DepartmentRecord, error) {
+func (m *mockFailingDBRepo) UpdateDepartment(ctx context.Context, deptID uuid.UUID, req UpdateDepartmentRequest) (DepartmentRecord, error) {
 	return DepartmentRecord{}, nil
 }
 
-func (m *mockFailingDBRepo) DeleteDepartment(ctx context.Context, wsID, deptID uuid.UUID) error {
+func (m *mockFailingDBRepo) DeleteDepartment(ctx context.Context, deptID uuid.UUID) error {
 	return nil
 }
 
-func (m *mockFailingDBRepo) GetDepartmentPayrollConfigs(ctx context.Context, wsID, deptID uuid.UUID) ([]DepartmentPayrollConfig, error) {
+func (m *mockFailingDBRepo) GetDepartmentPayrollConfigs(ctx context.Context, deptID uuid.UUID) ([]DepartmentPayrollConfig, error) {
 	return nil, nil
 }
 
-func (m *mockFailingDBRepo) SetDepartmentPayrollConfig(ctx context.Context, wsID, deptID uuid.UUID, req SetDepartmentPayrollConfigRequest, actorID uuid.UUID) (DepartmentPayrollConfig, error) {
+func (m *mockFailingDBRepo) SetDepartmentPayrollConfig(ctx context.Context, deptID uuid.UUID, req SetDepartmentPayrollConfigRequest, actorID uuid.UUID) (DepartmentPayrollConfig, error) {
 	return DepartmentPayrollConfig{}, nil
+}
+type contextWaitingDepartmentRepo struct {
+	mockDepartmentRepo
+	canceled atomic.Bool
+}
+
+func (m *contextWaitingDepartmentRepo) ListDepartments(ctx context.Context, _, _ int) (DepartmentListResponse, error) {
+	<-ctx.Done()
+	m.canceled.Store(true)
+	return DepartmentListResponse{}, ctx.Err()
 }
 
 // TestResilience_DBPoolReconnection verifies handler error response when DB is down
@@ -59,15 +71,13 @@ func TestResilience_DBPoolReconnection(t *testing.T) {
 	repo := &mockFailingDBRepo{}
 	h := DepartmentHandler{
 		Repository: repo,
-		Authorizer: mockAuthorizer{perms: map[string]bool{"departments:read": true}},
+		Authorizer: singleOrgTestAuthorizer{permissions: map[string]bool{"departments:read": true}},
 	}
 
-	wsID := uuid.New()
 	userID := uuid.New()
 
 	makeReq := func() *http.Response {
-		req := httptest.NewRequest(http.MethodGet, "/api/v1/workspaces/"+wsID.String()+"/departments", nil)
-		req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
+		req := httptest.NewRequest(http.MethodGet, "/api/v1/departments", nil)
 		req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), userID))
 		rec := httptest.NewRecorder()
 		h.List(rec, req)
@@ -93,30 +103,32 @@ func TestResilience_DBPoolReconnection(t *testing.T) {
 	}
 }
 
-// TestResilience_ContextCancellationDeadline verifies that cancelled or timed-out
-// requests abort immediately without committing dangling data.
+// TestResilience_ContextCancellationDeadline verifies that a timed-out request
+// cancels repository work and surfaces a failure instead of hanging.
 func TestResilience_ContextCancellationDeadline(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	// Cancel context immediately
-	cancel()
+	ctx, cancel := context.WithTimeout(context.Background(), 25*time.Millisecond)
+	defer cancel()
 
-	wsID := uuid.New()
-	userID := uuid.New()
+	repo := &contextWaitingDepartmentRepo{}
 	h := DepartmentHandler{
-		Repository: mockDepartmentRepo{},
-		Authorizer: mockAuthorizer{perms: map[string]bool{"departments:read": true}},
+		Repository: repo,
+		Authorizer: singleOrgTestAuthorizer{permissions: map[string]bool{"departments:read": true}},
 	}
 
-	req := httptest.NewRequest(http.MethodGet, "/api/v1/workspaces/"+wsID.String()+"/departments", nil).WithContext(ctx)
-	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
-	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), userID))
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/departments", nil).WithContext(ctx)
+	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
 	rec := httptest.NewRecorder()
 
 	h.List(rec, req)
 
-	// Context cancellation check
-	if ctx.Err() != context.Canceled {
-		t.Fatalf("expected context.Canceled, got %v", ctx.Err())
+	if ctx.Err() != context.DeadlineExceeded {
+		t.Fatalf("expected request deadline exceeded, got %v", ctx.Err())
+	}
+	if !repo.canceled.Load() {
+		t.Fatal("repository did not observe request cancellation")
+	}
+	if rec.Code != http.StatusInternalServerError {
+		t.Fatalf("expected 500 once repository aborted, got %d", rec.Code)
 	}
 }
 

@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { cn } from "@/lib/utils";
 import { useTranslation } from "react-i18next";
 
-import type { Department, Employee, Employment, WorkspaceMember } from "@/lib/api";
+import type { Department, Employee, Employment, OrganizationMember } from "@/lib/api";
 import type { WorkLocation } from "@/lib/api/locations";
 
 import WorkingConditionConfig from "@/components/employees/working-condition-config";
@@ -34,7 +34,6 @@ interface EmployeeDetailDrawerProps {
     onRehire: (employee: Employee) => void;
     onTerminate: (employee: Employee) => void;
     onTransfer: (departmentId: string) => void;
-    wsId: string;
 }
 
 export interface DrawerTabContentProps {
@@ -44,7 +43,7 @@ export interface DrawerTabContentProps {
     deptHistory?: DeptHistoryEntry[];
     employee: Employee;
     formatDate: (date: string) => string;
-    linkedUser?: WorkspaceMember;
+    linkedUser?: OrganizationMember;
     locations?: WorkLocation[];
     onEdit: (e: Employee) => void;
     onEmployeeUpdate?: (emp: Employee) => void;
@@ -52,36 +51,32 @@ export interface DrawerTabContentProps {
     onTerminate: (e: Employee) => void;
     onTransfer: (id: string) => void;
     t: (k: string) => string;
-    wsId: string;
 }
 
 const TAB_CONTENT_MAP: Record<DetailTabType, (props: DrawerTabContentProps) => React.ReactNode> = {
-    assignments: (props) => <EmployeeAssignmentsTab employeeId={props.employee.id} formatDate={props.formatDate} wsId={props.wsId} />,
-    compensation: (props) => <CompensationHistoryTab employeeId={props.employee.id} employmentId={props.activeEmployment?.id} formatDate={props.formatDate} wsId={props.wsId} />,
-    contracts: (props) => <EmployeeContractsTab employeeId={props.employee.id} formatDate={props.formatDate} wsId={props.wsId} />,
+    assignments: (props) => <EmployeeAssignmentsTab employeeId={props.employee.id} formatDate={props.formatDate}  />,
+    compensation: (props) => <CompensationHistoryTab employeeId={props.employee.id} employmentId={props.activeEmployment?.id} formatDate={props.formatDate}  />,
+    contracts: (props) => <EmployeeContractsTab employeeId={props.employee.id} formatDate={props.formatDate}  />,
     documents: (props) => <EmployeeDocumentsTab employeeId={props.employee.id} />,
-    lifecycle: (props) => <EmployeeLifecycleTab employmentId={props.activeEmployment?.id} wsId={props.wsId} />,
-    phases: (props) => <EmployeePhasesTab employeeId={props.employee.id} formatDate={props.formatDate} wsId={props.wsId} />,
+    lifecycle: (props) => <EmployeeLifecycleTab employmentId={props.activeEmployment?.id}  />,
+    phases: (props) => <EmployeePhasesTab employeeId={props.employee.id} formatDate={props.formatDate}  />,
     "working-conditions": (props) => <WorkingConditionConfig employeeId={props.employee.id} />,
-    "attendance-policy": (props) => <EmployeeAttendancePolicyTab employeeId={props.employee.id} wsId={props.wsId} />,
+    "attendance-policy": (props) => <EmployeeAttendancePolicyTab employeeId={props.employee.id}  />,
     profile: (props) => (
-        <ProfileTab
-            departments={props.departments}
-            deptHistory={props.deptHistory}
-            employee={props.employee}
-            formatDate={props.formatDate}
-            linkedUser={props.linkedUser}
-            locations={props.locations}
-            onEdit={props.onEdit}
-            onEmployeeUpdate={props.onEmployeeUpdate}
-            onRehire={props.onRehire}
-            onTerminate={props.onTerminate}
-            onTransfer={props.onTransfer}
-            t={props.t}
-            wsId={props.wsId}
-        />
+        <ProfileTab departments={props.departments}
+        deptHistory={props.deptHistory}
+        employee={props.employee}
+        formatDate={props.formatDate}
+        linkedUser={props.linkedUser}
+        locations={props.locations}
+        onEdit={props.onEdit}
+        onEmployeeUpdate={props.onEmployeeUpdate}
+        onRehire={props.onRehire}
+        onTerminate={props.onTerminate}
+        onTransfer={props.onTransfer}
+        t={props.t}  />
     ),
-    salary: (props) => <EmployeeSalaryConfig employeeId={props.employee.id} employmentId={props.activeEmployment?.id ?? ""} wsId={props.wsId} />,
+    salary: (props) => <EmployeeSalaryConfig employeeId={props.employee.id} employmentId={props.activeEmployment?.id ?? ""}  />,
 };
 
 export function DrawerTabContent(props: DrawerTabContentProps) {
@@ -92,9 +87,7 @@ export function DrawerTabContent(props: DrawerTabContentProps) {
 export default function EmployeeDetailDrawer({
     isOpen,
     onClose,
-    employee,
-    wsId,
-    departments,
+    employee,departments,
     deptHistory,
     formatDate,
     onEdit,
@@ -112,7 +105,7 @@ export default function EmployeeDetailDrawer({
         locations,
         scrollRef,
         setActiveDetailTab,
-    } = useEmployeeDetail({ employee, isOpen, wsId });
+    } = useEmployeeDetail({ employee, isOpen});
     if (!employee) return null;
 
     return (
@@ -143,23 +136,20 @@ export default function EmployeeDetailDrawer({
                 ref={scrollRef}
                 role="tabpanel"
             >
-                <DrawerTabContent
-                    activeDetailTab={activeDetailTab}
-                    activeEmployment={activeEmployment}
-                    departments={departments}
-                    deptHistory={deptHistory}
-                    employee={employee}
-                    formatDate={formatDate}
-                    linkedUser={linkedUser}
-                    locations={locations}
-                    onEdit={onEdit}
-                    onEmployeeUpdate={onEmployeeUpdate}
-                    onRehire={onRehire}
-                    onTerminate={onTerminate}
-                    onTransfer={onTransfer}
-                    t={t}
-                    wsId={wsId}
-                />
+                <DrawerTabContent activeDetailTab={activeDetailTab}
+                activeEmployment={activeEmployment}
+                departments={departments}
+                deptHistory={deptHistory}
+                employee={employee}
+                formatDate={formatDate}
+                linkedUser={linkedUser}
+                locations={locations}
+                onEdit={onEdit}
+                onEmployeeUpdate={onEmployeeUpdate}
+                onRehire={onRehire}
+                onTerminate={onTerminate}
+                onTransfer={onTransfer}
+                t={t}  />
             </div>
         </Sheet>
     );

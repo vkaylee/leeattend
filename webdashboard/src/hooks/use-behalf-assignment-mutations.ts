@@ -14,10 +14,7 @@ import type { BehalfAssignmentType } from "./use-behalf-assignments";
 
 import { behalfKeys } from "./use-behalf-assignments";
 
-export function useBehalfAssignmentMutations(
-  type: BehalfAssignmentType,
-  wsId: string | null,
-) {
+export function useBehalfAssignmentMutations(type: BehalfAssignmentType) {
   const queryClient = useQueryClient();
 
   const createMutation = useMutation({
@@ -26,43 +23,37 @@ export function useBehalfAssignmentMutations(
       target_department_id?: string | null;
       target_employee_id?: string | null;
     }) => {
-      if (!wsId) throw new Error("No workspace");
       switch (type) {
         case "ot":
-          return createBehalfAssignment(wsId, data);
+          return createBehalfAssignment(data);
         case "leave":
-          return createLeaveBehalfAssignment(wsId, data);
+          return createLeaveBehalfAssignment(data);
         case "attendance_adjustment":
-          return createAdjustmentBehalfAssignment(wsId, data);
+          return createAdjustmentBehalfAssignment(data);
         case "overtime_request":
-          return overtimeRequestsApi.createRequestBehalfAssignment(wsId, data);
+          return overtimeRequestsApi.createRequestBehalfAssignment(data);
       }
     },
     onSuccess: () => {
-      if (wsId) {
-        void queryClient.invalidateQueries({ queryKey: behalfKeys.list(wsId, type) });
-      }
+      void queryClient.invalidateQueries({ queryKey: behalfKeys.list(type) });
     },
   });
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => {
-      if (!wsId) throw new Error("No workspace");
       switch (type) {
         case "ot":
-          return deleteBehalfAssignment(wsId, id);
+          return deleteBehalfAssignment(id);
         case "leave":
-          return deleteLeaveBehalfAssignment(wsId, id);
+          return deleteLeaveBehalfAssignment(id);
         case "attendance_adjustment":
-          return deleteAdjustmentBehalfAssignment(wsId, id);
+          return deleteAdjustmentBehalfAssignment(id);
         case "overtime_request":
-          return overtimeRequestsApi.deleteRequestBehalfAssignment(wsId, id);
+          return overtimeRequestsApi.deleteRequestBehalfAssignment(id);
       }
     },
     onSuccess: () => {
-      if (wsId) {
-        void queryClient.invalidateQueries({ queryKey: behalfKeys.list(wsId, type) });
-      }
+      void queryClient.invalidateQueries({ queryKey: behalfKeys.list(type) });
     },
   });
 

@@ -22,7 +22,7 @@ import Button from "@/components/ui/button";
 import { Typography } from "@/components/ui/typography";
 import { useConfirm } from "@/hooks/use-confirm";
 import { useWorkingConditions } from "@/hooks/use-employees";
-import { createWorkingCondition, deleteWorkingCondition, getStandaloneOrganizationId, fetchConditionTypes, type ConditionTypeDefinition } from "@/lib/api";
+import { createWorkingCondition, deleteWorkingCondition, fetchConditionTypes, type ConditionTypeDefinition } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
 // Icon map: condition type code → Lucide icon component (fallback = Clock)
@@ -188,20 +188,17 @@ function useWorkingConditionActions({
   setIsAdding: (val: boolean) => void;
   t: TFunction;
 }) {
-  const wsId = getStandaloneOrganizationId();
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      if (!wsId) throw new Error("Workspace ID is required");
-      await deleteWorkingCondition(wsId, employeeId, id);
+      await deleteWorkingCondition(employeeId, id);
     },
     onSuccess: () => { void queryClient.invalidateQueries({ queryKey: ["working-conditions", employeeId] }); },
   });
 
   const createMutation = useMutation({
     mutationFn: async (data: CreateWorkingConditionData) => {
-      if (!wsId) throw new Error("Workspace ID is required");
-      return createWorkingCondition(wsId, employeeId, {
+      return createWorkingCondition(employeeId, {
         start_date: data.start_date,
         end_date: data.end_date,
         is_paid: data.is_paid,
@@ -239,16 +236,11 @@ export default function WorkingConditionConfig({ employeeId }: Props) {
   const [startDate, setStartDate] = useState(new Date().toISOString().split("T")[0]);
   const [endDate, setEndDate] = useState("");
   const [isPaid, setIsPaid] = useState(true);
-
-  const wsId = getStandaloneOrganizationId();
   const { data: conditions = [], isLoading } = useWorkingConditions(employeeId);
 
   // Fetch catalog types for the dropdown
-  const { data: typeDefs = [] } = useQuery({
-    queryKey: ["condition-types", wsId],
-    queryFn: () => (wsId ? fetchConditionTypes(wsId) : Promise.resolve([])),
-    enabled: !!wsId,
-  });
+  const { data: typeDefs = [] } = useQuery({ queryKey: ["condition-types"], queryFn: () => (fetchConditionTypes()),
+ });
 
   const { createMutation, handleDelete } = useWorkingConditionActions({ employeeId, queryClient, confirm, setIsAdding, t });
 

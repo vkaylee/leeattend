@@ -23,10 +23,10 @@ func BenchmarkAuthUserContextResolution(b *testing.B) {
 	}
 }
 
-// BenchmarkWorkspaceRBACPermissionCheck measures in-memory RBAC evaluation latency.
-func BenchmarkWorkspaceRBACPermissionCheck(b *testing.B) {
-	authz := mockAuthorizer{
-		perms: map[string]bool{
+// BenchmarkRBACPermissionCheck measures in-memory single-organization permission evaluation latency.
+func BenchmarkRBACPermissionCheck(b *testing.B) {
+	authz := singleOrgTestAuthorizer{
+		permissions: map[string]bool{
 			"departments:read":   true,
 			"departments:create": true,
 			"departments:delete": true,
@@ -36,11 +36,10 @@ func BenchmarkWorkspaceRBACPermissionCheck(b *testing.B) {
 	}
 	ctx := context.Background()
 	user := uuid.New()
-	ws := uuid.New()
 
 	b.ResetTimer()
 	for b.Loop() {
-		if !authz.HasPermission(ctx, user, ws, "departments:read") {
+		if !authz.HasPermission(ctx, user, "departments:read") {
 			b.Fatal("unexpected permission denial")
 		}
 	}
@@ -48,14 +47,12 @@ func BenchmarkWorkspaceRBACPermissionCheck(b *testing.B) {
 
 // BenchmarkDepartmentListHandler measures execution latency for read-only department listing.
 func BenchmarkDepartmentListHandler(b *testing.B) {
-	wsID := uuid.New()
 	userID := uuid.New()
 	h := DepartmentHandler{
 		Repository: mockDepartmentRepo{},
-		Authorizer: mockAuthorizer{perms: map[string]bool{"departments:read": true}},
+		Authorizer: singleOrgTestAuthorizer{permissions: map[string]bool{"departments:read": true}},
 	}
-	req := httptest.NewRequest(http.MethodGet, "/api/v1/workspaces/"+wsID.String()+"/departments", nil)
-	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/departments", nil)
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), userID))
 
 	b.ResetTimer()

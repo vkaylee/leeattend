@@ -1,7 +1,7 @@
 {
   "workspace_settings": {
-    "title": "Cài đặt Workspace",
-    "description": "Quản lý cấu hình, nhân sự và giao diện không gian làm việc.",
+    "title": "Cài đặt tổ chức",
+    "description": "Quản lý cấu hình, nhân sự và giao diện tổ chức.",
     "general_config": "Cấu hình chung",
     "payroll_config": "Cấu hình công lương",
     "attendance_config": "Cấu hình chấm công",
@@ -293,7 +293,7 @@
         "bool_true": "Đúng (True)",
         "bool_false": "Sai (False)",
         "scopes": {
-          "workspace": "Workspace",
+          "workspace": "Tổ chức",
           "employer": "Đơn vị tuyển dụng",
           "department": "Phòng ban",
           "employee": "Nhân viên"
@@ -327,7 +327,7 @@
     },
     "leave": {
       "title": "Cấu hình Nghỉ phép",
-      "desc": "Cấu hình loại nghỉ phép và các chính sách tích lũy phép cho workspace của bạn.",
+      "desc": "Cấu hình loại nghỉ phép và các chính sách tích lũy phép cho tổ chức của bạn.",
       "tabs": {
         "types": "Loại Nghỉ phép",
         "policies": "Chính sách Tích lũy",
@@ -383,7 +383,7 @@
         "paid": "Hưởng lương",
         "unpaid": "Không lương",
         "empty_title": "Chưa cấu hình loại nghỉ phép",
-        "empty_desc": "Workspace của bạn hoàn toàn mới. Hãy bắt đầu bằng cách tạo thủ công các loại nghỉ phép hoặc sử dụng các mẫu chuyên nghiệp của chúng tôi.",
+        "empty_desc": "Tổ chức của bạn hoàn toàn mới. Hãy bắt đầu bằng cách tạo thủ công các loại nghỉ phép hoặc sử dụng các mẫu chuyên nghiệp của chúng tôi.",
         "get_started": "Bắt đầu ngay",
         "loading": "Đang tải các loại nghỉ phép...",
         "confirm_delete_title": "Xác nhận xóa",
@@ -550,7 +550,7 @@
       "control_panel": "Cấu hình hệ thống",
       "operations": "Vận hành & Nghiệp vụ",
       "security_system": "Bảo mật & Hệ thống",
-      "workspace": "Không gian làm việc"
+      "workspace": "Tổ chức"
     },
     "workflows": {
       "general_section": "Thông tin chung",

@@ -32,7 +32,6 @@ vi.mock("@/lib/api", async () => {
         triggerAccrualRun: vi.fn(),
  
         fetchJobStatus: vi.fn(),
-        getStandaloneOrganizationId: () => "test-ws-id",
     };
 });
 

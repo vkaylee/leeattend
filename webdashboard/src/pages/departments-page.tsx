@@ -19,7 +19,6 @@ import { useDepartmentsPage } from "./departments/hooks/use-departments-page";
 export default function DepartmentsPage() {
   const {
     t,
-    wsId,
     isModalOpen,
     setIsModalOpen,
     isConfigModalOpen,
@@ -44,7 +43,6 @@ export default function DepartmentsPage() {
     filteredDepartments,
   } = useDepartmentsPage();
 
-  if (!wsId) return <div className="p-12 text-center text-slate-500 dark:text-slate-400 font-bold italic uppercase tracking-widest text-xs opacity-50">{t("common.select_workspace")}</div>;
 
   return (
     <PageContainer>
@@ -326,35 +324,26 @@ export default function DepartmentsPage() {
       )}
 
       {/* Slide-over Detail Drawer */}
-      <DepartmentDetailDrawer
-        dept={selectedDeptForDetail}
-        employees={employees}
-        isOpen={Boolean(selectedDeptForDetail)}
-        onClose={() => { setSelectedDeptForDetail(null); }}
-        onConfig={(d) => { setEditingDept(d); setIsConfigModalOpen(true); }}
-        onDelete={(d) => { setSelectedDeptForDetail(null); void handleDelete(d.id); }}
-        onEdit={(d) => { setEditingDept(d); setIsModalOpen(true); }}
-        t={t}
-        wsId={wsId}
-      />
+      <DepartmentDetailDrawer dept={selectedDeptForDetail}
+      employees={employees}
+      isOpen={Boolean(selectedDeptForDetail)}
+      onClose={() => { setSelectedDeptForDetail(null); }}
+      onConfig={(d) => { setEditingDept(d); setIsConfigModalOpen(true); }}
+      onDelete={(d) => { setSelectedDeptForDetail(null); void handleDelete(d.id); }}
+      onEdit={(d) => { setEditingDept(d); setIsModalOpen(true); }}
+      t={t}  />
 
-      <DepartmentConfigModal
-        editingDept={editingDept}
-        isOpen={isConfigModalOpen}
-        onClose={() => { setIsConfigModalOpen(false); }}
-        t={t}
-        wsId={wsId}
-      />
+      <DepartmentConfigModal editingDept={editingDept}
+      isOpen={isConfigModalOpen}
+      onClose={() => { setIsConfigModalOpen(false); }}
+      t={t}  />
 
-      <DepartmentFormModal
-        departments={departments}
-        editingDept={editingDept}
-        employees={employees}
-        isOpen={isModalOpen}
-        onClose={() => { setIsModalOpen(false); setEditingDept(null); }}
-        t={t}
-        wsId={wsId}
-      />
+      <DepartmentFormModal departments={departments}
+      editingDept={editingDept}
+      employees={employees}
+      isOpen={isModalOpen}
+      onClose={() => { setIsModalOpen(false); setEditingDept(null); }}
+      t={t}  />
 
       <ConfirmationDialog />
     </PageContainer>

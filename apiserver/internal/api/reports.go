@@ -52,7 +52,6 @@ type JobStatusResponse struct {
 }
 type ReportJob struct {
 	JobID            uuid.UUID
-	WorkspaceID      uuid.UUID
 	RequesterID      uuid.UUID
 	Status           string
 	TotalBatches     int
@@ -106,7 +105,6 @@ type NoShowReportRow struct {
 }
 
 type AttendanceReportFilter struct {
-	WorkspaceID    uuid.UUID
 	StartDate      string
 	EndDate        string
 	ReportType     string
@@ -123,7 +121,6 @@ type AttendanceReportFilter struct {
 }
 
 type NoShowReportFilter struct {
-	WorkspaceID  uuid.UUID
 	Date         string
 	Page         int
 	Limit        int
@@ -144,7 +141,7 @@ type ReportRepository interface {
 	CreateExportJob(context.Context, ReportJob, ExportReportRequest) error
 	GetAttendanceReport(context.Context, AttendanceReportFilter) (PaginatedReportResponse, error)
 	GetNoShowReport(context.Context, NoShowReportFilter) (PaginatedReportResponse, error)
-	ResolveBehalfEmployeeIDs(context.Context, uuid.UUID, uuid.UUID) ([]uuid.UUID, error)
+	ResolveBehalfEmployeeIDs(context.Context, uuid.UUID) ([]uuid.UUID, error)
 }
 type ReportQueue interface {
 	EnqueueReport(context.Context, ReportJob, ExportReportRequest) error
@@ -155,26 +152,21 @@ type ReportQueue interface {
 type ReportHandler struct {
 	Repository ReportRepository
 	Queue      ReportQueue
-	Authorizer WorkspaceAuthorizer
+	Authorizer Authorizer
 }
 
 func (h ReportHandler) CreateExport(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := organizationIDFromContext(r)
 	userID, userOK := httpinfra.UserIDFromContext(r.Context())
-	if !ok || !userOK || h.Authorizer == nil || !h.Authorizer.HasPermission(r.Context(), userID, wsID, "reports:export") {
+	if !userOK || !h.allowed(r, userID) {
 		h.forbidden(w, r)
 		return
 	}
 	var request ExportReportRequest
-	if json.NewDecoder(r.Body).Decode(&request) != nil {
+	if json.NewDecoder(r.Body).Decode(&request) != nil || validateExportRequest(&request) != nil {
 		h.validation(w, r)
 		return
 	}
-	if err := validateExportRequest(&request); err != nil {
-		h.validation(w, r)
-		return
-	}
-	job := ReportJob{JobID: uuid.New(), WorkspaceID: wsID, RequesterID: userID, Status: "pending", TotalBatches: 1, CreatedAt: time.Now().UTC()}
+	job := ReportJob{JobID: uuid.New(), RequesterID: userID, Status: "pending", TotalBatches: 1, CreatedAt: time.Now().UTC()}
 	if len(request.EmployeeIDs) > 50 {
 		job.TotalBatches = (len(request.EmployeeIDs) + 49) / 50
 	}
@@ -182,14 +174,13 @@ func (h ReportHandler) CreateExport(w http.ResponseWriter, r *http.Request) {
 		apperror.WriteError(w, r, apperror.Internal(errors.New("report export unavailable")))
 		return
 	}
-	apperror.WriteJSON(w, http.StatusAccepted, ExportJobResponse{JobID: job.JobID, Status: job.Status, TotalBatches: job.TotalBatches, EstimatedSeconds: job.TotalBatches, StatusURL: "/api/v1/workspaces/" + wsID.String() + "/reports/jobs/" + job.JobID.String()})
+	apperror.WriteJSON(w, http.StatusAccepted, ExportJobResponse{JobID: job.JobID, Status: job.Status, TotalBatches: job.TotalBatches, EstimatedSeconds: job.TotalBatches, StatusURL: "/api/v1/reports/jobs/" + job.JobID.String()})
 }
 
 func (h ReportHandler) Status(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := organizationIDFromContext(r)
 	jobID, jobOK := pathUUID(r, "job_id")
 	userID, userOK := httpinfra.UserIDFromContext(r.Context())
-	if !ok || !jobOK || !userOK || !h.allowed(r, wsID, userID) {
+	if !jobOK || !userOK || !h.allowed(r, userID) {
 		h.forbidden(w, r)
 		return
 	}
@@ -202,7 +193,7 @@ func (h ReportHandler) Status(w http.ResponseWriter, r *http.Request) {
 		h.writeReportError(w, r, err)
 		return
 	}
-	if job.WorkspaceID != wsID {
+	if job.RequesterID != userID {
 		h.forbidden(w, r)
 		return
 	}
@@ -215,10 +206,9 @@ func (h ReportHandler) Status(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h ReportHandler) Cancel(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := organizationIDFromContext(r)
 	jobID, jobOK := pathUUID(r, "job_id")
 	userID, userOK := httpinfra.UserIDFromContext(r.Context())
-	if !ok || !jobOK || !userOK || !h.allowed(r, wsID, userID) {
+	if !jobOK || !userOK || !h.allowed(r, userID) {
 		h.forbidden(w, r)
 		return
 	}
@@ -231,7 +221,7 @@ func (h ReportHandler) Cancel(w http.ResponseWriter, r *http.Request) {
 		h.writeReportError(w, r, err)
 		return
 	}
-	if job.WorkspaceID != wsID {
+	if job.RequesterID != userID {
 		h.forbidden(w, r)
 		return
 	}
@@ -243,10 +233,9 @@ func (h ReportHandler) Cancel(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h ReportHandler) Download(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := organizationIDFromContext(r)
 	jobID, jobOK := pathUUID(r, "job_id")
 	userID, userOK := httpinfra.UserIDFromContext(r.Context())
-	if !ok || !jobOK || !userOK || !h.allowed(r, wsID, userID) {
+	if !jobOK || !userOK || !h.allowed(r, userID) {
 		h.forbidden(w, r)
 		return
 	}
@@ -259,7 +248,7 @@ func (h ReportHandler) Download(w http.ResponseWriter, r *http.Request) {
 		h.writeReportError(w, r, err)
 		return
 	}
-	if job.WorkspaceID != wsID {
+	if job.RequesterID != userID {
 		h.forbidden(w, r)
 		return
 	}
@@ -289,19 +278,18 @@ func (h ReportHandler) Download(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h ReportHandler) AttendanceReport(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := organizationIDFromContext(r)
 	userID, userOK := httpinfra.UserIDFromContext(r.Context())
-	if !ok || !userOK {
+	if !userOK {
 		h.validation(w, r)
 		return
 	}
-	isGlobal := h.Authorizer != nil && (h.Authorizer.HasPermission(r.Context(), userID, wsID, "reports:read") ||
-		h.Authorizer.HasPermission(r.Context(), userID, wsID, "overtime:approve") ||
-		h.Authorizer.HasPermission(r.Context(), userID, wsID, "attendance:summaries:read") ||
-		h.Authorizer.HasPermission(r.Context(), userID, wsID, "attendance_summaries:read"))
+	isGlobal := h.Authorizer != nil && (h.Authorizer.HasPermission(r.Context(), userID, "reports:read") ||
+		h.Authorizer.HasPermission(r.Context(), userID, "overtime:approve") ||
+		h.Authorizer.HasPermission(r.Context(), userID, "attendance:summaries:read") ||
+		h.Authorizer.HasPermission(r.Context(), userID, "attendance_summaries:read"))
 	if !isGlobal {
-		hasBehalf := h.Authorizer != nil && (h.Authorizer.HasPermission(r.Context(), userID, wsID, "overtime:claim_on_behalf") ||
-			h.Authorizer.HasPermission(r.Context(), userID, wsID, "overtime_claim:behalf"))
+		hasBehalf := h.Authorizer != nil && (h.Authorizer.HasPermission(r.Context(), userID, "overtime:claim_on_behalf") ||
+			h.Authorizer.HasPermission(r.Context(), userID, "overtime_claim:behalf"))
 		if !hasBehalf {
 			h.forbidden(w, r)
 			return
@@ -346,7 +334,7 @@ func (h ReportHandler) AttendanceReport(w http.ResponseWriter, r *http.Request) 
 		}
 	}
 	if !isGlobal && h.Repository != nil {
-		behalfIDs, err := h.Repository.ResolveBehalfEmployeeIDs(r.Context(), wsID, userID)
+		behalfIDs, err := h.Repository.ResolveBehalfEmployeeIDs(r.Context(), userID)
 		if err != nil {
 			apperror.WriteError(w, r, apperror.Internal(err))
 			return
@@ -406,7 +394,6 @@ func (h ReportHandler) AttendanceReport(w http.ResponseWriter, r *http.Request) 
 		segmentCentric = false
 	}
 	filter := AttendanceReportFilter{
-		WorkspaceID:    wsID,
 		StartDate:      startDateStr,
 		EndDate:        endDateStr,
 		ReportType:     reportType,
@@ -438,13 +425,12 @@ func (h ReportHandler) AttendanceReport(w http.ResponseWriter, r *http.Request) 
 }
 
 func (h ReportHandler) NoShowReport(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := organizationIDFromContext(r)
 	userID, userOK := httpinfra.UserIDFromContext(r.Context())
-	if !ok || !userOK {
+	if !userOK {
 		h.validation(w, r)
 		return
 	}
-	if h.Authorizer == nil || !h.Authorizer.HasPermission(r.Context(), userID, wsID, "reports:read") {
+	if h.Authorizer == nil || !h.Authorizer.HasPermission(r.Context(), userID, "reports:read") {
 		h.forbidden(w, r)
 		return
 	}
@@ -484,7 +470,6 @@ func (h ReportHandler) NoShowReport(w http.ResponseWriter, r *http.Request) {
 		shiftType = &s
 	}
 	filter := NoShowReportFilter{
-		WorkspaceID:  wsID,
 		Date:         dateStr,
 		Page:         page,
 		Limit:        limit,
@@ -568,8 +553,8 @@ func (h ReportHandler) validation(w http.ResponseWriter, r *http.Request) {
 	apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 }
 
-func (h ReportHandler) allowed(r *http.Request, wsID, userID uuid.UUID) bool {
-	return h.Authorizer != nil && h.Authorizer.HasPermission(r.Context(), userID, wsID, "reports:export")
+func (h ReportHandler) allowed(r *http.Request, userID uuid.UUID) bool {
+	return h.Authorizer != nil && h.Authorizer.HasPermission(r.Context(), userID, "reports:export")
 }
 
 func (h ReportHandler) writeReportError(w http.ResponseWriter, r *http.Request, err error) {

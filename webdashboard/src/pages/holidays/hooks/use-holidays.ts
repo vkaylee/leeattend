@@ -5,7 +5,6 @@ import { useTranslation } from "react-i18next";
 import type { Holiday } from "@/lib/api/types";
 
 import { useConfirm } from "@/hooks/use-confirm";
-import { getStandaloneOrganizationId } from "@/lib/api";
 import { deleteHoliday, fetchHolidays } from "@/lib/api/holidays";
 import { fetchLeaveTypes } from "@/lib/api/leaves";
 import { logError } from "@/lib/logger";
@@ -20,24 +19,16 @@ export function useHolidays() {
     const [error, setError] = useState<string | null>(null);
     const { confirm, ConfirmationDialog } = useConfirm();
 
-    const wsId = getStandaloneOrganizationId();
+    
 
     const { data: holidays = [], isLoading, refetch: loadHolidays } = useQuery({
-        enabled: !!wsId,
-        queryFn: () => {
-            if (!wsId) { throw new Error("Workspace ID is required"); }
-            return fetchHolidays(wsId, year);
-        },
-        queryKey: ["holidays", wsId, year],
+        queryFn: () => fetchHolidays(year),
+        queryKey: ["holidays", year],
     });
 
     const { data: leaveTypes = [] } = useQuery({
-        enabled: !!wsId,
-        queryFn: () => {
-            if (!wsId) { throw new Error("Workspace ID is required"); }
-            return fetchLeaveTypes(wsId);
-        },
-        queryKey: ["leaveTypes", wsId],
+        queryFn: () => fetchLeaveTypes(),
+        queryKey: ["leaveTypes"],
     });
 
     const onSaveSuccess = useCallback(() => {
@@ -57,7 +48,6 @@ export function useHolidays() {
         editingHoliday,
         onCancel,
         onSaveSuccess,
-        workspaceId: wsId ?? undefined,
     });
 
     const openEdit = useCallback((h: Holiday) => {
@@ -67,7 +57,6 @@ export function useHolidays() {
     }, [form.formActions]);
 
     const handleDelete = async (id: string) => {
-        if (!wsId) { return; }
         const ok = await confirm({
             message: t("holidays.messages.confirm_delete"),
             title: t("common.confirm_delete", "Confirm Delete"),
@@ -75,7 +64,7 @@ export function useHolidays() {
         });
         if (!ok) { return; }
         try {
-            await deleteHoliday(wsId, id);
+            await deleteHoliday(id);
             void loadHolidays();
         } catch (e: unknown) {
             logError(e, { component: 'useHolidays.delete' });

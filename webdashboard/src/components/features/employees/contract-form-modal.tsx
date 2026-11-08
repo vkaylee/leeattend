@@ -28,7 +28,6 @@ interface ContractFormModalProps {
   employeeId: string;
   isOpen: boolean;
   onClose: () => void;
-  wsId: string;
 }
 
 interface ContractFormBodyProps {
@@ -177,14 +176,14 @@ function ContractFormFields({
 
 // ── Main Component ──────────────────────────────────────────────────────────
 
-export default function ContractFormModal({ isOpen, onClose, editingContract, wsId, employeeId }: ContractFormModalProps) {
+export default function ContractFormModal({ isOpen, onClose, editingContract,employeeId }: ContractFormModalProps) {
   const toast = useToast();
-  const { createContract, updateContract } = useEmployeeContracts(wsId, employeeId);
+  const { createContract, updateContract } = useEmployeeContracts(employeeId);
 
   const [{ data: phases }, { data: employments = [] }] = useQueries({
     queries: [
-      { queryKey: ["employment-phases", wsId], queryFn: () => fetchEmploymentPhases(wsId), enabled: !!wsId },
-      { queryKey: ["employee-employments", wsId, employeeId], queryFn: () => fetchEmployeeEmployments(wsId, employeeId), enabled: !!wsId && !!employeeId && isOpen },
+      { queryKey: ["employment-phases"], queryFn: () => fetchEmploymentPhases() },
+      { queryKey: ["employee-employments",employeeId], queryFn: () => fetchEmployeeEmployments(employeeId), enabled: !!employeeId && isOpen },
     ],
   });
 

@@ -12,7 +12,7 @@ import { fetchEmployee } from "@/lib/api";
 import type { ShiftsSearch } from "../search-schema";
 import type { TabType, ViewMode } from "./use-shifts-types";
 
-export function useShiftFormState(wsId?: string) {
+export function useShiftFormState() {
   // useSearch({ strict: false }) returns a permissive type; we cast to
   // ShiftsSearch to match the route's validateSearch contract (codebase idiom
   // — see shifts-rules-page.tsx).
@@ -72,12 +72,12 @@ export function useShiftFormState(wsId?: string) {
   // Do not gate on selectedEmployee — that would create a circular TDZ with the
   // derived-state declaration below. The query only runs when URL has employeeIds.
   const { data: initialEmployee } = useQuery({
-    queryKey: ["employee", wsId, employeeId],
+    queryKey: ["employee", employeeId],
     queryFn: () => {
-      if (!wsId || !employeeId) throw new Error("Missing params");
-      return fetchEmployee(wsId, employeeId);
+      if (!employeeId) throw new Error("Missing params");
+      return fetchEmployee(employeeId);
     },
-    enabled: !!wsId && !!employeeId,
+    enabled: !!employeeId,
   });
 
   // Sync initial employee from React Query result — useDerivedStateFrom

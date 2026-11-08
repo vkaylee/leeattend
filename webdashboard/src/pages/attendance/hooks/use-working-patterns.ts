@@ -11,7 +11,7 @@ import { useToast } from "@/components/ui/toast";
 import { useConfirm } from "@/hooks/use-confirm";
 import { useWorkingPatternGrid } from "@/hooks/use-working-pattern-grid";
 import { useDepartments } from "@/hooks/use-departments";
-import { useOrganizationQuery } from "@/hooks/common/use-workspace-query";
+import { useOrganizationQuery } from "@/hooks/common/use-organization-query";
 import {
   BulkAssignResponse,
   CreateWorkingPatternRequest,
@@ -26,7 +26,6 @@ import {
   fetchPatternDetails,
   fetchShifts,
   fetchWorkingPatterns,
-  getStandaloneOrganizationId,
   fetchEmployees,
 } from "@/lib/api";
 import { ApiError, ComplianceConflictError, parseComplianceConflict } from "@/lib/api/errors";
@@ -34,64 +33,59 @@ import { employeeKeys } from "@/lib/query-keys";
 
 type BulkAssignPatternRequestLocal = Parameters<typeof bulkAssignPattern>[1];
 
-export interface UseWorkingPatternsReturn {
-  addShiftToDay: (dayIndex: number, shiftId: string) => void;
-  assignAnchorDate: string;
-  assignStartDate: string;
-  bulkAssignMutation: UseMutationResult<BulkAssignResponse, Error, BulkAssignPatternRequestLocal>;
-  complianceModalOpen: boolean;
-  complianceViolations: ComplianceViolation[];
-  ConfirmationDialog: React.ComponentType<unknown>;
-  createMutation: UseMutationResult<WorkingPattern, Error, CreateWorkingPatternRequest>;
-  cycleLengthDays: number;
-  deleteMutation: UseMutationResult<unknown, Error, string>;
-  departments: Department[];
-  expandedPatternId: string | null;
-  handleBulkAssign: () => void;
-  handleCreate: () => void;
-  handleDelete: (pattern: WorkingPattern) => Promise<void>;
-  isBulkModalOpen: boolean;
-  isComplianceResolving: boolean;
-  isCreateModalOpen: boolean;
-  isLoading: boolean;
-  newPatternDesc: string;
-  newPatternName: string;
-  onComplianceOverride: (reason: string) => Promise<void>;
-  patternDetails: WorkingPatternDetail[];
-  patterns: WorkingPattern[];
-  patternType: "weekly" | "rotation";
-  prefillStandard: () => void;
-  removeShiftFromDay: (dayIndex: number, shiftId: string) => void;
-  selectedEmployeeIds: string[];
-  selectedPatternId: string;
-  setAssignAnchorDate: (v: string) => void;
-  setAssignStartDate: (v: string) => void;
-  setComplianceModalOpen: (v: boolean) => void;
-  setCycleLengthDays: (v: number) => void;
-  setExpandedPatternId: (v: string | null) => void;
-  setIsBulkModalOpen: (v: boolean) => void;
-  setIsCreateModalOpen: (v: boolean) => void;
-  setNewPatternDesc: (v: string) => void;
-  setNewPatternName: (v: string) => void;
-  setPatternType: (v: "weekly" | "rotation") => void;
-  setSelectedEmployeeIds: (v: string[]) => void;
-  setSelectedPatternId: (v: string) => void;
-  setWeeklyGrid: (v: string[][] | ((p: string[][]) => string[][])) => void;
-  shifts: Shift[];
-  weeklyGrid: string[][];
-  wsId: string;
-}
+export interface UseWorkingPatternsReturn { addShiftToDay: (dayIndex: number, shiftId: string) => void;
+assignAnchorDate: string;
+assignStartDate: string;
+bulkAssignMutation: UseMutationResult<BulkAssignResponse, Error, BulkAssignPatternRequestLocal>;
+complianceModalOpen: boolean;
+complianceViolations: ComplianceViolation[];
+ConfirmationDialog: React.ComponentType<unknown>;
+createMutation: UseMutationResult<WorkingPattern, Error, CreateWorkingPatternRequest>;
+cycleLengthDays: number;
+deleteMutation: UseMutationResult<unknown, Error, string>;
+departments: Department[];
+expandedPatternId: string | null;
+handleBulkAssign: () => void;
+handleCreate: () => void;
+handleDelete: (pattern: WorkingPattern) => Promise<void>;
+isBulkModalOpen: boolean;
+isComplianceResolving: boolean;
+isCreateModalOpen: boolean;
+isLoading: boolean;
+newPatternDesc: string;
+newPatternName: string;
+onComplianceOverride: (reason: string) => Promise<void>;
+patternDetails: WorkingPatternDetail[];
+patterns: WorkingPattern[];
+patternType: "weekly" | "rotation";
+prefillStandard: () => void;
+removeShiftFromDay: (dayIndex: number, shiftId: string) => void;
+selectedEmployeeIds: string[];
+selectedPatternId: string;
+setAssignAnchorDate: (v: string) => void;
+setAssignStartDate: (v: string) => void;
+setComplianceModalOpen: (v: boolean) => void;
+setCycleLengthDays: (v: number) => void;
+setExpandedPatternId: (v: string | null) => void;
+setIsBulkModalOpen: (v: boolean) => void;
+setIsCreateModalOpen: (v: boolean) => void;
+setNewPatternDesc: (v: string) => void;
+setNewPatternName: (v: string) => void;
+setPatternType: (v: "weekly" | "rotation") => void;
+setSelectedEmployeeIds: (v: string[]) => void;
+setSelectedPatternId: (v: string) => void;
+setWeeklyGrid: (v: string[][] | ((p: string[][]) => string[][])) => void;
+shifts: Shift[];
+weeklyGrid: string[][];  }
 
-function useWorkingPatternQueries(wsId: string, expandedPatternId: string | null) {
-  const { data: patterns, isLoading } = useQuery<WorkingPattern[]>({ enabled: !!wsId, queryFn: () => fetchWorkingPatterns(wsId), queryKey: ["working-patterns", wsId] });
-  const { data: shifts } = useQuery<Shift[]>({ enabled: !!wsId, queryFn: () => fetchShifts(wsId), queryKey: ["shifts", wsId] });
-  const { data: patternDetails } = useQuery<WorkingPatternDetail[]>({ enabled: !!wsId && !!expandedPatternId, queryFn: () => expandedPatternId ? fetchPatternDetails(wsId, expandedPatternId) : Promise.resolve([]), queryKey: ["pattern-details", wsId, expandedPatternId] });
+function useWorkingPatternQueries(expandedPatternId: string | null) {
+  const { data: patterns, isLoading } = useQuery<WorkingPattern[]>({ queryFn: () => fetchWorkingPatterns(), queryKey: ["working-patterns"] });
+  const { data: shifts } = useQuery<Shift[]>({ queryFn: () => fetchShifts(), queryKey: ["shifts"] });
+  const { data: patternDetails } = useQuery<WorkingPatternDetail[]>({ enabled: !!expandedPatternId, queryFn: () => expandedPatternId ? fetchPatternDetails(expandedPatternId) : Promise.resolve([]), queryKey: ["pattern-details", expandedPatternId] });
   return { patterns: patterns ?? [], shifts: shifts ?? [], patternDetails: patternDetails ?? [], isLoading };
 }
 
-function useWorkingPatternMutations(
-  wsId: string,
-  setters: {
+function useWorkingPatternMutations(setters: {
     setIsCreateModalOpen: (v: boolean) => void;
     setNewPatternName: (v: string) => void;
     setNewPatternDesc: (v: string) => void;
@@ -109,7 +103,7 @@ function useWorkingPatternMutations(
   const queryClient = useQueryClient();
 
   const createMutation = useMutation<WorkingPattern, Error, CreateWorkingPatternRequest>({
-    mutationFn: (data) => createWorkingPattern(wsId, data),
+    mutationFn: (data) => createWorkingPattern(data),
     onSuccess: () => {
       toast.success(t("patterns.messages.create_success"));
       setters.setIsCreateModalOpen(false);
@@ -123,7 +117,7 @@ function useWorkingPatternMutations(
   });
 
   const bulkAssignMutation = useMutation<BulkAssignResponse, Error, BulkAssignPatternRequestLocal>({
-    mutationFn: (data) => bulkAssignPattern(wsId, data),
+    mutationFn: (data) => bulkAssignPattern(data),
     onSuccess: (data) => {
       if (data.success_count > 0) {
         toast.success(t("patterns.messages.bulk_assign_success_count", { count: data.success_count }));
@@ -155,7 +149,7 @@ function useWorkingPatternMutations(
   });
 
   const deleteMutation = useMutation<unknown, Error, string>({
-    mutationFn: (patternId) => deleteWorkingPattern(wsId, patternId),
+    mutationFn: (patternId) => deleteWorkingPattern(patternId),
     onSuccess: () => {
       toast.success(t("patterns.messages.delete_success"));
       void queryClient.invalidateQueries({ queryKey: ["working-patterns"] });
@@ -170,7 +164,7 @@ export function useWorkingPatterns(): UseWorkingPatternsReturn {
   const { ConfirmationDialog, confirm } = useConfirm();
   const { t } = useTranslation();
   const toast = useToast();
-  const wsId = getStandaloneOrganizationId() ?? "";
+  
 
   const [assignStartDate, setAssignStartDate] = useState(format(startOfToday(), "yyyy-MM-01"));
   const [assignAnchorDate, setAssignAnchorDate] = useState(format(startOfToday(), "yyyy-MM-01"));
@@ -230,8 +224,8 @@ export function useWorkingPatterns(): UseWorkingPatternsReturn {
     }
   }, [patternType, setWeeklyGrid]);
 
-  const { patterns, shifts, patternDetails, isLoading } = useWorkingPatternQueries(wsId, expandedPatternId);
-  const { createMutation, bulkAssignMutation, deleteMutation } = useWorkingPatternMutations(wsId, {
+  const { patterns, shifts, patternDetails, isLoading } = useWorkingPatternQueries(expandedPatternId);
+  const { createMutation, bulkAssignMutation, deleteMutation } = useWorkingPatternMutations({
     setIsCreateModalOpen,
     setNewPatternName,
     setNewPatternDesc,
@@ -279,14 +273,11 @@ export function useWorkingPatterns(): UseWorkingPatternsReturn {
     setAssignAnchorDate(val);
   }, []);
 
-  const { data: employeesData } = useOrganizationQuery({
-    workspaceId: wsId,
-    queryKey: employeeKeys.lookup(wsId, { permission: "working-patterns-bulk" }),
-    queryFn: (workspaceId) => fetchEmployees(workspaceId, 1, 1000),
-  });
+  const { data: employeesData } = useOrganizationQuery({ queryKey: employeeKeys.lookup({ permission: "working-patterns-bulk" }),
+  queryFn: () => fetchEmployees(1, 1000), });
   const employees = employeesData?.data ?? [];
 
-  const { data: departments = [] } = useDepartments(wsId);
+  const { data: departments = [] } = useDepartments();
 
   const handleBulkAssign = () => {
     if (selectedPatternId && selectedEmployeeIds.length > 0) {
@@ -374,6 +365,5 @@ export function useWorkingPatterns(): UseWorkingPatternsReturn {
     setWeeklyGrid,
     shifts,
     weeklyGrid,
-    wsId,
   };
 }

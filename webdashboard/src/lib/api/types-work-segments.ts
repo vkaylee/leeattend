@@ -57,7 +57,6 @@ export interface WorkSegment {
   source_detail: WorkSegmentSourceDetail;
   template_id: string;
   updated_at: string;
-  workspace_id: string;
 }
 
 export interface CreateWorkSegmentRequest {

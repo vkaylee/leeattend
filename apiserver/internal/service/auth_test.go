@@ -119,7 +119,7 @@ func (m *memoryAuthRepo) UpdateUserProfile(_ context.Context, uid uuid.UUID, req
 	return m.user, nil
 }
 
-func (m *memoryAuthRepo) ListWorkspaceUsers(_ context.Context, _ uuid.UUID) ([]UserRecord, error) {
+func (m *memoryAuthRepo) ListOrganizationUsers(_ context.Context) ([]UserRecord, error) {
 	return []UserRecord{m.user}, nil
 }
 

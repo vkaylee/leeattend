@@ -42,7 +42,6 @@ vi.mock("../../lib/api", () => ({
   fetchRawAttendanceLogs: vi.fn(),
   fetchEmployees: vi.fn(),
   fetchWorkspace: vi.fn(),
-  getStandaloneOrganizationId: vi.fn(),
   fetchStagingLogs: vi.fn(),
   resolveStagingLog: vi.fn(),
   dismissStagingLog: vi.fn(),
@@ -78,7 +77,6 @@ describe("AttendanceLogsPage", () => {
 
     });
  
-    vi.mocked(api.getStandaloneOrganizationId).mockReturnValue("test-ws-id");
     vi.mocked(api.fetchWorkspace).mockResolvedValue({ id: "test-ws-id", name: "Test Workspace" } as unknown as Workspace);
     vi.mocked(api.fetchEmployees).mockResolvedValue({
       data: [

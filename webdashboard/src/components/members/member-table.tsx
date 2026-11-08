@@ -28,8 +28,8 @@ import {
 import { Typography } from "@/components/ui/typography";
 import { useConfirm } from "@/hooks/use-confirm";
 import { useMyPermissions } from "@/hooks/use-permissions";
-import { useWorkspaceMembers, useWorkspaceRoles } from "@/hooks/use-workspace";
-import { WorkspaceRole, WorkspaceMember } from "@/lib/api";
+import { useOrganizationMembers, useOrganizationRoles } from "@/hooks/use-organization";
+import { OrganizationRole, OrganizationMember } from "@/lib/api";
 import { logError } from "@/lib/logger";
 import { cn, maskEmail } from "@/lib/utils";
 
@@ -65,17 +65,17 @@ function MemberMobileCard({
   t,
 }: {
   canReadPII: boolean;
-  member: WorkspaceMember;
+  member: OrganizationMember;
   onManagePermissions: (userId: string) => void;
   onManageRoles: (userId: string) => void;
   onRemoveMember: (userId: string) => void;
-  roles: WorkspaceRole[];
+  roles: OrganizationRole[];
   t: (key: string, options?: { defaultValue?: string }) => string;
 }) {
   const primaryRole = roles.find((r) => r.id === member.role_id);
   const extraRoles = (member.extra_role_ids ?? [])
     .map((id) => roles.find((r) => r.id === id))
-    .filter(Boolean) as WorkspaceRole[];
+    .filter(Boolean) as OrganizationRole[];
 
   const roleColorMap: Record<string, string> = {
     teal: "bg-teal-50 dark:bg-teal-950 text-teal-700 dark:text-teal-300 border-teal-200 dark:border-teal-800",
@@ -178,14 +178,14 @@ const roleColorMap: Record<string, string> = {
   emerald: "bg-emerald-50 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800",
 };
 
-function MemberRoleCell({ member, roles }: { member: WorkspaceMember; roles: WorkspaceRole[] }) {
+function MemberRoleCell({ member, roles }: { member: OrganizationMember; roles: OrganizationRole[] }) {
   const { t } = useTranslation();
   const primaryRole = roles.find((r) => r.id === member.role_id);
   if (!primaryRole) return <div className="h-6 w-16 bg-slate-200 dark:bg-slate-800 rounded-full animate-pulse"></div>;
 
   const extraRoles = (member.extra_role_ids ?? [])
     .map((id) => roles.find((r) => r.id === id))
-    .filter(Boolean) as WorkspaceRole[];
+    .filter(Boolean) as OrganizationRole[];
 
   return (
     <>
@@ -235,8 +235,8 @@ export default function MemberTable() {
   const { confirm, ConfirmationDialog } = useConfirm();
   const { hasPermission } = useMyPermissions();
   const canReadPII = hasPermission("employees:pii:read");
-  const { members, isLoading: membersLoading, removeMember } = useWorkspaceMembers();
-  const { roles, isLoading: rolesLoading } = useWorkspaceRoles();
+  const { members, isLoading: membersLoading, removeMember } = useOrganizationMembers();
+  const { roles, isLoading: rolesLoading } = useOrganizationRoles();
   const isLoading = membersLoading || rolesLoading;
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [isRoleModalOpen, setIsRoleModalOpen] = useState(false);

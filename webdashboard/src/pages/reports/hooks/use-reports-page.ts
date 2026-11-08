@@ -8,7 +8,6 @@ import {
   Department,
   Employee,
   Employer,
-  getStandaloneOrganizationId,
 } from "@/lib/api";
 
 import { FilterMode, useReportsFilters } from "./use-reports-filters";
@@ -56,11 +55,10 @@ export interface UseReportsPageReturn {
   specificMonth: { month: number; year: number };
   viewMode: ReportViewMode;
   setViewMode: (mode: ReportViewMode) => void;
-  wsId: string | null;
 }
 
 export function useReportsPage(): UseReportsPageReturn {
-  const wsId = getStandaloneOrganizationId();
+  
   
   const {
     filterMode, setFilterMode,
@@ -97,7 +95,7 @@ export function useReportsPage(): UseReportsPageReturn {
     }
   }, []);
 
-  const { employees: allEmployees } = useAllEmployees(wsId);
+  const { employees: allEmployees } = useAllEmployees();
 
   const debouncedSearch = useDebounce(searchQuery, 400);
 
@@ -111,7 +109,6 @@ export function useReportsPage(): UseReportsPageReturn {
     filteredData,
     quickStats
   } = useReportsQueries({
-    wsId,
     debouncedSearch,
     dateRange,
     sortBy,
@@ -179,6 +176,5 @@ export function useReportsPage(): UseReportsPageReturn {
     sortBy,
     specificMonth,
     viewMode,
-    wsId,
   };
 }

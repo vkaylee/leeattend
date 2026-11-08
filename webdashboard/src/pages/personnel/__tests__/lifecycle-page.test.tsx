@@ -16,11 +16,6 @@ vi.mock("react-i18next", () => ({
   }),
 }));
 
-// Mock standalone organization ID
-let mockWorkspaceId = "ws-1";
-vi.mock("@/lib/api/helpers", () => ({
-  getStandaloneOrganizationId: () => mockWorkspaceId,
-}));
 
 // Mock TanStack Router
 vi.mock("@tanstack/react-router", () => ({
@@ -88,13 +83,6 @@ const mockInstances: LifecycleInstanceSummary[] = [
   },
 ];
 
-vi.mock("@/lib/api", async (importOriginal) => {
-  const actual = await importOriginal<typeof LibApi>();
-  return {
-    ...actual,
-    getStandaloneOrganizationId: () => mockWorkspaceId,
-  };
-});
 
 vi.mock("@/hooks/use-lifecycle", () => ({
   useWorkspaceLifecycleInstances: () => ({

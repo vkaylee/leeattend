@@ -34,7 +34,6 @@ const (
 
 type EmployeeContract struct {
 	ID             uuid.UUID  `json:"id"`
-	WorkspaceID    uuid.UUID  `json:"workspace_id"`
 	EmploymentID   uuid.UUID  `json:"employment_id"`
 	ContractNumber *string    `json:"contract_number"`
 	ContractType   string     `json:"contract_type"`
@@ -106,7 +105,6 @@ type EmployeeContractWithEmployee struct {
 
 type Employment struct {
 	ID                  uuid.UUID                  `json:"id"`
-	WorkspaceID         uuid.UUID                  `json:"workspace_id"`
 	EmployeeID          uuid.UUID                  `json:"employee_id"`
 	EmployerID          uuid.UUID                  `json:"employer_id"`
 	PrimaryLocationID   *uuid.UUID                 `json:"primary_location_id"`
@@ -180,27 +178,26 @@ func (r *UpdateEmploymentRequest) UnmarshalJSON(data []byte) error {
 }
 
 type ContractRepository interface {
-	ListWorkspaceContracts(context.Context, uuid.UUID) ([]EmployeeContractWithEmployee, error)
-	ListEmployeeContracts(context.Context, uuid.UUID, uuid.UUID) ([]EmployeeContract, error)
-	CreateContract(context.Context, uuid.UUID, CreateContractRequest) (EmployeeContract, error)
-	GetContract(context.Context, uuid.UUID, uuid.UUID) (EmployeeContract, error)
-	UpdateContract(context.Context, uuid.UUID, uuid.UUID, UpdateContractRequest) (EmployeeContract, error)
-	SoftDeleteContract(context.Context, uuid.UUID, uuid.UUID) error
+	ListContracts(context.Context) ([]EmployeeContractWithEmployee, error)
+	ListEmployeeContracts(context.Context, uuid.UUID) ([]EmployeeContract, error)
+	CreateContract(context.Context, CreateContractRequest) (EmployeeContract, error)
+	GetContract(context.Context, uuid.UUID) (EmployeeContract, error)
+	UpdateContract(context.Context, uuid.UUID, UpdateContractRequest) (EmployeeContract, error)
+	SoftDeleteContract(context.Context, uuid.UUID) error
 }
 
 type EmploymentRepository interface {
-	ListEmployments(context.Context, uuid.UUID, uuid.UUID) ([]Employment, error)
-	CreateEmployment(context.Context, uuid.UUID, CreateEmploymentRequest) (Employment, error)
-	GetEmployment(context.Context, uuid.UUID, uuid.UUID) (Employment, error)
-	UpdateEmployment(context.Context, uuid.UUID, uuid.UUID, UpdateEmploymentRequest) (Employment, error)
-	SoftDeleteEmployment(context.Context, uuid.UUID, uuid.UUID) error
+	ListEmployments(context.Context, uuid.UUID) ([]Employment, error)
+	CreateEmployment(context.Context, CreateEmploymentRequest) (Employment, error)
+	GetEmployment(context.Context, uuid.UUID) (Employment, error)
+	UpdateEmployment(context.Context, uuid.UUID, UpdateEmploymentRequest) (Employment, error)
+	SoftDeleteEmployment(context.Context, uuid.UUID) error
 }
-
 type ContractEmploymentHandler struct {
 	Contracts    ContractRepository
 	Employments  EmploymentRepository
 	CustomFields CustomFieldRepository
-	Authorizer   WorkspaceMemberAuthorizer
+	Authorizer   Authorizer
 }
 
 func validContractType(v string) bool {
@@ -223,22 +220,22 @@ func validContractEmploymentDate(v string) bool {
 }
 func dateBefore(a, b string) bool { return a < b }
 
-func (h ContractEmploymentHandler) member(r *http.Request, wsID uuid.UUID) bool {
+func (h ContractEmploymentHandler) member(r *http.Request) bool {
 	uid, ok := httpinfra.UserIDFromContext(r.Context())
 	if !ok || h.Authorizer == nil {
 		return false
 	}
-	member, err := h.Authorizer.IsMember(r.Context(), uid, wsID)
+	member, err := h.Authorizer.IsMember(r.Context(), uid)
 	return err == nil && member
 }
-func (h ContractEmploymentHandler) auth(w http.ResponseWriter, r *http.Request, wsID uuid.UUID) bool {
-	if h.member(r, wsID) {
+func (h ContractEmploymentHandler) auth(w http.ResponseWriter, r *http.Request) bool {
+	if h.member(r) {
 		return true
 	}
 	if _, ok := httpinfra.UserIDFromContext(r.Context()); !ok {
 		apperror.WriteError(w, r, apperror.Unauthorized(apperror.KeyAuthenticationRequired))
 	} else {
-		apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyNotWorkspaceMember))
+		apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyNotOrganizationMember))
 	}
 	return false
 }
@@ -256,28 +253,27 @@ func (h ContractEmploymentHandler) error(w http.ResponseWriter, r *http.Request,
 		apperror.WriteError(w, r, apperror.Internal(err))
 	}
 }
-func (h ContractEmploymentHandler) path(w http.ResponseWriter, r *http.Request, names ...string) (uuid.UUID, []uuid.UUID, bool) {
-	ws, ok := organizationIDFromContext(r)
-	if !ok || !h.auth(w, r, ws) {
-		return uuid.Nil, nil, false
+func (h ContractEmploymentHandler) path(w http.ResponseWriter, r *http.Request, names ...string) ([]uuid.UUID, bool) {
+	if !h.auth(w, r) {
+		return nil, false
 	}
 	ids := make([]uuid.UUID, len(names))
 	for i, name := range names {
-		ids[i], ok = pathUUID(r, name)
+		id, ok := pathUUID(r, name)
 		if !ok {
 			apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
-			return uuid.Nil, nil, false
+			return nil, false
 		}
+		ids[i] = id
 	}
-	return ws, ids, true
+	return ids, true
 }
 
-func (h ContractEmploymentHandler) ListWorkspaceContracts(w http.ResponseWriter, r *http.Request) {
-	ws, _, ok := h.path(w, r)
-	if !ok {
+func (h ContractEmploymentHandler) ListContracts(w http.ResponseWriter, r *http.Request) {
+	if !h.auth(w, r) {
 		return
 	}
-	result, err := h.Contracts.ListWorkspaceContracts(r.Context(), ws)
+	result, err := h.Contracts.ListContracts(r.Context())
 	if err != nil {
 		h.error(w, r, err)
 		return
@@ -285,11 +281,11 @@ func (h ContractEmploymentHandler) ListWorkspaceContracts(w http.ResponseWriter,
 	apperror.WriteJSON(w, http.StatusOK, result)
 }
 func (h ContractEmploymentHandler) ListEmployeeContracts(w http.ResponseWriter, r *http.Request) {
-	ws, ids, ok := h.path(w, r, "employee_id")
+	ids, ok := h.path(w, r, "employee_id")
 	if !ok {
 		return
 	}
-	result, err := h.Contracts.ListEmployeeContracts(r.Context(), ws, ids[0])
+	result, err := h.Contracts.ListEmployeeContracts(r.Context(), ids[0])
 	if err != nil {
 		h.error(w, r, err)
 		return
@@ -297,8 +293,7 @@ func (h ContractEmploymentHandler) ListEmployeeContracts(w http.ResponseWriter, 
 	apperror.WriteJSON(w, http.StatusOK, result)
 }
 func (h ContractEmploymentHandler) CreateContract(w http.ResponseWriter, r *http.Request) {
-	ws, _, ok := h.path(w, r, "employee_id")
-	if !ok {
+	if _, ok := h.path(w, r, "employee_id"); !ok {
 		return
 	}
 	req, err := DecodeJSON[CreateContractRequest](r, 1<<20)
@@ -306,7 +301,7 @@ func (h ContractEmploymentHandler) CreateContract(w http.ResponseWriter, r *http
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}
-	result, err := h.Contracts.CreateContract(r.Context(), ws, req)
+	result, err := h.Contracts.CreateContract(r.Context(), req)
 	if err != nil {
 		h.error(w, r, err)
 		return
@@ -314,11 +309,11 @@ func (h ContractEmploymentHandler) CreateContract(w http.ResponseWriter, r *http
 	apperror.WriteJSON(w, http.StatusCreated, result)
 }
 func (h ContractEmploymentHandler) GetContract(w http.ResponseWriter, r *http.Request) {
-	ws, ids, ok := h.path(w, r, "employee_id", "contract_id")
+	ids, ok := h.path(w, r, "employee_id", "contract_id")
 	if !ok {
 		return
 	}
-	result, err := h.Contracts.GetContract(r.Context(), ws, ids[1])
+	result, err := h.Contracts.GetContract(r.Context(), ids[1])
 	if err != nil {
 		h.error(w, r, err)
 		return
@@ -326,7 +321,7 @@ func (h ContractEmploymentHandler) GetContract(w http.ResponseWriter, r *http.Re
 	apperror.WriteJSON(w, http.StatusOK, result)
 }
 func (h ContractEmploymentHandler) UpdateContract(w http.ResponseWriter, r *http.Request) {
-	ws, ids, ok := h.path(w, r, "employee_id", "contract_id")
+	ids, ok := h.path(w, r, "employee_id", "contract_id")
 	if !ok {
 		return
 	}
@@ -335,7 +330,7 @@ func (h ContractEmploymentHandler) UpdateContract(w http.ResponseWriter, r *http
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}
-	result, err := h.Contracts.UpdateContract(r.Context(), ws, ids[1], req)
+	result, err := h.Contracts.UpdateContract(r.Context(), ids[1], req)
 	if err != nil {
 		h.error(w, r, err)
 		return
@@ -343,22 +338,22 @@ func (h ContractEmploymentHandler) UpdateContract(w http.ResponseWriter, r *http
 	apperror.WriteJSON(w, http.StatusOK, result)
 }
 func (h ContractEmploymentHandler) DeleteContract(w http.ResponseWriter, r *http.Request) {
-	ws, ids, ok := h.path(w, r, "employee_id", "contract_id")
+	ids, ok := h.path(w, r, "employee_id", "contract_id")
 	if !ok {
 		return
 	}
-	if err := h.Contracts.SoftDeleteContract(r.Context(), ws, ids[1]); err != nil {
+	if err := h.Contracts.SoftDeleteContract(r.Context(), ids[1]); err != nil {
 		h.error(w, r, err)
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
 }
 
-func (h ContractEmploymentHandler) addCustomFields(ctx context.Context, ws uuid.UUID, emp Employment) (Employment, error) {
+func (h ContractEmploymentHandler) addCustomFields(ctx context.Context, emp Employment) (Employment, error) {
 	if h.CustomFields == nil {
 		return emp, nil
 	}
-	values, err := h.CustomFields.GetValues(ctx, ws, emp.ID)
+	values, err := h.CustomFields.GetValues(ctx, emp.ID)
 	if err != nil {
 		return emp, err
 	}
@@ -366,17 +361,17 @@ func (h ContractEmploymentHandler) addCustomFields(ctx context.Context, ws uuid.
 	return emp, nil
 }
 func (h ContractEmploymentHandler) ListEmployments(w http.ResponseWriter, r *http.Request) {
-	ws, ids, ok := h.path(w, r, "employee_id")
+	ids, ok := h.path(w, r, "employee_id")
 	if !ok {
 		return
 	}
-	list, err := h.Employments.ListEmployments(r.Context(), ws, ids[0])
+	list, err := h.Employments.ListEmployments(r.Context(), ids[0])
 	if err != nil {
 		h.error(w, r, err)
 		return
 	}
 	for i := range list {
-		list[i], err = h.addCustomFields(r.Context(), ws, list[i])
+		list[i], err = h.addCustomFields(r.Context(), list[i])
 		if err != nil {
 			h.error(w, r, err)
 			return
@@ -388,8 +383,7 @@ func (h ContractEmploymentHandler) ListEmployments(w http.ResponseWriter, r *htt
 	apperror.WriteJSON(w, http.StatusOK, list)
 }
 func (h ContractEmploymentHandler) CreateEmployment(w http.ResponseWriter, r *http.Request) {
-	ws, _, ok := h.path(w, r, "employee_id")
-	if !ok {
+	if _, ok := h.path(w, r, "employee_id"); !ok {
 		return
 	}
 	req, err := DecodeJSON[CreateEmploymentRequest](r, 1<<20)
@@ -397,7 +391,7 @@ func (h ContractEmploymentHandler) CreateEmployment(w http.ResponseWriter, r *ht
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}
-	existing, err := h.Employments.ListEmployments(r.Context(), ws, req.EmployeeID)
+	existing, err := h.Employments.ListEmployments(r.Context(), req.EmployeeID)
 	if err != nil {
 		h.error(w, r, err)
 		return
@@ -408,12 +402,12 @@ func (h ContractEmploymentHandler) CreateEmployment(w http.ResponseWriter, r *ht
 			return
 		}
 	}
-	result, err := h.Employments.CreateEmployment(r.Context(), ws, req)
+	result, err := h.Employments.CreateEmployment(r.Context(), req)
 	if err != nil {
 		h.error(w, r, err)
 		return
 	}
-	result, err = h.addCustomFields(r.Context(), ws, result)
+	result, err = h.addCustomFields(r.Context(), result)
 	if err != nil {
 		h.error(w, r, err)
 		return
@@ -421,16 +415,16 @@ func (h ContractEmploymentHandler) CreateEmployment(w http.ResponseWriter, r *ht
 	apperror.WriteJSON(w, http.StatusCreated, result)
 }
 func (h ContractEmploymentHandler) GetEmployment(w http.ResponseWriter, r *http.Request) {
-	ws, ids, ok := h.path(w, r, "employee_id", "employment_id")
+	ids, ok := h.path(w, r, "employee_id", "employment_id")
 	if !ok {
 		return
 	}
-	result, err := h.Employments.GetEmployment(r.Context(), ws, ids[1])
+	result, err := h.Employments.GetEmployment(r.Context(), ids[1])
 	if err != nil {
 		h.error(w, r, err)
 		return
 	}
-	result, err = h.addCustomFields(r.Context(), ws, result)
+	result, err = h.addCustomFields(r.Context(), result)
 	if err != nil {
 		h.error(w, r, err)
 		return
@@ -438,7 +432,7 @@ func (h ContractEmploymentHandler) GetEmployment(w http.ResponseWriter, r *http.
 	apperror.WriteJSON(w, http.StatusOK, result)
 }
 func (h ContractEmploymentHandler) UpdateEmployment(w http.ResponseWriter, r *http.Request) {
-	ws, ids, ok := h.path(w, r, "employee_id", "employment_id")
+	ids, ok := h.path(w, r, "employee_id", "employment_id")
 	if !ok {
 		return
 	}
@@ -447,7 +441,7 @@ func (h ContractEmploymentHandler) UpdateEmployment(w http.ResponseWriter, r *ht
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}
-	current, err := h.Employments.GetEmployment(r.Context(), ws, ids[1])
+	current, err := h.Employments.GetEmployment(r.Context(), ids[1])
 	if err != nil {
 		h.error(w, r, err)
 		return
@@ -467,7 +461,7 @@ func (h ContractEmploymentHandler) UpdateEmployment(w http.ResponseWriter, r *ht
 			targetEnd = *req.EndDate
 		}
 	}
-	existing, err := h.Employments.ListEmployments(r.Context(), ws, current.EmployeeID)
+	existing, err := h.Employments.ListEmployments(r.Context(), current.EmployeeID)
 	if err != nil {
 		h.error(w, r, err)
 		return
@@ -478,12 +472,12 @@ func (h ContractEmploymentHandler) UpdateEmployment(w http.ResponseWriter, r *ht
 			return
 		}
 	}
-	result, err := h.Employments.UpdateEmployment(r.Context(), ws, ids[1], req)
+	result, err := h.Employments.UpdateEmployment(r.Context(), ids[1], req)
 	if err != nil {
 		h.error(w, r, err)
 		return
 	}
-	result, err = h.addCustomFields(r.Context(), ws, result)
+	result, err = h.addCustomFields(r.Context(), result)
 	if err != nil {
 		h.error(w, r, err)
 		return
@@ -491,11 +485,11 @@ func (h ContractEmploymentHandler) UpdateEmployment(w http.ResponseWriter, r *ht
 	apperror.WriteJSON(w, http.StatusOK, result)
 }
 func (h ContractEmploymentHandler) DeleteEmployment(w http.ResponseWriter, r *http.Request) {
-	ws, ids, ok := h.path(w, r, "employee_id", "employment_id")
+	ids, ok := h.path(w, r, "employee_id", "employment_id")
 	if !ok {
 		return
 	}
-	if err := h.Employments.SoftDeleteEmployment(r.Context(), ws, ids[1]); err != nil {
+	if err := h.Employments.SoftDeleteEmployment(r.Context(), ids[1]); err != nil {
 		h.error(w, r, err)
 		return
 	}

@@ -16,7 +16,6 @@ import {
   EContractRoutingRule,
 } from "@/lib/api/econtracts";
 import { fetchEmployers } from "@/lib/api/employers";
-import { getStandaloneOrganizationId } from "@/lib/api/helpers";
 
 function getErrorMessage(err: unknown, fallback: string): string {
   if (err instanceof Error) {
@@ -29,16 +28,14 @@ export function useEContractsSettings() {
   const { t } = useTranslation();
   const toast = useToast();
   const queryClient = useQueryClient();
-  const wsId = getStandaloneOrganizationId() ?? "";
 
   const [activeTab, setActiveTab] = useState<string>("configs");
   const [selectedEmployerId, setSelectedEmployerId] = useState<string>("default");
 
   // Queries
   const { data: employers = [], isLoading: isLoadingEmployers } = useQuery({
-    queryKey: ["employers", wsId],
-    queryFn: () => fetchEmployers(wsId),
-    enabled: Boolean(wsId),
+    queryKey: ["employers"],
+    queryFn: () => fetchEmployers(),
   });
 
   const activeEmployerId =
@@ -49,31 +46,31 @@ export function useEContractsSettings() {
       : selectedEmployerId;
 
   const hasEmployers = employers.length > 0;
-  const isEnabled = Boolean(wsId) && hasEmployers;
+  const isEnabled = hasEmployers;
 
   const { data: configs = [] } = useQuery({
-    queryKey: ["econtract-configs", wsId],
-    queryFn: () => fetchEContractConfigs(wsId, employers),
+    queryKey: ["econtract-configs"],
+    queryFn: () => fetchEContractConfigs(employers),
     enabled: isEnabled,
   });
 
   const { data: rules = [], isLoading: isLoadingRules } = useQuery({
-    queryKey: ["econtract-rules", wsId],
-    queryFn: () => fetchEContractRules(wsId, employers),
+    queryKey: ["econtract-rules"],
+    queryFn: () => fetchEContractRules(employers),
     enabled: isEnabled,
   });
 
   const { data: envelopes = [], isLoading: isLoadingEnvelopes } = useQuery({
-    queryKey: ["econtract-envelopes", wsId],
-    queryFn: () => fetchEContractEnvelopes(wsId, employers),
+    queryKey: ["econtract-envelopes"],
+    queryFn: () => fetchEContractEnvelopes(employers),
     enabled: isEnabled,
   });
 
   // Mutations
   const configMutation = useMutation({
-    mutationFn: (config: EContractConfig) => saveEContractConfig(wsId, config),
+    mutationFn: (config: EContractConfig) => saveEContractConfig(config),
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ["econtract-configs", wsId] });
+      void queryClient.invalidateQueries({ queryKey: ["econtract-configs"] });
       toast.success(t("common.saved_success", { defaultValue: "Saved configuration successfully!" }));
     },
     onError: (err: unknown) => {
@@ -82,9 +79,9 @@ export function useEContractsSettings() {
   });
 
   const ruleMutation = useMutation({
-    mutationFn: (rule: Omit<EContractRoutingRule, "id" | "created_at">) => saveEContractRule(wsId, rule),
+    mutationFn: (rule: Omit<EContractRoutingRule, "id" | "created_at">) => saveEContractRule(rule),
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ["econtract-rules", wsId] });
+      void queryClient.invalidateQueries({ queryKey: ["econtract-rules"] });
       toast.success("Routing rule added successfully!");
     },
     onError: (err: unknown) => {
@@ -93,9 +90,9 @@ export function useEContractsSettings() {
   });
 
   const ruleDeleteMutation = useMutation({
-    mutationFn: (ruleId: string) => deleteEContractRule(wsId, ruleId),
+    mutationFn: (ruleId: string) => deleteEContractRule(ruleId),
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ["econtract-rules", wsId] });
+      void queryClient.invalidateQueries({ queryKey: ["econtract-rules"] });
       toast.success("Routing rule deleted successfully!");
     },
     onError: (err: unknown) => {
@@ -126,6 +123,5 @@ export function useEContractsSettings() {
     ruleMutation,
     rules,
     setActiveTab,
-    wsId,
   };
 }

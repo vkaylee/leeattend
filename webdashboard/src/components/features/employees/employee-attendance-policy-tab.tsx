@@ -15,7 +15,6 @@ import {
 
 interface Props {
   employeeId: string;
-  wsId: string;
 }
 
 function formatRules(rules: { work_unit_minutes: number; rounding_policy: string; early_arrival_strategy?: string | null; grace_period_minutes?: number | null }) {
@@ -27,35 +26,29 @@ function formatRules(rules: { work_unit_minutes: number; rounding_policy: string
 }
 
   // eslint-disable-next-line complexity, max-lines-per-function
-export default function EmployeeAttendancePolicyTab({ employeeId, wsId }: Props) {
+export default function EmployeeAttendancePolicyTab({ employeeId}: Props) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const { confirm, ConfirmationDialog } = useConfirm();
 
-  const { data: defaultRules } = useQuery({
-    queryKey: ["attendance-rules", wsId],
-    queryFn: () => fetchDefaultAttendanceRules(wsId),
-    enabled: !!wsId,
-  });
+  const { data: defaultRules } = useQuery({ queryKey: ["attendance-rules"], queryFn: () => fetchDefaultAttendanceRules(),
+ });
 
-  const { data: assignments = [], isLoading } = useQuery({
-    queryKey: ["policy-assignments", wsId],
-    queryFn: () => fetchPolicyAssignments(wsId),
-    enabled: !!wsId,
-  });
+  const { data: assignments = [], isLoading } = useQuery({ queryKey: ["policy-assignments"], queryFn: () => fetchPolicyAssignments(),
+ });
 
   const employeeAssignment = assignments.find((a) => a.target_type === "USER" && a.target_id === employeeId);
 
   const deleteMutation = useMutation({
-    mutationFn: (id: string) => deletePolicyAssignment(wsId, id),
+    mutationFn: (id: string) => deletePolicyAssignment(id),
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ["policy-assignments", wsId] });
+      void queryClient.invalidateQueries({ queryKey: ["policy-assignments"] });
     },
   });
 
   const createMutation = useMutation({
     mutationFn: () =>
-      upsertPolicyAssignment(wsId, {
+      upsertPolicyAssignment({
         target_id: employeeId,
         target_type: "USER",
         work_unit_minutes: defaultRules?.work_unit_minutes ?? 15,
@@ -64,7 +57,7 @@ export default function EmployeeAttendancePolicyTab({ employeeId, wsId }: Props)
         grace_period_minutes: defaultRules?.grace_period_minutes ?? null,
       }),
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ["policy-assignments", wsId] });
+      void queryClient.invalidateQueries({ queryKey: ["policy-assignments"] });
     },
   });
 

@@ -2,11 +2,11 @@ import { Award } from "lucide-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
 
-import { WorkspaceLeaveBalance } from "@/lib/api";
+import { LeaveBalance } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
 interface LeaveBalanceHeroProps {
-  balance: WorkspaceLeaveBalance;
+  balance: LeaveBalance;
   usagePercent: number;
 }
 

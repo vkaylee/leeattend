@@ -17,10 +17,9 @@ import UpdatePhaseStatusModal from "./update-phase-status-modal";
 interface Props {
   employeeId: string;
   formatDate: (date: string) => string;
-  wsId: string;
 }
 
-export default function EmployeePhasesTab({ wsId, employeeId, formatDate }: Props) {
+export default function EmployeePhasesTab({employeeId, formatDate }: Props) {
   const { t } = useTranslation();
 
   const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
@@ -29,17 +28,14 @@ export default function EmployeePhasesTab({ wsId, employeeId, formatDate }: Prop
 
   const { data: phases, isLoading: isLoadingPhases } = useQuery({
     queryKey: ["employee-phases", employeeId],
-    queryFn: () => fetchEmployeePhases(wsId, employeeId),
-    enabled: !!wsId && !!employeeId,
+    queryFn: () => fetchEmployeePhases(employeeId),
+    enabled: !!employeeId,
   });
 
-  const { data: definitions } = useQuery({
-    queryKey: ["employment-phases", wsId],
-    queryFn: () => fetchEmploymentPhases(wsId),
-    enabled: !!wsId,
-  });
+  const { data: definitions } = useQuery({ queryKey: ["employment-phases"], queryFn: () => fetchEmploymentPhases(),
+ });
 
-  const { contracts } = useEmployeeContracts(wsId, employeeId);
+  const { contracts } = useEmployeeContracts(employeeId);
 
   const handleOpenStatusModal = (phase: EmployeePhase) => {
     setSelectedPhase(phase);
@@ -91,29 +87,23 @@ export default function EmployeePhasesTab({ wsId, employeeId, formatDate }: Prop
       </div>
 
       {isAssignModalOpen ? (
-        <AssignMilestoneModal
-          contracts={contracts}
-          definitions={definitions}
-          employeeId={employeeId}
-          isOpen={isAssignModalOpen}
-          onClose={() => {
-            setIsAssignModalOpen(false);
-          }}
-          wsId={wsId}
-        />
+        <AssignMilestoneModal contracts={contracts}
+        definitions={definitions}
+        employeeId={employeeId}
+        isOpen={isAssignModalOpen}
+        onClose={() => {
+          setIsAssignModalOpen(false);
+        }}  />
       ) : null}
 
       {isStatusModalOpen && selectedPhase ? (
-        <UpdatePhaseStatusModal
-          employeeId={employeeId}
-          isOpen={isStatusModalOpen}
-          onClose={() => {
-            setIsStatusModalOpen(false);
-            setSelectedPhase(null);
-          }}
-          selectedPhase={selectedPhase}
-          wsId={wsId}
-        />
+        <UpdatePhaseStatusModal employeeId={employeeId}
+        isOpen={isStatusModalOpen}
+        onClose={() => {
+          setIsStatusModalOpen(false);
+          setSelectedPhase(null);
+        }}
+        selectedPhase={selectedPhase}  />
       ) : null}
     </div>
   );

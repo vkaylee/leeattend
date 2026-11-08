@@ -31,9 +31,9 @@ vi.mock("@/hooks/use-i18n-sync", () => ({
   useI18nSync: vi.fn(),
 }));
 
-vi.mock("@/hooks/use-workspace", () => ({
-  useWorkspace: () => ({
-    workspace: { id: "ws-1", name: "Acme Corp" },
+vi.mock("@/hooks/use-organization", () => ({
+  useOrganization: () => ({
+    organization: { name: "Acme Corp" },
   }),
 }));
 

@@ -40,8 +40,7 @@ vi.mock("@/lib/api", async () => {
       { id: "ct-1", code: "REGULAR", name_i18n: { en: "Regular", vi: "Chính thức" }, category: "working_hours", is_system: true },
     ]),
     createWorkingCondition: vi.fn().mockResolvedValue({ id: "cond-2", type_: "REGULAR", start_date: "2026-01-01", is_paid: true }),
-    deleteWorkingCondition: mockDeleteFn,
-    getStandaloneOrganizationId: () => "ws-1",
+    deleteWorkingCondition: vi.fn(),
   };
 });
 
@@ -63,7 +62,7 @@ vi.mock("react-i18next", () => ({
 }));
 
  
-const renderComponent = (props: { wsId: string; employeeId: string }) => {
+const renderComponent = (props: {}) => {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false, gcTime: 0, staleTime: 0 } },
   });
@@ -87,9 +86,7 @@ describe("WorkingConditionConfig", () => {
 
   it("should show useConfirm dialog when deleting a condition", async () => {
     const user = userEvent.setup();
-    renderComponent({
-      wsId: "ws-1",
-      employeeId: "emp-1"
+    renderComponent({employeeId: "emp-1"
     });
 
     // Wait for the mock condition to render
@@ -111,7 +108,7 @@ describe("WorkingConditionConfig", () => {
     await user.click(confirmButton);
 
     await waitFor(() => {
-      expect(mockDeleteFn).toHaveBeenCalledWith("ws-1", "emp-1", "cond-1");
+      expect(mockDeleteFn).toHaveBeenCalledWith("emp-1", "cond-1");
     });
   });
 });

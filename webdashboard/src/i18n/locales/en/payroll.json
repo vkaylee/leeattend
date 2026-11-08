@@ -18,10 +18,10 @@
     },
     "traceability": {
       "hierarchy_title": "Config Priority Hierarchy",
-      "hierarchy_explanation": "Payroll config is prioritized: Individual > Department > Workspace.",
+      "hierarchy_explanation": "Payroll config is prioritized: Individual > Department > Organization.",
       "individual_policy": "Individual Policy",
       "department_policy": "Department Policy",
-      "workspace_default": "Workspace Default",
+      "workspace_default": "Organization Default",
       "pending_adjustments": "Has pending adjustments",
       "recalc_needed": "Recalculation needed",
       "view_adjustments": "View adjustments"
@@ -227,7 +227,7 @@
     "search_employees": "Search Employees...",
     "select_department": "Select Department",
     "select_department_placeholder": "Choose a department...",
-    "workspace_scope_info": "Applied workspace-wide.",
+    "workspace_scope_info": "Applied organization-wide.",
     "effective_to": "Effective To",
     "override_config": "Override Configuration",
     "override_config_desc": "Configure custom salary override values for specific rules.",
@@ -300,13 +300,13 @@
     },
     "scope_employee": "Employee",
     "scope_department": "Department",
-    "scope_workspace": "Workspace",
+    "scope_workspace": "Organization",
     "scope_level_employee": "Employee Level",
     "scope_level_department": "Department Level",
-    "scope_level_workspace": "Workspace Level"
+    "scope_level_workspace": "Organization Level"
   },
   "payroll_rules": {
-    "scope_workspace": "Workspace Wide",
+    "scope_workspace": "Organization Wide",
     "rule_assignments": "Rule Assignments"
   }
 }

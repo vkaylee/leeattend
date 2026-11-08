@@ -270,7 +270,7 @@ export function WeekViewControls({ hook }: { hook: ReturnType<typeof useShifts> 
         <EmployeeSearch clearOnEscape data-testid="employee-select" departments={hook.departments} keyboardShortcut={["/", "Enter"]}
           onChange={(id) => { if (!id) hook.setSelectedEmployee(null); }}
           onSelectEmployee={(emp) => { hook.setSelectedEmployee(emp); }}
-          placeholder={t("shifts.empty_state.title")} value={hook.selectedEmployee?.id ?? ""} workspaceId={hook.wsId} />
+          placeholder={t("shifts.empty_state.title")} value={hook.selectedEmployee?.id ?? ""}  />
       </div>
       {!!hook.selectedEmployee && (
         <div className="w-full md:w-56">

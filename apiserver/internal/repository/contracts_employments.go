@@ -15,7 +15,7 @@ import (
 
 type ContractRepository struct {
 	DB      DBTX
-	BeginTx func(context.Context, uuid.UUID) (TxBeginner, error)
+	BeginTx func(context.Context) (TxBeginner, error)
 }
 
 func (r ContractRepository) db(ctx context.Context) (DBTX, error) {
@@ -25,9 +25,9 @@ func (r ContractRepository) db(ctx context.Context) (DBTX, error) {
 	return r.DB, nil
 }
 
-func (r ContractRepository) begin(ctx context.Context, wsID uuid.UUID) (TxBeginner, error) {
+func (r ContractRepository) begin(ctx context.Context) (TxBeginner, error) {
 	if r.BeginTx != nil {
-		return r.BeginTx(ctx, wsID)
+		return r.BeginTx(ctx)
 	}
 	db, err := r.db(ctx)
 	if err != nil {
@@ -43,7 +43,7 @@ func (r ContractRepository) begin(ctx context.Context, wsID uuid.UUID) (TxBeginn
 func scanContract(row interface{ Scan(...any) error }) (api.EmployeeContract, error) {
 	var c api.EmployeeContract
 	var created, updated time.Time
-	if err := row.Scan(&c.ID, &c.WorkspaceID, &c.EmploymentID, &c.ContractNumber, &c.ContractType, &c.Status, &c.StartDate, &c.EndDate, &c.DocumentID, &c.Notes, &created, &updated); err != nil {
+	if err := row.Scan(&c.ID, &c.EmploymentID, &c.ContractNumber, &c.ContractType, &c.Status, &c.StartDate, &c.EndDate, &c.DocumentID, &c.Notes, &created, &updated); err != nil {
 		return api.EmployeeContract{}, err
 	}
 	c.CreatedAt = created.UTC().Format(time.RFC3339)
@@ -51,24 +51,23 @@ func scanContract(row interface{ Scan(...any) error }) (api.EmployeeContract, er
 	return c, nil
 }
 
-func (r ContractRepository) ListWorkspaceContracts(ctx context.Context, wsID uuid.UUID) ([]api.EmployeeContractWithEmployee, error) {
+func (r ContractRepository) ListContracts(ctx context.Context) ([]api.EmployeeContractWithEmployee, error) {
 	db, err := r.db(ctx)
 	if err != nil {
 		return nil, err
 	}
 	rows, err := db.Query(ctx, `SELECT
-		c.id, c.workspace_id, c.employment_id, c.contract_number, c.contract_type::text,
+		c.id, c.employment_id, c.contract_number, c.contract_type::text,
 		c.status::text, c.start_date::text, c.end_date::text, c.document_id, c.notes,
 		c.created_at, c.updated_at,
 		e.full_name, e.employee_id_number, e.id
 	FROM employee_contracts c
 	INNER JOIN employments em ON em.id = c.employment_id
 	INNER JOIN employees e ON e.id = em.employee_id
-	WHERE c.workspace_id = $1
-	  AND c.deleted_at IS NULL
+	WHERE c.deleted_at IS NULL
 	  AND em.deleted_at IS NULL
 	  AND e.deleted_at IS NULL
-	ORDER BY c.start_date DESC`, wsID)
+	ORDER BY c.start_date DESC`)
 	if err != nil {
 		return nil, err
 	}
@@ -78,7 +77,7 @@ func (r ContractRepository) ListWorkspaceContracts(ctx context.Context, wsID uui
 		var item api.EmployeeContractWithEmployee
 		var created, updated time.Time
 		if err := rows.Scan(
-			&item.ID, &item.WorkspaceID, &item.EmploymentID, &item.ContractNumber, &item.ContractType,
+			&item.ID, &item.EmploymentID, &item.ContractNumber, &item.ContractType,
 			&item.Status, &item.StartDate, &item.EndDate, &item.DocumentID, &item.Notes,
 			&created, &updated,
 			&item.EmployeeName, &item.EmployeeCode, &item.EmployeeID,
@@ -92,22 +91,21 @@ func (r ContractRepository) ListWorkspaceContracts(ctx context.Context, wsID uui
 	return result, rows.Err()
 }
 
-func (r ContractRepository) ListEmployeeContracts(ctx context.Context, wsID, employeeID uuid.UUID) ([]api.EmployeeContract, error) {
+func (r ContractRepository) ListEmployeeContracts(ctx context.Context, employeeID uuid.UUID) ([]api.EmployeeContract, error) {
 	db, err := r.db(ctx)
 	if err != nil {
 		return nil, err
 	}
 	rows, err := db.Query(ctx, `SELECT
-		c.id, c.workspace_id, c.employment_id, c.contract_number, c.contract_type::text,
+		c.id, c.employment_id, c.contract_number, c.contract_type::text,
 		c.status::text, c.start_date::text, c.end_date::text, c.document_id, c.notes,
 		c.created_at, c.updated_at
 	FROM employee_contracts c
 	INNER JOIN employments em ON em.id = c.employment_id
-	WHERE c.workspace_id = $1
-	  AND em.employee_id = $2
+	WHERE em.employee_id = $1
 	  AND c.deleted_at IS NULL
 	  AND em.deleted_at IS NULL
-	ORDER BY em.start_date DESC, c.start_date DESC`, wsID, employeeID)
+	ORDER BY em.start_date DESC, c.start_date DESC`, employeeID)
 	if err != nil {
 		return nil, err
 	}
@@ -123,32 +121,32 @@ func (r ContractRepository) ListEmployeeContracts(ctx context.Context, wsID, emp
 	return result, rows.Err()
 }
 
-func (r ContractRepository) GetContract(ctx context.Context, wsID, contractID uuid.UUID) (api.EmployeeContract, error) {
+func (r ContractRepository) GetContract(ctx context.Context, contractID uuid.UUID) (api.EmployeeContract, error) {
 	db, err := r.db(ctx)
 	if err != nil {
 		return api.EmployeeContract{}, err
 	}
 	item, err := scanContract(db.QueryRow(ctx, `SELECT
-		id, workspace_id, employment_id, contract_number, contract_type::text,
+		id, employment_id, contract_number, contract_type::text,
 		status::text, start_date::text, end_date::text, document_id, notes,
 		created_at, updated_at
 	FROM employee_contracts
-	WHERE id = $1 AND workspace_id = $2 AND deleted_at IS NULL`, contractID, wsID))
+	WHERE id = $1 AND deleted_at IS NULL`, contractID))
 	if errors.Is(err, pgx.ErrNoRows) {
 		return api.EmployeeContract{}, api.ErrContractNotFound
 	}
 	return item, err
 }
 
-func (r ContractRepository) CreateContract(ctx context.Context, wsID uuid.UUID, req api.CreateContractRequest) (api.EmployeeContract, error) {
-	txBeginner, err := r.begin(ctx, wsID)
+func (r ContractRepository) CreateContract(ctx context.Context, req api.CreateContractRequest) (api.EmployeeContract, error) {
+	txBeginner, err := r.begin(ctx)
 	if err != nil {
 		return api.EmployeeContract{}, err
 	}
 	if txBeginner != nil {
 		var created api.EmployeeContract
 		err := service.WithTx(ctx, txBeginner, func(ctx context.Context, tx pgx.Tx) error {
-			res, txErr := r.createContractTx(ctx, tx, wsID, req)
+			res, txErr := r.createContractTx(ctx, tx, req)
 			if txErr != nil {
 				return txErr
 			}
@@ -161,17 +159,16 @@ func (r ContractRepository) CreateContract(ctx context.Context, wsID uuid.UUID, 
 	if err != nil {
 		return api.EmployeeContract{}, err
 	}
-	return r.createContractTx(ctx, db, wsID, req)
+	return r.createContractTx(ctx, db, req)
 }
 
-func (r ContractRepository) createContractTx(ctx context.Context, db DBTX, wsID uuid.UUID, req api.CreateContractRequest) (api.EmployeeContract, error) {
+func (r ContractRepository) createContractTx(ctx context.Context, db DBTX, req api.CreateContractRequest) (api.EmployeeContract, error) {
 	rows, err := db.Query(ctx, `SELECT id FROM employee_contracts
-		WHERE workspace_id = $1
-		  AND employment_id = $2
+		WHERE employment_id = $1
 		  AND status = 'active'
-		  AND start_date <= $3::date
-		  AND (end_date IS NULL OR end_date >= $3::date)
-		  AND deleted_at IS NULL`, wsID, req.EmploymentID, req.StartDate)
+		  AND start_date <= $2::date
+		  AND (end_date IS NULL OR end_date >= $2::date)
+		  AND deleted_at IS NULL`, req.EmploymentID, req.StartDate)
 	if err != nil {
 		return api.EmployeeContract{}, err
 	}
@@ -216,17 +213,17 @@ func (r ContractRepository) createContractTx(ctx context.Context, db DBTX, wsID 
 
 	contractID := uuid.New()
 	item, err := scanContract(db.QueryRow(ctx, `INSERT INTO employee_contracts
-		(id, workspace_id, employment_id, contract_number, contract_type, status, start_date, end_date, document_id, notes, created_at, updated_at)
-		VALUES ($1, $2, $3, $4, $5, 'active', $6::date, $7::date, $8, $9, NOW(), NOW())
-		RETURNING id, workspace_id, employment_id, contract_number, contract_type::text, status::text, start_date::text, end_date::text, document_id, notes, created_at, updated_at`,
-		contractID, wsID, req.EmploymentID, req.ContractNumber, req.ContractType, req.StartDate, req.EndDate, req.DocumentID, req.Notes))
+		(id, employment_id, contract_number, contract_type, status, start_date, end_date, document_id, notes, created_at, updated_at)
+		VALUES ($1, $2, $3, $4, 'active', $5::date, $6::date, $7, $8, NOW(), NOW())
+		RETURNING id, employment_id, contract_number, contract_type::text, status::text, start_date::text, end_date::text, document_id, notes, created_at, updated_at`,
+		contractID, req.EmploymentID, req.ContractNumber, req.ContractType, req.StartDate, req.EndDate, req.DocumentID, req.Notes))
 	if err != nil {
 		return api.EmployeeContract{}, mapConstraintError(err)
 	}
 	return item, nil
 }
 
-func (r ContractRepository) UpdateContract(ctx context.Context, wsID, contractID uuid.UUID, req api.UpdateContractRequest) (api.EmployeeContract, error) {
+func (r ContractRepository) UpdateContract(ctx context.Context, contractID uuid.UUID, req api.UpdateContractRequest) (api.EmployeeContract, error) {
 	db, err := r.db(ctx)
 	if err != nil {
 		return api.EmployeeContract{}, err
@@ -270,10 +267,10 @@ func (r ContractRepository) UpdateContract(ctx context.Context, wsID, contractID
 			add("notes", **req.Notes)
 		}
 	}
-	args = append(args, contractID, wsID)
-	query := fmt.Sprintf(`UPDATE employee_contracts SET %s WHERE id = $%d AND workspace_id = $%d AND deleted_at IS NULL
-		RETURNING id, workspace_id, employment_id, contract_number, contract_type::text, status::text, start_date::text, end_date::text, document_id, notes, created_at, updated_at`,
-		strings.Join(sets, ", "), len(args)-1, len(args))
+	args = append(args, contractID)
+	query := fmt.Sprintf(`UPDATE employee_contracts SET %s WHERE id = $%d AND deleted_at IS NULL
+		RETURNING id, employment_id, contract_number, contract_type::text, status::text, start_date::text, end_date::text, document_id, notes, created_at, updated_at`,
+		strings.Join(sets, ", "), len(args))
 	item, err := scanContract(db.QueryRow(ctx, query, args...))
 	if errors.Is(err, pgx.ErrNoRows) {
 		return api.EmployeeContract{}, api.ErrContractNotFound
@@ -281,12 +278,12 @@ func (r ContractRepository) UpdateContract(ctx context.Context, wsID, contractID
 	return item, err
 }
 
-func (r ContractRepository) SoftDeleteContract(ctx context.Context, wsID, contractID uuid.UUID) error {
+func (r ContractRepository) SoftDeleteContract(ctx context.Context, contractID uuid.UUID) error {
 	db, err := r.db(ctx)
 	if err != nil {
 		return err
 	}
-	_, err = db.Exec(ctx, `UPDATE employee_contracts SET deleted_at = NOW(), updated_at = NOW() WHERE id = $1 AND workspace_id = $2`, contractID, wsID)
+	_, err = db.Exec(ctx, `UPDATE employee_contracts SET deleted_at = NOW(), updated_at = NOW() WHERE id = $1`, contractID)
 	return err
 }
 
@@ -305,7 +302,7 @@ func scanEmployment(row interface{ Scan(...any) error }) (api.Employment, error)
 	var e api.Employment
 	var created, updated time.Time
 	if err := row.Scan(
-		&e.ID, &e.WorkspaceID, &e.EmployeeID, &e.EmployerID, &e.PrimaryLocationID, &e.DepartmentID,
+		&e.ID, &e.EmployeeID, &e.EmployerID, &e.PrimaryLocationID, &e.DepartmentID,
 		&e.Status, &e.StartDate, &e.EndDate, &e.JobTitle, &e.EmploymentType, &e.ManagerEmploymentID,
 		&created, &updated, &e.TerminationReason, &e.Notes,
 	); err != nil {
@@ -316,18 +313,18 @@ func scanEmployment(row interface{ Scan(...any) error }) (api.Employment, error)
 	return e, nil
 }
 
-const employmentColumns = `id, workspace_id, employee_id, employer_id, primary_location_id, department_id,
+const employmentColumns = `id, employee_id, employer_id, primary_location_id, department_id,
 	status, start_date::text, end_date::text, job_title, employment_type, manager_employment_id,
 	created_at, updated_at, termination_reason, notes`
 
-func (r EmploymentRepository) ListEmployments(ctx context.Context, wsID, employeeID uuid.UUID) ([]api.Employment, error) {
+func (r EmploymentRepository) ListEmployments(ctx context.Context, employeeID uuid.UUID) ([]api.Employment, error) {
 	db, err := r.db(ctx)
 	if err != nil {
 		return nil, err
 	}
 	rows, err := db.Query(ctx, `SELECT `+employmentColumns+` FROM employments
-		WHERE workspace_id = $1 AND employee_id = $2 AND deleted_at IS NULL
-		ORDER BY start_date DESC`, wsID, employeeID)
+		WHERE employee_id = $1 AND deleted_at IS NULL
+		ORDER BY start_date DESC`, employeeID)
 	if err != nil {
 		return nil, err
 	}
@@ -343,37 +340,37 @@ func (r EmploymentRepository) ListEmployments(ctx context.Context, wsID, employe
 	return result, rows.Err()
 }
 
-func (r EmploymentRepository) CreateEmployment(ctx context.Context, wsID uuid.UUID, req api.CreateEmploymentRequest) (api.Employment, error) {
+func (r EmploymentRepository) CreateEmployment(ctx context.Context, req api.CreateEmploymentRequest) (api.Employment, error) {
 	db, err := r.db(ctx)
 	if err != nil {
 		return api.Employment{}, err
 	}
 	empID := uuid.New()
 	item, err := scanEmployment(db.QueryRow(ctx, `INSERT INTO employments
-		(id, workspace_id, employee_id, employer_id, primary_location_id, department_id, status, start_date, end_date, job_title, employment_type, manager_employment_id, created_at, updated_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8::date, $9::date, $10, $11, $12, NOW(), NOW())
+		(id, employee_id, employer_id, primary_location_id, department_id, status, start_date, end_date, job_title, employment_type, manager_employment_id, created_at, updated_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7::date, $8::date, $9, $10, $11, NOW(), NOW())
 		RETURNING `+employmentColumns,
-		empID, wsID, req.EmployeeID, req.EmployerID, req.PrimaryLocationID, req.DepartmentID, req.Status, req.StartDate, req.EndDate, req.JobTitle, req.EmploymentType, req.ManagerEmploymentID))
+		empID, req.EmployeeID, req.EmployerID, req.PrimaryLocationID, req.DepartmentID, req.Status, req.StartDate, req.EndDate, req.JobTitle, req.EmploymentType, req.ManagerEmploymentID))
 	if err != nil {
 		return api.Employment{}, mapConstraintError(err)
 	}
 	return item, nil
 }
 
-func (r EmploymentRepository) GetEmployment(ctx context.Context, wsID, id uuid.UUID) (api.Employment, error) {
+func (r EmploymentRepository) GetEmployment(ctx context.Context, id uuid.UUID) (api.Employment, error) {
 	db, err := r.db(ctx)
 	if err != nil {
 		return api.Employment{}, err
 	}
 	item, err := scanEmployment(db.QueryRow(ctx, `SELECT `+employmentColumns+` FROM employments
-		WHERE id = $1 AND workspace_id = $2 AND deleted_at IS NULL`, id, wsID))
+		WHERE id = $1 AND deleted_at IS NULL`, id))
 	if errors.Is(err, pgx.ErrNoRows) {
 		return api.Employment{}, api.ErrEmploymentNotFound
 	}
 	return item, err
 }
 
-func (r EmploymentRepository) UpdateEmployment(ctx context.Context, wsID, id uuid.UUID, req api.UpdateEmploymentRequest) (api.Employment, error) {
+func (r EmploymentRepository) UpdateEmployment(ctx context.Context, id uuid.UUID, req api.UpdateEmploymentRequest) (api.Employment, error) {
 	db, err := r.db(ctx)
 	if err != nil {
 		return api.Employment{}, err
@@ -433,9 +430,9 @@ func (r EmploymentRepository) UpdateEmployment(ctx context.Context, wsID, id uui
 	if req.Notes != nil {
 		add("notes", *req.Notes)
 	}
-	args = append(args, id, wsID)
-	query := fmt.Sprintf(`UPDATE employments SET %s WHERE id = $%d AND workspace_id = $%d AND deleted_at IS NULL RETURNING `+employmentColumns,
-		strings.Join(sets, ", "), len(args)-1, len(args))
+	args = append(args, id)
+	query := fmt.Sprintf(`UPDATE employments SET %s WHERE id = $%d AND deleted_at IS NULL RETURNING `+employmentColumns,
+		strings.Join(sets, ", "), len(args))
 	item, err := scanEmployment(db.QueryRow(ctx, query, args...))
 	if errors.Is(err, pgx.ErrNoRows) {
 		return api.Employment{}, api.ErrEmploymentNotFound
@@ -443,11 +440,11 @@ func (r EmploymentRepository) UpdateEmployment(ctx context.Context, wsID, id uui
 	return item, err
 }
 
-func (r EmploymentRepository) SoftDeleteEmployment(ctx context.Context, wsID, id uuid.UUID) error {
+func (r EmploymentRepository) SoftDeleteEmployment(ctx context.Context, id uuid.UUID) error {
 	db, err := r.db(ctx)
 	if err != nil {
 		return err
 	}
-	_, err = db.Exec(ctx, `UPDATE employments SET deleted_at = NOW(), updated_at = NOW() WHERE id = $1 AND workspace_id = $2`, id, wsID)
+	_, err = db.Exec(ctx, `UPDATE employments SET deleted_at = NOW(), updated_at = NOW() WHERE id = $1`, id)
 	return err
 }

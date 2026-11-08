@@ -18,7 +18,6 @@ import {
 
   // eslint-disable-next-line complexity
 export function useAssignPolicy(
-  wsId: string | null,
   isOpen: boolean,
   onClose: () => void,
   editingAssignment?: LeaveAssignment | null
@@ -57,32 +56,25 @@ export function useAssignPolicy(
     }
   }
 
-  const { employees, isLoading: employeesLoading } = useAllEmployees(wsId, { enabled: isOpen });
+  const { employees, isLoading: employeesLoading } = useAllEmployees({ enabled: isOpen });
   
-  const { data: departments = [], isLoading: departmentsLoading } = useDepartments(wsId, {
+  const { data: departments = [], isLoading: departmentsLoading } = useDepartments({
     enabled: isOpen,
   });
   
-  const { data: policies = [], isLoading: policiesLoading } = useQuery({ 
-    queryKey: ["leave-policies", wsId], 
-    queryFn: () => wsId ? fetchLeavePolicies(wsId) : Promise.resolve([]), 
-    enabled: isOpen && !!wsId 
-  });
+  const { data: policies = [], isLoading: policiesLoading } = useQuery({ queryKey: ["leave-policies"], queryFn: () => fetchLeavePolicies(), 
+  enabled: isOpen  });
   
-  const { data: leaveTypes = [] } = useQuery({ 
-    queryKey: ["leave-types", wsId], 
-    queryFn: () => wsId ? fetchLeaveTypes(wsId) : Promise.resolve([]), 
-    enabled: isOpen && !!wsId 
-  });
+  const { data: leaveTypes = [] } = useQuery({ queryKey: ["leave-types"], queryFn: () => fetchLeaveTypes(), 
+  enabled: isOpen  });
 
   const assignMutation = useMutation({
     mutationFn: async (data: { assignee_type: string; assignee_id: string | null; policy_id: string; effective_from: string }) => {
-      if (!wsId) throw new Error("Workspace ID is required");
       if (editingAssignment) {
         // Sequential Delete-then-Post flow to update
-        await deleteLeavePolicyAssignment(wsId, editingAssignment.id);
+        await deleteLeavePolicyAssignment(editingAssignment.id);
       }
-      return assignLeavePolicy(wsId, data);
+      return assignLeavePolicy(data);
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["leave-balances"] });

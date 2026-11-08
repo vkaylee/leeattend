@@ -25,7 +25,6 @@ import {
     type RecruitmentEffectivenessAnalytics,
 } from "@/hooks/use-dashboard";
 import { useDepartments } from "@/hooks/use-departments";
-import { useWorkspace } from "@/hooks/use-workspace";
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
 import { colorByEntityWithKnown } from "@/lib/stable-colors";
 import { cn } from "@/lib/utils";
@@ -399,8 +398,7 @@ function ChartTabs({
 export default function RecruitmentSourceChart() {
     const { t } = useTranslation();
     const { formatDate } = useDateTimeFormatter();
-    const { workspace } = useWorkspace();
-    const { data: departments = [] } = useDepartments(workspace?.id);
+    const { data: departments = [] } = useDepartments();
 
     const [activeTab, setActiveTab] = useState<TabKey>("overview");
     const [selectedPeriod, setSelectedPeriod] = useState("6m");

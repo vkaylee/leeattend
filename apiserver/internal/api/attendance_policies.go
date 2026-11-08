@@ -40,7 +40,7 @@ func DefaultAttendanceRules() AttendanceRules {
 	return AttendanceRules{WorkUnitMinutes: 30, RoundingPolicy: AttendanceRoundingFloor, EarlyArrivalStrategy: EarlyArrivalBlock}
 }
 
-// UpdateAttendanceRulesRequest partially updates workspace default rules.
+// UpdateAttendanceRulesRequest partially updates organization default rules.
 type UpdateAttendanceRulesRequest struct {
 	WorkUnitMinutes      *int    `json:"work_unit_minutes"`
 	RoundingPolicy       *string `json:"rounding_policy"`
@@ -82,12 +82,12 @@ type UpsertPolicyAssignmentRequest struct {
 
 // AttendancePolicyRepository persists policy rules and versioned assignments.
 type AttendancePolicyRepository interface {
-	GetDefaultPolicyRules(context.Context, uuid.UUID) (AttendanceRules, error)
-	GetDefaultPolicyVersions(context.Context, uuid.UUID) ([]AttendancePolicyVersionResponse, error)
-	UpdateDefaultPolicyRules(context.Context, uuid.UUID, uuid.UUID, UpdateAttendanceRulesRequest) (AttendancePolicyVersionResponse, error)
-	ListPolicyAssignments(context.Context, uuid.UUID) ([]PolicyAssignmentResponse, error)
-	UpsertPolicyAssignment(context.Context, uuid.UUID, uuid.UUID, UpsertPolicyAssignmentRequest) (PolicyAssignmentResponse, error)
-	DeletePolicyAssignment(context.Context, uuid.UUID, uuid.UUID) error
+	GetDefaultPolicyRules(context.Context) (AttendanceRules, error)
+	GetDefaultPolicyVersions(context.Context) ([]AttendancePolicyVersionResponse, error)
+	UpdateDefaultPolicyRules(context.Context, uuid.UUID, UpdateAttendanceRulesRequest) (AttendancePolicyVersionResponse, error)
+	ListPolicyAssignments(context.Context) ([]PolicyAssignmentResponse, error)
+	UpsertPolicyAssignment(context.Context, uuid.UUID, UpsertPolicyAssignmentRequest) (PolicyAssignmentResponse, error)
+	DeletePolicyAssignment(context.Context, uuid.UUID) error
 }
 
 type CreateBehalfAssignmentRequest struct {
@@ -99,7 +99,6 @@ type CreateBehalfAssignmentRequest struct {
 
 type BehalfAssignment struct {
 	ID                     uuid.UUID  `json:"id"`
-	WorkspaceID            uuid.UUID  `json:"workspace_id"`
 	AssigneeUserID         uuid.UUID  `json:"assignee_user_id"`
 	TargetEmployeeID       *uuid.UUID `json:"target_employee_id,omitempty"`
 	TargetDepartmentID     *uuid.UUID `json:"target_department_id,omitempty"`
@@ -113,21 +112,21 @@ type BehalfAssignment struct {
 }
 
 type BehalfAssignmentRepository interface {
-	CreateBehalfAssignment(context.Context, uuid.UUID, CreateBehalfAssignmentRequest, string) (BehalfAssignment, error)
-	ListBehalfAssignments(context.Context, uuid.UUID, string) ([]BehalfAssignment, error)
-	DeleteBehalfAssignment(context.Context, uuid.UUID, uuid.UUID) error
-	ListMyBehalfTargets(context.Context, uuid.UUID, uuid.UUID, string) ([]EmployeeRecord, error)
+	CreateBehalfAssignment(context.Context, CreateBehalfAssignmentRequest, string) (BehalfAssignment, error)
+	ListBehalfAssignments(context.Context, string) ([]BehalfAssignment, error)
+	DeleteBehalfAssignment(context.Context, uuid.UUID) error
+	ListMyBehalfTargets(context.Context, uuid.UUID, string) ([]EmployeeRecord, error)
 }
 
 type AttendancePolicyHandler struct {
 	PolicyRepository AttendancePolicyRepository
 	BehalfRepository BehalfAssignmentRepository
-	Authorizer       AttendanceAuthorizer
+	Authorizer       Authorizer
 }
 
-func (h AttendancePolicyHandler) allowed(r *http.Request, workspaceID uuid.UUID, permission string) bool {
+func (h AttendancePolicyHandler) allowed(r *http.Request, permission string) bool {
 	userID, ok := httpinfra.UserIDFromContext(r.Context())
-	return ok && h.Authorizer != nil && h.Authorizer.HasPermission(r.Context(), userID, workspaceID, permission)
+	return ok && h.Authorizer != nil && h.Authorizer.HasPermission(r.Context(), userID, permission)
 }
 
 func (h AttendancePolicyHandler) forbidden(w http.ResponseWriter, r *http.Request) {
@@ -159,12 +158,11 @@ func validPolicyTarget(target string) bool {
 }
 
 func (h AttendancePolicyHandler) GetRules(w http.ResponseWriter, r *http.Request) {
-	workspaceID, ok := organizationIDFromContext(r)
-	if !ok || !h.allowed(r, workspaceID, string(auth.PermissionWorkspaceSettingsRead)) {
+	if !h.allowed(r, string(auth.PermissionOrganizationSettingsRead)) {
 		h.forbidden(w, r)
 		return
 	}
-	rules, err := h.PolicyRepository.GetDefaultPolicyRules(r.Context(), workspaceID)
+	rules, err := h.PolicyRepository.GetDefaultPolicyRules(r.Context())
 	if err != nil {
 		h.fail(w, r, err)
 		return
@@ -173,9 +171,8 @@ func (h AttendancePolicyHandler) GetRules(w http.ResponseWriter, r *http.Request
 }
 
 func (h AttendancePolicyHandler) UpdateRules(w http.ResponseWriter, r *http.Request) {
-	workspaceID, ok := organizationIDFromContext(r)
 	userID, userOK := httpinfra.UserIDFromContext(r.Context())
-	if !ok || !userOK || !h.allowed(r, workspaceID, string(auth.PermissionWorkspaceSettingsWrite)) {
+	if !userOK || !h.allowed(r, string(auth.PermissionOrganizationSettingsWrite)) {
 		h.forbidden(w, r)
 		return
 	}
@@ -194,7 +191,7 @@ func (h AttendancePolicyHandler) UpdateRules(w http.ResponseWriter, r *http.Requ
 			return
 		}
 	}
-	result, err := h.PolicyRepository.UpdateDefaultPolicyRules(r.Context(), workspaceID, userID, req)
+	result, err := h.PolicyRepository.UpdateDefaultPolicyRules(r.Context(), userID, req)
 	if err != nil {
 		h.fail(w, r, err)
 		return
@@ -203,12 +200,11 @@ func (h AttendancePolicyHandler) UpdateRules(w http.ResponseWriter, r *http.Requ
 }
 
 func (h AttendancePolicyHandler) ListRuleVersions(w http.ResponseWriter, r *http.Request) {
-	workspaceID, ok := organizationIDFromContext(r)
-	if !ok || !h.allowed(r, workspaceID, string(auth.PermissionWorkspaceSettingsRead)) {
+	if !h.allowed(r, string(auth.PermissionOrganizationSettingsRead)) {
 		h.forbidden(w, r)
 		return
 	}
-	result, err := h.PolicyRepository.GetDefaultPolicyVersions(r.Context(), workspaceID)
+	result, err := h.PolicyRepository.GetDefaultPolicyVersions(r.Context())
 	if err != nil {
 		h.fail(w, r, err)
 		return
@@ -217,12 +213,11 @@ func (h AttendancePolicyHandler) ListRuleVersions(w http.ResponseWriter, r *http
 }
 
 func (h AttendancePolicyHandler) ListAssignments(w http.ResponseWriter, r *http.Request) {
-	workspaceID, ok := organizationIDFromContext(r)
-	if !ok || !h.allowed(r, workspaceID, string(auth.PermissionWorkspaceSettingsRead)) {
+	if !h.allowed(r, string(auth.PermissionOrganizationSettingsRead)) {
 		h.forbidden(w, r)
 		return
 	}
-	result, err := h.PolicyRepository.ListPolicyAssignments(r.Context(), workspaceID)
+	result, err := h.PolicyRepository.ListPolicyAssignments(r.Context())
 	if err != nil {
 		h.fail(w, r, err)
 		return
@@ -231,9 +226,8 @@ func (h AttendancePolicyHandler) ListAssignments(w http.ResponseWriter, r *http.
 }
 
 func (h AttendancePolicyHandler) UpsertAssignment(w http.ResponseWriter, r *http.Request) {
-	workspaceID, ok := organizationIDFromContext(r)
 	userID, userOK := httpinfra.UserIDFromContext(r.Context())
-	if !ok || !userOK || !h.allowed(r, workspaceID, string(auth.PermissionWorkspaceSettingsWrite)) {
+	if !userOK || !h.allowed(r, string(auth.PermissionOrganizationSettingsWrite)) {
 		h.forbidden(w, r)
 		return
 	}
@@ -248,7 +242,7 @@ func (h AttendancePolicyHandler) UpsertAssignment(w http.ResponseWriter, r *http
 			return
 		}
 	}
-	result, err := h.PolicyRepository.UpsertPolicyAssignment(r.Context(), workspaceID, userID, req)
+	result, err := h.PolicyRepository.UpsertPolicyAssignment(r.Context(), userID, req)
 	if err != nil {
 		h.fail(w, r, err)
 		return
@@ -257,13 +251,12 @@ func (h AttendancePolicyHandler) UpsertAssignment(w http.ResponseWriter, r *http
 }
 
 func (h AttendancePolicyHandler) DeleteAssignment(w http.ResponseWriter, r *http.Request) {
-	workspaceID, ok := organizationIDFromContext(r)
 	assignmentID, assignmentOK := pathUUID(r, "assignment_id")
-	if !ok || !assignmentOK || !h.allowed(r, workspaceID, string(auth.PermissionWorkspaceSettingsWrite)) {
+	if !assignmentOK || !h.allowed(r, string(auth.PermissionOrganizationSettingsWrite)) {
 		h.forbidden(w, r)
 		return
 	}
-	if err := h.PolicyRepository.DeletePolicyAssignment(r.Context(), workspaceID, assignmentID); err != nil {
+	if err := h.PolicyRepository.DeletePolicyAssignment(r.Context(), assignmentID); err != nil {
 		h.fail(w, r, err)
 		return
 	}
@@ -271,12 +264,11 @@ func (h AttendancePolicyHandler) DeleteAssignment(w http.ResponseWriter, r *http
 }
 
 func (h AttendancePolicyHandler) ListBehalfAssignments(w http.ResponseWriter, r *http.Request) {
-	workspaceID, ok := organizationIDFromContext(r)
-	if !ok || !h.allowed(r, workspaceID, string(auth.PermissionAttendanceAdjustmentsManageBehalf)) {
+	if !h.allowed(r, string(auth.PermissionAttendanceAdjustmentsManageBehalf)) {
 		h.forbidden(w, r)
 		return
 	}
-	result, err := h.BehalfRepository.ListBehalfAssignments(r.Context(), workspaceID, AttendanceAdjustmentAssignmentType)
+	result, err := h.BehalfRepository.ListBehalfAssignments(r.Context(), AttendanceAdjustmentAssignmentType)
 	if err != nil {
 		h.fail(w, r, err)
 		return
@@ -285,8 +277,7 @@ func (h AttendancePolicyHandler) ListBehalfAssignments(w http.ResponseWriter, r 
 }
 
 func (h AttendancePolicyHandler) CreateBehalfAssignment(w http.ResponseWriter, r *http.Request) {
-	workspaceID, ok := organizationIDFromContext(r)
-	if !ok || !h.allowed(r, workspaceID, string(auth.PermissionAttendanceAdjustmentsManageBehalf)) {
+	if !h.allowed(r, string(auth.PermissionAttendanceAdjustmentsManageBehalf)) {
 		h.forbidden(w, r)
 		return
 	}
@@ -295,7 +286,7 @@ func (h AttendancePolicyHandler) CreateBehalfAssignment(w http.ResponseWriter, r
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}
-	result, err := h.BehalfRepository.CreateBehalfAssignment(r.Context(), workspaceID, req, AttendanceAdjustmentAssignmentType)
+	result, err := h.BehalfRepository.CreateBehalfAssignment(r.Context(), req, AttendanceAdjustmentAssignmentType)
 	if err != nil {
 		h.fail(w, r, err)
 		return
@@ -304,13 +295,12 @@ func (h AttendancePolicyHandler) CreateBehalfAssignment(w http.ResponseWriter, r
 }
 
 func (h AttendancePolicyHandler) DeleteBehalfAssignment(w http.ResponseWriter, r *http.Request) {
-	workspaceID, ok := organizationIDFromContext(r)
 	assignmentID, assignmentOK := pathUUID(r, "id")
-	if !ok || !assignmentOK || !h.allowed(r, workspaceID, string(auth.PermissionAttendanceAdjustmentsManageBehalf)) {
+	if !assignmentOK || !h.allowed(r, string(auth.PermissionAttendanceAdjustmentsManageBehalf)) {
 		h.forbidden(w, r)
 		return
 	}
-	if err := h.BehalfRepository.DeleteBehalfAssignment(r.Context(), workspaceID, assignmentID); err != nil {
+	if err := h.BehalfRepository.DeleteBehalfAssignment(r.Context(), assignmentID); err != nil {
 		h.fail(w, r, err)
 		return
 	}
@@ -318,13 +308,12 @@ func (h AttendancePolicyHandler) DeleteBehalfAssignment(w http.ResponseWriter, r
 }
 
 func (h AttendancePolicyHandler) MyBehalfTargets(w http.ResponseWriter, r *http.Request) {
-	workspaceID, ok := organizationIDFromContext(r)
 	userID, userOK := httpinfra.UserIDFromContext(r.Context())
-	if !ok || !userOK {
+	if !userOK {
 		apperror.WriteError(w, r, apperror.Unauthorized(apperror.KeyAuthenticationRequired))
 		return
 	}
-	result, err := h.BehalfRepository.ListMyBehalfTargets(r.Context(), workspaceID, userID, AttendanceAdjustmentAssignmentType)
+	result, err := h.BehalfRepository.ListMyBehalfTargets(r.Context(), userID, AttendanceAdjustmentAssignmentType)
 	if err != nil {
 		h.fail(w, r, err)
 		return

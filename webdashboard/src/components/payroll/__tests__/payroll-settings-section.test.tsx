@@ -54,7 +54,7 @@ describe("PayrollSettingsSection", () => {
   };
 
   it("renders settings correctly", async () => {
-    renderWithProviders(<PayrollSettingsSection wsId={mockWsId} />);
+    renderWithProviders(<PayrollSettingsSection   />);
 
     // In the new UI, standard days are wrapped in a span with text-primary-600
     // and followed by common.days_short.
@@ -65,7 +65,7 @@ describe("PayrollSettingsSection", () => {
   it("calls update API when save button is clicked", async () => {
  
     vi.mocked(api.updatePayrollSettings).mockResolvedValue({} as unknown as never);
-    renderWithProviders(<PayrollSettingsSection wsId={mockWsId} />);
+    renderWithProviders(<PayrollSettingsSection   />);
 
     const addButton = await screen.findByText(/common.add_new/i);
     fireEvent.click(addButton);

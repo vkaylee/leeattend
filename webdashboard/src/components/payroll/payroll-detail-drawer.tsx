@@ -14,7 +14,6 @@ import { useTranslation } from "react-i18next";
 import Button from "@/components/ui/button";
 import { Typography } from "@/components/ui/typography";
 import { useMyPermissions } from "@/hooks/use-permissions";
-import { useWorkspace } from "@/hooks/use-workspace";
 import { fetchEmployeeEmployments } from "@/lib/api";
 import { Employee, Payslip, AttendanceAdjustmentRequest } from "@/lib/api/types";
 import { cn } from "@/lib/utils";
@@ -31,7 +30,6 @@ interface PayrollDetailDrawerProps {
   onClose: () => void;
   onResolveAdjustments: () => void;
   payslips: Payslip[];
-  workspaceId: string;
 }
 
 function PayrollDetailHeader({ employee }: { employee: Employee; }) {
@@ -102,24 +100,18 @@ function PayrollDetailSummary({ payslips, canReadSensitive, hireDate }: { employ
 export default function PayrollDetailDrawer({
   isOpen,
   onClose,
-  employee,
-  workspaceId,
-  payslips,
+  employee,payslips,
   isLoadingPayslips,
   adjustments,
   onResolveAdjustments
 }: PayrollDetailDrawerProps) {
   const { t } = useTranslation();
-  const { workspace } = useWorkspace(workspaceId);
   const { hasPermission } = useMyPermissions();
   const canReadSensitive = hasPermission("payroll:sensitive:read");
   const [activeTab, setActiveTab] = useState<"history" | "config">("history");
 
-  const { data: employments = [] } = useQuery({
-    queryKey: ["employments", workspaceId, employee?.id],
-    queryFn: () => employee ? fetchEmployeeEmployments(workspaceId, employee.id) : Promise.resolve([]),
-    enabled: isOpen && !!employee && !!workspaceId,
-  });
+  const { data: employments = [] } = useQuery({ queryKey: ["employments", employee?.id], queryFn: () => employee ? fetchEmployeeEmployments(employee.id) : Promise.resolve([]),
+  enabled: isOpen && !!employee , });
 
   if (!employee) return null;
 
@@ -188,7 +180,7 @@ export default function PayrollDetailDrawer({
               </div>
             ) : (
               <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
-                <EmployeeSalaryConfig employeeId={employee.id} employmentId={maybeNull(activeEmployment)?.id ?? ""} wsId={workspaceId} />
+                <EmployeeSalaryConfig employeeId={employee.id} employmentId={maybeNull(activeEmployment)?.id ?? ""}  />
               </div>
             )}
           </main>

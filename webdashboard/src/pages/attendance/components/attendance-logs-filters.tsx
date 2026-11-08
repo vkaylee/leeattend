@@ -23,7 +23,6 @@ interface AttendanceLogsFiltersProps {
   setDateRange: React.Dispatch<React.SetStateAction<{ start: string; end: string }>>;
   setEmployeeId: (id: string) => void;
   specificMonth: { month: number; year: number };
-  wsId: string | null;
 }
 
 function CustomRangeFilter({ dateRange, setDateRange }: { dateRange: { start: string, end: string }, setDateRange: React.Dispatch<React.SetStateAction<{ start: string, end: string }>> }) {
@@ -44,12 +43,12 @@ function CustomRangeFilter({ dateRange, setDateRange }: { dateRange: { start: st
 
 export function AttendanceLogsFilters(props: AttendanceLogsFiltersProps) {
   const { t } = useTranslation();
-  const { dateRange, setDateRange, employeeId, setEmployeeId, filterMode, handleFilterModeChange, handleSpecificMonthChange, specificMonth, wsId, departments } = props;
+  const { dateRange, setDateRange, employeeId, setEmployeeId, filterMode, handleFilterModeChange, handleSpecificMonthChange, specificMonth, departments } = props;
 
   const employeeSearch = (
     <div className="flex w-full items-center gap-3">
       <div className="min-w-0 flex-1">
-        <EmployeeSearch clearOnEscape data-testid="employee-search" departments={departments} keyboardShortcut={["/", "Enter"]} onChange={(value) => { setEmployeeId((Array.isArray(value) ? value[0] : value) || "all"); }} placeholder={employeeId === "all" ? t("common.all_employees") : undefined} value={employeeId === "all" ? "" : employeeId} workspaceId={wsId ?? ""} />
+        <EmployeeSearch clearOnEscape data-testid="employee-search" departments={departments} keyboardShortcut={["/", "Enter"]} onChange={(value) => { setEmployeeId((Array.isArray(value) ? value[0] : value) || "all"); }} placeholder={employeeId === "all" ? t("common.all_employees") : undefined} value={employeeId === "all" ? "" : employeeId}  />
       </div>
       {employeeId !== "all" && (<Button className="p-2.5 bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 hover:text-primary-600 dark:text-primary-400 rounded-xl transition-all" onClick={() => { setEmployeeId("all"); }} type="button" variant="ghost"><Users size={18} /></Button>)}
     </div>

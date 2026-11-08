@@ -63,10 +63,9 @@ interface RuleRowProps {
   expandedRuleId: string | null;
   rule: PayrollRuleDefinition;
   setExpandedRuleId: (id: string | null) => void;
-  wsId: string;
 }
 
-export function RuleRow({ rule, expandedRuleId, setExpandedRuleId, wsId }: RuleRowProps) {
+export function RuleRow({ rule, expandedRuleId, setExpandedRuleId}: RuleRowProps) {
   const { t } = useTranslation();
   const isExpanded = expandedRuleId === rule.id;
   const toggleExpand = () => { setExpandedRuleId(isExpanded ? null : rule.id); };
@@ -107,8 +106,8 @@ export function RuleRow({ rule, expandedRuleId, setExpandedRuleId, wsId }: RuleR
 
       {isExpanded ? (
         <div className="px-12 pb-8 pt-2 animate-in slide-in-from-top-4 duration-300 space-y-6">
-          {rule.calculation_method === "tiered" ? <RuleTierManager ruleId={rule.id} wsId={wsId} /> : null}
-          <RuleAssignmentManager calculationMethod={rule.calculation_method} ruleId={rule.id} wsId={wsId} />
+          {rule.calculation_method === "tiered" ? <RuleTierManager ruleId={rule.id}  /> : null}
+          <RuleAssignmentManager calculationMethod={rule.calculation_method} ruleId={rule.id}  />
         </div>
       ) : null}
     </div>

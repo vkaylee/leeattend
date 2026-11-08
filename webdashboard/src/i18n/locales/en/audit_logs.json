@@ -1,7 +1,7 @@
 {
   "audit_logs": {
     "title": "Audit Logs",
-    "subtitle": "Track security and administrative events across your workspace.",
+    "subtitle": "Track security and administrative events across your organization.",
     "section_title": "Security Events",
     "filters": {
       "all_actions": "All Actions",

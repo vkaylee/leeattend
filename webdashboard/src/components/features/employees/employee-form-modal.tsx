@@ -3,15 +3,15 @@ import { UserCircle } from "lucide-react";
 import React, { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 
-import type { WorkspaceMember, CreateEmployeeRequest, UpdateEmployeeRequest } from "@/lib/api";
+import type { OrganizationMember, CreateEmployeeRequest, UpdateEmployeeRequest } from "@/lib/api";
 
 import Button from "@/components/ui/button";
 import Modal from "@/components/ui/modal";
 import { useToast } from "@/components/ui/toast";
-import { useOrganizationMutation } from "@/hooks/common/use-workspace-query";
+import { useOrganizationMutation } from "@/hooks/common/use-organization-query";
 import { useDerivedStateFrom } from "@/hooks/use-derived-state-from";
 import {
-  createEmployee, updateEmployee, fetchWorkspaceMembers,
+  createEmployee, updateEmployee, fetchOrganizationMembers,
   Employee, fetchEmployers, fetchEmployeeEmployments,
   updateEmployeeEmployment, Employment,
 } from "@/lib/api";
@@ -27,10 +27,9 @@ interface EmployeeFormModalProps {
   onClose: () => void;
   onSuccess?: () => void;
   prefillEnrollmentId?: string;
-  wsId: string;
 }
 
-function useEmployeeMutations(wsId: string, onClose: () => void, onSuccess?: () => void) {
+function useEmployeeMutations(onClose: () => void, onSuccess?: () => void) {
   const { t } = useTranslation();
   const toast = useToast();
 
@@ -38,9 +37,8 @@ function useEmployeeMutations(wsId: string, onClose: () => void, onSuccess?: () 
     CreateEmployeeRequest,
     Awaited<ReturnType<typeof createEmployee>>
   >({
-    workspaceId: wsId,
-    keys: [employeeKeys.all(wsId)],
-    mutationFn: (workspaceId, data) => createEmployee(workspaceId, data),
+    keys: [employeeKeys.all()],
+    mutationFn: (data) => createEmployee(data),
     onSuccess: () => {
       onClose();
       toast.success(t("common.success"));
@@ -52,9 +50,8 @@ function useEmployeeMutations(wsId: string, onClose: () => void, onSuccess?: () 
     { id: string; employee: UpdateEmployeeRequest },
     Awaited<ReturnType<typeof updateEmployee>>
   >({
-    workspaceId: wsId,
-    keys: [employeeKeys.all(wsId)],
-    mutationFn: (workspaceId, data) => updateEmployee(workspaceId, data.id, data.employee),
+    keys: [employeeKeys.all()],
+    mutationFn: (data) => updateEmployee(data.id, data.employee),
     onSuccess: () => {
       onClose();
       toast.success(t("common.success"));
@@ -90,37 +87,31 @@ function useFormDefaults(editingEmployee: Employee | null, activeLocationId: str
  */
 // eslint-disable-next-line complexity -- JSX composition + query wiring; logic already in useEmployeeMutations / useFormDefaults
 export default function EmployeeFormModal({
-  isOpen, onClose, editingEmployee, wsId, prefillEnrollmentId, onSuccess,
+  isOpen, onClose, editingEmployee,prefillEnrollmentId, onSuccess,
 }: EmployeeFormModalProps) {
   const { t } = useTranslation();
-  const { createMutation, updateMutation } = useEmployeeMutations(wsId, onClose, onSuccess);
-  const { data: locations = [] } = useLocations(wsId);
-  const { data: employers = [] } = useQuery({
-    queryKey: ["employers", wsId],
-    queryFn: () => fetchEmployers(wsId),
-    enabled: !!wsId,
-  });
+  const { createMutation, updateMutation } = useEmployeeMutations(onClose, onSuccess);
+  const { data: locations = [] } = useLocations();
+  const { data: employers = [] } = useQuery({ queryKey: ["employers"], queryFn: () => fetchEmployers(),
+ });
 
-  const { data: employments = [] } = useQuery({
-    queryKey: ["employee-employments", wsId, editingEmployee?.id],
-    queryFn: () => {
-      if (!editingEmployee?.id) throw new Error("editingEmployee.id required");
-      return fetchEmployeeEmployments(wsId, editingEmployee.id);
-    },
-    enabled: !!wsId && !!editingEmployee?.id && isOpen,
-  });
+  const { data: employments = [] } = useQuery({ queryKey: ["employee-employments", editingEmployee?.id], queryFn: () => {
+    if (!editingEmployee?.id) throw new Error("editingEmployee.id required");
+    return fetchEmployeeEmployments(editingEmployee.id);
+  },
+  enabled: !!editingEmployee?.id && isOpen, });
   const active: Employment | undefined = employments.find(e => e.status === "active");
   const activeLocationId = active?.primary_location_id ?? "";
   const activeEmployerId = active?.employer_id ?? "";
 
   const defaults = useFormDefaults(editingEmployee, activeLocationId, activeEmployerId);
 
-  const [members, setMembers] = useState<WorkspaceMember[]>([]);
+  const [members, setMembers] = useState<OrganizationMember[]>([]);
   useEffect(() => {
-    if (isOpen && wsId) {
+    if (isOpen ) {
       const loadMembers = async () => {
         try {
-          const data = await fetchWorkspaceMembers(wsId);
+          const data = await fetchOrganizationMembers();
           setMembers(data);
         } catch (e: unknown) {
           logError(e, { component: 'EmployeeFormModal.loadMembers' });
@@ -129,11 +120,11 @@ export default function EmployeeFormModal({
       };
       void loadMembers();
     }
-  }, [isOpen, wsId]);
+  }, [isOpen]);
 
   async function syncEmploymentIfChanged(employee: Employee) {
     if (defaults.selectedLocationId !== activeLocationId || defaults.selectedEmployerId !== activeEmployerId) {
-      await updateEmployeeEmployment(wsId, employee.id, active?.id ?? "", {
+      await updateEmployeeEmployment(employee.id, active?.id ?? "", {
         primary_location_id: defaults.selectedLocationId || null,
         employer_id: defaults.selectedEmployerId || undefined,
       });

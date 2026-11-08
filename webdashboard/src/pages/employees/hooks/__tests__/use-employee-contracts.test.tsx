@@ -48,22 +48,22 @@ describe("useEmployeeContracts hook", () => {
     (deleteEmployeeContract as Mock).mockResolvedValue({ id: "c-1" });
   });
 
-  it("fetches contracts for given wsId and employeeId", async () => {
+  it("fetches contracts for given employeeId", async () => {
     const { Wrapper } = createWrapper();
-    const { result } = renderHook(() => useEmployeeContracts("ws-1", "emp-1"), {
+    const { result } = renderHook(() => useEmployeeContracts("emp-1"), {
       wrapper: Wrapper,
     });
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
 
-    expect(fetchEmployeeContracts).toHaveBeenCalledWith("ws-1", "emp-1");
+    expect(fetchEmployeeContracts).toHaveBeenCalledWith("emp-1");
     expect(result.current.contracts).toEqual(mockContracts);
     expect(result.current.isError).toBe(false);
   });
 
-  it("does not fetch if wsId or employeeId are empty", () => {
+  it("does not fetch if employeeId is empty", () => {
     const { Wrapper } = createWrapper();
-    const { result } = renderHook(() => useEmployeeContracts("", ""), {
+    const { result } = renderHook(() => useEmployeeContracts(""), {
       wrapper: Wrapper,
     });
 
@@ -75,7 +75,7 @@ describe("useEmployeeContracts hook", () => {
     const { Wrapper, queryClient } = createWrapper();
     const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries");
 
-    const { result } = renderHook(() => useEmployeeContracts("ws-1", "emp-1"), {
+    const { result } = renderHook(() => useEmployeeContracts("emp-1"), {
       wrapper: Wrapper,
     });
 
@@ -88,9 +88,9 @@ describe("useEmployeeContracts hook", () => {
 
     await result.current.createContract.mutateAsync(newContractPayload);
 
-    expect(createEmployeeContract).toHaveBeenCalledWith("ws-1", "emp-1", newContractPayload);
+    expect(createEmployeeContract).toHaveBeenCalledWith("emp-1", newContractPayload);
     expect(invalidateSpy).toHaveBeenCalledWith({
-      queryKey: ["employee-contracts", "ws-1", "emp-1"],
+      queryKey: ["employee-contracts", "emp-1"],
     });
   });
 
@@ -98,7 +98,7 @@ describe("useEmployeeContracts hook", () => {
     const { Wrapper, queryClient } = createWrapper();
     const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries");
 
-    const { result } = renderHook(() => useEmployeeContracts("ws-1", "emp-1"), {
+    const { result } = renderHook(() => useEmployeeContracts("emp-1"), {
       wrapper: Wrapper,
     });
 
@@ -111,9 +111,9 @@ describe("useEmployeeContracts hook", () => {
       data: updatePayload,
     });
 
-    expect(updateEmployeeContract).toHaveBeenCalledWith("ws-1", "emp-1", "c-1", updatePayload);
+    expect(updateEmployeeContract).toHaveBeenCalledWith("emp-1", "c-1", updatePayload);
     expect(invalidateSpy).toHaveBeenCalledWith({
-      queryKey: ["employee-contracts", "ws-1", "emp-1"],
+      queryKey: ["employee-contracts", "emp-1"],
     });
   });
 
@@ -121,15 +121,15 @@ describe("useEmployeeContracts hook", () => {
     const { Wrapper, queryClient } = createWrapper();
     const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries");
 
-    const { result } = renderHook(() => useEmployeeContracts("ws-1", "emp-1"), {
+    const { result } = renderHook(() => useEmployeeContracts("emp-1"), {
       wrapper: Wrapper,
     });
 
     await result.current.deleteContract.mutateAsync("c-1");
 
-    expect(deleteEmployeeContract).toHaveBeenCalledWith("ws-1", "emp-1", "c-1");
+    expect(deleteEmployeeContract).toHaveBeenCalledWith("emp-1", "c-1");
     expect(invalidateSpy).toHaveBeenCalledWith({
-      queryKey: ["employee-contracts", "ws-1", "emp-1"],
+      queryKey: ["employee-contracts", "emp-1"],
     });
   });
 });

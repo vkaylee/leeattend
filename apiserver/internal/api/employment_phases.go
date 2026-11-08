@@ -20,7 +20,6 @@ var (
 
 type EmploymentPhaseDefinition struct {
 	ID           uuid.UUID       `json:"id"`
-	WorkspaceID  uuid.UUID       `json:"workspace_id"`
 	Name         string          `json:"name"`
 	Description  *string         `json:"description"`
 	PhaseType    string          `json:"phase_type"`
@@ -33,7 +32,6 @@ type EmploymentPhaseDefinition struct {
 
 type EmployeePhase struct {
 	ID                uuid.UUID       `json:"id"`
-	WorkspaceID       uuid.UUID       `json:"workspace_id"`
 	EmploymentID      uuid.UUID       `json:"employment_id"`
 	PhaseDefinitionID uuid.UUID       `json:"phase_definition_id"`
 	StartDate         string          `json:"start_date"`
@@ -69,21 +67,21 @@ type UpdateEmployeePhaseStatusRequest struct {
 
 type EmploymentPhaseRepository interface {
 	CreateDefinition(context.Context, EmploymentPhaseDefinition) (EmploymentPhaseDefinition, error)
-	ListDefinitions(context.Context, uuid.UUID) ([]EmploymentPhaseDefinition, error)
-	AssignPhase(context.Context, uuid.UUID, uuid.UUID, AssignEmployeePhaseRequest) (EmployeePhase, error)
-	UpdatePhaseStatus(context.Context, uuid.UUID, uuid.UUID, uuid.UUID, UpdateEmployeePhaseStatusRequest, uuid.UUID) (EmployeePhase, error)
-	ListPhases(context.Context, uuid.UUID, uuid.UUID) ([]EmployeePhase, error)
-	ResolveActiveEmployment(context.Context, uuid.UUID, uuid.UUID) (uuid.UUID, error)
+	ListDefinitions(context.Context) ([]EmploymentPhaseDefinition, error)
+	AssignPhase(context.Context, uuid.UUID, AssignEmployeePhaseRequest) (EmployeePhase, error)
+	UpdatePhaseStatus(context.Context, uuid.UUID, uuid.UUID, UpdateEmployeePhaseStatusRequest, uuid.UUID) (EmployeePhase, error)
+	ListPhases(context.Context, uuid.UUID) ([]EmployeePhase, error)
+	ResolveActiveEmployment(context.Context, uuid.UUID) (uuid.UUID, error)
 }
 
 type EmploymentPhaseHandler struct {
 	Repository EmploymentPhaseRepository
-	Authorizer WorkspaceAuthorizer
+	Authorizer Authorizer
 }
 
-func (h EmploymentPhaseHandler) allowed(r *http.Request, wsID uuid.UUID, permission string) bool {
+func (h EmploymentPhaseHandler) allowed(r *http.Request, permission string) bool {
 	uid, ok := httpinfra.UserIDFromContext(r.Context())
-	return ok && h.Authorizer != nil && h.Authorizer.HasPermission(r.Context(), uid, wsID, permission)
+	return ok && h.Authorizer != nil && h.Authorizer.HasPermission(r.Context(), uid, permission)
 }
 func (h EmploymentPhaseHandler) deny(w http.ResponseWriter, r *http.Request) {
 	apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
@@ -101,8 +99,7 @@ func (h EmploymentPhaseHandler) err(w http.ResponseWriter, r *http.Request, err 
 func validPhaseDate(s string) bool { _, err := time.Parse("2006-01-02", s); return err == nil }
 
 func (h EmploymentPhaseHandler) CreateDefinition(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := organizationIDFromContext(r)
-	if !ok || !h.allowed(r, wsID, "employment_phases:manage") {
+	if !h.allowed(r, "employment_phases:manage") {
 		h.deny(w, r)
 		return
 	}
@@ -116,7 +113,7 @@ func (h EmploymentPhaseHandler) CreateDefinition(w http.ResponseWriter, r *http.
 		display = *req.DisplayOrder
 	}
 	now := time.Now().UTC().Format(time.RFC3339)
-	def := EmploymentPhaseDefinition{ID: uuid.New(), WorkspaceID: wsID, Name: req.Name, Description: req.Description, PhaseType: req.PhaseType, RuleConfig: req.RuleConfig, IsActive: true, DisplayOrder: display, CreatedAt: now, UpdatedAt: now}
+	def := EmploymentPhaseDefinition{ID: uuid.New(), Name: req.Name, Description: req.Description, PhaseType: req.PhaseType, RuleConfig: req.RuleConfig, IsActive: true, DisplayOrder: display, CreatedAt: now, UpdatedAt: now}
 	if h.Repository == nil {
 		apperror.WriteError(w, r, apperror.Internal(errors.New("repository unavailable")))
 		return
@@ -129,8 +126,7 @@ func (h EmploymentPhaseHandler) CreateDefinition(w http.ResponseWriter, r *http.
 	apperror.WriteJSON(w, http.StatusCreated, out)
 }
 func (h EmploymentPhaseHandler) ListDefinitions(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := organizationIDFromContext(r)
-	if !ok {
+	if !h.allowed(r, "employment_phases:manage") {
 		h.deny(w, r)
 		return
 	}
@@ -138,7 +134,7 @@ func (h EmploymentPhaseHandler) ListDefinitions(w http.ResponseWriter, r *http.R
 		apperror.WriteJSON(w, http.StatusOK, []EmploymentPhaseDefinition{})
 		return
 	}
-	out, err := h.Repository.ListDefinitions(r.Context(), wsID)
+	out, err := h.Repository.ListDefinitions(r.Context())
 	if err != nil {
 		h.err(w, r, err)
 		return
@@ -146,19 +142,12 @@ func (h EmploymentPhaseHandler) ListDefinitions(w http.ResponseWriter, r *http.R
 	apperror.WriteJSON(w, http.StatusOK, out)
 }
 func (h EmploymentPhaseHandler) assign(w http.ResponseWriter, r *http.Request, employmentID uuid.UUID) {
-	wsID, ok := organizationIDFromContext(r)
-	if !ok || !h.allowed(r, wsID, "employment_phases:manage") {
-		h.deny(w, r)
-		return
-	}
 	var req AssignEmployeePhaseRequest
 	if json.NewDecoder(r.Body).Decode(&req) != nil || req.PhaseDefinitionID == uuid.Nil || !validPhaseDate(req.StartDate) || !validPhaseDate(req.EndDate) || (len(req.OverrideConfig) > 0 && !json.Valid(req.OverrideConfig)) {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}
-	uid, _ := httpinfra.UserIDFromContext(r.Context())
-	_ = uid
-	out, err := h.Repository.AssignPhase(r.Context(), wsID, employmentID, req)
+	out, err := h.Repository.AssignPhase(r.Context(), employmentID, req)
 	if err != nil {
 		h.err(w, r, err)
 		return
@@ -166,13 +155,12 @@ func (h EmploymentPhaseHandler) assign(w http.ResponseWriter, r *http.Request, e
 	apperror.WriteJSON(w, http.StatusOK, out)
 }
 func (h EmploymentPhaseHandler) AssignEmployee(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := organizationIDFromContext(r)
-	empID, ok2 := pathUUID(r, "user_id")
-	if !ok || !ok2 || !h.allowed(r, wsID, "employment_phases:manage") {
+	empID, ok := pathUUID(r, "user_id")
+	if !ok || !h.allowed(r, "employment_phases:manage") {
 		h.deny(w, r)
 		return
 	}
-	employmentID, err := h.Repository.ResolveActiveEmployment(r.Context(), wsID, empID)
+	employmentID, err := h.Repository.ResolveActiveEmployment(r.Context(), empID)
 	if err != nil {
 		h.err(w, r, err)
 		return
@@ -180,86 +168,77 @@ func (h EmploymentPhaseHandler) AssignEmployee(w http.ResponseWriter, r *http.Re
 	h.assign(w, r, employmentID)
 }
 func (h EmploymentPhaseHandler) ListEmployee(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := organizationIDFromContext(r)
-	empID, ok2 := pathUUID(r, "user_id")
-	if !ok || !ok2 {
+	empID, ok := pathUUID(r, "user_id")
+	if !ok || !h.allowed(r, "employment_phases:manage") {
 		h.deny(w, r)
 		return
 	}
-	employmentID, err := h.Repository.ResolveActiveEmployment(r.Context(), wsID, empID)
+	employmentID, err := h.Repository.ResolveActiveEmployment(r.Context(), empID)
 	if err != nil {
 		h.err(w, r, err)
 		return
 	}
-	h.list(w, r, wsID, employmentID)
+	h.list(w, r, employmentID)
 }
 func (h EmploymentPhaseHandler) UpdateEmployeeStatus(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := organizationIDFromContext(r)
-	empID, ok2 := pathUUID(r, "user_id")
-	phaseID, ok3 := pathUUID(r, "phase_id")
-	if !ok || !ok2 || !ok3 || !h.allowed(r, wsID, "employment_phases:manage") {
+	empID, ok := pathUUID(r, "user_id")
+	phaseID, ok2 := pathUUID(r, "phase_id")
+	if !ok || !ok2 || !h.allowed(r, "employment_phases:manage") {
 		h.deny(w, r)
 		return
 	}
-	employmentID, err := h.Repository.ResolveActiveEmployment(r.Context(), wsID, empID)
+	employmentID, err := h.Repository.ResolveActiveEmployment(r.Context(), empID)
 	if err != nil {
 		h.err(w, r, err)
 		return
 	}
-	h.updateStatus(w, r, wsID, employmentID, phaseID)
+	h.updateStatus(w, r, employmentID, phaseID)
 }
 func (h EmploymentPhaseHandler) AssignEmployment(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := organizationIDFromContext(r)
-	employmentID, ok2 := pathUUID(r, "employment_id")
-	if !ok || !ok2 {
-		h.deny(w, r)
-		return
-	}
-	if !h.allowed(r, wsID, "employment_phases:manage") {
+	employmentID, ok := pathUUID(r, "employment_id")
+	if !ok || !h.allowed(r, "employment_phases:manage") {
 		h.deny(w, r)
 		return
 	}
 	h.assign(w, r, employmentID)
 }
 func (h EmploymentPhaseHandler) ListEmployment(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := organizationIDFromContext(r)
-	employmentID, ok2 := pathUUID(r, "employment_id")
-	if !ok || !ok2 {
+	employmentID, ok := pathUUID(r, "employment_id")
+	if !ok || !h.allowed(r, "employment_phases:manage") {
 		h.deny(w, r)
 		return
 	}
-	h.list(w, r, wsID, employmentID)
+	h.list(w, r, employmentID)
 }
 func (h EmploymentPhaseHandler) UpdateEmploymentStatus(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := organizationIDFromContext(r)
-	employmentID, ok2 := pathUUID(r, "employment_id")
-	phaseID, ok3 := pathUUID(r, "phase_id")
-	if !ok || !ok2 || !ok3 || !h.allowed(r, wsID, "employment_phases:manage") {
+	employmentID, ok := pathUUID(r, "employment_id")
+	phaseID, ok2 := pathUUID(r, "phase_id")
+	if !ok || !ok2 || !h.allowed(r, "employment_phases:manage") {
 		h.deny(w, r)
 		return
 	}
-	h.updateStatus(w, r, wsID, employmentID, phaseID)
+	h.updateStatus(w, r, employmentID, phaseID)
 }
-func (h EmploymentPhaseHandler) list(w http.ResponseWriter, r *http.Request, wsID, employmentID uuid.UUID) {
+func (h EmploymentPhaseHandler) list(w http.ResponseWriter, r *http.Request, employmentID uuid.UUID) {
 	if h.Repository == nil {
 		apperror.WriteJSON(w, http.StatusOK, []EmployeePhase{})
 		return
 	}
-	out, err := h.Repository.ListPhases(r.Context(), wsID, employmentID)
+	out, err := h.Repository.ListPhases(r.Context(), employmentID)
 	if err != nil {
 		h.err(w, r, err)
 		return
 	}
 	apperror.WriteJSON(w, http.StatusOK, out)
 }
-func (h EmploymentPhaseHandler) updateStatus(w http.ResponseWriter, r *http.Request, wsID, employmentID, phaseID uuid.UUID) {
+func (h EmploymentPhaseHandler) updateStatus(w http.ResponseWriter, r *http.Request, employmentID, phaseID uuid.UUID) {
 	var req UpdateEmployeePhaseStatusRequest
 	if json.NewDecoder(r.Body).Decode(&req) != nil || req.Status == "" {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}
 	uid, _ := httpinfra.UserIDFromContext(r.Context())
-	out, err := h.Repository.UpdatePhaseStatus(r.Context(), wsID, employmentID, phaseID, req, uid)
+	out, err := h.Repository.UpdatePhaseStatus(r.Context(), employmentID, phaseID, req, uid)
 	if err != nil {
 		h.err(w, r, err)
 		return

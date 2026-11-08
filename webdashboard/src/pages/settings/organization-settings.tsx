@@ -6,7 +6,6 @@ import EmploymentPhaseManager from "@/components/people/employment-phase-manager
 import { SettingsHeader } from "@/components/ui/settings/settings-header";
 import { SettingsSegmentedControl } from "@/components/ui/settings/settings-segmented-control";
 import { Typography } from "@/components/ui/typography";
-import { getStandaloneOrganizationId } from "@/lib/api";
 
 import EmployersPage from "./employers-page";
 
@@ -14,7 +13,7 @@ type TabType = "employers" | "employment_phases";
 
 export default function OrganizationSettings() {
   const { t } = useTranslation();
-  const wsId = getStandaloneOrganizationId();
+  
   const [activeTab, setActiveTab] = useState<TabType>("employers");
 
   return (
@@ -57,7 +56,7 @@ export default function OrganizationSettings() {
         ) : null}
         {activeTab === "employment_phases" ? (
           <div className="bg-white dark:bg-slate-900/90 rounded-2xl border border-slate-200/80 dark:border-slate-800/80 overflow-hidden shadow-2xs p-6">
-            <EmploymentPhaseManager wsId={wsId} />
+            <EmploymentPhaseManager   />
           </div>
         ) : null}
       </div>

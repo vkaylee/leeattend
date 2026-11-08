@@ -1,6 +1,6 @@
 import type { TFunction } from "i18next";
 
-import { useOrganizationMutation } from "@/hooks/common/use-workspace-query";
+import { useOrganizationMutation } from "@/hooks/common/use-organization-query";
 import { useState } from "react";
 
 import type { Department } from "@/lib/api";
@@ -8,7 +8,7 @@ import type { Department } from "@/lib/api";
 import { useToast } from "@/components/ui/toast";
 import { createDepartment, updateDepartment } from "@/lib/api";
 import { departmentKeys } from "@/lib/query-keys";
-export function useDepartmentForm(wsId: string, editingDept: Department | null, onClose: () => void, t: TFunction) {
+export function useDepartmentForm(editingDept: Department | null, onClose: () => void, t: TFunction) {
   const toast = useToast();
 
   const deptId = editingDept?.id ?? null;
@@ -17,7 +17,7 @@ export function useDepartmentForm(wsId: string, editingDept: Department | null, 
   const getParentId = (): string => {
     if (!editingDept) return "";
     try {
-      const saved = localStorage.getItem(`leeattend_dept_parents_${wsId}`);
+      const saved = localStorage.getItem("leeattend_dept_parents");
       if (saved) {
         const parentMap = JSON.parse(saved) as unknown;
         if (parentMap && typeof parentMap === "object") {
@@ -44,16 +44,15 @@ export function useDepartmentForm(wsId: string, editingDept: Department | null, 
     Parameters<typeof createDepartment>[1],
     Awaited<ReturnType<typeof createDepartment>>
   >({
-    workspaceId: wsId,
-    keys: [departmentKeys.all(wsId)],
-    mutationFn: (workspaceId, data) => createDepartment(workspaceId, data),
+    keys: [departmentKeys.all()],
+    mutationFn: (data) => createDepartment(data),
     onSuccess: (newDept) => {
       if (selectedParentId && newDept.id) {
         try {
-          const saved = localStorage.getItem(`leeattend_dept_parents_${wsId}`);
+          const saved = localStorage.getItem("leeattend_dept_parents");
           const parentMap = (saved ? JSON.parse(saved) : {}) as Record<string, string>;
           parentMap[newDept.id] = selectedParentId;
-          localStorage.setItem(`leeattend_dept_parents_${wsId}`, JSON.stringify(parentMap));
+          localStorage.setItem("leeattend_dept_parents", JSON.stringify(parentMap));
         } catch {
           // Ignore
         }
@@ -67,16 +66,15 @@ export function useDepartmentForm(wsId: string, editingDept: Department | null, 
     Parameters<typeof updateDepartment>[2],
     Awaited<ReturnType<typeof updateDepartment>>
   >({
-    workspaceId: wsId,
-    keys: [departmentKeys.all(wsId)],
-    mutationFn: (workspaceId, data) => {
+    keys: [departmentKeys.all()],
+    mutationFn: (data) => {
       if (!editingDept) throw new Error("Editing department is required for update");
-      return updateDepartment(workspaceId, editingDept.id, data);
+      return updateDepartment(editingDept.id, data);
     },
     onSuccess: () => {
       if (editingDept) {
         try {
-          const saved = localStorage.getItem(`leeattend_dept_parents_${wsId}`);
+          const saved = localStorage.getItem("leeattend_dept_parents");
           let parentMap = (saved ? JSON.parse(saved) : {}) as Record<string, string>;
           if (selectedParentId) {
             parentMap[editingDept.id] = selectedParentId;
@@ -84,7 +82,7 @@ export function useDepartmentForm(wsId: string, editingDept: Department | null, 
             const { [editingDept.id]: _, ...rest } = parentMap;
             parentMap = rest;
           }
-          localStorage.setItem(`leeattend_dept_parents_${wsId}`, JSON.stringify(parentMap));
+          localStorage.setItem("leeattend_dept_parents", JSON.stringify(parentMap));
         } catch {
           // Ignore
         }

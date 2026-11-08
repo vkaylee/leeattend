@@ -6,7 +6,7 @@ import { useTranslation } from "react-i18next";
 
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Typography } from "@/components/ui/typography";
-import { WorkspaceLeaveBalance, fetchLeaveHistory, getStandaloneOrganizationId } from "@/lib/api";
+import { LeaveBalance, fetchLeaveHistory } from "@/lib/api";
 
 import { LeaveBalanceBreakdown } from "./leave-balance-detail-components/leave-balance-breakdown";
 import { LeaveBalanceHeader } from "./leave-balance-detail-components/leave-balance-header";
@@ -14,20 +14,19 @@ import { LeaveBalanceHero } from "./leave-balance-detail-components/leave-balanc
 import { HistoryList } from "./leave-balance-detail-components/leave-balance-history";
 
 interface LeaveBalanceDetailModalProps {
-  balance: WorkspaceLeaveBalance;
+  balance: LeaveBalance;
   isOpen: boolean;
   onClose: () => void;
 }
 
 export function LeaveBalanceDetailModal({ balance, isOpen, onClose }: LeaveBalanceDetailModalProps) {
   const { t } = useTranslation();
-  const wsId = getStandaloneOrganizationId();
   const [activeTab, setActiveTab] = useState("all");
 
   const { data: history = [], isLoading } = useQuery({
-    queryKey: ["leave-history", wsId, balance.employee_id, balance.leave_type_id],
-    queryFn: () => wsId ? fetchLeaveHistory(wsId, balance.employee_id, balance.leave_type_id) : Promise.resolve([]),
-    enabled: isOpen && !!wsId,
+    queryKey: ["leave-history",balance.employee_id, balance.leave_type_id],
+    queryFn: () => fetchLeaveHistory(balance.employee_id, balance.leave_type_id),
+    enabled: isOpen ,
   });
 
   if (!isOpen) return null;

@@ -190,7 +190,6 @@ export interface CreateLeaveRequestFormProps {
   startDate: string;
   startTime: string;
   t: TFunction;
-  wsId: string;
 }
 
 export function CreateLeaveRequestForm({
@@ -218,9 +217,7 @@ export function CreateLeaveRequestForm({
   setStartTime,
   startDate,
   startTime,
-  t,
-  wsId,
-  ownerId,
+  t,ownerId,
   attachmentFileIds,
   setAttachmentFileIds,
 }: CreateLeaveRequestFormProps) {
@@ -288,17 +285,14 @@ export function CreateLeaveRequestForm({
         <label className="text-[10px] font-bold text-primary-600 dark:text-primary-400 uppercase tracking-widest ml-1">
           {t("leave_requests.modal.attachment", "ATTACHMENT (PDF ONLY)")}
         </label>
-        <FileUpload
-          accept="application/pdf"
-          category="LeaveAttachment"
-          maxSizeMB={20}
-          onUploadSuccess={(file) => {
-            setAttachmentFileIds([...attachmentFileIds, file.id]);
-          }}
-          ownerId={ownerId}
-          ownerType="LeaveRequest"
-          workspaceId={wsId}
-        />
+        <FileUpload accept="application/pdf"
+        category="LeaveAttachment"
+        maxSizeMB={20}
+        onUploadSuccess={(file) => {
+          setAttachmentFileIds([...attachmentFileIds, file.id]);
+        }}
+        ownerId={ownerId}
+        ownerType="LeaveRequest"  />
         {attachmentFileIds.length > 0 && (
           <div className="mt-3 space-y-2">
             {attachmentFileIds.map((id, index) => (

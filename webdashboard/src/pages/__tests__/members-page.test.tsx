@@ -28,7 +28,6 @@ vi.mock("../../lib/api", () => ({
   assignExtraRole: vi.fn(),
   revokeExtraRole: vi.fn(),
   fetchWorkspaceRoles: vi.fn(),
-  getStandaloneOrganizationId: vi.fn(),
   fetchUsers: vi.fn(),
   fetchMyPermissions: vi.fn(),
 }));
@@ -50,7 +49,6 @@ describe("MembersPage", () => {
  
     });
  
-    vi.mocked(api.getStandaloneOrganizationId).mockReturnValue("test-ws-id");
  
     vi.mocked(api.fetchMyPermissions).mockResolvedValue({ 
       permissions: ["members:invite", "members:remove", "members:roles:manage"], 

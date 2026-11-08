@@ -16,10 +16,10 @@ type mockDepartmentRepo struct {
 	notFound bool
 }
 
-func (m mockDepartmentRepo) ListDepartments(_ context.Context, wsID uuid.UUID, page, limit int) (DepartmentListResponse, error) {
+func (m mockDepartmentRepo) ListDepartments(_ context.Context, page, limit int) (DepartmentListResponse, error) {
 	return DepartmentListResponse{
 		Data: []DepartmentRecord{
-			{ID: uuid.New(), WorkspaceID: wsID, Name: "Engineering", ActiveEmployeeCount: 3},
+			{ID: uuid.New(), Name: "Engineering", ActiveEmployeeCount: 3},
 		},
 		Total: 1,
 		Page:  page,
@@ -27,24 +27,23 @@ func (m mockDepartmentRepo) ListDepartments(_ context.Context, wsID uuid.UUID, p
 	}, nil
 }
 
-func (m mockDepartmentRepo) CreateDepartment(_ context.Context, wsID uuid.UUID, req CreateDepartmentRequest) (DepartmentRecord, error) {
+func (m mockDepartmentRepo) CreateDepartment(_ context.Context, req CreateDepartmentRequest) (DepartmentRecord, error) {
 	return DepartmentRecord{
 		ID:          uuid.New(),
-		WorkspaceID: wsID,
 		Name:        req.Name,
 		Description: req.Description,
 		ManagerID:   req.ManagerID,
 	}, nil
 }
 
-func (m mockDepartmentRepo) GetDepartmentByID(_ context.Context, wsID, deptID uuid.UUID) (DepartmentRecord, error) {
+func (m mockDepartmentRepo) GetDepartmentByID(_ context.Context, deptID uuid.UUID) (DepartmentRecord, error) {
 	if m.notFound {
 		return DepartmentRecord{}, ErrDepartmentNotFound
 	}
-	return DepartmentRecord{ID: deptID, WorkspaceID: wsID, Name: "Engineering"}, nil
+	return DepartmentRecord{ID: deptID, Name: "Engineering"}, nil
 }
 
-func (m mockDepartmentRepo) UpdateDepartment(_ context.Context, wsID, deptID uuid.UUID, req UpdateDepartmentRequest) (DepartmentRecord, error) {
+func (m mockDepartmentRepo) UpdateDepartment(_ context.Context, deptID uuid.UUID, req UpdateDepartmentRequest) (DepartmentRecord, error) {
 	if m.notFound {
 		return DepartmentRecord{}, ErrDepartmentNotFound
 	}
@@ -52,17 +51,17 @@ func (m mockDepartmentRepo) UpdateDepartment(_ context.Context, wsID, deptID uui
 	if req.Name != nil {
 		name = *req.Name
 	}
-	return DepartmentRecord{ID: deptID, WorkspaceID: wsID, Name: name}, nil
+	return DepartmentRecord{ID: deptID, Name: name}, nil
 }
 
-func (m mockDepartmentRepo) DeleteDepartment(_ context.Context, _, _ uuid.UUID) error {
+func (m mockDepartmentRepo) DeleteDepartment(_ context.Context, _ uuid.UUID) error {
 	if m.notFound {
 		return ErrDepartmentNotFound
 	}
 	return nil
 }
 
-func (m mockDepartmentRepo) GetDepartmentPayrollConfigs(_ context.Context, _, deptID uuid.UUID) ([]DepartmentPayrollConfig, error) {
+func (m mockDepartmentRepo) GetDepartmentPayrollConfigs(_ context.Context, deptID uuid.UUID) ([]DepartmentPayrollConfig, error) {
 	if m.notFound {
 		return []DepartmentPayrollConfig{}, nil
 	}
@@ -77,7 +76,7 @@ func (m mockDepartmentRepo) GetDepartmentPayrollConfigs(_ context.Context, _, de
 	}, nil
 }
 
-func (m mockDepartmentRepo) SetDepartmentPayrollConfig(_ context.Context, _, deptID uuid.UUID, req SetDepartmentPayrollConfigRequest, _ uuid.UUID) (DepartmentPayrollConfig, error) {
+func (m mockDepartmentRepo) SetDepartmentPayrollConfig(_ context.Context, deptID uuid.UUID, req SetDepartmentPayrollConfigRequest, _ uuid.UUID) (DepartmentPayrollConfig, error) {
 	if m.notFound {
 		return DepartmentPayrollConfig{}, ErrDepartmentNotFound
 	}
@@ -90,12 +89,39 @@ func (m mockDepartmentRepo) SetDepartmentPayrollConfig(_ context.Context, _, dep
 	}, nil
 }
 
+type mockDepartmentAuthz struct {
+	permissions map[string]bool
+}
+
+func (a mockDepartmentAuthz) HasPermission(_ context.Context, _ uuid.UUID, permission string) bool {
+	return a.permissions[permission]
+}
+
+func (a mockDepartmentAuthz) HasScopedPermission(_ context.Context, _ uuid.UUID, permission string, _ *uuid.UUID) bool {
+	return a.permissions[permission]
+}
+
+func (a mockDepartmentAuthz) IsMember(_ context.Context, _ uuid.UUID) (bool, error) {
+	return true, nil
+}
+
+func (a mockDepartmentAuthz) EffectivePermissions(_ context.Context, _ uuid.UUID) ([]string, []string, error) {
+	return nil, nil, nil
+}
+
+func (a mockDepartmentAuthz) GetUsersWithPermission(_ context.Context, _ string) ([]uuid.UUID, error) {
+	return nil, nil
+}
+
+func departmentRequest(method, path, body string, userID uuid.UUID) *http.Request {
+	req := httptest.NewRequest(method, path, bytes.NewBufferString(body))
+	return req.WithContext(httpinfra.WithUserIDForTest(req.Context(), userID))
+}
+
 func TestDepartmentHandler_List(t *testing.T) {
-	wsID, userID := uuid.New(), uuid.New()
-	h := DepartmentHandler{Repository: mockDepartmentRepo{}, Authorizer: mockAuthorizer{perms: map[string]bool{"departments:read": true}}}
-	req := httptest.NewRequest(http.MethodGet, "/api/v1/workspaces/"+wsID.String()+"/departments", nil)
-	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
-	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), userID))
+	userID := uuid.New()
+	h := DepartmentHandler{Repository: mockDepartmentRepo{}, Authorizer: mockDepartmentAuthz{permissions: map[string]bool{"departments:read": true}}}
+	req := departmentRequest(http.MethodGet, "/api/v1/departments", "", userID)
 	rec := httptest.NewRecorder()
 
 	h.List(rec, req)
@@ -105,16 +131,14 @@ func TestDepartmentHandler_List(t *testing.T) {
 }
 
 func TestDepartmentHandler_Create(t *testing.T) {
-	wsID, userID := uuid.New(), uuid.New()
+	userID := uuid.New()
 	h := DepartmentHandler{
 		Repository: mockDepartmentRepo{},
-		Authorizer: mockAuthorizer{perms: map[string]bool{"departments:create": true}},
+		Authorizer: mockDepartmentAuthz{permissions: map[string]bool{"departments:create": true}},
 	}
 
 	// Success
-	req := httptest.NewRequest(http.MethodPost, "/api/v1/workspaces/"+wsID.String()+"/departments", bytes.NewBufferString(`{"name":"Finance","description":"Finance team"}`))
-	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
-	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), userID))
+	req := departmentRequest(http.MethodPost, "/api/v1/departments", `{"name":"Finance","description":"Finance team"}`, userID)
 	rec := httptest.NewRecorder()
 	h.Create(rec, req)
 	if rec.Code != http.StatusCreated {
@@ -122,10 +146,8 @@ func TestDepartmentHandler_Create(t *testing.T) {
 	}
 
 	// Forbidden
-	hNoAuth := DepartmentHandler{Repository: mockDepartmentRepo{}, Authorizer: mockAuthorizer{perms: map[string]bool{}}}
-	req = httptest.NewRequest(http.MethodPost, "/api/v1/workspaces/"+wsID.String()+"/departments", bytes.NewBufferString(`{"name":"Finance"}`))
-	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
-	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), userID))
+	hNoAuth := DepartmentHandler{Repository: mockDepartmentRepo{}, Authorizer: mockDepartmentAuthz{permissions: map[string]bool{}}}
+	req = departmentRequest(http.MethodPost, "/api/v1/departments", `{"name":"Finance"}`, userID)
 	rec = httptest.NewRecorder()
 	hNoAuth.Create(rec, req)
 	if rec.Code != http.StatusForbidden {
@@ -133,9 +155,7 @@ func TestDepartmentHandler_Create(t *testing.T) {
 	}
 
 	// Empty name
-	req = httptest.NewRequest(http.MethodPost, "/api/v1/workspaces/"+wsID.String()+"/departments", bytes.NewBufferString(`{"name":""}`))
-	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
-	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), userID))
+	req = departmentRequest(http.MethodPost, "/api/v1/departments", `{"name":""}`, userID)
 	rec = httptest.NewRecorder()
 	h.Create(rec, req)
 	if rec.Code != http.StatusBadRequest {
@@ -144,20 +164,18 @@ func TestDepartmentHandler_Create(t *testing.T) {
 }
 
 func TestDepartmentHandler_UpdateAndDelete(t *testing.T) {
-	wsID, deptID, userID := uuid.New(), uuid.New(), uuid.New()
+	deptID, userID := uuid.New(), uuid.New()
 	h := DepartmentHandler{
 		Repository: mockDepartmentRepo{},
-		Authorizer: mockAuthorizer{perms: map[string]bool{
+		Authorizer: mockDepartmentAuthz{permissions: map[string]bool{
 			"departments:update": true,
 			"departments:delete": true,
 		}},
 	}
 
 	// Update
-	req := httptest.NewRequest(http.MethodPatch, "/api/v1/workspaces/"+wsID.String()+"/departments/"+deptID.String(), bytes.NewBufferString(`{"name":"R&D"}`))
-	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
+	req := departmentRequest(http.MethodPatch, "/api/v1/departments/"+deptID.String(), `{"name":"R&D"}`, userID)
 	req.SetPathValue("id", deptID.String())
-	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), userID))
 	rec := httptest.NewRecorder()
 	h.Update(rec, req)
 	if rec.Code != http.StatusOK {
@@ -165,10 +183,8 @@ func TestDepartmentHandler_UpdateAndDelete(t *testing.T) {
 	}
 
 	// Delete
-	req = httptest.NewRequest(http.MethodDelete, "/api/v1/workspaces/"+wsID.String()+"/departments/"+deptID.String(), nil)
-	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
+	req = departmentRequest(http.MethodDelete, "/api/v1/departments/"+deptID.String(), "", userID)
 	req.SetPathValue("id", deptID.String())
-	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), userID))
 	rec = httptest.NewRecorder()
 	h.Delete(rec, req)
 	if rec.Code != http.StatusNoContent {
@@ -177,14 +193,12 @@ func TestDepartmentHandler_UpdateAndDelete(t *testing.T) {
 }
 
 func TestDepartmentHandler_PayrollConfig(t *testing.T) {
-	wsID, deptID, userID := uuid.New(), uuid.New(), uuid.New()
+	deptID, userID := uuid.New(), uuid.New()
 	h := DepartmentHandler{Repository: mockDepartmentRepo{}}
 
 	// Get
-	req := httptest.NewRequest(http.MethodGet, "/api/v1/workspaces/"+wsID.String()+"/departments/"+deptID.String()+"/payroll-config", nil)
-	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
+	req := departmentRequest(http.MethodGet, "/api/v1/departments/"+deptID.String()+"/payroll-config", "", userID)
 	req.SetPathValue("id", deptID.String())
-	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), userID))
 	rec := httptest.NewRecorder()
 	h.GetPayrollConfig(rec, req)
 	if rec.Code != http.StatusOK {
@@ -192,10 +206,9 @@ func TestDepartmentHandler_PayrollConfig(t *testing.T) {
 	}
 
 	// Set
-	req = httptest.NewRequest(http.MethodPost, "/api/v1/workspaces/"+wsID.String()+"/departments/"+deptID.String()+"/payroll-config", bytes.NewBufferString(`{"std_working_days":"22.00","hours_per_day":"8.00","effective_date":"2026-01-01"}`))
-	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
+	body := `{"std_working_days":"22.00","hours_per_day":"8.00","effective_date":"2026-01-01"}`
+	req = departmentRequest(http.MethodPost, "/api/v1/departments/"+deptID.String()+"/payroll-config", body, userID)
 	req.SetPathValue("id", deptID.String())
-	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), userID))
 	rec = httptest.NewRecorder()
 	h.SetPayrollConfig(rec, req)
 	if rec.Code != http.StatusCreated {
@@ -204,10 +217,8 @@ func TestDepartmentHandler_PayrollConfig(t *testing.T) {
 
 	// Set on non-existent department returns 404
 	hNotFound := DepartmentHandler{Repository: mockDepartmentRepo{notFound: true}}
-	req = httptest.NewRequest(http.MethodPost, "/api/v1/workspaces/"+wsID.String()+"/departments/"+deptID.String()+"/payroll-config", bytes.NewBufferString(`{"std_working_days":"22.00","hours_per_day":"8.00","effective_date":"2026-01-01"}`))
-	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
+	req = departmentRequest(http.MethodPost, "/api/v1/departments/"+deptID.String()+"/payroll-config", body, userID)
 	req.SetPathValue("id", deptID.String())
-	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), userID))
 	rec = httptest.NewRecorder()
 	hNotFound.SetPayrollConfig(rec, req)
 	if rec.Code != http.StatusNotFound {

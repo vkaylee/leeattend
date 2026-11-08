@@ -4,42 +4,41 @@ import {
   createConditionType,
   updateConditionType,
   deleteConditionType,
-  getStandaloneOrganizationId,
   type CreateConditionTypeRequest,
   type UpdateConditionTypeRequest,
 } from "@/lib/api";
 
 export function useConditionTypeActions() {
   const queryClient = useQueryClient();
-  const wsId = getStandaloneOrganizationId();
+  
 
   const createMutation = useMutation({
     mutationFn: (req: CreateConditionTypeRequest) => {
-      if (!wsId) throw new Error("No workspace");
-      return createConditionType(wsId, req);
+      
+      return createConditionType(req);
     },
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ["condition-types", wsId] });
+      void queryClient.invalidateQueries({ queryKey: ["condition-types"] });
     },
   });
 
   const updateMutation = useMutation({
     mutationFn: ({ id, req }: { id: string; req: UpdateConditionTypeRequest }) => {
-      if (!wsId) throw new Error("No workspace");
-      return updateConditionType(wsId, id, req);
+      
+      return updateConditionType(id, req);
     },
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ["condition-types", wsId] });
+      void queryClient.invalidateQueries({ queryKey: ["condition-types"] });
     },
   });
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => {
-      if (!wsId) throw new Error("No workspace");
-      return deleteConditionType(wsId, id);
+      
+      return deleteConditionType(id);
     },
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ["condition-types", wsId] });
+      void queryClient.invalidateQueries({ queryKey: ["condition-types"] });
     },
   });
 

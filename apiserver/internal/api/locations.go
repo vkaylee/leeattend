@@ -66,7 +66,7 @@ type LocationRepository interface {
 
 type LocationHandler struct {
 	Repository LocationRepository
-	Authorizer WorkspaceMemberAuthorizer
+	Authorizer Authorizer
 }
 
 func (h LocationHandler) List(w http.ResponseWriter, r *http.Request) {
@@ -169,12 +169,12 @@ func (h LocationHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
-func (h LocationHandler) isMember(r *http.Request, wsID uuid.UUID) bool {
+func (h LocationHandler) isMember(r *http.Request, _ uuid.UUID) bool {
 	userID, ok := httpinfra.UserIDFromContext(r.Context())
 	if !ok || h.Authorizer == nil {
 		return false
 	}
-	isMem, err := h.Authorizer.IsMember(r.Context(), userID, wsID)
+	isMem, err := h.Authorizer.IsMember(r.Context(), userID)
 	return err == nil && isMem
 }
 

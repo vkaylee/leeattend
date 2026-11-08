@@ -13,12 +13,9 @@ import { useRuleAssignments } from "./rule-assignment/use-rule-assignments";
 interface Props {
   calculationMethod?: "percentage" | "fixed" | "tiered";
   ruleId: string;
-  wsId: string;
 }
 
-export default function RuleAssignmentManager({
-  wsId,
-  ruleId,
+export default function RuleAssignmentManager({ruleId,
   calculationMethod,
 }: Props) {
   const { t } = useTranslation();
@@ -32,7 +29,7 @@ export default function RuleAssignmentManager({
     totalCount,
     createMutation,
     deleteMutation,
-  } = useRuleAssignments(wsId, ruleId);
+  } = useRuleAssignments(ruleId);
 
   const handleCreate = (data: Partial<PayrollRuleAssignment>) => {
     createMutation.mutate(data as { assignee_type: string; effective_from: string; assignee_id?: string | null; effective_to?: string | null; override_config?: unknown }, {
@@ -98,15 +95,12 @@ export default function RuleAssignmentManager({
       ) : null}
 
       {/* Create Assignment Modal */}
-      <AssignmentFormModal
-        calculationMethod={calculationMethod}
-        departments={departments}
-        isOpen={isModalOpen}
-        isSubmitting={createMutation.isPending}
-        onClose={() => { setIsModalOpen(false); }}
-        onSubmit={handleCreate}
-        wsId={wsId}
-      />
+      <AssignmentFormModal calculationMethod={calculationMethod}
+      departments={departments}
+      isOpen={isModalOpen}
+      isSubmitting={createMutation.isPending}
+      onClose={() => { setIsModalOpen(false); }}
+      onSubmit={handleCreate}  />
     </div>
   );
 }

@@ -31,11 +31,25 @@ export interface PayrollSegment {
   std_days_source?: string | null;
 }
 
-export type Payslip = import("@/types/api-generated").components["schemas"]["Payslip"] & {
+export interface Payslip {
+  base_pay_amount: string;
+  created_at: string;
+  deductions_amount: string;
+  employment_id: string;
+  holiday_work_premium_amount: string;
+  id: string;
   incentives?: IncentiveEvaluationResult[];
-  segments?: PayrollSegment[];
+  net_pay_amount: string;
+  overtime_pay_amount: string;
+  overtime_units: number;
+  period_end: string;
+  period_start: string;
   salary_components?: SalaryComponentWithDefinition[];
-};
+  segments?: PayrollSegment[];
+  standard_units: number;
+  status: string;
+  updated_at: string;
+}
 
 export interface RuleCondition {
   metric: string;
@@ -43,9 +57,16 @@ export interface RuleCondition {
   value: number;
 }
 
-export type PayrollRuleAssignment = Omit<import("@/types/api-generated").components["schemas"]["PayrollRuleAssignment"], "override_config"> & {
+export interface PayrollRuleAssignment {
+  assignee_id?: string | null;
+  assignee_type: string;
+  created_at: string;
+  effective_from: string;
+  effective_to?: string | null;
+  id: string;
   override_config?: unknown;
-};
+  rule_definition_id: string;
+}
 
 // ── Typed payroll config request/response types ─────────────────────────
 // These replace the previous Record<string, unknown> cop-outs with

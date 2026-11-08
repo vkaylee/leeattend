@@ -14,7 +14,6 @@ import { useLeaveSettings } from "./hooks/use-leave-settings";
 export default function LeaveSettings() {
   const { t } = useTranslation();
   const {
-    wsId,
     activeTab,
     setActiveTab,
     isAssignModalOpen,
@@ -29,7 +28,7 @@ export default function LeaveSettings() {
     isDeleting,
   } = useLeaveSettings();
 
-  if (!wsId) return null;
+  
 
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -49,7 +48,7 @@ export default function LeaveSettings() {
                   {t("settings.leave.tabs.types_desc")}
                 </Typography>
               </div>
-              <LeaveTypeManager wsId={wsId} />
+              <LeaveTypeManager   />
             </div>
           )}
 
@@ -63,7 +62,7 @@ export default function LeaveSettings() {
                   {t("settings.leave.tabs.policies_desc")}
                 </Typography>
               </div>
-              <LeavePolicyManager wsId={wsId} />
+              <LeavePolicyManager   />
             </div>
           )}
 
@@ -85,15 +84,12 @@ export default function LeaveSettings() {
         </div>
       </div>
 
-      <AssignPolicyModal 
-        editingAssignment={editingAssignment}
-        isOpen={isAssignModalOpen}
-        onClose={() => {
-          setIsAssignModalOpen(false);
-          setEditingAssignment(null);
-        }}
-        wsId={wsId}
-      />
+      <AssignPolicyModal editingAssignment={editingAssignment}
+      isOpen={isAssignModalOpen}
+      onClose={() => {
+        setIsAssignModalOpen(false);
+        setEditingAssignment(null);
+      }}  />
     </div>
   );
 }

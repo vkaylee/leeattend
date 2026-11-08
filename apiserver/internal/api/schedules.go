@@ -12,7 +12,7 @@ import (
 	httpinfra "github.com/vkaylee/leeattend/apiserver/internal/infra/http"
 )
 
-type WorkspaceSchedulesQuery struct {
+type OrganizationSchedulesQuery struct {
 	StartDate     string
 	EndDate       string
 	EmploymentIDs []uuid.UUID
@@ -66,44 +66,39 @@ type PaginatedEmployeeSchedules struct {
 }
 
 type ScheduleRepository interface {
-	GetWorkspaceSchedules(context.Context, uuid.UUID, time.Time, time.Time, []uuid.UUID, int, int) (PaginatedEmployeeSchedules, error)
+	GetOrganizationSchedules(context.Context, time.Time, time.Time, []uuid.UUID, int, int) (PaginatedEmployeeSchedules, error)
 }
 
 type ScheduleHandler struct {
 	Repository ScheduleRepository
-	Authorizer WorkspaceMemberAuthorizer
+	Authorizer Authorizer
 }
 
 func (h ScheduleHandler) List(w http.ResponseWriter, r *http.Request) {
-	workspaceID, ok := organizationIDFromContext(r)
-	if !ok {
-		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
-		return
-	}
 	userID, ok := httpinfra.UserIDFromContext(r.Context())
 	if !ok {
 		apperror.WriteError(w, r, apperror.Unauthorized(apperror.KeyAuthenticationRequired))
 		return
 	}
 	if h.Authorizer == nil {
-		apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyNotWorkspaceMember))
+		apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyNotOrganizationMember))
 		return
 	}
-	member, err := h.Authorizer.IsMember(r.Context(), userID, workspaceID)
+	member, err := h.Authorizer.IsMember(r.Context(), userID)
 	if err != nil {
 		apperror.WriteError(w, r, apperror.Internal(err))
 		return
 	}
 	if !member {
-		apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyNotWorkspaceMember))
+		apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyNotOrganizationMember))
 		return
 	}
-	query, err := parseWorkspaceSchedulesQuery(r)
+	query, err := parseOrganizationSchedulesQuery(r)
 	if err != nil {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}
-	result, err := h.Repository.GetWorkspaceSchedules(r.Context(), workspaceID, query.start, query.end, query.employmentIDs, query.page, query.limit)
+	result, err := h.Repository.GetOrganizationSchedules(r.Context(), query.start, query.end, query.employmentIDs, query.page, query.limit)
 	if err != nil {
 		apperror.WriteError(w, r, apperror.Internal(err))
 		return
@@ -111,39 +106,39 @@ func (h ScheduleHandler) List(w http.ResponseWriter, r *http.Request) {
 	apperror.WriteJSON(w, http.StatusOK, result)
 }
 
-type parsedWorkspaceSchedulesQuery struct {
+type parsedOrganizationSchedulesQuery struct {
 	start, end    time.Time
 	employmentIDs []uuid.UUID
 	page, limit   int
 }
 
-func parseWorkspaceSchedulesQuery(r *http.Request) (parsedWorkspaceSchedulesQuery, error) {
+func parseOrganizationSchedulesQuery(r *http.Request) (parsedOrganizationSchedulesQuery, error) {
 	values := r.URL.Query()
 	startValue, endValue := values.Get("start_date"), values.Get("end_date")
 	start, err := time.Parse("2006-01-02", startValue)
 	if err != nil || startValue == "" {
-		return parsedWorkspaceSchedulesQuery{}, errors.New("start_date is required")
+		return parsedOrganizationSchedulesQuery{}, errors.New("start_date is required")
 	}
 	end, err := time.Parse("2006-01-02", endValue)
 	if err != nil || endValue == "" {
-		return parsedWorkspaceSchedulesQuery{}, errors.New("end_date is required")
+		return parsedOrganizationSchedulesQuery{}, errors.New("end_date is required")
 	}
 	if end.Before(start) {
-		return parsedWorkspaceSchedulesQuery{}, errors.New("end_date precedes start_date")
+		return parsedOrganizationSchedulesQuery{}, errors.New("end_date precedes start_date")
 	}
 	pagination, err := ParsePagination(values)
 	if err != nil {
-		return parsedWorkspaceSchedulesQuery{}, err
+		return parsedOrganizationSchedulesQuery{}, err
 	}
 	ids := make([]uuid.UUID, 0)
 	if raw := strings.TrimSpace(values.Get("employment_ids")); raw != "" {
 		for _, value := range strings.Split(raw, ",") {
 			id, parseErr := uuid.Parse(strings.TrimSpace(value))
 			if parseErr != nil {
-				return parsedWorkspaceSchedulesQuery{}, parseErr
+				return parsedOrganizationSchedulesQuery{}, parseErr
 			}
 			ids = append(ids, id)
 		}
 	}
-	return parsedWorkspaceSchedulesQuery{start: start, end: end, employmentIDs: ids, page: pagination.Page, limit: minInt(pagination.Limit, MaxLimit)}, nil
+	return parsedOrganizationSchedulesQuery{start: start, end: end, employmentIDs: ids, page: pagination.Page, limit: minInt(pagination.Limit, MaxLimit)}, nil
 }

@@ -27,7 +27,7 @@ vi.mock("@/lib/api/leaves", () => ({
   createLeavePolicy: vi.fn(),
   updateLeavePolicy: vi.fn(),
  
-  deleteLeavePolicy: (wsId: string, policyId: string) => mockDelete(wsId, policyId) as Promise<void>
+  deleteLeavePolicy: (policyId: string) => mockDelete(policyId) as Promise<void>
 }));
 
 // Mock translation
@@ -43,7 +43,7 @@ vi.mock("react-i18next", () => ({
 }));
 
  
-const renderComponent = (props: { wsId: string }) => {
+const renderComponent = (props: {}) => {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false, gcTime: 0, staleTime: 0 } },
   });
@@ -63,7 +63,7 @@ describe("LeavePolicyManager", () => {
 
   it("should show useConfirm dialog when deleting a policy", async () => {
     const user = userEvent.setup();
-    renderComponent({ wsId: "ws-1" });
+    renderComponent({});
 
     // Wait for data
     expect(await screen.findByText("Annual Leave")).toBeDefined();
@@ -81,7 +81,7 @@ describe("LeavePolicyManager", () => {
     await user.click(confirmButton);
 
     await waitFor(() => {
-      expect(mockDelete).toHaveBeenCalledWith("ws-1", "policy-1");
+      expect(mockDelete).toHaveBeenCalledWith("policy-1");
     });
   });
 });

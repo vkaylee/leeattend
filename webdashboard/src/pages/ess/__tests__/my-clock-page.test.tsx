@@ -19,7 +19,6 @@ vi.mock("@/hooks/use-ess", () => ({
 
 vi.mock("@/lib/api", () => ({
   fetchWorkspace: vi.fn(),
-  getStandaloneOrganizationId: vi.fn(),
   submitAttendanceAdjustment: vi.fn(),
 }));
 
@@ -78,7 +77,6 @@ describe("MyClockPage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(toastHook.useToast).mockReturnValue(mockToast as unknown as toastHook.ToastContextType);
-    vi.mocked(api.getStandaloneOrganizationId).mockReturnValue("ws-123");
     vi.mocked(reactQuery.useQuery).mockReturnValue({ data: { timezone: "UTC" } } as unknown as ReturnType<typeof reactQuery.useQuery>);
   });
 

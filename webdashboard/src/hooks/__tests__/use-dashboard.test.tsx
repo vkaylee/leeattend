@@ -24,12 +24,6 @@ vi.mock("@/lib/api", async () => {
     };
 });
 
-vi.mock("../use-workspace", () => ({
-    useWorkspace: () => ({
-        workspace: { id: "ws-test-123", name: "Test Workspace" },
-    }),
-}));
-
 const createWrapper = () => {
     const queryClient = new QueryClient({
         defaultOptions: {
@@ -284,12 +278,10 @@ describe("use-dashboard hooks", () => {
             const expectedEndpoint = "/v1/dashboard/executive-overview?period=custom&comparison=previous_period&start_date=2026-08-01&end_date=2026-08-13&department_ids=11111111-1111-4111-8111-111111111111&department_ids=22222222-2222-4222-8222-222222222222&location_ids=33333333-3333-4333-8333-333333333333&location_ids=44444444-4444-4444-8444-444444444444";
             expect(first.queryClient.getQueryCache().getAll()[0]?.queryKey).toEqual([
                 "executive-overview",
-                "ws-test-123",
                 expectedEndpoint,
             ]);
             expect(second.queryClient.getQueryCache().getAll()[0]?.queryKey).toEqual([
                 "executive-overview",
-                "ws-test-123",
                 expectedEndpoint,
             ]);
         });

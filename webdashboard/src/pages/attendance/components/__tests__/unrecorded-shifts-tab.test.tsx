@@ -21,10 +21,9 @@ const { mockExportNoShowToExcel, mockHookData, mockExportHook } = vi.hoisted(() 
     hasNextPage: undefined as boolean | undefined,
     isFetchingNextPage: false,
     isLoading: false,
-    queryKey: ["unrecorded-shifts", "test-ws-id"],
+    queryKey: ["unrecorded-shifts"],
     tracesByKey: new Map<string, any[]>(),
     workspaceTimezone: "UTC",
-    wsId: "test-ws-id" as string | null,
   },
   mockExportHook: {
     exportFn: vi.fn() as () => Promise<void>,
@@ -129,7 +128,6 @@ function resetHookData() {
   mockHookData.queryKey = ["unrecorded-shifts", "test-ws-id"];
   mockHookData.tracesByKey = new Map();
   mockHookData.workspaceTimezone = "UTC";
-  mockHookData.wsId = "test-ws-id";
 }
 
 // ── Tests ───────────────────────────────────────────────────────────────────

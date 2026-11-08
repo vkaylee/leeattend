@@ -23,7 +23,6 @@ export interface LifecycleAssignModalProps {
   employmentId?: string;
   isOpen: boolean;
   onClose: () => void;
-  wsId: string;
 }
 
 export function formatChecklistTypeLabel(type: string, t: (k: string, opts?: { defaultValue?: string }) => string): string {
@@ -43,9 +42,7 @@ export function formatChecklistTypeLabel(type: string, t: (k: string, opts?: { d
 
 export default function LifecycleAssignModal({
   isOpen,
-  onClose,
-  wsId,
-  employmentId: initialEmploymentId,
+  onClose,employmentId: initialEmploymentId,
   employeeName: initialEmployeeName,
 }: LifecycleAssignModalProps) {
   const { t } = useTranslation();
@@ -56,7 +53,7 @@ export default function LifecycleAssignModal({
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>("");
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  const { employees = [] } = useAllEmployees(wsId, { enabled: isOpen && !initialEmploymentId });
+  const { employees = [] } = useAllEmployees({ enabled: isOpen && !initialEmploymentId });
   const { data: templates = [], isLoading: isLoadingTemplates } = useLifecycleTemplates();
 
   // Active templates only
@@ -89,7 +86,7 @@ export default function LifecycleAssignModal({
         employment_id: effectiveEmploymentId,
         template_id: selectedTemplateId,
       });
-      return createLifecycleChecklist(wsId, parsed.employment_id, {
+      return createLifecycleChecklist(parsed.employment_id, {
         template_id: parsed.template_id,
       });
     },

@@ -1,7 +1,7 @@
 {
   "audit_logs": {
     "title": "Nhật ký kiểm toán",
-    "subtitle": "Theo dõi các sự kiện bảo mật và quản trị trong không gian làm việc của bạn.",
+    "subtitle": "Theo dõi các sự kiện bảo mật và quản trị trong tổ chức của bạn.",
     "section_title": "Sự kiện bảo mật",
     "filters": {
       "all_actions": "Tất cả hành động",

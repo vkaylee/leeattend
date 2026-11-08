@@ -29,12 +29,10 @@ type OtRequestFormValues = z.infer<typeof otRequestSchema>;
 export function CreateOtRequestModal({
   isOpen,
   onClose,
-  wsId,
   employeeId,
 }: {
   isOpen: boolean;
   onClose: () => void;
-  wsId: string;
   employeeId: string;
 }) {
   const { t } = useTranslation();
@@ -143,17 +141,14 @@ export function CreateOtRequestModal({
             <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">
               {t("ess.ot.attachment", { defaultValue: "Attachment (PDF ONLY)" })}
             </label>
-            <FileUpload
-              accept="application/pdf"
-              category="OvertimeRequestAttachment"
-              maxSizeMB={20}
-              onUploadSuccess={(file) => {
-                setAttachmentFileIds(prev => [...prev, file.id]);
-              }}
-              ownerId={ownerId}
-              ownerType="OvertimeRequest"
-              workspaceId={wsId}
-            />
+            <FileUpload accept="application/pdf"
+            category="OvertimeRequestAttachment"
+            maxSizeMB={20}
+            onUploadSuccess={(file) => {
+              setAttachmentFileIds(prev => [...prev, file.id]);
+            }}
+            ownerId={ownerId}
+            ownerType="OvertimeRequest"  />
             {attachmentFileIds.length > 0 && (
               <div className="mt-3 space-y-2">
                 {attachmentFileIds.map((id, index) => (

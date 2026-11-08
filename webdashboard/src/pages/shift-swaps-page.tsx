@@ -28,9 +28,6 @@ import { useSearchPatch } from "@/lib/state";
 import { Route } from "@/routes/_authenticated/_workspace/shift-swaps";
 
 import {
-  getStandaloneOrganizationId,
-} from "../lib/api";
-import {
   fetchShiftSwaps,
   createShiftSwap,
   approveShiftSwap,
@@ -143,20 +140,14 @@ type TabType = ShiftSwapsSearch["tab"];
 
 export default function ShiftSwapsPage() {
   const { t } = useTranslation();
-  const wsId = getStandaloneOrganizationId();
+  
 
-  if (!wsId) {
-    return (
-      <div className="p-12 text-center text-slate-500 dark:text-slate-400 font-bold italic uppercase tracking-widest text-xs opacity-50">
-        {t("common.select_workspace")}
-      </div>
-    );
-  }
+  
 
-  return <ShiftSwapsContent t={t} wsId={wsId} />;
+  return <ShiftSwapsContent t={t}  />;
 }
 
-function ShiftSwapsContent({ t, wsId }: { t: TFunction; wsId: string }) {
+function ShiftSwapsContent({ t }: { t: TFunction }) {
   const { formatDate } = useDateTimeFormatter();
 
   const search = Route.useSearch();
@@ -172,7 +163,7 @@ function ShiftSwapsContent({ t, wsId }: { t: TFunction; wsId: string }) {
   const [swapDate, setSwapDate] = useState("");
   const [reason, setReason] = useState("");
 
-  const { approveMutation, createMutation, isLoading, stats, swaps } = useShiftSwaps(wsId, activeTab, t, {
+  const { approveMutation, createMutation, isLoading, stats, swaps } = useShiftSwaps(activeTab, t, {
     onSuccessCreate: () => {
       setShowCreateForm(false);
       setRequesterId("");
@@ -182,7 +173,7 @@ function ShiftSwapsContent({ t, wsId }: { t: TFunction; wsId: string }) {
     },
   });
 
-  const { employees } = useAllEmployees(wsId);
+  const { employees } = useAllEmployees();
 
   const tabs: TabConfig[] = [
     { id: "pending_admin", label: t("shift_swaps.status.pending_admin"), icon: <Clock size={14} />, colorScheme: "amber" },
@@ -291,24 +282,22 @@ function ShiftSwapsContent({ t, wsId }: { t: TFunction; wsId: string }) {
   );
 }
 
-function useShiftSwaps(wsId: string, activeTab: TabType, t: TFunction, options: { onSuccessCreate: () => void }) {
+function useShiftSwaps(activeTab: TabType, t: TFunction, options: { onSuccessCreate: () => void }) {
   const queryClient = useQueryClient();
   const toast = useToast();
 
   const { data: swaps = [], isLoading } = useQuery<ShiftSwapRequest[]>({
-    queryKey: ["shift-swaps", wsId, activeTab],
-    queryFn: () => fetchShiftSwaps(wsId, activeTab),
-    enabled: !!wsId,
+    queryKey: ["shift-swaps", activeTab],
+    queryFn: () => fetchShiftSwaps(activeTab),
   });
 
   const { data: stats } = useQuery({
-    queryKey: ["shift-swap-stats", wsId],
-    queryFn: () => fetchShiftSwapStats(wsId),
-    enabled: !!wsId,
+    queryKey: ["shift-swap-stats"],
+    queryFn: () => fetchShiftSwapStats(),
   });
 
   const createMutation = useMutation({
-    mutationFn: (data: { requester_id: string; target_id: string; swap_date: string; reason?: string }) => createShiftSwap(wsId, data),
+    mutationFn: (data: { requester_id: string; target_id: string; swap_date: string; reason?: string }) => createShiftSwap(data),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["shift-swaps"] });
       toast.success(t("shift_swaps.messages.create_success"));
@@ -320,7 +309,7 @@ function useShiftSwaps(wsId: string, activeTab: TabType, t: TFunction, options: 
   });
 
   const approveMutation = useMutation({
-    mutationFn: (data: { id: string; status: ShiftSwapStatus }) => approveShiftSwap(wsId, data.id, { status: data.status }),
+    mutationFn: (data: { id: string; status: ShiftSwapStatus }) => approveShiftSwap(data.id, { status: data.status }),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["shift-swaps"] });
       void queryClient.invalidateQueries({ queryKey: ["employee-rosters"] });

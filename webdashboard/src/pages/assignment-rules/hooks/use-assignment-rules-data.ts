@@ -5,41 +5,35 @@ import {
   fetchWorkingPatterns,
   fetchEmployers,
   fetchLocations,
-  getStandaloneOrganizationId,
 } from "@/lib/api";
 import { useDepartments } from "@/hooks/use-departments";
 
 export function useAssignmentRulesData() {
-  const wsId = getStandaloneOrganizationId() ?? "";
+  
 
   const { data: rules, isLoading: rulesLoading } = useQuery({ 
-    queryKey: ["assignment-rules", wsId], 
-    queryFn: () => fetchAssignmentRules(wsId), 
-    enabled: !!wsId 
+    queryKey: ["assignment-rules"], 
+    queryFn: () => fetchAssignmentRules(), 
   });
 
   const { data: patterns } = useQuery({ 
-    queryKey: ["working-patterns", wsId], 
-    queryFn: () => fetchWorkingPatterns(wsId), 
-    enabled: !!wsId 
+    queryKey: ["working-patterns"], 
+    queryFn: () => fetchWorkingPatterns(), 
   });
 
-  const { data: departments } = useDepartments(wsId);
+  const { data: departments } = useDepartments();
 
   const { data: employers } = useQuery({ 
-    queryKey: ["employers", wsId], 
-    queryFn: () => fetchEmployers(wsId), 
-    enabled: !!wsId 
+    queryKey: ["employers"], 
+    queryFn: () => fetchEmployers(), 
   });
 
   const { data: locations } = useQuery({ 
-    queryKey: ["locations", wsId], 
-    queryFn: () => fetchLocations(wsId), 
-    enabled: !!wsId 
+    queryKey: ["locations"], 
+    queryFn: () => fetchLocations(), 
   });
 
   return {
-    wsId,
     rules,
     rulesLoading,
     patterns,

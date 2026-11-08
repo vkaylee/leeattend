@@ -21,8 +21,13 @@ import (
 
 type LeaveRepository struct {
 	DB      DBTX
-	BeginTx func(context.Context, uuid.UUID) (TxBeginner, error)
+	BeginTx func(context.Context) (TxBeginner, error)
 }
+
+var (
+	_ api.LeaveRepository       = LeaveRepository{}
+	_ api.LeaveImportRepository = LeaveRepository{}
+)
 
 func (r LeaveRepository) db(ctx context.Context) (DBTX, error) {
 	if r.DB == nil {
@@ -31,9 +36,9 @@ func (r LeaveRepository) db(ctx context.Context) (DBTX, error) {
 	return r.DB, nil
 }
 
-func (r LeaveRepository) begin(ctx context.Context, workspaceID uuid.UUID) (TxBeginner, error) {
+func (r LeaveRepository) begin(ctx context.Context) (TxBeginner, error) {
 	if r.BeginTx != nil {
-		return r.BeginTx(ctx, workspaceID)
+		return r.BeginTx(ctx)
 	}
 	db, err := r.db(ctx)
 	if err != nil {
@@ -46,7 +51,7 @@ func (r LeaveRepository) begin(ctx context.Context, workspaceID uuid.UUID) (TxBe
 	return beginner, nil
 }
 
-func (r LeaveRepository) CreateLeaveType(ctx context.Context, workspaceID uuid.UUID, req api.CreateLeaveTypeRequest) (api.LeaveTypeRecord, error) {
+func (r LeaveRepository) CreateLeaveType(ctx context.Context, req api.CreateLeaveTypeRequest) (api.LeaveTypeRecord, error) {
 	db, err := r.db(ctx)
 	if err != nil {
 		return api.LeaveTypeRecord{}, err
@@ -64,7 +69,7 @@ func (r LeaveRepository) CreateLeaveType(ctx context.Context, workspaceID uuid.U
 	var record api.LeaveTypeRecord
 	var rawConfig []byte
 	var createdAt time.Time
-	err = db.QueryRow(ctx, `INSERT INTO leave_types (id, workspace_id, code, name, is_paid, policy_config, created_at) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id, workspace_id, code, name, is_paid, policy_config, created_at`, id, workspaceID, req.Code, req.Name, isPaid, policyConfigJSON, now).Scan(&record.ID, &record.WorkspaceID, &record.Code, &record.Name, &record.IsPaid, &rawConfig, &createdAt)
+	err = db.QueryRow(ctx, `INSERT INTO leave_types (id, code, name, is_paid, policy_config, created_at) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id, code, name, is_paid, policy_config, created_at`, id, req.Code, req.Name, isPaid, policyConfigJSON, now).Scan(&record.ID, &record.Code, &record.Name, &record.IsPaid, &rawConfig, &createdAt)
 	if err != nil {
 		if pgErr, ok := err.(*pgconn.PgError); ok && (pgErr.Code == "23505" || pgErr.Code == "23P01") {
 			return api.LeaveTypeRecord{}, api.ErrLeaveConflict
@@ -76,12 +81,12 @@ func (r LeaveRepository) CreateLeaveType(ctx context.Context, workspaceID uuid.U
 	return record, nil
 }
 
-func (r LeaveRepository) ListLeaveTypes(ctx context.Context, workspaceID uuid.UUID) ([]api.LeaveTypeRecord, error) {
+func (r LeaveRepository) ListLeaveTypes(ctx context.Context) ([]api.LeaveTypeRecord, error) {
 	db, err := r.db(ctx)
 	if err != nil {
 		return nil, err
 	}
-	rows, err := db.Query(ctx, `SELECT id, workspace_id, code, name, is_paid, policy_config, created_at FROM leave_types WHERE workspace_id = $1 AND deleted_at IS NULL ORDER BY name ASC`, workspaceID)
+	rows, err := db.Query(ctx, `SELECT id, code, name, is_paid, policy_config, created_at FROM leave_types WHERE deleted_at IS NULL ORDER BY name ASC`)
 	if err != nil {
 		return nil, err
 	}
@@ -91,7 +96,7 @@ func (r LeaveRepository) ListLeaveTypes(ctx context.Context, workspaceID uuid.UU
 		var item api.LeaveTypeRecord
 		var rawConfig []byte
 		var createdAt time.Time
-		if err := rows.Scan(&item.ID, &item.WorkspaceID, &item.Code, &item.Name, &item.IsPaid, &rawConfig, &createdAt); err != nil {
+		if err := rows.Scan(&item.ID, &item.Code, &item.Name, &item.IsPaid, &rawConfig, &createdAt); err != nil {
 			return nil, err
 		}
 		item.CreatedAt = createdAt.UTC().Format(time.RFC3339)
@@ -101,7 +106,7 @@ func (r LeaveRepository) ListLeaveTypes(ctx context.Context, workspaceID uuid.UU
 	return types, rows.Err()
 }
 
-func (r LeaveRepository) UpdateLeaveTypeConfig(ctx context.Context, workspaceID, leaveTypeID uuid.UUID, policyConfig json.RawMessage) (api.LeaveTypeRecord, error) {
+func (r LeaveRepository) UpdateLeaveTypeConfig(ctx context.Context, leaveTypeID uuid.UUID, policyConfig json.RawMessage) (api.LeaveTypeRecord, error) {
 	db, err := r.db(ctx)
 	if err != nil {
 		return api.LeaveTypeRecord{}, err
@@ -109,8 +114,8 @@ func (r LeaveRepository) UpdateLeaveTypeConfig(ctx context.Context, workspaceID,
 	var record api.LeaveTypeRecord
 	var rawConfig []byte
 	var createdAt time.Time
-	err = db.QueryRow(ctx, `UPDATE leave_types SET policy_config = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2 AND workspace_id = $3 RETURNING id, workspace_id, code, name, is_paid, policy_config, created_at`, policyConfig, leaveTypeID, workspaceID).
-		Scan(&record.ID, &record.WorkspaceID, &record.Code, &record.Name, &record.IsPaid, &rawConfig, &createdAt)
+	err = db.QueryRow(ctx, `UPDATE leave_types SET policy_config = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2 RETURNING id, code, name, is_paid, policy_config, created_at`, policyConfig, leaveTypeID).
+		Scan(&record.ID, &record.Code, &record.Name, &record.IsPaid, &rawConfig, &createdAt)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return api.LeaveTypeRecord{}, api.ErrLeaveTypeNotFound
@@ -122,20 +127,20 @@ func (r LeaveRepository) UpdateLeaveTypeConfig(ctx context.Context, workspaceID,
 	return record, nil
 }
 
-func (r LeaveRepository) DeleteLeaveType(ctx context.Context, workspaceID, leaveTypeID uuid.UUID) error {
+func (r LeaveRepository) DeleteLeaveType(ctx context.Context, leaveTypeID uuid.UUID) error {
 	db, err := r.db(ctx)
 	if err != nil {
 		return err
 	}
 	var inUse bool
-	err = db.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM leave_balances lb JOIN employments e ON e.id = lb.employment_id WHERE lb.leave_type_id = $1 AND e.workspace_id = $2)`, leaveTypeID, workspaceID).Scan(&inUse)
+	err = db.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM leave_balances WHERE leave_type_id = $1)`, leaveTypeID).Scan(&inUse)
 	if err != nil {
 		return err
 	}
 	if inUse {
 		return api.ErrLeaveConflict
 	}
-	tag, err := db.Exec(ctx, `UPDATE leave_types SET deleted_at = CURRENT_TIMESTAMP WHERE id = $1 AND workspace_id = $2`, leaveTypeID, workspaceID)
+	tag, err := db.Exec(ctx, `UPDATE leave_types SET deleted_at = CURRENT_TIMESTAMP WHERE id = $1`, leaveTypeID)
 	if err != nil {
 		return err
 	}
@@ -145,7 +150,7 @@ func (r LeaveRepository) DeleteLeaveType(ctx context.Context, workspaceID, leave
 	return nil
 }
 
-func (r LeaveRepository) RestoreLeaveType(ctx context.Context, workspaceID, leaveTypeID uuid.UUID) (api.LeaveTypeRecord, error) {
+func (r LeaveRepository) RestoreLeaveType(ctx context.Context, leaveTypeID uuid.UUID) (api.LeaveTypeRecord, error) {
 	db, err := r.db(ctx)
 	if err != nil {
 		return api.LeaveTypeRecord{}, err
@@ -153,8 +158,8 @@ func (r LeaveRepository) RestoreLeaveType(ctx context.Context, workspaceID, leav
 	var record api.LeaveTypeRecord
 	var rawConfig []byte
 	var createdAt time.Time
-	err = db.QueryRow(ctx, `UPDATE leave_types SET deleted_at = NULL, updated_at = CURRENT_TIMESTAMP WHERE id = $1 AND workspace_id = $2 AND deleted_at IS NOT NULL RETURNING id, workspace_id, code, name, is_paid, policy_config, created_at`, leaveTypeID, workspaceID).
-		Scan(&record.ID, &record.WorkspaceID, &record.Code, &record.Name, &record.IsPaid, &rawConfig, &createdAt)
+	err = db.QueryRow(ctx, `UPDATE leave_types SET deleted_at = NULL, updated_at = CURRENT_TIMESTAMP WHERE id = $1 AND deleted_at IS NOT NULL RETURNING id, code, name, is_paid, policy_config, created_at`, leaveTypeID).
+		Scan(&record.ID, &record.Code, &record.Name, &record.IsPaid, &rawConfig, &createdAt)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return api.LeaveTypeRecord{}, api.ErrLeaveTypeNotFound
@@ -166,8 +171,8 @@ func (r LeaveRepository) RestoreLeaveType(ctx context.Context, workspaceID, leav
 	return record, nil
 }
 
-func (r LeaveRepository) SubmitLeaveRequest(ctx context.Context, workspaceID, requesterID uuid.UUID, req api.SubmitLeaveRequest, autoApprove bool) (api.LeaveRequestRecord, error) {
-	tx, err := r.begin(ctx, workspaceID)
+func (r LeaveRepository) SubmitLeaveRequest(ctx context.Context, requesterID uuid.UUID, req api.SubmitLeaveRequest, autoApprove bool) (api.LeaveRequestRecord, error) {
+	tx, err := r.begin(ctx)
 	if err != nil {
 		return api.LeaveRequestRecord{}, err
 	}
@@ -175,13 +180,13 @@ func (r LeaveRepository) SubmitLeaveRequest(ctx context.Context, workspaceID, re
 	var record api.LeaveRequestRecord
 	err = service.WithTx(ctx, tx, func(ctx context.Context, db pgx.Tx) error {
 		var exists bool
-		if err := db.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM employments WHERE id = $1 AND workspace_id = $2 AND deleted_at IS NULL)`, req.EmploymentID, workspaceID).Scan(&exists); err != nil {
+		if err := db.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM employments WHERE id = $1 AND deleted_at IS NULL)`, req.EmploymentID).Scan(&exists); err != nil {
 			return err
 		}
 		if !exists {
 			return api.ErrLeaveNoEmployment
 		}
-		if err := db.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM leave_types WHERE id = $1 AND workspace_id = $2 AND deleted_at IS NULL)`, req.LeaveTypeID, workspaceID).Scan(&exists); err != nil {
+		if err := db.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM leave_types WHERE id = $1 AND deleted_at IS NULL)`, req.LeaveTypeID).Scan(&exists); err != nil {
 			return err
 		}
 		if !exists {
@@ -218,12 +223,12 @@ func (r LeaveRepository) SubmitLeaveRequest(ctx context.Context, workspaceID, re
 	return record, nil
 }
 
-func (r LeaveRepository) ListWorkspaceLeaveRequests(ctx context.Context, workspaceID uuid.UUID, status *string) ([]api.LeaveRequestRecord, error) {
+func (r LeaveRepository) ListOrganizationLeaveRequests(ctx context.Context, status *string) ([]api.LeaveRequestRecord, error) {
 	db, err := r.db(ctx)
 	if err != nil {
 		return nil, err
 	}
-	rows, err := db.Query(ctx, `SELECT lr.id, lr.employment_id, lr.leave_type_id, lr.start_date::text, lr.end_date::text, lr.reason, lr.status::text, lr.duration_type, lr.start_time::text, lr.end_time::text, lr.requested_by_user_id, lr.approved_by_user_id, lr.created_at, lr.updated_at, lr.attachment_file_ids FROM leave_requests lr JOIN employments e ON e.id = lr.employment_id WHERE e.workspace_id = $1 AND ($2::text IS NULL OR lr.status::text = $2) ORDER BY lr.created_at DESC`, workspaceID, status)
+	rows, err := db.Query(ctx, `SELECT lr.id, lr.employment_id, lr.leave_type_id, lr.start_date::text, lr.end_date::text, lr.reason, lr.status::text, lr.duration_type, lr.start_time::text, lr.end_time::text, lr.requested_by_user_id, lr.approved_by_user_id, lr.created_at, lr.updated_at, lr.attachment_file_ids FROM leave_requests lr JOIN employments e ON e.id = lr.employment_id WHERE e.deleted_at IS NULL AND ($1::text IS NULL OR lr.status::text = $1) ORDER BY lr.created_at DESC`, status)
 	if err != nil {
 		return nil, err
 	}
@@ -242,14 +247,14 @@ func (r LeaveRepository) ListWorkspaceLeaveRequests(ctx context.Context, workspa
 	return records, rows.Err()
 }
 
-func (r LeaveRepository) ApproveLeaveRequest(ctx context.Context, workspaceID, approverID, requestID uuid.UUID, status string) error {
-	tx, err := r.begin(ctx, workspaceID)
+func (r LeaveRepository) ApproveLeaveRequest(ctx context.Context, approverID, requestID uuid.UUID, status string) error {
+	tx, err := r.begin(ctx)
 	if err != nil {
 		return err
 	}
 	return service.WithTx(ctx, tx, func(ctx context.Context, db pgx.Tx) error {
 		var currentStatus string
-		err := db.QueryRow(ctx, `SELECT lr.status::text FROM leave_requests lr JOIN employments e ON e.id = lr.employment_id WHERE lr.id = $1 AND e.workspace_id = $2 FOR UPDATE`, requestID, workspaceID).Scan(&currentStatus)
+		err := db.QueryRow(ctx, `SELECT status::text FROM leave_requests WHERE id = $1 FOR UPDATE`, requestID).Scan(&currentStatus)
 		if errors.Is(err, pgx.ErrNoRows) {
 			return api.ErrLeaveNotFound
 		}
@@ -261,12 +266,12 @@ func (r LeaveRepository) ApproveLeaveRequest(ctx context.Context, workspaceID, a
 	})
 }
 
-func (r LeaveRepository) GetEmployeeLeaveBalances(ctx context.Context, workspaceID, employeeID uuid.UUID, year int) ([]api.EmployeeLeaveBalanceRecord, error) {
+func (r LeaveRepository) GetEmployeeLeaveBalances(ctx context.Context, employeeID uuid.UUID, year int) ([]api.EmployeeLeaveBalanceRecord, error) {
 	db, err := r.db(ctx)
 	if err != nil {
 		return nil, err
 	}
-	rows, err := db.Query(ctx, `SELECT lt.id, lt.code, lt.name, lt.is_paid, COALESCE(lb.entitlement, 12), COALESCE(lb.accrued_amount::text, '0.00'), COALESCE(lb.carried_over, 0), (SELECT count(*) FROM leave_requests lr JOIN employments e ON e.id = lr.employment_id WHERE e.employee_id = $1 AND e.workspace_id = $2 AND lr.leave_type_id = lt.id AND lr.status IN ('approved', 'pre_approved') AND EXTRACT(YEAR FROM lr.start_date) = $3) AS used_count FROM leave_types lt LEFT JOIN employments active_emp ON active_emp.employee_id = $1 AND active_emp.workspace_id = $2 AND active_emp.deleted_at IS NULL LEFT JOIN leave_balances lb ON lb.leave_type_id = lt.id AND lb.employment_id = active_emp.id AND lb.year = $3 WHERE lt.workspace_id = $2 AND lt.deleted_at IS NULL ORDER BY lt.name ASC`, employeeID, workspaceID, year)
+	rows, err := db.Query(ctx, `SELECT lt.id, lt.code, lt.name, lt.is_paid, COALESCE(lb.entitlement, 12), COALESCE(lb.accrued_amount::text, '0.00'), COALESCE(lb.carried_over, 0), (SELECT count(*) FROM leave_requests lr JOIN employments e ON e.id = lr.employment_id WHERE e.employee_id = $1 AND e.deleted_at IS NULL AND lr.leave_type_id = lt.id AND lr.status IN ('approved', 'pre_approved') AND EXTRACT(YEAR FROM lr.start_date) = $2) AS used_count FROM leave_types lt LEFT JOIN LATERAL (SELECT id FROM employments WHERE employee_id = $1 AND status = 'active' AND deleted_at IS NULL ORDER BY start_date DESC, id DESC LIMIT 1) active_emp ON true LEFT JOIN leave_balances lb ON lb.leave_type_id = lt.id AND lb.employment_id = active_emp.id AND lb.year = $2 WHERE lt.deleted_at IS NULL ORDER BY lt.name ASC`, employeeID, year)
 	if err != nil {
 		return nil, err
 	}
@@ -289,13 +294,13 @@ func (r LeaveRepository) GetEmployeeLeaveBalances(ctx context.Context, workspace
 	return balances, rows.Err()
 }
 
-func (r LeaveRepository) ResolveEmployeeForUser(ctx context.Context, workspaceID, userID uuid.UUID) (uuid.UUID, error) {
+func (r LeaveRepository) ResolveEmployeeForUser(ctx context.Context, userID uuid.UUID) (uuid.UUID, error) {
 	db, err := r.db(ctx)
 	if err != nil {
 		return uuid.Nil, err
 	}
 	var empID uuid.UUID
-	err = db.QueryRow(ctx, `SELECT id FROM employees WHERE user_id = $1 AND workspace_id = $2 AND deleted_at IS NULL LIMIT 1`, userID, workspaceID).Scan(&empID)
+	err = db.QueryRow(ctx, `SELECT id FROM employees WHERE user_id = $1 AND deleted_at IS NULL LIMIT 1`, userID).Scan(&empID)
 	return empID, err
 }
 func weekdayCount(startDate, endDate string) int {
@@ -316,7 +321,7 @@ func weekdayCount(startDate, endDate string) int {
 	return count
 }
 
-func (r LeaveRepository) GetWorkspaceLeaveBalances(ctx context.Context, wsID uuid.UUID, year, page, limit int, q string) ([]api.WorkspaceLeaveBalance, int64, error) {
+func (r LeaveRepository) GetOrganizationLeaveBalances(ctx context.Context, year, page, limit int, q string) ([]api.OrganizationLeaveBalance, int64, error) {
 	db, err := r.db(ctx)
 	if err != nil {
 		return nil, 0, err
@@ -334,13 +339,12 @@ func (r LeaveRepository) GetWorkspaceLeaveBalances(ctx context.Context, wsID uui
 		SELECT COUNT(*)
 		FROM employees e
 		CROSS JOIN leave_types lt
-		LEFT JOIN employments emp ON e.id = emp.employee_id AND emp.workspace_id = $1 AND emp.deleted_at IS NULL AND emp.status = 'active'
-		LEFT JOIN leave_balances lb ON emp.id = lb.employment_id AND lt.id = lb.leave_type_id AND lb.year = $2
-		WHERE e.workspace_id = $1 AND e.deleted_at IS NULL AND emp.id IS NOT NULL AND lt.workspace_id = $1 AND lt.deleted_at IS NULL
-		  AND ($3 = '' OR e.full_name ILIKE '%' || $3 || '%' OR e.employee_id_number ILIKE '%' || $3 || '%' OR lt.name ILIKE '%' || $3 || '%' OR lt.code ILIKE '%' || $3 || '%')
+		LEFT JOIN employments emp ON e.id = emp.employee_id AND emp.deleted_at IS NULL AND emp.status = 'active'
+		WHERE e.deleted_at IS NULL AND emp.id IS NOT NULL AND lt.deleted_at IS NULL
+		  AND ($1 = '' OR e.full_name ILIKE '%' || $1 || '%' OR e.employee_id_number ILIKE '%' || $1 || '%' OR lt.name ILIKE '%' || $1 || '%' OR lt.code ILIKE '%' || $1 || '%')
 	`
 	var total int64
-	if err := db.QueryRow(ctx, countSQL, wsID, year, searchTerm).Scan(&total); err != nil {
+	if err := db.QueryRow(ctx, countSQL, searchTerm).Scan(&total); err != nil {
 		return nil, 0, err
 	}
 
@@ -357,7 +361,7 @@ func (r LeaveRepository) GetWorkspaceLeaveBalances(ctx context.Context, wsID uui
 			FROM leave_requests lr
 			JOIN employments emp_usage ON lr.employment_id = emp_usage.id
 			WHERE lr.status IN ('approved', 'pre_approved')
-			  AND EXTRACT(YEAR FROM lr.start_date)::INT = $2
+			  AND EXTRACT(YEAR FROM lr.start_date)::INT = $1
 			GROUP BY emp_usage.employee_id, lr.leave_type_id
 		),
 		best_policy AS (
@@ -369,18 +373,16 @@ func (r LeaveRepository) GetWorkspaceLeaveBalances(ctx context.Context, wsID uui
 			FROM leave_policy_assignments a
 			JOIN leave_policy_definitions d ON a.policy_id = d.id
 			CROSS JOIN employees e_inner
-			LEFT JOIN employments emp_inner ON e_inner.id = emp_inner.employee_id AND emp_inner.workspace_id = $1 AND emp_inner.deleted_at IS NULL AND emp_inner.status = 'active'
-			WHERE a.workspace_id = $1
-			  AND e_inner.workspace_id = $1
+			WHERE e_inner.deleted_at IS NULL
 			  AND (
 				(a.assignee_type = 'user' AND a.assignee_id = e_inner.user_id) OR
 				(a.assignee_type = 'employee' AND a.assignee_id = e_inner.id) OR
 				(a.assignee_type = 'department' AND a.assignee_id = (
 					SELECT department_id FROM employments
-					WHERE employee_id = e_inner.id AND workspace_id = $1 AND deleted_at IS NULL
+					WHERE employee_id = e_inner.id AND deleted_at IS NULL
 					ORDER BY start_date DESC, id DESC LIMIT 1
 				)) OR
-				(a.assignee_type = 'workspace')
+				(a.assignee_type = 'organization')
 			  )
 			  AND a.effective_from <= NOW()
 			  AND (a.effective_to IS NULL OR a.effective_to > NOW())
@@ -391,7 +393,7 @@ func (r LeaveRepository) GetWorkspaceLeaveBalances(ctx context.Context, wsID uui
 				WHEN 'user' THEN 1
 				WHEN 'employee' THEN 2
 				WHEN 'department' THEN 3
-				WHEN 'workspace' THEN 4
+				WHEN 'organization' THEN 4
 			  END ASC
 		)
 		SELECT
@@ -409,24 +411,24 @@ func (r LeaveRepository) GetWorkspaceLeaveBalances(ctx context.Context, wsID uui
 			bp.assignment_type
 		FROM employees e
 		CROSS JOIN leave_types lt
-		LEFT JOIN employments emp ON e.id = emp.employee_id AND emp.workspace_id = $1 AND emp.deleted_at IS NULL AND emp.status = 'active'
-		LEFT JOIN leave_balances lb ON emp.id = lb.employment_id AND lt.id = lb.leave_type_id AND lb.year = $2
+		LEFT JOIN employments emp ON e.id = emp.employee_id AND emp.deleted_at IS NULL AND emp.status = 'active'
+		LEFT JOIN leave_balances lb ON emp.id = lb.employment_id AND lt.id = lb.leave_type_id AND lb.year = $1
 		LEFT JOIN leave_usage lu ON e.id = lu.employee_id AND lt.id = lu.leave_type_id
 		LEFT JOIN best_policy bp ON e.id = bp.emp_id AND lt.id = bp.lt_id
-		WHERE e.workspace_id = $1 AND e.deleted_at IS NULL AND emp.id IS NOT NULL AND lt.workspace_id = $1 AND lt.deleted_at IS NULL
-		  AND ($3 = '' OR e.full_name ILIKE '%' || $3 || '%' OR e.employee_id_number ILIKE '%' || $3 || '%' OR lt.name ILIKE '%' || $3 || '%' OR lt.code ILIKE '%' || $3 || '%')
+		WHERE e.deleted_at IS NULL AND emp.id IS NOT NULL AND lt.deleted_at IS NULL
+		  AND ($2 = '' OR e.full_name ILIKE '%' || $2 || '%' OR e.employee_id_number ILIKE '%' || $2 || '%' OR lt.name ILIKE '%' || $2 || '%' OR lt.code ILIKE '%' || $2 || '%')
 		ORDER BY e.full_name ASC, lt.name ASC
-		LIMIT $4 OFFSET $5
+		LIMIT $3 OFFSET $4
 	`
-	rows, err := db.Query(ctx, dataSQL, wsID, year, searchTerm, limit, offset)
+	rows, err := db.Query(ctx, dataSQL, year, searchTerm, limit, offset)
 	if err != nil {
 		return nil, 0, err
 	}
 	defer rows.Close()
 
-	balances := make([]api.WorkspaceLeaveBalance, 0)
+	balances := make([]api.OrganizationLeaveBalance, 0)
 	for rows.Next() {
-		var b api.WorkspaceLeaveBalance
+		var b api.OrganizationLeaveBalance
 		var accruedStr string
 		if err := rows.Scan(&b.EmployeeID, &b.EmployeeName, &b.LeaveTypeID, &b.LeaveTypeCode, &b.LeaveTypeName, &b.IsPaid, &b.Entitlement, &accruedStr, &b.CarriedOver, &b.Used, &b.PolicyName, &b.AssignmentType); err != nil {
 			return nil, 0, err
@@ -439,7 +441,7 @@ func (r LeaveRepository) GetWorkspaceLeaveBalances(ctx context.Context, wsID uui
 	return balances, total, rows.Err()
 }
 
-func (r LeaveRepository) GetEmployeeLeaveHistory(ctx context.Context, wsID, employeeID uuid.UUID, year int, leaveTypeID *uuid.UUID) ([]api.LeaveHistoryItem, error) {
+func (r LeaveRepository) GetEmployeeLeaveHistory(ctx context.Context, employeeID uuid.UUID, year int, leaveTypeID *uuid.UUID) ([]api.LeaveHistoryItem, error) {
 	db, err := r.db(ctx)
 	if err != nil {
 		return nil, err
@@ -448,10 +450,10 @@ func (r LeaveRepository) GetEmployeeLeaveHistory(ctx context.Context, wsID, empl
 		SELECT lal.id, lal.accrual_date::text, lal.amount::text, lal.notes, lal.policy_assignment_id, lal.created_at
 		FROM leave_accrual_logs lal
 		JOIN employments emp ON lal.employment_id = emp.id
-		WHERE emp.employee_id = $1 AND emp.workspace_id = $2
-		  AND EXTRACT(YEAR FROM lal.accrual_date)::INT = $3
-		  AND ($4::uuid IS NULL OR lal.leave_type_id = $4)
-	`, employeeID, wsID, year, leaveTypeID)
+		WHERE emp.employee_id = $1 AND emp.deleted_at IS NULL
+		  AND EXTRACT(YEAR FROM lal.accrual_date)::INT = $2
+		  AND ($3::uuid IS NULL OR lal.leave_type_id = $3)
+	`, employeeID, year, leaveTypeID)
 	if err != nil {
 		return nil, err
 	}
@@ -490,11 +492,11 @@ func (r LeaveRepository) GetEmployeeLeaveHistory(ctx context.Context, wsID, empl
 		SELECT lr.id, lr.start_date::text, lr.end_date::text, lr.reason, lr.created_at
 		FROM leave_requests lr
 		JOIN employments emp ON lr.employment_id = emp.id
-		WHERE emp.employee_id = $1 AND emp.workspace_id = $2
+		WHERE emp.employee_id = $1 AND emp.deleted_at IS NULL
 		  AND lr.status IN ('approved', 'pre_approved')
-		  AND EXTRACT(YEAR FROM lr.start_date)::INT = $3
-		  AND ($4::uuid IS NULL OR lr.leave_type_id = $4)
-	`, employeeID, wsID, year, leaveTypeID)
+		  AND EXTRACT(YEAR FROM lr.start_date)::INT = $2
+		  AND ($3::uuid IS NULL OR lr.leave_type_id = $3)
+	`, employeeID, year, leaveTypeID)
 	if err != nil {
 		return nil, err
 	}
@@ -533,8 +535,8 @@ func (r LeaveRepository) GetEmployeeLeaveHistory(ctx context.Context, wsID, empl
 	return items, nil
 }
 
-func (r LeaveRepository) AdjustLeaveBalance(ctx context.Context, wsID, employeeID uuid.UUID, req api.AdjustBalanceRequest) error {
-	tx, err := r.begin(ctx, wsID)
+func (r LeaveRepository) AdjustLeaveBalance(ctx context.Context, employeeID uuid.UUID, req api.AdjustBalanceRequest) error {
+	tx, err := r.begin(ctx)
 	if err != nil {
 		return err
 	}
@@ -542,9 +544,9 @@ func (r LeaveRepository) AdjustLeaveBalance(ctx context.Context, wsID, employeeI
 		var employmentID uuid.UUID
 		err := db.QueryRow(ctx, `
 			SELECT id FROM employments
-			WHERE workspace_id = $1 AND employee_id = $2 AND deleted_at IS NULL
+			WHERE employee_id = $1 AND deleted_at IS NULL
 			ORDER BY start_date DESC LIMIT 1
-		`, wsID, employeeID).Scan(&employmentID)
+		`, employeeID).Scan(&employmentID)
 		if errors.Is(err, pgx.ErrNoRows) {
 			return api.ErrLeaveNoEmployment
 		}
@@ -557,9 +559,9 @@ func (r LeaveRepository) AdjustLeaveBalance(ctx context.Context, wsID, employeeI
 		}
 		year := parsedDate.Year()
 		_, err = db.Exec(ctx, `
-			INSERT INTO leave_accrual_logs (id, workspace_id, employment_id, accrual_date, amount, leave_type_id, notes, created_at)
-			VALUES (gen_random_uuid(), $1, $2, $3::date, $4, $5, $6, NOW())
-		`, wsID, employmentID, req.TransactionDate, req.Amount, req.LeaveTypeID, req.Reason)
+			INSERT INTO leave_accrual_logs (id, employment_id, accrual_date, amount, leave_type_id, notes, created_at)
+			VALUES (gen_random_uuid(), $1, $2::date, $3, $4, $5, NOW())
+		`, employmentID, req.TransactionDate, req.Amount, req.LeaveTypeID, req.Reason)
 		if err != nil {
 			return err
 		}
@@ -573,7 +575,7 @@ func (r LeaveRepository) AdjustLeaveBalance(ctx context.Context, wsID, employeeI
 	})
 }
 
-func (r LeaveRepository) ListEmployeeLeaveRequests(ctx context.Context, wsID, employeeID uuid.UUID) ([]api.LeaveRequestRecord, error) {
+func (r LeaveRepository) ListEmployeeLeaveRequests(ctx context.Context, employeeID uuid.UUID) ([]api.LeaveRequestRecord, error) {
 	db, err := r.db(ctx)
 	if err != nil {
 		return nil, err
@@ -582,9 +584,9 @@ func (r LeaveRepository) ListEmployeeLeaveRequests(ctx context.Context, wsID, em
 		SELECT lr.id, lr.employment_id, lr.leave_type_id, lr.start_date::text, lr.end_date::text, lr.reason, lr.status::text, lr.duration_type, lr.start_time::text, lr.end_time::text, lr.requested_by_user_id, lr.approved_by_user_id, lr.created_at, lr.updated_at, lr.attachment_file_ids
 		FROM leave_requests lr
 		JOIN employments e ON e.id = lr.employment_id
-		WHERE e.workspace_id = $1 AND e.employee_id = $2
+		WHERE e.employee_id = $1 AND e.deleted_at IS NULL
 		ORDER BY lr.created_at DESC
-	`, wsID, employeeID)
+	`, employeeID)
 	if err != nil {
 		return nil, err
 	}
@@ -604,28 +606,27 @@ func (r LeaveRepository) ListEmployeeLeaveRequests(ctx context.Context, wsID, em
 	return records, rows.Err()
 }
 
-func (r LeaveRepository) ListLeavePolicies(ctx context.Context, wsID uuid.UUID) ([]api.LeavePolicyDefinition, error) {
+func (r LeaveRepository) ListLeavePolicies(ctx context.Context) ([]api.LeavePolicyDefinition, error) {
 	db, err := r.db(ctx)
 	if err != nil {
 		return nil, err
 	}
 	rows, err := db.Query(ctx, `
-		SELECT id, workspace_id, name, description, leave_type_id, rule_config, created_at, updated_at
+		SELECT id, name, description, leave_type_id, rule_config, created_at, updated_at
 		FROM leave_policy_definitions
-		WHERE workspace_id = $1 AND deleted_at IS NULL
+		WHERE deleted_at IS NULL
 		ORDER BY created_at DESC
-	`, wsID)
+	`)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-
 	policies := make([]api.LeavePolicyDefinition, 0)
 	for rows.Next() {
 		var p api.LeavePolicyDefinition
 		var rawConfig []byte
 		var createdAt, updatedAt time.Time
-		if err := rows.Scan(&p.ID, &p.WorkspaceID, &p.Name, &p.Description, &p.LeaveTypeID, &rawConfig, &createdAt, &updatedAt); err != nil {
+		if err := rows.Scan(&p.ID, &p.Name, &p.Description, &p.LeaveTypeID, &rawConfig, &createdAt, &updatedAt); err != nil {
 			return nil, err
 		}
 		_ = json.Unmarshal(rawConfig, &p.RuleConfig)
@@ -636,7 +637,7 @@ func (r LeaveRepository) ListLeavePolicies(ctx context.Context, wsID uuid.UUID) 
 	return policies, rows.Err()
 }
 
-func (r LeaveRepository) CreateLeavePolicy(ctx context.Context, wsID uuid.UUID, req api.CreateLeavePolicyRequest) (api.LeavePolicyDefinition, error) {
+func (r LeaveRepository) CreateLeavePolicy(ctx context.Context, req api.CreateLeavePolicyRequest) (api.LeavePolicyDefinition, error) {
 	db, err := r.db(ctx)
 	if err != nil {
 		return api.LeavePolicyDefinition{}, err
@@ -645,16 +646,15 @@ func (r LeaveRepository) CreateLeavePolicy(ctx context.Context, wsID uuid.UUID, 
 	if err != nil {
 		rawConfig = []byte("{}")
 	}
-	id := uuid.New()
 	var def api.LeavePolicyDefinition
 	var createdAt, updatedAt time.Time
 	var outConfig []byte
 	err = db.QueryRow(ctx, `
-		INSERT INTO leave_policy_definitions (id, workspace_id, name, description, leave_type_id, rule_config, created_at, updated_at)
-		VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW())
-		RETURNING id, workspace_id, name, description, leave_type_id, rule_config, created_at, updated_at
-	`, id, wsID, req.Name, req.Description, req.LeaveTypeID, rawConfig).Scan(
-		&def.ID, &def.WorkspaceID, &def.Name, &def.Description, &def.LeaveTypeID, &outConfig, &createdAt, &updatedAt,
+		INSERT INTO leave_policy_definitions (id, name, description, leave_type_id, rule_config, created_at, updated_at)
+		VALUES ($1, $2, $3, $4, $5, NOW(), NOW())
+		RETURNING id, name, description, leave_type_id, rule_config, created_at, updated_at
+	`, uuid.New(), req.Name, req.Description, req.LeaveTypeID, rawConfig).Scan(
+		&def.ID, &def.Name, &def.Description, &def.LeaveTypeID, &outConfig, &createdAt, &updatedAt,
 	)
 	if err != nil {
 		var pgErr *pgconn.PgError
@@ -669,7 +669,7 @@ func (r LeaveRepository) CreateLeavePolicy(ctx context.Context, wsID uuid.UUID, 
 	return def, nil
 }
 
-func (r LeaveRepository) UpdateLeavePolicy(ctx context.Context, wsID, policyID uuid.UUID, req api.UpdateLeavePolicyRequest) (api.LeavePolicyDefinition, error) {
+func (r LeaveRepository) UpdateLeavePolicy(ctx context.Context, policyID uuid.UUID, req api.UpdateLeavePolicyRequest) (api.LeavePolicyDefinition, error) {
 	db, err := r.db(ctx)
 	if err != nil {
 		return api.LeavePolicyDefinition{}, err
@@ -681,8 +681,8 @@ func (r LeaveRepository) UpdateLeavePolicy(ctx context.Context, wsID, policyID u
 	err = db.QueryRow(ctx, `
 		SELECT name, description, leave_type_id, rule_config
 		FROM leave_policy_definitions
-		WHERE id = $1 AND workspace_id = $2 AND deleted_at IS NULL
-	`, policyID, wsID).Scan(&existingName, &existingDesc, &existingLeaveType, &existingRaw)
+		WHERE id = $1 AND deleted_at IS NULL
+	`, policyID).Scan(&existingName, &existingDesc, &existingLeaveType, &existingRaw)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return api.LeavePolicyDefinition{}, api.ErrLeaveNotFound
 	}
@@ -713,10 +713,10 @@ func (r LeaveRepository) UpdateLeavePolicy(ctx context.Context, wsID, policyID u
 	err = db.QueryRow(ctx, `
 		UPDATE leave_policy_definitions
 		SET name = $1, description = $2, leave_type_id = $3, rule_config = $4, updated_at = NOW()
-		WHERE id = $5 AND workspace_id = $6 AND deleted_at IS NULL
-		RETURNING id, workspace_id, name, description, leave_type_id, rule_config, created_at, updated_at
-	`, name, desc, leaveTypeID, configBytes, policyID, wsID).Scan(
-		&def.ID, &def.WorkspaceID, &def.Name, &def.Description, &def.LeaveTypeID, &outConfig, &createdAt, &updatedAt,
+		WHERE id = $5 AND deleted_at IS NULL
+		RETURNING id, name, description, leave_type_id, rule_config, created_at, updated_at
+	`, name, desc, leaveTypeID, configBytes, policyID).Scan(
+		&def.ID, &def.Name, &def.Description, &def.LeaveTypeID, &outConfig, &createdAt, &updatedAt,
 	)
 	if err != nil {
 		var pgErr *pgconn.PgError
@@ -731,23 +731,16 @@ func (r LeaveRepository) UpdateLeavePolicy(ctx context.Context, wsID, policyID u
 	return def, nil
 }
 
-func (r LeaveRepository) DeleteLeavePolicy(ctx context.Context, wsID, policyID uuid.UUID) error {
-	tx, err := r.begin(ctx, wsID)
+func (r LeaveRepository) DeleteLeavePolicy(ctx context.Context, policyID uuid.UUID) error {
+	tx, err := r.begin(ctx)
 	if err != nil {
 		return err
 	}
 	return service.WithTx(ctx, tx, func(ctx context.Context, db pgx.Tx) error {
-		_, err := db.Exec(ctx, `
-			UPDATE leave_policy_assignments SET deleted_at = NOW()
-			WHERE policy_id = $1 AND workspace_id = $2 AND deleted_at IS NULL
-		`, policyID, wsID)
-		if err != nil {
+		if _, err := db.Exec(ctx, `UPDATE leave_policy_assignments SET deleted_at = NOW() WHERE policy_id = $1 AND deleted_at IS NULL`, policyID); err != nil {
 			return err
 		}
-		tag, err := db.Exec(ctx, `
-			UPDATE leave_policy_definitions SET deleted_at = NOW()
-			WHERE id = $1 AND workspace_id = $2 AND deleted_at IS NULL
-		`, policyID, wsID)
+		tag, err := db.Exec(ctx, `UPDATE leave_policy_definitions SET deleted_at = NOW() WHERE id = $1 AND deleted_at IS NULL`, policyID)
 		if err != nil {
 			return err
 		}
@@ -758,55 +751,44 @@ func (r LeaveRepository) DeleteLeavePolicy(ctx context.Context, wsID, policyID u
 	})
 }
 
-func (r LeaveRepository) AssignLeavePolicy(ctx context.Context, wsID uuid.UUID, req api.AssignLeavePolicyRequest) (api.LeavePolicyAssignment, error) {
-	tx, err := r.begin(ctx, wsID)
+func (r LeaveRepository) AssignLeavePolicy(ctx context.Context, req api.AssignLeavePolicyRequest) (api.LeavePolicyAssignment, error) {
+	tx, err := r.begin(ctx)
 	if err != nil {
 		return api.LeavePolicyAssignment{}, err
 	}
 	var assignment api.LeavePolicyAssignment
 	err = service.WithTx(ctx, tx, func(ctx context.Context, db pgx.Tx) error {
 		var leaveTypeID uuid.UUID
-		err := db.QueryRow(ctx, `
-			SELECT leave_type_id FROM leave_policy_definitions
-			WHERE id = $1 AND workspace_id = $2 AND deleted_at IS NULL
-		`, req.PolicyID, wsID).Scan(&leaveTypeID)
+		err := db.QueryRow(ctx, `SELECT leave_type_id FROM leave_policy_definitions WHERE id = $1 AND deleted_at IS NULL`, req.PolicyID).Scan(&leaveTypeID)
 		if errors.Is(err, pgx.ErrNoRows) {
 			return api.ErrLeaveNotFound
 		}
 		if err != nil {
 			return err
 		}
-
-		// Soft delete future assignments for this assignee and leave type
-		_, err = db.Exec(ctx, `
+		if _, err = db.Exec(ctx, `
 			UPDATE leave_policy_assignments SET deleted_at = NOW()
-			WHERE workspace_id = $1 AND assignee_type = $2 AND assignee_id IS NOT DISTINCT FROM $3
-			  AND policy_id IN (SELECT id FROM leave_policy_definitions WHERE leave_type_id = $4 AND workspace_id = $1)
-			  AND effective_from >= $5::date AND deleted_at IS NULL
-		`, wsID, req.AssigneeType, req.AssigneeID, leaveTypeID, req.EffectiveFrom)
-		if err != nil {
+			WHERE assignee_type = $1 AND assignee_id IS NOT DISTINCT FROM $2
+			  AND policy_id IN (SELECT id FROM leave_policy_definitions WHERE leave_type_id = $3)
+			  AND effective_from >= $4::date AND deleted_at IS NULL
+		`, req.AssigneeType, req.AssigneeID, leaveTypeID, req.EffectiveFrom); err != nil {
 			return err
 		}
-
-		// Auto-close overlapping existing assignments to end the day before the new start date
-		_, err = db.Exec(ctx, `
-			UPDATE leave_policy_assignments SET effective_to = ($5::date - interval '1 day')::date
-			WHERE workspace_id = $1 AND assignee_type = $2 AND assignee_id IS NOT DISTINCT FROM $3
-			  AND policy_id IN (SELECT id FROM leave_policy_definitions WHERE leave_type_id = $4 AND workspace_id = $1)
-			  AND effective_from < $5::date AND (effective_to IS NULL OR effective_to >= $5::date) AND deleted_at IS NULL
-		`, wsID, req.AssigneeType, req.AssigneeID, leaveTypeID, req.EffectiveFrom)
-		if err != nil {
+		if _, err = db.Exec(ctx, `
+			UPDATE leave_policy_assignments SET effective_to = ($4::date - interval '1 day')::date
+			WHERE assignee_type = $1 AND assignee_id IS NOT DISTINCT FROM $2
+			  AND policy_id IN (SELECT id FROM leave_policy_definitions WHERE leave_type_id = $3)
+			  AND effective_from < $4::date AND (effective_to IS NULL OR effective_to >= $4::date) AND deleted_at IS NULL
+		`, req.AssigneeType, req.AssigneeID, leaveTypeID, req.EffectiveFrom); err != nil {
 			return err
 		}
-
-		newID := uuid.New()
 		var createdAt time.Time
 		err = db.QueryRow(ctx, `
-			INSERT INTO leave_policy_assignments (id, workspace_id, assignee_type, assignee_id, policy_id, effective_from, effective_to, created_at)
-			VALUES ($1, $2, $3, $4, $5, $6::date, $7::date, NOW())
-			RETURNING id, workspace_id, assignee_type, assignee_id, policy_id, effective_from::text, effective_to::text, created_at
-		`, newID, wsID, req.AssigneeType, req.AssigneeID, req.PolicyID, req.EffectiveFrom, req.EffectiveTo).Scan(
-			&assignment.ID, &assignment.WorkspaceID, &assignment.AssigneeType, &assignment.AssigneeID, &assignment.PolicyID, &assignment.EffectiveFrom, &assignment.EffectiveTo, &createdAt,
+			INSERT INTO leave_policy_assignments (id, assignee_type, assignee_id, policy_id, effective_from, effective_to, created_at)
+			VALUES ($1, $2, $3, $4, $5::date, $6::date, NOW())
+			RETURNING id, assignee_type, assignee_id, policy_id, effective_from::text, effective_to::text, created_at
+		`, uuid.New(), req.AssigneeType, req.AssigneeID, req.PolicyID, req.EffectiveFrom, req.EffectiveTo).Scan(
+			&assignment.ID, &assignment.AssigneeType, &assignment.AssigneeID, &assignment.PolicyID, &assignment.EffectiveFrom, &assignment.EffectiveTo, &createdAt,
 		)
 		if err != nil {
 			var pgErr *pgconn.PgError
@@ -824,29 +806,28 @@ func (r LeaveRepository) AssignLeavePolicy(ctx context.Context, wsID uuid.UUID, 
 	return assignment, nil
 }
 
-func (r LeaveRepository) ListLeavePolicyAssignments(ctx context.Context, wsID uuid.UUID) ([]api.LeavePolicyAssignmentDetail, error) {
+func (r LeaveRepository) ListLeavePolicyAssignments(ctx context.Context) ([]api.LeavePolicyAssignmentDetail, error) {
 	db, err := r.db(ctx)
 	if err != nil {
 		return nil, err
 	}
 	rows, err := db.Query(ctx, `
-		SELECT a.id, a.workspace_id, a.assignee_type, a.assignee_id, a.policy_id, a.effective_from::text, a.effective_to::text, a.created_at, d.name, lt.name
+		SELECT a.id, a.assignee_type, a.assignee_id, a.policy_id, a.effective_from::text, a.effective_to::text, a.created_at, d.name, lt.name
 		FROM leave_policy_assignments a
 		JOIN leave_policy_definitions d ON a.policy_id = d.id
 		JOIN leave_types lt ON d.leave_type_id = lt.id
-		WHERE a.workspace_id = $1 AND a.deleted_at IS NULL AND d.deleted_at IS NULL AND lt.deleted_at IS NULL
+		WHERE a.deleted_at IS NULL AND d.deleted_at IS NULL AND lt.deleted_at IS NULL
 		ORDER BY a.created_at DESC
-	`, wsID)
+	`)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-
 	details := make([]api.LeavePolicyAssignmentDetail, 0)
 	for rows.Next() {
 		var d api.LeavePolicyAssignmentDetail
 		var createdAt time.Time
-		if err := rows.Scan(&d.ID, &d.WorkspaceID, &d.AssigneeType, &d.AssigneeID, &d.PolicyID, &d.EffectiveFrom, &d.EffectiveTo, &createdAt, &d.PolicyName, &d.LeaveTypeName); err != nil {
+		if err := rows.Scan(&d.ID, &d.AssigneeType, &d.AssigneeID, &d.PolicyID, &d.EffectiveFrom, &d.EffectiveTo, &createdAt, &d.PolicyName, &d.LeaveTypeName); err != nil {
 			return nil, err
 		}
 		d.CreatedAt = createdAt.UTC().Format(time.RFC3339)
@@ -855,8 +836,8 @@ func (r LeaveRepository) ListLeavePolicyAssignments(ctx context.Context, wsID uu
 	return details, rows.Err()
 }
 
-func (r LeaveRepository) DeleteLeavePolicyAssignment(ctx context.Context, wsID, assignmentID uuid.UUID) error {
-	tx, err := r.begin(ctx, wsID)
+func (r LeaveRepository) DeleteLeavePolicyAssignment(ctx context.Context, assignmentID uuid.UUID) error {
+	tx, err := r.begin(ctx)
 	if err != nil {
 		return err
 	}
@@ -865,84 +846,55 @@ func (r LeaveRepository) DeleteLeavePolicyAssignment(ctx context.Context, wsID, 
 		var assigneeID *uuid.UUID
 		var policyID uuid.UUID
 		var effectiveFrom, effectiveTo *string
-		err := db.QueryRow(ctx, `
-			SELECT assignee_type, assignee_id, policy_id, effective_from::text, effective_to::text
-			FROM leave_policy_assignments
-			WHERE id = $1 AND workspace_id = $2 AND deleted_at IS NULL
-		`, assignmentID, wsID).Scan(&assigneeType, &assigneeID, &policyID, &effectiveFrom, &effectiveTo)
+		err := db.QueryRow(ctx, `SELECT assignee_type, assignee_id, policy_id, effective_from::text, effective_to::text FROM leave_policy_assignments WHERE id = $1 AND deleted_at IS NULL`, assignmentID).Scan(&assigneeType, &assigneeID, &policyID, &effectiveFrom, &effectiveTo)
 		if errors.Is(err, pgx.ErrNoRows) {
 			return api.ErrLeaveNotFound
 		}
 		if err != nil {
 			return err
 		}
-
 		var leaveTypeID uuid.UUID
-		err = db.QueryRow(ctx, `
-			SELECT leave_type_id FROM leave_policy_definitions
-			WHERE id = $1 AND workspace_id = $2
-		`, policyID, wsID).Scan(&leaveTypeID)
-		if err != nil {
+		if err := db.QueryRow(ctx, `SELECT leave_type_id FROM leave_policy_definitions WHERE id = $1`, policyID).Scan(&leaveTypeID); err != nil {
 			return err
 		}
-
-		// Soft delete assignment
-		_, err = db.Exec(ctx, `
-			UPDATE leave_policy_assignments SET deleted_at = NOW()
-			WHERE id = $1 AND workspace_id = $2
-		`, assignmentID, wsID)
-		if err != nil {
+		if _, err := db.Exec(ctx, `UPDATE leave_policy_assignments SET deleted_at = NOW() WHERE id = $1`, assignmentID); err != nil {
 			return err
 		}
-
-		// Heal timeline: find predecessor assignment where effective_to = effective_from - 1 day
 		if effectiveFrom != nil {
-			tFrom, pErr := time.Parse("2006-01-02", *effectiveFrom)
-			if pErr == nil {
+			tFrom, parseErr := time.Parse("2006-01-02", *effectiveFrom)
+			if parseErr == nil {
 				prevEnd := tFrom.AddDate(0, 0, -1).Format("2006-01-02")
 				var prevAssignID uuid.UUID
 				err = db.QueryRow(ctx, `
 					SELECT a.id FROM leave_policy_assignments a
 					JOIN leave_policy_definitions d ON a.policy_id = d.id
-					WHERE a.workspace_id = $1 AND a.assignee_type = $2 AND a.assignee_id IS NOT DISTINCT FROM $3
-					  AND d.leave_type_id = $4 AND a.effective_to = $5::date AND a.deleted_at IS NULL
+					WHERE a.assignee_type = $1 AND a.assignee_id IS NOT DISTINCT FROM $2
+					  AND d.leave_type_id = $3 AND a.effective_to = $4::date AND a.deleted_at IS NULL
 					ORDER BY a.created_at DESC LIMIT 1
-				`, wsID, assigneeType, assigneeID, leaveTypeID, prevEnd).Scan(&prevAssignID)
+				`, assigneeType, assigneeID, leaveTypeID, prevEnd).Scan(&prevAssignID)
 				if err == nil {
-					// Restore predecessor's effective_to
-					_, _ = db.Exec(ctx, `
-						UPDATE leave_policy_assignments SET effective_to = $1::date
-						WHERE id = $2 AND workspace_id = $3
-					`, effectiveTo, prevAssignID, wsID)
+					_, _ = db.Exec(ctx, `UPDATE leave_policy_assignments SET effective_to = $1::date WHERE id = $2`, effectiveTo, prevAssignID)
 				}
 			}
 		}
 		return nil
 	})
 }
-
-func (r LeaveRepository) CreateAccrualJob(ctx context.Context, wsID, userID uuid.UUID, dateStr string) (uuid.UUID, error) {
+func (r LeaveRepository) CreateAccrualJob(ctx context.Context, userID uuid.UUID, dateStr string) (uuid.UUID, error) {
 	db, err := r.db(ctx)
 	if err != nil {
 		return uuid.Nil, err
 	}
 	jobID := uuid.New()
-	payload, _ := json.Marshal(map[string]any{
-		"date":    dateStr,
-		"user_id": userID.String(),
-		"force":   true,
-	})
-	_, err = db.Exec(ctx, `
-		INSERT INTO outbox_jobs (id, workspace_id, job_type, payload, status, error_message, created_at, updated_at)
-		VALUES ($1, $2, 'LeaveAccrual', $3, 'pending', NULL, NOW(), NOW())
-	`, jobID, wsID, payload)
+	payload, _ := json.Marshal(map[string]any{"date": dateStr, "user_id": userID.String(), "force": true})
+	_, err = db.Exec(ctx, `INSERT INTO outbox_jobs (id, job_type, payload, status, error_message, created_at, updated_at) VALUES ($1, 'LeaveAccrual', $2, 'pending', NULL, NOW(), NOW())`, jobID, payload)
 	if err != nil {
 		return uuid.Nil, err
 	}
 	return jobID, nil
 }
 
-func (r LeaveRepository) GetJobStatus(ctx context.Context, wsID, jobID uuid.UUID) (api.LeaveJobStatusResponse, error) {
+func (r LeaveRepository) GetJobStatus(ctx context.Context, jobID uuid.UUID) (api.LeaveJobStatusResponse, error) {
 	db, err := r.db(ctx)
 	if err != nil {
 		return api.LeaveJobStatusResponse{}, err
@@ -950,62 +902,38 @@ func (r LeaveRepository) GetJobStatus(ctx context.Context, wsID, jobID uuid.UUID
 	var status string
 	var errorMsg *string
 	var updatedAt time.Time
-	err = db.QueryRow(ctx, `
-		SELECT status, error_message, updated_at FROM outbox_jobs
-		WHERE id = $1 AND workspace_id = $2
-	`, jobID, wsID).Scan(&status, &errorMsg, &updatedAt)
-	if err == nil {
-		var comp *string
+	if err = db.QueryRow(ctx, `SELECT status, error_message, updated_at FROM outbox_jobs WHERE id = $1`, jobID).Scan(&status, &errorMsg, &updatedAt); err == nil {
+		var completedAt *string
 		if status == "completed" || status == "failed" {
-			t := updatedAt.UTC().Format(time.RFC3339)
-			comp = &t
+			value := updatedAt.UTC().Format(time.RFC3339)
+			completedAt = &value
 		}
-		return api.LeaveJobStatusResponse{
-			JobID:        jobID,
-			Status:       status,
-			CompletedAt:  comp,
-			ErrorMessage: errorMsg,
-		}, nil
+		return api.LeaveJobStatusResponse{JobID: jobID, Status: status, CompletedAt: completedAt, ErrorMessage: errorMsg}, nil
 	}
-
-	err = db.QueryRow(ctx, `
-		SELECT status::text, error_log, updated_at FROM attendance_import_jobs
-		WHERE id = $1 AND workspace_id = $2
-	`, jobID, wsID).Scan(&status, &errorMsg, &updatedAt)
-	if err == nil {
-		var comp *string
+	if err = db.QueryRow(ctx, `SELECT status::text, error_log, updated_at FROM attendance_import_jobs WHERE id = $1`, jobID).Scan(&status, &errorMsg, &updatedAt); err == nil {
+		var completedAt *string
 		if status == "completed" || status == "failed" || status == "partially_failed" {
-			t := updatedAt.UTC().Format(time.RFC3339)
-			comp = &t
+			value := updatedAt.UTC().Format(time.RFC3339)
+			completedAt = &value
 		}
-		return api.LeaveJobStatusResponse{
-			JobID:        jobID,
-			Status:       status,
-			CompletedAt:  comp,
-			ErrorMessage: errorMsg,
-		}, nil
+		return api.LeaveJobStatusResponse{JobID: jobID, Status: status, CompletedAt: completedAt, ErrorMessage: errorMsg}, nil
 	}
-
 	return api.LeaveJobStatusResponse{}, api.ErrLeaveNotFound
 }
 
-func (r LeaveRepository) CreateLeaveImportJob(ctx context.Context, wsID, userID uuid.UUID, filePath string) (api.LeaveImportJob, error) {
+func (r LeaveRepository) CreateLeaveImportJob(ctx context.Context, userID uuid.UUID, filePath string) (api.LeaveImportJob, error) {
 	db, err := r.db(ctx)
 	if err != nil {
 		return api.LeaveImportJob{}, err
 	}
 	var job api.LeaveImportJob
-	err = db.QueryRow(ctx, `
-		INSERT INTO attendance_import_jobs (id, workspace_id, user_id, status, total_rows, processed_rows, file_path, target_type, created_at, updated_at)
-		VALUES ($1, $2, $3, 'processing', 0, 0, $4, 'leave_import', NOW(), NOW())
-		RETURNING id, workspace_id, user_id, status::text, total_rows, processed_rows, file_path, error_log, created_at, updated_at
-	`, uuid.New(), wsID, userID, filePath).Scan(
-		&job.ID, &job.WorkspaceID, &job.UserID, &job.Status, &job.TotalRows, &job.ProcessedRows, &job.FilePath, &job.ErrorLog, &job.CreatedAt, &job.UpdatedAt,
+	err = db.QueryRow(ctx, `INSERT INTO attendance_import_jobs (id, user_id, status, total_rows, processed_rows, file_path, target_type, created_at, updated_at) VALUES ($1, $2, 'processing', 0, 0, $3, 'leave_import', NOW(), NOW()) RETURNING id, user_id, status::text, total_rows, processed_rows, file_path, error_log, created_at, updated_at`, uuid.New(), userID, filePath).Scan(
+		&job.ID, &job.UserID, &job.Status, &job.TotalRows, &job.ProcessedRows, &job.FilePath, &job.ErrorLog, &job.CreatedAt, &job.UpdatedAt,
 	)
 	return job, err
 }
 
-func (r LeaveRepository) ProcessLeaveImport(ctx context.Context, wsID, userID uuid.UUID, job api.LeaveImportJob, rows []api.LeaveImportRow, autoApprove bool) error {
+func (r LeaveRepository) ProcessLeaveImport(ctx context.Context, userID uuid.UUID, job api.LeaveImportJob, rows []api.LeaveImportRow, autoApprove bool) error {
 	db, err := r.db(ctx)
 	if err != nil {
 		return err
@@ -1015,22 +943,19 @@ func (r LeaveRepository) ProcessLeaveImport(ctx context.Context, wsID, userID uu
 	var errorLines []string
 	for _, row := range rows {
 		var employeeID uuid.UUID
-		err := db.QueryRow(ctx, `SELECT id FROM employees WHERE workspace_id = $1 AND UPPER(employee_id_number) = UPPER($2) AND deleted_at IS NULL LIMIT 1`, wsID, row.EmployeeCode).Scan(&employeeID)
-		if err != nil {
+		if err := db.QueryRow(ctx, `SELECT id FROM employees WHERE UPPER(employee_id_number) = UPPER($1) AND deleted_at IS NULL LIMIT 1`, row.EmployeeCode).Scan(&employeeID); err != nil {
 			failed++
 			errorLines = append(errorLines, fmt.Sprintf("line %d: employee %s not found", row.LineNumber, row.EmployeeCode))
 			continue
 		}
-		var empID uuid.UUID
-		err = db.QueryRow(ctx, `SELECT id FROM employments WHERE workspace_id = $1 AND employee_id = $2 AND deleted_at IS NULL AND status = 'active' ORDER BY start_date DESC LIMIT 1`, wsID, employeeID).Scan(&empID)
-		if err != nil {
+		var employmentID uuid.UUID
+		if err := db.QueryRow(ctx, `SELECT id FROM employments WHERE employee_id = $1 AND deleted_at IS NULL AND status = 'active' ORDER BY start_date DESC LIMIT 1`, employeeID).Scan(&employmentID); err != nil {
 			failed++
 			errorLines = append(errorLines, fmt.Sprintf("line %d: active employment for %s not found", row.LineNumber, row.EmployeeCode))
 			continue
 		}
 		var leaveTypeID uuid.UUID
-		err = db.QueryRow(ctx, `SELECT id FROM leave_types WHERE workspace_id = $1 AND UPPER(code) = UPPER($2) AND deleted_at IS NULL LIMIT 1`, wsID, row.LeaveTypeCode).Scan(&leaveTypeID)
-		if err != nil {
+		if err := db.QueryRow(ctx, `SELECT id FROM leave_types WHERE UPPER(code) = UPPER($1) AND deleted_at IS NULL LIMIT 1`, row.LeaveTypeCode).Scan(&leaveTypeID); err != nil {
 			failed++
 			errorLines = append(errorLines, fmt.Sprintf("line %d: leave type %s not found", row.LineNumber, row.LeaveTypeCode))
 			continue
@@ -1041,24 +966,19 @@ func (r LeaveRepository) ProcessLeaveImport(ctx context.Context, wsID, userID uu
 			status = "pre_approved"
 			approvedBy = &userID
 		}
-		_, err = db.Exec(ctx, `
-			INSERT INTO leave_requests (id, employment_id, leave_type_id, start_date, end_date, reason, status, duration_type, requested_by_user_id, approved_by_user_id, created_at, updated_at)
-			VALUES (gen_random_uuid(), $1, $2, $3::date, $4::date, $5, $6::leave_status_type, $7, $8, $9, NOW(), NOW())
-		`, empID, leaveTypeID, row.StartDate, row.EndDate, row.Reason, status, row.DurationType, userID, approvedBy)
-		if err != nil {
+		if _, err := db.Exec(ctx, `INSERT INTO leave_requests (id, employment_id, leave_type_id, start_date, end_date, reason, status, duration_type, requested_by_user_id, approved_by_user_id, created_at, updated_at) VALUES (gen_random_uuid(), $1, $2, $3::date, $4::date, $5, $6::leave_status_type, $7, $8, $9, NOW(), NOW())`, employmentID, leaveTypeID, row.StartDate, row.EndDate, row.Reason, status, row.DurationType, userID, approvedBy); err != nil {
 			failed++
 			errorLines = append(errorLines, fmt.Sprintf("line %d: %v", row.LineNumber, err))
 			continue
 		}
 		processed++
 	}
-
 	finalStatus := "completed"
 	var errorLog *string
 	if failed > 0 {
 		finalStatus = "partially_failed"
-		msg := strings.Join(errorLines, "; ")
-		errorLog = &msg
+		message := strings.Join(errorLines, "; ")
+		errorLog = &message
 		if job.FilePath != nil {
 			errorPath := filepath.Join(filepath.Dir(*job.FilePath), "error_"+job.ID.String()+".xlsx")
 			if data, genErr := api.BuildErrorWorkbook(job.ID, errorLog); genErr == nil {
@@ -1066,27 +986,18 @@ func (r LeaveRepository) ProcessLeaveImport(ctx context.Context, wsID, userID uu
 			}
 		}
 	}
-	_, err = db.Exec(ctx, `
-		UPDATE attendance_import_jobs
-		SET status = $1, total_rows = $2, processed_rows = $3, error_log = $4, updated_at = NOW()
-		WHERE id = $5 AND workspace_id = $6
-	`, finalStatus, len(rows), processed, errorLog, job.ID, wsID)
+	_, err = db.Exec(ctx, `UPDATE attendance_import_jobs SET status = $1, total_rows = $2, processed_rows = $3, error_log = $4, updated_at = NOW() WHERE id = $5`, finalStatus, len(rows), processed, errorLog, job.ID)
 	return err
 }
 
-func (r LeaveRepository) GetLatestLeaveImport(ctx context.Context, wsID uuid.UUID) (*api.LeaveImportJob, error) {
+func (r LeaveRepository) GetLatestLeaveImport(ctx context.Context) (*api.LeaveImportJob, error) {
 	db, err := r.db(ctx)
 	if err != nil {
 		return nil, err
 	}
-	var j api.LeaveImportJob
-	err = db.QueryRow(ctx, `
-		SELECT id, workspace_id, user_id, status::text, total_rows, processed_rows, file_path, error_log, created_at, updated_at
-		FROM attendance_import_jobs
-		WHERE workspace_id = $1 AND target_type = 'leave_import'
-		ORDER BY created_at DESC LIMIT 1
-	`, wsID).Scan(
-		&j.ID, &j.WorkspaceID, &j.UserID, &j.Status, &j.TotalRows, &j.ProcessedRows, &j.FilePath, &j.ErrorLog, &j.CreatedAt, &j.UpdatedAt,
+	var job api.LeaveImportJob
+	err = db.QueryRow(ctx, `SELECT id, user_id, status::text, total_rows, processed_rows, file_path, error_log, created_at, updated_at FROM attendance_import_jobs WHERE target_type = 'leave_import' ORDER BY created_at DESC LIMIT 1`).Scan(
+		&job.ID, &job.UserID, &job.Status, &job.TotalRows, &job.ProcessedRows, &job.FilePath, &job.ErrorLog, &job.CreatedAt, &job.UpdatedAt,
 	)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, nil
@@ -1094,21 +1005,17 @@ func (r LeaveRepository) GetLatestLeaveImport(ctx context.Context, wsID uuid.UUI
 	if err != nil {
 		return nil, err
 	}
-	return &j, nil
+	return &job, nil
 }
 
-func (r LeaveRepository) GetLeaveImport(ctx context.Context, wsID, jobID uuid.UUID) (*api.LeaveImportJob, error) {
+func (r LeaveRepository) GetLeaveImport(ctx context.Context, jobID uuid.UUID) (*api.LeaveImportJob, error) {
 	db, err := r.db(ctx)
 	if err != nil {
 		return nil, err
 	}
-	var j api.LeaveImportJob
-	err = db.QueryRow(ctx, `
-		SELECT id, workspace_id, user_id, status::text, total_rows, processed_rows, file_path, error_log, created_at, updated_at
-		FROM attendance_import_jobs
-		WHERE id = $1 AND workspace_id = $2 AND target_type = 'leave_import'
-	`, jobID, wsID).Scan(
-		&j.ID, &j.WorkspaceID, &j.UserID, &j.Status, &j.TotalRows, &j.ProcessedRows, &j.FilePath, &j.ErrorLog, &j.CreatedAt, &j.UpdatedAt,
+	var job api.LeaveImportJob
+	err = db.QueryRow(ctx, `SELECT id, user_id, status::text, total_rows, processed_rows, file_path, error_log, created_at, updated_at FROM attendance_import_jobs WHERE id = $1 AND target_type = 'leave_import'`, jobID).Scan(
+		&job.ID, &job.UserID, &job.Status, &job.TotalRows, &job.ProcessedRows, &job.FilePath, &job.ErrorLog, &job.CreatedAt, &job.UpdatedAt,
 	)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, nil
@@ -1116,11 +1023,11 @@ func (r LeaveRepository) GetLeaveImport(ctx context.Context, wsID, jobID uuid.UU
 	if err != nil {
 		return nil, err
 	}
-	return &j, nil
+	return &job, nil
 }
 
-func (r LeaveRepository) GetLeaveImportErrorFile(ctx context.Context, wsID, jobID uuid.UUID) ([]byte, error) {
-	job, err := r.GetLeaveImport(ctx, wsID, jobID)
+func (r LeaveRepository) GetLeaveImportErrorFile(ctx context.Context, jobID uuid.UUID) ([]byte, error) {
+	job, err := r.GetLeaveImport(ctx, jobID)
 	if err != nil {
 		return nil, err
 	}

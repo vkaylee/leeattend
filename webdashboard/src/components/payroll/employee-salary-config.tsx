@@ -151,10 +151,9 @@ function SalaryTableBody({ isLoading, groupedComps, expandedGroups, currencyForm
 interface Props {
   employeeId: string;
   employmentId: string;
-  wsId: string;
 }
 
-export default function EmployeeSalaryConfig({ wsId, employeeId, employmentId }: Props) {
+export default function EmployeeSalaryConfig({employeeId, employmentId }: Props) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const toast = useToast();
@@ -166,9 +165,9 @@ export default function EmployeeSalaryConfig({ wsId, employeeId, employmentId }:
   const [effectiveDate, setEffectiveDate] = useState(format(new Date(), "yyyy-MM-01"));
   const [expandedGroups, setExpandedGroups] = useState<Partial<Record<string, boolean>>>({});
 
-  const { data: definitions = [] } = useQuery({ queryKey: ["salary-components", wsId], queryFn: () => fetchSalaryComponents(wsId) });
-  const { data: employeeComps = [], isLoading } = useQuery({ queryKey: ["employee-salary-components", employmentId], queryFn: () => fetchEmployeeSalaryComponents(wsId, employmentId) });
-  const { data: individualConfigs = [], isLoading: isConfigsLoading } = useQuery({ queryKey: ["employee-payroll-configs", employeeId], queryFn: () => fetchEmployeePayrollConfigs(wsId, employeeId) });
+  const { data: definitions = [] } = useQuery({ queryKey: ["salary-components"], queryFn: () => fetchSalaryComponents() });
+  const { data: employeeComps = [], isLoading } = useQuery({ queryKey: ["employee-salary-components", employmentId], queryFn: () => fetchEmployeeSalaryComponents(employmentId) });
+  const { data: individualConfigs = [], isLoading: isConfigsLoading } = useQuery({ queryKey: ["employee-payroll-configs", employeeId], queryFn: () => fetchEmployeePayrollConfigs(employeeId) });
 
   const groupedComps = employeeComps.reduce<Partial<Record<string, EmployeeSalaryComponentDetail[]>>>((acc, comp) => {
     const key = comp.component_definition_id;
@@ -181,7 +180,7 @@ export default function EmployeeSalaryConfig({ wsId, employeeId, employmentId }:
   const toggleGroup = (id: string) => { setExpandedGroups(prev => ({ ...prev, [id]: !prev[id] })); };
 
   const saveIndividualConfigMutation = useMutation({
-    mutationFn: (data: { effective_date: string; hours_per_day: number; std_working_days: number }) => setEmployeePayrollConfig(wsId, employeeId, {
+    mutationFn: (data: { effective_date: string; hours_per_day: number; std_working_days: number }) => setEmployeePayrollConfig(employeeId, {
       ...data,
       hours_per_day: String(data.hours_per_day),
       std_working_days: String(data.std_working_days),
@@ -190,7 +189,7 @@ export default function EmployeeSalaryConfig({ wsId, employeeId, employmentId }:
   });
 
   const assignMutation = useMutation({
-    mutationFn: (data: { amount: string; component_definition_id: string; effective_date: string; }) => assignEmployeeSalaryComponent(wsId, employmentId, data),
+    mutationFn: (data: { amount: string; component_definition_id: string; effective_date: string; }) => assignEmployeeSalaryComponent(employmentId, data),
     onSuccess: () => { toast.success(t("common.success")); void queryClient.invalidateQueries({ queryKey: ["employee-salary-components", employmentId] }); setIsAdding(false); setAmount(""); setSelectedCompId(""); },
   });
 

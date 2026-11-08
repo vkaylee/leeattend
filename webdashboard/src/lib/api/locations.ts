@@ -30,29 +30,26 @@ export interface UpdateWorkLocationRequest {
   timezone?: string;
 }
 
-export async function fetchLocations(wsId: string): Promise<WorkLocation[]> {
-  const { data } = await client.GET("/v1/workspaces/{ws_id}/locations", {
-            params: { path: { ws_id: wsId } }
-      });
+export async function fetchLocations(): Promise<WorkLocation[]> {
+  const { data } = await client.GET<WorkLocation[]>("/v1/locations");
   return unwrapDataArray<WorkLocation>(data);
 }
 
-export async function createLocation(wsId: string, payload: CreateWorkLocationRequest): Promise<WorkLocation> {
-  const { data } = await client.POST("/v1/workspaces/{ws_id}/locations", {
-            params: { path: { ws_id: wsId } },
-          body: payload });
-  return data as WorkLocation;
+export async function createLocation(payload: CreateWorkLocationRequest): Promise<WorkLocation> {
+  const { data } = await client.POST<WorkLocation>("/v1/locations", { body: payload });
+  return data;
 }
 
-export async function updateLocation(wsId: string, id: string, payload: UpdateWorkLocationRequest): Promise<WorkLocation> {
-  const { data } = await client.PUT("/v1/workspaces/{ws_id}/locations/{id}", {
-            params: { path: { ws_id: wsId, id } },
-          body: payload });
-  return data as WorkLocation;
+export async function updateLocation(id: string, payload: UpdateWorkLocationRequest): Promise<WorkLocation> {
+  const { data } = await client.PUT<WorkLocation>("/v1/locations/{id}", {
+    params: { path: { id } },
+    body: payload,
+  });
+  return data;
 }
 
-export async function deleteLocation(wsId: string, id: string): Promise<void> {
-  await client.DELETE("/v1/workspaces/{ws_id}/locations/{id}", {
-            params: { path: { ws_id: wsId, id } }
-      });
+export async function deleteLocation(id: string): Promise<void> {
+  await client.DELETE("/v1/locations/{id}", {
+    params: { path: { id } },
+  });
 }

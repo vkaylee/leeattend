@@ -19,7 +19,6 @@ import { cn } from '@/lib/utils';
 interface OvertimeRuleEditorProps {
   policyId: string;
   rules: OvertimeRule[];
-  wsId: string;
 }
 
 function OvertimeRuleInputs({
@@ -172,7 +171,7 @@ function OvertimeRuleForm({
   );
 }
 
-export default function OvertimeRuleEditor({ wsId, policyId, rules }: OvertimeRuleEditorProps) {
+export default function OvertimeRuleEditor({policyId, rules }: OvertimeRuleEditorProps) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const toast = useToast();
@@ -181,7 +180,7 @@ export default function OvertimeRuleEditor({ wsId, policyId, rules }: OvertimeRu
   const addMutation = useMutation({
     mutationFn: (data: Partial<OvertimeRule>) => {
       if (data.multiplier === undefined) throw new Error("Multiplier is required");
-      return addOvertimeRule(wsId, policyId, {
+      return addOvertimeRule(policyId, {
         days_of_week: data.days_of_week ?? 127,
         is_holiday: !!data.is_holiday,
         multiplier: data.multiplier,

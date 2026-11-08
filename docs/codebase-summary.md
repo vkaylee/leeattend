@@ -1,6 +1,6 @@
 # Codebase Summary
 
-**Last Updated:** 2026-11-03
+**Last Updated:** 2026-11-08
 
 LeeAttend is an attendance and payroll system with a Go API server and React/Vite dashboard.
 
@@ -10,14 +10,14 @@ LeeAttend is an attendance and payroll system with a Go API server and React/Vit
 
 Go `net/http` service using `pgx/v5` and PostgreSQL. Responsibilities:
 
-- authenticated REST APIs for workspace-scoped employees, attendance, payroll, files, and monitoring;
-- transactional bootstrap of exactly one configured workspace and administrator.
+- authenticated REST APIs for organization-wide employees, attendance, payroll, files, and monitoring;
+- transactional bootstrap of one organization and its first administrator.
 
-All system and workspace tables share one PostgreSQL database. The runtime rejects workspace IDs other than the configured singleton before repository access.
+All system and business tables share one PostgreSQL database. The final schema uses singleton `organization_settings`, direct user roles, and no workspace tables or `workspace_id` columns.
 
 ### `webdashboard/`
 
-React 19, Vite, TypeScript, Tailwind CSS 4, TanStack Query, and Tauri. The dashboard manages the configured workspace, employees, attendance, payroll, files, and monitoring.
+React 19, Vite, TypeScript, Tailwind CSS 4, TanStack Query, and Tauri. The dashboard manages organization settings, employees, attendance, payroll, files, and monitoring.
 
 
 ### Supporting infrastructure
@@ -29,17 +29,17 @@ React 19, Vite, TypeScript, Tailwind CSS 4, TanStack Query, and Tauri. The dashb
 
 ## Attendance-source flow
 
-1. The scheduler enumerates enabled attendance sources within each workspace.
+1. The scheduler enumerates enabled attendance sources within the organization.
 2. The configured provider adapter pulls bounded pages using a durable cursor.
 3. A database transaction inserts processed-event identity, imports attendance data, stages unknown employees, records errors, and advances the cursor only after commit.
-4. Provider retries and page replay are safe because event identity is unique per workspace/source.
+4. Provider retries and page replay are safe because event identity is unique per organization/source.
 
 No separate edge process, ingestion WebSocket protocol, or local attendance database remains in the runtime topology.
 
 ## Security and tenancy
 
-- Singleton workspace binding scopes application queries.
-- JWT authentication and workspace RBAC protect API routes.
+- One implicit organization; no client-selectable tenant scope.
+- JWT authentication and direct user-role authorization protect API routes.
 - Provider tokens stay out of logs, metrics, traces, and error payloads.
 - Attendance payloads and employee identifiers are treated as sensitive data.
 

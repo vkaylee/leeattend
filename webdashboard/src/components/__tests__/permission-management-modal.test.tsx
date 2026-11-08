@@ -16,7 +16,6 @@ vi.mock("../../lib/api", () => ({
   fetchPermissionCatalog: vi.fn(),
   assignExtraPermission: vi.fn(),
   revokeExtraPermission: vi.fn(),
-  getStandaloneOrganizationId: vi.fn(() => "test-ws-id"),
 }));
 
 // Mock window.confirm
@@ -95,7 +94,7 @@ describe("PermissionManagementModal", () => {
     await user.click(confirmModalButton);
 
     await waitFor(() => {
-      expect(api.revokeExtraPermission).toHaveBeenCalledWith("test-ws-id", "user-1", "perm-1");
+      expect(api.revokeExtraPermission).toHaveBeenCalledWith("user-1", "perm-1");
     });
   });
 
@@ -144,9 +143,7 @@ describe("PermissionManagementModal", () => {
     await user.click(assignButton);
 
     await waitFor(() => {
-      expect(api.assignExtraPermission).toHaveBeenCalledWith(
-        "test-ws-id",
-        "user-1",
+      expect(api.assignExtraPermission).toHaveBeenCalledWith("user-1",
         "settings:read",
         expect.any(String) // ISO string
       );

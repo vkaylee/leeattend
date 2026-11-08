@@ -16,11 +16,9 @@ export interface UseFileUploadOptions {
   onSuccess?: (file: WorkspaceFile) => void;
   ownerId: string;
   ownerType: string;
-  workspaceId: string;
 }
 
 export function useFileUpload({
-  workspaceId,
   category,
   ownerType,
   ownerId,
@@ -49,8 +47,7 @@ export function useFileUpload({
         // FormData at runtime, so we bridge the body with `never` (output
         // position). openapi-fetch's defaultBodySerializer handles FormData
         // natively, so no custom serializer is needed. See coding-standard §10.1.
-        const { data, error } = await client.POST('/v1/workspaces/{ws_id}/files/upload', {
-            params: { path: { ws_id: workspaceId } },
+        const { data, error } = await client.POST('/v1/files/upload', {
             body: formData as never,
         });
 
@@ -66,8 +63,7 @@ export function useFileUpload({
         // `{ file, upload_url }` payload below (backend-schema drift).
         let presignedData: PresignedUploadResponse;
         try {
-          const { data } = await fetch<PresignedUploadResponse>("POST", "/v1/workspaces/{ws_id}/files/presigned", {
-            params: { path: { ws_id: workspaceId } },
+          const { data } = await fetch<PresignedUploadResponse>("POST", "/v1/files/presigned", {
             body: {
               category: category as components["schemas"]["FileCategory"],
               content_hash: contentHash,

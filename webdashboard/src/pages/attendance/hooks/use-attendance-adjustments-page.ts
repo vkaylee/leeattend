@@ -11,7 +11,6 @@ import { useInfiniteScroll } from "@/hooks/use-infinite-scroll";
 import {
   fetchWorkspaceAttendanceAdjustments,
   approveAttendanceAdjustment,
-  getStandaloneOrganizationId,
   PaginatedResponse,
   AttendanceAdjustmentRequest,
 } from "@/lib/api";
@@ -26,7 +25,7 @@ const PAGE_SIZE = 20;
 
 export function useAttendanceAdjustmentsPage() {
   const { t } = useTranslation();
-  const wsId = getStandaloneOrganizationId();
+  
   const queryClient = useQueryClient();
   const { formatDate, formatTime } = useDateTimeFormatter();
   const toast = useToast();
@@ -51,23 +50,21 @@ export function useAttendanceAdjustmentsPage() {
     hasNextPage,
     isFetchingNextPage,
   } = useInfiniteQuery<PaginatedResponse<AttendanceAdjustmentRequest>>({
-    queryKey: ["attendance-adjustments", wsId, activeTab, employeeId, statusFilter],
+    queryKey: ["attendance-adjustments", activeTab, employeeId, statusFilter],
     queryFn: ({ pageParam }) => {
-      return wsId
-        ? fetchWorkspaceAttendanceAdjustments(wsId, {
-            status: activeTab !== "behalf_assignments" && statusFilter !== "all" ? statusFilter : undefined,
-            employee_id: employeeId,
-            page: pageParam as number,
-            limit: PAGE_SIZE,
-          })
-        : Promise.reject(new Error("No workspace ID"));
+      return fetchWorkspaceAttendanceAdjustments({
+        status: activeTab !== "behalf_assignments" && statusFilter !== "all" ? statusFilter : undefined,
+        employee_id: employeeId,
+        page: pageParam as number,
+        limit: PAGE_SIZE,
+      });
     },
     getNextPageParam: (lastPage, allPages) => {
       const totalLoaded = allPages.reduce((sum, p) => sum + (p.data.length || 0), 0);
       return totalLoaded >= (lastPage.total || 0) ? undefined : allPages.length + 1;
     },
     initialPageParam: 1,
-    enabled: !!wsId && activeTab !== "behalf_assignments",
+    enabled: activeTab !== "behalf_assignments",
   });
 
   const requests = useMemo(
@@ -82,11 +79,11 @@ export function useAttendanceAdjustmentsPage() {
     fetchNextPage: () => { void fetchNextPage(); },
   });
 
-  const { employees } = useAllEmployees(wsId);
+  const { employees } = useAllEmployees();
 
   const approveMutation = useMutation({
     mutationFn: (data: { id: string; status: "pending" | "approved" | "rejected" }) =>
-      wsId ? approveAttendanceAdjustment(wsId, data.id, { status: data.status }) : Promise.reject(new Error("No workspace ID")),
+      approveAttendanceAdjustment(data.id, { status: data.status }),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["attendance-adjustments"] });
       void queryClient.invalidateQueries({ queryKey: ["time-history"] });
@@ -132,7 +129,6 @@ export function useAttendanceAdjustmentsPage() {
   };
 
   return {
-    wsId,
     t,
     formatDate,
     formatTime,

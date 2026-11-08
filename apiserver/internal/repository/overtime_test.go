@@ -14,7 +14,6 @@ import (
 )
 
 func TestOvertimeRepository_ListOvertimePolicies(t *testing.T) {
-	wsID := uuid.New()
 	policyID := uuid.New()
 	now := time.Now().UTC()
 	db := &fakeDBTX{
@@ -31,7 +30,7 @@ func TestOvertimeRepository_ListOvertimePolicies(t *testing.T) {
 			desc := "Standard Overtime Policy"
 			return &rowsStub{
 				data: [][]any{
-					{policyID, wsID, "Standard", &desc, now, now},
+					{policyID, "Standard", &desc, now, now},
 				},
 			}, nil
 		},
@@ -39,7 +38,7 @@ func TestOvertimeRepository_ListOvertimePolicies(t *testing.T) {
 	repo := OvertimeRepository{
 		DB: db,
 	}
-	res, err := repo.ListOvertimePolicies(context.Background(), wsID, 1, 50)
+	res, err := repo.ListOvertimePolicies(context.Background(), 1, 50)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -49,7 +48,6 @@ func TestOvertimeRepository_ListOvertimePolicies(t *testing.T) {
 }
 
 func TestOvertimeRepository_CreateAndGetPolicy(t *testing.T) {
-	wsID := uuid.New()
 	policyID := uuid.New()
 	ruleID := uuid.New()
 	now := time.Now().UTC()
@@ -59,11 +57,10 @@ func TestOvertimeRepository_CreateAndGetPolicy(t *testing.T) {
 			desc := "Created Policy"
 			return fakeRow{scanFn: func(dest ...any) error {
 				*(dest[0].(*uuid.UUID)) = policyID
-				*(dest[1].(*uuid.UUID)) = wsID
-				*(dest[2].(*string)) = "Standard"
-				*(dest[3].(**string)) = &desc
+				*(dest[1].(*string)) = "Standard"
+				*(dest[2].(**string)) = &desc
+				*(dest[3].(*time.Time)) = now
 				*(dest[4].(*time.Time)) = now
-				*(dest[5].(*time.Time)) = now
 				return nil
 			}}
 		},
@@ -80,14 +77,14 @@ func TestOvertimeRepository_CreateAndGetPolicy(t *testing.T) {
 	repo := OvertimeRepository{
 		DB: db,
 	}
-	created, err := repo.CreateOvertimePolicy(context.Background(), wsID, api.CreateOvertimePolicyRequest{Name: "Standard"})
+	created, err := repo.CreateOvertimePolicy(context.Background(), api.CreateOvertimePolicyRequest{Name: "Standard"})
 	if err != nil {
 		t.Fatalf("unexpected create err: %v", err)
 	}
 	if created.ID != policyID {
 		t.Fatalf("unexpected created policy: %+v", created)
 	}
-	detail, err := repo.GetOvertimePolicy(context.Background(), wsID, policyID)
+	detail, err := repo.GetOvertimePolicy(context.Background(), policyID)
 	if err != nil {
 		t.Fatalf("unexpected get err: %v", err)
 	}
@@ -97,7 +94,6 @@ func TestOvertimeRepository_CreateAndGetPolicy(t *testing.T) {
 }
 
 func TestOvertimeRepository_SubmitOvertimeRequest(t *testing.T) {
-	wsID := uuid.New()
 	reqID := uuid.New()
 	empID := uuid.New()
 
@@ -121,12 +117,12 @@ func TestOvertimeRepository_SubmitOvertimeRequest(t *testing.T) {
 	}
 
 	repo := OvertimeRepository{
-		BeginTx: func(_ context.Context, _ uuid.UUID) (TxBeginner, error) {
+		BeginTx: func(_ context.Context) (TxBeginner, error) {
 			return fakeTxBeginner{tx: tx}, nil
 		},
 	}
 
-	err := repo.SubmitOvertimeRequest(context.Background(), wsID, reqID)
+	err := repo.SubmitOvertimeRequest(context.Background(), reqID)
 	if err != nil {
 		t.Fatalf("unexpected submit err: %v", err)
 	}
@@ -136,7 +132,6 @@ func TestOvertimeRepository_SubmitOvertimeRequest(t *testing.T) {
 }
 
 func TestOvertimeRepository_ClaimAndApprove(t *testing.T) {
-	wsID := uuid.New()
 	empID := uuid.New()
 	user := uuid.New()
 	employmentID := uuid.New()
@@ -183,20 +178,18 @@ func TestOvertimeRepository_ClaimAndApprove(t *testing.T) {
 
 	repo := OvertimeRepository{
 		DB: db,
-		BeginTx: func(_ context.Context, _ uuid.UUID) (TxBeginner, error) {
+		BeginTx: func(_ context.Context) (TxBeginner, error) {
 			return fakeTxBeginner{tx: tx}, nil
 		},
 	}
-
-	err := repo.ClaimOvertime(context.Background(), wsID, empID, api.ClaimOTRequest{Date: "2026-10-20", ClaimedMinutes: 60}, user)
+	err := repo.ClaimOvertime(context.Background(), empID, api.ClaimOTRequest{Date: "2026-10-20", ClaimedMinutes: 60}, user)
 	if err != nil {
 		t.Fatalf("unexpected claim err: %v", err)
 	}
 	if !tx.committed {
 		t.Fatal("expected claim transaction commit")
 	}
-
-	err = repo.ApproveOvertime(context.Background(), wsID, empID, api.ApproveOTRequest{Date: "2026-10-20", ApprovedMinutes: 60, Status: "approved"}, user)
+	err = repo.ApproveOvertime(context.Background(), empID, api.ApproveOTRequest{Date: "2026-10-20", ApprovedMinutes: 60, Status: "approved"}, user)
 	if err != nil {
 		t.Fatalf("unexpected approve err: %v", err)
 	}

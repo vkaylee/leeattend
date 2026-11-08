@@ -8,7 +8,6 @@ import EmptyState from "@/components/ui/empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/components/ui/toast";
 import { Typography } from "@/components/ui/typography";
-import { getStandaloneOrganizationId } from "@/lib/api";
 import { WorkLocation } from "@/lib/api/locations";
 import { cn } from "@/lib/utils";
 
@@ -18,9 +17,9 @@ import { useLocations, useDeleteLocation } from "./hooks/use-locations";
 
 export default function LocationsSettings() {
   const { t } = useTranslation();
-  const wsId = getStandaloneOrganizationId() ?? "";
-  const { data: locations, isLoading } = useLocations(wsId);
-  const deleteLocation = useDeleteLocation(wsId);
+  
+  const { data: locations, isLoading } = useLocations();
+  const deleteLocation = useDeleteLocation();
   const toast = useToast();
   
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
@@ -183,13 +182,10 @@ export default function LocationsSettings() {
         )}
       </div>
 
-      <LocationFormDrawer 
-        editingLocation={editingLocation} 
-        isOpen={isDrawerOpen} 
-        key={isDrawerOpen ? (editingLocation?.id ?? 'new') : 'closed'}
-        onClose={() => { setIsDrawerOpen(false); }}
-        wsId={wsId}
-      />
+      <LocationFormDrawer editingLocation={editingLocation} 
+      isOpen={isDrawerOpen} 
+      key={isDrawerOpen ? (editingLocation?.id ?? 'new') : 'closed'}
+      onClose={() => { setIsDrawerOpen(false); }}  />
     </div>
   );
 }

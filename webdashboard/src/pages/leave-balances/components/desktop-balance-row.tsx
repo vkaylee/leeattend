@@ -3,7 +3,7 @@ import React from "react";
 import { useTranslation } from "react-i18next";
 
 import Button from "@/components/ui/button";
-import { WorkspaceLeaveBalance } from "@/lib/api/types";
+import { LeaveBalance } from "@/lib/api/types";
 import { cn } from "@/lib/utils";
 
 interface DesktopBalanceRowProps {

@@ -7,7 +7,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { ToastProvider } from "../../components/ui/toast";
 import { useBehalfAssignments } from "../../hooks/use-behalf-assignments";
-import { fetchAllWorkspaceMembers, fetchDepartments } from "../../lib/api";
+import { fetchAllOrganizationMembers, fetchDepartments } from "../../lib/api";
 import { BehalfAssignmentsTab } from "../approvals/components/behalf-assignments-tab";
 
 // Mock toast
@@ -265,7 +265,7 @@ describe("BehalfAssignmentsTab", () => {
     vi.mocked(useBehalfAssignments).mockReturnValue(defaultHookReturn);
 
     vi.mocked(fetchDepartments).mockResolvedValue(mockDepartments);
-    vi.mocked(fetchAllWorkspaceMembers).mockResolvedValue(mockMembers);
+    vi.mocked(fetchAllOrganizationMembers).mockResolvedValue(mockMembers);
   });
 
   it("renders loading state when initial loading is true", () => {
@@ -280,12 +280,12 @@ describe("BehalfAssignmentsTab", () => {
       isDeleting: false,
     });
 
-    render(<BehalfAssignmentsTab wsId="ws-1" />, { wrapper });
+    render(<BehalfAssignmentsTab />, { wrapper });
     expect(screen.getByText("Loading...")).toBeDefined();
   });
 
   it("renders empty state when no assignments exist", () => {
-    render(<BehalfAssignmentsTab wsId="ws-1" />, { wrapper });
+    render(<BehalfAssignmentsTab />, { wrapper });
     expect(screen.getByText("No Behalf Assignments Configured")).toBeDefined();
   });
 
@@ -301,7 +301,7 @@ describe("BehalfAssignmentsTab", () => {
       isDeleting: false,
     });
 
-    render(<BehalfAssignmentsTab wsId="ws-1" />, { wrapper });
+    render(<BehalfAssignmentsTab />, { wrapper });
 
     await waitFor(() => {
       // Assignments claimant
@@ -320,7 +320,7 @@ describe("BehalfAssignmentsTab", () => {
 
   it("opens modal on Add Assignment click", async () => {
     const user = userEvent.setup();
-    render(<BehalfAssignmentsTab wsId="ws-1" />, { wrapper });
+    render(<BehalfAssignmentsTab />, { wrapper });
 
     await user.click(screen.getByText("Add Assignment"));
     expect(screen.getByTestId("mock-modal")).toBeDefined();
@@ -329,7 +329,7 @@ describe("BehalfAssignmentsTab", () => {
 
   it("validates form inputs and shows error toasts", async () => {
     const user = userEvent.setup();
-    render(<BehalfAssignmentsTab wsId="ws-1" />, { wrapper });
+    render(<BehalfAssignmentsTab />, { wrapper });
 
     await user.click(screen.getByText("Add Assignment"));
 
@@ -356,7 +356,7 @@ describe("BehalfAssignmentsTab", () => {
   it("submits the form successfully for employee target", async () => {
     mockCreateAssignment.mockResolvedValue({});
     const user = userEvent.setup();
-    render(<BehalfAssignmentsTab wsId="ws-1" />, { wrapper });
+    render(<BehalfAssignmentsTab />, { wrapper });
 
     await user.click(screen.getByText("Add Assignment"));
 
@@ -383,7 +383,7 @@ describe("BehalfAssignmentsTab", () => {
   it("submits the form successfully for department target", async () => {
     mockCreateAssignment.mockResolvedValue({});
     const user = userEvent.setup();
-    render(<BehalfAssignmentsTab wsId="ws-1" />, { wrapper });
+    render(<BehalfAssignmentsTab />, { wrapper });
 
     await user.click(screen.getByText("Add Assignment"));
 
@@ -425,7 +425,7 @@ describe("BehalfAssignmentsTab", () => {
 
     mockDeleteAssignment.mockResolvedValue({});
     const user = userEvent.setup();
-    render(<BehalfAssignmentsTab wsId="ws-1" />, { wrapper });
+    render(<BehalfAssignmentsTab />, { wrapper });
 
     const deleteButtons = screen.getAllByRole("button");
     // The trash icons are in ghost buttons. Let's find buttons containing SVGs or specific classes
@@ -442,7 +442,7 @@ describe("BehalfAssignmentsTab", () => {
 
   describe("assignmentType=attendance_adjustment", () => {
     it("renders correct empty state text for attendance_adjustment type", () => {
-      render(<BehalfAssignmentsTab assignmentType="attendance_adjustment" wsId="ws-1" />, { wrapper });
+      render(<BehalfAssignmentsTab assignmentType="attendance_adjustment" />, { wrapper });
       expect(screen.getByText("No Behalf Adjustment Assignments Configured")).toBeDefined();
     });
 
@@ -473,14 +473,14 @@ describe("BehalfAssignmentsTab", () => {
         };
       });
 
-      render(<BehalfAssignmentsTab assignmentType="attendance_adjustment" wsId="ws-1" />, { wrapper });
+      render(<BehalfAssignmentsTab assignmentType="attendance_adjustment" />, { wrapper });
 
       expect(useBehalfAssignments).toHaveBeenCalledWith("attendance_adjustment");
       expect(screen.getAllByText("Alice Smith").length).toBe(2);
     });
 
     it("renders correct empty state description for attendance_adjustment type", () => {
-      render(<BehalfAssignmentsTab assignmentType="attendance_adjustment" wsId="ws-1" />, { wrapper });
+      render(<BehalfAssignmentsTab assignmentType="attendance_adjustment" />, { wrapper });
       expect(
         screen.getByText(/scope their adjustment access/)
       ).toBeDefined();
@@ -514,7 +514,7 @@ describe("BehalfAssignmentsTab", () => {
       });
 
       const user = userEvent.setup();
-      render(<BehalfAssignmentsTab assignmentType="attendance_adjustment" wsId="ws-1" />, { wrapper });
+      render(<BehalfAssignmentsTab assignmentType="attendance_adjustment" />, { wrapper });
 
       await user.click(screen.getByText("Add Assignment"));
 
@@ -540,12 +540,12 @@ describe("BehalfAssignmentsTab", () => {
 
   describe("assignmentType=leave", () => {
     it("renders correct empty state text for leave type", () => {
-      render(<BehalfAssignmentsTab assignmentType="leave" wsId="ws-1" />, { wrapper });
+      render(<BehalfAssignmentsTab assignmentType="leave" />, { wrapper });
       expect(screen.getByText("No Behalf Leave Assignments Configured")).toBeDefined();
     });
 
     it("renders correct empty state description for leave type", () => {
-      render(<BehalfAssignmentsTab assignmentType="leave" wsId="ws-1" />, { wrapper });
+      render(<BehalfAssignmentsTab assignmentType="leave" />, { wrapper });
       expect(
         screen.getByText(/scope their leave request access/)
       ).toBeDefined();
@@ -554,19 +554,19 @@ describe("BehalfAssignmentsTab", () => {
 
   describe("assignmentType=overtime_request", () => {
     it("renders correct empty state text for overtime_request type", () => {
-      render(<BehalfAssignmentsTab assignmentType="overtime_request" wsId="ws-1" />, { wrapper });
+      render(<BehalfAssignmentsTab assignmentType="overtime_request" />, { wrapper });
       expect(screen.getByText("No Behalf Pre-OT Assignments Configured")).toBeDefined();
     });
 
     it("renders correct empty state description for overtime_request type", () => {
-      render(<BehalfAssignmentsTab assignmentType="overtime_request" wsId="ws-1" />, { wrapper });
+      render(<BehalfAssignmentsTab assignmentType="overtime_request" />, { wrapper });
       expect(
         screen.getByText(/scope their Pre-OT request access/)
       ).toBeDefined();
     });
 
     it("uses useBehalfAssignments hook with 'overtime_request'", () => {
-      render(<BehalfAssignmentsTab assignmentType="overtime_request" wsId="ws-1" />, { wrapper });
+      render(<BehalfAssignmentsTab assignmentType="overtime_request" />, { wrapper });
       expect(useBehalfAssignments).toHaveBeenCalledWith("overtime_request");
     });
   });

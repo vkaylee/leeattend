@@ -14,52 +14,52 @@ import (
 )
 
 type mockHolidayRepository struct {
-	listFn         func(ctx context.Context, wsID uuid.UUID, year *int32, locID *uuid.UUID, page, limit int64) (PaginatedHolidays, error)
-	getFn          func(ctx context.Context, wsID, id uuid.UUID) (HolidayRecord, error)
-	createFn       func(ctx context.Context, wsID uuid.UUID, req CreateHolidayRequest) (HolidayRecord, error)
-	updateFn       func(ctx context.Context, wsID, id uuid.UUID, req UpdateHolidayRequest) (HolidayRecord, error)
-	deleteFn       func(ctx context.Context, wsID, id uuid.UUID) error
-	processLeaveFn func(ctx context.Context, wsID, id uuid.UUID) ([]HolidayLeaveResult, error)
+	listFn         func(ctx context.Context, year *int32, locID *uuid.UUID, page, limit int64) (PaginatedHolidays, error)
+	getFn          func(ctx context.Context, id uuid.UUID) (HolidayRecord, error)
+	createFn       func(ctx context.Context, req CreateHolidayRequest) (HolidayRecord, error)
+	updateFn       func(ctx context.Context, id uuid.UUID, req UpdateHolidayRequest) (HolidayRecord, error)
+	deleteFn       func(ctx context.Context, id uuid.UUID) error
+	processLeaveFn func(ctx context.Context, id uuid.UUID) ([]HolidayLeaveResult, error)
 }
 
-func (m *mockHolidayRepository) ListHolidays(ctx context.Context, wsID uuid.UUID, year *int32, locID *uuid.UUID, page, limit int64) (PaginatedHolidays, error) {
+func (m *mockHolidayRepository) ListHolidays(ctx context.Context, year *int32, locID *uuid.UUID, page, limit int64) (PaginatedHolidays, error) {
 	if m.listFn != nil {
-		return m.listFn(ctx, wsID, year, locID, page, limit)
+		return m.listFn(ctx, year, locID, page, limit)
 	}
 	return PaginatedHolidays{Data: []HolidayRecord{}, Total: 0, Page: page, Limit: limit}, nil
 }
 
-func (m *mockHolidayRepository) GetHolidayByID(ctx context.Context, wsID, id uuid.UUID) (HolidayRecord, error) {
+func (m *mockHolidayRepository) GetHolidayByID(ctx context.Context, id uuid.UUID) (HolidayRecord, error) {
 	if m.getFn != nil {
-		return m.getFn(ctx, wsID, id)
+		return m.getFn(ctx, id)
 	}
-	return HolidayRecord{ID: id, WorkspaceID: wsID, Name: "Tet", Date: "2026-02-17", HolidayType: "national", IsPaid: true}, nil
+	return HolidayRecord{ID: id, Name: "Tet", Date: "2026-02-17", HolidayType: "national", IsPaid: true}, nil
 }
 
-func (m *mockHolidayRepository) CreateHoliday(ctx context.Context, wsID uuid.UUID, req CreateHolidayRequest) (HolidayRecord, error) {
+func (m *mockHolidayRepository) CreateHoliday(ctx context.Context, req CreateHolidayRequest) (HolidayRecord, error) {
 	if m.createFn != nil {
-		return m.createFn(ctx, wsID, req)
+		return m.createFn(ctx, req)
 	}
-	return HolidayRecord{ID: uuid.New(), WorkspaceID: wsID, Name: req.Name, Date: req.Date, HolidayType: "national", IsPaid: true}, nil
+	return HolidayRecord{ID: uuid.New(), Name: req.Name, Date: req.Date, HolidayType: "national", IsPaid: true}, nil
 }
 
-func (m *mockHolidayRepository) UpdateHoliday(ctx context.Context, wsID, id uuid.UUID, req UpdateHolidayRequest) (HolidayRecord, error) {
+func (m *mockHolidayRepository) UpdateHoliday(ctx context.Context, id uuid.UUID, req UpdateHolidayRequest) (HolidayRecord, error) {
 	if m.updateFn != nil {
-		return m.updateFn(ctx, wsID, id, req)
+		return m.updateFn(ctx, id, req)
 	}
-	return HolidayRecord{ID: id, WorkspaceID: wsID, Name: "Updated", Date: "2026-02-17", HolidayType: "national", IsPaid: true}, nil
+	return HolidayRecord{ID: id, Name: "Updated", Date: "2026-02-17", HolidayType: "national", IsPaid: true}, nil
 }
 
-func (m *mockHolidayRepository) DeleteHoliday(ctx context.Context, wsID, id uuid.UUID) error {
+func (m *mockHolidayRepository) DeleteHoliday(ctx context.Context, id uuid.UUID) error {
 	if m.deleteFn != nil {
-		return m.deleteFn(ctx, wsID, id)
+		return m.deleteFn(ctx, id)
 	}
 	return nil
 }
 
-func (m *mockHolidayRepository) ProcessHolidayLeave(ctx context.Context, wsID, id uuid.UUID) ([]HolidayLeaveResult, error) {
+func (m *mockHolidayRepository) ProcessHolidayLeave(ctx context.Context, id uuid.UUID) ([]HolidayLeaveResult, error) {
 	if m.processLeaveFn != nil {
-		return m.processLeaveFn(ctx, wsID, id)
+		return m.processLeaveFn(ctx, id)
 	}
 	return []HolidayLeaveResult{{Type: "Paid"}}, nil
 }
@@ -69,27 +69,42 @@ type mockHolidayAuthorizer struct {
 	permissions map[string]bool
 }
 
-func (a mockHolidayAuthorizer) IsMember(context.Context, uuid.UUID, uuid.UUID) (bool, error) {
+func (a mockHolidayAuthorizer) IsMember(context.Context, uuid.UUID) (bool, error) {
 	return a.isMember, nil
 }
 
-func (a mockHolidayAuthorizer) EffectivePermissions(context.Context, uuid.UUID, uuid.UUID) ([]string, []string, error) {
+func (a mockHolidayAuthorizer) EffectivePermissions(context.Context, uuid.UUID) ([]string, []string, error) {
 	return nil, nil, nil
 }
 
-func (a mockHolidayAuthorizer) HasPermission(_ context.Context, _, _ uuid.UUID, perm string) bool {
+func (a mockHolidayAuthorizer) HasPermission(_ context.Context, _ uuid.UUID, perm string) bool {
 	return a.permissions[perm]
 }
 
+func (a mockHolidayAuthorizer) GetManagedDepartmentIDs(context.Context, uuid.UUID) ([]uuid.UUID, error) {
+	return nil, nil
+}
+
+func (a mockHolidayAuthorizer) IsGlobalManager(context.Context, uuid.UUID) bool {
+	return false
+}
+
+func (a mockHolidayAuthorizer) HasScopedPermission(context.Context, uuid.UUID, string, *uuid.UUID) bool {
+	return false
+}
+
+func (a mockHolidayAuthorizer) GetUsersWithPermission(context.Context, string) ([]uuid.UUID, error) {
+	return nil, nil
+}
+
 func TestHolidayHandler_Unauthenticated(t *testing.T) {
-	wsID := uuid.New()
 	handler := HolidayHandler{
 		Repository: &mockHolidayRepository{},
 		Authorizer: mockHolidayAuthorizer{isMember: true},
 	}
 
-	req := httptest.NewRequest(http.MethodGet, "/api/v1/workspaces/"+wsID.String()+"/holidays", nil)
-	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
+	req := httptest.NewRequest(http.MethodGet, "/api/v1" + "/holidays", nil)
+	
 	rec := httptest.NewRecorder()
 	handler.List(rec, req)
 
@@ -99,15 +114,14 @@ func TestHolidayHandler_Unauthenticated(t *testing.T) {
 }
 
 func TestHolidayHandler_NonMemberForbidden(t *testing.T) {
-	wsID := uuid.New()
 	userID := uuid.New()
 	handler := HolidayHandler{
 		Repository: &mockHolidayRepository{},
 		Authorizer: mockHolidayAuthorizer{isMember: false},
 	}
 
-	req := httptest.NewRequest(http.MethodGet, "/api/v1/workspaces/"+wsID.String()+"/holidays", nil)
-	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
+	req := httptest.NewRequest(http.MethodGet, "/api/v1" + "/holidays", nil)
+	
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), userID))
 	rec := httptest.NewRecorder()
 	handler.List(rec, req)
@@ -118,7 +132,6 @@ func TestHolidayHandler_NonMemberForbidden(t *testing.T) {
 }
 
 func TestHolidayHandler_ListPaginationAndFilters(t *testing.T) {
-	wsID := uuid.New()
 	userID := uuid.New()
 	locID := uuid.New()
 	var capturedYear *int32
@@ -126,7 +139,7 @@ func TestHolidayHandler_ListPaginationAndFilters(t *testing.T) {
 	var capturedPage, capturedLimit int64
 
 	repo := &mockHolidayRepository{
-		listFn: func(_ context.Context, _ uuid.UUID, year *int32, loc *uuid.UUID, page, limit int64) (PaginatedHolidays, error) {
+		listFn: func(_ context.Context, year *int32, loc *uuid.UUID, page, limit int64) (PaginatedHolidays, error) {
 			capturedYear = year
 			capturedLoc = loc
 			capturedPage = page
@@ -135,7 +148,6 @@ func TestHolidayHandler_ListPaginationAndFilters(t *testing.T) {
 				Data: []HolidayRecord{
 					{
 						ID:          uuid.New(),
-						WorkspaceID: wsID,
 						Name:        "New Year",
 						Date:        "2026-01-01",
 						HolidayType: "national",
@@ -153,8 +165,8 @@ func TestHolidayHandler_ListPaginationAndFilters(t *testing.T) {
 		Authorizer: mockHolidayAuthorizer{isMember: true},
 	}
 
-	req := httptest.NewRequest(http.MethodGet, "/api/v1/workspaces/"+wsID.String()+"/holidays?year=2026&location_id="+locID.String()+"&page=2&limit=25", nil)
-	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
+	req := httptest.NewRequest(http.MethodGet, "/api/v1" + "/holidays?year=2026&location_id="+locID.String()+"&page=2&limit=25", nil)
+	
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), userID))
 	rec := httptest.NewRecorder()
 	handler.List(rec, req)
@@ -174,11 +186,10 @@ func TestHolidayHandler_ListPaginationAndFilters(t *testing.T) {
 }
 
 func TestHolidayHandler_GetNotFound(t *testing.T) {
-	wsID := uuid.New()
 	userID := uuid.New()
 	hID := uuid.New()
 	repo := &mockHolidayRepository{
-		getFn: func(context.Context, uuid.UUID, uuid.UUID) (HolidayRecord, error) {
+		getFn: func(context.Context, uuid.UUID) (HolidayRecord, error) {
 			return HolidayRecord{}, ErrHolidayNotFound
 		},
 	}
@@ -187,8 +198,8 @@ func TestHolidayHandler_GetNotFound(t *testing.T) {
 		Authorizer: mockHolidayAuthorizer{isMember: true},
 	}
 
-	req := httptest.NewRequest(http.MethodGet, "/api/v1/workspaces/"+wsID.String()+"/holidays/"+hID.String(), nil)
-	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
+	req := httptest.NewRequest(http.MethodGet, "/api/v1" + "/holidays/"+hID.String(), nil)
+	
 	req.SetPathValue("id", hID.String())
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), userID))
 	rec := httptest.NewRecorder()
@@ -200,7 +211,6 @@ func TestHolidayHandler_GetNotFound(t *testing.T) {
 }
 
 func TestHolidayHandler_CreateRequiresPermission(t *testing.T) {
-	wsID := uuid.New()
 	userID := uuid.New()
 	handler := HolidayHandler{
 		Repository: &mockHolidayRepository{},
@@ -208,8 +218,8 @@ func TestHolidayHandler_CreateRequiresPermission(t *testing.T) {
 	}
 
 	body := `{"name":"National Day","date":"2026-09-02"}`
-	req := httptest.NewRequest(http.MethodPost, "/api/v1/workspaces/"+wsID.String()+"/holidays", bytes.NewBufferString(body))
-	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
+	req := httptest.NewRequest(http.MethodPost, "/api/v1" + "/holidays", bytes.NewBufferString(body))
+	
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), userID))
 	rec := httptest.NewRecorder()
 	handler.Create(rec, req)
@@ -220,10 +230,9 @@ func TestHolidayHandler_CreateRequiresPermission(t *testing.T) {
 }
 
 func TestHolidayHandler_CreateConflict(t *testing.T) {
-	wsID := uuid.New()
 	userID := uuid.New()
 	repo := &mockHolidayRepository{
-		createFn: func(context.Context, uuid.UUID, CreateHolidayRequest) (HolidayRecord, error) {
+		createFn: func(context.Context, CreateHolidayRequest) (HolidayRecord, error) {
 			return HolidayRecord{}, ErrHolidayAlreadyExists
 		},
 	}
@@ -236,8 +245,8 @@ func TestHolidayHandler_CreateConflict(t *testing.T) {
 	}
 
 	body := `{"name":"National Day","date":"2026-09-02"}`
-	req := httptest.NewRequest(http.MethodPost, "/api/v1/workspaces/"+wsID.String()+"/holidays", bytes.NewBufferString(body))
-	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
+	req := httptest.NewRequest(http.MethodPost, "/api/v1" + "/holidays", bytes.NewBufferString(body))
+	
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), userID))
 	rec := httptest.NewRecorder()
 	handler.Create(rec, req)
@@ -248,15 +257,13 @@ func TestHolidayHandler_CreateConflict(t *testing.T) {
 }
 
 func TestHolidayHandler_CreateSuccess(t *testing.T) {
-	wsID := uuid.New()
 	userID := uuid.New()
 	createdID := uuid.New()
 	otMult := decimal.NewFromFloat(2.0)
 	repo := &mockHolidayRepository{
-		createFn: func(_ context.Context, ws uuid.UUID, r CreateHolidayRequest) (HolidayRecord, error) {
+		createFn: func(_ context.Context, r CreateHolidayRequest) (HolidayRecord, error) {
 			return HolidayRecord{
 				ID:           createdID,
-				WorkspaceID:  ws,
 				Name:         r.Name,
 				Date:         r.Date,
 				HolidayType:  "national",
@@ -274,8 +281,8 @@ func TestHolidayHandler_CreateSuccess(t *testing.T) {
 	}
 
 	body := `{"name":"National Day","date":"2026-09-02","ot_multiplier":2.0}`
-	req := httptest.NewRequest(http.MethodPost, "/api/v1/workspaces/"+wsID.String()+"/holidays", bytes.NewBufferString(body))
-	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
+	req := httptest.NewRequest(http.MethodPost, "/api/v1" + "/holidays", bytes.NewBufferString(body))
+	
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), userID))
 	rec := httptest.NewRecorder()
 	handler.Create(rec, req)
@@ -286,14 +293,12 @@ func TestHolidayHandler_CreateSuccess(t *testing.T) {
 }
 
 func TestHolidayHandler_UpdateAndPatch(t *testing.T) {
-	wsID := uuid.New()
 	userID := uuid.New()
 	hID := uuid.New()
 	repo := &mockHolidayRepository{
-		updateFn: func(_ context.Context, ws, id uuid.UUID, req UpdateHolidayRequest) (HolidayRecord, error) {
+		updateFn: func(_ context.Context, id uuid.UUID, req UpdateHolidayRequest) (HolidayRecord, error) {
 			return HolidayRecord{
 				ID:          id,
-				WorkspaceID: ws,
 				Name:        *req.Name,
 				Date:        "2026-09-02",
 				HolidayType: "company",
@@ -310,8 +315,8 @@ func TestHolidayHandler_UpdateAndPatch(t *testing.T) {
 	}
 
 	body := `{"name":"Company Anniversary","holiday_type":"company","is_paid":false}`
-	req := httptest.NewRequest(http.MethodPut, "/api/v1/workspaces/"+wsID.String()+"/holidays/"+hID.String(), bytes.NewBufferString(body))
-	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
+	req := httptest.NewRequest(http.MethodPut, "/api/v1" + "/holidays/"+hID.String(), bytes.NewBufferString(body))
+	
 	req.SetPathValue("id", hID.String())
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), userID))
 	rec := httptest.NewRecorder()
@@ -323,12 +328,11 @@ func TestHolidayHandler_UpdateAndPatch(t *testing.T) {
 }
 
 func TestHolidayHandler_DeleteSuccessAndNotFound(t *testing.T) {
-	wsID := uuid.New()
 	userID := uuid.New()
 	hID := uuid.New()
 	deleted := false
 	repo := &mockHolidayRepository{
-		deleteFn: func(_ context.Context, _, id uuid.UUID) error {
+		deleteFn: func(_ context.Context, id uuid.UUID) error {
 			if id == hID {
 				deleted = true
 				return nil
@@ -344,8 +348,8 @@ func TestHolidayHandler_DeleteSuccessAndNotFound(t *testing.T) {
 		},
 	}
 
-	req := httptest.NewRequest(http.MethodDelete, "/api/v1/workspaces/"+wsID.String()+"/holidays/"+hID.String(), nil)
-	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
+	req := httptest.NewRequest(http.MethodDelete, "/api/v1" + "/holidays/"+hID.String(), nil)
+	
 	req.SetPathValue("id", hID.String())
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), userID))
 	rec := httptest.NewRecorder()
@@ -359,8 +363,8 @@ func TestHolidayHandler_DeleteSuccessAndNotFound(t *testing.T) {
 	}
 
 	notFoundID := uuid.New()
-	req2 := httptest.NewRequest(http.MethodDelete, "/api/v1/workspaces/"+wsID.String()+"/holidays/"+notFoundID.String(), nil)
-	req2 = req2.WithContext(httpinfra.WithOrganizationIDForTest(req2.Context(), wsID))
+	req2 := httptest.NewRequest(http.MethodDelete, "/api/v1" + "/holidays/"+notFoundID.String(), nil)
+	
 	req2.SetPathValue("id", notFoundID.String())
 	req2 = req2.WithContext(httpinfra.WithUserIDForTest(req2.Context(), userID))
 	rec2 := httptest.NewRecorder()
@@ -372,7 +376,6 @@ func TestHolidayHandler_DeleteSuccessAndNotFound(t *testing.T) {
 }
 
 func TestHolidayHandler_ProcessLeaveResponses(t *testing.T) {
-	wsID := uuid.New()
 	userID := uuid.New()
 	hID := uuid.New()
 	empID := uuid.New()
@@ -413,7 +416,7 @@ func TestHolidayHandler_ProcessLeaveResponses(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			repo := &mockHolidayRepository{
-				processLeaveFn: func(context.Context, uuid.UUID, uuid.UUID) ([]HolidayLeaveResult, error) {
+				processLeaveFn: func(context.Context, uuid.UUID) ([]HolidayLeaveResult, error) {
 					if tc.repoErr != nil {
 						return nil, tc.repoErr
 					}
@@ -428,8 +431,8 @@ func TestHolidayHandler_ProcessLeaveResponses(t *testing.T) {
 				},
 			}
 
-			req := httptest.NewRequest(http.MethodPost, "/api/v1/workspaces/"+wsID.String()+"/holidays/"+hID.String()+"/process-leave", nil)
-			req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
+			req := httptest.NewRequest(http.MethodPost, "/api/v1" + "/holidays/"+hID.String()+"/process-leave", nil)
+			
 			req.SetPathValue("id", hID.String())
 			req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), userID))
 			rec := httptest.NewRecorder()

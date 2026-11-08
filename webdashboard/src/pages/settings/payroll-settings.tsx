@@ -12,24 +12,23 @@ import SalaryComponentManager from "@/components/payroll/salary-component-manage
 import { PageTabs } from "@/components/ui/page-tabs";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Typography } from "@/components/ui/typography";
-import { getStandaloneOrganizationId } from "@/lib/api";
 
 type TabType = "policy" | "components" | "bases" | "incentives" | "overtime" | "statutory_rules";
 
-function PayrollTabContent({ activeTab, wsId }: { activeTab: TabType; wsId: string }) {
+function PayrollTabContent({ activeTab }: { activeTab: TabType }) {
   switch (activeTab) {
     case "policy":
-      return <PayrollSettingsSection wsId={wsId} />;
+      return <PayrollSettingsSection   />;
     case "components":
-      return <SalaryComponentManager wsId={wsId} />;
+      return <SalaryComponentManager   />;
     case "bases":
-      return <SalaryBaseGroupManager wsId={wsId} />;
+      return <SalaryBaseGroupManager   />;
     case "overtime":
-      return <OvertimePolicyManager wsId={wsId} />;
+      return <OvertimePolicyManager   />;
     case "incentives":
-      return <BonusPolicyManager wsId={wsId} />;
+      return <BonusPolicyManager   />;
     case "statutory_rules":
-      return <PayrollRulesManager wsId={wsId} />;
+      return <PayrollRulesManager   />;
     default:
       return null;
   }
@@ -37,7 +36,7 @@ function PayrollTabContent({ activeTab, wsId }: { activeTab: TabType; wsId: stri
 
 export default function PayrollSettings() {
   const { t } = useTranslation();
-  const wsId = getStandaloneOrganizationId();
+  
 
   type ParentGroupType = "core" | "formulas" | "benefits";
 
@@ -60,9 +59,7 @@ export default function PayrollSettings() {
     (key) => subTabMapping[key].includes(activeTab)
   ) ?? "core";
 
-  if (!wsId) {
-    return <div className="p-12 text-center text-slate-500 font-bold italic uppercase tracking-widest text-xs opacity-50">{t("common.select_workspace")}</div>;
-  }
+  
 
   const navItems = [
     { id: "policy" as TabType, icon: FileText, label: t("common.settings.tabs.payroll_policy"), testId: "payroll-tab-policy" },
@@ -135,7 +132,7 @@ export default function PayrollSettings() {
 
         {/* Panel content area */}
         <div className="p-8 animate-in slide-in-from-right-4 duration-500">
-          <PayrollTabContent activeTab={activeTab} wsId={wsId} />
+          <PayrollTabContent activeTab={activeTab}  />
         </div>
       </div>
     </div>

@@ -18,7 +18,7 @@ type mockDashboardAnalyticsRepo struct {
 	tz                 string
 	executiveOverview  DashboardMetricsResponse
 	overtimeBreakdown  OvertimeBreakdownResponse
-	workspaceStats     WorkspaceStats
+	dashboardStats     DashboardStats
 	attendanceTrend    []AttendanceTrendPoint
 	deptAttendance     []DepartmentAttendancePoint
 	unexcusedAbsences  []UnexcusedAbsencesPoint
@@ -35,63 +35,63 @@ type mockDashboardAnalyticsRepo struct {
 	lastRecruitQuery   RecruitmentEffectivenessQuery
 }
 
-func (m *mockDashboardAnalyticsRepo) GetWorkspaceTimezone(ctx context.Context, wsID uuid.UUID) (string, error) {
+func (m *mockDashboardAnalyticsRepo) GetOrganizationTimezone(ctx context.Context) (string, error) {
 	if m.tz != "" {
 		return m.tz, nil
 	}
 	return "UTC", nil
 }
 
-func (m *mockDashboardAnalyticsRepo) GetExecutiveOverview(ctx context.Context, wsID uuid.UUID, q NormalizedDashboardMetricsQuery, allowOvertimeCost bool) (DashboardMetricsResponse, error) {
+func (m *mockDashboardAnalyticsRepo) GetExecutiveOverview(ctx context.Context, q NormalizedDashboardMetricsQuery, allowOvertimeCost bool) (DashboardMetricsResponse, error) {
 	m.lastExecutiveQuery = q
 	m.lastAllowCost = allowOvertimeCost
 	return m.executiveOverview, nil
 }
 
-func (m *mockDashboardAnalyticsRepo) GetOvertimeBreakdown(ctx context.Context, wsID uuid.UUID, q OvertimeBreakdownQuery, allowOvertimeCost bool) (OvertimeBreakdownResponse, error) {
+func (m *mockDashboardAnalyticsRepo) GetOvertimeBreakdown(ctx context.Context, q OvertimeBreakdownQuery, allowOvertimeCost bool) (OvertimeBreakdownResponse, error) {
 	m.lastBreakdownQuery = q
 	m.lastAllowCost = allowOvertimeCost
 	return m.overtimeBreakdown, nil
 }
 
-func (m *mockDashboardAnalyticsRepo) GetWorkspaceStats(ctx context.Context, wsID uuid.UUID, tzName string, deptIDs []uuid.UUID) (WorkspaceStats, error) {
-	return m.workspaceStats, nil
+func (m *mockDashboardAnalyticsRepo) GetDashboardStats(ctx context.Context, tzName string, deptIDs []uuid.UUID) (DashboardStats, error) {
+	return m.dashboardStats, nil
 }
 
-func (m *mockDashboardAnalyticsRepo) GetAttendanceTrend(ctx context.Context, wsID uuid.UUID, startDate, endDate time.Time, tzName string, deptIDs []uuid.UUID) ([]AttendanceTrendPoint, error) {
+func (m *mockDashboardAnalyticsRepo) GetAttendanceTrend(ctx context.Context, startDate, endDate time.Time, tzName string, deptIDs []uuid.UUID) ([]AttendanceTrendPoint, error) {
 	return m.attendanceTrend, nil
 }
 
-func (m *mockDashboardAnalyticsRepo) GetDepartmentAttendance(ctx context.Context, wsID uuid.UUID, startDate, endDate time.Time, tzName string, deptIDs []uuid.UUID, topN *int) ([]DepartmentAttendancePoint, error) {
+func (m *mockDashboardAnalyticsRepo) GetDepartmentAttendance(ctx context.Context, startDate, endDate time.Time, tzName string, deptIDs []uuid.UUID, topN *int) ([]DepartmentAttendancePoint, error) {
 	return m.deptAttendance, nil
 }
 
-func (m *mockDashboardAnalyticsRepo) GetUnexcusedAbsences(ctx context.Context, wsID uuid.UUID, startDate, endDate time.Time, tzName string, groupBy string, deptIDs []uuid.UUID) ([]UnexcusedAbsencesPoint, error) {
+func (m *mockDashboardAnalyticsRepo) GetUnexcusedAbsences(ctx context.Context, startDate, endDate time.Time, tzName string, groupBy string, deptIDs []uuid.UUID) ([]UnexcusedAbsencesPoint, error) {
 	return m.unexcusedAbsences, nil
 }
 
-func (m *mockDashboardAnalyticsRepo) GetOvertimeTrend(ctx context.Context, wsID uuid.UUID, today time.Time) ([]OvertimeTrendPoint, error) {
+func (m *mockDashboardAnalyticsRepo) GetOvertimeTrend(ctx context.Context, today time.Time) ([]OvertimeTrendPoint, error) {
 	return m.overtimeTrend, nil
 }
 
-func (m *mockDashboardAnalyticsRepo) GetPeakTimes(ctx context.Context, wsID uuid.UUID, today time.Time, tzName string) ([]PeakTimeSlot, error) {
+func (m *mockDashboardAnalyticsRepo) GetPeakTimes(ctx context.Context, today time.Time, tzName string) ([]PeakTimeSlot, error) {
 	return m.peakTimes, nil
 }
 
-func (m *mockDashboardAnalyticsRepo) GetLeaveTypesBreakdown(ctx context.Context, wsID uuid.UUID, today time.Time) ([]LeaveTypeBreakdown, error) {
+func (m *mockDashboardAnalyticsRepo) GetLeaveTypesBreakdown(ctx context.Context, today time.Time) ([]LeaveTypeBreakdown, error) {
 	return m.leaveTypes, nil
 }
 
-func (m *mockDashboardAnalyticsRepo) GetLatenessByDay(ctx context.Context, wsID uuid.UUID, startDate, endDate time.Time, tzName string, deptIDs []uuid.UUID) ([]LatenessByDay, error) {
+func (m *mockDashboardAnalyticsRepo) GetLatenessByDay(ctx context.Context, startDate, endDate time.Time, tzName string, deptIDs []uuid.UUID) ([]LatenessByDay, error) {
 	return m.latenessByDay, nil
 }
 
-func (m *mockDashboardAnalyticsRepo) GetTurnoverAnalytics(ctx context.Context, wsID uuid.UUID, q TurnoverAnalyticsQuery) (TurnoverAnalytics, error) {
+func (m *mockDashboardAnalyticsRepo) GetTurnoverAnalytics(ctx context.Context, q TurnoverAnalyticsQuery) (TurnoverAnalytics, error) {
 	m.lastTurnoverQuery = q
 	return m.turnoverAnalytics, nil
 }
 
-func (m *mockDashboardAnalyticsRepo) GetRecruitmentEffectiveness(ctx context.Context, wsID uuid.UUID, q RecruitmentEffectivenessQuery) (RecruitmentEffectivenessAnalytics, error) {
+func (m *mockDashboardAnalyticsRepo) GetRecruitmentEffectiveness(ctx context.Context, q RecruitmentEffectivenessQuery) (RecruitmentEffectivenessAnalytics, error) {
 	m.lastRecruitQuery = q
 	return m.recruitmentEffect, nil
 }
@@ -102,25 +102,74 @@ type mockDashboardAuthz struct {
 	managedDepts []uuid.UUID
 }
 
-func (a mockDashboardAuthz) HasPermission(ctx context.Context, userID, workspaceID uuid.UUID, permission string) bool {
+func (a mockDashboardAuthz) IsMember(context.Context, uuid.UUID) (bool, error) {
+	return true, nil
+}
+
+func (a mockDashboardAuthz) HasPermission(ctx context.Context, userID uuid.UUID, permission string) bool {
 	return a.permissions[permission]
 }
 
-func (a mockDashboardAuthz) GetManagedDepartmentIDs(ctx context.Context, userID, workspaceID uuid.UUID) ([]uuid.UUID, bool, error) {
-	return a.managedDepts, a.isGlobal, nil
+func (a mockDashboardAuthz) EffectivePermissions(context.Context, uuid.UUID) ([]string, []string, error) {
+	return nil, nil, nil
 }
 
-func testContext(userID, wsID uuid.UUID) context.Context {
-	ctx := context.Background()
-	ctx = httpinfra.WithUserIDForTest(ctx, userID)
-	ctx = httpinfra.WithOrganizationIDForTest(ctx, wsID)
-	return ctx
+func (a mockDashboardAuthz) GetManagedDepartmentIDs(ctx context.Context, userID uuid.UUID) ([]uuid.UUID, error) {
+	return a.managedDepts, nil
+}
+
+func (a mockDashboardAuthz) IsGlobalManager(ctx context.Context, userID uuid.UUID) bool {
+	return a.isGlobal
+}
+
+func (a mockDashboardAuthz) HasScopedPermission(ctx context.Context, userID uuid.UUID, permission string, _ *uuid.UUID) bool {
+	return a.HasPermission(ctx, userID, permission)
+}
+
+func (a mockDashboardAuthz) GetUsersWithPermission(context.Context, string) ([]uuid.UUID, error) {
+	return nil, nil
+}
+type mockNarrowScoperAuthz struct {
+	permissions map[string]bool
+	depts       []uuid.UUID
+	isGlobal    bool
+}
+
+func (a *mockNarrowScoperAuthz) IsMember(context.Context, uuid.UUID) (bool, error) {
+	return true, nil
+}
+
+func (a *mockNarrowScoperAuthz) HasPermission(ctx context.Context, userID uuid.UUID, permission string) bool {
+	return a.permissions[permission]
+}
+
+func (a *mockNarrowScoperAuthz) EffectivePermissions(context.Context, uuid.UUID) ([]string, []string, error) {
+	return nil, nil, nil
+}
+
+func (a *mockNarrowScoperAuthz) GetManagedDepartmentIDs(ctx context.Context, userID uuid.UUID) ([]uuid.UUID, error) {
+	return a.depts, nil
+}
+
+func (a *mockNarrowScoperAuthz) HasScopedPermission(ctx context.Context, userID uuid.UUID, permission string, _ *uuid.UUID) bool {
+	return a.HasPermission(ctx, userID, permission)
+}
+
+func (a *mockNarrowScoperAuthz) GetUsersWithPermission(context.Context, string) ([]uuid.UUID, error) {
+	return nil, nil
+}
+
+func (a *mockNarrowScoperAuthz) IsGlobalManager(context.Context, uuid.UUID) bool {
+	return a.isGlobal
+}
+
+func testContext(userID uuid.UUID) context.Context {
+	return httpinfra.WithUserIDForTest(context.Background(), userID)
 }
 
 func TestDashboardAnalytics_ForbiddenWithoutBasePermission(t *testing.T) {
 	userID := uuid.New()
-	wsID := uuid.New()
-	ctx := testContext(userID, wsID)
+	ctx := testContext(userID)
 
 	h := DashboardAnalyticsHandler{
 		Repository: &mockDashboardAnalyticsRepo{},
@@ -145,7 +194,6 @@ func TestDashboardAnalytics_ForbiddenWithoutBasePermission(t *testing.T) {
 		{"TurnoverAnalytics", "/api/v1/dashboard/turnover-analytics", h.TurnoverAnalytics},
 		{"RecruitmentEffectiveness", "/api/v1/dashboard/recruitment-effectiveness", h.RecruitmentEffectiveness},
 	}
-
 	for _, ep := range endpoints {
 		t.Run(ep.name, func(t *testing.T) {
 			req := httptest.NewRequest(http.MethodGet, ep.path, nil).WithContext(ctx)
@@ -160,9 +208,7 @@ func TestDashboardAnalytics_ForbiddenWithoutBasePermission(t *testing.T) {
 
 func TestDashboardAnalytics_UnexcusedAbsencesPermissions(t *testing.T) {
 	userID := uuid.New()
-	wsID := uuid.New()
-	ctx := testContext(userID, wsID)
-
+	ctx := testContext(userID)
 	repo := &mockDashboardAnalyticsRepo{
 		unexcusedAbsences: []UnexcusedAbsencesPoint{
 			{DepartmentID: uuid.New(), DepartmentName: "Logistics", UnexcusedCount: 5},
@@ -219,17 +265,14 @@ func TestDashboardAnalytics_UnexcusedAbsencesPermissions(t *testing.T) {
 
 func TestDashboardAnalytics_ExecutiveOverview(t *testing.T) {
 	userID := uuid.New()
-	wsID := uuid.New()
-	ctx := testContext(userID, wsID)
-
+	ctx := testContext(userID)
 	repo := &mockDashboardAnalyticsRepo{
 		executiveOverview: DashboardMetricsResponse{
 			ContractVersion: "executive-dashboard.v1",
-			Workspace:       DashboardWorkspaceContext{Timezone: "UTC", Currency: "USD"},
 			Context: DashboardMetricContext{
 				Period:  DashboardReportingPeriod{Key: "today"},
 				Filters: map[string]string{},
-				Scope:   DashboardMetricScope{Kind: "workspace"},
+				Scope:   DashboardMetricScope{Kind: "organization"},
 			},
 			Metrics:     []DashboardMetric{},
 			Insights:    []DashboardInsight{},
@@ -301,13 +344,10 @@ func TestDashboardAnalytics_ExecutiveOverview(t *testing.T) {
 
 func TestDashboardAnalytics_OvertimeBreakdown(t *testing.T) {
 	userID := uuid.New()
-	wsID := uuid.New()
-	ctx := testContext(userID, wsID)
-
+	ctx := testContext(userID)
 	repo := &mockDashboardAnalyticsRepo{
 		overtimeBreakdown: OvertimeBreakdownResponse{
 			ContractVersion: "overtime-breakdown.v1",
-			Workspace:       OvertimeBreakdownWorkspace{Timezone: "UTC", Currency: "USD"},
 			Rows: []OvertimeBreakdownRow{
 				{DepartmentID: uuid.New(), DepartmentName: "Eng", SystemOTHours: 10, ApprovedOTHours: 8, CostAvailable: false},
 			},
@@ -341,9 +381,7 @@ func TestDashboardAnalytics_OvertimeBreakdown(t *testing.T) {
 
 func TestDashboardAnalytics_DepartmentScoping(t *testing.T) {
 	userID := uuid.New()
-	wsID := uuid.New()
-	ctx := testContext(userID, wsID)
-
+	ctx := testContext(userID)
 	managedDept := uuid.New()
 	foreignDept := uuid.New()
 
@@ -372,15 +410,46 @@ func TestDashboardAnalytics_DepartmentScoping(t *testing.T) {
 	if rec.Code != http.StatusOK {
 		t.Fatalf("expected 200 OK for managed department, got %d: %s", rec.Code, rec.Body.String())
 	}
+
+	// 3. Global manager can access foreign department
+	hGlobal := DashboardAnalyticsHandler{
+		Repository: repo,
+		Authorizer: mockDashboardAuthz{
+			permissions: map[string]bool{string(auth.PermissionDashboardRead): true},
+			isGlobal:    true,
+		},
+	}
+	req = httptest.NewRequest(http.MethodGet, "/api/v1/dashboard/executive-overview?period=today&department_ids="+foreignDept.String(), nil).WithContext(ctx)
+	rec = httptest.NewRecorder()
+	hGlobal.ExecutiveOverview(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200 OK for global manager, got %d", rec.Code)
+	}
+
+	// 4. Narrow repository authorizer supporting GetManagedDepartmentIDs(ctx, userID) ([]uuid.UUID, bool, error)
+	narrowAuth := &mockNarrowScoperAuthz{
+		permissions: map[string]bool{string(auth.PermissionDashboardRead): true},
+		depts:       []uuid.UUID{managedDept},
+		isGlobal:    false,
+	}
+	hNarrow := DashboardAnalyticsHandler{
+		Repository: repo,
+		Authorizer: narrowAuth,
+	}
+	req = httptest.NewRequest(http.MethodGet, "/api/v1/dashboard/executive-overview?period=today&department_ids="+managedDept.String(), nil).WithContext(ctx)
+	rec = httptest.NewRecorder()
+	hNarrow.ExecutiveOverview(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200 OK with narrow repository authorizer, got %d", rec.Code)
+	}
 }
 
 func TestDashboardAnalytics_AllRemainingEndpoints(t *testing.T) {
 	userID := uuid.New()
-	wsID := uuid.New()
-	ctx := testContext(userID, wsID)
+	ctx := testContext(userID)
 
 	repo := &mockDashboardAnalyticsRepo{
-		workspaceStats: WorkspaceStats{
+		dashboardStats: DashboardStats{
 			TotalEmployees: 50,
 			AttendanceRate: NewRateQuantity(45, 50, "employees"),
 		},

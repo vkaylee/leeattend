@@ -27,7 +27,6 @@ import { Route as AuthenticatedWorkspaceProfileRouteImport } from "./routes/_aut
 import { Route as AuthenticatedWorkspacePayrollRouteImport } from "./routes/_authenticated/_workspace/payroll"
 import { Route as AuthenticatedWorkspaceOrgChartRouteImport } from "./routes/_authenticated/_workspace/org-chart"
 import { Route as AuthenticatedWorkspaceNotificationsRouteImport } from "./routes/_authenticated/_workspace/notifications"
-import { Route as AuthenticatedWorkspaceMembersRouteImport } from "./routes/_authenticated/_workspace/members"
 import { Route as AuthenticatedWorkspaceLifecycleRouteImport } from "./routes/_authenticated/_workspace/lifecycle"
 import { Route as AuthenticatedWorkspaceLeaveRequestsRouteImport } from "./routes/_authenticated/_workspace/leave-requests"
 import { Route as AuthenticatedWorkspaceLeaveBalancesRouteImport } from "./routes/_authenticated/_workspace/leave-balances"
@@ -47,7 +46,6 @@ import { Route as AuthenticatedWorkspaceSettingsIndexRouteImport } from "./route
 import { Route as AuthenticatedWorkspaceDocumentsIndexRouteImport } from "./routes/_authenticated/_workspace/documents.index"
 import { Route as AuthenticatedWorkspaceAssignmentRulesIndexRouteImport } from "./routes/_authenticated/_workspace/assignment-rules.index"
 import { Route as AuthenticatedWorkspaceApprovalsIndexRouteImport } from "./routes/_authenticated/_workspace/approvals/index"
-import { Route as AuthenticatedWorkspaceWorkspacePeopleRouteImport } from "./routes/_authenticated/_workspace/workspace/people"
 import { Route as AuthenticatedWorkspaceWorkingPatternsNewRouteImport } from "./routes/_authenticated/_workspace/working-patterns.new"
 import { Route as AuthenticatedWorkspaceShiftsRulesRouteImport } from "./routes/_authenticated/_workspace/shifts.rules"
 import { Route as AuthenticatedWorkspaceShiftsNewRouteImport } from "./routes/_authenticated/_workspace/shifts.new"
@@ -224,16 +222,6 @@ const AuthenticatedWorkspaceNotificationsRoute =
     getParentRoute: () => AuthenticatedWorkspaceRoute,
   } as any).lazy(() =>
     import("./routes/_authenticated/_workspace/notifications.lazy").then(
-      (d) => d.Route,
-    ),
-  )
-const AuthenticatedWorkspaceMembersRoute =
-  AuthenticatedWorkspaceMembersRouteImport.update({
-    id: "/members",
-    path: "/members",
-    getParentRoute: () => AuthenticatedWorkspaceRoute,
-  } as any).lazy(() =>
-    import("./routes/_authenticated/_workspace/members.lazy").then(
       (d) => d.Route,
     ),
   )
@@ -420,16 +408,6 @@ const AuthenticatedWorkspaceApprovalsIndexRoute =
     getParentRoute: () => AuthenticatedWorkspaceRoute,
   } as any).lazy(() =>
     import("./routes/_authenticated/_workspace/approvals/index.lazy").then(
-      (d) => d.Route,
-    ),
-  )
-const AuthenticatedWorkspaceWorkspacePeopleRoute =
-  AuthenticatedWorkspaceWorkspacePeopleRouteImport.update({
-    id: "/workspace/people",
-    path: "/workspace/people",
-    getParentRoute: () => AuthenticatedWorkspaceRoute,
-  } as any).lazy(() =>
-    import("./routes/_authenticated/_workspace/workspace/people.lazy").then(
       (d) => d.Route,
     ),
   )
@@ -887,7 +865,6 @@ export interface FileRoutesByFullPath {
   "/leave-balances": typeof AuthenticatedWorkspaceLeaveBalancesRoute
   "/leave-requests": typeof AuthenticatedWorkspaceLeaveRequestsRoute
   "/lifecycle": typeof AuthenticatedWorkspaceLifecycleRoute
-  "/members": typeof AuthenticatedWorkspaceMembersRoute
   "/notifications": typeof AuthenticatedWorkspaceNotificationsRoute
   "/org-chart": typeof AuthenticatedWorkspaceOrgChartRoute
   "/payroll": typeof AuthenticatedWorkspacePayrollRoute
@@ -931,7 +908,6 @@ export interface FileRoutesByFullPath {
   "/shifts/new": typeof AuthenticatedWorkspaceShiftsNewRoute
   "/shifts/rules": typeof AuthenticatedWorkspaceShiftsRulesRouteWithChildren
   "/working-patterns/new": typeof AuthenticatedWorkspaceWorkingPatternsNewRoute
-  "/workspace/people": typeof AuthenticatedWorkspaceWorkspacePeopleRoute
   "/approvals/": typeof AuthenticatedWorkspaceApprovalsIndexRoute
   "/assignment-rules/": typeof AuthenticatedWorkspaceAssignmentRulesIndexRoute
   "/documents/": typeof AuthenticatedWorkspaceDocumentsIndexRoute
@@ -968,7 +944,6 @@ export interface FileRoutesByTo {
   "/leave-balances": typeof AuthenticatedWorkspaceLeaveBalancesRoute
   "/leave-requests": typeof AuthenticatedWorkspaceLeaveRequestsRoute
   "/lifecycle": typeof AuthenticatedWorkspaceLifecycleRoute
-  "/members": typeof AuthenticatedWorkspaceMembersRoute
   "/notifications": typeof AuthenticatedWorkspaceNotificationsRoute
   "/org-chart": typeof AuthenticatedWorkspaceOrgChartRoute
   "/payroll": typeof AuthenticatedWorkspacePayrollRoute
@@ -1007,7 +982,6 @@ export interface FileRoutesByTo {
   "/settings/time": typeof AuthenticatedWorkspaceSettingsTimeRoute
   "/shifts/new": typeof AuthenticatedWorkspaceShiftsNewRoute
   "/working-patterns/new": typeof AuthenticatedWorkspaceWorkingPatternsNewRoute
-  "/workspace/people": typeof AuthenticatedWorkspaceWorkspacePeopleRoute
   "/approvals": typeof AuthenticatedWorkspaceApprovalsIndexRoute
   "/assignment-rules": typeof AuthenticatedWorkspaceAssignmentRulesIndexRoute
   "/documents": typeof AuthenticatedWorkspaceDocumentsIndexRoute
@@ -1048,7 +1022,6 @@ export interface FileRoutesById {
   "/_authenticated/_workspace/leave-balances": typeof AuthenticatedWorkspaceLeaveBalancesRoute
   "/_authenticated/_workspace/leave-requests": typeof AuthenticatedWorkspaceLeaveRequestsRoute
   "/_authenticated/_workspace/lifecycle": typeof AuthenticatedWorkspaceLifecycleRoute
-  "/_authenticated/_workspace/members": typeof AuthenticatedWorkspaceMembersRoute
   "/_authenticated/_workspace/notifications": typeof AuthenticatedWorkspaceNotificationsRoute
   "/_authenticated/_workspace/org-chart": typeof AuthenticatedWorkspaceOrgChartRoute
   "/_authenticated/_workspace/payroll": typeof AuthenticatedWorkspacePayrollRoute
@@ -1093,7 +1066,6 @@ export interface FileRoutesById {
   "/_authenticated/_workspace/shifts/new": typeof AuthenticatedWorkspaceShiftsNewRoute
   "/_authenticated/_workspace/shifts/rules": typeof AuthenticatedWorkspaceShiftsRulesRouteWithChildren
   "/_authenticated/_workspace/working-patterns/new": typeof AuthenticatedWorkspaceWorkingPatternsNewRoute
-  "/_authenticated/_workspace/workspace/people": typeof AuthenticatedWorkspaceWorkspacePeopleRoute
   "/_authenticated/_workspace/approvals/": typeof AuthenticatedWorkspaceApprovalsIndexRoute
   "/_authenticated/_workspace/assignment-rules/": typeof AuthenticatedWorkspaceAssignmentRulesIndexRoute
   "/_authenticated/_workspace/documents/": typeof AuthenticatedWorkspaceDocumentsIndexRoute
@@ -1133,7 +1105,6 @@ export interface FileRouteTypes {
     | "/leave-balances"
     | "/leave-requests"
     | "/lifecycle"
-    | "/members"
     | "/notifications"
     | "/org-chart"
     | "/payroll"
@@ -1177,7 +1148,6 @@ export interface FileRouteTypes {
     | "/shifts/new"
     | "/shifts/rules"
     | "/working-patterns/new"
-    | "/workspace/people"
     | "/approvals/"
     | "/assignment-rules/"
     | "/documents/"
@@ -1214,7 +1184,6 @@ export interface FileRouteTypes {
     | "/leave-balances"
     | "/leave-requests"
     | "/lifecycle"
-    | "/members"
     | "/notifications"
     | "/org-chart"
     | "/payroll"
@@ -1253,7 +1222,6 @@ export interface FileRouteTypes {
     | "/settings/time"
     | "/shifts/new"
     | "/working-patterns/new"
-    | "/workspace/people"
     | "/approvals"
     | "/assignment-rules"
     | "/documents"
@@ -1293,7 +1261,6 @@ export interface FileRouteTypes {
     | "/_authenticated/_workspace/leave-balances"
     | "/_authenticated/_workspace/leave-requests"
     | "/_authenticated/_workspace/lifecycle"
-    | "/_authenticated/_workspace/members"
     | "/_authenticated/_workspace/notifications"
     | "/_authenticated/_workspace/org-chart"
     | "/_authenticated/_workspace/payroll"
@@ -1338,7 +1305,6 @@ export interface FileRouteTypes {
     | "/_authenticated/_workspace/shifts/new"
     | "/_authenticated/_workspace/shifts/rules"
     | "/_authenticated/_workspace/working-patterns/new"
-    | "/_authenticated/_workspace/workspace/people"
     | "/_authenticated/_workspace/approvals/"
     | "/_authenticated/_workspace/assignment-rules/"
     | "/_authenticated/_workspace/documents/"
@@ -1494,13 +1460,6 @@ declare module "@tanstack/react-router" {
       preLoaderRoute: typeof AuthenticatedWorkspaceNotificationsRouteImport
       parentRoute: typeof AuthenticatedWorkspaceRoute
     }
-    "/_authenticated/_workspace/members": {
-      id: "/_authenticated/_workspace/members"
-      path: "/members"
-      fullPath: "/members"
-      preLoaderRoute: typeof AuthenticatedWorkspaceMembersRouteImport
-      parentRoute: typeof AuthenticatedWorkspaceRoute
-    }
     "/_authenticated/_workspace/lifecycle": {
       id: "/_authenticated/_workspace/lifecycle"
       path: "/lifecycle"
@@ -1632,13 +1591,6 @@ declare module "@tanstack/react-router" {
       path: "/approvals"
       fullPath: "/approvals/"
       preLoaderRoute: typeof AuthenticatedWorkspaceApprovalsIndexRouteImport
-      parentRoute: typeof AuthenticatedWorkspaceRoute
-    }
-    "/_authenticated/_workspace/workspace/people": {
-      id: "/_authenticated/_workspace/workspace/people"
-      path: "/workspace/people"
-      fullPath: "/workspace/people"
-      preLoaderRoute: typeof AuthenticatedWorkspaceWorkspacePeopleRouteImport
       parentRoute: typeof AuthenticatedWorkspaceRoute
     }
     "/_authenticated/_workspace/working-patterns/new": {
@@ -2164,7 +2116,6 @@ interface AuthenticatedWorkspaceRouteChildren {
   AuthenticatedWorkspaceLeaveBalancesRoute: typeof AuthenticatedWorkspaceLeaveBalancesRoute
   AuthenticatedWorkspaceLeaveRequestsRoute: typeof AuthenticatedWorkspaceLeaveRequestsRoute
   AuthenticatedWorkspaceLifecycleRoute: typeof AuthenticatedWorkspaceLifecycleRoute
-  AuthenticatedWorkspaceMembersRoute: typeof AuthenticatedWorkspaceMembersRoute
   AuthenticatedWorkspaceNotificationsRoute: typeof AuthenticatedWorkspaceNotificationsRoute
   AuthenticatedWorkspaceOrgChartRoute: typeof AuthenticatedWorkspaceOrgChartRoute
   AuthenticatedWorkspacePayrollRoute: typeof AuthenticatedWorkspacePayrollRoute
@@ -2184,7 +2135,6 @@ interface AuthenticatedWorkspaceRouteChildren {
   AuthenticatedWorkspaceEssDocumentsRoute: typeof AuthenticatedWorkspaceEssDocumentsRoute
   AuthenticatedWorkspaceEssOtRoute: typeof AuthenticatedWorkspaceEssOtRoute
   AuthenticatedWorkspaceEssProfileRoute: typeof AuthenticatedWorkspaceEssProfileRoute
-  AuthenticatedWorkspaceWorkspacePeopleRoute: typeof AuthenticatedWorkspaceWorkspacePeopleRoute
   AuthenticatedWorkspaceApprovalsIndexRoute: typeof AuthenticatedWorkspaceApprovalsIndexRoute
   AuthenticatedWorkspaceDocumentsIndexRoute: typeof AuthenticatedWorkspaceDocumentsIndexRoute
 }
@@ -2212,7 +2162,6 @@ const AuthenticatedWorkspaceRouteChildren: AuthenticatedWorkspaceRouteChildren =
     AuthenticatedWorkspaceLeaveRequestsRoute:
       AuthenticatedWorkspaceLeaveRequestsRoute,
     AuthenticatedWorkspaceLifecycleRoute: AuthenticatedWorkspaceLifecycleRoute,
-    AuthenticatedWorkspaceMembersRoute: AuthenticatedWorkspaceMembersRoute,
     AuthenticatedWorkspaceNotificationsRoute:
       AuthenticatedWorkspaceNotificationsRoute,
     AuthenticatedWorkspaceOrgChartRoute: AuthenticatedWorkspaceOrgChartRoute,
@@ -2244,8 +2193,6 @@ const AuthenticatedWorkspaceRouteChildren: AuthenticatedWorkspaceRouteChildren =
     AuthenticatedWorkspaceEssOtRoute: AuthenticatedWorkspaceEssOtRoute,
     AuthenticatedWorkspaceEssProfileRoute:
       AuthenticatedWorkspaceEssProfileRoute,
-    AuthenticatedWorkspaceWorkspacePeopleRoute:
-      AuthenticatedWorkspaceWorkspacePeopleRoute,
     AuthenticatedWorkspaceApprovalsIndexRoute:
       AuthenticatedWorkspaceApprovalsIndexRoute,
     AuthenticatedWorkspaceDocumentsIndexRoute:

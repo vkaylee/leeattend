@@ -1,5 +1,3 @@
-import { ApiError } from "./errors";
-import { apiFetch } from "./helpers";
 import type {
   CreateEmployeeAssignmentRequest,
   EmployeeAssignment,
@@ -23,25 +21,23 @@ export type {
 };
 
 export const fetchEmployeeAssignments = async (
-  workspaceId: string,
   employeeId: string,
 ): Promise<EmployeeAssignment[]> => {
-  const { data } = await client.GET("/v1/workspaces/{ws_id}/employees/{employee_id}/assignments", {
+  const { data } = await client.GET<EmployeeAssignment[]>("/v1/employees/{employee_id}/assignments", {
     params: {
-      path: { ws_id: workspaceId, employee_id: employeeId },
+      path: { employee_id: employeeId },
     },
   });
   return data;
 };
 
 export const createEmployeeAssignment = async (
-  workspaceId: string,
   employeeId: string,
   data: CreateEmployeeAssignmentRequest,
 ): Promise<EmployeeAssignment> => {
-  const { data: result } = await client.POST("/v1/workspaces/{ws_id}/employees/{employee_id}/assignments", {
+  const { data: result } = await client.POST<EmployeeAssignment>("/v1/employees/{employee_id}/assignments", {
     params: {
-      path: { ws_id: workspaceId, employee_id: employeeId },
+      path: { employee_id: employeeId },
     },
     body: data,
   });
@@ -49,14 +45,13 @@ export const createEmployeeAssignment = async (
 };
 
 export const updateEmployeeAssignment = async (
-  workspaceId: string,
   employeeId: string,
   assignmentId: string,
   data: UpdateEmployeeAssignmentRequest,
 ): Promise<EmployeeAssignment> => {
-  const { data: result } = await client.PATCH("/v1/workspaces/{ws_id}/employees/{employee_id}/assignments/{assignment_id}", {
+  const { data: result } = await client.PATCH<EmployeeAssignment>("/v1/employees/{employee_id}/assignments/{assignment_id}", {
     params: {
-      path: { ws_id: workspaceId, employee_id: employeeId, assignment_id: assignmentId },
+      path: { employee_id: employeeId, assignment_id: assignmentId },
     },
     body: data,
   });
@@ -64,21 +59,17 @@ export const updateEmployeeAssignment = async (
 };
 
 export const deleteEmployeeAssignment = async (
-  workspaceId: string,
   employeeId: string,
   assignmentId: string,
 ): Promise<void> => {
-  await client.DELETE("/v1/workspaces/{ws_id}/employees/{employee_id}/assignments/{assignment_id}", {
+  await client.DELETE("/v1/employees/{employee_id}/assignments/{assignment_id}", {
     params: {
-      path: { ws_id: workspaceId, employee_id: employeeId, assignment_id: assignmentId },
+      path: { employee_id: employeeId, assignment_id: assignmentId },
     },
   });
 };
 
-export const fetchWorkspaceAssignments = async (
-  workspaceId: string,
-): Promise<EmployeeAssignmentWithEmployee[]> => {
-  const res = await apiFetch(`/v1/workspaces/${encodeURIComponent(workspaceId)}/assignments`);
-  if (!res.ok) await ApiError.rejectResponse(res);
-  return (await res.json()) as EmployeeAssignmentWithEmployee[];
+export const fetchWorkspaceAssignments = async (): Promise<EmployeeAssignmentWithEmployee[]> => {
+  const { data } = await client.GET<EmployeeAssignmentWithEmployee[]>("/v1/assignments");
+  return data;
 };

@@ -3,7 +3,7 @@ import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 
 import { useToast } from "@/components/ui/toast";
-import { useOrganizationInfiniteQuery, useOrganizationMutation, useOrganizationQuery } from "@/hooks/common/use-workspace-query";
+import { useOrganizationInfiniteQuery, useOrganizationMutation, useOrganizationQuery } from "@/hooks/common/use-organization-query";
 import { useDepartments } from "@/hooks/use-departments";
 import { employeeKeys } from "@/lib/query-keys";
 import {
@@ -19,22 +19,18 @@ import type { SortKey, SortDir } from "./use-employees-state";
 
 const PAGE_SIZE = 20;
 
-interface UseEmployeesDataProps {
-  customFieldFilters: Record<string, string>;
-  debouncedSearch: string;
-  filterDeptIds: string[];
-  filterStatus: string;
-  selectedEmployee: Employee | null;
-  setEditingEmployee?: (emp: Employee | null) => void;
-  setIsModalOpen?: (open: boolean) => void;
-  setSelectedEmployee?: (emp: Employee | null) => void;
-  sortDir: SortDir;
-  sortKey: SortKey | null;
-  wsId: string;
-}
+interface UseEmployeesDataProps { customFieldFilters: Record<string, string>;
+debouncedSearch: string;
+filterDeptIds: string[];
+filterStatus: string;
+selectedEmployee: Employee | null;
+setEditingEmployee?: (emp: Employee | null) => void;
+setIsModalOpen?: (open: boolean) => void;
+setSelectedEmployee?: (emp: Employee | null) => void;
+sortDir: SortDir;
+sortKey: SortKey | null;  }
 
 export const useEmployeesData = ({
-  wsId,
   debouncedSearch,
   sortKey,
   sortDir,
@@ -58,43 +54,39 @@ export const useEmployeesData = ({
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
-  } = useOrganizationInfiniteQuery({
-    workspaceId: wsId,
-    queryKey: employeeKeys.search(wsId, {
-      customFieldFilters,
-      departmentIds: filterDeptIds,
-      search: debouncedSearch,
+  } = useOrganizationInfiniteQuery({ queryKey: employeeKeys.search({
+    customFieldFilters,
+    departmentIds: filterDeptIds,
+    search: debouncedSearch,
+    sortDir,
+    sortKey,
+    status: filterStatus,
+  }),
+  queryFn: (pageParam) => {
+    const apiSortKeyMapping = { name: "name", id: "employee_id_number", department: "department" } as const;
+    const apiSortKey = sortKey ? apiSortKeyMapping[sortKey] : undefined;
+    const cfString = Object.entries(customFieldFilters)
+      .filter(([_, val]) => !!val)
+      .map(([key, val]) => `${key}:${val}`)
+      .join(",");
+    return searchEmployees({
+      query: debouncedSearch,
+      page: pageParam,
+      limit: PAGE_SIZE,
+      sortBy: apiSortKey,
       sortDir,
-      sortKey,
+      departmentIds: filterDeptIds.length > 0 ? filterDeptIds : undefined,
+      customFieldFilters: cfString || undefined,
       status: filterStatus,
-    }),
-    queryFn: (workspaceId, pageParam) => {
-      const apiSortKeyMapping = { name: "name", id: "employee_id_number", department: "department" } as const;
-      const apiSortKey = sortKey ? apiSortKeyMapping[sortKey] : undefined;
-      const cfString = Object.entries(customFieldFilters)
-        .filter(([_, val]) => !!val)
-        .map(([key, val]) => `${key}:${val}`)
-        .join(",");
-      return searchEmployees({
-        wsId: workspaceId,
-        query: debouncedSearch,
-        page: pageParam,
-        limit: PAGE_SIZE,
-        sortBy: apiSortKey,
-        sortDir,
-        departmentIds: filterDeptIds.length > 0 ? filterDeptIds : undefined,
-        customFieldFilters: cfString || undefined,
-        status: filterStatus,
-      });
-    },
-    getNextPageParam: (lastPage, allPages) => {
-      const totalLoaded = allPages.reduce((sum, p) => sum + (p.data.length || 0), 0);
-      if (totalLoaded >= (lastPage.total || 0)) return undefined;
-      return allPages.length + 1;
-    },
-    initialPageParam: 1,
-    placeholderData: "keepPreviousData",
-  });
+    });
+  },
+  getNextPageParam: (lastPage, allPages) => {
+    const totalLoaded = allPages.reduce((sum, p) => sum + (p.data.length || 0), 0);
+    if (totalLoaded >= (lastPage.total || 0)) return undefined;
+    return allPages.length + 1;
+  },
+  initialPageParam: 1,
+  placeholderData: "keepPreviousData", });
 
   const employees = useMemo(() => {
     if (!employeesPages) return [];
@@ -103,13 +95,13 @@ export const useEmployeesData = ({
 
   const totalItems = employeesPages?.pages[0]?.total ?? 0;
 
-  const { data: departments } = useDepartments(wsId);
+  const { data: departments } = useDepartments();
 
   const { data: deptHistory } = useOrganizationQuery({
     queryKey: ["deptHistory", selectedEmployee?.id],
-    queryFn: (workspaceId) => {
+    queryFn: () => {
       if (!selectedEmployee) return Promise.reject(new Error("No employee selected"));
-      return fetchEmployeeDepartmentHistory(workspaceId, selectedEmployee.id);
+      return fetchEmployeeDepartmentHistory(selectedEmployee.id);
     },
     enabled: !!selectedEmployee,
   });
@@ -119,40 +111,33 @@ export const useEmployeesData = ({
   const updateMutation = useOrganizationMutation<
     { id: string; employee: UpdateEmployeeRequest },
     Awaited<ReturnType<typeof updateEmployee>>
-  >({
-    workspaceId: wsId,
-    keys: [employeeKeys.all(wsId)],
-    mutationFn: (workspaceId, data) => updateEmployee(workspaceId, data.id, data.employee),
-    onSuccess: () => {
-      setIsModalOpen?.(false);
-      setEditingEmployee?.(null);
-      toast.success(t("common.success"));
-    },
-  });
+  >({ keys: [employeeKeys.all()],
+  mutationFn: (data) => updateEmployee(data.id, data.employee),
+  onSuccess: () => {
+    setIsModalOpen?.(false);
+    setEditingEmployee?.(null);
+    toast.success(t("common.success"));
+  }, });
 
   const terminateMutation = useOrganizationMutation<
     { employeeId: string; employmentId: string; endDate: string },
     Awaited<ReturnType<typeof updateEmployeeEmployment>>
-  >({
-    workspaceId: wsId,
-    keys: [employeeKeys.all(wsId)],
-    mutationFn: (workspaceId, data) =>
-      updateEmployeeEmployment(workspaceId, data.employeeId, data.employmentId, {
-        status: "terminated",
-        end_date: data.endDate,
-      }),
-    onSuccess: (_data, variables) => {
-      void queryClient.invalidateQueries({ queryKey: ["deptHistory"] });
-      void queryClient.invalidateQueries({ queryKey: ["employee-employments", wsId, variables.employeeId] });
-      if (selectedEmployee?.id === variables.employeeId) {
-        setSelectedEmployee?.({
-          ...selectedEmployee,
-          active_employment_id: null,
-        });
-      }
-      toast.success(t("common.success"));
-    },
-  });
+  >({ keys: [employeeKeys.all()],
+  mutationFn: (data) => updateEmployeeEmployment(data.employeeId, data.employmentId, {
+    status: "terminated",
+    end_date: data.endDate,
+  }),
+  onSuccess: (_data, variables) => {
+    void queryClient.invalidateQueries({ queryKey: ["deptHistory"] });
+    void queryClient.invalidateQueries({ queryKey: ["employee-employments", variables.employeeId] });
+    if (selectedEmployee?.id === variables.employeeId) {
+      setSelectedEmployee?.({
+        ...selectedEmployee,
+        active_employment_id: null,
+      });
+    }
+    toast.success(t("common.success"));
+  }, });
 
   return {
     employees,

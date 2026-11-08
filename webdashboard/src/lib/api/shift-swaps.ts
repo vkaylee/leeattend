@@ -19,16 +19,14 @@ export interface ShiftSwapRequest {
     target_shift_id?: string | null;
     target_shift_name?: string | null;
     updated_at: string;
-    workspace_id: string;
+    workspace_id?: string;
 }
 
 export async function fetchShiftSwaps(
-    wsId: string,
     status?: ShiftSwapStatus,
 ): Promise<ShiftSwapRequest[]> {
-    const { data } = await client.GET("/workspaces/{workspace_id}/shift-swaps", {
+    const { data } = await client.GET<ShiftSwapRequest[]>("/v1/shift-swaps", {
         params: {
-            path: { workspace_id: wsId },
             query: { status: status },
         },
     });
@@ -36,7 +34,6 @@ export async function fetchShiftSwaps(
 }
 
 export async function createShiftSwap(
-    wsId: string,
     data: {
         requester_id: string;
         target_id: string;
@@ -44,21 +41,19 @@ export async function createShiftSwap(
         reason?: string;
     },
 ): Promise<ShiftSwapRequest> {
-    const { data: resData } = await client.POST("/workspaces/{workspace_id}/shift-swaps", {
-        params: { path: { workspace_id: wsId } },
+    const { data: resData } = await client.POST<ShiftSwapRequest>("/v1/shift-swaps", {
         body: data,
     });
     return resData;
 }
 
 export async function approveShiftSwap(
-    wsId: string,
     swapId: string,
     data: { status: ShiftSwapStatus },
 ): Promise<void> {
-    await client.PUT("/workspaces/{workspace_id}/shift-swaps/{id}/approve", {
+    await client.PUT("/v1/shift-swaps/{id}/approve", {
         params: {
-            path: { workspace_id: wsId, id: swapId },
+            path: { id: swapId },
         },
         body: data,
     });
@@ -74,13 +69,7 @@ export interface SwapStats {
     rejected_this_month: number;
 }
 
-export async function fetchShiftSwapStats(
-    wsId: string,
-): Promise<SwapStats> {
-    const { data: resData } = await client.GET("/workspaces/{workspace_id}/shift-swaps/stats", {
-        params: {
-            path: { workspace_id: wsId },
-        },
-    });
-    return resData;
+export async function fetchShiftSwapStats(): Promise<SwapStats> {
+  const { data: resData } = await client.GET<SwapStats>("/v1/shift-swaps/stats");
+  return resData;
 }

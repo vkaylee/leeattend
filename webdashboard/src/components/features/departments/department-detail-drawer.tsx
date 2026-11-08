@@ -22,7 +22,6 @@ export interface DepartmentDetailDrawerProps {
   onDelete: (dept: Department) => void;
   onEdit: (dept: Department) => void;
   t: TFunction;
-  wsId: string;
 }
 
 interface TemporalConfigRecord {
@@ -135,22 +134,20 @@ export function DepartmentDetailDrawer({
   onEdit,
   onConfig,
   onDelete,
-  t,
-  wsId,
-}: DepartmentDetailDrawerProps) {
+  t,}: DepartmentDetailDrawerProps) {
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<"employees" | "settings">("employees");
 
   // Fetch standard days history for settings tab
   const { data: deptConfigs = [], isLoading: isConfigsLoading } = useQuery({
     queryKey: ["dept-payroll-configs", dept?.id],
-    queryFn: () => fetchDepartmentPayrollConfigs(wsId, dept?.id ?? ""),
+    queryFn: () => fetchDepartmentPayrollConfigs(dept?.id ?? ""),
     enabled: isOpen && !!dept?.id,
   });
 
   const saveConfigMutation = useMutation({
     mutationFn: (data: { effective_date: string; hours_per_day: number; std_working_days: number }) =>
-      setDepartmentPayrollConfig(wsId, dept?.id ?? "", {
+      setDepartmentPayrollConfig(dept?.id ?? "", {
         effective_date: data.effective_date,
         hours_per_day: data.hours_per_day.toString(),
         std_working_days: data.std_working_days.toString(),

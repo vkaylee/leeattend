@@ -89,7 +89,7 @@ func (r *authTestRepository) UpdateUserProfile(_ context.Context, uid uuid.UUID,
 	}
 	return r.user, nil
 }
-func (r *authTestRepository) ListWorkspaceUsers(_ context.Context, _ uuid.UUID) ([]service.UserRecord, error) {
+func (r *authTestRepository) ListOrganizationUsers(_ context.Context) ([]service.UserRecord, error) {
 	return []service.UserRecord{r.user}, nil
 }
 
@@ -254,10 +254,10 @@ type profileAuthorizer struct {
 	member bool
 }
 
-func (a profileAuthorizer) IsMember(context.Context, uuid.UUID, uuid.UUID) (bool, error) {
+func (a profileAuthorizer) IsMember(context.Context, uuid.UUID) (bool, error) {
 	return a.member, nil
 }
-func (profileAuthorizer) EffectivePermissions(context.Context, uuid.UUID, uuid.UUID) ([]string, []string, error) {
+func (profileAuthorizer) EffectivePermissions(context.Context, uuid.UUID) ([]string, []string, error) {
 	return []string{"employees:read"}, []string{uuid.New().String()}, nil
 }
 
@@ -265,7 +265,7 @@ func TestAuthHandler_ProfileUsersAndPermissions(t *testing.T) {
 	h, repo := newAuthTestHandler(t)
 	h.Authorizer = profileAuthorizer{member: true}
 	userID := repo.user.ID
-	workspaceID := uuid.New()
+
 
 	req := httptest.NewRequest(http.MethodPatch, "/api/v1/me", bytes.NewBufferString(`{"preferred_language":"vi"}`))
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), userID))
@@ -278,12 +278,11 @@ func TestAuthHandler_ProfileUsersAndPermissions(t *testing.T) {
 
 	req = httptest.NewRequest(http.MethodGet, "/api/v1/users", nil)
 	ctx := httpinfra.WithUserIDForTest(req.Context(), userID)
-	ctx = httpinfra.WithOrganizationIDForTest(ctx, workspaceID)
 	req = req.WithContext(ctx)
 	rec = httptest.NewRecorder()
-	h.WorkspaceUsers(rec, req)
+	h.OrganizationUsers(rec, req)
 	if rec.Code != http.StatusOK || !bytes.HasPrefix(rec.Body.Bytes(), []byte("[")) {
-		t.Fatalf("expected workspace user array, got %d: %s", rec.Code, rec.Body.String())
+		t.Fatalf("expected organization user array, got %d: %s", rec.Code, rec.Body.String())
 	}
 
 	req = httptest.NewRequest(http.MethodGet, "/api/v1/me/permissions", nil)
@@ -299,10 +298,9 @@ func TestAuthHandler_WorkspaceRoutesRequireMembershipContext(t *testing.T) {
 	h, repo := newAuthTestHandler(t)
 	h.Authorizer = profileAuthorizer{member: false}
 	ctx := httpinfra.WithUserIDForTest(context.Background(), repo.user.ID)
-	ctx = httpinfra.WithOrganizationIDForTest(ctx, uuid.New())
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/users", nil).WithContext(ctx)
 	rec := httptest.NewRecorder()
-	h.WorkspaceUsers(rec, req)
+	h.OrganizationUsers(rec, req)
 	if rec.Code != http.StatusForbidden {
 		t.Fatalf("expected 403 for non-member, got %d", rec.Code)
 	}

@@ -18,15 +18,12 @@ interface ComplianceRetry {
   shiftId: string | null;
 }
 
-interface UseComplianceRetryProps {
-  queryClient: QueryClient;
-  refetchAndPatchRow: (employmentId: string) => Promise<void>;
-  setComplianceModalOpen: (v: boolean) => void;
-  setIsComplianceResolving: (v: boolean) => void;
-  t: TFunction;
-  toast: ToastApi;
-  wsId: string;
-}
+interface UseComplianceRetryProps { queryClient: QueryClient;
+refetchAndPatchRow: (employmentId: string) => Promise<void>;
+setComplianceModalOpen: (v: boolean) => void;
+setIsComplianceResolving: (v: boolean) => void;
+t: TFunction;
+toast: ToastApi;  }
 
 interface UseComplianceRetryReturn {
   /** Callback invoked by the compliance-warning modal after user confirmation. */
@@ -45,7 +42,6 @@ interface UseComplianceRetryReturn {
  * `allow_warnings: true` and `override_reason`.
  */
 export function useComplianceRetry({
-  wsId,
   queryClient,
   toast,
   t,
@@ -66,7 +62,7 @@ export function useComplianceRetry({
           items: assignments,
           worker: async ({ employeeId, employmentId, dates }) => {
             const items = dates.map((date) => ({ date, shift_id: shiftId }));
-            await bulkUpsertRoster(wsId, employeeId, items, {
+            await bulkUpsertRoster(employeeId, items, {
               allow_warnings: true,
               override_reason: reason,
             });
@@ -99,15 +95,12 @@ export function useComplianceRetry({
         setIsComplianceResolving(false);
       }
     },
-    [
-      wsId,
-      queryClient,
-      toast,
-      t,
-      refetchAndPatchRow,
-      setComplianceModalOpen,
-      setIsComplianceResolving,
-    ],
+    [queryClient,
+    toast,
+    t,
+    refetchAndPatchRow,
+    setComplianceModalOpen,
+    setIsComplianceResolving,],
   );
 
   return { pendingRetryRef, onComplianceOverride };

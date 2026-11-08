@@ -14,7 +14,6 @@ import (
 
 type EmployeeRecord struct {
 	ID                 uuid.UUID  `json:"id"`
-	WorkspaceID        uuid.UUID  `json:"workspace_id"`
 	UserID             *uuid.UUID `json:"user_id"`
 	FullName           string     `json:"full_name"`
 	EmployeeIDNumber   string     `json:"employee_id_number"`
@@ -60,25 +59,21 @@ type EmployeeListResponse struct {
 }
 
 type EmployeeRepository interface {
-	CreateEmployee(context.Context, uuid.UUID, CreateEmployeeRequest) (EmployeeRecord, error)
-	ListEmployees(context.Context, uuid.UUID, int, int, string) (EmployeeListResponse, error)
-	GetEmployee(context.Context, uuid.UUID, uuid.UUID) (EmployeeRecord, error)
-	UpdateEmployee(context.Context, uuid.UUID, uuid.UUID, UpdateEmployeeRequest) (EmployeeRecord, error)
-	SoftDeleteEmployee(context.Context, uuid.UUID, uuid.UUID) error
-	RehireEmployee(context.Context, uuid.UUID, uuid.UUID, RehireEmployeeRequest) (EmployeeRecord, error)
+	CreateEmployee(context.Context, CreateEmployeeRequest) (EmployeeRecord, error)
+	ListEmployees(context.Context, int, int, string) (EmployeeListResponse, error)
+	GetEmployee(context.Context, uuid.UUID) (EmployeeRecord, error)
+	UpdateEmployee(context.Context, uuid.UUID, UpdateEmployeeRequest) (EmployeeRecord, error)
+	SoftDeleteEmployee(context.Context, uuid.UUID) error
+	RehireEmployee(context.Context, uuid.UUID, RehireEmployeeRequest) (EmployeeRecord, error)
 }
 
-type EmployeeAuthorizer interface {
-	HasPermission(context.Context, uuid.UUID, uuid.UUID, string) bool
-}
 type EmployeeHandler struct {
 	Repository EmployeeRepository
-	Authorizer EmployeeAuthorizer
+	Authorizer Authorizer
 }
 
 func (h EmployeeHandler) Create(w http.ResponseWriter, r *http.Request) {
-	workspaceID, ok := organizationIDFromContext(r)
-	if !ok || !h.allowed(r, workspaceID, "employees:create") {
+	if !h.allowed(r, "employees:create") {
 		h.forbidden(w, r)
 		return
 	}
@@ -87,7 +82,7 @@ func (h EmployeeHandler) Create(w http.ResponseWriter, r *http.Request) {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}
-	employee, err := h.Repository.CreateEmployee(r.Context(), workspaceID, request)
+	employee, err := h.Repository.CreateEmployee(r.Context(), request)
 	if err != nil {
 		h.writeError(w, r, err)
 		return
@@ -96,8 +91,7 @@ func (h EmployeeHandler) Create(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h EmployeeHandler) List(w http.ResponseWriter, r *http.Request) {
-	workspaceID, ok := organizationIDFromContext(r)
-	if !ok || !h.allowed(r, workspaceID, "employees:read") {
+	if !h.allowed(r, "employees:read") {
 		h.forbidden(w, r)
 		return
 	}
@@ -106,7 +100,7 @@ func (h EmployeeHandler) List(w http.ResponseWriter, r *http.Request) {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}
-	result, err := h.Repository.ListEmployees(r.Context(), workspaceID, pagination.Page, pagination.Limit, r.URL.Query().Get("search"))
+	result, err := h.Repository.ListEmployees(r.Context(), pagination.Page, pagination.Limit, r.URL.Query().Get("search"))
 	if err != nil {
 		h.writeError(w, r, err)
 		return
@@ -115,13 +109,12 @@ func (h EmployeeHandler) List(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h EmployeeHandler) Get(w http.ResponseWriter, r *http.Request) {
-	workspaceID, ok := organizationIDFromContext(r)
 	employeeID, employeeOK := pathUUID(r, "id")
-	if !ok || !employeeOK || !h.allowed(r, workspaceID, "employees:read") {
+	if !employeeOK || !h.allowed(r, "employees:read") {
 		h.forbidden(w, r)
 		return
 	}
-	employee, err := h.Repository.GetEmployee(r.Context(), workspaceID, employeeID)
+	employee, err := h.Repository.GetEmployee(r.Context(), employeeID)
 	if err != nil {
 		h.writeError(w, r, err)
 		return
@@ -130,9 +123,8 @@ func (h EmployeeHandler) Get(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h EmployeeHandler) Update(w http.ResponseWriter, r *http.Request) {
-	workspaceID, ok := organizationIDFromContext(r)
 	employeeID, employeeOK := pathUUID(r, "id")
-	if !ok || !employeeOK || !h.allowed(r, workspaceID, "employees:update") {
+	if !employeeOK || !h.allowed(r, "employees:update") {
 		h.forbidden(w, r)
 		return
 	}
@@ -141,7 +133,7 @@ func (h EmployeeHandler) Update(w http.ResponseWriter, r *http.Request) {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}
-	employee, err := h.Repository.UpdateEmployee(r.Context(), workspaceID, employeeID, request)
+	employee, err := h.Repository.UpdateEmployee(r.Context(), employeeID, request)
 	if err != nil {
 		h.writeError(w, r, err)
 		return
@@ -150,13 +142,12 @@ func (h EmployeeHandler) Update(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h EmployeeHandler) Delete(w http.ResponseWriter, r *http.Request) {
-	workspaceID, ok := organizationIDFromContext(r)
 	employeeID, employeeOK := pathUUID(r, "id")
-	if !ok || !employeeOK || !h.allowed(r, workspaceID, "employees:delete") {
+	if !employeeOK || !h.allowed(r, "employees:delete") {
 		h.forbidden(w, r)
 		return
 	}
-	if err := h.Repository.SoftDeleteEmployee(r.Context(), workspaceID, employeeID); err != nil {
+	if err := h.Repository.SoftDeleteEmployee(r.Context(), employeeID); err != nil {
 		h.writeError(w, r, err)
 		return
 	}
@@ -164,9 +155,8 @@ func (h EmployeeHandler) Delete(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h EmployeeHandler) Rehire(w http.ResponseWriter, r *http.Request) {
-	workspaceID, ok := organizationIDFromContext(r)
 	employeeID, employeeOK := pathUUID(r, "id")
-	if !ok || !employeeOK || !h.allowed(r, workspaceID, "employees:rehire") {
+	if !employeeOK || !h.allowed(r, "employees:rehire") {
 		h.forbidden(w, r)
 		return
 	}
@@ -175,7 +165,7 @@ func (h EmployeeHandler) Rehire(w http.ResponseWriter, r *http.Request) {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}
-	employee, err := h.Repository.RehireEmployee(r.Context(), workspaceID, employeeID, request)
+	employee, err := h.Repository.RehireEmployee(r.Context(), employeeID, request)
 	if err != nil {
 		h.writeError(w, r, err)
 		return
@@ -183,9 +173,9 @@ func (h EmployeeHandler) Rehire(w http.ResponseWriter, r *http.Request) {
 	apperror.WriteJSON(w, http.StatusOK, employee)
 }
 
-func (h EmployeeHandler) allowed(r *http.Request, workspaceID uuid.UUID, permission string) bool {
+func (h EmployeeHandler) allowed(r *http.Request, permission string) bool {
 	userID, ok := httpinfra.UserIDFromContext(r.Context())
-	return ok && h.Authorizer != nil && h.Authorizer.HasPermission(r.Context(), userID, workspaceID, permission)
+	return ok && h.Authorizer != nil && h.Authorizer.HasPermission(r.Context(), userID, permission)
 }
 func (h EmployeeHandler) forbidden(w http.ResponseWriter, r *http.Request) {
 	apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))

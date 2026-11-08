@@ -46,12 +46,6 @@ export const ROUTE_METADATA_MAP: Record<string, RouteMetadata> = {
     titleKey: "common.org_chart",
     defaultTitle: "Sơ đồ tổ chức",
   },
-  [ROUTES.PEOPLE]: {
-    breadcrumbKey: "common.members_permissions",
-    defaultBreadcrumb: "Thành viên & Quyền hạn",
-    titleKey: "common.members_permissions",
-    defaultTitle: "Thành viên & Quyền hạn",
-  },
   [ROUTES.NOTIFICATIONS]: {
     breadcrumbKey: "common.notifications",
     defaultBreadcrumb: "Thông báo",

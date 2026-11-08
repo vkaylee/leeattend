@@ -1,30 +1,26 @@
-import type { BehalfAssignment, Department, WorkspaceMember } from "@/lib/api/types";
+import type { BehalfAssignment, Department, OrganizationMember } from "@/lib/api/types";
 
 export type AssignmentType = "ot" | "leave" | "attendance_adjustment" | "overtime_request";
 
-export interface AddAssignmentFormProps {
-  assigneeId: string;
-  assigneeOptions: { description?: string | null; label: string; value: string }[];
-  assignmentType: AssignmentType;
-  departmentOptions: { description?: string | null; label: string; value: string }[];
-  departments: Department[];
-  isCreating: boolean;
-  isLoadingAssignees: boolean;
-  onCancel: () => void;
-  onSubmit: (e: React.SyntheticEvent) => void;
-  setAssigneeId: (id: string) => void;
-  setTargetDepartmentId: (id: string) => void;
-  setTargetEmployeeId: (id: string) => void;
-  setTargetType: (type: "employee" | "department") => void;
-  targetDepartmentId: string;
-  targetEmployeeId: string;
-  targetType: "employee" | "department";
-  wsId: string;
-}
+export interface AddAssignmentFormProps { assigneeId: string;
+assigneeOptions: { description?: string | null; label: string; value: string }[];
+assignmentType: AssignmentType;
+departmentOptions: { description?: string | null; label: string; value: string }[];
+departments: Department[];
+isCreating: boolean;
+isLoadingAssignees: boolean;
+onCancel: () => void;
+onSubmit: (e: React.SyntheticEvent) => void;
+setAssigneeId: (id: string) => void;
+setTargetDepartmentId: (id: string) => void;
+setTargetEmployeeId: (id: string) => void;
+setTargetType: (type: "employee" | "department") => void;
+targetDepartmentId: string;
+targetEmployeeId: string;
+targetType: "employee" | "department";  }
 
 export interface AssignmentItemProps {
-  assignees: WorkspaceMember[];
-  assignment: BehalfAssignment;
+  assignees: OrganizationMember[];
   assignmentType: AssignmentType;
   departments: {
     description?: string | null;

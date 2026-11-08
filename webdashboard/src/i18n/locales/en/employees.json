@@ -143,7 +143,7 @@
       "remove_member": "Remove Member",
       "messages": {
         "remove_error": "Error removing member.",
-        "no_members": "No members found in this workspace."
+        "no_members": "No members found in this organization."
       }
     },
     "invite": {
@@ -370,7 +370,7 @@
       "no_conditions": "No working conditions configured",
       "policy_desc": "Attendance policy overrides for this employee",
       "no_assignments": "No policy override",
-      "no_assignments_desc": "Employee uses default workspace rules. Click \"Add New\" to set custom attendance policy.",
+      "no_assignments_desc": "Employee uses default organization rules. Click \"Add New\" to set custom attendance policy.",
       "delete_assign_warning": "Remove this policy override? Employee will fall back to default rules."
     },
     "salary": {
@@ -410,7 +410,7 @@
       "no_history_desc": "Employee salary history and allowance details will appear here once updated.",
       "fetch_error": "Failed to load compensation history."
     },
-    "select_workspace": "Please select a Workspace",
+    "select_workspace": "Please select an organization",
     "hire_date": "Hire Date",
     "bulk_import_title": "Bulk Employee Import",
     "bulk_import_btn": "Import from File",
@@ -528,13 +528,13 @@
     "subtitle": "Manage personal information and account settings",
     "join_date": "Join Date",
     "preferred_language": "Preferred Language",
-    "follow_workspace": "Follow Workspace Settings",
+    "follow_workspace": "Follow organization settings",
     "bio": "Bio",
     "bio_placeholder": "A brief introduction about yourself...",
     "personalization": {
       "title": "Personalization",
       "subtitle": "Customize your personal UI colors",
-      "use_workspace_default": "Use Workspace Default",
+      "use_workspace_default": "Use organization default",
       "note": "* This change only applies to you on this browser."
     },
     "security": {

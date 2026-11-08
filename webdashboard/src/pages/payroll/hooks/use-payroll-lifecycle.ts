@@ -8,31 +8,27 @@ export interface PayrollPeriodAudit {
   lockedBy?: string | null;
 }
 
-interface UsePayrollLifecycleOptions {
-  calcMonth: number;
-  calcYear: number;
-  hasCalculatedPayslips: boolean;
-  wsId: string;
-}
+interface UsePayrollLifecycleOptions { calcMonth: number;
+calcYear: number;
+hasCalculatedPayslips: boolean;  }
 
 const STORAGE_PREFIX = "leeattend_payroll_lock";
 
-function getStorageKey(wsId: string, year: number, month: number): string {
-  return `${STORAGE_PREFIX}_${wsId}_${year}_${month}`;
+function getStorageKey(year: number, month: number): string {
+  return `${STORAGE_PREFIX}_${year}_${month}`;
 }
 
 export function usePayrollLifecycle({
   calcMonth,
   calcYear,
   hasCalculatedPayslips,
-  wsId,
 }: UsePayrollLifecycleOptions) {
   const [audit, setAudit] = useState<PayrollPeriodAudit>(() => {
-    if (typeof window === "undefined" || !wsId) {
+    if (typeof window === "undefined") {
       return { status: "DRAFT" };
     }
     try {
-      const stored = localStorage.getItem(getStorageKey(wsId, calcYear, calcMonth));
+      const stored = localStorage.getItem(getStorageKey(calcYear, calcMonth));
       if (stored) {
         return JSON.parse(stored) as PayrollPeriodAudit;
       }
@@ -44,9 +40,9 @@ export function usePayrollLifecycle({
 
   // Sync state when period or calculation presence changes
   useEffect(() => {
-    if (!wsId) return;
+    
     try {
-      const stored = localStorage.getItem(getStorageKey(wsId, calcYear, calcMonth));
+      const stored = localStorage.getItem(getStorageKey(calcYear, calcMonth));
       if (stored) {
         setAudit(JSON.parse(stored));
       } else {
@@ -59,17 +55,17 @@ export function usePayrollLifecycle({
         status: hasCalculatedPayslips ? "CALCULATED" : "DRAFT",
       });
     }
-  }, [wsId, calcYear, calcMonth, hasCalculatedPayslips]);
+  }, [calcYear, calcMonth, hasCalculatedPayslips]);
 
   const persistAudit = useCallback((newAudit: PayrollPeriodAudit) => {
     setAudit(newAudit);
-    if (!wsId) return;
+    
     try {
-      localStorage.setItem(getStorageKey(wsId, calcYear, calcMonth), JSON.stringify(newAudit));
+      localStorage.setItem(getStorageKey(calcYear, calcMonth), JSON.stringify(newAudit));
     } catch {
       // Safely ignore storage quotas
     }
-  }, [wsId, calcYear, calcMonth]);
+  }, [calcYear, calcMonth]);
 
   const lockPeriod = useCallback((operatorName = "HR Manager") => {
     const newAudit: PayrollPeriodAudit = {

@@ -28,7 +28,7 @@ func scanEmployeeAssignment(row interface{ Scan(...any) error }) (api.EmployeeAs
 	var item api.EmployeeAssignment
 	var created, updated time.Time
 	var status string
-	if err := row.Scan(&item.ID, &item.WorkspaceID, &item.HomeLocationID, &item.HostLocationID, &item.StartDate, &item.EndDate, &item.Reason, &status, &created, &updated, &item.EmploymentID); err != nil {
+	if err := row.Scan(&item.ID, &item.HomeLocationID, &item.HostLocationID, &item.StartDate, &item.EndDate, &item.Reason, &status, &created, &updated, &item.EmploymentID); err != nil {
 		return api.EmployeeAssignment{}, err
 	}
 	item.Status = api.AssignmentStatus(status)
@@ -37,11 +37,11 @@ func scanEmployeeAssignment(row interface{ Scan(...any) error }) (api.EmployeeAs
 	return item, nil
 }
 
-const employeeAssignmentColumns = `ea.id, ea.workspace_id, ea.home_location_id, ea.host_location_id,
+const employeeAssignmentColumns = `ea.id, ea.home_location_id, ea.host_location_id,
 	ea.start_date::text, ea.end_date::text, ea.reason, ea.status::text,
 	ea.created_at, ea.updated_at, ea.employment_id`
 
-func (r EmployeeAssignmentRepository) ListWorkspaceAssignments(ctx context.Context, workspaceID uuid.UUID) ([]api.EmployeeAssignmentWithEmployee, error) {
+func (r EmployeeAssignmentRepository) ListAssignments(ctx context.Context) ([]api.EmployeeAssignmentWithEmployee, error) {
 	db, err := r.db(ctx)
 	if err != nil {
 		return nil, err
@@ -54,8 +54,8 @@ func (r EmployeeAssignmentRepository) ListWorkspaceAssignments(ctx context.Conte
 		JOIN employees e ON e.id = em.employee_id
 		LEFT JOIN work_locations hl ON hl.id = ea.home_location_id
 		LEFT JOIN work_locations hostl ON hostl.id = ea.host_location_id
-		WHERE ea.workspace_id = $1 AND em.deleted_at IS NULL AND e.deleted_at IS NULL
-		ORDER BY ea.start_date DESC`, workspaceID)
+		WHERE em.deleted_at IS NULL AND e.deleted_at IS NULL
+		ORDER BY ea.start_date DESC`)
 	if err != nil {
 		return nil, err
 	}
@@ -66,7 +66,7 @@ func (r EmployeeAssignmentRepository) ListWorkspaceAssignments(ctx context.Conte
 		var created, updated time.Time
 		var status string
 		if err := rows.Scan(
-			&item.ID, &item.WorkspaceID, &item.HomeLocationID, &item.HostLocationID,
+			&item.ID, &item.HomeLocationID, &item.HostLocationID,
 			&item.StartDate, &item.EndDate, &item.Reason, &status,
 			&created, &updated, &item.EmploymentID,
 			&item.EmployeeID, &item.EmployeeName, &item.EmployeeCode,
@@ -82,15 +82,15 @@ func (r EmployeeAssignmentRepository) ListWorkspaceAssignments(ctx context.Conte
 	return items, rows.Err()
 }
 
-func (r EmployeeAssignmentRepository) ListEmployeeAssignments(ctx context.Context, workspaceID, employeeID uuid.UUID) ([]api.EmployeeAssignment, error) {
+func (r EmployeeAssignmentRepository) ListEmployeeAssignments(ctx context.Context, employeeID uuid.UUID) ([]api.EmployeeAssignment, error) {
 	db, err := r.db(ctx)
 	if err != nil {
 		return nil, err
 	}
 	rows, err := db.Query(ctx, `SELECT `+employeeAssignmentColumns+` FROM employee_assignments ea
 		JOIN employments em ON em.id = ea.employment_id
-		WHERE ea.workspace_id = $1 AND em.workspace_id = $1 AND em.employee_id = $2
-		ORDER BY em.start_date DESC, ea.start_date DESC`, workspaceID, employeeID)
+		WHERE em.employee_id = $1
+		ORDER BY em.start_date DESC, ea.start_date DESC`, employeeID)
 	if err != nil {
 		return nil, err
 	}
@@ -106,53 +106,53 @@ func (r EmployeeAssignmentRepository) ListEmployeeAssignments(ctx context.Contex
 	return items, rows.Err()
 }
 
-func (r EmployeeAssignmentRepository) GetEmployeeAssignment(ctx context.Context, workspaceID, employeeID, assignmentID uuid.UUID) (api.EmployeeAssignment, error) {
+func (r EmployeeAssignmentRepository) GetEmployeeAssignment(ctx context.Context, employeeID, assignmentID uuid.UUID) (api.EmployeeAssignment, error) {
 	db, err := r.db(ctx)
 	if err != nil {
 		return api.EmployeeAssignment{}, err
 	}
 	item, err := scanEmployeeAssignment(db.QueryRow(ctx, `SELECT `+employeeAssignmentColumns+` FROM employee_assignments ea
 		JOIN employments em ON em.id = ea.employment_id
-		WHERE ea.id = $1 AND ea.workspace_id = $2 AND em.workspace_id = $2 AND em.employee_id = $3`, assignmentID, workspaceID, employeeID))
+		WHERE ea.id = $1 AND em.employee_id = $2`, assignmentID, employeeID))
 	if errors.Is(err, pgx.ErrNoRows) {
 		return api.EmployeeAssignment{}, api.ErrEmployeeAssignmentNotFound
 	}
 	return item, err
 }
 
-func (r EmployeeAssignmentRepository) GetActiveEmployment(ctx context.Context, workspaceID, employeeID uuid.UUID, onDate string) (api.ActiveEmployment, error) {
+func (r EmployeeAssignmentRepository) GetActiveEmployment(ctx context.Context, employeeID uuid.UUID, onDate string) (api.ActiveEmployment, error) {
 	db, err := r.db(ctx)
 	if err != nil {
 		return api.ActiveEmployment{}, err
 	}
 	var item api.ActiveEmployment
 	err = db.QueryRow(ctx, `SELECT id, primary_location_id FROM employments
-		WHERE workspace_id = $1 AND employee_id = $2 AND status = 'active' AND deleted_at IS NULL
-		AND start_date <= $3::date AND (end_date IS NULL OR end_date >= $3::date)
-		ORDER BY start_date DESC, id LIMIT 1`, workspaceID, employeeID, onDate).Scan(&item.ID, &item.PrimaryLocationID)
+		WHERE employee_id = $1 AND status = 'active' AND deleted_at IS NULL
+		AND start_date <= $2::date AND (end_date IS NULL OR end_date >= $2::date)
+		ORDER BY start_date DESC, id LIMIT 1`, employeeID, onDate).Scan(&item.ID, &item.PrimaryLocationID)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return api.ActiveEmployment{}, api.ErrNoActiveEmployment
 	}
 	return item, err
 }
 
-func (r EmployeeAssignmentRepository) CreateEmployeeAssignment(ctx context.Context, workspaceID, employmentID, homeLocationID uuid.UUID, req api.CreateEmployeeAssignmentRequest) (api.EmployeeAssignment, error) {
+func (r EmployeeAssignmentRepository) CreateEmployeeAssignment(ctx context.Context, employmentID, homeLocationID uuid.UUID, req api.CreateEmployeeAssignmentRequest) (api.EmployeeAssignment, error) {
 	db, err := r.db(ctx)
 	if err != nil {
 		return api.EmployeeAssignment{}, err
 	}
 	id := uuid.New()
 	item, err := scanEmployeeAssignment(db.QueryRow(ctx, `INSERT INTO employee_assignments
-		(id, workspace_id, home_location_id, host_location_id, start_date, end_date, reason, status, created_at, updated_at, employment_id)
-		VALUES ($1, $2, $3, $4, $5::date, $6::date, $7, 'active', NOW(), NOW(), $8)
-		RETURNING id, workspace_id, home_location_id, host_location_id, start_date::text, end_date::text, reason, status::text, created_at, updated_at, employment_id`, id, workspaceID, homeLocationID, req.HostLocationID, req.StartDate, nullableDate(req.EndDate), req.Reason, employmentID))
+		(id, home_location_id, host_location_id, start_date, end_date, reason, status, created_at, updated_at, employment_id)
+		VALUES ($1, $2, $3, $4::date, $5::date, $6, 'active', NOW(), NOW(), $7)
+		RETURNING id, home_location_id, host_location_id, start_date::text, end_date::text, reason, status::text, created_at, updated_at, employment_id`, id, homeLocationID, req.HostLocationID, req.StartDate, nullableDate(req.EndDate), req.Reason, employmentID))
 	if err != nil {
 		return api.EmployeeAssignment{}, mapConstraintError(err)
 	}
 	return item, nil
 }
 
-func (r EmployeeAssignmentRepository) UpdateEmployeeAssignment(ctx context.Context, workspaceID, employeeID, assignmentID uuid.UUID, req api.UpdateEmployeeAssignmentRequest) (api.EmployeeAssignment, error) {
+func (r EmployeeAssignmentRepository) UpdateEmployeeAssignment(ctx context.Context, employeeID, assignmentID uuid.UUID, req api.UpdateEmployeeAssignmentRequest) (api.EmployeeAssignment, error) {
 	db, err := r.db(ctx)
 	if err != nil {
 		return api.EmployeeAssignment{}, err
@@ -180,12 +180,12 @@ func (r EmployeeAssignmentRepository) UpdateEmployeeAssignment(ctx context.Conte
 			add("reason", **req.Reason)
 		}
 	}
-	args = append(args, assignmentID, workspaceID, employeeID)
+	args = append(args, assignmentID, employeeID)
 	query := fmt.Sprintf(`UPDATE employee_assignments ea SET %s
 		FROM employments em
-		WHERE ea.employment_id = em.id AND ea.id = $%d AND ea.workspace_id = $%d
-		AND em.workspace_id = $%d AND em.employee_id = $%d
-		RETURNING ea.id, ea.workspace_id, ea.home_location_id, ea.host_location_id, ea.start_date::text, ea.end_date::text, ea.reason, ea.status::text, ea.created_at, ea.updated_at, ea.employment_id`, strings.Join(sets, ", "), len(args)-2, len(args)-1, len(args)-1, len(args))
+		WHERE ea.employment_id = em.id AND ea.id = $%d
+		AND em.employee_id = $%d
+		RETURNING ea.id, ea.home_location_id, ea.host_location_id, ea.start_date::text, ea.end_date::text, ea.reason, ea.status::text, ea.created_at, ea.updated_at, ea.employment_id`, strings.Join(sets, ", "), len(args)-1, len(args))
 	item, err := scanEmployeeAssignment(db.QueryRow(ctx, query, args...))
 	if errors.Is(err, pgx.ErrNoRows) {
 		return api.EmployeeAssignment{}, api.ErrEmployeeAssignmentNotFound
@@ -193,14 +193,14 @@ func (r EmployeeAssignmentRepository) UpdateEmployeeAssignment(ctx context.Conte
 	return item, err
 }
 
-func (r EmployeeAssignmentRepository) DeleteEmployeeAssignment(ctx context.Context, workspaceID, employeeID, assignmentID uuid.UUID) error {
+func (r EmployeeAssignmentRepository) DeleteEmployeeAssignment(ctx context.Context, employeeID, assignmentID uuid.UUID) error {
 	db, err := r.db(ctx)
 	if err != nil {
 		return err
 	}
 	result, err := db.Exec(ctx, `DELETE FROM employee_assignments ea USING employments em
-		WHERE ea.employment_id = em.id AND ea.id = $1 AND ea.workspace_id = $2
-		AND em.workspace_id = $2 AND em.employee_id = $3`, assignmentID, workspaceID, employeeID)
+		WHERE ea.employment_id = em.id AND ea.id = $1
+		AND em.employee_id = $2`, assignmentID, employeeID)
 	if err != nil {
 		return err
 	}
@@ -225,7 +225,7 @@ func scanAssignmentRule(row interface{ Scan(...any) error }) (api.AssignmentRule
 	var item api.AssignmentRule
 	var conditions []byte
 	var created, updated *time.Time
-	if err := row.Scan(&item.ID, &item.WorkspaceID, &item.PatternID, &item.Name, &item.Priority, &conditions, &item.IsActive, &created, &updated, &item.StartDate, &item.EndDate); err != nil {
+	if err := row.Scan(&item.ID, &item.PatternID, &item.Name, &item.Priority, &conditions, &item.IsActive, &created, &updated, &item.StartDate, &item.EndDate); err != nil {
 		return api.AssignmentRule{}, err
 	}
 	if err := json.Unmarshal(conditions, &item.Conditions); err != nil {
@@ -240,16 +240,16 @@ func scanAssignmentRule(row interface{ Scan(...any) error }) (api.AssignmentRule
 	return item, nil
 }
 
-const assignmentRuleColumns = `id, workspace_id, pattern_id, name, priority, conditions,
+const assignmentRuleColumns = `id, pattern_id, name, priority, conditions,
 	is_active, created_at, updated_at, start_date::text, end_date::text`
 
-func (r AssignmentRuleRepository) ListAssignmentRules(ctx context.Context, workspaceID uuid.UUID) ([]api.AssignmentRule, error) {
+func (r AssignmentRuleRepository) ListAssignmentRules(ctx context.Context) ([]api.AssignmentRule, error) {
 	db, err := r.db(ctx)
 	if err != nil {
 		return nil, err
 	}
 	rows, err := db.Query(ctx, `SELECT `+assignmentRuleColumns+` FROM assignment_rules
-		WHERE workspace_id = $1 ORDER BY priority DESC, created_at ASC`, workspaceID)
+		ORDER BY priority DESC, created_at ASC`)
 	if err != nil {
 		return nil, err
 	}
@@ -269,7 +269,7 @@ func marshalConditions(conditions api.AssignmentRuleConditions) ([]byte, error) 
 	return json.Marshal(conditions)
 }
 
-func (r AssignmentRuleRepository) CreateAssignmentRule(ctx context.Context, workspaceID uuid.UUID, req api.CreateAssignmentRuleRequest) (api.AssignmentRule, error) {
+func (r AssignmentRuleRepository) CreateAssignmentRule(ctx context.Context, req api.CreateAssignmentRuleRequest) (api.AssignmentRule, error) {
 	db, err := r.db(ctx)
 	if err != nil {
 		return api.AssignmentRule{}, err
@@ -280,16 +280,16 @@ func (r AssignmentRuleRepository) CreateAssignmentRule(ctx context.Context, work
 	}
 	id := uuid.New()
 	item, err := scanAssignmentRule(db.QueryRow(ctx, `INSERT INTO assignment_rules
-		(id, workspace_id, pattern_id, name, priority, conditions, is_active, created_at, updated_at, start_date, end_date)
-		VALUES ($1, $2, $3, $4, $5, $6::jsonb, TRUE, NOW(), NOW(), $7::date, $8::date)
-		RETURNING `+assignmentRuleColumns, id, workspaceID, req.PatternID, req.Name, req.Priority, conditions, nullableDate(req.StartDate), nullableDate(req.EndDate)))
+		(id, pattern_id, name, priority, conditions, is_active, created_at, updated_at, start_date, end_date)
+		VALUES ($1, $2, $3, $4, $5::jsonb, TRUE, NOW(), NOW(), $6::date, $7::date)
+		RETURNING `+assignmentRuleColumns, id, req.PatternID, req.Name, req.Priority, conditions, nullableDate(req.StartDate), nullableDate(req.EndDate)))
 	if err != nil {
 		return api.AssignmentRule{}, mapConstraintError(err)
 	}
 	return item, nil
 }
 
-func (r AssignmentRuleRepository) UpdateAssignmentRule(ctx context.Context, workspaceID, ruleID uuid.UUID, req api.UpdateAssignmentRuleRequest) (api.AssignmentRule, error) {
+func (r AssignmentRuleRepository) UpdateAssignmentRule(ctx context.Context, ruleID uuid.UUID, req api.UpdateAssignmentRuleRequest) (api.AssignmentRule, error) {
 	db, err := r.db(ctx)
 	if err != nil {
 		return api.AssignmentRule{}, err
@@ -333,8 +333,8 @@ func (r AssignmentRuleRepository) UpdateAssignmentRule(ctx context.Context, work
 			add("end_date", **req.EndDate)
 		}
 	}
-	args = append(args, ruleID, workspaceID)
-	query := fmt.Sprintf(`UPDATE assignment_rules SET %s WHERE id = $%d AND workspace_id = $%d RETURNING `+assignmentRuleColumns, strings.Join(sets, ", "), len(args)-1, len(args))
+	args = append(args, ruleID)
+	query := fmt.Sprintf(`UPDATE assignment_rules SET %s WHERE id = $%d RETURNING `+assignmentRuleColumns, strings.Join(sets, ", "), len(args))
 	item, err := scanAssignmentRule(db.QueryRow(ctx, query, args...))
 	if errors.Is(err, pgx.ErrNoRows) {
 		return api.AssignmentRule{}, api.ErrAssignmentRuleNotFound
@@ -342,12 +342,12 @@ func (r AssignmentRuleRepository) UpdateAssignmentRule(ctx context.Context, work
 	return item, err
 }
 
-func (r AssignmentRuleRepository) DeleteAssignmentRule(ctx context.Context, workspaceID, ruleID uuid.UUID) error {
+func (r AssignmentRuleRepository) DeleteAssignmentRule(ctx context.Context, ruleID uuid.UUID) error {
 	db, err := r.db(ctx)
 	if err != nil {
 		return err
 	}
-	_, err = db.Exec(ctx, `DELETE FROM assignment_rules WHERE id = $1 AND workspace_id = $2`, ruleID, workspaceID)
+	_, err = db.Exec(ctx, `DELETE FROM assignment_rules WHERE id = $1`, ruleID)
 	return err
 }
 

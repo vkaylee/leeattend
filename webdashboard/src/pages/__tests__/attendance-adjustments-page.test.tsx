@@ -85,7 +85,6 @@ vi.mock("../../lib/api", () => ({
   fetchWorkspaceAttendanceAdjustments: vi.fn(),
   fetchEmployees: vi.fn(),
   approveAttendanceAdjustment: vi.fn(),
-  getStandaloneOrganizationId: vi.fn(),
   submitAttendanceAdjustment: vi.fn(),
   fetchWorkspace: vi.fn(),
 }));
@@ -117,7 +116,6 @@ describe("AttendanceAdjustmentsPage", () => {
       },
     });
 
-    vi.mocked(api.getStandaloneOrganizationId).mockReturnValue("test-ws-id");
     vi.mocked(api.fetchEmployees).mockResolvedValue({
       data: [
         { id: "emp-1", full_name: "John Doe", employee_id_number: "EMP001", workspace_id: "ws-1", created_at: "2025-01-01T00:00:00Z", updated_at: "2025-01-01T00:00:00Z", tags: [] }

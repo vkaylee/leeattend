@@ -11,15 +11,12 @@ const PAGE_LIMIT = 50;
 // until we've accumulated `total` rows. Cached per (ws, dept) via react-query so
 // re-checking a department doesn't refetch.
 async function fetchAllDeptEmployees(
-  wsId: string,
   departmentId: string,
 ): Promise<Employee[]> {
   const acc: Employee[] = [];
   let page = 1;
   for (;;) {
-    const res: PaginatedResponse<Employee> = await searchEmployees({
-      wsId,
-      query: "",
+    const res: PaginatedResponse<Employee> = await searchEmployees({query: "",
       page,
       limit: PAGE_LIMIT,
       departmentIds: [departmentId],
@@ -35,7 +32,6 @@ export interface UseBulkEmployeePickerOptions {
   initialIds: string[];
   initialMeta: Employee[];
   isOpen: boolean;
-  wsId: string;
 }
 
 export interface UseBulkEmployeePickerReturn {
@@ -51,9 +47,7 @@ export interface UseBulkEmployeePickerReturn {
   toggleExpand: (departmentId: string) => void;
 }
 
-export function useBulkEmployeePicker({
-  wsId,
-  isOpen,
+export function useBulkEmployeePicker({isOpen,
   initialIds,
   initialMeta,
 }: UseBulkEmployeePickerOptions): UseBulkEmployeePickerReturn {
@@ -86,12 +80,12 @@ export function useBulkEmployeePicker({
       setLoadingDepts((prev) => new Set(prev).add(departmentId));
       try {
         const emps = await queryClient.fetchQuery({
-          queryKey: employeeKeys.lookup(wsId, {
+          queryKey: employeeKeys.lookup({
             departmentIds: [departmentId],
             emptyQueryBehavior: "all",
             permission: "bulk-employee-picker",
           }),
-          queryFn: () => fetchAllDeptEmployees(wsId, departmentId),
+          queryFn: () => fetchAllDeptEmployees(departmentId),
         });
         setDeptEmployees((prev) => new Map(prev).set(departmentId, emps));
         return emps;
@@ -103,7 +97,7 @@ export function useBulkEmployeePicker({
         });
       }
     },
-    [deptEmployees, queryClient, wsId],
+    [deptEmployees, queryClient],
   );
 
   const toggleExpand = useCallback(

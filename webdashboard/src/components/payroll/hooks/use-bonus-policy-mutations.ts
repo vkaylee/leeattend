@@ -4,13 +4,13 @@ import { useTranslation } from "react-i18next";
 import { useToast } from "@/components/ui/toast";
 import { createIncentivePolicy, deleteIncentivePolicy, cloneIncentivePolicy } from "@/lib/api/payroll";
 
-export function useBonusPolicyMutations(wsId: string, onCreateSuccess?: () => void) {
+export function useBonusPolicyMutations(onCreateSuccess?: () => void) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const toast = useToast();
 
   const createMutation = useMutation({
-    mutationFn: (data: Parameters<typeof createIncentivePolicy>[1]) => createIncentivePolicy(wsId, data),
+    mutationFn: (data: Parameters<typeof createIncentivePolicy>[1]) => createIncentivePolicy(data),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["incentive-policies"] });
       onCreateSuccess?.();
@@ -19,7 +19,7 @@ export function useBonusPolicyMutations(wsId: string, onCreateSuccess?: () => vo
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id: string) => deleteIncentivePolicy(wsId, id),
+    mutationFn: (id: string) => deleteIncentivePolicy(id),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["incentive-policies"] });
       toast.success(t("common.deleted"));
@@ -27,7 +27,7 @@ export function useBonusPolicyMutations(wsId: string, onCreateSuccess?: () => vo
   });
 
   const cloneMutation = useMutation({
-    mutationFn: (id: string) => cloneIncentivePolicy(wsId, id),
+    mutationFn: (id: string) => cloneIncentivePolicy(id),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["incentive-policies"] });
       toast.success(t("common.success", { defaultValue: "Cloned successfully" }));

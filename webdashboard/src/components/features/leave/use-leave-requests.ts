@@ -9,7 +9,7 @@ import { useToast } from "@/components/ui/toast";
 import { useAllEmployees } from "@/hooks/use-employees";
 import { useInfiniteScroll } from "@/hooks/use-infinite-scroll";
 import {
-  fetchWorkspaceLeaveRequests,
+  fetchLeaveRequests,
   approveLeaveRequest,
   fetchLeaveTypes,
   fetchLatestLeaveImport,
@@ -25,7 +25,7 @@ export type LeaveStatusFilter = LeaveRequestsSearch["status"];
 
 const PAGE_SIZE = 20;
 
-export function useLeaveRequests(wsId: string | null) {
+export function useLeaveRequests() {
   const { t } = useTranslation();
   const toast = useToast();
   const queryClient = useQueryClient();
@@ -44,7 +44,7 @@ export function useLeaveRequests(wsId: string | null) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
 
-  const { employees } = useAllEmployees(wsId);
+  const { employees } = useAllEmployees();
 
   const {
     data: paginatedRequests,
@@ -53,9 +53,9 @@ export function useLeaveRequests(wsId: string | null) {
     hasNextPage,
     isFetchingNextPage,
   } = useInfiniteQuery<PaginatedResponse<LeaveRequest>>({
-    queryKey: ["leave-requests", wsId, activeTab, employeeId, statusFilter],
+    queryKey: ["leave-requests",activeTab, employeeId, statusFilter],
     queryFn: ({ pageParam }) => {
-      return fetchWorkspaceLeaveRequests(wsId ?? "", {
+      return fetchLeaveRequests({
         status: activeTab !== "behalf_assignments" && statusFilter !== "all" ? statusFilter : undefined,
         employee_id: employeeId,
         page: pageParam as number,
@@ -67,7 +67,7 @@ export function useLeaveRequests(wsId: string | null) {
       return totalLoaded >= (lastPage?.total || 0) ? undefined : allPages.length + 1;
     },
     initialPageParam: 1,
-    enabled: !!wsId && activeTab !== "behalf_assignments",
+    enabled: activeTab !== "behalf_assignments",
   });
 
   const requests = useMemo(
@@ -82,10 +82,10 @@ export function useLeaveRequests(wsId: string | null) {
     fetchNextPage: () => { void fetchNextPage(); },
   });
 
-  const { data: leaveTypes = [] } = useQuery({ queryKey: ["leave-types", wsId], queryFn: () => fetchLeaveTypes(wsId ?? ""), enabled: !!wsId });
+  const { data: leaveTypes = [] } = useQuery({ queryKey: ["leave-types"], queryFn: () => fetchLeaveTypes() });
 
   const approveMutation = useMutation({
-    mutationFn: (data: { id: string; status: "cancelled" | "pending" | "approved" | "rejected" | "pre_approved" }) => approveLeaveRequest(wsId ?? "", data.id, { status: data.status }),
+    mutationFn: (data: { id: string; status: "cancelled" | "pending" | "approved" | "rejected" | "pre_approved" }) => approveLeaveRequest(data.id, { status: data.status }),
     onSuccess: () => { void queryClient.invalidateQueries({ queryKey: ["leave-requests"] }); toast.success(t("common.success")); },
   });
 
@@ -94,37 +94,35 @@ export function useLeaveRequests(wsId: string | null) {
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const setImportBannerDismissed = useCallback((dismissed: boolean) => {
-    if (dismissed && importJob && wsId) {
-      localStorage.setItem(`dismissed_leave_import_job_${wsId}`, importJob.id);
+    if (dismissed && importJob) {
+      localStorage.setItem("dismissed_leave_import_job", importJob.id);
     }
     setImportBannerDismissedState(dismissed);
-  }, [importJob, wsId]);
+  }, [importJob]);
 
   useEffect(() => {
-    if (!wsId) return;
-    void fetchLatestLeaveImport(wsId).then((job) => {
+    void fetchLatestLeaveImport().then((job) => {
       if (job) {
         const created = new Date(job.created_at);
         const now = new Date();
         if (now.getTime() - created.getTime() < 24 * 60 * 60 * 1000) {
           setImportJob(job);
-          const dismissedId = localStorage.getItem(`dismissed_leave_import_job_${wsId}`);
+          const dismissedId = localStorage.getItem("dismissed_leave_import_job");
           setImportBannerDismissedState(dismissedId === job.id);
         }
       }
     }).catch((e: unknown) => { logError(e, { component: 'useLeaveRequests.fetchLatest' }); });
-  }, [wsId]);
+  }, []);
 
-  const startPolling = useCallback((wsIdValue: string) => {
-    if (pollingRef.current) clearInterval(pollingRef.current);
+  const startPolling = useCallback(() => {
+    clearInterval(pollingRef.current);
     pollingRef.current = setInterval(() => {
       void (async () => {
         try {
-          const job = await fetchLatestLeaveImport(wsIdValue);
+          const job = await fetchLatestLeaveImport();
           if (job) {
-            setImportJob(job);
             if (job.status !== "processing" && job.status !== "pending") {
-              if (pollingRef.current) clearInterval(pollingRef.current);
+              clearInterval(pollingRef.current);
               pollingRef.current = null;
               void queryClient.invalidateQueries({ queryKey: ["leave-requests"] });
             }
@@ -139,25 +137,22 @@ export function useLeaveRequests(wsId: string | null) {
 
   useEffect(() => {
     if (importJob?.status === "processing" || importJob?.status === "pending") {
-      if (wsId) startPolling(wsId);
+      startPolling();
     }
     return () => {
       if (pollingRef.current) clearInterval(pollingRef.current);
     };
-  }, [importJob?.status, wsId, startPolling]);
+  }, [importJob?.status, startPolling]);
 
   const handleImportComplete = useCallback(() => {
-    if (wsId) {
-      void fetchLatestLeaveImport(wsId).then((job) => {
-        if (job) {
-          setImportJob(job);
-          setImportBannerDismissedState(false);
-        }
-      }).catch((e: unknown) => { logError(e, { component: 'useLeaveRequests.importComplete' }); });
-      void queryClient.invalidateQueries({ queryKey: ["leave-requests"] });
-    }
-  }, [wsId, queryClient]);
-
+    void fetchLatestLeaveImport().then((job) => {
+      if (job) {
+        setImportJob(job);
+        setImportBannerDismissedState(false);
+      }
+    }).catch((e: unknown) => { logError(e, { component: 'useLeaveRequests.importComplete' }); });
+    void queryClient.invalidateQueries({ queryKey: ["leave-requests"] });
+  }, [queryClient]);
   return {
     isModalOpen, setIsModalOpen,
     isImportModalOpen, setIsImportModalOpen,

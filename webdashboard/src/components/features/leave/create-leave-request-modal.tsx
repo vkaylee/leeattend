@@ -23,11 +23,10 @@ export interface CreateLeaveRequestModalProps {
   leaveTypes: LeaveType[];
   onClose: () => void;
   t: TFunction;
-  wsId: string;
 }
 
   // eslint-disable-next-line complexity
-export function CreateLeaveRequestModal({ isOpen, onClose, wsId, leaveTypes, t }: CreateLeaveRequestModalProps) {
+export function CreateLeaveRequestModal({ isOpen, onClose,leaveTypes, t }: CreateLeaveRequestModalProps) {
   const toast = useToast();
   const queryClient = useQueryClient();
   const { hasAnyPermission } = useMyPermissions();
@@ -62,17 +61,11 @@ export function CreateLeaveRequestModal({ isOpen, onClose, wsId, leaveTypes, t }
 
   const empIdToUse = canSubmitOnBehalf ? selectedEmpId : (employee?.id ?? "");
 
-  const { data: balances = [] } = useQuery({ 
-    queryKey: ["leave-balances", wsId, empIdToUse], 
-    queryFn: () => fetchEmployeeLeaveBalances(wsId, empIdToUse), 
-    enabled: !!wsId && !!empIdToUse && isOpen 
-  });
+  const { data: balances = [] } = useQuery({ queryKey: ["leave-balances", empIdToUse], queryFn: () => fetchEmployeeLeaveBalances(empIdToUse), 
+  enabled: !!empIdToUse && isOpen });
 
-  const { data: employments = [] } = useQuery({
-    queryKey: ["employee-employments", wsId, empIdToUse],
-    queryFn: () => fetchEmployeeEmployments(wsId, empIdToUse),
-    enabled: !!wsId && !!empIdToUse && isOpen,
-  });
+  const { data: employments = [] } = useQuery({ queryKey: ["employee-employments", empIdToUse], queryFn: () => fetchEmployeeEmployments(empIdToUse),
+  enabled: !!empIdToUse && isOpen, });
   const activeEmployment = employments.find(e => e.status === "active") ?? employments[0];
 
   if (leaveTypes.length > 0 && !leaveTypeId) {
@@ -80,7 +73,7 @@ export function CreateLeaveRequestModal({ isOpen, onClose, wsId, leaveTypes, t }
   }
 
   const submitMutation = useMutation({
-    mutationFn: (data: { employment_id: string; leave_type_id: string; start_date: string; end_date: string; reason?: string; duration_type?: LeaveDurationType; start_time?: string; end_time?: string }) => submitLeaveRequest(wsId, data),
+    mutationFn: (data: { employment_id: string; leave_type_id: string; start_date: string; end_date: string; reason?: string; duration_type?: LeaveDurationType; start_time?: string; end_time?: string }) => submitLeaveRequest(data),
     onSuccess: () => { 
       void queryClient.invalidateQueries({ queryKey: ["leave-requests"] }); 
       handleClose();
@@ -122,37 +115,34 @@ export function CreateLeaveRequestModal({ isOpen, onClose, wsId, leaveTypes, t }
 
   return (
     <Modal icon={<CalendarDays size={24} />} isOpen={isOpen} maxWidth="md" onClose={handleClose} subtitle={t("leave_requests.modal.submit_subtitle")} title={t("leave_requests.modal.submit_title")}>
-      <CreateLeaveRequestForm
-        attachmentFileIds={attachmentFileIds}
-        balances={balances}
-        behalfEmployees={behalfEmployees}
-        behalfLoading={behalfLoading}
-        canSubmitOnBehalf={canSubmitOnBehalf}
-        durationType={durationType}
-        employee={employee}
-        endDate={endDate}
-        endTime={endTime}
-        hasPermission={hasPermission}
-        isSubmitting={submitMutation.isPending}
-        leaveTypeId={leaveTypeId}
-        leaveTypes={leaveTypes}
-        onCancel={handleClose}
-        onSubmit={handleSubmit}
-        ownerId={ownerId}
-        selectedEmpId={selectedEmpId}
-        setAttachmentFileIds={setAttachmentFileIds}
-        setDurationType={setDurationType}
-        setEndDate={setEndDate}
-        setEndTime={setEndTime}
-        setLeaveTypeId={setLeaveTypeId}
-        setSelectedEmpId={setSelectedEmpId}
-        setStartDate={setStartDate}
-        setStartTime={setStartTime}
-        startDate={startDate}
-        startTime={startTime}
-        t={t}
-        wsId={wsId}
-      />
+      <CreateLeaveRequestForm attachmentFileIds={attachmentFileIds}
+      balances={balances}
+      behalfEmployees={behalfEmployees}
+      behalfLoading={behalfLoading}
+      canSubmitOnBehalf={canSubmitOnBehalf}
+      durationType={durationType}
+      employee={employee}
+      endDate={endDate}
+      endTime={endTime}
+      hasPermission={hasPermission}
+      isSubmitting={submitMutation.isPending}
+      leaveTypeId={leaveTypeId}
+      leaveTypes={leaveTypes}
+      onCancel={handleClose}
+      onSubmit={handleSubmit}
+      ownerId={ownerId}
+      selectedEmpId={selectedEmpId}
+      setAttachmentFileIds={setAttachmentFileIds}
+      setDurationType={setDurationType}
+      setEndDate={setEndDate}
+      setEndTime={setEndTime}
+      setLeaveTypeId={setLeaveTypeId}
+      setSelectedEmpId={setSelectedEmpId}
+      setStartDate={setStartDate}
+      setStartTime={setStartTime}
+      startDate={startDate}
+      startTime={startTime}
+      t={t}  />
     </Modal>
   );
 }

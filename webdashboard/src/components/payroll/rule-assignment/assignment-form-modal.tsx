@@ -19,16 +19,13 @@ interface Props {
   isSubmitting: boolean;
   onClose: () => void;
   onSubmit: (data: Partial<PayrollRuleAssignment>) => void;
-  wsId: string;
 }
 
 export function AssignmentFormModal({
   isOpen,
   onClose,
   onSubmit,
-  isSubmitting,
-  wsId,
-  departments,
+  isSubmitting,departments,
   calculationMethod,
 }: Props) {
   const { t } = useTranslation();
@@ -76,13 +73,10 @@ export function AssignmentFormModal({
           setAssigneeType={setAssigneeType}
         />
 
-        <AssigneePicker
-          assigneeId={assigneeId}
-          assigneeType={assigneeType}
-          departments={departments}
-          setAssigneeId={setAssigneeId}
-          wsId={wsId}
-        />
+        <AssigneePicker assigneeId={assigneeId}
+        assigneeType={assigneeType}
+        departments={departments}
+        setAssigneeId={setAssigneeId}  />
 
         <DateRangeFields 
           effectiveFrom={effectiveFrom}

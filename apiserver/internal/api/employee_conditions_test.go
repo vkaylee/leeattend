@@ -18,7 +18,7 @@ type mockConditionRepo struct {
 	deptID     *uuid.UUID
 }
 
-func (m mockConditionRepo) ListWorkspaceConditions(_ context.Context, _ uuid.UUID) ([]EmployeeConditionWithEmployee, error) {
+func (m mockConditionRepo) ListOrganizationConditions(_ context.Context) ([]EmployeeConditionWithEmployee, error) {
 	if m.notFound {
 		return nil, ErrEmployeeNotFound
 	}
@@ -34,7 +34,7 @@ func (m mockConditionRepo) ListWorkspaceConditions(_ context.Context, _ uuid.UUI
 	return res, nil
 }
 
-func (m mockConditionRepo) ListEmployeeConditions(_ context.Context, _, _ uuid.UUID, page, limit int) (EmployeeConditionListResponse, error) {
+func (m mockConditionRepo) ListEmployeeConditions(_ context.Context, _ uuid.UUID, page, limit int) (EmployeeConditionListResponse, error) {
 	if m.notFound {
 		return EmployeeConditionListResponse{}, ErrEmployeeNotFound
 	}
@@ -49,7 +49,7 @@ func (m mockConditionRepo) ListEmployeeConditions(_ context.Context, _, _ uuid.U
 	}, nil
 }
 
-func (m mockConditionRepo) CreateEmployeeCondition(_ context.Context, _, empID uuid.UUID, req CreateEmployeeConditionRequest) (EmployeeCondition, error) {
+func (m mockConditionRepo) CreateEmployeeCondition(_ context.Context, _ uuid.UUID, req CreateEmployeeConditionRequest) (EmployeeCondition, error) {
 	if m.notFound {
 		return EmployeeCondition{}, ErrEmployeeNotFound
 	}
@@ -68,7 +68,7 @@ func (m mockConditionRepo) CreateEmployeeCondition(_ context.Context, _, empID u
 	}, nil
 }
 
-func (m mockConditionRepo) DeleteEmployeeCondition(_ context.Context, _, _, _ uuid.UUID) error {
+func (m mockConditionRepo) DeleteEmployeeCondition(_ context.Context, _, _ uuid.UUID) error {
 	if m.notFound {
 		return ErrEmployeeConditionNotFound
 	}
@@ -78,7 +78,7 @@ func (m mockConditionRepo) DeleteEmployeeCondition(_ context.Context, _, _, _ uu
 	return nil
 }
 
-func (m mockConditionRepo) CurrentEmployeeDepartment(_ context.Context, _, _ uuid.UUID) (*uuid.UUID, error) {
+func (m mockConditionRepo) CurrentEmployeeDepartment(_ context.Context, _ uuid.UUID) (*uuid.UUID, error) {
 	if m.notFound {
 		return nil, ErrEmployeeNotFound
 	}
@@ -86,7 +86,7 @@ func (m mockConditionRepo) CurrentEmployeeDepartment(_ context.Context, _, _ uui
 }
 
 func TestEmployeeConditions_List(t *testing.T) {
-	wsID, empID, userID := uuid.New(), uuid.New(), uuid.New()
+	empID, userID := uuid.New(), uuid.New()
 	condID := uuid.New()
 	h := EmployeeConditionHandler{
 		Repository: mockConditionRepo{
@@ -97,8 +97,7 @@ func TestEmployeeConditions_List(t *testing.T) {
 	}
 
 	// 1. Success 200
-	req := httptest.NewRequest(http.MethodGet, "/api/v1/workspaces/"+wsID.String()+"/employees/"+empID.String()+"/conditions", nil)
-	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/employees/"+empID.String()+"/conditions", nil)
 	req.SetPathValue("id", empID.String())
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), userID))
 	rec := httptest.NewRecorder()
@@ -125,17 +124,16 @@ func TestEmployeeConditions_List(t *testing.T) {
 }
 
 func TestEmployeeConditions_CreateAndDelete(t *testing.T) {
-	wsID, empID, condID, userID := uuid.New(), uuid.New(), uuid.New(), uuid.New()
+	empID, condID, userID := uuid.New(), uuid.New(), uuid.New()
 	deptID := uuid.New()
 	h := EmployeeConditionHandler{
 		Repository: mockConditionRepo{deptID: &deptID},
-		Authorizer: mockAuthorizer{perms: map[string]bool{"employees:update": true}},
+		Authorizer: employeeSliceAuthorizer{perms: map[string]bool{"employees:update": true}},
 	}
 
 	// 1. Create Success -> 201
 	body := `{"type_":"LATE_IN","minute_allowance":30,"is_paid":false,"start_date":"2026-03-01","end_date":"2026-12-31"}`
-	req := httptest.NewRequest(http.MethodPost, "/api/v1/workspaces/"+wsID.String()+"/employees/"+empID.String()+"/conditions", bytes.NewBufferString(body))
-	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/employees/"+empID.String()+"/conditions", bytes.NewBufferString(body))
 	req.SetPathValue("id", empID.String())
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), userID))
 	rec := httptest.NewRecorder()
@@ -147,11 +145,10 @@ func TestEmployeeConditions_CreateAndDelete(t *testing.T) {
 	// 2. Create Forbidden
 	hForbidden := EmployeeConditionHandler{
 		Repository: mockConditionRepo{deptID: &deptID},
-		Authorizer: mockAuthorizer{perms: map[string]bool{}},
+		Authorizer: employeeSliceAuthorizer{perms: map[string]bool{}},
 	}
 	recForbidden := httptest.NewRecorder()
-	reqForb := httptest.NewRequest(http.MethodPost, "/api/v1/workspaces/"+wsID.String()+"/employees/"+empID.String()+"/conditions", bytes.NewBufferString(body))
-	reqForb = reqForb.WithContext(httpinfra.WithOrganizationIDForTest(reqForb.Context(), wsID))
+	reqForb := httptest.NewRequest(http.MethodPost, "/api/v1/employees/"+empID.String()+"/conditions", bytes.NewBufferString(body))
 	reqForb.SetPathValue("id", empID.String())
 	reqForb = reqForb.WithContext(httpinfra.WithUserIDForTest(reqForb.Context(), userID))
 	hForbidden.Create(recForbidden, reqForb)
@@ -161,8 +158,7 @@ func TestEmployeeConditions_CreateAndDelete(t *testing.T) {
 
 	// 3. Create Invalid Date Validation -> 400
 	badBody := `{"type_":"LATE_IN","minute_allowance":30,"is_paid":false,"start_date":"2026-12-31","end_date":"2026-01-01"}`
-	reqBad := httptest.NewRequest(http.MethodPost, "/api/v1/workspaces/"+wsID.String()+"/employees/"+empID.String()+"/conditions", bytes.NewBufferString(badBody))
-	reqBad = reqBad.WithContext(httpinfra.WithOrganizationIDForTest(reqBad.Context(), wsID))
+	reqBad := httptest.NewRequest(http.MethodPost, "/api/v1/employees/"+empID.String()+"/conditions", bytes.NewBufferString(badBody))
 	reqBad.SetPathValue("id", empID.String())
 	reqBad = reqBad.WithContext(httpinfra.WithUserIDForTest(reqBad.Context(), userID))
 	recBad := httptest.NewRecorder()
@@ -172,8 +168,7 @@ func TestEmployeeConditions_CreateAndDelete(t *testing.T) {
 	}
 
 	// 4. Delete Success -> 204
-	delReq := httptest.NewRequest(http.MethodDelete, "/api/v1/workspaces/"+wsID.String()+"/employees/"+empID.String()+"/conditions/"+condID.String(), nil)
-	delReq = delReq.WithContext(httpinfra.WithOrganizationIDForTest(delReq.Context(), wsID))
+	delReq := httptest.NewRequest(http.MethodDelete, "/api/v1/employees/"+empID.String()+"/conditions/"+condID.String(), nil)
 	delReq.SetPathValue("id", empID.String())
 	delReq.SetPathValue("cond_id", condID.String())
 	delReq = delReq.WithContext(httpinfra.WithUserIDForTest(delReq.Context(), userID))
@@ -186,7 +181,7 @@ func TestEmployeeConditions_CreateAndDelete(t *testing.T) {
 	// 5. Delete Not Found -> 404
 	hDelNotFound := EmployeeConditionHandler{
 		Repository: mockConditionRepo{notFound: true, deptID: &deptID},
-		Authorizer: mockAuthorizer{perms: map[string]bool{"employees:update": true}},
+		Authorizer: employeeSliceAuthorizer{perms: map[string]bool{"employees:update": true}},
 	}
 	recDelNotFound := httptest.NewRecorder()
 	hDelNotFound.Delete(recDelNotFound, delReq)
@@ -195,8 +190,8 @@ func TestEmployeeConditions_CreateAndDelete(t *testing.T) {
 	}
 }
 
-func TestEmployeeConditions_ListWorkspaceConditions(t *testing.T) {
-	wsID, userID := uuid.New(), uuid.New()
+func TestEmployeeConditions_ListConditions(t *testing.T) {
+	userID := uuid.New()
 	cond := EmployeeCondition{
 		ID:              uuid.New(),
 		EmploymentID:    uuid.New(),
@@ -207,14 +202,13 @@ func TestEmployeeConditions_ListWorkspaceConditions(t *testing.T) {
 	}
 	h := EmployeeConditionHandler{
 		Repository: mockConditionRepo{conditions: []EmployeeCondition{cond}},
-		Authorizer: mockAuthorizer{perms: map[string]bool{"employees:read": true}},
+		Authorizer: employeeSliceAuthorizer{perms: map[string]bool{"employees:read": true}},
 	}
 
-	req := httptest.NewRequest(http.MethodGet, "/api/v1/workspaces/"+wsID.String()+"/working-conditions", nil)
-	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/working-conditions", nil)
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), userID))
 	rec := httptest.NewRecorder()
-	h.ListWorkspaceConditions(rec, req)
+	h.ListConditions(rec, req)
 
 	if rec.Code != http.StatusOK {
 		t.Fatalf("expected 200, got %d: %s", rec.Code, rec.Body.String())

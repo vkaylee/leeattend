@@ -12,10 +12,7 @@ import { maybeNull } from "@/types/api-overrides";
 import { useLifecycleChecklistState } from "./hooks/use-lifecycle-checklist-state";
 import { formatChecklistType, ChecklistHeader, ChecklistItemRow } from "./lifecycle-checklist-components";
 
-interface EmployeeLifecycleTabProps {
-  employmentId?: string;
-  wsId: string;
-}
+interface EmployeeLifecycleTabProps { employmentId?: string;  }
 
 export default function EmployeeLifecycleTab({ employmentId }: EmployeeLifecycleTabProps) {
   const { t } = useTranslation();

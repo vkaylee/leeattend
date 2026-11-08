@@ -35,8 +35,6 @@ const queryClient = new QueryClient({
 });
 
 describe("LeaveTypeManager & Template Gallery", () => {
-  const wsId = "test-ws-id";
-  
   beforeEach(() => {
     vi.clearAllMocks();
     queryClient.clear();
@@ -47,7 +45,7 @@ describe("LeaveTypeManager & Template Gallery", () => {
 
     render(
       <QueryClientProvider client={queryClient}>
-        <LeaveTypeManager wsId={wsId} />
+        <LeaveTypeManager   />
       </QueryClientProvider>
     );
 
@@ -63,7 +61,7 @@ describe("LeaveTypeManager & Template Gallery", () => {
 
     render(
       <QueryClientProvider client={queryClient}>
-        <LeaveTypeManager wsId={wsId} />
+        <LeaveTypeManager   />
       </QueryClientProvider>
     );
 
@@ -89,7 +87,7 @@ describe("LeaveTypeManager & Template Gallery", () => {
 
     render(
       <QueryClientProvider client={queryClient}>
-        <LeaveTypeManager wsId={wsId} />
+        <LeaveTypeManager   />
       </QueryClientProvider>
     );
 
@@ -108,7 +106,7 @@ describe("LeaveTypeManager & Template Gallery", () => {
 
     render(
       <QueryClientProvider client={queryClient}>
-        <LeaveTypeManager wsId={wsId} />
+        <LeaveTypeManager   />
       </QueryClientProvider>
     );
 
@@ -126,7 +124,7 @@ describe("LeaveTypeManager & Template Gallery", () => {
 
     render(
       <QueryClientProvider client={queryClient}>
-        <LeaveTypeManager wsId={wsId} />
+        <LeaveTypeManager   />
       </QueryClientProvider>
     );
 
@@ -153,7 +151,7 @@ describe("LeaveTypeManager & Template Gallery", () => {
 
     render(
       <QueryClientProvider client={queryClient}>
-        <LeaveTypeManager wsId={wsId} />
+        <LeaveTypeManager   />
       </QueryClientProvider>
     );
 
@@ -197,7 +195,7 @@ describe("LeaveTypeManager & Template Gallery", () => {
 
     render(
       <QueryClientProvider client={queryClient}>
-        <LeaveTypeManager wsId={wsId} />
+        <LeaveTypeManager   />
       </QueryClientProvider>
     );
 

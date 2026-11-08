@@ -14,6 +14,6 @@ export class Navbar extends BasePage {
   async openSettings() {
     // Settings Hub is accessible via the nav rail system button or direct navigation
     // The DSM shell uses nav-panel groups for navigation
-    await this.page.goto('/workspace/settings');
+    await this.page.goto('/settings');
   }
 }

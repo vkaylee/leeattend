@@ -14,7 +14,6 @@ import (
 )
 
 func TestHolidayRepository_GetHolidayByID_NotFound(t *testing.T) {
-	wsID := uuid.New()
 	holidayID := uuid.New()
 	db := &fakeDBTX{
 		queryRowFn: func(_ context.Context, _ string, _ ...any) pgx.Row {
@@ -27,33 +26,31 @@ func TestHolidayRepository_GetHolidayByID_NotFound(t *testing.T) {
 		DB: db,
 	}
 
-	_, err := repo.GetHolidayByID(context.Background(), wsID, holidayID)
+	_, err := repo.GetHolidayByID(context.Background(), holidayID)
 	if err != api.ErrHolidayNotFound {
 		t.Fatalf("expected ErrHolidayNotFound, got %v", err)
 	}
 }
 
 func TestHolidayRepository_GetHolidayByID_Success(t *testing.T) {
-	wsID := uuid.New()
 	holidayID := uuid.New()
 	now := time.Now().UTC()
 	db := &fakeDBTX{
 		queryRowFn: func(_ context.Context, _ string, _ ...any) pgx.Row {
 			return fakeRow{scanFn: func(dest ...any) error {
 				*(dest[0].(*uuid.UUID)) = holidayID
-				*(dest[1].(*uuid.UUID)) = wsID
-				*(dest[2].(*string)) = "National Day"
-				*(dest[3].(*string)) = "2026-09-02"
-				*(dest[4].(*string)) = "national"
-				*(dest[5].(*bool)) = true
-				*(dest[6].(**uuid.UUID)) = nil
-				*(dest[7].(**decimal.Decimal)) = nil
-				*(dest[8].(**string)) = nil
-				*(dest[9].(**int32)) = nil
-				*(dest[10].(*bool)) = true
+				*(dest[1].(*string)) = "National Day"
+				*(dest[2].(*string)) = "2026-09-02"
+				*(dest[3].(*string)) = "national"
+				*(dest[4].(*bool)) = true
+				*(dest[5].(**uuid.UUID)) = nil
+				*(dest[6].(**decimal.Decimal)) = nil
+				*(dest[7].(**string)) = nil
+				*(dest[8].(**int32)) = nil
+				*(dest[9].(*bool)) = true
+				*(dest[10].(*time.Time)) = now
 				*(dest[11].(*time.Time)) = now
-				*(dest[12].(*time.Time)) = now
-				*(dest[13].(**uuid.UUID)) = nil
+				*(dest[12].(**uuid.UUID)) = nil
 				return nil
 			}}
 		},
@@ -62,7 +59,7 @@ func TestHolidayRepository_GetHolidayByID_Success(t *testing.T) {
 		DB: db,
 	}
 
-	rec, err := repo.GetHolidayByID(context.Background(), wsID, holidayID)
+	rec, err := repo.GetHolidayByID(context.Background(), holidayID)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -72,7 +69,6 @@ func TestHolidayRepository_GetHolidayByID_Success(t *testing.T) {
 }
 
 func TestHolidayRepository_CreateHoliday_Conflict(t *testing.T) {
-	wsID := uuid.New()
 	db := &fakeDBTX{
 		queryRowFn: func(_ context.Context, _ string, _ ...any) pgx.Row {
 			return fakeRow{scanFn: func(_ ...any) error {
@@ -84,7 +80,7 @@ func TestHolidayRepository_CreateHoliday_Conflict(t *testing.T) {
 		DB: db,
 	}
 
-	_, err := repo.CreateHoliday(context.Background(), wsID, api.CreateHolidayRequest{
+	_, err := repo.CreateHoliday(context.Background(), api.CreateHolidayRequest{
 		Name: "National Day",
 		Date: "2026-09-02",
 	})
@@ -94,7 +90,6 @@ func TestHolidayRepository_CreateHoliday_Conflict(t *testing.T) {
 }
 
 func TestHolidayRepository_DeleteHoliday_SoftDeleteAndNotFound(t *testing.T) {
-	wsID := uuid.New()
 	hID := uuid.New()
 
 	var executedSQL string
@@ -110,7 +105,7 @@ func TestHolidayRepository_DeleteHoliday_SoftDeleteAndNotFound(t *testing.T) {
 		DB: db,
 	}
 
-	if err := repo.DeleteHoliday(context.Background(), wsID, hID); err != nil {
+	if err := repo.DeleteHoliday(context.Background(), hID); err != nil {
 		t.Fatalf("expected success, got %v", err)
 	}
 	if !strings.Contains(executedSQL, "deleted_at = NOW()") {
@@ -125,13 +120,12 @@ func TestHolidayRepository_DeleteHoliday_SoftDeleteAndNotFound(t *testing.T) {
 	repoNotFound := HolidayRepository{
 		DB: dbNotFound,
 	}
-	if err := repoNotFound.DeleteHoliday(context.Background(), wsID, hID); err != api.ErrHolidayNotFound {
+	if err := repoNotFound.DeleteHoliday(context.Background(), hID); err != api.ErrHolidayNotFound {
 		t.Fatalf("expected ErrHolidayNotFound, got %v", err)
 	}
 }
 
 func TestHolidayRepository_ProcessHolidayLeave_PaidHoliday(t *testing.T) {
-	wsID := uuid.New()
 	hID := uuid.New()
 
 	tx := &fakeTx{fakeDBTX: fakeDBTX{
@@ -149,12 +143,12 @@ func TestHolidayRepository_ProcessHolidayLeave_PaidHoliday(t *testing.T) {
 		},
 	}}
 	repo := HolidayRepository{
-		BeginTx: func(_ context.Context, _ uuid.UUID) (TxBeginner, error) {
+		BeginTx: func(_ context.Context) (TxBeginner, error) {
 			return fakeTxBeginner{tx: tx}, nil
 		},
 	}
 
-	results, err := repo.ProcessHolidayLeave(context.Background(), wsID, hID)
+	results, err := repo.ProcessHolidayLeave(context.Background(), hID)
 	if err != nil {
 		t.Fatalf("expected success, got %v", err)
 	}

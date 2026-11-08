@@ -85,7 +85,6 @@ function createDefaults(overrides: Partial<Parameters<typeof EmployeeOverlays>[0
     setPrefillEnrollmentId: vi.fn(),
     setSelectedDeptId: vi.fn(),
     setSelectedEmployee: vi.fn(),
-    wsId: "ws-1",
     ...overrides,
   };
 }

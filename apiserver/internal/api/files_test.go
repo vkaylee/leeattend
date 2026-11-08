@@ -48,27 +48,35 @@ func (m mockFileStorage) Get(ctx context.Context, key string) (*http.Response, e
 }
 
 type mockFileRepo struct {
-	Files      map[uuid.UUID]WorkspaceFileRecord
+	OrgID      uuid.UUID
+	Files      map[uuid.UUID]FileRecord
 	Signatures map[uuid.UUID]SignatureRequestRecord
 }
 
-func (m *mockFileRepo) CreateFile(ctx context.Context, file WorkspaceFileRecord) error {
+func (m *mockFileRepo) GetOrganizationID(ctx context.Context) (uuid.UUID, error) {
+	if m.OrgID != uuid.Nil {
+		return m.OrgID, nil
+	}
+	return uuid.MustParse("018d0000-0000-7000-8000-000000000001"), nil
+}
+
+func (m *mockFileRepo) CreateFile(ctx context.Context, file FileRecord) error {
 	if m.Files == nil {
-		m.Files = make(map[uuid.UUID]WorkspaceFileRecord)
+		m.Files = make(map[uuid.UUID]FileRecord)
 	}
 	m.Files[file.ID] = file
 	return nil
 }
 
-func (m *mockFileRepo) GetFile(ctx context.Context, wsID, fileID uuid.UUID) (WorkspaceFileRecord, error) {
-	if f, ok := m.Files[fileID]; ok && f.WorkspaceID == wsID && f.IsActive {
+func (m *mockFileRepo) GetFile(ctx context.Context, fileID uuid.UUID) (FileRecord, error) {
+	if f, ok := m.Files[fileID]; ok && f.IsActive {
 		return f, nil
 	}
-	return WorkspaceFileRecord{}, ErrFileNotFound
+	return FileRecord{}, ErrFileNotFound
 }
 
-func (m *mockFileRepo) DeleteFile(ctx context.Context, wsID, fileID uuid.UUID) error {
-	if f, ok := m.Files[fileID]; ok && f.WorkspaceID == wsID && f.IsActive {
+func (m *mockFileRepo) DeleteFile(ctx context.Context, fileID uuid.UUID) error {
+	if f, ok := m.Files[fileID]; ok && f.IsActive {
 		f.IsActive = false
 		m.Files[fileID] = f
 		return nil
@@ -84,18 +92,18 @@ func (m *mockFileRepo) CreateSignatureRequest(ctx context.Context, req Signature
 	return nil
 }
 
-func (m *mockFileRepo) ListPendingSignatures(ctx context.Context, wsID, signerID uuid.UUID) ([]SignatureRequestRecord, error) {
+func (m *mockFileRepo) ListPendingSignatures(ctx context.Context, signerID uuid.UUID) ([]SignatureRequestRecord, error) {
 	var list []SignatureRequestRecord
 	for _, s := range m.Signatures {
-		if s.WorkspaceID == wsID && s.SignerID == signerID && s.Status == "pending" {
+		if s.SignerID == signerID && s.Status == "pending" {
 			list = append(list, s)
 		}
 	}
 	return list, nil
 }
 
-func (m *mockFileRepo) SignDocument(ctx context.Context, wsID, requestID uuid.UUID) error {
-	if s, ok := m.Signatures[requestID]; ok && s.WorkspaceID == wsID && s.Status == "pending" {
+func (m *mockFileRepo) SignDocument(ctx context.Context, requestID uuid.UUID) error {
+	if s, ok := m.Signatures[requestID]; ok && s.Status == "pending" {
 		s.Status = "signed"
 		m.Signatures[requestID] = s
 		return nil
@@ -103,9 +111,9 @@ func (m *mockFileRepo) SignDocument(ctx context.Context, wsID, requestID uuid.UU
 	return ErrFileNotFound
 }
 
-func (m *mockFileRepo) CreateFileVersion(ctx context.Context, wsID, oldFileID uuid.UUID, newFile WorkspaceFileRecord) (WorkspaceFileRecord, error) {
+func (m *mockFileRepo) CreateFileVersion(ctx context.Context, oldFileID uuid.UUID, newFile FileRecord) (FileRecord, error) {
 	if m.Files == nil {
-		m.Files = make(map[uuid.UUID]WorkspaceFileRecord)
+		m.Files = make(map[uuid.UUID]FileRecord)
 	}
 	if old, ok := m.Files[oldFileID]; ok {
 		old.IsLatest = false
@@ -115,12 +123,12 @@ func (m *mockFileRepo) CreateFileVersion(ctx context.Context, wsID, oldFileID uu
 	return newFile, nil
 }
 
-func (m *mockFileRepo) ListFileVersions(ctx context.Context, wsID, fileID uuid.UUID) ([]WorkspaceFileRecord, error) {
-	var list []WorkspaceFileRecord
+func (m *mockFileRepo) ListFileVersions(ctx context.Context, fileID uuid.UUID) ([]FileRecord, error) {
+	var list []FileRecord
 	curr := fileID
 	for {
 		f, ok := m.Files[curr]
-		if !ok || f.WorkspaceID != wsID {
+		if !ok {
 			break
 		}
 		list = append(list, f)
@@ -132,10 +140,10 @@ func (m *mockFileRepo) ListFileVersions(ctx context.Context, wsID, fileID uuid.U
 	return list, nil
 }
 
-func (m *mockFileRepo) ListFilesByOwner(ctx context.Context, wsID uuid.UUID, ownerType string, ownerID uuid.UUID) ([]WorkspaceFileRecord, error) {
-	var list []WorkspaceFileRecord
+func (m *mockFileRepo) ListFilesByOwner(ctx context.Context, ownerType string, ownerID uuid.UUID) ([]FileRecord, error) {
+	var list []FileRecord
 	for _, f := range m.Files {
-		if f.WorkspaceID == wsID && f.OwnerType == ownerType && f.OwnerID == ownerID && f.IsActive {
+		if f.OwnerType == ownerType && f.OwnerID == ownerID && f.IsActive {
 			list = append(list, f)
 		}
 	}
@@ -146,15 +154,35 @@ type mockFileAuthorizer struct {
 	notMember bool
 }
 
-func (mockFileAuthorizer) HasPermission(context.Context, uuid.UUID, uuid.UUID, string) bool {
+func (mockFileAuthorizer) HasPermission(context.Context, uuid.UUID, string) bool {
 	return true
 }
-func (m mockFileAuthorizer) IsMember(context.Context, uuid.UUID, uuid.UUID) (bool, error) {
+
+func (m mockFileAuthorizer) IsMember(context.Context, uuid.UUID) (bool, error) {
 	return !m.notMember, nil
 }
 
+func (mockFileAuthorizer) EffectivePermissions(context.Context, uuid.UUID) ([]string, []string, error) {
+	return nil, nil, nil
+}
+
+func (mockFileAuthorizer) GetManagedDepartmentIDs(context.Context, uuid.UUID) ([]uuid.UUID, error) {
+	return nil, nil
+}
+
+func (mockFileAuthorizer) IsGlobalManager(context.Context, uuid.UUID) bool {
+	return false
+}
+
+func (mockFileAuthorizer) HasScopedPermission(context.Context, uuid.UUID, string, *uuid.UUID) bool {
+	return true
+}
+
+func (mockFileAuthorizer) GetUsersWithPermission(context.Context, string) ([]uuid.UUID, error) {
+	return nil, nil
+}
+
 func TestFilePresignedUploadAndMetadata(t *testing.T) {
-	wsID := uuid.New()
 	userID := uuid.New()
 	repo := &mockFileRepo{}
 	handler := FileHandler{
@@ -172,8 +200,7 @@ func TestFilePresignedUploadAndMetadata(t *testing.T) {
 		OwnerID:   uuid.New(),
 	}
 	raw, _ := json.Marshal(reqBody)
-	req := httptest.NewRequest(http.MethodPost, "/v1/workspaces/"+wsID.String()+"/files/presigned", bytes.NewReader(raw))
-	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
+	req := httptest.NewRequest(http.MethodPost, "/v1/files/presigned", bytes.NewReader(raw))
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), userID))
 	rec := httptest.NewRecorder()
 
@@ -188,10 +215,12 @@ func TestFilePresignedUploadAndMetadata(t *testing.T) {
 	if resp.File.FileName != "contract.pdf" || resp.UploadURL == "" {
 		t.Fatalf("invalid presigned response: %+v", resp)
 	}
+	if resp.File.StorageKey != resp.File.ID.String()+"/contract.pdf" {
+		t.Errorf("expected storage key without workspace prefix, got: %s", resp.File.StorageKey)
+	}
 
 	// Fetch metadata
-	metaReq := httptest.NewRequest(http.MethodGet, "/v1/workspaces/"+wsID.String()+"/files/"+resp.File.ID.String(), nil)
-	metaReq = metaReq.WithContext(httpinfra.WithOrganizationIDForTest(metaReq.Context(), wsID))
+	metaReq := httptest.NewRequest(http.MethodGet, "/v1/files/"+resp.File.ID.String(), nil)
 	metaReq.SetPathValue("id", resp.File.ID.String())
 	metaReq = metaReq.WithContext(httpinfra.WithUserIDForTest(metaReq.Context(), userID))
 	metaRec := httptest.NewRecorder()
@@ -202,8 +231,7 @@ func TestFilePresignedUploadAndMetadata(t *testing.T) {
 	}
 
 	// Get URL
-	urlReq := httptest.NewRequest(http.MethodGet, "/v1/workspaces/"+wsID.String()+"/files/"+resp.File.ID.String()+"/url", nil)
-	urlReq = urlReq.WithContext(httpinfra.WithOrganizationIDForTest(urlReq.Context(), wsID))
+	urlReq := httptest.NewRequest(http.MethodGet, "/v1/files/"+resp.File.ID.String()+"/url", nil)
 	urlReq.SetPathValue("id", resp.File.ID.String())
 	urlReq = urlReq.WithContext(httpinfra.WithUserIDForTest(urlReq.Context(), userID))
 	urlRec := httptest.NewRecorder()
@@ -214,8 +242,7 @@ func TestFilePresignedUploadAndMetadata(t *testing.T) {
 	}
 
 	// Delete
-	delReq := httptest.NewRequest(http.MethodDelete, "/v1/workspaces/"+wsID.String()+"/files/"+resp.File.ID.String(), nil)
-	delReq = delReq.WithContext(httpinfra.WithOrganizationIDForTest(delReq.Context(), wsID))
+	delReq := httptest.NewRequest(http.MethodDelete, "/v1/files/"+resp.File.ID.String(), nil)
 	delReq.SetPathValue("id", resp.File.ID.String())
 	delReq = delReq.WithContext(httpinfra.WithUserIDForTest(delReq.Context(), userID))
 	delRec := httptest.NewRecorder()
@@ -227,7 +254,6 @@ func TestFilePresignedUploadAndMetadata(t *testing.T) {
 }
 
 func TestSignatureRequestLifecycle(t *testing.T) {
-	wsID := uuid.New()
 	signerID := uuid.New()
 	docID := uuid.New()
 	repo := &mockFileRepo{}
@@ -236,16 +262,16 @@ func TestSignatureRequestLifecycle(t *testing.T) {
 		Authorizer: mockFileAuthorizer{},
 	}
 
+	// Create request
 	body, _ := json.Marshal(CreateSignatureRequestBody{SignerID: signerID})
-	req := httptest.NewRequest(http.MethodPost, "/v1/workspaces/"+wsID.String()+"/documents/"+docID.String()+"/signature-requests", bytes.NewReader(body))
-	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
+	req := httptest.NewRequest(http.MethodPost, "/v1/documents/"+docID.String()+"/signature-requests", bytes.NewReader(body))
 	req.SetPathValue("document_id", docID.String())
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
 	rec := httptest.NewRecorder()
 
 	handler.CreateSignatureRequest(rec, req)
 	if rec.Code != http.StatusOK {
-		t.Fatalf("expected 200 OK, got %d: %s", rec.Code, rec.Body.String())
+		t.Fatalf("expected 200 OK for create sig request, got %d: %s", rec.Code, rec.Body.String())
 	}
 	var sigReq SignatureRequestRecord
 	if err := json.Unmarshal(rec.Body.Bytes(), &sigReq); err != nil {
@@ -253,23 +279,24 @@ func TestSignatureRequestLifecycle(t *testing.T) {
 	}
 
 	// List pending
-	listReq := httptest.NewRequest(http.MethodGet, "/v1/ess/workspaces/"+wsID.String()+"/signatures/pending", nil)
-	listReq = listReq.WithContext(httpinfra.WithOrganizationIDForTest(listReq.Context(), wsID))
+	listReq := httptest.NewRequest(http.MethodGet, "/v1/ess/signatures/pending", nil)
 	listReq = listReq.WithContext(httpinfra.WithUserIDForTest(listReq.Context(), signerID))
 	listRec := httptest.NewRecorder()
 
 	handler.ListPendingSignatures(listRec, listReq)
 	if listRec.Code != http.StatusOK {
-		t.Fatalf("expected 200 OK for pending list, got %d", listRec.Code)
+		t.Fatalf("expected 200 OK for list pending, got %d", listRec.Code)
 	}
-	var list []SignatureRequestRecord
-	if err := json.Unmarshal(listRec.Body.Bytes(), &list); err != nil || len(list) != 1 {
-		t.Fatalf("expected 1 pending signature, got %d: %v", len(list), err)
+	var pending []SignatureRequestRecord
+	if err := json.Unmarshal(listRec.Body.Bytes(), &pending); err != nil {
+		t.Fatalf("unmarshal list error: %v", err)
+	}
+	if len(pending) != 1 || pending[0].ID != sigReq.ID {
+		t.Fatalf("unexpected pending signatures: %+v", pending)
 	}
 
 	// Sign
-	signReq := httptest.NewRequest(http.MethodPost, "/v1/ess/workspaces/"+wsID.String()+"/signatures/"+sigReq.ID.String()+"/sign", nil)
-	signReq = signReq.WithContext(httpinfra.WithOrganizationIDForTest(signReq.Context(), wsID))
+	signReq := httptest.NewRequest(http.MethodPost, "/v1/ess/signatures/"+sigReq.ID.String()+"/sign", nil)
 	signReq.SetPathValue("request_id", sigReq.ID.String())
 	signReq = signReq.WithContext(httpinfra.WithUserIDForTest(signReq.Context(), signerID))
 	signRec := httptest.NewRecorder()
@@ -281,10 +308,9 @@ func TestSignatureRequestLifecycle(t *testing.T) {
 }
 
 func TestFileUploadMultipart(t *testing.T) {
-	wsID := uuid.New()
 	userID := uuid.New()
 	empID := uuid.New()
-	repo := &mockFileRepo{Files: make(map[uuid.UUID]WorkspaceFileRecord)}
+	repo := &mockFileRepo{Files: make(map[uuid.UUID]FileRecord)}
 	storage := mockFileStorage{PutData: make(map[string][]byte)}
 	handler := FileHandler{
 		Repository: repo,
@@ -304,9 +330,8 @@ func TestFileUploadMultipart(t *testing.T) {
 	_, _ = fw.Write([]byte("%PDF-1.4 test contract body"))
 	_ = w.Close()
 
-	req := httptest.NewRequest(http.MethodPost, "/v1/workspaces/"+wsID.String()+"/files/upload", &b)
+	req := httptest.NewRequest(http.MethodPost, "/v1/files/upload", &b)
 	req.Header.Set("Content-Type", w.FormDataContentType())
-	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), userID))
 	rec := httptest.NewRecorder()
 
@@ -314,7 +339,7 @@ func TestFileUploadMultipart(t *testing.T) {
 	if rec.Code != http.StatusCreated {
 		t.Fatalf("expected 201 Created, got %d: %s", rec.Code, rec.Body.String())
 	}
-	var recFile WorkspaceFileRecord
+	var recFile FileRecord
 	if err := json.Unmarshal(rec.Body.Bytes(), &recFile); err != nil {
 		t.Fatalf("failed to unmarshal file record: %v", err)
 	}
@@ -326,8 +351,99 @@ func TestFileUploadMultipart(t *testing.T) {
 	}
 }
 
+func TestFileOrganizationOwnerAndLogo(t *testing.T) {
+	userID := uuid.New()
+	singletonOrgID := uuid.MustParse("018d0000-0000-7000-8000-000000000001")
+	repo := &mockFileRepo{
+		OrgID: singletonOrgID,
+		Files: make(map[uuid.UUID]FileRecord),
+	}
+	storage := mockFileStorage{PutData: make(map[string][]byte)}
+	handler := FileHandler{
+		Repository: repo,
+		Storage:    storage,
+		Authorizer: mockFileAuthorizer{},
+	}
+
+	// 1. Upload organization_logo without owner_id: must use internal singleton settings UUID
+	var b bytes.Buffer
+	w := multipart.NewWriter(&b)
+	_ = w.WriteField("category", "organization_logo")
+	_ = w.WriteField("owner_type", "organization")
+	h := make(textproto.MIMEHeader)
+	h.Set("Content-Disposition", `form-data; name="file"; filename="logo.png"`)
+	h.Set("Content-Type", "image/png")
+	fw, _ := w.CreatePart(h)
+	_, _ = fw.Write([]byte("\x89PNG\r\n\x1a\nfake png data"))
+	_ = w.Close()
+
+	req := httptest.NewRequest(http.MethodPost, "/v1/files/upload", &b)
+	req.Header.Set("Content-Type", w.FormDataContentType())
+	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), userID))
+	rec := httptest.NewRecorder()
+
+	handler.UploadFile(rec, req)
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("expected 201 Created for organization logo, got %d: %s", rec.Code, rec.Body.String())
+	}
+	var file FileRecord
+	if err := json.Unmarshal(rec.Body.Bytes(), &file); err != nil {
+		t.Fatalf("failed to unmarshal file: %v", err)
+	}
+	if file.OwnerType != "organization" {
+		t.Fatalf("expected owner_type organization, got %s", file.OwnerType)
+	}
+	if file.OwnerID != singletonOrgID {
+		t.Fatalf("expected owner_id %v, got %v", singletonOrgID, file.OwnerID)
+	}
+	if file.Category != "organization_logo" {
+		t.Fatalf("expected category organization_logo, got %s", file.Category)
+	}
+
+	// 2. Presigned URL for organization owner: server overrides client org ID with singleton
+	clientSpoofedID := uuid.New()
+	presignBody := CreateUploadUrlRequest{
+		FileName:  "logo2.png",
+		MimeType:  "image/png",
+		FileSize:  512,
+		Category:  "organization_logo",
+		OwnerType: "organization",
+		OwnerID:   clientSpoofedID,
+	}
+	raw, _ := json.Marshal(presignBody)
+	pReq := httptest.NewRequest(http.MethodPost, "/v1/files/presigned", bytes.NewReader(raw))
+	pReq = pReq.WithContext(httpinfra.WithUserIDForTest(pReq.Context(), userID))
+	pRec := httptest.NewRecorder()
+
+	handler.CreateUploadURL(pRec, pReq)
+	if pRec.Code != http.StatusOK {
+		t.Fatalf("expected 200 OK for presigned org logo, got %d: %s", pRec.Code, pRec.Body.String())
+	}
+	var pResp CreateUploadUrlResponse
+	_ = json.Unmarshal(pRec.Body.Bytes(), &pResp)
+	if pResp.File.OwnerID != singletonOrgID {
+		t.Fatalf("expected server singleton org ID %v, got %v", singletonOrgID, pResp.File.OwnerID)
+	}
+
+	// 3. ListByOwner for organization
+	listReq := httptest.NewRequest(http.MethodGet, "/v1/files/by-owner/organization/ignored", nil)
+	listReq.SetPathValue("owner_type", "organization")
+	listReq.SetPathValue("owner_id", "ignored")
+	listReq = listReq.WithContext(httpinfra.WithUserIDForTest(listReq.Context(), userID))
+	listRec := httptest.NewRecorder()
+
+	handler.ListByOwner(listRec, listReq)
+	if listRec.Code != http.StatusOK {
+		t.Fatalf("expected 200 OK for list org files, got %d: %s", listRec.Code, listRec.Body.String())
+	}
+	var orgFiles []FileRecord
+	_ = json.Unmarshal(listRec.Body.Bytes(), &orgFiles)
+	if len(orgFiles) != 2 {
+		t.Fatalf("expected 2 files for organization, got %d", len(orgFiles))
+	}
+}
+
 func TestFileUpdateCoW(t *testing.T) {
-	wsID := uuid.New()
 	userID := uuid.New()
 	empID := uuid.New()
 	fileID := uuid.New()
@@ -335,12 +451,11 @@ func TestFileUpdateCoW(t *testing.T) {
 	initialData := []byte("%PDF-1.4 initial content")
 	initialHash := hex.EncodeToString(func() []byte { h := sha256.Sum256(initialData); return h[:] }())
 
-	repo := &mockFileRepo{Files: map[uuid.UUID]WorkspaceFileRecord{
+	repo := &mockFileRepo{Files: map[uuid.UUID]FileRecord{
 		fileID: {
 			ID:          fileID,
-			WorkspaceID: wsID,
 			FileName:    "file.pdf",
-			StorageKey:  "workspaces/" + wsID.String() + "/contract/file.pdf",
+			StorageKey:  "contract/2026/11/file.pdf",
 			FileSize:    int64(len(initialData)),
 			MimeType:    "application/pdf",
 			ContentHash: &initialHash,
@@ -366,9 +481,8 @@ func TestFileUpdateCoW(t *testing.T) {
 	_, _ = fw1.Write(initialData)
 	_ = w1.Close()
 
-	req1 := httptest.NewRequest(http.MethodPut, "/v1/workspaces/"+wsID.String()+"/files/"+fileID.String(), &b1)
+	req1 := httptest.NewRequest(http.MethodPut, "/v1/files/"+fileID.String(), &b1)
 	req1.Header.Set("Content-Type", w1.FormDataContentType())
-	req1 = req1.WithContext(httpinfra.WithOrganizationIDForTest(req1.Context(), wsID))
 	req1.SetPathValue("id", fileID.String())
 	req1 = req1.WithContext(httpinfra.WithUserIDForTest(req1.Context(), userID))
 	rec1 := httptest.NewRecorder()
@@ -377,7 +491,7 @@ func TestFileUpdateCoW(t *testing.T) {
 	if rec1.Code != http.StatusOK {
 		t.Fatalf("expected 200 OK for CoW bypass, got %d", rec1.Code)
 	}
-	var resp1 WorkspaceFileRecord
+	var resp1 FileRecord
 	_ = json.Unmarshal(rec1.Body.Bytes(), &resp1)
 	if resp1.Version != 1 || resp1.ID != fileID {
 		t.Fatalf("expected version 1 and same file ID for CoW short-circuit, got version %d id %v", resp1.Version, resp1.ID)
@@ -394,9 +508,8 @@ func TestFileUpdateCoW(t *testing.T) {
 	_, _ = fw2.Write(newData)
 	_ = w2.Close()
 
-	req2 := httptest.NewRequest(http.MethodPut, "/v1/workspaces/"+wsID.String()+"/files/"+fileID.String(), &b2)
+	req2 := httptest.NewRequest(http.MethodPut, "/v1/files/"+fileID.String(), &b2)
 	req2.Header.Set("Content-Type", w2.FormDataContentType())
-	req2 = req2.WithContext(httpinfra.WithOrganizationIDForTest(req2.Context(), wsID))
 	req2.SetPathValue("id", fileID.String())
 	req2 = req2.WithContext(httpinfra.WithUserIDForTest(req2.Context(), userID))
 	rec2 := httptest.NewRecorder()
@@ -405,7 +518,7 @@ func TestFileUpdateCoW(t *testing.T) {
 	if rec2.Code != http.StatusOK {
 		t.Fatalf("expected 200 OK for updated version, got %d: %s", rec2.Code, rec2.Body.String())
 	}
-	var resp2 WorkspaceFileRecord
+	var resp2 FileRecord
 	_ = json.Unmarshal(rec2.Body.Bytes(), &resp2)
 	if resp2.Version != 2 {
 		t.Fatalf("expected version 2 for changed file, got %d", resp2.Version)
@@ -419,30 +532,27 @@ func TestFileUpdateCoW(t *testing.T) {
 }
 
 func TestFileDownload(t *testing.T) {
-	wsID := uuid.New()
 	userID := uuid.New()
 
 	smallID := uuid.New()
 	largeID := uuid.New()
 
-	repo := &mockFileRepo{Files: map[uuid.UUID]WorkspaceFileRecord{
+	repo := &mockFileRepo{Files: map[uuid.UUID]FileRecord{
 		smallID: {
-			ID:          smallID,
-			WorkspaceID: wsID,
-			FileName:    "small.pdf",
-			StorageKey:  "small.pdf",
-			FileSize:    500, // <= 1MB
-			MimeType:    "application/pdf",
-			IsActive:    true,
+			ID:         smallID,
+			FileName:   "small.pdf",
+			StorageKey: "small.pdf",
+			FileSize:   500, // <= 1MB
+			MimeType:   "application/pdf",
+			IsActive:   true,
 		},
 		largeID: {
-			ID:          largeID,
-			WorkspaceID: wsID,
-			FileName:    "large.pdf",
-			StorageKey:  "large.pdf",
-			FileSize:    5 * 1024 * 1024, // > 1MB
-			MimeType:    "application/pdf",
-			IsActive:    true,
+			ID:         largeID,
+			FileName:   "large.pdf",
+			StorageKey: "large.pdf",
+			FileSize:   5 * 1024 * 1024, // > 1MB
+			MimeType:   "application/pdf",
+			IsActive:   true,
 		},
 	}}
 	storage := mockFileStorage{PutData: map[string][]byte{"small.pdf": []byte("small file content")}}
@@ -453,8 +563,7 @@ func TestFileDownload(t *testing.T) {
 	}
 
 	// Small file: streamed proxy bytes with 200 OK
-	reqSmall := httptest.NewRequest(http.MethodGet, "/v1/workspaces/"+wsID.String()+"/files/"+smallID.String()+"/download", nil)
-	reqSmall = reqSmall.WithContext(httpinfra.WithOrganizationIDForTest(reqSmall.Context(), wsID))
+	reqSmall := httptest.NewRequest(http.MethodGet, "/v1/files/"+smallID.String()+"/download", nil)
 	reqSmall.SetPathValue("id", smallID.String())
 	reqSmall = reqSmall.WithContext(httpinfra.WithUserIDForTest(reqSmall.Context(), userID))
 	recSmall := httptest.NewRecorder()
@@ -471,8 +580,7 @@ func TestFileDownload(t *testing.T) {
 	}
 
 	// Large file: 307 Temporary Redirect
-	reqLarge := httptest.NewRequest(http.MethodGet, "/v1/workspaces/"+wsID.String()+"/files/"+largeID.String()+"/download", nil)
-	reqLarge = reqLarge.WithContext(httpinfra.WithOrganizationIDForTest(reqLarge.Context(), wsID))
+	reqLarge := httptest.NewRequest(http.MethodGet, "/v1/files/"+largeID.String()+"/download", nil)
 	reqLarge.SetPathValue("id", largeID.String())
 	reqLarge = reqLarge.WithContext(httpinfra.WithUserIDForTest(reqLarge.Context(), userID))
 	recLarge := httptest.NewRecorder()
@@ -484,27 +592,24 @@ func TestFileDownload(t *testing.T) {
 }
 
 func TestFileListVersionsAndByOwner(t *testing.T) {
-	wsID := uuid.New()
 	userID := uuid.New()
 	empID := uuid.New()
 	v1ID := uuid.New()
 	v2ID := uuid.New()
 
-	repo := &mockFileRepo{Files: map[uuid.UUID]WorkspaceFileRecord{
+	repo := &mockFileRepo{Files: map[uuid.UUID]FileRecord{
 		v1ID: {
-			ID:          v1ID,
-			WorkspaceID: wsID,
-			FileName:    "v1.pdf",
-			Category:    "contract",
-			OwnerType:   "employee",
-			OwnerID:     empID,
-			IsActive:    true,
-			Version:     1,
-			IsLatest:    false,
+			ID:        v1ID,
+			FileName:  "v1.pdf",
+			Category:  "contract",
+			OwnerType: "employee",
+			OwnerID:   empID,
+			IsActive:  true,
+			Version:   1,
+			IsLatest:  false,
 		},
 		v2ID: {
 			ID:           v2ID,
-			WorkspaceID:  wsID,
 			FileName:     "v2.pdf",
 			Category:     "contract",
 			OwnerType:    "employee",
@@ -521,8 +626,7 @@ func TestFileListVersionsAndByOwner(t *testing.T) {
 	}
 
 	// Test versions
-	reqVer := httptest.NewRequest(http.MethodGet, "/v1/workspaces/"+wsID.String()+"/files/"+v2ID.String()+"/versions", nil)
-	reqVer = reqVer.WithContext(httpinfra.WithOrganizationIDForTest(reqVer.Context(), wsID))
+	reqVer := httptest.NewRequest(http.MethodGet, "/v1/files/"+v2ID.String()+"/versions", nil)
 	reqVer.SetPathValue("id", v2ID.String())
 	reqVer = reqVer.WithContext(httpinfra.WithUserIDForTest(reqVer.Context(), userID))
 	recVer := httptest.NewRecorder()
@@ -531,15 +635,14 @@ func TestFileListVersionsAndByOwner(t *testing.T) {
 	if recVer.Code != http.StatusOK {
 		t.Fatalf("expected 200 OK for versions, got %d", recVer.Code)
 	}
-	var versions []WorkspaceFileRecord
+	var versions []FileRecord
 	_ = json.Unmarshal(recVer.Body.Bytes(), &versions)
 	if len(versions) != 2 {
 		t.Fatalf("expected 2 versions in lineage, got %d", len(versions))
 	}
 
 	// Test by-owner
-	reqOwner := httptest.NewRequest(http.MethodGet, "/v1/workspaces/"+wsID.String()+"/files/by-owner/employee/"+empID.String(), nil)
-	reqOwner = reqOwner.WithContext(httpinfra.WithOrganizationIDForTest(reqOwner.Context(), wsID))
+	reqOwner := httptest.NewRequest(http.MethodGet, "/v1/files/by-owner/employee/"+empID.String(), nil)
 	reqOwner.SetPathValue("owner_type", "employee")
 	reqOwner.SetPathValue("owner_id", empID.String())
 	reqOwner = reqOwner.WithContext(httpinfra.WithUserIDForTest(reqOwner.Context(), userID))
@@ -549,7 +652,7 @@ func TestFileListVersionsAndByOwner(t *testing.T) {
 	if recOwner.Code != http.StatusOK {
 		t.Fatalf("expected 200 OK for by-owner, got %d", recOwner.Code)
 	}
-	var ownerFiles []WorkspaceFileRecord
+	var ownerFiles []FileRecord
 	_ = json.Unmarshal(recOwner.Body.Bytes(), &ownerFiles)
 	if len(ownerFiles) != 2 {
 		t.Fatalf("expected 2 files for employee, got %d", len(ownerFiles))

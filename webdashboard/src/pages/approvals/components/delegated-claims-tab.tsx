@@ -20,11 +20,8 @@ const DELEGATED_CLAIMS_PAGE_SIZE = 20;
 
 type ReportRow = DailyAttendanceReport & { employee_id_number?: string };
 
-interface DelegatedClaimsTabProps {
-  endDate: string;
-  startDate: string;
-  wsId: string;
-}
+interface DelegatedClaimsTabProps { endDate: string;
+startDate: string;  }
 
 function LoadingState() {
   const { t } = useTranslation();
@@ -39,7 +36,6 @@ function LoadingState() {
 }
 
 export function DelegatedClaimsTab({
-  wsId,
   startDate,
   endDate,
 }: DelegatedClaimsTabProps) {
@@ -56,10 +52,9 @@ export function DelegatedClaimsTab({
     hasNextPage,
     isFetchingNextPage,
   } = useInfiniteQuery<PaginatedResponse<DailyAttendanceReport>>({
-    queryKey: ["attendance-report-delegated", wsId, startDate, endDate, "daily"],
+    queryKey: ["attendance-report-delegated", startDate, endDate, "daily"],
     queryFn: ({ pageParam }) => {
       return fetchAttendanceReport({
-        wsId,
         start: startDate,
         end: endDate,
         type: "daily",
@@ -72,7 +67,6 @@ export function DelegatedClaimsTab({
       return totalLoaded >= (lastPage.total || 0) ? undefined : allPages.length + 1;
     },
     initialPageParam: 1,
-    enabled: !!wsId,
   });
 
   const allReportData = useMemo(
@@ -362,7 +356,7 @@ export function DelegatedClaimsTab({
             }
             return next;
           });
-          void queryClient.invalidateQueries({ queryKey: ["attendance-report-delegated", wsId] });
+          void queryClient.invalidateQueries({ queryKey: ["attendance-report-delegated"] });
           void queryClient.invalidateQueries({ queryKey: ["attendance-report"] });
           void queryClient.invalidateQueries({ queryKey: ["attendance"] });
         }}

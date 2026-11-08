@@ -1,6 +1,6 @@
 import { useRef, useState } from "react";
 
-import { useWorkspace } from "@/hooks/use-workspace";
+import { useOrganization } from "@/hooks/use-organization";
 import {
     DailyAttendanceReport,
     AttendanceAdjustmentRequest,
@@ -16,15 +16,14 @@ interface UseEmployeeDailyDrawerProps {
     employeeId: string;
     employerId?: string;
     isOpen: boolean;
-    workspaceId: string;
 }
 
 export function useEmployeeDailyDrawer(props: UseEmployeeDailyDrawerProps) {
-    const { isOpen, workspaceId, employeeId, dateRange, employerId } = props;
+    const { isOpen,employeeId, dateRange, employerId } = props;
     const [viewMode, setViewMode] = useState<"daily" | "raw">("daily");
     const [selectedEmployerId, setSelectedEmployerId] = useState<string | undefined>(employerId);
-    const { workspace } = useWorkspace(workspaceId);
-    const timezone = workspace?.timezone ?? "UTC";
+    const { organization } = useOrganization();
+    const timezone = organization?.timezone ?? "UTC";
 
     const [previousSelection, setPreviousSelection] = useState<{
         employeeId: string;
@@ -64,8 +63,7 @@ export function useEmployeeDailyDrawer(props: UseEmployeeDailyDrawerProps) {
     const {
         isLoading, reportData, adjustmentMap, shifts, rawLogsData, rawLogsLoading,
         hasNextPage, isFetchingNextPage, fetchNextPage, totalStdHours, totalOtHours,
-    } = useDailyDrawerQueries({
-        workspaceId, employeeId, dateRange, isOpen, viewMode, employerId: selectedEmployerId,
+    } = useDailyDrawerQueries({employeeId, dateRange, isOpen, viewMode, employerId: selectedEmployerId,
     });
 
     const toggleExpandRow = (rowKey: string) => {
@@ -78,9 +76,7 @@ export function useEmployeeDailyDrawer(props: UseEmployeeDailyDrawerProps) {
     // Mutations using the extracted hook
     const {
         reprocessMutation, confirmMutation, approveOtMutation, resolveUnscheduledMutation,
-    } = useDailyDrawerMutations({
-        workspaceId,
-        employeeId,
+    } = useDailyDrawerMutations({employeeId,
         onReprocessSuccess: () => { setReprocessingRow(null); setConfirmDialog(null); },
         onConfirmSuccess: () => { setConfirmingRow(null); setConfirmModalData(null); },
         onResolveSuccess: () => { setResolveModalData(null); },

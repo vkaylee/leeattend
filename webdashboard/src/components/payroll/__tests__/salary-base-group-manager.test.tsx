@@ -71,7 +71,7 @@ describe("SalaryBaseGroupManager", () => {
   };
 
   it("renders list of salary base groups", async () => {
-    renderWithProviders(<SalaryBaseGroupManager wsId={mockWsId} />);
+    renderWithProviders(<SalaryBaseGroupManager   />);
 
     // Wait for the loading spinner to disappear
     await waitFor(() => {
@@ -83,7 +83,7 @@ describe("SalaryBaseGroupManager", () => {
   });
 
   it("shows components and their assignment status", async () => {
-    renderWithProviders(<SalaryBaseGroupManager wsId={mockWsId} />);
+    renderWithProviders(<SalaryBaseGroupManager   />);
 
     // Wait for the loading spinner to disappear
     await waitFor(() => {
@@ -104,7 +104,7 @@ describe("SalaryBaseGroupManager", () => {
     const user = userEvent.setup();
  
     vi.mocked(api.assignComponentToSalaryBase).mockResolvedValue({} as unknown as never);
-    renderWithProviders(<SalaryBaseGroupManager wsId={mockWsId} />);
+    renderWithProviders(<SalaryBaseGroupManager   />);
 
     await waitFor(() => {
       expect(screen.queryByTestId("loader")).not.toBeInTheDocument();
@@ -135,7 +135,7 @@ describe("SalaryBaseGroupManager", () => {
     const user = userEvent.setup();
  
     vi.mocked(api.unassignComponentFromSalaryBase).mockResolvedValue({} as unknown as never);
-    renderWithProviders(<SalaryBaseGroupManager wsId={mockWsId} />);
+    renderWithProviders(<SalaryBaseGroupManager   />);
 
     await waitFor(() => {
       expect(screen.queryByTestId("loader")).not.toBeInTheDocument();

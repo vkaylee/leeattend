@@ -23,7 +23,7 @@
     "reports": "Báo cáo & bảng điều khiển",
     "security": "Bảo mật & kiểm toán",
     "shifts": "Ca làm & lịch làm việc",
-    "workspace": "Không gian làm việc & thiết lập"
+    "workspace": "Tổ chức & thiết lập"
   },
   "items": {
     "overtime:request:create_on_behalf": {

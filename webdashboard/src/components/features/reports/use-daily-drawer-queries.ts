@@ -18,7 +18,6 @@ interface UseDailyDrawerQueriesProps {
     employerId?: string;
     isOpen: boolean;
     viewMode: "daily" | "raw";
-    workspaceId: string;
 }
 
 interface DrawerDayTotals {
@@ -26,19 +25,16 @@ interface DrawerDayTotals {
     computed_std_hours?: number;
 }
 
-export function useDailyDrawerQueries({
-    workspaceId,
-    employeeId,
+export function useDailyDrawerQueries({employeeId,
     employerId,
     dateRange,
     isOpen,
     viewMode,
 }: UseDailyDrawerQueriesProps) {
     const { data: reportResponse, isLoading } = useQuery({
-        queryKey: ["attendance-report", workspaceId, dateRange, "daily", 1, 100, undefined, [employeeId], employerId],
+        queryKey: ["attendance-report",dateRange, "daily", 1, 100, undefined, [employeeId], employerId],
         queryFn: () =>
             fetchAttendanceReport({
-                wsId: workspaceId,
                 start: dateRange.start,
                 end: dateRange.end,
                 type: "daily",
@@ -47,20 +43,14 @@ export function useDailyDrawerQueries({
                 employeeIds: [employeeId],
                 employerId,
             }),
-        enabled: isOpen && !!workspaceId && !!employeeId,
+        enabled: isOpen  && !!employeeId,
     });
 
-    const { data: pendingAdjustmentsResponse } = useQuery({
-        queryKey: ["attendance-adjustments", workspaceId, "pending"],
-        queryFn: () => fetchWorkspaceAttendanceAdjustments(workspaceId, { status: "pending" }),
-        enabled: isOpen && !!workspaceId,
-    });
+    const { data: pendingAdjustmentsResponse } = useQuery({ queryKey: ["attendance-adjustments", "pending"], queryFn: () => fetchWorkspaceAttendanceAdjustments({ status: "pending" }),
+    enabled: isOpen , });
 
-    const { data: shifts } = useQuery({
-        queryKey: ["shifts", workspaceId],
-        queryFn: () => fetchShifts(workspaceId),
-        enabled: isOpen && !!workspaceId,
-    });
+    const { data: shifts } = useQuery({ queryKey: ["shifts"], queryFn: () => fetchShifts(),
+    enabled: isOpen , });
 
     const {
         data: rawLogsResponse,
@@ -69,7 +59,7 @@ export function useDailyDrawerQueries({
         hasNextPage,
         isFetchingNextPage
     } = useInfiniteQuery({
-        queryKey: ["raw-logs", workspaceId, dateRange, [employeeId]],
+        queryKey: ["raw-logs",dateRange, [employeeId]],
         queryFn: ({ pageParam }) => {
             const from = dateRange.start ? new Date(`${dateRange.start}T00:00:00`).toISOString() : undefined;
             const to = dateRange.end ? new Date(`${dateRange.end}T23:59:59`).toISOString() : undefined;
@@ -80,7 +70,7 @@ export function useDailyDrawerQueries({
             return allPages.length + 1;
         },
         initialPageParam: 1,
-        enabled: isOpen && !!workspaceId && !!employeeId && viewMode === "raw",
+        enabled: isOpen  && !!employeeId && viewMode === "raw",
     });
 
     const rawLogsData = useMemo(() => {

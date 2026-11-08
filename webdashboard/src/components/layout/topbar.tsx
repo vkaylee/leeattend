@@ -22,14 +22,14 @@ export interface TopbarProps {
   isSettings?: boolean;
   onOpenMobileMenu?: () => void;
   onOpenSearch?: () => void;
-  workspaceName?: string;
+  organizationName?: string;
 }
 
 export function Topbar({
   isSettings = false,
   onOpenMobileMenu,
   onOpenSearch,
-  workspaceName = "LeeAttend",
+  organizationName = "LeeAttend",
 }: TopbarProps) {
   const { t } = useTranslation([
     "common",
@@ -89,7 +89,7 @@ export function Topbar({
             className="text-muted-foreground hover:text-foreground transition-colors truncate max-w-[120px] md:max-w-none"
             to={ROUTES.HOME}
           >
-            {workspaceName}
+            {organizationName}
           </Link>
           <ChevronRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground/60" />
           <span className="text-foreground font-semibold truncate capitalize">

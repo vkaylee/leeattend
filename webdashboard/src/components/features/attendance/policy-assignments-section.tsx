@@ -88,7 +88,7 @@ function AssignmentCard({ assignment, getTargetName, workUnitLabel, roundingLabe
 }
 
   // eslint-disable-next-line max-lines-per-function
-function PolicyAssignmentsSectionContent({ wsId }: { wsId: string }) {
+function PolicyAssignmentsSectionContent() {
   const { t } = useTranslation();
   
   const {
@@ -120,7 +120,7 @@ function PolicyAssignmentsSectionContent({ wsId }: { wsId: string }) {
     workUnitLabel,
     roundingLabel,
     handleSave
-  } = usePolicyAssignments(wsId);
+  } = usePolicyAssignments();
 
   const targetOptions = useMemo(() => 
     targetType === "GROUP" 
@@ -295,10 +295,10 @@ function PolicyAssignmentsSectionContent({ wsId }: { wsId: string }) {
   );
 }
 
-export function PolicyAssignmentsSection({ wsId }: { wsId: string }) {
+export function PolicyAssignmentsSection() {
   return (
     <ErrorBoundary variant="compact">
-      <PolicyAssignmentsSectionContent wsId={wsId} />
+      <PolicyAssignmentsSectionContent   />
     </ErrorBoundary>
   );
 }

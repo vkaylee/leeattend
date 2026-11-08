@@ -23,7 +23,6 @@ var (
 
 type Employer struct {
 	ID                 uuid.UUID  `json:"id"`
-	WorkspaceID        uuid.UUID  `json:"workspace_id"`
 	Name               string     `json:"name"`
 	TaxCode            *string    `json:"tax_code"`
 	LegalAddress       *string    `json:"legal_address"`
@@ -117,11 +116,11 @@ func (r *UpdateEmployerRequest) UnmarshalJSON(data []byte) error {
 }
 
 type EmployerRepository interface {
-	ListEmployers(context.Context, uuid.UUID, int, int) (EmployerListResponse, error)
-	CreateEmployer(context.Context, uuid.UUID, CreateEmployerRequest) (Employer, error)
-	GetEmployer(context.Context, uuid.UUID, uuid.UUID) (Employer, error)
-	UpdateEmployer(context.Context, uuid.UUID, uuid.UUID, UpdateEmployerRequest) (Employer, error)
-	DeleteEmployer(context.Context, uuid.UUID, uuid.UUID) error
+	ListEmployers(context.Context, int, int) (EmployerListResponse, error)
+	CreateEmployer(context.Context, CreateEmployerRequest) (Employer, error)
+	GetEmployer(context.Context, uuid.UUID) (Employer, error)
+	UpdateEmployer(context.Context, uuid.UUID, UpdateEmployerRequest) (Employer, error)
+	DeleteEmployer(context.Context, uuid.UUID) error
 }
 
 type EmployerAudit interface {
@@ -130,13 +129,12 @@ type EmployerAudit interface {
 
 type EmployerHandler struct {
 	Repository EmployerRepository
-	Authorizer WorkspaceMemberAuthorizer
+	Authorizer Authorizer
 	Audit      EmployerAudit
 }
 
 func (h EmployerHandler) List(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := organizationIDFromContext(r)
-	if !ok || !h.isMember(r, wsID) {
+	if !h.isMember(r) {
 		h.forbidden(w, r)
 		return
 	}
@@ -145,7 +143,7 @@ func (h EmployerHandler) List(w http.ResponseWriter, r *http.Request) {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}
-	result, err := h.Repository.ListEmployers(r.Context(), wsID, p.Page, p.Limit)
+	result, err := h.Repository.ListEmployers(r.Context(), p.Page, p.Limit)
 	if err != nil {
 		h.writeError(w, r, err)
 		return
@@ -154,20 +152,19 @@ func (h EmployerHandler) List(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h EmployerHandler) Create(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := organizationIDFromContext(r)
-	if !ok || !h.isMember(r, wsID) {
+	if !h.isMember(r) {
 		h.forbidden(w, r)
 		return
 	}
 	req, err := DecodeJSON[CreateEmployerRequest](r, 1<<20)
 	if err != nil ||
 		strings.TrimSpace(req.Name) == "" ||
-		!h.validParent(r.Context(), wsID, uuid.Nil, req.ParentID) ||
+		!h.validParent(r.Context(), uuid.Nil, req.ParentID) ||
 		!validEmployerFields(req.Email, req.IncorporationDate, req.CountryCode, req.CurrencyCode) {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}
-	employer, err := h.Repository.CreateEmployer(r.Context(), wsID, req)
+	employer, err := h.Repository.CreateEmployer(r.Context(), req)
 	if err != nil {
 		h.writeError(w, r, err)
 		return
@@ -177,13 +174,12 @@ func (h EmployerHandler) Create(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h EmployerHandler) Get(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := organizationIDFromContext(r)
 	id, idOK := pathUUID(r, "id")
-	if !ok || !idOK || !h.isMember(r, wsID) {
+	if !idOK || !h.isMember(r) {
 		h.forbidden(w, r)
 		return
 	}
-	employer, err := h.Repository.GetEmployer(r.Context(), wsID, id)
+	employer, err := h.Repository.GetEmployer(r.Context(), id)
 	if err != nil {
 		h.writeError(w, r, err)
 		return
@@ -192,9 +188,8 @@ func (h EmployerHandler) Get(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h EmployerHandler) Update(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := organizationIDFromContext(r)
 	id, idOK := pathUUID(r, "id")
-	if !ok || !idOK || !h.isMember(r, wsID) {
+	if !idOK || !h.isMember(r) {
 		h.forbidden(w, r)
 		return
 	}
@@ -210,12 +205,12 @@ func (h EmployerHandler) Update(w http.ResponseWriter, r *http.Request) {
 		if req.ParentID != nil {
 			parent = *req.ParentID
 		}
-		if !h.validParent(r.Context(), wsID, id, parent) {
+		if !h.validParent(r.Context(), id, parent) {
 			apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 			return
 		}
 	}
-	employer, err := h.Repository.UpdateEmployer(r.Context(), wsID, id, req)
+	employer, err := h.Repository.UpdateEmployer(r.Context(), id, req)
 	if err != nil {
 		h.writeError(w, r, err)
 		return
@@ -225,18 +220,17 @@ func (h EmployerHandler) Update(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h EmployerHandler) Delete(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := organizationIDFromContext(r)
 	id, idOK := pathUUID(r, "id")
-	if !ok || !idOK || !h.isMember(r, wsID) {
+	if !idOK || !h.isMember(r) {
 		h.forbidden(w, r)
 		return
 	}
-	existing, err := h.Repository.GetEmployer(r.Context(), wsID, id)
+	existing, err := h.Repository.GetEmployer(r.Context(), id)
 	if err != nil {
 		h.writeError(w, r, err)
 		return
 	}
-	if err := h.Repository.DeleteEmployer(r.Context(), wsID, id); err != nil {
+	if err := h.Repository.DeleteEmployer(r.Context(), id); err != nil {
 		h.writeError(w, r, err)
 		return
 	}
@@ -247,12 +241,12 @@ func (h EmployerHandler) Delete(w http.ResponseWriter, r *http.Request) {
 // validParent mirrors Rust employer_service::validate_parent_employer. On
 // create (employerID is uuid.Nil) only parent existence is checked; on update
 // self-parent and circular chains are rejected.
-func (h EmployerHandler) validParent(ctx context.Context, wsID, employerID uuid.UUID, parentID *uuid.UUID) bool {
+func (h EmployerHandler) validParent(ctx context.Context, employerID uuid.UUID, parentID *uuid.UUID) bool {
 	if parentID == nil {
 		return true
 	}
 	if employerID == uuid.Nil {
-		_, err := h.Repository.GetEmployer(ctx, wsID, *parentID)
+		_, err := h.Repository.GetEmployer(ctx, *parentID)
 		return err == nil
 	}
 	if employerID == *parentID {
@@ -261,7 +255,7 @@ func (h EmployerHandler) validParent(ctx context.Context, wsID, employerID uuid.
 	visited := map[uuid.UUID]bool{employerID: true, *parentID: true}
 	current := *parentID
 	for {
-		parent, err := h.Repository.GetEmployer(ctx, wsID, current)
+		parent, err := h.Repository.GetEmployer(ctx, current)
 		if err != nil {
 			return false
 		}
@@ -276,12 +270,12 @@ func (h EmployerHandler) validParent(ctx context.Context, wsID, employerID uuid.
 	}
 }
 
-func (h EmployerHandler) isMember(r *http.Request, wsID uuid.UUID) bool {
+func (h EmployerHandler) isMember(r *http.Request) bool {
 	userID, ok := httpinfra.UserIDFromContext(r.Context())
 	if !ok || h.Authorizer == nil {
 		return false
 	}
-	member, err := h.Authorizer.IsMember(r.Context(), userID, wsID)
+	member, err := h.Authorizer.IsMember(r.Context(), userID)
 	return err == nil && member
 }
 
@@ -311,11 +305,10 @@ func (h EmployerHandler) emitAudit(r *http.Request, name string, employer Employ
 		return
 	}
 	_ = h.Audit.Emit(r.Context(), audit.Event{
-		Name:      name,
-		ActorID:   userID.String(),
-		Workspace: employer.WorkspaceID.String(),
-		Resource:  employer.ID.String(),
-		Outcome:   "success",
+		Name:     name,
+		ActorID:  userID.String(),
+		Resource: employer.ID.String(),
+		Outcome:  "success",
 		Details: map[string]string{
 			"name":                employer.Name,
 			"tax_code":            stringValue(employer.TaxCode),

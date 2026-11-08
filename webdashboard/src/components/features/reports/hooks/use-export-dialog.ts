@@ -18,7 +18,6 @@ export interface UseExportDialogOptions {
   onClose: () => void;
   reportType: "detail" | "summary";
   startDate: string;
-  wsId: string;
 }
 
 function handleStreamError(
@@ -46,7 +45,7 @@ function calcCompletedBatches(useFallbackPolling: boolean, pollingCompleted: num
   return totalBatches > 0 ? Math.floor((streamProgress / 100) * totalBatches) : 0;
 }
 
-export function useExportDialog({ isOpen, wsId, startDate, endDate, reportType, employeeIds, onClose }: UseExportDialogOptions) {
+export function useExportDialog({ isOpen,startDate, endDate, reportType, employeeIds, onClose }: UseExportDialogOptions) {
   const { t } = useTranslation();
   const [phaseState, setPhase] = useState<ExportPhase>("idle");
   const [jobId, setJobId] = useState<string | null>(null);
@@ -73,7 +72,7 @@ export function useExportDialog({ isOpen, wsId, startDate, endDate, reportType, 
 
   const { data: pollingStatus } = useQuery({
     queryKey: ["export-job-fallback", jobId],
-    queryFn: () => fetchExportJobStatus(wsId, jobId ?? ""),
+    queryFn: () => fetchExportJobStatus(jobId ?? ""),
     enabled: !!jobId && useFallbackPolling && phase === "polling",
     refetchInterval: (query) => {
       const status = query.state.data?.status;
@@ -106,7 +105,7 @@ export function useExportDialog({ isOpen, wsId, startDate, endDate, reportType, 
   const handleStartExport = async () => {
     setPhase("starting"); setError(null);
     try {
-      const response = await createReportExportJob(wsId, { start_date: startDate, end_date: endDate, report_type: reportType, employee_ids: employeeIds });
+      const response = await createReportExportJob({ start_date: startDate, end_date: endDate, report_type: reportType, employee_ids: employeeIds });
       setJobId(response.job_id); setTotalBatches(response.total_batches);
     } catch (err) {
       setPhase("failed"); setError(err instanceof Error ? err.message : t("report_export.status.failed"));
@@ -117,7 +116,7 @@ export function useExportDialog({ isOpen, wsId, startDate, endDate, reportType, 
     if (!jobId) return;
     setPhase("downloading");
     try {
-      const blob = await downloadExportReport(wsId, jobId);
+      const blob = await downloadExportReport(jobId);
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url; a.download = `attendance-report-${startDate}-to-${endDate}.xlsx`;

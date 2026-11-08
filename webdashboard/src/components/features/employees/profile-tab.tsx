@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Pencil, RotateCcw, Trash2, UserPlus } from "lucide-react";
 import React, { useState } from "react";
 
-import type { Department, Employee, WorkspaceMember } from "@/lib/api";
+import type { Department, Employee, OrganizationMember } from "@/lib/api";
 import type { WorkLocation } from "@/lib/api/locations";
 
 import PermissionGate from "@/components/common/permission-gate";
@@ -12,7 +12,7 @@ import EditTerminationModal from "@/components/features/employees/edit-terminati
 import UndoTerminationModal from "@/components/features/employees/undo-termination-modal";
 import Button from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
-import { useOrganizationMutation } from "@/hooks/common/use-workspace-query";
+import { useOrganizationMutation } from "@/hooks/common/use-organization-query";
 import { fetchEmployeeEmployments, updateEmployeeEmployment } from "@/lib/api";
 import { employeeKeys } from "@/lib/query-keys";
 import { maybeNull } from "@/types/api-overrides";
@@ -91,7 +91,7 @@ export interface ProfileTabProps {
     deptHistory?: DeptHistoryEntry[];
     employee: Employee;
     formatDate: (date: string) => string;
-    linkedUser: WorkspaceMember | undefined;
+    linkedUser: OrganizationMember | undefined;
     locations?: WorkLocation[];
     onEdit: (e: Employee) => void;
     onEmployeeUpdate?: (emp: Employee) => void;
@@ -99,16 +99,13 @@ export interface ProfileTabProps {
     onTerminate: (e: Employee) => void;
     onTransfer: (id: string) => void;
     t: (k: string) => string;
-    wsId: string;
 }
 
 export default function ProfileTab({
     departments,
     deptHistory,
     employee,
-    locations,
-    wsId,
-    formatDate,
+    locations,formatDate,
     linkedUser,
     onEdit,
     onRehire,
@@ -124,11 +121,8 @@ export default function ProfileTab({
     const [isEditTerminationModalOpen, setIsEditTerminationModalOpen] = useState(false);
     const [isUndoTerminationModalOpen, setIsUndoTerminationModalOpen] = useState(false);
 
-    const { data: employments = [] } = useQuery({
-        queryKey: ["employee-employments", wsId, employee.id],
-        queryFn: () => fetchEmployeeEmployments(wsId, employee.id),
-        enabled: !!wsId && !!employee.id,
-    });
+    const { data: employments = [] } = useQuery({ queryKey: ["employee-employments", employee.id], queryFn: () => fetchEmployeeEmployments(employee.id),
+    enabled: !!employee.id, });
     const activeEmployment = employments.find(e => e.status === "active") ?? employments[0];
     const terminatedEmployment = employments.find(e => e.status === "terminated");
     const activeLocationId = maybeNull(activeEmployment)?.primary_location_id ?? "";
@@ -150,14 +144,13 @@ export default function ProfileTab({
         string,
         Awaited<ReturnType<typeof updateEmployeeEmployment>>
     >({
-        workspaceId: wsId,
-        keys: [employeeKeys.all(wsId)],
-        mutationFn: (workspaceId, locationId) => {
+        keys: [employeeKeys.all()],
+        mutationFn: (locationId) => {
             if (!maybeNull(activeEmployment)) return Promise.reject(new Error("No active employment found"));
-            return updateEmployeeEmployment(workspaceId, employee.id, activeEmployment.id, { primary_location_id: locationId });
+            return updateEmployeeEmployment(employee.id, activeEmployment.id, { primary_location_id: locationId });
         },
         onSuccess: () => {
-            void queryClient.invalidateQueries({ queryKey: ["employee-employments", wsId, employee.id] });
+            void queryClient.invalidateQueries({ queryKey: ["employee-employments",employee.id] });
             handleSetIsEditingLocation(false);
             toast.success(t("common.success"));
         },
@@ -235,32 +228,26 @@ export default function ProfileTab({
             )}
 
             {isEditTerminationModalOpen && terminatedEmployment ? (
-                <EditTerminationModal
-                    currentEndDate={terminatedEmployment.end_date ?? null}
-                    employeeId={employee.id}
-                    employmentId={terminatedEmployment.id}
-                    isOpen={isEditTerminationModalOpen}
-                    onClose={() => { setIsEditTerminationModalOpen(false); }}
-                    wsId={wsId}
-                />
+                <EditTerminationModal currentEndDate={terminatedEmployment.end_date ?? null}
+                employeeId={employee.id}
+                employmentId={terminatedEmployment.id}
+                isOpen={isEditTerminationModalOpen}
+                onClose={() => { setIsEditTerminationModalOpen(false); }}  />
               ) : null}
 
             {isUndoTerminationModalOpen && terminatedEmployment ? (
-                <UndoTerminationModal
-                    employeeId={employee.id}
-                    employmentId={terminatedEmployment.id}
-                    isOpen={isUndoTerminationModalOpen}
-                    onClose={() => { setIsUndoTerminationModalOpen(false); }}
-                    onSuccess={() => {
-                        if (onEmployeeUpdate && maybeNull(terminatedEmployment)) {
-                            onEmployeeUpdate({
-                                ...employee,
-                                active_employment_id: terminatedEmployment.id,
-                            });
-                        }
-                    }}
-                    wsId={wsId}
-                />
+                <UndoTerminationModal employeeId={employee.id}
+                employmentId={terminatedEmployment.id}
+                isOpen={isUndoTerminationModalOpen}
+                onClose={() => { setIsUndoTerminationModalOpen(false); }}
+                onSuccess={() => {
+                    if (onEmployeeUpdate && maybeNull(terminatedEmployment)) {
+                        onEmployeeUpdate({
+                            ...employee,
+                            active_employment_id: terminatedEmployment.id,
+                        });
+                    }
+                }}  />
               ) : null}
         </div>
     );

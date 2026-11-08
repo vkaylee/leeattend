@@ -32,7 +32,6 @@ const UNWIRED = () => {
 };
 
 export async function fetchEContractConfigs(
-  _wsId: string,
   _employers: Employer[],
 ): Promise<EContractConfig[]> {
   UNWIRED();
@@ -40,7 +39,6 @@ export async function fetchEContractConfigs(
 }
 
 export async function saveEContractConfig(
-  _wsId: string,
   _config: EContractConfig,
 ): Promise<EContractConfig> {
   UNWIRED();
@@ -48,7 +46,6 @@ export async function saveEContractConfig(
 }
 
 export async function fetchEContractRules(
-  _wsId: string,
   _employers: Employer[],
 ): Promise<EContractRoutingRule[]> {
   UNWIRED();
@@ -56,7 +53,6 @@ export async function fetchEContractRules(
 }
 
 export async function saveEContractRule(
-  _wsId: string,
   _rule: Omit<EContractRoutingRule, "id" | "created_at"> & { id?: string },
 ): Promise<EContractRoutingRule> {
   UNWIRED();
@@ -69,12 +65,11 @@ export async function saveEContractRule(
   };
 }
 
-export async function deleteEContractRule(_wsId: string, _ruleId: string): Promise<void> {
+export async function deleteEContractRule(_ruleId: string): Promise<void> {
   UNWIRED();
 }
 
 export async function fetchEContractEnvelopes(
-  _wsId: string,
   _employers: Employer[],
 ): Promise<EContractEnvelope[]> {
   UNWIRED();
@@ -82,7 +77,6 @@ export async function fetchEContractEnvelopes(
 }
 
 export async function saveEContractEnvelope(
-  _wsId: string,
   envelope: EContractEnvelope,
 ): Promise<EContractEnvelope> {
   UNWIRED();

@@ -85,7 +85,7 @@ describe("PayrollRulesManager", () => {
   };
 
   it("renders list of statutory rules", async () => {
-    renderWithProviders(<PayrollRulesManager wsId={mockWsId} />);
+    renderWithProviders(<PayrollRulesManager   />);
 
     expect(await screen.findByText(/Social Insurance/i)).toBeInTheDocument();
     expect(screen.getByText(/SI/i)).toBeInTheDocument();
@@ -95,7 +95,7 @@ describe("PayrollRulesManager", () => {
     const user = userEvent.setup();
  
     vi.mocked(api.createPayrollRule).mockResolvedValue({ id: "rule-2" } as unknown as never);
-    renderWithProviders(<PayrollRulesManager wsId={mockWsId} />);
+    renderWithProviders(<PayrollRulesManager   />);
 
     const addButton = await screen.findByText(/common.add/i);
     await user.click(addButton);
@@ -131,7 +131,7 @@ describe("PayrollRulesManager", () => {
   });
 
   it("expands rule to show details", async () => {
-    renderWithProviders(<PayrollRulesManager wsId={mockWsId} />);
+    renderWithProviders(<PayrollRulesManager   />);
 
     const ruleItem = await screen.findByText(/Social Insurance/i);
     fireEvent.click(ruleItem);

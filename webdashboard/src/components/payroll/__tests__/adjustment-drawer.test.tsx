@@ -14,7 +14,6 @@ import AdjustmentDrawer from "../adjustment-drawer";
 vi.mock("@/lib/api", () => ({
   fetchWorkspaceAttendanceAdjustments: vi.fn(),
   approveAttendanceAdjustment: vi.fn(),
-  getStandaloneOrganizationId: vi.fn(() => "test-ws-id"),
 }));
 
 describe("AdjustmentDrawer", () => {
@@ -112,7 +111,7 @@ describe("AdjustmentDrawer", () => {
     fireEvent.click(approveButton);
 
     await waitFor(() => {
-      expect(api.approveAttendanceAdjustment).toHaveBeenCalledWith("test-ws-id", "adj-1", { status: "approved" });
+      expect(api.approveAttendanceAdjustment).toHaveBeenCalledWith("adj-1", { status: "approved" });
     });
   });
 });

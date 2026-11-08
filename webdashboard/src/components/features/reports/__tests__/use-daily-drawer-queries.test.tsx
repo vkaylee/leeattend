@@ -34,13 +34,10 @@ vi.mock("@/lib/api", () => ({
 describe("useDailyDrawerQueries — Adjustment Map", () => {
     let queryClient: QueryClient;
 
-    const defaultProps = {
-        workspaceId: "ws-1",
-        employeeId: "emp-1",
-        dateRange: { start: "2024-03-01", end: "2024-03-31" },
-        isOpen: true,
-        viewMode: "daily" as const,
-    };
+    const defaultProps = { employeeId: "emp-1",
+    dateRange: { start: "2024-03-01", end: "2024-03-31" },
+    isOpen: true,
+    viewMode: "daily" as const, };
 
     beforeEach(() => {
         vi.clearAllMocks();

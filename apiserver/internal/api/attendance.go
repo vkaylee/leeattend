@@ -61,7 +61,7 @@ type AdjustmentRecord struct {
 	AttachmentFileIDs  []uuid.UUID `json:"attachment_file_ids,omitempty"`
 }
 
-// PaginatedAdjustments is the workspace adjustment listing contract.
+// PaginatedAdjustments is the adjustment listing pagination contract.
 type PaginatedAdjustments struct {
 	Data  []AdjustmentRecord `json:"data"`
 	Total int64              `json:"total"`
@@ -78,7 +78,6 @@ type ApproveAdjustmentRequest struct {
 type TimeEntryRecord struct {
 	ID                 uuid.UUID       `json:"id"`
 	EmploymentID       uuid.UUID       `json:"employment_id"`
-	WorkspaceID        uuid.UUID       `json:"workspace_id"`
 	ShiftID            *uuid.UUID      `json:"shift_id"`
 	SegmentID          *uuid.UUID      `json:"segment_id"`
 	PunchInTime        string          `json:"punch_in_time"`
@@ -104,7 +103,6 @@ type UpdateTimeEntryRequest struct {
 // AttendanceDailySummaryRecord models the JSON response for daily summaries.
 type AttendanceDailySummaryRecord struct {
 	ID                      uuid.UUID `json:"id"`
-	WorkspaceID             uuid.UUID `json:"workspace_id"`
 	EmploymentID            uuid.UUID `json:"employment_id"`
 	Date                    string    `json:"date"`
 	ActualWorkMinutes       int       `json:"actual_work_minutes"`
@@ -135,36 +133,30 @@ type PaginatedSummaries struct {
 
 // AttendanceRepository executes data operations for attendance and punch tracking.
 type AttendanceRepository interface {
-	PunchIn(ctx context.Context, workspaceID, employmentID uuid.UUID, entryType string, note *string, isBreakOvertime bool, punchTime time.Time) (TimeEntryRecord, error)
-	PunchOut(ctx context.Context, workspaceID, employeeID uuid.UUID, note *string, punchTime time.Time) (TimeEntryRecord, error)
-	ListTimeHistory(ctx context.Context, workspaceID, employeeID uuid.UUID, start, end time.Time) ([]TimeEntryRecord, error)
-	CreateAdjustment(ctx context.Context, workspaceID uuid.UUID, req AdjustmentRequest, requestedByUserID uuid.UUID) (AdjustmentRecord, error)
-	ListAdjustments(ctx context.Context, workspaceID uuid.UUID, status *string, employeeID *uuid.UUID, page, limit int) (PaginatedAdjustments, error)
-	ListEmployeeAdjustments(ctx context.Context, workspaceID, employeeID uuid.UUID) ([]AdjustmentRecord, error)
-	ApproveAdjustment(ctx context.Context, workspaceID, adjustmentID, approverID uuid.UUID, status string) error
-	IsEmployeeOwnedByUser(ctx context.Context, workspaceID, employeeID, userID uuid.UUID) (bool, error)
-	ESSPunch(ctx context.Context, workspaceID, employeeID uuid.UUID, entryType string, note *string, punchTime time.Time) (TimeEntryRecord, error)
-	GetAttendanceSummaries(ctx context.Context, workspaceID uuid.UUID, startDate, endDate string, employeeID *uuid.UUID, otStatus *string, page, limit int) (PaginatedSummaries, error)
-	GetEmployeeIDByUserID(ctx context.Context, workspaceID, userID uuid.UUID) (uuid.UUID, error)
-	UpdateTimeEntry(ctx context.Context, workspaceID, entryID uuid.UUID, req UpdateTimeEntryRequest) (TimeEntryRecord, error)
-	DeleteTimeEntry(ctx context.Context, workspaceID, entryID uuid.UUID) error
-}
-
-// AttendanceAuthorizer checks workspace attendance permissions.
-type AttendanceAuthorizer interface {
-	HasPermission(ctx context.Context, userID, workspaceID uuid.UUID, permission string) bool
+	PunchIn(ctx context.Context, employmentID uuid.UUID, entryType string, note *string, isBreakOvertime bool, punchTime time.Time) (TimeEntryRecord, error)
+	PunchOut(ctx context.Context, employeeID uuid.UUID, note *string, punchTime time.Time) (TimeEntryRecord, error)
+	ListTimeHistory(ctx context.Context, employeeID uuid.UUID, start, end time.Time) ([]TimeEntryRecord, error)
+	CreateAdjustment(ctx context.Context, req AdjustmentRequest, requestedByUserID uuid.UUID) (AdjustmentRecord, error)
+	ListAdjustments(ctx context.Context, status *string, employeeID *uuid.UUID, page, limit int) (PaginatedAdjustments, error)
+	ListEmployeeAdjustments(ctx context.Context, employeeID uuid.UUID) ([]AdjustmentRecord, error)
+	ApproveAdjustment(ctx context.Context, adjustmentID, approverID uuid.UUID, status string) error
+	IsEmployeeOwnedByUser(ctx context.Context, employeeID, userID uuid.UUID) (bool, error)
+	ESSPunch(ctx context.Context, employeeID uuid.UUID, entryType string, note *string, punchTime time.Time) (TimeEntryRecord, error)
+	GetAttendanceSummaries(ctx context.Context, startDate, endDate string, employeeID *uuid.UUID, otStatus *string, page, limit int) (PaginatedSummaries, error)
+	GetEmployeeIDByUserID(ctx context.Context, userID uuid.UUID) (uuid.UUID, error)
+	UpdateTimeEntry(ctx context.Context, entryID uuid.UUID, req UpdateTimeEntryRequest) (TimeEntryRecord, error)
+	DeleteTimeEntry(ctx context.Context, entryID uuid.UUID) error
 }
 
 // AttendanceHandler serves attendance endpoints.
 type AttendanceHandler struct {
 	Repository AttendanceRepository
-	Authorizer AttendanceAuthorizer
+	Authorizer Authorizer
 }
 
-// PunchIn handles POST /api/v1/workspaces/{ws_id}/time/punch-in.
+// PunchIn handles POST /api/v1/time/punch-in.
 func (h AttendanceHandler) PunchIn(w http.ResponseWriter, r *http.Request) {
-	workspaceID, ok := organizationIDFromContext(r)
-	if !ok || !h.allowed(r, workspaceID, "ess:clock") {
+	if !h.allowed(r, "ess:clock") {
 		h.forbidden(w, r)
 		return
 	}
@@ -177,8 +169,7 @@ func (h AttendanceHandler) PunchIn(w http.ResponseWriter, r *http.Request) {
 	if entryType == "" {
 		entryType = "work"
 	}
-	now := time.Now().UTC()
-	entry, err := h.Repository.PunchIn(r.Context(), workspaceID, request.EmploymentID, entryType, request.Note, request.IsBreakOvertime != nil && *request.IsBreakOvertime, now)
+	entry, err := h.Repository.PunchIn(r.Context(), request.EmploymentID, entryType, request.Note, request.IsBreakOvertime != nil && *request.IsBreakOvertime, time.Now().UTC())
 	if err != nil {
 		h.writeError(w, r, err)
 		return
@@ -186,12 +177,11 @@ func (h AttendanceHandler) PunchIn(w http.ResponseWriter, r *http.Request) {
 	apperror.WriteJSON(w, http.StatusCreated, entry)
 }
 
-// PunchOut handles POST /api/v1/workspaces/{ws_id}/time/punch-out/{employee_id}.
+// PunchOut handles POST /api/v1/time/punch-out/{employee_id}.
 // Requires attendance:force_clock_out; closes the active time entry for the target employee.
 func (h AttendanceHandler) PunchOut(w http.ResponseWriter, r *http.Request) {
-	workspaceID, ok := organizationIDFromContext(r)
 	employeeID, empOK := pathUUID(r, "employee_id")
-	if !ok || !empOK || !h.allowed(r, workspaceID, "attendance:force_clock_out") {
+	if !empOK || !h.allowed(r, "attendance:force_clock_out") {
 		h.forbidden(w, r)
 		return
 	}
@@ -200,7 +190,7 @@ func (h AttendanceHandler) PunchOut(w http.ResponseWriter, r *http.Request) {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}
-	entry, err := h.Repository.PunchOut(r.Context(), workspaceID, employeeID, request.Note, time.Now().UTC())
+	entry, err := h.Repository.PunchOut(r.Context(), employeeID, request.Note, time.Now().UTC())
 	if err != nil {
 		h.writeError(w, r, err)
 		return
@@ -208,12 +198,11 @@ func (h AttendanceHandler) PunchOut(w http.ResponseWriter, r *http.Request) {
 	apperror.WriteJSON(w, http.StatusOK, entry)
 }
 
-// TimeHistory handles GET /api/v1/workspaces/{ws_id}/time/history/{employee_id}.
+// TimeHistory handles GET /api/v1/time/history/{employee_id}.
 // Admin: requires attendance:logs:read; employee: self-only.
 func (h AttendanceHandler) TimeHistory(w http.ResponseWriter, r *http.Request) {
-	workspaceID, ok := organizationIDFromContext(r)
 	employeeID, empOK := pathUUID(r, "employee_id")
-	if !ok || !empOK {
+	if !empOK {
 		h.forbidden(w, r)
 		return
 	}
@@ -233,14 +222,13 @@ func (h AttendanceHandler) TimeHistory(w http.ResponseWriter, r *http.Request) {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}
-	hasReadPerm := h.allowed(r, workspaceID, "attendance:logs:read")
-	if !hasReadPerm {
+	if !h.allowed(r, "attendance:logs:read") {
 		userID, userOK := httpinfra.UserIDFromContext(r.Context())
 		if !userOK {
 			h.forbidden(w, r)
 			return
 		}
-		owned, ownerErr := h.Repository.IsEmployeeOwnedByUser(r.Context(), workspaceID, employeeID, userID)
+		owned, ownerErr := h.Repository.IsEmployeeOwnedByUser(r.Context(), employeeID, userID)
 		if ownerErr != nil {
 			h.writeError(w, r, ownerErr)
 			return
@@ -250,7 +238,7 @@ func (h AttendanceHandler) TimeHistory(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	entries, err := h.Repository.ListTimeHistory(r.Context(), workspaceID, employeeID, start, end)
+	entries, err := h.Repository.ListTimeHistory(r.Context(), employeeID, start, end)
 	if err != nil {
 		h.writeError(w, r, err)
 		return
@@ -258,11 +246,10 @@ func (h AttendanceHandler) TimeHistory(w http.ResponseWriter, r *http.Request) {
 	apperror.WriteJSON(w, http.StatusOK, entries)
 }
 
-// CreateAdjustment handles POST /api/v1/workspaces/{ws_id}/attendance/adjustments.
+// CreateAdjustment handles POST /api/v1/attendance/adjustments.
 // Requires attendance:adjustments:submit; creates a pending adjustment awaiting approval.
 func (h AttendanceHandler) CreateAdjustment(w http.ResponseWriter, r *http.Request) {
-	workspaceID, ok := organizationIDFromContext(r)
-	if !ok || !h.allowed(r, workspaceID, "attendance:adjustments:submit") {
+	if !h.allowed(r, "attendance:adjustments:submit") {
 		h.forbidden(w, r)
 		return
 	}
@@ -276,7 +263,7 @@ func (h AttendanceHandler) CreateAdjustment(w http.ResponseWriter, r *http.Reque
 		h.forbidden(w, r)
 		return
 	}
-	record, err := h.Repository.CreateAdjustment(r.Context(), workspaceID, req, userID)
+	record, err := h.Repository.CreateAdjustment(r.Context(), req, userID)
 	if err != nil {
 		h.writeError(w, r, err)
 		return
@@ -284,10 +271,9 @@ func (h AttendanceHandler) CreateAdjustment(w http.ResponseWriter, r *http.Reque
 	apperror.WriteJSON(w, http.StatusCreated, record)
 }
 
-// ListAdjustments handles GET /api/v1/workspaces/{ws_id}/attendance/adjustments.
+// ListAdjustments handles GET /api/v1/attendance/adjustments.
 func (h AttendanceHandler) ListAdjustments(w http.ResponseWriter, r *http.Request) {
-	workspaceID, ok := organizationIDFromContext(r)
-	if !ok || !h.allowed(r, workspaceID, "attendance:adjustments:approve") {
+	if !h.allowed(r, "attendance:adjustments:approve") {
 		h.forbidden(w, r)
 		return
 	}
@@ -313,7 +299,7 @@ func (h AttendanceHandler) ListAdjustments(w http.ResponseWriter, r *http.Reques
 		}
 		employeeID = &parsed
 	}
-	result, err := h.Repository.ListAdjustments(r.Context(), workspaceID, status, employeeID, pagination.Page, pagination.Limit)
+	result, err := h.Repository.ListAdjustments(r.Context(), status, employeeID, pagination.Page, pagination.Limit)
 	if err != nil {
 		h.writeError(w, r, err)
 		return
@@ -324,20 +310,19 @@ func (h AttendanceHandler) ListAdjustments(w http.ResponseWriter, r *http.Reques
 // ListEmployeeAdjustments handles GET /api/v1/employees/{id}/attendance/adjustments.
 func (h AttendanceHandler) ListEmployeeAdjustments(w http.ResponseWriter, r *http.Request) {
 	employeeID, ok := pathUUID(r, "id")
-	workspaceID, workspaceOK := organizationIDFromContext(r)
 	userID, userOK := httpinfra.UserIDFromContext(r.Context())
-	if !ok || !workspaceOK || !userOK {
+	if !ok || !userOK {
 		h.forbidden(w, r)
 		return
 	}
-	if !h.allowed(r, workspaceID, "attendance:adjustments:approve") {
-		owned, err := h.Repository.IsEmployeeOwnedByUser(r.Context(), workspaceID, employeeID, userID)
+	if !h.allowed(r, "attendance:adjustments:approve") {
+		owned, err := h.Repository.IsEmployeeOwnedByUser(r.Context(), employeeID, userID)
 		if err != nil || !owned {
 			h.forbidden(w, r)
 			return
 		}
 	}
-	result, err := h.Repository.ListEmployeeAdjustments(r.Context(), workspaceID, employeeID)
+	result, err := h.Repository.ListEmployeeAdjustments(r.Context(), employeeID)
 	if err != nil {
 		h.writeError(w, r, err)
 		return
@@ -345,11 +330,10 @@ func (h AttendanceHandler) ListEmployeeAdjustments(w http.ResponseWriter, r *htt
 	apperror.WriteJSON(w, http.StatusOK, result)
 }
 
-// ApproveAdjustment handles PUT /api/v1/workspaces/{ws_id}/attendance/adjustments/{id}/approve.
+// ApproveAdjustment handles PUT /api/v1/attendance/adjustments/{id}/approve.
 func (h AttendanceHandler) ApproveAdjustment(w http.ResponseWriter, r *http.Request) {
-	workspaceID, ok := organizationIDFromContext(r)
 	adjustmentID, adjustmentOK := pathUUID(r, "id")
-	if !ok || !adjustmentOK || !h.allowed(r, workspaceID, "attendance:adjustments:approve") {
+	if !adjustmentOK || !h.allowed(r, "attendance:adjustments:approve") {
 		h.forbidden(w, r)
 		return
 	}
@@ -363,20 +347,15 @@ func (h AttendanceHandler) ApproveAdjustment(w http.ResponseWriter, r *http.Requ
 		h.forbidden(w, r)
 		return
 	}
-	if err := h.Repository.ApproveAdjustment(r.Context(), workspaceID, adjustmentID, userID, request.Status); err != nil {
+	if err := h.Repository.ApproveAdjustment(r.Context(), adjustmentID, userID, request.Status); err != nil {
 		h.writeError(w, r, err)
 		return
 	}
 	w.WriteHeader(http.StatusOK)
 }
 
-// Summaries handles GET /api/v1/workspaces/{ws_id}/attendance/summaries.
+// Summaries handles GET /api/v1/attendance/summaries.
 func (h AttendanceHandler) Summaries(w http.ResponseWriter, r *http.Request) {
-	workspaceID, ok := organizationIDFromContext(r)
-	if !ok {
-		h.forbidden(w, r)
-		return
-	}
 	userID, userOK := httpinfra.UserIDFromContext(r.Context())
 	if !userOK {
 		h.forbidden(w, r)
@@ -390,7 +369,7 @@ func (h AttendanceHandler) Summaries(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	hasReadPerm := h.allowed(r, workspaceID, "attendance:summaries:read")
+	hasReadPerm := h.allowed(r, "attendance:summaries:read")
 	var targetEmployeeID *uuid.UUID
 
 	if empParam := r.URL.Query().Get("employee_id"); empParam != "" {
@@ -403,7 +382,7 @@ func (h AttendanceHandler) Summaries(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if !hasReadPerm {
-		myID, err := h.Repository.GetEmployeeIDByUserID(r.Context(), workspaceID, userID)
+		myID, err := h.Repository.GetEmployeeIDByUserID(r.Context(), userID)
 		if err != nil || myID == uuid.Nil {
 			h.forbidden(w, r)
 			return
@@ -426,7 +405,7 @@ func (h AttendanceHandler) Summaries(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	summaries, err := h.Repository.GetAttendanceSummaries(r.Context(), workspaceID, startDate, endDate, targetEmployeeID, otStatus, pagination.Page, pagination.Limit)
+	summaries, err := h.Repository.GetAttendanceSummaries(r.Context(), startDate, endDate, targetEmployeeID, otStatus, pagination.Page, pagination.Limit)
 	if err != nil {
 		h.writeError(w, r, err)
 		return
@@ -434,10 +413,9 @@ func (h AttendanceHandler) Summaries(w http.ResponseWriter, r *http.Request) {
 	apperror.WriteJSON(w, http.StatusOK, summaries)
 }
 
-// ReprocessAll handles POST /api/v1/workspaces/{ws_id}/attendance/reprocess-all.
+// ReprocessAll handles POST /api/v1/attendance/reprocess-all.
 func (h AttendanceHandler) ReprocessAll(w http.ResponseWriter, r *http.Request) {
-	workspaceID, ok := organizationIDFromContext(r)
-	if !ok || !h.allowed(r, workspaceID, "attendance:reprocess") {
+	if !h.allowed(r, "attendance:reprocess") {
 		h.forbidden(w, r)
 		return
 	}
@@ -465,11 +443,10 @@ func (h AttendanceHandler) ReprocessAll(w http.ResponseWriter, r *http.Request) 
 	})
 }
 
-// ReprocessEmployee handles POST /api/v1/workspaces/{ws_id}/attendance/reprocess/{employee_id}.
+// ReprocessEmployee handles POST /api/v1/attendance/reprocess/{employee_id}.
 func (h AttendanceHandler) ReprocessEmployee(w http.ResponseWriter, r *http.Request) {
-	workspaceID, ok := organizationIDFromContext(r)
 	employeeID, empOK := pathUUID(r, "employee_id")
-	if !ok || !empOK || !h.allowed(r, workspaceID, "attendance:reprocess") {
+	if !empOK || !h.allowed(r, "attendance:reprocess") {
 		h.forbidden(w, r)
 		return
 	}
@@ -498,11 +475,10 @@ func (h AttendanceHandler) ReprocessEmployee(w http.ResponseWriter, r *http.Requ
 	})
 }
 
-// UpdateTimeEntry handles PUT /api/v1/workspaces/{ws_id}/time/entries/{id}.
+// UpdateTimeEntry handles PUT /api/v1/time/entries/{id}.
 func (h AttendanceHandler) UpdateTimeEntry(w http.ResponseWriter, r *http.Request) {
-	workspaceID, ok := organizationIDFromContext(r)
 	entryID, entryOK := pathUUID(r, "id")
-	if !ok || !entryOK || !h.allowed(r, workspaceID, "attendance:logs:import") {
+	if !entryOK || !h.allowed(r, "attendance:logs:import") {
 		h.forbidden(w, r)
 		return
 	}
@@ -511,7 +487,7 @@ func (h AttendanceHandler) UpdateTimeEntry(w http.ResponseWriter, r *http.Reques
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}
-	entry, err := h.Repository.UpdateTimeEntry(r.Context(), workspaceID, entryID, req)
+	entry, err := h.Repository.UpdateTimeEntry(r.Context(), entryID, req)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			apperror.WriteError(w, r, apperror.NotFound(apperror.KeyNotFound))
@@ -523,15 +499,14 @@ func (h AttendanceHandler) UpdateTimeEntry(w http.ResponseWriter, r *http.Reques
 	apperror.WriteJSON(w, http.StatusOK, entry)
 }
 
-// DeleteTimeEntry handles DELETE /api/v1/workspaces/{ws_id}/time/entries/{id}.
+// DeleteTimeEntry handles DELETE /api/v1/time/entries/{id}.
 func (h AttendanceHandler) DeleteTimeEntry(w http.ResponseWriter, r *http.Request) {
-	workspaceID, ok := organizationIDFromContext(r)
 	entryID, entryOK := pathUUID(r, "id")
-	if !ok || !entryOK || !h.allowed(r, workspaceID, "attendance:logs:import") {
+	if !entryOK || !h.allowed(r, "attendance:logs:import") {
 		h.forbidden(w, r)
 		return
 	}
-	err := h.Repository.DeleteTimeEntry(r.Context(), workspaceID, entryID)
+	err := h.Repository.DeleteTimeEntry(r.Context(), entryID)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			apperror.WriteError(w, r, apperror.NotFound(apperror.KeyNotFound))
@@ -543,9 +518,9 @@ func (h AttendanceHandler) DeleteTimeEntry(w http.ResponseWriter, r *http.Reques
 	w.WriteHeader(http.StatusNoContent)
 }
 
-func (h AttendanceHandler) allowed(r *http.Request, workspaceID uuid.UUID, permission string) bool {
+func (h AttendanceHandler) allowed(r *http.Request, permission string) bool {
 	userID, ok := httpinfra.UserIDFromContext(r.Context())
-	return ok && h.Authorizer != nil && h.Authorizer.HasPermission(r.Context(), userID, workspaceID, permission)
+	return ok && h.Authorizer != nil && h.Authorizer.HasPermission(r.Context(), userID, permission)
 }
 
 func (h AttendanceHandler) forbidden(w http.ResponseWriter, r *http.Request) {

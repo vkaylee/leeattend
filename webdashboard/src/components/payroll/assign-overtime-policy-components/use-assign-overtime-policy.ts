@@ -11,12 +11,9 @@ interface UseAssignOvertimePolicyConfig {
   initialType?: 'employee' | 'department' | 'workspace';
   isOpen: boolean;
   onClose: () => void;
-  wsId: string;
 }
 
-export function useAssignOvertimePolicy({
-  wsId,
-  isOpen,
+export function useAssignOvertimePolicy({isOpen,
   onClose,
   initialType = 'employee',
   initialId = ''
@@ -30,16 +27,13 @@ export function useAssignOvertimePolicy({
   const [policyId, setPolicyId] = useState('');
   const [effectiveFrom, setEffectiveFrom] = useState(new Date().toISOString().split('T')[0]);
 
-  const { data: policies = [] } = useQuery({
-    queryKey: ['overtime-policies', wsId],
-    queryFn: () => fetchOvertimePolicies(wsId),
-    enabled: isOpen
-  });
+  const { data: policies = [] } = useQuery({ queryKey: ['overtime-policies'], queryFn: () => fetchOvertimePolicies(),
+  enabled: isOpen });
 
-  const { data: departments = [] } = useDepartments(wsId, { enabled: isOpen });
+  const { data: departments = [] } = useDepartments({ enabled: isOpen });
 
   const assignMutation = useMutation({
-    mutationFn: (data: Parameters<typeof assignOvertimePolicy>[1]) => assignOvertimePolicy(wsId, data),
+    mutationFn: (data: Parameters<typeof assignOvertimePolicy>[1]) => assignOvertimePolicy(data),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['overtime-policy-assignment'] });
       toast.success(t('common.success'));

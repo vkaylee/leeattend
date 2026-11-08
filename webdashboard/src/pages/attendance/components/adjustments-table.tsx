@@ -7,7 +7,7 @@ import Button from "@/components/ui/button";
 import ResponsiveTable from "@/components/ui/responsive-table";
 import StatusBadge from "@/components/ui/status-badge";
 import { Typography } from "@/components/ui/typography";
-import { useWorkspace } from "@/hooks/use-workspace";
+import { useOrganization } from "@/hooks/use-organization";
 import { AttendanceAdjustmentRequest } from "@/lib/api/types";
 
 import type { AttendanceStatusFilter } from "../hooks/use-attendance-adjustments-page";
@@ -20,11 +20,9 @@ import { AdjustmentsTableRow } from "./adjustments-table/row";
 function AttachmentList({
   fileIds,
   onPreviewAttachment,
-  wsId,
 }: {
   fileIds: (string | null)[];
   onPreviewAttachment?: (fileUrl: string, title: string) => void;
-  wsId: string;
 }) {
   return (
     <div className="flex flex-wrap gap-2">
@@ -35,7 +33,7 @@ function AttachmentList({
             className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-bold bg-indigo-50 hover:bg-indigo-100 text-indigo-750 dark:bg-indigo-950/30 dark:hover:bg-indigo-900/40 dark:text-indigo-400 border border-indigo-150 dark:border-indigo-900/50 transition-colors cursor-pointer"
             icon={<Paperclip className="w-3 h-3" />}
             key={fileId}
-            onClick={() => { onPreviewAttachment?.(`/api/v1/workspaces/${wsId}/files/${fileId}/download`, `Adjustment Attachment #${index + 1}`); }}
+            onClick={() => { onPreviewAttachment?.(`/api/v1/files/${fileId}/download`, `Adjustment Attachment #${index + 1}`); }}
             type="button"
           >
             Doc #{index + 1}
@@ -69,8 +67,6 @@ function AdjustmentMobileCard({
   request: AttendanceAdjustmentRequest;
 }) {
   const { t } = useTranslation();
-  const { workspace } = useWorkspace();
-  const wsId = workspace?.id ?? "";
 
   return (
     <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm transition-all active:scale-[0.99] dark:border-slate-800 dark:bg-slate-900">
@@ -114,7 +110,7 @@ function AdjustmentMobileCard({
 
         {/* Attachments */}
         {!!request.attachment_file_ids && request.attachment_file_ids.length > 0 && (
-          <AttachmentList fileIds={request.attachment_file_ids} onPreviewAttachment={onPreviewAttachment} wsId={wsId} />
+          <AttachmentList fileIds={request.attachment_file_ids} onPreviewAttachment={onPreviewAttachment}  />
         )}
       </div>
 

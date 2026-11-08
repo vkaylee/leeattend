@@ -29,7 +29,6 @@ interface EmployeeSearchProps {
   placeholder?: string;
   selectedDepartmentIds?: string[];
   value?: string | string[];
-  workspaceId: string;
 }
 
 function highlightMatch(text: string, query: string) {
@@ -145,7 +144,6 @@ function SelectedEmployeeChips({ onRemove, selectedIds, selectedMeta }: Selected
  */
 // eslint-disable-next-line complexity
 export function EmployeeSearch({
-  workspaceId,
   value,
   onChange,
   placeholder,
@@ -180,7 +178,6 @@ export function EmployeeSearch({
     selectedMeta,
     setSelectedMeta,
   } = useEmployeeSearch({
-    workspaceId,
     debouncedSearchTerm,
     selectedIds,
     emptyQueryBehavior,

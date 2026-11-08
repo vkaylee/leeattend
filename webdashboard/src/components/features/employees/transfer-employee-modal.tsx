@@ -10,7 +10,7 @@ import { Combobox } from "@/components/ui/combobox";
 import FormField from "@/components/ui/form-field";
 import Modal from "@/components/ui/modal";
 import { useToast } from "@/components/ui/toast";
-import { useOrganizationMutation } from "@/hooks/common/use-workspace-query";
+import { useOrganizationMutation } from "@/hooks/common/use-organization-query";
 import { transferEmployee, Department } from "@/lib/api";
 import { employeeKeys } from "@/lib/query-keys";
 
@@ -21,15 +21,12 @@ interface TransferEmployeeModalProps {
   onClose: () => void;
   selectedDeptId: string;
   setSelectedDeptId: (id: string) => void;
-  wsId: string;
 }
 
 export default function TransferEmployeeModal({
   isOpen,
   onClose,
-  employeeId,
-  wsId,
-  departments,
+  employeeId,departments,
   selectedDeptId,
   setSelectedDeptId,
 }: TransferEmployeeModalProps) {
@@ -40,20 +37,17 @@ export default function TransferEmployeeModal({
   const transferMutation = useOrganizationMutation<
     { department_id: string; effective_date: string; notes?: string },
     Awaited<ReturnType<typeof transferEmployee>>
-  >({
-    workspaceId: wsId,
-    keys: [employeeKeys.all(wsId)],
-    mutationFn: (workspaceId, data) => {
-      if (!employeeId) throw new Error("No employee selected");
-      return transferEmployee(workspaceId, employeeId, data);
-    },
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ["deptHistory", employeeId] });
-      onClose();
-      setSelectedDeptId("");
-      toast.success(t("common.success"));
-    },
-  });
+  >({ keys: [employeeKeys.all()],
+  mutationFn: (data) => {
+    if (!employeeId) throw new Error("No employee selected");
+    return transferEmployee(employeeId, data);
+  },
+  onSuccess: () => {
+    void queryClient.invalidateQueries({ queryKey: ["deptHistory", employeeId] });
+    onClose();
+    setSelectedDeptId("");
+    toast.success(t("common.success"));
+  }, });
 
   const handleTransferSubmit = (e: React.SyntheticEvent<HTMLFormElement>) => {
     e.preventDefault();

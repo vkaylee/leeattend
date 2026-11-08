@@ -39,16 +39,10 @@ import {
   deleteLeaveBehalfAssignment,
 } from "../leaves";
 
-// The download helpers at the bottom of leaves.ts synthesize an <a> element and
-// call createObjectURL/revokeObjectURL. Happy-DOM's URL stub is not implemented,
-// so we install a no-op mock once here (runs after imports, before tests).
 beforeAll(() => {
-  // Augment the URL API for the happy-dom test env (no-op stubs).
-  URL.createObjectURL = () => "blob:mock";
-  // eslint-disable-next-line @typescript-eslint/no-empty-function
-  URL.revokeObjectURL = () => {};
-  if (!document.body) {
-    document.body = document.createElement("body");
+  if (typeof window !== "undefined" && !window.URL.createObjectURL) {
+    window.URL.createObjectURL = () => "blob:mock";
+    window.URL.revokeObjectURL = () => {};
   }
 });
 
@@ -88,7 +82,7 @@ describe("leaves API", () => {
   it("submitLeaveRequest: POST returns LeaveRequest", async () => {
     const mock = { id: "lr-1", status: "pending" };
     vi.mocked(apiFetch).mockResolvedValueOnce(okRes(mock));
-    const result = await submitLeaveRequest("ws-1", {
+    const result = await submitLeaveRequest({
       employment_id: "emp-1",
       leave_type_id: "lt-1",
       start_date: "2026-01-01",
@@ -103,20 +97,20 @@ describe("leaves API", () => {
   it("submitLeaveRequest: ApiError on 500", async () => {
     vi.mocked(apiFetch).mockResolvedValueOnce(errRes(500, "Error", {}));
     await expect(
-      submitLeaveRequest("ws-1", { employment_id: "e", leave_type_id: "l", start_date: "s", end_date: "e" }),
+      submitLeaveRequest({ employment_id: "e", leave_type_id: "l", start_date: "s", end_date: "e" }),
     ).rejects.toThrow();
   });
 
   it("fetchWorkspaceLeaveRequests: paginated", async () => {
     const mock = { data: [{ id: "lr-1" }], total: 1, page: 1, limit: 50 };
     vi.mocked(apiFetch).mockResolvedValueOnce(okRes(mock));
-    const result = await fetchWorkspaceLeaveRequests("ws-1", { status: "pending", page: 1, limit: 50 });
+    const result = await fetchWorkspaceLeaveRequests({ status: "pending", page: 1, limit: 50 });
     expect(result).toEqual(mock);
   });
 
   it("fetchWorkspaceLeaveRequests: employee_id 'all' becomes undefined", async () => {
     vi.mocked(apiFetch).mockResolvedValueOnce(okRes({ data: [], total: 0 }));
-    await fetchWorkspaceLeaveRequests("ws-1", { employee_id: "all" });
+    await fetchWorkspaceLeaveRequests({ employee_id: "all" });
     expect(apiFetch).toHaveBeenCalledTimes(1);
   });
 
@@ -130,40 +124,40 @@ describe("leaves API", () => {
 
   it("approveLeaveRequest: POST approve", async () => {
     vi.mocked(apiFetch).mockResolvedValueOnce(okRes(undefined));
-    await approveLeaveRequest("ws-1", "lr-1", { decision: "approved" } as never);
+    await approveLeaveRequest("lr-1", { decision: "approved" } as never);
     expect(vi.mocked(apiFetch).mock.calls[0][0]).toContain("/leave/requests/lr-1/approve");
   });
 
   it("fetchEmployeeLeaveBalances: GET list", async () => {
     const mock = [{ leave_type_id: "lt-1", balance: 10 }];
     vi.mocked(apiFetch).mockResolvedValueOnce(okRes(mock));
-    const result = await fetchEmployeeLeaveBalances("ws-1", "emp-1");
+    const result = await fetchEmployeeLeaveBalances("emp-1");
     expect(result).toEqual(mock);
   });
 
   it("fetchWorkspaceLeaveBalances: paginated with q/year", async () => {
     const mock = { data: [], total: 0 };
     vi.mocked(apiFetch).mockResolvedValueOnce(okRes(mock));
-    const result = await fetchWorkspaceLeaveBalances("ws-1", { q: "bob", year: 2026 });
+    const result = await fetchWorkspaceLeaveBalances({ q: "bob", year: 2026 });
     expect(result).toEqual(mock);
   });
 
   it("fetchLeaveHistory: GET with optional leave_type_id", async () => {
     const mock = [{ id: "lr-1", date: "2026-01-01" }];
     vi.mocked(apiFetch).mockResolvedValueOnce(okRes(mock));
-    const result = await fetchLeaveHistory("ws-1", "emp-1", "lt-1");
+    const result = await fetchLeaveHistory("emp-1", "lt-1");
     expect(result).toEqual(mock);
   });
 
   it("fetchLeaveHistory: GET without leave_type_id", async () => {
     vi.mocked(apiFetch).mockResolvedValueOnce(okRes([]));
-    const result = await fetchLeaveHistory("ws-1", "emp-1");
+    const result = await fetchLeaveHistory("emp-1");
     expect(result).toEqual([]);
   });
 
   it("adjustLeaveBalance: POST adjust", async () => {
     vi.mocked(apiFetch).mockResolvedValueOnce(okRes(undefined));
-    await adjustLeaveBalance("ws-1", "emp-1", {
+    await adjustLeaveBalance("emp-1", {
       leave_type_id: "lt-1",
       amount: 1,
       reason: "correction",
@@ -177,14 +171,14 @@ describe("leaves API", () => {
   it("fetchLeavePolicies: GET list", async () => {
     const mock = [{ id: "lp-1", name: "Annual" }];
     vi.mocked(apiFetch).mockResolvedValueOnce(okRes(mock));
-    const result = await fetchLeavePolicies("ws-1");
+    const result = await fetchLeavePolicies();
     expect(result).toEqual(mock);
   });
 
   it("createLeavePolicy: POST returns policy", async () => {
     const mock = { id: "lp-new", name: "Sick" };
     vi.mocked(apiFetch).mockResolvedValueOnce(okRes(mock));
-    const result = await createLeavePolicy("ws-1", {
+    const result = await createLeavePolicy({
       leave_type_id: "lt-1",
       name: "Sick",
       rule_config: {} as never,
@@ -195,7 +189,7 @@ describe("leaves API", () => {
   it("updateLeavePolicy: PATCH returns policy", async () => {
     const mock = { id: "lp-1", name: "Updated" };
     vi.mocked(apiFetch).mockResolvedValueOnce(okRes(mock));
-    const result = await updateLeavePolicy("ws-1", "lp-1", { name: "Updated" });
+    const result = await updateLeavePolicy("lp-1", { name: "Updated" });
     expect(result).toEqual(mock);
     const opts = vi.mocked(apiFetch).mock.calls[0][1] as RequestInit;
     expect(opts.method).toBe("PATCH");
@@ -203,7 +197,7 @@ describe("leaves API", () => {
 
   it("deleteLeavePolicy: DELETE", async () => {
     vi.mocked(apiFetch).mockResolvedValueOnce(okRes(undefined));
-    await deleteLeavePolicy("ws-1", "lp-1");
+    await deleteLeavePolicy("lp-1");
     const opts = vi.mocked(apiFetch).mock.calls[0][1] as RequestInit;
     expect(opts.method).toBe("DELETE");
   });
@@ -211,20 +205,20 @@ describe("leaves API", () => {
   it("fetchLeaveTypes: GET list", async () => {
     const mock = [{ id: "lt-1", name: "Annual", code: "ANN" }];
     vi.mocked(apiFetch).mockResolvedValueOnce(okRes(mock));
-    const result = await fetchLeaveTypes("ws-1");
+    const result = await fetchLeaveTypes();
     expect(result).toEqual(mock);
   });
 
   it("createLeaveType: POST returns type", async () => {
     const mock = { id: "lt-new", name: "Compassionate" };
     vi.mocked(apiFetch).mockResolvedValueOnce(okRes(mock));
-    const result = await createLeaveType("ws-1", { code: "COM", is_paid: true, name: "Compassionate" });
+    const result = await createLeaveType({ code: "COM", is_paid: true, name: "Compassionate" });
     expect(result).toEqual(mock);
   });
 
   it("deleteLeaveType: DELETE", async () => {
     vi.mocked(apiFetch).mockResolvedValueOnce(okRes(undefined));
-    await deleteLeaveType("ws-1", "lt-1");
+    await deleteLeaveType("lt-1");
     const opts = vi.mocked(apiFetch).mock.calls[0][1] as RequestInit;
     expect(opts.method).toBe("DELETE");
   });
@@ -232,13 +226,13 @@ describe("leaves API", () => {
   it("fetchLeavePolicyAssignments: GET list", async () => {
     const mock = [{ id: "pa-1", policy_id: "lp-1" }];
     vi.mocked(apiFetch).mockResolvedValueOnce(okRes(mock));
-    const result = await fetchLeavePolicyAssignments("ws-1");
+    const result = await fetchLeavePolicyAssignments();
     expect(result).toEqual(mock);
   });
 
   it("assignLeavePolicy: POST assign", async () => {
     vi.mocked(apiFetch).mockResolvedValueOnce(okRes(undefined));
-    await assignLeavePolicy("ws-1", {
+    await assignLeavePolicy({
       assignee_type: "employee",
       assignee_id: "emp-1",
       policy_id: "lp-1",
@@ -250,7 +244,7 @@ describe("leaves API", () => {
 
   it("deleteLeavePolicyAssignment: DELETE", async () => {
     vi.mocked(apiFetch).mockResolvedValueOnce(okRes(undefined));
-    await deleteLeavePolicyAssignment("ws-1", "pa-1");
+    await deleteLeavePolicyAssignment("pa-1");
     const opts = vi.mocked(apiFetch).mock.calls[0][1] as RequestInit;
     expect(opts.method).toBe("DELETE");
   });
@@ -258,21 +252,21 @@ describe("leaves API", () => {
   it("triggerAccrualRun: POST returns job info", async () => {
     const mock = { job_id: "j-1", status: "pending", message: "started" };
     vi.mocked(apiFetch).mockResolvedValueOnce(okRes(mock));
-    const result = await triggerAccrualRun("ws-1", { date: "2026-01-01" });
+    const result = await triggerAccrualRun({ date: "2026-01-01" });
     expect(result).toEqual(mock);
   });
 
   it("fetchJobStatus: GET status", async () => {
     const mock = { job_id: "j-1", status: "completed", completed_at: "2026-01-01T00:00:00Z", error_message: null };
     vi.mocked(apiFetch).mockResolvedValueOnce(okRes(mock));
-    const result = await fetchJobStatus("ws-1", "j-1");
+    const result = await fetchJobStatus("j-1");
     expect(result).toEqual(mock);
   });
 
   it("updateLeaveTypeConfig: PUT returns type", async () => {
     const mock = { id: "lt-1", name: "Annual" };
     vi.mocked(apiFetch).mockResolvedValueOnce(okRes(mock));
-    const result = await updateLeaveTypeConfig("ws-1", "lt-1", { max_days: 12 } as never);
+    const result = await updateLeaveTypeConfig("lt-1", { max_days: 12 } as never);
     expect(result).toEqual(mock);
     const opts = vi.mocked(apiFetch).mock.calls[0][1] as RequestInit;
     expect(opts.method).toBe("PUT");
@@ -282,7 +276,7 @@ describe("leaves API", () => {
   it("uploadLeaveExcel: POST FormData returns job_id", async () => {
     vi.mocked(apiFetch).mockResolvedValueOnce(okRes({ job_id: "j-1", status: "pending" }));
     const file = new File(["x"], "leave.xlsx");
-    const result = await uploadLeaveExcel("ws-1", file);
+    const result = await uploadLeaveExcel(file);
     expect(result).toEqual({ job_id: "j-1", status: "pending" });
     const opts = vi.mocked(apiFetch).mock.calls[0][1] as RequestInit;
     expect(opts.method).toBe("POST");
@@ -292,64 +286,60 @@ describe("leaves API", () => {
   it("fetchLatestLeaveImport: returns import job or null", async () => {
     const mock = { id: "j-1", status: "completed", total_rows: 10, processed_rows: 10 };
     vi.mocked(apiFetch).mockResolvedValueOnce(okRes(mock));
-    const result = await fetchLatestLeaveImport("ws-1");
+    const result = await fetchLatestLeaveImport();
     expect(result).toEqual(mock);
   });
 
   it("fetchLatestLeaveImport: returns null when server sends null", async () => {
     vi.mocked(apiFetch).mockResolvedValueOnce(okRes(null));
-    const result = await fetchLatestLeaveImport("ws-1");
+    const result = await fetchLatestLeaveImport();
     expect(result).toBeNull();
   });
 
   it("fetchLeaveImportStatus: returns import job or null", async () => {
     const mock = { id: "j-1", status: "failed" };
     vi.mocked(apiFetch).mockResolvedValueOnce(okRes(mock));
-    const result = await fetchLeaveImportStatus("ws-1");
+    const result = await fetchLeaveImportStatus();
     expect(result).toEqual(mock);
   });
 
   it("getLeaveImportErrorsUrl: builds URL", () => {
-    expect(getLeaveImportErrorsUrl("ws-1", "j-1")).toContain("/leave/import/j-1/errors");
+    expect(getLeaveImportErrorsUrl("j-1")).toContain("/leave/import/j-1/errors");
   });
 
   it("getLeaveImportTemplateUrl: builds URL with lang", () => {
-    expect(getLeaveImportTemplateUrl("ws-1", "vi")).toContain("/leave/upload-template?lang=vi");
-    expect(getLeaveImportTemplateUrl("ws-1")).toContain("lang=en");
+    expect(getLeaveImportTemplateUrl("vi")).toContain("/leave/upload-template?lang=vi");
+    expect(getLeaveImportTemplateUrl()).toContain("lang=en");
   });
 
   it("fetchLeaveBehalfAssignments: GET list", async () => {
     const mock = [{ id: "ba-1" }];
     vi.mocked(apiFetch).mockResolvedValueOnce(okRes(mock));
-    const result = await fetchLeaveBehalfAssignments("ws-1");
+    const result = await fetchLeaveBehalfAssignments();
     expect(result).toEqual(mock);
   });
 
   it("createLeaveBehalfAssignment: POST returns record", async () => {
     const mock = { id: "ba-new" };
     vi.mocked(apiFetch).mockResolvedValueOnce(okRes(mock));
-    const result = await createLeaveBehalfAssignment("ws-1", { assignee_user_id: "u1" } as never);
+    const result = await createLeaveBehalfAssignment({ assignee_user_id: "u1" } as never);
     expect(result).toEqual(mock);
   });
 
   it("deleteLeaveBehalfAssignment: DELETE", async () => {
     vi.mocked(apiFetch).mockResolvedValueOnce(okRes(undefined));
-    await deleteLeaveBehalfAssignment("ws-1", "ba-1");
+    await deleteLeaveBehalfAssignment("ba-1");
     const opts = vi.mocked(apiFetch).mock.calls[0][1] as RequestInit;
     expect(opts.method).toBe("DELETE");
   });
 
-  // --- download helpers (lines 383-408) -----------------------------------
-  // These go through apiFetch directly (not the typed client) and branch on
-  // !response.ok before synthesizing a download via <a> + blob URL. We assert
-  // the happy path runs end-to-end and the error path throws.
   it("downloadLeaveImportTemplate: happy path", async () => {
     vi.mocked(apiFetch).mockResolvedValueOnce({
       ok: true,
       status: 200,
       blob: () => Promise.resolve(new Blob(["xlsx"])),
     } as unknown as Response);
-    await expect(downloadLeaveImportTemplate("ws-1", "vi")).resolves.toBeUndefined();
+    await expect(downloadLeaveImportTemplate("vi")).resolves.toBeUndefined();
     expect(vi.mocked(apiFetch).mock.calls[0][0]).toContain("/leave/upload-template?lang=vi");
   });
 
@@ -358,7 +348,7 @@ describe("leaves API", () => {
       ok: false,
       status: 500,
     } as unknown as Response);
-    await expect(downloadLeaveImportTemplate("ws-1")).rejects.toThrow("Failed to download template");
+    await expect(downloadLeaveImportTemplate()).rejects.toThrow("Failed to download template");
   });
 
   it("downloadLeaveImportErrors: happy path", async () => {
@@ -367,7 +357,7 @@ describe("leaves API", () => {
       status: 200,
       blob: () => Promise.resolve(new Blob(["xlsx"])),
     } as unknown as Response);
-    await expect(downloadLeaveImportErrors("ws-1", "j-1")).resolves.toBeUndefined();
+    await expect(downloadLeaveImportErrors("j-1")).resolves.toBeUndefined();
     expect(vi.mocked(apiFetch).mock.calls[0][0]).toContain("/leave/import/j-1/errors");
   });
 
@@ -376,6 +366,6 @@ describe("leaves API", () => {
       ok: false,
       status: 404,
     } as unknown as Response);
-    await expect(downloadLeaveImportErrors("ws-1", "j-1")).rejects.toThrow("[404]");
+    await expect(downloadLeaveImportErrors("j-1")).rejects.toThrow("[404]");
   });
 });

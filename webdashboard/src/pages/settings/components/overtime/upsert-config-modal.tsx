@@ -9,7 +9,7 @@ import Button from "@/components/ui/button";
 import Modal from "@/components/ui/modal";
 import { useToast } from "@/components/ui/toast";
 import { Typography } from "@/components/ui/typography";
-import { useUpsertWorkspaceConfig } from "@/hooks/use-workspace-config";
+import { useUpsertWorkspaceConfig } from "@/hooks/use-organization-config";
 import { type WorkspaceConfigEntry, type CreateConfigEntryRequest } from "@/lib/api/types";
 import { logError } from "@/lib/logger";
 
@@ -149,12 +149,10 @@ export function UpsertConfigModal({
   config,
   isOpen,
   onClose,
-  wsId: _wsId,
 }: {
   config: WorkspaceConfigEntry | null;
   isOpen: boolean;
   onClose: () => void;
-  wsId: string;
 }) {
   const { t } = useTranslation(["settings", "common"]);
   const { form, onSubmit, isPending, valType } = useUpsertConfigForm({ config, onClose });

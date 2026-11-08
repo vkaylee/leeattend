@@ -73,7 +73,6 @@ export function BulkAssignModal({ hook }: BulkAssignModalProps) {
     setIsBulkModalOpen,
     setSelectedEmployeeIds,
     setSelectedPatternId,
-    wsId,
     assignAnchorDate,
     setAssignAnchorDate,
     departments,
@@ -85,9 +84,9 @@ export function BulkAssignModal({ hook }: BulkAssignModalProps) {
 
   // Fetch pattern details for visual preview
   const { data: previewDetails } = useQuery<WorkingPatternDetail[]>({
-    queryKey: ["pattern-preview", wsId, selectedPatternId],
-    queryFn: () => fetchPatternDetails(wsId, selectedPatternId),
-    enabled: !!wsId && !!selectedPatternId,
+    queryKey: ["pattern-preview", selectedPatternId],
+    queryFn: () => fetchPatternDetails(selectedPatternId),
+    enabled: !!selectedPatternId,
   });
 
   // Compute client-side compliance issues from preview details
@@ -183,7 +182,7 @@ export function BulkAssignModal({ hook }: BulkAssignModalProps) {
 
         <div className="space-y-4 px-1">
           <label className={LABEL_BASE}>{t("patterns.form.select_employees_label").toUpperCase()}</label>
-          <EmployeeSearch className="bg-slate-50 dark:bg-slate-800 border-slate-100 dark:border-slate-800 rounded-[2rem] p-8 shadow-inner" departments={departments} multiple={true} onChange={(v) => { setSelectedEmployeeIds(v as string[]); }} value={selectedEmployeeIds} workspaceId={wsId} />
+          <EmployeeSearch className="bg-slate-50 dark:bg-slate-800 border-slate-100 dark:border-slate-800 rounded-[2rem] p-8 shadow-inner" departments={departments} multiple={true} onChange={(v) => { setSelectedEmployeeIds(v as string[]); }} value={selectedEmployeeIds}  />
         </div>
         <div className="pt-8 border-t border-slate-50 dark:border-slate-800 grid grid-cols-2 gap-6">
           <Button onClick={() => { setIsBulkModalOpen(false); }} size="lg" variant="outline">{t("common.cancel").toUpperCase()}</Button>

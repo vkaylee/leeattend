@@ -3,13 +3,13 @@ import React from "react";
 import { useTranslation } from "react-i18next";
 
 import { SettingsHeader } from "@/components/ui/settings/settings-header";
-import { useWorkspace } from "@/hooks/use-workspace";
+import { useOrganization } from "@/hooks/use-organization";
 
 import { OvertimeQuotasTab } from "./components/overtime/overtime-quotas-tab";
 
 export default function OvertimeSettings() {
   const { t } = useTranslation();
-  const { workspace: ws } = useWorkspace();
+  const { workspace: ws } = useOrganization();
 
   if (!ws) return null;
 
@@ -23,7 +23,7 @@ export default function OvertimeSettings() {
 
       <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800/80 p-6 sm:p-8 shadow-2xs">
         <div className="animate-in fade-in duration-300">
-          <OvertimeQuotasTab wsId={ws.id} />
+          <OvertimeQuotasTab   />
         </div>
       </div>
     </div>

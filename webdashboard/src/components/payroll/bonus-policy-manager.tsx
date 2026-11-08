@@ -13,19 +13,15 @@ import { BonusPolicyForm } from "./bonus-policy-form";
 import { useBonusPolicyMutations } from "./hooks/use-bonus-policy-mutations";
 
 interface BonusPolicyManagerProps {
-  wsId: string;
 }
 
-export default function BonusPolicyManager({ wsId }: BonusPolicyManagerProps) {
+export default function BonusPolicyManager({}: BonusPolicyManagerProps) {
   const { t } = useTranslation();
   const [isCreating, setIsCreating] = useState(false);
 
-  const { data: policies = [], isLoading } = useQuery({
-    queryKey: ["incentive-policies", wsId],
-    queryFn: () => fetchIncentivePolicies(wsId),
-  });
+  const { data: policies = [], isLoading } = useQuery({ queryKey: ["incentive-policies"], queryFn: () => fetchIncentivePolicies(), });
 
-  const { createMutation, deleteMutation, cloneMutation } = useBonusPolicyMutations(wsId, () => { setIsCreating(false); });
+  const { createMutation, deleteMutation, cloneMutation } = useBonusPolicyMutations(() => { setIsCreating(false); });
 
   return (
     <div className="space-y-10">

@@ -47,10 +47,8 @@ vi.mock("@tanstack/react-query", async () => {
 
 // ── API and workspace state ────────────────────────────────────────────────
 
-let wsId: string | null = "ws-test-123";
 
 vi.mock("@/lib/api", () => ({
-  getStandaloneOrganizationId: () => wsId,
   fetchDepartments: vi.fn().mockResolvedValue([
     { id: "dept-1", name: "Engineering", manager_id: "emp-1" },
   ]),
@@ -75,19 +73,6 @@ function renderOrgChart() {
 describe("OrgChartPage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    wsId = "ws-test-123";
-  });
-
-  // ── No workspace ────────────────────────────────────────────────────────
-
-  it("renders select workspace prompt when no workspace ID is available", () => {
-    wsId = null;
-
-    renderOrgChart();
-
-    // The i18n mock translates "common.select_workspace" to "Chọn Workspace"
-    expect(screen.getByText(/Chọn Workspace/i)).toBeDefined();
-    expect(screen.queryByTestId("department-org-chart")).toBeNull();
   });
 
   // ── Happy path (renders with workspace) ─────────────────────────────────

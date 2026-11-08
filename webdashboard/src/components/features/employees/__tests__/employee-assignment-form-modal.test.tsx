@@ -71,9 +71,7 @@ describe("EmployeeAssignmentFormModal (Dual Mode)", () => {
     renderModal({
       isOpen: true,
       onClose: vi.fn(),
-      editingAssignment: null,
-      wsId: "ws-1",
-      employeeId: "emp-1",
+      editingAssignment: null,employeeId: "emp-1",
     });
 
     expect(screen.getByText("Tạo Phái cử Mới")).toBeInTheDocument();
@@ -84,9 +82,7 @@ describe("EmployeeAssignmentFormModal (Dual Mode)", () => {
     renderModal({
       isOpen: true,
       onClose: vi.fn(),
-      editingAssignment: null,
-      wsId: "ws-1",
-      employeeId: undefined,
+      editingAssignment: null,employeeId: undefined,
     });
 
     expect(screen.getByText("Tạo Phái cử Mới")).toBeInTheDocument();
@@ -112,9 +108,7 @@ describe("EmployeeAssignmentFormModal (Dual Mode)", () => {
         employee_id: "emp-1",
         employee_name: "Nguyen Van A",
         employee_code: "EMP-001",
-      },
-      wsId: "ws-1",
-      employeeId: undefined,
+      },employeeId: undefined,
     });
 
     expect(screen.getByText("Chỉnh sửa Phái cử")).toBeInTheDocument();

@@ -9,7 +9,7 @@ import type { AttendanceDailySummary, Employee, PaginatedResponse } from "@/lib/
 import { useToast } from "@/components/ui/toast";
 import { useApproveOt, useAttendanceSummariesInfinite } from "@/hooks/use-attendance";
 import { useMyPermissions } from "@/hooks/use-permissions";
-import { useWorkspace } from "@/hooks/use-workspace";
+import { useOrganization } from "@/hooks/use-organization";
 import { fetchEmployees } from "@/lib/api";
 import { logError } from "@/lib/logger";
 import { invalidateAttendanceQueries } from "@/lib/utils/query-invalidation";
@@ -41,7 +41,7 @@ export function getPendingSummaries(
 export function useOtApprovals() {
   const toast = useToast();
   const { t } = useTranslation(["common", "attendance"]);
-  const { workspace } = useWorkspace();
+  const { workspace } = useOrganization();
   const queryClient = useQueryClient();
   const { hasPermission, isLoading: permissionsLoading } = useMyPermissions();
 

@@ -108,7 +108,6 @@ export function UnrecordedShiftsTab() {
     queryKey,
     tracesByKey,
     workspaceTimezone,
-    wsId,
     fetchNextPage,
   } = useUnrecordedShiftsData({
     employeeIds,
@@ -126,7 +125,6 @@ export function UnrecordedShiftsTab() {
 
   // ── Export ─────────────────────────────────────────────────────────────
   const { exportFn: handleExport, isExporting } = useNoShowExport({
-    wsId: wsId ?? "",
     queryKey,
     fetchNextPage,
     employeeMap,

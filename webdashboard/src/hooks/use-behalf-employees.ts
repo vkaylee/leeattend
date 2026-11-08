@@ -16,7 +16,6 @@ import type { BehalfDomain } from "@/lib/api/behalf-targets";
 import type { Employee } from "@/lib/api/types";
 
 import { fetchMyBehalfTargets } from "@/lib/api/behalf-targets";
-import { getStandaloneOrganizationId } from "@/lib/api/helpers";
 
 export interface UseBehalfEmployeesReturn {
   /** List of employees the current user can act on behalf of */
@@ -30,24 +29,18 @@ export interface UseBehalfEmployeesReturn {
   isLoading: boolean;
 }
 
-const behalfEmployeesKeys = {
+export const behalfEmployeesKeys = {
   all: ["behalf-employees"] as const,
-  targets: (wsId: string, domain: BehalfDomain) =>
-    [...behalfEmployeesKeys.all, "targets", wsId, domain] as const,
+  targets: (domain: BehalfDomain) =>
+    [...behalfEmployeesKeys.all, "targets", domain] as const,
 };
 
 export function useBehalfEmployees(
   domain: BehalfDomain,
 ): UseBehalfEmployeesReturn {
-  const wsId = getStandaloneOrganizationId();
-
   const query = useQuery<Employee[]>({
-    queryKey: wsId ? behalfEmployeesKeys.targets(wsId, domain) : [],
-    queryFn: async () => {
-      if (!wsId) throw new Error("No workspace");
-      return fetchMyBehalfTargets(wsId, domain);
-    },
-    enabled: !!wsId,
+    queryKey: behalfEmployeesKeys.targets(domain),
+    queryFn: async () => fetchMyBehalfTargets(domain),
     staleTime: 5 * 60 * 1000, // Cache for 5 minutes
   });
 

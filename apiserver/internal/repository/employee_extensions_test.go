@@ -100,7 +100,7 @@ func (f *fakeTx) Prepare(context.Context, string, string) (*pgconn.StatementDesc
 func (f *fakeTx) Conn() *pgx.Conn { return nil }
 
 func TestEmployeeConditionRepository_ListAndCreate(t *testing.T) {
-	wsID, empID, employmentID, condID := uuid.New(), uuid.New(), uuid.New(), uuid.New()
+	empID, employmentID, condID := uuid.New(), uuid.New(), uuid.New()
 	db := &fakeDBTX{
 		queryRowFn: func(_ context.Context, sql string, _ ...any) pgx.Row {
 			if strings.Contains(sql, "FROM employees") {
@@ -145,7 +145,7 @@ func TestEmployeeConditionRepository_ListAndCreate(t *testing.T) {
 	repo := EmployeeConditionRepository{DB: db}
 
 	// 1. List
-	res, err := repo.ListEmployeeConditions(context.Background(), wsID, empID, 1, 50)
+	res, err := repo.ListEmployeeConditions(context.Background(), empID, 1, 50)
 	if err != nil {
 		t.Fatalf("unexpected list error: %v", err)
 	}
@@ -154,7 +154,7 @@ func TestEmployeeConditionRepository_ListAndCreate(t *testing.T) {
 	}
 
 	// 2. Create
-	created, err := repo.CreateEmployeeCondition(context.Background(), wsID, empID, api.CreateEmployeeConditionRequest{
+	created, err := repo.CreateEmployeeCondition(context.Background(), empID, api.CreateEmployeeConditionRequest{
 		Type:            "LATE_IN",
 		MinuteAllowance: 15,
 		IsPaid:          false,
@@ -169,7 +169,7 @@ func TestEmployeeConditionRepository_ListAndCreate(t *testing.T) {
 }
 
 func TestEmployeeDepartmentRepository_TransferSplit(t *testing.T) {
-	wsID, empID, oldDeptID, newDeptID := uuid.New(), uuid.New(), uuid.New(), uuid.New()
+	empID, oldDeptID, newDeptID := uuid.New(), uuid.New(), uuid.New()
 	activeSegID := uuid.New()
 	nextSegID := uuid.New()
 
@@ -190,8 +190,8 @@ func TestEmployeeDepartmentRepository_TransferSplit(t *testing.T) {
 					end1 := "2026-06-30"
 					return &rowsStub{
 						data: [][]any{
-							{activeSegID, wsID, empID, uuid.New(), nil, oldDeptID, "active", "2026-01-01", end1, nil, "full_time", nil, nil, nil},
-							{nextSegID, wsID, empID, uuid.New(), nil, oldDeptID, "active", "2026-07-01", nil, nil, "full_time", nil, nil, nil},
+							{activeSegID, empID, uuid.New(), nil, oldDeptID, "active", "2026-01-01", end1, nil, "full_time", nil, nil, nil},
+							{nextSegID, empID, uuid.New(), nil, oldDeptID, "active", "2026-07-01", nil, nil, "full_time", nil, nil, nil},
 						},
 					}, nil
 				}
@@ -202,7 +202,7 @@ func TestEmployeeDepartmentRepository_TransferSplit(t *testing.T) {
 					updatedEndDate = args[0].(string)
 				}
 				if strings.Contains(sql, "INSERT INTO employments") {
-					insertedNewDept = args[5].(uuid.UUID)
+					insertedNewDept = args[4].(uuid.UUID)
 				}
 				if strings.Contains(sql, "UPDATE employments SET department_id = $1") {
 					cascadedDeptID = args[0].(uuid.UUID)
@@ -213,12 +213,12 @@ func TestEmployeeDepartmentRepository_TransferSplit(t *testing.T) {
 	}
 
 	repo := EmployeeDepartmentRepository{
-		BeginTx: func(context.Context, uuid.UUID) (TxBeginner, error) {
+		BeginTx: func(context.Context) (TxBeginner, error) {
 			return fakeTxBeginner{tx: tx}, nil
 		},
 	}
 
-	res, err := repo.TransferEmployee(context.Background(), wsID, empID, api.TransferEmployeeRequest{
+	res, err := repo.TransferEmployee(context.Background(), empID, api.TransferEmployeeRequest{
 		DepartmentID:  newDeptID,
 		EffectiveDate: "2026-03-01",
 	})
@@ -242,7 +242,7 @@ func TestEmployeeDepartmentRepository_TransferSplit(t *testing.T) {
 }
 
 func TestCompensationHistoryRepository_Timeline(t *testing.T) {
-	wsID, empID, emp1ID, emp2ID := uuid.New(), uuid.New(), uuid.New(), uuid.New()
+	empID, emp1ID, emp2ID := uuid.New(), uuid.New(), uuid.New()
 	employerID, deptID := uuid.New(), uuid.New()
 	baseDefID, bonusDefID := uuid.New(), uuid.New()
 	now := time.Now().UTC()
@@ -275,11 +275,11 @@ func TestCompensationHistoryRepository_Timeline(t *testing.T) {
 				return &rowsStub{
 					data: [][]any{
 						// emp1: initial base pay 10,000,000 on 2026-01-01
-						{uuid.New(), emp1ID, baseDefID, "10000000", "2026-01-01", now, now, baseDefID, wsID, "Base Salary", "BASE", now, now},
+						{uuid.New(), emp1ID, baseDefID, "10000000", "2026-01-01", now, now, baseDefID, "Base Salary", "BASE", now, now},
 						// emp1: adjustment add bonus 2,000,000 on 2026-02-01
-						{uuid.New(), emp1ID, bonusDefID, "2000000", "2026-02-01", now, now, bonusDefID, wsID, "Bonus", "BONUS", now, now},
+						{uuid.New(), emp1ID, bonusDefID, "2000000", "2026-02-01", now, now, bonusDefID, "Bonus", "BONUS", now, now},
 						// emp2: transfer on 2026-04-01 with base pay 15,000,000
-						{uuid.New(), emp2ID, baseDefID, "15000000", "2026-04-01", now, now, baseDefID, wsID, "Base Salary", "BASE", now, now},
+						{uuid.New(), emp2ID, baseDefID, "15000000", "2026-04-01", now, now, baseDefID, "Base Salary", "BASE", now, now},
 					},
 				}, nil
 			}
@@ -289,7 +289,7 @@ func TestCompensationHistoryRepository_Timeline(t *testing.T) {
 
 	repo := CompensationHistoryRepository{DB: db}
 
-	res, err := repo.GetEmployeeCompensationHistory(context.Background(), wsID, empID, nil)
+	res, err := repo.GetEmployeeCompensationHistory(context.Background(), empID, nil)
 	if err != nil {
 		t.Fatalf("get compensation history failed: %v", err)
 	}

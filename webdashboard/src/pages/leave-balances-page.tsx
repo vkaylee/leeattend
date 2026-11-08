@@ -11,7 +11,6 @@ import { useLeaveBalances } from "./leave-balances/hooks/use-leave-balances";
 
 export default function LeaveBalancesPage() {
   const {
-    wsId,
     searchTerm,
     setSearchTerm,
     page,
@@ -72,13 +71,10 @@ export default function LeaveBalancesPage() {
         />
       </div>
 
-      <LeaveBalancesModals
-        selectedBalance={selectedBalance}
-        selectedEmployee={selectedEmployee}
-        setSelectedBalance={setSelectedBalance}
-        setSelectedEmployee={setSelectedEmployee}
-        wsId={wsId ?? ""}
-      />
+      <LeaveBalancesModals selectedBalance={selectedBalance}
+      selectedEmployee={selectedEmployee}
+      setSelectedBalance={setSelectedBalance}
+      setSelectedEmployee={setSelectedEmployee}  />
 
       <ConfirmationDialog />
     </PageContainer>

@@ -19,13 +19,12 @@ import EContractDetailsDrawer from "./econtract-details-drawer";
 interface EmployeeContractsTabProps {
   employeeId: string;
   formatDate: (date: string) => string;
-  wsId: string;
 }
 
  
    
-export default function EmployeeContractsTab({ wsId, employeeId, formatDate }: EmployeeContractsTabProps) {
-  const { contracts, isLoading, deleteContract } = useEmployeeContracts(wsId, employeeId);
+export default function EmployeeContractsTab({employeeId, formatDate }: EmployeeContractsTabProps) {
+  const { contracts, isLoading, deleteContract } = useEmployeeContracts(employeeId);
   const [editingContract, setEditingContract] = useState<EmployeeContract | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const { t } = useTranslation();
@@ -35,11 +34,8 @@ export default function EmployeeContractsTab({ wsId, employeeId, formatDate }: E
 
   // e-signature backend not yet wired — employers are fetched for future use
   // but envelopes are always empty for now.
-  const { data: _employers = [] } = useQuery({
-    queryKey: ["employers", wsId],
-    queryFn: () => fetchEmployers(wsId),
-    enabled: !!wsId,
-  });
+  const { data: _employers = [] } = useQuery({ queryKey: ["employers"], queryFn: () => fetchEmployers(),
+ });
 
   if (isLoading) {
     return (
@@ -167,23 +163,17 @@ export default function EmployeeContractsTab({ wsId, employeeId, formatDate }: E
         )}
       </div>
       
-      <ContractFormModal 
-        editingContract={editingContract}
-        employeeId={employeeId}
-        isOpen={isModalOpen}
-        onClose={() => { setIsModalOpen(false); }}
-        wsId={wsId}
-      />
+      <ContractFormModal editingContract={editingContract}
+      employeeId={employeeId}
+      isOpen={isModalOpen}
+      onClose={() => { setIsModalOpen(false); }}  />
 
-      <EContractDetailsDrawer
-        envelope={selectedEnvelope}
-        isOpen={isDrawerOpen}
-        onClose={() => {
-          setIsDrawerOpen(false);
-          setSelectedEnvelope(null);
-        }}
-        wsId={wsId}
-      />
+      <EContractDetailsDrawer envelope={selectedEnvelope}
+      isOpen={isDrawerOpen}
+      onClose={() => {
+        setIsDrawerOpen(false);
+        setSelectedEnvelope(null);
+      }}  />
     </div>
   );
 }

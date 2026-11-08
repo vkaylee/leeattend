@@ -52,21 +52,21 @@ type PaginatedShiftRosters struct {
 }
 
 type RosterRepository interface {
-	ResolveActiveEmployment(context.Context, uuid.UUID, uuid.UUID) (uuid.UUID, error)
-	ListRosters(context.Context, uuid.UUID, uuid.UUID, string, string, int, int) (PaginatedShiftRosters, error)
-	UpsertRoster(context.Context, uuid.UUID, CreateRosterRequest) (ShiftRoster, error)
-	BulkUpsertRoster(context.Context, uuid.UUID, uuid.UUID, []RosterItem) error
-	DeleteRoster(context.Context, uuid.UUID, uuid.UUID, string) error
+	ResolveActiveEmployment(context.Context, uuid.UUID) (uuid.UUID, error)
+	ListRosters(context.Context, uuid.UUID, string, string, int, int) (PaginatedShiftRosters, error)
+	UpsertRoster(context.Context, CreateRosterRequest) (ShiftRoster, error)
+	BulkUpsertRoster(context.Context, uuid.UUID, []RosterItem) error
+	DeleteRoster(context.Context, uuid.UUID, string) error
 }
 
 type RosterHandler struct {
 	Repository RosterRepository
-	Authorizer AttendanceAuthorizer
+	Authorizer Authorizer
 }
 
 func (h RosterHandler) ListEmployee(w http.ResponseWriter, r *http.Request) {
-	workspaceID, employeeID, ok := rosterPathIDs(r)
-	if !ok || !h.allowed(r, workspaceID, "rosters:read") {
+	employeeID, ok := pathUUID(r, "id")
+	if !ok || !h.allowed(r, "rosters:read") {
 		h.forbidden(w, r)
 		return
 	}
@@ -75,12 +75,12 @@ func (h RosterHandler) ListEmployee(w http.ResponseWriter, r *http.Request) {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}
-	employmentID, err := h.Repository.ResolveActiveEmployment(r.Context(), workspaceID, employeeID)
+	employmentID, err := h.Repository.ResolveActiveEmployment(r.Context(), employeeID)
 	if err != nil {
 		h.writeError(w, r, err)
 		return
 	}
-	result, err := h.Repository.ListRosters(r.Context(), workspaceID, employmentID, start, end, page, limit)
+	result, err := h.Repository.ListRosters(r.Context(), employmentID, start, end, page, limit)
 	if err != nil {
 		h.writeError(w, r, err)
 		return
@@ -89,8 +89,8 @@ func (h RosterHandler) ListEmployee(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h RosterHandler) Upsert(w http.ResponseWriter, r *http.Request) {
-	workspaceID, employeeID, ok := rosterPathIDs(r)
-	if !ok || !h.allowed(r, workspaceID, "rosters:manage") {
+	employeeID, ok := pathUUID(r, "id")
+	if !ok || !h.allowed(r, "rosters:manage") {
 		h.forbidden(w, r)
 		return
 	}
@@ -103,13 +103,13 @@ func (h RosterHandler) Upsert(w http.ResponseWriter, r *http.Request) {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}
-	employmentID, err := h.Repository.ResolveActiveEmployment(r.Context(), workspaceID, employeeID)
+	employmentID, err := h.Repository.ResolveActiveEmployment(r.Context(), employeeID)
 	if err != nil {
 		h.writeError(w, r, err)
 		return
 	}
 	req.EmploymentID = employmentID
-	roster, err := h.Repository.UpsertRoster(r.Context(), workspaceID, req)
+	roster, err := h.Repository.UpsertRoster(r.Context(), req)
 	if err != nil {
 		h.writeError(w, r, err)
 		return
@@ -118,8 +118,8 @@ func (h RosterHandler) Upsert(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h RosterHandler) BulkUpsert(w http.ResponseWriter, r *http.Request) {
-	workspaceID, employeeID, ok := rosterPathIDs(r)
-	if !ok || !h.allowed(r, workspaceID, "rosters:manage") {
+	employeeID, ok := pathUUID(r, "id")
+	if !ok || !h.allowed(r, "rosters:manage") {
 		h.forbidden(w, r)
 		return
 	}
@@ -128,12 +128,12 @@ func (h RosterHandler) BulkUpsert(w http.ResponseWriter, r *http.Request) {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}
-	employmentID, err := h.Repository.ResolveActiveEmployment(r.Context(), workspaceID, employeeID)
+	employmentID, err := h.Repository.ResolveActiveEmployment(r.Context(), employeeID)
 	if err != nil {
 		h.writeError(w, r, err)
 		return
 	}
-	if err := h.Repository.BulkUpsertRoster(r.Context(), workspaceID, employmentID, req.Items); err != nil {
+	if err := h.Repository.BulkUpsertRoster(r.Context(), employmentID, req.Items); err != nil {
 		h.writeError(w, r, err)
 		return
 	}
@@ -141,12 +141,12 @@ func (h RosterHandler) BulkUpsert(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h RosterHandler) Delete(w http.ResponseWriter, r *http.Request) {
-	workspaceID, employeeID, ok := rosterPathIDs(r)
-	if !ok || !h.allowed(r, workspaceID, "rosters:manage") {
+	employeeID, ok := pathUUID(r, "id")
+	if !ok || !h.allowed(r, "rosters:manage") {
 		h.forbidden(w, r)
 		return
 	}
-	employmentID, err := h.Repository.ResolveActiveEmployment(r.Context(), workspaceID, employeeID)
+	employmentID, err := h.Repository.ResolveActiveEmployment(r.Context(), employeeID)
 	if err != nil {
 		h.writeError(w, r, err)
 		return
@@ -156,18 +156,13 @@ func (h RosterHandler) Delete(w http.ResponseWriter, r *http.Request) {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}
-	if err := h.Repository.DeleteRoster(r.Context(), workspaceID, employmentID, date); err != nil {
+	if err := h.Repository.DeleteRoster(r.Context(), employmentID, date); err != nil {
 		h.writeError(w, r, err)
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
 }
 
-func rosterPathIDs(r *http.Request) (uuid.UUID, uuid.UUID, bool) {
-	workspaceID, ok := organizationIDFromContext(r)
-	employeeID, employeeOK := pathUUID(r, "id")
-	return workspaceID, employeeID, ok && employeeOK
-}
 
 func parseRosterQuery(r *http.Request) (string, string, int, int, error) {
 	query := r.URL.Query()
@@ -207,9 +202,9 @@ func duplicateRosterDates(items []RosterItem) bool {
 	return false
 }
 
-func (h RosterHandler) allowed(r *http.Request, workspaceID uuid.UUID, permission string) bool {
+func (h RosterHandler) allowed(r *http.Request, permission string) bool {
 	userID, ok := httpinfra.UserIDFromContext(r.Context())
-	return ok && h.Authorizer != nil && h.Authorizer.HasPermission(r.Context(), userID, workspaceID, permission)
+	return ok && h.Authorizer != nil && h.Authorizer.HasPermission(r.Context(), userID, permission)
 }
 
 func (h RosterHandler) forbidden(w http.ResponseWriter, r *http.Request) {

@@ -6,13 +6,12 @@ import { ApiError } from "./errors";
  *
  * Four domain modules (OT claim, attendance adjustment, leave, OT request)
  * duplicated the same list/create/delete pattern.  This factory produces a
- * typed { list, create, delete } triple from a base-path config, eliminating
- * the duplication.
+ * typed { list, create, delete } triple from a concrete collection path,
+ * eliminating the duplication.
  *
  * Uses {@link apiFetch} directly (not the typed {@link client}) because the
- * OpenAPI-generated client requires path *literals* — a config-driven dynamic
- * string is incompatible with the strict path union type.  All callers mock
- * `apiFetch` in tests, so this choice is transparent to consumers.
+ * config-driven dynamic URL is not a compile-time literal path.  All callers
+ * mock `apiFetch` in tests, so this choice is transparent to consumers.
  */
 import { apiFetch } from "./helpers";
 
@@ -20,10 +19,10 @@ import { apiFetch } from "./helpers";
 
 export interface BehalfAssignmentConfig {
   /**
-   * Base path template for the behalf-assignment collection endpoint.
-   * Must include a `{ws_id}` placeholder that will be substituted at call time.
+   * Concrete collection path for the behalf-assignment endpoint — the
+   * organization is implied by the shared contract and never appears in the URL.
    *
-   * @example "/v1/workspaces/{ws_id}/leave/behalf-assignments"
+   * @example "/v1/leave/behalf-assignments"
    */
   basePath: string;
 
@@ -32,7 +31,7 @@ export interface BehalfAssignmentConfig {
    * Defaults to `false` (most endpoints return the array directly).
    *
    * This flag exists because the OT-request behalf endpoint wraps the
-   * response while the other three domains do not — a backend inconsistency
+   * response while the other domains do not — a backend inconsistency
    * tracked for future normalization.
    */
   dataWrapper?: boolean;
@@ -42,13 +41,13 @@ export interface BehalfAssignmentConfig {
 
 export interface BehalfAssignmentApi<T = BehalfAssignment> {
   /** Create a new behalf assignment. */
-  create(wsId: string, payload: CreateBehalfAssignmentRequest): Promise<T>;
+  create(payload: CreateBehalfAssignmentRequest): Promise<T>;
 
   /** Delete a behalf assignment by its ID. */
-  delete(wsId: string, id: string): Promise<void>;
+  delete(id: string): Promise<void>;
 
-  /** Fetch all behalf assignments for the given workspace. */
-  list(wsId: string): Promise<T[]>;
+  /** Fetch all behalf assignments. */
+  list(): Promise<T[]>;
 }
 
 // ── Factory ───────────────────────────────────────────────────────────────────
@@ -65,17 +64,12 @@ export function createBehalfAssignmentApi<T = BehalfAssignment>(
 ): BehalfAssignmentApi<T> {
   const { basePath, dataWrapper = false } = config;
 
-  /** Substitute `{ws_id}` → the concrete workspace ID. */
-  const collectionUrl = (wsId: string): string =>
-    basePath.replace("{ws_id}", wsId);
-
   /** Collection URL + `/{id}` for single-resource operations. */
-  const itemUrl = (wsId: string, id: string): string =>
-    `${collectionUrl(wsId)}/${id}`;
+  const itemUrl = (id: string): string => `${basePath}/${encodeURIComponent(id)}`;
 
   return {
-    list: async (wsId: string): Promise<T[]> => {
-      const response = await apiFetch(collectionUrl(wsId));
+    list: async (): Promise<T[]> => {
+      const response = await apiFetch(basePath);
       if (!response.ok) await ApiError.rejectResponse(response);
       const json = (await response.json()) as T[] | { data: T[] };
       if (dataWrapper) {
@@ -84,11 +78,8 @@ export function createBehalfAssignmentApi<T = BehalfAssignment>(
       return json as T[];
     },
 
-    create: async (
-      wsId: string,
-      payload: CreateBehalfAssignmentRequest,
-    ): Promise<T> => {
-      const response = await apiFetch(collectionUrl(wsId), {
+    create: async (payload: CreateBehalfAssignmentRequest): Promise<T> => {
+      const response = await apiFetch(basePath, {
         method: "POST",
         body: JSON.stringify(payload),
       });
@@ -96,8 +87,8 @@ export function createBehalfAssignmentApi<T = BehalfAssignment>(
       return (await response.json()) as T;
     },
 
-    delete: async (wsId: string, id: string): Promise<void> => {
-      const response = await apiFetch(itemUrl(wsId, id), {
+    delete: async (id: string): Promise<void> => {
+      const response = await apiFetch(itemUrl(id), {
         method: "DELETE",
       });
       if (!response.ok) await ApiError.rejectResponse(response);

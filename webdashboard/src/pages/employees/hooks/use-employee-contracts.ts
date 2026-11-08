@@ -9,38 +9,38 @@ import {
   deleteEmployeeContract,
 } from "@/lib/api";
 
-export function useEmployeeContracts(wsId: string, employeeId: string) {
+export function useEmployeeContracts(employeeId: string) {
   const queryClient = useQueryClient();
-  const queryKey = ["employee-contracts", wsId, employeeId];
+  const queryKey = ["employee-contracts", employeeId];
 
   const contractsQuery = useQuery({
     queryKey,
-    queryFn: () => fetchEmployeeContracts(wsId, employeeId),
-    enabled: !!wsId && !!employeeId,
+    queryFn: () => fetchEmployeeContracts(employeeId),
+    enabled: !!employeeId,
   });
 
   const createContract = useMutation({
-    mutationFn: (data: CreateContractRequest) => createEmployeeContract(wsId, employeeId, data),
+    mutationFn: (data: CreateContractRequest) => createEmployeeContract(employeeId, data),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey });
-      void queryClient.invalidateQueries({ queryKey: ["workspace-contracts", wsId] });
+      void queryClient.invalidateQueries({ queryKey: ["workspace-contracts"] });
     },
   });
 
   const updateContract = useMutation({
     mutationFn: ({ contractId, data }: { contractId: string; data: UpdateContractRequest }) =>
-      updateEmployeeContract(wsId, employeeId, contractId, data),
+      updateEmployeeContract(employeeId, contractId, data),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey });
-      void queryClient.invalidateQueries({ queryKey: ["workspace-contracts", wsId] });
+      void queryClient.invalidateQueries({ queryKey: ["workspace-contracts"] });
     },
   });
 
   const deleteContract = useMutation({
-    mutationFn: (contractId: string) => deleteEmployeeContract(wsId, employeeId, contractId),
+    mutationFn: (contractId: string) => deleteEmployeeContract(employeeId, contractId),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey });
-      void queryClient.invalidateQueries({ queryKey: ["workspace-contracts", wsId] });
+      void queryClient.invalidateQueries({ queryKey: ["workspace-contracts"] });
     },
   });
 

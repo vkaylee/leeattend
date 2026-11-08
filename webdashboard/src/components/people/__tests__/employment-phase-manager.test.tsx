@@ -54,7 +54,7 @@ describe("EmploymentPhaseManager", () => {
   };
 
   it("renders list of employment phases", async () => {
-    renderWithProviders(<EmploymentPhaseManager wsId={mockWsId} />);
+    renderWithProviders(<EmploymentPhaseManager   />);
 
     expect(await screen.findByText(/Thử việc 2 tháng/i)).toBeInTheDocument();
     expect(screen.getAllByText(/probation/i)[0]).toBeInTheDocument();
@@ -64,7 +64,7 @@ describe("EmploymentPhaseManager", () => {
   it("opens modal and submits new employment phase", async () => {
  
     vi.mocked(api.createEmploymentPhase).mockResolvedValue({ id: "2" } as unknown as never);
-    renderWithProviders(<EmploymentPhaseManager wsId={mockWsId} />);
+    renderWithProviders(<EmploymentPhaseManager   />);
 
     const addButton = screen.getByText(/Thêm Cột mốc/i);
     fireEvent.click(addButton);

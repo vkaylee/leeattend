@@ -1,7 +1,7 @@
 import { client } from "./client";
 import { ApiError } from "./errors";
 import { apiFetch } from "./helpers";
-import {
+import type {
   AttendanceDailySummary,
   PaginatedResponse,
 } from "./types";
@@ -9,33 +9,35 @@ import {
 // --- Overtime Approval System ---
 
 export async function approveOt(
-  wsId: string,
   employeeId: string,
   data: { date: string; approved_minutes: number; manager_note?: string; status: "approved" | "rejected" }
 ): Promise<void> {
-  await client.POST("/v1/workspaces/{ws_id}/attendance/approve-ot/{employee_id}", {
-    params: { path: { ws_id: wsId, employee_id: employeeId } },
-    body: data
+  await client.POST("/v1/attendance/approve-ot/{employee_id}", {
+    params: { path: { employee_id: employeeId } },
+    body: data,
   });
 }
 
 export async function fetchAttendanceSummaries(
-  wsId: string,
   start: string,
   end: string,
   employeeId?: string
 ): Promise<AttendanceDailySummary[]> {
-  const { data: resData } = await client.GET("/v1/workspaces/{ws_id}/attendance/summaries", {
-    params: {
-      path: { ws_id: wsId },
-      query: { start_date: start, end_date: end, employee_id: employeeId }
-    }
-  });
-  return Array.isArray(resData) ? resData : (resData as { data?: AttendanceDailySummary[] }).data ?? [];
+  const { data: resData } = await client.GET<PaginatedResponse<AttendanceDailySummary> | AttendanceDailySummary[]>(
+    "/v1/attendance/summaries",
+    {
+      params: {
+        query: { start_date: start, end_date: end, employee_id: employeeId },
+      },
+    },
+  );
+  if (Array.isArray(resData)) {
+    return resData;
+  }
+  return resData && "data" in resData && Array.isArray(resData.data) ? resData.data : [];
 }
 
 export async function fetchAttendanceSummariesPaginated(
-  wsId: string,
   start: string,
   end: string,
   options?: {
@@ -45,9 +47,8 @@ export async function fetchAttendanceSummariesPaginated(
     otStatus?: string;
   }
 ): Promise<PaginatedResponse<AttendanceDailySummary>> {
-  const { data: resData } = await client.GET("/v1/workspaces/{ws_id}/attendance/summaries", {
+  const { data: resData } = await client.GET<PaginatedResponse<AttendanceDailySummary>>("/v1/attendance/summaries", {
     params: {
-      path: { ws_id: wsId },
       query: {
         start_date: start,
         end_date: end,
@@ -55,14 +56,13 @@ export async function fetchAttendanceSummariesPaginated(
         page: options?.page,
         limit: options?.limit,
         ot_status: options?.otStatus,
-      }
-    }
+      },
+    },
   });
   return resData;
 }
 
 export async function enterPaperOt(
-  wsId: string,
   employeeId: string,
   data: {
     date: string;
@@ -71,15 +71,17 @@ export async function enterPaperOt(
     paper_form_photo_url?: string;
   }
 ): Promise<AttendanceDailySummary> {
-  const { data: resData } = await client.POST("/v1/workspaces/{ws_id}/attendance/paper-forms/overtime/{employee_id}", {
-    params: { path: { ws_id: wsId, employee_id: employeeId } },
-    body: data
-  });
+  const { data: resData } = await client.POST<AttendanceDailySummary>(
+    "/v1/attendance/paper-forms/overtime/{employee_id}",
+    {
+      params: { path: { employee_id: employeeId } },
+      body: data,
+    },
+  );
   return resData;
 }
 
 export async function bulkUploadPaperOt(
-  wsId: string,
   file: File
 ): Promise<{
   total_rows: number;
@@ -94,17 +96,17 @@ export async function bulkUploadPaperOt(
   const formData = new FormData();
   formData.append("file", file);
 
-  const res = await apiFetch(`/v1/workspaces/${wsId}/attendance/paper-forms/overtime/bulk`, {
+  const res = await apiFetch("/v1/attendance/paper-forms/overtime/bulk", {
     method: "POST",
     body: formData,
   });
   if (!res.ok) await ApiError.rejectResponse(res);
-  return res.json() as Promise<{
+  return (await res.json()) as {
     total_rows: number;
     success_count: number;
     failed_count: number;
     errors: { line_number: number; employment_id: string; error_message: string }[];
-  }>;
+  };
 }
 
 // --- Staging Logs (Unknown Users) ---
@@ -121,7 +123,7 @@ export interface StagingLog {
   raw_data: StagingLogRawData | null;
   raw_user_id: string;
   status: string;
-  workspace_id: string;
+  workspace_id?: string;
 }
 
 export interface StagingLogsResponse {
@@ -135,25 +137,26 @@ export async function fetchStagingLogs(
   page = 1,
   limit = 50
 ): Promise<StagingLogsResponse> {
-  const res = await apiFetch(`/v1/attendance/staging-logs?page=${page}&limit=${limit}`);
-  if (!res.ok) await ApiError.rejectResponse(res);
-  return res.json() as Promise<StagingLogsResponse>;
+  const { data: resData } = await client.GET<StagingLogsResponse>("/v1/attendance/staging-logs", {
+    params: {
+      query: { page, limit },
+    },
+  });
+  return resData;
 }
 
 export async function resolveStagingLog(
   logId: string,
   employeeId: string
 ): Promise<void> {
-  const res = await apiFetch(`/v1/attendance/staging-logs/${encodeURIComponent(logId)}/resolve`, {
-    method: "POST",
-    body: JSON.stringify({ employee_id: employeeId }),
+  await client.POST("/v1/attendance/staging-logs/{id}/resolve", {
+    params: { path: { id: logId } },
+    body: { employee_id: employeeId },
   });
-  if (!res.ok) await ApiError.rejectResponse(res);
 }
 
 export async function dismissStagingLog(logId: string): Promise<void> {
-  const res = await apiFetch(`/v1/attendance/staging-logs/${encodeURIComponent(logId)}`, {
-    method: "DELETE",
+  await client.DELETE("/v1/attendance/staging-logs/{id}", {
+    params: { path: { id: logId } },
   });
-  if (!res.ok) await ApiError.rejectResponse(res);
 }

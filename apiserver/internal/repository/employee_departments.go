@@ -13,7 +13,7 @@ import (
 
 type EmployeeDepartmentRepository struct {
 	DB      DBTX
-	BeginTx func(context.Context, uuid.UUID) (TxBeginner, error)
+	BeginTx func(context.Context) (TxBeginner, error)
 }
 
 func (r EmployeeDepartmentRepository) db(ctx context.Context) (DBTX, error) {
@@ -23,9 +23,9 @@ func (r EmployeeDepartmentRepository) db(ctx context.Context) (DBTX, error) {
 	return r.DB, nil
 }
 
-func (r EmployeeDepartmentRepository) begin(ctx context.Context, workspaceID uuid.UUID) (TxBeginner, error) {
+func (r EmployeeDepartmentRepository) begin(ctx context.Context) (TxBeginner, error) {
 	if r.BeginTx != nil {
-		return r.BeginTx(ctx, workspaceID)
+		return r.BeginTx(ctx)
 	}
 	db, err := r.db(ctx)
 	if err != nil {
@@ -38,31 +38,31 @@ func (r EmployeeDepartmentRepository) begin(ctx context.Context, workspaceID uui
 	return beginner, nil
 }
 
-func (r EmployeeDepartmentRepository) CurrentEmployeeDepartment(ctx context.Context, workspaceID, employeeID uuid.UUID) (*uuid.UUID, error) {
+func (r EmployeeDepartmentRepository) CurrentEmployeeDepartment(ctx context.Context, employeeID uuid.UUID) (*uuid.UUID, error) {
 	db, err := r.db(ctx)
 	if err != nil {
 		return nil, err
 	}
-	if err := employeeExists(ctx, db, workspaceID, employeeID); err != nil {
+	if err := employeeExists(ctx, db, employeeID); err != nil {
 		return nil, err
 	}
 	var departmentID *uuid.UUID
-	err = db.QueryRow(ctx, `SELECT department_id FROM employments WHERE employee_id = $1 AND workspace_id = $2 AND deleted_at IS NULL AND start_date <= CURRENT_DATE AND (end_date IS NULL OR end_date >= CURRENT_DATE) ORDER BY start_date DESC, id DESC LIMIT 1`, employeeID, workspaceID).Scan(&departmentID)
+	err = db.QueryRow(ctx, `SELECT department_id FROM employments WHERE employee_id = $1 AND deleted_at IS NULL AND start_date <= CURRENT_DATE AND (end_date IS NULL OR end_date >= CURRENT_DATE) ORDER BY start_date DESC, id DESC LIMIT 1`, employeeID).Scan(&departmentID)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, nil
 	}
 	return departmentID, err
 }
 
-func (r EmployeeDepartmentRepository) GetEmployeeDepartmentHistory(ctx context.Context, workspaceID, employeeID uuid.UUID) ([]api.EmployeeDepartmentHistory, error) {
+func (r EmployeeDepartmentRepository) GetEmployeeDepartmentHistory(ctx context.Context, employeeID uuid.UUID) ([]api.EmployeeDepartmentHistory, error) {
 	db, err := r.db(ctx)
 	if err != nil {
 		return nil, err
 	}
-	if err := employeeExists(ctx, db, workspaceID, employeeID); err != nil {
+	if err := employeeExists(ctx, db, employeeID); err != nil {
 		return nil, err
 	}
-	rows, err := db.Query(ctx, `SELECT em.id, em.employee_id, em.department_id, em.start_date::text, em.notes, em.created_at FROM employments em JOIN employees e ON e.id = em.employee_id WHERE em.employee_id = $1 AND e.workspace_id = $2 AND em.deleted_at IS NULL AND em.department_id IS NOT NULL ORDER BY em.start_date DESC`, employeeID, workspaceID)
+	rows, err := db.Query(ctx, `SELECT em.id, em.employee_id, em.department_id, em.start_date::text, em.notes, em.created_at FROM employments em WHERE em.employee_id = $1 AND em.deleted_at IS NULL AND em.department_id IS NOT NULL ORDER BY em.start_date DESC`, employeeID)
 	if err != nil {
 		return nil, err
 	}
@@ -82,7 +82,6 @@ func (r EmployeeDepartmentRepository) GetEmployeeDepartmentHistory(ctx context.C
 
 type employmentSegment struct {
 	ID                  uuid.UUID
-	WorkspaceID         uuid.UUID
 	EmployeeID          uuid.UUID
 	EmployerID          uuid.UUID
 	PrimaryLocationID   *uuid.UUID
@@ -98,25 +97,25 @@ type employmentSegment struct {
 }
 
 // ponytail: in-memory contiguous department chain walk. Simple and fast for small segment counts (<20).
-func (r EmployeeDepartmentRepository) TransferEmployee(ctx context.Context, workspaceID, employeeID uuid.UUID, req api.TransferEmployeeRequest) (api.EmployeeDepartmentHistory, error) {
-	txBeginner, err := r.begin(ctx, workspaceID)
+func (r EmployeeDepartmentRepository) TransferEmployee(ctx context.Context, employeeID uuid.UUID, req api.TransferEmployeeRequest) (api.EmployeeDepartmentHistory, error) {
+	txBeginner, err := r.begin(ctx)
 	if err != nil {
 		return api.EmployeeDepartmentHistory{}, err
 	}
 	var history api.EmployeeDepartmentHistory
 	err = service.WithTx(ctx, txBeginner, func(ctx context.Context, tx pgx.Tx) error {
-		if err := employeeExists(ctx, tx, workspaceID, employeeID); err != nil {
+		if err := employeeExists(ctx, tx, employeeID); err != nil {
 			return err
 		}
 		var deptExists bool
-		if err := tx.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM departments WHERE id = $1 AND workspace_id = $2 AND deleted_at IS NULL)`, req.DepartmentID, workspaceID).Scan(&deptExists); err != nil {
+		if err := tx.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM departments WHERE id = $1 AND deleted_at IS NULL)`, req.DepartmentID).Scan(&deptExists); err != nil {
 			return err
 		}
 		if !deptExists {
 			return api.ErrDepartmentNotFound
 		}
 
-		rows, err := tx.Query(ctx, `SELECT id, workspace_id, employee_id, employer_id, primary_location_id, department_id, status, start_date::text, end_date::text, job_title, employment_type, manager_employment_id, notes, termination_reason FROM employments WHERE employee_id = $1 AND workspace_id = $2 AND deleted_at IS NULL ORDER BY start_date ASC`, employeeID, workspaceID)
+		rows, err := tx.Query(ctx, `SELECT id, employee_id, employer_id, primary_location_id, department_id, status, start_date::text, end_date::text, job_title, employment_type, manager_employment_id, notes, termination_reason FROM employments WHERE employee_id = $1 AND deleted_at IS NULL ORDER BY start_date ASC`, employeeID)
 		if err != nil {
 			return err
 		}
@@ -125,7 +124,7 @@ func (r EmployeeDepartmentRepository) TransferEmployee(ctx context.Context, work
 		segments := make([]employmentSegment, 0)
 		for rows.Next() {
 			var s employmentSegment
-			if err := rows.Scan(&s.ID, &s.WorkspaceID, &s.EmployeeID, &s.EmployerID, &s.PrimaryLocationID, &s.DepartmentID, &s.Status, &s.StartDate, &s.EndDate, &s.JobTitle, &s.EmploymentType, &s.ManagerEmploymentID, &s.Notes, &s.TerminationReason); err != nil {
+			if err := rows.Scan(&s.ID, &s.EmployeeID, &s.EmployerID, &s.PrimaryLocationID, &s.DepartmentID, &s.Status, &s.StartDate, &s.EndDate, &s.JobTitle, &s.EmploymentType, &s.ManagerEmploymentID, &s.Notes, &s.TerminationReason); err != nil {
 				return err
 			}
 			segments = append(segments, s)
@@ -166,7 +165,7 @@ func (r EmployeeDepartmentRepository) TransferEmployee(ctx context.Context, work
 			}
 			newID := uuid.New()
 			var endDateVal *string = active.EndDate
-			_, err = tx.Exec(ctx, `INSERT INTO employments (id, workspace_id, employee_id, employer_id, primary_location_id, department_id, status, start_date, end_date, created_at, updated_at, deleted_at, job_title, employment_type, manager_employment_id, notes, termination_reason) VALUES ($1, $2, $3, $4, $5, $6, $7, $8::date, NULLIF($9, '')::date, NOW(), NOW(), NULL, $10, $11, $12, $13, $14)`, newID, active.WorkspaceID, active.EmployeeID, active.EmployerID, active.PrimaryLocationID, req.DepartmentID, active.Status, req.EffectiveDate, func() string {
+			_, err = tx.Exec(ctx, `INSERT INTO employments (id, employee_id, employer_id, primary_location_id, department_id, status, start_date, end_date, created_at, updated_at, deleted_at, job_title, employment_type, manager_employment_id, notes, termination_reason) VALUES ($1, $2, $3, $4, $5, $6, $7::date, NULLIF($8, '')::date, NOW(), NOW(), NULL, $9, $10, $11, $12, $13)`, newID, active.EmployeeID, active.EmployerID, active.PrimaryLocationID, req.DepartmentID, active.Status, req.EffectiveDate, func() string {
 				if endDateVal != nil {
 					return *endDateVal
 				}

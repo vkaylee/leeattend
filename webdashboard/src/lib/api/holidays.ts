@@ -1,13 +1,11 @@
 import { client } from "./client";
-import { Holiday } from './types';
+import type { Holiday } from './types';
 
 export async function fetchHolidays(
-    wsId: string,
     year?: number,
 ): Promise<Holiday[]> {
-    const { data: resData } = await client.GET("/workspaces/{workspace_id}/holidays", {
+    const { data: resData } = await client.GET<{ data: Holiday[] }>("/v1/holidays", {
         params: {
-            path: { workspace_id: wsId },
             query: year ? { year } : undefined,
         },
     });
@@ -15,26 +13,21 @@ export async function fetchHolidays(
 }
 
 export async function createHoliday(
-    wsId: string,
     data: Omit<Holiday, 'id' | 'workspace_id' | 'created_at' | 'updated_at'>,
 ): Promise<Holiday> {
-    const { data: resData } = await client.POST("/workspaces/{workspace_id}/holidays", {
-        params: {
-            path: { workspace_id: wsId },
-        },
+    const { data: resData } = await client.POST<Holiday>("/v1/holidays", {
         body: data,
     });
     return resData;
 }
 
 export async function updateHoliday(
-    wsId: string,
     holidayId: string,
     data: Partial<Holiday>,
 ): Promise<Holiday> {
-    const { data: resData } = await client.PUT("/workspaces/{workspace_id}/holidays/{id}", {
+    const { data: resData } = await client.PUT<Holiday>("/v1/holidays/{id}", {
         params: {
-            path: { workspace_id: wsId, id: holidayId },
+            path: { id: holidayId },
         },
         body: data,
     });
@@ -42,12 +35,11 @@ export async function updateHoliday(
 }
 
 export async function deleteHoliday(
-    wsId: string,
     holidayId: string,
 ): Promise<void> {
-    await client.DELETE("/workspaces/{workspace_id}/holidays/{id}", {
+    await client.DELETE("/v1/holidays/{id}", {
         params: {
-            path: { workspace_id: wsId, id: holidayId },
+            path: { id: holidayId },
         },
     });
 }

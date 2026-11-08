@@ -18,7 +18,7 @@ import { ChartSummary } from "@/components/features/dashboard/chart-summary";
 import { ChartTableTwin, type ChartTableColumn } from "@/components/features/dashboard/chart-table-twin";
 import { DashboardDateRange } from "@/components/features/dashboard/dashboard-date-range";
 import { useDepartmentAttendance, type DepartmentAttendancePoint } from "@/hooks/use-dashboard";
-import { useWorkspace } from "@/hooks/use-workspace";
+import { useOrganization } from "@/hooks/use-organization";
 
 const TOP_N = 8;
 
@@ -41,10 +41,10 @@ interface Row extends DepartmentAttendancePoint {
 
 export default function DepartmentAttendanceChart() {
     const { t } = useTranslation();
-    const { workspace } = useWorkspace();
+    const { organization } = useOrganization();
     const [range, setRange] = useState(defaultRange);
 
-    const timezone = workspace?.timezone ?? undefined;
+    const timezone = organization?.timezone ?? undefined;
     const { data, error, isLoading } = useDepartmentAttendance({
         topN: TOP_N,
         rangeParams: { startDate: range.startDate, endDate: range.endDate, timezone },

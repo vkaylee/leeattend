@@ -14,37 +14,29 @@ import (
 )
 
 type mockContractRepo struct {
-	contracts          map[uuid.UUID]EmployeeContract
-	workspaceContracts []EmployeeContractWithEmployee
+	contracts   map[uuid.UUID]EmployeeContract
+	contractsWithEmployee []EmployeeContractWithEmployee
 }
 
 func newMockContractRepo() *mockContractRepo {
 	return &mockContractRepo{contracts: make(map[uuid.UUID]EmployeeContract)}
 }
 
-func (m *mockContractRepo) ListWorkspaceContracts(_ context.Context, wsID uuid.UUID) ([]EmployeeContractWithEmployee, error) {
-	var res []EmployeeContractWithEmployee
-	for _, c := range m.workspaceContracts {
-		if c.WorkspaceID == wsID {
-			res = append(res, c)
-		}
-	}
-	return res, nil
+func (m *mockContractRepo) ListContracts(_ context.Context) ([]EmployeeContractWithEmployee, error) {
+	return m.contractsWithEmployee, nil
 }
 
-func (m *mockContractRepo) ListEmployeeContracts(_ context.Context, wsID, employeeID uuid.UUID) ([]EmployeeContract, error) {
+func (m *mockContractRepo) ListEmployeeContracts(_ context.Context, _ uuid.UUID) ([]EmployeeContract, error) {
 	var res []EmployeeContract
 	for _, c := range m.contracts {
-		if c.WorkspaceID == wsID {
-			res = append(res, c)
-		}
+		res = append(res, c)
 	}
 	return res, nil
 }
 
-func (m *mockContractRepo) CreateContract(_ context.Context, wsID uuid.UUID, req CreateContractRequest) (EmployeeContract, error) {
+func (m *mockContractRepo) CreateContract(_ context.Context, req CreateContractRequest) (EmployeeContract, error) {
 	for _, c := range m.contracts {
-		if c.WorkspaceID == wsID && c.EmploymentID == req.EmploymentID && c.Status == "active" {
+		if c.EmploymentID == req.EmploymentID && c.Status == "active" {
 			if rangesOverlap(req.StartDate, req.EndDate, c.StartDate, c.EndDate) {
 				if req.AutoCloseOverlapping == nil || !*req.AutoCloseOverlapping {
 					return EmployeeContract{}, ErrContractOverlap
@@ -58,7 +50,6 @@ func (m *mockContractRepo) CreateContract(_ context.Context, wsID uuid.UUID, req
 	id := uuid.New()
 	c := EmployeeContract{
 		ID:           id,
-		WorkspaceID:  wsID,
 		EmploymentID: req.EmploymentID,
 		ContractType: req.ContractType,
 		Status:       "active",
@@ -69,17 +60,17 @@ func (m *mockContractRepo) CreateContract(_ context.Context, wsID uuid.UUID, req
 	return c, nil
 }
 
-func (m *mockContractRepo) GetContract(_ context.Context, wsID, contractID uuid.UUID) (EmployeeContract, error) {
+func (m *mockContractRepo) GetContract(_ context.Context, contractID uuid.UUID) (EmployeeContract, error) {
 	c, ok := m.contracts[contractID]
-	if !ok || c.WorkspaceID != wsID {
+	if !ok {
 		return EmployeeContract{}, ErrContractNotFound
 	}
 	return c, nil
 }
 
-func (m *mockContractRepo) UpdateContract(_ context.Context, wsID, contractID uuid.UUID, req UpdateContractRequest) (EmployeeContract, error) {
+func (m *mockContractRepo) UpdateContract(_ context.Context, contractID uuid.UUID, req UpdateContractRequest) (EmployeeContract, error) {
 	c, ok := m.contracts[contractID]
-	if !ok || c.WorkspaceID != wsID {
+	if !ok {
 		return EmployeeContract{}, ErrContractNotFound
 	}
 	if req.ContractType != nil {
@@ -102,7 +93,7 @@ func (m *mockContractRepo) UpdateContract(_ context.Context, wsID, contractID uu
 	return c, nil
 }
 
-func (m *mockContractRepo) SoftDeleteContract(_ context.Context, wsID, contractID uuid.UUID) error {
+func (m *mockContractRepo) SoftDeleteContract(_ context.Context, contractID uuid.UUID) error {
 	delete(m.contracts, contractID)
 	return nil
 }
@@ -115,21 +106,20 @@ func newMockEmploymentRepo() *mockEmploymentRepo {
 	return &mockEmploymentRepo{employments: make(map[uuid.UUID]Employment)}
 }
 
-func (m *mockEmploymentRepo) ListEmployments(_ context.Context, wsID, employeeID uuid.UUID) ([]Employment, error) {
+func (m *mockEmploymentRepo) ListEmployments(_ context.Context, employeeID uuid.UUID) ([]Employment, error) {
 	var res []Employment
 	for _, e := range m.employments {
-		if e.WorkspaceID == wsID && e.EmployeeID == employeeID {
+		if e.EmployeeID == employeeID {
 			res = append(res, e)
 		}
 	}
 	return res, nil
 }
 
-func (m *mockEmploymentRepo) CreateEmployment(_ context.Context, wsID uuid.UUID, req CreateEmploymentRequest) (Employment, error) {
+func (m *mockEmploymentRepo) CreateEmployment(_ context.Context, req CreateEmploymentRequest) (Employment, error) {
 	id := uuid.New()
 	e := Employment{
 		ID:                  id,
-		WorkspaceID:         wsID,
 		EmployeeID:          req.EmployeeID,
 		EmployerID:          req.EmployerID,
 		PrimaryLocationID:   req.PrimaryLocationID,
@@ -145,17 +135,17 @@ func (m *mockEmploymentRepo) CreateEmployment(_ context.Context, wsID uuid.UUID,
 	return e, nil
 }
 
-func (m *mockEmploymentRepo) GetEmployment(_ context.Context, wsID, id uuid.UUID) (Employment, error) {
+func (m *mockEmploymentRepo) GetEmployment(_ context.Context, id uuid.UUID) (Employment, error) {
 	e, ok := m.employments[id]
-	if !ok || e.WorkspaceID != wsID {
+	if !ok {
 		return Employment{}, ErrEmploymentNotFound
 	}
 	return e, nil
 }
 
-func (m *mockEmploymentRepo) UpdateEmployment(_ context.Context, wsID, id uuid.UUID, req UpdateEmploymentRequest) (Employment, error) {
+func (m *mockEmploymentRepo) UpdateEmployment(_ context.Context, id uuid.UUID, req UpdateEmploymentRequest) (Employment, error) {
 	e, ok := m.employments[id]
-	if !ok || e.WorkspaceID != wsID {
+	if !ok {
 		return Employment{}, ErrEmploymentNotFound
 	}
 	if req.EmployerID != nil {
@@ -199,7 +189,7 @@ func (m *mockEmploymentRepo) UpdateEmployment(_ context.Context, wsID, id uuid.U
 	return e, nil
 }
 
-func (m *mockEmploymentRepo) SoftDeleteEmployment(_ context.Context, wsID, id uuid.UUID) error {
+func (m *mockEmploymentRepo) SoftDeleteEmployment(_ context.Context, id uuid.UUID) error {
 	delete(m.employments, id)
 	return nil
 }
@@ -208,26 +198,34 @@ type mockCEAuthz struct {
 	isMember bool
 }
 
-func (a mockCEAuthz) IsMember(_ context.Context, _, _ uuid.UUID) (bool, error) {
+func (a mockCEAuthz) IsMember(context.Context, uuid.UUID) (bool, error) {
 	return a.isMember, nil
 }
-func (a mockCEAuthz) EffectivePermissions(_ context.Context, _, _ uuid.UUID) ([]string, []string, error) {
+func (mockCEAuthz) EffectivePermissions(context.Context, uuid.UUID) ([]string, []string, error) {
 	return nil, nil, nil
 }
-
-func testRequest(method, path, body string, wsID uuid.UUID) *http.Request {
-	req := httptest.NewRequest(method, path, bytes.NewBufferString(body))
-	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
-	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
-	return req
+func (mockCEAuthz) GetManagedDepartmentIDs(context.Context, uuid.UUID) ([]uuid.UUID, error) {
+	return nil, nil
+}
+func (mockCEAuthz) IsGlobalManager(context.Context, uuid.UUID) bool { return false }
+func (mockCEAuthz) HasPermission(context.Context, uuid.UUID, string) bool { return true }
+func (mockCEAuthz) HasScopedPermission(context.Context, uuid.UUID, string, *uuid.UUID) bool {
+	return true
+}
+func (mockCEAuthz) GetUsersWithPermission(context.Context, string) ([]uuid.UUID, error) {
+	return nil, nil
 }
 
-func TestContractsHandler_WorkspaceListAndAuth(t *testing.T) {
-	wsID := uuid.New()
+func testRequest(method, path, body string) *http.Request {
+	req := httptest.NewRequest(method, path, bytes.NewBufferString(body))
+	return req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
+}
+
+func TestContractsHandler_ListAndAuth(t *testing.T) {
 	contractRepo := newMockContractRepo()
-	contractRepo.workspaceContracts = []EmployeeContractWithEmployee{
+	contractRepo.contractsWithEmployee = []EmployeeContractWithEmployee{
 		{
-			EmployeeContract: EmployeeContract{ID: uuid.New(), WorkspaceID: wsID, Status: "active", StartDate: "2026-01-01"},
+			EmployeeContract: EmployeeContract{ID: uuid.New(), Status: "active", StartDate: "2026-01-01"},
 			EmployeeName:     "John Doe",
 			EmployeeCode:     "EMP001",
 			EmployeeID:       uuid.New(),
@@ -238,9 +236,9 @@ func TestContractsHandler_WorkspaceListAndAuth(t *testing.T) {
 		Authorizer: mockCEAuthz{isMember: true},
 	}
 
-	req := testRequest(http.MethodGet, "/api/v1/workspaces/"+wsID.String()+"/contracts", "", wsID)
+	req := testRequest(http.MethodGet, "/api/v1/contracts", "")
 	rec := httptest.NewRecorder()
-	handler.ListWorkspaceContracts(rec, req)
+	handler.ListContracts(rec, req)
 
 	if rec.Code != http.StatusOK {
 		t.Fatalf("expected 200, got %d: %s", rec.Code, rec.Body.String())
@@ -259,14 +257,13 @@ func TestContractsHandler_WorkspaceListAndAuth(t *testing.T) {
 		Authorizer: mockCEAuthz{isMember: false},
 	}
 	recForbidden := httptest.NewRecorder()
-	handlerNonMember.ListWorkspaceContracts(recForbidden, req)
+	handlerNonMember.ListContracts(recForbidden, req)
 	if recForbidden.Code != http.StatusForbidden {
 		t.Fatalf("expected 403, got %d", recForbidden.Code)
 	}
 }
 
 func TestContractsHandler_CreateGetUpdateDeleteAndOverlap(t *testing.T) {
-	wsID := uuid.New()
 	empID := uuid.New()
 	employmentID := uuid.New()
 	contractRepo := newMockContractRepo()
@@ -282,7 +279,7 @@ func TestContractsHandler_CreateGetUpdateDeleteAndOverlap(t *testing.T) {
 		"start_date": "2026-01-01",
 		"end_date": "2026-12-31"
 	}`, employmentID.String())
-	req := testRequest(http.MethodPost, "/api/v1/workspaces/"+wsID.String()+"/employees/"+empID.String()+"/contracts", createPayload, wsID)
+	req := testRequest(http.MethodPost, "/api/v1/employees/"+empID.String()+"/contracts", createPayload)
 	req.SetPathValue("employee_id", empID.String())
 	rec := httptest.NewRecorder()
 	handler.CreateContract(rec, req)
@@ -305,7 +302,7 @@ func TestContractsHandler_CreateGetUpdateDeleteAndOverlap(t *testing.T) {
 		"end_date": "2026-12-31",
 		"auto_close_overlapping": false
 	}`, employmentID.String())
-	reqOverlap := testRequest(http.MethodPost, "/api/v1/workspaces/"+wsID.String()+"/employees/"+empID.String()+"/contracts", overlapPayload, wsID)
+	reqOverlap := testRequest(http.MethodPost, "/api/v1/employees/"+empID.String()+"/contracts", overlapPayload)
 	reqOverlap.SetPathValue("employee_id", empID.String())
 	recOverlap := httptest.NewRecorder()
 	handler.CreateContract(recOverlap, reqOverlap)
@@ -320,7 +317,7 @@ func TestContractsHandler_CreateGetUpdateDeleteAndOverlap(t *testing.T) {
 		"start_date": "2026-06-01",
 		"auto_close_overlapping": true
 	}`, employmentID.String())
-	reqAutoClose := testRequest(http.MethodPost, "/api/v1/workspaces/"+wsID.String()+"/employees/"+empID.String()+"/contracts", autoClosePayload, wsID)
+	reqAutoClose := testRequest(http.MethodPost, "/api/v1/employees/"+empID.String()+"/contracts", autoClosePayload)
 	reqAutoClose.SetPathValue("employee_id", empID.String())
 	recAutoClose := httptest.NewRecorder()
 	handler.CreateContract(recAutoClose, reqAutoClose)
@@ -336,7 +333,7 @@ func TestContractsHandler_CreateGetUpdateDeleteAndOverlap(t *testing.T) {
 	}
 
 	// 4. Get contract
-	reqGet := testRequest(http.MethodGet, "/api/v1/workspaces/"+wsID.String()+"/employees/"+empID.String()+"/contracts/"+c2.ID.String(), "", wsID)
+	reqGet := testRequest(http.MethodGet, "/api/v1/employees/"+empID.String()+"/contracts/"+c2.ID.String(), "")
 	reqGet.SetPathValue("employee_id", empID.String())
 	reqGet.SetPathValue("contract_id", c2.ID.String())
 	recGet := httptest.NewRecorder()
@@ -347,7 +344,7 @@ func TestContractsHandler_CreateGetUpdateDeleteAndOverlap(t *testing.T) {
 
 	// 5. Update contract
 	updatePayload := `{"status": "terminated"}`
-	reqUpdate := testRequest(http.MethodPatch, "/api/v1/workspaces/"+wsID.String()+"/employees/"+empID.String()+"/contracts/"+c2.ID.String(), updatePayload, wsID)
+	reqUpdate := testRequest(http.MethodPatch, "/api/v1/employees/"+empID.String()+"/contracts/"+c2.ID.String(), updatePayload)
 	reqUpdate.SetPathValue("employee_id", empID.String())
 	reqUpdate.SetPathValue("contract_id", c2.ID.String())
 	recUpdate := httptest.NewRecorder()
@@ -360,7 +357,7 @@ func TestContractsHandler_CreateGetUpdateDeleteAndOverlap(t *testing.T) {
 	}
 
 	// 6. Delete contract
-	reqDel := testRequest(http.MethodDelete, "/api/v1/workspaces/"+wsID.String()+"/employees/"+empID.String()+"/contracts/"+c2.ID.String(), "", wsID)
+	reqDel := testRequest(http.MethodDelete, "/api/v1/employees/"+empID.String()+"/contracts/"+c2.ID.String(), "")
 	reqDel.SetPathValue("employee_id", empID.String())
 	reqDel.SetPathValue("contract_id", c2.ID.String())
 	recDel := httptest.NewRecorder()
@@ -371,7 +368,6 @@ func TestContractsHandler_CreateGetUpdateDeleteAndOverlap(t *testing.T) {
 }
 
 func TestEmploymentsHandler_CRUDAndOverlap(t *testing.T) {
-	wsID := uuid.New()
 	empID := uuid.New()
 	employer1 := uuid.New()
 	employer2 := uuid.New()
@@ -390,7 +386,7 @@ func TestEmploymentsHandler_CRUDAndOverlap(t *testing.T) {
 		"start_date": "2026-01-01",
 		"end_date": "2026-12-31"
 	}`, empID.String(), employer1.String())
-	req := testRequest(http.MethodPost, "/api/v1/workspaces/"+wsID.String()+"/employees/"+empID.String()+"/employments", createPayload, wsID)
+	req := testRequest(http.MethodPost, "/api/v1/employees/"+empID.String()+"/employments", createPayload)
 	req.SetPathValue("employee_id", empID.String())
 	rec := httptest.NewRecorder()
 	handler.CreateEmployment(rec, req)
@@ -409,7 +405,7 @@ func TestEmploymentsHandler_CRUDAndOverlap(t *testing.T) {
 		"start_date": "2026-06-01",
 		"end_date": "2026-12-31"
 	}`, empID.String(), employer1.String())
-	reqConflict := testRequest(http.MethodPost, "/api/v1/workspaces/"+wsID.String()+"/employees/"+empID.String()+"/employments", sameEmployerOverlap, wsID)
+	reqConflict := testRequest(http.MethodPost, "/api/v1/employees/"+empID.String()+"/employments", sameEmployerOverlap)
 	reqConflict.SetPathValue("employee_id", empID.String())
 	recConflict := httptest.NewRecorder()
 	handler.CreateEmployment(recConflict, reqConflict)
@@ -426,7 +422,7 @@ func TestEmploymentsHandler_CRUDAndOverlap(t *testing.T) {
 		"start_date": "2026-06-01",
 		"end_date": "2026-12-31"
 	}`, empID.String(), employer2.String())
-	reqDiff := testRequest(http.MethodPost, "/api/v1/workspaces/"+wsID.String()+"/employees/"+empID.String()+"/employments", diffEmployerOverlap, wsID)
+	reqDiff := testRequest(http.MethodPost, "/api/v1/employees/"+empID.String()+"/employments", diffEmployerOverlap)
 	reqDiff.SetPathValue("employee_id", empID.String())
 	recDiff := httptest.NewRecorder()
 	handler.CreateEmployment(recDiff, reqDiff)
@@ -436,7 +432,7 @@ func TestEmploymentsHandler_CRUDAndOverlap(t *testing.T) {
 
 	// 4. Update with double option null to clear end_date
 	updatePayload := `{"end_date": null}`
-	reqPatch := testRequest(http.MethodPatch, "/api/v1/workspaces/"+wsID.String()+"/employees/"+empID.String()+"/employments/"+emp.ID.String(), updatePayload, wsID)
+	reqPatch := testRequest(http.MethodPatch, "/api/v1/employees/"+empID.String()+"/employments/"+emp.ID.String(), updatePayload)
 	reqPatch.SetPathValue("employee_id", empID.String())
 	reqPatch.SetPathValue("employment_id", emp.ID.String())
 	recPatch := httptest.NewRecorder()
@@ -449,7 +445,7 @@ func TestEmploymentsHandler_CRUDAndOverlap(t *testing.T) {
 	}
 
 	// 5. Delete employment -> 204 No Content
-	reqDel := testRequest(http.MethodDelete, "/api/v1/workspaces/"+wsID.String()+"/employees/"+empID.String()+"/employments/"+emp.ID.String(), "", wsID)
+	reqDel := testRequest(http.MethodDelete, "/api/v1/employees/"+empID.String()+"/employments/"+emp.ID.String(), "")
 	reqDel.SetPathValue("employee_id", empID.String())
 	reqDel.SetPathValue("employment_id", emp.ID.String())
 	recDel := httptest.NewRecorder()

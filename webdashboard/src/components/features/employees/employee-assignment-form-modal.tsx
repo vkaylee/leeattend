@@ -46,18 +46,14 @@ export interface EmployeeAssignmentFormModalProps {
   employeeId?: string;
   isOpen: boolean;
   onClose: () => void;
-  wsId: string;
 }
 
 function useAssignmentForm({
-  isOpen,
-  wsId,
-  employeeId,
+  isOpen,employeeId,
   editingAssignment,
   onClose,
 }: {
   isOpen: boolean;
-  wsId: string;
   employeeId?: string;
   editingAssignment: (EmployeeAssignment & { employee_id?: string; employee_name?: string; employee_code?: string }) | null;
   onClose: () => void;
@@ -65,8 +61,8 @@ function useAssignmentForm({
   const toast = useToast();
   const createAssignment = useCreateEmployeeAssignment();
   const updateAssignment = useUpdateEmployeeAssignment();
-  const { data: locations } = useLocations(wsId);
-  const { data: employees } = useAllEmployees(wsId, { enabled: isOpen && !employeeId });
+  const { data: locations } = useLocations();
+  const { data: employees } = useAllEmployees({ enabled: isOpen && !employeeId });
   const [selectedEmployeeId, setSelectedEmployeeId] = React.useState<string>("");
   const {
     register,
@@ -121,9 +117,7 @@ function useAssignmentForm({
       const payloadLocationId = data.host_location_id ?? null;
 
       if (editingAssignment) {
-        await updateAssignment.mutateAsync({
-          wsId,
-          employeeId: targetEmployeeId,
+        await updateAssignment.mutateAsync({employeeId: targetEmployeeId,
           assignmentId: editingAssignment.id,
           data: {
             end_date: payloadDate,
@@ -137,9 +131,7 @@ function useAssignmentForm({
         if (!payloadLocationId) {
           throw new Error("Vui lòng chọn địa điểm phái cử");
         }
-        await createAssignment.mutateAsync({
-          wsId,
-          employeeId: targetEmployeeId,
+        await createAssignment.mutateAsync({employeeId: targetEmployeeId,
           data: {
             start_date: data.start_date,
             end_date: payloadDate,
@@ -173,9 +165,7 @@ function useAssignmentForm({
 export default function EmployeeAssignmentFormModal({
   isOpen,
   onClose,
-  editingAssignment,
-  wsId,
-  employeeId,
+  editingAssignment,employeeId,
 }: EmployeeAssignmentFormModalProps) {
   const { t } = useTranslation();
   const {
@@ -190,9 +180,7 @@ export default function EmployeeAssignmentFormModal({
     setSelectedEmployeeId,
     onSubmit,
   } = useAssignmentForm({
-    isOpen,
-    wsId,
-    employeeId,
+    isOpen,employeeId,
     editingAssignment,
     onClose,
   });

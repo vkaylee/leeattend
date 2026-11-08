@@ -216,8 +216,8 @@
     "drawer": {
       "add_subtitle": "Cấu hình quy tắc cụ thể cho đối tượng",
       "add_title": "Thêm Ghi đè Chính sách",
-      "grace_period_placeholder": "Sử dụng giá trị mặc định của workspace",
-      "override_notice": "Lưu ý: Các thiết lập dưới đây sẽ ghi đè cấu hình mặc định của Workspace dành riêng cho đối tượng này kể từ ngày hiệu lực.",
+      "grace_period_placeholder": "Sử dụng giá trị mặc định của tổ chức",
+      "override_notice": "Lưu ý: Các thiết lập dưới đây sẽ ghi đè cấu hình mặc định của tổ chức dành riêng cho đối tượng này kể từ ngày hiệu lực.",
       "save_button": "LƯU GHI ĐÈ",
       "search_placeholder": "Tìm kiếm {{type}}...",
       "select_target_type": "Chọn {{type}}",
@@ -225,7 +225,7 @@
       "step_target": "1. Chọn Đối tượng"
     },
     "empty_state": {
-      "description": "Mọi người đang áp dụng chính sách mặc định của không gian làm việc.",
+      "description": "Mọi người đang áp dụng chính sách mặc định của tổ chức.",
       "title": "Chưa có ghi đè nào"
     },
     "filters": {
@@ -533,7 +533,7 @@
     },
     "form_subtitle": "Định nghĩa khi nào mẫu này sẽ được áp dụng",
     "info_priority": "Các quy tắc được đánh giá từ mức ưu tiên cao nhất đến thấp nhất. Quy tắc đầu tiên khớp với nhân viên sẽ được áp dụng. Quy tắc chung nên có mức ưu tiên thấp nhất.",
-    "match_all": "Toàn hệ thống (Khớp tất cả)",
+    "match_all": "Toàn tổ chức (Khớp tất cả)",
     "messages": {
       "create_error": "Không thể tạo quy tắc",
       "create_success": "Đã tạo quy tắc thành công",
@@ -636,9 +636,9 @@
       "correction_desc": "Hiệu chỉnh sẽ ghi đè trực tiếp lên bản ghi ca hiện tại. Chỉ dùng để sửa lỗi chính tả/nhập sai.",
       "correction_label": "Hiệu chỉnh dữ liệu",
       "correction_warning": "Đây là hiệu chỉnh trực tiếp",
-      "early_arrival_notice_allow": "ℹ️ Quy tắc đến sớm của Workspace hiện là 'Cho phép mọi lúc'. Thời gian tăng ca sớm sẽ được tính đầy đủ kể từ lúc check-in.",
-      "early_arrival_notice_block": "⚠️ Lưu ý: Quy tắc đến sớm của Workspace hiện đang được cấu hình là 'Chặn chấm công sớm'. Cài đặt Tăng ca sớm (Early OT) này sẽ không có hiệu lực đối với nhân viên.",
-      "early_arrival_notice_clamp": "ℹ️ Quy tắc đến sớm của Workspace hiện là 'Giới hạn OT sớm'. Thời gian tính tăng ca sớm (nếu bật) sẽ bị giới hạn tối đa bằng số phút Grace Period của ca (hiện tại là {{grace}} phút).",
+      "early_arrival_notice_allow": "ℹ️ Quy tắc đến sớm của tổ chức hiện là 'Cho phép mọi lúc'. Thời gian tăng ca sớm sẽ được tính đầy đủ kể từ lúc check-in.",
+      "early_arrival_notice_block": "⚠️ Lưu ý: Quy tắc đến sớm của tổ chức hiện đang được cấu hình là 'Chặn chấm công sớm'. Cài đặt Tăng ca sớm (Early OT) này sẽ không có hiệu lực đối với nhân viên.",
+      "early_arrival_notice_clamp": "ℹ️ Quy tắc đến sớm của tổ chức hiện là 'Giới hạn OT sớm'. Thời gian tính tăng ca sớm (nếu bật) sẽ bị giới hạn tối đa bằng số phút Grace Period của ca (hiện tại là {{grace}} phút).",
       "edit_description": "Cập nhật cấu hình hoặc thay đổi giờ làm",
       "edit_subtitle": "CẬP NHẬT CẤU HÌNH HOẶC THAY ĐỔI GIỜ LÀM",
       "effective_date_desc": "Phiên bản mới sẽ có hiệu lực từ ngày này.",

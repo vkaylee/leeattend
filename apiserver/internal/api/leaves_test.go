@@ -27,7 +27,7 @@ type mockLeaveRepository struct {
 	deleteTypeErr       error
 	restoreTypeRecord   LeaveTypeRecord
 	restoreTypeErr      error
-	wsBalances          []WorkspaceLeaveBalance
+	wsBalances          []OrganizationLeaveBalance
 	wsTotal             int64
 	wsErr               error
 	history             []LeaveHistoryItem
@@ -54,22 +54,22 @@ type mockLeaveRepository struct {
 	jobStatusErr        error
 }
 
-func (m *mockLeaveRepository) CreateLeaveType(context.Context, uuid.UUID, CreateLeaveTypeRequest) (LeaveTypeRecord, error) {
+func (m *mockLeaveRepository) CreateLeaveType(context.Context, CreateLeaveTypeRequest) (LeaveTypeRecord, error) {
 	return LeaveTypeRecord{ID: uuid.New(), Code: "annual", Name: "Annual", IsPaid: true}, nil
 }
-func (m *mockLeaveRepository) ListLeaveTypes(context.Context, uuid.UUID) ([]LeaveTypeRecord, error) {
+func (m *mockLeaveRepository) ListLeaveTypes(context.Context) ([]LeaveTypeRecord, error) {
 	return m.typeList, nil
 }
-func (m *mockLeaveRepository) UpdateLeaveTypeConfig(context.Context, uuid.UUID, uuid.UUID, json.RawMessage) (LeaveTypeRecord, error) {
+func (m *mockLeaveRepository) UpdateLeaveTypeConfig(context.Context, uuid.UUID, json.RawMessage) (LeaveTypeRecord, error) {
 	return m.updateConfigRecord, m.updateConfigErr
 }
-func (m *mockLeaveRepository) DeleteLeaveType(context.Context, uuid.UUID, uuid.UUID) error {
+func (m *mockLeaveRepository) DeleteLeaveType(context.Context, uuid.UUID) error {
 	return m.deleteTypeErr
 }
-func (m *mockLeaveRepository) RestoreLeaveType(context.Context, uuid.UUID, uuid.UUID) (LeaveTypeRecord, error) {
+func (m *mockLeaveRepository) RestoreLeaveType(context.Context, uuid.UUID) (LeaveTypeRecord, error) {
 	return m.restoreTypeRecord, m.restoreTypeErr
 }
-func (m *mockLeaveRepository) SubmitLeaveRequest(_ context.Context, _, _ uuid.UUID, _ SubmitLeaveRequest, autoApprove bool) (LeaveRequestRecord, error) {
+func (m *mockLeaveRepository) SubmitLeaveRequest(_ context.Context, _ uuid.UUID, _ SubmitLeaveRequest, autoApprove bool) (LeaveRequestRecord, error) {
 	m.submitCalls++
 	m.submit.Status = "pending"
 	if autoApprove {
@@ -77,57 +77,57 @@ func (m *mockLeaveRepository) SubmitLeaveRequest(_ context.Context, _, _ uuid.UU
 	}
 	return m.submit, m.submitErr
 }
-func (m *mockLeaveRepository) ListWorkspaceLeaveRequests(context.Context, uuid.UUID, *string) ([]LeaveRequestRecord, error) {
+func (m *mockLeaveRepository) ListOrganizationLeaveRequests(context.Context, *string) ([]LeaveRequestRecord, error) {
 	return []LeaveRequestRecord{}, nil
 }
-func (m *mockLeaveRepository) ApproveLeaveRequest(context.Context, uuid.UUID, uuid.UUID, uuid.UUID, string) error {
+func (m *mockLeaveRepository) ApproveLeaveRequest(context.Context, uuid.UUID, uuid.UUID, string) error {
 	m.approveCalls++
 	return m.approveErr
 }
-func (m *mockLeaveRepository) GetEmployeeLeaveBalances(context.Context, uuid.UUID, uuid.UUID, int) ([]EmployeeLeaveBalanceRecord, error) {
+func (m *mockLeaveRepository) GetEmployeeLeaveBalances(context.Context, uuid.UUID, int) ([]EmployeeLeaveBalanceRecord, error) {
 	return m.balances, nil
 }
-func (m *mockLeaveRepository) ResolveEmployeeForUser(context.Context, uuid.UUID, uuid.UUID) (uuid.UUID, error) {
+func (m *mockLeaveRepository) ResolveEmployeeForUser(context.Context, uuid.UUID) (uuid.UUID, error) {
 	return uuid.Nil, nil
 }
-func (m *mockLeaveRepository) GetWorkspaceLeaveBalances(context.Context, uuid.UUID, int, int, int, string) ([]WorkspaceLeaveBalance, int64, error) {
+func (m *mockLeaveRepository) GetOrganizationLeaveBalances(context.Context, int, int, int, string) ([]OrganizationLeaveBalance, int64, error) {
 	return m.wsBalances, m.wsTotal, m.wsErr
 }
-func (m *mockLeaveRepository) GetEmployeeLeaveHistory(context.Context, uuid.UUID, uuid.UUID, int, *uuid.UUID) ([]LeaveHistoryItem, error) {
+func (m *mockLeaveRepository) GetEmployeeLeaveHistory(context.Context, uuid.UUID, int, *uuid.UUID) ([]LeaveHistoryItem, error) {
 	return m.history, m.historyErr
 }
-func (m *mockLeaveRepository) AdjustLeaveBalance(context.Context, uuid.UUID, uuid.UUID, AdjustBalanceRequest) error {
+func (m *mockLeaveRepository) AdjustLeaveBalance(context.Context, uuid.UUID, AdjustBalanceRequest) error {
 	m.adjustCalls++
 	return m.adjustErr
 }
-func (m *mockLeaveRepository) ListLeavePolicies(context.Context, uuid.UUID) ([]LeavePolicyDefinition, error) {
+func (m *mockLeaveRepository) ListLeavePolicies(context.Context) ([]LeavePolicyDefinition, error) {
 	return m.policies, m.policiesErr
 }
-func (m *mockLeaveRepository) CreateLeavePolicy(context.Context, uuid.UUID, CreateLeavePolicyRequest) (LeavePolicyDefinition, error) {
+func (m *mockLeaveRepository) CreateLeavePolicy(context.Context, CreateLeavePolicyRequest) (LeavePolicyDefinition, error) {
 	return m.createdPolicy, m.createPolicyErr
 }
-func (m *mockLeaveRepository) UpdateLeavePolicy(context.Context, uuid.UUID, uuid.UUID, UpdateLeavePolicyRequest) (LeavePolicyDefinition, error) {
+func (m *mockLeaveRepository) UpdateLeavePolicy(context.Context, uuid.UUID, UpdateLeavePolicyRequest) (LeavePolicyDefinition, error) {
 	return m.updatedPolicy, m.updatePolicyErr
 }
-func (m *mockLeaveRepository) DeleteLeavePolicy(context.Context, uuid.UUID, uuid.UUID) error {
+func (m *mockLeaveRepository) DeleteLeavePolicy(context.Context, uuid.UUID) error {
 	return m.deletePolicyErr
 }
-func (m *mockLeaveRepository) AssignLeavePolicy(context.Context, uuid.UUID, AssignLeavePolicyRequest) (LeavePolicyAssignment, error) {
+func (m *mockLeaveRepository) AssignLeavePolicy(context.Context, AssignLeavePolicyRequest) (LeavePolicyAssignment, error) {
 	return m.assignedPolicy, m.assignPolicyErr
 }
-func (m *mockLeaveRepository) ListLeavePolicyAssignments(context.Context, uuid.UUID) ([]LeavePolicyAssignmentDetail, error) {
+func (m *mockLeaveRepository) ListLeavePolicyAssignments(context.Context) ([]LeavePolicyAssignmentDetail, error) {
 	return m.assignments, m.assignmentsErr
 }
-func (m *mockLeaveRepository) DeleteLeavePolicyAssignment(context.Context, uuid.UUID, uuid.UUID) error {
+func (m *mockLeaveRepository) DeleteLeavePolicyAssignment(context.Context, uuid.UUID) error {
 	return m.deleteAssignmentErr
 }
-func (m *mockLeaveRepository) ListEmployeeLeaveRequests(context.Context, uuid.UUID, uuid.UUID) ([]LeaveRequestRecord, error) {
+func (m *mockLeaveRepository) ListEmployeeLeaveRequests(context.Context, uuid.UUID) ([]LeaveRequestRecord, error) {
 	return m.requests, m.requestsErr
 }
-func (m *mockLeaveRepository) CreateAccrualJob(context.Context, uuid.UUID, uuid.UUID, string) (uuid.UUID, error) {
+func (m *mockLeaveRepository) CreateAccrualJob(context.Context, uuid.UUID, string) (uuid.UUID, error) {
 	return m.accrualJobID, m.accrualErr
 }
-func (m *mockLeaveRepository) GetJobStatus(context.Context, uuid.UUID, uuid.UUID) (LeaveJobStatusResponse, error) {
+func (m *mockLeaveRepository) GetJobStatus(context.Context, uuid.UUID) (LeaveJobStatusResponse, error) {
 	return m.jobStatus, m.jobStatusErr
 }
 
@@ -138,16 +138,16 @@ type mockLeaveBehalfRepo struct {
 	err         error
 }
 
-func (m *mockLeaveBehalfRepo) CreateBehalfAssignment(context.Context, uuid.UUID, CreateBehalfAssignmentRequest, string) (BehalfAssignment, error) {
+func (m *mockLeaveBehalfRepo) CreateBehalfAssignment(context.Context, CreateBehalfAssignmentRequest, string) (BehalfAssignment, error) {
 	return m.created, m.err
 }
-func (m *mockLeaveBehalfRepo) ListBehalfAssignments(context.Context, uuid.UUID, string) ([]BehalfAssignment, error) {
+func (m *mockLeaveBehalfRepo) ListBehalfAssignments(context.Context, string) ([]BehalfAssignment, error) {
 	return m.assignments, m.err
 }
-func (m *mockLeaveBehalfRepo) DeleteBehalfAssignment(context.Context, uuid.UUID, uuid.UUID) error {
+func (m *mockLeaveBehalfRepo) DeleteBehalfAssignment(context.Context, uuid.UUID) error {
 	return m.err
 }
-func (m *mockLeaveBehalfRepo) ListMyBehalfTargets(context.Context, uuid.UUID, uuid.UUID, string) ([]EmployeeRecord, error) {
+func (m *mockLeaveBehalfRepo) ListMyBehalfTargets(context.Context, uuid.UUID, string) ([]EmployeeRecord, error) {
 	return m.targets, m.err
 }
 
@@ -160,19 +160,19 @@ type mockLeaveImportRepo struct {
 	getErr     error
 }
 
-func (m *mockLeaveImportRepo) CreateLeaveImportJob(context.Context, uuid.UUID, uuid.UUID, string) (LeaveImportJob, error) {
+func (m *mockLeaveImportRepo) CreateLeaveImportJob(context.Context, uuid.UUID, string) (LeaveImportJob, error) {
 	return m.createdJob, m.createErr
 }
-func (m *mockLeaveImportRepo) ProcessLeaveImport(context.Context, uuid.UUID, uuid.UUID, LeaveImportJob, []LeaveImportRow, bool) error {
+func (m *mockLeaveImportRepo) ProcessLeaveImport(context.Context, uuid.UUID, LeaveImportJob, []LeaveImportRow, bool) error {
 	return m.processErr
 }
-func (m *mockLeaveImportRepo) GetLatestLeaveImport(context.Context, uuid.UUID) (*LeaveImportJob, error) {
+func (m *mockLeaveImportRepo) GetLatestLeaveImport(context.Context) (*LeaveImportJob, error) {
 	return m.job, m.getErr
 }
-func (m *mockLeaveImportRepo) GetLeaveImport(context.Context, uuid.UUID, uuid.UUID) (*LeaveImportJob, error) {
+func (m *mockLeaveImportRepo) GetLeaveImport(context.Context, uuid.UUID) (*LeaveImportJob, error) {
 	return m.job, m.getErr
 }
-func (m *mockLeaveImportRepo) GetLeaveImportErrorFile(context.Context, uuid.UUID, uuid.UUID) ([]byte, error) {
+func (m *mockLeaveImportRepo) GetLeaveImportErrorFile(context.Context, uuid.UUID) ([]byte, error) {
 	return m.errorBytes, m.getErr
 }
 
@@ -180,23 +180,46 @@ type mockLeaveAuthorizer struct {
 	allowed map[string]bool
 }
 
-func (a mockLeaveAuthorizer) HasPermission(_ context.Context, _ uuid.UUID, _ uuid.UUID, permission string) bool {
+func (a mockLeaveAuthorizer) IsMember(context.Context, uuid.UUID) (bool, error) {
+	return true, nil
+}
+
+func (a mockLeaveAuthorizer) HasPermission(_ context.Context, _ uuid.UUID, permission string) bool {
 	return a.allowed[permission]
 }
 
-func leaveRequest(t *testing.T, method, path, body string, wsID uuid.UUID) *http.Request {
+func (a mockLeaveAuthorizer) EffectivePermissions(context.Context, uuid.UUID) ([]string, []string, error) {
+	return nil, nil, nil
+}
+
+func (a mockLeaveAuthorizer) GetManagedDepartmentIDs(context.Context, uuid.UUID) ([]uuid.UUID, error) {
+	return nil, nil
+}
+
+func (a mockLeaveAuthorizer) IsGlobalManager(context.Context, uuid.UUID) bool {
+	return false
+}
+
+func (a mockLeaveAuthorizer) HasScopedPermission(context.Context, uuid.UUID, string, *uuid.UUID) bool {
+	return false
+}
+
+func (a mockLeaveAuthorizer) GetUsersWithPermission(context.Context, string) ([]uuid.UUID, error) {
+	return nil, nil
+}
+
+func leaveRequest(t *testing.T, method, path, body string) *http.Request {
 	t.Helper()
 	req := httptest.NewRequest(method, path, strings.NewReader(body))
-	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
 	return req
 }
 
 func TestLeaveHandlerSubmitDefaultsFullDayAndPending(t *testing.T) {
-	wsID, employmentID, leaveTypeID := uuid.New(), uuid.New(), uuid.New()
+	employmentID, leaveTypeID := uuid.New(), uuid.New()
 	repo := &mockLeaveRepository{}
 	handler := LeaveHandler{Repository: repo, Authorizer: mockLeaveAuthorizer{allowed: map[string]bool{"leave:requests:submit": true}}}
-	req := leaveRequest(t, http.MethodPost, "/api/v1/workspaces/"+wsID.String()+"/leave/submit", `{"employment_id":"`+employmentID.String()+`","leave_type_id":"`+leaveTypeID.String()+`","start_date":"2026-10-20","end_date":"2026-10-21"}`, wsID)
+	req := leaveRequest(t, http.MethodPost, "/api/v1" + "/leave/submit", `{"employment_id":"`+employmentID.String()+`","leave_type_id":"`+leaveTypeID.String()+`","start_date":"2026-10-20","end_date":"2026-10-21"}`)
 	rec := httptest.NewRecorder()
 	handler.Submit(rec, req)
 	if rec.Code != http.StatusCreated {
@@ -208,10 +231,10 @@ func TestLeaveHandlerSubmitDefaultsFullDayAndPending(t *testing.T) {
 }
 
 func TestLeaveHandlerSubmitRejectsInvalidCustomHours(t *testing.T) {
-	wsID, employmentID, leaveTypeID := uuid.New(), uuid.New(), uuid.New()
+	employmentID, leaveTypeID := uuid.New(), uuid.New()
 	repo := &mockLeaveRepository{}
 	handler := LeaveHandler{Repository: repo, Authorizer: mockLeaveAuthorizer{allowed: map[string]bool{"leave:requests:submit": true}}}
-	req := leaveRequest(t, http.MethodPost, "/api/v1/workspaces/"+wsID.String()+"/leave/submit", `{"employment_id":"`+employmentID.String()+`","leave_type_id":"`+leaveTypeID.String()+`","start_date":"2026-10-20","end_date":"2026-10-20","duration_type":"custom_hours","start_time":"17:00","end_time":"09:00"}`, wsID)
+	req := leaveRequest(t, http.MethodPost, "/api/v1" + "/leave/submit", `{"employment_id":"`+employmentID.String()+`","leave_type_id":"`+leaveTypeID.String()+`","start_date":"2026-10-20","end_date":"2026-10-20","duration_type":"custom_hours","start_time":"17:00","end_time":"09:00"}`)
 	rec := httptest.NewRecorder()
 	handler.Submit(rec, req)
 	if rec.Code != http.StatusBadRequest {
@@ -223,10 +246,9 @@ func TestLeaveHandlerSubmitRejectsInvalidCustomHours(t *testing.T) {
 }
 
 func TestLeaveHandlerSubmitAutoApprovesWithPermission(t *testing.T) {
-	wsID := uuid.New()
 	repo := &mockLeaveRepository{}
 	handler := LeaveHandler{Repository: repo, Authorizer: mockLeaveAuthorizer{allowed: map[string]bool{"leave:requests:submit": true, "leave:requests:approve": true}}}
-	req := leaveRequest(t, http.MethodPost, "/api/v1/workspaces/"+wsID.String()+"/leave/submit", `{"employment_id":"`+uuid.New().String()+`","leave_type_id":"`+uuid.New().String()+`","start_date":"2026-10-20","end_date":"2026-10-20"}`, wsID)
+	req := leaveRequest(t, http.MethodPost, "/api/v1" + "/leave/submit", `{"employment_id":"`+uuid.New().String()+`","leave_type_id":"`+uuid.New().String()+`","start_date":"2026-10-20","end_date":"2026-10-20"}`)
 	rec := httptest.NewRecorder()
 	handler.Submit(rec, req)
 	if rec.Code != http.StatusCreated || repo.submit.Status != "pre_approved" {
@@ -235,10 +257,9 @@ func TestLeaveHandlerSubmitAutoApprovesWithPermission(t *testing.T) {
 }
 
 func TestLeaveHandlerApproveRequiresAllowedStatus(t *testing.T) {
-	wsID := uuid.New()
 	repo := &mockLeaveRepository{}
 	handler := LeaveHandler{Repository: repo, Authorizer: mockLeaveAuthorizer{allowed: map[string]bool{"leave:requests:approve": true}}}
-	req := leaveRequest(t, http.MethodPost, "/api/v1/workspaces/"+wsID.String()+"/leave/requests/"+uuid.New().String()+"/approve", `{"status":"pending"}`, wsID)
+	req := leaveRequest(t, http.MethodPost, "/api/v1" + "/leave/requests/"+uuid.New().String()+"/approve", `{"status":"pending"}`)
 	req.SetPathValue("id", uuid.New().String())
 	rec := httptest.NewRecorder()
 	handler.Approve(rec, req)
@@ -248,10 +269,10 @@ func TestLeaveHandlerApproveRequiresAllowedStatus(t *testing.T) {
 }
 
 func TestLeaveHandlerBalancesPreserveDecimal(t *testing.T) {
-	wsID, employeeID := uuid.New(), uuid.New()
+	employeeID := uuid.New()
 	repo := &mockLeaveRepository{balances: []EmployeeLeaveBalanceRecord{{LeaveTypeID: uuid.New(), AccruedAmount: decimal.RequireFromString("1.25"), Remaining: decimal.RequireFromString("13.25")}}}
 	handler := LeaveHandler{Repository: repo, Authorizer: mockLeaveAuthorizer{allowed: map[string]bool{"leave:balances:read": true}}}
-	req := leaveRequest(t, http.MethodGet, "/api/v1/workspaces/"+wsID.String()+"/employees/"+employeeID.String()+"/leave/balances", "", wsID)
+	req := leaveRequest(t, http.MethodGet, "/api/v1" + "/employees/"+employeeID.String()+"/leave/balances", "")
 	req.SetPathValue("id", employeeID.String())
 	rec := httptest.NewRecorder()
 	handler.Balances(rec, req)
@@ -261,12 +282,12 @@ func TestLeaveHandlerBalancesPreserveDecimal(t *testing.T) {
 }
 
 func TestLeaveHandlerUpdateTypeConfig(t *testing.T) {
-	wsID, typeID := uuid.New(), uuid.New()
+	typeID := uuid.New()
 	repo := &mockLeaveRepository{
 		updateConfigRecord: LeaveTypeRecord{ID: typeID, Code: "annual", Name: "Annual", IsPaid: true},
 	}
 	handler := LeaveHandler{Repository: repo, Authorizer: mockLeaveAuthorizer{allowed: map[string]bool{"leave:types:manage": true}}}
-	req := leaveRequest(t, http.MethodPut, "/api/v1/workspaces/"+wsID.String()+"/leave/types/"+typeID.String()+"/config", `{"policy_config":{"requires_document":true,"allow_negative_balance":false,"approval_required":true}}`, wsID)
+	req := leaveRequest(t, http.MethodPut, "/api/v1" + "/leave/types/"+typeID.String()+"/config", `{"policy_config":{"requires_document":true,"allow_negative_balance":false,"approval_required":true}}`)
 	req.SetPathValue("id", typeID.String())
 	rec := httptest.NewRecorder()
 	handler.UpdateTypeConfig(rec, req)
@@ -276,10 +297,10 @@ func TestLeaveHandlerUpdateTypeConfig(t *testing.T) {
 }
 
 func TestLeaveHandlerDeleteType(t *testing.T) {
-	wsID, typeID := uuid.New(), uuid.New()
+	typeID := uuid.New()
 	repo := &mockLeaveRepository{}
 	handler := LeaveHandler{Repository: repo, Authorizer: mockLeaveAuthorizer{allowed: map[string]bool{"leave:types:manage": true}}}
-	req := leaveRequest(t, http.MethodDelete, "/api/v1/workspaces/"+wsID.String()+"/leave/types/"+typeID.String(), "", wsID)
+	req := leaveRequest(t, http.MethodDelete, "/api/v1" + "/leave/types/"+typeID.String(), "")
 	req.SetPathValue("id", typeID.String())
 	rec := httptest.NewRecorder()
 	handler.DeleteType(rec, req)
@@ -289,12 +310,12 @@ func TestLeaveHandlerDeleteType(t *testing.T) {
 }
 
 func TestLeaveHandlerRestoreType(t *testing.T) {
-	wsID, typeID := uuid.New(), uuid.New()
+	typeID := uuid.New()
 	repo := &mockLeaveRepository{
 		restoreTypeRecord: LeaveTypeRecord{ID: typeID, Code: "annual", Name: "Annual", IsPaid: true},
 	}
 	handler := LeaveHandler{Repository: repo, Authorizer: mockLeaveAuthorizer{allowed: map[string]bool{"leave:types:manage": true}}}
-	req := leaveRequest(t, http.MethodPost, "/api/v1/workspaces/"+wsID.String()+"/leave/types/"+typeID.String()+"/restore", "", wsID)
+	req := leaveRequest(t, http.MethodPost, "/api/v1" + "/leave/types/"+typeID.String()+"/restore", "")
 	req.SetPathValue("id", typeID.String())
 	rec := httptest.NewRecorder()
 	handler.RestoreType(rec, req)
@@ -304,9 +325,9 @@ func TestLeaveHandlerRestoreType(t *testing.T) {
 }
 
 func TestLeaveHandlerLifecycleForbidden(t *testing.T) {
-	wsID, typeID := uuid.New(), uuid.New()
+	typeID := uuid.New()
 	handler := LeaveHandler{Repository: &mockLeaveRepository{}, Authorizer: mockLeaveAuthorizer{allowed: map[string]bool{}}}
-	req := leaveRequest(t, http.MethodDelete, "/api/v1/workspaces/"+wsID.String()+"/leave/types/"+typeID.String(), "", wsID)
+	req := leaveRequest(t, http.MethodDelete, "/api/v1" + "/leave/types/"+typeID.String(), "")
 	req.SetPathValue("id", typeID.String())
 	rec := httptest.NewRecorder()
 	handler.DeleteType(rec, req)
@@ -314,10 +335,9 @@ func TestLeaveHandlerLifecycleForbidden(t *testing.T) {
 		t.Fatalf("expected 403, got %d", rec.Code)
 	}
 }
-func TestLeaveHandlerWorkspaceBalances(t *testing.T) {
-	wsID := uuid.New()
+func TestLeaveHandlerOrganizationBalances(t *testing.T) {
 	repo := &mockLeaveRepository{
-		wsBalances: []WorkspaceLeaveBalance{
+		wsBalances: []OrganizationLeaveBalance{
 			{
 				EmployeeID:    uuid.New(),
 				EmployeeName:  "John Doe",
@@ -333,13 +353,13 @@ func TestLeaveHandlerWorkspaceBalances(t *testing.T) {
 		wsTotal: 1,
 	}
 	handler := LeaveHandler{Repository: repo, Authorizer: mockLeaveAuthorizer{allowed: map[string]bool{"leave:balances:read": true}}}
-	req := leaveRequest(t, http.MethodGet, "/api/v1/workspaces/"+wsID.String()+"/leave/balances?page=1&limit=20", "", wsID)
+	req := leaveRequest(t, http.MethodGet, "/api/v1" + "/leave/balances?page=1&limit=20", "")
 	rec := httptest.NewRecorder()
-	handler.WorkspaceBalances(rec, req)
+	handler.OrganizationBalances(rec, req)
 	if rec.Code != http.StatusOK {
 		t.Fatalf("expected 200, got %d: %s", rec.Code, rec.Body.String())
 	}
-	var res PaginatedWorkspaceLeaveBalances
+	var res PaginatedOrganizationLeaveBalances
 	if err := json.NewDecoder(rec.Body).Decode(&res); err != nil {
 		t.Fatalf("decode response: %v", err)
 	}
@@ -349,16 +369,16 @@ func TestLeaveHandlerWorkspaceBalances(t *testing.T) {
 
 	// Test forbidden
 	handlerForbidden := LeaveHandler{Repository: repo, Authorizer: mockLeaveAuthorizer{allowed: map[string]bool{}}}
-	reqForbidden := leaveRequest(t, http.MethodGet, "/api/v1/workspaces/"+wsID.String()+"/leave/balances", "", wsID)
+	reqForbidden := leaveRequest(t, http.MethodGet, "/api/v1" + "/leave/balances", "")
 	recForbidden := httptest.NewRecorder()
-	handlerForbidden.WorkspaceBalances(recForbidden, reqForbidden)
+	handlerForbidden.OrganizationBalances(recForbidden, reqForbidden)
 	if recForbidden.Code != http.StatusForbidden {
 		t.Fatalf("expected 403, got %d", recForbidden.Code)
 	}
 }
 
 func TestLeaveHandlerEmployeeHistory(t *testing.T) {
-	wsID, empID := uuid.New(), uuid.New()
+	empID := uuid.New()
 	repo := &mockLeaveRepository{
 		history: []LeaveHistoryItem{
 			{
@@ -369,7 +389,7 @@ func TestLeaveHandlerEmployeeHistory(t *testing.T) {
 		},
 	}
 	handler := LeaveHandler{Repository: repo, Authorizer: mockLeaveAuthorizer{allowed: map[string]bool{"leave:balances:read": true}}}
-	req := leaveRequest(t, http.MethodGet, "/api/v1/workspaces/"+wsID.String()+"/employees/"+empID.String()+"/leave/history?year=2026", "", wsID)
+	req := leaveRequest(t, http.MethodGet, "/api/v1" + "/employees/"+empID.String()+"/leave/history?year=2026", "")
 	req.SetPathValue("id", empID.String())
 	rec := httptest.NewRecorder()
 	handler.EmployeeHistory(rec, req)
@@ -379,11 +399,11 @@ func TestLeaveHandlerEmployeeHistory(t *testing.T) {
 }
 
 func TestLeaveHandlerAdjustBalance(t *testing.T) {
-	wsID, empID, leaveTypeID := uuid.New(), uuid.New(), uuid.New()
+	empID, leaveTypeID := uuid.New(), uuid.New()
 	repo := &mockLeaveRepository{}
 	handler := LeaveHandler{Repository: repo, Authorizer: mockLeaveAuthorizer{allowed: map[string]bool{"leave:balances:adjust": true}}}
 	body := `{"leave_type_id":"` + leaveTypeID.String() + `","amount":2.5,"reason":"Correction","transaction_date":"2026-06-01"}`
-	req := leaveRequest(t, http.MethodPost, "/api/v1/workspaces/"+wsID.String()+"/employees/"+empID.String()+"/leave/adjust", body, wsID)
+	req := leaveRequest(t, http.MethodPost, "/api/v1" + "/employees/"+empID.String()+"/leave/adjust", body)
 	req.SetPathValue("id", empID.String())
 	rec := httptest.NewRecorder()
 	handler.AdjustBalance(rec, req)
@@ -396,7 +416,7 @@ func TestLeaveHandlerAdjustBalance(t *testing.T) {
 
 	// Test validation error: missing effective_date
 	badBody := `{"leave_type_id":"` + leaveTypeID.String() + `","amount":2.5,"reason":"Correction"}`
-	reqBad := leaveRequest(t, http.MethodPost, "/api/v1/workspaces/"+wsID.String()+"/employees/"+empID.String()+"/leave/adjust", badBody, wsID)
+	reqBad := leaveRequest(t, http.MethodPost, "/api/v1" + "/employees/"+empID.String()+"/leave/adjust", badBody)
 	reqBad.SetPathValue("id", empID.String())
 	recBad := httptest.NewRecorder()
 	handler.AdjustBalance(recBad, reqBad)
@@ -406,7 +426,7 @@ func TestLeaveHandlerAdjustBalance(t *testing.T) {
 }
 
 func TestLeaveHandlerMyRequests(t *testing.T) {
-	wsID, empID := uuid.New(), uuid.New()
+	empID := uuid.New()
 	repo := &mockLeaveRepository{
 		requests: []LeaveRequestRecord{
 			{
@@ -418,7 +438,7 @@ func TestLeaveHandlerMyRequests(t *testing.T) {
 		},
 	}
 	handler := LeaveHandler{Repository: repo, Authorizer: mockLeaveAuthorizer{allowed: map[string]bool{"leave:requests:read": true}}}
-	req := leaveRequest(t, http.MethodGet, "/api/v1/employees/"+empID.String()+"/leave/requests", "", wsID)
+	req := leaveRequest(t, http.MethodGet, "/api/v1/employees/"+empID.String()+"/leave/requests", "")
 	req.SetPathValue("id", empID.String())
 	rec := httptest.NewRecorder()
 	handler.MyRequests(rec, req)
@@ -428,18 +448,18 @@ func TestLeaveHandlerMyRequests(t *testing.T) {
 }
 
 func TestLeaveHandlerPoliciesCRUD(t *testing.T) {
-	wsID, policyID, typeID := uuid.New(), uuid.New(), uuid.New()
+	policyID, typeID := uuid.New(), uuid.New()
 	repo := &mockLeaveRepository{
 		policies: []LeavePolicyDefinition{
-			{ID: policyID, WorkspaceID: wsID, LeaveTypeID: typeID, Name: "Standard Policy", RuleConfig: LeavePolicyConfig{Frequency: "monthly"}},
+			{ID: policyID, LeaveTypeID: typeID, Name: "Standard Policy", RuleConfig: LeavePolicyConfig{Frequency: "monthly"}},
 		},
-		createdPolicy: LeavePolicyDefinition{ID: policyID, WorkspaceID: wsID, LeaveTypeID: typeID, Name: "New Policy", RuleConfig: LeavePolicyConfig{Frequency: "monthly"}},
-		updatedPolicy: LeavePolicyDefinition{ID: policyID, WorkspaceID: wsID, LeaveTypeID: typeID, Name: "Updated Policy", RuleConfig: LeavePolicyConfig{Frequency: "monthly"}},
+		createdPolicy: LeavePolicyDefinition{ID: policyID, LeaveTypeID: typeID, Name: "New Policy", RuleConfig: LeavePolicyConfig{Frequency: "monthly"}},
+		updatedPolicy: LeavePolicyDefinition{ID: policyID, LeaveTypeID: typeID, Name: "Updated Policy", RuleConfig: LeavePolicyConfig{Frequency: "monthly"}},
 	}
 	handler := LeaveHandler{Repository: repo, Authorizer: mockLeaveAuthorizer{allowed: map[string]bool{"leave:policies:manage": true}}}
 
 	// List
-	reqList := leaveRequest(t, http.MethodGet, "/api/v1/workspaces/"+wsID.String()+"/leave/policies", "", wsID)
+	reqList := leaveRequest(t, http.MethodGet, "/api/v1" + "/leave/policies", "")
 	recList := httptest.NewRecorder()
 	handler.ListPolicies(recList, reqList)
 	if recList.Code != http.StatusOK {
@@ -448,7 +468,7 @@ func TestLeaveHandlerPoliciesCRUD(t *testing.T) {
 
 	// Create
 	createBody := `{"leave_type_id":"` + typeID.String() + `","name":"New Policy","rule_config":{}}`
-	reqCreate := leaveRequest(t, http.MethodPost, "/api/v1/workspaces/"+wsID.String()+"/leave/policies", createBody, wsID)
+	reqCreate := leaveRequest(t, http.MethodPost, "/api/v1" + "/leave/policies", createBody)
 	recCreate := httptest.NewRecorder()
 	handler.CreatePolicy(recCreate, reqCreate)
 	if recCreate.Code != http.StatusCreated {
@@ -457,7 +477,7 @@ func TestLeaveHandlerPoliciesCRUD(t *testing.T) {
 
 	// Update
 	updateBody := `{"name":"Updated Policy"}`
-	reqUpdate := leaveRequest(t, http.MethodPatch, "/api/v1/workspaces/"+wsID.String()+"/leave/policies/"+policyID.String(), updateBody, wsID)
+	reqUpdate := leaveRequest(t, http.MethodPatch, "/api/v1" + "/leave/policies/"+policyID.String(), updateBody)
 	reqUpdate.SetPathValue("policy_id", policyID.String())
 	recUpdate := httptest.NewRecorder()
 	handler.UpdatePolicy(recUpdate, reqUpdate)
@@ -466,7 +486,7 @@ func TestLeaveHandlerPoliciesCRUD(t *testing.T) {
 	}
 
 	// Delete
-	reqDelete := leaveRequest(t, http.MethodDelete, "/api/v1/workspaces/"+wsID.String()+"/leave/policies/"+policyID.String(), "", wsID)
+	reqDelete := leaveRequest(t, http.MethodDelete, "/api/v1" + "/leave/policies/"+policyID.String(), "")
 	reqDelete.SetPathValue("policy_id", policyID.String())
 	recDelete := httptest.NewRecorder()
 	handler.DeletePolicy(recDelete, reqDelete)
@@ -476,12 +496,11 @@ func TestLeaveHandlerPoliciesCRUD(t *testing.T) {
 }
 
 func TestLeaveHandlerPolicyAssignments(t *testing.T) {
-	wsID, assignmentID, policyID := uuid.New(), uuid.New(), uuid.New()
+	assignmentID, policyID := uuid.New(), uuid.New()
 	repo := &mockLeaveRepository{
 		assignedPolicy: LeavePolicyAssignment{
 			ID:            assignmentID,
-			WorkspaceID:   wsID,
-			AssigneeType:  "workspace",
+			AssigneeType:  "organization",
 			PolicyID:      policyID,
 			EffectiveFrom: "2026-01-01",
 		},
@@ -489,8 +508,7 @@ func TestLeaveHandlerPolicyAssignments(t *testing.T) {
 			{
 				LeavePolicyAssignment: LeavePolicyAssignment{
 					ID:            assignmentID,
-					WorkspaceID:   wsID,
-					AssigneeType:  "workspace",
+					AssigneeType:  "organization",
 					PolicyID:      policyID,
 					EffectiveFrom: "2026-01-01",
 				},
@@ -502,8 +520,8 @@ func TestLeaveHandlerPolicyAssignments(t *testing.T) {
 	handler := LeaveHandler{Repository: repo, Authorizer: mockLeaveAuthorizer{allowed: map[string]bool{"leave:policies:manage": true}}}
 
 	// Assign
-	assignBody := `{"policy_id":"` + policyID.String() + `","assignee_type":"workspace","effective_from":"2026-01-01"}`
-	reqAssign := leaveRequest(t, http.MethodPost, "/api/v1/workspaces/"+wsID.String()+"/leave/policies/assign", assignBody, wsID)
+	assignBody := `{"policy_id":"` + policyID.String() + `","assignee_type":"organization","effective_from":"2026-01-01"}`
+	reqAssign := leaveRequest(t, http.MethodPost, "/api/v1" + "/leave/policies/assign", assignBody)
 	recAssign := httptest.NewRecorder()
 	handler.AssignPolicy(recAssign, reqAssign)
 	if recAssign.Code != http.StatusCreated {
@@ -512,7 +530,7 @@ func TestLeaveHandlerPolicyAssignments(t *testing.T) {
 	// Assign user policy
 	targetUserID := uuid.New()
 	assignUserBody := `{"policy_id":"` + policyID.String() + `","assignee_type":"user","assignee_id":"` + targetUserID.String() + `","effective_from":"2026-01-01"}`
-	reqAssignUser := leaveRequest(t, http.MethodPost, "/api/v1/workspaces/"+wsID.String()+"/leave/policies/assign", assignUserBody, wsID)
+	reqAssignUser := leaveRequest(t, http.MethodPost, "/api/v1" + "/leave/policies/assign", assignUserBody)
 	recAssignUser := httptest.NewRecorder()
 	handler.AssignPolicy(recAssignUser, reqAssignUser)
 	if recAssignUser.Code != http.StatusCreated {
@@ -520,7 +538,7 @@ func TestLeaveHandlerPolicyAssignments(t *testing.T) {
 	}
 
 	// List assignments
-	reqList := leaveRequest(t, http.MethodGet, "/api/v1/workspaces/"+wsID.String()+"/leave/policies/assignments", "", wsID)
+	reqList := leaveRequest(t, http.MethodGet, "/api/v1" + "/leave/policies/assignments", "")
 	recList := httptest.NewRecorder()
 	handler.ListPolicyAssignments(recList, reqList)
 	if recList.Code != http.StatusOK {
@@ -528,7 +546,7 @@ func TestLeaveHandlerPolicyAssignments(t *testing.T) {
 	}
 
 	// Delete assignment
-	reqDelete := leaveRequest(t, http.MethodDelete, "/api/v1/workspaces/"+wsID.String()+"/leave/policies/assignments/"+assignmentID.String(), "", wsID)
+	reqDelete := leaveRequest(t, http.MethodDelete, "/api/v1" + "/leave/policies/assignments/"+assignmentID.String(), "")
 	reqDelete.SetPathValue("assignment_id", assignmentID.String())
 	recDelete := httptest.NewRecorder()
 	handler.DeletePolicyAssignment(recDelete, reqDelete)
@@ -538,7 +556,7 @@ func TestLeaveHandlerPolicyAssignments(t *testing.T) {
 }
 
 func TestLeaveHandlerAccrualAndJobStatus(t *testing.T) {
-	wsID, jobID := uuid.New(), uuid.New()
+	jobID := uuid.New()
 	repo := &mockLeaveRepository{
 		accrualJobID: jobID,
 		jobStatus: LeaveJobStatusResponse{
@@ -549,7 +567,7 @@ func TestLeaveHandlerAccrualAndJobStatus(t *testing.T) {
 	handler := LeaveHandler{Repository: repo, Authorizer: mockLeaveAuthorizer{allowed: map[string]bool{"leave:accrual:run": true}}}
 
 	// Trigger accrual
-	reqRun := leaveRequest(t, http.MethodPost, "/api/v1/workspaces/"+wsID.String()+"/leave/accrual/run", `{"date":"2026-10-20"}`, wsID)
+	reqRun := leaveRequest(t, http.MethodPost, "/api/v1" + "/leave/accrual/run", `{"date":"2026-10-20"}`)
 	recRun := httptest.NewRecorder()
 	handler.TriggerAccrual(recRun, reqRun)
 	if recRun.Code != http.StatusOK {
@@ -557,7 +575,7 @@ func TestLeaveHandlerAccrualAndJobStatus(t *testing.T) {
 	}
 
 	// Check status
-	reqStatus := leaveRequest(t, http.MethodGet, "/api/v1/workspaces/"+wsID.String()+"/jobs/"+jobID.String()+"/status", "", wsID)
+	reqStatus := leaveRequest(t, http.MethodGet, "/api/v1" + "/jobs/"+jobID.String()+"/status", "")
 	reqStatus.SetPathValue("job_id", jobID.String())
 	recStatus := httptest.NewRecorder()
 	handler.JobStatus(recStatus, reqStatus)
@@ -567,18 +585,16 @@ func TestLeaveHandlerAccrualAndJobStatus(t *testing.T) {
 }
 
 func TestLeaveHandlerBehalfAssignments(t *testing.T) {
-	wsID, behalfID, targetEmpID := uuid.New(), uuid.New(), uuid.New()
+	behalfID, targetEmpID := uuid.New(), uuid.New()
 	behalfRepo := &mockLeaveBehalfRepo{
 		created: BehalfAssignment{
 			ID:               behalfID,
-			WorkspaceID:      wsID,
 			TargetEmployeeID: &targetEmpID,
 			AssignmentType:   "employee",
 		},
 		assignments: []BehalfAssignment{
 			{
 				ID:               behalfID,
-				WorkspaceID:      wsID,
 				TargetEmployeeID: &targetEmpID,
 				AssignmentType:   "employee",
 			},
@@ -597,7 +613,7 @@ func TestLeaveHandlerBehalfAssignments(t *testing.T) {
 	}
 
 	// List behalf assignments
-	reqList := leaveRequest(t, http.MethodGet, "/api/v1/workspaces/"+wsID.String()+"/leave/behalf-assignments", "", wsID)
+	reqList := leaveRequest(t, http.MethodGet, "/api/v1" + "/leave/behalf-assignments", "")
 	recList := httptest.NewRecorder()
 	handler.ListBehalfAssignments(recList, reqList)
 	if recList.Code != http.StatusOK {
@@ -606,7 +622,7 @@ func TestLeaveHandlerBehalfAssignments(t *testing.T) {
 
 	// Create behalf assignment
 	createBody := `{"assignee_user_id":"` + uuid.New().String() + `","target_employee_id":"` + targetEmpID.String() + `"}`
-	reqCreate := leaveRequest(t, http.MethodPost, "/api/v1/workspaces/"+wsID.String()+"/leave/behalf-assignments", createBody, wsID)
+	reqCreate := leaveRequest(t, http.MethodPost, "/api/v1" + "/leave/behalf-assignments", createBody)
 	recCreate := httptest.NewRecorder()
 	handler.CreateBehalfAssignment(recCreate, reqCreate)
 	if recCreate.Code != http.StatusOK {
@@ -614,7 +630,7 @@ func TestLeaveHandlerBehalfAssignments(t *testing.T) {
 	}
 
 	// My targets
-	reqTargets := leaveRequest(t, http.MethodGet, "/api/v1/workspaces/"+wsID.String()+"/leave/behalf-assignments/my-targets", "", wsID)
+	reqTargets := leaveRequest(t, http.MethodGet, "/api/v1" + "/leave/behalf-assignments/my-targets", "")
 	recTargets := httptest.NewRecorder()
 	handler.GetMyBehalfTargets(recTargets, reqTargets)
 	if recTargets.Code != http.StatusOK {
@@ -622,7 +638,7 @@ func TestLeaveHandlerBehalfAssignments(t *testing.T) {
 	}
 
 	// Delete behalf assignment
-	reqDelete := leaveRequest(t, http.MethodDelete, "/api/v1/workspaces/"+wsID.String()+"/leave/behalf-assignments/"+behalfID.String(), "", wsID)
+	reqDelete := leaveRequest(t, http.MethodDelete, "/api/v1" + "/leave/behalf-assignments/"+behalfID.String(), "")
 	reqDelete.SetPathValue("id", behalfID.String())
 	recDelete := httptest.NewRecorder()
 	handler.DeleteBehalfAssignment(recDelete, reqDelete)
@@ -632,12 +648,11 @@ func TestLeaveHandlerBehalfAssignments(t *testing.T) {
 }
 
 func TestLeaveHandlerImportEndpoints(t *testing.T) {
-	wsID, jobID := uuid.New(), uuid.New()
+	jobID := uuid.New()
 	now := time.Now()
 	importRepo := &mockLeaveImportRepo{
 		job: &LeaveImportJob{
 			ID:            jobID,
-			WorkspaceID:   wsID,
 			Status:        "completed",
 			TotalRows:     10,
 			ProcessedRows: 8,
@@ -652,7 +667,7 @@ func TestLeaveHandlerImportEndpoints(t *testing.T) {
 	}
 
 	// Template download
-	reqTpl := leaveRequest(t, http.MethodGet, "/api/v1/workspaces/"+wsID.String()+"/leave/upload-template", "", wsID)
+	reqTpl := leaveRequest(t, http.MethodGet, "/api/v1" + "/leave/upload-template", "")
 	recTpl := httptest.NewRecorder()
 	handler.UploadTemplate(recTpl, reqTpl)
 	if recTpl.Code != http.StatusOK {
@@ -663,7 +678,7 @@ func TestLeaveHandlerImportEndpoints(t *testing.T) {
 	}
 
 	// Latest import
-	reqLatest := leaveRequest(t, http.MethodGet, "/api/v1/workspaces/"+wsID.String()+"/leave/import/latest", "", wsID)
+	reqLatest := leaveRequest(t, http.MethodGet, "/api/v1" + "/leave/import/latest", "")
 	recLatest := httptest.NewRecorder()
 	handler.LatestImport(recLatest, reqLatest)
 	if recLatest.Code != http.StatusOK {
@@ -671,7 +686,7 @@ func TestLeaveHandlerImportEndpoints(t *testing.T) {
 	}
 
 	// Import errors
-	reqErr := leaveRequest(t, http.MethodGet, "/api/v1/workspaces/"+wsID.String()+"/leave/import/"+jobID.String()+"/errors", "", wsID)
+	reqErr := leaveRequest(t, http.MethodGet, "/api/v1" + "/leave/import/"+jobID.String()+"/errors", "")
 	reqErr.SetPathValue("job_id", jobID.String())
 	recErr := httptest.NewRecorder()
 	handler.ImportErrors(recErr, reqErr)

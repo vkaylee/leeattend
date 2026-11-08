@@ -22,22 +22,19 @@ func (r ConditionTypeRepository) db(ctx context.Context) (DBTX, error) {
 	return r.DB, nil
 }
 
-func (r ConditionTypeRepository) List(ctx context.Context, wsID uuid.UUID, activeOnly bool) ([]api.ConditionTypeRecord, error) {
+func (r ConditionTypeRepository) List(ctx context.Context, activeOnly bool) ([]api.ConditionTypeRecord, error) {
 	db, err := r.db(ctx)
 	if err != nil {
 		return nil, err
 	}
 	query := `SELECT
-		id, workspace_id, code, name_i18n, category, default_minute_allowance,
+		id, code, name_i18n, category, default_minute_allowance,
 		default_is_paid, affects_rules, icon, color, is_system, sort_order,
 		is_active, created_at, updated_at
 	FROM condition_type_definitions
-	WHERE workspace_id = $1`
-	if activeOnly {
-		query += " AND is_active = true"
-	}
-	query += " ORDER BY sort_order ASC, code ASC"
-	rows, err := db.Query(ctx, query, wsID)
+	WHERE ($1 = FALSE OR is_active = TRUE)
+	ORDER BY sort_order ASC, code ASC`
+	rows, err := db.Query(ctx, query, activeOnly)
 	if err != nil {
 		return nil, err
 	}
@@ -47,7 +44,7 @@ func (r ConditionTypeRepository) List(ctx context.Context, wsID uuid.UUID, activ
 		var rec api.ConditionTypeRecord
 		var created, updated time.Time
 		if err := rows.Scan(
-			&rec.ID, &rec.WorkspaceID, &rec.Code, &rec.NameI18N, &rec.Category,
+			&rec.ID, &rec.Code, &rec.NameI18N, &rec.Category,
 			&rec.DefaultMinuteAllowance, &rec.DefaultIsPaid, &rec.AffectsRules,
 			&rec.Icon, &rec.Color, &rec.IsSystem, &rec.SortOrder, &rec.IsActive,
 			&created, &updated,
@@ -61,7 +58,7 @@ func (r ConditionTypeRepository) List(ctx context.Context, wsID uuid.UUID, activ
 	return result, rows.Err()
 }
 
-func (r ConditionTypeRepository) Get(ctx context.Context, wsID, id uuid.UUID) (api.ConditionTypeRecord, error) {
+func (r ConditionTypeRepository) Get(ctx context.Context, id uuid.UUID) (api.ConditionTypeRecord, error) {
 	db, err := r.db(ctx)
 	if err != nil {
 		return api.ConditionTypeRecord{}, err
@@ -69,12 +66,12 @@ func (r ConditionTypeRepository) Get(ctx context.Context, wsID, id uuid.UUID) (a
 	var rec api.ConditionTypeRecord
 	var created, updated time.Time
 	err = db.QueryRow(ctx, `SELECT
-		id, workspace_id, code, name_i18n, category, default_minute_allowance,
+		id, code, name_i18n, category, default_minute_allowance,
 		default_is_paid, affects_rules, icon, color, is_system, sort_order,
 		is_active, created_at, updated_at
 	FROM condition_type_definitions
-	WHERE workspace_id = $1 AND id = $2`, wsID, id).Scan(
-		&rec.ID, &rec.WorkspaceID, &rec.Code, &rec.NameI18N, &rec.Category,
+	WHERE id = $1`, id).Scan(
+		&rec.ID, &rec.Code, &rec.NameI18N, &rec.Category,
 		&rec.DefaultMinuteAllowance, &rec.DefaultIsPaid, &rec.AffectsRules,
 		&rec.Icon, &rec.Color, &rec.IsSystem, &rec.SortOrder, &rec.IsActive,
 		&created, &updated,
@@ -95,14 +92,14 @@ func (r ConditionTypeRepository) Create(ctx context.Context, record api.Conditio
 		return api.ConditionTypeRecord{}, err
 	}
 	_, err = db.Exec(ctx, `INSERT INTO condition_type_definitions (
-		id, workspace_id, code, name_i18n, category, default_minute_allowance,
+		id, code, name_i18n, category, default_minute_allowance,
 		default_is_paid, affects_rules, icon, color, is_system, sort_order,
 		is_active, created_at, updated_at
 	) VALUES (
 		$1, $2, $3, $4, $5, $6,
 		$7, $8, $9, $10, $11, $12,
-		$13, NOW(), NOW()
-	)`, record.ID, record.WorkspaceID, record.Code, record.NameI18N, record.Category,
+		NOW(), NOW()
+	)`, record.ID, record.Code, record.NameI18N, record.Category,
 		record.DefaultMinuteAllowance, record.DefaultIsPaid, record.AffectsRules,
 		record.Icon, record.Color, record.IsSystem, record.SortOrder, record.IsActive)
 	if err != nil {
@@ -111,15 +108,15 @@ func (r ConditionTypeRepository) Create(ctx context.Context, record api.Conditio
 		}
 		return api.ConditionTypeRecord{}, err
 	}
-	return r.Get(ctx, record.WorkspaceID, record.ID)
+	return r.Get(ctx, record.ID)
 }
 
-func (r ConditionTypeRepository) Update(ctx context.Context, wsID, id uuid.UUID, req api.UpdateConditionTypeRequest) (api.ConditionTypeRecord, error) {
+func (r ConditionTypeRepository) Update(ctx context.Context, id uuid.UUID, req api.UpdateConditionTypeRequest) (api.ConditionTypeRecord, error) {
 	db, err := r.db(ctx)
 	if err != nil {
 		return api.ConditionTypeRecord{}, err
 	}
-	existing, err := r.Get(ctx, wsID, id)
+	existing, err := r.Get(ctx, id)
 	if err != nil {
 		return api.ConditionTypeRecord{}, err
 	}
@@ -154,23 +151,23 @@ func (r ConditionTypeRepository) Update(ctx context.Context, wsID, id uuid.UUID,
 		name_i18n = $1, category = $2, default_minute_allowance = $3,
 		default_is_paid = $4, affects_rules = $5, icon = $6, color = $7,
 		sort_order = $8, is_active = $9, updated_at = NOW()
-	WHERE workspace_id = $10 AND id = $11`,
+	WHERE id = $10`,
 		existing.NameI18N, existing.Category, existing.DefaultMinuteAllowance,
 		existing.DefaultIsPaid, existing.AffectsRules, existing.Icon, existing.Color,
-		existing.SortOrder, existing.IsActive, wsID, id)
+		existing.SortOrder, existing.IsActive, id)
 	if err != nil {
 		return api.ConditionTypeRecord{}, err
 	}
-	return r.Get(ctx, wsID, id)
+	return r.Get(ctx, id)
 }
 
-func (r ConditionTypeRepository) Delete(ctx context.Context, wsID, id uuid.UUID) error {
+func (r ConditionTypeRepository) Delete(ctx context.Context, id uuid.UUID) error {
 	db, err := r.db(ctx)
 	if err != nil {
 		return err
 	}
 	var isSystem bool
-	err = db.QueryRow(ctx, `SELECT is_system FROM condition_type_definitions WHERE workspace_id = $1 AND id = $2`, wsID, id).Scan(&isSystem)
+	err = db.QueryRow(ctx, `SELECT is_system FROM condition_type_definitions WHERE id = $1`, id).Scan(&isSystem)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return api.ErrConditionTypeNotFound
@@ -180,6 +177,6 @@ func (r ConditionTypeRepository) Delete(ctx context.Context, wsID, id uuid.UUID)
 	if isSystem {
 		return api.ErrConditionTypeSystem
 	}
-	_, err = db.Exec(ctx, `DELETE FROM condition_type_definitions WHERE workspace_id = $1 AND id = $2`, wsID, id)
+	_, err = db.Exec(ctx, `DELETE FROM condition_type_definitions WHERE id = $1`, id)
 	return err
 }

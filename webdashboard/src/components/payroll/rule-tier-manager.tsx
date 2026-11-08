@@ -11,17 +11,16 @@ import { fetchPayrollRuleTiers, createPayrollRuleTier } from "@/lib/api/payroll"
 interface Props {
   onClose?: () => void;
   ruleId: string;
-  wsId: string;
 }
 
-export default function RuleTierManager({ wsId, ruleId, onClose: _onClose }: Props) {
+export default function RuleTierManager({ruleId, onClose: _onClose }: Props) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const toast = useToast();
 
   const { data: tiers, isLoading } = useQuery({
     queryKey: ["payroll-rule-tiers", ruleId],
-    queryFn: () => fetchPayrollRuleTiers(wsId, ruleId),
+    queryFn: () => fetchPayrollRuleTiers(ruleId),
     enabled: !!ruleId,
   });
 
@@ -39,7 +38,7 @@ export default function RuleTierManager({ wsId, ruleId, onClose: _onClose }: Pro
 
   const createMutation = useMutation({
     mutationFn: (data: typeof newTier) =>
-      createPayrollRuleTier(wsId, ruleId, {
+      createPayrollRuleTier(ruleId, {
         tier_order: (tiers?.length ?? 0) + 1,
         min_amount: String(data.min_amount),
         max_amount: data.max_amount !== undefined ? String(data.max_amount) : null,

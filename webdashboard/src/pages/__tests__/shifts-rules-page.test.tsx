@@ -22,11 +22,6 @@ vi.mock("../working-patterns-page", () => ({
   ),
 }));
 
-// Mock getStandaloneOrganizationId — return organization by default
-const mockGetStandaloneOrganizationId = vi.fn().mockReturnValue("ws-test-123");
-vi.mock("@/lib/api", () => ({
-  getStandaloneOrganizationId: () => mockGetStandaloneOrganizationId(),
-}));
 
 // Mock useSearch return value
 const mockUseSearch = vi.fn().mockReturnValue({});

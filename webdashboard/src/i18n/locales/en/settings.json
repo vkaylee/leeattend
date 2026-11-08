@@ -1,7 +1,7 @@
 {
   "workspace_settings": {
-    "title": "Workspace Settings",
-    "description": "Manage configuration, personnel, and workspace appearance.",
+    "title": "Organization Settings",
+    "description": "Manage configuration, personnel, and organization appearance.",
     "general_config": "General Configuration",
     "payroll_config": "Payroll Configuration",
     "attendance_config": "Attendance Configuration",
@@ -206,7 +206,7 @@
   "settings": {
     "categories": {
       "general": "General",
-      "general_desc": "Branding and basic workspace options.",
+      "general_desc": "Branding and basic organization options.",
       "locations": "Work Locations",
       "locations_desc": "Manage physical branches and locations.",
       "custom_fields": "Custom Fields",
@@ -293,7 +293,7 @@
         "bool_true": "True",
         "bool_false": "False",
         "scopes": {
-          "workspace": "Workspace",
+          "workspace": "Organization",
           "employer": "Employer",
           "department": "Department",
           "employee": "Employee"
@@ -327,7 +327,7 @@
     },
     "leave": {
       "title": "Leave Settings",
-      "desc": "Configure leave types and accrual policies for your workspace.",
+      "desc": "Configure leave types and accrual policies for your organization.",
       "tabs": {
         "types": "Leave Types",
         "policies": "Accrual Policies",
@@ -383,7 +383,7 @@
         "paid": "Paid",
         "unpaid": "Unpaid",
         "empty_title": "No Leave Types Configured",
-        "empty_desc": "Your workspace is fresh and clean. Start by creating leave types manually or use our professional templates.",
+        "empty_desc": "Your organization is fresh and clean. Start by creating leave types manually or use our professional templates.",
         "get_started": "Get Started",
         "loading": "Loading leave types...",
         "confirm_delete_title": "Confirm Delete",
@@ -550,7 +550,7 @@
       "control_panel": "System Configuration",
       "operations": "Operations",
       "security_system": "Security & System",
-      "workspace": "Workspace"
+      "workspace": "Organization"
     },
     "workflows": {
       "general_section": "General Config",
@@ -592,7 +592,7 @@
       "choose_role_placeholder": "Choose a Role...",
       "select_permission_label": "Select Permission",
       "choose_permission_placeholder": "Choose a Permission...",
-      "search_user_label": "Search Workspace User",
+      "search_user_label": "Search Organization User",
       "search_user_placeholder": "Type to search user...",
       "search_members_placeholder": "Search members...",
       "no_members_found": "No members found",
@@ -698,7 +698,7 @@
         "assignee_direct_manager": "Direct Manager",
         "assignee_it_admin": "IT Admin",
         "assignee_employee": "Self (Employee)",
-        "assignee_specific_user": "Specific Workspace User"
+        "assignee_specific_user": "Specific Organization User"
       }
     },
     "expand_sidebar": "Expand sidebar",

@@ -9,7 +9,7 @@ import { FileUpload } from "@/components/files/file-upload";
 import Button from "@/components/ui/button";
 import { toast } from "@/components/ui/toast-imperative";
 import { Typography } from "@/components/ui/typography";
-import { useWorkspace } from "@/hooks/use-workspace";
+import { useOrganization } from "@/hooks/use-organization";
 import { client } from "@/lib/api/client";
 import { logError } from "@/lib/logger";
 import { maybeNull } from "@/types/api-overrides";
@@ -23,7 +23,7 @@ interface EmployeeDocumentsTabProps {
 export function EmployeeDocumentsTab({ employeeId }: EmployeeDocumentsTabProps) {
   const _t = useTranslation().t;
   const queryClient = useQueryClient();
-  const { workspace: currentWorkspace } = useWorkspace();
+  const { workspace: currentWorkspace } = useOrganization();
   
   // State for Split Pane / File Upload Panel visibility
   const [showUploadPanel, setShowUploadPanel] = useState(false);
@@ -142,14 +142,11 @@ export function EmployeeDocumentsTab({ employeeId }: EmployeeDocumentsTabProps) 
       {/* Upload Panel (Collapsible) */}
       {showUploadPanel && currentWorkspace ? (
         <div className="animate-in slide-in-from-top-4 fade-in duration-300">
-          <FileUpload
-            category="EmployeeDoc"
-            maxSizeMB={50} // 50MB for Employee Docs
-            onUploadSuccess={handleUploadSuccess}
-            ownerId={employeeId}
-            ownerType="Employee"
-            workspaceId={currentWorkspace.id}
-          />
+          <FileUpload category="EmployeeDoc"
+          maxSizeMB={50} // 50MB for Employee Docs
+          onUploadSuccess={handleUploadSuccess}
+          ownerId={employeeId}
+          ownerType="Employee"  />
         </div>
       ) : null}
 

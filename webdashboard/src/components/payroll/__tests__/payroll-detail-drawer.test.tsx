@@ -58,7 +58,6 @@ describe("PayrollDetailDrawer", () => {
               onClose={onClose}
               onResolveAdjustments={onResolveAdjustments}
               payslips={[]}
-              workspaceId="ws-1"
             />
         </QueryClientProvider>
       </ToastProvider>
@@ -88,7 +87,6 @@ describe("PayrollDetailDrawer", () => {
               onClose={onClose}
               onResolveAdjustments={onResolveAdjustments}
               payslips={[]}
-              workspaceId="ws-1"
             />
         </QueryClientProvider>
       </ToastProvider>
@@ -113,7 +111,6 @@ describe("PayrollDetailDrawer", () => {
               onClose={onClose}
               onResolveAdjustments={onResolveAdjustments}
               payslips={[]}
-              workspaceId="ws-1"
             />
         </QueryClientProvider>
       </ToastProvider>

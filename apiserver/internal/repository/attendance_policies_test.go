@@ -15,7 +15,6 @@ import (
 )
 
 func TestAttendancePolicyRepository_GetDefaultPolicyRules_Fallback(t *testing.T) {
-	wsID := uuid.New()
 	db := &fakeDBTX{
 		queryRowFn: func(_ context.Context, sql string, _ ...any) pgx.Row {
 			if strings.Contains(sql, "FROM attendance_policy_versions") {
@@ -30,7 +29,7 @@ func TestAttendancePolicyRepository_GetDefaultPolicyRules_Fallback(t *testing.T)
 		DB: db,
 	}
 
-	rules, err := repo.GetDefaultPolicyRules(context.Background(), wsID)
+ 	rules, err := repo.GetDefaultPolicyRules(context.Background())
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -40,7 +39,6 @@ func TestAttendancePolicyRepository_GetDefaultPolicyRules_Fallback(t *testing.T)
 }
 
 func TestAttendancePolicyRepository_UpdateDefaultPolicyRules_Transaction(t *testing.T) {
-	wsID := uuid.New()
 	userID := uuid.New()
 	policyID := uuid.New()
 
@@ -65,7 +63,7 @@ func TestAttendancePolicyRepository_UpdateDefaultPolicyRules_Transaction(t *test
 	}
 
 	repo := AttendancePolicyRepository{
-		BeginTx: func(_ context.Context, _ uuid.UUID) (TxBeginner, error) {
+ 		BeginTx: func(_ context.Context) (TxBeginner, error) {
 			return fakeTxBeginner{tx: tx}, nil
 		},
 	}
@@ -79,7 +77,7 @@ func TestAttendancePolicyRepository_UpdateDefaultPolicyRules_Transaction(t *test
 		ValidFrom:       &validFrom,
 	}
 
-	res, err := repo.UpdateDefaultPolicyRules(context.Background(), wsID, userID, req)
+ 	res, err := repo.UpdateDefaultPolicyRules(context.Background(), userID, req)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -92,8 +90,7 @@ func TestAttendancePolicyRepository_UpdateDefaultPolicyRules_Transaction(t *test
 }
 
 func TestAttendancePolicyRepository_ListPolicyAssignments(t *testing.T) {
-	wsID := uuid.New()
-	assignID := uuid.New()
+ 	assignID := uuid.New()
 	targetID := uuid.New()
 	now := time.Now().UTC()
 
@@ -110,7 +107,7 @@ func TestAttendancePolicyRepository_ListPolicyAssignments(t *testing.T) {
 		DB: db,
 	}
 
-	list, err := repo.ListPolicyAssignments(context.Background(), wsID)
+ 	list, err := repo.ListPolicyAssignments(context.Background())
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -120,7 +117,6 @@ func TestAttendancePolicyRepository_ListPolicyAssignments(t *testing.T) {
 }
 
 func TestAttendancePolicyRepository_UpsertPolicyAssignment(t *testing.T) {
-	wsID := uuid.New()
 	userID := uuid.New()
 	targetID := uuid.New()
 	policyID := uuid.New()
@@ -142,7 +138,7 @@ func TestAttendancePolicyRepository_UpsertPolicyAssignment(t *testing.T) {
 	}
 
 	repo := AttendancePolicyRepository{
-		BeginTx: func(_ context.Context, _ uuid.UUID) (TxBeginner, error) {
+ 		BeginTx: func(_ context.Context) (TxBeginner, error) {
 			return fakeTxBeginner{tx: tx}, nil
 		},
 	}
@@ -155,7 +151,7 @@ func TestAttendancePolicyRepository_UpsertPolicyAssignment(t *testing.T) {
 		EarlyArrivalStrategy: "clamp",
 	}
 
-	res, err := repo.UpsertPolicyAssignment(context.Background(), wsID, userID, req)
+ 	res, err := repo.UpsertPolicyAssignment(context.Background(), userID, req)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -168,8 +164,7 @@ func TestAttendancePolicyRepository_UpsertPolicyAssignment(t *testing.T) {
 }
 
 func TestAttendancePolicyRepository_DeletePolicyAssignment(t *testing.T) {
-	wsID := uuid.New()
-	assignID := uuid.New()
+ 	assignID := uuid.New()
 
 	var executedSQL string
 	db := &fakeDBTX{
@@ -182,7 +177,7 @@ func TestAttendancePolicyRepository_DeletePolicyAssignment(t *testing.T) {
 		DB: db,
 	}
 
-	if err := repo.DeletePolicyAssignment(context.Background(), wsID, assignID); err != nil {
+ 	if err := repo.DeletePolicyAssignment(context.Background(), assignID); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	if !strings.Contains(executedSQL, "valid_to = NOW()") {
@@ -190,15 +185,14 @@ func TestAttendancePolicyRepository_DeletePolicyAssignment(t *testing.T) {
 	}
 }
 
-func TestAttendancePolicyRepository_BehalfAssignmentsRequireWorkspaceMember(t *testing.T) {
-	wsID := uuid.New()
-	assignee := uuid.New()
-	targetEmp := uuid.New()
+ func TestAttendancePolicyRepository_BehalfAssignmentsRequireOrganizationMember(t *testing.T) {
+ 	assignee := uuid.New()
+ 	targetEmp := uuid.New()
 
 	memberDB := &fakeDBTX{
 		queryRowFn: func(_ context.Context, sql string, _ ...any) pgx.Row {
-			if !strings.Contains(sql, "workspace_members") {
-				t.Fatalf("expected workspace membership validation query, got %s", sql)
+ 			if !strings.Contains(sql, "user_roles") {
+ 				t.Fatalf("expected organization membership validation query, got %s", sql)
 			}
 			return fakeRow{scanFn: func(dest ...any) error {
 				*(dest[0].(*bool)) = true
@@ -213,17 +207,16 @@ func TestAttendancePolicyRepository_BehalfAssignmentsRequireWorkspaceMember(t *t
 			}
 			return fakeRow{scanFn: func(dest ...any) error {
 				*(dest[0].(*uuid.UUID)) = uuid.New()
-				*(dest[1].(*uuid.UUID)) = wsID
-				*(dest[2].(*uuid.UUID)) = assignee
-				*(dest[3].(**uuid.UUID)) = &targetEmp
-				*(dest[4].(**uuid.UUID)) = nil
-				*(dest[5].(*string)) = "attendance_adjustment"
+				*(dest[1].(*uuid.UUID)) = assignee
+				*(dest[2].(**uuid.UUID)) = &targetEmp
+				*(dest[3].(**uuid.UUID)) = nil
+				*(dest[4].(*string)) = "attendance_adjustment"
+				*(dest[5].(*time.Time)) = time.Now().UTC()
 				*(dest[6].(*time.Time)) = time.Now().UTC()
-				*(dest[7].(*time.Time)) = time.Now().UTC()
-				*(dest[8].(**uuid.UUID)) = nil
+				*(dest[7].(**uuid.UUID)) = nil
+				*(dest[8].(**string)) = nil
 				*(dest[9].(**string)) = nil
 				*(dest[10].(**string)) = nil
-				*(dest[11].(**string)) = nil
 				return nil
 			}}
 		},
@@ -232,8 +225,8 @@ func TestAttendancePolicyRepository_BehalfAssignmentsRequireWorkspaceMember(t *t
 		SystemDB: memberDB,
 		DB:       tenantDB,
 	}
-	if _, err := repo.CreateBehalfAssignment(context.Background(), wsID, api.CreateBehalfAssignmentRequest{AssigneeUserID: assignee, TargetEmployeeID: &targetEmp}, "attendance_adjustment"); err != nil {
-		t.Fatalf("expected workspace member to be assignable: %v", err)
+ 	if _, err := repo.CreateBehalfAssignment(context.Background(), api.CreateBehalfAssignmentRequest{AssigneeUserID: assignee, TargetEmployeeID: &targetEmp}, "attendance_adjustment"); err != nil {
+ 		t.Fatalf("expected organization member to be assignable: %v", err)
 	}
 
 	nonMemberDB := &fakeDBTX{
@@ -246,13 +239,11 @@ func TestAttendancePolicyRepository_BehalfAssignmentsRequireWorkspaceMember(t *t
 	}
 	repo.SystemDB = nonMemberDB
 	var appErr *apperror.AppError
-	if _, err := repo.CreateBehalfAssignment(context.Background(), wsID, api.CreateBehalfAssignmentRequest{AssigneeUserID: assignee, TargetEmployeeID: &targetEmp}, "attendance_adjustment"); !errors.As(err, &appErr) || appErr.Code != apperror.CodeForbidden {
-		t.Fatalf("expected non-member rejection, got %v", err)
+ 	if _, err := repo.CreateBehalfAssignment(context.Background(), api.CreateBehalfAssignmentRequest{AssigneeUserID: assignee, TargetEmployeeID: &targetEmp}, "attendance_adjustment"); !errors.As(err, &appErr) || appErr.Code != apperror.CodeForbidden {
 	}
 }
 
 func TestAttendancePolicyRepository_ListMyBehalfTargets(t *testing.T) {
-	wsID := uuid.New()
 	userID := uuid.New()
 	empID := uuid.New()
 	activeEmpID := uuid.New()
@@ -263,7 +254,7 @@ func TestAttendancePolicyRepository_ListMyBehalfTargets(t *testing.T) {
 		queryFn: func(_ context.Context, sql string, _ ...any) (pgx.Rows, error) {
 			return &rowsStub{
 				data: [][]any{
-					{empID, wsID, (*uuid.UUID)(nil), "Target Worker", "EMP01", []string{"core"}, now, now, &deptName, &activeEmpID, (*uuid.UUID)(nil), (*uuid.UUID)(nil)},
+ 					{empID, (*uuid.UUID)(nil), "Target Worker", "EMP01", []string{"core"}, now, now, &deptName, &activeEmpID, (*uuid.UUID)(nil), (*uuid.UUID)(nil)},
 				},
 			}, nil
 		},
@@ -272,7 +263,7 @@ func TestAttendancePolicyRepository_ListMyBehalfTargets(t *testing.T) {
 		DB: db,
 	}
 
-	targets, err := repo.ListMyBehalfTargets(context.Background(), wsID, userID, "attendance_adjustment")
+ 	targets, err := repo.ListMyBehalfTargets(context.Background(), userID, "attendance_adjustment")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

@@ -6,7 +6,6 @@ import type { Department } from "@/lib/api/types";
 import { useAllEmployees } from "@/hooks/use-employees";
 import { useDepartments } from "@/hooks/use-departments";
 import { fetchLeavePolicyAssignments, deleteLeavePolicyAssignment } from "@/lib/api";
-import { getStandaloneOrganizationId } from "@/lib/api/helpers";
 
 export type TabType = "types" | "policies" | "assignments";
 
@@ -24,32 +23,31 @@ export interface LeaveAssignment {
 
 export function useLeaveSettings() {
   const queryClient = useQueryClient();
-  const wsId = getStandaloneOrganizationId();
+  
   const [activeTab, setActiveTab] = useState<TabType>("types");
   const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
   const [editingAssignment, setEditingAssignment] = useState<LeaveAssignment | null>(null);
 
   const { data: assignments = [], isLoading: assignmentsLoading } = useQuery<LeaveAssignment[]>({
-    queryKey: ["leave-assignments", wsId],
+    queryKey: ["leave-assignments"],
     queryFn: () => {
-      if (!wsId) throw new Error("Workspace ID is required");
-      return fetchLeavePolicyAssignments(wsId);
+      return fetchLeavePolicyAssignments();
     },
-    enabled: !!wsId && activeTab === "assignments"
+    enabled: activeTab === "assignments"
   });
 
-  const { employees, isLoading: employeesLoading } = useAllEmployees(wsId, {
-    enabled: !!wsId && activeTab === "assignments"
+  const { employees, isLoading: employeesLoading } = useAllEmployees({
+    enabled: activeTab === "assignments"
   });
 
-  const { data: departments = [], isLoading: departmentsLoading } = useDepartments(wsId, {
+  const { data: departments = [], isLoading: departmentsLoading } = useDepartments({
     enabled: activeTab === "assignments",
   });
 
   const deleteAssignmentMutation = useMutation({
     mutationFn: (assignmentId: string) => {
-      if (!wsId) throw new Error("Workspace ID is required");
-      return deleteLeavePolicyAssignment(wsId, assignmentId);
+      
+      return deleteLeavePolicyAssignment(assignmentId);
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["leave-assignments"] });
@@ -59,7 +57,6 @@ export function useLeaveSettings() {
   });
 
   return {
-    wsId,
     activeTab,
     setActiveTab,
     isAssignModalOpen,

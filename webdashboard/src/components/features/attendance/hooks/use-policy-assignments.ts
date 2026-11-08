@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState, useMemo, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 
-import { useOrganizationQuery } from "@/hooks/common/use-workspace-query";
+import { useOrganizationQuery } from "@/hooks/common/use-organization-query";
 import { departmentKeys, employeeKeys } from "@/lib/query-keys";
 
 import { useToast } from "@/components/ui/toast";
@@ -20,7 +20,7 @@ import {
 export type FilterType = "ALL" | "GROUP" | "USER";
 export type StrategyType = "allow" | "block" | "clamp";
 
-export function usePolicyAssignments(wsId: string) {
+export function usePolicyAssignments() {
   const queryClient = useQueryClient();
   const toast = useToast();
   const { t } = useTranslation();
@@ -37,39 +37,30 @@ export function usePolicyAssignments(wsId: string) {
   const [gracePeriodMinutes, setGracePeriodMinutes] = useState<number | undefined>(undefined);
 
   // Queries
-  const { data: assignments = [], isLoading: isLoadingAssignments } = useQuery<PolicyAssignmentResponse[]>({
-    queryKey: ["attendance-policy-assignments", wsId],
-    queryFn: () => fetchPolicyAssignments(wsId)
-  });
+  const { data: assignments = [], isLoading: isLoadingAssignments } = useQuery<PolicyAssignmentResponse[]>({ queryKey: ["attendance-policy-assignments"], queryFn: () => fetchPolicyAssignments() });
 
-  const { data: departments = [] } = useOrganizationQuery({
-    workspaceId: wsId,
-    queryKey: departmentKeys.all(wsId),
-    queryFn: fetchDepartments,
-  });
+  const { data: departments = [] } = useOrganizationQuery({ queryKey: departmentKeys.all(),
+  queryFn: fetchDepartments, });
 
-  const { data: employeesResponse } = useOrganizationQuery({
-    workspaceId: wsId,
-    queryKey: employeeKeys.lookup(wsId),
-    queryFn: (workspaceId) => fetchEmployees(workspaceId, 1, 1000),
-  });
+  const { data: employeesResponse } = useOrganizationQuery({ queryKey: employeeKeys.lookup(),
+  queryFn: () => fetchEmployees(1, 1000), });
 
   const employees = useMemo(() => employeesResponse?.data ?? [], [employeesResponse]);
 
   // Mutations
   const deleteMutation = useMutation({
-    mutationFn: (id: string) => deletePolicyAssignment(wsId, id),
+    mutationFn: (id: string) => deletePolicyAssignment(id),
     onSuccess: () => {
       toast.success(t("attendance_policy_overrides.messages.delete_success"));
-      void queryClient.invalidateQueries({ queryKey: ["attendance-policy-assignments", wsId] });
+      void queryClient.invalidateQueries({ queryKey: ["attendance-policy-assignments"] });
     }
   });
 
   const upsertMutation = useMutation({
-    mutationFn: (data: UpsertPolicyAssignmentRequest) => upsertPolicyAssignment(wsId, data),
+    mutationFn: (data: UpsertPolicyAssignmentRequest) => upsertPolicyAssignment(data),
     onSuccess: () => {
       toast.success(t("attendance_policy_overrides.messages.save_success"));
-      void queryClient.invalidateQueries({ queryKey: ["attendance-policy-assignments", wsId] });
+      void queryClient.invalidateQueries({ queryKey: ["attendance-policy-assignments"] });
     }
   });
 

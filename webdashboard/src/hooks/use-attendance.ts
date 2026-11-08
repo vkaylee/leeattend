@@ -3,7 +3,7 @@ import { useMemo } from "react";
 
 import type { AttendanceDailySummary, PaginatedResponse } from "@/lib/api";
 
-import { useOrganizationQuery, useOrganizationMutation } from "@/hooks/common/use-workspace-query";
+import { useOrganizationQuery, useOrganizationMutation } from "@/hooks/common/use-organization-query";
 import {
   fetchAttendanceSummaries,
   fetchAttendanceSummariesPaginated,
@@ -12,7 +12,6 @@ import {
   bulkUploadPaperOt,
   claimOt,
 } from "@/lib/api";
-import { getStandaloneOrganizationId } from "@/lib/api/helpers";
 import { maybeNull } from "@/types/api-overrides";
 
 interface SummaryParams {
@@ -33,7 +32,7 @@ const POST_OT_PAGE_SIZE = 20;
 export function useAttendanceSummaries(start: string, end: string, employeeId?: string) {
   const query = useOrganizationQuery<AttendanceDailySummary[]>({
     queryKey: attendanceKeys.summaries({ start, end, employeeId }),
-    queryFn: (wsId) => fetchAttendanceSummaries(wsId, start, end, employeeId),
+    queryFn: () => fetchAttendanceSummaries(start, end, employeeId),
   });
 
   return {
@@ -49,19 +48,14 @@ export function useAttendanceSummariesInfinite(
   end: string,
   options?: { employeeId?: string; otStatus?: string },
 ) {
-  const wsId = getStandaloneOrganizationId();
-
   const infiniteQuery = useInfiniteQuery<PaginatedResponse<AttendanceDailySummary>>({
     queryKey: [...attendanceKeys.all, "summaries", { start, end, employeeId: options?.employeeId, otStatus: options?.otStatus }],
-    queryFn: ({ pageParam }) => {
-      if (!wsId) throw new Error("No workspace");
-      return fetchAttendanceSummariesPaginated(wsId, start, end, {
-        employeeId: options?.employeeId,
-        page: pageParam as number,
-        limit: POST_OT_PAGE_SIZE,
-        otStatus: options?.otStatus,
-      });
-    },
+    queryFn: ({ pageParam }) => fetchAttendanceSummariesPaginated(start, end, {
+      employeeId: options?.employeeId,
+      page: pageParam as number,
+      limit: POST_OT_PAGE_SIZE,
+      otStatus: options?.otStatus,
+    }),
     getNextPageParam: (lastPage, allPages) => {
       const totalLoaded = allPages.reduce((sum, p) => {
         const pageData = p.data;
@@ -70,7 +64,6 @@ export function useAttendanceSummariesInfinite(
       return totalLoaded >= (lastPage.total || 0) ? undefined : allPages.length + 1;
     },
     initialPageParam: 1,
-    enabled: !!wsId,
   });
 
   const summaries = useMemo(
@@ -92,8 +85,8 @@ export function useApproveOt() {
   const mutation = useOrganizationMutation<
     { employeeId: string; date: string; approved_minutes: number; manager_note?: string; status: "approved" | "rejected" }
   >({
-    mutationFn: (wsId, data) =>
-      approveOt(wsId, data.employeeId, {
+    mutationFn: (data) =>
+      approveOt(data.employeeId, {
         date: data.date,
         approved_minutes: data.approved_minutes,
         manager_note: data.manager_note,
@@ -119,8 +112,8 @@ export function useEnterPaperOt() {
     },
     AttendanceDailySummary
   >({
-    mutationFn: (wsId, data) =>
-      enterPaperOt(wsId, data.employeeId, {
+    mutationFn: (data) =>
+      enterPaperOt(data.employeeId, {
         date: data.date,
         claimed_minutes: data.claimed_minutes,
         reason: data.reason,
@@ -140,7 +133,7 @@ export function useBulkUploadPaperOt() {
     File,
     { total_rows: number; success_count: number; failed_count: number; errors: { line_number: number; employment_id: string; error_message: string }[] }
   >({
-    mutationFn: (wsId, file) => bulkUploadPaperOt(wsId, file),
+    mutationFn: (file) => bulkUploadPaperOt(file),
     keys: [attendanceKeys.all],
   });
 
@@ -154,8 +147,8 @@ export function useClaimOt() {
   const mutation = useOrganizationMutation<
     { employeeId: string; date: string; claimed_minutes: number; reason?: string }
   >({
-    mutationFn: (wsId, data) =>
-      claimOt(wsId, data.employeeId, {
+    mutationFn: (data) =>
+      claimOt(data.employeeId, {
         date: data.date,
         claimed_minutes: data.claimed_minutes,
         reason: data.reason,

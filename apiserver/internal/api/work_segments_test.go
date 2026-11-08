@@ -16,30 +16,30 @@ type mockWorkSegmentRepository struct {
 	createErr error
 }
 
-func (m *mockWorkSegmentRepository) ListSegments(_ context.Context, _ uuid.UUID, _ WorkSegmentFilter, _, _ int) (WorkSegmentListResponse, error) {
+func (m *mockWorkSegmentRepository) ListSegments(_ context.Context, _ WorkSegmentFilter, _, _ int) (WorkSegmentListResponse, error) {
 	return WorkSegmentListResponse{Segments: []WorkSegment{}, TotalCount: 0}, nil
 }
 
-func (m *mockWorkSegmentRepository) GetSegment(_ context.Context, _, segmentID uuid.UUID) (WorkSegment, error) {
+func (m *mockWorkSegmentRepository) GetSegment(_ context.Context, segmentID uuid.UUID) (WorkSegment, error) {
 	return WorkSegment{ID: segmentID}, nil
 }
 
-func (m *mockWorkSegmentRepository) CreateSegment(_ context.Context, workspaceID uuid.UUID, req CreateWorkSegmentRequest) (WorkSegment, error) {
+func (m *mockWorkSegmentRepository) CreateSegment(_ context.Context, req CreateWorkSegmentRequest) (WorkSegment, error) {
 	if m.createErr != nil {
 		return WorkSegment{}, m.createErr
 	}
-	return WorkSegment{ID: uuid.New(), WorkspaceID: workspaceID, EmploymentID: req.EmploymentID, TemplateID: req.TemplateID, Date: req.Date, Source: req.Source}, nil
+	return WorkSegment{ID: uuid.New(), EmploymentID: req.EmploymentID, TemplateID: req.TemplateID, Date: req.Date, Source: req.Source}, nil
 }
 
-func (m *mockWorkSegmentRepository) UpdateSegment(_ context.Context, _, segmentID uuid.UUID, _ UpdateWorkSegmentRequest) (WorkSegment, error) {
+func (m *mockWorkSegmentRepository) UpdateSegment(_ context.Context, segmentID uuid.UUID, _ UpdateWorkSegmentRequest) (WorkSegment, error) {
 	return WorkSegment{ID: segmentID}, nil
 }
 
-func (m *mockWorkSegmentRepository) DeleteSegment(_ context.Context, _, _ uuid.UUID) error {
+func (m *mockWorkSegmentRepository) DeleteSegment(_ context.Context, _ uuid.UUID) error {
 	return nil
 }
 
-func (m *mockWorkSegmentRepository) BulkCreateSegments(_ context.Context, _ uuid.UUID, req BulkCreateWorkSegmentsRequest) ([]WorkSegment, error) {
+func (m *mockWorkSegmentRepository) BulkCreateSegments(_ context.Context, req BulkCreateWorkSegmentsRequest) ([]WorkSegment, error) {
 	return make([]WorkSegment, len(req.Segments)), nil
 }
 
@@ -48,10 +48,9 @@ func validSegmentJSON() []byte {
 }
 
 func TestWorkSegmentHandler_Create_RequiresPermission(t *testing.T) {
-	wsID := uuid.New()
 	handler := WorkSegmentHandler{Repository: &mockWorkSegmentRepository{}, Authorizer: mockAttendanceAuthorizer{allowed: false}}
-	req := httptest.NewRequest(http.MethodPost, "/api/v1/workspaces/"+wsID.String()+"/work-segments", bytes.NewReader(validSegmentJSON()))
-	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
+	req := httptest.NewRequest(http.MethodPost, "/api/v1" + "/work-segments", bytes.NewReader(validSegmentJSON()))
+	
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
 	rec := httptest.NewRecorder()
 	handler.Create(rec, req)
@@ -61,11 +60,10 @@ func TestWorkSegmentHandler_Create_RequiresPermission(t *testing.T) {
 }
 
 func TestWorkSegmentHandler_Create_ForcesManualSource(t *testing.T) {
-	wsID := uuid.New()
 	handler := WorkSegmentHandler{Repository: &mockWorkSegmentRepository{}, Authorizer: mockAttendanceAuthorizer{allowed: true}}
 	body := append(validSegmentJSON()[:len(validSegmentJSON())-1], []byte(`,"source":"pattern"}`)...)
-	req := httptest.NewRequest(http.MethodPost, "/api/v1/workspaces/"+wsID.String()+"/work-segments", bytes.NewReader(body))
-	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
+	req := httptest.NewRequest(http.MethodPost, "/api/v1" + "/work-segments", bytes.NewReader(body))
+	
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
 	rec := httptest.NewRecorder()
 	handler.Create(rec, req)
@@ -89,11 +87,10 @@ func TestValidateCreateSegment_RejectsInvalidClock(t *testing.T) {
 }
 
 func TestWorkSegmentHandler_BulkRejectsOversizedBatch(t *testing.T) {
-	wsID := uuid.New()
 	handler := WorkSegmentHandler{Repository: &mockWorkSegmentRepository{}, Authorizer: mockAttendanceAuthorizer{allowed: true}}
 	body := []byte(`{"segments":[]}`)
-	req := httptest.NewRequest(http.MethodPost, "/api/v1/workspaces/"+wsID.String()+"/work-segments/bulk", bytes.NewReader(body))
-	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
+	req := httptest.NewRequest(http.MethodPost, "/api/v1" + "/work-segments/bulk", bytes.NewReader(body))
+	
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
 	rec := httptest.NewRecorder()
 	handler.BulkCreate(rec, req)

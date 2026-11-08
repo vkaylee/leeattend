@@ -97,7 +97,7 @@ describe("useImportStateMachine", () => {
       await result.current.handleUpload();
     });
 
-    expect(employeesApi.uploadTerminationImportPreview).toHaveBeenCalledWith("ws-1", XLSX_FILE);
+    expect(employeesApi.uploadTerminationImportPreview).toHaveBeenCalledWith(XLSX_FILE);
     expect(result.current.previewData).toEqual(PREVIEW);
     expect(result.current.step).toBe(2);
     expect(result.current.activeTab).toBe("valid");
@@ -184,7 +184,7 @@ describe("useImportStateMachine", () => {
     await waitFor(() => {
       expect(result.current.importSuccess).toBe(true);
     });
-    expect(leavesApi.fetchJobStatus).toHaveBeenCalledWith("ws-1", "job-1");
+    expect(leavesApi.fetchJobStatus).toHaveBeenCalledWith("job-1");
     expect(result.current.successCount).toBe(3);
     expect(result.current.jobId).toBeNull();
   });

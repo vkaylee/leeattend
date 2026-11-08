@@ -48,9 +48,7 @@ describe("ContractFormModal", () => {
   const defaultProps = {
     isOpen: true,
     onClose: vi.fn(),
-    editingContract: null as EmployeeContract | null,
-    wsId: "ws-1",
-    employeeId: "emp-1",
+    editingContract: null as EmployeeContract | null,employeeId: "emp-1",
   };
 
   const mockExistingContract: EmployeeContract = {

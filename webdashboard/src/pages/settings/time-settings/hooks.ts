@@ -16,7 +16,6 @@ import { maybeNull } from "@/types/api-overrides";
 type RoundingPolicy = "none" | "floor" | "round" | "ceil";
 
 export function useTimeSettingsRules(
-  wsId: string,
   t: TFunction,
   params: {
     earlyArrivalStrategy: "allow" | "block" | "clamp";
@@ -31,11 +30,11 @@ export function useTimeSettingsRules(
   const toast = useToast();
 
   const updateRulesMutation = useMutation({
-    mutationFn: (data: UpdateAttendanceRulesRequest) => updateDefaultAttendanceRules(wsId, data),
+    mutationFn: (data: UpdateAttendanceRulesRequest) => updateDefaultAttendanceRules(data),
     onSuccess: () => {
       toast.success(t("common.success"));
-      void queryClient.invalidateQueries({ queryKey: ["attendance-rules", wsId] });
-      void queryClient.invalidateQueries({ queryKey: ["attendance-policy-versions", wsId] });
+      void queryClient.invalidateQueries({ queryKey: ["attendance-rules"] });
+      void queryClient.invalidateQueries({ queryKey: ["attendance-policy-versions"] });
       params.onSuccess();
     },
   });
@@ -53,7 +52,7 @@ export function useTimeSettingsRules(
   return { handleSaveNewVersion, isPending: updateRulesMutation.isPending };
 }
 
-export function useBulkReprocess(wsId: string, t: TFunction) {
+export function useBulkReprocess(t: TFunction) {
   const queryClient = useQueryClient();
   const toast = useToast();
 
@@ -71,10 +70,10 @@ export function useBulkReprocess(wsId: string, t: TFunction) {
   const bulkReprocessInFlight = useRef(false);
 
   const jobStatusQuery = useQuery({
-    queryKey: ["generic-job-status", wsId, pollingJobId],
+    queryKey: ["generic-job-status", pollingJobId],
     queryFn: () => {
       if (!pollingJobId) return Promise.reject(new Error("No job ID"));
-      return checkReprocessStatus(wsId, pollingJobId);
+      return checkReprocessStatus(pollingJobId);
     },
     enabled: !!pollingJobId,
     refetchInterval: (query: { state: { data: GenericJobStatus | null | undefined } }) => {
@@ -104,7 +103,7 @@ export function useBulkReprocess(wsId: string, t: TFunction) {
   }, [jobStatusQuery.data, queryClient, t, toast]);
 
   const reprocessMutation = useMutation({
-    mutationFn: () => reprocessAllAttendance(wsId, reprocessStart, reprocessEnd),
+    mutationFn: () => reprocessAllAttendance(reprocessStart, reprocessEnd),
     onMutate: () => {
       bulkReprocessInFlight.current = true;
     },

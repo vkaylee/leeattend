@@ -29,14 +29,9 @@ vi.mock("@/hooks/use-profile", () => ({
     }),
 }));
 
-vi.mock("@/hooks/use-workspace", () => ({
-    useWorkspaces: () => ({
-        workspaces: [{ id: "test-ws-id", name: "Test Workspace", default_language: "en" }],
-        isLoading: false,
-        isError: false,
-    }),
-    useWorkspace: () => ({
-        workspace: { id: "test-ws-id", name: "Test Workspace", date_format: "DD/MM/YYYY", default_language: "en" },
+vi.mock("@/hooks/use-organization", () => ({
+    useOrganization: () => ({
+        organization: { id: "test-ws-id", name: "Test Workspace", date_format: "DD/MM/YYYY", default_language: "en" },
         isLoading: false,
         isError: false,
     }),
@@ -101,7 +96,6 @@ vi.mock("@/lib/api", async (importOriginal) => {
     return {
         ...actual,
         getCurrentUserId: vi.fn(() => "test-user"),
-        getStandaloneOrganizationId: vi.fn(() => "test-ws-id"),
         fetchWorkspaceLeaveBalances: vi.fn(() => Promise.resolve([])),
         fetchEmployees: vi.fn(() => Promise.resolve([])),
         fetchWorkspace: vi.fn(() => Promise.resolve({ date_format: "DD/MM/YYYY", timezone: "UTC", default_language: "en" })),

@@ -24,7 +24,6 @@ function TabContent({ state }: { state: AttendanceLogsState }) {
     setDateRange, 
     setEmployeeId, 
     specificMonth,
-    wsId,
     departments,
     formatDate,
     formatTime,
@@ -45,7 +44,7 @@ function TabContent({ state }: { state: AttendanceLogsState }) {
     resolveMutation
   } = state;
 
-  if (!wsId) return null;
+  
 
   if (activeTab === "unrecorded") {
     return <UnrecordedShiftsTab />;
@@ -54,18 +53,15 @@ function TabContent({ state }: { state: AttendanceLogsState }) {
   if (activeTab === "recorded") {
     return (
       <>
-        <AttendanceLogsFilters
-          dateRange={dateRange}
-          departments={departments}
-          employeeId={employeeId}
-          filterMode={filterMode}
-          handleFilterModeChange={handleFilterModeChange}
-          handleSpecificMonthChange={handleSpecificMonthChange}
-          setDateRange={setDateRange}
-          setEmployeeId={setEmployeeId}
-          specificMonth={specificMonth}
-          wsId={wsId}
-        />
+        <AttendanceLogsFilters dateRange={dateRange}
+        departments={departments}
+        employeeId={employeeId}
+        filterMode={filterMode}
+        handleFilterModeChange={handleFilterModeChange}
+        handleSpecificMonthChange={handleSpecificMonthChange}
+        setDateRange={setDateRange}
+        setEmployeeId={setEmployeeId}
+        specificMonth={specificMonth}  />
         <RecordedLogsTable
           fetchNextPage={() => { void fetchNextPage(); }}
           formatDate={formatDate}
@@ -83,35 +79,26 @@ function TabContent({ state }: { state: AttendanceLogsState }) {
   }
 
   return (
-    <StagingLogsTable
-      departments={departments}
-      formatDate={formatDate}
-      formatTime={formatTime}
-      isDismissing={dismissMutation.isPending}
-      isFetchingNextPage={isFetchingNextStagingPage}
-      isLoading={stagingLoading}
-      loadMoreRef={loadMoreStagingRef}
-      logs={allStagingLogs}
-      onCreateEmployee={handleCreateEmployee}
-      onDismiss={(logId: string) => { dismissMutation.mutate(logId); }}
-      onResolve={(logId: string, empId: string) => { resolveMutation.mutate({ logId, employeeId: empId }); }}
-      wsId={wsId}
-    />
+    <StagingLogsTable departments={departments}
+    formatDate={formatDate}
+    formatTime={formatTime}
+    isDismissing={dismissMutation.isPending}
+    isFetchingNextPage={isFetchingNextStagingPage}
+    isLoading={stagingLoading}
+    loadMoreRef={loadMoreStagingRef}
+    logs={allStagingLogs}
+    onCreateEmployee={handleCreateEmployee}
+    onDismiss={(logId: string) => { dismissMutation.mutate(logId); }}
+    onResolve={(logId: string, empId: string) => { resolveMutation.mutate({ logId, employeeId: empId }); }}  />
   );
 }
 
 export default function AttendanceLogsPage() {
   const { t } = useTranslation();
   const state = useAttendanceLogsPage();
-  const { wsId, activeTab, stagingCount, allRecordedLogs, recordedTotal, allStagingLogs, stagingTotal, isImportDialogOpen, setIsImportDialogOpen } = state;
+  const { activeTab, stagingCount, allRecordedLogs, recordedTotal, allStagingLogs, stagingTotal, isImportDialogOpen, setIsImportDialogOpen } = state;
 
-  if (!wsId) {
-    return (
-      <div className="p-12 text-center text-slate-500 dark:text-slate-400 font-bold italic uppercase tracking-widest text-xs opacity-50">
-        {t("common.select_workspace")}
-      </div>
-    );
-  }
+  
 
   return (
     <div className="space-y-8 animate-in fade-in duration-700 pb-20">

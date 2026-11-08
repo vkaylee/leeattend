@@ -13,14 +13,14 @@ import (
 
 // patternComplianceValidator mirrors rust check_pattern_compliance:
 // expand assignment dates, map each date to a 1-indexed schedule day, group by
-// shift id, then validate each group against workspace compliance rules.
-func patternComplianceValidator(ctx context.Context, db DBTX, workspaceID, employmentID uuid.UUID, req api.AssignPatternRequest) error {
+// shift id, then validate each group against organization compliance rules.
+func patternComplianceValidator(ctx context.Context, db DBTX, employmentID uuid.UUID, req api.AssignPatternRequest) error {
 	if req.PatternID == uuid.Nil {
 		return api.ErrPatternValidation
 	}
 	var patternType string
 	var cycleLength *int
-	err := db.QueryRow(ctx, `SELECT pattern_type, cycle_length_days FROM working_patterns WHERE id = $1 AND workspace_id = $2 AND deleted_at IS NULL`, req.PatternID, workspaceID).Scan(&patternType, &cycleLength)
+	err := db.QueryRow(ctx, `SELECT pattern_type, cycle_length_days FROM working_patterns WHERE id = $1 AND deleted_at IS NULL`, req.PatternID).Scan(&patternType, &cycleLength)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return api.ErrPatternNotFound
 	}
@@ -51,7 +51,7 @@ func patternComplianceValidator(ctx context.Context, db DBTX, workspaceID, emplo
 	}
 	rules := compliance.Rules{IsEnabled: true, MinRestPeriodHours: 12, MaxWeeklyHours: 48, MaxMonthlyOTHours: 40, AllowManagerOverride: true}
 	var storedRules compliance.Rules
-	err = db.QueryRow(ctx, `SELECT is_enabled, min_rest_period_hours, max_weekly_hours, max_monthly_ot_hours, allow_manager_override FROM workspace_compliance_rules WHERE workspace_id = $1`, workspaceID).Scan(&storedRules.IsEnabled, &storedRules.MinRestPeriodHours, &storedRules.MaxWeeklyHours, &storedRules.MaxMonthlyOTHours, &storedRules.AllowManagerOverride)
+	err = db.QueryRow(ctx, `SELECT is_enabled, min_rest_period_hours, max_weekly_hours, max_monthly_ot_hours, allow_manager_override FROM compliance_rules`).Scan(&storedRules.IsEnabled, &storedRules.MinRestPeriodHours, &storedRules.MaxWeeklyHours, &storedRules.MaxMonthlyOTHours, &storedRules.AllowManagerOverride)
 	if err == nil {
 		rules = storedRules
 	} else if !errors.Is(err, pgx.ErrNoRows) {
@@ -87,7 +87,7 @@ func patternComplianceValidator(ctx context.Context, db DBTX, workspaceID, emplo
 		count++
 	}
 	for shiftID, dates := range datesByShift {
-		shifts, err := loadPatternComplianceShifts(ctx, db, workspaceID, shiftID)
+		shifts, err := loadPatternComplianceShifts(ctx, db, shiftID)
 		if err != nil {
 			return err
 		}
@@ -103,8 +103,8 @@ func patternComplianceValidator(ctx context.Context, db DBTX, workspaceID, emplo
 	return nil
 }
 
-func loadPatternComplianceShifts(ctx context.Context, db DBTX, workspaceID, shiftID uuid.UUID) (map[uuid.UUID][]compliance.Interval, error) {
-	rows, err := db.Query(ctx, `SELECT t.id, i.start_time::text, i.end_time::text, i.break_duration_minutes, i.is_break_auto_deduct FROM shift_templates t JOIN shift_versions v ON v.id = t.current_version_id JOIN shift_default_intervals i ON i.version_id = v.id WHERE t.id = $1 AND t.workspace_id = $2 ORDER BY i.sort_order`, shiftID, workspaceID)
+func loadPatternComplianceShifts(ctx context.Context, db DBTX, shiftID uuid.UUID) (map[uuid.UUID][]compliance.Interval, error) {
+	rows, err := db.Query(ctx, `SELECT t.id, i.start_time::text, i.end_time::text, i.break_duration_minutes, i.is_break_auto_deduct FROM shift_templates t JOIN shift_versions v ON v.id = t.current_version_id JOIN shift_default_intervals i ON i.version_id = v.id WHERE t.id = $1 ORDER BY i.sort_order`, shiftID)
 	if err != nil {
 		return nil, err
 	}
@@ -145,15 +145,15 @@ func loadPatternComplianceRosters(ctx context.Context, db DBTX, employmentID uui
 	return rosters, rows.Err()
 }
 
-func (r WorkingPatternRepository) CheckPatternCompliance(ctx context.Context, workspaceID, employmentID uuid.UUID, req api.AssignPatternRequest) error {
+func (r WorkingPatternRepository) CheckPatternCompliance(ctx context.Context, employmentID uuid.UUID, req api.AssignPatternRequest) error {
 	db, err := r.db(ctx)
 	if err != nil {
 		return err
 	}
-	return patternComplianceValidator(ctx, db, workspaceID, employmentID, req)
+	return patternComplianceValidator(ctx, db, employmentID, req)
 }
 
-func (r WorkingPatternRepository) CheckBulkPatternCompliance(ctx context.Context, workspaceID uuid.UUID, req api.BulkAssignPatternRequest) error {
+func (r WorkingPatternRepository) CheckBulkPatternCompliance(ctx context.Context, req api.BulkAssignPatternRequest) error {
 	db, err := r.db(ctx)
 	if err != nil {
 		return err
@@ -167,7 +167,7 @@ func (r WorkingPatternRepository) CheckBulkPatternCompliance(ctx context.Context
 			AllowWarnings:  req.AllowWarnings,
 			OverrideReason: req.OverrideReason,
 		}
-		if err := patternComplianceValidator(ctx, db, workspaceID, empID, assignReq); err != nil {
+		if err := patternComplianceValidator(ctx, db, empID, assignReq); err != nil {
 			return err
 		}
 	}

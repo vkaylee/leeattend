@@ -14,10 +14,9 @@ import { PolicyCard } from "./policy-card";
 import { PolicyModal } from "./policy-modal";
 
 interface LeavePolicyManagerProps {
-  wsId: string;
 }
 
-export function LeavePolicyManager({ wsId }: LeavePolicyManagerProps) {
+export function LeavePolicyManager({}: LeavePolicyManagerProps) {
   const { t } = useTranslation();
   const toast = useToast();
   const queryClient = useQueryClient();
@@ -25,18 +24,12 @@ export function LeavePolicyManager({ wsId }: LeavePolicyManagerProps) {
   const [editingPolicy, setEditingPolicy] = useState<LeavePolicy | null>(null);
   const { confirm, ConfirmationDialog } = useConfirm();
 
-  const { data: policies = [], isLoading } = useQuery({
-    queryKey: ["leave-policies", wsId],
-    queryFn: () => fetchLeavePolicies(wsId),
-  });
+  const { data: policies = [], isLoading } = useQuery({ queryKey: ["leave-policies"], queryFn: () => fetchLeavePolicies(), });
 
-  const { data: leaveTypes = [] } = useQuery({
-    queryKey: ["leave-types", wsId],
-    queryFn: () => fetchLeaveTypes(wsId),
-  });
+  const { data: leaveTypes = [] } = useQuery({ queryKey: ["leave-types"], queryFn: () => fetchLeaveTypes(), });
 
   const deleteMutation = useMutation({
-    mutationFn: (id: string) => deleteLeavePolicy(wsId, id),
+    mutationFn: (id: string) => deleteLeavePolicy(id),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["leave-policies"] });
       toast.success(t("settings.leave.policy_manager.success_delete", "Policy deleted successfully"));
@@ -55,8 +48,8 @@ export function LeavePolicyManager({ wsId }: LeavePolicyManagerProps) {
   const mutation = useMutation({
     mutationFn: (data: Partial<LeavePolicy>) =>
       editingPolicy
-        ? updateLeavePolicy(wsId, editingPolicy.id, data as Record<string, unknown> as UpdateLeavePolicyRequestBody)
-        : createLeavePolicy(wsId, data as Record<string, unknown> as CreateLeavePolicyRequestBody),
+        ? updateLeavePolicy(editingPolicy.id, data as Record<string, unknown> as UpdateLeavePolicyRequestBody)
+        : createLeavePolicy(data as Record<string, unknown> as CreateLeavePolicyRequestBody),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["leave-policies"] });
       toast.success(editingPolicy ? t("settings.leave.policy_manager.success_update", "Policy updated") : t("settings.leave.policy_manager.success_create", "Policy created"));

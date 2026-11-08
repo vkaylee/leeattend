@@ -23,14 +23,14 @@ func (r EmployerRepository) db(ctx context.Context) (DBTX, error) {
 	return r.DB, nil
 }
 
-const employerColumns = `id, workspace_id, name, tax_code, legal_address, created_at, updated_at,
+const employerColumns = `id, name, tax_code, legal_address, created_at, updated_at,
 	parent_id, relationship_type, business_type, registration_number, phone, email, website,
 	incorporation_date::text, country_code, currency_code`
 
 func scanEmployer(row interface{ Scan(...any) error }) (api.Employer, error) {
 	var employer api.Employer
 	var createdAt, updatedAt time.Time
-	if err := row.Scan(&employer.ID, &employer.WorkspaceID, &employer.Name, &employer.TaxCode, &employer.LegalAddress, &createdAt, &updatedAt,
+	if err := row.Scan(&employer.ID, &employer.Name, &employer.TaxCode, &employer.LegalAddress, &createdAt, &updatedAt,
 		&employer.ParentID, &employer.RelationshipType, &employer.BusinessType, &employer.RegistrationNumber, &employer.Phone, &employer.Email, &employer.Website,
 		&employer.IncorporationDate, &employer.CountryCode, &employer.CurrencyCode); err != nil {
 		return api.Employer{}, err
@@ -40,16 +40,16 @@ func scanEmployer(row interface{ Scan(...any) error }) (api.Employer, error) {
 	return employer, nil
 }
 
-func (r EmployerRepository) ListEmployers(ctx context.Context, workspaceID uuid.UUID, page, limit int) (api.EmployerListResponse, error) {
+func (r EmployerRepository) ListEmployers(ctx context.Context, page, limit int) (api.EmployerListResponse, error) {
 	db, err := r.db(ctx)
 	if err != nil {
 		return api.EmployerListResponse{}, err
 	}
 	result := api.EmployerListResponse{Data: make([]api.Employer, 0), Page: page, Limit: limit}
-	if err := db.QueryRow(ctx, `SELECT count(*) FROM employers WHERE workspace_id = $1 AND deleted_at IS NULL`, workspaceID).Scan(&result.Total); err != nil {
+	if err := db.QueryRow(ctx, `SELECT count(*) FROM employers WHERE deleted_at IS NULL`).Scan(&result.Total); err != nil {
 		return api.EmployerListResponse{}, err
 	}
-	rows, err := db.Query(ctx, `SELECT `+employerColumns+` FROM employers WHERE workspace_id = $1 AND deleted_at IS NULL ORDER BY name ASC LIMIT $2 OFFSET $3`, workspaceID, limit, (page-1)*limit)
+	rows, err := db.Query(ctx, `SELECT `+employerColumns+` FROM employers WHERE deleted_at IS NULL ORDER BY name ASC LIMIT $1 OFFSET $2`, limit, (page-1)*limit)
 	if err != nil {
 		return api.EmployerListResponse{}, err
 	}
@@ -64,33 +64,33 @@ func (r EmployerRepository) ListEmployers(ctx context.Context, workspaceID uuid.
 	return result, rows.Err()
 }
 
-func (r EmployerRepository) CreateEmployer(ctx context.Context, workspaceID uuid.UUID, req api.CreateEmployerRequest) (api.Employer, error) {
+func (r EmployerRepository) CreateEmployer(ctx context.Context, req api.CreateEmployerRequest) (api.Employer, error) {
 	db, err := r.db(ctx)
 	if err != nil {
 		return api.Employer{}, err
 	}
 	id := uuid.New()
 	row := db.QueryRow(ctx, `INSERT INTO employers
-		(id, workspace_id, name, tax_code, legal_address, parent_id, relationship_type, business_type, registration_number, phone, email, website, incorporation_date, country_code, currency_code, created_at, updated_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13::date, $14, $15, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+		(id, name, tax_code, legal_address, parent_id, relationship_type, business_type, registration_number, phone, email, website, incorporation_date, country_code, currency_code, created_at, updated_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12::date, $13, $14, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
 		RETURNING `+employerColumns,
-		id, workspaceID, req.Name, req.TaxCode, req.LegalAddress, req.ParentID, req.RelationshipType, req.BusinessType, req.RegistrationNumber, req.Phone, req.Email, req.Website, req.IncorporationDate, req.CountryCode, req.CurrencyCode)
+		id, req.Name, req.TaxCode, req.LegalAddress, req.ParentID, req.RelationshipType, req.BusinessType, req.RegistrationNumber, req.Phone, req.Email, req.Website, req.IncorporationDate, req.CountryCode, req.CurrencyCode)
 	return scanEmployer(row)
 }
 
-func (r EmployerRepository) GetEmployer(ctx context.Context, workspaceID, id uuid.UUID) (api.Employer, error) {
+func (r EmployerRepository) GetEmployer(ctx context.Context, id uuid.UUID) (api.Employer, error) {
 	db, err := r.db(ctx)
 	if err != nil {
 		return api.Employer{}, err
 	}
-	item, err := scanEmployer(db.QueryRow(ctx, `SELECT `+employerColumns+` FROM employers WHERE workspace_id = $1 AND id = $2 AND deleted_at IS NULL`, workspaceID, id))
+	item, err := scanEmployer(db.QueryRow(ctx, `SELECT `+employerColumns+` FROM employers WHERE id = $1 AND deleted_at IS NULL`, id))
 	if errors.Is(err, pgx.ErrNoRows) {
 		return api.Employer{}, api.ErrEmployerNotFound
 	}
 	return item, err
 }
 
-func (r EmployerRepository) UpdateEmployer(ctx context.Context, workspaceID, id uuid.UUID, req api.UpdateEmployerRequest) (api.Employer, error) {
+func (r EmployerRepository) UpdateEmployer(ctx context.Context, id uuid.UUID, req api.UpdateEmployerRequest) (api.Employer, error) {
 	db, err := r.db(ctx)
 	if err != nil {
 		return api.Employer{}, err
@@ -148,8 +148,8 @@ func (r EmployerRepository) UpdateEmployer(ctx context.Context, workspaceID, id 
 	if req.CurrencyCode != nil {
 		add("currency_code", *req.CurrencyCode)
 	}
-	args = append(args, id, workspaceID)
-	query := `UPDATE employers SET ` + strings.Join(sets, ", ") + fmt.Sprintf(` WHERE id = $%d AND workspace_id = $%d AND deleted_at IS NULL RETURNING `+employerColumns, len(args)-1, len(args))
+	args = append(args, id)
+	query := `UPDATE employers SET ` + strings.Join(sets, ", ") + fmt.Sprintf(` WHERE id = $%d AND deleted_at IS NULL RETURNING `+employerColumns, len(args))
 	item, err := scanEmployer(db.QueryRow(ctx, query, args...))
 	if errors.Is(err, pgx.ErrNoRows) {
 		return api.Employer{}, api.ErrEmployerNotFound
@@ -157,19 +157,19 @@ func (r EmployerRepository) UpdateEmployer(ctx context.Context, workspaceID, id 
 	return item, err
 }
 
-func (r EmployerRepository) DeleteEmployer(ctx context.Context, workspaceID, id uuid.UUID) error {
+func (r EmployerRepository) DeleteEmployer(ctx context.Context, id uuid.UUID) error {
 	db, err := r.db(ctx)
 	if err != nil {
 		return err
 	}
 	var count int64
-	if err := db.QueryRow(ctx, `SELECT count(*) FROM employments WHERE workspace_id = $1 AND employer_id = $2 AND status = 'active' AND deleted_at IS NULL`, workspaceID, id).Scan(&count); err != nil {
+	if err := db.QueryRow(ctx, `SELECT count(*) FROM employments WHERE employer_id = $1 AND status = 'active' AND deleted_at IS NULL`, id).Scan(&count); err != nil {
 		return err
 	}
 	if count > 0 {
 		return api.ErrEmployerInUse
 	}
-	tag, err := db.Exec(ctx, `UPDATE employers SET deleted_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP WHERE workspace_id = $1 AND id = $2 AND deleted_at IS NULL`, workspaceID, id)
+	tag, err := db.Exec(ctx, `UPDATE employers SET deleted_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP WHERE id = $1 AND deleted_at IS NULL`, id)
 	if err != nil {
 		return err
 	}
@@ -178,3 +178,4 @@ func (r EmployerRepository) DeleteEmployer(ctx context.Context, workspaceID, id 
 	}
 	return nil
 }
+

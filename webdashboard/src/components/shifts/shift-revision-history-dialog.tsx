@@ -26,7 +26,6 @@ interface ShiftRevisionHistoryDialogProps {
   onClose: () => void;
   shiftId: string;
   shiftName: string;
-  wsId: string;
 }
 
 // ── Badge helpers ──────────────────────────────────────────────────
@@ -178,20 +177,15 @@ export function ShiftRevisionHistoryDialog({
   isOpen,
   onClose,
   shiftId,
-  shiftName,
-  wsId,
-}: ShiftRevisionHistoryDialogProps) {
+  shiftName,}: ShiftRevisionHistoryDialogProps) {
   const { t } = useTranslation();
 
   const {
     data: versions,
     isLoading,
-  } = useQuery({
-    queryKey: ["shift-versions", wsId, shiftId],
-    queryFn: () => getShiftVersions(wsId, shiftId),
-    enabled: isOpen && Boolean(wsId && shiftId),
-    staleTime: 30_000,
-  });
+  } = useQuery({ queryKey: ["shift-versions", shiftId], queryFn: () => getShiftVersions(shiftId),
+  enabled: isOpen ,
+  staleTime: 30_000, });
 
   return (
     <Modal

@@ -177,7 +177,6 @@ interface BulkEmployeePickerModalProps {
   isOpen: boolean;
   onClose: () => void;
   onCommit: (ids: string[], meta: Employee[]) => void;
-  wsId: string;
 }
 
 export function BulkEmployeePickerModal({
@@ -186,14 +185,12 @@ export function BulkEmployeePickerModal({
   initialMeta,
   isOpen,
   onClose,
-  onCommit,
-  wsId,
-}: BulkEmployeePickerModalProps) {
+  onCommit,}: BulkEmployeePickerModalProps) {
   const { t } = useTranslation();
   const [searchTerm, setSearchTerm] = useState("");
   const debouncedSearch = useDebounce(searchTerm, 300);
 
-  const picker = useBulkEmployeePicker({ wsId, isOpen, initialIds, initialMeta });
+  const picker = useBulkEmployeePicker({isOpen, initialIds, initialMeta });
   const { draftIds, draftMeta, deselectAll } = picker;
 
   useEffect(() => {

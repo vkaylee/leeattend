@@ -18,36 +18,34 @@ type mockPatternComplianceChecker struct {
 	bulkCalls     int
 }
 
-func (m *mockPatternComplianceChecker) CheckPatternCompliance(context.Context, uuid.UUID, uuid.UUID, AssignPatternRequest) error {
+func (m *mockPatternComplianceChecker) CheckPatternCompliance(_ context.Context, _ uuid.UUID, _ AssignPatternRequest) error {
 	m.assignCalls++
 	return m.assignmentErr
 }
 
-func (m *mockPatternComplianceChecker) CheckBulkPatternCompliance(context.Context, uuid.UUID, BulkAssignPatternRequest) error {
+func (m *mockPatternComplianceChecker) CheckBulkPatternCompliance(_ context.Context, _ BulkAssignPatternRequest) error {
 	m.bulkCalls++
 	return m.bulkErr
 }
 
-func newPatternAssignRequest(wsID, empID uuid.UUID, body string) *http.Request {
-	req := httptest.NewRequest(http.MethodPost, "/api/v1/workspaces/"+wsID.String()+"/employments/"+empID.String()+"/working-patterns", bytes.NewReader([]byte(body)))
-	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
+func newPatternAssignRequest(empID uuid.UUID, body string) *http.Request {
+	req := httptest.NewRequest(http.MethodPost, "/api/v1" + "/employments/"+empID.String()+"/working-patterns", bytes.NewReader([]byte(body)))
 	req.SetPathValue("employment_id", empID.String())
 	return req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
 }
 
-func newPatternBulkAssignRequest(wsID uuid.UUID, body string) *http.Request {
-	req := httptest.NewRequest(http.MethodPost, "/api/v1/workspaces/"+wsID.String()+"/working-patterns/bulk-assign", bytes.NewReader([]byte(body)))
-	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
+func newPatternBulkAssignRequest(body string) *http.Request {
+	req := httptest.NewRequest(http.MethodPost, "/api/v1" + "/working-patterns/bulk-assign", bytes.NewReader([]byte(body)))
 	return req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
 }
 
 func TestWorkingPatternHandler_Assign_HardComplianceViolation(t *testing.T) {
-	wsID, empID, patID := uuid.New(), uuid.New(), uuid.New()
+	empID, patID := uuid.New(), uuid.New()
 	checker := &mockPatternComplianceChecker{assignmentErr: &ShiftComplianceError{Hard: true}}
 	handler := WorkingPatternHandler{Repository: &mockPatternRepository{}, Authorizer: mockAttendanceAuthorizer{allowed: true}, Compliance: checker}
 
 	rec := httptest.NewRecorder()
-	handler.Assign(rec, newPatternAssignRequest(wsID, empID, `{"pattern_id":"`+patID.String()+`","start_date":"2026-10-20"}`))
+	handler.Assign(rec, newPatternAssignRequest(empID, `{"pattern_id":"`+patID.String()+`","start_date":"2026-10-20"}`))
 
 	if rec.Code != http.StatusBadRequest {
 		t.Fatalf("expected 400, got %d: %s", rec.Code, rec.Body.String())
@@ -58,12 +56,12 @@ func TestWorkingPatternHandler_Assign_HardComplianceViolation(t *testing.T) {
 }
 
 func TestWorkingPatternHandler_Assign_SoftComplianceViolation(t *testing.T) {
-	wsID, empID, patID := uuid.New(), uuid.New(), uuid.New()
+	empID, patID := uuid.New(), uuid.New()
 	checker := &mockPatternComplianceChecker{assignmentErr: &ShiftComplianceError{Hard: false}}
 	handler := WorkingPatternHandler{Repository: &mockPatternRepository{}, Authorizer: mockAttendanceAuthorizer{allowed: true}, Compliance: checker}
 
 	rec := httptest.NewRecorder()
-	handler.Assign(rec, newPatternAssignRequest(wsID, empID, `{"pattern_id":"`+patID.String()+`","start_date":"2026-10-20"}`))
+	handler.Assign(rec, newPatternAssignRequest(empID, `{"pattern_id":"`+patID.String()+`","start_date":"2026-10-20"}`))
 
 	if rec.Code != http.StatusConflict {
 		t.Fatalf("expected 409, got %d: %s", rec.Code, rec.Body.String())
@@ -71,12 +69,12 @@ func TestWorkingPatternHandler_Assign_SoftComplianceViolation(t *testing.T) {
 }
 
 func TestWorkingPatternHandler_BulkAssign_ComplianceViolation(t *testing.T) {
-	wsID, emp1, patID := uuid.New(), uuid.New(), uuid.New()
+	emp1, patID := uuid.New(), uuid.New()
 	checker := &mockPatternComplianceChecker{bulkErr: &ShiftComplianceError{Hard: true}}
 	handler := WorkingPatternHandler{Repository: &mockPatternRepository{}, Authorizer: mockAttendanceAuthorizer{allowed: true}, Compliance: checker}
 
 	rec := httptest.NewRecorder()
-	handler.BulkAssign(rec, newPatternBulkAssignRequest(wsID, `{"pattern_id":"`+patID.String()+`","employment_ids":["`+emp1.String()+`"],"start_date":"2026-10-20"}`))
+	handler.BulkAssign(rec, newPatternBulkAssignRequest(`{"pattern_id":"`+patID.String()+`","employment_ids":["`+emp1.String()+`"],"start_date":"2026-10-20"}`))
 
 	if rec.Code != http.StatusBadRequest {
 		t.Fatalf("expected 400, got %d: %s", rec.Code, rec.Body.String())
@@ -87,13 +85,13 @@ func TestWorkingPatternHandler_BulkAssign_ComplianceViolation(t *testing.T) {
 }
 
 func TestWorkingPatternHandler_Assign_CompliancePasses(t *testing.T) {
-	wsID, empID, patID := uuid.New(), uuid.New(), uuid.New()
+	empID, patID := uuid.New(), uuid.New()
 	checker := &mockPatternComplianceChecker{}
 	repo := &mockPatternRepository{}
 	handler := WorkingPatternHandler{Repository: repo, Authorizer: mockAttendanceAuthorizer{allowed: true}, Compliance: checker}
 
 	rec := httptest.NewRecorder()
-	handler.Assign(rec, newPatternAssignRequest(wsID, empID, `{"pattern_id":"`+patID.String()+`","start_date":"2026-10-20"}`))
+	handler.Assign(rec, newPatternAssignRequest(empID, `{"pattern_id":"`+patID.String()+`","start_date":"2026-10-20"}`))
 
 	if rec.Code != http.StatusOK {
 		t.Fatalf("expected 200, got %d: %s", rec.Code, rec.Body.String())

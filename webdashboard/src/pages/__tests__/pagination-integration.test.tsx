@@ -45,7 +45,6 @@ vi.mock("../../lib/api", () => ({
   fetchEmployeePayslips: vi.fn(),
   fetchWorkspacePayslips: vi.fn(),
   fetchWorkspaceAttendanceAdjustments: vi.fn(),
-  getStandaloneOrganizationId: vi.fn(() => "test-ws-id"),
   fetchRawAttendanceLogs: vi.fn(),
   fetchWorkspace: vi.fn(),
   fetchWorkspaceLeaveRequests: vi.fn(),

@@ -67,6 +67,7 @@ const (
 	KeyInvalidWorkspaceId         = "error.invalid_workspace_id"
 	KeyNoEmployeeRecord           = "error.no_employee_record"
 	KeyNotWorkspaceMember         = "error.not_workspace_member"
+	KeyNotOrganizationMember      = "error.not_organization_member"
 	KeyUserNotFound               = "error.user_not_found"
 	KeyEmployeeNotFound           = "error.employee_not_found"
 	KeyEmploymentNotFound         = "error.employment_not_found"

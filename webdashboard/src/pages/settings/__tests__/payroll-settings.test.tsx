@@ -14,7 +14,6 @@ vi.mock("@/lib/api", async (importOriginal) => {
   const mod = await importOriginal<typeof import("@/lib/api")>();
   return {
     ...mod,
-    getStandaloneOrganizationId: vi.fn(),
   };
 });
 
@@ -33,7 +32,6 @@ describe("PayrollSettings Page", () => {
 
 
   it("renders tabs and default policy section", () => {
-    vi.mocked(api.getStandaloneOrganizationId).mockReturnValue("ws-1");
     render(<PayrollSettings />);
 
     expect(screen.getByTestId("payroll-tab-policy")).toBeDefined();
@@ -41,7 +39,6 @@ describe("PayrollSettings Page", () => {
   });
 
   it("switches to components tab", async () => {
-    vi.mocked(api.getStandaloneOrganizationId).mockReturnValue("ws-1");
     render(<PayrollSettings />);
 
     fireEvent.click(screen.getByTestId("payroll-group-formulas"));
@@ -52,7 +49,6 @@ describe("PayrollSettings Page", () => {
   });
 
   it("switches to bases tab", async () => {
-    vi.mocked(api.getStandaloneOrganizationId).mockReturnValue("ws-1");
     render(<PayrollSettings />);
 
     fireEvent.click(screen.getByTestId("payroll-group-formulas"));
@@ -63,7 +59,6 @@ describe("PayrollSettings Page", () => {
   });
   
   it("switches to incentives tab", async () => {
-    vi.mocked(api.getStandaloneOrganizationId).mockReturnValue("ws-1");
     render(<PayrollSettings />);
 
     fireEvent.click(screen.getByTestId("payroll-group-benefits"));
@@ -74,7 +69,6 @@ describe("PayrollSettings Page", () => {
   });
 
   it("switches to overtime tab", async () => {
-    vi.mocked(api.getStandaloneOrganizationId).mockReturnValue("ws-1");
     render(<PayrollSettings />);
 
     fireEvent.click(screen.getByTestId("payroll-group-benefits"));
@@ -85,7 +79,6 @@ describe("PayrollSettings Page", () => {
   });
 
   it("switches to statutory_rules tab", async () => {
-    vi.mocked(api.getStandaloneOrganizationId).mockReturnValue("ws-1");
     render(<PayrollSettings />);
 
     fireEvent.click(screen.getByTestId("payroll-group-core"));

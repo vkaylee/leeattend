@@ -15,7 +15,6 @@ import (
 type DashboardPreferences struct {
 	ID                uuid.UUID       `json:"id"`
 	UserID            uuid.UUID       `json:"user_id"`
-	WorkspaceID       uuid.UUID       `json:"workspace_id"`
 	ActiveView        string          `json:"active_view"`
 	VisibleWidgets    json.RawMessage `json:"visible_widgets"`
 	WidgetOrder       json.RawMessage `json:"widget_order"`
@@ -30,12 +29,12 @@ type UpdateDashboardPreferences struct {
 	WindowLayout      *json.RawMessage `json:"window_layout"`
 }
 type DashboardPreferencesRepository interface {
-	GetDashboardPreferences(context.Context, uuid.UUID, uuid.UUID) (DashboardPreferences, error)
-	UpdateDashboardPreferences(context.Context, uuid.UUID, uuid.UUID, UpdateDashboardPreferences) (DashboardPreferences, error)
+	GetDashboardPreferences(context.Context, uuid.UUID) (DashboardPreferences, error)
+	UpdateDashboardPreferences(context.Context, uuid.UUID, UpdateDashboardPreferences) (DashboardPreferences, error)
 }
 type DashboardPreferencesHandler struct {
 	Repository DashboardPreferencesRepository
-	Authorizer WorkspaceAuthorizer
+	Authorizer Authorizer
 }
 
 var defaultWidgetOrder = []string{"kpi_cards", "donut_chart", "quick_stats", "attendance_trend", "department_chart", "overtime_trend", "peak_times", "leave_types", "lateness_by_day", "recruitment_sources", "turnover_analytics", "unexcused_absences", "promo_cards"}
@@ -150,13 +149,12 @@ func (h DashboardPreferencesHandler) Put(w http.ResponseWriter, r *http.Request)
 }
 func (h DashboardPreferencesHandler) handle(w http.ResponseWriter, r *http.Request, put bool) {
 	uid, uok := httpinfra.UserIDFromContext(r.Context())
-	ws, wok := organizationIDFromContext(r)
-	if !uok || !wok || h.Authorizer == nil || !h.Authorizer.HasPermission(r.Context(), uid, ws, string(auth.PermissionDashboardPreferences)) {
+	if !uok || h.Authorizer == nil || !h.Authorizer.HasPermission(r.Context(), uid, string(auth.PermissionDashboardPreferences)) {
 		apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
 		return
 	}
 	if !put {
-		p, e := h.Repository.GetDashboardPreferences(r.Context(), uid, ws)
+		p, e := h.Repository.GetDashboardPreferences(r.Context(), uid)
 		if e != nil {
 			apperror.WriteError(w, r, apperror.Internal(e))
 			return
@@ -179,7 +177,7 @@ func (h DashboardPreferencesHandler) handle(w http.ResponseWriter, r *http.Reque
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}
-	p, e := h.Repository.UpdateDashboardPreferences(r.Context(), uid, ws, req)
+	p, e := h.Repository.UpdateDashboardPreferences(r.Context(), uid, req)
 	if e != nil {
 		apperror.WriteError(w, r, apperror.Internal(e))
 		return

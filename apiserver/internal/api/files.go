@@ -35,9 +35,8 @@ type CreateUploadUrlRequest struct {
 	ExpiresInSecs *int64    `json:"expires_in_secs,omitempty"`
 }
 
-type WorkspaceFileRecord struct {
+type FileRecord struct {
 	ID           uuid.UUID  `json:"id"`
-	WorkspaceID  uuid.UUID  `json:"workspace_id"`
 	FileName     string     `json:"file_name"`
 	StorageKey   string     `json:"storage_key"`
 	FileSize     int64      `json:"file_size"`
@@ -65,15 +64,16 @@ type FileStorage interface {
 }
 
 type FileRepository interface {
-	CreateFile(ctx context.Context, file WorkspaceFileRecord) error
-	GetFile(ctx context.Context, wsID, fileID uuid.UUID) (WorkspaceFileRecord, error)
-	DeleteFile(ctx context.Context, wsID, fileID uuid.UUID) error
+	GetOrganizationID(ctx context.Context) (uuid.UUID, error)
+	CreateFile(ctx context.Context, file FileRecord) error
+	GetFile(ctx context.Context, fileID uuid.UUID) (FileRecord, error)
+	DeleteFile(ctx context.Context, fileID uuid.UUID) error
 	CreateSignatureRequest(ctx context.Context, req SignatureRequestRecord) error
-	ListPendingSignatures(ctx context.Context, wsID, signerID uuid.UUID) ([]SignatureRequestRecord, error)
-	SignDocument(ctx context.Context, wsID, requestID uuid.UUID) error
-	CreateFileVersion(ctx context.Context, wsID, oldFileID uuid.UUID, newFile WorkspaceFileRecord) (WorkspaceFileRecord, error)
-	ListFileVersions(ctx context.Context, wsID, fileID uuid.UUID) ([]WorkspaceFileRecord, error)
-	ListFilesByOwner(ctx context.Context, wsID uuid.UUID, ownerType string, ownerID uuid.UUID) ([]WorkspaceFileRecord, error)
+	ListPendingSignatures(ctx context.Context, signerID uuid.UUID) ([]SignatureRequestRecord, error)
+	SignDocument(ctx context.Context, requestID uuid.UUID) error
+	CreateFileVersion(ctx context.Context, oldFileID uuid.UUID, newFile FileRecord) (FileRecord, error)
+	ListFileVersions(ctx context.Context, fileID uuid.UUID) ([]FileRecord, error)
+	ListFilesByOwner(ctx context.Context, ownerType string, ownerID uuid.UUID) ([]FileRecord, error)
 }
 
 type CategoryConfig struct {
@@ -90,7 +90,7 @@ var categoryConfigs = map[string]CategoryConfig{
 		MaxSize:      5 * 1024 * 1024,
 		AllowedMimes: []string{"image/jpeg", "image/png", "image/webp"},
 	},
-	"workspace_logo": {
+	"organization_logo": {
 		MaxSize:      5 * 1024 * 1024,
 		AllowedMimes: []string{"image/jpeg", "image/png", "image/webp", "image/svg+xml"},
 	},
@@ -183,9 +183,9 @@ var validOwnerTypes = map[string]bool{
 	"employee":                 true,
 	"employment":               true,
 	"leave_request":            true,
-	"workspace":                true,
 	"user":                     true,
 	"system":                   true,
+	"organization":             true,
 	"payroll":                  true,
 	"attendance_adjustment":    true,
 	"overtime_request":         true,
@@ -219,16 +219,16 @@ func sanitizeFileName(name string) string {
 	return sanitizedStem + eb.String()
 }
 
-func generateStorageKey(wsID uuid.UUID, category, fileName string) string {
+func generateStorageKey(category, fileName string) string {
 	dateStr := time.Now().UTC().Format("2006/01")
 	fileUUID := uuid.New()
 	sanitized := sanitizeFileName(fileName)
-	return fmt.Sprintf("workspaces/%s/%s/%s/%s_%s", wsID.String(), category, dateStr, fileUUID.String(), sanitized)
+	return fmt.Sprintf("%s/%s/%s_%s", category, dateStr, fileUUID.String(), sanitized)
 }
 
 type CreateUploadUrlResponse struct {
-	File      WorkspaceFileRecord `json:"file"`
-	UploadURL string              `json:"upload_url"`
+	File      FileRecord `json:"file"`
+	UploadURL string     `json:"upload_url"`
 }
 
 type FileURLResponse struct {
@@ -237,7 +237,6 @@ type FileURLResponse struct {
 
 type SignatureRequestRecord struct {
 	ID          uuid.UUID `json:"id"`
-	WorkspaceID uuid.UUID `json:"workspace_id"`
 	DocumentID  uuid.UUID `json:"document_id"`
 	SignerID    uuid.UUID `json:"signer_id"`
 	Status      string    `json:"status"`
@@ -253,13 +252,12 @@ type CreateSignatureRequestBody struct {
 type FileHandler struct {
 	Repository FileRepository
 	Storage    FileStorage
-	Authorizer WorkspaceAuthorizer
+	Authorizer Authorizer
 }
 
 func (h FileHandler) CreateUploadURL(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := organizationIDFromContext(r)
 	userID, userOK := httpinfra.UserIDFromContext(r.Context())
-	if !ok || !userOK || !h.allowed(r, wsID, "files:manage") {
+	if !userOK || !h.allowed(r, "files:manage") {
 		h.forbidden(w, r)
 		return
 	}
@@ -270,16 +268,32 @@ func (h FileHandler) CreateUploadURL(w http.ResponseWriter, r *http.Request) {
 	}
 	req.FileName = strings.TrimSpace(req.FileName)
 	req.MimeType = strings.TrimSpace(req.MimeType)
-	if req.FileName == "" || req.MimeType == "" || req.FileSize <= 0 || req.FileSize > 50*1024*1024 || req.OwnerID == uuid.Nil {
+	req.Category = strings.TrimSpace(req.Category)
+	req.OwnerType = strings.TrimSpace(req.OwnerType)
+	if req.FileName == "" || req.MimeType == "" || req.FileSize <= 0 || req.FileSize > 50*1024*1024 || !validOwnerTypes[req.OwnerType] {
+		h.validation(w, r)
+		return
+	}
+	if req.OwnerType == "organization" {
+		if h.Repository == nil {
+			h.validation(w, r)
+			return
+		}
+		orgID, err := h.Repository.GetOrganizationID(r.Context())
+		if err != nil {
+			apperror.WriteError(w, r, apperror.Internal(err))
+			return
+		}
+		req.OwnerID = orgID
+	} else if req.OwnerID == uuid.Nil {
 		h.validation(w, r)
 		return
 	}
 	fileID := uuid.New()
-	storageKey := fmt.Sprintf("workspaces/%s/%s/%s", wsID.String(), fileID.String(), req.FileName)
+	storageKey := fmt.Sprintf("%s/%s", fileID.String(), req.FileName)
 	now := time.Now().UTC()
-	file := WorkspaceFileRecord{
+	file := FileRecord{
 		ID:          fileID,
-		WorkspaceID: wsID,
 		FileName:    req.FileName,
 		StorageKey:  storageKey,
 		FileSize:    req.FileSize,
@@ -315,9 +329,8 @@ func (h FileHandler) CreateUploadURL(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h FileHandler) GetMetadata(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := organizationIDFromContext(r)
 	fileID, idOK := pathUUID(r, "id")
-	if !ok || !idOK || !h.allowed(r, wsID, "files:read") {
+	if !idOK || !h.allowed(r, "files:read") {
 		h.forbidden(w, r)
 		return
 	}
@@ -325,7 +338,7 @@ func (h FileHandler) GetMetadata(w http.ResponseWriter, r *http.Request) {
 		apperror.WriteError(w, r, apperror.NotFound(apperror.KeyNotFound))
 		return
 	}
-	file, err := h.Repository.GetFile(r.Context(), wsID, fileID)
+	file, err := h.Repository.GetFile(r.Context(), fileID)
 	if err != nil {
 		if errors.Is(err, ErrFileNotFound) {
 			apperror.WriteError(w, r, apperror.NotFound(apperror.KeyNotFound))
@@ -338,9 +351,8 @@ func (h FileHandler) GetMetadata(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h FileHandler) GetURL(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := organizationIDFromContext(r)
 	fileID, idOK := pathUUID(r, "id")
-	if !ok || !idOK || !h.allowed(r, wsID, "files:read") {
+	if !idOK || !h.allowed(r, "files:read") {
 		h.forbidden(w, r)
 		return
 	}
@@ -348,7 +360,7 @@ func (h FileHandler) GetURL(w http.ResponseWriter, r *http.Request) {
 		apperror.WriteError(w, r, apperror.NotFound(apperror.KeyNotFound))
 		return
 	}
-	file, err := h.Repository.GetFile(r.Context(), wsID, fileID)
+	file, err := h.Repository.GetFile(r.Context(), fileID)
 	if err != nil {
 		if errors.Is(err, ErrFileNotFound) {
 			apperror.WriteError(w, r, apperror.NotFound(apperror.KeyNotFound))
@@ -367,9 +379,8 @@ func (h FileHandler) GetURL(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h FileHandler) DeleteFile(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := organizationIDFromContext(r)
 	fileID, idOK := pathUUID(r, "id")
-	if !ok || !idOK || !h.allowed(r, wsID, "files:manage") {
+	if !idOK || !h.allowed(r, "files:manage") {
 		h.forbidden(w, r)
 		return
 	}
@@ -377,7 +388,7 @@ func (h FileHandler) DeleteFile(w http.ResponseWriter, r *http.Request) {
 		apperror.WriteError(w, r, apperror.NotFound(apperror.KeyNotFound))
 		return
 	}
-	if err := h.Repository.DeleteFile(r.Context(), wsID, fileID); err != nil {
+	if err := h.Repository.DeleteFile(r.Context(), fileID); err != nil {
 		if errors.Is(err, ErrFileNotFound) {
 			apperror.WriteError(w, r, apperror.NotFound(apperror.KeyNotFound))
 			return
@@ -389,9 +400,8 @@ func (h FileHandler) DeleteFile(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h FileHandler) CreateSignatureRequest(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := organizationIDFromContext(r)
 	docID, docOK := pathUUID(r, "document_id")
-	if !ok || !docOK || !h.allowed(r, wsID, "documents:manage") {
+	if !docOK || !h.allowed(r, "documents:manage") {
 		h.forbidden(w, r)
 		return
 	}
@@ -402,13 +412,12 @@ func (h FileHandler) CreateSignatureRequest(w http.ResponseWriter, r *http.Reque
 	}
 	now := time.Now().UTC()
 	sigReq := SignatureRequestRecord{
-		ID:          uuid.New(),
-		WorkspaceID: wsID,
-		DocumentID:  docID,
-		SignerID:    req.SignerID,
-		Status:      "pending",
-		CreatedAt:   now.Format(time.RFC3339),
-		UpdatedAt:   now.Format(time.RFC3339),
+		ID:         uuid.New(),
+		DocumentID: docID,
+		SignerID:   req.SignerID,
+		Status:     "pending",
+		CreatedAt:  now.Format(time.RFC3339),
+		UpdatedAt:  now.Format(time.RFC3339),
 	}
 	if h.Repository != nil {
 		if err := h.Repository.CreateSignatureRequest(r.Context(), sigReq); err != nil {
@@ -420,9 +429,8 @@ func (h FileHandler) CreateSignatureRequest(w http.ResponseWriter, r *http.Reque
 }
 
 func (h FileHandler) ListPendingSignatures(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := organizationIDFromContext(r)
 	userID, userOK := httpinfra.UserIDFromContext(r.Context())
-	if !ok || !userOK {
+	if !userOK {
 		h.forbidden(w, r)
 		return
 	}
@@ -430,7 +438,7 @@ func (h FileHandler) ListPendingSignatures(w http.ResponseWriter, r *http.Reques
 		apperror.WriteJSON(w, http.StatusOK, []SignatureRequestRecord{})
 		return
 	}
-	list, err := h.Repository.ListPendingSignatures(r.Context(), wsID, userID)
+	list, err := h.Repository.ListPendingSignatures(r.Context(), userID)
 	if err != nil {
 		apperror.WriteError(w, r, apperror.Internal(err))
 		return
@@ -439,9 +447,8 @@ func (h FileHandler) ListPendingSignatures(w http.ResponseWriter, r *http.Reques
 }
 
 func (h FileHandler) SignDocument(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := organizationIDFromContext(r)
 	reqID, reqOK := pathUUID(r, "request_id")
-	if !ok || !reqOK {
+	if !reqOK {
 		h.forbidden(w, r)
 		return
 	}
@@ -449,7 +456,7 @@ func (h FileHandler) SignDocument(w http.ResponseWriter, r *http.Request) {
 		apperror.WriteError(w, r, apperror.NotFound(apperror.KeyNotFound))
 		return
 	}
-	if err := h.Repository.SignDocument(r.Context(), wsID, reqID); err != nil {
+	if err := h.Repository.SignDocument(r.Context(), reqID); err != nil {
 		if errors.Is(err, ErrFileNotFound) {
 			apperror.WriteError(w, r, apperror.NotFound(apperror.KeyNotFound))
 			return
@@ -460,9 +467,9 @@ func (h FileHandler) SignDocument(w http.ResponseWriter, r *http.Request) {
 	apperror.WriteJSON(w, http.StatusOK, struct{}{})
 }
 
-func (h FileHandler) allowed(r *http.Request, wsID uuid.UUID, p string) bool {
+func (h FileHandler) allowed(r *http.Request, p string) bool {
 	u, ok := httpinfra.UserIDFromContext(r.Context())
-	return ok && h.Authorizer != nil && h.Authorizer.HasPermission(r.Context(), u, wsID, p)
+	return ok && h.Authorizer != nil && h.Authorizer.HasPermission(r.Context(), u, p)
 }
 
 func (h FileHandler) forbidden(w http.ResponseWriter, r *http.Request) {
@@ -473,25 +480,18 @@ func (h FileHandler) validation(w http.ResponseWriter, r *http.Request) {
 	apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 }
 
-func (h FileHandler) isMember(r *http.Request, wsID uuid.UUID) bool {
+func (h FileHandler) isMember(r *http.Request) bool {
 	u, ok := httpinfra.UserIDFromContext(r.Context())
 	if !ok || h.Authorizer == nil {
 		return false
 	}
-	if checker, ok := h.Authorizer.(interface {
-		IsMember(context.Context, uuid.UUID, uuid.UUID) (bool, error)
-	}); ok {
-		m, err := checker.IsMember(r.Context(), u, wsID)
-		return err == nil && m
-	}
-	return h.Authorizer.HasPermission(r.Context(), u, wsID, "files:read") ||
-		h.Authorizer.HasPermission(r.Context(), u, wsID, "files:manage")
+	m, err := h.Authorizer.IsMember(r.Context(), u)
+	return err == nil && m
 }
 
 func (h FileHandler) UploadFile(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := organizationIDFromContext(r)
 	userID, userOK := httpinfra.UserIDFromContext(r.Context())
-	if !ok || !userOK || !h.isMember(r, wsID) {
+	if !userOK || !h.isMember(r) {
 		h.forbidden(w, r)
 		return
 	}
@@ -505,11 +505,30 @@ func (h FileHandler) UploadFile(w http.ResponseWriter, r *http.Request) {
 
 	category := strings.TrimSpace(r.FormValue("category"))
 	ownerType := strings.TrimSpace(r.FormValue("owner_type"))
-	ownerIDStr := strings.TrimSpace(r.FormValue("owner_id"))
-	ownerID, err := uuid.Parse(ownerIDStr)
-	if err != nil || ownerID == uuid.Nil || !validOwnerTypes[ownerType] {
+	if !validOwnerTypes[ownerType] {
 		h.validation(w, r)
 		return
+	}
+	var ownerID uuid.UUID
+	if ownerType == "organization" {
+		if h.Repository == nil {
+			h.validation(w, r)
+			return
+		}
+		var err error
+		ownerID, err = h.Repository.GetOrganizationID(r.Context())
+		if err != nil {
+			apperror.WriteError(w, r, apperror.Internal(err))
+			return
+		}
+	} else {
+		ownerIDStr := strings.TrimSpace(r.FormValue("owner_id"))
+		var err error
+		ownerID, err = uuid.Parse(ownerIDStr)
+		if err != nil || ownerID == uuid.Nil {
+			h.validation(w, r)
+			return
+		}
 	}
 
 	file, header, err := r.FormFile("file")
@@ -542,7 +561,7 @@ func (h FileHandler) UploadFile(w http.ResponseWriter, r *http.Request) {
 
 	hashSum := sha256.Sum256(data)
 	contentHash := hex.EncodeToString(hashSum[:])
-	storageKey := generateStorageKey(wsID, category, fileName)
+	storageKey := generateStorageKey(category, fileName)
 
 	if h.Storage != nil {
 		if err := h.Storage.Put(r.Context(), storageKey, mimeType, bytes.NewReader(data)); err != nil {
@@ -561,9 +580,8 @@ func (h FileHandler) UploadFile(w http.ResponseWriter, r *http.Request) {
 
 	now := time.Now().UTC().Format(time.RFC3339)
 	fileID := uuid.New()
-	record := WorkspaceFileRecord{
+	record := FileRecord{
 		ID:          fileID,
-		WorkspaceID: wsID,
 		FileName:    fileName,
 		StorageKey:  storageKey,
 		FileSize:    fileSize,
@@ -593,10 +611,9 @@ func (h FileHandler) UploadFile(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h FileHandler) UpdateFile(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := organizationIDFromContext(r)
 	fileID, idOK := pathUUID(r, "id")
 	userID, userOK := httpinfra.UserIDFromContext(r.Context())
-	if !ok || !idOK || !userOK || !h.isMember(r, wsID) {
+	if !idOK || !userOK || !h.isMember(r) {
 		h.forbidden(w, r)
 		return
 	}
@@ -606,7 +623,7 @@ func (h FileHandler) UpdateFile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	currentFile, err := h.Repository.GetFile(r.Context(), wsID, fileID)
+	currentFile, err := h.Repository.GetFile(r.Context(), fileID)
 	if err != nil {
 		if errors.Is(err, ErrFileNotFound) {
 			apperror.WriteError(w, r, apperror.NotFound(apperror.KeyNotFound))
@@ -660,7 +677,7 @@ func (h FileHandler) UpdateFile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	newStorageKey := generateStorageKey(wsID, currentFile.Category, fileName)
+	newStorageKey := generateStorageKey(currentFile.Category, fileName)
 	if h.Storage != nil {
 		if err := h.Storage.Put(r.Context(), newStorageKey, mimeType, bytes.NewReader(data)); err != nil {
 			apperror.WriteError(w, r, apperror.Internal(err))
@@ -669,9 +686,8 @@ func (h FileHandler) UpdateFile(w http.ResponseWriter, r *http.Request) {
 	}
 
 	now := time.Now().UTC().Format(time.RFC3339)
-	newRecord := WorkspaceFileRecord{
+	newRecord := FileRecord{
 		ID:           uuid.New(),
-		WorkspaceID:  wsID,
 		FileName:     fileName,
 		StorageKey:   newStorageKey,
 		FileSize:     fileSize,
@@ -692,7 +708,7 @@ func (h FileHandler) UpdateFile(w http.ResponseWriter, r *http.Request) {
 		UpdatedAt:    now,
 	}
 
-	created, err := h.Repository.CreateFileVersion(r.Context(), wsID, currentFile.ID, newRecord)
+	created, err := h.Repository.CreateFileVersion(r.Context(), currentFile.ID, newRecord)
 	if err != nil {
 		apperror.WriteError(w, r, apperror.Internal(err))
 		return
@@ -702,9 +718,8 @@ func (h FileHandler) UpdateFile(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h FileHandler) DownloadFile(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := organizationIDFromContext(r)
 	fileID, idOK := pathUUID(r, "id")
-	if !ok || !idOK || !h.isMember(r, wsID) {
+	if !idOK || !h.isMember(r) {
 		h.forbidden(w, r)
 		return
 	}
@@ -714,7 +729,7 @@ func (h FileHandler) DownloadFile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	file, err := h.Repository.GetFile(r.Context(), wsID, fileID)
+	file, err := h.Repository.GetFile(r.Context(), fileID)
 	if err != nil {
 		if errors.Is(err, ErrFileNotFound) {
 			apperror.WriteError(w, r, apperror.NotFound(apperror.KeyNotFound))
@@ -750,19 +765,18 @@ func (h FileHandler) DownloadFile(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h FileHandler) ListVersions(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := organizationIDFromContext(r)
 	fileID, idOK := pathUUID(r, "id")
-	if !ok || !idOK || !h.isMember(r, wsID) {
+	if !idOK || !h.isMember(r) {
 		h.forbidden(w, r)
 		return
 	}
 
 	if h.Repository == nil {
-		apperror.WriteJSON(w, http.StatusOK, []WorkspaceFileRecord{})
+		apperror.WriteJSON(w, http.StatusOK, []FileRecord{})
 		return
 	}
 
-	versions, err := h.Repository.ListFileVersions(r.Context(), wsID, fileID)
+	versions, err := h.Repository.ListFileVersions(r.Context(), fileID)
 	if err != nil {
 		apperror.WriteError(w, r, apperror.Internal(err))
 		return
@@ -771,21 +785,43 @@ func (h FileHandler) ListVersions(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h FileHandler) ListByOwner(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := organizationIDFromContext(r)
+	if !h.isMember(r) {
+		h.forbidden(w, r)
+		return
+	}
 	ownerType := r.PathValue("owner_type")
-	ownerIDStr := r.PathValue("owner_id")
-	ownerID, idErr := uuid.Parse(ownerIDStr)
-	if !ok || idErr != nil || !validOwnerTypes[ownerType] || !h.isMember(r, wsID) {
+	if !validOwnerTypes[ownerType] {
 		h.validation(w, r)
 		return
 	}
+	var ownerID uuid.UUID
+	if ownerType == "organization" {
+		if h.Repository == nil {
+			h.validation(w, r)
+			return
+		}
+		var err error
+		ownerID, err = h.Repository.GetOrganizationID(r.Context())
+		if err != nil {
+			apperror.WriteError(w, r, apperror.Internal(err))
+			return
+		}
+	} else {
+		ownerIDStr := r.PathValue("owner_id")
+		var err error
+		ownerID, err = uuid.Parse(ownerIDStr)
+		if err != nil || ownerID == uuid.Nil {
+			h.validation(w, r)
+			return
+		}
+	}
 
 	if h.Repository == nil {
-		apperror.WriteJSON(w, http.StatusOK, []WorkspaceFileRecord{})
+		apperror.WriteJSON(w, http.StatusOK, []FileRecord{})
 		return
 	}
 
-	files, err := h.Repository.ListFilesByOwner(r.Context(), wsID, ownerType, ownerID)
+	files, err := h.Repository.ListFilesByOwner(r.Context(), ownerType, ownerID)
 	if err != nil {
 		apperror.WriteError(w, r, apperror.Internal(err))
 		return

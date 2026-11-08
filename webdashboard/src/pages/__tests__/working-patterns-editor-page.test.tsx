@@ -29,7 +29,6 @@ vi.mock("../../lib/api", () => ({
   updateWorkingPattern: vi.fn(),
   fetchPatternDetails: vi.fn(),
   fetchShifts: vi.fn(),
-  getStandaloneOrganizationId: vi.fn(),
 }));
 
 // Mock Toast
@@ -71,7 +70,6 @@ describe("WorkingPatternsEditorPage", () => {
       },
     });
 
-    vi.mocked(api.getStandaloneOrganizationId).mockReturnValue("ws-1");
     vi.mocked(api.fetchShifts).mockResolvedValue([
       { id: "shift-1", name: "Morning Shift", start_time: "08:00", end_time: "17:00" }
     ] as unknown as Shift[]);

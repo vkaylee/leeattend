@@ -12,21 +12,20 @@ import { CreateSalaryComponentRequest } from "@/lib/api/types";
 import { cn } from "@/lib/utils";
 
 interface Props {
-  wsId: string;
 }
 
-export default function SalaryComponentManager({ wsId }: Props) {
+export default function SalaryComponentManager({}: Props) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const toast = useToast();
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  const { data: components, isLoading } = useQuery({ queryKey: ["salary-components", wsId], queryFn: () => fetchSalaryComponents(wsId), enabled: !!wsId });
-  const { data: baseGroupsData } = useQuery({ queryKey: ["salary-base-groups", wsId], queryFn: () => fetchSalaryBaseGroups(wsId), enabled: !!wsId });
+  const { data: components, isLoading } = useQuery({ queryKey: ["salary-components"], queryFn: () => fetchSalaryComponents() });
+  const { data: baseGroupsData } = useQuery({ queryKey: ["salary-base-groups"], queryFn: () => fetchSalaryBaseGroups() });
   const [formData, setFormData] = useState<CreateSalaryComponentRequest>({ name: "", code: "", base_group_ids: [] });
 
   const createMutation = useMutation({
-    mutationFn: (data: CreateSalaryComponentRequest) => createSalaryComponent(wsId, data),
+    mutationFn: (data: CreateSalaryComponentRequest) => createSalaryComponent(data),
     onSuccess: () => { toast.success(t("common.success")); void queryClient.invalidateQueries({ queryKey: ["salary-components"] }); void queryClient.invalidateQueries({ queryKey: ["salary-base-groups"] }); setIsModalOpen(false); setFormData({ name: "", code: "", base_group_ids: [] }); },
   });
 

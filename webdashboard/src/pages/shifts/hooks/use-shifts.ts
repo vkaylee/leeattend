@@ -4,7 +4,6 @@ import { useState, useCallback } from "react";
 import type { ComplianceViolation } from "@/lib/api/errors";
 import type { Shift, EmployeeSchedule } from "@/lib/api/types";
 
-import { getStandaloneOrganizationId } from "@/lib/api";
 
 import { useMonthNavigation } from "./use-month-navigation";
 import { useRosterHandlers } from "./use-roster-handlers";
@@ -15,13 +14,12 @@ import { useShiftNavigation } from "./use-shift-navigation";
 import { UseShiftsReturn } from "./use-shifts-types";
 
 export function useShifts(): UseShiftsReturn {
-  const wsId = getStandaloneOrganizationId() ?? "";
+  
   const navigate = useNavigate();
   const nav = useShiftNavigation();
   const monthNav = useMonthNavigation();
-  const form = useShiftFormState(wsId);
+  const form = useShiftFormState();
   const data = useShiftData({
-    wsId,
     startOfWeek: nav.startOfWeek,
     weekDays: nav.weekDays,
     viewMode: form.viewMode,
@@ -42,7 +40,6 @@ export function useShifts(): UseShiftsReturn {
   }, []);
 
   const mutations = useShiftMutations({
-    wsId,
     selectedEmployeeId: form.selectedEmployee?.id,
     selectedEmploymentId: form.selectedEmployee?.active_employment_id ?? undefined,
     onComplianceConflict,
@@ -75,7 +72,6 @@ export function useShifts(): UseShiftsReturn {
   });
 
   const rosterHandlers = useRosterHandlers({
-    wsId,
     ...form,
     ...nav,
     allSchedules: data.allSchedules,
@@ -123,7 +119,6 @@ export function useShifts(): UseShiftsReturn {
     handleCreateShift,
     handleUpdateShift,
     employeeSchedule,
-    wsId,
     handleNavigateWeek: (dir: "prev" | "next") => { nav.handleNavigateWeek(dir, () => { form.setSelectedDays([]); }); }
   };
 }

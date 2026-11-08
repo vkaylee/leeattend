@@ -17,12 +17,6 @@ import {
   overtimeRequestKeys,
 } from "../use-overtime-requests";
 
-const mockUseWorkspace = vi.hoisted(() => vi.fn());
-
-vi.mock("@/hooks/use-workspace", () => ({
-  useWorkspace: mockUseWorkspace,
-}));
-
 const api = vi.hoisted(() => ({
   listRequests: vi.fn(),
   getRequest: vi.fn(),
@@ -39,13 +33,8 @@ vi.mock("@/lib/api/overtime-requests", () => ({
   overtimeRequestsApi: api,
 }));
 
-const WS_ID = "standalone";
-const withWorkspace = { workspace: { id: WS_ID }, isLoading: false, isError: false };
-const withoutWorkspace = { workspace: undefined, isLoading: false, isError: false };
-
 const MOCK_REQUEST = {
   id: "ot-1",
-  workspace_id: WS_ID,
   status: "pending_approval",
   planned_date: "2026-08-10",
   planned_minutes: 120,
@@ -72,17 +61,15 @@ function createWrapper() {
 describe("overtimeRequestKeys", () => {
   it("generates stable query keys", () => {
     expect(overtimeRequestKeys.all).toEqual(["overtime-requests"]);
-    expect(overtimeRequestKeys.lists(WS_ID)).toEqual(["overtime-requests", WS_ID, "list"]);
-    expect(overtimeRequestKeys.list(WS_ID, { status: "pending_approval" })).toEqual([
+    expect(overtimeRequestKeys.lists()).toEqual(["overtime-requests", "list"]);
+    expect(overtimeRequestKeys.list({ status: "pending_approval" })).toEqual([
       "overtime-requests",
-      WS_ID,
       "list",
       { params: { status: "pending_approval" } },
     ]);
-    expect(overtimeRequestKeys.detail(WS_ID, "ot-1")).toEqual([
+    expect(overtimeRequestKeys.detail("ot-1")).toEqual([
       "overtime-requests",
       "detail",
-      WS_ID,
       "ot-1",
     ]);
     expect(overtimeRequestKeys.assignments("emp-1")).toEqual([
@@ -90,15 +77,13 @@ describe("overtimeRequestKeys", () => {
       "assignments",
       "emp-1",
     ]);
-    expect(overtimeRequestKeys.quotaSummaries(WS_ID, "2026-08")).toEqual([
+    expect(overtimeRequestKeys.quotaSummaries("2026-08")).toEqual([
       "overtime-quotas",
-      WS_ID,
       "summary",
       "2026-08",
     ]);
-    expect(overtimeRequestKeys.quotaDetail(WS_ID, "emp-1", "2026-08-10")).toEqual([
+    expect(overtimeRequestKeys.quotaDetail("emp-1", "2026-08-10")).toEqual([
       "overtime-quotas",
-      WS_ID,
       "emp-1",
       "2026-08-10",
     ]);
@@ -108,26 +93,23 @@ describe("overtimeRequestKeys", () => {
 describe("useOvertimeRequests", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockUseWorkspace.mockReturnValue(withWorkspace);
     (api.listRequests as Mock).mockResolvedValue({ data: [MOCK_REQUEST], total: 1, page: 1, limit: 20 });
   });
 
-  it("fetches the paginated request list with the active workspace and params", async () => {
+  it("fetches the paginated request list with params", async () => {
     const params = { status: "pending_approval" };
     const { result } = renderHook(() => useOvertimeRequests(params), { wrapper: createWrapper() });
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
 
-    expect(api.listRequests).toHaveBeenCalledWith(WS_ID, params);
+    expect(api.listRequests).toHaveBeenCalledWith(params);
     expect(result.current.data?.data).toHaveLength(1);
   });
-
 });
 
 describe("useOvertimeRequest", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockUseWorkspace.mockReturnValue(withWorkspace);
     (api.getRequest as Mock).mockResolvedValue({ ...MOCK_REQUEST, approval_history: [] });
   });
 
@@ -136,7 +118,7 @@ describe("useOvertimeRequest", () => {
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
 
-    expect(api.getRequest).toHaveBeenCalledWith(WS_ID, "ot-1");
+    expect(api.getRequest).toHaveBeenCalledWith("ot-1");
     expect(result.current.data?.id).toBe("ot-1");
   });
 
@@ -151,7 +133,6 @@ describe("useOvertimeRequest", () => {
 describe("useCreateOvertimeRequest", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockUseWorkspace.mockReturnValue(withWorkspace);
     (api.createRequest as Mock).mockResolvedValue(MOCK_REQUEST);
   });
 
@@ -169,18 +150,16 @@ describe("useCreateOvertimeRequest", () => {
       await result.current.mutateAsync(payload);
     });
 
-    expect(api.createRequest).toHaveBeenCalledWith(WS_ID, payload);
+    expect(api.createRequest).toHaveBeenCalledWith(payload);
     await waitFor(() => {
       expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: overtimeRequestKeys.all });
     });
   });
-
 });
 
 describe("useSubmitOvertimeRequest", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockUseWorkspace.mockReturnValue(withWorkspace);
     (api.submitRequest as Mock).mockResolvedValue(undefined);
   });
 
@@ -192,21 +171,19 @@ describe("useSubmitOvertimeRequest", () => {
       await result.current.mutateAsync("ot-1");
     });
 
-    expect(api.submitRequest).toHaveBeenCalledWith(WS_ID, "ot-1");
+    expect(api.submitRequest).toHaveBeenCalledWith("ot-1");
     await waitFor(() => {
       expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: overtimeRequestKeys.all });
       expect(invalidateSpy).toHaveBeenCalledWith({
-        queryKey: overtimeRequestKeys.detail(WS_ID, "ot-1"),
+        queryKey: overtimeRequestKeys.detail("ot-1"),
       });
     });
   });
-
 });
 
 describe("useCancelOvertimeRequest", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockUseWorkspace.mockReturnValue(withWorkspace);
     (api.cancelRequest as Mock).mockResolvedValue(undefined);
   });
 
@@ -218,21 +195,19 @@ describe("useCancelOvertimeRequest", () => {
       await result.current.mutateAsync("ot-1");
     });
 
-    expect(api.cancelRequest).toHaveBeenCalledWith(WS_ID, "ot-1");
+    expect(api.cancelRequest).toHaveBeenCalledWith("ot-1");
     await waitFor(() => {
       expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: overtimeRequestKeys.all });
       expect(invalidateSpy).toHaveBeenCalledWith({
-        queryKey: overtimeRequestKeys.detail(WS_ID, "ot-1"),
+        queryKey: overtimeRequestKeys.detail("ot-1"),
       });
     });
   });
-
 });
 
 describe("useEmployeeConsent", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockUseWorkspace.mockReturnValue(withWorkspace);
     (api.employeeConsent as Mock).mockResolvedValue(undefined);
   });
 
@@ -248,14 +223,14 @@ describe("useEmployeeConsent", () => {
       });
     });
 
-    expect(api.employeeConsent).toHaveBeenCalledWith(WS_ID, "ot-1", {
+    expect(api.employeeConsent).toHaveBeenCalledWith("ot-1", {
       employment_id: "emp-1",
       status: "accepted",
     });
     await waitFor(() => {
       expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: overtimeRequestKeys.all });
       expect(invalidateSpy).toHaveBeenCalledWith({
-        queryKey: overtimeRequestKeys.detail(WS_ID, "ot-1"),
+        queryKey: overtimeRequestKeys.detail("ot-1"),
       });
       expect(invalidateSpy).toHaveBeenCalledWith({
         queryKey: overtimeRequestKeys.assignments("emp-1"),
@@ -275,13 +250,12 @@ describe("useEmployeeConsent", () => {
       });
     });
 
-    expect(api.employeeConsent).toHaveBeenCalledWith(WS_ID, "ot-1", {
+    expect(api.employeeConsent).toHaveBeenCalledWith("ot-1", {
       employment_id: "emp-1",
       status: "declined",
       decline_reason: "Sick",
     });
   });
-
 });
 
 describe("useMyOtAssignments", () => {
@@ -310,7 +284,6 @@ describe("useMyOtAssignments", () => {
 describe("useWorkspaceQuotaSummary", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockUseWorkspace.mockReturnValue(withWorkspace);
     (api.getWorkspaceQuotaSummary as Mock).mockResolvedValue([
       { employee_id: "emp-1", monthly_used: 5, monthly_limit: 40, yearly_used: 12, yearly_limit: 200 },
     ]);
@@ -323,7 +296,7 @@ describe("useWorkspaceQuotaSummary", () => {
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
 
-    expect(api.getWorkspaceQuotaSummary).toHaveBeenCalledWith(WS_ID, "2026-08");
+    expect(api.getWorkspaceQuotaSummary).toHaveBeenCalledWith("2026-08");
     expect(result.current.data).toHaveLength(1);
   });
 
@@ -338,7 +311,6 @@ describe("useWorkspaceQuotaSummary", () => {
 describe("useEmployeeQuota", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockUseWorkspace.mockReturnValue(withWorkspace);
     (api.getEmployeeQuota as Mock).mockResolvedValue({
       employee_id: "emp-1",
       monthly_used: 5,
@@ -355,7 +327,7 @@ describe("useEmployeeQuota", () => {
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
 
-    expect(api.getEmployeeQuota).toHaveBeenCalledWith(WS_ID, "emp-1", "2026-08-10");
+    expect(api.getEmployeeQuota).toHaveBeenCalledWith("emp-1", "2026-08-10");
     expect(result.current.data?.employee_id).toBe("emp-1");
   });
 

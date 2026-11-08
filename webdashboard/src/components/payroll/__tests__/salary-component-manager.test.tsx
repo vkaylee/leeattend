@@ -55,7 +55,7 @@ describe("SalaryComponentManager", () => {
   };
 
   it("renders list of components", async () => {
-    renderWithProviders(<SalaryComponentManager wsId={mockWsId} />);
+    renderWithProviders(<SalaryComponentManager   />);
 
     expect(await screen.findByText(/Lương cơ bản/i)).toBeInTheDocument();
     expect(screen.getByText(/BASE/i)).toBeInTheDocument();
@@ -64,7 +64,7 @@ describe("SalaryComponentManager", () => {
   it("opens modal and submits new component", async () => {
  
     vi.mocked(api.createSalaryComponent).mockResolvedValue({ id: "2" } as unknown as never);
-    renderWithProviders(<SalaryComponentManager wsId={mockWsId} />);
+    renderWithProviders(<SalaryComponentManager   />);
 
     const addButton = screen.getByText(/common.add/i);
     fireEvent.click(addButton);

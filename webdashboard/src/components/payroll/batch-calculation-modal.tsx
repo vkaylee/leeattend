@@ -24,7 +24,6 @@ interface BatchCalculationModalProps {
   employeeNames: Record<string, string>; // ID -> Name map
   isOpen: boolean;
   onClose: () => void;
-  workspaceId: string;
 }
 
 function BatchCalculationLoading({ employeeCount }: { employeeCount: number }) {
@@ -99,9 +98,7 @@ function BatchCalculationResults({
 
 export default function BatchCalculationModal({ 
   isOpen, 
-  onClose, 
-  workspaceId, 
-  employeeIds,
+  onClose,employeeIds,
   employeeNames
 }: BatchCalculationModalProps) {
   const { t } = useTranslation();
@@ -113,7 +110,7 @@ export default function BatchCalculationModal({
 
   const batchMutation = useMutation({
     mutationFn: (data: { year: number; month: number }) => 
-      calculateBatchPayslips(workspaceId, { employment_ids: employeeIds, year: data.year, month: data.month }),
+      calculateBatchPayslips({ employment_ids: employeeIds, year: data.year, month: data.month }),
     onSuccess: (data) => {
       setResults(data.results);
       void queryClient.invalidateQueries({ queryKey: ["payslips"] });

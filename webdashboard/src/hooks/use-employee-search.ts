@@ -1,4 +1,4 @@
-import { useOrganizationInfiniteQuery, useOrganizationQuery } from '@/hooks/common/use-workspace-query';
+import { useOrganizationInfiniteQuery, useOrganizationQuery } from '@/hooks/common/use-organization-query';
 import { employeeKeys } from '@/lib/query-keys';
 import { useState, useMemo, useEffect } from 'react';
 
@@ -11,11 +11,9 @@ export interface UseEmployeeSearchOptions {
   emptyQueryBehavior?: 'prompt-to-type' | 'all';
   permission?: string;
   selectedIds: string[];
-  workspaceId: string;
 }
 
 export function useEmployeeSearch({
-  workspaceId,
   debouncedSearchTerm,
   selectedIds,
   emptyQueryBehavior = 'all',
@@ -32,16 +30,14 @@ export function useEmployeeSearch({
     isFetchingNextPage,
     isLoading,
   } = useOrganizationInfiniteQuery({
-    workspaceId,
-    queryKey: employeeKeys.search(workspaceId, {
+    queryKey: employeeKeys.search({
       departmentIds,
       emptyQueryBehavior,
       permission,
       search: debouncedSearchTerm,
     }),
-    queryFn: async (wsId, pageParam) => {
+    queryFn: async (pageParam) => {
       const res = (await searchEmployees({
-        wsId,
         query: debouncedSearchTerm,
         page: pageParam,
         limit: 50,
@@ -71,11 +67,10 @@ export function useEmployeeSearch({
 
   const firstSelectedId = selectedIds[0];
   const { data: selectedEmpData } = useOrganizationQuery({
-    workspaceId,
-    queryKey: employeeKeys.detail(workspaceId, firstSelectedId ?? ""),
-    queryFn: (wsId) => {
+    queryKey: employeeKeys.detail(firstSelectedId ?? ""),
+    queryFn: () => {
       if (!firstSelectedId) throw new Error("No selected ID");
-      return fetchEmployee(wsId, firstSelectedId);
+      return fetchEmployee(firstSelectedId);
     },
     enabled: !!firstSelectedId && !selectedMeta.some(m => m.id === firstSelectedId),
   });

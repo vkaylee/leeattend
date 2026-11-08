@@ -19,10 +19,9 @@ vi.mock("@tanstack/react-router", () => ({
   useLocation: () => ({ pathname: "/dashboard" }),
 }));
 
-// Mock useWorkspace
-vi.mock("@/hooks/use-workspace", () => ({
-  useWorkspace: () => ({
-    workspace: { id: "ws-1", name: "Acme Corp" },
+vi.mock("@/hooks/use-organization", () => ({
+  useOrganization: () => ({
+    organization: { name: "Acme Corp" },
   }),
 }));
 

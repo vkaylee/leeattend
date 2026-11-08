@@ -13,26 +13,21 @@ import type { BehalfAssignmentType } from "./use-behalf-assignments";
 
 import { behalfKeys } from "./use-behalf-assignments";
 
-export function useBehalfAssignmentData(
-  type: BehalfAssignmentType,
-  wsId: string | null,
-) {
+export function useBehalfAssignmentData(type: BehalfAssignmentType) {
   const listQuery = useQuery({
-    queryKey: wsId ? behalfKeys.list(wsId, type) : [],
+    queryKey: behalfKeys.list(type),
     queryFn: async (): Promise<BehalfAssignment[]> => {
-      if (!wsId) throw new Error("No workspace");
       switch (type) {
         case "ot":
-          return fetchBehalfAssignments(wsId);
+          return fetchBehalfAssignments();
         case "leave":
-          return fetchLeaveBehalfAssignments(wsId);
+          return fetchLeaveBehalfAssignments();
         case "attendance_adjustment":
-          return fetchAdjustmentBehalfAssignments(wsId);
+          return fetchAdjustmentBehalfAssignments();
         case "overtime_request":
-          return overtimeRequestsApi.listRequestBehalfAssignments(wsId);
+          return overtimeRequestsApi.listRequestBehalfAssignments();
       }
     },
-    enabled: !!wsId,
   });
 
   return {

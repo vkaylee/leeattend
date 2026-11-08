@@ -15,7 +15,6 @@ import (
 
 type SalaryComponentDefinition struct {
 	ID          uuid.UUID `json:"id"`
-	WorkspaceID uuid.UUID `json:"workspace_id"`
 	Name        string    `json:"name"`
 	Code        string    `json:"code"`
 	CreatedAt   string    `json:"created_at"`
@@ -63,22 +62,21 @@ type CompensationHistoryResponse struct {
 }
 
 type CompensationHistoryRepository interface {
-	GetEmployeeCompensationHistory(context.Context, uuid.UUID, uuid.UUID, *uuid.UUID) (CompensationHistoryResponse, error)
+	GetEmployeeCompensationHistory(context.Context, uuid.UUID, *uuid.UUID) (CompensationHistoryResponse, error)
 }
-
 type CompensationHistoryHandler struct {
 	Repository CompensationHistoryRepository
-	Authorizer WorkspaceAuthorizer
+	Authorizer Authorizer
 }
 
 func (h CompensationHistoryHandler) Get(w http.ResponseWriter, r *http.Request) {
-	wsID, employeeID, ok := employeePath(r)
+	employeeID, ok := employeePath(r)
 	if !ok {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}
 	userID, ok := httpinfra.UserIDFromContext(r.Context())
-	if !ok || h.Authorizer == nil || !h.Authorizer.HasPermission(r.Context(), userID, wsID, string(auth.PermissionEmployeesRead)) {
+	if !ok || h.Authorizer == nil || !h.Authorizer.HasPermission(r.Context(), userID, string(auth.PermissionEmployeesRead)) {
 		apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
 		return
 	}
@@ -91,7 +89,7 @@ func (h CompensationHistoryHandler) Get(w http.ResponseWriter, r *http.Request) 
 		}
 		employmentID = &id
 	}
-	result, err := h.Repository.GetEmployeeCompensationHistory(r.Context(), wsID, employeeID, employmentID)
+	result, err := h.Repository.GetEmployeeCompensationHistory(r.Context(), employeeID, employmentID)
 	if err != nil {
 		switch {
 		case errors.Is(err, pgx.ErrNoRows), errors.Is(err, ErrEmployeeNotFound):

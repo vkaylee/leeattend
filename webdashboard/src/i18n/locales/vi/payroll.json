@@ -18,10 +18,10 @@
     },
     "traceability": {
       "hierarchy_title": "Thứ tự ưu tiên cấu hình",
-      "hierarchy_explanation": "Cấu hình lương được ưu tiên theo thứ tự: Cá nhân > Phòng ban > Workspace.",
+      "hierarchy_explanation": "Cấu hình lương được ưu tiên theo thứ tự: Cá nhân > Phòng ban > Tổ chức.",
       "individual_policy": "Chính sách cá nhân",
       "department_policy": "Chính sách phòng ban",
-      "workspace_default": "Mặc định Workspace",
+      "workspace_default": "Mặc định tổ chức",
       "pending_adjustments": "Có yêu cầu hiệu chỉnh",
       "recalc_needed": "Cần tính toán lại",
       "view_adjustments": "Xem hiệu chỉnh"
@@ -227,7 +227,7 @@
     "search_employees": "Tìm kiếm nhân viên...",
     "select_department": "Chọn phòng ban",
     "select_department_placeholder": "Chọn một phòng ban...",
-    "workspace_scope_info": "Áp dụng trên toàn bộ không gian làm việc.",
+    "workspace_scope_info": "Áp dụng trên toàn tổ chức.",
     "effective_to": "Hiệu lực đến",
     "override_config": "Cấu hình ghi đè",
     "override_config_desc": "Cấu hình các giá trị lương ghi đè tùy chỉnh cho các quy tắc cụ thể.",
@@ -300,13 +300,13 @@
     },
     "scope_employee": "Nhân viên",
     "scope_department": "Phòng ban",
-    "scope_workspace": "Toàn hệ thống",
+    "scope_workspace": "Tổ chức",
     "scope_level_employee": "Cấp nhân viên",
     "scope_level_department": "Cấp phòng ban",
-    "scope_level_workspace": "Cấp workspace"
+    "scope_level_workspace": "Cấp tổ chức"
   },
   "payroll_rules": {
-    "scope_workspace": "Toàn Không gian làm việc",
+    "scope_workspace": "Toàn tổ chức",
     "rule_assignments": "Gán quy tắc tính lương"
   }
 }

@@ -10,20 +10,17 @@ interface UseDepartmentTreeOptions {
   departments: Department[];
   searchQuery: string;
   t: TFunction;
-  wsId: string;
 }
 
 export function useDepartmentTree({
   departments,
   searchQuery,
-  t,
-  wsId,
-}: UseDepartmentTreeOptions) {
+  t,}: UseDepartmentTreeOptions) {
   // Map departments to include parent_id from localStorage
   const departmentsWithParent = useMemo<DepartmentWithParent[]>(() => {
     let parentMap: Record<string, string | null> = {};
     try {
-      const saved = localStorage.getItem(`leeattend_dept_parents_${wsId}`);
+      const saved = localStorage.getItem("leeattend_dept_parents");
       if (saved) {
         parentMap = JSON.parse(saved) as Record<string, string | null>;
       }
@@ -39,7 +36,7 @@ export function useDepartmentTree({
       manager_id: d.manager_id ?? null,
       parent_id: activeParentMap[d.id] ?? null
     }));
-  }, [departments, wsId]);
+  }, [departments]);
 
   // Parse Flat array to Hierarchical Tree
   const treeRoots = useMemo<TreeNode[]>(() => {
@@ -87,7 +84,6 @@ export function useDepartmentTree({
           manager_id: null,
           name: t("departments.virtual_root_name", { defaultValue: "ORGANIZATION" }),
           updated_at: new Date().toISOString(),
-          workspace_id: wsId,
         },
         description: t("departments.virtual_root_description", { defaultValue: "Sơ đồ phòng ban doanh nghiệp" }),
         id: "virtual-root",
@@ -98,7 +94,7 @@ export function useDepartmentTree({
     }
 
     return roots;
-  }, [departmentsWithParent, wsId, departments, t]);
+  }, [departmentsWithParent,departments, t]);
 
   // Handle Search Auto-Expand Path & Match Highlighting
   const { autoExpanded, matchedIds, searchActive } = useMemo(() => {

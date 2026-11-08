@@ -58,24 +58,22 @@ export function MonthViewControls({
     <>
       <div className="flex items-center gap-2 w-full md:max-w-2xl">
         <div className="flex-1 min-w-0">
-          <EmployeeSearch
-            clearOnEscape data-testid="monthly-employee-search" departments={hook.departments} hideChips multiple
-            onChange={(val) => {
-              const ids = Array.isArray(val) ? val : (val ? [val] : []);
-              const filteredMeta = selectedMetaRef.current.filter(e => ids.includes(e.id));
-              selectedMetaRef.current = filteredMeta;
-              hook.setSelectedEmployeeIds(ids);
-              hook.setSelectedEmployees(filteredMeta);
-            }}
-            onSelectEmployee={(emp) => {
-              if (!selectedMetaRef.current.some(e => e.id === emp.id)) {
-                selectedMetaRef.current = [...selectedMetaRef.current, emp];
-                hook.setSelectedEmployees(selectedMetaRef.current);
-              }
-            }}
-            placeholder={t("shifts.monthly.search_placeholder")}
-            value={hook.selectedEmployeeIds} workspaceId={hook.wsId}
-          />
+          <EmployeeSearch clearOnEscape data-testid="monthly-employee-search" departments={hook.departments} hideChips multiple
+          onChange={(val) => {
+            const ids = Array.isArray(val) ? val : (val ? [val] : []);
+            const filteredMeta = selectedMetaRef.current.filter(e => ids.includes(e.id));
+            selectedMetaRef.current = filteredMeta;
+            hook.setSelectedEmployeeIds(ids);
+            hook.setSelectedEmployees(filteredMeta);
+          }}
+          onSelectEmployee={(emp) => {
+            if (!selectedMetaRef.current.some(e => e.id === emp.id)) {
+              selectedMetaRef.current = [...selectedMetaRef.current, emp];
+              hook.setSelectedEmployees(selectedMetaRef.current);
+            }
+          }}
+          placeholder={t("shifts.monthly.search_placeholder")}
+          value={hook.selectedEmployeeIds}  />
         </div>
         <Button className="flex h-[var(--ui-height-md)] shrink-0 items-center gap-2 rounded-2xl border border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-4 text-sm font-bold uppercase tracking-tight text-slate-600 dark:text-slate-300 hover:border-primary-200 dark:hover:border-primary-800 shadow-inner transition-all cursor-pointer"
           data-testid="monthly-bulk-select" onClick={() => { setIsBulkOpen(true); }} type="button" variant="ghost">
@@ -84,7 +82,7 @@ export function MonthViewControls({
       </div>
       {isBulkOpen ? (
         <BulkEmployeePickerModal departments={hook.departments} initialIds={hook.selectedEmployeeIds} initialMeta={selectedEmployeesMeta ?? []} isOpen={isBulkOpen}
-          onClose={() => { setIsBulkOpen(false); }} onCommit={handleBulkCommit} wsId={hook.wsId} />
+          onClose={() => { setIsBulkOpen(false); }} onCommit={handleBulkCommit}  />
       ) : null}
       {!!selectedEmployeesMeta && selectedEmployeesMeta.length > 0 && (
         <EmployeeChecklist employees={selectedEmployeesMeta} hook={hook} onClearAll={handleClearAll} />

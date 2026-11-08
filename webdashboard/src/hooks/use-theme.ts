@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 
-import { useWorkspace } from './use-workspace';
+import { useOrganization } from "@/hooks/use-organization";
 
 /**
  * Helper to adjust hex color brightness
@@ -19,7 +19,7 @@ function adjustBrightness(hex: string, percent: number) {
 }
 
 export function useTheme() {
-  const { workspace } = useWorkspace();
+  const { organization } = useOrganization();
   const [userColor, setUserColor] = useState<string | null>(localStorage.getItem('user_theme_primary_color'));
   const [previewColor, setPreviewColor] = useState<string | null>(null);
 
@@ -47,7 +47,7 @@ export function useTheme() {
     };
   }, []);
 
-  const primaryColor = previewColor ?? (userColor ?? workspace?.theme_primary_color) ?? '#10b981';
+  const primaryColor = previewColor ?? (userColor ?? organization?.theme_primary_color) ?? '#10b981';
 
   useEffect(() => {
     const root = document.documentElement;

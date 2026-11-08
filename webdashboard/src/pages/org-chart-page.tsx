@@ -1,4 +1,4 @@
-import { useOrganizationMutation } from "@/hooks/common/use-workspace-query";
+import { useOrganizationMutation } from "@/hooks/common/use-organization-query";
 import { useDepartments } from "@/hooks/use-departments";
 import { useAllEmployees } from "@/hooks/use-employees";
 import { FolderTree } from "lucide-react";
@@ -11,12 +11,12 @@ import { DepartmentFormModal } from "@/components/features/departments/departmen
 import { DepartmentOrgChart } from "@/components/features/departments/department-org-chart";
 import { useConfirm } from "@/hooks/use-confirm";
 
-import { deleteDepartment, getStandaloneOrganizationId, Department } from "../lib/api";
+import { deleteDepartment, Department } from "../lib/api";
 import { departmentKeys } from "@/lib/query-keys";
 
 export default function OrgChartPage() {
   const { t } = useTranslation();
-  const wsId = getStandaloneOrganizationId();
+  
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isConfigModalOpen, setIsConfigModalOpen] = useState(false);
   const [editingDept, setEditingDept] = useState<Department | null>(null);
@@ -29,14 +29,11 @@ export default function OrgChartPage() {
 
   const { confirm, ConfirmationDialog } = useConfirm();
 
-  const { data: departments = [] } = useDepartments(wsId);
-  const { employees } = useAllEmployees(wsId);
+  const { data: departments = [] } = useDepartments();
+  const { employees } = useAllEmployees();
 
-  const deleteMutation = useOrganizationMutation<string>({
-    workspaceId: wsId,
-    keys: [departmentKeys.all(wsId)],
-    mutationFn: (workspaceId, id) => deleteDepartment(workspaceId, id),
-  });
+  const deleteMutation = useOrganizationMutation<string>({ keys: [departmentKeys.all()],
+  mutationFn: (id) => deleteDepartment(id), });
 
   const handleDelete = async (id: string) => {
     const ok = await confirm({
@@ -47,7 +44,6 @@ export default function OrgChartPage() {
     if (ok) deleteMutation.mutate(id);
   };
 
-  if (!wsId) return <div className="p-12 text-center text-slate-500 dark:text-slate-400 font-bold italic uppercase tracking-widest text-xs opacity-50">{t("common.select_workspace")}</div>;
 
   return (
     <div className="w-full h-full flex flex-col bg-transparent animate-in fade-in duration-700">
@@ -72,50 +68,38 @@ export default function OrgChartPage() {
         </div>
 
         <div className="absolute inset-0">
-          <DepartmentOrgChart
-            departments={departments}
-            employees={employees}
-            onClick={(d) => { setSelectedDeptForDetail(d); }}
-            onConfig={(d) => { setEditingDept(d); setIsConfigModalOpen(true); }}
-            onDelete={(d) => { void handleDelete(d.id); }}
-            onEdit={(d) => { setEditingDept(d); setIsModalOpen(true); }}
-            searchQuery={searchQuery}
-            t={t}
-            wsId={wsId}
-          />
+          <DepartmentOrgChart departments={departments}
+          employees={employees}
+          onClick={(d) => { setSelectedDeptForDetail(d); }}
+          onConfig={(d) => { setEditingDept(d); setIsConfigModalOpen(true); }}
+          onDelete={(d) => { void handleDelete(d.id); }}
+          onEdit={(d) => { setEditingDept(d); setIsModalOpen(true); }}
+          searchQuery={searchQuery}
+          t={t}  />
         </div>
       </div>
 
       {/* Slide-over Detail Drawer */}
-      <DepartmentDetailDrawer
-        dept={selectedDeptForDetail}
-        employees={employees}
-        isOpen={Boolean(selectedDeptForDetail)}
-        onClose={() => { setSelectedDeptForDetail(null); }}
-        onConfig={(d) => { setEditingDept(d); setIsConfigModalOpen(true); }}
-        onDelete={(d) => { setSelectedDeptForDetail(null); void handleDelete(d.id); }}
-        onEdit={(d) => { setEditingDept(d); setIsModalOpen(true); }}
-        t={t}
-        wsId={wsId}
-      />
+      <DepartmentDetailDrawer dept={selectedDeptForDetail}
+      employees={employees}
+      isOpen={Boolean(selectedDeptForDetail)}
+      onClose={() => { setSelectedDeptForDetail(null); }}
+      onConfig={(d) => { setEditingDept(d); setIsConfigModalOpen(true); }}
+      onDelete={(d) => { setSelectedDeptForDetail(null); void handleDelete(d.id); }}
+      onEdit={(d) => { setEditingDept(d); setIsModalOpen(true); }}
+      t={t}  />
 
-      <DepartmentConfigModal
-        editingDept={editingDept}
-        isOpen={isConfigModalOpen}
-        onClose={() => { setIsConfigModalOpen(false); }}
-        t={t}
-        wsId={wsId}
-      />
+      <DepartmentConfigModal editingDept={editingDept}
+      isOpen={isConfigModalOpen}
+      onClose={() => { setIsConfigModalOpen(false); }}
+      t={t}  />
 
-      <DepartmentFormModal
-        departments={departments}
-        editingDept={editingDept}
-        employees={employees}
-        isOpen={isModalOpen}
-        onClose={() => { setIsModalOpen(false); setEditingDept(null); }}
-        t={t}
-        wsId={wsId}
-      />
+      <DepartmentFormModal departments={departments}
+      editingDept={editingDept}
+      employees={employees}
+      isOpen={isModalOpen}
+      onClose={() => { setIsModalOpen(false); setEditingDept(null); }}
+      t={t}  />
 
       <ConfirmationDialog />
     </div>

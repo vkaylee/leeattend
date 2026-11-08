@@ -47,7 +47,7 @@ describe("BonusPolicyManager", () => {
   });
 
   it("renders correctly and opens creation form", () => {
-    renderWithProviders(<BonusPolicyManager wsId={mockWsId} />);
+    renderWithProviders(<BonusPolicyManager   />);
     
     expect(screen.getByText(/payroll.incentives.title/i)).toBeDefined();
     
@@ -59,7 +59,7 @@ describe("BonusPolicyManager", () => {
   });
 
   it("allows adding and removing tiers", () => {
-    renderWithProviders(<BonusPolicyManager wsId={mockWsId} />);
+    renderWithProviders(<BonusPolicyManager   />);
     fireEvent.click(screen.getByText(/payroll.incentives.add_btn/i));
     
     // Default has 2 tiers
@@ -75,7 +75,7 @@ describe("BonusPolicyManager", () => {
  
     vi.mocked(api.createIncentivePolicy).mockResolvedValue({ id: "p1" } as unknown as never);
     
-    renderWithProviders(<BonusPolicyManager wsId={mockWsId} />);
+    renderWithProviders(<BonusPolicyManager   />);
     fireEvent.click(screen.getByText(/payroll.incentives.add_btn/i));
     
     const nameInput = screen.getByPlaceholderText(/e.g. Diligence Bonus/i);
@@ -94,7 +94,7 @@ describe("BonusPolicyManager", () => {
   });
 
   it("allows adding and removing rules in a tier", () => {
-    renderWithProviders(<BonusPolicyManager wsId={mockWsId} />);
+    renderWithProviders(<BonusPolicyManager   />);
     fireEvent.click(screen.getByText(/payroll.incentives.add_btn/i));
     
     // Default tier 1 has 1 rule (Late <= 2)

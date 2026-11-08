@@ -10,7 +10,7 @@ import { useTranslation } from "react-i18next";
 
 import Button from "@/components/ui/button";
 import { useFilteredMenuItems } from "@/hooks/use-nav-menu-items";
-import { useWorkspace } from "@/hooks/use-workspace";
+import { useOrganization } from "@/hooks/use-organization";
 import { cn } from "@/lib/utils";
 
 export interface SidebarProps {
@@ -28,7 +28,7 @@ export function Sidebar({
 }: SidebarProps) {
   const { t } = useTranslation(["common", "settings"]);
   const location = useLocation();
-  const { workspace: currentWorkspace } = useWorkspace();
+  const { organization } = useOrganization();
   const { dashboard, settings, groups } = useFilteredMenuItems();
 
   // Keyboard shortcut: Cmd+B or Ctrl+B to toggle sidebar
@@ -78,7 +78,7 @@ export function Sidebar({
                 LeeAttend
               </span>
               <span className="text-[11px] text-muted-foreground truncate font-medium">
-                {currentWorkspace?.name ?? "Workspace"}
+                {organization?.name ?? "LeeAttend"}
               </span>
             </div>
           )}

@@ -24,7 +24,7 @@ func (r RecruitmentSourceRepository) db(ctx context.Context) (DBTX, error) {
 	return r.DB, nil
 }
 
-const recruitmentSourceColumns = `id, workspace_id, source_type, name, referrer_employee_id,
+const recruitmentSourceColumns = `id, source_type, name, referrer_employee_id,
 	referral_bonus_amount::text, referral_bonus_paid, agency_contact_name, agency_contact_email,
 	agency_fee_amount::text, agency_fee_paid, notes, created_at, updated_at`
 
@@ -32,7 +32,7 @@ func scanRecruitmentSource(row interface{ Scan(...any) error }) (api.Recruitment
 	var source api.RecruitmentSource
 	var createdAt, updatedAt time.Time
 	var referralBonus, agencyFee *string
-	if err := row.Scan(&source.ID, &source.WorkspaceID, &source.SourceType, &source.Name, &source.ReferrerEmployeeID,
+	if err := row.Scan(&source.ID, &source.SourceType, &source.Name, &source.ReferrerEmployeeID,
 		&referralBonus, &source.ReferralBonusPaid, &source.AgencyContactName, &source.AgencyContactEmail,
 		&agencyFee, &source.AgencyFeePaid, &source.Notes, &createdAt, &updatedAt); err != nil {
 		return api.RecruitmentSource{}, err
@@ -56,16 +56,16 @@ func scanRecruitmentSource(row interface{ Scan(...any) error }) (api.Recruitment
 	return source, nil
 }
 
-func (r RecruitmentSourceRepository) ListRecruitmentSources(ctx context.Context, workspaceID uuid.UUID, page, limit int) (api.RecruitmentSourceListResponse, error) {
+func (r RecruitmentSourceRepository) ListRecruitmentSources(ctx context.Context, page, limit int) (api.RecruitmentSourceListResponse, error) {
 	db, err := r.db(ctx)
 	if err != nil {
 		return api.RecruitmentSourceListResponse{}, err
 	}
 	result := api.RecruitmentSourceListResponse{Data: make([]api.RecruitmentSource, 0), Page: page, Limit: limit}
-	if err := db.QueryRow(ctx, `SELECT count(*) FROM recruitment_sources WHERE workspace_id = $1`, workspaceID).Scan(&result.Total); err != nil {
+	if err := db.QueryRow(ctx, `SELECT count(*) FROM recruitment_sources`).Scan(&result.Total); err != nil {
 		return api.RecruitmentSourceListResponse{}, err
 	}
-	rows, err := db.Query(ctx, `SELECT `+recruitmentSourceColumns+` FROM recruitment_sources WHERE workspace_id = $1 ORDER BY created_at DESC LIMIT $2 OFFSET $3`, workspaceID, limit, (page-1)*limit)
+	rows, err := db.Query(ctx, `SELECT `+recruitmentSourceColumns+` FROM recruitment_sources ORDER BY created_at DESC LIMIT $1 OFFSET $2`, limit, (page-1)*limit)
 	if err != nil {
 		return api.RecruitmentSourceListResponse{}, err
 	}
@@ -80,21 +80,21 @@ func (r RecruitmentSourceRepository) ListRecruitmentSources(ctx context.Context,
 	return result, rows.Err()
 }
 
-func (r RecruitmentSourceRepository) CreateRecruitmentSource(ctx context.Context, workspaceID uuid.UUID, req api.CreateRecruitmentSourceRequest) (api.RecruitmentSource, error) {
+func (r RecruitmentSourceRepository) CreateRecruitmentSource(ctx context.Context, req api.CreateRecruitmentSourceRequest) (api.RecruitmentSource, error) {
 	db, err := r.db(ctx)
 	if err != nil {
 		return api.RecruitmentSource{}, err
 	}
 	id := uuid.New()
 	row := db.QueryRow(ctx, `INSERT INTO recruitment_sources
-		(id, workspace_id, source_type, name, referrer_employee_id, referral_bonus_amount, referral_bonus_paid, agency_contact_name, agency_contact_email, agency_fee_amount, agency_fee_paid, notes, created_at, updated_at)
-		VALUES ($1, $2, $3::recruitment_source_type, $4, $5, $6, false, $7, $8, $9, false, $10, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+		(id, source_type, name, referrer_employee_id, referral_bonus_amount, referral_bonus_paid, agency_contact_name, agency_contact_email, agency_fee_amount, agency_fee_paid, notes, created_at, updated_at)
+		VALUES ($1, $2::recruitment_source_type, $3, $4, $5, false, $6, $7, $8, false, $9, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
 		RETURNING `+recruitmentSourceColumns,
-		id, workspaceID, req.SourceType, req.Name, req.ReferrerEmployeeID, req.ReferralBonusAmount, req.AgencyContactName, req.AgencyContactEmail, req.AgencyFeeAmount, req.Notes)
+		id, req.SourceType, req.Name, req.ReferrerEmployeeID, req.ReferralBonusAmount, req.AgencyContactName, req.AgencyContactEmail, req.AgencyFeeAmount, req.Notes)
 	return scanRecruitmentSource(row)
 }
 
-func (r RecruitmentSourceRepository) UpdateRecruitmentSource(ctx context.Context, workspaceID, id uuid.UUID, req api.UpdateRecruitmentSourceRequest) (api.RecruitmentSource, error) {
+func (r RecruitmentSourceRepository) UpdateRecruitmentSource(ctx context.Context, id uuid.UUID, req api.UpdateRecruitmentSourceRequest) (api.RecruitmentSource, error) {
 	db, err := r.db(ctx)
 	if err != nil {
 		return api.RecruitmentSource{}, err
@@ -132,8 +132,8 @@ func (r RecruitmentSourceRepository) UpdateRecruitmentSource(ctx context.Context
 	if req.Notes != nil {
 		add("notes", *req.Notes)
 	}
-	args = append(args, id, workspaceID)
-	query := `UPDATE recruitment_sources SET ` + strings.Join(sets, ", ") + fmt.Sprintf(` WHERE id = $%d AND workspace_id = $%d RETURNING `+recruitmentSourceColumns, len(args)-1, len(args))
+	args = append(args, id)
+	query := `UPDATE recruitment_sources SET ` + strings.Join(sets, ", ") + fmt.Sprintf(` WHERE id = $%d RETURNING `+recruitmentSourceColumns, len(args))
 	item, err := scanRecruitmentSource(db.QueryRow(ctx, query, args...))
 	if errors.Is(err, pgx.ErrNoRows) {
 		return api.RecruitmentSource{}, api.ErrRecruitmentSourceNotFound
@@ -141,12 +141,13 @@ func (r RecruitmentSourceRepository) UpdateRecruitmentSource(ctx context.Context
 	return item, err
 }
 
-func (r RecruitmentSourceRepository) DeleteRecruitmentSource(ctx context.Context, workspaceID, id uuid.UUID) error {
+
+func (r RecruitmentSourceRepository) DeleteRecruitmentSource(ctx context.Context, id uuid.UUID) error {
 	db, err := r.db(ctx)
 	if err != nil {
 		return err
 	}
-	tag, err := db.Exec(ctx, `DELETE FROM recruitment_sources WHERE id = $1 AND workspace_id = $2`, id, workspaceID)
+	tag, err := db.Exec(ctx, `DELETE FROM recruitment_sources WHERE id = $1`, id)
 	if err != nil {
 		return err
 	}
@@ -156,15 +157,15 @@ func (r RecruitmentSourceRepository) DeleteRecruitmentSource(ctx context.Context
 	return nil
 }
 
-func (r RecruitmentSourceRepository) RecruitmentSourceBreakdown(ctx context.Context, workspaceID uuid.UUID) ([]api.RecruitmentSourceBreakdown, error) {
+func (r RecruitmentSourceRepository) RecruitmentSourceBreakdown(ctx context.Context) ([]api.RecruitmentSourceBreakdown, error) {
 	db, err := r.db(ctx)
 	if err != nil {
 		return nil, err
 	}
 	rows, err := db.Query(ctx, `SELECT COALESCE(rs.source_type::text, 'direct') AS source_type, COALESCE(rs.name, 'Direct Hire') AS source_name, COUNT(*) AS count
 		FROM employees e LEFT JOIN recruitment_sources rs ON e.recruitment_source_id = rs.id
-		WHERE e.workspace_id = $1 AND EXISTS (SELECT 1 FROM employments emp WHERE emp.employee_id = e.id AND emp.status = 'active' AND emp.deleted_at IS NULL)
-		GROUP BY rs.source_type, rs.name ORDER BY count DESC`, workspaceID)
+		WHERE EXISTS (SELECT 1 FROM employments emp WHERE emp.employee_id = e.id AND emp.status = 'active' AND emp.deleted_at IS NULL)
+		GROUP BY rs.source_type, rs.name ORDER BY count DESC`)
 	if err != nil {
 		return nil, err
 	}

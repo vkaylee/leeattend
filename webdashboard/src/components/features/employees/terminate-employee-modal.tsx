@@ -9,7 +9,7 @@ import Button from "@/components/ui/button";
 import FormField, { LABEL_BASE } from "@/components/ui/form-field";
 import Modal from "@/components/ui/modal";
 import { useToast } from "@/components/ui/toast";
-import { useOrganizationMutation } from "@/hooks/common/use-workspace-query";
+import { useOrganizationMutation } from "@/hooks/common/use-organization-query";
 import { Typography } from "@/components/ui/typography";
 import { updateEmployeeEmployment } from "@/lib/api";
 import { employeeKeys } from "@/lib/query-keys";
@@ -21,7 +21,6 @@ interface TerminateEmployeeModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess?: () => void;
-  wsId: string;
 }
 
 const TERMINATION_REASONS = [
@@ -39,9 +38,7 @@ export default function TerminateEmployeeModal({
   isOpen,
   onClose,
   employeeId,
-  activeEmploymentId,
-  wsId,
-  onSuccess,
+  activeEmploymentId,onSuccess,
 }: TerminateEmployeeModalProps) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
@@ -50,27 +47,24 @@ export default function TerminateEmployeeModal({
   const terminateMutation = useOrganizationMutation<
     { endDate: string; reason: string; notes: string },
     Awaited<ReturnType<typeof updateEmployeeEmployment>>
-  >({
-    workspaceId: wsId,
-    keys: [employeeKeys.all(wsId)],
-    mutationFn: (workspaceId, { endDate, reason, notes }) => {
-      if (!employeeId) throw new Error("No employee selected");
-      if (!activeEmploymentId) throw new Error("No active employment found");
-      return updateEmployeeEmployment(workspaceId, employeeId, activeEmploymentId, {
-        status: "terminated",
-        end_date: endDate,
-        termination_reason: reason,
-        notes: notes || null,
-      });
-    },
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ["deptHistory", employeeId] });
-      void queryClient.invalidateQueries({ queryKey: ["employee-employments", wsId, employeeId] });
-      onClose();
-      toast.success(t("common.success"));
-      onSuccess?.();
-    },
-  });
+  >({ keys: [employeeKeys.all()],
+  mutationFn: ({ endDate, reason, notes }) => {
+    if (!employeeId) throw new Error("No employee selected");
+    if (!activeEmploymentId) throw new Error("No active employment found");
+    return updateEmployeeEmployment(employeeId, activeEmploymentId, {
+      status: "terminated",
+      end_date: endDate,
+      termination_reason: reason,
+      notes: notes || null,
+    });
+  },
+  onSuccess: () => {
+    void queryClient.invalidateQueries({ queryKey: ["deptHistory", employeeId] });
+    void queryClient.invalidateQueries({ queryKey: ["employee-employments",employeeId] });
+    onClose();
+    toast.success(t("common.success"));
+    onSuccess?.();
+  }, });
 
   const handleTerminateSubmit = (e: React.SyntheticEvent<HTMLFormElement>) => {
     e.preventDefault();

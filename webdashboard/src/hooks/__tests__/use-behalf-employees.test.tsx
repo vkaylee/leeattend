@@ -13,10 +13,6 @@ vi.mock("@/lib/api/behalf-targets", () => ({
   fetchMyBehalfTargets: vi.fn(),
 }));
 
-// Mock backend-owned organization context.
-vi.mock("@/lib/api/helpers", () => ({
-  getStandaloneOrganizationId: vi.fn().mockReturnValue("ws-test-123"),
-}));
 
 function createWrapper() {
   const queryClient = new QueryClient({
@@ -32,7 +28,6 @@ function createWrapper() {
 const MOCK_EMPLOYEES = [
   {
     id: "emp-1",
-    workspace_id: "ws-test-123",
     employee_id_number: "EMP001",
     full_name: "Alice Nguyen",
     is_active: true,
@@ -41,7 +36,6 @@ const MOCK_EMPLOYEES = [
   },
   {
     id: "emp-2",
-    workspace_id: "ws-test-123",
     employee_id_number: "EMP002",
     full_name: "Bob Tran",
     is_active: true,
@@ -72,7 +66,7 @@ describe("useBehalfEmployees", () => {
         expect(result.current.isLoading).toBe(false);
       });
 
-      expect(fetchMyBehalfTargets).toHaveBeenCalledWith("ws-test-123", "leave");
+      expect(fetchMyBehalfTargets).toHaveBeenCalledWith("leave");
       expect(result.current.employees).toHaveLength(2);
       expect(result.current.employees[0].full_name).toBe("Alice Nguyen");
       expect(result.current.hasAssignments).toBe(true);
@@ -123,7 +117,7 @@ describe("useBehalfEmployees", () => {
         expect(result.current.isLoading).toBe(false);
       });
 
-      expect(fetchMyBehalfTargets).toHaveBeenCalledWith("ws-test-123", "attendance_adjustment");
+      expect(fetchMyBehalfTargets).toHaveBeenCalledWith("attendance_adjustment");
       expect(result.current.employees).toHaveLength(2);
       expect(result.current.hasAssignments).toBe(true);
     });
@@ -141,7 +135,7 @@ describe("useBehalfEmployees", () => {
         expect(result.current.isLoading).toBe(false);
       });
 
-      expect(fetchMyBehalfTargets).toHaveBeenCalledWith("ws-test-123", "overtime_request");
+      expect(fetchMyBehalfTargets).toHaveBeenCalledWith("overtime_request");
       expect(result.current.employees).toHaveLength(2);
       expect(result.current.hasAssignments).toBe(true);
     });

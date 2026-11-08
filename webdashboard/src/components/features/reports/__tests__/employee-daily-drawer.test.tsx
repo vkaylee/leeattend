@@ -69,9 +69,7 @@ describe("EmployeeDailyDrawer", () => {
 
     const defaultProps = {
         isOpen: true,
-        onClose: vi.fn(),
-        workspaceId: "ws-1",
-        employeeId: "emp-1",
+        onClose: vi.fn(),employeeId: "emp-1",
         employeeName: "John Doe",
         dateRange: { start: "2026-01-01", end: "2026-01-31" },
     };
@@ -170,9 +168,7 @@ describe("EmployeeDailyDrawer", () => {
 
         // Check if API was called
         await waitFor(() => {
-            expect(api.fetchAttendanceReport).toHaveBeenCalledWith({
-                wsId: "ws-1",
-                start: "2026-01-01",
+            expect(api.fetchAttendanceReport).toHaveBeenCalledWith({start: "2026-01-01",
                 end: "2026-01-31",
                 type: "daily",
                 page: 1,
@@ -326,9 +322,7 @@ describe("EmployeeDailyDrawer", () => {
         await user.click(confirmButton);
 
         await waitFor(() => {
-            expect(api.reprocessAttendance).toHaveBeenCalledWith(
-                "ws-1",
-                "emp-1",
+            expect(api.reprocessAttendance).toHaveBeenCalledWith("emp-1",
                 "2026-01-15",
                 "2026-01-15"
             );
@@ -401,9 +395,7 @@ describe("EmployeeDailyDrawer", () => {
         await user.click(approveButton);
 
         await waitFor(() => {
-            expect(api.approveOt).toHaveBeenCalledWith(
-                "ws-1",
-                "emp-1",
+            expect(api.approveOt).toHaveBeenCalledWith("emp-1",
                 {
                     date: "2026-01-15",
                     approved_minutes: 60,
@@ -417,9 +409,7 @@ describe("EmployeeDailyDrawer", () => {
         await user.click(rejectButton);
 
         await waitFor(() => {
-            expect(api.approveOt).toHaveBeenCalledWith(
-                "ws-1",
-                "emp-1",
+            expect(api.approveOt).toHaveBeenCalledWith("emp-1",
                 {
                     date: "2026-01-15",
                     approved_minutes: 60,
@@ -706,18 +696,14 @@ describe("EmployeeDailyDrawer", () => {
 
         // Verify upsertRoster was called first
         await waitFor(() => {
-            expect(api.upsertRoster).toHaveBeenCalledWith(
-                "ws-1",
-                "emp-1",
+            expect(api.upsertRoster).toHaveBeenCalledWith("emp-1",
                 { date: "2026-01-15", shift_id: "shift-morning" }
             );
         });
 
         // Then reprocessAttendance
         await waitFor(() => {
-            expect(api.reprocessAttendance).toHaveBeenCalledWith(
-                "ws-1",
-                "emp-1",
+            expect(api.reprocessAttendance).toHaveBeenCalledWith("emp-1",
                 "2026-01-15",
                 "2026-01-15"
             );

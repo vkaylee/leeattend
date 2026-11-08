@@ -29,17 +29,13 @@ export interface UpdateAttendanceRulesRequest {
   work_unit_minutes?: number;
 }
 
-export async function fetchDefaultAttendanceRules(wsId: string): Promise<AttendanceRules> {
-  const { data: resData } = await client.GET("/v1/workspaces/{ws_id}/attendance/rules", {
-    params: { path: { ws_id: wsId } }
-  });
+export async function fetchDefaultAttendanceRules(): Promise<AttendanceRules> {
+  const { data: resData } = await client.GET<AttendanceRules>("/v1/attendance/rules");
   return resData;
 }
 
-export async function fetchAttendancePolicyVersions(wsId: string): Promise<AttendancePolicyVersion[]> {
-  const { data: resData } = await client.GET("/v1/workspaces/{ws_id}/attendance/rules/versions", {
-    params: { path: { ws_id: wsId } }
-  });
+export async function fetchAttendancePolicyVersions(): Promise<AttendancePolicyVersion[]> {
+  const { data: resData } = await client.GET<AttendancePolicyVersion[]>("/v1/attendance/rules/versions");
   return resData;
 }
 
@@ -62,37 +58,31 @@ export interface UpsertPolicyAssignmentRequest {
   work_unit_minutes: number;
 }
 
-export async function fetchPolicyAssignments(wsId: string): Promise<PolicyAssignmentResponse[]> {
-  const { data: resData } = await client.GET("/v1/workspaces/{ws_id}/attendance/policies/assignments", {
-    params: { path: { ws_id: wsId } }
-  });
+export async function fetchPolicyAssignments(): Promise<PolicyAssignmentResponse[]> {
+  const { data: resData } = await client.GET<PolicyAssignmentResponse[]>("/v1/attendance/policies/assignments");
   return resData;
 }
 
 export async function upsertPolicyAssignment(
-  wsId: string,
   data: UpsertPolicyAssignmentRequest
 ): Promise<PolicyAssignmentResponse> {
-  const { data: resData } = await client.POST("/v1/workspaces/{ws_id}/attendance/policies/assignments", {
-    params: { path: { ws_id: wsId } },
-    body: data
+  const { data: resData } = await client.POST<PolicyAssignmentResponse>("/v1/attendance/policies/assignments", {
+    body: data,
   });
   return resData;
 }
 
-export async function deletePolicyAssignment(wsId: string, assignmentId: string): Promise<void> {
-  await client.DELETE("/v1/workspaces/{ws_id}/attendance/policies/assignments/{assignment_id}", {
-    params: { path: { ws_id: wsId, assignment_id: assignmentId } }
+export async function deletePolicyAssignment(assignmentId: string): Promise<void> {
+  await client.DELETE("/v1/attendance/policies/assignments/{assignment_id}", {
+    params: { path: { assignment_id: assignmentId } },
   });
 }
 
 export async function updateDefaultAttendanceRules(
-  wsId: string,
   data: UpdateAttendanceRulesRequest
 ): Promise<AttendancePolicyVersion> {
-  const { data: resData } = await client.PATCH("/v1/workspaces/{ws_id}/attendance/rules", {
-    params: { path: { ws_id: wsId } },
-    body: data
+  const { data: resData } = await client.PATCH<AttendancePolicyVersion>("/v1/attendance/rules", {
+    body: data,
   });
   return resData;
 }

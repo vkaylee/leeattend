@@ -73,7 +73,6 @@ describe("ROUTES constants", () => {
     "/",
     "/employees",
     "/departments",
-    "/members",
     "/attendance-logs",
     "/leave-requests",
     "/leave-balances",

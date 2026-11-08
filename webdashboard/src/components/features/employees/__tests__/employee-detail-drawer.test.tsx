@@ -63,10 +63,9 @@ const mockMembers = [
 ];
 
 vi.mock("@/lib/api", () => ({
-    getStandaloneOrganizationId: vi.fn(() => "ws-1"),
     fetchWorkspaceMembers: vi.fn(() => Promise.resolve(mockMembers)),
     updateEmployee: vi.fn(() => Promise.resolve({})),
-    fetchEmployeeEmployments: vi.fn((wsId, employeeId) => {
+    fetchEmployeeEmployments: vi.fn((employeeId) => {
         if (employeeId === "emp-2") {
             return Promise.resolve([
                 {
@@ -164,9 +163,7 @@ const mockDeptHistory = [
 const defaultProps = {
     isOpen: true,
     onClose: vi.fn(),
-    employee: mockEmployee,
-    wsId: "ws-1",
-    departments: mockDepartments,
+    employee: mockEmployee,departments: mockDepartments,
     deptHistory: mockDeptHistory,
     formatDate: (d: string) => d,
     onEdit: vi.fn(),
@@ -364,7 +361,7 @@ describe("EmployeeDetailDrawer", () => {
         // Click Save
         await user.click(screen.getByText(/SAVE/i));
 
-        expect(updateEmployeeEmployment).toHaveBeenCalledWith("ws-1", "emp-1", "employment-1", { primary_location_id: "loc-2" });
+        expect(updateEmployeeEmployment).toHaveBeenCalledWith("emp-1", "employment-1", { primary_location_id: "loc-2" });
     });
 
     // ── Close ──────────────────────────────────────────────────

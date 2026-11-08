@@ -2,13 +2,12 @@ import { useInfiniteQuery } from "@tanstack/react-query";
 import { useEffect, useMemo } from "react";
 
 import { useAllEmployees } from "@/hooks/use-employees";
-import { useWorkspace } from "@/hooks/use-workspace";
+import { useOrganization } from "@/hooks/use-organization";
 import {
   NoShowReportRow,
   PaginatedResponse,
   ScheduleTrace,
   fetchNoShowReport,
-  getStandaloneOrganizationId,
 } from "@/lib/api";
 
 import { useNoShowRows, type ZonedNoShowRow } from "../../hooks/use-no-show-rows";
@@ -44,7 +43,6 @@ export interface UseUnrecordedShiftsDataResult {
   queryKey: unknown[];
   tracesByKey: Map<string, ScheduleTrace[]>;
   workspaceTimezone: string;
-  wsId: string | null;
 }
 
 export function getNextNoShowPageParam(
@@ -64,17 +62,13 @@ export function useUnrecordedShiftsData({
   onlyZoneB,
   selectedDept,
 }: UseUnrecordedShiftsDataParams): UseUnrecordedShiftsDataResult {
-  const wsId = getStandaloneOrganizationId();
-  const { workspace } = useWorkspace(wsId ?? undefined);
-  const workspaceTimezone = workspace?.timezone ?? "UTC";
+  
+  const { organization } = useOrganization();
+  const workspaceTimezone = organization?.timezone ?? "UTC";
 
-  const queryKey = [
-    "unrecorded-shifts",
-    wsId,
-    selectedDate,
-    selectedShiftTypes,
-    employeeIds,
-  ];
+  const queryKey = ["unrecorded-shifts", selectedDate,
+  selectedShiftTypes,
+  employeeIds,];
 
   const {
     data: reportData,
@@ -85,25 +79,23 @@ export function useUnrecordedShiftsData({
   } = useInfiniteQuery<PaginatedResponse<NoShowReportRow>>({
     queryKey,
     queryFn: async ({ pageParam }) =>
-      (await fetchNoShowReport({
-        wsId: wsId!, // eslint-disable-line @typescript-eslint/no-non-null-assertion -- query is disabled when wsId is null
+      fetchNoShowReport({
         date: selectedDate,
         page: pageParam as number,
         limit: EMPLOYEE_PAGE_SIZE,
         employeeIds: employeeIds.length > 0 ? employeeIds : undefined,
         shiftType: selectedShiftTypes.length > 0 ? selectedShiftTypes : undefined,
-      })),
+      }),
     initialPageParam: 1,
     getNextPageParam: (lastPage, allPages) =>
       getNextNoShowPageParam(lastPage, allPages.length),
-    enabled: !!wsId,
     refetchInterval:
       selectedDate === getTodayIso() ? LIVE_REPORT_REFRESH_INTERVAL_MS : false,
     refetchIntervalInBackground: false,
     staleTime: LIVE_REPORT_REFRESH_INTERVAL_MS,
   });
 
-  const { employees, isLoading: isEmpLoading } = useAllEmployees(wsId);
+  const { employees, isLoading: isEmpLoading } = useAllEmployees();
   const isLoading = isReportLoading || isEmpLoading;
 
   // Eagerly drain every page once the first page lands.
@@ -177,7 +169,6 @@ export function useUnrecordedShiftsData({
     queryKey,
     tracesByKey,
     workspaceTimezone,
-    wsId,
     fetchNextPage,
   };
 }

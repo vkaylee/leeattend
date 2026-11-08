@@ -1,7 +1,7 @@
 {
   "audit_logs": {
     "title": "审计日志",
-    "subtitle": "跟踪工作区中的安全和管理事件。",
+    "subtitle": "跟踪组织中的安全和管理事件。",
     "section_title": "安全事件",
     "filters": {
       "all_actions": "所有操作",

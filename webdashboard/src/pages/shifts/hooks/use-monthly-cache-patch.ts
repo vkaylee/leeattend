@@ -8,11 +8,8 @@ import type { EmployeeSchedule } from "@/lib/api/types";
 
 import { fetchWorkspaceSchedules } from "@/lib/api";
 
-interface UseMonthlyCachePatchProps {
-  monthDays: Date[];
-  queryClient: QueryClient;
-  wsId: string;
-}
+interface UseMonthlyCachePatchProps { monthDays: Date[];
+queryClient: QueryClient;  }
 
 interface UseMonthlyCachePatchReturn {
   /** Refresh a single employment's schedule row in the monthly query cache. */
@@ -25,7 +22,6 @@ interface UseMonthlyCachePatchReturn {
  * preserving its display fields without invalidating the entire month.
  */
 export function useMonthlyRosterCachePatch({
-  wsId,
   monthDays,
   queryClient,
 }: UseMonthlyCachePatchProps): UseMonthlyCachePatchReturn {
@@ -39,7 +35,7 @@ export function useMonthlyRosterCachePatch({
   const refetchAndPatchRow = useCallback(
     async (employmentId: string) => {
       if (!monthStartStr || !monthEndStr) return;
-      const fresh = await fetchWorkspaceSchedules(wsId, monthStartStr, monthEndStr, [
+      const fresh = await fetchWorkspaceSchedules(monthStartStr, monthEndStr, [
         employmentId,
       ]);
       if (fresh.length === 0) return;
@@ -58,7 +54,7 @@ export function useMonthlyRosterCachePatch({
           ),
       );
     },
-    [monthStartStr, monthEndStr, wsId, queryClient],
+    [monthStartStr, monthEndStr, queryClient],
   );
 
   return { refetchAndPatchRow };

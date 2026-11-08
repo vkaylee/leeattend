@@ -14,7 +14,6 @@ vi.mock("../../../lib/api", () => ({
   fetchDepartments: vi.fn(),
   fetchLeavePolicies: vi.fn(),
   assignLeavePolicy: vi.fn(),
-  getStandaloneOrganizationId: vi.fn(),
 }));
 
 describe("AssignPolicyModal", () => {
@@ -31,8 +30,6 @@ describe("AssignPolicyModal", () => {
         },
       },
     });
- 
-    vi.mocked(api.getStandaloneOrganizationId).mockReturnValue("test-ws-id");
  
     vi.mocked(api.fetchEmployees).mockResolvedValue({ data: [
       { id: "emp-1", first_name: "Alice", last_name: "Doe", employee_id_number: "EMP001" }
@@ -51,7 +48,7 @@ describe("AssignPolicyModal", () => {
     return render(
       <QueryClientProvider client={queryClient}>
         <ToastProvider>
-          <AssignPolicyModal isOpen={isOpen} onClose={onClose} wsId="test-ws-id" />
+          <AssignPolicyModal isOpen={isOpen} onClose={onClose} />
         </ToastProvider>
       </QueryClientProvider>
     );
@@ -65,7 +62,7 @@ describe("AssignPolicyModal", () => {
   it("fetches data when opened", async () => {
     renderModal(true);
     await waitFor(() => {
-      expect(api.fetchEmployees).toHaveBeenCalledWith("test-ws-id", 1, 3000, undefined);
+      expect(api.fetchEmployees).toHaveBeenCalledWith(1, 3000, undefined);
       expect(api.fetchDepartments).toHaveBeenCalledWith("test-ws-id");
       expect(api.fetchLeavePolicies).toHaveBeenCalledWith("test-ws-id");
     });
@@ -98,7 +95,7 @@ describe("AssignPolicyModal", () => {
     await user.click(submitButton);
 
     await waitFor(() => {
-      expect(api.assignLeavePolicy).toHaveBeenCalledWith("test-ws-id", expect.objectContaining({
+      expect(api.assignLeavePolicy).toHaveBeenCalledWith(expect.objectContaining({
         assignee_type: "employee",
         assignee_id: "emp-1",
         policy_id: "pol-1"

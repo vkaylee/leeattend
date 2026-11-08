@@ -2,9 +2,6 @@ import { useRef } from "react";
 import { useTranslation } from "react-i18next";
 
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
-import {
-  getStandaloneOrganizationId,
-} from "@/lib/api";
 
 import { useEmployeesData } from "./use-employees-data";
 import { useEmployeesModals } from "./use-employees-modals";
@@ -14,7 +11,7 @@ export type { SortKey, SortDir };
 
 export function useEmployeesPage() {
   const { t } = useTranslation();
-  const wsId = getStandaloneOrganizationId() ?? "";
+  
   const { formatDate } = useDateTimeFormatter();
 
   const state = useEmployeesState();
@@ -30,7 +27,6 @@ export function useEmployeesPage() {
     setSelectedEmployee: modals.setSelectedEmployee,
     sortDir: state.sortDir,
     sortKey: state.sortKey,
-    wsId,
     customFieldFilters: state.customFieldFilters,
   });
 
@@ -47,7 +43,6 @@ export function useEmployeesPage() {
     handleDrawerClose,
     searchInputRef,
     t,
-    wsId,
     ...state,
     ...modals,
     ...data,

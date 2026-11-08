@@ -110,7 +110,7 @@
     },
     "auto": "自动",
     "back": "返回",
-    "back_to_workspace": "返回工作区",
+    "back_to_workspace": "返回组织",
     "base_for_ot": "加班基数",
     "billing": "账单",
     "break": "休息",
@@ -143,8 +143,8 @@
     "confirm_delete": "您确定要删除此项吗？",
     "copied": "Copied to clipboard",
     "create": "创建",
-    "create_workspace": "创建工作空间",
-    "create_workspace_error": "无法创建工作空间。请再试一次。",
+    "create_workspace": "创建组织",
+    "create_workspace_error": "无法创建组织。请再试一次。",
     "creating": "正在创建...",
     "currency": "元",
     "custom": "自定义",
@@ -299,8 +299,8 @@
           "department_desc": "适用于特定部门",
           "employee": "个人员工",
           "employee_desc": "仅适用于选定的一名人员",
-          "workspace": "全系统（所有人员）",
-          "workspace_desc": "适用于工作区内的所有员工"
+          "workspace": "全组织（所有人员）",
+          "workspace_desc": "适用于组织内的所有员工"
         },
         "carry_over_limit": "结转限制",
         "edit_assignment_subtitle": "Modify assignment rules and effective dates.",
@@ -366,7 +366,7 @@
     "load_more": "加载更多",
     "loading": "正在加载数据...",
     "loading_more": "加载更多...",
-    "loading_workspace": "正在加载工作空间...",
+    "loading_workspace": "正在加载组织...",
     "logout": "退出登录",
     "logs": "日志",
     "members": {
@@ -421,7 +421,7 @@
         "manage_permissions": "管理权限 (详情)",
         "manage_roles": "管理权限",
         "messages": {
-          "no_members": "在此工作区中未找到成员。",
+          "no_members": "在此组织中未找到成员。",
           "remove_error": "移除成员时出错。"
         },
         "remove_member": "移除成员"
@@ -474,25 +474,25 @@
       "db_placeholder": "postgres://username:password@hostname:port/database",
       "db_validation_error": "数据库连接地址无效。必须以 postgres:// 或 postgresql:// 开头",
       "messages": {
-        "create_error": "无法创建工作区。请再试一次。"
+        "create_error": "无法创建组织。请再试一次。"
       },
       "org_name_label": "组织名称",
       "org_name_placeholder": "例：ABC 公司、LeeAttend 团队...",
       "progress": {
         "step_1": "正在初始化数据库集群...",
         "step_2": "正在同步数据表结构 (Migrations)...",
-        "step_3": "正在配置默认工作空间设置...",
+        "step_3": "正在配置组织默认设置...",
         "step_4": "正在准备系统管理后台...",
         "subtitle": "请保持此页面打开。我们正在为您准备安全的环境。",
         "success": "配置完成！正在跳转...",
-        "title": "正在配置工作空间..."
+        "title": "正在配置组织..."
       },
       "start_now_btn": "立即开始",
-      "welcome_subtitle": "让我们创建您的第一个组织（工作区）",
+      "welcome_subtitle": "让我们设置您的组织",
       "welcome_title": "欢迎！",
-      "workspace_desc": "工作区是一个独立的环境，可帮助您在一个地方管理成员。"
+      "workspace_desc": "组织将您的人员和设置集中在一处。"
     },
-    "workspace_desc": "工作区是一个独立的环境，可帮助您在一个地方管理成员。",
+    "workspace_desc": "组织将您的人员和设置集中在一处。",
     "org_chart": "架构图",
     "org_name_label": "组织/项目名称",
     "org_name_placeholder": "例：ABC 公司、自由职业团队...",
@@ -747,13 +747,13 @@
       "title": "薪资",
       "traceability": {
         "department_policy": "部门政策",
-        "hierarchy_explanation": "薪资配置优先级：个人 > 部门 > 工作区。",
+        "hierarchy_explanation": "薪资配置优先级：个人 > 部门 > 组织。",
         "hierarchy_title": "配置优先级层次结构",
         "individual_policy": "个人政策",
         "pending_adjustments": "有待处理的调整",
         "recalc_needed": "需要重新计算",
         "view_adjustments": "查看调整",
-        "workspace_default": "工作区默认"
+        "workspace_default": "组织默认"
       },
       "validation": {
         "base_pay_positive": "Base pay must be a positive number",
@@ -804,7 +804,7 @@
       },
       "form_subtitle": "定义何时应用此模式",
       "info_priority": "规则按从高到低的优先级进行评估。将应用第一个匹配的规则。通用规则应具有最低优先级。",
-      "match_all": "全工作区（匹配所有）",
+      "match_all": "全组织（匹配所有）",
       "messages": {
         "create_success": "规则创建成功",
         "delete_success": "规则已删除",
@@ -850,7 +850,7 @@
     "select_department": "选择部门",
     "select_employee": "选择员工",
     "select_month": "选择月份",
-    "select_workspace": "选择工作空间",
+    "select_workspace": "选择组织",
     "select_workspace_desc": "选择您想工作的办公室或分公司。",
     "selected": "已选择",
     "selected_count": "已选 {{selected}}/{{total}}",
@@ -944,7 +944,7 @@
         "vn": "越南格式 (例: 31/12/2025)"
       },
       "default_language": "默认语言",
-      "description": "管理工作空间配置、人员和外观。",
+      "description": "管理组织配置、人员和外观。",
       "early_arrival_options": {
         "allow": "始终允许",
         "allow_desc": "从签到时间开始计算全部加班费（如果允许提前加班）。",
@@ -981,7 +981,7 @@
       "tagline_desc": "显示在侧边栏标志下方。",
       "tagline_placeholder": "例如：人力资源管理",
       "theme_config": "主题配置",
-      "theme_desc": "自定义您的工作空间外观。",
+      "theme_desc": "自定义您的组织外观。",
       "time_format": "时间格式",
       "time_format_options": {
         "12h": "12 小时",
@@ -995,7 +995,7 @@
         "utc": "协调世界时 (UTC)",
         "vn": "越南 (UTC+7)"
       },
-      "title": "工作空间设置",
+      "title": "组织设置",
       "upload_logo": "点击设置标志网址",
       "valid_from": "生效日期",
       "valid_from_note": "设置将从此日期起生效",
@@ -1010,8 +1010,8 @@
         "60min": "60 分钟",
         "60min_desc": "1小时块"
       },
-      "workspace_logo": "工作区标志",
-      "workspace_name": "工作空间名称",
+      "workspace_logo": "组织标志",
+      "workspace_name": "组织名称",
       "workspace_name_placeholder": "例如：LeeAttend Corp",
       "dark_mode_preference": "Chế độ hiển thị"
     },
@@ -1066,7 +1066,7 @@
   },
   "dashboard": {
     "title": "仪表板",
-    "welcome": "欢迎回来！这是您的工作空间活动摘要。",
+    "welcome": "欢迎回来！这是您的组织活动摘要。",
     "filters": {
       "label": "高管仪表板筛选器",
       "period": {
@@ -1093,7 +1093,7 @@
       "start_date": "开始日期",
       "end_date": "结束日期",
       "custom_date_error": "请输入有效的自定义开始和结束日期。",
-      "timezone_hint": "日期使用工作区时区。",
+      "timezone_hint": "日期使用组织时区。",
       "apply": "应用",
       "reset": "重置"
     },
@@ -1586,8 +1586,8 @@
   },
   "onboarding": {
     "welcome_title": "欢迎！",
-    "workspace_desc": "工作区是一个独立的环境，可帮助您在一个地方管理成员。",
-    "welcome_subtitle": "让我们创建您的第一个组织 (工作空间)",
+    "workspace_desc": "组织将您的人员和设置集中在一处。",
+    "welcome_subtitle": "让我们设置您的组织",
     "org_name_label": "组织名称",
     "org_name_placeholder": "例：ABC 公司、LeeAttend 团队...",
     "start_now_btn": "立即开始",
@@ -1599,16 +1599,16 @@
     "db_validation_error": "数据库连接地址无效。必须以 postgres:// 或 postgresql:// 开头",
     "db_placeholder": "postgres://username:password@hostname:port/database",
     "progress": {
-      "title": "正在配置工作空间...",
+      "title": "正在配置组织...",
       "subtitle": "请保持此页面打开。我们正在为您准备安全的环境。",
       "step_1": "正在初始化数据库集群...",
       "step_2": "正在同步数据表结构 (Migrations)...",
-      "step_3": "正在配置默认工作空间设置...",
+      "step_3": "正在配置组织默认设置...",
       "step_4": "正在准备系统管理后台...",
       "success": "配置完成！正在跳转..."
     },
     "messages": {
-      "create_error": "无法创建工作空间。请再试一次。"
+      "create_error": "无法创建组织。请再试一次。"
     }
   },
   "reports": {
@@ -1765,7 +1765,7 @@
     "title": "账单"
   },
   "overview": {
-    "activeWorkspace": "活跃工作区",
+    "activeWorkspace": "活跃组织",
     "adminFallback": "备用管理员",
     "adminMembers": "管理员成员",
     "admins": "管理员",
@@ -1779,7 +1779,7 @@
   },
   "workspace": {
     "roles": {
-      "title": "工作区角色"
+      "title": "组织角色"
     }
   },
   "status_active_caps": "活动",
@@ -1816,11 +1816,11 @@
       "assignee_label_overtime_request": "被授权加班申请人 (用户)",
       "assignee_label_other": "被授权申请人 (用户)",
       "assignee_placeholder": "搜索并选择用户...",
-      "no_assignees": "未找到工作区用户",
-      "assignee_help_ot": "选择被允许代为申报加班的工作区用户。",
-      "assignee_help_overtime_request": "选择被允许代为提交 Pre-OT 申请的工作区用户。",
-      "assignee_help_leave": "选择被允许代为提交请假申请的工作区用户。",
-      "assignee_help_adjustment": "选择被允许代为提交考勤调整申请的工作区用户。",
+      "no_assignees": "未找到组织用户",
+      "assignee_help_ot": "选择被允许代为申报加班的组织用户。",
+      "assignee_help_overtime_request": "选择被允许代为提交 Pre-OT 申请的组织用户。",
+      "assignee_help_leave": "选择被允许代为提交请假申请的组织用户。",
+      "assignee_help_adjustment": "选择被允许代为提交考勤调整申请的组织用户。",
       "target_type_label": "目标范围类型",
       "target_type_employee": "员工",
       "target_type_department": "部门",
@@ -1836,10 +1836,10 @@
       "title_overtime_request": "代办 Pre-OT 申请分配",
       "title_leave": "代办请假申请分配",
       "title_adjustment": "代办考勤调整分配",
-      "desc_ot": "配置哪些工作区用户有权代表特定员工或整个部门申报加班。",
-      "desc_overtime_request": "配置哪些工作区用户有权代表特定员工或整个部门申请 Pre-OT。",
-      "desc_leave": "配置哪些工作区用户有权代表特定员工或整个部门申请请假。",
-      "desc_adjustment": "配置哪些工作区用户有权代表特定员工或整个部门申请考勤调整。",
+      "desc_ot": "配置哪些组织用户有权代表特定员工或整个部门申报加班。",
+      "desc_overtime_request": "配置哪些组织用户有权代表特定员工或整个部门申请 Pre-OT。",
+      "desc_leave": "配置哪些组织用户有权代表特定员工或整个部门申请请假。",
+      "desc_adjustment": "配置哪些组织用户有权代表特定员工或整个部门申请考勤调整。",
       "add_btn": "添加分配"
     },
     "empty": {
@@ -1945,7 +1945,7 @@
       "desc": "您没有访问任何应用的权限。请联系管理员。"
     },
     "descriptions": {
-      "directory": "浏览和管理工作区成员及角色",
+      "directory": "浏览和管理组织成员及角色",
       "org_chart": "可视化组织结构",
       "econtracts": "管理员工合同和电子签名",
       "leave_balances": "查看假期配额和余额",
@@ -1956,7 +1956,7 @@
       "documents": "访问工资单、合同和人事文档",
       "infra_monitor": "监控边缘代理和系统健康",
       "db_clusters": "管理数据库集群配置",
-      "tenants": "管理多租户工作区实例",
+      "tenants": "管理组织实例",
       "charts": "考勤趋势、加班、离职率和劳动力分析图表"
     },
     "dual_run": {
@@ -2380,7 +2380,7 @@
     "manageAccess": "Manage Access",
     "deleteTitle": "Delete Role",
     "confirmDelete": "Are you sure you want to delete this role?",
-    "subtitle": "Define custom roles and manage access levels across the workspace",
+    "subtitle": "定义自定义角色并管理组织内的访问级别",
     "createRole": "Create Role"
   },
   "assignments": {
@@ -2412,7 +2412,7 @@
     "indefinite": "未确定 / 长期",
     "no_assignments_found": "未找到外派记录",
     "search_no_results": "未找到匹配条件的外派记录。",
-    "empty_state": "当前工作区暂无外派记录。",
+    "empty_state": "当前组织暂无外派记录。",
     "actions": {
       "create": "新建外派",
       "edit": "编辑外派",
@@ -2435,7 +2435,7 @@
     "search_label": "搜索工作条件",
     "search_placeholder": "搜索员工姓名、工号或条件类型...",
     "search_no_results": "未找到符合筛选条件的工作条件记录。",
-    "empty_state": "当前工作区暂未记录任何特殊工作条件。",
+    "empty_state": "当前组织暂未记录任何特殊工作条件。",
     "no_conditions_found": "未找到工作条件",
     "paid": "有薪",
     "unpaid": "无薪",

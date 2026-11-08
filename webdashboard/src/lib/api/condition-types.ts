@@ -42,19 +42,11 @@ export type UpdateConditionTypeRequest = Omit<
   affects_rules?: ConditionRuleEffects;
 };
 
-  // eslint-disable-next-line unused-imports/no-unused-vars
-const buildPath = (wsId: string, id?: string): string =>
-  id
-    ? `/workspaces/${wsId}/condition-types/${id}`
-    : `/workspaces/${wsId}/condition-types`;
-
 export async function fetchConditionTypes(
-  wsId: string,
   activeOnly?: boolean,
 ): Promise<ConditionTypeDefinition[]> {
-  const { data } = await client.GET("/workspaces/{workspace_id}/condition-types", {
+  const { data } = await client.GET<ConditionTypeDefinition[]>("/v1/condition-types", {
     params: {
-      path: { workspace_id: wsId },
       query: activeOnly !== undefined ? { active_only: activeOnly } : undefined,
     },
   });
@@ -62,48 +54,42 @@ export async function fetchConditionTypes(
 }
 
 export async function fetchConditionType(
-  wsId: string,
   id: string,
 ): Promise<ConditionTypeDefinition> {
-  const { data } = await client.GET("/workspaces/{workspace_id}/condition-types/{id}", {
+  const { data } = await client.GET<ConditionTypeDefinition>("/v1/condition-types/{id}", {
     params: {
-      path: { workspace_id: wsId, id },
+      path: { id },
     },
   });
   return data as ConditionTypeDefinition;
 }
 
 export async function createConditionType(
-  wsId: string,
   req: CreateConditionTypeRequest,
 ): Promise<ConditionTypeDefinition> {
-  const { data } = await client.POST("/workspaces/{workspace_id}/condition-types", {
-    params: {
-      path: { workspace_id: wsId },
-    },
+  const { data } = await client.POST<ConditionTypeDefinition>("/v1/condition-types", {
     body: req,
   });
   return data as ConditionTypeDefinition;
 }
 
 export async function updateConditionType(
-  wsId: string,
   id: string,
   req: UpdateConditionTypeRequest,
 ): Promise<ConditionTypeDefinition> {
-  const { data } = await client.PATCH("/workspaces/{workspace_id}/condition-types/{id}", {
+  const { data } = await client.PATCH<ConditionTypeDefinition>("/v1/condition-types/{id}", {
     params: {
-      path: { workspace_id: wsId, id },
+      path: { id },
     },
     body: req,
   });
   return data as ConditionTypeDefinition;
 }
 
-export async function deleteConditionType(wsId: string, id: string): Promise<void> {
-  await client.DELETE("/workspaces/{workspace_id}/condition-types/{id}", {
+export async function deleteConditionType(id: string): Promise<void> {
+  await client.DELETE("/v1/condition-types/{id}", {
     params: {
-      path: { workspace_id: wsId, id },
+      path: { id },
     },
   });
 }

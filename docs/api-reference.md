@@ -5,7 +5,7 @@ Base URL: `http://localhost:3000`
 
 ### Single-organization routing
 
-Flat `/api/v1/...` routes are canonical for the single-organization deployment. The server resolves the sole organization from the shared database before invoking existing handlers. Legacy `/api/v1/workspaces/{ws_id}/...` routes remain available during API client migration; they are compatibility routes, not separate tenant databases.
+Flat `/api/v1/...` routes are canonical for the single-organization appliance. Organization scope is resolved from trusted server configuration; clients MUST NOT supply organization or tenant identifiers. Legacy `/workspaces/{id}` paths are rejected with HTTP 404 by RejectLegacyWorkspaceRoutes middleware.
 
 ### 0. Authentication & Context (Updated)
 
@@ -65,11 +65,11 @@ Lấy danh sách tất cả người dùng trong hệ thống (phục vụ giả
 
 ---
 
-### 1. Workspaces
+### 1. Organization Settings
 
-Quản lý không gian làm việc và cấu hình hệ thống.
+Quản lý thông tin và cấu hình tổ chức đơn nhất.
 
-#### Workspace Model
+#### Organization Settings Model
 ```json
 {
   "id": "uuid",
@@ -86,67 +86,56 @@ Quản lý không gian làm việc và cấu hình hệ thống.
 }
 ```
 
-#### GET /workspaces
-Lấy danh sách các workspace mà người dùng là thành viên.
-- **Response (200)**: `Array<Workspace>`
+#### GET /api/v1
+Lấy thông tin và cấu hình của tổ chức.
+- **Headers**: `Authorization: Bearer <token>`
+- **Response (200)**: `OrganizationSettings`
 
-#### GET /workspaces/:ws_id
-Lấy thông tin chi tiết của một workspace cụ thể.
-- **Response (200)**: `Workspace`
-
-#### POST /workspaces
-Tạo mới một workspace (Người tạo sẽ trở thành `owner`).
-- **Request**: `{ "name": "..." }`
-- **Response (201)**: `Workspace`
-
-#### PATCH /workspaces/:ws_id
-Cập nhật thông tin hoặc cấu hình hệ thống của workspace.
-- **Request**: 
+#### PATCH /api/v1
+Cập nhật thông tin hoặc cấu hình hệ thống của tổ chức.
+- **Headers**: `Authorization: Bearer <token>`
+- **Request**:
   ```json
-  { 
-    "name": "Tên mới", 
-    "work_unit_minutes": 30, 
-    "rounding_policy": "floor",
-    "date_format": "MM/DD/YYYY",
-    "time_format": "12h",
+  {
+    "name": "Tên mới",
+    "date_format": "DD/MM/YYYY",
+    "time_format": "24h",
     "timezone": "Asia/Ho_Chi_Minh",
-    "default_language": "vi|en|zh",
-    "theme_primary_color": "#059669",
-    "pairing_algorithm": "anchor_first|fsm", // dp_pattern, anchor_first, sequential, fsm
-    "early_arrival_strategy": "block" // block, allow, clamp
+    "default_language": "vi",
+    "theme_primary_color": "#7c3aed"
   }
   ```
-- **Response (200)**: `Workspace` (updated)
+- **Response (200)**: `OrganizationSettings` (updated)
 
 ---
 
-### 2. Workspace Members
+### 2. Members and Roles
 
 Hệ thống quản lý thành viên và phân quyền trong tổ chức. Một thành viên có một **Role chính** (Primary Role) và có thể được gán thêm các **Role phụ** (Extra Roles) có thời hạn.
 
-#### GET /workspaces/:ws_id/members
-Lấy danh sách tất cả thành viên trong workspace.
-- **Response (200)**: `Array<WorkspaceMember>`
+#### GET /api/v1/members
+Lấy danh sách tất cả thành viên trong tổ chức.
+- **Response (200)**: `Array<Member>`
 - **UI Note**: Trong WebDashboard, trang này đã được hợp nhất vào `Settings > People`.
 
-#### POST /workspaces/:ws_id/members
-Mời hoặc thêm thành viên mới vào workspace.
+#### POST /api/v1/members
+Mời hoặc thêm thành viên mới vào tổ chức.
 - **Quyền hạn**: Chỉ `owner` hoặc `admin`.
 - **Request**: `{ "user_id": "...", "role": "admin|member" }`
-- **Response (201)**: `WorkspaceMember` object
+- **Response (201)**: `Member` object
 
-#### PATCH /workspaces/:ws_id/members/:user_id
+#### PATCH /api/v1/members/:user_id
 Cập nhật **Role chính** của thành viên.
 - **Quyền hạn**: Chỉ `owner` hoặc `admin`.
 - **Request**: `{ "role": "admin|member" }`
 - **Response (200 OK)**
 
-#### DELETE /workspaces/:ws_id/members/:user_id
-Xóa thành viên khỏi workspace.
+#### DELETE /api/v1/members/:user_id
+Xóa thành viên khỏi tổ chức.
 - **Quyền hạn**: Chỉ `owner` hoặc `admin`. Không cho phép tự xóa chính mình hoặc xóa `owner`.
 - **Response (204)**: No Content
 
-#### GET /workspaces/:ws_id/members/:user_id/roles
+#### GET /api/v1/members/:user_id/roles
 Lấy danh sách tất cả các role hiện tại của một thành viên (bao gồm role chính và các role phụ đang hiệu lực).
 - **Response (200)**: 
   ```json
@@ -163,7 +152,7 @@ Lấy danh sách tất cả các role hiện tại của một thành viên (bao
   }
   ```
 
-#### POST /workspaces/:ws_id/members/:user_id/roles
+#### POST /api/v1/members/:user_id/roles
 Gán một **Role phụ** có thời hạn cho thành viên.
 - **Quyền hạn**: Chỉ `owner` hoặc `admin`.
 - **Request**:
@@ -175,7 +164,7 @@ Gán một **Role phụ** có thời hạn cho thành viên.
   ```
 - **Response (201)**: `MemberExtraRole` object
 
-#### DELETE /workspaces/:ws_id/members/:user_id/roles/:role_id
+#### DELETE /api/v1/members/:user_id/roles/:role_id
 Thu hồi một role phụ trước thời hạn.
 - **Quyền hạn**: Chỉ `owner` hoặc `admin`.
 - **Response (204)**: No Content
@@ -188,20 +177,20 @@ The Go `apiserver` pulls attendance events from the configured external provider
 
 Configure `LOG_PULL_ENABLED`, `LOG_PULL_BASE_URL`, `LOG_PULL_TOKEN`, `LOG_PULL_ACCOUNT_ID`, `LOG_PULL_MODE`, and bounded interval, timeout, page-size, and concurrency settings. `shadow` mode fetches and normalizes events without attendance writes; `write` mode commits events and the next cursor transactionally.
 
-Provider event identity is deduplicated per workspace and attendance source. Report progress remains available at `GET /ws/reports/{job_id}`.
+Provider event identity is deduplicated per organization and attendance source. Report progress remains available at `GET /ws/reports/{job_id}`.
 
 ### 5. Employee Management
 
 Quản lý hồ sơ nhân viên trong tổ chức.
 - **UI Note**: Trong WebDashboard, trang này đã được hợp nhất vào `Settings > People`.
 
-#### GET /workspaces/:ws_id/employees
+#### GET /api/v1/employees
 Lấy danh sách tất cả nhân viên.
 - **Query Params**:
     - `q`: string (Tìm kiếm theo tên, họ, mã nhân viên hoặc tên đầy đủ. Case-insensitive. Giới hạn 50 kết quả đầu tiên nếu có tham số `q`. (Limited to first 50 results if `q` is provided)).
 - **Response (200)**: `Array<Employee>`
 
-#### POST /workspaces/:ws_id/employees
+#### POST /api/v1/employees
 Tạo hồ sơ nhân viên mới.
 - **Quyền hạn**: Chỉ `owner` hoặc `admin`.
 - **Request**: 
@@ -215,12 +204,12 @@ Tạo hồ sơ nhân viên mới.
   ```
 - **Response (201)**: `Employee` object
 
-#### PUT /workspaces/:ws_id/employees/:id
+#### PUT /api/v1/employees/:id
 Cập nhật thông tin nhân viên (họ tên, trạng thái nghỉ việc). Nếu cập nhật `termination_date`, phiên làm việc hiện tại sẽ được đóng lại.
 - **Quyền hạn**: Chỉ `owner` hoặc `admin`.
 - **Response (200 OK)**
 
-#### GET /workspaces/:ws_id/employees/:id/history (New)
+#### GET /api/v1/employees/:id/history (New)
 Lấy toàn bộ lịch sử các giai đoạn làm việc (Employment Periods) của nhân viên.
 - **Response (200)**: `Array<EmploymentPeriod>`
   ```json
@@ -228,7 +217,6 @@ Lấy toàn bộ lịch sử các giai đoạn làm việc (Employment Periods) 
     {
       "id": "uuid",
       "employee_id": "uuid",
-      "workspace_id": "uuid",
       "hire_date": "2024-01-01",
       "termination_date": "2025-12-31",
       "is_rehire": false,
@@ -238,7 +226,7 @@ Lấy toàn bộ lịch sử các giai đoạn làm việc (Employment Periods) 
   ]
   ```
 
-#### POST /workspaces/:ws_id/employees/:id/rehire (New)
+#### POST /api/v1/employees/:id/rehire (New)
 Thực hiện tái tuyển dụng (re-hire) một nhân viên đã nghỉ việc. Sẽ tạo một `EmploymentPeriod` mới với cờ `is_rehire: true`.
 - **Quyền hạn**: Chỉ `owner` hoặc `admin`.
 - **Request**:
@@ -249,7 +237,7 @@ Thực hiện tái tuyển dụng (re-hire) một nhân viên đã nghỉ việc
   ```
 - **Response (200)**: `Employee` object (updated)
 
-#### GET /workspaces/:ws_id/employees/:id/conditions (New)
+#### GET /api/v1/employees/:id/conditions (New)
 Lấy danh sách các đặc cách/chế độ chấm công đặc biệt của nhân viên (ví dụ: nuôi con nhỏ, đi muộn có lương).
 - **Response (200)**: `Array<WorkingCondition>`
   ```json
@@ -265,7 +253,7 @@ Lấy danh sách các đặc cách/chế độ chấm công đặc biệt của 
   ]
   ```
 
-#### POST /workspaces/:ws_id/employees/:id/conditions (New)
+#### POST /api/v1/employees/:id/conditions (New)
 Gán một đặc cách chấm công mới cho nhân viên.
 - **Quyền hạn**: Chỉ `owner` hoặc `admin`.
 - **Request**:
@@ -280,7 +268,7 @@ Gán một đặc cách chấm công mới cho nhân viên.
   ```
 - **Response (201)**: `WorkingCondition` object
 
-#### DELETE /workspaces/:ws_id/employees/:id/conditions/:cond_id (New)
+#### DELETE /api/v1/employees/:id/conditions/:cond_id (New)
 Xóa một bản ghi đặc cách chấm công.
 - **Quyền hạn**: Chỉ `owner` hoặc `admin`.
 - **Response (204)**: No Content
@@ -291,13 +279,13 @@ Xóa một bản ghi đặc cách chấm công.
 
 Theo dõi dữ liệu chấm công thực tế.
 
-#### POST /workspaces/:ws_id/time/punch-in
+#### POST /api/v1/time/punch-in
 Ghi nhận giờ vào làm hoặc bắt đầu nghỉ giải lao.
 - **Request**: 
   ```json
   { 
     "employee_id": "uuid",
-      "workspace_id": "uuid", 
+ 
     "entry_type": "work|break", 
     "is_break_overtime": false, 
     "note": "Ghi chú tùy chọn" 
@@ -305,12 +293,12 @@ Ghi nhận giờ vào làm hoặc bắt đầu nghỉ giải lao.
   ```
 - **Response (201)**: `TimeEntry` object
 
-#### POST /workspaces/:ws_id/time/punch-out/:employee_id
+#### POST /api/v1/time/punch-out/:employee_id
 Ghi nhận giờ ra về hoặc kết thúc nghỉ giải lao cho lần punch-in gần nhất chưa đóng.
 - **Request**: `{ "note": "..." }`
 - **Response (200 OK)**
 
-#### GET /workspaces/:ws_id/time/history/:employee_id
+#### GET /api/v1/time/history/:employee_id
 Lấy lịch sử chấm công trong khoảng thời gian.
 - **Query Params**: `?start=ISO-8601&end=ISO-8601`
 - **Response (200)**: `Array<TimeEntry>`
@@ -321,7 +309,7 @@ Lấy lịch sử chấm công trong khoảng thời gian.
 
 Quản lý đơn xin nghỉ phép.
 
-#### POST /workspaces/:ws_id/leave/submit
+#### POST /api/v1/leave/submit
 Gửi đơn xin nghỉ phép.
 - **Request**:
   ```json
@@ -335,31 +323,30 @@ Gửi đơn xin nghỉ phép.
   ```
 - **Response (201)**: `LeaveRequest` object
 
-#### GET /workspaces/:ws_id/leave/requests
-Lấy danh sách đơn nghỉ phép trong workspace.
+#### GET /api/v1/leave/requests
+Lấy danh sách đơn nghỉ phép trong tổ chức.
 - **Query Params**: `?status=pending|approved|rejected`
 - **Response (200)**: `Array<LeaveRequest>`
 
-#### POST /workspaces/:ws_id/leave/requests/:id/approve
+#### POST /api/v1/leave/requests/:id/approve
 Phê duyệt hoặc từ chối đơn nghỉ phép.
 - **Request**: `{ "status": "approved|rejected" }`
 - **Response (200 OK)**
 
-#### GET /workspaces/:ws_id/leave/balances (New - Admin)
+#### GET /api/v1/leave/balances (New - Admin)
 
-Get leave balances for all employees in the workspace. Supports pagination and searching by employee name.
+Get leave balances for all employees in the organization. Supports pagination and searching by employee name.
 
 - **Query Parameters**:
   - `page` (optional, default: 1): Page number.
   - `limit` (optional, default: 20): Items per page.
   - `q` (optional): Search term for employee name.
-- **Response (200)**: `PaginatedResponse<WorkspaceLeaveBalance>`
+- **Response (200)**: `PaginatedResponse<OrganizationLeaveBalance>`
 ```json
 {
   "data": [
     {
       "employee_id": "uuid",
-      "workspace_id": "uuid",
       "employee_name": "Full Name",
       "leave_type": "annual",
       "entitlement": 12,
@@ -377,7 +364,7 @@ Get leave balances for all employees in the workspace. Supports pagination and s
 }
 ```
 
-#### GET /workspaces/:ws_id/employees/:id/leave/balances
+#### GET /api/v1/employees/:id/leave/balances
 Lấy thông tin hạn mức và số dư phép của một nhân viên cụ thể.
 - **Response (200)**: 
   ```json
@@ -393,7 +380,7 @@ Lấy thông tin hạn mức và số dư phép của một nhân viên cụ th�
   ]
   ```
 
-#### GET /workspaces/:ws_id/employees/:id/leave/history (New)
+#### GET /api/v1/employees/:id/leave/history (New)
 Lấy lịch sử chi tiết các biến động số dư (cộng phép định kỳ, sử dụng, điều chỉnh thủ công).
 - **Response (200)**: `Array<LeaveHistoryItem>`
   ```json
@@ -410,7 +397,7 @@ Lấy lịch sử chi tiết các biến động số dư (cộng phép định 
   ]
   ```
 
-#### POST /workspaces/:ws_id/employees/:id/leave/adjust (New)
+#### POST /api/v1/employees/:id/leave/adjust (New)
 Thực hiện điều chỉnh số dư phép thủ công cho nhân viên.
 - **Quyền hạn**: Chỉ `owner` hoặc `admin`.
 - **Request**:
@@ -431,7 +418,7 @@ Thực hiện điều chỉnh số dư phép thủ công cho nhân viên.
 Quản lý cấu hình cộng phép động (Dynamic Accrual) và phân bổ chính sách theo thời gian.
 - **UI Note**: Trong WebDashboard, trang này đã được hợp nhất vào `Settings > Time`.
 
-#### POST /workspaces/:ws_id/leave/policies
+#### POST /api/v1/leave/policies
 Tạo một định nghĩa chính sách mới (Rule Definition).
 - **Quyền hạn**: Chỉ `owner` hoặc `admin`.
 - **Request**:
@@ -452,26 +439,26 @@ Tạo một định nghĩa chính sách mới (Rule Definition).
   ```
 - **Response (201)**: `LeavePolicyDefinition` object
 
-#### GET /workspaces/:ws_id/leave/policies
+#### GET /api/v1/leave/policies
 Lấy danh sách các định nghĩa chính sách đã tạo.
 - **Response (200)**: `Array<LeavePolicyDefinition>`
 
-#### POST /workspaces/:ws_id/leave/policies/assign
+#### POST /api/v1/leave/policies/assign
 Gán chính sách cho đối tượng (Global, Dept, Employee) trong khoảng thời gian cụ thể (Temporal Assignment).
 - **Quyền hạn**: Chỉ `owner` hoặc `admin`.
 - **Transactional Auto-Close**: Hệ thống sẽ tự động tìm các bản gán (assignment) hiện tại của cùng đối tượng cho cùng loại phép (`leave_type`) và cập nhật ngày kết thúc (`effective_to`) của chúng thành `effective_from - 1 day` để đảm bảo tính liên tục của dữ liệu.
 - **Request**:
   ```json
   {
-    "assignee_type": "employee", // workspace, department, employee
-    "assignee_id": "uuid-or-null", // NULL if assignee_type is 'workspace'
+    "assignee_type": "employee", // organization, department, employee, user
+    "assignee_id": "uuid-or-null", // NULL if assignee_type is 'organization'
     "policy_id": "uuid",
     "effective_from": "2026-01-01"
   }
   ```
 - **Response (201)**: `LeavePolicyAssignment` object
 
-#### POST /workspaces/:ws_id/leave/accrual/run (System/Cron)
+#### POST /api/v1/leave/accrual/run (System/Cron)
 Kích hoạt thủ công quá trình tính toán cộng phép cho một ngày cụ thể (thường dùng cho Cron Job hoặc Debug).
 - **Quyền hạn**: Chỉ `owner` hoặc `admin`.
 - **Request**: `{ "date": "2026-02-01" }`
@@ -483,7 +470,7 @@ Kích hoạt thủ công quá trình tính toán cộng phép cho một ngày c�
 
 Quy trình xử lý các trường hợp quên chấm công hoặc cần điều chỉnh dữ liệu chấm công quá khứ, hỗ trợ nhập liệu hàng loạt từ file.
 
-#### POST /workspaces/:ws_id/attendance/adjustments
+#### POST /api/v1/attendance/adjustments
 Gửi yêu cầu xác nhận/điều chỉnh công mới.
 - **Request**:
   ```json
@@ -496,33 +483,33 @@ Gửi yêu cầu xác nhận/điều chỉnh công mới.
     "reason": "Làm thông trưa"
   }
   ```
-  *Lưu ý: Nếu chuỗi thời gian không có offset (Naive), Backend sẽ tự động parse theo múi giờ đã cài đặt của Workspace.*
+  *Lưu ý: Nếu chuỗi thời gian không có offset (Naive), Backend sẽ tự động parse theo múi giờ đã cài đặt của tổ chức.*
 - **Response (201)**: `AttendanceAdjustmentRequest` object
 
-#### GET /workspaces/:ws_id/attendance/adjustments
-Lấy danh sách các yêu cầu điều chỉnh trong workspace.
+#### GET /api/v1/attendance/adjustments
+Lấy danh sách các yêu cầu điều chỉnh trong tổ chức.
 - **Query Params**: `?status=pending|approved|rejected`
 - **Response (200)**: `Array<AttendanceAdjustmentRequest>`
 
-#### POST /workspaces/:ws_id/employees/upload (Updated)
+#### POST /api/v1/employees/upload (Updated)
 Upload file Excel (.xlsx, .xls) hoặc CSV. Trả về Job ID để theo dõi tiến độ bất đồng bộ.
 - **Silent Skip**: Hệ thống sẽ tự động bỏ qua các bản ghi có mã nhân viên (Employee ID) đã tồn tại mà không làm gián đoạn quá trình nhập liệu.
 - **Job Status**: Trường `processed_rows` trong Job Status sẽ chỉ đếm số lượng bản ghi *thực sự được thêm mới*. Log lỗi sẽ ghi nhận số lượng bản ghi bị bỏ qua.
 - **Request**: `multipart/form-data` (file)
 - **Response (200)**: `{ "job_id": "uuid" }`
 
-#### POST /workspaces/:ws_id/attendance/upload (Updated)
+#### POST /api/v1/attendance/upload (Updated)
 Upload file Excel (.xlsx, .xls) hoặc CSV. Trả về Job ID để theo dõi tiến độ bất đồng bộ.
 - **Partial Success (Robust Import)**: Hệ thống hỗ trợ nhập liệu một phần. Nếu bản ghi bị trùng lặp (trùng mã nhân viên và thời gian quẹt) hoặc mã nhân viên không tồn tại, hệ thống sẽ tự động bỏ qua và tiếp tục xử lý các bản ghi hợp lệ khác.
-- **Unique Constraint**: Dữ liệu được bảo vệ bằng ràng buộc duy nhất `(workspace_id, employee_id, punch_time)` để ngăn chặn log rác.
+- **Unique Constraint**: Dữ liệu được bảo vệ bằng ràng buộc duy nhất `(employee_id, punch_time)` để ngăn chặn log rác.
 - **Request**: `multipart/form-data` (file)
 - **Response (200)**: `{ "job_id": "uuid" }`
 
-#### GET /workspaces/:ws_id/attendance/import-jobs/latest
-Lấy thông tin Job import gần nhất của workspace.
+#### GET /api/v1/attendance/import-jobs/latest
+Lấy thông tin Job import gần nhất của tổ chức.
 - **Response (200)**: `ImportJob` object
 
-#### GET /workspaces/:ws_id/attendance/import-jobs/:id
+#### GET /api/v1/attendance/import-jobs/:id
 Lấy trạng thái chi tiết của một Job cụ thể.
 - **Response (200)**: `ImportJob` object
 
@@ -532,7 +519,7 @@ Lấy trạng thái chi tiết của một Job cụ thể.
 
 Xem nhật ký quẹt thẻ thô từ provider hoặc file import.
 
-#### GET /workspaces/:ws_id/attendance/logs
+#### GET /api/v1/attendance/logs
 Lấy danh sách các phiên làm việc (sessions) đã được ghép cặp.
 - **Query Params**:
     - `employee_id`: uuid (lọc theo nhân viên)
@@ -546,7 +533,6 @@ Lấy danh sách các phiên làm việc (sessions) đã được ghép cặp.
     {
       "id": "uuid",
       "employee_id": "uuid",
-      "workspace_id": "uuid",
       "punch_in": "2026-01-14T08:00:00Z",
       "punch_out": "2026-01-14T17:00:00Z",
       "work_units": 8.0,
@@ -560,7 +546,7 @@ Lấy danh sách các phiên làm việc (sessions) đã được ghép cặp.
   ]
   ```
 
-#### GET /attendance/raw-logs
+#### GET /api/v1/attendance/raw-logs
 Lấy danh sách nhật ký quẹt thẻ thô (nguyên bản) từ thiết bị hoặc file import.
 - **Query Params**: Giống `/attendance/logs`.
 - **Response (200)**: `{ "data": Array<RawAttendanceLog>, "total": number, "page": number, "limit": number }`
@@ -570,7 +556,6 @@ Lấy danh sách nhật ký quẹt thẻ thô (nguyên bản) từ thiết bị 
       {
         "id": "uuid",
         "employee_id": "uuid",
-        "workspace_id": "uuid",
         "punch_time": "2026-01-14T08:00:00Z",
         "source": "import|manual",
         "created_at": "datetime"
@@ -582,12 +567,12 @@ Lấy danh sách nhật ký quẹt thẻ thô (nguyên bản) từ thiết bị 
   }
   ```
 
-#### POST /workspaces/:ws_id/attendance/reprocess/:employee_id (New)
+#### POST /api/v1/attendance/reprocess/:employee_id (New)
 Kích hoạt tính toán lại (reprocess) dữ liệu chấm công cho một nhân viên trong khoảng thời gian cụ thể.
 - **Query Params**:
     - `start_date`: YYYY-MM-DD
     - `end_date`: YYYY-MM-DD
-- **Mục đích**: Chạy lại thuật toán ghép cặp (pairing algorithm) dựa trên logs thô hiện có. Thường dùng khi thay đổi cấu hình thuật toán của Workspace hoặc sửa lỗi ca làm việc.
+- **Mục đích**: Chạy lại thuật toán ghép cặp (pairing algorithm) dựa trên logs thô hiện có. Thường dùng khi thay đổi cấu hình thuật toán của tổ chức hoặc sửa lỗi ca làm việc.
 - **Response (200 OK)**
 
 ---
@@ -598,10 +583,9 @@ Quản lý lương, ca làm việc và báo cáo công. Hệ thống hỗ trợ 
 - **UI Note**: Trong WebDashboard, cài đặt lương đã được hợp nhất vào `Settings > Payroll`.
 
 #### Payroll Settings Model
-Lưu cấu hình tính toán lương cấp Workspace.
+Lưu cấu hình tính toán lương cấp tổ chức.
 ```json
 {
-  "workspace_id": "uuid",
   "std_working_day_mode": "fixed|actual_month",
   "fixed_std_days": 26.0,
   "working_days_per_week": 6, // 5, 6, 7
@@ -616,7 +600,6 @@ Lưu thông tin chi tiết phiếu lương hàng tháng.
 {
   "id": "uuid",
   "employee_id": "uuid",
-      "workspace_id": "uuid",
   "period_start": "YYYY-MM-DD",
   "period_end": "YYYY-MM-DD",
   "base_pay_amount": "decimal_string",
@@ -639,7 +622,6 @@ Lưu thông tin chi tiết phiếu lương hàng tháng.
       "component": {
         "id": "uuid",
         "employee_id": "uuid",
-      "workspace_id": "uuid",
         "component_definition_id": "uuid",
         "amount": "decimal_string",
         "effective_date": "YYYY-MM-DD",
@@ -648,7 +630,6 @@ Lưu thông tin chi tiết phiếu lương hàng tháng.
       },
       "definition": {
         "id": "uuid",
-        "workspace_id": "uuid",
         "name": "Basic Salary|Housing Allowance|...",
         "code": "BASIC|HRA|...",
         "is_base_for_ot": true,
@@ -666,15 +647,15 @@ Lưu thông tin chi tiết phiếu lương hàng tháng.
 - **Note**: `segments` chứa thông tin chi tiết về việc chia nhỏ kỳ lương khi có thay đổi chính sách (Proration).
 - **Note**: `salary_components` chứa danh sách các thành phần lương (ví dụ: Lương cơ bản, Phụ cấp nhà ở, v.v.) được gán cho nhân viên. Mỗi thành phần bao gồm định nghĩa thành phần (component definition) với siêu dữ liệu như mã lương, loại thuế và cơ sở tính tăng ca. Khi không có thành phần lương nào, hệ thống sẽ sử dụng thông tin lương từ `segments` để tính toán.
 
-#### GET /workspaces/:ws_id/payroll-settings
-Lấy cấu hình lương hiện tại của workspace.
+#### GET /api/v1/payroll-settings
+Lấy cấu hình lương hiện tại của tổ chức.
 - **Response (200)**: `PayrollSettings`
 
-#### GET /workspaces/:ws_id/payroll-settings/history (New)
-Lấy toàn bộ lịch sử thay đổi cấu hình lương của workspace.
+#### GET /api/v1/payroll-settings/history (New)
+Lấy toàn bộ lịch sử thay đổi cấu hình lương của tổ chức.
 - **Response (200)**: `Array<PayrollSettings>`
 
-#### PATCH /workspaces/:ws_id/payroll-settings
+#### PATCH /api/v1/payroll-settings
 Cập nhật hoặc lên lịch thay đổi cấu hình tính công chuẩn.
 - **Request**:
   ```json
@@ -688,11 +669,11 @@ Cập nhật hoặc lên lịch thay đổi cấu hình tính công chuẩn.
   ```
 - **Response (200 OK)**
 
-#### GET /workspaces/:ws_id/departments/:id/payroll-config (New)
+#### GET /api/v1/departments/:id/payroll-config (New)
 Lấy lịch sử cấu hình lương đặc thù của phòng ban.
 - **Response (200)**: `Array<DepartmentPayrollConfig>`
 
-#### POST /workspaces/:ws_id/departments/:id/payroll-config (New)
+#### POST /api/v1/departments/:id/payroll-config (New)
 Thiết lập hoặc cập nhật đặc cách ngày công/giờ công cho phòng ban.
 - **Request**:
   ```json
@@ -704,23 +685,23 @@ Thiết lập hoặc cập nhật đặc cách ngày công/giờ công cho phòn
   ```
 - **Response (201)**: `DepartmentPayrollConfig` object
 
-#### GET /workspaces/:ws_id/employees/:id/payslips
+#### GET /api/v1/employees/:id/payslips
 Lấy danh sách các phiếu lương của một nhân viên cụ thể.
 - **Response (200)**: `Array<PayslipResponse>`
 
-#### POST /workspaces/:ws_id/employees/:id/calculate-payroll (New)
+#### POST /api/v1/employees/:id/calculate-payroll (New)
 Tính toán phiếu lương cho một nhân viên cụ thể.
 - **Query Params**: `?year=2026&month=1`
 - **Response (200)**: `PayslipResponse`
 
-#### GET /workspaces/:ws_id/payroll/payslips (New)
-Lấy danh sách toàn bộ phiếu lương của workspace trong một kỳ cụ thể (Tháng/Năm).
+#### GET /api/v1/payroll/payslips (New)
+Lấy danh sách toàn bộ phiếu lương của tổ chức trong một kỳ cụ thể (Tháng/Năm).
 - **Query Params**:
     - `year`: number (ví dụ: 2026)
     - `month`: number (1-12)
 - **Response (200)**: `Array<Payslip>`
 
-#### POST /workspaces/:ws_id/payroll/calculate-batch (New)
+#### POST /api/v1/payroll/calculate-batch (New)
 Kích hoạt tính toán lương hàng loạt cho nhiều nhân viên cùng lúc. Xử lý song song để tối ưu hiệu năng.
 - **Quyền hạn**: Chỉ `owner` hoặc `admin`.
 - **Request**:
@@ -751,11 +732,11 @@ Kích hoạt tính toán lương hàng loạt cho nhiều nhân viên cùng lúc
   }
   ```
 
-#### GET /workspaces/:ws_id/employees/:id/payroll-config (New)
+#### GET /api/v1/employees/:id/payroll-config (New)
 Lấy lịch sử đặc cách lương cá nhân của nhân viên.
 - **Response (200)**: `Array<EmployeePayrollConfig>`
 
-#### POST /workspaces/:ws_id/employees/:id/payroll-config (New)
+#### POST /api/v1/employees/:id/payroll-config (New)
 Thiết lập đặc cách ngày công/giờ công cho riêng một nhân viên.
 - **Request**:
   ```json
@@ -772,7 +753,6 @@ Thiết lập đặc cách ngày công/giờ công cho riêng một nhân viên.
 ```json
 {
   "id": "uuid",
-  "workspace_id": "uuid",
   "name": "Phụ cấp ăn trưa",
   "code": "MEAL",
   "is_base_for_ot": false, // Nếu TRUE, khoản này sẽ được cộng vào gốc tính lương tăng ca
@@ -780,15 +760,15 @@ Thiết lập đặc cách ngày công/giờ công cho riêng một nhân viên.
 }
 ```
 
-#### GET /workspaces/:ws_id/salary-components
-Lấy danh mục các loại thành phần lương của workspace.
+#### GET /api/v1/salary-components
+Lấy danh mục các loại thành phần lương của tổ chức.
 - **Response (200)**: `Array<SalaryComponentDefinition>`
 
-#### POST /workspaces/:ws_id/salary-components
+#### POST /api/v1/salary-components
 Tạo loại thành phần lương mới.
 - **Request**: `{ "name": "...", "code": "...", "is_base_for_ot": true, "is_taxable": true }`
 
-#### GET /workspaces/:ws_id/employees/:id/salary-components
+#### GET /api/v1/employments/:id/salary-components
 Lấy các khoản lương đang được áp dụng cho một nhân viên cụ thể (Lấy bản ghi mới nhất tính đến hiện tại).
 - **Response (200)**: 
   ```json
@@ -804,7 +784,7 @@ Lấy các khoản lương đang được áp dụng cho một nhân viên cụ 
   ]
   ```
 
-#### POST /workspaces/:ws_id/employees/:id/salary-components
+#### POST /api/v1/employments/:id/salary-components
 Gán một khoản lương/phụ cấp mới cho nhân viên.
 - **Request**: 
   ```json
@@ -820,7 +800,6 @@ Gán một khoản lương/phụ cấp mới cho nhân viên.
 ```json
 {
   "id": "uuid",
-  "workspace_id": "uuid",
   "name": "Thưởng chuyên cần",
   "base_amount": 300000,
   "payout_type": "fixed", // "fixed" hoặc "percentage"
@@ -839,11 +818,11 @@ Gán một khoản lương/phụ cấp mới cho nhân viên.
 }
 ```
 
-#### GET /workspaces/:ws_id/payroll/incentive-policies
-Lấy danh sách các chính sách thưởng của workspace.
+#### GET /api/v1/payroll/incentive-policies
+Lấy danh sách các chính sách thưởng của tổ chức.
 - **Response (200)**: `Array<PayrollIncentivePolicy>`
 
-#### POST /workspaces/:ws_id/payroll/incentive-policies
+#### POST /api/v1/payroll/incentive-policies
 Tạo chính sách thưởng mới kèm theo các bậc (tiers) điều kiện.
 - **Request**:
   ```json
@@ -868,15 +847,15 @@ Tạo chính sách thưởng mới kèm theo các bậc (tiers) điều kiện.
   }
   ```
 
-#### DELETE /workspaces/:ws_id/payroll/incentive-policies/:id
+#### DELETE /api/v1/payroll/incentive-policies/:id
 Xóa chính sách thưởng.
 - **Response (204 OK)**
 
-#### GET /workspaces/:ws_id/shifts
+#### GET /api/v1/shifts
 Lấy danh sách các ca làm việc đã định nghĩa (bao gồm cả các phiên bản cũ).
 - **Response (200)**: `Array<Shift>`
 
-#### POST /workspaces/:ws_id/shifts
+#### POST /api/v1/shifts
 Tạo mới hoặc cập nhật một loại ca làm việc. Nếu cập nhật, hệ thống sẽ tạo một version mới (`version_id`) để bảo toàn dữ liệu chấm công quá khứ trừ khi cờ `is_correction` được bật.
 - **Quyền hạn**: Chỉ `owner` hoặc `admin`.
 
@@ -901,8 +880,8 @@ Tạo mới hoặc cập nhật một loại ca làm việc. Nếu cập nhật,
 - `is_correction`: (Chỉ dành cho update) Nếu `true`, ghi đè trực tiếp lên bản ghi hiện tại thay vì tạo version mới.
 - `effective_date`: (Chỉ dành cho update) Ngày bắt đầu hiệu lực của version mới. Mặc định là hôm nay.
 
-#### GET /workspaces/:ws_id/reports/attendance
-Xuất báo cáo chấm công của workspace. Hỗ trợ phân trang, sắp xếp và lọc nhân viên.
+#### GET /api/v1/reports/attendance
+Xuất báo cáo chấm công của tổ chức. Hỗ trợ phân trang, sắp xếp và lọc nhân viên.
 - **Query Params**:
     - `start_date`: YYYY-MM-DD (Bắt buộc)
     - `end_date`: YYYY-MM-DD (Bắt buộc)
@@ -986,7 +965,7 @@ Messages are sent as JSON with a `type` field to discriminate message types.
 **Fallback (HTTP Polling):**
 If WebSocket connection fails after 3 retries (1s, 2s, 4s backoff):
 ```http
-GET /api/workspaces/:ws_id/reports/jobs/:job_id
+GET /api/v1/reports/jobs/:job_id
 Response 200:
 {
   "job_id": "550e8400-...",
@@ -1014,17 +993,17 @@ Response 200:
 Quản lý cơ cấu tổ chức và lịch trình làm việc linh hoạt.
 - **UI Note**: Trong WebDashboard, trang này đã được hợp nhất vào `Settings > People`.
 
-#### GET /workspaces/:ws_id/departments
+#### GET /api/v1/departments
 Lấy danh sách các phòng ban.
 - **Response (200)**: `Array<Department>`
 
-#### POST /workspaces/:ws_id/departments
+#### POST /api/v1/departments
 Tạo phòng ban mới.
 - **Quyền hạn**: Chỉ `owner` hoặc `admin`.
 - **Request**: `{ "name": "IT", "description": "...", "manager_id": "uuid" }`
 - **Response (201)**: `Department` object
 
-#### PATCH /workspaces/:ws_id/departments/:id
+#### PATCH /api/v1/departments/:id
 Cập nhật thông tin phòng ban. Hỗ trợ cập nhật từng phần (Partial Update).
 - **Quyền hạn**: Chỉ `owner` hoặc `admin`.
 - **Request**: 
@@ -1039,35 +1018,34 @@ Cập nhật thông tin phòng ban. Hỗ trợ cập nhật từng phần (Parti
 - **Ghi chú**: Nếu `default_working_pattern_id` được truyền là `null`, mẫu lịch trình mặc định của phòng ban sẽ bị xóa. Nếu không truyền trường này, giá trị cũ sẽ được giữ nguyên.
 - **Response (200)**: `Department` object (updated)
 
-#### DELETE /workspaces/:ws_id/departments/:id
+#### DELETE /api/v1/departments/:id
 Xóa phòng ban.
 - **Quyền hạn**: Chỉ `owner` hoặc `admin`.
 - **Response (204)**: No Content
 
-#### POST /workspaces/:ws_id/employees/:id/departments
+#### POST /api/v1/employees/:id/departments
 Điều chuyển phòng ban cho nhân viên.
 - **Quyền hạn**: Chỉ `owner` hoặc `admin`.
 - **Request**: `{ "department_id": "...", "effective_date": "...", "notes": "..." }`
 - **Response (200)**: `EmployeeDepartmentHistory` object
 
-#### GET /workspaces/:ws_id/employees/:id/departments
+#### GET /api/v1/employees/:id/departments
 Xem lịch sử điều chuyển phòng ban của một nhân viên.
 - **Response (200)**: `Array<EmployeeDepartmentHistory>`
 
-#### GET /workspaces/:ws_id/employees/:id/rosters
+#### GET /api/v1/employees/:id/rosters
 Lấy lịch biểu (ca làm việc thực tế) của nhân viên trong một khoảng thời gian.
 - **Query Params**: `?start_date=2026-01-01&end_date=2026-01-07`
 - **Response (200)**: `Array<ShiftRoster>`
 
-#### GET /api/workspaces/:id/schedules
-Tính toán lịch biểu hiệu lực (Effective Schedule) cho tất cả nhân viên trong workspace dựa trên thứ tự ưu tiên (Lịch tuần > Lịch mẫu cá nhân > Lịch mẫu phòng ban > Lịch cố định).
+#### GET /api/v1/schedules
+Tính toán lịch biểu hiệu lực (Effective Schedule) cho tất cả nhân viên trong tổ chức dựa trên thứ tự ưu tiên (Lịch tuần > Lịch mẫu cá nhân > Lịch mẫu phòng ban > Lịch cố định).
 - **Query Params**: `?start_date=YYYY-MM-DD&end_date=YYYY-MM-DD`
 - **Response (200)**: 
   ```json
   [
     {
       "employee_id": "uuid",
-      "workspace_id": "uuid",
       "full_name": "...",
       "schedules": [
         {
@@ -1089,15 +1067,14 @@ Tính toán lịch biểu hiệu lực (Effective Schedule) cho tất cả nhân
   ]
   ```
 
-#### GET /api/workspaces/:id/assignment-history
-Lấy lịch sử tất cả các thay đổi về gán ca (cả cố định và linh hoạt) của workspace.
+#### GET /api/v1/assignment-history
+Lấy lịch sử tất cả các thay đổi về gán ca (cả cố định và linh hoạt) của tổ chức.
 - **Response (200)**: 
   ```json
   [
     {
       "id": "uuid",
       "employee_id": "uuid",
-      "workspace_id": "uuid",
       "employee_name": "...",
       "assignment_type": "roster|fixed",
       "shift_name": "Night Shift",
@@ -1107,7 +1084,7 @@ Lấy lịch sử tất cả các thay đổi về gán ca (cả cố định v�
   ]
   ```
 
-#### POST /workspaces/:ws_id/employees/:id/rosters
+#### POST /api/v1/employees/:id/rosters
 Cập nhật hoặc gán ca làm việc cho một ngày cụ thể (Upsert).
 - **Request**:
   ```json
@@ -1131,7 +1108,6 @@ Quản lý các mẫu lịch làm việc định kỳ (Templates) để gán cho
 ```json
 {
   "id": "uuid",
-  "workspace_id": "uuid",
   "name": "Văn phòng chuẩn",
   "description": "Thứ 2 - Thứ 6: 8:00 - 17:00",
   "is_active": true,
@@ -1139,11 +1115,11 @@ Quản lý các mẫu lịch làm việc định kỳ (Templates) để gán cho
 }
 ```
 
-#### GET /workspaces/:ws_id/working-patterns
-Lấy danh sách các mẫu lịch làm việc của workspace.
+#### GET /api/v1/working-patterns
+Lấy danh sách các mẫu lịch làm việc của tổ chức.
 - **Response (200)**: `Array<WorkingPattern>`
 
-#### POST /workspaces/:ws_id/working-patterns
+#### POST /api/v1/working-patterns
 Tạo mẫu lịch làm việc mới kèm chi tiết các ngày trong tuần.
 - **Quyền hạn**: Chỉ `owner` hoặc `admin`.
 - **Request**:
@@ -1164,11 +1140,11 @@ Tạo mẫu lịch làm việc mới kèm chi tiết các ngày trong tuần.
   ```
 - **Response (201)**: `WorkingPattern` object
 
-#### GET /workspaces/:ws_id/working-patterns/:pattern_id
+#### GET /api/v1/working-patterns/:pattern_id
 Lấy chi tiết ca làm việc của từng ngày trong một mẫu pattern.
 - **Response (200)**: `Array<WorkingPatternDetail>`
 
-#### POST /workspaces/:ws_id/working-patterns/bulk-assign (New)
+#### POST /api/v1/working-patterns/bulk-assign (New)
 Gán mẫu lịch làm việc cho hàng loạt nhân viên cùng lúc.
 - **Quyền hạn**: Chỉ `owner` hoặc `admin`.
 - **Request**:
@@ -1188,7 +1164,7 @@ Gán mẫu lịch làm việc cho hàng loạt nhân viên cùng lúc.
   }
   ```
 
-#### POST /workspaces/:ws_id/employees/:id/working-patterns
+#### POST /api/v1/employments/:employment_id/working-patterns
 Gán một mẫu lịch làm việc cho nhân viên.
 - **Quyền hạn**: Chỉ `owner` hoặc `admin`.
 - **Request**:
@@ -1201,7 +1177,7 @@ Gán một mẫu lịch làm việc cho nhân viên.
   ```
 - **Response (200 OK)**
 
-#### GET /workspaces/:ws_id/employees/:id/working-patterns
+#### GET /api/v1/employments/:employment_id/working-patterns
 Xem lịch sử gán pattern của một nhân viên.
 - **Response (200)**: `Array<EmployeeWorkingPattern>`
 
@@ -1211,7 +1187,7 @@ Xem lịch sử gán pattern của một nhân viên.
 
 Các endpoint dành riêng cho nhân viên tự quản lý thông tin cá nhân. **Yêu cầu header: `Authorization: Bearer <token>`**. Hệ thống tự động xác định `employee_id` dựa trên User đang đăng nhập.
 
-#### GET /ess/profile
+#### GET /api/v1/ess/profile
 Lấy toàn bộ thông tin hồ sơ cá nhân, bao gồm cả các giai đoạn làm việc và liên hệ khẩn cấp.
 - **Response (200)**: `MyProfileResponse`
   ```json
@@ -1227,30 +1203,30 @@ Cập nhật thông tin hồ sơ (số điện thoại, địa chỉ, ngày sinh
 - **Request**: `UpdateEmployeeProfileRequest`
 - **Response (200)**: `EmployeeProfile` object
 
-#### GET /ess/emergency-contacts
+#### GET /api/v1/ess/emergency-contacts
 Lấy danh sách người liên hệ khẩn cấp.
 - **Response (200)**: `Array<EmployeeEmergencyContact>`
 
-#### POST /ess/emergency-contacts
+#### POST /api/v1/ess/emergency-contacts
 Thêm mới người liên hệ khẩn cấp.
 - **Request**: `{ "contact_name": "...", "relationship": "...", "phone": "...", "is_primary": true }`
 - **Response (201)**: `EmployeeEmergencyContact` object
 
-#### DELETE /ess/emergency-contacts/:id
+#### DELETE /api/v1/ess/emergency-contacts/:id
 Xóa người liên hệ khẩn cấp.
 - **Response (204)**: No Content
 
-#### GET /ess/documents
+#### GET /api/v1/ess/documents
 Lấy danh sách các tài liệu cá nhân đã tải lên (CCCD, Hợp đồng, Bằng cấp).
 - **Response (200)**: `Array<EmployeeDocument>`
 
-#### GET /ess/attendance
+#### GET /api/v1/ess/attendance
 Xem lịch sử chấm công cá nhân.
 - **Query Params**: `?start_date=YYYY-MM-DD&end_date=YYYY-MM-DD`
 - **Response (200)**: `Array<TimeEntry>`
 - **Note**: Bao gồm `generation_metadata` để nhân viên tự đối soát cách tính công.
 
-#### GET /ess/leave/balances
+#### GET /api/v1/ess/leave/balances
 Xem số dư phép hiện tại trong năm.
 - **Response (200)**: 
   ```json
@@ -1265,7 +1241,7 @@ Xem số dư phép hiện tại trong năm.
   ]
   ```
 
-#### GET /ess/leave/requests
+#### GET /api/v1/ess/leave/requests
 Xem lịch sử các đơn xin nghỉ phép cá nhân.
 - **Response (200)**: `Array<LeaveRequest>`
 
@@ -1275,18 +1251,18 @@ Xem lịch sử các đơn xin nghỉ phép cá nhân.
 
 Các công cụ hỗ trợ phát triển nhanh và dọn dẹp dữ liệu thử nghiệm. Chỉ khả dụng khi server chạy ở chế độ Debug.
 
-#### POST /api/dev/workspaces/:ws_id/clear
-Dọn dẹp nhanh dữ liệu theo nhóm trong một workspace.
+#### POST /api/v1/dev/clear
+Dọn dẹp nhanh dữ liệu theo nhóm trong tổ chức.
 - **Query Params**: `?group=attendance|schedules|leave|payroll|employees|full_reset|seed`
-- **Mục đích**: Reset dữ liệu để thử nghiệm lại các kịch bản import/tính toán mà không làm ảnh hưởng đến cấu hình chung của workspace.
+- **Mục đích**: Reset dữ liệu để thử nghiệm lại các kịch bản import/tính toán mà không làm ảnh hưởng đến cấu hình chung của tổ chức.
 - **Các nhóm dữ liệu**:
     - `attendance`: Xóa logs thô, time entries, yêu cầu điều chỉnh công và lịch sử import.
     - `schedules`: Xóa lịch biểu (rosters) và gán ca linh hoạt.
     - `leave`: Xóa đơn nghỉ phép, lịch sử cộng phép và số dư phép.
     - `payroll`: Xóa phiếu lương (payslips) và cấu hình lương nhân viên (salary components).
-    - `employees`: Xóa toàn bộ nhân viên và dữ liệu liên quan (lịch sử, chấm công, lương) nhưng giữ lại cấu hình Workspace (Phòng ban, Ca làm việc, Chính sách).
-    - `full_reset` (Factory Reset): Xóa toàn bộ dữ liệu vận hành và cấu hình, bao gồm nhân viên, phòng ban, ca làm việc, chính sách phép. Đưa Workspace về trạng thái rỗng hoàn toàn (Giữ lại thông tin Workspace và Members).
-    - `seed`: Tạo dữ liệu mẫu cho Workspace (2 Phòng ban: Engineering/HR, 1 Ca làm việc: Morning Shift, 5 Nhân viên mẫu).
+    - `employees`: Xóa toàn bộ nhân viên và dữ liệu liên quan (lịch sử, chấm công, lương) nhưng giữ lại cấu hình tổ chức (Phòng ban, Ca làm việc, Chính sách).
+    - `full_reset` (Factory Reset): Xóa toàn bộ dữ liệu vận hành và cấu hình, bao gồm nhân viên, phòng ban, ca làm việc, chính sách phép. Đưa tổ chức về trạng thái rỗng hoàn toàn (Giữ lại thông tin tổ chức và Members).
+    - `seed`: Tạo dữ liệu mẫu cho tổ chức (2 Phòng ban: Engineering/HR, 1 Ca làm việc: Morning Shift, 5 Nhân viên mẫu).
 - **Response (200 OK)**
 
 
@@ -1301,7 +1277,6 @@ Quản lý các quy tắc gán ca tự động dựa trên điều kiện (Ngày
 ```json
 {
   "id": "uuid",
-  "workspace_id": "uuid",
   "pattern_id": "uuid",
   "priority": 100, // Độ ưu tiên cao nhất sẽ được áp dụng (số nhỏ hơn = ưu tiên cao hơn)
   "conditions": {
@@ -1315,11 +1290,11 @@ Quản lý các quy tắc gán ca tự động dựa trên điều kiện (Ngày
 }
 ```
 
-#### GET /workspaces/:ws_id/assignment-rules
+#### GET /api/v1/assignment-rules
 Lấy danh sách các quy tắc gán ca tự động.
 - **Response (200)**: `Array<AssignmentRule>`
 
-#### POST /workspaces/:ws_id/assignment-rules
+#### POST /api/v1/assignment-rules
 Tạo quy tắc mới.
 - **Quyền hạn**: Chỉ `owner` hoặc `admin`.
 - **Request**:
@@ -1333,11 +1308,11 @@ Tạo quy tắc mới.
   ```
 - **Response (201)**: `AssignmentRule` object
 
-#### PATCH /workspaces/:ws_id/assignment-rules/:rule_id
+#### PATCH /api/v1/assignment-rules/:rule_id
 Cập nhật quy tắc.
 - **Response (200 OK)**
 
-#### DELETE /workspaces/:ws_id/assignment-rules/:rule_id
+#### DELETE /api/v1/assignment-rules/:rule_id
 Xóa quy tắc.
 - **Response (204)**: No Content
 
@@ -1347,21 +1322,21 @@ Xóa quy tắc.
 
 Quản lý các quy tắc tính lương tăng ca linh hoạt dựa trên khung giờ và ngày trong tuần.
 
-#### GET /workspaces/:ws_id/overtime/policies
+#### GET /api/v1/overtime/policies
 Lấy danh sách các định nghĩa chính sách tăng ca.
 - **Response (200)**: `Array<OvertimePolicy>`
 
-#### POST /workspaces/:ws_id/overtime/policies
+#### POST /api/v1/overtime/policies
 Tạo định nghĩa chính sách tăng ca mới.
 - **Quyền hạn**: Chỉ `owner` hoặc `admin`.
 - **Request**: `{ "name": "...", "description": "..." }` 
 - **Response (201)**: `OvertimePolicy` object
 
-#### GET /workspaces/:ws_id/overtime/policies/:policy_id
+#### GET /api/v1/overtime/policies/:policy_id
 Lấy chi tiết chính sách kèm danh sách các quy tắc (rules).
 - **Response (200)**: `[OvertimePolicy, Array<OvertimeRule>]`
 
-#### POST /workspaces/:ws_id/overtime/policies/:policy_id/rules
+#### POST /api/v1/overtime/policies/:policy_id/rules
 Thêm quy tắc tính multiplier cho chính sách.
 - **Quyền hạn**: Chỉ `owner` hoặc `admin`.
 - **Request**:
@@ -1377,13 +1352,13 @@ Thêm quy tắc tính multiplier cho chính sách.
   ```
 - **Response (201)**: `OvertimeRule` object
 
-#### POST /workspaces/:ws_id/overtime/assignments
+#### POST /api/v1/overtime/policies/assign
 Gán chính sách tăng ca cho đối tượng (Global, Dept, Employee).
 - **Quyền hạn**: Chỉ `owner` hoặc `admin`.
 - **Request**:
   ```json
   {
-    "assignee_type": "employee|department|workspace",
+    "assignee_type": "organization|department|employee|user",
     "assignee_id": "uuid-or-null",
     "policy_id": "uuid",
     "effective_from": "2026-01-23"
@@ -1399,7 +1374,6 @@ Quản lý ngày nghỉ lễ của công ty và tự động trừ phép (Leave 
 ```json
 {
   "id": "uuid",
-  "workspace_id": "uuid",
   "name": "Tết Nguyên Đán",
   "date": "2026-02-14",
   "holiday_type": "national",
@@ -1410,12 +1384,12 @@ Quản lý ngày nghỉ lễ của công ty và tự động trừ phép (Leave 
 }
 ```
 
-#### GET /workspaces/:ws_id/holidays
+#### GET /api/v1/holidays
 Lấy danh sách các ngày nghỉ lễ, có thể lọc theo năm.
 - **Query Params**: `?year=2026`
 - **Response (200)**: `Array<Holiday>`
 
-#### POST /workspaces/:ws_id/holidays
+#### POST /api/v1/holidays
 Tạo mới ngày nghỉ lễ.
 - **Quyền hạn**: Chỉ `owner` hoặc `admin`.
 - **Request**:
@@ -1430,18 +1404,18 @@ Tạo mới ngày nghỉ lễ.
   ```
 - **Response (201)**: `Holiday` object
 
-#### PUT /workspaces/:ws_id/holidays/:id
+#### PUT /api/v1/holidays/:id
 Cập nhật thông tin ngày nghỉ lễ.
 - **Quyền hạn**: Chỉ `owner` hoặc `admin`.
 - **Request**: Tương tự Create
 - **Response (200)**: `Holiday` object (updated)
 
-#### DELETE /workspaces/:ws_id/holidays/:id
+#### DELETE /api/v1/holidays/:id
 Xóa ngày nghỉ lễ.
 - **Quyền hạn**: Chỉ `owner` hoặc `admin`.
 - **Response (204)**: No Content
 
-#### POST /workspaces/:ws_id/holidays/:id/process-leave
+#### POST /api/v1/holidays/:id/process-leave
 Thực thi quy trình tự động trừ phép cho một ngày nghỉ lễ không hưởng lương (`is_paid=false`).
 - **Mô tả**: Tự động duyệt qua tất cả nhân viên. Nếu nhân viên có đủ số dư phép, hệ thống sẽ tạo một đơn nghỉ phép (`LeaveRequest`) tự động phê duyệt để trừ phép hợp lệ. Nếu không đủ phép, hệ thống đánh dấu là ngày nghỉ không lương (`holiday_unpaid`).
 - **Quyền hạn**: Chỉ `owner` hoặc `admin`.
@@ -1458,7 +1432,7 @@ Thực thi quy trình tự động trừ phép cho một ngày nghỉ lễ khôn
 
 ## Attendance & Overtime
 
-### POST /workspaces/:id/attendance/claim-ot/:employee_id
+### POST /api/v1/attendance/claim-ot/:employee_id
 Claim overtime for a specific date.
 
 **Payload:**
@@ -1470,7 +1444,7 @@ Claim overtime for a specific date.
 }
 ```
 
-### POST /workspaces/:id/attendance/approve-ot/:employee_id
+### POST /api/v1/attendance/approve-ot/:employee_id
 Approve or reject an overtime claim.
 
 **Payload:**
@@ -1483,7 +1457,7 @@ Approve or reject an overtime claim.
 }
 ```
 
-### GET /workspaces/:id/attendance/summaries
+### GET /api/v1/attendance/summaries
 Fetch daily summaries including work hours and OT status.
 
 **Query Params:**

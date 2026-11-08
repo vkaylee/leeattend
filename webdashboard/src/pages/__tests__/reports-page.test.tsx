@@ -45,7 +45,6 @@ window.IntersectionObserver = MockIntersectionObserver as unknown as typeof Inte
 // Mock the API library
 vi.mock("../../lib/api", () => ({
   fetchAttendanceReport: vi.fn(),
-  getStandaloneOrganizationId: vi.fn(),
   fetchWorkspace: vi.fn(),
   reprocessAttendance: vi.fn(),
   fetchEmployees: vi.fn(),
@@ -73,7 +72,6 @@ describe("ReportsPage", () => {
       },
     });
  
-    vi.mocked(api.getStandaloneOrganizationId).mockReturnValue("test-ws-id");
  
     vi.mocked(api.fetchWorkspace).mockResolvedValue({
       id: "test-ws-id",
@@ -292,7 +290,7 @@ describe("ReportsPage", () => {
 
     // searchEmployees should be called after debounce (400ms)
     await waitFor(() => {
-      expect(api.searchEmployees).toHaveBeenCalledWith({ wsId: "test-ws-id", query: "John" });
+      expect(api.searchEmployees).toHaveBeenCalledWith({ query: "John" });
     }, { timeout: 2000 });
   });
  

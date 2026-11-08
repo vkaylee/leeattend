@@ -40,31 +40,22 @@ describe("useAllEmployees", () => {
     });
   });
 
-  it("fetches employees when wsId is provided", async () => {
-    const { result } = renderHook(() => useAllEmployees("ws-123"), {
+  it("fetches employees on mount", async () => {
+    const { result } = renderHook(() => useAllEmployees(), {
       wrapper: createWrapper(),
     });
 
     await waitFor(() => { expect(result.current.isLoading).toBe(false); });
 
-    expect(fetchEmployees).toHaveBeenCalledWith("ws-123", 1, MAX_EMPLOYEE_FETCH, undefined);
+    expect(fetchEmployees).toHaveBeenCalledWith(1, MAX_EMPLOYEE_FETCH, undefined);
     expect(result.current.employees).toHaveLength(2);
     expect(result.current.employees[0].full_name).toBe("Alice");
-  });
-
-  it("uses standalone context when no workspace argument is supplied", async () => {
-    const { result } = renderHook(() => useAllEmployees(null), {
-      wrapper: createWrapper(),
-    });
-    await waitFor(() => expect(result.current.isLoading).toBe(false));
-    expect(fetchEmployees).toHaveBeenCalledWith("standalone", 1, MAX_EMPLOYEE_FETCH, undefined);
-    expect(result.current.employees).toEqual(MOCK_EMPLOYEES);
   });
 
   it("respects enabled option for lazy-loading (modals)", async () => {
     // Disabled initially
     const { result, rerender } = renderHook(
-      ({ enabled }: { enabled: boolean }) => useAllEmployees("ws-123", { enabled }),
+      ({ enabled }: { enabled: boolean }) => useAllEmployees({ enabled }),
       { wrapper: createWrapper(), initialProps: { enabled: false } },
     );
 
@@ -82,7 +73,7 @@ describe("useAllEmployees", () => {
   it("returns empty array when API returns no data field", async () => {
     (fetchEmployees as Mock).mockResolvedValue({ total: 0, page: 1, limit: MAX_EMPLOYEE_FETCH });
 
-    const { result } = renderHook(() => useAllEmployees("ws-123"), {
+    const { result } = renderHook(() => useAllEmployees(), {
       wrapper: createWrapper(),
     });
 
@@ -95,8 +86,7 @@ describe("useAllEmployees", () => {
   });
 
   it("generates correct query keys", () => {
-    expect(employeeKeys.all("ws-abc")).toEqual(["employees", "ws-abc"]);
-    expect(employeeKeys.list("ws-abc")).toEqual(["employees", "ws-abc", "list", {}]);
-    expect(employeeKeys.list(null)).toEqual(["employees", null, "list", {}]);
+    expect(employeeKeys.all()).toEqual(["employees"]);
+    expect(employeeKeys.list()).toEqual(["employees", "list", {}]);
   });
 });

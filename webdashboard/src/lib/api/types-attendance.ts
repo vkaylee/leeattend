@@ -1,5 +1,3 @@
-import type { components } from "@/types/api-generated";
-
 import type { TimeEntry } from "./types";
 
 // --- Timekeeping Models ---
@@ -12,19 +10,32 @@ export interface RawAttendanceLog {
   employee_id_number?: string;
   employment_id: string;
   id: string;
+  punch?: number;
   punch_time: string;
   raw_data?: unknown;
   source: string;
-  workspace_id: string;
+  status?: number;
 }
 
-export type AttendanceAdjustmentRequest = Omit<components["schemas"]["AttendanceAdjustmentRequest"], "requested_punch_in_time" | "requested_punch_out_time"> & {
+export type AdjustmentStatus = "pending" | "approved" | "rejected";
+
+export interface AttendanceAdjustmentRequest {
+  approved_by_user_id?: string | null;
+  attachment_file_ids?: string[] | null;
+  created_at: string;
+  employment_id: string;
+  id: string;
+  is_break_overtime?: boolean;
+  reason?: string | null;
+  requested_by_user_id?: string | null;
   requested_date?: string;
-  requested_punch_time: string;
   requested_punch_in_time?: string;
   requested_punch_out_time?: string | null;
-  is_break_overtime?: boolean;
-};
+  requested_punch_time: string;
+  status: AdjustmentStatus | string;
+  time_entry_id?: string | null;
+  updated_at: string;
+}
 
 export type AttendanceReportSort =
   | "name_asc"
@@ -54,10 +65,20 @@ export interface AttendanceSummary {
   unit_type: 'DAY' | 'SHIFT' | 'HOUR' | 'MINUTE';
 }
 
-export type AuditLog = Omit<components["schemas"]["AuditLog"], "actor_id" | "target_user_id"> & {
-  actor_id?: string;
-  target_user_id?: string;
-};
+export interface AuditLog {
+  action: string;
+  actor_email?: string | null;
+  actor_id?: string | null;
+  actor_name?: string | null;
+  actor_type?: string | null;
+  created_at: string;
+  details?: unknown;
+  id: string;
+  ip_address?: string | null;
+  target_resource_id?: string | null;
+  target_user_id?: string | null;
+  user_agent?: string | null;
+}
 
 export interface DailyAttendanceReport {
   actual_punch_in: string | null;
@@ -103,7 +124,28 @@ export interface DailyAttendanceReport {
 
 export type OtStatus = "none" | "pending_employee" | "pending_manager" | "approved" | "rejected";
 
-export type AttendanceDailySummary = Omit<components["schemas"]["AttendanceDailySummary"], "entered_via" | "ot_reason"> & {
+export interface AttendanceDailySummary {
+  actual_work_minutes: number;
+  approved_ot_minutes: number;
+  break_ot_minutes?: number;
+  claim_entered_at?: string | null;
+  claim_entered_by_user_id?: string | null;
+  claimed_ot_minutes: number;
+  created_at: string;
+  date: string;
+  early_ot_minutes?: number;
+  employment_id: string;
   entered_via?: string | null;
+  holiday_name?: string | null;
+  id: string;
+  is_holiday: boolean;
+  is_weekend?: boolean;
+  late_ot_minutes?: number;
+  manager_note?: string | null;
   ot_reason?: string | null;
-};
+  ot_status: OtStatus | string;
+  paper_form_photo_url?: string | null;
+  standard_minutes?: number;
+  system_detected_ot_minutes: number;
+  updated_at: string;
+}

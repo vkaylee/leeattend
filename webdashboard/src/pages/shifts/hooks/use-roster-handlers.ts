@@ -16,30 +16,26 @@ import { useComplianceRetry } from "./use-compliance-retry";
 import { useMonthlyRosterCachePatch } from "./use-monthly-cache-patch";
 import { useWeeklyRosterHandlers } from "./use-weekly-roster-handlers";
 
-interface UseRosterHandlersProps {
-  allSchedules: EmployeeSchedule[] | undefined;
-  currentMonth: Date;
-  endDate: string;
-  isForever: boolean;
-  monthDays: Date[];
-  mutations: {
-    assignPatternMutation: UseMutationResult<EmployeeWorkingPattern, Error, AssignPatternRequest>;
-    bulkRosterMutation: UseMutationResult<unknown, Error, { date: string; shift_id: string | null }[]>;
-  };
-  selectedDays: string[];
-  selectedEmployee: Employee | null;
-  selectedPatternId: string;
-  setComplianceModalOpen: (v: boolean) => void;
-  setComplianceViolations: (v: ComplianceViolation[]) => void;
-  setIsComplianceResolving: (v: boolean) => void;
-  startDate: string;
-  startOfWeek: Date;
-  weekDays: Date[];
-  wsId: string;
-}
+interface UseRosterHandlersProps { allSchedules: EmployeeSchedule[] | undefined;
+currentMonth: Date;
+endDate: string;
+isForever: boolean;
+monthDays: Date[];
+mutations: {
+  assignPatternMutation: UseMutationResult<EmployeeWorkingPattern, Error, AssignPatternRequest>;
+  bulkRosterMutation: UseMutationResult<unknown, Error, { date: string; shift_id: string | null }[]>;
+};
+selectedDays: string[];
+selectedEmployee: Employee | null;
+selectedPatternId: string;
+setComplianceModalOpen: (v: boolean) => void;
+setComplianceViolations: (v: ComplianceViolation[]) => void;
+setIsComplianceResolving: (v: boolean) => void;
+startDate: string;
+startOfWeek: Date;
+weekDays: Date[];  }
 
 export function useRosterHandlers({
-  wsId,
   selectedEmployee,
   selectedPatternId,
   startDate,
@@ -63,13 +59,11 @@ export function useRosterHandlers({
   // ── Composed sub-hooks ────────────────────────────────────────────────
 
   const { refetchAndPatchRow } = useMonthlyRosterCachePatch({
-    wsId,
     monthDays,
     queryClient,
   });
 
   const weekly = useWeeklyRosterHandlers({
-    wsId,
     selectedEmployee,
     selectedPatternId,
     startDate,
@@ -85,7 +79,6 @@ export function useRosterHandlers({
   });
 
   const { pendingRetryRef, onComplianceOverride } = useComplianceRetry({
-    wsId,
     queryClient,
     toast,
     t,
@@ -105,7 +98,7 @@ export function useRosterHandlers({
       items: assignments,
       worker: async ({ employeeId, employmentId, dates }) => {
         const items = dates.map((date) => ({ date, shift_id: shiftId }));
-        await bulkUpsertRoster(wsId, employeeId, items);
+        await bulkUpsertRoster(employeeId, items);
         if (employmentId) {
           try {
             await refetchAndPatchRow(employmentId);
@@ -147,7 +140,7 @@ export function useRosterHandlers({
     await runRosterBulk({
       items: cells,
       worker: async ({ employeeId, date }) => {
-        await deleteRoster(wsId, employeeId, date);
+        await deleteRoster(employeeId, date);
       },
       queryClient,
       invalidateKeys: [["schedules"], ["assignment_history"]],
@@ -159,7 +152,7 @@ export function useRosterHandlers({
   };
 
   const handleCopyPreviousMonth = async () => {
-    await copyPrevMonthFn({ currentMonth, monthDays, wsId, queryClient, toast, t });
+    await copyPrevMonthFn({ currentMonth, monthDays, queryClient, toast, t });
   };
 
   return {

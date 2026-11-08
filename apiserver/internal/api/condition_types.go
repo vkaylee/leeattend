@@ -23,7 +23,6 @@ var (
 
 type ConditionTypeRecord struct {
 	ID                     uuid.UUID       `json:"id"`
-	WorkspaceID            uuid.UUID       `json:"workspace_id"`
 	Code                   string          `json:"code"`
 	NameI18N               json.RawMessage `json:"name_i18n"`
 	Category               string          `json:"category"`
@@ -64,21 +63,20 @@ type UpdateConditionTypeRequest struct {
 }
 
 type ConditionTypeRepository interface {
-	List(ctx context.Context, wsID uuid.UUID, activeOnly bool) ([]ConditionTypeRecord, error)
-	Get(ctx context.Context, wsID, id uuid.UUID) (ConditionTypeRecord, error)
+	List(ctx context.Context, activeOnly bool) ([]ConditionTypeRecord, error)
+	Get(ctx context.Context, id uuid.UUID) (ConditionTypeRecord, error)
 	Create(ctx context.Context, record ConditionTypeRecord) (ConditionTypeRecord, error)
-	Update(ctx context.Context, wsID, id uuid.UUID, req UpdateConditionTypeRequest) (ConditionTypeRecord, error)
-	Delete(ctx context.Context, wsID, id uuid.UUID) error
+	Update(ctx context.Context, id uuid.UUID, req UpdateConditionTypeRequest) (ConditionTypeRecord, error)
+	Delete(ctx context.Context, id uuid.UUID) error
 }
 
 type ConditionTypeHandler struct {
 	Repository ConditionTypeRepository
-	Authorizer WorkspaceAuthorizer
+	Authorizer Authorizer
 }
 
 func (h ConditionTypeHandler) List(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := organizationIDFromContext(r)
-	if !ok || !h.allowed(r, wsID, "workspace:settings:read") {
+	if !h.allowed(r, "organization:settings:read") {
 		h.forbidden(w, r)
 		return
 	}
@@ -87,7 +85,7 @@ func (h ConditionTypeHandler) List(w http.ResponseWriter, r *http.Request) {
 		apperror.WriteJSON(w, http.StatusOK, []ConditionTypeRecord{})
 		return
 	}
-	records, err := h.Repository.List(r.Context(), wsID, activeOnly)
+	records, err := h.Repository.List(r.Context(), activeOnly)
 	if err != nil {
 		h.writeError(w, r, err)
 		return
@@ -96,9 +94,8 @@ func (h ConditionTypeHandler) List(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h ConditionTypeHandler) Get(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := organizationIDFromContext(r)
 	id, idOK := pathUUID(r, "id")
-	if !ok || !idOK || !h.allowed(r, wsID, "workspace:settings:read") {
+	if !idOK || !h.allowed(r, "organization:settings:read") {
 		h.forbidden(w, r)
 		return
 	}
@@ -106,7 +103,7 @@ func (h ConditionTypeHandler) Get(w http.ResponseWriter, r *http.Request) {
 		apperror.WriteError(w, r, apperror.NotFound(apperror.KeyNotFound))
 		return
 	}
-	record, err := h.Repository.Get(r.Context(), wsID, id)
+	record, err := h.Repository.Get(r.Context(), id)
 	if err != nil {
 		h.writeError(w, r, err)
 		return
@@ -115,8 +112,7 @@ func (h ConditionTypeHandler) Get(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h ConditionTypeHandler) Create(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := organizationIDFromContext(r)
-	if !ok || !h.allowed(r, wsID, "workspace:settings:write") {
+	if !h.allowed(r, "organization:settings:write") {
 		h.forbidden(w, r)
 		return
 	}
@@ -139,7 +135,6 @@ func (h ConditionTypeHandler) Create(w http.ResponseWriter, r *http.Request) {
 	now := time.Now().UTC()
 	record := ConditionTypeRecord{
 		ID:                     uuid.New(),
-		WorkspaceID:            wsID,
 		Code:                   req.Code,
 		NameI18N:               req.NameI18N,
 		Category:               req.Category,
@@ -167,9 +162,8 @@ func (h ConditionTypeHandler) Create(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h ConditionTypeHandler) Update(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := organizationIDFromContext(r)
 	id, idOK := pathUUID(r, "id")
-	if !ok || !idOK || !h.allowed(r, wsID, "workspace:settings:write") {
+	if !idOK || !h.allowed(r, "organization:settings:write") {
 		h.forbidden(w, r)
 		return
 	}
@@ -182,7 +176,7 @@ func (h ConditionTypeHandler) Update(w http.ResponseWriter, r *http.Request) {
 		apperror.WriteError(w, r, apperror.NotFound(apperror.KeyNotFound))
 		return
 	}
-	updated, err := h.Repository.Update(r.Context(), wsID, id, req)
+	updated, err := h.Repository.Update(r.Context(), id, req)
 	if err != nil {
 		h.writeError(w, r, err)
 		return
@@ -191,9 +185,8 @@ func (h ConditionTypeHandler) Update(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h ConditionTypeHandler) Delete(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := organizationIDFromContext(r)
 	id, idOK := pathUUID(r, "id")
-	if !ok || !idOK || !h.allowed(r, wsID, "workspace:settings:write") {
+	if !idOK || !h.allowed(r, "organization:settings:write") {
 		h.forbidden(w, r)
 		return
 	}
@@ -201,16 +194,16 @@ func (h ConditionTypeHandler) Delete(w http.ResponseWriter, r *http.Request) {
 		apperror.WriteError(w, r, apperror.NotFound(apperror.KeyNotFound))
 		return
 	}
-	if err := h.Repository.Delete(r.Context(), wsID, id); err != nil {
+	if err := h.Repository.Delete(r.Context(), id); err != nil {
 		h.writeError(w, r, err)
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
 }
 
-func (h ConditionTypeHandler) allowed(r *http.Request, wsID uuid.UUID, p string) bool {
+func (h ConditionTypeHandler) allowed(r *http.Request, p string) bool {
 	u, ok := httpinfra.UserIDFromContext(r.Context())
-	return ok && h.Authorizer != nil && h.Authorizer.HasPermission(r.Context(), u, wsID, p)
+	return ok && h.Authorizer != nil && h.Authorizer.HasPermission(r.Context(), u, p)
 }
 
 func (h ConditionTypeHandler) forbidden(w http.ResponseWriter, r *http.Request) {

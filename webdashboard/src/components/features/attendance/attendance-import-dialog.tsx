@@ -7,7 +7,7 @@ import { useTranslation } from "react-i18next";
 import Button from "@/components/ui/button";
 import Modal from "@/components/ui/modal";
 import { Typography } from "@/components/ui/typography";
-import { uploadAttendance, fetchLatestImportJob, fetchImportJobStatus, getStandaloneOrganizationId } from "@/lib/api";
+import { uploadAttendance, fetchLatestImportJob, fetchImportJobStatus } from "@/lib/api";
 import { AttendanceImportJob } from "@/lib/api/types";
 import { logError } from "@/lib/logger";
 import { cn } from "@/lib/utils";
@@ -282,7 +282,6 @@ export default function AttendanceImportDialog({
   onDownloadTemplate
 }: AttendanceImportDialogProps) {
   const { t } = useTranslation();
-  const wsId = getStandaloneOrganizationId();
   const queryClient = useQueryClient();
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
@@ -313,10 +312,10 @@ export default function AttendanceImportDialog({
   }
 
   const handleUpload = async () => {
-    if (!file || !wsId) return;
+    if (!file) return;
     setUploading(true);
     try {
-      const result = await uploadAttendance(wsId, file, endpoint);
+      const result = await uploadAttendance(file, endpoint);
       setActiveJobId(result.job_id); setFile(null);
       void queryClient.invalidateQueries({ queryKey: ["latest-import-job"] });
     } catch (error) { logError(error, { component: "AttendanceImport" }); } finally { setUploading(false); }

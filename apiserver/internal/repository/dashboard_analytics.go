@@ -25,20 +25,20 @@ func (r DashboardAnalyticsRepository) db(ctx context.Context) (DBTX, error) {
 	return r.DB, nil
 }
 
-func (r DashboardAnalyticsRepository) GetWorkspaceTimezone(ctx context.Context, wsID uuid.UUID) (string, error) {
+func (r DashboardAnalyticsRepository) GetOrganizationTimezone(ctx context.Context) (string, error) {
 	db, err := r.db(ctx)
 	if err != nil {
 		return "UTC", err
 	}
 	var tz string
-	err = db.QueryRow(ctx, `SELECT COALESCE(timezone::text, 'UTC') FROM workspaces WHERE id = $1`, wsID).Scan(&tz)
+	err = db.QueryRow(ctx, `SELECT COALESCE(timezone::text, 'UTC') FROM organization_settings LIMIT 1`).Scan(&tz)
 	if err != nil || tz == "" {
 		return "UTC", nil
 	}
 	return tz, nil
 }
 
-func (r DashboardAnalyticsRepository) GetOvertimeTrend(ctx context.Context, wsID uuid.UUID, today time.Time) ([]api.OvertimeTrendPoint, error) {
+func (r DashboardAnalyticsRepository) GetOvertimeTrend(ctx context.Context, today time.Time) ([]api.OvertimeTrendPoint, error) {
 	db, err := r.db(ctx)
 	if err != nil {
 		return nil, err
@@ -48,11 +48,10 @@ func (r DashboardAnalyticsRepository) GetOvertimeTrend(ctx context.Context, wsID
 		COALESCE(SUM(ads.system_detected_ot_minutes), 0)::bigint AS system_ot_minutes,
 		COALESCE(SUM(ads.approved_ot_minutes), 0)::bigint AS approved_ot_minutes
 	FROM attendance_daily_summaries ads
-	WHERE ads.workspace_id = $1
-	  AND ads.date >= ($2::date - INTERVAL '29 days')
-	  AND ads.date <= $2::date
+	WHERE ads.date >= ($1::date - INTERVAL '29 days')
+	  AND ads.date <= $1::date
 	GROUP BY ads.date
-	ORDER BY ads.date ASC`, wsID, todayStr)
+	ORDER BY ads.date ASC`, todayStr)
 	if err != nil {
 		return nil, err
 	}
@@ -74,7 +73,7 @@ func (r DashboardAnalyticsRepository) GetOvertimeTrend(ctx context.Context, wsID
 	return points, rows.Err()
 }
 
-func (r DashboardAnalyticsRepository) GetPeakTimes(ctx context.Context, wsID uuid.UUID, today time.Time, tzName string) ([]api.PeakTimeSlot, error) {
+func (r DashboardAnalyticsRepository) GetPeakTimes(ctx context.Context, today time.Time, tzName string) ([]api.PeakTimeSlot, error) {
 	db, err := r.db(ctx)
 	if err != nil {
 		return nil, err
@@ -89,22 +88,21 @@ func (r DashboardAnalyticsRepository) GetPeakTimes(ctx context.Context, wsID uui
     JOIN employments emp ON te.employment_id = emp.id AND emp.deleted_at IS NULL
     WHERE te.punch_in_time >= $1
       AND te.punch_in_time < $2
-      AND emp.workspace_id = $3
       AND emp.status = 'active'
-      AND $5::date BETWEEN emp.start_date AND COALESCE(emp.end_date, '9999-12-31'::date)
+      AND $4::date BETWEEN emp.start_date AND COALESCE(emp.end_date, '9999-12-31'::date)
 ),
 check_ins AS (
     SELECT
-        (EXTRACT(HOUR FROM (punch_in_time AT TIME ZONE $4))::int * 2
-         + FLOOR(EXTRACT(MINUTE FROM (punch_in_time AT TIME ZONE $4)) / 30)::int) AS slot_index,
+        (EXTRACT(HOUR FROM (punch_in_time AT TIME ZONE $3))::int * 2
+         + FLOOR(EXTRACT(MINUTE FROM (punch_in_time AT TIME ZONE $3)) / 30)::int) AS slot_index,
         COUNT(*) AS check_in
     FROM today_entries
     GROUP BY slot_index
 ),
 check_outs AS (
     SELECT
-        (EXTRACT(HOUR FROM (punch_out_time AT TIME ZONE $4))::int * 2
-         + FLOOR(EXTRACT(MINUTE FROM (punch_out_time AT TIME ZONE $4)) / 30)::int) AS slot_index,
+        (EXTRACT(HOUR FROM (punch_out_time AT TIME ZONE $3))::int * 2
+         + FLOOR(EXTRACT(MINUTE FROM (punch_out_time AT TIME ZONE $3)) / 30)::int) AS slot_index,
         COUNT(*) AS check_out
     FROM today_entries
     WHERE punch_out_time IS NOT NULL
@@ -130,7 +128,7 @@ LEFT JOIN check_outs co ON sl.slot_index = co.slot_index
 WHERE COALESCE(ci.check_in, 0) > 0 OR COALESCE(co.check_out, 0) > 0
 ORDER BY sl.slot_index`
 
-	rows, err := db.Query(ctx, query, utcStart, utcEndExclusive, wsID, tzName, today.Format("2006-01-02"))
+	rows, err := db.Query(ctx, query, utcStart, utcEndExclusive, tzName, today.Format("2006-01-02"))
 	if err != nil {
 		return nil, err
 	}
@@ -147,7 +145,7 @@ ORDER BY sl.slot_index`
 	return slots, rows.Err()
 }
 
-func (r DashboardAnalyticsRepository) GetLeaveTypesBreakdown(ctx context.Context, wsID uuid.UUID, today time.Time) ([]api.LeaveTypeBreakdown, error) {
+func (r DashboardAnalyticsRepository) GetLeaveTypesBreakdown(ctx context.Context, today time.Time) ([]api.LeaveTypeBreakdown, error) {
 	db, err := r.db(ctx)
 	if err != nil {
 		return nil, err
@@ -161,14 +159,13 @@ JOIN employments emp ON lr.employment_id = emp.id
 WHERE lr.status IN ('approved', 'pre_approved')
   AND lr.start_date <= $2::date
   AND lr.end_date >= $1::date
-  AND emp.workspace_id = $3
   AND emp.deleted_at IS NULL
   AND emp.status = 'active'
-  AND $4::date BETWEEN emp.start_date AND COALESCE(emp.end_date, '9999-12-31'::date)
+  AND $3::date BETWEEN emp.start_date AND COALESCE(emp.end_date, '9999-12-31'::date)
 GROUP BY COALESCE(lt.name, 'Other')
 ORDER BY count DESC`
 
-	rows, err := db.Query(ctx, query, monthStart.Format("2006-01-02"), today.Format("2006-01-02"), wsID, today.Format("2006-01-02"))
+	rows, err := db.Query(ctx, query, monthStart.Format("2006-01-02"), today.Format("2006-01-02"), today.Format("2006-01-02"))
 	if err != nil {
 		return nil, err
 	}
@@ -185,7 +182,7 @@ ORDER BY count DESC`
 	return breakdown, rows.Err()
 }
 
-func (r DashboardAnalyticsRepository) GetOvertimeBreakdown(ctx context.Context, wsID uuid.UUID, q api.OvertimeBreakdownQuery, allowOvertimeCost bool) (api.OvertimeBreakdownResponse, error) {
+func (r DashboardAnalyticsRepository) GetOvertimeBreakdown(ctx context.Context, q api.OvertimeBreakdownQuery, allowOvertimeCost bool) (api.OvertimeBreakdownResponse, error) {
 	db, err := r.db(ctx)
 	if err != nil {
 		return api.OvertimeBreakdownResponse{}, err
@@ -202,7 +199,7 @@ func (r DashboardAnalyticsRepository) GetOvertimeBreakdown(ctx context.Context, 
 	query := `WITH depts AS (
     SELECT d.id AS department_id, d.name AS department_name
     FROM departments d
-    WHERE d.workspace_id = $1 AND d.deleted_at IS NULL
+    WHERE d.deleted_at IS NULL
 ),
 hours AS (
     SELECT emp.department_id,
@@ -210,26 +207,22 @@ hours AS (
            COALESCE(SUM(ads.approved_ot_minutes), 0)::bigint         AS approved_ot_minutes
     FROM attendance_daily_summaries ads
     JOIN employments emp ON emp.id = ads.employment_id
-      AND emp.workspace_id = $1
       AND emp.deleted_at IS NULL
-      AND ($4::uuid[] IS NULL OR emp.department_id = ANY($4))
-    WHERE ads.workspace_id = $1
-      AND ads.date BETWEEN $2::date AND $3::date
+      AND ($3::uuid[] IS NULL OR emp.department_id = ANY($3))
+    WHERE ads.date BETWEEN $1::date AND $2::date
     GROUP BY emp.department_id
 ),
 cost AS (
     SELECT emp.department_id,
-           CASE WHEN $5::boolean THEN COALESCE(SUM(ps.overtime_pay_amount), 0) END AS overtime_cost,
-           CASE WHEN $5::boolean THEN COUNT(ps.id) END                              AS payslip_count
+           CASE WHEN $4::boolean THEN COALESCE(SUM(ps.overtime_pay_amount), 0) END AS overtime_cost,
+           CASE WHEN $4::boolean THEN COUNT(ps.id) END                              AS payslip_count
     FROM payslips ps
     JOIN employments emp ON emp.id = ps.employment_id
-      AND emp.workspace_id = $1
       AND emp.deleted_at IS NULL
-      AND ($4::uuid[] IS NULL OR emp.department_id = ANY($4))
-    WHERE ps.workspace_id = $1
-      AND ps.status IN ('paid', 'finalized')
-      AND ps.period_start <= $3::date
-      AND ps.period_end >= $2::date
+      AND ($3::uuid[] IS NULL OR emp.department_id = ANY($3))
+    WHERE ps.status IN ('paid', 'finalized')
+      AND ps.period_start <= $2::date
+      AND ps.period_end >= $1::date
     GROUP BY emp.department_id
 )
 SELECT d.department_id,
@@ -237,16 +230,16 @@ SELECT d.department_id,
        COALESCE(h.system_ot_minutes, 0)  AS system_ot_minutes,
        COALESCE(h.approved_ot_minutes, 0) AS approved_ot_minutes,
        c.overtime_cost,
-       CASE WHEN $5::boolean AND c.payslip_count IS NOT NULL AND c.payslip_count > 0
+       CASE WHEN $4::boolean AND c.payslip_count IS NOT NULL AND c.payslip_count > 0
             THEN TRUE ELSE FALSE END AS cost_available
 FROM depts d
 LEFT JOIN hours h ON h.department_id = d.department_id
 LEFT JOIN cost c  ON c.department_id = d.department_id
 WHERE h.department_id IS NOT NULL
-   OR (c.department_id IS NOT NULL AND $5::boolean)
+   OR (c.department_id IS NOT NULL AND $4::boolean)
 ORDER BY COALESCE(h.system_ot_minutes, 0) DESC`
 
-	rows, err := db.Query(ctx, query, wsID, startStr, endStr, deptFilter, allowOvertimeCost)
+	rows, err := db.Query(ctx, query, startStr, endStr, deptFilter, allowOvertimeCost)
 	if err != nil {
 		return api.OvertimeBreakdownResponse{}, err
 	}
@@ -287,32 +280,17 @@ ORDER BY COALESCE(h.system_ot_minutes, 0) DESC`
 		return api.OvertimeBreakdownResponse{}, err
 	}
 
-	var currency string
-	_ = db.QueryRow(ctx, `SELECT COALESCE((SELECT currency_code FROM employers WHERE workspace_id = $1 AND deleted_at IS NULL AND currency_code IS NOT NULL ORDER BY created_at LIMIT 1), 'USD')`, wsID).Scan(&currency)
-	if currency == "" {
-		currency = "USD"
-	}
-
-	tz := "UTC"
-	if q.Timezone != nil && *q.Timezone != "" {
-		tz = *q.Timezone
-	}
-
 	return api.OvertimeBreakdownResponse{
 		ContractVersion: "overtime-breakdown.v1",
-		Workspace: api.OvertimeBreakdownWorkspace{
-			Timezone: tz,
-			Currency: currency,
-		},
-		Rows:        breakdownRows,
-		GeneratedAt: time.Now().UTC().Format(time.RFC3339),
+		Rows:            breakdownRows,
+		GeneratedAt:     time.Now().UTC().Format(time.RFC3339),
 	}, nil
 }
 
-func (r DashboardAnalyticsRepository) GetWorkspaceStats(ctx context.Context, wsID uuid.UUID, tzName string, deptIDs []uuid.UUID) (api.WorkspaceStats, error) {
+func (r DashboardAnalyticsRepository) GetDashboardStats(ctx context.Context, tzName string, deptIDs []uuid.UUID) (api.DashboardStats, error) {
 	db, err := r.db(ctx)
 	if err != nil {
-		return api.WorkspaceStats{}, err
+		return api.DashboardStats{}, err
 	}
 	loc := timezone.ParseWorkspaceTZ(tzName)
 	now := time.Now().In(loc)
@@ -328,35 +306,35 @@ func (r DashboardAnalyticsRepository) GetWorkspaceStats(ctx context.Context, wsI
 
 	var totalEmp int64
 	_ = db.QueryRow(ctx, `SELECT COUNT(DISTINCT employee_id)::bigint FROM employments
-		WHERE workspace_id = $1 AND status = 'active' AND deleted_at IS NULL
-		  AND start_date <= $2::date AND (end_date IS NULL OR end_date >= $2::date)
-		  AND ($3::uuid[] IS NULL OR department_id = ANY($3))`, wsID, todayStr, deptFilter).Scan(&totalEmp)
+		WHERE status = 'active' AND deleted_at IS NULL
+		  AND start_date <= $1::date AND (end_date IS NULL OR end_date >= $1::date)
+		  AND ($2::uuid[] IS NULL OR department_id = ANY($2))`, todayStr, deptFilter).Scan(&totalEmp)
 
 	var presentToday int64
 	_ = db.QueryRow(ctx, `SELECT COUNT(DISTINCT emp.employee_id)::bigint FROM time_entries te
 		JOIN employments emp ON emp.id = te.employment_id
-		JOIN employees e ON e.id = emp.employee_id AND e.workspace_id = $3 AND e.deleted_at IS NULL
+		JOIN employees e ON e.id = emp.employee_id AND e.deleted_at IS NULL
 		WHERE te.punch_in_time >= $1 AND te.punch_in_time < $2
-		  AND emp.workspace_id = $3 AND emp.status = 'active' AND emp.deleted_at IS NULL
-		  AND emp.start_date <= $4::date AND (emp.end_date IS NULL OR emp.end_date >= $4::date)
-		  AND ($5::uuid[] IS NULL OR emp.department_id = ANY($5))`, utcStart, utcEndExclusive, wsID, todayStr, deptFilter).Scan(&presentToday)
+		  AND emp.status = 'active' AND emp.deleted_at IS NULL
+		  AND emp.start_date <= $3::date AND (emp.end_date IS NULL OR emp.end_date >= $3::date)
+		  AND ($4::uuid[] IS NULL OR emp.department_id = ANY($4))`, utcStart, utcEndExclusive, todayStr, deptFilter).Scan(&presentToday)
 
 	var pendingLeave int64
 	_ = db.QueryRow(ctx, `SELECT COUNT(*)::bigint FROM leave_requests lr
 		JOIN employments emp ON emp.id = lr.employment_id
-		JOIN employees e ON e.id = emp.employee_id AND e.workspace_id = $1 AND e.deleted_at IS NULL
-		WHERE lr.status = 'pending' AND emp.workspace_id = $1 AND emp.status = 'active'
-		  AND emp.deleted_at IS NULL AND emp.start_date <= $2::date AND (emp.end_date IS NULL OR emp.end_date >= $2::date)
-		  AND ($3::uuid[] IS NULL OR emp.department_id = ANY($3))`, wsID, todayStr, deptFilter).Scan(&pendingLeave)
+		JOIN employees e ON e.id = emp.employee_id AND e.deleted_at IS NULL
+		WHERE lr.status = 'pending' AND emp.status = 'active'
+		  AND emp.deleted_at IS NULL AND emp.start_date <= $1::date AND (emp.end_date IS NULL OR emp.end_date >= $1::date)
+		  AND ($2::uuid[] IS NULL OR emp.department_id = ANY($2))`, todayStr, deptFilter).Scan(&pendingLeave)
 
 	var onLeaveToday int64
 	_ = db.QueryRow(ctx, `SELECT COUNT(DISTINCT emp.employee_id)::bigint FROM leave_requests lr
 		JOIN employments emp ON emp.id = lr.employment_id
-		JOIN employees e ON e.id = emp.employee_id AND e.workspace_id = $2 AND e.deleted_at IS NULL
+		JOIN employees e ON e.id = emp.employee_id AND e.deleted_at IS NULL
 		WHERE lr.status IN ('approved', 'pre_approved') AND lr.start_date <= $1::date AND lr.end_date >= $1::date
-		  AND emp.workspace_id = $2 AND emp.status = 'active' AND emp.deleted_at IS NULL
+		  AND emp.status = 'active' AND emp.deleted_at IS NULL
 		  AND emp.start_date <= $1::date AND (emp.end_date IS NULL OR emp.end_date >= $1::date)
-		  AND ($3::uuid[] IS NULL OR emp.department_id = ANY($3))`, todayStr, wsID, deptFilter).Scan(&onLeaveToday)
+		  AND ($2::uuid[] IS NULL OR emp.department_id = ANY($2))`, todayStr, deptFilter).Scan(&onLeaveToday)
 
 	var payroll decimal.Decimal
 	_ = db.QueryRow(ctx, `WITH active_employments AS (
@@ -366,9 +344,9 @@ func (r DashboardAnalyticsRepository) GetWorkspaceStats(ctx context.Context, wsI
                ORDER BY emp.start_date DESC, emp.id DESC
            ) AS employment_rank
     FROM employments emp
-    JOIN employees e ON e.id = emp.employee_id AND e.workspace_id = $1 AND e.deleted_at IS NULL
-    WHERE emp.workspace_id = $1 AND emp.status = 'active' AND emp.deleted_at IS NULL
-      AND emp.start_date <= $2::date AND (emp.end_date IS NULL OR emp.end_date >= $2::date)
+    JOIN employees e ON e.id = emp.employee_id AND e.deleted_at IS NULL
+    WHERE emp.status = 'active' AND emp.deleted_at IS NULL
+      AND emp.start_date <= $1::date AND (emp.end_date IS NULL OR emp.end_date >= $1::date)
 ),
 latest_components AS (
     SELECT esc.employment_id, esc.amount,
@@ -378,33 +356,33 @@ latest_components AS (
            ) AS component_rank
     FROM employee_salary_components esc
     JOIN active_employments ae ON ae.employment_id = esc.employment_id AND ae.employment_rank = 1
-    WHERE esc.effective_date <= $2::date
+    WHERE esc.effective_date <= $1::date
 )
-SELECT COALESCE(SUM(amount), 0)::numeric FROM latest_components WHERE component_rank = 1`, wsID, todayStr).Scan(&payroll)
+SELECT COALESCE(SUM(amount), 0)::numeric FROM latest_components WHERE component_rank = 1`, todayStr).Scan(&payroll)
 
 	var avgWorkMinutes float64
 	_ = db.QueryRow(ctx, `SELECT COALESCE(AVG(te.duration_minutes), 0)::float8 FROM time_entries te
 		JOIN employments emp ON emp.id = te.employment_id
-		JOIN employees e ON e.id = emp.employee_id AND e.workspace_id = $3 AND e.deleted_at IS NULL
+		JOIN employees e ON e.id = emp.employee_id AND e.deleted_at IS NULL
 		WHERE te.punch_in_time >= $1 AND te.punch_in_time < $2
 		  AND te.punch_out_time IS NOT NULL AND te.duration_minutes > 0
-		  AND emp.workspace_id = $3 AND emp.status = 'active' AND emp.deleted_at IS NULL
-		  AND emp.start_date <= $4::date AND (emp.end_date IS NULL OR emp.end_date >= $4::date)
-		  AND ($5::uuid[] IS NULL OR emp.department_id = ANY($5))`, utcStart, utcEndExclusive, wsID, todayStr, deptFilter).Scan(&avgWorkMinutes)
+		  AND emp.status = 'active' AND emp.deleted_at IS NULL
+		  AND emp.start_date <= $3::date AND (emp.end_date IS NULL OR emp.end_date >= $3::date)
+		  AND ($4::uuid[] IS NULL OR emp.department_id = ANY($4))`, utcStart, utcEndExclusive, todayStr, deptFilter).Scan(&avgWorkMinutes)
 
 	var lateToday, earlyDepToday int64
 	_ = db.QueryRow(ctx, `SELECT
 		COALESCE(SUM(CASE WHEN ads.late_minutes > 0 THEN 1 ELSE 0 END), 0)::bigint,
 		COALESCE(SUM(CASE WHEN ads.early_departure_minutes > 0 THEN 1 ELSE 0 END), 0)::bigint
 	FROM attendance_daily_summaries ads
-	JOIN employments emp ON emp.id = ads.employment_id AND emp.workspace_id = $1 AND emp.deleted_at IS NULL
-	  AND ($3::uuid[] IS NULL OR emp.department_id = ANY($3))
-	WHERE ads.workspace_id = $1 AND ads.date = $2::date`, wsID, todayStr, deptFilter).Scan(&lateToday, &earlyDepToday)
+	JOIN employments emp ON emp.id = ads.employment_id AND emp.deleted_at IS NULL
+	  AND ($2::uuid[] IS NULL OR emp.department_id = ANY($2))
+	WHERE ads.date = $1::date`, todayStr, deptFilter).Scan(&lateToday, &earlyDepToday)
 
 	absentToday := max64(0, totalEmp-presentToday-onLeaveToday)
 	avgHours := math.Round((avgWorkMinutes/60.0)*10.0) / 10.0
 
-	return api.WorkspaceStats{
+	return api.DashboardStats{
 		TotalEmployees:          totalEmp,
 		PresentToday:            presentToday,
 		PendingLeaveRequests:    pendingLeave,
@@ -420,7 +398,7 @@ SELECT COALESCE(SUM(amount), 0)::numeric FROM latest_components WHERE component_
 	}, nil
 }
 
-func (r DashboardAnalyticsRepository) GetAttendanceTrend(ctx context.Context, wsID uuid.UUID, startDate, endDate time.Time, tzName string, deptIDs []uuid.UUID) ([]api.AttendanceTrendPoint, error) {
+func (r DashboardAnalyticsRepository) GetAttendanceTrend(ctx context.Context, startDate, endDate time.Time, tzName string, deptIDs []uuid.UUID) ([]api.AttendanceTrendPoint, error) {
 	db, err := r.db(ctx)
 	if err != nil {
 		return nil, err
@@ -443,15 +421,13 @@ daily_active AS (
            COUNT(DISTINCT emp.employee_id)::bigint AS active_employees
     FROM days d
     JOIN employments emp
-      ON emp.workspace_id = $3
-     AND emp.status = 'active'
+      ON emp.status = 'active'
      AND emp.deleted_at IS NULL
      AND emp.start_date <= d.date
      AND (emp.end_date IS NULL OR emp.end_date >= d.date)
-     AND ($7::uuid[] IS NULL OR emp.department_id = ANY($7))
+     AND ($6::uuid[] IS NULL OR emp.department_id = ANY($6))
     JOIN employees e
       ON e.id = emp.employee_id
-     AND e.workspace_id = $3
      AND e.deleted_at IS NULL
     GROUP BY d.date
 ),
@@ -465,15 +441,13 @@ daily_present AS (
      AND (te.punch_in_time AT TIME ZONE $6)::date = d.date
     JOIN employments emp
       ON emp.id = te.employment_id
-     AND emp.workspace_id = $3
      AND emp.status = 'active'
      AND emp.deleted_at IS NULL
      AND emp.start_date <= d.date
      AND (emp.end_date IS NULL OR emp.end_date >= d.date)
-     AND ($7::uuid[] IS NULL OR emp.department_id = ANY($7))
+     AND ($6::uuid[] IS NULL OR emp.department_id = ANY($6))
     JOIN employees e
       ON e.id = emp.employee_id
-     AND e.workspace_id = $3
      AND e.deleted_at IS NULL
     GROUP BY d.date
 ),
@@ -487,15 +461,13 @@ daily_leave AS (
      AND lr.end_date >= d.date
     JOIN employments emp
       ON emp.id = lr.employment_id
-     AND emp.workspace_id = $3
      AND emp.status = 'active'
      AND emp.deleted_at IS NULL
      AND emp.start_date <= d.date
      AND (emp.end_date IS NULL OR emp.end_date >= d.date)
-     AND ($7::uuid[] IS NULL OR emp.department_id = ANY($7))
+     AND ($6::uuid[] IS NULL OR emp.department_id = ANY($6))
     JOIN employees e
       ON e.id = emp.employee_id
-     AND e.workspace_id = $3
      AND e.deleted_at IS NULL
     GROUP BY d.date
 ),
@@ -504,11 +476,9 @@ daily_late AS (
            COUNT(DISTINCT emp.employee_id)::bigint AS late
     FROM attendance_daily_summaries ads
     JOIN employments emp ON emp.id = ads.employment_id
-      AND emp.workspace_id = $3
       AND emp.deleted_at IS NULL
-      AND ($7::uuid[] IS NULL OR emp.department_id = ANY($7))
-    WHERE ads.workspace_id = $3
-      AND ads.date BETWEEN $1::date AND $2::date
+      AND ($6::uuid[] IS NULL OR emp.department_id = ANY($6))
+    WHERE ads.date BETWEEN $1::date AND $2::date
       AND ads.late_minutes > 0
     GROUP BY ads.date
 )
@@ -524,7 +494,7 @@ LEFT JOIN daily_active da ON da.date = d.date
 LEFT JOIN daily_late dla ON dla.date = d.date
 ORDER BY d.date ASC`
 
-	rows, err := db.Query(ctx, query, startDate.Format("2006-01-02"), endDate.Format("2006-01-02"), wsID, utcStart, utcEndExclusive, tzName, deptFilter)
+	rows, err := db.Query(ctx, query, startDate.Format("2006-01-02"), endDate.Format("2006-01-02"), utcStart, utcEndExclusive, tzName, deptFilter)
 	if err != nil {
 		return nil, err
 	}
@@ -553,7 +523,7 @@ ORDER BY d.date ASC`
 	return points, rows.Err()
 }
 
-func (r DashboardAnalyticsRepository) GetDepartmentAttendance(ctx context.Context, wsID uuid.UUID, startDate, endDate time.Time, tzName string, deptIDs []uuid.UUID, topN *int) ([]api.DepartmentAttendancePoint, error) {
+func (r DashboardAnalyticsRepository) GetDepartmentAttendance(ctx context.Context, startDate, endDate time.Time, tzName string, deptIDs []uuid.UUID, topN *int) ([]api.DepartmentAttendancePoint, error) {
 	db, err := r.db(ctx)
 	if err != nil {
 		return nil, err
@@ -572,42 +542,42 @@ func (r DashboardAnalyticsRepository) GetDepartmentAttendance(ctx context.Contex
            d.name::text AS department_name,
            COUNT(DISTINCT emp.employee_id)::bigint AS total_employees
     FROM departments d
-    JOIN employments emp ON emp.department_id = d.id AND emp.workspace_id = $1 AND emp.deleted_at IS NULL
-      AND emp.status = 'active' AND emp.start_date <= $3::date AND (emp.end_date IS NULL OR emp.end_date >= $3::date)
-      AND ($5::uuid[] IS NULL OR emp.department_id = ANY($5))
-    JOIN employees e ON e.id = emp.employee_id AND e.workspace_id = $1 AND e.deleted_at IS NULL
-    WHERE d.workspace_id = $1 AND d.deleted_at IS NULL
+    JOIN employments emp ON emp.department_id = d.id AND emp.deleted_at IS NULL
+      AND emp.status = 'active' AND emp.start_date <= $2::date AND (emp.end_date IS NULL OR emp.end_date >= $2::date)
+      AND ($4::uuid[] IS NULL OR emp.department_id = ANY($4))
+    JOIN employees e ON e.id = emp.employee_id AND e.deleted_at IS NULL
+    WHERE d.deleted_at IS NULL
     GROUP BY d.id, d.name
 ),
 present AS (
     SELECT emp.department_id,
            COUNT(DISTINCT emp.employee_id)::bigint AS present_count
     FROM time_entries te
-    JOIN employments emp ON emp.id = te.employment_id AND emp.workspace_id = $1 AND emp.deleted_at IS NULL
+    JOIN employments emp ON emp.id = te.employment_id AND emp.deleted_at IS NULL
       AND emp.status = 'active' AND emp.department_id IS NOT NULL
-      AND ($5::uuid[] IS NULL OR emp.department_id = ANY($5))
-    WHERE te.punch_in_time >= $2 AND te.punch_in_time < $4
+      AND ($4::uuid[] IS NULL OR emp.department_id = ANY($4))
+    WHERE te.punch_in_time >= $1 AND te.punch_in_time < $3
     GROUP BY emp.department_id
 ),
 leaves AS (
     SELECT emp.department_id,
            COUNT(DISTINCT emp.employee_id)::bigint AS leave_count
     FROM leave_requests lr
-    JOIN employments emp ON emp.id = lr.employment_id AND emp.workspace_id = $1 AND emp.deleted_at IS NULL
+    JOIN employments emp ON emp.id = lr.employment_id AND emp.deleted_at IS NULL
       AND emp.status = 'active' AND emp.department_id IS NOT NULL
-      AND ($5::uuid[] IS NULL OR emp.department_id = ANY($5))
+      AND ($4::uuid[] IS NULL OR emp.department_id = ANY($4))
     WHERE lr.status IN ('approved', 'pre_approved')
-      AND lr.start_date <= $3::date AND lr.end_date >= $6::date
+      AND lr.start_date <= $2::date AND lr.end_date >= $5::date
     GROUP BY emp.department_id
 ),
 lates AS (
     SELECT emp.department_id,
            COUNT(DISTINCT emp.employee_id)::bigint AS late_count
     FROM attendance_daily_summaries ads
-    JOIN employments emp ON emp.id = ads.employment_id AND emp.workspace_id = $1 AND emp.deleted_at IS NULL
+    JOIN employments emp ON emp.id = ads.employment_id AND emp.deleted_at IS NULL
       AND emp.status = 'active' AND emp.department_id IS NOT NULL
-      AND ($5::uuid[] IS NULL OR emp.department_id = ANY($5))
-    WHERE ads.workspace_id = $1 AND ads.date BETWEEN $6::date AND $3::date AND ads.late_minutes > 0
+      AND ($4::uuid[] IS NULL OR emp.department_id = ANY($4))
+    WHERE ads.date BETWEEN $5::date AND $2::date AND ads.late_minutes > 0
     GROUP BY emp.department_id
 )
 SELECT d.department_id,
@@ -622,7 +592,7 @@ LEFT JOIN leaves l  ON l.department_id = d.department_id
 LEFT JOIN lates la  ON la.department_id = d.department_id
 ORDER BY d.department_name ASC`
 
-	rows, err := db.Query(ctx, query, wsID, utcStart, endDate.Format("2006-01-02"), utcEndExclusive, deptFilter, startDate.Format("2006-01-02"))
+	rows, err := db.Query(ctx, query, utcStart, endDate.Format("2006-01-02"), utcEndExclusive, deptFilter, startDate.Format("2006-01-02"))
 	if err != nil {
 		return nil, err
 	}
@@ -654,7 +624,7 @@ ORDER BY d.department_name ASC`
 	return points, rows.Err()
 }
 
-func (r DashboardAnalyticsRepository) GetUnexcusedAbsences(ctx context.Context, wsID uuid.UUID, startDate, endDate time.Time, tzName string, groupBy string, deptIDs []uuid.UUID) ([]api.UnexcusedAbsencesPoint, error) {
+func (r DashboardAnalyticsRepository) GetUnexcusedAbsences(ctx context.Context, startDate, endDate time.Time, tzName string, groupBy string, deptIDs []uuid.UUID) ([]api.UnexcusedAbsencesPoint, error) {
 	db, err := r.db(ctx)
 	if err != nil {
 		return nil, err
@@ -671,21 +641,21 @@ func (r DashboardAnalyticsRepository) GetUnexcusedAbsences(ctx context.Context, 
            d.name::text AS department_name,
            e.full_name::text AS employee_name
     FROM employments emp
-    JOIN employees e ON e.id = emp.employee_id AND e.workspace_id = $1 AND e.deleted_at IS NULL
+    JOIN employees e ON e.id = emp.employee_id AND e.deleted_at IS NULL
     LEFT JOIN departments d ON d.id = emp.department_id
-    WHERE emp.workspace_id = $1 AND emp.status = 'active' AND emp.deleted_at IS NULL
-      AND emp.start_date <= $3::date AND (emp.end_date IS NULL OR emp.end_date >= $2::date)
-      AND ($4::uuid[] IS NULL OR emp.department_id = ANY($4))
+    WHERE emp.status = 'active' AND emp.deleted_at IS NULL
+      AND emp.start_date <= $2::date AND (emp.end_date IS NULL OR emp.end_date >= $1::date)
+      AND ($3::uuid[] IS NULL OR emp.department_id = ANY($3))
 ),
 days AS (
     SELECT d::date AS date
-    FROM generate_series($2::date, $3::date, '1 day'::interval) AS d
+    FROM generate_series($1::date, $2::date, '1 day'::interval) AS d
 ),
 daily_leaves AS (
     SELECT lr.employment_id, lr.start_date, lr.end_date
     FROM leave_requests lr
-    WHERE lr.workspace_id = $1 AND lr.status IN ('approved', 'pre_approved')
-      AND lr.start_date <= $3::date AND lr.end_date >= $2::date
+    WHERE lr.status IN ('approved', 'pre_approved')
+      AND lr.start_date <= $2::date AND lr.end_date >= $1::date
 )
 SELECT ae.department_id,
        COALESCE(ae.department_name, 'Unassigned') AS department_name,
@@ -700,7 +670,7 @@ LEFT JOIN attendance_daily_summaries ads ON ads.employment_id = ae.employment_id
 LEFT JOIN daily_leaves dl ON dl.employment_id = ae.employment_id AND d.date BETWEEN dl.start_date AND dl.end_date
 GROUP BY ae.department_id, ae.department_name, ae.employee_id, ae.employee_name`
 
-	rows, err := db.Query(ctx, query, wsID, startDate.Format("2006-01-02"), endDate.Format("2006-01-02"), deptFilter)
+	rows, err := db.Query(ctx, query, startDate.Format("2006-01-02"), endDate.Format("2006-01-02"), deptFilter)
 	if err != nil {
 		return nil, err
 	}
@@ -771,7 +741,7 @@ GROUP BY ae.department_id, ae.department_name, ae.employee_id, ae.employee_name`
 	return points, rows.Err()
 }
 
-func (r DashboardAnalyticsRepository) GetLatenessByDay(ctx context.Context, wsID uuid.UUID, startDate, endDate time.Time, tzName string, deptIDs []uuid.UUID) ([]api.LatenessByDay, error) {
+func (r DashboardAnalyticsRepository) GetLatenessByDay(ctx context.Context, startDate, endDate time.Time, tzName string, deptIDs []uuid.UUID) ([]api.LatenessByDay, error) {
 	db, err := r.db(ctx)
 	if err != nil {
 		return nil, err
@@ -786,15 +756,14 @@ func (r DashboardAnalyticsRepository) GetLatenessByDay(ctx context.Context, wsID
 		COUNT(*)::bigint AS late_count,
 		COALESCE(AVG(ads.late_minutes), 0)::float8 AS avg_late_minutes
 	FROM attendance_daily_summaries ads
-	JOIN employments emp ON emp.id = ads.employment_id AND emp.workspace_id = $1 AND emp.deleted_at IS NULL
-	  AND ($4::uuid[] IS NULL OR emp.department_id = ANY($4))
-	WHERE ads.workspace_id = $1
-	  AND ads.date BETWEEN $2::date AND $3::date
+	JOIN employments emp ON emp.id = ads.employment_id AND emp.deleted_at IS NULL
+	  AND ($3::uuid[] IS NULL OR emp.department_id = ANY($3))
+	WHERE ads.date BETWEEN $1::date AND $2::date
 	  AND ads.late_minutes > 0
 	GROUP BY EXTRACT(ISODOW FROM ads.date)::int
 	ORDER BY dow ASC`
 
-	rows, err := db.Query(ctx, query, wsID, startDate.Format("2006-01-02"), endDate.Format("2006-01-02"), deptFilter)
+	rows, err := db.Query(ctx, query, startDate.Format("2006-01-02"), endDate.Format("2006-01-02"), deptFilter)
 	if err != nil {
 		return nil, err
 	}
@@ -820,7 +789,7 @@ func (r DashboardAnalyticsRepository) GetLatenessByDay(ctx context.Context, wsID
 	return items, rows.Err()
 }
 
-func (r DashboardAnalyticsRepository) GetTurnoverAnalytics(ctx context.Context, wsID uuid.UUID, q api.TurnoverAnalyticsQuery) (api.TurnoverAnalytics, error) {
+func (r DashboardAnalyticsRepository) GetTurnoverAnalytics(ctx context.Context, q api.TurnoverAnalyticsQuery) (api.TurnoverAnalytics, error) {
 	db, err := r.db(ctx)
 	if err != nil {
 		return api.TurnoverAnalytics{}, err
@@ -831,8 +800,8 @@ func (r DashboardAnalyticsRepository) GetTurnoverAnalytics(ctx context.Context, 
 
 	var totalTerminated int64
 	_ = db.QueryRow(ctx, `SELECT COUNT(DISTINCT emp.employee_id)::bigint FROM employments emp
-		WHERE emp.workspace_id = $1 AND emp.deleted_at IS NULL AND emp.status = 'terminated'
-		  AND emp.end_date IS NOT NULL AND emp.end_date >= $2::date AND emp.end_date <= $3::date`, wsID, startStr, endStr).Scan(&totalTerminated)
+		WHERE emp.deleted_at IS NULL AND emp.status = 'terminated'
+		  AND emp.end_date IS NOT NULL AND emp.end_date >= $1::date AND emp.end_date <= $2::date`, startStr, endStr).Scan(&totalTerminated)
 
 	tenureRows, _ := db.Query(ctx, `SELECT bucket, COUNT(*)::bigint AS count FROM (
 		SELECT CASE
@@ -845,8 +814,8 @@ func (r DashboardAnalyticsRepository) GetTurnoverAnalytics(ctx context.Context, 
 		END AS bucket
 		FROM employees e
 		JOIN employments emp ON e.id = emp.employee_id
-		WHERE emp.workspace_id = $1 AND emp.deleted_at IS NULL AND emp.status = 'terminated'
-		  AND emp.end_date IS NOT NULL AND emp.end_date >= $2::date AND emp.end_date <= $3::date
+		WHERE emp.deleted_at IS NULL AND emp.status = 'terminated'
+		  AND emp.end_date IS NOT NULL AND emp.end_date >= $1::date AND emp.end_date <= $2::date
 	) sub
 	GROUP BY bucket
 	ORDER BY CASE bucket
@@ -857,7 +826,7 @@ func (r DashboardAnalyticsRepository) GetTurnoverAnalytics(ctx context.Context, 
 		WHEN '2-5 years' THEN 5
 		WHEN '> 5 years' THEN 6
 		ELSE 7
-	END`, wsID, startStr, endStr)
+	END`, startStr, endStr)
 	tenureDist := make([]api.TurnoverTenureBucket, 0)
 	if tenureRows != nil {
 		defer tenureRows.Close()
@@ -873,9 +842,9 @@ func (r DashboardAnalyticsRepository) GetTurnoverAnalytics(ctx context.Context, 
 		FROM employees e
 		JOIN employments emp ON e.id = emp.employee_id
 		LEFT JOIN recruitment_sources rs ON e.recruitment_source_id = rs.id
-		WHERE emp.workspace_id = $1 AND emp.deleted_at IS NULL AND emp.status = 'terminated'
-		  AND emp.end_date IS NOT NULL AND emp.end_date >= $2::date AND emp.end_date <= $3::date
-		GROUP BY rs.source_type, rs.name ORDER BY count DESC`, wsID, startStr, endStr)
+		WHERE emp.deleted_at IS NULL AND emp.status = 'terminated'
+		  AND emp.end_date IS NOT NULL AND emp.end_date >= $1::date AND emp.end_date <= $2::date
+		GROUP BY rs.source_type, rs.name ORDER BY count DESC`, startStr, endStr)
 	bySource := make([]api.TurnoverBySource, 0)
 	if sourceRows != nil {
 		defer sourceRows.Close()
@@ -891,9 +860,9 @@ func (r DashboardAnalyticsRepository) GetTurnoverAnalytics(ctx context.Context, 
 		FROM employees e
 		JOIN employments emp ON e.id = emp.employee_id
 		LEFT JOIN departments d ON d.id = emp.department_id
-		WHERE emp.workspace_id = $1 AND emp.deleted_at IS NULL AND emp.status = 'terminated'
-		  AND emp.end_date IS NOT NULL AND emp.end_date >= $2::date AND emp.end_date <= $3::date
-		GROUP BY d.name ORDER BY count DESC`, wsID, startStr, endStr)
+		WHERE emp.deleted_at IS NULL AND emp.status = 'terminated'
+		  AND emp.end_date IS NOT NULL AND emp.end_date >= $1::date AND emp.end_date <= $2::date
+		GROUP BY d.name ORDER BY count DESC`, startStr, endStr)
 	byDept := make([]api.TurnoverByDepartment, 0)
 	if deptRows != nil {
 		defer deptRows.Close()
@@ -913,9 +882,9 @@ func (r DashboardAnalyticsRepository) GetTurnoverAnalytics(ctx context.Context, 
 		COUNT(DISTINCT emp.employee_id)::bigint AS count
 		FROM employees e
 		JOIN employments emp ON e.id = emp.employee_id
-		WHERE emp.workspace_id = $1 AND emp.deleted_at IS NULL AND emp.status = 'terminated'
-		  AND emp.end_date IS NOT NULL AND emp.end_date >= $2::date AND emp.end_date <= $3::date
-		GROUP BY classification`, wsID, startStr, endStr)
+		WHERE emp.deleted_at IS NULL AND emp.status = 'terminated'
+		  AND emp.end_date IS NOT NULL AND emp.end_date >= $1::date AND emp.end_date <= $2::date
+		GROUP BY classification`, startStr, endStr)
 	var voluntaryCount, involuntaryCount, unknownClassCount int64
 	classification := make([]api.TurnoverClassification, 0)
 	if classRows != nil {
@@ -940,9 +909,9 @@ func (r DashboardAnalyticsRepository) GetTurnoverAnalytics(ctx context.Context, 
 		COUNT(DISTINCT emp.employee_id)::bigint AS count
 		FROM employees e
 		JOIN employments emp ON e.id = emp.employee_id
-		WHERE emp.workspace_id = $1 AND emp.deleted_at IS NULL AND emp.status = 'terminated'
-		  AND emp.end_date IS NOT NULL AND emp.end_date >= $2::date AND emp.end_date <= $3::date
-		GROUP BY emp.termination_reason ORDER BY count DESC`, wsID, startStr, endStr)
+		WHERE emp.deleted_at IS NULL AND emp.status = 'terminated'
+		  AND emp.end_date IS NOT NULL AND emp.end_date >= $1::date AND emp.end_date <= $2::date
+		GROUP BY emp.termination_reason ORDER BY count DESC`, startStr, endStr)
 	reasons := make([]api.TurnoverReasonRow, 0)
 	if reasonRows != nil {
 		defer reasonRows.Close()
@@ -958,9 +927,9 @@ func (r DashboardAnalyticsRepository) GetTurnoverAnalytics(ctx context.Context, 
 		COUNT(DISTINCT emp.employee_id)::bigint AS count
 		FROM employees e
 		JOIN employments emp ON e.id = emp.employee_id
-		WHERE emp.workspace_id = $1 AND emp.deleted_at IS NULL AND emp.status = 'terminated'
-		  AND emp.end_date IS NOT NULL AND emp.end_date >= $2::date AND emp.end_date <= $3::date
-		GROUP BY emp.employment_type ORDER BY count DESC`, wsID, startStr, endStr)
+		WHERE emp.deleted_at IS NULL AND emp.status = 'terminated'
+		  AND emp.end_date IS NOT NULL AND emp.end_date >= $1::date AND emp.end_date <= $2::date
+		GROUP BY emp.employment_type ORDER BY count DESC`, startStr, endStr)
 	byEmpType := make([]api.TurnoverByEmploymentType, 0)
 	if empTypeRows != nil {
 		defer empTypeRows.Close()
@@ -977,9 +946,9 @@ func (r DashboardAnalyticsRepository) GetTurnoverAnalytics(ctx context.Context, 
 		FROM employees e
 		JOIN employments emp ON e.id = emp.employee_id
 		LEFT JOIN work_locations l ON l.id = emp.primary_location_id
-		WHERE emp.workspace_id = $1 AND emp.deleted_at IS NULL AND emp.status = 'terminated'
-		  AND emp.end_date IS NOT NULL AND emp.end_date >= $2::date AND emp.end_date <= $3::date
-		GROUP BY l.name ORDER BY count DESC`, wsID, startStr, endStr)
+		WHERE emp.deleted_at IS NULL AND emp.status = 'terminated'
+		  AND emp.end_date IS NOT NULL AND emp.end_date >= $1::date AND emp.end_date <= $2::date
+		GROUP BY l.name ORDER BY count DESC`, startStr, endStr)
 	byLoc := make([]api.TurnoverByLocation, 0)
 	if locRows != nil {
 		defer locRows.Close()
@@ -997,9 +966,9 @@ func (r DashboardAnalyticsRepository) GetTurnoverAnalytics(ctx context.Context, 
 		JOIN employments emp ON e.id = emp.employee_id
 		LEFT JOIN employments mgr_emp ON mgr_emp.id = emp.manager_employment_id
 		LEFT JOIN employees mgr_e ON mgr_e.id = mgr_emp.employee_id
-		WHERE emp.workspace_id = $1 AND emp.deleted_at IS NULL AND emp.status = 'terminated'
-		  AND emp.end_date IS NOT NULL AND emp.end_date >= $2::date AND emp.end_date <= $3::date
-		GROUP BY mgr_e.full_name ORDER BY count DESC`, wsID, startStr, endStr)
+		WHERE emp.deleted_at IS NULL AND emp.status = 'terminated'
+		  AND emp.end_date IS NOT NULL AND emp.end_date >= $1::date AND emp.end_date <= $2::date
+		GROUP BY mgr_e.full_name ORDER BY count DESC`, startStr, endStr)
 	byMgr := make([]api.TurnoverByManager, 0)
 	if mgrRows != nil {
 		defer mgrRows.Close()
@@ -1014,8 +983,8 @@ func (r DashboardAnalyticsRepository) GetTurnoverAnalytics(ctx context.Context, 
 	var avgHeadcount, headcountStart int64
 	_ = db.QueryRow(ctx, `WITH months AS (
     SELECT generate_series(
+        date_trunc('month', $1::date)::date,
         date_trunc('month', $2::date)::date,
-        date_trunc('month', $3::date)::date,
         '1 month'::interval
     )::date AS m
 )
@@ -1023,35 +992,33 @@ SELECT
     COALESCE(AVG(hc), 0)::bigint AS average_headcount,
     COALESCE((SELECT COUNT(DISTINCT emp.employee_id)
               FROM employments emp
-              WHERE emp.workspace_id = $1
-                AND emp.deleted_at IS NULL
-                AND emp.start_date <= $2::date
-                AND (emp.end_date IS NULL OR emp.end_date >= $2::date)), 0)::bigint AS headcount_start
+              WHERE emp.deleted_at IS NULL
+                AND emp.start_date <= $1::date
+                AND (emp.end_date IS NULL OR emp.end_date >= $1::date)), 0)::bigint AS headcount_start
 FROM months
 LEFT JOIN LATERAL (
     SELECT COUNT(DISTINCT emp.employee_id) AS hc
     FROM employments emp
-    WHERE emp.workspace_id = $1
-      AND emp.deleted_at IS NULL
+    WHERE emp.deleted_at IS NULL
       AND emp.start_date <= m
       AND (emp.end_date IS NULL OR emp.end_date >= m)
-) hc ON true`, wsID, startStr, endStr).Scan(&avgHeadcount, &headcountStart)
+) hc ON true`, startStr, endStr).Scan(&avgHeadcount, &headcountStart)
 
 	var earlyAttritionCount int64
 	_ = db.QueryRow(ctx, `SELECT COUNT(DISTINCT emp.employee_id)::bigint AS count
 		FROM employees e
 		JOIN employments emp ON e.id = emp.employee_id
-		WHERE emp.workspace_id = $1 AND emp.deleted_at IS NULL AND emp.status = 'terminated'
-		  AND emp.end_date IS NOT NULL AND emp.end_date >= $2::date AND emp.end_date <= $3::date
-		  AND (emp.end_date - emp.start_date) < 90`, wsID, startStr, endStr).Scan(&earlyAttritionCount)
+		WHERE emp.deleted_at IS NULL AND emp.status = 'terminated'
+		  AND emp.end_date IS NOT NULL AND emp.end_date >= $1::date AND emp.end_date <= $2::date
+		  AND (emp.end_date - emp.start_date) < 90`, startStr, endStr).Scan(&earlyAttritionCount)
 
 	periodDays := int(q.EndDate.Sub(q.StartDate).Hours()/24) + 1
 	monthlyTrend := make([]api.TurnoverTrendPoint, 0)
 	if periodDays >= 60 {
 		trendRows, _ := db.Query(ctx, `WITH months AS (
     SELECT generate_series(
+        date_trunc('month', $1::date)::date,
         date_trunc('month', $2::date)::date,
-        date_trunc('month', $3::date)::date,
         '1 month'::interval
     )::date AS m
 ),
@@ -1061,8 +1028,8 @@ leavers AS (
         COUNT(DISTINCT emp.employee_id)::bigint AS leavers
     FROM employees e
     JOIN employments emp ON e.id = emp.employee_id
-    WHERE emp.workspace_id = $1 AND emp.deleted_at IS NULL AND emp.status = 'terminated'
-      AND emp.end_date IS NOT NULL AND emp.end_date >= $2::date AND emp.end_date <= $3::date
+    WHERE emp.deleted_at IS NULL AND emp.status = 'terminated'
+      AND emp.end_date IS NOT NULL AND emp.end_date >= $1::date AND emp.end_date <= $2::date
     GROUP BY 1
 ),
 headcounts AS (
@@ -1071,7 +1038,7 @@ headcounts AS (
         COUNT(DISTINCT emp.employee_id)::bigint AS headcount
     FROM months m
     LEFT JOIN employments emp
-      ON emp.workspace_id = $1 AND emp.deleted_at IS NULL
+      ON emp.deleted_at IS NULL
      AND emp.start_date <= m.m AND (emp.end_date IS NULL OR emp.end_date >= m.m)
     GROUP BY m.m
 )
@@ -1081,7 +1048,7 @@ SELECT
     COALESCE(lv.leavers, 0)::bigint AS leavers
 FROM headcounts hc
 LEFT JOIN leavers lv ON lv.m = hc.m
-ORDER BY hc.m ASC`, wsID, startStr, endStr)
+ORDER BY hc.m ASC`, startStr, endStr)
 		if trendRows != nil {
 			defer trendRows.Close()
 			for trendRows.Next() {
@@ -1106,14 +1073,14 @@ ORDER BY hc.m ASC`, wsID, startStr, endStr)
         COUNT(DISTINCT emp.employee_id)::bigint AS cohort_size
     FROM employees e
     JOIN employments emp ON e.id = emp.employee_id
-    WHERE emp.workspace_id = $1 AND emp.deleted_at IS NULL
-      AND emp.start_date >= date_trunc('month', $2::date)::date
-      AND emp.start_date <= $3::date
+    WHERE emp.deleted_at IS NULL
+      AND emp.start_date >= date_trunc('month', $1::date)::date
+      AND emp.start_date <= $2::date
     GROUP BY 1
-    HAVING COUNT(DISTINCT emp.employee_id) >= $4
+    HAVING COUNT(DISTINCT emp.employee_id) >= $3
 ),
 offsets AS (
-    SELECT generate_series(0, GREATEST(0, $5::int - 1))::int AS months_since_hire
+    SELECT generate_series(0, GREATEST(0, $4::int - 1))::int AS months_since_hire
 )
 SELECT
     to_char(c.cohort_month, 'YYYY-MM') AS cohort_month,
@@ -1126,12 +1093,12 @@ LEFT JOIN LATERAL (
     SELECT COUNT(DISTINCT emp.employee_id)::bigint AS active_count
     FROM employees e
     JOIN employments emp ON e.id = emp.employee_id
-    WHERE emp.workspace_id = $1 AND emp.deleted_at IS NULL
+    WHERE emp.deleted_at IS NULL
       AND date_trunc('month', emp.start_date)::date = c.cohort_month
       AND emp.start_date <= date_trunc('month', (c.cohort_month + make_interval(months => o.months_since_hire)))::date + interval '1 month' - interval '1 day'
       AND (emp.end_date IS NULL OR emp.end_date >= date_trunc('month', (c.cohort_month + make_interval(months => o.months_since_hire)))::date + interval '1 month' - interval '1 day')
 ) surv ON true
-ORDER BY c.cohort_month ASC, o.months_since_hire ASC`, wsID, startStr, endStr, 3, 6)
+ORDER BY c.cohort_month ASC, o.months_since_hire ASC`, startStr, endStr, 3, 6)
 	cohortRetention := make([]api.CohortRetentionRow, 0)
 	if cohortRows != nil {
 		defer cohortRows.Close()
@@ -1189,7 +1156,7 @@ ORDER BY c.cohort_month ASC, o.months_since_hire ASC`, wsID, startStr, endStr, 3
 	}, nil
 }
 
-func (r DashboardAnalyticsRepository) GetRecruitmentEffectiveness(ctx context.Context, wsID uuid.UUID, q api.RecruitmentEffectivenessQuery) (api.RecruitmentEffectivenessAnalytics, error) {
+func (r DashboardAnalyticsRepository) GetRecruitmentEffectiveness(ctx context.Context, q api.RecruitmentEffectivenessQuery) (api.RecruitmentEffectivenessAnalytics, error) {
 	db, err := r.db(ctx)
 	if err != nil {
 		return api.RecruitmentEffectivenessAnalytics{}, err
@@ -1236,21 +1203,19 @@ FROM employees e
 LEFT JOIN recruitment_sources rs ON e.recruitment_source_id = rs.id
 JOIN employments emp
   ON emp.employee_id = e.id
- AND emp.workspace_id = $1
  AND emp.deleted_at IS NULL
  AND emp.start_date = e.hire_date
-WHERE e.workspace_id = $1
-  AND e.deleted_at IS NULL
-  AND e.hire_date >= $2::date AND e.hire_date <= $3::date
-  AND ($4::uuid[] IS NULL OR emp.department_id = ANY($4))
-  AND ($5::uuid[] IS NULL OR emp.primary_location_id = ANY($5))
-  AND ($6::text[] IS NULL OR emp.job_title = ANY($6))
-  AND ($7::text[] IS NULL OR rs.source_type::text = ANY($7))
-  AND ($8::uuid[] IS NULL OR e.recruitment_source_id = ANY($8))
+WHERE e.deleted_at IS NULL
+  AND e.hire_date >= $1::date AND e.hire_date <= $2::date
+  AND ($3::uuid[] IS NULL OR emp.department_id = ANY($3))
+  AND ($4::uuid[] IS NULL OR emp.primary_location_id = ANY($4))
+  AND ($5::text[] IS NULL OR emp.job_title = ANY($5))
+  AND ($6::text[] IS NULL OR rs.source_type::text = ANY($6))
+  AND ($7::uuid[] IS NULL OR e.recruitment_source_id = ANY($7))
 GROUP BY rs.id, rs.source_type, rs.name
 ORDER BY hires DESC, source_name ASC`
 
-	hireRows, err := db.Query(ctx, hireQuery, wsID, startStr, endStr, deptFilter, locFilter, jobRolesFilter, sourceTypesFilter, sourceIDFilter)
+	hireRows, err := db.Query(ctx, hireQuery, startStr, endStr, deptFilter, locFilter, jobRolesFilter, sourceTypesFilter, sourceIDFilter)
 	if err != nil {
 		return api.RecruitmentEffectivenessAnalytics{}, err
 	}
@@ -1308,19 +1273,17 @@ FROM employees e
 LEFT JOIN recruitment_sources rs ON e.recruitment_source_id = rs.id
 JOIN employments emp
   ON emp.employee_id = e.id
- AND emp.workspace_id = $1
  AND emp.deleted_at IS NULL
  AND emp.start_date = e.hire_date
-WHERE e.workspace_id = $1
-  AND e.deleted_at IS NULL
-  AND e.hire_date >= $2::date AND e.hire_date <= $3::date
+WHERE e.deleted_at IS NULL
+  AND e.hire_date >= $1::date AND e.hire_date <= $2::date
   AND (e.termination_date IS NULL OR e.termination_date > e.hire_date + 90)
-  AND ($4::uuid[] IS NULL OR emp.department_id = ANY($4))
-  AND ($5::uuid[] IS NULL OR emp.primary_location_id = ANY($5))
-  AND ($6::text[] IS NULL OR emp.job_title = ANY($6))
-  AND ($7::text[] IS NULL OR rs.source_type::text = ANY($7))
-  AND ($8::uuid[] IS NULL OR e.recruitment_source_id = ANY($8))
-GROUP BY rs.id, rs.source_type, rs.name`, wsID, startStr, endStr, deptFilter, locFilter, jobRolesFilter, sourceTypesFilter, sourceIDFilter)
+  AND ($3::uuid[] IS NULL OR emp.department_id = ANY($3))
+  AND ($4::uuid[] IS NULL OR emp.primary_location_id = ANY($4))
+  AND ($5::text[] IS NULL OR emp.job_title = ANY($5))
+  AND ($6::text[] IS NULL OR rs.source_type::text = ANY($6))
+  AND ($7::uuid[] IS NULL OR e.recruitment_source_id = ANY($7))
+GROUP BY rs.id, rs.source_type, rs.name`, startStr, endStr, deptFilter, locFilter, jobRolesFilter, sourceTypesFilter, sourceIDFilter)
 	var totalRetained90d int64
 	if retRows != nil {
 		defer retRows.Close()
@@ -1346,18 +1309,17 @@ GROUP BY rs.id, rs.source_type, rs.name`, wsID, startStr, endStr, deptFilter, lo
 FROM employments emp
 JOIN employees e ON e.id = emp.employee_id
 LEFT JOIN recruitment_sources rs ON e.recruitment_source_id = rs.id
-WHERE emp.workspace_id = $1
-  AND emp.deleted_at IS NULL
+WHERE emp.deleted_at IS NULL
   AND emp.status = 'terminated'
   AND emp.end_date IS NOT NULL
-  AND emp.end_date >= $2::date AND emp.end_date <= $3::date
+  AND emp.end_date >= $1::date AND emp.end_date <= $2::date
   AND e.deleted_at IS NULL
-  AND ($4::uuid[] IS NULL OR emp.department_id = ANY($4))
-  AND ($5::uuid[] IS NULL OR emp.primary_location_id = ANY($5))
-  AND ($6::text[] IS NULL OR emp.job_title = ANY($6))
-  AND ($7::text[] IS NULL OR rs.source_type::text = ANY($7))
-  AND ($8::uuid[] IS NULL OR e.recruitment_source_id = ANY($8))
-GROUP BY rs.id, rs.source_type, rs.name`, wsID, startStr, endStr, deptFilter, locFilter, jobRolesFilter, sourceTypesFilter, sourceIDFilter)
+  AND ($3::uuid[] IS NULL OR emp.department_id = ANY($3))
+  AND ($4::uuid[] IS NULL OR emp.primary_location_id = ANY($4))
+  AND ($5::text[] IS NULL OR emp.job_title = ANY($5))
+  AND ($6::text[] IS NULL OR rs.source_type::text = ANY($6))
+  AND ($7::uuid[] IS NULL OR e.recruitment_source_id = ANY($7))
+GROUP BY rs.id, rs.source_type, rs.name`, startStr, endStr, deptFilter, locFilter, jobRolesFilter, sourceTypesFilter, sourceIDFilter)
 	var totalTurnover int64
 	if turnRows != nil {
 		defer turnRows.Close()
@@ -1411,8 +1373,8 @@ GROUP BY rs.id, rs.source_type, rs.name`, wsID, startStr, endStr, deptFilter, lo
 	if periodDays >= 60 {
 		trendRows, _ := db.Query(ctx, `WITH months AS (
     SELECT generate_series(
+        date_trunc('month', $1::date)::date,
         date_trunc('month', $2::date)::date,
-        date_trunc('month', $3::date)::date,
         '1 month'::interval
     )::date AS m
 ),
@@ -1424,17 +1386,15 @@ hires AS (
     LEFT JOIN recruitment_sources rs ON e.recruitment_source_id = rs.id
     JOIN employments emp
       ON emp.employee_id = e.id
-     AND emp.workspace_id = $1
      AND emp.deleted_at IS NULL
      AND emp.start_date = e.hire_date
-    WHERE e.workspace_id = $1
-      AND e.deleted_at IS NULL
-      AND e.hire_date >= $2::date AND e.hire_date <= $3::date
-      AND ($4::uuid[] IS NULL OR emp.department_id = ANY($4))
-      AND ($5::uuid[] IS NULL OR emp.primary_location_id = ANY($5))
-      AND ($6::text[] IS NULL OR emp.job_title = ANY($6))
-      AND ($7::text[] IS NULL OR rs.source_type::text = ANY($7))
-      AND ($8::uuid[] IS NULL OR e.recruitment_source_id = ANY($8))
+    WHERE e.deleted_at IS NULL
+      AND e.hire_date >= $1::date AND e.hire_date <= $2::date
+      AND ($3::uuid[] IS NULL OR emp.department_id = ANY($3))
+      AND ($4::uuid[] IS NULL OR emp.primary_location_id = ANY($4))
+      AND ($5::text[] IS NULL OR emp.job_title = ANY($5))
+      AND ($6::text[] IS NULL OR rs.source_type::text = ANY($6))
+      AND ($7::uuid[] IS NULL OR e.recruitment_source_id = ANY($7))
 )
 SELECT
     to_char(m.m, 'YYYY-MM') AS month,
@@ -1442,7 +1402,7 @@ SELECT
 FROM months m
 LEFT JOIN hires h ON h.hire_month = m.m
 GROUP BY m.m
-ORDER BY m.m ASC`, wsID, startStr, endStr, deptFilter, locFilter, jobRolesFilter, sourceTypesFilter, sourceIDFilter)
+ORDER BY m.m ASC`, startStr, endStr, deptFilter, locFilter, jobRolesFilter, sourceTypesFilter, sourceIDFilter)
 		if trendRows != nil {
 			defer trendRows.Close()
 			for trendRows.Next() {
@@ -1488,7 +1448,7 @@ ORDER BY m.m ASC`, wsID, startStr, endStr, deptFilter, locFilter, jobRolesFilter
 	}, nil
 }
 
-func (r DashboardAnalyticsRepository) GetExecutiveOverview(ctx context.Context, wsID uuid.UUID, q api.NormalizedDashboardMetricsQuery, allowOvertimeCost bool) (api.DashboardMetricsResponse, error) {
+func (r DashboardAnalyticsRepository) GetExecutiveOverview(ctx context.Context, q api.NormalizedDashboardMetricsQuery, allowOvertimeCost bool) (api.DashboardMetricsResponse, error) {
 	db, err := r.db(ctx)
 	if err != nil {
 		return api.DashboardMetricsResponse{}, err
@@ -1523,21 +1483,20 @@ func (r DashboardAnalyticsRepository) GetExecutiveOverview(ctx context.Context, 
 	}
 
 	sql := `WITH periods AS (
-    SELECT $2::date AS start_date, $3::date AS end_date, 'current' AS period
+    SELECT $1::date AS start_date, $2::date AS end_date, 'current' AS period
     UNION ALL
-    SELECT $4::date, $5::date, 'comparison'
+    SELECT $3::date, $4::date, 'comparison'
 ),
 active_days AS (
     SELECT p.period, COUNT(*)::bigint AS eligible_employee_days
     FROM periods p
     JOIN employments emp
-      ON emp.workspace_id = $1
-     AND emp.deleted_at IS NULL
+      ON emp.deleted_at IS NULL
      AND emp.status = 'active'
      AND emp.start_date <= p.end_date
      AND (emp.end_date IS NULL OR emp.end_date >= p.start_date)
-     AND ($6::uuid[] IS NULL OR emp.department_id = ANY($6))
-     AND ($7::uuid[] IS NULL OR emp.primary_location_id = ANY($7))
+     AND ($5::uuid[] IS NULL OR emp.department_id = ANY($5))
+     AND ($6::uuid[] IS NULL OR emp.primary_location_id = ANY($6))
     CROSS JOIN LATERAL generate_series(
         GREATEST(emp.start_date, p.start_date),
         LEAST(COALESCE(emp.end_date, p.end_date), p.end_date),
@@ -1551,10 +1510,9 @@ headcounts AS (
            COUNT(DISTINCT emp.employee_id) FILTER (WHERE emp.start_date <= p.start_date AND (emp.end_date IS NULL OR emp.end_date >= p.start_date))::bigint AS headcount_start
     FROM periods p
     LEFT JOIN employments emp
-      ON emp.workspace_id = $1
-     AND emp.deleted_at IS NULL
-     AND ($6::uuid[] IS NULL OR emp.department_id = ANY($6))
-     AND ($7::uuid[] IS NULL OR emp.primary_location_id = ANY($7))
+      ON emp.deleted_at IS NULL
+     AND ($5::uuid[] IS NULL OR emp.department_id = ANY($5))
+     AND ($6::uuid[] IS NULL OR emp.primary_location_id = ANY($6))
     GROUP BY p.period
 ),
 attendance_days AS (
@@ -1564,11 +1522,11 @@ attendance_days AS (
            COUNT(DISTINCT (lr.employment_id, day_value::date))::bigint AS leave_employee_days
     FROM periods p
     LEFT JOIN attendance_daily_summaries ads
-      ON ads.workspace_id = $1 AND ads.date BETWEEN p.start_date AND p.end_date
+      ON ads.date BETWEEN p.start_date AND p.end_date
     LEFT JOIN employments emp ON emp.id = ads.employment_id
-      AND emp.workspace_id = $1 AND emp.deleted_at IS NULL
-      AND ($6::uuid[] IS NULL OR emp.department_id = ANY($6))
-      AND ($7::uuid[] IS NULL OR emp.primary_location_id = ANY($7))
+      AND emp.deleted_at IS NULL
+      AND ($5::uuid[] IS NULL OR emp.department_id = ANY($5))
+      AND ($6::uuid[] IS NULL OR emp.primary_location_id = ANY($6))
     LEFT JOIN leave_requests lr
       ON lr.status IN ('approved', 'pre_approved')
      AND lr.start_date <= p.end_date AND lr.end_date >= p.start_date
@@ -1584,53 +1542,51 @@ overtime AS (
            COALESCE(SUM(ads.system_detected_ot_minutes), 0)::bigint AS system_detected_ot_minutes
     FROM periods p
     LEFT JOIN attendance_daily_summaries ads
-      ON ads.workspace_id = $1 AND ads.date BETWEEN p.start_date AND p.end_date
+      ON ads.date BETWEEN p.start_date AND p.end_date
     LEFT JOIN employments emp ON emp.id = ads.employment_id
-      AND emp.workspace_id = $1 AND emp.deleted_at IS NULL
-      AND ($6::uuid[] IS NULL OR emp.department_id = ANY($6))
-      AND ($7::uuid[] IS NULL OR emp.primary_location_id = ANY($7))
+      AND emp.deleted_at IS NULL
+      AND ($5::uuid[] IS NULL OR emp.department_id = ANY($5))
+      AND ($6::uuid[] IS NULL OR emp.primary_location_id = ANY($6))
     GROUP BY p.period
 ),
 terminations AS (
     SELECT p.period, COUNT(DISTINCT e.id)::bigint AS termination_count
     FROM periods p
-    LEFT JOIN employees e ON e.workspace_id = $1 AND e.deleted_at IS NULL
+    LEFT JOIN employees e ON e.deleted_at IS NULL
       AND e.termination_date BETWEEN p.start_date AND p.end_date
     GROUP BY p.period
 ),
 actions AS (
     SELECT p.period,
       COALESCE((SELECT COUNT(*) FROM leave_requests lr JOIN employments emp ON emp.id = lr.employment_id
-       WHERE lr.status = 'pending' AND emp.workspace_id = $1 AND emp.deleted_at IS NULL
+       WHERE lr.status = 'pending' AND emp.deleted_at IS NULL
          AND lr.created_at::date BETWEEN p.start_date AND p.end_date
-         AND ($6::uuid[] IS NULL OR emp.department_id = ANY($6))), 0)
+         AND ($5::uuid[] IS NULL OR emp.department_id = ANY($5))), 0)
       + COALESCE((SELECT COUNT(*) FROM overtime_requests ot
-         WHERE ot.workspace_id = $1 AND ot.status = 'pending_approval'
+         WHERE ot.status = 'pending_approval'
            AND ot.planned_date BETWEEN p.start_date AND p.end_date
-           AND ($6::uuid[] IS NULL OR ot.department_id = ANY($6))), 0) AS pending_hr_actions
+           AND ($5::uuid[] IS NULL OR ot.department_id = ANY($5))), 0) AS pending_hr_actions
     FROM periods p
 ),
 currency AS (
-    SELECT COALESCE((SELECT currency_code FROM employers WHERE workspace_id = $1 AND deleted_at IS NULL AND currency_code IS NOT NULL ORDER BY created_at LIMIT 1), 'USD') AS currency_code
+    SELECT COALESCE((SELECT currency_code FROM employers WHERE deleted_at IS NULL AND currency_code IS NOT NULL ORDER BY created_at LIMIT 1), 'USD') AS currency_code
 ),
 payroll_cost AS (
     SELECT p.period,
-           CASE WHEN $9::boolean THEN COALESCE(SUM(ps.overtime_pay_amount), 0) END AS overtime_cost,
-           CASE WHEN $9::boolean THEN COALESCE(SUM(ps.base_pay_amount + ps.overtime_pay_amount + COALESCE(ps.holiday_work_premium_amount, 0)), 0) END AS labor_cost,
-           CASE WHEN $9::boolean THEN COALESCE(SUM(ps.net_pay_amount), 0) END AS payroll_actual,
-           CASE WHEN $9::boolean THEN COUNT(ps.id) END AS payslip_count
+           CASE WHEN $8::boolean THEN COALESCE(SUM(ps.overtime_pay_amount), 0) END AS overtime_cost,
+           CASE WHEN $8::boolean THEN COALESCE(SUM(ps.base_pay_amount + ps.overtime_pay_amount + COALESCE(ps.holiday_work_premium_amount, 0)), 0) END AS labor_cost,
+           CASE WHEN $8::boolean THEN COALESCE(SUM(ps.net_pay_amount), 0) END AS payroll_actual,
+           CASE WHEN $8::boolean THEN COUNT(ps.id) END AS payslip_count
     FROM periods p
     LEFT JOIN payslips ps
-      ON ps.workspace_id = $1
-     AND ps.status IN ('paid', 'finalized')
+     ON ps.status IN ('paid', 'finalized')
      AND ps.period_start <= p.end_date AND ps.period_end >= p.start_date
     LEFT JOIN employments emp
       ON emp.id = ps.employment_id
-     AND emp.workspace_id = $1
      AND emp.deleted_at IS NULL
-     AND ($6::uuid[] IS NULL OR emp.department_id = ANY($6))
-     AND ($7::uuid[] IS NULL OR emp.primary_location_id = ANY($7))
-    WHERE ps.id IS NOT NULL OR $9::boolean IS FALSE
+     AND ($5::uuid[] IS NULL OR emp.department_id = ANY($5))
+     AND ($6::uuid[] IS NULL OR emp.primary_location_id = ANY($6))
+    WHERE ps.id IS NOT NULL OR $8::boolean IS FALSE
     GROUP BY p.period
 )
 SELECT h.headcount_end AS headcount,
@@ -1649,7 +1605,7 @@ SELECT h.headcount_end AS headcount,
        oc.overtime_cost,
        oc.labor_cost,
        oc.payroll_actual,
-       CASE WHEN $9::boolean AND oc.payslip_count IS NOT NULL AND oc.payslip_count > 0 THEN TRUE ELSE FALSE END AS cost_source_available
+       CASE WHEN $8::boolean AND oc.payslip_count IS NOT NULL AND oc.payslip_count > 0 THEN TRUE ELSE FALSE END AS cost_source_available
 FROM headcounts h
 LEFT JOIN active_days a USING (period)
 LEFT JOIN attendance_days ad USING (period)
@@ -1658,7 +1614,7 @@ LEFT JOIN terminations t USING (period)
 LEFT JOIN actions ac USING (period)
 LEFT JOIN payroll_cost oc USING (period)
 CROSS JOIN currency c
-WHERE h.period = $8`
+WHERE h.period = $7`
 
 	type snap struct {
 		headcount           int64
@@ -1682,7 +1638,7 @@ WHERE h.period = $8`
 
 	scanSnap := func(period string) (snap, error) {
 		var s snap
-		err := db.QueryRow(ctx, sql, wsID, startStr, endStr, compStartStr, compEndStr, deptFilter, locFilter, period, allowOvertimeCost).Scan(
+		err := db.QueryRow(ctx, sql, startStr, endStr, compStartStr, compEndStr, deptFilter, locFilter, period, allowOvertimeCost).Scan(
 			&s.headcount, &s.eligibleDays, &s.presentDays, &s.absentDays, &s.leaveDays,
 			&s.terminations, &s.headcountStart, &s.headcountEnd, &s.approvedOTMin,
 			&s.systemOTMin, &s.unapprovedOTMin, &s.pendingHRActions, &s.currencyCode,
@@ -2080,7 +2036,7 @@ WHERE h.period = $8`
 		{Key: "payroll", Status: payStatus, Freshness: freshness, Warnings: payWarnings},
 	}
 
-	scopeKind := "workspace"
+	scopeKind := "organization"
 	if len(q.DepartmentIDs) > 0 {
 		scopeKind = "department"
 	}
@@ -2096,10 +2052,6 @@ WHERE h.period = $8`
 
 	return api.DashboardMetricsResponse{
 		ContractVersion: "executive-dashboard.v1",
-		Workspace: api.DashboardWorkspaceContext{
-			Timezone: q.Timezone,
-			Currency: cur.currencyCode,
-		},
 		Context: api.DashboardMetricContext{
 			Period: api.DashboardReportingPeriod{
 				Key:       q.Period,

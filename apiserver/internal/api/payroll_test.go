@@ -14,15 +14,19 @@ import (
 	httpinfra "github.com/vkaylee/leeattend/apiserver/internal/infra/http"
 )
 
-type mockPayrollRepository struct{}
+type mockPayrollRepository struct {
+	settingsNotFound bool
+}
 
-func (mockPayrollRepository) ListWorkspacePayslips(context.Context, uuid.UUID, time.Time, time.Time) ([]PayslipRecord, error) {
+func (mockPayrollRepository) ListPayslips(context.Context, time.Time, time.Time) ([]PayslipRecord, error) {
 	return []PayslipRecord{{ID: uuid.New(), NetPayAmount: decimal.RequireFromString("1234.50")}}, nil
 }
-func (mockPayrollRepository) ListEmployeePayslips(context.Context, uuid.UUID, uuid.UUID) ([]PayslipRecord, error) {
+
+func (mockPayrollRepository) ListEmployeePayslips(context.Context, uuid.UUID) ([]PayslipRecord, error) {
 	return []PayslipRecord{{ID: uuid.New(), NetPayAmount: decimal.RequireFromString("1234.50")}}, nil
 }
-func (mockPayrollRepository) ListSalaryComponents(context.Context, uuid.UUID) ([]SalaryComponentDefinition, error) {
+
+func (mockPayrollRepository) ListSalaryComponents(context.Context) ([]SalaryComponentDefinition, error) {
 	return []SalaryComponentDefinition{
 		{
 			ID:        uuid.MustParse("11111111-1111-1111-1111-111111111111"),
@@ -33,7 +37,8 @@ func (mockPayrollRepository) ListSalaryComponents(context.Context, uuid.UUID) ([
 		},
 	}, nil
 }
-func (mockPayrollRepository) CreateSalaryComponent(_ context.Context, wsID uuid.UUID, req CreateSalaryComponentRequest) (SalaryComponentDefinition, error) {
+
+func (mockPayrollRepository) CreateSalaryComponent(_ context.Context, req CreateSalaryComponentRequest) (SalaryComponentDefinition, error) {
 	if req.Code == "CONFLICT" {
 		return SalaryComponentDefinition{}, ErrComponentConflict
 	}
@@ -41,15 +46,15 @@ func (mockPayrollRepository) CreateSalaryComponent(_ context.Context, wsID uuid.
 		return SalaryComponentDefinition{}, ErrInvalidBaseGroup
 	}
 	return SalaryComponentDefinition{
-		ID:          uuid.New(),
-		WorkspaceID: wsID,
-		Name:        req.Name,
-		Code:        req.Code,
-		CreatedAt:   "2026-01-01T00:00:00Z",
-		UpdatedAt:   "2026-01-01T00:00:00Z",
+		ID:        uuid.New(),
+		Name:      req.Name,
+		Code:      req.Code,
+		CreatedAt: "2026-01-01T00:00:00Z",
+		UpdatedAt: "2026-01-01T00:00:00Z",
 	}, nil
 }
-func (mockPayrollRepository) ListEmploymentSalaryComponents(_ context.Context, wsID, employmentID uuid.UUID) ([]EmploymentSalaryComponentResponse, error) {
+
+func (mockPayrollRepository) ListEmploymentSalaryComponents(_ context.Context, employmentID uuid.UUID) ([]EmploymentSalaryComponentResponse, error) {
 	return []EmploymentSalaryComponentResponse{
 		{
 			ID:                    uuid.New(),
@@ -62,7 +67,8 @@ func (mockPayrollRepository) ListEmploymentSalaryComponents(_ context.Context, w
 		},
 	}, nil
 }
-func (mockPayrollRepository) AssignEmploymentSalaryComponent(_ context.Context, wsID, employmentID uuid.UUID, req AssignSalaryComponentRequest) (EmployeeSalaryComponent, error) {
+
+func (mockPayrollRepository) AssignEmploymentSalaryComponent(_ context.Context, employmentID uuid.UUID, req AssignSalaryComponentRequest) (EmployeeSalaryComponent, error) {
 	if req.ComponentDefinitionID == uuid.MustParse("00000000-0000-0000-0000-000000000001") {
 		return EmployeeSalaryComponent{}, ErrComponentNotFound
 	}
@@ -76,7 +82,8 @@ func (mockPayrollRepository) AssignEmploymentSalaryComponent(_ context.Context, 
 		UpdatedAt:             "2026-01-01T00:00:00Z",
 	}, nil
 }
-func (mockPayrollRepository) ListSalaryBases(_ context.Context, wsID uuid.UUID) (SalaryBasesResponse, error) {
+
+func (mockPayrollRepository) ListSalaryBases(context.Context) (SalaryBasesResponse, error) {
 	sysID := uuid.MustParse("b0000000-0000-0000-0000-000000000001")
 	return SalaryBasesResponse{
 		Groups: []SalaryBaseGroup{
@@ -98,13 +105,13 @@ func (mockPayrollRepository) ListSalaryBases(_ context.Context, wsID uuid.UUID) 
 		},
 	}, nil
 }
-func (mockPayrollRepository) CreateSalaryBase(_ context.Context, wsID uuid.UUID, req CreateSalaryBaseRequest) (SalaryBaseGroup, error) {
+
+func (mockPayrollRepository) CreateSalaryBase(_ context.Context, req CreateSalaryBaseRequest) (SalaryBaseGroup, error) {
 	if req.Slug == "conflict" {
 		return SalaryBaseGroup{}, ErrConflict
 	}
 	return SalaryBaseGroup{
 		ID:          uuid.New(),
-		WorkspaceID: &wsID,
 		Name:        req.Name,
 		Slug:        req.Slug,
 		Description: req.Description,
@@ -113,22 +120,24 @@ func (mockPayrollRepository) CreateSalaryBase(_ context.Context, wsID uuid.UUID,
 		UpdatedAt:   "2026-01-01T00:00:00Z",
 	}, nil
 }
-func (mockPayrollRepository) AssignBaseMember(_ context.Context, wsID, baseID, componentID uuid.UUID) error {
+
+func (mockPayrollRepository) AssignBaseMember(_ context.Context, baseID, _ uuid.UUID) error {
 	sysID := uuid.MustParse("b0000000-0000-0000-0000-000000000001")
 	if baseID == sysID {
 		return ErrInvalidBaseGroup
 	}
 	return nil
 }
-func (mockPayrollRepository) UnassignBaseMember(_ context.Context, wsID, baseID, componentID uuid.UUID) error {
+
+func (mockPayrollRepository) UnassignBaseMember(context.Context, uuid.UUID, uuid.UUID) error {
 	return nil
 }
-func (mockPayrollRepository) GetPayrollSettings(_ context.Context, wsID uuid.UUID) (*PayrollSettings, error) {
-	if wsID == uuid.MustParse("00000000-0000-0000-0000-000000000099") {
+
+func (m mockPayrollRepository) GetPayrollSettings(context.Context) (*PayrollSettings, error) {
+	if m.settingsNotFound {
 		return nil, ErrPayrollSettingsNotFound
 	}
 	return &PayrollSettings{
-		WorkspaceID:        wsID,
 		StdWorkingDayMode:  "fixed",
 		FixedStdDays:       decimal.RequireFromString("26"),
 		WorkingDaysPerWeek: 5,
@@ -138,10 +147,10 @@ func (mockPayrollRepository) GetPayrollSettings(_ context.Context, wsID uuid.UUI
 		UpdatedAt:          "2026-01-01T00:00:00Z",
 	}, nil
 }
-func (mockPayrollRepository) GetPayrollSettingsHistory(_ context.Context, wsID uuid.UUID) ([]PayrollSettings, error) {
+
+func (mockPayrollRepository) GetPayrollSettingsHistory(context.Context) ([]PayrollSettings, error) {
 	return []PayrollSettings{
 		{
-			WorkspaceID:        wsID,
 			StdWorkingDayMode:  "fixed",
 			FixedStdDays:       decimal.RequireFromString("26"),
 			WorkingDaysPerWeek: 5,
@@ -152,7 +161,8 @@ func (mockPayrollRepository) GetPayrollSettingsHistory(_ context.Context, wsID u
 		},
 	}, nil
 }
-func (mockPayrollRepository) UpdatePayrollSettings(_ context.Context, wsID uuid.UUID, req UpdatePayrollSettingsRequest) (PayrollSettings, error) {
+
+func (mockPayrollRepository) UpdatePayrollSettings(_ context.Context, req UpdatePayrollSettingsRequest) (PayrollSettings, error) {
 	mode := "fixed"
 	if req.StdWorkingDayMode != nil {
 		mode = *req.StdWorkingDayMode
@@ -166,7 +176,6 @@ func (mockPayrollRepository) UpdatePayrollSettings(_ context.Context, wsID uuid.
 		effDate = *req.EffectiveDate
 	}
 	return PayrollSettings{
-		WorkspaceID:        wsID,
 		StdWorkingDayMode:  mode,
 		FixedStdDays:       fixedDays,
 		WorkingDaysPerWeek: 5,
@@ -176,7 +185,8 @@ func (mockPayrollRepository) UpdatePayrollSettings(_ context.Context, wsID uuid.
 		UpdatedAt:          "2026-01-01T00:00:00Z",
 	}, nil
 }
-func (mockPayrollRepository) GetEmployeePayrollConfigs(_ context.Context, wsID, employeeID uuid.UUID) ([]EmployeePayrollConfig, error) {
+
+func (mockPayrollRepository) GetEmployeePayrollConfigs(_ context.Context, employeeID uuid.UUID) ([]EmployeePayrollConfig, error) {
 	if employeeID == uuid.MustParse("00000000-0000-0000-0000-000000000044") {
 		return nil, ErrEmployeeNotFound
 	}
@@ -194,7 +204,8 @@ func (mockPayrollRepository) GetEmployeePayrollConfigs(_ context.Context, wsID, 
 		},
 	}, nil
 }
-func (mockPayrollRepository) SetEmployeePayrollConfig(_ context.Context, wsID, employeeID uuid.UUID, req SetEmployeePayrollConfigRequest, _ uuid.UUID) (EmployeePayrollConfig, error) {
+
+func (mockPayrollRepository) SetEmployeePayrollConfig(_ context.Context, employeeID uuid.UUID, req SetEmployeePayrollConfigRequest, _ uuid.UUID) (EmployeePayrollConfig, error) {
 	if employeeID == uuid.MustParse("00000000-0000-0000-0000-000000000044") {
 		return EmployeePayrollConfig{}, ErrEmployeeNotFound
 	}
@@ -210,12 +221,12 @@ func (mockPayrollRepository) SetEmployeePayrollConfig(_ context.Context, wsID, e
 		CreatedAt:      "2026-01-01T00:00:00Z",
 	}, nil
 }
-func (mockPayrollRepository) GetIncentivePolicies(_ context.Context, wsID uuid.UUID) ([]PayrollIncentivePolicyResponse, error) {
+
+func (mockPayrollRepository) GetIncentivePolicies(context.Context) ([]PayrollIncentivePolicyResponse, error) {
 	return []PayrollIncentivePolicyResponse{
 		{
 			PayrollIncentivePolicy: PayrollIncentivePolicy{
 				ID:            uuid.MustParse("22222222-2222-2222-2222-222222222222"),
-				WorkspaceID:   wsID,
 				Name:          "Sales Commission",
 				BaseAmount:    decimal.RequireFromString("1000.00"),
 				PayoutType:    "fixed",
@@ -235,10 +246,10 @@ func (mockPayrollRepository) GetIncentivePolicies(_ context.Context, wsID uuid.U
 		},
 	}, nil
 }
-func (mockPayrollRepository) CreateIncentivePolicy(_ context.Context, wsID uuid.UUID, req CreatePayrollIncentivePolicyRequest) (PayrollIncentivePolicy, error) {
+
+func (mockPayrollRepository) CreateIncentivePolicy(_ context.Context, req CreatePayrollIncentivePolicyRequest) (PayrollIncentivePolicy, error) {
 	return PayrollIncentivePolicy{
 		ID:            uuid.New(),
-		WorkspaceID:   wsID,
 		Name:          req.Name,
 		BaseAmount:    req.BaseAmount,
 		PayoutType:    req.PayoutType,
@@ -247,19 +258,20 @@ func (mockPayrollRepository) CreateIncentivePolicy(_ context.Context, wsID uuid.
 		EffectiveFrom: req.EffectiveFrom,
 	}, nil
 }
-func (mockPayrollRepository) DeleteIncentivePolicy(_ context.Context, wsID, policyID uuid.UUID) error {
+
+func (mockPayrollRepository) DeleteIncentivePolicy(_ context.Context, policyID uuid.UUID) error {
 	if policyID == uuid.MustParse("00000000-0000-0000-0000-000000000099") {
 		return ErrIncentivePolicyNotFound
 	}
 	return nil
 }
-func (mockPayrollRepository) CloneIncentivePolicy(_ context.Context, wsID, policyID uuid.UUID) (PayrollIncentivePolicy, error) {
+
+func (mockPayrollRepository) CloneIncentivePolicy(_ context.Context, policyID uuid.UUID) (PayrollIncentivePolicy, error) {
 	if policyID == uuid.MustParse("00000000-0000-0000-0000-000000000099") {
 		return PayrollIncentivePolicy{}, ErrIncentivePolicyNotFound
 	}
 	return PayrollIncentivePolicy{
 		ID:            uuid.New(),
-		WorkspaceID:   wsID,
 		Name:          "Sales Commission (Copy)",
 		BaseAmount:    decimal.RequireFromString("1000.00"),
 		PayoutType:    "fixed",
@@ -268,11 +280,11 @@ func (mockPayrollRepository) CloneIncentivePolicy(_ context.Context, wsID, polic
 		EffectiveFrom: "2026-01-01",
 	}, nil
 }
-func (mockPayrollRepository) ListPayrollRules(_ context.Context, wsID uuid.UUID) ([]PayrollRuleDefinition, error) {
+
+func (mockPayrollRepository) ListPayrollRules(context.Context) ([]PayrollRuleDefinition, error) {
 	return []PayrollRuleDefinition{
 		{
 			ID:                uuid.MustParse("33333333-3333-3333-3333-333333333333"),
-			WorkspaceID:       wsID,
 			Name:              "Social Insurance",
 			Code:              "BHXH",
 			Category:          "statutory_deduction",
@@ -288,13 +300,12 @@ func (mockPayrollRepository) ListPayrollRules(_ context.Context, wsID uuid.UUID)
 	}, nil
 }
 
-func (mockPayrollRepository) CreatePayrollRule(_ context.Context, wsID uuid.UUID, req CreatePayrollRuleDefinitionRequest) (PayrollRuleDefinition, error) {
+func (mockPayrollRepository) CreatePayrollRule(_ context.Context, req CreatePayrollRuleDefinitionRequest) (PayrollRuleDefinition, error) {
 	if req.Code == "CONFLICT" {
 		return PayrollRuleDefinition{}, ErrConflict
 	}
 	return PayrollRuleDefinition{
 		ID:                uuid.New(),
-		WorkspaceID:       wsID,
 		Name:              req.Name,
 		Description:       req.Description,
 		Code:              req.Code,
@@ -310,7 +321,7 @@ func (mockPayrollRepository) CreatePayrollRule(_ context.Context, wsID uuid.UUID
 	}, nil
 }
 
-func (mockPayrollRepository) ListPayrollRuleTiers(_ context.Context, wsID, ruleID uuid.UUID) ([]PayrollRuleTier, error) {
+func (mockPayrollRepository) ListPayrollRuleTiers(_ context.Context, ruleID uuid.UUID) ([]PayrollRuleTier, error) {
 	if ruleID == uuid.MustParse("00000000-0000-0000-0000-000000000099") {
 		return nil, ErrRuleNotFound
 	}
@@ -327,7 +338,7 @@ func (mockPayrollRepository) ListPayrollRuleTiers(_ context.Context, wsID, ruleI
 	}, nil
 }
 
-func (mockPayrollRepository) CreatePayrollRuleTier(_ context.Context, wsID, ruleID uuid.UUID, req CreatePayrollRuleTierRequest) (PayrollRuleTier, error) {
+func (mockPayrollRepository) CreatePayrollRuleTier(_ context.Context, ruleID uuid.UUID, req CreatePayrollRuleTierRequest) (PayrollRuleTier, error) {
 	if ruleID == uuid.MustParse("00000000-0000-0000-0000-000000000099") {
 		return PayrollRuleTier{}, ErrRuleNotFound
 	}
@@ -347,39 +358,37 @@ func (mockPayrollRepository) CreatePayrollRuleTier(_ context.Context, wsID, rule
 	}, nil
 }
 
-func (mockPayrollRepository) DeletePayrollRuleTier(_ context.Context, wsID, ruleID, tierID uuid.UUID) error {
+func (mockPayrollRepository) DeletePayrollRuleTier(_ context.Context, _, tierID uuid.UUID) error {
 	if tierID == uuid.MustParse("00000000-0000-0000-0000-000000000099") {
 		return ErrTierNotFound
 	}
 	return nil
 }
 
-func (mockPayrollRepository) ListPayrollRuleAssignments(_ context.Context, wsID, ruleID uuid.UUID) ([]PayrollRuleAssignment, error) {
+func (mockPayrollRepository) ListPayrollRuleAssignments(_ context.Context, ruleID uuid.UUID) ([]PayrollRuleAssignment, error) {
 	if ruleID == uuid.MustParse("00000000-0000-0000-0000-000000000099") {
 		return nil, ErrRuleNotFound
 	}
 	return []PayrollRuleAssignment{
 		{
 			ID:               uuid.New(),
-			WorkspaceID:      wsID,
 			RuleDefinitionID: ruleID,
-			AssigneeType:     "workspace",
+			AssigneeType:     "organization",
 			EffectiveFrom:    "2026-01-01",
 			CreatedAt:        "2026-01-01T00:00:00Z",
 		},
 	}, nil
 }
 
-func (mockPayrollRepository) AssignPayrollRule(_ context.Context, wsID, ruleID uuid.UUID, req AssignPayrollRuleRequest) (PayrollRuleAssignment, error) {
+func (mockPayrollRepository) AssignPayrollRule(_ context.Context, ruleID uuid.UUID, req AssignPayrollRuleRequest) (PayrollRuleAssignment, error) {
 	if ruleID == uuid.MustParse("00000000-0000-0000-0000-000000000099") {
 		return PayrollRuleAssignment{}, ErrRuleNotFound
 	}
-	if req.AssigneeType == "workspace" && req.EffectiveFrom == "2026-09-09" {
+	if req.AssigneeType == "organization" && req.EffectiveFrom == "2026-09-09" {
 		return PayrollRuleAssignment{}, ErrAssignmentConflict
 	}
 	return PayrollRuleAssignment{
 		ID:               uuid.New(),
-		WorkspaceID:      wsID,
 		RuleDefinitionID: ruleID,
 		AssigneeType:     req.AssigneeType,
 		AssigneeID:       req.AssigneeID,
@@ -390,14 +399,14 @@ func (mockPayrollRepository) AssignPayrollRule(_ context.Context, wsID, ruleID u
 	}, nil
 }
 
-func (mockPayrollRepository) DeletePayrollRuleAssignment(_ context.Context, wsID, ruleID, assignmentID uuid.UUID) error {
+func (mockPayrollRepository) DeletePayrollRuleAssignment(_ context.Context, _, assignmentID uuid.UUID) error {
 	if assignmentID == uuid.MustParse("00000000-0000-0000-0000-000000000099") {
 		return ErrAssignmentNotFound
 	}
 	return nil
 }
 
-func (mockPayrollRepository) CalculateEmployeePayroll(_ context.Context, wsID, employeeID uuid.UUID, year, month int) (FullPayslipResponse, error) {
+func (mockPayrollRepository) CalculateEmployeePayroll(_ context.Context, employeeID uuid.UUID, _, _ int) (FullPayslipResponse, error) {
 	if employeeID == uuid.MustParse("00000000-0000-0000-0000-000000000044") {
 		return FullPayslipResponse{}, ErrEmployeeNotFound
 	}
@@ -409,7 +418,6 @@ func (mockPayrollRepository) CalculateEmployeePayroll(_ context.Context, wsID, e
 	return FullPayslipResponse{
 		PayslipRecord: PayslipRecord{
 			ID:                payslipID,
-			WorkspaceID:       wsID,
 			EmploymentID:      employmentID,
 			PeriodStart:       "2026-01-01",
 			PeriodEnd:         "2026-01-31",
@@ -452,11 +460,11 @@ func (mockPayrollRepository) CalculateEmployeePayroll(_ context.Context, wsID, e
 	}, nil
 }
 
-func (mockPayrollRepository) CalculateBatchPayroll(_ context.Context, wsID uuid.UUID, req BatchCalculatePayrollRequest) (BatchCalculatePayrollResponse, error) {
+func (mockPayrollRepository) CalculateBatchPayroll(_ context.Context, req BatchCalculatePayrollRequest) (BatchCalculatePayrollResponse, error) {
 	results := make([]BatchCalculateResult, 0, len(req.EmploymentIDs))
 	for _, id := range req.EmploymentIDs {
 		if id == uuid.MustParse("00000000-0000-0000-0000-000000000099") {
-			errMsg := "employment not found in workspace"
+			errMsg := "employment not found"
 			results = append(results, BatchCalculateResult{
 				EmploymentID: id,
 				EmployeeID:   uuid.Nil,
@@ -471,7 +479,6 @@ func (mockPayrollRepository) CalculateBatchPayroll(_ context.Context, wsID uuid.
 			Status:       "success",
 			Payslip: &PayslipRecord{
 				ID:           uuid.New(),
-				WorkspaceID:  wsID,
 				EmploymentID: id,
 				PeriodStart:  "2026-01-01",
 				PeriodEnd:    "2026-01-31",
@@ -488,24 +495,55 @@ type payrollAuthorizer struct {
 	isMember     bool
 }
 
-func (a payrollAuthorizer) HasPermission(_ context.Context, _ uuid.UUID, _ uuid.UUID, perm string) bool {
+func (a payrollAuthorizer) IsMember(_ context.Context, _ uuid.UUID) (bool, error) {
+	return a.isMember, nil
+}
+
+func (a payrollAuthorizer) HasPermission(_ context.Context, _ uuid.UUID, perm string) bool {
 	if a.allowedPerms == nil {
 		return true
 	}
 	return a.allowedPerms[perm]
 }
-func (a payrollAuthorizer) IsMember(_ context.Context, _ uuid.UUID, _ uuid.UUID) (bool, error) {
-	return a.isMember, nil
+
+func (a payrollAuthorizer) EffectivePermissions(_ context.Context, _ uuid.UUID) ([]string, []string, error) {
+	return nil, nil, nil
 }
 
-func TestPayrollListWorkspaceValidatesPeriod(t *testing.T) {
+func (a payrollAuthorizer) GetManagedDepartmentIDs(_ context.Context, _ uuid.UUID) ([]uuid.UUID, error) {
+	return nil, nil
+}
+
+func (a payrollAuthorizer) IsGlobalManager(_ context.Context, _ uuid.UUID) bool {
+	return false
+}
+
+func (a payrollAuthorizer) HasScopedPermission(_ context.Context, _ uuid.UUID, perm string, _ *uuid.UUID) bool {
+	if a.allowedPerms == nil {
+		return true
+	}
+	return a.allowedPerms[perm]
+}
+
+func (a payrollAuthorizer) GetUsersWithPermission(_ context.Context, _ string) ([]uuid.UUID, error) {
+	return nil, nil
+}
+
+func contains(value, fragment string) bool {
+	for index := 0; index+len(fragment) <= len(value); index++ {
+		if value[index:index+len(fragment)] == fragment {
+			return true
+		}
+	}
+	return false
+}
+
+func TestPayrollListPayslipsValidatesPeriod(t *testing.T) {
 	handler := PayrollHandler{Repository: mockPayrollRepository{}, Authorizer: payrollAuthorizer{}}
-	wsID := uuid.New()
-	req := httptest.NewRequest(http.MethodGet, "/api/v1/workspaces/"+wsID.String()+"/payroll/payslips?year=2026&month=13", nil)
-	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/payroll/payslips?year=2026&month=13", nil)
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
 	rec := httptest.NewRecorder()
-	handler.ListWorkspace(rec, req)
+	handler.ListPayslips(rec, req)
 	if rec.Code != http.StatusBadRequest {
 		t.Fatalf("expected 400, got %d", rec.Code)
 	}
@@ -513,9 +551,8 @@ func TestPayrollListWorkspaceValidatesPeriod(t *testing.T) {
 
 func TestPayrollListEmployeeReturnsDecimalAmount(t *testing.T) {
 	handler := PayrollHandler{Repository: mockPayrollRepository{}, Authorizer: payrollAuthorizer{}}
-	wsID, employeeID := uuid.New(), uuid.New()
-	req := httptest.NewRequest(http.MethodGet, "/api/v1/workspaces/"+wsID.String()+"/employees/"+employeeID.String()+"/payslips", nil)
-	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
+	employeeID := uuid.New()
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/employees/"+employeeID.String()+"/payslips", nil)
 	req.SetPathValue("employee_id", employeeID.String())
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
 	rec := httptest.NewRecorder()
@@ -528,22 +565,11 @@ func TestPayrollListEmployeeReturnsDecimalAmount(t *testing.T) {
 	}
 }
 
-func contains(value, fragment string) bool {
-	for index := 0; index+len(fragment) <= len(value); index++ {
-		if value[index:index+len(fragment)] == fragment {
-			return true
-		}
-	}
-	return false
-}
-
 func TestPayrollSalaryComponentsEndpoints(t *testing.T) {
 	handler := PayrollHandler{Repository: mockPayrollRepository{}, Authorizer: payrollAuthorizer{}}
-	wsID := uuid.New()
 
-	// 1. GET /api/v1/workspaces/{ws_id}/salary-components
-	req := httptest.NewRequest(http.MethodGet, "/api/v1/workspaces/"+wsID.String()+"/salary-components", nil)
-	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
+	// 1. GET /api/v1/payroll/salary-components
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/payroll/salary-components", nil)
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
 	rec := httptest.NewRecorder()
 	handler.ListSalaryComponents(rec, req)
@@ -554,10 +580,9 @@ func TestPayrollSalaryComponentsEndpoints(t *testing.T) {
 		t.Fatalf("expected component in body: %s", rec.Body.String())
 	}
 
-	// 2. POST /api/v1/workspaces/{ws_id}/salary-components (201 Created)
+	// 2. POST /api/v1/payroll/salary-components (201 Created)
 	body := `{"name":"Transport Allowance","code":"TRANSPORT"}`
-	req = httptest.NewRequest(http.MethodPost, "/api/v1/workspaces/"+wsID.String()+"/salary-components", bytes.NewBufferString(body))
-	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
+	req = httptest.NewRequest(http.MethodPost, "/api/v1/payroll/salary-components", bytes.NewBufferString(body))
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
 	rec = httptest.NewRecorder()
 	handler.CreateSalaryComponent(rec, req)
@@ -569,8 +594,7 @@ func TestPayrollSalaryComponentsEndpoints(t *testing.T) {
 	}
 
 	// Validation: empty name
-	req = httptest.NewRequest(http.MethodPost, "/api/v1/workspaces/"+wsID.String()+"/salary-components", bytes.NewBufferString(`{"name":"","code":"TEST"}`))
-	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
+	req = httptest.NewRequest(http.MethodPost, "/api/v1/payroll/salary-components", bytes.NewBufferString(`{"name":"","code":"TEST"}`))
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
 	rec = httptest.NewRecorder()
 	handler.CreateSalaryComponent(rec, req)
@@ -583,8 +607,7 @@ func TestPayrollSalaryComponentsEndpoints(t *testing.T) {
 		Repository: mockPayrollRepository{},
 		Authorizer: payrollAuthorizer{allowedPerms: map[string]bool{"payroll:read": true}, isMember: true},
 	}
-	req = httptest.NewRequest(http.MethodPost, "/api/v1/workspaces/"+wsID.String()+"/salary-components", bytes.NewBufferString(body))
-	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
+	req = httptest.NewRequest(http.MethodPost, "/api/v1/payroll/salary-components", bytes.NewBufferString(body))
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
 	rec = httptest.NewRecorder()
 	noPermHandler.CreateSalaryComponent(rec, req)
@@ -595,12 +618,10 @@ func TestPayrollSalaryComponentsEndpoints(t *testing.T) {
 
 func TestPayrollEmploymentSalaryComponentsEndpoints(t *testing.T) {
 	handler := PayrollHandler{Repository: mockPayrollRepository{}, Authorizer: payrollAuthorizer{}}
-	wsID := uuid.New()
 	empID := uuid.New()
 
-	// 3. GET /api/v1/workspaces/{ws_id}/employments/{id}/salary-components
-	req := httptest.NewRequest(http.MethodGet, "/api/v1/workspaces/"+wsID.String()+"/employments/"+empID.String()+"/salary-components", nil)
-	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
+	// 3. GET /api/v1/employments/{id}/salary-components
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/employments/"+empID.String()+"/salary-components", nil)
 	req.SetPathValue("id", empID.String())
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
 	rec := httptest.NewRecorder()
@@ -612,11 +633,10 @@ func TestPayrollEmploymentSalaryComponentsEndpoints(t *testing.T) {
 		t.Fatalf("expected decimal amount in response: %s", rec.Body.String())
 	}
 
-	// 4. POST /api/v1/workspaces/{ws_id}/employments/{id}/salary-components (201 Created)
+	// 4. POST /api/v1/employments/{id}/salary-components (201 Created)
 	compID := uuid.MustParse("11111111-1111-1111-1111-111111111111")
 	assignBody := `{"component_definition_id":"` + compID.String() + `","amount":"6500000.00","effective_date":"2026-02-01"}`
-	req = httptest.NewRequest(http.MethodPost, "/api/v1/workspaces/"+wsID.String()+"/employments/"+empID.String()+"/salary-components", bytes.NewBufferString(assignBody))
-	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
+	req = httptest.NewRequest(http.MethodPost, "/api/v1/employments/"+empID.String()+"/salary-components", bytes.NewBufferString(assignBody))
 	req.SetPathValue("id", empID.String())
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
 	rec = httptest.NewRecorder()
@@ -630,8 +650,7 @@ func TestPayrollEmploymentSalaryComponentsEndpoints(t *testing.T) {
 
 	// Validation: invalid date
 	invalidDateBody := `{"component_definition_id":"` + compID.String() + `","amount":"6500000.00","effective_date":"2026/02/01"}`
-	req = httptest.NewRequest(http.MethodPost, "/api/v1/workspaces/"+wsID.String()+"/employments/"+empID.String()+"/salary-components", bytes.NewBufferString(invalidDateBody))
-	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
+	req = httptest.NewRequest(http.MethodPost, "/api/v1/employments/"+empID.String()+"/salary-components", bytes.NewBufferString(invalidDateBody))
 	req.SetPathValue("id", empID.String())
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
 	rec = httptest.NewRecorder()
@@ -643,11 +662,9 @@ func TestPayrollEmploymentSalaryComponentsEndpoints(t *testing.T) {
 
 func TestPayrollSalaryBasesEndpoints(t *testing.T) {
 	handler := PayrollHandler{Repository: mockPayrollRepository{}, Authorizer: payrollAuthorizer{}}
-	wsID := uuid.New()
 
-	// 5. GET /api/v1/workspaces/{ws_id}/salary-bases (200 OK)
-	req := httptest.NewRequest(http.MethodGet, "/api/v1/workspaces/"+wsID.String()+"/salary-bases", nil)
-	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
+	// 5. GET /api/v1/payroll/salary-bases (200 OK)
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/payroll/salary-bases", nil)
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
 	rec := httptest.NewRecorder()
 	handler.ListSalaryBases(rec, req)
@@ -658,10 +675,9 @@ func TestPayrollSalaryBasesEndpoints(t *testing.T) {
 		t.Fatalf("expected system base in response: %s", rec.Body.String())
 	}
 
-	// 6. POST /api/v1/workspaces/{ws_id}/salary-bases (201 Created)
+	// 6. POST /api/v1/payroll/salary-bases (201 Created)
 	createBody := `{"name":"Custom Base","slug":"custom_base","description":"Custom salary base"}`
-	req = httptest.NewRequest(http.MethodPost, "/api/v1/workspaces/"+wsID.String()+"/salary-bases", bytes.NewBufferString(createBody))
-	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
+	req = httptest.NewRequest(http.MethodPost, "/api/v1/payroll/salary-bases", bytes.NewBufferString(createBody))
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
 	rec = httptest.NewRecorder()
 	handler.CreateSalaryBase(rec, req)
@@ -672,12 +688,11 @@ func TestPayrollSalaryBasesEndpoints(t *testing.T) {
 		t.Fatalf("expected custom slug in response: %s", rec.Body.String())
 	}
 
-	// 7. POST /api/v1/workspaces/{ws_id}/salary-bases/{base_id}/members (200 OK)
+	// 7. POST /api/v1/payroll/salary-bases/{base_id}/members (200 OK)
 	customBaseID := uuid.New()
 	compID := uuid.MustParse("11111111-1111-1111-1111-111111111111")
 	memberBody := `{"component_definition_id":"` + compID.String() + `"}`
-	req = httptest.NewRequest(http.MethodPost, "/api/v1/workspaces/"+wsID.String()+"/salary-bases/"+customBaseID.String()+"/members", bytes.NewBufferString(memberBody))
-	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
+	req = httptest.NewRequest(http.MethodPost, "/api/v1/payroll/salary-bases/"+customBaseID.String()+"/members", bytes.NewBufferString(memberBody))
 	req.SetPathValue("base_id", customBaseID.String())
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
 	rec = httptest.NewRecorder()
@@ -691,8 +706,7 @@ func TestPayrollSalaryBasesEndpoints(t *testing.T) {
 
 	// 7b. System base member assign rejection (403 Forbidden)
 	sysBaseID := uuid.MustParse("b0000000-0000-0000-0000-000000000001")
-	req = httptest.NewRequest(http.MethodPost, "/api/v1/workspaces/"+wsID.String()+"/salary-bases/"+sysBaseID.String()+"/members", bytes.NewBufferString(memberBody))
-	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
+	req = httptest.NewRequest(http.MethodPost, "/api/v1/payroll/salary-bases/"+sysBaseID.String()+"/members", bytes.NewBufferString(memberBody))
 	req.SetPathValue("base_id", sysBaseID.String())
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
 	rec = httptest.NewRecorder()
@@ -701,9 +715,8 @@ func TestPayrollSalaryBasesEndpoints(t *testing.T) {
 		t.Fatalf("expected 403 for system base assign, got %d: %s", rec.Code, rec.Body.String())
 	}
 
-	// 8. DELETE /api/v1/workspaces/{ws_id}/salary-bases/{base_id}/members/{component_id} (200 OK)
-	req = httptest.NewRequest(http.MethodDelete, "/api/v1/workspaces/"+wsID.String()+"/salary-bases/"+customBaseID.String()+"/members/"+compID.String(), nil)
-	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
+	// 8. DELETE /api/v1/payroll/salary-bases/{base_id}/members/{component_id} (200 OK)
+	req = httptest.NewRequest(http.MethodDelete, "/api/v1/payroll/salary-bases/"+customBaseID.String()+"/members/"+compID.String(), nil)
 	req.SetPathValue("base_id", customBaseID.String())
 	req.SetPathValue("component_id", compID.String())
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
@@ -719,11 +732,9 @@ func TestPayrollSalaryBasesEndpoints(t *testing.T) {
 
 func TestPayrollSettingsEndpoints(t *testing.T) {
 	handler := PayrollHandler{Repository: mockPayrollRepository{}, Authorizer: payrollAuthorizer{isMember: true}}
-	wsID := uuid.New()
 
 	// 1. GET /payroll-settings (200 OK)
-	req := httptest.NewRequest(http.MethodGet, "/api/v1/workspaces/"+wsID.String()+"/payroll-settings", nil)
-	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/payroll-settings", nil)
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
 	rec := httptest.NewRecorder()
 	handler.GetPayrollSettings(rec, req)
@@ -735,20 +746,18 @@ func TestPayrollSettingsEndpoints(t *testing.T) {
 	}
 
 	// 1b. GET /payroll-settings (404 Not Found)
-	missingWS := uuid.MustParse("00000000-0000-0000-0000-000000000099")
-	req = httptest.NewRequest(http.MethodGet, "/api/v1/workspaces/"+missingWS.String()+"/payroll-settings", nil)
-	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), missingWS))
+	notFoundHandler := PayrollHandler{Repository: mockPayrollRepository{settingsNotFound: true}, Authorizer: payrollAuthorizer{isMember: true}}
+	req = httptest.NewRequest(http.MethodGet, "/api/v1/payroll-settings", nil)
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
 	rec = httptest.NewRecorder()
-	handler.GetPayrollSettings(rec, req)
+	notFoundHandler.GetPayrollSettings(rec, req)
 	if rec.Code != http.StatusNotFound {
 		t.Fatalf("expected 404, got %d: %s", rec.Code, rec.Body.String())
 	}
 
 	// 1c. GET /payroll-settings forbidden (403)
 	forbiddenHandler := PayrollHandler{Repository: mockPayrollRepository{}, Authorizer: payrollAuthorizer{allowedPerms: map[string]bool{}, isMember: false}}
-	req = httptest.NewRequest(http.MethodGet, "/api/v1/workspaces/"+wsID.String()+"/payroll-settings", nil)
-	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
+	req = httptest.NewRequest(http.MethodGet, "/api/v1/payroll-settings", nil)
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
 	rec = httptest.NewRecorder()
 	forbiddenHandler.GetPayrollSettings(rec, req)
@@ -758,8 +767,7 @@ func TestPayrollSettingsEndpoints(t *testing.T) {
 
 	// 2. PATCH /payroll-settings (200 OK)
 	patchBody := `{"std_working_day_mode":"custom","fixed_std_days":"25","effective_date":"2026-06-01"}`
-	req = httptest.NewRequest(http.MethodPatch, "/api/v1/workspaces/"+wsID.String()+"/payroll-settings", bytes.NewBufferString(patchBody))
-	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
+	req = httptest.NewRequest(http.MethodPatch, "/api/v1/payroll-settings", bytes.NewBufferString(patchBody))
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
 	rec = httptest.NewRecorder()
 	handler.UpdatePayrollSettings(rec, req)
@@ -772,8 +780,7 @@ func TestPayrollSettingsEndpoints(t *testing.T) {
 
 	// 2b. PATCH /payroll-settings invalid date (400)
 	badPatchBody := `{"effective_date":"not-a-date"}`
-	req = httptest.NewRequest(http.MethodPatch, "/api/v1/workspaces/"+wsID.String()+"/payroll-settings", bytes.NewBufferString(badPatchBody))
-	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
+	req = httptest.NewRequest(http.MethodPatch, "/api/v1/payroll-settings", bytes.NewBufferString(badPatchBody))
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
 	rec = httptest.NewRecorder()
 	handler.UpdatePayrollSettings(rec, req)
@@ -782,8 +789,7 @@ func TestPayrollSettingsEndpoints(t *testing.T) {
 	}
 
 	// 3. GET /payroll-settings/history (200 OK)
-	req = httptest.NewRequest(http.MethodGet, "/api/v1/workspaces/"+wsID.String()+"/payroll-settings/history", nil)
-	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
+	req = httptest.NewRequest(http.MethodGet, "/api/v1/payroll-settings/history", nil)
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
 	rec = httptest.NewRecorder()
 	handler.GetPayrollSettingsHistory(rec, req)
@@ -797,14 +803,12 @@ func TestPayrollSettingsEndpoints(t *testing.T) {
 
 func TestEmployeePayrollConfigEndpoints(t *testing.T) {
 	handler := PayrollHandler{Repository: mockPayrollRepository{}, Authorizer: payrollAuthorizer{isMember: true}}
-	wsID := uuid.New()
 	validEmpID := uuid.New()
 	missingEmpID := uuid.MustParse("00000000-0000-0000-0000-000000000044")
 	noActiveEmpID := uuid.MustParse("00000000-0000-0000-0000-000000000040")
 
 	// 4. GET /employees/{id}/payroll-config (200 OK)
-	req := httptest.NewRequest(http.MethodGet, "/api/v1/workspaces/"+wsID.String()+"/employees/"+validEmpID.String()+"/payroll-config", nil)
-	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/employees/"+validEmpID.String()+"/payroll-config", nil)
 	req.SetPathValue("id", validEmpID.String())
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
 	rec := httptest.NewRecorder()
@@ -817,8 +821,7 @@ func TestEmployeePayrollConfigEndpoints(t *testing.T) {
 	}
 
 	// 4b. GET /employees/{id}/payroll-config employee not found (404)
-	req = httptest.NewRequest(http.MethodGet, "/api/v1/workspaces/"+wsID.String()+"/employees/"+missingEmpID.String()+"/payroll-config", nil)
-	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
+	req = httptest.NewRequest(http.MethodGet, "/api/v1/employees/"+missingEmpID.String()+"/payroll-config", nil)
 	req.SetPathValue("id", missingEmpID.String())
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
 	rec = httptest.NewRecorder()
@@ -828,8 +831,7 @@ func TestEmployeePayrollConfigEndpoints(t *testing.T) {
 	}
 
 	// 4c. GET /employees/{id}/payroll-config no active employment (400)
-	req = httptest.NewRequest(http.MethodGet, "/api/v1/workspaces/"+wsID.String()+"/employees/"+noActiveEmpID.String()+"/payroll-config", nil)
-	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
+	req = httptest.NewRequest(http.MethodGet, "/api/v1/employees/"+noActiveEmpID.String()+"/payroll-config", nil)
 	req.SetPathValue("id", noActiveEmpID.String())
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
 	rec = httptest.NewRecorder()
@@ -840,8 +842,7 @@ func TestEmployeePayrollConfigEndpoints(t *testing.T) {
 
 	// 5. POST /employees/{id}/payroll-config (201 Created)
 	createBody := `{"std_working_days":"22","hours_per_day":"8","effective_date":"2026-06-01"}`
-	req = httptest.NewRequest(http.MethodPost, "/api/v1/workspaces/"+wsID.String()+"/employees/"+validEmpID.String()+"/payroll-config", bytes.NewBufferString(createBody))
-	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
+	req = httptest.NewRequest(http.MethodPost, "/api/v1/employees/"+validEmpID.String()+"/payroll-config", bytes.NewBufferString(createBody))
 	req.SetPathValue("id", validEmpID.String())
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
 	rec = httptest.NewRecorder()
@@ -855,8 +856,7 @@ func TestEmployeePayrollConfigEndpoints(t *testing.T) {
 
 	// 5b. POST /employees/{id}/payroll-config bad date (400)
 	badBody := `{"std_working_days":"22","hours_per_day":"8","effective_date":"invalid"}`
-	req = httptest.NewRequest(http.MethodPost, "/api/v1/workspaces/"+wsID.String()+"/employees/"+validEmpID.String()+"/payroll-config", bytes.NewBufferString(badBody))
-	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
+	req = httptest.NewRequest(http.MethodPost, "/api/v1/employees/"+validEmpID.String()+"/payroll-config", bytes.NewBufferString(badBody))
 	req.SetPathValue("id", validEmpID.String())
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
 	rec = httptest.NewRecorder()
@@ -866,8 +866,7 @@ func TestEmployeePayrollConfigEndpoints(t *testing.T) {
 	}
 
 	// 5c. POST /employees/{id}/payroll-config employee not found (404)
-	req = httptest.NewRequest(http.MethodPost, "/api/v1/workspaces/"+wsID.String()+"/employees/"+missingEmpID.String()+"/payroll-config", bytes.NewBufferString(createBody))
-	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
+	req = httptest.NewRequest(http.MethodPost, "/api/v1/employees/"+missingEmpID.String()+"/payroll-config", bytes.NewBufferString(createBody))
 	req.SetPathValue("id", missingEmpID.String())
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
 	rec = httptest.NewRecorder()
@@ -877,8 +876,7 @@ func TestEmployeePayrollConfigEndpoints(t *testing.T) {
 	}
 
 	// 5d. POST /employees/{id}/payroll-config no active employment (400)
-	req = httptest.NewRequest(http.MethodPost, "/api/v1/workspaces/"+wsID.String()+"/employees/"+noActiveEmpID.String()+"/payroll-config", bytes.NewBufferString(createBody))
-	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
+	req = httptest.NewRequest(http.MethodPost, "/api/v1/employees/"+noActiveEmpID.String()+"/payroll-config", bytes.NewBufferString(createBody))
 	req.SetPathValue("id", noActiveEmpID.String())
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
 	rec = httptest.NewRecorder()
@@ -890,13 +888,11 @@ func TestEmployeePayrollConfigEndpoints(t *testing.T) {
 
 func TestIncentivePoliciesEndpoints(t *testing.T) {
 	handler := PayrollHandler{Repository: mockPayrollRepository{}, Authorizer: payrollAuthorizer{isMember: true}}
-	wsID := uuid.New()
 	validPolicyID := uuid.MustParse("22222222-2222-2222-2222-222222222222")
 	missingPolicyID := uuid.MustParse("00000000-0000-0000-0000-000000000099")
 
 	// 6. GET /payroll/incentive-policies (200 OK)
-	req := httptest.NewRequest(http.MethodGet, "/api/v1/workspaces/"+wsID.String()+"/payroll/incentive-policies", nil)
-	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/payroll/incentive-policies", nil)
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
 	rec := httptest.NewRecorder()
 	handler.GetIncentivePolicies(rec, req)
@@ -909,8 +905,7 @@ func TestIncentivePoliciesEndpoints(t *testing.T) {
 
 	// 7. POST /payroll/incentive-policies (201 Created)
 	createBody := `{"name":"Project Bonus","base_amount":"2000.00","payout_type":"fixed","effective_from":"2026-06-01","tiers":[{"priority":1,"payout_amount":"1000.00","rule_config":{}}]}`
-	req = httptest.NewRequest(http.MethodPost, "/api/v1/workspaces/"+wsID.String()+"/payroll/incentive-policies", bytes.NewBufferString(createBody))
-	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
+	req = httptest.NewRequest(http.MethodPost, "/api/v1/payroll/incentive-policies", bytes.NewBufferString(createBody))
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
 	rec = httptest.NewRecorder()
 	handler.CreateIncentivePolicy(rec, req)
@@ -923,8 +918,7 @@ func TestIncentivePoliciesEndpoints(t *testing.T) {
 
 	// 7b. POST /payroll/incentive-policies invalid (400)
 	badBody := `{"name":"","base_amount":"2000.00","effective_from":"2026-06-01"}`
-	req = httptest.NewRequest(http.MethodPost, "/api/v1/workspaces/"+wsID.String()+"/payroll/incentive-policies", bytes.NewBufferString(badBody))
-	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
+	req = httptest.NewRequest(http.MethodPost, "/api/v1/payroll/incentive-policies", bytes.NewBufferString(badBody))
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
 	rec = httptest.NewRecorder()
 	handler.CreateIncentivePolicy(rec, req)
@@ -933,8 +927,7 @@ func TestIncentivePoliciesEndpoints(t *testing.T) {
 	}
 
 	// 8. DELETE /payroll/incentive-policies/{policy_id} (204 No Content)
-	req = httptest.NewRequest(http.MethodDelete, "/api/v1/workspaces/"+wsID.String()+"/payroll/incentive-policies/"+validPolicyID.String(), nil)
-	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
+	req := httptest.NewRequest(http.MethodDelete, "/api/v1/payroll/incentive-policies/"+validPolicyID.String(), nil)
 	req.SetPathValue("policy_id", validPolicyID.String())
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
 	rec = httptest.NewRecorder()
@@ -944,8 +937,7 @@ func TestIncentivePoliciesEndpoints(t *testing.T) {
 	}
 
 	// 9. POST /payroll/incentive-policies/{policy_id}/clone (201 Created)
-	req = httptest.NewRequest(http.MethodPost, "/api/v1/workspaces/"+wsID.String()+"/payroll/incentive-policies/"+validPolicyID.String()+"/clone", nil)
-	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
+	req = httptest.NewRequest(http.MethodPost, "/api/v1/payroll/incentive-policies/"+validPolicyID.String()+"/clone", nil)
 	req.SetPathValue("policy_id", validPolicyID.String())
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
 	rec = httptest.NewRecorder()
@@ -958,8 +950,7 @@ func TestIncentivePoliciesEndpoints(t *testing.T) {
 	}
 
 	// 9b. POST /payroll/incentive-policies/{policy_id}/clone not found (404)
-	req = httptest.NewRequest(http.MethodPost, "/api/v1/workspaces/"+wsID.String()+"/payroll/incentive-policies/"+missingPolicyID.String()+"/clone", nil)
-	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
+	req = httptest.NewRequest(http.MethodPost, "/api/v1/payroll/incentive-policies/"+missingPolicyID.String()+"/clone", nil)
 	req.SetPathValue("policy_id", missingPolicyID.String())
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
 	rec = httptest.NewRecorder()
@@ -968,13 +959,12 @@ func TestIncentivePoliciesEndpoints(t *testing.T) {
 		t.Fatalf("expected 404, got %d: %s", rec.Code, rec.Body.String())
 	}
 }
+
 func TestPayrollRulesEndpoints(t *testing.T) {
 	handler := PayrollHandler{Repository: mockPayrollRepository{}, Authorizer: payrollAuthorizer{isMember: true}}
-	wsID := uuid.New()
 
 	// 1. GET /payroll-rules (200 OK)
-	req := httptest.NewRequest(http.MethodGet, "/api/v1/workspaces/"+wsID.String()+"/payroll-rules", nil)
-	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/payroll-rules", nil)
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
 	rec := httptest.NewRecorder()
 	handler.ListPayrollRules(rec, req)
@@ -987,8 +977,7 @@ func TestPayrollRulesEndpoints(t *testing.T) {
 
 	// 1b. GET /payroll-rules forbidden (403)
 	forbiddenHandler := PayrollHandler{Repository: mockPayrollRepository{}, Authorizer: payrollAuthorizer{isMember: false, allowedPerms: map[string]bool{}}}
-	req = httptest.NewRequest(http.MethodGet, "/api/v1/workspaces/"+wsID.String()+"/payroll-rules", nil)
-	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
+	req = httptest.NewRequest(http.MethodGet, "/api/v1/payroll-rules", nil)
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
 	rec = httptest.NewRecorder()
 	forbiddenHandler.ListPayrollRules(rec, req)
@@ -998,8 +987,7 @@ func TestPayrollRulesEndpoints(t *testing.T) {
 
 	// 2. POST /payroll-rules (201 Created)
 	body := `{"name":"Health Insurance","code":"BHYT","category":"statutory_deduction","applies_to":"employee","calculation_method":"percentage","rule_config":{"rate":"1.5"}}`
-	req = httptest.NewRequest(http.MethodPost, "/api/v1/workspaces/"+wsID.String()+"/payroll-rules", bytes.NewBufferString(body))
-	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
+	req = httptest.NewRequest(http.MethodPost, "/api/v1/payroll-rules", bytes.NewBufferString(body))
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
 	rec = httptest.NewRecorder()
 	handler.CreatePayrollRule(rec, req)
@@ -1008,8 +996,7 @@ func TestPayrollRulesEndpoints(t *testing.T) {
 	}
 
 	// 2b. POST /payroll-rules validation error (400)
-	req = httptest.NewRequest(http.MethodPost, "/api/v1/workspaces/"+wsID.String()+"/payroll-rules", bytes.NewBufferString(`{"name":""}`))
-	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
+	req = httptest.NewRequest(http.MethodPost, "/api/v1/payroll-rules", bytes.NewBufferString(`{"name":""}`))
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
 	rec = httptest.NewRecorder()
 	handler.CreatePayrollRule(rec, req)
@@ -1018,8 +1005,7 @@ func TestPayrollRulesEndpoints(t *testing.T) {
 	}
 
 	// 2c. POST /payroll-rules conflict (409)
-	req = httptest.NewRequest(http.MethodPost, "/api/v1/workspaces/"+wsID.String()+"/payroll-rules", bytes.NewBufferString(`{"name":"Dup","code":"CONFLICT"}`))
-	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
+	req = httptest.NewRequest(http.MethodPost, "/api/v1/payroll-rules", bytes.NewBufferString(`{"name":"Dup","code":"CONFLICT"}`))
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
 	rec = httptest.NewRecorder()
 	handler.CreatePayrollRule(rec, req)
@@ -1030,13 +1016,11 @@ func TestPayrollRulesEndpoints(t *testing.T) {
 
 func TestPayrollRuleTiersEndpoints(t *testing.T) {
 	handler := PayrollHandler{Repository: mockPayrollRepository{}, Authorizer: payrollAuthorizer{isMember: true}}
-	wsID := uuid.New()
 	ruleID := uuid.New()
 	missingRuleID := uuid.MustParse("00000000-0000-0000-0000-000000000099")
 
 	// 3. GET /payroll-rules/{rule_id}/tiers (200 OK)
-	req := httptest.NewRequest(http.MethodGet, "/api/v1/workspaces/"+wsID.String()+"/payroll-rules/"+ruleID.String()+"/tiers", nil)
-	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/payroll-rules/"+ruleID.String()+"/tiers", nil)
 	req.SetPathValue("rule_id", ruleID.String())
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
 	rec := httptest.NewRecorder()
@@ -1046,8 +1030,7 @@ func TestPayrollRuleTiersEndpoints(t *testing.T) {
 	}
 
 	// 3b. GET /payroll-rules/{rule_id}/tiers not found (404)
-	req = httptest.NewRequest(http.MethodGet, "/api/v1/workspaces/"+wsID.String()+"/payroll-rules/"+missingRuleID.String()+"/tiers", nil)
-	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
+	req = httptest.NewRequest(http.MethodGet, "/api/v1/payroll-rules/"+missingRuleID.String()+"/tiers", nil)
 	req.SetPathValue("rule_id", missingRuleID.String())
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
 	rec = httptest.NewRecorder()
@@ -1058,8 +1041,7 @@ func TestPayrollRuleTiersEndpoints(t *testing.T) {
 
 	// 4. POST /payroll-rules/{rule_id}/tiers (201 Created)
 	body := `{"tier_order":1,"min_amount":0,"max_amount":5000000,"rate":5,"fixed_amount":0}`
-	req = httptest.NewRequest(http.MethodPost, "/api/v1/workspaces/"+wsID.String()+"/payroll-rules/"+ruleID.String()+"/tiers", bytes.NewBufferString(body))
-	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
+	req = httptest.NewRequest(http.MethodPost, "/api/v1/payroll-rules/"+ruleID.String()+"/tiers", bytes.NewBufferString(body))
 	req.SetPathValue("rule_id", ruleID.String())
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
 	rec = httptest.NewRecorder()
@@ -1070,8 +1052,7 @@ func TestPayrollRuleTiersEndpoints(t *testing.T) {
 
 	// 4b. POST /payroll-rules/{rule_id}/tiers validation: max_amount <= min_amount (400)
 	body = `{"tier_order":1,"min_amount":5000000,"max_amount":5000000,"rate":5}`
-	req = httptest.NewRequest(http.MethodPost, "/api/v1/workspaces/"+wsID.String()+"/payroll-rules/"+ruleID.String()+"/tiers", bytes.NewBufferString(body))
-	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
+	req = httptest.NewRequest(http.MethodPost, "/api/v1/payroll-rules/"+ruleID.String()+"/tiers", bytes.NewBufferString(body))
 	req.SetPathValue("rule_id", ruleID.String())
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
 	rec = httptest.NewRecorder()
@@ -1082,8 +1063,7 @@ func TestPayrollRuleTiersEndpoints(t *testing.T) {
 
 	// 5. DELETE /payroll-rules/{rule_id}/tiers/{tier_id} (200 OK)
 	tierID := uuid.New()
-	req = httptest.NewRequest(http.MethodDelete, "/api/v1/workspaces/"+wsID.String()+"/payroll-rules/"+ruleID.String()+"/tiers/"+tierID.String(), nil)
-	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
+	req = httptest.NewRequest(http.MethodDelete, "/api/v1/payroll-rules/"+ruleID.String()+"/tiers/"+tierID.String(), nil)
 	req.SetPathValue("rule_id", ruleID.String())
 	req.SetPathValue("tier_id", tierID.String())
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
@@ -1095,8 +1075,7 @@ func TestPayrollRuleTiersEndpoints(t *testing.T) {
 
 	// 5b. DELETE tier not found (404)
 	missingTierID := uuid.MustParse("00000000-0000-0000-0000-000000000099")
-	req = httptest.NewRequest(http.MethodDelete, "/api/v1/workspaces/"+wsID.String()+"/payroll-rules/"+ruleID.String()+"/tiers/"+missingTierID.String(), nil)
-	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
+	req = httptest.NewRequest(http.MethodDelete, "/api/v1/payroll-rules/"+ruleID.String()+"/tiers/"+missingTierID.String(), nil)
 	req.SetPathValue("rule_id", ruleID.String())
 	req.SetPathValue("tier_id", missingTierID.String())
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
@@ -1109,13 +1088,11 @@ func TestPayrollRuleTiersEndpoints(t *testing.T) {
 
 func TestPayrollRuleAssignmentsEndpoints(t *testing.T) {
 	handler := PayrollHandler{Repository: mockPayrollRepository{}, Authorizer: payrollAuthorizer{isMember: true}}
-	wsID := uuid.New()
 	ruleID := uuid.New()
 	missingRuleID := uuid.MustParse("00000000-0000-0000-0000-000000000099")
 
 	// 6. GET /payroll-rules/{rule_id}/assignments (200 OK)
-	req := httptest.NewRequest(http.MethodGet, "/api/v1/workspaces/"+wsID.String()+"/payroll-rules/"+ruleID.String()+"/assignments", nil)
-	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/payroll-rules/"+ruleID.String()+"/assignments", nil)
 	req.SetPathValue("rule_id", ruleID.String())
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
 	rec := httptest.NewRecorder()
@@ -1125,8 +1102,7 @@ func TestPayrollRuleAssignmentsEndpoints(t *testing.T) {
 	}
 
 	// 6b. GET /payroll-rules/{rule_id}/assignments not found (404)
-	req = httptest.NewRequest(http.MethodGet, "/api/v1/workspaces/"+wsID.String()+"/payroll-rules/"+missingRuleID.String()+"/assignments", nil)
-	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
+	req = httptest.NewRequest(http.MethodGet, "/api/v1/payroll-rules/"+missingRuleID.String()+"/assignments", nil)
 	req.SetPathValue("rule_id", missingRuleID.String())
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
 	rec = httptest.NewRecorder()
@@ -1135,34 +1111,78 @@ func TestPayrollRuleAssignmentsEndpoints(t *testing.T) {
 		t.Fatalf("expected 404, got %d", rec.Code)
 	}
 
-	// 7. POST /payroll-rules/{rule_id}/assignments (201 Created)
-	body := `{"assignee_type":"workspace","effective_from":"2026-01-01"}`
-	req = httptest.NewRequest(http.MethodPost, "/api/v1/workspaces/"+wsID.String()+"/payroll-rules/"+ruleID.String()+"/assignments", bytes.NewBufferString(body))
-	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
+	// 7. POST /payroll-rules/{rule_id}/assignments for organization (201 Created)
+	body := `{"assignee_type":"organization","effective_from":"2026-01-01"}`
+	req = httptest.NewRequest(http.MethodPost, "/api/v1/payroll-rules/"+ruleID.String()+"/assignments", bytes.NewBufferString(body))
 	req.SetPathValue("rule_id", ruleID.String())
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
 	rec = httptest.NewRecorder()
 	handler.AssignPayrollRule(rec, req)
 	if rec.Code != http.StatusCreated {
-		t.Fatalf("expected 201, got %d: %s", rec.Code, rec.Body.String())
-	}
-	// 7a. POST /payroll-rules/{rule_id}/assignments with user assignee_type (201 Created)
-	targetUserID := uuid.New()
-	body = `{"assignee_type":"user","assignee_id":"` + targetUserID.String() + `","effective_from":"2026-01-01"}`
-	req = httptest.NewRequest(http.MethodPost, "/api/v1/workspaces/"+wsID.String()+"/payroll-rules/"+ruleID.String()+"/assignments", bytes.NewBufferString(body))
-	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
-	req.SetPathValue("rule_id", ruleID.String())
-	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
-	rec = httptest.NewRecorder()
-	handler.AssignPayrollRule(rec, req)
-	if rec.Code != http.StatusCreated {
-		t.Fatalf("expected 201 for user assignee_type, got %d: %s", rec.Code, rec.Body.String())
+		t.Fatalf("expected 201 for organization assignee_type, got %d: %s", rec.Code, rec.Body.String())
 	}
 
-	// 7b. POST /payroll-rules/{rule_id}/assignments validation error: invalid assignee_type (400)
+	// 7a. POST /payroll-rules/{rule_id}/assignments for department (201 Created)
+	targetDeptID := uuid.New()
+	body = `{"assignee_type":"department","assignee_id":"` + targetDeptID.String() + `","effective_from":"2026-01-01"}`
+	req = httptest.NewRequest(http.MethodPost, "/api/v1/payroll-rules/"+ruleID.String()+"/assignments", bytes.NewBufferString(body))
+	req.SetPathValue("rule_id", ruleID.String())
+	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
+	rec = httptest.NewRecorder()
+	handler.AssignPayrollRule(rec, req)
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("expected 201 for department assignee_type, got %d: %s", rec.Code, rec.Body.String())
+	}
+
+	// 7b. POST /payroll-rules/{rule_id}/assignments for employee (201 Created)
+	targetEmpID := uuid.New()
+	body = `{"assignee_type":"employee","assignee_id":"` + targetEmpID.String() + `","effective_from":"2026-01-01"}`
+	req = httptest.NewRequest(http.MethodPost, "/api/v1/payroll-rules/"+ruleID.String()+"/assignments", bytes.NewBufferString(body))
+	req.SetPathValue("rule_id", ruleID.String())
+	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
+	rec = httptest.NewRecorder()
+	handler.AssignPayrollRule(rec, req)
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("expected 201 for employee assignee_type, got %d: %s", rec.Code, rec.Body.String())
+	}
+
+	// 7c. POST department without assignee_id fails (400)
+	body = `{"assignee_type":"department","effective_from":"2026-01-01"}`
+	req = httptest.NewRequest(http.MethodPost, "/api/v1/payroll-rules/"+ruleID.String()+"/assignments", bytes.NewBufferString(body))
+	req.SetPathValue("rule_id", ruleID.String())
+	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
+	rec = httptest.NewRecorder()
+	handler.AssignPayrollRule(rec, req)
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400 for department without assignee_id, got %d: %s", rec.Code, rec.Body.String())
+	}
+
+	// 7d. POST legacy workspace assignee_type rejected (400)
+	body = `{"assignee_type":"workspace","effective_from":"2026-01-01"}`
+	req = httptest.NewRequest(http.MethodPost, "/api/v1/payroll-rules/"+ruleID.String()+"/assignments", bytes.NewBufferString(body))
+	req.SetPathValue("rule_id", ruleID.String())
+	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
+	rec = httptest.NewRecorder()
+	handler.AssignPayrollRule(rec, req)
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400 for legacy workspace assignee_type, got %d: %s", rec.Code, rec.Body.String())
+	}
+
+	// 7e. POST user assignee_type rejected (400)
+	targetUserID := uuid.New()
+	body = `{"assignee_type":"user","assignee_id":"` + targetUserID.String() + `","effective_from":"2026-01-01"}`
+	req = httptest.NewRequest(http.MethodPost, "/api/v1/payroll-rules/"+ruleID.String()+"/assignments", bytes.NewBufferString(body))
+	req.SetPathValue("rule_id", ruleID.String())
+	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
+	rec = httptest.NewRecorder()
+	handler.AssignPayrollRule(rec, req)
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400 for user assignee_type, got %d: %s", rec.Code, rec.Body.String())
+	}
+
+	// 7f. POST unknown assignee_type (400)
 	body = `{"assignee_type":"unknown","effective_from":"2026-01-01"}`
-	req = httptest.NewRequest(http.MethodPost, "/api/v1/workspaces/"+wsID.String()+"/payroll-rules/"+ruleID.String()+"/assignments", bytes.NewBufferString(body))
-	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
+	req = httptest.NewRequest(http.MethodPost, "/api/v1/payroll-rules/"+ruleID.String()+"/assignments", bytes.NewBufferString(body))
 	req.SetPathValue("rule_id", ruleID.String())
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
 	rec = httptest.NewRecorder()
@@ -1171,10 +1191,9 @@ func TestPayrollRuleAssignmentsEndpoints(t *testing.T) {
 		t.Fatalf("expected 400, got %d", rec.Code)
 	}
 
-	// 7c. POST /payroll-rules/{rule_id}/assignments conflict (409)
-	body = `{"assignee_type":"workspace","effective_from":"2026-09-09"}`
-	req = httptest.NewRequest(http.MethodPost, "/api/v1/workspaces/"+wsID.String()+"/payroll-rules/"+ruleID.String()+"/assignments", bytes.NewBufferString(body))
-	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
+	// 7g. POST conflict (409)
+	body = `{"assignee_type":"organization","effective_from":"2026-09-09"}`
+	req = httptest.NewRequest(http.MethodPost, "/api/v1/payroll-rules/"+ruleID.String()+"/assignments", bytes.NewBufferString(body))
 	req.SetPathValue("rule_id", ruleID.String())
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
 	rec = httptest.NewRecorder()
@@ -1185,8 +1204,7 @@ func TestPayrollRuleAssignmentsEndpoints(t *testing.T) {
 
 	// 8. DELETE /payroll-rules/{rule_id}/assignments/{assignment_id} (200 OK)
 	assignID := uuid.New()
-	req = httptest.NewRequest(http.MethodDelete, "/api/v1/workspaces/"+wsID.String()+"/payroll-rules/"+ruleID.String()+"/assignments/"+assignID.String(), nil)
-	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
+	req = httptest.NewRequest(http.MethodDelete, "/api/v1/payroll-rules/"+ruleID.String()+"/assignments/"+assignID.String(), nil)
 	req.SetPathValue("rule_id", ruleID.String())
 	req.SetPathValue("assignment_id", assignID.String())
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
@@ -1198,8 +1216,7 @@ func TestPayrollRuleAssignmentsEndpoints(t *testing.T) {
 
 	// 8b. DELETE assignment not found (404)
 	missingAssignID := uuid.MustParse("00000000-0000-0000-0000-000000000099")
-	req = httptest.NewRequest(http.MethodDelete, "/api/v1/workspaces/"+wsID.String()+"/payroll-rules/"+ruleID.String()+"/assignments/"+missingAssignID.String(), nil)
-	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
+	req = httptest.NewRequest(http.MethodDelete, "/api/v1/payroll-rules/"+ruleID.String()+"/assignments/"+missingAssignID.String(), nil)
 	req.SetPathValue("rule_id", ruleID.String())
 	req.SetPathValue("assignment_id", missingAssignID.String())
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
@@ -1216,12 +1233,10 @@ func TestPayrollCalculationEndpoints(t *testing.T) {
 		allowedPerms: map[string]bool{"payroll:calculate": true},
 	}
 	handler := PayrollHandler{Repository: mockPayrollRepository{}, Authorizer: calcAuthorizer}
-	wsID := uuid.New()
 	empID := uuid.New()
 
 	// 9. POST /employees/{id}/calculate-payroll (200 OK)
-	req := httptest.NewRequest(http.MethodPost, "/api/v1/workspaces/"+wsID.String()+"/employees/"+empID.String()+"/calculate-payroll?year=2026&month=1", nil)
-	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/employees/"+empID.String()+"/calculate-payroll?year=2026&month=1", nil)
 	req.SetPathValue("id", empID.String())
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
 	rec := httptest.NewRecorder()
@@ -1235,8 +1250,7 @@ func TestPayrollCalculationEndpoints(t *testing.T) {
 
 	// 9b. POST calculate-payroll forbidden without permission (403)
 	noPermHandler := PayrollHandler{Repository: mockPayrollRepository{}, Authorizer: payrollAuthorizer{isMember: true, allowedPerms: map[string]bool{}}}
-	req = httptest.NewRequest(http.MethodPost, "/api/v1/workspaces/"+wsID.String()+"/employees/"+empID.String()+"/calculate-payroll?year=2026&month=1", nil)
-	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
+	req = httptest.NewRequest(http.MethodPost, "/api/v1/employees/"+empID.String()+"/calculate-payroll?year=2026&month=1", nil)
 	req.SetPathValue("id", empID.String())
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
 	rec = httptest.NewRecorder()
@@ -1246,8 +1260,7 @@ func TestPayrollCalculationEndpoints(t *testing.T) {
 	}
 
 	// 9c. POST calculate-payroll invalid month (400)
-	req = httptest.NewRequest(http.MethodPost, "/api/v1/workspaces/"+wsID.String()+"/employees/"+empID.String()+"/calculate-payroll?year=2026&month=13", nil)
-	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
+	req = httptest.NewRequest(http.MethodPost, "/api/v1/employees/"+empID.String()+"/calculate-payroll?year=2026&month=13", nil)
 	req.SetPathValue("id", empID.String())
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
 	rec = httptest.NewRecorder()
@@ -1258,8 +1271,7 @@ func TestPayrollCalculationEndpoints(t *testing.T) {
 
 	// 9d. POST calculate-payroll missing employee (404)
 	missingEmpID := uuid.MustParse("00000000-0000-0000-0000-000000000044")
-	req = httptest.NewRequest(http.MethodPost, "/api/v1/workspaces/"+wsID.String()+"/employees/"+missingEmpID.String()+"/calculate-payroll?year=2026&month=1", nil)
-	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
+	req = httptest.NewRequest(http.MethodPost, "/api/v1/employees/"+missingEmpID.String()+"/calculate-payroll?year=2026&month=1", nil)
 	req.SetPathValue("id", missingEmpID.String())
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
 	rec = httptest.NewRecorder()
@@ -1270,8 +1282,7 @@ func TestPayrollCalculationEndpoints(t *testing.T) {
 
 	// 9e. POST calculate-payroll no active employment (400)
 	noActiveEmpID := uuid.MustParse("00000000-0000-0000-0000-000000000040")
-	req = httptest.NewRequest(http.MethodPost, "/api/v1/workspaces/"+wsID.String()+"/employees/"+noActiveEmpID.String()+"/calculate-payroll?year=2026&month=1", nil)
-	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
+	req = httptest.NewRequest(http.MethodPost, "/api/v1/employees/"+noActiveEmpID.String()+"/calculate-payroll?year=2026&month=1", nil)
 	req.SetPathValue("id", noActiveEmpID.String())
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
 	rec = httptest.NewRecorder()
@@ -1284,8 +1295,7 @@ func TestPayrollCalculationEndpoints(t *testing.T) {
 	validEmp1 := uuid.New()
 	missingEmp := uuid.MustParse("00000000-0000-0000-0000-000000000099")
 	batchBody := `{"employment_ids":["` + validEmp1.String() + `","` + missingEmp.String() + `"],"year":2026,"month":1}`
-	req = httptest.NewRequest(http.MethodPost, "/api/v1/workspaces/"+wsID.String()+"/payroll/calculate-batch", bytes.NewBufferString(batchBody))
-	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
+	req = httptest.NewRequest(http.MethodPost, "/api/v1/payroll/calculate-batch", bytes.NewBufferString(batchBody))
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
 	rec = httptest.NewRecorder()
 	handler.CalculateBatchPayroll(rec, req)
@@ -1304,8 +1314,7 @@ func TestPayrollCalculationEndpoints(t *testing.T) {
 	}
 
 	// 10b. POST calculate-batch empty list (400)
-	req = httptest.NewRequest(http.MethodPost, "/api/v1/workspaces/"+wsID.String()+"/payroll/calculate-batch", bytes.NewBufferString(`{"employment_ids":[],"year":2026,"month":1}`))
-	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
+	req = httptest.NewRequest(http.MethodPost, "/api/v1/payroll/calculate-batch", bytes.NewBufferString(`{"employment_ids":[],"year":2026,"month":1}`))
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
 	rec = httptest.NewRecorder()
 	handler.CalculateBatchPayroll(rec, req)
@@ -1314,8 +1323,7 @@ func TestPayrollCalculationEndpoints(t *testing.T) {
 	}
 
 	// 10c. POST calculate-batch forbidden without permission (403)
-	req = httptest.NewRequest(http.MethodPost, "/api/v1/workspaces/"+wsID.String()+"/payroll/calculate-batch", bytes.NewBufferString(batchBody))
-	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
+	req = httptest.NewRequest(http.MethodPost, "/api/v1/payroll/calculate-batch", bytes.NewBufferString(batchBody))
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
 	rec = httptest.NewRecorder()
 	noPermHandler.CalculateBatchPayroll(rec, req)

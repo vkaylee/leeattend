@@ -181,11 +181,8 @@ function MyOtAssignmentRow({
 export function MyOtAssignmentsList({
   assignments,
   isLoading,
-  wsId: _wsId,
 }: {
   assignments: MyOvertimeAssignment[];
-  isLoading: boolean;
-  wsId: string;
 }) {
   const { t } = useTranslation();
   const toast = useToast();

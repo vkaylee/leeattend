@@ -5,7 +5,7 @@ import { useTranslation } from "react-i18next";
 
 import { FilterPanel } from "@/components/ui/filter-panel";
 import { FilterTrigger } from "@/components/ui/filter-trigger";
-import { fetchShifts, getStandaloneOrganizationId  } from "@/lib/api";
+import { fetchShifts } from "@/lib/api";
 
 /**
  * Multi-select shift-type filter built on FilterPanel (the existing `Combobox`
@@ -20,12 +20,11 @@ export function ShiftTypePicker({
   onChange: (names: string[]) => void;
 }) {
   const { t } = useTranslation();
-  const wsId = getStandaloneOrganizationId();
+  
 
   const { data: shifts = [] } = useQuery({
-    queryKey: ["shifts-catalogue", wsId],
-    queryFn: () => fetchShifts(wsId!),
-    enabled: !!wsId,
+    queryKey: ["shifts-catalogue"],
+    queryFn: () => fetchShifts(),
     staleTime: 5 * 60 * 1000,
   });
 

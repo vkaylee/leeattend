@@ -25,7 +25,6 @@ var (
 
 type HolidayRecord struct {
 	ID                   uuid.UUID        `json:"id"`
-	WorkspaceID          uuid.UUID        `json:"workspace_id"`
 	Name                 string           `json:"name"`
 	Date                 string           `json:"date"`
 	HolidayType          string           `json:"holiday_type"`
@@ -146,31 +145,21 @@ func (r *HolidayLeaveResult) UnmarshalJSON(data []byte) error {
 }
 
 type HolidayRepository interface {
-	ListHolidays(ctx context.Context, workspaceID uuid.UUID, year *int32, locationID *uuid.UUID, page, limit int64) (PaginatedHolidays, error)
-	GetHolidayByID(ctx context.Context, workspaceID, holidayID uuid.UUID) (HolidayRecord, error)
-	CreateHoliday(ctx context.Context, workspaceID uuid.UUID, req CreateHolidayRequest) (HolidayRecord, error)
-	UpdateHoliday(ctx context.Context, workspaceID, holidayID uuid.UUID, req UpdateHolidayRequest) (HolidayRecord, error)
-	DeleteHoliday(ctx context.Context, workspaceID, holidayID uuid.UUID) error
-	ProcessHolidayLeave(ctx context.Context, workspaceID, holidayID uuid.UUID) ([]HolidayLeaveResult, error)
-}
-
-type HolidayAuthorizer interface {
-	WorkspaceAuthorizer
-	WorkspaceMemberAuthorizer
+	ListHolidays(ctx context.Context, year *int32, locationID *uuid.UUID, page, limit int64) (PaginatedHolidays, error)
+	GetHolidayByID(ctx context.Context, holidayID uuid.UUID) (HolidayRecord, error)
+	CreateHoliday(ctx context.Context, req CreateHolidayRequest) (HolidayRecord, error)
+	UpdateHoliday(ctx context.Context, holidayID uuid.UUID, req UpdateHolidayRequest) (HolidayRecord, error)
+	DeleteHoliday(ctx context.Context, holidayID uuid.UUID) error
+	ProcessHolidayLeave(ctx context.Context, holidayID uuid.UUID) ([]HolidayLeaveResult, error)
 }
 
 type HolidayHandler struct {
 	Repository HolidayRepository
-	Authorizer HolidayAuthorizer
+	Authorizer Authorizer
 }
 
 func (h HolidayHandler) List(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := organizationIDFromContext(r)
-	if !ok {
-		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
-		return
-	}
-	if !h.authenticateAndAuthorizeMember(w, r, wsID) {
+	if !h.authenticateAndAuthorizeMember(w, r) {
 		return
 	}
 
@@ -222,7 +211,7 @@ func (h HolidayHandler) List(w http.ResponseWriter, r *http.Request) {
 		locationID = &locUUID
 	}
 
-	res, err := h.Repository.ListHolidays(r.Context(), wsID, year, locationID, page, limit)
+	res, err := h.Repository.ListHolidays(r.Context(), year, locationID, page, limit)
 	if err != nil {
 		h.writeError(w, r, err)
 		return
@@ -231,17 +220,16 @@ func (h HolidayHandler) List(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h HolidayHandler) Get(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := organizationIDFromContext(r)
 	holidayID, idOK := pathUUID(r, "id")
-	if !ok || !idOK {
+	if !idOK {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}
-	if !h.authenticateAndAuthorizeMember(w, r, wsID) {
+	if !h.authenticateAndAuthorizeMember(w, r) {
 		return
 	}
 
-	record, err := h.Repository.GetHolidayByID(r.Context(), wsID, holidayID)
+	record, err := h.Repository.GetHolidayByID(r.Context(), holidayID)
 	if err != nil {
 		h.writeError(w, r, err)
 		return
@@ -250,12 +238,7 @@ func (h HolidayHandler) Get(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h HolidayHandler) Create(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := organizationIDFromContext(r)
-	if !ok {
-		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
-		return
-	}
-	if !h.checkManagePermission(w, r, wsID) {
+	if !h.checkManagePermission(w, r) {
 		return
 	}
 
@@ -286,7 +269,7 @@ func (h HolidayHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	record, err := h.Repository.CreateHoliday(r.Context(), wsID, req)
+	record, err := h.Repository.CreateHoliday(r.Context(), req)
 	if err != nil {
 		h.writeError(w, r, err)
 		return
@@ -295,13 +278,12 @@ func (h HolidayHandler) Create(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h HolidayHandler) Update(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := organizationIDFromContext(r)
 	holidayID, idOK := pathUUID(r, "id")
-	if !ok || !idOK {
+	if !idOK {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}
-	if !h.checkManagePermission(w, r, wsID) {
+	if !h.checkManagePermission(w, r) {
 		return
 	}
 
@@ -337,7 +319,7 @@ func (h HolidayHandler) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	record, err := h.Repository.UpdateHoliday(r.Context(), wsID, holidayID, req)
+	record, err := h.Repository.UpdateHoliday(r.Context(), holidayID, req)
 	if err != nil {
 		h.writeError(w, r, err)
 		return
@@ -346,17 +328,16 @@ func (h HolidayHandler) Update(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h HolidayHandler) Delete(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := organizationIDFromContext(r)
 	holidayID, idOK := pathUUID(r, "id")
-	if !ok || !idOK {
+	if !idOK {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}
-	if !h.checkManagePermission(w, r, wsID) {
+	if !h.checkManagePermission(w, r) {
 		return
 	}
 
-	if err := h.Repository.DeleteHoliday(r.Context(), wsID, holidayID); err != nil {
+	if err := h.Repository.DeleteHoliday(r.Context(), holidayID); err != nil {
 		h.writeError(w, r, err)
 		return
 	}
@@ -364,17 +345,16 @@ func (h HolidayHandler) Delete(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h HolidayHandler) ProcessLeave(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := organizationIDFromContext(r)
 	holidayID, idOK := pathUUID(r, "id")
-	if !ok || !idOK {
+	if !idOK {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}
-	if !h.checkManagePermission(w, r, wsID) {
+	if !h.checkManagePermission(w, r) {
 		return
 	}
 
-	results, err := h.Repository.ProcessHolidayLeave(r.Context(), wsID, holidayID)
+	results, err := h.Repository.ProcessHolidayLeave(r.Context(), holidayID)
 	if err != nil {
 		h.writeError(w, r, err)
 		return
@@ -382,35 +362,35 @@ func (h HolidayHandler) ProcessLeave(w http.ResponseWriter, r *http.Request) {
 	apperror.WriteJSON(w, http.StatusOK, results)
 }
 
-func (h HolidayHandler) authenticateAndAuthorizeMember(w http.ResponseWriter, r *http.Request, wsID uuid.UUID) bool {
+func (h HolidayHandler) authenticateAndAuthorizeMember(w http.ResponseWriter, r *http.Request) bool {
 	userID, ok := httpinfra.UserIDFromContext(r.Context())
 	if !ok {
 		apperror.WriteError(w, r, apperror.Unauthorized(apperror.KeyAuthenticationRequired))
 		return false
 	}
 	if h.Authorizer == nil {
-		apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyNotWorkspaceMember))
+		apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyNotOrganizationMember))
 		return false
 	}
-	member, err := h.Authorizer.IsMember(r.Context(), userID, wsID)
+	member, err := h.Authorizer.IsMember(r.Context(), userID)
 	if err != nil {
 		apperror.WriteError(w, r, apperror.Internal(err))
 		return false
 	}
 	if !member {
-		apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyNotWorkspaceMember))
+		apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyNotOrganizationMember))
 		return false
 	}
 	return true
 }
 
-func (h HolidayHandler) checkManagePermission(w http.ResponseWriter, r *http.Request, wsID uuid.UUID) bool {
+func (h HolidayHandler) checkManagePermission(w http.ResponseWriter, r *http.Request) bool {
 	userID, ok := httpinfra.UserIDFromContext(r.Context())
 	if !ok {
 		apperror.WriteError(w, r, apperror.Unauthorized(apperror.KeyAuthenticationRequired))
 		return false
 	}
-	if h.Authorizer == nil || !h.Authorizer.HasPermission(r.Context(), userID, wsID, string(auth.PermissionHolidaysManage)) {
+	if h.Authorizer == nil || !h.Authorizer.HasPermission(r.Context(), userID, string(auth.PermissionHolidaysManage)) {
 		apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
 		return false
 	}

@@ -11,7 +11,6 @@ vi.mock("../helpers", () => ({
 const MOCK_EMPLOYEES = [
   {
     id: "emp-1",
-    workspace_id: "ws-test-123",
     employee_id_number: "EMP001",
     full_name: "Alice Nguyen",
     is_active: true,
@@ -20,7 +19,6 @@ const MOCK_EMPLOYEES = [
   },
   {
     id: "emp-2",
-    workspace_id: "ws-test-123",
     employee_id_number: "EMP002",
     full_name: "Bob Tran",
     is_active: true,
@@ -41,10 +39,10 @@ describe("fetchMyBehalfTargets", () => {
     };
     (apiFetch as Mock).mockResolvedValue(mockResponse);
 
-    const result = await fetchMyBehalfTargets("ws-test-123", "leave");
+    const result = await fetchMyBehalfTargets("leave");
 
     expect(apiFetch).toHaveBeenCalledWith(
-      "/v1/workspaces/ws-test-123/leave/behalf-assignments/my-targets",
+      "/v1/leave/behalf-assignments/my-targets",
     );
     expect(result).toEqual(MOCK_EMPLOYEES);
   });
@@ -56,10 +54,10 @@ describe("fetchMyBehalfTargets", () => {
     };
     (apiFetch as Mock).mockResolvedValue(mockResponse);
 
-    const result = await fetchMyBehalfTargets("ws-test-123", "attendance_adjustment");
+    const result = await fetchMyBehalfTargets("attendance_adjustment");
 
     expect(apiFetch).toHaveBeenCalledWith(
-      "/v1/workspaces/ws-test-123/attendance/adjustments/behalf-assignments/my-targets",
+      "/v1/attendance/adjustments/behalf-assignments/my-targets",
     );
     expect(result).toEqual(MOCK_EMPLOYEES);
   });
@@ -71,10 +69,10 @@ describe("fetchMyBehalfTargets", () => {
     };
     (apiFetch as Mock).mockResolvedValue(mockResponse);
 
-    const result = await fetchMyBehalfTargets("ws-test-123", "overtime_request");
+    const result = await fetchMyBehalfTargets("overtime_request");
 
     expect(apiFetch).toHaveBeenCalledWith(
-      "/v1/workspaces/ws-test-123/overtime/requests/behalf-assignments/my-targets",
+      "/v1/overtime/requests/behalf-assignments/my-targets",
     );
     expect(result).toEqual(MOCK_EMPLOYEES);
   });
@@ -83,13 +81,16 @@ describe("fetchMyBehalfTargets", () => {
     const mockResponse = {
       ok: false,
       status: 403,
+      statusText: "Forbidden",
+      headers: new Headers({ "content-type": "application/json" }),
+      text: vi.fn().mockResolvedValue(JSON.stringify({ error: "Forbidden" })),
       json: vi.fn().mockResolvedValue({ error: "Forbidden" }),
     };
     (apiFetch as Mock).mockResolvedValue(mockResponse);
 
     await expect(
-      fetchMyBehalfTargets("ws-test-123", "leave"),
-    ).rejects.toThrow("[403]");
+      fetchMyBehalfTargets("leave"),
+    ).rejects.toThrow();
   });
 
   it("returns empty array when API returns empty list", async () => {
@@ -99,7 +100,7 @@ describe("fetchMyBehalfTargets", () => {
     };
     (apiFetch as Mock).mockResolvedValue(mockResponse);
 
-    const result = await fetchMyBehalfTargets("ws-test-123", "leave");
+    const result = await fetchMyBehalfTargets("leave");
 
     expect(result).toEqual([]);
   });

@@ -21,7 +21,7 @@ import { ROUTES } from "@/lib/routes";
 import { cn } from "@/lib/utils";
 
 interface NavbarProps {
-  currentWorkspaceName: string;
+  organizationName: string;
   onOpenLauncher?: () => void;
 }
 
@@ -58,7 +58,7 @@ const CATEGORIES: NavCategory[] = [
     siblings: [
       { labelKey: "common.employees", defaultLabel: "Danh sách nhân viên", to: ROUTES.EMPLOYEES },
       { labelKey: "common.departments", defaultLabel: "Phòng ban", to: ROUTES.DEPARTMENTS },
-      { labelKey: "common.people", defaultLabel: "Sơ đồ tổ chức", to: ROUTES.PEOPLE },
+      { labelKey: "members.title", defaultLabel: "Thành viên", to: ROUTES.SETTINGS.MEMBERS },
     ],
   },
   {
@@ -85,7 +85,7 @@ const CATEGORIES: NavCategory[] = [
 ];
 
 export default memo(function Navbar({
-  currentWorkspaceName,
+  organizationName,
   onOpenLauncher,
 }: NavbarProps) {
   const { t } = useTranslation([
@@ -104,7 +104,7 @@ export default memo(function Navbar({
     const map: Partial<Record<string, string>> = {
       [ROUTES.HOME]: t("common.dashboard"),
       [ROUTES.DASHBOARD]: t("dashboard.catalog.title"),
-      [ROUTES.PEOPLE]: t("common.people"),
+      [ROUTES.SETTINGS.MEMBERS]: t("members.title"),
       [ROUTES.EMPLOYEES]: t("common.employees"),
       [ROUTES.DEPARTMENTS]: t("common.departments"),
       [ROUTES.ATTENDANCE_LOGS]: t("common.logs"),
@@ -149,7 +149,7 @@ export default memo(function Navbar({
           className="flex items-center gap-2 hover:opacity-80 transition-opacity truncate"
         >
           <span className="hidden sm:inline text-slate-400 dark:text-slate-500 font-bold uppercase text-[10px] tracking-[0.25em] opacity-80 truncate">
-            {currentWorkspaceName}
+            {organizationName}
           </span>
         </Link>
 

@@ -23,7 +23,6 @@ vi.mock("@/lib/api", async (importOriginal) => {
     fetchWorkspace: vi.fn(),
     fetchDefaultAttendanceRules: vi.fn(),
     fetchAttendancePolicyVersions: vi.fn(),
-    getStandaloneOrganizationId: vi.fn(),
     updateDefaultAttendanceRules: vi.fn(),
     reprocessAllAttendance: vi.fn(),
     checkReprocessStatus: vi.fn(),
@@ -104,11 +103,9 @@ const createQueryClient = () => new QueryClient({
 });
 
 describe("TimeSettings Page", () => {
-  const wsId = "test-ws-id";
 
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(api.getStandaloneOrganizationId).mockReturnValue(wsId);
   });
 
   it("renders loader initially and then content", async () => {
@@ -185,7 +182,7 @@ describe("TimeSettings Page", () => {
     await user.click(saveBtn);
 
     // Verify api call
-    expect(api.updateDefaultAttendanceRules).toHaveBeenCalledWith(wsId, {
+    expect(api.updateDefaultAttendanceRules).toHaveBeenCalledWith({
       early_arrival_strategy: "block",
       rounding_policy: "none",
       valid_from: expect.any(String),
@@ -223,6 +220,6 @@ describe("TimeSettings Page", () => {
     await user.click(submitBtn);
 
     // Verify api call
-    expect(api.reprocessAllAttendance).toHaveBeenCalledWith(wsId, expect.any(String), expect.any(String));
+    expect(api.reprocessAllAttendance).toHaveBeenCalledWith(expect.any(String), expect.any(String));
   });
 });

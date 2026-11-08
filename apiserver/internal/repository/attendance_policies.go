@@ -18,7 +18,7 @@ import (
 type AttendancePolicyRepository struct {
 	DB       DBTX
 	SystemDB DBTX
-	BeginTx  func(context.Context, uuid.UUID) (TxBeginner, error)
+	BeginTx  func(context.Context) (TxBeginner, error)
 }
 
 func (r AttendancePolicyRepository) db(ctx context.Context) (DBTX, error) {
@@ -28,9 +28,9 @@ func (r AttendancePolicyRepository) db(ctx context.Context) (DBTX, error) {
 	return r.DB, nil
 }
 
-func (r AttendancePolicyRepository) begin(ctx context.Context, workspaceID uuid.UUID) (TxBeginner, error) {
+func (r AttendancePolicyRepository) begin(ctx context.Context) (TxBeginner, error) {
 	if r.BeginTx != nil {
-		return r.BeginTx(ctx, workspaceID)
+		return r.BeginTx(ctx)
 	}
 	db, err := r.db(ctx)
 	if err != nil {
@@ -43,16 +43,17 @@ func (r AttendancePolicyRepository) begin(ctx context.Context, workspaceID uuid.
 	return beginner, nil
 }
 
-func (r AttendancePolicyRepository) validateBehalfAssignee(ctx context.Context, workspaceID, userID uuid.UUID) error {
-	if r.SystemDB == nil {
+func (r AttendancePolicyRepository) validateBehalfAssignee(ctx context.Context, userID uuid.UUID) error {
+	db := r.SystemDB
+	if db == nil {
 		return errors.New("attendance policy repository: system database is not configured")
 	}
 	var isMember bool
-	if err := r.SystemDB.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM workspace_members WHERE workspace_id = $1 AND user_id = $2)`, workspaceID, userID).Scan(&isMember); err != nil {
+	if err := db.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM user_roles WHERE user_id = $1)`, userID).Scan(&isMember); err != nil {
 		return err
 	}
 	if !isMember {
-		return apperror.Forbidden(apperror.KeyNotWorkspaceMember)
+		return apperror.Forbidden(apperror.KeyNotOrganizationMember)
 	}
 	return nil
 }
@@ -109,13 +110,13 @@ func policyVersionResponse(id uuid.UUID, rules api.AttendanceRules, validFrom ti
 	}
 }
 
-func (r AttendancePolicyRepository) GetDefaultPolicyRules(ctx context.Context, workspaceID uuid.UUID) (api.AttendanceRules, error) {
+func (r AttendancePolicyRepository) GetDefaultPolicyRules(ctx context.Context) (api.AttendanceRules, error) {
 	db, err := r.db(ctx)
 	if err != nil {
 		return api.AttendanceRules{}, err
 	}
 	var raw []byte
-	err = db.QueryRow(ctx, `SELECT v.rules FROM attendance_policy_versions v JOIN attendance_policies p ON p.id = v.policy_id WHERE p.workspace_id = $1 AND p.is_default = TRUE ORDER BY v.valid_from DESC, v.created_at DESC LIMIT 1`, workspaceID).Scan(&raw)
+	err = db.QueryRow(ctx, `SELECT v.rules FROM attendance_policy_versions v JOIN attendance_policies p ON p.id = v.policy_id WHERE p.is_default = TRUE ORDER BY v.valid_from DESC, v.created_at DESC LIMIT 1`).Scan(&raw)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return api.DefaultAttendanceRules(), nil
 	}
@@ -125,12 +126,12 @@ func (r AttendancePolicyRepository) GetDefaultPolicyRules(ctx context.Context, w
 	return decodeAttendanceRules(raw), nil
 }
 
-func (r AttendancePolicyRepository) GetDefaultPolicyVersions(ctx context.Context, workspaceID uuid.UUID) ([]api.AttendancePolicyVersionResponse, error) {
+func (r AttendancePolicyRepository) GetDefaultPolicyVersions(ctx context.Context) ([]api.AttendancePolicyVersionResponse, error) {
 	db, err := r.db(ctx)
 	if err != nil {
 		return nil, err
 	}
-	rows, err := db.Query(ctx, `SELECT v.id, v.rules, v.valid_from, v.valid_to, v.created_by, v.created_at FROM attendance_policy_versions v JOIN attendance_policies p ON p.id = v.policy_id WHERE p.workspace_id = $1 AND p.is_default = TRUE ORDER BY v.valid_from DESC, v.created_at DESC`, workspaceID)
+	rows, err := db.Query(ctx, `SELECT v.id, v.rules, v.valid_from, v.valid_to, v.created_by, v.created_at FROM attendance_policy_versions v JOIN attendance_policies p ON p.id = v.policy_id WHERE p.is_default = TRUE ORDER BY v.valid_from DESC, v.created_at DESC`)
 	if err != nil {
 		return nil, err
 	}
@@ -150,22 +151,22 @@ func (r AttendancePolicyRepository) GetDefaultPolicyVersions(ctx context.Context
 	return result, rows.Err()
 }
 
-func (r AttendancePolicyRepository) UpdateDefaultPolicyRules(ctx context.Context, workspaceID, userID uuid.UUID, req api.UpdateAttendanceRulesRequest) (api.AttendancePolicyVersionResponse, error) {
+func (r AttendancePolicyRepository) UpdateDefaultPolicyRules(ctx context.Context, userID uuid.UUID, req api.UpdateAttendanceRulesRequest) (api.AttendancePolicyVersionResponse, error) {
 	validFrom, err := parsePolicyTime(req.ValidFrom)
 	if err != nil {
 		return api.AttendancePolicyVersionResponse{}, err
 	}
-	beginner, err := r.begin(ctx, workspaceID)
+	beginner, err := r.begin(ctx)
 	if err != nil {
 		return api.AttendancePolicyVersionResponse{}, err
 	}
 	var result api.AttendancePolicyVersionResponse
 	err = service.WithTx(ctx, beginner, func(ctx context.Context, tx pgx.Tx) error {
 		var policyID uuid.UUID
-		err := tx.QueryRow(ctx, `SELECT id FROM attendance_policies WHERE workspace_id = $1 AND is_default = TRUE LIMIT 1`, workspaceID).Scan(&policyID)
+		err := tx.QueryRow(ctx, `SELECT id FROM attendance_policies WHERE is_default = TRUE LIMIT 1`).Scan(&policyID)
 		if errors.Is(err, pgx.ErrNoRows) {
 			policyID = uuid.New()
-			if _, err = tx.Exec(ctx, `INSERT INTO attendance_policies (id, workspace_id, name, is_default, created_at, updated_at) VALUES ($1, $2, 'Default Policy', TRUE, NOW(), NOW())`, policyID, workspaceID); err != nil {
+			if _, err = tx.Exec(ctx, `INSERT INTO attendance_policies (id, name, is_default, created_at, updated_at) VALUES ($1, 'Default Policy', TRUE, NOW(), NOW())`, policyID); err != nil {
 				return err
 			}
 		} else if err != nil {
@@ -209,12 +210,12 @@ func (r AttendancePolicyRepository) UpdateDefaultPolicyRules(ctx context.Context
 	return result, err
 }
 
-func (r AttendancePolicyRepository) ListPolicyAssignments(ctx context.Context, workspaceID uuid.UUID) ([]api.PolicyAssignmentResponse, error) {
+func (r AttendancePolicyRepository) ListPolicyAssignments(ctx context.Context) ([]api.PolicyAssignmentResponse, error) {
 	db, err := r.db(ctx)
 	if err != nil {
 		return nil, err
 	}
-	rows, err := db.Query(ctx, `SELECT DISTINCT ON (a.id) a.id, a.target_type, a.target_id, a.valid_from, a.valid_to, v.rules FROM attendance_policy_assignments a JOIN attendance_policies p ON p.id = a.policy_id JOIN attendance_policy_versions v ON v.policy_id = a.policy_id WHERE p.workspace_id = $1 AND a.valid_from <= NOW() AND (a.valid_to IS NULL OR a.valid_to >= NOW()) AND v.valid_from <= NOW() AND (v.valid_to IS NULL OR v.valid_to >= NOW()) ORDER BY a.id, v.valid_from DESC, v.created_at DESC`, workspaceID)
+	rows, err := db.Query(ctx, `SELECT DISTINCT ON (a.id) a.id, a.target_type, a.target_id, a.valid_from, a.valid_to, v.rules FROM attendance_policy_assignments a JOIN attendance_policies p ON p.id = a.policy_id JOIN attendance_policy_versions v ON v.policy_id = a.policy_id WHERE a.valid_from <= NOW() AND (a.valid_to IS NULL OR a.valid_to >= NOW()) AND v.valid_from <= NOW() AND (v.valid_to IS NULL OR v.valid_to >= NOW()) ORDER BY a.id, v.valid_from DESC, v.created_at DESC`)
 	if err != nil {
 		return nil, err
 	}
@@ -239,22 +240,22 @@ func (r AttendancePolicyRepository) ListPolicyAssignments(ctx context.Context, w
 	return result, rows.Err()
 }
 
-func (r AttendancePolicyRepository) UpsertPolicyAssignment(ctx context.Context, workspaceID, userID uuid.UUID, req api.UpsertPolicyAssignmentRequest) (api.PolicyAssignmentResponse, error) {
+func (r AttendancePolicyRepository) UpsertPolicyAssignment(ctx context.Context, userID uuid.UUID, req api.UpsertPolicyAssignmentRequest) (api.PolicyAssignmentResponse, error) {
 	validFrom, err := parsePolicyTime(req.ValidFrom)
 	if err != nil {
 		return api.PolicyAssignmentResponse{}, err
 	}
-	beginner, err := r.begin(ctx, workspaceID)
+	beginner, err := r.begin(ctx)
 	if err != nil {
 		return api.PolicyAssignmentResponse{}, err
 	}
 	var result api.PolicyAssignmentResponse
 	err = service.WithTx(ctx, beginner, func(ctx context.Context, tx pgx.Tx) error {
 		var assignmentID, policyID uuid.UUID
-		err := tx.QueryRow(ctx, `SELECT a.id, a.policy_id FROM attendance_policy_assignments a JOIN attendance_policies p ON p.id = a.policy_id WHERE p.workspace_id = $1 AND a.target_type = $2 AND a.target_id = $3 AND a.valid_to IS NULL LIMIT 1 FOR UPDATE`, workspaceID, req.TargetType, req.TargetID).Scan(&assignmentID, &policyID)
+		err := tx.QueryRow(ctx, `SELECT a.id, a.policy_id FROM attendance_policy_assignments a WHERE a.target_type = $1 AND a.target_id = $2 AND a.valid_to IS NULL LIMIT 1 FOR UPDATE`, req.TargetType, req.TargetID).Scan(&assignmentID, &policyID)
 		if errors.Is(err, pgx.ErrNoRows) {
 			policyID, assignmentID = uuid.New(), uuid.New()
-			if _, err = tx.Exec(ctx, `INSERT INTO attendance_policies (id, workspace_id, name, is_default, created_at, updated_at) VALUES ($1, $2, $3, FALSE, NOW(), NOW())`, policyID, workspaceID, fmt.Sprintf("%s %s Override", req.TargetType, req.TargetID)); err != nil {
+			if _, err = tx.Exec(ctx, `INSERT INTO attendance_policies (id, name, is_default, created_at, updated_at) VALUES ($1, $2, FALSE, NOW(), NOW())`, policyID, fmt.Sprintf("%s %s Override", req.TargetType, req.TargetID)); err != nil {
 				return err
 			}
 			if _, err = tx.Exec(ctx, `INSERT INTO attendance_policy_assignments (id, policy_id, target_type, target_id, valid_from, valid_to, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, NULL, NOW(), NOW())`, assignmentID, policyID, req.TargetType, req.TargetID, validFrom); err != nil {
@@ -279,28 +280,28 @@ func (r AttendancePolicyRepository) UpsertPolicyAssignment(ctx context.Context, 
 	return result, err
 }
 
-func (r AttendancePolicyRepository) DeletePolicyAssignment(ctx context.Context, workspaceID, assignmentID uuid.UUID) error {
+func (r AttendancePolicyRepository) DeletePolicyAssignment(ctx context.Context, assignmentID uuid.UUID) error {
 	db, err := r.db(ctx)
 	if err != nil {
 		return err
 	}
-	_, err = db.Exec(ctx, `UPDATE attendance_policy_assignments a SET valid_to = NOW(), updated_at = NOW() FROM attendance_policies p WHERE a.id = $1 AND a.policy_id = p.id AND p.workspace_id = $2`, assignmentID, workspaceID)
+	_, err = db.Exec(ctx, `UPDATE attendance_policy_assignments SET valid_to = NOW(), updated_at = NOW() WHERE id = $1`, assignmentID)
 	return err
 }
 
 func scanBehalf(row interface{ Scan(...any) error }) (api.BehalfAssignment, error) {
 	var item api.BehalfAssignment
 	var createdAt, updatedAt time.Time
-	if err := row.Scan(&item.ID, &item.WorkspaceID, &item.AssigneeUserID, &item.TargetEmployeeID, &item.TargetDepartmentID, &item.AssignmentType, &createdAt, &updatedAt, &item.EmployerID, &item.TargetEmployeeName, &item.TargetEmployeeIDNumber, &item.TargetDepartmentName); err != nil {
+	if err := row.Scan(&item.ID, &item.AssigneeUserID, &item.TargetEmployeeID, &item.TargetDepartmentID, &item.AssignmentType, &createdAt, &updatedAt, &item.EmployerID, &item.TargetEmployeeName, &item.TargetEmployeeIDNumber, &item.TargetDepartmentName); err != nil {
 		return item, err
 	}
 	item.CreatedAt, item.UpdatedAt = createdAt.UTC().Format(time.RFC3339), updatedAt.UTC().Format(time.RFC3339)
 	return item, nil
 }
 
-const behalfColumns = `ba.id, ba.workspace_id, ba.assignee_user_id, ba.target_employee_id, ba.target_department_id, ba.assignment_type, ba.created_at, ba.updated_at, ba.employer_id, te.full_name, te.employee_id_number, d.name`
+const behalfColumns = `ba.id, ba.assignee_user_id, ba.target_employee_id, ba.target_department_id, ba.assignment_type, ba.created_at, ba.updated_at, ba.employer_id, te.full_name, te.employee_id_number, d.name`
 
-func (r AttendancePolicyRepository) CreateBehalfAssignment(ctx context.Context, workspaceID uuid.UUID, req api.CreateBehalfAssignmentRequest, assignmentType string) (api.BehalfAssignment, error) {
+func (r AttendancePolicyRepository) CreateBehalfAssignment(ctx context.Context, req api.CreateBehalfAssignmentRequest, assignmentType string) (api.BehalfAssignment, error) {
 	db, err := r.db(ctx)
 	if err != nil {
 		return api.BehalfAssignment{}, err
@@ -308,18 +309,18 @@ func (r AttendancePolicyRepository) CreateBehalfAssignment(ctx context.Context, 
 	if (req.TargetEmployeeID == nil) == (req.TargetDepartmentID == nil) {
 		return api.BehalfAssignment{}, apperror.Validation(apperror.KeyValidation)
 	}
-	if err := r.validateBehalfAssignee(ctx, workspaceID, req.AssigneeUserID); err != nil {
+	if err := r.validateBehalfAssignee(ctx, req.AssigneeUserID); err != nil {
 		return api.BehalfAssignment{}, err
 	}
-	return scanBehalf(db.QueryRow(ctx, `WITH inserted AS (INSERT INTO behalf_assignments (id, workspace_id, assignee_user_id, target_employee_id, target_department_id, assignment_type, employer_id, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW()) RETURNING *) SELECT `+behalfColumns+` FROM inserted ba LEFT JOIN employees te ON te.workspace_id = ba.workspace_id AND te.id = ba.target_employee_id AND te.deleted_at IS NULL LEFT JOIN departments d ON d.workspace_id = ba.workspace_id AND d.id = ba.target_department_id`, uuid.New(), workspaceID, req.AssigneeUserID, req.TargetEmployeeID, req.TargetDepartmentID, assignmentType, req.EmployerID))
+	return scanBehalf(db.QueryRow(ctx, `WITH inserted AS (INSERT INTO behalf_assignments (id, assignee_user_id, target_employee_id, target_department_id, assignment_type, employer_id, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW()) RETURNING *) SELECT `+behalfColumns+` FROM inserted ba LEFT JOIN employees te ON te.id = ba.target_employee_id AND te.deleted_at IS NULL LEFT JOIN departments d ON d.id = ba.target_department_id`, uuid.New(), req.AssigneeUserID, req.TargetEmployeeID, req.TargetDepartmentID, assignmentType, req.EmployerID))
 }
 
-func (r AttendancePolicyRepository) ListBehalfAssignments(ctx context.Context, workspaceID uuid.UUID, assignmentType string) ([]api.BehalfAssignment, error) {
+func (r AttendancePolicyRepository) ListBehalfAssignments(ctx context.Context, assignmentType string) ([]api.BehalfAssignment, error) {
 	db, err := r.db(ctx)
 	if err != nil {
 		return nil, err
 	}
-	rows, err := db.Query(ctx, `SELECT `+behalfColumns+` FROM behalf_assignments ba LEFT JOIN employees te ON te.workspace_id = ba.workspace_id AND te.id = ba.target_employee_id AND te.deleted_at IS NULL LEFT JOIN departments d ON d.workspace_id = ba.workspace_id AND d.id = ba.target_department_id WHERE ba.workspace_id = $1 AND ba.assignment_type = $2 ORDER BY ba.created_at DESC`, workspaceID, assignmentType)
+	rows, err := db.Query(ctx, `SELECT `+behalfColumns+` FROM behalf_assignments ba LEFT JOIN employees te ON te.id = ba.target_employee_id AND te.deleted_at IS NULL LEFT JOIN departments d ON d.id = ba.target_department_id WHERE ba.assignment_type = $1 ORDER BY ba.created_at DESC`, assignmentType)
 	if err != nil {
 		return nil, err
 	}
@@ -335,12 +336,12 @@ func (r AttendancePolicyRepository) ListBehalfAssignments(ctx context.Context, w
 	return result, rows.Err()
 }
 
-func (r AttendancePolicyRepository) DeleteBehalfAssignment(ctx context.Context, workspaceID, assignmentID uuid.UUID) error {
+func (r AttendancePolicyRepository) DeleteBehalfAssignment(ctx context.Context, assignmentID uuid.UUID) error {
 	db, err := r.db(ctx)
 	if err != nil {
 		return err
 	}
-	result, err := db.Exec(ctx, `DELETE FROM behalf_assignments WHERE id = $1 AND workspace_id = $2`, assignmentID, workspaceID)
+	result, err := db.Exec(ctx, `DELETE FROM behalf_assignments WHERE id = $1`, assignmentID)
 	if err != nil {
 		return err
 	}
@@ -350,12 +351,12 @@ func (r AttendancePolicyRepository) DeleteBehalfAssignment(ctx context.Context, 
 	return nil
 }
 
-func (r AttendancePolicyRepository) ListMyBehalfTargets(ctx context.Context, workspaceID, userID uuid.UUID, assignmentType string) ([]api.EmployeeRecord, error) {
+func (r AttendancePolicyRepository) ListMyBehalfTargets(ctx context.Context, userID uuid.UUID, assignmentType string) ([]api.EmployeeRecord, error) {
 	db, err := r.db(ctx)
 	if err != nil {
 		return nil, err
 	}
-	rows, err := db.Query(ctx, `SELECT DISTINCT e.id, e.workspace_id, e.user_id, e.full_name, e.employee_id_number, e.tags, e.created_at, e.updated_at, d.name, em.id, em.employer_id, em.primary_location_id FROM employees e JOIN employments em ON em.employee_id = e.id AND em.workspace_id = e.workspace_id AND em.status = 'active' AND em.deleted_at IS NULL LEFT JOIN departments d ON d.id = em.department_id LEFT JOIN behalf_assignments ba ON ba.workspace_id = e.workspace_id AND ba.assignee_user_id = $2 AND ba.assignment_type = $3 AND (ba.target_employee_id = e.id OR ba.target_department_id = em.department_id) WHERE e.workspace_id = $1 AND e.deleted_at IS NULL AND ba.id IS NOT NULL ORDER BY e.full_name, e.id`, workspaceID, userID, assignmentType)
+	rows, err := db.Query(ctx, `SELECT DISTINCT e.id, e.user_id, e.full_name, e.employee_id_number, e.tags, e.created_at, e.updated_at, d.name, em.id, em.employer_id, em.primary_location_id FROM employees e JOIN employments em ON em.employee_id = e.id AND em.status = 'active' AND em.deleted_at IS NULL LEFT JOIN departments d ON d.id = em.department_id LEFT JOIN behalf_assignments ba ON ba.assignee_user_id = $1 AND ba.assignment_type = $2 AND (ba.target_employee_id = e.id OR ba.target_department_id = em.department_id) WHERE e.deleted_at IS NULL AND ba.id IS NOT NULL ORDER BY e.full_name, e.id`, userID, assignmentType)
 	if err != nil {
 		return nil, err
 	}
@@ -364,7 +365,7 @@ func (r AttendancePolicyRepository) ListMyBehalfTargets(ctx context.Context, wor
 	for rows.Next() {
 		var item api.EmployeeRecord
 		var createdAt, updatedAt time.Time
-		if err := rows.Scan(&item.ID, &item.WorkspaceID, &item.UserID, &item.FullName, &item.EmployeeIDNumber, &item.Tags, &createdAt, &updatedAt, &item.DepartmentName, &item.ActiveEmploymentID, &item.EmployerID, &item.PrimaryLocationID); err != nil {
+		if err := rows.Scan(&item.ID, &item.UserID, &item.FullName, &item.EmployeeIDNumber, &item.Tags, &createdAt, &updatedAt, &item.DepartmentName, &item.ActiveEmploymentID, &item.EmployerID, &item.PrimaryLocationID); err != nil {
 			return nil, err
 		}
 		item.CreatedAt, item.UpdatedAt = createdAt.UTC().Format(time.RFC3339), updatedAt.UTC().Format(time.RFC3339)

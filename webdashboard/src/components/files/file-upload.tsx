@@ -19,7 +19,6 @@ interface FileUploadProps {
   onUploadSuccess?: (file: components["schemas"]["WorkspaceFile"]) => void;
   ownerId: string;
   ownerType: FileOwnerType;
-  workspaceId: string;
 }
 
 interface UploadProgressProps {
@@ -117,9 +116,7 @@ function getUploadCloudClassName(isDragActive: boolean) {
   }`;
 }
 
-export function FileUpload({
-  workspaceId,
-  category,
+export function FileUpload({category,
   ownerType,
   ownerId,
   onUploadSuccess,
@@ -130,9 +127,7 @@ export function FileUpload({
   const { t } = useTranslation("common");
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  const { uploadAsync: uploadFile, isUploading, progress, error: uploadError } = useFileUpload({
-    workspaceId,
-    category,
+  const { uploadAsync: uploadFile, isUploading, progress, error: uploadError } = useFileUpload({category,
     ownerType,
     ownerId,
   });

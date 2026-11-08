@@ -30,7 +30,7 @@ import ResponsiveTable from "@/components/ui/responsive-table";
 import ResponsiveToolbar from "@/components/ui/responsive-toolbar";
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
 import { useMyPermissions } from "@/hooks/use-permissions";
-import { getStandaloneOrganizationId, Employee, LeaveRequest } from "@/lib/api";
+import { Employee, LeaveRequest } from "@/lib/api";
 
 import { BehalfAssignmentsTab } from "./approvals/components/behalf-assignments-tab";
 
@@ -66,7 +66,7 @@ function StatusFilterDropdown({ setStatusFilter, statusFilter }: { setStatusFilt
 }
 
 export default function LeaveRequestsPage() {
-  const wsId = getStandaloneOrganizationId();
+  
   const { formatDate } = useDateTimeFormatter();
   const { hasPermission } = useMyPermissions();
 
@@ -88,9 +88,9 @@ export default function LeaveRequestsPage() {
     importBannerDismissed, setImportBannerDismissed,
     handleImportComplete,
     t
-  } = useLeaveRequests(wsId);
+  } = useLeaveRequests();
 
-  const { data: departments = [] } = useDepartments(wsId);
+  const { data: departments = [] } = useDepartments();
 
   const employeeMap = useMemo(() => {
     const map = new Map<string, Employee>();
@@ -98,7 +98,7 @@ export default function LeaveRequestsPage() {
     return map;
   }, [employees]);
 
-  if (!wsId) return <div className="p-12 text-center text-primary-400 font-bold italic uppercase tracking-widest text-xs opacity-50">{t("common.select_workspace")}</div>;
+  
 
   const canManageBehalf = hasPermission("leave:policies:manage");
 
@@ -146,27 +146,24 @@ export default function LeaveRequestsPage() {
         <PageTabs activeTab={activeTab} onTabChange={(id) => { setActiveTab(id as TabType); }} tabs={tabs} />
         {activeTab !== "behalf_assignments" && (
           <div className="w-full sm:w-72">
-            <EmployeeSearch
-              clearOnEscape
-              departments={departments}
-              keyboardShortcut={["/", "Enter"]}
-              onChange={(value) => { setEmployeeId((Array.isArray(value) ? value[0] : value) || "all"); }}
-              placeholder={employeeId === "all" ? t("common.all_employees") : undefined}
-              value={employeeId === "all" ? "" : employeeId}
-              workspaceId={wsId}
-            />
+            <EmployeeSearch clearOnEscape
+            departments={departments}
+            keyboardShortcut={["/", "Enter"]}
+            onChange={(value) => { setEmployeeId((Array.isArray(value) ? value[0] : value) || "all"); }}
+            placeholder={employeeId === "all" ? t("common.all_employees") : undefined}
+            value={employeeId === "all" ? "" : employeeId}  />
           </div>
         )}
       </div>
 
       {activeTab === "behalf_assignments" && canManageBehalf ? (
         <ResilientWidget>
-          <BehalfAssignmentsTab assignmentType="leave" wsId={wsId} />
+          <BehalfAssignmentsTab assignmentType="leave"  />
         </ResilientWidget>
       ) : (
         <ResilientWidget>
           <div className="space-y-6">
-            <LeaveImportBanner importBannerDismissed={importBannerDismissed} importJob={importJob} setImportBannerDismissed={setImportBannerDismissed} t={t} wsId={wsId} />
+            <LeaveImportBanner importBannerDismissed={importBannerDismissed} importJob={importJob} setImportBannerDismissed={setImportBannerDismissed} t={t}  />
 
             <ResponsiveToolbar filterCount={statusFilter !== "all" ? 1 : 0} mobileOnly>
               <div className="space-y-4">
@@ -229,7 +226,7 @@ export default function LeaveRequestsPage() {
               onClose={() => setSelectedRequest(null)}
               request={selectedRequest}
             />
-             <CreateLeaveRequestModal isOpen={isModalOpen} leaveTypes={leaveTypes} onClose={() => { setIsModalOpen(false); }} t={t} wsId={wsId} />
+             <CreateLeaveRequestModal isOpen={isModalOpen} leaveTypes={leaveTypes} onClose={() => { setIsModalOpen(false); }} t={t}  />
             <PDFPreviewModal fileUrl={previewFileUrl} isOpen={isPreviewOpen} onClose={() => { setIsPreviewOpen(false); }} title={previewTitle} />
           </div>
         </ResilientWidget>

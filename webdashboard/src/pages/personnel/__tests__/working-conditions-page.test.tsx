@@ -18,11 +18,6 @@ vi.mock("react-i18next", () => ({
   }),
 }));
 
-// Mock standalone organization ID
-let mockWorkspaceId = "ws-1";
-vi.mock("@/lib/api/helpers", () => ({
-  getStandaloneOrganizationId: () => mockWorkspaceId,
-}));
 
 // Mock TanStack Router
 vi.mock("@tanstack/react-router", () => ({
@@ -101,7 +96,6 @@ vi.mock("@/lib/api", async (importOriginal) => {
   const actual = await importOriginal<typeof LibApi>();
   return {
     ...actual,
-    getStandaloneOrganizationId: () => mockWorkspaceId,
     fetchConditionTypes: vi.fn().mockImplementation(() => Promise.resolve(mockTypeDefs)),
     deleteWorkingCondition: (...args: unknown[]) => mockDeleteWorkingCondition(...args),
   };

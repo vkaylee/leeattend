@@ -21,9 +21,7 @@ import (
 )
 
 type PayrollRepository struct {
-	DB       DBTX
-	BeginTx  func(context.Context, uuid.UUID) (TxBeginner, error)
-	SystemDB DBTX
+	DB DBTX
 }
 
 func isConflictError(err error) bool {
@@ -36,11 +34,22 @@ func (r PayrollRepository) db(ctx context.Context) (DBTX, error) {
 	}
 	return r.DB, nil
 }
+
+// organizationLocation resolves the singleton organization timezone and keeps
+// UTC behavior when no settings row has been created yet.
+func organizationLocation(ctx context.Context, db DBTX) *time.Location {
+	var tzName string
+	if err := db.QueryRow(ctx, `SELECT timezone FROM organization_settings LIMIT 1`).Scan(&tzName); err == nil && tzName != "" {
+		return timezone.ParseWorkspaceTZ(tzName)
+	}
+	return time.UTC
+}
+
 func scanPayslip(row interface{ Scan(...any) error }) (api.PayslipRecord, error) {
 	var p api.PayslipRecord
 	var base, ot, ded, net, premium string
 	var created, updated time.Time
-	err := row.Scan(&p.ID, &p.WorkspaceID, &p.EmploymentID, &p.PeriodStart, &p.PeriodEnd, &base, &ot, &ded, &net, &p.Status, &created, &updated, &p.StandardUnits, &p.OvertimeUnits, &premium)
+	err := row.Scan(&p.ID, &p.EmploymentID, &p.PeriodStart, &p.PeriodEnd, &base, &ot, &ded, &net, &p.Status, &created, &updated, &p.StandardUnits, &p.OvertimeUnits, &premium)
 	if err != nil {
 		return p, err
 	}
@@ -53,12 +62,12 @@ func scanPayslip(row interface{ Scan(...any) error }) (api.PayslipRecord, error)
 	p.UpdatedAt = updated.UTC().Format(time.RFC3339)
 	return p, nil
 }
-func (r PayrollRepository) ListWorkspacePayslips(ctx context.Context, wsID uuid.UUID, start, end time.Time) ([]api.PayslipRecord, error) {
+func (r PayrollRepository) ListPayslips(ctx context.Context, start, end time.Time) ([]api.PayslipRecord, error) {
 	db, err := r.db(ctx)
 	if err != nil {
 		return nil, err
 	}
-	rows, err := db.Query(ctx, `SELECT id, workspace_id, employment_id, period_start::text, period_end::text, base_pay_amount::text, overtime_pay_amount::text, deductions_amount::text, net_pay_amount::text, status, created_at, updated_at, standard_units, overtime_units, holiday_work_premium_amount::text FROM payslips WHERE workspace_id=$1 AND period_start >= $2 AND period_start < $3 ORDER BY period_start DESC, id DESC`, wsID, start, end)
+	rows, err := db.Query(ctx, `SELECT id, employment_id, period_start::text, period_end::text, base_pay_amount::text, overtime_pay_amount::text, deductions_amount::text, net_pay_amount::text, status, created_at, updated_at, standard_units, overtime_units, holiday_work_premium_amount::text FROM payslips WHERE period_start >= $1 AND period_start < $2 ORDER BY period_start DESC, id DESC`, start, end)
 	if err != nil {
 		return nil, err
 	}
@@ -73,12 +82,12 @@ func (r PayrollRepository) ListWorkspacePayslips(ctx context.Context, wsID uuid.
 	}
 	return result, rows.Err()
 }
-func (r PayrollRepository) ListEmployeePayslips(ctx context.Context, wsID, empID uuid.UUID) ([]api.PayslipRecord, error) {
+func (r PayrollRepository) ListEmployeePayslips(ctx context.Context, empID uuid.UUID) ([]api.PayslipRecord, error) {
 	db, err := r.db(ctx)
 	if err != nil {
 		return nil, err
 	}
-	rows, err := db.Query(ctx, `SELECT p.id,p.workspace_id,p.employment_id,p.period_start::text,p.period_end::text,p.base_pay_amount::text,p.overtime_pay_amount::text,p.deductions_amount::text,p.net_pay_amount::text,p.status,p.created_at,p.updated_at,p.standard_units,p.overtime_units,p.holiday_work_premium_amount::text FROM payslips p JOIN employments e ON e.id=p.employment_id WHERE p.workspace_id=$1 AND e.employee_id=$2 AND e.workspace_id=$1 ORDER BY p.period_start DESC,p.id DESC`, wsID, empID)
+	rows, err := db.Query(ctx, `SELECT p.id,p.employment_id,p.period_start::text,p.period_end::text,p.base_pay_amount::text,p.overtime_pay_amount::text,p.deductions_amount::text,p.net_pay_amount::text,p.status,p.created_at,p.updated_at,p.standard_units,p.overtime_units,p.holiday_work_premium_amount::text FROM payslips p JOIN employments e ON e.id=p.employment_id WHERE e.employee_id=$1 ORDER BY p.period_start DESC,p.id DESC`, empID)
 	if err != nil {
 		return nil, err
 	}
@@ -94,12 +103,12 @@ func (r PayrollRepository) ListEmployeePayslips(ctx context.Context, wsID, empID
 	return result, rows.Err()
 }
 
-func (r PayrollRepository) ListSalaryComponents(ctx context.Context, wsID uuid.UUID) ([]api.SalaryComponentDefinition, error) {
+func (r PayrollRepository) ListSalaryComponents(ctx context.Context) ([]api.SalaryComponentDefinition, error) {
 	db, err := r.db(ctx)
 	if err != nil {
 		return nil, err
 	}
-	rows, err := db.Query(ctx, `SELECT id, workspace_id, name, code, created_at, updated_at FROM salary_component_definitions WHERE workspace_id = $1 ORDER BY name ASC, code ASC`, wsID)
+	rows, err := db.Query(ctx, `SELECT id, name, code, created_at, updated_at FROM salary_component_definitions ORDER BY name ASC, code ASC`)
 	if err != nil {
 		return nil, err
 	}
@@ -108,7 +117,7 @@ func (r PayrollRepository) ListSalaryComponents(ctx context.Context, wsID uuid.U
 	for rows.Next() {
 		var d api.SalaryComponentDefinition
 		var created, updated time.Time
-		if err := rows.Scan(&d.ID, &d.WorkspaceID, &d.Name, &d.Code, &created, &updated); err != nil {
+		if err := rows.Scan(&d.ID, &d.Name, &d.Code, &created, &updated); err != nil {
 			return nil, err
 		}
 		d.CreatedAt = created.UTC().Format(time.RFC3339)
@@ -118,7 +127,7 @@ func (r PayrollRepository) ListSalaryComponents(ctx context.Context, wsID uuid.U
 	return result, rows.Err()
 }
 
-func (r PayrollRepository) CreateSalaryComponent(ctx context.Context, wsID uuid.UUID, req api.CreateSalaryComponentRequest) (api.SalaryComponentDefinition, error) {
+func (r PayrollRepository) CreateSalaryComponent(ctx context.Context, req api.CreateSalaryComponentRequest) (api.SalaryComponentDefinition, error) {
 	db, err := r.db(ctx)
 	if err != nil {
 		return api.SalaryComponentDefinition{}, err
@@ -133,7 +142,7 @@ func (r PayrollRepository) CreateSalaryComponent(ctx context.Context, wsID uuid.
 			}
 		}
 		var validCount int
-		err := db.QueryRow(ctx, `SELECT count(DISTINCT id) FROM salary_base_groups WHERE id = ANY($1) AND (workspace_id = $2 OR workspace_id IS NULL)`, uniqueIDs, wsID).Scan(&validCount)
+		err := db.QueryRow(ctx, `SELECT count(DISTINCT id) FROM salary_base_groups WHERE id = ANY($1)`, uniqueIDs).Scan(&validCount)
 		if err != nil {
 			return api.SalaryComponentDefinition{}, err
 		}
@@ -145,7 +154,7 @@ func (r PayrollRepository) CreateSalaryComponent(ctx context.Context, wsID uuid.
 	id := uuid.New()
 	var def api.SalaryComponentDefinition
 	var created, updated time.Time
-	err = db.QueryRow(ctx, `INSERT INTO salary_component_definitions (id, workspace_id, name, code, component_type, created_at, updated_at) VALUES ($1, $2, $3, $4, 'earning', NOW(), NOW()) RETURNING id, workspace_id, name, code, created_at, updated_at`, id, wsID, strings.TrimSpace(req.Name), strings.TrimSpace(req.Code)).Scan(&def.ID, &def.WorkspaceID, &def.Name, &def.Code, &created, &updated)
+	err = db.QueryRow(ctx, `INSERT INTO salary_component_definitions (id, name, code, component_type, created_at, updated_at) VALUES ($1, $2, $3, 'earning', NOW(), NOW()) RETURNING id, name, code, created_at, updated_at`, id, strings.TrimSpace(req.Name), strings.TrimSpace(req.Code)).Scan(&def.ID, &def.Name, &def.Code, &created, &updated)
 	if err != nil {
 		return api.SalaryComponentDefinition{}, mapConstraintError(err)
 	}
@@ -163,18 +172,12 @@ func (r PayrollRepository) CreateSalaryComponent(ctx context.Context, wsID uuid.
 	return def, nil
 }
 
-func (r PayrollRepository) ListEmploymentSalaryComponents(ctx context.Context, wsID, employmentID uuid.UUID) ([]api.EmploymentSalaryComponentResponse, error) {
+func (r PayrollRepository) ListEmploymentSalaryComponents(ctx context.Context, employmentID uuid.UUID) ([]api.EmploymentSalaryComponentResponse, error) {
 	db, err := r.db(ctx)
 	if err != nil {
 		return nil, err
 	}
-	tz := time.UTC
-	if r.SystemDB != nil {
-		var tzName string
-		if err := r.SystemDB.QueryRow(ctx, `SELECT timezone FROM workspaces WHERE id = $1`, wsID).Scan(&tzName); err == nil && tzName != "" {
-			tz = timezone.ParseWorkspaceTZ(tzName)
-		}
-	}
+	tz := organizationLocation(ctx, db)
 	refDate := time.Now().In(tz).Format("2006-01-02")
 
 	rows, err := db.Query(ctx, `SELECT DISTINCT ON (esc.employment_id, esc.component_definition_id)
@@ -184,8 +187,7 @@ func (r PayrollRepository) ListEmploymentSalaryComponents(ctx context.Context, w
 	INNER JOIN salary_component_definitions scd ON scd.id = esc.component_definition_id
 	WHERE esc.employment_id = $1
 	  AND esc.effective_date <= $2
-	  AND scd.workspace_id = $3
-	ORDER BY esc.employment_id, esc.component_definition_id, esc.effective_date DESC, esc.created_at DESC`, employmentID, refDate, wsID)
+	ORDER BY esc.employment_id, esc.component_definition_id, esc.effective_date DESC, esc.created_at DESC`, employmentID, refDate)
 	if err != nil {
 		return nil, err
 	}
@@ -204,14 +206,14 @@ func (r PayrollRepository) ListEmploymentSalaryComponents(ctx context.Context, w
 	return result, rows.Err()
 }
 
-func (r PayrollRepository) AssignEmploymentSalaryComponent(ctx context.Context, wsID, employmentID uuid.UUID, req api.AssignSalaryComponentRequest) (api.EmployeeSalaryComponent, error) {
+func (r PayrollRepository) AssignEmploymentSalaryComponent(ctx context.Context, employmentID uuid.UUID, req api.AssignSalaryComponentRequest) (api.EmployeeSalaryComponent, error) {
 	db, err := r.db(ctx)
 	if err != nil {
 		return api.EmployeeSalaryComponent{}, err
 	}
 
 	var compDefExists bool
-	err = db.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM salary_component_definitions WHERE id = $1 AND workspace_id = $2)`, req.ComponentDefinitionID, wsID).Scan(&compDefExists)
+	err = db.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM salary_component_definitions WHERE id = $1)`, req.ComponentDefinitionID).Scan(&compDefExists)
 	if err != nil {
 		return api.EmployeeSalaryComponent{}, err
 	}
@@ -220,7 +222,7 @@ func (r PayrollRepository) AssignEmploymentSalaryComponent(ctx context.Context, 
 	}
 
 	var empExists bool
-	err = db.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM employments WHERE id = $1 AND workspace_id = $2 AND deleted_at IS NULL)`, employmentID, wsID).Scan(&empExists)
+	err = db.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM employments WHERE id = $1 AND deleted_at IS NULL)`, employmentID).Scan(&empExists)
 	if err != nil {
 		return api.EmployeeSalaryComponent{}, err
 	}
@@ -242,13 +244,13 @@ func (r PayrollRepository) AssignEmploymentSalaryComponent(ctx context.Context, 
 	return item, nil
 }
 
-func (r PayrollRepository) ListSalaryBases(ctx context.Context, wsID uuid.UUID) (api.SalaryBasesResponse, error) {
+func (r PayrollRepository) ListSalaryBases(ctx context.Context) (api.SalaryBasesResponse, error) {
 	db, err := r.db(ctx)
 	if err != nil {
 		return api.SalaryBasesResponse{}, err
 	}
 
-	groupRows, err := db.Query(ctx, `SELECT id, workspace_id, name, slug, description, is_system, created_at, updated_at FROM salary_base_groups WHERE workspace_id = $1 OR workspace_id IS NULL ORDER BY is_system DESC, name ASC`, wsID)
+	groupRows, err := db.Query(ctx, `SELECT id, name, slug, description, is_system, created_at, updated_at FROM salary_base_groups ORDER BY is_system DESC, name ASC`)
 	if err != nil {
 		return api.SalaryBasesResponse{}, err
 	}
@@ -258,7 +260,7 @@ func (r PayrollRepository) ListSalaryBases(ctx context.Context, wsID uuid.UUID) 
 	for groupRows.Next() {
 		var g api.SalaryBaseGroup
 		var created, updated time.Time
-		if err := groupRows.Scan(&g.ID, &g.WorkspaceID, &g.Name, &g.Slug, &g.Description, &g.IsSystem, &created, &updated); err != nil {
+		if err := groupRows.Scan(&g.ID, &g.Name, &g.Slug, &g.Description, &g.IsSystem, &created, &updated); err != nil {
 			return api.SalaryBasesResponse{}, err
 		}
 		g.CreatedAt = created.UTC().Format(time.RFC3339)
@@ -272,8 +274,7 @@ func (r PayrollRepository) ListSalaryBases(ctx context.Context, wsID uuid.UUID) 
 	memberRows, err := db.Query(ctx, `SELECT scbm.component_definition_id, scbm.base_group_id, scbm.created_at
 FROM salary_component_base_members scbm
 INNER JOIN salary_base_groups sbg ON sbg.id = scbm.base_group_id
-WHERE sbg.workspace_id = $1 OR sbg.workspace_id IS NULL
-ORDER BY scbm.created_at ASC`, wsID)
+ORDER BY scbm.created_at ASC`)
 	if err != nil {
 		return api.SalaryBasesResponse{}, err
 	}
@@ -296,7 +297,7 @@ ORDER BY scbm.created_at ASC`, wsID)
 	return api.SalaryBasesResponse{Groups: groups, Members: members}, nil
 }
 
-func (r PayrollRepository) CreateSalaryBase(ctx context.Context, wsID uuid.UUID, req api.CreateSalaryBaseRequest) (api.SalaryBaseGroup, error) {
+func (r PayrollRepository) CreateSalaryBase(ctx context.Context, req api.CreateSalaryBaseRequest) (api.SalaryBaseGroup, error) {
 	db, err := r.db(ctx)
 	if err != nil {
 		return api.SalaryBaseGroup{}, err
@@ -305,7 +306,7 @@ func (r PayrollRepository) CreateSalaryBase(ctx context.Context, wsID uuid.UUID,
 	id := uuid.New()
 	var g api.SalaryBaseGroup
 	var created, updated time.Time
-	err = db.QueryRow(ctx, `INSERT INTO salary_base_groups (id, workspace_id, name, slug, description, is_system, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, FALSE, NOW(), NOW()) RETURNING id, workspace_id, name, slug, description, is_system, created_at, updated_at`, id, wsID, strings.TrimSpace(req.Name), strings.TrimSpace(req.Slug), req.Description).Scan(&g.ID, &g.WorkspaceID, &g.Name, &g.Slug, &g.Description, &g.IsSystem, &created, &updated)
+	err = db.QueryRow(ctx, `INSERT INTO salary_base_groups (id, name, slug, description, is_system, created_at, updated_at) VALUES ($1, $2, $3, $4, FALSE, NOW(), NOW()) RETURNING id, name, slug, description, is_system, created_at, updated_at`, id, strings.TrimSpace(req.Name), strings.TrimSpace(req.Slug), req.Description).Scan(&g.ID, &g.Name, &g.Slug, &g.Description, &g.IsSystem, &created, &updated)
 	if err != nil {
 		return api.SalaryBaseGroup{}, mapConstraintError(err)
 	}
@@ -314,14 +315,14 @@ func (r PayrollRepository) CreateSalaryBase(ctx context.Context, wsID uuid.UUID,
 	return g, nil
 }
 
-func (r PayrollRepository) AssignBaseMember(ctx context.Context, wsID, baseID, componentID uuid.UUID) error {
+func (r PayrollRepository) AssignBaseMember(ctx context.Context, baseID, componentID uuid.UUID) error {
 	db, err := r.db(ctx)
 	if err != nil {
 		return err
 	}
 
 	var validGroup bool
-	err = db.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM salary_base_groups WHERE id = $1 AND workspace_id = $2)`, baseID, wsID).Scan(&validGroup)
+	err = db.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM salary_base_groups WHERE id = $1)`, baseID).Scan(&validGroup)
 	if err != nil {
 		return err
 	}
@@ -330,7 +331,7 @@ func (r PayrollRepository) AssignBaseMember(ctx context.Context, wsID, baseID, c
 	}
 
 	var validComp bool
-	err = db.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM salary_component_definitions WHERE id = $1 AND workspace_id = $2)`, componentID, wsID).Scan(&validComp)
+	err = db.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM salary_component_definitions WHERE id = $1)`, componentID).Scan(&validComp)
 	if err != nil {
 		return err
 	}
@@ -342,7 +343,7 @@ func (r PayrollRepository) AssignBaseMember(ctx context.Context, wsID, baseID, c
 	return err
 }
 
-func (r PayrollRepository) UnassignBaseMember(ctx context.Context, wsID, baseID, componentID uuid.UUID) error {
+func (r PayrollRepository) UnassignBaseMember(ctx context.Context, baseID, componentID uuid.UUID) error {
 	db, err := r.db(ctx)
 	if err != nil {
 		return err
@@ -351,28 +352,22 @@ func (r PayrollRepository) UnassignBaseMember(ctx context.Context, wsID, baseID,
 	_, err = db.Exec(ctx, `DELETE FROM salary_component_base_members
 WHERE component_definition_id = $1
   AND base_group_id = $2
-  AND base_group_id IN (SELECT id FROM salary_base_groups WHERE id = $2 AND workspace_id = $3)`, componentID, baseID, wsID)
+  AND base_group_id IN (SELECT id FROM salary_base_groups WHERE id = $2)`, componentID, baseID)
 	return err
 }
 
-func (r PayrollRepository) GetPayrollSettings(ctx context.Context, wsID uuid.UUID) (*api.PayrollSettings, error) {
+func (r PayrollRepository) GetPayrollSettings(ctx context.Context) (*api.PayrollSettings, error) {
 	db, err := r.db(ctx)
 	if err != nil {
 		return nil, err
 	}
-	tz := time.UTC
-	if r.SystemDB != nil {
-		var tzName string
-		if err := r.SystemDB.QueryRow(ctx, `SELECT timezone FROM workspaces WHERE id = $1`, wsID).Scan(&tzName); err == nil && tzName != "" {
-			tz = timezone.ParseWorkspaceTZ(tzName)
-		}
-	}
+	tz := organizationLocation(ctx, db)
 	today := time.Now().In(tz).Format("2006-01-02")
 
 	rows, err := db.Query(ctx, `SELECT config_key, value_int, value_decimal, value_text, effective_from::text, created_at, updated_at
-FROM workspace_config_entries
-WHERE workspace_id = $1 AND scope_type = 'workspace' AND scope_id IS NULL AND effective_from <= $2::date
-ORDER BY effective_from DESC, created_at DESC`, wsID, today)
+FROM config_entries
+WHERE scope_type = 'organization' AND scope_id IS NULL AND effective_from <= $1::date
+ORDER BY effective_from DESC, created_at DESC`, today)
 	if err != nil {
 		return nil, err
 	}
@@ -448,7 +443,6 @@ ORDER BY effective_from DESC, created_at DESC`, wsID, today)
 	}
 
 	return &api.PayrollSettings{
-		WorkspaceID:        wsID,
 		StdWorkingDayMode:  mode,
 		FixedStdDays:       fixedDays,
 		WorkingDaysPerWeek: daysPerWeek,
@@ -461,15 +455,15 @@ ORDER BY effective_from DESC, created_at DESC`, wsID, today)
 	}, nil
 }
 
-func (r PayrollRepository) GetPayrollSettingsHistory(ctx context.Context, wsID uuid.UUID) ([]api.PayrollSettings, error) {
+func (r PayrollRepository) GetPayrollSettingsHistory(ctx context.Context) ([]api.PayrollSettings, error) {
 	db, err := r.db(ctx)
 	if err != nil {
 		return nil, err
 	}
 	rows, err := db.Query(ctx, `SELECT config_key, value_int, value_decimal, value_text, effective_from::text, created_at, updated_at
-FROM workspace_config_entries
-WHERE workspace_id = $1 AND scope_type = 'workspace' AND scope_id IS NULL
-ORDER BY effective_from DESC, created_at DESC`, wsID)
+FROM config_entries
+WHERE scope_type = 'organization' AND scope_id IS NULL
+ORDER BY effective_from DESC, created_at DESC`)
 	if err != nil {
 		return nil, err
 	}
@@ -563,7 +557,6 @@ ORDER BY effective_from DESC, created_at DESC`, wsID)
 		}
 
 		result = append(result, api.PayrollSettings{
-			WorkspaceID:        wsID,
 			StdWorkingDayMode:  mode,
 			FixedStdDays:       fixedDays,
 			WorkingDaysPerWeek: daysPerWeek,
@@ -579,18 +572,12 @@ ORDER BY effective_from DESC, created_at DESC`, wsID)
 	return result, nil
 }
 
-func (r PayrollRepository) UpdatePayrollSettings(ctx context.Context, wsID uuid.UUID, req api.UpdatePayrollSettingsRequest) (api.PayrollSettings, error) {
+func (r PayrollRepository) UpdatePayrollSettings(ctx context.Context, req api.UpdatePayrollSettingsRequest) (api.PayrollSettings, error) {
 	db, err := r.db(ctx)
 	if err != nil {
 		return api.PayrollSettings{}, err
 	}
-	tz := time.UTC
-	if r.SystemDB != nil {
-		var tzName string
-		if err := r.SystemDB.QueryRow(ctx, `SELECT timezone FROM workspaces WHERE id = $1`, wsID).Scan(&tzName); err == nil && tzName != "" {
-			tz = timezone.ParseWorkspaceTZ(tzName)
-		}
-	}
+	tz := organizationLocation(ctx, db)
 	effectiveDate := time.Now().In(tz).Format("2006-01-02")
 	if req.EffectiveDate != nil && *req.EffectiveDate != "" {
 		effectiveDate = *req.EffectiveDate
@@ -604,9 +591,9 @@ func (r PayrollRepository) UpdatePayrollSettings(ctx context.Context, wsID uuid.
 	var currentMaxOtMonth *decimal.Decimal
 
 	rows, err := db.Query(ctx, `SELECT config_key, value_int, value_decimal, value_text
-FROM workspace_config_entries
-WHERE workspace_id = $1 AND scope_type = 'workspace' AND scope_id IS NULL AND effective_from <= $2::date
-ORDER BY effective_from DESC, created_at DESC`, wsID, effectiveDate)
+FROM config_entries
+WHERE scope_type = 'organization' AND scope_id IS NULL AND effective_from <= $1::date
+ORDER BY effective_from DESC, created_at DESC`, effectiveDate)
 	if err == nil {
 		defer rows.Close()
 		seen := make(map[string]bool)
@@ -689,10 +676,10 @@ ORDER BY effective_from DESC, created_at DESC`, wsID, effectiveDate)
 		hasVal := op.valInt != nil || op.valDec != nil || (op.valTxt != nil && *op.valTxt != "")
 		if hasVal {
 			var existingID uuid.UUID
-			err := db.QueryRow(ctx, `SELECT id FROM workspace_config_entries
-WHERE workspace_id = $1 AND scope_type = 'workspace' AND scope_id IS NULL AND config_key = $2 AND effective_from = $3::date`, wsID, op.key, effectiveDate).Scan(&existingID)
+			err := db.QueryRow(ctx, `SELECT id FROM config_entries
+WHERE scope_type = 'organization' AND scope_id IS NULL AND config_key = $1 AND effective_from = $2::date`, op.key, effectiveDate).Scan(&existingID)
 			if err == nil {
-				_, err = db.Exec(ctx, `UPDATE workspace_config_entries
+				_, err = db.Exec(ctx, `UPDATE config_entries
 SET value_int = $1, value_decimal = $2, value_text = $3, updated_at = NOW()
 WHERE id = $4`, op.valInt, op.valDec, op.valTxt, existingID)
 				if err != nil {
@@ -700,15 +687,15 @@ WHERE id = $4`, op.valInt, op.valDec, op.valTxt, existingID)
 				}
 			} else {
 				newID := uuid.New()
-				_, err = db.Exec(ctx, `INSERT INTO workspace_config_entries (id, workspace_id, scope_type, scope_id, config_key, value_int, value_decimal, value_text, effective_from, created_at, updated_at)
-VALUES ($1, $2, 'workspace', NULL, $3, $4, $5, $6, $7::date, NOW(), NOW())`, newID, wsID, op.key, op.valInt, op.valDec, op.valTxt, effectiveDate)
+				_, err = db.Exec(ctx, `INSERT INTO config_entries (id, scope_type, scope_id, config_key, value_int, value_decimal, value_text, effective_from, created_at, updated_at)
+VALUES ($1, 'organization', NULL, $2, $3, $4, $5, $6::date, NOW(), NOW())`, newID, op.key, op.valInt, op.valDec, op.valTxt, effectiveDate)
 				if err != nil {
 					return api.PayrollSettings{}, err
 				}
 			}
 		} else {
-			_, err = db.Exec(ctx, `DELETE FROM workspace_config_entries
-WHERE workspace_id = $1 AND scope_type = 'workspace' AND scope_id IS NULL AND config_key = $2 AND effective_from = $3::date`, wsID, op.key, effectiveDate)
+			_, err = db.Exec(ctx, `DELETE FROM config_entries
+WHERE scope_type = 'organization' AND scope_id IS NULL AND config_key = $1 AND effective_from = $2::date`, op.key, effectiveDate)
 			if err != nil {
 				return api.PayrollSettings{}, err
 			}
@@ -716,7 +703,6 @@ WHERE workspace_id = $1 AND scope_type = 'workspace' AND scope_id IS NULL AND co
 	}
 
 	return api.PayrollSettings{
-		WorkspaceID:        wsID,
 		StdWorkingDayMode:  mode,
 		FixedStdDays:       fixedDays,
 		WorkingDaysPerWeek: daysPerWeek,
@@ -729,13 +715,13 @@ WHERE workspace_id = $1 AND scope_type = 'workspace' AND scope_id IS NULL AND co
 	}, nil
 }
 
-func (r PayrollRepository) GetEmployeePayrollConfigs(ctx context.Context, wsID, employeeID uuid.UUID) ([]api.EmployeePayrollConfig, error) {
+func (r PayrollRepository) GetEmployeePayrollConfigs(ctx context.Context, employeeID uuid.UUID) ([]api.EmployeePayrollConfig, error) {
 	db, err := r.db(ctx)
 	if err != nil {
 		return nil, err
 	}
 	var empExists bool
-	if err := db.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM employees WHERE id = $1 AND workspace_id = $2 AND deleted_at IS NULL)`, employeeID, wsID).Scan(&empExists); err != nil {
+	if err := db.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM employees WHERE id = $1 AND deleted_at IS NULL)`, employeeID).Scan(&empExists); err != nil {
 		return nil, err
 	}
 	if !empExists {
@@ -743,7 +729,7 @@ func (r PayrollRepository) GetEmployeePayrollConfigs(ctx context.Context, wsID, 
 	}
 
 	var activeEmploymentID uuid.UUID
-	err = db.QueryRow(ctx, `SELECT id FROM employments WHERE employee_id = $1 AND workspace_id = $2 AND status = 'active' AND deleted_at IS NULL ORDER BY start_date DESC, id DESC LIMIT 1`, employeeID, wsID).Scan(&activeEmploymentID)
+	err = db.QueryRow(ctx, `SELECT id FROM employments WHERE employee_id = $1 AND status = 'active' AND deleted_at IS NULL ORDER BY start_date DESC, id DESC LIMIT 1`, employeeID).Scan(&activeEmploymentID)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, api.ErrNoActiveEmployment
 	}
@@ -752,11 +738,11 @@ func (r PayrollRepository) GetEmployeePayrollConfigs(ctx context.Context, wsID, 
 	}
 
 	query := `SELECT id, effective_from::text, config_key, COALESCE(value_decimal, 0), created_at
-FROM workspace_config_entries
-WHERE workspace_id = $1 AND scope_type = 'employment' AND scope_id = $2
+FROM config_entries
+WHERE scope_type = 'employment' AND scope_id = $1
   AND config_key IN ('payroll.fixed_std_days', 'payroll.hours_per_day')
 ORDER BY effective_from DESC, created_at DESC`
-	rows, err := db.Query(ctx, query, wsID, activeEmploymentID)
+	rows, err := db.Query(ctx, query, activeEmploymentID)
 	if err != nil {
 		return nil, err
 	}
@@ -805,13 +791,13 @@ ORDER BY effective_from DESC, created_at DESC`
 	return result, nil
 }
 
-func (r PayrollRepository) SetEmployeePayrollConfig(ctx context.Context, wsID, employeeID uuid.UUID, req api.SetEmployeePayrollConfigRequest, actorID uuid.UUID) (api.EmployeePayrollConfig, error) {
+func (r PayrollRepository) SetEmployeePayrollConfig(ctx context.Context, employeeID uuid.UUID, req api.SetEmployeePayrollConfigRequest, actorID uuid.UUID) (api.EmployeePayrollConfig, error) {
 	db, err := r.db(ctx)
 	if err != nil {
 		return api.EmployeePayrollConfig{}, err
 	}
 	var empExists bool
-	if err := db.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM employees WHERE id = $1 AND workspace_id = $2 AND deleted_at IS NULL)`, employeeID, wsID).Scan(&empExists); err != nil {
+	if err := db.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM employees WHERE id = $1 AND deleted_at IS NULL)`, employeeID).Scan(&empExists); err != nil {
 		return api.EmployeePayrollConfig{}, err
 	}
 	if !empExists {
@@ -819,7 +805,7 @@ func (r PayrollRepository) SetEmployeePayrollConfig(ctx context.Context, wsID, e
 	}
 
 	var activeEmploymentID uuid.UUID
-	err = db.QueryRow(ctx, `SELECT id FROM employments WHERE employee_id = $1 AND workspace_id = $2 AND status = 'active' AND deleted_at IS NULL ORDER BY start_date DESC, id DESC LIMIT 1`, employeeID, wsID).Scan(&activeEmploymentID)
+	err = db.QueryRow(ctx, `SELECT id FROM employments WHERE employee_id = $1 AND status = 'active' AND deleted_at IS NULL ORDER BY start_date DESC, id DESC LIMIT 1`, employeeID).Scan(&activeEmploymentID)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return api.EmployeePayrollConfig{}, api.ErrNoActiveEmployment
 	}
@@ -827,22 +813,22 @@ func (r PayrollRepository) SetEmployeePayrollConfig(ctx context.Context, wsID, e
 		return api.EmployeePayrollConfig{}, err
 	}
 
-	upsertQuery := `INSERT INTO workspace_config_entries (id, workspace_id, scope_type, scope_id, config_key, value_decimal, effective_from, created_by, created_at, updated_at)
-VALUES ($1, $2, 'employment', $3, $4, $5, $6::date, $7, NOW(), NOW())
-ON CONFLICT (workspace_id, scope_type, scope_id, config_key, effective_from)
+	upsertQuery := `INSERT INTO config_entries (id, scope_type, scope_id, config_key, value_decimal, effective_from, created_by, created_at, updated_at)
+VALUES ($1, 'employment', $2, $3, $4, $5::date, $6, NOW(), NOW())
+ON CONFLICT (scope_type, scope_id, config_key, effective_from)
 DO UPDATE SET value_decimal = EXCLUDED.value_decimal, updated_at = NOW()
 RETURNING id, created_at`
 
 	fixedID := uuid.New()
 	var finalID uuid.UUID
 	var createdAt time.Time
-	err = db.QueryRow(ctx, upsertQuery, fixedID, wsID, activeEmploymentID, "payroll.fixed_std_days", req.StdWorkingDays, req.EffectiveDate, actorID).Scan(&finalID, &createdAt)
+	err = db.QueryRow(ctx, upsertQuery, fixedID, activeEmploymentID, "payroll.fixed_std_days", req.StdWorkingDays, req.EffectiveDate, actorID).Scan(&finalID, &createdAt)
 	if err != nil {
 		return api.EmployeePayrollConfig{}, err
 	}
 
 	hoursID := uuid.New()
-	_, err = db.Exec(ctx, upsertQuery, hoursID, wsID, activeEmploymentID, "payroll.hours_per_day", req.HoursPerDay, req.EffectiveDate, actorID)
+	_, err = db.Exec(ctx, upsertQuery, hoursID, activeEmploymentID, "payroll.hours_per_day", req.HoursPerDay, req.EffectiveDate, actorID)
 	if err != nil {
 		return api.EmployeePayrollConfig{}, err
 	}
@@ -857,15 +843,15 @@ RETURNING id, created_at`
 	}, nil
 }
 
-func (r PayrollRepository) GetIncentivePolicies(ctx context.Context, wsID uuid.UUID) ([]api.PayrollIncentivePolicyResponse, error) {
+func (r PayrollRepository) GetIncentivePolicies(ctx context.Context) ([]api.PayrollIncentivePolicyResponse, error) {
 	db, err := r.db(ctx)
 	if err != nil {
 		return nil, err
 	}
-	rows, err := db.Query(ctx, `SELECT id, workspace_id, name, base_amount::text, payout_type, is_active, created_at, effective_from::text, effective_to::text
+	rows, err := db.Query(ctx, `SELECT id, name, base_amount::text, payout_type, is_active, created_at, effective_from::text, effective_to::text
 FROM payroll_incentive_policies
-WHERE workspace_id = $1 AND is_active = true AND deleted_at IS NULL
-ORDER BY created_at ASC`, wsID)
+WHERE is_active = true AND deleted_at IS NULL
+ORDER BY created_at ASC`)
 	if err != nil {
 		return nil, err
 	}
@@ -878,7 +864,7 @@ ORDER BY created_at ASC`, wsID)
 		var baseStr string
 		var created time.Time
 		var effTo *string
-		if err := rows.Scan(&p.ID, &p.WorkspaceID, &p.Name, &baseStr, &p.PayoutType, &p.IsActive, &created, &p.EffectiveFrom, &effTo); err != nil {
+		if err := rows.Scan(&p.ID, &p.Name, &baseStr, &p.PayoutType, &p.IsActive, &created, &p.EffectiveFrom, &effTo); err != nil {
 			return nil, err
 		}
 		p.BaseAmount, _ = decimal.NewFromString(baseStr)
@@ -931,7 +917,7 @@ ORDER BY priority ASC`, policyIDs)
 	return result, nil
 }
 
-func (r PayrollRepository) CreateIncentivePolicy(ctx context.Context, wsID uuid.UUID, req api.CreatePayrollIncentivePolicyRequest) (api.PayrollIncentivePolicy, error) {
+func (r PayrollRepository) CreateIncentivePolicy(ctx context.Context, req api.CreatePayrollIncentivePolicyRequest) (api.PayrollIncentivePolicy, error) {
 	db, err := r.db(ctx)
 	if err != nil {
 		return api.PayrollIncentivePolicy{}, err
@@ -942,9 +928,9 @@ func (r PayrollRepository) CreateIncentivePolicy(ctx context.Context, wsID uuid.
 	if payoutType == "" {
 		payoutType = "fixed"
 	}
-	err = db.QueryRow(ctx, `INSERT INTO payroll_incentive_policies (id, workspace_id, name, base_amount, payout_type, is_active, effective_from, effective_to, created_at, deleted_at)
-VALUES ($1, $2, $3, $4, $5, true, $6::date, NULL, NOW(), NULL)
-RETURNING created_at`, policyID, wsID, strings.TrimSpace(req.Name), req.BaseAmount.InexactFloat64(), payoutType, req.EffectiveFrom).Scan(&createdAt)
+	err = db.QueryRow(ctx, `INSERT INTO payroll_incentive_policies (id, name, base_amount, payout_type, is_active, effective_from, effective_to, created_at, deleted_at)
+VALUES ($1, $2, $3, $4, true, $5::date, NULL, NOW(), NULL)
+RETURNING created_at`, policyID, strings.TrimSpace(req.Name), req.BaseAmount.InexactFloat64(), payoutType, req.EffectiveFrom).Scan(&createdAt)
 	if err != nil {
 		return api.PayrollIncentivePolicy{}, err
 	}
@@ -964,7 +950,6 @@ VALUES ($1, $2, $3, $4, $5)`, tierID, policyID, tier.Priority, tier.PayoutAmount
 
 	return api.PayrollIncentivePolicy{
 		ID:            policyID,
-		WorkspaceID:   wsID,
 		Name:          strings.TrimSpace(req.Name),
 		BaseAmount:    req.BaseAmount,
 		PayoutType:    payoutType,
@@ -975,16 +960,16 @@ VALUES ($1, $2, $3, $4, $5)`, tierID, policyID, tier.Priority, tier.PayoutAmount
 	}, nil
 }
 
-func (r PayrollRepository) DeleteIncentivePolicy(ctx context.Context, wsID, policyID uuid.UUID) error {
+func (r PayrollRepository) DeleteIncentivePolicy(ctx context.Context, policyID uuid.UUID) error {
 	db, err := r.db(ctx)
 	if err != nil {
 		return err
 	}
-	_, err = db.Exec(ctx, `UPDATE payroll_incentive_policies SET deleted_at = NOW() WHERE id = $1 AND workspace_id = $2 AND deleted_at IS NULL`, policyID, wsID)
+	_, err = db.Exec(ctx, `UPDATE payroll_incentive_policies SET deleted_at = NOW() WHERE id = $1 AND deleted_at IS NULL`, policyID)
 	return err
 }
 
-func (r PayrollRepository) CloneIncentivePolicy(ctx context.Context, wsID, policyID uuid.UUID) (api.PayrollIncentivePolicy, error) {
+func (r PayrollRepository) CloneIncentivePolicy(ctx context.Context, policyID uuid.UUID) (api.PayrollIncentivePolicy, error) {
 	db, err := r.db(ctx)
 	if err != nil {
 		return api.PayrollIncentivePolicy{}, err
@@ -992,7 +977,7 @@ func (r PayrollRepository) CloneIncentivePolicy(ctx context.Context, wsID, polic
 	var origName, origPayout, origBaseStr string
 	err = db.QueryRow(ctx, `SELECT name, payout_type, base_amount::text
 FROM payroll_incentive_policies
-WHERE id = $1 AND workspace_id = $2 AND deleted_at IS NULL`, policyID, wsID).Scan(&origName, &origPayout, &origBaseStr)
+WHERE id = $1 AND deleted_at IS NULL`, policyID).Scan(&origName, &origPayout, &origBaseStr)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return api.PayrollIncentivePolicy{}, api.ErrIncentivePolicyNotFound
 	}
@@ -1034,9 +1019,9 @@ ORDER BY priority ASC`, policyID)
 	newName := fmt.Sprintf("%s (Copy)", origName)
 	var createdAt time.Time
 	var effFrom string
-	err = db.QueryRow(ctx, `INSERT INTO payroll_incentive_policies (id, workspace_id, name, base_amount, payout_type, is_active, effective_from, effective_to, created_at, deleted_at)
-VALUES ($1, $2, $3, $4, $5, false, CURRENT_DATE, NULL, NOW(), NULL)
-RETURNING created_at, effective_from::text`, newPolicyID, wsID, newName, origBase.InexactFloat64(), origPayout).Scan(&createdAt, &effFrom)
+	err = db.QueryRow(ctx, `INSERT INTO payroll_incentive_policies (id, name, base_amount, payout_type, is_active, effective_from, effective_to, created_at, deleted_at)
+VALUES ($1, $2, $3, $4, false, CURRENT_DATE, NULL, NOW(), NULL)
+RETURNING created_at, effective_from::text`, newPolicyID, newName, origBase.InexactFloat64(), origPayout).Scan(&createdAt, &effFrom)
 	if err != nil {
 		return api.PayrollIncentivePolicy{}, err
 	}
@@ -1056,7 +1041,6 @@ VALUES ($1, $2, $3, $4, $5)`, tierID, newPolicyID, t.priority, t.payout.InexactF
 
 	return api.PayrollIncentivePolicy{
 		ID:            newPolicyID,
-		WorkspaceID:   wsID,
 		Name:          newName,
 		BaseAmount:    origBase,
 		PayoutType:    origPayout,
@@ -1067,15 +1051,14 @@ VALUES ($1, $2, $3, $4, $5)`, tierID, newPolicyID, t.priority, t.payout.InexactF
 	}, nil
 }
 
-func (r PayrollRepository) ListPayrollRules(ctx context.Context, wsID uuid.UUID) ([]api.PayrollRuleDefinition, error) {
+func (r PayrollRepository) ListPayrollRules(ctx context.Context) ([]api.PayrollRuleDefinition, error) {
 	db, err := r.db(ctx)
 	if err != nil {
 		return nil, err
 	}
-	rows, err := db.Query(ctx, `SELECT id, workspace_id, name, description, code, category, applies_to, calculation_method, rule_config, is_mandatory, is_active, display_order, created_at, updated_at
+	rows, err := db.Query(ctx, `SELECT id, name, description, code, category, applies_to, calculation_method, rule_config, is_mandatory, is_active, display_order, created_at, updated_at
 FROM payroll_rule_definitions
-WHERE workspace_id = $1
-ORDER BY display_order ASC, created_at DESC`, wsID)
+ORDER BY display_order ASC, created_at DESC`)
 	if err != nil {
 		return nil, err
 	}
@@ -1087,7 +1070,7 @@ ORDER BY display_order ASC, created_at DESC`, wsID)
 		var desc *string
 		var cfg []byte
 		var created, updated time.Time
-		if err := rows.Scan(&d.ID, &d.WorkspaceID, &d.Name, &desc, &d.Code, &d.Category, &d.AppliesTo, &d.CalculationMethod, &cfg, &d.IsMandatory, &d.IsActive, &d.DisplayOrder, &created, &updated); err != nil {
+		if err := rows.Scan(&d.ID, &d.Name, &desc, &d.Code, &d.Category, &d.AppliesTo, &d.CalculationMethod, &cfg, &d.IsMandatory, &d.IsActive, &d.DisplayOrder, &created, &updated); err != nil {
 			return nil, err
 		}
 		d.Description = desc
@@ -1099,7 +1082,7 @@ ORDER BY display_order ASC, created_at DESC`, wsID)
 	return result, rows.Err()
 }
 
-func (r PayrollRepository) CreatePayrollRule(ctx context.Context, wsID uuid.UUID, req api.CreatePayrollRuleDefinitionRequest) (api.PayrollRuleDefinition, error) {
+func (r PayrollRepository) CreatePayrollRule(ctx context.Context, req api.CreatePayrollRuleDefinitionRequest) (api.PayrollRuleDefinition, error) {
 	db, err := r.db(ctx)
 	if err != nil {
 		return api.PayrollRuleDefinition{}, err
@@ -1132,9 +1115,9 @@ func (r PayrollRepository) CreatePayrollRule(ctx context.Context, wsID uuid.UUID
 
 	ruleID := uuid.New()
 	var created, updated time.Time
-	err = db.QueryRow(ctx, `INSERT INTO payroll_rule_definitions (id, workspace_id, name, description, code, category, applies_to, calculation_method, rule_config, is_mandatory, is_active, display_order, created_at, updated_at)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, true, $11, NOW(), NOW())
-RETURNING created_at, updated_at`, ruleID, wsID, strings.TrimSpace(req.Name), req.Description, strings.TrimSpace(req.Code), cat, applies, calcMethod, cfg, isMandatory, displayOrder).Scan(&created, &updated)
+	err = db.QueryRow(ctx, `INSERT INTO payroll_rule_definitions (id, name, description, code, category, applies_to, calculation_method, rule_config, is_mandatory, is_active, display_order, created_at, updated_at)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, true, $10, NOW(), NOW())
+RETURNING created_at, updated_at`, ruleID, strings.TrimSpace(req.Name), req.Description, strings.TrimSpace(req.Code), cat, applies, calcMethod, cfg, isMandatory, displayOrder).Scan(&created, &updated)
 	if err != nil {
 		if isConflictError(err) {
 			return api.PayrollRuleDefinition{}, api.ErrConflict
@@ -1144,7 +1127,6 @@ RETURNING created_at, updated_at`, ruleID, wsID, strings.TrimSpace(req.Name), re
 
 	return api.PayrollRuleDefinition{
 		ID:                ruleID,
-		WorkspaceID:       wsID,
 		Name:              strings.TrimSpace(req.Name),
 		Description:       req.Description,
 		Code:              strings.TrimSpace(req.Code),
@@ -1160,13 +1142,13 @@ RETURNING created_at, updated_at`, ruleID, wsID, strings.TrimSpace(req.Name), re
 	}, nil
 }
 
-func (r PayrollRepository) ListPayrollRuleTiers(ctx context.Context, wsID, ruleID uuid.UUID) ([]api.PayrollRuleTier, error) {
+func (r PayrollRepository) ListPayrollRuleTiers(ctx context.Context, ruleID uuid.UUID) ([]api.PayrollRuleTier, error) {
 	db, err := r.db(ctx)
 	if err != nil {
 		return nil, err
 	}
 	var exists bool
-	if err := db.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM payroll_rule_definitions WHERE id = $1 AND workspace_id = $2)`, ruleID, wsID).Scan(&exists); err != nil {
+	if err := db.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM payroll_rule_definitions WHERE id = $1)`, ruleID).Scan(&exists); err != nil {
 		return nil, err
 	}
 	if !exists {
@@ -1204,13 +1186,13 @@ ORDER BY tier_order ASC`, ruleID)
 	return result, rows.Err()
 }
 
-func (r PayrollRepository) CreatePayrollRuleTier(ctx context.Context, wsID, ruleID uuid.UUID, req api.CreatePayrollRuleTierRequest) (api.PayrollRuleTier, error) {
+func (r PayrollRepository) CreatePayrollRuleTier(ctx context.Context, ruleID uuid.UUID, req api.CreatePayrollRuleTierRequest) (api.PayrollRuleTier, error) {
 	db, err := r.db(ctx)
 	if err != nil {
 		return api.PayrollRuleTier{}, err
 	}
 	var exists bool
-	if err := db.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM payroll_rule_definitions WHERE id = $1 AND workspace_id = $2)`, ruleID, wsID).Scan(&exists); err != nil {
+	if err := db.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM payroll_rule_definitions WHERE id = $1)`, ruleID).Scan(&exists); err != nil {
 		return api.PayrollRuleTier{}, err
 	}
 	if !exists {
@@ -1253,7 +1235,7 @@ RETURNING created_at`, tierID, ruleID, req.TierOrder, req.MinAmount.String(), ma
 	}, nil
 }
 
-func (r PayrollRepository) DeletePayrollRuleTier(ctx context.Context, wsID, ruleID, tierID uuid.UUID) error {
+func (r PayrollRepository) DeletePayrollRuleTier(ctx context.Context, ruleID, tierID uuid.UUID) error {
 	db, err := r.db(ctx)
 	if err != nil {
 		return err
@@ -1262,23 +1244,23 @@ func (r PayrollRepository) DeletePayrollRuleTier(ctx context.Context, wsID, rule
 	return err
 }
 
-func (r PayrollRepository) ListPayrollRuleAssignments(ctx context.Context, wsID, ruleID uuid.UUID) ([]api.PayrollRuleAssignment, error) {
+func (r PayrollRepository) ListPayrollRuleAssignments(ctx context.Context, ruleID uuid.UUID) ([]api.PayrollRuleAssignment, error) {
 	db, err := r.db(ctx)
 	if err != nil {
 		return nil, err
 	}
 	var exists bool
-	if err := db.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM payroll_rule_definitions WHERE id = $1 AND workspace_id = $2)`, ruleID, wsID).Scan(&exists); err != nil {
+	if err := db.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM payroll_rule_definitions WHERE id = $1)`, ruleID).Scan(&exists); err != nil {
 		return nil, err
 	}
 	if !exists {
 		return nil, api.ErrRuleNotFound
 	}
 
-	rows, err := db.Query(ctx, `SELECT id, workspace_id, rule_definition_id, assignee_type, assignee_id, effective_from::text, effective_to::text, override_config, created_at
+	rows, err := db.Query(ctx, `SELECT id, rule_definition_id, assignee_type, assignee_id, effective_from::text, effective_to::text, override_config, created_at
 FROM payroll_rule_assignments
-WHERE workspace_id = $1 AND rule_definition_id = $2
-ORDER BY created_at DESC`, wsID, ruleID)
+WHERE rule_definition_id = $1
+ORDER BY created_at DESC`, ruleID)
 	if err != nil {
 		return nil, err
 	}
@@ -1291,7 +1273,7 @@ ORDER BY created_at DESC`, wsID, ruleID)
 		var effTo *string
 		var overrideCfg []byte
 		var created time.Time
-		if err := rows.Scan(&a.ID, &a.WorkspaceID, &a.RuleDefinitionID, &a.AssigneeType, &assigneeID, &a.EffectiveFrom, &effTo, &overrideCfg, &created); err != nil {
+		if err := rows.Scan(&a.ID, &a.RuleDefinitionID, &a.AssigneeType, &assigneeID, &a.EffectiveFrom, &effTo, &overrideCfg, &created); err != nil {
 			return nil, err
 		}
 		a.AssigneeID = assigneeID
@@ -1306,17 +1288,24 @@ ORDER BY created_at DESC`, wsID, ruleID)
 	return result, rows.Err()
 }
 
-func (r PayrollRepository) AssignPayrollRule(ctx context.Context, wsID, ruleID uuid.UUID, req api.AssignPayrollRuleRequest) (api.PayrollRuleAssignment, error) {
+func (r PayrollRepository) AssignPayrollRule(ctx context.Context, ruleID uuid.UUID, req api.AssignPayrollRuleRequest) (api.PayrollRuleAssignment, error) {
 	db, err := r.db(ctx)
 	if err != nil {
 		return api.PayrollRuleAssignment{}, err
 	}
 	var exists bool
-	if err := db.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM payroll_rule_definitions WHERE id = $1 AND workspace_id = $2)`, ruleID, wsID).Scan(&exists); err != nil {
+	if err := db.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM payroll_rule_definitions WHERE id = $1)`, ruleID).Scan(&exists); err != nil {
 		return api.PayrollRuleAssignment{}, err
 	}
 	if !exists {
 		return api.PayrollRuleAssignment{}, api.ErrRuleNotFound
+	}
+
+	// Organization-wide assignments are implied by the singleton organization,
+	// so they carry no target row identifier.
+	assigneeID := req.AssigneeID
+	if req.AssigneeType == "organization" {
+		assigneeID = nil
 	}
 
 	assignID := uuid.New()
@@ -1325,9 +1314,9 @@ func (r PayrollRepository) AssignPayrollRule(ctx context.Context, wsID, ruleID u
 	if req.OverrideConfig != nil && len(*req.OverrideConfig) > 0 {
 		overrideParam = []byte(*req.OverrideConfig)
 	}
-	err = db.QueryRow(ctx, `INSERT INTO payroll_rule_assignments (id, workspace_id, rule_definition_id, assignee_type, assignee_id, effective_from, effective_to, override_config, created_at)
-VALUES ($1, $2, $3, $4, $5, $6::date, $7::date, $8, NOW())
-RETURNING created_at`, assignID, wsID, ruleID, req.AssigneeType, req.AssigneeID, req.EffectiveFrom, req.EffectiveTo, overrideParam).Scan(&created)
+	err = db.QueryRow(ctx, `INSERT INTO payroll_rule_assignments (id, rule_definition_id, assignee_type, assignee_id, effective_from, effective_to, override_config, created_at)
+VALUES ($1, $2, $3, $4, $5::date, $6::date, $7, NOW())
+RETURNING created_at`, assignID, ruleID, req.AssigneeType, assigneeID, req.EffectiveFrom, req.EffectiveTo, overrideParam).Scan(&created)
 	if err != nil {
 		if isConflictError(err) {
 			return api.PayrollRuleAssignment{}, api.ErrConflict
@@ -1337,10 +1326,9 @@ RETURNING created_at`, assignID, wsID, ruleID, req.AssigneeType, req.AssigneeID,
 
 	return api.PayrollRuleAssignment{
 		ID:               assignID,
-		WorkspaceID:      wsID,
 		RuleDefinitionID: ruleID,
 		AssigneeType:     req.AssigneeType,
-		AssigneeID:       req.AssigneeID,
+		AssigneeID:       assigneeID,
 		EffectiveFrom:    req.EffectiveFrom,
 		EffectiveTo:      req.EffectiveTo,
 		OverrideConfig:   req.OverrideConfig,
@@ -1348,23 +1336,23 @@ RETURNING created_at`, assignID, wsID, ruleID, req.AssigneeType, req.AssigneeID,
 	}, nil
 }
 
-func (r PayrollRepository) DeletePayrollRuleAssignment(ctx context.Context, wsID, ruleID, assignmentID uuid.UUID) error {
+func (r PayrollRepository) DeletePayrollRuleAssignment(ctx context.Context, ruleID, assignmentID uuid.UUID) error {
 	db, err := r.db(ctx)
 	if err != nil {
 		return err
 	}
-	_, err = db.Exec(ctx, `DELETE FROM payroll_rule_assignments WHERE id = $1 AND workspace_id = $2 AND rule_definition_id = $3`, assignmentID, wsID, ruleID)
+	_, err = db.Exec(ctx, `DELETE FROM payroll_rule_assignments WHERE id = $1 AND rule_definition_id = $2`, assignmentID, ruleID)
 	return err
 }
 
-func (r PayrollRepository) CalculateEmployeePayroll(ctx context.Context, wsID, employeeID uuid.UUID, year, month int) (api.FullPayslipResponse, error) {
+func (r PayrollRepository) CalculateEmployeePayroll(ctx context.Context, employeeID uuid.UUID, year, month int) (api.FullPayslipResponse, error) {
 	db, err := r.db(ctx)
 	if err != nil {
 		return api.FullPayslipResponse{}, err
 	}
 
 	var empExists bool
-	if err := db.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM employees WHERE id = $1 AND workspace_id = $2 AND deleted_at IS NULL)`, employeeID, wsID).Scan(&empExists); err != nil {
+	if err := db.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM employees WHERE id = $1 AND deleted_at IS NULL)`, employeeID).Scan(&empExists); err != nil {
 		return api.FullPayslipResponse{}, err
 	}
 	if !empExists {
@@ -1373,7 +1361,7 @@ func (r PayrollRepository) CalculateEmployeePayroll(ctx context.Context, wsID, e
 
 	var employmentID uuid.UUID
 	var deptID *uuid.UUID
-	err = db.QueryRow(ctx, `SELECT id, department_id FROM employments WHERE employee_id = $1 AND workspace_id = $2 AND status = 'active' AND deleted_at IS NULL ORDER BY start_date DESC, id DESC LIMIT 1`, employeeID, wsID).Scan(&employmentID, &deptID)
+	err = db.QueryRow(ctx, `SELECT id, department_id FROM employments WHERE employee_id = $1 AND status = 'active' AND deleted_at IS NULL ORDER BY start_date DESC, id DESC LIMIT 1`, employeeID).Scan(&employmentID, &deptID)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return api.FullPayslipResponse{}, api.ErrNoActiveEmployment
 	}
@@ -1381,10 +1369,10 @@ func (r PayrollRepository) CalculateEmployeePayroll(ctx context.Context, wsID, e
 		return api.FullPayslipResponse{}, err
 	}
 
-	return r.calculateEmploymentPayslip(ctx, db, wsID, employmentID, employeeID, deptID, year, month)
+	return r.calculateEmploymentPayslip(ctx, db, employmentID, employeeID, deptID, year, month)
 }
 
-func (r PayrollRepository) CalculateBatchPayroll(ctx context.Context, wsID uuid.UUID, req api.BatchCalculatePayrollRequest) (api.BatchCalculatePayrollResponse, error) {
+func (r PayrollRepository) CalculateBatchPayroll(ctx context.Context, req api.BatchCalculatePayrollRequest) (api.BatchCalculatePayrollResponse, error) {
 	db, err := r.db(ctx)
 	if err != nil {
 		return api.BatchCalculatePayrollResponse{}, err
@@ -1404,9 +1392,9 @@ func (r PayrollRepository) CalculateBatchPayroll(ctx context.Context, wsID uuid.
 		var employeeID uuid.UUID
 		var deptID *uuid.UUID
 		var status string
-		err := db.QueryRow(ctx, `SELECT employee_id, department_id, status FROM employments WHERE id = $1 AND workspace_id = $2 AND deleted_at IS NULL`, employmentID, wsID).Scan(&employeeID, &deptID, &status)
+		err := db.QueryRow(ctx, `SELECT employee_id, department_id, status FROM employments WHERE id = $1 AND deleted_at IS NULL`, employmentID).Scan(&employeeID, &deptID, &status)
 		if err != nil {
-			msg := "employment not found in workspace"
+			msg := "employment not found"
 			results = append(results, api.BatchCalculateResult{
 				EmploymentID: employmentID,
 				EmployeeID:   uuid.Nil,
@@ -1416,7 +1404,7 @@ func (r PayrollRepository) CalculateBatchPayroll(ctx context.Context, wsID uuid.
 			continue
 		}
 
-		fullResp, err := r.calculateEmploymentPayslip(ctx, db, wsID, employmentID, employeeID, deptID, req.Year, req.Month)
+		fullResp, err := r.calculateEmploymentPayslip(ctx, db, employmentID, employeeID, deptID, req.Year, req.Month)
 		if err != nil {
 			msg := err.Error()
 			results = append(results, api.BatchCalculateResult{
@@ -1440,7 +1428,7 @@ func (r PayrollRepository) CalculateBatchPayroll(ctx context.Context, wsID uuid.
 	return api.BatchCalculatePayrollResponse{Results: results}, nil
 }
 
-func (r PayrollRepository) calculateEmploymentPayslip(ctx context.Context, db DBTX, wsID, employmentID, employeeID uuid.UUID, deptID *uuid.UUID, year, month int) (api.FullPayslipResponse, error) {
+func (r PayrollRepository) calculateEmploymentPayslip(ctx context.Context, db DBTX, employmentID, employeeID uuid.UUID, deptID *uuid.UUID, year, month int) (api.FullPayslipResponse, error) {
 	startDate, endDate, err := payroll.MonthBoundaries(year, month)
 	if err != nil {
 		return api.FullPayslipResponse{}, api.ErrPayrollValidation
@@ -1462,8 +1450,8 @@ func (r PayrollRepository) calculateEmploymentPayslip(ctx context.Context, db DB
 	salaryRows, err := db.Query(ctx, `SELECT esc.id, esc.component_definition_id, esc.amount::text, esc.effective_date::text, esc.created_at, scd.name, scd.code, scd.created_at, scd.updated_at
 FROM employee_salary_components esc
 JOIN salary_component_definitions scd ON scd.id = esc.component_definition_id
-WHERE scd.workspace_id = $1 AND esc.employment_id = $2 AND esc.effective_date <= $3::date
-ORDER BY esc.effective_date ASC, esc.id ASC`, wsID, employmentID, endStr)
+WHERE esc.employment_id = $1 AND esc.effective_date <= $2::date
+ORDER BY esc.effective_date ASC, esc.id ASC`, employmentID, endStr)
 	if err != nil {
 		return api.FullPayslipResponse{}, err
 	}
@@ -1507,38 +1495,34 @@ ORDER BY esc.effective_date ASC, esc.id ASC`, wsID, employmentID, endStr)
 				CreatedAt:             item.escCreate.UTC().Format(time.RFC3339),
 			},
 			Definition: api.SalaryComponentDefinition{
-				ID:          item.defID,
-				WorkspaceID: wsID,
-				Name:        item.defName,
-				Code:        item.defCode,
-				CreatedAt:   item.defCreate.UTC().Format(time.RFC3339),
-				UpdatedAt:   item.defUpdate.UTC().Format(time.RFC3339),
+				ID:        item.defID,
+				Name:      item.defName,
+				Code:      item.defCode,
+				CreatedAt: item.defCreate.UTC().Format(time.RFC3339),
+				UpdatedAt: item.defUpdate.UTC().Format(time.RFC3339),
 			},
 		})
 	}
 
-	deptRows, err := db.Query(ctx, `SELECT department_id, effective_date::text
-FROM employee_department_history
-WHERE workspace_id = $1 AND employee_id = $2 AND effective_date <= $3::date
-ORDER BY effective_date ASC`, wsID, employeeID, endStr)
-	if err != nil {
-		return api.FullPayslipResponse{}, err
-	}
-	defer deptRows.Close()
-
 	var deptChanges []time.Time
 	currentDept := deptID
-	for deptRows.Next() {
-		var dID *uuid.UUID
-		var effStr string
-		if err := deptRows.Scan(&dID, &effStr); err != nil {
-			return api.FullPayslipResponse{}, err
-		}
-		if t, err := time.Parse("2006-01-02", effStr); err == nil {
-			if !t.After(startDate) {
-				currentDept = dID
-			} else if t.Before(endDate.AddDate(0, 0, 1)) {
-				deptChanges = append(deptChanges, t)
+	deptRows, err := db.Query(ctx, `SELECT department_id, effective_date::text
+FROM employee_department_history
+WHERE employee_id = $1 AND effective_date <= $2::date
+ORDER BY effective_date ASC`, employeeID, endStr)
+	if err == nil {
+		defer deptRows.Close()
+		for deptRows.Next() {
+			var dID *uuid.UUID
+			var effStr string
+			if err := deptRows.Scan(&dID, &effStr); err == nil {
+				if t, err := time.Parse("2006-01-02", effStr); err == nil {
+					if !t.After(startDate) {
+						currentDept = dID
+					} else if t.Before(endDate.AddDate(0, 0, 1)) {
+						deptChanges = append(deptChanges, t)
+					}
+				}
 			}
 		}
 	}
@@ -1552,30 +1536,42 @@ ORDER BY effective_date ASC`, wsID, employeeID, endStr)
 	hoursPerDay := decimal.NewFromInt(8)
 	var maxOtHours *decimal.Decimal
 
-	var stdStr, hoursStr string
-	var maxOtStr *string
-	err = db.QueryRow(ctx, `SELECT fixed_std_days::text, hours_per_day::text, max_ot_hours_per_month::text
-FROM workspace_payroll_settings
-WHERE workspace_id = $1 AND effective_date <= $2::date
-ORDER BY effective_date DESC LIMIT 1`, wsID, endStr).Scan(&stdStr, &hoursStr, &maxOtStr)
+	orgCfgRows, err := db.Query(ctx, `SELECT config_key, value_decimal::text
+FROM config_entries
+WHERE scope_type = 'organization' AND scope_id IS NULL AND effective_from <= $1::date
+ORDER BY effective_from DESC, created_at DESC`, endStr)
 	if err == nil {
-		if d, err := decimal.NewFromString(stdStr); err == nil && d.GreaterThan(decimal.Zero) {
-			stdDays = d
-		}
-		if d, err := decimal.NewFromString(hoursStr); err == nil && d.GreaterThan(decimal.Zero) {
-			hoursPerDay = d
-		}
-		if maxOtStr != nil {
-			if d, err := decimal.NewFromString(*maxOtStr); err == nil {
-				maxOtHours = &d
+		defer orgCfgRows.Close()
+		seenKeys := make(map[string]bool)
+		for orgCfgRows.Next() {
+			var k string
+			var valDec *string
+			if err := orgCfgRows.Scan(&k, &valDec); err == nil && !seenKeys[k] {
+				seenKeys[k] = true
+				if valDec != nil {
+					if d, err := decimal.NewFromString(*valDec); err == nil {
+						switch k {
+						case "payroll.fixed_std_days":
+							if d.GreaterThan(decimal.Zero) {
+								stdDays = d
+							}
+						case "payroll.hours_per_day":
+							if d.GreaterThan(decimal.Zero) {
+								hoursPerDay = d
+							}
+						case "payroll.max_ot_hours_per_month":
+							maxOtHours = &d
+						}
+					}
+				}
 			}
 		}
 	}
 
 	cfgRows, err := db.Query(ctx, `SELECT config_key, value_decimal::text
-FROM workspace_config_entries
-WHERE workspace_id = $1 AND scope_type = 'employment' AND scope_id = $2 AND effective_from <= $3::date
-ORDER BY effective_from DESC`, wsID, employmentID, endStr)
+FROM config_entries
+WHERE scope_type = 'employment' AND scope_id = $1 AND effective_from <= $2::date
+ORDER BY effective_from DESC`, employmentID, endStr)
 	if err == nil {
 		defer cfgRows.Close()
 		seenKeys := make(map[string]bool)
@@ -1601,7 +1597,7 @@ ORDER BY effective_from DESC`, wsID, employmentID, endStr)
 	summariesMap := make(map[string]summaryItem)
 	sumRows, err := db.Query(ctx, `SELECT date::text, COALESCE(standard_minutes, 0), COALESCE(early_ot_minutes + late_ot_minutes, 0)
 FROM attendance_daily_summaries
-WHERE workspace_id = $1 AND employment_id = $2 AND date >= $3::date AND date <= $4::date`, wsID, employmentID, startStr, endStr)
+WHERE employment_id = $1 AND date >= $2::date AND date <= $3::date`, employmentID, startStr, endStr)
 	if err == nil {
 		defer sumRows.Close()
 		for sumRows.Next() {
@@ -1616,7 +1612,7 @@ WHERE workspace_id = $1 AND employment_id = $2 AND date >= $3::date AND date <= 
 	totalBasePay := decimal.Zero
 	var totalStdUnits int32
 	var totalOtUnits int32
-	stdSource := "workspace_settings"
+	stdSource := "organization_settings"
 
 	type segSnapshot struct {
 		id           uuid.UUID
@@ -1719,9 +1715,9 @@ WHERE workspace_id = $1 AND employment_id = $2 AND date >= $3::date AND date <= 
 
 	incRows, err := db.Query(ctx, `SELECT p.id, p.name, p.base_amount::text, p.payout_type
 FROM payroll_incentive_policies p
-WHERE p.workspace_id = $1 AND p.is_active = true AND p.deleted_at IS NULL
-  AND p.effective_from <= $2::date AND (p.effective_to IS NULL OR p.effective_to >= $3::date)
-ORDER BY p.created_at ASC`, wsID, endStr, startStr)
+WHERE p.is_active = true AND p.deleted_at IS NULL
+  AND p.effective_from <= $1::date AND (p.effective_to IS NULL OR p.effective_to >= $2::date)
+ORDER BY p.created_at ASC`, endStr, startStr)
 	if err == nil {
 		defer incRows.Close()
 		type incPolicyInfo struct {
@@ -1792,15 +1788,13 @@ ORDER BY priority ASC`, policyIDs)
 	ruleRows, err := db.Query(ctx, `SELECT a.rule_definition_id, a.override_config, d.code, d.calculation_method, d.rule_config
 FROM payroll_rule_assignments a
 JOIN payroll_rule_definitions d ON d.id = a.rule_definition_id
-WHERE a.workspace_id = $1
-  AND (
-    (a.assignee_type = 'workspace')
-    OR (a.assignee_type = 'department' AND a.assignee_id = $2)
-    OR (a.assignee_type = 'employee' AND a.assignee_id = $3)
-    OR (a.assignee_type = 'user' AND a.assignee_id = (SELECT user_id FROM employees WHERE id = $3))
+WHERE (
+    (a.assignee_type = 'organization')
+    OR (a.assignee_type = 'department' AND a.assignee_id = $1)
+    OR (a.assignee_type = 'employee' AND a.assignee_id = $2)
   )
-  AND a.effective_from <= $4::date AND (a.effective_to IS NULL OR a.effective_to >= $5::date)
-  AND d.is_active = true`, wsID, currentDept, employeeID, endStr, startStr)
+  AND a.effective_from <= $3::date AND (a.effective_to IS NULL OR a.effective_to >= $4::date)
+  AND d.is_active = true`, currentDept, employeeID, endStr, startStr)
 	if err == nil {
 		defer ruleRows.Close()
 		type ruleAssignInfo struct {
@@ -1887,7 +1881,6 @@ ORDER BY tier_order ASC`, tieredRuleIDs)
 	payslipID := uuid.New()
 	assembled := payroll.AssemblePayslip(payroll.AssemblePayslipArgs{
 		ID:                      payslipID,
-		WorkspaceID:             wsID,
 		EmploymentID:            employmentID,
 		StartDate:               startDate,
 		EndDate:                 endDate,
@@ -1903,7 +1896,7 @@ ORDER BY tier_order ASC`, tieredRuleIDs)
 	})
 
 	var existingID uuid.UUID
-	err = db.QueryRow(ctx, `SELECT id FROM payslips WHERE workspace_id = $1 AND employment_id = $2 AND period_start = $3::date`, wsID, employmentID, startStr).Scan(&existingID)
+	err = db.QueryRow(ctx, `SELECT id FROM payslips WHERE employment_id = $1 AND period_start = $2::date`, employmentID, startStr).Scan(&existingID)
 	var finalPayslipID uuid.UUID
 	var createdTime, updatedTime time.Time
 
@@ -1922,10 +1915,10 @@ WHERE id = $8 RETURNING created_at, updated_at`,
 		}
 	} else {
 		finalPayslipID = payslipID
-		err = db.QueryRow(ctx, `INSERT INTO payslips (id, workspace_id, employment_id, period_start, period_end, base_pay_amount, overtime_pay_amount, deductions_amount, net_pay_amount, status, standard_units, overtime_units, holiday_work_premium_amount, created_at, updated_at)
-VALUES ($1, $2, $3, $4::date, $5::date, $6, $7, $8, $9, 'draft', $10, $11, $12, NOW(), NOW())
+		err = db.QueryRow(ctx, `INSERT INTO payslips (id, employment_id, period_start, period_end, base_pay_amount, overtime_pay_amount, deductions_amount, net_pay_amount, status, standard_units, overtime_units, holiday_work_premium_amount, created_at, updated_at)
+VALUES ($1, $2, $3::date, $4::date, $5, $6, $7, $8, 'draft', $9, $10, $11, NOW(), NOW())
 RETURNING created_at, updated_at`,
-			finalPayslipID, wsID, employmentID, startStr, endStr, assembled.TotalBasePay.String(), assembled.TotalOvertimePay.String(), assembled.DeductionsAmount.String(), assembled.NetPay.String(), assembled.TotalStdUnits, assembled.TotalOTUnits, assembled.TotalHolidayWorkPremium.String()).Scan(&createdTime, &updatedTime)
+			finalPayslipID, employmentID, startStr, endStr, assembled.TotalBasePay.String(), assembled.TotalOvertimePay.String(), assembled.DeductionsAmount.String(), assembled.NetPay.String(), assembled.TotalStdUnits, assembled.TotalOTUnits, assembled.TotalHolidayWorkPremium.String()).Scan(&createdTime, &updatedTime)
 		if err != nil {
 			return api.FullPayslipResponse{}, err
 		}
@@ -1983,7 +1976,6 @@ VALUES ($1, $2, $3, $4, NOW())`, ruleEvaluationRecords[i].ID, finalPayslipID, ru
 	return api.FullPayslipResponse{
 		PayslipRecord: api.PayslipRecord{
 			ID:                       finalPayslipID,
-			WorkspaceID:              wsID,
 			EmploymentID:             employmentID,
 			PeriodStart:              startStr,
 			PeriodEnd:                endStr,

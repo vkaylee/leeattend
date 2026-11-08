@@ -12,14 +12,11 @@ import ImportUploadStep from "./import-upload-step";
 interface EmployeeTerminationImportDialogProps {
   isOpen: boolean;
   onClose: () => void;
-  wsId: string;
 }
 
 export default function EmployeeTerminationImportDialog({
   isOpen,
-  onClose,
-  wsId,
-}: EmployeeTerminationImportDialogProps) {
+  onClose,}: EmployeeTerminationImportDialogProps) {
   const { t } = useTranslation("employees");
   const {
     file, loading, confirming, step, previewData,
@@ -32,7 +29,7 @@ export default function EmployeeTerminationImportDialog({
     handleConfirm,
     exportErrorsToExcel,
     handleClose,
-  } = useTerminationImport(wsId, onClose);
+  } = useTerminationImport(onClose);
 
   return (
     <Modal

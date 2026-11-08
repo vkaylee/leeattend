@@ -216,8 +216,8 @@
     "drawer": {
       "add_subtitle": "Configure specific rules for a target",
       "add_title": "Add Policy Override",
-      "grace_period_placeholder": "Using default workspace value",
-      "override_notice": "Note: The settings below will override the default workspace configuration for this target starting from the effective date.",
+      "grace_period_placeholder": "Using default organization value",
+      "override_notice": "Note: The settings below will override the default organization configuration for this target starting from the effective date.",
       "save_button": "SAVE OVERRIDE",
       "search_placeholder": "Search {{type}}...",
       "select_target_type": "Select {{type}}",
@@ -225,7 +225,7 @@
       "step_target": "1. Select Target"
     },
     "empty_state": {
-      "description": "Everyone is following the workspace default policy.",
+      "description": "Everyone is following the organization default policy.",
       "title": "No active overrides"
     },
     "filters": {
@@ -288,7 +288,7 @@
     "modal_title_edit": "Edit Holiday",
     "modal_title_new": "New Holiday",
     "no_holidays": "No holidays configured for {{year}}",
-    "subtitle": "Manage public holidays and special days for your workspace",
+    "subtitle": "Manage public holidays and special days for your organization",
     "table": {
       "credit": "Credit",
       "date": "Date",
@@ -533,7 +533,7 @@
     },
     "form_subtitle": "Define when this pattern should be applied",
     "info_priority": "Rules are evaluated from highest to lowest priority. The first matching rule will be applied. General rules should have lowest priority.",
-    "match_all": "Workspace-wide (Match All)",
+    "match_all": "Organization-wide (Match All)",
     "messages": {
       "create_error": "Failed to create rule",
       "create_success": "Rule created successfully",
@@ -636,9 +636,9 @@
       "correction_desc": "Correction will overwrite the current shift record. Use this only for fixing typos.",
       "correction_label": "Data Correction",
       "correction_warning": "This is a direct correction",
-      "early_arrival_notice_allow": "ℹ️ Workspace's Early Arrival Policy is currently set to 'Allow all'. Early OT hours will be fully calculated from check-in.",
-      "early_arrival_notice_block": "⚠️ Note: Workspace's Early Arrival Policy is currently set to 'Block early arrival'. This Early OT configuration will not take effect.",
-      "early_arrival_notice_clamp": "ℹ️ Workspace's Early Arrival Policy is currently set to 'Clamp early OT'. Early OT hours (if allowed) will be capped at the shift's Grace Period (currently {{grace}} min).",
+      "early_arrival_notice_allow": "ℹ️ Organization's Early Arrival Policy is currently set to 'Allow all'. Early OT hours will be fully calculated from check-in.",
+      "early_arrival_notice_block": "⚠️ Note: Organization's Early Arrival Policy is currently set to 'Block early arrival'. This Early OT configuration will not take effect.",
+      "early_arrival_notice_clamp": "ℹ️ Organization's Early Arrival Policy is currently set to 'Clamp early OT'. Early OT hours (if allowed) will be capped at the shift's Grace Period (currently {{grace}} min).",
       "edit_description": "Update config or change hours",
       "edit_subtitle": "UPDATE CONFIG OR CHANGE HOURS",
       "effective_date_desc": "The new version will take effect from this date.",

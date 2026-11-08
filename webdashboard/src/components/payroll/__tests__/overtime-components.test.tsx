@@ -42,7 +42,7 @@ describe('OvertimeRuleEditor', () => {
     const rules = [
       { id: '1', multiplier: '1.5', time_start: '18:00:00', time_end: '22:00:00', priority: 0, policy_id: 'pol-1', days_of_week: 127, is_holiday: false }
     ];
-    renderWithProviders(<OvertimeRuleEditor policyId="pol-1" rules={rules} wsId="ws-1" />);
+    renderWithProviders(<OvertimeRuleEditor policyId="pol-1" rules={rules} />);
 
     expect(screen.getByText(/1.5x/)).toBeDefined();
     // Use multi-language matcher
@@ -50,7 +50,7 @@ describe('OvertimeRuleEditor', () => {
   });
 
   it('shows add form when clicked', () => {
-    renderWithProviders(<OvertimeRuleEditor policyId="pol-1" rules={[]} wsId="ws-1" />);
+    renderWithProviders(<OvertimeRuleEditor policyId="pol-1" rules={[]} />);
     fireEvent.click(screen.getByText(/Add Rule|Thêm quy tắc/i));
     expect(screen.getByText(/Multiplier/i)).toBeDefined();
   });
@@ -58,7 +58,7 @@ describe('OvertimeRuleEditor', () => {
 
 describe('AssignOvertimePolicyModal', () => {
   it('renders all assignee types', () => {
-    renderWithProviders(<AssignOvertimePolicyModal isOpen={true} onClose={vi.fn()} wsId="ws-1" />);
+    renderWithProviders(<AssignOvertimePolicyModal isOpen={true} onClose={vi.fn()} />);
 
     expect(screen.getByTestId('assignee-type-employee')).toBeDefined();
     expect(screen.getByTestId('assignee-type-department')).toBeDefined();
@@ -66,7 +66,7 @@ describe('AssignOvertimePolicyModal', () => {
   });
 
   it('hides Target ID input when Global is selected', async () => {
-    renderWithProviders(<AssignOvertimePolicyModal isOpen={true} onClose={vi.fn()} wsId="ws-1" />);
+    renderWithProviders(<AssignOvertimePolicyModal isOpen={true} onClose={vi.fn()} />);
 
     fireEvent.click(screen.getByTestId('assignee-type-workspace'));
     await waitFor(() => {

@@ -8,7 +8,7 @@ import Button from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
 import { Typography } from "@/components/ui/typography";
 import { useEnterPaperOt } from "@/hooks/use-attendance";
-import { useWorkspace } from "@/hooks/use-workspace";
+import { useOrganization } from "@/hooks/use-organization";
 
 import type { OtSummary } from "./ot-approvals-table";
 
@@ -30,13 +30,12 @@ export function AddPhotoDialog({
 }: AddPhotoDialogProps) {
   const { t } = useTranslation();
   const toast = useToast();
-  const { workspace } = useWorkspace();
+  const { workspace } = useOrganization();
   const { enterPaperOt, isSubmitting } = useEnterPaperOt();
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
   const [fileName, setFileName] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const wsId = workspace?.id ?? "";
 
   const handleSubmit = async (e: React.SyntheticEvent) => {
     e.preventDefault();
@@ -114,18 +113,15 @@ export function AddPhotoDialog({
                 </div>
               ) : (
                 <div className="w-full">
-                  <FileUpload
-                    accept="application/pdf"
-                    category="OtClaimAttachment"
-                    maxSizeMB={20}
-                    onUploadSuccess={(file) => {
-                      setFileName(file.file_name);
-                      setPhotoUrl(`/api/v1/workspaces/${wsId}/files/${file.id}/download`);
-                    }}
-                    ownerId={summary?.id ?? ""}
-                    ownerType="AttendanceDailySummary"
-                    workspaceId={wsId}
-                  />
+                  <FileUpload accept="application/pdf"
+                  category="OtClaimAttachment"
+                  maxSizeMB={20}
+                  onUploadSuccess={(file) => {
+                    setFileName(file.file_name);
+                    setPhotoUrl(`/api/v1/files/${file.id}/download`);
+                  }}
+                  ownerId={summary?.id ?? ""}
+                  ownerType="AttendanceDailySummary"  />
                 </div>
               )}
             </div>

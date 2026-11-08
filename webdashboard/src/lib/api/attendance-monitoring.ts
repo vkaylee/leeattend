@@ -1,4 +1,6 @@
 
+import type { components } from "@/types/api-generated";
+
 import { submitAttendanceAdjustment, approveAttendanceAdjustment } from "./attendance-core";
 import { createBehalfAssignmentApi } from "./behalf-assignment-factory";
 import { client } from "./client";
@@ -20,40 +22,32 @@ import {
 // --- Report Export ---
 
 export async function createReportExportJob(
-  wsId: string,
   request: CreateReportExportRequest
 ): Promise<CreateReportExportResponse> {
-  const { data: resData } = await client.POST("/workspaces/{ws_id}/reports/export", {
-    params: { path: { ws_id: wsId } },
-    body: request
+  const { data: resData } = await client.POST<CreateReportExportResponse>("/v1/reports/export", {
+    body: request,
   });
   return resData;
 }
 
 export async function fetchExportJobStatus(
-  wsId: string,
   jobId: string
-) {
-  const { data: resData } = await client.GET("/workspaces/{ws_id}/reports/jobs/{job_id}", {
-    params: { path: { ws_id: wsId, job_id: jobId } }
-  });
+): Promise<components["schemas"]["JobStatusResponse"]> {
+  const { data: resData } = await client.GET<components["schemas"]["JobStatusResponse"]>(
+    "/v1/reports/jobs/{job_id}",
+    { params: { path: { job_id: jobId } } },
+  );
   return resData;
 }
 
-export async function cancelExportJob(
-  wsId: string,
-  jobId: string
-): Promise<void> {
-  await client.DELETE("/workspaces/{ws_id}/reports/jobs/{job_id}", {
-    params: { path: { ws_id: wsId, job_id: jobId } }
+export async function cancelExportJob(jobId: string): Promise<void> {
+  await client.DELETE("/v1/reports/jobs/{job_id}", {
+    params: { path: { job_id: jobId } },
   });
 }
 
-export async function downloadExportReport(
-  wsId: string,
-  jobId: string
-): Promise<Blob> {
-  const response = await apiFetch(`/v1/workspaces/${wsId}/reports/jobs/${jobId}/download`, {
+export async function downloadExportReport(jobId: string): Promise<Blob> {
+  const response = await apiFetch(`/v1/reports/jobs/${encodeURIComponent(jobId)}/download`, {
     timeout: TIMEOUT.REPORT_OPERATION,
   });
   if (!response.ok) await ApiError.rejectResponse(response);
@@ -295,19 +289,22 @@ export interface OtClaimBehalfAssignment {
   target_department_id?: string | null;
   target_employee_id?: string | null;
   updated_at: string;
-  workspace_id: string;
+  workspace_id?: string;
 }
 
 const otClaimBehalfApi = createBehalfAssignmentApi<OtClaimBehalfAssignment>({
-  basePath: "/v1/workspaces/{ws_id}/attendance/claim-ot/behalf-assignments",
+  basePath: "/v1/attendance/claim-ot/behalf-assignments",
 });
 
-export const fetchBehalfAssignments = (wsId: string) => otClaimBehalfApi.list(wsId);
-export const createBehalfAssignment = (wsId: string, data: Parameters<typeof otClaimBehalfApi.create>[1]) => otClaimBehalfApi.create(wsId, data);
-export const deleteBehalfAssignment = (wsId: string, id: string) => otClaimBehalfApi.delete(wsId, id);
+export const fetchBehalfAssignments = (): Promise<OtClaimBehalfAssignment[]> =>
+  otClaimBehalfApi.list();
+export const createBehalfAssignment = (
+  data: Parameters<typeof otClaimBehalfApi.create>[0],
+): Promise<OtClaimBehalfAssignment> => otClaimBehalfApi.create(data);
+export const deleteBehalfAssignment = (id: string): Promise<void> =>
+  otClaimBehalfApi.delete(id);
 
 export async function claimOt(
-  wsId: string,
   employeeId: string,
   data: {
     date: string;
@@ -315,14 +312,13 @@ export async function claimOt(
     reason?: string | null;
   }
 ): Promise<void> {
-  await client.POST("/v1/workspaces/{ws_id}/attendance/claim-ot/{employee_id}", {
-    params: { path: { ws_id: wsId, employee_id: employeeId } },
+  await client.POST("/v1/attendance/claim-ot/{employee_id}", {
+    params: { path: { employee_id: employeeId } },
     body: data
   });
 }
 
 export async function adminConfirmAttendance(
-  wsId: string,
   row: DailyAttendanceReport,
   existingRequestId?: string,
   reason?: string,
@@ -342,7 +338,7 @@ export async function adminConfirmAttendance(
     const punchIn = row.actual_punch_in ?? row.scheduled_start ?? "00:00:00";
     const punchOut = row.actual_punch_out ?? row.scheduled_end ?? undefined;
 
-    const adjustment = await submitAttendanceAdjustment(wsId, {
+    const adjustment = await submitAttendanceAdjustment({
       employment_id: row.employment_id,
       requested_punch_time: toDatetime(row.date, punchIn),
       reason: reason ?? "Admin confirmation",
@@ -350,24 +346,28 @@ export async function adminConfirmAttendance(
     requestId = adjustment.id;
 
     if (punchOut) {
-      const adjustmentOut = await submitAttendanceAdjustment(wsId, {
+      const adjustmentOut = await submitAttendanceAdjustment({
         employment_id: row.employment_id,
         requested_punch_time: toDatetime(row.date, punchOut),
         reason: reason ?? "Admin confirmation",
       });
-      await approveAttendanceAdjustment(wsId, adjustmentOut.id, { status: "approved" });
+      await approveAttendanceAdjustment(adjustmentOut.id, { status: "approved" });
     }
   }
 
-  await approveAttendanceAdjustment(wsId, requestId, { status: "approved" });
+  await approveAttendanceAdjustment(requestId, { status: "approved" });
 }
 
 // ── Attendance Adjustment Behalf Assignments (factory-generated CRUD) ──────
 
 const adjustmentBehalfApi = createBehalfAssignmentApi<OtClaimBehalfAssignment>({
-  basePath: "/v1/workspaces/{ws_id}/attendance/adjustments/behalf-assignments",
+  basePath: "/v1/attendance/adjustments/behalf-assignments",
 });
 
-export const fetchAdjustmentBehalfAssignments = (wsId: string) => adjustmentBehalfApi.list(wsId);
-export const createAdjustmentBehalfAssignment = (wsId: string, data: Parameters<typeof adjustmentBehalfApi.create>[1]) => adjustmentBehalfApi.create(wsId, data);
-export const deleteAdjustmentBehalfAssignment = (wsId: string, id: string) => adjustmentBehalfApi.delete(wsId, id);
+export const fetchAdjustmentBehalfAssignments = (): Promise<OtClaimBehalfAssignment[]> =>
+  adjustmentBehalfApi.list();
+export const createAdjustmentBehalfAssignment = (
+  data: Parameters<typeof adjustmentBehalfApi.create>[0],
+): Promise<OtClaimBehalfAssignment> => adjustmentBehalfApi.create(data);
+export const deleteAdjustmentBehalfAssignment = (id: string): Promise<void> =>
+  adjustmentBehalfApi.delete(id);

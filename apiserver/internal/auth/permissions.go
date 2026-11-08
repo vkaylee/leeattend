@@ -13,8 +13,8 @@ const (
 	// Workspace
 	PermissionWorkspaceUpdate        Permission = "workspace:update"
 	PermissionWorkspaceDelete        Permission = "workspace:delete"
-	PermissionWorkspaceSettingsRead  Permission = "workspace:settings:read"
-	PermissionWorkspaceSettingsWrite Permission = "workspace:settings:write"
+	PermissionOrganizationSettingsRead  Permission = "organization:settings:read"
+	PermissionOrganizationSettingsWrite Permission = "organization:settings:write"
 
 	// Members
 	PermissionMembersRead        Permission = "members:read"
@@ -163,8 +163,8 @@ const (
 var allCanonicalPermissions = []Permission{
 	PermissionWorkspaceUpdate,
 	PermissionWorkspaceDelete,
-	PermissionWorkspaceSettingsRead,
-	PermissionWorkspaceSettingsWrite,
+	PermissionOrganizationSettingsRead,
+	PermissionOrganizationSettingsWrite,
 	PermissionMembersRead,
 	PermissionMembersInvite,
 	PermissionMembersRolesManage,

@@ -11,7 +11,7 @@ import { CreateAdjustmentModal } from "@/components/features/attendance/create-a
 import { PDFPreviewModal } from "@/components/files/pdf-preview-modal";
 import { PageContainer } from "@/components/ui/page-container";
 import { useMyPermissions } from "@/hooks/use-permissions";
-import { useWorkspace } from "@/hooks/use-workspace";
+import { useOrganization } from "@/hooks/use-organization";
 
 import { BehalfAssignmentsTab } from "./approvals/components/behalf-assignments-tab";
 import { AdjustmentsHeader } from "./attendance/components/adjustments-header";
@@ -24,7 +24,6 @@ export default function AttendanceAdjustmentsPage() {
   const { t } = useTranslation();
   const { hasPermission } = useMyPermissions();
   const {
-    wsId,
     formatDate,
     formatTime,
     requests,
@@ -47,21 +46,15 @@ export default function AttendanceAdjustmentsPage() {
     getEmployeeID,
   } = useAttendanceAdjustmentsPage();
 
-  const { workspace } = useWorkspace(wsId ?? undefined);
-  const { data: departments = [] } = useDepartments(wsId);
+  const { organization } = useOrganization();
+  const { data: departments = [] } = useDepartments();
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
   const [previewFileUrl, setPreviewFileUrl] = useState<string | null>(null);
   const [previewTitle, setPreviewTitle] = useState<string>("");
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
 
-  if (!wsId) {
-    return (
-      <div className="p-12 text-center text-slate-500 dark:text-slate-400 font-bold italic uppercase tracking-widest text-xs opacity-50">
-        {t("common.select_workspace")}
-      </div>
-    );
-  }
+  
 
   const canManageBehalf = hasPermission("attendance:adjustments:manage_behalf");
   const canApprove = hasPermission("attendance:adjustments:approve");
@@ -83,23 +76,20 @@ export default function AttendanceAdjustmentsPage() {
         />
         {activeTab !== "behalf_assignments" && (
           <div className="w-full sm:w-72">
-            <EmployeeSearch
-              clearOnEscape
-              departments={departments}
-              keyboardShortcut={["/", "Enter"]}
-              onChange={(value) => {
-                setEmployeeId((Array.isArray(value) ? value[0] : value) || "all");
-              }}
-              placeholder={employeeId === "all" ? t("common.all_employees") : undefined}
-              value={employeeId === "all" ? "" : employeeId}
-              workspaceId={wsId}
-            />
+            <EmployeeSearch clearOnEscape
+            departments={departments}
+            keyboardShortcut={["/", "Enter"]}
+            onChange={(value) => {
+              setEmployeeId((Array.isArray(value) ? value[0] : value) || "all");
+            }}
+            placeholder={employeeId === "all" ? t("common.all_employees") : undefined}
+            value={employeeId === "all" ? "" : employeeId}  />
           </div>
         )}
       </div>
 
       {activeTab === "behalf_assignments" && canManageBehalf ? (
-        <BehalfAssignmentsTab assignmentType="attendance_adjustment" wsId={wsId} />
+        <BehalfAssignmentsTab assignmentType="attendance_adjustment"  />
       ) : (
         <AdjustmentsTable
           activeTab={activeTab}
@@ -124,12 +114,9 @@ export default function AttendanceAdjustmentsPage() {
         />
       )}
 
-      <CreateAdjustmentModal
-        isOpen={isCreateModalOpen}
-        onClose={() => { setIsCreateModalOpen(false); }}
-        timezone={workspace?.timezone ?? "UTC"}
-        wsId={wsId}
-      />
+      <CreateAdjustmentModal isOpen={isCreateModalOpen}
+      onClose={() => { setIsCreateModalOpen(false); }}
+      timezone={organization?.timezone ?? "UTC"}  />
 
       <AttendanceImportDialog
         endpoint="/attendance-adjustments/upload"

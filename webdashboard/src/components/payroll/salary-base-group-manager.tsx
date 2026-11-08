@@ -111,12 +111,9 @@ function BaseGroupCard({
 
 function CreateBaseModal({
   isOpen,
-  onClose,
-  wsId,
-}: {
+  onClose,}: {
   isOpen: boolean;
   onClose: () => void;
-  wsId: string;
 }) {
   const queryClient = useQueryClient();
   const toast = useToast();
@@ -125,9 +122,9 @@ function CreateBaseModal({
   const [description, setDescription] = useState("");
 
   const createMutation = useMutation({
-    mutationFn: () => createSalaryBaseGroup(wsId, { name, slug, description }),
+    mutationFn: () => createSalaryBaseGroup({ name, slug, description }),
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ["salary-base-groups", wsId] });
+      void queryClient.invalidateQueries({ queryKey: ["salary-base-groups"] });
       toast.success("Salary base created successfully");
       onClose();
       setName("");
@@ -205,29 +202,23 @@ function CreateBaseModal({
   );
 }
 
-export default function SalaryBaseGroupManager({ wsId }: { wsId: string }) {
+export default function SalaryBaseGroupManager() {
   const queryClient = useQueryClient();
   const toast = useToast();
   const [showCreateModal, setShowCreateModal] = useState(false);
 
-  const { data: salaryBasesResponse, isLoading: loadingGroups } = useQuery({
-    queryKey: ["salary-base-groups", wsId],
-    queryFn: () => fetchSalaryBaseGroups(wsId),
-  });
+  const { data: salaryBasesResponse, isLoading: loadingGroups } = useQuery({ queryKey: ["salary-base-groups"], queryFn: () => fetchSalaryBaseGroups(), });
 
-  const { data: components, isLoading: loadingComponents } = useQuery({
-    queryKey: ["salary-components", wsId],
-    queryFn: () => fetchSalaryComponents(wsId),
-  });
+  const { data: components, isLoading: loadingComponents } = useQuery({ queryKey: ["salary-components"], queryFn: () => fetchSalaryComponents(), });
 
   const groups = salaryBasesResponse?.groups;
   const members = salaryBasesResponse?.members;
 
   const assignMutation = useMutation({
     mutationFn: ({ baseId, componentId }: { baseId: string, componentId: string }) => 
-      assignComponentToSalaryBase(wsId, baseId, componentId),
+      assignComponentToSalaryBase(baseId, componentId),
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ["salary-base-members", wsId] });
+      void queryClient.invalidateQueries({ queryKey: ["salary-base-members"] });
       toast.success("Component assigned to base successfully");
     },
     onError: () => {
@@ -237,9 +228,9 @@ export default function SalaryBaseGroupManager({ wsId }: { wsId: string }) {
 
   const unassignMutation = useMutation({
     mutationFn: ({ baseId, componentId }: { baseId: string, componentId: string }) => 
-      unassignComponentFromSalaryBase(wsId, baseId, componentId),
+      unassignComponentFromSalaryBase(baseId, componentId),
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ["salary-base-members", wsId] });
+      void queryClient.invalidateQueries({ queryKey: ["salary-base-members"] });
       toast.success("Component unassigned from base successfully");
     },
     onError: () => {
@@ -311,11 +302,8 @@ export default function SalaryBaseGroupManager({ wsId }: { wsId: string }) {
         ))}
       </div>
 
-      <CreateBaseModal
-        isOpen={showCreateModal}
-        onClose={() => { setShowCreateModal(false); }}
-        wsId={wsId}
-      />
+      <CreateBaseModal isOpen={showCreateModal}
+      onClose={() => { setShowCreateModal(false); }}  />
     </div>
   );
 }

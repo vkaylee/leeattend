@@ -28,11 +28,10 @@ const mockWorkspaceRoles = [
 // Mock the API library
 vi.mock("../../lib/api", () => ({
   fetchMemberRoles: vi.fn(),
-  updateWorkspaceMemberRole: vi.fn(),
+  updateOrganizationMemberRole: vi.fn(),
   assignExtraRole: vi.fn(),
   revokeExtraRole: vi.fn(),
-  fetchWorkspaceRoles: vi.fn(),
-  getStandaloneOrganizationId: vi.fn(() => "test-ws-id"),
+  fetchOrganizationRoles: vi.fn(),
 }));
 
 // Mock window.confirm
@@ -107,7 +106,7 @@ describe("RoleManagementModal", () => {
     await user.click(confirmModalButton);
 
     await waitFor(() => {
-      expect(api.updateWorkspaceMemberRole).toHaveBeenCalledWith("test-ws-id", "user-1", ADMIN_ROLE_ID);
+      expect(api.updateWorkspaceMemberRole).toHaveBeenCalledWith("user-1", ADMIN_ROLE_ID);
     });
   });
 
@@ -167,7 +166,7 @@ describe("RoleManagementModal", () => {
     await user.click(confirmModalButton);
 
     await waitFor(() => {
-      expect(api.revokeExtraRole).toHaveBeenCalledWith("test-ws-id", "user-1", "extra-role-1");
+      expect(api.revokeExtraRole).toHaveBeenCalledWith("user-1", "extra-role-1");
     });
   });
 

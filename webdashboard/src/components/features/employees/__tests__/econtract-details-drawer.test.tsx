@@ -83,9 +83,7 @@ describe("EContractDetailsDrawer Component", () => {
 
   const defaultProps = {
     isOpen: true,
-    onClose: vi.fn(),
-    wsId: "ws-1",
-  };
+    onClose: vi.fn(),};
 
   beforeEach(() => {
     vi.clearAllMocks();

@@ -110,7 +110,7 @@
     },
     "auto": "Tự động",
     "back": "Quay lại",
-    "back_to_workspace": "Quay lại Workspace",
+    "back_to_workspace": "Quay lại tổ chức",
     "base_for_ot": "Tính OT",
     "billing": "Thanh toán",
     "break": "Nghỉ",
@@ -143,8 +143,8 @@
     "confirm_delete": "Bạn có chắc chắn muốn xóa mục này?",
     "copied": "Copied to clipboard",
     "create": "Tạo mới",
-    "create_workspace": "Tạo Workspace",
-    "create_workspace_error": "Không thể tạo Workspace. Vui lòng thử lại.",
+    "create_workspace": "Tạo tổ chức",
+    "create_workspace_error": "Không thể tạo tổ chức. Vui lòng thử lại.",
     "creating": "Đang tạo...",
     "currency": "VND",
     "custom": "Tùy chỉnh",
@@ -299,8 +299,8 @@
           "department_desc": "Áp dụng cho một phòng ban cụ thể",
           "employee": "Cá nhân nhân viên",
           "employee_desc": "Chỉ áp dụng cho một người được chọn",
-          "workspace": "Toàn hệ thống (Tất cả)",
-          "workspace_desc": "Áp dụng cho tất cả nhân viên trong không gian làm việc"
+          "workspace": "Toàn tổ chức (Tất cả)",
+          "workspace_desc": "Áp dụng cho tất cả nhân viên trong tổ chức"
         },
         "carry_over_limit": "Hạn mức chuyển tiếp",
         "edit_assignment_subtitle": "Modify assignment rules and effective dates.",
@@ -366,7 +366,7 @@
     "load_more": "Tải thêm",
     "loading": "Đang tải dữ liệu...",
     "loading_more": "Đang tải thêm...",
-    "loading_workspace": "Đang tải không gian làm việc...",
+    "loading_workspace": "Đang tải tổ chức...",
     "logout": "Đăng xuất",
     "logs": "Nhật ký",
     "members": {
@@ -421,7 +421,7 @@
         "manage_permissions": "Quản lý quyền (chi tiết)",
         "manage_roles": "Quản lý quyền",
         "messages": {
-          "no_members": "Không tìm thấy thành viên nào trong không gian làm việc này.",
+          "no_members": "Không tìm thấy thành viên nào trong tổ chức này.",
           "remove_error": "Lỗi khi xóa thành viên."
         },
         "remove_member": "Xóa thành viên"
@@ -474,7 +474,7 @@
       "db_placeholder": "postgres://username:password@hostname:port/database",
       "db_validation_error": "Đường dẫn Database không hợp lệ. Phải bắt đầu bằng postgres:// hoặc postgresql://",
       "messages": {
-        "create_error": "Không thể tạo Workspace. Vui lòng thử lại."
+        "create_error": "Không thể tạo tổ chức. Vui lòng thử lại."
       },
       "org_name_label": "Tên tổ chức",
       "org_name_placeholder": "VD: Công ty ABC, Team LeeAttend...",
@@ -483,16 +483,16 @@
         "step_2": "Đang đồng bộ cấu trúc bảng (Migrations)...",
         "step_3": "Đang thiết lập cấu hình mặc định...",
         "step_4": "Đang chuẩn bị trang quản trị...",
-        "subtitle": "Vui lòng giữ kết nối. Chúng tôi đang chuẩn bị không gian làm việc cho bạn.",
+        "subtitle": "Vui lòng giữ kết nối. Chúng tôi đang chuẩn bị môi trường bảo mật cho bạn.",
         "success": "Hoàn tất! Đang chuyển hướng...",
-        "title": "Đang thiết lập Workspace..."
+        "title": "Đang thiết lập tổ chức..."
       },
       "start_now_btn": "Bắt đầu ngay",
-      "welcome_subtitle": "Hãy tạo tổ chức (Workspace) đầu tiên của bạn",
+      "welcome_subtitle": "Hãy thiết lập tổ chức của bạn",
       "welcome_title": "Chào mừng!",
-      "workspace_desc": "Workspace là một môi trường riêng biệt giúp bạn quản lý thành viên tại một nơi."
+      "workspace_desc": "Tổ chức giúp tập hợp nhân sự và các cài đặt của bạn tại một nơi."
     },
-    "workspace_desc": "Workspace là một môi trường riêng biệt giúp bạn quản lý thành viên tại một nơi.",
+    "workspace_desc": "Tổ chức giúp tập hợp nhân sự và các cài đặt của bạn tại một nơi.",
     "org_chart": "Sơ đồ tổ chức",
     "org_name_label": "Tên tổ chức / Dự án",
     "org_name_placeholder": "Ví dụ: Công ty ABC, Team Freelance...",
@@ -747,13 +747,13 @@
       "title": "Lương",
       "traceability": {
         "department_policy": "Chính sách phòng ban",
-        "hierarchy_explanation": "Cấu hình lương được ưu tiên theo thứ tự: Cá nhân > Phòng ban > Workspace.",
+        "hierarchy_explanation": "Cấu hình lương được ưu tiên theo thứ tự: Cá nhân > Phòng ban > Tổ chức.",
         "hierarchy_title": "Thứ tự ưu tiên cấu hình",
         "individual_policy": "Chính sách cá nhân",
         "pending_adjustments": "Có hiệu chỉnh chờ xử lý",
         "recalc_needed": "Cần tính toán lại",
         "view_adjustments": "Xem hiệu chỉnh",
-        "workspace_default": "Mặc định Workspace"
+        "workspace_default": "Mặc định tổ chức"
       },
       "validation": {
         "base_pay_positive": "Base pay must be a positive number",
@@ -850,7 +850,7 @@
     "select_department": "Chọn phòng ban",
     "select_employee": "Chọn nhân viên",
     "select_month": "Chọn tháng",
-    "select_workspace": "Chọn Workspace",
+    "select_workspace": "Chọn tổ chức",
     "select_workspace_desc": "Chọn văn phòng hoặc chi nhánh bạn muốn làm việc.",
     "selected": "đã chọn",
     "selected_count": "Đã chọn {{selected}}/{{total}}",
@@ -944,7 +944,7 @@
         "vn": "Kiểu Việt Nam (VD: 31/12/2025)"
       },
       "default_language": "Ngôn ngữ mặc định",
-      "description": "Quản lý cấu hình, nhân sự và giao diện không gian làm việc.",
+      "description": "Quản lý cấu hình, nhân sự và giao diện tổ chức.",
       "early_arrival_options": {
         "allow": "Cho phép mọi lúc",
         "allow_desc": "Tính OT đầy đủ từ lúc check-in (nếu ca cho phép OT sớm).",
@@ -981,7 +981,7 @@
       "tagline_desc": "Sẽ hiển thị bên dưới logo ở thanh menu bên trái.",
       "tagline_placeholder": "VD: Hệ thống Quản trị Nguồn nhân lực",
       "theme_config": "Cấu hình giao diện",
-      "theme_desc": "Tùy chỉnh giao diện không gian làm việc của bạn.",
+      "theme_desc": "Tùy chỉnh giao diện tổ chức của bạn.",
       "time_format": "Định dạng giờ",
       "time_format_options": {
         "12h": "12 Giờ",
@@ -995,7 +995,7 @@
         "utc": "Giờ quốc tế (UTC)",
         "vn": "Việt Nam (UTC+7)"
       },
-      "title": "Cài đặt Workspace",
+      "title": "Cài đặt tổ chức",
       "upload_logo": "Nhấn để đặt URL ảnh logo",
       "valid_from": "Hiệu lực từ",
       "valid_from_note": "Cài đặt sẽ có hiệu lực từ ngày này",
@@ -1010,8 +1010,8 @@
         "60min": "60 phút",
         "60min_desc": "Khối 1 giờ"
       },
-      "workspace_logo": "Logo Không gian làm việc",
-      "workspace_name": "Tên Workspace",
+      "workspace_logo": "Logo tổ chức",
+      "workspace_name": "Tên tổ chức",
       "workspace_name_placeholder": "VD: LeeAttend Corp",
       "dark_mode_preference": "Chế độ hiển thị"
     },
@@ -1066,7 +1066,7 @@
   },
   "dashboard": {
     "title": "Bảng điều khiển",
-    "welcome": "Chào mừng trở lại! Đây là tóm tắt hoạt động trong không gian làm việc của bạn.",
+    "welcome": "Chào mừng trở lại! Đây là tóm tắt hoạt động của tổ chức bạn.",
     "filters": {
       "label": "Bộ lọc dashboard điều hành",
       "period": {
@@ -1093,7 +1093,7 @@
       "start_date": "Ngày bắt đầu",
       "end_date": "Ngày kết thúc",
       "custom_date_error": "Nhập ngày bắt đầu và kết thúc hợp lệ.",
-      "timezone_hint": "Ngày sử dụng múi giờ workspace.",
+      "timezone_hint": "Ngày sử dụng múi giờ của tổ chức.",
       "apply": "Áp dụng",
       "reset": "Đặt lại"
     },
@@ -1586,8 +1586,8 @@
   },
   "onboarding": {
     "welcome_title": "Chào mừng bạn!",
-    "workspace_desc": "Workspace là một môi trường riêng biệt giúp bạn quản lý thành viên tại một nơi.",
-    "welcome_subtitle": "Hãy tạo tổ chức đầu tiên của bạn (Workspace)",
+    "workspace_desc": "Tổ chức giúp tập hợp nhân sự và các cài đặt của bạn tại một nơi.",
+    "welcome_subtitle": "Hãy thiết lập tổ chức của bạn",
     "org_name_label": "Tên tổ chức",
     "org_name_placeholder": "VD: Công ty ABC, LeeAttend Team...",
     "start_now_btn": "Bắt đầu ngay",
@@ -1599,8 +1599,8 @@
     "db_validation_error": "Đường dẫn Database không hợp lệ. Phải bắt đầu bằng postgres:// hoặc postgresql://",
     "db_placeholder": "postgres://username:password@hostname:port/database",
     "progress": {
-      "title": "Đang thiết lập Workspace...",
-      "subtitle": "Vui lòng giữ kết nối. Chúng tôi đang chuẩn bị không gian làm việc cho bạn.",
+      "title": "Đang thiết lập tổ chức...",
+      "subtitle": "Vui lòng giữ kết nối. Chúng tôi đang chuẩn bị môi trường bảo mật cho bạn.",
       "step_1": "Đang khởi tạo cụm cơ sở dữ liệu...",
       "step_2": "Đang đồng bộ cấu trúc bảng (Migrations)...",
       "step_3": "Đang thiết lập cấu hình mặc định...",
@@ -1608,7 +1608,7 @@
       "success": "Hoàn tất! Đang chuyển hướng..."
     },
     "messages": {
-      "create_error": "Không thể tạo Workspace. Vui lòng thử lại."
+      "create_error": "Không thể tạo tổ chức. Vui lòng thử lại."
     }
   },
   "reports": {
@@ -1765,7 +1765,7 @@
     "title": "Thanh toán"
   },
   "overview": {
-    "activeWorkspace": "Workspace đang hoạt động",
+    "activeWorkspace": "Tổ chức đang hoạt động",
     "adminFallback": "Quản trị viên dự phòng",
     "adminMembers": "Thành viên quản trị",
     "admins": "Quản trị viên",
@@ -1779,7 +1779,7 @@
   },
   "workspace": {
     "roles": {
-      "title": "Vai trò Workspace"
+      "title": "Vai trò tổ chức"
     }
   },
   "status_active_caps": "ĐANG HOẠT ĐỘNG",
@@ -1816,11 +1816,11 @@
       "assignee_label_overtime_request": "Người được ủy quyền Yêu cầu Pre-OT (Người dùng)",
       "assignee_label_other": "Người được ủy quyền Yêu cầu (Người dùng)",
       "assignee_placeholder": "Tìm và chọn người dùng...",
-      "no_assignees": "Không tìm thấy người dùng trong workspace",
-      "assignee_help_ot": "Chọn người dùng trong workspace được phép gửi yêu cầu Claim hộ.",
-      "assignee_help_overtime_request": "Chọn người dùng trong workspace được phép gửi yêu cầu Pre-OT hộ.",
-      "assignee_help_leave": "Chọn người dùng trong workspace được phép gửi yêu cầu nghỉ phép hộ.",
-      "assignee_help_adjustment": "Chọn người dùng trong workspace được phép gửi yêu cầu điều chỉnh công hộ.",
+      "no_assignees": "Không tìm thấy người dùng trong tổ chức",
+      "assignee_help_ot": "Chọn người dùng trong tổ chức được phép gửi yêu cầu Claim hộ.",
+      "assignee_help_overtime_request": "Chọn người dùng trong tổ chức được phép gửi yêu cầu Pre-OT hộ.",
+      "assignee_help_leave": "Chọn người dùng trong tổ chức được phép gửi yêu cầu nghỉ phép hộ.",
+      "assignee_help_adjustment": "Chọn người dùng trong tổ chức được phép gửi yêu cầu điều chỉnh công hộ.",
       "target_type_label": "Loại phạm vi mục tiêu",
       "target_type_employee": "Nhân viên",
       "target_type_department": "Bộ phận",
@@ -1836,10 +1836,10 @@
       "title_overtime_request": "Phân quyền Gửi Pre-OT Hộ",
       "title_leave": "Phân quyền Gửi Yêu Cầu Nghỉ Hộ",
       "title_adjustment": "Phân quyền Gửi Điều Chỉnh Hộ",
-      "desc_ot": "Cấu hình người dùng trong workspace được phép gửi claim ngoài giờ thay cho nhân viên cụ thể hoặc toàn bộ bộ phận.",
-      "desc_overtime_request": "Cấu hình người dùng trong workspace được phép yêu cầu Pre-OT thay cho nhân viên cụ thể hoặc toàn bộ bộ phận.",
-      "desc_leave": "Cấu hình người dùng trong workspace được phép yêu cầu nghỉ phép thay cho nhân viên cụ thể hoặc toàn bộ bộ phận.",
-      "desc_adjustment": "Cấu hình người dùng trong workspace được phép yêu cầu điều chỉnh công thay cho nhân viên cụ thể hoặc toàn bộ bộ phận.",
+      "desc_ot": "Cấu hình người dùng trong tổ chức được phép gửi claim ngoài giờ thay cho nhân viên cụ thể hoặc toàn bộ bộ phận.",
+      "desc_overtime_request": "Cấu hình người dùng trong tổ chức được phép yêu cầu Pre-OT thay cho nhân viên cụ thể hoặc toàn bộ bộ phận.",
+      "desc_leave": "Cấu hình người dùng trong tổ chức được phép yêu cầu nghỉ phép thay cho nhân viên cụ thể hoặc toàn bộ bộ phận.",
+      "desc_adjustment": "Cấu hình người dùng trong tổ chức được phép yêu cầu điều chỉnh công thay cho nhân viên cụ thể hoặc toàn bộ bộ phận.",
       "add_btn": "Thêm phân quyền"
     },
     "empty": {
@@ -1964,7 +1964,7 @@
       "documents": "Truy cập phiếu lương, hợp đồng và tài liệu nhân sự",
       "infra_monitor": "Giám sát edge agent và tình trạng hệ thống",
       "db_clusters": "Quản lý cấu hình cụm cơ sở dữ liệu",
-      "tenants": "Quản lý các workspace đa đối tượng thuê",
+      "tenants": "Quản lý các tổ chức",
       "charts": "Biểu đồ chấm công, tăng ca, biến động nhân sự và phân tích"
     },
     "dual_run": {
@@ -2380,7 +2380,7 @@
     "manageAccess": "Phân quyền truy cập",
     "deleteTitle": "Xác nhận xóa vai trò",
     "confirmDelete": "Bạn có chắc chắn muốn xóa vai trò này? Thao tác này không thể hoàn tác.",
-    "subtitle": "Định nghĩa vai trò người dùng và quản lý cấp độ truy cập trong workspace",
+    "subtitle": "Định nghĩa vai trò người dùng và quản lý cấp độ truy cập trong tổ chức",
     "createRole": "Tạo vai trò mới"
   },
   "assignments": {
@@ -2412,7 +2412,7 @@
     "indefinite": "Chưa xác định",
     "no_assignments_found": "Không tìm thấy phái cử",
     "search_no_results": "Không tìm thấy đợt phái cử nào khớp với điều kiện tìm kiếm.",
-    "empty_state": "Chưa có đợt phái cử nào được ghi nhận trong không gian làm việc này.",
+    "empty_state": "Chưa có đợt phái cử nào được ghi nhận trong tổ chức này.",
     "actions": {
       "create": "TẠO PHÁI CỬ MỚI",
       "edit": "Chỉnh sửa phái cử",
@@ -2435,7 +2435,7 @@
     "search_label": "Tìm kiếm điều kiện làm việc",
     "search_placeholder": "Tìm nhân sự, mã NV, loại chế độ...",
     "search_no_results": "Không tìm thấy hồ sơ điều kiện làm việc nào phù hợp với bộ lọc.",
-    "empty_state": "Chưa có điều kiện làm việc đặc thù nào được ghi nhận trong không gian làm việc này.",
+    "empty_state": "Chưa có điều kiện làm việc đặc thù nào được ghi nhận trong tổ chức này.",
     "no_conditions_found": "Không tìm thấy điều kiện làm việc",
     "paid": "Có hưởng lương",
     "unpaid": "Không hưởng lương",

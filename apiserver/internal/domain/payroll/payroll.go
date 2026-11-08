@@ -11,7 +11,6 @@ import (
 
 type AssemblePayslipArgs struct {
 	ID                      uuid.UUID
-	WorkspaceID             uuid.UUID
 	EmploymentID            uuid.UUID
 	StartDate               time.Time
 	EndDate                 time.Time
@@ -28,7 +27,6 @@ type AssemblePayslipArgs struct {
 
 type Payslip struct {
 	ID                      uuid.UUID
-	WorkspaceID             uuid.UUID
 	EmploymentID            uuid.UUID
 	StartDate               time.Time
 	EndDate                 time.Time
@@ -46,7 +44,7 @@ type Payslip struct {
 
 func AssemblePayslip(args AssemblePayslipArgs) Payslip {
 	net := args.TotalBasePay.Add(args.TotalOvertimePay).Add(args.TotalHolidayWorkPremium).Add(args.TotalIncentiveAmount).Sub(args.DeductionsAmount)
-	return Payslip{ID: args.ID, WorkspaceID: args.WorkspaceID, EmploymentID: args.EmploymentID, StartDate: args.StartDate, EndDate: args.EndDate, TotalBasePay: args.TotalBasePay, TotalOvertimePay: args.TotalOvertimePay, TotalHolidayWorkPremium: args.TotalHolidayWorkPremium, TotalIncentiveAmount: args.TotalIncentiveAmount, DeductionsAmount: args.DeductionsAmount, NetPay: net, TotalStdUnits: args.TotalStdUnits, TotalOTUnits: args.TotalOTUnits, CreatedAt: args.CreatedAt, UpdatedAt: args.UpdatedAt}
+	return Payslip{ID: args.ID, EmploymentID: args.EmploymentID, StartDate: args.StartDate, EndDate: args.EndDate, TotalBasePay: args.TotalBasePay, TotalOvertimePay: args.TotalOvertimePay, TotalHolidayWorkPremium: args.TotalHolidayWorkPremium, TotalIncentiveAmount: args.TotalIncentiveAmount, DeductionsAmount: args.DeductionsAmount, NetPay: net, TotalStdUnits: args.TotalStdUnits, TotalOTUnits: args.TotalOTUnits, CreatedAt: args.CreatedAt, UpdatedAt: args.UpdatedAt}
 }
 
 type DateRange struct {

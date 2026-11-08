@@ -22,7 +22,7 @@ func newMockEmployerRepo() *mockEmployerRepo {
 	return &mockEmployerRepo{employers: make(map[uuid.UUID]Employer)}
 }
 
-func (m *mockEmployerRepo) ListEmployers(_ context.Context, _ uuid.UUID, page, limit int) (EmployerListResponse, error) {
+func (m *mockEmployerRepo) ListEmployers(_ context.Context, page, limit int) (EmployerListResponse, error) {
 	if m.err != nil {
 		return EmployerListResponse{}, m.err
 	}
@@ -33,14 +33,13 @@ func (m *mockEmployerRepo) ListEmployers(_ context.Context, _ uuid.UUID, page, l
 	return EmployerListResponse{Data: items, Total: int64(len(items)), Page: page, Limit: limit}, nil
 }
 
-func (m *mockEmployerRepo) CreateEmployer(_ context.Context, wsID uuid.UUID, req CreateEmployerRequest) (Employer, error) {
+func (m *mockEmployerRepo) CreateEmployer(_ context.Context, req CreateEmployerRequest) (Employer, error) {
 	if m.err != nil {
 		return Employer{}, m.err
 	}
 	id := uuid.New()
 	e := Employer{
 		ID:                 id,
-		WorkspaceID:        wsID,
 		Name:               req.Name,
 		TaxCode:            req.TaxCode,
 		LegalAddress:       req.LegalAddress,
@@ -61,7 +60,7 @@ func (m *mockEmployerRepo) CreateEmployer(_ context.Context, wsID uuid.UUID, req
 	return e, nil
 }
 
-func (m *mockEmployerRepo) GetEmployer(_ context.Context, _, id uuid.UUID) (Employer, error) {
+func (m *mockEmployerRepo) GetEmployer(_ context.Context, id uuid.UUID) (Employer, error) {
 	if m.err != nil {
 		return Employer{}, m.err
 	}
@@ -72,7 +71,7 @@ func (m *mockEmployerRepo) GetEmployer(_ context.Context, _, id uuid.UUID) (Empl
 	return e, nil
 }
 
-func (m *mockEmployerRepo) UpdateEmployer(_ context.Context, wsID, id uuid.UUID, req UpdateEmployerRequest) (Employer, error) {
+func (m *mockEmployerRepo) UpdateEmployer(_ context.Context, id uuid.UUID, req UpdateEmployerRequest) (Employer, error) {
 	if m.err != nil {
 		return Employer{}, m.err
 	}
@@ -101,7 +100,7 @@ func (m *mockEmployerRepo) UpdateEmployer(_ context.Context, wsID, id uuid.UUID,
 	return e, nil
 }
 
-func (m *mockEmployerRepo) DeleteEmployer(_ context.Context, _, id uuid.UUID) error {
+func (m *mockEmployerRepo) DeleteEmployer(_ context.Context, id uuid.UUID) error {
 	if m.err != nil {
 		return m.err
 	}
@@ -119,29 +118,39 @@ type mockEmployerAuthz struct {
 	isMember bool
 }
 
-func (a mockEmployerAuthz) IsMember(_ context.Context, _, _ uuid.UUID) (bool, error) {
+func (a mockEmployerAuthz) HasPermission(_ context.Context, _ uuid.UUID, _ string) bool {
+	return a.isMember
+}
+
+func (a mockEmployerAuthz) HasScopedPermission(_ context.Context, _ uuid.UUID, _ string, _ *uuid.UUID) bool {
+	return a.isMember
+}
+
+func (a mockEmployerAuthz) IsMember(_ context.Context, _ uuid.UUID) (bool, error) {
 	return a.isMember, nil
 }
 
-func (a mockEmployerAuthz) EffectivePermissions(_ context.Context, _, _ uuid.UUID) ([]string, []string, error) {
+func (a mockEmployerAuthz) EffectivePermissions(_ context.Context, _ uuid.UUID) ([]string, []string, error) {
 	return nil, nil, nil
 }
 
-func employerRequest(method, path, body string, wsID uuid.UUID) *http.Request {
+func (a mockEmployerAuthz) GetUsersWithPermission(_ context.Context, _ string) ([]uuid.UUID, error) {
+	return nil, nil
+}
+
+func employerRequest(method, path, body string) *http.Request {
 	req := httptest.NewRequest(method, path, bytes.NewBufferString(body))
-	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
 	return req
 }
 
 func TestEmployerHandlerList(t *testing.T) {
-	wsID := uuid.New()
 	repo := newMockEmployerRepo()
 	id := uuid.New()
-	repo.employers[id] = Employer{ID: id, WorkspaceID: wsID, Name: "Acme"}
+	repo.employers[id] = Employer{ID: id, Name: "Acme"}
 	h := EmployerHandler{Repository: repo, Authorizer: mockEmployerAuthz{isMember: true}}
 
-	req := employerRequest(http.MethodGet, "/api/v1/workspaces/"+wsID.String()+"/employers", "", wsID)
+	req := employerRequest(http.MethodGet, "/api/v1/employers", "")
 	rec := httptest.NewRecorder()
 	h.List(rec, req)
 
@@ -151,12 +160,11 @@ func TestEmployerHandlerList(t *testing.T) {
 }
 
 func TestEmployerHandlerCreateValidation(t *testing.T) {
-	wsID := uuid.New()
 	repo := newMockEmployerRepo()
 	h := EmployerHandler{Repository: repo, Authorizer: mockEmployerAuthz{isMember: true}}
 
 	// Missing name
-	req := employerRequest(http.MethodPost, "/api/v1/workspaces/"+wsID.String()+"/employers", `{"name":""}`, wsID)
+	req := employerRequest(http.MethodPost, "/api/v1/employers", `{"name":""}`)
 	rec := httptest.NewRecorder()
 	h.Create(rec, req)
 	if rec.Code != http.StatusBadRequest {
@@ -164,7 +172,7 @@ func TestEmployerHandlerCreateValidation(t *testing.T) {
 	}
 
 	// Invalid email
-	req = employerRequest(http.MethodPost, "/api/v1/workspaces/"+wsID.String()+"/employers", `{"name":"Corp","email":"bad-email"}`, wsID)
+	req = employerRequest(http.MethodPost, "/api/v1/employers", `{"name":"Corp","email":"bad-email"}`)
 	rec = httptest.NewRecorder()
 	h.Create(rec, req)
 	if rec.Code != http.StatusBadRequest {
@@ -172,7 +180,7 @@ func TestEmployerHandlerCreateValidation(t *testing.T) {
 	}
 
 	// Invalid country code (must be 3 ASCII letters)
-	req = employerRequest(http.MethodPost, "/api/v1/workspaces/"+wsID.String()+"/employers", `{"name":"Corp","country_code":"VN"}`, wsID)
+	req = employerRequest(http.MethodPost, "/api/v1/employers", `{"name":"Corp","country_code":"VN"}`)
 	rec = httptest.NewRecorder()
 	h.Create(rec, req)
 	if rec.Code != http.StatusBadRequest {
@@ -180,7 +188,7 @@ func TestEmployerHandlerCreateValidation(t *testing.T) {
 	}
 
 	// Invalid currency code
-	req = employerRequest(http.MethodPost, "/api/v1/workspaces/"+wsID.String()+"/employers", `{"name":"Corp","currency_code":"VND1"}`, wsID)
+	req = employerRequest(http.MethodPost, "/api/v1/employers", `{"name":"Corp","currency_code":"VND1"}`)
 	rec = httptest.NewRecorder()
 	h.Create(rec, req)
 	if rec.Code != http.StatusBadRequest {
@@ -189,12 +197,11 @@ func TestEmployerHandlerCreateValidation(t *testing.T) {
 }
 
 func TestEmployerHandlerCreateSuccess(t *testing.T) {
-	wsID := uuid.New()
 	repo := newMockEmployerRepo()
 	h := EmployerHandler{Repository: repo, Authorizer: mockEmployerAuthz{isMember: true}}
 
 	body := `{"name":"Acme Corp","country_code":"VNM","currency_code":"VND","email":"hr@acme.com"}`
-	req := employerRequest(http.MethodPost, "/api/v1/workspaces/"+wsID.String()+"/employers", body, wsID)
+	req := employerRequest(http.MethodPost, "/api/v1/employers", body)
 	rec := httptest.NewRecorder()
 	h.Create(rec, req)
 
@@ -204,14 +211,13 @@ func TestEmployerHandlerCreateSuccess(t *testing.T) {
 }
 
 func TestEmployerHandlerGetAndNotFound(t *testing.T) {
-	wsID := uuid.New()
 	repo := newMockEmployerRepo()
 	id := uuid.New()
-	repo.employers[id] = Employer{ID: id, WorkspaceID: wsID, Name: "Acme"}
+	repo.employers[id] = Employer{ID: id, Name: "Acme"}
 	h := EmployerHandler{Repository: repo, Authorizer: mockEmployerAuthz{isMember: true}}
 
 	// Found
-	req := employerRequest(http.MethodGet, "/api/v1/workspaces/"+wsID.String()+"/employers/"+id.String(), "", wsID)
+	req := employerRequest(http.MethodGet, "/api/v1/employers/"+id.String(), "")
 	req.SetPathValue("id", id.String())
 	rec := httptest.NewRecorder()
 	h.Get(rec, req)
@@ -221,7 +227,7 @@ func TestEmployerHandlerGetAndNotFound(t *testing.T) {
 
 	// Not Found
 	missingID := uuid.New()
-	req = employerRequest(http.MethodGet, "/api/v1/workspaces/"+wsID.String()+"/employers/"+missingID.String(), "", wsID)
+	req = employerRequest(http.MethodGet, "/api/v1/employers/"+missingID.String(), "")
 	req.SetPathValue("id", missingID.String())
 	rec = httptest.NewRecorder()
 	h.Get(rec, req)
@@ -231,18 +237,17 @@ func TestEmployerHandlerGetAndNotFound(t *testing.T) {
 }
 
 func TestEmployerHandlerUpdateNullVsOmitted(t *testing.T) {
-	wsID := uuid.New()
 	repo := newMockEmployerRepo()
 	parentID := uuid.New()
-	repo.employers[parentID] = Employer{ID: parentID, WorkspaceID: wsID, Name: "Parent Corp"}
+	repo.employers[parentID] = Employer{ID: parentID, Name: "Parent Corp"}
 
 	id := uuid.New()
 	rel := "subsidiary"
-	repo.employers[id] = Employer{ID: id, WorkspaceID: wsID, Name: "Child", ParentID: &parentID, RelationshipType: &rel}
+	repo.employers[id] = Employer{ID: id, Name: "Child", ParentID: &parentID, RelationshipType: &rel}
 	h := EmployerHandler{Repository: repo, Authorizer: mockEmployerAuthz{isMember: true}}
 
 	// Case 1: omitted fields do not clear parent
-	req := employerRequest(http.MethodPut, "/api/v1/workspaces/"+wsID.String()+"/employers/"+id.String(), `{"name":"Child Updated"}`, wsID)
+	req := employerRequest(http.MethodPut, "/api/v1/employers/"+id.String(), `{"name":"Child Updated"}`)
 	req.SetPathValue("id", id.String())
 	rec := httptest.NewRecorder()
 	h.Update(rec, req)
@@ -256,7 +261,7 @@ func TestEmployerHandlerUpdateNullVsOmitted(t *testing.T) {
 	}
 
 	// Case 2: explicit null clears parent
-	req = employerRequest(http.MethodPut, "/api/v1/workspaces/"+wsID.String()+"/employers/"+id.String(), `{"parent_id":null,"relationship_type":null}`, wsID)
+	req = employerRequest(http.MethodPut, "/api/v1/employers/"+id.String(), `{"parent_id":null,"relationship_type":null}`)
 	req.SetPathValue("id", id.String())
 	rec = httptest.NewRecorder()
 	h.Update(rec, req)
@@ -271,18 +276,17 @@ func TestEmployerHandlerUpdateNullVsOmitted(t *testing.T) {
 }
 
 func TestEmployerHandlerCircularParentRejection(t *testing.T) {
-	wsID := uuid.New()
 	repo := newMockEmployerRepo()
 	idA, idB, idC := uuid.New(), uuid.New(), uuid.New()
 
 	// A -> B -> C
-	repo.employers[idA] = Employer{ID: idA, WorkspaceID: wsID, Name: "A"}
-	repo.employers[idB] = Employer{ID: idB, WorkspaceID: wsID, Name: "B", ParentID: &idA}
-	repo.employers[idC] = Employer{ID: idC, WorkspaceID: wsID, Name: "C", ParentID: &idB}
+	repo.employers[idA] = Employer{ID: idA, Name: "A"}
+	repo.employers[idB] = Employer{ID: idB, Name: "B", ParentID: &idA}
+	repo.employers[idC] = Employer{ID: idC, Name: "C", ParentID: &idB}
 	h := EmployerHandler{Repository: repo, Authorizer: mockEmployerAuthz{isMember: true}}
 
 	// Self-parent
-	req := employerRequest(http.MethodPut, "/api/v1/workspaces/"+wsID.String()+"/employers/"+idA.String(), `{"parent_id":"`+idA.String()+`"}`, wsID)
+	req := employerRequest(http.MethodPut, "/api/v1/employers/"+idA.String(), `{"parent_id":"`+idA.String()+`"}`)
 	req.SetPathValue("id", idA.String())
 	rec := httptest.NewRecorder()
 	h.Update(rec, req)
@@ -291,7 +295,7 @@ func TestEmployerHandlerCircularParentRejection(t *testing.T) {
 	}
 
 	// Setting A's parent to C causes cycle A -> C -> B -> A
-	req = employerRequest(http.MethodPut, "/api/v1/workspaces/"+wsID.String()+"/employers/"+idA.String(), `{"parent_id":"`+idC.String()+`"}`, wsID)
+	req = employerRequest(http.MethodPut, "/api/v1/employers/"+idA.String(), `{"parent_id":"`+idC.String()+`"}`)
 	req.SetPathValue("id", idA.String())
 	rec = httptest.NewRecorder()
 	h.Update(rec, req)
@@ -301,15 +305,14 @@ func TestEmployerHandlerCircularParentRejection(t *testing.T) {
 }
 
 func TestEmployerHandlerDeleteAndInUseGuard(t *testing.T) {
-	wsID := uuid.New()
 	repo := newMockEmployerRepo()
 	id := uuid.New()
-	repo.employers[id] = Employer{ID: id, WorkspaceID: wsID, Name: "To Delete"}
+	repo.employers[id] = Employer{ID: id, Name: "To Delete"}
 	h := EmployerHandler{Repository: repo, Authorizer: mockEmployerAuthz{isMember: true}}
 
 	// Guard: in use by active employees
 	repo.inUse = true
-	req := employerRequest(http.MethodDelete, "/api/v1/workspaces/"+wsID.String()+"/employers/"+id.String(), "", wsID)
+	req := employerRequest(http.MethodDelete, "/api/v1/employers/"+id.String(), "")
 	req.SetPathValue("id", id.String())
 	rec := httptest.NewRecorder()
 	h.Delete(rec, req)
@@ -319,7 +322,7 @@ func TestEmployerHandlerDeleteAndInUseGuard(t *testing.T) {
 
 	// Success when not in use
 	repo.inUse = false
-	req = employerRequest(http.MethodDelete, "/api/v1/workspaces/"+wsID.String()+"/employers/"+id.String(), "", wsID)
+	req = employerRequest(http.MethodDelete, "/api/v1/employers/"+id.String(), "")
 	req.SetPathValue("id", id.String())
 	rec = httptest.NewRecorder()
 	h.Delete(rec, req)
@@ -329,11 +332,10 @@ func TestEmployerHandlerDeleteAndInUseGuard(t *testing.T) {
 }
 
 func TestEmployerHandlerNonMemberForbidden(t *testing.T) {
-	wsID := uuid.New()
 	repo := newMockEmployerRepo()
 	h := EmployerHandler{Repository: repo, Authorizer: mockEmployerAuthz{isMember: false}}
 
-	req := employerRequest(http.MethodGet, "/api/v1/workspaces/"+wsID.String()+"/employers", "", wsID)
+	req := employerRequest(http.MethodGet, "/api/v1/employers", "")
 	rec := httptest.NewRecorder()
 	h.List(rec, req)
 	if rec.Code != http.StatusForbidden {

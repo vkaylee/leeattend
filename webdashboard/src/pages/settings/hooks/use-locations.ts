@@ -10,45 +10,44 @@ import {
 } from "@/lib/api/locations";
 
 export const locationKeys = {
-  all: (wsId: string) => ["locations", wsId],
+  all: () => ["locations"],
 };
 
-export function useLocations(wsId: string) {
+export function useLocations() {
   return useQuery({
-    queryKey: locationKeys.all(wsId),
+    queryKey: locationKeys.all(),
     queryFn: async () => {
-      return fetchLocations(wsId);
-    },
-    enabled: !!wsId,
-  });
-}
-
-export function useCreateLocation(wsId: string) {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (data: CreateWorkLocationRequest) => createLocation(wsId, data),
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: locationKeys.all(wsId) });
+      return fetchLocations();
     },
   });
 }
 
-export function useUpdateLocation(wsId: string) {
+export function useCreateLocation() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, data }: { id: string; data: UpdateWorkLocationRequest }) => updateLocation(wsId, id, data),
+    mutationFn: (data: CreateWorkLocationRequest) => createLocation(data),
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: locationKeys.all(wsId) });
+      void queryClient.invalidateQueries({ queryKey: locationKeys.all() });
     },
   });
 }
 
-export function useDeleteLocation(wsId: string) {
+export function useUpdateLocation() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (id: string) => deleteLocation(wsId, id),
+    mutationFn: ({ id, data }: { id: string; data: UpdateWorkLocationRequest }) => updateLocation(id, data),
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: locationKeys.all(wsId) });
+      void queryClient.invalidateQueries({ queryKey: locationKeys.all() });
+    },
+  });
+}
+
+export function useDeleteLocation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => deleteLocation(id),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: locationKeys.all() });
     },
   });
 }

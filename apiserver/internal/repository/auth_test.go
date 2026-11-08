@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"strings"
 	"testing"
 	"time"
 
@@ -47,6 +48,27 @@ func (f *fakeDBTX) Query(ctx context.Context, sql string, args ...any) (pgx.Rows
 		return f.queryFn(ctx, sql, args...)
 	}
 	return nil, nil
+}
+
+func TestAuthRepository_ListOrganizationUsers_UsesUserRoles(t *testing.T) {
+	db := &fakeDBTX{
+		queryFn: func(_ context.Context, query string, args ...any) (pgx.Rows, error) {
+			if len(args) != 0 {
+				t.Fatalf("expected no query arguments, got %v", args)
+			}
+			if !strings.Contains(query, "INNER JOIN user_roles ur ON ur.user_id = u.id") {
+				t.Fatalf("expected user_roles join, got %s", query)
+			}
+			return &fakeRows{}, nil
+		},
+	}
+	users, err := (AuthRepository{DB: db}).ListOrganizationUsers(context.Background())
+	if err != nil {
+		t.Fatalf("list organization users: %v", err)
+	}
+	if len(users) != 0 {
+		t.Fatalf("expected empty user list, got %d", len(users))
+	}
 }
 
 func TestAuthRepository_FindUserByEmail(t *testing.T) {

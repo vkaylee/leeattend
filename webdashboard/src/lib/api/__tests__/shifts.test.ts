@@ -7,7 +7,7 @@ vi.mock("../helpers", () => ({
   TIMEOUT: { DEFAULT: 10000, REPORT_OPERATION: 180000 },
 }));
 
-import { apiFetch } from "../helpers";
+import { apiFetch, TIMEOUT } from "../helpers";
 import { bulkUpsertRoster } from "../shifts";
 
 function okRes(payload: unknown, status = 200) {
@@ -49,10 +49,10 @@ describe("bulkUpsertRoster", () => {
       { date: "2026-07-01", shift_id: "s1" },
       { date: "2026-07-02", shift_id: "s1" },
     ];
-    await bulkUpsertRoster("ws-1", "emp-1", items);
+    await bulkUpsertRoster("emp-1", items);
 
     const call = vi.mocked(apiFetch).mock.calls[0];
-    expect(call[0]).toBe("/v1/workspaces/ws-1/employees/emp-1/rosters/bulk");
+    expect(call[0]).toBe("/v1/employees/emp-1/rosters/bulk");
     const opts = call[1] as RequestInit;
     expect(opts.method).toBe("POST");
     expect(JSON.parse(opts.body as string).items).toEqual(items);
@@ -60,7 +60,7 @@ describe("bulkUpsertRoster", () => {
 
   it("uses the long report-operation timeout, not the 10s default", async () => {
     vi.mocked(apiFetch).mockResolvedValueOnce(okRes(undefined));
-    await bulkUpsertRoster("ws-1", "emp-1", [{ date: "2026-07-01", shift_id: null }]);
+    await bulkUpsertRoster("emp-1", [{ date: "2026-07-01", shift_id: null }]);
 
     const opts = vi.mocked(apiFetch).mock.calls[0][1] as RequestInit & { timeout?: number };
     expect(opts.timeout).toBe(180000);
@@ -69,14 +69,14 @@ describe("bulkUpsertRoster", () => {
   it("resolves on 202 Accepted (write durable, reprocess enqueued)", async () => {
     vi.mocked(apiFetch).mockResolvedValueOnce(okRes(undefined, 202));
     await expect(
-      bulkUpsertRoster("ws-1", "emp-1", [{ date: "2026-07-01", shift_id: "s1" }]),
+      bulkUpsertRoster("emp-1", [{ date: "2026-07-01", shift_id: "s1" }]),
     ).resolves.toBeUndefined();
   });
 
   it("throws when the response is not ok", async () => {
     vi.mocked(apiFetch).mockResolvedValueOnce(errRes(500, { key: "error.internal" }));
     await expect(
-      bulkUpsertRoster("ws-1", "emp-1", [{ date: "2026-07-01", shift_id: "s1" }]),
+      bulkUpsertRoster("emp-1", [{ date: "2026-07-01", shift_id: "s1" }]),
     ).rejects.toThrow();
   });
 });

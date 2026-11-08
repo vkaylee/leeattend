@@ -15,7 +15,7 @@ import (
 
 type ShiftRepository struct {
 	DB      DBTX
-	BeginTx func(context.Context, uuid.UUID) (TxBeginner, error)
+	BeginTx func(context.Context) (TxBeginner, error)
 }
 
 func (r ShiftRepository) db(ctx context.Context) (DBTX, error) {
@@ -25,9 +25,9 @@ func (r ShiftRepository) db(ctx context.Context) (DBTX, error) {
 	return r.DB, nil
 }
 
-func (r ShiftRepository) begin(ctx context.Context, workspaceID uuid.UUID) (TxBeginner, error) {
+func (r ShiftRepository) begin(ctx context.Context) (TxBeginner, error) {
 	if r.BeginTx != nil {
-		return r.BeginTx(ctx, workspaceID)
+		return r.BeginTx(ctx)
 	}
 	db, err := r.db(ctx)
 	if err != nil {
@@ -40,8 +40,8 @@ func (r ShiftRepository) begin(ctx context.Context, workspaceID uuid.UUID) (TxBe
 	return beginner, nil
 }
 
-func (r ShiftRepository) CreateShift(ctx context.Context, workspaceID, actorID uuid.UUID, req api.CreateShiftRequest) (api.ShiftRecord, error) {
-	tx, err := r.begin(ctx, workspaceID)
+func (r ShiftRepository) CreateShift(ctx context.Context, actorID uuid.UUID, req api.CreateShiftRequest) (api.ShiftRecord, error) {
+	tx, err := r.begin(ctx)
 	if err != nil {
 		return api.ShiftRecord{}, err
 	}
@@ -50,13 +50,13 @@ func (r ShiftRepository) CreateShift(ctx context.Context, workspaceID, actorID u
 	now := time.Now().UTC()
 	var record api.ShiftRecord
 	err = service.WithTx(ctx, tx, func(ctx context.Context, db pgx.Tx) error {
-		if _, err := db.Exec(ctx, `INSERT INTO shift_templates (id, workspace_id, name, current_version_id, created_at) VALUES ($1, $2, $3, NULL, $4)`, templateID, workspaceID, req.Name, now); err != nil {
+		if _, err := db.Exec(ctx, `INSERT INTO shift_templates (id, name, current_version_id, created_at) VALUES ($1, $2, NULL, $3)`, templateID, req.Name, now); err != nil {
 			return err
 		}
-		if _, err := db.Exec(ctx, `INSERT INTO shift_versions (id, template_id, workspace_id, version_number, name, report_symbol, location_id, employer_id, effective_from, effective_to, change_type, change_reason, superseded_by, created_by, created_at) VALUES ($1, $2, $3, 1, $4, $5, $6, $7, CURRENT_DATE, NULL, 'create', NULL, NULL, $8, $9)`, versionID, templateID, workspaceID, req.Name, req.ReportSymbol, req.LocationID, req.EmployerID, actorID, now); err != nil {
+		if _, err := db.Exec(ctx, `INSERT INTO shift_versions (id, template_id, version_number, name, report_symbol, location_id, employer_id, effective_from, effective_to, change_type, change_reason, superseded_by, created_by, created_at) VALUES ($1, $2, 1, $3, $4, $5, $6, CURRENT_DATE, NULL, 'create', NULL, NULL, $7, $8)`, versionID, templateID, req.Name, req.ReportSymbol, req.LocationID, req.EmployerID, actorID, now); err != nil {
 			return err
 		}
-		if _, err := db.Exec(ctx, `UPDATE shift_templates SET current_version_id = $1 WHERE id = $2 AND workspace_id = $3`, versionID, templateID, workspaceID); err != nil {
+		if _, err := db.Exec(ctx, `UPDATE shift_templates SET current_version_id = $1 WHERE id = $2`, versionID, templateID); err != nil {
 			return err
 		}
 		for index, interval := range req.Intervals {
@@ -67,10 +67,10 @@ func (r ShiftRepository) CreateShift(ctx context.Context, workspaceID, actorID u
 		if _, err := db.Exec(ctx, `INSERT INTO shift_audit_log (id, template_id, version_id, action, change_type, changed_by, change_reason, old_values, new_values, created_at) VALUES ($1, $2, $3, 'version_created', 'create', $4, NULL, NULL, NULL, $5)`, uuid.New(), templateID, versionID, actorID, now); err != nil {
 			return err
 		}
-		if err := EnqueueRosterCacheInvalidation(ctx, db, workspaceID); err != nil {
+		if err := EnqueueRosterCacheInvalidation(ctx, db); err != nil {
 			return err
 		}
-		return scanShift(ctx, db, workspaceID, templateID, &record)
+		return scanShift(ctx, db, templateID, &record)
 	})
 	if err != nil {
 		return api.ShiftRecord{}, err
@@ -78,16 +78,16 @@ func (r ShiftRepository) CreateShift(ctx context.Context, workspaceID, actorID u
 	return record, nil
 }
 
-func (r ShiftRepository) ListShifts(ctx context.Context, workspaceID uuid.UUID, locationID, employerID *uuid.UUID, page, limit int) (api.PaginatedShifts, error) {
+func (r ShiftRepository) ListShifts(ctx context.Context, locationID, employerID *uuid.UUID, page, limit int) (api.PaginatedShifts, error) {
 	db, err := r.db(ctx)
 	if err != nil {
 		return api.PaginatedShifts{}, err
 	}
 	var total int64
-	if err := db.QueryRow(ctx, `SELECT count(*) FROM shift_templates t JOIN shift_versions v ON v.id = t.current_version_id WHERE t.workspace_id = $1 AND v.effective_to IS NULL AND ($2::uuid IS NULL OR v.location_id IS NULL OR v.location_id = $2) AND ($3::uuid IS NULL OR v.employer_id IS NULL OR v.employer_id = $3)`, workspaceID, locationID, employerID).Scan(&total); err != nil {
+	if err := db.QueryRow(ctx, `SELECT count(*) FROM shift_templates t JOIN shift_versions v ON v.id = t.current_version_id WHERE v.effective_to IS NULL AND ($1::uuid IS NULL OR v.location_id IS NULL OR v.location_id = $1) AND ($2::uuid IS NULL OR v.employer_id IS NULL OR v.employer_id = $2)`, locationID, employerID).Scan(&total); err != nil {
 		return api.PaginatedShifts{}, err
 	}
-	rows, err := db.Query(ctx, `SELECT t.id, t.workspace_id, v.name, v.report_symbol, v.location_id, v.employer_id, t.created_at, t.created_at, v.id FROM shift_templates t JOIN shift_versions v ON v.id = t.current_version_id WHERE t.workspace_id = $1 AND v.effective_to IS NULL AND ($2::uuid IS NULL OR v.location_id IS NULL OR v.location_id = $2) AND ($3::uuid IS NULL OR v.employer_id IS NULL OR v.employer_id = $3) ORDER BY v.name ASC LIMIT $4 OFFSET $5`, workspaceID, locationID, employerID, limit, (page-1)*limit)
+	rows, err := db.Query(ctx, `SELECT t.id, v.name, v.report_symbol, v.location_id, v.employer_id, t.created_at, t.created_at, v.id FROM shift_templates t JOIN shift_versions v ON v.id = t.current_version_id WHERE v.effective_to IS NULL AND ($1::uuid IS NULL OR v.location_id IS NULL OR v.location_id = $1) AND ($2::uuid IS NULL OR v.employer_id IS NULL OR v.employer_id = $2) ORDER BY v.name ASC LIMIT $3 OFFSET $4`, locationID, employerID, limit, (page-1)*limit)
 	if err != nil {
 		return api.PaginatedShifts{}, err
 	}
@@ -97,7 +97,7 @@ func (r ShiftRepository) ListShifts(ctx context.Context, workspaceID uuid.UUID, 
 		var record api.ShiftRecord
 		var versionID uuid.UUID
 		var createdAt, updatedAt time.Time
-		if err := rows.Scan(&record.ID, &record.WorkspaceID, &record.Name, &record.ReportSymbol, &record.LocationID, &record.EmployerID, &createdAt, &updatedAt, &versionID); err != nil {
+		if err := rows.Scan(&record.ID, &record.Name, &record.ReportSymbol, &record.LocationID, &record.EmployerID, &createdAt, &updatedAt, &versionID); err != nil {
 			return api.PaginatedShifts{}, err
 		}
 		record.IsActive = true
@@ -111,10 +111,10 @@ func (r ShiftRepository) ListShifts(ctx context.Context, workspaceID uuid.UUID, 
 	return api.PaginatedShifts{Data: data, Total: total, Page: page, Limit: limit}, rows.Err()
 }
 
-func scanShift(ctx context.Context, db DBTX, workspaceID, templateID uuid.UUID, record *api.ShiftRecord) error {
+func scanShift(ctx context.Context, db DBTX, templateID uuid.UUID, record *api.ShiftRecord) error {
 	var versionID uuid.UUID
 	var createdAt, updatedAt time.Time
-	err := db.QueryRow(ctx, `SELECT t.id, t.workspace_id, v.name, v.report_symbol, v.location_id, v.employer_id, t.created_at, t.created_at, v.id FROM shift_templates t JOIN shift_versions v ON v.id = t.current_version_id WHERE t.id = $1 AND t.workspace_id = $2`, templateID, workspaceID).Scan(&record.ID, &record.WorkspaceID, &record.Name, &record.ReportSymbol, &record.LocationID, &record.EmployerID, &createdAt, &updatedAt, &versionID)
+	err := db.QueryRow(ctx, `SELECT t.id, v.name, v.report_symbol, v.location_id, v.employer_id, t.created_at, t.created_at, v.id FROM shift_templates t JOIN shift_versions v ON v.id = t.current_version_id WHERE t.id = $1`, templateID).Scan(&record.ID, &record.Name, &record.ReportSymbol, &record.LocationID, &record.EmployerID, &createdAt, &updatedAt, &versionID)
 	if err != nil {
 		return err
 	}
@@ -148,8 +148,8 @@ func nullableClock(value *string) any {
 	return *value
 }
 
-func (r ShiftRepository) UpdateShift(ctx context.Context, workspaceID, templateID, actorID uuid.UUID, req api.UpdateShiftRequest) (api.ShiftRecord, error) {
-	tx, err := r.begin(ctx, workspaceID)
+func (r ShiftRepository) UpdateShift(ctx context.Context, templateID, actorID uuid.UUID, req api.UpdateShiftRequest) (api.ShiftRecord, error) {
+	tx, err := r.begin(ctx)
 	if err != nil {
 		return api.ShiftRecord{}, err
 	}
@@ -160,7 +160,7 @@ func (r ShiftRepository) UpdateShift(ctx context.Context, workspaceID, templateI
 		var currentVersionID uuid.UUID
 		var versionNumber int
 		var currentEffectiveFrom time.Time
-		if err := db.QueryRow(ctx, `SELECT v.id, v.version_number, v.effective_from FROM shift_templates t JOIN shift_versions v ON v.id = t.current_version_id WHERE t.id = $1 AND t.workspace_id = $2 FOR UPDATE`, templateID, workspaceID).Scan(&currentVersionID, &versionNumber, &currentEffectiveFrom); err != nil {
+		if err := db.QueryRow(ctx, `SELECT v.id, v.version_number, v.effective_from FROM shift_templates t JOIN shift_versions v ON v.id = t.current_version_id WHERE t.id = $1 FOR UPDATE`, templateID).Scan(&currentVersionID, &versionNumber, &currentEffectiveFrom); err != nil {
 			return pgx.ErrNoRows
 		}
 		correction := req.IsCorrection || req.EffectiveDate == nil || *req.EffectiveDate == ""
@@ -180,10 +180,10 @@ func (r ShiftRepository) UpdateShift(ctx context.Context, workspaceID, templateI
 		} else if _, err := db.Exec(ctx, `UPDATE shift_versions SET superseded_by = $1 WHERE id = $2`, newVersionID, currentVersionID); err != nil {
 			return err
 		}
-		if _, err := db.Exec(ctx, `INSERT INTO shift_versions (id, template_id, workspace_id, version_number, name, report_symbol, location_id, employer_id, effective_from, effective_to, change_type, change_reason, superseded_by, created_by, created_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9::date, NULL, $10, $11, NULL, $12, $13)`, newVersionID, templateID, workspaceID, versionNumber+1, req.Name, req.ReportSymbol, req.LocationID, req.EmployerID, effectiveDate, changeType, req.ChangeReason, actorID, now); err != nil {
+		if _, err := db.Exec(ctx, `INSERT INTO shift_versions (id, template_id, version_number, name, report_symbol, location_id, employer_id, effective_from, effective_to, change_type, change_reason, superseded_by, created_by, created_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8::date, NULL, $9, $10, NULL, $11, $12)`, newVersionID, templateID, versionNumber+1, req.Name, req.ReportSymbol, req.LocationID, req.EmployerID, effectiveDate, changeType, req.ChangeReason, actorID, now); err != nil {
 			return err
 		}
-		if _, err := db.Exec(ctx, `UPDATE shift_templates SET current_version_id = $1, name = $2 WHERE id = $3 AND workspace_id = $4`, newVersionID, req.Name, templateID, workspaceID); err != nil {
+		if _, err := db.Exec(ctx, `UPDATE shift_templates SET current_version_id = $1, name = $2 WHERE id = $3`, newVersionID, req.Name, templateID); err != nil {
 			return err
 		}
 		for index, interval := range req.Intervals {
@@ -194,10 +194,10 @@ func (r ShiftRepository) UpdateShift(ctx context.Context, workspaceID, templateI
 		if _, err := db.Exec(ctx, `INSERT INTO shift_audit_log (id, template_id, version_id, action, change_type, changed_by, change_reason, old_values, new_values, created_at) VALUES ($1, $2, $3, 'version_created', $4, $5, $6, NULL, NULL, $7)`, uuid.New(), templateID, newVersionID, changeType, actorID, req.ChangeReason, now); err != nil {
 			return err
 		}
-		if err := EnqueueRosterCacheInvalidation(ctx, db, workspaceID); err != nil {
+		if err := EnqueueRosterCacheInvalidation(ctx, db); err != nil {
 			return err
 		}
-		return scanShift(ctx, db, workspaceID, templateID, &record)
+		return scanShift(ctx, db, templateID, &record)
 	})
 	if err != nil {
 		return api.ShiftRecord{}, err
@@ -205,19 +205,19 @@ func (r ShiftRepository) UpdateShift(ctx context.Context, workspaceID, templateI
 	return record, nil
 }
 
-func (r ShiftRepository) ListShiftVersions(ctx context.Context, workspaceID, templateID uuid.UUID) ([]api.ShiftVersionRecord, error) {
+func (r ShiftRepository) ListShiftVersions(ctx context.Context, templateID uuid.UUID) ([]api.ShiftVersionRecord, error) {
 	db, err := r.db(ctx)
 	if err != nil {
 		return nil, err
 	}
 	var exists bool
-	if err := db.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM shift_templates WHERE id = $1 AND workspace_id = $2)`, templateID, workspaceID).Scan(&exists); err != nil {
+	if err := db.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM shift_templates WHERE id = $1)`, templateID).Scan(&exists); err != nil {
 		return nil, err
 	}
 	if !exists {
 		return nil, pgx.ErrNoRows
 	}
-	rows, err := db.Query(ctx, `SELECT id, template_id, version_number, name, report_symbol, location_id, employer_id, effective_from, effective_to, change_type, change_reason, superseded_by, created_by, created_at FROM shift_versions WHERE template_id = $1 AND workspace_id = $2 ORDER BY version_number DESC`, templateID, workspaceID)
+	rows, err := db.Query(ctx, `SELECT id, template_id, version_number, name, report_symbol, location_id, employer_id, effective_from, effective_to, change_type, change_reason, superseded_by, created_by, created_at FROM shift_versions WHERE template_id = $1 ORDER BY version_number DESC`, templateID)
 	if err != nil {
 		return nil, err
 	}
@@ -271,7 +271,7 @@ func (r ShiftRepository) ListShiftVersions(ctx context.Context, workspaceID, tem
 	return versions, nil
 }
 
-func (r ShiftRepository) AssignShift(ctx context.Context, workspaceID, actorID uuid.UUID, req api.AssignShiftRequest) error {
+func (r ShiftRepository) AssignShift(ctx context.Context, actorID uuid.UUID, req api.AssignShiftRequest) error {
 	startDate, err := time.Parse("2006-01-02", req.StartDate)
 	if err != nil {
 		return api.ErrShiftValidation
@@ -289,20 +289,20 @@ func (r ShiftRepository) AssignShift(ctx context.Context, workspaceID, actorID u
 	if end.Sub(startDate).Hours()/24 >= 366 {
 		return api.ErrShiftValidation
 	}
-	tx, err := r.begin(ctx, workspaceID)
+	tx, err := r.begin(ctx)
 	if err != nil {
 		return err
 	}
 	now := time.Now().UTC()
 	err = service.WithTx(ctx, tx, func(ctx context.Context, db pgx.Tx) error {
 		var exists bool
-		if err := db.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM employments WHERE id = $1 AND workspace_id = $2 AND deleted_at IS NULL)`, req.EmploymentID, workspaceID).Scan(&exists); err != nil {
+		if err := db.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM employments WHERE id = $1 AND deleted_at IS NULL)`, req.EmploymentID).Scan(&exists); err != nil {
 			return err
 		}
 		if !exists {
 			return api.ErrEmploymentNotFound
 		}
-		if err := db.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM shift_templates WHERE id = $1 AND workspace_id = $2)`, req.ShiftID, workspaceID).Scan(&exists); err != nil {
+		if err := db.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM shift_templates WHERE id = $1)`, req.ShiftID).Scan(&exists); err != nil {
 			return err
 		}
 		if !exists {
@@ -310,14 +310,14 @@ func (r ShiftRepository) AssignShift(ctx context.Context, workspaceID, actorID u
 		}
 		rules := compliance.Rules{IsEnabled: true, MinRestPeriodHours: 12, MaxWeeklyHours: 48, MaxMonthlyOTHours: 40, AllowManagerOverride: true}
 		var storedRules compliance.Rules
-		err := db.QueryRow(ctx, `SELECT is_enabled, min_rest_period_hours, max_weekly_hours, max_monthly_ot_hours, allow_manager_override FROM workspace_compliance_rules WHERE workspace_id = $1`, workspaceID).Scan(&storedRules.IsEnabled, &storedRules.MinRestPeriodHours, &storedRules.MaxWeeklyHours, &storedRules.MaxMonthlyOTHours, &storedRules.AllowManagerOverride)
+		err := db.QueryRow(ctx, `SELECT is_enabled, min_rest_period_hours, max_weekly_hours, max_monthly_ot_hours, allow_manager_override FROM compliance_rules`).Scan(&storedRules.IsEnabled, &storedRules.MinRestPeriodHours, &storedRules.MaxWeeklyHours, &storedRules.MaxMonthlyOTHours, &storedRules.AllowManagerOverride)
 		if err == nil {
 			rules = storedRules
 		} else if !errors.Is(err, pgx.ErrNoRows) {
 			return err
 		}
 		if rules.IsEnabled {
-			shifts, err := loadComplianceShiftIntervals(ctx, db, workspaceID, req.ShiftID)
+			shifts, err := loadComplianceShiftIntervals(ctx, db, req.ShiftID)
 			if err != nil {
 				return err
 			}
@@ -336,7 +336,7 @@ func (r ShiftRepository) AssignShift(ctx context.Context, workspaceID, actorID u
 				rosters = append(rosters, compliance.Roster{EmploymentID: req.EmploymentID, ShiftID: templateID, Date: date})
 				if templateID != nil {
 					if _, ok := shifts[*templateID]; !ok {
-						loaded, loadErr := loadComplianceShiftIntervals(ctx, db, workspaceID, *templateID)
+						loaded, loadErr := loadComplianceShiftIntervals(ctx, db, *templateID)
 						if loadErr != nil {
 							rows.Close()
 							return loadErr
@@ -366,7 +366,7 @@ func (r ShiftRepository) AssignShift(ctx context.Context, workspaceID, actorID u
 			}
 			return err
 		}
-		if err := EnqueueRosterCacheInvalidation(ctx, db, workspaceID); err != nil {
+		if err := EnqueueRosterCacheInvalidation(ctx, db); err != nil {
 			return err
 		}
 		_ = actorID
@@ -375,8 +375,8 @@ func (r ShiftRepository) AssignShift(ctx context.Context, workspaceID, actorID u
 	return err
 }
 
-func loadComplianceShiftIntervals(ctx context.Context, db pgx.Tx, workspaceID, templateID uuid.UUID) (map[uuid.UUID][]compliance.Interval, error) {
-	rows, err := db.Query(ctx, `SELECT t.id, i.start_time::text, i.end_time::text, i.break_duration_minutes, i.is_break_auto_deduct FROM shift_templates t JOIN shift_versions v ON v.id = t.current_version_id JOIN shift_default_intervals i ON i.version_id = v.id WHERE t.id = $1 AND t.workspace_id = $2 ORDER BY i.sort_order`, templateID, workspaceID)
+func loadComplianceShiftIntervals(ctx context.Context, db pgx.Tx, templateID uuid.UUID) (map[uuid.UUID][]compliance.Interval, error) {
+	rows, err := db.Query(ctx, `SELECT t.id, i.start_time::text, i.end_time::text, i.break_duration_minutes, i.is_break_auto_deduct FROM shift_templates t JOIN shift_versions v ON v.id = t.current_version_id JOIN shift_default_intervals i ON i.version_id = v.id WHERE t.id = $1 ORDER BY i.sort_order`, templateID)
 	if err != nil {
 		return nil, err
 	}

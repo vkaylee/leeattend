@@ -13,15 +13,14 @@ import { Typography } from "@/components/ui/typography";
 import { useConfirm } from "@/hooks/use-confirm";
 import {
   useDeleteEmployeeAssignment,
-  useWorkspaceAssignments,
+  useAssignments,
 } from "@/hooks/use-employee-assignments";
-import { getStandaloneOrganizationId } from "@/lib/api/helpers";
 import type { EmployeeAssignmentWithEmployee } from "@/lib/api/employee-assignments";
 
 export default function PersonnelAssignmentsPage() {
   const { t } = useTranslation();
   const toast = useToast();
-  const wsId = getStandaloneOrganizationId() ?? "";
+  
   const { confirm, ConfirmationDialog } = useConfirm();
 
   const [search, setSearch] = useState("");
@@ -30,7 +29,7 @@ export default function PersonnelAssignmentsPage() {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingAssignment, setEditingAssignment] = useState<EmployeeAssignmentWithEmployee | null>(null);
 
-  const { data: assignments = [], isLoading } = useWorkspaceAssignments(wsId);
+  const { data: assignments = [], isLoading } = useAssignments();
   const deleteMutation = useDeleteEmployeeAssignment();
 
   // Metrics calculation
@@ -72,7 +71,6 @@ export default function PersonnelAssignmentsPage() {
     if (isConfirmed) {
       try {
         await deleteMutation.mutateAsync({
-          wsId,
           employeeId: assignment.employee_id,
           assignmentId: assignment.id,
         });
@@ -84,13 +82,7 @@ export default function PersonnelAssignmentsPage() {
     }
   };
 
-  if (!wsId) {
-    return (
-      <div className="p-12 text-center text-slate-500 dark:text-slate-400 font-bold italic uppercase tracking-widest text-xs opacity-50">
-        {t("common.select_workspace", { defaultValue: "Vui lòng chọn không gian làm việc" })}
-      </div>
-    );
-  }
+  
 
   return (
     <PageContainer>
@@ -201,15 +193,12 @@ export default function PersonnelAssignmentsPage() {
 
       {/* ── Dual-Mode Assignment Form Modal ────────────────────────── */}
       {isFormOpen && (
-        <EmployeeAssignmentFormModal
-          editingAssignment={editingAssignment}
-          isOpen={isFormOpen}
-          onClose={() => {
-            setIsFormOpen(false);
-            setEditingAssignment(null);
-          }}
-          wsId={wsId}
-        />
+        <EmployeeAssignmentFormModal editingAssignment={editingAssignment}
+        isOpen={isFormOpen}
+        onClose={() => {
+          setIsFormOpen(false);
+          setEditingAssignment(null);
+        }}  />
       )}
 
       <ConfirmationDialog />

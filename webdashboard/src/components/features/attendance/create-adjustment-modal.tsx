@@ -19,16 +19,14 @@ export interface CreateAdjustmentModalProps {
   isOpen: boolean;
   onClose: () => void;
   timezone: string;
-  wsId: string;
 }
 
 interface CreateAdjustmentFormProps {
   onClose: () => void;
   timezone: string;
-  wsId: string;
 }
 
-function useCreateAdjustmentForm({ wsId, timezone, onClose }: CreateAdjustmentFormProps) {
+function useCreateAdjustmentForm({timezone, onClose }: CreateAdjustmentFormProps) {
   const { t } = useTranslation(["common", "attendance"]);
   const toast = useToast();
   const queryClient = useQueryClient();
@@ -55,7 +53,7 @@ function useCreateAdjustmentForm({ wsId, timezone, onClose }: CreateAdjustmentFo
       reason?: string;
       requested_punch_time: string;
       attachment_file_ids?: string[];
-    }) => submitAttendanceAdjustment(wsId, data),
+    }) => submitAttendanceAdjustment(data),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["attendance-adjustments"] });
       void queryClient.invalidateQueries({ queryKey: ["time-history"] });
@@ -112,9 +110,7 @@ function useCreateAdjustmentForm({ wsId, timezone, onClose }: CreateAdjustmentFo
 export function CreateAdjustmentModal({
   isOpen,
   onClose,
-  timezone,
-  wsId,
-}: CreateAdjustmentModalProps) {
+  timezone,}: CreateAdjustmentModalProps) {
   const { t } = useTranslation(["common", "attendance"]);
   const { employees: behalfEmployees, isLoading: behalfLoading, hasAssignments } = useBehalfEmployees("attendance_adjustment");
   const {
@@ -132,7 +128,7 @@ export function CreateAdjustmentModal({
     attachmentFileIds,
     setAttachmentFileIds,
     ownerId,
-  } = useCreateAdjustmentForm({ onClose, timezone, wsId });
+  } = useCreateAdjustmentForm({ onClose, timezone});
 
   const behalfOptions = behalfEmployees
     .filter(emp => !!emp.active_employment_id)
@@ -224,17 +220,14 @@ export function CreateAdjustmentModal({
           <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">
             {t("attendance.adjustment.attachment", "ATTACHMENT (PDF ONLY)")}
           </label>
-          <FileUpload
-            accept="application/pdf"
-            category="AttendanceAdjustmentAttachment"
-            maxSizeMB={20}
-            onUploadSuccess={(file) => {
-              setAttachmentFileIds([...attachmentFileIds, file.id]);
-            }}
-            ownerId={ownerId}
-            ownerType="AttendanceAdjustment"
-            workspaceId={wsId}
-          />
+          <FileUpload accept="application/pdf"
+          category="AttendanceAdjustmentAttachment"
+          maxSizeMB={20}
+          onUploadSuccess={(file) => {
+            setAttachmentFileIds([...attachmentFileIds, file.id]);
+          }}
+          ownerId={ownerId}
+          ownerType="AttendanceAdjustment"  />
           {attachmentFileIds.length > 0 && (
             <div className="mt-3 space-y-2">
               {attachmentFileIds.map((id, index) => (

@@ -28,7 +28,6 @@ export default function WorkingPatternsEditorPage() {
   const [isClearConfirmOpen, setIsClearConfirmOpen] = useState(false);
 
   const {
-    wsId,
     isEditMode,
     isLoadingPatterns,
     shifts,
@@ -102,13 +101,6 @@ export default function WorkingPatternsEditorPage() {
     setIsClearConfirmOpen(false);
   };
 
-  if (!wsId) {
-    return (
-      <div className="p-12 text-center text-slate-500 dark:text-slate-400 font-bold italic uppercase tracking-widest text-xs opacity-50">
-        {t("common.select_workspace")}
-      </div>
-    );
-  }
 
   if (isEditMode && isLoadingPatterns) {
     return (

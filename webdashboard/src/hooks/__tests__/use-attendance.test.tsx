@@ -16,11 +16,6 @@ import {
 
 // ── Mocks ────────────────────────────────────────────────────────────────────
 
-const mockUseWorkspace = vi.hoisted(() => vi.fn());
-
-vi.mock("@/hooks/use-workspace", () => ({
-  useWorkspace: mockUseWorkspace,
-}));
 
 const api = vi.hoisted(() => ({
   fetchAttendanceSummaries: vi.fn(),
@@ -29,18 +24,10 @@ const api = vi.hoisted(() => ({
   enterPaperOt: vi.fn(),
   bulkUploadPaperOt: vi.fn(),
   claimOt: vi.fn(),
-  getStandaloneOrganizationId: vi.fn(() => "standalone"),
 }));
 
 vi.mock("@/lib/api", () => api);
 
-vi.mock("@/lib/api/helpers", () => ({
-  getStandaloneOrganizationId: () => api.getStandaloneOrganizationId(),
-}));
-
-const WS_ID = "standalone";
-const withWorkspace = { workspace: { id: WS_ID }, isLoading: false, isError: false };
-const withoutWorkspace = { workspace: undefined, isLoading: false, isError: false };
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -84,11 +71,11 @@ const MOCK_SUMMARY: {
 describe("useAttendanceSummaries", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockUseWorkspace.mockReturnValue(withWorkspace);
+
     (api.fetchAttendanceSummaries as Mock).mockResolvedValue([MOCK_SUMMARY]);
   });
 
-  it("fetches summaries for the given date range and workspace", async () => {
+  it("fetches summaries for the given date range", async () => {
     const { result } = renderHook(
       () => useAttendanceSummaries("2026-08-01", "2026-08-03"),
       { wrapper: createWrapper() },
@@ -97,7 +84,6 @@ describe("useAttendanceSummaries", () => {
     await waitFor(() => expect(result.current.isLoading).toBe(false));
 
     expect(api.fetchAttendanceSummaries).toHaveBeenCalledWith(
-      WS_ID,
       "2026-08-01",
       "2026-08-03",
       undefined,
@@ -115,7 +101,6 @@ describe("useAttendanceSummaries", () => {
     await waitFor(() => expect(result.current.isLoading).toBe(false));
 
     expect(api.fetchAttendanceSummaries).toHaveBeenCalledWith(
-      WS_ID,
       "2026-08-01",
       "2026-08-03",
       "emp-42",
@@ -159,7 +144,7 @@ describe("useAttendanceSummaries", () => {
 describe("useAttendanceSummariesInfinite", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    api.getStandaloneOrganizationId.mockReturnValue("standalone");
+
   });
 
   it("fetches the first page of paginated summaries and flattens results", async () => {
@@ -178,7 +163,6 @@ describe("useAttendanceSummariesInfinite", () => {
     await waitFor(() => expect(result.current.isLoading).toBe(false));
 
     expect(api.fetchAttendanceSummariesPaginated).toHaveBeenCalledWith(
-      WS_ID,
       "2026-08-01",
       "2026-08-03",
       { page: 1, limit: 20, employeeId: undefined, otStatus: undefined },
@@ -206,7 +190,6 @@ describe("useAttendanceSummariesInfinite", () => {
     await waitFor(() => expect(api.fetchAttendanceSummariesPaginated).toHaveBeenCalled());
 
     expect(api.fetchAttendanceSummariesPaginated).toHaveBeenCalledWith(
-      "standalone",
       "2026-08-01",
       "2026-08-03",
       { page: 1, limit: 20, employeeId: "emp-5", otStatus: "pending" },
@@ -279,14 +262,13 @@ describe("useAttendanceSummariesInfinite", () => {
     expect(api.fetchAttendanceSummariesPaginated).toHaveBeenCalledTimes(2);
   });
 
-  it("uses standalone organization context", async () => {
+  it("fetches paginated summaries without organization scope", async () => {
     const { result } = renderHook(
       () => useAttendanceSummariesInfinite("2026-08-01", "2026-08-03"),
       { wrapper: createWrapper() },
     );
     await waitFor(() => expect(result.current.isLoading).toBe(false));
     expect(api.fetchAttendanceSummariesPaginated).toHaveBeenCalledWith(
-      "standalone",
       "2026-08-01",
       "2026-08-03",
       { employeeId: undefined, limit: 20, otStatus: undefined, page: 1 },
@@ -316,7 +298,7 @@ describe("useAttendanceSummariesInfinite", () => {
 describe("useApproveOt", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockUseWorkspace.mockReturnValue(withWorkspace);
+
     (api.approveOt as Mock).mockResolvedValue(undefined);
   });
 
@@ -333,7 +315,7 @@ describe("useApproveOt", () => {
       });
     });
 
-    expect(api.approveOt).toHaveBeenCalledWith("standalone", "emp-1", {
+    expect(api.approveOt).toHaveBeenCalledWith("emp-1", {
       date: "2026-08-01",
       approved_minutes: 120,
       manager_note: "Good work",
@@ -353,7 +335,7 @@ describe("useApproveOt", () => {
       });
     });
 
-    expect(api.approveOt).toHaveBeenCalledWith("standalone", "emp-2", {
+    expect(api.approveOt).toHaveBeenCalledWith("emp-2", {
       date: "2026-08-02",
       approved_minutes: 0,
       manager_note: undefined,
@@ -391,7 +373,7 @@ describe("useApproveOt", () => {
 describe("useEnterPaperOt", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockUseWorkspace.mockReturnValue(withWorkspace);
+
     (api.enterPaperOt as Mock).mockResolvedValue(MOCK_SUMMARY);
   });
 
@@ -408,7 +390,7 @@ describe("useEnterPaperOt", () => {
       });
     });
 
-    expect(api.enterPaperOt).toHaveBeenCalledWith("standalone", "emp-1", {
+    expect(api.enterPaperOt).toHaveBeenCalledWith("emp-1", {
       date: "2026-08-01",
       claimed_minutes: 90,
       reason: "Project deadline",
@@ -465,7 +447,7 @@ describe("useEnterPaperOt", () => {
 describe("useBulkUploadPaperOt", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockUseWorkspace.mockReturnValue(withWorkspace);
+
     (api.bulkUploadPaperOt as Mock).mockResolvedValue({
       total_rows: 5,
       success_count: 4,
@@ -482,7 +464,7 @@ describe("useBulkUploadPaperOt", () => {
       await result.current.bulkUploadPaperOt(file);
     });
 
-    expect(api.bulkUploadPaperOt).toHaveBeenCalledWith(WS_ID, file);
+    expect(api.bulkUploadPaperOt).toHaveBeenCalledWith(file);
   });
 
   it("returns the bulk result payload on success", async () => {
@@ -530,7 +512,7 @@ describe("useBulkUploadPaperOt", () => {
 describe("useClaimOt", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockUseWorkspace.mockReturnValue(withWorkspace);
+
     (api.claimOt as Mock).mockResolvedValue(undefined);
   });
 
@@ -546,7 +528,7 @@ describe("useClaimOt", () => {
       });
     });
 
-    expect(api.claimOt).toHaveBeenCalledWith("standalone", "emp-1", {
+    expect(api.claimOt).toHaveBeenCalledWith("emp-1", {
       date: "2026-08-01",
       claimed_minutes: 60,
       reason: "Overtime work",

@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 
 
 import { useProfile } from './use-profile';
-import { useWorkspace } from './use-workspace';
+import { useOrganization } from "@/hooks/use-organization";
 interface SyncLangOptions {
   currentWorkspaceDefaultLang?: string;
   hasInitialized: RefObject<boolean>;
@@ -29,16 +29,16 @@ function syncLanguage({ hasInitialized, userPreferredLang, currentWorkspaceDefau
 export function useI18nSync() {
   const { i18n } = useTranslation();
   const { user } = useProfile();
-  const { workspace: currentWorkspace } = useWorkspace();
+  const { organization } = useOrganization();
   const hasInitialized = useRef(false);
 
   useEffect(() => {
     syncLanguage({
       hasInitialized,
       userPreferredLang: user?.preferred_language,
-      currentWorkspaceDefaultLang: currentWorkspace?.default_language,
+      currentWorkspaceDefaultLang: organization?.default_language,
       i18n,
     }, user);
-  }, [user?.preferred_language, currentWorkspace?.default_language, i18n, user]);
+  }, [user?.preferred_language, organization?.default_language, i18n, user]);
 }
 

@@ -129,19 +129,11 @@ export async function handleUnauthorized({
   handleSessionExpired();
 }
 
-/** Removes legacy organization path segments before requests reach flat API routes. */
-export function normalizeStandalonePath(url: string): string {
-  return url.replace(/(\/api)?\/v1\/workspaces\/[^/?]+(?=\/|\?|$)/g, "$1/v1")
-    .replace(/\/api\/workspaces\/[^/?]+(?=\/|\?|$)/g, "/api/v1")
-    .replace(/\/workspaces\/[^/?]+(?=\/|\?|$)/g, "/v1");
-}
-
 export function getFullUrl(url: string): string {
-  const normalizedUrl = normalizeStandalonePath(url);
-  if (normalizedUrl.startsWith("http") || normalizedUrl.startsWith(API_BASE_URL)) {
-    return normalizedUrl;
+  if (url.startsWith("http") || url.startsWith(API_BASE_URL)) {
+    return url;
   }
-  const path = normalizedUrl.startsWith("/") ? normalizedUrl : `/${normalizedUrl}`;
+  const path = url.startsWith("/") ? url : `/${url}`;
   return `${API_BASE_URL}${path}`;
 }
 

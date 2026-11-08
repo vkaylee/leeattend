@@ -1,21 +1,15 @@
 package api
 
 import (
-	"context"
 	"net/http"
 
-	"github.com/google/uuid"
 	"github.com/vkaylee/leeattend/apiserver/internal/apperror"
 	"github.com/vkaylee/leeattend/apiserver/internal/auth"
 	httpinfra "github.com/vkaylee/leeattend/apiserver/internal/infra/http"
 )
 
-type SystemHealthAuthorizer interface {
-	HasPermission(context.Context, uuid.UUID, uuid.UUID, string) bool
-}
-
 type SystemHealthHandler struct {
-	Authorizer SystemHealthAuthorizer
+	Authorizer Authorizer
 }
 
 type systemHealthResponse struct {
@@ -25,12 +19,11 @@ type systemHealthResponse struct {
 
 func (h SystemHealthHandler) Get(w http.ResponseWriter, r *http.Request) {
 	userID, ok := httpinfra.UserIDFromContext(r.Context())
-	workspaceID, hasWorkspace := organizationIDFromContext(r)
-	if !ok || !hasWorkspace {
+	if !ok {
 		apperror.WriteError(w, r, apperror.Unauthorized(apperror.KeyUnauthorized))
 		return
 	}
-	if h.Authorizer == nil || !h.Authorizer.HasPermission(r.Context(), userID, workspaceID, string(auth.PermissionInfraMonitor)) {
+	if h.Authorizer == nil || !h.Authorizer.HasPermission(r.Context(), userID, string(auth.PermissionInfraMonitor)) {
 		apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
 		return
 	}

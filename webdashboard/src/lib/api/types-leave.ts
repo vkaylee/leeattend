@@ -1,5 +1,3 @@
-import type { components } from "@/types/api-generated";
-
 export type LeaveDurationType = 'full_day' | 'first_half' | 'second_half' | 'custom_hours';
 
 export interface EmployeeLeaveBalance {
@@ -23,22 +21,36 @@ export interface LeavePolicy {
   name: string;
   rule_config: LeavePolicyConfig;
   updated_at: string;
-  workspace_id: string;
 }
 
 export type AccrualFrequency = "monthly" | "quarterly" | "yearly";
 
-export type SeniorityBonus = Omit<components["schemas"]["SeniorityBonus"], "bonus_amount" | "months"> & {
+export interface SeniorityBonus {
   bonus_amount?: number;
   months?: number;
   min_years?: number;
   extra_days?: number;
-};
+}
 
-export type LeavePolicyConfig = Omit<components["schemas"]["LeavePolicyConfig"], "seniority_bonus"> & {
+export interface LeavePolicyConfig {
+  accrual_amount: number;
+  accrual_timing: string;
+  carry_over_limit?: number | null;
+  frequency: AccrualFrequency;
+  max_balance?: number | null;
+  min_work_days_threshold?: number | null;
+  reset_month?: number | null;
   seniority_bonus?: SeniorityBonus[];
-};
+}
 
-export type LeavePolicyAssignmentDetail = Omit<components["schemas"]["LeavePolicyAssignmentDetail"], "effective_to"> & {
+export interface LeavePolicyAssignmentDetail {
+  assignee_id?: string | null;
+  assignee_type: string;
+  created_at: string;
+  effective_from: string;
   effective_to: string | null;
-};
+  id: string;
+  leave_type_name: string;
+  policy_id: string;
+  policy_name: string;
+}

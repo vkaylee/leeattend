@@ -245,11 +245,6 @@ func (r MonitorRepository) ListDurableJobs(ctx context.Context, params api.ListD
 	args := make([]any, 0)
 	argIdx := 1
 
-	if params.WorkspaceID != nil {
-		whereClauses = append(whereClauses, fmt.Sprintf("workspace_id = $%d", argIdx))
-		args = append(args, *params.WorkspaceID)
-		argIdx++
-	}
 	if params.JobID != nil {
 		whereClauses = append(whereClauses, fmt.Sprintf("id = $%d", argIdx))
 		args = append(args, *params.JobID)
@@ -290,7 +285,7 @@ func (r MonitorRepository) ListDurableJobs(ctx context.Context, params api.ListD
 		limit = 10
 	}
 	querySQL := fmt.Sprintf(`
-		SELECT id, parent_job_id, workspace_id, task_type, priority, state,
+		SELECT id, parent_job_id, task_type, priority, state,
 		       attempt_count, lease_owner, request_id, trace_id,
 		       created_at, queued_at, started_at, finished_at, updated_at,
 		       error_code, error_summary
@@ -312,7 +307,7 @@ func (r MonitorRepository) ListDurableJobs(ctx context.Context, params api.ListD
 	for rows.Next() {
 		var j api.MonitorInfraJobRecord
 		if err := rows.Scan(
-			&j.JobID, &j.ParentJobID, &j.WorkspaceID, &j.TaskType, &j.Priority, &j.State,
+			&j.JobID, &j.ParentJobID, &j.TaskType, &j.Priority, &j.State,
 			&j.AttemptCount, &j.Worker, &j.RequestID, &j.TraceID,
 			&j.CreatedAt, &j.QueuedAt, &j.StartedAt, &j.FinishedAt, &j.UpdatedAt,
 			&j.ErrorCode, &j.ErrorSummary,
@@ -375,7 +370,7 @@ func (r MonitorRepository) ListCorrelations(ctx context.Context, requestID *uuid
 	var args []any
 	if requestID != nil {
 		querySQL = `
-			SELECT id, parent_job_id, workspace_id, task_type, priority, state,
+			SELECT id, parent_job_id, task_type, priority, state,
 			       attempt_count, lease_owner, request_id, trace_id,
 			       created_at, queued_at, started_at, finished_at, updated_at,
 			       error_code, error_summary
@@ -387,7 +382,7 @@ func (r MonitorRepository) ListCorrelations(ctx context.Context, requestID *uuid
 		args = []any{*requestID, limit}
 	} else if traceID != nil {
 		querySQL = `
-			SELECT id, parent_job_id, workspace_id, task_type, priority, state,
+			SELECT id, parent_job_id, task_type, priority, state,
 			       attempt_count, lease_owner, request_id, trace_id,
 			       created_at, queued_at, started_at, finished_at, updated_at,
 			       error_code, error_summary
@@ -412,7 +407,7 @@ func (r MonitorRepository) ListCorrelations(ctx context.Context, requestID *uuid
 	for rows.Next() {
 		var j api.MonitorInfraJobRecord
 		if err := rows.Scan(
-			&j.JobID, &j.ParentJobID, &j.WorkspaceID, &j.TaskType, &j.Priority, &j.State,
+			&j.JobID, &j.ParentJobID, &j.TaskType, &j.Priority, &j.State,
 			&j.AttemptCount, &j.Worker, &j.RequestID, &j.TraceID,
 			&j.CreatedAt, &j.QueuedAt, &j.StartedAt, &j.FinishedAt, &j.UpdatedAt,
 			&j.ErrorCode, &j.ErrorSummary,
@@ -463,21 +458,21 @@ func (r MonitorRepository) ListCorrelations(ctx context.Context, requestID *uuid
 	return jobs, truncated, nil
 }
 
-func (r MonitorRepository) GetWorkspaceDurableJob(ctx context.Context, workspaceID, jobID uuid.UUID) (*api.MonitorInfraJobRecord, error) {
+func (r MonitorRepository) GetDurableJob(ctx context.Context, jobID uuid.UUID) (*api.MonitorInfraJobRecord, error) {
 	if r.SystemDB == nil {
 		return nil, apperror.NotFound(apperror.KeyJobNotFound)
 	}
 
 	var j api.MonitorInfraJobRecord
 	err := r.SystemDB.QueryRow(ctx, `
-		SELECT id, parent_job_id, workspace_id, task_type, priority, state,
+		SELECT id, parent_job_id, task_type, priority, state,
 		       attempt_count, lease_owner, request_id, trace_id,
 		       created_at, queued_at, started_at, finished_at, updated_at,
 		       error_code, error_summary
 		FROM infra_job_records
-		WHERE workspace_id = $1 AND id = $2
-	`, workspaceID, jobID).Scan(
-		&j.JobID, &j.ParentJobID, &j.WorkspaceID, &j.TaskType, &j.Priority, &j.State,
+		WHERE id = $1
+	`, jobID).Scan(
+		&j.JobID, &j.ParentJobID, &j.TaskType, &j.Priority, &j.State,
 		&j.AttemptCount, &j.Worker, &j.RequestID, &j.TraceID,
 		&j.CreatedAt, &j.QueuedAt, &j.StartedAt, &j.FinishedAt, &j.UpdatedAt,
 		&j.ErrorCode, &j.ErrorSummary,
@@ -494,10 +489,10 @@ func (r MonitorRepository) GetWorkspaceDurableJob(ctx context.Context, workspace
 		SELECT id, job_id, event_type, from_state, to_state, attempt_count,
 		       worker_id, request_id, trace_id, reason_code, reason_summary, created_at
 		FROM infra_job_events
-		WHERE workspace_id = $1 AND job_id = $2
+		WHERE job_id = $1
 		ORDER BY created_at ASC, id ASC
 		LIMIT 200
-	`, workspaceID, jobID)
+	`, jobID)
 	if err == nil {
 		defer rows.Close()
 		for rows.Next() {
@@ -514,18 +509,15 @@ func (r MonitorRepository) GetWorkspaceDurableJob(ctx context.Context, workspace
 	return &j, nil
 }
 
-func (r MonitorRepository) ListAuditLogs(ctx context.Context, workspaceID uuid.UUID, limit, offset int, action *string, startDate, endDate *time.Time) ([]api.AuditLogRecord, int64, error) {
+func (r MonitorRepository) ListAuditLogs(ctx context.Context, limit, offset int, action *string, startDate, endDate *time.Time) ([]api.AuditLogRecord, int64, error) {
 	if r.DB == nil {
 		return make([]api.AuditLogRecord, 0), 0, nil
 	}
 	db := r.DB
-	if db == nil {
-		return nil, 0, errors.New("monitor repository: database is not configured")
-	}
 
-	whereClauses := []string{"workspace_id = $1"}
-	args := []any{workspaceID}
-	argIdx := 2
+	whereClauses := []string{"1=1"}
+	args := make([]any, 0)
+	argIdx := 1
 
 	if action != nil && *action != "" {
 		whereClauses = append(whereClauses, fmt.Sprintf("action = $%d", argIdx))
@@ -550,7 +542,7 @@ func (r MonitorRepository) ListAuditLogs(ctx context.Context, workspaceID uuid.U
 	}
 
 	querySQL := fmt.Sprintf(`
-		SELECT id, workspace_id, actor_id, actor_type, actor_name, actor_email,
+		SELECT id, actor_id, actor_type, actor_name, actor_email,
 		       target_user_id, target_resource_id, action, details,
 		       ip_address, user_agent, created_at
 		FROM audit_logs
@@ -571,7 +563,7 @@ func (r MonitorRepository) ListAuditLogs(ctx context.Context, workspaceID uuid.U
 		var l api.AuditLogRecord
 		var rawDetails []byte
 		if err := rows.Scan(
-			&l.ID, &l.WorkspaceID, &l.ActorID, &l.ActorType, &l.ActorName, &l.ActorEmail,
+			&l.ID, &l.ActorID, &l.ActorType, &l.ActorName, &l.ActorEmail,
 			&l.TargetUserID, &l.TargetResourceID, &l.Action, &rawDetails,
 			&l.IPAddress, &l.UserAgent, &l.CreatedAt,
 		); err != nil {

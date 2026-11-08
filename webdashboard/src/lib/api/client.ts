@@ -1,240 +1,119 @@
-import type { Client, MaybeOptionalInit, MethodResponse } from "openapi-fetch";
-import type { PathsWithMethod, RequiredKeysOf } from "openapi-typescript-helpers";
-
-import createClient from "openapi-fetch";
-
-import type { paths } from "@/types/api-generated";
-
-import { maybeNull } from "@/types/api-overrides";
-
-import { API_BASE_URL } from "./config";
 import { ApiError } from "./errors";
-import { normalizeStandalonePath } from "./api-fetch-helpers";
 import { apiFetch } from "./helpers";
 
-// eslint-disable-next-line complexity
-async function extractRequestInfo(
-  url: Request,
-  initOptions: RequestInit
-): Promise<{ urlStr: string; options: RequestInit }> {
-  const options = { ...initOptions };
-  const urlStr = url.url;
-  options.method = options.method ?? url.method;
-  
-  if (!options.headers) {
-    const headers: Record<string, string> = {};
-    url.headers.forEach((value, key) => {
-      headers[key] = value;
-    });
-    options.headers = headers;
-  }
-  
-  if (!options.body) {
-    const method = options.method.toUpperCase();
-    if (["POST", "PUT", "PATCH", "DELETE"].includes(method)) {
-      try {
-        const contentType = url.headers.get("content-type") ?? "";
-        if (contentType.includes("multipart/form-data")) {
-          const formData = await url.clone().formData();
-          options.body = formData;
-        } else if (
-          contentType.includes("application/json") ||
-          contentType.includes("application/x-www-form-urlencoded") ||
-          contentType.startsWith("text/")
-        ) {
-          const bodyText = await url.clone().text();
-          if (bodyText) {
-            options.body = bodyText;
-          }
-        } else {
-          // For binary payloads (octet-stream, files, etc.)
-          const bodyBlob = await url.clone().blob();
-          // Blob.size is always a number — explicitly check for empty body
-          if (bodyBlob.size > 0) {
-            options.body = bodyBlob;
-          }
-        }
-      } catch { /* body reading failed — skip body for this request */
+/** Path parameters interpolated into `{name}` placeholders. */
+export type PathParams = Record<string, string | number | undefined>;
+
+/** Query parameters appended to the request URL. */
+export type QueryParams = Record<string, unknown>;
+
+export interface ClientRequestInit {
+  body?: unknown;
+  headers?: Record<string, string>;
+  params?: { path?: PathParams; query?: QueryParams };
+}
+
+export interface ClientResponse<T> {
+  data: T;
+  response: Response;
+}
+
+const QUERY_OMITTED = new Set<unknown>([undefined, null, "all"]);
+
+function buildQueryString(query: QueryParams | undefined): string {
+  if (!query) return "";
+  const search = new URLSearchParams();
+  for (const [key, value] of Object.entries(query)) {
+    if (QUERY_OMITTED.has(value)) continue;
+    if (Array.isArray(value)) {
+      for (const item of value) {
+        if (QUERY_OMITTED.has(item)) continue;
+        search.append(key, String(item));
       }
+      continue;
+    }
+    if (typeof value === "object") {
+      search.set(key, JSON.stringify(value));
+      continue;
+    }
+    search.set(key, String(value));
+  }
+  const serialized = search.toString();
+  return serialized ? `?${serialized}` : "";
+}
+
+export function buildUrl(path: string, params?: { path?: PathParams; query?: QueryParams }): string {
+  const interpolated = path.replace(/\{([^{}]+)\}/g, (_match, name: string) => {
+    const value = params?.path?.[name];
+    if (value === undefined) {
+      throw new TypeError(`Missing path parameter: ${name}`);
+    }
+    return encodeURIComponent(String(value));
+  });
+  return `${interpolated}${buildQueryString(params?.query)}`;
+}
+
+
+async function request<T = unknown>(
+  method: string,
+  path: string,
+  init?: ClientRequestInit,
+): Promise<ClientResponse<T>> {
+  const options: RequestInit = { method };
+  if (init?.headers) options.headers = init.headers;
+
+  if (init.body !== undefined && (method === "POST" || method === "PUT" || method === "PATCH")) {
+    if (init.body instanceof FormData || init.body instanceof Blob) {
+      options.body = init.body;
+    } else {
+      options.headers = { "Content-Type": "application/json", ...(init.headers ?? {}) };
+      options.body = JSON.stringify(init.body);
     }
   }
-  
-  return { urlStr, options };
-}
 
-function cleanApiPath(urlStr: string): string {
-  let cleaned = normalizeStandalonePath(urlStr);
-  if (cleaned.includes('/api/api/v1')) {
-    cleaned = cleaned.replace('/api/api/v1', '/api/v1');
-  }
-  if (cleaned.includes('/api/') && !/\/api\/v1(\/|$)/.test(cleaned)) {
-    cleaned = cleaned.replace('/api/', '/api/v1/');
-  }
-  return cleaned;
-}
-
-async function handleResponseError(res: Response): Promise<never> {
-  return ApiError.rejectResponse(res);
-}
-
-export async function customFetch(url: string | URL | Request, init?: RequestInit): Promise<Response> {
-  let urlStr: string;
-  let options: RequestInit = { ...init };
-
-  if (url instanceof Request) {
-    const extracted = await extractRequestInfo(url, options);
-    urlStr = cleanApiPath(extracted.urlStr);
-    options = extracted.options;
-  } else {
-    urlStr = cleanApiPath(url.toString());
+  const response = await apiFetch(buildUrl(path, init?.params), options);
+  if (!response.ok) await ApiError.rejectResponse(response);
+  if (method === "DELETE" && response.status === 204) {
+    return { data: undefined as T, response };
   }
 
-  const res = await apiFetch(urlStr, options);
-  
-  if (!res.ok) {
-    await handleResponseError(res);
-  }
-  
-  return res;
+  const contentType = response.headers.get("content-type") ?? "";
+  const data = (contentType.includes("application/json")
+    ? await response.json()
+    : await response.text()) as T;
+  return { data, response };
 }
 
-type ClientInitParam<Init> =
-  RequiredKeysOf<Init> extends never
-    ? [(Init & Record<string, unknown>)?]
-    : [Init & Record<string, unknown>];
-
-/**
- * SafeMethod re-uses upstream generic constraints so `url` and `init` are
- * validated exactly as before, overrides the return so `data` is never `| undefined`.
- *
- * `MethodResponse` from openapi-fetch unwraps `NonNullable<FetchResponse["data"]>`,
- * the success branch's data type without `| undefined`.
- *
- * customFetch converts non-2xx to thrown ApiError, so `data` is always present
- * when the promise resolves.
- */
-type SafeMethod<M extends "GET" | "POST" | "PUT" | "PATCH" | "DELETE"> = <
-  P extends PathsWithMethod<paths, Lowercase<M>>,
-  Init extends MaybeOptionalInit<paths[P], Lowercase<M>>,
->(
-  url: P,
-  ...init: ClientInitParam<Init>
-) => Promise<{
-  data: MethodResponse<Client<paths>, Lowercase<M>, P, Init>;
-  error?: unknown;
-  response: Response;
-}>;
-
-interface SafeClient {
-  DELETE: SafeMethod<"DELETE">;
-  GET: SafeMethod<"GET">;
-  PATCH: SafeMethod<"PATCH">;
-  POST: SafeMethod<"POST">;
-  PUT: SafeMethod<"PUT">;
-}
-
-// ── SafeClient: typed wrapper with runtime guard ────────────────────
-// createClient<paths> returns FetchResponse<T> = { data } | { error },
-// but customFetch always throws ApiError on non-2xx, so the error branch
-// is unreachable at runtime. SafeClient encodes this invariant in the types,
-// giving every call-site a clean `{ data }` destructure.
-//
-// Each method goes through safeWrap which adds a runtime guard: if a 2xx
-// response somehow lands in the error branch, it throws immediately rather
-// than letting undefined data propagate silently.
-// See: .ai/ADRs/safe-client-wrapper.md
-
-const _rawClient = createClient<paths>({
-  baseUrl: API_BASE_URL,
-  fetch: customFetch,
-});
-
-/** Concrete return shape of openapi-fetch — the union narrowed by guardResult. */
-interface RawFetchResult { data?: unknown; error?: unknown; response: Response }
-
-function guardResult(result: RawFetchResult): RawFetchResult {
-  if (result.error !== undefined) {
-    throw new ApiError(
-      // Defensive guard: response is from dynamic openapi-fetch
-      maybeNull(result.response)?.status ?? 500,
-      "SafeClient invariant violated",
-      "INVALID_RESPONSE",
-      { message: "API returned error branch on a response that passed customFetch" },
-    );
-  }
-  return result;
-}
-
-function safeWrap<M extends "GET" | "POST" | "PUT" | "PATCH" | "DELETE">(
-  method: M,
-): SafeMethod<M> {
-  // Index-access dispatch through a typed function reference (not Function).
-  // `unknown` params keep the implementation body free of `any` while the
-  // SafeMethod<M> signature provides full path-specific inference at call sites.
-  const fn = _rawClient[method] as (url: string, init?: Record<string, unknown>) => Promise<RawFetchResult>;
-  return (async (url: unknown, ...init: unknown[]) => {
-    const initArg = init[0] as Record<string, unknown> | undefined;
-    const result = await fn(url as string, initArg);
-    // Runtime guard: defend against a future where openapi-fetch stops
-    // respecting our customFetch throw-on-error contract and returns
-    // the error branch instead of throwing.  (data MAY be undefined on
-    // 204 No Content / empty-body DELETE responses — that is normal.)
-    return guardResult(result);
-  }) as SafeMethod<M>;
-}
-
-export const client: SafeClient = {
-  DELETE: safeWrap("DELETE"),
-  GET: safeWrap("GET"),
-  PATCH: safeWrap("PATCH"),
-  POST: safeWrap("POST"),
-  PUT: safeWrap("PUT"),
+export const client = {
+  GET: <T = unknown>(path: string, init?: ClientRequestInit) => request<T>("GET", path, init),
+  POST: <T = unknown>(path: string, init?: ClientRequestInit) => request<T>("POST", path, init),
+  PUT: <T = unknown>(path: string, init?: ClientRequestInit) => request<T>("PUT", path, init),
+  PATCH: <T = unknown>(path: string, init?: ClientRequestInit) => request<T>("PATCH", path, init),
+  DELETE: <T = unknown>(path: string, init?: ClientRequestInit) => request<T>("DELETE", path, init),
 };
 
-// ── Legacy escape hatch for paths not yet in the generated schema ──────────
-// Migrate callers to typed `client.GET()` / `client.POST()` whenever the
-// path becomes available in the OpenAPI-generated types.
-// See: https://github.com/lee-lee/leeattend/issues/type-safety-migration
-
-type HttpMethod = "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
-
-interface LegacyFetchInit {
-  body?: unknown;
-  params?: { path?: Record<string, string | number | undefined>; query?: Record<string, unknown> };
-}
+export type HttpMethod = "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
 
 /**
- * Typed escape hatch for API paths absent from the generated schema.
- *
- * Prefer {@link client}.GET / POST / etc. for any path covered by the
- * OpenAPI spec.  This helper is intentionally generic over `T` because the
- * response shape is unknown to the type-checker — **callers must ensure `T`
- * matches the actual backend response**.
+ * Escape hatch for endpoints whose response shape is not described by a
+ * generated schema. Callers assert `T`; the backend DTO is the source of truth.
  */
-// eslint-disable-next-line @typescript-eslint/no-unnecessary-type-parameters -- T encodes the caller-expected response shape for paths absent from the generated schema
 export async function fetch<T>(
   method: HttpMethod,
   path: string,
-  init?: LegacyFetchInit,
+  init?: ClientRequestInit,
 ): Promise<{ data: T }> {
-  // The cast through SafeClient's method overloads is necessary because
-  // `path` is a raw string (not validated against the schema).  We keep
-  // the escape hatch narrow by only allowing valid HTTP methods and a
-  // controlled init shape.
-  const typedClient = client as Record<HttpMethod, (p: string, i?: LegacyFetchInit) => Promise<{ data: T }>>;
-  return typedClient[method](path, init);
+  const { data } = await request<T>(method, path, init);
+  return { data };
 }
 
-/**
- * Fire-and-forget variant for mutations whose response body is discarded.
- *
- * Prefer `client.POST(...)` / `client.PUT(...)` for schema-covered paths.
- */
+/** Fire-and-forget variant for mutations whose response body is discarded. */
 export async function fire(
   method: HttpMethod,
   path: string,
-  init?: LegacyFetchInit,
+  init?: ClientRequestInit,
 ): Promise<void> {
-  await fetch<undefined>(method, path, init);
+  await request<unknown>(method, path, init);
 }
 
+export { ApiError };

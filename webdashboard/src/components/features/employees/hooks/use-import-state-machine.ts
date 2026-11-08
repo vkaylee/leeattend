@@ -21,7 +21,7 @@ const MAX_POLLS = 60;
  * not mutate state (template download, error export) stay in the composing
  * `useTerminationImport` hook.
  */
-export function useImportStateMachine(wsId: string, onClose: () => void) {
+export function useImportStateMachine(onClose: () => void) {
   const { t } = useTranslation("employees");
   const queryClient = useQueryClient();
 
@@ -41,7 +41,7 @@ export function useImportStateMachine(wsId: string, onClose: () => void) {
     if (!file) return;
     setLoading(true);
     try {
-      const data = await uploadTerminationImportPreview(wsId, file);
+      const data = await uploadTerminationImportPreview(file);
       setPreviewData(data);
       setStep(2);
       setActiveTab(data.valid_rows.length > 0 ? "valid" : "invalid");
@@ -56,7 +56,7 @@ export function useImportStateMachine(wsId: string, onClose: () => void) {
   const pollJob = async (id: string, initialCount: number) => {
     for (let i = 0; i < MAX_POLLS; i++) {
       try {
-        const statusRes = await fetchJobStatus(wsId, id);
+        const statusRes = await fetchJobStatus(id);
         setJobStatus(statusRes.status);
         if (statusRes.status === "completed") {
           setSuccessCount(initialCount);
@@ -93,7 +93,7 @@ export function useImportStateMachine(wsId: string, onClose: () => void) {
         termination_reason: row.termination_reason,
         termination_notes: row.termination_notes,
       }));
-      const res = await confirmTerminationImport(wsId, rows);
+      const res = await confirmTerminationImport(rows);
       if (res.job_id) {
         setJobId(res.job_id);
         setJobStatus("queued");

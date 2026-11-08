@@ -19,107 +19,88 @@ type mockLifecycleRepo struct {
 	myTasks    []PendingTaskResponse
 }
 
-func (m *mockLifecycleRepo) CreateTemplate(ctx context.Context, wsID uuid.UUID, req CreateLifecycleChecklistTemplateRequest) (LifecycleChecklistTemplate, error) {
+func (m *mockLifecycleRepo) CreateTemplate(_ context.Context, req CreateLifecycleChecklistTemplateRequest) (LifecycleChecklistTemplate, error) {
 	if m.templates == nil {
 		m.templates = make(map[uuid.UUID]LifecycleChecklistTemplate)
 	}
 	if req.IsDefault {
-		for id, t := range m.templates {
-			if t.WorkspaceID == wsID && t.ChecklistType == req.ChecklistType {
-				t.IsDefault = false
-				m.templates[id] = t
+		for id, template := range m.templates {
+			if template.ChecklistType == req.ChecklistType {
+				template.IsDefault = false
+				m.templates[id] = template
 			}
 		}
 	}
-	tmpl := LifecycleChecklistTemplate{
-		ID:            uuid.New(),
-		WorkspaceID:   wsID,
-		Name:          req.Name,
-		Description:   req.Description,
-		ChecklistType: req.ChecklistType,
-		IsDefault:     req.IsDefault,
-		IsActive:      true,
-	}
-	m.templates[tmpl.ID] = tmpl
-	return tmpl, nil
+	template := LifecycleChecklistTemplate{ID: uuid.New(), Name: req.Name, Description: req.Description, ChecklistType: req.ChecklistType, IsDefault: req.IsDefault, IsActive: true}
+	m.templates[template.ID] = template
+	return template, nil
 }
 
-func (m *mockLifecycleRepo) GetTemplate(ctx context.Context, wsID, id uuid.UUID) (LifecycleChecklistTemplate, error) {
-	if t, ok := m.templates[id]; ok && t.WorkspaceID == wsID {
-		return t, nil
+func (m *mockLifecycleRepo) GetTemplate(_ context.Context, id uuid.UUID) (LifecycleChecklistTemplate, error) {
+	template, ok := m.templates[id]
+	if !ok {
+		return LifecycleChecklistTemplate{}, ErrTemplateNotFound
 	}
-	return LifecycleChecklistTemplate{}, ErrTemplateNotFound
+	return template, nil
 }
 
-func (m *mockLifecycleRepo) ListTemplates(ctx context.Context, wsID uuid.UUID, checklistType *string) ([]LifecycleChecklistTemplate, error) {
+func (m *mockLifecycleRepo) ListTemplates(_ context.Context, checklistType *string) ([]LifecycleChecklistTemplate, error) {
 	var list []LifecycleChecklistTemplate
-	for _, t := range m.templates {
-		if t.WorkspaceID == wsID {
-			if checklistType == nil || *checklistType == t.ChecklistType {
-				list = append(list, t)
-			}
+	for _, template := range m.templates {
+		if checklistType == nil || *checklistType == template.ChecklistType {
+			list = append(list, template)
 		}
 	}
 	return list, nil
 }
 
-func (m *mockLifecycleRepo) UpdateTemplate(ctx context.Context, wsID, id uuid.UUID, req UpdateLifecycleChecklistTemplateRequest) (LifecycleChecklistTemplate, error) {
-	t, ok := m.templates[id]
-	if !ok || t.WorkspaceID != wsID {
+func (m *mockLifecycleRepo) UpdateTemplate(_ context.Context, id uuid.UUID, req UpdateLifecycleChecklistTemplateRequest) (LifecycleChecklistTemplate, error) {
+	template, ok := m.templates[id]
+	if !ok {
 		return LifecycleChecklistTemplate{}, ErrTemplateNotFound
 	}
 	if req.Name != nil {
-		t.Name = *req.Name
+		template.Name = *req.Name
 	}
 	if req.Description != nil {
-		t.Description = req.Description
+		template.Description = req.Description
 	}
 	if req.IsDefault != nil && *req.IsDefault {
 		for otherID, other := range m.templates {
-			if other.WorkspaceID == wsID && other.ChecklistType == t.ChecklistType && otherID != id {
+			if other.ChecklistType == template.ChecklistType && otherID != id {
 				other.IsDefault = false
 				m.templates[otherID] = other
 			}
 		}
-		t.IsDefault = true
+		template.IsDefault = true
 	}
-	m.templates[id] = t
-	return t, nil
+	m.templates[id] = template
+	return template, nil
 }
 
-func (m *mockLifecycleRepo) DeleteTemplate(ctx context.Context, wsID, id uuid.UUID) error {
+func (m *mockLifecycleRepo) DeleteTemplate(_ context.Context, id uuid.UUID) error {
 	delete(m.templates, id)
 	return nil
 }
 
-func (m *mockLifecycleRepo) CreateTemplateItem(ctx context.Context, wsID, templateID uuid.UUID, req CreateLifecycleChecklistTemplateItemRequest) (LifecycleChecklistTemplateItem, error) {
+func (m *mockLifecycleRepo) CreateTemplateItem(_ context.Context, templateID uuid.UUID, req CreateLifecycleChecklistTemplateItemRequest) (LifecycleChecklistTemplateItem, error) {
 	if m.items == nil {
 		m.items = make(map[uuid.UUID]LifecycleChecklistTemplateItem)
 	}
-	item := LifecycleChecklistTemplateItem{
-		ID:             uuid.New(),
-		TemplateID:     templateID,
-		Title:          req.Title,
-		Description:    req.Description,
-		Category:       req.Category,
-		AssigneeType:   req.AssigneeType,
-		AssigneeUserID: req.AssigneeUserID,
-		IsRequired:     req.IsRequired,
-		DueDaysOffset:  req.DueDaysOffset,
-		DisplayOrder:   req.DisplayOrder,
-	}
+	item := LifecycleChecklistTemplateItem{ID: uuid.New(), TemplateID: templateID, Title: req.Title, Description: req.Description, Category: req.Category, AssigneeType: req.AssigneeType, AssigneeUserID: req.AssigneeUserID, IsRequired: req.IsRequired, DueDaysOffset: req.DueDaysOffset, DisplayOrder: req.DisplayOrder}
 	m.items[item.ID] = item
 	return item, nil
 }
 
-func (m *mockLifecycleRepo) GetTemplateItem(ctx context.Context, wsID, itemID uuid.UUID) (LifecycleChecklistTemplateItem, error) {
-	if item, ok := m.items[itemID]; ok {
-		return item, nil
+func (m *mockLifecycleRepo) GetTemplateItem(_ context.Context, itemID uuid.UUID) (LifecycleChecklistTemplateItem, error) {
+	item, ok := m.items[itemID]
+	if !ok {
+		return LifecycleChecklistTemplateItem{}, ErrTemplateItemNotFound
 	}
-	return LifecycleChecklistTemplateItem{}, ErrTemplateItemNotFound
+	return item, nil
 }
 
-func (m *mockLifecycleRepo) ListTemplateItems(ctx context.Context, wsID, templateID uuid.UUID) ([]LifecycleChecklistTemplateItem, error) {
+func (m *mockLifecycleRepo) ListTemplateItems(_ context.Context, templateID uuid.UUID) ([]LifecycleChecklistTemplateItem, error) {
 	var list []LifecycleChecklistTemplateItem
 	for _, item := range m.items {
 		if item.TemplateID == templateID {
@@ -129,7 +110,7 @@ func (m *mockLifecycleRepo) ListTemplateItems(ctx context.Context, wsID, templat
 	return list, nil
 }
 
-func (m *mockLifecycleRepo) UpdateTemplateItem(ctx context.Context, wsID, itemID uuid.UUID, req UpdateLifecycleChecklistTemplateItemRequest) (LifecycleChecklistTemplateItem, error) {
+func (m *mockLifecycleRepo) UpdateTemplateItem(_ context.Context, itemID uuid.UUID, req UpdateLifecycleChecklistTemplateItemRequest) (LifecycleChecklistTemplateItem, error) {
 	item, ok := m.items[itemID]
 	if !ok {
 		return LifecycleChecklistTemplateItem{}, ErrTemplateItemNotFound
@@ -148,138 +129,100 @@ func (m *mockLifecycleRepo) UpdateTemplateItem(ctx context.Context, wsID, itemID
 	return item, nil
 }
 
-func (m *mockLifecycleRepo) DeleteTemplateItem(ctx context.Context, wsID, itemID uuid.UUID) error {
+func (m *mockLifecycleRepo) DeleteTemplateItem(_ context.Context, itemID uuid.UUID) error {
 	delete(m.items, itemID)
 	return nil
 }
 
-func (m *mockLifecycleRepo) CreateChecklistFromTemplate(ctx context.Context, wsID, employmentID, templateID uuid.UUID, actorID *uuid.UUID, usersResolver func(string) []uuid.UUID) (LifecycleChecklistResponse, error) {
+func (m *mockLifecycleRepo) CreateChecklistFromTemplate(_ context.Context, employmentID, templateID uuid.UUID, actorID *uuid.UUID, usersResolver func(context.Context, string) []uuid.UUID) (LifecycleChecklistResponse, error) {
 	if m.checklists == nil {
 		m.checklists = make(map[uuid.UUID]LifecycleChecklistResponse)
 	}
 	var templateItems []LifecycleChecklistTemplateItem
-	for _, it := range m.items {
-		if it.TemplateID == templateID {
-			templateItems = append(templateItems, it)
+	for _, item := range m.items {
+		if item.TemplateID == templateID {
+			templateItems = append(templateItems, item)
 		}
 	}
-	status := "in_progress"
-	progress := 0
+	status, progress := "in_progress", 0
 	if len(templateItems) == 0 {
-		status = "completed"
-		progress = 100
+		status, progress = "completed", 100
 	}
-	clID := uuid.New()
-	res := LifecycleChecklistResponse{
-		ID:              clID,
-		WorkspaceID:     wsID,
-		EmploymentID:    employmentID,
-		TemplateID:      &templateID,
-		ChecklistType:   "onboarding",
-		Status:          status,
-		ProgressPercent: progress,
-		Items:           make([]LifecycleChecklistItem, 0, len(templateItems)),
+	checklistID := uuid.New()
+	checklist := LifecycleChecklistResponse{ID: checklistID, EmploymentID: employmentID, TemplateID: &templateID, ChecklistType: "onboarding", Status: status, ProgressPercent: progress, Items: make([]LifecycleChecklistItem, 0, len(templateItems))}
+	for _, templateItem := range templateItems {
+		checklist.Items = append(checklist.Items, LifecycleChecklistItem{ID: uuid.New(), ChecklistID: checklistID, TemplateItemID: &templateItem.ID, Title: templateItem.Title, AssigneeUserID: templateItem.AssigneeUserID, Status: "pending"})
 	}
-	for _, ti := range templateItems {
-		item := LifecycleChecklistItem{
-			ID:             uuid.New(),
-			ChecklistID:    clID,
-			TemplateItemID: &ti.ID,
-			Title:          ti.Title,
-			AssigneeUserID: ti.AssigneeUserID,
-			Status:         "pending",
-		}
-		res.Items = append(res.Items, item)
-	}
-	m.checklists[clID] = res
-	return res, nil
+	m.checklists[checklistID] = checklist
+	return checklist, nil
 }
 
-func (m *mockLifecycleRepo) GetChecklist(ctx context.Context, wsID, checklistID uuid.UUID) (LifecycleChecklistResponse, error) {
-	if cl, ok := m.checklists[checklistID]; ok && cl.WorkspaceID == wsID {
-		return cl, nil
+func (m *mockLifecycleRepo) GetChecklist(_ context.Context, checklistID uuid.UUID) (LifecycleChecklistResponse, error) {
+	checklist, ok := m.checklists[checklistID]
+	if !ok {
+		return LifecycleChecklistResponse{}, ErrChecklistNotFound
 	}
-	return LifecycleChecklistResponse{}, ErrChecklistNotFound
+	return checklist, nil
 }
 
-func (m *mockLifecycleRepo) ListChecklistsForEmployment(ctx context.Context, wsID, employmentID uuid.UUID) ([]LifecycleChecklistResponse, error) {
+func (m *mockLifecycleRepo) ListChecklistsForEmployment(_ context.Context, employmentID uuid.UUID) ([]LifecycleChecklistResponse, error) {
 	var list []LifecycleChecklistResponse
-	for _, cl := range m.checklists {
-		if cl.WorkspaceID == wsID && cl.EmploymentID == employmentID {
-			list = append(list, cl)
-		}
-	}
-	return list, nil
-}
-func (m *mockLifecycleRepo) ListWorkspaceChecklists(ctx context.Context, wsID uuid.UUID) ([]LifecycleInstanceSummary, error) {
-	var list []LifecycleInstanceSummary
-	for _, cl := range m.checklists {
-		if cl.WorkspaceID == wsID {
-			tmplName := "Standard Onboarding"
-			deptName := "Engineering"
-			list = append(list, LifecycleInstanceSummary{
-				ID:              cl.ID,
-				WorkspaceID:     cl.WorkspaceID,
-				EmploymentID:    cl.EmploymentID,
-				EmployeeID:      uuid.New(),
-				EmployeeName:    "Nguyen Van A",
-				EmployeeCode:    "EMP-001",
-				DepartmentName:  &deptName,
-				TemplateID:      cl.TemplateID,
-				TemplateName:    &tmplName,
-				ChecklistType:   cl.ChecklistType,
-				Status:          cl.Status,
-				ProgressPercent: cl.ProgressPercent,
-				TotalItems:      len(cl.Items),
-				CompletedItems:  0,
-				StartedAt:       cl.StartedAt,
-				CreatedAt:       cl.CreatedAt,
-				UpdatedAt:       cl.UpdatedAt,
-			})
+	for _, checklist := range m.checklists {
+		if checklist.EmploymentID == employmentID {
+			list = append(list, checklist)
 		}
 	}
 	return list, nil
 }
 
-func (m *mockLifecycleRepo) UpdateChecklistItemStatus(ctx context.Context, wsID, itemID uuid.UUID, status string, notes *string, completedBy *uuid.UUID) (LifecycleChecklistResponse, error) {
-	for clID, cl := range m.checklists {
-		for i := range cl.Items {
-			if cl.Items[i].ID == itemID {
-				cl.Items[i].Status = status
-				cl.Items[i].Notes = notes
-				done := 0
-				for _, it := range cl.Items {
-					if it.Status == "completed" || it.Status == "skipped" {
-						done++
-					}
-				}
-				progress := int(float64(done) / float64(len(cl.Items)) * 100.0)
-				cl.ProgressPercent = progress
-				if progress == 100 {
-					cl.Status = "completed"
-				} else {
-					cl.Status = "in_progress"
-				}
-				m.checklists[clID] = cl
-				return cl, nil
+func (m *mockLifecycleRepo) ListChecklists(_ context.Context) ([]LifecycleInstanceSummary, error) {
+	var list []LifecycleInstanceSummary
+	for _, checklist := range m.checklists {
+		templateName, departmentName := "Standard Onboarding", "Engineering"
+		list = append(list, LifecycleInstanceSummary{ID: checklist.ID, EmploymentID: checklist.EmploymentID, EmployeeID: uuid.New(), EmployeeName: "Nguyen Van A", EmployeeCode: "EMP-001", DepartmentName: &departmentName, TemplateID: checklist.TemplateID, TemplateName: &templateName, ChecklistType: checklist.ChecklistType, Status: checklist.Status, ProgressPercent: checklist.ProgressPercent, TotalItems: len(checklist.Items), StartedAt: checklist.StartedAt, CreatedAt: checklist.CreatedAt, UpdatedAt: checklist.UpdatedAt})
+	}
+	return list, nil
+}
+
+func (m *mockLifecycleRepo) UpdateChecklistItemStatus(_ context.Context, itemID uuid.UUID, status string, notes *string, completedBy *uuid.UUID) (LifecycleChecklistResponse, error) {
+	for checklistID, checklist := range m.checklists {
+		for i := range checklist.Items {
+			if checklist.Items[i].ID != itemID {
+				continue
 			}
+			checklist.Items[i].Status = status
+			checklist.Items[i].Notes = notes
+			done := 0
+			for _, item := range checklist.Items {
+				if item.Status == "completed" || item.Status == "skipped" {
+					done++
+				}
+			}
+			checklist.ProgressPercent = int(float64(done) / float64(len(checklist.Items)) * 100.0)
+			if checklist.ProgressPercent == 100 {
+				checklist.Status = "completed"
+			} else {
+				checklist.Status = "in_progress"
+			}
+			m.checklists[checklistID] = checklist
+			return checklist, nil
 		}
 	}
 	return LifecycleChecklistResponse{}, ErrChecklistItemNotFound
 }
 
-func (m *mockLifecycleRepo) GetItemAssigneeAndChecklist(ctx context.Context, wsID, itemID uuid.UUID) (*uuid.UUID, uuid.UUID, error) {
-	for clID, cl := range m.checklists {
-		for _, it := range cl.Items {
-			if it.ID == itemID {
-				return it.AssigneeUserID, clID, nil
+func (m *mockLifecycleRepo) GetItemAssigneeAndChecklist(_ context.Context, itemID uuid.UUID) (*uuid.UUID, uuid.UUID, error) {
+	for checklistID, checklist := range m.checklists {
+		for _, item := range checklist.Items {
+			if item.ID == itemID {
+				return item.AssigneeUserID, checklistID, nil
 			}
 		}
 	}
 	return nil, uuid.Nil, ErrChecklistItemNotFound
 }
 
-func (m *mockLifecycleRepo) GetPendingTasksForUser(ctx context.Context, wsID, userID uuid.UUID) ([]PendingTaskResponse, error) {
+func (m *mockLifecycleRepo) GetPendingTasksForUser(_ context.Context, _ uuid.UUID) ([]PendingTaskResponse, error) {
 	return m.myTasks, nil
 }
 
@@ -287,167 +230,119 @@ type mockLifecycleAuth struct {
 	allowed map[string]bool
 }
 
-func (m mockLifecycleAuth) HasPermission(ctx context.Context, userID, workspaceID uuid.UUID, perm string) bool {
-	return m.allowed[perm]
+func (m mockLifecycleAuth) HasPermission(_ context.Context, _ uuid.UUID, permission string) bool {
+	return m.allowed[permission]
+}
+func (mockLifecycleAuth) HasScopedPermission(context.Context, uuid.UUID, string, *uuid.UUID) bool {
+	return false
+}
+func (mockLifecycleAuth) IsMember(context.Context, uuid.UUID) (bool, error) { return true, nil }
+func (mockLifecycleAuth) EffectivePermissions(context.Context, uuid.UUID) ([]string, []string, error) {
+	return nil, nil, nil
+}
+func (mockLifecycleAuth) GetManagedDepartmentIDs(context.Context, uuid.UUID) ([]uuid.UUID, error) {
+	return nil, nil
+}
+func (mockLifecycleAuth) IsGlobalManager(context.Context, uuid.UUID) bool { return false }
+func (mockLifecycleAuth) GetUsersWithPermission(context.Context, string) ([]uuid.UUID, error) {
+	return nil, nil
+}
+
+
+
+func lifecycleRequest(method, path string, body []byte, userID uuid.UUID) *http.Request {
+	req := httptest.NewRequest(method, path, bytes.NewReader(body))
+	return req.WithContext(httpinfra.WithUserIDForTest(req.Context(), userID))
 }
 
 func TestTemplateDefaultReplacement(t *testing.T) {
-	wsID := uuid.New()
 	userID := uuid.New()
 	repo := &mockLifecycleRepo{}
-	handler := LifecycleHandler{
-		Repository: repo,
-		Authorizer: mockLifecycleAuth{allowed: map[string]bool{"workspace:settings:write": true}},
+	handler := LifecycleHandler{Repository: repo, Authorizer: mockLifecycleAuth{allowed: map[string]bool{"organization:settings:write": true}}}
+	template, _ := repo.CreateTemplate(context.Background(), CreateLifecycleChecklistTemplateRequest{Name: "Template 1", ChecklistType: "onboarding", IsDefault: true})
+	if !repo.templates[template.ID].IsDefault {
+		t.Fatal("expected initial template to be default")
 	}
-
-	t1, _ := repo.CreateTemplate(context.Background(), wsID, CreateLifecycleChecklistTemplateRequest{
-		Name:          "Template 1",
-		ChecklistType: "onboarding",
-		IsDefault:     true,
-	})
-	if !repo.templates[t1.ID].IsDefault {
-		t.Fatalf("expected template 1 default true")
-	}
-
-	raw, _ := json.Marshal(CreateLifecycleChecklistTemplateRequest{
-		Name:          "Template 2",
-		ChecklistType: "onboarding",
-		IsDefault:     true,
-	})
-	req := httptest.NewRequest(http.MethodPost, "/api/v1/workspaces/"+wsID.String()+"/lifecycle-templates", bytes.NewReader(raw))
-	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
-	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), userID))
+	payload, _ := json.Marshal(CreateLifecycleChecklistTemplateRequest{Name: "Template 2", ChecklistType: "onboarding", IsDefault: true})
+	req := lifecycleRequest(http.MethodPost, "/api/v1/lifecycle-templates", payload, userID)
 	rec := httptest.NewRecorder()
-
 	handler.CreateTemplate(rec, req)
 	if rec.Code != http.StatusCreated {
 		t.Fatalf("expected 201, got %d: %s", rec.Code, rec.Body.String())
 	}
-
-	if repo.templates[t1.ID].IsDefault {
-		t.Fatalf("template 1 default flag should have been cleared")
+	if repo.templates[template.ID].IsDefault {
+		t.Fatal("expected previous default flag cleared")
 	}
 }
 
 func TestTemplateItemNestedNullPatch(t *testing.T) {
-	wsID := uuid.New()
-	userID := uuid.New()
-	assigneeID := uuid.New()
+	userID, assigneeID := uuid.New(), uuid.New()
 	repo := &mockLifecycleRepo{}
-	handler := LifecycleHandler{
-		Repository: repo,
-		Authorizer: mockLifecycleAuth{allowed: map[string]bool{"workspace:settings:write": true}},
-	}
-
-	item, _ := repo.CreateTemplateItem(context.Background(), wsID, uuid.New(), CreateLifecycleChecklistTemplateItemRequest{
-		Title:          "Setup Laptop",
-		Category:       "it_setup",
-		AssigneeType:   "specific_user",
-		AssigneeUserID: &assigneeID,
-		IsRequired:     true,
-	})
+	handler := LifecycleHandler{Repository: repo, Authorizer: mockLifecycleAuth{allowed: map[string]bool{"organization:settings:write": true}}}
+	item, _ := repo.CreateTemplateItem(context.Background(), uuid.New(), CreateLifecycleChecklistTemplateItemRequest{Title: "Setup Laptop", Category: "it_setup", AssigneeType: "specific_user", AssigneeUserID: &assigneeID, IsRequired: true})
 	if item.AssigneeUserID == nil || *item.AssigneeUserID != assigneeID {
-		t.Fatalf("initial assignee id not set")
+		t.Fatal("initial assignee id not set")
 	}
-
-	clearPayload := `{"assignee_user_id": null}`
-	req := httptest.NewRequest(http.MethodPut, "/api/v1/workspaces/"+wsID.String()+"/lifecycle-templates/"+item.TemplateID.String()+"/items/"+item.ID.String(), bytes.NewReader([]byte(clearPayload)))
-	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
+	req := lifecycleRequest(http.MethodPut, "/api/v1/lifecycle-templates/"+item.TemplateID.String()+"/items/"+item.ID.String(), []byte(`{"assignee_user_id": null}`), userID)
 	req.SetPathValue("tid", item.TemplateID.String())
 	req.SetPathValue("iid", item.ID.String())
-	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), userID))
 	rec := httptest.NewRecorder()
-
 	handler.UpdateTemplateItem(rec, req)
 	if rec.Code != http.StatusOK {
 		t.Fatalf("expected 200, got %d: %s", rec.Code, rec.Body.String())
 	}
 	if repo.items[item.ID].AssigneeUserID != nil {
-		t.Fatalf("expected assignee_user_id cleared to nil")
+		t.Fatal("expected assignee_user_id cleared to nil")
 	}
 }
 
 func TestChecklistProgressAndAssigneeAuth(t *testing.T) {
-	wsID := uuid.New()
-	empID := uuid.New()
-	assigneeUser := uuid.New()
-	nonAssigneeUser := uuid.New()
+	employmentID, assigneeUser, nonAssigneeUser := uuid.New(), uuid.New(), uuid.New()
 	repo := &mockLifecycleRepo{}
-	auth := mockLifecycleAuth{allowed: map[string]bool{"employees:update": false}}
-	handler := LifecycleHandler{
-		Repository: repo,
-		Authorizer: auth,
+	handler := LifecycleHandler{Repository: repo, Authorizer: mockLifecycleAuth{allowed: map[string]bool{"employees:update": false}}}
+	templateID := uuid.New()
+	_, _ = repo.CreateTemplateItem(context.Background(), templateID, CreateLifecycleChecklistTemplateItemRequest{Title: "Sign Contract", Category: "documentation", AssigneeType: "specific_user", AssigneeUserID: &assigneeUser, IsRequired: true})
+	checklist, _ := repo.CreateChecklistFromTemplate(context.Background(), employmentID, templateID, nil, nil)
+	itemID := checklist.Items[0].ID
+	request := func(userID uuid.UUID) *http.Request {
+		req := lifecycleRequest(http.MethodPatch, "/api/v1/lifecycle/"+checklist.ID.String()+"/items/"+itemID.String(), []byte(`{"status":"completed"}`), userID)
+		req.SetPathValue("id", checklist.ID.String())
+		req.SetPathValue("iid", itemID.String())
+		return req
 	}
-
-	tmplID := uuid.New()
-	_, _ = repo.CreateTemplateItem(context.Background(), wsID, tmplID, CreateLifecycleChecklistTemplateItemRequest{
-		Title:          "Sign Contract",
-		Category:       "documentation",
-		AssigneeType:   "specific_user",
-		AssigneeUserID: &assigneeUser,
-		IsRequired:     true,
-	})
-	cl, _ := repo.CreateChecklistFromTemplate(context.Background(), wsID, empID, tmplID, nil, nil)
-	checklistItemID := cl.Items[0].ID
-
-	reqForbidden := httptest.NewRequest(http.MethodPatch, "/api/v1/workspaces/"+wsID.String()+"/lifecycle/"+cl.ID.String()+"/items/"+checklistItemID.String(), bytes.NewReader([]byte(`{"status":"completed"}`)))
-	reqForbidden = reqForbidden.WithContext(httpinfra.WithOrganizationIDForTest(reqForbidden.Context(), wsID))
-	reqForbidden.SetPathValue("id", cl.ID.String())
-	reqForbidden.SetPathValue("iid", checklistItemID.String())
-	reqForbidden = reqForbidden.WithContext(httpinfra.WithUserIDForTest(reqForbidden.Context(), nonAssigneeUser))
 	recForbidden := httptest.NewRecorder()
-	handler.UpdateItemStatus(recForbidden, reqForbidden)
+	handler.UpdateItemStatus(recForbidden, request(nonAssigneeUser))
 	if recForbidden.Code != http.StatusForbidden {
 		t.Fatalf("non-assignee without permission should be 403, got %d", recForbidden.Code)
 	}
-
-	reqAllowed := httptest.NewRequest(http.MethodPatch, "/api/v1/workspaces/"+wsID.String()+"/lifecycle/"+cl.ID.String()+"/items/"+checklistItemID.String(), bytes.NewReader([]byte(`{"status":"completed"}`)))
-	reqAllowed = reqAllowed.WithContext(httpinfra.WithOrganizationIDForTest(reqAllowed.Context(), wsID))
-	reqAllowed.SetPathValue("id", cl.ID.String())
-	reqAllowed.SetPathValue("iid", checklistItemID.String())
-	reqAllowed = reqAllowed.WithContext(httpinfra.WithUserIDForTest(reqAllowed.Context(), assigneeUser))
 	recAllowed := httptest.NewRecorder()
-	handler.UpdateItemStatus(recAllowed, reqAllowed)
+	handler.UpdateItemStatus(recAllowed, request(assigneeUser))
 	if recAllowed.Code != http.StatusOK {
 		t.Fatalf("assignee should be allowed, got %d: %s", recAllowed.Code, recAllowed.Body.String())
 	}
-	var updatedCl LifecycleChecklistResponse
-	_ = json.Unmarshal(recAllowed.Body.Bytes(), &updatedCl)
-	if updatedCl.ProgressPercent != 100 || updatedCl.Status != "completed" {
-		t.Fatalf("expected 100 percent progress and completed status, got progress %d status %s", updatedCl.ProgressPercent, updatedCl.Status)
+	var updated LifecycleChecklistResponse
+	_ = json.Unmarshal(recAllowed.Body.Bytes(), &updated)
+	if updated.ProgressPercent != 100 || updated.Status != "completed" {
+		t.Fatalf("expected completed checklist at 100%%, got %d%% %s", updated.ProgressPercent, updated.Status)
 	}
 }
-func TestListWorkspaceChecklists(t *testing.T) {
-	wsID := uuid.New()
-	empID := uuid.New()
+
+func TestListChecklists(t *testing.T) {
+	employmentID := uuid.New()
 	repo := &mockLifecycleRepo{}
-	auth := mockLifecycleAuth{allowed: map[string]bool{"employees:read": true}}
-	handler := LifecycleHandler{
-		Repository: repo,
-		Authorizer: auth,
-	}
-
-	tmplID := uuid.New()
-	_, _ = repo.CreateChecklistFromTemplate(context.Background(), wsID, empID, tmplID, nil, nil)
-
-	req := httptest.NewRequest(http.MethodGet, "/api/v1/workspaces/"+wsID.String()+"/lifecycle/instances", nil)
-	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
-	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
+	handler := LifecycleHandler{Repository: repo, Authorizer: mockLifecycleAuth{allowed: map[string]bool{"employees:read": true}}}
+	_, _ = repo.CreateChecklistFromTemplate(context.Background(), employmentID, uuid.New(), nil, nil)
+	req := lifecycleRequest(http.MethodGet, "/api/v1/lifecycle/instances", nil, uuid.New())
 	rec := httptest.NewRecorder()
-
-	handler.ListWorkspaceChecklists(rec, req)
+	handler.ListChecklists(rec, req)
 	if rec.Code != http.StatusOK {
 		t.Fatalf("expected 200 OK, got %d: %s", rec.Code, rec.Body.String())
 	}
-
 	var list []LifecycleInstanceSummary
 	if err := json.Unmarshal(rec.Body.Bytes(), &list); err != nil {
 		t.Fatalf("failed to decode response: %v", err)
 	}
-	if len(list) != 1 {
-		t.Fatalf("expected 1 checklist instance, got %d", len(list))
-	}
-	if list[0].EmployeeName != "Nguyen Van A" {
-		t.Fatalf("expected employee name Nguyen Van A, got %s", list[0].EmployeeName)
+	if len(list) != 1 || list[0].EmployeeName != "Nguyen Van A" {
+		t.Fatalf("unexpected checklist summaries: %+v", list)
 	}
 }

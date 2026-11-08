@@ -10,19 +10,15 @@ import { fetchWorkspaceSchedules, bulkUpsertRoster } from "@/lib/api";
 
 import { runRosterBulk } from "./roster-bulk-utils";
 
-interface CopyPreviousMonthOptions {
-  currentMonth: Date;
-  monthDays: Date[];
-  queryClient: QueryClient;
-  t: TFunction;
-  toast: ReturnType<typeof useToast>;
-  wsId: string;
-}
+interface CopyPreviousMonthOptions { currentMonth: Date;
+monthDays: Date[];
+queryClient: QueryClient;
+t: TFunction;
+toast: ReturnType<typeof useToast>;  }
 
 export async function copyPreviousMonth({
   currentMonth,
   monthDays,
-  wsId,
   queryClient,
   toast,
   t,
@@ -32,11 +28,8 @@ export async function copyPreviousMonth({
   const prevEndStr = format(endOfMonth(prevMonth), "yyyy-MM-dd");
 
   try {
-    const prevSchedules = await fetchWorkspaceSchedules(
-      wsId,
-      prevStartStr,
-      prevEndStr,
-    );
+    const prevSchedules = await fetchWorkspaceSchedules(prevStartStr,
+    prevEndStr,);
     const currentYearMonth = format(currentMonth, "yyyy-MM");
     const monthDayStrings = new Set(
       monthDays.map((d) => format(d, "yyyy-MM-dd")),
@@ -56,7 +49,7 @@ export async function copyPreviousMonth({
     await runRosterBulk({
       items: employeeEntries,
       worker: async ({ employeeId, rosterEntries }) => {
-        await bulkUpsertRoster(wsId, employeeId, rosterEntries);
+        await bulkUpsertRoster(employeeId, rosterEntries);
       },
       queryClient,
       invalidateKeys: [["schedules"], ["assignment_history"]],

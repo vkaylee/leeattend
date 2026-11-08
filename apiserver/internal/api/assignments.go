@@ -29,7 +29,6 @@ func (s AssignmentStatus) valid() bool {
 
 type EmployeeAssignment struct {
 	ID             uuid.UUID        `json:"id"`
-	WorkspaceID    uuid.UUID        `json:"workspace_id"`
 	HomeLocationID uuid.UUID        `json:"home_location_id"`
 	HostLocationID uuid.UUID        `json:"host_location_id"`
 	StartDate      string           `json:"start_date"`
@@ -97,7 +96,6 @@ type AssignmentRuleConditions struct {
 
 type AssignmentRule struct {
 	ID          uuid.UUID                `json:"id"`
-	WorkspaceID uuid.UUID                `json:"workspace_id"`
 	PatternID   uuid.UUID                `json:"pattern_id"`
 	Name        string                   `json:"name"`
 	Priority    int                      `json:"priority"`
@@ -183,29 +181,24 @@ type ActiveEmployment struct {
 }
 
 type EmployeeAssignmentRepository interface {
-	ListWorkspaceAssignments(context.Context, uuid.UUID) ([]EmployeeAssignmentWithEmployee, error)
-	ListEmployeeAssignments(context.Context, uuid.UUID, uuid.UUID) ([]EmployeeAssignment, error)
-	GetEmployeeAssignment(context.Context, uuid.UUID, uuid.UUID, uuid.UUID) (EmployeeAssignment, error)
-	GetActiveEmployment(context.Context, uuid.UUID, uuid.UUID, string) (ActiveEmployment, error)
-	CreateEmployeeAssignment(context.Context, uuid.UUID, uuid.UUID, uuid.UUID, CreateEmployeeAssignmentRequest) (EmployeeAssignment, error)
-	UpdateEmployeeAssignment(context.Context, uuid.UUID, uuid.UUID, uuid.UUID, UpdateEmployeeAssignmentRequest) (EmployeeAssignment, error)
-	DeleteEmployeeAssignment(context.Context, uuid.UUID, uuid.UUID, uuid.UUID) error
+	ListAssignments(context.Context) ([]EmployeeAssignmentWithEmployee, error)
+	ListEmployeeAssignments(context.Context, uuid.UUID) ([]EmployeeAssignment, error)
+	GetEmployeeAssignment(context.Context, uuid.UUID, uuid.UUID) (EmployeeAssignment, error)
+	GetActiveEmployment(context.Context, uuid.UUID, string) (ActiveEmployment, error)
+	CreateEmployeeAssignment(context.Context, uuid.UUID, uuid.UUID, CreateEmployeeAssignmentRequest) (EmployeeAssignment, error)
+	UpdateEmployeeAssignment(context.Context, uuid.UUID, uuid.UUID, UpdateEmployeeAssignmentRequest) (EmployeeAssignment, error)
+	DeleteEmployeeAssignment(context.Context, uuid.UUID, uuid.UUID) error
 }
 
 type AssignmentRuleRepository interface {
-	ListAssignmentRules(context.Context, uuid.UUID) ([]AssignmentRule, error)
-	CreateAssignmentRule(context.Context, uuid.UUID, CreateAssignmentRuleRequest) (AssignmentRule, error)
-	UpdateAssignmentRule(context.Context, uuid.UUID, uuid.UUID, UpdateAssignmentRuleRequest) (AssignmentRule, error)
-	DeleteAssignmentRule(context.Context, uuid.UUID, uuid.UUID) error
+	ListAssignmentRules(context.Context) ([]AssignmentRule, error)
+	CreateAssignmentRule(context.Context, CreateAssignmentRuleRequest) (AssignmentRule, error)
+	UpdateAssignmentRule(context.Context, uuid.UUID, UpdateAssignmentRuleRequest) (AssignmentRule, error)
+	DeleteAssignmentRule(context.Context, uuid.UUID) error
 }
 
 type AssignmentHistoryRepository interface {
-	ListAssignmentHistory(context.Context, uuid.UUID, int, int) ([]AssignmentHistory, int64, error)
-}
-
-type AssignmentAuthorizer interface {
-	WorkspaceMemberAuthorizer
-	HasPermission(context.Context, uuid.UUID, uuid.UUID, string) bool
+	ListAssignmentHistory(context.Context, int, int) ([]AssignmentHistory, int64, error)
 }
 
 type AssignmentHandler struct {
@@ -213,57 +206,54 @@ type AssignmentHandler struct {
 	Rules       AssignmentRuleRepository
 	History     AssignmentHistoryRepository
 	Employees   EmployeeRepository
-	Authorizer  AssignmentAuthorizer
+	Authorizer  Authorizer
 }
 
-func (h AssignmentHandler) member(w http.ResponseWriter, r *http.Request, workspaceID uuid.UUID) bool {
-	userID, ok := httpinfra.UserIDFromContext(r.Context())
-	if !ok || h.Authorizer == nil {
-		if !ok {
-			apperror.WriteError(w, r, apperror.Unauthorized(apperror.KeyAuthenticationRequired))
-		} else {
-			apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyNotWorkspaceMember))
-		}
-		return false
-	}
-	member, err := h.Authorizer.IsMember(r.Context(), userID, workspaceID)
-	if err != nil {
-		apperror.WriteError(w, r, apperror.Internal(err))
-		return false
-	}
-	if !member {
-		apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyNotWorkspaceMember))
-		return false
-	}
-	return true
-}
-
-func (h AssignmentHandler) permission(w http.ResponseWriter, r *http.Request, workspaceID uuid.UUID, permission string) bool {
+func (h AssignmentHandler) member(w http.ResponseWriter, r *http.Request) bool {
 	userID, ok := httpinfra.UserIDFromContext(r.Context())
 	if !ok {
 		apperror.WriteError(w, r, apperror.Unauthorized(apperror.KeyAuthenticationRequired))
 		return false
 	}
-	if h.Authorizer == nil || !h.Authorizer.HasPermission(r.Context(), userID, workspaceID, permission) {
+	if h.Authorizer == nil {
+		apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyNotOrganizationMember))
+		return false
+	}
+	member, err := h.Authorizer.IsMember(r.Context(), userID)
+	if err != nil {
+		apperror.WriteError(w, r, apperror.Internal(err))
+		return false
+	}
+	if !member {
+		apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyNotOrganizationMember))
+		return false
+	}
+	return true
+}
+
+func (h AssignmentHandler) permission(w http.ResponseWriter, r *http.Request, permission string) bool {
+	userID, ok := httpinfra.UserIDFromContext(r.Context())
+	if !ok {
+		apperror.WriteError(w, r, apperror.Unauthorized(apperror.KeyAuthenticationRequired))
+		return false
+	}
+	if h.Authorizer == nil || !h.Authorizer.HasPermission(r.Context(), userID, permission) {
 		apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
 		return false
 	}
 	return true
 }
 
-func assignmentIDs(r *http.Request, names ...string) (uuid.UUID, []uuid.UUID, bool) {
-	workspaceID, ok := organizationIDFromContext(r)
-	if !ok {
-		return uuid.Nil, nil, false
-	}
+func assignmentIDs(r *http.Request, names ...string) ([]uuid.UUID, bool) {
 	ids := make([]uuid.UUID, len(names))
 	for i, name := range names {
+		var ok bool
 		ids[i], ok = pathUUID(r, name)
 		if !ok {
-			return uuid.Nil, nil, false
+			return nil, false
 		}
 	}
-	return workspaceID, ids, true
+	return ids, true
 }
 
 func validAssignmentDate(value string) bool {
@@ -288,12 +278,11 @@ func (h AssignmentHandler) assignmentError(w http.ResponseWriter, r *http.Reques
 	}
 }
 
-func (h AssignmentHandler) ListWorkspaceAssignments(w http.ResponseWriter, r *http.Request) {
-	workspaceID, _, ok := assignmentIDs(r)
-	if !ok || !h.member(w, r, workspaceID) {
+func (h AssignmentHandler) ListAssignments(w http.ResponseWriter, r *http.Request) {
+	if !h.member(w, r) {
 		return
 	}
-	items, err := h.Assignments.ListWorkspaceAssignments(r.Context(), workspaceID)
+	items, err := h.Assignments.ListAssignments(r.Context())
 	if err != nil {
 		h.assignmentError(w, r, err)
 		return
@@ -302,11 +291,11 @@ func (h AssignmentHandler) ListWorkspaceAssignments(w http.ResponseWriter, r *ht
 }
 
 func (h AssignmentHandler) ListEmployeeAssignments(w http.ResponseWriter, r *http.Request) {
-	workspaceID, ids, ok := assignmentIDs(r, "employee_id")
-	if !ok || !h.member(w, r, workspaceID) {
+	ids, ok := assignmentIDs(r, "employee_id")
+	if !ok || !h.member(w, r) {
 		return
 	}
-	items, err := h.Assignments.ListEmployeeAssignments(r.Context(), workspaceID, ids[0])
+	items, err := h.Assignments.ListEmployeeAssignments(r.Context(), ids[0])
 	if err != nil {
 		h.assignmentError(w, r, err)
 		return
@@ -315,11 +304,11 @@ func (h AssignmentHandler) ListEmployeeAssignments(w http.ResponseWriter, r *htt
 }
 
 func (h AssignmentHandler) GetEmployeeAssignment(w http.ResponseWriter, r *http.Request) {
-	workspaceID, ids, ok := assignmentIDs(r, "employee_id", "assignment_id")
-	if !ok || !h.member(w, r, workspaceID) {
+	ids, ok := assignmentIDs(r, "employee_id", "assignment_id")
+	if !ok || !h.member(w, r) {
 		return
 	}
-	item, err := h.Assignments.GetEmployeeAssignment(r.Context(), workspaceID, ids[0], ids[1])
+	item, err := h.Assignments.GetEmployeeAssignment(r.Context(), ids[0], ids[1])
 	if err != nil {
 		h.assignmentError(w, r, err)
 		return
@@ -328,8 +317,8 @@ func (h AssignmentHandler) GetEmployeeAssignment(w http.ResponseWriter, r *http.
 }
 
 func (h AssignmentHandler) CreateEmployeeAssignment(w http.ResponseWriter, r *http.Request) {
-	workspaceID, ids, ok := assignmentIDs(r, "employee_id")
-	if !ok || !h.member(w, r, workspaceID) {
+	ids, ok := assignmentIDs(r, "employee_id")
+	if !ok || !h.member(w, r) {
 		return
 	}
 	req, err := DecodeJSON[CreateEmployeeAssignmentRequest](r, 1<<20)
@@ -338,7 +327,7 @@ func (h AssignmentHandler) CreateEmployeeAssignment(w http.ResponseWriter, r *ht
 		return
 	}
 	if h.Employees != nil {
-		if _, err := h.Employees.GetEmployee(r.Context(), workspaceID, ids[0]); err != nil {
+		if _, err := h.Employees.GetEmployee(r.Context(), ids[0]); err != nil {
 			if errors.Is(err, pgx.ErrNoRows) {
 				apperror.WriteError(w, r, apperror.NotFound(apperror.KeyEmployeeNotFound))
 			} else {
@@ -347,7 +336,7 @@ func (h AssignmentHandler) CreateEmployeeAssignment(w http.ResponseWriter, r *ht
 			return
 		}
 	}
-	active, err := h.Assignments.GetActiveEmployment(r.Context(), workspaceID, ids[0], time.Now().UTC().Format("2006-01-02"))
+	active, err := h.Assignments.GetActiveEmployment(r.Context(), ids[0], time.Now().UTC().Format("2006-01-02"))
 	if err != nil {
 		h.assignmentError(w, r, err)
 		return
@@ -360,7 +349,7 @@ func (h AssignmentHandler) CreateEmployeeAssignment(w http.ResponseWriter, r *ht
 		h.assignmentError(w, r, ErrHomeHostLocationSame)
 		return
 	}
-	item, err := h.Assignments.CreateEmployeeAssignment(r.Context(), workspaceID, active.ID, *active.PrimaryLocationID, req)
+	item, err := h.Assignments.CreateEmployeeAssignment(r.Context(), active.ID, *active.PrimaryLocationID, req)
 	if err != nil {
 		h.assignmentError(w, r, err)
 		return
@@ -369,8 +358,8 @@ func (h AssignmentHandler) CreateEmployeeAssignment(w http.ResponseWriter, r *ht
 }
 
 func (h AssignmentHandler) UpdateEmployeeAssignment(w http.ResponseWriter, r *http.Request) {
-	workspaceID, ids, ok := assignmentIDs(r, "employee_id", "assignment_id")
-	if !ok || !h.member(w, r, workspaceID) {
+	ids, ok := assignmentIDs(r, "employee_id", "assignment_id")
+	if !ok || !h.member(w, r) {
 		return
 	}
 	req, err := DecodeJSON[UpdateEmployeeAssignmentRequest](r, 1<<20)
@@ -382,7 +371,7 @@ func (h AssignmentHandler) UpdateEmployeeAssignment(w http.ResponseWriter, r *ht
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}
-	item, err := h.Assignments.UpdateEmployeeAssignment(r.Context(), workspaceID, ids[0], ids[1], req)
+	item, err := h.Assignments.UpdateEmployeeAssignment(r.Context(), ids[0], ids[1], req)
 	if err != nil {
 		h.assignmentError(w, r, err)
 		return
@@ -391,11 +380,11 @@ func (h AssignmentHandler) UpdateEmployeeAssignment(w http.ResponseWriter, r *ht
 }
 
 func (h AssignmentHandler) DeleteEmployeeAssignment(w http.ResponseWriter, r *http.Request) {
-	workspaceID, ids, ok := assignmentIDs(r, "employee_id", "assignment_id")
-	if !ok || !h.member(w, r, workspaceID) {
+	ids, ok := assignmentIDs(r, "employee_id", "assignment_id")
+	if !ok || !h.member(w, r) {
 		return
 	}
-	if err := h.Assignments.DeleteEmployeeAssignment(r.Context(), workspaceID, ids[0], ids[1]); err != nil {
+	if err := h.Assignments.DeleteEmployeeAssignment(r.Context(), ids[0], ids[1]); err != nil {
 		h.assignmentError(w, r, err)
 		return
 	}
@@ -403,11 +392,10 @@ func (h AssignmentHandler) DeleteEmployeeAssignment(w http.ResponseWriter, r *ht
 }
 
 func (h AssignmentHandler) ListAssignmentRules(w http.ResponseWriter, r *http.Request) {
-	workspaceID, _, ok := assignmentIDs(r)
-	if !ok || !h.permission(w, r, workspaceID, "assignment_rules:manage") {
+	if !h.permission(w, r, "assignment_rules:manage") {
 		return
 	}
-	items, err := h.Rules.ListAssignmentRules(r.Context(), workspaceID)
+	items, err := h.Rules.ListAssignmentRules(r.Context())
 	if err != nil {
 		h.assignmentError(w, r, err)
 		return
@@ -416,8 +404,7 @@ func (h AssignmentHandler) ListAssignmentRules(w http.ResponseWriter, r *http.Re
 }
 
 func (h AssignmentHandler) CreateAssignmentRule(w http.ResponseWriter, r *http.Request) {
-	workspaceID, _, ok := assignmentIDs(r)
-	if !ok || !h.permission(w, r, workspaceID, "assignment_rules:manage") {
+	if !h.permission(w, r, "assignment_rules:manage") {
 		return
 	}
 	req, err := DecodeJSON[CreateAssignmentRuleRequest](r, 1<<20)
@@ -425,7 +412,7 @@ func (h AssignmentHandler) CreateAssignmentRule(w http.ResponseWriter, r *http.R
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}
-	item, err := h.Rules.CreateAssignmentRule(r.Context(), workspaceID, req)
+	item, err := h.Rules.CreateAssignmentRule(r.Context(), req)
 	if err != nil {
 		h.assignmentError(w, r, err)
 		return
@@ -434,8 +421,8 @@ func (h AssignmentHandler) CreateAssignmentRule(w http.ResponseWriter, r *http.R
 }
 
 func (h AssignmentHandler) UpdateAssignmentRule(w http.ResponseWriter, r *http.Request) {
-	workspaceID, ids, ok := assignmentIDs(r, "rule_id")
-	if !ok || !h.permission(w, r, workspaceID, "assignment_rules:manage") {
+	ids, ok := assignmentIDs(r, "rule_id")
+	if !ok || !h.permission(w, r, "assignment_rules:manage") {
 		return
 	}
 	req, err := DecodeJSON[UpdateAssignmentRuleRequest](r, 1<<20)
@@ -443,7 +430,7 @@ func (h AssignmentHandler) UpdateAssignmentRule(w http.ResponseWriter, r *http.R
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}
-	item, err := h.Rules.UpdateAssignmentRule(r.Context(), workspaceID, ids[0], req)
+	item, err := h.Rules.UpdateAssignmentRule(r.Context(), ids[0], req)
 	if err != nil {
 		h.assignmentError(w, r, err)
 		return
@@ -452,11 +439,11 @@ func (h AssignmentHandler) UpdateAssignmentRule(w http.ResponseWriter, r *http.R
 }
 
 func (h AssignmentHandler) DeleteAssignmentRule(w http.ResponseWriter, r *http.Request) {
-	workspaceID, ids, ok := assignmentIDs(r, "rule_id")
-	if !ok || !h.permission(w, r, workspaceID, "assignment_rules:manage") {
+	ids, ok := assignmentIDs(r, "rule_id")
+	if !ok || !h.permission(w, r, "assignment_rules:manage") {
 		return
 	}
-	if err := h.Rules.DeleteAssignmentRule(r.Context(), workspaceID, ids[0]); err != nil {
+	if err := h.Rules.DeleteAssignmentRule(r.Context(), ids[0]); err != nil {
 		h.assignmentError(w, r, err)
 		return
 	}
@@ -464,8 +451,7 @@ func (h AssignmentHandler) DeleteAssignmentRule(w http.ResponseWriter, r *http.R
 }
 
 func (h AssignmentHandler) AssignmentHistory(w http.ResponseWriter, r *http.Request) {
-	workspaceID, _, ok := assignmentIDs(r)
-	if !ok || !h.member(w, r, workspaceID) {
+	if !h.member(w, r) {
 		return
 	}
 	page, limit, err := assignmentPagination(r)
@@ -473,7 +459,7 @@ func (h AssignmentHandler) AssignmentHistory(w http.ResponseWriter, r *http.Requ
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}
-	items, total, err := h.History.ListAssignmentHistory(r.Context(), workspaceID, page, limit)
+	items, total, err := h.History.ListAssignmentHistory(r.Context(), page, limit)
 	if err != nil {
 		h.assignmentError(w, r, err)
 		return

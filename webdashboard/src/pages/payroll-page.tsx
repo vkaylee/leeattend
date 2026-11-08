@@ -9,7 +9,6 @@ import { usePayroll } from "./payroll/hooks/use-payroll";
 export default function PayrollPage() {
   const {
     t,
-    wsId,
     selectedEmployee,
     selectedIds,
     searchTerm,
@@ -44,7 +43,7 @@ export default function PayrollPage() {
     unlockPeriod,
   } = usePayroll();
 
-  if (!wsId) return <div className="p-8 text-center">{t("common.select_workspace")}</div>;
+  
 
   return (
     <div className="flex flex-col h-[calc(100dvh-8rem)] gap-8 overflow-hidden animate-in fade-in duration-500">
@@ -88,23 +87,20 @@ export default function PayrollPage() {
         />
       </div>
 
-      <PayrollModals
-        adjustments={employeeAdjustments}
-        employee={selectedEmployee}
-        employeeNames={employeeNames}
-        isAdjustmentDrawerOpen={isAdjustmentDrawerOpen}
-        isBatchCalcModalOpen={isBatchCalcModalOpen}
-        isDetailDrawerOpen={isDetailDrawerOpen}
-        isLoadingPayslips={employeePayslipsLoading}
-        onAdjustmentResolved={handleAdjustmentResolved}
-        onCloseAdjustmentDrawer={() => { setIsAdjustmentDrawerOpen(false); }}
-        onCloseBatchCalcModal={() => { setIsBatchCalcModalOpen(false); }}
-        onCloseDetailDrawer={() => { setIsDetailDrawerOpen(false); }}
-        onOpenAdjustmentDrawer={() => { setIsAdjustmentDrawerOpen(true); }}
-        payslips={employeePayslips}
-        selectedIds={selectedIds}
-        workspaceId={wsId}
-      />
+      <PayrollModals adjustments={employeeAdjustments}
+      employee={selectedEmployee}
+      employeeNames={employeeNames}
+      isAdjustmentDrawerOpen={isAdjustmentDrawerOpen}
+      isBatchCalcModalOpen={isBatchCalcModalOpen}
+      isDetailDrawerOpen={isDetailDrawerOpen}
+      isLoadingPayslips={employeePayslipsLoading}
+      onAdjustmentResolved={handleAdjustmentResolved}
+      onCloseAdjustmentDrawer={() => { setIsAdjustmentDrawerOpen(false); }}
+      onCloseBatchCalcModal={() => { setIsBatchCalcModalOpen(false); }}
+      onCloseDetailDrawer={() => { setIsDetailDrawerOpen(false); }}
+      onOpenAdjustmentDrawer={() => { setIsAdjustmentDrawerOpen(true); }}
+      payslips={employeePayslips}
+      selectedIds={selectedIds}  />
     </div>
   );
 }

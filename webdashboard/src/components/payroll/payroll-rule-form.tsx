@@ -159,15 +159,14 @@ interface PayrollRuleFormProps {
   bases: SalaryBaseGroup[];
   onCancel: () => void;
   onSuccess: () => void;
-  wsId: string;
 }
 
-export function PayrollRuleForm({ wsId, bases, onCancel, onSuccess }: PayrollRuleFormProps) {
+export function PayrollRuleForm({bases, onCancel, onSuccess }: PayrollRuleFormProps) {
   const { t } = useTranslation();
   const [formData, setFormData] = useState<Partial<PayrollRuleDefinition>>({ name: "", description: "", code: "", category: "statutory_deduction", applies_to: "employee", calculation_method: "percentage", is_mandatory: true, display_order: 1, rule_config: { rate: 0, base: "gross" } });
 
   const createMutation = useMutation({
-    mutationFn: (data: CreatePayrollRuleDefinitionRequest) => createPayrollRule(wsId, data),
+    mutationFn: (data: CreatePayrollRuleDefinitionRequest) => createPayrollRule(data),
     onSuccess,
   });
 

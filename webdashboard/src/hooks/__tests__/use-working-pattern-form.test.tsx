@@ -27,7 +27,6 @@ const api = vi.hoisted(() => ({
   fetchShifts: vi.fn(),
   fetchWorkingPatterns: vi.fn(),
   fetchPatternDetails: vi.fn(),
-  getStandaloneOrganizationId: vi.fn(() => "ws-test-123"),
 }));
 
 vi.mock("@/lib/api", () => api);
@@ -44,7 +43,6 @@ vi.mock("@/components/ui/toast", () => ({
   useToast: () => toastMock,
 }));
 
-const WS_ID = "ws-test-123";
 
 let queryClient: QueryClient;
 let navigateFn: ReturnType<typeof vi.fn>;
@@ -91,7 +89,6 @@ describe("pure validation helpers", () => {
 describe("useWorkingPatternForm", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    api.getStandaloneOrganizationId.mockReturnValue(WS_ID);
     navigateFn = vi.fn();
     routerMock.useNavigate.mockReturnValue(navigateFn);
     setupQueries();
@@ -102,7 +99,6 @@ describe("useWorkingPatternForm", () => {
       const { result } = renderHook(() => useWorkingPatternForm(), { wrapper: createWrapper() });
 
       expect(result.current.isEditMode).toBe(false);
-      expect(result.current.wsId).toBe(WS_ID);
       expect(result.current.name).toBe("");
       expect(result.current.description).toBe("");
       expect(result.current.patternType).toBe("weekly");
@@ -113,13 +109,13 @@ describe("useWorkingPatternForm", () => {
       expect(result.current.isSaving).toBe(false);
     });
 
-    it("fetches available shifts for the active workspace", async () => {
+    it("fetches available shifts", async () => {
       (api.fetchShifts as Mock).mockResolvedValue([{ id: "s1", name: "Morning" }]);
 
       const { result } = renderHook(() => useWorkingPatternForm(), { wrapper: createWrapper() });
 
       await waitFor(() => expect(result.current.shifts).toHaveLength(1));
-      expect(api.fetchShifts).toHaveBeenCalledWith(WS_ID);
+      expect(api.fetchShifts).toHaveBeenCalledWith();
     });
   });
 
@@ -362,7 +358,7 @@ describe("useWorkingPatternForm", () => {
       });
 
       await waitFor(() => {
-        expect(api.createWorkingPattern).toHaveBeenCalledWith(WS_ID, payload);
+        expect(api.createWorkingPattern).toHaveBeenCalledWith(payload);
       });
       await waitFor(() => {
         expect(toastMock.success).toHaveBeenCalledWith(PATTERN_MSG.create_success);
@@ -423,7 +419,7 @@ describe("useWorkingPatternForm", () => {
       });
 
       await waitFor(() => {
-        expect(api.updateWorkingPattern).toHaveBeenCalledWith(WS_ID, "tpl-1", payload);
+        expect(api.updateWorkingPattern).toHaveBeenCalledWith("tpl-1", payload);
       });
       await waitFor(() => {
         expect(toastMock.success).toHaveBeenCalledWith(PATTERN_MSG.update_success);
@@ -431,7 +427,7 @@ describe("useWorkingPatternForm", () => {
       await waitFor(() => {
         expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ["working-patterns"] });
         expect(invalidateSpy).toHaveBeenCalledWith({
-          queryKey: ["pattern-details", WS_ID, "tpl-1"],
+          queryKey: ["pattern-details", "tpl-1"],
         });
       });
       await waitFor(() => expect(navigateFn).toHaveBeenCalledWith({

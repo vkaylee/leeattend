@@ -228,7 +228,7 @@ export const ACTION_FEATURES: FeatureItem[] = [
     category: "action",
     titleFallback: "Danh bạ & Thành viên",
     descriptionFallback: "Tra cứu thông tin liên lạc và chức danh nhân sự",
-    to: ROUTES.PEOPLE,
+    to: ROUTES.SETTINGS.MEMBERS,
     icon: Users,
     gradient: "from-indigo-500 to-blue-700 shadow-indigo-500/25",
     permissions: ["members:read"],

@@ -6,7 +6,6 @@ import { useToast } from "@/components/ui/toast";
 import {
   approveAttendanceAdjustment,
   approveLeaveRequest,
-  getStandaloneOrganizationId,
 } from "@/lib/api";
 import { approveShiftSwap } from "@/lib/api/shift-swaps";
 import { approveOt } from "@/lib/api/attendance-overtime";
@@ -50,26 +49,25 @@ export function useBatchApproval(): UseBatchApprovalReturn {
   };
 
   const executeItemAction = async (
-    wsId: string,
     item: UnifiedApprovalItem,
     action: "approve" | "reject",
     reason?: string
   ): Promise<void> => {
     switch (item.type) {
       case "leave":
-        await approveLeaveRequest(wsId, item.id, {
+        await approveLeaveRequest(item.id, {
           status: action === "approve" ? "approved" : "rejected",
         });
         break;
 
       case "adjustment":
-        await approveAttendanceAdjustment(wsId, item.id, {
+        await approveAttendanceAdjustment(item.id, {
           status: action === "approve" ? "approved" : "rejected",
         });
         break;
 
       case "shift_swap":
-        await approveShiftSwap(wsId, item.id, {
+        await approveShiftSwap(item.id, {
           status: action === "approve" ? "approved" : "rejected",
         });
         break;
@@ -79,7 +77,7 @@ export function useBatchApproval(): UseBatchApprovalReturn {
           typeof item.details.rawPayload?.claimed_minutes === "number"
             ? item.details.rawPayload.claimed_minutes
             : 60;
-        await approveOt(wsId, item.requester.id, {
+        await approveOt(item.requester.id, {
           date: item.targetDate,
           approved_minutes: action === "approve" ? minutes : 0,
           status: action === "approve" ? "approved" : "rejected",
@@ -98,11 +96,6 @@ export function useBatchApproval(): UseBatchApprovalReturn {
     action: "approve" | "reject",
     reason?: string
   ): Promise<BatchApprovalResult> => {
-    const wsId = getStandaloneOrganizationId();
-    if (!wsId) {
-      toast.error(t("common.select_workspace", "Vui lòng chọn Workspace"));
-      return { succeeded: [], failed: [] };
-    }
 
     if (items.length === 0) {
       return { succeeded: [], failed: [] };
@@ -115,7 +108,7 @@ export function useBatchApproval(): UseBatchApprovalReturn {
     try {
       const results = await Promise.allSettled(
         items.map(async (item) => {
-          await executeItemAction(wsId, item, action, reason);
+          await executeItemAction(item, action, reason);
           return item.id;
         })
       );

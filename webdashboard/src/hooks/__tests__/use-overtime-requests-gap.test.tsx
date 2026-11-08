@@ -16,11 +16,6 @@ import {
   useEmployeeConsent,
 } from "../use-overtime-requests";
 
-const mockUseWorkspace = vi.hoisted(() => vi.fn());
-
-vi.mock("@/hooks/use-workspace", () => ({
-  useWorkspace: mockUseWorkspace,
-}));
 
 const api = vi.hoisted(() => ({
   listRequests: vi.fn(),
@@ -38,13 +33,9 @@ vi.mock("@/lib/api/overtime-requests", () => ({
   overtimeRequestsApi: api,
 }));
 
-const WS_ID = "ws-gap-456";
-const withWorkspace = { workspace: { id: WS_ID }, isLoading: false, isError: false };
-const withoutWorkspace = { workspace: undefined, isLoading: false, isError: false };
 
 const MOCK_REQUEST = {
   id: "ot-1",
-  workspace_id: WS_ID,
   status: "pending_approval",
   planned_date: "2026-08-10",
   planned_minutes: 120,
@@ -73,7 +64,6 @@ function createWrapper() {
 describe("useOvertimeRequests – error handling", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockUseWorkspace.mockReturnValue(withWorkspace);
   });
 
   it("propagates isError when listRequests rejects", async () => {
@@ -88,7 +78,6 @@ describe("useOvertimeRequests – error handling", () => {
 describe("useOvertimeRequest – detail error", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockUseWorkspace.mockReturnValue(withWorkspace);
   });
 
   it("propagates isError when getRequest rejects", async () => {
@@ -106,7 +95,6 @@ describe("useOvertimeRequest – detail error", () => {
 describe("useCreateOvertimeRequest – pending state", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockUseWorkspace.mockReturnValue(withWorkspace);
   });
 
   it("reports isPending while creation is in flight", async () => {
@@ -137,7 +125,6 @@ describe("useCreateOvertimeRequest – pending state", () => {
 describe("useSubmitOvertimeRequest – pending state", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockUseWorkspace.mockReturnValue(withWorkspace);
   });
 
   it("reports isPending while submission is in flight", async () => {
@@ -163,7 +150,6 @@ describe("useSubmitOvertimeRequest – pending state", () => {
 describe("useCancelOvertimeRequest – pending state", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockUseWorkspace.mockReturnValue(withWorkspace);
   });
 
   it("reports isPending while cancellation is in flight", async () => {
@@ -191,7 +177,6 @@ describe("useCancelOvertimeRequest – pending state", () => {
 describe("useOvertimeRequests – empty results", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockUseWorkspace.mockReturnValue(withWorkspace);
   });
 
   it("returns an empty data array when no requests exist", async () => {
@@ -231,7 +216,6 @@ describe("useMyOtAssignments – error handling", () => {
 describe("useWorkspaceQuotaSummary – error handling", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockUseWorkspace.mockReturnValue(withWorkspace);
   });
 
   it("propagates isError when getWorkspaceQuotaSummary rejects", async () => {
@@ -259,7 +243,6 @@ describe("useWorkspaceQuotaSummary – error handling", () => {
 describe("useEmployeeQuota – error handling", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockUseWorkspace.mockReturnValue(withWorkspace);
   });
 
   it("propagates isError when getEmployeeQuota rejects", async () => {
@@ -297,7 +280,6 @@ describe("useEmployeeQuota – error handling", () => {
 describe("useCreateOvertimeRequest – error propagation", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockUseWorkspace.mockReturnValue(withWorkspace);
   });
 
   it("rejects when createRequest fails", async () => {
@@ -319,7 +301,6 @@ describe("useCreateOvertimeRequest – error propagation", () => {
 describe("useSubmitOvertimeRequest – error propagation", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockUseWorkspace.mockReturnValue(withWorkspace);
   });
 
   it("rejects when submitRequest fails", async () => {
@@ -334,7 +315,6 @@ describe("useSubmitOvertimeRequest – error propagation", () => {
 describe("useCancelOvertimeRequest – error propagation", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockUseWorkspace.mockReturnValue(withWorkspace);
   });
 
   it("rejects when cancelRequest fails", async () => {
@@ -349,7 +329,6 @@ describe("useCancelOvertimeRequest – error propagation", () => {
 describe("useEmployeeConsent – error propagation", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockUseWorkspace.mockReturnValue(withWorkspace);
   });
 
   it("rejects when employeeConsent fails", async () => {

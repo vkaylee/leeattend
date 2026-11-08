@@ -1,7 +1,7 @@
 import type { ApprovalActionLog, PaginatedResponse } from './types';
 
 import { createBehalfAssignmentApi } from './behalf-assignment-factory';
-import { client, fetch, fire } from './client';
+import { client } from './client';
 
 export interface OvertimeRequestQueryParams {
   [key: string]: unknown;
@@ -63,7 +63,6 @@ export interface OvertimeRequest {
   status: OtRequestStatus;
   updated_at: string;
   workflow_id?: string;
-  workspace_id: string;
 }
 
 export interface OvertimeRequestDetail extends OvertimeRequest {
@@ -105,109 +104,93 @@ export interface QuotaSummary {
 }
 
 const otRequestBehalfApi = createBehalfAssignmentApi({
-  basePath: "/v1/workspaces/{ws_id}/overtime/requests/behalf-assignments",
+  basePath: "/v1/overtime/requests/behalf-assignments",
   dataWrapper: true,
 });
 
 export const overtimeRequestsApi = {
-  listRequests: async (workspaceId: string, params?: OvertimeRequestQueryParams): Promise<PaginatedResponse<OvertimeRequest>> => {
-    const { data } = await fetch<PaginatedResponse<OvertimeRequest>>("GET", "/v1/workspaces/{ws_id}/overtime/requests", {
+  listRequests: async (params?: OvertimeRequestQueryParams): Promise<PaginatedResponse<OvertimeRequest>> => {
+    const { data } = await client.GET<PaginatedResponse<OvertimeRequest>>("/v1/overtime/requests", {
       params: {
-        path: { ws_id: workspaceId },
         query: params,
       },
     });
     return data;
   },
 
-  getRequest: async (workspaceId: string, id: string): Promise<OvertimeRequestDetail> => {
-    const { data } = await fetch<OvertimeRequestDetail>("GET", "/v1/workspaces/{ws_id}/overtime/requests/{id}", {
-      params: { path: { ws_id: workspaceId, id } },
+  getRequest: async (id: string): Promise<OvertimeRequestDetail> => {
+    const { data } = await client.GET<OvertimeRequestDetail>("/v1/overtime/requests/{id}", {
+      params: { path: { id } },
     });
     return data;
   },
 
-  createRequest: async (workspaceId: string, payload: CreateOvertimeRequestPayload): Promise<OvertimeRequest> => {
-    const { data } = await fetch<OvertimeRequest>("POST", "/v1/workspaces/{ws_id}/overtime/requests", {
-      params: { path: { ws_id: workspaceId } },
+  createRequest: async (payload: CreateOvertimeRequestPayload): Promise<OvertimeRequest> => {
+    const { data } = await client.POST<OvertimeRequest>("/v1/overtime/requests", {
       body: payload,
     });
     return data;
   },
 
-  submitRequest: async (workspaceId: string, id: string): Promise<void> => {
-    await client.POST("/v1/workspaces/{ws_id}/overtime/requests/{id}/submit", {
+  submitRequest: async (id: string): Promise<void> => {
+    await client.POST("/v1/overtime/requests/{id}/submit", {
       params: {
-        path: { ws_id: workspaceId, id },
+        path: { id },
       },
     });
   },
 
-  cancelRequest: async (workspaceId: string, id: string): Promise<void> => {
-    await fire("PUT", "/v1/workspaces/{ws_id}/overtime/requests/{id}/cancel", {
+  cancelRequest: async (id: string): Promise<void> => {
+    await client.PUT("/v1/overtime/requests/{id}/cancel", {
       params: {
-        path: { ws_id: workspaceId, id },
+        path: { id },
       },
     });
   },
 
-  employeeConsent: async (workspaceId: string, id: string, payload: {
+  employeeConsent: async (id: string, payload: {
     employment_id: string;
     status: ConsentStatus;
     decline_reason?: string;
   }): Promise<void> => {
-    await client.POST("/v1/workspaces/{ws_id}/overtime/requests/{id}/consent/{emp_id}", {
+    await client.POST("/v1/overtime/requests/{id}/consent/{emp_id}", {
       params: {
-        path: { ws_id: workspaceId, id, emp_id: payload.employment_id },
+        path: { id, emp_id: payload.employment_id },
       },
       body: {
-              status: payload.status,
-              decline_reason: payload.decline_reason,
-            },
+        status: payload.status,
+        decline_reason: payload.decline_reason,
+      },
     });
   },
 
   getMyAssignments: async (employmentId: string): Promise<MyOvertimeAssignment[]> => {
-    // `fetch<T>` return type is `{ data: T }` (Assertion), so TS flags the guard
-    // below as "unnecessary". Kept deliberately: openapi-fetch can return
-    // `{ data: undefined }` on 204/empty bodies, and the response typing is
-    // erased by the generic cast inside the helper — the guard is the last line
-    // of runtime defence against a missing payload.
-    const { data } = await fetch<MyOvertimeAssignment[]>(
-      "GET",
-      "/v1/workspaces/{ws_id}/payroll/overtime/assignments",
-      { params: { path: { ws_id: employmentId } } },
+    const { data } = await client.GET<MyOvertimeAssignment[]>(
+      "/v1/payroll/overtime/assignments",
+      { params: { query: { employment_id: employmentId } } },
     );
-     
     return data;
   },
 
-  getWorkspaceQuotaSummary: async (workspaceId: string, month: string): Promise<QuotaSummary[]> => {
-    const { data } = await fetch<QuotaSummary[]>(
-      "GET",
-      "/v1/workspaces/{ws_id}/overtime/quota/summary",
-      { params: { path: { ws_id: workspaceId }, query: { month } } },
+  getWorkspaceQuotaSummary: async (month: string): Promise<QuotaSummary[]> => {
+    const { data } = await client.GET<QuotaSummary[]>(
+      "/v1/overtime/quota/summary",
+      { params: { query: { month } } },
     );
-     
     return data;
   },
 
-  getEmployeeQuota: async (workspaceId: string, employeeId: string, date: string): Promise<QuotaSummary> => {
-    const { data } = await fetch<QuotaSummary>(
-      "GET",
-      "/v1/workspaces/{ws_id}/overtime/quota/{employee_id}",
-      { params: { path: { ws_id: workspaceId, employee_id: employeeId }, query: { date } } },
+  getEmployeeQuota: async (employeeId: string, date: string): Promise<QuotaSummary> => {
+    const { data } = await client.GET<QuotaSummary>(
+      "/v1/overtime/quota/{employee_id}",
+      { params: { path: { employee_id: employeeId }, query: { date } } },
     );
-     
     return data;
   },
 
   // ── OT Request Behalf Assignments (factory-generated CRUD) ──────────────
-  // The OT-request list endpoint wraps the response in { data: [...] },
-  // unlike the other three behalf domains.  The `dataWrapper` flag handles
-  // this backend inconsistency transparently.
 
-  listRequestBehalfAssignments: (workspaceId: string) => otRequestBehalfApi.list(workspaceId),
-  createRequestBehalfAssignment: (workspaceId: string, payload: Parameters<typeof otRequestBehalfApi.create>[1]) => otRequestBehalfApi.create(workspaceId, payload),
-  deleteRequestBehalfAssignment: (workspaceId: string, id: string) => otRequestBehalfApi.delete(workspaceId, id),
+  listRequestBehalfAssignments: () => otRequestBehalfApi.list(),
+  createRequestBehalfAssignment: (payload: Parameters<typeof otRequestBehalfApi.create>[0]) => otRequestBehalfApi.create(payload),
+  deleteRequestBehalfAssignment: (id: string) => otRequestBehalfApi.delete(id),
 };

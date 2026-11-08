@@ -6,7 +6,6 @@ import { fetchAttendanceReport, type DailyAttendanceReport } from "@/lib/api";
 export interface UseMonthlyTimesheetDataParams {
   enabled?: boolean;
   month: number;
-  wsId: string | null;
   year: number;
 }
 
@@ -21,7 +20,6 @@ export function makeTimesheetCellKey(employeeId: string, dateStr: string): strin
 }
 
 export function useMonthlyTimesheetData({
-  wsId,
   month,
   year,
   enabled = true,
@@ -31,11 +29,9 @@ export function useMonthlyTimesheetData({
   const endDate = useMemo(() => formatDayKey(year, month, lastDay), [year, month, lastDay]);
 
   const query = useQuery({
-    queryKey: ["monthly-timesheet-daily", wsId, year, month],
+    queryKey: ["monthly-timesheet-daily", year, month],
     queryFn: async () => {
-      if (!wsId) return [];
       const res = await fetchAttendanceReport({
-        wsId,
         start: startDate,
         end: endDate,
         type: "daily",
@@ -50,7 +46,7 @@ export function useMonthlyTimesheetData({
 
       return list;
     },
-    enabled: Boolean(wsId) && enabled,
+    enabled,
     staleTime: 5 * 60 * 1000, // 5 minutes cache
   });
 

@@ -3,7 +3,6 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 // Mock the dependencies BEFORE importing the file under test
 vi.mock("../helpers", () => ({
     apiFetch: vi.fn(),
-    getStandaloneOrganizationId: vi.fn().mockReturnValue("test-ws-id"),
     TIMEOUT: { REPORT_OPERATION: 180000 },
 }));
 
@@ -16,7 +15,6 @@ describe("fetchAttendanceReport", () => {
     });
 
     it("should append standard query parameters correctly", async () => {
- 
         vi.mocked(apiFetch).mockResolvedValueOnce({
             ok: true,
             json: () => Promise.resolve({ data: [], total: 0 }),
@@ -25,14 +23,13 @@ describe("fetchAttendanceReport", () => {
         } as unknown as Response);
 
         await fetchAttendanceReport({
-            wsId: "test-ws-id",
             start: "2026-03-01",
             end: "2026-03-31",
-            type: "summary"
+            type: "summary",
         });
 
         expect(apiFetch).toHaveBeenCalledTimes(1);
- 
+
         const calledUrl = vi.mocked(apiFetch).mock.calls[0][0];
 
         expect(calledUrl).toContain("/api/v1/reports/attendance");
@@ -43,7 +40,6 @@ describe("fetchAttendanceReport", () => {
     });
 
     it("should append department_id query parameter when provided", async () => {
- 
         vi.mocked(apiFetch).mockResolvedValueOnce({
             ok: true,
             json: () => Promise.resolve({ data: [], total: 0 }),
@@ -53,19 +49,17 @@ describe("fetchAttendanceReport", () => {
 
         const departmentId = "dept-uuid-123";
 
-        // type signature: params object
         await fetchAttendanceReport({
-            wsId: "test-ws-id",
             start: "2026-03-01",
             end: "2026-03-31",
             type: "summary",
             page: 1,
             limit: 20,
-            departmentId
+            departmentId,
         });
 
         expect(apiFetch).toHaveBeenCalledTimes(1);
- 
+
         const calledUrl = vi.mocked(apiFetch).mock.calls[0][0];
 
         // Verify department_id is appended correctly
@@ -77,7 +71,6 @@ describe("fetchAttendanceReport", () => {
     });
 
     it("should format employee_ids as comma-separated string when provided", async () => {
- 
         vi.mocked(apiFetch).mockResolvedValueOnce({
             ok: true,
             json: () => Promise.resolve({ data: [], total: 0 }),
@@ -88,17 +81,16 @@ describe("fetchAttendanceReport", () => {
         const employeeIds = ["emp-1", "emp-2"];
 
         await fetchAttendanceReport({
-            wsId: "test-ws-id",
             start: "2026-03-01",
             end: "2026-03-31",
             type: "summary",
             page: 1,
             limit: 20,
-            employeeIds
+            employeeIds,
         });
 
         expect(apiFetch).toHaveBeenCalledTimes(1);
- 
+
         const calledUrl = vi.mocked(apiFetch).mock.calls[0][0];
 
         expect(calledUrl).toContain("employee_ids=emp-1%2Cemp-2"); // %2C is URL encoded comma

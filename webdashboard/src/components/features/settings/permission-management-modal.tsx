@@ -8,7 +8,7 @@ import { SearchInput } from "@/components/ui/search-input";
 import { Typography } from "@/components/ui/typography";
 import { useConfirm } from "@/hooks/use-confirm";
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
-import { useMemberPermissions } from "@/hooks/use-workspace";
+import { useMemberPermissions } from "@/hooks/use-organization";
 import { logError } from "@/lib/logger";
 
 import type { PermissionCatalogItem } from "@/lib/api/types";

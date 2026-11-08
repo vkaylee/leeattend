@@ -1,9 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 
-import type { Employee, WorkspaceMember, Employment } from "@/lib/api";
+import type { Employee, OrganizationMember, Employment } from "@/lib/api";
 
-import { fetchWorkspaceMembers, fetchEmployeeEmployments } from "@/lib/api";
+import { fetchOrganizationMembers, fetchEmployeeEmployments } from "@/lib/api";
 import { useLocations } from "@/pages/settings/hooks/use-locations";
 
 import type { DetailTabType } from "../drawer-header";
@@ -14,10 +14,9 @@ const SCROLL_STEP = 80;
 interface UseEmployeeDetailProps {
     employee: Employee | null;
     isOpen: boolean;
-    wsId: string;
 }
 
-export function useEmployeeDetail({ isOpen, wsId, employee }: UseEmployeeDetailProps) {
+export function useEmployeeDetail({ isOpen,employee }: UseEmployeeDetailProps) {
     const [activeDetailTab, setActiveDetailTab] = useState<DetailTabType>("profile");
     const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -46,21 +45,21 @@ export function useEmployeeDetail({ isOpen, wsId, employee }: UseEmployeeDetailP
     }, [isOpen]);
 
     const { data: members } = useQuery({
-        enabled: !!wsId && !!employee?.user_id,
-        queryFn: () => fetchWorkspaceMembers(wsId),
-        queryKey: ["workspace-members", wsId],
+        enabled: !!employee?.user_id,
+        queryFn: () => fetchOrganizationMembers(),
+        queryKey: ["workspace-members"],
     });
 
-    const { data: locations } = useLocations(wsId);
+    const { data: locations } = useLocations();
 
     const { data: employments = [] } = useQuery({
-        enabled: !!wsId && !!employee?.id,
-        queryFn: () => employee ? fetchEmployeeEmployments(wsId, employee.id) : Promise.resolve([]),
-        queryKey: ["employee-employments", wsId, employee?.id],
+        enabled: !!employee?.id,
+        queryFn: () => employee ? fetchEmployeeEmployments(employee.id) : Promise.resolve([]),
+        queryKey: ["employee-employments",employee?.id],
     });
     const activeEmployment = employments.find((e: Employment) => e.status === "active") ?? employments[0];
 
-    const linkedUser = members?.find((m: WorkspaceMember) => m.user_id === employee?.user_id);
+    const linkedUser = members?.find((m: OrganizationMember) => m.user_id === employee?.user_id);
 
     return {
         activeDetailTab,

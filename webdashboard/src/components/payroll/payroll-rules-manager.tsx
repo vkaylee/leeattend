@@ -13,18 +13,17 @@ import { PayrollRuleForm } from "./payroll-rule-form";
 import { RuleRow } from "./payroll-rule-list";
 
 interface Props {
-  wsId: string;
 }
 
-export default function PayrollRulesManager({ wsId }: Props) {
+export default function PayrollRulesManager({}: Props) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const toast = useToast();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [expandedRuleId, setExpandedRuleId] = useState<string | null>(null);
 
-  const { data: rules, isLoading } = useQuery({ queryKey: ["payroll-rules", wsId], queryFn: () => fetchPayrollRules(wsId), enabled: !!wsId });
-  const { data: basesResponse } = useQuery({ queryKey: ["salary-base-groups", wsId], queryFn: () => fetchSalaryBaseGroups(wsId), enabled: !!wsId });
+  const { data: rules, isLoading } = useQuery({ queryKey: ["payroll-rules"], queryFn: () => fetchPayrollRules() });
+  const { data: basesResponse } = useQuery({ queryKey: ["salary-base-groups"], queryFn: () => fetchSalaryBaseGroups() });
   const bases = basesResponse?.groups;
 
   return (
@@ -50,28 +49,22 @@ export default function PayrollRulesManager({ wsId }: Props) {
           </div>
         ) : (
           rules?.map((rule) => (
-            <RuleRow
-              expandedRuleId={expandedRuleId}
-              key={rule.id}
-              rule={rule}
-              setExpandedRuleId={setExpandedRuleId}
-              wsId={wsId}
-            />
+            <RuleRow expandedRuleId={expandedRuleId}
+            key={rule.id}
+            rule={rule}
+            setExpandedRuleId={setExpandedRuleId}  />
           ))
         )}
       </div>
 
       <Modal icon={<FileText size={24} />} isOpen={isModalOpen} maxWidth="lg" onClose={() => { setIsModalOpen(false); }} subtitle={t("payroll.statutory_rules.create_rule_desc")} title={t("payroll.statutory_rules.add_rule")}>
-        <PayrollRuleForm
-          bases={bases ?? []}
-          onCancel={() => { setIsModalOpen(false); }}
-          onSuccess={() => {
-            toast.success(t("common.success"));
-            void queryClient.invalidateQueries({ queryKey: ["payroll-rules"] });
-            setIsModalOpen(false);
-          }}
-          wsId={wsId}
-        />
+        <PayrollRuleForm bases={bases ?? []}
+        onCancel={() => { setIsModalOpen(false); }}
+        onSuccess={() => {
+          toast.success(t("common.success"));
+          void queryClient.invalidateQueries({ queryKey: ["payroll-rules"] });
+          setIsModalOpen(false);
+        }}  />
       </Modal>
     </div>
   );

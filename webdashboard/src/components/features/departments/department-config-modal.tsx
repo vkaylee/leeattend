@@ -17,17 +17,16 @@ export interface DepartmentConfigModalProps {
   isOpen: boolean;
   onClose: () => void;
   t: TFunction;
-  wsId: string;
 }
 
-export function DepartmentConfigModal({ editingDept, isOpen, onClose, wsId, t }: DepartmentConfigModalProps) {
+export function DepartmentConfigModal({ editingDept, isOpen, onClose,t }: DepartmentConfigModalProps) {
   const queryClient = useQueryClient();
 
   const { data: deptConfigs = [], isLoading: isConfigsLoading } = useQuery({ 
     queryKey: ["dept-payroll-configs", editingDept?.id], 
     queryFn: () => {
       if (!editingDept?.id) return Promise.reject(new Error("No department ID"));
-      return fetchDepartmentPayrollConfigs(wsId, editingDept.id);
+      return fetchDepartmentPayrollConfigs(editingDept.id);
     }, 
     enabled: isOpen && !!editingDept?.id 
   });
@@ -35,7 +34,7 @@ export function DepartmentConfigModal({ editingDept, isOpen, onClose, wsId, t }:
   const saveConfigMutation = useMutation({
     mutationFn: (data: { effective_date: string; hours_per_day: number; std_working_days: number }) => {
       if (!editingDept?.id) return Promise.reject(new Error("No department ID"));
-      return setDepartmentPayrollConfig(wsId, editingDept.id, {
+      return setDepartmentPayrollConfig(editingDept.id, {
         effective_date: data.effective_date,
         hours_per_day: data.hours_per_day.toString(),
         std_working_days: data.std_working_days.toString(),

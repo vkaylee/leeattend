@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion, @typescript-eslint/no-unnecessary-type-conversion, complexity */
 import React from "react";
 
-import { useWorkspace } from "@/hooks/use-workspace";
+import { useOrganization } from "@/hooks/use-organization";
 import { DailyAttendanceReport } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
@@ -63,8 +63,8 @@ function formatMinutesToTime(totalMins: number) {
 }
 
 function useTimelineBounds(row: DailyAttendanceReport) {
-  const { workspace } = useWorkspace();
-  const timezone = workspace?.timezone ?? "UTC";
+  const { organization } = useOrganization();
+  const timezone = organization?.timezone ?? "UTC";
 
   const startMin = parseTimeToMinutes(row.scheduled_start);
   let endMin = parseTimeToMinutes(row.scheduled_end);

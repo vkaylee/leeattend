@@ -20,7 +20,6 @@ export interface LeaveImportProgressViewProps {
   onClose: () => void;
   setImportJob: (job: LeaveImportJob | null) => void;
   t: TFunction;
-  wsId: string | null;
 }
 
 function getStatusIcon(status: string, hasError: boolean, isProcessing: boolean) {
@@ -71,7 +70,7 @@ interface ErrorInfo {
   success_count?: number;
 }
 
-function PartialSuccessDetails({ info, importJob, t, wsId }: { info: ErrorInfo | null; importJob: LeaveImportJob; t: TFunction; wsId: string | null }) {
+function PartialSuccessDetails({ info, importJob, t }: { info: ErrorInfo | null; importJob: LeaveImportJob; t: TFunction }) {
   return (
     <div className="bg-slate-50 dark:bg-slate-900 rounded-2xl p-6 border border-amber-200 dark:border-amber-900/50 shadow-sm">
       <Typography className="text-sm font-semibold text-amber-700 dark:text-amber-300 mb-3" variant="p">
@@ -79,13 +78,11 @@ function PartialSuccessDetails({ info, importJob, t, wsId }: { info: ErrorInfo |
           .replace("{{success}}", String(info?.success_count ?? importJob.processed_rows))
           .replace("{{errors}}", String(info?.error_count ?? 0))}
       </Typography>
-      {Boolean(info?.error_file_path) && Boolean(wsId) ? (
+      {Boolean(info?.error_file_path) ? (
         <Button
           className="border-amber-200 bg-amber-100 text-[10px] text-amber-700 hover:bg-amber-200 dark:border-amber-800 dark:bg-amber-900/50 dark:text-amber-300 dark:hover:bg-amber-800/50"
           onClick={() => {
-            if (wsId) {
-              void downloadLeaveImportErrors(wsId, importJob.id).catch((e: unknown) => { logError(e, { component: 'LeaveImportProgressView' }); toast.error(t("leave_import.download_errors_failed", "Tải file lỗi thất bại")); });
-            }
+              void downloadLeaveImportErrors(importJob.id).catch((e: unknown) => { logError(e, { component: 'LeaveImportProgressView' }); toast.error(t("leave_import.download_errors_failed", "Tải file lỗi thất bại")); });
           }}
           size="sm"
           variant="outline"
@@ -97,7 +94,7 @@ function PartialSuccessDetails({ info, importJob, t, wsId }: { info: ErrorInfo |
   );
 }
 
-function FailedDetails({ errorLog, importJob, t, wsId }: { errorLog: string; importJob: LeaveImportJob; t: TFunction; wsId: string | null }) {
+function FailedDetails({ errorLog, importJob, t }: { errorLog: string; importJob: LeaveImportJob; t: TFunction }) {
   let info: ErrorInfo | null = null;
   try {
     info = JSON.parse(errorLog) as ErrorInfo;
@@ -113,13 +110,11 @@ function FailedDetails({ errorLog, importJob, t, wsId }: { errorLog: string; imp
           <Typography className="text-xs text-slate-600 dark:text-slate-400" variant="p">
             {t("leave_import.failed_detail_count", "Import thất bại: {{errors}} dòng bị lỗi").replace("{{errors}}", String(info.error_count ?? 1))}
           </Typography>
-          {Boolean(info.error_file_path) && Boolean(wsId) ? (
+          {Boolean(info.error_file_path) ? (
             <Button
               className="border-rose-200 bg-rose-50 text-[10px] text-rose-700 hover:bg-rose-100 dark:border-rose-800 dark:bg-rose-950/30 dark:text-rose-300 dark:hover:bg-rose-900/50"
               onClick={() => {
-                if (wsId) {
-                  void downloadLeaveImportErrors(wsId, importJob.id).catch((e: unknown) => { logError(e, { component: 'LeaveImportProgressView' }); toast.error(t("leave_import.download_errors_failed", "Tải file lỗi thất bại")); });
-                }
+                  void downloadLeaveImportErrors(importJob.id).catch((e: unknown) => { logError(e, { component: 'LeaveImportProgressView' }); toast.error(t("leave_import.download_errors_failed", "Tải file lỗi thất bại")); });
               }}
               size="sm"
               variant="outline"
@@ -137,17 +132,17 @@ function FailedDetails({ errorLog, importJob, t, wsId }: { errorLog: string; imp
   );
 }
 
-function ErrorDetails({ getErrorInfo, importJob, t, wsId }: { getErrorInfo: (job: LeaveImportJob) => { success_count?: number; error_count?: number; error_file_path?: string } | null; importJob: LeaveImportJob; t: TFunction; wsId: string | null }) {
+function ErrorDetails({ getErrorInfo, importJob, t }: { getErrorInfo: (job: LeaveImportJob) => { success_count?: number; error_count?: number; error_file_path?: string } | null; importJob: LeaveImportJob; t: TFunction }) {
   if ((importJob.status === "completed" || importJob.status === "partially_failed") && importJob.error_log) {
-    return <PartialSuccessDetails importJob={importJob} info={getErrorInfo(importJob)} t={t} wsId={wsId} />;
+    return <PartialSuccessDetails importJob={importJob} info={getErrorInfo(importJob)} t={t} />;
   }
   if (importJob.status === "failed" && importJob.error_log) {
-    return <FailedDetails errorLog={importJob.error_log} importJob={importJob} t={t} wsId={wsId} />;
+    return <FailedDetails errorLog={importJob.error_log} importJob={importJob} t={t} />;
   }
   return null;
 }
 
-export function LeaveImportProgressView({ importJob, isProcessing, isFinished, wsId, getErrorInfo, t, setImportJob, onClose }: LeaveImportProgressViewProps) {
+export function LeaveImportProgressView({ importJob, isProcessing, isFinished, getErrorInfo, t, setImportJob, onClose }: LeaveImportProgressViewProps) {
   return (
     <div className="space-y-5 pt-2 animate-in fade-in duration-500">
       <ProgressHeader importJob={importJob} isProcessing={isProcessing} t={t} />
@@ -170,7 +165,7 @@ export function LeaveImportProgressView({ importJob, isProcessing, isFinished, w
       </div>
 
       {/* Error details */}
-      <ErrorDetails getErrorInfo={getErrorInfo} importJob={importJob} t={t} wsId={wsId} />
+      <ErrorDetails getErrorInfo={getErrorInfo} importJob={importJob} t={t} />
 
       {/* Footer buttons */}
       <div className="pt-3 flex gap-4 border-t border-slate-200 dark:border-slate-800">

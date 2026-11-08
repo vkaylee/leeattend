@@ -28,16 +28,13 @@ vi.mock("@/hooks/use-profile", () => ({
     }),
 }));
 
-vi.mock("@/hooks/use-workspace", () => ({
-    useWorkspaces: () => ({
-        workspaces: [{ id: "test-ws-id", name: "Test Workspace", default_language: "en" }],
+vi.mock("@/hooks/use-organization", () => ({
+    useOrganization: () => ({
+        organization: { id: "test-org-id", name: "Test Workspace", date_format: "DD/MM/YYYY", default_language: "en" },
+        organizationName: "Test Workspace",
         isLoading: false,
         isError: false,
-    }),
-    useWorkspace: () => ({
-        workspace: { id: "test-ws-id", name: "Test Workspace", date_format: "DD/MM/YYYY", default_language: "en" },
-        isLoading: false,
-        isError: false,
+        error: null,
     }),
 }));
 
@@ -100,11 +97,10 @@ vi.mock("@/lib/api", async (importOriginal) => {
  
         ...actual,
         getCurrentUserId: vi.fn(() => "test-user"),
-        getStandaloneOrganizationId: vi.fn(() => "test-ws-id"),
         fetchWorkspaceLeaveBalances: vi.fn(() => Promise.resolve([])),
         fetchEmployees: vi.fn(() => Promise.resolve([])),
         searchEmployees: vi.fn(() => Promise.resolve({ data: [], total: 0 })),
-        fetchWorkspace: vi.fn(() => Promise.resolve({ date_format: "DD/MM/YYYY", timezone: "UTC", default_language: "en" })),
+        fetchOrganization: vi.fn(() => Promise.resolve({ date_format: "DD/MM/YYYY", timezone: "UTC", default_language: "en" })),
         fetchDepartments: vi.fn(() => Promise.resolve([])),
         fetchRawAttendanceLogs: vi.fn(() => Promise.resolve({ data: [], total: 0 })),
         fetchMyEmployeeProfile: vi.fn(() => Promise.resolve({ id: "emp-1", full_name: "Test User" })),

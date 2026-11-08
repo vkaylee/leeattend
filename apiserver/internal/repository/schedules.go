@@ -97,7 +97,7 @@ type assignmentRuleWithDetails struct {
 	details   map[int][]uuid.UUID
 }
 
-func (r ScheduleRepository) GetWorkspaceSchedules(ctx context.Context, workspaceID uuid.UUID, startDate, endDate time.Time, employmentIDs []uuid.UUID, page, limit int) (api.PaginatedEmployeeSchedules, error) {
+func (r ScheduleRepository) GetOrganizationSchedules(ctx context.Context, startDate, endDate time.Time, employmentIDs []uuid.UUID, page, limit int) (api.PaginatedEmployeeSchedules, error) {
 	db, err := r.db(ctx)
 	if err != nil {
 		return api.PaginatedEmployeeSchedules{}, err
@@ -118,16 +118,16 @@ func (r ScheduleRepository) GetWorkspaceSchedules(ctx context.Context, workspace
 	if len(employmentIDs) > 0 {
 		countErr := db.QueryRow(ctx, `SELECT count(*) FROM employees e
 			JOIN employments emp ON emp.employee_id = e.id
-			WHERE e.workspace_id = $1 AND emp.deleted_at IS NULL AND emp.id = ANY($2)`, workspaceID, employmentIDs).Scan(&total)
+			WHERE emp.deleted_at IS NULL AND emp.id = ANY($1)`, employmentIDs).Scan(&total)
 		if countErr != nil {
 			return api.PaginatedEmployeeSchedules{}, countErr
 		}
 		rows, qErr := db.Query(ctx, `SELECT emp.id, e.full_name, e.employee_id_number, e.tags, emp.primary_location_id, e.id, emp.start_date::text, emp.end_date::text
 			FROM employees e
 			JOIN employments emp ON emp.employee_id = e.id
-			WHERE e.workspace_id = $1 AND emp.deleted_at IS NULL AND emp.id = ANY($2)
+			WHERE emp.deleted_at IS NULL AND emp.id = ANY($1)
 			ORDER BY emp.start_date DESC, emp.id ASC
-			LIMIT $3 OFFSET $4`, workspaceID, employmentIDs, limit, offset)
+			LIMIT $2 OFFSET $3`, employmentIDs, limit, offset)
 		if qErr != nil {
 			return api.PaginatedEmployeeSchedules{}, qErr
 		}
@@ -141,18 +141,18 @@ func (r ScheduleRepository) GetWorkspaceSchedules(ctx context.Context, workspace
 		endStr := endDate.Format("2006-01-02")
 		countErr := db.QueryRow(ctx, `SELECT count(*) FROM employees e
 			JOIN employments emp ON emp.employee_id = e.id
-			WHERE e.workspace_id = $1 AND emp.deleted_at IS NULL
-			AND emp.start_date <= $2::date AND (emp.end_date IS NULL OR emp.end_date >= $3::date)`, workspaceID, endStr, startStr).Scan(&total)
+			WHERE emp.deleted_at IS NULL
+			AND emp.start_date <= $1::date AND (emp.end_date IS NULL OR emp.end_date >= $2::date)`, endStr, startStr).Scan(&total)
 		if countErr != nil {
 			return api.PaginatedEmployeeSchedules{}, countErr
 		}
 		rows, qErr := db.Query(ctx, `SELECT emp.id, e.full_name, e.employee_id_number, e.tags, emp.primary_location_id, e.id, emp.start_date::text, emp.end_date::text
 			FROM employees e
 			JOIN employments emp ON emp.employee_id = e.id
-			WHERE e.workspace_id = $1 AND emp.deleted_at IS NULL
-			AND emp.start_date <= $2::date AND (emp.end_date IS NULL OR emp.end_date >= $3::date)
+			WHERE emp.deleted_at IS NULL
+			AND emp.start_date <= $1::date AND (emp.end_date IS NULL OR emp.end_date >= $2::date)
 			ORDER BY emp.start_date DESC, emp.id ASC
-			LIMIT $4 OFFSET $5`, workspaceID, endStr, startStr, limit, offset)
+			LIMIT $3 OFFSET $4`, endStr, startStr, limit, offset)
 		if qErr != nil {
 			return api.PaginatedEmployeeSchedules{}, qErr
 		}
@@ -177,15 +177,15 @@ func (r ScheduleRepository) GetWorkspaceSchedules(ctx context.Context, workspace
 	startStr := startDate.Format("2006-01-02")
 	endStr := endDate.Format("2006-01-02")
 
-	contracts, err := loadContracts(ctx, db, workspaceID, targetEmploymentIDs, startStr, endStr)
+	contracts, err := loadContracts(ctx, db, targetEmploymentIDs, startStr, endStr)
 	if err != nil {
 		return api.PaginatedEmployeeSchedules{}, err
 	}
-	assignments, err := loadAssignments(ctx, db, workspaceID, targetEmploymentIDs, startStr, endStr)
+	assignments, err := loadAssignments(ctx, db, targetEmploymentIDs, startStr, endStr)
 	if err != nil {
 		return api.PaginatedEmployeeSchedules{}, err
 	}
-	holidays, err := loadHolidays(ctx, db, workspaceID, startStr, endStr)
+	holidays, err := loadHolidays(ctx, db, startStr, endStr)
 	if err != nil {
 		return api.PaginatedEmployeeSchedules{}, err
 	}
@@ -193,11 +193,11 @@ func (r ScheduleRepository) GetWorkspaceSchedules(ctx context.Context, workspace
 	if err != nil {
 		return api.PaginatedEmployeeSchedules{}, err
 	}
-	patternAssignments, err := loadPatternAssignments(ctx, db, workspaceID, targetEmploymentIDs, startStr, endStr)
+	patternAssignments, err := loadPatternAssignments(ctx, db, targetEmploymentIDs, startStr, endStr)
 	if err != nil {
 		return api.PaginatedEmployeeSchedules{}, err
 	}
-	rules, err := loadAssignmentRules(ctx, db, workspaceID)
+	rules, err := loadAssignmentRules(ctx, db)
 	if err != nil {
 		return api.PaginatedEmployeeSchedules{}, err
 	}
@@ -209,7 +209,7 @@ func (r ScheduleRepository) GetWorkspaceSchedules(ctx context.Context, workspace
 	if err != nil {
 		return api.PaginatedEmployeeSchedules{}, err
 	}
-	shifts, err := loadShifts(ctx, db, workspaceID)
+	shifts, err := loadShifts(ctx, db)
 	if err != nil {
 		return api.PaginatedEmployeeSchedules{}, err
 	}
@@ -523,13 +523,13 @@ func scanEmployeeRows(rows interface {
 	return empRows, rows.Err()
 }
 
-func loadContracts(ctx context.Context, db DBTX, wsID uuid.UUID, empIDs []uuid.UUID, startStr, endStr string) (map[uuid.UUID][]contractEntry, error) {
+func loadContracts(ctx context.Context, db DBTX, empIDs []uuid.UUID, startStr, endStr string) (map[uuid.UUID][]contractEntry, error) {
 	rows, err := db.Query(ctx, `SELECT ec.employment_id, emp.employer_id, ec.start_date::text, ec.end_date::text
 		FROM employee_contracts ec
 		JOIN employments emp ON emp.id = ec.employment_id
-		WHERE ec.workspace_id = $1 AND ec.employment_id = ANY($2) AND ec.status = 'active' AND ec.deleted_at IS NULL
-		AND ec.start_date <= $3::date AND (ec.end_date IS NULL OR ec.end_date >= $4::date)
-		ORDER BY ec.start_date DESC`, wsID, empIDs, endStr, startStr)
+		WHERE ec.employment_id = ANY($1) AND ec.status = 'active' AND ec.deleted_at IS NULL
+		AND ec.start_date <= $2::date AND (ec.end_date IS NULL OR ec.end_date >= $3::date)
+		ORDER BY ec.start_date DESC`, empIDs, endStr, startStr)
 	if err != nil {
 		return nil, err
 	}
@@ -554,12 +554,12 @@ func loadContracts(ctx context.Context, db DBTX, wsID uuid.UUID, empIDs []uuid.U
 	return res, rows.Err()
 }
 
-func loadAssignments(ctx context.Context, db DBTX, wsID uuid.UUID, empIDs []uuid.UUID, startStr, endStr string) (map[uuid.UUID][]assignmentEntry, error) {
+func loadAssignments(ctx context.Context, db DBTX, empIDs []uuid.UUID, startStr, endStr string) (map[uuid.UUID][]assignmentEntry, error) {
 	rows, err := db.Query(ctx, `SELECT ea.employment_id, ea.host_location_id, ea.start_date::text, ea.end_date::text
 		FROM employee_assignments ea
-		WHERE ea.workspace_id = $1 AND ea.employment_id = ANY($2) AND ea.status = 'active'
-		AND ea.start_date <= $3::date AND (ea.end_date IS NULL OR ea.end_date >= $4::date)
-		ORDER BY ea.start_date DESC`, wsID, empIDs, endStr, startStr)
+		WHERE ea.employment_id = ANY($1) AND ea.status = 'active'
+		AND ea.start_date <= $2::date AND (ea.end_date IS NULL OR ea.end_date >= $3::date)
+		ORDER BY ea.start_date DESC`, empIDs, endStr, startStr)
 	if err != nil {
 		return nil, err
 	}
@@ -584,8 +584,8 @@ func loadAssignments(ctx context.Context, db DBTX, wsID uuid.UUID, empIDs []uuid
 	return res, rows.Err()
 }
 
-func loadHolidays(ctx context.Context, db DBTX, wsID uuid.UUID, startStr, endStr string) (map[string]holidayEntry, error) {
-	rows, err := db.Query(ctx, `SELECT date::text, name, is_paid FROM holidays WHERE workspace_id = $1 AND date >= $2::date AND date <= $3::date`, wsID, startStr, endStr)
+func loadHolidays(ctx context.Context, db DBTX, startStr, endStr string) (map[string]holidayEntry, error) {
+	rows, err := db.Query(ctx, `SELECT date::text, name, is_paid FROM holidays WHERE date >= $1::date AND date <= $2::date`, startStr, endStr)
 	if err != nil {
 		return nil, err
 	}
@@ -621,15 +621,15 @@ func loadShiftRosters(ctx context.Context, db DBTX, empIDs []uuid.UUID, startStr
 	return res, rows.Err()
 }
 
-func loadPatternAssignments(ctx context.Context, db DBTX, wsID uuid.UUID, empIDs []uuid.UUID, startStr, endStr string) (map[uuid.UUID][]patternEntry, error) {
+func loadPatternAssignments(ctx context.Context, db DBTX, empIDs []uuid.UUID, startStr, endStr string) (map[uuid.UUID][]patternEntry, error) {
 	rows, err := db.Query(ctx, `SELECT ewp.employment_id, ewp.pattern_id, ewp.start_date::text, ewp.end_date::text, ewp.anchor_date::text,
 		wp.pattern_type, wp.cycle_length_days, wpd.schedule_day, wpd.template_id
 		FROM employee_working_patterns ewp
 		JOIN working_patterns wp ON wp.id = ewp.pattern_id
 		JOIN working_pattern_details wpd ON wpd.pattern_id = wp.id
-		WHERE ewp.workspace_id = $1 AND ewp.employment_id = ANY($2) AND wp.deleted_at IS NULL AND wp.is_active = true
-		AND ewp.start_date <= $3::date AND (ewp.end_date IS NULL OR ewp.end_date >= $4::date)
-		ORDER BY ewp.created_at DESC`, wsID, empIDs, endStr, startStr)
+		WHERE ewp.employment_id = ANY($1) AND wp.deleted_at IS NULL AND wp.is_active = true
+		AND ewp.start_date <= $2::date AND (ewp.end_date IS NULL OR ewp.end_date >= $3::date)
+		ORDER BY ewp.created_at DESC`, empIDs, endStr, startStr)
 	if err != nil {
 		return nil, err
 	}
@@ -672,13 +672,13 @@ func loadPatternAssignments(ctx context.Context, db DBTX, wsID uuid.UUID, empIDs
 	return res, rows.Err()
 }
 
-func loadAssignmentRules(ctx context.Context, db DBTX, wsID uuid.UUID) ([]assignmentRuleWithDetails, error) {
+func loadAssignmentRules(ctx context.Context, db DBTX) ([]assignmentRuleWithDetails, error) {
 	rows, err := db.Query(ctx, `SELECT ar.id, ar.name, ar.priority, ar.conditions, ar.pattern_id, ar.start_date::text, ar.end_date::text,
 		wpd.schedule_day, wpd.template_id
 		FROM assignment_rules ar
 		LEFT JOIN working_pattern_details wpd ON wpd.pattern_id = ar.pattern_id
-		WHERE ar.workspace_id = $1 AND ar.is_active = true
-		ORDER BY ar.priority DESC, ar.created_at ASC`, wsID)
+		WHERE ar.is_active = true
+		ORDER BY ar.priority DESC, ar.created_at ASC`)
 	if err != nil {
 		return nil, err
 	}
@@ -784,14 +784,13 @@ func loadDeptHistory(ctx context.Context, db DBTX, employeeIDs []uuid.UUID) (map
 	return res, rows.Err()
 }
 
-func loadShifts(ctx context.Context, db DBTX, wsID uuid.UUID) (map[uuid.UUID]shiftTemplateInfo, error) {
+func loadShifts(ctx context.Context, db DBTX) (map[uuid.UUID]shiftTemplateInfo, error) {
 	rows, err := db.Query(ctx, `SELECT st.id, st.name, sv.report_symbol, sdi.start_time::text, sdi.end_time::text,
 		sdi.break_duration_minutes, sdi.break_start::text, sdi.break_end::text, sdi.is_break_auto_deduct,
 		sdi.early_punch_in_grace_period_minutes, sdi.allow_early_ot, sdi.break_is_overtime, sdi.max_early_ot_minutes
 		FROM shift_templates st
 		LEFT JOIN shift_versions sv ON sv.id = st.current_version_id
-		LEFT JOIN shift_default_intervals sdi ON sdi.version_id = sv.id AND sdi.sort_order = 0
-		WHERE st.workspace_id = $1`, wsID)
+		LEFT JOIN shift_default_intervals sdi ON sdi.version_id = sv.id AND sdi.sort_order = 0`)
 	if err != nil {
 		return nil, err
 	}

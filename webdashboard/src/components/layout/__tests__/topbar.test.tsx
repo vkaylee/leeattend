@@ -70,12 +70,12 @@ describe("Topbar Layout Component", () => {
     vi.clearAllMocks();
   });
 
-  it("renders breadcrumb with workspace name and page title", () => {
+  it("renders breadcrumb with organization name and page title", () => {
     render(
       <Topbar
         onOpenMobileMenu={onOpenMobileMenu}
         onOpenSearch={onOpenSearch}
-        workspaceName="Acme Corp"
+        organizationName="Acme Corp"
       />
     );
 
@@ -90,7 +90,7 @@ describe("Topbar Layout Component", () => {
       <Topbar
         onOpenMobileMenu={onOpenMobileMenu}
         onOpenSearch={onOpenSearch}
-        workspaceName="Acme Corp"
+        organizationName="Acme Corp"
       />
     );
 
@@ -105,7 +105,7 @@ describe("Topbar Layout Component", () => {
       <Topbar
         onOpenMobileMenu={onOpenMobileMenu}
         onOpenSearch={onOpenSearch}
-        workspaceName="Acme Corp"
+        organizationName="Acme Corp"
       />
     );
 
@@ -120,7 +120,7 @@ describe("Topbar Layout Component", () => {
       <Topbar
         onOpenMobileMenu={onOpenMobileMenu}
         onOpenSearch={onOpenSearch}
-        workspaceName="Acme Corp"
+        organizationName="Acme Corp"
       />
     );
 
@@ -132,7 +132,7 @@ describe("Topbar Layout Component", () => {
       <Topbar
         onOpenMobileMenu={onOpenMobileMenu}
         onOpenSearch={onOpenSearch}
-        workspaceName="Acme Corp"
+        organizationName="Acme Corp"
       />
     );
 
@@ -147,7 +147,7 @@ describe("Topbar Layout Component", () => {
         isSettings={true}
         onOpenMobileMenu={onOpenMobileMenu}
         onOpenSearch={onOpenSearch}
-        workspaceName="Acme Corp"
+        organizationName="Acme Corp"
       />
     );
 

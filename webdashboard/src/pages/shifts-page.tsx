@@ -23,18 +23,11 @@ export default function ShiftsPage() {
     activeTab,
     selectedEmployee,
     setActiveTab,
-    wsId,
     viewMode,
     setViewMode,
   } = hook;
 
-  if (!wsId) {
-    return (
-      <div className="p-12 text-center text-slate-500 dark:text-slate-400 font-bold italic uppercase tracking-widest text-xs opacity-50">
-        {t("common.select_workspace")}
-      </div>
-    );
-  }
+  
 
   return (
     <div className="space-y-6">

@@ -1,7 +1,7 @@
 {
   "workspace_settings": {
-    "title": "工作空间设置",
-    "description": "管理配置、人员和工作空间外观。",
+    "title": "组织设置",
+    "description": "管理配置、人员和组织外观。",
     "general_config": "常规配置",
     "payroll_config": "薪资配置",
     "attendance_config": "考勤配置",
@@ -206,7 +206,7 @@
   "settings": {
     "categories": {
       "general": "通用设置",
-      "general_desc": "品牌和基本工作区选项。",
+      "general_desc": "品牌和基本组织选项。",
       "locations": "办公地点",
       "locations_desc": "管理物理分支机构和办公地点。",
       "custom_fields": "自定义字段",
@@ -293,7 +293,7 @@
         "bool_true": "真 (True)",
         "bool_false": "假 (False)",
         "scopes": {
-          "workspace": "工作空间",
+          "workspace": "组织",
           "employer": "雇主",
           "department": "部门",
           "employee": "员工"
@@ -327,7 +327,7 @@
     },
     "leave": {
       "title": "请假设置",
-      "desc": "配置您工作区的请假类型和累计政策。",
+      "desc": "配置您组织的请假类型和累计政策。",
       "tabs": {
         "types": "请假类型",
         "policies": "累计政策",
@@ -383,7 +383,7 @@
         "paid": "有薪",
         "unpaid": "无薪",
         "empty_title": "未配置任何请假类型",
-        "empty_desc": "您的工作区全新且干净。开始手动创建请假类型或使用我们的专业模板。",
+        "empty_desc": "您的组织全新且干净。开始手动创建请假类型或使用我们的专业模板。",
         "get_started": "开始使用",
         "loading": "正在加载请假类型...",
         "confirm_delete_title": "确认删除",
@@ -550,7 +550,7 @@
       "control_panel": "系统配置",
       "operations": "业务与运营",
       "security_system": "安全与系统",
-      "workspace": "工作区"
+      "workspace": "组织"
     },
     "workflows": {
       "general_section": "基本配置",
@@ -592,7 +592,7 @@
       "choose_role_placeholder": "请选择角色...",
       "select_permission_label": "选择权限",
       "choose_permission_placeholder": "请选择权限...",
-      "search_user_label": "搜索工作空间用户",
+      "search_user_label": "搜索组织用户",
       "search_user_placeholder": "输入以搜索用户...",
       "search_members_placeholder": "搜索成员...",
       "no_members_found": "未找到成员",
@@ -698,7 +698,7 @@
         "assignee_direct_manager": "直属经理",
         "assignee_it_admin": "IT 管理员",
         "assignee_employee": "本人（员工）",
-        "assignee_specific_user": "指定工作区用户"
+        "assignee_specific_user": "指定组织用户"
       }
     },
     "expand_sidebar": "展开侧边栏",

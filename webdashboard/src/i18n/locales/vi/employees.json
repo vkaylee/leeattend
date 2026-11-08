@@ -143,7 +143,7 @@
       "remove_member": "Xóa thành viên",
       "messages": {
         "remove_error": "Lỗi khi xóa thành viên.",
-        "no_members": "Không tìm thấy thành viên nào trong workspace này."
+        "no_members": "Không tìm thấy thành viên nào trong tổ chức này."
       }
     },
     "invite": {
@@ -370,7 +370,7 @@
       "no_conditions": "Chưa có điều kiện làm việc nào được cấu hình",
       "policy_desc": "Ghi đè chính sách chấm công cho nhân viên này",
       "no_assignments": "Chưa ghi đè chính sách",
-      "no_assignments_desc": "Nhân viên sử dụng quy tắc mặc định của workspace. Nhấn \"Thêm mới\" để gán chính sách chấm công riêng.",
+      "no_assignments_desc": "Nhân viên sử dụng quy tắc mặc định của tổ chức. Nhấn \"Thêm mới\" để gán chính sách chấm công riêng.",
       "delete_assign_warning": "Xoá ghi đè chính sách này? Nhân viên sẽ trở về quy tắc mặc định."
     },
     "salary": {
@@ -410,7 +410,7 @@
       "no_history_desc": "Dữ liệu lịch sử lương và các thành phần phụ cấp của nhân viên sẽ xuất hiện tại đây khi được cập nhật.",
       "fetch_error": "Không thể tải lịch sử lương."
     },
-    "select_workspace": "Vui lòng chọn Không gian làm việc",
+    "select_workspace": "Vui lòng chọn tổ chức",
     "hire_date": "Ngày vào làm",
     "bulk_import_title": "Nhập nhân viên hàng loạt",
     "bulk_import_btn": "Nhập từ File",
@@ -528,13 +528,13 @@
     "subtitle": "Quản lý thông tin cá nhân và cài đặt tài khoản",
     "join_date": "Ngày tham gia",
     "preferred_language": "Ngôn ngữ ưu tiên",
-    "follow_workspace": "Theo cài đặt Workspace",
+    "follow_workspace": "Theo cài đặt tổ chức",
     "bio": "Tiểu sử",
     "bio_placeholder": "Giới thiệu ngắn về bản thân bạn...",
     "personalization": {
       "title": "Cá nhân hóa",
       "subtitle": "Tùy chỉnh màu sắc giao diện cá nhân",
-      "use_workspace_default": "Dùng mặc định của Workspace",
+      "use_workspace_default": "Dùng mặc định của tổ chức",
       "note": "* Thay đổi này chỉ áp dụng cho bạn trên trình duyệt này."
     },
     "security": {

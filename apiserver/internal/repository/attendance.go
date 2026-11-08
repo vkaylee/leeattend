@@ -17,24 +17,24 @@ import (
 // AttendanceRepository persists punch events and paired time entries.
 type AttendanceRepository struct {
 	DB      DBTX
-	BeginTx func(context.Context, uuid.UUID) (TxBeginner, error)
+	BeginTx func(context.Context) (TxBeginner, error)
 }
 
-// TxBeginner starts a transaction on a workspace-scoped tenant connection.
+// TxBeginner starts a database transaction.
 type TxBeginner interface {
 	Begin(context.Context) (pgx.Tx, error)
 }
 
 // PunchIn writes the raw attendance log and opens a time entry.
-func (r AttendanceRepository) PunchIn(ctx context.Context, workspaceID, employmentID uuid.UUID, entryType string, note *string, isBreakOvertime bool, punchTime time.Time) (api.TimeEntryRecord, error) {
-	tx, err := r.begin(ctx, workspaceID)
+func (r AttendanceRepository) PunchIn(ctx context.Context, employmentID uuid.UUID, entryType string, note *string, isBreakOvertime bool, punchTime time.Time) (api.TimeEntryRecord, error) {
+	tx, err := r.begin(ctx)
 	if err != nil {
 		return api.TimeEntryRecord{}, err
 	}
 	var record api.TimeEntryRecord
 	err = service.WithTx(ctx, tx, func(ctx context.Context, tx pgx.Tx) error {
 		var active bool
-		if err := tx.QueryRow(ctx, `SELECT status = 'active' FROM employments WHERE id = $1 AND workspace_id = $2 AND deleted_at IS NULL`, employmentID, workspaceID).Scan(&active); err != nil {
+		if err := tx.QueryRow(ctx, `SELECT status = 'active' FROM employments WHERE id = $1 AND deleted_at IS NULL`, employmentID).Scan(&active); err != nil {
 			return err
 		}
 		if !active {
@@ -49,14 +49,14 @@ func (r AttendanceRepository) PunchIn(ctx context.Context, workspaceID, employme
 		if err != nil {
 			return err
 		}
-		cmd, err := tx.Exec(ctx, `INSERT INTO raw_attendance_logs (id, workspace_id, employment_id, punch_time, source, raw_data, punch, status, created_at) VALUES ($1, $2, $3, $4, 'manual', $5, 0, 1, CURRENT_TIMESTAMP) ON CONFLICT (workspace_id, employment_id, punch_time, punch, status) DO NOTHING`, uuid.New(), workspaceID, employmentID, punchTime, rawData)
+		cmd, err := tx.Exec(ctx, `INSERT INTO raw_attendance_logs (id, employment_id, punch_time, source, raw_data, punch, status, created_at) VALUES ($1, $2, $3, 'manual', $4, 0, 1, CURRENT_TIMESTAMP) ON CONFLICT (employment_id, punch_time, punch, status) DO NOTHING`, uuid.New(), employmentID, punchTime, rawData)
 		if err != nil {
 			return err
 		}
 		if cmd.RowsAffected() == 0 {
-			return scanLatestTimeEntry(ctx, tx, workspaceID, employmentID, &record)
+			return scanLatestTimeEntry(ctx, tx, employmentID, &record)
 		}
-		row := tx.QueryRow(ctx, `INSERT INTO time_entries (id, workspace_id, employment_id, punch_in_time, entry_type, note, is_break_overtime, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6, $7, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP) RETURNING id, workspace_id, employment_id, template_id, segment_id, punch_in_time, punch_out_time, duration_minutes, is_break_overtime, entry_type, note, generation_metadata, created_at, updated_at`, uuid.New(), workspaceID, employmentID, punchTime, entryType, note, isBreakOvertime)
+		row := tx.QueryRow(ctx, `INSERT INTO time_entries (id, employment_id, punch_in_time, entry_type, note, is_break_overtime, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP) RETURNING id, employment_id, template_id, segment_id, punch_in_time, punch_out_time, duration_minutes, is_break_overtime, entry_type, note, generation_metadata, created_at, updated_at`, uuid.New(), employmentID, punchTime, entryType, note, isBreakOvertime)
 		return scanTimeEntry(row, &record)
 	})
 	if err != nil {
@@ -66,14 +66,14 @@ func (r AttendanceRepository) PunchIn(ctx context.Context, workspaceID, employme
 }
 
 // PunchOut records a raw checkout event and returns the latest paired entry.
-func (r AttendanceRepository) PunchOut(ctx context.Context, workspaceID, employeeID uuid.UUID, note *string, punchTime time.Time) (api.TimeEntryRecord, error) {
-	tx, err := r.begin(ctx, workspaceID)
+func (r AttendanceRepository) PunchOut(ctx context.Context, employeeID uuid.UUID, note *string, punchTime time.Time) (api.TimeEntryRecord, error) {
+	tx, err := r.begin(ctx)
 	if err != nil {
 		return api.TimeEntryRecord{}, err
 	}
 	var record api.TimeEntryRecord
 	err = service.WithTx(ctx, tx, func(ctx context.Context, db pgx.Tx) error {
-		employmentID, err := resolveActiveEmployment(ctx, db, workspaceID, employeeID)
+		employmentID, err := resolveActiveEmployment(ctx, db, employeeID)
 		if err != nil {
 			return err
 		}
@@ -86,13 +86,13 @@ func (r AttendanceRepository) PunchOut(ctx context.Context, workspaceID, employe
 		if err != nil {
 			return err
 		}
-		if _, err := db.Exec(ctx, `INSERT INTO raw_attendance_logs (id, workspace_id, employment_id, punch_time, source, raw_data, punch, status, created_at) VALUES ($1, $2, $3, $4, 'manual', $5, 1, 1, CURRENT_TIMESTAMP) ON CONFLICT (workspace_id, employment_id, punch_time, punch, status) DO NOTHING`, uuid.New(), workspaceID, employmentID, punchTime, rawData); err != nil {
+		if _, err := db.Exec(ctx, `INSERT INTO raw_attendance_logs (id, employment_id, punch_time, source, raw_data, punch, status, created_at) VALUES ($1, $2, $3, 'manual', $4, 1, 1, CURRENT_TIMESTAMP) ON CONFLICT (employment_id, punch_time, punch, status) DO NOTHING`, uuid.New(), employmentID, punchTime, rawData); err != nil {
 			return err
 		}
-		if _, err := db.Exec(ctx, `UPDATE time_entries SET punch_out_time = $1, duration_minutes = GREATEST(0, FLOOR(EXTRACT(EPOCH FROM ($1 - punch_in_time)) / 60)::integer), note = COALESCE($2, note), updated_at = CURRENT_TIMESTAMP WHERE id = (SELECT id FROM time_entries WHERE workspace_id = $3 AND employment_id = $4 AND punch_out_time IS NULL ORDER BY punch_in_time DESC LIMIT 1)`, punchTime, note, workspaceID, employmentID); err != nil {
+		if _, err := db.Exec(ctx, `UPDATE time_entries SET punch_out_time = $1, duration_minutes = GREATEST(0, FLOOR(EXTRACT(EPOCH FROM ($1 - punch_in_time)) / 60)::integer), note = COALESCE($2, note), updated_at = CURRENT_TIMESTAMP WHERE id = (SELECT id FROM time_entries WHERE employment_id = $3 AND punch_out_time IS NULL ORDER BY punch_in_time DESC LIMIT 1)`, punchTime, note, employmentID); err != nil {
 			return err
 		}
-		return scanLatestTimeEntry(ctx, db, workspaceID, employmentID, &record)
+		return scanLatestTimeEntry(ctx, db, employmentID, &record)
 	})
 	if err != nil {
 		return api.TimeEntryRecord{}, err
@@ -101,19 +101,19 @@ func (r AttendanceRepository) PunchOut(ctx context.Context, workspaceID, employe
 }
 
 // ESSPunch toggles punch in / punch out for an employee based on whether an active session exists.
-func (r AttendanceRepository) ESSPunch(ctx context.Context, workspaceID, employeeID uuid.UUID, entryType string, note *string, punchTime time.Time) (api.TimeEntryRecord, error) {
-	tx, err := r.begin(ctx, workspaceID)
+func (r AttendanceRepository) ESSPunch(ctx context.Context, employeeID uuid.UUID, entryType string, note *string, punchTime time.Time) (api.TimeEntryRecord, error) {
+	tx, err := r.begin(ctx)
 	if err != nil {
 		return api.TimeEntryRecord{}, err
 	}
 	var record api.TimeEntryRecord
 	err = service.WithTx(ctx, tx, func(ctx context.Context, db pgx.Tx) error {
-		employmentID, err := resolveActiveEmployment(ctx, db, workspaceID, employeeID)
+		employmentID, err := resolveActiveEmployment(ctx, db, employeeID)
 		if err != nil {
 			return err
 		}
 		var openEntryID *uuid.UUID
-		err = db.QueryRow(ctx, `SELECT id FROM time_entries WHERE workspace_id = $1 AND employment_id = $2 AND punch_out_time IS NULL ORDER BY punch_in_time DESC LIMIT 1`, workspaceID, employmentID).Scan(&openEntryID)
+		err = db.QueryRow(ctx, `SELECT id FROM time_entries WHERE employment_id = $1 AND punch_out_time IS NULL ORDER BY punch_in_time DESC LIMIT 1`, employmentID).Scan(&openEntryID)
 		if err != nil && !errors.Is(err, pgx.ErrNoRows) {
 			return err
 		}
@@ -127,13 +127,13 @@ func (r AttendanceRepository) ESSPunch(ctx context.Context, workspaceID, employe
 			if err != nil {
 				return err
 			}
-			if _, err := db.Exec(ctx, `INSERT INTO raw_attendance_logs (id, workspace_id, employment_id, punch_time, source, raw_data, punch, status, created_at) VALUES ($1, $2, $3, $4, 'manual', $5, 1, 1, CURRENT_TIMESTAMP) ON CONFLICT (workspace_id, employment_id, punch_time, punch, status) DO NOTHING`, uuid.New(), workspaceID, employmentID, punchTime, rawData); err != nil {
+			if _, err := db.Exec(ctx, `INSERT INTO raw_attendance_logs (id, employment_id, punch_time, source, raw_data, punch, status, created_at) VALUES ($1, $2, $3, 'manual', $4, 1, 1, CURRENT_TIMESTAMP) ON CONFLICT (employment_id, punch_time, punch, status) DO NOTHING`, uuid.New(), employmentID, punchTime, rawData); err != nil {
 				return err
 			}
 			if _, err := db.Exec(ctx, `UPDATE time_entries SET punch_out_time = $1, duration_minutes = GREATEST(0, FLOOR(EXTRACT(EPOCH FROM ($1 - punch_in_time)) / 60)::integer), note = COALESCE($2, note), updated_at = CURRENT_TIMESTAMP WHERE id = $3`, punchTime, note, *openEntryID); err != nil {
 				return err
 			}
-			return scanLatestTimeEntry(ctx, db, workspaceID, employmentID, &record)
+			return scanLatestTimeEntry(ctx, db, employmentID, &record)
 		}
 
 		if entryType == "" {
@@ -148,14 +148,14 @@ func (r AttendanceRepository) ESSPunch(ctx context.Context, workspaceID, employe
 		if err != nil {
 			return err
 		}
-		cmd, err := db.Exec(ctx, `INSERT INTO raw_attendance_logs (id, workspace_id, employment_id, punch_time, source, raw_data, punch, status, created_at) VALUES ($1, $2, $3, $4, 'manual', $5, 0, 1, CURRENT_TIMESTAMP) ON CONFLICT (workspace_id, employment_id, punch_time, punch, status) DO NOTHING`, uuid.New(), workspaceID, employmentID, punchTime, rawData)
+		cmd, err := db.Exec(ctx, `INSERT INTO raw_attendance_logs (id, employment_id, punch_time, source, raw_data, punch, status, created_at) VALUES ($1, $2, $3, 'manual', $4, 0, 1, CURRENT_TIMESTAMP) ON CONFLICT (employment_id, punch_time, punch, status) DO NOTHING`, uuid.New(), employmentID, punchTime, rawData)
 		if err != nil {
 			return err
 		}
 		if cmd.RowsAffected() == 0 {
-			return scanLatestTimeEntry(ctx, db, workspaceID, employmentID, &record)
+			return scanLatestTimeEntry(ctx, db, employmentID, &record)
 		}
-		row := db.QueryRow(ctx, `INSERT INTO time_entries (id, workspace_id, employment_id, punch_in_time, entry_type, note, is_break_overtime, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6, false, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP) RETURNING id, workspace_id, employment_id, template_id, segment_id, punch_in_time, punch_out_time, duration_minutes, is_break_overtime, entry_type, note, generation_metadata, created_at, updated_at`, uuid.New(), workspaceID, employmentID, punchTime, entryType, note)
+		row := db.QueryRow(ctx, `INSERT INTO time_entries (id, employment_id, punch_in_time, entry_type, note, is_break_overtime, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, false, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP) RETURNING id, employment_id, template_id, segment_id, punch_in_time, punch_out_time, duration_minutes, is_break_overtime, entry_type, note, generation_metadata, created_at, updated_at`, uuid.New(), employmentID, punchTime, entryType, note)
 		return scanTimeEntry(row, &record)
 	})
 	if err != nil {
@@ -171,9 +171,9 @@ func (r AttendanceRepository) db(ctx context.Context) (DBTX, error) {
 	return r.DB, nil
 }
 
-func resolveActiveEmployment(ctx context.Context, db DBTX, workspaceID, employeeID uuid.UUID) (uuid.UUID, error) {
+func resolveActiveEmployment(ctx context.Context, db DBTX, employeeID uuid.UUID) (uuid.UUID, error) {
 	var exists bool
-	if err := db.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM employees WHERE id = $1 AND workspace_id = $2 AND deleted_at IS NULL)`, employeeID, workspaceID).Scan(&exists); err != nil {
+	if err := db.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM employees WHERE id = $1 AND deleted_at IS NULL)`, employeeID).Scan(&exists); err != nil {
 		return uuid.Nil, err
 	}
 	if !exists {
@@ -181,7 +181,7 @@ func resolveActiveEmployment(ctx context.Context, db DBTX, workspaceID, employee
 	}
 	var employmentID uuid.UUID
 	var status string
-	err := db.QueryRow(ctx, `SELECT id, status FROM employments WHERE employee_id = $1 AND workspace_id = $2 AND deleted_at IS NULL ORDER BY (status = 'active') DESC, start_date DESC, id DESC LIMIT 1`, employeeID, workspaceID).Scan(&employmentID, &status)
+	err := db.QueryRow(ctx, `SELECT id, status FROM employments WHERE employee_id = $1 AND deleted_at IS NULL ORDER BY (status = 'active') DESC, start_date DESC, id DESC LIMIT 1`, employeeID).Scan(&employmentID, &status)
 	if err != nil {
 		return uuid.Nil, api.ErrNoActiveEmployment
 	}
@@ -191,22 +191,22 @@ func resolveActiveEmployment(ctx context.Context, db DBTX, workspaceID, employee
 	return employmentID, nil
 }
 
-func scanLatestTimeEntry(ctx context.Context, db DBTX, workspaceID, employmentID uuid.UUID, record *api.TimeEntryRecord) error {
-	row := db.QueryRow(ctx, `SELECT id, workspace_id, employment_id, template_id, segment_id, punch_in_time, punch_out_time, duration_minutes, is_break_overtime, entry_type, note, generation_metadata, created_at, updated_at FROM time_entries WHERE workspace_id = $1 AND employment_id = $2 ORDER BY punch_in_time DESC LIMIT 1`, workspaceID, employmentID)
+func scanLatestTimeEntry(ctx context.Context, db DBTX, employmentID uuid.UUID, record *api.TimeEntryRecord) error {
+	row := db.QueryRow(ctx, `SELECT id, employment_id, template_id, segment_id, punch_in_time, punch_out_time, duration_minutes, is_break_overtime, entry_type, note, generation_metadata, created_at, updated_at FROM time_entries WHERE employment_id = $1 ORDER BY punch_in_time DESC LIMIT 1`, employmentID)
 	return scanTimeEntry(row, record)
 }
 
 // ListTimeHistory returns entries for an employee's active employment.
-func (r AttendanceRepository) ListTimeHistory(ctx context.Context, workspaceID, employeeID uuid.UUID, start, end time.Time) ([]api.TimeEntryRecord, error) {
+func (r AttendanceRepository) ListTimeHistory(ctx context.Context, employeeID uuid.UUID, start, end time.Time) ([]api.TimeEntryRecord, error) {
 	db, err := r.db(ctx)
 	if err != nil {
 		return nil, err
 	}
-	employmentID, err := resolveActiveEmployment(ctx, db, workspaceID, employeeID)
+	employmentID, err := resolveActiveEmployment(ctx, db, employeeID)
 	if err != nil {
 		return nil, err
 	}
-	rows, err := db.Query(ctx, `SELECT id, workspace_id, employment_id, template_id, segment_id, punch_in_time, punch_out_time, duration_minutes, is_break_overtime, entry_type, note, generation_metadata, created_at, updated_at FROM time_entries WHERE workspace_id = $1 AND employment_id = $2 AND punch_in_time >= $3 AND punch_in_time <= $4 ORDER BY punch_in_time DESC`, workspaceID, employmentID, start, end)
+	rows, err := db.Query(ctx, `SELECT id, employment_id, template_id, segment_id, punch_in_time, punch_out_time, duration_minutes, is_break_overtime, entry_type, note, generation_metadata, created_at, updated_at FROM time_entries WHERE employment_id = $1 AND punch_in_time >= $2 AND punch_in_time <= $3 ORDER BY punch_in_time DESC`, employmentID, start, end)
 	if err != nil {
 		return nil, err
 	}
@@ -222,25 +222,26 @@ func (r AttendanceRepository) ListTimeHistory(ctx context.Context, workspaceID, 
 	return entries, rows.Err()
 }
 
-// IsEmployeeOwnedByUser checks workspace-scoped employee ownership.
-func (r AttendanceRepository) IsEmployeeOwnedByUser(ctx context.Context, workspaceID, employeeID, userID uuid.UUID) (bool, error) {
+// IsEmployeeOwnedByUser reports whether the employee record belongs to the user.
+func (r AttendanceRepository) IsEmployeeOwnedByUser(ctx context.Context, employeeID, userID uuid.UUID) (bool, error) {
 	db, err := r.db(ctx)
 	if err != nil {
 		return false, err
 	}
 	var owned bool
-	err = db.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM employees WHERE id = $1 AND workspace_id = $2 AND user_id = $3 AND deleted_at IS NULL)`, employeeID, workspaceID, userID).Scan(&owned)
+	err = db.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM employees WHERE id = $1 AND user_id = $2 AND deleted_at IS NULL)`, employeeID, userID).Scan(&owned)
 	return owned, err
 }
 
+
 // CreateAdjustment inserts a pending manual adjustment matching schema.
-func (r AttendanceRepository) CreateAdjustment(ctx context.Context, workspaceID uuid.UUID, req api.AdjustmentRequest, requestedByUserID uuid.UUID) (api.AdjustmentRecord, error) {
+func (r AttendanceRepository) CreateAdjustment(ctx context.Context, req api.AdjustmentRequest, requestedByUserID uuid.UUID) (api.AdjustmentRecord, error) {
 	db, err := r.db(ctx)
 	if err != nil {
 		return api.AdjustmentRecord{}, err
 	}
 	var exists bool
-	err = db.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM employments WHERE id = $1 AND workspace_id = $2 AND deleted_at IS NULL)`, req.EmploymentID, workspaceID).Scan(&exists)
+	err = db.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM employments WHERE id = $1 AND deleted_at IS NULL)`, req.EmploymentID).Scan(&exists)
 	if err != nil {
 		return api.AdjustmentRecord{}, err
 	}
@@ -266,17 +267,17 @@ func (r AttendanceRepository) CreateAdjustment(ctx context.Context, workspaceID 
 	return record, nil
 }
 
-func (r AttendanceRepository) ListAdjustments(ctx context.Context, workspaceID uuid.UUID, status *string, employeeID *uuid.UUID, page, limit int) (api.PaginatedAdjustments, error) {
+func (r AttendanceRepository) ListAdjustments(ctx context.Context, status *string, employeeID *uuid.UUID, page, limit int) (api.PaginatedAdjustments, error) {
 	db, err := r.db(ctx)
 	if err != nil {
 		return api.PaginatedAdjustments{}, err
 	}
 	offset := (page - 1) * limit
 	var total int64
-	if err := db.QueryRow(ctx, `SELECT count(*) FROM attendance_adjustment_requests a JOIN employments em ON em.id = a.employment_id JOIN employees e ON e.id = em.employee_id WHERE e.workspace_id = $1 AND ($2::text IS NULL OR a.status::text = $2) AND ($3::uuid IS NULL OR e.id = $3)`, workspaceID, status, employeeID).Scan(&total); err != nil {
+	if err := db.QueryRow(ctx, `SELECT count(*) FROM attendance_adjustment_requests a JOIN employments em ON em.id = a.employment_id WHERE ($1::text IS NULL OR a.status::text = $1) AND ($2::uuid IS NULL OR em.employee_id = $2)`, status, employeeID).Scan(&total); err != nil {
 		return api.PaginatedAdjustments{}, err
 	}
-	rows, err := db.Query(ctx, `SELECT a.id, a.employment_id, a.time_entry_id, a.requested_punch_time, a.reason, a.status::text, a.requested_by_user_id, a.approved_by_user_id, a.attachment_file_ids, a.created_at, a.updated_at FROM attendance_adjustment_requests a JOIN employments em ON em.id = a.employment_id JOIN employees e ON e.id = em.employee_id WHERE e.workspace_id = $1 AND ($2::text IS NULL OR a.status::text = $2) AND ($3::uuid IS NULL OR e.id = $3) ORDER BY a.created_at DESC LIMIT $4 OFFSET $5`, workspaceID, status, employeeID, limit, offset)
+	rows, err := db.Query(ctx, `SELECT a.id, a.employment_id, a.time_entry_id, a.requested_punch_time, a.reason, a.status::text, a.requested_by_user_id, a.approved_by_user_id, a.attachment_file_ids, a.created_at, a.updated_at FROM attendance_adjustment_requests a JOIN employments em ON em.id = a.employment_id WHERE ($1::text IS NULL OR a.status::text = $1) AND ($2::uuid IS NULL OR em.employee_id = $2) ORDER BY a.created_at DESC LIMIT $3 OFFSET $4`, status, employeeID, limit, offset)
 	if err != nil {
 		return api.PaginatedAdjustments{}, err
 	}
@@ -295,12 +296,12 @@ func (r AttendanceRepository) ListAdjustments(ctx context.Context, workspaceID u
 	return api.PaginatedAdjustments{Data: data, Total: total, Page: page, Limit: limit}, nil
 }
 
-func (r AttendanceRepository) ListEmployeeAdjustments(ctx context.Context, workspaceID, employeeID uuid.UUID) ([]api.AdjustmentRecord, error) {
+func (r AttendanceRepository) ListEmployeeAdjustments(ctx context.Context, employeeID uuid.UUID) ([]api.AdjustmentRecord, error) {
 	db, err := r.db(ctx)
 	if err != nil {
 		return nil, err
 	}
-	rows, err := db.Query(ctx, `SELECT a.id, a.employment_id, a.time_entry_id, a.requested_punch_time, a.reason, a.status::text, a.requested_by_user_id, a.approved_by_user_id, a.attachment_file_ids, a.created_at, a.updated_at FROM attendance_adjustment_requests a JOIN employments em ON em.id = a.employment_id JOIN employees e ON e.id = em.employee_id WHERE e.workspace_id = $1 AND e.id = $2 ORDER BY a.created_at DESC`, workspaceID, employeeID)
+	rows, err := db.Query(ctx, `SELECT a.id, a.employment_id, a.time_entry_id, a.requested_punch_time, a.reason, a.status::text, a.requested_by_user_id, a.approved_by_user_id, a.attachment_file_ids, a.created_at, a.updated_at FROM attendance_adjustment_requests a JOIN employments em ON em.id = a.employment_id WHERE em.employee_id = $1 ORDER BY a.created_at DESC`, employeeID)
 	if err != nil {
 		return nil, err
 	}
@@ -316,15 +317,15 @@ func (r AttendanceRepository) ListEmployeeAdjustments(ctx context.Context, works
 	return data, rows.Err()
 }
 
-func (r AttendanceRepository) ApproveAdjustment(ctx context.Context, workspaceID, adjustmentID, approverID uuid.UUID, status string) error {
-	tx, err := r.begin(ctx, workspaceID)
+func (r AttendanceRepository) ApproveAdjustment(ctx context.Context, adjustmentID, approverID uuid.UUID, status string) error {
+	tx, err := r.begin(ctx)
 	if err != nil {
 		return err
 	}
 	return service.WithTx(ctx, tx, func(ctx context.Context, db pgx.Tx) error {
 		var employmentID uuid.UUID
 		var requestedPunchTime time.Time
-		row := db.QueryRow(ctx, `SELECT a.employment_id, a.requested_punch_time FROM attendance_adjustment_requests a JOIN employments em ON em.id = a.employment_id JOIN employees e ON e.id = em.employee_id WHERE a.id = $1 AND e.workspace_id = $2 FOR UPDATE`, adjustmentID, workspaceID)
+		row := db.QueryRow(ctx, `SELECT employment_id, requested_punch_time FROM attendance_adjustment_requests WHERE id = $1 FOR UPDATE`, adjustmentID)
 		if err := row.Scan(&employmentID, &requestedPunchTime); err != nil {
 			return err
 		}
@@ -338,7 +339,7 @@ func (r AttendanceRepository) ApproveAdjustment(ctx context.Context, workspaceID
 		if status != "approved" {
 			return nil
 		}
-		_, err = db.Exec(ctx, `INSERT INTO raw_attendance_logs (id, workspace_id, employment_id, punch_time, source, raw_data, punch, status, created_at) VALUES ($1, $2, $3, $4, 'manual', NULL, 0, 0, CURRENT_TIMESTAMP)`, uuid.New(), workspaceID, employmentID, requestedPunchTime)
+		_, err = db.Exec(ctx, `INSERT INTO raw_attendance_logs (id, employment_id, punch_time, source, raw_data, punch, status, created_at) VALUES ($1, $2, $3, 'manual', NULL, 0, 0, CURRENT_TIMESTAMP)`, uuid.New(), employmentID, requestedPunchTime)
 		return err
 	})
 }
@@ -354,18 +355,14 @@ func scanAdjustment(row pgx.Row, record *api.AdjustmentRecord) error {
 	return nil
 }
 
-func (r AttendanceRepository) begin(ctx context.Context, workspaceID uuid.UUID) (TxBeginner, error) {
+func (r AttendanceRepository) begin(ctx context.Context) (TxBeginner, error) {
 	if r.BeginTx != nil {
-		return r.BeginTx(ctx, workspaceID)
+		return r.BeginTx(ctx)
 	}
 	if r.DB == nil {
 		return nil, errors.New("attendance repository: database is not configured")
 	}
-	db, err := r.db(ctx)
-	if err != nil {
-		return nil, err
-	}
-	beginner, ok := db.(TxBeginner)
+	beginner, ok := r.DB.(TxBeginner)
 	if !ok {
 		return nil, errors.New("attendance repository: database does not support transactions")
 	}
@@ -376,7 +373,7 @@ func scanTimeEntry(row pgx.Row, record *api.TimeEntryRecord) error {
 	var punchIn, createdAt, updatedAt time.Time
 	var punchOut *time.Time
 	var metadata []byte
-	if err := row.Scan(&record.ID, &record.WorkspaceID, &record.EmploymentID, &record.ShiftID, &record.SegmentID, &punchIn, &punchOut, &record.DurationMinutes, &record.IsBreakOvertime, &record.EntryType, &record.Note, &metadata, &createdAt, &updatedAt); err != nil {
+	if err := row.Scan(&record.ID, &record.EmploymentID, &record.ShiftID, &record.SegmentID, &punchIn, &punchOut, &record.DurationMinutes, &record.IsBreakOvertime, &record.EntryType, &record.Note, &metadata, &createdAt, &updatedAt); err != nil {
 		return err
 	}
 	record.PunchInTime = punchIn.UTC().Format(time.RFC3339)
@@ -392,8 +389,8 @@ func scanTimeEntry(row pgx.Row, record *api.TimeEntryRecord) error {
 	return nil
 }
 
-// GetAttendanceSummaries queries paginated daily summaries from tenant DB.
-func (r AttendanceRepository) GetAttendanceSummaries(ctx context.Context, workspaceID uuid.UUID, startDate, endDate string, employeeID *uuid.UUID, otStatus *string, page, limit int) (api.PaginatedSummaries, error) {
+// GetAttendanceSummaries queries paginated daily summaries.
+func (r AttendanceRepository) GetAttendanceSummaries(ctx context.Context, startDate, endDate string, employeeID *uuid.UUID, otStatus *string, page, limit int) (api.PaginatedSummaries, error) {
 	db, err := r.db(ctx)
 	if err != nil {
 		return api.PaginatedSummaries{}, err
@@ -406,12 +403,12 @@ func (r AttendanceRepository) GetAttendanceSummaries(ctx context.Context, worksp
 	}
 	offset := (page - 1) * limit
 
-	whereClauses := []string{"s.workspace_id = $1", "s.date >= $2", "s.date <= $3"}
-	args := []interface{}{workspaceID, startDate, endDate}
-	idx := 4
+	whereClauses := []string{"s.date >= $1", "s.date <= $2"}
+	args := []interface{}{startDate, endDate}
+	idx := 3
 
 	if employeeID != nil {
-		whereClauses = append(whereClauses, fmt.Sprintf("s.employment_id IN (SELECT id FROM employments WHERE employee_id = $%d AND workspace_id = $1)", idx))
+		whereClauses = append(whereClauses, fmt.Sprintf("s.employment_id IN (SELECT id FROM employments WHERE employee_id = $%d)", idx))
 		args = append(args, *employeeID)
 		idx++
 	}
@@ -429,7 +426,7 @@ func (r AttendanceRepository) GetAttendanceSummaries(ctx context.Context, worksp
 		return api.PaginatedSummaries{}, err
 	}
 
-	dataQuery := fmt.Sprintf(`SELECT s.id, s.workspace_id, s.employment_id, s.date::text, s.actual_work_minutes, s.standard_minutes, s.system_detected_ot_minutes, s.claimed_ot_minutes, s.approved_ot_minutes, s.early_ot_minutes, s.late_ot_minutes, s.break_ot_minutes, s.ot_status::text, s.ot_reason, s.manager_note, s.is_weekend, s.is_holiday, s.holiday_name, s.created_at, s.updated_at FROM attendance_daily_summaries s WHERE %s ORDER BY s.date DESC LIMIT $%d OFFSET $%d`, whereSQL, idx, idx+1)
+	dataQuery := fmt.Sprintf(`SELECT s.id, s.employment_id, s.date::text, s.actual_work_minutes, s.standard_minutes, s.system_detected_ot_minutes, s.claimed_ot_minutes, s.approved_ot_minutes, s.early_ot_minutes, s.late_ot_minutes, s.break_ot_minutes, s.ot_status::text, s.ot_reason, s.manager_note, s.is_weekend, s.is_holiday, s.holiday_name, s.created_at, s.updated_at FROM attendance_daily_summaries s WHERE %s ORDER BY s.date DESC LIMIT $%d OFFSET $%d`, whereSQL, idx, idx+1)
 	args = append(args, limit, offset)
 
 	rows, err := db.Query(ctx, dataQuery, args...)
@@ -441,7 +438,7 @@ func (r AttendanceRepository) GetAttendanceSummaries(ctx context.Context, worksp
 	var data []api.AttendanceDailySummaryRecord
 	for rows.Next() {
 		var rec api.AttendanceDailySummaryRecord
-		if err := rows.Scan(&rec.ID, &rec.WorkspaceID, &rec.EmploymentID, &rec.Date, &rec.ActualWorkMinutes, &rec.StandardMinutes, &rec.SystemDetectedOTMinutes, &rec.ClaimedOTMinutes, &rec.ApprovedOTMinutes, &rec.EarlyOTMinutes, &rec.LateOTMinutes, &rec.BreakOTMinutes, &rec.OTStatus, &rec.OTReason, &rec.ManagerNote, &rec.IsWeekend, &rec.IsHoliday, &rec.HolidayName, &rec.CreatedAt, &rec.UpdatedAt); err != nil {
+		if err := rows.Scan(&rec.ID, &rec.EmploymentID, &rec.Date, &rec.ActualWorkMinutes, &rec.StandardMinutes, &rec.SystemDetectedOTMinutes, &rec.ClaimedOTMinutes, &rec.ApprovedOTMinutes, &rec.EarlyOTMinutes, &rec.LateOTMinutes, &rec.BreakOTMinutes, &rec.OTStatus, &rec.OTReason, &rec.ManagerNote, &rec.IsWeekend, &rec.IsHoliday, &rec.HolidayName, &rec.CreatedAt, &rec.UpdatedAt); err != nil {
 			return api.PaginatedSummaries{}, err
 		}
 		data = append(data, rec)
@@ -457,28 +454,28 @@ func (r AttendanceRepository) GetAttendanceSummaries(ctx context.Context, worksp
 	}, nil
 }
 
-// GetEmployeeIDByUserID returns the employee ID for a given user ID in workspace.
-func (r AttendanceRepository) GetEmployeeIDByUserID(ctx context.Context, workspaceID, userID uuid.UUID) (uuid.UUID, error) {
+// GetEmployeeIDByUserID returns the employee ID for a given user ID.
+func (r AttendanceRepository) GetEmployeeIDByUserID(ctx context.Context, userID uuid.UUID) (uuid.UUID, error) {
 	db, err := r.db(ctx)
 	if err != nil {
 		return uuid.Nil, err
 	}
 	var empID uuid.UUID
-	err = db.QueryRow(ctx, `SELECT id FROM employees WHERE user_id = $1 AND workspace_id = $2 AND deleted_at IS NULL LIMIT 1`, userID, workspaceID).Scan(&empID)
+	err = db.QueryRow(ctx, `SELECT id FROM employees WHERE user_id = $1 AND deleted_at IS NULL LIMIT 1`, userID).Scan(&empID)
 	if err != nil {
 		return uuid.Nil, err
 	}
 	return empID, nil
 }
 
-// UpdateTimeEntry updates time entry fields in tenant DB.
-func (r AttendanceRepository) UpdateTimeEntry(ctx context.Context, workspaceID, entryID uuid.UUID, req api.UpdateTimeEntryRequest) (api.TimeEntryRecord, error) {
+// UpdateTimeEntry updates time entry fields.
+func (r AttendanceRepository) UpdateTimeEntry(ctx context.Context, entryID uuid.UUID, req api.UpdateTimeEntryRequest) (api.TimeEntryRecord, error) {
 	db, err := r.db(ctx)
 	if err != nil {
 		return api.TimeEntryRecord{}, err
 	}
 	var record api.TimeEntryRecord
-	row := db.QueryRow(ctx, `SELECT id, workspace_id, employment_id, shift_id, segment_id, punch_in_time, punch_out_time, duration_minutes, is_break_overtime, entry_type, note, generation_metadata, created_at, updated_at FROM time_entries WHERE id = $1 AND workspace_id = $2`, entryID, workspaceID)
+	row := db.QueryRow(ctx, `SELECT id, employment_id, shift_id, segment_id, punch_in_time, punch_out_time, duration_minutes, is_break_overtime, entry_type, note, generation_metadata, created_at, updated_at FROM time_entries WHERE id = $1`, entryID)
 	if err := scanTimeEntry(row, &record); err != nil {
 		return api.TimeEntryRecord{}, err
 	}
@@ -520,7 +517,7 @@ func (r AttendanceRepository) UpdateTimeEntry(ctx context.Context, workspaceID, 
 		}
 	}
 
-	updateRow := db.QueryRow(ctx, `UPDATE time_entries SET punch_in_time = $1, punch_out_time = $2, duration_minutes = $3, entry_type = $4, note = $5, segment_id = $6, updated_at = CURRENT_TIMESTAMP WHERE id = $7 AND workspace_id = $8 RETURNING id, workspace_id, employment_id, shift_id, segment_id, punch_in_time, punch_out_time, duration_minutes, is_break_overtime, entry_type, note, generation_metadata, created_at, updated_at`, pIn, pOut, durationMinutes, entryType, note, segmentID, entryID, workspaceID)
+	updateRow := db.QueryRow(ctx, `UPDATE time_entries SET punch_in_time = $1, punch_out_time = $2, duration_minutes = $3, entry_type = $4, note = $5, segment_id = $6, updated_at = CURRENT_TIMESTAMP WHERE id = $7 RETURNING id, employment_id, shift_id, segment_id, punch_in_time, punch_out_time, duration_minutes, is_break_overtime, entry_type, note, generation_metadata, created_at, updated_at`, pIn, pOut, durationMinutes, entryType, note, segmentID, entryID)
 	var updatedRecord api.TimeEntryRecord
 	if err := scanTimeEntry(updateRow, &updatedRecord); err != nil {
 		return api.TimeEntryRecord{}, err
@@ -528,13 +525,13 @@ func (r AttendanceRepository) UpdateTimeEntry(ctx context.Context, workspaceID, 
 	return updatedRecord, nil
 }
 
-// DeleteTimeEntry deletes a time entry from tenant DB.
-func (r AttendanceRepository) DeleteTimeEntry(ctx context.Context, workspaceID, entryID uuid.UUID) error {
+// DeleteTimeEntry deletes a time entry.
+func (r AttendanceRepository) DeleteTimeEntry(ctx context.Context, entryID uuid.UUID) error {
 	db, err := r.db(ctx)
 	if err != nil {
 		return err
 	}
-	cmd, err := db.Exec(ctx, `DELETE FROM time_entries WHERE id = $1 AND workspace_id = $2`, entryID, workspaceID)
+	cmd, err := db.Exec(ctx, `DELETE FROM time_entries WHERE id = $1`, entryID)
 	if err != nil {
 		return err
 	}

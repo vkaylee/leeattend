@@ -17,7 +17,6 @@ interface EContractDetailsDrawerProps {
   envelope: EContractEnvelope | null;
   isOpen: boolean;
   onClose: () => void;
-  wsId: string;
 }
 
   // eslint-disable-next-line max-lines-per-function
@@ -25,7 +24,6 @@ export default function EContractDetailsDrawer({
   envelope,
   isOpen,
   onClose,
-  wsId: _wsId,
 }: EContractDetailsDrawerProps) {
   const { t } = useTranslation("employees");
   const { formatDateTimeLocale } = useDateTimeFormatter();

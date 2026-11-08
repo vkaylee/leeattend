@@ -9,10 +9,9 @@ interface UseHolidayFormProps {
     editingHoliday: Holiday | null;
     onCancel: () => void;
     onSaveSuccess: () => void;
-    workspaceId: string | undefined;
 }
 
-export function useHolidayForm({ editingHoliday, onCancel, onSaveSuccess, workspaceId }: UseHolidayFormProps) {
+export function useHolidayForm({ editingHoliday, onCancel, onSaveSuccess }: UseHolidayFormProps) {
     const { t } = useTranslation();
     const [name, setName] = useState("");
     const [date, setDate] = useState("");
@@ -53,7 +52,6 @@ export function useHolidayForm({ editingHoliday, onCancel, onSaveSuccess, worksp
 
     const handleSubmit = async (e: React.SyntheticEvent) => {
         e.preventDefault();
-        if (!workspaceId) { return; }
         setError(null);
 
         const payload = {
@@ -66,13 +64,13 @@ export function useHolidayForm({ editingHoliday, onCancel, onSaveSuccess, worksp
             name,
             ot_multiplier: otMultiplier ? parseFloat(otMultiplier) : undefined,
             work_threshold_percent: thresholdPercent ? parseInt(thresholdPercent, 10) : null,
-        } as Parameters<typeof createHoliday>[1];
+        } as Parameters<typeof createHoliday>[0];
 
         try {
             if (editingHoliday) {
-                await updateHoliday(workspaceId, editingHoliday.id, payload);
+                await updateHoliday(editingHoliday.id, payload);
             } else {
-                await createHoliday(workspaceId, payload);
+                await createHoliday(payload);
             }
             onSaveSuccess();
             resetForm();

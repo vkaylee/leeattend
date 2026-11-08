@@ -6,14 +6,14 @@ import { FileGrid } from "@/components/documents/file-grid";
 import { FolderTree } from "@/components/documents/folder-tree";
 import PageHeader from "@/components/ui/page-header";
 import { useFolders } from "@/hooks/use-documents";
-import { useWorkspace } from "@/hooks/use-workspace";
+import { useOrganization } from "@/hooks/use-organization";
 
 type WorkspaceFile = components["schemas"]["WorkspaceFile"];
 
 const noop = () => undefined;
 
 export function DocumentManagementPage() {
-  const { workspace } = useWorkspace();
+  const { workspace } = useOrganization();
   const { data: folders = [] } = useFolders(workspace?.id);
   const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
 

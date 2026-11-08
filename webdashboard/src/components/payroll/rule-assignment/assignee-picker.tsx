@@ -14,16 +14,13 @@ interface AssigneePickerProps {
   assigneeType: ScopeType;
   departments?: Department[];
   setAssigneeId: (id: string) => void;
-  wsId: string;
 }
 
 export function AssigneePicker({
   assigneeId,
   assigneeType,
   departments,
-  setAssigneeId,
-  wsId,
-}: AssigneePickerProps) {
+  setAssigneeId,}: AssigneePickerProps) {
   const { t } = useTranslation();
 
   if (assigneeType === "employee") {
@@ -32,15 +29,12 @@ export function AssigneePicker({
         <div className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1 mb-1">
           {t("payroll.select_employee", "Select Employee")}
         </div>
-        <EmployeeSearch
-          departments={departments}
-          onChange={(value) => {
-            setAssigneeId(Array.isArray(value) ? value[0] : value);
-          }}
-          placeholder={t("payroll.search_employees", "Search employees…")}
-          value={assigneeId}
-          workspaceId={wsId}
-        />
+        <EmployeeSearch departments={departments}
+        onChange={(value) => {
+          setAssigneeId(Array.isArray(value) ? value[0] : value);
+        }}
+        placeholder={t("payroll.search_employees", "Search employees…")}
+        value={assigneeId}  />
       </div>
     );
   }

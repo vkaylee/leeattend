@@ -3,7 +3,6 @@ import { useState, useMemo, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 
 import {
-  getStandaloneOrganizationId,
   Employee,
 } from "@/lib/api";
 
@@ -13,7 +12,7 @@ import { usePayrollPeriod } from "./use-payroll-period";
 import { usePayrollSelection } from "./use-payroll-selection";
 export function usePayroll() {
   const { t } = useTranslation();
-  const wsId = getStandaloneOrganizationId() ?? "";
+  
   const queryClient = useQueryClient();
   
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
@@ -44,7 +43,6 @@ export function usePayroll() {
     debouncedSearchTerm,
     isDetailDrawerOpen,
     selectedEmployee,
-    wsId,
   });
 
   const { selectedIds, setSelectedIds, toggleSelect, toggleSelectAll } = usePayrollSelection(employees);
@@ -59,7 +57,6 @@ export function usePayroll() {
     calcMonth,
     calcYear,
     hasCalculatedPayslips: workspacePayslips.length > 0,
-    wsId,
   });
   const handleViewDetail = (employee: Employee) => {
     setSelectedEmployee(employee);
@@ -80,7 +77,6 @@ export function usePayroll() {
 
   return {
     t,
-    wsId,
     selectedEmployee,
     setSelectedEmployee,
     selectedIds,

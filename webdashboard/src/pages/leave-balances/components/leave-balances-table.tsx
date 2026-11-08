@@ -5,7 +5,7 @@ import { useTranslation } from "react-i18next";
 import Button from "@/components/ui/button";
 import ResponsiveTable from "@/components/ui/responsive-table";
 import TableEmptyRow from "@/components/ui/table-empty-row";
-import { WorkspaceLeaveBalance } from "@/lib/api/types";
+import { LeaveBalance } from "@/lib/api/types";
 import { cn } from "@/lib/utils";
 
 import { DesktopBalanceRow } from "./desktop-balance-row";

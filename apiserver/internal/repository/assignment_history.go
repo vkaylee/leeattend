@@ -5,7 +5,6 @@ import (
 	"errors"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/vkaylee/leeattend/apiserver/internal/api"
 )
 
@@ -41,7 +40,6 @@ const assignmentHistoryQuery = `
 		FROM employee_shifts es
 		JOIN shift_templates st ON st.id = es.template_id
 		JOIN employments emp ON emp.id = es.employment_id
-		WHERE emp.workspace_id = $1
 		UNION ALL
 		SELECT ewp.id, emp.employee_id,
 			COALESCE((SELECT full_name FROM employees WHERE id = emp.employee_id), '') AS employee_name,
@@ -51,7 +49,6 @@ const assignmentHistoryQuery = `
 		FROM employee_working_patterns ewp
 		JOIN working_patterns wp ON wp.id = ewp.pattern_id
 		JOIN employments emp ON emp.id = ewp.employment_id
-		WHERE emp.workspace_id = $1
 		UNION ALL
 		SELECT sr.id, emp.employee_id,
 			COALESCE((SELECT full_name FROM employees WHERE id = emp.employee_id), '') AS employee_name,
@@ -62,20 +59,19 @@ const assignmentHistoryQuery = `
 		FROM shift_rosters sr
 		LEFT JOIN shift_templates st ON st.id = sr.template_id
 		JOIN employments emp ON emp.id = sr.employment_id
-		WHERE emp.workspace_id = $1
 	) history
 `
 
-func (r AssignmentHistoryRepository) ListAssignmentHistory(ctx context.Context, workspaceID uuid.UUID, page, limit int) ([]api.AssignmentHistory, int64, error) {
+func (r AssignmentHistoryRepository) ListAssignmentHistory(ctx context.Context, page, limit int) ([]api.AssignmentHistory, int64, error) {
 	db, err := r.db(ctx)
 	if err != nil {
 		return nil, 0, err
 	}
 	var total int64
-	if err := db.QueryRow(ctx, `SELECT COUNT(*) FROM (`+assignmentHistoryQuery+`) history`, workspaceID).Scan(&total); err != nil {
+	if err := db.QueryRow(ctx, `SELECT COUNT(*) FROM (`+assignmentHistoryQuery+`) history`).Scan(&total); err != nil {
 		return nil, 0, err
 	}
-	rows, err := db.Query(ctx, assignmentHistoryQuery+` ORDER BY created_at DESC LIMIT $2 OFFSET $3`, workspaceID, limit, (page-1)*limit)
+	rows, err := db.Query(ctx, assignmentHistoryQuery+` ORDER BY created_at DESC LIMIT $1 OFFSET $2`, limit, (page-1)*limit)
 	if err != nil {
 		return nil, 0, err
 	}

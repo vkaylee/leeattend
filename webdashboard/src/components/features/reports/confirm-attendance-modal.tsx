@@ -5,7 +5,7 @@ import { useTranslation } from "react-i18next";
 import Modal from "@/components/ui/modal";
 import { Typography } from "@/components/ui/typography";
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
-import { useWorkspace } from "@/hooks/use-workspace";
+import { useOrganization } from "@/hooks/use-organization";
 import { DailyAttendanceReport, AttendanceAdjustmentRequest } from "@/lib/api";
 
 import { ActionButtons, ExistingRequestBanner, ReasonInput } from "./confirm-attendance-modal-sections";
@@ -136,8 +136,8 @@ export default function ConfirmAttendanceModal({
 }: ConfirmAttendanceModalProps) {
     const { t } = useTranslation();
     const { formatDate } = useDateTimeFormatter();
-    const { workspace } = useWorkspace();
-    const timezone = workspace?.timezone ?? "UTC";
+    const { organization } = useOrganization();
+    const timezone = organization?.timezone ?? "UTC";
 
     const [punchIn, setPunchIn] = useState(getInitialPunchIn(existingRequest, row, timezone));
     const [punchOut, setPunchOut] = useState(getInitialPunchOut(existingRequest, row, timezone));

@@ -17,7 +17,7 @@ import {
   useCreateLifecycleTemplateItem,
   useUpdateLifecycleTemplateItem,
 } from "@/hooks/use-lifecycle";
-import { useWorkspaceMembers } from "@/hooks/use-workspace";
+import { useOrganizationMembers } from "@/hooks/use-organization";
 
 interface TemplateItemDrawerProps {
   editingItem: LifecycleChecklistTemplateItem | null;
@@ -54,7 +54,7 @@ export function TemplateItemDrawer({ isOpen, onClose, editingItem, templateId }:
   const toast = useToast();
   const createMutation = useCreateLifecycleTemplateItem(templateId);
   const updateMutation = useUpdateLifecycleTemplateItem(templateId);
-  const { members } = useWorkspaceMembers();
+  const { members } = useOrganizationMembers();
 
   // Compute external form values — stabilized via useMemo.
   const externalForm = useMemo((): ItemFormState => {

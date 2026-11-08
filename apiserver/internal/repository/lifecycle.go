@@ -14,7 +14,7 @@ import (
 
 type LifecycleRepository struct {
 	DB      DBTX
-	BeginTx func(context.Context, uuid.UUID) (TxBeginner, error)
+	BeginTx func(context.Context) (TxBeginner, error)
 }
 
 func (r LifecycleRepository) db(ctx context.Context) (DBTX, error) {
@@ -24,9 +24,9 @@ func (r LifecycleRepository) db(ctx context.Context) (DBTX, error) {
 	return r.DB, nil
 }
 
-func (r LifecycleRepository) begin(ctx context.Context, wsID uuid.UUID) (TxBeginner, error) {
+func (r LifecycleRepository) begin(ctx context.Context) (TxBeginner, error) {
 	if r.BeginTx != nil {
-		return r.BeginTx(ctx, wsID)
+		return r.BeginTx(ctx)
 	}
 	d, err := r.db(ctx)
 	if err != nil {
@@ -42,7 +42,7 @@ func (r LifecycleRepository) begin(ctx context.Context, wsID uuid.UUID) (TxBegin
 func scanLifecycleTemplate(row interface{ Scan(...any) error }) (api.LifecycleChecklistTemplate, error) {
 	var t api.LifecycleChecklistTemplate
 	var created, updated time.Time
-	if err := row.Scan(&t.ID, &t.WorkspaceID, &t.Name, &t.Description, &t.ChecklistType, &t.IsDefault, &t.IsActive, &created, &updated); err != nil {
+	if err := row.Scan(&t.ID, &t.Name, &t.Description, &t.ChecklistType, &t.IsDefault, &t.IsActive, &created, &updated); err != nil {
 		return api.LifecycleChecklistTemplate{}, err
 	}
 	t.CreatedAt = created.UTC().Format(time.RFC3339)
@@ -50,7 +50,7 @@ func scanLifecycleTemplate(row interface{ Scan(...any) error }) (api.LifecycleCh
 	return t, nil
 }
 
-const lifecycleTemplateColumns = `id, workspace_id, name, description, checklist_type, is_default, is_active, created_at, updated_at`
+const lifecycleTemplateColumns = `id, name, description, checklist_type, is_default, is_active, created_at, updated_at`
 
 func scanTemplateItem(row interface{ Scan(...any) error }) (api.LifecycleChecklistTemplateItem, error) {
 	var i api.LifecycleChecklistTemplateItem
@@ -67,7 +67,7 @@ func scanChecklist(row interface{ Scan(...any) error }) (api.LifecycleChecklistR
 	var started, created, updated time.Time
 	var completed *time.Time
 	if err := row.Scan(
-		&c.ID, &c.WorkspaceID, &c.EmploymentID, &c.TemplateID, &c.ChecklistType, &c.Status,
+		&c.ID, &c.EmploymentID, &c.TemplateID, &c.ChecklistType, &c.Status,
 		&c.ProgressPercent, &started, &completed, &c.CreatedBy, &created, &updated,
 	); err != nil {
 		return api.LifecycleChecklistResponse{}, err
@@ -83,7 +83,7 @@ func scanChecklist(row interface{ Scan(...any) error }) (api.LifecycleChecklistR
 	return c, nil
 }
 
-const lifecycleChecklistColumns = `id, workspace_id, employment_id, template_id, checklist_type, status, progress_percent, started_at, completed_at, created_by, created_at, updated_at`
+const lifecycleChecklistColumns = `id, employment_id, template_id, checklist_type, status, progress_percent, started_at, completed_at, created_by, created_at, updated_at`
 
 func scanChecklistItem(row interface{ Scan(...any) error }) (api.LifecycleChecklistItem, error) {
 	var i api.LifecycleChecklistItem
@@ -112,15 +112,15 @@ func scanChecklistItem(row interface{ Scan(...any) error }) (api.LifecycleCheckl
 
 const lifecycleChecklistItemColumns = `id, checklist_id, template_item_id, title, description, category, assignee_user_id, is_required, due_date, status, completed_at, completed_by, notes, display_order, created_at, updated_at`
 
-func (r LifecycleRepository) CreateTemplate(ctx context.Context, wsID uuid.UUID, req api.CreateLifecycleChecklistTemplateRequest) (api.LifecycleChecklistTemplate, error) {
-	txBeginner, err := r.begin(ctx, wsID)
+func (r LifecycleRepository) CreateTemplate(ctx context.Context, req api.CreateLifecycleChecklistTemplateRequest) (api.LifecycleChecklistTemplate, error) {
+	txBeginner, err := r.begin(ctx)
 	if err != nil {
 		return api.LifecycleChecklistTemplate{}, err
 	}
 	if txBeginner != nil {
 		var created api.LifecycleChecklistTemplate
 		err := service.WithTx(ctx, txBeginner, func(ctx context.Context, tx pgx.Tx) error {
-			res, txErr := r.createTemplateTx(ctx, tx, wsID, req)
+			res, txErr := r.createTemplateTx(ctx, tx, req)
 			if txErr != nil {
 				return txErr
 			}
@@ -133,49 +133,49 @@ func (r LifecycleRepository) CreateTemplate(ctx context.Context, wsID uuid.UUID,
 	if err != nil {
 		return api.LifecycleChecklistTemplate{}, err
 	}
-	return r.createTemplateTx(ctx, db, wsID, req)
+	return r.createTemplateTx(ctx, db, req)
 }
 
-func (r LifecycleRepository) createTemplateTx(ctx context.Context, db DBTX, wsID uuid.UUID, req api.CreateLifecycleChecklistTemplateRequest) (api.LifecycleChecklistTemplate, error) {
+func (r LifecycleRepository) createTemplateTx(ctx context.Context, db DBTX, req api.CreateLifecycleChecklistTemplateRequest) (api.LifecycleChecklistTemplate, error) {
 	if req.IsDefault {
 		if _, err := db.Exec(ctx, `UPDATE lifecycle_checklist_templates
 			SET is_default = FALSE, updated_at = NOW()
-			WHERE workspace_id = $1 AND checklist_type = $2 AND deleted_at IS NULL`, wsID, req.ChecklistType); err != nil {
+			WHERE checklist_type = $1 AND deleted_at IS NULL`, req.ChecklistType); err != nil {
 			return api.LifecycleChecklistTemplate{}, err
 		}
 	}
 	return scanLifecycleTemplate(db.QueryRow(ctx, `INSERT INTO lifecycle_checklist_templates (
-		id, workspace_id, name, description, checklist_type, is_default, is_active, deleted_at, created_at, updated_at
-	) VALUES ($1, $2, $3, $4, $5, $6, TRUE, NULL, NOW(), NOW())
+		id, name, description, checklist_type, is_default, is_active, deleted_at, created_at, updated_at
+	) VALUES ($1, $2, $3, $4, $5, TRUE, NULL, NOW(), NOW())
 	RETURNING `+lifecycleTemplateColumns,
-		uuid.New(), wsID, req.Name, req.Description, req.ChecklistType, req.IsDefault))
+		uuid.New(), req.Name, req.Description, req.ChecklistType, req.IsDefault))
 }
 
-func (r LifecycleRepository) GetTemplate(ctx context.Context, wsID, id uuid.UUID) (api.LifecycleChecklistTemplate, error) {
+func (r LifecycleRepository) GetTemplate(ctx context.Context, id uuid.UUID) (api.LifecycleChecklistTemplate, error) {
 	db, err := r.db(ctx)
 	if err != nil {
 		return api.LifecycleChecklistTemplate{}, err
 	}
 	t, err := scanLifecycleTemplate(db.QueryRow(ctx, `SELECT `+lifecycleTemplateColumns+`
 		FROM lifecycle_checklist_templates
-		WHERE id = $1 AND workspace_id = $2 AND deleted_at IS NULL`, id, wsID))
+		WHERE id = $1 AND deleted_at IS NULL`, id))
 	if errors.Is(err, pgx.ErrNoRows) {
 		return api.LifecycleChecklistTemplate{}, api.ErrTemplateNotFound
 	}
 	return t, err
 }
 
-func (r LifecycleRepository) ListTemplates(ctx context.Context, wsID uuid.UUID, checklistType *string) ([]api.LifecycleChecklistTemplate, error) {
+func (r LifecycleRepository) ListTemplates(ctx context.Context, checklistType *string) ([]api.LifecycleChecklistTemplate, error) {
 	db, err := r.db(ctx)
 	if err != nil {
 		return nil, err
 	}
 	query := `SELECT ` + lifecycleTemplateColumns + `
 		FROM lifecycle_checklist_templates
-		WHERE workspace_id = $1 AND is_active = TRUE AND deleted_at IS NULL`
-	args := []any{wsID}
+		WHERE is_active = TRUE AND deleted_at IS NULL`
+	var args []any
 	if checklistType != nil {
-		query += " AND checklist_type = $2"
+		query += " AND checklist_type = $1"
 		args = append(args, *checklistType)
 	}
 	query += " ORDER BY name ASC"
@@ -195,15 +195,15 @@ func (r LifecycleRepository) ListTemplates(ctx context.Context, wsID uuid.UUID, 
 	return result, rows.Err()
 }
 
-func (r LifecycleRepository) UpdateTemplate(ctx context.Context, wsID, id uuid.UUID, req api.UpdateLifecycleChecklistTemplateRequest) (api.LifecycleChecklistTemplate, error) {
-	txBeginner, err := r.begin(ctx, wsID)
+func (r LifecycleRepository) UpdateTemplate(ctx context.Context, id uuid.UUID, req api.UpdateLifecycleChecklistTemplateRequest) (api.LifecycleChecklistTemplate, error) {
+	txBeginner, err := r.begin(ctx)
 	if err != nil {
 		return api.LifecycleChecklistTemplate{}, err
 	}
 	if txBeginner != nil {
 		var updated api.LifecycleChecklistTemplate
 		err := service.WithTx(ctx, txBeginner, func(ctx context.Context, tx pgx.Tx) error {
-			res, txErr := r.updateTemplateTx(ctx, tx, wsID, id, req)
+			res, txErr := r.updateTemplateTx(ctx, tx, id, req)
 			if txErr != nil {
 				return txErr
 			}
@@ -216,13 +216,13 @@ func (r LifecycleRepository) UpdateTemplate(ctx context.Context, wsID, id uuid.U
 	if err != nil {
 		return api.LifecycleChecklistTemplate{}, err
 	}
-	return r.updateTemplateTx(ctx, db, wsID, id, req)
+	return r.updateTemplateTx(ctx, db, id, req)
 }
 
-func (r LifecycleRepository) updateTemplateTx(ctx context.Context, db DBTX, wsID, id uuid.UUID, req api.UpdateLifecycleChecklistTemplateRequest) (api.LifecycleChecklistTemplate, error) {
+func (r LifecycleRepository) updateTemplateTx(ctx context.Context, db DBTX, id uuid.UUID, req api.UpdateLifecycleChecklistTemplateRequest) (api.LifecycleChecklistTemplate, error) {
 	existing, err := scanLifecycleTemplate(db.QueryRow(ctx, `SELECT `+lifecycleTemplateColumns+`
 		FROM lifecycle_checklist_templates
-		WHERE id = $1 AND workspace_id = $2 AND deleted_at IS NULL`, id, wsID))
+		WHERE id = $1 AND deleted_at IS NULL`, id))
 	if errors.Is(err, pgx.ErrNoRows) {
 		return api.LifecycleChecklistTemplate{}, api.ErrTemplateNotFound
 	}
@@ -244,29 +244,29 @@ func (r LifecycleRepository) updateTemplateTx(ctx context.Context, db DBTX, wsID
 	if existing.IsDefault {
 		if _, err := db.Exec(ctx, `UPDATE lifecycle_checklist_templates
 			SET is_default = FALSE, updated_at = NOW()
-			WHERE workspace_id = $1 AND checklist_type = $2 AND deleted_at IS NULL AND id <> $3`,
-			wsID, existing.ChecklistType, id); err != nil {
+			WHERE checklist_type = $1 AND deleted_at IS NULL AND id <> $2`,
+			existing.ChecklistType, id); err != nil {
 			return api.LifecycleChecklistTemplate{}, err
 		}
 	}
 	updated, err := scanLifecycleTemplate(db.QueryRow(ctx, `UPDATE lifecycle_checklist_templates SET
 		name = $1, description = $2, is_default = $3, is_active = $4, updated_at = NOW()
-		WHERE id = $5 AND workspace_id = $6
+		WHERE id = $5
 		RETURNING `+lifecycleTemplateColumns,
-		existing.Name, existing.Description, existing.IsDefault, existing.IsActive, id, wsID))
+		existing.Name, existing.Description, existing.IsDefault, existing.IsActive, id))
 	if errors.Is(err, pgx.ErrNoRows) {
 		return api.LifecycleChecklistTemplate{}, api.ErrTemplateNotFound
 	}
 	return updated, err
 }
 
-func (r LifecycleRepository) DeleteTemplate(ctx context.Context, wsID, id uuid.UUID) error {
+func (r LifecycleRepository) DeleteTemplate(ctx context.Context, id uuid.UUID) error {
 	db, err := r.db(ctx)
 	if err != nil {
 		return err
 	}
 	tag, err := db.Exec(ctx, `UPDATE lifecycle_checklist_templates SET deleted_at = NOW(), updated_at = NOW()
-		WHERE id = $1 AND workspace_id = $2`, id, wsID)
+		WHERE id = $1`, id)
 	if err != nil {
 		return err
 	}
@@ -276,13 +276,13 @@ func (r LifecycleRepository) DeleteTemplate(ctx context.Context, wsID, id uuid.U
 	return nil
 }
 
-func (r LifecycleRepository) CreateTemplateItem(ctx context.Context, wsID, templateID uuid.UUID, req api.CreateLifecycleChecklistTemplateItemRequest) (api.LifecycleChecklistTemplateItem, error) {
+func (r LifecycleRepository) CreateTemplateItem(ctx context.Context, templateID uuid.UUID, req api.CreateLifecycleChecklistTemplateItemRequest) (api.LifecycleChecklistTemplateItem, error) {
 	db, err := r.db(ctx)
 	if err != nil {
 		return api.LifecycleChecklistTemplateItem{}, err
 	}
 	var exists bool
-	if err := db.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM lifecycle_checklist_templates WHERE id = $1 AND workspace_id = $2)`, templateID, wsID).Scan(&exists); err != nil {
+	if err := db.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM lifecycle_checklist_templates WHERE id = $1)`, templateID).Scan(&exists); err != nil {
 		return api.LifecycleChecklistTemplateItem{}, err
 	}
 	if !exists {
@@ -303,27 +303,27 @@ func (r LifecycleRepository) CreateTemplateItem(ctx context.Context, wsID, templ
 const templateItemJoin = ` FROM lifecycle_checklist_template_items i
 	INNER JOIN lifecycle_checklist_templates t ON t.id = i.template_id`
 
-func (r LifecycleRepository) GetTemplateItem(ctx context.Context, wsID, itemID uuid.UUID) (api.LifecycleChecklistTemplateItem, error) {
+func (r LifecycleRepository) GetTemplateItem(ctx context.Context, itemID uuid.UUID) (api.LifecycleChecklistTemplateItem, error) {
 	db, err := r.db(ctx)
 	if err != nil {
 		return api.LifecycleChecklistTemplateItem{}, err
 	}
 	item, err := scanTemplateItem(db.QueryRow(ctx, `SELECT `+prefixColumns("i", lifecycleTemplateItemColumns)+templateItemJoin+`
-		WHERE t.workspace_id = $1 AND i.id = $2`, wsID, itemID))
+		WHERE i.id = $1`, itemID))
 	if errors.Is(err, pgx.ErrNoRows) {
 		return api.LifecycleChecklistTemplateItem{}, api.ErrTemplateItemNotFound
 	}
 	return item, err
 }
 
-func (r LifecycleRepository) ListTemplateItems(ctx context.Context, wsID, templateID uuid.UUID) ([]api.LifecycleChecklistTemplateItem, error) {
+func (r LifecycleRepository) ListTemplateItems(ctx context.Context, templateID uuid.UUID) ([]api.LifecycleChecklistTemplateItem, error) {
 	db, err := r.db(ctx)
 	if err != nil {
 		return nil, err
 	}
 	rows, err := db.Query(ctx, `SELECT `+prefixColumns("i", lifecycleTemplateItemColumns)+templateItemJoin+`
-		WHERE t.workspace_id = $1 AND i.template_id = $2
-		ORDER BY i.display_order ASC`, wsID, templateID)
+		WHERE i.template_id = $1
+		ORDER BY i.display_order ASC`, templateID)
 	if err != nil {
 		return nil, err
 	}
@@ -339,13 +339,13 @@ func (r LifecycleRepository) ListTemplateItems(ctx context.Context, wsID, templa
 	return result, rows.Err()
 }
 
-func (r LifecycleRepository) UpdateTemplateItem(ctx context.Context, wsID, itemID uuid.UUID, req api.UpdateLifecycleChecklistTemplateItemRequest) (api.LifecycleChecklistTemplateItem, error) {
+func (r LifecycleRepository) UpdateTemplateItem(ctx context.Context, itemID uuid.UUID, req api.UpdateLifecycleChecklistTemplateItemRequest) (api.LifecycleChecklistTemplateItem, error) {
 	db, err := r.db(ctx)
 	if err != nil {
 		return api.LifecycleChecklistTemplateItem{}, err
 	}
 	existing, err := scanTemplateItem(db.QueryRow(ctx, `SELECT `+prefixColumns("i", lifecycleTemplateItemColumns)+templateItemJoin+`
-		WHERE t.workspace_id = $1 AND i.id = $2`, wsID, itemID))
+		WHERE i.id = $1`, itemID))
 	if errors.Is(err, pgx.ErrNoRows) {
 		return api.LifecycleChecklistTemplateItem{}, api.ErrTemplateItemNotFound
 	}
@@ -383,26 +383,23 @@ func (r LifecycleRepository) UpdateTemplateItem(ctx context.Context, wsID, itemI
 	updated, err := scanTemplateItem(db.QueryRow(ctx, `UPDATE lifecycle_checklist_template_items i SET
 		title = $1, description = $2, category = $3, assignee_type = $4,
 		assignee_user_id = $5, is_required = $6, due_days_offset = $7, display_order = $8
-		FROM lifecycle_checklist_templates t
-		WHERE i.template_id = t.id AND t.workspace_id = $9 AND i.id = $10
+		WHERE i.id = $9
 		RETURNING `+prefixColumns("i", lifecycleTemplateItemColumns),
 		existing.Title, existing.Description, existing.Category, existing.AssigneeType,
 		existing.AssigneeUserID, existing.IsRequired, existing.DueDaysOffset, existing.DisplayOrder,
-		wsID, itemID))
+		itemID))
 	if errors.Is(err, pgx.ErrNoRows) {
 		return api.LifecycleChecklistTemplateItem{}, api.ErrTemplateItemNotFound
 	}
 	return updated, err
 }
 
-func (r LifecycleRepository) DeleteTemplateItem(ctx context.Context, wsID, itemID uuid.UUID) error {
+func (r LifecycleRepository) DeleteTemplateItem(ctx context.Context, itemID uuid.UUID) error {
 	db, err := r.db(ctx)
 	if err != nil {
 		return err
 	}
-	tag, err := db.Exec(ctx, `DELETE FROM lifecycle_checklist_template_items i
-		USING lifecycle_checklist_templates t
-		WHERE i.template_id = t.id AND t.workspace_id = $1 AND i.id = $2`, wsID, itemID)
+	tag, err := db.Exec(ctx, `DELETE FROM lifecycle_checklist_template_items WHERE id = $1`, itemID)
 	if err != nil {
 		return err
 	}
@@ -419,15 +416,15 @@ type lifecycleEmployment struct {
 	ManagerEmploymentID *uuid.UUID
 }
 
-func (r LifecycleRepository) CreateChecklistFromTemplate(ctx context.Context, wsID, employmentID, templateID uuid.UUID, actorID *uuid.UUID, usersResolver func(string) []uuid.UUID) (api.LifecycleChecklistResponse, error) {
-	txBeginner, err := r.begin(ctx, wsID)
+func (r LifecycleRepository) CreateChecklistFromTemplate(ctx context.Context, employmentID, templateID uuid.UUID, actorID *uuid.UUID, usersResolver func(context.Context, string) []uuid.UUID) (api.LifecycleChecklistResponse, error) {
+	txBeginner, err := r.begin(ctx)
 	if err != nil {
 		return api.LifecycleChecklistResponse{}, err
 	}
 	if txBeginner != nil {
 		var created api.LifecycleChecklistResponse
 		err := service.WithTx(ctx, txBeginner, func(ctx context.Context, tx pgx.Tx) error {
-			res, txErr := r.createChecklistTx(ctx, tx, wsID, employmentID, templateID, actorID, usersResolver)
+			res, txErr := r.createChecklistTx(ctx, tx, employmentID, templateID, actorID, usersResolver)
 			if txErr != nil {
 				return txErr
 			}
@@ -440,13 +437,13 @@ func (r LifecycleRepository) CreateChecklistFromTemplate(ctx context.Context, ws
 	if err != nil {
 		return api.LifecycleChecklistResponse{}, err
 	}
-	return r.createChecklistTx(ctx, d, wsID, employmentID, templateID, actorID, usersResolver)
+	return r.createChecklistTx(ctx, d, employmentID, templateID, actorID, usersResolver)
 }
 
-func (r LifecycleRepository) createChecklistTx(ctx context.Context, db DBTX, wsID, employmentID, templateID uuid.UUID, actorID *uuid.UUID, usersResolver func(string) []uuid.UUID) (api.LifecycleChecklistResponse, error) {
+func (r LifecycleRepository) createChecklistTx(ctx context.Context, db DBTX, employmentID, templateID uuid.UUID, actorID *uuid.UUID, usersResolver func(context.Context, string) []uuid.UUID) (api.LifecycleChecklistResponse, error) {
 	tmpl, err := scanLifecycleTemplate(db.QueryRow(ctx, `SELECT `+lifecycleTemplateColumns+`
 		FROM lifecycle_checklist_templates
-		WHERE id = $1 AND workspace_id = $2 AND deleted_at IS NULL`, templateID, wsID))
+		WHERE id = $1 AND deleted_at IS NULL`, templateID))
 	if errors.Is(err, pgx.ErrNoRows) {
 		return api.LifecycleChecklistResponse{}, api.ErrTemplateNotFound
 	}
@@ -454,7 +451,7 @@ func (r LifecycleRepository) createChecklistTx(ctx context.Context, db DBTX, wsI
 		return api.LifecycleChecklistResponse{}, err
 	}
 
-	templateItems, err := r.listTemplateItemsTx(ctx, db, wsID, templateID)
+	templateItems, err := r.listTemplateItemsTx(ctx, db, templateID)
 	if err != nil {
 		return api.LifecycleChecklistResponse{}, err
 	}
@@ -462,7 +459,7 @@ func (r LifecycleRepository) createChecklistTx(ctx context.Context, db DBTX, wsI
 	var employment lifecycleEmployment
 	err = db.QueryRow(ctx, `SELECT employee_id, start_date::text, end_date::text, manager_employment_id
 		FROM employments
-		WHERE id = $1 AND workspace_id = $2 AND deleted_at IS NULL`, employmentID, wsID).Scan(
+		WHERE id = $1 AND deleted_at IS NULL`, employmentID).Scan(
 		&employment.EmployeeID, &employment.StartDate, &employment.EndDate, &employment.ManagerEmploymentID)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return api.LifecycleChecklistResponse{}, api.ErrEmploymentNotFound
@@ -474,7 +471,7 @@ func (r LifecycleRepository) createChecklistTx(ctx context.Context, db DBTX, wsI
 	var employeeUserID *uuid.UUID
 	var employeeName string
 	err = db.QueryRow(ctx, `SELECT user_id, full_name FROM employees
-		WHERE id = $1 AND workspace_id = $2 AND deleted_at IS NULL`, employment.EmployeeID, wsID).Scan(&employeeUserID, &employeeName)
+		WHERE id = $1 AND deleted_at IS NULL`, employment.EmployeeID).Scan(&employeeUserID, &employeeName)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return api.LifecycleChecklistResponse{}, api.ErrEmployeeNotFound
 	}
@@ -513,9 +510,9 @@ func (r LifecycleRepository) createChecklistTx(ctx context.Context, db DBTX, wsI
 	var directManagerUserID *uuid.UUID
 	if hasDirectManager && employment.ManagerEmploymentID != nil {
 		var managerEmployeeID uuid.UUID
-		if err := db.QueryRow(ctx, `SELECT employee_id FROM employments WHERE id = $1 AND workspace_id = $2`, *employment.ManagerEmploymentID, wsID).Scan(&managerEmployeeID); err == nil {
+		if err := db.QueryRow(ctx, `SELECT employee_id FROM employments WHERE id = $1`, *employment.ManagerEmploymentID).Scan(&managerEmployeeID); err == nil {
 			var managerUserID *uuid.UUID
-			if err := db.QueryRow(ctx, `SELECT user_id FROM employees WHERE id = $1 AND workspace_id = $2`, managerEmployeeID, wsID).Scan(&managerUserID); err == nil {
+			if err := db.QueryRow(ctx, `SELECT user_id FROM employees WHERE id = $1`, managerEmployeeID).Scan(&managerUserID); err == nil {
 				directManagerUserID = managerUserID
 			}
 		}
@@ -525,7 +522,7 @@ func (r LifecycleRepository) createChecklistTx(ctx context.Context, db DBTX, wsI
 		if usersResolver == nil {
 			return nil
 		}
-		users := usersResolver(permission)
+		users := usersResolver(ctx, permission)
 		if len(users) == 0 {
 			return nil
 		}
@@ -550,11 +547,11 @@ func (r LifecycleRepository) createChecklistTx(ctx context.Context, db DBTX, wsI
 
 	checklistID := uuid.New()
 	checklist, err := scanChecklist(db.QueryRow(ctx, `INSERT INTO lifecycle_checklists (
-		id, workspace_id, employment_id, template_id, checklist_type, status, progress_percent,
+		id, employment_id, template_id, checklist_type, status, progress_percent,
 		started_at, completed_at, created_by, created_at, updated_at
-	) VALUES ($1, $2, $3, $4, $5, 'in_progress', 0, NOW(), NULL, $6, NOW(), NOW())
+	) VALUES ($1, $2, $3, $4, 'in_progress', 0, NOW(), NULL, $5, NOW(), NOW())
 	RETURNING `+lifecycleChecklistColumns,
-		checklistID, wsID, employmentID, templateID, tmpl.ChecklistType, actorID))
+		checklistID, employmentID, templateID, tmpl.ChecklistType, actorID))
 	if err != nil {
 		return api.LifecycleChecklistResponse{}, err
 	}
@@ -594,8 +591,8 @@ func (r LifecycleRepository) createChecklistTx(ctx context.Context, db DBTX, wsI
 	if len(items) == 0 {
 		checklist, err = scanChecklist(db.QueryRow(ctx, `UPDATE lifecycle_checklists SET
 			status = 'completed', progress_percent = 100, completed_at = NOW(), updated_at = NOW()
-			WHERE id = $1 AND workspace_id = $2
-			RETURNING `+lifecycleChecklistColumns, checklistID, wsID))
+			WHERE id = $1
+			RETURNING `+lifecycleChecklistColumns, checklistID))
 		if err != nil {
 			return api.LifecycleChecklistResponse{}, err
 		}
@@ -604,10 +601,10 @@ func (r LifecycleRepository) createChecklistTx(ctx context.Context, db DBTX, wsI
 	return checklist, nil
 }
 
-func (r LifecycleRepository) listTemplateItemsTx(ctx context.Context, db DBTX, wsID, templateID uuid.UUID) ([]api.LifecycleChecklistTemplateItem, error) {
+func (r LifecycleRepository) listTemplateItemsTx(ctx context.Context, db DBTX, templateID uuid.UUID) ([]api.LifecycleChecklistTemplateItem, error) {
 	rows, err := db.Query(ctx, `SELECT `+prefixColumns("i", lifecycleTemplateItemColumns)+templateItemJoin+`
-		WHERE t.workspace_id = $1 AND i.template_id = $2
-		ORDER BY i.display_order ASC`, wsID, templateID)
+		WHERE i.template_id = $1
+		ORDER BY i.display_order ASC`, templateID)
 	if err != nil {
 		return nil, err
 	}
@@ -623,9 +620,9 @@ func (r LifecycleRepository) listTemplateItemsTx(ctx context.Context, db DBTX, w
 	return result, rows.Err()
 }
 
-func (r LifecycleRepository) getChecklist(ctx context.Context, db DBTX, wsID, checklistID uuid.UUID) (api.LifecycleChecklistResponse, error) {
+func (r LifecycleRepository) getChecklist(ctx context.Context, db DBTX, checklistID uuid.UUID) (api.LifecycleChecklistResponse, error) {
 	checklist, err := scanChecklist(db.QueryRow(ctx, `SELECT `+lifecycleChecklistColumns+`
-		FROM lifecycle_checklists WHERE id = $1 AND workspace_id = $2`, checklistID, wsID))
+		FROM lifecycle_checklists WHERE id = $1`, checklistID))
 	if errors.Is(err, pgx.ErrNoRows) {
 		return api.LifecycleChecklistResponse{}, api.ErrChecklistNotFound
 	}
@@ -653,23 +650,23 @@ func (r LifecycleRepository) getChecklist(ctx context.Context, db DBTX, wsID, ch
 	return checklist, nil
 }
 
-func (r LifecycleRepository) GetChecklist(ctx context.Context, wsID, checklistID uuid.UUID) (api.LifecycleChecklistResponse, error) {
+func (r LifecycleRepository) GetChecklist(ctx context.Context, checklistID uuid.UUID) (api.LifecycleChecklistResponse, error) {
 	db, err := r.db(ctx)
 	if err != nil {
 		return api.LifecycleChecklistResponse{}, err
 	}
-	return r.getChecklist(ctx, db, wsID, checklistID)
+	return r.getChecklist(ctx, db, checklistID)
 }
 
-func (r LifecycleRepository) ListChecklistsForEmployment(ctx context.Context, wsID, employmentID uuid.UUID) ([]api.LifecycleChecklistResponse, error) {
+func (r LifecycleRepository) ListChecklistsForEmployment(ctx context.Context, employmentID uuid.UUID) ([]api.LifecycleChecklistResponse, error) {
 	db, err := r.db(ctx)
 	if err != nil {
 		return nil, err
 	}
 	rows, err := db.Query(ctx, `SELECT `+lifecycleChecklistColumns+`
 		FROM lifecycle_checklists
-		WHERE workspace_id = $1 AND employment_id = $2
-		ORDER BY created_at DESC`, wsID, employmentID)
+		WHERE employment_id = $1
+		ORDER BY created_at DESC`, employmentID)
 	if err != nil {
 		return nil, err
 	}
@@ -693,11 +690,8 @@ func (r LifecycleRepository) ListChecklistsForEmployment(ctx context.Context, ws
 	itemRows, err := db.Query(ctx, `SELECT `+lifecycleChecklistItemColumns+`
 		FROM lifecycle_checklist_items i
 		INNER JOIN lifecycle_checklists c ON c.id = i.checklist_id
-		WHERE c.workspace_id = $1 AND c.employment_id = $2
-		ORDER BY i.display_order ASC`, wsID, employmentID)
-	if err != nil {
-		return nil, err
-	}
+		WHERE c.employment_id = $1
+		ORDER BY i.display_order ASC`, employmentID)
 	defer itemRows.Close()
 	index := make(map[uuid.UUID]int, len(checklists))
 	for i := range checklists {
@@ -714,47 +708,29 @@ func (r LifecycleRepository) ListChecklistsForEmployment(ctx context.Context, ws
 	}
 	return checklists, itemRows.Err()
 }
-func (r LifecycleRepository) ListWorkspaceChecklists(ctx context.Context, wsID uuid.UUID) ([]api.LifecycleInstanceSummary, error) {
+func (r LifecycleRepository) ListChecklists(ctx context.Context) ([]api.LifecycleInstanceSummary, error) {
 	db, err := r.db(ctx)
 	if err != nil {
 		return nil, err
 	}
-	query := `SELECT 
-		c.id,
-		c.workspace_id,
-		c.employment_id,
-		em.employee_id,
-		e.full_name,
-		e.employee_id_number,
-		d.name,
-		c.template_id,
-		t.name,
-		c.checklist_type,
-		c.status,
-		c.progress_percent,
-		COALESCE(item_counts.total_items, 0),
-		COALESCE(item_counts.completed_items, 0),
-		c.started_at,
-		c.completed_at,
-		c.created_at,
-		c.updated_at
+	query := `SELECT
+		c.id, c.employment_id, em.employee_id, e.full_name, e.employee_id_number, d.name,
+		c.template_id, t.name, c.checklist_type, c.status, c.progress_percent,
+		COALESCE(item_counts.total_items, 0), COALESCE(item_counts.completed_items, 0),
+		c.started_at, c.completed_at, c.created_at, c.updated_at
 	FROM lifecycle_checklists c
-	INNER JOIN employments em ON em.id = c.employment_id AND em.workspace_id = c.workspace_id
-	INNER JOIN employees e ON e.id = em.employee_id AND e.workspace_id = c.workspace_id
-	LEFT JOIN departments d ON d.id = em.department_id AND d.workspace_id = c.workspace_id
-	LEFT JOIN lifecycle_checklist_templates t ON t.id = c.template_id AND t.workspace_id = c.workspace_id
+	INNER JOIN employments em ON em.id = c.employment_id
+	INNER JOIN employees e ON e.id = em.employee_id
+	LEFT JOIN departments d ON d.id = em.department_id
+	LEFT JOIN lifecycle_checklist_templates t ON t.id = c.template_id
 	LEFT JOIN (
-		SELECT 
-			checklist_id,
-			COUNT(*)::int AS total_items,
+		SELECT checklist_id, COUNT(*)::int AS total_items,
 			COUNT(*) FILTER (WHERE status = 'completed')::int AS completed_items
 		FROM lifecycle_checklist_items
 		GROUP BY checklist_id
 	) item_counts ON item_counts.checklist_id = c.id
-	WHERE c.workspace_id = $1
 	ORDER BY c.created_at DESC`
-
-	rows, err := db.Query(ctx, query, wsID)
+	rows, err := db.Query(ctx, query)
 	if err != nil {
 		return nil, err
 	}
@@ -766,24 +742,10 @@ func (r LifecycleRepository) ListWorkspaceChecklists(ctx context.Context, wsID u
 		var started, created, updated time.Time
 		var completed *time.Time
 		if err := rows.Scan(
-			&s.ID,
-			&s.WorkspaceID,
-			&s.EmploymentID,
-			&s.EmployeeID,
-			&s.EmployeeName,
-			&s.EmployeeCode,
-			&s.DepartmentName,
-			&s.TemplateID,
-			&s.TemplateName,
-			&s.ChecklistType,
-			&s.Status,
-			&s.ProgressPercent,
-			&s.TotalItems,
-			&s.CompletedItems,
-			&started,
-			&completed,
-			&created,
-			&updated,
+			&s.ID, &s.EmploymentID, &s.EmployeeID, &s.EmployeeName, &s.EmployeeCode,
+			&s.DepartmentName, &s.TemplateID, &s.TemplateName, &s.ChecklistType,
+			&s.Status, &s.ProgressPercent, &s.TotalItems, &s.CompletedItems,
+			&started, &completed, &created, &updated,
 		); err != nil {
 			return nil, err
 		}
@@ -799,7 +761,7 @@ func (r LifecycleRepository) ListWorkspaceChecklists(ctx context.Context, wsID u
 	return summaries, rows.Err()
 }
 
-func (r LifecycleRepository) GetItemAssigneeAndChecklist(ctx context.Context, wsID, itemID uuid.UUID) (*uuid.UUID, uuid.UUID, error) {
+func (r LifecycleRepository) GetItemAssigneeAndChecklist(ctx context.Context, itemID uuid.UUID) (*uuid.UUID, uuid.UUID, error) {
 	db, err := r.db(ctx)
 	if err != nil {
 		return nil, uuid.Nil, err
@@ -808,23 +770,22 @@ func (r LifecycleRepository) GetItemAssigneeAndChecklist(ctx context.Context, ws
 	var checklistID uuid.UUID
 	err = db.QueryRow(ctx, `SELECT i.assignee_user_id, i.checklist_id
 		FROM lifecycle_checklist_items i
-		INNER JOIN lifecycle_checklists c ON c.id = i.checklist_id
-		WHERE i.id = $1 AND c.workspace_id = $2`, itemID, wsID).Scan(&assignee, &checklistID)
+		WHERE i.id = $1`, itemID).Scan(&assignee, &checklistID)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, uuid.Nil, api.ErrChecklistItemNotFound
 	}
 	return assignee, checklistID, err
 }
 
-func (r LifecycleRepository) UpdateChecklistItemStatus(ctx context.Context, wsID, itemID uuid.UUID, status string, notes *string, completedBy *uuid.UUID) (api.LifecycleChecklistResponse, error) {
-	txBeginner, err := r.begin(ctx, wsID)
+func (r LifecycleRepository) UpdateChecklistItemStatus(ctx context.Context, itemID uuid.UUID, status string, notes *string, completedBy *uuid.UUID) (api.LifecycleChecklistResponse, error) {
+	txBeginner, err := r.begin(ctx)
 	if err != nil {
 		return api.LifecycleChecklistResponse{}, err
 	}
 	if txBeginner != nil {
 		var updated api.LifecycleChecklistResponse
 		err := service.WithTx(ctx, txBeginner, func(ctx context.Context, tx pgx.Tx) error {
-			res, txErr := r.updateItemStatusTx(ctx, tx, wsID, itemID, status, notes, completedBy)
+			res, txErr := r.updateItemStatusTx(ctx, tx, itemID, status, notes, completedBy)
 			if txErr != nil {
 				return txErr
 			}
@@ -837,22 +798,22 @@ func (r LifecycleRepository) UpdateChecklistItemStatus(ctx context.Context, wsID
 	if err != nil {
 		return api.LifecycleChecklistResponse{}, err
 	}
-	return r.updateItemStatusTx(ctx, d, wsID, itemID, status, notes, completedBy)
+	return r.updateItemStatusTx(ctx, d, itemID, status, notes, completedBy)
 }
 
-func (r LifecycleRepository) updateItemStatusTx(ctx context.Context, db DBTX, wsID, itemID uuid.UUID, status string, notes *string, completedBy *uuid.UUID) (api.LifecycleChecklistResponse, error) {
+
+
+func (r LifecycleRepository) updateItemStatusTx(ctx context.Context, db DBTX, itemID uuid.UUID, status string, notes *string, completedBy *uuid.UUID) (api.LifecycleChecklistResponse, error) {
 	var completedAt *time.Time
 	if status == "completed" {
 		now := time.Now().UTC()
 		completedAt = &now
 	}
 	var checklistID uuid.UUID
-	err := db.QueryRow(ctx, `UPDATE lifecycle_checklist_items i SET
-		status = $1, completed_at = $2, completed_by = $3, notes = $4, updated_at = NOW()
-		FROM lifecycle_checklists c
-		WHERE i.checklist_id = c.id AND c.workspace_id = $5 AND i.id = $6
-		RETURNING i.checklist_id`,
-		status, completedAt, completedBy, notes, wsID, itemID).Scan(&checklistID)
+	err := db.QueryRow(ctx, `UPDATE lifecycle_checklist_items
+		SET status = $1, completed_at = $2, completed_by = $3, notes = $4, updated_at = NOW()
+		WHERE id = $5
+		RETURNING checklist_id`, status, completedAt, completedBy, notes, itemID).Scan(&checklistID)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return api.LifecycleChecklistResponse{}, api.ErrChecklistItemNotFound
 	}
@@ -861,9 +822,7 @@ func (r LifecycleRepository) updateItemStatusTx(ctx context.Context, db DBTX, ws
 	}
 
 	var total, done int
-	if err := db.QueryRow(ctx, `SELECT
-		COUNT(*),
-		COUNT(*) FILTER (WHERE status IN ('completed', 'skipped'))
+	if err := db.QueryRow(ctx, `SELECT COUNT(*), COUNT(*) FILTER (WHERE status IN ('completed', 'skipped'))
 		FROM lifecycle_checklist_items WHERE checklist_id = $1`, checklistID).Scan(&total, &done); err != nil {
 		return api.LifecycleChecklistResponse{}, err
 	}
@@ -880,13 +839,13 @@ func (r LifecycleRepository) updateItemStatusTx(ctx context.Context, db DBTX, ws
 	}
 	if _, err := db.Exec(ctx, `UPDATE lifecycle_checklists SET
 		status = $1, progress_percent = $2, completed_at = $3, updated_at = NOW()
-		WHERE id = $4 AND workspace_id = $5`, newStatus, progress, completed, checklistID, wsID); err != nil {
+		WHERE id = $4`, newStatus, progress, completed, checklistID); err != nil {
 		return api.LifecycleChecklistResponse{}, err
 	}
-	return r.getChecklist(ctx, db, wsID, checklistID)
+	return r.getChecklist(ctx, db, checklistID)
 }
 
-func (r LifecycleRepository) GetPendingTasksForUser(ctx context.Context, wsID, userID uuid.UUID) ([]api.PendingTaskResponse, error) {
+func (r LifecycleRepository) GetPendingTasksForUser(ctx context.Context, userID uuid.UUID) ([]api.PendingTaskResponse, error) {
 	db, err := r.db(ctx)
 	if err != nil {
 		return nil, err
@@ -900,8 +859,7 @@ func (r LifecycleRepository) GetPendingTasksForUser(ctx context.Context, wsID, u
 	INNER JOIN employees e ON e.id = em.employee_id
 	WHERE i.assignee_user_id = $1
 	  AND i.status = 'pending'
-	  AND c.workspace_id = $2
-	ORDER BY i.due_date ASC NULLS LAST`, userID, wsID)
+	ORDER BY i.due_date ASC NULLS LAST`, userID)
 	if err != nil {
 		return nil, err
 	}

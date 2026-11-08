@@ -216,8 +216,8 @@
     "drawer": {
       "add_subtitle": "为目标配置特定规则",
       "add_title": "添加政策覆盖",
-      "grace_period_placeholder": "使用工作区默认值",
-      "override_notice": "注意：以下设置自生效日期起，将覆盖该目标对象的默认工作空间配置。",
+      "grace_period_placeholder": "使用组织默认值",
+      "override_notice": "注意：以下设置自生效日期起，将覆盖该目标对象的组织默认配置。",
       "save_button": "保存覆盖",
       "search_placeholder": "搜索 {{type}}...",
       "select_target_type": "选择 {{type}}",
@@ -225,7 +225,7 @@
       "step_target": "1. 选择目标"
     },
     "empty_state": {
-      "description": "所有人都在遵循工作区的默认政策。",
+      "description": "所有人都在遵循组织默认政策。",
       "title": "无活动覆盖"
     },
     "filters": {
@@ -288,7 +288,7 @@
     "modal_title_edit": "编辑假期",
     "modal_title_new": "新假期",
     "no_holidays": "没有为 {{year}} 配置节假日",
-    "subtitle": "管理您工作空间的公共假日和特殊日子",
+    "subtitle": "管理组织的公共假日和特殊日期",
     "table": {
       "credit": "补贴",
       "date": "日期",
@@ -533,7 +533,7 @@
     },
     "form_subtitle": "定义何时应应用此模式",
     "info_priority": "规则按从高到低的优先级进行评估。第一个匹配员工的规则将被应用。常规规则应具有最低优先级。",
-    "match_all": "工作空间范围内 (匹配全部)",
+    "match_all": "全组织范围（匹配全部）",
     "messages": {
       "create_error": "规则创建失败",
       "create_success": "规则创建成功",
@@ -636,9 +636,9 @@
       "correction_desc": "修正将覆盖当前班次记录。仅用于修复输入错误。",
       "correction_label": "数据修正",
       "correction_warning": "这是一个直接修正",
-      "early_arrival_notice_allow": "ℹ️ 工作空间的早到政策当前配置为“允许所有”。提前加班时间将从签到时间起完整计算。",
-      "early_arrival_notice_block": "⚠️ 注意：工作空间的早到政策当前配置为“阻止早到”。此提前加班 (Early OT) 配置将不会对员工生效。",
-      "early_arrival_notice_clamp": "ℹ️ 工作空间的早到政策当前配置为“钳位早到”。提前加班时间（如果允许）将被限制在班次宽限期（当前为 {{grace}} 分钟）内。",
+      "early_arrival_notice_allow": "ℹ️ 组织的早到政策当前配置为“允许所有”。提前加班时间将从签到时间起完整计算。",
+      "early_arrival_notice_block": "⚠️ 注意：组织的早到政策当前配置为“阻止早到”。此提前加班 (Early OT) 配置将不会对员工生效。",
+      "early_arrival_notice_clamp": "ℹ️ 组织的早到政策当前配置为“钳位早到”。提前加班时间（如果允许）将被限制在班次宽限期（当前为 {{grace}} 分钟）内。",
       "edit_description": "更新配置或修改工时",
       "edit_subtitle": "更新配置或更改时间",
       "effective_date_desc": "新版本将从该日期起生效。",

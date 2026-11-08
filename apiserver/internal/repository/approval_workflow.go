@@ -17,7 +17,7 @@ import (
 type ApprovalWorkflowRepository struct {
 	DB       DBTX
 	SystemDB DBTX
-	BeginTx  func(context.Context, uuid.UUID) (TxBeginner, error)
+	BeginTx  func(context.Context) (TxBeginner, error)
 }
 
 func (r ApprovalWorkflowRepository) db(ctx context.Context) (DBTX, error) {
@@ -27,9 +27,9 @@ func (r ApprovalWorkflowRepository) db(ctx context.Context) (DBTX, error) {
 	return r.DB, nil
 }
 
-func (r ApprovalWorkflowRepository) begin(ctx context.Context, workspaceID uuid.UUID) (TxBeginner, error) {
+func (r ApprovalWorkflowRepository) begin(ctx context.Context) (TxBeginner, error) {
 	if r.BeginTx != nil {
-		return r.BeginTx(ctx, workspaceID)
+		return r.BeginTx(ctx)
 	}
 	db, err := r.db(ctx)
 	if err != nil {
@@ -42,17 +42,17 @@ func (r ApprovalWorkflowRepository) begin(ctx context.Context, workspaceID uuid.
 	return beginner, nil
 }
 
-func (r ApprovalWorkflowRepository) ListWorkflows(ctx context.Context, workspaceID uuid.UUID, entityType *string, page, limit int) (api.ApprovalWorkflowListResponse, error) {
+func (r ApprovalWorkflowRepository) ListWorkflows(ctx context.Context, entityType *string, page, limit int) (api.ApprovalWorkflowListResponse, error) {
 	db, err := r.db(ctx)
 	if err != nil {
 		return api.ApprovalWorkflowListResponse{}, err
 	}
 	response := api.ApprovalWorkflowListResponse{Data: make([]api.ApprovalWorkflowRecord, 0), Page: page, Limit: limit}
-	if err := db.QueryRow(ctx, `SELECT count(*) FROM approval_workflows WHERE workspace_id = $1 AND ($2::text IS NULL OR entity_type = $2)`, workspaceID, entityType).Scan(&response.Total); err != nil {
+	if err := db.QueryRow(ctx, `SELECT count(*) FROM approval_workflows WHERE ($1::text IS NULL OR entity_type = $1)`, entityType).Scan(&response.Total); err != nil {
 		return api.ApprovalWorkflowListResponse{}, err
 	}
 	offset := (page - 1) * limit
-	rows, err := db.Query(ctx, `SELECT id, workspace_id, entity_type, name, description, total_steps, is_active, created_by, created_at, updated_at FROM approval_workflows WHERE workspace_id = $1 AND ($2::text IS NULL OR entity_type = $2) ORDER BY created_at DESC LIMIT $3 OFFSET $4`, workspaceID, entityType, limit, offset)
+	rows, err := db.Query(ctx, `SELECT id, entity_type, name, description, total_steps, is_active, created_by, created_at, updated_at FROM approval_workflows WHERE ($1::text IS NULL OR entity_type = $1) ORDER BY created_at DESC LIMIT $2 OFFSET $3`, entityType, limit, offset)
 	if err != nil {
 		return api.ApprovalWorkflowListResponse{}, err
 	}
@@ -60,7 +60,7 @@ func (r ApprovalWorkflowRepository) ListWorkflows(ctx context.Context, workspace
 	for rows.Next() {
 		var item api.ApprovalWorkflowRecord
 		var createdAt, updatedAt time.Time
-		if err := rows.Scan(&item.ID, &item.WorkspaceID, &item.EntityType, &item.Name, &item.Description, &item.TotalSteps, &item.IsActive, &item.CreatedBy, &createdAt, &updatedAt); err != nil {
+		if err := rows.Scan(&item.ID, &item.EntityType, &item.Name, &item.Description, &item.TotalSteps, &item.IsActive, &item.CreatedBy, &createdAt, &updatedAt); err != nil {
 			return api.ApprovalWorkflowListResponse{}, err
 		}
 		item.CreatedAt = createdAt.UTC().Format(time.RFC3339)
@@ -70,8 +70,8 @@ func (r ApprovalWorkflowRepository) ListWorkflows(ctx context.Context, workspace
 	return response, rows.Err()
 }
 
-func (r ApprovalWorkflowRepository) CreateWorkflow(ctx context.Context, workspaceID, creatorID uuid.UUID, req api.CreateWorkflowRequest) (api.ApprovalWorkflowRecord, error) {
-	tx, err := r.begin(ctx, workspaceID)
+func (r ApprovalWorkflowRepository) CreateWorkflow(ctx context.Context, creatorID uuid.UUID, req api.CreateWorkflowRequest) (api.ApprovalWorkflowRecord, error) {
+	tx, err := r.begin(ctx)
 	if err != nil {
 		return api.ApprovalWorkflowRecord{}, err
 	}
@@ -79,7 +79,6 @@ func (r ApprovalWorkflowRepository) CreateWorkflow(ctx context.Context, workspac
 	now := time.Now().UTC()
 	result := api.ApprovalWorkflowRecord{
 		ID:          workflowID,
-		WorkspaceID: workspaceID,
 		EntityType:  req.EntityType,
 		Name:        req.Name,
 		Description: req.Description,
@@ -89,7 +88,7 @@ func (r ApprovalWorkflowRepository) CreateWorkflow(ctx context.Context, workspac
 		Steps:       make([]api.WorkflowStepRecord, 0, len(req.Steps)),
 	}
 	err = service.WithTx(ctx, tx, func(ctx context.Context, db pgx.Tx) error {
-		if _, err := db.Exec(ctx, `INSERT INTO approval_workflows (id, workspace_id, entity_type, name, description, total_steps, is_active, created_by, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $9)`, workflowID, workspaceID, req.EntityType, req.Name, req.Description, len(req.Steps), req.IsActive, creatorID, now); err != nil {
+		if _, err := db.Exec(ctx, `INSERT INTO approval_workflows (id, entity_type, name, description, total_steps, is_active, created_by, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $8)`, workflowID, req.EntityType, req.Name, req.Description, len(req.Steps), req.IsActive, creatorID, now); err != nil {
 			return err
 		}
 		for _, step := range req.Steps {
@@ -125,15 +124,15 @@ func (r ApprovalWorkflowRepository) CreateWorkflow(ctx context.Context, workspac
 	return result, nil
 }
 
-func (r ApprovalWorkflowRepository) GetWorkflow(ctx context.Context, workspaceID, workflowID uuid.UUID) (api.ApprovalWorkflowRecord, error) {
+func (r ApprovalWorkflowRepository) GetWorkflow(ctx context.Context, workflowID uuid.UUID) (api.ApprovalWorkflowRecord, error) {
 	db, err := r.db(ctx)
 	if err != nil {
 		return api.ApprovalWorkflowRecord{}, err
 	}
 	var item api.ApprovalWorkflowRecord
 	var createdAt, updatedAt time.Time
-	err = db.QueryRow(ctx, `SELECT id, workspace_id, entity_type, name, description, total_steps, is_active, created_by, created_at, updated_at FROM approval_workflows WHERE id = $1 AND workspace_id = $2`, workflowID, workspaceID).
-		Scan(&item.ID, &item.WorkspaceID, &item.EntityType, &item.Name, &item.Description, &item.TotalSteps, &item.IsActive, &item.CreatedBy, &createdAt, &updatedAt)
+	err = db.QueryRow(ctx, `SELECT id, entity_type, name, description, total_steps, is_active, created_by, created_at, updated_at FROM approval_workflows WHERE id = $1`, workflowID).
+		Scan(&item.ID, &item.EntityType, &item.Name, &item.Description, &item.TotalSteps, &item.IsActive, &item.CreatedBy, &createdAt, &updatedAt)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return api.ApprovalWorkflowRecord{}, api.ErrWorkflowNotFound
@@ -161,7 +160,7 @@ func (r ApprovalWorkflowRepository) GetWorkflow(ctx context.Context, workspaceID
 	return item, nil
 }
 
-func (r ApprovalWorkflowRepository) UpdateWorkflow(ctx context.Context, workspaceID, workflowID uuid.UUID, req api.UpdateWorkflowRequest) (api.ApprovalWorkflowRecord, error) {
+func (r ApprovalWorkflowRepository) UpdateWorkflow(ctx context.Context, workflowID uuid.UUID, req api.UpdateWorkflowRequest) (api.ApprovalWorkflowRecord, error) {
 	db, err := r.db(ctx)
 	if err != nil {
 		return api.ApprovalWorkflowRecord{}, err
@@ -181,23 +180,23 @@ func (r ApprovalWorkflowRepository) UpdateWorkflow(ctx context.Context, workspac
 	if req.IsActive != nil {
 		add("is_active", *req.IsActive)
 	}
-	args = append(args, workflowID, workspaceID)
-	tag, err := db.Exec(ctx, fmt.Sprintf(`UPDATE approval_workflows SET %s WHERE id = $%d AND workspace_id = $%d`, strings.Join(sets, ", "), len(args)-1, len(args)), args...)
+	args = append(args, workflowID)
+	tag, err := db.Exec(ctx, fmt.Sprintf(`UPDATE approval_workflows SET %s WHERE id = $%d`, strings.Join(sets, ", "), len(args)), args...)
 	if err != nil {
 		return api.ApprovalWorkflowRecord{}, err
 	}
 	if tag.RowsAffected() == 0 {
 		return api.ApprovalWorkflowRecord{}, api.ErrWorkflowNotFound
 	}
-	return r.GetWorkflow(ctx, workspaceID, workflowID)
+	return r.GetWorkflow(ctx, workflowID)
 }
 
-func (r ApprovalWorkflowRepository) DeleteWorkflow(ctx context.Context, workspaceID, workflowID uuid.UUID) error {
+func (r ApprovalWorkflowRepository) DeleteWorkflow(ctx context.Context, workflowID uuid.UUID) error {
 	db, err := r.db(ctx)
 	if err != nil {
 		return err
 	}
-	tag, err := db.Exec(ctx, `DELETE FROM approval_workflows WHERE id = $1 AND workspace_id = $2`, workflowID, workspaceID)
+	tag, err := db.Exec(ctx, `DELETE FROM approval_workflows WHERE id = $1`, workflowID)
 	if err != nil {
 		return err
 	}
@@ -207,8 +206,8 @@ func (r ApprovalWorkflowRepository) DeleteWorkflow(ctx context.Context, workspac
 	return nil
 }
 
-func (r ApprovalWorkflowRepository) ProcessApproval(ctx context.Context, workspaceID, actorID uuid.UUID, req api.ProcessApprovalRequest) error {
-	tx, err := r.begin(ctx, workspaceID)
+func (r ApprovalWorkflowRepository) ProcessApproval(ctx context.Context, actorID uuid.UUID, req api.ProcessApprovalRequest) error {
+	tx, err := r.begin(ctx)
 	if err != nil {
 		return err
 	}
@@ -216,7 +215,7 @@ func (r ApprovalWorkflowRepository) ProcessApproval(ctx context.Context, workspa
 		var instanceID uuid.UUID
 		var stepOrder int
 		var stepName *string
-		err := db.QueryRow(ctx, `SELECT i.id, i.current_step_order, s.step_name FROM approval_workflow_instances i LEFT JOIN approval_workflow_steps s ON s.workflow_id = i.workflow_id AND s.step_order = i.current_step_order WHERE i.workspace_id = $1 AND i.entity_type = $2 AND i.entity_id = $3 AND i.status = 'pending' FOR UPDATE`, workspaceID, req.EntityType, req.EntityID).Scan(&instanceID, &stepOrder, &stepName)
+		err := db.QueryRow(ctx, `SELECT i.id, i.current_step_order, s.step_name FROM approval_workflow_instances i LEFT JOIN approval_workflow_steps s ON s.workflow_id = i.workflow_id AND s.step_order = i.current_step_order WHERE i.entity_type = $1 AND i.entity_id = $2 AND i.status = 'pending' FOR UPDATE`, req.EntityType, req.EntityID).Scan(&instanceID, &stepOrder, &stepName)
 		if errors.Is(err, pgx.ErrNoRows) {
 			return api.ErrWorkflowNotFound
 		}
@@ -224,7 +223,7 @@ func (r ApprovalWorkflowRepository) ProcessApproval(ctx context.Context, workspa
 			return err
 		}
 		action := normalizeApprovalAction(req.Action)
-		if _, err := db.Exec(ctx, `INSERT INTO approval_action_log (id, workspace_id, entity_type, entity_id, step_order, step_name, acted_by_user_id, action, note, acted_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, now())`, uuid.New(), workspaceID, req.EntityType, req.EntityID, stepOrder, stepName, actorID, action, req.Note); err != nil {
+		if _, err := db.Exec(ctx, `INSERT INTO approval_action_log (id, entity_type, entity_id, step_order, step_name, acted_by_user_id, action, note, acted_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, now())`, uuid.New(), req.EntityType, req.EntityID, stepOrder, stepName, actorID, action, req.Note); err != nil {
 			return err
 		}
 		status := "pending"
@@ -254,12 +253,12 @@ func normalizeApprovalAction(action string) string {
 	}
 }
 
-func (r ApprovalWorkflowRepository) ListHistory(ctx context.Context, workspaceID uuid.UUID, entityType string, entityID uuid.UUID) ([]api.ApprovalActionLogRecord, error) {
+func (r ApprovalWorkflowRepository) ListHistory(ctx context.Context, entityType string, entityID uuid.UUID) ([]api.ApprovalActionLogRecord, error) {
 	db, err := r.db(ctx)
 	if err != nil {
 		return nil, err
 	}
-	rows, err := db.Query(ctx, `SELECT id, workspace_id, entity_type, entity_id, step_order, step_name, acted_by_user_id, action, note, acted_at FROM approval_action_log WHERE workspace_id = $1 AND entity_type = $2 AND entity_id = $3 ORDER BY acted_at ASC`, workspaceID, entityType, entityID)
+	rows, err := db.Query(ctx, `SELECT id, entity_type, entity_id, step_order, step_name, acted_by_user_id, action, note, acted_at FROM approval_action_log WHERE entity_type = $1 AND entity_id = $2 ORDER BY acted_at ASC`, entityType, entityID)
 	if err != nil {
 		return nil, err
 	}
@@ -268,7 +267,7 @@ func (r ApprovalWorkflowRepository) ListHistory(ctx context.Context, workspaceID
 	for rows.Next() {
 		var item api.ApprovalActionLogRecord
 		var actedAt time.Time
-		if err := rows.Scan(&item.ID, &item.WorkspaceID, &item.EntityType, &item.EntityID, &item.StepOrder, &item.StepName, &item.ActedByUserID, &item.Action, &item.Note, &actedAt); err != nil {
+		if err := rows.Scan(&item.ID, &item.EntityType, &item.EntityID, &item.StepOrder, &item.StepName, &item.ActedByUserID, &item.Action, &item.Note, &actedAt); err != nil {
 			return nil, err
 		}
 		item.ActedAt = actedAt.UTC().Format(time.RFC3339)
@@ -278,7 +277,7 @@ func (r ApprovalWorkflowRepository) ListHistory(ctx context.Context, workspaceID
 }
 
 // GetPendingTasksForUser returns pending approval workflow tasks matching the caller.
-func (r ApprovalWorkflowRepository) GetPendingTasksForUser(ctx context.Context, workspaceID, userID uuid.UUID, page, limit int) (api.PaginatedTasksResponse, error) {
+func (r ApprovalWorkflowRepository) GetPendingTasksForUser(ctx context.Context, userID uuid.UUID, page, limit int) (api.PaginatedTasksResponse, error) {
 	db, err := r.db(ctx)
 	if err != nil {
 		return api.PaginatedTasksResponse{}, err
@@ -292,12 +291,16 @@ func (r ApprovalWorkflowRepository) GetPendingTasksForUser(ctx context.Context, 
 	offset := (page - 1) * limit
 
 	var roleIDs []uuid.UUID
-	if r.SystemDB != nil {
-		roleRows, err := r.SystemDB.Query(ctx, `
-			SELECT role_id FROM workspace_members WHERE user_id = $1 AND workspace_id = $2
+	targetDB := r.SystemDB
+	if targetDB == nil {
+		targetDB = db
+	}
+	if targetDB != nil {
+		roleRows, err := targetDB.Query(ctx, `
+			SELECT role_id FROM user_roles WHERE user_id = $1
 			UNION
-			SELECT role_id FROM member_extra_roles WHERE user_id = $1 AND workspace_id = $2 AND expires_at > NOW()
-		`, userID, workspaceID)
+			SELECT role_id FROM user_extra_roles WHERE user_id = $1 AND expires_at > NOW()
+		`, userID)
 		if err == nil && roleRows != nil {
 			for roleRows.Next() {
 				var rid uuid.UUID
@@ -309,14 +312,14 @@ func (r ApprovalWorkflowRepository) GetPendingTasksForUser(ctx context.Context, 
 		}
 	}
 
-	countQuery := `SELECT COUNT(*) FROM approval_workflow_tasks t JOIN approval_workflow_instances i ON t.instance_id = i.id WHERE i.workspace_id = $1 AND t.status = 'pending' AND ( (t.assignee_type = 'specific_user' AND t.assignee_target_id = $2) OR (t.assignee_type = 'role' AND t.assignee_target_id = ANY($3)) OR (t.assignee_type = 'department_manager') OR (t.assignee_type = 'permission') )`
+	countQuery := `SELECT COUNT(*) FROM approval_workflow_tasks t JOIN approval_workflow_instances i ON t.instance_id = i.id WHERE t.status = 'pending' AND ( (t.assignee_type = 'specific_user' AND t.assignee_target_id = $1) OR (t.assignee_type = 'role' AND t.assignee_target_id = ANY($2)) OR (t.assignee_type = 'department_manager') OR (t.assignee_type = 'permission') )`
 	var total int64
-	if err := db.QueryRow(ctx, countQuery, workspaceID, userID, roleIDs).Scan(&total); err != nil {
+	if err := db.QueryRow(ctx, countQuery, userID, roleIDs).Scan(&total); err != nil {
 		return api.PaginatedTasksResponse{}, err
 	}
 
-	dataQuery := `SELECT t.id, t.instance_id, t.step_order, t.status, t.assignee_type, t.assignee_target_id, t.assignee_target_name, t.created_at, t.completed_at, t.completed_by FROM approval_workflow_tasks t JOIN approval_workflow_instances i ON t.instance_id = i.id WHERE i.workspace_id = $1 AND t.status = 'pending' AND ( (t.assignee_type = 'specific_user' AND t.assignee_target_id = $2) OR (t.assignee_type = 'role' AND t.assignee_target_id = ANY($3)) OR (t.assignee_type = 'department_manager') OR (t.assignee_type = 'permission') ) ORDER BY t.created_at DESC LIMIT $4 OFFSET $5`
-	rows, err := db.Query(ctx, dataQuery, workspaceID, userID, roleIDs, limit, offset)
+	dataQuery := `SELECT t.id, t.instance_id, t.step_order, t.status, t.assignee_type, t.assignee_target_id, t.assignee_target_name, t.created_at, t.completed_at, t.completed_by FROM approval_workflow_tasks t JOIN approval_workflow_instances i ON t.instance_id = i.id WHERE t.status = 'pending' AND ( (t.assignee_type = 'specific_user' AND t.assignee_target_id = $1) OR (t.assignee_type = 'role' AND t.assignee_target_id = ANY($2)) OR (t.assignee_type = 'department_manager') OR (t.assignee_type = 'permission') ) ORDER BY t.created_at DESC LIMIT $3 OFFSET $4`
+	rows, err := db.Query(ctx, dataQuery, userID, roleIDs, limit, offset)
 	if err != nil {
 		return api.PaginatedTasksResponse{}, err
 	}

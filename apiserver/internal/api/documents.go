@@ -49,38 +49,34 @@ type TemplatePreviewResponse struct {
 }
 
 type DocumentRepository interface {
-	ListFolders(ctx context.Context, wsID uuid.UUID) ([]DocumentFolderDto, error)
-	CreateFolder(ctx context.Context, wsID uuid.UUID, req CreateFolderRequest) (DocumentFolderDto, error)
-	GetFolder(ctx context.Context, wsID, folderID uuid.UUID) (DocumentFolderDto, error)
-	RenameFolder(ctx context.Context, wsID, folderID uuid.UUID, name string) (DocumentFolderDto, error)
-	DeleteFolder(ctx context.Context, wsID, folderID uuid.UUID) error
-	DistributeDocument(ctx context.Context, wsID uuid.UUID, req DistributeDocumentRequest) (int, error)
-	GetTemplateVariables(ctx context.Context, wsID, employeeID uuid.UUID) (map[string]string, error)
+	ListFolders(ctx context.Context) ([]DocumentFolderDto, error)
+	CreateFolder(ctx context.Context, req CreateFolderRequest) (DocumentFolderDto, error)
+	GetFolder(ctx context.Context, folderID uuid.UUID) (DocumentFolderDto, error)
+	RenameFolder(ctx context.Context, folderID uuid.UUID, name string) (DocumentFolderDto, error)
+	DeleteFolder(ctx context.Context, folderID uuid.UUID) error
+	DistributeDocument(ctx context.Context, req DistributeDocumentRequest) (int, error)
+	GetTemplateVariables(ctx context.Context, employeeID uuid.UUID) (map[string]string, error)
 }
 
 type DocumentHandler struct {
 	Repository DocumentRepository
-	Authorizer WorkspaceAuthorizer
+	Authorizer Authorizer
 }
 
-func (h DocumentHandler) isMember(r *http.Request, wsID uuid.UUID) bool {
-	u, ok := httpinfra.UserIDFromContext(r.Context())
-	if !ok || h.Authorizer == nil {
+func (h DocumentHandler) isMember(r *http.Request) bool {
+	if h.Authorizer == nil {
 		return false
 	}
-	if checker, ok := h.Authorizer.(interface {
-		IsMember(context.Context, uuid.UUID, uuid.UUID) (bool, error)
-	}); ok {
-		m, err := checker.IsMember(r.Context(), u, wsID)
-		return err == nil && m
+	u, ok := httpinfra.UserIDFromContext(r.Context())
+	if !ok {
+		return false
 	}
-	return h.Authorizer.HasPermission(r.Context(), u, wsID, "documents:read") ||
-		h.Authorizer.HasPermission(r.Context(), u, wsID, "documents:manage")
+	member, err := h.Authorizer.IsMember(r.Context(), u)
+	return err == nil && member
 }
 
 func (h DocumentHandler) ListFolders(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := organizationIDFromContext(r)
-	if !ok || !h.isMember(r, wsID) {
+	if !h.isMember(r) {
 		apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
 		return
 	}
@@ -88,7 +84,7 @@ func (h DocumentHandler) ListFolders(w http.ResponseWriter, r *http.Request) {
 		apperror.WriteJSON(w, http.StatusOK, []DocumentFolderDto{})
 		return
 	}
-	folders, err := h.Repository.ListFolders(r.Context(), wsID)
+	folders, err := h.Repository.ListFolders(r.Context())
 	if err != nil {
 		apperror.WriteError(w, r, apperror.Internal(err))
 		return
@@ -97,8 +93,7 @@ func (h DocumentHandler) ListFolders(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h DocumentHandler) CreateFolder(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := organizationIDFromContext(r)
-	if !ok || !h.isMember(r, wsID) {
+	if !h.isMember(r) {
 		apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
 		return
 	}
@@ -120,7 +115,7 @@ func (h DocumentHandler) CreateFolder(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
-	folder, err := h.Repository.CreateFolder(r.Context(), wsID, req)
+	folder, err := h.Repository.CreateFolder(r.Context(), req)
 	if err != nil {
 		if errors.Is(err, ErrInvalidParent) {
 			apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
@@ -133,9 +128,8 @@ func (h DocumentHandler) CreateFolder(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h DocumentHandler) GetFolder(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := organizationIDFromContext(r)
 	folderID, idOK := pathUUID(r, "id")
-	if !ok || !idOK || !h.isMember(r, wsID) {
+	if !idOK || !h.isMember(r) {
 		apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
 		return
 	}
@@ -143,7 +137,7 @@ func (h DocumentHandler) GetFolder(w http.ResponseWriter, r *http.Request) {
 		apperror.WriteError(w, r, apperror.NotFound(apperror.KeyNotFound))
 		return
 	}
-	folder, err := h.Repository.GetFolder(r.Context(), wsID, folderID)
+	folder, err := h.Repository.GetFolder(r.Context(), folderID)
 	if err != nil {
 		if errors.Is(err, ErrFolderNotFound) {
 			apperror.WriteError(w, r, apperror.NotFound(apperror.KeyNotFound))
@@ -156,9 +150,8 @@ func (h DocumentHandler) GetFolder(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h DocumentHandler) RenameFolder(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := organizationIDFromContext(r)
 	folderID, idOK := pathUUID(r, "id")
-	if !ok || !idOK || !h.isMember(r, wsID) {
+	if !idOK || !h.isMember(r) {
 		apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
 		return
 	}
@@ -176,7 +169,7 @@ func (h DocumentHandler) RenameFolder(w http.ResponseWriter, r *http.Request) {
 		apperror.WriteError(w, r, apperror.NotFound(apperror.KeyNotFound))
 		return
 	}
-	folder, err := h.Repository.RenameFolder(r.Context(), wsID, folderID, req.Name)
+	folder, err := h.Repository.RenameFolder(r.Context(), folderID, req.Name)
 	if err != nil {
 		if errors.Is(err, ErrFolderNotFound) {
 			apperror.WriteError(w, r, apperror.NotFound(apperror.KeyNotFound))
@@ -189,9 +182,8 @@ func (h DocumentHandler) RenameFolder(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h DocumentHandler) DeleteFolder(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := organizationIDFromContext(r)
 	folderID, idOK := pathUUID(r, "id")
-	if !ok || !idOK || !h.isMember(r, wsID) {
+	if !idOK || !h.isMember(r) {
 		apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
 		return
 	}
@@ -199,7 +191,7 @@ func (h DocumentHandler) DeleteFolder(w http.ResponseWriter, r *http.Request) {
 		apperror.WriteError(w, r, apperror.NotFound(apperror.KeyNotFound))
 		return
 	}
-	if err := h.Repository.DeleteFolder(r.Context(), wsID, folderID); err != nil {
+	if err := h.Repository.DeleteFolder(r.Context(), folderID); err != nil {
 		if errors.Is(err, ErrFolderNotFound) {
 			apperror.WriteError(w, r, apperror.NotFound(apperror.KeyNotFound))
 			return
@@ -211,8 +203,7 @@ func (h DocumentHandler) DeleteFolder(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h DocumentHandler) Distribute(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := organizationIDFromContext(r)
-	if !ok || !h.isMember(r, wsID) {
+	if !h.isMember(r) {
 		apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
 		return
 	}
@@ -224,7 +215,7 @@ func (h DocumentHandler) Distribute(w http.ResponseWriter, r *http.Request) {
 	count := len(req.TargetEmployeeIDs)
 	if h.Repository != nil && count > 0 {
 		var err error
-		count, err = h.Repository.DistributeDocument(r.Context(), wsID, req)
+		count, err = h.Repository.DistributeDocument(r.Context(), req)
 		if err != nil {
 			apperror.WriteError(w, r, apperror.Internal(err))
 			return
@@ -251,8 +242,7 @@ func FillTemplate(template string, vars map[string]string) string {
 }
 
 func (h DocumentHandler) PreviewTemplate(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := organizationIDFromContext(r)
-	if !ok || !h.isMember(r, wsID) {
+	if !h.isMember(r) {
 		apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
 		return
 	}
@@ -263,7 +253,7 @@ func (h DocumentHandler) PreviewTemplate(w http.ResponseWriter, r *http.Request)
 	}
 	vars := make(map[string]string)
 	if h.Repository != nil {
-		if repoVars, err := h.Repository.GetTemplateVariables(r.Context(), wsID, req.EmployeeID); err == nil {
+		if repoVars, err := h.Repository.GetTemplateVariables(r.Context(), req.EmployeeID); err == nil {
 			for k, v := range repoVars {
 				vars[k] = v
 			}
@@ -279,9 +269,8 @@ func (h DocumentHandler) PreviewTemplate(w http.ResponseWriter, r *http.Request)
 }
 
 func (h DocumentHandler) GenerateTemplate(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := organizationIDFromContext(r)
 	_, idOK := pathUUID(r, "id")
-	if !ok || !idOK || !h.isMember(r, wsID) {
+	if !idOK || !h.isMember(r) {
 		apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
 		return
 	}

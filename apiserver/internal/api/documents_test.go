@@ -13,15 +13,20 @@ import (
 	httpinfra "github.com/vkaylee/leeattend/apiserver/internal/infra/http"
 )
 
-type mockDocAuthorizer struct {
-	notMember bool
-}
+type documentTestAuthorizer struct{ notMember bool }
 
-func (mockDocAuthorizer) HasPermission(context.Context, uuid.UUID, uuid.UUID, string) bool {
-	return true
+func (documentTestAuthorizer) HasPermission(context.Context, uuid.UUID, string) bool { return true }
+func (documentTestAuthorizer) HasScopedPermission(context.Context, uuid.UUID, string, *uuid.UUID) bool {
+	return false
 }
-func (m mockDocAuthorizer) IsMember(context.Context, uuid.UUID, uuid.UUID) (bool, error) {
-	return !m.notMember, nil
+func (a documentTestAuthorizer) IsMember(context.Context, uuid.UUID) (bool, error) {
+	return !a.notMember, nil
+}
+func (documentTestAuthorizer) EffectivePermissions(context.Context, uuid.UUID) ([]string, []string, error) {
+	return nil, nil, nil
+}
+func (documentTestAuthorizer) GetUsersWithPermission(context.Context, string) ([]uuid.UUID, error) {
+	return nil, nil
 }
 
 type mockDocRepo struct {
@@ -30,15 +35,14 @@ type mockDocRepo struct {
 	CustomVariables map[string]string
 }
 
-func (m *mockDocRepo) ListFolders(ctx context.Context, wsID uuid.UUID) ([]DocumentFolderDto, error) {
+func (m *mockDocRepo) ListFolders(context.Context) ([]DocumentFolderDto, error) {
 	var list []DocumentFolderDto
 	for _, f := range m.Folders {
 		list = append(list, f)
 	}
 	return list, nil
 }
-
-func (m *mockDocRepo) CreateFolder(ctx context.Context, wsID uuid.UUID, req CreateFolderRequest) (DocumentFolderDto, error) {
+func (m *mockDocRepo) CreateFolder(_ context.Context, req CreateFolderRequest) (DocumentFolderDto, error) {
 	if m.Folders == nil {
 		m.Folders = make(map[uuid.UUID]DocumentFolderDto)
 	}
@@ -48,23 +52,17 @@ func (m *mockDocRepo) CreateFolder(ctx context.Context, wsID uuid.UUID, req Crea
 		}
 	}
 	id := uuid.New()
-	dto := DocumentFolderDto{
-		ID:             id,
-		Name:           req.Name,
-		ParentFolderID: req.ParentFolderID,
-	}
-	m.Folders[id] = dto
-	return dto, nil
+	folder := DocumentFolderDto{ID: id, Name: req.Name, ParentFolderID: req.ParentFolderID}
+	m.Folders[id] = folder
+	return folder, nil
 }
-
-func (m *mockDocRepo) GetFolder(ctx context.Context, wsID, folderID uuid.UUID) (DocumentFolderDto, error) {
+func (m *mockDocRepo) GetFolder(_ context.Context, folderID uuid.UUID) (DocumentFolderDto, error) {
 	if f, ok := m.Folders[folderID]; ok {
 		return f, nil
 	}
 	return DocumentFolderDto{}, ErrFolderNotFound
 }
-
-func (m *mockDocRepo) RenameFolder(ctx context.Context, wsID, folderID uuid.UUID, name string) (DocumentFolderDto, error) {
+func (m *mockDocRepo) RenameFolder(_ context.Context, folderID uuid.UUID, name string) (DocumentFolderDto, error) {
 	if f, ok := m.Folders[folderID]; ok {
 		f.Name = name
 		m.Folders[folderID] = f
@@ -72,29 +70,22 @@ func (m *mockDocRepo) RenameFolder(ctx context.Context, wsID, folderID uuid.UUID
 	}
 	return DocumentFolderDto{}, ErrFolderNotFound
 }
-
-func (m *mockDocRepo) DeleteFolder(ctx context.Context, wsID, folderID uuid.UUID) error {
+func (m *mockDocRepo) DeleteFolder(_ context.Context, folderID uuid.UUID) error {
 	if _, ok := m.Folders[folderID]; ok {
 		delete(m.Folders, folderID)
 		return nil
 	}
 	return ErrFolderNotFound
 }
-
-func (m *mockDocRepo) DistributeDocument(ctx context.Context, wsID uuid.UUID, req DistributeDocumentRequest) (int, error) {
+func (m *mockDocRepo) DistributeDocument(_ context.Context, req DistributeDocumentRequest) (int, error) {
 	m.Distributions = append(m.Distributions, req)
 	return len(req.TargetEmployeeIDs), nil
 }
-
-func (m *mockDocRepo) GetTemplateVariables(ctx context.Context, wsID, employeeID uuid.UUID) (map[string]string, error) {
+func (m *mockDocRepo) GetTemplateVariables(_ context.Context, _ uuid.UUID) (map[string]string, error) {
 	vars := map[string]string{
-		"COMPANY_NAME":       "Acme Global",
-		"EMPLOYEE_NAME":      "Jane Doe",
-		"EMPLOYEE_ID_NUMBER": "EMP-007",
-		"HIRE_DATE":          "15/01/2024",
-		"JOB_TITLE":          "Senior Engineer",
-		"CONTRACT_NUMBER":    "CTR-2024-001",
-		"DOCUMENT_DATE":      time.Now().UTC().Format("02/01/2006"),
+		"COMPANY_NAME": "Acme Global", "EMPLOYEE_NAME": "Jane Doe", "EMPLOYEE_ID_NUMBER": "EMP-007",
+		"HIRE_DATE": "15/01/2024", "JOB_TITLE": "Senior Engineer", "CONTRACT_NUMBER": "CTR-2024-001",
+		"DOCUMENT_DATE": time.Now().UTC().Format("02/01/2006"),
 	}
 	for k, v := range m.CustomVariables {
 		vars[k] = v
@@ -102,237 +93,138 @@ func (m *mockDocRepo) GetTemplateVariables(ctx context.Context, wsID, employeeID
 	return vars, nil
 }
 
-func TestDocumentFolders_CRUD(t *testing.T) {
-	wsID := uuid.New()
+func documentTestRequest(method, target string, body []byte, userID uuid.UUID) *http.Request {
+	var req *http.Request
+	if body == nil {
+		req = httptest.NewRequest(method, target, nil)
+	} else {
+		req = httptest.NewRequest(method, target, bytes.NewReader(body))
+	}
+	return req.WithContext(httpinfra.WithUserIDForTest(req.Context(), userID))
+}
+
+func TestDocumentFoldersCRUDAndParentValidation(t *testing.T) {
 	userID := uuid.New()
 	repo := &mockDocRepo{Folders: make(map[uuid.UUID]DocumentFolderDto)}
-	handler := DocumentHandler{
-		Repository: repo,
-		Authorizer: mockDocAuthorizer{},
-	}
+	handler := DocumentHandler{Repository: repo, Authorizer: documentTestAuthorizer{}}
 
-	// 1. List empty folders
-	listReq := httptest.NewRequest(http.MethodGet, "/v1/workspaces/"+wsID.String()+"/documents/folders", nil)
-	listReq = listReq.WithContext(httpinfra.WithOrganizationIDForTest(listReq.Context(), wsID))
-	listReq = listReq.WithContext(httpinfra.WithUserIDForTest(listReq.Context(), userID))
 	listRec := httptest.NewRecorder()
-	handler.ListFolders(listRec, listReq)
+	handler.ListFolders(listRec, documentTestRequest(http.MethodGet, "/api/v1/documents/folders", nil, userID))
 	if listRec.Code != http.StatusOK {
-		t.Fatalf("expected 200 OK, got %d", listRec.Code)
+		t.Fatalf("expected empty folder list, got %d", listRec.Code)
 	}
 
-	// 2. Create root folder
-	createBody, _ := json.Marshal(CreateFolderRequest{Name: "Policies"})
-	createReq := httptest.NewRequest(http.MethodPost, "/v1/workspaces/"+wsID.String()+"/documents/folders", bytes.NewReader(createBody))
-	createReq = createReq.WithContext(httpinfra.WithOrganizationIDForTest(createReq.Context(), wsID))
-	createReq = createReq.WithContext(httpinfra.WithUserIDForTest(createReq.Context(), userID))
+	body, _ := json.Marshal(CreateFolderRequest{Name: "Policies"})
 	createRec := httptest.NewRecorder()
-	handler.CreateFolder(createRec, createReq)
+	handler.CreateFolder(createRec, documentTestRequest(http.MethodPost, "/api/v1/documents/folders", body, userID))
 	if createRec.Code != http.StatusOK {
-		t.Fatalf("expected 200 OK, got %d", createRec.Code)
+		t.Fatalf("expected root folder create, got %d: %s", createRec.Code, createRec.Body.String())
 	}
-	var rootFolder DocumentFolderDto
-	_ = json.Unmarshal(createRec.Body.Bytes(), &rootFolder)
-	if rootFolder.Name != "Policies" || rootFolder.ParentFolderID != nil {
-		t.Errorf("unexpected root folder: %+v", rootFolder)
-	}
-
-	// 3. Create subfolder with invalid parent -> 400
-	badParent := uuid.New()
-	badSubBody, _ := json.Marshal(CreateFolderRequest{Name: "2024", ParentFolderID: &badParent})
-	badSubReq := httptest.NewRequest(http.MethodPost, "/v1/workspaces/"+wsID.String()+"/documents/folders", bytes.NewReader(badSubBody))
-	badSubReq = badSubReq.WithContext(httpinfra.WithOrganizationIDForTest(badSubReq.Context(), wsID))
-	badSubReq = badSubReq.WithContext(httpinfra.WithUserIDForTest(badSubReq.Context(), userID))
-	badSubRec := httptest.NewRecorder()
-	handler.CreateFolder(badSubRec, badSubReq)
-	if badSubRec.Code != http.StatusBadRequest {
-		t.Fatalf("expected 400 Bad Request for bad parent, got %d", badSubRec.Code)
+	var parent DocumentFolderDto
+	if err := json.Unmarshal(createRec.Body.Bytes(), &parent); err != nil {
+		t.Fatalf("decode root folder: %v", err)
 	}
 
-	// 4. Create subfolder with valid parent -> 200
-	subBody, _ := json.Marshal(CreateFolderRequest{Name: "2024", ParentFolderID: &rootFolder.ID})
-	subReq := httptest.NewRequest(http.MethodPost, "/v1/workspaces/"+wsID.String()+"/documents/folders", bytes.NewReader(subBody))
-	subReq = subReq.WithContext(httpinfra.WithOrganizationIDForTest(subReq.Context(), wsID))
-	subReq = subReq.WithContext(httpinfra.WithUserIDForTest(subReq.Context(), userID))
+	invalidParent := uuid.New()
+	badBody, _ := json.Marshal(CreateFolderRequest{Name: "2024", ParentFolderID: &invalidParent})
+	badRec := httptest.NewRecorder()
+	handler.CreateFolder(badRec, documentTestRequest(http.MethodPost, "/api/v1/documents/folders", badBody, userID))
+	if badRec.Code != http.StatusBadRequest {
+		t.Fatalf("expected invalid parent rejection, got %d", badRec.Code)
+	}
+
+	subBody, _ := json.Marshal(CreateFolderRequest{Name: "2024", ParentFolderID: &parent.ID})
 	subRec := httptest.NewRecorder()
-	handler.CreateFolder(subRec, subReq)
+	handler.CreateFolder(subRec, documentTestRequest(http.MethodPost, "/api/v1/documents/folders", subBody, userID))
 	if subRec.Code != http.StatusOK {
-		t.Fatalf("expected 200 OK for valid subfolder, got %d", subRec.Code)
+		t.Fatalf("expected subfolder create, got %d: %s", subRec.Code, subRec.Body.String())
 	}
-	var subFolder DocumentFolderDto
-	_ = json.Unmarshal(subRec.Body.Bytes(), &subFolder)
-	if subFolder.ParentFolderID == nil || *subFolder.ParentFolderID != rootFolder.ID {
-		t.Errorf("expected parent_folder_id %v, got %v", rootFolder.ID, subFolder.ParentFolderID)
+	var child DocumentFolderDto
+	if err := json.Unmarshal(subRec.Body.Bytes(), &child); err != nil {
+		t.Fatalf("decode child folder: %v", err)
+	}
+	if child.ParentFolderID == nil || *child.ParentFolderID != parent.ID {
+		t.Fatalf("child parent mismatch: %+v", child)
 	}
 
-	// 5. Get folder
-	getReq := httptest.NewRequest(http.MethodGet, "/v1/workspaces/"+wsID.String()+"/documents/folders/"+subFolder.ID.String(), nil)
-	getReq = getReq.WithContext(httpinfra.WithOrganizationIDForTest(getReq.Context(), wsID))
-	getReq.SetPathValue("id", subFolder.ID.String())
-	getReq = getReq.WithContext(httpinfra.WithUserIDForTest(getReq.Context(), userID))
+	getReq := documentTestRequest(http.MethodGet, "/api/v1/documents/folders/"+child.ID.String(), nil, userID)
+	getReq.SetPathValue("id", child.ID.String())
 	getRec := httptest.NewRecorder()
 	handler.GetFolder(getRec, getReq)
 	if getRec.Code != http.StatusOK {
-		t.Fatalf("expected 200 OK for get, got %d", getRec.Code)
+		t.Fatalf("expected folder lookup, got %d", getRec.Code)
 	}
 
-	// 6. Rename folder
 	renameBody, _ := json.Marshal(RenameFolderRequest{Name: "2024-Archived"})
-	renameReq := httptest.NewRequest(http.MethodPut, "/v1/workspaces/"+wsID.String()+"/documents/folders/"+subFolder.ID.String(), bytes.NewReader(renameBody))
-	renameReq = renameReq.WithContext(httpinfra.WithOrganizationIDForTest(renameReq.Context(), wsID))
-	renameReq.SetPathValue("id", subFolder.ID.String())
-	renameReq = renameReq.WithContext(httpinfra.WithUserIDForTest(renameReq.Context(), userID))
+	renameReq := documentTestRequest(http.MethodPut, "/api/v1/documents/folders/"+child.ID.String(), renameBody, userID)
+	renameReq.SetPathValue("id", child.ID.String())
 	renameRec := httptest.NewRecorder()
 	handler.RenameFolder(renameRec, renameReq)
-	if renameRec.Code != http.StatusOK {
-		t.Fatalf("expected 200 OK for rename, got %d", renameRec.Code)
-	}
-	var renamedFolder DocumentFolderDto
-	_ = json.Unmarshal(renameRec.Body.Bytes(), &renamedFolder)
-	if renamedFolder.Name != "2024-Archived" {
-		t.Errorf("expected renamed name '2024-Archived', got '%s'", renamedFolder.Name)
+	if renameRec.Code != http.StatusOK || repo.Folders[child.ID].Name != "2024-Archived" {
+		t.Fatalf("expected rename, got %d: %+v", renameRec.Code, repo.Folders[child.ID])
 	}
 
-	// 7. Delete folder
-	delReq := httptest.NewRequest(http.MethodDelete, "/v1/workspaces/"+wsID.String()+"/documents/folders/"+subFolder.ID.String(), nil)
-	delReq = delReq.WithContext(httpinfra.WithOrganizationIDForTest(delReq.Context(), wsID))
-	delReq.SetPathValue("id", subFolder.ID.String())
-	delReq = delReq.WithContext(httpinfra.WithUserIDForTest(delReq.Context(), userID))
+	delReq := documentTestRequest(http.MethodDelete, "/api/v1/documents/folders/"+child.ID.String(), nil, userID)
+	delReq.SetPathValue("id", child.ID.String())
 	delRec := httptest.NewRecorder()
 	handler.DeleteFolder(delRec, delReq)
 	if delRec.Code != http.StatusOK {
-		t.Fatalf("expected 200 OK for delete, got %d", delRec.Code)
+		t.Fatalf("expected delete, got %d", delRec.Code)
 	}
-
-	// 8. Get deleted folder -> 404
-	getDeletedReq := httptest.NewRequest(http.MethodGet, "/v1/workspaces/"+wsID.String()+"/documents/folders/"+subFolder.ID.String(), nil)
-	getDeletedReq = getDeletedReq.WithContext(httpinfra.WithOrganizationIDForTest(getDeletedReq.Context(), wsID))
-	getDeletedReq.SetPathValue("id", subFolder.ID.String())
-	getDeletedReq = getDeletedReq.WithContext(httpinfra.WithUserIDForTest(getDeletedReq.Context(), userID))
-	getDeletedRec := httptest.NewRecorder()
-	handler.GetFolder(getDeletedRec, getDeletedReq)
-	if getDeletedRec.Code != http.StatusNotFound {
-		t.Fatalf("expected 404 Not Found for deleted folder, got %d", getDeletedRec.Code)
+	if _, exists := repo.Folders[child.ID]; exists {
+		t.Fatal("deleted folder remains")
 	}
 }
 
-func TestDocumentDistribution(t *testing.T) {
-	wsID := uuid.New()
-	userID := uuid.New()
-	docID := uuid.New()
-	emp1 := uuid.New()
-	emp2 := uuid.New()
-
+func TestDocumentDistributionRequiresMember(t *testing.T) {
+	userID, docID, emp1, emp2 := uuid.New(), uuid.New(), uuid.New(), uuid.New()
 	repo := &mockDocRepo{}
-	handler := DocumentHandler{
-		Repository: repo,
-		Authorizer: mockDocAuthorizer{},
-	}
-
-	reqBody, _ := json.Marshal(DistributeDocumentRequest{
-		DocumentID:        docID,
-		TargetEmployeeIDs: []uuid.UUID{emp1, emp2},
-	})
-	req := httptest.NewRequest(http.MethodPost, "/v1/workspaces/"+wsID.String()+"/documents/distributions", bytes.NewReader(reqBody))
-	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
-	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), userID))
+	handler := DocumentHandler{Repository: repo, Authorizer: documentTestAuthorizer{}}
+	body, _ := json.Marshal(DistributeDocumentRequest{DocumentID: docID, TargetEmployeeIDs: []uuid.UUID{emp1, emp2}})
 	rec := httptest.NewRecorder()
-
-	handler.Distribute(rec, req)
-	if rec.Code != http.StatusOK {
-		t.Fatalf("expected 200 OK, got %d: %s", rec.Code, rec.Body.String())
+	handler.Distribute(rec, documentTestRequest(http.MethodPost, "/api/v1/documents/distributions", body, userID))
+	var result map[string]any
+	if rec.Code != http.StatusOK || json.Unmarshal(rec.Body.Bytes(), &result) != nil || result["count"] != float64(2) {
+		t.Fatalf("expected two document distributions, got %d: %s", rec.Code, rec.Body.String())
 	}
-	var resp map[string]any
-	_ = json.Unmarshal(rec.Body.Bytes(), &resp)
-	if resp["status"] != "success" || resp["count"] != float64(2) {
-		t.Errorf("unexpected distribute response: %+v", resp)
+	if len(repo.Distributions) != 1 || len(repo.Distributions[0].TargetEmployeeIDs) != 2 {
+		t.Fatalf("distribution request not recorded: %+v", repo.Distributions)
+	}
+
+	forbidden := DocumentHandler{Repository: repo, Authorizer: documentTestAuthorizer{notMember: true}}
+	forbiddenRec := httptest.NewRecorder()
+	forbidden.Distribute(forbiddenRec, documentTestRequest(http.MethodPost, "/api/v1/documents/distributions", body, userID))
+	if forbiddenRec.Code != http.StatusForbidden {
+		t.Fatalf("expected non-member denial, got %d", forbiddenRec.Code)
 	}
 }
 
-func TestDocumentTemplates_PreviewAndGenerate(t *testing.T) {
-	wsID := uuid.New()
-	userID := uuid.New()
-	empID := uuid.New()
-	templateID := uuid.New()
-
+func TestDocumentTemplatesPreviewAndGenerate(t *testing.T) {
+	userID, empID, templateID := uuid.New(), uuid.New(), uuid.New()
 	repo := &mockDocRepo{}
-	handler := DocumentHandler{
-		Repository: repo,
-		Authorizer: mockDocAuthorizer{},
-	}
-
-	templateContent := "Employment Agreement between {{COMPANY_NAME}} and {{EMPLOYEE_NAME}} (ID: {{EMPLOYEE_ID_NUMBER}}). Role: {{JOB_TITLE}}, Start Date: {{HIRE_DATE}}, Contract: {{CONTRACT_NUMBER}}, Date: {{DOCUMENT_DATE}}, Custom: {{CUSTOM_VAR}}, Missing: {{UNSET_KEY}}."
-
-	// 1. Preview template
-	reqBody, _ := json.Marshal(TemplatePreviewRequest{
-		TemplateContent: templateContent,
-		EmployeeID:      empID,
-		ManualVariables: map[string]string{
-			"CUSTOM_VAR": "CustomValue123",
-			"JOB_TITLE":  "Lead Architect", // manual override of job title
-		},
-	})
-	previewReq := httptest.NewRequest(http.MethodPost, "/v1/workspaces/"+wsID.String()+"/documents/templates/preview", bytes.NewReader(reqBody))
-	previewReq = previewReq.WithContext(httpinfra.WithOrganizationIDForTest(previewReq.Context(), wsID))
-	previewReq = previewReq.WithContext(httpinfra.WithUserIDForTest(previewReq.Context(), userID))
+	handler := DocumentHandler{Repository: repo, Authorizer: documentTestAuthorizer{}}
+	templateContent := "Agreement between {{COMPANY_NAME}} and {{EMPLOYEE_NAME}}. Role: {{JOB_TITLE}}, Custom: {{CUSTOM_VAR}}, Missing: {{UNSET_KEY}}."
+	body, _ := json.Marshal(TemplatePreviewRequest{TemplateContent: templateContent, EmployeeID: empID, ManualVariables: map[string]string{
+		"CUSTOM_VAR": "CustomValue123", "JOB_TITLE": "Lead Architect",
+	}})
 	previewRec := httptest.NewRecorder()
-
-	handler.PreviewTemplate(previewRec, previewReq)
-	if previewRec.Code != http.StatusOK {
-		t.Fatalf("expected 200 OK, got %d: %s", previewRec.Code, previewRec.Body.String())
+	handler.PreviewTemplate(previewRec, documentTestRequest(http.MethodPost, "/api/v1/documents/templates/preview", body, userID))
+	var preview TemplatePreviewResponse
+	if previewRec.Code != http.StatusOK || json.Unmarshal(previewRec.Body.Bytes(), &preview) != nil {
+		t.Fatalf("expected template preview, got %d: %s", previewRec.Code, previewRec.Body.String())
 	}
-	var previewResp TemplatePreviewResponse
-	_ = json.Unmarshal(previewRec.Body.Bytes(), &previewResp)
-
-	// Verify standard variables substituted
-	expectedSnippets := []string{
-		"Employment Agreement between Acme Global and Jane Doe",
-		"ID: EMP-007",
-		"Role: Lead Architect", // overridden
-		"Start Date: 15/01/2024",
-		"Contract: CTR-2024-001",
-		"Custom: CustomValue123",
-		"Missing: {{UNSET_KEY}}", // unmatched kept intact
-	}
-	for _, snip := range expectedSnippets {
-		if !bytes.Contains([]byte(previewResp.FilledContent), []byte(snip)) {
-			t.Errorf("expected filled content to contain %q, but got:\n%s", snip, previewResp.FilledContent)
+	for _, expected := range []string{"Acme Global and Jane Doe", "Lead Architect", "CustomValue123", "{{UNSET_KEY}}"} {
+		if !bytes.Contains([]byte(preview.FilledContent), []byte(expected)) {
+			t.Errorf("preview missing %q: %s", expected, preview.FilledContent)
 		}
 	}
 
-	// 2. Generate template
-	genReq := httptest.NewRequest(http.MethodPost, "/v1/workspaces/"+wsID.String()+"/documents/templates/"+templateID.String()+"/generate", bytes.NewReader(reqBody))
-	genReq = genReq.WithContext(httpinfra.WithOrganizationIDForTest(genReq.Context(), wsID))
+	genReq := documentTestRequest(http.MethodPost, "/api/v1/documents/templates/"+templateID.String()+"/generate", body, userID)
 	genReq.SetPathValue("id", templateID.String())
-	genReq = genReq.WithContext(httpinfra.WithUserIDForTest(genReq.Context(), userID))
 	genRec := httptest.NewRecorder()
-
 	handler.GenerateTemplate(genRec, genReq)
-	if genRec.Code != http.StatusOK {
-		t.Fatalf("expected 200 OK, got %d: %s", genRec.Code, genRec.Body.String())
-	}
-	var genResp map[string]string
-	_ = json.Unmarshal(genRec.Body.Bytes(), &genResp)
-	if genResp["status"] != "generated" {
-		t.Errorf("expected status 'generated', got %s", genResp["status"])
-	}
-}
-
-func TestDocumentAuth_Forbidden(t *testing.T) {
-	wsID := uuid.New()
-	userID := uuid.New()
-	handler := DocumentHandler{
-		Repository: &mockDocRepo{},
-		Authorizer: mockDocAuthorizer{notMember: true},
-	}
-
-	req := httptest.NewRequest(http.MethodGet, "/v1/workspaces/"+wsID.String()+"/documents/folders", nil)
-	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
-	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), userID))
-	rec := httptest.NewRecorder()
-
-	handler.ListFolders(rec, req)
-	if rec.Code != http.StatusForbidden {
-		t.Fatalf("expected 403 Forbidden for non-member, got %d", rec.Code)
+	var result map[string]string
+	if genRec.Code != http.StatusOK || json.Unmarshal(genRec.Body.Bytes(), &result) != nil || result["status"] != "generated" {
+		t.Fatalf("expected successful template generation, got %d: %s", genRec.Code, genRec.Body.String())
 	}
 }

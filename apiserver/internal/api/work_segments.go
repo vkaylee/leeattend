@@ -16,7 +16,6 @@ import (
 
 type WorkSegment struct {
 	ID                        uuid.UUID       `json:"id"`
-	WorkspaceID               uuid.UUID       `json:"workspace_id"`
 	EmploymentID              uuid.UUID       `json:"employment_id"`
 	Date                      string          `json:"date"`
 	TemplateID                uuid.UUID       `json:"template_id"`
@@ -103,22 +102,21 @@ var (
 )
 
 type WorkSegmentRepository interface {
-	ListSegments(context.Context, uuid.UUID, WorkSegmentFilter, int, int) (WorkSegmentListResponse, error)
-	GetSegment(context.Context, uuid.UUID, uuid.UUID) (WorkSegment, error)
-	CreateSegment(context.Context, uuid.UUID, CreateWorkSegmentRequest) (WorkSegment, error)
-	UpdateSegment(context.Context, uuid.UUID, uuid.UUID, UpdateWorkSegmentRequest) (WorkSegment, error)
-	DeleteSegment(context.Context, uuid.UUID, uuid.UUID) error
-	BulkCreateSegments(context.Context, uuid.UUID, BulkCreateWorkSegmentsRequest) ([]WorkSegment, error)
+	ListSegments(context.Context, WorkSegmentFilter, int, int) (WorkSegmentListResponse, error)
+	GetSegment(context.Context, uuid.UUID) (WorkSegment, error)
+	CreateSegment(context.Context, CreateWorkSegmentRequest) (WorkSegment, error)
+	UpdateSegment(context.Context, uuid.UUID, UpdateWorkSegmentRequest) (WorkSegment, error)
+	DeleteSegment(context.Context, uuid.UUID) error
+	BulkCreateSegments(context.Context, BulkCreateWorkSegmentsRequest) ([]WorkSegment, error)
 }
 
 type WorkSegmentHandler struct {
 	Repository WorkSegmentRepository
-	Authorizer AttendanceAuthorizer
+	Authorizer Authorizer
 }
 
 func (h WorkSegmentHandler) List(w http.ResponseWriter, r *http.Request) {
-	workspaceID, ok := organizationIDFromContext(r)
-	if !ok || !h.allowed(r, workspaceID, "rosters:read") {
+	if !h.allowed(r, "rosters:read") {
 		h.forbidden(w, r)
 		return
 	}
@@ -132,7 +130,7 @@ func (h WorkSegmentHandler) List(w http.ResponseWriter, r *http.Request) {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}
-	result, err := h.Repository.ListSegments(r.Context(), workspaceID, filter, page, limit)
+	result, err := h.Repository.ListSegments(r.Context(), filter, page, limit)
 	if err != nil {
 		h.writeError(w, r, err)
 		return
@@ -141,13 +139,12 @@ func (h WorkSegmentHandler) List(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h WorkSegmentHandler) Get(w http.ResponseWriter, r *http.Request) {
-	workspaceID, ok := organizationIDFromContext(r)
 	segmentID, segmentOK := pathUUID(r, "segment_id")
-	if !ok || !segmentOK || !h.allowed(r, workspaceID, "rosters:read") {
+	if !segmentOK || !h.allowed(r, "rosters:read") {
 		h.forbidden(w, r)
 		return
 	}
-	segment, err := h.Repository.GetSegment(r.Context(), workspaceID, segmentID)
+	segment, err := h.Repository.GetSegment(r.Context(), segmentID)
 	if err != nil {
 		h.writeError(w, r, err)
 		return
@@ -156,8 +153,7 @@ func (h WorkSegmentHandler) Get(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h WorkSegmentHandler) Create(w http.ResponseWriter, r *http.Request) {
-	workspaceID, ok := organizationIDFromContext(r)
-	if !ok || !h.allowed(r, workspaceID, "rosters:manage") {
+	if !h.allowed(r, "rosters:manage") {
 		h.forbidden(w, r)
 		return
 	}
@@ -169,7 +165,7 @@ func (h WorkSegmentHandler) Create(w http.ResponseWriter, r *http.Request) {
 	if req.Source == "" {
 		req.Source = "manual"
 	}
-	segment, err := h.Repository.CreateSegment(r.Context(), workspaceID, req)
+	segment, err := h.Repository.CreateSegment(r.Context(), req)
 	if err != nil {
 		h.writeError(w, r, err)
 		return
@@ -178,9 +174,8 @@ func (h WorkSegmentHandler) Create(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h WorkSegmentHandler) Update(w http.ResponseWriter, r *http.Request) {
-	workspaceID, ok := organizationIDFromContext(r)
 	segmentID, segmentOK := pathUUID(r, "segment_id")
-	if !ok || !segmentOK || !h.allowed(r, workspaceID, "rosters:manage") {
+	if !segmentOK || !h.allowed(r, "rosters:manage") {
 		h.forbidden(w, r)
 		return
 	}
@@ -189,7 +184,7 @@ func (h WorkSegmentHandler) Update(w http.ResponseWriter, r *http.Request) {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}
-	segment, err := h.Repository.UpdateSegment(r.Context(), workspaceID, segmentID, req)
+	segment, err := h.Repository.UpdateSegment(r.Context(), segmentID, req)
 	if err != nil {
 		h.writeError(w, r, err)
 		return
@@ -198,13 +193,12 @@ func (h WorkSegmentHandler) Update(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h WorkSegmentHandler) Delete(w http.ResponseWriter, r *http.Request) {
-	workspaceID, ok := organizationIDFromContext(r)
 	segmentID, segmentOK := pathUUID(r, "segment_id")
-	if !ok || !segmentOK || !h.allowed(r, workspaceID, "rosters:manage") {
+	if !segmentOK || !h.allowed(r, "rosters:manage") {
 		h.forbidden(w, r)
 		return
 	}
-	if err := h.Repository.DeleteSegment(r.Context(), workspaceID, segmentID); err != nil {
+	if err := h.Repository.DeleteSegment(r.Context(), segmentID); err != nil {
 		h.writeError(w, r, err)
 		return
 	}
@@ -212,8 +206,7 @@ func (h WorkSegmentHandler) Delete(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h WorkSegmentHandler) BulkCreate(w http.ResponseWriter, r *http.Request) {
-	workspaceID, ok := organizationIDFromContext(r)
-	if !ok || !h.allowed(r, workspaceID, "rosters:manage") {
+	if !h.allowed(r, "rosters:manage") {
 		h.forbidden(w, r)
 		return
 	}
@@ -231,7 +224,7 @@ func (h WorkSegmentHandler) BulkCreate(w http.ResponseWriter, r *http.Request) {
 			req.Segments[index].Source = "manual"
 		}
 	}
-	segments, err := h.Repository.BulkCreateSegments(r.Context(), workspaceID, req)
+	segments, err := h.Repository.BulkCreateSegments(r.Context(), req)
 	if err != nil {
 		h.writeError(w, r, err)
 		return
@@ -309,9 +302,9 @@ func optionalDateString(value string) *string {
 	return &value
 }
 
-func (h WorkSegmentHandler) allowed(r *http.Request, workspaceID uuid.UUID, permission string) bool {
+func (h WorkSegmentHandler) allowed(r *http.Request, permission string) bool {
 	userID, ok := httpinfra.UserIDFromContext(r.Context())
-	return ok && h.Authorizer != nil && h.Authorizer.HasPermission(r.Context(), userID, workspaceID, permission)
+	return ok && h.Authorizer != nil && h.Authorizer.HasPermission(r.Context(), userID, permission)
 }
 
 func (h WorkSegmentHandler) forbidden(w http.ResponseWriter, r *http.Request) {

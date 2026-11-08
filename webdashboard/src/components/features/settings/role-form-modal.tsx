@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 
 import Button from "@/components/ui/button";
 import Modal from "@/components/ui/modal";
-import { useWorkspaceRoles } from "@/hooks/use-workspace";
+import { useOrganizationRoles } from "@/hooks/use-organization";
 import { logError } from "@/lib/logger";
 import { cn } from "@/lib/utils";
 
@@ -22,7 +22,7 @@ const AVAILABLE_COLORS = [
 ];
 
 export default function RoleFormModal({ isOpen, onClose, editingRole }: RoleFormModalProps) {
-  const { createRole, updateRole, isCreating, isUpdating } = useWorkspaceRoles();
+  const { createRole, updateRole, isCreating, isUpdating } = useOrganizationRoles();
   
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");

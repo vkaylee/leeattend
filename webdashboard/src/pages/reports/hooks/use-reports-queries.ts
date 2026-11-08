@@ -17,11 +17,9 @@ interface UseReportsQueriesProps {
   selectedDepartmentId: string | null;
   selectedEmployerId: string | null;
   sortBy: AttendanceReportSort | undefined;
-  wsId: string | null;
 }
 
 export function useReportsQueries({
-  wsId,
   debouncedSearch,
   dateRange,
   sortBy,
@@ -29,8 +27,8 @@ export function useReportsQueries({
   employeeStatus,
   selectedEmployerId,
 }: UseReportsQueriesProps) {
-  const { workspace, departments, employers } = useReportsMetadata({ wsId });
-  const { employeeIdsFilter } = useReportsEmployeeSearch({ wsId, debouncedSearch });
+  const { workspace, departments, employers } = useReportsMetadata();
+  const { employeeIdsFilter } = useReportsEmployeeSearch({ debouncedSearch });
 
   const {
     data: reportPages,
@@ -39,11 +37,10 @@ export function useReportsQueries({
     hasNextPage,
     isFetchingNextPage,
   } = useInfiniteQuery<PaginatedResponse<AttendanceSummary>>({
-    queryKey: ["attendance-report", wsId, dateRange, "summary", PAGE_SIZE, sortBy, employeeIdsFilter, selectedDepartmentId, employeeStatus, selectedEmployerId],
+    queryKey: ["attendance-report", dateRange, "summary", PAGE_SIZE, sortBy, employeeIdsFilter, selectedDepartmentId, employeeStatus, selectedEmployerId],
     queryFn: ({ pageParam }) => {
-      if (!wsId) return Promise.reject(new Error("No workspace ID"));
+      
       return fetchAttendanceReport({
-        wsId,
         start: dateRange.start,
         end: dateRange.end,
         type: "summary",
@@ -61,7 +58,6 @@ export function useReportsQueries({
       return lastPage.page + 1;
     },
     initialPageParam: 1,
-    enabled: !!wsId,
   });
 
   const filteredData = useMemo(() => {
@@ -70,7 +66,6 @@ export function useReportsQueries({
   }, [reportPages]);
 
   const { quickStats } = useReportsStats({
-    wsId,
     dateRange,
     sortBy,
     employeeIdsFilter,

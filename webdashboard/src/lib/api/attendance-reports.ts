@@ -1,7 +1,7 @@
 import { client } from "./client";
 import { ApiError } from "./errors";
 import { apiFetch } from "./helpers";
-import {
+import type {
   AttendanceImportJob,
   AttendanceSummary,
   DailyAttendanceReport,
@@ -22,14 +22,12 @@ export interface FetchAttendanceReportParams {
   sort?: AttendanceReportSort;
   start: string;
   type?: "summary" | "daily";
-  wsId: string;
 }
 
 export async function fetchAttendanceReport(
   params: FetchAttendanceReportParams
 ): Promise<PaginatedResponse<AttendanceSummary | DailyAttendanceReport>> {
   const {
-    wsId,
     start,
     end,
     type,
@@ -44,31 +42,32 @@ export async function fetchAttendanceReport(
     shiftType,
   } = params;
 
-  const { data: resData } = await client.GET("/v1/workspaces/{ws_id}/reports/attendance", {
-    params: {
-      path: { ws_id: wsId },
-      query: {
-        start_date: start,
-        end_date: end,
-        type: type,
-        page: page,
-        limit: limit,
-        sort: sort,
-        employee_ids: employeeIds?.join(",") ?? undefined,
-        department_id: departmentId ?? undefined,
-        employee_status: employeeStatus,
-        employer_id: employerId ?? undefined,
-        employment_id: employmentId ?? undefined,
-        shift_type: shiftType?.join(",") ?? undefined,
+  const { data: resData } = await client.GET<PaginatedResponse<AttendanceSummary | DailyAttendanceReport>>(
+    "/v1/reports/attendance",
+    {
+      params: {
+        query: {
+          start_date: start,
+          end_date: end,
+          type: type,
+          page: page,
+          limit: limit,
+          sort: sort,
+          employee_ids: employeeIds && employeeIds.length > 0 ? employeeIds.join(",") : undefined,
+          department_id: departmentId ?? undefined,
+          employee_status: employeeStatus,
+          employer_id: employerId ?? undefined,
+          employment_id: employmentId ?? undefined,
+          shift_type: shiftType && shiftType.length > 0 ? shiftType.join(",") : undefined,
+        },
       },
     },
-  });
+  );
 
   return resData;
 }
 
 export async function uploadAttendance(
-  wsId: string,
   file: File,
   endpoint: string
 ): Promise<{ job_id: string }> {
@@ -76,54 +75,66 @@ export async function uploadAttendance(
   formData.append("file", file);
 
   const url = endpoint === "/employees/upload"
-    ? `/v1/workspaces/${wsId}/employees/upload`
+    ? "/v1/employees/upload"
     : endpoint === "/attendance/logs/upload"
       ? "/v1/attendance/logs/upload"
-      : `/v1/workspaces/${wsId}/attendance/upload`;
+      : "/v1/attendance/upload";
 
   const res = await apiFetch(url, {
     method: "POST",
     body: formData,
   });
   if (!res.ok) await ApiError.rejectResponse(res);
-  return res.json() as Promise<{ job_id: string }>;
+  return (await res.json()) as { job_id: string };
 }
 
 export async function fetchLatestImportJob(
   targetType?: "log" | "adjustment" | "employee" | "leave_import"
-) {
-  const query = targetType ? `?target_type=${encodeURIComponent(targetType)}` : "";
-  const res = await apiFetch(`/v1/attendance/import-jobs/latest${query}`);
-  if (!res.ok) await ApiError.rejectResponse(res);
-  return res.json() as Promise<AttendanceImportJob | null>;
+): Promise<AttendanceImportJob | null> {
+  const { data: resData } = await client.GET<AttendanceImportJob | null>(
+    "/v1/attendance/import-jobs/latest",
+    {
+      params: {
+        query: targetType ? { target_type: targetType } : undefined,
+      },
+    },
+  );
+  return resData;
 }
 
 export async function fetchImportJobStatus(jobId: string): Promise<AttendanceImportJob> {
-  const res = await apiFetch(`/v1/attendance/import-jobs/${encodeURIComponent(jobId)}`);
-  if (!res.ok) await ApiError.rejectResponse(res);
-  return res.json() as Promise<AttendanceImportJob>;
+  const { data: resData } = await client.GET<AttendanceImportJob>(
+    "/v1/attendance/import-jobs/{id}",
+    {
+      params: {
+        path: { id: jobId },
+      },
+    },
+  );
+  return resData;
 }
 
 export async function reprocessAttendance(
-  wsId: string,
   employeeId: string,
   startDate: string,
   endDate: string
 ): Promise<void> {
-  await client.POST("/workspaces/{workspace_id}/attendance/reprocess/{employee_id}", {
-    params: { path: { workspace_id: wsId, employee_id: employeeId }, query: { start_date: startDate, end_date: endDate } }
+  await client.POST("/v1/attendance/reprocess/{employee_id}", {
+    params: {
+      path: { employee_id: employeeId },
+      query: { start_date: startDate, end_date: endDate },
+    },
   });
 }
 
 export async function reprocessAllAttendance(
-  wsId: string,
   startDate: string,
   endDate: string
 ): Promise<{ message: string; job_id: string }> {
-  const { data: resData } = await client.POST("/workspaces/{workspace_id}/attendance/reprocess-all", {
-    params: { path: { workspace_id: wsId }, query: { start_date: startDate, end_date: endDate } }
+  const { data: resData } = await client.POST<{ message: string; job_id: string }>("/v1/attendance/reprocess-all", {
+    params: { query: { start_date: startDate, end_date: endDate } },
   });
-  return resData as { message: string; job_id: string };
+  return resData;
 }
 
 // ── No-show timeline report ──────────────────────────────────────────
@@ -136,7 +147,6 @@ export interface FetchNoShowReportParams {
   limit?: number;
   page?: number;
   shiftType?: string[];
-  wsId: string;
 }
 
 export type RecordingIssue =
@@ -150,31 +160,25 @@ export type NoShowReportRow = DailyAttendanceReport & {
   expected_end_at?: string;
 };
 
-/** Recording-issue report: employees on a shift overlapping `date` that has
- *  *already started*, and either have no punch-in yet (`missing_punch_in`) or
- *  have an unresolved open punch (`active_overtime`, `punch_out_pending`,
- *  `missing_punch_out`). Backed by `GET /v1/workspaces/{ws_id}/reports/no-show`.
- *
- *  NOTE: uses the untyped `apiFetch` because the generated OpenAPI routes are
- *  synced from the backend via `leedevkit manage sync:api`. Until that runs
- *  after the new endpoint compiles, `client.GET` has no typed path for this
- *  route. Replace with a typed `client.GET("/v1/workspaces/{ws_id}/…")` once
- *  the schema is regenerated. */
 export async function fetchNoShowReport(
   params: FetchNoShowReportParams,
 ): Promise<PaginatedResponse<NoShowReportRow>> {
-  const { wsId, date, page, limit, employeeIds, shiftType } = params;
-  const search = new URLSearchParams();
-  search.set("date", date);
-  if (page != null) search.set("page", String(page));
-  if (limit != null) search.set("limit", String(limit));
-  if (employeeIds && employeeIds.length > 0) search.set("employee_ids", employeeIds.join(","));
-  if (shiftType && shiftType.length > 0) search.set("shift_type", shiftType.join(","));
-
-  const url = `/v1/workspaces/${wsId}/reports/no-show?${search.toString()}`;
-  const res = await apiFetch(url);
-  if (!res.ok) await ApiError.rejectResponse(res);
-  return (await res.json()) as PaginatedResponse<NoShowReportRow>;
+  const { date, page, limit, employeeIds, shiftType } = params;
+  const { data: resData } = await client.GET<PaginatedResponse<NoShowReportRow>>(
+    "/v1/reports/no-show",
+    {
+      params: {
+        query: {
+          date,
+          page,
+          limit,
+          employee_ids: employeeIds && employeeIds.length > 0 ? employeeIds.join(",") : undefined,
+          shift_type: shiftType && shiftType.length > 0 ? shiftType.join(",") : undefined,
+        },
+      },
+    },
+  );
+  return resData;
 }
 
 export interface GenericJobProgress {
@@ -194,11 +198,11 @@ export interface GenericJobStatus {
   task_type: string;
 }
 
-export async function checkReprocessStatus(wsId: string, jobId: string): Promise<GenericJobStatus> {
-  const { data: resData } = await client.GET("/workspaces/{ws_id}/reports/jobs/{job_id}", {
-    params: { path: { ws_id: wsId, job_id: jobId } }
+export async function checkReprocessStatus(jobId: string): Promise<GenericJobStatus> {
+  const { data: resData } = await client.GET<GenericJobStatus>("/v1/reports/jobs/{job_id}", {
+    params: { path: { job_id: jobId } },
   });
-  return resData as GenericJobStatus;
+  return resData;
 }
 
 export interface AttendanceStats {

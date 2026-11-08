@@ -15,14 +15,11 @@ interface Props {
   isOpen: boolean;
   onClose: () => void;
   selectedPhase: EmployeePhase;
-  wsId: string;
 }
 
 export default function UpdatePhaseStatusModal({
   isOpen,
-  onClose,
-  wsId,
-  employeeId,
+  onClose,employeeId,
   selectedPhase,
 }: Props) {
   const { t } = useTranslation();
@@ -36,7 +33,7 @@ export default function UpdatePhaseStatusModal({
 
   const statusMutation = useMutation({
     mutationFn: (data: { phaseId: string; status: string; evaluation_notes: string }) =>
-      updateEmployeePhaseStatus(wsId, employeeId, data.phaseId, {
+      updateEmployeePhaseStatus(employeeId, data.phaseId, {
         status: data.status,
         evaluation_notes: data.evaluation_notes,
       }),

@@ -14,7 +14,10 @@ import (
 )
 
 type mockReportRepo struct {
-	CreatedJobs []ReportJob
+	CreatedJobs          []ReportJob
+	BehalfEmployeeIDs    []uuid.UUID
+	LastAttendanceFilter AttendanceReportFilter
+	AttendanceCalls      int
 }
 
 func (m *mockReportRepo) CreateExportJob(ctx context.Context, job ReportJob, req ExportReportRequest) error {
@@ -23,6 +26,8 @@ func (m *mockReportRepo) CreateExportJob(ctx context.Context, job ReportJob, req
 }
 
 func (m *mockReportRepo) GetAttendanceReport(ctx context.Context, params AttendanceReportFilter) (PaginatedReportResponse, error) {
+	m.AttendanceCalls++
+	m.LastAttendanceFilter = params
 	if params.EmploymentID != nil && *params.EmploymentID == uuid.Nil {
 		return PaginatedReportResponse{}, ErrReportNotFound
 	}
@@ -51,8 +56,8 @@ func (m *mockReportRepo) GetNoShowReport(ctx context.Context, params NoShowRepor
 	}, nil
 }
 
-func (m *mockReportRepo) ResolveBehalfEmployeeIDs(ctx context.Context, wsID, userID uuid.UUID) ([]uuid.UUID, error) {
-	return []uuid.UUID{uuid.New()}, nil
+func (m *mockReportRepo) ResolveBehalfEmployeeIDs(ctx context.Context, userID uuid.UUID) ([]uuid.UUID, error) {
+	return m.BehalfEmployeeIDs, nil
 }
 
 type mockReportQueue struct {
@@ -98,14 +103,28 @@ func (m *mockReportQueue) GetResultData(ctx context.Context, jobID uuid.UUID) ([
 	return nil, "", ErrReportResultNotFound
 }
 
+// mockReportAuthorizer grants every permission while remaining a member of the singleton organization.
 type mockReportAuthorizer struct{}
 
-func (mockReportAuthorizer) HasPermission(context.Context, uuid.UUID, uuid.UUID, string) bool {
+func (mockReportAuthorizer) IsMember(context.Context, uuid.UUID) (bool, error) { return true, nil }
+func (mockReportAuthorizer) HasPermission(context.Context, uuid.UUID, string) bool {
 	return true
+}
+func (mockReportAuthorizer) EffectivePermissions(context.Context, uuid.UUID) ([]string, []string, error) {
+	return nil, nil, nil
+}
+func (mockReportAuthorizer) GetManagedDepartmentIDs(context.Context, uuid.UUID) ([]uuid.UUID, error) {
+	return nil, nil
+}
+func (mockReportAuthorizer) IsGlobalManager(context.Context, uuid.UUID) bool { return true }
+func (mockReportAuthorizer) HasScopedPermission(context.Context, uuid.UUID, string, *uuid.UUID) bool {
+	return true
+}
+func (mockReportAuthorizer) GetUsersWithPermission(context.Context, string) ([]uuid.UUID, error) {
+	return nil, nil
 }
 
 func TestReportCreateExportAndStatus(t *testing.T) {
-	wsID := uuid.New()
 	userID := uuid.New()
 	repo := &mockReportRepo{}
 	queue := &mockReportQueue{Jobs: make(map[uuid.UUID]ReportJob)}
@@ -122,8 +141,7 @@ func TestReportCreateExportAndStatus(t *testing.T) {
 		Format:     "xlsx",
 	}
 	body, _ := json.Marshal(payload)
-	req := httptest.NewRequest(http.MethodPost, "/api/v1/workspaces/"+wsID.String()+"/reports/export", bytes.NewReader(body))
-	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/reports/export", bytes.NewReader(body))
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), userID))
 	rec := httptest.NewRecorder()
 
@@ -138,10 +156,15 @@ func TestReportCreateExportAndStatus(t *testing.T) {
 	if resp.Status != "pending" || resp.JobID == uuid.Nil {
 		t.Fatalf("invalid job response: %+v", resp)
 	}
+	if want := "/api/v1/reports/jobs/" + resp.JobID.String(); resp.StatusURL != want {
+		t.Fatalf("expected status url %q, got %q", want, resp.StatusURL)
+	}
+	if len(repo.CreatedJobs) != 1 || repo.CreatedJobs[0].RequesterID != userID {
+		t.Fatalf("export job not recorded for requester: %+v", repo.CreatedJobs)
+	}
 
-	// Now poll status
-	pollReq := httptest.NewRequest(http.MethodGet, "/api/v1/workspaces/"+wsID.String()+"/reports/jobs/"+resp.JobID.String(), nil)
-	pollReq = pollReq.WithContext(httpinfra.WithOrganizationIDForTest(pollReq.Context(), wsID))
+	// The requester can poll their own job.
+	pollReq := httptest.NewRequest(http.MethodGet, "/api/v1/reports/jobs/"+resp.JobID.String(), nil)
 	pollReq.SetPathValue("job_id", resp.JobID.String())
 	pollReq = pollReq.WithContext(httpinfra.WithUserIDForTest(pollReq.Context(), userID))
 	pollRec := httptest.NewRecorder()
@@ -159,9 +182,38 @@ func TestReportCreateExportAndStatus(t *testing.T) {
 	}
 }
 
+func TestReportStatusOtherRequesterForbidden(t *testing.T) {
+	jobID := uuid.New()
+	queue := &mockReportQueue{Jobs: map[uuid.UUID]ReportJob{
+		jobID: {JobID: jobID, RequesterID: uuid.New(), Status: "pending"},
+	}}
+	handler := ReportHandler{Queue: queue, Authorizer: mockReportAuthorizer{}}
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/reports/jobs/"+jobID.String(), nil)
+	req.SetPathValue("job_id", jobID.String())
+	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
+	rec := httptest.NewRecorder()
+
+	handler.Status(rec, req)
+	if rec.Code != http.StatusForbidden {
+		t.Fatalf("expected 403 Forbidden, got %d: %s", rec.Code, rec.Body.String())
+	}
+}
+
+func TestReportExportRequiresExportPermission(t *testing.T) {
+	handler := ReportHandler{Repository: &mockReportRepo{}, Queue: &mockReportQueue{}, Authorizer: mockDenyAuthorizer{}}
+	body, _ := json.Marshal(ExportReportRequest{ReportType: "summary", StartDate: "2026-01-01", EndDate: "2026-01-31"})
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/reports/export", bytes.NewReader(body))
+	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
+	rec := httptest.NewRecorder()
+
+	handler.CreateExport(rec, req)
+	if rec.Code != http.StatusForbidden {
+		t.Fatalf("expected 403 Forbidden, got %d: %s", rec.Code, rec.Body.String())
+	}
+}
+
 func TestReportExportValidation(t *testing.T) {
 	handler := ReportHandler{Authorizer: mockReportAuthorizer{}}
-	wsID := uuid.New()
 	userID := uuid.New()
 
 	payload := ExportReportRequest{
@@ -170,8 +222,7 @@ func TestReportExportValidation(t *testing.T) {
 		EndDate:    "2026-01-31",
 	}
 	body, _ := json.Marshal(payload)
-	req := httptest.NewRequest(http.MethodPost, "/api/v1/workspaces/"+wsID.String()+"/reports/export", bytes.NewReader(body))
-	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/reports/export", bytes.NewReader(body))
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), userID))
 	rec := httptest.NewRecorder()
 
@@ -187,10 +238,8 @@ func TestReportJobNotFound(t *testing.T) {
 		Queue:      queue,
 		Authorizer: mockReportAuthorizer{},
 	}
-	wsID := uuid.New()
 	missingID := uuid.New()
-	req := httptest.NewRequest(http.MethodGet, "/api/v1/workspaces/"+wsID.String()+"/reports/jobs/"+missingID.String(), nil)
-	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/reports/jobs/"+missingID.String(), nil)
 	req.SetPathValue("job_id", missingID.String())
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
 	rec := httptest.NewRecorder()
@@ -202,16 +251,15 @@ func TestReportJobNotFound(t *testing.T) {
 }
 
 func TestReportCancel(t *testing.T) {
-	wsID := uuid.New()
+	userID := uuid.New()
 	jobID := uuid.New()
 	queue := &mockReportQueue{Jobs: map[uuid.UUID]ReportJob{
-		jobID: {JobID: jobID, WorkspaceID: wsID, Status: "pending"},
+		jobID: {JobID: jobID, RequesterID: userID, Status: "pending"},
 	}}
 	handler := ReportHandler{Queue: queue, Authorizer: mockReportAuthorizer{}}
-	req := httptest.NewRequest(http.MethodDelete, "/api/v1/workspaces/"+wsID.String()+"/reports/jobs/"+jobID.String(), nil)
-	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
+	req := httptest.NewRequest(http.MethodDelete, "/api/v1/reports/jobs/"+jobID.String(), nil)
 	req.SetPathValue("job_id", jobID.String())
-	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
+	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), userID))
 	rec := httptest.NewRecorder()
 
 	handler.Cancel(rec, req)
@@ -224,16 +272,15 @@ func TestReportCancel(t *testing.T) {
 }
 
 func TestReportCancelRejectsCompletedJob(t *testing.T) {
-	wsID := uuid.New()
+	userID := uuid.New()
 	jobID := uuid.New()
 	queue := &mockReportQueue{Jobs: map[uuid.UUID]ReportJob{
-		jobID: {JobID: jobID, WorkspaceID: wsID, Status: "completed"},
+		jobID: {JobID: jobID, RequesterID: userID, Status: "completed"},
 	}}
 	handler := ReportHandler{Queue: queue, Authorizer: mockReportAuthorizer{}}
-	req := httptest.NewRequest(http.MethodDelete, "/api/v1/workspaces/"+wsID.String()+"/reports/jobs/"+jobID.String(), nil)
-	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
+	req := httptest.NewRequest(http.MethodDelete, "/api/v1/reports/jobs/"+jobID.String(), nil)
 	req.SetPathValue("job_id", jobID.String())
-	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
+	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), userID))
 	rec := httptest.NewRecorder()
 
 	handler.Cancel(rec, req)
@@ -242,18 +289,13 @@ func TestReportCancelRejectsCompletedJob(t *testing.T) {
 	}
 }
 
-func TestReportCancelOtherWorkspaceForbidden(t *testing.T) {
+func TestReportCancelOtherRequesterForbidden(t *testing.T) {
+	jobID := uuid.New()
 	queue := &mockReportQueue{Jobs: map[uuid.UUID]ReportJob{
-		uuid.New(): {WorkspaceID: uuid.New()},
+		jobID: {JobID: jobID, RequesterID: uuid.New(), Status: "pending"},
 	}}
-	var jobID uuid.UUID
-	for id := range queue.Jobs {
-		jobID = id
-	}
-	wsID := uuid.New()
 	handler := ReportHandler{Queue: queue, Authorizer: mockReportAuthorizer{}}
-	req := httptest.NewRequest(http.MethodDelete, "/api/v1/workspaces/"+wsID.String()+"/reports/jobs/"+jobID.String(), nil)
-	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
+	req := httptest.NewRequest(http.MethodDelete, "/api/v1/reports/jobs/"+jobID.String(), nil)
 	req.SetPathValue("job_id", jobID.String())
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
 	rec := httptest.NewRecorder()
@@ -262,19 +304,21 @@ func TestReportCancelOtherWorkspaceForbidden(t *testing.T) {
 	if rec.Code != http.StatusForbidden {
 		t.Fatalf("expected 403 Forbidden, got %d: %s", rec.Code, rec.Body.String())
 	}
+	if job := queue.Jobs[jobID]; job.Status != "pending" {
+		t.Fatalf("foreign cancel must not mutate job: %+v", job)
+	}
 }
 
 func TestReportDownloadCompleted(t *testing.T) {
-	wsID := uuid.New()
+	userID := uuid.New()
 	jobID := uuid.New()
 	queue := &mockReportQueue{Jobs: map[uuid.UUID]ReportJob{
-		jobID: {JobID: jobID, WorkspaceID: wsID, Status: "completed"},
+		jobID: {JobID: jobID, RequesterID: userID, Status: "completed"},
 	}}
 	handler := ReportHandler{Queue: queue, Authorizer: mockReportAuthorizer{}}
-	req := httptest.NewRequest(http.MethodGet, "/api/v1/workspaces/"+wsID.String()+"/reports/jobs/"+jobID.String()+"/download", nil)
-	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/reports/jobs/"+jobID.String()+"/download", nil)
 	req.SetPathValue("job_id", jobID.String())
-	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
+	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), userID))
 	rec := httptest.NewRecorder()
 
 	handler.Download(rec, req)
@@ -293,16 +337,15 @@ func TestReportDownloadCompleted(t *testing.T) {
 }
 
 func TestReportDownloadPendingReturnsAccepted(t *testing.T) {
-	wsID := uuid.New()
+	userID := uuid.New()
 	jobID := uuid.New()
 	queue := &mockReportQueue{Jobs: map[uuid.UUID]ReportJob{
-		jobID: {JobID: jobID, WorkspaceID: wsID, Status: "processing"},
+		jobID: {JobID: jobID, RequesterID: userID, Status: "processing"},
 	}}
 	handler := ReportHandler{Queue: queue, Authorizer: mockReportAuthorizer{}}
-	req := httptest.NewRequest(http.MethodGet, "/api/v1/workspaces/"+wsID.String()+"/reports/jobs/"+jobID.String()+"/download", nil)
-	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/reports/jobs/"+jobID.String()+"/download", nil)
 	req.SetPathValue("job_id", jobID.String())
-	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
+	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), userID))
 	rec := httptest.NewRecorder()
 
 	handler.Download(rec, req)
@@ -311,13 +354,28 @@ func TestReportDownloadPendingReturnsAccepted(t *testing.T) {
 	}
 }
 
+func TestReportDownloadOtherRequesterForbidden(t *testing.T) {
+	jobID := uuid.New()
+	queue := &mockReportQueue{Jobs: map[uuid.UUID]ReportJob{
+		jobID: {JobID: jobID, RequesterID: uuid.New(), Status: "completed"},
+	}}
+	handler := ReportHandler{Queue: queue, Authorizer: mockReportAuthorizer{}}
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/reports/jobs/"+jobID.String()+"/download", nil)
+	req.SetPathValue("job_id", jobID.String())
+	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
+	rec := httptest.NewRecorder()
+
+	handler.Download(rec, req)
+	if rec.Code != http.StatusForbidden {
+		t.Fatalf("expected 403 Forbidden, got %d: %s", rec.Code, rec.Body.String())
+	}
+}
+
 func TestAttendanceReportSummarySuccess(t *testing.T) {
-	wsID := uuid.New()
 	repo := &mockReportRepo{}
 	handler := ReportHandler{Repository: repo, Authorizer: mockReportAuthorizer{}}
 
-	req := httptest.NewRequest(http.MethodGet, "/api/v1/workspaces/"+wsID.String()+"/reports/attendance?start_date=2026-01-01&end_date=2026-01-31&type=summary", nil)
-	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/reports/attendance?start_date=2026-01-01&end_date=2026-01-31&type=summary", nil)
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
 	rec := httptest.NewRecorder()
 
@@ -342,12 +400,10 @@ func TestAttendanceReportSummarySuccess(t *testing.T) {
 }
 
 func TestAttendanceReportDailySuccess(t *testing.T) {
-	wsID := uuid.New()
 	repo := &mockReportRepo{}
 	handler := ReportHandler{Repository: repo, Authorizer: mockReportAuthorizer{}}
 
-	req := httptest.NewRequest(http.MethodGet, "/api/v1/workspaces/"+wsID.String()+"/reports/attendance?start_date=2026-01-01&end_date=2026-01-31&type=daily", nil)
-	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/reports/attendance?start_date=2026-01-01&end_date=2026-01-31&type=daily", nil)
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
 	rec := httptest.NewRecorder()
 
@@ -368,13 +424,83 @@ func TestAttendanceReportDailySuccess(t *testing.T) {
 	}
 }
 
+func TestAttendanceReportFiltersAreForwarded(t *testing.T) {
+	repo := &mockReportRepo{}
+	handler := ReportHandler{Repository: repo, Authorizer: mockReportAuthorizer{}}
+	deptID := uuid.New()
+	empID := uuid.New()
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/reports/attendance?start_date=2026-01-01&end_date=2026-01-31&type=summary&department_id="+deptID.String()+"&employee_ids="+empID.String()+"&page=2&limit=50", nil)
+	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
+	rec := httptest.NewRecorder()
+
+	handler.AttendanceReport(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200 OK, got %d: %s", rec.Code, rec.Body.String())
+	}
+	filter := repo.LastAttendanceFilter
+	if filter.Page != 2 || filter.Limit != 50 {
+		t.Fatalf("pagination not forwarded: %+v", filter)
+	}
+	if len(filter.EmployeeIDs) != 1 || filter.EmployeeIDs[0] != empID {
+		t.Fatalf("employee filter not forwarded: %+v", filter.EmployeeIDs)
+	}
+	if filter.DepartmentID == nil || *filter.DepartmentID != deptID {
+		t.Fatalf("department filter not forwarded: %+v", filter.DepartmentID)
+	}
+	if filter.StartDate != "2026-01-01" || filter.EndDate != "2026-01-31" {
+		t.Fatalf("date range not forwarded: %+v", filter)
+	}
+}
+
+func TestAttendanceReportBehalfScopeRestrictsEmployees(t *testing.T) {
+	behalfID := uuid.New()
+	repo := &mockReportRepo{BehalfEmployeeIDs: []uuid.UUID{behalfID}}
+	handler := ReportHandler{Repository: repo, Authorizer: mockBehalfAuthorizer{}}
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/reports/attendance?start_date=2026-01-01&end_date=2026-01-31", nil)
+	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
+	rec := httptest.NewRecorder()
+
+	handler.AttendanceReport(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200 OK, got %d: %s", rec.Code, rec.Body.String())
+	}
+	filter := repo.LastAttendanceFilter
+	if len(filter.EmployeeIDs) != 1 || filter.EmployeeIDs[0] != behalfID {
+		t.Fatalf("behalf scope not applied, got employees %+v", filter.EmployeeIDs)
+	}
+}
+
+func TestAttendanceReportBehalfWithoutAssignmentsReturnsEmpty(t *testing.T) {
+	repo := &mockReportRepo{}
+	handler := ReportHandler{Repository: repo, Authorizer: mockBehalfAuthorizer{}}
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/reports/attendance?start_date=2026-01-01&end_date=2026-01-31", nil)
+	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
+	rec := httptest.NewRecorder()
+
+	handler.AttendanceReport(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200 OK, got %d: %s", rec.Code, rec.Body.String())
+	}
+	var resp PaginatedReportResponse
+	if err := json.Unmarshal(rec.Body.Bytes(), &resp); err != nil {
+		t.Fatalf("failed to decode response: %v", err)
+	}
+	if resp.Total != 0 || string(resp.Data) != "[]" {
+		t.Fatalf("expected empty result, got %+v", resp)
+	}
+	if repo.AttendanceCalls != 0 {
+		t.Fatalf("repository must not be queried without behalf assignments")
+	}
+}
+
 func TestAttendanceReportDateValidation(t *testing.T) {
-	wsID := uuid.New()
 	handler := ReportHandler{Repository: &mockReportRepo{}, Authorizer: mockReportAuthorizer{}}
 
 	// Missing start date
-	req := httptest.NewRequest(http.MethodGet, "/api/v1/workspaces/"+wsID.String()+"/reports/attendance?end_date=2026-01-31", nil)
-	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/reports/attendance?end_date=2026-01-31", nil)
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
 	rec := httptest.NewRecorder()
 	handler.AttendanceReport(rec, req)
@@ -383,8 +509,7 @@ func TestAttendanceReportDateValidation(t *testing.T) {
 	}
 
 	// Inverted dates
-	req2 := httptest.NewRequest(http.MethodGet, "/api/v1/workspaces/"+wsID.String()+"/reports/attendance?start_date=2026-02-01&end_date=2026-01-01", nil)
-	req2 = req2.WithContext(httpinfra.WithOrganizationIDForTest(req2.Context(), wsID))
+	req2 := httptest.NewRequest(http.MethodGet, "/api/v1/reports/attendance?start_date=2026-02-01&end_date=2026-01-01", nil)
 	req2 = req2.WithContext(httpinfra.WithUserIDForTest(req2.Context(), uuid.New()))
 	rec2 := httptest.NewRecorder()
 	handler.AttendanceReport(rec2, req2)
@@ -393,8 +518,7 @@ func TestAttendanceReportDateValidation(t *testing.T) {
 	}
 
 	// Range > 365 days
-	req3 := httptest.NewRequest(http.MethodGet, "/api/v1/workspaces/"+wsID.String()+"/reports/attendance?start_date=2025-01-01&end_date=2026-01-05", nil)
-	req3 = req3.WithContext(httpinfra.WithOrganizationIDForTest(req3.Context(), wsID))
+	req3 := httptest.NewRequest(http.MethodGet, "/api/v1/reports/attendance?start_date=2025-01-01&end_date=2026-01-05", nil)
 	req3 = req3.WithContext(httpinfra.WithUserIDForTest(req3.Context(), uuid.New()))
 	rec3 := httptest.NewRecorder()
 	handler.AttendanceReport(rec3, req3)
@@ -403,18 +527,52 @@ func TestAttendanceReportDateValidation(t *testing.T) {
 	}
 }
 
+// mockDenyAuthorizer denies every permission.
 type mockDenyAuthorizer struct{}
 
-func (mockDenyAuthorizer) HasPermission(context.Context, uuid.UUID, uuid.UUID, string) bool {
+func (mockDenyAuthorizer) IsMember(context.Context, uuid.UUID) (bool, error) { return true, nil }
+func (mockDenyAuthorizer) HasPermission(context.Context, uuid.UUID, string) bool {
 	return false
+}
+func (mockDenyAuthorizer) EffectivePermissions(context.Context, uuid.UUID) ([]string, []string, error) {
+	return nil, nil, nil
+}
+func (mockDenyAuthorizer) GetManagedDepartmentIDs(context.Context, uuid.UUID) ([]uuid.UUID, error) {
+	return nil, nil
+}
+func (mockDenyAuthorizer) IsGlobalManager(context.Context, uuid.UUID) bool { return false }
+func (mockDenyAuthorizer) HasScopedPermission(context.Context, uuid.UUID, string, *uuid.UUID) bool {
+	return false
+}
+func (mockDenyAuthorizer) GetUsersWithPermission(context.Context, string) ([]uuid.UUID, error) {
+	return nil, nil
+}
+
+// mockBehalfAuthorizer holds only the overtime claim-on-behalf permission.
+type mockBehalfAuthorizer struct{}
+
+func (mockBehalfAuthorizer) IsMember(context.Context, uuid.UUID) (bool, error) { return true, nil }
+func (mockBehalfAuthorizer) HasPermission(_ context.Context, _ uuid.UUID, permission string) bool {
+	return permission == "overtime:claim_on_behalf"
+}
+func (mockBehalfAuthorizer) EffectivePermissions(context.Context, uuid.UUID) ([]string, []string, error) {
+	return nil, nil, nil
+}
+func (mockBehalfAuthorizer) GetManagedDepartmentIDs(context.Context, uuid.UUID) ([]uuid.UUID, error) {
+	return nil, nil
+}
+func (mockBehalfAuthorizer) IsGlobalManager(context.Context, uuid.UUID) bool { return false }
+func (mockBehalfAuthorizer) HasScopedPermission(_ context.Context, _ uuid.UUID, permission string, _ *uuid.UUID) bool {
+	return permission == "overtime:claim_on_behalf"
+}
+func (mockBehalfAuthorizer) GetUsersWithPermission(context.Context, string) ([]uuid.UUID, error) {
+	return nil, nil
 }
 
 func TestAttendanceReportForbiddenWithoutPermissions(t *testing.T) {
-	wsID := uuid.New()
 	handler := ReportHandler{Repository: &mockReportRepo{}, Authorizer: mockDenyAuthorizer{}}
 
-	req := httptest.NewRequest(http.MethodGet, "/api/v1/workspaces/"+wsID.String()+"/reports/attendance?start_date=2026-01-01&end_date=2026-01-31", nil)
-	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/reports/attendance?start_date=2026-01-01&end_date=2026-01-31", nil)
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
 	rec := httptest.NewRecorder()
 
@@ -425,11 +583,9 @@ func TestAttendanceReportForbiddenWithoutPermissions(t *testing.T) {
 }
 
 func TestNoShowReportSuccess(t *testing.T) {
-	wsID := uuid.New()
 	handler := ReportHandler{Repository: &mockReportRepo{}, Authorizer: mockReportAuthorizer{}}
 
-	req := httptest.NewRequest(http.MethodGet, "/api/v1/workspaces/"+wsID.String()+"/reports/no-show?date=2026-01-01", nil)
-	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/reports/no-show?date=2026-01-01", nil)
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
 	rec := httptest.NewRecorder()
 
@@ -451,12 +607,10 @@ func TestNoShowReportSuccess(t *testing.T) {
 }
 
 func TestNoShowReportValidationErrors(t *testing.T) {
-	wsID := uuid.New()
 	handler := ReportHandler{Repository: &mockReportRepo{}, Authorizer: mockReportAuthorizer{}}
 
 	// Missing date
-	req := httptest.NewRequest(http.MethodGet, "/api/v1/workspaces/"+wsID.String()+"/reports/no-show", nil)
-	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/reports/no-show", nil)
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
 	rec := httptest.NewRecorder()
 	handler.NoShowReport(rec, req)
@@ -465,8 +619,7 @@ func TestNoShowReportValidationErrors(t *testing.T) {
 	}
 
 	// Invalid UUID in employee_ids must return 400
-	req2 := httptest.NewRequest(http.MethodGet, "/api/v1/workspaces/"+wsID.String()+"/reports/no-show?date=2026-01-01&employee_ids=not-a-uuid", nil)
-	req2 = req2.WithContext(httpinfra.WithOrganizationIDForTest(req2.Context(), wsID))
+	req2 := httptest.NewRequest(http.MethodGet, "/api/v1/reports/no-show?date=2026-01-01&employee_ids=not-a-uuid", nil)
 	req2 = req2.WithContext(httpinfra.WithUserIDForTest(req2.Context(), uuid.New()))
 	rec2 := httptest.NewRecorder()
 	handler.NoShowReport(rec2, req2)
@@ -476,11 +629,9 @@ func TestNoShowReportValidationErrors(t *testing.T) {
 }
 
 func TestNoShowReportForbidden(t *testing.T) {
-	wsID := uuid.New()
 	handler := ReportHandler{Repository: &mockReportRepo{}, Authorizer: mockDenyAuthorizer{}}
 
-	req := httptest.NewRequest(http.MethodGet, "/api/v1/workspaces/"+wsID.String()+"/reports/no-show?date=2026-01-01", nil)
-	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/reports/no-show?date=2026-01-01", nil)
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
 	rec := httptest.NewRecorder()
 

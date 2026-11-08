@@ -116,9 +116,7 @@ describe("useRuleAssignments", () => {
       expect(result.current.createMutation.isSuccess).toBe(true);
     });
 
-    expect(payrollApi.createPayrollRuleAssignment).toHaveBeenCalledWith(
-      "ws-1",
-      "rule-1",
+    expect(payrollApi.createPayrollRuleAssignment).toHaveBeenCalledWith("rule-1",
       { assignee_type: "workspace", effective_from: "2026-01-01" }
     );
     expect(mockToastSuccess).toHaveBeenCalledWith("Success");
@@ -141,9 +139,7 @@ describe("useRuleAssignments", () => {
       expect(result.current.deleteMutation.isError).toBe(true);
     });
 
-    expect(payrollApi.deletePayrollRuleAssignment).toHaveBeenCalledWith(
-      "ws-1",
-      "rule-1",
+    expect(payrollApi.deletePayrollRuleAssignment).toHaveBeenCalledWith("rule-1",
       "a-1"
     );
     expect(mockToastError).toHaveBeenCalledWith("API Error");

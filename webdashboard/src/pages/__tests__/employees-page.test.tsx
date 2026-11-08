@@ -38,7 +38,6 @@ vi.mock("../../lib/api", () => ({
     createEmployee: vi.fn(),
     updateEmployee: vi.fn(),
     deleteEmployee: vi.fn(),
-    getStandaloneOrganizationId: vi.fn(),
     fetchDepartments: vi.fn(),
     fetchEmployeeDepartmentHistory: vi.fn(),
     transferEmployee: vi.fn(),
@@ -46,7 +45,7 @@ vi.mock("../../lib/api", () => ({
     rehireEmployee: vi.fn(),
     fetchMyPermissions: vi.fn(),
     fetchWorkspaceMembers: vi.fn().mockResolvedValue([]),
-    fetchEmployeeEmployments: vi.fn((wsId, empId) => Promise.resolve([
+    fetchEmployeeEmployments: vi.fn((empId) => Promise.resolve([
         {
             id: `employment-id-${empId}`,
             employee_id: empId,
@@ -115,7 +114,6 @@ describe("EmployeesPage", () => {
             },
         });
  
-        vi.mocked(api.getStandaloneOrganizationId).mockReturnValue("test-ws-id");
  
         vi.mocked(api.searchEmployees).mockResolvedValue({
             data: [mockEmployee("1", "Alice Nguyen"), mockEmployee("2", "Bob Tran")],

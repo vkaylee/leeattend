@@ -10,20 +10,20 @@ import {
   formatDateTimeLocaleOnly,
 } from "./use-datetime-utils";
 import { useLanguage } from "./use-language";
-import { useWorkspace } from "./use-workspace";
+import { useOrganization } from "@/hooks/use-organization";
 
 /**
- * Hook providing locale- and workspace-aware date/time formatters.
+ * Hook providing locale- and organization-aware date/time formatters.
  * Delegates to pure functions in `use-datetime-utils.ts` after resolving
- * workspace preferences (date/time format, timezone) and user language.
+ * organization preferences (date/time format, timezone) and user language.
  */
 export function useDateTimeFormatter() {
-  const { workspace } = useWorkspace();
+  const { organization } = useOrganization();
   const { currentLanguage } = useLanguage();
 
-  const dateFormat = workspace?.date_format ?? "DD/MM/YYYY";
-  const timeFormat = workspace?.time_format ?? "24h";
-  const timezone = workspace?.timezone;
+  const dateFormat = organization?.date_format ?? "DD/MM/YYYY";
+  const timeFormat = organization?.time_format ?? "24h";
+  const timezone = organization?.timezone;
 
   const datePattern = dateFormat
     .replace("DD", "dd")

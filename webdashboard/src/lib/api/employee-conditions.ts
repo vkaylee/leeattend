@@ -1,8 +1,6 @@
-import { ApiError } from "./errors";
-import { apiFetch } from "./helpers";
 import { unwrapDataArray } from "@/types/api-overrides";
 
-import type { WorkingCondition, CreateWorkingConditionRequest } from "./types";
+import type { CreateWorkingConditionRequest, WorkingCondition } from "./types";
 
 import { client } from "./client";
 
@@ -12,49 +10,46 @@ export interface WorkingConditionWithEmployee extends WorkingCondition {
   employee_code?: string;
 }
 
-export async function fetchWorkspaceWorkingConditions(wsId: string): Promise<WorkingConditionWithEmployee[]> {
-  const res = await apiFetch(`/v1/workspaces/${encodeURIComponent(wsId)}/working-conditions`);
-  if (!res.ok) await ApiError.rejectResponse(res);
-  const data = (await res.json()) as (WorkingConditionWithEmployee & { type_?: string })[];
-  return data.map((item) => ({
-    ...item,
-    type: item.type_ ?? item.type,
-  }));
+type WorkingConditionWire = Omit<WorkingCondition, "type"> & { type_?: string };
+
+function normalizeCondition(item: WorkingConditionWire): WorkingCondition {
+  return { ...item, type: item.type_ ?? item.type ?? "" } as WorkingCondition;
 }
 
-export async function fetchWorkingConditions(wsId: string, employeeId: string): Promise<WorkingCondition[]> {
-  const { data } = await client.GET("/workspaces/{workspace_id}/employees/{id}/conditions", {
-    params: {
-      path: { workspace_id: wsId, id: employeeId },
+export async function fetchWorkspaceWorkingConditions(): Promise<WorkingConditionWithEmployee[]> {
+  const { data } = await client.GET<WorkingConditionWithEmployee[]>("/v1/working-conditions");
+  return data.map((item) => normalizeCondition(item) as WorkingConditionWithEmployee);
+}
+
+export async function fetchWorkingConditions(employeeId: string): Promise<WorkingCondition[]> {
+  const { data } = await client.GET<WorkingConditionWire[] | { data: WorkingConditionWire[] }>(
+    "/v1/employees/{id}/conditions",
+    {
+      params: {
+        path: { id: employeeId },
+      },
     },
-  });
-  return unwrapDataArray<WorkingCondition & { type_?: string }>(data).map((item) => ({
-    ...item,
-    type: item.type_ ?? item.type,
-  }));
+  );
+  return unwrapDataArray<WorkingConditionWire>(data).map(normalizeCondition);
 }
 
 export async function createWorkingCondition(
-  wsId: string,
   employeeId: string,
-  condition: CreateWorkingConditionRequest
+  condition: CreateWorkingConditionRequest,
 ): Promise<WorkingCondition> {
-  const { data } = await client.POST("/workspaces/{workspace_id}/employees/{id}/conditions", {
+  const { data } = await client.POST<WorkingConditionWire>("/v1/employees/{id}/conditions", {
     params: {
-      path: { workspace_id: wsId, id: employeeId },
+      path: { id: employeeId },
     },
     body: condition,
   });
-  return {
-    ...data,
-    type: data.type_,
-  };
+  return normalizeCondition(data);
 }
 
-export async function deleteWorkingCondition(wsId: string, employeeId: string, conditionId: string): Promise<void> {
-  await client.DELETE("/workspaces/{workspace_id}/employees/{id}/conditions/{cond_id}", {
+export async function deleteWorkingCondition(employeeId: string, conditionId: string): Promise<void> {
+  await client.DELETE("/v1/employees/{id}/conditions/{cond_id}", {
     params: {
-      path: { workspace_id: wsId, id: employeeId, cond_id: conditionId },
+      path: { id: employeeId, cond_id: conditionId },
     },
   });
 }

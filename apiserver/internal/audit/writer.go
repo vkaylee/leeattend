@@ -12,13 +12,12 @@ var ErrClosed = errors.New("audit writer is closed")
 
 // Event contains only fields safe for structured audit storage.
 type Event struct {
-	Name      string
-	ActorID   string
-	Workspace string
-	Resource  string
-	Outcome   string
-	Details   map[string]string
-	At        time.Time
+	Name     string
+	ActorID  string
+	Resource string
+	Outcome  string
+	Details  map[string]string
+	At       time.Time
 }
 
 type Sink interface {

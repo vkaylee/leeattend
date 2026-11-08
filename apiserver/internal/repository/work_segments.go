@@ -16,7 +16,7 @@ import (
 
 type WorkSegmentRepository struct {
 	DB      DBTX
-	BeginTx func(context.Context, uuid.UUID) (TxBeginner, error)
+	BeginTx func(context.Context) (TxBeginner, error)
 }
 
 func (r WorkSegmentRepository) db(ctx context.Context) (DBTX, error) {
@@ -26,9 +26,9 @@ func (r WorkSegmentRepository) db(ctx context.Context) (DBTX, error) {
 	return r.DB, nil
 }
 
-func (r WorkSegmentRepository) begin(ctx context.Context, workspaceID uuid.UUID) (TxBeginner, error) {
+func (r WorkSegmentRepository) begin(ctx context.Context) (TxBeginner, error) {
 	if r.BeginTx != nil {
-		return r.BeginTx(ctx, workspaceID)
+		return r.BeginTx(ctx)
 	}
 	db, err := r.db(ctx)
 	if err != nil {
@@ -41,14 +41,14 @@ func (r WorkSegmentRepository) begin(ctx context.Context, workspaceID uuid.UUID)
 	return beginner, nil
 }
 
-const segmentSelect = `SELECT id, workspace_id, employment_id, date::text, template_id, interval_id, sort_order, scheduled_start::text, scheduled_end::text, segment_type::text, segment_status::text, compensation_rate::text, gap_compensation_before::text, gap_compensation_rate_before::text, break_config_override, ot_config_override, source, source_detail, notes, generation_metadata, created_at, updated_at FROM work_segments`
+const segmentSelect = `SELECT id, employment_id, date::text, template_id, interval_id, sort_order, scheduled_start::text, scheduled_end::text, segment_type::text, segment_status::text, compensation_rate::text, gap_compensation_before::text, gap_compensation_rate_before::text, break_config_override, ot_config_override, source, source_detail, notes, generation_metadata, created_at, updated_at FROM work_segments`
 
-func (r WorkSegmentRepository) ListSegments(ctx context.Context, workspaceID uuid.UUID, filter api.WorkSegmentFilter, page, limit int) (api.WorkSegmentListResponse, error) {
+func (r WorkSegmentRepository) ListSegments(ctx context.Context, filter api.WorkSegmentFilter, page, limit int) (api.WorkSegmentListResponse, error) {
 	db, err := r.db(ctx)
 	if err != nil {
 		return api.WorkSegmentListResponse{}, err
 	}
-	where, args := segmentWhere(workspaceID, filter)
+	where, args := segmentWhere(filter)
 	var total int64
 	if err := db.QueryRow(ctx, `SELECT count(*) FROM work_segments `+where, args...).Scan(&total); err != nil {
 		return api.WorkSegmentListResponse{}, err
@@ -70,21 +70,20 @@ func (r WorkSegmentRepository) ListSegments(ctx context.Context, workspaceID uui
 	return api.WorkSegmentListResponse{Segments: segments, TotalCount: total}, rows.Err()
 }
 
-func (r WorkSegmentRepository) GetSegment(ctx context.Context, workspaceID, segmentID uuid.UUID) (api.WorkSegment, error) {
+func (r WorkSegmentRepository) GetSegment(ctx context.Context, segmentID uuid.UUID) (api.WorkSegment, error) {
 	db, err := r.db(ctx)
 	if err != nil {
 		return api.WorkSegment{}, err
 	}
-	row := db.QueryRow(ctx, segmentSelect+` WHERE workspace_id = $1 AND id = $2`, workspaceID, segmentID)
-	segment, err := scanWorkSegment(row)
+	segment, err := scanWorkSegment(db.QueryRow(ctx, segmentSelect+` WHERE id = $1`, segmentID))
 	if errors.Is(err, pgx.ErrNoRows) {
 		return api.WorkSegment{}, api.ErrWorkSegmentNotFound
 	}
 	return segment, err
 }
 
-func (r WorkSegmentRepository) CreateSegment(ctx context.Context, workspaceID uuid.UUID, req api.CreateWorkSegmentRequest) (api.WorkSegment, error) {
-	tx, err := r.begin(ctx, workspaceID)
+func (r WorkSegmentRepository) CreateSegment(ctx context.Context, req api.CreateWorkSegmentRequest) (api.WorkSegment, error) {
+	tx, err := r.begin(ctx)
 	if err != nil {
 		return api.WorkSegment{}, err
 	}
@@ -93,14 +92,14 @@ func (r WorkSegmentRepository) CreateSegment(ctx context.Context, workspaceID uu
 	applySegmentDefaults(&req)
 	var segment api.WorkSegment
 	err = service.WithTx(ctx, tx, func(ctx context.Context, db pgx.Tx) error {
-		if err := validateSegmentReferences(ctx, db, workspaceID, req.EmploymentID, req.TemplateID); err != nil {
+		if err := validateSegmentReferences(ctx, db, req.EmploymentID, req.TemplateID); err != nil {
 			return err
 		}
-		_, err := db.Exec(ctx, `INSERT INTO work_segments (id, workspace_id, employment_id, date, template_id, interval_id, sort_order, scheduled_start, scheduled_end, segment_type, segment_status, compensation_rate, gap_compensation_before, gap_compensation_rate_before, break_config_override, ot_config_override, source, source_detail, notes, generation_metadata, created_at, updated_at) VALUES ($1, $2, $3, $4::date, $5, $6, $7, $8::time, $9::time, $10, $11, $12, $13, $14, $15, $16, $17, COALESCE($18, '{}'::jsonb), $19, '{}'::jsonb, $20, $20)`, id, workspaceID, req.EmploymentID, req.Date, req.TemplateID, req.IntervalID, req.SortOrder, req.ScheduledStart, req.ScheduledEnd, req.SegmentType, req.SegmentStatus, req.CompensationRate, req.GapCompensationBefore, req.GapCompensationRateBefore, jsonbArg(req.BreakConfigOverride), jsonbArg(req.OTConfigOverride), req.Source, jsonbArg(req.SourceDetail), req.Notes, now)
+		_, err := db.Exec(ctx, `INSERT INTO work_segments (id, employment_id, date, template_id, interval_id, sort_order, scheduled_start, scheduled_end, segment_type, segment_status, compensation_rate, gap_compensation_before, gap_compensation_rate_before, break_config_override, ot_config_override, source, source_detail, notes, generation_metadata, created_at, updated_at) VALUES ($1, $2, $3::date, $4, $5, $6, $7::time, $8::time, $9, $10, $11, $12, $13, $14, $15, $16, COALESCE($17, '{}'::jsonb), $18, '{}'::jsonb, $19, $19)`, id, req.EmploymentID, req.Date, req.TemplateID, req.IntervalID, req.SortOrder, req.ScheduledStart, req.ScheduledEnd, req.SegmentType, req.SegmentStatus, req.CompensationRate, req.GapCompensationBefore, req.GapCompensationRateBefore, req.BreakConfigOverride, req.OTConfigOverride, req.Source, jsonbArg(req.SourceDetail), req.Notes, now)
 		if err != nil {
 			return mapSegmentDBError(err)
 		}
-		segment, err = r.getSegmentTx(ctx, db, workspaceID, id)
+		segment, err = r.getSegmentTx(ctx, db, id)
 		return err
 	})
 	if err != nil {
@@ -109,8 +108,8 @@ func (r WorkSegmentRepository) CreateSegment(ctx context.Context, workspaceID uu
 	return segment, nil
 }
 
-func (r WorkSegmentRepository) UpdateSegment(ctx context.Context, workspaceID, segmentID uuid.UUID, req api.UpdateWorkSegmentRequest) (api.WorkSegment, error) {
-	tx, err := r.begin(ctx, workspaceID)
+func (r WorkSegmentRepository) UpdateSegment(ctx context.Context, segmentID uuid.UUID, req api.UpdateWorkSegmentRequest) (api.WorkSegment, error) {
+	tx, err := r.begin(ctx)
 	if err != nil {
 		return api.WorkSegment{}, err
 	}
@@ -118,16 +117,16 @@ func (r WorkSegmentRepository) UpdateSegment(ctx context.Context, workspaceID, s
 	var segment api.WorkSegment
 	err = service.WithTx(ctx, tx, func(ctx context.Context, db pgx.Tx) error {
 		if req.TemplateID != nil {
-			if err := validateSegmentReferences(ctx, db, workspaceID, uuid.Nil, *req.TemplateID); err != nil {
+			if err := validateSegmentReferences(ctx, db, uuid.Nil, *req.TemplateID); err != nil {
 				return err
 			}
 		}
 		set, args := updateSegmentSet(req, now)
-		args = append(args, segmentID, workspaceID)
-		if _, err := db.Exec(ctx, `UPDATE work_segments SET `+set+` WHERE id = $`+fmt.Sprint(len(args)-1)+` AND workspace_id = $`+fmt.Sprint(len(args)), args...); err != nil {
+		args = append(args, segmentID)
+		if _, err := db.Exec(ctx, `UPDATE work_segments SET `+set+` WHERE id = $`+fmt.Sprint(len(args)), args...); err != nil {
 			return mapSegmentDBError(err)
 		}
-		segment, err = r.getSegmentTx(ctx, db, workspaceID, segmentID)
+		segment, err = r.getSegmentTx(ctx, db, segmentID)
 		if errors.Is(err, pgx.ErrNoRows) {
 			return api.ErrWorkSegmentNotFound
 		}
@@ -139,12 +138,12 @@ func (r WorkSegmentRepository) UpdateSegment(ctx context.Context, workspaceID, s
 	return segment, nil
 }
 
-func (r WorkSegmentRepository) DeleteSegment(ctx context.Context, workspaceID, segmentID uuid.UUID) error {
+func (r WorkSegmentRepository) DeleteSegment(ctx context.Context, segmentID uuid.UUID) error {
 	db, err := r.db(ctx)
 	if err != nil {
 		return err
 	}
-	tag, err := db.Exec(ctx, `DELETE FROM work_segments WHERE workspace_id = $1 AND id = $2`, workspaceID, segmentID)
+	tag, err := db.Exec(ctx, `DELETE FROM work_segments WHERE id = $1`, segmentID)
 	if err != nil {
 		return err
 	}
@@ -154,8 +153,8 @@ func (r WorkSegmentRepository) DeleteSegment(ctx context.Context, workspaceID, s
 	return nil
 }
 
-func (r WorkSegmentRepository) BulkCreateSegments(ctx context.Context, workspaceID uuid.UUID, req api.BulkCreateWorkSegmentsRequest) ([]api.WorkSegment, error) {
-	tx, err := r.begin(ctx, workspaceID)
+func (r WorkSegmentRepository) BulkCreateSegments(ctx context.Context, req api.BulkCreateWorkSegmentsRequest) ([]api.WorkSegment, error) {
+	tx, err := r.begin(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -164,21 +163,21 @@ func (r WorkSegmentRepository) BulkCreateSegments(ctx context.Context, workspace
 	err = service.WithTx(ctx, tx, func(ctx context.Context, db pgx.Tx) error {
 		if req.ReplaceExisting {
 			for _, item := range req.Segments {
-				if _, err := db.Exec(ctx, `DELETE FROM work_segments WHERE workspace_id = $1 AND employment_id = $2 AND date = $3::date`, workspaceID, item.EmploymentID, item.Date); err != nil {
+				if _, err := db.Exec(ctx, `DELETE FROM work_segments WHERE employment_id = $1 AND date = $2::date`, item.EmploymentID, item.Date); err != nil {
 					return err
 				}
 			}
 		}
 		for _, item := range req.Segments {
 			applySegmentDefaults(&item)
-			if err := validateSegmentReferences(ctx, db, workspaceID, item.EmploymentID, item.TemplateID); err != nil {
+			if err := validateSegmentReferences(ctx, db, item.EmploymentID, item.TemplateID); err != nil {
 				return err
 			}
 			id := uuid.New()
-			if _, err := db.Exec(ctx, `INSERT INTO work_segments (id, workspace_id, employment_id, date, template_id, interval_id, sort_order, scheduled_start, scheduled_end, segment_type, segment_status, compensation_rate, gap_compensation_before, gap_compensation_rate_before, break_config_override, ot_config_override, source, source_detail, notes, generation_metadata, created_at, updated_at) VALUES ($1, $2, $3, $4::date, $5, $6, $7, $8::time, $9::time, $10, $11, $12, $13, $14, $15, $16, $17, COALESCE($18, '{}'::jsonb), $19, '{}'::jsonb, $20, $20)`, id, workspaceID, item.EmploymentID, item.Date, item.TemplateID, item.IntervalID, item.SortOrder, item.ScheduledStart, item.ScheduledEnd, item.SegmentType, item.SegmentStatus, item.CompensationRate, item.GapCompensationBefore, item.GapCompensationRateBefore, jsonbArg(item.BreakConfigOverride), jsonbArg(item.OTConfigOverride), item.Source, jsonbArg(item.SourceDetail), item.Notes, now); err != nil {
+			if _, err := db.Exec(ctx, `INSERT INTO work_segments (id, employment_id, date, template_id, interval_id, sort_order, scheduled_start, scheduled_end, segment_type, segment_status, compensation_rate, gap_compensation_before, gap_compensation_rate_before, break_config_override, ot_config_override, source, source_detail, notes, generation_metadata, created_at, updated_at) VALUES ($1, $2, $3::date, $4, $5, $6, $7::time, $8::time, $9, $10, $11, $12, $13, $14, $15, $16, COALESCE($17, '{}'::jsonb), $18, '{}'::jsonb, $19, $19)`, id, item.EmploymentID, item.Date, item.TemplateID, item.IntervalID, item.SortOrder, item.ScheduledStart, item.ScheduledEnd, item.SegmentType, item.SegmentStatus, item.CompensationRate, item.GapCompensationBefore, item.GapCompensationRateBefore, item.BreakConfigOverride, item.OTConfigOverride, item.Source, jsonbArg(item.SourceDetail), item.Notes, now); err != nil {
 				return mapSegmentDBError(err)
 			}
-			segment, err := r.getSegmentTx(ctx, db, workspaceID, id)
+			segment, err := r.getSegmentTx(ctx, db, id)
 			if err != nil {
 				return err
 			}
@@ -192,14 +191,14 @@ func (r WorkSegmentRepository) BulkCreateSegments(ctx context.Context, workspace
 	return segments, nil
 }
 
-func (r WorkSegmentRepository) getSegmentTx(ctx context.Context, db DBTX, workspaceID, segmentID uuid.UUID) (api.WorkSegment, error) {
-	return scanWorkSegment(db.QueryRow(ctx, segmentSelect+` WHERE workspace_id = $1 AND id = $2`, workspaceID, segmentID))
+func (r WorkSegmentRepository) getSegmentTx(ctx context.Context, db DBTX, segmentID uuid.UUID) (api.WorkSegment, error) {
+	return scanWorkSegment(db.QueryRow(ctx, segmentSelect+` WHERE id = $1`, segmentID))
 }
 
-func validateSegmentReferences(ctx context.Context, db DBTX, workspaceID, employmentID, templateID uuid.UUID) error {
+func validateSegmentReferences(ctx context.Context, db DBTX, employmentID, templateID uuid.UUID) error {
 	if employmentID != uuid.Nil {
 		var exists bool
-		if err := db.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM employments WHERE id = $1 AND workspace_id = $2 AND deleted_at IS NULL)`, employmentID, workspaceID).Scan(&exists); err != nil {
+		if err := db.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM employments WHERE id = $1 AND deleted_at IS NULL)`, employmentID).Scan(&exists); err != nil {
 			return err
 		}
 		if !exists {
@@ -207,7 +206,7 @@ func validateSegmentReferences(ctx context.Context, db DBTX, workspaceID, employ
 		}
 	}
 	var exists bool
-	if err := db.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM shift_templates WHERE id = $1 AND workspace_id = $2)`, templateID, workspaceID).Scan(&exists); err != nil {
+	if err := db.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM shift_templates WHERE id = $1)`, templateID).Scan(&exists); err != nil {
 		return err
 	}
 	if !exists {
@@ -217,52 +216,53 @@ func validateSegmentReferences(ctx context.Context, db DBTX, workspaceID, employ
 }
 
 func scanWorkSegment(row pgx.Row) (api.WorkSegment, error) {
-	var s api.WorkSegment
+	var segment api.WorkSegment
 	var compensation, gapRate string
 	var createdAt, updatedAt time.Time
-	if err := row.Scan(&s.ID, &s.WorkspaceID, &s.EmploymentID, &s.Date, &s.TemplateID, &s.IntervalID, &s.SortOrder, &s.ScheduledStart, &s.ScheduledEnd, &s.SegmentType, &s.SegmentStatus, &compensation, &s.GapCompensationBefore, &gapRate, &s.BreakConfigOverride, &s.OTConfigOverride, &s.Source, &s.SourceDetail, &s.Notes, &s.GenerationMetadata, &createdAt, &updatedAt); err != nil {
+	if err := row.Scan(&segment.ID, &segment.EmploymentID, &segment.Date, &segment.TemplateID, &segment.IntervalID, &segment.SortOrder, &segment.ScheduledStart, &segment.ScheduledEnd, &segment.SegmentType, &segment.SegmentStatus, &compensation, &segment.GapCompensationBefore, &gapRate, &segment.BreakConfigOverride, &segment.OTConfigOverride, &segment.Source, &segment.SourceDetail, &segment.Notes, &segment.GenerationMetadata, &createdAt, &updatedAt); err != nil {
 		return api.WorkSegment{}, err
 	}
 	var err error
-	s.CompensationRate, err = decimal.NewFromString(compensation)
+	segment.CompensationRate, err = decimal.NewFromString(compensation)
 	if err != nil {
 		return api.WorkSegment{}, err
 	}
-	s.GapCompensationRateBefore, err = decimal.NewFromString(gapRate)
+	segment.GapCompensationRateBefore, err = decimal.NewFromString(gapRate)
 	if err != nil {
 		return api.WorkSegment{}, err
 	}
-	s.CreatedAt = createdAt.UTC().Format(time.RFC3339)
-	s.UpdatedAt = updatedAt.UTC().Format(time.RFC3339)
-	return s, nil
+	segment.CreatedAt = createdAt.UTC().Format(time.RFC3339)
+	segment.UpdatedAt = updatedAt.UTC().Format(time.RFC3339)
+	return segment, nil
 }
 
-func segmentWhere(workspaceID uuid.UUID, filter api.WorkSegmentFilter) (string, []any) {
-	clauses := []string{"workspace_id = $1"}
-	args := []any{workspaceID}
+func segmentWhere(filter api.WorkSegmentFilter) (string, []any) {
+	clauses := make([]string, 0, 6)
+	args := make([]any, 0, 6)
+	add := func(clause string, value any) {
+		args = append(args, value)
+		clauses = append(clauses, fmt.Sprintf(clause, len(args)))
+	}
 	if len(filter.EmploymentIDs) > 0 {
-		args = append(args, filter.EmploymentIDs)
-		clauses = append(clauses, fmt.Sprintf("employment_id = ANY($%d)", len(args)))
+		add("employment_id = ANY($%d)", filter.EmploymentIDs)
 	}
 	if filter.StartDate != nil {
-		args = append(args, *filter.StartDate)
-		clauses = append(clauses, fmt.Sprintf("date >= $%d::date", len(args)))
+		add("date >= $%d::date", *filter.StartDate)
 	}
 	if filter.EndDate != nil {
-		args = append(args, *filter.EndDate)
-		clauses = append(clauses, fmt.Sprintf("date <= $%d::date", len(args)))
+		add("date <= $%d::date", *filter.EndDate)
 	}
 	if filter.SegmentType != "" {
-		args = append(args, filter.SegmentType)
-		clauses = append(clauses, fmt.Sprintf("segment_type::text = $%d", len(args)))
+		add("segment_type::text = $%d", filter.SegmentType)
 	}
 	if filter.SegmentStatus != "" {
-		args = append(args, filter.SegmentStatus)
-		clauses = append(clauses, fmt.Sprintf("segment_status::text = $%d", len(args)))
+		add("segment_status::text = $%d", filter.SegmentStatus)
 	}
 	if filter.Source != "" {
-		args = append(args, filter.Source)
-		clauses = append(clauses, fmt.Sprintf("source = $%d", len(args)))
+		add("source = $%d", filter.Source)
+	}
+	if len(clauses) == 0 {
+		return "", args
 	}
 	return "WHERE " + joinStrings(clauses, " AND "), args
 }

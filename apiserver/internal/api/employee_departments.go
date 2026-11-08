@@ -27,18 +27,18 @@ type TransferEmployeeRequest struct {
 }
 
 type EmployeeDepartmentRepository interface {
-	GetEmployeeDepartmentHistory(context.Context, uuid.UUID, uuid.UUID) ([]EmployeeDepartmentHistory, error)
-	TransferEmployee(context.Context, uuid.UUID, uuid.UUID, TransferEmployeeRequest) (EmployeeDepartmentHistory, error)
-	CurrentEmployeeDepartment(context.Context, uuid.UUID, uuid.UUID) (*uuid.UUID, error)
+	GetEmployeeDepartmentHistory(context.Context, uuid.UUID) ([]EmployeeDepartmentHistory, error)
+	TransferEmployee(context.Context, uuid.UUID, TransferEmployeeRequest) (EmployeeDepartmentHistory, error)
+	CurrentEmployeeDepartment(context.Context, uuid.UUID) (*uuid.UUID, error)
 }
 
 type EmployeeDepartmentHandler struct {
 	Repository EmployeeDepartmentRepository
-	Authorizer WorkspaceAuthorizer
+	Authorizer Authorizer
 }
 
 func (h EmployeeDepartmentHandler) List(w http.ResponseWriter, r *http.Request) {
-	wsID, employeeID, ok := employeePath(r)
+	employeeID, ok := employeePath(r)
 	if !ok {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
@@ -47,7 +47,7 @@ func (h EmployeeDepartmentHandler) List(w http.ResponseWriter, r *http.Request) 
 		apperror.WriteError(w, r, apperror.Unauthorized(apperror.KeyAuthenticationRequired))
 		return
 	}
-	history, err := h.Repository.GetEmployeeDepartmentHistory(r.Context(), wsID, employeeID)
+	history, err := h.Repository.GetEmployeeDepartmentHistory(r.Context(), employeeID)
 	if err != nil {
 		h.writeError(w, r, err)
 		return
@@ -56,7 +56,7 @@ func (h EmployeeDepartmentHandler) List(w http.ResponseWriter, r *http.Request) 
 }
 
 func (h EmployeeDepartmentHandler) Transfer(w http.ResponseWriter, r *http.Request) {
-	wsID, employeeID, ok := employeePath(r)
+	employeeID, ok := employeePath(r)
 	if !ok {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
@@ -66,12 +66,12 @@ func (h EmployeeDepartmentHandler) Transfer(w http.ResponseWriter, r *http.Reque
 		apperror.WriteError(w, r, apperror.Unauthorized(apperror.KeyAuthenticationRequired))
 		return
 	}
-	targetDept, err := h.Repository.CurrentEmployeeDepartment(r.Context(), wsID, employeeID)
+	targetDept, err := h.Repository.CurrentEmployeeDepartment(r.Context(), employeeID)
 	if err != nil {
 		h.writeError(w, r, err)
 		return
 	}
-	if scoped, ok := h.Authorizer.(ScopedWorkspaceAuthorizer); h.Authorizer == nil || (ok && !scoped.HasScopedPermission(r.Context(), userID, wsID, "departments:transfer", targetDept)) || (!ok && !h.Authorizer.HasPermission(r.Context(), userID, wsID, "departments:transfer")) {
+	if h.Authorizer == nil || !h.Authorizer.HasScopedPermission(r.Context(), userID, "departments:transfer", targetDept) {
 		apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
 		return
 	}
@@ -80,7 +80,7 @@ func (h EmployeeDepartmentHandler) Transfer(w http.ResponseWriter, r *http.Reque
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}
-	history, err := h.Repository.TransferEmployee(r.Context(), wsID, employeeID, req)
+	history, err := h.Repository.TransferEmployee(r.Context(), employeeID, req)
 	if err != nil {
 		h.writeError(w, r, err)
 		return

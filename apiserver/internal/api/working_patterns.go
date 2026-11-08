@@ -14,7 +14,6 @@ import (
 
 type WorkingPattern struct {
 	ID              uuid.UUID `json:"id"`
-	WorkspaceID     uuid.UUID `json:"workspace_id"`
 	Name            string    `json:"name"`
 	Description     *string   `json:"description"`
 	IsActive        bool      `json:"is_active"`
@@ -33,7 +32,6 @@ type WorkingPatternDetail struct {
 
 type EmployeeWorkingPattern struct {
 	ID           uuid.UUID `json:"id"`
-	WorkspaceID  uuid.UUID `json:"workspace_id"`
 	EmploymentID uuid.UUID `json:"employment_id"`
 	PatternID    uuid.UUID `json:"pattern_id"`
 	StartDate    string    `json:"start_date"`
@@ -87,30 +85,29 @@ var (
 )
 
 type PatternComplianceChecker interface {
-	CheckPatternCompliance(context.Context, uuid.UUID, uuid.UUID, AssignPatternRequest) error
-	CheckBulkPatternCompliance(context.Context, uuid.UUID, BulkAssignPatternRequest) error
+	CheckPatternCompliance(context.Context, uuid.UUID, AssignPatternRequest) error
+	CheckBulkPatternCompliance(context.Context, BulkAssignPatternRequest) error
 }
 
 type WorkingPatternRepository interface {
-	CreatePattern(ctx context.Context, workspaceID uuid.UUID, req CreateWorkingPatternRequest) (WorkingPattern, error)
-	ListPatterns(ctx context.Context, workspaceID uuid.UUID) ([]WorkingPattern, error)
-	GetPatternDetails(ctx context.Context, workspaceID, patternID uuid.UUID) ([]WorkingPatternDetail, error)
-	UpdatePattern(ctx context.Context, workspaceID, patternID uuid.UUID, req CreateWorkingPatternRequest) (WorkingPattern, error)
-	DeletePattern(ctx context.Context, workspaceID, patternID uuid.UUID) error
-	AssignPattern(ctx context.Context, workspaceID, employmentID uuid.UUID, req AssignPatternRequest) (EmployeeWorkingPattern, error)
-	BulkAssignPattern(ctx context.Context, workspaceID uuid.UUID, req BulkAssignPatternRequest) (BulkAssignPatternResponse, error)
-	EmploymentPatternHistory(ctx context.Context, workspaceID, employmentID uuid.UUID) ([]EmployeeWorkingPattern, error)
+	CreatePattern(ctx context.Context, req CreateWorkingPatternRequest) (WorkingPattern, error)
+	ListPatterns(ctx context.Context) ([]WorkingPattern, error)
+	GetPatternDetails(ctx context.Context, patternID uuid.UUID) ([]WorkingPatternDetail, error)
+	UpdatePattern(ctx context.Context, patternID uuid.UUID, req CreateWorkingPatternRequest) (WorkingPattern, error)
+	DeletePattern(ctx context.Context, patternID uuid.UUID) error
+	AssignPattern(ctx context.Context, employmentID uuid.UUID, req AssignPatternRequest) (EmployeeWorkingPattern, error)
+	BulkAssignPattern(ctx context.Context, req BulkAssignPatternRequest) (BulkAssignPatternResponse, error)
+	EmploymentPatternHistory(ctx context.Context, employmentID uuid.UUID) ([]EmployeeWorkingPattern, error)
 }
 
 type WorkingPatternHandler struct {
 	Repository WorkingPatternRepository
-	Authorizer AttendanceAuthorizer
+	Authorizer Authorizer
 	Compliance PatternComplianceChecker
 }
 
 func (h WorkingPatternHandler) Create(w http.ResponseWriter, r *http.Request) {
-	workspaceID, ok := organizationIDFromContext(r)
-	if !ok || !h.allowed(r, workspaceID, "patterns:create") {
+	if !h.allowed(r, "patterns:create") {
 		h.forbidden(w, r)
 		return
 	}
@@ -119,7 +116,7 @@ func (h WorkingPatternHandler) Create(w http.ResponseWriter, r *http.Request) {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}
-	pattern, err := h.Repository.CreatePattern(r.Context(), workspaceID, req)
+	pattern, err := h.Repository.CreatePattern(r.Context(), req)
 	if err != nil {
 		h.writeError(w, r, err)
 		return
@@ -128,12 +125,7 @@ func (h WorkingPatternHandler) Create(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h WorkingPatternHandler) List(w http.ResponseWriter, r *http.Request) {
-	workspaceID, ok := organizationIDFromContext(r)
-	if !ok {
-		h.forbidden(w, r)
-		return
-	}
-	patterns, err := h.Repository.ListPatterns(r.Context(), workspaceID)
+	patterns, err := h.Repository.ListPatterns(r.Context())
 	if err != nil {
 		h.writeError(w, r, err)
 		return
@@ -142,13 +134,12 @@ func (h WorkingPatternHandler) List(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h WorkingPatternHandler) Details(w http.ResponseWriter, r *http.Request) {
-	workspaceID, ok := organizationIDFromContext(r)
 	patternID, patternOK := pathUUID(r, "pattern_id")
-	if !ok || !patternOK {
+	if !patternOK {
 		h.forbidden(w, r)
 		return
 	}
-	details, err := h.Repository.GetPatternDetails(r.Context(), workspaceID, patternID)
+	details, err := h.Repository.GetPatternDetails(r.Context(), patternID)
 	if err != nil {
 		h.writeError(w, r, err)
 		return
@@ -157,9 +148,8 @@ func (h WorkingPatternHandler) Details(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h WorkingPatternHandler) Update(w http.ResponseWriter, r *http.Request) {
-	workspaceID, ok := organizationIDFromContext(r)
 	patternID, patternOK := pathUUID(r, "pattern_id")
-	if !ok || !patternOK || !h.allowed(r, workspaceID, "patterns:create") {
+	if !patternOK || !h.allowed(r, "patterns:create") {
 		h.forbidden(w, r)
 		return
 	}
@@ -168,7 +158,7 @@ func (h WorkingPatternHandler) Update(w http.ResponseWriter, r *http.Request) {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}
-	pattern, err := h.Repository.UpdatePattern(r.Context(), workspaceID, patternID, req)
+	pattern, err := h.Repository.UpdatePattern(r.Context(), patternID, req)
 	if err != nil {
 		h.writeError(w, r, err)
 		return
@@ -177,13 +167,12 @@ func (h WorkingPatternHandler) Update(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h WorkingPatternHandler) Delete(w http.ResponseWriter, r *http.Request) {
-	workspaceID, ok := organizationIDFromContext(r)
 	patternID, patternOK := pathUUID(r, "pattern_id")
-	if !ok || !patternOK || !h.allowed(r, workspaceID, "patterns:delete") {
+	if !patternOK || !h.allowed(r, "patterns:delete") {
 		h.forbidden(w, r)
 		return
 	}
-	if err := h.Repository.DeletePattern(r.Context(), workspaceID, patternID); err != nil {
+	if err := h.Repository.DeletePattern(r.Context(), patternID); err != nil {
 		h.writeError(w, r, err)
 		return
 	}
@@ -191,9 +180,8 @@ func (h WorkingPatternHandler) Delete(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h WorkingPatternHandler) Assign(w http.ResponseWriter, r *http.Request) {
-	workspaceID, ok := organizationIDFromContext(r)
 	employmentID, employmentOK := pathUUID(r, "employment_id")
-	if !ok || !employmentOK || !h.allowed(r, workspaceID, "patterns:assign") {
+	if !employmentOK || !h.allowed(r, "patterns:assign") {
 		h.forbidden(w, r)
 		return
 	}
@@ -203,12 +191,12 @@ func (h WorkingPatternHandler) Assign(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if h.Compliance != nil {
-		if err := h.Compliance.CheckPatternCompliance(r.Context(), workspaceID, employmentID, req); err != nil {
+		if err := h.Compliance.CheckPatternCompliance(r.Context(), employmentID, req); err != nil {
 			h.writeError(w, r, err)
 			return
 		}
 	}
-	assignment, err := h.Repository.AssignPattern(r.Context(), workspaceID, employmentID, req)
+	assignment, err := h.Repository.AssignPattern(r.Context(), employmentID, req)
 	if err != nil {
 		h.writeError(w, r, err)
 		return
@@ -217,8 +205,7 @@ func (h WorkingPatternHandler) Assign(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h WorkingPatternHandler) BulkAssign(w http.ResponseWriter, r *http.Request) {
-	workspaceID, ok := organizationIDFromContext(r)
-	if !ok || !h.allowed(r, workspaceID, "patterns:assign") {
+	if !h.allowed(r, "patterns:assign") {
 		h.forbidden(w, r)
 		return
 	}
@@ -228,12 +215,12 @@ func (h WorkingPatternHandler) BulkAssign(w http.ResponseWriter, r *http.Request
 		return
 	}
 	if h.Compliance != nil {
-		if err := h.Compliance.CheckBulkPatternCompliance(r.Context(), workspaceID, req); err != nil {
+		if err := h.Compliance.CheckBulkPatternCompliance(r.Context(), req); err != nil {
 			h.writeError(w, r, err)
 			return
 		}
 	}
-	result, err := h.Repository.BulkAssignPattern(r.Context(), workspaceID, req)
+	result, err := h.Repository.BulkAssignPattern(r.Context(), req)
 	if err != nil {
 		h.writeError(w, r, err)
 		return
@@ -242,13 +229,12 @@ func (h WorkingPatternHandler) BulkAssign(w http.ResponseWriter, r *http.Request
 }
 
 func (h WorkingPatternHandler) History(w http.ResponseWriter, r *http.Request) {
-	workspaceID, ok := organizationIDFromContext(r)
 	employmentID, employmentOK := pathUUID(r, "employment_id")
-	if !ok || !employmentOK {
+	if !employmentOK {
 		h.forbidden(w, r)
 		return
 	}
-	history, err := h.Repository.EmploymentPatternHistory(r.Context(), workspaceID, employmentID)
+	history, err := h.Repository.EmploymentPatternHistory(r.Context(), employmentID)
 	if err != nil {
 		h.writeError(w, r, err)
 		return
@@ -299,9 +285,9 @@ func validateAssignmentDates(start string, end *string) error {
 	return nil
 }
 
-func (h WorkingPatternHandler) allowed(r *http.Request, workspaceID uuid.UUID, permission string) bool {
+func (h WorkingPatternHandler) allowed(r *http.Request, permission string) bool {
 	userID, ok := httpinfra.UserIDFromContext(r.Context())
-	return ok && h.Authorizer != nil && h.Authorizer.HasPermission(r.Context(), userID, workspaceID, permission)
+	return ok && h.Authorizer != nil && h.Authorizer.HasPermission(r.Context(), userID, permission)
 }
 
 func (h WorkingPatternHandler) forbidden(w http.ResponseWriter, r *http.Request) {

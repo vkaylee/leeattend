@@ -1,27 +1,21 @@
 package api
 
 import (
-	"context"
 	"errors"
 	"net/http"
 	"strings"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/vkaylee/leeattend/apiserver/internal/apperror"
 	"github.com/vkaylee/leeattend/apiserver/internal/auth"
 	httpinfra "github.com/vkaylee/leeattend/apiserver/internal/infra/http"
 	"github.com/vkaylee/leeattend/apiserver/internal/service"
 )
 
-type WorkspaceMemberAuthorizer interface {
-	IsMember(context.Context, uuid.UUID, uuid.UUID) (bool, error)
-	EffectivePermissions(context.Context, uuid.UUID, uuid.UUID) ([]string, []string, error)
-}
 
 type AuthHandler struct {
 	Service      service.AuthService
-	Authorizer   WorkspaceMemberAuthorizer
+	Authorizer   Authorizer
 	CookieDomain string
 }
 
@@ -169,59 +163,58 @@ func (h AuthHandler) MyPermissions(w http.ResponseWriter, r *http.Request) {
 		apperror.WritePrimitiveAuthRequired(w)
 		return
 	}
-	workspaceID, ok := organizationIDFromContext(r)
-	if !ok {
-		apperror.WriteError(w, r, apperror.Validation(apperror.KeyMissingWorkspace))
-		return
-	}
 	if h.Authorizer == nil {
 		apperror.WriteError(w, r, apperror.Internal(errors.New("auth handler: nil authorizer")))
 		return
 	}
-	member, err := h.Authorizer.IsMember(r.Context(), userID, workspaceID)
+	member, err := h.Authorizer.IsMember(r.Context(), userID)
 	if err != nil {
 		apperror.WriteError(w, r, apperror.Internal(err))
 		return
 	}
 	if !member {
-		apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyNotWorkspaceMember))
+		apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyNotOrganizationMember))
 		return
 	}
-	permissions, roles, err := h.Authorizer.EffectivePermissions(r.Context(), userID, workspaceID)
+	permissions, roles, err := h.Authorizer.EffectivePermissions(r.Context(), userID)
 	if err != nil {
 		apperror.WriteError(w, r, apperror.Internal(err))
 		return
 	}
+	deptIDs, err := h.Authorizer.GetManagedDepartmentIDs(r.Context(), userID)
+	if err != nil {
+		apperror.WriteError(w, r, apperror.Internal(err))
+		return
+	}
+	managed := make([]string, 0, len(deptIDs))
+	for _, dept := range deptIDs {
+		managed = append(managed, dept.String())
+	}
 	apperror.WriteJSON(w, http.StatusOK, permissionsResponse{
 		Permissions:          permissions,
 		Roles:                roles,
-		ManagedDepartmentIDs: nil,
+		ManagedDepartmentIDs: managed,
 	})
 }
 
-func (h AuthHandler) WorkspaceUsers(w http.ResponseWriter, r *http.Request) {
+func (h AuthHandler) OrganizationUsers(w http.ResponseWriter, r *http.Request) {
 	userID, ok := httpinfra.UserIDFromContext(r.Context())
 	if !ok {
 		apperror.WritePrimitiveAuthRequired(w)
 		return
 	}
-	workspaceID, ok := organizationIDFromContext(r)
-	if !ok {
-		apperror.WriteError(w, r, apperror.Validation(apperror.KeyMissingWorkspace))
-		return
-	}
 	if h.Authorizer != nil {
-		member, err := h.Authorizer.IsMember(r.Context(), userID, workspaceID)
+		member, err := h.Authorizer.IsMember(r.Context(), userID)
 		if err != nil {
 			apperror.WriteError(w, r, apperror.Internal(err))
 			return
 		}
 		if !member {
-			apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyNotWorkspaceMember))
+			apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyNotOrganizationMember))
 			return
 		}
 	}
-	users, err := h.Service.WorkspaceUsers(r.Context(), workspaceID)
+	users, err := h.Service.OrganizationUsers(r.Context())
 	if err != nil {
 		apperror.WriteError(w, r, apperror.Internal(err))
 		return

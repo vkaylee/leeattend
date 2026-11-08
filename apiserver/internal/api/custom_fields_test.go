@@ -17,12 +17,12 @@ type mockCustomFieldRepo struct {
 	Values map[uuid.UUID]map[uuid.UUID]CustomFieldValueResponse
 }
 
-func (m *mockCustomFieldRepo) CreateDefinition(ctx context.Context, record CustomFieldDefinitionRecord) (CustomFieldDefinitionRecord, error) {
+func (m *mockCustomFieldRepo) CreateDefinition(_ context.Context, record CustomFieldDefinitionRecord) (CustomFieldDefinitionRecord, error) {
 	if m.Defs == nil {
 		m.Defs = make(map[uuid.UUID]CustomFieldDefinitionRecord)
 	}
 	for _, d := range m.Defs {
-		if d.WorkspaceID == record.WorkspaceID && d.FieldKey == record.FieldKey {
+		if d.FieldKey == record.FieldKey {
 			return CustomFieldDefinitionRecord{}, ErrCustomFieldConflict
 		}
 	}
@@ -30,27 +30,25 @@ func (m *mockCustomFieldRepo) CreateDefinition(ctx context.Context, record Custo
 	return record, nil
 }
 
-func (m *mockCustomFieldRepo) GetDefinition(ctx context.Context, wsID, id uuid.UUID) (CustomFieldDefinitionRecord, error) {
-	if d, ok := m.Defs[id]; ok && d.WorkspaceID == wsID {
+func (m *mockCustomFieldRepo) GetDefinition(_ context.Context, id uuid.UUID) (CustomFieldDefinitionRecord, error) {
+	if d, ok := m.Defs[id]; ok {
 		return d, nil
 	}
 	return CustomFieldDefinitionRecord{}, ErrCustomFieldNotFound
 }
 
-func (m *mockCustomFieldRepo) ListDefinitions(ctx context.Context, wsID uuid.UUID, entityType *string) ([]CustomFieldDefinitionRecord, error) {
+func (m *mockCustomFieldRepo) ListDefinitions(_ context.Context, entityType *string) ([]CustomFieldDefinitionRecord, error) {
 	var list []CustomFieldDefinitionRecord
 	for _, d := range m.Defs {
-		if d.WorkspaceID == wsID {
-			if entityType == nil || d.EntityType == *entityType {
-				list = append(list, d)
-			}
+		if entityType == nil || d.EntityType == *entityType {
+			list = append(list, d)
 		}
 	}
 	return list, nil
 }
 
-func (m *mockCustomFieldRepo) UpdateDefinition(ctx context.Context, wsID, id uuid.UUID, req UpdateCustomFieldDefinitionRequest) (CustomFieldDefinitionRecord, error) {
-	d, err := m.GetDefinition(ctx, wsID, id)
+func (m *mockCustomFieldRepo) UpdateDefinition(ctx context.Context, id uuid.UUID, req UpdateCustomFieldDefinitionRequest) (CustomFieldDefinitionRecord, error) {
+	d, err := m.GetDefinition(ctx, id)
 	if err != nil {
 		return CustomFieldDefinitionRecord{}, err
 	}
@@ -61,25 +59,23 @@ func (m *mockCustomFieldRepo) UpdateDefinition(ctx context.Context, wsID, id uui
 	return d, nil
 }
 
-func (m *mockCustomFieldRepo) DeleteDefinition(ctx context.Context, wsID, id uuid.UUID) error {
-	if _, err := m.GetDefinition(ctx, wsID, id); err != nil {
+func (m *mockCustomFieldRepo) DeleteDefinition(ctx context.Context, id uuid.UUID) error {
+	if _, err := m.GetDefinition(ctx, id); err != nil {
 		return err
 	}
 	delete(m.Defs, id)
 	return nil
 }
 
-func (m *mockCustomFieldRepo) GetValues(ctx context.Context, wsID, entityID uuid.UUID) ([]CustomFieldValueResponse, error) {
+func (m *mockCustomFieldRepo) GetValues(_ context.Context, entityID uuid.UUID) ([]CustomFieldValueResponse, error) {
 	var list []CustomFieldValueResponse
-	if entityValues, ok := m.Values[entityID]; ok {
-		for _, v := range entityValues {
-			list = append(list, v)
-		}
+	for _, v := range m.Values[entityID] {
+		list = append(list, v)
 	}
 	return list, nil
 }
 
-func (m *mockCustomFieldRepo) SetValues(ctx context.Context, wsID, entityID uuid.UUID, entityType string, values []SetCustomFieldValueItem) ([]CustomFieldValueResponse, error) {
+func (m *mockCustomFieldRepo) SetValues(ctx context.Context, entityID uuid.UUID, _ string, values []SetCustomFieldValueItem) ([]CustomFieldValueResponse, error) {
 	if m.Values == nil {
 		m.Values = make(map[uuid.UUID]map[uuid.UUID]CustomFieldValueResponse)
 	}
@@ -88,7 +84,7 @@ func (m *mockCustomFieldRepo) SetValues(ctx context.Context, wsID, entityID uuid
 	}
 	for _, item := range values {
 		def, ok := m.Defs[item.DefinitionID]
-		if !ok || def.WorkspaceID != wsID {
+		if !ok {
 			return nil, ErrCustomFieldNotFound
 		}
 		m.Values[entityID][item.DefinitionID] = CustomFieldValueResponse{
@@ -99,215 +95,173 @@ func (m *mockCustomFieldRepo) SetValues(ctx context.Context, wsID, entityID uuid
 			Value:        item.Value,
 		}
 	}
-	return m.GetValues(ctx, wsID, entityID)
+	return m.GetValues(ctx, entityID)
 }
 
-type mockCustomFieldAuthorizer struct{}
-
-func (mockCustomFieldAuthorizer) HasPermission(context.Context, uuid.UUID, uuid.UUID, string) bool {
-	return true
+type customFieldAuthorizer struct {
+	permissions map[string]bool
 }
 
-func TestCustomFieldsDefinitionsCRUD(t *testing.T) {
-	wsID := uuid.New()
+func (a customFieldAuthorizer) HasPermission(_ context.Context, _ uuid.UUID, permission string) bool {
+	return a.permissions[permission]
+}
+
+func (customFieldAuthorizer) HasScopedPermission(context.Context, uuid.UUID, string, *uuid.UUID) bool {
+	return false
+}
+
+func (customFieldAuthorizer) IsMember(context.Context, uuid.UUID) (bool, error) { return true, nil }
+
+func (customFieldAuthorizer) EffectivePermissions(context.Context, uuid.UUID) ([]string, []string, error) {
+	return nil, nil, nil
+}
+
+func (customFieldAuthorizer) GetUsersWithPermission(context.Context, string) ([]uuid.UUID, error) {
+	return nil, nil
+}
+
+func customFieldHandler(repo CustomFieldRepository, permissions ...string) CustomFieldHandler {
+	grants := make(map[string]bool, len(permissions))
+	for _, p := range permissions {
+		grants[p] = true
+	}
+	return CustomFieldHandler{Repository: repo, Authorizer: customFieldAuthorizer{permissions: grants}}
+}
+
+func customFieldRequest(method, target string, body []byte, userID uuid.UUID) *http.Request {
+	var req *http.Request
+	if body == nil {
+		req = httptest.NewRequest(method, target, nil)
+	} else {
+		req = httptest.NewRequest(method, target, bytes.NewReader(body))
+	}
+	return req.WithContext(httpinfra.WithUserIDForTest(req.Context(), userID))
+}
+
+func TestCustomFieldDefinitionsCRUD(t *testing.T) {
 	userID := uuid.New()
 	repo := &mockCustomFieldRepo{Defs: make(map[uuid.UUID]CustomFieldDefinitionRecord)}
-	handler := CustomFieldHandler{
-		Repository: repo,
-		Authorizer: mockCustomFieldAuthorizer{},
-	}
+	handler := customFieldHandler(repo, "organization:settings:read", "organization:settings:write")
 
-	// 1. Create definition
-	createBody := CreateCustomFieldDefinitionRequest{
-		EntityType: "employee",
-		FieldKey:   "t_shirt_size",
-		FieldLabel: "T-Shirt Size",
-		FieldType:  "text",
-	}
-	raw, _ := json.Marshal(createBody)
-	req := httptest.NewRequest(http.MethodPost, "/api/v1/workspaces/"+wsID.String()+"/custom-fields/definitions", bytes.NewReader(raw))
-	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
-	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), userID))
-	rec := httptest.NewRecorder()
-
-	handler.CreateDefinition(rec, req)
-	if rec.Code != http.StatusCreated {
-		t.Fatalf("expected 201 Created, got %d: %s", rec.Code, rec.Body.String())
+	createBody, _ := json.Marshal(CreateCustomFieldDefinitionRequest{
+		EntityType: "employee", FieldKey: "t_shirt_size", FieldLabel: "T-Shirt Size", FieldType: "text",
+	})
+	createRec := httptest.NewRecorder()
+	handler.CreateDefinition(createRec, customFieldRequest(http.MethodPost, "/api/v1/custom-fields/definitions", createBody, userID))
+	if createRec.Code != http.StatusCreated {
+		t.Fatalf("expected 201, got %d: %s", createRec.Code, createRec.Body.String())
 	}
 	var created CustomFieldDefinitionRecord
-	if err := json.Unmarshal(rec.Body.Bytes(), &created); err != nil {
-		t.Fatalf("unmarshal error: %v", err)
+	if err := json.Unmarshal(createRec.Body.Bytes(), &created); err != nil {
+		t.Fatalf("decode created definition: %v", err)
 	}
 
-	// 2. Duplicate create returns 409
-	recDup := httptest.NewRecorder()
-	reqDup := httptest.NewRequest(http.MethodPost, "/api/v1/workspaces/"+wsID.String()+"/custom-fields/definitions", bytes.NewReader(raw))
-	reqDup = reqDup.WithContext(httpinfra.WithOrganizationIDForTest(reqDup.Context(), wsID))
-	reqDup = reqDup.WithContext(httpinfra.WithUserIDForTest(reqDup.Context(), userID))
-	handler.CreateDefinition(recDup, reqDup)
-	if recDup.Code != http.StatusConflict {
-		t.Fatalf("expected 409 Conflict, got %d", recDup.Code)
+	dupRec := httptest.NewRecorder()
+	handler.CreateDefinition(dupRec, customFieldRequest(http.MethodPost, "/api/v1/custom-fields/definitions", createBody, userID))
+	if dupRec.Code != http.StatusConflict {
+		t.Fatalf("expected duplicate definition conflict, got %d", dupRec.Code)
 	}
 
-	// 3. Get definition
-	getReq := httptest.NewRequest(http.MethodGet, "/api/v1/workspaces/"+wsID.String()+"/custom-fields/definitions/"+created.ID.String(), nil)
-	getReq = getReq.WithContext(httpinfra.WithOrganizationIDForTest(getReq.Context(), wsID))
+	getReq := customFieldRequest(http.MethodGet, "/api/v1/custom-fields/definitions/"+created.ID.String(), nil, userID)
 	getReq.SetPathValue("id", created.ID.String())
-	getReq = getReq.WithContext(httpinfra.WithUserIDForTest(getReq.Context(), userID))
 	getRec := httptest.NewRecorder()
-
 	handler.GetDefinition(getRec, getReq)
 	if getRec.Code != http.StatusOK {
-		t.Fatalf("expected 200 OK, got %d", getRec.Code)
+		t.Fatalf("expected 200, got %d", getRec.Code)
 	}
 
-	// 4. List definitions
-	listReq := httptest.NewRequest(http.MethodGet, "/api/v1/workspaces/"+wsID.String()+"/custom-fields/definitions?entity_type=employee", nil)
-	listReq = listReq.WithContext(httpinfra.WithOrganizationIDForTest(listReq.Context(), wsID))
-	listReq = listReq.WithContext(httpinfra.WithUserIDForTest(listReq.Context(), userID))
 	listRec := httptest.NewRecorder()
-
-	handler.ListDefinitions(listRec, listReq)
-	if listRec.Code != http.StatusOK {
-		t.Fatalf("expected 200 OK, got %d", listRec.Code)
-	}
+	handler.ListDefinitions(listRec, customFieldRequest(http.MethodGet, "/api/v1/custom-fields/definitions?entity_type=employee", nil, userID))
 	var list []CustomFieldDefinitionRecord
-	if err := json.Unmarshal(listRec.Body.Bytes(), &list); err != nil || len(list) != 1 {
-		t.Fatalf("expected 1 definition, got %d", len(list))
+	if listRec.Code != http.StatusOK || json.Unmarshal(listRec.Body.Bytes(), &list) != nil || len(list) != 1 {
+		t.Fatalf("expected one employee field, got %d: %s", listRec.Code, listRec.Body.String())
 	}
 
-	// 5. Update definition
 	newLabel := "Shirt Size"
 	patchBody, _ := json.Marshal(UpdateCustomFieldDefinitionRequest{FieldLabel: &newLabel})
-	patchReq := httptest.NewRequest(http.MethodPatch, "/api/v1/workspaces/"+wsID.String()+"/custom-fields/definitions/"+created.ID.String(), bytes.NewReader(patchBody))
-	patchReq = patchReq.WithContext(httpinfra.WithOrganizationIDForTest(patchReq.Context(), wsID))
+	patchReq := customFieldRequest(http.MethodPatch, "/api/v1/custom-fields/definitions/"+created.ID.String(), patchBody, userID)
 	patchReq.SetPathValue("id", created.ID.String())
-	patchReq = patchReq.WithContext(httpinfra.WithUserIDForTest(patchReq.Context(), userID))
 	patchRec := httptest.NewRecorder()
-
 	handler.UpdateDefinition(patchRec, patchReq)
-	if patchRec.Code != http.StatusOK {
-		t.Fatalf("expected 200 OK, got %d", patchRec.Code)
+	if patchRec.Code != http.StatusOK || repo.Defs[created.ID].FieldLabel != newLabel {
+		t.Fatalf("expected label update, got %d: %+v", patchRec.Code, repo.Defs[created.ID])
 	}
 
-	// 6. Delete definition
-	delReq := httptest.NewRequest(http.MethodDelete, "/api/v1/workspaces/"+wsID.String()+"/custom-fields/definitions/"+created.ID.String(), nil)
-	delReq = delReq.WithContext(httpinfra.WithOrganizationIDForTest(delReq.Context(), wsID))
+	delReq := customFieldRequest(http.MethodDelete, "/api/v1/custom-fields/definitions/"+created.ID.String(), nil, userID)
 	delReq.SetPathValue("id", created.ID.String())
-	delReq = delReq.WithContext(httpinfra.WithUserIDForTest(delReq.Context(), userID))
 	delRec := httptest.NewRecorder()
-
 	handler.DeleteDefinition(delRec, delReq)
 	if delRec.Code != http.StatusNoContent {
-		t.Fatalf("expected 204 No Content, got %d", delRec.Code)
+		t.Fatalf("expected 204, got %d", delRec.Code)
+	}
+	if _, exists := repo.Defs[created.ID]; exists {
+		t.Fatal("deleted definition remains")
 	}
 }
 
-func TestCustomFieldsValues(t *testing.T) {
-	wsID := uuid.New()
-	userID := uuid.New()
-	empID := uuid.New()
-	defID := uuid.New()
+func TestCustomFieldValuesRequireEntityPermissionAndPersistValue(t *testing.T) {
+	userID, empID, defID := uuid.New(), uuid.New(), uuid.New()
 	repo := &mockCustomFieldRepo{
 		Defs: map[uuid.UUID]CustomFieldDefinitionRecord{
-			defID: {ID: defID, WorkspaceID: wsID, EntityType: "employee", FieldKey: "notes", FieldLabel: "Notes", FieldType: "text"},
+			defID: {ID: defID, EntityType: "employee", FieldKey: "notes", FieldLabel: "Notes", FieldType: "text"},
 		},
 		Values: make(map[uuid.UUID]map[uuid.UUID]CustomFieldValueResponse),
 	}
-	handler := CustomFieldHandler{
-		Repository: repo,
-		Authorizer: mockCustomFieldAuthorizer{},
-	}
-
-	// Set value
-	setBody := BulkSetCustomFieldValuesRequest{
-		Values: []SetCustomFieldValueItem{
-			{DefinitionID: defID, Value: json.RawMessage(`"Top performer"`)},
-		},
-	}
-	raw, _ := json.Marshal(setBody)
-	setReq := httptest.NewRequest(http.MethodPut, "/api/v1/workspaces/"+wsID.String()+"/custom-fields/values/employee/"+empID.String(), bytes.NewReader(raw))
-	setReq = setReq.WithContext(httpinfra.WithOrganizationIDForTest(setReq.Context(), wsID))
+	body, _ := json.Marshal(BulkSetCustomFieldValuesRequest{Values: []SetCustomFieldValueItem{{DefinitionID: defID, Value: json.RawMessage(`"Top performer"`)}}})
+	setReq := customFieldRequest(http.MethodPut, "/api/v1/custom-fields/values/employee/"+empID.String(), body, userID)
 	setReq.SetPathValue("entity_type", "employee")
 	setReq.SetPathValue("entity_id", empID.String())
-	setReq = setReq.WithContext(httpinfra.WithUserIDForTest(setReq.Context(), userID))
 	setRec := httptest.NewRecorder()
-
-	handler.SetValues(setRec, setReq)
+	customFieldHandler(repo, "employees:update").SetValues(setRec, setReq)
 	if setRec.Code != http.StatusOK {
-		t.Fatalf("expected 200 OK, got %d: %s", setRec.Code, setRec.Body.String())
+		t.Fatalf("expected employee update permission to allow set, got %d", setRec.Code)
 	}
 
-	// Get value
-	getReq := httptest.NewRequest(http.MethodGet, "/api/v1/workspaces/"+wsID.String()+"/custom-fields/values/employee/"+empID.String(), nil)
-	getReq = getReq.WithContext(httpinfra.WithOrganizationIDForTest(getReq.Context(), wsID))
+	getReq := customFieldRequest(http.MethodGet, "/api/v1/custom-fields/values/employee/"+empID.String(), nil, userID)
 	getReq.SetPathValue("entity_type", "employee")
 	getReq.SetPathValue("entity_id", empID.String())
-	getReq = getReq.WithContext(httpinfra.WithUserIDForTest(getReq.Context(), userID))
 	getRec := httptest.NewRecorder()
-
-	handler.GetValues(getRec, getReq)
-	if getRec.Code != http.StatusOK {
-		t.Fatalf("expected 200 OK, got %d", getRec.Code)
+	customFieldHandler(repo, "employees:read").GetValues(getRec, getReq)
+	var values []CustomFieldValueResponse
+	if getRec.Code != http.StatusOK || json.Unmarshal(getRec.Body.Bytes(), &values) != nil || len(values) != 1 || string(values[0].Value) != `"Top performer"` {
+		t.Fatalf("expected stored custom field value, got %d: %s", getRec.Code, getRec.Body.String())
 	}
-	var vals []CustomFieldValueResponse
-	if err := json.Unmarshal(getRec.Body.Bytes(), &vals); err != nil || len(vals) != 1 {
-		t.Fatalf("expected 1 custom field value, got %d: %v", len(vals), err)
+
+	forbiddenReq := customFieldRequest(http.MethodGet, "/api/v1/custom-fields/values/employee/"+empID.String(), nil, userID)
+	forbiddenReq.SetPathValue("entity_type", "employee")
+	forbiddenReq.SetPathValue("entity_id", empID.String())
+	forbiddenRec := httptest.NewRecorder()
+	customFieldHandler(repo, "departments:read").GetValues(forbiddenRec, forbiddenReq)
+	if forbiddenRec.Code != http.StatusForbidden {
+		t.Fatalf("expected unrelated department permission to deny employee data, got %d", forbiddenRec.Code)
 	}
 }
 
-type scopedCustomFieldAuthorizer struct {
-	allowedPerms map[string]bool
-}
-
-func (s scopedCustomFieldAuthorizer) HasPermission(_ context.Context, _, _ uuid.UUID, perm string) bool {
-	return s.allowedPerms[perm]
-}
-
-func TestCustomFieldsListPermissions(t *testing.T) {
-	wsID := uuid.New()
+func TestCustomFieldListPermissions(t *testing.T) {
 	userID := uuid.New()
-	repo := &mockCustomFieldRepo{
-		Defs: map[uuid.UUID]CustomFieldDefinitionRecord{
-			uuid.New(): {ID: uuid.New(), WorkspaceID: wsID, EntityType: "employee", FieldKey: "badge_code", FieldLabel: "Badge Code"},
-		},
-	}
+	repo := &mockCustomFieldRepo{Defs: map[uuid.UUID]CustomFieldDefinitionRecord{
+		uuid.New(): {ID: uuid.New(), EntityType: "employee", FieldKey: "badge_code", FieldLabel: "Badge Code"},
+	}}
 
-	// Case 1: user only has employees:read, entity_type=employee -> allowed
-	empHandler := CustomFieldHandler{
-		Repository: repo,
-		Authorizer: scopedCustomFieldAuthorizer{allowedPerms: map[string]bool{"employees:read": true}},
-	}
-	req := httptest.NewRequest(http.MethodGet, "/api/v1/workspaces/"+wsID.String()+"/custom-fields/definitions?entity_type=employee", nil)
-	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
-	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), userID))
+	reader := customFieldHandler(repo, "employees:read")
+	req := customFieldRequest(http.MethodGet, "/api/v1/custom-fields/definitions?entity_type=employee", nil, userID)
 	rec := httptest.NewRecorder()
-	empHandler.ListDefinitions(rec, req)
+	reader.ListDefinitions(rec, req)
 	if rec.Code != http.StatusOK {
-		t.Fatalf("expected 200 OK for employees:read with entity_type=employee, got %d: %s", rec.Code, rec.Body.String())
+		t.Fatalf("expected employee-scoped read permission to allow employee definitions, got %d", rec.Code)
 	}
 
-	// Case 2: user only has employees:read, entity_type missing -> forbidden
-	reqNoEntity := httptest.NewRequest(http.MethodGet, "/api/v1/workspaces/"+wsID.String()+"/custom-fields/definitions", nil)
-	reqNoEntity = reqNoEntity.WithContext(httpinfra.WithOrganizationIDForTest(reqNoEntity.Context(), wsID))
-	reqNoEntity = reqNoEntity.WithContext(httpinfra.WithUserIDForTest(reqNoEntity.Context(), userID))
-	recNoEntity := httptest.NewRecorder()
-	empHandler.ListDefinitions(recNoEntity, reqNoEntity)
-	if recNoEntity.Code != http.StatusForbidden {
-		t.Fatalf("expected 403 Forbidden without entity_type, got %d", recNoEntity.Code)
+	req = customFieldRequest(http.MethodGet, "/api/v1/custom-fields/definitions", nil, userID)
+	rec = httptest.NewRecorder()
+	reader.ListDefinitions(rec, req)
+	if rec.Code != http.StatusForbidden {
+		t.Fatalf("expected employee permission without entity filter to deny, got %d", rec.Code)
 	}
 
-	// Case 3: user has workspace:settings:read -> allowed for all
-	adminHandler := CustomFieldHandler{
-		Repository: repo,
-		Authorizer: scopedCustomFieldAuthorizer{allowedPerms: map[string]bool{"workspace:settings:read": true}},
-	}
-	reqAdmin := httptest.NewRequest(http.MethodGet, "/api/v1/workspaces/"+wsID.String()+"/custom-fields/definitions", nil)
-	reqAdmin = reqAdmin.WithContext(httpinfra.WithOrganizationIDForTest(reqAdmin.Context(), wsID))
-	reqAdmin = reqAdmin.WithContext(httpinfra.WithUserIDForTest(reqAdmin.Context(), userID))
-	recAdmin := httptest.NewRecorder()
-	adminHandler.ListDefinitions(recAdmin, reqAdmin)
-	if recAdmin.Code != http.StatusOK {
-		t.Fatalf("expected 200 OK for workspace:settings:read, got %d", recAdmin.Code)
+	admin := customFieldHandler(repo, "organization:settings:read")
+	rec = httptest.NewRecorder()
+	admin.ListDefinitions(rec, customFieldRequest(http.MethodGet, "/api/v1/custom-fields/definitions", nil, userID))
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected organization settings permission to list all definitions, got %d", rec.Code)
 	}
 }

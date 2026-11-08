@@ -7,13 +7,13 @@ import { buildTerminationErrorWorkbook } from "@/lib/termination-error-export";
 
 import { useImportStateMachine } from "./use-import-state-machine";
 
-export function useTerminationImport(wsId: string, onClose: () => void) {
+export function useTerminationImport(onClose: () => void) {
   const { t, i18n } = useTranslation("employees");
-  const state = useImportStateMachine(wsId, onClose);
+  const state = useImportStateMachine(onClose);
 
   const handleDownloadTemplate = async () => {
     try {
-      await downloadTerminationTemplate(wsId, i18n.language);
+      await downloadTerminationTemplate(i18n.language);
     } catch (err) {
       logError(err, { component: "EmployeeTerminationImport" });
       toast.error(t("employees.bulk_termination.download_error", { defaultValue: "Failed to download template" }));

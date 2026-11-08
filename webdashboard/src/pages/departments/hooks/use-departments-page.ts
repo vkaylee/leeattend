@@ -4,14 +4,14 @@ import { useTranslation } from "react-i18next";
 import { useConfirm } from "../../../hooks/use-confirm";
 import { useAllEmployees } from "../../../hooks/use-employees";
 import { useDepartments } from "../../../hooks/use-departments";
-import { useOrganizationMutation } from "../../../hooks/common/use-workspace-query";
-import { deleteDepartment, getStandaloneOrganizationId, Department } from "../../../lib/api";
+import { useOrganizationMutation } from "../../../hooks/common/use-organization-query";
+import { deleteDepartment, Department } from "../../../lib/api";
 import { departmentKeys } from "../../../lib/query-keys";
 
 
 export function useDepartmentsPage() {
   const { t } = useTranslation();
-  const wsId = getStandaloneOrganizationId();
+  
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isConfigModalOpen, setIsConfigModalOpen] = useState(false);
   const [editingDept, setEditingDept] = useState<Department | null>(null);
@@ -26,18 +26,15 @@ export function useDepartmentsPage() {
 
   const { confirm, ConfirmationDialog } = useConfirm();
 
-  const { data: departments = [], isLoading } = useDepartments(wsId);
+  const { data: departments = [], isLoading } = useDepartments();
 
-  const { employees } = useAllEmployees(wsId, {
+  const { employees } = useAllEmployees({
     permission: undefined,
   });
 
 
-  const deleteMutation = useOrganizationMutation<string>({
-    workspaceId: wsId,
-    keys: [departmentKeys.all(wsId)],
-    mutationFn: (workspaceId, id) => deleteDepartment(workspaceId, id),
-  });
+  const deleteMutation = useOrganizationMutation<string>({ keys: [departmentKeys.all()],
+  mutationFn: (id) => deleteDepartment(id), });
 
   const handleDelete = async (id: string) => {
     const ok = await confirm({
@@ -82,7 +79,6 @@ export function useDepartmentsPage() {
 
   return {
     t,
-    wsId,
     isModalOpen,
     setIsModalOpen,
     isConfigModalOpen,

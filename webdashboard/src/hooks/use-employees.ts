@@ -1,8 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 
-import { fetchEmployees, fetchWorkingConditions, fetchWorkspaceWorkingConditions, getStandaloneOrganizationId, type WorkingConditionWithEmployee } from "@/lib/api";
+import { fetchEmployees, fetchWorkingConditions, fetchWorkspaceWorkingConditions, type WorkingConditionWithEmployee } from "@/lib/api";
 import { employeeKeys } from "@/lib/query-keys";
-import { useOrganizationQuery } from "@/hooks/common/use-workspace-query";
+import { useOrganizationQuery } from "@/hooks/common/use-organization-query";
 
 /**
  * Maximum number of employees fetched in a single "all employees" request.
@@ -19,20 +19,17 @@ export { employeeKeys } from "@/lib/query-keys";
  * found across multiple pages. Centralizes query key, enabled guard,
  * and the fetch limit into one reusable hook.
  *
- * @param wsId - Active workspace ID. Query is disabled when falsy.
  * @param options - Optional overrides (e.g., enabled for lazy-loaded modals).
  */
 export function useAllEmployees(
-  wsId: string | null | undefined,
   options?: { enabled?: boolean; permission?: string },
 ) {
   const enabledOverride = options?.enabled ?? true;
   const permission = options?.permission;
 
   const query = useOrganizationQuery({
-    workspaceId: wsId,
-    queryKey: employeeKeys.list(wsId, { permission }),
-    queryFn: (workspaceId) => fetchEmployees(workspaceId, 1, MAX_EMPLOYEE_FETCH, permission),
+    queryKey: employeeKeys.list({ permission }),
+    queryFn: () => fetchEmployees(1, MAX_EMPLOYEE_FETCH, permission),
     enabled: enabledOverride,
   });
 
@@ -49,28 +46,24 @@ export function useAllEmployees(
 export const workingConditionKeys = {
   all: ["working-conditions"] as const,
   list: (employeeId: string) => [...workingConditionKeys.all, employeeId] as const,
-  workspace: (wsId: string) => [...workingConditionKeys.all, wsId, "workspace"] as const,
+  workspace: () => [...workingConditionKeys.all, "workspace"] as const,
 };
 
-export function useWorkspaceWorkingConditions(wsId: string | null | undefined) {
+export function useWorkspaceWorkingConditions() {
   return useQuery<WorkingConditionWithEmployee[]>({
-    queryKey: wsId ? workingConditionKeys.workspace(wsId) : [],
-    queryFn: () => {
-      if (!wsId) throw new Error("Workspace ID is required");
-      return fetchWorkspaceWorkingConditions(wsId);
-    },
-    enabled: !!wsId,
+    queryKey: workingConditionKeys.workspace(),
+    queryFn: () => fetchWorkspaceWorkingConditions(),
   });
 }
 
-export function useWorkingConditions(employeeId: string) {
-  const wsId = getStandaloneOrganizationId();
+export function useWorkingConditions(employeeId?: string) {
   return useQuery({
-    queryKey: workingConditionKeys.list(employeeId),
+    queryKey: employeeId ? workingConditionKeys.list(employeeId) : workingConditionKeys.workspace(),
     queryFn: () => {
-      if (!wsId) throw new Error("Workspace ID is required");
-      return fetchWorkingConditions(wsId, employeeId);
+      if (employeeId) {
+        return fetchWorkingConditions(employeeId);
+      }
+      return fetchWorkspaceWorkingConditions();
     },
-    enabled: !!employeeId && !!wsId,
   });
 }

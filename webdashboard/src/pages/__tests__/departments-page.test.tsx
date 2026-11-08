@@ -25,7 +25,6 @@ vi.mock("../../lib/api", () => ({
   createDepartment: vi.fn(),
   updateDepartment: vi.fn(),
   deleteDepartment: vi.fn(),
-  getStandaloneOrganizationId: vi.fn(),
   fetchEmployees: vi.fn(),
   fetchWorkingPatterns: vi.fn(),
   fetchDepartmentPayrollConfigs: vi.fn(),
@@ -62,7 +61,6 @@ describe("DepartmentsPage", () => {
       },
     });
  
-    vi.mocked(api.getStandaloneOrganizationId).mockReturnValue("test-ws-id");
  
     vi.mocked(api.fetchDepartments).mockResolvedValue([
       { id: "dept-1", name: "Engineering", description: "Tech stuff", manager_id: "user-1", active_employee_count: 5 }

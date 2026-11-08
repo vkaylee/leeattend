@@ -16,31 +16,29 @@ type mockConditionTypeRepo struct {
 	Records map[uuid.UUID]ConditionTypeRecord
 }
 
-func (m *mockConditionTypeRepo) List(ctx context.Context, wsID uuid.UUID, activeOnly bool) ([]ConditionTypeRecord, error) {
+func (m *mockConditionTypeRepo) List(_ context.Context, activeOnly bool) ([]ConditionTypeRecord, error) {
 	var list []ConditionTypeRecord
 	for _, r := range m.Records {
-		if r.WorkspaceID == wsID {
-			if !activeOnly || r.IsActive {
-				list = append(list, r)
-			}
+		if !activeOnly || r.IsActive {
+			list = append(list, r)
 		}
 	}
 	return list, nil
 }
 
-func (m *mockConditionTypeRepo) Get(ctx context.Context, wsID, id uuid.UUID) (ConditionTypeRecord, error) {
-	if r, ok := m.Records[id]; ok && r.WorkspaceID == wsID {
+func (m *mockConditionTypeRepo) Get(_ context.Context, id uuid.UUID) (ConditionTypeRecord, error) {
+	if r, ok := m.Records[id]; ok {
 		return r, nil
 	}
 	return ConditionTypeRecord{}, ErrConditionTypeNotFound
 }
 
-func (m *mockConditionTypeRepo) Create(ctx context.Context, record ConditionTypeRecord) (ConditionTypeRecord, error) {
+func (m *mockConditionTypeRepo) Create(_ context.Context, record ConditionTypeRecord) (ConditionTypeRecord, error) {
 	if m.Records == nil {
 		m.Records = make(map[uuid.UUID]ConditionTypeRecord)
 	}
 	for _, existing := range m.Records {
-		if existing.WorkspaceID == record.WorkspaceID && existing.Code == record.Code {
+		if existing.Code == record.Code {
 			return ConditionTypeRecord{}, ErrConditionTypeConflict
 		}
 	}
@@ -48,8 +46,8 @@ func (m *mockConditionTypeRepo) Create(ctx context.Context, record ConditionType
 	return record, nil
 }
 
-func (m *mockConditionTypeRepo) Update(ctx context.Context, wsID, id uuid.UUID, req UpdateConditionTypeRequest) (ConditionTypeRecord, error) {
-	r, err := m.Get(ctx, wsID, id)
+func (m *mockConditionTypeRepo) Update(ctx context.Context, id uuid.UUID, req UpdateConditionTypeRequest) (ConditionTypeRecord, error) {
+	r, err := m.Get(ctx, id)
 	if err != nil {
 		return ConditionTypeRecord{}, err
 	}
@@ -60,8 +58,8 @@ func (m *mockConditionTypeRepo) Update(ctx context.Context, wsID, id uuid.UUID, 
 	return r, nil
 }
 
-func (m *mockConditionTypeRepo) Delete(ctx context.Context, wsID, id uuid.UUID) error {
-	r, err := m.Get(ctx, wsID, id)
+func (m *mockConditionTypeRepo) Delete(ctx context.Context, id uuid.UUID) error {
+	r, err := m.Get(ctx, id)
 	if err != nil {
 		return err
 	}
@@ -72,22 +70,52 @@ func (m *mockConditionTypeRepo) Delete(ctx context.Context, wsID, id uuid.UUID) 
 	return nil
 }
 
-type mockConditionTypeAuthorizer struct{}
+// conditionTypeAuthorizer is the slice-local fake for the shared Authorizer contract.
+type conditionTypeAuthorizer struct {
+	permissions map[string]bool
+}
 
-func (mockConditionTypeAuthorizer) HasPermission(context.Context, uuid.UUID, uuid.UUID, string) bool {
-	return true
+func (a conditionTypeAuthorizer) HasPermission(_ context.Context, _ uuid.UUID, permission string) bool {
+	return a.permissions[permission]
+}
+
+func (conditionTypeAuthorizer) HasScopedPermission(context.Context, uuid.UUID, string, *uuid.UUID) bool {
+	return false
+}
+
+func (conditionTypeAuthorizer) IsMember(context.Context, uuid.UUID) (bool, error) { return true, nil }
+
+func (conditionTypeAuthorizer) EffectivePermissions(context.Context, uuid.UUID) ([]string, []string, error) {
+	return nil, nil, nil
+}
+
+func (conditionTypeAuthorizer) GetUsersWithPermission(context.Context, string) ([]uuid.UUID, error) {
+	return nil, nil
+}
+
+func conditionTypeHandlerWith(repo ConditionTypeRepository, permissions ...string) ConditionTypeHandler {
+	grants := make(map[string]bool, len(permissions))
+	for _, p := range permissions {
+		grants[p] = true
+	}
+	return ConditionTypeHandler{Repository: repo, Authorizer: conditionTypeAuthorizer{permissions: grants}}
+}
+
+func conditionTypeRequest(method, target string, body []byte, userID uuid.UUID) *http.Request {
+	var req *http.Request
+	if body == nil {
+		req = httptest.NewRequest(method, target, nil)
+	} else {
+		req = httptest.NewRequest(method, target, bytes.NewReader(body))
+	}
+	return req.WithContext(httpinfra.WithUserIDForTest(req.Context(), userID))
 }
 
 func TestConditionTypeCRUD(t *testing.T) {
-	wsID := uuid.New()
 	userID := uuid.New()
 	repo := &mockConditionTypeRepo{Records: make(map[uuid.UUID]ConditionTypeRecord)}
-	handler := ConditionTypeHandler{
-		Repository: repo,
-		Authorizer: mockConditionTypeAuthorizer{},
-	}
+	handler := conditionTypeHandlerWith(repo, "organization:settings:read", "organization:settings:write")
 
-	// 1. Create
 	createBody := CreateConditionTypeRequest{
 		Code:         "REMOTE_WORK",
 		NameI18N:     json.RawMessage(`{"en":"Remote Work"}`),
@@ -95,12 +123,8 @@ func TestConditionTypeCRUD(t *testing.T) {
 		AffectsRules: json.RawMessage(`{"grace_period_minutes":true}`),
 	}
 	raw, _ := json.Marshal(createBody)
-	req := httptest.NewRequest(http.MethodPost, "/api/v1/workspaces/"+wsID.String()+"/condition-types", bytes.NewReader(raw))
-	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
-	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), userID))
 	rec := httptest.NewRecorder()
-
-	handler.Create(rec, req)
+	handler.Create(rec, conditionTypeRequest(http.MethodPost, "/api/v1/condition-types", raw, userID))
 	if rec.Code != http.StatusCreated {
 		t.Fatalf("expected 201 Created, got %d: %s", rec.Code, rec.Body.String())
 	}
@@ -109,74 +133,87 @@ func TestConditionTypeCRUD(t *testing.T) {
 		t.Fatalf("unmarshal error: %v", err)
 	}
 
-	// 2. Duplicate create returns 409
 	recDup := httptest.NewRecorder()
-	reqDup := httptest.NewRequest(http.MethodPost, "/api/v1/workspaces/"+wsID.String()+"/condition-types", bytes.NewReader(raw))
-	reqDup = reqDup.WithContext(httpinfra.WithOrganizationIDForTest(reqDup.Context(), wsID))
-	reqDup = reqDup.WithContext(httpinfra.WithUserIDForTest(reqDup.Context(), userID))
-	handler.Create(recDup, reqDup)
+	handler.Create(recDup, conditionTypeRequest(http.MethodPost, "/api/v1/condition-types", raw, userID))
 	if recDup.Code != http.StatusConflict {
 		t.Fatalf("expected 409 Conflict, got %d", recDup.Code)
 	}
 
-	// 3. Get
-	getReq := httptest.NewRequest(http.MethodGet, "/api/v1/workspaces/"+wsID.String()+"/condition-types/"+created.ID.String(), nil)
-	getReq = getReq.WithContext(httpinfra.WithOrganizationIDForTest(getReq.Context(), wsID))
+	getReq := conditionTypeRequest(http.MethodGet, "/api/v1/condition-types/"+created.ID.String(), nil, userID)
 	getReq.SetPathValue("id", created.ID.String())
-	getReq = getReq.WithContext(httpinfra.WithUserIDForTest(getReq.Context(), userID))
 	getRec := httptest.NewRecorder()
-
 	handler.Get(getRec, getReq)
 	if getRec.Code != http.StatusOK {
 		t.Fatalf("expected 200 OK, got %d", getRec.Code)
 	}
 
-	// 4. Update
 	newCat := "remote"
 	patchBody, _ := json.Marshal(UpdateConditionTypeRequest{Category: &newCat})
-	patchReq := httptest.NewRequest(http.MethodPatch, "/api/v1/workspaces/"+wsID.String()+"/condition-types/"+created.ID.String(), bytes.NewReader(patchBody))
-	patchReq = patchReq.WithContext(httpinfra.WithOrganizationIDForTest(patchReq.Context(), wsID))
+	patchReq := conditionTypeRequest(http.MethodPatch, "/api/v1/condition-types/"+created.ID.String(), patchBody, userID)
 	patchReq.SetPathValue("id", created.ID.String())
-	patchReq = patchReq.WithContext(httpinfra.WithUserIDForTest(patchReq.Context(), userID))
 	patchRec := httptest.NewRecorder()
-
 	handler.Update(patchRec, patchReq)
 	if patchRec.Code != http.StatusOK {
 		t.Fatalf("expected 200 OK, got %d", patchRec.Code)
 	}
 
-	// 5. Delete
-	delReq := httptest.NewRequest(http.MethodDelete, "/api/v1/workspaces/"+wsID.String()+"/condition-types/"+created.ID.String(), nil)
-	delReq = delReq.WithContext(httpinfra.WithOrganizationIDForTest(delReq.Context(), wsID))
+	delReq := conditionTypeRequest(http.MethodDelete, "/api/v1/condition-types/"+created.ID.String(), nil, userID)
 	delReq.SetPathValue("id", created.ID.String())
-	delReq = delReq.WithContext(httpinfra.WithUserIDForTest(delReq.Context(), userID))
 	delRec := httptest.NewRecorder()
-
 	handler.Delete(delRec, delReq)
 	if delRec.Code != http.StatusNoContent {
 		t.Fatalf("expected 204 No Content, got %d", delRec.Code)
 	}
+	if _, ok := repo.Records[created.ID]; ok {
+		t.Fatal("expected deleted condition type to be removed")
+	}
+}
+
+func TestConditionTypeRequiresSettingsPermission(t *testing.T) {
+	userID := uuid.New()
+	repo := &mockConditionTypeRepo{Records: make(map[uuid.UUID]ConditionTypeRecord)}
+
+	readOnly := conditionTypeHandlerWith(repo, "organization:settings:read")
+	createBody, _ := json.Marshal(CreateConditionTypeRequest{
+		Code:     "SHIFT_WORK",
+		NameI18N: json.RawMessage(`{"en":"Shift Work"}`),
+	})
+	recCreate := httptest.NewRecorder()
+	readOnly.Create(recCreate, conditionTypeRequest(http.MethodPost, "/api/v1/condition-types", createBody, userID))
+	if recCreate.Code != http.StatusForbidden {
+		t.Fatalf("expected 403 when write permission is absent, got %d", recCreate.Code)
+	}
+
+	anonymous := ConditionTypeHandler{Repository: repo}
+	recList := httptest.NewRecorder()
+	anonymous.List(recList, conditionTypeRequest(http.MethodGet, "/api/v1/condition-types", nil, userID))
+	if recList.Code != http.StatusForbidden {
+		t.Fatalf("expected 403 without an authorizer, got %d", recList.Code)
+	}
+
+	reader := conditionTypeHandlerWith(repo, "organization:settings:read")
+	recRead := httptest.NewRecorder()
+	reader.List(recRead, conditionTypeRequest(http.MethodGet, "/api/v1/condition-types", nil, userID))
+	if recRead.Code != http.StatusOK {
+		t.Fatalf("expected 200 with settings read permission, got %d", recRead.Code)
+	}
 }
 
 func TestConditionTypeSystemCannotBeDeleted(t *testing.T) {
-	wsID := uuid.New()
 	sysID := uuid.New()
 	repo := &mockConditionTypeRepo{Records: map[uuid.UUID]ConditionTypeRecord{
-		sysID: {ID: sysID, WorkspaceID: wsID, Code: "SYSTEM", IsSystem: true},
+		sysID: {ID: sysID, Code: "SYSTEM", IsSystem: true, IsActive: true},
 	}}
-	handler := ConditionTypeHandler{
-		Repository: repo,
-		Authorizer: mockConditionTypeAuthorizer{},
-	}
+	handler := conditionTypeHandlerWith(repo, "organization:settings:write")
 
-	req := httptest.NewRequest(http.MethodDelete, "/api/v1/workspaces/"+wsID.String()+"/condition-types/"+sysID.String(), nil)
-	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
+	req := conditionTypeRequest(http.MethodDelete, "/api/v1/condition-types/"+sysID.String(), nil, uuid.New())
 	req.SetPathValue("id", sysID.String())
-	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
 	rec := httptest.NewRecorder()
-
 	handler.Delete(rec, req)
 	if rec.Code != http.StatusForbidden {
 		t.Fatalf("expected 403 Forbidden on system type delete, got %d", rec.Code)
+	}
+	if _, ok := repo.Records[sysID]; !ok {
+		t.Fatal("system condition type must remain after rejected delete")
 	}
 }

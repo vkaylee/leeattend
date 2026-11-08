@@ -31,7 +31,6 @@ vi.mock("@/lib/api", async (importOriginal) => {
   const actual = await importOriginal<typeof api>();
   return {
     ...actual,
-    getStandaloneOrganizationId: vi.fn(() => "ws-test-123"),
     approveLeaveRequest: vi.fn().mockResolvedValue(undefined),
     approveAttendanceAdjustment: vi.fn().mockResolvedValue(undefined),
   };

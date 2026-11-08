@@ -89,8 +89,8 @@ type OvertimeTrendPoint struct {
 	ApprovedOTHours float64 `json:"approved_ot_hours"`
 }
 
-// WorkspaceStats represents workspace key metrics and status summary.
-type WorkspaceStats struct {
+// DashboardStats represents organization-wide key metrics and status summary.
+type DashboardStats struct {
 	TotalEmployees          int64           `json:"total_employees"`
 	PresentToday            int64           `json:"present_today"`
 	PendingLeaveRequests    int64           `json:"pending_leave_requests"`
@@ -136,23 +136,13 @@ type OvertimeBreakdownRow struct {
 	CostAvailable     bool             `json:"cost_available"`
 }
 
-type OvertimeBreakdownWorkspace struct {
-	Timezone string `json:"timezone"`
-	Currency string `json:"currency"`
-}
-
 type OvertimeBreakdownResponse struct {
-	ContractVersion string                     `json:"contract_version"`
-	Workspace       OvertimeBreakdownWorkspace `json:"workspace"`
-	Rows            []OvertimeBreakdownRow     `json:"rows"`
-	GeneratedAt     string                     `json:"generated_at"`
+	ContractVersion string                 `json:"contract_version"`
+	Rows            []OvertimeBreakdownRow `json:"rows"`
+	GeneratedAt     string                 `json:"generated_at"`
 }
 
 // Executive overview response models
-type DashboardWorkspaceContext struct {
-	Timezone string `json:"timezone"`
-	Currency string `json:"currency"`
-}
 
 type DashboardReportingPeriod struct {
 	Key       string    `json:"key"`
@@ -257,14 +247,13 @@ type DashboardDataQuality struct {
 }
 
 type DashboardMetricsResponse struct {
-	ContractVersion string                    `json:"contract_version"`
-	Workspace       DashboardWorkspaceContext `json:"workspace"`
-	Context         DashboardMetricContext    `json:"context"`
-	Metrics         []DashboardMetric         `json:"metrics"`
-	Insights        []DashboardInsight        `json:"insights"`
-	Actions         DashboardActionsSummary   `json:"actions"`
-	DataQuality     DashboardDataQuality      `json:"data_quality"`
-	GeneratedAt     time.Time                 `json:"generated_at"`
+	ContractVersion string                  `json:"contract_version"`
+	Context         DashboardMetricContext  `json:"context"`
+	Metrics         []DashboardMetric      `json:"metrics"`
+	Insights        []DashboardInsight      `json:"insights"`
+	Actions         DashboardActionsSummary `json:"actions"`
+	DataQuality     DashboardDataQuality    `json:"data_quality"`
+	GeneratedAt     time.Time               `json:"generated_at"`
 }
 
 // Turnover analytics response models
@@ -524,59 +513,64 @@ type RecruitmentEffectivenessQuery struct {
 
 // Repository and authorizer interfaces
 type DashboardAnalyticsRepository interface {
-	GetWorkspaceTimezone(ctx context.Context, wsID uuid.UUID) (string, error)
-	GetExecutiveOverview(ctx context.Context, wsID uuid.UUID, query NormalizedDashboardMetricsQuery, allowOvertimeCost bool) (DashboardMetricsResponse, error)
-	GetOvertimeBreakdown(ctx context.Context, wsID uuid.UUID, query OvertimeBreakdownQuery, allowOvertimeCost bool) (OvertimeBreakdownResponse, error)
-	GetWorkspaceStats(ctx context.Context, wsID uuid.UUID, tzName string, deptIDs []uuid.UUID) (WorkspaceStats, error)
-	GetAttendanceTrend(ctx context.Context, wsID uuid.UUID, startDate, endDate time.Time, tzName string, deptIDs []uuid.UUID) ([]AttendanceTrendPoint, error)
-	GetDepartmentAttendance(ctx context.Context, wsID uuid.UUID, startDate, endDate time.Time, tzName string, deptIDs []uuid.UUID, topN *int) ([]DepartmentAttendancePoint, error)
-	GetUnexcusedAbsences(ctx context.Context, wsID uuid.UUID, startDate, endDate time.Time, tzName string, groupBy string, deptIDs []uuid.UUID) ([]UnexcusedAbsencesPoint, error)
-	GetOvertimeTrend(ctx context.Context, wsID uuid.UUID, today time.Time) ([]OvertimeTrendPoint, error)
-	GetPeakTimes(ctx context.Context, wsID uuid.UUID, today time.Time, tzName string) ([]PeakTimeSlot, error)
-	GetLeaveTypesBreakdown(ctx context.Context, wsID uuid.UUID, today time.Time) ([]LeaveTypeBreakdown, error)
-	GetLatenessByDay(ctx context.Context, wsID uuid.UUID, startDate, endDate time.Time, tzName string, deptIDs []uuid.UUID) ([]LatenessByDay, error)
-	GetTurnoverAnalytics(ctx context.Context, wsID uuid.UUID, query TurnoverAnalyticsQuery) (TurnoverAnalytics, error)
-	GetRecruitmentEffectiveness(ctx context.Context, wsID uuid.UUID, query RecruitmentEffectivenessQuery) (RecruitmentEffectivenessAnalytics, error)
-}
-
-type DashboardAnalyticsAuthorizer interface {
-	HasPermission(ctx context.Context, userID, workspaceID uuid.UUID, permission string) bool
+	GetOrganizationTimezone(ctx context.Context) (string, error)
+	GetExecutiveOverview(ctx context.Context, query NormalizedDashboardMetricsQuery, allowOvertimeCost bool) (DashboardMetricsResponse, error)
+	GetOvertimeBreakdown(ctx context.Context, query OvertimeBreakdownQuery, allowOvertimeCost bool) (OvertimeBreakdownResponse, error)
+	GetDashboardStats(ctx context.Context, tzName string, deptIDs []uuid.UUID) (DashboardStats, error)
+	GetAttendanceTrend(ctx context.Context, startDate, endDate time.Time, tzName string, deptIDs []uuid.UUID) ([]AttendanceTrendPoint, error)
+	GetDepartmentAttendance(ctx context.Context, startDate, endDate time.Time, tzName string, deptIDs []uuid.UUID, topN *int) ([]DepartmentAttendancePoint, error)
+	GetUnexcusedAbsences(ctx context.Context, startDate, endDate time.Time, tzName string, groupBy string, deptIDs []uuid.UUID) ([]UnexcusedAbsencesPoint, error)
+	GetOvertimeTrend(ctx context.Context, today time.Time) ([]OvertimeTrendPoint, error)
+	GetPeakTimes(ctx context.Context, today time.Time, tzName string) ([]PeakTimeSlot, error)
+	GetLeaveTypesBreakdown(ctx context.Context, today time.Time) ([]LeaveTypeBreakdown, error)
+	GetLatenessByDay(ctx context.Context, startDate, endDate time.Time, tzName string, deptIDs []uuid.UUID) ([]LatenessByDay, error)
+	GetTurnoverAnalytics(ctx context.Context, query TurnoverAnalyticsQuery) (TurnoverAnalytics, error)
+	GetRecruitmentEffectiveness(ctx context.Context, query RecruitmentEffectivenessQuery) (RecruitmentEffectivenessAnalytics, error)
 }
 
 type DashboardAnalyticsAudit interface {
 	Emit(context.Context, audit.Event) error
 }
-
 type DashboardAnalyticsHandler struct {
 	Repository DashboardAnalyticsRepository
-	Authorizer DashboardAnalyticsAuthorizer
+	Authorizer Authorizer
 	Audit      DashboardAnalyticsAudit
 }
 
-// resolveContext extracts user and workspace IDs from request context.
-func (h DashboardAnalyticsHandler) resolveContext(w http.ResponseWriter, r *http.Request) (uuid.UUID, uuid.UUID, bool) {
-	userID, uok := httpinfra.UserIDFromContext(r.Context())
-	wsID, wok := organizationIDFromContext(r)
-	if !uok || !wok || h.Authorizer == nil {
+func (h DashboardAnalyticsHandler) resolveContext(w http.ResponseWriter, r *http.Request) (uuid.UUID, bool) {
+	userID, ok := httpinfra.UserIDFromContext(r.Context())
+	if !ok || h.Authorizer == nil {
 		apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
-		return uuid.Nil, uuid.Nil, false
+		return uuid.Nil, false
 	}
-	if !h.Authorizer.HasPermission(r.Context(), userID, wsID, string(auth.PermissionDashboardRead)) {
+	if !h.Authorizer.HasPermission(r.Context(), userID, string(auth.PermissionDashboardRead)) {
 		apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
-		return uuid.Nil, uuid.Nil, false
+		return uuid.Nil, false
 	}
-	return userID, wsID, true
+	return userID, true
 }
 
-func (h DashboardAnalyticsHandler) resolveDepartmentScope(ctx context.Context, userID, wsID uuid.UUID, requested []uuid.UUID) ([]uuid.UUID, error) {
-	type deptScoper interface {
-		GetManagedDepartmentIDs(context.Context, uuid.UUID, uuid.UUID) ([]uuid.UUID, bool, error)
+func (h DashboardAnalyticsHandler) resolveDepartmentScope(ctx context.Context, userID uuid.UUID, requested []uuid.UUID) ([]uuid.UUID, error) {
+	if h.Authorizer == nil {
+		return nil, apperror.Forbidden(apperror.KeyForbidden)
 	}
-	scoper, ok := h.Authorizer.(deptScoper)
-	if !ok || scoper == nil {
-		return requested, nil
+
+	type narrowScoper interface {
+		GetManagedDepartmentIDs(context.Context, uuid.UUID) ([]uuid.UUID, bool, error)
 	}
-	managed, isGlobal, err := scoper.GetManagedDepartmentIDs(ctx, userID, wsID)
+
+	var managed []uuid.UUID
+	var isGlobal bool
+	var err error
+
+	if ns, ok := h.Authorizer.(narrowScoper); ok && ns != nil {
+		managed, isGlobal, err = ns.GetManagedDepartmentIDs(ctx, userID)
+	} else {
+		isGlobal = h.Authorizer.IsGlobalManager(ctx, userID)
+		if !isGlobal {
+			managed, err = h.Authorizer.GetManagedDepartmentIDs(ctx, userID)
+		}
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -598,7 +592,7 @@ func (h DashboardAnalyticsHandler) resolveDepartmentScope(ctx context.Context, u
 	return managed, nil
 }
 
-func (h DashboardAnalyticsHandler) getTimezone(ctx context.Context, wsID uuid.UUID, requested string) (*time.Location, string, error) {
+func (h DashboardAnalyticsHandler) getTimezone(ctx context.Context, requested string) (*time.Location, string, error) {
 	if requested != "" {
 		loc, err := timezone.ValidateTZ(requested)
 		if err != nil {
@@ -606,12 +600,12 @@ func (h DashboardAnalyticsHandler) getTimezone(ctx context.Context, wsID uuid.UU
 		}
 		return loc, requested, nil
 	}
-	wsTZ, err := h.Repository.GetWorkspaceTimezone(ctx, wsID)
-	if err != nil || wsTZ == "" {
-		wsTZ = "UTC"
+	orgTZ, err := h.Repository.GetOrganizationTimezone(ctx)
+	if err != nil || orgTZ == "" {
+		orgTZ = "UTC"
 	}
-	loc := timezone.ParseWorkspaceTZ(wsTZ)
-	return loc, wsTZ, nil
+	loc := timezone.ParseWorkspaceTZ(orgTZ)
+	return loc, orgTZ, nil
 }
 
 func validateCustomRange(start, end, today time.Time) error {
@@ -630,11 +624,11 @@ func validateCustomRange(start, end, today time.Time) error {
 
 // 1. GET /api/v1/dashboard/executive-overview
 func (h DashboardAnalyticsHandler) ExecutiveOverview(w http.ResponseWriter, r *http.Request) {
-	userID, wsID, ok := h.resolveContext(w, r)
+	userID, ok := h.resolveContext(w, r)
 	if !ok {
 		return
 	}
-	loc, tzName, err := h.getTimezone(r.Context(), wsID, "")
+	loc, tzName, err := h.getTimezone(r.Context(), "")
 	if err != nil {
 		apperror.WriteError(w, r, err)
 		return
@@ -732,7 +726,7 @@ func (h DashboardAnalyticsHandler) ExecutiveOverview(w http.ResponseWriter, r *h
 	}
 
 	reqDeptIDs := parseUUIDList(r.URL.Query()["department_ids"])
-	scopedDeptIDs, err := h.resolveDepartmentScope(r.Context(), userID, wsID, reqDeptIDs)
+	scopedDeptIDs, err := h.resolveDepartmentScope(r.Context(), userID, reqDeptIDs)
 	if err != nil {
 		apperror.WriteError(w, r, err)
 		return
@@ -755,8 +749,8 @@ func (h DashboardAnalyticsHandler) ExecutiveOverview(w http.ResponseWriter, r *h
 		Timezone:         tzName,
 	}
 
-	allowOvertimeCost := h.Authorizer.HasPermission(r.Context(), userID, wsID, string(auth.PermissionPayrollSensitiveRead))
-	resp, err := h.Repository.GetExecutiveOverview(r.Context(), wsID, query, allowOvertimeCost)
+	allowOvertimeCost := h.Authorizer.HasPermission(r.Context(), userID, string(auth.PermissionPayrollSensitiveRead))
+	resp, err := h.Repository.GetExecutiveOverview(r.Context(), query, allowOvertimeCost)
 	if err != nil {
 		apperror.WriteError(w, r, apperror.Internal(err))
 		return
@@ -767,9 +761,8 @@ func (h DashboardAnalyticsHandler) ExecutiveOverview(w http.ResponseWriter, r *h
 			if m.Key == "overtime_cost" && m.Value != nil {
 				_ = h.Audit.Emit(r.Context(), audit.Event{
 					Name:      "dashboard.sensitive.read",
-					ActorID:   userID.String(),
-					Workspace: wsID.String(),
-					Outcome:   "success",
+					ActorID:  userID.String(),
+					Resource: "dashboard.executive-overview",
 					Details: map[string]string{
 						"endpoint":     "executive-overview",
 						"period":       period,
@@ -789,11 +782,11 @@ func (h DashboardAnalyticsHandler) ExecutiveOverview(w http.ResponseWriter, r *h
 
 // 2. GET /api/v1/dashboard/overtime-breakdown
 func (h DashboardAnalyticsHandler) OvertimeBreakdown(w http.ResponseWriter, r *http.Request) {
-	userID, wsID, ok := h.resolveContext(w, r)
+	userID, ok := h.resolveContext(w, r)
 	if !ok {
 		return
 	}
-	loc, tzName, err := h.getTimezone(r.Context(), wsID, r.URL.Query().Get("timezone"))
+	loc, tzName, err := h.getTimezone(r.Context(), r.URL.Query().Get("timezone"))
 	if err != nil {
 		apperror.WriteError(w, r, err)
 		return
@@ -842,13 +835,13 @@ func (h DashboardAnalyticsHandler) OvertimeBreakdown(w http.ResponseWriter, r *h
 		topN = &n
 	}
 
-	scopedDeptIDs, err := h.resolveDepartmentScope(r.Context(), userID, wsID, nil)
+	scopedDeptIDs, err := h.resolveDepartmentScope(r.Context(), userID, nil)
 	if err != nil {
 		apperror.WriteError(w, r, err)
 		return
 	}
 
-	allowOvertimeCost := h.Authorizer.HasPermission(r.Context(), userID, wsID, string(auth.PermissionPayrollSensitiveRead))
+	allowOvertimeCost := h.Authorizer.HasPermission(r.Context(), userID, string(auth.PermissionPayrollSensitiveRead))
 	query := OvertimeBreakdownQuery{
 		StartDate: &startDate,
 		EndDate:   &endDate,
@@ -857,7 +850,7 @@ func (h DashboardAnalyticsHandler) OvertimeBreakdown(w http.ResponseWriter, r *h
 		DeptIDs:   scopedDeptIDs,
 	}
 
-	resp, err := h.Repository.GetOvertimeBreakdown(r.Context(), wsID, query, allowOvertimeCost)
+	resp, err := h.Repository.GetOvertimeBreakdown(r.Context(), query, allowOvertimeCost)
 	if err != nil {
 		apperror.WriteError(w, r, apperror.Internal(err))
 		return
@@ -871,10 +864,10 @@ func (h DashboardAnalyticsHandler) OvertimeBreakdown(w http.ResponseWriter, r *h
 		for _, row := range resp.Rows {
 			if row.CostAvailable {
 				_ = h.Audit.Emit(r.Context(), audit.Event{
-					Name:      "dashboard.sensitive.read",
-					ActorID:   userID.String(),
-					Workspace: wsID.String(),
-					Outcome:   "success",
+					Name:     "dashboard.sensitive.read",
+					ActorID:  userID.String(),
+					Resource: "dashboard.overtime-breakdown",
+					Outcome:  "success",
 					Details: map[string]string{
 						"endpoint":     "overtime-breakdown",
 						"start_date":   startDate.Format("2006-01-02"),
@@ -893,21 +886,21 @@ func (h DashboardAnalyticsHandler) OvertimeBreakdown(w http.ResponseWriter, r *h
 
 // 3. GET /api/v1/dashboard/workspace-stats
 func (h DashboardAnalyticsHandler) WorkspaceStats(w http.ResponseWriter, r *http.Request) {
-	userID, wsID, ok := h.resolveContext(w, r)
+	userID, ok := h.resolveContext(w, r)
 	if !ok {
 		return
 	}
-	_, tzName, err := h.getTimezone(r.Context(), wsID, r.URL.Query().Get("timezone"))
+	_, tzName, err := h.getTimezone(r.Context(), r.URL.Query().Get("timezone"))
 	if err != nil {
 		apperror.WriteError(w, r, err)
 		return
 	}
-	scopedDeptIDs, err := h.resolveDepartmentScope(r.Context(), userID, wsID, nil)
+	scopedDeptIDs, err := h.resolveDepartmentScope(r.Context(), userID, nil)
 	if err != nil {
 		apperror.WriteError(w, r, err)
 		return
 	}
-	stats, err := h.Repository.GetWorkspaceStats(r.Context(), wsID, tzName, scopedDeptIDs)
+	stats, err := h.Repository.GetDashboardStats(r.Context(), tzName, scopedDeptIDs)
 	if err != nil {
 		apperror.WriteError(w, r, apperror.Internal(err))
 		return
@@ -917,11 +910,11 @@ func (h DashboardAnalyticsHandler) WorkspaceStats(w http.ResponseWriter, r *http
 
 // 4. GET /api/v1/dashboard/attendance-trend
 func (h DashboardAnalyticsHandler) AttendanceTrend(w http.ResponseWriter, r *http.Request) {
-	userID, wsID, ok := h.resolveContext(w, r)
+	userID, ok := h.resolveContext(w, r)
 	if !ok {
 		return
 	}
-	loc, tzName, err := h.getTimezone(r.Context(), wsID, r.URL.Query().Get("timezone"))
+	loc, tzName, err := h.getTimezone(r.Context(), r.URL.Query().Get("timezone"))
 	if err != nil {
 		apperror.WriteError(w, r, err)
 		return
@@ -934,12 +927,12 @@ func (h DashboardAnalyticsHandler) AttendanceTrend(w http.ResponseWriter, r *htt
 		apperror.WriteError(w, r, err)
 		return
 	}
-	scopedDeptIDs, err := h.resolveDepartmentScope(r.Context(), userID, wsID, nil)
+	scopedDeptIDs, err := h.resolveDepartmentScope(r.Context(), userID, nil)
 	if err != nil {
 		apperror.WriteError(w, r, err)
 		return
 	}
-	points, err := h.Repository.GetAttendanceTrend(r.Context(), wsID, startDate, endDate, tzName, scopedDeptIDs)
+	points, err := h.Repository.GetAttendanceTrend(r.Context(), startDate, endDate, tzName, scopedDeptIDs)
 	if err != nil {
 		apperror.WriteError(w, r, apperror.Internal(err))
 		return
@@ -952,11 +945,11 @@ func (h DashboardAnalyticsHandler) AttendanceTrend(w http.ResponseWriter, r *htt
 
 // 5. GET /api/v1/dashboard/department-attendance
 func (h DashboardAnalyticsHandler) DepartmentAttendance(w http.ResponseWriter, r *http.Request) {
-	userID, wsID, ok := h.resolveContext(w, r)
+	userID, ok := h.resolveContext(w, r)
 	if !ok {
 		return
 	}
-	loc, tzName, err := h.getTimezone(r.Context(), wsID, r.URL.Query().Get("timezone"))
+	loc, tzName, err := h.getTimezone(r.Context(), r.URL.Query().Get("timezone"))
 	if err != nil {
 		apperror.WriteError(w, r, err)
 		return
@@ -996,13 +989,13 @@ func (h DashboardAnalyticsHandler) DepartmentAttendance(w http.ResponseWriter, r
 		topN = &n
 	}
 
-	scopedDeptIDs, err := h.resolveDepartmentScope(r.Context(), userID, wsID, nil)
+	scopedDeptIDs, err := h.resolveDepartmentScope(r.Context(), userID, nil)
 	if err != nil {
 		apperror.WriteError(w, r, err)
 		return
 	}
 
-	points, err := h.Repository.GetDepartmentAttendance(r.Context(), wsID, startDate, endDate, tzName, scopedDeptIDs, topN)
+	points, err := h.Repository.GetDepartmentAttendance(r.Context(), startDate, endDate, tzName, scopedDeptIDs, topN)
 	if err != nil {
 		apperror.WriteError(w, r, apperror.Internal(err))
 		return
@@ -1018,7 +1011,7 @@ func (h DashboardAnalyticsHandler) DepartmentAttendance(w http.ResponseWriter, r
 
 // 6. GET /api/v1/dashboard/unexcused-absences
 func (h DashboardAnalyticsHandler) UnexcusedAbsences(w http.ResponseWriter, r *http.Request) {
-	userID, wsID, ok := h.resolveContext(w, r)
+	userID, ok := h.resolveContext(w, r)
 	if !ok {
 		return
 	}
@@ -1030,12 +1023,12 @@ func (h DashboardAnalyticsHandler) UnexcusedAbsences(w http.ResponseWriter, r *h
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}
-	if groupBy == "employee" && !h.Authorizer.HasPermission(r.Context(), userID, wsID, string(auth.PermissionDashboardEmployeeAbsenceRead)) {
+	if groupBy == "employee" && !h.Authorizer.HasPermission(r.Context(), userID, string(auth.PermissionDashboardEmployeeAbsenceRead)) {
 		apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
 		return
 	}
 
-	loc, tzName, err := h.getTimezone(r.Context(), wsID, r.URL.Query().Get("timezone"))
+	loc, tzName, err := h.getTimezone(r.Context(), r.URL.Query().Get("timezone"))
 	if err != nil {
 		apperror.WriteError(w, r, err)
 		return
@@ -1049,13 +1042,13 @@ func (h DashboardAnalyticsHandler) UnexcusedAbsences(w http.ResponseWriter, r *h
 		return
 	}
 
-	scopedDeptIDs, err := h.resolveDepartmentScope(r.Context(), userID, wsID, nil)
+	scopedDeptIDs, err := h.resolveDepartmentScope(r.Context(), userID, nil)
 	if err != nil {
 		apperror.WriteError(w, r, err)
 		return
 	}
 
-	points, err := h.Repository.GetUnexcusedAbsences(r.Context(), wsID, startDate, endDate, tzName, groupBy, scopedDeptIDs)
+	points, err := h.Repository.GetUnexcusedAbsences(r.Context(), startDate, endDate, tzName, groupBy, scopedDeptIDs)
 	if err != nil {
 		apperror.WriteError(w, r, apperror.Internal(err))
 		return
@@ -1068,11 +1061,11 @@ func (h DashboardAnalyticsHandler) UnexcusedAbsences(w http.ResponseWriter, r *h
 
 // 7. GET /api/v1/dashboard/overtime-trend
 func (h DashboardAnalyticsHandler) OvertimeTrend(w http.ResponseWriter, r *http.Request) {
-	_, wsID, ok := h.resolveContext(w, r)
+	_, ok := h.resolveContext(w, r)
 	if !ok {
 		return
 	}
-	loc, _, err := h.getTimezone(r.Context(), wsID, "")
+	loc, _, err := h.getTimezone(r.Context(), "")
 	if err != nil {
 		apperror.WriteError(w, r, err)
 		return
@@ -1080,7 +1073,7 @@ func (h DashboardAnalyticsHandler) OvertimeTrend(w http.ResponseWriter, r *http.
 	now := time.Now().In(loc)
 	today := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, loc)
 
-	points, err := h.Repository.GetOvertimeTrend(r.Context(), wsID, today)
+	points, err := h.Repository.GetOvertimeTrend(r.Context(), today)
 	if err != nil {
 		apperror.WriteError(w, r, apperror.Internal(err))
 		return
@@ -1093,11 +1086,11 @@ func (h DashboardAnalyticsHandler) OvertimeTrend(w http.ResponseWriter, r *http.
 
 // 8. GET /api/v1/dashboard/peak-times
 func (h DashboardAnalyticsHandler) PeakTimes(w http.ResponseWriter, r *http.Request) {
-	_, wsID, ok := h.resolveContext(w, r)
+	_, ok := h.resolveContext(w, r)
 	if !ok {
 		return
 	}
-	loc, tzName, err := h.getTimezone(r.Context(), wsID, "")
+	loc, tzName, err := h.getTimezone(r.Context(), "")
 	if err != nil {
 		apperror.WriteError(w, r, err)
 		return
@@ -1105,7 +1098,7 @@ func (h DashboardAnalyticsHandler) PeakTimes(w http.ResponseWriter, r *http.Requ
 	now := time.Now().In(loc)
 	today := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, loc)
 
-	slots, err := h.Repository.GetPeakTimes(r.Context(), wsID, today, tzName)
+	slots, err := h.Repository.GetPeakTimes(r.Context(), today, tzName)
 	if err != nil {
 		apperror.WriteError(w, r, apperror.Internal(err))
 		return
@@ -1118,11 +1111,11 @@ func (h DashboardAnalyticsHandler) PeakTimes(w http.ResponseWriter, r *http.Requ
 
 // 9. GET /api/v1/dashboard/leave-types
 func (h DashboardAnalyticsHandler) LeaveTypes(w http.ResponseWriter, r *http.Request) {
-	_, wsID, ok := h.resolveContext(w, r)
+	_, ok := h.resolveContext(w, r)
 	if !ok {
 		return
 	}
-	loc, _, err := h.getTimezone(r.Context(), wsID, "")
+	loc, _, err := h.getTimezone(r.Context(), "")
 	if err != nil {
 		apperror.WriteError(w, r, err)
 		return
@@ -1130,7 +1123,7 @@ func (h DashboardAnalyticsHandler) LeaveTypes(w http.ResponseWriter, r *http.Req
 	now := time.Now().In(loc)
 	today := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, loc)
 
-	items, err := h.Repository.GetLeaveTypesBreakdown(r.Context(), wsID, today)
+	items, err := h.Repository.GetLeaveTypesBreakdown(r.Context(), today)
 	if err != nil {
 		apperror.WriteError(w, r, apperror.Internal(err))
 		return
@@ -1143,11 +1136,11 @@ func (h DashboardAnalyticsHandler) LeaveTypes(w http.ResponseWriter, r *http.Req
 
 // 10. GET /api/v1/dashboard/lateness-by-day
 func (h DashboardAnalyticsHandler) LatenessByDay(w http.ResponseWriter, r *http.Request) {
-	userID, wsID, ok := h.resolveContext(w, r)
+	userID, ok := h.resolveContext(w, r)
 	if !ok {
 		return
 	}
-	loc, tzName, err := h.getTimezone(r.Context(), wsID, r.URL.Query().Get("timezone"))
+	loc, tzName, err := h.getTimezone(r.Context(), r.URL.Query().Get("timezone"))
 	if err != nil {
 		apperror.WriteError(w, r, err)
 		return
@@ -1160,12 +1153,12 @@ func (h DashboardAnalyticsHandler) LatenessByDay(w http.ResponseWriter, r *http.
 		apperror.WriteError(w, r, err)
 		return
 	}
-	scopedDeptIDs, err := h.resolveDepartmentScope(r.Context(), userID, wsID, nil)
+	scopedDeptIDs, err := h.resolveDepartmentScope(r.Context(), userID, nil)
 	if err != nil {
 		apperror.WriteError(w, r, err)
 		return
 	}
-	items, err := h.Repository.GetLatenessByDay(r.Context(), wsID, startDate, endDate, tzName, scopedDeptIDs)
+	items, err := h.Repository.GetLatenessByDay(r.Context(), startDate, endDate, tzName, scopedDeptIDs)
 	if err != nil {
 		apperror.WriteError(w, r, apperror.Internal(err))
 		return
@@ -1178,11 +1171,11 @@ func (h DashboardAnalyticsHandler) LatenessByDay(w http.ResponseWriter, r *http.
 
 // 11. GET /api/v1/dashboard/turnover-analytics
 func (h DashboardAnalyticsHandler) TurnoverAnalytics(w http.ResponseWriter, r *http.Request) {
-	_, wsID, ok := h.resolveContext(w, r)
+	_, ok := h.resolveContext(w, r)
 	if !ok {
 		return
 	}
-	loc, _, err := h.getTimezone(r.Context(), wsID, "")
+	loc, _, err := h.getTimezone(r.Context(), "")
 	if err != nil {
 		apperror.WriteError(w, r, err)
 		return
@@ -1247,7 +1240,7 @@ func (h DashboardAnalyticsHandler) TurnoverAnalytics(w http.ResponseWriter, r *h
 		Target:          target,
 	}
 
-	analytics, err := h.Repository.GetTurnoverAnalytics(r.Context(), wsID, query)
+	analytics, err := h.Repository.GetTurnoverAnalytics(r.Context(), query)
 	if err != nil {
 		apperror.WriteError(w, r, apperror.Internal(err))
 		return
@@ -1257,11 +1250,11 @@ func (h DashboardAnalyticsHandler) TurnoverAnalytics(w http.ResponseWriter, r *h
 
 // 12. GET /api/v1/dashboard/recruitment-effectiveness
 func (h DashboardAnalyticsHandler) RecruitmentEffectiveness(w http.ResponseWriter, r *http.Request) {
-	userID, wsID, ok := h.resolveContext(w, r)
+	userID, ok := h.resolveContext(w, r)
 	if !ok {
 		return
 	}
-	loc, _, err := h.getTimezone(r.Context(), wsID, "")
+	loc, _, err := h.getTimezone(r.Context(), "")
 	if err != nil {
 		apperror.WriteError(w, r, err)
 		return
@@ -1310,7 +1303,7 @@ func (h DashboardAnalyticsHandler) RecruitmentEffectiveness(w http.ResponseWrite
 	}
 
 	reqDeptIDs := parseUUIDList(r.URL.Query()["department_ids"])
-	scopedDeptIDs, err := h.resolveDepartmentScope(r.Context(), userID, wsID, reqDeptIDs)
+	scopedDeptIDs, err := h.resolveDepartmentScope(r.Context(), userID, reqDeptIDs)
 	if err != nil {
 		apperror.WriteError(w, r, err)
 		return
@@ -1327,7 +1320,7 @@ func (h DashboardAnalyticsHandler) RecruitmentEffectiveness(w http.ResponseWrite
 		SourceIDs:       parseUUIDList(r.URL.Query()["source_ids"]),
 	}
 
-	analytics, err := h.Repository.GetRecruitmentEffectiveness(r.Context(), wsID, query)
+	analytics, err := h.Repository.GetRecruitmentEffectiveness(r.Context(), query)
 	if err != nil {
 		apperror.WriteError(w, r, apperror.Internal(err))
 		return

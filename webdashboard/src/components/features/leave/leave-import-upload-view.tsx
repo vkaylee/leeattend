@@ -20,7 +20,6 @@ export interface LeaveImportUploadViewProps {
   setFile: (file: File | null) => void;
   t: TFunction;
   uploading: boolean;
-  wsId: string | null;
 }
 
 function RequirementsPanel({ t }: { t: TFunction }) {
@@ -115,7 +114,7 @@ function FileDropZone({ file, setFile, t }: { file: File | null; setFile: (file:
   );
 }
 
-export function LeaveImportUploadView({ file, setFile, wsId, i18n, t, uploading, handleUpload, onClose, downloadingTemplate, setDownloadingTemplate }: LeaveImportUploadViewProps) {
+export function LeaveImportUploadView({ file, setFile,i18n, t, uploading, handleUpload, onClose, downloadingTemplate, setDownloadingTemplate }: LeaveImportUploadViewProps) {
   return (
     <div className="space-y-6 pt-2 animate-in fade-in duration-500">
       {/* Instructions Panel */}
@@ -124,12 +123,11 @@ export function LeaveImportUploadView({ file, setFile, wsId, i18n, t, uploading,
       {/* Download Template Button */}
       <Button
         className="w-full h-auto py-3.5 border-emerald-200 bg-emerald-50 text-[10px] text-emerald-700 hover:bg-emerald-100 dark:border-emerald-800/50 dark:bg-emerald-950/30 dark:text-emerald-300 dark:hover:bg-emerald-900/30 group"
-        disabled={downloadingTemplate || !wsId}
+        disabled={downloadingTemplate}
         onClick={async () => {
-          if (!wsId) return;
           setDownloadingTemplate(true);
           try {
-            await downloadLeaveImportTemplate(wsId, i18n.language);
+            await downloadLeaveImportTemplate(i18n.language);
           } catch (e: unknown) { logError(e, { component: 'LeaveImportUploadView' }); toast.error(t("leave_import.download_template_failed", "Tải file mẫu thất bại")); } finally {
             setDownloadingTemplate(false);
           }

@@ -53,11 +53,8 @@ export function TabContentRenderer({
     case "pre":
       return (canApprove || canCreateOnBehalf) ? (
         <ErrorBoundary variant="compact">
-          <PreOtApprovalsTab
-            canApprove={canApprove}
-            onPreviewAttachment={onPreviewAttachment}
-            wsId={workspace.id}
-          />
+          <PreOtApprovalsTab canApprove={canApprove}
+          onPreviewAttachment={onPreviewAttachment}  />
         </ErrorBoundary>
       ) : null;
     case "post":
@@ -82,19 +79,16 @@ export function TabContentRenderer({
     case "delegated_claim":
       return (
         <ErrorBoundary variant="compact">
-          <DelegatedClaimsTab
-            endDate={endDate}
-            startDate={startDate}
-            wsId={workspace.id}
-          />
+          <DelegatedClaimsTab endDate={endDate}
+          startDate={startDate}  />
         </ErrorBoundary>
       );
     case "behalf_assignments":
       return (
         <ErrorBoundary variant="compact">
           <div className="divide-y divide-slate-100 dark:divide-slate-800">
-            <BehalfAssignmentsTab assignmentType="ot" wsId={workspace.id} />
-            <BehalfAssignmentsTab assignmentType="overtime_request" wsId={workspace.id} />
+            <BehalfAssignmentsTab assignmentType="ot"  />
+            <BehalfAssignmentsTab assignmentType="overtime_request"  />
           </div>
         </ErrorBoundary>
       );

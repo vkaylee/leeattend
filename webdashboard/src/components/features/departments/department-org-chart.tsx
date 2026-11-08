@@ -35,7 +35,6 @@ export interface DepartmentOrgChartProps {
   onEdit: (dept: Department) => void;
   searchQuery: string;
   t: TFunction;
-  wsId: string;
 }
 
 interface DepartmentOrgChartControlsProps {
@@ -152,9 +151,7 @@ export function DepartmentOrgChart({
   onDelete,
   onEdit,
   searchQuery,
-  t,
-  wsId
-}: DepartmentOrgChartProps) {
+  t}: DepartmentOrgChartProps) {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [collapsedNodes, setCollapsedNodes] = useState<Record<string, boolean>>({});
 
@@ -167,9 +164,7 @@ export function DepartmentOrgChart({
   } = useDepartmentTree({
     departments,
     searchQuery,
-    t,
-    wsId
-  });
+    t});
 
   const handleExpandAll = () => {
     setCollapsedNodes({});

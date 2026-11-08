@@ -13,10 +13,9 @@ interface RetiredLeaveTypeHint {
 }
 
 interface UseLeaveTypeManagerProps {
-  wsId: string;
 }
 
-export function useLeaveTypeManager({ wsId }: UseLeaveTypeManagerProps) {
+export function useLeaveTypeManager({}: UseLeaveTypeManagerProps) {
   const { t } = useTranslation();
   const toast = useToast();
   const queryClient = useQueryClient();
@@ -26,13 +25,10 @@ export function useLeaveTypeManager({ wsId }: UseLeaveTypeManagerProps) {
   const [deletingType, setDeletingType] = useState<LeaveType | null>(null);
   const [restoringType, setRestoringType] = useState<RetiredLeaveTypeHint | null>(null);
 
-  const { data: leaveTypes = [], isLoading: isTypesLoading } = useQuery({
-    queryKey: ["leave-types", wsId],
-    queryFn: () => fetchLeaveTypes(wsId),
-  });
+  const { data: leaveTypes = [], isLoading: isTypesLoading } = useQuery({ queryKey: ["leave-types"], queryFn: () => fetchLeaveTypes(), });
 
   const createTypeMutation = useMutation({
-    mutationFn: (data: { code: string; name: string; is_paid: boolean }) => createLeaveType(wsId, data),
+    mutationFn: (data: { code: string; name: string; is_paid: boolean }) => createLeaveType(data),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["leave-types"] });
       toast.success(t("settings.leave.type_manager.create_success", "Leave type created successfully"));
@@ -63,7 +59,7 @@ export function useLeaveTypeManager({ wsId }: UseLeaveTypeManagerProps) {
 
   const updateTypeMutation = useMutation({
     mutationFn: (data: { typeId: string; config: LeaveTypeConfig }) =>
-      updateLeaveTypeConfig(wsId, data.typeId, data.config),
+      updateLeaveTypeConfig(data.typeId, data.config),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["leave-types"] });
       toast.success("Leave type updated successfully");
@@ -75,7 +71,7 @@ export function useLeaveTypeManager({ wsId }: UseLeaveTypeManagerProps) {
   });
 
   const deleteTypeMutation = useMutation({
-    mutationFn: (typeId: string) => deleteLeaveType(wsId, typeId),
+    mutationFn: (typeId: string) => deleteLeaveType(typeId),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["leave-types"] });
       toast.success("Leave type deleted successfully");
@@ -88,7 +84,7 @@ export function useLeaveTypeManager({ wsId }: UseLeaveTypeManagerProps) {
   });
 
   const restoreTypeMutation = useMutation({
-    mutationFn: (typeId: string) => restoreLeaveType(wsId, typeId),
+    mutationFn: (typeId: string) => restoreLeaveType(typeId),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["leave-types"] });
       toast.success(

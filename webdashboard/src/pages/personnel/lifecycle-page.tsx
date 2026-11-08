@@ -10,18 +10,18 @@ import { PageContainer } from "@/components/ui/page-container";
 import PageHeader from "@/components/ui/page-header";
 import { Typography } from "@/components/ui/typography";
 import { useWorkspaceLifecycleInstances } from "@/hooks/use-lifecycle";
-import { getStandaloneOrganizationId, type LifecycleInstanceSummary } from "@/lib/api";
+import { type LifecycleInstanceSummary } from "@/lib/api";
 
 export default function PersonnelLifecyclePage() {
   const { t } = useTranslation();
-  const wsId = getStandaloneOrganizationId() ?? "";
+  
 
   const [search, setSearch] = useState("");
   const [selectedType, setSelectedType] = useState<string>("all");
   const [selectedStatus, setSelectedStatus] = useState<string>("all");
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  const { data: instances = [], isLoading } = useWorkspaceLifecycleInstances(wsId);
+  const { data: instances = [], isLoading } = useWorkspaceLifecycleInstances();
 
   // Metrics
   const metrics = useMemo(() => {
@@ -55,13 +55,7 @@ export default function PersonnelLifecyclePage() {
     });
   }, [instances, search, selectedType, selectedStatus]);
 
-  if (!wsId) {
-    return (
-      <div className="p-12 text-center text-slate-500 dark:text-slate-400 font-bold italic uppercase tracking-widest text-xs opacity-50">
-        {t("common.select_workspace", { defaultValue: "Vui lòng chọn không gian làm việc" })}
-      </div>
-    );
-  }
+  
 
   return (
     <PageContainer>
@@ -171,13 +165,10 @@ export default function PersonnelLifecyclePage() {
 
       {/* ── Assign Modal ────────────────────────────────────────────── */}
       {isModalOpen && (
-        <LifecycleAssignModal
-          isOpen={isModalOpen}
-          onClose={() => {
-            setIsModalOpen(false);
-          }}
-          wsId={wsId}
-        />
+        <LifecycleAssignModal isOpen={isModalOpen}
+        onClose={() => {
+          setIsModalOpen(false);
+        }}  />
       )}
     </PageContainer>
   );

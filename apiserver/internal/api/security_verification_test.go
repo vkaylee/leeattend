@@ -2,6 +2,7 @@ package api
 
 import (
 	"bytes"
+	"context"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -10,62 +11,80 @@ import (
 	httpinfra "github.com/vkaylee/leeattend/apiserver/internal/infra/http"
 )
 
-// TestTenantIsolation_CrossWorkspaceBoundary verifies that attempts to access
-// resources across workspace boundaries without appropriate membership are rejected.
+// TestTenantIsolation_CrossWorkspaceBoundary verifies authorization boundaries
+// for the single organization API without client-selected organization scope.
 func TestTenantIsolation_CrossWorkspaceBoundary(t *testing.T) {
-	wsTenantA := uuid.New()
-	wsTenantB := uuid.New()
-	userA := uuid.New()
-
-	// Authorizer only has permissions for wsTenantA, wsTenantB is isolated
-	authorizer := mockAuthorizer{
-		perms: map[string]bool{
-			"departments:create": true,
-		},
+	userID := uuid.New()
+	request := func(method, path, body string, authenticated bool) *http.Request {
+		req := httptest.NewRequest(method, path, bytes.NewBufferString(body))
+		if authenticated {
+			req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), userID))
+		}
+		return req
 	}
 
-	h := DepartmentHandler{
-		Repository: mockDepartmentRepo{},
-		Authorizer: authorizer,
-	}
+	t.Run("unauthenticated request returns 401", func(t *testing.T) {
+		h := DepartmentHandler{Repository: mockDepartmentRepo{}, Authorizer: singleOrgTestAuthorizer{permissions: map[string]bool{"departments:create": true}}}
+		rec := httptest.NewRecorder()
+		h.List(rec, request(http.MethodGet, "/api/v1/departments", "", false))
+		if rec.Code != http.StatusUnauthorized {
+			t.Fatalf("expected 401 for unauthenticated request, got %d", rec.Code)
+		}
+	})
 
-	body := bytes.NewBufferString(`{"name":"Engineering"}`)
-	reqA := httptest.NewRequest(http.MethodPost, "/api/v1/workspaces/"+wsTenantA.String()+"/departments", body)
-	reqA = reqA.WithContext(httpinfra.WithOrganizationIDForTest(reqA.Context(), wsTenantA))
-	reqA = reqA.WithContext(httpinfra.WithUserIDForTest(reqA.Context(), userA))
-	recA := httptest.NewRecorder()
-	h.Create(recA, reqA)
-	if recA.Code != http.StatusCreated {
-		t.Fatalf("expected 201 for tenant A, got %d", recA.Code)
-	}
+	t.Run("missing permission returns 403", func(t *testing.T) {
+		h := DepartmentHandler{Repository: mockDepartmentRepo{}, Authorizer: singleOrgTestAuthorizer{permissions: map[string]bool{}}}
+		rec := httptest.NewRecorder()
+		h.Create(rec, request(http.MethodPost, "/api/v1/departments", `{"name":"Engineering"}`, true))
+		if rec.Code != http.StatusForbidden {
+			t.Fatalf("expected 403 without department permission, got %d", rec.Code)
+		}
+	})
 
-	// Authorizer configured to simulate tenant isolation denial for wsTenantB
-	strictAuthorizer := mockAuthorizer{
-		perms: map[string]bool{
-			// No permissions for wsTenantB
-		},
-	}
-	hStrict := DepartmentHandler{
-		Repository: mockDepartmentRepo{},
-		Authorizer: strictAuthorizer,
-	}
+	t.Run("permitted request succeeds", func(t *testing.T) {
+		h := DepartmentHandler{Repository: mockDepartmentRepo{}, Authorizer: singleOrgTestAuthorizer{permissions: map[string]bool{"departments:create": true}}}
+		rec := httptest.NewRecorder()
+		h.Create(rec, request(http.MethodPost, "/api/v1/departments", `{"name":"Engineering"}`, true))
+		if rec.Code != http.StatusCreated {
+			t.Fatalf("expected 201 with department permission, got %d: %s", rec.Code, rec.Body.String())
+		}
+	})
+}
 
-	bodyB := bytes.NewBufferString(`{"name":"Engineering"}`)
-	reqB := httptest.NewRequest(http.MethodPost, "/api/v1/workspaces/"+wsTenantB.String()+"/departments", bodyB)
-	reqB = reqB.WithContext(httpinfra.WithOrganizationIDForTest(reqB.Context(), wsTenantB))
-	reqB = reqB.WithContext(httpinfra.WithUserIDForTest(reqB.Context(), userA))
-	recB := httptest.NewRecorder()
-	hStrict.Create(recB, reqB)
+type singleOrgTestAuthorizer struct {
+	permissions map[string]bool
+}
 
-	// Must fail closed with 403 Forbidden
-	if recB.Code != http.StatusForbidden {
-		t.Fatalf("expected 403 Forbidden for cross-tenant access, got %d", recB.Code)
-	}
+func (a singleOrgTestAuthorizer) IsMember(context.Context, uuid.UUID) (bool, error) {
+	return true, nil
+}
+
+func (a singleOrgTestAuthorizer) HasPermission(_ context.Context, _ uuid.UUID, permission string) bool {
+	return a.permissions[permission]
+}
+
+func (a singleOrgTestAuthorizer) EffectivePermissions(context.Context, uuid.UUID) ([]string, []string, error) {
+	return nil, nil, nil
+}
+
+func (singleOrgTestAuthorizer) GetManagedDepartmentIDs(context.Context, uuid.UUID) ([]uuid.UUID, error) {
+	return nil, nil
+}
+
+func (singleOrgTestAuthorizer) IsGlobalManager(context.Context, uuid.UUID) bool {
+	return false
+}
+
+func (a singleOrgTestAuthorizer) HasScopedPermission(_ context.Context, _ uuid.UUID, permission string, _ *uuid.UUID) bool {
+	return a.permissions[permission]
+}
+
+func (singleOrgTestAuthorizer) GetUsersWithPermission(context.Context, string) ([]uuid.UUID, error) {
+	return nil, nil
 }
 
 // TestRBAC_PermissionEnforcement verifies that mutating actions require exact permission.
 func TestRBAC_PermissionEnforcement(t *testing.T) {
-	wsID := uuid.New()
 	userID := uuid.New()
 
 	tests := []struct {
@@ -94,14 +113,13 @@ func TestRBAC_PermissionEnforcement(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			h := DepartmentHandler{
 				Repository: mockDepartmentRepo{},
-				Authorizer: mockAuthorizer{perms: tc.permissions},
+				Authorizer: singleOrgTestAuthorizer{permissions: tc.permissions},
 			}
 			req := httptest.NewRequest(
 				http.MethodPost,
-				"/api/v1/workspaces/"+wsID.String()+"/departments",
+				"/api/v1/departments",
 				bytes.NewBufferString(`{"name":"Quality Assurance"}`),
 			)
-			req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
 			req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), userID))
 			rec := httptest.NewRecorder()
 
@@ -142,15 +160,13 @@ func TestPII_MaskingInEmployeePayloads(t *testing.T) {
 // TestSecurity_UnauthenticatedAccessRejected verifies that missing authentication
 // fails closed before handler logic runs.
 func TestSecurity_UnauthenticatedAccessRejected(t *testing.T) {
-	wsID := uuid.New()
 	h := DepartmentHandler{
 		Repository: mockDepartmentRepo{},
-		Authorizer: mockAuthorizer{perms: map[string]bool{"departments:read": true}},
+		Authorizer: singleOrgTestAuthorizer{permissions: map[string]bool{"departments:read": true}},
 	}
 
 	// Request with NO user ID in context
-	req := httptest.NewRequest(http.MethodGet, "/api/v1/workspaces/"+wsID.String()+"/departments", nil)
-	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/departments", nil)
 	rec := httptest.NewRecorder()
 
 	h.List(rec, req)

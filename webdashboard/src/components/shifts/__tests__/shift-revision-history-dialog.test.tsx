@@ -84,7 +84,6 @@ function renderDialog(overrides: Partial<React.ComponentProps<typeof ShiftRevisi
         onClose={onClose}
         shiftId="shift-1"
         shiftName="Office Shift"
-        wsId="ws-1"
         {...overrides}
       />
     </QueryClientProvider>,

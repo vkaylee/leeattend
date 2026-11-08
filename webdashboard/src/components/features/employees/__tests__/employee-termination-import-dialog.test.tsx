@@ -80,7 +80,7 @@ const defaultPreview = {
 
 function renderDialog(overrides = {}) {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-  const props = { isOpen: true, onClose: vi.fn(), wsId: "ws-1", ...overrides };
+  const props = { isOpen: true, onClose: vi.fn(),...overrides };
   return {
     onClose: props.onClose,
     ...render(
@@ -141,7 +141,7 @@ describe("EmployeeTerminationImportDialog", () => {
       await userEvent.click(continueBtn);
 
       await waitFor(() => {
-        expect(employeesApi.uploadTerminationImportPreview).toHaveBeenCalledWith("ws-1", expect.any(File));
+        expect(employeesApi.uploadTerminationImportPreview).toHaveBeenCalledWith(expect.any(File));
       });
       // Summary cards should appear (step 2)
       await waitFor(() => {
@@ -161,7 +161,7 @@ describe("EmployeeTerminationImportDialog", () => {
       const btn = screen.getByText("employees.bulk_termination.download_template_btn");
       await userEvent.click(btn);
       await waitFor(() => {
-        expect(employeesApi.downloadTerminationTemplate).toHaveBeenCalledWith("ws-1", "en");
+        expect(employeesApi.downloadTerminationTemplate).toHaveBeenCalledWith("en");
       });
     });
   });

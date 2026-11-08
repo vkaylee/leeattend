@@ -22,10 +22,9 @@ interface LeaveHistoryModalProps {
   leaveTypeId?: string;
   leaveTypeName?: string;
   onClose: () => void;
-  wsId: string;
 }
 
-export function LeaveHistoryModal({ wsId, employeeId, employeeName, leaveTypeId, leaveTypeName, isOpen, onClose }: LeaveHistoryModalProps) {
+export function LeaveHistoryModal({employeeId, employeeName, leaveTypeId, leaveTypeName, isOpen, onClose }: LeaveHistoryModalProps) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const toast = useToast();
@@ -33,18 +32,15 @@ export function LeaveHistoryModal({ wsId, employeeId, employeeName, leaveTypeId,
   const [activeTab, setActiveTab] = useState("history");
 
   const { data: history = [], isLoading } = useQuery({ 
-    queryKey: ["leave-history", wsId, employeeId, leaveTypeId], 
-    queryFn: () => fetchLeaveHistory(wsId, employeeId, leaveTypeId), 
+    queryKey: ["leave-history",employeeId, leaveTypeId], 
+    queryFn: () => fetchLeaveHistory(employeeId, leaveTypeId), 
     enabled: isOpen 
   });
-  const { data: leaveTypes = [] } = useQuery({ 
-    queryKey: ["leave-types", wsId], 
-    queryFn: () => fetchLeaveTypes(wsId), 
-    enabled: isOpen 
-  });
+  const { data: leaveTypes = [] } = useQuery({ queryKey: ["leave-types"], queryFn: () => fetchLeaveTypes(), 
+  enabled: isOpen });
 
   const adjustMutation = useMutation({
-    mutationFn: (data: { leave_type_id: string; amount: number; reason: string; transaction_date: string }) => adjustLeaveBalance(wsId, employeeId, data),
+    mutationFn: (data: { leave_type_id: string; amount: number; reason: string; transaction_date: string }) => adjustLeaveBalance(employeeId, data),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["leave-history"] });
       void queryClient.invalidateQueries({ queryKey: ["workspace-leave-balances"] });

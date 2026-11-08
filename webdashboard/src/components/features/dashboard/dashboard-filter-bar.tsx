@@ -16,7 +16,6 @@ import {
   serializeDashboardMetricsFilters,
   type DashboardMetricsFilters,
 } from "@/hooks/dashboard-metrics-filters";
-import { useWorkspace } from "@/hooks/use-workspace";
 
 const periodLabels: Record<(typeof dashboardPeriods)[number], string> = {
   today: "dashboard.filters.period.today",
@@ -54,8 +53,7 @@ function customDateError(filters: DashboardMetricsFilters, message: string) {
 
 export function DashboardFilterBar({ filters, onChange }: DashboardFilterBarProps) {
   const { t } = useTranslation();
-  const { workspace } = useWorkspace();
-  const { data: departments = [] } = useDepartments(workspace?.id, { enabled: !!workspace });
+  const { data: departments = [] } = useDepartments();
   const [draftFilters, setDraftFilters] = useState(filters);
 
   useEffect(() => setDraftFilters(filters), [filters]);

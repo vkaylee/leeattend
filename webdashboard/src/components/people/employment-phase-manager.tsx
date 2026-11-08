@@ -12,20 +12,19 @@ import { EmploymentPhaseDefinition, CreateEmploymentPhaseDefinitionRequest } fro
 import { cn } from "@/lib/utils";
 
 interface Props {
-  wsId: string;
 }
 
-export default function EmploymentPhaseManager({ wsId }: Props) {
+export default function EmploymentPhaseManager({}: Props) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const toast = useToast();
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  const { data: phases, isLoading } = useQuery({ queryKey: ["employment-phases", wsId], queryFn: () => fetchEmploymentPhases(wsId), enabled: !!wsId });
+  const { data: phases, isLoading } = useQuery({ queryKey: ["employment-phases"], queryFn: () => fetchEmploymentPhases() });
   const [formData, setFormData] = useState<Partial<EmploymentPhaseDefinition> & { default_duration_days?: number }>({ name: "", description: "", phase_type: "probation", default_duration_days: 60, is_active: true, display_order: 1 });
 
   const createMutation = useMutation({
-    mutationFn: (data: CreateEmploymentPhaseDefinitionRequest) => createEmploymentPhase(wsId, data),
+    mutationFn: (data: CreateEmploymentPhaseDefinitionRequest) => createEmploymentPhase(data),
     onSuccess: () => { 
         toast.success(t("common.success")); 
         void queryClient.invalidateQueries({ queryKey: ["employment-phases"] }); 

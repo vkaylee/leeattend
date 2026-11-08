@@ -24,7 +24,6 @@ export default function WorkingPatternsPage({ hideHeaderTitle }: { hideHeaderTit
     setExpandedPatternId,
     setIsBulkModalOpen,
     shifts,
-    wsId,
   } = hook;
 
   const [viewMode, setViewMode] = useState<"list" | "grid">(() => {
@@ -37,13 +36,7 @@ export default function WorkingPatternsPage({ hideHeaderTitle }: { hideHeaderTit
     localStorage.setItem("working_patterns_view_mode", mode);
   };
 
-  if (!wsId) {
-    return (
-      <div className="p-12 text-center text-slate-500 dark:text-slate-400 font-bold italic uppercase tracking-widest text-xs opacity-50">
-        {t("common.select_workspace")}
-      </div>
-    );
-  }
+  
 
   return (
     <PageContainer>

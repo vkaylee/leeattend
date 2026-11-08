@@ -2,7 +2,7 @@
 
 ## Go API
 
-- Scope every tenant query by `workspace_id`; use parameterized SQL through `pgx`/`sqlc`.
+- Resolve the single organization from trusted server configuration; never add a client-selectable organization or tenant predicate. Use parameterized SQL through `pgx`/`sqlc`.
 - Keep handlers focused on HTTP transport, services on orchestration, and repositories on persistence.
 - Return structured API errors. Wrap operational failures with `%w`; never panic or silently discard errors in request or worker paths.
 - Validate request bodies, UUIDs, pagination bounds, uploads, and configuration at trust boundaries.
@@ -26,7 +26,7 @@
 
 ## Security and observability
 
-- Enforce authentication, authorization, rate limits, and tenant isolation at the API boundary.
+- Enforce authentication, authorization, rate limits, and entity/department boundaries at the API boundary.
 - Propagate request IDs and emit bounded structured logs. Never log secrets or raw PII.
 - Treat dependency failures explicitly; preserve data integrity and fail closed for security-sensitive operations.
 - Clamp pagination and request sizes; audit sensitive reads, exports, and state-changing operations.
@@ -52,7 +52,7 @@ Rust/Axum implementation details under `docs/migration/rust-go/` are immutable m
 
 - Use O(1) lookup maps for repeated frontend joins instead of nested linear searches.
 - Store payroll and work-unit calculations using the existing integer precision contract; snapshot finalized values.
-- Never recalculate historical payroll from mutable workspace settings.
+- Never recalculate historical payroll from mutable organization settings.
 
 ## Real-time features
 

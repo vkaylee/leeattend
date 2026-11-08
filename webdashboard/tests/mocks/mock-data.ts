@@ -1,6 +1,5 @@
 
-export const MOCK_WORKSPACE = {
-  id: "ws-mock-123",
+export const MOCK_ORGANIZATION = {
   name: "Mock Enterprise",
   timezone: "Asia/Ho_Chi_Minh",
   rounding_policy: "nearest",
@@ -34,7 +33,6 @@ export const MOCK_EMPLOYEES = [
     hire_date: "2026-01-01",
     original_hire_date: "2026-01-01",
     is_active: true,
-    workspace_id: "ws-mock-123",
     created_at: "2026-01-01T00:00:00Z",
     updated_at: "2026-01-01T00:00:00Z"
   },
@@ -50,7 +48,6 @@ export const MOCK_EMPLOYEES = [
     hire_date: "2026-01-01",
     original_hire_date: "2026-01-01",
     is_active: true,
-    workspace_id: "ws-mock-123",
     created_at: "2026-01-01T00:00:00Z",
     updated_at: "2026-01-01T00:00:00Z"
   }
@@ -59,7 +56,6 @@ export const MOCK_EMPLOYEES = [
 export const MOCK_DEPARTMENTS = [
   {
     id: "dept-1",
-    workspace_id: "ws-mock-123",
     name: "Kỹ thuật",
     code: "TECH",
     active_employee_count: 2,

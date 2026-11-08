@@ -10,33 +10,29 @@ import TemporalConfigTable from "../common/temporal-config-table";
 
 
 interface Props {
-  wsId: string;
 }
 
-export default function PayrollSettingsSection({ wsId }: Props) {
+export default function PayrollSettingsSection({}: Props) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const toast = useToast();
 
-  const { data: history = [], isLoading: isHistoryLoading } = useQuery({
-    queryKey: ["payroll-settings-history", wsId],
-    queryFn: () => fetchPayrollSettingsHistory(wsId),
-    enabled: !!wsId,
-  });
+  const { data: history = [], isLoading: isHistoryLoading } = useQuery({ queryKey: ["payroll-settings-history"], queryFn: () => fetchPayrollSettingsHistory(),
+ });
 
   const handleSavePolicy = async (data: { std_working_days: number; hours_per_day: number; max_ot_hours_per_day: number | null; max_ot_hours_per_month: number | null; effective_date: string }) => {
     try {
-      await updatePayrollSettings(wsId, {
+      await updatePayrollSettings({
         fixed_std_days: String(data.std_working_days),
         hours_per_day: String(data.hours_per_day),
         max_ot_hours_per_day: data.max_ot_hours_per_day !== null ? String(data.max_ot_hours_per_day) : null,
         max_ot_hours_per_month: data.max_ot_hours_per_month !== null ? String(data.max_ot_hours_per_month) : null,
- 
+       
         effective_date: data.effective_date
       });
       toast.success(t("common.success"));
-      void queryClient.invalidateQueries({ queryKey: ["payroll-settings", wsId] });
-      void queryClient.invalidateQueries({ queryKey: ["payroll-settings-history", wsId] });
+      void queryClient.invalidateQueries({ queryKey: ["payroll-settings"] });
+      void queryClient.invalidateQueries({ queryKey: ["payroll-settings-history"] });
  
     } catch (error: unknown) {
       toast.error(error instanceof Error ? error.message : t("common.error"));

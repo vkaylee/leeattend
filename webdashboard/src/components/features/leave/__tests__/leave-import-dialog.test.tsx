@@ -13,7 +13,6 @@ vi.mock("@/lib/api", () => ({
   fetchLatestLeaveImport: vi.fn().mockResolvedValue(null),
   downloadLeaveImportTemplate: vi.fn().mockResolvedValue(undefined),
   downloadLeaveImportErrors: vi.fn().mockResolvedValue(undefined),
-  getStandaloneOrganizationId: vi.fn().mockReturnValue("ws-test"),
 }));
 
 // Mock i18n — return key as text for testability
@@ -40,8 +39,6 @@ describe("LeaveImportDialog", () => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
     onClose = vi.fn();
     onImportComplete = vi.fn();
- 
-    (api.getStandaloneOrganizationId as Mock).mockReturnValue("ws-test");
  
     (api.fetchLatestLeaveImport as Mock).mockResolvedValue(null);
   });
@@ -170,7 +167,7 @@ describe("LeaveImportDialog", () => {
       await user.click(downloadButton);
 
       await waitFor(() => {
-        expect(api.downloadLeaveImportTemplate).toHaveBeenCalledWith("ws-test", "vi");
+        expect(api.downloadLeaveImportTemplate).toHaveBeenCalledWith("vi");
       });
     });
 
@@ -210,7 +207,7 @@ describe("LeaveImportDialog", () => {
       await user.click(importButton);
 
       await waitFor(() => {
-        expect(api.uploadLeaveExcel).toHaveBeenCalledWith("ws-test", file);
+        expect(api.uploadLeaveExcel).toHaveBeenCalledWith(file);
       });
     });
 
@@ -358,7 +355,7 @@ describe("LeaveImportDialog", () => {
       const errorButton = await screen.findByText(/Tải file lỗi/i);
       await user.click(errorButton);
 
-      expect(api.downloadLeaveImportErrors).toHaveBeenCalledWith("ws-test", "job-err");
+      expect(api.downloadLeaveImportErrors).toHaveBeenCalledWith("job-err");
     });
 
     it("shows failed status with error detail", async () => {

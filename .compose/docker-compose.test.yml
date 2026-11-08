@@ -5,7 +5,7 @@
 # (webdashboard, bun_init) so phases that only need one side do not
 # launch the other.
 #
-# One PostgreSQL service hosts system and workspace tables in one database.
+# One PostgreSQL service hosts the single-organization schema in one database.
 
 
 networks:

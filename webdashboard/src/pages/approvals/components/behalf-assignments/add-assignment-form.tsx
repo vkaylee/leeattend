@@ -27,7 +27,6 @@ export function AddAssignmentForm({
   targetDepartmentId,
   targetEmployeeId,
   targetType,
-  wsId,
 }: AddAssignmentFormProps) {
   const { t } = useTranslation();
 
@@ -112,16 +111,13 @@ export function AddAssignmentForm({
           >
             {t("behalf_assignments.form.target_employee_label")}
           </label>
-          <EmployeeSearch
-            clearOnEscape
-            departments={departments}
-            emptyQueryBehavior="prompt-to-type"
-            id="target-employee-select"
-            onChange={(val) => { setTargetEmployeeId(typeof val === "string" ? val : val[0] ?? ""); }}
-            placeholder={t("behalf_assignments.form.target_employee_placeholder")}
-            value={targetEmployeeId}
-            workspaceId={wsId}
-          />
+          <EmployeeSearch clearOnEscape
+          departments={departments}
+          emptyQueryBehavior="prompt-to-type"
+          id="target-employee-select"
+          onChange={(val) => { setTargetEmployeeId(typeof val === "string" ? val : val[0] ?? ""); }}
+          placeholder={t("behalf_assignments.form.target_employee_placeholder")}
+          value={targetEmployeeId}  />
         </div>
       ) : (
         <div className="space-y-2">

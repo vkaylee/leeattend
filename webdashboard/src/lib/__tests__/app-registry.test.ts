@@ -75,11 +75,7 @@ describe("APP_REGISTRY", () => {
     ));
 
     for (const app of APP_REGISTRY) {
-      // Either the route is in ROUTES, or it's a known exception
-      if (!validPaths.has(app.to) && app.to !== "/members" && app.to !== "/documents") {
-        // Still valid as long as it starts with /
-        expect(app.to.startsWith("/")).toBe(true);
-      }
+      expect(validPaths, `App "${app.id}" route "${app.to}" is not a ROUTES constant`).toContain(app.to);
     }
   });
 

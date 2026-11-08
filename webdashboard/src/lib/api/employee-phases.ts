@@ -10,84 +10,76 @@ import type {
 
 import { client } from "./client";
 
-export async function fetchEmploymentPhases(wsId: string): Promise<EmploymentPhaseDefinition[]> {
-  const { data } = await client.GET("/v1/workspaces/{ws_id}/employment-phases", {
-    params: { path: { ws_id: wsId } }
-  });
+export async function fetchEmploymentPhases(): Promise<EmploymentPhaseDefinition[]> {
+  const { data } = await client.GET<EmploymentPhaseDefinition[]>("/v1/employment-phases");
   return unwrapDataArray<EmploymentPhaseDefinition>(data);
 }
 
 export async function createEmploymentPhase(
-  wsId: string,
-  data: CreateEmploymentPhaseDefinitionRequest
+  data: CreateEmploymentPhaseDefinitionRequest,
 ): Promise<EmploymentPhaseDefinition> {
-  const { data: result } = await client.POST("/v1/workspaces/{ws_id}/employment-phases", {
-    params: { path: { ws_id: wsId } },
-    body: data
+  const { data: result } = await client.POST<EmploymentPhaseDefinition>("/v1/employment-phases", {
+    body: data,
   });
-  return result as EmploymentPhaseDefinition;
+  return result;
 }
 
-export async function fetchEmployeePhases(wsId: string, employeeId: string): Promise<EmployeePhase[]> {
-  const { data } = await client.GET("/v1/workspaces/{ws_id}/employees/{emp_id}/phases", {
-    params: { path: { ws_id: wsId, emp_id: employeeId } }
+export async function fetchEmployeePhases(employeeId: string): Promise<EmployeePhase[]> {
+  const { data } = await client.GET<EmployeePhase[]>("/v1/employees/{user_id}/phases", {
+    params: { path: { user_id: employeeId } },
   });
   return unwrapDataArray<EmployeePhase>(data);
 }
 
 export async function assignEmployeePhase(
-  wsId: string,
   employeeId: string,
-  data: AssignEmployeePhaseRequest
+  data: AssignEmployeePhaseRequest,
 ): Promise<EmployeePhase> {
-  const { data: result } = await client.POST("/v1/workspaces/{ws_id}/employees/{emp_id}/phases", {
-    params: { path: { ws_id: wsId, emp_id: employeeId } },
-    body: data
+  const { data: result } = await client.POST<EmployeePhase>("/v1/employees/{user_id}/phases", {
+    params: { path: { user_id: employeeId } },
+    body: data,
   });
   return result;
 }
 
 export async function updateEmployeePhaseStatus(
-  wsId: string,
   employeeId: string,
   phaseId: string,
-  data: UpdateEmployeePhaseStatusRequest
+  data: UpdateEmployeePhaseStatusRequest,
 ): Promise<EmployeePhase> {
-  const { data: result } = await client.PUT("/v1/workspaces/{ws_id}/employees/{emp_id}/phases/{phase_id}/status", {
-    params: { path: { ws_id: wsId, emp_id: employeeId, phase_id: phaseId } },
-    body: data
+  const { data: result } = await client.PUT<EmployeePhase>("/v1/employees/{user_id}/phases/{phase_id}/status", {
+    params: { path: { user_id: employeeId, phase_id: phaseId } },
+    body: data,
   });
   return result;
 }
 
-export async function fetchEmploymentAssignedPhases(wsId: string, employmentId: string): Promise<EmployeePhase[]> {
-  const { data } = await client.GET("/v1/workspaces/{ws_id}/employments/{employment_id}/phases", {
-    params: { path: { ws_id: wsId, employment_id: employmentId } }
+export async function fetchEmploymentAssignedPhases(employmentId: string): Promise<EmployeePhase[]> {
+  const { data } = await client.GET<EmployeePhase[]>("/v1/employments/{employment_id}/phases", {
+    params: { path: { employment_id: employmentId } },
   });
   return unwrapDataArray<EmployeePhase>(data);
 }
 
 export async function assignEmploymentPhase(
-  wsId: string,
   employmentId: string,
-  data: AssignEmployeePhaseRequest
+  data: AssignEmployeePhaseRequest,
 ): Promise<EmployeePhase> {
-  const { data: result } = await client.POST("/v1/workspaces/{ws_id}/employments/{employment_id}/phases", {
-    params: { path: { ws_id: wsId, employment_id: employmentId } },
-    body: data
+  const { data: result } = await client.POST<EmployeePhase>("/v1/employments/{employment_id}/phases", {
+    params: { path: { employment_id: employmentId } },
+    body: data,
   });
   return result;
 }
 
 export async function updateEmploymentPhaseStatus(
-  wsId: string,
   employmentId: string,
   phaseId: string,
-  data: UpdateEmployeePhaseStatusRequest
+  data: UpdateEmployeePhaseStatusRequest,
 ): Promise<EmployeePhase> {
-  const { data: result } = await client.PUT("/v1/workspaces/{ws_id}/employments/{employment_id}/phases/{phase_id}/status", {
-    params: { path: { ws_id: wsId, employment_id: employmentId, phase_id: phaseId } },
-    body: data
+  const { data: result } = await client.PUT<EmployeePhase>("/v1/employments/{employment_id}/phases/{phase_id}/status", {
+    params: { path: { employment_id: employmentId, phase_id: phaseId } },
+    body: data,
   });
   return result;
 }

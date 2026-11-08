@@ -15,7 +15,7 @@ import (
 
 type EmploymentPhaseRepository struct {
 	DB      DBTX
-	BeginTx func(context.Context, uuid.UUID) (TxBeginner, error)
+	BeginTx func(context.Context) (TxBeginner, error)
 }
 
 func (r EmploymentPhaseRepository) db(ctx context.Context) (DBTX, error) {
@@ -25,9 +25,9 @@ func (r EmploymentPhaseRepository) db(ctx context.Context) (DBTX, error) {
 	return r.DB, nil
 }
 
-func (r EmploymentPhaseRepository) begin(ctx context.Context, wsID uuid.UUID) (TxBeginner, error) {
+func (r EmploymentPhaseRepository) begin(ctx context.Context) (TxBeginner, error) {
 	if r.BeginTx != nil {
-		return r.BeginTx(ctx, wsID)
+		return r.BeginTx(ctx)
 	}
 	d, err := r.db(ctx)
 	if err != nil {
@@ -49,13 +49,13 @@ func (r EmploymentPhaseRepository) CreateDefinition(ctx context.Context, def api
 	var out api.EmploymentPhaseDefinition
 	var rc []byte
 	err = db.QueryRow(ctx, `INSERT INTO employment_phase_definitions (
-		id, workspace_id, name, description, phase_type, rule_config, is_active, display_order, created_at, updated_at
+		id, name, description, phase_type, rule_config, is_active, display_order, created_at, updated_at
 	) VALUES (
-		$1, $2, $3, $4, $5, $6, $7, $8, NOW(), NOW()
-	) RETURNING id, workspace_id, name, description, phase_type, rule_config, is_active, display_order, created_at, updated_at`,
-		def.ID, def.WorkspaceID, def.Name, def.Description, def.PhaseType, def.RuleConfig, def.IsActive, def.DisplayOrder,
+		$1, $2, $3, $4, $5, $6, $7, NOW(), NOW()
+	) RETURNING id, name, description, phase_type, rule_config, is_active, display_order, created_at, updated_at`,
+		def.ID, def.Name, def.Description, def.PhaseType, def.RuleConfig, def.IsActive, def.DisplayOrder,
 	).Scan(
-		&out.ID, &out.WorkspaceID, &out.Name, &out.Description, &out.PhaseType, &rc, &out.IsActive, &out.DisplayOrder, &created, &updated,
+		&out.ID, &out.Name, &out.Description, &out.PhaseType, &rc, &out.IsActive, &out.DisplayOrder, &created, &updated,
 	)
 	if err != nil {
 		return api.EmploymentPhaseDefinition{}, err
@@ -66,16 +66,15 @@ func (r EmploymentPhaseRepository) CreateDefinition(ctx context.Context, def api
 	return out, nil
 }
 
-func (r EmploymentPhaseRepository) ListDefinitions(ctx context.Context, wsID uuid.UUID) ([]api.EmploymentPhaseDefinition, error) {
+func (r EmploymentPhaseRepository) ListDefinitions(ctx context.Context) ([]api.EmploymentPhaseDefinition, error) {
 	db, err := r.db(ctx)
 	if err != nil {
 		return nil, err
 	}
 	rows, err := db.Query(ctx, `SELECT
-		id, workspace_id, name, description, phase_type, rule_config, is_active, display_order, created_at, updated_at
+		id, name, description, phase_type, rule_config, is_active, display_order, created_at, updated_at
 	FROM employment_phase_definitions
-	WHERE workspace_id = $1
-	ORDER BY display_order ASC, created_at DESC`, wsID)
+	ORDER BY display_order ASC, created_at DESC`)
 	if err != nil {
 		return nil, err
 	}
@@ -86,7 +85,7 @@ func (r EmploymentPhaseRepository) ListDefinitions(ctx context.Context, wsID uui
 		var created, updated time.Time
 		var rc []byte
 		if err := rows.Scan(
-			&item.ID, &item.WorkspaceID, &item.Name, &item.Description, &item.PhaseType, &rc, &item.IsActive, &item.DisplayOrder, &created, &updated,
+			&item.ID, &item.Name, &item.Description, &item.PhaseType, &rc, &item.IsActive, &item.DisplayOrder, &created, &updated,
 		); err != nil {
 			return nil, err
 		}
@@ -104,7 +103,7 @@ func scanPhase(row interface{ Scan(...any) error }) (api.EmployeePhase, error) {
 	var completed *time.Time
 	var oc []byte
 	if err := row.Scan(
-		&p.ID, &p.WorkspaceID, &p.EmploymentID, &p.PhaseDefinitionID, &p.StartDate, &p.EndDate,
+		&p.ID, &p.EmploymentID, &p.PhaseDefinitionID, &p.StartDate, &p.EndDate,
 		&p.Status, &oc, &p.EvaluationNotes, &p.EvaluatedBy, &completed, &created, &updated,
 	); err != nil {
 		return api.EmployeePhase{}, err
@@ -123,15 +122,15 @@ func scanPhase(row interface{ Scan(...any) error }) (api.EmployeePhase, error) {
 	return p, nil
 }
 
-func (r EmploymentPhaseRepository) AssignPhase(ctx context.Context, wsID, employmentID uuid.UUID, req api.AssignEmployeePhaseRequest) (api.EmployeePhase, error) {
-	txBeginner, err := r.begin(ctx, wsID)
+func (r EmploymentPhaseRepository) AssignPhase(ctx context.Context, employmentID uuid.UUID, req api.AssignEmployeePhaseRequest) (api.EmployeePhase, error) {
+	txBeginner, err := r.begin(ctx)
 	if err != nil {
 		return api.EmployeePhase{}, err
 	}
 	if txBeginner != nil {
 		var created api.EmployeePhase
 		err := service.WithTx(ctx, txBeginner, func(ctx context.Context, tx pgx.Tx) error {
-			res, txErr := r.assignPhaseTx(ctx, tx, wsID, employmentID, req)
+			res, txErr := r.assignPhaseTx(ctx, tx, employmentID, req)
 			if txErr != nil {
 				return txErr
 			}
@@ -144,10 +143,10 @@ func (r EmploymentPhaseRepository) AssignPhase(ctx context.Context, wsID, employ
 	if err != nil {
 		return api.EmployeePhase{}, err
 	}
-	return r.assignPhaseTx(ctx, db, wsID, employmentID, req)
+	return r.assignPhaseTx(ctx, db, employmentID, req)
 }
 
-func (r EmploymentPhaseRepository) assignPhaseTx(ctx context.Context, db DBTX, wsID, employmentID uuid.UUID, req api.AssignEmployeePhaseRequest) (api.EmployeePhase, error) {
+func (r EmploymentPhaseRepository) assignPhaseTx(ctx context.Context, db DBTX, employmentID uuid.UUID, req api.AssignEmployeePhaseRequest) (api.EmployeePhase, error) {
 	startT, err := time.Parse("2006-01-02", req.StartDate)
 	if err != nil {
 		return api.EmployeePhase{}, err
@@ -159,10 +158,9 @@ func (r EmploymentPhaseRepository) assignPhaseTx(ctx context.Context, db DBTX, w
 		    end_date = LEAST(end_date, GREATEST(start_date, '%s'::date)),
 		    completed_at = NOW(),
 		    updated_at = NOW()
-		WHERE workspace_id = $1
-		  AND employment_id = $2
+		WHERE employment_id = $1
 		  AND status = 'active'
-		  AND start_date <= $3::date`, autoCloseDate), wsID, employmentID, req.StartDate)
+		  AND start_date <= $2::date`, autoCloseDate), employmentID, req.StartDate)
 	if err != nil {
 		return api.EmployeePhase{}, err
 	}
@@ -174,22 +172,22 @@ func (r EmploymentPhaseRepository) assignPhaseTx(ctx context.Context, db DBTX, w
 
 	phaseID := uuid.New()
 	return scanPhase(db.QueryRow(ctx, `INSERT INTO employee_phases (
-		id, workspace_id, employment_id, phase_definition_id,
+		id, employment_id, phase_definition_id,
 		start_date, end_date, status, override_config,
 		evaluation_notes, evaluated_by, completed_at,
 		created_at, updated_at
 	) VALUES (
-		$1, $2, $3, $4,
-		$5::date, $6::date, 'active', $7,
+		$1, $2, $3,
+		$4::date, $5::date, 'active', $6,
 		NULL, NULL, NULL,
 		NOW(), NOW()
-	) RETURNING id, workspace_id, employment_id, phase_definition_id, start_date::text, end_date::text, status, override_config, evaluation_notes, evaluated_by, completed_at, created_at, updated_at`,
-		phaseID, wsID, employmentID, req.PhaseDefinitionID,
+	) RETURNING id, employment_id, phase_definition_id, start_date::text, end_date::text, status, override_config, evaluation_notes, evaluated_by, completed_at, created_at, updated_at`,
+		phaseID, employmentID, req.PhaseDefinitionID,
 		req.StartDate, req.EndDate, oc,
 	))
 }
 
-func (r EmploymentPhaseRepository) UpdatePhaseStatus(ctx context.Context, wsID, employmentID, phaseID uuid.UUID, req api.UpdateEmployeePhaseStatusRequest, evaluatedBy uuid.UUID) (api.EmployeePhase, error) {
+func (r EmploymentPhaseRepository) UpdatePhaseStatus(ctx context.Context, employmentID, phaseID uuid.UUID, req api.UpdateEmployeePhaseStatusRequest, evaluatedBy uuid.UUID) (api.EmployeePhase, error) {
 	db, err := r.db(ctx)
 	if err != nil {
 		return api.EmployeePhase{}, err
@@ -200,9 +198,9 @@ func (r EmploymentPhaseRepository) UpdatePhaseStatus(ctx context.Context, wsID, 
 		    evaluated_by = $3,
 		    completed_at = NOW(),
 		    updated_at = NOW()
-		WHERE id = $4 AND workspace_id = $5 AND employment_id = $6
-		RETURNING id, workspace_id, employment_id, phase_definition_id, start_date::text, end_date::text, status, override_config, evaluation_notes, evaluated_by, completed_at, created_at, updated_at`,
-		req.Status, req.EvaluationNotes, evaluatedBy, phaseID, wsID, employmentID,
+		WHERE id = $4 AND employment_id = $5
+		RETURNING id, employment_id, phase_definition_id, start_date::text, end_date::text, status, override_config, evaluation_notes, evaluated_by, completed_at, created_at, updated_at`,
+		req.Status, req.EvaluationNotes, evaluatedBy, phaseID, employmentID,
 	)
 	p, err := scanPhase(row)
 	if errors.Is(err, pgx.ErrNoRows) {
@@ -211,17 +209,17 @@ func (r EmploymentPhaseRepository) UpdatePhaseStatus(ctx context.Context, wsID, 
 	return p, err
 }
 
-func (r EmploymentPhaseRepository) ListPhases(ctx context.Context, wsID, employmentID uuid.UUID) ([]api.EmployeePhase, error) {
+func (r EmploymentPhaseRepository) ListPhases(ctx context.Context, employmentID uuid.UUID) ([]api.EmployeePhase, error) {
 	db, err := r.db(ctx)
 	if err != nil {
 		return nil, err
 	}
 	rows, err := db.Query(ctx, `SELECT
-		id, workspace_id, employment_id, phase_definition_id, start_date::text, end_date::text,
+		id, employment_id, phase_definition_id, start_date::text, end_date::text,
 		status, override_config, evaluation_notes, evaluated_by, completed_at, created_at, updated_at
 	FROM employee_phases
-	WHERE workspace_id = $1 AND employment_id = $2
-	ORDER BY start_date ASC, created_at DESC`, wsID, employmentID)
+	WHERE employment_id = $1
+	ORDER BY start_date ASC, created_at DESC`, employmentID)
 	if err != nil {
 		return nil, err
 	}
@@ -237,13 +235,13 @@ func (r EmploymentPhaseRepository) ListPhases(ctx context.Context, wsID, employm
 	return result, rows.Err()
 }
 
-func (r EmploymentPhaseRepository) ResolveActiveEmployment(ctx context.Context, wsID, employeeID uuid.UUID) (uuid.UUID, error) {
+func (r EmploymentPhaseRepository) ResolveActiveEmployment(ctx context.Context, employeeID uuid.UUID) (uuid.UUID, error) {
 	db, err := r.db(ctx)
 	if err != nil {
 		return uuid.Nil, err
 	}
 	var exists bool
-	err = db.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM employees WHERE id = $1 AND workspace_id = $2 AND deleted_at IS NULL)`, employeeID, wsID).Scan(&exists)
+	err = db.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM employees WHERE id = $1 AND deleted_at IS NULL)`, employeeID).Scan(&exists)
 	if err != nil {
 		return uuid.Nil, err
 	}
@@ -253,8 +251,8 @@ func (r EmploymentPhaseRepository) ResolveActiveEmployment(ctx context.Context, 
 
 	var employmentID uuid.UUID
 	err = db.QueryRow(ctx, `SELECT id FROM employments
-		WHERE employee_id = $1 AND workspace_id = $2 AND status = 'active' AND deleted_at IS NULL
-		ORDER BY start_date DESC, id LIMIT 1`, employeeID, wsID).Scan(&employmentID)
+		WHERE employee_id = $1 AND status = 'active' AND deleted_at IS NULL
+		ORDER BY start_date DESC, id LIMIT 1`, employeeID).Scan(&employmentID)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return uuid.Nil, api.ErrNoActiveEmployment
 	}

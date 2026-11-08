@@ -7,8 +7,7 @@ import Button from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Typography } from "@/components/ui/typography";
 import {
-  fetchWorkspace,
-  getStandaloneOrganizationId,
+  fetchOrganization,
   fetchDefaultAttendanceRules,
   fetchAttendancePolicyVersions,
   AttendanceRules,
@@ -23,24 +22,21 @@ import { ReprocessModal } from "./time-settings/reprocess-modal";
   // eslint-disable-next-line complexity
 export default function TimeSettings() {
   const { t } = useTranslation();
-  const wsId = getStandaloneOrganizationId();
+  
 
   const { data: workspace, isLoading: isLoadingWs, isError: isErrorWs, error: errorWs } = useQuery({
-    queryKey: ["workspace", wsId],
-    queryFn: () => (wsId ? fetchWorkspace(wsId) : Promise.reject(new Error("No workspace ID"))),
-    enabled: !!wsId,
+    queryKey: ["organization"],
+    queryFn: () => fetchOrganization(),
   });
 
   const { data: rules, isLoading: isLoadingRules, isError: isErrorRules, error: errorRules } = useQuery({
-    queryKey: ["attendance-rules", wsId],
-    queryFn: () => (wsId ? fetchDefaultAttendanceRules(wsId) : Promise.reject(new Error("No workspace ID"))),
-    enabled: !!wsId,
+    queryKey: ["attendance-rules"],
+    queryFn: () => fetchDefaultAttendanceRules(),
   });
 
   const { data: versions = [], isLoading: isLoadingVersions, isError: isErrorVersions, error: errorVersions } = useQuery({
-    queryKey: ["attendance-policy-versions", wsId],
-    queryFn: () => (wsId ? fetchAttendancePolicyVersions(wsId) : Promise.reject(new Error("No workspace ID"))),
-    enabled: !!wsId,
+    queryKey: ["attendance-policy-versions"],
+    queryFn: () => fetchAttendancePolicyVersions(),
   });
 
   const isError = isErrorWs || isErrorRules || isErrorVersions;
@@ -121,7 +117,6 @@ function TimeSettingsContent({
   workspace,
 }: TimeSettingsContentProps) {
   const { t } = useTranslation();
-  const wsId = workspace.id;
 
   const [workUnit, setWorkUnit] = useState(rules.work_unit_minutes);
   const [roundingPolicy, setRoundingPolicy] = useState(rules.rounding_policy);
@@ -143,9 +138,9 @@ function TimeSettingsContent({
     setReprocessStart,
     setShowReprocessConfirm,
     showReprocessConfirm,
-  } = useBulkReprocess(wsId, t);
+  } = useBulkReprocess(t);
 
-  const { handleSaveNewVersion, isPending } = useTimeSettingsRules(wsId, t, {
+  const { handleSaveNewVersion, isPending } = useTimeSettingsRules(t, {
     earlyArrivalStrategy,
     roundingPolicy,
     valid_from: newValidFrom,
@@ -166,30 +161,27 @@ function TimeSettingsContent({
         t={t}
       />
       <div className="animate-in slide-in-from-bottom-4 duration-500">
-        <TabContent
-          earlyArrivalStrategy={earlyArrivalStrategy}
-          gracePeriodMinutes={gracePeriodMinutes}
-          handleSaveNewVersion={handleSaveNewVersion}
-          isPending={isPending}
-          newValidFrom={newValidFrom}
-          reprocessEnd={reprocessEnd}
-          reprocessEndSetter={setReprocessEnd}
-          reprocessStart={reprocessStart}
-          reprocessStartSetter={setReprocessStart}
-          roundingPolicy={roundingPolicy}
-          setEarlyArrivalStrategy={setEarlyArrivalStrategy}
-          setGracePeriodMinutes={setGracePeriodMinutes}
-          setNewValidFrom={setNewValidFrom}
-          setRoundingPolicy={setRoundingPolicy}
-          setShowCreateModal={setShowCreateModal}
-          setShowReprocessConfirm={setShowReprocessConfirm}
-          setWorkUnit={setWorkUnit}
-          showCreateModal={showCreateModal}
-          t={t}
-          versions={versions}
-          workUnit={workUnit}
-          wsId={wsId}
-        />
+        <TabContent earlyArrivalStrategy={earlyArrivalStrategy}
+        gracePeriodMinutes={gracePeriodMinutes}
+        handleSaveNewVersion={handleSaveNewVersion}
+        isPending={isPending}
+        newValidFrom={newValidFrom}
+        reprocessEnd={reprocessEnd}
+        reprocessEndSetter={setReprocessEnd}
+        reprocessStart={reprocessStart}
+        reprocessStartSetter={setReprocessStart}
+        roundingPolicy={roundingPolicy}
+        setEarlyArrivalStrategy={setEarlyArrivalStrategy}
+        setGracePeriodMinutes={setGracePeriodMinutes}
+        setNewValidFrom={setNewValidFrom}
+        setRoundingPolicy={setRoundingPolicy}
+        setShowCreateModal={setShowCreateModal}
+        setShowReprocessConfirm={setShowReprocessConfirm}
+        setWorkUnit={setWorkUnit}
+        showCreateModal={showCreateModal}
+        t={t}
+        versions={versions}
+        workUnit={workUnit}  />
       </div>
       <ReprocessModal
         isOpen={showReprocessConfirm}

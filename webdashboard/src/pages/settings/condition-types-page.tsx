@@ -11,7 +11,6 @@ import { Typography } from "@/components/ui/typography";
 import { useConfirm } from "@/hooks/use-confirm";
 import {
   fetchConditionTypes,
-  getStandaloneOrganizationId,
   type ConditionTypeDefinition,
   type CreateConditionTypeRequest,
 } from "@/lib/api";
@@ -83,14 +82,13 @@ function ConditionTypeRow({ item, onDelete, onEdit }: {
 export default function ConditionTypesPage() {
   const { t } = useTranslation();
   const { confirm, ConfirmationDialog } = useConfirm();
-  const wsId = getStandaloneOrganizationId();
+  
   const [isAdding, setIsAdding] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
 
   const { data: types = [], isLoading } = useQuery({
-    queryKey: ["condition-types", wsId],
-    queryFn: () => (wsId ? fetchConditionTypes(wsId) : Promise.resolve([])),
-    enabled: !!wsId,
+    queryKey: ["condition-types"],
+    queryFn: () => fetchConditionTypes(),
   });
 
   const { createMutation, updateMutation, deleteMutation } = useConditionTypeActions();
@@ -106,7 +104,7 @@ export default function ConditionTypesPage() {
     if (ok) deleteMutation.mutate(item.id);
   };
 
-  if (isLoading || !wsId) {
+  if (isLoading) {
     return (
       <div className="space-y-4" data-testid="condition-types-skeleton">
         <Skeleton className="h-8 w-48" />

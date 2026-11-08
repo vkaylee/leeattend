@@ -15,7 +15,7 @@ import PageHeader from "@/components/ui/page-header";
 import { useToast } from "@/components/ui/toast";
 import { Typography } from "@/components/ui/typography";
 import { useMyClock, useMyProfile } from "@/hooks/use-ess";
-import { fetchWorkspace, getStandaloneOrganizationId, submitAttendanceAdjustment } from "@/lib/api";
+import { fetchOrganization, submitAttendanceAdjustment } from "@/lib/api";
 import { toUTCISO } from "@/lib/datetime";
 
 import { HistoryTable } from "./components/history-table";
@@ -26,7 +26,7 @@ import { TodayHoursSummary } from "./components/today-hours-summary";
 export default function MyClockPage() {
   const { t } = useTranslation();
   const toast = useToast();
-  const wsId = getStandaloneOrganizationId();
+  
 
   const { employee, isLoading: isLoadingProfile } = useMyProfile();
   const {
@@ -37,13 +37,9 @@ export default function MyClockPage() {
     punch,
   } = useMyClock();
 
-  const { data: workspace } = useQuery({
-    enabled: !!wsId,
-    queryFn: () => {
-      if (!wsId) throw new Error("Workspace ID is required");
-      return fetchWorkspace(wsId);
-    },
-    queryKey: ["workspace", wsId],
+  const { data: organization } = useQuery({
+    queryKey: ["organization"],
+    queryFn: () => fetchOrganization(),
   });
   const [isAdjustmentModalOpen, setIsAdjustmentModalOpen] = useState(false);
   const [nowMs] = useState(() => Date.now());
@@ -82,16 +78,16 @@ export default function MyClockPage() {
 
    
   const handleAdjustmentSubmit = async (data: AdjustmentData) => {
-    if (!wsId || !employee) {
+    if (!employee) {
       toast.error(t("common.error"));
       return;
     }
 
     try {
-      const tz = workspace?.timezone ?? "UTC";
+      const tz = organization?.timezone ?? "UTC";
       const punchTime = toUTCISO(data.date, data.punchTime, tz);
 
-      await submitAttendanceAdjustment(wsId, {
+      await submitAttendanceAdjustment({
         employment_id: employee.active_employment_id ?? "",
         reason: data.reason,
         requested_punch_time: punchTime,

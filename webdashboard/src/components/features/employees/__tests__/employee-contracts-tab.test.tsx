@@ -106,9 +106,7 @@ describe("EmployeeContractsTab Component", () => {
   let queryClient: QueryClient;
 
   const defaultProps = {
-    employeeId: "emp-1",
-    wsId: "ws-1",
-    formatDate: (date: string) => date,
+    employeeId: "emp-1",formatDate: (date: string) => date,
   };
 
   beforeEach(() => {

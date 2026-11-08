@@ -5,7 +5,7 @@ export * from "./download-helper";
 export * from "./behalf-assignment-factory";
 export * from "./auth";
 export * from "./documents";
-export * from "./workspaces";
+export * from "./organization";
 // eslint-disable-next-line import-x/export -- re-exports Employment from types.ts via employees
 export * from "./employees";
 export * from "./attendance";

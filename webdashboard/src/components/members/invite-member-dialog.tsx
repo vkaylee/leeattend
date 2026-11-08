@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next";
 
 import Button from "@/components/ui/button";
 import { Typography } from "@/components/ui/typography";
-import { useWorkspaceMembers, useWorkspaceRoles } from "@/hooks/use-workspace";
+import { useOrganizationMembers, useOrganizationRoles } from "@/hooks/use-organization";
 import { logError } from "@/lib/logger";
 
 import Modal from "../ui/modal";
@@ -19,8 +19,8 @@ export default function InviteMemberDialog({
   onClose,
 }: InviteMemberDialogProps) {
   const { t } = useTranslation();
-  const { addMember, isAdding } = useWorkspaceMembers();
-  const { roles } = useWorkspaceRoles();
+  const { addMember, isAdding } = useOrganizationMembers();
+  const { roles } = useOrganizationRoles();
   const [email, setEmail] = useState("");
   const [roleId, setRoleId] = useState("");
   const [error, setError] = useState<string | null>(null);

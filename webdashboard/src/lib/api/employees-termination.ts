@@ -12,12 +12,11 @@ export type ConfirmTerminationRow = components["schemas"]["ConfirmTerminationRow
  *  Uses apiFetch directly because multipart/FormData is not modeled in the
  *  generated OpenAPI types. */
 export async function uploadTerminationImportPreview(
-  wsId: string,
-  file: File
+  file: File,
 ): Promise<TerminationPreviewResponse> {
   const formData = new FormData();
   formData.append("file", file);
-  const res = await apiFetch(`/v1/workspaces/${wsId}/employees/import-termination/preview`, {
+  const res = await apiFetch("/v1/employees/import-termination/preview", {
     method: "POST",
     body: formData,
   });
@@ -27,23 +26,22 @@ export async function uploadTerminationImportPreview(
 
 /** Confirm employee bulk terminations */
 export async function confirmTerminationImport(
-  wsId: string,
-  rows: ConfirmTerminationRow[]
+  rows: ConfirmTerminationRow[],
 ): Promise<{ success_count: number; job_id?: string }> {
-  const { data } = await client.POST("/workspaces/{workspace_id}/employees/import-termination/confirm", {
-    params: {
-      path: { workspace_id: wsId },
+  const { data } = await client.POST<{ success_count: number; job_id?: string }>(
+    "/v1/employees/import-termination/confirm",
+    {
+      body: {
+        rows,
+      },
     },
-    body: {
-      rows,
-    },
-  });
-  return data as { success_count: number; job_id?: string };
+  );
+  return data;
 }
 
 /** Download bulk termination Excel template via authenticated fetch */
-export async function downloadTerminationTemplate(wsId: string, lang = "en"): Promise<void> {
-  const response = await apiFetch(`/v1/workspaces/${wsId}/employees/import-termination/template?lang=${lang}`);
+export async function downloadTerminationTemplate(lang = "en"): Promise<void> {
+  const response = await apiFetch(`/v1/employees/import-termination/template?lang=${lang}`);
   if (!response.ok) throw new Error("Failed to download template");
   const filename = lang === "vi"
     ? "mau_import_nghi_viec.xlsx"

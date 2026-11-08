@@ -38,7 +38,7 @@
     "assignment_types": {
       "employee": "Individual",
       "department": "Department",
-      "workspace": "Workspace"
+      "workspace": "Organization"
     },
     "history": {
       "title": "Leave History",
@@ -125,8 +125,8 @@
         "lump_sum_desc": "Grants full entitlement at start of year"
       },
       "assignee_types": {
-        "workspace": "System-wide (All)",
-        "workspace_desc": "Applies to all employees in workspace",
+        "workspace": "Organization-wide (All)",
+        "workspace_desc": "Applies to all employees in the organization",
         "department": "By Department",
         "department_desc": "Applies to a specific department",
         "employee": "Individual Employee",

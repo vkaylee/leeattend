@@ -7,8 +7,7 @@ import { useDepartments } from "@/hooks/use-departments";
 import { useAllEmployees } from "@/hooks/use-employees";
 import {
   fetchWorkspaceAttendanceAdjustments,
-  fetchWorkspaceLeaveRequests,
-  getStandaloneOrganizationId,
+  fetchLeaveRequests,
 } from "@/lib/api";
 import { fetchAttendanceSummaries } from "@/lib/api/attendance-overtime";
 import { fetchShiftSwaps } from "@/lib/api/shift-swaps";
@@ -50,7 +49,7 @@ export interface UseUnifiedInboxReturn {
 
 export function useUnifiedInbox(): UseUnifiedInboxReturn {
   const { t } = useTranslation();
-  const wsId = getStandaloneOrganizationId();
+  
 
   // ── Filters & Selection ──────────────────────────────────────────────
   const [filter, setFilterState] = useState<UnifiedInboxFilter>(() => {
@@ -79,8 +78,8 @@ export function useUnifiedInbox(): UseUnifiedInboxReturn {
   }, []);
 
   // ── Organizational context ───────────────────────────────────────────
-  const { employees } = useAllEmployees(wsId);
-  const { data: departments } = useDepartments(wsId);
+  const { employees } = useAllEmployees();
+  const { data: departments } = useDepartments();
 
   const employeeMap = useMemo(() => {
     const map = new Map<string, UnifiedApprovalRequester>();
@@ -109,40 +108,26 @@ export function useUnifiedInbox(): UseUnifiedInboxReturn {
 
   // ── Queries ──────────────────────────────────────────────────────────
   const leavesQuery = useQuery({
-    queryKey: ["unified-inbox-leaves", wsId],
-    queryFn: () =>
-      wsId
-        ? fetchWorkspaceLeaveRequests(wsId, { limit: 100 })
-        : Promise.reject(new Error("No workspace")),
-    enabled: !!wsId,
+    queryKey: ["unified-inbox-leaves"],
+    queryFn: () => fetchLeaveRequests({ limit: 100 }),
     staleTime: 30_000,
   });
 
   const adjustmentsQuery = useQuery({
-    queryKey: ["unified-inbox-adjustments", wsId],
-    queryFn: () =>
-      wsId
-        ? fetchWorkspaceAttendanceAdjustments(wsId, { limit: 100 })
-        : Promise.reject(new Error("No workspace")),
-    enabled: !!wsId,
+    queryKey: ["unified-inbox-adjustments"],
+    queryFn: () => fetchWorkspaceAttendanceAdjustments({ limit: 100 }),
     staleTime: 30_000,
   });
 
   const swapsQuery = useQuery({
-    queryKey: ["unified-inbox-swaps", wsId],
-    queryFn: () =>
-      wsId ? fetchShiftSwaps(wsId) : Promise.reject(new Error("No workspace")),
-    enabled: !!wsId,
+    queryKey: ["unified-inbox-swaps"],
+    queryFn: () => fetchShiftSwaps(),
     staleTime: 30_000,
   });
 
   const otQuery = useQuery({
-    queryKey: ["unified-inbox-ot", wsId, startDate, endDate],
-    queryFn: () =>
-      wsId
-        ? fetchAttendanceSummaries(wsId, startDate, endDate)
-        : Promise.reject(new Error("No workspace")),
-    enabled: !!wsId,
+    queryKey: ["unified-inbox-ot", startDate, endDate],
+    queryFn: () => fetchAttendanceSummaries(startDate, endDate),
     staleTime: 30_000,
   });
 

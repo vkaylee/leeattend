@@ -1,33 +1,37 @@
-import type { EmployeeContract, EmployeeContractWithEmployee, CreateContractRequest, UpdateContractRequest } from "./api-generated-reexports";
+import type {
+  CreateContractRequest,
+  EmployeeContract,
+  EmployeeContractWithEmployee,
+  UpdateContractRequest,
+} from "./types";
 
 import { client } from "./client";
 
-export async function fetchEmployeeContracts(wsId: string, employeeId: string): Promise<EmployeeContract[]> {
-  const { data } = await client.GET("/api/v1/workspaces/{ws_id}/employees/{employee_id}/contracts", {
+export async function fetchEmployeeContracts(employeeId: string): Promise<EmployeeContract[]> {
+  const { data } = await client.GET<EmployeeContract[]>("/v1/employees/{employee_id}/contracts", {
     params: {
-      path: { ws_id: wsId, employee_id: employeeId },
+      path: { employee_id: employeeId },
     },
   });
   return data;
 }
 
-export async function fetchEmployeeContract(wsId: string, employeeId: string, contractId: string): Promise<EmployeeContract> {
-  const { data } = await client.GET("/api/v1/workspaces/{ws_id}/employees/{employee_id}/contracts/{contract_id}", {
+export async function fetchEmployeeContract(employeeId: string, contractId: string): Promise<EmployeeContract> {
+  const { data } = await client.GET<EmployeeContract>("/v1/employees/{employee_id}/contracts/{contract_id}", {
     params: {
-      path: { ws_id: wsId, employee_id: employeeId, contract_id: contractId },
+      path: { employee_id: employeeId, contract_id: contractId },
     },
   });
   return data;
 }
 
 export async function createEmployeeContract(
-  wsId: string,
   employeeId: string,
-  data: CreateContractRequest
+  data: CreateContractRequest,
 ): Promise<EmployeeContract> {
-  const { data: result } = await client.POST("/api/v1/workspaces/{ws_id}/employees/{employee_id}/contracts", {
+  const { data: result } = await client.POST<EmployeeContract>("/v1/employees/{employee_id}/contracts", {
     params: {
-      path: { ws_id: wsId, employee_id: employeeId },
+      path: { employee_id: employeeId },
     },
     body: data,
   });
@@ -35,35 +39,28 @@ export async function createEmployeeContract(
 }
 
 export async function updateEmployeeContract(
-  wsId: string,
   employeeId: string,
   contractId: string,
-  data: UpdateContractRequest
+  data: UpdateContractRequest,
 ): Promise<EmployeeContract> {
-  const { data: result } = await client.PATCH("/api/v1/workspaces/{ws_id}/employees/{employee_id}/contracts/{contract_id}", {
+  const { data: result } = await client.PATCH<EmployeeContract>("/v1/employees/{employee_id}/contracts/{contract_id}", {
     params: {
-      path: { ws_id: wsId, employee_id: employeeId, contract_id: contractId },
+      path: { employee_id: employeeId, contract_id: contractId },
     },
     body: data,
   });
   return result;
 }
 
-export async function deleteEmployeeContract(wsId: string, employeeId: string, contractId: string): Promise<void> {
-  await client.DELETE("/api/v1/workspaces/{ws_id}/employees/{employee_id}/contracts/{contract_id}", {
+export async function deleteEmployeeContract(employeeId: string, contractId: string): Promise<void> {
+  await client.DELETE("/v1/employees/{employee_id}/contracts/{contract_id}", {
     params: {
-      path: { ws_id: wsId, employee_id: employeeId, contract_id: contractId },
+      path: { employee_id: employeeId, contract_id: contractId },
     },
   });
 }
 
-
-export async function fetchWorkspaceContracts(wsId: string): Promise<EmployeeContractWithEmployee[]> {
-  const { data } = await client.GET("/api/v1/workspaces/{ws_id}/contracts", {
-    params: {
-      path: { ws_id: wsId },
-    },
-  });
+export async function fetchWorkspaceContracts(): Promise<EmployeeContractWithEmployee[]> {
+  const { data } = await client.GET<EmployeeContractWithEmployee[]>("/v1/contracts");
   return data;
 }
-

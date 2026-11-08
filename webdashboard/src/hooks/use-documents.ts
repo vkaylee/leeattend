@@ -1,6 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
-/* eslint-disable @typescript-eslint/no-non-null-assertion -- wsId is guarded by enabled:!!wsId; React Query won't execute without it */
 /* eslint-disable @typescript-eslint/no-floating-promises -- invalidateQueries fire-and-forget is the standard React Query pattern */
 import {
   fetchFolders,
@@ -15,55 +14,53 @@ import {
 
 export const documentKeys = {
   all: ["documents"] as const,
-  folders: (wsId: string) => [...documentKeys.all, "folders", wsId] as const,
-  distributions: (wsId: string) => [...documentKeys.all, "distributions", wsId] as const,
+  folders: () => [...documentKeys.all, "folders"] as const,
+  distributions: () => [...documentKeys.all, "distributions"] as const,
   pendingAcks: () => [...documentKeys.all, "pending-acks"] as const,
 };
 
-export function useFolders(wsId: string | undefined | null) {
+export function useFolders() {
   return useQuery({
-    queryKey: documentKeys.folders(wsId!),
-    queryFn: () => fetchFolders(wsId!),
-    enabled: !!wsId,
+    queryKey: documentKeys.folders(),
+    queryFn: () => fetchFolders(),
   });
 }
 
-export function useCreateFolder(wsId: string | undefined | null) {
+export function useCreateFolder() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: ({ name, parentFolderId }: { name: string; parentFolderId?: string }) =>
-      createFolder(wsId!, name, parentFolderId),
+      createFolder(name, parentFolderId),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: documentKeys.folders(wsId!) });
+      queryClient.invalidateQueries({ queryKey: documentKeys.folders() });
     },
   });
 }
 
-export function useRenameFolder(wsId: string | undefined | null) {
+export function useRenameFolder() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, name }: { id: string; name: string }) =>
-      renameFolder(wsId!, id, name),
+    mutationFn: ({ id, name }: { id: string; name: string }) => renameFolder(id, name),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: documentKeys.folders(wsId!) });
+      queryClient.invalidateQueries({ queryKey: documentKeys.folders() });
     },
   });
 }
 
-export function useDeleteFolder(wsId: string | undefined | null) {
+export function useDeleteFolder() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (id: string) => deleteFolder(wsId!, id),
+    mutationFn: (id: string) => deleteFolder(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: documentKeys.folders(wsId!) });
+      queryClient.invalidateQueries({ queryKey: documentKeys.folders() });
     },
   });
 }
 
-export function useDistributeDocument(wsId: string | undefined | null) {
+export function useDistributeDocument() {
   return useMutation({
     mutationFn: ({ documentId, targetEmployeeIds }: { documentId: string; targetEmployeeIds: string[] }) =>
-      distributeDocument(wsId!, documentId, targetEmployeeIds),
+      distributeDocument(documentId, targetEmployeeIds),
   });
 }
 
@@ -84,9 +81,9 @@ export function useAcknowledgeDocument() {
   });
 }
 
-export function usePreviewTemplate(wsId: string | undefined | null) {
+export function usePreviewTemplate() {
   return useMutation({
     mutationFn: ({ templateContent, employeeId, manualVariables }: { templateContent: string; employeeId: string; manualVariables?: Record<string, string> }) =>
-      previewTemplate(wsId!, templateContent, employeeId, manualVariables),
+      previewTemplate(templateContent, employeeId, manualVariables),
   });
 }

@@ -53,40 +53,29 @@ type EmployeeConditionListResponse struct {
 }
 
 type EmployeeConditionRepository interface {
-	ListWorkspaceConditions(context.Context, uuid.UUID) ([]EmployeeConditionWithEmployee, error)
-	ListEmployeeConditions(context.Context, uuid.UUID, uuid.UUID, int, int) (EmployeeConditionListResponse, error)
-	CreateEmployeeCondition(context.Context, uuid.UUID, uuid.UUID, CreateEmployeeConditionRequest) (EmployeeCondition, error)
-	DeleteEmployeeCondition(context.Context, uuid.UUID, uuid.UUID, uuid.UUID) error
-	CurrentEmployeeDepartment(context.Context, uuid.UUID, uuid.UUID) (*uuid.UUID, error)
-}
-
-// ScopedWorkspaceAuthorizer is optional for compatibility with existing test and
-// plugin authorizers. Production WorkspaceAuthorizer implements department scope.
-type ScopedWorkspaceAuthorizer interface {
-	HasScopedPermission(context.Context, uuid.UUID, uuid.UUID, string, *uuid.UUID) bool
+	ListOrganizationConditions(context.Context) ([]EmployeeConditionWithEmployee, error)
+	ListEmployeeConditions(context.Context, uuid.UUID, int, int) (EmployeeConditionListResponse, error)
+	CreateEmployeeCondition(context.Context, uuid.UUID, CreateEmployeeConditionRequest) (EmployeeCondition, error)
+	DeleteEmployeeCondition(context.Context, uuid.UUID, uuid.UUID) error
+	CurrentEmployeeDepartment(context.Context, uuid.UUID) (*uuid.UUID, error)
 }
 
 type EmployeeConditionHandler struct {
 	Repository EmployeeConditionRepository
-	Authorizer WorkspaceAuthorizer
+	Authorizer Authorizer
 }
 
-func (h EmployeeConditionHandler) ListWorkspaceConditions(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := organizationIDFromContext(r)
-	if !ok {
-		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
-		return
-	}
+func (h EmployeeConditionHandler) ListConditions(w http.ResponseWriter, r *http.Request) {
 	userID, ok := httpinfra.UserIDFromContext(r.Context())
 	if !ok {
 		apperror.WriteError(w, r, apperror.Unauthorized(apperror.KeyAuthenticationRequired))
 		return
 	}
-	if h.Authorizer != nil && !h.Authorizer.HasPermission(r.Context(), userID, wsID, "employees:read") {
+	if h.Authorizer == nil || !h.Authorizer.HasPermission(r.Context(), userID, "employees:read") {
 		h.forbidden(w, r)
 		return
 	}
-	items, err := h.Repository.ListWorkspaceConditions(r.Context(), wsID)
+	items, err := h.Repository.ListOrganizationConditions(r.Context())
 	if err != nil {
 		h.writeError(w, r, err)
 		return
@@ -95,7 +84,7 @@ func (h EmployeeConditionHandler) ListWorkspaceConditions(w http.ResponseWriter,
 }
 
 func (h EmployeeConditionHandler) List(w http.ResponseWriter, r *http.Request) {
-	wsID, employeeID, ok := employeePath(r)
+	employeeID, ok := employeePath(r)
 	if !ok {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
@@ -109,7 +98,7 @@ func (h EmployeeConditionHandler) List(w http.ResponseWriter, r *http.Request) {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}
-	result, err := h.Repository.ListEmployeeConditions(r.Context(), wsID, employeeID, p.Page, p.Limit)
+	result, err := h.Repository.ListEmployeeConditions(r.Context(), employeeID, p.Page, p.Limit)
 	if err != nil {
 		h.writeError(w, r, err)
 		return
@@ -118,7 +107,7 @@ func (h EmployeeConditionHandler) List(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h EmployeeConditionHandler) Create(w http.ResponseWriter, r *http.Request) {
-	wsID, employeeID, ok := employeePath(r)
+	employeeID, ok := employeePath(r)
 	if !ok {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
@@ -128,12 +117,12 @@ func (h EmployeeConditionHandler) Create(w http.ResponseWriter, r *http.Request)
 		apperror.WriteError(w, r, apperror.Unauthorized(apperror.KeyAuthenticationRequired))
 		return
 	}
-	targetDept, err := h.Repository.CurrentEmployeeDepartment(r.Context(), wsID, employeeID)
+	targetDept, err := h.Repository.CurrentEmployeeDepartment(r.Context(), employeeID)
 	if err != nil {
 		h.writeError(w, r, err)
 		return
 	}
-	if !h.allowedScoped(r.Context(), userID, wsID, "employees:update", targetDept) {
+	if !h.allowedScoped(r.Context(), userID, "employees:update", targetDept) {
 		h.forbidden(w, r)
 		return
 	}
@@ -146,7 +135,7 @@ func (h EmployeeConditionHandler) Create(w http.ResponseWriter, r *http.Request)
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}
-	condition, err := h.Repository.CreateEmployeeCondition(r.Context(), wsID, employeeID, req)
+	condition, err := h.Repository.CreateEmployeeCondition(r.Context(), employeeID, req)
 	if err != nil {
 		h.writeError(w, r, err)
 		return
@@ -155,7 +144,7 @@ func (h EmployeeConditionHandler) Create(w http.ResponseWriter, r *http.Request)
 }
 
 func (h EmployeeConditionHandler) Delete(w http.ResponseWriter, r *http.Request) {
-	wsID, employeeID, ok := employeePath(r)
+	employeeID, ok := employeePath(r)
 	conditionID, conditionOK := pathUUID(r, "cond_id")
 	if !ok || !conditionOK {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
@@ -166,26 +155,25 @@ func (h EmployeeConditionHandler) Delete(w http.ResponseWriter, r *http.Request)
 		apperror.WriteError(w, r, apperror.Unauthorized(apperror.KeyAuthenticationRequired))
 		return
 	}
-	targetDept, err := h.Repository.CurrentEmployeeDepartment(r.Context(), wsID, employeeID)
+	targetDept, err := h.Repository.CurrentEmployeeDepartment(r.Context(), employeeID)
 	if err != nil {
 		h.writeError(w, r, err)
 		return
 	}
-	if !h.allowedScoped(r.Context(), userID, wsID, "employees:update", targetDept) {
+	if !h.allowedScoped(r.Context(), userID, "employees:update", targetDept) {
 		h.forbidden(w, r)
 		return
 	}
-	if err := h.Repository.DeleteEmployeeCondition(r.Context(), wsID, employeeID, conditionID); err != nil {
+	if err := h.Repository.DeleteEmployeeCondition(r.Context(), employeeID, conditionID); err != nil {
 		h.writeError(w, r, err)
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
 }
 
-func employeePath(r *http.Request) (uuid.UUID, uuid.UUID, bool) {
-	wsID, wsOK := organizationIDFromContext(r)
-	employeeID, employeeOK := pathUUID(r, "id")
-	return wsID, employeeID, wsOK && employeeOK
+func employeePath(r *http.Request) (uuid.UUID, bool) {
+	employeeID, ok := pathUUID(r, "id")
+	return employeeID, ok
 }
 
 func validConditionDate(value string) bool {
@@ -193,14 +181,11 @@ func validConditionDate(value string) bool {
 	return err == nil
 }
 
-func (h EmployeeConditionHandler) allowedScoped(ctx context.Context, userID, wsID uuid.UUID, permission string, dept *uuid.UUID) bool {
+func (h EmployeeConditionHandler) allowedScoped(ctx context.Context, userID uuid.UUID, permission string, dept *uuid.UUID) bool {
 	if h.Authorizer == nil {
 		return false
 	}
-	if scoped, ok := h.Authorizer.(ScopedWorkspaceAuthorizer); ok {
-		return scoped.HasScopedPermission(ctx, userID, wsID, permission, dept)
-	}
-	return h.Authorizer.HasPermission(ctx, userID, wsID, permission)
+	return h.Authorizer.HasScopedPermission(ctx, userID, permission, dept)
 }
 
 func (h EmployeeConditionHandler) forbidden(w http.ResponseWriter, r *http.Request) {

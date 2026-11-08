@@ -10,14 +10,6 @@ vi.mock("../client", () => ({
   },
 }));
 
-vi.mock("../helpers", () => ({
-  getStandaloneOrganizationId: vi.fn().mockReturnValue("test-ws-123"),
-}));
-
-vi.mock("../attendance", () => ({
-  claimOt: vi.fn().mockResolvedValue(undefined),
-  fetchAttendanceSummaries: vi.fn().mockResolvedValue([{ date: "2026-03-01", status: "Present" }]),
-}));
 
 import { claimOt, fetchAttendanceSummaries } from "../attendance";
 import { client } from "../client";
@@ -37,8 +29,6 @@ import {
   fetchMyAttendanceSummaries,
   submitMyOtClaim,
 } from "../ess";
-import { getStandaloneOrganizationId } from "../helpers";
-
 describe("Employee Self-Service (ESS) API Client", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -165,31 +155,20 @@ describe("Employee Self-Service (ESS) API Client", () => {
 
   it("fetchMyAttendanceSummaries should fetch via fetchAttendanceSummaries helper", async () => {
     const result = await fetchMyAttendanceSummaries("2026-03-01", "2026-03-07");
-    expect(getStandaloneOrganizationId).toHaveBeenCalled();
-    expect(fetchAttendanceSummaries).toHaveBeenCalledWith("test-ws-123", "2026-03-01", "2026-03-07");
+    expect(fetchAttendanceSummaries).toHaveBeenCalledWith("2026-03-01", "2026-03-07");
     expect(result).toEqual([{ date: "2026-03-01", status: "Present" }]);
-  });
-
-  it("fetchMyAttendanceSummaries should throw error if workspace id is missing", async () => {
-    vi.mocked(getStandaloneOrganizationId).mockReturnValueOnce("");
-    await expect(fetchMyAttendanceSummaries("2026-03-01", "2026-03-07")).rejects.toThrow("Workspace not found");
   });
 
   it("submitMyOtClaim should fetch profile and submit OT claim", async () => {
     const mockProfile = { employee: { id: "emp-123" } };
-    vi.mocked(client.GET).mockResolvedValueOnce({ data: mockProfile } as any);
+    vi.mocked(client.GET).mockResolvedValueOnce({ data: mockProfile } as never);
 
     await submitMyOtClaim("2026-03-01", 120, "OT work");
     expect(client.GET).toHaveBeenCalledWith("/ess/profile");
-    expect(claimOt).toHaveBeenCalledWith("test-ws-123", "emp-123", {
+    expect(claimOt).toHaveBeenCalledWith("emp-123", {
       date: "2026-03-01",
       claimed_minutes: 120,
       reason: "OT work"
     });
-  });
-
-  it("submitMyOtClaim should throw error if workspace id is missing", async () => {
-    vi.mocked(getStandaloneOrganizationId).mockReturnValueOnce("");
-    await expect(submitMyOtClaim("2026-03-01", 120, "OT work")).rejects.toThrow("Workspace not found");
   });
 });

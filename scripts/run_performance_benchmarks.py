@@ -110,16 +110,6 @@ class PerformanceBenchmarker:
 
         latencies_ms.sort()
         samples = len(latencies_ms)
-        min_ms = latencies_ms[0]
-        max_ms = latencies_ms[-1]
-        p50_ms = statistics.median(latencies_ms)
-        p95_idx = int(0.95 * samples)
-        p99_idx = int(0.99 * samples)
-        p95_ms = latencies_ms[min(p95_idx, samples - 1)]
-        p99_ms = latencies_ms[min(p99_idx, samples - 1)]
-
-        total_time_sec = sum(latencies_ms) / 1000.0
-        rps = (samples / total_time_sec) * concurrency if total_time_sec > 0 else 0.0
 
         rss_mb = self.measure_memory_rss()
         passed = p95_ms <= target.max_p95_ms and rps >= target.min_rps
@@ -170,14 +160,14 @@ def main() -> int:
             min_rps=5000.0,
         ),
         BenchmarkTarget(
-            name="Workspace Member Profile (/me)",
-            path="/api/v1/users/me",
+            name="User Profile (/api/v1/me)",
+            path="/api/v1/me",
             max_p95_ms=15.0,
             min_rps=3000.0,
         ),
         BenchmarkTarget(
-            name="Attendance Punch In (Scoped)",
-            path="/api/v1/workspaces/018d0000-0000-7000-8000-000000000001/time/punch-in",
+            name="Attendance Punch In",
+            path="/api/v1/time/punch-in",
             method="POST",
             body='{"employment_id":"018d0000-0000-7000-8000-000000000020"}',
             max_p95_ms=25.0,
@@ -185,13 +175,13 @@ def main() -> int:
         ),
         BenchmarkTarget(
             name="Leave Balance Evaluation",
-            path="/api/v1/workspaces/018d0000-0000-7000-8000-000000000001/leaves/balances",
+            path="/api/v1/leave/balances",
             max_p95_ms=20.0,
             min_rps=2500.0,
         ),
         BenchmarkTarget(
-            name="Payroll Decimal Aggregation",
-            path="/api/v1/workspaces/018d0000-0000-7000-8000-000000000001/payroll/runs",
+            name="Payroll Payslips",
+            path="/api/v1/payroll/payslips",
             max_p95_ms=35.0,
             min_rps=1500.0,
         ),

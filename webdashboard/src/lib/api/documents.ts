@@ -1,19 +1,39 @@
 import { client } from "./client";
 
-export async function fetchFolders(wsId: string) {
-  const { data } = await client.GET("/v1/workspaces/{ws_id}/documents/folders", {
-    params: {
-      path: { ws_id: wsId },
-    },
-  });
+export interface DocumentFolder {
+  id: string;
+  name: string;
+  parent_folder_id?: string | null;
+}
+
+export interface DistributeDocumentResponse {
+  count: number;
+  status: string;
+}
+
+export interface PendingAcknowledgement {
+  created_at?: string;
+  document_id: string;
+  employee_id: string;
+  id: string;
+  status: string;
+}
+
+export interface AcknowledgeDocumentResponse {
+  status: string;
+}
+
+export interface TemplatePreviewResponse {
+  filled_content: string;
+}
+
+export async function fetchFolders(): Promise<DocumentFolder[]> {
+  const { data } = await client.GET<DocumentFolder[]>("/v1/documents/folders");
   return data;
 }
 
-export async function createFolder(wsId: string, name: string, parentFolderId?: string) {
-  const { data } = await client.POST("/v1/workspaces/{ws_id}/documents/folders", {
-    params: {
-      path: { ws_id: wsId },
-    },
+export async function createFolder(name: string, parentFolderId?: string): Promise<DocumentFolder> {
+  const { data } = await client.POST<DocumentFolder>("/v1/documents/folders", {
     body: {
       name,
       parent_folder_id: parentFolderId ?? null,
@@ -22,10 +42,10 @@ export async function createFolder(wsId: string, name: string, parentFolderId?: 
   return data;
 }
 
-export async function renameFolder(wsId: string, id: string, name: string) {
-  const { data } = await client.PUT("/v1/workspaces/{ws_id}/documents/folders/{id}", {
+export async function renameFolder(id: string, name: string): Promise<DocumentFolder> {
+  const { data } = await client.PUT<DocumentFolder>("/v1/documents/folders/{id}", {
     params: {
-      path: { ws_id: wsId, id },
+      path: { id },
     },
     body: {
       name,
@@ -34,20 +54,19 @@ export async function renameFolder(wsId: string, id: string, name: string) {
   return data;
 }
 
-export async function deleteFolder(wsId: string, id: string) {
-  const { data } = await client.DELETE("/v1/workspaces/{ws_id}/documents/folders/{id}", {
+export async function deleteFolder(id: string): Promise<void> {
+  await client.DELETE("/v1/documents/folders/{id}", {
     params: {
-      path: { ws_id: wsId, id },
+      path: { id },
     },
   });
-  return data;
 }
 
-export async function distributeDocument(wsId: string, documentId: string, targetEmployeeIds: string[]) {
-  const { data } = await client.POST("/v1/workspaces/{ws_id}/documents/distributions", {
-    params: {
-      path: { ws_id: wsId },
-    },
+export async function distributeDocument(
+  documentId: string,
+  targetEmployeeIds: string[],
+): Promise<DistributeDocumentResponse> {
+  const { data } = await client.POST<DistributeDocumentResponse>("/v1/documents/distributions", {
     body: {
       document_id: documentId,
       target_employee_ids: targetEmployeeIds,
@@ -56,13 +75,13 @@ export async function distributeDocument(wsId: string, documentId: string, targe
   return data;
 }
 
-export async function fetchPendingAcknowledgements() {
-  const { data } = await client.GET("/v1/ess/documents/pending", {});
+export async function fetchPendingAcknowledgements(): Promise<PendingAcknowledgement[]> {
+  const { data } = await client.GET<PendingAcknowledgement[]>("/v1/ess/documents/pending");
   return data;
 }
 
-export async function acknowledgeDocument(id: string) {
-  const { data } = await client.POST("/v1/ess/documents/{id}/acknowledge", {
+export async function acknowledgeDocument(id: string): Promise<AcknowledgeDocumentResponse> {
+  const { data } = await client.POST<AcknowledgeDocumentResponse>("/v1/ess/documents/{id}/acknowledge", {
     params: {
       path: { id },
     },
@@ -70,11 +89,12 @@ export async function acknowledgeDocument(id: string) {
   return data;
 }
 
-export async function previewTemplate(wsId: string, templateContent: string, employeeId: string, manualVariables?: Record<string, string>) {
-  const { data } = await client.POST("/v1/workspaces/{ws_id}/documents/templates/preview", {
-    params: {
-      path: { ws_id: wsId },
-    },
+export async function previewTemplate(
+  templateContent: string,
+  employeeId: string,
+  manualVariables?: Record<string, string>,
+): Promise<TemplatePreviewResponse> {
+  const { data } = await client.POST<TemplatePreviewResponse>("/v1/documents/templates/preview", {
     body: {
       template_content: templateContent,
       employee_id: employeeId,

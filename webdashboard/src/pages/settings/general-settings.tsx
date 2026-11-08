@@ -14,27 +14,26 @@ import { useToast } from "@/components/ui/toast";
 import { Typography } from "@/components/ui/typography";
 import { useDarkModeContext } from "@/context/use-dark-mode-context";
 import { useTheme } from "@/hooks/use-theme";
-import { fetchWorkspace, updateWorkspace, getStandaloneOrganizationId, Workspace } from "@/lib/api";
+import { fetchOrganization, updateOrganization, Organization } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { SettingsHeader } from "@/components/ui/settings/settings-header";
-import { WorkspaceLogoField } from "./components/workspace-logo-field";
+import { OrganizationLogoField } from "./components/organization-logo-field";
 import { ThemeColorPicker } from "./components/theme-color-picker";
 
 type TabType = "localization" | "appearance";
 
 export default function GeneralSettings() {
-  const wsId = getStandaloneOrganizationId();
+  
 
-  const { data: workspace, isLoading: isLoadingWs } = useQuery({
-    queryKey: ["workspace", wsId],
+  const { data: organization, isLoading: isLoadingOrganization } = useQuery({
+    queryKey: ["organization"],
     queryFn: () => {
-      if (!wsId) throw new Error("Workspace ID is required");
-      return fetchWorkspace(wsId);
+      
+      return fetchOrganization();
     },
-    enabled: !!wsId,
   });
 
-  if (isLoadingWs) {
+  if (isLoadingOrganization) {
     return (
       <div className="space-y-6">
         <Skeleton className="h-40 w-full rounded-2xl" />
@@ -43,63 +42,59 @@ export default function GeneralSettings() {
     );
   }
 
-  if (!workspace) return null;
+  if (!organization) return null;
 
-  return <GeneralSettingsContent key={workspace.id} workspace={workspace} />;
+  return <GeneralSettingsContent organization={organization} />;
 }
 
 // eslint-disable-next-line max-lines-per-function
-function GeneralSettingsContent({ workspace }: { workspace: Workspace }) {
+function GeneralSettingsContent({ organization }: { organization: Organization }) {
   const { t } = useTranslation();
-  const wsId = workspace.id;
   const queryClient = useQueryClient();
   const toast = useToast();
   const { setPreviewTheme } = useTheme();
 
   const [activeTab, setActiveTab] = useState<TabType>("localization");
-  const [dateFormat, setDateFormat] = useState(workspace.date_format);
-  const [timeFormat, setTimeFormat] = useState(workspace.time_format);
-  const [timezone, setTimezone] = useState(workspace.timezone);
-  const [themePrimaryColor, setThemePrimaryColor] = useState(workspace.theme_primary_color);
-  const [defaultLanguage, setDefaultLanguage] = useState(workspace.default_language);
-  const [wsName, setWsName] = useState(workspace.name);
-  const [logoUrl, setLogoUrl] = useState(workspace.logo_url ?? "");
-  const [tagline, setTagline] = useState(workspace.tagline ?? "");
+  const [dateFormat, setDateFormat] = useState(organization.date_format);
+  const [timeFormat, setTimeFormat] = useState(organization.time_format);
+  const [timezone, setTimezone] = useState(organization.timezone);
+  const [themePrimaryColor, setThemePrimaryColor] = useState(organization.theme_primary_color);
+  const [defaultLanguage, setDefaultLanguage] = useState(organization.default_language);
+  const [organizationName, setOrganizationName] = useState(organization.name);
+  const [logoUrl, setLogoUrl] = useState(organization.logo_url ?? "");
+  const [tagline, setTagline] = useState(organization.tagline ?? "");
 
   useEffect(() => {
     setPreviewTheme(themePrimaryColor);
     return () => { setPreviewTheme(null); };
   }, [themePrimaryColor, setPreviewTheme]);
 
-  const updateWsMutation = useMutation({
-    mutationFn: (data: Partial<Workspace>) => updateWorkspace(wsId, data),
+  const updateOrganizationMutation = useMutation({
+    mutationFn: (data: Partial<Organization>) => updateOrganization(data),
     onMutate: async (data) => {
-      const queryKey = ["workspace", wsId];
-      await queryClient.cancelQueries({ queryKey: ["workspace"] });
-      const previousWorkspace = queryClient.getQueryData<Workspace>(queryKey);
-      const mergeWorkspace = (current: Workspace | undefined): Workspace => ({ ...current, ...data } as Workspace);
-      queryClient.setQueriesData<Workspace>({ queryKey: ["workspace"] }, mergeWorkspace);
-      return { previousWorkspace };
+      const queryKey = ["organization"];
+      await queryClient.cancelQueries({ queryKey });
+      const previousOrganization = queryClient.getQueryData<Organization>(queryKey);
+      queryClient.setQueryData<Organization>(queryKey, (current) => current ? { ...current, ...data } : current);
+      return { previousOrganization };
     },
     onError: (_error, _data, context) => {
-      queryClient.setQueryData(["workspace", wsId], context?.previousWorkspace);
+      queryClient.setQueryData(["organization"], context?.previousOrganization);
     },
-    onSuccess: (updatedWorkspace, data) => {
+    onSuccess: (updatedOrganization, data) => {
       toast.success(t("common.success"));
-      const mergeWorkspace = (current: Workspace | undefined): Workspace => ({ ...current, ...data, ...updatedWorkspace } as Workspace);
-      queryClient.setQueriesData<Workspace>({ queryKey: ["workspace"] }, mergeWorkspace);
-      void queryClient.invalidateQueries({ queryKey: ["workspace", wsId] });
-      void queryClient.invalidateQueries({ queryKey: ["workspaces"] });
+      queryClient.setQueryData<Organization>(["organization"], (current) => current ? { ...current, ...data, ...updatedOrganization } : updatedOrganization);
+      void queryClient.invalidateQueries({ queryKey: ["organization"] });
     },
   });
 
   function handleSaveConfig() {
-    updateWsMutation.mutate({ 
+    updateOrganizationMutation.mutate({ 
       date_format: dateFormat,
       time_format: timeFormat,
       timezone,
       theme_primary_color: themePrimaryColor,
-      name: wsName,
+      name: organizationName,
       default_language: defaultLanguage,
       logo_url: logoUrl || undefined,
       tagline: tagline || undefined,
@@ -115,7 +110,7 @@ function GeneralSettingsContent({ workspace }: { workspace: Workspace }) {
             className="rounded-xl px-5 py-2 text-xs font-semibold shadow-xs normal-case tracking-normal"
             data-testid="save-workspace-config-btn"
             icon={<Save size={15} />}
-            loading={updateWsMutation.isPending}
+            loading={updateOrganizationMutation.isPending}
             onClick={handleSaveConfig}
             variant="primary"
           >
@@ -220,10 +215,10 @@ function GeneralSettingsContent({ workspace }: { workspace: Workspace }) {
                     <input
                       className="w-full h-11 pl-10 pr-4 bg-slate-50 dark:bg-slate-800/80 border border-slate-200/70 dark:border-slate-700/70 rounded-xl text-xs font-medium focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 transition-all text-slate-700 dark:text-slate-200 outline-none"
                       data-testid="workspace-name-input"
-                      onChange={(e) => { setWsName(e.target.value); }}
+                      onChange={(e) => { setOrganizationName(e.target.value); }}
                       placeholder={t("common.workspace_settings.workspace_name_placeholder", { defaultValue: "e.g., LeeAttend Corp" })}
                       type="text"
-                      value={wsName}
+                      value={organizationName}
                     />
                   </div>
                 </div>
@@ -246,7 +241,7 @@ function GeneralSettingsContent({ workspace }: { workspace: Workspace }) {
                 </div>
               </div>
 
-              <WorkspaceLogoField
+              <OrganizationLogoField
                 labelClassName={SETTINGS_LABEL}
                 logoUrl={logoUrl}
                 onLogoChange={setLogoUrl}

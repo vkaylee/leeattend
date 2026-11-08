@@ -11,7 +11,6 @@ import {
   fetchPatternDetails,
   fetchShifts,
   fetchWorkingPatterns,
-  getStandaloneOrganizationId,
   updateWorkingPattern,
 } from "@/lib/api";
 
@@ -95,16 +94,15 @@ interface MutationParams {
   patternId?: string;
   setIsDirty: (dirty: boolean) => void;
   t: (key: string) => string;
-  wsId: string | null;
 }
 
-function useCreatePatternMutation({ wsId, t, setIsDirty }: MutationParams) {
+function useCreatePatternMutation({ t, setIsDirty }: MutationParams) {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const toast = useToast();
 
   return useMutation({
-    mutationFn: (data: CreateWorkingPatternRequest) => createWorkingPattern(wsId ?? "", data),
+    mutationFn: (data: CreateWorkingPatternRequest) => createWorkingPattern(data),
     onSuccess: () => {
       toast.success(t("patterns.messages.create_success"));
       void queryClient.invalidateQueries({ queryKey: ["working-patterns"] });
@@ -117,17 +115,17 @@ function useCreatePatternMutation({ wsId, t, setIsDirty }: MutationParams) {
   });
 }
 
-function useUpdatePatternMutation({ wsId, patternId, t, setIsDirty }: MutationParams) {
+function useUpdatePatternMutation({ patternId, t, setIsDirty }: MutationParams) {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const toast = useToast();
 
   return useMutation({
-    mutationFn: (data: UpdateWorkingPatternRequest) => updateWorkingPattern(wsId ?? "", patternId ?? "", data),
+    mutationFn: (data: UpdateWorkingPatternRequest) => updateWorkingPattern(patternId ?? "", data),
     onSuccess: () => {
       toast.success(t("patterns.messages.update_success"));
       void queryClient.invalidateQueries({ queryKey: ["working-patterns"] });
-      void queryClient.invalidateQueries({ queryKey: ["pattern-details", wsId ?? "", patternId ?? ""] });
+      void queryClient.invalidateQueries({ queryKey: ["pattern-details", patternId ?? ""] });
       setIsDirty(false);
       void navigate({ to: "/shifts/rules", search: { tab: "patterns" } });
     },
@@ -137,36 +135,32 @@ function useUpdatePatternMutation({ wsId, patternId, t, setIsDirty }: MutationPa
   });
 }
 
-
-
-function getShiftsQueryOptions(wsId: string | null) {
+function getShiftsQueryOptions() {
   return {
-    queryKey: ["shifts", wsId],
-    queryFn: () => fetchShifts(wsId ?? ""),
-    enabled: Boolean(wsId),
+    queryKey: ["shifts"],
+    queryFn: () => fetchShifts(),
   };
 }
 
-function getPatternsQueryOptions(wsId: string | null, isEditMode: boolean) {
+function getPatternsQueryOptions(isEditMode: boolean) {
   return {
-    queryKey: ["working-patterns", wsId],
-    queryFn: () => fetchWorkingPatterns(wsId ?? ""),
-    enabled: Boolean(wsId) && isEditMode,
+    queryKey: ["working-patterns"],
+    queryFn: () => fetchWorkingPatterns(),
+    enabled: isEditMode,
   };
 }
 
-function getPatternDetailsQueryOptions(wsId: string | null, patternId: string | undefined, isEditMode: boolean) {
+function getPatternDetailsQueryOptions(patternId: string | undefined, isEditMode: boolean) {
   return {
-    queryKey: ["pattern-details", wsId, patternId],
-    queryFn: () => (patternId ? fetchPatternDetails(wsId ?? "", patternId) : Promise.resolve([])),
-    enabled: Boolean(wsId) && isEditMode,
+    queryKey: ["pattern-details", patternId],
+    queryFn: () => (patternId ? fetchPatternDetails(patternId) : Promise.resolve([])),
+    enabled: isEditMode,
   };
 }
 
 export function useWorkingPatternForm(patternId?: string) {
   const { t } = useTranslation();
   const toast = useToast();
-  const wsId = getStandaloneOrganizationId();
   const isEditMode = !!patternId;
 
   // Form State
@@ -189,11 +183,11 @@ export function useWorkingPatternForm(patternId?: string) {
   } = gridState;
 
   // Fetch queries
-  const { data: shifts = [] } = useQuery(getShiftsQueryOptions(wsId));
+  const { data: shifts = [] } = useQuery(getShiftsQueryOptions());
 
-  const { data: patterns = [], isLoading: isLoadingPatterns } = useQuery(getPatternsQueryOptions(wsId, isEditMode));
+  const { data: patterns = [], isLoading: isLoadingPatterns } = useQuery(getPatternsQueryOptions(isEditMode));
 
-  const { data: patternDetails = [], isLoading: isLoadingDetails } = useQuery(getPatternDetailsQueryOptions(wsId, patternId, isEditMode));
+  const { data: patternDetails = [], isLoading: isLoadingDetails } = useQuery(getPatternDetailsQueryOptions(patternId, isEditMode));
 
   const currentPattern = patterns.find((p) => p.id === patternId);
 
@@ -229,13 +223,10 @@ export function useWorkingPatternForm(patternId?: string) {
     }
     gridState.prefillStandard(firstShift);
   };
-
   // Mutations using extracted hooks
-  const createMutation = useCreatePatternMutation({ wsId, t, setIsDirty });
-  const updateMutation = useUpdatePatternMutation({ wsId, patternId, t, setIsDirty });
-
+  const createMutation = useCreatePatternMutation({ t, setIsDirty });
+  const updateMutation = useUpdatePatternMutation({ patternId, t, setIsDirty });
   return {
-    wsId,
   // eslint-disable-next-line max-lines
     isEditMode,
     isLoadingPatterns,

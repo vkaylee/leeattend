@@ -27,7 +27,6 @@ import {
   type UnexcusedAbsencesPoint,
   type WorkspaceStats,
 } from "./use-dashboard-types";
-import { useWorkspace } from "./use-workspace";
 
 export type {
   AttendanceTrendPoint,
@@ -65,10 +64,9 @@ function setRangeParams(params: URLSearchParams, range: ChartRangeParams): void 
   if (range.timezone) params.set("timezone", range.timezone);
 }
 
-// ── Factory: reusable useQuery wrapper with workspace guard ────────────────
+// ── Factory: reusable useQuery wrapper ────────────────────────────────────
 
 export type DashboardQueryErrorCode =
-  | "NO_WORKSPACE"
   | "HTTP_ERROR"
   | "INVALID_PAYLOAD";
 
@@ -101,9 +99,8 @@ export class DashboardQueryError extends Error {
 }
 
 interface DashboardQueryOptions<T> {
-  /** Additional enabled condition ANDed with the workspace guard. */
+  /** Additional enabled condition. */
   extraEnabled?: boolean;
-  /** Extra values appended to the query key (e.g. range, dates). */
   extraQueryKeyParams?: readonly unknown[];
   /** Lazily builds the API path (captures hook args in closure). */
   getPath: () => string;
@@ -115,20 +112,10 @@ interface DashboardQueryOptions<T> {
 
 // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-parameters -- T determines return type through useQuery<T>
 function useDashboardQuery<T>(options: DashboardQueryOptions<T>) {
-  const { workspace } = useWorkspace();
-
   return useQuery<T>({
-    queryKey: [options.key, workspace?.id, ...(options.extraQueryKeyParams ?? [])],
+    queryKey: [options.key, ...(options.extraQueryKeyParams ?? [])],
     queryFn: async () => {
       const endpoint = options.getPath();
-      if (!workspace) {
-        throw new DashboardQueryError({
-          code: "NO_WORKSPACE",
-          endpoint,
-          message: "Select a workspace to load dashboard data.",
-          queryKey: options.key,
-        });
-      }
 
       const response = await apiFetch(endpoint);
       if (!response.ok) {
@@ -156,7 +143,7 @@ function useDashboardQuery<T>(options: DashboardQueryOptions<T>) {
         });
       }
     },
-    enabled: !!workspace && (options.extraEnabled ?? true),
+    enabled: options.extraEnabled ?? true,
   });
 }
 

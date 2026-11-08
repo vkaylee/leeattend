@@ -59,7 +59,6 @@ vi.mock("../../lib/api", () => ({
   deleteLeavePolicy: vi.fn(),
   assignLeavePolicy: vi.fn(),
   triggerAccrualRun: vi.fn(),
-  getStandaloneOrganizationId: vi.fn(),
   fetchMyPermissions: vi.fn(),
   fetchMyProfile: vi.fn(),
   // LeaveImportDialog mocks
@@ -141,7 +140,6 @@ describe("LeaveRequestsPage", () => {
  
     });
  
-    vi.mocked(api.getStandaloneOrganizationId).mockReturnValue("test-ws-id");
     vi.mocked(api.fetchMyProfile).mockResolvedValue({
       employee: { id: "emp-1", full_name: "John Doe" },
       profile: { id: "prof-1" },
@@ -201,7 +199,7 @@ describe("LeaveRequestsPage", () => {
     const user = userEvent.setup();
  
     vi.mocked(api.submitLeaveRequest).mockResolvedValue({ id: "req-new" } as unknown as LeaveRequest);
-    vi.mocked(api.fetchEmployeeLeaveBalances).mockImplementation((wsId: string, empId: string) => {
+    vi.mocked(api.fetchEmployeeLeaveBalances).mockImplementation((empId: string) => {
       if (empId === "emp-1") {
         return Promise.resolve([
           { leave_type_id: "lt-1", leave_type_code: "lt-vacation", leave_type_name: "Vacation", is_paid: true, remaining: 10, entitlement: 12, carried_over: 2, accrued_amount: 0, used: 2 }
@@ -395,7 +393,7 @@ describe("LeaveRequestsPage", () => {
       const user = userEvent.setup();
  
       vi.mocked(api.submitLeaveRequest).mockResolvedValue({ id: "req-setup" } as unknown as LeaveRequest);
-      vi.mocked(api.fetchEmployeeLeaveBalances).mockImplementation((_wsId: string, empId: string) => {
+      vi.mocked(api.fetchEmployeeLeaveBalances).mockImplementation((empId: string) => {
         if (empId === "emp-1") {
           return Promise.resolve([
             { leave_type_id: "lt-1", leave_type_code: "lt-vacation", leave_type_name: "Vacation", is_paid: true, remaining: 10, entitlement: 12, carried_over: 2, accrued_amount: 0, used: 2 }

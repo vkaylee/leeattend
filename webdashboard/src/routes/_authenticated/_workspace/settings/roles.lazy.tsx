@@ -1,17 +1,17 @@
 import { createLazyFileRoute } from "@tanstack/react-router";
 
 import { ErrorBoundary } from "@/components/common/error-boundary";
-import WorkspaceRolesPage from "@/pages/workspace/workspace-roles-page";
+import OrganizationRolesPage from "@/pages/organization/organization-roles-page";
 
 
-function WorkspaceRolesPageWithErrorBoundary() {
+function OrganizationRolesPageWithErrorBoundary() {
   return (
     <ErrorBoundary variant="full">
-      <WorkspaceRolesPage />
+      <OrganizationRolesPage />
     </ErrorBoundary>
   );
 }
 
 export const Route = createLazyFileRoute('/_authenticated/_workspace/settings/roles')({
-  component: WorkspaceRolesPageWithErrorBoundary,
+  component: OrganizationRolesPageWithErrorBoundary,
 });

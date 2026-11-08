@@ -23,7 +23,6 @@ const (
 
 type ShiftSwapRequest struct {
 	ID                uuid.UUID       `json:"id"`
-	WorkspaceID       uuid.UUID       `json:"workspace_id"`
 	RequesterID       uuid.UUID       `json:"requester_id"`
 	TargetID          uuid.UUID       `json:"target_id"`
 	SwapDate          string          `json:"swap_date"`
@@ -77,25 +76,24 @@ type SwapStats struct {
 }
 
 type ShiftSwapRepository interface {
-	CreateSwap(context.Context, uuid.UUID, uuid.UUID, CreateShiftSwapRequest) (ShiftSwapRequest, error)
-	ListSwaps(context.Context, uuid.UUID, *ShiftSwapStatus) ([]ShiftSwapRequestWithNames, error)
-	ApproveSwap(context.Context, uuid.UUID, uuid.UUID, uuid.UUID, ShiftSwapStatus) error
-	Stats(context.Context, uuid.UUID) (SwapStats, error)
-	ListEmployeeSwaps(context.Context, uuid.UUID, uuid.UUID) ([]ShiftSwapRequestWithNames, error)
-	CreateESSSwap(context.Context, uuid.UUID, uuid.UUID, uuid.UUID, EssCreateShiftSwapRequest) (ShiftSwapRequest, error)
-	RespondSwap(context.Context, uuid.UUID, uuid.UUID, uuid.UUID, bool) error
-	CancelSwap(context.Context, uuid.UUID, uuid.UUID, uuid.UUID) error
+	CreateSwap(context.Context, uuid.UUID, CreateShiftSwapRequest) (ShiftSwapRequest, error)
+	ListSwaps(context.Context, *ShiftSwapStatus) ([]ShiftSwapRequestWithNames, error)
+	ApproveSwap(context.Context, uuid.UUID, uuid.UUID, ShiftSwapStatus) error
+	Stats(context.Context) (SwapStats, error)
+	ListEmployeeSwaps(context.Context, uuid.UUID) ([]ShiftSwapRequestWithNames, error)
+	CreateESSSwap(context.Context, uuid.UUID, uuid.UUID, EssCreateShiftSwapRequest) (ShiftSwapRequest, error)
+	RespondSwap(context.Context, uuid.UUID, uuid.UUID, bool) error
+	CancelSwap(context.Context, uuid.UUID, uuid.UUID) error
 }
 
 type ShiftSwapHandler struct {
 	Repository ShiftSwapRepository
-	Authorizer AttendanceAuthorizer
+	Authorizer Authorizer
 }
 
 func (h ShiftSwapHandler) Create(w http.ResponseWriter, r *http.Request) {
-	workspaceID, ok := organizationIDFromContext(r)
 	userID, userOK := httpinfra.UserIDFromContext(r.Context())
-	if !ok || !userOK || !h.allowed(r, workspaceID, "shift_swaps:manage") {
+	if !userOK || !h.allowed(r, "shift_swaps:manage") {
 		h.forbidden(w, r)
 		return
 	}
@@ -104,7 +102,7 @@ func (h ShiftSwapHandler) Create(w http.ResponseWriter, r *http.Request) {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}
-	swap, err := h.Repository.CreateSwap(r.Context(), workspaceID, userID, req)
+	swap, err := h.Repository.CreateSwap(r.Context(), userID, req)
 	if err != nil {
 		h.writeError(w, r, err)
 		return
@@ -113,8 +111,7 @@ func (h ShiftSwapHandler) Create(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h ShiftSwapHandler) List(w http.ResponseWriter, r *http.Request) {
-	workspaceID, ok := organizationIDFromContext(r)
-	if !ok || !h.allowed(r, workspaceID, "shift_swaps:manage") {
+	if !h.allowed(r, "shift_swaps:manage") {
 		h.forbidden(w, r)
 		return
 	}
@@ -127,7 +124,7 @@ func (h ShiftSwapHandler) List(w http.ResponseWriter, r *http.Request) {
 		}
 		status = &candidate
 	}
-	data, err := h.Repository.ListSwaps(r.Context(), workspaceID, status)
+	data, err := h.Repository.ListSwaps(r.Context(), status)
 	if err != nil {
 		h.writeError(w, r, err)
 		return
@@ -136,10 +133,9 @@ func (h ShiftSwapHandler) List(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h ShiftSwapHandler) Approve(w http.ResponseWriter, r *http.Request) {
-	workspaceID, ok := organizationIDFromContext(r)
 	requestID, requestOK := pathUUID(r, "id")
 	userID, userOK := httpinfra.UserIDFromContext(r.Context())
-	if !ok || !requestOK || !userOK || !h.allowed(r, workspaceID, "shift_swaps:approve") {
+	if !requestOK || !userOK || !h.allowed(r, "shift_swaps:approve") {
 		h.forbidden(w, r)
 		return
 	}
@@ -148,7 +144,7 @@ func (h ShiftSwapHandler) Approve(w http.ResponseWriter, r *http.Request) {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}
-	if err := h.Repository.ApproveSwap(r.Context(), workspaceID, requestID, userID, req.Status); err != nil {
+	if err := h.Repository.ApproveSwap(r.Context(), requestID, userID, req.Status); err != nil {
 		h.writeError(w, r, err)
 		return
 	}
@@ -156,12 +152,11 @@ func (h ShiftSwapHandler) Approve(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h ShiftSwapHandler) Stats(w http.ResponseWriter, r *http.Request) {
-	workspaceID, ok := organizationIDFromContext(r)
-	if !ok || !h.allowed(r, workspaceID, "shift_swaps:manage") {
+	if !h.allowed(r, "shift_swaps:manage") {
 		h.forbidden(w, r)
 		return
 	}
-	stats, err := h.Repository.Stats(r.Context(), workspaceID)
+	stats, err := h.Repository.Stats(r.Context())
 	if err != nil {
 		h.writeError(w, r, err)
 		return
@@ -169,9 +164,9 @@ func (h ShiftSwapHandler) Stats(w http.ResponseWriter, r *http.Request) {
 	apperror.WriteJSON(w, http.StatusOK, stats)
 }
 
-func (h ShiftSwapHandler) allowed(r *http.Request, workspaceID uuid.UUID, permission string) bool {
+func (h ShiftSwapHandler) allowed(r *http.Request, permission string) bool {
 	userID, ok := httpinfra.UserIDFromContext(r.Context())
-	return ok && h.Authorizer != nil && h.Authorizer.HasPermission(r.Context(), userID, workspaceID, permission)
+	return ok && h.Authorizer != nil && h.Authorizer.HasPermission(r.Context(), userID, permission)
 }
 
 func (h ShiftSwapHandler) forbidden(w http.ResponseWriter, r *http.Request) {

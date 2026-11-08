@@ -21,7 +21,7 @@ import { ChartSummary } from "@/components/features/dashboard/chart-summary";
 import { ChartTableTwin, type ChartTableColumn } from "@/components/features/dashboard/chart-table-twin";
 import { DashboardDateRange } from "@/components/features/dashboard/dashboard-date-range";
 import { useUnexcusedAbsences, type UnexcusedAbsencesPoint } from "@/hooks/use-dashboard";
-import { useWorkspace } from "@/hooks/use-workspace";
+import { useOrganization } from "@/hooks/use-organization";
 import { cn } from "@/lib/utils";
 
 const CHART_HEIGHT = 320;
@@ -51,11 +51,11 @@ interface Row extends UnexcusedAbsencesPoint {
 
 export default function UnexcusedAbsencesChart() {
     const { t } = useTranslation();
-    const { workspace } = useWorkspace();
+    const { organization } = useOrganization();
     const [groupBy, setGroupBy] = useState<GroupBy>("department");
     const [range, setRange] = useState(defaultRange);
 
-    const timezone = workspace?.timezone ?? undefined;
+    const timezone = organization?.timezone ?? undefined;
     const { data, error, isLoading } = useUnexcusedAbsences(
         range.startDate,
         range.endDate,

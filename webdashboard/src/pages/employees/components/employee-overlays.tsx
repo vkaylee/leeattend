@@ -14,36 +14,33 @@ const RehireEmployeeModal = lazy(() => import("@/components/features/employees/r
 
 const OverlayFallback = () => null;
 
-interface EmployeeOverlaysProps {
-  activeModal?: EmployeeModalState;
-  closeModal?: () => void;
-  departments: Department[] | undefined;
-  deptHistory: EmployeeDepartmentHistory[] | undefined;
-  editingEmployee?: Employee | null;
-  formatDate: (date: string) => string;
-  handleDrawerClose: () => void;
-  isImportDialogOpen?: boolean;
-  isModalOpen?: boolean;
-  isRehireModalOpen?: boolean;
-  isTerminateModalOpen?: boolean;
-  isTerminationImportOpen?: boolean;
-  isTransferModalOpen?: boolean;
-  openModal?: (modal: EmployeeModalState) => void;
-  prefillEnrollmentId?: string;
-  selectedDeptId?: string;
-  selectedEmployee: Employee | null;
-  setEditingEmployee?: (emp: Employee | null) => void;
-  setIsImportDialogOpen?: (open: boolean) => void;
-  setIsModalOpen?: (open: boolean) => void;
-  setIsRehireModalOpen?: (open: boolean) => void;
-  setIsTerminateModalOpen?: (open: boolean) => void;
-  setIsTerminationImportOpen?: (open: boolean) => void;
-  setIsTransferModalOpen?: (open: boolean) => void;
-  setPrefillEnrollmentId?: (id: string) => void;
-  setSelectedDeptId?: (id: string) => void;
-  setSelectedEmployee: (emp: Employee | null) => void;
-  wsId: string;
-}
+interface EmployeeOverlaysProps { activeModal?: EmployeeModalState;
+closeModal?: () => void;
+departments: Department[] | undefined;
+deptHistory: EmployeeDepartmentHistory[] | undefined;
+editingEmployee?: Employee | null;
+formatDate: (date: string) => string;
+handleDrawerClose: () => void;
+isImportDialogOpen?: boolean;
+isModalOpen?: boolean;
+isRehireModalOpen?: boolean;
+isTerminateModalOpen?: boolean;
+isTerminationImportOpen?: boolean;
+isTransferModalOpen?: boolean;
+openModal?: (modal: EmployeeModalState) => void;
+prefillEnrollmentId?: string;
+selectedDeptId?: string;
+selectedEmployee: Employee | null;
+setEditingEmployee?: (emp: Employee | null) => void;
+setIsImportDialogOpen?: (open: boolean) => void;
+setIsModalOpen?: (open: boolean) => void;
+setIsRehireModalOpen?: (open: boolean) => void;
+setIsTerminateModalOpen?: (open: boolean) => void;
+setIsTerminationImportOpen?: (open: boolean) => void;
+setIsTransferModalOpen?: (open: boolean) => void;
+setPrefillEnrollmentId?: (id: string) => void;
+setSelectedDeptId?: (id: string) => void;
+setSelectedEmployee: (emp: Employee | null) => void;  }
   // eslint-disable-next-line complexity
 export function EmployeeOverlays(props: EmployeeOverlaysProps) {
   const { t } = useTranslation();
@@ -75,7 +72,6 @@ export function EmployeeOverlays(props: EmployeeOverlaysProps) {
     setPrefillEnrollmentId,
     setSelectedDeptId,
     setSelectedEmployee,
-    wsId,
   } = props;
 
   const modalOpen = activeModal ? activeModal.type === "create" || activeModal.type === "edit" : Boolean(isModalOpen);
@@ -101,88 +97,72 @@ export function EmployeeOverlays(props: EmployeeOverlaysProps) {
   return (
     <>
       <Suspense fallback={<OverlayFallback />}>
-        <EmployeeDetailDrawer
-          departments={departments}
-          deptHistory={deptHistory}
-          employee={selectedEmployee}
-          wsId={wsId}
-          formatDate={formatDate}
-          isOpen={!!selectedEmployee}
-          key={selectedEmployee?.id ?? "closed"}
-          onClose={handleDrawerClose}
-          onEdit={(emp) => {
-            if (openModal) openModal({ type: "edit", employee: emp });
-            else {
-              setEditingEmployee?.(emp);
-              setIsModalOpen?.(true);
-            }
-          }}
-          onEmployeeUpdate={setSelectedEmployee}
-          onRehire={() => {
-            if (openModal && selectedEmployee) openModal({ type: "rehire", employee: selectedEmployee });
-            else setIsRehireModalOpen?.(true);
-          }}
-          onTerminate={(_emp) => {
-            if (openModal && selectedEmployee) openModal({ type: "terminate", employee: selectedEmployee });
-            else setIsTerminateModalOpen?.(true);
-          }}
-          onTransfer={(deptId) => {
-            setSelectedDeptId?.(deptId);
-            if (openModal && selectedEmployee) openModal({ type: "transfer", employee: selectedEmployee, departmentId: deptId });
-            else setIsTransferModalOpen?.(true);
-          }}
-        />
+        <EmployeeDetailDrawer departments={departments}
+        deptHistory={deptHistory}
+        employee={selectedEmployee} formatDate={formatDate}
+        isOpen={!!selectedEmployee}
+        key={selectedEmployee?.id ?? "closed"}
+        onClose={handleDrawerClose}
+        onEdit={(emp) => {
+          if (openModal) openModal({ type: "edit", employee: emp });
+          else {
+            setEditingEmployee?.(emp);
+            setIsModalOpen?.(true);
+          }
+        }}
+        onEmployeeUpdate={setSelectedEmployee}
+        onRehire={() => {
+          if (openModal && selectedEmployee) openModal({ type: "rehire", employee: selectedEmployee });
+          else setIsRehireModalOpen?.(true);
+        }}
+        onTerminate={(_emp) => {
+          if (openModal && selectedEmployee) openModal({ type: "terminate", employee: selectedEmployee });
+          else setIsTerminateModalOpen?.(true);
+        }}
+        onTransfer={(deptId) => {
+          setSelectedDeptId?.(deptId);
+          if (openModal && selectedEmployee) openModal({ type: "transfer", employee: selectedEmployee, departmentId: deptId });
+          else setIsTransferModalOpen?.(true);
+        }} />
       </Suspense>
 
       <Suspense fallback={<OverlayFallback />}>
-        <EmployeeFormModal
-          editingEmployee={currentEditingEmployee}
-          isOpen={modalOpen}
-          onClose={handleClose}
-          onSuccess={() => { setPrefillEnrollmentId?.(""); }}
-          prefillEnrollmentId={prefillEnrollmentId}
-          wsId={wsId}
-        />
+        <EmployeeFormModal editingEmployee={currentEditingEmployee}
+        isOpen={modalOpen}
+        onClose={handleClose}
+        onSuccess={() => { setPrefillEnrollmentId?.(""); }}
+        prefillEnrollmentId={prefillEnrollmentId}  />
       </Suspense>
 
       <Suspense fallback={<OverlayFallback />}>
-        <TransferEmployeeModal
-          departments={departments}
-          employeeId={currentTransferEmployee?.id ?? null}
-          isOpen={transferOpen}
-          onClose={handleClose}
-          selectedDeptId={selectedDeptId}
-          setSelectedDeptId={setSelectedDeptId}
-          wsId={wsId}
-        />
+        <TransferEmployeeModal departments={departments}
+        employeeId={currentTransferEmployee?.id ?? null}
+        isOpen={transferOpen}
+        onClose={handleClose}
+        selectedDeptId={selectedDeptId}
+        setSelectedDeptId={setSelectedDeptId}  />
       </Suspense>
 
       <Suspense fallback={<OverlayFallback />}>
-        <TerminateEmployeeModal
-          activeEmploymentId={currentTerminateEmployee?.active_employment_id ?? null}
-          employeeId={currentTerminateEmployee?.id ?? null}
-          isOpen={terminateOpen}
-          onClose={handleClose}
-          onSuccess={() => {
-            if (selectedEmployee) {
-              setSelectedEmployee({
-                ...selectedEmployee,
-                active_employment_id: null,
-              });
-            }
-          }}
-          wsId={wsId}
-        />
+        <TerminateEmployeeModal activeEmploymentId={currentTerminateEmployee?.active_employment_id ?? null}
+        employeeId={currentTerminateEmployee?.id ?? null}
+        isOpen={terminateOpen}
+        onClose={handleClose}
+        onSuccess={() => {
+          if (selectedEmployee) {
+            setSelectedEmployee({
+              ...selectedEmployee,
+              active_employment_id: null,
+            });
+          }
+        }}  />
       </Suspense>
 
       <Suspense fallback={<OverlayFallback />}>
-        <RehireEmployeeModal
-          employeeId={currentRehireEmployee?.id ?? null}
-          isOpen={rehireOpen}
-          onClose={handleClose}
-          onSuccess={(updatedEmp) => { setSelectedEmployee(updatedEmp); }}
-          wsId={wsId}
-        />
+        <RehireEmployeeModal employeeId={currentRehireEmployee?.id ?? null}
+        isOpen={rehireOpen}
+        onClose={handleClose}
+        onSuccess={(updatedEmp) => { setSelectedEmployee(updatedEmp); }}  />
       </Suspense>
 
       <Suspense fallback={<OverlayFallback />}>
@@ -202,11 +182,8 @@ export function EmployeeOverlays(props: EmployeeOverlaysProps) {
       </Suspense>
 
       <Suspense fallback={<OverlayFallback />}>
-        <EmployeeTerminationImportDialog
-          isOpen={terminationImportOpen}
-          onClose={handleClose}
-          wsId={wsId}
-        />
+        <EmployeeTerminationImportDialog isOpen={terminationImportOpen}
+        onClose={handleClose}  />
       </Suspense>
     </>
   );

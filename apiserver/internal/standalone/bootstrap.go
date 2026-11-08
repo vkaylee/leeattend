@@ -13,7 +13,7 @@ import (
 
 var ErrInvalidBootstrap = errors.New("standalone: invalid bootstrap configuration")
 
-// Bootstrap creates the singleton organization and its first administrator.
+// Bootstrap creates the singleton organization settings and its first administrator.
 // It is idempotent for an already-complete installation and refuses conflicting
 // existing state, preventing accidental takeover of a non-standalone database.
 func Bootstrap(ctx context.Context, db interface {
@@ -36,23 +36,17 @@ func Bootstrap(ctx context.Context, db interface {
 		return err
 	}
 
-	var workspaceCount int
-	if err := tx.QueryRow(ctx, `SELECT count(*) FROM workspaces`).Scan(&workspaceCount); err != nil {
-		return fmt.Errorf("standalone: count organizations: %w", err)
+	var settingsCount int
+	if err := tx.QueryRow(ctx, `SELECT count(*) FROM organization_settings`).Scan(&settingsCount); err != nil {
+		return fmt.Errorf("standalone: count organization settings: %w", err)
 	}
-	if workspaceCount > 1 {
-		return fmt.Errorf("%w: multiple organizations exist", ErrInvalidBootstrap)
+	if settingsCount > 1 {
+		return fmt.Errorf("%w: multiple organization settings rows exist", ErrInvalidBootstrap)
 	}
-
-	var workspaceID uuid.UUID
-	if workspaceCount == 1 {
-		if err := tx.QueryRow(ctx, `SELECT id FROM workspaces LIMIT 1`).Scan(&workspaceID); err != nil {
-			return fmt.Errorf("standalone: read organization: %w", err)
-		}
-	} else {
-		workspaceID = uuid.New()
-		if _, err := tx.Exec(ctx, `INSERT INTO workspaces (id, name) VALUES ($1, $2)`, workspaceID, strings.TrimSpace(organizationName)); err != nil {
-			return fmt.Errorf("standalone: create organization: %w", err)
+	if settingsCount == 0 {
+		// The settings UUID is internal to the schema and never selected by clients.
+		if _, err := tx.Exec(ctx, `INSERT INTO organization_settings (id, name) VALUES ($1, $2)`, uuid.New(), strings.TrimSpace(organizationName)); err != nil {
+			return fmt.Errorf("standalone: create organization settings: %w", err)
 		}
 	}
 
@@ -68,10 +62,10 @@ func Bootstrap(ctx context.Context, db interface {
 	}
 
 	var roleID uuid.UUID
-	if err := tx.QueryRow(ctx, `SELECT id FROM workspace_roles WHERE workspace_id IS NULL AND name = 'admin' LIMIT 1`).Scan(&roleID); err != nil {
+	if err := tx.QueryRow(ctx, `SELECT id FROM roles WHERE name = 'admin' LIMIT 1`).Scan(&roleID); err != nil {
 		return fmt.Errorf("standalone: read admin role: %w", err)
 	}
-	if _, err := tx.Exec(ctx, `INSERT INTO workspace_members (workspace_id, user_id, role_id) VALUES ($1, $2, $3) ON CONFLICT DO NOTHING`, workspaceID, userID, roleID); err != nil {
+	if _, err := tx.Exec(ctx, `INSERT INTO user_roles (user_id, role_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`, userID, roleID); err != nil {
 		return fmt.Errorf("standalone: assign admin role: %w", err)
 	}
 	if err := tx.Commit(ctx); err != nil {

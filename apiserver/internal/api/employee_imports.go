@@ -24,10 +24,9 @@ var terminationReasons = map[string]struct{}{
 }
 
 type EmployeeImportJob struct {
-	JobID       uuid.UUID `json:"job_id"`
-	WorkspaceID uuid.UUID `json:"workspace_id"`
-	UserID      uuid.UUID `json:"user_id"`
-	FilePath    string    `json:"file_path"`
+	JobID    uuid.UUID `json:"job_id"`
+	UserID   uuid.UUID `json:"user_id"`
+	FilePath string    `json:"file_path"`
 }
 type TerminationJobRow struct {
 	EmploymentID      uuid.UUID `json:"employment_id"`
@@ -36,10 +35,9 @@ type TerminationJobRow struct {
 	TerminationNotes  *string   `json:"termination_notes,omitempty"`
 }
 type TerminationImportJob struct {
-	JobID       uuid.UUID           `json:"job_id"`
-	WorkspaceID uuid.UUID           `json:"workspace_id"`
-	UserID      uuid.UUID           `json:"user_id"`
-	Rows        []TerminationJobRow `json:"rows"`
+	JobID uuid.UUID           `json:"job_id"`
+	UserID uuid.UUID          `json:"user_id"`
+	Rows  []TerminationJobRow `json:"rows"`
 }
 
 type TerminationEmployment struct {
@@ -62,9 +60,9 @@ type TerminationCandidate struct {
 }
 
 type EmployeeImportRepository interface {
-	CreateEmployeeImportJob(context.Context, uuid.UUID, uuid.UUID, string, uuid.UUID) error
-	TerminationCandidates(context.Context, uuid.UUID, []string) ([]TerminationCandidate, error)
-	TerminationStatuses(context.Context, uuid.UUID, []uuid.UUID) (map[uuid.UUID]string, error)
+	CreateEmployeeImportJob(context.Context, uuid.UUID, string, uuid.UUID) error
+	TerminationCandidates(context.Context, []string) ([]TerminationCandidate, error)
+	TerminationStatuses(context.Context, []uuid.UUID) (map[uuid.UUID]string, error)
 }
 type EmployeeImportQueue interface {
 	EnqueueEmployeeImport(context.Context, EmployeeImportJob) error
@@ -118,13 +116,13 @@ type ConfirmTerminationImportResponse struct {
 type EmployeeImportHandler struct {
 	Repository EmployeeImportRepository
 	Queue      EmployeeImportQueue
-	Authorizer EmployeeAuthorizer
+	Authorizer Authorizer
 	StorageDir string
 }
 
-func (h EmployeeImportHandler) allowed(r *http.Request, workspaceID uuid.UUID, permission string) bool {
+func (h EmployeeImportHandler) allowed(r *http.Request, permission string) bool {
 	userID, ok := httpinfra.UserIDFromContext(r.Context())
-	return ok && h.Authorizer != nil && h.Authorizer.HasPermission(r.Context(), userID, workspaceID, permission)
+	return ok && h.Authorizer != nil && h.Authorizer.HasPermission(r.Context(), userID, permission)
 }
 func (h EmployeeImportHandler) forbidden(w http.ResponseWriter, r *http.Request) {
 	apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
@@ -142,9 +140,8 @@ func (h EmployeeImportHandler) userID(r *http.Request) (uuid.UUID, bool) {
 }
 
 func (h EmployeeImportHandler) Upload(w http.ResponseWriter, r *http.Request) {
-	workspaceID, ok := organizationIDFromContext(r)
 	userID, userOK := h.userID(r)
-	if !ok || !userOK || !h.allowed(r, workspaceID, string(auth.PermissionEmployeesUpload)) {
+	if !userOK || !h.allowed(r, string(auth.PermissionEmployeesUpload)) {
 		h.forbidden(w, r)
 		return
 	}
@@ -171,11 +168,11 @@ func (h EmployeeImportHandler) Upload(w http.ResponseWriter, r *http.Request) {
 		h.fail(w, r, errors.New("employee import dependencies are not configured"))
 		return
 	}
-	if err := h.Repository.CreateEmployeeImportJob(r.Context(), workspaceID, userID, filePath, jobID); err != nil {
+	if err := h.Repository.CreateEmployeeImportJob(r.Context(), userID, filePath, jobID); err != nil {
 		h.fail(w, r, err)
 		return
 	}
-	if err := h.Queue.EnqueueEmployeeImport(r.Context(), EmployeeImportJob{JobID: jobID, WorkspaceID: workspaceID, UserID: userID, FilePath: filePath}); err != nil {
+	if err := h.Queue.EnqueueEmployeeImport(r.Context(), EmployeeImportJob{JobID: jobID, UserID: userID, FilePath: filePath}); err != nil {
 		h.fail(w, r, err)
 		return
 	}
@@ -185,8 +182,7 @@ func (h EmployeeImportHandler) Upload(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h EmployeeImportHandler) PreviewTermination(w http.ResponseWriter, r *http.Request) {
-	workspaceID, ok := organizationIDFromContext(r)
-	if !ok || !h.allowed(r, workspaceID, string(auth.PermissionEmployeesUpdate)) {
+	if !h.allowed(r, string(auth.PermissionEmployeesUpdate)) {
 		h.forbidden(w, r)
 		return
 	}
@@ -200,7 +196,7 @@ func (h EmployeeImportHandler) PreviewTermination(w http.ResponseWriter, r *http
 		h.fail(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}
-	response, err := h.buildTerminationPreview(r.Context(), workspaceID, mapped)
+	response, err := h.buildTerminationPreview(r.Context(), mapped)
 	if err != nil {
 		h.fail(w, r, err)
 		return
@@ -208,7 +204,7 @@ func (h EmployeeImportHandler) PreviewTermination(w http.ResponseWriter, r *http
 	apperror.WriteJSON(w, http.StatusOK, response)
 }
 
-func (h EmployeeImportHandler) buildTerminationPreview(ctx context.Context, workspaceID uuid.UUID, mapped []map[string]string) (TerminationImportPreviewResponse, error) {
+func (h EmployeeImportHandler) buildTerminationPreview(ctx context.Context, mapped []map[string]string) (TerminationImportPreviewResponse, error) {
 	response := TerminationImportPreviewResponse{ValidRows: make([]ValidTerminationImportRow, 0), InvalidRows: make([]InvalidTerminationImportRow, 0)}
 	codes := make([]string, 0, len(mapped))
 	parsed := make([]terminationParsedRow, 0, len(mapped))
@@ -250,7 +246,7 @@ func (h EmployeeImportHandler) buildTerminationPreview(ctx context.Context, work
 	if h.Repository == nil {
 		return response, errors.New("employee import repository is not configured")
 	}
-	candidates, err := h.Repository.TerminationCandidates(ctx, workspaceID, codes)
+	candidates, err := h.Repository.TerminationCandidates(ctx, codes)
 	if err != nil {
 		return response, err
 	}
@@ -351,9 +347,8 @@ func parseTerminationDate(value string) (time.Time, error) {
 }
 
 func (h EmployeeImportHandler) ConfirmTermination(w http.ResponseWriter, r *http.Request) {
-	workspaceID, ok := organizationIDFromContext(r)
 	userID, userOK := h.userID(r)
-	if !ok || !userOK || !h.allowed(r, workspaceID, string(auth.PermissionEmployeesUpdate)) {
+	if !userOK || !h.allowed(r, string(auth.PermissionEmployeesUpdate)) {
 		h.forbidden(w, r)
 		return
 	}
@@ -385,7 +380,7 @@ func (h EmployeeImportHandler) ConfirmTermination(w http.ResponseWriter, r *http
 		ids[i] = row.EmploymentID
 		rows[i] = TerminationJobRow{EmploymentID: row.EmploymentID, TerminationDate: date.Format("2006-01-02"), TerminationReason: strings.ToLower(strings.TrimSpace(row.TerminationReason)), TerminationNotes: row.TerminationNotes}
 	}
-	statuses, err := h.Repository.TerminationStatuses(r.Context(), workspaceID, ids)
+	statuses, err := h.Repository.TerminationStatuses(r.Context(), ids)
 	if err != nil {
 		h.fail(w, r, err)
 		return
@@ -397,7 +392,7 @@ func (h EmployeeImportHandler) ConfirmTermination(w http.ResponseWriter, r *http
 		}
 	}
 	jobID := uuid.New()
-	if err := h.Queue.EnqueueTerminationImport(r.Context(), TerminationImportJob{JobID: jobID, WorkspaceID: workspaceID, UserID: userID, Rows: rows}); err != nil {
+	if err := h.Queue.EnqueueTerminationImport(r.Context(), TerminationImportJob{JobID: jobID, UserID: userID, Rows: rows}); err != nil {
 		h.fail(w, r, err)
 		return
 	}
@@ -405,8 +400,7 @@ func (h EmployeeImportHandler) ConfirmTermination(w http.ResponseWriter, r *http
 }
 
 func (h EmployeeImportHandler) TerminationTemplate(w http.ResponseWriter, r *http.Request) {
-	workspaceID, ok := organizationIDFromContext(r)
-	if !ok || !h.allowed(r, workspaceID, string(auth.PermissionEmployeesUpdate)) {
+	if !h.allowed(r, string(auth.PermissionEmployeesUpdate)) {
 		h.forbidden(w, r)
 		return
 	}

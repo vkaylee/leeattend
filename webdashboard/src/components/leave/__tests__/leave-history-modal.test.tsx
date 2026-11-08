@@ -58,9 +58,7 @@ describe('LeaveHistoryModal', () => {
         ] as unknown as never);
     });
 
-    const defaultProps = {
-        wsId: 'test-ws-id',
-        employeeId: 'emp-1',
+    const defaultProps = {employeeId: 'emp-1',
         employeeName: 'John Doe',
         isOpen: true,
         onClose: vi.fn(),
@@ -78,7 +76,7 @@ describe('LeaveHistoryModal', () => {
 
         // fetchLeaveHistory called with specific leave_type_id
         await waitFor(() => {
-            expect(api.fetchLeaveHistory).toHaveBeenCalledWith('test-ws-id', 'emp-1', 'lt-1');
+            expect(api.fetchLeaveHistory).toHaveBeenCalledWith('emp-1', 'lt-1');
         });
     });
 

@@ -11,7 +11,7 @@ import {
   useUpdateApprovalWorkflow,
   useApprovalWorkflow,
 } from "@/hooks/use-approval-workflows";
-import { usePermissionCatalog, useWorkspace, useWorkspaceRoles, useWorkspaceMembers } from "@/hooks/use-workspace";
+import { usePermissionCatalog, useOrganization, useOrganizationRoles, useOrganizationMembers } from "@/hooks/use-organization";
 import { logError } from "@/lib/logger";
 import { ROUTES } from "@/lib/routes";
 
@@ -24,11 +24,11 @@ import {
   formatWorkflowPayload,
 } from "./workflow-schemas";
 
-export function useWorkflowOptions(workspaceId: string) {
+export function useWorkflowOptions() {
   const { t } = useTranslation();
-  const { roles } = useWorkspaceRoles(workspaceId);
-  const { members } = useWorkspaceMembers(workspaceId);
-  const { catalog, isError: isCatalogError, isLoading: isCatalogLoading } = usePermissionCatalog(workspaceId);
+  const { roles } = useOrganizationRoles();
+  const { members } = useOrganizationMembers();
+  const { catalog, isError: isCatalogError, isLoading: isCatalogLoading } = usePermissionCatalog();
 
   const permissionOptions = useMemo(() => {
     return catalog.map((permission) => ({
@@ -72,7 +72,7 @@ interface UseWorkflowFormProps {
 export function useWorkflowForm({ workflowId, defaultEntityType, onSuccess }: UseWorkflowFormProps) {
   const { t } = useTranslation();
   const toast = useToast();
-  const { workspace } = useWorkspace();
+  const { workspace } = useOrganization();
   const { data: workflow, isLoading: isDetailsLoading } = useApprovalWorkflow(workflowId);
   const { mutateAsync: createWorkflow, isPending: isCreating } = useCreateApprovalWorkflow();
   const { mutateAsync: updateWorkflow, isPending: isUpdating } = useUpdateApprovalWorkflow(workflowId);
@@ -202,7 +202,7 @@ export function useWorkflowEditor() {
     handleSuccess(form.getValues("entity_type"));
   };
 
-  const { permissionOptions, roleOptions, memberOptions } = useWorkflowOptions(workspace?.id ?? "");
+  const { permissionOptions, roleOptions, memberOptions } = useWorkflowOptions();
 
   return {
     t,

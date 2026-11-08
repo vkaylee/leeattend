@@ -143,7 +143,7 @@
       "remove_member": "移除成员",
       "messages": {
         "remove_error": "移除成员时出错。",
-        "no_members": "在此工作空间中未找到成员。"
+        "no_members": "在此组织中未找到成员。"
       }
     },
     "invite": {
@@ -370,7 +370,7 @@
       "no_conditions": "未配置任何工作条件",
       "policy_desc": "为此员工覆盖考勤政策",
       "no_assignments": "无政策覆盖",
-      "no_assignments_desc": "员工使用工作区默认规则。点击\"添加新\"设置自定义考勤政策。",
+      "no_assignments_desc": "员工使用组织默认规则。点击 \"添加新\" 设置自定义考勤政策。",
       "delete_assign_warning": "删除此政策覆盖？员工将恢复为默认规则。"
     },
     "salary": {
@@ -410,7 +410,7 @@
       "no_history_desc": "更新后，员工薪资历史和津贴明细将显示在此处。",
       "fetch_error": "无法加载薪资历史。"
     },
-    "select_workspace": "请选择工作区",
+    "select_workspace": "请选择组织",
     "hire_date": "入职日期",
     "bulk_import_title": "批量导入员工",
     "bulk_import_btn": "从文件导入",
@@ -528,13 +528,13 @@
     "subtitle": "管理个人信息和账号设置",
     "join_date": "加入日期",
     "preferred_language": "首选语言",
-    "follow_workspace": "跟随工作空间设置",
+    "follow_workspace": "跟随组织设置",
     "bio": "个人简介",
     "bio_placeholder": "简短的自我介绍...",
     "personalization": {
       "title": "个性化",
       "subtitle": "自定义您的个人 UI 颜色",
-      "use_workspace_default": "使用工作空间默认设置",
+      "use_workspace_default": "使用组织默认设置",
       "note": "* 此更改仅适用于您当前使用的浏览器。"
     },
     "security": {

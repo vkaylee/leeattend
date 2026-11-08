@@ -6,15 +6,15 @@ import { useToast } from "@/components/ui/toast";
 import { useConfirm } from "@/hooks/use-confirm";
 import { useDebounce } from "@/hooks/use-debounce";
 import { usePagination } from "@/hooks/use-pagination";
-import { fetchWorkspaceLeaveBalances, getStandaloneOrganizationId, triggerAccrualRun, fetchJobStatus } from "@/lib/api";
-import { WorkspaceLeaveBalance } from "@/lib/api/types";
+import { fetchLeaveBalances, triggerAccrualRun, fetchJobStatus } from "@/lib/api";
+import { OrganizationLeaveBalance } from "@/lib/api/types";
 import { logError } from "@/lib/logger";
 
 export function useLeaveBalances() {
   const { t } = useTranslation();
   const toast = useToast();
   const queryClient = useQueryClient();
-  const wsId = getStandaloneOrganizationId();
+  
   const [searchTerm, setSearchTerm] = useState("");
   const { page, setPage, reset } = usePagination({ initialPageSize: 20 });
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
@@ -23,15 +23,14 @@ export function useLeaveBalances() {
   const debouncedSearch = useDebounce(searchTerm, 500);
 
   const [selectedEmployee, setSelectedEmployee] = useState<{ id: string, name: string, leaveTypeId?: string, leaveTypeName?: string } | null>(null);
-  const [selectedBalance, setSelectedBalance] = useState<WorkspaceLeaveBalance | null>(null);
+  const [selectedBalance, setSelectedBalance] = useState<OrganizationLeaveBalance | null>(null);
 
   const { data: paginatedData, isLoading } = useQuery({
-    queryKey: ["workspace-leave-balances", wsId, page, debouncedSearch, selectedYear],
+    queryKey: ["leave-balances", page, debouncedSearch, selectedYear],
     queryFn: () => {
-      if (!wsId) throw new Error("Workspace ID is required");
-      return fetchWorkspaceLeaveBalances(wsId, { page, limit, q: debouncedSearch, year: selectedYear });
+      
+      return fetchLeaveBalances({ page, limit, q: debouncedSearch, year: selectedYear });
     },
-    enabled: !!wsId,
     placeholderData: (previousData) => previousData
   });
 
@@ -42,10 +41,10 @@ export function useLeaveBalances() {
     for (let index = 0; index < MAX_POLLS; index++) {
       await new Promise(resolve => setTimeout(resolve, POLL_INTERVAL));
       try {
-        if (!wsId) return;
-        const status = await fetchJobStatus(wsId, jobId);
+        
+        const status = await fetchJobStatus(jobId);
         if (status.status === 'completed') {
-          void queryClient.invalidateQueries({ queryKey: ["workspace-leave-balances"] });
+          void queryClient.invalidateQueries({ queryKey: ["leave-balances"] });
           toast.success(t("leave_balances.accrual_completed"));
           return;
         }
@@ -60,19 +59,19 @@ export function useLeaveBalances() {
       }
     }
     toast.error(t("leave_balances.accrual_timeout"));
-  }, [wsId, queryClient, toast, t]);
+  }, [queryClient, toast, t]);
 
   const accrualMutation = useMutation({
     mutationFn: () => {
-      if (!wsId) throw new Error("Workspace ID is required");
-      return triggerAccrualRun(wsId, { date: new Date().toISOString().split('T')[0] });
+      
+      return triggerAccrualRun({ date: new Date().toISOString().split('T')[0] });
     },
     onSuccess: (data) => {
       if (data.status === 'queued' && data.job_id) {
         toast.success(t("leave_balances.accrual_queued"));
         void pollJobStatus(data.job_id);
       } else {
-        void queryClient.invalidateQueries({ queryKey: ["workspace-leave-balances"] });
+        void queryClient.invalidateQueries({ queryKey: ["leave-balances"] });
         toast.success(data.message || t("common.success"));
       }
     },
@@ -94,7 +93,6 @@ export function useLeaveBalances() {
 
   return {
     t,
-    wsId,
     searchTerm,
     setSearchTerm,
     page,

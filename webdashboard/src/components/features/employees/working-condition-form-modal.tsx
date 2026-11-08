@@ -49,28 +49,22 @@ export interface WorkingConditionFormModalProps {
   employeeId?: string;
   isOpen: boolean;
   onClose: () => void;
-  wsId: string;
 }
 
 export default function WorkingConditionFormModal({
   isOpen,
-  onClose,
-  wsId,
-  employeeId,
+  onClose,employeeId,
 }: WorkingConditionFormModalProps) {
   const { t, i18n } = useTranslation();
   const toast = useToast();
   const queryClient = useQueryClient();
   const currentLang = i18n.language.split("-")[0];
 
-  const { employees = [] } = useAllEmployees(wsId, { enabled: isOpen && !employeeId });
+  const { employees = [] } = useAllEmployees({ enabled: isOpen && !employeeId });
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>("");
 
-  const { data: typeDefs = [] } = useQuery<ConditionTypeDefinition[]>({
-    queryKey: ["condition-types", wsId],
-    queryFn: () => (wsId ? fetchConditionTypes(wsId, true) : Promise.resolve([])),
-    enabled: !!wsId && isOpen,
-  });
+  const { data: typeDefs = [] } = useQuery<ConditionTypeDefinition[]>({ queryKey: ["condition-types"], queryFn: () => (fetchConditionTypes(true)),
+  enabled: isOpen, });
 
   const {
     register,
@@ -119,7 +113,7 @@ export default function WorkingConditionFormModal({
 
       const matchingDef = typeDefs.find((d) => d.code === values.type_);
 
-      await createWorkingCondition(wsId, targetEmpId, {
+      await createWorkingCondition(targetEmpId, {
         type_: values.type_,
         condition_type_id: matchingDef?.id ?? null,
         start_date: values.start_date,

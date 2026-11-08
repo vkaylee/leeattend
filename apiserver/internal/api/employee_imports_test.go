@@ -23,16 +23,16 @@ type mockImportRepo struct {
 	statusesErr   error
 }
 
-func (m *mockImportRepo) CreateEmployeeImportJob(_ context.Context, _, _ uuid.UUID, _ string, _ uuid.UUID) error {
+func (m *mockImportRepo) CreateEmployeeImportJob(_ context.Context, _ uuid.UUID, _ string, _ uuid.UUID) error {
 	m.createdJob = true
 	return nil
 }
 
-func (m *mockImportRepo) TerminationCandidates(_ context.Context, _ uuid.UUID, _ []string) ([]TerminationCandidate, error) {
+func (m *mockImportRepo) TerminationCandidates(_ context.Context, _ []string) ([]TerminationCandidate, error) {
 	return m.candidates, m.candidatesErr
 }
 
-func (m *mockImportRepo) TerminationStatuses(_ context.Context, _ uuid.UUID, _ []uuid.UUID) (map[uuid.UUID]string, error) {
+func (m *mockImportRepo) TerminationStatuses(_ context.Context, _ []uuid.UUID) (map[uuid.UUID]string, error) {
 	return m.statuses, m.statusesErr
 }
 
@@ -80,12 +80,10 @@ func sampleXLSX(rows [][]string) []byte {
 }
 
 func TestEmployeeImport_Upload_Forbidden(t *testing.T) {
-	wsID := uuid.New()
 	h := EmployeeImportHandler{
-		Authorizer: mockAuthorizer{perms: map[string]bool{}},
+		Authorizer: employeeSliceAuthorizer{perms: map[string]bool{}},
 	}
-	req := httptest.NewRequest(http.MethodPost, "/api/v1/workspaces/"+wsID.String()+"/employees/upload", nil)
-	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/employees/upload", nil)
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
 	rec := httptest.NewRecorder()
 
@@ -96,14 +94,12 @@ func TestEmployeeImport_Upload_Forbidden(t *testing.T) {
 }
 
 func TestEmployeeImport_Upload_InvalidFormat(t *testing.T) {
-	wsID := uuid.New()
 	h := EmployeeImportHandler{
-		Authorizer: mockAuthorizer{perms: map[string]bool{string(auth.PermissionEmployeesUpload): true}},
+		Authorizer: employeeSliceAuthorizer{perms: map[string]bool{string(auth.PermissionEmployeesUpload): true}},
 	}
 	ct, body, _ := createMultipartExcel("file", "test.csv", []byte("a,b,c\n1,2,3"))
-	req := httptest.NewRequest(http.MethodPost, "/api/v1/workspaces/"+wsID.String()+"/employees/upload", body)
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/employees/upload", body)
 	req.Header.Set("Content-Type", ct)
-	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
 	rec := httptest.NewRecorder()
 
@@ -114,20 +110,18 @@ func TestEmployeeImport_Upload_InvalidFormat(t *testing.T) {
 }
 
 func TestEmployeeImport_Upload_Success(t *testing.T) {
-	wsID := uuid.New()
 	repo := &mockImportRepo{}
 	q := &mockImportQueue{}
 	h := EmployeeImportHandler{
 		Repository: repo,
 		Queue:      q,
-		Authorizer: mockAuthorizer{perms: map[string]bool{string(auth.PermissionEmployeesUpload): true}},
+		Authorizer: employeeSliceAuthorizer{perms: map[string]bool{string(auth.PermissionEmployeesUpload): true}},
 		StorageDir: t.TempDir(),
 	}
 	xlsxBytes := sampleXLSX([][]string{{"header"}, {"row"}})
 	ct, body, _ := createMultipartExcel("file", "employees.xlsx", xlsxBytes)
-	req := httptest.NewRequest(http.MethodPost, "/api/v1/workspaces/"+wsID.String()+"/employees/upload", body)
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/employees/upload", body)
 	req.Header.Set("Content-Type", ct)
-	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
 	rec := httptest.NewRecorder()
 
@@ -147,7 +141,6 @@ func TestEmployeeImport_Upload_Success(t *testing.T) {
 }
 
 func TestEmployeeImport_Preview_Flow(t *testing.T) {
-	wsID := uuid.New()
 	emp1ID := uuid.New()
 	emp2ID := uuid.New()
 	emp3ID := uuid.New()
@@ -212,7 +205,7 @@ func TestEmployeeImport_Preview_Flow(t *testing.T) {
 	h := EmployeeImportHandler{
 		Repository: repo,
 		Queue:      &mockImportQueue{},
-		Authorizer: mockAuthorizer{perms: map[string]bool{string(auth.PermissionEmployeesUpdate): true}},
+		Authorizer: employeeSliceAuthorizer{perms: map[string]bool{string(auth.PermissionEmployeesUpdate): true}},
 	}
 
 	xlsxData := sampleXLSX([][]string{
@@ -223,9 +216,8 @@ func TestEmployeeImport_Preview_Flow(t *testing.T) {
 		{"EMP999", "2026-06-30", "voluntary_resignation", ""},
 	})
 	ct, body, _ := createMultipartExcel("file", "termination.xlsx", xlsxData)
-	req := httptest.NewRequest(http.MethodPost, "/api/v1/workspaces/"+wsID.String()+"/employees/import-termination/preview", body)
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/employees/import-termination/preview", body)
 	req.Header.Set("Content-Type", ct)
-	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
 	rec := httptest.NewRecorder()
 
@@ -263,7 +255,6 @@ func TestEmployeeImport_Preview_Flow(t *testing.T) {
 }
 
 func TestEmployeeImport_Confirm_ValidationAndSuccess(t *testing.T) {
-	wsID := uuid.New()
 	activeEmpID := uuid.New()
 	terminatedEmpID := uuid.New()
 
@@ -277,7 +268,7 @@ func TestEmployeeImport_Confirm_ValidationAndSuccess(t *testing.T) {
 	h := EmployeeImportHandler{
 		Repository: repo,
 		Queue:      q,
-		Authorizer: mockAuthorizer{perms: map[string]bool{string(auth.PermissionEmployeesUpdate): true}},
+		Authorizer: employeeSliceAuthorizer{perms: map[string]bool{string(auth.PermissionEmployeesUpdate): true}},
 	}
 
 	// 1. Confirm with already terminated employment should fail 400
@@ -291,8 +282,7 @@ func TestEmployeeImport_Confirm_ValidationAndSuccess(t *testing.T) {
 		},
 	}
 	badBody, _ := json.Marshal(payloadBad)
-	reqBad := httptest.NewRequest(http.MethodPost, "/api/v1/workspaces/"+wsID.String()+"/employees/import-termination/confirm", bytes.NewReader(badBody))
-	reqBad = reqBad.WithContext(httpinfra.WithOrganizationIDForTest(reqBad.Context(), wsID))
+	reqBad := httptest.NewRequest(http.MethodPost, "/api/v1/employees/import-termination/confirm", bytes.NewReader(badBody))
 	reqBad = reqBad.WithContext(httpinfra.WithUserIDForTest(reqBad.Context(), uuid.New()))
 	recBad := httptest.NewRecorder()
 	h.ConfirmTermination(recBad, reqBad)
@@ -311,8 +301,7 @@ func TestEmployeeImport_Confirm_ValidationAndSuccess(t *testing.T) {
 		},
 	}
 	goodBody, _ := json.Marshal(payloadGood)
-	reqGood := httptest.NewRequest(http.MethodPost, "/api/v1/workspaces/"+wsID.String()+"/employees/import-termination/confirm", bytes.NewReader(goodBody))
-	reqGood = reqGood.WithContext(httpinfra.WithOrganizationIDForTest(reqGood.Context(), wsID))
+	reqGood := httptest.NewRequest(http.MethodPost, "/api/v1/employees/import-termination/confirm", bytes.NewReader(goodBody))
 	reqGood = reqGood.WithContext(httpinfra.WithUserIDForTest(reqGood.Context(), uuid.New()))
 	recGood := httptest.NewRecorder()
 	h.ConfirmTermination(recGood, reqGood)
@@ -333,14 +322,12 @@ func TestEmployeeImport_Confirm_ValidationAndSuccess(t *testing.T) {
 }
 
 func TestEmployeeImport_Template_Download(t *testing.T) {
-	wsID := uuid.New()
 	h := EmployeeImportHandler{
-		Authorizer: mockAuthorizer{perms: map[string]bool{string(auth.PermissionEmployeesUpdate): true}},
+		Authorizer: employeeSliceAuthorizer{perms: map[string]bool{string(auth.PermissionEmployeesUpdate): true}},
 	}
 
 	// English template
-	reqEn := httptest.NewRequest(http.MethodGet, "/api/v1/workspaces/"+wsID.String()+"/employees/import-termination/template", nil)
-	reqEn = reqEn.WithContext(httpinfra.WithOrganizationIDForTest(reqEn.Context(), wsID))
+	reqEn := httptest.NewRequest(http.MethodGet, "/api/v1/employees/import-termination/template", nil)
 	reqEn = reqEn.WithContext(httpinfra.WithUserIDForTest(reqEn.Context(), uuid.New()))
 	recEn := httptest.NewRecorder()
 	h.TerminationTemplate(recEn, reqEn)
@@ -359,8 +346,7 @@ func TestEmployeeImport_Template_Download(t *testing.T) {
 	}
 
 	// Vietnamese template
-	reqVi := httptest.NewRequest(http.MethodGet, "/api/v1/workspaces/"+wsID.String()+"/employees/import-termination/template?lang=vi", nil)
-	reqVi = reqVi.WithContext(httpinfra.WithOrganizationIDForTest(reqVi.Context(), wsID))
+	reqVi := httptest.NewRequest(http.MethodGet, "/api/v1/employees/import-termination/template?lang=vi", nil)
 	reqVi = reqVi.WithContext(httpinfra.WithUserIDForTest(reqVi.Context(), uuid.New()))
 	recVi := httptest.NewRecorder()
 	h.TerminationTemplate(recVi, reqVi)

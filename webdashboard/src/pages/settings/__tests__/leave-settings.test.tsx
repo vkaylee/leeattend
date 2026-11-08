@@ -48,9 +48,6 @@ vi.mock("@/components/ui/toast", () => ({
 }));
 
 vi.mock("@/lib/api/leaves");
-vi.mock("@/lib/api/helpers", () => ({
-  getStandaloneOrganizationId: vi.fn(() => "standalone"),
-}));
 vi.mock("@/hooks/use-employees", () => ({
   useAllEmployees: vi.fn(),
 }));
@@ -102,7 +99,6 @@ const mockAssignments = [
 const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
 
 describe("LeaveSettings Page", () => {
-  const wsId = "standalone";
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -203,7 +199,7 @@ describe("LeaveSettings Page", () => {
 
     // Verify API call
     await waitFor(() => {
-      expect(api.deleteLeavePolicyAssignment).toHaveBeenCalledWith(wsId, "assign-1");
+      expect(api.deleteLeavePolicyAssignment).toHaveBeenCalledWith("assign-1");
     });
   });
 

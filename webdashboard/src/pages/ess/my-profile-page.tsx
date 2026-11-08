@@ -1,7 +1,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 
-import { fetchEmployeeEmployments, getStandaloneOrganizationId } from "@/lib/api";
+import { fetchEmployeeEmployments } from "@/lib/api";
 
 import { PageContainer } from "@/components/ui/page-container";
 
@@ -38,11 +38,11 @@ export default function MyProfilePage() {
     ConfirmationDialog,
   } = useMyProfilePage();
 
-  const wsId = getStandaloneOrganizationId() ?? "";
+  
   const { data: employments = [] } = useQuery({
-    queryKey: ["employments", wsId, employee?.id],
-    queryFn: () => employee ? fetchEmployeeEmployments(wsId, employee.id) : Promise.resolve([]),
-    enabled: !!employee && !!wsId,
+    queryKey: ["employments", employee?.id],
+    queryFn: () => employee ? fetchEmployeeEmployments(employee.id) : Promise.resolve([]),
+    enabled: !!employee,
   });
 
   if (isLoading) return <LoadingState />;

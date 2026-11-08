@@ -32,7 +32,6 @@ var ErrOvertimeValidation = errors.New("overtime: validation failed")
 
 type OvertimePolicy struct {
 	ID          uuid.UUID `json:"id"`
-	WorkspaceID uuid.UUID `json:"workspace_id"`
 	Name        string    `json:"name"`
 	Description *string   `json:"description"`
 	CreatedAt   string    `json:"created_at"`
@@ -87,7 +86,6 @@ type OvertimePolicyDetail struct {
 
 type OvertimeRequest struct {
 	ID                uuid.UUID       `json:"id"`
-	WorkspaceID       uuid.UUID       `json:"workspace_id"`
 	RequestedByUserID uuid.UUID       `json:"requested_by_user_id"`
 	DepartmentID      *uuid.UUID      `json:"department_id"`
 	PlannedDate       string          `json:"planned_date"`
@@ -160,49 +158,40 @@ type ApproveOTRequest struct {
 }
 
 type OvertimeRepository interface {
-	ListOvertimePolicies(context.Context, uuid.UUID, int, int) (OvertimePolicyListResponse, error)
-	CreateOvertimePolicy(context.Context, uuid.UUID, CreateOvertimePolicyRequest) (OvertimePolicy, error)
-	GetOvertimePolicy(context.Context, uuid.UUID, uuid.UUID) (OvertimePolicyDetail, error)
-	AddOvertimeRule(context.Context, uuid.UUID, uuid.UUID, CreateOvertimeRuleRequest) (OvertimeRule, error)
-	AssignOvertimePolicy(context.Context, uuid.UUID, AssignOvertimePolicyRequest) error
-	ListOvertimeRequests(context.Context, uuid.UUID, int, int) (OvertimeRequestListResponse, error)
-	CreateOvertimeRequest(context.Context, uuid.UUID, uuid.UUID, CreateOvertimeRequest) (OvertimeRequest, error)
-	GetOvertimeRequest(context.Context, uuid.UUID, uuid.UUID) (OvertimeRequestDetail, error)
-	SubmitOvertimeRequest(context.Context, uuid.UUID, uuid.UUID) error
-	ConsentOvertimeRequest(context.Context, uuid.UUID, uuid.UUID, uuid.UUID, EmployeeConsentRequest) error
-	GetEmployee(context.Context, uuid.UUID, uuid.UUID) (EmployeeRecord, error)
-	EmployeeDepartmentID(context.Context, uuid.UUID, uuid.UUID) (*uuid.UUID, error)
-	ClaimOvertime(context.Context, uuid.UUID, uuid.UUID, ClaimOTRequest, uuid.UUID) error
-	ApproveOvertime(context.Context, uuid.UUID, uuid.UUID, ApproveOTRequest, uuid.UUID) error
+	ListOvertimePolicies(context.Context, int, int) (OvertimePolicyListResponse, error)
+	CreateOvertimePolicy(context.Context, CreateOvertimePolicyRequest) (OvertimePolicy, error)
+	GetOvertimePolicy(context.Context, uuid.UUID) (OvertimePolicyDetail, error)
+	AddOvertimeRule(context.Context, uuid.UUID, CreateOvertimeRuleRequest) (OvertimeRule, error)
+	AssignOvertimePolicy(context.Context, AssignOvertimePolicyRequest) error
+	ListOvertimeRequests(context.Context, int, int) (OvertimeRequestListResponse, error)
+	CreateOvertimeRequest(context.Context, uuid.UUID, CreateOvertimeRequest) (OvertimeRequest, error)
+	GetOvertimeRequest(context.Context, uuid.UUID) (OvertimeRequestDetail, error)
+	SubmitOvertimeRequest(context.Context, uuid.UUID) error
+	ConsentOvertimeRequest(context.Context, uuid.UUID, uuid.UUID, EmployeeConsentRequest) error
+	GetEmployee(context.Context, uuid.UUID) (EmployeeRecord, error)
+	EmployeeDepartmentID(context.Context, uuid.UUID) (*uuid.UUID, error)
+	ClaimOvertime(context.Context, uuid.UUID, ClaimOTRequest, uuid.UUID) error
+	ApproveOvertime(context.Context, uuid.UUID, ApproveOTRequest, uuid.UUID) error
 }
 
 type OvertimeHandler struct {
 	Repository       OvertimeRepository
 	BehalfRepository BehalfAssignmentRepository
-	Authorizer       WorkspaceAuthorizer
+	Authorizer       Authorizer
 }
 
 func (h OvertimeHandler) userID(r *http.Request) (uuid.UUID, bool) {
 	return httpinfra.UserIDFromContext(r.Context())
 }
 
-func (h OvertimeHandler) allowed(r *http.Request, workspaceID uuid.UUID, permission string) bool {
+func (h OvertimeHandler) allowed(r *http.Request, permission string) bool {
 	userID, ok := h.userID(r)
-	return ok && h.Authorizer != nil && h.Authorizer.HasPermission(r.Context(), userID, workspaceID, permission)
+	return ok && h.Authorizer != nil && h.Authorizer.HasPermission(r.Context(), userID, permission)
 }
 
-func (h OvertimeHandler) scopedAllowed(r *http.Request, workspaceID uuid.UUID, permission string, departmentID *uuid.UUID) bool {
+func (h OvertimeHandler) scopedAllowed(r *http.Request, permission string, departmentID *uuid.UUID) bool {
 	userID, ok := h.userID(r)
-	if !ok || h.Authorizer == nil || !h.Authorizer.HasPermission(r.Context(), userID, workspaceID, permission) {
-		return false
-	}
-	scoped, ok := h.Authorizer.(interface {
-		HasScopedPermission(context.Context, uuid.UUID, uuid.UUID, string, *uuid.UUID) bool
-	})
-	if !ok {
-		return true
-	}
-	return scoped.HasScopedPermission(r.Context(), userID, workspaceID, permission, departmentID)
+	return ok && h.Authorizer != nil && h.Authorizer.HasScopedPermission(r.Context(), userID, permission, departmentID)
 }
 
 func (h OvertimeHandler) forbidden(w http.ResponseWriter, r *http.Request) {
@@ -244,8 +233,8 @@ func validOvertimeClock(raw *string) bool {
 }
 
 func (h OvertimeHandler) ListPolicies(w http.ResponseWriter, r *http.Request) {
-	workspaceID, ok := organizationIDFromContext(r)
-	if !ok {
+	
+	if _, userOK := h.userID(r); !userOK {
 		h.forbidden(w, r)
 		return
 	}
@@ -254,7 +243,7 @@ func (h OvertimeHandler) ListPolicies(w http.ResponseWriter, r *http.Request) {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}
-	result, err := h.Repository.ListOvertimePolicies(r.Context(), workspaceID, pagination.Page, pagination.Limit)
+	result, err := h.Repository.ListOvertimePolicies(r.Context(), pagination.Page, pagination.Limit)
 	if err != nil {
 		h.fail(w, r, err)
 		return
@@ -263,8 +252,8 @@ func (h OvertimeHandler) ListPolicies(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h OvertimeHandler) CreatePolicy(w http.ResponseWriter, r *http.Request) {
-	workspaceID, ok := organizationIDFromContext(r)
-	if !ok || !h.allowed(r, workspaceID, PermissionOvertimePoliciesManage) {
+	
+	if !h.allowed(r, PermissionOvertimePoliciesManage) {
 		h.forbidden(w, r)
 		return
 	}
@@ -273,7 +262,7 @@ func (h OvertimeHandler) CreatePolicy(w http.ResponseWriter, r *http.Request) {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}
-	result, err := h.Repository.CreateOvertimePolicy(r.Context(), workspaceID, req)
+	result, err := h.Repository.CreateOvertimePolicy(r.Context(), req)
 	if err != nil {
 		h.fail(w, r, err)
 		return
@@ -282,13 +271,13 @@ func (h OvertimeHandler) CreatePolicy(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h OvertimeHandler) GetPolicy(w http.ResponseWriter, r *http.Request) {
-	workspaceID, ok := organizationIDFromContext(r)
+	
 	policyID, policyOK := pathUUID(r, "policy_id")
-	if !ok || !policyOK {
+	if !policyOK {
 		h.forbidden(w, r)
 		return
 	}
-	result, err := h.Repository.GetOvertimePolicy(r.Context(), workspaceID, policyID)
+	result, err := h.Repository.GetOvertimePolicy(r.Context(), policyID)
 	if err != nil {
 		h.fail(w, r, err)
 		return
@@ -297,9 +286,9 @@ func (h OvertimeHandler) GetPolicy(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h OvertimeHandler) AddRule(w http.ResponseWriter, r *http.Request) {
-	workspaceID, ok := organizationIDFromContext(r)
+	
 	policyID, policyOK := pathUUID(r, "policy_id")
-	if !ok || !policyOK || !h.allowed(r, workspaceID, PermissionOvertimePoliciesManage) {
+	if !policyOK || !h.allowed(r, PermissionOvertimePoliciesManage) {
 		h.forbidden(w, r)
 		return
 	}
@@ -308,7 +297,7 @@ func (h OvertimeHandler) AddRule(w http.ResponseWriter, r *http.Request) {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}
-	result, err := h.Repository.AddOvertimeRule(r.Context(), workspaceID, policyID, req)
+	result, err := h.Repository.AddOvertimeRule(r.Context(), policyID, req)
 	if err != nil {
 		h.fail(w, r, err)
 		return
@@ -317,8 +306,8 @@ func (h OvertimeHandler) AddRule(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h OvertimeHandler) AssignPolicy(w http.ResponseWriter, r *http.Request) {
-	workspaceID, ok := organizationIDFromContext(r)
-	if !ok || !h.allowed(r, workspaceID, PermissionOvertimePoliciesManage) {
+	
+	if !h.allowed(r, PermissionOvertimePoliciesManage) {
 		h.forbidden(w, r)
 		return
 	}
@@ -328,7 +317,7 @@ func (h OvertimeHandler) AssignPolicy(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	switch req.AssigneeType {
-	case "workspace":
+	case "organization":
 		if req.AssigneeID != nil {
 			apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 			return
@@ -342,7 +331,7 @@ func (h OvertimeHandler) AssignPolicy(w http.ResponseWriter, r *http.Request) {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}
-	if err := h.Repository.AssignOvertimePolicy(r.Context(), workspaceID, req); err != nil {
+	if err := h.Repository.AssignOvertimePolicy(r.Context(), req); err != nil {
 		h.fail(w, r, err)
 		return
 	}
@@ -350,8 +339,8 @@ func (h OvertimeHandler) AssignPolicy(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h OvertimeHandler) ListRequests(w http.ResponseWriter, r *http.Request) {
-	workspaceID, ok := organizationIDFromContext(r)
-	if !ok || !h.allowed(r, workspaceID, PermissionOvertimeRequestRead) {
+	
+	if !h.allowed(r, PermissionOvertimeRequestRead) {
 		h.forbidden(w, r)
 		return
 	}
@@ -360,7 +349,7 @@ func (h OvertimeHandler) ListRequests(w http.ResponseWriter, r *http.Request) {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}
-	result, err := h.Repository.ListOvertimeRequests(r.Context(), workspaceID, pagination.Page, pagination.Limit)
+	result, err := h.Repository.ListOvertimeRequests(r.Context(), pagination.Page, pagination.Limit)
 	if err != nil {
 		h.fail(w, r, err)
 		return
@@ -369,9 +358,9 @@ func (h OvertimeHandler) ListRequests(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h OvertimeHandler) CreateRequest(w http.ResponseWriter, r *http.Request) {
-	workspaceID, ok := organizationIDFromContext(r)
+	
 	userID, userOK := h.userID(r)
-	if !ok || !userOK || !h.allowed(r, workspaceID, PermissionOvertimeRequestCreate) {
+	if !userOK || !h.allowed(r, PermissionOvertimeRequestCreate) {
 		h.forbidden(w, r)
 		return
 	}
@@ -380,9 +369,9 @@ func (h OvertimeHandler) CreateRequest(w http.ResponseWriter, r *http.Request) {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}
-	behalfAllowed := h.allowed(r, workspaceID, PermissionOvertimeRequestCreateBehalf)
+	behalfAllowed := h.allowed(r, PermissionOvertimeRequestCreateBehalf)
 	for _, employeeID := range req.Employees {
-		employee, err := h.Repository.GetEmployee(r.Context(), workspaceID, employeeID)
+		employee, err := h.Repository.GetEmployee(r.Context(), employeeID)
 		if err != nil {
 			h.fail(w, r, err)
 			return
@@ -394,7 +383,7 @@ func (h OvertimeHandler) CreateRequest(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	}
-	result, err := h.Repository.CreateOvertimeRequest(r.Context(), workspaceID, userID, req)
+	result, err := h.Repository.CreateOvertimeRequest(r.Context(), userID, req)
 	if err != nil {
 		h.fail(w, r, err)
 		return
@@ -403,13 +392,13 @@ func (h OvertimeHandler) CreateRequest(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h OvertimeHandler) GetRequest(w http.ResponseWriter, r *http.Request) {
-	workspaceID, ok := organizationIDFromContext(r)
+	
 	requestID, requestOK := pathUUID(r, "id")
-	if !ok || !requestOK || !h.allowed(r, workspaceID, PermissionOvertimeRequestRead) {
+	if !requestOK || !h.allowed(r, PermissionOvertimeRequestRead) {
 		h.forbidden(w, r)
 		return
 	}
-	result, err := h.Repository.GetOvertimeRequest(r.Context(), workspaceID, requestID)
+	result, err := h.Repository.GetOvertimeRequest(r.Context(), requestID)
 	if err != nil {
 		h.fail(w, r, err)
 		return
@@ -418,13 +407,13 @@ func (h OvertimeHandler) GetRequest(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h OvertimeHandler) SubmitRequest(w http.ResponseWriter, r *http.Request) {
-	workspaceID, ok := organizationIDFromContext(r)
+	
 	requestID, requestOK := pathUUID(r, "id")
-	if !ok || !requestOK || !h.allowed(r, workspaceID, PermissionOvertimeRequestCreate) {
+	if !requestOK || !h.allowed(r, PermissionOvertimeRequestCreate) {
 		h.forbidden(w, r)
 		return
 	}
-	if err := h.Repository.SubmitOvertimeRequest(r.Context(), workspaceID, requestID); err != nil {
+	if err := h.Repository.SubmitOvertimeRequest(r.Context(), requestID); err != nil {
 		h.fail(w, r, err)
 		return
 	}
@@ -432,21 +421,21 @@ func (h OvertimeHandler) SubmitRequest(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h OvertimeHandler) ConsentRequest(w http.ResponseWriter, r *http.Request) {
-	workspaceID, ok := organizationIDFromContext(r)
+	
 	requestID, requestOK := pathUUID(r, "id")
 	employeeID, employeeOK := pathUUID(r, "emp_id")
 	userID, userOK := h.userID(r)
-	if !ok || !requestOK || !employeeOK || !userOK {
+	if !requestOK || !employeeOK || !userOK {
 		h.forbidden(w, r)
 		return
 	}
-	employee, err := h.Repository.GetEmployee(r.Context(), workspaceID, employeeID)
+	employee, err := h.Repository.GetEmployee(r.Context(), employeeID)
 	if err != nil {
 		h.fail(w, r, err)
 		return
 	}
 	if employee.UserID == nil || *employee.UserID != userID {
-		if !h.allowed(r, workspaceID, PermissionOvertimeRequestCreateBehalf) {
+		if !h.allowed(r, PermissionOvertimeRequestCreateBehalf) {
 			h.forbidden(w, r)
 			return
 		}
@@ -456,7 +445,7 @@ func (h OvertimeHandler) ConsentRequest(w http.ResponseWriter, r *http.Request) 
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}
-	if err := h.Repository.ConsentOvertimeRequest(r.Context(), workspaceID, requestID, employeeID, req); err != nil {
+	if err := h.Repository.ConsentOvertimeRequest(r.Context(), requestID, employeeID, req); err != nil {
 		h.fail(w, r, err)
 		return
 	}
@@ -464,8 +453,8 @@ func (h OvertimeHandler) ConsentRequest(w http.ResponseWriter, r *http.Request) 
 }
 
 func (h OvertimeHandler) ListRequestBehalf(w http.ResponseWriter, r *http.Request) {
-	workspaceID, ok := organizationIDFromContext(r)
-	if !ok {
+	
+	if _, userOK := h.userID(r); !userOK {
 		h.forbidden(w, r)
 		return
 	}
@@ -474,7 +463,7 @@ func (h OvertimeHandler) ListRequestBehalf(w http.ResponseWriter, r *http.Reques
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}
-	items, err := h.BehalfRepository.ListBehalfAssignments(r.Context(), workspaceID, OvertimeRequestBehalfAssignmentType)
+	items, err := h.BehalfRepository.ListBehalfAssignments(r.Context(), OvertimeRequestBehalfAssignmentType)
 	if err != nil {
 		h.fail(w, r, err)
 		return
@@ -492,8 +481,8 @@ func (h OvertimeHandler) ListRequestBehalf(w http.ResponseWriter, r *http.Reques
 }
 
 func (h OvertimeHandler) CreateRequestBehalf(w http.ResponseWriter, r *http.Request) {
-	workspaceID, ok := organizationIDFromContext(r)
-	if !ok || !h.allowed(r, workspaceID, PermissionOvertimePoliciesManage) {
+	
+	if !h.allowed(r, PermissionOvertimePoliciesManage) {
 		h.forbidden(w, r)
 		return
 	}
@@ -502,7 +491,7 @@ func (h OvertimeHandler) CreateRequestBehalf(w http.ResponseWriter, r *http.Requ
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}
-	result, err := h.BehalfRepository.CreateBehalfAssignment(r.Context(), workspaceID, req, OvertimeRequestBehalfAssignmentType)
+	result, err := h.BehalfRepository.CreateBehalfAssignment(r.Context(), req, OvertimeRequestBehalfAssignmentType)
 	if err != nil {
 		h.fail(w, r, err)
 		return
@@ -511,13 +500,13 @@ func (h OvertimeHandler) CreateRequestBehalf(w http.ResponseWriter, r *http.Requ
 }
 
 func (h OvertimeHandler) RequestBehalfTargets(w http.ResponseWriter, r *http.Request) {
-	workspaceID, ok := organizationIDFromContext(r)
+	
 	userID, userOK := h.userID(r)
-	if !ok || !userOK {
+	if !userOK {
 		apperror.WriteError(w, r, apperror.Unauthorized(apperror.KeyAuthenticationRequired))
 		return
 	}
-	result, err := h.BehalfRepository.ListMyBehalfTargets(r.Context(), workspaceID, userID, OvertimeRequestBehalfAssignmentType)
+	result, err := h.BehalfRepository.ListMyBehalfTargets(r.Context(), userID, OvertimeRequestBehalfAssignmentType)
 	if err != nil {
 		h.fail(w, r, err)
 		return
@@ -526,13 +515,13 @@ func (h OvertimeHandler) RequestBehalfTargets(w http.ResponseWriter, r *http.Req
 }
 
 func (h OvertimeHandler) DeleteRequestBehalf(w http.ResponseWriter, r *http.Request) {
-	workspaceID, ok := organizationIDFromContext(r)
+	
 	assignmentID, assignmentOK := pathUUID(r, "id")
-	if !ok || !assignmentOK || !h.allowed(r, workspaceID, PermissionOvertimePoliciesManage) {
+	if !assignmentOK || !h.allowed(r, PermissionOvertimePoliciesManage) {
 		h.forbidden(w, r)
 		return
 	}
-	if err := h.BehalfRepository.DeleteBehalfAssignment(r.Context(), workspaceID, assignmentID); err != nil {
+	if err := h.BehalfRepository.DeleteBehalfAssignment(r.Context(), assignmentID); err != nil {
 		h.fail(w, r, err)
 		return
 	}
@@ -540,20 +529,20 @@ func (h OvertimeHandler) DeleteRequestBehalf(w http.ResponseWriter, r *http.Requ
 }
 
 func (h OvertimeHandler) ClaimOT(w http.ResponseWriter, r *http.Request) {
-	workspaceID, ok := organizationIDFromContext(r)
+	
 	employeeID, employeeOK := pathUUID(r, "employee_id")
 	userID, userOK := h.userID(r)
-	if !ok || !employeeOK || !userOK {
+	if !employeeOK || !userOK {
 		h.forbidden(w, r)
 		return
 	}
-	employee, err := h.Repository.GetEmployee(r.Context(), workspaceID, employeeID)
+	employee, err := h.Repository.GetEmployee(r.Context(), employeeID)
 	if err != nil {
 		h.fail(w, r, err)
 		return
 	}
 	self := employee.UserID != nil && *employee.UserID == userID
-	if !self && !h.allowed(r, workspaceID, PermissionOvertimeClaimOnBehalf) && !h.allowed(r, workspaceID, PermissionOvertimeApprove) {
+	if !self && !h.allowed(r, PermissionOvertimeClaimOnBehalf) && !h.allowed(r, PermissionOvertimeApprove) {
 		h.forbidden(w, r)
 		return
 	}
@@ -562,7 +551,7 @@ func (h OvertimeHandler) ClaimOT(w http.ResponseWriter, r *http.Request) {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}
-	if err := h.Repository.ClaimOvertime(r.Context(), workspaceID, employeeID, req, userID); err != nil {
+	if err := h.Repository.ClaimOvertime(r.Context(), employeeID, req, userID); err != nil {
 		h.fail(w, r, err)
 		return
 	}
@@ -570,10 +559,10 @@ func (h OvertimeHandler) ClaimOT(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h OvertimeHandler) ApproveOT(w http.ResponseWriter, r *http.Request) {
-	workspaceID, ok := organizationIDFromContext(r)
+	
 	employeeID, employeeOK := pathUUID(r, "employee_id")
 	userID, userOK := h.userID(r)
-	if !ok || !employeeOK || !userOK {
+	if !employeeOK || !userOK {
 		h.forbidden(w, r)
 		return
 	}
@@ -582,16 +571,16 @@ func (h OvertimeHandler) ApproveOT(w http.ResponseWriter, r *http.Request) {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}
-	departmentID, err := h.Repository.EmployeeDepartmentID(r.Context(), workspaceID, employeeID)
+	departmentID, err := h.Repository.EmployeeDepartmentID(r.Context(), employeeID)
 	if err != nil {
 		h.fail(w, r, err)
 		return
 	}
-	if !h.scopedAllowed(r, workspaceID, PermissionOvertimeApprove, departmentID) {
+	if !h.scopedAllowed(r, PermissionOvertimeApprove, departmentID) {
 		h.forbidden(w, r)
 		return
 	}
-	if err := h.Repository.ApproveOvertime(r.Context(), workspaceID, employeeID, req, userID); err != nil {
+	if err := h.Repository.ApproveOvertime(r.Context(), employeeID, req, userID); err != nil {
 		h.fail(w, r, err)
 		return
 	}
@@ -599,12 +588,12 @@ func (h OvertimeHandler) ApproveOT(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h OvertimeHandler) ListClaimBehalf(w http.ResponseWriter, r *http.Request) {
-	workspaceID, ok := organizationIDFromContext(r)
-	if !ok {
+	
+	if _, userOK := h.userID(r); !userOK {
 		h.forbidden(w, r)
 		return
 	}
-	items, err := h.BehalfRepository.ListBehalfAssignments(r.Context(), workspaceID, OvertimeClaimBehalfAssignmentType)
+	items, err := h.BehalfRepository.ListBehalfAssignments(r.Context(), OvertimeClaimBehalfAssignmentType)
 	if err != nil {
 		h.fail(w, r, err)
 		return
@@ -613,8 +602,8 @@ func (h OvertimeHandler) ListClaimBehalf(w http.ResponseWriter, r *http.Request)
 }
 
 func (h OvertimeHandler) CreateClaimBehalf(w http.ResponseWriter, r *http.Request) {
-	workspaceID, ok := organizationIDFromContext(r)
-	if !ok || !h.allowed(r, workspaceID, PermissionOvertimePoliciesManage) {
+	
+	if !h.allowed(r, PermissionOvertimePoliciesManage) {
 		h.forbidden(w, r)
 		return
 	}
@@ -623,7 +612,7 @@ func (h OvertimeHandler) CreateClaimBehalf(w http.ResponseWriter, r *http.Reques
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}
-	result, err := h.BehalfRepository.CreateBehalfAssignment(r.Context(), workspaceID, req, OvertimeClaimBehalfAssignmentType)
+	result, err := h.BehalfRepository.CreateBehalfAssignment(r.Context(), req, OvertimeClaimBehalfAssignmentType)
 	if err != nil {
 		h.fail(w, r, err)
 		return
@@ -632,13 +621,13 @@ func (h OvertimeHandler) CreateClaimBehalf(w http.ResponseWriter, r *http.Reques
 }
 
 func (h OvertimeHandler) DeleteClaimBehalf(w http.ResponseWriter, r *http.Request) {
-	workspaceID, ok := organizationIDFromContext(r)
+	
 	assignmentID, assignmentOK := pathUUID(r, "id")
-	if !ok || !assignmentOK || !h.allowed(r, workspaceID, PermissionOvertimePoliciesManage) {
+	if !assignmentOK || !h.allowed(r, PermissionOvertimePoliciesManage) {
 		h.forbidden(w, r)
 		return
 	}
-	if err := h.BehalfRepository.DeleteBehalfAssignment(r.Context(), workspaceID, assignmentID); err != nil {
+	if err := h.BehalfRepository.DeleteBehalfAssignment(r.Context(), assignmentID); err != nil {
 		h.fail(w, r, err)
 		return
 	}

@@ -18,7 +18,6 @@ func TestEmployeeImportQueue_FallbackSyncExecution(t *testing.T) {
 		Repo:        repo,
 	}
 
-	wsID := uuid.New()
 	jobID := uuid.New()
 	empID := uuid.New()
 	_ = executed
@@ -26,9 +25,8 @@ func TestEmployeeImportQueue_FallbackSyncExecution(t *testing.T) {
 
 	// When RedisClient is nil and DB is not configured, EnqueueTerminationImport calls Repo.TerminateEmploymentsTransactional
 	err := q.EnqueueTerminationImport(context.Background(), api.TerminationImportJob{
-		JobID:       jobID,
-		WorkspaceID: wsID,
-		UserID:      uuid.New(),
+		JobID:  jobID,
+		UserID: uuid.New(),
 		Rows: []api.TerminationJobRow{
 			{
 				EmploymentID:      empID,

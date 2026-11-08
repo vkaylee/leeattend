@@ -1,38 +1,34 @@
-import { client } from "./client";
-import { Employer, CreateEmployerRequest, UpdateEmployerRequest } from "./types";
+import type { CreateEmployerRequest, Employer, UpdateEmployerRequest } from "./types";
 
-export async function fetchEmployers(wsId: string): Promise<Employer[]> {
-  const { data: resData } = await client.GET("/v1/workspaces/{ws_id}/employers", {
-    params: { path: { ws_id: wsId } }
-  });
-  return resData.data;
+import { client } from "./client";
+
+export async function fetchEmployers(): Promise<Employer[]> {
+  const { data } = await client.GET<{ data: Employer[] }>("/v1/employers");
+  return data.data;
 }
 
 export async function createEmployer(
-  wsId: string,
-  data: CreateEmployerRequest
+  data: CreateEmployerRequest,
 ): Promise<Employer> {
-  const { data: resData } = await client.POST("/v1/workspaces/{ws_id}/employers", {
-    params: { path: { ws_id: wsId } },
-    body: data
+  const { data: resData } = await client.POST<Employer>("/v1/employers", {
+    body: data,
   });
   return resData;
 }
 
 export async function updateEmployer(
-  wsId: string,
   id: string,
-  data: UpdateEmployerRequest
+  data: UpdateEmployerRequest,
 ): Promise<Employer> {
-  const { data: resData } = await client.PUT("/v1/workspaces/{ws_id}/employers/{id}", {
-    params: { path: { ws_id: wsId, id } },
-    body: data
+  const { data: resData } = await client.PUT<Employer>("/v1/employers/{id}", {
+    params: { path: { id } },
+    body: data,
   });
   return resData;
 }
 
-export async function deleteEmployer(wsId: string, id: string): Promise<void> {
-  await client.DELETE("/v1/workspaces/{ws_id}/employers/{id}", {
-    params: { path: { ws_id: wsId, id } }
+export async function deleteEmployer(id: string): Promise<void> {
+  await client.DELETE("/v1/employers/{id}", {
+    params: { path: { id } },
   });
 }

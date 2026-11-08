@@ -80,7 +80,6 @@ describe("PatternModals", () => {
     setIsBulkModalOpen: vi.fn(),
     setSelectedEmployeeIds: vi.fn(),
     setSelectedPatternId: vi.fn(),
-    wsId: "ws-1",
     assignAnchorDate: "",
     setAssignAnchorDate: vi.fn(),
     // Compliance modal state

@@ -61,21 +61,18 @@ func setupFixtureServer(t *testing.T, jwtSecret string, revocation *fixtureRevoc
 		},
 	}
 
-	workspaceHandler := WorkspaceHandler{
+	organizationHandler := OrganizationHandler{
 		Repository: nil,
 		Authorizer: testAuthorizer{
 			permissions: map[string]bool{
-				"018d0000-0000-7000-8000-000000000020:018d0000-0000-7000-8000-000000000001:ess:profile": true,
+				"018d0000-0000-7000-8000-000000000020:organization:settings:write": true,
 			},
 		},
 	}
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /api/v1/me", authHandler.Me)
-	mux.Handle("PATCH /api/v1", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		r = r.WithContext(httpinfra.WithOrganizationIDForTest(r.Context(), uuid.MustParse("018d0000-0000-7000-8000-000000000001")))
-		workspaceHandler.Patch(w, r)
-	}))
+	mux.HandleFunc("PATCH /api/v1", organizationHandler.Patch)
 	mux.HandleFunc("GET /api/v1/test-route", func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	})
@@ -99,8 +96,8 @@ type testAuthorizer struct {
 	permissions map[string]bool
 }
 
-func (a testAuthorizer) HasPermission(_ context.Context, userID, workspaceID uuid.UUID, perm string) bool {
-	key := userID.String() + ":" + workspaceID.String() + ":" + perm
+func (a testAuthorizer) HasPermission(_ context.Context, userID uuid.UUID, perm string) bool {
+	key := userID.String() + ":" + perm
 	return a.permissions[key]
 }
 

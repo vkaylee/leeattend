@@ -5,7 +5,7 @@ import { useTranslation } from "react-i18next";
 
 import { SettingsHeader } from "@/components/ui/settings/settings-header";
 import { SettingsSegmentedControl, type SegmentedOption } from "@/components/ui/settings/settings-segmented-control";
-import { useWorkspace } from "@/hooks/use-workspace";
+import { useOrganization } from "@/hooks/use-organization";
 import { ROUTES } from "@/lib/routes";
 import { Route } from "@/routes/_authenticated/_workspace/settings/workflows";
 
@@ -27,7 +27,7 @@ const WorkflowTabContent = ({ activeTab }: WorkflowTabContentProps) => {
 
 export default function WorkflowsSettings() {
   const { t } = useTranslation();
-  const { workspace: ws } = useWorkspace();
+  const { workspace: ws } = useOrganization();
   const search = Route.useSearch();
   const navigate = useNavigate();
 

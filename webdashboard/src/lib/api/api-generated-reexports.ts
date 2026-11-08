@@ -12,7 +12,6 @@
 
 import type { components } from "@/types/api-generated";
 
-export type RoleScopeType = components["schemas"]["RoleScopeType"];
 export type ContractStatus = components["schemas"]["ContractStatus"];
 export type EmployeeContract = components["schemas"]["EmployeeContract"];
 export type EmployeeContractWithEmployee = components["schemas"]["EmployeeContractWithEmployee"];
@@ -33,7 +32,6 @@ export type ChangePasswordRequest = components["schemas"]["ChangePasswordRequest
 export type RegisterRequest = components["schemas"]["RegisterRequest"];
 export type AuthResponse = components["schemas"]["AuthResponse"];
 export type LeaveRequest = components["schemas"]["LeaveRequest"];
-export type WorkspaceLeaveBalance = components["schemas"]["WorkspaceLeaveBalance"];
 export type Holiday = components["schemas"]["Holiday"];
 export type CreateShiftRequest = components["schemas"]["CreateShiftRequest"];
 export type UpdateShiftRequest = components["schemas"]["UpdateShiftRequest"];
@@ -59,8 +57,6 @@ export type BatchCalculatePayrollResponse = components["schemas"]["BatchCalculat
 export type EmployeeDepartmentHistory = components["schemas"]["EmployeeDepartmentHistory"];
 export type ShiftRoster = components["schemas"]["ShiftRoster"];
 export type AttendanceImportJob = components["schemas"]["AttendanceImportJob"];
-export type MemberExtraPermission = components["schemas"]["MemberExtraPermission"];
-export type PermissionCatalogItem = components["schemas"]["PermissionCatalogItem"];
 export type LeaveTypeConfig = components["schemas"]["LeaveTypeConfig"];
 export type LeaveType = components["schemas"]["LeaveType"];
 export type ScheduleTrace = components["schemas"]["ScheduleTrace"];
@@ -86,7 +82,6 @@ export type CreateEmploymentPhaseDefinitionRequest =
   components["schemas"]["CreateEmploymentPhaseDefinitionRequest"];
 export type AssignEmployeePhaseRequest = components["schemas"]["AssignEmployeePhaseRequest"];
 export type UpdateEmployeePhaseStatusRequest = components["schemas"]["UpdateEmployeePhaseStatusRequest"];
-export type WorkspaceConfigEntry = components["schemas"]["WorkspaceConfigEntry"];
 export type CreateWorkflowRequest = components["schemas"]["CreateWorkflowRequest"];
 export type UpdateWorkflowRequest = components["schemas"]["UpdateWorkflowRequest"];
 export type ApprovalActionLog = components["schemas"]["ApprovalActionLog"];

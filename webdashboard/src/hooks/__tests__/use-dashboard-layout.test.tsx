@@ -14,12 +14,6 @@ vi.mock("@/lib/api/helpers", async () => {
     };
 });
 
-vi.mock("../use-workspace", () => ({
-    useWorkspace: () => ({
-        workspace: { id: "ws-test-123", name: "Test Workspace" },
-    }),
-}));
-
 const createWrapper = () => {
     const queryClient = new QueryClient({
         defaultOptions: {
@@ -36,7 +30,6 @@ const createWrapper = () => {
 const mockPreferences = {
     id: "pref-123",
     user_id: "user-123",
-    workspace_id: "ws-test-123",
     active_view: "attendance",
     visible_widgets: { kpi_cards: true, peak_times: false },
     widget_order: ["attendance_trend", "donut_chart"],

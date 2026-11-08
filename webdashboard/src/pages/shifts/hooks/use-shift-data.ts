@@ -22,20 +22,16 @@ import {
 
 import type { ViewMode } from "./use-shifts-types";
 
-interface UseShiftDataProps {
-  monthEnd?: Date;
-  monthStart?: Date;
-  selectedEmployee?: Employee | null;
-  selectedEmployeeIds?: string[];
-  startOfWeek: Date;
-  viewMode: ViewMode;
-  weekDays: Date[];
-  wsId: string;
-}
+interface UseShiftDataProps { monthEnd?: Date;
+monthStart?: Date;
+selectedEmployee?: Employee | null;
+selectedEmployeeIds?: string[];
+startOfWeek: Date;
+viewMode: ViewMode;
+weekDays: Date[];  }
 
    
 export function useShiftData({
-  wsId,
   startOfWeek,
   weekDays,
   viewMode,
@@ -45,28 +41,23 @@ export function useShiftData({
   selectedEmployeeIds,
 }: UseShiftDataProps) {
   const { data: shifts } = useQuery<Shift[]>({
-    queryKey: ["shifts", wsId],
-    queryFn: () => fetchShifts(wsId),
-    enabled: !!wsId,
+    queryKey: ["shifts"],
+    queryFn: () => fetchShifts(),
   });
 
   const { data: patterns } = useQuery<WorkingPattern[]>({
-    queryKey: ["working-patterns", wsId],
-    queryFn: () => fetchWorkingPatterns(wsId),
-    enabled: !!wsId,
+    queryKey: ["working-patterns"],
+    queryFn: () => fetchWorkingPatterns(),
   });
 
   const selectedEmploymentId = selectedEmployee?.active_employment_id;
 
   const { data: allSchedules } = useQuery<EmployeeSchedule[]>({
-    queryKey: ["schedules", wsId, format(startOfWeek, 'yyyy-MM-dd'), selectedEmploymentId],
-    queryFn: () => fetchWorkspaceSchedules(
-      wsId,
-      format(weekDays[0], 'yyyy-MM-dd'),
-      format(weekDays[6], 'yyyy-MM-dd'),
-      selectedEmploymentId ? [selectedEmploymentId] : undefined
-    ),
-    enabled: !!wsId && (viewMode !== "week" || !!selectedEmploymentId),
+    queryKey: ["schedules", format(startOfWeek, 'yyyy-MM-dd'), selectedEmploymentId],
+    queryFn: () => fetchWorkspaceSchedules(format(weekDays[0], 'yyyy-MM-dd'),
+    format(weekDays[6], 'yyyy-MM-dd'),
+    selectedEmploymentId ? [selectedEmploymentId] : undefined),
+    enabled: viewMode !== "week" || !!selectedEmploymentId,
   });
 
   const {
@@ -75,7 +66,7 @@ export function useShiftData({
     isError: isEmployeesError,
     error: employeesError,
     refetch: refetchEmployees,
-  } = useAllEmployees(wsId, { enabled: !!wsId && viewMode === "month" });
+  } = useAllEmployees({ enabled: viewMode === "month" });
 
   const selectedEmploymentIds = useMemo(() => {
     // employees may be undefined before query resolves; selectedEmployeeIds can be empty
@@ -93,28 +84,24 @@ export function useShiftData({
     error: monthError,
     refetch: refetchMonthSchedules,
   } = useQuery<EmployeeSchedule[]>({
-    queryKey: ["schedules", wsId, monthStart ? format(monthStart, 'yyyy-MM-dd') : "", "monthly", selectedEmploymentIds],
+    queryKey: ["schedules", monthStart ? format(monthStart, 'yyyy-MM-dd') : "", "monthly", selectedEmploymentIds],
     queryFn: () => {
       if (!monthStart || !monthEnd) {
         return Promise.resolve([]);
       }
-      return fetchWorkspaceSchedules(
-        wsId,
-        format(monthStart, 'yyyy-MM-dd'),
-        format(monthEnd, 'yyyy-MM-dd'),
-        selectedEmploymentIds.length > 0 ? selectedEmploymentIds : undefined
-      );
+      return fetchWorkspaceSchedules(format(monthStart, 'yyyy-MM-dd'),
+      format(monthEnd, 'yyyy-MM-dd'),
+      selectedEmploymentIds.length > 0 ? selectedEmploymentIds : undefined);
     },
-    enabled: !!wsId && viewMode === "month" && !!monthStart && !!monthEnd && selectedEmploymentIds.length > 0,
+    enabled: viewMode === "month" && !!monthStart && !!monthEnd && selectedEmploymentIds.length > 0,
   });
 
   const { data: history } = useQuery<AssignmentHistory[]>({
-    queryKey: ["assignment_history", wsId],
-    queryFn: () => fetchAssignmentHistory(wsId),
-    enabled: !!wsId,
+    queryKey: ["assignment_history"],
+    queryFn: () => fetchAssignmentHistory(),
   });
 
-  const { data: departments } = useDepartments(wsId);
+  const { data: departments } = useDepartments();
 
   return {
     shifts,

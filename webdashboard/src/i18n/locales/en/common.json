@@ -110,7 +110,7 @@
     },
     "auto": "Auto",
     "back": "Back",
-    "back_to_workspace": "Back to Workspace",
+    "back_to_workspace": "Back to Organization",
     "base_for_ot": "OT Base",
     "billing": "Billing",
     "break": "Break",
@@ -143,8 +143,8 @@
     "confirm_delete": "Are you sure you want to delete this item?",
     "copied": "Copied to clipboard",
     "create": "Create",
-    "create_workspace": "Create Workspace",
-    "create_workspace_error": "Could not create Workspace. Please try again.",
+    "create_workspace": "Create Organization",
+    "create_workspace_error": "Could not create organization. Please try again.",
     "creating": "Creating...",
     "currency": "USD",
     "custom": "Custom",
@@ -299,8 +299,8 @@
           "department_desc": "Applies to a specific department",
           "employee": "Individual Employee",
           "employee_desc": "Applies to only one selected person",
-          "workspace": "System-wide (All)",
-          "workspace_desc": "Applies to all employees in workspace"
+          "workspace": "Organization-wide (All)",
+          "workspace_desc": "Applies to all employees in the organization"
         },
         "carry_over_limit": "Carry-over Limit",
         "edit_assignment_subtitle": "Modify assignment rules and effective dates.",
@@ -366,7 +366,7 @@
     "load_more": "Load More",
     "loading": "Loading data...",
     "loading_more": "Loading more...",
-    "loading_workspace": "Loading workspace...",
+    "loading_workspace": "Loading organization...",
     "logout": "Logout",
     "logs": "Logs",
     "members": {
@@ -421,7 +421,7 @@
         "manage_permissions": "Manage Permissions",
         "manage_roles": "Manage Roles",
         "messages": {
-          "no_members": "No members found in this workspace.",
+          "no_members": "No members found in this organization.",
           "remove_error": "Error removing member."
         },
         "remove_member": "Remove Member"
@@ -474,25 +474,25 @@
       "db_placeholder": "postgres://username:password@hostname:port/database",
       "db_validation_error": "Invalid Database URL. Must start with postgres:// or postgresql://",
       "messages": {
-        "create_error": "Could not create Workspace. Please try again."
+        "create_error": "Could not create organization. Please try again."
       },
       "org_name_label": "Organization Name",
       "org_name_placeholder": "Ex: ABC Company, LeeAttend Team...",
       "progress": {
         "step_1": "Initializing database cluster...",
         "step_2": "Synchronizing schema (Migrations)...",
-        "step_3": "Configuring workspace default settings...",
+        "step_3": "Configuring organization default settings...",
         "step_4": "Preparing administration board...",
         "subtitle": "Please keep this page open. We are preparing your secure environment.",
         "success": "Done! Redirecting...",
-        "title": "Setting up your Workspace..."
+        "title": "Setting up your Organization..."
       },
       "start_now_btn": "Start Now",
-      "welcome_subtitle": "Let's create your first organization (Workspace)",
+      "welcome_subtitle": "Let's set up your organization",
       "welcome_title": "Welcome!",
-      "workspace_desc": "A Workspace is a separate environment to help you manage members in one place."
+      "workspace_desc": "Your organization brings your people and settings together."
     },
-    "workspace_desc": "A Workspace is a separate environment to help you manage members in one place.",
+    "workspace_desc": "Your organization brings your people and settings together.",
     "org_chart": "Org Chart",
     "org_name_label": "Organization / Project Name",
     "org_name_placeholder": "Ex: ABC Company, Freelance Team...",
@@ -747,13 +747,13 @@
       "title": "Payroll",
       "traceability": {
         "department_policy": "Department Policy",
-        "hierarchy_explanation": "Payroll config is prioritized: Individual > Department > Workspace.",
+        "hierarchy_explanation": "Payroll config is prioritized: Individual > Department > Organization.",
         "hierarchy_title": "Config Priority Hierarchy",
         "individual_policy": "Individual Policy",
         "pending_adjustments": "Has pending adjustments",
         "recalc_needed": "Recalculation needed",
         "view_adjustments": "View adjustments",
-        "workspace_default": "Workspace Default"
+        "workspace_default": "Organization Default"
       },
       "validation": {
         "base_pay_positive": "Base pay must be a positive number",
@@ -804,7 +804,7 @@
       },
       "form_subtitle": "Define when this pattern should be applied",
       "info_priority": "Rules are evaluated from highest to lowest priority. The first matching rule will be applied. General rules should have lowest priority.",
-      "match_all": "Workspace-wide (Match All)",
+      "match_all": "Organization-wide (Match All)",
       "messages": {
         "create_success": "Rule created successfully",
         "delete_success": "Rule deleted",
@@ -850,7 +850,7 @@
     "select_department": "Select Department",
     "select_employee": "Select Employee",
     "select_month": "Select Month",
-    "select_workspace": "Select Workspace",
+    "select_workspace": "Select Organization",
     "select_workspace_desc": "Select the office or branch you want to work in.",
     "selected": "selected",
     "selected_count": "Selected {{selected}}/{{total}}",
@@ -944,7 +944,7 @@
         "vn": "Vietnam Style (Ex: 31/12/2025)"
       },
       "default_language": "Default Language",
-      "description": "Manage workspace configuration, personnel, and appearance.",
+      "description": "Manage organization configuration, personnel, and appearance.",
       "early_arrival_options": {
         "allow": "Allow Always",
         "allow_desc": "Count full OT from check-in time (if early OT is allowed).",
@@ -981,7 +981,7 @@
       "tagline_desc": "Displayed under the logo in the sidebar.",
       "tagline_placeholder": "e.g., Human Resources Management",
       "theme_config": "Theme Configuration",
-      "theme_desc": "Customize your workspace appearance.",
+      "theme_desc": "Customize your organization appearance.",
       "time_format": "Time Format",
       "time_format_options": {
         "12h": "12 Hours",
@@ -995,7 +995,7 @@
         "utc": "International Standard (UTC)",
         "vn": "Vietnam (UTC+7)"
       },
-      "title": "Workspace Settings",
+      "title": "Organization Settings",
       "upload_logo": "Click to set logo URL",
       "valid_from": "Valid From",
       "valid_from_note": "Settings will take effect from this date",
@@ -1010,8 +1010,8 @@
         "60min": "60 minutes",
         "60min_desc": "1h blocks"
       },
-      "workspace_logo": "Workspace Logo",
-      "workspace_name": "Workspace Name",
+      "workspace_logo": "Organization Logo",
+      "workspace_name": "Organization Name",
       "workspace_name_placeholder": "e.g., LeeAttend Corp",
       "dark_mode_preference": "Chế độ hiển thị"
     },
@@ -1066,7 +1066,7 @@
   },
   "dashboard": {
     "title": "Dashboard",
-    "welcome": "Welcome back! Here is a summary of your workspace activities.",
+    "welcome": "Welcome back! Here is a summary of your organization activities.",
     "filters": {
       "label": "Executive dashboard filters",
       "period": {
@@ -1093,7 +1093,7 @@
       "start_date": "Start date",
       "end_date": "End date",
       "custom_date_error": "Enter valid custom start and end dates.",
-      "timezone_hint": "Dates use workspace timezone.",
+      "timezone_hint": "Dates use organization timezone.",
       "apply": "Apply",
       "reset": "Reset"
     },
@@ -1586,8 +1586,8 @@
   },
   "onboarding": {
     "welcome_title": "Welcome!",
-    "workspace_desc": "A Workspace is a separate environment to help you manage members in one place.",
-    "welcome_subtitle": "Let's create your first organization (Workspace)",
+    "workspace_desc": "Your organization brings your people and settings together.",
+    "welcome_subtitle": "Let's set up your organization",
     "org_name_label": "Organization Name",
     "org_name_placeholder": "Ex: ABC Company, LeeAttend Team...",
     "start_now_btn": "Start Now",
@@ -1599,16 +1599,16 @@
     "db_validation_error": "Invalid Database URL. Must start with postgres:// or postgresql://",
     "db_placeholder": "postgres://username:password@hostname:port/database",
     "progress": {
-      "title": "Setting up your Workspace...",
+      "title": "Setting up your Organization...",
       "subtitle": "Please keep this page open. We are preparing your secure environment.",
       "step_1": "Initializing database cluster...",
       "step_2": "Synchronizing schema (Migrations)...",
-      "step_3": "Configuring workspace default settings...",
+      "step_3": "Configuring organization default settings...",
       "step_4": "Preparing administration board...",
       "success": "Done! Redirecting..."
     },
     "messages": {
-      "create_error": "Could not create Workspace. Please try again."
+      "create_error": "Could not create organization. Please try again."
     }
   },
   "reports": {
@@ -1765,7 +1765,7 @@
     "title": "Billing"
   },
   "overview": {
-    "activeWorkspace": "Active Workspace",
+    "activeWorkspace": "Active Organization",
     "adminFallback": "Admin Fallback",
     "adminMembers": "Admin Members",
     "admins": "Admins",
@@ -1782,7 +1782,7 @@
   "status_expired": "EXPIRED",
   "workspace": {
     "roles": {
-      "title": "Workspace Roles"
+      "title": "Organization Roles"
     }
   },
   "notifications": {
@@ -1816,11 +1816,11 @@
       "assignee_label_overtime_request": "Authorized Submitter (User)",
       "assignee_label_other": "Authorized Requester (User)",
       "assignee_placeholder": "Search and select user...",
-      "no_assignees": "No workspace users found",
-      "assignee_help_ot": "Select the workspace user who is allowed to claim on behalf.",
-      "assignee_help_overtime_request": "Select the workspace user who is allowed to submit Pre-OT requests on behalf.",
-      "assignee_help_leave": "Select the workspace user who is allowed to submit leave requests on behalf.",
-      "assignee_help_adjustment": "Select the workspace user who is allowed to submit attendance adjustment requests on behalf.",
+      "no_assignees": "No organization users found",
+      "assignee_help_ot": "Select the organization user who is allowed to claim on behalf.",
+      "assignee_help_overtime_request": "Select the organization user who is allowed to submit Pre-OT requests on behalf.",
+      "assignee_help_leave": "Select the organization user who is allowed to submit leave requests on behalf.",
+      "assignee_help_adjustment": "Select the organization user who is allowed to submit attendance adjustment requests on behalf.",
       "target_type_label": "Target Scope Type",
       "target_type_employee": "Employee",
       "target_type_department": "Department",
@@ -1836,10 +1836,10 @@
       "title_overtime_request": "Behalf Pre-OT Request Assignments",
       "title_leave": "Behalf Leave Request Assignments",
       "title_adjustment": "Behalf Attendance Adjustment Assignments",
-      "desc_ot": "Configure which workspace users are authorized to claim overtime on behalf of specific employees or entire departments.",
-      "desc_overtime_request": "Configure which workspace users are authorized to request Pre-OT on behalf of specific employees or entire departments.",
-      "desc_leave": "Configure which workspace users are authorized to request leave on behalf of specific employees or entire departments.",
-      "desc_adjustment": "Configure which workspace users are authorized to request attendance adjustments on behalf of specific employees or entire departments.",
+      "desc_ot": "Configure which organization users are authorized to claim overtime on behalf of specific employees or entire departments.",
+      "desc_overtime_request": "Configure which organization users are authorized to request Pre-OT on behalf of specific employees or entire departments.",
+      "desc_leave": "Configure which organization users are authorized to request leave on behalf of specific employees or entire departments.",
+      "desc_adjustment": "Configure which organization users are authorized to request attendance adjustments on behalf of specific employees or entire departments.",
       "add_btn": "Add Assignment"
     },
     "empty": {
@@ -1953,7 +1953,7 @@
       "desc": "You don't have access to any applications. Contact your administrator."
     },
     "descriptions": {
-      "directory": "Browse and manage workspace members and their roles",
+      "directory": "Browse and manage organization members and their roles",
       "org_chart": "Visualize your organization's reporting structure",
       "econtracts": "Manage employee contracts and e-signatures",
       "leave_balances": "View leave entitlements and remaining balances",
@@ -1964,7 +1964,7 @@
       "documents": "Access payslips, contracts, and HR documents",
       "infra_monitor": "Monitor edge agents and system health",
       "db_clusters": "Manage database cluster configurations",
-      "tenants": "Oversee multi-tenant workspace instances",
+      "tenants": "Oversee organization instances",
       "charts": "Attendance trends, overtime, turnover and workforce analytics"
     },
     "dual_run": {
@@ -2380,7 +2380,7 @@
     "manageAccess": "Manage Access",
     "deleteTitle": "Delete Role",
     "confirmDelete": "Are you sure you want to delete this role?",
-    "subtitle": "Define custom roles and manage access levels across the workspace",
+    "subtitle": "Define custom roles and manage access levels across the organization",
     "createRole": "Create Role"
   },
   "assignments": {
@@ -2412,7 +2412,7 @@
     "indefinite": "Indefinite",
     "no_assignments_found": "No Assignments Found",
     "search_no_results": "No assignments match your search criteria.",
-    "empty_state": "No employee assignments have been recorded in this workspace yet.",
+    "empty_state": "No employee assignments have been recorded in this organization yet.",
     "actions": {
       "create": "CREATE ASSIGNMENT",
       "edit": "Edit assignment",
@@ -2435,7 +2435,7 @@
     "search_label": "Search working conditions",
     "search_placeholder": "Search employee, ID or condition type...",
     "search_no_results": "No working conditions match your search criteria.",
-    "empty_state": "No special working conditions have been recorded in this workspace yet.",
+    "empty_state": "No special working conditions have been recorded in this organization yet.",
     "no_conditions_found": "No Working Conditions Found",
     "paid": "Paid",
     "unpaid": "Unpaid",

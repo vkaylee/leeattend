@@ -9,7 +9,7 @@ Hệ thống tinh gọn chuẩn gồm **5 vai trò duy nhất**:
 4. **`team_lead`**: Trưởng nhóm / Quản lý trực tiếp, duyệt giải trình công, duyệt đơn tăng ca (OT).
 5. **`employee`**: Nhân viên tiêu chuẩn, tự phục vụ (ESS: clock in/out, xin nghỉ, xem bảng công).
 
-**Mật khẩu dùng chung cho tất cả tài khoản:** `development-password`
+**Mật khẩu dùng chung cho tất cả tài khoản (development-only fixture):** `development-password`
 
 ---
 
@@ -28,10 +28,13 @@ Hệ thống tinh gọn chuẩn gồm **5 vai trò duy nhất**:
 ## 2. Lệnh Nạp Lại Dữ Liệu & Kiểm Tra Tự Động
 
 ```bash
-# Nạp lại 5 tài khoản vào cơ sở dữ liệu
-docker cp scripts/seed_dev_accounts.sql leedevkit-dev_db_1:/tmp/seed_dev_accounts.sql
-docker exec leedevkit-dev_db_1 psql -U admin -d leeattend -f /tmp/seed_dev_accounts.sql
+# Nạp tài khoản chỉ trong disposable dev/smoke DB đã xác nhận. Không dùng live DB.
+# Chạy SQL từ psql client đã cấu hình kết nối tới DB disposable:
+psql "$DISPOSABLE_DATABASE_URL" -v ON_ERROR_STOP=1 -f scripts/seed_dev_accounts.sql
 
-# Kiểm tra tự động đăng nhập, quyền hạn và quyền xem monitor
-./scripts/test_all_dev_accounts.sh
+# Kiểm tra tự động đăng nhập và quyền hạn. BASE_URL mặc định
+# http://127.0.0.1:8088/api/v1; đặt biến BASE_URL để trỏ tới môi trường smoke disposable.
+# Thông tin đăng nhập lấy từ .secrets/playwright-credentials.env (đã gitignore)
+# hoặc biến môi trường PLAYWRIGHT_<ROLE>_EMAIL / PLAYWRIGHT_<ROLE>_PASSWORD.
+BASE_URL="http://127.0.0.1:8088/api/v1" ./scripts/test_all_dev_accounts.sh
 ```

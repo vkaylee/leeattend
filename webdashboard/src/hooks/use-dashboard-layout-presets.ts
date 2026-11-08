@@ -27,7 +27,6 @@ export interface DashboardLayoutPreferences {
     user_id: string;
     visible_widgets: Record<WidgetId, boolean>;
     widget_order: WidgetId[];
-    workspace_id: string;
 }
 
 interface PresetViewConfig {
@@ -138,7 +137,6 @@ const dashboardPreferencesResponseSchema = z.object({
     user_id: z.string().min(1),
     visible_widgets: z.record(z.string(), z.boolean()),
     widget_order: z.array(z.string()),
-    workspace_id: z.string().min(1),
 }).strict();
 
 export class DashboardPreferencesContractError extends Error {
@@ -194,7 +192,6 @@ export function sanitizeDashboardPreferences(value: unknown): DashboardLayoutPre
         user_id: parsed.data.user_id,
         visible_widgets: sanitizeVisibleWidgets(parsed.data.visible_widgets),
         widget_order: sanitizeWidgetOrder(parsed.data.widget_order),
-        workspace_id: parsed.data.workspace_id,
     };
 }
 

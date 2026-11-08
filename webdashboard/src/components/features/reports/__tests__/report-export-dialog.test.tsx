@@ -59,9 +59,7 @@ describe("ReportExportDialog - Integration Tests", () => {
   const mockOnClose = vi.fn();
   const defaultProps = {
     isOpen: true,
-    onClose: mockOnClose,
-    wsId: "test-workspace",
-    startDate: "2024-01-01",
+    onClose: mockOnClose,startDate: "2024-01-01",
     endDate: "2024-01-31",
     reportType: "summary" as const,
     employeeIds: undefined,

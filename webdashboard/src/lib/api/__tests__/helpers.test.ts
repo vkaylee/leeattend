@@ -1,6 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi, Mock } from 'vitest';
 
-import { getStandaloneOrganizationId } from "../config";
 import { getFullUrl } from "../api-fetch-helpers";
 import {
   getAccessToken,
@@ -39,11 +38,6 @@ describe('Token helpers', () => {
   // the backend; the frontend must never read it.
 });
 
-describe('Organization context', () => {
-  it('always returns backend-owned standalone context', () => {
-    expect(getStandaloneOrganizationId()).toBe('standalone');
-  });
-});
 
 describe('User ID helpers', () => {
   beforeEach(() => {

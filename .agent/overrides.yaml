@@ -12,8 +12,9 @@
 #   add: rules     — project-only rules (no devkit counterpart)
 #   extend: rules  — project appends to devkit (both loaded)
 
-# ── Replace: project version takes full priority ───────────────────────────
-replace: []
+replace:
+  - database-rules.md
+  - access-control.md
 # Example: replace the entire database rules with project-specific version
 # replace:
 #   - database-rules.md

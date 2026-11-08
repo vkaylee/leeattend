@@ -16,31 +16,27 @@ import {
 
 export const employeeAssignmentKeys = {
   all: ["employee-assignments"] as const,
-  list: (wsId: string, employeeId: string) =>
-    [...employeeAssignmentKeys.all, wsId, employeeId] as const,
-  workspace: (wsId: string) =>
-    [...employeeAssignmentKeys.all, wsId, "workspace"] as const,
+  list: (employeeId: string) =>
+    [...employeeAssignmentKeys.all, employeeId] as const,
+  workspace: () =>
+    [...employeeAssignmentKeys.all, "workspace"] as const,
 };
 
-export function useWorkspaceAssignments(wsId: string | null | undefined) {
+export function useWorkspaceAssignments() {
   return useQuery<EmployeeAssignmentWithEmployee[]>({
-    queryKey: wsId ? employeeAssignmentKeys.workspace(wsId) : [],
-    queryFn: () => {
-      if (!wsId) throw new Error("Missing params");
-      return fetchWorkspaceAssignments(wsId);
-    },
-    enabled: !!wsId,
+    queryKey: employeeAssignmentKeys.workspace(),
+    queryFn: () => fetchWorkspaceAssignments(),
   });
 }
 
-export function useEmployeeAssignments(wsId: string | null | undefined, employeeId: string | null | undefined) {
+export function useEmployeeAssignments(employeeId: string | null | undefined) {
   return useQuery({
-    queryKey: wsId && employeeId ? employeeAssignmentKeys.list(wsId, employeeId) : [],
+    queryKey: employeeId ? employeeAssignmentKeys.list(employeeId) : [],
     queryFn: () => {
-      if (!wsId || !employeeId) throw new Error("Missing params");
-      return fetchEmployeeAssignments(wsId, employeeId);
+      if (!employeeId) throw new Error("Missing params");
+      return fetchEmployeeAssignments(employeeId);
     },
-    enabled: !!wsId && !!employeeId,
+    enabled: !!employeeId,
   });
 }
 
@@ -49,14 +45,12 @@ export function useCreateEmployeeAssignment() {
 
   return useMutation({
     mutationFn: ({
-      wsId,
       employeeId,
       data,
     }: {
-      wsId: string;
       employeeId: string;
       data: CreateEmployeeAssignmentRequest;
-    }) => createEmployeeAssignment(wsId, employeeId, data),
+    }) => createEmployeeAssignment(employeeId, data),
     onSuccess: (data, variables) => {
       void queryClient.invalidateQueries({
         queryKey: employeeAssignmentKeys.all,
@@ -70,16 +64,14 @@ export function useUpdateEmployeeAssignment() {
 
   return useMutation({
     mutationFn: ({
-      wsId,
       employeeId,
       assignmentId,
       data,
     }: {
-      wsId: string;
       employeeId: string;
       assignmentId: string;
       data: UpdateEmployeeAssignmentRequest;
-    }) => updateEmployeeAssignment(wsId, employeeId, assignmentId, data),
+    }) => updateEmployeeAssignment(employeeId, assignmentId, data),
     onSuccess: (data, variables) => {
       void queryClient.invalidateQueries({
         queryKey: employeeAssignmentKeys.all,
@@ -93,14 +85,12 @@ export function useDeleteEmployeeAssignment() {
 
   return useMutation({
     mutationFn: ({
-      wsId,
       employeeId,
       assignmentId,
     }: {
-      wsId: string;
       employeeId: string;
       assignmentId: string;
-    }) => deleteEmployeeAssignment(wsId, employeeId, assignmentId),
+    }) => deleteEmployeeAssignment(employeeId, assignmentId),
     onSuccess: (_, variables) => {
       void queryClient.invalidateQueries({
         queryKey: employeeAssignmentKeys.all,

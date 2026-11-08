@@ -19,10 +19,9 @@ interface AssignPolicyModalProps {
   editingAssignment?: LeaveAssignment | null;
   isOpen: boolean;
   onClose: () => void;
-  wsId: string | null;
 }
 
-export function AssignPolicyModal({ isOpen, onClose, wsId, editingAssignment }: AssignPolicyModalProps) {
+export function AssignPolicyModal({ isOpen, onClose,editingAssignment }: AssignPolicyModalProps) {
   const { t } = useTranslation();
   
   const {
@@ -45,7 +44,7 @@ export function AssignPolicyModal({ isOpen, onClose, wsId, editingAssignment }: 
     leaveTypes,
     assignMutation,
     handleAssignPolicy
-  } = useAssignPolicy(wsId, isOpen, onClose, editingAssignment);
+  } = useAssignPolicy(isOpen, onClose, editingAssignment);
 
   return (
     <Modal 

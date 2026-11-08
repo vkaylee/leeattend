@@ -27,8 +27,6 @@ export const ROUTES = {
   ASSIGNMENTS: "/assignments",
   WORKING_CONDITIONS: "/working-conditions",
   LIFECYCLE: "/lifecycle",
-  PEOPLE: "/workspace/people",
-  MEMBERS: "/members",
   NOTIFICATIONS: "/notifications",
 
   // Attendance & Leave

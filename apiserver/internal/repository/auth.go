@@ -74,17 +74,16 @@ func (r AuthRepository) UpdateUserProfile(ctx context.Context, userID uuid.UUID,
 	return user, nil
 }
 
-func (r AuthRepository) ListWorkspaceUsers(ctx context.Context, workspaceID uuid.UUID) ([]service.UserRecord, error) {
+func (r AuthRepository) ListOrganizationUsers(ctx context.Context) ([]service.UserRecord, error) {
 	if r.DB == nil {
 		return nil, errors.New("auth repository: nil database")
 	}
 	rows, err := r.DB.Query(ctx, `SELECT u.id, u.email, u.password_hash, u.full_name, u.avatar_url, u.bio, u.preferred_language, u.created_at, u.avatar_file_id
 FROM users u
-INNER JOIN workspace_members wm ON wm.user_id = u.id
-WHERE wm.workspace_id = $1
-ORDER BY u.created_at DESC`, workspaceID)
+INNER JOIN user_roles ur ON ur.user_id = u.id
+ORDER BY u.created_at DESC`)
 	if err != nil {
-		return nil, fmt.Errorf("query workspace users: %w", err)
+		return nil, fmt.Errorf("query organization users: %w", err)
 	}
 	defer rows.Close()
 	users := []service.UserRecord{}
@@ -92,7 +91,7 @@ ORDER BY u.created_at DESC`, workspaceID)
 		var user service.UserRecord
 		var createdAt *time.Time
 		if err := rows.Scan(&user.ID, &user.Email, &user.PasswordHash, &user.FullName, &user.AvatarURL, &user.Bio, &user.PreferredLanguage, &createdAt, &user.AvatarFileID); err != nil {
-			return nil, fmt.Errorf("scan workspace user: %w", err)
+			return nil, fmt.Errorf("scan organization user: %w", err)
 		}
 		if createdAt == nil {
 			user.CreatedAt = time.Now().UTC()
@@ -102,7 +101,7 @@ ORDER BY u.created_at DESC`, workspaceID)
 		users = append(users, user)
 	}
 	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("iterate workspace users: %w", err)
+		return nil, fmt.Errorf("iterate organization users: %w", err)
 	}
 	return users, nil
 }

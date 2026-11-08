@@ -25,34 +25,30 @@ interface StagingLogsTableProps {
   onCreateEmployee: (rawUserId: string) => void;
   onDismiss: (logId: string) => void;
   onResolve: (logId: string, employeeId: string) => void;
-  wsId: string;
 }
 
-type AssignmentProps = Pick<StagingLogsTableProps, 'departments' | 'isDismissing' | 'onCreateEmployee' | 'onDismiss' | 'onResolve' | 'wsId'> & {
+type AssignmentProps = Pick<StagingLogsTableProps, 'departments' | 'isDismissing' | 'onCreateEmployee' | 'onDismiss' | 'onResolve'> & {
   assigningLogId: string | null;
   log: StagingLog;
   setAssigningLogId: (id: string | null) => void;
 };
 
-function AssignmentActions({ assigningLogId, departments, isDismissing, log, onCreateEmployee, onDismiss, onResolve, setAssigningLogId, wsId }: AssignmentProps) {
+function AssignmentActions({ assigningLogId, departments, isDismissing, log, onCreateEmployee, onDismiss, onResolve, setAssigningLogId}: AssignmentProps) {
   const { t } = useTranslation();
 
   if (assigningLogId === log.id) {
     return (
       <div className="flex items-center gap-2">
-        <EmployeeSearch
-          departments={departments}
-          onChange={(value) => {
-            const employeeId = Array.isArray(value) ? value[0] : value;
-            if (employeeId) {
-              onResolve(log.id, employeeId);
-              setAssigningLogId(null);
-            }
-          }}
-          placeholder={t('attendance_logs.select_employee')}
-          value=""
-          workspaceId={wsId}
-        />
+        <EmployeeSearch departments={departments}
+        onChange={(value) => {
+          const employeeId = Array.isArray(value) ? value[0] : value;
+          if (employeeId) {
+            onResolve(log.id, employeeId);
+            setAssigningLogId(null);
+          }
+        }}
+        placeholder={t('attendance_logs.select_employee')}
+        value=""  />
         <Button aria-label={t('common.cancel')} onClick={() => { setAssigningLogId(null); }} size="icon" variant="ghost">✕</Button>
       </div>
     );
@@ -67,7 +63,7 @@ function AssignmentActions({ assigningLogId, departments, isDismissing, log, onC
   );
 }
 
-function StagingLogRow({ assigningLogId, departments, formatDate, formatTime, isDismissing, log, onCreateEmployee, onDismiss, onResolve, setAssigningLogId, wsId }: AssignmentProps & Pick<StagingLogsTableProps, 'formatDate' | 'formatTime'>) {
+function StagingLogRow({ assigningLogId, departments, formatDate, formatTime, isDismissing, log, onCreateEmployee, onDismiss, onResolve, setAssigningLogId}: AssignmentProps & Pick<StagingLogsTableProps, 'formatDate' | 'formatTime'>) {
   const { t } = useTranslation();
 
   return (
@@ -80,12 +76,12 @@ function StagingLogRow({ assigningLogId, departments, formatDate, formatTime, is
       </TableCell>
       <TableCell className="px-8 py-5"><div className="font-mono text-lg font-bold tracking-tight text-amber-700 dark:text-amber-300">{log.raw_user_id}</div><div className="mt-0.5 text-[9px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">{log.status === 'ambiguous' ? t('attendance_logs.ambiguous_employment') : t('attendance_logs.not_in_system')}</div></TableCell>
       <TableCell className="px-8 py-5"><span className="text-xs text-slate-500 dark:text-slate-400">{t('attendance_logs.messages.unknown_source', 'External attendance source')}</span></TableCell>
-      <TableCell className="px-8 py-5"><div className="flex justify-end"><AssignmentActions assigningLogId={assigningLogId} departments={departments} isDismissing={isDismissing} log={log} onCreateEmployee={onCreateEmployee} onDismiss={onDismiss} onResolve={onResolve} setAssigningLogId={setAssigningLogId} wsId={wsId} /></div></TableCell>
+      <TableCell className="px-8 py-5"><div className="flex justify-end"><AssignmentActions assigningLogId={assigningLogId} departments={departments} isDismissing={isDismissing} log={log} onCreateEmployee={onCreateEmployee} onDismiss={onDismiss} onResolve={onResolve} setAssigningLogId={setAssigningLogId}  /></div></TableCell>
     </TableRow>
   );
 }
 
-function StagingLogMobileCard({ assigningLogId, departments, formatDate, formatTime, isDismissing, log, onCreateEmployee, onDismiss, onResolve, setAssigningLogId, wsId }: AssignmentProps & Pick<StagingLogsTableProps, 'formatDate' | 'formatTime'>) {
+function StagingLogMobileCard({ assigningLogId, departments, formatDate, formatTime, isDismissing, log, onCreateEmployee, onDismiss, onResolve, setAssigningLogId}: AssignmentProps & Pick<StagingLogsTableProps, 'formatDate' | 'formatTime'>) {
   const { t } = useTranslation();
 
   return (
@@ -93,15 +89,15 @@ function StagingLogMobileCard({ assigningLogId, departments, formatDate, formatT
       <div className="flex items-start gap-3"><div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-amber-100 bg-amber-50 text-amber-600 dark:border-amber-800/50 dark:bg-amber-950 dark:text-amber-300"><AlertTriangle size={18} /></div><div className="min-w-0 flex-1"><div className="text-sm font-bold uppercase tracking-tight text-slate-700 dark:text-slate-200">{formatDate(log.punch_time)}</div><div className="mt-1 font-mono text-xs font-bold text-slate-500 dark:text-slate-400">{formatTime(log.punch_time)}</div></div></div>
       <div className="mt-4 border-t border-amber-100/50 pt-4 dark:border-amber-800/30"><div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">{t('attendance_logs.unknown_id')}</div><div className="mt-1 font-mono text-lg font-bold tracking-tight text-amber-700 dark:text-amber-300">{log.raw_user_id}</div><div className="mt-0.5 text-[9px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">{t('attendance_logs.not_in_system')}</div></div>
       <div className="mt-3"><div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">{t('common.source')}</div><div className="mt-1 text-xs text-slate-500 dark:text-slate-400">{t('attendance_logs.messages.unknown_source', 'External attendance source')}</div></div>
-      <div className="mt-4 border-t border-amber-100/50 pt-4 dark:border-amber-800/30"><AssignmentActions assigningLogId={assigningLogId} departments={departments} isDismissing={isDismissing} log={log} onCreateEmployee={onCreateEmployee} onDismiss={onDismiss} onResolve={onResolve} setAssigningLogId={setAssigningLogId} wsId={wsId} /></div>
+      <div className="mt-4 border-t border-amber-100/50 pt-4 dark:border-amber-800/30"><AssignmentActions assigningLogId={assigningLogId} departments={departments} isDismissing={isDismissing} log={log} onCreateEmployee={onCreateEmployee} onDismiss={onDismiss} onResolve={onResolve} setAssigningLogId={setAssigningLogId}  /></div>
     </div>
   );
 }
 
-export function StagingLogsTable({ departments, formatDate, formatTime, isDismissing, isFetchingNextPage, isLoading, loadMoreRef, logs, onCreateEmployee, onDismiss, onResolve, wsId }: StagingLogsTableProps) {
+export function StagingLogsTable({ departments, formatDate, formatTime, isDismissing, isFetchingNextPage, isLoading, loadMoreRef, logs, onCreateEmployee, onDismiss, onResolve}: StagingLogsTableProps) {
   const { t } = useTranslation();
   const [assigningLogId, setAssigningLogId] = useState<string | null>(null);
-  const assignmentProps = (log: StagingLog) => ({ assigningLogId, departments, formatDate, formatTime, isDismissing, log, onCreateEmployee, onDismiss, onResolve, setAssigningLogId, wsId });
+  const assignmentProps = (log: StagingLog) => ({ assigningLogId, departments, formatDate, formatTime, isDismissing, log, onCreateEmployee, onDismiss, onResolve, setAssigningLogId});
 
   return (
     <ResponsiveTable<StagingLog>

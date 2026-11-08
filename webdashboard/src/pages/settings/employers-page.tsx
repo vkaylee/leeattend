@@ -7,7 +7,7 @@ import Button from "@/components/ui/button";
 import EmptyState from "@/components/ui/empty-state";
 import { PageContainer } from "@/components/ui/page-container";
 import PageHeader from "@/components/ui/page-header";
-import { useOrganizationQuery } from "@/hooks/common/use-workspace-query";
+import { useOrganizationQuery } from "@/hooks/common/use-organization-query";
 import { useToast } from "@/components/ui/toast";
 import {
   Employer,
@@ -16,7 +16,6 @@ import {
   createEmployer,
   updateEmployer,
   deleteEmployer,
-  getStandaloneOrganizationId,
   CreateEmployerRequest,
   UpdateEmployerRequest,
 } from "@/lib/api";
@@ -27,7 +26,7 @@ import { EmployerFormModal } from "@/pages/settings/components/employer-form-mod
 // eslint-disable-next-line complexity
 export default function EmployersPage() {
   const { t } = useTranslation();
-  const wsId = getStandaloneOrganizationId();
+  
   const queryClient = useQueryClient();
   const toast = useToast();
 
@@ -36,17 +35,15 @@ export default function EmployersPage() {
 
   // Queries
   const { data: employers = [], isLoading: isEmployersLoading } = useQuery({
-    queryKey: ["employers", wsId],
+    queryKey: ["employers"],
     queryFn: () => {
-      if (!wsId) throw new Error("No workspace ID");
-      return fetchEmployers(wsId);
+      return fetchEmployers();
     },
-    enabled: !!wsId,
   });
 
   const { data: employeesData, isLoading: isEmployeesLoading } = useOrganizationQuery({
-    queryKey: employeeKeys.lookup(wsId, { permission: "employers-page" }),
-    queryFn: (workspaceId) => fetchEmployees(workspaceId, 1, 1000),
+    queryKey: employeeKeys.lookup({ permission: "employers-page" }),
+    queryFn: () => fetchEmployees(1, 1000),
   });
 
   const employees = employeesData?.data ?? [];
@@ -55,12 +52,12 @@ export default function EmployersPage() {
   // Mutations
   const createMutation = useMutation({
     mutationFn: (data: CreateEmployerRequest) => {
-      if (!wsId) throw new Error("No workspace ID");
-      return createEmployer(wsId, data);
+      
+      return createEmployer(data);
     },
     onSuccess: () => {
       toast.success(t("settings.employers.messages.created_success", { defaultValue: "Đã tạo pháp nhân thành công." }));
-      void queryClient.invalidateQueries({ queryKey: ["employers", wsId] });
+      void queryClient.invalidateQueries({ queryKey: ["employers"] });
       setIsModalOpen(false);
     },
     onError: (err: unknown) => {
@@ -72,12 +69,12 @@ export default function EmployersPage() {
   const updateMutation = useMutation({
     mutationFn: (data: UpdateEmployerRequest) => {
       if (!editingEmployer) throw new Error("No employer selected for editing");
-      if (!wsId) throw new Error("No workspace ID");
-      return updateEmployer(wsId, editingEmployer.id, data);
+      
+      return updateEmployer(editingEmployer.id, data);
     },
     onSuccess: () => {
       toast.success(t("settings.employers.messages.updated_success", { defaultValue: "Đã cập nhật thông tin pháp nhân." }));
-      void queryClient.invalidateQueries({ queryKey: ["employers", wsId] });
+      void queryClient.invalidateQueries({ queryKey: ["employers"] });
       setIsModalOpen(false);
       setEditingEmployer(null);
     },
@@ -89,12 +86,12 @@ export default function EmployersPage() {
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => {
-      if (!wsId) throw new Error("No workspace ID");
-      return deleteEmployer(wsId, id);
+      
+      return deleteEmployer(id);
     },
     onSuccess: () => {
       toast.success(t("settings.employers.messages.deleted_success", { defaultValue: "Đã xóa pháp nhân thành công." }));
-      void queryClient.invalidateQueries({ queryKey: ["employers", wsId] });
+      void queryClient.invalidateQueries({ queryKey: ["employers"] });
     },
     onError: (err: unknown) => {
       const msg = err instanceof Error ? err.message : String(err);
@@ -103,13 +100,7 @@ export default function EmployersPage() {
     },
   });
 
-  if (!wsId) {
-    return (
-      <div className="p-12 text-center text-slate-500 dark:text-slate-400 font-bold italic uppercase tracking-widest text-xs opacity-50">
-        {t("common.select_workspace")}
-      </div>
-    );
-  }
+  
 
   const handleFormSubmit = async (data: CreateEmployerRequest | UpdateEmployerRequest) => {
     if (editingEmployer) {

@@ -16,15 +16,14 @@ export type EmployeeProfile = components["schemas"]["EmployeeProfile"];
 export type EmployeeSalaryComponent = components["schemas"]["EmployeeSalaryComponent"];
 export type Employment = components["schemas"]["Employment"];
 export type IncentiveEvaluationResult = components["schemas"]["IncentiveEvaluationResult"];
-export type MemberExtraRole = components["schemas"]["MemberExtraRole"];
 export type SalaryComponentWithDefinition = components["schemas"]["SalaryComponentWithDefinition"];
 export type Shift = components["schemas"]["Shift"];
 export type TimeEntry = components["schemas"]["TimeEntry"];
 export type WorkerHeartbeat = components["schemas"]["WorkerHeartbeat"];
 export type WorkingPatternDetailRequest = components["schemas"]["WorkingPatternDetailRequest"];
-export type Workspace = components["schemas"]["Workspace"];
 
 export * from "./api-generated-reexports";
+export type * from "@/types/organization";
 
 
 export interface User {
@@ -37,20 +36,6 @@ export interface User {
   preferred_language?: string | null;
 }
 
-export interface WorkspaceMember {
-  avatar_url?: string | null;
-  email: string;
-  extra_role_ids?: string[];
-  full_name?: string | null;
-  role_id: string;
-  user_id: string;
-  workspace_id: string;
-}
-
-export type WorkspaceRole = Omit<components["schemas"]["WorkspaceRole"], "description"> & {
-  description?: string | null;
-};
-
 export interface PaginatedResponse<T> {
   data: T[];
   limit: number;
@@ -60,10 +45,6 @@ export interface PaginatedResponse<T> {
   truncated?: boolean;
 }
 
-export interface MemberRolesResponse {
-  extra: MemberExtraRole[];
-  primary: string;
-}
 
 
 // --- Workspace Config (EAV) ---

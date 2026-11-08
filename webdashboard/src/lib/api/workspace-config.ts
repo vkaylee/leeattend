@@ -19,20 +19,19 @@ export interface UpdateConfigEntryRequest {
 }
 
 export const workspaceConfigApi = {
-  listConfigs: async (workspaceId: string, prefix?: string): Promise<WorkspaceConfigEntry[]> => {
-    const { data: resData } = await client.GET("/v1/workspaces/{workspace_id}/configs", {
+  listConfigs: async (prefix?: string): Promise<WorkspaceConfigEntry[]> => {
+    const { data: resData } = await client.GET<WorkspaceConfigEntry[]>("/v1/configs", {
       params: {
-        path: { workspace_id: workspaceId },
         query: prefix ? { prefix } : undefined,
       },
     });
     return resData;
   },
 
-  getConfig: async (workspaceId: string, key: string, date?: string): Promise<components["schemas"]["ResolvedConfig"] | null> => {
-    const { data: resData } = await client.GET("/v1/workspaces/{workspace_id}/configs/{key}", {
+  getConfig: async (key: string, date?: string): Promise<components["schemas"]["ResolvedConfig"] | null> => {
+    const { data: resData } = await client.GET<components["schemas"]["ResolvedConfig"]>("/v1/configs/{key}", {
       params: {
-        path: { workspace_id: workspaceId, key },
+        path: { key },
         query: date ? { date } : undefined,
       },
     });
@@ -42,7 +41,7 @@ export const workspaceConfigApi = {
   },
 
   // eslint-disable-next-line complexity
-  upsertConfig: async (workspaceId: string, payload: CreateConfigEntryRequest): Promise<WorkspaceConfigEntry> => {
+  upsertConfig: async (payload: CreateConfigEntryRequest): Promise<WorkspaceConfigEntry> => {
     let value: ConfigValue;
     if (payload.value_bool !== undefined && payload.value_bool !== null) {
       value = { Bool: payload.value_bool };
@@ -58,10 +57,7 @@ export const workspaceConfigApi = {
       value = { Text: "" };
     }
 
-    const { data: resData } = await client.PUT("/v1/workspaces/{workspace_id}/configs", {
-      params: {
-        path: { workspace_id: workspaceId },
-      },
+    const { data: resData } = await client.PUT<WorkspaceConfigEntry>("/v1/configs", {
       body: {
         config_key: payload.config_key,
         effective_from: payload.effective_from,
@@ -74,10 +70,10 @@ export const workspaceConfigApi = {
     return resData;
   },
 
-  deleteConfig: async (workspaceId: string, id: string): Promise<void> => {
-    await client.DELETE("/v1/workspaces/{workspace_id}/configs/{id}", {
+  deleteConfig: async (id: string): Promise<void> => {
+    await client.DELETE("/v1/configs/{id}", {
       params: {
-        path: { workspace_id: workspaceId, id },
+        path: { id },
       },
     });
   },

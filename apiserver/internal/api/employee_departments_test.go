@@ -17,14 +17,14 @@ type mockEmployeeDeptRepo struct {
 	notFound bool
 }
 
-func (m mockEmployeeDeptRepo) GetEmployeeDepartmentHistory(_ context.Context, _, _ uuid.UUID) ([]EmployeeDepartmentHistory, error) {
+func (m mockEmployeeDeptRepo) GetEmployeeDepartmentHistory(_ context.Context, _ uuid.UUID) ([]EmployeeDepartmentHistory, error) {
 	if m.notFound {
 		return nil, ErrEmployeeNotFound
 	}
 	return m.history, nil
 }
 
-func (m mockEmployeeDeptRepo) TransferEmployee(_ context.Context, _, empID uuid.UUID, req TransferEmployeeRequest) (EmployeeDepartmentHistory, error) {
+func (m mockEmployeeDeptRepo) TransferEmployee(_ context.Context, empID uuid.UUID, req TransferEmployeeRequest) (EmployeeDepartmentHistory, error) {
 	if m.notFound {
 		return EmployeeDepartmentHistory{}, ErrDepartmentNotFound
 	}
@@ -38,12 +38,12 @@ func (m mockEmployeeDeptRepo) TransferEmployee(_ context.Context, _, empID uuid.
 	}, nil
 }
 
-func (m mockEmployeeDeptRepo) CurrentEmployeeDepartment(_ context.Context, _, _ uuid.UUID) (*uuid.UUID, error) {
+func (m mockEmployeeDeptRepo) CurrentEmployeeDepartment(_ context.Context, _ uuid.UUID) (*uuid.UUID, error) {
 	return m.deptID, nil
 }
 
 func TestEmployeeDepartments_ListAndTransfer(t *testing.T) {
-	wsID, empID, deptID, userID := uuid.New(), uuid.New(), uuid.New(), uuid.New()
+	empID, deptID, userID := uuid.New(), uuid.New(), uuid.New()
 	h := EmployeeDepartmentHandler{
 		Repository: mockEmployeeDeptRepo{
 			history: []EmployeeDepartmentHistory{
@@ -51,12 +51,11 @@ func TestEmployeeDepartments_ListAndTransfer(t *testing.T) {
 			},
 			deptID: &deptID,
 		},
-		Authorizer: mockAuthorizer{perms: map[string]bool{"departments:transfer": true}},
+		Authorizer: employeeSliceAuthorizer{perms: map[string]bool{"departments:transfer": true}},
 	}
 
 	// 1. List History -> 200
-	req := httptest.NewRequest(http.MethodGet, "/api/v1/workspaces/"+wsID.String()+"/employees/"+empID.String()+"/departments", nil)
-	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/employees/"+empID.String()+"/departments", nil)
 	req.SetPathValue("id", empID.String())
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), userID))
 	rec := httptest.NewRecorder()
@@ -68,8 +67,7 @@ func TestEmployeeDepartments_ListAndTransfer(t *testing.T) {
 	// 2. Transfer Success -> 200
 	newDeptID := uuid.New()
 	body := `{"department_id":"` + newDeptID.String() + `","effective_date":"2026-04-01","notes":"Promotion transfer"}`
-	transferReq := httptest.NewRequest(http.MethodPost, "/api/v1/workspaces/"+wsID.String()+"/employees/"+empID.String()+"/departments", bytes.NewBufferString(body))
-	transferReq = transferReq.WithContext(httpinfra.WithOrganizationIDForTest(transferReq.Context(), wsID))
+	transferReq := httptest.NewRequest(http.MethodPost, "/api/v1/employees/"+empID.String()+"/departments", bytes.NewBufferString(body))
 	transferReq.SetPathValue("id", empID.String())
 	transferReq = transferReq.WithContext(httpinfra.WithUserIDForTest(transferReq.Context(), userID))
 	recTransfer := httptest.NewRecorder()
@@ -81,7 +79,7 @@ func TestEmployeeDepartments_ListAndTransfer(t *testing.T) {
 	// 3. Transfer Forbidden -> 403
 	hForbidden := EmployeeDepartmentHandler{
 		Repository: mockEmployeeDeptRepo{deptID: &deptID},
-		Authorizer: mockAuthorizer{perms: map[string]bool{}},
+		Authorizer: employeeSliceAuthorizer{perms: map[string]bool{}},
 	}
 	recForb := httptest.NewRecorder()
 	hForbidden.Transfer(recForb, transferReq)
@@ -90,8 +88,7 @@ func TestEmployeeDepartments_ListAndTransfer(t *testing.T) {
 	}
 
 	// 4. Transfer Invalid Date -> 400
-	badReq := httptest.NewRequest(http.MethodPost, "/api/v1/workspaces/"+wsID.String()+"/employees/"+empID.String()+"/departments", bytes.NewBufferString(`{"department_id":"`+newDeptID.String()+`","effective_date":"invalid"}`))
-	badReq = badReq.WithContext(httpinfra.WithOrganizationIDForTest(badReq.Context(), wsID))
+	badReq := httptest.NewRequest(http.MethodPost, "/api/v1/employees/"+empID.String()+"/departments", bytes.NewBufferString(`{"department_id":"`+newDeptID.String()+`","effective_date":"invalid"}`))
 	badReq.SetPathValue("id", empID.String())
 	badReq = badReq.WithContext(httpinfra.WithUserIDForTest(badReq.Context(), userID))
 	recBad := httptest.NewRecorder()

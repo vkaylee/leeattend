@@ -18,9 +18,8 @@ vi.mock("@/lib/api", async (importOriginal) => {
   const mod = await importOriginal<typeof import("@/lib/api")>();
   return {
     ...mod,
-    fetchWorkspace: vi.fn(),
-    updateWorkspace: vi.fn(),
-    getStandaloneOrganizationId: vi.fn(),
+    fetchOrganization: vi.fn(),
+    updateOrganization: vi.fn(),
   };
 });
 
@@ -36,8 +35,8 @@ vi.mock("@/components/ui/toast", () => ({ useToast: () => ({ success: vi.fn(), e
 
 
 
-const mockWorkspace = {
-  id: "test-ws-id",
+const mockOrganization = {
+  id: "test-org-id",
   name: "Test Workspace",
   date_format: "DD/MM/YYYY",
   time_format: "24h",
@@ -51,12 +50,9 @@ const mockWorkspace = {
 const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
 
 describe("GeneralSettings Page", () => {
-  const wsId = "test-ws-id";
-
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(api.getStandaloneOrganizationId).mockReturnValue(wsId);
-    vi.mocked(api.fetchWorkspace).mockResolvedValue(mockWorkspace as unknown as api.Workspace);
+    vi.mocked(api.fetchOrganization).mockResolvedValue(mockOrganization as unknown as api.Organization);
   });
 
   it("renders loader initially and then content", async () => {
@@ -98,7 +94,7 @@ describe("GeneralSettings Page", () => {
   });
 
   it("calls updateMutation on save", async () => {
-    vi.mocked(api.updateWorkspace).mockResolvedValue(mockWorkspace as unknown as api.Workspace);
+    vi.mocked(api.updateOrganization).mockResolvedValue(mockOrganization as unknown as api.Organization);
 
     render(
       <QueryClientProvider client={queryClient}>
@@ -113,7 +109,7 @@ describe("GeneralSettings Page", () => {
     fireEvent.click(saveBtn);
 
     await waitFor(() => {
-      expect(api.updateWorkspace).toHaveBeenCalledWith(wsId, expect.objectContaining({
+      expect(api.updateOrganization).toHaveBeenCalledWith(expect.objectContaining({
         name: "Test Workspace",
         date_format: "DD/MM/YYYY"
       }));

@@ -113,7 +113,6 @@ type ShiftIntervalRecord struct {
 
 type ShiftRecord struct {
 	ID            uuid.UUID             `json:"id"`
-	WorkspaceID   uuid.UUID             `json:"workspace_id"`
 	Name          string                `json:"name"`
 	ReportSymbol  *string               `json:"report_symbol"`
 	IsActive      bool                  `json:"is_active"`
@@ -133,21 +132,20 @@ type PaginatedShifts struct {
 }
 
 type ShiftRepository interface {
-	CreateShift(ctx context.Context, workspaceID, actorID uuid.UUID, req CreateShiftRequest) (ShiftRecord, error)
-	ListShifts(ctx context.Context, workspaceID uuid.UUID, locationID, employerID *uuid.UUID, page, limit int) (PaginatedShifts, error)
-	UpdateShift(ctx context.Context, workspaceID, templateID, actorID uuid.UUID, req UpdateShiftRequest) (ShiftRecord, error)
-	ListShiftVersions(ctx context.Context, workspaceID, templateID uuid.UUID) ([]ShiftVersionRecord, error)
-	AssignShift(ctx context.Context, workspaceID, actorID uuid.UUID, req AssignShiftRequest) error
+	CreateShift(ctx context.Context, actorID uuid.UUID, req CreateShiftRequest) (ShiftRecord, error)
+	ListShifts(ctx context.Context, locationID, employerID *uuid.UUID, page, limit int) (PaginatedShifts, error)
+	UpdateShift(ctx context.Context, templateID, actorID uuid.UUID, req UpdateShiftRequest) (ShiftRecord, error)
+	ListShiftVersions(ctx context.Context, templateID uuid.UUID) ([]ShiftVersionRecord, error)
+	AssignShift(ctx context.Context, actorID uuid.UUID, req AssignShiftRequest) error
 }
 
 type ShiftHandler struct {
 	Repository ShiftRepository
-	Authorizer AttendanceAuthorizer
+	Authorizer Authorizer
 }
 
 func (h ShiftHandler) Create(w http.ResponseWriter, r *http.Request) {
-	workspaceID, ok := organizationIDFromContext(r)
-	if !ok || !h.allowed(r, workspaceID, "shifts:create") {
+	if !h.allowed(r, "shifts:create") {
 		h.forbidden(w, r)
 		return
 	}
@@ -165,7 +163,7 @@ func (h ShiftHandler) Create(w http.ResponseWriter, r *http.Request) {
 		h.forbidden(w, r)
 		return
 	}
-	shift, err := h.Repository.CreateShift(r.Context(), workspaceID, actorID, request)
+	shift, err := h.Repository.CreateShift(r.Context(), actorID, request)
 	if err != nil {
 		h.writeError(w, r, err)
 		return
@@ -174,11 +172,6 @@ func (h ShiftHandler) Create(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h ShiftHandler) List(w http.ResponseWriter, r *http.Request) {
-	workspaceID, ok := organizationIDFromContext(r)
-	if !ok {
-		h.forbidden(w, r)
-		return
-	}
 	pagination, err := ParsePagination(r.URL.Query())
 	if err != nil {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
@@ -194,7 +187,7 @@ func (h ShiftHandler) List(w http.ResponseWriter, r *http.Request) {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}
-	shifts, err := h.Repository.ListShifts(r.Context(), workspaceID, locationID, employerID, pagination.Page, pagination.Limit)
+	shifts, err := h.Repository.ListShifts(r.Context(), locationID, employerID, pagination.Page, pagination.Limit)
 	if err != nil {
 		h.writeError(w, r, err)
 		return
@@ -203,9 +196,8 @@ func (h ShiftHandler) List(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h ShiftHandler) Update(w http.ResponseWriter, r *http.Request) {
-	workspaceID, ok := organizationIDFromContext(r)
 	templateID, templateOK := pathUUID(r, "shift_id")
-	if !ok || !templateOK || !h.allowed(r, workspaceID, "shifts:update") {
+	if !templateOK || !h.allowed(r, "shifts:update") {
 		h.forbidden(w, r)
 		return
 	}
@@ -225,7 +217,7 @@ func (h ShiftHandler) Update(w http.ResponseWriter, r *http.Request) {
 		h.forbidden(w, r)
 		return
 	}
-	shift, err := h.Repository.UpdateShift(r.Context(), workspaceID, templateID, actorID, request)
+	shift, err := h.Repository.UpdateShift(r.Context(), templateID, actorID, request)
 	if err != nil {
 		h.writeError(w, r, err)
 		return
@@ -234,13 +226,12 @@ func (h ShiftHandler) Update(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h ShiftHandler) Versions(w http.ResponseWriter, r *http.Request) {
-	workspaceID, ok := organizationIDFromContext(r)
 	templateID, templateOK := pathUUID(r, "shift_id")
-	if !ok || !templateOK || !h.allowed(r, workspaceID, "shifts:read") {
+	if !templateOK || !h.allowed(r, "shifts:read") {
 		h.forbidden(w, r)
 		return
 	}
-	versions, err := h.Repository.ListShiftVersions(r.Context(), workspaceID, templateID)
+	versions, err := h.Repository.ListShiftVersions(r.Context(), templateID)
 	if err != nil {
 		h.writeError(w, r, err)
 		return
@@ -249,8 +240,7 @@ func (h ShiftHandler) Versions(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h ShiftHandler) Assign(w http.ResponseWriter, r *http.Request) {
-	workspaceID, ok := organizationIDFromContext(r)
-	if !ok || !h.allowed(r, workspaceID, "shifts:assign") {
+	if !h.allowed(r, "shifts:assign") {
 		h.forbidden(w, r)
 		return
 	}
@@ -276,7 +266,7 @@ func (h ShiftHandler) Assign(w http.ResponseWriter, r *http.Request) {
 		h.forbidden(w, r)
 		return
 	}
-	if err := h.Repository.AssignShift(r.Context(), workspaceID, actorID, request); err != nil {
+	if err := h.Repository.AssignShift(r.Context(), actorID, request); err != nil {
 		h.writeError(w, r, err)
 		return
 	}
@@ -323,9 +313,9 @@ func optionalUUID(value string) (*uuid.UUID, error) {
 	return &parsed, nil
 }
 
-func (h ShiftHandler) allowed(r *http.Request, workspaceID uuid.UUID, permission string) bool {
+func (h ShiftHandler) allowed(r *http.Request, permission string) bool {
 	userID, ok := httpinfra.UserIDFromContext(r.Context())
-	return ok && h.Authorizer != nil && h.Authorizer.HasPermission(r.Context(), userID, workspaceID, permission)
+	return ok && h.Authorizer != nil && h.Authorizer.HasPermission(r.Context(), userID, permission)
 }
 
 func (h ShiftHandler) forbidden(w http.ResponseWriter, r *http.Request) {

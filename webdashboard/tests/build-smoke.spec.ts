@@ -25,7 +25,7 @@ test.describe("UI Build Smoke Test", () => {
       return text.trim().length > 0 &&
         !text.includes("Checking security") &&
         !text.includes("Đang kiểm tra bảo mật") &&
-        !text.includes("Loading workspace") &&
+        !text.includes("Loading organization") &&
         !text.includes("Đang tải");
     }, { timeout: 15000 }).catch(() => { /* empty */ });
 

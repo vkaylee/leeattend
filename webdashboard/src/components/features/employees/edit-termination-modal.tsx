@@ -7,7 +7,7 @@ import Button from "@/components/ui/button";
 import FormField from "@/components/ui/form-field";
 import Modal from "@/components/ui/modal";
 import { useToast } from "@/components/ui/toast";
-import { useOrganizationMutation } from "@/hooks/common/use-workspace-query";
+import { useOrganizationMutation } from "@/hooks/common/use-organization-query";
 import { updateEmployeeEmployment } from "@/lib/api";
 import { employeeKeys } from "@/lib/query-keys";
 
@@ -18,7 +18,6 @@ interface EditTerminationModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess?: () => void;
-  wsId: string;
 }
 
 export default function EditTerminationModal({
@@ -26,9 +25,7 @@ export default function EditTerminationModal({
   onClose,
   employeeId,
   employmentId,
-  currentEndDate,
-  wsId,
-  onSuccess,
+  currentEndDate,onSuccess,
 }: EditTerminationModalProps) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
@@ -38,19 +35,18 @@ export default function EditTerminationModal({
     string,
     Awaited<ReturnType<typeof updateEmployeeEmployment>>
   >({
-    workspaceId: wsId,
-    keys: [employeeKeys.all(wsId)],
-    mutationFn: (workspaceId, newEndDate) => {
+    keys: [employeeKeys.all()],
+    mutationFn: (newEndDate) => {
       if (!employeeId) throw new Error("No employee selected");
       if (!employmentId) throw new Error("No employment record found");
-      return updateEmployeeEmployment(workspaceId, employeeId, employmentId, {
+      return updateEmployeeEmployment(employeeId, employmentId, {
         status: "terminated",
         end_date: newEndDate,
       });
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["deptHistory", employeeId] });
-      void queryClient.invalidateQueries({ queryKey: ["employee-employments", wsId, employeeId] });
+      void queryClient.invalidateQueries({ queryKey: ["employee-employments",employeeId] });
       onClose();
       toast.success(t("common.success"));
       onSuccess?.();

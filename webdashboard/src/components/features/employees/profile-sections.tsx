@@ -1,7 +1,7 @@
 import { Building2, Calendar, MapPin, Check, Globe, Clock, User } from "lucide-react";
 import React from "react";
 
-import type { Department, Employee, WorkspaceMember, Employment } from "@/lib/api";
+import type { Department, Employee, OrganizationMember, Employment } from "@/lib/api";
 import type { WorkLocation } from "@/lib/api/locations";
 
 import PermissionGate from "@/components/common/permission-gate";
@@ -162,7 +162,7 @@ export function UserSection({
     employee,
     t
 }: {
-    linkedUser?: WorkspaceMember;
+    linkedUser?: OrganizationMember;
     employee: Employee;
     t: (k: string) => string;
 }) {

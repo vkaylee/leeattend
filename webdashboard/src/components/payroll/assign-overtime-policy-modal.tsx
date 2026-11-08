@@ -18,12 +18,9 @@ interface AssignOvertimePolicyModalProps {
   initialType?: 'employee' | 'department' | 'workspace';
   isOpen: boolean;
   onClose: () => void;
-  wsId: string;
 }
 
-export default function AssignOvertimePolicyModal({ 
-  wsId, 
-  isOpen, 
+export default function AssignOvertimePolicyModal({isOpen, 
   onClose,
   initialType = 'employee',
   initialId = ''
@@ -43,7 +40,7 @@ export default function AssignOvertimePolicyModal({
     departments,
     assignMutation,
     handleSubmit
-  } = useAssignOvertimePolicy({ wsId, isOpen, onClose, initialType, initialId });
+  } = useAssignOvertimePolicy({isOpen, onClose, initialType, initialId });
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={t('payroll.assign_overtime_policy')}>
@@ -56,14 +53,11 @@ export default function AssignOvertimePolicyModal({
             t={t}
           />
 
-          <AssigneePicker 
-            departments={departments}
-            selectedType={selectedType}
-            setTargetId={setTargetId}
-            t={t}
-            targetId={targetId}
-            wsId={wsId}
-          />
+          <AssigneePicker departments={departments}
+          selectedType={selectedType}
+          setTargetId={setTargetId}
+          t={t}
+          targetId={targetId}  />
 
           <PolicySelector 
             policies={policies}

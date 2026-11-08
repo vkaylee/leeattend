@@ -23,10 +23,7 @@ vi.mock("@/lib/api/client", () => ({
 const hashMock = vi.hoisted(() => ({ computeSHA256: vi.fn() }));
 vi.mock("@/utils/hash", () => hashMock);
 
-const WS_ID = "ws-1";
-
 const defaultOptions: UseFileUploadOptions = {
-  workspaceId: WS_ID,
   category: "onboarding",
   ownerType: "employee",
   ownerId: "emp-1",
@@ -108,8 +105,7 @@ describe("useFileUpload", () => {
       expect(clientMock.POST).toHaveBeenCalledTimes(1);
 
       const [url, init] = (clientMock.POST as Mock).mock.calls[0];
-      expect(url).toBe("/v1/workspaces/{ws_id}/files/upload");
-      expect(init.params.path.ws_id).toBe(WS_ID);
+      expect(url).toBe("/v1/files/upload");
 
       const formData = init.body as FormData;
       expect(formData.get("category")).toBe("onboarding");
@@ -203,8 +199,7 @@ describe("useFileUpload", () => {
 
       const [method, url, init] = (legacyFetchMock as Mock).mock.calls[0];
       expect(method).toBe("POST");
-      expect(url).toBe("/v1/workspaces/{ws_id}/files/presigned");
-      expect(init.params.path.ws_id).toBe(WS_ID);
+      expect(url).toBe("/v1/files/presigned");
       expect(init.body).toMatchObject({
         category: "onboarding",
         content_hash: "hash123",
