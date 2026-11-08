@@ -547,7 +547,7 @@
     },
     "layout": {
       "access": "权限与账号",
-      "control_panel": "控制面板",
+      "control_panel": "系统配置",
       "operations": "业务与运营",
       "security_system": "安全与系统",
       "workspace": "工作区"

@@ -80,7 +80,7 @@ describe("SettingsSidebar (macOS 2-column layout)", () => {
 
     render(<SettingsSidebar />);
     expect(screen.getByTestId("settings-sidebar")).toBeInTheDocument();
-    expect(screen.getByText("Bảng điều khiển")).toBeInTheDocument();
+    expect(screen.getByText("Cấu hình hệ thống")).toBeInTheDocument();
   });
 
   it("renders back to workspace link for Focus Mode", () => {

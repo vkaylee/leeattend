@@ -59,7 +59,7 @@ export function Topbar({
         {isSettings ? (
           <Link
             aria-label={t("common.back_to_workspace", "Quay lại bảng làm việc")}
-            className="flex items-center justify-center h-8 px-2.5 gap-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted text-xs font-medium transition-colors outline-none focus-visible:ring-2 focus-visible:ring-primary shrink-0"
+            className="flex md:hidden items-center justify-center h-8 px-2.5 gap-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted text-xs font-medium transition-colors outline-none focus-visible:ring-2 focus-visible:ring-primary shrink-0"
             data-testid="topbar-back-btn"
             to={ROUTES.HOME}
           >

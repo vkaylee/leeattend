@@ -154,6 +154,7 @@ describe("Topbar Layout Component", () => {
     const backBtn = screen.getByTestId("topbar-back-btn");
     expect(backBtn).toBeInTheDocument();
     expect(backBtn).toHaveAttribute("href", "/");
+    expect(backBtn).toHaveClass("md:hidden");
     expect(screen.queryByTestId("topbar-mobile-menu-btn")).not.toBeInTheDocument();
   });
 });

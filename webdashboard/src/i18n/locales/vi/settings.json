@@ -547,7 +547,7 @@
     },
     "layout": {
       "access": "Phân quyền & Tài khoản",
-      "control_panel": "Bảng điều khiển",
+      "control_panel": "Cấu hình hệ thống",
       "operations": "Vận hành & Nghiệp vụ",
       "security_system": "Bảo mật & Hệ thống",
       "workspace": "Không gian làm việc"

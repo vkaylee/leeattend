@@ -134,7 +134,7 @@ export const SettingsSidebar = memo(function SettingsSidebar({
             className="text-[10px] font-medium text-slate-500 dark:text-slate-400 truncate"
             variant="p"
           >
-            {t("settings.layout.control_panel", "Bảng điều khiển")}
+            {t("settings.layout.control_panel", "Cấu hình hệ thống")}
           </Typography>
         </div>
       </div>
