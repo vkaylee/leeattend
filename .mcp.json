@@ -8,27 +8,7 @@
     },
     "playwright": {
       "command": "scripts/playwright-mcp-role.sh",
-      "args": ["employee"]
-    },
-    "playwright-employee": {
-      "command": "scripts/playwright-mcp-role.sh",
-      "args": ["employee"]
-    },
-    "playwright-team-lead": {
-      "command": "scripts/playwright-mcp-role.sh",
-      "args": ["team-lead"]
-    },
-    "playwright-shift-manager": {
-      "command": "scripts/playwright-mcp-role.sh",
-      "args": ["shift-manager"]
-    },
-    "playwright-hr-manager": {
-      "command": "scripts/playwright-mcp-role.sh",
-      "args": ["hr-manager"]
-    },
-    "playwright-admin": {
-      "command": "scripts/playwright-mcp-role.sh",
-      "args": ["admin"]
+      "args": ["employee", "--endpoint", "http://caddy"]
     }
   }
 }

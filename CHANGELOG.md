@@ -3,7 +3,10 @@
 ## [Unreleased]
 
 ### Changed
-- Playwright MCP containers now terminate within 60 seconds after the last MCP request, while auth setup keeps its bounded job timeout.
+- Playwright MCP image provisioning skips build when local image already exists.
+- Playwright MCP endpoint is configurable in `.mcp.json`; browser navigation remains limited to that configured origin.
+- Consolidated role-specific Playwright MCP entries into one employee-default server; wrapper supplies role guidance through MCP initialize instructions.
+
 
 ### Security
 - Playwright MCP runtime filesystem is read-only with Chromium temporary paths backed by `tmpfs`; role auth state remains the only deliberate persistent runtime file.

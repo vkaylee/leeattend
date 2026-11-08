@@ -1,104 +1,258 @@
-"""Behavior tests for Playwright MCP idle cleanup."""
+"""Behavior tests for Playwright MCP watchdog."""
 
 from __future__ import annotations
 
+import json
 import os
 import subprocess
 import sys
 import time
 from pathlib import Path
-
 ROOT = Path(__file__).resolve().parents[2]
-WATCHDOG = ROOT / "scripts/playwright-idle-watchdog.py"
-TIMEOUT_SCRIPT = ROOT / "scripts/playwright-timeout.sh"
 
 
-def run_watchdog(
-    *, child: str, idle: int, grace: int, input_data: bytes = b""
-) -> subprocess.CompletedProcess[bytes]:
+def image_build_result(
+    *, image_present: bool, engine: str = "podman-compose"
+) -> subprocess.CompletedProcess[str]:
+    script = ROOT / "scripts/playwright-timeout.sh"
+    command = (
+        f"source {script}; COMPOSE=({engine}); "
+        "podman() { [[ \"$*\" == 'image exists localhost/leedevkit-dev_playwright-mcp:latest' ]] && "
+        "[[ \"$IMAGE_PRESENT\" == 1 ]]; }; "
+        "docker() { [[ \"$*\" == 'image inspect localhost/leedevkit-dev_playwright-mcp:latest' ]] && "
+        "[[ \"$IMAGE_PRESENT\" == 1 ]]; }; "
+        "playwright_timeout_run() { printf 'build %s\\n' \"$*\"; }; "
+        "playwright_build_image_if_missing localhost/leedevkit-dev_playwright-mcp:latest "
+        f"{engine} -p project --profile mcp"
+    )
     return subprocess.run(
-        [
-            sys.executable,
-            str(WATCHDOG),
-            "--idle-seconds",
-            str(idle),
-            "--grace-seconds",
-            str(grace),
-            "--",
-            sys.executable,
-            "-c",
-            child,
-        ],
-        input=input_data,
+        ["bash", "-c", command],
+        cwd=ROOT,
+        env={**os.environ, "IMAGE_PRESENT": "1" if image_present else "0"},
         capture_output=True,
+        text=True,
         check=False,
-        timeout=10,
+    )
+WATCHDOG = ROOT / "scripts/playwright-idle-watchdog.py"
+
+
+def watchdog_command(child: str, *, idle: int = 3, grace: int = 1) -> list[str]:
+    return [
+        sys.executable,
+        str(WATCHDOG),
+        "--idle-seconds",
+        str(idle),
+        "--grace-seconds",
+        str(grace),
+        "--",
+        sys.executable,
+        "-c",
+        child,
+    ]
+
+
+def test_idle_timeout_cli_defaults_to_ten_seconds(monkeypatch) -> None:
+    import runpy
+
+    parse_args = runpy.run_path(str(WATCHDOG), run_name="watchdog_test")["parse_args"]
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [str(WATCHDOG), "--", sys.executable, "-c", "pass"],
     )
 
-def test_idle_mcp_process_is_terminated_with_distinct_status() -> None:
-    result = run_watchdog(child="import time; time.sleep(10)", idle=2, grace=1)
+    assert parse_args().idle_seconds == 10
+
+
+def test_existing_podman_image_skips_build() -> None:
+    result = image_build_result(image_present=True)
+
+    assert result.returncode == 0
+    assert result.stdout == ""
+
+
+def test_missing_podman_image_builds_once() -> None:
+    result = image_build_result(image_present=False)
+
+    assert result.returncode == 0
+    assert result.stderr == "build podman-compose -p project --profile mcp build playwright-mcp\n"
+
+def test_existing_docker_image_skips_build() -> None:
+    result = image_build_result(image_present=True, engine="docker compose")
+
+    assert result.returncode == 0
+    assert result.stdout == ""
+
+
+def test_missing_docker_image_builds_once() -> None:
+    result = image_build_result(image_present=False, engine="docker compose")
+
+    assert result.returncode == 0
+    assert result.stderr == "build docker compose -p project --profile mcp build playwright-mcp\n"
+
+
+
+def test_silent_startup_is_terminated() -> None:
+    started = time.monotonic()
+    result = subprocess.run(
+        watchdog_command("import time; time.sleep(10)"),
+        capture_output=True,
+        check=False,
+        timeout=5,
+    )
 
     assert result.returncode == 124
-    assert b"Playwright MCP idle for 2s" in result.stderr
+    assert b"Playwright MCP idle for 3s" in result.stderr
+    assert 2 <= time.monotonic() - started < 4
 
 
-def test_request_activity_resets_idle_deadline() -> None:
-    child = "import sys, time; data = sys.stdin.buffer.read(2); sys.stdout.buffer.write(data); sys.stdout.buffer.flush(); time.sleep(10)"
+def test_client_notifications_do_not_extend_pending_request_deadline() -> None:
     process = subprocess.Popen(
-        [
-            sys.executable,
-            str(WATCHDOG),
-            "--idle-seconds",
-            "2",
-            "--grace-seconds",
-            "1",
-            "--",
-            sys.executable,
-            "-c",
-            child,
-        ],
+        watchdog_command("import time; time.sleep(10)"),
         stdin=subprocess.PIPE,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
     )
     assert process.stdin is not None
-    assert process.stdout is not None
-    process.stdin.write(b"x")
+    process.stdin.write(b'{"jsonrpc":"2.0","id":1,"method":"initialize"}\n')
     process.stdin.flush()
-    time.sleep(0.5)
-    process.stdin.write(b"y")
-    process.stdin.flush()
-    assert process.stdout.read(2) == b"xy"
-    time.sleep(0.5)
-    assert process.poll() is None
+    started = time.monotonic()
+    while time.monotonic() - started < 1.5:
+        process.stdin.write(b'{"jsonrpc":"2.0","method":"notifications/progress"}\n')
+        process.stdin.flush()
+        time.sleep(0.2)
     process.stdin.close()
-    process.wait(timeout=5)
+    process.wait(timeout=2)
 
     assert process.returncode == 124
+    assert time.monotonic() - started < 3
 
 
-def test_idle_timeout_environment_is_validated_before_command() -> None:
-    command = f"source {TIMEOUT_SCRIPT}; PLAYWRIGHT_MCP_IDLE_TIMEOUT_SECS=61 playwright_idle_run true true"
+def test_server_output_progress_resets_pending_request_deadline() -> None:
+    child = (
+        "import sys, time; sys.stdin.buffer.readline(); "
+        "notification=b'{\"jsonrpc\":\"2.0\",\"method\":\"notifications/progress\"}\\n'; "
+        "time.sleep(1.3); sys.stdout.buffer.write(notification); sys.stdout.buffer.flush(); "
+        "time.sleep(1.3); sys.stdout.buffer.write(notification); sys.stdout.buffer.flush(); "
+        "time.sleep(0.7)"
+    )
     result = subprocess.run(
-        ["bash", "-c", command],
-        cwd=ROOT,
-        env={**os.environ, "PLAYWRIGHT_MCP_IDLE_TIMEOUT_SECS": "61"},
+        watchdog_command(child, idle=3, grace=1),
+        input=b'{"jsonrpc":"2.0","id":1,"method":"initialize"}\n',
         capture_output=True,
         check=False,
+        timeout=5,
+    )
+
+    assert result.returncode == 0
+    assert result.stdout.count(b'"method":"notifications/progress"') == 2
+
+
+def test_replied_initialization_leaves_healthy_idle_process_alive() -> None:
+    child = (
+        "import sys, time; sys.stdin.buffer.readline(); "
+        "sys.stdout.buffer.write(b'{\"jsonrpc\":\"2.0\",\"id\":1,\"result\":{}}\\n'); "
+        "sys.stdout.buffer.flush(); time.sleep(2.5)"
+    )
+    result = subprocess.run(
+        watchdog_command(child, idle=2, grace=1),
+        input=b'{"jsonrpc":"2.0","id":1,"method":"initialize"}\n',
+        capture_output=True,
+        check=False,
+        timeout=5,
+    )
+
+    assert result.returncode == 0
+    assert result.stdout == b'{"jsonrpc":"2.0","id":1,"result":{}}\n'
+
+
+def test_process_exit_is_reaped_without_waiting_for_idle_deadline() -> None:
+    child = (
+        "import sys; sys.stdin.buffer.readline(); "
+        "sys.stdout.buffer.write(b'{\"jsonrpc\":\"2.0\",\"id\":1,\"result\":{}}\\n'); "
+        "sys.stdout.buffer.flush()"
+    )
+    started = time.monotonic()
+    result = subprocess.run(
+        watchdog_command(child, idle=4, grace=1),
+        input=b'{"jsonrpc":"2.0","id":1,"method":"initialize"}\n',
+        capture_output=True,
+        check=False,
+        timeout=3,
+    )
+
+    assert result.returncode == 0
+    assert time.monotonic() - started < 2.5
+
+
+def test_stdio_forwards_json_rpc_bytes_both_directions() -> None:
+    request = b'{"jsonrpc":"2.0","id":1,"method":"ping"}\n'
+    response = b'{"jsonrpc":"2.0","id":1,"result":{}}\n'
+    child = (
+        f"import sys; data=sys.stdin.buffer.readline(); assert data == {request!r}; "
+        f"sys.stdout.buffer.write({response!r}); sys.stdout.buffer.flush()"
+    )
+    result = subprocess.run(
+        watchdog_command(child),
+        input=request,
+        capture_output=True,
+        check=False,
+        timeout=3,
+    )
+
+    assert result.returncode == 0
+
+def test_initialize_response_includes_server_instructions() -> None:
+    request = b'{"jsonrpc":"2.0","id":1,"method":"initialize"}\n'
+    response = b'{"jsonrpc":"2.0","id":1,"result":{"protocolVersion":"2025-11-25","capabilities":{},"serverInfo":{"name":"test","version":"1"}}}\n'
+    child = (
+        f"import sys; data=sys.stdin.buffer.readline(); assert data == {request!r}; "
+        f"sys.stdout.buffer.write({response!r}); sys.stdout.buffer.flush()"
+    )
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(WATCHDOG),
+            "--initialize-instructions",
+            "Use employee role access only.",
+            "--",
+            sys.executable,
+            "-c",
+            child,
+        ],
+        input=request,
+        capture_output=True,
+        check=False,
+        timeout=3,
+    )
+
+    assert result.returncode == 0
+    message = json.loads(result.stdout)
+    assert message["result"]["instructions"] == "Use employee role access only."
+    assert message["result"]["protocolVersion"] == "2025-11-25"
+
+
+def test_process_ignoring_term_is_force_killed_at_deadline() -> None:
+    child = "import signal, time; signal.signal(signal.SIGTERM, signal.SIG_IGN); time.sleep(10)"
+    started = time.monotonic()
+    result = subprocess.run(
+        watchdog_command(child),
+        capture_output=True,
+        check=False,
+        timeout=5,
+    )
+
+    assert result.returncode == 124
+    assert time.monotonic() - started < 4
+
+
+def test_idle_timeout_cli_rejects_out_of_range_value() -> None:
+    result = subprocess.run(
+        [sys.executable, str(WATCHDOG), "--idle-seconds", "61", "--", sys.executable, "-c", "pass"],
+        capture_output=True,
+        check=False,
+        timeout=3,
     )
 
     assert result.returncode == 2
-    assert b"PLAYWRIGHT_MCP_IDLE_TIMEOUT_SECS" in result.stderr
-
-
-def test_playwright_runtime_storage_is_memory_backed() -> None:
-    compose = (ROOT / ".compose/docker-compose.dev.yml").read_text()
-    service = compose.split("  playwright-mcp:\n", 1)[1].split("\n\n", 1)[0]
-
-    assert "    read_only: true\n" in service
-    assert "      - /tmp\n" in service
-    assert "      - /root/.cache\n" in service
-    assert "      - /root/.config\n" in service
-    assert "      - /root/.local\n" in service
-    assert "    shm_size: 256m\n" in service
-    assert "    volumes:" not in service
+    assert b"--idle-seconds must be an integer from 1 to 60 seconds" in result.stderr

@@ -5,6 +5,12 @@ ROOT="$(cd "$(dirname "$(readlink -f "$0")")/.." && pwd)"
 source "$ROOT/scripts/playwright-timeout.sh"
 playwright_timeout_init
 
+SUPERVISED=false
+if [[ "${1:-}" == --supervised ]]; then
+  SUPERVISED=true
+  shift
+fi
+
 ROLE="${1:-employee}"
 shift || true
 case "$ROLE" in
@@ -15,6 +21,33 @@ case "$ROLE" in
     ;;
 esac
 
+if [[ "${1:-}" != --endpoint || -z "${2:-}" ]]; then
+  printf '%s\n' 'Usage: playwright-mcp-role.sh ROLE --endpoint ENDPOINT [MCP_ARGS...]' >&2
+  exit 2
+fi
+ENDPOINT="$2"
+shift 2
+
+case "$ROLE" in
+  employee) ROLE_GUIDANCE="Access only pages and actions permitted to an employee." ;;
+  team-lead) ROLE_GUIDANCE="Access only pages and actions permitted to a team lead." ;;
+  shift-manager) ROLE_GUIDANCE="Access only pages and actions permitted to a shift manager." ;;
+  hr-manager) ROLE_GUIDANCE="Access only pages and actions permitted to an HR manager." ;;
+  admin) ROLE_GUIDANCE="Access only pages and actions permitted to an administrator." ;;
+esac
+ROLE_INSTRUCTIONS="Use Playwright MCP only for UI tasks. This browser session starts unauthenticated; open ${ENDPOINT}/login before authentication. ${ROLE_GUIDANCE} Never bypass application authorization or inspect secrets, cookies, or storage tokens."
+
+if [[ "$SUPERVISED" == false ]]; then
+  PYTHON="$ROOT/.venv/bin/python3"
+  if [[ ! -x "$PYTHON" ]]; then
+    printf '%s\n' 'Project Python environment missing; run scripts/_python.sh --version before starting Playwright MCP.' >&2
+    exit 1
+  fi
+  exec "$PYTHON" "$ROOT/scripts/playwright-idle-watchdog.py" \
+    --idle-seconds "${PLAYWRIGHT_MCP_IDLE_TIMEOUT_SECS:-10}" \
+    --initialize-instructions "$ROLE_INSTRUCTIONS" \
+    -- bash "$ROOT/scripts/playwright-mcp-role.sh" --supervised "$ROLE" --endpoint "$ENDPOINT" "$@"
+fi
 if [[ -n "${DOCKER_COMPOSE_CMD:-}" ]]; then
   read -r -a COMPOSE <<<"${DOCKER_COMPOSE_CMD}"
 elif command -v podman-compose >/dev/null 2>&1; then
@@ -26,33 +59,7 @@ else
   exit 1
 fi
 
-AUTH_DIR="${PLAYWRIGHT_AUTH_DIR:-$ROOT/.secrets/playwright-auth}"
-AUTH_STATE="$AUTH_DIR/$ROLE.json"
-
-if [[ -f "$AUTH_STATE" ]]; then
-  if ! playwright_timeout_run "${COMPOSE[@]}" \
-    -p leedevkit-dev \
-    -f "$ROOT/.compose/docker-compose.dev.yml" \
-    --profile mcp \
-    run --rm --no-deps -T \
-    -v "$AUTH_STATE:/run/secrets/playwright-auth.json:ro" \
-    -e PLAYWRIGHT_AUTH_STATE=/run/secrets/playwright-auth.json \
-    -e PLAYWRIGHT_BASE_URL=http://caddy \
-    --entrypoint node playwright-mcp \
-    /opt/playwright-mcp/check-auth.cjs </dev/null >/dev/null 2>&1; then
-    "$ROOT/scripts/playwright-auth-role.sh" "$ROLE" </dev/null
-  fi
-else
-  "$ROOT/scripts/playwright-auth-role.sh" "$ROLE" </dev/null
-fi
-
 RUN_ARGS=(run --rm --no-deps -T)
-if [[ -f "$AUTH_STATE" ]]; then
-  RUN_ARGS+=(
-    -v "$AUTH_STATE:/run/secrets/playwright-auth.json:ro"
-    -e PLAYWRIGHT_MCP_STORAGE_STATE=/run/secrets/playwright-auth.json
-  )
-fi
 
 MCP_COMMAND=(
   --headless
@@ -62,7 +69,7 @@ MCP_COMMAND=(
   --caps=vision,pdf,devtools
   --console-level=info
   --snapshot-boxes
-  --allowed-origins=http://caddy
+  "--allowed-origins=$ENDPOINT"
   --timeout-action=5000
   --timeout-navigation=30000
   --timeout-settle=1000
@@ -70,10 +77,8 @@ MCP_COMMAND=(
 )
 
 
-playwright_idle_run "$ROOT/scripts/_python.sh" "$ROOT/scripts/playwright-idle-watchdog.py" \
-  "${COMPOSE[@]}" \
-  -p leedevkit-dev \
-  -f "$ROOT/.compose/docker-compose.dev.yml" \
-  --profile mcp \
+PLAYWRIGHT_COMPOSE=("${COMPOSE[@]}" -p leedevkit-dev -f "$ROOT/.compose/docker-compose.dev.yml" --profile mcp)
+playwright_build_image_if_missing "localhost/leedevkit-dev_playwright-mcp:latest" "${PLAYWRIGHT_COMPOSE[@]}"
+exec "${PLAYWRIGHT_COMPOSE[@]}" \
   "${RUN_ARGS[@]}" playwright-mcp \
   "${MCP_COMMAND[@]}"

@@ -9,16 +9,16 @@ Prevent stalled Playwright MCP/auth containers from surviving indefinitely while
 Use layered timeouts:
 
 - MCP browser actions: explicit action/navigation/settle limits passed to the pinned MCP image.
-- Interactive MCP lifetime: a stdio watchdog resets on every MCP request, starts `TERM` after 45 seconds of silence, then uses a 15-second grace period; the container is gone within 60 seconds after the last request.
-- Auth preflight/login: retain the existing 10-second `/api/v1/me` request limit and bounded auth-container execution.
-- Container cleanup: retain `docker/podman compose run --rm --no-deps`; idle cleanup must return a distinct failure and leave no MCP container behind.
+- Interactive MCP lifetime: the watchdog starts before the role wrapper's first external operation, including Compose startup. Startup and pending-request silence have a 10-second deadline with up to 2 seconds reserved for termination. Healthy sessions without pending requests may remain idle.
+- Interactive authentication: no automatic credentials or saved state. The browser context is isolated and starts at login UI.
+- Container cleanup: preserve `--rm --no-deps`; timeout returns `124` and process-group cleanup is bounded.
 
-The 60-second limit is a hard maximum after the last MCP request. Auth build/login jobs retain their separate hard runtime timeout.
+Only MCP server stdout progress resets a pending-request deadline. Client notifications cannot keep a stuck request alive. The project Python environment is required before startup.
 
 ## Constraints and interfaces
 
 - Keep browser requests on `http://caddy`; do not expose or use the host Caddy port from the browser container.
-- Preserve role-isolated storage state and session preflight behavior.
+- Start every interactive session unauthenticated; do not mount role state or invoke auth preflight/login.
 - Never log credentials, cookies, tokens, or raw PII.
 - Use existing Compose/wrapper commands and repository validation targets.
 - No changes to React application behavior or production services.
@@ -26,11 +26,11 @@ The 60-second limit is a hard maximum after the last MCP request. Auth build/log
 
 ## Tasks
 
-- [x] Define timeout contract in `scripts/playwright-mcp-role.sh` and `scripts/playwright-auth-role.sh`: MCP idle deadline, auth hard runtime defaults, validation, exit-code/error wording, and cleanup behavior.
-  - Verify: invalid values fail before Compose; defaults resolve deterministically; idle cleanup is distinguishable from login failure.
+- [x] Define the startup/pending-response timeout contract in `scripts/playwright-mcp-role.sh` and the stdio watchdog. Preserve standalone auth job limits.
+  - Verify: role wrapper startup is supervised; login-first smoke reaches Caddy, and JSON-RPC fixtures cover startup silence, pending requests, progress, healthy idle, stdio forwarding, and cleanup.
 
-- [x] Add stdio idle watchdog around the MCP Compose foreground command; reset deadline on every MCP request, send `TERM` 15 seconds before the 60-second deadline, then `KILL` at the deadline if needed. Keep `--rm --no-deps` and propagate caller arguments unchanged.
-  - Verify: controlled idle fixture receives `TERM`, request activity resets deadline, wrapper returns timeout status, and no orphan process remains.
+- [x] Start supervision before Compose startup; forward MCP stdio unchanged, track request IDs and replies, preserve healthy idle sessions, and terminate silent startup or pending requests within the configured deadline.
+  - Verify: focused fixtures pass 9 tests, including forced termination.
 
 - [x] Bound auth image build/run operations with the existing hard runtime timeout; preserve temporary credential file cleanup on all exits.
   - Verify: success, missing credentials, invalid credentials, Compose failure, and forced timeout all remove temporary credential material and do not create partial role state.
@@ -47,10 +47,9 @@ The 60-second limit is a hard maximum after the last MCP request. Auth build/log
 
 ## Test impact matrix
 
-- Changed behavior: MCP containers terminate within 60 seconds after the last MCP request.
-- Existing behavior: valid role state reuse, invalid-state refresh, Caddy routing, and MCP stdio interaction remain unchanged.
-- Boundaries: missing, zero, negative, non-numeric, minimum, default, and maximum idle values.
-- State: no state, valid state, expired state, partial state, and state creation interrupted by timeout.
+- Changed behavior: startup and unanswered JSON-RPC requests are bounded to 10 seconds; healthy idle sessions remain alive and interactive sessions begin at login UI.
+- Existing behavior: Caddy-only routing and MCP stdio contract remain unchanged.
+- Boundaries: missing, zero, negative, non-numeric, minimum, default, and maximum timeout values.
 - Failures: Compose unavailable, image build failure, API timeout, login timeout, MCP idle timeout, graceful termination, forced kill.
 - Security: credentials remain mode `600`, temporary files are deleted, no state/token/password logging.
 - Compatibility: Docker Compose and Podman Compose paths; pinned MCP version; Python watchdog availability.
@@ -58,15 +57,15 @@ The 60-second limit is a hard maximum after the last MCP request. Auth build/log
 
 ## Done when
 
-- [x] Interactive MCP wrapper terminates within 60 seconds after the last request; auth wrapper retains bounded hard runtime.
-- [x] Graceful shutdown occurs before forced kill.
-- [x] Browser action/navigation/preflight limits are explicit and documented.
-- [x] Role auth/session behavior remains intact.
-- [x] Shell, Python, JSON, Compose, focused watchdog, and applicable LeeDevKit gates run; unrelated existing web unit failures remain documented in verification.
+- [x] Interactive MCP startup and pending-request silence are bounded to 10 seconds; unauthenticated sessions begin at the login UI.
+- [x] Graceful shutdown precedes forced termination.
+- [x] Browser action/navigation limits remain explicit and documented.
+- [x] MCP stdio reaches Caddy: initialize response observed at 1.15s, `/login` navigation response at 2.00s.
+- [ ] Full LeeDevKit suite: blocked by existing Go compile/lint failures and web TypeScript/E2E errors; focused watchdog tests and Ruff pass.
 - [ ] Working tree contains only the reviewed commit or intentionally documented user changes.
 
 ## Review focus
 
 - Whether the stdio watchdog forwards all MCP bytes without changing protocol behavior.
-- Whether request activity resets the deadline under Docker Compose and Podman Compose.
+- Whether response progress resets a pending deadline without client notifications masking a stalled request.
 - Whether auth build timeout accidentally removes a valid state or a credential temp file.

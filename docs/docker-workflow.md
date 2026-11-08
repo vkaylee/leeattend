@@ -35,78 +35,29 @@ The development API skips standalone license verification; production retains ma
 
 The development Compose file includes a `playwright-mcp` profile. Its Chromium browser runs on `frontend_net` beside Caddy, so AI browser checks use `http://caddy/` and do not require `${DEV_PORT}` or any Caddy port published on the host.
 
-The repository MCP configuration starts it through `scripts/playwright-mcp.sh`:
+The repository MCP configuration starts a single Playwright server through `scripts/playwright-mcp-role.sh`:
 
 ```bash
 ./leedevkit manage up dev
 ```
 
-Reload the MCP client after changing `.mcp.json`. Build the image once with `./scripts/playwright-auth-role.sh employee` or `podman-compose -p leedevkit-dev -f .compose/docker-compose.dev.yml --profile mcp build playwright-mcp`. Navigate to `http://caddy/` from Playwright MCP; do not use `http://localhost:8080` from inside the MCP browser. Role wrappers use the existing image and mount only the selected role state.
+The server uses the least-privileged `employee` role by default. To use another role, change the role argument for the single `playwright` entry in `.mcp.json` to `team-lead`, `shift-manager`, `hr-manager`, or `admin`, then reload the MCP client. The wrapper adds role-specific guidance to the MCP `initialize` response and starts a fresh unauthenticated browser context; open the configured endpoint's `/login` first when authentication is needed. MCP instructions guide the model; application authorization remains the enforcement boundary. Never mount persisted role state.
 
-The MCP server runs headless with isolated browser state and enables every capability supported by the pinned CLI: `vision`, `pdf`, and `devtools`, plus all core navigation, interaction, snapshot, screenshot, console, and network-inspection tools. It also includes element bounding boxes in snapshots and exposes informational console messages. Browser requests remain restricted to `http://caddy`; no credentials or storage state are included in the image.
+The endpoint is declared with `--endpoint` in `.mcp.json`. The wrapper forwards that origin to Playwright as `--allowed-origins`; navigation remains limited to the configured origin. Set it to the host reachable from the browser container.
 
-### Role-isolated authenticated MCP sessions
+### Playwright MCP login-first sessions
 
-One storage state cannot safely represent five roles. The repository exposes one MCP entry per role, each with its own read-only state file:
+Every interactive Playwright MCP session starts unauthenticated. Sign in through the UI only when a scenario requires authentication. Do not create or reuse `.secrets/playwright-auth/*.json` for interactive MCP.
 
-| MCP server | Role | State |
-|---|---|---|
-| `playwright` / `playwright-employee` | `employee` | `.secrets/playwright-auth/employee.json` |
-| `playwright-team-lead` | `team_lead` | `.secrets/playwright-auth/team-lead.json` |
-| `playwright-shift-manager` | `shift_manager` | `.secrets/playwright-auth/shift-manager.json` |
-| `playwright-hr-manager` | `hr_manager` | `.secrets/playwright-auth/hr-manager.json` |
-| `playwright-admin` | `admin` | `.secrets/playwright-auth/admin.json` |
-
-Use the least-privileged profile that covers the scenario. `playwright` defaults to `employee`; use `playwright-admin` only when the scenario requires administrator permissions. Never switch roles inside one browser session. For authorization tests, run the same flow separately with the expected-deny and expected-allow profiles.
-
-Create all required states from a local ignored credentials file. The file must contain only these role-specific keys as needed:
-
-```dotenv
-PLAYWRIGHT_EMPLOYEE_EMAIL=employee@example.invalid
-PLAYWRIGHT_EMPLOYEE_PASSWORD=change-me
-PLAYWRIGHT_TEAM_LEAD_EMAIL=team.lead@example.invalid
-PLAYWRIGHT_TEAM_LEAD_PASSWORD=change-me
-PLAYWRIGHT_SHIFT_MANAGER_EMAIL=shift.manager@example.invalid
-PLAYWRIGHT_SHIFT_MANAGER_PASSWORD=change-me
-PLAYWRIGHT_HR_MANAGER_EMAIL=hr.manager@example.invalid
-PLAYWRIGHT_HR_MANAGER_PASSWORD=change-me
-PLAYWRIGHT_ADMIN_EMAIL=admin@example.invalid
-PLAYWRIGHT_ADMIN_PASSWORD=change-me
-```
-
-Generate only the role needed:
-
-```bash
-./scripts/playwright-auth-role.sh employee
-./scripts/playwright-auth-role.sh team-lead
-./scripts/playwright-auth-role.sh shift-manager
-./scripts/playwright-auth-role.sh hr-manager
-./scripts/playwright-auth-role.sh admin
-```
-
-Every role wrapper performs a session preflight before starting MCP. It checks the selected state against `GET http://caddy/api/v1/me`; valid state is reused immediately. Missing or invalid state triggers `scripts/playwright-auth-role.sh <role>`, which recreates only that role's state from the ignored credentials file. If credentials are unavailable or login fails, MCP fails closed with an actionable error instead of starting with an anonymous or wrong-role session.
 ### MCP process and browser timeouts
 
-The interactive role wrapper tracks MCP stdio requests. It starts graceful shutdown 15 seconds before the 60-second idle deadline, sends `TERM`, then sends `KILL` at the deadline if needed. This bounds each MCP container to at most 60 seconds after its last request. Compose runs keep `--rm --no-deps`, so exited MCP containers are removed.
+The role wrapper starts a stdio watchdog before Compose startup. Startup silence and pending JSON-RPC requests are bounded by `PLAYWRIGHT_MCP_IDLE_TIMEOUT_SECS` (default `10`, integer `1..60`). Server stdout progress resets the pending-request deadline; client notifications do not. A healthy session with no pending request may remain idle.
 
-The idle limit is fixed at 60 seconds maximum. `PLAYWRIGHT_MCP_IDLE_TIMEOUT_SECS` may reduce it for local diagnostics (`1..60` seconds); the watchdog uses the remaining idle window for graceful cleanup. Invalid values fail before Compose starts. Idle cleanup reports `Playwright MCP idle` and returns non-zero.
+The watchdog reserves up to 2 seconds of that deadline for cleanup: it sends `TERM` first, then `KILL` at the deadline if necessary, and returns `124`. It uses the existing project Python environment directly, without dependency installation during MCP startup. If that environment is missing, prepare it with `./scripts/_python.sh --version` first. Restart the MCP server to load wrapper changes; editing files does not replace an already-running server.
 
-Auth image build, session preflight, and login remain bounded by `PLAYWRIGHT_MCP_MAX_RUNTIME` and `PLAYWRIGHT_MCP_KILL_GRACE`; these are job timeouts, not idle timers:
+Standalone `playwright-auth-role.sh` only provisions test state for non-interactive checks; it is not invoked by the interactive MCP server.
 
-```bash
-PLAYWRIGHT_MCP_MAX_RUNTIME=1800 PLAYWRIGHT_MCP_KILL_GRACE=30 \
-  ./scripts/playwright-auth-role.sh team-lead
-```
-
-Browser-level defaults are explicit: action `5s`, navigation `30s`, and settle `1s`. These stop individual browser operations from waiting indefinitely. The `/api/v1/me` session preflight remains bounded to `10s`.
-
-### Playwright runtime storage
-
-The MCP service uses a read-only container root. Runtime-writable paths (`/tmp`, Chromium cache/config directories, and `/dev/shm`) are memory-backed through `tmpfs`; they disappear when the container exits. MCP has no persistent Playwright volume. Auth state is the deliberate disk exception: role JSON is created under `.secrets/playwright-auth/` on the host, mounted read-only during MCP sessions, and mounted read-write only during auth-state creation. Temporary login credentials are removed by the auth wrapper on exit.
-
-```bash
-rm -f .secrets/playwright-auth/team-lead.json
-```
+The MCP service uses a read-only container root. Runtime-writable paths (`/tmp`, Chromium cache/config directories, and `/dev/shm`) are memory-backed through `tmpfs`; they disappear when the container exits. Interactive MCP does not mount a persistent browser storage state. Sign-in state exists only in the isolated browser context for that session.
 
 `.secrets/` is ignored by Git. Never copy role states to production or include them in screenshots, reports, logs, or commits.
 Development migration gate:

@@ -54,7 +54,8 @@ trap 'rm -f "$LOGIN_FILE"' EXIT
 chmod 600 "$LOGIN_FILE"
 printf 'PLAYWRIGHT_LOGIN_EMAIL=%s\nPLAYWRIGHT_LOGIN_PASSWORD=%s\n' "$EMAIL" "$PASSWORD" > "$LOGIN_FILE"
 
-playwright_timeout_run "${COMPOSE[@]}" -p leedevkit-dev -f "$ROOT/.compose/docker-compose.dev.yml" --profile mcp build playwright-mcp </dev/null >&2
+PLAYWRIGHT_COMPOSE=("${COMPOSE[@]}" -p leedevkit-dev -f "$ROOT/.compose/docker-compose.dev.yml" --profile mcp)
+playwright_build_image_if_missing "localhost/leedevkit-dev_playwright-mcp:latest" "${PLAYWRIGHT_COMPOSE[@]}"
 playwright_timeout_run "${COMPOSE[@]}" -p leedevkit-dev -f "$ROOT/.compose/docker-compose.dev.yml" --profile mcp run --rm --no-deps -T \
   -v "$AUTH_DIR:/run/secrets:rw" \
   -e PLAYWRIGHT_LOGIN_FILE=/run/secrets/$(basename "$LOGIN_FILE") \
