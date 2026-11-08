@@ -46,5 +46,5 @@ exit $EXIT_CODE
 ## Cách chạy từ AI agent
 
 ```bash
-timeout 300 ./run-tests.sh </dev/null
+./leedevkit test api </dev/null
 ```

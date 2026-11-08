@@ -20,7 +20,7 @@ leeattend/
 
 ## 🤖 For AI Agents & Developers
 
-> **Current project context:** The active application runtime is Go plus React/Vite/TypeScript. Use `AGENTS.md`, `GEMINI.md`, or `CLAUDE.md` for repository rules; `PROJECT_OS.md` and `manage.sh` are not active LeeAttend entrypoints.
+> **Current project context:** The active application runtime is Go plus React/Vite/TypeScript. Follow `AGENTS.md` and `.agent/rules/`; use `./leedevkit test` for verification.
 
 ### Quick Start (Dev Mode)
 ```bash

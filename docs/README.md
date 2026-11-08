@@ -39,7 +39,7 @@ Welcome to the project documentation. To maintain clarity, please follow this st
 ---
 
 ## 🚦 4. Global Governance
-- **[PROJECT_OS.md](../PROJECT_OS.md)**: The "Constitution" containing mandatory WSL/RAM protocols and testing mandates. **Read this first!**
+- Follow repository guidance in `AGENTS.md` and `.agent/rules/`.
 
 ---
 

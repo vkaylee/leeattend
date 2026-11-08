@@ -87,13 +87,13 @@ docker exec -T mycontainer ./run.sh </dev/null
 
 ```bash
 # ❌ UNSAFE: Pipe FD leaks into container children
-./run-tests.sh | tee logs.txt
+./leedevkit test all | tee logs.txt
 
 # ✅ SAFE: Direct redirect + optional live tail
 touch logs.txt
 tail -f logs.txt </dev/null &
 TAIL_PID=$!
-./run-tests.sh >logs.txt 2>&1
+./leedevkit test all >logs.txt 2>&1
 kill $TAIL_PID 2>/dev/null
 wait $TAIL_PID 2>/dev/null
 ```
