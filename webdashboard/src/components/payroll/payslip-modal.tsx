@@ -6,7 +6,7 @@ import { useTranslation } from 'react-i18next';
 import Button from "@/components/ui/button";
 import { Typography } from "@/components/ui/typography";
 import { useDateTimeFormatter } from '@/hooks/use-datetime';
-import { Employee, Payslip, Workspace } from '@/lib/api/types';
+import { Employee, Organization, Payslip } from '@/lib/api/types';
 
 import PayslipDocument from './payslip-document';
 import { usePayslipPrint } from './use-payslip-print';
@@ -16,7 +16,7 @@ interface PayslipModalProps {
   isOpen: boolean;
   onClose: () => void;
   payslip: Payslip;
-  workspace: Workspace | null;
+  organization: Organization | null;
 }
 
 export default function PayslipModal({
@@ -24,7 +24,7 @@ export default function PayslipModal({
   onClose,
   employee,
   payslip,
-  workspace
+  organization,
 }: PayslipModalProps) {
   const { t } = useTranslation();
   const { formatMonthYear } = useDateTimeFormatter();
@@ -75,7 +75,7 @@ export default function PayslipModal({
                 <PayslipDocument
                   employee={employee}
                   payslip={payslip}
-                  workspace={workspace}
+                  organization={organization}
                 />
              </div>
           </div>

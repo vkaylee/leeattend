@@ -127,7 +127,7 @@ export function EmployeeOverlays(props: EmployeeOverlaysProps) {
       </Suspense>
 
       <Suspense fallback={<OverlayFallback />}>
-        <EmployeeFormModal editingEmployee={currentEditingEmployee}
+        <EmployeeFormModal editingEmployee={currentEditingEmployee ?? null}
         isOpen={modalOpen}
         onClose={handleClose}
         onSuccess={() => { setPrefillEnrollmentId?.(""); }}
@@ -140,7 +140,7 @@ export function EmployeeOverlays(props: EmployeeOverlaysProps) {
         isOpen={transferOpen}
         onClose={handleClose}
         selectedDeptId={selectedDeptId}
-        setSelectedDeptId={setSelectedDeptId}  />
+        setSelectedDeptId={(id) => { setSelectedDeptId?.(id); }}  />
       </Suspense>
 
       <Suspense fallback={<OverlayFallback />}>

@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 
 import type { BehalfAssignment } from "@/lib/api/types";
+import type { OtClaimBehalfAssignment } from "@/lib/api/attendance-monitoring";
 
 import {
   fetchBehalfAssignments,
@@ -19,15 +20,21 @@ export function useBehalfAssignmentData(type: BehalfAssignmentType) {
     queryFn: async (): Promise<BehalfAssignment[]> => {
       switch (type) {
         case "ot":
-          return fetchBehalfAssignments();
+        case "attendance_adjustment": {
+          const assignments = type === "ot"
+            ? await fetchBehalfAssignments()
+            : await fetchAdjustmentBehalfAssignments();
+          return assignments.map((assignment: OtClaimBehalfAssignment) => ({
+            ...assignment,
+            workspace_id: assignment.workspace_id ?? "",
+          }));
+        }
         case "leave":
           return fetchLeaveBehalfAssignments();
-        case "attendance_adjustment":
-          return fetchAdjustmentBehalfAssignments();
         case "overtime_request":
           return overtimeRequestsApi.listRequestBehalfAssignments();
       }
-    },
+    }
   });
 
   return {

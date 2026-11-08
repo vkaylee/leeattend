@@ -63,7 +63,7 @@ function AuditLogTableRow({ log }: { log: AuditLog }) {
                 <div className="space-y-1">
                     <div className="flex items-center gap-1.5 text-slate-900 dark:text-slate-200 font-medium">
                         <User className="h-3.5 w-3.5 text-slate-400" />
-                        <span title={log.actor_id}>
+                        <span title={log.actor_id ?? undefined}>
                             {log.actor_id ? log.actor_id.substring(0, 8) + "..." : t("audit_logs.messages.system")}
                         </span>
                     </div>
@@ -122,7 +122,7 @@ function AuditLogMobileCard({ log }: { log: AuditLog }) {
             <div className="mt-4 space-y-2 border-t border-slate-100 pt-4 dark:border-slate-800">
                 <div className="flex items-center gap-1.5 text-sm font-medium text-slate-900 dark:text-slate-200">
                     <User className="h-3.5 w-3.5 text-slate-400" />
-                    <span title={log.actor_id}>
+                    <span title={log.actor_id ?? undefined}>
                         {log.actor_id ? log.actor_id.substring(0, 8) + "..." : t("audit_logs.messages.system")}
                     </span>
                 </div>

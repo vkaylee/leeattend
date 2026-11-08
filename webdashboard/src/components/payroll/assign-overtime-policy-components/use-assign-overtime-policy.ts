@@ -33,7 +33,7 @@ export function useAssignOvertimePolicy({isOpen,
   const { data: departments = [] } = useDepartments({ enabled: isOpen });
 
   const assignMutation = useMutation({
-    mutationFn: (data: Parameters<typeof assignOvertimePolicy>[1]) => assignOvertimePolicy(data),
+    mutationFn: (data: Parameters<typeof assignOvertimePolicy>[0]) => assignOvertimePolicy(data),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['overtime-policy-assignment'] });
       toast.success(t('common.success'));

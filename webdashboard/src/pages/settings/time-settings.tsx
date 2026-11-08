@@ -95,14 +95,14 @@ export default function TimeSettings() {
     );
   }
 
-  return (
+  return workspace?.id ? (
     <TimeSettingsContent
       key={`${workspace.id}-${versions.length}`}
       rules={rules}
       versions={versions}
-      workspace={workspace}
+      workspace={{ ...workspace, id: workspace.id }}
     />
-  );
+  ) : null;
 }
 
 interface TimeSettingsContentProps {

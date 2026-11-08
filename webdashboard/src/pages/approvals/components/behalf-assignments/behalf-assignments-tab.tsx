@@ -119,7 +119,7 @@ export function BehalfAssignmentsTab({
     value: dept.id,
   }));
 
-  const assigneeOptions = assignees.map((member: WorkspaceMember) => ({
+  const assigneeOptions = assignees.map((member) => ({
     label: member.full_name ?? member.email,
     value: member.user_id,
   }));

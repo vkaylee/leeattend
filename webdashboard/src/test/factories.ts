@@ -20,6 +20,7 @@ export const organizationFactory = (
 ): Organization => {
   const id = generateUUID();
   return {
+    id,
     name: `Organization ${id.slice(0, 8)}`,
     date_format: "DD/MM/YYYY",
     time_format: "24h",

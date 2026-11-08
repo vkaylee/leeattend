@@ -2,6 +2,7 @@
 import { Link } from "@tanstack/react-router";
 import { ChevronDown, ChevronLeft, ChevronRight, ExternalLink, X, User, FolderOpen, FileText, Milestone, ArrowLeftRight, DollarSign, History, Calendar, ShieldCheck, CheckSquare, Maximize2, Minimize2 } from "lucide-react";
 import { createElement, useCallback, useEffect, useRef, useState, type ComponentType } from "react";
+import type { TFunction } from "i18next";
 
 import type { Employee } from "@/lib/api";
 
@@ -43,7 +44,7 @@ export interface DrawerHeaderProps {
     onClose: () => void;
     onToggleExpand?: () => void;
     setActiveDetailTab: (tab: DetailTabType) => void;
-    t: (k: string, defaultValue?: string) => string;
+    t: TFunction;
 }
 
 // ── Scrollable tab nav with overflow indicators ─────────────
@@ -56,7 +57,7 @@ function DesktopTabNav({
   activeDetailTab: DetailTabType;
   setActiveDetailTab: (tab: DetailTabType) => void;
   tabs: { id: DetailTabType; label: string; icon: ComponentType<{ size?: number; className?: string }> }[];
-  t: (k: string, defaultValue?: string) => string;
+  t: TFunction;
 }) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);

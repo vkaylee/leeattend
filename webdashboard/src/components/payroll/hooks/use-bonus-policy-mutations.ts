@@ -10,7 +10,7 @@ export function useBonusPolicyMutations(onCreateSuccess?: () => void) {
   const toast = useToast();
 
   const createMutation = useMutation({
-    mutationFn: (data: Parameters<typeof createIncentivePolicy>[1]) => createIncentivePolicy(data),
+    mutationFn: (data: Parameters<typeof createIncentivePolicy>[0]) => createIncentivePolicy(data),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["incentive-policies"] });
       onCreateSuccess?.();

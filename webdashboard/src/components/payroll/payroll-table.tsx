@@ -7,7 +7,7 @@ import Button from "@/components/ui/button";
 import ResponsiveTable from "@/components/ui/responsive-table";
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
 import { useMyPermissions } from "@/hooks/use-permissions";
-import { Employee, Workspace, Payslip, AttendanceAdjustmentRequest } from "@/lib/api/types";
+import { Employee, Organization, Payslip, AttendanceAdjustmentRequest } from "@/lib/api/types";
 import { cn } from "@/lib/utils";
 
 import { PayslipCard } from "./payslip-card";
@@ -187,12 +187,12 @@ interface PayrollTableProps {
   isLoading: boolean;
   onResolveAdjustments: () => void;
   payslips: Payslip[];
-  workspace: Workspace | null;
+  organization: Organization | null;
 }
 
 export default function PayrollTable({
   employee,
-  workspace,
+  organization,
   payslips,
   isLoading,
   adjustments,
@@ -268,8 +268,8 @@ export default function PayrollTable({
             setIsModalOpen(false);
             setSelectedPayslip(null);
           }}
+          organization={organization}
           payslip={selectedPayslip}
-          workspace={workspace}
         />
       ) : null}
     </ErrorBoundary>

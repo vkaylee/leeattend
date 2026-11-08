@@ -152,7 +152,7 @@ function MemberMobileCard({
             <KeyRound size={20} />
           </Button>
         </PermissionGate>
-        {roles.find(r => r.id === member.role_id)?.name.toLowerCase() !== "owner" && (
+        {roles.find(r => r.id === member.role_id)?.name?.toLowerCase() !== "owner" && (
           <PermissionGate permission="members:remove">
             <Button
               className="p-3 bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 hover:text-rose-600 dark:text-rose-300 rounded-xl shadow-md border border-slate-100 dark:border-slate-800 transition-all active:scale-90"
@@ -324,7 +324,7 @@ export default function MemberTable() {
                         <PermissionGate permission="members:roles:manage">
                           <Button className="p-3 bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 hover:text-amber-600 dark:text-amber-400 rounded-xl shadow-md border border-slate-100 dark:border-slate-800 transition-all active:scale-90" onClick={() => { handleManagePermissions(member.user_id); }} title={t("members.table.manage_permissions", { defaultValue: "Manage Permissions" })} variant="ghost"><KeyRound size={20} /></Button>
                         </PermissionGate>
-                        {roles.find(r => r.id === member.role_id)?.name.toLowerCase() !== "owner" && (
+                        {roles.find(r => r.id === member.role_id)?.name?.toLowerCase() !== "owner" && (
                           <PermissionGate permission="members:remove">
                             <Button className="p-3 bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 hover:text-rose-600 dark:text-rose-300 rounded-xl shadow-md border border-slate-100 dark:border-slate-800 transition-all active:scale-90" onClick={() => handleRemoveMember(member.user_id)} title={t("members.table.remove_member")} variant="ghost"><Trash2 size={20} /></Button>
                           </PermissionGate>

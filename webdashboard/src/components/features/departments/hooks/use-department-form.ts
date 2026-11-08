@@ -41,7 +41,7 @@ export function useDepartmentForm(editingDept: Department | null, onClose: () =>
   }
 
   const createMutation = useOrganizationMutation<
-    Parameters<typeof createDepartment>[1],
+    Parameters<typeof createDepartment>[0],
     Awaited<ReturnType<typeof createDepartment>>
   >({
     keys: [departmentKeys.all()],
@@ -63,7 +63,7 @@ export function useDepartmentForm(editingDept: Department | null, onClose: () =>
   });
 
   const updateMutation = useOrganizationMutation<
-    Parameters<typeof updateDepartment>[2],
+    Parameters<typeof updateDepartment>[1],
     Awaited<ReturnType<typeof updateDepartment>>
   >({
     keys: [departmentKeys.all()],

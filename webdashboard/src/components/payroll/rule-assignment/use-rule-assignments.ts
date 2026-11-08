@@ -30,7 +30,7 @@ export function useRuleAssignments(ruleId: string) {
   const departmentsQuery = useDepartments();
 
   const createMutation = useMutation({
-    mutationFn: (data: Parameters<typeof createPayrollRuleAssignment>[2]) =>
+    mutationFn: (data: Parameters<typeof createPayrollRuleAssignment>[1]) =>
       createPayrollRuleAssignment(ruleId, data),
     onSuccess: () => {
       toast.success(t("common.success", "Success"));
@@ -67,8 +67,9 @@ export function useRuleAssignments(ruleId: string) {
       department: [],
       employee: [],
     };
-    assignmentsQuery.data?.forEach((a) => {
-      g[a.assignee_type].push(a);
+    assignmentsQuery.data?.forEach((assignment) => {
+      const assigneeType = assignment.assignee_type as AssigneeType;
+      if (assigneeType in g) g[assigneeType].push(assignment);
     });
     return g;
   }, [assignmentsQuery.data]);

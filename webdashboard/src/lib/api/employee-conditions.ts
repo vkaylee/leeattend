@@ -10,10 +10,10 @@ export interface WorkingConditionWithEmployee extends WorkingCondition {
   employee_code?: string;
 }
 
-type WorkingConditionWire = Omit<WorkingCondition, "type"> & { type_?: string };
+type WorkingConditionWire = WorkingCondition;
 
 function normalizeCondition(item: WorkingConditionWire): WorkingCondition {
-  return { ...item, type: item.type_ ?? item.type ?? "" } as WorkingCondition;
+  return { ...item, type: item.type_ ?? item.type };
 }
 
 export async function fetchWorkspaceWorkingConditions(): Promise<WorkingConditionWithEmployee[]> {

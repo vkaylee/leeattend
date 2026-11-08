@@ -181,7 +181,7 @@ export default function OtApprovalsPage() {
           setSourceFilter={setSourceFilter}
           sourceFilter={sourceFilter}
           startDate={startDate}
-          workspace={workspace}
+          workspace={workspace?.id ? workspace : null}
         />
       </div>
 

@@ -23,7 +23,7 @@ export function useCreateOvertimePolicy(options?: { onSuccess?: () => void }) {
   const { t } = useTranslation();
 
   return useMutation({
-    mutationFn: (data: Parameters<typeof createOvertimePolicy>[1]) => createOvertimePolicy(data),
+    mutationFn: (data: Parameters<typeof createOvertimePolicy>[0]) => createOvertimePolicy(data),
     onSuccess: (_data) => {
       void queryClient.invalidateQueries({ queryKey: ["overtime-policies"] });
       toast.success(t("common.success"));

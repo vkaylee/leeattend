@@ -29,7 +29,7 @@ export interface DailyReportTableProps {
   onResolveUnscheduled?: (row: DailyAttendanceReport) => void;
   onToggleExpandRow: (rowKey: string) => void;
   reprocessingRow: string | null;
-  t: (key: string) => string;
+  t: (key: string, defaultValue?: string) => string;
 }
 
 // ── Skeleton ───────────────────────────────────────────────────────

@@ -14,7 +14,7 @@ const noop = () => undefined;
 
 export function DocumentManagementPage() {
   const { workspace } = useOrganization();
-  const { data: folders = [] } = useFolders(workspace?.id);
+  const { data: folders = [] } = useFolders();
   const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
 
   const files: WorkspaceFile[] = [];

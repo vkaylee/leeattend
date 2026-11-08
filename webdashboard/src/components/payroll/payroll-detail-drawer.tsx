@@ -14,6 +14,7 @@ import { useTranslation } from "react-i18next";
 import Button from "@/components/ui/button";
 import { Typography } from "@/components/ui/typography";
 import { useMyPermissions } from "@/hooks/use-permissions";
+import { useOrganization } from "@/hooks/use-organization";
 import { fetchEmployeeEmployments } from "@/lib/api";
 import { Employee, Payslip, AttendanceAdjustmentRequest } from "@/lib/api/types";
 import { cn } from "@/lib/utils";
@@ -105,6 +106,7 @@ export default function PayrollDetailDrawer({
   adjustments,
   onResolveAdjustments
 }: PayrollDetailDrawerProps) {
+  const { organization } = useOrganization();
   const { t } = useTranslation();
   const { hasPermission } = useMyPermissions();
   const canReadSensitive = hasPermission("payroll:sensitive:read");
@@ -168,13 +170,13 @@ export default function PayrollDetailDrawer({
                     <div className="w-1.5 h-6 bg-primary-600 rounded-full" />
                     <span className="text-xs font-bold text-slate-800 dark:text-slate-100 uppercase tracking-[0.25em]">{t("payroll.history_title")} Detail</span>
                   </div>
-                  <PayrollTable 
-                    adjustments={adjustments} 
+                  <PayrollTable
+                    adjustments={adjustments}
                     employee={employee}
-                    isLoading={isLoadingPayslips} 
-                    onResolveAdjustments={onResolveAdjustments} 
+                    isLoading={isLoadingPayslips}
+                    onResolveAdjustments={onResolveAdjustments}
+                    organization={organization}
                     payslips={payslips}
-                    workspace={workspace ?? null}
                   />
                 </div>
               </div>

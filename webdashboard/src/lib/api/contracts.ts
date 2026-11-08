@@ -4,8 +4,10 @@ import type {
   EmployeeContractWithEmployee,
   UpdateContractRequest,
 } from "./types";
-
 import { client } from "./client";
+
+export type { EmployeeContractWithEmployee } from "./types";
+
 
 export async function fetchEmployeeContracts(employeeId: string): Promise<EmployeeContract[]> {
   const { data } = await client.GET<EmployeeContract[]>("/v1/employees/{employee_id}/contracts", {

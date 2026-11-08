@@ -92,7 +92,7 @@ export function useOtApprovals() {
 
   const { data: employeesData } = useQuery<PaginatedResponse<Employee>>({
     queryKey: ["employees-list-all", workspace?.id],
-    queryFn: () => workspace?.id ? fetchEmployees(workspace.id, 1, 1000) : Promise.resolve({ data: [], limit: 0, page: 0, total: 0 }),
+    queryFn: () => fetchEmployees(1, 1000),
     enabled: !!workspace?.id,
   });
 

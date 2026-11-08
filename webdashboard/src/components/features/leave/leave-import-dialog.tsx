@@ -19,7 +19,7 @@ interface LeaveImportDialogProps {
 
 function useLeaveImportStatus(isOpen: boolean, onImportComplete?: () => void) {
   const [importJob, setImportJob] = useState<LeaveImportJob | null>(null);
-  const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const pollingRef = useRef<number | undefined>(undefined);
 
   // Check for latest import when dialog opens
   useEffect(() => {
@@ -38,15 +38,15 @@ function useLeaveImportStatus(isOpen: boolean, onImportComplete?: () => void) {
   // Polling for job status
   const startPolling = useCallback(() => {
     clearInterval(pollingRef.current);
-    pollingRef.current = setInterval(() => {
+    pollingRef.current = window.setInterval(() => {
       void (async () => {
         try {
           const job = await fetchLatestLeaveImport();
           if (!job) return;
           setImportJob(job);
           if (job.status !== "processing" && job.status !== "pending") {
-            clearInterval(pollingRef.current);
-            pollingRef.current = null;
+            window.clearInterval(pollingRef.current);
+            pollingRef.current = undefined;
             onImportComplete?.();
           }
         } catch (e: unknown) {
@@ -61,7 +61,7 @@ function useLeaveImportStatus(isOpen: boolean, onImportComplete?: () => void) {
       startPolling();
     }
     return () => {
-      if (pollingRef.current) clearInterval(pollingRef.current);
+      window.clearInterval(pollingRef.current);
     };
   }, [importJob?.status,startPolling]);
 

@@ -4,6 +4,7 @@ export interface Organization {
   default_holiday_ot_multiplier: string;
   default_language: string;
   holiday_overnight_strategy: string;
+  id: string;
   logo_url?: string | null;
   name: string;
   tagline?: string | null;

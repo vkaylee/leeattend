@@ -320,7 +320,7 @@ function OperationalMetricsSections({ stats, t }: { stats: WorkerMonitorStats; t
     [t("monitor.estimated_drain", { defaultValue: "Estimated drain" }), queue.estimated_drain_seconds],
     [t("monitor.queue_wait_p50", { defaultValue: "Queue wait p50" }), queue.queue_wait_seconds_p50],
     [t("monitor.dead_letter_depth", { defaultValue: "Dead-letter depth" }), queue.dead_letter_depth],
-  ] : [];
+  ].filter((entry): entry is [string, MonitorMetric] => entry[1] !== undefined) : [];
   const reliabilityMetrics: [string, MonitorMetric][] = reliability ? [
     [t("monitor.success_rate", { defaultValue: "Success rate" }), reliability.success_rate],
     [t("monitor.failure_rate", { defaultValue: "Failure rate" }), reliability.failure_rate],
@@ -330,7 +330,7 @@ function OperationalMetricsSections({ stats, t }: { stats: WorkerMonitorStats; t
     [t("monitor.lost_count", { defaultValue: "Lost" }), reliability.lost_count],
     [t("monitor.timeout_count", { defaultValue: "Timeouts" }), reliability.timeout_count],
     [t("monitor.execution_p95", { defaultValue: "Execution p95" }), reliability.execution_seconds_p95],
-  ] : [];
+  ].filter((entry): entry is [string, MonitorMetric] => entry[1] !== undefined) : [];
   const oldestJobs: {
     label: string;
     job: WorkerMonitorStats["oldest_queued_job"];

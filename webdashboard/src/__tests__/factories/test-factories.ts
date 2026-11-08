@@ -1,6 +1,6 @@
 // If ToastContextType does not exist, we'll use any internally for now, but we'll try to import it:
 import type { UseMyProfileReturn, UseMyClockReturn, UseMyAttendanceReturn, UseMyAttendanceSummariesReturn } from '@/hooks/use-ess';
-import type { Workspace, Employee, Shift, LeaveType, AttendanceAdjustmentRequest } from '@/lib/api/types';
+import type { Employee, Shift, LeaveType, AttendanceAdjustmentRequest } from '@/lib/api/types';
 
 // Basic Type for Toast Context if it's not exported
 export interface ToastContextType {
@@ -9,21 +9,6 @@ export interface ToastContextType {
   toasts: any[];
 }
 
-export function createMockWorkspace(overrides?: Partial<Workspace>): Workspace {
-  return {
-    id: "ws-123",
-    name: "Test Workspace",
-    created_at: new Date().toISOString(),
-    date_format: "YYYY-MM-DD",
-    default_language: "en",
-    default_holiday_ot_multiplier: "1.0",
-    holiday_overnight_strategy: "split",
-    theme_primary_color: "#000000",
-    time_format: "24h",
-    timezone: "UTC",
-    ...overrides,
-  };
-}
 
 export function createMockEmployee(overrides?: Partial<Employee>): Employee {
   return {

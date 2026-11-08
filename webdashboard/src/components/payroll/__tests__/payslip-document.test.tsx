@@ -3,7 +3,7 @@ import { render, screen } from "@testing-library/react";
 
 import { describe, it, expect, vi } from "vitest";
 
-import { Employee, Payslip, Workspace } from "@/lib/api/types";
+import { Employee, Payslip, Organization } from "@/lib/api/types";
 
 import PayslipDocument from "../payslip-document";
 
@@ -105,8 +105,7 @@ const createMockPayslip = (overrides: Partial<Payslip> = {}): Payslip => ({
   ...overrides,
 });
 
-const createMockWorkspace = (overrides: Partial<Workspace> = {}): Workspace => ({
-  id: "ws-1",
+const createMockOrganization = (overrides: Partial<Organization> = {}): Organization => ({
   name: "Tech Company Ltd",
   date_format: "DD/MM/YYYY",
   time_format: "HH:mm",
@@ -137,7 +136,7 @@ describe("PayslipDocument", () => {
       <PayslipDocument
         employee={createMockEmployee()}
         payslip={createMockPayslip()}
-        workspace={createMockWorkspace()}
+        organization={createMockOrganization()}
       />
     );
 
@@ -151,7 +150,7 @@ describe("PayslipDocument", () => {
       <PayslipDocument
         employee={createMockEmployee()}
         payslip={createMockPayslip()}
-        workspace={createMockWorkspace({ name: "Tech Corp Vietnam" })}
+        organization={createMockOrganization({ name: "Tech Corp Vietnam" })}
       />
     );
 
@@ -165,7 +164,7 @@ describe("PayslipDocument", () => {
       <PayslipDocument
         employee={createMockEmployee()}
         payslip={createMockPayslip()}
-        workspace={null}
+        organization={null}
       />
     );
 
@@ -177,7 +176,7 @@ describe("PayslipDocument", () => {
       <PayslipDocument
         employee={createMockEmployee()}
         payslip={createMockPayslip()}
-        workspace={createMockWorkspace()}
+        organization={createMockOrganization()}
       />
     );
 
@@ -196,7 +195,7 @@ describe("PayslipDocument", () => {
           department_name: "Engineering",
         })}
         payslip={createMockPayslip()}
-        workspace={createMockWorkspace()}
+        organization={createMockOrganization()}
       />
     );
 
@@ -212,7 +211,7 @@ describe("PayslipDocument", () => {
       <PayslipDocument
         employee={createMockEmployee()}
         payslip={createMockPayslip({ net_pay_amount: "10000000" })}
-        workspace={createMockWorkspace()}
+        organization={createMockOrganization()}
       />
     );
 
@@ -280,7 +279,7 @@ describe("PayslipDocument", () => {
       <PayslipDocument
         employee={createMockEmployee()}
         payslip={payslip}
-        workspace={createMockWorkspace()}
+        organization={createMockOrganization()}
       />
     );
 
@@ -333,7 +332,7 @@ describe("PayslipDocument", () => {
       <PayslipDocument
         employee={createMockEmployee()}
         payslip={payslip}
-        workspace={createMockWorkspace()}
+        organization={createMockOrganization()}
       />
     );
 
@@ -374,7 +373,7 @@ describe("PayslipDocument", () => {
       <PayslipDocument
         employee={createMockEmployee()}
         payslip={payslip}
-        workspace={createMockWorkspace()}
+        organization={createMockOrganization()}
       />
     );
 
@@ -402,7 +401,7 @@ describe("PayslipDocument", () => {
       <PayslipDocument
         employee={createMockEmployee()}
         payslip={payslip}
-        workspace={createMockWorkspace()}
+        organization={createMockOrganization()}
       />
     );
 
@@ -418,7 +417,7 @@ describe("PayslipDocument", () => {
           overtime_pay_amount: "500000",
           overtime_units: 10,
         })}
-        workspace={createMockWorkspace()}
+        organization={createMockOrganization()}
       />
     );
 
@@ -431,7 +430,7 @@ describe("PayslipDocument", () => {
       <PayslipDocument
         employee={createMockEmployee()}
         payslip={createMockPayslip({ overtime_pay_amount: "0" })}
-        workspace={createMockWorkspace()}
+        organization={createMockOrganization()}
       />
     );
 
@@ -448,7 +447,7 @@ describe("PayslipDocument", () => {
             { policy_name: "Safety Bonus", amount: "200000", standard_amount: "200000" },
           ],
         })}
-        workspace={createMockWorkspace()}
+        organization={createMockOrganization()}
       />
     );
 
@@ -461,7 +460,7 @@ describe("PayslipDocument", () => {
       <PayslipDocument
         employee={createMockEmployee()}
         payslip={createMockPayslip({ incentives: [] })}
-        workspace={createMockWorkspace()}
+        organization={createMockOrganization()}
       />
     );
 
@@ -476,7 +475,7 @@ describe("PayslipDocument", () => {
           deductions_amount: "500000",
           net_pay_amount: "10000000",
         })}
-        workspace={createMockWorkspace()}
+        organization={createMockOrganization()}
       />
     );
 
@@ -490,7 +489,7 @@ describe("PayslipDocument", () => {
       <PayslipDocument
         employee={createMockEmployee()}
         payslip={createMockPayslip()}
-        workspace={createMockWorkspace()}
+        organization={createMockOrganization()}
       />
     );
 
@@ -502,7 +501,7 @@ describe("PayslipDocument", () => {
       <PayslipDocument
         employee={createMockEmployee({ department_name: undefined })}
         payslip={createMockPayslip()}
-        workspace={createMockWorkspace()}
+        organization={createMockOrganization()}
       />
     );
 
@@ -514,7 +513,7 @@ describe("PayslipDocument", () => {
       <PayslipDocument
         employee={createMockEmployee()}
         payslip={createMockPayslip()}
-        workspace={createMockWorkspace()}
+        organization={createMockOrganization()}
       />
     );
 

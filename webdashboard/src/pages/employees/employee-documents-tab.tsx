@@ -33,22 +33,15 @@ export function EmployeeDocumentsTab({ employeeId }: EmployeeDocumentsTabProps) 
     queryKey: ["files", "employee", employeeId],
     queryFn: async () => {
       if (!currentWorkspace?.id) return [];
-      const { data, error } = await client.GET("/v1/workspaces/{ws_id}/files/by-owner/{owner_type}/{owner_id}", {
+      const { data } = await client.GET<WorkspaceFile[]>('/v1/workspaces/{ws_id}/files/by-owner/{owner_type}/{owner_id}', {
         params: {
           path: {
             ws_id: currentWorkspace.id,
-            owner_type: "Employee",
+            owner_type: 'Employee',
             owner_id: employeeId,
           },
         },
       });
-
-      if (error) {
-        toast.error("Failed to load documents");
-        const docErr: { message?: string } | null | undefined = error;
-        throw new Error(maybeNull(docErr)?.message ?? "Failed to load documents");
-      }
-
       return data;
     },
     enabled: !!currentWorkspace?.id && !!employeeId,
@@ -59,7 +52,7 @@ export function EmployeeDocumentsTab({ employeeId }: EmployeeDocumentsTabProps) 
   const handleDownload = async (file: WorkspaceFile) => {
     if (!currentWorkspace?.id) return;
     try {
-      const { data, error } = await client.GET("/v1/workspaces/{ws_id}/files/{id}/url", {
+      const { data } = await client.GET<{ url?: string }>('/v1/workspaces/{ws_id}/files/{id}/url', {
         params: {
           path: {
             ws_id: currentWorkspace.id,
@@ -67,7 +60,6 @@ export function EmployeeDocumentsTab({ employeeId }: EmployeeDocumentsTabProps) 
           },
         },
       });
-      if (error) throw new Error("Failed to get download URL");
 
       // The generated client type for this endpoint omits the `url` field,
       // but the runtime response includes a presigned download URL.
@@ -93,10 +85,9 @@ export function EmployeeDocumentsTab({ employeeId }: EmployeeDocumentsTabProps) 
     // Optimistic UI update could be added here
     try {
       for (const id of fileIds) {
-        const { error } = await client.DELETE("/v1/workspaces/{ws_id}/files/{id}", {
+        await client.DELETE('/v1/workspaces/{ws_id}/files/{id}', {
           params: { path: { ws_id: currentWorkspace.id, id } },
         });
-        if (error) throw new Error("Failed to delete file");
       }
       toast.success(`${fileIds.length} file(s) deleted successfully.`);
       void queryClient.invalidateQueries({ queryKey: ["files", "employee", employeeId] });

@@ -171,7 +171,7 @@ const RosterGridTable = memo(function RosterGridTable({
 
                 return (
                   <RosterCell
-                    complianceStatus={getComplianceStatus(daySchedules, empSchedule.employee_id, dateStr, complianceViolations)}
+                    complianceStatus={getComplianceStatus(daySchedules, maybeNull(empSchedule.employee_id) ?? "", dateStr, complianceViolations)}
                     dateStr={dateStr}
                     daySchedules={daySchedules}
                     employeeId={maybeNull(empSchedule.employee_id) ?? ""}

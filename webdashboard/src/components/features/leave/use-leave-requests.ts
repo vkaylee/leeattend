@@ -91,7 +91,7 @@ export function useLeaveRequests() {
 
   const [importJob, setImportJob] = useState<LeaveImportJob | null>(null);
   const [importBannerDismissed, setImportBannerDismissedState] = useState(false);
-  const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const pollingRef = useRef<number | undefined>(undefined);
 
   const setImportBannerDismissed = useCallback((dismissed: boolean) => {
     if (dismissed && importJob) {
@@ -116,14 +116,14 @@ export function useLeaveRequests() {
 
   const startPolling = useCallback(() => {
     clearInterval(pollingRef.current);
-    pollingRef.current = setInterval(() => {
+    pollingRef.current = window.setInterval(() => {
       void (async () => {
         try {
           const job = await fetchLatestLeaveImport();
           if (job) {
             if (job.status !== "processing" && job.status !== "pending") {
-              clearInterval(pollingRef.current);
-              pollingRef.current = null;
+              window.clearInterval(pollingRef.current);
+              pollingRef.current = undefined;
               void queryClient.invalidateQueries({ queryKey: ["leave-requests"] });
             }
           }
@@ -140,7 +140,7 @@ export function useLeaveRequests() {
       startPolling();
     }
     return () => {
-      if (pollingRef.current) clearInterval(pollingRef.current);
+      window.clearInterval(pollingRef.current);
     };
   }, [importJob?.status, startPolling]);
 

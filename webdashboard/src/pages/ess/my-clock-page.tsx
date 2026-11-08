@@ -39,7 +39,7 @@ export default function MyClockPage() {
 
   const { data: organization } = useQuery({
     queryKey: ["organization"],
-    queryFn: () => fetchOrganization(),
+    queryFn: fetchOrganization,
   });
   const [isAdjustmentModalOpen, setIsAdjustmentModalOpen] = useState(false);
   const [nowMs] = useState(() => Date.now());
@@ -141,7 +141,7 @@ export default function MyClockPage() {
           setIsAdjustmentModalOpen(false);
         }}
         onSubmit={handleAdjustmentSubmit}
-        timezone={workspace?.timezone ?? "UTC"}
+        timezone={organization?.timezone ?? "UTC"}
       />
     </PageContainer>
   );

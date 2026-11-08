@@ -56,7 +56,7 @@ export default function EmployeeDetailPage() {
   const handleTabChange = (tabId: DetailTabType) => {
     setLocalTab(tabId);
     void navigate({
-      search: (prev: Record<string, unknown>) => ({ ...prev, tab: tabId }),
+      search: (prev: Record<string, unknown>) => ({ ...prev, tab: tabId }) as never,
       replace: true,
     });
   };

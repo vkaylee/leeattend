@@ -419,7 +419,7 @@ export default function EmployeeDailyDrawer(props: EmployeeDailyDrawerProps) {
                                 onResolveUnscheduled={data.handleResolveUnscheduled}
                                 onToggleExpandRow={data.toggleExpandRow}
                                 reprocessingRow={data.reprocessingRow}
-                                t={t}
+                                t={(key, defaultValue) => t(key, { defaultValue })}
                             />
                         ) : null}
                     </div>

@@ -62,7 +62,7 @@ function useAssignmentForm({
   const createAssignment = useCreateEmployeeAssignment();
   const updateAssignment = useUpdateEmployeeAssignment();
   const { data: locations } = useLocations();
-  const { data: employees } = useAllEmployees({ enabled: isOpen && !employeeId });
+  const { employees } = useAllEmployees({ enabled: isOpen && !employeeId });
   const [selectedEmployeeId, setSelectedEmployeeId] = React.useState<string>("");
   const {
     register,

@@ -135,7 +135,7 @@ function BonusPolicyInputs({ name, setName, baseAmount, setBaseAmount, effective
 interface BonusPolicyFormProps {
   isPending: boolean;
   onCancel: () => void;
-  onSave: (data: Parameters<typeof createIncentivePolicy>[1]) => void;
+  onSave: (data: Parameters<typeof createIncentivePolicy>[0]) => void;
 }
 
 export function BonusPolicyForm({ onCancel, onSave, isPending }: BonusPolicyFormProps) {

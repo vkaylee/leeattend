@@ -156,7 +156,7 @@ export const RosterMobileList = memo(function RosterMobileList({
                       <RosterCellContent
                         complianceStatus={getComplianceStatus(
                           daySchedules,
-                          employeeSchedule.employee_id,
+                          employeeId,
                           dateStr,
                           complianceViolations,
                         )}

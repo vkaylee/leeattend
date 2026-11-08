@@ -1,11 +1,13 @@
-import { client } from "./client";
 import type {
+  MemberExtraPermission,
+  MemberRolesResponse,
   Organization,
   OrganizationMember,
   OrganizationRole,
-  MemberRolesResponse,
   PermissionCatalogItem,
 } from "@/types/organization";
+
+import { client } from "./client";
 
 export async function fetchOrganization(): Promise<Organization> {
   const { data } = await client.GET<Organization>("/v1/organization/settings");
@@ -13,7 +15,7 @@ export async function fetchOrganization(): Promise<Organization> {
 }
 
 export async function updateOrganization(patch: Partial<Organization>): Promise<Organization> {
-  const { data } = await client.PATCH<Organization, Partial<Organization>>("/v1/organization/settings", patch);
+  const { data } = await client.PATCH<Organization>("/v1/organization/settings", { body: patch });
   return data;
 }
 
@@ -55,8 +57,8 @@ export async function revokeExtraRole(userId: string, roleId: string): Promise<v
   await client.DELETE(`/v1/members/${userId}/roles/${roleId}`);
 }
 
-export async function fetchMemberPermissions(userId: string): Promise<unknown[]> {
-  const { data } = await client.GET<unknown[]>(`/v1/members/${userId}/permissions`);
+export async function fetchMemberPermissions(userId: string): Promise<MemberExtraPermission[]> {
+  const { data } = await client.GET<MemberExtraPermission[]>(`/v1/members/${userId}/permissions`);
   return data;
 }
 

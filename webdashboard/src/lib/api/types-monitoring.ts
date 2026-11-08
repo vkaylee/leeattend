@@ -76,8 +76,12 @@ export interface MonitorJob {
 export type RecentJob = MonitorJob;
 
 export interface JobTypeStats {
-  count: number;
+  completed: number;
+  failed: number;
+  pending: number;
+  processing: number;
   task_type: string;
+  total: number;
 }
 
 export interface WorkerHeartbeat {
@@ -86,8 +90,8 @@ export interface WorkerHeartbeat {
   host: string;
   id: string;
   last_seen_at: string;
-  liveness?: "live" | "stale" | "offline" | string;
-  status: "IDLE" | "PROCESSING" | string;
+  liveness?: "live" | "stale" | "offline";
+  status: "IDLE" | "PROCESSING";
 }
 
 export interface MonitorMetricWindow {

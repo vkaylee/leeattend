@@ -4,17 +4,17 @@ import { CalendarDays, Building2 } from 'lucide-react';
 import React from 'react';
 
 import { Typography } from "@/components/ui/typography";
-import { Workspace, Payslip } from '@/lib/api/types';
+import { Organization, Payslip } from '@/lib/api/types';
 
 interface PayslipHeaderProps {
   formatDate: (date: string) => string;
   formatMonthYear: (date: string) => string;
   payslip: Payslip;
   t: TFunction;
-  workspace: Workspace | null;
+  organization: Organization | null;
 }
 
-export function PayslipHeader({ workspace, payslip, formatMonthYear, formatDate, t }: PayslipHeaderProps) {
+export function PayslipHeader({ organization, payslip, formatMonthYear, formatDate, t }: PayslipHeaderProps) {
   return (
     <div className='flex justify-between items-start border-b-2 border-slate-900 pb-10 mb-10'>
       <div className='space-y-4'>
@@ -23,7 +23,7 @@ export function PayslipHeader({ workspace, payslip, formatMonthYear, formatDate,
             <Building2 size={24} />
           </div>
           <div>
-            <Typography className='text-2xl font-bold uppercase tracking-tight' data-testid="workspace-name" variant="h1">{workspace?.name ?? 'LeeAttend'}</Typography>
+            <Typography className='text-2xl font-bold uppercase tracking-tight' data-testid="organization-name" variant="h1">{organization?.name ?? 'LeeAttend'}</Typography>
             <Typography className='text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.2em]' variant="p">{t('payroll.document.system_subtitle')}</Typography>
           </div>
         </div>

@@ -31,7 +31,7 @@ import {
 import { ApiError, ComplianceConflictError, parseComplianceConflict } from "@/lib/api/errors";
 import { employeeKeys } from "@/lib/query-keys";
 
-type BulkAssignPatternRequestLocal = Parameters<typeof bulkAssignPattern>[1];
+type BulkAssignPatternRequestLocal = Parameters<typeof bulkAssignPattern>[0];
 
 export interface UseWorkingPatternsReturn { addShiftToDay: (dayIndex: number, shiftId: string) => void;
 assignAnchorDate: string;

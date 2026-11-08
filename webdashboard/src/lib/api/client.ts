@@ -62,7 +62,7 @@ async function request<T = unknown>(
   const options: RequestInit = { method };
   if (init?.headers) options.headers = init.headers;
 
-  if (init.body !== undefined && (method === "POST" || method === "PUT" || method === "PATCH")) {
+  if (init?.body !== undefined && (method === "POST" || method === "PUT" || method === "PATCH")) {
     if (init.body instanceof FormData || init.body instanceof Blob) {
       options.body = init.body;
     } else {

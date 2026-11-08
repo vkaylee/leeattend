@@ -30,10 +30,10 @@ function ReportMobileCard({ row, onSelect, t }: {
     >
       <div className="flex items-start justify-between gap-3 w-full">
         <EmployeeIdentityCell
-          avatarClassName="h-10 w-10 text-xs"
+          avatarSize="md"
           code={row.employee_id_number}
+          employerName={row.employer_name}
           name={row.employee_name}
-          subtitle={row.employer_name}
         />
         <ChevronRight className="mt-2 h-4 w-4 shrink-0 text-slate-300 dark:text-slate-600" />
       </div>
@@ -159,7 +159,7 @@ export function ReportsTable(props: ReportsTableProps) {
             selectedDepartmentId={selectedDepartmentId}
             selectedEmployerId={selectedEmployerId}
             specificMonth={specificMonth}
-            t={t}
+            t={(key) => t(key)}
           />
         </ResponsiveToolbar>
       )}

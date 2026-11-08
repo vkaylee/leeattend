@@ -150,7 +150,7 @@ export default function PermissionManagementModal({
         isLoading,
         assignPermission,
         revokePermission,
-    } = useMemberPermissions(userId ?? "", undefined);
+    } = useMemberPermissions(userId ?? "");
     const [newPermission, setNewPermission] = useState("");
     const [expiresAt, setExpiresAt] = useState("");
     const [searchTerm, setSearchTerm] = useState("");

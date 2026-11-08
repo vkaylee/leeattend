@@ -2,10 +2,11 @@ import { Eye, History } from "lucide-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
 
+import type { WorkspaceLeaveBalance } from "@/lib/api/types";
+
 import Button from "@/components/ui/button";
 import ResponsiveTable from "@/components/ui/responsive-table";
 import TableEmptyRow from "@/components/ui/table-empty-row";
-import { LeaveBalance } from "@/lib/api/types";
 import { cn } from "@/lib/utils";
 
 import { DesktopBalanceRow } from "./desktop-balance-row";

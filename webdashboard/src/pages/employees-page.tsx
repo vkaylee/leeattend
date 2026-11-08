@@ -39,7 +39,7 @@ export default function EmployeesPage() {
     setCustomFieldFilters: page.setCustomFieldFilters,
     setFilterDeptIds: page.setFilterDeptIds,
     setFilterStatus: page.setFilterStatus,
-    t,
+    t: (key, defaultValue) => t(key, { defaultValue }),
     toggleDeptFilter: page.toggleDeptFilter,
     updateCustomFieldFilter: page.updateCustomFieldFilter,
   });

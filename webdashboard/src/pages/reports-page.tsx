@@ -98,7 +98,7 @@ export default function ReportsPage() {
     }
 
     if (selectedDepartmentId) {
-      result = result.filter((emp) => emp.department_id === selectedDepartmentId);
+      result = result.filter((emp) => emp.department_name === selectedDepartmentId);
     }
 
     if (selectedEmployerId) {
@@ -106,9 +106,9 @@ export default function ReportsPage() {
     }
 
     if (employeeStatus === "active") {
-      result = result.filter((emp) => emp.active !== false);
+      result = result.filter((emp) => emp.active_employment_id !== null);
     } else if (employeeStatus === "inactive") {
-      result = result.filter((emp) => emp.active === false);
+      result = result.filter((emp) => emp.active_employment_id === null);
     }
 
     return result;
@@ -176,7 +176,7 @@ export default function ReportsPage() {
           selectedDepartmentId={selectedDepartmentId}
           selectedEmployerId={selectedEmployerId}
           specificMonth={specificMonth}
-          t={t}
+          t={(key, fallback) => t(key, { defaultValue: fallback })}
         />
       </ResponsiveToolbar>
 

@@ -67,10 +67,7 @@ export function resolveDailyAttendanceCode(
   }
 
   // 4. Standard Work Hours
-  const stdHours =
-    row.computed_std_hours ??
-    (row.actual_work_minutes != null ? row.actual_work_minutes / 60 : undefined) ??
-    (row.std_work_units ? row.std_work_units * 8 : 0);
+  const stdHours = row.computed_std_hours ?? (row.std_work_units ? row.std_work_units * 8 : 0);
   if (stdHours >= 7.0) {
     return getAttendanceCodeConfig("X");
   }

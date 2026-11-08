@@ -12,7 +12,7 @@ import PageHeader from "@/components/ui/page-header";
 import { useToast } from "@/components/ui/toast";
 import { Typography } from "@/components/ui/typography";
 import { useConfirm } from "@/hooks/use-confirm";
-import { useWorkingConditions } from "@/hooks/use-employees";
+import { useWorkspaceWorkingConditions } from "@/hooks/use-employees";
 import {
   deleteWorkingCondition,
   fetchConditionTypes,
@@ -33,7 +33,7 @@ export default function PersonnelWorkingConditionsPage() {
   const [paymentFilter, setPaymentFilter] = useState<string>("all");
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  const { data: conditions = [], isLoading: isLoadingConditions } = useWorkingConditions();
+  const { data: conditions = [], isLoading: isLoadingConditions } = useWorkspaceWorkingConditions();
 
   const { data: typeDefs = [], isLoading: isLoadingTypes } = useQuery<ConditionTypeDefinition[]>({
     queryKey: ["condition-types"],

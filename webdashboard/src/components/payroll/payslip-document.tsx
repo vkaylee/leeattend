@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import Button from "@/components/ui/button";
 import { Typography } from "@/components/ui/typography";
 import { useDateTimeFormatter } from '@/hooks/use-datetime';
-import { Employee, Payslip, Workspace, IncentiveEvaluationResult } from '@/lib/api/types';
+import { Employee, IncentiveEvaluationResult, Organization, Payslip } from '@/lib/api/types';
 
 import { EarningsBreakdown } from './payslip/earnings-breakdown';
 import { EmployeeDetails } from './payslip/employee-details';
@@ -14,10 +14,10 @@ import { PayslipTotals } from './payslip/payslip-totals';
 interface PayslipDocumentProps {
   employee: Employee;
   payslip: Payslip;
-  workspace: Workspace | null;
+  organization: Organization | null;
 }
 
-export default function PayslipDocument({ employee, payslip, workspace }: PayslipDocumentProps) {
+export default function PayslipDocument({ employee, payslip, organization }: PayslipDocumentProps) {
   const { t } = useTranslation();
   const [isMasked, setIsMasked] = useState(false);
   const { formatMonthYear, formatDate } = useDateTimeFormatter();
@@ -49,7 +49,7 @@ export default function PayslipDocument({ employee, payslip, workspace }: Paysli
           <span>{isMasked ? t("common.show_amount", "Hiện số tiền") : t("common.mask_amount", "Bảo mật số tiền")}</span>
         </Button>
       </div>
-      <PayslipHeader formatDate={formatDate} formatMonthYear={formatMonthYear} payslip={payslip} t={t} workspace={workspace} />
+      <PayslipHeader formatDate={formatDate} formatMonthYear={formatMonthYear} organization={organization} payslip={payslip} t={t} />
       <EmployeeDetails employee={employee} formatAmount={formatAmount} payslip={payslip} t={t} />
 
       <div className='space-y-8' data-testid="earnings-breakdown">

@@ -14,14 +14,14 @@ export async function fetchNotifications(
   limit = 20,
   cursor?: string
 ): Promise<NotificationResponse> {
-  const { data } = await client.GET("/v1/notifications", {
+  const { data } = await client.GET<NotificationResponse>("/v1/notifications", {
     params: { query: { limit, cursor } },
   });
   return data;
 }
 
 export async function fetchUnreadCount(): Promise<UnreadCountResponse> {
-  const { data } = await client.GET(`/v1/notifications/unread-count`, {});
+  const { data } = await client.GET<UnreadCountResponse>(`/v1/notifications/unread-count`, {});
   return data;
 }
 

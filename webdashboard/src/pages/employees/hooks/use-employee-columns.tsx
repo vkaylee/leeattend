@@ -26,6 +26,7 @@ interface UseEmployeeColumnsProps {
   selectedRowIds?: string[];
   setFilterDeptIds: (ids: string[]) => void;
   setFilterStatus: (status: string) => void;
+  sortDir: SortDir;
   sortKey: SortKey | null;
   toggleDeptFilter: (id: string) => void;
   toggleSort: (key: SortKey) => void;

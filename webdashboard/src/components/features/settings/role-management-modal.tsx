@@ -136,7 +136,7 @@ export default function RoleManagementModal({
   onClose,
 }: RoleManagementModalProps) {
   const { t } = useTranslation();
-  const { roles: memberRoles, isLoading, updatePrimaryRole, assignRole, revokeRole } = useMemberRoles(userId ?? "", undefined);
+  const { roles: memberRoles, isLoading, updatePrimaryRole, assignRole, revokeRole } = useMemberRoles(userId ?? "");
   const { roles: workspaceRoles } = useOrganizationRoles();
   const { confirm, ConfirmationDialog } = useConfirm();
 

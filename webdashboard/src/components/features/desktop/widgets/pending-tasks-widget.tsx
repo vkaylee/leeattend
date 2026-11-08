@@ -23,8 +23,9 @@ export function DesktopPendingTasksWidget() {
   const handleCompleteTask = (task: PendingTaskResponse) => {
     completeTaskMutation.mutate(
       {
+        checklistId: task.checklist_id,
         itemId: task.id,
-        payload: { completed: true },
+        payload: { status: "completed" },
       },
       {
         onSuccess: () => {

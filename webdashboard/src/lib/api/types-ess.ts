@@ -17,14 +17,14 @@ export interface EmployeeProfile {
   bank_account_number?: string | null;
   bank_branch?: string | null;
   bank_name?: string | null;
-  created_at?: string;
+  created_at: string;
   date_of_birth?: string | null;
-  employee_id?: string;
+  employee_id: string;
   gender?: string | null;
-  id?: string;
+  id: string;
   national_id?: string | null;
   phone?: string | null;
-  updated_at?: string;
+  updated_at: string;
 }
 
 export interface MyProfileResponse {

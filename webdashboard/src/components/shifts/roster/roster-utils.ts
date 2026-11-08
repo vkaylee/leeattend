@@ -103,6 +103,7 @@ export function translateRosterEntriesToMonth(
   validDates: Set<string>,
 ): TranslatedRosterEntry[] {
   return prevSchedules
+    .filter((empSchedule): empSchedule is EmployeeSchedule & { employee_id: string } => Boolean(empSchedule.employee_id))
     .map((empSchedule) => {
       const rosterEntries = empSchedule.schedules
         .filter((s: EffectiveSchedule) => s.source === "roster" && !!s.shift_id)

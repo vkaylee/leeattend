@@ -11,7 +11,7 @@ vi.mock("@tanstack/react-router", () => ({
 }));
 
 import { ToastProvider } from "@/components/ui/toast";
-import { Employee, Payslip, Workspace } from "@/lib/api/types";
+import { Employee, Payslip, Organization } from "@/lib/api/types";
 
 import PayslipModal from "../payslip-modal";
 
@@ -104,8 +104,7 @@ const mockPayslip: Payslip = {
   ],
 };
 
-const mockWorkspace: Workspace = {
-  id: "ws-1",
+const mockOrganization: Organization = {
   name: "Tech Company Ltd",
   date_format: "DD/MM/YYYY",
   time_format: "HH:mm",
@@ -145,7 +144,7 @@ describe("PayslipModal", () => {
         isOpen={true}
         onClose={onClose}
         payslip={mockPayslip}
-        workspace={mockWorkspace}
+        organization={mockOrganization}
       />
     );
 
@@ -162,7 +161,7 @@ describe("PayslipModal", () => {
         isOpen={true}
         onClose={onClose}
         payslip={mockPayslip}
-        workspace={mockWorkspace}
+        organization={mockOrganization}
       />
     );
 
@@ -177,7 +176,7 @@ describe("PayslipModal", () => {
         isOpen={true}
         onClose={onClose}
         payslip={mockPayslip}
-        workspace={mockWorkspace}
+        organization={mockOrganization}
       />
     );
 
@@ -212,7 +211,7 @@ describe("PayslipModal", () => {
         isOpen={true}
         onClose={onClose}
         payslip={mockPayslip}
-        workspace={mockWorkspace}
+        organization={mockOrganization}
       />
     );
 
@@ -240,7 +239,7 @@ describe("PayslipModal", () => {
         isOpen={true}
         onClose={onClose}
         payslip={mockPayslip}
-        workspace={mockWorkspace}
+        organization={mockOrganization}
       />
     );
 
@@ -258,7 +257,7 @@ describe("PayslipModal", () => {
         isOpen={false}
         onClose={onClose}
         payslip={mockPayslip}
-        workspace={mockWorkspace}
+        organization={mockOrganization}
       />
     );
 
@@ -273,7 +272,7 @@ describe("PayslipModal", () => {
         isOpen={true}
         onClose={onClose}
         payslip={mockPayslip}
-        workspace={mockWorkspace}
+        organization={mockOrganization}
       />
     );
 
@@ -282,7 +281,7 @@ describe("PayslipModal", () => {
     expect(screen.getByText("Nguyen Van A")).toBeDefined();
     // Employee ID should appear
     expect(screen.getByText("EMP001")).toBeDefined();
-    // Workspace name should appear
+    // Organization name should appear
     expect(screen.getByText("Tech Company Ltd")).toBeDefined();
   });
 
@@ -293,7 +292,7 @@ describe("PayslipModal", () => {
         isOpen={true}
         onClose={onClose}
         payslip={mockPayslip}
-        workspace={mockWorkspace}
+        organization={mockOrganization}
       />
     );
 
@@ -315,7 +314,7 @@ describe("PayslipModal", () => {
         isOpen={true}
         onClose={onClose}
         payslip={malformedPayslip}
-        workspace={mockWorkspace}
+        organization={mockOrganization}
       />
     );
 

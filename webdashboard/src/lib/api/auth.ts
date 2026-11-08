@@ -10,7 +10,7 @@ import {
 } from "./types";
 
 export async function login(username: string, password: string): Promise<AuthResponse> {
-  const { data } = await client.POST("/auth/login", {
+  const { data } = await client.POST<AuthResponse>("/auth/login", {
     body: { email: username, password },
   });
   setAccessToken(data.access_token);
@@ -26,7 +26,7 @@ export async function logout(): Promise<void> {
 }
 
 export async function register(data: RegisterRequest): Promise<AuthResponse> {
-  const { data: resData } = await client.POST("/auth/register", {
+  const { data: resData } = await client.POST<AuthResponse>("/auth/register", {
     body: data,
   });
   return resData;
@@ -42,19 +42,19 @@ export async function changePassword(
 }
 
 export async function fetchMe(): Promise<User> {
-  const { data } = await client.GET("/me");
+  const { data } = await client.GET<User>("/me");
   return data;
 }
 
 export async function updateMe(data: UpdateUserRequest): Promise<User> {
-  const { data: resData } = await client.PATCH("/me", {
+  const { data: resData } = await client.PATCH<User>("/me", {
     body: data,
   });
   return resData;
 }
 
 export async function fetchUsers(): Promise<User[]> {
-  const { data } = await client.GET("/users");
+  const { data } = await client.GET<User[]>("/users");
   return data;
 }
 

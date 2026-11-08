@@ -183,6 +183,7 @@ export function MyOtAssignmentsList({
   isLoading,
 }: {
   assignments: MyOvertimeAssignment[];
+  isLoading?: boolean;
 }) {
   const { t } = useTranslation();
   const toast = useToast();

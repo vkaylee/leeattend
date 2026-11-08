@@ -9,9 +9,11 @@ export function useOrganization() {
     queryFn: fetchOrganization,
   });
 
+  const organization = query.data ?? null;
   return {
-    organization: query.data ?? null,
-    organizationName: query.data?.name ?? "",
+    organization,
+    workspace: organization,
+    organizationName: organization?.name ?? "",
     isLoading: query.isLoading,
     isError: query.isError,
     error: query.error,

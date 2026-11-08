@@ -1,9 +1,8 @@
 import { Eye, History } from "lucide-react";
-import React from "react";
 import { useTranslation } from "react-i18next";
+import type { WorkspaceLeaveBalance } from "@/lib/api/types";
 
 import Button from "@/components/ui/button";
-import { LeaveBalance } from "@/lib/api/types";
 import { cn } from "@/lib/utils";
 
 interface DesktopBalanceRowProps {

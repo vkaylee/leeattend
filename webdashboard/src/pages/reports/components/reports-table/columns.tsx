@@ -30,10 +30,10 @@ export const getReportColumns = ({
     {
       render: (row) => (
         <EmployeeIdentityCell
-          avatarClassName="h-9 w-9 text-xs"
+          avatarSize="md"
           code={row.employee_id_number}
+          employerName={row.employer_name}
           name={row.employee_name}
-          subtitle={row.employer_name}
         />
       ),
       cellClassName: "px-6 py-4 min-w-[260px]",

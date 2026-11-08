@@ -50,7 +50,7 @@ export function useAssignmentRuleForm(ruleId?: string) {
 
   // Mutations
   const createMutation = useMutation({
-    mutationFn: (data: Parameters<typeof createAssignmentRule>[1]) => createAssignmentRule(data),
+    mutationFn: (data: Parameters<typeof createAssignmentRule>[0]) => createAssignmentRule(data),
     onSuccess: () => {
       toast.success(t("rules.messages.create_success"));
       setIsDirty(false);
@@ -63,7 +63,7 @@ export function useAssignmentRuleForm(ruleId?: string) {
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }: { id: string; data: Parameters<typeof updateAssignmentRule>[2] }) =>
+    mutationFn: ({ id, data }: { id: string; data: Parameters<typeof updateAssignmentRule>[1] }) =>
       updateAssignmentRule(id, data),
     onSuccess: () => {
       toast.success(t("rules.messages.update_success"));

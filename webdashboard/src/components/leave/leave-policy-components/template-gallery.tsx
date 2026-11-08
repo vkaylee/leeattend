@@ -1,4 +1,4 @@
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, Search } from "lucide-react";
 import React, { useState, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 
