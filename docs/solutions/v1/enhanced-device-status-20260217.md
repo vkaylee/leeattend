@@ -57,7 +57,6 @@ Implemented a full-stack enhancement to provide real-time device metadata (time,
 ### Mistakes Made
 - **Type Errors**: Added fields to Rust models but forgot to update Unit Test initializers, causing build failures.
 - **Ownership/Moves**: Attempted to start the `CentralClient` after calling a method that moved `self`, causing a compiler error.
-- **Shell Escaping**: Patterns with pipes (`|`) in `run-tests.sh` failed when not quoted correctly.
 - **I18n Keys**: Added new UI strings without updating locale files, failing the translation usage test.
 
 ### Key Breakthrough

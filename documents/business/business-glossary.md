@@ -80,7 +80,6 @@
 | **rustzk** | Rust library for ZKTeco device communication (TCP/UDP protocol). |
 | **Moka** | In-memory caching library for Rust (async-compatible). |
 | **Tauri** | Framework for building cross-platform desktop apps with web technologies (used for the web dashboard). |
-| **run-tests.sh** | The unified test orchestrator that runs all tests inside Docker containers. Required on WSL2 environments. |
 
 ## Status Values
 
