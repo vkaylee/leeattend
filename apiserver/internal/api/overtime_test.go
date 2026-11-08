@@ -88,7 +88,7 @@ func (m *mockOvertimeRepo) ApproveOvertime(_ context.Context, _, _ uuid.UUID, _ 
 
 func otReq(method, path string, body []byte, wsID uuid.UUID, userID uuid.UUID) *http.Request {
 	req := httptest.NewRequest(method, path, bytes.NewReader(body))
-	req.SetPathValue("ws_id", wsID.String())
+	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), userID))
 	return req
 }

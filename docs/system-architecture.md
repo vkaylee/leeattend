@@ -7,16 +7,16 @@ LeeAttend runs one application service pair:
 - `apiserver/`: Go HTTP API, background jobs, and report-stream WebSockets.
 - `webdashboard/`: React/Vite browser and Tauri client.
 
-PostgreSQL stores system, workspace, attendance, and payroll data in one database. Redis provides rate limiting, queue coordination, and report Pub/Sub. MinIO stores uploaded files.
+PostgreSQL stores system, organization-scoped business, attendance, and payroll data in one database. The compatibility schema still uses `workspace_id` and workspace RBAC tables internally; this is not a selectable tenant boundary. Redis provides rate limiting, queue coordination, and report Pub/Sub. MinIO stores uploaded files.
 
 No edge process, tenant database, external attendance provider, or online activation service is required.
 
 
 ## HTTP API
 
-The API server exposes authenticated REST resources for workspaces, employees, attendance, payroll, files, monitoring, and attendance-source operations.
+The API server exposes authenticated REST resources for the singleton organization, employees, attendance, payroll, files, monitoring, and attendance-source operations.
 
-Singleton organization binding is enforced through configuration and shared database context. Public routes are limited to health and authentication entrypoints.
+Organization scope is resolved from trusted server bootstrap context. Public API routes omit workspace identifiers; legacy workspace path routes are not supported. Database compatibility fields remain internal persistence details.
 
 ## Report streaming
 

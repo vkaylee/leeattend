@@ -113,7 +113,7 @@ func TestDocumentFolders_CRUD(t *testing.T) {
 
 	// 1. List empty folders
 	listReq := httptest.NewRequest(http.MethodGet, "/v1/workspaces/"+wsID.String()+"/documents/folders", nil)
-	listReq.SetPathValue("ws_id", wsID.String())
+	listReq = listReq.WithContext(httpinfra.WithOrganizationIDForTest(listReq.Context(), wsID))
 	listReq = listReq.WithContext(httpinfra.WithUserIDForTest(listReq.Context(), userID))
 	listRec := httptest.NewRecorder()
 	handler.ListFolders(listRec, listReq)
@@ -124,7 +124,7 @@ func TestDocumentFolders_CRUD(t *testing.T) {
 	// 2. Create root folder
 	createBody, _ := json.Marshal(CreateFolderRequest{Name: "Policies"})
 	createReq := httptest.NewRequest(http.MethodPost, "/v1/workspaces/"+wsID.String()+"/documents/folders", bytes.NewReader(createBody))
-	createReq.SetPathValue("ws_id", wsID.String())
+	createReq = createReq.WithContext(httpinfra.WithOrganizationIDForTest(createReq.Context(), wsID))
 	createReq = createReq.WithContext(httpinfra.WithUserIDForTest(createReq.Context(), userID))
 	createRec := httptest.NewRecorder()
 	handler.CreateFolder(createRec, createReq)
@@ -141,7 +141,7 @@ func TestDocumentFolders_CRUD(t *testing.T) {
 	badParent := uuid.New()
 	badSubBody, _ := json.Marshal(CreateFolderRequest{Name: "2024", ParentFolderID: &badParent})
 	badSubReq := httptest.NewRequest(http.MethodPost, "/v1/workspaces/"+wsID.String()+"/documents/folders", bytes.NewReader(badSubBody))
-	badSubReq.SetPathValue("ws_id", wsID.String())
+	badSubReq = badSubReq.WithContext(httpinfra.WithOrganizationIDForTest(badSubReq.Context(), wsID))
 	badSubReq = badSubReq.WithContext(httpinfra.WithUserIDForTest(badSubReq.Context(), userID))
 	badSubRec := httptest.NewRecorder()
 	handler.CreateFolder(badSubRec, badSubReq)
@@ -152,7 +152,7 @@ func TestDocumentFolders_CRUD(t *testing.T) {
 	// 4. Create subfolder with valid parent -> 200
 	subBody, _ := json.Marshal(CreateFolderRequest{Name: "2024", ParentFolderID: &rootFolder.ID})
 	subReq := httptest.NewRequest(http.MethodPost, "/v1/workspaces/"+wsID.String()+"/documents/folders", bytes.NewReader(subBody))
-	subReq.SetPathValue("ws_id", wsID.String())
+	subReq = subReq.WithContext(httpinfra.WithOrganizationIDForTest(subReq.Context(), wsID))
 	subReq = subReq.WithContext(httpinfra.WithUserIDForTest(subReq.Context(), userID))
 	subRec := httptest.NewRecorder()
 	handler.CreateFolder(subRec, subReq)
@@ -167,7 +167,7 @@ func TestDocumentFolders_CRUD(t *testing.T) {
 
 	// 5. Get folder
 	getReq := httptest.NewRequest(http.MethodGet, "/v1/workspaces/"+wsID.String()+"/documents/folders/"+subFolder.ID.String(), nil)
-	getReq.SetPathValue("ws_id", wsID.String())
+	getReq = getReq.WithContext(httpinfra.WithOrganizationIDForTest(getReq.Context(), wsID))
 	getReq.SetPathValue("id", subFolder.ID.String())
 	getReq = getReq.WithContext(httpinfra.WithUserIDForTest(getReq.Context(), userID))
 	getRec := httptest.NewRecorder()
@@ -179,7 +179,7 @@ func TestDocumentFolders_CRUD(t *testing.T) {
 	// 6. Rename folder
 	renameBody, _ := json.Marshal(RenameFolderRequest{Name: "2024-Archived"})
 	renameReq := httptest.NewRequest(http.MethodPut, "/v1/workspaces/"+wsID.String()+"/documents/folders/"+subFolder.ID.String(), bytes.NewReader(renameBody))
-	renameReq.SetPathValue("ws_id", wsID.String())
+	renameReq = renameReq.WithContext(httpinfra.WithOrganizationIDForTest(renameReq.Context(), wsID))
 	renameReq.SetPathValue("id", subFolder.ID.String())
 	renameReq = renameReq.WithContext(httpinfra.WithUserIDForTest(renameReq.Context(), userID))
 	renameRec := httptest.NewRecorder()
@@ -195,7 +195,7 @@ func TestDocumentFolders_CRUD(t *testing.T) {
 
 	// 7. Delete folder
 	delReq := httptest.NewRequest(http.MethodDelete, "/v1/workspaces/"+wsID.String()+"/documents/folders/"+subFolder.ID.String(), nil)
-	delReq.SetPathValue("ws_id", wsID.String())
+	delReq = delReq.WithContext(httpinfra.WithOrganizationIDForTest(delReq.Context(), wsID))
 	delReq.SetPathValue("id", subFolder.ID.String())
 	delReq = delReq.WithContext(httpinfra.WithUserIDForTest(delReq.Context(), userID))
 	delRec := httptest.NewRecorder()
@@ -206,7 +206,7 @@ func TestDocumentFolders_CRUD(t *testing.T) {
 
 	// 8. Get deleted folder -> 404
 	getDeletedReq := httptest.NewRequest(http.MethodGet, "/v1/workspaces/"+wsID.String()+"/documents/folders/"+subFolder.ID.String(), nil)
-	getDeletedReq.SetPathValue("ws_id", wsID.String())
+	getDeletedReq = getDeletedReq.WithContext(httpinfra.WithOrganizationIDForTest(getDeletedReq.Context(), wsID))
 	getDeletedReq.SetPathValue("id", subFolder.ID.String())
 	getDeletedReq = getDeletedReq.WithContext(httpinfra.WithUserIDForTest(getDeletedReq.Context(), userID))
 	getDeletedRec := httptest.NewRecorder()
@@ -234,7 +234,7 @@ func TestDocumentDistribution(t *testing.T) {
 		TargetEmployeeIDs: []uuid.UUID{emp1, emp2},
 	})
 	req := httptest.NewRequest(http.MethodPost, "/v1/workspaces/"+wsID.String()+"/documents/distributions", bytes.NewReader(reqBody))
-	req.SetPathValue("ws_id", wsID.String())
+	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), userID))
 	rec := httptest.NewRecorder()
 
@@ -273,7 +273,7 @@ func TestDocumentTemplates_PreviewAndGenerate(t *testing.T) {
 		},
 	})
 	previewReq := httptest.NewRequest(http.MethodPost, "/v1/workspaces/"+wsID.String()+"/documents/templates/preview", bytes.NewReader(reqBody))
-	previewReq.SetPathValue("ws_id", wsID.String())
+	previewReq = previewReq.WithContext(httpinfra.WithOrganizationIDForTest(previewReq.Context(), wsID))
 	previewReq = previewReq.WithContext(httpinfra.WithUserIDForTest(previewReq.Context(), userID))
 	previewRec := httptest.NewRecorder()
 
@@ -302,7 +302,7 @@ func TestDocumentTemplates_PreviewAndGenerate(t *testing.T) {
 
 	// 2. Generate template
 	genReq := httptest.NewRequest(http.MethodPost, "/v1/workspaces/"+wsID.String()+"/documents/templates/"+templateID.String()+"/generate", bytes.NewReader(reqBody))
-	genReq.SetPathValue("ws_id", wsID.String())
+	genReq = genReq.WithContext(httpinfra.WithOrganizationIDForTest(genReq.Context(), wsID))
 	genReq.SetPathValue("id", templateID.String())
 	genReq = genReq.WithContext(httpinfra.WithUserIDForTest(genReq.Context(), userID))
 	genRec := httptest.NewRecorder()
@@ -327,7 +327,7 @@ func TestDocumentAuth_Forbidden(t *testing.T) {
 	}
 
 	req := httptest.NewRequest(http.MethodGet, "/v1/workspaces/"+wsID.String()+"/documents/folders", nil)
-	req.SetPathValue("ws_id", wsID.String())
+	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), userID))
 	rec := httptest.NewRecorder()
 

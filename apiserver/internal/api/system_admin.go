@@ -55,7 +55,7 @@ func (h SystemAdminHandler) requireStandalonePermission(r *http.Request, permiss
 	if !ok || userID == uuid.Nil {
 		return uuid.Nil, apperror.Unauthorized(apperror.KeyUnauthorized)
 	}
-	workspaceID, ok := httpinfra.WorkspaceIDFromContext(r.Context())
+	workspaceID, ok := organizationIDFromContext(r)
 	if !ok || h.Authorizer == nil || !h.Authorizer.HasPermission(r.Context(), userID, workspaceID, permission) {
 		return uuid.Nil, apperror.Forbidden(apperror.KeyForbidden)
 	}

@@ -136,7 +136,7 @@ type ApprovalWorkflowHandler struct {
 }
 
 func (h ApprovalWorkflowHandler) List(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := pathUUID(r, "ws_id")
+	wsID, ok := organizationIDFromContext(r)
 	if !ok || !h.allowed(r, wsID, "approval_workflows:read") {
 		h.forbidden(w, r)
 		return
@@ -160,7 +160,7 @@ func (h ApprovalWorkflowHandler) List(w http.ResponseWriter, r *http.Request) {
 
 // PendingTasks handles GET /api/v1/workspaces/{ws_id}/approval-workflows/pending-tasks.
 func (h ApprovalWorkflowHandler) PendingTasks(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := pathUUID(r, "ws_id")
+	wsID, ok := organizationIDFromContext(r)
 	if !ok || !h.allowed(r, wsID, "approval_workflows:read") {
 		h.forbidden(w, r)
 		return
@@ -184,7 +184,7 @@ func (h ApprovalWorkflowHandler) PendingTasks(w http.ResponseWriter, r *http.Req
 }
 
 func (h ApprovalWorkflowHandler) Create(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := pathUUID(r, "ws_id")
+	wsID, ok := organizationIDFromContext(r)
 	userID, userOK := httpinfra.UserIDFromContext(r.Context())
 	if !ok || !userOK || !h.allowed(r, wsID, "approval_workflows:manage") {
 		h.forbidden(w, r)
@@ -204,7 +204,7 @@ func (h ApprovalWorkflowHandler) Create(w http.ResponseWriter, r *http.Request) 
 }
 
 func (h ApprovalWorkflowHandler) Get(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := pathUUID(r, "ws_id")
+	wsID, ok := organizationIDFromContext(r)
 	id, idOK := pathUUID(r, "id")
 	if !ok || !idOK || !h.allowed(r, wsID, "approval_workflows:read") {
 		h.forbidden(w, r)
@@ -219,7 +219,7 @@ func (h ApprovalWorkflowHandler) Get(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h ApprovalWorkflowHandler) Update(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := pathUUID(r, "ws_id")
+	wsID, ok := organizationIDFromContext(r)
 	id, idOK := pathUUID(r, "id")
 	if !ok || !idOK || !h.allowed(r, wsID, "approval_workflows:manage") {
 		h.forbidden(w, r)
@@ -239,7 +239,7 @@ func (h ApprovalWorkflowHandler) Update(w http.ResponseWriter, r *http.Request) 
 }
 
 func (h ApprovalWorkflowHandler) Delete(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := pathUUID(r, "ws_id")
+	wsID, ok := organizationIDFromContext(r)
 	id, idOK := pathUUID(r, "id")
 	if !ok || !idOK || !h.allowed(r, wsID, string(auth.PermissionApprovalWorkflowsManage)) {
 		h.forbidden(w, r)
@@ -253,7 +253,7 @@ func (h ApprovalWorkflowHandler) Delete(w http.ResponseWriter, r *http.Request) 
 }
 
 func (h ApprovalWorkflowHandler) Process(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := pathUUID(r, "ws_id")
+	wsID, ok := organizationIDFromContext(r)
 	userID, userOK := httpinfra.UserIDFromContext(r.Context())
 	if !ok || !userOK {
 		h.forbidden(w, r)
@@ -276,7 +276,7 @@ func (h ApprovalWorkflowHandler) Process(w http.ResponseWriter, r *http.Request)
 }
 
 func (h ApprovalWorkflowHandler) History(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := pathUUID(r, "ws_id")
+	wsID, ok := organizationIDFromContext(r)
 	entityID, entityOK := pathUUID(r, "id")
 	if !ok || !entityOK {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))

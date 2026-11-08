@@ -123,7 +123,7 @@ func TestReportCreateExportAndStatus(t *testing.T) {
 	}
 	body, _ := json.Marshal(payload)
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/workspaces/"+wsID.String()+"/reports/export", bytes.NewReader(body))
-	req.SetPathValue("ws_id", wsID.String())
+	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), userID))
 	rec := httptest.NewRecorder()
 
@@ -141,7 +141,7 @@ func TestReportCreateExportAndStatus(t *testing.T) {
 
 	// Now poll status
 	pollReq := httptest.NewRequest(http.MethodGet, "/api/v1/workspaces/"+wsID.String()+"/reports/jobs/"+resp.JobID.String(), nil)
-	pollReq.SetPathValue("ws_id", wsID.String())
+	pollReq = pollReq.WithContext(httpinfra.WithOrganizationIDForTest(pollReq.Context(), wsID))
 	pollReq.SetPathValue("job_id", resp.JobID.String())
 	pollReq = pollReq.WithContext(httpinfra.WithUserIDForTest(pollReq.Context(), userID))
 	pollRec := httptest.NewRecorder()
@@ -171,7 +171,7 @@ func TestReportExportValidation(t *testing.T) {
 	}
 	body, _ := json.Marshal(payload)
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/workspaces/"+wsID.String()+"/reports/export", bytes.NewReader(body))
-	req.SetPathValue("ws_id", wsID.String())
+	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), userID))
 	rec := httptest.NewRecorder()
 
@@ -190,7 +190,7 @@ func TestReportJobNotFound(t *testing.T) {
 	wsID := uuid.New()
 	missingID := uuid.New()
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/workspaces/"+wsID.String()+"/reports/jobs/"+missingID.String(), nil)
-	req.SetPathValue("ws_id", wsID.String())
+	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
 	req.SetPathValue("job_id", missingID.String())
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
 	rec := httptest.NewRecorder()
@@ -209,7 +209,7 @@ func TestReportCancel(t *testing.T) {
 	}}
 	handler := ReportHandler{Queue: queue, Authorizer: mockReportAuthorizer{}}
 	req := httptest.NewRequest(http.MethodDelete, "/api/v1/workspaces/"+wsID.String()+"/reports/jobs/"+jobID.String(), nil)
-	req.SetPathValue("ws_id", wsID.String())
+	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
 	req.SetPathValue("job_id", jobID.String())
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
 	rec := httptest.NewRecorder()
@@ -231,7 +231,7 @@ func TestReportCancelRejectsCompletedJob(t *testing.T) {
 	}}
 	handler := ReportHandler{Queue: queue, Authorizer: mockReportAuthorizer{}}
 	req := httptest.NewRequest(http.MethodDelete, "/api/v1/workspaces/"+wsID.String()+"/reports/jobs/"+jobID.String(), nil)
-	req.SetPathValue("ws_id", wsID.String())
+	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
 	req.SetPathValue("job_id", jobID.String())
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
 	rec := httptest.NewRecorder()
@@ -253,7 +253,7 @@ func TestReportCancelOtherWorkspaceForbidden(t *testing.T) {
 	wsID := uuid.New()
 	handler := ReportHandler{Queue: queue, Authorizer: mockReportAuthorizer{}}
 	req := httptest.NewRequest(http.MethodDelete, "/api/v1/workspaces/"+wsID.String()+"/reports/jobs/"+jobID.String(), nil)
-	req.SetPathValue("ws_id", wsID.String())
+	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
 	req.SetPathValue("job_id", jobID.String())
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
 	rec := httptest.NewRecorder()
@@ -272,7 +272,7 @@ func TestReportDownloadCompleted(t *testing.T) {
 	}}
 	handler := ReportHandler{Queue: queue, Authorizer: mockReportAuthorizer{}}
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/workspaces/"+wsID.String()+"/reports/jobs/"+jobID.String()+"/download", nil)
-	req.SetPathValue("ws_id", wsID.String())
+	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
 	req.SetPathValue("job_id", jobID.String())
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
 	rec := httptest.NewRecorder()
@@ -300,7 +300,7 @@ func TestReportDownloadPendingReturnsAccepted(t *testing.T) {
 	}}
 	handler := ReportHandler{Queue: queue, Authorizer: mockReportAuthorizer{}}
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/workspaces/"+wsID.String()+"/reports/jobs/"+jobID.String()+"/download", nil)
-	req.SetPathValue("ws_id", wsID.String())
+	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
 	req.SetPathValue("job_id", jobID.String())
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
 	rec := httptest.NewRecorder()
@@ -317,7 +317,7 @@ func TestAttendanceReportSummarySuccess(t *testing.T) {
 	handler := ReportHandler{Repository: repo, Authorizer: mockReportAuthorizer{}}
 
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/workspaces/"+wsID.String()+"/reports/attendance?start_date=2026-01-01&end_date=2026-01-31&type=summary", nil)
-	req.SetPathValue("ws_id", wsID.String())
+	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
 	rec := httptest.NewRecorder()
 
@@ -347,7 +347,7 @@ func TestAttendanceReportDailySuccess(t *testing.T) {
 	handler := ReportHandler{Repository: repo, Authorizer: mockReportAuthorizer{}}
 
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/workspaces/"+wsID.String()+"/reports/attendance?start_date=2026-01-01&end_date=2026-01-31&type=daily", nil)
-	req.SetPathValue("ws_id", wsID.String())
+	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
 	rec := httptest.NewRecorder()
 
@@ -374,7 +374,7 @@ func TestAttendanceReportDateValidation(t *testing.T) {
 
 	// Missing start date
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/workspaces/"+wsID.String()+"/reports/attendance?end_date=2026-01-31", nil)
-	req.SetPathValue("ws_id", wsID.String())
+	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
 	rec := httptest.NewRecorder()
 	handler.AttendanceReport(rec, req)
@@ -384,7 +384,7 @@ func TestAttendanceReportDateValidation(t *testing.T) {
 
 	// Inverted dates
 	req2 := httptest.NewRequest(http.MethodGet, "/api/v1/workspaces/"+wsID.String()+"/reports/attendance?start_date=2026-02-01&end_date=2026-01-01", nil)
-	req2.SetPathValue("ws_id", wsID.String())
+	req2 = req2.WithContext(httpinfra.WithOrganizationIDForTest(req2.Context(), wsID))
 	req2 = req2.WithContext(httpinfra.WithUserIDForTest(req2.Context(), uuid.New()))
 	rec2 := httptest.NewRecorder()
 	handler.AttendanceReport(rec2, req2)
@@ -394,7 +394,7 @@ func TestAttendanceReportDateValidation(t *testing.T) {
 
 	// Range > 365 days
 	req3 := httptest.NewRequest(http.MethodGet, "/api/v1/workspaces/"+wsID.String()+"/reports/attendance?start_date=2025-01-01&end_date=2026-01-05", nil)
-	req3.SetPathValue("ws_id", wsID.String())
+	req3 = req3.WithContext(httpinfra.WithOrganizationIDForTest(req3.Context(), wsID))
 	req3 = req3.WithContext(httpinfra.WithUserIDForTest(req3.Context(), uuid.New()))
 	rec3 := httptest.NewRecorder()
 	handler.AttendanceReport(rec3, req3)
@@ -414,7 +414,7 @@ func TestAttendanceReportForbiddenWithoutPermissions(t *testing.T) {
 	handler := ReportHandler{Repository: &mockReportRepo{}, Authorizer: mockDenyAuthorizer{}}
 
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/workspaces/"+wsID.String()+"/reports/attendance?start_date=2026-01-01&end_date=2026-01-31", nil)
-	req.SetPathValue("ws_id", wsID.String())
+	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
 	rec := httptest.NewRecorder()
 
@@ -429,7 +429,7 @@ func TestNoShowReportSuccess(t *testing.T) {
 	handler := ReportHandler{Repository: &mockReportRepo{}, Authorizer: mockReportAuthorizer{}}
 
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/workspaces/"+wsID.String()+"/reports/no-show?date=2026-01-01", nil)
-	req.SetPathValue("ws_id", wsID.String())
+	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
 	rec := httptest.NewRecorder()
 
@@ -456,7 +456,7 @@ func TestNoShowReportValidationErrors(t *testing.T) {
 
 	// Missing date
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/workspaces/"+wsID.String()+"/reports/no-show", nil)
-	req.SetPathValue("ws_id", wsID.String())
+	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
 	rec := httptest.NewRecorder()
 	handler.NoShowReport(rec, req)
@@ -466,7 +466,7 @@ func TestNoShowReportValidationErrors(t *testing.T) {
 
 	// Invalid UUID in employee_ids must return 400
 	req2 := httptest.NewRequest(http.MethodGet, "/api/v1/workspaces/"+wsID.String()+"/reports/no-show?date=2026-01-01&employee_ids=not-a-uuid", nil)
-	req2.SetPathValue("ws_id", wsID.String())
+	req2 = req2.WithContext(httpinfra.WithOrganizationIDForTest(req2.Context(), wsID))
 	req2 = req2.WithContext(httpinfra.WithUserIDForTest(req2.Context(), uuid.New()))
 	rec2 := httptest.NewRecorder()
 	handler.NoShowReport(rec2, req2)
@@ -480,7 +480,7 @@ func TestNoShowReportForbidden(t *testing.T) {
 	handler := ReportHandler{Repository: &mockReportRepo{}, Authorizer: mockDenyAuthorizer{}}
 
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/workspaces/"+wsID.String()+"/reports/no-show?date=2026-01-01", nil)
-	req.SetPathValue("ws_id", wsID.String())
+	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
 	rec := httptest.NewRecorder()
 

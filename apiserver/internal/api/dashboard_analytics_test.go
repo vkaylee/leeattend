@@ -113,7 +113,7 @@ func (a mockDashboardAuthz) GetManagedDepartmentIDs(ctx context.Context, userID,
 func testContext(userID, wsID uuid.UUID) context.Context {
 	ctx := context.Background()
 	ctx = httpinfra.WithUserIDForTest(ctx, userID)
-	ctx = httpinfra.WithWorkspaceIDForTest(ctx, wsID)
+	ctx = httpinfra.WithOrganizationIDForTest(ctx, wsID)
 	return ctx
 }
 

@@ -51,7 +51,7 @@ func TestCompensationHistory_Get(t *testing.T) {
 
 	// 1. Success 200
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/workspaces/"+wsID.String()+"/employees/"+empID.String()+"/compensation-history", nil)
-	req.SetPathValue("ws_id", wsID.String())
+	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
 	req.SetPathValue("id", empID.String())
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), userID))
 	rec := httptest.NewRecorder()
@@ -73,7 +73,7 @@ func TestCompensationHistory_Get(t *testing.T) {
 
 	// 3. Invalid employment_id UUID query -> 400
 	reqInvalid := httptest.NewRequest(http.MethodGet, "/api/v1/workspaces/"+wsID.String()+"/employees/"+empID.String()+"/compensation-history?employment_id=invalid-uuid", nil)
-	reqInvalid.SetPathValue("ws_id", wsID.String())
+	reqInvalid = reqInvalid.WithContext(httpinfra.WithOrganizationIDForTest(reqInvalid.Context(), wsID))
 	reqInvalid.SetPathValue("id", empID.String())
 	reqInvalid = reqInvalid.WithContext(httpinfra.WithUserIDForTest(reqInvalid.Context(), userID))
 	recInvalid := httptest.NewRecorder()

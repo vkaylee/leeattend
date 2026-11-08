@@ -74,7 +74,7 @@ func TestAttendanceLogs_Upload_Forbidden(t *testing.T) {
 	ws := uuid.New()
 	h := AttendanceLogsHandler{Repository: &mockAttendanceLogsRepo{}, Authorizer: mockAttendanceAuthorizer{allowed: false}}
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/workspaces/"+ws.String()+"/attendance/upload", nil)
-	req.SetPathValue("ws_id", ws.String())
+	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), ws))
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
 	rec := httptest.NewRecorder()
 	h.Upload(rec, req)
@@ -102,7 +102,7 @@ func TestAttendanceLogs_Upload_Success(t *testing.T) {
 	body, ctype := createAttendanceMultipart("sample.xlsx", validXLSX)
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/workspaces/"+ws.String()+"/attendance/upload", body)
 	req.Header.Set("Content-Type", ctype)
-	req.SetPathValue("ws_id", ws.String())
+	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), ws))
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), user))
 
 	rec := httptest.NewRecorder()
@@ -127,7 +127,7 @@ func TestAttendanceLogs_UploadLogs_Success(t *testing.T) {
 	body, ctype := createAttendanceMultipart("sample.xlsx", validXLSX)
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/workspaces/"+ws.String()+"/attendance/logs/upload", body)
 	req.Header.Set("Content-Type", ctype)
-	req.SetPathValue("ws_id", ws.String())
+	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), ws))
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), user))
 
 	rec := httptest.NewRecorder()
@@ -147,7 +147,7 @@ func TestAttendanceLogs_LatestAndJobStatus(t *testing.T) {
 
 	// Latest
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/workspaces/"+ws.String()+"/attendance/import-jobs/latest", nil)
-	req.SetPathValue("ws_id", ws.String())
+	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), ws))
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), user))
 	rec := httptest.NewRecorder()
 	h.Latest(rec, req)
@@ -157,7 +157,7 @@ func TestAttendanceLogs_LatestAndJobStatus(t *testing.T) {
 
 	// Job by ID
 	req2 := httptest.NewRequest(http.MethodGet, "/api/v1/workspaces/"+ws.String()+"/attendance/import-jobs/"+jobID.String(), nil)
-	req2.SetPathValue("ws_id", ws.String())
+	req2 = req2.WithContext(httpinfra.WithOrganizationIDForTest(req2.Context(), ws))
 	req2.SetPathValue("id", jobID.String())
 	req2 = req2.WithContext(httpinfra.WithUserIDForTest(req2.Context(), user))
 	rec2 := httptest.NewRecorder()
@@ -175,7 +175,7 @@ func TestAttendanceLogs_ErrorFile(t *testing.T) {
 	h := AttendanceLogsHandler{Repository: repo, Authorizer: mockAttendanceAuthorizer{allowed: true}}
 
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/workspaces/"+ws.String()+"/attendance/import-jobs/"+jobID.String()+"/error-file", nil)
-	req.SetPathValue("ws_id", ws.String())
+	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), ws))
 	req.SetPathValue("id", jobID.String())
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), user))
 	rec := httptest.NewRecorder()
@@ -199,7 +199,7 @@ func TestAttendanceLogs_LogsAndRawLogs(t *testing.T) {
 
 	// Logs
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/workspaces/"+ws.String()+"/attendance/logs?page=1&limit=20", nil)
-	req.SetPathValue("ws_id", ws.String())
+	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), ws))
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), user))
 	rec := httptest.NewRecorder()
 	h.Logs(rec, req)
@@ -209,7 +209,7 @@ func TestAttendanceLogs_LogsAndRawLogs(t *testing.T) {
 
 	// Raw logs
 	req2 := httptest.NewRequest(http.MethodGet, "/api/v1/workspaces/"+ws.String()+"/attendance/raw-logs?page=1&limit=20", nil)
-	req2.SetPathValue("ws_id", ws.String())
+	req2 = req2.WithContext(httpinfra.WithOrganizationIDForTest(req2.Context(), ws))
 	req2.SetPathValue("id", ws.String())
 	req2 = req2.WithContext(httpinfra.WithUserIDForTest(req2.Context(), user))
 	rec2 := httptest.NewRecorder()
@@ -232,7 +232,7 @@ func TestAttendanceLogs_StagingLifecycle(t *testing.T) {
 
 	// List staging
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/workspaces/"+ws.String()+"/attendance/staging-logs", nil)
-	req.SetPathValue("ws_id", ws.String())
+	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), ws))
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), user))
 	rec := httptest.NewRecorder()
 	h.Staging(rec, req)
@@ -243,7 +243,7 @@ func TestAttendanceLogs_StagingLifecycle(t *testing.T) {
 	// Resolve staging
 	resolveBody, _ := json.Marshal(ResolveStagingRequest{EmployeeID: empID})
 	req2 := httptest.NewRequest(http.MethodPost, "/api/v1/workspaces/"+ws.String()+"/attendance/staging-logs/"+stagingID.String()+"/resolve", bytes.NewReader(resolveBody))
-	req2.SetPathValue("ws_id", ws.String())
+	req2 = req2.WithContext(httpinfra.WithOrganizationIDForTest(req2.Context(), ws))
 	req2.SetPathValue("id", stagingID.String())
 	req2 = req2.WithContext(httpinfra.WithUserIDForTest(req2.Context(), user))
 	rec2 := httptest.NewRecorder()
@@ -254,7 +254,7 @@ func TestAttendanceLogs_StagingLifecycle(t *testing.T) {
 
 	// Dismiss staging
 	req3 := httptest.NewRequest(http.MethodDelete, "/api/v1/workspaces/"+ws.String()+"/attendance/staging-logs/"+stagingID.String(), nil)
-	req3.SetPathValue("ws_id", ws.String())
+	req3 = req3.WithContext(httpinfra.WithOrganizationIDForTest(req3.Context(), ws))
 	req3.SetPathValue("id", stagingID.String())
 	req3 = req3.WithContext(httpinfra.WithUserIDForTest(req3.Context(), user))
 	rec3 := httptest.NewRecorder()
@@ -277,7 +277,7 @@ func TestAttendanceLogs_PaperOT(t *testing.T) {
 	// Single Paper OT
 	otBody, _ := json.Marshal(PaperOTRequest{Date: "2026-03-10", ClaimedMinutes: 60, Reason: "Urgent deployment"})
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/workspaces/"+ws.String()+"/attendance/enter-paper-ot/"+empID.String(), bytes.NewReader(otBody))
-	req.SetPathValue("ws_id", ws.String())
+	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), ws))
 	req.SetPathValue("employee_id", empID.String())
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), user))
 	rec := httptest.NewRecorder()
@@ -291,7 +291,7 @@ func TestAttendanceLogs_PaperOT(t *testing.T) {
 	body, ctype := createAttendanceMultipart("paper_ot.csv", csvData)
 	req2 := httptest.NewRequest(http.MethodPost, "/api/v1/workspaces/"+ws.String()+"/attendance/bulk-upload-paper-ot", body)
 	req2.Header.Set("Content-Type", ctype)
-	req2.SetPathValue("ws_id", ws.String())
+	req2 = req2.WithContext(httpinfra.WithOrganizationIDForTest(req2.Context(), ws))
 	req2 = req2.WithContext(httpinfra.WithUserIDForTest(req2.Context(), user))
 	rec2 := httptest.NewRecorder()
 	h.BulkPaperOT(rec2, req2)

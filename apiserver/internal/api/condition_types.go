@@ -77,7 +77,7 @@ type ConditionTypeHandler struct {
 }
 
 func (h ConditionTypeHandler) List(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := pathUUID(r, "ws_id")
+	wsID, ok := organizationIDFromContext(r)
 	if !ok || !h.allowed(r, wsID, "workspace:settings:read") {
 		h.forbidden(w, r)
 		return
@@ -96,7 +96,7 @@ func (h ConditionTypeHandler) List(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h ConditionTypeHandler) Get(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := pathUUID(r, "ws_id")
+	wsID, ok := organizationIDFromContext(r)
 	id, idOK := pathUUID(r, "id")
 	if !ok || !idOK || !h.allowed(r, wsID, "workspace:settings:read") {
 		h.forbidden(w, r)
@@ -115,7 +115,7 @@ func (h ConditionTypeHandler) Get(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h ConditionTypeHandler) Create(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := pathUUID(r, "ws_id")
+	wsID, ok := organizationIDFromContext(r)
 	if !ok || !h.allowed(r, wsID, "workspace:settings:write") {
 		h.forbidden(w, r)
 		return
@@ -167,7 +167,7 @@ func (h ConditionTypeHandler) Create(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h ConditionTypeHandler) Update(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := pathUUID(r, "ws_id")
+	wsID, ok := organizationIDFromContext(r)
 	id, idOK := pathUUID(r, "id")
 	if !ok || !idOK || !h.allowed(r, wsID, "workspace:settings:write") {
 		h.forbidden(w, r)
@@ -191,7 +191,7 @@ func (h ConditionTypeHandler) Update(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h ConditionTypeHandler) Delete(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := pathUUID(r, "ws_id")
+	wsID, ok := organizationIDFromContext(r)
 	id, idOK := pathUUID(r, "id")
 	if !ok || !idOK || !h.allowed(r, wsID, "workspace:settings:write") {
 		h.forbidden(w, r)

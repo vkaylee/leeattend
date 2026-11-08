@@ -556,7 +556,7 @@ type DashboardAnalyticsHandler struct {
 // resolveContext extracts user and workspace IDs from request context.
 func (h DashboardAnalyticsHandler) resolveContext(w http.ResponseWriter, r *http.Request) (uuid.UUID, uuid.UUID, bool) {
 	userID, uok := httpinfra.UserIDFromContext(r.Context())
-	wsID, wok := httpinfra.WorkspaceIDFromContext(r.Context())
+	wsID, wok := organizationIDFromContext(r)
 	if !uok || !wok || h.Authorizer == nil {
 		apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
 		return uuid.Nil, uuid.Nil, false

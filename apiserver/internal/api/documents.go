@@ -79,7 +79,7 @@ func (h DocumentHandler) isMember(r *http.Request, wsID uuid.UUID) bool {
 }
 
 func (h DocumentHandler) ListFolders(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := pathUUID(r, "ws_id")
+	wsID, ok := organizationIDFromContext(r)
 	if !ok || !h.isMember(r, wsID) {
 		apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
 		return
@@ -97,7 +97,7 @@ func (h DocumentHandler) ListFolders(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h DocumentHandler) CreateFolder(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := pathUUID(r, "ws_id")
+	wsID, ok := organizationIDFromContext(r)
 	if !ok || !h.isMember(r, wsID) {
 		apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
 		return
@@ -133,7 +133,7 @@ func (h DocumentHandler) CreateFolder(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h DocumentHandler) GetFolder(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := pathUUID(r, "ws_id")
+	wsID, ok := organizationIDFromContext(r)
 	folderID, idOK := pathUUID(r, "id")
 	if !ok || !idOK || !h.isMember(r, wsID) {
 		apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
@@ -156,7 +156,7 @@ func (h DocumentHandler) GetFolder(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h DocumentHandler) RenameFolder(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := pathUUID(r, "ws_id")
+	wsID, ok := organizationIDFromContext(r)
 	folderID, idOK := pathUUID(r, "id")
 	if !ok || !idOK || !h.isMember(r, wsID) {
 		apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
@@ -189,7 +189,7 @@ func (h DocumentHandler) RenameFolder(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h DocumentHandler) DeleteFolder(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := pathUUID(r, "ws_id")
+	wsID, ok := organizationIDFromContext(r)
 	folderID, idOK := pathUUID(r, "id")
 	if !ok || !idOK || !h.isMember(r, wsID) {
 		apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
@@ -211,7 +211,7 @@ func (h DocumentHandler) DeleteFolder(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h DocumentHandler) Distribute(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := pathUUID(r, "ws_id")
+	wsID, ok := organizationIDFromContext(r)
 	if !ok || !h.isMember(r, wsID) {
 		apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
 		return
@@ -251,7 +251,7 @@ func FillTemplate(template string, vars map[string]string) string {
 }
 
 func (h DocumentHandler) PreviewTemplate(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := pathUUID(r, "ws_id")
+	wsID, ok := organizationIDFromContext(r)
 	if !ok || !h.isMember(r, wsID) {
 		apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
 		return
@@ -279,7 +279,7 @@ func (h DocumentHandler) PreviewTemplate(w http.ResponseWriter, r *http.Request)
 }
 
 func (h DocumentHandler) GenerateTemplate(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := pathUUID(r, "ws_id")
+	wsID, ok := organizationIDFromContext(r)
 	_, idOK := pathUUID(r, "id")
 	if !ok || !idOK || !h.isMember(r, wsID) {
 		apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))

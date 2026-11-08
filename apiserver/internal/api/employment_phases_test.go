@@ -122,7 +122,7 @@ func TestEmploymentPhaseDefinitionsAndPermissions(t *testing.T) {
 	}
 	raw, _ := json.Marshal(body)
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/workspaces/"+wsID.String()+"/employment-phases", bytes.NewReader(raw))
-	req.SetPathValue("ws_id", wsID.String())
+	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), userID))
 	rec := httptest.NewRecorder()
 
@@ -132,7 +132,7 @@ func TestEmploymentPhaseDefinitionsAndPermissions(t *testing.T) {
 	}
 
 	listReq := httptest.NewRequest(http.MethodGet, "/api/v1/workspaces/"+wsID.String()+"/employment-phases", nil)
-	listReq.SetPathValue("ws_id", wsID.String())
+	listReq = listReq.WithContext(httpinfra.WithOrganizationIDForTest(listReq.Context(), wsID))
 	listReq = listReq.WithContext(httpinfra.WithUserIDForTest(listReq.Context(), userID))
 	listRec := httptest.NewRecorder()
 	handler.ListDefinitions(listRec, listReq)
@@ -160,7 +160,7 @@ func TestEmploymentPhaseAssignOverlapTransition(t *testing.T) {
 	}
 	raw1, _ := json.Marshal(assign1)
 	req1 := httptest.NewRequest(http.MethodPost, "/api/v1/workspaces/"+wsID.String()+"/employments/"+empID.String()+"/phases", bytes.NewReader(raw1))
-	req1.SetPathValue("ws_id", wsID.String())
+	req1 = req1.WithContext(httpinfra.WithOrganizationIDForTest(req1.Context(), wsID))
 	req1.SetPathValue("employment_id", empID.String())
 	req1 = req1.WithContext(httpinfra.WithUserIDForTest(req1.Context(), userID))
 	rec1 := httptest.NewRecorder()
@@ -177,7 +177,7 @@ func TestEmploymentPhaseAssignOverlapTransition(t *testing.T) {
 	}
 	raw2, _ := json.Marshal(assign2)
 	req2 := httptest.NewRequest(http.MethodPost, "/api/v1/workspaces/"+wsID.String()+"/employments/"+empID.String()+"/phases", bytes.NewReader(raw2))
-	req2.SetPathValue("ws_id", wsID.String())
+	req2 = req2.WithContext(httpinfra.WithOrganizationIDForTest(req2.Context(), wsID))
 	req2.SetPathValue("employment_id", empID.String())
 	req2 = req2.WithContext(httpinfra.WithUserIDForTest(req2.Context(), userID))
 	rec2 := httptest.NewRecorder()

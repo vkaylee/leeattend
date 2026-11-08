@@ -78,7 +78,7 @@ func TestDashboardPreferencesHandler_Get(t *testing.T) {
 
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/dashboard/preferences", nil)
 	ctx := httpinfra.WithUserIDForTest(req.Context(), u)
-	ctx = httpinfra.WithWorkspaceIDForTest(ctx, w)
+	ctx = httpinfra.WithOrganizationIDForTest(ctx, w)
 	req = req.WithContext(ctx)
 
 	rec := httptest.NewRecorder()
@@ -112,7 +112,7 @@ func TestDashboardPreferencesHandler_Put(t *testing.T) {
 	body := `{"active_view":"attendance","visible_widgets":{"kpi_cards":false},"widget_order":["kpi_cards"],"collapsed_sections":{"charts":true},"window_layout":{"app-attendance":{"x":200,"y":150}}}`
 	req := httptest.NewRequest(http.MethodPut, "/api/v1/dashboard/preferences", bytes.NewBufferString(body))
 	ctx := httpinfra.WithUserIDForTest(req.Context(), u)
-	ctx = httpinfra.WithWorkspaceIDForTest(ctx, w)
+	ctx = httpinfra.WithOrganizationIDForTest(ctx, w)
 	req = req.WithContext(ctx)
 
 	rec := httptest.NewRecorder()
@@ -137,7 +137,7 @@ func TestDashboardPreferencesHandler_Forbidden(t *testing.T) {
 	}
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/dashboard/preferences", nil)
 	ctx := httpinfra.WithUserIDForTest(req.Context(), u)
-	ctx = httpinfra.WithWorkspaceIDForTest(ctx, w)
+	ctx = httpinfra.WithOrganizationIDForTest(ctx, w)
 	req = req.WithContext(ctx)
 
 	rec := httptest.NewRecorder()
@@ -157,7 +157,7 @@ func TestDashboardPreferencesHandler_Validation(t *testing.T) {
 	body := `{"active_view":"invalid_view"}`
 	req := httptest.NewRequest(http.MethodPut, "/api/v1/dashboard/preferences", bytes.NewBufferString(body))
 	ctx := httpinfra.WithUserIDForTest(req.Context(), u)
-	ctx = httpinfra.WithWorkspaceIDForTest(ctx, w)
+	ctx = httpinfra.WithOrganizationIDForTest(ctx, w)
 	req = req.WithContext(ctx)
 
 	rec := httptest.NewRecorder()

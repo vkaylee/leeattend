@@ -60,7 +60,7 @@ func TestScheduleHandler_Unauthenticated(t *testing.T) {
 	}
 
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/workspaces/"+wsID.String()+"/schedules?start_date=2026-10-01&end_date=2026-10-31", nil)
-	req.SetPathValue("ws_id", wsID.String())
+	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
 	rec := httptest.NewRecorder()
 
 	handler.List(rec, req)
@@ -78,7 +78,7 @@ func TestScheduleHandler_ForbiddenNonMember(t *testing.T) {
 	}
 
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/workspaces/"+wsID.String()+"/schedules?start_date=2026-10-01&end_date=2026-10-31", nil)
-	req.SetPathValue("ws_id", wsID.String())
+	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), userID))
 	rec := httptest.NewRecorder()
 
@@ -112,7 +112,7 @@ func TestScheduleHandler_ValidationRequiredDates(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			req := httptest.NewRequest(http.MethodGet, "/api/v1/workspaces/"+wsID.String()+"/schedules?"+tc.query, nil)
-			req.SetPathValue("ws_id", wsID.String())
+			req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
 			req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), userID))
 			rec := httptest.NewRecorder()
 
@@ -134,7 +134,7 @@ func TestScheduleHandler_Success(t *testing.T) {
 	}
 
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/workspaces/"+wsID.String()+"/schedules?start_date=2026-10-01&end_date=2026-10-31&page=1&limit=50", nil)
-	req.SetPathValue("ws_id", wsID.String())
+	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), userID))
 	rec := httptest.NewRecorder()
 

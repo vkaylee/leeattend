@@ -122,9 +122,9 @@ vi.mock("@/components/features/employees/lifecycle-assign-modal", () => ({
     return (
       <div data-testid="mock-lifecycle-assign-modal">
         <span>Khởi tạo Quy trình Vòng đời</span>
-        <button onClick={onClose} type="button">
+        <div role="button" tabIndex={0} onClick={onClose}>
           Close
-        </button>
+        </div>
       </div>
     );
   },

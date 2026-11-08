@@ -31,7 +31,7 @@ func TestTenantIsolation_CrossWorkspaceBoundary(t *testing.T) {
 
 	body := bytes.NewBufferString(`{"name":"Engineering"}`)
 	reqA := httptest.NewRequest(http.MethodPost, "/api/v1/workspaces/"+wsTenantA.String()+"/departments", body)
-	reqA.SetPathValue("ws_id", wsTenantA.String())
+	reqA = reqA.WithContext(httpinfra.WithOrganizationIDForTest(reqA.Context(), wsTenantA))
 	reqA = reqA.WithContext(httpinfra.WithUserIDForTest(reqA.Context(), userA))
 	recA := httptest.NewRecorder()
 	h.Create(recA, reqA)
@@ -52,7 +52,7 @@ func TestTenantIsolation_CrossWorkspaceBoundary(t *testing.T) {
 
 	bodyB := bytes.NewBufferString(`{"name":"Engineering"}`)
 	reqB := httptest.NewRequest(http.MethodPost, "/api/v1/workspaces/"+wsTenantB.String()+"/departments", bodyB)
-	reqB.SetPathValue("ws_id", wsTenantB.String())
+	reqB = reqB.WithContext(httpinfra.WithOrganizationIDForTest(reqB.Context(), wsTenantB))
 	reqB = reqB.WithContext(httpinfra.WithUserIDForTest(reqB.Context(), userA))
 	recB := httptest.NewRecorder()
 	hStrict.Create(recB, reqB)
@@ -101,7 +101,7 @@ func TestRBAC_PermissionEnforcement(t *testing.T) {
 				"/api/v1/workspaces/"+wsID.String()+"/departments",
 				bytes.NewBufferString(`{"name":"Quality Assurance"}`),
 			)
-			req.SetPathValue("ws_id", wsID.String())
+			req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
 			req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), userID))
 			rec := httptest.NewRecorder()
 
@@ -150,7 +150,7 @@ func TestSecurity_UnauthenticatedAccessRejected(t *testing.T) {
 
 	// Request with NO user ID in context
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/workspaces/"+wsID.String()+"/departments", nil)
-	req.SetPathValue("ws_id", wsID.String())
+	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
 	rec := httptest.NewRecorder()
 
 	h.List(rec, req)

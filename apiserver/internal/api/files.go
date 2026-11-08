@@ -257,7 +257,7 @@ type FileHandler struct {
 }
 
 func (h FileHandler) CreateUploadURL(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := pathUUID(r, "ws_id")
+	wsID, ok := organizationIDFromContext(r)
 	userID, userOK := httpinfra.UserIDFromContext(r.Context())
 	if !ok || !userOK || !h.allowed(r, wsID, "files:manage") {
 		h.forbidden(w, r)
@@ -315,7 +315,7 @@ func (h FileHandler) CreateUploadURL(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h FileHandler) GetMetadata(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := pathUUID(r, "ws_id")
+	wsID, ok := organizationIDFromContext(r)
 	fileID, idOK := pathUUID(r, "id")
 	if !ok || !idOK || !h.allowed(r, wsID, "files:read") {
 		h.forbidden(w, r)
@@ -338,7 +338,7 @@ func (h FileHandler) GetMetadata(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h FileHandler) GetURL(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := pathUUID(r, "ws_id")
+	wsID, ok := organizationIDFromContext(r)
 	fileID, idOK := pathUUID(r, "id")
 	if !ok || !idOK || !h.allowed(r, wsID, "files:read") {
 		h.forbidden(w, r)
@@ -367,7 +367,7 @@ func (h FileHandler) GetURL(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h FileHandler) DeleteFile(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := pathUUID(r, "ws_id")
+	wsID, ok := organizationIDFromContext(r)
 	fileID, idOK := pathUUID(r, "id")
 	if !ok || !idOK || !h.allowed(r, wsID, "files:manage") {
 		h.forbidden(w, r)
@@ -389,7 +389,7 @@ func (h FileHandler) DeleteFile(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h FileHandler) CreateSignatureRequest(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := pathUUID(r, "ws_id")
+	wsID, ok := organizationIDFromContext(r)
 	docID, docOK := pathUUID(r, "document_id")
 	if !ok || !docOK || !h.allowed(r, wsID, "documents:manage") {
 		h.forbidden(w, r)
@@ -420,7 +420,7 @@ func (h FileHandler) CreateSignatureRequest(w http.ResponseWriter, r *http.Reque
 }
 
 func (h FileHandler) ListPendingSignatures(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := pathUUID(r, "ws_id")
+	wsID, ok := organizationIDFromContext(r)
 	userID, userOK := httpinfra.UserIDFromContext(r.Context())
 	if !ok || !userOK {
 		h.forbidden(w, r)
@@ -439,7 +439,7 @@ func (h FileHandler) ListPendingSignatures(w http.ResponseWriter, r *http.Reques
 }
 
 func (h FileHandler) SignDocument(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := pathUUID(r, "ws_id")
+	wsID, ok := organizationIDFromContext(r)
 	reqID, reqOK := pathUUID(r, "request_id")
 	if !ok || !reqOK {
 		h.forbidden(w, r)
@@ -489,7 +489,7 @@ func (h FileHandler) isMember(r *http.Request, wsID uuid.UUID) bool {
 }
 
 func (h FileHandler) UploadFile(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := pathUUID(r, "ws_id")
+	wsID, ok := organizationIDFromContext(r)
 	userID, userOK := httpinfra.UserIDFromContext(r.Context())
 	if !ok || !userOK || !h.isMember(r, wsID) {
 		h.forbidden(w, r)
@@ -593,7 +593,7 @@ func (h FileHandler) UploadFile(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h FileHandler) UpdateFile(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := pathUUID(r, "ws_id")
+	wsID, ok := organizationIDFromContext(r)
 	fileID, idOK := pathUUID(r, "id")
 	userID, userOK := httpinfra.UserIDFromContext(r.Context())
 	if !ok || !idOK || !userOK || !h.isMember(r, wsID) {
@@ -702,7 +702,7 @@ func (h FileHandler) UpdateFile(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h FileHandler) DownloadFile(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := pathUUID(r, "ws_id")
+	wsID, ok := organizationIDFromContext(r)
 	fileID, idOK := pathUUID(r, "id")
 	if !ok || !idOK || !h.isMember(r, wsID) {
 		h.forbidden(w, r)
@@ -750,7 +750,7 @@ func (h FileHandler) DownloadFile(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h FileHandler) ListVersions(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := pathUUID(r, "ws_id")
+	wsID, ok := organizationIDFromContext(r)
 	fileID, idOK := pathUUID(r, "id")
 	if !ok || !idOK || !h.isMember(r, wsID) {
 		h.forbidden(w, r)
@@ -771,7 +771,7 @@ func (h FileHandler) ListVersions(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h FileHandler) ListByOwner(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := pathUUID(r, "ws_id")
+	wsID, ok := organizationIDFromContext(r)
 	ownerType := r.PathValue("owner_type")
 	ownerIDStr := r.PathValue("owner_id")
 	ownerID, idErr := uuid.Parse(ownerIDStr)

@@ -278,7 +278,7 @@ func TestAuthHandler_ProfileUsersAndPermissions(t *testing.T) {
 
 	req = httptest.NewRequest(http.MethodGet, "/api/v1/users", nil)
 	ctx := httpinfra.WithUserIDForTest(req.Context(), userID)
-	ctx = httpinfra.WithWorkspaceIDForTest(ctx, workspaceID)
+	ctx = httpinfra.WithOrganizationIDForTest(ctx, workspaceID)
 	req = req.WithContext(ctx)
 	rec = httptest.NewRecorder()
 	h.WorkspaceUsers(rec, req)
@@ -299,7 +299,7 @@ func TestAuthHandler_WorkspaceRoutesRequireMembershipContext(t *testing.T) {
 	h, repo := newAuthTestHandler(t)
 	h.Authorizer = profileAuthorizer{member: false}
 	ctx := httpinfra.WithUserIDForTest(context.Background(), repo.user.ID)
-	ctx = httpinfra.WithWorkspaceIDForTest(ctx, uuid.New())
+	ctx = httpinfra.WithOrganizationIDForTest(ctx, uuid.New())
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/users", nil).WithContext(ctx)
 	rec := httptest.NewRecorder()
 	h.WorkspaceUsers(rec, req)

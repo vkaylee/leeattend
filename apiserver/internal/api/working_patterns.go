@@ -109,7 +109,7 @@ type WorkingPatternHandler struct {
 }
 
 func (h WorkingPatternHandler) Create(w http.ResponseWriter, r *http.Request) {
-	workspaceID, ok := pathUUID(r, "ws_id")
+	workspaceID, ok := organizationIDFromContext(r)
 	if !ok || !h.allowed(r, workspaceID, "patterns:create") {
 		h.forbidden(w, r)
 		return
@@ -128,7 +128,7 @@ func (h WorkingPatternHandler) Create(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h WorkingPatternHandler) List(w http.ResponseWriter, r *http.Request) {
-	workspaceID, ok := pathUUID(r, "ws_id")
+	workspaceID, ok := organizationIDFromContext(r)
 	if !ok {
 		h.forbidden(w, r)
 		return
@@ -142,7 +142,7 @@ func (h WorkingPatternHandler) List(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h WorkingPatternHandler) Details(w http.ResponseWriter, r *http.Request) {
-	workspaceID, ok := pathUUID(r, "ws_id")
+	workspaceID, ok := organizationIDFromContext(r)
 	patternID, patternOK := pathUUID(r, "pattern_id")
 	if !ok || !patternOK {
 		h.forbidden(w, r)
@@ -157,7 +157,7 @@ func (h WorkingPatternHandler) Details(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h WorkingPatternHandler) Update(w http.ResponseWriter, r *http.Request) {
-	workspaceID, ok := pathUUID(r, "ws_id")
+	workspaceID, ok := organizationIDFromContext(r)
 	patternID, patternOK := pathUUID(r, "pattern_id")
 	if !ok || !patternOK || !h.allowed(r, workspaceID, "patterns:create") {
 		h.forbidden(w, r)
@@ -177,7 +177,7 @@ func (h WorkingPatternHandler) Update(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h WorkingPatternHandler) Delete(w http.ResponseWriter, r *http.Request) {
-	workspaceID, ok := pathUUID(r, "ws_id")
+	workspaceID, ok := organizationIDFromContext(r)
 	patternID, patternOK := pathUUID(r, "pattern_id")
 	if !ok || !patternOK || !h.allowed(r, workspaceID, "patterns:delete") {
 		h.forbidden(w, r)
@@ -191,7 +191,7 @@ func (h WorkingPatternHandler) Delete(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h WorkingPatternHandler) Assign(w http.ResponseWriter, r *http.Request) {
-	workspaceID, ok := pathUUID(r, "ws_id")
+	workspaceID, ok := organizationIDFromContext(r)
 	employmentID, employmentOK := pathUUID(r, "employment_id")
 	if !ok || !employmentOK || !h.allowed(r, workspaceID, "patterns:assign") {
 		h.forbidden(w, r)
@@ -217,7 +217,7 @@ func (h WorkingPatternHandler) Assign(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h WorkingPatternHandler) BulkAssign(w http.ResponseWriter, r *http.Request) {
-	workspaceID, ok := pathUUID(r, "ws_id")
+	workspaceID, ok := organizationIDFromContext(r)
 	if !ok || !h.allowed(r, workspaceID, "patterns:assign") {
 		h.forbidden(w, r)
 		return
@@ -242,7 +242,7 @@ func (h WorkingPatternHandler) BulkAssign(w http.ResponseWriter, r *http.Request
 }
 
 func (h WorkingPatternHandler) History(w http.ResponseWriter, r *http.Request) {
-	workspaceID, ok := pathUUID(r, "ws_id")
+	workspaceID, ok := organizationIDFromContext(r)
 	employmentID, employmentOK := pathUUID(r, "employment_id")
 	if !ok || !employmentOK {
 		h.forbidden(w, r)

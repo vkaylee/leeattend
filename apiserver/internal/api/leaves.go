@@ -268,7 +268,7 @@ type LeaveHandler struct {
 }
 
 func (h LeaveHandler) CreateType(w http.ResponseWriter, r *http.Request) {
-	workspaceID, ok := pathUUID(r, "ws_id")
+	workspaceID, ok := organizationIDFromContext(r)
 	if !ok || !h.allowed(r, workspaceID, "leave:types:manage") {
 		h.forbidden(w, r)
 		return
@@ -287,7 +287,7 @@ func (h LeaveHandler) CreateType(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h LeaveHandler) ListTypes(w http.ResponseWriter, r *http.Request) {
-	workspaceID, ok := pathUUID(r, "ws_id")
+	workspaceID, ok := organizationIDFromContext(r)
 	if !ok {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
@@ -301,7 +301,7 @@ func (h LeaveHandler) ListTypes(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h LeaveHandler) UpdateTypeConfig(w http.ResponseWriter, r *http.Request) {
-	workspaceID, ok := pathUUID(r, "ws_id")
+	workspaceID, ok := organizationIDFromContext(r)
 	leaveTypeID, idOK := pathUUID(r, "id")
 	if !ok || !idOK || !h.allowed(r, workspaceID, "leave:types:manage") {
 		h.forbidden(w, r)
@@ -321,7 +321,7 @@ func (h LeaveHandler) UpdateTypeConfig(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h LeaveHandler) DeleteType(w http.ResponseWriter, r *http.Request) {
-	workspaceID, ok := pathUUID(r, "ws_id")
+	workspaceID, ok := organizationIDFromContext(r)
 	leaveTypeID, idOK := pathUUID(r, "id")
 	if !ok || !idOK || !h.allowed(r, workspaceID, "leave:types:manage") {
 		h.forbidden(w, r)
@@ -335,7 +335,7 @@ func (h LeaveHandler) DeleteType(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h LeaveHandler) RestoreType(w http.ResponseWriter, r *http.Request) {
-	workspaceID, ok := pathUUID(r, "ws_id")
+	workspaceID, ok := organizationIDFromContext(r)
 	leaveTypeID, idOK := pathUUID(r, "id")
 	if !ok || !idOK || !h.allowed(r, workspaceID, "leave:types:manage") {
 		h.forbidden(w, r)
@@ -372,7 +372,7 @@ func validLeaveTypeConfig(value json.RawMessage) bool {
 }
 
 func (h LeaveHandler) Submit(w http.ResponseWriter, r *http.Request) {
-	workspaceID, ok := pathUUID(r, "ws_id")
+	workspaceID, ok := organizationIDFromContext(r)
 	if !ok || !h.allowed(r, workspaceID, "leave:requests:submit") {
 		h.forbidden(w, r)
 		return
@@ -397,7 +397,7 @@ func (h LeaveHandler) Submit(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h LeaveHandler) ListRequests(w http.ResponseWriter, r *http.Request) {
-	workspaceID, ok := pathUUID(r, "ws_id")
+	workspaceID, ok := organizationIDFromContext(r)
 	if !ok || !h.allowed(r, workspaceID, "leave:requests:read") {
 		h.forbidden(w, r)
 		return
@@ -415,7 +415,7 @@ func (h LeaveHandler) ListRequests(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h LeaveHandler) Approve(w http.ResponseWriter, r *http.Request) {
-	workspaceID, ok := pathUUID(r, "ws_id")
+	workspaceID, ok := organizationIDFromContext(r)
 	requestID, reqOK := pathUUID(r, "id")
 	if !ok || !reqOK || !h.hasAnyPermission(r, workspaceID, "leave:requests:approve", "leave:approve:l1", "leave:approve:l2") {
 		h.forbidden(w, r)
@@ -439,7 +439,7 @@ func (h LeaveHandler) Approve(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h LeaveHandler) Balances(w http.ResponseWriter, r *http.Request) {
-	workspaceID, ok := pathUUID(r, "ws_id")
+	workspaceID, ok := organizationIDFromContext(r)
 	employeeID, empOK := pathUUID(r, "id")
 	if !ok || !empOK {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
@@ -572,7 +572,7 @@ func (h LeaveHandler) behalfRepo() BehalfAssignmentRepository {
 }
 
 func (h LeaveHandler) WorkspaceBalances(w http.ResponseWriter, r *http.Request) {
-	ws, ok := pathUUID(r, "ws_id")
+	ws, ok := organizationIDFromContext(r)
 	if !ok || !h.allowed(r, ws, "leave:balances:read") {
 		h.forbidden(w, r)
 		return
@@ -597,7 +597,7 @@ func (h LeaveHandler) WorkspaceBalances(w http.ResponseWriter, r *http.Request) 
 }
 
 func (h LeaveHandler) EmployeeHistory(w http.ResponseWriter, r *http.Request) {
-	ws, ok := pathUUID(r, "ws_id")
+	ws, ok := organizationIDFromContext(r)
 	emp, empOK := pathUUID(r, "id")
 	if !ok || !empOK {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
@@ -643,7 +643,7 @@ func (h LeaveHandler) EmployeeHistory(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h LeaveHandler) AdjustBalance(w http.ResponseWriter, r *http.Request) {
-	ws, ok := pathUUID(r, "ws_id")
+	ws, ok := organizationIDFromContext(r)
 	emp, empOK := pathUUID(r, "id")
 	if !ok || !empOK || !h.allowed(r, ws, "leave:balances:adjust") {
 		h.forbidden(w, r)
@@ -666,10 +666,7 @@ func (h LeaveHandler) AdjustBalance(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h LeaveHandler) MyRequests(w http.ResponseWriter, r *http.Request) {
-	ws, ok := httpinfra.WorkspaceIDFromContext(r.Context())
-	if !ok {
-		ws, ok = pathUUID(r, "ws_id")
-	}
+	ws, ok := organizationIDFromContext(r)
 	emp, empOK := pathUUID(r, "id")
 	user, userOK := httpinfra.UserIDFromContext(r.Context())
 	if !ok || !empOK || !userOK {
@@ -696,7 +693,7 @@ func (h LeaveHandler) MyRequests(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h LeaveHandler) ListPolicies(w http.ResponseWriter, r *http.Request) {
-	ws, ok := pathUUID(r, "ws_id")
+	ws, ok := organizationIDFromContext(r)
 	_, userOK := httpinfra.UserIDFromContext(r.Context())
 	if !ok || !userOK {
 		h.forbidden(w, r)
@@ -711,7 +708,7 @@ func (h LeaveHandler) ListPolicies(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h LeaveHandler) CreatePolicy(w http.ResponseWriter, r *http.Request) {
-	ws, ok := pathUUID(r, "ws_id")
+	ws, ok := organizationIDFromContext(r)
 	if !ok || !h.allowed(r, ws, "leave:policies:manage") {
 		h.forbidden(w, r)
 		return
@@ -730,7 +727,7 @@ func (h LeaveHandler) CreatePolicy(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h LeaveHandler) UpdatePolicy(w http.ResponseWriter, r *http.Request) {
-	ws, ok := pathUUID(r, "ws_id")
+	ws, ok := organizationIDFromContext(r)
 	id, idOK := pathUUID(r, "policy_id")
 	if !ok || !idOK || !h.allowed(r, ws, "leave:policies:manage") {
 		h.forbidden(w, r)
@@ -750,7 +747,7 @@ func (h LeaveHandler) UpdatePolicy(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h LeaveHandler) DeletePolicy(w http.ResponseWriter, r *http.Request) {
-	ws, ok := pathUUID(r, "ws_id")
+	ws, ok := organizationIDFromContext(r)
 	id, idOK := pathUUID(r, "policy_id")
 	if !ok || !idOK || !h.allowed(r, ws, "leave:policies:manage") {
 		h.forbidden(w, r)
@@ -764,7 +761,7 @@ func (h LeaveHandler) DeletePolicy(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h LeaveHandler) AssignPolicy(w http.ResponseWriter, r *http.Request) {
-	ws, ok := pathUUID(r, "ws_id")
+	ws, ok := organizationIDFromContext(r)
 	if !ok || !h.allowed(r, ws, "leave:policies:manage") {
 		h.forbidden(w, r)
 		return
@@ -787,7 +784,7 @@ func (h LeaveHandler) AssignPolicy(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h LeaveHandler) ListPolicyAssignments(w http.ResponseWriter, r *http.Request) {
-	ws, ok := pathUUID(r, "ws_id")
+	ws, ok := organizationIDFromContext(r)
 	if !ok || !h.allowed(r, ws, "leave:policies:manage") {
 		h.forbidden(w, r)
 		return
@@ -801,7 +798,7 @@ func (h LeaveHandler) ListPolicyAssignments(w http.ResponseWriter, r *http.Reque
 }
 
 func (h LeaveHandler) DeletePolicyAssignment(w http.ResponseWriter, r *http.Request) {
-	ws, ok := pathUUID(r, "ws_id")
+	ws, ok := organizationIDFromContext(r)
 	id, idOK := pathUUID(r, "assignment_id")
 	if !ok || !idOK || !h.allowed(r, ws, "leave:policies:manage") {
 		h.forbidden(w, r)
@@ -815,7 +812,7 @@ func (h LeaveHandler) DeletePolicyAssignment(w http.ResponseWriter, r *http.Requ
 }
 
 func (h LeaveHandler) TriggerAccrual(w http.ResponseWriter, r *http.Request) {
-	ws, ok := pathUUID(r, "ws_id")
+	ws, ok := organizationIDFromContext(r)
 	if !ok || !h.allowed(r, ws, "leave:accrual:run") {
 		h.forbidden(w, r)
 		return
@@ -847,7 +844,7 @@ func (h LeaveHandler) TriggerAccrual(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h LeaveHandler) JobStatus(w http.ResponseWriter, r *http.Request) {
-	ws, ok := pathUUID(r, "ws_id")
+	ws, ok := organizationIDFromContext(r)
 	jobID, jobOK := pathUUID(r, "job_id")
 	_, userOK := httpinfra.UserIDFromContext(r.Context())
 	if !ok || !jobOK || !userOK {
@@ -863,7 +860,7 @@ func (h LeaveHandler) JobStatus(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h LeaveHandler) UploadExcel(w http.ResponseWriter, r *http.Request) {
-	ws, ok := pathUUID(r, "ws_id")
+	ws, ok := organizationIDFromContext(r)
 	user, userOK := httpinfra.UserIDFromContext(r.Context())
 	if !ok || !userOK || !h.allowed(r, ws, "leave:requests:submit") {
 		h.forbidden(w, r)
@@ -940,7 +937,7 @@ func (h LeaveHandler) UploadExcel(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h LeaveHandler) LatestImport(w http.ResponseWriter, r *http.Request) {
-	ws, ok := pathUUID(r, "ws_id")
+	ws, ok := organizationIDFromContext(r)
 	if !ok || !h.allowed(r, ws, "leave:requests:submit") {
 		h.forbidden(w, r)
 		return
@@ -959,7 +956,7 @@ func (h LeaveHandler) LatestImport(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h LeaveHandler) ImportErrors(w http.ResponseWriter, r *http.Request) {
-	ws, ok := pathUUID(r, "ws_id")
+	ws, ok := organizationIDFromContext(r)
 	jobID, jobOK := pathUUID(r, "job_id")
 	if !ok || !jobOK || !h.allowed(r, ws, "leave:requests:submit") {
 		h.forbidden(w, r)
@@ -986,7 +983,7 @@ func (h LeaveHandler) ImportErrors(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h LeaveHandler) UploadTemplate(w http.ResponseWriter, r *http.Request) {
-	ws, ok := pathUUID(r, "ws_id")
+	ws, ok := organizationIDFromContext(r)
 	if !ok || !h.allowed(r, ws, "leave:requests:submit") {
 		h.forbidden(w, r)
 		return
@@ -1030,7 +1027,7 @@ func (h LeaveHandler) UploadTemplate(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h LeaveHandler) ListBehalfAssignments(w http.ResponseWriter, r *http.Request) {
-	ws, ok := pathUUID(r, "ws_id")
+	ws, ok := organizationIDFromContext(r)
 	if !ok {
 		h.forbidden(w, r)
 		return
@@ -1049,7 +1046,7 @@ func (h LeaveHandler) ListBehalfAssignments(w http.ResponseWriter, r *http.Reque
 }
 
 func (h LeaveHandler) CreateBehalfAssignment(w http.ResponseWriter, r *http.Request) {
-	ws, ok := pathUUID(r, "ws_id")
+	ws, ok := organizationIDFromContext(r)
 	if !ok || !h.allowed(r, ws, "leave:policies:manage") {
 		h.forbidden(w, r)
 		return
@@ -1073,7 +1070,7 @@ func (h LeaveHandler) CreateBehalfAssignment(w http.ResponseWriter, r *http.Requ
 }
 
 func (h LeaveHandler) GetMyBehalfTargets(w http.ResponseWriter, r *http.Request) {
-	ws, ok := pathUUID(r, "ws_id")
+	ws, ok := organizationIDFromContext(r)
 	user, userOK := httpinfra.UserIDFromContext(r.Context())
 	if !ok || !userOK {
 		h.forbidden(w, r)
@@ -1093,7 +1090,7 @@ func (h LeaveHandler) GetMyBehalfTargets(w http.ResponseWriter, r *http.Request)
 }
 
 func (h LeaveHandler) DeleteBehalfAssignment(w http.ResponseWriter, r *http.Request) {
-	ws, ok := pathUUID(r, "ws_id")
+	ws, ok := organizationIDFromContext(r)
 	id, idOK := pathUUID(r, "id")
 	if !ok || !idOK || !h.allowed(r, ws, "leave:policies:manage") {
 		h.forbidden(w, r)

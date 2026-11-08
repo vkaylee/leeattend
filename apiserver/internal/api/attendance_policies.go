@@ -159,7 +159,7 @@ func validPolicyTarget(target string) bool {
 }
 
 func (h AttendancePolicyHandler) GetRules(w http.ResponseWriter, r *http.Request) {
-	workspaceID, ok := pathUUID(r, "ws_id")
+	workspaceID, ok := organizationIDFromContext(r)
 	if !ok || !h.allowed(r, workspaceID, string(auth.PermissionWorkspaceSettingsRead)) {
 		h.forbidden(w, r)
 		return
@@ -173,7 +173,7 @@ func (h AttendancePolicyHandler) GetRules(w http.ResponseWriter, r *http.Request
 }
 
 func (h AttendancePolicyHandler) UpdateRules(w http.ResponseWriter, r *http.Request) {
-	workspaceID, ok := pathUUID(r, "ws_id")
+	workspaceID, ok := organizationIDFromContext(r)
 	userID, userOK := httpinfra.UserIDFromContext(r.Context())
 	if !ok || !userOK || !h.allowed(r, workspaceID, string(auth.PermissionWorkspaceSettingsWrite)) {
 		h.forbidden(w, r)
@@ -203,7 +203,7 @@ func (h AttendancePolicyHandler) UpdateRules(w http.ResponseWriter, r *http.Requ
 }
 
 func (h AttendancePolicyHandler) ListRuleVersions(w http.ResponseWriter, r *http.Request) {
-	workspaceID, ok := pathUUID(r, "ws_id")
+	workspaceID, ok := organizationIDFromContext(r)
 	if !ok || !h.allowed(r, workspaceID, string(auth.PermissionWorkspaceSettingsRead)) {
 		h.forbidden(w, r)
 		return
@@ -217,7 +217,7 @@ func (h AttendancePolicyHandler) ListRuleVersions(w http.ResponseWriter, r *http
 }
 
 func (h AttendancePolicyHandler) ListAssignments(w http.ResponseWriter, r *http.Request) {
-	workspaceID, ok := pathUUID(r, "ws_id")
+	workspaceID, ok := organizationIDFromContext(r)
 	if !ok || !h.allowed(r, workspaceID, string(auth.PermissionWorkspaceSettingsRead)) {
 		h.forbidden(w, r)
 		return
@@ -231,7 +231,7 @@ func (h AttendancePolicyHandler) ListAssignments(w http.ResponseWriter, r *http.
 }
 
 func (h AttendancePolicyHandler) UpsertAssignment(w http.ResponseWriter, r *http.Request) {
-	workspaceID, ok := pathUUID(r, "ws_id")
+	workspaceID, ok := organizationIDFromContext(r)
 	userID, userOK := httpinfra.UserIDFromContext(r.Context())
 	if !ok || !userOK || !h.allowed(r, workspaceID, string(auth.PermissionWorkspaceSettingsWrite)) {
 		h.forbidden(w, r)
@@ -257,7 +257,7 @@ func (h AttendancePolicyHandler) UpsertAssignment(w http.ResponseWriter, r *http
 }
 
 func (h AttendancePolicyHandler) DeleteAssignment(w http.ResponseWriter, r *http.Request) {
-	workspaceID, ok := pathUUID(r, "ws_id")
+	workspaceID, ok := organizationIDFromContext(r)
 	assignmentID, assignmentOK := pathUUID(r, "assignment_id")
 	if !ok || !assignmentOK || !h.allowed(r, workspaceID, string(auth.PermissionWorkspaceSettingsWrite)) {
 		h.forbidden(w, r)
@@ -271,7 +271,7 @@ func (h AttendancePolicyHandler) DeleteAssignment(w http.ResponseWriter, r *http
 }
 
 func (h AttendancePolicyHandler) ListBehalfAssignments(w http.ResponseWriter, r *http.Request) {
-	workspaceID, ok := pathUUID(r, "ws_id")
+	workspaceID, ok := organizationIDFromContext(r)
 	if !ok || !h.allowed(r, workspaceID, string(auth.PermissionAttendanceAdjustmentsManageBehalf)) {
 		h.forbidden(w, r)
 		return
@@ -285,7 +285,7 @@ func (h AttendancePolicyHandler) ListBehalfAssignments(w http.ResponseWriter, r 
 }
 
 func (h AttendancePolicyHandler) CreateBehalfAssignment(w http.ResponseWriter, r *http.Request) {
-	workspaceID, ok := pathUUID(r, "ws_id")
+	workspaceID, ok := organizationIDFromContext(r)
 	if !ok || !h.allowed(r, workspaceID, string(auth.PermissionAttendanceAdjustmentsManageBehalf)) {
 		h.forbidden(w, r)
 		return
@@ -304,7 +304,7 @@ func (h AttendancePolicyHandler) CreateBehalfAssignment(w http.ResponseWriter, r
 }
 
 func (h AttendancePolicyHandler) DeleteBehalfAssignment(w http.ResponseWriter, r *http.Request) {
-	workspaceID, ok := pathUUID(r, "ws_id")
+	workspaceID, ok := organizationIDFromContext(r)
 	assignmentID, assignmentOK := pathUUID(r, "id")
 	if !ok || !assignmentOK || !h.allowed(r, workspaceID, string(auth.PermissionAttendanceAdjustmentsManageBehalf)) {
 		h.forbidden(w, r)
@@ -318,7 +318,7 @@ func (h AttendancePolicyHandler) DeleteBehalfAssignment(w http.ResponseWriter, r
 }
 
 func (h AttendancePolicyHandler) MyBehalfTargets(w http.ResponseWriter, r *http.Request) {
-	workspaceID, ok := pathUUID(r, "ws_id")
+	workspaceID, ok := organizationIDFromContext(r)
 	userID, userOK := httpinfra.UserIDFromContext(r.Context())
 	if !ok || !userOK {
 		apperror.WriteError(w, r, apperror.Unauthorized(apperror.KeyAuthenticationRequired))

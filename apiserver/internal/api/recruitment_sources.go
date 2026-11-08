@@ -88,7 +88,7 @@ type RecruitmentSourceHandler struct {
 }
 
 func (h RecruitmentSourceHandler) List(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := pathUUID(r, "ws_id")
+	wsID, ok := organizationIDFromContext(r)
 	if !ok || !h.isMember(r, wsID) {
 		h.forbidden(w, r)
 		return
@@ -107,7 +107,7 @@ func (h RecruitmentSourceHandler) List(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h RecruitmentSourceHandler) Create(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := pathUUID(r, "ws_id")
+	wsID, ok := organizationIDFromContext(r)
 	if !ok || !h.allowed(r, wsID, "recruitment:manage") {
 		h.forbidden(w, r)
 		return
@@ -127,7 +127,7 @@ func (h RecruitmentSourceHandler) Create(w http.ResponseWriter, r *http.Request)
 }
 
 func (h RecruitmentSourceHandler) Update(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := pathUUID(r, "ws_id")
+	wsID, ok := organizationIDFromContext(r)
 	id, idOK := pathUUID(r, "id")
 	if !ok || !idOK || !h.allowed(r, wsID, "recruitment:manage") {
 		h.forbidden(w, r)
@@ -155,7 +155,7 @@ func (h RecruitmentSourceHandler) Update(w http.ResponseWriter, r *http.Request)
 }
 
 func (h RecruitmentSourceHandler) Delete(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := pathUUID(r, "ws_id")
+	wsID, ok := organizationIDFromContext(r)
 	id, idOK := pathUUID(r, "id")
 	if !ok || !idOK || !h.allowed(r, wsID, "recruitment:manage") {
 		h.forbidden(w, r)
@@ -169,7 +169,7 @@ func (h RecruitmentSourceHandler) Delete(w http.ResponseWriter, r *http.Request)
 }
 
 func (h RecruitmentSourceHandler) Dashboard(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := httpinfra.WorkspaceIDFromContext(r.Context())
+	wsID, ok := organizationIDFromContext(r)
 	userID, userOK := httpinfra.UserIDFromContext(r.Context())
 	if !ok || !userOK || h.Authorizer == nil || !h.Authorizer.HasPermission(r.Context(), userID, wsID, "dashboard:read") {
 		h.forbidden(w, r)

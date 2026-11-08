@@ -142,7 +142,7 @@ func (h EmployeeImportHandler) userID(r *http.Request) (uuid.UUID, bool) {
 }
 
 func (h EmployeeImportHandler) Upload(w http.ResponseWriter, r *http.Request) {
-	workspaceID, ok := pathUUID(r, "ws_id")
+	workspaceID, ok := organizationIDFromContext(r)
 	userID, userOK := h.userID(r)
 	if !ok || !userOK || !h.allowed(r, workspaceID, string(auth.PermissionEmployeesUpload)) {
 		h.forbidden(w, r)
@@ -185,7 +185,7 @@ func (h EmployeeImportHandler) Upload(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h EmployeeImportHandler) PreviewTermination(w http.ResponseWriter, r *http.Request) {
-	workspaceID, ok := pathUUID(r, "ws_id")
+	workspaceID, ok := organizationIDFromContext(r)
 	if !ok || !h.allowed(r, workspaceID, string(auth.PermissionEmployeesUpdate)) {
 		h.forbidden(w, r)
 		return
@@ -351,7 +351,7 @@ func parseTerminationDate(value string) (time.Time, error) {
 }
 
 func (h EmployeeImportHandler) ConfirmTermination(w http.ResponseWriter, r *http.Request) {
-	workspaceID, ok := pathUUID(r, "ws_id")
+	workspaceID, ok := organizationIDFromContext(r)
 	userID, userOK := h.userID(r)
 	if !ok || !userOK || !h.allowed(r, workspaceID, string(auth.PermissionEmployeesUpdate)) {
 		h.forbidden(w, r)
@@ -405,7 +405,7 @@ func (h EmployeeImportHandler) ConfirmTermination(w http.ResponseWriter, r *http
 }
 
 func (h EmployeeImportHandler) TerminationTemplate(w http.ResponseWriter, r *http.Request) {
-	workspaceID, ok := pathUUID(r, "ws_id")
+	workspaceID, ok := organizationIDFromContext(r)
 	if !ok || !h.allowed(r, workspaceID, string(auth.PermissionEmployeesUpdate)) {
 		h.forbidden(w, r)
 		return

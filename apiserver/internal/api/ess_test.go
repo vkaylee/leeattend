@@ -180,7 +180,7 @@ func essRequest(t *testing.T, method, path, body string, wsID uuid.UUID) *http.R
 	t.Helper()
 	req := httptest.NewRequest(method, path, strings.NewReader(body))
 	ctx := httpinfra.WithUserIDForTest(req.Context(), uuid.New())
-	ctx = httpinfra.WithWorkspaceIDForTest(ctx, wsID)
+	ctx = httpinfra.WithOrganizationIDForTest(ctx, wsID)
 	return req.WithContext(ctx)
 }
 

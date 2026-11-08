@@ -70,7 +70,7 @@ type LocationHandler struct {
 }
 
 func (h LocationHandler) List(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := pathUUID(r, "ws_id")
+	wsID, ok := organizationIDFromContext(r)
 	if !ok || !h.isMember(r, wsID) {
 		h.forbidden(w, r)
 		return
@@ -89,7 +89,7 @@ func (h LocationHandler) List(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h LocationHandler) Create(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := pathUUID(r, "ws_id")
+	wsID, ok := organizationIDFromContext(r)
 	if !ok || !h.isMember(r, wsID) {
 		h.forbidden(w, r)
 		return
@@ -113,7 +113,7 @@ func (h LocationHandler) Create(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h LocationHandler) Get(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := pathUUID(r, "ws_id")
+	wsID, ok := organizationIDFromContext(r)
 	id, idOK := pathUUID(r, "id")
 	if !ok || !idOK || !h.isMember(r, wsID) {
 		h.forbidden(w, r)
@@ -128,7 +128,7 @@ func (h LocationHandler) Get(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h LocationHandler) Update(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := pathUUID(r, "ws_id")
+	wsID, ok := organizationIDFromContext(r)
 	id, idOK := pathUUID(r, "id")
 	if !ok || !idOK || !h.isMember(r, wsID) {
 		h.forbidden(w, r)
@@ -156,7 +156,7 @@ func (h LocationHandler) Update(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h LocationHandler) Delete(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := pathUUID(r, "ws_id")
+	wsID, ok := organizationIDFromContext(r)
 	id, idOK := pathUUID(r, "id")
 	if !ok || !idOK || !h.isMember(r, wsID) {
 		h.forbidden(w, r)

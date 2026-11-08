@@ -67,7 +67,7 @@ func TestResilience_DBPoolReconnection(t *testing.T) {
 
 	makeReq := func() *http.Response {
 		req := httptest.NewRequest(http.MethodGet, "/api/v1/workspaces/"+wsID.String()+"/departments", nil)
-		req.SetPathValue("ws_id", wsID.String())
+		req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
 		req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), userID))
 		rec := httptest.NewRecorder()
 		h.List(rec, req)
@@ -108,7 +108,7 @@ func TestResilience_ContextCancellationDeadline(t *testing.T) {
 	}
 
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/workspaces/"+wsID.String()+"/departments", nil).WithContext(ctx)
-	req.SetPathValue("ws_id", wsID.String())
+	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), userID))
 	rec := httptest.NewRecorder()
 

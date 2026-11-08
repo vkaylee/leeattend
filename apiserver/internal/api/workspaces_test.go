@@ -70,27 +70,26 @@ func (m mockWorkspaceRepo) DeleteConfig(_ context.Context, _ uuid.UUID, _ uuid.U
 	return nil
 }
 
-func TestPathUUID_PrefersResolvedWorkspaceContext(t *testing.T) {
+func TestOrganizationIDFromContextIgnoresPathValue(t *testing.T) {
 	resolvedID := uuid.New()
 	pathID := uuid.New()
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/workspaces/"+pathID.String(), nil)
 	req.SetPathValue("ws_id", pathID.String())
-	req = req.WithContext(httpinfra.WithWorkspaceIDForTest(req.Context(), resolvedID))
+	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), resolvedID))
 
-	got, ok := pathUUID(req, "ws_id")
+	got, ok := organizationIDFromContext(req)
 	if !ok || got != resolvedID {
-		t.Fatalf("expected resolved workspace %s, got %s (ok=%v)", resolvedID, got, ok)
+		t.Fatalf("expected resolved organization %s, got %s (ok=%v)", resolvedID, got, ok)
 	}
 }
 
-func TestPathUUID_FallsBackToPathValue(t *testing.T) {
+func TestOrganizationIDFromContextRequiresTrustedContext(t *testing.T) {
 	pathID := uuid.New()
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/workspaces/"+pathID.String(), nil)
 	req.SetPathValue("ws_id", pathID.String())
 
-	got, ok := pathUUID(req, "ws_id")
-	if !ok || got != pathID {
-		t.Fatalf("expected path workspace %s, got %s (ok=%v)", pathID, got, ok)
+	if got, ok := organizationIDFromContext(req); ok || got != uuid.Nil {
+		t.Fatalf("expected missing organization context, got %s (ok=%v)", got, ok)
 	}
 }
 
@@ -98,7 +97,7 @@ func TestWorkspaceHandler_PatchEmptyPayloadFailsValidation(t *testing.T) {
 	wsID, userID := uuid.New(), uuid.New()
 	h := WorkspaceHandler{Repository: mockWorkspaceRepo{}, Authorizer: mockAuthorizer{perms: map[string]bool{"workspace:settings:write": true}}}
 	req := httptest.NewRequest(http.MethodPatch, "/api/v1/workspaces/"+wsID.String(), bytes.NewBufferString(`{}`))
-	req.SetPathValue("ws_id", wsID.String())
+	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), userID))
 	rec := httptest.NewRecorder()
 
@@ -120,7 +119,7 @@ func TestWorkspaceHandler_FeatureFlagsCRUD(t *testing.T) {
 
 	// 1. List
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/workspaces/"+wsID.String()+"/feature-flags", nil)
-	req.SetPathValue("ws_id", wsID.String())
+	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), userID))
 	rec := httptest.NewRecorder()
 	h.ListFeatureFlags(rec, req)
@@ -130,7 +129,7 @@ func TestWorkspaceHandler_FeatureFlagsCRUD(t *testing.T) {
 
 	// 2. Create
 	req = httptest.NewRequest(http.MethodPost, "/api/v1/workspaces/"+wsID.String()+"/feature-flags", bytes.NewBufferString(`{"flag_key":"dark_mode","enabled":true}`))
-	req.SetPathValue("ws_id", wsID.String())
+	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), userID))
 	rec = httptest.NewRecorder()
 	h.CreateFeatureFlag(rec, req)
@@ -140,7 +139,7 @@ func TestWorkspaceHandler_FeatureFlagsCRUD(t *testing.T) {
 
 	// 3. Create invalid key fails
 	req = httptest.NewRequest(http.MethodPost, "/api/v1/workspaces/"+wsID.String()+"/feature-flags", bytes.NewBufferString(`{"flag_key":"","enabled":true}`))
-	req.SetPathValue("ws_id", wsID.String())
+	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), userID))
 	rec = httptest.NewRecorder()
 	h.CreateFeatureFlag(rec, req)
@@ -150,7 +149,7 @@ func TestWorkspaceHandler_FeatureFlagsCRUD(t *testing.T) {
 
 	// 4. Get by ID
 	req = httptest.NewRequest(http.MethodGet, "/api/v1/workspaces/"+wsID.String()+"/feature-flags/"+flagID.String(), nil)
-	req.SetPathValue("ws_id", wsID.String())
+	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
 	req.SetPathValue("id", flagID.String())
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), userID))
 	rec = httptest.NewRecorder()
@@ -161,7 +160,7 @@ func TestWorkspaceHandler_FeatureFlagsCRUD(t *testing.T) {
 
 	// 5. Update
 	req = httptest.NewRequest(http.MethodPatch, "/api/v1/workspaces/"+wsID.String()+"/feature-flags/"+flagID.String(), bytes.NewBufferString(`{"enabled":false}`))
-	req.SetPathValue("ws_id", wsID.String())
+	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
 	req.SetPathValue("id", flagID.String())
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), userID))
 	rec = httptest.NewRecorder()
@@ -172,7 +171,7 @@ func TestWorkspaceHandler_FeatureFlagsCRUD(t *testing.T) {
 
 	// 6. Upsert
 	req = httptest.NewRequest(http.MethodPut, "/api/v1/workspaces/"+wsID.String()+"/feature-flags", bytes.NewBufferString(`{"flag_key":"beta_payroll","enabled":true}`))
-	req.SetPathValue("ws_id", wsID.String())
+	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), userID))
 	rec = httptest.NewRecorder()
 	h.UpsertFeatureFlag(rec, req)
@@ -182,7 +181,7 @@ func TestWorkspaceHandler_FeatureFlagsCRUD(t *testing.T) {
 
 	// 7. Delete
 	req = httptest.NewRequest(http.MethodDelete, "/api/v1/workspaces/"+wsID.String()+"/feature-flags/"+flagID.String(), nil)
-	req.SetPathValue("ws_id", wsID.String())
+	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
 	req.SetPathValue("id", flagID.String())
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), userID))
 	rec = httptest.NewRecorder()
@@ -193,7 +192,7 @@ func TestWorkspaceHandler_FeatureFlagsCRUD(t *testing.T) {
 
 	// 8. Check
 	req = httptest.NewRequest(http.MethodGet, "/api/v1/workspaces/"+wsID.String()+"/feature-flags/check/dark_mode", nil)
-	req.SetPathValue("ws_id", wsID.String())
+	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
 	req.SetPathValue("key", "dark_mode")
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), userID))
 	rec = httptest.NewRecorder()
@@ -208,7 +207,7 @@ func TestWorkspaceHandler_Get(t *testing.T) {
 	h := WorkspaceHandler{Repository: mockWorkspaceRepo{}, Authorizer: mockAuthorizer{}}
 
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/workspaces/"+wsID.String(), nil)
-	req.SetPathValue("ws_id", wsID.String())
+	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), userID))
 	rec := httptest.NewRecorder()
 	h.Get(rec, req)
@@ -232,7 +231,7 @@ func TestWorkspaceHandler_ConfigEndpoints(t *testing.T) {
 	}
 
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/workspaces/"+wsID.String()+"/configs", nil)
-	req.SetPathValue("ws_id", wsID.String())
+	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), userID))
 	rec := httptest.NewRecorder()
 	h.ListConfigs(rec, req)
@@ -245,7 +244,7 @@ func TestWorkspaceHandler_ConfigEndpoints(t *testing.T) {
 	}
 
 	req = httptest.NewRequest(http.MethodGet, "/api/v1/workspaces/"+wsID.String()+"/configs/max_overtime_hours", nil)
-	req.SetPathValue("ws_id", wsID.String())
+	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
 	req.SetPathValue("key", "max_overtime_hours")
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), userID))
 	rec = httptest.NewRecorder()
@@ -259,7 +258,7 @@ func TestWorkspaceHandler_ConfigEndpoints(t *testing.T) {
 	}
 
 	req = httptest.NewRequest(http.MethodDelete, "/api/v1/workspaces/"+wsID.String()+"/configs/"+entryID.String(), nil)
-	req.SetPathValue("ws_id", wsID.String())
+	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
 	req.SetPathValue("key", entryID.String())
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), userID))
 	rec = httptest.NewRecorder()
@@ -273,7 +272,7 @@ func TestWorkspaceHandler_ConfigRequiresPermission(t *testing.T) {
 	wsID, userID := uuid.New(), uuid.New()
 	h := WorkspaceHandler{Repository: mockWorkspaceRepo{}, Authorizer: mockAuthorizer{}}
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/workspaces/"+wsID.String()+"/configs", nil)
-	req.SetPathValue("ws_id", wsID.String())
+	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), userID))
 	rec := httptest.NewRecorder()
 	h.ListConfigs(rec, req)

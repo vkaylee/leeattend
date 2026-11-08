@@ -98,7 +98,7 @@ func TestEmployeeConditions_List(t *testing.T) {
 
 	// 1. Success 200
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/workspaces/"+wsID.String()+"/employees/"+empID.String()+"/conditions", nil)
-	req.SetPathValue("ws_id", wsID.String())
+	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
 	req.SetPathValue("id", empID.String())
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), userID))
 	rec := httptest.NewRecorder()
@@ -135,7 +135,7 @@ func TestEmployeeConditions_CreateAndDelete(t *testing.T) {
 	// 1. Create Success -> 201
 	body := `{"type_":"LATE_IN","minute_allowance":30,"is_paid":false,"start_date":"2026-03-01","end_date":"2026-12-31"}`
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/workspaces/"+wsID.String()+"/employees/"+empID.String()+"/conditions", bytes.NewBufferString(body))
-	req.SetPathValue("ws_id", wsID.String())
+	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
 	req.SetPathValue("id", empID.String())
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), userID))
 	rec := httptest.NewRecorder()
@@ -151,7 +151,7 @@ func TestEmployeeConditions_CreateAndDelete(t *testing.T) {
 	}
 	recForbidden := httptest.NewRecorder()
 	reqForb := httptest.NewRequest(http.MethodPost, "/api/v1/workspaces/"+wsID.String()+"/employees/"+empID.String()+"/conditions", bytes.NewBufferString(body))
-	reqForb.SetPathValue("ws_id", wsID.String())
+	reqForb = reqForb.WithContext(httpinfra.WithOrganizationIDForTest(reqForb.Context(), wsID))
 	reqForb.SetPathValue("id", empID.String())
 	reqForb = reqForb.WithContext(httpinfra.WithUserIDForTest(reqForb.Context(), userID))
 	hForbidden.Create(recForbidden, reqForb)
@@ -162,7 +162,7 @@ func TestEmployeeConditions_CreateAndDelete(t *testing.T) {
 	// 3. Create Invalid Date Validation -> 400
 	badBody := `{"type_":"LATE_IN","minute_allowance":30,"is_paid":false,"start_date":"2026-12-31","end_date":"2026-01-01"}`
 	reqBad := httptest.NewRequest(http.MethodPost, "/api/v1/workspaces/"+wsID.String()+"/employees/"+empID.String()+"/conditions", bytes.NewBufferString(badBody))
-	reqBad.SetPathValue("ws_id", wsID.String())
+	reqBad = reqBad.WithContext(httpinfra.WithOrganizationIDForTest(reqBad.Context(), wsID))
 	reqBad.SetPathValue("id", empID.String())
 	reqBad = reqBad.WithContext(httpinfra.WithUserIDForTest(reqBad.Context(), userID))
 	recBad := httptest.NewRecorder()
@@ -173,7 +173,7 @@ func TestEmployeeConditions_CreateAndDelete(t *testing.T) {
 
 	// 4. Delete Success -> 204
 	delReq := httptest.NewRequest(http.MethodDelete, "/api/v1/workspaces/"+wsID.String()+"/employees/"+empID.String()+"/conditions/"+condID.String(), nil)
-	delReq.SetPathValue("ws_id", wsID.String())
+	delReq = delReq.WithContext(httpinfra.WithOrganizationIDForTest(delReq.Context(), wsID))
 	delReq.SetPathValue("id", empID.String())
 	delReq.SetPathValue("cond_id", condID.String())
 	delReq = delReq.WithContext(httpinfra.WithUserIDForTest(delReq.Context(), userID))
@@ -211,7 +211,7 @@ func TestEmployeeConditions_ListWorkspaceConditions(t *testing.T) {
 	}
 
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/workspaces/"+wsID.String()+"/working-conditions", nil)
-	req.SetPathValue("ws_id", wsID.String())
+	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), userID))
 	rec := httptest.NewRecorder()
 	h.ListWorkspaceConditions(rec, req)

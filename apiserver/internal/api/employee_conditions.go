@@ -72,7 +72,7 @@ type EmployeeConditionHandler struct {
 }
 
 func (h EmployeeConditionHandler) ListWorkspaceConditions(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := pathUUID(r, "ws_id")
+	wsID, ok := organizationIDFromContext(r)
 	if !ok {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
@@ -183,7 +183,7 @@ func (h EmployeeConditionHandler) Delete(w http.ResponseWriter, r *http.Request)
 }
 
 func employeePath(r *http.Request) (uuid.UUID, uuid.UUID, bool) {
-	wsID, wsOK := pathUUID(r, "ws_id")
+	wsID, wsOK := organizationIDFromContext(r)
 	employeeID, employeeOK := pathUUID(r, "id")
 	return wsID, employeeID, wsOK && employeeOK
 }

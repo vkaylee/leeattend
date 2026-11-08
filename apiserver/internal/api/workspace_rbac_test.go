@@ -182,7 +182,7 @@ func TestWorkspaceRBAC_Permissions(t *testing.T) {
 	// 1. AddMember without members:invite -> 403 Forbidden
 	reqBody := `{"email":"new@test.com","role_id":"` + roleID.String() + `"}`
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/workspaces/"+wsID.String()+"/members", bytes.NewBufferString(reqBody))
-	req.SetPathValue("ws_id", wsID.String())
+	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), actorID))
 	rec := httptest.NewRecorder()
 	h.AddMember(rec, req)
@@ -203,7 +203,7 @@ func TestWorkspaceRBAC_Permissions(t *testing.T) {
 	future := time.Now().Add(24 * time.Hour).Format(time.RFC3339)
 	reqBody = `{"permission":"invalid:unknown:perm","expires_at":"` + future + `"}`
 	req = httptest.NewRequest(http.MethodPost, "/api/v1/workspaces/"+wsID.String()+"/members/"+targetUser.String()+"/permissions", bytes.NewBufferString(reqBody))
-	req.SetPathValue("ws_id", wsID.String())
+	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
 	req.SetPathValue("user_id", targetUser.String())
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), actorID))
 	rec = httptest.NewRecorder()
@@ -216,7 +216,7 @@ func TestWorkspaceRBAC_Permissions(t *testing.T) {
 	past := time.Now().Add(-24 * time.Hour).Format(time.RFC3339)
 	reqBody = `{"permission":"members:read","expires_at":"` + past + `"}`
 	req = httptest.NewRequest(http.MethodPost, "/api/v1/workspaces/"+wsID.String()+"/members/"+targetUser.String()+"/permissions", bytes.NewBufferString(reqBody))
-	req.SetPathValue("ws_id", wsID.String())
+	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
 	req.SetPathValue("user_id", targetUser.String())
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), actorID))
 	rec = httptest.NewRecorder()
@@ -239,7 +239,7 @@ func TestWorkspaceRBAC_RejectSelfRemoval(t *testing.T) {
 
 	// 1. Attempt self removal -> 400 Validation (error.cannot_remove_self)
 	req := httptest.NewRequest(http.MethodDelete, "/api/v1/workspaces/"+wsID.String()+"/members/"+actorID.String(), nil)
-	req.SetPathValue("ws_id", wsID.String())
+	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
 	req.SetPathValue("user_id", actorID.String())
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), actorID))
 	rec := httptest.NewRecorder()
@@ -258,7 +258,7 @@ func TestWorkspaceRBAC_RejectSelfRemoval(t *testing.T) {
 
 	// 2. Remove other user -> 204 No Content
 	req = httptest.NewRequest(http.MethodDelete, "/api/v1/workspaces/"+wsID.String()+"/members/"+otherID.String(), nil)
-	req.SetPathValue("ws_id", wsID.String())
+	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
 	req.SetPathValue("user_id", otherID.String())
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), actorID))
 	rec = httptest.NewRecorder()
@@ -288,7 +288,7 @@ func TestWorkspaceRBAC_SystemRoleMutationProtection(t *testing.T) {
 
 	// 1. Update system role -> 404 Not Found (role not found or is system role)
 	req := httptest.NewRequest(http.MethodPut, "/api/v1/workspaces/"+wsID.String()+"/roles/"+systemRoleID.String(), bytes.NewBufferString(`{"name":"NewName"}`))
-	req.SetPathValue("ws_id", wsID.String())
+	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
 	req.SetPathValue("role_id", systemRoleID.String())
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), actorID))
 	rec := httptest.NewRecorder()
@@ -299,7 +299,7 @@ func TestWorkspaceRBAC_SystemRoleMutationProtection(t *testing.T) {
 
 	// 2. Delete system role -> 404 Not Found
 	req = httptest.NewRequest(http.MethodDelete, "/api/v1/workspaces/"+wsID.String()+"/roles/"+systemRoleID.String(), nil)
-	req.SetPathValue("ws_id", wsID.String())
+	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
 	req.SetPathValue("role_id", systemRoleID.String())
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), actorID))
 	rec = httptest.NewRecorder()
@@ -310,7 +310,7 @@ func TestWorkspaceRBAC_SystemRoleMutationProtection(t *testing.T) {
 
 	// 3. Set system role permissions -> 404 Not Found
 	req = httptest.NewRequest(http.MethodPut, "/api/v1/workspaces/"+wsID.String()+"/roles/"+systemRoleID.String()+"/permissions", bytes.NewBufferString(`{"permissions":["members:read"]}`))
-	req.SetPathValue("ws_id", wsID.String())
+	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
 	req.SetPathValue("role_id", systemRoleID.String())
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), actorID))
 	rec = httptest.NewRecorder()
@@ -350,7 +350,7 @@ func TestWorkspaceRBAC_StorageCredentialEncryptionMasking(t *testing.T) {
 		MaxFileSize:      10485760,
 	})
 	req := httptest.NewRequest(http.MethodPut, "/api/v1/workspaces/"+wsID.String()+"/settings/storage", bytes.NewBuffer(reqBody))
-	req.SetPathValue("ws_id", wsID.String())
+	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), actorID))
 	rec := httptest.NewRecorder()
 	h.PutStorage(rec, req)
@@ -385,7 +385,7 @@ func TestWorkspaceRBAC_StorageCredentialEncryptionMasking(t *testing.T) {
 
 	// 2. GET Storage settings -> returns masked
 	req = httptest.NewRequest(http.MethodGet, "/api/v1/workspaces/"+wsID.String()+"/settings/storage", nil)
-	req.SetPathValue("ws_id", wsID.String())
+	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), actorID))
 	rec = httptest.NewRecorder()
 	h.GetStorage(rec, req)
@@ -403,7 +403,7 @@ func TestWorkspaceRBAC_StorageCredentialEncryptionMasking(t *testing.T) {
 
 	// 3. POST Storage test -> 200 true
 	req = httptest.NewRequest(http.MethodPost, "/api/v1/workspaces/"+wsID.String()+"/settings/storage/test", bytes.NewBuffer(reqBody))
-	req.SetPathValue("ws_id", wsID.String())
+	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), actorID))
 	rec = httptest.NewRecorder()
 	h.TestStorage(rec, req)
@@ -419,7 +419,7 @@ func TestWorkspaceRBAC_StorageCredentialEncryptionMasking(t *testing.T) {
 	// Test storage test failure
 	h.StorageTester = dummyStorageTester{err: errors.New("s3 connection timeout")}
 	req = httptest.NewRequest(http.MethodPost, "/api/v1/workspaces/"+wsID.String()+"/settings/storage/test", bytes.NewBuffer(reqBody))
-	req.SetPathValue("ws_id", wsID.String())
+	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), actorID))
 	rec = httptest.NewRecorder()
 	h.TestStorage(rec, req)
@@ -429,7 +429,7 @@ func TestWorkspaceRBAC_StorageCredentialEncryptionMasking(t *testing.T) {
 
 	// 4. DELETE Storage settings -> 200
 	req = httptest.NewRequest(http.MethodDelete, "/api/v1/workspaces/"+wsID.String()+"/settings/storage", nil)
-	req.SetPathValue("ws_id", wsID.String())
+	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), actorID))
 	rec = httptest.NewRecorder()
 	h.DeleteStorage(rec, req)

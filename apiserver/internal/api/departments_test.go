@@ -94,7 +94,7 @@ func TestDepartmentHandler_List(t *testing.T) {
 	wsID, userID := uuid.New(), uuid.New()
 	h := DepartmentHandler{Repository: mockDepartmentRepo{}, Authorizer: mockAuthorizer{perms: map[string]bool{"departments:read": true}}}
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/workspaces/"+wsID.String()+"/departments", nil)
-	req.SetPathValue("ws_id", wsID.String())
+	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), userID))
 	rec := httptest.NewRecorder()
 
@@ -113,7 +113,7 @@ func TestDepartmentHandler_Create(t *testing.T) {
 
 	// Success
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/workspaces/"+wsID.String()+"/departments", bytes.NewBufferString(`{"name":"Finance","description":"Finance team"}`))
-	req.SetPathValue("ws_id", wsID.String())
+	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), userID))
 	rec := httptest.NewRecorder()
 	h.Create(rec, req)
@@ -124,7 +124,7 @@ func TestDepartmentHandler_Create(t *testing.T) {
 	// Forbidden
 	hNoAuth := DepartmentHandler{Repository: mockDepartmentRepo{}, Authorizer: mockAuthorizer{perms: map[string]bool{}}}
 	req = httptest.NewRequest(http.MethodPost, "/api/v1/workspaces/"+wsID.String()+"/departments", bytes.NewBufferString(`{"name":"Finance"}`))
-	req.SetPathValue("ws_id", wsID.String())
+	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), userID))
 	rec = httptest.NewRecorder()
 	hNoAuth.Create(rec, req)
@@ -134,7 +134,7 @@ func TestDepartmentHandler_Create(t *testing.T) {
 
 	// Empty name
 	req = httptest.NewRequest(http.MethodPost, "/api/v1/workspaces/"+wsID.String()+"/departments", bytes.NewBufferString(`{"name":""}`))
-	req.SetPathValue("ws_id", wsID.String())
+	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), userID))
 	rec = httptest.NewRecorder()
 	h.Create(rec, req)
@@ -155,7 +155,7 @@ func TestDepartmentHandler_UpdateAndDelete(t *testing.T) {
 
 	// Update
 	req := httptest.NewRequest(http.MethodPatch, "/api/v1/workspaces/"+wsID.String()+"/departments/"+deptID.String(), bytes.NewBufferString(`{"name":"R&D"}`))
-	req.SetPathValue("ws_id", wsID.String())
+	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
 	req.SetPathValue("id", deptID.String())
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), userID))
 	rec := httptest.NewRecorder()
@@ -166,7 +166,7 @@ func TestDepartmentHandler_UpdateAndDelete(t *testing.T) {
 
 	// Delete
 	req = httptest.NewRequest(http.MethodDelete, "/api/v1/workspaces/"+wsID.String()+"/departments/"+deptID.String(), nil)
-	req.SetPathValue("ws_id", wsID.String())
+	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
 	req.SetPathValue("id", deptID.String())
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), userID))
 	rec = httptest.NewRecorder()
@@ -182,7 +182,7 @@ func TestDepartmentHandler_PayrollConfig(t *testing.T) {
 
 	// Get
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/workspaces/"+wsID.String()+"/departments/"+deptID.String()+"/payroll-config", nil)
-	req.SetPathValue("ws_id", wsID.String())
+	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
 	req.SetPathValue("id", deptID.String())
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), userID))
 	rec := httptest.NewRecorder()
@@ -193,7 +193,7 @@ func TestDepartmentHandler_PayrollConfig(t *testing.T) {
 
 	// Set
 	req = httptest.NewRequest(http.MethodPost, "/api/v1/workspaces/"+wsID.String()+"/departments/"+deptID.String()+"/payroll-config", bytes.NewBufferString(`{"std_working_days":"22.00","hours_per_day":"8.00","effective_date":"2026-01-01"}`))
-	req.SetPathValue("ws_id", wsID.String())
+	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
 	req.SetPathValue("id", deptID.String())
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), userID))
 	rec = httptest.NewRecorder()
@@ -205,7 +205,7 @@ func TestDepartmentHandler_PayrollConfig(t *testing.T) {
 	// Set on non-existent department returns 404
 	hNotFound := DepartmentHandler{Repository: mockDepartmentRepo{notFound: true}}
 	req = httptest.NewRequest(http.MethodPost, "/api/v1/workspaces/"+wsID.String()+"/departments/"+deptID.String()+"/payroll-config", bytes.NewBufferString(`{"std_working_days":"22.00","hours_per_day":"8.00","effective_date":"2026-01-01"}`))
-	req.SetPathValue("ws_id", wsID.String())
+	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
 	req.SetPathValue("id", deptID.String())
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), userID))
 	rec = httptest.NewRecorder()

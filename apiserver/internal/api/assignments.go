@@ -252,7 +252,7 @@ func (h AssignmentHandler) permission(w http.ResponseWriter, r *http.Request, wo
 }
 
 func assignmentIDs(r *http.Request, names ...string) (uuid.UUID, []uuid.UUID, bool) {
-	workspaceID, ok := pathUUID(r, "ws_id")
+	workspaceID, ok := organizationIDFromContext(r)
 	if !ok {
 		return uuid.Nil, nil, false
 	}

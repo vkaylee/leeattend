@@ -101,7 +101,7 @@ func (h EmploymentPhaseHandler) err(w http.ResponseWriter, r *http.Request, err 
 func validPhaseDate(s string) bool { _, err := time.Parse("2006-01-02", s); return err == nil }
 
 func (h EmploymentPhaseHandler) CreateDefinition(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := pathUUID(r, "ws_id")
+	wsID, ok := organizationIDFromContext(r)
 	if !ok || !h.allowed(r, wsID, "employment_phases:manage") {
 		h.deny(w, r)
 		return
@@ -129,7 +129,7 @@ func (h EmploymentPhaseHandler) CreateDefinition(w http.ResponseWriter, r *http.
 	apperror.WriteJSON(w, http.StatusCreated, out)
 }
 func (h EmploymentPhaseHandler) ListDefinitions(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := pathUUID(r, "ws_id")
+	wsID, ok := organizationIDFromContext(r)
 	if !ok {
 		h.deny(w, r)
 		return
@@ -146,7 +146,7 @@ func (h EmploymentPhaseHandler) ListDefinitions(w http.ResponseWriter, r *http.R
 	apperror.WriteJSON(w, http.StatusOK, out)
 }
 func (h EmploymentPhaseHandler) assign(w http.ResponseWriter, r *http.Request, employmentID uuid.UUID) {
-	wsID, ok := pathUUID(r, "ws_id")
+	wsID, ok := organizationIDFromContext(r)
 	if !ok || !h.allowed(r, wsID, "employment_phases:manage") {
 		h.deny(w, r)
 		return
@@ -166,7 +166,7 @@ func (h EmploymentPhaseHandler) assign(w http.ResponseWriter, r *http.Request, e
 	apperror.WriteJSON(w, http.StatusOK, out)
 }
 func (h EmploymentPhaseHandler) AssignEmployee(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := pathUUID(r, "ws_id")
+	wsID, ok := organizationIDFromContext(r)
 	empID, ok2 := pathUUID(r, "user_id")
 	if !ok || !ok2 || !h.allowed(r, wsID, "employment_phases:manage") {
 		h.deny(w, r)
@@ -180,7 +180,7 @@ func (h EmploymentPhaseHandler) AssignEmployee(w http.ResponseWriter, r *http.Re
 	h.assign(w, r, employmentID)
 }
 func (h EmploymentPhaseHandler) ListEmployee(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := pathUUID(r, "ws_id")
+	wsID, ok := organizationIDFromContext(r)
 	empID, ok2 := pathUUID(r, "user_id")
 	if !ok || !ok2 {
 		h.deny(w, r)
@@ -194,7 +194,7 @@ func (h EmploymentPhaseHandler) ListEmployee(w http.ResponseWriter, r *http.Requ
 	h.list(w, r, wsID, employmentID)
 }
 func (h EmploymentPhaseHandler) UpdateEmployeeStatus(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := pathUUID(r, "ws_id")
+	wsID, ok := organizationIDFromContext(r)
 	empID, ok2 := pathUUID(r, "user_id")
 	phaseID, ok3 := pathUUID(r, "phase_id")
 	if !ok || !ok2 || !ok3 || !h.allowed(r, wsID, "employment_phases:manage") {
@@ -209,7 +209,7 @@ func (h EmploymentPhaseHandler) UpdateEmployeeStatus(w http.ResponseWriter, r *h
 	h.updateStatus(w, r, wsID, employmentID, phaseID)
 }
 func (h EmploymentPhaseHandler) AssignEmployment(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := pathUUID(r, "ws_id")
+	wsID, ok := organizationIDFromContext(r)
 	employmentID, ok2 := pathUUID(r, "employment_id")
 	if !ok || !ok2 {
 		h.deny(w, r)
@@ -222,7 +222,7 @@ func (h EmploymentPhaseHandler) AssignEmployment(w http.ResponseWriter, r *http.
 	h.assign(w, r, employmentID)
 }
 func (h EmploymentPhaseHandler) ListEmployment(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := pathUUID(r, "ws_id")
+	wsID, ok := organizationIDFromContext(r)
 	employmentID, ok2 := pathUUID(r, "employment_id")
 	if !ok || !ok2 {
 		h.deny(w, r)
@@ -231,7 +231,7 @@ func (h EmploymentPhaseHandler) ListEmployment(w http.ResponseWriter, r *http.Re
 	h.list(w, r, wsID, employmentID)
 }
 func (h EmploymentPhaseHandler) UpdateEmploymentStatus(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := pathUUID(r, "ws_id")
+	wsID, ok := organizationIDFromContext(r)
 	employmentID, ok2 := pathUUID(r, "employment_id")
 	phaseID, ok3 := pathUUID(r, "phase_id")
 	if !ok || !ok2 || !ok3 || !h.allowed(r, wsID, "employment_phases:manage") {

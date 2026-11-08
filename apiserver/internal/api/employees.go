@@ -77,7 +77,7 @@ type EmployeeHandler struct {
 }
 
 func (h EmployeeHandler) Create(w http.ResponseWriter, r *http.Request) {
-	workspaceID, ok := pathUUID(r, "ws_id")
+	workspaceID, ok := organizationIDFromContext(r)
 	if !ok || !h.allowed(r, workspaceID, "employees:create") {
 		h.forbidden(w, r)
 		return
@@ -96,7 +96,7 @@ func (h EmployeeHandler) Create(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h EmployeeHandler) List(w http.ResponseWriter, r *http.Request) {
-	workspaceID, ok := pathUUID(r, "ws_id")
+	workspaceID, ok := organizationIDFromContext(r)
 	if !ok || !h.allowed(r, workspaceID, "employees:read") {
 		h.forbidden(w, r)
 		return
@@ -115,7 +115,7 @@ func (h EmployeeHandler) List(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h EmployeeHandler) Get(w http.ResponseWriter, r *http.Request) {
-	workspaceID, ok := pathUUID(r, "ws_id")
+	workspaceID, ok := organizationIDFromContext(r)
 	employeeID, employeeOK := pathUUID(r, "id")
 	if !ok || !employeeOK || !h.allowed(r, workspaceID, "employees:read") {
 		h.forbidden(w, r)
@@ -130,7 +130,7 @@ func (h EmployeeHandler) Get(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h EmployeeHandler) Update(w http.ResponseWriter, r *http.Request) {
-	workspaceID, ok := pathUUID(r, "ws_id")
+	workspaceID, ok := organizationIDFromContext(r)
 	employeeID, employeeOK := pathUUID(r, "id")
 	if !ok || !employeeOK || !h.allowed(r, workspaceID, "employees:update") {
 		h.forbidden(w, r)
@@ -150,7 +150,7 @@ func (h EmployeeHandler) Update(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h EmployeeHandler) Delete(w http.ResponseWriter, r *http.Request) {
-	workspaceID, ok := pathUUID(r, "ws_id")
+	workspaceID, ok := organizationIDFromContext(r)
 	employeeID, employeeOK := pathUUID(r, "id")
 	if !ok || !employeeOK || !h.allowed(r, workspaceID, "employees:delete") {
 		h.forbidden(w, r)
@@ -164,7 +164,7 @@ func (h EmployeeHandler) Delete(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h EmployeeHandler) Rehire(w http.ResponseWriter, r *http.Request) {
-	workspaceID, ok := pathUUID(r, "ws_id")
+	workspaceID, ok := organizationIDFromContext(r)
 	employeeID, employeeOK := pathUUID(r, "id")
 	if !ok || !employeeOK || !h.allowed(r, workspaceID, "employees:rehire") {
 		h.forbidden(w, r)

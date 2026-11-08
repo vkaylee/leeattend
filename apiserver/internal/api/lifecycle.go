@@ -245,7 +245,7 @@ func (h LifecycleHandler) writeErr(w http.ResponseWriter, r *http.Request, err e
 }
 
 func (h LifecycleHandler) CreateTemplate(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := pathUUID(r, "ws_id")
+	wsID, ok := organizationIDFromContext(r)
 	if !ok || !h.allowed(r, wsID, "workspace:settings:write") {
 		h.deny(w, r)
 		return
@@ -268,7 +268,7 @@ func (h LifecycleHandler) CreateTemplate(w http.ResponseWriter, r *http.Request)
 }
 
 func (h LifecycleHandler) GetTemplate(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := pathUUID(r, "ws_id")
+	wsID, ok := organizationIDFromContext(r)
 	id, ok2 := pathUUID(r, "id")
 	if !ok || !ok2 || !h.allowed(r, wsID, "workspace:settings:read") {
 		h.deny(w, r)
@@ -287,7 +287,7 @@ func (h LifecycleHandler) GetTemplate(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h LifecycleHandler) ListTemplates(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := pathUUID(r, "ws_id")
+	wsID, ok := organizationIDFromContext(r)
 	if !ok || !h.allowed(r, wsID, "workspace:settings:read") {
 		h.deny(w, r)
 		return
@@ -309,7 +309,7 @@ func (h LifecycleHandler) ListTemplates(w http.ResponseWriter, r *http.Request) 
 }
 
 func (h LifecycleHandler) UpdateTemplate(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := pathUUID(r, "ws_id")
+	wsID, ok := organizationIDFromContext(r)
 	id, ok2 := pathUUID(r, "id")
 	if !ok || !ok2 || !h.allowed(r, wsID, "workspace:settings:write") {
 		h.deny(w, r)
@@ -333,7 +333,7 @@ func (h LifecycleHandler) UpdateTemplate(w http.ResponseWriter, r *http.Request)
 }
 
 func (h LifecycleHandler) DeleteTemplate(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := pathUUID(r, "ws_id")
+	wsID, ok := organizationIDFromContext(r)
 	id, ok2 := pathUUID(r, "id")
 	if !ok || !ok2 || !h.allowed(r, wsID, "workspace:settings:write") {
 		h.deny(w, r)
@@ -351,7 +351,7 @@ func (h LifecycleHandler) DeleteTemplate(w http.ResponseWriter, r *http.Request)
 }
 
 func (h LifecycleHandler) CreateTemplateItem(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := pathUUID(r, "ws_id")
+	wsID, ok := organizationIDFromContext(r)
 	tmplID, ok2 := pathUUID(r, "id")
 	if !ok || !ok2 || !h.allowed(r, wsID, "workspace:settings:write") {
 		h.deny(w, r)
@@ -375,7 +375,7 @@ func (h LifecycleHandler) CreateTemplateItem(w http.ResponseWriter, r *http.Requ
 }
 
 func (h LifecycleHandler) ListTemplateItems(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := pathUUID(r, "ws_id")
+	wsID, ok := organizationIDFromContext(r)
 	tmplID, ok2 := pathUUID(r, "id")
 	if !ok || !ok2 || !h.allowed(r, wsID, "workspace:settings:read") {
 		h.deny(w, r)
@@ -394,7 +394,7 @@ func (h LifecycleHandler) ListTemplateItems(w http.ResponseWriter, r *http.Reque
 }
 
 func (h LifecycleHandler) GetTemplateItem(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := pathUUID(r, "ws_id")
+	wsID, ok := organizationIDFromContext(r)
 	iid, ok2 := pathUUID(r, "iid")
 	if !ok || !ok2 || !h.allowed(r, wsID, "workspace:settings:read") {
 		h.deny(w, r)
@@ -413,7 +413,7 @@ func (h LifecycleHandler) GetTemplateItem(w http.ResponseWriter, r *http.Request
 }
 
 func (h LifecycleHandler) UpdateTemplateItem(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := pathUUID(r, "ws_id")
+	wsID, ok := organizationIDFromContext(r)
 	iid, ok2 := pathUUID(r, "iid")
 	if !ok || !ok2 || !h.allowed(r, wsID, "workspace:settings:write") {
 		h.deny(w, r)
@@ -445,7 +445,7 @@ func (h LifecycleHandler) UpdateTemplateItem(w http.ResponseWriter, r *http.Requ
 }
 
 func (h LifecycleHandler) DeleteTemplateItem(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := pathUUID(r, "ws_id")
+	wsID, ok := organizationIDFromContext(r)
 	iid, ok2 := pathUUID(r, "iid")
 	if !ok || !ok2 || !h.allowed(r, wsID, "workspace:settings:write") {
 		h.deny(w, r)
@@ -463,7 +463,7 @@ func (h LifecycleHandler) DeleteTemplateItem(w http.ResponseWriter, r *http.Requ
 }
 
 func (h LifecycleHandler) CreateChecklist(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := pathUUID(r, "ws_id")
+	wsID, ok := organizationIDFromContext(r)
 	empID, ok2 := pathUUID(r, "emp_id")
 	if !ok || !ok2 || !h.allowed(r, wsID, "employees:update") {
 		h.deny(w, r)
@@ -498,7 +498,7 @@ func (h LifecycleHandler) CreateChecklist(w http.ResponseWriter, r *http.Request
 }
 
 func (h LifecycleHandler) ListChecklists(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := pathUUID(r, "ws_id")
+	wsID, ok := organizationIDFromContext(r)
 	empID, ok2 := pathUUID(r, "emp_id")
 	if !ok || !ok2 || !h.allowed(r, wsID, "employees:read") {
 		h.deny(w, r)
@@ -516,7 +516,7 @@ func (h LifecycleHandler) ListChecklists(w http.ResponseWriter, r *http.Request)
 	apperror.WriteJSON(w, http.StatusOK, list)
 }
 func (h LifecycleHandler) ListWorkspaceChecklists(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := pathUUID(r, "ws_id")
+	wsID, ok := organizationIDFromContext(r)
 	if !ok || !h.allowed(r, wsID, "employees:read") {
 		h.deny(w, r)
 		return
@@ -534,7 +534,7 @@ func (h LifecycleHandler) ListWorkspaceChecklists(w http.ResponseWriter, r *http
 }
 
 func (h LifecycleHandler) GetChecklist(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := pathUUID(r, "ws_id")
+	wsID, ok := organizationIDFromContext(r)
 	id, ok2 := pathUUID(r, "id")
 	if !ok || !ok2 || !h.allowed(r, wsID, "employees:read") {
 		h.deny(w, r)
@@ -553,7 +553,7 @@ func (h LifecycleHandler) GetChecklist(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h LifecycleHandler) UpdateItemStatus(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := pathUUID(r, "ws_id")
+	wsID, ok := organizationIDFromContext(r)
 	iid, ok2 := pathUUID(r, "iid")
 	if !ok || !ok2 {
 		h.deny(w, r)
@@ -592,7 +592,7 @@ func (h LifecycleHandler) UpdateItemStatus(w http.ResponseWriter, r *http.Reques
 }
 
 func (h LifecycleHandler) GetMyTasks(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := pathUUID(r, "ws_id")
+	wsID, ok := organizationIDFromContext(r)
 	if !ok {
 		h.deny(w, r)
 		return

@@ -72,7 +72,10 @@ func setupFixtureServer(t *testing.T, jwtSecret string, revocation *fixtureRevoc
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /api/v1/me", authHandler.Me)
-	mux.HandleFunc("PATCH /api/v1/workspaces/{ws_id}", workspaceHandler.Patch)
+	mux.Handle("PATCH /api/v1", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		r = r.WithContext(httpinfra.WithOrganizationIDForTest(r.Context(), uuid.MustParse("018d0000-0000-7000-8000-000000000001")))
+		workspaceHandler.Patch(w, r)
+	}))
 	mux.HandleFunc("GET /api/v1/test-route", func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	})
@@ -190,7 +193,7 @@ func TestAuthFixtures_Parity(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		req := httptest.NewRequest(http.MethodPatch, "/api/v1/workspaces/018d0000-0000-7000-8000-000000000001", strings.NewReader(`{"name":"Attempted Rename"}`))
+		req := httptest.NewRequest(http.MethodPatch, "/api/v1", strings.NewReader(`{"name":"Attempted Rename"}`))
 		req.Header.Set("Authorization", "Bearer "+token)
 		req.Header.Set("Content-Type", "application/json")
 		rec := httptest.NewRecorder()

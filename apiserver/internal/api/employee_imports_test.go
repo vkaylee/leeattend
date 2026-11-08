@@ -85,7 +85,7 @@ func TestEmployeeImport_Upload_Forbidden(t *testing.T) {
 		Authorizer: mockAuthorizer{perms: map[string]bool{}},
 	}
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/workspaces/"+wsID.String()+"/employees/upload", nil)
-	req.SetPathValue("ws_id", wsID.String())
+	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
 	rec := httptest.NewRecorder()
 
@@ -103,7 +103,7 @@ func TestEmployeeImport_Upload_InvalidFormat(t *testing.T) {
 	ct, body, _ := createMultipartExcel("file", "test.csv", []byte("a,b,c\n1,2,3"))
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/workspaces/"+wsID.String()+"/employees/upload", body)
 	req.Header.Set("Content-Type", ct)
-	req.SetPathValue("ws_id", wsID.String())
+	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
 	rec := httptest.NewRecorder()
 
@@ -127,7 +127,7 @@ func TestEmployeeImport_Upload_Success(t *testing.T) {
 	ct, body, _ := createMultipartExcel("file", "employees.xlsx", xlsxBytes)
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/workspaces/"+wsID.String()+"/employees/upload", body)
 	req.Header.Set("Content-Type", ct)
-	req.SetPathValue("ws_id", wsID.String())
+	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
 	rec := httptest.NewRecorder()
 
@@ -225,7 +225,7 @@ func TestEmployeeImport_Preview_Flow(t *testing.T) {
 	ct, body, _ := createMultipartExcel("file", "termination.xlsx", xlsxData)
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/workspaces/"+wsID.String()+"/employees/import-termination/preview", body)
 	req.Header.Set("Content-Type", ct)
-	req.SetPathValue("ws_id", wsID.String())
+	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
 	rec := httptest.NewRecorder()
 
@@ -292,7 +292,7 @@ func TestEmployeeImport_Confirm_ValidationAndSuccess(t *testing.T) {
 	}
 	badBody, _ := json.Marshal(payloadBad)
 	reqBad := httptest.NewRequest(http.MethodPost, "/api/v1/workspaces/"+wsID.String()+"/employees/import-termination/confirm", bytes.NewReader(badBody))
-	reqBad.SetPathValue("ws_id", wsID.String())
+	reqBad = reqBad.WithContext(httpinfra.WithOrganizationIDForTest(reqBad.Context(), wsID))
 	reqBad = reqBad.WithContext(httpinfra.WithUserIDForTest(reqBad.Context(), uuid.New()))
 	recBad := httptest.NewRecorder()
 	h.ConfirmTermination(recBad, reqBad)
@@ -312,7 +312,7 @@ func TestEmployeeImport_Confirm_ValidationAndSuccess(t *testing.T) {
 	}
 	goodBody, _ := json.Marshal(payloadGood)
 	reqGood := httptest.NewRequest(http.MethodPost, "/api/v1/workspaces/"+wsID.String()+"/employees/import-termination/confirm", bytes.NewReader(goodBody))
-	reqGood.SetPathValue("ws_id", wsID.String())
+	reqGood = reqGood.WithContext(httpinfra.WithOrganizationIDForTest(reqGood.Context(), wsID))
 	reqGood = reqGood.WithContext(httpinfra.WithUserIDForTest(reqGood.Context(), uuid.New()))
 	recGood := httptest.NewRecorder()
 	h.ConfirmTermination(recGood, reqGood)
@@ -340,7 +340,7 @@ func TestEmployeeImport_Template_Download(t *testing.T) {
 
 	// English template
 	reqEn := httptest.NewRequest(http.MethodGet, "/api/v1/workspaces/"+wsID.String()+"/employees/import-termination/template", nil)
-	reqEn.SetPathValue("ws_id", wsID.String())
+	reqEn = reqEn.WithContext(httpinfra.WithOrganizationIDForTest(reqEn.Context(), wsID))
 	reqEn = reqEn.WithContext(httpinfra.WithUserIDForTest(reqEn.Context(), uuid.New()))
 	recEn := httptest.NewRecorder()
 	h.TerminationTemplate(recEn, reqEn)
@@ -360,7 +360,7 @@ func TestEmployeeImport_Template_Download(t *testing.T) {
 
 	// Vietnamese template
 	reqVi := httptest.NewRequest(http.MethodGet, "/api/v1/workspaces/"+wsID.String()+"/employees/import-termination/template?lang=vi", nil)
-	reqVi.SetPathValue("ws_id", wsID.String())
+	reqVi = reqVi.WithContext(httpinfra.WithOrganizationIDForTest(reqVi.Context(), wsID))
 	reqVi = reqVi.WithContext(httpinfra.WithUserIDForTest(reqVi.Context(), uuid.New()))
 	recVi := httptest.NewRecorder()
 	h.TerminationTemplate(recVi, reqVi)

@@ -45,7 +45,7 @@ describe("overtimeRequestsApi", () => {
     vi.mocked(apiFetch).mockResolvedValueOnce(okRes(mock));
     const result = await overtimeRequestsApi.listRequests("ws-1");
     expect(result).toEqual(mock);
-    expect(vi.mocked(apiFetch).mock.calls[0][0]).toContain("/workspaces/ws-1/overtime/requests");
+    expect(vi.mocked(apiFetch).mock.calls[0][0]).toContain("/overtime/requests");
   });
 
   it("listRequests: forwards query params", async () => {

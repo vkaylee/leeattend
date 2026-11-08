@@ -132,7 +132,7 @@ func (h ESSHandler) resolveContext(r *http.Request) (uuid.UUID, uuid.UUID, error
 }
 
 func (h ESSHandler) resolveContextWithUser(r *http.Request) (uuid.UUID, uuid.UUID, uuid.UUID, error) {
-	workspaceID, ok := httpinfra.WorkspaceIDFromContext(r.Context())
+	workspaceID, ok := organizationIDFromContext(r)
 	if !ok || workspaceID == uuid.Nil {
 		return uuid.Nil, uuid.Nil, uuid.Nil, ErrESSValidation
 	}

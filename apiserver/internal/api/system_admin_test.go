@@ -54,7 +54,7 @@ func adminRequest(method, path, body string, userID, workspaceID uuid.UUID) *htt
 		request = httptest.NewRequest(method, path, bytes.NewBufferString(body))
 	}
 	ctx := httpinfra.WithUserIDForTest(request.Context(), userID)
-	return request.WithContext(httpinfra.WithWorkspaceIDForTest(ctx, workspaceID))
+	return request.WithContext(httpinfra.WithOrganizationIDForTest(ctx, workspaceID))
 }
 
 func setupTestHandler() (SystemAdminHandler, *mockSystemSettings, uuid.UUID, uuid.UUID) {

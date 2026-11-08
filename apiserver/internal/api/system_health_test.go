@@ -22,7 +22,7 @@ func (m systemHealthAuthzMock) HasPermission(context.Context, uuid.UUID, uuid.UU
 func systemHealthRequest(userID, workspaceID uuid.UUID) *http.Request {
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/system/health", nil)
 	ctx := httpinfra.WithUserIDForTest(req.Context(), userID)
-	return req.WithContext(httpinfra.WithWorkspaceIDForTest(ctx, workspaceID))
+	return req.WithContext(httpinfra.WithOrganizationIDForTest(ctx, workspaceID))
 }
 
 func TestSystemHealthHandlerRequiresInfraPermission(t *testing.T) {

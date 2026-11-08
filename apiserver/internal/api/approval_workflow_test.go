@@ -64,7 +64,7 @@ func (m *mockApprovalWorkflowRepository) GetPendingTasksForUser(context.Context,
 func approvalRequest(t *testing.T, method, path, body string, wsID uuid.UUID) *http.Request {
 	t.Helper()
 	req := httptest.NewRequest(method, path, strings.NewReader(body))
-	req.SetPathValue("ws_id", wsID.String())
+	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
 	return req
 }

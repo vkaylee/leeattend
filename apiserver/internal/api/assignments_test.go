@@ -293,7 +293,7 @@ func (m *mockAssignmentHistoryRepo) ListAssignmentHistory(_ context.Context, _ u
 func makeAssignmentRequest(method, path, body string, wsID uuid.UUID) *http.Request {
 	req := httptest.NewRequest(method, path, bytes.NewBufferString(body))
 	req.Header.Set("Accept-Language", "en")
-	req.SetPathValue("ws_id", wsID.String())
+	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
 	return req
 }

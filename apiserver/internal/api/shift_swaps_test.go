@@ -69,7 +69,7 @@ func TestShiftSwapHandler_Create_RequiresPermission(t *testing.T) {
 	handler := ShiftSwapHandler{Repository: &mockShiftSwapRepository{}, Authorizer: mockAttendanceAuthorizer{allowed: false}}
 	body := []byte(`{"requester_id":"` + uuid.New().String() + `","target_id":"` + uuid.New().String() + `","swap_date":"2026-10-20"}`)
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/workspaces/"+wsID.String()+"/shift-swaps", bytes.NewReader(body))
-	req.SetPathValue("ws_id", wsID.String())
+	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
 	rec := httptest.NewRecorder()
 	handler.Create(rec, req)
@@ -84,7 +84,7 @@ func TestShiftSwapHandler_Create_RejectsSameEmployee(t *testing.T) {
 	handler := ShiftSwapHandler{Repository: &mockShiftSwapRepository{}, Authorizer: mockAttendanceAuthorizer{allowed: true}}
 	body := []byte(`{"requester_id":"` + sameID.String() + `","target_id":"` + sameID.String() + `","swap_date":"2026-10-20"}`)
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/workspaces/"+wsID.String()+"/shift-swaps", bytes.NewReader(body))
-	req.SetPathValue("ws_id", wsID.String())
+	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
 	rec := httptest.NewRecorder()
 	handler.Create(rec, req)
@@ -98,7 +98,7 @@ func TestShiftSwapHandler_Create_Success(t *testing.T) {
 	handler := ShiftSwapHandler{Repository: &mockShiftSwapRepository{}, Authorizer: mockAttendanceAuthorizer{allowed: true}}
 	body := []byte(`{"requester_id":"` + uuid.New().String() + `","target_id":"` + uuid.New().String() + `","swap_date":"2026-10-20"}`)
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/workspaces/"+wsID.String()+"/shift-swaps", bytes.NewReader(body))
-	req.SetPathValue("ws_id", wsID.String())
+	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
 	rec := httptest.NewRecorder()
 	handler.Create(rec, req)
@@ -122,7 +122,7 @@ func TestShiftSwapHandler_Create_MapsConflictAndValidationErrors(t *testing.T) {
 			handler := ShiftSwapHandler{Repository: &mockShiftSwapRepository{createErr: tc.repoErr}, Authorizer: mockAttendanceAuthorizer{allowed: true}}
 			body := []byte(`{"requester_id":"` + uuid.New().String() + `","target_id":"` + uuid.New().String() + `","swap_date":"2026-10-20"}`)
 			req := httptest.NewRequest(http.MethodPost, "/api/v1/workspaces/"+wsID.String()+"/shift-swaps", bytes.NewReader(body))
-			req.SetPathValue("ws_id", wsID.String())
+			req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
 			req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
 			rec := httptest.NewRecorder()
 			handler.Create(rec, req)
@@ -138,7 +138,7 @@ func TestShiftSwapHandler_Approve_RejectsInvalidStatus(t *testing.T) {
 	handler := ShiftSwapHandler{Repository: &mockShiftSwapRepository{}, Authorizer: mockAttendanceAuthorizer{allowed: true}}
 	body := []byte(`{"status":"pending_target"}`)
 	req := httptest.NewRequest(http.MethodPut, "/api/v1/workspaces/"+wsID.String()+"/shift-swaps/"+swapID.String()+"/approve", bytes.NewReader(body))
-	req.SetPathValue("ws_id", wsID.String())
+	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
 	req.SetPathValue("id", swapID.String())
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
 	rec := httptest.NewRecorder()
@@ -153,7 +153,7 @@ func TestShiftSwapHandler_Approve_ConflictOnInvalidStateTransition(t *testing.T)
 	handler := ShiftSwapHandler{Repository: &mockShiftSwapRepository{approveErr: ErrShiftSwapConflict}, Authorizer: mockAttendanceAuthorizer{allowed: true}}
 	body := []byte(`{"status":"approved"}`)
 	req := httptest.NewRequest(http.MethodPut, "/api/v1/workspaces/"+wsID.String()+"/shift-swaps/"+swapID.String()+"/approve", bytes.NewReader(body))
-	req.SetPathValue("ws_id", wsID.String())
+	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
 	req.SetPathValue("id", swapID.String())
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
 	rec := httptest.NewRecorder()
@@ -169,7 +169,7 @@ func TestShiftSwapHandler_Approve_Success(t *testing.T) {
 	handler := ShiftSwapHandler{Repository: repo, Authorizer: mockAttendanceAuthorizer{allowed: true}}
 	body := []byte(`{"status":"approved"}`)
 	req := httptest.NewRequest(http.MethodPut, "/api/v1/workspaces/"+wsID.String()+"/shift-swaps/"+swapID.String()+"/approve", bytes.NewReader(body))
-	req.SetPathValue("ws_id", wsID.String())
+	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
 	req.SetPathValue("id", swapID.String())
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
 	rec := httptest.NewRecorder()
@@ -186,7 +186,7 @@ func TestShiftSwapHandler_Stats_Success(t *testing.T) {
 	wsID := uuid.New()
 	handler := ShiftSwapHandler{Repository: &mockShiftSwapRepository{}, Authorizer: mockAttendanceAuthorizer{allowed: true}}
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/workspaces/"+wsID.String()+"/shift-swaps/stats", nil)
-	req.SetPathValue("ws_id", wsID.String())
+	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
 	rec := httptest.NewRecorder()
 	handler.Stats(rec, req)

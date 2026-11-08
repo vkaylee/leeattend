@@ -150,7 +150,7 @@ func (h DashboardPreferencesHandler) Put(w http.ResponseWriter, r *http.Request)
 }
 func (h DashboardPreferencesHandler) handle(w http.ResponseWriter, r *http.Request, put bool) {
 	uid, uok := httpinfra.UserIDFromContext(r.Context())
-	ws, wok := httpinfra.WorkspaceIDFromContext(r.Context())
+	ws, wok := organizationIDFromContext(r)
 	if !uok || !wok || h.Authorizer == nil || !h.Authorizer.HasPermission(r.Context(), uid, ws, string(auth.PermissionDashboardPreferences)) {
 		apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
 		return

@@ -96,7 +96,7 @@ func TestConditionTypeCRUD(t *testing.T) {
 	}
 	raw, _ := json.Marshal(createBody)
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/workspaces/"+wsID.String()+"/condition-types", bytes.NewReader(raw))
-	req.SetPathValue("ws_id", wsID.String())
+	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), userID))
 	rec := httptest.NewRecorder()
 
@@ -112,7 +112,7 @@ func TestConditionTypeCRUD(t *testing.T) {
 	// 2. Duplicate create returns 409
 	recDup := httptest.NewRecorder()
 	reqDup := httptest.NewRequest(http.MethodPost, "/api/v1/workspaces/"+wsID.String()+"/condition-types", bytes.NewReader(raw))
-	reqDup.SetPathValue("ws_id", wsID.String())
+	reqDup = reqDup.WithContext(httpinfra.WithOrganizationIDForTest(reqDup.Context(), wsID))
 	reqDup = reqDup.WithContext(httpinfra.WithUserIDForTest(reqDup.Context(), userID))
 	handler.Create(recDup, reqDup)
 	if recDup.Code != http.StatusConflict {
@@ -121,7 +121,7 @@ func TestConditionTypeCRUD(t *testing.T) {
 
 	// 3. Get
 	getReq := httptest.NewRequest(http.MethodGet, "/api/v1/workspaces/"+wsID.String()+"/condition-types/"+created.ID.String(), nil)
-	getReq.SetPathValue("ws_id", wsID.String())
+	getReq = getReq.WithContext(httpinfra.WithOrganizationIDForTest(getReq.Context(), wsID))
 	getReq.SetPathValue("id", created.ID.String())
 	getReq = getReq.WithContext(httpinfra.WithUserIDForTest(getReq.Context(), userID))
 	getRec := httptest.NewRecorder()
@@ -135,7 +135,7 @@ func TestConditionTypeCRUD(t *testing.T) {
 	newCat := "remote"
 	patchBody, _ := json.Marshal(UpdateConditionTypeRequest{Category: &newCat})
 	patchReq := httptest.NewRequest(http.MethodPatch, "/api/v1/workspaces/"+wsID.String()+"/condition-types/"+created.ID.String(), bytes.NewReader(patchBody))
-	patchReq.SetPathValue("ws_id", wsID.String())
+	patchReq = patchReq.WithContext(httpinfra.WithOrganizationIDForTest(patchReq.Context(), wsID))
 	patchReq.SetPathValue("id", created.ID.String())
 	patchReq = patchReq.WithContext(httpinfra.WithUserIDForTest(patchReq.Context(), userID))
 	patchRec := httptest.NewRecorder()
@@ -147,7 +147,7 @@ func TestConditionTypeCRUD(t *testing.T) {
 
 	// 5. Delete
 	delReq := httptest.NewRequest(http.MethodDelete, "/api/v1/workspaces/"+wsID.String()+"/condition-types/"+created.ID.String(), nil)
-	delReq.SetPathValue("ws_id", wsID.String())
+	delReq = delReq.WithContext(httpinfra.WithOrganizationIDForTest(delReq.Context(), wsID))
 	delReq.SetPathValue("id", created.ID.String())
 	delReq = delReq.WithContext(httpinfra.WithUserIDForTest(delReq.Context(), userID))
 	delRec := httptest.NewRecorder()
@@ -170,7 +170,7 @@ func TestConditionTypeSystemCannotBeDeleted(t *testing.T) {
 	}
 
 	req := httptest.NewRequest(http.MethodDelete, "/api/v1/workspaces/"+wsID.String()+"/condition-types/"+sysID.String(), nil)
-	req.SetPathValue("ws_id", wsID.String())
+	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
 	req.SetPathValue("id", sysID.String())
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
 	rec := httptest.NewRecorder()

@@ -9,6 +9,7 @@ import { maybeNull } from "@/types/api-overrides";
 
 import { API_BASE_URL } from "./config";
 import { ApiError } from "./errors";
+import { normalizeStandalonePath } from "./api-fetch-helpers";
 import { apiFetch } from "./helpers";
 
 // eslint-disable-next-line complexity
@@ -62,13 +63,14 @@ async function extractRequestInfo(
 }
 
 function cleanApiPath(urlStr: string): string {
-  if (urlStr.includes('/api/api/v1')) {
-    return urlStr.replace('/api/api/v1', '/api/v1');
+  let cleaned = normalizeStandalonePath(urlStr);
+  if (cleaned.includes('/api/api/v1')) {
+    cleaned = cleaned.replace('/api/api/v1', '/api/v1');
   }
-  if (urlStr.includes('/api/') && !urlStr.includes('/api/v1/')) {
-    return urlStr.replace('/api/', '/api/v1/');
+  if (cleaned.includes('/api/') && !cleaned.includes('/api/v1/')) {
+    cleaned = cleaned.replace('/api/', '/api/v1/');
   }
-  return urlStr;
+  return cleaned;
 }
 
 async function handleResponseError(res: Response): Promise<never> {
@@ -84,7 +86,7 @@ export async function customFetch(url: string | URL | Request, init?: RequestIni
     urlStr = cleanApiPath(extracted.urlStr);
     options = extracted.options;
   } else {
-    urlStr = url.toString();
+    urlStr = cleanApiPath(url.toString());
   }
 
   const res = await apiFetch(urlStr, options);

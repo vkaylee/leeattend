@@ -15,10 +15,10 @@ import (
 type contextKey string
 
 const (
-	contextKeyUserID      contextKey = "user_id"
-	contextKeyWorkspaceID contextKey = "workspace_id"
-	contextKeyClaims      contextKey = "jwt_claims"
-	contextKeyLocale      contextKey = "locale"
+	contextKeyUserID         contextKey = "user_id"
+	contextKeyOrganizationID contextKey = "organization_id"
+	contextKeyClaims         contextKey = "jwt_claims"
+	contextKeyLocale         contextKey = "locale"
 )
 
 // Middleware wraps an http.Handler with cross-cutting behavior.
@@ -104,6 +104,19 @@ func BodyLimitMiddleware(maxBytes int64) Middleware {
 	}
 }
 
+// RejectLegacyWorkspaceRoutes prevents clients from selecting organization scope by URL.
+func RejectLegacyWorkspaceRoutes() Middleware {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if strings.Contains(r.URL.Path, "/workspaces/") {
+				http.Error(w, "legacy workspace routes are not supported", http.StatusNotFound)
+				return
+			}
+			next.ServeHTTP(w, r)
+		})
+	}
+}
+
 // TokenRevocationChecker checks Redis-backed revocation state without coupling middleware to Redis.
 type TokenRevocationChecker interface {
 	IsSignatureRevoked(context.Context, string) (bool, error)
@@ -182,19 +195,34 @@ func WithUserIDForTest(ctx context.Context, id uuid.UUID) context.Context {
 	return context.WithValue(ctx, contextKeyUserID, id)
 }
 
-// WorkspaceIDFromContext retrieves workspace UUID.
-func WorkspaceIDFromContext(ctx context.Context) (uuid.UUID, bool) {
-	val, ok := ctx.Value(contextKeyWorkspaceID).(uuid.UUID)
+// OrganizationIDFromContext retrieves singleton organization UUID.
+func OrganizationIDFromContext(ctx context.Context) (uuid.UUID, bool) {
+	val, ok := ctx.Value(contextKeyOrganizationID).(uuid.UUID)
 	return val, ok
 }
 
-// WithWorkspaceID attaches the resolved organization UUID to a request context.
-func WithWorkspaceID(ctx context.Context, id uuid.UUID) context.Context {
-	ctx = context.WithValue(ctx, contextKeyWorkspaceID, id)
+// WithOrganizationID attaches the resolved organization UUID to a request context.
+func WithOrganizationID(ctx context.Context, id uuid.UUID) context.Context {
+	ctx = context.WithValue(ctx, contextKeyOrganizationID, id)
 	return observability.WithWorkspaceID(ctx, id.String())
 }
 
-// WithWorkspaceIDForTest is a package test helper for handler contract tests.
+// WithOrganizationIDForTest is a package test helper for handler contract tests.
+func WithOrganizationIDForTest(ctx context.Context, id uuid.UUID) context.Context {
+	return WithOrganizationID(ctx, id)
+}
+
+// WorkspaceIDFromContext is retained for persistence-boundary call sites during the organization cutover.
+func WorkspaceIDFromContext(ctx context.Context) (uuid.UUID, bool) {
+	return OrganizationIDFromContext(ctx)
+}
+
+// WithWorkspaceID is retained for persistence-boundary call sites during the organization cutover.
+func WithWorkspaceID(ctx context.Context, id uuid.UUID) context.Context {
+	return WithOrganizationID(ctx, id)
+}
+
+// WithWorkspaceIDForTest is retained for existing handler tests during the organization cutover.
 func WithWorkspaceIDForTest(ctx context.Context, id uuid.UUID) context.Context {
-	return WithWorkspaceID(ctx, id)
+	return WithOrganizationIDForTest(ctx, id)
 }

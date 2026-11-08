@@ -39,7 +39,7 @@ export interface LifecycleInstanceSummary {
 export async function fetchWorkspaceLifecycleInstances(
   wsId: string
 ): Promise<LifecycleInstanceSummary[]> {
-  const res = await apiFetch(`/api/v1/workspaces/${wsId}/lifecycle/instances`);
+  const res = await apiFetch(`/v1/workspaces/${wsId}/lifecycle/instances`);
   if (!res.ok) {
     throw new ApiError(res.status, "Failed to fetch workspace lifecycle instances");
   }

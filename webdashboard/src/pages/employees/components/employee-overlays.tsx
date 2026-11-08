@@ -105,7 +105,7 @@ export function EmployeeOverlays(props: EmployeeOverlaysProps) {
           departments={departments}
           deptHistory={deptHistory}
           employee={selectedEmployee}
-
+          wsId={wsId}
           formatDate={formatDate}
           isOpen={!!selectedEmployee}
           key={selectedEmployee?.id ?? "closed"}

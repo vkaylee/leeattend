@@ -173,7 +173,7 @@ func TestFilePresignedUploadAndMetadata(t *testing.T) {
 	}
 	raw, _ := json.Marshal(reqBody)
 	req := httptest.NewRequest(http.MethodPost, "/v1/workspaces/"+wsID.String()+"/files/presigned", bytes.NewReader(raw))
-	req.SetPathValue("ws_id", wsID.String())
+	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), userID))
 	rec := httptest.NewRecorder()
 
@@ -191,7 +191,7 @@ func TestFilePresignedUploadAndMetadata(t *testing.T) {
 
 	// Fetch metadata
 	metaReq := httptest.NewRequest(http.MethodGet, "/v1/workspaces/"+wsID.String()+"/files/"+resp.File.ID.String(), nil)
-	metaReq.SetPathValue("ws_id", wsID.String())
+	metaReq = metaReq.WithContext(httpinfra.WithOrganizationIDForTest(metaReq.Context(), wsID))
 	metaReq.SetPathValue("id", resp.File.ID.String())
 	metaReq = metaReq.WithContext(httpinfra.WithUserIDForTest(metaReq.Context(), userID))
 	metaRec := httptest.NewRecorder()
@@ -203,7 +203,7 @@ func TestFilePresignedUploadAndMetadata(t *testing.T) {
 
 	// Get URL
 	urlReq := httptest.NewRequest(http.MethodGet, "/v1/workspaces/"+wsID.String()+"/files/"+resp.File.ID.String()+"/url", nil)
-	urlReq.SetPathValue("ws_id", wsID.String())
+	urlReq = urlReq.WithContext(httpinfra.WithOrganizationIDForTest(urlReq.Context(), wsID))
 	urlReq.SetPathValue("id", resp.File.ID.String())
 	urlReq = urlReq.WithContext(httpinfra.WithUserIDForTest(urlReq.Context(), userID))
 	urlRec := httptest.NewRecorder()
@@ -215,7 +215,7 @@ func TestFilePresignedUploadAndMetadata(t *testing.T) {
 
 	// Delete
 	delReq := httptest.NewRequest(http.MethodDelete, "/v1/workspaces/"+wsID.String()+"/files/"+resp.File.ID.String(), nil)
-	delReq.SetPathValue("ws_id", wsID.String())
+	delReq = delReq.WithContext(httpinfra.WithOrganizationIDForTest(delReq.Context(), wsID))
 	delReq.SetPathValue("id", resp.File.ID.String())
 	delReq = delReq.WithContext(httpinfra.WithUserIDForTest(delReq.Context(), userID))
 	delRec := httptest.NewRecorder()
@@ -238,7 +238,7 @@ func TestSignatureRequestLifecycle(t *testing.T) {
 
 	body, _ := json.Marshal(CreateSignatureRequestBody{SignerID: signerID})
 	req := httptest.NewRequest(http.MethodPost, "/v1/workspaces/"+wsID.String()+"/documents/"+docID.String()+"/signature-requests", bytes.NewReader(body))
-	req.SetPathValue("ws_id", wsID.String())
+	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
 	req.SetPathValue("document_id", docID.String())
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
 	rec := httptest.NewRecorder()
@@ -254,7 +254,7 @@ func TestSignatureRequestLifecycle(t *testing.T) {
 
 	// List pending
 	listReq := httptest.NewRequest(http.MethodGet, "/v1/ess/workspaces/"+wsID.String()+"/signatures/pending", nil)
-	listReq.SetPathValue("ws_id", wsID.String())
+	listReq = listReq.WithContext(httpinfra.WithOrganizationIDForTest(listReq.Context(), wsID))
 	listReq = listReq.WithContext(httpinfra.WithUserIDForTest(listReq.Context(), signerID))
 	listRec := httptest.NewRecorder()
 
@@ -269,7 +269,7 @@ func TestSignatureRequestLifecycle(t *testing.T) {
 
 	// Sign
 	signReq := httptest.NewRequest(http.MethodPost, "/v1/ess/workspaces/"+wsID.String()+"/signatures/"+sigReq.ID.String()+"/sign", nil)
-	signReq.SetPathValue("ws_id", wsID.String())
+	signReq = signReq.WithContext(httpinfra.WithOrganizationIDForTest(signReq.Context(), wsID))
 	signReq.SetPathValue("request_id", sigReq.ID.String())
 	signReq = signReq.WithContext(httpinfra.WithUserIDForTest(signReq.Context(), signerID))
 	signRec := httptest.NewRecorder()
@@ -306,7 +306,7 @@ func TestFileUploadMultipart(t *testing.T) {
 
 	req := httptest.NewRequest(http.MethodPost, "/v1/workspaces/"+wsID.String()+"/files/upload", &b)
 	req.Header.Set("Content-Type", w.FormDataContentType())
-	req.SetPathValue("ws_id", wsID.String())
+	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), userID))
 	rec := httptest.NewRecorder()
 
@@ -368,7 +368,7 @@ func TestFileUpdateCoW(t *testing.T) {
 
 	req1 := httptest.NewRequest(http.MethodPut, "/v1/workspaces/"+wsID.String()+"/files/"+fileID.String(), &b1)
 	req1.Header.Set("Content-Type", w1.FormDataContentType())
-	req1.SetPathValue("ws_id", wsID.String())
+	req1 = req1.WithContext(httpinfra.WithOrganizationIDForTest(req1.Context(), wsID))
 	req1.SetPathValue("id", fileID.String())
 	req1 = req1.WithContext(httpinfra.WithUserIDForTest(req1.Context(), userID))
 	rec1 := httptest.NewRecorder()
@@ -396,7 +396,7 @@ func TestFileUpdateCoW(t *testing.T) {
 
 	req2 := httptest.NewRequest(http.MethodPut, "/v1/workspaces/"+wsID.String()+"/files/"+fileID.String(), &b2)
 	req2.Header.Set("Content-Type", w2.FormDataContentType())
-	req2.SetPathValue("ws_id", wsID.String())
+	req2 = req2.WithContext(httpinfra.WithOrganizationIDForTest(req2.Context(), wsID))
 	req2.SetPathValue("id", fileID.String())
 	req2 = req2.WithContext(httpinfra.WithUserIDForTest(req2.Context(), userID))
 	rec2 := httptest.NewRecorder()
@@ -454,7 +454,7 @@ func TestFileDownload(t *testing.T) {
 
 	// Small file: streamed proxy bytes with 200 OK
 	reqSmall := httptest.NewRequest(http.MethodGet, "/v1/workspaces/"+wsID.String()+"/files/"+smallID.String()+"/download", nil)
-	reqSmall.SetPathValue("ws_id", wsID.String())
+	reqSmall = reqSmall.WithContext(httpinfra.WithOrganizationIDForTest(reqSmall.Context(), wsID))
 	reqSmall.SetPathValue("id", smallID.String())
 	reqSmall = reqSmall.WithContext(httpinfra.WithUserIDForTest(reqSmall.Context(), userID))
 	recSmall := httptest.NewRecorder()
@@ -472,7 +472,7 @@ func TestFileDownload(t *testing.T) {
 
 	// Large file: 307 Temporary Redirect
 	reqLarge := httptest.NewRequest(http.MethodGet, "/v1/workspaces/"+wsID.String()+"/files/"+largeID.String()+"/download", nil)
-	reqLarge.SetPathValue("ws_id", wsID.String())
+	reqLarge = reqLarge.WithContext(httpinfra.WithOrganizationIDForTest(reqLarge.Context(), wsID))
 	reqLarge.SetPathValue("id", largeID.String())
 	reqLarge = reqLarge.WithContext(httpinfra.WithUserIDForTest(reqLarge.Context(), userID))
 	recLarge := httptest.NewRecorder()
@@ -522,7 +522,7 @@ func TestFileListVersionsAndByOwner(t *testing.T) {
 
 	// Test versions
 	reqVer := httptest.NewRequest(http.MethodGet, "/v1/workspaces/"+wsID.String()+"/files/"+v2ID.String()+"/versions", nil)
-	reqVer.SetPathValue("ws_id", wsID.String())
+	reqVer = reqVer.WithContext(httpinfra.WithOrganizationIDForTest(reqVer.Context(), wsID))
 	reqVer.SetPathValue("id", v2ID.String())
 	reqVer = reqVer.WithContext(httpinfra.WithUserIDForTest(reqVer.Context(), userID))
 	recVer := httptest.NewRecorder()
@@ -539,7 +539,7 @@ func TestFileListVersionsAndByOwner(t *testing.T) {
 
 	// Test by-owner
 	reqOwner := httptest.NewRequest(http.MethodGet, "/v1/workspaces/"+wsID.String()+"/files/by-owner/employee/"+empID.String(), nil)
-	reqOwner.SetPathValue("ws_id", wsID.String())
+	reqOwner = reqOwner.WithContext(httpinfra.WithOrganizationIDForTest(reqOwner.Context(), wsID))
 	reqOwner.SetPathValue("owner_type", "employee")
 	reqOwner.SetPathValue("owner_id", empID.String())
 	reqOwner = reqOwner.WithContext(httpinfra.WithUserIDForTest(reqOwner.Context(), userID))

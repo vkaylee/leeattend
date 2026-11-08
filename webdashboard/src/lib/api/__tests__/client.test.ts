@@ -43,6 +43,7 @@ describe('client (openapi-fetch adapter)', () => {
     expect(url).toContain('/api/v1/workspaces');
   });
 
+
   it('parses error responses into ApiError correctly', async () => {
     const mockApiFetch = apiFetch as Mock;
     

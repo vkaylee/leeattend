@@ -142,7 +142,7 @@ type WorkspaceHandler struct {
 }
 
 func (h WorkspaceHandler) Get(w http.ResponseWriter, r *http.Request) {
-	workspaceID, ok := pathUUID(r, "ws_id")
+	workspaceID, ok := organizationIDFromContext(r)
 	if !ok {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
@@ -165,7 +165,7 @@ func (h WorkspaceHandler) Get(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h WorkspaceHandler) ListConfigs(w http.ResponseWriter, r *http.Request) {
-	workspaceID, ok := pathUUID(r, "ws_id")
+	workspaceID, ok := organizationIDFromContext(r)
 	if !ok {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
@@ -184,7 +184,7 @@ func (h WorkspaceHandler) ListConfigs(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h WorkspaceHandler) GetConfig(w http.ResponseWriter, r *http.Request) {
-	workspaceID, ok := pathUUID(r, "ws_id")
+	workspaceID, ok := organizationIDFromContext(r)
 	if !ok {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
@@ -208,7 +208,7 @@ func (h WorkspaceHandler) GetConfig(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h WorkspaceHandler) DeleteConfig(w http.ResponseWriter, r *http.Request) {
-	workspaceID, ok := pathUUID(r, "ws_id")
+	workspaceID, ok := organizationIDFromContext(r)
 	entryID, idOK := pathUUID(r, "key")
 	if !ok || !idOK {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
@@ -227,7 +227,7 @@ func (h WorkspaceHandler) DeleteConfig(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h WorkspaceHandler) Patch(w http.ResponseWriter, r *http.Request) {
-	workspaceID, ok := pathUUID(r, "ws_id")
+	workspaceID, ok := organizationIDFromContext(r)
 	if !ok {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
@@ -251,7 +251,7 @@ func (h WorkspaceHandler) Patch(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h WorkspaceHandler) CreateRole(w http.ResponseWriter, r *http.Request) {
-	workspaceID, ok := pathUUID(r, "ws_id")
+	workspaceID, ok := organizationIDFromContext(r)
 	if !ok {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
@@ -274,7 +274,7 @@ func (h WorkspaceHandler) CreateRole(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h WorkspaceHandler) ListFeatureFlags(w http.ResponseWriter, r *http.Request) {
-	workspaceID, ok := pathUUID(r, "ws_id")
+	workspaceID, ok := organizationIDFromContext(r)
 	if !ok {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
@@ -293,7 +293,7 @@ func (h WorkspaceHandler) ListFeatureFlags(w http.ResponseWriter, r *http.Reques
 }
 
 func (h WorkspaceHandler) CreateFeatureFlag(w http.ResponseWriter, r *http.Request) {
-	workspaceID, ok := pathUUID(r, "ws_id")
+	workspaceID, ok := organizationIDFromContext(r)
 	if !ok {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
@@ -317,7 +317,7 @@ func (h WorkspaceHandler) CreateFeatureFlag(w http.ResponseWriter, r *http.Reque
 }
 
 func (h WorkspaceHandler) GetFeatureFlagByID(w http.ResponseWriter, r *http.Request) {
-	workspaceID, ok := pathUUID(r, "ws_id")
+	workspaceID, ok := organizationIDFromContext(r)
 	flagID, flagOK := pathUUID(r, "id")
 	if !ok || !flagOK {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
@@ -341,7 +341,7 @@ func (h WorkspaceHandler) GetFeatureFlagByID(w http.ResponseWriter, r *http.Requ
 }
 
 func (h WorkspaceHandler) UpdateFeatureFlag(w http.ResponseWriter, r *http.Request) {
-	workspaceID, ok := pathUUID(r, "ws_id")
+	workspaceID, ok := organizationIDFromContext(r)
 	flagID, flagOK := pathUUID(r, "id")
 	if !ok || !flagOK {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
@@ -370,7 +370,7 @@ func (h WorkspaceHandler) UpdateFeatureFlag(w http.ResponseWriter, r *http.Reque
 }
 
 func (h WorkspaceHandler) UpsertFeatureFlag(w http.ResponseWriter, r *http.Request) {
-	workspaceID, ok := pathUUID(r, "ws_id")
+	workspaceID, ok := organizationIDFromContext(r)
 	if !ok {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
@@ -394,7 +394,7 @@ func (h WorkspaceHandler) UpsertFeatureFlag(w http.ResponseWriter, r *http.Reque
 }
 
 func (h WorkspaceHandler) DeleteFeatureFlag(w http.ResponseWriter, r *http.Request) {
-	workspaceID, ok := pathUUID(r, "ws_id")
+	workspaceID, ok := organizationIDFromContext(r)
 	flagID, flagOK := pathUUID(r, "id")
 	if !ok || !flagOK {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
@@ -418,7 +418,7 @@ func (h WorkspaceHandler) DeleteFeatureFlag(w http.ResponseWriter, r *http.Reque
 }
 
 func (h WorkspaceHandler) CheckFeatureFlag(w http.ResponseWriter, r *http.Request) {
-	workspaceID, ok := pathUUID(r, "ws_id")
+	workspaceID, ok := organizationIDFromContext(r)
 	if !ok {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
@@ -446,7 +446,7 @@ func (h WorkspaceHandler) CheckFeatureFlag(w http.ResponseWriter, r *http.Reques
 }
 
 func (h WorkspaceHandler) PutConfig(w http.ResponseWriter, r *http.Request) {
-	workspaceID, ok := pathUUID(r, "ws_id")
+	workspaceID, ok := organizationIDFromContext(r)
 	userID, userOK := httpinfra.UserIDFromContext(r.Context())
 	if !ok || !userOK || h.Authorizer == nil || !h.Authorizer.HasPermission(r.Context(), userID, workspaceID, "workspace:settings:write") {
 		apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
@@ -476,12 +476,12 @@ func (h WorkspaceHandler) writeRepositoryError(w http.ResponseWriter, r *http.Re
 	apperror.WriteError(w, r, apperror.Internal(err))
 }
 
+func organizationIDFromContext(r *http.Request) (uuid.UUID, bool) {
+	id, ok := httpinfra.OrganizationIDFromContext(r.Context())
+	return id, ok && id != uuid.Nil
+}
+
 func pathUUID(r *http.Request, key string) (uuid.UUID, bool) {
-	if key == "ws_id" {
-		if id, ok := httpinfra.WorkspaceIDFromContext(r.Context()); ok && id != uuid.Nil {
-			return id, true
-		}
-	}
 	id, err := uuid.Parse(r.PathValue(key))
 	return id, err == nil
 }

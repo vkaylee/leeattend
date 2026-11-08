@@ -213,7 +213,7 @@ func (h WorkspaceRBACHandler) require(w http.ResponseWriter, r *http.Request, ws
 }
 
 func (h WorkspaceRBACHandler) ListMembers(w http.ResponseWriter, r *http.Request) {
-	ws, ok := pathUUID(r, "ws_id")
+	ws, ok := organizationIDFromContext(r)
 	if !ok {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
@@ -264,7 +264,7 @@ func (h WorkspaceRBACHandler) memberContext(w http.ResponseWriter, r *http.Reque
 	return uid, true
 }
 func (h WorkspaceRBACHandler) AddMember(w http.ResponseWriter, r *http.Request) {
-	ws, ok := pathUUID(r, "ws_id")
+	ws, ok := organizationIDFromContext(r)
 	if !ok {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
@@ -289,7 +289,7 @@ func (h WorkspaceRBACHandler) AddMember(w http.ResponseWriter, r *http.Request) 
 	w.WriteHeader(http.StatusCreated)
 }
 func (h WorkspaceRBACHandler) UpdateMemberRole(w http.ResponseWriter, r *http.Request) {
-	ws, ok := pathUUID(r, "ws_id")
+	ws, ok := organizationIDFromContext(r)
 	user, userOK := pathUUID(r, "user_id")
 	if !ok || !userOK {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
@@ -310,7 +310,7 @@ func (h WorkspaceRBACHandler) UpdateMemberRole(w http.ResponseWriter, r *http.Re
 	w.WriteHeader(http.StatusOK)
 }
 func (h WorkspaceRBACHandler) RemoveMember(w http.ResponseWriter, r *http.Request) {
-	ws, ok := pathUUID(r, "ws_id")
+	ws, ok := organizationIDFromContext(r)
 	user, userOK := pathUUID(r, "user_id")
 	if !ok || !userOK {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
@@ -331,7 +331,7 @@ func (h WorkspaceRBACHandler) RemoveMember(w http.ResponseWriter, r *http.Reques
 	w.WriteHeader(http.StatusNoContent)
 }
 func (h WorkspaceRBACHandler) GetMemberRoles(w http.ResponseWriter, r *http.Request) {
-	ws, ok := pathUUID(r, "ws_id")
+	ws, ok := organizationIDFromContext(r)
 	user, userOK := pathUUID(r, "user_id")
 	if !ok || !userOK {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
@@ -348,7 +348,7 @@ func (h WorkspaceRBACHandler) GetMemberRoles(w http.ResponseWriter, r *http.Requ
 	apperror.WriteJSON(w, http.StatusOK, map[string]any{"primary": primary, "extra": extra})
 }
 func (h WorkspaceRBACHandler) AssignExtraRole(w http.ResponseWriter, r *http.Request) {
-	ws, ok := pathUUID(r, "ws_id")
+	ws, ok := organizationIDFromContext(r)
 	user, userOK := pathUUID(r, "user_id")
 	if !ok || !userOK {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
@@ -370,7 +370,7 @@ func (h WorkspaceRBACHandler) AssignExtraRole(w http.ResponseWriter, r *http.Req
 	apperror.WriteJSON(w, http.StatusCreated, x)
 }
 func (h WorkspaceRBACHandler) RevokeExtraRole(w http.ResponseWriter, r *http.Request) {
-	ws, ok := pathUUID(r, "ws_id")
+	ws, ok := organizationIDFromContext(r)
 	_, userOK := pathUUID(r, "user_id")
 	role, roleOK := pathUUID(r, "role_id")
 	if !ok || !userOK || !roleOK {
@@ -392,7 +392,7 @@ func (h WorkspaceRBACHandler) RevokeExtraRole(w http.ResponseWriter, r *http.Req
 	w.WriteHeader(http.StatusNoContent)
 }
 func (h WorkspaceRBACHandler) GetMemberPermissions(w http.ResponseWriter, r *http.Request) {
-	ws, ok := pathUUID(r, "ws_id")
+	ws, ok := organizationIDFromContext(r)
 	user, userOK := pathUUID(r, "user_id")
 	if !ok || !userOK {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
@@ -409,7 +409,7 @@ func (h WorkspaceRBACHandler) GetMemberPermissions(w http.ResponseWriter, r *htt
 	apperror.WriteJSON(w, http.StatusOK, x)
 }
 func (h WorkspaceRBACHandler) AssignExtraPermission(w http.ResponseWriter, r *http.Request) {
-	ws, ok := pathUUID(r, "ws_id")
+	ws, ok := organizationIDFromContext(r)
 	user, userOK := pathUUID(r, "user_id")
 	if !ok || !userOK {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
@@ -440,7 +440,7 @@ func (h WorkspaceRBACHandler) AssignExtraPermission(w http.ResponseWriter, r *ht
 	apperror.WriteJSON(w, http.StatusCreated, x)
 }
 func (h WorkspaceRBACHandler) RevokeExtraPermission(w http.ResponseWriter, r *http.Request) {
-	ws, ok := pathUUID(r, "ws_id")
+	ws, ok := organizationIDFromContext(r)
 	user, userOK := pathUUID(r, "user_id")
 	perm, permOK := pathUUID(r, "perm_id")
 	if !ok || !userOK || !permOK {
@@ -463,7 +463,7 @@ func (h WorkspaceRBACHandler) RevokeExtraPermission(w http.ResponseWriter, r *ht
 	w.WriteHeader(http.StatusNoContent)
 }
 func (h WorkspaceRBACHandler) ListRoles(w http.ResponseWriter, r *http.Request) {
-	ws, ok := pathUUID(r, "ws_id")
+	ws, ok := organizationIDFromContext(r)
 	if !ok {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
@@ -484,7 +484,7 @@ func (h WorkspaceRBACHandler) ListRoles(w http.ResponseWriter, r *http.Request) 
 	apperror.WriteJSON(w, http.StatusOK, RoleListResponse{Data: x, Total: total, Page: p.Page, Limit: p.Limit})
 }
 func (h WorkspaceRBACHandler) CreateRole(w http.ResponseWriter, r *http.Request) {
-	ws, ok := pathUUID(r, "ws_id")
+	ws, ok := organizationIDFromContext(r)
 	if !ok {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
@@ -512,7 +512,7 @@ func (h WorkspaceRBACHandler) CreateRole(w http.ResponseWriter, r *http.Request)
 	apperror.WriteJSON(w, http.StatusCreated, x)
 }
 func (h WorkspaceRBACHandler) UpdateRole(w http.ResponseWriter, r *http.Request) {
-	ws, ok := pathUUID(r, "ws_id")
+	ws, ok := organizationIDFromContext(r)
 	role, roleOK := pathUUID(r, "role_id")
 	if !ok || !roleOK {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
@@ -534,7 +534,7 @@ func (h WorkspaceRBACHandler) UpdateRole(w http.ResponseWriter, r *http.Request)
 	apperror.WriteJSON(w, http.StatusOK, x)
 }
 func (h WorkspaceRBACHandler) DeleteRole(w http.ResponseWriter, r *http.Request) {
-	ws, ok := pathUUID(r, "ws_id")
+	ws, ok := organizationIDFromContext(r)
 	role, roleOK := pathUUID(r, "role_id")
 	if !ok || !roleOK {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
@@ -555,7 +555,7 @@ func (h WorkspaceRBACHandler) DeleteRole(w http.ResponseWriter, r *http.Request)
 	w.WriteHeader(http.StatusNoContent)
 }
 func (h WorkspaceRBACHandler) GetRolePermissions(w http.ResponseWriter, r *http.Request) {
-	ws, ok := pathUUID(r, "ws_id")
+	ws, ok := organizationIDFromContext(r)
 	role, roleOK := pathUUID(r, "role_id")
 	if !ok || !roleOK {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
@@ -572,7 +572,7 @@ func (h WorkspaceRBACHandler) GetRolePermissions(w http.ResponseWriter, r *http.
 	apperror.WriteJSON(w, http.StatusOK, x)
 }
 func (h WorkspaceRBACHandler) SetRolePermissions(w http.ResponseWriter, r *http.Request) {
-	ws, ok := pathUUID(r, "ws_id")
+	ws, ok := organizationIDFromContext(r)
 	role, roleOK := pathUUID(r, "role_id")
 	if !ok || !roleOK {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
@@ -602,7 +602,7 @@ func (h WorkspaceRBACHandler) SetRolePermissions(w http.ResponseWriter, r *http.
 	apperror.WriteJSON(w, http.StatusOK, req.Permissions)
 }
 func (h WorkspaceRBACHandler) PermissionCatalog(w http.ResponseWriter, r *http.Request) {
-	ws, ok := pathUUID(r, "ws_id")
+	ws, ok := organizationIDFromContext(r)
 	if !ok {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
@@ -618,7 +618,7 @@ func (h WorkspaceRBACHandler) PermissionCatalog(w http.ResponseWriter, r *http.R
 	apperror.WriteJSON(w, http.StatusOK, x)
 }
 func (h WorkspaceRBACHandler) AvailablePermissions(w http.ResponseWriter, r *http.Request) {
-	ws, ok := pathUUID(r, "ws_id")
+	ws, ok := organizationIDFromContext(r)
 	if !ok {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
@@ -674,7 +674,7 @@ func permissionGroup(id string) string {
 }
 
 func (h WorkspaceRBACHandler) GetStorage(w http.ResponseWriter, r *http.Request) {
-	ws, ok := pathUUID(r, "ws_id")
+	ws, ok := organizationIDFromContext(r)
 	if !ok {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
@@ -696,7 +696,7 @@ func (h WorkspaceRBACHandler) GetStorage(w http.ResponseWriter, r *http.Request)
 	apperror.WriteJSON(w, http.StatusOK, response)
 }
 func (h WorkspaceRBACHandler) PutStorage(w http.ResponseWriter, r *http.Request) {
-	ws, ok := pathUUID(r, "ws_id")
+	ws, ok := organizationIDFromContext(r)
 	if !ok {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
@@ -734,7 +734,7 @@ func (h WorkspaceRBACHandler) PutStorage(w http.ResponseWriter, r *http.Request)
 	apperror.WriteJSON(w, http.StatusOK, response)
 }
 func (h WorkspaceRBACHandler) DeleteStorage(w http.ResponseWriter, r *http.Request) {
-	ws, ok := pathUUID(r, "ws_id")
+	ws, ok := organizationIDFromContext(r)
 	if !ok {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
@@ -749,7 +749,7 @@ func (h WorkspaceRBACHandler) DeleteStorage(w http.ResponseWriter, r *http.Reque
 	apperror.WriteJSON(w, http.StatusOK, struct{}{})
 }
 func (h WorkspaceRBACHandler) TestStorage(w http.ResponseWriter, r *http.Request) {
-	ws, ok := pathUUID(r, "ws_id")
+	ws, ok := organizationIDFromContext(r)
 	if !ok {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return

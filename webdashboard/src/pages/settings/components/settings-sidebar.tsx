@@ -103,7 +103,7 @@ export const SettingsSidebar = memo(function SettingsSidebar({
         <Link
           className="inline-flex items-center gap-2 py-1 px-1.5 -ml-1 rounded-lg text-slate-700 dark:text-slate-200 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-slate-100 dark:hover:bg-slate-800/60 transition-colors group outline-none focus-visible:ring-2 focus-visible:ring-primary"
           data-testid="settings-back-to-app"
-          title={t("settings.back_to_workspace", "Quay lại bảng làm việc")}
+          title={t("common.back_to_workspace", "Quay lại bảng làm việc")}
           to={ROUTES.HOME}
         >
           <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-0.5 text-slate-400 group-hover:text-primary-600 dark:group-hover:text-primary-400" />

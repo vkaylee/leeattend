@@ -164,7 +164,7 @@ func (h RosterHandler) Delete(w http.ResponseWriter, r *http.Request) {
 }
 
 func rosterPathIDs(r *http.Request) (uuid.UUID, uuid.UUID, bool) {
-	workspaceID, ok := pathUUID(r, "ws_id")
+	workspaceID, ok := organizationIDFromContext(r)
 	employeeID, employeeOK := pathUUID(r, "id")
 	return workspaceID, employeeID, ok && employeeOK
 }

@@ -362,7 +362,7 @@ type MonitorHandler struct {
 
 func (h MonitorHandler) requireInfraMonitor(r *http.Request) (uuid.UUID, *apperror.AppError) {
 	userID, ok := httpinfra.UserIDFromContext(r.Context())
-	workspaceID, hasWorkspace := httpinfra.WorkspaceIDFromContext(r.Context())
+	workspaceID, hasWorkspace := organizationIDFromContext(r)
 	if !ok || !hasWorkspace {
 		return uuid.Nil, apperror.Unauthorized(apperror.KeyUnauthorized)
 	}
@@ -1510,7 +1510,7 @@ func writeWSCloseFrame(w io.Writer) error {
 
 // 10. GET /api/v1/workspaces/{ws_id}/audit-logs
 func (h MonitorHandler) GetAuditLogs(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := pathUUID(r, "ws_id")
+	wsID, ok := organizationIDFromContext(r)
 	if !ok {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
@@ -1586,7 +1586,7 @@ func (h MonitorHandler) GetAuditLogs(w http.ResponseWriter, r *http.Request) {
 
 // 11. GET /api/v1/workspaces/{ws_id}/jobs/{job_id}
 func (h MonitorHandler) GetWorkspaceJobStatus(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := pathUUID(r, "ws_id")
+	wsID, ok := organizationIDFromContext(r)
 	if !ok {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
@@ -1665,7 +1665,7 @@ func (h MonitorHandler) GetWorkspaceJobStatus(w http.ResponseWriter, r *http.Req
 
 // 12. GET /api/v1/workspaces/{ws_id}/monitor/jobs/{job_id}
 func (h MonitorHandler) GetWorkspaceMonitorJob(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := pathUUID(r, "ws_id")
+	wsID, ok := organizationIDFromContext(r)
 	if !ok {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return

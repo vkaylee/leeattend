@@ -93,7 +93,7 @@ describe("payroll API", () => {
     const result = await fetchPayrollSettings("ws-1");
     expect(result).toEqual(mock);
     expect(apiFetch).toHaveBeenCalledTimes(1);
-    expect(vi.mocked(apiFetch).mock.calls[0][0]).toContain("/workspaces/ws-1/payroll-settings");
+    expect(vi.mocked(apiFetch).mock.calls[0][0]).toContain("/payroll-settings");
   });
 
   it("fetchPayrollSettings: ApiError on 500", async () => {
@@ -115,7 +115,7 @@ describe("payroll API", () => {
     const result = await createSalaryComponent("ws-1", body as never);
     expect(result).toEqual(created);
     const call = vi.mocked(apiFetch).mock.calls[0];
-    expect(call[0]).toContain("/workspaces/ws-1/salary-components");
+    expect(call[0]).toContain("/salary-components");
     expect(call[1] && (call[1] as RequestInit).method).toBe("POST");
   });
 
@@ -387,7 +387,7 @@ describe("payroll API", () => {
     const result = await updatePayrollSettings("ws-1", { payroll_cycle: "bi-weekly" } as never);
     expect(result).toEqual(mock);
     const call = vi.mocked(apiFetch).mock.calls[0];
-    expect(call[0]).toContain("/workspaces/ws-1/payroll-settings");
+    expect(call[0]).toContain("/payroll-settings");
     expect((call[1] as RequestInit).method).toBe("PATCH");
     expect(JSON.parse((call[1] as RequestInit).body as string).payroll_cycle).toBe("bi-weekly");
   });

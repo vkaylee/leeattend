@@ -126,7 +126,7 @@ func TestCustomFieldsDefinitionsCRUD(t *testing.T) {
 	}
 	raw, _ := json.Marshal(createBody)
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/workspaces/"+wsID.String()+"/custom-fields/definitions", bytes.NewReader(raw))
-	req.SetPathValue("ws_id", wsID.String())
+	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), userID))
 	rec := httptest.NewRecorder()
 
@@ -142,7 +142,7 @@ func TestCustomFieldsDefinitionsCRUD(t *testing.T) {
 	// 2. Duplicate create returns 409
 	recDup := httptest.NewRecorder()
 	reqDup := httptest.NewRequest(http.MethodPost, "/api/v1/workspaces/"+wsID.String()+"/custom-fields/definitions", bytes.NewReader(raw))
-	reqDup.SetPathValue("ws_id", wsID.String())
+	reqDup = reqDup.WithContext(httpinfra.WithOrganizationIDForTest(reqDup.Context(), wsID))
 	reqDup = reqDup.WithContext(httpinfra.WithUserIDForTest(reqDup.Context(), userID))
 	handler.CreateDefinition(recDup, reqDup)
 	if recDup.Code != http.StatusConflict {
@@ -151,7 +151,7 @@ func TestCustomFieldsDefinitionsCRUD(t *testing.T) {
 
 	// 3. Get definition
 	getReq := httptest.NewRequest(http.MethodGet, "/api/v1/workspaces/"+wsID.String()+"/custom-fields/definitions/"+created.ID.String(), nil)
-	getReq.SetPathValue("ws_id", wsID.String())
+	getReq = getReq.WithContext(httpinfra.WithOrganizationIDForTest(getReq.Context(), wsID))
 	getReq.SetPathValue("id", created.ID.String())
 	getReq = getReq.WithContext(httpinfra.WithUserIDForTest(getReq.Context(), userID))
 	getRec := httptest.NewRecorder()
@@ -163,7 +163,7 @@ func TestCustomFieldsDefinitionsCRUD(t *testing.T) {
 
 	// 4. List definitions
 	listReq := httptest.NewRequest(http.MethodGet, "/api/v1/workspaces/"+wsID.String()+"/custom-fields/definitions?entity_type=employee", nil)
-	listReq.SetPathValue("ws_id", wsID.String())
+	listReq = listReq.WithContext(httpinfra.WithOrganizationIDForTest(listReq.Context(), wsID))
 	listReq = listReq.WithContext(httpinfra.WithUserIDForTest(listReq.Context(), userID))
 	listRec := httptest.NewRecorder()
 
@@ -180,7 +180,7 @@ func TestCustomFieldsDefinitionsCRUD(t *testing.T) {
 	newLabel := "Shirt Size"
 	patchBody, _ := json.Marshal(UpdateCustomFieldDefinitionRequest{FieldLabel: &newLabel})
 	patchReq := httptest.NewRequest(http.MethodPatch, "/api/v1/workspaces/"+wsID.String()+"/custom-fields/definitions/"+created.ID.String(), bytes.NewReader(patchBody))
-	patchReq.SetPathValue("ws_id", wsID.String())
+	patchReq = patchReq.WithContext(httpinfra.WithOrganizationIDForTest(patchReq.Context(), wsID))
 	patchReq.SetPathValue("id", created.ID.String())
 	patchReq = patchReq.WithContext(httpinfra.WithUserIDForTest(patchReq.Context(), userID))
 	patchRec := httptest.NewRecorder()
@@ -192,7 +192,7 @@ func TestCustomFieldsDefinitionsCRUD(t *testing.T) {
 
 	// 6. Delete definition
 	delReq := httptest.NewRequest(http.MethodDelete, "/api/v1/workspaces/"+wsID.String()+"/custom-fields/definitions/"+created.ID.String(), nil)
-	delReq.SetPathValue("ws_id", wsID.String())
+	delReq = delReq.WithContext(httpinfra.WithOrganizationIDForTest(delReq.Context(), wsID))
 	delReq.SetPathValue("id", created.ID.String())
 	delReq = delReq.WithContext(httpinfra.WithUserIDForTest(delReq.Context(), userID))
 	delRec := httptest.NewRecorder()
@@ -227,7 +227,7 @@ func TestCustomFieldsValues(t *testing.T) {
 	}
 	raw, _ := json.Marshal(setBody)
 	setReq := httptest.NewRequest(http.MethodPut, "/api/v1/workspaces/"+wsID.String()+"/custom-fields/values/employee/"+empID.String(), bytes.NewReader(raw))
-	setReq.SetPathValue("ws_id", wsID.String())
+	setReq = setReq.WithContext(httpinfra.WithOrganizationIDForTest(setReq.Context(), wsID))
 	setReq.SetPathValue("entity_type", "employee")
 	setReq.SetPathValue("entity_id", empID.String())
 	setReq = setReq.WithContext(httpinfra.WithUserIDForTest(setReq.Context(), userID))
@@ -240,7 +240,7 @@ func TestCustomFieldsValues(t *testing.T) {
 
 	// Get value
 	getReq := httptest.NewRequest(http.MethodGet, "/api/v1/workspaces/"+wsID.String()+"/custom-fields/values/employee/"+empID.String(), nil)
-	getReq.SetPathValue("ws_id", wsID.String())
+	getReq = getReq.WithContext(httpinfra.WithOrganizationIDForTest(getReq.Context(), wsID))
 	getReq.SetPathValue("entity_type", "employee")
 	getReq.SetPathValue("entity_id", empID.String())
 	getReq = getReq.WithContext(httpinfra.WithUserIDForTest(getReq.Context(), userID))
@@ -279,7 +279,7 @@ func TestCustomFieldsListPermissions(t *testing.T) {
 		Authorizer: scopedCustomFieldAuthorizer{allowedPerms: map[string]bool{"employees:read": true}},
 	}
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/workspaces/"+wsID.String()+"/custom-fields/definitions?entity_type=employee", nil)
-	req.SetPathValue("ws_id", wsID.String())
+	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), userID))
 	rec := httptest.NewRecorder()
 	empHandler.ListDefinitions(rec, req)
@@ -289,7 +289,7 @@ func TestCustomFieldsListPermissions(t *testing.T) {
 
 	// Case 2: user only has employees:read, entity_type missing -> forbidden
 	reqNoEntity := httptest.NewRequest(http.MethodGet, "/api/v1/workspaces/"+wsID.String()+"/custom-fields/definitions", nil)
-	reqNoEntity.SetPathValue("ws_id", wsID.String())
+	reqNoEntity = reqNoEntity.WithContext(httpinfra.WithOrganizationIDForTest(reqNoEntity.Context(), wsID))
 	reqNoEntity = reqNoEntity.WithContext(httpinfra.WithUserIDForTest(reqNoEntity.Context(), userID))
 	recNoEntity := httptest.NewRecorder()
 	empHandler.ListDefinitions(recNoEntity, reqNoEntity)
@@ -303,7 +303,7 @@ func TestCustomFieldsListPermissions(t *testing.T) {
 		Authorizer: scopedCustomFieldAuthorizer{allowedPerms: map[string]bool{"workspace:settings:read": true}},
 	}
 	reqAdmin := httptest.NewRequest(http.MethodGet, "/api/v1/workspaces/"+wsID.String()+"/custom-fields/definitions", nil)
-	reqAdmin.SetPathValue("ws_id", wsID.String())
+	reqAdmin = reqAdmin.WithContext(httpinfra.WithOrganizationIDForTest(reqAdmin.Context(), wsID))
 	reqAdmin = reqAdmin.WithContext(httpinfra.WithUserIDForTest(reqAdmin.Context(), userID))
 	recAdmin := httptest.NewRecorder()
 	adminHandler.ListDefinitions(recAdmin, reqAdmin)

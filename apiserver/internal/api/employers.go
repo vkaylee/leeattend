@@ -135,7 +135,7 @@ type EmployerHandler struct {
 }
 
 func (h EmployerHandler) List(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := pathUUID(r, "ws_id")
+	wsID, ok := organizationIDFromContext(r)
 	if !ok || !h.isMember(r, wsID) {
 		h.forbidden(w, r)
 		return
@@ -154,7 +154,7 @@ func (h EmployerHandler) List(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h EmployerHandler) Create(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := pathUUID(r, "ws_id")
+	wsID, ok := organizationIDFromContext(r)
 	if !ok || !h.isMember(r, wsID) {
 		h.forbidden(w, r)
 		return
@@ -177,7 +177,7 @@ func (h EmployerHandler) Create(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h EmployerHandler) Get(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := pathUUID(r, "ws_id")
+	wsID, ok := organizationIDFromContext(r)
 	id, idOK := pathUUID(r, "id")
 	if !ok || !idOK || !h.isMember(r, wsID) {
 		h.forbidden(w, r)
@@ -192,7 +192,7 @@ func (h EmployerHandler) Get(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h EmployerHandler) Update(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := pathUUID(r, "ws_id")
+	wsID, ok := organizationIDFromContext(r)
 	id, idOK := pathUUID(r, "id")
 	if !ok || !idOK || !h.isMember(r, wsID) {
 		h.forbidden(w, r)
@@ -225,7 +225,7 @@ func (h EmployerHandler) Update(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h EmployerHandler) Delete(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := pathUUID(r, "ws_id")
+	wsID, ok := organizationIDFromContext(r)
 	id, idOK := pathUUID(r, "id")
 	if !ok || !idOK || !h.isMember(r, wsID) {
 		h.forbidden(w, r)

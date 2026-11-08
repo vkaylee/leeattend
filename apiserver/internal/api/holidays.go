@@ -165,7 +165,7 @@ type HolidayHandler struct {
 }
 
 func (h HolidayHandler) List(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := pathUUID(r, "ws_id")
+	wsID, ok := organizationIDFromContext(r)
 	if !ok {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
@@ -231,7 +231,7 @@ func (h HolidayHandler) List(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h HolidayHandler) Get(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := pathUUID(r, "ws_id")
+	wsID, ok := organizationIDFromContext(r)
 	holidayID, idOK := pathUUID(r, "id")
 	if !ok || !idOK {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
@@ -250,7 +250,7 @@ func (h HolidayHandler) Get(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h HolidayHandler) Create(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := pathUUID(r, "ws_id")
+	wsID, ok := organizationIDFromContext(r)
 	if !ok {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
@@ -295,7 +295,7 @@ func (h HolidayHandler) Create(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h HolidayHandler) Update(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := pathUUID(r, "ws_id")
+	wsID, ok := organizationIDFromContext(r)
 	holidayID, idOK := pathUUID(r, "id")
 	if !ok || !idOK {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
@@ -346,7 +346,7 @@ func (h HolidayHandler) Update(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h HolidayHandler) Delete(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := pathUUID(r, "ws_id")
+	wsID, ok := organizationIDFromContext(r)
 	holidayID, idOK := pathUUID(r, "id")
 	if !ok || !idOK {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
@@ -364,7 +364,7 @@ func (h HolidayHandler) Delete(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h HolidayHandler) ProcessLeave(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := pathUUID(r, "ws_id")
+	wsID, ok := organizationIDFromContext(r)
 	holidayID, idOK := pathUUID(r, "id")
 	if !ok || !idOK {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))

@@ -257,7 +257,7 @@ func (h ContractEmploymentHandler) error(w http.ResponseWriter, r *http.Request,
 	}
 }
 func (h ContractEmploymentHandler) path(w http.ResponseWriter, r *http.Request, names ...string) (uuid.UUID, []uuid.UUID, bool) {
-	ws, ok := pathUUID(r, "ws_id")
+	ws, ok := organizationIDFromContext(r)
 	if !ok || !h.auth(w, r, ws) {
 		return uuid.Nil, nil, false
 	}

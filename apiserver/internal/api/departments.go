@@ -80,7 +80,7 @@ type DepartmentHandler struct {
 }
 
 func (h DepartmentHandler) List(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := pathUUID(r, "ws_id")
+	wsID, ok := organizationIDFromContext(r)
 	if !ok {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
@@ -104,7 +104,7 @@ func (h DepartmentHandler) List(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h DepartmentHandler) Create(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := pathUUID(r, "ws_id")
+	wsID, ok := organizationIDFromContext(r)
 	if !ok {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
@@ -129,7 +129,7 @@ func (h DepartmentHandler) Create(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h DepartmentHandler) Update(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := pathUUID(r, "ws_id")
+	wsID, ok := organizationIDFromContext(r)
 	deptID, deptOK := pathUUID(r, "id")
 	if !ok || !deptOK {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
@@ -158,7 +158,7 @@ func (h DepartmentHandler) Update(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h DepartmentHandler) Delete(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := pathUUID(r, "ws_id")
+	wsID, ok := organizationIDFromContext(r)
 	deptID, deptOK := pathUUID(r, "id")
 	if !ok || !deptOK {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
@@ -177,7 +177,7 @@ func (h DepartmentHandler) Delete(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h DepartmentHandler) GetPayrollConfig(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := pathUUID(r, "ws_id")
+	wsID, ok := organizationIDFromContext(r)
 	deptID, deptOK := pathUUID(r, "id")
 	if !ok || !deptOK {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
@@ -197,7 +197,7 @@ func (h DepartmentHandler) GetPayrollConfig(w http.ResponseWriter, r *http.Reque
 }
 
 func (h DepartmentHandler) SetPayrollConfig(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := pathUUID(r, "ws_id")
+	wsID, ok := organizationIDFromContext(r)
 	deptID, deptOK := pathUUID(r, "id")
 	if !ok || !deptOK {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))

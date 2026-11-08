@@ -25,7 +25,7 @@ type systemHealthResponse struct {
 
 func (h SystemHealthHandler) Get(w http.ResponseWriter, r *http.Request) {
 	userID, ok := httpinfra.UserIDFromContext(r.Context())
-	workspaceID, hasWorkspace := httpinfra.WorkspaceIDFromContext(r.Context())
+	workspaceID, hasWorkspace := organizationIDFromContext(r)
 	if !ok || !hasWorkspace {
 		apperror.WriteError(w, r, apperror.Unauthorized(apperror.KeyUnauthorized))
 		return

@@ -93,7 +93,7 @@ type ShiftSwapHandler struct {
 }
 
 func (h ShiftSwapHandler) Create(w http.ResponseWriter, r *http.Request) {
-	workspaceID, ok := pathUUID(r, "ws_id")
+	workspaceID, ok := organizationIDFromContext(r)
 	userID, userOK := httpinfra.UserIDFromContext(r.Context())
 	if !ok || !userOK || !h.allowed(r, workspaceID, "shift_swaps:manage") {
 		h.forbidden(w, r)
@@ -113,7 +113,7 @@ func (h ShiftSwapHandler) Create(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h ShiftSwapHandler) List(w http.ResponseWriter, r *http.Request) {
-	workspaceID, ok := pathUUID(r, "ws_id")
+	workspaceID, ok := organizationIDFromContext(r)
 	if !ok || !h.allowed(r, workspaceID, "shift_swaps:manage") {
 		h.forbidden(w, r)
 		return
@@ -136,7 +136,7 @@ func (h ShiftSwapHandler) List(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h ShiftSwapHandler) Approve(w http.ResponseWriter, r *http.Request) {
-	workspaceID, ok := pathUUID(r, "ws_id")
+	workspaceID, ok := organizationIDFromContext(r)
 	requestID, requestOK := pathUUID(r, "id")
 	userID, userOK := httpinfra.UserIDFromContext(r.Context())
 	if !ok || !requestOK || !userOK || !h.allowed(r, workspaceID, "shift_swaps:approve") {
@@ -156,7 +156,7 @@ func (h ShiftSwapHandler) Approve(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h ShiftSwapHandler) Stats(w http.ResponseWriter, r *http.Request) {
-	workspaceID, ok := pathUUID(r, "ws_id")
+	workspaceID, ok := organizationIDFromContext(r)
 	if !ok || !h.allowed(r, workspaceID, "shift_swaps:manage") {
 		h.forbidden(w, r)
 		return

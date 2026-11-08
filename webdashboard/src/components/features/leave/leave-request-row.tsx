@@ -183,7 +183,7 @@ export function LeaveRequestRow({
                 <Button
                   className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-bold bg-indigo-50 hover:bg-indigo-100 text-indigo-750 dark:bg-indigo-950/30 dark:hover:bg-indigo-900/40 dark:text-indigo-400 border border-indigo-150 dark:border-indigo-900/50 transition-colors cursor-pointer h-auto py-1 shadow-none"
                   key={fileId}
-                  onClick={() => onPreviewAttachment?.(`/api/v1/workspaces/${wsId}/files/${fileId}/download`, `Leave Attachment #${index + 1}`)}
+                  onClick={() => onPreviewAttachment?.(`/api/v1/files/${fileId}/download`, `Leave Attachment #${index + 1}`)}
                   variant="ghost"
                 >
                   <Paperclip className="w-3 h-3" />

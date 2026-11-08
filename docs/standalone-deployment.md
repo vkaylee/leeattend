@@ -6,9 +6,9 @@ Single-company Linux appliance. No SaaS control plane, telemetry, activation cal
 
 `docker-compose.yml` runs one PostgreSQL database, PgBouncer, Redis, MinIO, Go API, and local React Dashboard. PostgreSQL has no host port; every application and operator connection goes through PgBouncer. Its only host binding is loopback-only for local migration and maintenance tools. Redis and MinIO have no host ports. Frontend and API networks are internal; publish only a customer-managed TLS reverse proxy to the LAN.
 
-System and business tables share one PostgreSQL database. The Phase 1 baseline is `apiserver/migrations/20261103000000_init/`; it applies both schema groups in one ordered migration. Existing workspace-compatible columns remain temporarily while later phases remove workspace data contracts.
+System and business tables share one PostgreSQL database. The Phase 1 baseline is `apiserver/migrations/20261103000000_init/`; it applies both schema groups in one ordered migration. Existing `workspace_id` columns, `workspaces` table, and workspace RBAC tables remain compatibility storage until a separately approved schema migration.
 
-The target architecture is one company, one database, and one schema. Backend core no longer accepts workspace identity configuration or routes pools by workspace; repository and API compatibility fields remain temporarily for later phases.
+The target architecture is one company, one database, and one schema. Organization scope is fixed during API bootstrap; it is never selected from URL, header, local storage, or client state. API repositories bind this trusted organization ID to compatibility `workspace_id` predicates.
 
 ## Prerequisites
 

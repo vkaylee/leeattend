@@ -114,9 +114,9 @@ func (a mockRecruitmentAuthz) HasPermission(_ context.Context, _, _ uuid.UUID, p
 
 func recruitmentRequest(method, path, body string, wsID uuid.UUID) *http.Request {
 	req := httptest.NewRequest(method, path, bytes.NewBufferString(body))
-	req.SetPathValue("ws_id", wsID.String())
+	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
-	req = req.WithContext(httpinfra.WithWorkspaceIDForTest(req.Context(), wsID))
+	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
 	return req
 }
 

@@ -51,7 +51,7 @@ func TestWorkSegmentHandler_Create_RequiresPermission(t *testing.T) {
 	wsID := uuid.New()
 	handler := WorkSegmentHandler{Repository: &mockWorkSegmentRepository{}, Authorizer: mockAttendanceAuthorizer{allowed: false}}
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/workspaces/"+wsID.String()+"/work-segments", bytes.NewReader(validSegmentJSON()))
-	req.SetPathValue("ws_id", wsID.String())
+	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
 	rec := httptest.NewRecorder()
 	handler.Create(rec, req)
@@ -65,7 +65,7 @@ func TestWorkSegmentHandler_Create_ForcesManualSource(t *testing.T) {
 	handler := WorkSegmentHandler{Repository: &mockWorkSegmentRepository{}, Authorizer: mockAttendanceAuthorizer{allowed: true}}
 	body := append(validSegmentJSON()[:len(validSegmentJSON())-1], []byte(`,"source":"pattern"}`)...)
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/workspaces/"+wsID.String()+"/work-segments", bytes.NewReader(body))
-	req.SetPathValue("ws_id", wsID.String())
+	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
 	rec := httptest.NewRecorder()
 	handler.Create(rec, req)
@@ -93,7 +93,7 @@ func TestWorkSegmentHandler_BulkRejectsOversizedBatch(t *testing.T) {
 	handler := WorkSegmentHandler{Repository: &mockWorkSegmentRepository{}, Authorizer: mockAttendanceAuthorizer{allowed: true}}
 	body := []byte(`{"segments":[]}`)
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/workspaces/"+wsID.String()+"/work-segments/bulk", bytes.NewReader(body))
-	req.SetPathValue("ws_id", wsID.String())
+	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
 	rec := httptest.NewRecorder()
 	handler.BulkCreate(rec, req)

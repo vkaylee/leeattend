@@ -204,7 +204,7 @@ func setReqContext(r *http.Request, userID uuid.UUID) *http.Request {
 
 func setInfraReqContext(r *http.Request, userID uuid.UUID) *http.Request {
 	ctx := httpinfra.WithUserIDForTest(r.Context(), userID)
-	return r.WithContext(httpinfra.WithWorkspaceIDForTest(ctx, monitorTestWorkspaceID))
+	return r.WithContext(httpinfra.WithOrganizationIDForTest(ctx, monitorTestWorkspaceID))
 }
 
 func monitorInfraAuthz(users ...uuid.UUID) *mockMonitorAuthz {
@@ -502,7 +502,7 @@ func TestWorkspaceAuditLogs(t *testing.T) {
 
 	// 1. User without permission -> 403
 	req := setReqContext(httptest.NewRequest(http.MethodGet, "/api/v1/workspaces/"+wsID.String()+"/audit-logs", nil), userNoPerm)
-	req.SetPathValue("ws_id", wsID.String())
+	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
 	w := httptest.NewRecorder()
 	handler.GetAuditLogs(w, req)
 	if w.Code != http.StatusForbidden {
@@ -511,7 +511,7 @@ func TestWorkspaceAuditLogs(t *testing.T) {
 
 	// 2. User with permission -> 200
 	req = setReqContext(httptest.NewRequest(http.MethodGet, "/api/v1/workspaces/"+wsID.String()+"/audit-logs", nil), userWithPerm)
-	req.SetPathValue("ws_id", wsID.String())
+	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
 	w = httptest.NewRecorder()
 	handler.GetAuditLogs(w, req)
 	if w.Code != http.StatusOK {
@@ -543,7 +543,7 @@ func TestWorkspaceJobStatus(t *testing.T) {
 
 	// Non-member -> 403
 	req := setReqContext(httptest.NewRequest(http.MethodGet, "/api/v1/workspaces/"+otherWsID.String()+"/jobs/"+uuid.NewString(), nil), user)
-	req.SetPathValue("ws_id", otherWsID.String())
+	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), otherWsID))
 	req.SetPathValue("job_id", uuid.NewString())
 	w := httptest.NewRecorder()
 	handler.GetWorkspaceJobStatus(w, req)
@@ -579,7 +579,7 @@ func TestWorkspaceDurableMonitorJob(t *testing.T) {
 
 	// 1. Not found -> 404
 	req := setReqContext(httptest.NewRequest(http.MethodGet, "/api/v1/workspaces/"+wsID.String()+"/monitor/jobs/"+uuid.NewString(), nil), user)
-	req.SetPathValue("ws_id", wsID.String())
+	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
 	req.SetPathValue("job_id", uuid.NewString())
 	w := httptest.NewRecorder()
 	handler.GetWorkspaceMonitorJob(w, req)
@@ -589,7 +589,7 @@ func TestWorkspaceDurableMonitorJob(t *testing.T) {
 
 	// 2. Found -> 200
 	req = setReqContext(httptest.NewRequest(http.MethodGet, "/api/v1/workspaces/"+wsID.String()+"/monitor/jobs/"+jobID.String(), nil), user)
-	req.SetPathValue("ws_id", wsID.String())
+	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
 	req.SetPathValue("job_id", jobID.String())
 	w = httptest.NewRecorder()
 	handler.GetWorkspaceMonitorJob(w, req)

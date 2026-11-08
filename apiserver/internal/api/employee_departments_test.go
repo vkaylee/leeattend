@@ -56,7 +56,7 @@ func TestEmployeeDepartments_ListAndTransfer(t *testing.T) {
 
 	// 1. List History -> 200
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/workspaces/"+wsID.String()+"/employees/"+empID.String()+"/departments", nil)
-	req.SetPathValue("ws_id", wsID.String())
+	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
 	req.SetPathValue("id", empID.String())
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), userID))
 	rec := httptest.NewRecorder()
@@ -69,7 +69,7 @@ func TestEmployeeDepartments_ListAndTransfer(t *testing.T) {
 	newDeptID := uuid.New()
 	body := `{"department_id":"` + newDeptID.String() + `","effective_date":"2026-04-01","notes":"Promotion transfer"}`
 	transferReq := httptest.NewRequest(http.MethodPost, "/api/v1/workspaces/"+wsID.String()+"/employees/"+empID.String()+"/departments", bytes.NewBufferString(body))
-	transferReq.SetPathValue("ws_id", wsID.String())
+	transferReq = transferReq.WithContext(httpinfra.WithOrganizationIDForTest(transferReq.Context(), wsID))
 	transferReq.SetPathValue("id", empID.String())
 	transferReq = transferReq.WithContext(httpinfra.WithUserIDForTest(transferReq.Context(), userID))
 	recTransfer := httptest.NewRecorder()
@@ -91,7 +91,7 @@ func TestEmployeeDepartments_ListAndTransfer(t *testing.T) {
 
 	// 4. Transfer Invalid Date -> 400
 	badReq := httptest.NewRequest(http.MethodPost, "/api/v1/workspaces/"+wsID.String()+"/employees/"+empID.String()+"/departments", bytes.NewBufferString(`{"department_id":"`+newDeptID.String()+`","effective_date":"invalid"}`))
-	badReq.SetPathValue("ws_id", wsID.String())
+	badReq = badReq.WithContext(httpinfra.WithOrganizationIDForTest(badReq.Context(), wsID))
 	badReq.SetPathValue("id", empID.String())
 	badReq = badReq.WithContext(httpinfra.WithUserIDForTest(badReq.Context(), userID))
 	recBad := httptest.NewRecorder()

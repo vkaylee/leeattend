@@ -315,7 +315,7 @@ func TestTemplateDefaultReplacement(t *testing.T) {
 		IsDefault:     true,
 	})
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/workspaces/"+wsID.String()+"/lifecycle-templates", bytes.NewReader(raw))
-	req.SetPathValue("ws_id", wsID.String())
+	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), userID))
 	rec := httptest.NewRecorder()
 
@@ -352,7 +352,7 @@ func TestTemplateItemNestedNullPatch(t *testing.T) {
 
 	clearPayload := `{"assignee_user_id": null}`
 	req := httptest.NewRequest(http.MethodPut, "/api/v1/workspaces/"+wsID.String()+"/lifecycle-templates/"+item.TemplateID.String()+"/items/"+item.ID.String(), bytes.NewReader([]byte(clearPayload)))
-	req.SetPathValue("ws_id", wsID.String())
+	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
 	req.SetPathValue("tid", item.TemplateID.String())
 	req.SetPathValue("iid", item.ID.String())
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), userID))
@@ -391,7 +391,7 @@ func TestChecklistProgressAndAssigneeAuth(t *testing.T) {
 	checklistItemID := cl.Items[0].ID
 
 	reqForbidden := httptest.NewRequest(http.MethodPatch, "/api/v1/workspaces/"+wsID.String()+"/lifecycle/"+cl.ID.String()+"/items/"+checklistItemID.String(), bytes.NewReader([]byte(`{"status":"completed"}`)))
-	reqForbidden.SetPathValue("ws_id", wsID.String())
+	reqForbidden = reqForbidden.WithContext(httpinfra.WithOrganizationIDForTest(reqForbidden.Context(), wsID))
 	reqForbidden.SetPathValue("id", cl.ID.String())
 	reqForbidden.SetPathValue("iid", checklistItemID.String())
 	reqForbidden = reqForbidden.WithContext(httpinfra.WithUserIDForTest(reqForbidden.Context(), nonAssigneeUser))
@@ -402,7 +402,7 @@ func TestChecklistProgressAndAssigneeAuth(t *testing.T) {
 	}
 
 	reqAllowed := httptest.NewRequest(http.MethodPatch, "/api/v1/workspaces/"+wsID.String()+"/lifecycle/"+cl.ID.String()+"/items/"+checklistItemID.String(), bytes.NewReader([]byte(`{"status":"completed"}`)))
-	reqAllowed.SetPathValue("ws_id", wsID.String())
+	reqAllowed = reqAllowed.WithContext(httpinfra.WithOrganizationIDForTest(reqAllowed.Context(), wsID))
 	reqAllowed.SetPathValue("id", cl.ID.String())
 	reqAllowed.SetPathValue("iid", checklistItemID.String())
 	reqAllowed = reqAllowed.WithContext(httpinfra.WithUserIDForTest(reqAllowed.Context(), assigneeUser))
@@ -431,7 +431,7 @@ func TestListWorkspaceChecklists(t *testing.T) {
 	_, _ = repo.CreateChecklistFromTemplate(context.Background(), wsID, empID, tmplID, nil, nil)
 
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/workspaces/"+wsID.String()+"/lifecycle/instances", nil)
-	req.SetPathValue("ws_id", wsID.String())
+	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
 	rec := httptest.NewRecorder()
 

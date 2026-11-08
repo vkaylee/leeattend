@@ -169,7 +169,7 @@ func (h AuthHandler) MyPermissions(w http.ResponseWriter, r *http.Request) {
 		apperror.WritePrimitiveAuthRequired(w)
 		return
 	}
-	workspaceID, ok := httpinfra.WorkspaceIDFromContext(r.Context())
+	workspaceID, ok := organizationIDFromContext(r)
 	if !ok {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyMissingWorkspace))
 		return
@@ -205,7 +205,7 @@ func (h AuthHandler) WorkspaceUsers(w http.ResponseWriter, r *http.Request) {
 		apperror.WritePrimitiveAuthRequired(w)
 		return
 	}
-	workspaceID, ok := httpinfra.WorkspaceIDFromContext(r.Context())
+	workspaceID, ok := organizationIDFromContext(r)
 	if !ok {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyMissingWorkspace))
 		return

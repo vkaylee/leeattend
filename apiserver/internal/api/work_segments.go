@@ -117,7 +117,7 @@ type WorkSegmentHandler struct {
 }
 
 func (h WorkSegmentHandler) List(w http.ResponseWriter, r *http.Request) {
-	workspaceID, ok := pathUUID(r, "ws_id")
+	workspaceID, ok := organizationIDFromContext(r)
 	if !ok || !h.allowed(r, workspaceID, "rosters:read") {
 		h.forbidden(w, r)
 		return
@@ -141,7 +141,7 @@ func (h WorkSegmentHandler) List(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h WorkSegmentHandler) Get(w http.ResponseWriter, r *http.Request) {
-	workspaceID, ok := pathUUID(r, "ws_id")
+	workspaceID, ok := organizationIDFromContext(r)
 	segmentID, segmentOK := pathUUID(r, "segment_id")
 	if !ok || !segmentOK || !h.allowed(r, workspaceID, "rosters:read") {
 		h.forbidden(w, r)
@@ -156,7 +156,7 @@ func (h WorkSegmentHandler) Get(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h WorkSegmentHandler) Create(w http.ResponseWriter, r *http.Request) {
-	workspaceID, ok := pathUUID(r, "ws_id")
+	workspaceID, ok := organizationIDFromContext(r)
 	if !ok || !h.allowed(r, workspaceID, "rosters:manage") {
 		h.forbidden(w, r)
 		return
@@ -178,7 +178,7 @@ func (h WorkSegmentHandler) Create(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h WorkSegmentHandler) Update(w http.ResponseWriter, r *http.Request) {
-	workspaceID, ok := pathUUID(r, "ws_id")
+	workspaceID, ok := organizationIDFromContext(r)
 	segmentID, segmentOK := pathUUID(r, "segment_id")
 	if !ok || !segmentOK || !h.allowed(r, workspaceID, "rosters:manage") {
 		h.forbidden(w, r)
@@ -198,7 +198,7 @@ func (h WorkSegmentHandler) Update(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h WorkSegmentHandler) Delete(w http.ResponseWriter, r *http.Request) {
-	workspaceID, ok := pathUUID(r, "ws_id")
+	workspaceID, ok := organizationIDFromContext(r)
 	segmentID, segmentOK := pathUUID(r, "segment_id")
 	if !ok || !segmentOK || !h.allowed(r, workspaceID, "rosters:manage") {
 		h.forbidden(w, r)
@@ -212,7 +212,7 @@ func (h WorkSegmentHandler) Delete(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h WorkSegmentHandler) BulkCreate(w http.ResponseWriter, r *http.Request) {
-	workspaceID, ok := pathUUID(r, "ws_id")
+	workspaceID, ok := organizationIDFromContext(r)
 	if !ok || !h.allowed(r, workspaceID, "rosters:manage") {
 		h.forbidden(w, r)
 		return

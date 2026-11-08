@@ -55,7 +55,7 @@ func BenchmarkDepartmentListHandler(b *testing.B) {
 		Authorizer: mockAuthorizer{perms: map[string]bool{"departments:read": true}},
 	}
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/workspaces/"+wsID.String()+"/departments", nil)
-	req.SetPathValue("ws_id", wsID.String())
+	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), userID))
 
 	b.ResetTimer()

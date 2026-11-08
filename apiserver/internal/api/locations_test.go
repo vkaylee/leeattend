@@ -61,7 +61,7 @@ func (a mockLocationAuthz) EffectivePermissions(_ context.Context, _, _ uuid.UUI
 
 func locationRequest(method, path, body string, wsID uuid.UUID) *http.Request {
 	req := httptest.NewRequest(method, path, bytes.NewBufferString(body))
-	req.SetPathValue("ws_id", wsID.String())
+	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
 	return req
 }

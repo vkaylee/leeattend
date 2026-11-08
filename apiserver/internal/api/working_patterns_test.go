@@ -135,7 +135,7 @@ func TestWorkingPatternHandler_Create_RequiresPermission(t *testing.T) {
 	handler := WorkingPatternHandler{Repository: &mockPatternRepository{}, Authorizer: mockAttendanceAuthorizer{allowed: false}}
 	body := []byte(`{"name":"5/2 Standard","pattern_type":"weekly","details":[{"schedule_day":1}]}`)
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/workspaces/"+wsID.String()+"/working-patterns", bytes.NewReader(body))
-	req.SetPathValue("ws_id", wsID.String())
+	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
 	rec := httptest.NewRecorder()
 	handler.Create(rec, req)
@@ -149,7 +149,7 @@ func TestWorkingPatternHandler_Create_Success(t *testing.T) {
 	handler := WorkingPatternHandler{Repository: &mockPatternRepository{}, Authorizer: mockAttendanceAuthorizer{allowed: true}}
 	body := []byte(`{"name":"5/2 Standard","pattern_type":"weekly","details":[{"schedule_day":1},{"schedule_day":2}]}`)
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/workspaces/"+wsID.String()+"/working-patterns", bytes.NewReader(body))
-	req.SetPathValue("ws_id", wsID.String())
+	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
 	rec := httptest.NewRecorder()
 	handler.Create(rec, req)
@@ -169,7 +169,7 @@ func TestWorkingPatternHandler_List_Success(t *testing.T) {
 	wsID := uuid.New()
 	handler := WorkingPatternHandler{Repository: &mockPatternRepository{}, Authorizer: mockAttendanceAuthorizer{allowed: true}}
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/workspaces/"+wsID.String()+"/working-patterns", nil)
-	req.SetPathValue("ws_id", wsID.String())
+	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
 	rec := httptest.NewRecorder()
 	handler.List(rec, req)
 	if rec.Code != http.StatusOK {
@@ -191,7 +191,7 @@ func TestWorkingPatternHandler_Assign_Success(t *testing.T) {
 	handler := WorkingPatternHandler{Repository: &mockPatternRepository{}, Authorizer: mockAttendanceAuthorizer{allowed: true}}
 	body := []byte(`{"pattern_id":"` + patID.String() + `","start_date":"2026-10-20"}`)
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/workspaces/"+wsID.String()+"/employments/"+empID.String()+"/working-patterns", bytes.NewReader(body))
-	req.SetPathValue("ws_id", wsID.String())
+	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
 	req.SetPathValue("employment_id", empID.String())
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
 	rec := httptest.NewRecorder()
@@ -216,7 +216,7 @@ func TestWorkingPatternHandler_BulkAssign_Success(t *testing.T) {
 	handler := WorkingPatternHandler{Repository: &mockPatternRepository{}, Authorizer: mockAttendanceAuthorizer{allowed: true}}
 	body := []byte(`{"pattern_id":"` + patID.String() + `","employment_ids":["` + emp1.String() + `","` + emp2.String() + `"],"start_date":"2026-10-20"}`)
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/workspaces/"+wsID.String()+"/working-patterns/bulk-assign", bytes.NewReader(body))
-	req.SetPathValue("ws_id", wsID.String())
+	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
 	rec := httptest.NewRecorder()
 	handler.BulkAssign(rec, req)

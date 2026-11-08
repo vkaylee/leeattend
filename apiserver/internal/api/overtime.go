@@ -244,7 +244,7 @@ func validOvertimeClock(raw *string) bool {
 }
 
 func (h OvertimeHandler) ListPolicies(w http.ResponseWriter, r *http.Request) {
-	workspaceID, ok := pathUUID(r, "ws_id")
+	workspaceID, ok := organizationIDFromContext(r)
 	if !ok {
 		h.forbidden(w, r)
 		return
@@ -263,7 +263,7 @@ func (h OvertimeHandler) ListPolicies(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h OvertimeHandler) CreatePolicy(w http.ResponseWriter, r *http.Request) {
-	workspaceID, ok := pathUUID(r, "ws_id")
+	workspaceID, ok := organizationIDFromContext(r)
 	if !ok || !h.allowed(r, workspaceID, PermissionOvertimePoliciesManage) {
 		h.forbidden(w, r)
 		return
@@ -282,7 +282,7 @@ func (h OvertimeHandler) CreatePolicy(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h OvertimeHandler) GetPolicy(w http.ResponseWriter, r *http.Request) {
-	workspaceID, ok := pathUUID(r, "ws_id")
+	workspaceID, ok := organizationIDFromContext(r)
 	policyID, policyOK := pathUUID(r, "policy_id")
 	if !ok || !policyOK {
 		h.forbidden(w, r)
@@ -297,7 +297,7 @@ func (h OvertimeHandler) GetPolicy(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h OvertimeHandler) AddRule(w http.ResponseWriter, r *http.Request) {
-	workspaceID, ok := pathUUID(r, "ws_id")
+	workspaceID, ok := organizationIDFromContext(r)
 	policyID, policyOK := pathUUID(r, "policy_id")
 	if !ok || !policyOK || !h.allowed(r, workspaceID, PermissionOvertimePoliciesManage) {
 		h.forbidden(w, r)
@@ -317,7 +317,7 @@ func (h OvertimeHandler) AddRule(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h OvertimeHandler) AssignPolicy(w http.ResponseWriter, r *http.Request) {
-	workspaceID, ok := pathUUID(r, "ws_id")
+	workspaceID, ok := organizationIDFromContext(r)
 	if !ok || !h.allowed(r, workspaceID, PermissionOvertimePoliciesManage) {
 		h.forbidden(w, r)
 		return
@@ -350,7 +350,7 @@ func (h OvertimeHandler) AssignPolicy(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h OvertimeHandler) ListRequests(w http.ResponseWriter, r *http.Request) {
-	workspaceID, ok := pathUUID(r, "ws_id")
+	workspaceID, ok := organizationIDFromContext(r)
 	if !ok || !h.allowed(r, workspaceID, PermissionOvertimeRequestRead) {
 		h.forbidden(w, r)
 		return
@@ -369,7 +369,7 @@ func (h OvertimeHandler) ListRequests(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h OvertimeHandler) CreateRequest(w http.ResponseWriter, r *http.Request) {
-	workspaceID, ok := pathUUID(r, "ws_id")
+	workspaceID, ok := organizationIDFromContext(r)
 	userID, userOK := h.userID(r)
 	if !ok || !userOK || !h.allowed(r, workspaceID, PermissionOvertimeRequestCreate) {
 		h.forbidden(w, r)
@@ -403,7 +403,7 @@ func (h OvertimeHandler) CreateRequest(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h OvertimeHandler) GetRequest(w http.ResponseWriter, r *http.Request) {
-	workspaceID, ok := pathUUID(r, "ws_id")
+	workspaceID, ok := organizationIDFromContext(r)
 	requestID, requestOK := pathUUID(r, "id")
 	if !ok || !requestOK || !h.allowed(r, workspaceID, PermissionOvertimeRequestRead) {
 		h.forbidden(w, r)
@@ -418,7 +418,7 @@ func (h OvertimeHandler) GetRequest(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h OvertimeHandler) SubmitRequest(w http.ResponseWriter, r *http.Request) {
-	workspaceID, ok := pathUUID(r, "ws_id")
+	workspaceID, ok := organizationIDFromContext(r)
 	requestID, requestOK := pathUUID(r, "id")
 	if !ok || !requestOK || !h.allowed(r, workspaceID, PermissionOvertimeRequestCreate) {
 		h.forbidden(w, r)
@@ -432,7 +432,7 @@ func (h OvertimeHandler) SubmitRequest(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h OvertimeHandler) ConsentRequest(w http.ResponseWriter, r *http.Request) {
-	workspaceID, ok := pathUUID(r, "ws_id")
+	workspaceID, ok := organizationIDFromContext(r)
 	requestID, requestOK := pathUUID(r, "id")
 	employeeID, employeeOK := pathUUID(r, "emp_id")
 	userID, userOK := h.userID(r)
@@ -464,7 +464,7 @@ func (h OvertimeHandler) ConsentRequest(w http.ResponseWriter, r *http.Request) 
 }
 
 func (h OvertimeHandler) ListRequestBehalf(w http.ResponseWriter, r *http.Request) {
-	workspaceID, ok := pathUUID(r, "ws_id")
+	workspaceID, ok := organizationIDFromContext(r)
 	if !ok {
 		h.forbidden(w, r)
 		return
@@ -492,7 +492,7 @@ func (h OvertimeHandler) ListRequestBehalf(w http.ResponseWriter, r *http.Reques
 }
 
 func (h OvertimeHandler) CreateRequestBehalf(w http.ResponseWriter, r *http.Request) {
-	workspaceID, ok := pathUUID(r, "ws_id")
+	workspaceID, ok := organizationIDFromContext(r)
 	if !ok || !h.allowed(r, workspaceID, PermissionOvertimePoliciesManage) {
 		h.forbidden(w, r)
 		return
@@ -511,7 +511,7 @@ func (h OvertimeHandler) CreateRequestBehalf(w http.ResponseWriter, r *http.Requ
 }
 
 func (h OvertimeHandler) RequestBehalfTargets(w http.ResponseWriter, r *http.Request) {
-	workspaceID, ok := pathUUID(r, "ws_id")
+	workspaceID, ok := organizationIDFromContext(r)
 	userID, userOK := h.userID(r)
 	if !ok || !userOK {
 		apperror.WriteError(w, r, apperror.Unauthorized(apperror.KeyAuthenticationRequired))
@@ -526,7 +526,7 @@ func (h OvertimeHandler) RequestBehalfTargets(w http.ResponseWriter, r *http.Req
 }
 
 func (h OvertimeHandler) DeleteRequestBehalf(w http.ResponseWriter, r *http.Request) {
-	workspaceID, ok := pathUUID(r, "ws_id")
+	workspaceID, ok := organizationIDFromContext(r)
 	assignmentID, assignmentOK := pathUUID(r, "id")
 	if !ok || !assignmentOK || !h.allowed(r, workspaceID, PermissionOvertimePoliciesManage) {
 		h.forbidden(w, r)
@@ -540,7 +540,7 @@ func (h OvertimeHandler) DeleteRequestBehalf(w http.ResponseWriter, r *http.Requ
 }
 
 func (h OvertimeHandler) ClaimOT(w http.ResponseWriter, r *http.Request) {
-	workspaceID, ok := pathUUID(r, "ws_id")
+	workspaceID, ok := organizationIDFromContext(r)
 	employeeID, employeeOK := pathUUID(r, "employee_id")
 	userID, userOK := h.userID(r)
 	if !ok || !employeeOK || !userOK {
@@ -570,7 +570,7 @@ func (h OvertimeHandler) ClaimOT(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h OvertimeHandler) ApproveOT(w http.ResponseWriter, r *http.Request) {
-	workspaceID, ok := pathUUID(r, "ws_id")
+	workspaceID, ok := organizationIDFromContext(r)
 	employeeID, employeeOK := pathUUID(r, "employee_id")
 	userID, userOK := h.userID(r)
 	if !ok || !employeeOK || !userOK {
@@ -599,7 +599,7 @@ func (h OvertimeHandler) ApproveOT(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h OvertimeHandler) ListClaimBehalf(w http.ResponseWriter, r *http.Request) {
-	workspaceID, ok := pathUUID(r, "ws_id")
+	workspaceID, ok := organizationIDFromContext(r)
 	if !ok {
 		h.forbidden(w, r)
 		return
@@ -613,7 +613,7 @@ func (h OvertimeHandler) ListClaimBehalf(w http.ResponseWriter, r *http.Request)
 }
 
 func (h OvertimeHandler) CreateClaimBehalf(w http.ResponseWriter, r *http.Request) {
-	workspaceID, ok := pathUUID(r, "ws_id")
+	workspaceID, ok := organizationIDFromContext(r)
 	if !ok || !h.allowed(r, workspaceID, PermissionOvertimePoliciesManage) {
 		h.forbidden(w, r)
 		return
@@ -632,7 +632,7 @@ func (h OvertimeHandler) CreateClaimBehalf(w http.ResponseWriter, r *http.Reques
 }
 
 func (h OvertimeHandler) DeleteClaimBehalf(w http.ResponseWriter, r *http.Request) {
-	workspaceID, ok := pathUUID(r, "ws_id")
+	workspaceID, ok := organizationIDFromContext(r)
 	assignmentID, assignmentOK := pathUUID(r, "id")
 	if !ok || !assignmentOK || !h.allowed(r, workspaceID, PermissionOvertimePoliciesManage) {
 		h.forbidden(w, r)

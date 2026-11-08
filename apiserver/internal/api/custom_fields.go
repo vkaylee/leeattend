@@ -100,7 +100,7 @@ type CustomFieldHandler struct {
 }
 
 func (h CustomFieldHandler) CreateDefinition(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := pathUUID(r, "ws_id")
+	wsID, ok := organizationIDFromContext(r)
 	if !ok || !h.allowed(r, wsID, "workspace:settings:write") {
 		h.forbidden(w, r)
 		return
@@ -149,7 +149,7 @@ func (h CustomFieldHandler) CreateDefinition(w http.ResponseWriter, r *http.Requ
 }
 
 func (h CustomFieldHandler) GetDefinition(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := pathUUID(r, "ws_id")
+	wsID, ok := organizationIDFromContext(r)
 	id, idOK := pathUUID(r, "id")
 	if !ok || !idOK || !h.allowed(r, wsID, "workspace:settings:read") {
 		h.forbidden(w, r)
@@ -168,7 +168,7 @@ func (h CustomFieldHandler) GetDefinition(w http.ResponseWriter, r *http.Request
 }
 
 func (h CustomFieldHandler) ListDefinitions(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := pathUUID(r, "ws_id")
+	wsID, ok := organizationIDFromContext(r)
 	if !ok {
 		h.forbidden(w, r)
 		return
@@ -203,7 +203,7 @@ func (h CustomFieldHandler) ListDefinitions(w http.ResponseWriter, r *http.Reque
 }
 
 func (h CustomFieldHandler) UpdateDefinition(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := pathUUID(r, "ws_id")
+	wsID, ok := organizationIDFromContext(r)
 	id, idOK := pathUUID(r, "id")
 	if !ok || !idOK || !h.allowed(r, wsID, "workspace:settings:write") {
 		h.forbidden(w, r)
@@ -227,7 +227,7 @@ func (h CustomFieldHandler) UpdateDefinition(w http.ResponseWriter, r *http.Requ
 }
 
 func (h CustomFieldHandler) DeleteDefinition(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := pathUUID(r, "ws_id")
+	wsID, ok := organizationIDFromContext(r)
 	id, idOK := pathUUID(r, "id")
 	if !ok || !idOK || !h.allowed(r, wsID, "workspace:settings:write") {
 		h.forbidden(w, r)
@@ -245,7 +245,7 @@ func (h CustomFieldHandler) DeleteDefinition(w http.ResponseWriter, r *http.Requ
 }
 
 func (h CustomFieldHandler) GetValues(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := pathUUID(r, "ws_id")
+	wsID, ok := organizationIDFromContext(r)
 	entityType := r.PathValue("entity_type")
 	entityID, idOK := pathUUID(r, "entity_id")
 	if !ok || !idOK {
@@ -273,7 +273,7 @@ func (h CustomFieldHandler) GetValues(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h CustomFieldHandler) SetValues(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := pathUUID(r, "ws_id")
+	wsID, ok := organizationIDFromContext(r)
 	entityType := r.PathValue("entity_type")
 	entityID, idOK := pathUUID(r, "entity_id")
 	if !ok || !idOK {

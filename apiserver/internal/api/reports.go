@@ -159,7 +159,7 @@ type ReportHandler struct {
 }
 
 func (h ReportHandler) CreateExport(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := pathUUID(r, "ws_id")
+	wsID, ok := organizationIDFromContext(r)
 	userID, userOK := httpinfra.UserIDFromContext(r.Context())
 	if !ok || !userOK || h.Authorizer == nil || !h.Authorizer.HasPermission(r.Context(), userID, wsID, "reports:export") {
 		h.forbidden(w, r)
@@ -186,7 +186,7 @@ func (h ReportHandler) CreateExport(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h ReportHandler) Status(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := pathUUID(r, "ws_id")
+	wsID, ok := organizationIDFromContext(r)
 	jobID, jobOK := pathUUID(r, "job_id")
 	userID, userOK := httpinfra.UserIDFromContext(r.Context())
 	if !ok || !jobOK || !userOK || !h.allowed(r, wsID, userID) {
@@ -215,7 +215,7 @@ func (h ReportHandler) Status(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h ReportHandler) Cancel(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := pathUUID(r, "ws_id")
+	wsID, ok := organizationIDFromContext(r)
 	jobID, jobOK := pathUUID(r, "job_id")
 	userID, userOK := httpinfra.UserIDFromContext(r.Context())
 	if !ok || !jobOK || !userOK || !h.allowed(r, wsID, userID) {
@@ -243,7 +243,7 @@ func (h ReportHandler) Cancel(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h ReportHandler) Download(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := pathUUID(r, "ws_id")
+	wsID, ok := organizationIDFromContext(r)
 	jobID, jobOK := pathUUID(r, "job_id")
 	userID, userOK := httpinfra.UserIDFromContext(r.Context())
 	if !ok || !jobOK || !userOK || !h.allowed(r, wsID, userID) {
@@ -289,7 +289,7 @@ func (h ReportHandler) Download(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h ReportHandler) AttendanceReport(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := pathUUID(r, "ws_id")
+	wsID, ok := organizationIDFromContext(r)
 	userID, userOK := httpinfra.UserIDFromContext(r.Context())
 	if !ok || !userOK {
 		h.validation(w, r)
@@ -438,7 +438,7 @@ func (h ReportHandler) AttendanceReport(w http.ResponseWriter, r *http.Request) 
 }
 
 func (h ReportHandler) NoShowReport(w http.ResponseWriter, r *http.Request) {
-	wsID, ok := pathUUID(r, "ws_id")
+	wsID, ok := organizationIDFromContext(r)
 	userID, userOK := httpinfra.UserIDFromContext(r.Context())
 	if !ok || !userOK {
 		h.validation(w, r)

@@ -38,7 +38,7 @@ func TestEmployeeHandler_ListRequiresPermission(t *testing.T) {
 	wsID := uuid.New()
 	h := EmployeeHandler{Repository: mockEmployeeRepo{}, Authorizer: mockAuthorizer{perms: map[string]bool{}}}
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/workspaces/"+wsID.String()+"/employees", nil)
-	req.SetPathValue("ws_id", wsID.String())
+	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
 	rec := httptest.NewRecorder()
 
@@ -52,7 +52,7 @@ func TestEmployeeHandler_DeleteSuccess(t *testing.T) {
 	wsID, empID := uuid.New(), uuid.New()
 	h := EmployeeHandler{Repository: mockEmployeeRepo{}, Authorizer: mockAuthorizer{perms: map[string]bool{"employees:delete": true}}}
 	req := httptest.NewRequest(http.MethodDelete, "/api/v1/workspaces/"+wsID.String()+"/employees/"+empID.String(), nil)
-	req.SetPathValue("ws_id", wsID.String())
+	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
 	req.SetPathValue("id", empID.String())
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
 	rec := httptest.NewRecorder()
@@ -67,7 +67,7 @@ func TestEmployeeHandler_CreateFailsOnEmptyFields(t *testing.T) {
 	wsID := uuid.New()
 	h := EmployeeHandler{Repository: mockEmployeeRepo{}, Authorizer: mockAuthorizer{perms: map[string]bool{"employees:create": true}}}
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/workspaces/"+wsID.String()+"/employees", bytes.NewBufferString(`{}`))
-	req.SetPathValue("ws_id", wsID.String())
+	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
 	rec := httptest.NewRecorder()
 
@@ -81,7 +81,7 @@ func TestEmployeeHandler_Get(t *testing.T) {
 	wsID, empID := uuid.New(), uuid.New()
 	h := EmployeeHandler{Repository: mockEmployeeRepo{}, Authorizer: mockAuthorizer{perms: map[string]bool{"employees:read": true}}}
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/workspaces/"+wsID.String()+"/employees/"+empID.String(), nil)
-	req.SetPathValue("ws_id", wsID.String())
+	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
 	req.SetPathValue("id", empID.String())
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
 	rec := httptest.NewRecorder()
@@ -95,7 +95,7 @@ func TestEmployeeHandler_Update(t *testing.T) {
 	wsID, empID := uuid.New(), uuid.New()
 	h := EmployeeHandler{Repository: mockEmployeeRepo{}, Authorizer: mockAuthorizer{perms: map[string]bool{"employees:update": true}}}
 	req := httptest.NewRequest(http.MethodPut, "/api/v1/workspaces/"+wsID.String()+"/employees/"+empID.String(), bytes.NewBufferString(`{"full_name":"Updated Name"}`))
-	req.SetPathValue("ws_id", wsID.String())
+	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
 	req.SetPathValue("id", empID.String())
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
 	rec := httptest.NewRecorder()
@@ -109,7 +109,7 @@ func TestEmployeeHandler_UpdateForbidden(t *testing.T) {
 	wsID, empID := uuid.New(), uuid.New()
 	h := EmployeeHandler{Repository: mockEmployeeRepo{}, Authorizer: mockAuthorizer{perms: map[string]bool{}}}
 	req := httptest.NewRequest(http.MethodPut, "/api/v1/workspaces/"+wsID.String()+"/employees/"+empID.String(), bytes.NewBufferString(`{"full_name":"Updated Name"}`))
-	req.SetPathValue("ws_id", wsID.String())
+	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), wsID))
 	req.SetPathValue("id", empID.String())
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
 	rec := httptest.NewRecorder()

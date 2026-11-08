@@ -146,7 +146,7 @@ type ShiftHandler struct {
 }
 
 func (h ShiftHandler) Create(w http.ResponseWriter, r *http.Request) {
-	workspaceID, ok := pathUUID(r, "ws_id")
+	workspaceID, ok := organizationIDFromContext(r)
 	if !ok || !h.allowed(r, workspaceID, "shifts:create") {
 		h.forbidden(w, r)
 		return
@@ -174,7 +174,7 @@ func (h ShiftHandler) Create(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h ShiftHandler) List(w http.ResponseWriter, r *http.Request) {
-	workspaceID, ok := pathUUID(r, "ws_id")
+	workspaceID, ok := organizationIDFromContext(r)
 	if !ok {
 		h.forbidden(w, r)
 		return
@@ -203,7 +203,7 @@ func (h ShiftHandler) List(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h ShiftHandler) Update(w http.ResponseWriter, r *http.Request) {
-	workspaceID, ok := pathUUID(r, "ws_id")
+	workspaceID, ok := organizationIDFromContext(r)
 	templateID, templateOK := pathUUID(r, "shift_id")
 	if !ok || !templateOK || !h.allowed(r, workspaceID, "shifts:update") {
 		h.forbidden(w, r)
@@ -234,7 +234,7 @@ func (h ShiftHandler) Update(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h ShiftHandler) Versions(w http.ResponseWriter, r *http.Request) {
-	workspaceID, ok := pathUUID(r, "ws_id")
+	workspaceID, ok := organizationIDFromContext(r)
 	templateID, templateOK := pathUUID(r, "shift_id")
 	if !ok || !templateOK || !h.allowed(r, workspaceID, "shifts:read") {
 		h.forbidden(w, r)
@@ -249,7 +249,7 @@ func (h ShiftHandler) Versions(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h ShiftHandler) Assign(w http.ResponseWriter, r *http.Request) {
-	workspaceID, ok := pathUUID(r, "ws_id")
+	workspaceID, ok := organizationIDFromContext(r)
 	if !ok || !h.allowed(r, workspaceID, "shifts:assign") {
 		h.forbidden(w, r)
 		return
