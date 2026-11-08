@@ -88,10 +88,13 @@ webdashboard/playwright/
 
 # LeeDevKit — per-project install (no global install)
 .leedevkit/
-leedevkit
 .leedevkit.bak
 /leedevkit
 
 # Codebase memory
 .codebase-memory/
 .attendagent/
+.leedevkit.bootstrap.lock
+.leedevkit-bootstrap-*/
+.leedevkit.new-*
+.leedevkit.previous-*
