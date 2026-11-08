@@ -26,26 +26,17 @@ trigger: always_on
 2. **Security & Privacy:** NEVER log PII (emails, passwords, phones) in raw text. Mask them (e.g., `user_***@domain.com`).
 3. **Structured Errors:** Use domain-specific error types (`AppError`). NEVER throw generic `Error` or `unwrap()` blindly.
 4. **Boy Scout Rule:** If you see a typo, bad pattern, or visible bug nearby, FIX IT IMMEDIATELY. Never say "it's out of scope".
-5. **PTY Safety & File Creation (CRITICAL):** 
-   - **Execution Pattern:** At the beginning of each task/session, ensure the `logs/` directory exists once with `mkdir -p logs`. For ALL terminal commands after that, you **MUST** append ` > logs/run_{command_slug}.log 2>&1 </dev/null` directly inside the `CommandLine` argument; do not repeat `mkdir -p logs &&` unless the directory may have been removed. Example: `CommandLine: "ls -la > logs/run_ls.log 2>&1 </dev/null"`.
-   - **Anti-pattern:** Leaving stdout/stderr un-redirected, which hangs the system.
-   - **Script Execution Pattern (2-Step Workflow):** Any code execution (Python, Bash, JS) MUST follow a strict 2-step workflow:
-     1. Use the native `write_to_file` tool to create a temporary script (e.g., `scratch/temp_script.py` or `scratch/commit_msg.txt`).
-     2. Execute the file via `run_command` (e.g., `python scratch/temp_script.py > logs/run_script.log 2>&1`).
-   - **Pre-Flight Check for Multiline:** ALWAYS check if your command requires multiline inputs, complex formatting, or inline execution (`python -c`, `bash -c`, multiline `echo`/`cat`). If it does, YOU MUST USE the `write_to_file` tool to save it as a physical file first. Multiline strings in the terminal break the PTY parser and cause system hangs. Use `write_to_file` as your best friend!
-   - **Log Monitoring Pattern:** Use **periodic sampling** (e.g., one-shot reads via `tail -n 100`, `cat`, or native `view_file` tool) to inspect states safely.
-   - **Anti-pattern:** Using infinite-blocking streams (`tail -f`, `watch`, `top`, `ping`) via `run_command` in background mode. These commands hang the PTY and pollute the task list forever.
-6. **Hermetic Wrappers (CRITICAL):** Do not call host dependency tools directly. Use `./leedevkit test` for tests and the repository wrappers in `scripts/` for Go, Bun, Python, and container operations. See `.agent/rules/execution-wrappers.md`.
-7. **AI MUST BE CALM & PATIENT (CRITICAL):** This is a fundamental mindset for all situations. DO NOT RUSH.
+5. **Hermetic Wrappers (CRITICAL):** Do not call host dependency tools directly. Use `./leedevkit test` for tests and the repository wrappers in `scripts/` for Go, Bun, Python, and container operations. See `.agent/rules/execution-wrappers.md`.
+6. **AI MUST BE CALM & PATIENT (CRITICAL):** This is a fundamental mindset for all situations. DO NOT RUSH.
     - Read requirements carefully before starting.
     - Cross-check risks before modifying source code.
     - Never jump to conclusions based on assumptions or subjective guesses.
     - Always verify with concrete evidence before responding.
     - Always wait for processes to finish, carefully read error logs (if any), and only then report back to the user. Never say "it's done" without actually verifying the outcome.
-8. **AI MUST EXPLORE BEFORE CREATING (ANTI-REINVENTION):**
+7. **AI MUST EXPLORE BEFORE CREATING (ANTI-REINVENTION):**
     - You MUST use `list_dir`, `grep_search`, or read root-level scripts to verify that a tool doesn't already exist BEFORE creating any new scripts (bash/python).
     - AI tends to ignore existing large codebase tools and writes new ones, causing context bloat and technical debt. DO NOT REINVENT THE WHEEL.
-9. **TESTING COMPLETENESS (CRITICAL - NO FALSE POSITIVES):**
+8. **TESTING COMPLETENESS (CRITICAL - NO FALSE POSITIVES):**
     - **Unit tests passing does NOT mean the task is complete.** Unit tests only verify isolated logic.
     - **Integration tests are MANDATORY** after unit tests pass. They verify database operations, API contracts, cross-component interactions, and end-to-end workflows.
     - **Anti-pattern:** Running `./leedevkit test <target> --unit-only` and declaring the task complete. This creates false confidence.
@@ -114,21 +105,13 @@ To activate an agent, use the `view_file` tool to load their profile AND their d
 This repository uses LeeDevKit. Before making changes, read and apply:
 `.leedevkit/templates/CLAUDE.base.md`.
 
-Source of truth for this project's AI context lives in project `.agent/` and
-the installed devkit `.leedevkit/`:
+Project policy lives in `.agent/`; devkit sources live at:
+- Built-in skills: `.leedevkit/.agent/skills/*/SKILL.md`
+- Community skills: `.leedevkit/skills.d/*/SKILL.md`
+- Built-in agents: `.leedevkit/.agent/agents/*.md`
+- Project agents: `.agent/agents/*.md`
 
-| Purpose | Location |
-|---------|----------|
-| Rulebooks (lazy-load by domain) | `.agent/rules/*.md` |
-| Built-in skills | `.leedevkit/.agent/skills/*/SKILL.md` |
-| Installed community skills | `.leedevkit/skills.d/*/SKILL.md` |
-| Built-in agents | `.leedevkit/.agent/agents/*.md` |
-| Project agents | `.agent/agents/*.md` |
-| Devkit commands | `./leedevkit --help` |
-
-Capability fallback: if this harness cannot run shell commands, dispatch
-subagents, or track todos, follow the skill's prose directly and report the
-missing capability. Never invent a tool call the harness does not provide.
+Run `./leedevkit --help` for available project commands.
 
 ### Available skills
 
