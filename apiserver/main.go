@@ -139,6 +139,7 @@ func main() {
 	authHandler.Authorizer = organizationAuthorizer
 
 	mux.HandleFunc("PATCH /api/v1", organizationHandler.Patch)
+	mux.HandleFunc("PATCH /api/v1/organization/settings", organizationHandler.Patch)
 	mux.HandleFunc("GET /api/v1/feature-flags", organizationHandler.ListFeatureFlags)
 	mux.HandleFunc("GET /api/v1/members", rbacHandler.ListMembers)
 	mux.HandleFunc("POST /api/v1/members", rbacHandler.AddMember)
@@ -173,6 +174,7 @@ func main() {
 	mux.HandleFunc("GET /api/v1/configs/{key}", organizationHandler.GetConfig)
 	mux.HandleFunc("DELETE /api/v1/configs/{key}", organizationHandler.DeleteConfig)
 	mux.HandleFunc("GET /api/v1", organizationHandler.Get)
+	mux.HandleFunc("GET /api/v1/organization/settings", organizationHandler.Get)
 	healthHandler := health.NewHandler(Version, nil, nil)
 	healthHandler.SetLive(true)
 	departmentRepo := repository.DepartmentRepository{DB: db}
@@ -656,17 +658,26 @@ func main() {
 	mux.HandleFunc("GET /api/v1/audit-logs", monitorHandler.GetAuditLogs)
 	mux.HandleFunc("GET /api/v1/jobs/{job_id}", monitorHandler.GetJobStatus)
 	mux.HandleFunc("GET /api/v1/monitor/jobs/{job_id}", monitorHandler.GetMonitorJob)
-
 	mux.HandleFunc("POST /api/v1/auth/login", authHandler.Login)
+	mux.HandleFunc("POST /api/auth/login", authHandler.Login)
 	mux.HandleFunc("POST /api/v1/auth/refresh", authHandler.Refresh)
+	mux.HandleFunc("POST /api/auth/refresh", authHandler.Refresh)
 	mux.HandleFunc("POST /api/v1/auth/logout", authHandler.Logout)
+	mux.HandleFunc("POST /api/auth/logout", authHandler.Logout)
 	mux.HandleFunc("POST /api/v1/auth/forgot-password", authHandler.ForgotPassword)
+	mux.HandleFunc("POST /api/auth/forgot-password", authHandler.ForgotPassword)
 	mux.HandleFunc("POST /api/v1/auth/reset-password", authHandler.ResetPassword)
+	mux.HandleFunc("POST /api/auth/reset-password", authHandler.ResetPassword)
 	mux.HandleFunc("POST /api/v1/auth/change-password", authHandler.ChangePassword)
+	mux.HandleFunc("POST /api/auth/change-password", authHandler.ChangePassword)
 	mux.HandleFunc("GET /api/v1/me", authHandler.Me)
+	mux.HandleFunc("GET /api/me", authHandler.Me)
 	mux.HandleFunc("PATCH /api/v1/me", authHandler.UpdateMe)
+	mux.HandleFunc("PATCH /api/me", authHandler.UpdateMe)
 	mux.HandleFunc("GET /api/v1/me/permissions", authHandler.MyPermissions)
+	mux.HandleFunc("GET /api/me/permissions", authHandler.MyPermissions)
 	mux.HandleFunc("GET /api/v1/users", authHandler.OrganizationUsers)
+	mux.HandleFunc("GET /api/users", authHandler.OrganizationUsers)
 	preferencesRepo := repository.DashboardPreferencesRepository{DB: db}
 	preferencesHandler := api.DashboardPreferencesHandler{Repository: preferencesRepo, Authorizer: organizationAuthorizer}
 	mux.HandleFunc("GET /api/v1/dashboard/preferences", preferencesHandler.Get)
@@ -695,9 +706,13 @@ func main() {
 		"/api/v1/health",
 		"/api/v1/health/ready",
 		"/api/v1/auth/login",
+		"/api/auth/login",
 		"/api/v1/auth/refresh",
+		"/api/auth/refresh",
 		"/api/v1/auth/forgot-password",
+		"/api/auth/forgot-password",
 		"/api/v1/auth/reset-password",
+		"/api/auth/reset-password",
 		"/api/v1/ws/reports/",
 		"/v1/ws/reports/",
 		"/ws/reports/",

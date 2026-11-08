@@ -202,7 +202,6 @@ export function PreOtApprovalsTab({
                   if (!fileId) return null;
                   return (
                     <Button
-                      onClick={() => { onPreviewAttachment?.(`/api/v1/files/${fileId}/download`, `Pre-OT Attachment #${index + 1}`); }}
                       icon={<Paperclip className="w-3 h-3" />}
                       key={fileId}
                       onClick={() => { onPreviewAttachment?.(`/api/v1/files/${fileId}/download`, `Pre-OT Attachment #${index + 1}`); }}

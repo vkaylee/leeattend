@@ -21,7 +21,7 @@ export const employeeAssignmentKeys = {
   workspace: () =>
     [...employeeAssignmentKeys.all, "workspace"] as const,
 };
-
+export const useAssignments = useWorkspaceAssignments;
 export function useWorkspaceAssignments() {
   return useQuery<EmployeeAssignmentWithEmployee[]>({
     queryKey: employeeAssignmentKeys.workspace(),

@@ -212,6 +212,7 @@ export async function calculateBatchPayslips(data: { employment_ids: string[]; y
   return resData;
 }
 
+export const fetchPayslips = fetchWorkspacePayslips;
 export async function fetchWorkspacePayslips(year: number, month: number): Promise<Payslip[]> {
   const { data: resData } = await client.GET<Payslip[]>("/v1/payroll/payslips", {
     params: { 

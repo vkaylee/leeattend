@@ -32,6 +32,7 @@ export async function submitLeaveRequest(
   return resData;
 }
 
+export const fetchLeaveRequests = fetchWorkspaceLeaveRequests;
 export async function fetchWorkspaceLeaveRequests(
   params?: {
     status?: "pending" | "approved" | "rejected" | "cancelled" | "pre_approved";
@@ -87,6 +88,7 @@ export async function fetchEmployeeLeaveBalances(
   return resData;
 }
 
+export const fetchLeaveBalances = fetchWorkspaceLeaveBalances;
 export async function fetchWorkspaceLeaveBalances(
   params?: { page?: number; limit?: number; q?: string; year?: number }
 ): Promise<PaginatedResponse<WorkspaceLeaveBalance>> {
