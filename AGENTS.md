@@ -95,7 +95,7 @@ To activate an agent, use the `view_file` tool to load their profile AND their d
 - **Frontend / React / UI:** `@[.agent/agents/frontend-specialist.md]` (Dependencies: `design-rules.md`, `coding-standards.md`)
 - **Backend / Go / API:** `@[.agent/agents/backend-specialist.md]` (Dependencies: `coding-standards.md`, `database-rules.md`, `access-control.md`, `data-governance.md`)
 - **Database / Postgres:** `@[.agent/agents/database-expert.md]` (Dependencies: `database-rules.md`, `data-governance.md`, `encryption-rules.md`)
-- **DevOps / Infra:** `@[.agent/agents/devops-engineer.md]` (Dependencies: `execution-pty-safety.md`, `testing-standards.md`, `observability-rules.md`, `business-continuity.md`, `supply-chain-security.md`)
+- **DevOps / Infra:** `@[.agent/agents/devops-engineer.md]` (Dependencies: `testing-standards.md`, `observability-rules.md`, `business-continuity.md`, `supply-chain-security.md`)
 - **Security / Audit:** `@[.agent/agents/security-auditor.md]` (Dependencies: `access-control.md`, `encryption-rules.md`, `incident-response.md`, `data-governance.md`)
 
 
