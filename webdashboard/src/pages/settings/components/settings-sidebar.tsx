@@ -167,7 +167,7 @@ export const SettingsSidebar = memo(function SettingsSidebar({
                 return (
                   <Link
                     className={cn(
-                      "flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-xs transition-all duration-150 group relative select-none",
+                      "flex items-start gap-2.5 px-2.5 py-2 rounded-xl text-xs transition-all duration-150 group relative select-none",
                       isActive
                         ? "bg-primary-600 text-white font-semibold shadow-2xs"
                         : "text-slate-700 dark:text-slate-300 hover:bg-slate-200/60 dark:hover:bg-slate-800/70"
@@ -178,7 +178,7 @@ export const SettingsSidebar = memo(function SettingsSidebar({
                   >
                     <div
                       className={cn(
-                        "w-6 h-6 rounded-lg flex items-center justify-center shrink-0 transition-colors",
+                        "w-6 h-6 rounded-lg flex items-center justify-center shrink-0 transition-colors mt-0.5",
                         isActive
                           ? "bg-white/20 text-white"
                           : "bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 group-hover:text-primary-600 dark:group-hover:text-primary-400"
@@ -194,7 +194,7 @@ export const SettingsSidebar = memo(function SettingsSidebar({
                       {item.description && (
                         <div
                           className={cn(
-                            "text-[10px] truncate leading-normal",
+                            "text-[10px] whitespace-normal break-words leading-relaxed mt-0.5",
                             isActive
                               ? "text-white/80 font-normal"
                               : "text-slate-500 dark:text-slate-400"

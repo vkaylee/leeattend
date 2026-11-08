@@ -39,7 +39,7 @@ function SettingCategoryCard({ item }: { item: SettingItem }) {
         <span className="text-xs font-semibold text-slate-800 dark:text-slate-100 truncate leading-snug group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors">
           {item.label}
         </span>
-        <span className="text-[11px] text-slate-400 dark:text-slate-500 line-clamp-2 leading-relaxed">
+        <span className="text-[11px] text-slate-400 dark:text-slate-500 whitespace-normal break-words leading-relaxed">
           {item.description}
         </span>
       </div>
