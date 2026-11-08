@@ -67,7 +67,7 @@ function cleanApiPath(urlStr: string): string {
   if (cleaned.includes('/api/api/v1')) {
     cleaned = cleaned.replace('/api/api/v1', '/api/v1');
   }
-  if (cleaned.includes('/api/') && !cleaned.includes('/api/v1/')) {
+  if (cleaned.includes('/api/') && !/\/api\/v1(\/|$)/.test(cleaned)) {
     cleaned = cleaned.replace('/api/', '/api/v1/');
   }
   return cleaned;
