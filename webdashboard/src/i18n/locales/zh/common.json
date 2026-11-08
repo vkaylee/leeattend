@@ -1538,6 +1538,16 @@
       "feature_4_title": "薪资与数据分析",
       "feature_4_desc": "自动生成报告并支持Excel导出"
     },
+    "mock": {
+      "window_title": "LeeAttend — 考勤仪表板",
+      "employees": "员工",
+      "on_time": "准时",
+      "on_leave": "请假",
+      "weekly_attendance": "每周考勤",
+      "todays_status": "今日状态",
+      "roles": { "engineering": "工程部", "marketing": "市场部", "hr": "人力资源", "finance": "财务部" },
+      "status": { "present": "出勤", "late": "迟到", "leave": "请假" }
+    },
     "forgot_password": "忘记密码？",
     "forgot_password_title": "重置您的密码",
     "forgot_password_desc": "输入您的电子邮件，我们将向您发送重置链接。",

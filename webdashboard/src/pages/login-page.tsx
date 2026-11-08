@@ -10,6 +10,7 @@ import {
   getCurrentUserId,
   login as apiLogin,
 } from "@/lib/api";
+import { ApiError } from "@/lib/api/errors";
 import { ROUTES } from "@/lib/routes";
 
 export default function LoginPage() {
@@ -18,7 +19,7 @@ export default function LoginPage() {
   const location = useLocation();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<"auth.login_error" | "auth.connection_error" | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const from = (location.state as { from?: string } | null)?.from ?? ROUTES.HOME;
@@ -41,7 +42,7 @@ export default function LoginPage() {
       await apiLogin(loginEmail, loginPass);
       void navigate({ to: from, replace: true });
     } catch (error_: unknown) {
-      setError(error_ instanceof Error ? error_.message : t("auth.login_error"));
+      setError(error_ instanceof ApiError && error_.status >= 500 || error_ instanceof TypeError && error_.message === "Failed to fetch" ? "auth.connection_error" : "auth.login_error");
     } finally {
       setIsSubmitting(false);
     }
@@ -98,7 +99,7 @@ export default function LoginPage() {
           className="mb-6 bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-300 p-4 rounded-2xl text-sm font-medium animate-in slide-in-from-top-3 duration-300"
           role="alert"
         >
-          {error}
+          {t(error)}
         </div>
       ) : null}
 

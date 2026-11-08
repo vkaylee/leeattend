@@ -1538,6 +1538,16 @@
       "feature_4_title": "Bảng lương & Phân tích",
       "feature_4_desc": "Tự động tạo báo cáo với xuất file Excel"
     },
+    "mock": {
+      "window_title": "LeeAttend — Bảng chấm công",
+      "employees": "Nhân viên",
+      "on_time": "Đúng giờ",
+      "on_leave": "Nghỉ phép",
+      "weekly_attendance": "Chấm công tuần",
+      "todays_status": "Tình hình hôm nay",
+      "roles": { "engineering": "Kỹ thuật", "marketing": "Tiếp thị", "hr": "Nhân sự", "finance": "Tài chính" },
+      "status": { "present": "Có mặt", "late": "Đi trễ", "leave": "Nghỉ phép" }
+    },
     "forgot_password": "Quên mật khẩu?",
     "forgot_password_title": "Đặt lại mật khẩu của bạn",
     "forgot_password_desc": "Nhập email của bạn và chúng tôi sẽ gửi cho bạn một liên kết để đặt lại mật khẩu.",

@@ -7,6 +7,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import i18n from "../../i18n/config";
 import * as api from "../../lib/api";
 import LoginPage from "../login-page";
+import { ApiError } from "../../lib/api/errors";
 
 const { mockNavigate } = vi.hoisted(() => {
   return { mockNavigate: vi.fn() };
@@ -77,27 +78,32 @@ describe("LoginPage", () => {
     });
   });
 
-  it("displays error toast on invalid credentials", async () => {
+  it("shows localized credentials errors without exposing API details", async () => {
     renderWithProviders(<LoginPage />);
 
-    const emailInput = screen.getByTestId("login-email-input");
-    const passwordInput = screen.getByTestId("login-password-input");
-    const submitButton = screen.getByTestId("login-submit-btn");
-
+    vi.mocked(api.login).mockRejectedValue(new ApiError(401, "Unauthorized", "UNAUTHORIZED", { message: "Invalid email or password" }));
     const user = userEvent.setup();
- 
-    vi.mocked(api.login).mockRejectedValue(new Error("Invalid email or password"));
+    await user.type(screen.getByTestId("login-email-input"), "admin@leeattend.com");
+    await user.type(screen.getByTestId("login-password-input"), "wrongpassword");
+    await user.click(screen.getByTestId("login-submit-btn"));
 
-    await user.type(emailInput, "admin@leeattend.com");
-    await user.type(passwordInput, "wrongpassword");
-    await user.click(submitButton);
-
-    await waitFor(() => {
-      expect(api.login).toHaveBeenCalledWith("admin@leeattend.com", "wrongpassword");
-    });
-    
-    expect(await screen.findByRole("alert")).toHaveTextContent("Invalid email or password");
+    expect(await screen.findByRole("alert")).toHaveTextContent("Email hoặc mật khẩu không đúng");
+    expect(screen.getByRole("alert")).not.toHaveTextContent("401");
+    expect(screen.getByRole("alert")).not.toHaveTextContent("UNAUTHORIZED");
     expect(mockNavigate).not.toHaveBeenCalled();
+  });
+
+  it("shows localized connection error when login request fails", async () => {
+    renderWithProviders(<LoginPage />);
+
+    vi.mocked(api.login).mockRejectedValue(new TypeError("Failed to fetch"));
+    const user = userEvent.setup();
+    await user.type(screen.getByTestId("login-email-input"), "admin@leeattend.com");
+    await user.type(screen.getByTestId("login-password-input"), "secret");
+    await user.click(screen.getByTestId("login-submit-btn"));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("Lỗi kết nối server");
+    expect(screen.getByRole("alert")).not.toHaveTextContent("Failed to fetch");
   });
 
   it("redirects to home if user is already logged in", () => {

@@ -1,6 +1,6 @@
 import type { QueryClient } from "@tanstack/react-query";
 
-import { createRootRouteWithContext, Outlet } from "@tanstack/react-router";
+import { createRootRouteWithContext, Outlet, useRouterState } from "@tanstack/react-router";
 import { lazy, Suspense } from "react";
 
 import { ErrorBoundary } from "@/components/common/error-boundary";
@@ -36,14 +36,23 @@ function NotFoundPage() {
   );
 }
 
-export const Route = createRootRouteWithContext<RouterContext>()({
-  component: () => (
+function RootComponent() {
+  const pathname = useRouterState({ select: (state) => state.location.pathname });
+  const showDevtools = import.meta.env.DEV && !["/login", "/register", "/forgot-password", "/reset-password"].includes(pathname);
+
+  return (
     <ErrorBoundary>
       <Outlet />
-      <Suspense fallback={null}>
-        <TanStackRouterDevtools position="bottom-right" />
-      </Suspense>
+      {showDevtools ? (
+        <Suspense fallback={null}>
+          <TanStackRouterDevtools position="bottom-right" />
+        </Suspense>
+      ) : null}
     </ErrorBoundary>
-  ),
+  );
+}
+
+export const Route = createRootRouteWithContext<RouterContext>()({
+  component: RootComponent,
   notFoundComponent: NotFoundPage,
 });

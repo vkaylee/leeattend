@@ -1549,7 +1549,17 @@
     "reset_password_btn": "Set New Password",
     "reset_success": "Password changed! Please log in with your new password.",
     "reset_token_invalid": "This reset link is invalid or has expired.",
-    "back_to_login": "Back to Login"
+    "back_to_login": "Back to Login",
+    "mock": {
+      "window_title": "LeeAttend — Attendance Dashboard",
+      "employees": "Employees",
+      "on_time": "On Time",
+      "on_leave": "On Leave",
+      "weekly_attendance": "Weekly Attendance",
+      "todays_status": "Today's Status",
+      "roles": { "engineering": "Engineering", "marketing": "Marketing", "hr": "HR", "finance": "Finance" },
+      "status": { "present": "Present", "late": "Late", "leave": "On Leave" }
+    }
   },
   "monitor": {
     "durable_job_details_title": "Durable Job Details",

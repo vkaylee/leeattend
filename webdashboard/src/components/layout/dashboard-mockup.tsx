@@ -20,7 +20,7 @@ export function DashboardMockup() {
             <div className="w-2.5 h-2.5 rounded-full bg-amber-400/60" />
             <div className="w-2.5 h-2.5 rounded-full bg-emerald-400/60" />
           </div>
-          <span className="text-white/40 text-[11px] font-medium ml-2 tracking-wide">LeeAttend — Attendance Dashboard</span>
+          <span className="text-white/40 text-[11px] font-medium ml-2 tracking-wide">{t("auth.mock.window_title")}</span>
         </div>
 
         <div className="p-4 space-y-4">
@@ -28,19 +28,14 @@ export function DashboardMockup() {
           {/* Stat cards row */}
           <div className="grid grid-cols-3 gap-2">
             {STAT_CARDS.map(({ value, label, color, border }) => {
-              const localizedLabel =
-                label === "Employees"
-                  ? t("common.employees", { defaultValue: "Nhân viên" })
-                  : label === "On Time"
-                    ? t("attendance.on_time", { defaultValue: "Đúng giờ" })
-                    : t("attendance.on_leave", { defaultValue: "Nghỉ phép" });
+              const labelKey = label === "Employees" ? "employees" : label === "On Time" ? "on_time" : "on_leave";
               return (
                 <div
                   className={`rounded-xl p-3 bg-gradient-to-br ${color} border ${border} animate-[auth-fade-in_0.5s_ease-out_both]`}
                   key={label}
                 >
                   <Typography className="text-white font-bold text-lg leading-none" variant="p">{value}</Typography>
-                  <Typography className="text-white/50 text-[10px] font-medium mt-1 uppercase tracking-wide" variant="p">{localizedLabel}</Typography>
+                  <Typography className="text-white/50 text-[10px] font-medium mt-1 uppercase tracking-wide" variant="p">{t(`auth.mock.${labelKey}`)}</Typography>
                 </div>
               );
             })}
@@ -48,7 +43,7 @@ export function DashboardMockup() {
 
           {/* Attendance chart */}
           <div className="rounded-xl p-3 bg-white/[0.04]">
-            <Typography className="text-white/50 text-[10px] font-semibold uppercase tracking-widest mb-3" variant="p">{t("dashboard.weekly_attendance", { defaultValue: "Weekly Attendance" })}</Typography>
+            <Typography className="text-white/50 text-[10px] font-semibold uppercase tracking-widest mb-3" variant="p">{t("auth.mock.weekly_attendance")}</Typography>
             <div className="flex items-end gap-1.5 h-14">
               {ATTENDANCE_BARS.map((h, i) => (
                 <div className="flex-1 flex flex-col items-center gap-1" key={i}>
@@ -71,9 +66,10 @@ export function DashboardMockup() {
 
           {/* Employee list */}
           <div className="space-y-1.5">
-            <Typography className="text-white/50 text-[10px] font-semibold uppercase tracking-widest mb-2" variant="p">{t("dashboard.todays_status", { defaultValue: "Today's Status" })}</Typography>
-            {MOCK_EMPLOYEES.map(({ name, role, status, time, initials, hue }, idx) => {
+            <Typography className="text-white/50 text-[10px] font-semibold uppercase tracking-widest mb-2" variant="p">{t("auth.mock.todays_status")}</Typography>
+            {MOCK_EMPLOYEES.map(({ name, role, status, initials, hue }, idx) => {
               const s = STATUS_STYLE[status];
+              const roleKey = role.toLowerCase();
               return (
                 <div
                   className="flex items-center gap-3 rounded-xl px-3 py-2 transition-colors"
@@ -92,11 +88,11 @@ export function DashboardMockup() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <Typography className="text-white/80 text-xs font-semibold truncate leading-none" variant="p">{name}</Typography>
-                    <Typography className="text-white/35 text-[10px] truncate mt-0.5" variant="p">{role}</Typography>
+                    <Typography className="text-white/35 text-[10px] truncate mt-0.5" variant="p">{t(`auth.mock.roles.${roleKey}`)}</Typography>
                   </div>
                   <div className={`flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide ${s.badge}`}>
                     <div className={`w-1.5 h-1.5 rounded-full ${s.dot} ${status === "present" ? "animate-pulse" : ""}`} />
-                    {time}
+                    {t(`auth.mock.status.${status}`)}
                   </div>
                 </div>
               );
