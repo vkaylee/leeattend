@@ -21,14 +21,14 @@ import {
 // --- Profile ---
 
 export async function fetchMyProfile(): Promise<MyProfileResponse> {
-  const { data: resData } = await client.GET<MyProfileResponse>("/ess/profile");
+  const { data: resData } = await client.GET<MyProfileResponse>("/v1/ess/profile");
   return resData;
 }
 
 export async function updateMyProfile(
   data: UpdateProfileRequest
 ): Promise<EmployeeProfile> {
-  const { data: resData } = await client.PUT<EmployeeProfile>("/ess/profile", {
+  const { data: resData } = await client.PUT<EmployeeProfile>("/v1/ess/profile", {
     body: data,
   });
   return resData;
@@ -39,21 +39,21 @@ export async function updateMyProfile(
 export async function fetchMyEmergencyContacts(): Promise<
   EmployeeEmergencyContact[]
 > {
-  const { data: resData } = await client.GET<EmployeeEmergencyContact[]>("/ess/emergency-contacts");
+  const { data: resData } = await client.GET<EmployeeEmergencyContact[]>("/v1/ess/emergency-contacts");
   return resData;
 }
 
 export async function addEmergencyContact(
   data: CreateEmergencyContactRequest
 ): Promise<EmployeeEmergencyContact> {
-  const { data: resData } = await client.POST<EmployeeEmergencyContact>("/ess/emergency-contacts", {
+  const { data: resData } = await client.POST<EmployeeEmergencyContact>("/v1/ess/emergency-contacts", {
     body: data,
   });
   return resData;
 }
 
 export async function deleteEmergencyContact(contactId: string): Promise<void> {
-  await client.DELETE("/ess/emergency-contacts/{contact_id}", {
+  await client.DELETE("/v1/ess/emergency-contacts/{contact_id}", {
     params: {
       path: { contact_id: contactId },
     },
@@ -63,7 +63,7 @@ export async function deleteEmergencyContact(contactId: string): Promise<void> {
 // --- Documents ---
 
 export async function fetchMyDocuments(): Promise<EmployeeDocument[]> {
-  const { data: resData } = await client.GET<EmployeeDocument[]>("/ess/documents");
+  const { data: resData } = await client.GET<EmployeeDocument[]>("/v1/ess/documents");
   return resData;
 }
 
@@ -72,7 +72,7 @@ export async function fetchMyDocuments(): Promise<EmployeeDocument[]> {
 // --- Payslips ---
 
 export async function fetchMyPayslips(): Promise<Payslip[]> {
-  const { data: resData } = await client.GET<Payslip[]>("/ess/payslips");
+  const { data: resData } = await client.GET<Payslip[]>("/v1/ess/payslips");
   return resData;
 }
 
@@ -86,7 +86,7 @@ export interface AttendanceParams {
 export async function fetchMyAttendance(
   params?: AttendanceParams
 ): Promise<TimeEntry[]> {
-  const { data: resData } = await client.GET<TimeEntry[]>("/ess/attendance", {
+  const { data: resData } = await client.GET<TimeEntry[]>("/v1/ess/attendance", {
     params: {
       query: {
         start_date: params?.start_date,
@@ -102,7 +102,7 @@ export async function fetchMyAttendance(
 export async function fetchMyTimeEntries(
   params?: { start_date?: string; end_date?: string }
 ): Promise<TimeEntry[]> {
-  const { data: resData } = await client.GET<TimeEntry[]>("/ess/time-entries", {
+  const { data: resData } = await client.GET<TimeEntry[]>("/v1/ess/time-entries", {
     params: {
       query: {
         start_date: params?.start_date,
@@ -116,7 +116,7 @@ export async function fetchMyTimeEntries(
 export async function punchMySelf(
   data?: { note?: string }
 ): Promise<TimeEntry> {
-  const { data: resData } = await client.POST<TimeEntry>("/ess/punch", {
+  const { data: resData } = await client.POST<TimeEntry>("/v1/ess/punch", {
     body: data ?? {},
   });
   return resData;
@@ -125,12 +125,12 @@ export async function punchMySelf(
 // --- Leave ---
 
 export async function fetchEssLeaveBalances(): Promise<EmployeeLeaveBalance[]> {
-  const { data: resData } = await client.GET<EmployeeLeaveBalance[]>("/ess/leave/balances");
+  const { data: resData } = await client.GET<EmployeeLeaveBalance[]>("/v1/ess/leave/balances");
   return resData;
 }
 
 export async function fetchEssLeaveRequests(): Promise<LeaveRequest[]> {
-  const { data: resData } = await client.GET<LeaveRequest[]>("/ess/leave/requests");
+  const { data: resData } = await client.GET<LeaveRequest[]>("/v1/ess/leave/requests");
   return resData;
 }
 

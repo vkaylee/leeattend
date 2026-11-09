@@ -67,4 +67,18 @@ describe("authenticated route guard behavior", () => {
     expect(clearAuthSession).toHaveBeenCalled();
     expect(redirect).toHaveBeenCalledWith({ to: "/login" });
   });
+
+  it("does not clear the session twice after API auth expiry", async () => {
+    const beforeLoad = Route.options.beforeLoad as BeforeLoad;
+
+    await expect(beforeLoad({
+      context: {
+        queryClient: {
+          ensureQueryData: vi.fn().mockRejectedValue(new Error("Session expired")),
+        },
+      },
+    })).rejects.toMatchObject({ to: "/login", isRedirect: true });
+    expect(clearAuthSession).not.toHaveBeenCalled();
+    expect(redirect).toHaveBeenCalledWith({ to: "/login" });
+  });
 });

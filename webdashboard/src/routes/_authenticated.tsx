@@ -27,6 +27,7 @@ export const Route = createFileRoute("/_authenticated")({
       const user = await context.queryClient.ensureQueryData({
         queryKey: profileKeys.me,
         queryFn: fetchMe,
+        retry: false,
       });
       if (maybeNull(user) === null || maybeNull(user) === undefined) {
         clearAuthSession();
@@ -35,12 +36,14 @@ export const Route = createFileRoute("/_authenticated")({
       }
       return { user };
     } catch (error: unknown) {
-      // If it's already a redirect, rethrow
+      // If it's already a redirect, rethrow.
       if (error && typeof error === 'object' && 'isRedirect' in error) throw error;
 
-      // Prevent infinite redirect loops by clearing the session
-      // before sending the user back to the login page.
-      clearAuthSession();
+      // apiFetch already clears memory and expires cookies when refresh fails.
+      // Avoid a second logout request during the same auth bootstrap failure.
+      if (!(error instanceof Error && error.message === "Session expired")) {
+        clearAuthSession();
+      }
 
       // Auth failure or network error → redirect to login
       // eslint-disable-next-line @typescript-eslint/only-throw-error
