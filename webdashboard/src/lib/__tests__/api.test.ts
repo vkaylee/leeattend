@@ -425,19 +425,19 @@ describe("api.ts comprehensive tests", () => {
 
     it("fetchMemberRoles", async () => {
       mockSuccess({});
-      await api.fetchMemberRoles("ws-1", "u1");
+      await api.fetchMemberRoles("u1");
       expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/v1/members/u1/roles"), expect.any(Object));
     });
 
     it("assignExtraRole", async () => {
       mockSuccess({});
-      await api.assignExtraRole("ws-1", "u1", "r1", "...");
+      await api.assignExtraRole("u1", "r1", "...");
       expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/v1/members/u1/roles"), expect.objectContaining({ method: "POST" }));
     });
 
     it("revokeExtraRole", async () => {
       mockSuccess({});
-      await api.revokeExtraRole("ws-1", "u1", "rid1");
+      await api.revokeExtraRole("u1", "rid1");
       expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/v1/members/u1/roles/rid1"), expect.objectContaining({ method: "DELETE" }));
     });
 

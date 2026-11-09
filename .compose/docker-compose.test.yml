@@ -85,6 +85,8 @@ services:
 
 
   apiserver:
+    # LeeDevKit's Go lifecycle probe uses historical `go_1` container name.
+    container_name: ${COMPOSE_PROJECT_NAME:-leeattend-test}_go_1
     profiles:
       - api
       - int-api
