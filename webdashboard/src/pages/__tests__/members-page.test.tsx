@@ -30,6 +30,7 @@ vi.mock("../../lib/api", () => ({
   fetchOrganizationRoles: vi.fn(),
   fetchUsers: vi.fn(),
   fetchMyPermissions: vi.fn(),
+  fetchOrganization: vi.fn().mockResolvedValue({ date_format: "DD/MM/YYYY", timezone: "UTC", default_language: "en" }),
 }));
 
 describe("MembersPage", () => {

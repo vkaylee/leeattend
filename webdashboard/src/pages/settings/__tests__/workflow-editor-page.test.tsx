@@ -64,7 +64,7 @@ describe("WorkflowEditorPage", () => {
     vi.mocked(useSearch).mockReturnValue({ tab: "overtime" });
 
     vi.mocked(workspaceHooks.useOrganization).mockReturnValue({
-      organization: { id: "ws-123", name: "Test Workspace" },
+      workspace: { id: "ws-123", name: "Test Workspace" },
       isLoading: false,
     } as any);
 

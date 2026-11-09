@@ -317,6 +317,7 @@ describe("useFileUpload", () => {
       await waitFor(() => expect(FakeXHR.instances.length).toBeGreaterThan(0));
 
       const xhr = FakeXHR.instances[0];
+      xhr.status = 500;
       await act(async () => {
         xhr.onload?.();
       });

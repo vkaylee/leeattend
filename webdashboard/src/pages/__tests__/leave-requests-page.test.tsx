@@ -443,7 +443,7 @@ describe("LeaveRequestsPage", () => {
 
  
       // Verify no start_time/end_time sent for half-day
-      const callArguments = vi.mocked(api.submitLeaveRequest).mock.calls[0][1] as unknown as { start_time?: string; end_time?: string };
+      const callArguments = vi.mocked(api.submitLeaveRequest).mock.calls[0][0] as unknown as { start_time?: string; end_time?: string };
       expect(callArguments.start_time).toBeUndefined();
       expect(callArguments.end_time).toBeUndefined();
     }, 30000);
