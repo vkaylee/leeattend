@@ -316,6 +316,7 @@ describe('handleUnauthorized (401 retry-on-refresh) via apiFetch', () => {
   });
 
   it('propagates transient refresh failures without redirecting', async () => {
+    localStorage.setItem('leeattend.authenticated', '1');
     // happy-dom window.location is read-only; gently swap it for an assignable
     // stand-in so we can assert the redirect without triggering navigation.
     const fakeLocation = { pathname: '/workspace', href: '' };

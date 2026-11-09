@@ -6,7 +6,7 @@ import {
   forceRefreshToken,
   TIMEOUT,
 } from "./api-fetch-helpers";
-export { TIMEOUT } from "./api-fetch-helpers";
+export { forceRefreshToken, TIMEOUT } from "./api-fetch-helpers";
 import { API_BASE_URL } from "./config";
 import {
   clearMemorySession,
