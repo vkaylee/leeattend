@@ -20,7 +20,7 @@ vi.mock("@/lib/api", async (importOriginal) => {
   const mod = await importOriginal<typeof import("@/lib/api")>();
   return {
     ...mod,
-    fetchWorkspace: vi.fn(),
+    fetchOrganization: vi.fn(),
     fetchDefaultAttendanceRules: vi.fn(),
     fetchAttendancePolicyVersions: vi.fn(),
     updateDefaultAttendanceRules: vi.fn(),
@@ -109,7 +109,7 @@ describe("TimeSettings Page", () => {
   });
 
   it("renders loader initially and then content", async () => {
-    vi.mocked(api.fetchWorkspace).mockResolvedValue(mockWorkspace as any);
+    vi.mocked(api.fetchOrganization).mockResolvedValue(mockWorkspace as any);
     vi.mocked(api.fetchDefaultAttendanceRules).mockResolvedValue(mockRules as any);
     vi.mocked(api.fetchAttendancePolicyVersions).mockResolvedValue(mockVersions as any);
 
@@ -125,7 +125,7 @@ describe("TimeSettings Page", () => {
   });
 
   it("renders premium error state when API fails", async () => {
-    vi.mocked(api.fetchWorkspace).mockResolvedValue(mockWorkspace as any);
+    vi.mocked(api.fetchOrganization).mockResolvedValue(mockWorkspace as any);
     vi.mocked(api.fetchDefaultAttendanceRules).mockRejectedValue(new Error("API Error fetching rules"));
     vi.mocked(api.fetchAttendancePolicyVersions).mockResolvedValue(mockVersions as any);
 
@@ -142,7 +142,7 @@ describe("TimeSettings Page", () => {
   });
 
   it("renders empty warnings when rules are empty/null", async () => {
-    vi.mocked(api.fetchWorkspace).mockResolvedValue(mockWorkspace as any);
+    vi.mocked(api.fetchOrganization).mockResolvedValue(mockWorkspace as any);
     vi.mocked(api.fetchDefaultAttendanceRules).mockResolvedValue(null as any);
     vi.mocked(api.fetchAttendancePolicyVersions).mockResolvedValue(mockVersions as any);
 
@@ -157,7 +157,7 @@ describe("TimeSettings Page", () => {
   });
 
   it("opens create version modal and saves new version successfully", async () => {
-    vi.mocked(api.fetchWorkspace).mockResolvedValue(mockWorkspace as any);
+    vi.mocked(api.fetchOrganization).mockResolvedValue(mockWorkspace as any);
     vi.mocked(api.fetchDefaultAttendanceRules).mockResolvedValue(mockRules as any);
     vi.mocked(api.fetchAttendancePolicyVersions).mockResolvedValue(mockVersions as any);
     vi.mocked(api.updateDefaultAttendanceRules).mockResolvedValue({} as any);
@@ -192,7 +192,7 @@ describe("TimeSettings Page", () => {
   });
 
   it("triggers bulk reprocess flow and submits successfully", async () => {
-    vi.mocked(api.fetchWorkspace).mockResolvedValue(mockWorkspace as any);
+    vi.mocked(api.fetchOrganization).mockResolvedValue(mockWorkspace as any);
     vi.mocked(api.fetchDefaultAttendanceRules).mockResolvedValue(mockRules as any);
     vi.mocked(api.fetchAttendancePolicyVersions).mockResolvedValue(mockVersions as any);
     vi.mocked(api.reprocessAllAttendance).mockResolvedValue({ job_id: "job-1" } as any);
