@@ -28,7 +28,7 @@ vi.mock("@/lib/api", async () => {
     const actual = await vi.importActual<typeof import("@/lib/api")>("@/lib/api");
     return {
         ...actual,
-        fetchWorkspaceLeaveBalances: vi.fn(),
+        fetchLeaveBalances: vi.fn(),
         triggerAccrualRun: vi.fn(),
  
         fetchJobStatus: vi.fn(),
@@ -95,7 +95,7 @@ describe("LeaveBalancesPage", () => {
             defaultOptions: { queries: { retry: false } },
         });
  
-        vi.mocked(api.fetchWorkspaceLeaveBalances).mockResolvedValue(mockBalances as unknown as Awaited<ReturnType<typeof api.fetchWorkspaceLeaveBalances>>);
+        vi.mocked(api.fetchLeaveBalances).mockResolvedValue(mockBalances as unknown as Awaited<ReturnType<typeof api.fetchLeaveBalances>>);
  
         vi.mocked(api.triggerAccrualRun).mockResolvedValue({ job_id: "", status: "completed", message: "Processed 2 accrual entries synchronously" });
     });
@@ -170,8 +170,7 @@ describe("LeaveBalancesPage", () => {
         fireEvent.change(yearSelect, { target: { value: "2024" } });
 
         await waitFor(() => {
-            expect(api.fetchWorkspaceLeaveBalances).toHaveBeenCalledWith(
-                "test-ws-id",
+            expect(api.fetchLeaveBalances).toHaveBeenCalledWith(
                 expect.objectContaining({ year: 2024, page: 1 })
             );
         });
@@ -210,14 +209,13 @@ describe("LeaveBalancesPage", () => {
 
         await waitFor(() => {
             expect(api.triggerAccrualRun).toHaveBeenCalledWith(
-                "test-ws-id",
                 expect.objectContaining({ date: expect.any(String) as unknown as string })
             );
         });
     });
 
     it("shows loading state when data is pending", () => {
-        vi.mocked(api.fetchWorkspaceLeaveBalances).mockReturnValue(new Promise(() => { /* empty */ }));
+        vi.mocked(api.fetchLeaveBalances).mockReturnValue(new Promise(() => { /* empty */ }));
         const { container } = renderPage();
         expect(container.querySelectorAll('.animate-pulse').length).toBeGreaterThan(0);
     });
@@ -254,7 +252,7 @@ describe("LeaveBalancesPage", () => {
 
     it("shows empty state when no data", async () => {
  
-        vi.mocked(api.fetchWorkspaceLeaveBalances).mockResolvedValue({
+        vi.mocked(api.fetchLeaveBalances).mockResolvedValue({
             data: [],
             total: 0,
             page: 1,
@@ -303,7 +301,6 @@ describe("LeaveBalancesPage", () => {
 
         await waitFor(() => {
             expect(api.triggerAccrualRun).toHaveBeenCalledWith(
-                "test-ws-id",
                 expect.objectContaining({ date: expect.any(String) as unknown as string })
             );
         });

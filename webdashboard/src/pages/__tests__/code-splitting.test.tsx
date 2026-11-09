@@ -97,7 +97,7 @@ vi.mock("@/lib/api", async (importOriginal) => {
  
         ...actual,
         getCurrentUserId: vi.fn(() => "test-user"),
-        fetchWorkspaceLeaveBalances: vi.fn(() => Promise.resolve([])),
+        fetchLeaveBalances: vi.fn(() => Promise.resolve([])),
         fetchEmployees: vi.fn(() => Promise.resolve([])),
         searchEmployees: vi.fn(() => Promise.resolve({ data: [], total: 0 })),
         fetchOrganization: vi.fn(() => Promise.resolve({ date_format: "DD/MM/YYYY", timezone: "UTC", default_language: "en" })),

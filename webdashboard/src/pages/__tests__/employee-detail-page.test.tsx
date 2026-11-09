@@ -31,7 +31,7 @@ vi.mock("@/lib/api", async (importOriginal) => {
     fetchEmployee: vi.fn(),
     fetchEmployeeDepartmentHistory: vi.fn(),
     fetchDepartments: vi.fn(),
-    fetchWorkspaceMembers: vi.fn(),
+    fetchOrganizationMembers: vi.fn(),
     fetchEmployeeEmployments: vi.fn(),
     fetchMyPermissions: vi.fn(),
   };
@@ -91,7 +91,7 @@ describe("EmployeeDetailPage", () => {
       { id: "dept-1", name: "Engineering", workspace_id: "ws-1" },
     ]);
     vi.mocked(api.fetchEmployeeDepartmentHistory).mockResolvedValue([]);
-    vi.mocked(api.fetchWorkspaceMembers).mockResolvedValue([
+    vi.mocked(api.fetchOrganizationMembers).mockResolvedValue([
       {
         id: "mem-1",
         user_id: "usr-1",

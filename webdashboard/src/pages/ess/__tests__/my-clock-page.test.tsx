@@ -19,7 +19,6 @@ vi.mock("@/hooks/use-ess", () => ({
 
 vi.mock("@/lib/api", () => ({
   fetchOrganization: vi.fn().mockResolvedValue({ date_format: "DD/MM/YYYY", timezone: "UTC", default_language: "en" }),
-  fetchWorkspace: vi.fn(),
   submitAttendanceAdjustment: vi.fn(),
 }));
 
@@ -166,7 +165,7 @@ describe("MyClockPage", () => {
     });
 
     await waitFor(() => {
-      expect(mockSubmit).toHaveBeenCalledWith("ws-123", {
+      expect(mockSubmit).toHaveBeenCalledWith({
         employment_id: "employment-123",
         reason: "Forgot",
         requested_punch_time: "2026-05-01T08:00Z",
