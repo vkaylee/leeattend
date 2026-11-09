@@ -14,13 +14,15 @@ export const locationKeys = {
 };
 
 export function useLocations() {
-  return useQuery({
+  const query = useQuery({
     queryKey: locationKeys.all(),
     queryFn: fetchLocations,
-    initialData: [],
+    placeholderData: [],
     retry: false,
     meta: { suppressErrorToast: [403] },
   });
+
+  return { ...query, data: query.data ?? [] };
 }
 
 export function useCreateLocation() {

@@ -235,7 +235,7 @@ describe("LeaveRequestsPage", () => {
     await user.click(screen.getByRole("button", { name: /Gửi yêu cầu/i }));
 
     await waitFor(() => {
-      expect(api.submitLeaveRequest).toHaveBeenCalledWith("test-ws-id", expect.objectContaining({
+      expect(api.submitLeaveRequest).toHaveBeenCalledWith(expect.objectContaining({
         employment_id: "employment-1",
         leave_type_id: "lt-vacation",
         reason: "Vacation time",
@@ -264,14 +264,14 @@ describe("LeaveRequestsPage", () => {
     await user.click(approveButtons[0]);
 
     await waitFor(() => {
-      expect(api.approveLeaveRequest).toHaveBeenCalledWith("test-ws-id", "req-1", { status: "approved" });
+      expect(api.approveLeaveRequest).toHaveBeenCalledWith("req-1", { status: "approved" });
     });
 
     const rejectButtons = await screen.findAllByTitle(/từ chối/i);
     await user.click(rejectButtons[0]);
 
     await waitFor(() => {
-      expect(api.approveLeaveRequest).toHaveBeenCalledWith("test-ws-id", "req-1", { status: "rejected" });
+      expect(api.approveLeaveRequest).toHaveBeenCalledWith("req-1", { status: "rejected" });
     });
   });
 
@@ -291,7 +291,7 @@ describe("LeaveRequestsPage", () => {
 
     // Initial fetch should be triggered (statusFilter defaults to "all" which passes undefined to the status filter in hook)
     await waitFor(() => {
-      expect(api.fetchWorkspaceLeaveRequests).toHaveBeenCalledWith("test-ws-id", expect.objectContaining({
+      expect(api.fetchWorkspaceLeaveRequests).toHaveBeenCalledWith(expect.objectContaining({
         status: undefined,
       }));
     });
@@ -305,7 +305,7 @@ describe("LeaveRequestsPage", () => {
 
     // Wait for the query to be triggered with status: "pending"
     await waitFor(() => {
-      expect(api.fetchWorkspaceLeaveRequests).toHaveBeenCalledWith("test-ws-id", expect.objectContaining({
+      expect(api.fetchWorkspaceLeaveRequests).toHaveBeenCalledWith(expect.objectContaining({
         status: "pending",
       }));
     });
@@ -432,7 +432,7 @@ describe("LeaveRequestsPage", () => {
       await user.click(screen.getByRole("button", { name: /Gửi yêu cầu/i }));
 
       await waitFor(() => {
-        expect(api.submitLeaveRequest).toHaveBeenCalledWith("test-ws-id", expect.objectContaining({
+        expect(api.submitLeaveRequest).toHaveBeenCalledWith(expect.objectContaining({
           employment_id: "employment-1",
           leave_type_id: "lt-vacation",
           start_date: "2026-03-15",
@@ -470,7 +470,7 @@ describe("LeaveRequestsPage", () => {
       await user.click(screen.getByRole("button", { name: /Gửi yêu cầu/i }));
 
       await waitFor(() => {
-        expect(api.submitLeaveRequest).toHaveBeenCalledWith("test-ws-id", expect.objectContaining({
+        expect(api.submitLeaveRequest).toHaveBeenCalledWith(expect.objectContaining({
           employment_id: "employment-1",
           leave_type_id: "lt-vacation",
           start_date: "2026-03-15",
@@ -497,7 +497,7 @@ describe("LeaveRequestsPage", () => {
       await user.click(screen.getByRole("button", { name: /Gửi yêu cầu/i }));
 
       await waitFor(() => {
-        expect(api.submitLeaveRequest).toHaveBeenCalledWith("test-ws-id", expect.objectContaining({
+        expect(api.submitLeaveRequest).toHaveBeenCalledWith(expect.objectContaining({
           employment_id: "employment-1",
           duration_type: "second_half",
           reason: "Afternoon off",

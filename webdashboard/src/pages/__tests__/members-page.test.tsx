@@ -20,14 +20,14 @@ vi.mock("@tanstack/react-router", () => ({
 
 // Mock the API library
 vi.mock("../../lib/api", () => ({
-  fetchWorkspaceMembers: vi.fn(),
-  addWorkspaceMember: vi.fn(),
-  removeWorkspaceMember: vi.fn(),
-  updateWorkspaceMemberRole: vi.fn(),
+  fetchOrganizationMembers: vi.fn(),
+  addOrganizationMember: vi.fn(),
+  removeOrganizationMember: vi.fn(),
+  updateOrganizationMemberRole: vi.fn(),
   fetchMemberRoles: vi.fn(),
   assignExtraRole: vi.fn(),
   revokeExtraRole: vi.fn(),
-  fetchWorkspaceRoles: vi.fn(),
+  fetchOrganizationRoles: vi.fn(),
   fetchUsers: vi.fn(),
   fetchMyPermissions: vi.fn(),
 }));
@@ -56,11 +56,11 @@ describe("MembersPage", () => {
       managed_department_ids: null
  
     });
-    vi.mocked(api.fetchWorkspaceMembers).mockResolvedValue([
+    vi.mocked(api.fetchOrganizationMembers).mockResolvedValue([
         { workspace_id: "test-ws-id", user_id: "user-1", email: "owner@example.com", full_name: "Workspace Owner", role_id: "role-owner", extra_role_ids: [] },
         { workspace_id: "test-ws-id", user_id: "user-2", email: "admin@example.com", full_name: "Admin User", role_id: "role-admin", extra_role_ids: [] }
     ]);
-    vi.mocked(api.fetchWorkspaceRoles).mockResolvedValue([
+    vi.mocked(api.fetchOrganizationRoles).mockResolvedValue([
       { id: "role-owner", name: "Owner", is_system: true, color: "rose", scope_type: "global", created_at: "", updated_at: "" },
       { id: "role-admin", name: "Admin", is_system: true, color: "primary", scope_type: "global", created_at: "", updated_at: "" },
       { id: "role-member", name: "Member", is_system: true, color: "slate", scope_type: "global", created_at: "", updated_at: "" }
@@ -90,7 +90,7 @@ describe("MembersPage", () => {
 
   it("handles inviting a new member", async () => {
     const user = userEvent.setup();
-    vi.mocked(api.addWorkspaceMember).mockResolvedValue(undefined);
+    vi.mocked(api.addOrganizationMember).mockResolvedValue(undefined);
 
     renderWithProviders(<MembersPage />);
 
@@ -107,14 +107,14 @@ describe("MembersPage", () => {
     await user.click(submitButton);
 
     await waitFor(() => {
-      expect(api.addWorkspaceMember).toHaveBeenCalledWith("test-ws-id", "new@example.com", "role-owner");
+      expect(api.addOrganizationMember).toHaveBeenCalledWith("new@example.com", "role-owner");
  
     });
   });
 
   it("handles removing a member", async () => {
     const user = userEvent.setup();
-    vi.mocked(api.removeWorkspaceMember).mockResolvedValue(undefined);
+    vi.mocked(api.removeOrganizationMember).mockResolvedValue(undefined);
 
     renderWithProviders(<MembersPage />);
 
@@ -130,7 +130,7 @@ describe("MembersPage", () => {
     await user.click(confirmButton);
 
     await waitFor(() => {
-      expect(api.removeWorkspaceMember).toHaveBeenCalledWith("test-ws-id", "user-2");
+      expect(api.removeOrganizationMember).toHaveBeenCalledWith("user-2");
 
     });
   });
@@ -159,6 +159,6 @@ describe("MembersPage", () => {
     await user.click(manageButton);
 
     expect(await screen.findByText(/Manage Member Roles|Quản lý quyền hạn/i)).toBeDefined();
-    expect(api.fetchMemberRoles).toHaveBeenCalledWith("test-ws-id", "user-2");
+    expect(api.fetchMemberRoles).toHaveBeenCalledWith("user-2");
   });
 });
