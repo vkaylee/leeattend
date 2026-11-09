@@ -26,7 +26,7 @@ describe("useOrganizationQuery", () => {
       { wrapper: createWrapper() },
     );
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
-    expect(queryFn).toHaveBeenCalledWith();
+    expect(queryFn).toHaveBeenCalledWith(expect.any(Object));
     expect(result.current.data).toEqual({ items: [1, 2] });
   });
 
@@ -87,7 +87,7 @@ describe("useOrganizationMutation", () => {
       { wrapper: createWrapper() },
     );
     const mutationResult = await result.current.mutateAsync(payload);
-    expect(mutationFn).toHaveBeenCalledWith(payload);
+    expect(mutationFn).toHaveBeenCalledWith(payload, expect.any(Object));
     expect(mutationResult).toEqual({ id: "created-1" });
   });
 
@@ -127,6 +127,6 @@ describe("useOrganizationMutation", () => {
       { wrapper: createWrapper() },
     );
     await act(() => result.current.mutateAsync());
-    expect(mutationFn).toHaveBeenCalledWith(undefined);
+    expect(mutationFn).toHaveBeenCalledWith(undefined, expect.any(Object));
   });
 });
