@@ -30,7 +30,6 @@ vi.mock('react-i18next', () => ({
 
 describe("PayrollSettingsSection", () => {
   let queryClient: QueryClient;
-  const mockWsId = "ws-123";
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -77,7 +76,7 @@ describe("PayrollSettingsSection", () => {
     fireEvent.click(saveButton);
 
     await waitFor(() => {
-      expect(api.updatePayrollSettings).toHaveBeenCalledWith(mockWsId, expect.objectContaining({
+      expect(api.updatePayrollSettings).toHaveBeenCalledWith(expect.objectContaining({
         fixed_std_days: "24"
       }));
     });

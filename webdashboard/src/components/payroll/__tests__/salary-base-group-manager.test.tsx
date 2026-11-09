@@ -32,8 +32,6 @@ vi.mock('react-i18next', () => ({
 
 describe("SalaryBaseGroupManager", () => {
   let queryClient: QueryClient;
-  const mockWsId = "ws-123";
-  
   const mockGroups = [
     { id: "base-1", name: "Gross Salary", slug: "gross", description: "All earnings", is_system: true },
     { id: "base-2", name: "Social Insurance", slug: "social_insurance", description: "SI base", is_system: false },
@@ -127,7 +125,7 @@ describe("SalaryBaseGroupManager", () => {
     }
 
     await waitFor(() => {
-      expect(api.assignComponentToSalaryBase).toHaveBeenCalledWith(mockWsId, "base-2", "comp-2");
+      expect(api.assignComponentToSalaryBase).toHaveBeenCalledWith("base-2", "comp-2");
     });
   });
 
@@ -157,7 +155,7 @@ describe("SalaryBaseGroupManager", () => {
     }
 
     await waitFor(() => {
-      expect(api.unassignComponentFromSalaryBase).toHaveBeenCalledWith(mockWsId, "base-2", "comp-1");
+      expect(api.unassignComponentFromSalaryBase).toHaveBeenCalledWith("base-2", "comp-1");
     });
   });
 });

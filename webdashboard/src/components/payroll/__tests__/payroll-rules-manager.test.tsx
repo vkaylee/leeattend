@@ -40,8 +40,6 @@ vi.mock('react-i18next', () => ({
 
 describe("PayrollRulesManager", () => {
   let queryClient: QueryClient;
-  const mockWsId = "ws-123";
-  
   const mockRules = [
     { 
       id: "rule-1", 
@@ -122,7 +120,7 @@ describe("PayrollRulesManager", () => {
     }
 
     await waitFor(() => {
-      expect(api.createPayrollRule).toHaveBeenCalledWith(mockWsId, expect.objectContaining({
+      expect(api.createPayrollRule).toHaveBeenCalledWith(expect.objectContaining({
         name: "Health Insurance",
         code: "HI",
         rule_config: expect.objectContaining({ rate: 1.5 }) as unknown as Record<string, unknown>

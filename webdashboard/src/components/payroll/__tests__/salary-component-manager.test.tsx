@@ -29,7 +29,6 @@ vi.mock('react-i18next', () => ({
 
 describe("SalaryComponentManager", () => {
   let queryClient: QueryClient;
-  const mockWsId = "ws-123";
   const mockComponents = [
     { id: "1", name: "Lương cơ bản", code: "BASE" },
     { id: "2", name: "Phụ cấp", code: "ALLOWANCE" },
@@ -79,7 +78,7 @@ describe("SalaryComponentManager", () => {
     fireEvent.click(saveButton);
 
     await waitFor(() => {
-      expect(api.createSalaryComponent).toHaveBeenCalledWith(mockWsId, expect.objectContaining({
+      expect(api.createSalaryComponent).toHaveBeenCalledWith(expect.objectContaining({
         name: "Gas",
         code: "GAS"
       }));
