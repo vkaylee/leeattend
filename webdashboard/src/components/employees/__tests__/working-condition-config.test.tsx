@@ -40,7 +40,7 @@ vi.mock("@/lib/api", async () => {
       { id: "ct-1", code: "REGULAR", name_i18n: { en: "Regular", vi: "Chính thức" }, category: "working_hours", is_system: true },
     ]),
     createWorkingCondition: vi.fn().mockResolvedValue({ id: "cond-2", type_: "REGULAR", start_date: "2026-01-01", is_paid: true }),
-    deleteWorkingCondition: vi.fn(),
+    deleteWorkingCondition: mockDeleteFn,
   };
 });
 
