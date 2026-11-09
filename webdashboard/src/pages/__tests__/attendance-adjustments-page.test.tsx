@@ -82,6 +82,7 @@ vi.mock("@/components/ui/dropdown-menu", () => ({
 
 // Mock the API library
 vi.mock("../../lib/api", () => ({
+  fetchOrganization: vi.fn().mockResolvedValue({ name: "Test Organization" }),
   fetchWorkspaceAttendanceAdjustments: vi.fn(),
   fetchEmployees: vi.fn(),
   approveAttendanceAdjustment: vi.fn(),

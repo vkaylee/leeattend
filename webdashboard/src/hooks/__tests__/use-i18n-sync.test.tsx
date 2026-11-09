@@ -37,6 +37,7 @@ vi.mock('../use-workspace', () => ({
 // Mock backend-owned organization context.
 vi.mock('@/lib/api', () => ({
   getStandaloneOrganizationId: () => 'ws1',
+  fetchOrganization: vi.fn().mockResolvedValue({ default_language: 'en' }),
 }));
 
 // Mock localStorage

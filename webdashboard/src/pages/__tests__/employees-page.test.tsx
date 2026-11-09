@@ -32,6 +32,14 @@ class MockIntersectionObserver {
 window.IntersectionObserver = MockIntersectionObserver as unknown as typeof IntersectionObserver;
 
 // Mock the API library
+vi.mock("../../lib/api/custom-fields", async (importOriginal) => {
+    const actual = await importOriginal<typeof import("../../lib/api/custom-fields")>();
+    return {
+        ...actual,
+        fetchCustomFieldDefinitions: vi.fn().mockResolvedValue([]),
+    };
+});
+
 vi.mock("../../lib/api", async (importOriginal) => {
     const actual = await importOriginal<typeof import("../../lib/api")>();
     return {

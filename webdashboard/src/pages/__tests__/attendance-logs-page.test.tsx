@@ -39,6 +39,7 @@ window.IntersectionObserver = MockIntersectionObserver as unknown as typeof Inte
 
 // Mock the API library
 vi.mock("../../lib/api", () => ({
+  fetchOrganization: vi.fn().mockResolvedValue({ name: "Test Organization" }),
   fetchRawAttendanceLogs: vi.fn(),
   fetchEmployees: vi.fn(),
   fetchWorkspace: vi.fn(),
