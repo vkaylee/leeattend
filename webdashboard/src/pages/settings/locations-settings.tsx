@@ -18,7 +18,7 @@ import { useLocations, useDeleteLocation } from "./hooks/use-locations";
 export default function LocationsSettings() {
   const { t } = useTranslation();
   
-  const { data: locations, isLoading } = useLocations();
+  const { data: locations, isError, isLoading } = useLocations();
   const deleteLocation = useDeleteLocation();
   const toast = useToast();
   
@@ -63,7 +63,11 @@ export default function LocationsSettings() {
       />
 
       <div className="flex flex-col gap-4 animate-in slide-in-from-bottom-4 duration-500">
-        {isLoading ? (
+        {isError ? (
+          <p className="text-sm text-slate-500 dark:text-slate-400" role="status">
+            {t("settings.locations.unavailable", { defaultValue: "Work locations are unavailable for your account." })}
+          </p>
+        ) : isLoading ? (
           Array.from({ length: 3 }).map((_, index) => (
             <div 
               className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800/80 p-5 flex flex-col md:flex-row md:items-center justify-between gap-6 animate-pulse"

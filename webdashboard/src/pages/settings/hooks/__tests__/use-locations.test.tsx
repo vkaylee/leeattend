@@ -28,12 +28,15 @@ describe("useLocations", () => {
   it("returns locations for an authorized role", async () => {
     const locations = [{ id: "location-1", name: "HQ" }];
     vi.mocked(fetchLocations).mockResolvedValue(locations as never);
-    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false, staleTime: 1000 * 60 * 5 } },
+    });
 
     const { result } = renderHook(() => useLocations(), { wrapper: createWrapper(queryClient) });
 
     await waitFor(() => expect(result.current.data).toEqual(locations));
     expect(fetchLocations).toHaveBeenCalledTimes(1);
+    expect(queryClient.getQueryData(["locations"])).toEqual(locations);
   });
 
   it("keeps forbidden locations optional without retry or error metadata noise", async () => {

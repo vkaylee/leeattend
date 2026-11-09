@@ -83,10 +83,11 @@ export default function EmployeeFormInputs({
         />
       </div>
       <div className="space-y-3 px-1">
-        <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.2em]" htmlFor="employees-form-location-combobox">
-          Địa điểm làm việc
-        </label>
-        {locationsUnavailable ? (
+        <div aria-labelledby="employees-form-location-label" role="group">
+          <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.2em]" id="employees-form-location-label">
+            {t("employees.form.location")}
+          </span>
+          {locationsUnavailable ? (
           <p className="text-sm text-slate-500 dark:text-slate-400" role="status">
             {t("employees.form.location_unavailable")}
           </p>
@@ -97,14 +98,15 @@ export default function EmployeeFormInputs({
             id="employees-form-location-combobox"
             onChange={setSelectedLocationId}
             options={locations.map((loc) => ({
-            value: loc.id,
-            label: loc.name,
-            description: loc.is_headquarters ? "Headquarters" : loc.timezone,
-          }))}
+              value: loc.id,
+              label: loc.name,
+              description: loc.is_headquarters ? "Headquarters" : loc.timezone,
+            }))}
             placeholder="Chọn địa điểm làm việc"
             value={selectedLocationId}
           />
         )}
+        </div>
       </div>
       <div className="space-y-3 px-1">
         <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.2em]" htmlFor="employees-form-employer-combobox">

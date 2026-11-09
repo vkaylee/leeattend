@@ -155,6 +155,7 @@ function useAssignmentForm({
     errors,
     isSubmitting,
     locations,
+    locationsUnavailable,
     employees,
     selectedEmployeeId,
     setSelectedEmployeeId,
@@ -175,6 +176,7 @@ export default function EmployeeAssignmentFormModal({
     errors,
     isSubmitting,
     locations,
+    locationsUnavailable,
     employees,
     selectedEmployeeId,
     setSelectedEmployeeId,
@@ -249,15 +251,12 @@ export default function EmployeeAssignmentFormModal({
             />
           </div>
 
-          <div className="space-y-2">
-            <label
-              className="text-[11px] font-bold text-slate-500 uppercase tracking-widest"
-              htmlFor="assignment-location-combobox"
-            >
+          <div aria-labelledby="assignment-location-label" className="space-y-2" role="group">
+            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-widest" id="assignment-location-label">
               Địa điểm đến (Tùy chọn)
-            </label>
+            </span>
             {locationsUnavailable ? (
-              <p className="text-sm text-slate-500 dark:text-slate-400" role="status">
+              <p className="text-sm text-slate-500 dark:text-slate-400" id="assignment-location-unavailable" role="status">
                 {t("employees.form.location_unavailable")}
               </p>
             ) : (

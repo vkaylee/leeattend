@@ -258,7 +258,8 @@
       "cannot_delete_hq": "Không thể xoá Trụ sở chính",
       "hq": "HQ",
       "empty_title": "Chưa có địa điểm",
-      "empty_desc": "Vui lòng thêm chi nhánh hoặc văn phòng làm việc để quản lý múi giờ."
+      "empty_desc": "Vui lòng thêm chi nhánh hoặc văn phòng làm việc để quản lý múi giờ.",
+      "unavailable": "Tài khoản của bạn không được truy cập địa điểm làm việc."
     },
     "overtime": {
       "delete_config_desc": "Xóa cấu hình?",

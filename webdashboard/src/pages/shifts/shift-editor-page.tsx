@@ -50,7 +50,7 @@ export default function ShiftEditorPage() {
   } = useShiftEditor(shiftId);
 
   // Parallel fetch — locations and employers are independent
-  const [{ data: locations }, { data: employers }] = useQueries({
+  const [{ data: locations, isError: locationsUnavailable }, { data: employers }] = useQueries({
     queries: [
       {
         queryKey: ["locations"],
@@ -214,28 +214,31 @@ export default function ShiftEditorPage() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
-              <div className="space-y-2">
-                <label
-                  className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest"
-                  htmlFor="shift_location_input"
-                >
+              <div aria-labelledby="shift_location_label" className="space-y-2" role="group">
+                <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest" id="shift_location_label">
                   {t("shifts.modal.location", "Chi nhánh / Địa điểm Scope")}
-                </label>
-                <Combobox
-                  clearOnEscape
-                  id="shift_location_input"
-                  onChange={setLocationId}
-                  options={[
-                    { value: "", label: t("shifts.modal.global_scope", "Toàn cục / Dùng chung") },
-                    ...(locations ?? []).map((loc) => ({
-                      value: loc.id,
-                      label: loc.name,
-                      description: loc.timezone,
-                    })),
-                  ]}
-                  placeholder={t("shifts.modal.select_location", "Chọn địa điểm làm việc")}
-                  value={locationId ?? ""}
-                />
+                </span>
+                {locationsUnavailable ? (
+                  <p className="text-sm text-slate-500 dark:text-slate-400" role="status">
+                    {t("settings.locations.unavailable", "Work locations are unavailable for your account.")}
+                  </p>
+                ) : (
+                  <Combobox
+                    clearOnEscape
+                    id="shift_location_input"
+                    onChange={setLocationId}
+                    options={[
+                      { value: "", label: t("shifts.modal.global_scope", "Toàn cục / Dùng chung") },
+                      ...(locations ?? []).map((loc) => ({
+                        value: loc.id,
+                        label: loc.name,
+                        description: loc.timezone,
+                      })),
+                    ]}
+                    placeholder={t("shifts.modal.select_location", "Chọn địa điểm làm việc")}
+                    value={locationId ?? ""}
+                  />
+                )}
               </div>
 
               <div className="space-y-2">
