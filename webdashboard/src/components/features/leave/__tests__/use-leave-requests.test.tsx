@@ -90,7 +90,7 @@ describe("useLeaveRequests - Persistent Banner Dismiss", () => {
     };
     (api.fetchLatestLeaveImport as any).mockResolvedValue(mockJob);
 
-    const { result } = renderHook(() => useLeaveRequests("ws-test"), {
+    const { result } = renderHook(() => useLeaveRequests(), {
       wrapper: createWrapper(),
     });
 
@@ -112,9 +112,9 @@ describe("useLeaveRequests - Persistent Banner Dismiss", () => {
       updated_at: new Date().toISOString(),
     };
     (api.fetchLatestLeaveImport as any).mockResolvedValue(mockJob);
-    localStorageMock.setItem("dismissed_leave_import_job_ws-test", "job-123");
+    localStorageMock.setItem("dismissed_leave_import_job", "job-123");
 
-    const { result } = renderHook(() => useLeaveRequests("ws-test"), {
+    const { result } = renderHook(() => useLeaveRequests(), {
       wrapper: createWrapper(),
     });
 
@@ -137,7 +137,7 @@ describe("useLeaveRequests - Persistent Banner Dismiss", () => {
     };
     (api.fetchLatestLeaveImport as any).mockResolvedValue(mockJob);
 
-    const { result } = renderHook(() => useLeaveRequests("ws-test"), {
+    const { result } = renderHook(() => useLeaveRequests(), {
       wrapper: createWrapper(),
     });
 
@@ -153,7 +153,7 @@ describe("useLeaveRequests - Persistent Banner Dismiss", () => {
 
     expect(result.current.importBannerDismissed).toBe(true);
     expect(localStorageMock.setItem).toHaveBeenCalledWith(
-      "dismissed_leave_import_job_ws-test",
+      "dismissed_leave_import_job",
       "job-123"
     );
   });

@@ -73,7 +73,7 @@ describe("useImportStateMachine", () => {
   });
 
   it("starts in the upload step with empty state", () => {
-    const { result } = renderHook(() => useImportStateMachine("ws-1", vi.fn()), {
+    const { result } = renderHook(() => useImportStateMachine( vi.fn()), {
       wrapper: createWrapper(),
     });
 
@@ -88,7 +88,7 @@ describe("useImportStateMachine", () => {
 
   it("uploads the file and moves to the preview step with the valid tab", async () => {
     vi.mocked(employeesApi.uploadTerminationImportPreview).mockResolvedValue(PREVIEW);
-    const { result } = renderHook(() => useImportStateMachine("ws-1", vi.fn()), {
+    const { result } = renderHook(() => useImportStateMachine( vi.fn()), {
       wrapper: createWrapper(),
     });
 
@@ -111,7 +111,7 @@ describe("useImportStateMachine", () => {
         { row_number: 2, employee_code: "EMP002", raw_termination_date: "bad", reason: "Invalid date" },
       ],
     });
-    const { result } = renderHook(() => useImportStateMachine("ws-1", vi.fn()), {
+    const { result } = renderHook(() => useImportStateMachine( vi.fn()), {
       wrapper: createWrapper(),
     });
 
@@ -125,7 +125,7 @@ describe("useImportStateMachine", () => {
   });
 
   it("does not upload when no file is selected", async () => {
-    const { result } = renderHook(() => useImportStateMachine("ws-1", vi.fn()), {
+    const { result } = renderHook(() => useImportStateMachine( vi.fn()), {
       wrapper: createWrapper(),
     });
 
@@ -143,7 +143,7 @@ describe("useImportStateMachine", () => {
       success_count: 1,
       errors: [],
     });
-    const { result } = renderHook(() => useImportStateMachine("ws-1", vi.fn()), {
+    const { result } = renderHook(() => useImportStateMachine( vi.fn()), {
       wrapper: createWrapper(),
     });
 
@@ -169,7 +169,7 @@ describe("useImportStateMachine", () => {
       errors: [],
     });
     vi.mocked(leavesApi.fetchJobStatus).mockResolvedValue({ status: "completed" });
-    const { result } = renderHook(() => useImportStateMachine("ws-1", vi.fn()), {
+    const { result } = renderHook(() => useImportStateMachine( vi.fn()), {
       wrapper: createWrapper(),
     });
 
@@ -200,7 +200,7 @@ describe("useImportStateMachine", () => {
       status: "failed",
       error_message: "Boom",
     });
-    const { result } = renderHook(() => useImportStateMachine("ws-1", vi.fn()), {
+    const { result } = renderHook(() => useImportStateMachine( vi.fn()), {
       wrapper: createWrapper(),
     });
 
@@ -221,7 +221,7 @@ describe("useImportStateMachine", () => {
   it("clears the error and stops confirming when confirmation fails", async () => {
     vi.mocked(employeesApi.uploadTerminationImportPreview).mockResolvedValue(PREVIEW);
     vi.mocked(employeesApi.confirmTerminationImport).mockRejectedValue(new Error("network"));
-    const { result } = renderHook(() => useImportStateMachine("ws-1", vi.fn()), {
+    const { result } = renderHook(() => useImportStateMachine( vi.fn()), {
       wrapper: createWrapper(),
     });
 
@@ -240,7 +240,7 @@ describe("useImportStateMachine", () => {
   it("resets state and calls onClose from handleClose", async () => {
     const onClose = vi.fn();
     vi.mocked(employeesApi.uploadTerminationImportPreview).mockResolvedValue(PREVIEW);
-    const { result } = renderHook(() => useImportStateMachine("ws-1", onClose), {
+    const { result } = renderHook(() => useImportStateMachine( onClose), {
       wrapper: createWrapper(),
     });
 

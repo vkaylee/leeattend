@@ -155,7 +155,6 @@ describe("ReportExportDialog - Integration Tests", () => {
 
       await waitFor(() => {
         expect(attendanceApi.createReportExportJob).toHaveBeenCalledWith(
-          "test-workspace",
           expect.objectContaining({
             start_date: "2024-01-01",
             end_date: "2024-01-31",
@@ -208,7 +207,6 @@ describe("ReportExportDialog - Integration Tests", () => {
 
       await waitFor(() => {
         expect(attendanceApi.createReportExportJob).toHaveBeenCalledWith(
-          "test-workspace",
           expect.objectContaining({
             employee_ids: employeeIds,
           })

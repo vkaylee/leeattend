@@ -78,7 +78,7 @@ describe("useRuleAssignments", () => {
       },
     ]);
 
-    const { result } = renderHook(() => useRuleAssignments("ws-1", "rule-1"), {
+    const { result } = renderHook(() => useRuleAssignments("rule-1"), {
       wrapper: getWrapper(),
     });
 
@@ -103,7 +103,7 @@ describe("useRuleAssignments", () => {
       {} as never
     );
 
-    const { result } = renderHook(() => useRuleAssignments("ws-1", "rule-1"), {
+    const { result } = renderHook(() => useRuleAssignments("rule-1"), {
       wrapper: getWrapper(),
     });
 
@@ -129,7 +129,7 @@ describe("useRuleAssignments", () => {
       new Error("API Error")
     );
 
-    const { result } = renderHook(() => useRuleAssignments("ws-1", "rule-1"), {
+    const { result } = renderHook(() => useRuleAssignments("rule-1"), {
       wrapper: getWrapper(),
     });
 

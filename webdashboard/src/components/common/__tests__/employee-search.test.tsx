@@ -200,7 +200,7 @@ describe("EmployeeSearch Component", () => {
 
     expect(useInfiniteQuery).toHaveBeenCalledWith(
       expect.objectContaining({
-        queryKey: employeeKeys.search("ws-1", {
+        queryKey: employeeKeys.search({
           departmentIds: [],
           emptyQueryBehavior: "all",
           permission: "attendance:adjustments:submit_on_behalf",
@@ -251,7 +251,7 @@ describe("EmployeeSearch Component", () => {
 
     expect(useInfiniteQuery).toHaveBeenCalledWith(
       expect.objectContaining({
-        queryKey: employeeKeys.search("ws-1", {
+        queryKey: employeeKeys.search({
           departmentIds: ["d1", "d2"],
           emptyQueryBehavior: "all",
           search: "",
