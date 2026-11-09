@@ -61,7 +61,7 @@ function useAssignmentForm({
   const toast = useToast();
   const createAssignment = useCreateEmployeeAssignment();
   const updateAssignment = useUpdateEmployeeAssignment();
-  const { data: locations } = useLocations();
+  const { data: locations, isError: locationsUnavailable } = useLocations();
   const { employees } = useAllEmployees({ enabled: isOpen && !employeeId });
   const [selectedEmployeeId, setSelectedEmployeeId] = React.useState<string>("");
   const {
@@ -256,25 +256,31 @@ export default function EmployeeAssignmentFormModal({
             >
               Địa điểm đến (Tùy chọn)
             </label>
-            <Controller
-              control={control}
-              name="host_location_id"
-              render={({ field }) => (
-                <Combobox
-                  clearOnEscape
-                  data-testid="assignment-location-combobox"
-                  id="assignment-location-combobox"
-                  onChange={field.onChange}
-                  options={(locations ?? []).map((loc) => ({
-                    value: loc.id,
-                    label: loc.name,
-                    description: loc.is_headquarters ? "Headquarters" : loc.timezone,
-                  }))}
-                  placeholder="Chọn địa điểm làm việc mới"
-                  value={field.value ?? ""}
-                />
-              )}
-            />
+            {locationsUnavailable ? (
+              <p className="text-sm text-slate-500 dark:text-slate-400" role="status">
+                {t("employees.form.location_unavailable")}
+              </p>
+            ) : (
+              <Controller
+                control={control}
+                name="host_location_id"
+                render={({ field }) => (
+                  <Combobox
+                    clearOnEscape
+                    data-testid="assignment-location-combobox"
+                    id="assignment-location-combobox"
+                    onChange={field.onChange}
+                    options={(locations ?? []).map((loc) => ({
+                      value: loc.id,
+                      label: loc.name,
+                      description: loc.is_headquarters ? "Headquarters" : loc.timezone,
+                    }))}
+                    placeholder="Chọn địa điểm làm việc mới"
+                    value={field.value ?? ""}
+                  />
+                )}
+              />
+            )}
             {!!errors.host_location_id?.message && (
               <Typography className="text-sm font-semibold text-rose-500 mt-1" variant="p">
                 {errors.host_location_id.message}

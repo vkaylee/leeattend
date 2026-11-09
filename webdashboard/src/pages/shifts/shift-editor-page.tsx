@@ -54,7 +54,9 @@ export default function ShiftEditorPage() {
     queries: [
       {
         queryKey: ["locations"],
-        queryFn: () => fetchLocations(),
+        queryFn: fetchLocations,
+        retry: false,
+        meta: { suppressErrorToast: [403] },
       },
       {
         queryKey: ["employers"],

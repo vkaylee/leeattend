@@ -12,6 +12,7 @@ interface Props {
   editingEmployee: Employee | null;
   employers: Employer[];
   locations: WorkLocation[];
+  locationsUnavailable?: boolean;
   members: OrganizationMember[];
   prefillEnrollmentId: string;
   selectedEmployerId: string;
@@ -31,6 +32,7 @@ export default function EmployeeFormInputs({
   selectedUserId,
   setSelectedUserId,
   locations,
+  locationsUnavailable = false,
   selectedLocationId,
   setSelectedLocationId,
   employers,
@@ -84,19 +86,25 @@ export default function EmployeeFormInputs({
         <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.2em]" htmlFor="employees-form-location-combobox">
           Địa điểm làm việc
         </label>
-        <Combobox
-          clearOnEscape
-          data-testid="employees-form-location-combobox"
-          id="employees-form-location-combobox"
-          onChange={setSelectedLocationId}
-          options={locations.map((loc) => ({
+        {locationsUnavailable ? (
+          <p className="text-sm text-slate-500 dark:text-slate-400" role="status">
+            {t("employees.form.location_unavailable")}
+          </p>
+        ) : (
+          <Combobox
+            clearOnEscape
+            data-testid="employees-form-location-combobox"
+            id="employees-form-location-combobox"
+            onChange={setSelectedLocationId}
+            options={locations.map((loc) => ({
             value: loc.id,
             label: loc.name,
             description: loc.is_headquarters ? "Headquarters" : loc.timezone,
           }))}
-          placeholder="Chọn địa điểm làm việc"
-          value={selectedLocationId}
-        />
+            placeholder="Chọn địa điểm làm việc"
+            value={selectedLocationId}
+          />
+        )}
       </div>
       <div className="space-y-3 px-1">
         <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.2em]" htmlFor="employees-form-employer-combobox">
