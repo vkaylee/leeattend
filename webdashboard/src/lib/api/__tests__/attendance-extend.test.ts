@@ -33,6 +33,10 @@ import {
   downloadExportReport,
   fetchMonitorOverview,
   fetchMonitorJobs,
+  fetchMonitorAlerts,
+  fetchMonitorAlert,
+  acknowledgeMonitorAlert,
+  resolveMonitorAlert,
   fetchDefaultAttendanceRules,
   fetchAttendancePolicyVersions,
   fetchPolicyAssignments,
@@ -307,7 +311,42 @@ describe("attendance API (extended)", () => {
     vi.mocked(apiFetch).mockResolvedValueOnce(okRes({ active_jobs: 3 }));
     const result = await fetchMonitorOverview();
     expect(result).toEqual({ active_jobs: 3 });
-    expect(vi.mocked(apiFetch).mock.calls[0][0]).toContain("/monitor/overview");
+    expect(vi.mocked(apiFetch).mock.calls[0][0]).toContain("/v1/monitor/overview");
+    expect(vi.mocked(apiFetch).mock.calls[0][0]).not.toContain("/api/monitor/");
+  });
+
+  it("fetchMonitorAlerts: uses versioned path and query params", async () => {
+    vi.mocked(apiFetch).mockResolvedValueOnce(okRes({ alerts: [] }));
+    await fetchMonitorAlerts({ cursor: "cursor-1", limit: 20, severity: "high", status: "active" });
+    const [url, options] = vi.mocked(apiFetch).mock.calls[0];
+    expect(url).toContain("/v1/monitor/alerts?");
+    expect(url).toContain("cursor=cursor-1");
+    expect(url).toContain("limit=20");
+    expect(url).toContain("severity=high");
+    expect(url).toContain("status=active");
+    expect((options as RequestInit).method).toBe("GET");
+  });
+
+  it("fetchMonitorAlert: uses versioned detail path", async () => {
+    vi.mocked(apiFetch).mockResolvedValueOnce(okRes({ id: "alert-1" }));
+    await fetchMonitorAlert("alert-1");
+    expect(vi.mocked(apiFetch).mock.calls[0][0]).toContain("/v1/monitor/alerts/alert-1");
+  });
+
+  it("monitor alert mutations: use versioned paths and POST bodies", async () => {
+    vi.mocked(apiFetch).mockResolvedValueOnce(okRes({ id: "alert-1" }));
+    await acknowledgeMonitorAlert("alert-1", { reason: "ack" });
+    let [url, options] = vi.mocked(apiFetch).mock.calls[0];
+    expect(url).toContain("/v1/monitor/alerts/alert-1/acknowledge");
+    expect((options as RequestInit).method).toBe("POST");
+    expect(JSON.parse((options as RequestInit).body as string)).toEqual({ reason: "ack" });
+
+    vi.mocked(apiFetch).mockResolvedValueOnce(okRes({ id: "alert-1" }));
+    await resolveMonitorAlert("alert-1", { reason: "resolved" });
+    [url, options] = vi.mocked(apiFetch).mock.calls[1];
+    expect(url).toContain("/v1/monitor/alerts/alert-1/resolve");
+    expect((options as RequestInit).method).toBe("POST");
+    expect(JSON.parse((options as RequestInit).body as string)).toEqual({ reason: "resolved" });
   });
 
   it("fetchMonitorJobs: marks all sources unavailable when response is null", async () => {
@@ -325,6 +364,7 @@ describe("attendance API (extended)", () => {
     const result = await fetchMonitorJobs({ limit: 10 });
     expect(result.jobs).toHaveLength(1);
     expect(result.next_cursor).toBe(5);
+    expect(vi.mocked(apiFetch).mock.calls[0][0]).toContain("/v1/monitor/jobs?limit=10");
   });
 
   it("fetchDefaultAttendanceRules: GET rules", async () => {

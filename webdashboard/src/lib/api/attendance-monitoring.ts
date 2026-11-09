@@ -84,7 +84,7 @@ const unavailableDependency = (limitation: string) => ({
 });
 
 export async function fetchMonitorOverview(): Promise<WorkerMonitorStats> {
-  const { data: resData } = await client.GET<WorkerMonitorStats>("/monitor/overview", {});
+  const { data: resData } = await client.GET<WorkerMonitorStats>("/v1/monitor/overview", {});
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- SafeClient types say non-null but API may return null
   return resData ?? {
     active_workers: null,
@@ -203,7 +203,7 @@ export interface FetchMonitorAlertsParams {
 export async function fetchMonitorAlerts(
   params: FetchMonitorAlertsParams = {},
 ): Promise<MonitorAlertsResponse> {
-  const { data } = await client.GET<MonitorAlertsResponse>("/monitor/alerts", {
+  const { data } = await client.GET<MonitorAlertsResponse>("/v1/monitor/alerts", {
     params: {
       query: {
         cursor: params.cursor ?? undefined,
@@ -217,7 +217,7 @@ export async function fetchMonitorAlerts(
 }
 
 export async function fetchMonitorAlert(alertId: string): Promise<MonitorAlertDetail> {
-  const { data } = await client.GET<MonitorAlertDetail>("/monitor/alerts/{alert_id}", {
+  const { data } = await client.GET<MonitorAlertDetail>("/v1/monitor/alerts/{alert_id}", {
     params: { path: { alert_id: alertId } },
   });
   return data;
@@ -227,7 +227,7 @@ export async function acknowledgeMonitorAlert(
   alertId: string,
   request: MonitorAlertMutationRequest,
 ): Promise<MonitorAlert> {
-  const { data } = await client.POST<MonitorAlert>("/monitor/alerts/{alert_id}/acknowledge", {
+  const { data } = await client.POST<MonitorAlert>("/v1/monitor/alerts/{alert_id}/acknowledge", {
     params: { path: { alert_id: alertId } },
     body: request,
   });
@@ -238,7 +238,7 @@ export async function resolveMonitorAlert(
   alertId: string,
   request: MonitorAlertMutationRequest,
 ): Promise<MonitorAlert> {
-  const { data } = await client.POST<MonitorAlert>("/monitor/alerts/{alert_id}/resolve", {
+  const { data } = await client.POST<MonitorAlert>("/v1/monitor/alerts/{alert_id}/resolve", {
     params: { path: { alert_id: alertId } },
     body: request,
   });
@@ -246,7 +246,7 @@ export async function resolveMonitorAlert(
 }
 
 export async function fetchMonitorJobs(params: FetchMonitorJobsParams): Promise<MonitorJobsResponse> {
-  const { data: resData } = await client.GET<MonitorJobsResponse>("/monitor/jobs", {
+  const { data: resData } = await client.GET<MonitorJobsResponse>("/v1/monitor/jobs", {
     params: {
       query: {
         cursor: params.cursor ?? undefined,
