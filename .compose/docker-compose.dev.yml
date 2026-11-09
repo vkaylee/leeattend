@@ -13,12 +13,6 @@ services:
     volumes:
       - postgres_dev_data_v18:/var/lib/postgresql
     networks: [backend_net]
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\""]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-
   pgbouncer:
     image: ${PGBOUNCER_IMAGE:-edoburu/pgbouncer:v1.26.1-p0}
     restart: unless-stopped
@@ -34,17 +28,15 @@ services:
       MAX_CLIENT_CONN: "200"
       DEFAULT_POOL_SIZE: "25"
       MAX_PREPARED_STATEMENTS: "250"
+      CLIENT_TLS_SSLMODE: disable
+      SERVER_TLS_SSLMODE: disable
+    volumes: []
     ports:
       - "127.0.0.1:${PGBOUNCER_HOST_PORT:-6432}:6432"
     networks: [backend_net]
     depends_on:
       db:
         condition: service_healthy
-    healthcheck:
-      test: ["CMD", "pg_isready", "-h", "127.0.0.1", "-p", "6432", "-U", "${DB_USER:-postgres}", "-d", "${DB_NAME:-leeattend}"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
 
   redis:
     image: public.ecr.aws/docker/library/redis:7-alpine
@@ -52,11 +44,6 @@ services:
     volumes:
       - redis_dev_data:/data
     networks: [backend_net]
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
 
   redisinsight:
     image: ghcr.io/redis-developer/redisinsight:latest
@@ -83,11 +70,10 @@ services:
       - minio_dev_data:/data
     networks: [backend_net]
     healthcheck:
-      test: ["CMD-SHELL", "curl -fsS http://localhost:9000/health/ready >/dev/null"]
+      test: "curl -fsS http://localhost:9000/health/ready >/dev/null"
       interval: 10s
       timeout: 5s
       retries: 10
-
   cloudbeaver:
     image: docker.io/dbeaver/cloudbeaver:latest
     pull_policy: missing
@@ -106,8 +92,8 @@ services:
       CLOUDBEAVER_APP_GRANT_CONNECTIONS_ACCESS_TO_ANONYMOUS_TEAM: "true"
     volumes:
       - cloudbeaver_dev_data:/opt/cloudbeaver/workspace
-      - ../.compose/cloudbeaver-entrypoint.sh:/opt/cloudbeaver/cloudbeaver-entrypoint.sh:ro
-      - ../.compose/cloudbeaver-initial-data-sources.conf:/opt/cloudbeaver/conf/initial-data-sources.conf.tpl:ro
+      - ./.compose/cloudbeaver-entrypoint.sh:/opt/cloudbeaver/cloudbeaver-entrypoint.sh:ro
+      - ./.compose/cloudbeaver-initial-data-sources.conf:/opt/cloudbeaver/conf/initial-data-sources.conf.tpl:ro
     entrypoint: /opt/cloudbeaver/cloudbeaver-entrypoint.sh
     depends_on:
       pgbouncer:
@@ -121,7 +107,7 @@ services:
       POSTGRES_USER: ${DB_USER:-postgres}
       PGPASSWORD: ${DB_PASSWORD:-postgres}
     volumes:
-      - ..:/workspace:ro
+      - .:/workspace:ro
     networks: [backend_net]
     depends_on:
       pgbouncer:
@@ -134,7 +120,8 @@ services:
     environment:
       APP_ENV: development
       APP_HOST: 0.0.0.0
-      APP_PORT: 3000
+      APP_PORT: "3000"
+      GOCACHE: /tmp/go-build
       DB_PRIMARY_URL: postgres://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@pgbouncer:6432/${DB_NAME:-leeattend}
       DB_POOLER_TX_URL: postgres://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@pgbouncer:6432/${DB_NAME:-leeattend}
       DB_POOLER_SESS_URL: postgres://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@pgbouncer:6432/${DB_NAME:-leeattend}
@@ -154,8 +141,9 @@ services:
       S3_ACCESS_KEY: ${MINIO_ROOT_USER:-leeattend}
       S3_SECRET_KEY: ${MINIO_ROOT_PASSWORD:-development-password}
       S3_USE_PATH_STYLE: "true"
+    read_only: false
     volumes:
-      - ..:/app
+      - .:/app
       - go-module-cache:/go/pkg/mod
     networks: [backend_net, frontend_net]
     depends_on:
@@ -168,14 +156,14 @@ services:
       minio:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:3000/api/v1/health >/dev/null"]
+      test: wget -qO- http://localhost:3000/api/v1/health >/dev/null
       interval: 10s
       timeout: 5s
       retries: 12
 
   webdashboard:
     build:
-      context: ../webdashboard
+      context: ./webdashboard
       dockerfile: Dockerfile
       target: dev
     command: >-
@@ -186,9 +174,9 @@ services:
       CHOKIDAR_USEPOLLING: "true"
     networks: [frontend_net]
     volumes:
-      - ../webdashboard:/app
+      - ./webdashboard:/app
       - webdashboard-node-modules:/app/node_modules
-      - ../logs:/var/log/app
+      - ./logs:/var/log/app
 
   caddy:
     image: public.ecr.aws/docker/library/caddy:alpine
@@ -203,7 +191,7 @@ services:
     ports:
       - "${DEV_PORT:-8080}:80"
     volumes:
-      - ../Caddyfile-dev:/etc/caddy/Caddyfile:ro
+      - ./Caddyfile-dev:/etc/caddy/Caddyfile:ro
   playwright-mcp:
     image: localhost/leedevkit-dev_playwright-mcp:latest
     pull_policy: missing

@@ -20,7 +20,7 @@ services:
       - -c
       - ssl_key_file=/run/postgres/tls/server.key
     volumes:
-      - standalone_db:/var/lib/postgresql/data
+      - standalone_db:/var/lib/postgresql
       - ${POSTGRES_TLS_DIR:?set POSTGRES_TLS_DIR}:/run/postgres/tls:ro
     networks: [backend]
     healthcheck:
@@ -83,7 +83,7 @@ services:
       - standalone_files:/data
     networks: [backend]
     healthcheck:
-      test: ["CMD", "mc", "ready", "local"]
+      test: mc ready local
       interval: 10s
       timeout: 5s
       retries: 10
