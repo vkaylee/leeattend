@@ -98,7 +98,7 @@ export function useRolePermissions(roleId: string) {
 const EMPTY_MATRIX: Record<string, string[]> = {};
 
 export function useOrganizationPermissionsMatrix() {
-  const { roles } = useOrganizationRoles();
+  const { roles, isLoading: rolesLoading } = useOrganizationRoles();
 
   const roleIds = roles.map((role) => role.id).sort().join(",");
 
@@ -122,7 +122,7 @@ export function useOrganizationPermissionsMatrix() {
 
   return {
     matrix: matrixQuery.data ?? EMPTY_MATRIX,
-    isLoading: matrixQuery.isLoading,
+    isLoading: rolesLoading || matrixQuery.isLoading,
     refetch: matrixQuery.refetch,
   };
 }

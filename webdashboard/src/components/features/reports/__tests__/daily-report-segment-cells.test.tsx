@@ -16,9 +16,9 @@ vi.mock("../../../shifts/schedule-trace-popover", () => ({
     ScheduleTracePopover: () => <span data-testid="mock-trace-popover">TRACE</span>,
 }));
 
-vi.mock("@/hooks/use-workspace", () => ({
-    useWorkspace: () => ({
-        workspace: { timezone: "UTC" },
+vi.mock("@/hooks/use-organization", () => ({
+    useOrganization: () => ({
+        organization: { timezone: "UTC" },
     }),
 }));
 

@@ -18,7 +18,7 @@ vi.mock('../../lib/api', async () => {
     fetchEmployees: vi.fn(),
     searchEmployees: vi.fn(),
     fetchEmployeePayslips: vi.fn(),
-    fetchWorkspacePayslips: vi.fn(),
+    fetchPayslips: vi.fn(),
     calculateBatchPayslips: vi.fn(),
     fetchWorkspaceAttendanceAdjustments: vi.fn(),
     fetchWorkspace: vi.fn(),
@@ -69,7 +69,7 @@ describe('PayrollPage', () => {
       error: null,
     } as unknown as ReturnType<typeof useOrganization>);
     vi.mocked(api.fetchEmployeePayslips).mockResolvedValue([]);
-    vi.mocked(api.fetchWorkspacePayslips).mockResolvedValue([]);
+    vi.mocked(api.fetchPayslips).mockResolvedValue([]);
     vi.mocked(api.fetchWorkspaceAttendanceAdjustments).mockResolvedValue({ data: [], total: 0, page: 1, limit: 20 });
   });
 
