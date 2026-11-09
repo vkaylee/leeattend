@@ -1,6 +1,7 @@
 import { client, fetch } from "./client";
 import { ApiError } from "./errors";
 import { apiFetch, setAccessToken, setCurrentUserId, clearAuthSession, TIMEOUT } from "./helpers";
+import { markAuthSession } from "./token-store";
 import {
   AuthResponse,
   ChangePasswordRequest,
@@ -15,6 +16,7 @@ export async function login(username: string, password: string): Promise<AuthRes
   });
   setAccessToken(data.access_token);
   setCurrentUserId(data.user.id);
+  markAuthSession();
   return data;
 }
 

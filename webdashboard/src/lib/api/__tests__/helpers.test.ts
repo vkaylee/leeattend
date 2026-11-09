@@ -11,6 +11,7 @@ import {
   apiFetch,
   forceRefreshToken,
 } from '../helpers';
+import { clearAuthSessionHint } from "../token-store";
 
 describe('Token helpers', () => {
   beforeEach(() => {
@@ -192,6 +193,7 @@ describe('getFullUrl', () => {
 
 describe('forceRefreshToken failure path', () => {
   beforeEach(() => {
+    clearAuthSessionHint();
     setAccessToken(null);
     vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('network down')));
   });
@@ -224,6 +226,7 @@ describe('forceRefreshToken failure path', () => {
 describe('handleUnauthorized (401 retry-on-refresh) via apiFetch', () => {
   beforeEach(() => {
     localStorage.clear();
+    clearAuthSessionHint();
     setAccessToken(null);
     vi.stubGlobal('fetch', vi.fn());
     vi.useFakeTimers();
@@ -233,6 +236,43 @@ describe('handleUnauthorized (401 retry-on-refresh) via apiFetch', () => {
     vi.useRealTimers();
     vi.unstubAllGlobals();
     vi.restoreAllMocks();
+  });
+
+  it('redirects without refresh, logout, or error logging when no session exists', async () => {
+    const fakeLocation = { pathname: '/workspace', href: '' };
+    const originalLocation = window.location;
+    Object.defineProperty(window, 'location', {
+      value: fakeLocation,
+      writable: true,
+      configurable: true,
+    });
+    const mockFetch = globalThis.fetch as Mock;
+    mockFetch.mockResolvedValueOnce(new Response('unauthenticated', { status: 401 }));
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    await expect(apiFetch('/v1/secured')).rejects.toThrow('Session expired');
+
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+    expect(errorSpy).not.toHaveBeenCalled();
+    expect(fakeLocation.href).toBe('/login');
+
+    Object.defineProperty(window, 'location', {
+      value: originalLocation,
+      writable: true,
+      configurable: true,
+    });
+  });
+
+  it('refreshes after reload when a session hint exists without an in-memory token', async () => {
+    localStorage.setItem('leeattend.authenticated', '1');
+    const mockFetch = globalThis.fetch as Mock;
+    mockFetch.mockResolvedValueOnce(new Response('unauthenticated', { status: 401 }));
+    mockFetch.mockResolvedValueOnce(new Response(JSON.stringify({ access_token: 'restored-at' }), { status: 200 }));
+    mockFetch.mockResolvedValueOnce(new Response(JSON.stringify({ ok: true }), { status: 200 }));
+
+    await expect(apiFetch('/v1/secured')).resolves.toMatchObject({ status: 200 });
+    expect(mockFetch).toHaveBeenCalledTimes(3);
+    expect(getAccessToken()).toBe('restored-at');
   });
 
   it('retrying once on 401 with a fresh token after forceRefreshToken succeeds', async () => {
@@ -253,6 +293,7 @@ describe('handleUnauthorized (401 retry-on-refresh) via apiFetch', () => {
       new Response(JSON.stringify({ ok: true }), { status: 200 }),
     );
 
+    setAccessToken('expired-token');
     const promise = apiFetch('/v1/secured');
     await vi.runAllTimersAsync();
     const response = await promise;

@@ -14,8 +14,22 @@
 // endpoint also falls back to reading the cookie when the body is empty.
 //
 
+const AUTH_SESSION_HINT_KEY = "leeattend.authenticated";
 let accessToken: string | null = null;
 let currentUserId: string | null = null;
+
+/** Persist only session presence, never credentials, across page reloads. */
+export function markAuthSession(): void {
+  localStorage.setItem(AUTH_SESSION_HINT_KEY, "1");
+}
+
+export function hasAuthSessionHint(): boolean {
+  return localStorage.getItem(AUTH_SESSION_HINT_KEY) === "1";
+}
+
+export function clearAuthSessionHint(): void {
+  localStorage.removeItem(AUTH_SESSION_HINT_KEY);
+}
 /** auth token change listeners (e.g. websocket reconnect on token rotation) */
 type TokenListener = (token: string | null) => void;
 const listeners = new Set<TokenListener>();
@@ -58,5 +72,6 @@ export function onAccessTokenChange(fn: TokenListener): () => void {
 export function clearMemorySession(): void {
 	accessToken = null;
 	currentUserId = null;
+	clearAuthSessionHint();
 	listeners.forEach((fn) => { fn(null); });
 }
