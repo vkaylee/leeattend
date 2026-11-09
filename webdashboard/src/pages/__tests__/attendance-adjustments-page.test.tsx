@@ -87,7 +87,6 @@ vi.mock("../../lib/api", () => ({
   fetchEmployees: vi.fn(),
   approveAttendanceAdjustment: vi.fn(),
   submitAttendanceAdjustment: vi.fn(),
-  fetchWorkspace: vi.fn(),
 }));
 
 // Override i18n
@@ -125,9 +124,8 @@ describe("AttendanceAdjustmentsPage", () => {
       page: 1,
       limit: 50,
     });
-    vi.mocked(api.fetchWorkspace).mockResolvedValue({
-      id: "test-ws-id",
-      name: "Test Workspace",
+    vi.mocked(api.fetchOrganization).mockResolvedValue({
+      name: "Test Organization",
       timezone: "Asia/Ho_Chi_Minh",
       created_at: "2025-01-01T00:00:00Z",
       date_format: "DD/MM/YYYY",
@@ -136,7 +134,7 @@ describe("AttendanceAdjustmentsPage", () => {
       default_holiday_ot_multiplier: "2.0",
       default_language: "vi",
       holiday_overnight_strategy: "split",
-    });
+    } as any);
     vi.mocked(api.fetchWorkspaceAttendanceAdjustments).mockResolvedValue({
       data: [
         { 
@@ -187,7 +185,7 @@ describe("AttendanceAdjustmentsPage", () => {
     await user.click(approveButtons[0]);
 
     await waitFor(() => {
-      expect(api.approveAttendanceAdjustment).toHaveBeenCalledWith("test-ws-id", "adj-1", { status: "approved" });
+      expect(api.approveAttendanceAdjustment).toHaveBeenCalledWith("adj-1", { status: "approved" });
     });
   });
 
@@ -254,7 +252,7 @@ describe("AttendanceAdjustmentsPage", () => {
 
     // Initial fetch should be triggered with status: undefined (since statusFilter defaults to "all")
     await waitFor(() => {
-      expect(api.fetchWorkspaceAttendanceAdjustments).toHaveBeenCalledWith("test-ws-id", expect.objectContaining({
+      expect(api.fetchWorkspaceAttendanceAdjustments).toHaveBeenCalledWith(expect.objectContaining({
         status: undefined,
       }));
     });
@@ -269,7 +267,7 @@ describe("AttendanceAdjustmentsPage", () => {
 
     // Wait for the query to be triggered with status: "pending"
     await waitFor(() => {
-      expect(api.fetchWorkspaceAttendanceAdjustments).toHaveBeenCalledWith("test-ws-id", expect.objectContaining({
+      expect(api.fetchWorkspaceAttendanceAdjustments).toHaveBeenCalledWith(expect.objectContaining({
         status: "pending",
       }));
     });
