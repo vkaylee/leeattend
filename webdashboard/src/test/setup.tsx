@@ -2,15 +2,23 @@ import "@testing-library/jest-dom";
 import { beforeEach, vi } from "vitest";
 
 import attendance from "../i18n/locales/vi/attendance.json";
+import audit_logs from "../i18n/locales/vi/audit_logs.json";
 import common from "../i18n/locales/vi/common.json";
+import custom_fields from "../i18n/locales/vi/custom_fields.json";
 import departments from "../i18n/locales/vi/departments.json";
 import employees from "../i18n/locales/vi/employees.json";
 import leave from "../i18n/locales/vi/leave.json";
+import monitor from "../i18n/locales/vi/monitor.json";
 import payroll from "../i18n/locales/vi/payroll.json";
+import permissions from "../i18n/locales/vi/permissions.json";
 import settings from "../i18n/locales/vi/settings.json";
 import shift_swaps from "../i18n/locales/vi/shift_swaps.json";
 const viLocale = {
   ...common,
+  ...custom_fields,
+  ...audit_logs,
+  ...monitor,
+  ...permissions,
   ...payroll,
   ...shift_swaps,
   ...employees,
