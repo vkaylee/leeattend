@@ -9,6 +9,16 @@
     "playwright": {
       "command": "scripts/playwright-mcp-role.sh",
       "args": ["employee", "--endpoint", "http://caddy"]
+    },
+    "kanban-ai": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "mcp-remote",
+        "https://kanbanai.dev/api/mcp",
+        "--header",
+        "Authorization:Bearer kai_kHNq_SUsiVspmLuwypnxNu-uCtWCV1CC-YpWtky5Hko"
+      ]
     }
   }
 }
