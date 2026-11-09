@@ -42,28 +42,30 @@ vi.mock("@tanstack/react-router", () => {
 vi.mock("../../lib/api", async (importOriginal) => {
   const actual = await importOriginal<typeof import("../../lib/api")>();
   return {
-  ...actual,
-  fetchEmployees: vi.fn(),
-  searchEmployees: vi.fn(),
-  fetchEmployeePayslips: vi.fn(),
-  fetchWorkspacePayslips: vi.fn(),
-  fetchWorkspaceAttendanceAdjustments: vi.fn(),
-  fetchRawAttendanceLogs: vi.fn(),
-  fetchWorkspace: vi.fn(),
-  fetchWorkspaceLeaveRequests: vi.fn(),
-  fetchEmployeeLeaveBalances: vi.fn(),
-  fetchLeavePolicies: vi.fn(),
-  fetchMyPermissions: vi.fn(),
-  fetchMyProfile: vi.fn(),
-  fetchLeaveTypes: vi.fn().mockResolvedValue([]),
-  // LeaveImportDialog mocks
-  uploadLeaveExcel: vi.fn(),
-  fetchLatestLeaveImport: vi.fn().mockResolvedValue(null),
-  getLeaveImportErrorsUrl: vi.fn().mockReturnValue("#"),
-  getLeaveImportTemplateUrl: vi.fn().mockReturnValue("#"),
-  downloadLeaveImportTemplate: vi.fn().mockResolvedValue(undefined),
-  downloadLeaveImportErrors: vi.fn().mockResolvedValue(undefined),
-}));
+    ...actual,
+    fetchEmployees: vi.fn(),
+    searchEmployees: vi.fn(),
+    fetchEmployeePayslips: vi.fn(),
+    fetchPayslips: vi.fn(),
+    fetchWorkspacePayslips: vi.fn(),
+    fetchWorkspaceAttendanceAdjustments: vi.fn(),
+    fetchRawAttendanceLogs: vi.fn(),
+    fetchWorkspace: vi.fn(),
+    fetchWorkspaceLeaveRequests: vi.fn(),
+    fetchEmployeeLeaveBalances: vi.fn(),
+    fetchLeavePolicies: vi.fn(),
+    fetchMyPermissions: vi.fn(),
+    fetchMyProfile: vi.fn(),
+    fetchLeaveTypes: vi.fn().mockResolvedValue([]),
+    // LeaveImportDialog mocks
+    uploadLeaveExcel: vi.fn(),
+    fetchLatestLeaveImport: vi.fn().mockResolvedValue(null),
+    getLeaveImportErrorsUrl: vi.fn().mockReturnValue("#"),
+    getLeaveImportTemplateUrl: vi.fn().mockReturnValue("#"),
+    downloadLeaveImportTemplate: vi.fn().mockResolvedValue(undefined),
+    downloadLeaveImportErrors: vi.fn().mockResolvedValue(undefined),
+  };
+});
 
 // Helper to create mock paginated response
 const createPaginatedResponse = <T,>(
@@ -125,7 +127,7 @@ describe("Pagination Integration Tests", () => {
  
       vi.mocked(api.fetchEmployees).mockResolvedValue(mockEmployees);
  
-      vi.mocked(api.fetchWorkspacePayslips).mockResolvedValue([]);
+      vi.mocked(api.fetchPayslips).mockResolvedValue([]);
  
       vi.mocked(api.fetchWorkspaceAttendanceAdjustments).mockResolvedValue({ data: [], total: 0, page: 1, limit: 20 });
 
@@ -141,7 +143,7 @@ describe("Pagination Integration Tests", () => {
         createPaginatedResponse([], { total: 0 })
       );
  
-      vi.mocked(api.fetchWorkspacePayslips).mockResolvedValue([]);
+      vi.mocked(api.fetchPayslips).mockResolvedValue([]);
  
       vi.mocked(api.fetchWorkspaceAttendanceAdjustments).mockResolvedValue({ data: [], total: 0, page: 1, limit: 20 });
 
@@ -157,7 +159,7 @@ describe("Pagination Integration Tests", () => {
  
       vi.mocked(api.fetchEmployees).mockResolvedValue(undefined as unknown as PaginatedResponse<Employee>);
  
-      vi.mocked(api.fetchWorkspacePayslips).mockResolvedValue([]);
+      vi.mocked(api.fetchPayslips).mockResolvedValue([]);
  
       vi.mocked(api.fetchWorkspaceAttendanceAdjustments).mockResolvedValue({ data: [], total: 0, page: 1, limit: 20 });
 
@@ -195,7 +197,7 @@ describe("Pagination Integration Tests", () => {
  
       vi.mocked(api.fetchEmployees).mockResolvedValue(mockEmployees);
  
-      vi.mocked(api.fetchWorkspacePayslips).mockResolvedValue([]);
+      vi.mocked(api.fetchPayslips).mockResolvedValue([]);
  
       vi.mocked(api.fetchWorkspaceAttendanceAdjustments).mockResolvedValue({ data: [], total: 0, page: 1, limit: 20 });
 
@@ -226,7 +228,7 @@ describe("Pagination Integration Tests", () => {
  
       vi.mocked(api.fetchEmployees).mockResolvedValue(mockEmployees);
  
-      vi.mocked(api.fetchWorkspacePayslips).mockResolvedValue([]);
+      vi.mocked(api.fetchPayslips).mockResolvedValue([]);
  
       vi.mocked(api.fetchWorkspaceAttendanceAdjustments).mockResolvedValue({ data: [], total: 0, page: 1, limit: 20 });
 
@@ -354,7 +356,7 @@ describe("Pagination Integration Tests", () => {
  
       vi.mocked(api.fetchEmployees).mockResolvedValue(malformedResponse);
  
-      vi.mocked(api.fetchWorkspacePayslips).mockResolvedValue([]);
+      vi.mocked(api.fetchPayslips).mockResolvedValue([]);
  
       vi.mocked(api.fetchWorkspaceAttendanceAdjustments).mockResolvedValue({ data: [], total: 0, page: 1, limit: 20 });
 
@@ -376,7 +378,7 @@ describe("Pagination Integration Tests", () => {
  
       vi.mocked(api.fetchEmployees).mockResolvedValue(malformedResponse);
  
-      vi.mocked(api.fetchWorkspacePayslips).mockResolvedValue([]);
+      vi.mocked(api.fetchPayslips).mockResolvedValue([]);
  
       vi.mocked(api.fetchWorkspaceAttendanceAdjustments).mockResolvedValue({ data: [], total: 0, page: 1, limit: 20 });
 
@@ -405,7 +407,7 @@ describe("Pagination Integration Tests", () => {
  
       vi.mocked(api.fetchEmployees).mockResolvedValue(mockEmployees);
  
-      vi.mocked(api.fetchWorkspacePayslips).mockResolvedValue([]);
+      vi.mocked(api.fetchPayslips).mockResolvedValue([]);
  
       vi.mocked(api.fetchWorkspaceAttendanceAdjustments).mockResolvedValue({ data: [], total: 0, page: 1, limit: 20 });
 

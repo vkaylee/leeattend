@@ -47,9 +47,15 @@ export function useFileUpload({
         // FormData at runtime, so we bridge the body with `never` (output
         // position). openapi-fetch's defaultBodySerializer handles FormData
         // natively, so no custom serializer is needed. See coding-standard §10.1.
-        const { data } = await client.POST<WorkspaceFile>('/v1/files/upload', {
+        const { data, error } = await client.POST<WorkspaceFile>('/v1/files/upload', {
           body: formData as never,
         });
+        if (error) {
+          const message = typeof error === "object" && error !== null && "message" in error
+            ? String(error.message)
+            : t("errors.upload_failed");
+          throw new Error(message);
+        }
 
         setProgress(100);
         return data;
