@@ -29,6 +29,14 @@ vi.mock("@/hooks/use-permissions", () => ({
   }),
 }));
 
+vi.mock("@/hooks/use-organization", () => ({
+  useOrganization: () => ({ organization: null }),
+}));
+
+vi.mock("@/lib/api", () => ({
+  fetchEmployeeEmployments: vi.fn().mockResolvedValue([]),
+}));
+
 const mockEmployee: Employee = {
   id: "emp-1",
   full_name: "John Doe",
