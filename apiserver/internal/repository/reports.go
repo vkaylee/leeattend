@@ -131,7 +131,7 @@ func (r ReportRepository) GetAttendanceReport(ctx context.Context, params api.At
        COALESCE(ads.actual_work_minutes, 0),
        COALESCE(ads.standard_minutes, 0),
        COALESCE(ads.approved_ot_minutes, 0),
-       ads.ot_status::text
+       COALESCE(ads.ot_status::text, 'none')
 FROM employments emp
 JOIN employees e ON e.id = emp.employee_id
 JOIN attendance_daily_summaries ads ON ads.employment_id = emp.id
@@ -170,6 +170,7 @@ LIMIT $%d OFFSET $%d`, whereClause, filterClause, argIndex, argIndex+1)
 			row.ComputedOTHours = math.Round((float64(otMins)/60.0)*100) / 100
 			row.StdWorkUnits = math.Round((float64(stdMins)/480.0)*100) / 100
 			row.OTWorkUnits = math.Round((float64(otMins)/480.0)*100) / 100
+			row.OTClaimStatus = otStatus
 			if actMins > 0 || stdMins > 0 || (punchIn != nil && punchOut != nil) {
 				row.Status = "present"
 			} else {

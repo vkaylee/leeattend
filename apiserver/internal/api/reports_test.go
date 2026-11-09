@@ -33,7 +33,7 @@ func (m *mockReportRepo) GetAttendanceReport(ctx context.Context, params Attenda
 	}
 	if params.ReportType == "daily" {
 		return PaginatedReportResponse{
-			Data:  json.RawMessage(`[{"date":"2026-01-01","employment_id":"` + uuid.New().String() + `","employee_id":"` + uuid.New().String() + `","employee_name":"Alice","employee_id_number":"EMP01","actual_work_minutes":480,"std_work_units":1,"ot_work_units":0,"status":"present"}]`),
+			Data:  json.RawMessage(`[{"date":"2026-01-01","employment_id":"` + uuid.New().String() + `","employee_id":"` + uuid.New().String() + `","employee_name":"Alice","employee_id_number":"EMP01","actual_work_minutes":480,"std_work_units":1,"ot_work_units":0,"ot_claim_status":"pending_employee","status":"present"}]`),
 			Total: 1,
 			Page:  params.Page,
 			Limit: params.Limit,
@@ -419,7 +419,7 @@ func TestAttendanceReportDailySuccess(t *testing.T) {
 	if err := json.Unmarshal(resp.Data, &daily); err != nil {
 		t.Fatalf("failed to decode daily rows: %v", err)
 	}
-	if len(daily) != 1 || daily[0].Status != "present" {
+	if len(daily) != 1 || daily[0].Status != "present" || daily[0].OTClaimStatus != "pending_employee" {
 		t.Fatalf("unexpected daily rows: %+v", daily)
 	}
 }

@@ -94,6 +94,7 @@ type DailyAttendanceRow struct {
 	ComputedOTHours   float64   `json:"computed_ot_hours"`
 	StdWorkUnits      float64   `json:"std_work_units"`
 	OTWorkUnits       float64   `json:"ot_work_units"`
+	OTClaimStatus     string    `json:"ot_claim_status"`
 	Status            string    `json:"status"`
 	Timezone          *string   `json:"timezone,omitempty"`
 }
