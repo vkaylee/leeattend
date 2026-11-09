@@ -71,7 +71,7 @@ describe("useDepartmentForm", () => {
 
   it("initializes with empty manager and parent when creating", () => {
     const { result } = renderHook(
-      () => useDepartmentForm("ws-test-123", null, vi.fn(), mockT),
+      () => useDepartmentForm(null, vi.fn(), mockT),
       { wrapper: createWrapper() },
     );
 
@@ -83,7 +83,7 @@ describe("useDepartmentForm", () => {
   it("calls createDepartment on form submit in create mode", async () => {
     const onClose = vi.fn();
     const { result } = renderHook(
-      () => useDepartmentForm("ws-test-123", null, onClose, mockT),
+      () => useDepartmentForm(null, onClose, mockT),
       { wrapper: createWrapper() },
     );
 
@@ -103,7 +103,7 @@ describe("useDepartmentForm", () => {
     });
 
     await waitFor(() => {
-      expect(mockCreateDepartment).toHaveBeenCalledWith("ws-test-123", {
+      expect(mockCreateDepartment).toHaveBeenCalledWith({
         name: "New Engineering",
         description: "A new department",
         manager_id: null,
@@ -114,7 +114,7 @@ describe("useDepartmentForm", () => {
   it("shows success toast and calls onClose after create", async () => {
     const onClose = vi.fn();
     const { result } = renderHook(
-      () => useDepartmentForm("ws-test-123", null, onClose, mockT),
+      () => useDepartmentForm(null, onClose, mockT),
       { wrapper: createWrapper() },
     );
 
@@ -141,7 +141,7 @@ describe("useDepartmentForm", () => {
   it("saves parent ID to localStorage on create when parent is selected", async () => {
     const onClose = vi.fn();
     const { result } = renderHook(
-      () => useDepartmentForm("ws-test-123", null, onClose, mockT),
+      () => useDepartmentForm(null, onClose, mockT),
       { wrapper: createWrapper() },
     );
 
@@ -167,7 +167,7 @@ describe("useDepartmentForm", () => {
     });
 
     await waitFor(() => {
-      const saved = localStorage.getItem("leeattend_dept_parents_ws-test-123");
+      const saved = localStorage.getItem("leeattend_dept_parents");
       expect(saved).toBeTruthy();
       const parsed = JSON.parse(saved!);
       expect(parsed["dept-new-123"]).toBe("parent-dept-1");
@@ -178,7 +178,7 @@ describe("useDepartmentForm", () => {
 
   it("initializes with editingDept values in update mode", () => {
     const { result } = renderHook(
-      () => useDepartmentForm("ws-test-123", MOCK_DEPARTMENT, vi.fn(), mockT),
+      () => useDepartmentForm(MOCK_DEPARTMENT, vi.fn(), mockT),
       { wrapper: createWrapper() },
     );
 
@@ -189,7 +189,7 @@ describe("useDepartmentForm", () => {
     const onClose = vi.fn();
     const { result } = renderHook(
       () =>
-        useDepartmentForm("ws-test-123", MOCK_DEPARTMENT, onClose, mockT),
+        useDepartmentForm(MOCK_DEPARTMENT, onClose, mockT),
       { wrapper: createWrapper() },
     );
 
@@ -212,7 +212,6 @@ describe("useDepartmentForm", () => {
 
     await waitFor(() => {
       expect(mockUpdateDepartment).toHaveBeenCalledWith(
-        "ws-test-123",
         "dept-1",
         {
           name: "Updated Engineering",
@@ -227,7 +226,7 @@ describe("useDepartmentForm", () => {
     const onClose = vi.fn();
     const { result } = renderHook(
       () =>
-        useDepartmentForm("ws-test-123", MOCK_DEPARTMENT, onClose, mockT),
+        useDepartmentForm(MOCK_DEPARTMENT, onClose, mockT),
       { wrapper: createWrapper() },
     );
 
@@ -258,7 +257,7 @@ describe("useDepartmentForm", () => {
 
   it("allows updating selectedManagerId", () => {
     const { result } = renderHook(
-      () => useDepartmentForm("ws-test-123", null, vi.fn(), mockT),
+      () => useDepartmentForm(null, vi.fn(), mockT),
       { wrapper: createWrapper() },
     );
 
@@ -271,7 +270,7 @@ describe("useDepartmentForm", () => {
 
   it("allows updating selectedParentId", () => {
     const { result } = renderHook(
-      () => useDepartmentForm("ws-test-123", null, vi.fn(), mockT),
+      () => useDepartmentForm(null, vi.fn(), mockT),
       { wrapper: createWrapper() },
     );
 
@@ -285,7 +284,7 @@ describe("useDepartmentForm", () => {
   it("resets manager and parent when editingDept changes", () => {
     const { result, rerender } = renderHook(
       ({ editingDept }: { editingDept: Department | null }) =>
-        useDepartmentForm("ws-test-123", editingDept, vi.fn(), mockT),
+        useDepartmentForm(editingDept, vi.fn(), mockT),
       {
         wrapper: createWrapper(),
         initialProps: { editingDept: null as Department | null },
@@ -315,7 +314,7 @@ describe("useDepartmentForm", () => {
 
   it("reports isLoading as false initially", () => {
     const { result } = renderHook(
-      () => useDepartmentForm("ws-test-123", null, vi.fn(), mockT),
+      () => useDepartmentForm(null, vi.fn(), mockT),
       { wrapper: createWrapper() },
     );
 
@@ -326,7 +325,7 @@ describe("useDepartmentForm", () => {
 
   it("prevents default form submission", () => {
     const { result } = renderHook(
-      () => useDepartmentForm("ws-test-123", null, vi.fn(), mockT),
+      () => useDepartmentForm(null, vi.fn(), mockT),
       { wrapper: createWrapper() },
     );
 
@@ -348,7 +347,7 @@ describe("useDepartmentForm", () => {
 
   it("sends manager_id as null when empty string", async () => {
     const { result } = renderHook(
-      () => useDepartmentForm("ws-test-123", null, vi.fn(), mockT),
+      () => useDepartmentForm(null, vi.fn(), mockT),
       { wrapper: createWrapper() },
     );
 
@@ -364,7 +363,7 @@ describe("useDepartmentForm", () => {
     });
 
     await waitFor(() => {
-      expect(mockCreateDepartment).toHaveBeenCalledWith("ws-test-123", {
+      expect(mockCreateDepartment).toHaveBeenCalledWith({
         name: "Test",
         description: "Desc",
         manager_id: null,
@@ -376,12 +375,12 @@ describe("useDepartmentForm", () => {
 
   it("reads parent ID from localStorage when editing", () => {
     localStorage.setItem(
-      "leeattend_dept_parents_ws-test-123",
+      "leeattend_dept_parents",
       JSON.stringify({ "dept-1": "parent-from-storage" }),
     );
 
     const { result } = renderHook(
-      () => useDepartmentForm("ws-test-123", MOCK_DEPARTMENT, vi.fn(), mockT),
+      () => useDepartmentForm(MOCK_DEPARTMENT, vi.fn(), mockT),
       { wrapper: createWrapper() },
     );
 
@@ -392,14 +391,14 @@ describe("useDepartmentForm", () => {
 
   it("removes parent from localStorage on update when parent is deselected", async () => {
     localStorage.setItem(
-      "leeattend_dept_parents_ws-test-123",
+      "leeattend_dept_parents",
       JSON.stringify({ "dept-1": "old-parent" }),
     );
 
     const onClose = vi.fn();
     const { result } = renderHook(
       () =>
-        useDepartmentForm("ws-test-123", MOCK_DEPARTMENT, onClose, mockT),
+        useDepartmentForm(MOCK_DEPARTMENT, onClose, mockT),
       { wrapper: createWrapper() },
     );
 
@@ -419,7 +418,7 @@ describe("useDepartmentForm", () => {
     });
 
     await waitFor(() => {
-      const saved = localStorage.getItem("leeattend_dept_parents_ws-test-123");
+      const saved = localStorage.getItem("leeattend_dept_parents");
       if (saved) {
         const parsed = JSON.parse(saved);
         expect(parsed["dept-1"]).toBeUndefined();
@@ -436,7 +435,7 @@ describe("useDepartmentForm", () => {
     });
 
     const { result } = renderHook(
-      () => useDepartmentForm("ws-test-123", MOCK_DEPARTMENT, vi.fn(), mockT),
+      () => useDepartmentForm(MOCK_DEPARTMENT, vi.fn(), mockT),
       { wrapper: createWrapper() },
     );
 
@@ -454,7 +453,7 @@ describe("useDepartmentForm", () => {
 
     const onClose = vi.fn();
     const { result } = renderHook(
-      () => useDepartmentForm("ws-test-123", null, onClose, mockT),
+      () => useDepartmentForm(null, onClose, mockT),
       { wrapper: createWrapper() },
     );
 
