@@ -3,11 +3,11 @@ import { renderHook, act } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 import { useTheme } from '../use-theme';
-import * as useWorkspaceHook from '../use-workspace';
+import * as useOrganizationHook from '../use-organization';
 
-// Mock useWorkspace
-vi.mock('../use-workspace', () => ({
-  useWorkspace: vi.fn(),
+// Mock useOrganization
+vi.mock('../use-organization', () => ({
+  useOrganization: vi.fn(),
 }));
 
 describe('useTheme', () => {
@@ -20,9 +20,9 @@ describe('useTheme', () => {
     localStorage.clear();
     // Reset mocks
     vi.clearAllMocks();
-    // Default workspace mock
-    vi.mocked(useWorkspaceHook.useWorkspace).mockReturnValue({
-      workspace: undefined,
+    // Default organization mock
+    vi.mocked(useOrganizationHook.useOrganization).mockReturnValue({
+      organization: undefined,
       isLoading: false,
       isError: false,
     });
@@ -39,9 +39,9 @@ describe('useTheme', () => {
   });
 
   it('should return workspace theme when available and no user override', () => {
-    vi.mocked(useWorkspaceHook.useWorkspace).mockReturnValue({
+    vi.mocked(useOrganizationHook.useOrganization).mockReturnValue({
  
-      workspace: { theme_primary_color: workspaceColor } as unknown as never,
+      organization: { theme_primary_color: workspaceColor } as unknown as never,
       isLoading: false,
       isError: false,
     });
@@ -54,9 +54,9 @@ describe('useTheme', () => {
   it('should return user override color when set', () => {
     localStorage.setItem('user_theme_primary_color', userColor);
     
-    vi.mocked(useWorkspaceHook.useWorkspace).mockReturnValue({
+    vi.mocked(useOrganizationHook.useOrganization).mockReturnValue({
  
-      workspace: { theme_primary_color: workspaceColor } as unknown as never,
+      organization: { theme_primary_color: workspaceColor } as unknown as never,
       isLoading: false,
       isError: false,
     });
@@ -81,9 +81,9 @@ describe('useTheme', () => {
   it('should reset theme when setUserTheme is called with null', () => {
     localStorage.setItem('user_theme_primary_color', userColor);
     
-    vi.mocked(useWorkspaceHook.useWorkspace).mockReturnValue({
+    vi.mocked(useOrganizationHook.useOrganization).mockReturnValue({
  
-      workspace: { theme_primary_color: workspaceColor } as unknown as never,
+      organization: { theme_primary_color: workspaceColor } as unknown as never,
       isLoading: false,
       isError: false,
     });

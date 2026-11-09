@@ -14,11 +14,11 @@ import {
   formatDateTimeLocaleOnly,
 } from "../use-datetime-utils";
 import { useLanguage } from "../use-language";
-import { useWorkspace } from "../use-workspace";
+import { useOrganization } from "../use-organization";
 
-// Mock useWorkspace
-vi.mock("../use-workspace", () => ({
-  useWorkspace: vi.fn(),
+// Mock useOrganization
+vi.mock("../use-organization", () => ({
+  useOrganization: vi.fn(),
 }));
 
 // Mock useLanguage (returns default 'vi' — not the focus of these tests)
@@ -45,8 +45,8 @@ describe("useDateTimeFormatter hook", () => {
   const T08_30_UTC = "2026-01-14T08:30:00Z";  // 08:30 UTC
 
   it("formats date and time correctly with default workspace settings (VN)", () => {
-    vi.mocked(useWorkspace).mockReturnValue({
-      workspace: {
+    vi.mocked(useOrganization).mockReturnValue({
+      organization: {
         date_format: "DD/MM/YYYY",
         time_format: "24h",
         timezone: "Asia/Ho_Chi_Minh",
@@ -63,8 +63,8 @@ describe("useDateTimeFormatter hook", () => {
   });
 
   it("formats date and time correctly with US settings", () => {
-    vi.mocked(useWorkspace).mockReturnValue({
-      workspace: {
+    vi.mocked(useOrganization).mockReturnValue({
+      organization: {
         date_format: "MM/DD/YYYY",
         time_format: "12h",
         timezone: "America/New_York",
@@ -81,8 +81,8 @@ describe("useDateTimeFormatter hook", () => {
   });
 
   it("formats date correctly with ISO setting", () => {
-    vi.mocked(useWorkspace).mockReturnValue({
-      workspace: {
+    vi.mocked(useOrganization).mockReturnValue({
+      organization: {
         date_format: "YYYY-MM-DD",
         time_format: "24h",
         timezone: "UTC",
@@ -95,7 +95,7 @@ describe("useDateTimeFormatter hook", () => {
   });
 
   it("handles null and undefined dates gracefully", () => {
-    vi.mocked(useWorkspace).mockReturnValue({ workspace: null } as unknown as never);
+    vi.mocked(useOrganization).mockReturnValue({ organization: null } as unknown as never);
 
     const { result } = renderHook(() => useDateTimeFormatter());
 
@@ -106,8 +106,8 @@ describe("useDateTimeFormatter hook", () => {
   });
 
   it("handles raw time strings (HH:mm:ss) — naive schedule times are never shifted", () => {
-    vi.mocked(useWorkspace).mockReturnValue({
-      workspace: {
+    vi.mocked(useOrganization).mockReturnValue({
+      organization: {
         date_format: "DD/MM/YYYY",
         time_format: "12h",
         timezone: "Asia/Ho_Chi_Minh", // irrelevant for naive strings
@@ -121,7 +121,7 @@ describe("useDateTimeFormatter hook", () => {
   });
 
   it("falls back to default settings when workspace is loading", () => {
-    vi.mocked(useWorkspace).mockReturnValue({ workspace: undefined } as unknown as never);
+    vi.mocked(useOrganization).mockReturnValue({ organization: undefined } as unknown as never);
 
     const { result } = renderHook(() => useDateTimeFormatter());
 
@@ -132,22 +132,22 @@ describe("useDateTimeFormatter hook", () => {
 
   it("formats month and year correctly based on workspace date preference", () => {
     // Case 1: DD/MM/YYYY -> MM/yyyy
-    vi.mocked(useWorkspace).mockReturnValue({
-      workspace: { date_format: "DD/MM/YYYY" }
+    vi.mocked(useOrganization).mockReturnValue({
+      organization: { date_format: "DD/MM/YYYY" }
     } as unknown as never);
     const { result: res1 } = renderHook(() => useDateTimeFormatter());
     expect(res1.current.formatMonthYear(new Date(2026, 0, 1))).toBe("01/2026");
 
     // Case 2: MM/DD/YYYY -> MM/yyyy
-    vi.mocked(useWorkspace).mockReturnValue({
-      workspace: { date_format: "MM/DD/YYYY" }
+    vi.mocked(useOrganization).mockReturnValue({
+      organization: { date_format: "MM/DD/YYYY" }
     } as unknown as never);
     const { result: res2 } = renderHook(() => useDateTimeFormatter());
     expect(res2.current.formatMonthYear(new Date(2026, 0, 1))).toBe("01/2026");
 
     // Case 3: YYYY-MM-DD -> yyyy-MM
-    vi.mocked(useWorkspace).mockReturnValue({
-      workspace: { date_format: "YYYY-MM-DD" }
+    vi.mocked(useOrganization).mockReturnValue({
+      organization: { date_format: "YYYY-MM-DD" }
     } as unknown as never);
     const { result: res3 } = renderHook(() => useDateTimeFormatter());
     expect(res3.current.formatMonthYear(new Date(2026, 0, 1))).toBe("2026-01");
