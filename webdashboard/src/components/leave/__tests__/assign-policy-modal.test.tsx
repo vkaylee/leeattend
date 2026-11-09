@@ -63,8 +63,8 @@ describe("AssignPolicyModal", () => {
     renderModal(true);
     await waitFor(() => {
       expect(api.fetchEmployees).toHaveBeenCalledWith(1, 3000, undefined);
-      expect(api.fetchDepartments).toHaveBeenCalledWith("test-ws-id");
-      expect(api.fetchLeavePolicies).toHaveBeenCalledWith("test-ws-id");
+      expect(api.fetchDepartments).toHaveBeenCalledWith();
+      expect(api.fetchLeavePolicies).toHaveBeenCalledWith();
     });
   });
 

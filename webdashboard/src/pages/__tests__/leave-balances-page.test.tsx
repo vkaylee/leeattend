@@ -359,7 +359,7 @@ describe("LeaveBalancesPage", () => {
         // Advance past first poll interval (2s)
         act(() => { vi.advanceTimersByTime(2500); });
         await waitFor(() => {
-            expect(api.fetchJobStatus).toHaveBeenCalledWith("test-ws-id", "job-poll-1");
+            expect(api.fetchJobStatus).toHaveBeenCalledWith("job-poll-1");
         });
 
         // Advance past second poll interval
@@ -403,7 +403,7 @@ describe("LeaveBalancesPage", () => {
         // Advance past first poll interval
         act(() => { vi.advanceTimersByTime(2500); });
         await waitFor(() => {
-            expect(api.fetchJobStatus).toHaveBeenCalledWith("test-ws-id", "job-fail-1");
+            expect(api.fetchJobStatus).toHaveBeenCalledWith("job-fail-1");
         });
 
         // Should NOT poll again after failure

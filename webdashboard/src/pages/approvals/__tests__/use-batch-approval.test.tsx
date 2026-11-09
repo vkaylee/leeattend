@@ -123,7 +123,7 @@ describe("useBatchApproval", () => {
     expect(batchRes?.succeeded).toHaveLength(4);
     expect(batchRes?.failed).toHaveLength(0);
 
-    expect(api.approveLeaveRequest).toHaveBeenCalledWith("ws-test-123", "leave-1", {
+    expect(api.approveLeaveRequest).toHaveBeenCalledWith("leave-1", {
       status: "approved",
     });
     expect(api.approveAttendanceAdjustment).toHaveBeenCalledWith(
@@ -136,7 +136,7 @@ describe("useBatchApproval", () => {
       "swap-1",
       { status: "approved" }
     );
-    expect(otApi.approveOt).toHaveBeenCalledWith("ws-test-123", "emp-4", {
+    expect(otApi.approveOt).toHaveBeenCalledWith("emp-4", {
       date: "2026-11-01",
       approved_minutes: 90,
       status: "approved",
@@ -170,7 +170,7 @@ describe("useBatchApproval", () => {
     });
 
     expect(batchRes?.succeeded).toEqual(["leave-1"]);
-    expect(api.approveLeaveRequest).toHaveBeenCalledWith("ws-test-123", "leave-1", {
+    expect(api.approveLeaveRequest).toHaveBeenCalledWith("leave-1", {
       status: "rejected",
     });
     expect(mockToastSuccess).toHaveBeenCalled();
