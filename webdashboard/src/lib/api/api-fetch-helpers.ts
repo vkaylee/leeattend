@@ -7,10 +7,10 @@ import { ROUTES } from "@/lib/routes";
 import { API_BASE_URL } from "./config";
 import { ApiError } from "./errors";
 import {
-  clearAuthSession,
   getAccessToken,
   setAccessToken,
 } from "./helpers";
+import { clearMemorySession, hasAuthSessionHint } from "./token-store";
 
 export const TIMEOUT = {
   /** Standard API calls (10 seconds) */
@@ -39,9 +39,14 @@ export function isAccessTokenExpiring(token: string, now = Date.now()): boolean 
   }
 }
 
-export function handleSessionExpired(): never {
-  logError("Session expired (401). Redirecting to login...", { component: "apiFetch" });
-  clearAuthSession();
+export function handleSessionExpired(expectedUnauthenticated = false): never {
+  if (expectedUnauthenticated) {
+    // No client session exists. Avoid refresh/logout requests and expected 401 noise.
+    clearMemorySession();
+  } else {
+    logError("Session expired (401). Redirecting to login...", { component: "apiFetch" });
+    clearAuthSession();
+  }
   if (window.location.pathname !== ROUTES.LOGIN) {
     window.location.href = ROUTES.LOGIN;
   }
@@ -108,6 +113,11 @@ export async function handleUnauthorized({
   controller,
   timeoutId,
 }: UnauthorizedParams): Promise<Response> {
+  const hadSession = Boolean(getAccessToken()) || hasAuthSessionHint();
+  if (!hadSession) {
+    handleSessionExpired(true);
+  }
+
   const success = await forceRefreshToken();
   if (success) {
     const token = getAccessToken();
@@ -126,7 +136,7 @@ export async function handleUnauthorized({
     return retryResponse;
   }
 
-  handleSessionExpired();
+  handleSessionExpired(!hadSession);
 }
 
 export function getFullUrl(url: string): string {
