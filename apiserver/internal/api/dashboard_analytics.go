@@ -249,7 +249,7 @@ type DashboardDataQuality struct {
 type DashboardMetricsResponse struct {
 	ContractVersion string                  `json:"contract_version"`
 	Context         DashboardMetricContext  `json:"context"`
-	Metrics         []DashboardMetric      `json:"metrics"`
+	Metrics         []DashboardMetric       `json:"metrics"`
 	Insights        []DashboardInsight      `json:"insights"`
 	Actions         DashboardActionsSummary `json:"actions"`
 	DataQuality     DashboardDataQuality    `json:"data_quality"`
@@ -555,21 +555,13 @@ func (h DashboardAnalyticsHandler) resolveDepartmentScope(ctx context.Context, u
 		return nil, apperror.Forbidden(apperror.KeyForbidden)
 	}
 
-	type narrowScoper interface {
-		GetManagedDepartmentIDs(context.Context, uuid.UUID) ([]uuid.UUID, bool, error)
-	}
-
 	var managed []uuid.UUID
 	var isGlobal bool
 	var err error
 
-	if ns, ok := h.Authorizer.(narrowScoper); ok && ns != nil {
-		managed, isGlobal, err = ns.GetManagedDepartmentIDs(ctx, userID)
-	} else {
-		isGlobal = h.Authorizer.IsGlobalManager(ctx, userID)
-		if !isGlobal {
-			managed, err = h.Authorizer.GetManagedDepartmentIDs(ctx, userID)
-		}
+	isGlobal = h.Authorizer.IsGlobalManager(ctx, userID)
+	if !isGlobal {
+		managed, err = h.Authorizer.GetManagedDepartmentIDs(ctx, userID)
 	}
 	if err != nil {
 		return nil, err
@@ -760,7 +752,7 @@ func (h DashboardAnalyticsHandler) ExecutiveOverview(w http.ResponseWriter, r *h
 		for _, m := range resp.Metrics {
 			if m.Key == "overtime_cost" && m.Value != nil {
 				_ = h.Audit.Emit(r.Context(), audit.Event{
-					Name:      "dashboard.sensitive.read",
+					Name:     "dashboard.sensitive.read",
 					ActorID:  userID.String(),
 					Resource: "dashboard.executive-overview",
 					Details: map[string]string{

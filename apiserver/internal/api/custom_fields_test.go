@@ -119,6 +119,10 @@ func (customFieldAuthorizer) EffectivePermissions(context.Context, uuid.UUID) ([
 func (customFieldAuthorizer) GetUsersWithPermission(context.Context, string) ([]uuid.UUID, error) {
 	return nil, nil
 }
+func (customFieldAuthorizer) GetManagedDepartmentIDs(context.Context, uuid.UUID) ([]uuid.UUID, error) {
+	return nil, nil
+}
+func (customFieldAuthorizer) IsGlobalManager(context.Context, uuid.UUID) bool { return false }
 
 func customFieldHandler(repo CustomFieldRepository, permissions ...string) CustomFieldHandler {
 	grants := make(map[string]bool, len(permissions))

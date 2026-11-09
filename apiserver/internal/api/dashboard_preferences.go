@@ -118,10 +118,25 @@ func normalizePreferences(req UpdateDashboardPreferences) (UpdateDashboardPrefer
 
 func normalizedPreferences(p DashboardPreferences) (DashboardPreferences, error) {
 	active := p.ActiveView
+	if active == "" {
+		active = "overview"
+	}
 	visible := p.VisibleWidgets
+	if len(visible) == 0 || string(visible) == "null" {
+		visible = json.RawMessage(`{}`)
+	}
 	order := p.WidgetOrder
+	if len(order) == 0 || string(order) == "null" {
+		order = json.RawMessage(`[]`)
+	}
 	collapsed := p.CollapsedSections
+	if len(collapsed) == 0 || string(collapsed) == "null" {
+		collapsed = json.RawMessage(`{}`)
+	}
 	layout := p.WindowLayout
+	if len(layout) == 0 || string(layout) == "null" {
+		layout = json.RawMessage(`{}`)
+	}
 	req, err := normalizePreferences(UpdateDashboardPreferences{
 		ActiveView:        &active,
 		VisibleWidgets:    &visible,

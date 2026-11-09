@@ -31,13 +31,19 @@ func (a compensationHistoryAuthorizer) HasPermission(context.Context, uuid.UUID,
 func (compensationHistoryAuthorizer) HasScopedPermission(context.Context, uuid.UUID, string, *uuid.UUID) bool {
 	return false
 }
-func (compensationHistoryAuthorizer) IsMember(context.Context, uuid.UUID) (bool, error) { return true, nil }
+func (compensationHistoryAuthorizer) IsMember(context.Context, uuid.UUID) (bool, error) {
+	return true, nil
+}
 func (compensationHistoryAuthorizer) EffectivePermissions(context.Context, uuid.UUID) ([]string, []string, error) {
 	return nil, nil, nil
 }
 func (compensationHistoryAuthorizer) GetUsersWithPermission(context.Context, string) ([]uuid.UUID, error) {
 	return nil, nil
 }
+func (compensationHistoryAuthorizer) GetManagedDepartmentIDs(context.Context, uuid.UUID) ([]uuid.UUID, error) {
+	return nil, nil
+}
+func (compensationHistoryAuthorizer) IsGlobalManager(context.Context, uuid.UUID) bool { return false }
 
 func compensationRequest(target string, userID, employeeID uuid.UUID) *http.Request {
 	req := httptest.NewRequest(http.MethodGet, target, nil)
@@ -50,10 +56,10 @@ func TestCompensationHistoryGetRequiresEmployeePermission(t *testing.T) {
 	previous := decimal.NewFromInt(10000000)
 	handler := CompensationHistoryHandler{
 		Repository: mockCompRepo{response: CompensationHistoryResponse{Timeline: []CompensationTimelineEvent{{
-			EffectiveDate: "2026-03-01",
-				Employment: CompensationEmploymentContext{ID: uuid.New(), EmployerName: "Acme Corp"},
-				TotalCompensation: decimal.NewFromInt(12000000), ChangeType: "adjustment",
-				ChangeDetails: CompensationChangeDetails{PreviousTotal: &previous, Delta: decimal.NewFromInt(2000000)},
+			EffectiveDate:     "2026-03-01",
+			Employment:        CompensationEmploymentContext{ID: uuid.New(), EmployerName: "Acme Corp"},
+			TotalCompensation: decimal.NewFromInt(12000000), ChangeType: "adjustment",
+			ChangeDetails: CompensationChangeDetails{PreviousTotal: &previous, Delta: decimal.NewFromInt(2000000)},
 		}}}},
 		Authorizer: compensationHistoryAuthorizer{allowed: true},
 	}

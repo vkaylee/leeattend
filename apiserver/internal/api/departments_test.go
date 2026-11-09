@@ -113,6 +113,14 @@ func (a mockDepartmentAuthz) GetUsersWithPermission(_ context.Context, _ string)
 	return nil, nil
 }
 
+func (a mockDepartmentAuthz) GetManagedDepartmentIDs(_ context.Context, _ uuid.UUID) ([]uuid.UUID, error) {
+	return nil, nil
+}
+
+func (a mockDepartmentAuthz) IsGlobalManager(_ context.Context, _ uuid.UUID) bool {
+	return false
+}
+
 func departmentRequest(method, path, body string, userID uuid.UUID) *http.Request {
 	req := httptest.NewRequest(method, path, bytes.NewBufferString(body))
 	return req.WithContext(httpinfra.WithUserIDForTest(req.Context(), userID))

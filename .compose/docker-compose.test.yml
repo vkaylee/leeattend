@@ -85,8 +85,6 @@ services:
 
 
   apiserver:
-    # LeeDevKit's Go lifecycle probe uses historical `go_1` container name.
-    container_name: ${COMPOSE_PROJECT_NAME:-leeattend-test}_go_1
     profiles:
       - api
       - int-api
@@ -96,6 +94,44 @@ services:
       - unit-go
       - int-go
       - go
+    image: localhost/leeattend-test_go
+    build:
+      context: ..
+      dockerfile: .compose/go/Dockerfile
+    networks:
+      - test_net
+    working_dir: /workspace/apiserver
+    entrypoint: ["sleep", "infinity"]
+    healthcheck:
+      test: ["CMD", "go", "version"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+    environment:
+      - GOFLAGS=-mod=mod -buildvcs=false
+      - DB_PRIMARY_URL=postgres://test_user:test_password@pgbouncer:6432/test_database?sslmode=disable
+      - DB_POOLER_TX_URL=postgres://test_user:test_password@pgbouncer:6432/test_database?sslmode=disable
+      - DB_POOLER_SESS_URL=postgres://test_user:test_password@pgbouncer:6432/test_database?sslmode=disable
+      - DB_READER_URL=postgres://test_user:test_password@pgbouncer:6432/test_database?sslmode=disable
+      - PGBOUNCER_HOST=pgbouncer
+      - PGBOUNCER_PORT=6432
+      - ORGANIZATION_NAME=Test Organization
+      - STANDALONE_ADMIN_EMAIL=admin@example.invalid
+      - STANDALONE_ADMIN_PASSWORD=test-password
+      - LICENSE_PATH=/tmp/license.json
+      - LICENSE_PUBLIC_KEY=AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+      - JWT_SECRET=test-jwt-secret-at-least-32-characters-long
+    volumes:
+      - ${PROJECT_ROOT}:/workspace
+      - go-module-cache:/go/pkg/mod
+      - go-build-cache:/root/.cache/go-build
+
+  go:
+    profiles:
+      - go
+      - unit-go
+      - lint-go
+      - int-go
     image: localhost/leeattend-test_go
     build:
       context: ..

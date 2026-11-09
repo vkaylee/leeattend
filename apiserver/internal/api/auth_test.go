@@ -260,12 +260,22 @@ func (a profileAuthorizer) IsMember(context.Context, uuid.UUID) (bool, error) {
 func (profileAuthorizer) EffectivePermissions(context.Context, uuid.UUID) ([]string, []string, error) {
 	return []string{"employees:read"}, []string{uuid.New().String()}, nil
 }
+func (profileAuthorizer) GetManagedDepartmentIDs(context.Context, uuid.UUID) ([]uuid.UUID, error) {
+	return nil, nil
+}
+func (profileAuthorizer) HasPermission(context.Context, uuid.UUID, string) bool { return false }
+func (profileAuthorizer) IsGlobalManager(context.Context, uuid.UUID) bool       { return false }
+func (profileAuthorizer) HasScopedPermission(context.Context, uuid.UUID, string, *uuid.UUID) bool {
+	return false
+}
+func (profileAuthorizer) GetUsersWithPermission(context.Context, string) ([]uuid.UUID, error) {
+	return nil, nil
+}
 
 func TestAuthHandler_ProfileUsersAndPermissions(t *testing.T) {
 	h, repo := newAuthTestHandler(t)
 	h.Authorizer = profileAuthorizer{member: true}
 	userID := repo.user.ID
-
 
 	req := httptest.NewRequest(http.MethodPatch, "/api/v1/me", bytes.NewBufferString(`{"preferred_language":"vi"}`))
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), userID))

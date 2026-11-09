@@ -23,17 +23,11 @@ func (m *mockEmploymentPhaseRepo) CreateDefinition(ctx context.Context, def Empl
 	return def, nil
 }
 
-func (m *mockEmploymentPhaseRepo) ListDefinitions(ctx context.Context, wsID uuid.UUID) ([]EmploymentPhaseDefinition, error) {
-	var list []EmploymentPhaseDefinition
-	for _, d := range m.definitions {
-		if d.WorkspaceID == wsID {
-			list = append(list, d)
-		}
-	}
-	return list, nil
+func (m *mockEmploymentPhaseRepo) ListDefinitions(context.Context) ([]EmploymentPhaseDefinition, error) {
+	return append([]EmploymentPhaseDefinition(nil), m.definitions...), nil
 }
 
-func (m *mockEmploymentPhaseRepo) AssignPhase(ctx context.Context, wsID, employmentID uuid.UUID, req AssignEmployeePhaseRequest) (EmployeePhase, error) {
+func (m *mockEmploymentPhaseRepo) AssignPhase(ctx context.Context, employmentID uuid.UUID, req AssignEmployeePhaseRequest) (EmployeePhase, error) {
 	if m.phases == nil {
 		m.phases = make(map[uuid.UUID][]EmployeePhase)
 	}
@@ -54,7 +48,6 @@ func (m *mockEmploymentPhaseRepo) AssignPhase(ctx context.Context, wsID, employm
 	now := time.Now().UTC().Format(time.RFC3339)
 	newPhase := EmployeePhase{
 		ID:                uuid.New(),
-		WorkspaceID:       wsID,
 		EmploymentID:      employmentID,
 		PhaseDefinitionID: req.PhaseDefinitionID,
 		StartDate:         req.StartDate,
@@ -69,10 +62,10 @@ func (m *mockEmploymentPhaseRepo) AssignPhase(ctx context.Context, wsID, employm
 	return newPhase, nil
 }
 
-func (m *mockEmploymentPhaseRepo) UpdatePhaseStatus(ctx context.Context, wsID, employmentID, phaseID uuid.UUID, req UpdateEmployeePhaseStatusRequest, evaluatedBy uuid.UUID) (EmployeePhase, error) {
+func (m *mockEmploymentPhaseRepo) UpdatePhaseStatus(ctx context.Context, employmentID, phaseID uuid.UUID, req UpdateEmployeePhaseStatusRequest, evaluatedBy uuid.UUID) (EmployeePhase, error) {
 	existing := m.phases[employmentID]
 	for i := range existing {
-		if existing[i].ID == phaseID && existing[i].WorkspaceID == wsID {
+		if existing[i].ID == phaseID {
 			existing[i].Status = req.Status
 			existing[i].EvaluationNotes = req.EvaluationNotes
 			existing[i].EvaluatedBy = &evaluatedBy
@@ -86,11 +79,11 @@ func (m *mockEmploymentPhaseRepo) UpdatePhaseStatus(ctx context.Context, wsID, e
 	return EmployeePhase{}, ErrEmployeePhaseNotFound
 }
 
-func (m *mockEmploymentPhaseRepo) ListPhases(ctx context.Context, wsID, employmentID uuid.UUID) ([]EmployeePhase, error) {
+func (m *mockEmploymentPhaseRepo) ListPhases(ctx context.Context, employmentID uuid.UUID) ([]EmployeePhase, error) {
 	return m.phases[employmentID], nil
 }
 
-func (m *mockEmploymentPhaseRepo) ResolveActiveEmployment(ctx context.Context, wsID, employeeID uuid.UUID) (uuid.UUID, error) {
+func (m *mockEmploymentPhaseRepo) ResolveActiveEmployment(ctx context.Context, employeeID uuid.UUID) (uuid.UUID, error) {
 	if employeeID == uuid.Nil {
 		return uuid.Nil, ErrEmployeeNotFound
 	}
@@ -101,8 +94,22 @@ type mockPhaseAuthorizer struct {
 	allowed map[string]bool
 }
 
-func (m mockPhaseAuthorizer) HasPermission(ctx context.Context, userID, workspaceID uuid.UUID, perm string) bool {
+func (m mockPhaseAuthorizer) HasPermission(_ context.Context, _ uuid.UUID, perm string) bool {
 	return m.allowed[perm]
+}
+func (mockPhaseAuthorizer) IsMember(context.Context, uuid.UUID) (bool, error) { return true, nil }
+func (mockPhaseAuthorizer) EffectivePermissions(context.Context, uuid.UUID) ([]string, []string, error) {
+	return nil, nil, nil
+}
+func (mockPhaseAuthorizer) GetManagedDepartmentIDs(context.Context, uuid.UUID) ([]uuid.UUID, error) {
+	return nil, nil
+}
+func (mockPhaseAuthorizer) IsGlobalManager(context.Context, uuid.UUID) bool { return false }
+func (mockPhaseAuthorizer) HasScopedPermission(context.Context, uuid.UUID, string, *uuid.UUID) bool {
+	return false
+}
+func (mockPhaseAuthorizer) GetUsersWithPermission(context.Context, string) ([]uuid.UUID, error) {
+	return nil, nil
 }
 
 func TestEmploymentPhaseDefinitionsAndPermissions(t *testing.T) {

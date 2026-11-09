@@ -52,11 +52,22 @@ type mockLocationAuthz struct {
 	isMember bool
 }
 
-func (a mockLocationAuthz) IsMember(_ context.Context, _, _ uuid.UUID) (bool, error) {
+func (a mockLocationAuthz) IsMember(_ context.Context, _ uuid.UUID) (bool, error) {
 	return a.isMember, nil
 }
-func (a mockLocationAuthz) EffectivePermissions(_ context.Context, _, _ uuid.UUID) ([]string, []string, error) {
+func (a mockLocationAuthz) HasPermission(context.Context, uuid.UUID, string) bool { return a.isMember }
+func (a mockLocationAuthz) EffectivePermissions(_ context.Context, _ uuid.UUID) ([]string, []string, error) {
 	return nil, nil, nil
+}
+func (mockLocationAuthz) GetManagedDepartmentIDs(context.Context, uuid.UUID) ([]uuid.UUID, error) {
+	return nil, nil
+}
+func (mockLocationAuthz) IsGlobalManager(context.Context, uuid.UUID) bool { return false }
+func (mockLocationAuthz) HasScopedPermission(context.Context, uuid.UUID, string, *uuid.UUID) bool {
+	return false
+}
+func (mockLocationAuthz) GetUsersWithPermission(context.Context, string) ([]uuid.UUID, error) {
+	return nil, nil
 }
 
 func locationRequest(method, path, body string, wsID uuid.UUID) *http.Request {

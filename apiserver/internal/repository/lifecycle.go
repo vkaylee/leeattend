@@ -692,6 +692,9 @@ func (r LifecycleRepository) ListChecklistsForEmployment(ctx context.Context, em
 		INNER JOIN lifecycle_checklists c ON c.id = i.checklist_id
 		WHERE c.employment_id = $1
 		ORDER BY i.display_order ASC`, employmentID)
+	if err != nil {
+		return nil, err
+	}
 	defer itemRows.Close()
 	index := make(map[uuid.UUID]int, len(checklists))
 	for i := range checklists {
@@ -800,8 +803,6 @@ func (r LifecycleRepository) UpdateChecklistItemStatus(ctx context.Context, item
 	}
 	return r.updateItemStatusTx(ctx, d, itemID, status, notes, completedBy)
 }
-
-
 
 func (r LifecycleRepository) updateItemStatusTx(ctx context.Context, db DBTX, itemID uuid.UUID, status string, notes *string, completedBy *uuid.UUID) (api.LifecycleChecklistResponse, error) {
 	var completedAt *time.Time

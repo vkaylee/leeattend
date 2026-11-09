@@ -92,6 +92,10 @@ func (conditionTypeAuthorizer) EffectivePermissions(context.Context, uuid.UUID) 
 func (conditionTypeAuthorizer) GetUsersWithPermission(context.Context, string) ([]uuid.UUID, error) {
 	return nil, nil
 }
+func (conditionTypeAuthorizer) GetManagedDepartmentIDs(context.Context, uuid.UUID) ([]uuid.UUID, error) {
+	return nil, nil
+}
+func (conditionTypeAuthorizer) IsGlobalManager(context.Context, uuid.UUID) bool { return false }
 
 func conditionTypeHandlerWith(repo ConditionTypeRepository, permissions ...string) ConditionTypeHandler {
 	grants := make(map[string]bool, len(permissions))

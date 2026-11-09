@@ -927,7 +927,7 @@ func TestIncentivePoliciesEndpoints(t *testing.T) {
 	}
 
 	// 8. DELETE /payroll/incentive-policies/{policy_id} (204 No Content)
-	req := httptest.NewRequest(http.MethodDelete, "/api/v1/payroll/incentive-policies/"+validPolicyID.String(), nil)
+	req = httptest.NewRequest(http.MethodDelete, "/api/v1/payroll/incentive-policies/"+validPolicyID.String(), nil)
 	req.SetPathValue("policy_id", validPolicyID.String())
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
 	rec = httptest.NewRecorder()

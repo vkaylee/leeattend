@@ -28,6 +28,10 @@ func (documentTestAuthorizer) EffectivePermissions(context.Context, uuid.UUID) (
 func (documentTestAuthorizer) GetUsersWithPermission(context.Context, string) ([]uuid.UUID, error) {
 	return nil, nil
 }
+func (documentTestAuthorizer) GetManagedDepartmentIDs(context.Context, uuid.UUID) ([]uuid.UUID, error) {
+	return nil, nil
+}
+func (documentTestAuthorizer) IsGlobalManager(context.Context, uuid.UUID) bool { return false }
 
 type mockDocRepo struct {
 	Folders         map[uuid.UUID]DocumentFolderDto

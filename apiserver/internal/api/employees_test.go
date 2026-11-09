@@ -28,6 +28,10 @@ func (employeeSliceAuthorizer) EffectivePermissions(context.Context, uuid.UUID) 
 func (employeeSliceAuthorizer) GetUsersWithPermission(context.Context, string) ([]uuid.UUID, error) {
 	return nil, nil
 }
+func (employeeSliceAuthorizer) GetManagedDepartmentIDs(context.Context, uuid.UUID) ([]uuid.UUID, error) {
+	return nil, nil
+}
+func (employeeSliceAuthorizer) IsGlobalManager(context.Context, uuid.UUID) bool { return false }
 
 type mockEmployeeRepo struct{}
 

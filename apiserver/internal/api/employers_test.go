@@ -137,6 +137,10 @@ func (a mockEmployerAuthz) EffectivePermissions(_ context.Context, _ uuid.UUID) 
 func (a mockEmployerAuthz) GetUsersWithPermission(_ context.Context, _ string) ([]uuid.UUID, error) {
 	return nil, nil
 }
+func (mockEmployerAuthz) GetManagedDepartmentIDs(context.Context, uuid.UUID) ([]uuid.UUID, error) {
+	return nil, nil
+}
+func (mockEmployerAuthz) IsGlobalManager(context.Context, uuid.UUID) bool { return false }
 
 func employerRequest(method, path, body string) *http.Request {
 	req := httptest.NewRequest(method, path, bytes.NewBufferString(body))

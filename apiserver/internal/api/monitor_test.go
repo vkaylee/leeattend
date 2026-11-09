@@ -109,6 +109,7 @@ func (m *mockMonitorRepo) MutateAlert(_ context.Context, alertID uuid.UUID, acti
 }
 
 func (m *mockMonitorRepo) ListDurableJobs(_ context.Context, params ListDurableJobsParams) ([]MonitorInfraJobRecord, *string, error) {
+	result := make([]MonitorInfraJobRecord, 0)
 	for _, j := range m.durableJobs {
 		if params.JobID != nil && j.JobID != *params.JobID {
 			continue
@@ -208,8 +209,6 @@ func (a *mockMonitorAuthz) GetManagedDepartmentIDs(context.Context, uuid.UUID) (
 func (a *mockMonitorAuthz) IsGlobalManager(context.Context, uuid.UUID) bool {
 	return false
 }
-
-var monitorTestUserID = uuid.New()
 
 func setReqContext(r *http.Request, userID uuid.UUID) *http.Request {
 	return r.WithContext(httpinfra.WithUserIDForTest(r.Context(), userID))

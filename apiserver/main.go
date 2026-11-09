@@ -2,9 +2,11 @@ package main
 
 import (
 	"context"
+
 	"crypto/ed25519"
 	"encoding/base64"
 	"fmt"
+	"github.com/google/uuid"
 	"log/slog"
 	"net"
 	"net/http"
@@ -30,6 +32,27 @@ import (
 // Version is the current apiserver Go component version.
 const Version = "0.1.0"
 
+// singleOrganizationHandler binds every request to bootstrapped organization.
+func singleOrganizationHandler(organizationID uuid.UUID, handler http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if organizationID == uuid.Nil {
+			http.Error(w, "organization unavailable", http.StatusServiceUnavailable)
+			return
+		}
+		handler(w, r.WithContext(httpinfra.WithOrganizationID(r.Context(), organizationID)))
+	}
+}
+
+func resolveOrganizationID(ctx context.Context, db repository.DBTX) (uuid.UUID, error) {
+	if db == nil {
+		return uuid.Nil, fmt.Errorf("database unavailable")
+	}
+	var organizationID uuid.UUID
+	if err := db.QueryRow(ctx, `SELECT id FROM workspaces WHERE (SELECT count(*) FROM workspaces) = 1 LIMIT 1`).Scan(&organizationID); err != nil {
+		return uuid.Nil, fmt.Errorf("organization unavailable: %w", err)
+	}
+	return organizationID, nil
+}
 
 func main() {
 	cfg, err := config.Load()

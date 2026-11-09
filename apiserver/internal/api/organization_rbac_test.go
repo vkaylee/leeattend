@@ -154,7 +154,7 @@ func (m *mockRBACRepo) DeleteStorageConfig(_ context.Context) error {
 }
 
 type rbacAuthorizer struct {
-	perms map[string]bool
+	perms  map[string]bool
 	member bool
 }
 
@@ -336,7 +336,6 @@ func TestOrganizationRBAC_LastAdminProtection(t *testing.T) {
 		updateRoleFn: nil,
 	}
 	authz := rbacAuthorizer{perms: map[string]bool{"members:roles:manage": true, "members:remove": true}, member: true}
-	h := OrganizationRBACHandler{Repository: repo, Authorizer: authz}
 
 	// 1. UpdateMemberRole fails with ErrRBACLastAdmin -> 409 Conflict
 	repo.members = []MemberDetail{{UserID: targetUser, RoleID: uuid.New()}}

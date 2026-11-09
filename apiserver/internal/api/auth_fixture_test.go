@@ -64,9 +64,7 @@ func setupFixtureServer(t *testing.T, jwtSecret string, revocation *fixtureRevoc
 	organizationHandler := OrganizationHandler{
 		Repository: nil,
 		Authorizer: testAuthorizer{
-			permissions: map[string]bool{
-				"018d0000-0000-7000-8000-000000000020:organization:settings:write": true,
-			},
+			permissions: map[string]bool{},
 		},
 	}
 
@@ -99,6 +97,21 @@ type testAuthorizer struct {
 func (a testAuthorizer) HasPermission(_ context.Context, userID uuid.UUID, perm string) bool {
 	key := userID.String() + ":" + perm
 	return a.permissions[key]
+}
+
+func (testAuthorizer) IsMember(context.Context, uuid.UUID) (bool, error) { return true, nil }
+func (testAuthorizer) EffectivePermissions(context.Context, uuid.UUID) ([]string, []string, error) {
+	return nil, nil, nil
+}
+func (testAuthorizer) GetManagedDepartmentIDs(context.Context, uuid.UUID) ([]uuid.UUID, error) {
+	return nil, nil
+}
+func (testAuthorizer) IsGlobalManager(context.Context, uuid.UUID) bool { return false }
+func (testAuthorizer) HasScopedPermission(context.Context, uuid.UUID, string, *uuid.UUID) bool {
+	return false
+}
+func (testAuthorizer) GetUsersWithPermission(context.Context, string) ([]uuid.UUID, error) {
+	return nil, nil
 }
 
 func TestAuthFixtures_Parity(t *testing.T) {
