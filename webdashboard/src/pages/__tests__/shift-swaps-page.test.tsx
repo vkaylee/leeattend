@@ -228,7 +228,7 @@ describe("ShiftSwapsPage", () => {
     await user.click(approvedTabs[0]);
 
     await waitFor(() => {
-      expect(shiftSwapsApi.fetchShiftSwaps).toHaveBeenCalledWith("ws-1", "approved");
+      expect(shiftSwapsApi.fetchShiftSwaps).toHaveBeenCalledWith("approved");
     });
   });
 
@@ -276,7 +276,6 @@ describe("ShiftSwapsPage", () => {
 
     await waitFor(() => {
       expect(shiftSwapsApi.approveShiftSwap).toHaveBeenCalledWith(
-        "ws-1",
         "swap-1",
         { status: "approved" },
       );
@@ -293,7 +292,6 @@ describe("ShiftSwapsPage", () => {
 
     await waitFor(() => {
       expect(shiftSwapsApi.approveShiftSwap).toHaveBeenCalledWith(
-        "ws-1",
         "swap-1",
         { status: "rejected" },
       );

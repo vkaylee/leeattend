@@ -81,6 +81,10 @@ const mockAssignments: EmployeeAssignmentWithEmployee[] = [
 const mockDeleteMutateAsync = vi.fn();
 
 vi.mock("@/hooks/use-employee-assignments", () => ({
+  useAssignments: () => ({
+    data: mockAssignments,
+    isLoading: false,
+  }),
   useWorkspaceAssignments: () => ({
     data: mockAssignments,
     isLoading: false,
