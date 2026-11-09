@@ -91,7 +91,7 @@ export default function EmployeeFormModal({
 }: EmployeeFormModalProps) {
   const { t } = useTranslation();
   const { createMutation, updateMutation } = useEmployeeMutations(onClose, onSuccess);
-  const { data: locations = [] } = useLocations();
+  const { data: locations = [], isError: locationsUnavailable } = useLocations();
   const { data: employers = [] } = useQuery({ queryKey: ["employers"], queryFn: () => fetchEmployers(),
  });
 
@@ -176,6 +176,7 @@ export default function EmployeeFormModal({
           editingEmployee={editingEmployee}
           employers={employers}
           locations={locations}
+          locationsUnavailable={locationsUnavailable}
           members={members}
           prefillEnrollmentId={prefillEnrollmentId ?? ""}
           selectedEmployerId={defaults.selectedEmployerId}

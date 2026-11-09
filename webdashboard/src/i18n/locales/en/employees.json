@@ -282,9 +282,11 @@
       "is_active": "Is Active",
       "link_user": "Link User Account",
       "select_user": "Select user...",
+      "location": "Work Location",
       "cancel": "Cancel",
       "save": "Save Profile",
-      "update": "Update"
+      "update": "Update",
+      "location_unavailable": "Work locations are unavailable for your account."
     },
     "transfer": {
       "title": "Department Transfer",

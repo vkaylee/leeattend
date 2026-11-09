@@ -16,9 +16,10 @@ export const locationKeys = {
 export function useLocations() {
   return useQuery({
     queryKey: locationKeys.all(),
-    queryFn: async () => {
-      return fetchLocations();
-    },
+    queryFn: fetchLocations,
+    placeholderData: [],
+    retry: false,
+    meta: { suppressErrorToast: [403] },
   });
 }
 

@@ -17,10 +17,12 @@ const mockLocations = [
   { id: "loc-1", name: "Hanoi HQ", is_headquarters: true, timezone: "Asia/Bangkok" },
   { id: "loc-2", name: "Da Nang Branch", is_headquarters: false, timezone: "Asia/Bangkok" },
 ];
+let locationsUnavailable = false;
 
 vi.mock("@/pages/settings/hooks/use-locations", () => ({
   useLocations: () => ({
-    data: mockLocations,
+    data: locationsUnavailable ? [] : mockLocations,
+    isError: locationsUnavailable,
     isLoading: false,
   }),
 }));
@@ -65,6 +67,7 @@ function renderModal(props: React.ComponentProps<typeof EmployeeAssignmentFormMo
 describe("EmployeeAssignmentFormModal (Dual Mode)", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    locationsUnavailable = false;
   });
 
   it("does not render employee selector when employeeId is fixed (Tab Mode)", () => {
@@ -87,6 +90,20 @@ describe("EmployeeAssignmentFormModal (Dual Mode)", () => {
 
     expect(screen.getByText("Tạo Phái cử Mới")).toBeInTheDocument();
     expect(screen.getByTestId("assignment-employee-combobox")).toBeInTheDocument();
+  });
+
+  it("renders accessible fallback when locations are forbidden", () => {
+    locationsUnavailable = true;
+
+    renderModal({
+      isOpen: true,
+      onClose: vi.fn(),
+      editingAssignment: null,
+      employeeId: "emp-1",
+    });
+
+    expect(screen.getByRole("status")).toHaveTextContent("employees.form.location_unavailable");
+    expect(screen.queryByTestId("assignment-location-combobox")).not.toBeInTheDocument();
   });
 
   it("renders employee name read-only when editing in Registry Mode", () => {

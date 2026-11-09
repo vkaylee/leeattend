@@ -258,7 +258,8 @@
       "cannot_delete_hq": "Cannot delete the Headquarter location",
       "hq": "HQ",
       "empty_title": "No Locations",
-      "empty_desc": "Add physical offices, branches, or locations to manage timezone offsets."
+      "empty_desc": "Add physical offices, branches, or locations to manage timezone offsets.",
+      "unavailable": "Work locations are unavailable for your account."
     },
     "overtime": {
       "delete_config_desc": "Delete configuration?",

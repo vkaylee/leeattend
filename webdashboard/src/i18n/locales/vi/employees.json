@@ -282,9 +282,11 @@
       "is_active": "Đang hoạt động",
       "link_user": "Liên kết tài khoản",
       "select_user": "Chọn người dùng...",
+      "location": "Địa điểm làm việc",
       "cancel": "Hủy bỏ",
       "save": "Lưu hồ sơ",
-      "update": "Cập nhật"
+      "update": "Cập nhật",
+      "location_unavailable": "Tài khoản của bạn không được truy cập địa điểm làm việc."
     },
     "transfer": {
       "title": "Điều chuyển phòng ban",
