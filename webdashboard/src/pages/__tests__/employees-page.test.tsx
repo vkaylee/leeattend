@@ -347,7 +347,6 @@ describe("EmployeesPage", () => {
 
         await waitFor(() => {
             expect(api.updateEmployeeEmployment).toHaveBeenCalledWith(
-                "test-ws-id",
                 "1",
                 "employment-id-1",
                 expect.objectContaining({ status: "terminated" })

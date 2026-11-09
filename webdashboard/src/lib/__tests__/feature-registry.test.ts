@@ -38,7 +38,7 @@ describe("Feature Registry & Search Indexer", () => {
 
     const adminPerms = filterFeatures(
       allFeatures,
-      (perm) => perm === "infra:monitor" || perm === "security:settings:manage" || perm === "audit_logs:read" || perm === "workspace:settings:read",
+      (perm) => perm === "infra:monitor" || perm === "organization:settings:read" || perm === "members:roles:manage" || perm === "audit_logs:read",
     );
     expect(adminPerms.some((f) => f.id === "app-infra-monitor")).toBe(true);
     expect(adminPerms.some((f) => f.id === "app-settings")).toBe(true);
