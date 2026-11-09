@@ -12,9 +12,9 @@ vi.mock("@/hooks/use-dashboard", () => ({
     useUnexcusedAbsences: vi.fn(),
 }));
 
-// Mock useWorkspace (provides workspace timezone)
-vi.mock("@/hooks/use-workspace", () => ({
-    useWorkspace: () => ({ workspace: { timezone: "Asia/Ho_Chi_Minh" } }),
+// Mock useOrganization (provides organization timezone)
+vi.mock("@/hooks/use-organization", () => ({
+    useOrganization: () => ({ organization: { timezone: "Asia/Ho_Chi_Minh" } }),
 }));
 
 // Mock permissions: employee-mode is allowed by default in these tests.
@@ -150,7 +150,7 @@ describe("UnexcusedAbsencesChart", () => {
         expect(screen.getByText("dashboard.hr.group_by_employee")).toBeInTheDocument();
     });
 
-    it("calls useUnexcusedAbsences with groupBy and workspace timezone", () => {
+    it("calls useUnexcusedAbsences with groupBy and organization timezone", () => {
         vi.mocked(dashboardHooks.useUnexcusedAbsences).mockReturnValue({
             data: mockData,
             isLoading: false,

@@ -486,7 +486,7 @@ describe("LeaveImportDialog", () => {
     it("fetches latest import job on mount when open", async () => {
       renderDialog();
       await waitFor(() => {
-        expect(api.fetchLatestLeaveImport).toHaveBeenCalledWith("ws-test");
+        expect(api.fetchLatestLeaveImport).toHaveBeenCalledWith();
       });
     });
 
