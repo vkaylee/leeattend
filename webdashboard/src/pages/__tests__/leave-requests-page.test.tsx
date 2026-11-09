@@ -46,6 +46,7 @@ vi.mock("@tanstack/react-router", async () => {
 
 // Mock the API library
 vi.mock("../../lib/api", () => ({
+  fetchOrganization: vi.fn().mockResolvedValue({ date_format: "DD/MM/YYYY", timezone: "UTC", default_language: "en" }),
   fetchEmployees: vi.fn(),
   submitLeaveRequest: vi.fn(),
   fetchWorkspaceLeaveRequests: vi.fn(),

@@ -18,6 +18,7 @@ vi.mock("@/hooks/use-ess", () => ({
 }));
 
 vi.mock("@/lib/api", () => ({
+  fetchOrganization: vi.fn().mockResolvedValue({ date_format: "DD/MM/YYYY", timezone: "UTC", default_language: "en" }),
   fetchWorkspace: vi.fn(),
   submitAttendanceAdjustment: vi.fn(),
 }));

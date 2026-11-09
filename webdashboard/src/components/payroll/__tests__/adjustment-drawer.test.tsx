@@ -12,6 +12,7 @@ import AdjustmentDrawer from "../adjustment-drawer";
 
 // Mock API
 vi.mock("@/lib/api", () => ({
+  fetchOrganization: vi.fn().mockResolvedValue({ date_format: "DD/MM/YYYY", timezone: "UTC", default_language: "en" }),
   fetchWorkspaceAttendanceAdjustments: vi.fn(),
   approveAttendanceAdjustment: vi.fn(),
 }));

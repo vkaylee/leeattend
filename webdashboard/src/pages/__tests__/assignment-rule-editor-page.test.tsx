@@ -169,7 +169,6 @@ describe("AssignmentRuleEditorPage", () => {
 
     await waitFor(() => {
       expect(api.createAssignmentRule).toHaveBeenCalledWith(
-        "ws-1",
         expect.objectContaining({
           name: "New Ruleset",
           pattern_id: "pat-1",
@@ -196,7 +195,6 @@ describe("AssignmentRuleEditorPage", () => {
 
     await waitFor(() => {
       expect(api.updateAssignmentRule).toHaveBeenCalledWith(
-        "ws-1",
         "rule-1",
         expect.objectContaining({
           name: "Updated Name",

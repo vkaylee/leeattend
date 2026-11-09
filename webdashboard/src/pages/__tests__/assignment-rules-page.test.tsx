@@ -262,7 +262,7 @@ describe("AssignmentRulesPage", () => {
     await user.click(confirmButton);
 
     await waitFor(() => {
-      expect(api.deleteAssignmentRule).toHaveBeenCalledWith("ws-1", "rule-1");
+      expect(api.deleteAssignmentRule).toHaveBeenCalledWith("rule-1");
     });
   });
 
