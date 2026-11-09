@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"strings"
 	"testing"
 	"time"
 
@@ -132,6 +133,56 @@ func TestReportRepository_GetAttendanceReportEmploymentNotFound(t *testing.T) {
 	})
 	if !errors.Is(err, api.ErrReportNotFound) {
 		t.Fatalf("expected ErrReportNotFound, got %v", err)
+	}
+}
+
+func TestReportRepository_GetAttendanceReportDailyMapsOTClaimStatus(t *testing.T) {
+	employmentID, employeeID := uuid.New(), uuid.New()
+	statuses := []string{"none", "pending_employee", "pending_manager", "approved", "rejected"}
+	rows := make([][]any, 0, len(statuses))
+	for _, status := range statuses {
+		rows = append(rows, []any{
+			"2026-01-01", employmentID, employeeID, "Alice", "EMP01",
+			"", "", "", "", "",
+			480, 480, 0, status,
+		})
+	}
+
+	var dataQuery string
+	db := &fakeDBTX{
+		queryRowFn: func(_ context.Context, query string, _ ...any) pgx.Row {
+			return fakeRow{scanFn: func(dest ...any) error {
+				*(dest[0].(*int64)) = int64(len(rows))
+				return nil
+			}}
+		},
+		queryFn: func(_ context.Context, query string, _ ...any) (pgx.Rows, error) {
+			dataQuery = query
+			return &fakeRows{rows: rows}, nil
+		},
+	}
+
+	response, err := (ReportRepository{DB: db}).GetAttendanceReport(context.Background(), api.AttendanceReportFilter{
+		StartDate: "2026-01-01", EndDate: "2026-01-31", ReportType: "daily", Page: 1, Limit: 20,
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !strings.Contains(dataQuery, "COALESCE(ads.ot_status::text, 'none')") {
+		t.Fatalf("daily query must normalize missing status to none: %s", dataQuery)
+	}
+
+	var got []api.DailyAttendanceRow
+	if err := json.Unmarshal(response.Data, &got); err != nil {
+		t.Fatalf("failed to decode daily rows: %v", err)
+	}
+	if len(got) != len(statuses) {
+		t.Fatalf("expected %d daily rows, got %d", len(statuses), len(got))
+	}
+	for i, status := range statuses {
+		if got[i].OTClaimStatus != status {
+			t.Errorf("row %d: expected OT claim status %q, got %q", i, status, got[i].OTClaimStatus)
+		}
 	}
 }
 
