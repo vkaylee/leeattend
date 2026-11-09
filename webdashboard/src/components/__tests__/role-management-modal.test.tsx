@@ -27,6 +27,7 @@ const mockWorkspaceRoles = [
 
 // Mock the API library
 vi.mock("../../lib/api", () => ({
+  fetchOrganization: vi.fn().mockResolvedValue({ name: "Test Organization" }),
   fetchMemberRoles: vi.fn(),
   updateOrganizationMemberRole: vi.fn(),
   assignExtraRole: vi.fn(),
@@ -57,7 +58,7 @@ describe("RoleManagementModal", () => {
       extra: []
     });
  
-    vi.mocked(api.fetchWorkspaceRoles).mockResolvedValue(mockWorkspaceRoles);
+    vi.mocked(api.fetchOrganizationRoles).mockResolvedValue(mockWorkspaceRoles);
   });
 
   const renderWithProviders = (ui: React.ReactElement) => {
@@ -80,21 +81,21 @@ describe("RoleManagementModal", () => {
   it("loads workspace roles dynamically and displays primary role", async () => {
     renderWithProviders(<RoleManagementModal isOpen={true} onClose={() => { /* empty */ }} userId="user-1" />);
 
-    // Should have called fetchWorkspaceRoles
+    // Should have called fetchOrganizationRoles
     await waitFor(() => {
-      expect(api.fetchWorkspaceRoles).toHaveBeenCalledWith("test-ws-id");
+      expect(api.fetchOrganizationRoles).toHaveBeenCalledWith();
     });
   });
 
   it("handles updating primary role with UUID", async () => {
     const user = userEvent.setup();
  
-    vi.mocked(api.updateWorkspaceMemberRole).mockResolvedValue({} as never);
+    vi.mocked(api.updateOrganizationMemberRole).mockResolvedValue({} as never);
     renderWithProviders(<RoleManagementModal isOpen={true} onClose={() => { /* empty */ }} userId="user-1" />);
 
     // Wait for roles to load
     await waitFor(() => {
-      expect(api.fetchWorkspaceRoles).toHaveBeenCalled();
+      expect(api.fetchOrganizationRoles).toHaveBeenCalled();
     });
 
     // Find and interact with the primary role combobox
@@ -106,7 +107,7 @@ describe("RoleManagementModal", () => {
     await user.click(confirmModalButton);
 
     await waitFor(() => {
-      expect(api.updateWorkspaceMemberRole).toHaveBeenCalledWith("user-1", ADMIN_ROLE_ID);
+      expect(api.updateOrganizationMemberRole).toHaveBeenCalledWith("user-1", ADMIN_ROLE_ID);
     });
   });
 
@@ -118,7 +119,7 @@ describe("RoleManagementModal", () => {
 
     // Wait for roles to load
     await waitFor(() => {
-      expect(api.fetchWorkspaceRoles).toHaveBeenCalled();
+      expect(api.fetchOrganizationRoles).toHaveBeenCalled();
     });
 
     const extraRoleSelect = screen.getByLabelText(/Vai trò gán/i);
@@ -180,7 +181,7 @@ describe("RoleManagementModal", () => {
     renderWithProviders(<RoleManagementModal isOpen={true} onClose={() => { /* empty */ }} userId="user-1" />);
 
     await waitFor(() => {
-      expect(api.fetchWorkspaceRoles).toHaveBeenCalled();
+      expect(api.fetchOrganizationRoles).toHaveBeenCalled();
     });
 
     // The extra role select should not contain the primary role (employee) or existing extra (admin)

@@ -282,9 +282,11 @@
       "is_active": "活跃",
       "link_user": "关联用户账户",
       "select_user": "选择用户...",
+      "location": "工作地点",
       "cancel": "取消",
       "save": "保存档案",
-      "update": "更新"
+      "update": "更新",
+      "location_unavailable": "您的账户无法访问工作地点。"
     },
     "transfer": {
       "title": "部门调动",

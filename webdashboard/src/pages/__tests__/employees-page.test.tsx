@@ -32,31 +32,36 @@ class MockIntersectionObserver {
 window.IntersectionObserver = MockIntersectionObserver as unknown as typeof IntersectionObserver;
 
 // Mock the API library
-vi.mock("../../lib/api", () => ({
-    fetchEmployees: vi.fn(),
-    searchEmployees: vi.fn(),
-    createEmployee: vi.fn(),
-    updateEmployee: vi.fn(),
-    deleteEmployee: vi.fn(),
-    fetchDepartments: vi.fn(),
-    fetchEmployeeDepartmentHistory: vi.fn(),
-    transferEmployee: vi.fn(),
-    fetchEmploymentHistory: vi.fn(),
-    rehireEmployee: vi.fn(),
-    fetchMyPermissions: vi.fn(),
-    fetchWorkspaceMembers: vi.fn().mockResolvedValue([]),
-    fetchEmployeeEmployments: vi.fn((empId) => Promise.resolve([
-        {
-            id: `employment-id-${empId}`,
-            employee_id: empId,
-            employer_id: "employer-1",
-            primary_location_id: "location-1",
-            start_date: "2025-01-01",
-            status: "active"
-        }
-    ])),
-    updateEmployeeEmployment: vi.fn(() => Promise.resolve({})),
-}));
+vi.mock("../../lib/api", async (importOriginal) => {
+    const actual = await importOriginal<typeof import("../../lib/api")>();
+    return {
+        ...actual,
+        fetchOrganization: vi.fn().mockResolvedValue({ name: "Test Organization" }),
+        fetchEmployees: vi.fn(),
+        searchEmployees: vi.fn(),
+        createEmployee: vi.fn(),
+        updateEmployee: vi.fn(),
+        deleteEmployee: vi.fn(),
+        fetchDepartments: vi.fn(),
+        fetchEmployeeDepartmentHistory: vi.fn(),
+        transferEmployee: vi.fn(),
+        fetchEmploymentHistory: vi.fn(),
+        rehireEmployee: vi.fn(),
+        fetchMyPermissions: vi.fn(),
+        fetchOrganizationMembers: vi.fn().mockResolvedValue([]),
+        fetchEmployeeEmployments: vi.fn((empId) => Promise.resolve([
+            {
+                id: `employment-id-${empId}`,
+                employee_id: empId,
+                employer_id: "employer-1",
+                primary_location_id: "location-1",
+                start_date: "2025-01-01",
+                status: "active"
+            }
+        ])),
+        updateEmployeeEmployment: vi.fn(() => Promise.resolve({})),
+    };
+});
 
 // Override i18n
 vi.mock("react-i18next", () => ({

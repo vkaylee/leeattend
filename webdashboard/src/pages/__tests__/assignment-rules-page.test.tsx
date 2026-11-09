@@ -88,6 +88,8 @@ vi.mock("../../components/ui/combobox", () => ({
 
 // Mock APIs
 vi.mock("../../lib/api", () => ({
+  fetchOrganization: vi.fn().mockResolvedValue({ name: "Test Organization" }),
+  fetchLocations: vi.fn().mockResolvedValue([]),
   fetchAssignmentRules: vi.fn(),
   createAssignmentRule: vi.fn(),
   updateAssignmentRule: vi.fn(),

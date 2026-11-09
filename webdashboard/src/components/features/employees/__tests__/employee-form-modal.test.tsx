@@ -44,9 +44,11 @@ const mockMembers = [
 ];
 
 vi.mock("@/lib/api", () => ({
+    fetchOrganization: vi.fn().mockResolvedValue({ name: "Test Organization" }),
     createEmployee: vi.fn(),
     updateEmployee: vi.fn(),
-    fetchWorkspaceMembers: vi.fn(() => Promise.resolve(mockMembers)),
+    fetchOrganizationMembers: vi.fn(() => Promise.resolve(mockMembers)),
+    fetchLocations: vi.fn(() => Promise.resolve([])),
     fetchEmployers: vi.fn(() => Promise.resolve([])),
     fetchEmployeeEmployments: vi.fn(() => Promise.resolve([
         {

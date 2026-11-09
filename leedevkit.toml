@@ -22,11 +22,20 @@ lang = "typescript"
 ports = [5173]
 bun = true
 
+# LeeDevKit uses target names as execution modes. Keep API target on Go mode
+# while Compose continues to provide apiserver container.
+[services.api]
+lang = "go"
+workdir = "apiserver"
+
+[services.go]
+lang = "go"
+workdir = "apiserver"
 
 [targets]
-api = ["apiserver"]
+api = ["api"]
 web = ["webdashboard"]
-all = ["apiserver", "webdashboard"]
+all = ["api", "webdashboard"]
 
 [test.dependencies]
 lint-api = ["apiserver"]

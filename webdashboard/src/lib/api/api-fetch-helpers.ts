@@ -7,6 +7,7 @@ import { ROUTES } from "@/lib/routes";
 import { API_BASE_URL } from "./config";
 import { ApiError } from "./errors";
 import {
+  clearAuthSession,
   getAccessToken,
   setAccessToken,
 } from "./helpers";

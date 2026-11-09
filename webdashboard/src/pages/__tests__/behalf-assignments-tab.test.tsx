@@ -191,7 +191,7 @@ vi.mock("@/hooks/use-behalf-assignments", () => ({
 }));
 
 vi.mock("@/lib/api", () => ({
-  fetchAllWorkspaceMembers: vi.fn(),
+  fetchAllOrganizationMembers: vi.fn(),
   fetchDepartments: vi.fn(),
 }));
 

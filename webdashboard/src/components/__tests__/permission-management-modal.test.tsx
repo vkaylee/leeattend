@@ -12,6 +12,7 @@ import { ToastProvider } from "../ui/toast";
 
 // Mock the API library
 vi.mock("../../lib/api", () => ({
+  fetchOrganization: vi.fn().mockResolvedValue({ name: "Test Organization" }),
   fetchMemberPermissions: vi.fn(),
   fetchPermissionCatalog: vi.fn(),
   assignExtraPermission: vi.fn(),

@@ -39,7 +39,10 @@ vi.mock("@tanstack/react-router", () => {
   };
 });
 
-vi.mock("../../lib/api", () => ({
+vi.mock("../../lib/api", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../../lib/api")>();
+  return {
+  ...actual,
   fetchEmployees: vi.fn(),
   searchEmployees: vi.fn(),
   fetchEmployeePayslips: vi.fn(),
