@@ -17,6 +17,7 @@ export function useLocations() {
   return useQuery({
     queryKey: locationKeys.all(),
     queryFn: fetchLocations,
+    placeholderData: [],
     retry: false,
     meta: { suppressErrorToast: [403] },
   });
