@@ -174,7 +174,6 @@ describe("WorkingPatternsPage", () => {
 
     await waitFor(() => {
       expect(api.bulkAssignPattern).toHaveBeenCalledWith(
-        "ws-1",
         expect.objectContaining({
           employment_ids: ["employment-1", "employment-2"],
           pattern_id: "pat-1"
