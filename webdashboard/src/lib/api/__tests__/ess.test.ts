@@ -11,6 +11,13 @@ vi.mock("../client", () => ({
 }));
 
 
+vi.mock("../attendance", () => ({
+  claimOt: vi.fn().mockResolvedValue(undefined),
+  fetchAttendanceSummaries: vi.fn().mockResolvedValue([
+    { date: "2026-03-01", status: "Present" },
+  ]),
+}));
+
 import { claimOt, fetchAttendanceSummaries } from "../attendance";
 import { client } from "../client";
 import {
