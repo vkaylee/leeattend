@@ -28,9 +28,11 @@ export function useAssignmentRulesData() {
     queryFn: () => fetchEmployers(), 
   });
 
-  const { data: locations } = useQuery({ 
-    queryKey: ["locations"], 
-    queryFn: () => fetchLocations(), 
+  const { data: locations } = useQuery({
+    queryKey: ["locations"],
+    queryFn: fetchLocations,
+    retry: false,
+    meta: { suppressErrorToast: [403] },
   });
 
   return {
