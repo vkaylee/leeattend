@@ -26,6 +26,12 @@ vi.mock("@/lib/api/employers", () => ({
   fetchEmployers: vi.fn(),
 }));
 
+vi.mock("@/lib/api", async (importOriginal) => ({
+  ...await importOriginal<typeof import("@/lib/api")>(),
+  fetchEmployeeEmployments: vi.fn().mockResolvedValue([]),
+  fetchEmploymentPhases: vi.fn().mockResolvedValue([]),
+}));
+
 vi.mock("@/hooks/use-permissions", () => ({
   useMyPermissions: () => ({
     hasPermission: () => true,

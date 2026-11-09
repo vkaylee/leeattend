@@ -19,6 +19,7 @@ vi.mock('../../lib/api', async () => {
     searchEmployees: vi.fn(),
     fetchEmployeePayslips: vi.fn(),
     fetchPayslips: vi.fn(),
+    fetchCustomFieldDefinitions: vi.fn(),
     calculateBatchPayslips: vi.fn(),
     fetchWorkspaceAttendanceAdjustments: vi.fn(),
     fetchWorkspace: vi.fn(),
