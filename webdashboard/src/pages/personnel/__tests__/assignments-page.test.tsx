@@ -142,7 +142,6 @@ function renderPage() {
 describe("PersonnelAssignmentsPage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockWorkspaceId = "ws-1";
   });
 
   it("renders header and metrics correctly", () => {

@@ -32,7 +32,6 @@ vi.mock("@tanstack/react-router", () => ({
 describe("ShiftsRulesPage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockGetStandaloneOrganizationId.mockReturnValue("ws-test-123");
     mockUseSearch.mockReturnValue({});
   });
 

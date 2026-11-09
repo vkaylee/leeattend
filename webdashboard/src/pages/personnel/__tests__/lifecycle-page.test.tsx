@@ -136,7 +136,6 @@ function renderWithProviders(ui: React.ReactElement) {
 describe("PersonnelLifecyclePage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockWorkspaceId = "ws-1";
   });
 
   it("renders page header and metric cards accurately", async () => {

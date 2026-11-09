@@ -157,7 +157,6 @@ function renderWithProviders(ui: React.ReactElement) {
 describe("PersonnelWorkingConditionsPage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockWorkspaceId = "ws-1";
   });
 
   it("renders page header and metric cards accurately", async () => {

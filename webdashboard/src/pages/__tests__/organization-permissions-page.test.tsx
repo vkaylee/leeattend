@@ -303,7 +303,7 @@ describe("OrganizationPermissionsPage", () => {
             // Trigger rerender of the same component
             rerender(
                 <QueryClientProvider client={queryClient}>
-                    <WorkspacePermissionsPage />
+                    <OrganizationPermissionsPage />
                 </QueryClientProvider>
             );
 
