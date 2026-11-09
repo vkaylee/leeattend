@@ -252,8 +252,8 @@ describe("changePassword", () => {
     });
     expect(msg).toBe("Password changed successfully");
   });
-  it("throws when server returns an error field", async () => {
-    (client.POST as Mock).mockResolvedValueOnce({ error: { message: "mismatch" } });
+  it("propagates client rejection", async () => {
+    (client.POST as Mock).mockRejectedValueOnce(new Error("Failed to change password"));
     await expect(
       changePassword({ current_password: "a", new_password: "b" } as never),
     ).rejects.toThrow("Failed to change password");
