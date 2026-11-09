@@ -191,7 +191,7 @@ describe("EmployersPage", () => {
     await user.click(submitBtn);
 
     await waitFor(() => {
-      expect(api.createEmployer).toHaveBeenCalledWith("test-ws-id", {
+      expect(api.createEmployer).toHaveBeenCalledWith({
         name: "Newly Created Corp",
         tax_code: "TX-555666",
         legal_address: "789 Enterprise Blvd",
@@ -242,7 +242,7 @@ describe("EmployersPage", () => {
     await user.click(submitBtn);
 
     await waitFor(() => {
-      expect(api.updateEmployer).toHaveBeenCalledWith("test-ws-id", "employer-1", {
+      expect(api.updateEmployer).toHaveBeenCalledWith("employer-1", {
         name: "Updated Legal Trade LLC",
         tax_code: "TX-998877",
         legal_address: "123 Business Rd, SF",
@@ -274,7 +274,7 @@ describe("EmployersPage", () => {
     await user.click(confirmButton);
 
     await waitFor(() => {
-      expect(api.deleteEmployer).toHaveBeenCalledWith("test-ws-id", "employer-1");
+      expect(api.deleteEmployer).toHaveBeenCalledWith("employer-1");
     });
   });
 });

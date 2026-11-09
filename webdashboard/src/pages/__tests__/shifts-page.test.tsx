@@ -483,7 +483,6 @@ describe("ShiftsPage - Shift Picker Modal", () => {
 
       await waitFor(() => {
         expect(api.fetchWorkspaceSchedules).toHaveBeenCalledWith(
-          "test-ws-id",
           expect.any(String),
           expect.any(String),
           ["employment-1"]
@@ -512,7 +511,6 @@ describe("ShiftsPage - Shift Picker Modal", () => {
       // Wait for it to refetch with the active employment ID
       await waitFor(() => {
         expect(api.fetchWorkspaceSchedules).toHaveBeenCalledWith(
-          "test-ws-id",
           expect.any(String),
           expect.any(String),
           ["employment-1"]
@@ -547,7 +545,6 @@ describe("ShiftsPage - Shift Picker Modal", () => {
 
         await waitFor(() => {
           expect(api.bulkUpsertRoster).toHaveBeenCalledWith(
-            "test-ws-id",
             "emp-1",
             expect.arrayContaining([
               expect.objectContaining({ shift_id: "shift-1" })
@@ -585,7 +582,6 @@ describe("ShiftsPage - Shift Picker Modal", () => {
 
         await waitFor(() => {
           expect(api.bulkUpsertRoster).toHaveBeenCalledWith(
-            "test-ws-id",
             "emp-1",
             expect.arrayContaining([
               expect.objectContaining({ shift_id: null })
@@ -656,7 +652,6 @@ describe("ShiftsPage - Shift Picker Modal", () => {
 
         await waitFor(() => {
           expect(api.bulkUpsertRoster).toHaveBeenCalledWith(
-            "test-ws-id",
             "emp-1",
             expect.arrayContaining([
               expect.objectContaining({ shift_id: "shift-1" }),

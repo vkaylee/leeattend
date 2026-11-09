@@ -96,7 +96,6 @@ describe("WorkingPatternsEditorPage", () => {
 
     await waitFor(() => {
       expect(api.createWorkingPattern).toHaveBeenCalledWith(
-        "ws-1",
         expect.objectContaining({
           name: "Weekly Rotation Plan",
           pattern_type: "weekly",

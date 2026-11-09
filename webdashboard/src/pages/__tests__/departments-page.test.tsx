@@ -117,7 +117,7 @@ describe("DepartmentsPage", () => {
     await user.click(screen.getByText(/departments.modal.submit_btn/i));
 
     await waitFor(() => {
-      expect(api.createDepartment).toHaveBeenCalledWith("test-ws-id", expect.objectContaining({
+      expect(api.createDepartment).toHaveBeenCalledWith(expect.objectContaining({
         name: "Human Resources"
       }));
     });
@@ -146,7 +146,7 @@ describe("DepartmentsPage", () => {
     await user.click(screen.getByText(/common.update/i));
 
     await waitFor(() => {
-      expect(api.updateDepartment).toHaveBeenCalledWith("test-ws-id", "dept-1", expect.objectContaining({
+      expect(api.updateDepartment).toHaveBeenCalledWith("dept-1", expect.objectContaining({
         name: "Software Engineering"
       }));
     });
@@ -172,7 +172,7 @@ describe("DepartmentsPage", () => {
     fireEvent.click(confirmModalButton);
 
     await waitFor(() => {
-      expect(api.deleteDepartment).toHaveBeenCalledWith("test-ws-id", "dept-1");
+      expect(api.deleteDepartment).toHaveBeenCalledWith("dept-1");
     });
   });
 
