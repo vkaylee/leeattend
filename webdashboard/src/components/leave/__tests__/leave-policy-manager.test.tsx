@@ -43,14 +43,14 @@ vi.mock("react-i18next", () => ({
 }));
 
  
-const renderComponent = (props: {}) => {
+const renderComponent = () => {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false, gcTime: 0, staleTime: 0 } },
   });
   return render(
     <QueryClientProvider client={queryClient}>
       <ToastProvider>
-        <LeavePolicyManager {...props} />
+        <LeavePolicyManager />
       </ToastProvider>
     </QueryClientProvider>
   );
@@ -63,7 +63,7 @@ describe("LeavePolicyManager", () => {
 
   it("should show useConfirm dialog when deleting a policy", async () => {
     const user = userEvent.setup();
-    renderComponent({});
+    renderComponent();
 
     // Wait for data
     expect(await screen.findByText("Annual Leave")).toBeDefined();

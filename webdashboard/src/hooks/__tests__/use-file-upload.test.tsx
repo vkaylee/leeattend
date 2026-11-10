@@ -121,7 +121,7 @@ describe("useFileUpload", () => {
     });
 
     it("throws the backend error message and invokes onError", async () => {
-      (clientMock.POST as Mock).mockResolvedValue({ data: undefined, error: { message: "storage full" } });
+      (clientMock.POST as Mock).mockRejectedValue(new Error("storage full"));
       const onError = vi.fn();
       const { result } = renderHook(
         () => useFileUpload({ ...defaultOptions, onError }),
@@ -141,7 +141,7 @@ describe("useFileUpload", () => {
     });
 
     it("falls back to the i18n message when the error has no message", async () => {
-      (clientMock.POST as Mock).mockResolvedValue({ data: undefined, error: {} });
+      (clientMock.POST as Mock).mockRejectedValue(new Error());
       const onError = vi.fn();
       const { result } = renderHook(
         () => useFileUpload({ ...defaultOptions, onError }),

@@ -65,6 +65,7 @@ interface CreateWorkingConditionData {
 }
 
 interface WorkingConditionFormProps {
+  conditionTypeId: string | null;
   createMutation: {
     isPending: boolean;
     mutate: (data: CreateWorkingConditionData) => void;
@@ -85,6 +86,7 @@ interface WorkingConditionFormProps {
 }
 
 function WorkingConditionForm({
+  conditionTypeId,
   type_,
   setType,
   setConditionTypeId,
@@ -148,7 +150,7 @@ function WorkingConditionForm({
         </div>
       </div>
 
-      <div className="flex justify-end gap-4">
+        <div className="flex justify-end gap-4">
         <Button className="px-8 py-4 rounded-2xl font-bold text-[10px] uppercase tracking-widest text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all" onClick={onCancel} type="button" variant="ghost">{t("common.cancel")}</Button>
         <Button className="flex items-center gap-3 bg-primary-600 text-white px-10 py-4 rounded-2xl font-bold text-[10px] uppercase tracking-widest hover:bg-primary-700 transition-all shadow-xl shadow-primary-100 dark:shadow-black/30 active:scale-95 disabled:opacity-50" disabled={isSubmitting} onClick={() => { createMutation.mutate({ type_: type_, condition_type_id: conditionTypeId, start_date: startDate, end_date: endDate === "" ? null : endDate, is_paid: isPaid }); }} variant="ghost">
           <CheckCircle2 size={16} /> {t("common.save").toUpperCase()}
@@ -254,6 +256,7 @@ export default function WorkingConditionConfig({ employeeId }: Props) {
 
       {isAdding ? (
         <WorkingConditionForm
+          conditionTypeId={conditionTypeId}
           createMutation={createMutation}
           endDate={endDate}
           isPaid={isPaid}

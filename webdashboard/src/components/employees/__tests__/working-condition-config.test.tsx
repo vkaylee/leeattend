@@ -62,7 +62,7 @@ vi.mock("react-i18next", () => ({
 }));
 
  
-const renderComponent = (props: {}) => {
+const renderComponent = (props: { employeeId: string }) => {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false, gcTime: 0, staleTime: 0 } },
   });

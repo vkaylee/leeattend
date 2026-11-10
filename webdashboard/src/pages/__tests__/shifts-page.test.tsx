@@ -29,7 +29,7 @@ vi.mock("../../lib/api", () => ({
   fetchEmployees: vi.fn(),
   searchEmployees: vi.fn(),
   fetchShifts: vi.fn(),
-  fetchWorkspace: vi.fn(),
+  fetchOrganization: vi.fn(),
   fetchWorkspaceSchedules: vi.fn(),
   fetchAssignmentHistory: vi.fn(),
   assignShift: vi.fn(),
@@ -220,7 +220,7 @@ describe("ShiftsPage - Shift Picker Modal", () => {
  
     vi.mocked(api.fetchShifts).mockResolvedValue(mockShifts as unknown as Shift[]);
  
-    vi.mocked(api.fetchWorkspace).mockResolvedValue({ id: "test-ws-id", name: "Test Workspace" } as unknown as Workspace);
+    vi.mocked(api.fetchOrganization).mockResolvedValue({ id: "test-ws-id", name: "Test Workspace" } as unknown as Workspace);
  
     vi.mocked(api.fetchWorkspaceSchedules).mockResolvedValue(mockSchedules as unknown as EmployeeSchedule[]);
  

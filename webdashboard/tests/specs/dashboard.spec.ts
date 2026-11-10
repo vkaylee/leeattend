@@ -18,7 +18,7 @@ test.describe("Standalone Desktop Dashboard Contracts", () => {
 
   test("shows the loading skeleton while permissions are pending", async ({ page }) => {
     const { promise: permissionsPending, resolve: releasePermissions } = Promise.withResolvers<void>();
-    await page.route("**/api/v1/me/permissions", async (route) => {
+    await page.route("**/api/me/permissions", async (route) => {
       await permissionsPending;
       await route.fallback();
     });
@@ -81,21 +81,20 @@ test.describe("Standalone Desktop Dashboard Contracts", () => {
     await expect(page.getByTestId("desktop-empty-add-widget-btn")).toBeVisible();
   });
 
-  test("opens and closes DSM 7 feature search from header trigger", async ({ page }) => {
+  test("opens and closes command palette from topbar trigger", async ({ page }, testInfo) => {
     await page.goto("/dashboard");
     await expect(page.getByTestId("desktop-page")).toBeVisible({ timeout: 15000 });
 
-    const searchBtn = page.getByTestId("desktop-search-trigger");
+    const searchBtn = testInfo.project.name === "dashboard-mobile"
+      ? page.getByTestId("topbar-search-trigger-mobile")
+      : page.getByTestId("topbar-search-trigger");
     await expect(searchBtn).toBeVisible();
     await searchBtn.click();
 
-    const launcherModal = page.getByTestId("dsm-launcher-modal");
-    await expect(launcherModal).toBeVisible();
-
-    // Close using close button
-    const closeBtn = page.getByTestId("dsm-launcher-close-btn");
-    await closeBtn.click();
-    await expect(launcherModal).toBeHidden();
+    const palette = page.getByTestId("command-palette-modal");
+    await expect(palette).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(palette).toBeHidden();
   });
 
   test("keeps dashboard controls within viewport without horizontal overflow", async ({ page }) => {

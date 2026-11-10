@@ -12,10 +12,7 @@ import { BonusPolicyCard } from "./bonus-policy-card";
 import { BonusPolicyForm } from "./bonus-policy-form";
 import { useBonusPolicyMutations } from "./hooks/use-bonus-policy-mutations";
 
-interface BonusPolicyManagerProps {
-}
-
-export default function BonusPolicyManager({}: BonusPolicyManagerProps) {
+export default function BonusPolicyManager() {
   const { t } = useTranslation();
   const [isCreating, setIsCreating] = useState(false);
 

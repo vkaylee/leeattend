@@ -46,7 +46,7 @@ window.IntersectionObserver = MockIntersectionObserver as unknown as typeof Inte
 vi.mock("../../lib/api", () => ({
   fetchOrganization: vi.fn().mockResolvedValue({ date_format: "DD/MM/YYYY", timezone: "UTC", default_language: "en" }),
   fetchAttendanceReport: vi.fn(),
-  fetchWorkspace: vi.fn(),
+  fetchOrganization: vi.fn(),
   reprocessAttendance: vi.fn(),
   fetchEmployees: vi.fn(),
   searchEmployees: vi.fn(),
@@ -74,7 +74,7 @@ describe("ReportsPage", () => {
     });
  
  
-    vi.mocked(api.fetchWorkspace).mockResolvedValue({
+    vi.mocked(api.fetchOrganization).mockResolvedValue({
       id: "test-ws-id",
       name: "Test Workspace",
       date_format: "YYYY-MM-DD",

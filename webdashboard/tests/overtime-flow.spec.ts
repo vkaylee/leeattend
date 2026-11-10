@@ -16,7 +16,7 @@ test.describe("Overtime Flow", () => {
 
     // Navigate to OT Approvals Page
     await page.goto("/approvals/ot");
-    await expect(page.getByRole('heading', { level: 3, name: /OT APPROVALS/i })).toBeVisible();
+    await expect(page.getByRole('heading', { level: 1, name: /OT APPROVALS/i })).toBeVisible();
 
     // Open Pre-OT Form
     await page.getByRole('button', { name: /New Pre-OT Request/i }).click();

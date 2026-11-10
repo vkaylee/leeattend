@@ -18,9 +18,6 @@ import AssignOvertimePolicyModal from './assign-overtime-policy-modal';
 import { useOvertimePolicies, useOvertimePolicy, useCreateOvertimePolicy } from './hooks/use-overtime-policies';
 import OvertimeRuleEditor from './overtime-rule-editor';
 
-interface OvertimePolicyManagerProps {
-}
-
 function OvertimePolicyCard({ policy}: { policy: OvertimePolicy}) {
   const { data: detail, isLoading } = useOvertimePolicy(policy.id);
 
@@ -127,7 +124,7 @@ function OvertimePolicySkeleton() {
   );
 }
 
-export default function OvertimePolicyManager({}: OvertimePolicyManagerProps) {
+export default function OvertimePolicyManager() {
   const { t } = useTranslation();
   const [isCreating, setIsCreating] = useState(false);
   const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);

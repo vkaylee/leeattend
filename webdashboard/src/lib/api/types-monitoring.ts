@@ -22,10 +22,10 @@ export interface MonitorInfraJobEvent {
   error_summary?: string | null;
   event_id: string;
   event_type: string;
-  from_state?: MonitorInfraJobState | string | null;
+  from_state?: string | null;
   job_id: string;
   request_id?: string | null;
-  to_state: MonitorInfraJobState | string;
+  to_state: string;
   trace_id?: string | null;
   worker_id?: string | null;
 }
@@ -43,7 +43,7 @@ export interface MonitorInfraJobRecord {
   queued_at?: string | null;
   request_id?: string | null;
   started_at?: string | null;
-  state: MonitorInfraJobState | string;
+  state: string;
   task_type: string;
   trace_id?: string | null;
   updated_at: string;
@@ -56,7 +56,7 @@ export interface MonitorDurableJobsSection {
   jobs?: MonitorInfraJobRecord[] | null;
   limit?: number;
   next_cursor_token?: string | null;
-  status: "available" | "degraded" | "unavailable" | string;
+  status: string;
 }
 
 export interface MonitorJob {
@@ -172,7 +172,7 @@ export interface MonitorDependencyHealth {
   observed_at: string;
   pool_utilization_percent?: number | null;
   source: string;
-  status: "available" | "unavailable" | "degraded" | string;
+  status: string;
 }
 
 export interface MonitorDependencyHealthSet {
@@ -188,13 +188,13 @@ export interface MonitorDependencyHealthSet {
 
 export interface MonitorSourceHealth {
   error_code?: string | null;
-  status: "available" | "degraded" | "unavailable" | string;
+  status: string;
 }
 
 export interface MonitorQuality {
-  data_quality: "complete" | "partial" | "degraded" | "unavailable" | string;
+  data_quality: string;
   durable_db: MonitorSourceHealth;
-  freshness: "fresh" | "aging" | "stale" | "unknown" | string;
+  freshness: string;
   redis: MonitorSourceHealth;
   snapshot_sequence: string;
   unknown_fields: string[];

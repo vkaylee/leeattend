@@ -55,7 +55,6 @@ export function OrganizationLogoField({
               aria-label={t("common.workspace_settings.workspace_logo", {
                 defaultValue: "Logo URL",
               })}
-              autoFocus
               className="flex-1 h-9 px-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-mono text-slate-800 dark:text-slate-100 outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
               onChange={(e) => setTempUrl(e.target.value)}
               onKeyDown={(e) => {

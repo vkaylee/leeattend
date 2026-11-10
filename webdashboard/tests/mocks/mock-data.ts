@@ -1,5 +1,6 @@
 
 export const MOCK_ORGANIZATION = {
+  id: "org-mock-1",
   name: "Mock Enterprise",
   timezone: "Asia/Ho_Chi_Minh",
   rounding_policy: "nearest",
@@ -7,7 +8,11 @@ export const MOCK_ORGANIZATION = {
   early_arrival_strategy: "block" as const,
   created_at: "2026-01-01T00:00:00Z",
   date_format: "DD/MM/YYYY",
+  default_holiday_ot_multiplier: "1.5",
   default_language: "vi",
+  holiday_overnight_strategy: "split" as const,
+  logo_url: null,
+  tagline: null,
   theme_primary_color: "#7c3aed",
   time_format: "24h",
 };

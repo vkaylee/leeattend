@@ -5,18 +5,17 @@ test.describe("Responsive layout contracts", () => {
     expect(authPage).toBeDefined();
   });
 
-  test("uses the correct navigation for the viewport", async ({ page }, testInfo) => {
-    const bottomNav = page.getByTestId("bottom-nav-more");
-    const activePage = page.getByTestId("navbar-active-page");
+  test("uses sidebar and topbar navigation across viewports", async ({ page }, testInfo) => {
+    const topbar = page.getByTestId("topbar-container");
+    const sidebar = page.getByTestId("sidebar-container");
 
-    if (testInfo.project.name === "responsive-mobile" || testInfo.project.name === "responsive-tablet") {
-      await expect(bottomNav).toBeVisible();
-      await expect(activePage).toBeVisible();
-      return;
+    await expect(topbar).toBeVisible();
+    if (testInfo.project.name === "responsive-mobile") {
+      await expect(sidebar).toBeHidden();
+      await expect(page.getByTestId("topbar-mobile-menu-btn")).toBeVisible();
+    } else {
+      await expect(sidebar).toBeVisible();
     }
-
-    await expect(bottomNav).toBeHidden();
-    await expect(activePage).toBeVisible();
   });
 
   test("does not create horizontal page overflow", async ({ page }) => {
@@ -34,25 +33,24 @@ test.describe("Responsive layout contracts", () => {
     expect(dimensions.scrollWidth).toBeLessThanOrEqual(dimensions.clientWidth);
   });
 
-  test("keeps the end of the app content above the mobile bottom nav", async ({ page }, testInfo) => {
-    test.skip(testInfo.project.name !== "responsive-mobile" && testInfo.project.name !== "responsive-tablet", "The bottom nav only exists below lg.");
+  test("keeps mobile navigation drawer within viewport", async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== "responsive-mobile", "Mobile drawer contract applies only to mobile viewport.");
 
-    const main = page.locator("[data-app-scroll-container]");
-    const bottomNav = page.getByTestId("bottom-nav-more").locator("xpath=ancestor::nav");
-    const navBox = await bottomNav.boundingBox();
-    const paddingBottom = await main.evaluate((element) => Number.parseFloat(getComputedStyle(element).paddingBottom));
+    await page.getByTestId("topbar-mobile-menu-btn").click();
+    const drawer = page.getByTestId("sidebar-mobile-drawer");
+    await expect(drawer).toBeVisible();
 
-    expect(navBox).not.toBeNull();
-    expect(paddingBottom, JSON.stringify({ paddingBottom, navHeight: navBox?.height })).toBeGreaterThanOrEqual(navBox!.height);
+    const drawerBox = await drawer.boundingBox();
+    expect(drawerBox).not.toBeNull();
+    expect(drawerBox!.width).toBeLessThanOrEqual(testInfo.project.use.viewport?.width ?? 430);
   });
 
-  test("keeps bottom navigation controls at least 44px tall", async ({ page }, testInfo) => {
-    test.skip(testInfo.project.name !== "responsive-mobile" && testInfo.project.name !== "responsive-tablet", "Touch targets are asserted below lg.");
+  test("keeps primary touch controls at least 44px tall on mobile", async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== "responsive-mobile", "Touch targets are asserted at mobile boundary.");
 
-    const bottomNav = page.getByRole("navigation").last();
     const controls = [
-      page.getByTestId("bottom-nav-more"),
-      bottomNav.getByRole("link").first(),
+      page.getByTestId("topbar-mobile-menu-btn"),
+      page.getByTestId("topbar-search-trigger-mobile"),
     ];
 
     for (const control of controls) {
@@ -63,15 +61,10 @@ test.describe("Responsive layout contracts", () => {
     }
   });
 
-  test("keeps the floating dock visible on desktop", async ({ page }, testInfo) => {
-    test.skip(testInfo.project.name !== "responsive-desktop", "Floating dock layout is asserted at the desktop boundary.");
+  test("keeps sidebar visible on desktop", async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== "responsive-desktop", "Desktop sidebar contract applies at desktop boundary.");
 
     await page.goto("/employees");
-
-    const dock = page.getByTestId("floating-dock");
-    await expect(dock).toBeVisible();
-
-    const dockBox = await dock.boundingBox();
-    expect(dockBox).not.toBeNull();
+    await expect(page.getByTestId("sidebar-container")).toBeVisible();
   });
 });

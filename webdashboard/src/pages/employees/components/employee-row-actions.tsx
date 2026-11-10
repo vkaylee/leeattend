@@ -30,7 +30,7 @@ export function EmployeeRowActions({
   const isActive = Boolean(employee.active_employment_id);
 
   return (
-    <div className="flex items-center justify-end" onClick={(e) => { e.stopPropagation(); }}>
+    <div className="flex items-center justify-end">
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button

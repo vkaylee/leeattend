@@ -69,10 +69,10 @@ export function Topbar({
         ) : onOpenMobileMenu ? (
           <Button
             aria-label="Open navigation menu"
-            className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground md:hidden"
+            className="p-0 text-muted-foreground hover:text-foreground md:hidden"
             data-testid="topbar-mobile-menu-btn"
             onClick={onOpenMobileMenu}
-            size="sm"
+            size="md"
             type="button"
             variant="ghost"
           >
@@ -114,10 +114,10 @@ export function Topbar({
         {/* Mobile search trigger icon */}
         <Button
           aria-label="Open search"
-          className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground transition-colors focus-visible:ring-2 focus-visible:ring-primary sm:hidden"
+          className="p-0 text-muted-foreground hover:text-foreground transition-colors focus-visible:ring-2 focus-visible:ring-primary sm:hidden"
           data-testid="topbar-search-trigger-mobile"
           onClick={onOpenSearch}
-          size="sm"
+          size="md"
           type="button"
           variant="ghost"
         >

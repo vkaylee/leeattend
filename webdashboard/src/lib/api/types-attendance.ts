@@ -32,7 +32,7 @@ export interface AttendanceAdjustmentRequest {
   requested_punch_in_time?: string;
   requested_punch_out_time?: string | null;
   requested_punch_time: string;
-  status: AdjustmentStatus | string;
+  status: string;
   time_entry_id?: string | null;
   updated_at: string;
 }
@@ -143,7 +143,7 @@ export interface AttendanceDailySummary {
   late_ot_minutes?: number;
   manager_note?: string | null;
   ot_reason?: string | null;
-  ot_status: OtStatus | string;
+  ot_status: string;
   paper_form_photo_url?: string | null;
   standard_minutes?: number;
   system_detected_ot_minutes: number;

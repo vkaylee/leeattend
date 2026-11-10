@@ -102,10 +102,7 @@ function LeaveTypeCard({ type, onEdit, onDelete }: {
   );
 }
 
-interface LeaveTypeManagerProps {
-}
-
-export function LeaveTypeManager({}: LeaveTypeManagerProps) {
+export function LeaveTypeManager() {
   const { t } = useTranslation();
   const {
     editingType,
@@ -126,7 +123,7 @@ export function LeaveTypeManager({}: LeaveTypeManagerProps) {
     isUpdating,
     isDeleting,
     isRestoring,
-  } = useLeaveTypeManager({});
+  } = useLeaveTypeManager();
 
   if (isTypesLoading) {
     return (

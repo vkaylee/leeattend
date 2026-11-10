@@ -37,7 +37,7 @@ export async function register(data: RegisterRequest): Promise<AuthResponse> {
 export async function changePassword(
   data: ChangePasswordRequest,
 ): Promise<string> {
-  await client.POST<void>("/auth/change-password", {
+  await client.POST("/auth/change-password", {
     body: data,
   });
   return "Password changed successfully";
