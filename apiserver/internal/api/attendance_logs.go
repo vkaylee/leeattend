@@ -68,12 +68,12 @@ type RawAttendanceLogRecord struct {
 
 // AttendanceStagingLog is an unresolved punch awaiting employee mapping.
 type AttendanceStagingLog struct {
-	ID          uuid.UUID       `json:"id"`
-	RawUserID   string          `json:"raw_user_id"`
-	PunchTime   time.Time       `json:"punch_time"`
-	RawData     json.RawMessage `json:"raw_data"`
-	Status      string          `json:"status"`
-	CreatedAt   time.Time       `json:"created_at"`
+	ID        uuid.UUID       `json:"id"`
+	RawUserID string          `json:"raw_user_id"`
+	PunchTime time.Time       `json:"punch_time"`
+	RawData   json.RawMessage `json:"raw_data"`
+	Status    string          `json:"status"`
+	CreatedAt time.Time       `json:"created_at"`
 }
 
 // AttendancePage is the shared pagination envelope.
@@ -265,7 +265,7 @@ func parseAttendanceImportTime(value string) (time.Time, error) {
 
 // Latest handles GET .../attendance/import-jobs/latest.
 func (h AttendanceLogsHandler) Latest(w http.ResponseWriter, r *http.Request) {
-	
+
 	if !h.allowed(r, string(auth.PermissionAttendanceLogsImport)) {
 		h.forbidden(w, r)
 		return
@@ -288,7 +288,7 @@ func (h AttendanceLogsHandler) Latest(w http.ResponseWriter, r *http.Request) {
 
 // Job handles GET .../attendance/import-jobs/{id}.
 func (h AttendanceLogsHandler) Job(w http.ResponseWriter, r *http.Request) {
-	
+
 	id, idOK := pathUUID(r, "id")
 	if !idOK || !h.allowed(r, string(auth.PermissionAttendanceLogsImport)) {
 		h.forbidden(w, r)
@@ -312,7 +312,7 @@ func (h AttendanceLogsHandler) Job(w http.ResponseWriter, r *http.Request) {
 
 // ErrorFile handles GET .../attendance/import-jobs/{id}/error-file.
 func (h AttendanceLogsHandler) ErrorFile(w http.ResponseWriter, r *http.Request) {
-	
+
 	id, idOK := pathUUID(r, "id")
 	if !idOK || !h.allowed(r, string(auth.PermissionAttendanceLogsImport)) {
 		h.forbidden(w, r)
@@ -346,7 +346,7 @@ func (h AttendanceLogsHandler) RawLogs(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h AttendanceLogsHandler) listLogs(w http.ResponseWriter, r *http.Request, raw bool) {
-	
+
 	if !h.allowed(r, string(auth.PermissionAttendanceLogsRead)) {
 		h.forbidden(w, r)
 		return
@@ -424,7 +424,7 @@ func parseAttendanceLogFilters(r *http.Request) (*uuid.UUID, *time.Time, *time.T
 
 // Staging handles GET .../attendance/staging-logs.
 func (h AttendanceLogsHandler) Staging(w http.ResponseWriter, r *http.Request) {
-	
+
 	if !h.allowed(r, string(auth.PermissionAttendanceStagingManage)) {
 		h.forbidden(w, r)
 		return
@@ -465,7 +465,7 @@ type ResolveStagingRequest struct {
 
 // Resolve handles POST .../attendance/staging-logs/{id}/resolve.
 func (h AttendanceLogsHandler) Resolve(w http.ResponseWriter, r *http.Request) {
-	
+
 	id, idOK := pathUUID(r, "id")
 	if !idOK || !h.allowed(r, string(auth.PermissionAttendanceStagingManage)) {
 		h.forbidden(w, r)
@@ -487,7 +487,7 @@ func (h AttendanceLogsHandler) Resolve(w http.ResponseWriter, r *http.Request) {
 
 // Dismiss handles DELETE .../attendance/staging-logs/{id}.
 func (h AttendanceLogsHandler) Dismiss(w http.ResponseWriter, r *http.Request) {
-	
+
 	id, idOK := pathUUID(r, "id")
 	if !idOK || !h.allowed(r, string(auth.PermissionAttendanceStagingManage)) {
 		h.forbidden(w, r)
@@ -507,7 +507,7 @@ func (h AttendanceLogsHandler) Dismiss(w http.ResponseWriter, r *http.Request) {
 
 // EnterPaperOT handles POST .../attendance/enter-paper-ot/{employee_id}.
 func (h AttendanceLogsHandler) EnterPaperOT(w http.ResponseWriter, r *http.Request) {
-	
+
 	employeeID, empOK := pathUUID(r, "employee_id")
 	user, userOK := h.user(r)
 	if !empOK || !userOK || !h.allowed(r, string(auth.PermissionOvertimePaperUpload)) {
@@ -533,7 +533,7 @@ func (h AttendanceLogsHandler) EnterPaperOT(w http.ResponseWriter, r *http.Reque
 
 // BulkPaperOT handles POST .../attendance/bulk-upload-paper-ot.
 func (h AttendanceLogsHandler) BulkPaperOT(w http.ResponseWriter, r *http.Request) {
-	
+
 	user, userOK := h.user(r)
 	if !userOK || !h.allowed(r, string(auth.PermissionOvertimePaperUpload)) {
 		h.forbidden(w, r)

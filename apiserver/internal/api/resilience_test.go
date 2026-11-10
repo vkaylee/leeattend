@@ -9,7 +9,6 @@ import (
 	"testing"
 	"time"
 
-
 	"github.com/google/uuid"
 	httpinfra "github.com/vkaylee/leeattend/apiserver/internal/infra/http"
 )
@@ -54,6 +53,7 @@ func (m *mockFailingDBRepo) GetDepartmentPayrollConfigs(ctx context.Context, dep
 func (m *mockFailingDBRepo) SetDepartmentPayrollConfig(ctx context.Context, deptID uuid.UUID, req SetDepartmentPayrollConfigRequest, actorID uuid.UUID) (DepartmentPayrollConfig, error) {
 	return DepartmentPayrollConfig{}, nil
 }
+
 type contextWaitingDepartmentRepo struct {
 	mockDepartmentRepo
 	canceled atomic.Bool

@@ -11,8 +11,8 @@ type Permission string
 
 const (
 	// Workspace
-	PermissionWorkspaceUpdate        Permission = "workspace:update"
-	PermissionWorkspaceDelete        Permission = "workspace:delete"
+	PermissionWorkspaceUpdate           Permission = "workspace:update"
+	PermissionWorkspaceDelete           Permission = "workspace:delete"
 	PermissionOrganizationSettingsRead  Permission = "organization:settings:read"
 	PermissionOrganizationSettingsWrite Permission = "organization:settings:write"
 

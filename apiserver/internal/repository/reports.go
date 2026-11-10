@@ -32,7 +32,7 @@ func (r ReportRepository) CreateExportJob(ctx context.Context, job api.ReportJob
 		return err
 	}
 	payload, err := json.Marshal(map[string]any{
-		"job_id":       job.JobID,
+		"job_id": job.JobID,
 		"request": map[string]any{
 			"report_type":  req.ReportType,
 			"start_date":   req.StartDate,

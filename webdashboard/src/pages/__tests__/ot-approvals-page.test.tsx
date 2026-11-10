@@ -57,9 +57,10 @@ vi.mock("@/hooks/use-permissions", () => ({
   })),
 }));
 
-vi.mock("@/hooks/use-workspace", () => ({
-  useWorkspace: vi.fn(() => ({
-    workspace: { id: "ws-123", name: "Test Workspace" },
+vi.mock("@/hooks/use-organization", () => ({
+  useOrganization: vi.fn(() => ({
+    organization: { id: "org-123", name: "Test Organization" },
+    workspace: { id: "org-123", name: "Test Organization" },
     isLoading: false,
     isError: false,
   })),
@@ -86,7 +87,7 @@ vi.mock("@/hooks/use-overtime-requests", () => ({
           planned_end_time: "19:00:00",
           planned_minutes: 120,
           reason: "Late night deploy",
-          employees: [{ employee_id: "EMP-001", full_name: "Test Employee" }],
+          employees: [{ employee_id: "employee-001", full_name: "Test Employee One" }],
         }
       ],
       total: 1,
@@ -115,7 +116,7 @@ vi.mock("@/lib/api/overtime-requests", () => ({
           planned_end_time: "19:00:00",
           planned_minutes: 120,
           reason: "Late night deploy",
-          employees: [{ employee_id: "EMP-001", full_name: "Test Employee" }],
+          employees: [{ employee_id: "employee-001", full_name: "Test Employee One" }],
         },
       ],
       total: 1,
@@ -143,12 +144,12 @@ vi.mock("@/lib/api", async (importOriginal) => {
     fetchAttendanceReport: vi.fn(),
     fetchEmployees: vi.fn(() => Promise.resolve({
       data: [
-        { id: "EMP-001", active_employment_id: "EMP-001" },
-        { id: "EMP-002", active_employment_id: "EMP-002" },
-        { id: "EMP-101", active_employment_id: "EMP-101" },
-        { id: "EMP-102", active_employment_id: "EMP-102" },
-        { id: "EMP-103", active_employment_id: "EMP-103" },
-        { id: "EMP-104", active_employment_id: "EMP-104" }
+        { id: "employee-001", employee_id_number: "EMP-001", full_name: "Test Employee One", active_employment_id: "employment-001" },
+        { id: "employee-002", employee_id_number: "EMP-002", full_name: "Test Employee Two", active_employment_id: "employment-002" },
+        { id: "employee-101", employee_id_number: "JD101", full_name: "John Doe", active_employment_id: "employment-101" },
+        { id: "employee-102", employee_id_number: "JS102", full_name: "Jane Smith", active_employment_id: "employment-102" },
+        { id: "employee-103", employee_id_number: "BJ103", full_name: "Bob Johnson", active_employment_id: "employment-103" },
+        { id: "employee-104", employee_id_number: "AB104", full_name: "Alice Brown", active_employment_id: "employment-104" }
       ],
       total: 6,
       page: 1,
@@ -164,7 +165,7 @@ vi.mock("../approvals/components/behalf-assignments-tab", () => ({
 const mockSummaries = [
   {
     id: "summary-1",
-    employment_id: "EMP-001",
+    employment_id: "employment-001",
     date: "2026-05-01",
     claimed_ot_minutes: 120,
     system_detected_ot_minutes: 60,
@@ -174,7 +175,7 @@ const mockSummaries = [
   },
   {
     id: "summary-2",
-    employment_id: "EMP-002",
+    employment_id: "employment-002",
     date: "2026-05-02",
     claimed_ot_minutes: 60,
     system_detected_ot_minutes: 60,
@@ -246,7 +247,7 @@ describe("OtApprovalsPage", () => {
 
     await waitFor(() => {
       expect(approveOtMock).toHaveBeenCalledWith({
-        employeeId: "EMP-001",
+        employeeId: "employee-001",
         date: "2026-05-01",
         approved_minutes: 120,
         status: "approved",
@@ -265,7 +266,7 @@ describe("OtApprovalsPage", () => {
 
     await waitFor(() => {
       expect(approveOtMock).toHaveBeenCalledWith({
-        employeeId: "EMP-001",
+        employeeId: "employee-001",
         date: "2026-05-01",
         approved_minutes: 0,
         status: "rejected",
@@ -331,8 +332,8 @@ describe("OtApprovalsPage", () => {
       vi.mocked(fetchAttendanceReport).mockResolvedValue({
         data: [
           {
-            employee_id: "EMP-101",
-            employment_id: "EMP-101",
+            employee_id: "employee-101",
+            employment_id: "employment-101",
             employee_name: "John Doe",
             employee_id_number: "JD101",
             date: "2026-05-10",
@@ -341,8 +342,8 @@ describe("OtApprovalsPage", () => {
             ot_claim_status: "pending_employee",
           },
           {
-            employee_id: "EMP-102",
-            employment_id: "EMP-102",
+            employee_id: "employee-102",
+            employment_id: "employment-102",
             employee_name: "Jane Smith",
             employee_id_number: "JS102",
             date: "2026-05-11",
@@ -351,8 +352,8 @@ describe("OtApprovalsPage", () => {
             ot_claim_status: "pending_employee",
           },
           {
-            employee_id: "EMP-103",
-            employment_id: "EMP-103",
+            employee_id: "employee-103",
+            employment_id: "employment-103",
             employee_name: "Bob Johnson",
             employee_id_number: "BJ103",
             date: "2026-05-12",
@@ -361,8 +362,8 @@ describe("OtApprovalsPage", () => {
             ot_claim_status: "pending_employee",
           },
           {
-            employee_id: "EMP-104",
-            employment_id: "EMP-104",
+            employee_id: "employee-104",
+            employment_id: "employment-104",
             employee_name: "Alice Brown",
             employee_id_number: "AB104",
             date: "2026-05-13",
@@ -428,7 +429,7 @@ describe("OtApprovalsPage", () => {
 
       await waitFor(() => {
         expect(claimOtMock).toHaveBeenCalledWith({
-          employeeId: "EMP-101",
+          employeeId: "employee-101",
           date: "2026-05-10",
           claimed_minutes: 150,
           reason: "Finished inventory check",
@@ -465,13 +466,13 @@ describe("OtApprovalsPage", () => {
       await waitFor(() => {
         expect(claimOtMock).toHaveBeenCalledTimes(2);
         expect(claimOtMock).toHaveBeenNthCalledWith(1, {
-          employeeId: "EMP-101",
+          employeeId: "employee-101",
           date: "2026-05-10",
           claimed_minutes: 150,
           reason: "Delegated OT claim",
         });
         expect(claimOtMock).toHaveBeenNthCalledWith(2, {
-          employeeId: "EMP-102",
+          employeeId: "employee-102",
           date: "2026-05-11",
           claimed_minutes: 90,
           reason: "Delegated OT claim",
@@ -515,7 +516,7 @@ describe("OtApprovalsPage", () => {
 
       await waitFor(() => {
         expect(claimOtMock).toHaveBeenCalledWith({
-          employeeId: "EMP-101",
+          employeeId: "employee-101",
           date: "2026-05-10",
           claimed_minutes: 180,
           reason: "Delegated OT claim",
@@ -573,7 +574,7 @@ describe("OtApprovalsPage", () => {
       await waitFor(() => {
         expect(claimOtMock).toHaveBeenCalledTimes(1);
         expect(claimOtMock).toHaveBeenCalledWith({
-          employeeId: "EMP-102",
+          employeeId: "employee-102",
           date: "2026-05-11",
           claimed_minutes: 90,
           reason: "Delegated OT claim",
@@ -716,7 +717,7 @@ describe("OtApprovalsPage", () => {
       expect(screen.queryByText("Bulk Upload")).not.toBeInTheDocument();
 
       // Should see the pending requests but action buttons (Approve/Reject) should be hidden
-      expect(screen.getByText("Test Employee")).toBeInTheDocument();
+      expect(screen.getByText("Test Employee One")).toBeInTheDocument();
       expect(screen.queryByText("common.approve")).not.toBeInTheDocument();
       expect(screen.queryByText("common.reject")).not.toBeInTheDocument();
     });
@@ -736,7 +737,7 @@ describe("OtApprovalsPage", () => {
       renderPage();
 
       // Should see the pending requests and action buttons (Approve/Reject)
-      expect(screen.getByText("Test Employee")).toBeInTheDocument();
+      expect(screen.getByText("Test Employee One")).toBeInTheDocument();
       expect(screen.getByText("common.approve")).toBeInTheDocument();
       expect(screen.getByText("common.reject")).toBeInTheDocument();
     });

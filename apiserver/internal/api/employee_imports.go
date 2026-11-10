@@ -35,9 +35,9 @@ type TerminationJobRow struct {
 	TerminationNotes  *string   `json:"termination_notes,omitempty"`
 }
 type TerminationImportJob struct {
-	JobID uuid.UUID           `json:"job_id"`
-	UserID uuid.UUID          `json:"user_id"`
-	Rows  []TerminationJobRow `json:"rows"`
+	JobID  uuid.UUID           `json:"job_id"`
+	UserID uuid.UUID           `json:"user_id"`
+	Rows   []TerminationJobRow `json:"rows"`
 }
 
 type TerminationEmployment struct {

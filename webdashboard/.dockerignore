@@ -6,3 +6,12 @@ dist/
 .env*
 *.log
 .DS_Store
+
+# Generated test and build artifacts
+playwright-report/
+test-results/
+test-results-new/
+coverage/
+logs/
+scratch/
+server_dist/

@@ -47,8 +47,8 @@ export function useEmployeeSearch({
       return res ?? { data: [], limit: 50, page: pageParam, total: 0 };
     },
     getNextPageParam: (lastPage, allPages) => {
-      const totalLoaded = allPages.reduce((sum, p) => sum + p.data.length, 0);
-      if (totalLoaded >= lastPage.total) return undefined;
+      const totalLoaded = allPages.reduce((sum, p) => sum + (p?.data?.length ?? 0), 0);
+      if (totalLoaded >= (lastPage?.total ?? 0)) return undefined;
       return allPages.length + 1;
     },
     initialPageParam: 1,
@@ -60,7 +60,7 @@ export function useEmployeeSearch({
       return [];
     }
     if (!employeesPages) return [];
-    return employeesPages.pages.flatMap((p) => p.data);
+    return employeesPages.pages.flatMap((p) => Array.isArray(p.data) ? p.data : []);
   }, [employeesPages, emptyQueryBehavior, isQueryEmpty]);
 
   const [selectedMeta, setSelectedMeta] = useState<Employee[]>([]);

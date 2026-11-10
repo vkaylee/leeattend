@@ -111,7 +111,7 @@ func TestOvertimePolicies_ForbiddenWithoutPermission(t *testing.T) {
 	user := uuid.New()
 	h := OvertimeHandler{Repository: &mockOvertimeRepo{}, Authorizer: mockOvertimeAuthorizer{allowed: map[string]bool{}}}
 
-	req := otReq(http.MethodPost, "/api/v1" + "/overtime/policies", []byte(`{"name":"Standard OT"}`), user)
+	req := otReq(http.MethodPost, "/api/v1"+"/overtime/policies", []byte(`{"name":"Standard OT"}`), user)
 	rec := httptest.NewRecorder()
 	h.CreatePolicy(rec, req)
 	if rec.Code != http.StatusForbidden {
@@ -125,14 +125,14 @@ func TestOvertimePolicies_CreateAndListSuccess(t *testing.T) {
 	auth := mockOvertimeAuthorizer{allowed: map[string]bool{PermissionOvertimePoliciesManage: true}}
 	h := OvertimeHandler{Repository: repo, Authorizer: auth}
 
-	req := otReq(http.MethodPost, "/api/v1" + "/overtime/policies", []byte(`{"name":"Weekend OT"}`), user)
+	req := otReq(http.MethodPost, "/api/v1"+"/overtime/policies", []byte(`{"name":"Weekend OT"}`), user)
 	rec := httptest.NewRecorder()
 	h.CreatePolicy(rec, req)
 	if rec.Code != http.StatusCreated {
 		t.Fatalf("expected 201, got %d", rec.Code)
 	}
 
-	listReq := otReq(http.MethodGet, "/api/v1" + "/overtime/policies", nil, user)
+	listReq := otReq(http.MethodGet, "/api/v1"+"/overtime/policies", nil, user)
 	listRec := httptest.NewRecorder()
 	h.ListPolicies(listRec, listReq)
 	if listRec.Code != http.StatusOK {
@@ -146,7 +146,7 @@ func TestOvertimePolicies_AddRuleValidation(t *testing.T) {
 	h := OvertimeHandler{Repository: &mockOvertimeRepo{}, Authorizer: mockOvertimeAuthorizer{allowed: map[string]bool{PermissionOvertimePoliciesManage: true}}}
 
 	// negative multiplier
-	req := otReq(http.MethodPost, "/api/v1" + "/overtime/policies/"+policyID.String()+"/rules", []byte(`{"priority":1,"multiplier":"-1.5"}`), user)
+	req := otReq(http.MethodPost, "/api/v1"+"/overtime/policies/"+policyID.String()+"/rules", []byte(`{"priority":1,"multiplier":"-1.5"}`), user)
 	req.SetPathValue("policy_id", policyID.String())
 	rec := httptest.NewRecorder()
 	h.AddRule(rec, req)
@@ -155,7 +155,7 @@ func TestOvertimePolicies_AddRuleValidation(t *testing.T) {
 	}
 
 	// success
-	req2 := otReq(http.MethodPost, "/api/v1" + "/overtime/policies/"+policyID.String()+"/rules", []byte(`{"priority":1,"multiplier":"1.50","days_of_week":127}`), user)
+	req2 := otReq(http.MethodPost, "/api/v1"+"/overtime/policies/"+policyID.String()+"/rules", []byte(`{"priority":1,"multiplier":"1.50","days_of_week":127}`), user)
 	req2.SetPathValue("policy_id", policyID.String())
 	rec2 := httptest.NewRecorder()
 	h.AddRule(rec2, req2)
@@ -170,7 +170,7 @@ func TestOvertimePolicies_AssignValidation(t *testing.T) {
 	h := OvertimeHandler{Repository: &mockOvertimeRepo{}, Authorizer: mockOvertimeAuthorizer{allowed: map[string]bool{PermissionOvertimePoliciesManage: true}}}
 
 	// invalid assignee type
-	req := otReq(http.MethodPost, "/api/v1" + "/overtime/policies/assign", []byte(`{"assignee_type":"invalid","policy_id":"`+policyID.String()+`","effective_from":"2026-10-20"}`), user)
+	req := otReq(http.MethodPost, "/api/v1"+"/overtime/policies/assign", []byte(`{"assignee_type":"invalid","policy_id":"`+policyID.String()+`","effective_from":"2026-10-20"}`), user)
 	rec := httptest.NewRecorder()
 	h.AssignPolicy(rec, req)
 	if rec.Code != http.StatusBadRequest && rec.Code != http.StatusUnprocessableEntity {
@@ -178,7 +178,7 @@ func TestOvertimePolicies_AssignValidation(t *testing.T) {
 	}
 
 	// valid organization assignment
-	req2 := otReq(http.MethodPost, "/api/v1" + "/overtime/policies/assign", []byte(`{"assignee_type":"organization","policy_id":"`+policyID.String()+`","effective_from":"2026-10-20"}`), user)
+	req2 := otReq(http.MethodPost, "/api/v1"+"/overtime/policies/assign", []byte(`{"assignee_type":"organization","policy_id":"`+policyID.String()+`","effective_from":"2026-10-20"}`), user)
 	rec2 := httptest.NewRecorder()
 	h.AssignPolicy(rec2, req2)
 	if rec2.Code != http.StatusOK {
@@ -186,7 +186,7 @@ func TestOvertimePolicies_AssignValidation(t *testing.T) {
 	}
 	// valid user assignment
 	targetUserID := uuid.New()
-	req3 := otReq(http.MethodPost, "/api/v1" + "/overtime/policies/assign", []byte(`{"assignee_type":"user","assignee_id":"`+targetUserID.String()+`","policy_id":"`+policyID.String()+`","effective_from":"2026-10-20"}`), user)
+	req3 := otReq(http.MethodPost, "/api/v1"+"/overtime/policies/assign", []byte(`{"assignee_type":"user","assignee_id":"`+targetUserID.String()+`","policy_id":"`+policyID.String()+`","effective_from":"2026-10-20"}`), user)
 	rec3 := httptest.NewRecorder()
 	h.AssignPolicy(rec3, req3)
 	if rec3.Code != http.StatusOK {
@@ -205,7 +205,7 @@ func TestOvertimeRequest_SelfVersusBehalfBypass(t *testing.T) {
 	selfHandler := OvertimeHandler{Repository: selfRepo, Authorizer: selfAuth}
 
 	payload := `{"planned_date":"2026-10-25","planned_minutes":120,"reason":"Release preparation","employees":["` + empID.String() + `"]}`
-	req := otReq(http.MethodPost, "/api/v1" + "/overtime/requests", []byte(payload), user)
+	req := otReq(http.MethodPost, "/api/v1"+"/overtime/requests", []byte(payload), user)
 	rec := httptest.NewRecorder()
 	selfHandler.CreateRequest(rec, req)
 	if rec.Code != http.StatusCreated {
@@ -215,7 +215,7 @@ func TestOvertimeRequest_SelfVersusBehalfBypass(t *testing.T) {
 	// Other employee without behalf permission -> 403
 	behalfRepo := &mockOvertimeRepo{employee: EmployeeRecord{ID: empID, UserID: &otherUser}}
 	behalfHandler := OvertimeHandler{Repository: behalfRepo, Authorizer: selfAuth} // no create_on_behalf perm
-	req2 := otReq(http.MethodPost, "/api/v1" + "/overtime/requests", []byte(payload), user)
+	req2 := otReq(http.MethodPost, "/api/v1"+"/overtime/requests", []byte(payload), user)
 	rec2 := httptest.NewRecorder()
 	behalfHandler.CreateRequest(rec2, req2)
 	if rec2.Code != http.StatusForbidden {
@@ -228,7 +228,7 @@ func TestOvertimeRequest_SelfVersusBehalfBypass(t *testing.T) {
 		PermissionOvertimeRequestCreateBehalf: true,
 	}}
 	behalfHandlerWithPerm := OvertimeHandler{Repository: behalfRepo, Authorizer: behalfAuth}
-	req3 := otReq(http.MethodPost, "/api/v1" + "/overtime/requests", []byte(payload), user)
+	req3 := otReq(http.MethodPost, "/api/v1"+"/overtime/requests", []byte(payload), user)
 	rec3 := httptest.NewRecorder()
 	behalfHandlerWithPerm.CreateRequest(rec3, req3)
 	if rec3.Code != http.StatusCreated {
@@ -242,7 +242,7 @@ func TestOvertimeRequest_SubmitWorkflow(t *testing.T) {
 	repo := &mockOvertimeRepo{}
 	h := OvertimeHandler{Repository: repo, Authorizer: mockOvertimeAuthorizer{allowed: map[string]bool{PermissionOvertimeRequestCreate: true}}}
 
-	req := otReq(http.MethodPost, "/api/v1" + "/overtime/requests/"+reqID.String()+"/submit", nil, user)
+	req := otReq(http.MethodPost, "/api/v1"+"/overtime/requests/"+reqID.String()+"/submit", nil, user)
 	req.SetPathValue("id", reqID.String())
 	rec := httptest.NewRecorder()
 	h.SubmitRequest(rec, req)
@@ -262,7 +262,7 @@ func TestOvertimeRequest_ConsentSelfAndBehalf(t *testing.T) {
 	// Self consent without special behalf permission
 	repo := &mockOvertimeRepo{employee: EmployeeRecord{ID: empID, UserID: &user}}
 	h := OvertimeHandler{Repository: repo, Authorizer: mockOvertimeAuthorizer{allowed: map[string]bool{}}}
-	req := otReq(http.MethodPost, "/api/v1" + "/overtime/requests/"+reqID.String()+"/consent/"+empID.String(), []byte(`{"status":"accepted"}`), user)
+	req := otReq(http.MethodPost, "/api/v1"+"/overtime/requests/"+reqID.String()+"/consent/"+empID.String(), []byte(`{"status":"accepted"}`), user)
 	req.SetPathValue("id", reqID.String())
 	req.SetPathValue("emp_id", empID.String())
 	rec := httptest.NewRecorder()
@@ -280,7 +280,7 @@ func TestAttendanceOT_ClaimAndApprove(t *testing.T) {
 	// Claim OT - self
 	repo := &mockOvertimeRepo{employee: EmployeeRecord{ID: empID, UserID: &user}}
 	h := OvertimeHandler{Repository: repo, Authorizer: mockOvertimeAuthorizer{allowed: map[string]bool{}}}
-	claimReq := otReq(http.MethodPost, "/api/v1" + "/attendance/claim-ot/"+empID.String(), []byte(`{"date":"2026-10-20","claimed_minutes":60}`), user)
+	claimReq := otReq(http.MethodPost, "/api/v1"+"/attendance/claim-ot/"+empID.String(), []byte(`{"date":"2026-10-20","claimed_minutes":60}`), user)
 	claimReq.SetPathValue("employee_id", empID.String())
 	claimRec := httptest.NewRecorder()
 	h.ClaimOT(claimRec, claimReq)
@@ -291,7 +291,7 @@ func TestAttendanceOT_ClaimAndApprove(t *testing.T) {
 	// Claim OT - on behalf forbidden
 	repoOther := &mockOvertimeRepo{employee: EmployeeRecord{ID: empID, UserID: &otherUser}}
 	hOther := OvertimeHandler{Repository: repoOther, Authorizer: mockOvertimeAuthorizer{allowed: map[string]bool{}}}
-	claimReq2 := otReq(http.MethodPost, "/api/v1" + "/attendance/claim-ot/"+empID.String(), []byte(`{"date":"2026-10-20","claimed_minutes":60}`), user)
+	claimReq2 := otReq(http.MethodPost, "/api/v1"+"/attendance/claim-ot/"+empID.String(), []byte(`{"date":"2026-10-20","claimed_minutes":60}`), user)
 	claimReq2.SetPathValue("employee_id", empID.String())
 	claimRec2 := httptest.NewRecorder()
 	hOther.ClaimOT(claimRec2, claimReq2)
@@ -301,7 +301,7 @@ func TestAttendanceOT_ClaimAndApprove(t *testing.T) {
 
 	// Approve OT - permission check
 	hApprove := OvertimeHandler{Repository: repo, Authorizer: mockOvertimeAuthorizer{allowed: map[string]bool{PermissionOvertimeApprove: true}}}
-	appReq := otReq(http.MethodPost, "/api/v1" + "/attendance/approve-ot/"+empID.String(), []byte(`{"date":"2026-10-20","approved_minutes":60,"status":"approved"}`), user)
+	appReq := otReq(http.MethodPost, "/api/v1"+"/attendance/approve-ot/"+empID.String(), []byte(`{"date":"2026-10-20","approved_minutes":60,"status":"approved"}`), user)
 	appReq.SetPathValue("employee_id", empID.String())
 	appRec := httptest.NewRecorder()
 	hApprove.ApproveOT(appRec, appReq)
@@ -320,7 +320,7 @@ func TestAttendanceOT_BehalfAssignments(t *testing.T) {
 	h := OvertimeHandler{BehalfRepository: behalfRepo, Authorizer: mockOvertimeAuthorizer{allowed: map[string]bool{PermissionOvertimePoliciesManage: true}}}
 
 	// List claim behalf assignments (no permission needed)
-	listReq := otReq(http.MethodGet, "/api/v1" + "/attendance/claim-ot/behalf-assignments", nil, user)
+	listReq := otReq(http.MethodGet, "/api/v1"+"/attendance/claim-ot/behalf-assignments", nil, user)
 	listRec := httptest.NewRecorder()
 	h.ListClaimBehalf(listRec, listReq)
 	if listRec.Code != http.StatusOK {
@@ -329,7 +329,7 @@ func TestAttendanceOT_BehalfAssignments(t *testing.T) {
 
 	// Create claim behalf assignment
 	body := `{"assignee_user_id":"` + user.String() + `","target_employee_id":"` + targetEmp.String() + `"}`
-	createReq := otReq(http.MethodPost, "/api/v1" + "/attendance/claim-ot/behalf-assignments", []byte(body), user)
+	createReq := otReq(http.MethodPost, "/api/v1"+"/attendance/claim-ot/behalf-assignments", []byte(body), user)
 	createRec := httptest.NewRecorder()
 	h.CreateClaimBehalf(createRec, createReq)
 	if createRec.Code != http.StatusOK {

@@ -233,7 +233,7 @@ func validOvertimeClock(raw *string) bool {
 }
 
 func (h OvertimeHandler) ListPolicies(w http.ResponseWriter, r *http.Request) {
-	
+
 	if _, userOK := h.userID(r); !userOK {
 		h.forbidden(w, r)
 		return
@@ -252,7 +252,7 @@ func (h OvertimeHandler) ListPolicies(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h OvertimeHandler) CreatePolicy(w http.ResponseWriter, r *http.Request) {
-	
+
 	if !h.allowed(r, PermissionOvertimePoliciesManage) {
 		h.forbidden(w, r)
 		return
@@ -271,7 +271,7 @@ func (h OvertimeHandler) CreatePolicy(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h OvertimeHandler) GetPolicy(w http.ResponseWriter, r *http.Request) {
-	
+
 	policyID, policyOK := pathUUID(r, "policy_id")
 	if !policyOK {
 		h.forbidden(w, r)
@@ -286,7 +286,7 @@ func (h OvertimeHandler) GetPolicy(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h OvertimeHandler) AddRule(w http.ResponseWriter, r *http.Request) {
-	
+
 	policyID, policyOK := pathUUID(r, "policy_id")
 	if !policyOK || !h.allowed(r, PermissionOvertimePoliciesManage) {
 		h.forbidden(w, r)
@@ -306,7 +306,7 @@ func (h OvertimeHandler) AddRule(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h OvertimeHandler) AssignPolicy(w http.ResponseWriter, r *http.Request) {
-	
+
 	if !h.allowed(r, PermissionOvertimePoliciesManage) {
 		h.forbidden(w, r)
 		return
@@ -339,7 +339,7 @@ func (h OvertimeHandler) AssignPolicy(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h OvertimeHandler) ListRequests(w http.ResponseWriter, r *http.Request) {
-	
+
 	if !h.allowed(r, PermissionOvertimeRequestRead) {
 		h.forbidden(w, r)
 		return
@@ -358,7 +358,7 @@ func (h OvertimeHandler) ListRequests(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h OvertimeHandler) CreateRequest(w http.ResponseWriter, r *http.Request) {
-	
+
 	userID, userOK := h.userID(r)
 	if !userOK || !h.allowed(r, PermissionOvertimeRequestCreate) {
 		h.forbidden(w, r)
@@ -392,7 +392,7 @@ func (h OvertimeHandler) CreateRequest(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h OvertimeHandler) GetRequest(w http.ResponseWriter, r *http.Request) {
-	
+
 	requestID, requestOK := pathUUID(r, "id")
 	if !requestOK || !h.allowed(r, PermissionOvertimeRequestRead) {
 		h.forbidden(w, r)
@@ -407,7 +407,7 @@ func (h OvertimeHandler) GetRequest(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h OvertimeHandler) SubmitRequest(w http.ResponseWriter, r *http.Request) {
-	
+
 	requestID, requestOK := pathUUID(r, "id")
 	if !requestOK || !h.allowed(r, PermissionOvertimeRequestCreate) {
 		h.forbidden(w, r)
@@ -421,7 +421,7 @@ func (h OvertimeHandler) SubmitRequest(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h OvertimeHandler) ConsentRequest(w http.ResponseWriter, r *http.Request) {
-	
+
 	requestID, requestOK := pathUUID(r, "id")
 	employeeID, employeeOK := pathUUID(r, "emp_id")
 	userID, userOK := h.userID(r)
@@ -453,7 +453,7 @@ func (h OvertimeHandler) ConsentRequest(w http.ResponseWriter, r *http.Request) 
 }
 
 func (h OvertimeHandler) ListRequestBehalf(w http.ResponseWriter, r *http.Request) {
-	
+
 	if _, userOK := h.userID(r); !userOK {
 		h.forbidden(w, r)
 		return
@@ -481,7 +481,7 @@ func (h OvertimeHandler) ListRequestBehalf(w http.ResponseWriter, r *http.Reques
 }
 
 func (h OvertimeHandler) CreateRequestBehalf(w http.ResponseWriter, r *http.Request) {
-	
+
 	if !h.allowed(r, PermissionOvertimePoliciesManage) {
 		h.forbidden(w, r)
 		return
@@ -500,7 +500,7 @@ func (h OvertimeHandler) CreateRequestBehalf(w http.ResponseWriter, r *http.Requ
 }
 
 func (h OvertimeHandler) RequestBehalfTargets(w http.ResponseWriter, r *http.Request) {
-	
+
 	userID, userOK := h.userID(r)
 	if !userOK {
 		apperror.WriteError(w, r, apperror.Unauthorized(apperror.KeyAuthenticationRequired))
@@ -515,7 +515,7 @@ func (h OvertimeHandler) RequestBehalfTargets(w http.ResponseWriter, r *http.Req
 }
 
 func (h OvertimeHandler) DeleteRequestBehalf(w http.ResponseWriter, r *http.Request) {
-	
+
 	assignmentID, assignmentOK := pathUUID(r, "id")
 	if !assignmentOK || !h.allowed(r, PermissionOvertimePoliciesManage) {
 		h.forbidden(w, r)
@@ -529,7 +529,7 @@ func (h OvertimeHandler) DeleteRequestBehalf(w http.ResponseWriter, r *http.Requ
 }
 
 func (h OvertimeHandler) ClaimOT(w http.ResponseWriter, r *http.Request) {
-	
+
 	employeeID, employeeOK := pathUUID(r, "employee_id")
 	userID, userOK := h.userID(r)
 	if !employeeOK || !userOK {
@@ -559,7 +559,7 @@ func (h OvertimeHandler) ClaimOT(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h OvertimeHandler) ApproveOT(w http.ResponseWriter, r *http.Request) {
-	
+
 	employeeID, employeeOK := pathUUID(r, "employee_id")
 	userID, userOK := h.userID(r)
 	if !employeeOK || !userOK {
@@ -588,7 +588,7 @@ func (h OvertimeHandler) ApproveOT(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h OvertimeHandler) ListClaimBehalf(w http.ResponseWriter, r *http.Request) {
-	
+
 	if _, userOK := h.userID(r); !userOK {
 		h.forbidden(w, r)
 		return
@@ -602,7 +602,7 @@ func (h OvertimeHandler) ListClaimBehalf(w http.ResponseWriter, r *http.Request)
 }
 
 func (h OvertimeHandler) CreateClaimBehalf(w http.ResponseWriter, r *http.Request) {
-	
+
 	if !h.allowed(r, PermissionOvertimePoliciesManage) {
 		h.forbidden(w, r)
 		return
@@ -621,7 +621,7 @@ func (h OvertimeHandler) CreateClaimBehalf(w http.ResponseWriter, r *http.Reques
 }
 
 func (h OvertimeHandler) DeleteClaimBehalf(w http.ResponseWriter, r *http.Request) {
-	
+
 	assignmentID, assignmentOK := pathUUID(r, "id")
 	if !assignmentOK || !h.allowed(r, PermissionOvertimePoliciesManage) {
 		h.forbidden(w, r)

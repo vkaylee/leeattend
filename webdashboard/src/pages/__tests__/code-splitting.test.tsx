@@ -99,12 +99,22 @@ vi.mock("@/lib/api", async (importOriginal) => {
         getCurrentUserId: vi.fn(() => "test-user"),
         fetchLeaveBalances: vi.fn(() => Promise.resolve([])),
         fetchEmployees: vi.fn(() => Promise.resolve([])),
+        fetchCustomFieldDefinitions: vi.fn(() => Promise.resolve([])),
         searchEmployees: vi.fn(() => Promise.resolve({ data: [], total: 0 })),
         fetchOrganization: vi.fn(() => Promise.resolve({ date_format: "DD/MM/YYYY", timezone: "UTC", default_language: "en" })),
         fetchDepartments: vi.fn(() => Promise.resolve([])),
         fetchRawAttendanceLogs: vi.fn(() => Promise.resolve({ data: [], total: 0 })),
         fetchMyEmployeeProfile: vi.fn(() => Promise.resolve({ id: "emp-1", full_name: "Test User" })),
         fetchMe: vi.fn(() => Promise.resolve({ id: "test-user", email: "test@example.com", full_name: "Test User" })),
+    };
+});
+
+vi.mock("@/lib/api/custom-fields", async (importOriginal) => {
+    const actual = await importOriginal<Record<string, unknown>>();
+    return {
+        ...actual,
+        fetchCustomFieldDefinitions: vi.fn(() => Promise.resolve([])),
+        fetchCustomFieldValues: vi.fn(() => Promise.resolve([])),
     };
 });
 

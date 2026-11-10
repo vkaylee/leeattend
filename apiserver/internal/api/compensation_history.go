@@ -14,11 +14,11 @@ import (
 )
 
 type SalaryComponentDefinition struct {
-	ID          uuid.UUID `json:"id"`
-	Name        string    `json:"name"`
-	Code        string    `json:"code"`
-	CreatedAt   string    `json:"created_at"`
-	UpdatedAt   string    `json:"updated_at"`
+	ID        uuid.UUID `json:"id"`
+	Name      string    `json:"name"`
+	Code      string    `json:"code"`
+	CreatedAt string    `json:"created_at"`
+	UpdatedAt string    `json:"updated_at"`
 }
 
 type EmployeeSalaryComponent struct {

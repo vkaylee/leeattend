@@ -73,8 +73,8 @@ func TestScheduleHandler_Unauthenticated(t *testing.T) {
 		Authorizer: mockScheduleAuthorizer{isMember: true},
 	}
 
-	req := httptest.NewRequest(http.MethodGet, "/api/v1" + "/schedules?start_date=2026-10-01&end_date=2026-10-31", nil)
-	
+	req := httptest.NewRequest(http.MethodGet, "/api/v1"+"/schedules?start_date=2026-10-01&end_date=2026-10-31", nil)
+
 	rec := httptest.NewRecorder()
 
 	handler.List(rec, req)
@@ -90,8 +90,8 @@ func TestScheduleHandler_ForbiddenNonMember(t *testing.T) {
 		Authorizer: mockScheduleAuthorizer{isMember: false},
 	}
 
-	req := httptest.NewRequest(http.MethodGet, "/api/v1" + "/schedules?start_date=2026-10-01&end_date=2026-10-31", nil)
-	
+	req := httptest.NewRequest(http.MethodGet, "/api/v1"+"/schedules?start_date=2026-10-01&end_date=2026-10-31", nil)
+
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), userID))
 	rec := httptest.NewRecorder()
 
@@ -123,8 +123,8 @@ func TestScheduleHandler_ValidationRequiredDates(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			req := httptest.NewRequest(http.MethodGet, "/api/v1" + "/schedules?"+tc.query, nil)
-			
+			req := httptest.NewRequest(http.MethodGet, "/api/v1"+"/schedules?"+tc.query, nil)
+
 			req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), userID))
 			rec := httptest.NewRecorder()
 
@@ -144,8 +144,8 @@ func TestScheduleHandler_Success(t *testing.T) {
 		Authorizer: mockScheduleAuthorizer{isMember: true},
 	}
 
-	req := httptest.NewRequest(http.MethodGet, "/api/v1" + "/schedules?start_date=2026-10-01&end_date=2026-10-31&page=1&limit=50", nil)
-	
+	req := httptest.NewRequest(http.MethodGet, "/api/v1"+"/schedules?start_date=2026-10-01&end_date=2026-10-31&page=1&limit=50", nil)
+
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), userID))
 	rec := httptest.NewRecorder()
 

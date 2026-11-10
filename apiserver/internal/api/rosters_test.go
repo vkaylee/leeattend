@@ -33,8 +33,8 @@ func TestRosterHandler_BulkRejectsDuplicateDates(t *testing.T) {
 	employeeID := uuid.New()
 	handler := RosterHandler{Repository: mockRosterRepository{}, Authorizer: mockAttendanceAuthorizer{allowed: true}}
 	body := []byte(`{"items":[{"date":"2026-10-20"},{"date":"2026-10-20"}]}`)
-	req := httptest.NewRequest(http.MethodPost, "/api/v1" + "/employees/"+employeeID.String()+"/rosters/bulk", bytes.NewReader(body))
-	
+	req := httptest.NewRequest(http.MethodPost, "/api/v1"+"/employees/"+employeeID.String()+"/rosters/bulk", bytes.NewReader(body))
+
 	req.SetPathValue("id", employeeID.String())
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
 	rec := httptest.NewRecorder()
@@ -48,8 +48,8 @@ func TestRosterHandler_BulkReturnsAccepted(t *testing.T) {
 	employeeID := uuid.New()
 	handler := RosterHandler{Repository: mockRosterRepository{}, Authorizer: mockAttendanceAuthorizer{allowed: true}}
 	body := []byte(`{"items":[{"date":"2026-10-20"}]}`)
-	req := httptest.NewRequest(http.MethodPost, "/api/v1" + "/employees/"+employeeID.String()+"/rosters/bulk", bytes.NewReader(body))
-	
+	req := httptest.NewRequest(http.MethodPost, "/api/v1"+"/employees/"+employeeID.String()+"/rosters/bulk", bytes.NewReader(body))
+
 	req.SetPathValue("id", employeeID.String())
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
 	rec := httptest.NewRecorder()
@@ -63,8 +63,8 @@ func TestRosterHandler_UpsertReturnsConfirmedRoster(t *testing.T) {
 	employeeID := uuid.New()
 	handler := RosterHandler{Repository: mockRosterRepository{}, Authorizer: mockAttendanceAuthorizer{allowed: true}}
 	body := []byte(`{"date":"2026-10-20"}`)
-	req := httptest.NewRequest(http.MethodPost, "/api/v1" + "/employees/"+employeeID.String()+"/rosters", bytes.NewReader(body))
-	
+	req := httptest.NewRequest(http.MethodPost, "/api/v1"+"/employees/"+employeeID.String()+"/rosters", bytes.NewReader(body))
+
 	req.SetPathValue("id", employeeID.String())
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
 	rec := httptest.NewRecorder()

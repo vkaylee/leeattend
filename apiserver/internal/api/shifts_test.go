@@ -69,8 +69,8 @@ func (m *mockShiftRepository) AssignShift(_ context.Context, _ uuid.UUID, _ Assi
 }
 func TestCreateShift_RequiresPermission(t *testing.T) {
 	handler := ShiftHandler{Repository: &mockShiftRepository{}, Authorizer: mockAttendanceAuthorizer{allowed: false}}
-	req := httptest.NewRequest(http.MethodPost, "/api/v1" + "/shifts", bytes.NewBufferString(`{"name":"Day","intervals":[{"start_time":"08:00:00","end_time":"17:00:00"}]}`))
-	
+	req := httptest.NewRequest(http.MethodPost, "/api/v1"+"/shifts", bytes.NewBufferString(`{"name":"Day","intervals":[{"start_time":"08:00:00","end_time":"17:00:00"}]}`))
+
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
 	rec := httptest.NewRecorder()
 	handler.Create(rec, req)
@@ -81,8 +81,8 @@ func TestCreateShift_RequiresPermission(t *testing.T) {
 
 func TestCreateShift_RejectsInvalidInterval(t *testing.T) {
 	handler := ShiftHandler{Repository: &mockShiftRepository{}, Authorizer: mockAttendanceAuthorizer{allowed: true}}
-	req := httptest.NewRequest(http.MethodPost, "/api/v1" + "/shifts", bytes.NewBufferString(`{"name":"Day","intervals":[{"start_time":"bad","end_time":"17:00:00"}]}`))
-	
+	req := httptest.NewRequest(http.MethodPost, "/api/v1"+"/shifts", bytes.NewBufferString(`{"name":"Day","intervals":[{"start_time":"bad","end_time":"17:00:00"}]}`))
+
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
 	rec := httptest.NewRecorder()
 	handler.Create(rec, req)
@@ -94,8 +94,8 @@ func TestCreateShift_RejectsInvalidInterval(t *testing.T) {
 func TestCreateShift_Success(t *testing.T) {
 	handler := ShiftHandler{Repository: &mockShiftRepository{}, Authorizer: mockAttendanceAuthorizer{allowed: true}}
 	body := []byte(`{"name":"Day","report_symbol":"D","intervals":[{"start_time":"08:00:00","end_time":"17:00:00","break_duration_minutes":30}]}`)
-	req := httptest.NewRequest(http.MethodPost, "/api/v1" + "/shifts", bytes.NewReader(body))
-	
+	req := httptest.NewRequest(http.MethodPost, "/api/v1"+"/shifts", bytes.NewReader(body))
+
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
 	rec := httptest.NewRecorder()
 	handler.Create(rec, req)
@@ -113,8 +113,8 @@ func TestCreateShift_Success(t *testing.T) {
 
 func TestListShifts_UsesPagination(t *testing.T) {
 	handler := ShiftHandler{Repository: &mockShiftRepository{}, Authorizer: mockAttendanceAuthorizer{allowed: true}}
-	req := httptest.NewRequest(http.MethodGet, "/api/v1" + "/shifts?page=2&limit=10", nil)
-	
+	req := httptest.NewRequest(http.MethodGet, "/api/v1"+"/shifts?page=2&limit=10", nil)
+
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
 	rec := httptest.NewRecorder()
 	handler.List(rec, req)
@@ -132,8 +132,8 @@ func TestListShifts_UsesPagination(t *testing.T) {
 
 func TestUpdateShift_RequiresPermission(t *testing.T) {
 	handler := ShiftHandler{Repository: &mockShiftRepository{}, Authorizer: mockAttendanceAuthorizer{allowed: false}}
-	req := httptest.NewRequest(http.MethodPut, "/api/v1" + "/shifts/"+uuid.New().String(), bytes.NewBufferString(`{"name":"Day","intervals":[{"start_time":"08:00:00","end_time":"17:00:00"}]}`))
-	
+	req := httptest.NewRequest(http.MethodPut, "/api/v1"+"/shifts/"+uuid.New().String(), bytes.NewBufferString(`{"name":"Day","intervals":[{"start_time":"08:00:00","end_time":"17:00:00"}]}`))
+
 	req.SetPathValue("shift_id", uuid.New().String())
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
 	rec := httptest.NewRecorder()
@@ -146,8 +146,8 @@ func TestUpdateShift_RequiresPermission(t *testing.T) {
 func TestUpdateShift_RejectsInvalidEffectiveDate(t *testing.T) {
 	templateID := uuid.New()
 	handler := ShiftHandler{Repository: &mockShiftRepository{}, Authorizer: mockAttendanceAuthorizer{allowed: true}}
-	req := httptest.NewRequest(http.MethodPut, "/api/v1" + "/shifts/"+templateID.String(), bytes.NewBufferString(`{"name":"Day","effective_date":"19-10-2026","intervals":[{"start_time":"08:00:00","end_time":"17:00:00"}]}`))
-	
+	req := httptest.NewRequest(http.MethodPut, "/api/v1"+"/shifts/"+templateID.String(), bytes.NewBufferString(`{"name":"Day","effective_date":"19-10-2026","intervals":[{"start_time":"08:00:00","end_time":"17:00:00"}]}`))
+
 	req.SetPathValue("shift_id", templateID.String())
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
 	rec := httptest.NewRecorder()
@@ -161,8 +161,8 @@ func TestUpdateShift_ReturnsNewVersion(t *testing.T) {
 	templateID := uuid.New()
 	handler := ShiftHandler{Repository: &mockShiftRepository{}, Authorizer: mockAttendanceAuthorizer{allowed: true}}
 	body := []byte(`{"name":"Evening","effective_date":"2026-11-01","change_reason":"seasonal","intervals":[{"start_time":"14:00:00","end_time":"22:00:00"}]}`)
-	req := httptest.NewRequest(http.MethodPut, "/api/v1" + "/shifts/"+templateID.String(), bytes.NewReader(body))
-	
+	req := httptest.NewRequest(http.MethodPut, "/api/v1"+"/shifts/"+templateID.String(), bytes.NewReader(body))
+
 	req.SetPathValue("shift_id", templateID.String())
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
 	rec := httptest.NewRecorder()
@@ -182,8 +182,8 @@ func TestUpdateShift_ReturnsNewVersion(t *testing.T) {
 func TestListShiftVersions_ReturnsHistory(t *testing.T) {
 	templateID := uuid.New()
 	handler := ShiftHandler{Repository: &mockShiftRepository{}, Authorizer: mockAttendanceAuthorizer{allowed: true}}
-	req := httptest.NewRequest(http.MethodGet, "/api/v1" + "/shifts/"+templateID.String()+"/versions", nil)
-	
+	req := httptest.NewRequest(http.MethodGet, "/api/v1"+"/shifts/"+templateID.String()+"/versions", nil)
+
 	req.SetPathValue("shift_id", templateID.String())
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
 	rec := httptest.NewRecorder()
@@ -203,8 +203,8 @@ func TestListShiftVersions_ReturnsHistory(t *testing.T) {
 func TestAssignShift_RequiresPermission(t *testing.T) {
 	handler := ShiftHandler{Repository: &mockShiftRepository{}, Authorizer: mockAttendanceAuthorizer{allowed: false}}
 	body := []byte(`{"employment_id":"` + uuid.New().String() + `","shift_id":"` + uuid.New().String() + `","start_date":"2026-10-20"}`)
-	req := httptest.NewRequest(http.MethodPost, "/api/v1" + "/shifts/assign", bytes.NewReader(body))
-	
+	req := httptest.NewRequest(http.MethodPost, "/api/v1"+"/shifts/assign", bytes.NewReader(body))
+
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
 	rec := httptest.NewRecorder()
 	handler.Assign(rec, req)
@@ -216,8 +216,8 @@ func TestAssignShift_RequiresPermission(t *testing.T) {
 func TestAssignShift_RejectsInvertedDateRange(t *testing.T) {
 	handler := ShiftHandler{Repository: &mockShiftRepository{}, Authorizer: mockAttendanceAuthorizer{allowed: true}}
 	body := []byte(`{"employment_id":"` + uuid.New().String() + `","shift_id":"` + uuid.New().String() + `","start_date":"2026-10-20","end_date":"2026-10-19"}`)
-	req := httptest.NewRequest(http.MethodPost, "/api/v1" + "/shifts/assign", bytes.NewReader(body))
-	
+	req := httptest.NewRequest(http.MethodPost, "/api/v1"+"/shifts/assign", bytes.NewReader(body))
+
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
 	rec := httptest.NewRecorder()
 	handler.Assign(rec, req)
@@ -229,8 +229,8 @@ func TestAssignShift_RejectsInvertedDateRange(t *testing.T) {
 func TestAssignShift_Success(t *testing.T) {
 	handler := ShiftHandler{Repository: &mockShiftRepository{}, Authorizer: mockAttendanceAuthorizer{allowed: true}}
 	body := []byte(`{"employment_id":"` + uuid.New().String() + `","shift_id":"` + uuid.New().String() + `","start_date":"2026-10-20","end_date":"2026-10-25","allow_warnings":true,"override_reason":"coverage"}`)
-	req := httptest.NewRequest(http.MethodPost, "/api/v1" + "/shifts/assign", bytes.NewReader(body))
-	
+	req := httptest.NewRequest(http.MethodPost, "/api/v1"+"/shifts/assign", bytes.NewReader(body))
+
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
 	rec := httptest.NewRecorder()
 	handler.Assign(rec, req)
@@ -243,8 +243,8 @@ func TestAssignShift_MapsComplianceConflict(t *testing.T) {
 	repo := &mockShiftRepository{assignErr: &ShiftComplianceError{Hard: false}}
 	handler := ShiftHandler{Repository: repo, Authorizer: mockAttendanceAuthorizer{allowed: true}}
 	body := []byte(`{"employment_id":"` + uuid.New().String() + `","shift_id":"` + uuid.New().String() + `","start_date":"2026-10-20"}`)
-	req := httptest.NewRequest(http.MethodPost, "/api/v1" + "/shifts/assign", bytes.NewReader(body))
-	
+	req := httptest.NewRequest(http.MethodPost, "/api/v1"+"/shifts/assign", bytes.NewReader(body))
+
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
 	rec := httptest.NewRecorder()
 	handler.Assign(rec, req)

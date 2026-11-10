@@ -233,7 +233,6 @@ func (r AttendanceRepository) IsEmployeeOwnedByUser(ctx context.Context, employe
 	return owned, err
 }
 
-
 // CreateAdjustment inserts a pending manual adjustment matching schema.
 func (r AttendanceRepository) CreateAdjustment(ctx context.Context, req api.AdjustmentRequest, requestedByUserID uuid.UUID) (api.AdjustmentRecord, error) {
 	db, err := r.db(ctx)

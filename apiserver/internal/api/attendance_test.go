@@ -160,8 +160,8 @@ func TestPunchIn_PermissionDenied(t *testing.T) {
 	}
 
 	body := []byte(`{"employment_id":"` + uuid.New().String() + `"}`)
-	req := httptest.NewRequest(http.MethodPost, "/api/v1" + "/time/punch-in", bytes.NewReader(body))
-	
+	req := httptest.NewRequest(http.MethodPost, "/api/v1"+"/time/punch-in", bytes.NewReader(body))
+
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), userID))
 
 	rec := httptest.NewRecorder()
@@ -190,8 +190,8 @@ func TestPunchIn_ValidationFailed(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			req := httptest.NewRequest(http.MethodPost, "/api/v1" + "/time/punch-in", bytes.NewReader([]byte(tc.body)))
-			
+			req := httptest.NewRequest(http.MethodPost, "/api/v1"+"/time/punch-in", bytes.NewReader([]byte(tc.body)))
+
 			req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), userID))
 
 			rec := httptest.NewRecorder()
@@ -220,8 +220,8 @@ func TestPunchIn_Success(t *testing.T) {
 		Note:         &note,
 	}
 	body, _ := json.Marshal(payload)
-	req := httptest.NewRequest(http.MethodPost, "/api/v1" + "/time/punch-in", bytes.NewReader(body))
-	
+	req := httptest.NewRequest(http.MethodPost, "/api/v1"+"/time/punch-in", bytes.NewReader(body))
+
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), userID))
 
 	rec := httptest.NewRecorder()
@@ -251,8 +251,8 @@ func TestPunchOut_PermissionDenied(t *testing.T) {
 	userID := uuid.New()
 	empID := uuid.New()
 	handler := AttendanceHandler{Repository: &mockAttendanceRepo{}, Authorizer: mockAttendanceAuthorizer{allowed: false}}
-	req := httptest.NewRequest(http.MethodPost, "/api/v1" + "/time/punch-out/"+empID.String(), bytes.NewReader([]byte(`{}`)))
-	
+	req := httptest.NewRequest(http.MethodPost, "/api/v1"+"/time/punch-out/"+empID.String(), bytes.NewReader([]byte(`{}`)))
+
 	req.SetPathValue("employee_id", empID.String())
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), userID))
 	rec := httptest.NewRecorder()
@@ -266,8 +266,8 @@ func TestPunchOut_Success(t *testing.T) {
 	userID := uuid.New()
 	empID := uuid.New()
 	handler := AttendanceHandler{Repository: &mockAttendanceRepo{}, Authorizer: mockAttendanceAuthorizer{allowed: true}}
-	req := httptest.NewRequest(http.MethodPost, "/api/v1" + "/time/punch-out/"+empID.String(), bytes.NewReader([]byte(`{}`)))
-	
+	req := httptest.NewRequest(http.MethodPost, "/api/v1"+"/time/punch-out/"+empID.String(), bytes.NewReader([]byte(`{}`)))
+
 	req.SetPathValue("employee_id", empID.String())
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), userID))
 	rec := httptest.NewRecorder()
@@ -281,8 +281,8 @@ func TestTimeHistory_AdminSuccess(t *testing.T) {
 	userID := uuid.New()
 	empID := uuid.New()
 	handler := AttendanceHandler{Repository: &mockAttendanceRepo{}, Authorizer: mockAttendanceAuthorizer{allowed: true}}
-	req := httptest.NewRequest(http.MethodGet, "/api/v1" + "/time/history/"+empID.String()+"?start=2026-01-01T00:00:00Z&end=2026-12-31T23:59:59Z", nil)
-	
+	req := httptest.NewRequest(http.MethodGet, "/api/v1"+"/time/history/"+empID.String()+"?start=2026-01-01T00:00:00Z&end=2026-12-31T23:59:59Z", nil)
+
 	req.SetPathValue("employee_id", empID.String())
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), userID))
 	rec := httptest.NewRecorder()
@@ -296,8 +296,8 @@ func TestTimeHistory_MissingDateRange(t *testing.T) {
 	userID := uuid.New()
 	empID := uuid.New()
 	handler := AttendanceHandler{Repository: &mockAttendanceRepo{}, Authorizer: mockAttendanceAuthorizer{allowed: true}}
-	req := httptest.NewRequest(http.MethodGet, "/api/v1" + "/time/history/"+empID.String(), nil)
-	
+	req := httptest.NewRequest(http.MethodGet, "/api/v1"+"/time/history/"+empID.String(), nil)
+
 	req.SetPathValue("employee_id", empID.String())
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), userID))
 	rec := httptest.NewRecorder()
@@ -312,8 +312,8 @@ func TestCreateAdjustment_Success(t *testing.T) {
 	empID := uuid.New()
 	handler := AttendanceHandler{Repository: &mockAttendanceRepo{}, Authorizer: mockAttendanceAuthorizer{allowed: true}}
 	body, _ := json.Marshal(AdjustmentRequest{EmploymentID: empID, RequestedPunchTime: "2026-10-19T08:00:00Z"})
-	req := httptest.NewRequest(http.MethodPost, "/api/v1" + "/attendance/adjustments", bytes.NewReader(body))
-	
+	req := httptest.NewRequest(http.MethodPost, "/api/v1"+"/attendance/adjustments", bytes.NewReader(body))
+
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), userID))
 	rec := httptest.NewRecorder()
 	handler.CreateAdjustment(rec, req)
@@ -334,8 +334,8 @@ func TestCreateAdjustment_PermissionDenied(t *testing.T) {
 	empID := uuid.New()
 	handler := AttendanceHandler{Repository: &mockAttendanceRepo{}, Authorizer: mockAttendanceAuthorizer{allowed: false}}
 	body, _ := json.Marshal(AdjustmentRequest{EmploymentID: empID, RequestedPunchTime: "2026-10-19T08:00:00Z"})
-	req := httptest.NewRequest(http.MethodPost, "/api/v1" + "/attendance/adjustments", bytes.NewReader(body))
-	
+	req := httptest.NewRequest(http.MethodPost, "/api/v1"+"/attendance/adjustments", bytes.NewReader(body))
+
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), userID))
 	rec := httptest.NewRecorder()
 	handler.CreateAdjustment(rec, req)
@@ -346,8 +346,8 @@ func TestCreateAdjustment_PermissionDenied(t *testing.T) {
 
 func TestListAdjustments_ForbiddenWithoutApprovePermission(t *testing.T) {
 	handler := AttendanceHandler{Repository: &mockAttendanceRepo{}, Authorizer: mockAttendanceAuthorizer{allowed: false}}
-	req := httptest.NewRequest(http.MethodGet, "/api/v1" + "/attendance/adjustments", nil)
-	
+	req := httptest.NewRequest(http.MethodGet, "/api/v1"+"/attendance/adjustments", nil)
+
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
 	rec := httptest.NewRecorder()
 	handler.ListAdjustments(rec, req)
@@ -358,8 +358,8 @@ func TestListAdjustments_ForbiddenWithoutApprovePermission(t *testing.T) {
 
 func TestListAdjustments_RejectsInvalidStatus(t *testing.T) {
 	handler := AttendanceHandler{Repository: &mockAttendanceRepo{}, Authorizer: mockAttendanceAuthorizer{allowed: true}}
-	req := httptest.NewRequest(http.MethodGet, "/api/v1" + "/attendance/adjustments?status=unknown", nil)
-	
+	req := httptest.NewRequest(http.MethodGet, "/api/v1"+"/attendance/adjustments?status=unknown", nil)
+
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
 	rec := httptest.NewRecorder()
 	handler.ListAdjustments(rec, req)
@@ -370,8 +370,8 @@ func TestListAdjustments_RejectsInvalidStatus(t *testing.T) {
 
 func TestListAdjustments_Success(t *testing.T) {
 	handler := AttendanceHandler{Repository: &mockAttendanceRepo{}, Authorizer: mockAttendanceAuthorizer{allowed: true}}
-	req := httptest.NewRequest(http.MethodGet, "/api/v1" + "/attendance/adjustments?page=2&limit=10&status=pending", nil)
-	
+	req := httptest.NewRequest(http.MethodGet, "/api/v1"+"/attendance/adjustments?page=2&limit=10&status=pending", nil)
+
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
 	rec := httptest.NewRecorder()
 	handler.ListAdjustments(rec, req)
@@ -389,8 +389,8 @@ func TestListAdjustments_Success(t *testing.T) {
 
 func TestApproveAdjustment_RejectsPendingStatus(t *testing.T) {
 	handler := AttendanceHandler{Repository: &mockAttendanceRepo{}, Authorizer: mockAttendanceAuthorizer{allowed: true}}
-	req := httptest.NewRequest(http.MethodPut, "/api/v1" + "/attendance/adjustments/"+uuid.New().String()+"/approve", bytes.NewReader([]byte(`{"status":"pending"}`)))
-	
+	req := httptest.NewRequest(http.MethodPut, "/api/v1"+"/attendance/adjustments/"+uuid.New().String()+"/approve", bytes.NewReader([]byte(`{"status":"pending"}`)))
+
 	req.SetPathValue("id", uuid.New().String())
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
 	rec := httptest.NewRecorder()
@@ -403,8 +403,8 @@ func TestApproveAdjustment_RejectsPendingStatus(t *testing.T) {
 func TestApproveAdjustment_Success(t *testing.T) {
 	adjID := uuid.New()
 	handler := AttendanceHandler{Repository: &mockAttendanceRepo{}, Authorizer: mockAttendanceAuthorizer{allowed: true}}
-	req := httptest.NewRequest(http.MethodPut, "/api/v1" + "/attendance/adjustments/"+adjID.String()+"/approve", bytes.NewReader([]byte(`{"status":"approved"}`)))
-	
+	req := httptest.NewRequest(http.MethodPut, "/api/v1"+"/attendance/adjustments/"+adjID.String()+"/approve", bytes.NewReader([]byte(`{"status":"approved"}`)))
+
 	req.SetPathValue("id", adjID.String())
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
 	rec := httptest.NewRecorder()
@@ -420,8 +420,8 @@ func TestAttendanceSummaries_Success(t *testing.T) {
 		Repository: &mockAttendanceRepo{},
 		Authorizer: mockAttendanceAuthorizer{allowed: true},
 	}
-	req := httptest.NewRequest(http.MethodGet, "/api/v1" + "/attendance/summaries?start_date=2026-10-01&end_date=2026-10-20", nil)
-	
+	req := httptest.NewRequest(http.MethodGet, "/api/v1"+"/attendance/summaries?start_date=2026-10-01&end_date=2026-10-20", nil)
+
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), userID))
 
 	rec := httptest.NewRecorder()
@@ -437,8 +437,8 @@ func TestAttendanceReprocessAll_Success(t *testing.T) {
 		Repository: &mockAttendanceRepo{},
 		Authorizer: mockAttendanceAuthorizer{allowed: true},
 	}
-	req := httptest.NewRequest(http.MethodPost, "/api/v1" + "/attendance/reprocess-all?start_date=2026-10-01&end_date=2026-10-20", nil)
-	
+	req := httptest.NewRequest(http.MethodPost, "/api/v1"+"/attendance/reprocess-all?start_date=2026-10-01&end_date=2026-10-20", nil)
+
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), userID))
 
 	rec := httptest.NewRecorder()
@@ -455,8 +455,8 @@ func TestAttendanceReprocessEmployee_Success(t *testing.T) {
 		Repository: &mockAttendanceRepo{},
 		Authorizer: mockAttendanceAuthorizer{allowed: true},
 	}
-	req := httptest.NewRequest(http.MethodPost, "/api/v1" + "/attendance/reprocess/"+empID.String()+"?start_date=2026-10-01&end_date=2026-10-20", nil)
-	
+	req := httptest.NewRequest(http.MethodPost, "/api/v1"+"/attendance/reprocess/"+empID.String()+"?start_date=2026-10-01&end_date=2026-10-20", nil)
+
 	req.SetPathValue("employee_id", empID.String())
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), userID))
 
@@ -475,8 +475,8 @@ func TestTimeEntry_UpdateAndDelete(t *testing.T) {
 		Authorizer: mockAttendanceAuthorizer{allowed: true},
 	}
 	body := []byte(`{"note":"Updated note"}`)
-	reqUpdate := httptest.NewRequest(http.MethodPut, "/api/v1" + "/time/entries/"+entryID.String(), bytes.NewReader(body))
-	
+	reqUpdate := httptest.NewRequest(http.MethodPut, "/api/v1"+"/time/entries/"+entryID.String(), bytes.NewReader(body))
+
 	reqUpdate.SetPathValue("id", entryID.String())
 	reqUpdate = reqUpdate.WithContext(httpinfra.WithUserIDForTest(reqUpdate.Context(), userID))
 
@@ -486,8 +486,8 @@ func TestTimeEntry_UpdateAndDelete(t *testing.T) {
 		t.Fatalf("expected 200, got %d", recUpdate.Code)
 	}
 
-	reqDelete := httptest.NewRequest(http.MethodDelete, "/api/v1" + "/time/entries/"+entryID.String(), nil)
-	
+	reqDelete := httptest.NewRequest(http.MethodDelete, "/api/v1"+"/time/entries/"+entryID.String(), nil)
+
 	reqDelete.SetPathValue("id", entryID.String())
 	reqDelete = reqDelete.WithContext(httpinfra.WithUserIDForTest(reqDelete.Context(), userID))
 

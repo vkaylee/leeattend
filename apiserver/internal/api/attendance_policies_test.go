@@ -90,8 +90,8 @@ func (m *mockBehalfRepo) ListMyBehalfTargets(_ context.Context, _ uuid.UUID, _ s
 
 func TestAttendancePolicy_GetRules_Forbidden(t *testing.T) {
 	h := AttendancePolicyHandler{PolicyRepository: &mockAttendancePolicyRepo{}, Authorizer: mockAttendancePolicyAuthorizer{allowed: false}}
-	req := httptest.NewRequest(http.MethodGet, "/api/v1" + "/attendance/rules", nil)
-	
+	req := httptest.NewRequest(http.MethodGet, "/api/v1"+"/attendance/rules", nil)
+
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
 	rec := httptest.NewRecorder()
 	h.GetRules(rec, req)
@@ -104,8 +104,8 @@ func TestAttendancePolicy_GetRules_Success(t *testing.T) {
 	grace := 15
 	expected := AttendanceRules{WorkUnitMinutes: 30, RoundingPolicy: "floor", EarlyArrivalStrategy: "block", GracePeriodMinutes: &grace}
 	h := AttendancePolicyHandler{PolicyRepository: &mockAttendancePolicyRepo{rules: expected}, Authorizer: mockAttendancePolicyAuthorizer{allowed: true}}
-	req := httptest.NewRequest(http.MethodGet, "/api/v1" + "/attendance/rules", nil)
-	
+	req := httptest.NewRequest(http.MethodGet, "/api/v1"+"/attendance/rules", nil)
+
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
 	rec := httptest.NewRecorder()
 	h.GetRules(rec, req)
@@ -121,8 +121,8 @@ func TestAttendancePolicy_GetRules_Success(t *testing.T) {
 func TestAttendancePolicy_UpdateRules_InvalidDate(t *testing.T) {
 	h := AttendancePolicyHandler{PolicyRepository: &mockAttendancePolicyRepo{}, Authorizer: mockAttendancePolicyAuthorizer{allowed: true}}
 	body := []byte(`{"valid_from": "not-a-date"}`)
-	req := httptest.NewRequest(http.MethodPatch, "/api/v1" + "/attendance/rules", bytes.NewReader(body))
-	
+	req := httptest.NewRequest(http.MethodPatch, "/api/v1"+"/attendance/rules", bytes.NewReader(body))
+
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
 	rec := httptest.NewRecorder()
 	h.UpdateRules(rec, req)
@@ -135,8 +135,8 @@ func TestAttendancePolicy_UpdateRules_Success(t *testing.T) {
 	user := uuid.New()
 	h := AttendancePolicyHandler{PolicyRepository: &mockAttendancePolicyRepo{versionResult: AttendancePolicyVersionResponse{ID: uuid.NewString(), WorkUnitMinutes: 15, RoundingPolicy: "round", EarlyArrivalStrategy: "allow", GracePeriodMinutes: 15, ValidFrom: "2026-03-01T00:00:00Z", CreatedAt: "2026-03-01T00:00:00Z"}}, Authorizer: mockAttendancePolicyAuthorizer{allowed: true}}
 	body := []byte(`{"work_unit_minutes": 15, "rounding_policy": "round", "early_arrival_strategy": "allow", "valid_from": "2026-03-01"}`)
-	req := httptest.NewRequest(http.MethodPatch, "/api/v1" + "/attendance/rules", bytes.NewReader(body))
-	
+	req := httptest.NewRequest(http.MethodPatch, "/api/v1"+"/attendance/rules", bytes.NewReader(body))
+
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), user))
 	rec := httptest.NewRecorder()
 	h.UpdateRules(rec, req)
@@ -147,8 +147,8 @@ func TestAttendancePolicy_UpdateRules_Success(t *testing.T) {
 
 func TestAttendancePolicy_ListRuleVersions_Success(t *testing.T) {
 	h := AttendancePolicyHandler{PolicyRepository: &mockAttendancePolicyRepo{versions: []AttendancePolicyVersionResponse{{ID: uuid.NewString(), WorkUnitMinutes: 30, RoundingPolicy: "floor", EarlyArrivalStrategy: "block", GracePeriodMinutes: 15, ValidFrom: "2026-01-01T00:00:00Z", CreatedAt: "2026-01-01T00:00:00Z"}}}, Authorizer: mockAttendancePolicyAuthorizer{allowed: true}}
-	req := httptest.NewRequest(http.MethodGet, "/api/v1" + "/attendance/rules/versions", nil)
-	
+	req := httptest.NewRequest(http.MethodGet, "/api/v1"+"/attendance/rules/versions", nil)
+
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
 	rec := httptest.NewRecorder()
 	h.ListRuleVersions(rec, req)
@@ -169,8 +169,8 @@ func TestAttendancePolicy_Assignments_ListAndUpsert(t *testing.T) {
 	}
 
 	// List
-	reqList := httptest.NewRequest(http.MethodGet, "/api/v1" + "/attendance/policies/assignments", nil)
-	
+	reqList := httptest.NewRequest(http.MethodGet, "/api/v1"+"/attendance/policies/assignments", nil)
+
 	reqList = reqList.WithContext(httpinfra.WithUserIDForTest(reqList.Context(), uuid.New()))
 	recList := httptest.NewRecorder()
 	h.ListAssignments(recList, reqList)
@@ -180,8 +180,8 @@ func TestAttendancePolicy_Assignments_ListAndUpsert(t *testing.T) {
 
 	// Upsert
 	upsertBody := `{"target_type": "USER", "target_id": "` + targetID + `", "work_unit_minutes": 15, "rounding_policy": "round", "early_arrival_strategy": "clamp"}`
-	reqUpsert := httptest.NewRequest(http.MethodPost, "/api/v1" + "/attendance/policies/assignments", bytes.NewReader([]byte(upsertBody)))
-	
+	reqUpsert := httptest.NewRequest(http.MethodPost, "/api/v1"+"/attendance/policies/assignments", bytes.NewReader([]byte(upsertBody)))
+
 	reqUpsert = reqUpsert.WithContext(httpinfra.WithUserIDForTest(reqUpsert.Context(), uuid.New()))
 	recUpsert := httptest.NewRecorder()
 	h.UpsertAssignment(recUpsert, reqUpsert)
@@ -193,8 +193,8 @@ func TestAttendancePolicy_Assignments_ListAndUpsert(t *testing.T) {
 func TestAttendancePolicy_DeleteAssignment_NoContent(t *testing.T) {
 	assignID := uuid.New()
 	h := AttendancePolicyHandler{PolicyRepository: &mockAttendancePolicyRepo{}, Authorizer: mockAttendancePolicyAuthorizer{allowed: true}}
-	req := httptest.NewRequest(http.MethodDelete, "/api/v1" + "/attendance/policies/assignments/"+assignID.String(), nil)
-	
+	req := httptest.NewRequest(http.MethodDelete, "/api/v1"+"/attendance/policies/assignments/"+assignID.String(), nil)
+
 	req.SetPathValue("assignment_id", assignID.String())
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
 	rec := httptest.NewRecorder()
@@ -218,8 +218,8 @@ func TestAttendancePolicy_BehalfAssignments_CRUD(t *testing.T) {
 
 	// Create Dual Target -> 400
 	dualBody := `{"assignee_user_id": "` + assignee.String() + `", "target_employee_id": "` + targetEmp.String() + `", "target_department_id": "` + uuid.NewString() + `"}`
-	reqDual := httptest.NewRequest(http.MethodPost, "/api/v1" + "/attendance/adjustments/behalf-assignments", bytes.NewReader([]byte(dualBody)))
-	
+	reqDual := httptest.NewRequest(http.MethodPost, "/api/v1"+"/attendance/adjustments/behalf-assignments", bytes.NewReader([]byte(dualBody)))
+
 	reqDual = reqDual.WithContext(httpinfra.WithUserIDForTest(reqDual.Context(), assignee))
 	recDual := httptest.NewRecorder()
 	h.CreateBehalfAssignment(recDual, reqDual)
@@ -229,8 +229,8 @@ func TestAttendancePolicy_BehalfAssignments_CRUD(t *testing.T) {
 
 	// Create Valid
 	validBody := `{"assignee_user_id": "` + assignee.String() + `", "target_employee_id": "` + targetEmp.String() + `"}`
-	reqValid := httptest.NewRequest(http.MethodPost, "/api/v1" + "/attendance/adjustments/behalf-assignments", bytes.NewReader([]byte(validBody)))
-	
+	reqValid := httptest.NewRequest(http.MethodPost, "/api/v1"+"/attendance/adjustments/behalf-assignments", bytes.NewReader([]byte(validBody)))
+
 	reqValid = reqValid.WithContext(httpinfra.WithUserIDForTest(reqValid.Context(), assignee))
 	recValid := httptest.NewRecorder()
 	h.CreateBehalfAssignment(recValid, reqValid)
@@ -239,8 +239,8 @@ func TestAttendancePolicy_BehalfAssignments_CRUD(t *testing.T) {
 	}
 
 	// List
-	reqList := httptest.NewRequest(http.MethodGet, "/api/v1" + "/attendance/adjustments/behalf-assignments", nil)
-	
+	reqList := httptest.NewRequest(http.MethodGet, "/api/v1"+"/attendance/adjustments/behalf-assignments", nil)
+
 	reqList = reqList.WithContext(httpinfra.WithUserIDForTest(reqList.Context(), assignee))
 	recList := httptest.NewRecorder()
 	h.ListBehalfAssignments(recList, reqList)
@@ -250,8 +250,8 @@ func TestAttendancePolicy_BehalfAssignments_CRUD(t *testing.T) {
 
 	// Delete NotFound
 	hNotFound := AttendancePolicyHandler{BehalfRepository: &mockBehalfRepo{err: pgx.ErrNoRows}, Authorizer: mockAttendancePolicyAuthorizer{allowed: true}}
-	reqDelNF := httptest.NewRequest(http.MethodDelete, "/api/v1" + "/attendance/adjustments/behalf-assignments/"+uuid.NewString(), nil)
-	
+	reqDelNF := httptest.NewRequest(http.MethodDelete, "/api/v1"+"/attendance/adjustments/behalf-assignments/"+uuid.NewString(), nil)
+
 	reqDelNF.SetPathValue("id", uuid.NewString())
 	reqDelNF = reqDelNF.WithContext(httpinfra.WithUserIDForTest(reqDelNF.Context(), assignee))
 	recDelNF := httptest.NewRecorder()
@@ -261,8 +261,8 @@ func TestAttendancePolicy_BehalfAssignments_CRUD(t *testing.T) {
 	}
 
 	// Delete Success
-	reqDel := httptest.NewRequest(http.MethodDelete, "/api/v1" + "/attendance/adjustments/behalf-assignments/"+behalfID.String(), nil)
-	
+	reqDel := httptest.NewRequest(http.MethodDelete, "/api/v1"+"/attendance/adjustments/behalf-assignments/"+behalfID.String(), nil)
+
 	reqDel.SetPathValue("id", behalfID.String())
 	reqDel = reqDel.WithContext(httpinfra.WithUserIDForTest(reqDel.Context(), assignee))
 	recDel := httptest.NewRecorder()
@@ -281,8 +281,8 @@ func TestAttendancePolicy_MyBehalfTargets_Success(t *testing.T) {
 		},
 		Authorizer: mockAttendancePolicyAuthorizer{allowed: false}, // No permission required!
 	}
-	req := httptest.NewRequest(http.MethodGet, "/api/v1" + "/attendance/adjustments/behalf-assignments/my-targets", nil)
-	
+	req := httptest.NewRequest(http.MethodGet, "/api/v1"+"/attendance/adjustments/behalf-assignments/my-targets", nil)
+
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), user))
 	rec := httptest.NewRecorder()
 	h.MyBehalfTargets(rec, req)

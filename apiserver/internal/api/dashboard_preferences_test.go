@@ -13,9 +13,9 @@ import (
 )
 
 type mockPreferencesRepo struct {
-	pref DashboardPreferences
-	err  error
-	req  UpdateDashboardPreferences
+	pref  DashboardPreferences
+	err   error
+	req   UpdateDashboardPreferences
 	users map[uuid.UUID]DashboardPreferences
 }
 

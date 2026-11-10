@@ -17,7 +17,6 @@ import (
 	httpinfra "github.com/vkaylee/leeattend/apiserver/internal/infra/http"
 )
 
-
 type SMTPTestRequest struct {
 	ToEmail string `json:"to_email"`
 }

@@ -95,16 +95,16 @@ type AssignmentRuleConditions struct {
 }
 
 type AssignmentRule struct {
-	ID          uuid.UUID                `json:"id"`
-	PatternID   uuid.UUID                `json:"pattern_id"`
-	Name        string                   `json:"name"`
-	Priority    int                      `json:"priority"`
-	Conditions  AssignmentRuleConditions `json:"conditions"`
-	IsActive    bool                     `json:"is_active"`
-	CreatedAt   string                   `json:"created_at"`
-	UpdatedAt   string                   `json:"updated_at"`
-	StartDate   *string                  `json:"start_date"`
-	EndDate     *string                  `json:"end_date"`
+	ID         uuid.UUID                `json:"id"`
+	PatternID  uuid.UUID                `json:"pattern_id"`
+	Name       string                   `json:"name"`
+	Priority   int                      `json:"priority"`
+	Conditions AssignmentRuleConditions `json:"conditions"`
+	IsActive   bool                     `json:"is_active"`
+	CreatedAt  string                   `json:"created_at"`
+	UpdatedAt  string                   `json:"updated_at"`
+	StartDate  *string                  `json:"start_date"`
+	EndDate    *string                  `json:"end_date"`
 }
 
 type CreateAssignmentRuleRequest struct {

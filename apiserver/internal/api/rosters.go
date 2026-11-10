@@ -163,7 +163,6 @@ func (h RosterHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
-
 func parseRosterQuery(r *http.Request) (string, string, int, int, error) {
 	query := r.URL.Query()
 	start := query.Get("start_date")

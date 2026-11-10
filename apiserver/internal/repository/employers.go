@@ -178,4 +178,3 @@ func (r EmployerRepository) DeleteEmployer(ctx context.Context, id uuid.UUID) er
 	}
 	return nil
 }
-
