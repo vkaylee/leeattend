@@ -49,7 +49,7 @@ describe("API client", () => {
     await expect(client.GET("/v1/test")).rejects.toBeInstanceOf(ApiError);
 
     vi.mocked(apiFetch).mockResolvedValueOnce(new Response(null, { status: 204 }));
-    const result = await client.DELETE<void>("/v1/employees/e1");
+    const result = await client.DELETE("/v1/employees/e1");
     expect(result.data).toBeUndefined();
   });
 });

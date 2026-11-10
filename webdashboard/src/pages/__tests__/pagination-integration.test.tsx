@@ -47,10 +47,10 @@ vi.mock("../../lib/api", async (importOriginal) => {
     searchEmployees: vi.fn(),
     fetchEmployeePayslips: vi.fn(),
     fetchPayslips: vi.fn(),
-    fetchWorkspacePayslips: vi.fn(),
+    fetchOrganizationPayslips: vi.fn(),
     fetchWorkspaceAttendanceAdjustments: vi.fn(),
     fetchRawAttendanceLogs: vi.fn(),
-    fetchWorkspace: vi.fn(),
+    fetchOrganization: vi.fn(),
     fetchLeaveRequests: vi.fn(),
     fetchEmployeeLeaveBalances: vi.fn(),
     fetchLeavePolicies: vi.fn(),
@@ -260,7 +260,7 @@ describe("Pagination Integration Tests", () => {
  
       vi.mocked(api.fetchEmployees).mockResolvedValue(mockEmployees);
  
-      vi.mocked(api.fetchWorkspace).mockResolvedValue({
+      vi.mocked(api.fetchOrganization).mockResolvedValue({
         id: "ws-1",
         name: "Test Workspace",
       } as api.Workspace);
@@ -281,7 +281,7 @@ describe("Pagination Integration Tests", () => {
         createPaginatedResponse([], { total: 0 })
       );
  
-      vi.mocked(api.fetchWorkspace).mockResolvedValue({
+      vi.mocked(api.fetchOrganization).mockResolvedValue({
         id: "ws-1",
         name: "Test Workspace",
       } as api.Workspace);

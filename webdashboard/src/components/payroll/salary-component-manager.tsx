@@ -11,10 +11,7 @@ import { fetchSalaryComponents, createSalaryComponent, fetchSalaryBaseGroups } f
 import { CreateSalaryComponentRequest } from "@/lib/api/types";
 import { cn } from "@/lib/utils";
 
-interface Props {
-}
-
-export default function SalaryComponentManager({}: Props) {
+export default function SalaryComponentManager() {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const toast = useToast();

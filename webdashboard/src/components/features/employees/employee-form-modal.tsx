@@ -91,8 +91,8 @@ export default function EmployeeFormModal({
 }: EmployeeFormModalProps) {
   const { t } = useTranslation();
   const { createMutation, updateMutation } = useEmployeeMutations(onClose, onSuccess);
-  const { data: locations = [], isError: locationsUnavailable } = useLocations();
-  const { data: employers = [] } = useQuery({ queryKey: ["employers"], queryFn: () => fetchEmployers(),
+  const { data: locations, isError: locationsUnavailable } = useLocations();
+  const { data: employers } = useQuery({ queryKey: ["employers"], queryFn: () => fetchEmployers(),
  });
 
   const { data: employments = [] } = useQuery({ queryKey: ["employee-employments", editingEmployee?.id], queryFn: () => {
@@ -174,7 +174,7 @@ export default function EmployeeFormModal({
         <EmployeeFormInputs
           activeEmployment={active}
           editingEmployee={editingEmployee}
-          employers={employers}
+          employers={employers ?? []}
           locations={locations}
           locationsUnavailable={locationsUnavailable}
           members={members}

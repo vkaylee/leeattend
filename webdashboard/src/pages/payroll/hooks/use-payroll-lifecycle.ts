@@ -14,6 +14,12 @@ hasCalculatedPayslips: boolean;  }
 
 const STORAGE_PREFIX = "leeattend_payroll_lock";
 
+function isPayrollPeriodAudit(value: unknown): value is PayrollPeriodAudit {
+  if (!value || typeof value !== "object") return false;
+  const candidate = value as Record<string, unknown>;
+  return candidate.status === "DRAFT" || candidate.status === "CALCULATED" || candidate.status === "LOCKED";
+}
+
 function getStorageKey(year: number, month: number): string {
   return `${STORAGE_PREFIX}_${year}_${month}`;
 }
@@ -29,8 +35,9 @@ export function usePayrollLifecycle({
     }
     try {
       const stored = localStorage.getItem(getStorageKey(calcYear, calcMonth));
-      if (stored) {
-        return JSON.parse(stored) as PayrollPeriodAudit;
+      const parsed: unknown = stored ? JSON.parse(stored) : null;
+      if (isPayrollPeriodAudit(parsed)) {
+        return parsed;
       }
     } catch {
       // Fallback on storage read error
@@ -43,8 +50,9 @@ export function usePayrollLifecycle({
     
     try {
       const stored = localStorage.getItem(getStorageKey(calcYear, calcMonth));
-      if (stored) {
-        setAudit(JSON.parse(stored));
+      const parsed: unknown = stored ? JSON.parse(stored) : null;
+      if (isPayrollPeriodAudit(parsed)) {
+        setAudit(parsed);
       } else {
         setAudit({
           status: hasCalculatedPayslips ? "CALCULATED" : "DRAFT",

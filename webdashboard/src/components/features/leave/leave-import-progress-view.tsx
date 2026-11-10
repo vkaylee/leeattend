@@ -78,7 +78,7 @@ function PartialSuccessDetails({ info, importJob, t }: { info: ErrorInfo | null;
           .replace("{{success}}", String(info?.success_count ?? importJob.processed_rows))
           .replace("{{errors}}", String(info?.error_count ?? 0))}
       </Typography>
-      {Boolean(info?.error_file_path) ? (
+      {info?.error_file_path ? (
         <Button
           className="border-amber-200 bg-amber-100 text-[10px] text-amber-700 hover:bg-amber-200 dark:border-amber-800 dark:bg-amber-900/50 dark:text-amber-300 dark:hover:bg-amber-800/50"
           onClick={() => {
@@ -110,7 +110,7 @@ function FailedDetails({ errorLog, importJob, t }: { errorLog: string; importJob
           <Typography className="text-xs text-slate-600 dark:text-slate-400" variant="p">
             {t("leave_import.failed_detail_count", "Import thất bại: {{errors}} dòng bị lỗi").replace("{{errors}}", String(info.error_count ?? 1))}
           </Typography>
-          {Boolean(info.error_file_path) ? (
+          {info.error_file_path ? (
             <Button
               className="border-rose-200 bg-rose-50 text-[10px] text-rose-700 hover:bg-rose-100 dark:border-rose-800 dark:bg-rose-950/30 dark:text-rose-300 dark:hover:bg-rose-900/50"
               onClick={() => {

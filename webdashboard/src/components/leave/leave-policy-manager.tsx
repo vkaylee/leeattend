@@ -13,10 +13,7 @@ import { LeavePolicy } from "@/lib/api/types";
 import { PolicyCard } from "./policy-card";
 import { PolicyModal } from "./policy-modal";
 
-interface LeavePolicyManagerProps {
-}
-
-export function LeavePolicyManager({}: LeavePolicyManagerProps) {
+export function LeavePolicyManager() {
   const { t } = useTranslation();
   const toast = useToast();
   const queryClient = useQueryClient();

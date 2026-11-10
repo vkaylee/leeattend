@@ -27,7 +27,6 @@ export * from "./approval-workflows";
 export * from "./employers";
 export * from "./locations";
 export * from "./condition-types";
-export * from "./employee-conditions";
 export { overtimeRequestsApi } from "./overtime-requests";
 export { fetchMyBehalfTargets } from "./behalf-targets";
 export type { BehalfDomain } from "./behalf-targets";

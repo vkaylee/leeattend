@@ -67,7 +67,7 @@ export const useEmployeeColumns = ({
     ...(onToggleSelectRow ? [{
       cellClassName: "py-6 pl-4 w-10",
       header: (
-        <div className="flex items-center pl-4 w-10" onClick={(e) => { e.stopPropagation(); }}>
+        <div className="flex items-center pl-4 w-10">
           <input
             aria-label={t("common.select_all", "Chọn tất cả")}
             checked={isAllSelected}
@@ -81,7 +81,7 @@ export const useEmployeeColumns = ({
       headerClassName: "pl-4 w-10",
       key: "select",
       render: (emp: Employee) => (
-        <div className="flex items-center pl-4" onClick={(e) => { e.stopPropagation(); }}>
+        <div className="flex items-center pl-4">
           <input
             aria-label={`Select ${emp.full_name}`}
             checked={selectedRowIds?.includes(emp.id)}

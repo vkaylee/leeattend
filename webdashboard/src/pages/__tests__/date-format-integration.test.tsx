@@ -67,7 +67,7 @@ vi.mock("../../lib/api", () => ({
   searchEmployees: vi.fn(),
   fetchEmployeePayslips: vi.fn(),
   fetchRawAttendanceLogs: vi.fn(),
-  fetchWorkspace: vi.fn(),
+  fetchOrganization: vi.fn(),
   submitAttendanceAdjustment: vi.fn(),
   fetchWorkspaceAttendanceAdjustments: vi.fn(),
   fetchMyPermissions: vi.fn(),
@@ -159,7 +159,7 @@ describe("Date Format Integration", () => {
  
     vi.mocked(api.fetchWorkspaceAttendanceAdjustments).mockResolvedValue({ data: [], total: 0, page: 1, limit: 20 });
  
-    vi.mocked(api.fetchWorkspace).mockResolvedValue({ date_format: "DD/MM/YYYY", timezone: "UTC" } as unknown as never);
+    vi.mocked(api.fetchOrganization).mockResolvedValue({ date_format: "DD/MM/YYYY", timezone: "UTC" } as unknown as never);
  
 
     renderWithProviders(<PayrollPage />);

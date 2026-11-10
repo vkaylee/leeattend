@@ -11,10 +11,7 @@ import { fetchEmploymentPhases, createEmploymentPhase } from "@/lib/api/employee
 import { EmploymentPhaseDefinition, CreateEmploymentPhaseDefinitionRequest } from "@/lib/api/types";
 import { cn } from "@/lib/utils";
 
-interface Props {
-}
-
-export default function EmploymentPhaseManager({}: Props) {
+export default function EmploymentPhaseManager() {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const toast = useToast();

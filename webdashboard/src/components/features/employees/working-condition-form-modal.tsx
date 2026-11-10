@@ -60,10 +60,10 @@ export default function WorkingConditionFormModal({
   const queryClient = useQueryClient();
   const currentLang = i18n.language.split("-")[0];
 
-  const { employees = [] } = useAllEmployees({ enabled: isOpen && !employeeId });
+  const { employees } = useAllEmployees({ enabled: isOpen && !employeeId });
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>("");
 
-  const { data: typeDefs = [] } = useQuery<ConditionTypeDefinition[]>({ queryKey: ["condition-types"], queryFn: () => (fetchConditionTypes(true)),
+  const { data: typeDefs } = useQuery<ConditionTypeDefinition[]>({ queryKey: ["condition-types"], queryFn: () => (fetchConditionTypes(true)),
   enabled: isOpen, });
 
   const {
@@ -91,7 +91,7 @@ export default function WorkingConditionFormModal({
   useEffect(() => {
     if (isOpen) {
       setSelectedEmployeeId(employeeId ?? "");
-      const firstType = typeDefs.find((d) => d.is_active);
+      const firstType = (typeDefs ?? []).find((d) => d.is_active);
       reset({
         type_: firstType?.code ?? "",
         condition_type_id: firstType?.id ?? null,
@@ -111,7 +111,7 @@ export default function WorkingConditionFormModal({
         return;
       }
 
-      const matchingDef = typeDefs.find((d) => d.code === values.type_);
+      const matchingDef = (typeDefs ?? []).find((d) => d.code === values.type_);
 
       await createWorkingCondition(targetEmpId, {
         type_: values.type_,
@@ -159,7 +159,7 @@ export default function WorkingConditionFormModal({
                 data-testid="condition-employee-combobox"
                 id="condition-employee-combobox"
                 onChange={setSelectedEmployeeId}
-                options={employees.map((emp: Employee) => ({
+                options={(employees ?? []).map((emp: Employee) => ({
                   value: emp.id,
                   label: `${emp.full_name}${emp.employee_id_number ? ` (${emp.employee_id_number})` : ""}`,
                   description: emp.department_name ?? emp.job_title ?? undefined,
@@ -187,11 +187,11 @@ export default function WorkingConditionFormModal({
               onChange={(e) => {
                 const val = e.target.value;
                 setValue("type_", val);
-                const match = typeDefs.find((d) => d.code === val);
+                const match = (typeDefs ?? []).find((d) => d.code === val);
                 setValue("condition_type_id", match?.id ?? null);
               }}
             >
-              {typeDefs.map((def) => {
+              {(typeDefs ?? []).map((def) => {
                 const name = def.name_i18n?.[currentLang] || def.name_i18n?.en || def.code;
                 return (
                   <option key={def.id} value={def.code}>

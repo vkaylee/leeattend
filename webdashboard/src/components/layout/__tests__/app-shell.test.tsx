@@ -1,4 +1,4 @@
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import React from "react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
@@ -109,6 +109,15 @@ describe("AppShell Component", () => {
 
     fireEvent.keyDown(window, { key: "Escape" });
     expect(screen.queryByTestId("command-palette-modal")).not.toBeInTheDocument();
+  });
+
+  it("opens command palette from the global open event", async () => {
+    render(<AppShell />);
+
+    window.dispatchEvent(new CustomEvent("open-command-palette"));
+    await waitFor(() => {
+      expect(screen.getByTestId("command-palette-modal")).toBeInTheDocument();
+    });
   });
 
   it("opens mobile drawer when mobile hamburger button is clicked", () => {

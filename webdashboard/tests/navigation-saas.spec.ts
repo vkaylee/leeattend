@@ -11,30 +11,16 @@ test.describe('Navigation SaaS Refactor', () => {
     await expect(page.getByTestId('sidebar-btn-logout')).not.toBeVisible();
   });
 
-  test('should have user profile and logout in nav rail', async ({ page }) => {
-    // Use accessible names so this contract remains stable across icon-rail internals.
-    const navRail = page.getByRole('navigation', { name: 'Navigation' });
-    const profileLink = navRail.getByRole('link', { name: 'Profile', exact: true });
-    const logoutButton = navRail.getByRole('button', { name: 'Logout', exact: true });
+  test('should expose profile from top navigation', async ({ page }) => {
+    const topbar = page.getByRole('banner', { name: 'Top Navigation' });
+    const profileLink = topbar.getByRole('link', { name: 'Profile', exact: true });
     await expect(profileLink).toBeVisible({ timeout: 15000 });
-    await expect(logoutButton).toBeVisible();
 
-    // Profile link navigates to ESS profile
     await profileLink.click();
     await expect(page).toHaveURL(/\/ess\/profile/, { timeout: 15000 });
   });
 
-  test('should have working logout button in nav rail', async ({ page }) => {
-    // Query the direct nav-rail control by its accessible action name.
-    const logoutBtn = page.getByRole('button', { name: 'Logout' });
-    await expect(logoutBtn).toBeVisible({ timeout: 15000 });
-    await expect(logoutBtn).toBeEnabled();
-
-    // Verify logout button has aria-label
-    await expect(logoutBtn).toHaveAttribute('aria-label', 'Logout');
-
-    // Verify logout button text content indicates logout action
-    const ariaLabel = await logoutBtn.getAttribute('aria-label');
-    expect(ariaLabel?.toLowerCase()).toContain('logout');
+  test('should not render logout in the workspace shell', async ({ page }) => {
+    await expect(page.getByRole('button', { name: 'Logout', exact: true })).toHaveCount(0);
   });
 });

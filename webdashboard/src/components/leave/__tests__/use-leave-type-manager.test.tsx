@@ -43,7 +43,7 @@ describe("useLeaveTypeManager Hook", () => {
     ];
     vi.mocked(api.fetchLeaveTypes).mockResolvedValue(mockLeaveTypes as never);
 
-    const { result } = renderHook(() => useLeaveTypeManager({}), { wrapper });
+    const { result } = renderHook(() => useLeaveTypeManager(), { wrapper });
 
     await waitFor(() => {
       expect(result.current.isTypesLoading).toBe(false);
@@ -52,7 +52,7 @@ describe("useLeaveTypeManager Hook", () => {
   });
 
   it("should manage add/edit/delete states correctly", () => {
-    const { result } = renderHook(() => useLeaveTypeManager({}), { wrapper });
+    const { result } = renderHook(() => useLeaveTypeManager(), { wrapper });
 
     expect(result.current.isAddingType).toBe(false);
     expect(result.current.editingType).toBeNull();
@@ -87,7 +87,7 @@ describe("useLeaveTypeManager Hook", () => {
   });
 
   it("should close both modals on successful restore (replaces the create intent)", async () => {
-    const { result } = renderHook(() => useLeaveTypeManager({}), { wrapper });
+    const { result } = renderHook(() => useLeaveTypeManager(), { wrapper });
 
     // Simulate the state right before restoring: user is on the Add modal
     // and the structured 409 has surfaced the Restore dialog.

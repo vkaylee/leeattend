@@ -9,10 +9,7 @@ import { updatePayrollSettings, fetchPayrollSettingsHistory } from "@/lib/api/pa
 import TemporalConfigTable from "../common/temporal-config-table";
 
 
-interface Props {
-}
-
-export default function PayrollSettingsSection({}: Props) {
+export default function PayrollSettingsSection() {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const toast = useToast();

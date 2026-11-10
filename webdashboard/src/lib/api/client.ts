@@ -98,6 +98,7 @@ export type HttpMethod = "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
  * Escape hatch for endpoints whose response shape is not described by a
  * generated schema. Callers assert `T`; the backend DTO is the source of truth.
  */
+// eslint-disable-next-line @typescript-eslint/no-unnecessary-type-parameters -- T is public response type for schema-drift endpoints.
 export async function fetch<T>(
   method: HttpMethod,
   path: string,
@@ -113,7 +114,7 @@ export async function fire(
   path: string,
   init?: ClientRequestInit,
 ): Promise<void> {
-  await request<unknown>(method, path, init);
+  await request(method, path, init);
 }
 
 export { ApiError };

@@ -208,12 +208,12 @@ export async function setupApiMocks(page: Page) {
       });
     }
 
-    if (pathname === '/api/v1') {
-      if (method === 'GET') return fulfill(activeOrganization);
+    if (pathname === '/api/organization/settings') {
+      if (method === 'GET') return fulfill(structuredClone(activeOrganization));
       if (method === 'PATCH' || method === 'PUT') {
         const body = JSON.parse(route.request().postData() ?? '{}');
         activeOrganization = { ...activeOrganization, ...body };
-        return fulfill(activeOrganization);
+        return fulfill(structuredClone(activeOrganization));
       }
     }
 

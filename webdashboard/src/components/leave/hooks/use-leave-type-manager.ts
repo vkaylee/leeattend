@@ -12,10 +12,7 @@ interface RetiredLeaveTypeHint {
   name: string;
 }
 
-interface UseLeaveTypeManagerProps {
-}
-
-export function useLeaveTypeManager({}: UseLeaveTypeManagerProps) {
+export function useLeaveTypeManager() {
   const { t } = useTranslation();
   const toast = useToast();
   const queryClient = useQueryClient();

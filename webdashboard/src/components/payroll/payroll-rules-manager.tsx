@@ -12,10 +12,7 @@ import { fetchPayrollRules, fetchSalaryBaseGroups } from "@/lib/api/payroll";
 import { PayrollRuleForm } from "./payroll-rule-form";
 import { RuleRow } from "./payroll-rule-list";
 
-interface Props {
-}
-
-export default function PayrollRulesManager({}: Props) {
+export default function PayrollRulesManager() {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const toast = useToast();
