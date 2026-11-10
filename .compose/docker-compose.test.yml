@@ -196,7 +196,7 @@ services:
       retries: 30
     volumes:
       - ${PROJECT_ROOT}:/workspace
-      - web-node-modules:/workspace/webdashboard/node_modules
+      - ${PROJECT_ROOT}/webdashboard/node_modules:/workspace/webdashboard/node_modules
       - bun-cache:/workspace/.bun-cache
 
   webdashboard:
@@ -233,7 +233,7 @@ services:
       - 1.1.1.1
     volumes:
       - ${PROJECT_ROOT}:/workspace
-      - web-node-modules:/workspace/webdashboard/node_modules
+      - ${PROJECT_ROOT}/webdashboard/node_modules:/workspace/webdashboard/node_modules
       - shared-data:/workspace/shared
       - bun-cache:/workspace/.bun-cache
       - ${PROJECT_ROOT}/webdashboard/test-results:/workspace/webdashboard/test-results
@@ -247,9 +247,6 @@ volumes:
     driver: local
   go-build-cache:
     name: leeattend-test_go-build-cache
-    driver: local
-  web-node-modules:
-    name: leeattend-test_web-node-modules
     driver: local
   bun-cache:
     name: leeattend-test_bun-cache
