@@ -137,7 +137,7 @@ export default function RoleManagementModal({
 }: RoleManagementModalProps) {
   const { t } = useTranslation();
   const { roles: memberRoles, isLoading, updatePrimaryRole, assignRole, revokeRole } = useMemberRoles(userId ?? "");
-  const { roles: workspaceRoles } = useOrganizationRoles();
+  const { roles: organizationRoles } = useOrganizationRoles();
   const { confirm, ConfirmationDialog } = useConfirm();
 
   const [newRoleId, setNewRoleId] = useState("");
@@ -147,10 +147,10 @@ export default function RoleManagementModal({
   const extraRoles = memberRoles?.extra ?? [];
 
   const getRoleName = (roleId: string) => {
-    return workspaceRoles.find(r => r.id === roleId)?.name ?? roleId;
+    return organizationRoles.find(r => r.id === roleId)?.name ?? roleId;
   };
 
-  const roleOptions = workspaceRoles.map(r => ({
+  const roleOptions = organizationRoles.map(r => ({
     value: r.id,
     label: r.name.toUpperCase(),
     description: r.description ?? undefined,

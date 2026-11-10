@@ -9,14 +9,14 @@ import { useDateTimeFormatter } from "@/hooks/use-datetime";
 import { useAllEmployees } from "@/hooks/use-employees";
 import { useInfiniteScroll } from "@/hooks/use-infinite-scroll";
 import {
-  fetchWorkspaceAttendanceAdjustments,
+  fetchAttendanceAdjustments,
   approveAttendanceAdjustment,
   PaginatedResponse,
   AttendanceAdjustmentRequest,
 } from "@/lib/api";
 import { logError } from "@/lib/logger";
 import { useSearchPatch } from "@/lib/state";
-import { Route } from "@/routes/_authenticated/_workspace/attendance-adjustments";
+import { Route } from "@/routes/_authenticated/_organization/attendance-adjustments";
 
 export type TabType = AdjustmentSearch["tab"];
 export type AttendanceStatusFilter = AdjustmentSearch["status"];
@@ -52,7 +52,7 @@ export function useAttendanceAdjustmentsPage() {
   } = useInfiniteQuery<PaginatedResponse<AttendanceAdjustmentRequest>>({
     queryKey: ["attendance-adjustments", activeTab, employeeId, statusFilter],
     queryFn: ({ pageParam }) => {
-      return fetchWorkspaceAttendanceAdjustments({
+      return fetchAttendanceAdjustments({
         status: activeTab !== "behalf_assignments" && statusFilter !== "all" ? statusFilter : undefined,
         employee_id: employeeId,
         page: pageParam as number,

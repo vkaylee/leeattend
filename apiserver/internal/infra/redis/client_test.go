@@ -137,14 +137,8 @@ func TestKeyBuildersAndTTLPolicy(t *testing.T) {
 	}
 
 	// Single-organization cache keys
-	if k := redis.KeyCacheWorkspace(); k != "cache:workspace" {
-		t.Errorf("KeyCacheWorkspace mismatch: %s", k)
-	}
 	if k := redis.KeyCacheShifts(); k != "cache:shifts" {
 		t.Errorf("KeyCacheShifts mismatch: %s", k)
-	}
-	if k := redis.KeyCacheWorkspaceConfig(); k != "cache:workspace_config" {
-		t.Errorf("KeyCacheWorkspaceConfig mismatch: %s", k)
 	}
 	if k := redis.KeyRosterVersion(); k != "roster:version" {
 		t.Errorf("KeyRosterVersion mismatch: %s", k)

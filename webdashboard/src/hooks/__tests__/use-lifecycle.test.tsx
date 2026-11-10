@@ -18,7 +18,7 @@ import {
   useUpdateLifecycleChecklistItem,
   useCompletePendingTask,
   useMyPendingTasks,
-  useWorkspaceLifecycleInstances,
+  useOrganizationLifecycleInstances,
   lifecycleKeys,
 } from "../use-lifecycle";
 
@@ -35,7 +35,7 @@ const api = vi.hoisted(() => ({
   createLifecycleChecklist: vi.fn(),
   updateChecklistItemStatus: vi.fn(),
   fetchMyPendingTasks: vi.fn(),
-  fetchWorkspaceLifecycleInstances: vi.fn(),
+  fetchLifecycleInstances: vi.fn(),
 }));
 
 vi.mock("@/lib/api/lifecycle", () => api);
@@ -356,18 +356,18 @@ describe("useMyPendingTasks", () => {
   });
 });
 
-describe("useWorkspaceLifecycleInstances", () => {
+describe("useOrganizationLifecycleInstances", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    (api.fetchWorkspaceLifecycleInstances as Mock).mockResolvedValue([{ id: "inst-1" }]);
+    (api.fetchLifecycleInstances as Mock).mockResolvedValue([{ id: "inst-1" }]);
   });
 
   it("fetches lifecycle instances", async () => {
-    const { result } = renderHook(() => useWorkspaceLifecycleInstances(), { wrapper: createWrapper() });
+    const { result } = renderHook(() => useOrganizationLifecycleInstances(), { wrapper: createWrapper() });
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
 
-    expect(api.fetchWorkspaceLifecycleInstances).toHaveBeenCalled();
+    expect(api.fetchLifecycleInstances).toHaveBeenCalled();
     expect(result.current.data).toHaveLength(1);
   });
 });

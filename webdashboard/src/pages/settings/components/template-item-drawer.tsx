@@ -180,7 +180,7 @@ export function TemplateItemDrawer({ isOpen, onClose, editingItem, templateId }:
               <option value="direct_manager">{t("settings.lifecycle.template.assignee_direct_manager", { defaultValue: "Direct Manager" })}</option>
               <option value="it_admin">{t("settings.lifecycle.template.assignee_it_admin", { defaultValue: "IT Admin" })}</option>
               <option value="employee">{t("settings.lifecycle.template.assignee_employee", { defaultValue: "Self (Employee)" })}</option>
-              <option value="specific_user">{t("settings.lifecycle.template.assignee_specific_user", { defaultValue: "Specific Workspace User" })}</option>
+              <option value="specific_user">{t("settings.lifecycle.template.assignee_specific_user", { defaultValue: "Specific Organization User" })}</option>
             </select>
           </div>
         </div>

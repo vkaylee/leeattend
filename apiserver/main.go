@@ -48,7 +48,7 @@ func resolveOrganizationID(ctx context.Context, db repository.DBTX) (uuid.UUID, 
 		return uuid.Nil, fmt.Errorf("database unavailable")
 	}
 	var organizationID uuid.UUID
-	if err := db.QueryRow(ctx, `SELECT id FROM workspaces WHERE (SELECT count(*) FROM workspaces) = 1 LIMIT 1`).Scan(&organizationID); err != nil {
+	if err := db.QueryRow(ctx, `SELECT id FROM organization_settings WHERE (SELECT count(*) FROM organization_settings) = 1 LIMIT 1`).Scan(&organizationID); err != nil {
 		return uuid.Nil, fmt.Errorf("organization unavailable: %w", err)
 	}
 	return organizationID, nil
@@ -712,7 +712,7 @@ func main() {
 	}
 	mux.HandleFunc("GET /api/v1/dashboard/executive-overview", dashboardAnalyticsHandler.ExecutiveOverview)
 	mux.HandleFunc("GET /api/v1/dashboard/overtime-breakdown", dashboardAnalyticsHandler.OvertimeBreakdown)
-	mux.HandleFunc("GET /api/v1/dashboard/workspace-stats", dashboardAnalyticsHandler.WorkspaceStats)
+	mux.HandleFunc("GET /api/v1/dashboard/organization-stats", dashboardAnalyticsHandler.OrganizationStats)
 	mux.HandleFunc("GET /api/v1/dashboard/attendance-trend", dashboardAnalyticsHandler.AttendanceTrend)
 	mux.HandleFunc("GET /api/v1/dashboard/department-attendance", dashboardAnalyticsHandler.DepartmentAttendance)
 	mux.HandleFunc("GET /api/v1/dashboard/unexcused-absences", dashboardAnalyticsHandler.UnexcusedAbsences)
@@ -758,7 +758,7 @@ func main() {
 		httpinfra.RateLimitMiddleware(rateLimitConfig, cfg.JWTSecret.Expose(), rateLimiter),
 		httpinfra.LocaleMiddleware(),
 		httpinfra.CORSMiddleware(cfg.AllowedOrigins),
-		httpinfra.RejectLegacyWorkspaceRoutes(),
+		httpinfra.RejectRetiredScopedRoutes(),
 		httpinfra.AuthMiddlewareWithRevocation(cfg.JWTSecret.Expose(), publicPrefixes, revocationChecker),
 	)(mux)
 

@@ -3,7 +3,7 @@ import { z } from "zod";
 /**
  * URL search-param contract for `/leave-requests`.
  *
- * Owned by the route file (`routes/_authenticated/_workspace/leave-requests.tsx`)
+ * Owned by the route file (`routes/_authenticated/_organization/leave-requests.tsx`)
  * via `validateSearch`. Every field has `.catch()` — see ADR-006.
  */
 export const leaveRequestsSearchSchema = z

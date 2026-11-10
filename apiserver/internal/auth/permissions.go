@@ -6,13 +6,11 @@ import (
 )
 
 // Permission represents a granular action permission in the system.
-// Exactly 101 canonical variants remain after edge-agent controls were retired.
+// Canonical permission variants remain after edge-agent controls were retired.
 type Permission string
 
 const (
-	// Workspace
-	PermissionWorkspaceUpdate           Permission = "workspace:update"
-	PermissionWorkspaceDelete           Permission = "workspace:delete"
+	// Organization settings
 	PermissionOrganizationSettingsRead  Permission = "organization:settings:read"
 	PermissionOrganizationSettingsWrite Permission = "organization:settings:write"
 
@@ -161,8 +159,6 @@ const (
 )
 
 var allCanonicalPermissions = []Permission{
-	PermissionWorkspaceUpdate,
-	PermissionWorkspaceDelete,
 	PermissionOrganizationSettingsRead,
 	PermissionOrganizationSettingsWrite,
 	PermissionMembersRead,
@@ -270,7 +266,7 @@ var permissionSet = func() map[Permission]bool {
 	return m
 }()
 
-// AllPermissions returns all 101 canonical system permissions.
+// AllPermissions returns all canonical system permissions.
 func AllPermissions() []Permission {
 	out := make([]Permission, len(allCanonicalPermissions))
 	copy(out, allCanonicalPermissions)

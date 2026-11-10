@@ -18,7 +18,7 @@ function checkScopedPermission(permissionSet: Set<string>, allowedDepts: string[
 
 /**
  * Hook that fetches and caches the current user's effective permissions
- * for the active workspace.
+ * for the active organization.
  *
  * Usage:
  *   const { hasPermission, permissions, roles, isLoading } = useMyPermissions();

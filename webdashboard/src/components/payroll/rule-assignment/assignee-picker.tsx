@@ -75,12 +75,10 @@ export function AssigneePicker({
       <Globe className="text-amber-600 dark:text-amber-400 shrink-0" size={20} />
       <Typography className="text-xs font-bold text-amber-800 dark:text-amber-200 uppercase tracking-tight" variant="p">
         {t(
-          "payroll.workspace_scope_info",
-          "This rule will apply to all employees in the workspace"
+          "payroll.organization_scope_info",
+          "This rule will apply to all employees in the organization"
         )}
       </Typography>
     </div>
   );
-
-  return null;
 }

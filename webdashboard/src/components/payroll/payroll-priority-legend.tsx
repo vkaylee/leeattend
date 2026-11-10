@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { HierarchyLegend, HierarchyStep } from '../common/hierarchy-legend';
 
 interface PayrollPriorityLegendProps {
-  activeSource?: string; // "individual", "department", "workspace", "system"
+  activeSource?: string; // "individual", "department", "organization", "system"
 }
 
 export const PayrollPriorityLegend: React.FC<PayrollPriorityLegendProps> = ({ activeSource }) => {
@@ -25,16 +25,16 @@ export const PayrollPriorityLegend: React.FC<PayrollPriorityLegendProps> = ({ ac
       isActive: activeSource === 'department'
     },
     { 
-      label: t("payroll.traceability.workspace_default", "Workspace Default"), 
+      label: t("payroll.traceability.organization_default", "Organization Default"),
       priority: 10, 
       color: "bg-slate-400",
-      isActive: activeSource === 'workspace' || activeSource === 'system'
+      isActive: activeSource === 'organization' || activeSource === 'system'
     },
   ];
 
   return (
     <HierarchyLegend
-      explanation={t("payroll.traceability.hierarchy_explanation", "Payroll settings are resolved from Individual > Department > Workspace.")}
+      explanation={t("payroll.traceability.hierarchy_explanation", "Payroll settings are resolved from Individual > Department > Organization.")}
       icon={<FileText size={14} />}
       steps={getSteps()}
       title={t("payroll.traceability.hierarchy_title", "Policy Hierarchy")}

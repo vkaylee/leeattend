@@ -47,7 +47,7 @@ describe("ExecutiveOvertimeBreakdown", () => {
 
   it("renders an empty state when no departments have overtime", () => {
     vi.mocked(dashboardHooks.useOvertimeBreakdown).mockReturnValue({
-      data: { contract_version: "overtime-breakdown.v1", workspace: { timezone: "Asia/Ho_Chi_Minh", currency: "VND" }, rows: [], generated_at: "2026-08-13T09:00:00Z" },
+      data: { contract_version: "overtime-breakdown.v2", organization: { timezone: "Asia/Ho_Chi_Minh", currency: "VND" }, rows: [], generated_at: "2026-08-13T09:00:00Z" },
       isLoading: false,
     } as unknown as ReturnType<typeof dashboardHooks.useOvertimeBreakdown>);
 
@@ -61,7 +61,7 @@ describe("ExecutiveOvertimeBreakdown", () => {
       { department_id: "d2", department_name: "Sales", system_ot_hours: 6, approved_ot_hours: 6, unapproved_ot_hours: 0, overtime_cost: "600000", cost_available: true },
     ];
     vi.mocked(dashboardHooks.useOvertimeBreakdown).mockReturnValue({
-      data: { contract_version: "overtime-breakdown.v1", workspace: { timezone: "Asia/Ho_Chi_Minh", currency: "VND" }, rows, generated_at: "2026-08-13T09:00:00Z" },
+      data: { contract_version: "overtime-breakdown.v2", organization: { timezone: "Asia/Ho_Chi_Minh", currency: "VND" }, rows, generated_at: "2026-08-13T09:00:00Z" },
       isLoading: false,
     } as unknown as ReturnType<typeof dashboardHooks.useOvertimeBreakdown>);
 
@@ -72,7 +72,7 @@ describe("ExecutiveOvertimeBreakdown", () => {
     expect(screen.getByText("Sales")).toBeInTheDocument();
     // Hours formatted with "h".
     expect(screen.getByText("12.5h")).toBeInTheDocument();
-    // Currency formatted with workspace currency.
+    // Currency formatted with organization currency.
     expect(screen.getByText(/VND\s*1,250,000/)).toBeInTheDocument();
   });
 
@@ -81,7 +81,7 @@ describe("ExecutiveOvertimeBreakdown", () => {
       { department_id: "d1", department_name: "Engineering", system_ot_hours: 12.5, approved_ot_hours: 8, unapproved_ot_hours: 4.5, overtime_cost: null, cost_available: false },
     ];
     vi.mocked(dashboardHooks.useOvertimeBreakdown).mockReturnValue({
-      data: { contract_version: "overtime-breakdown.v1", workspace: { timezone: "Asia/Ho_Chi_Minh", currency: "VND" }, rows, generated_at: "2026-08-13T09:00:00Z" },
+      data: { contract_version: "overtime-breakdown.v2", organization: { timezone: "Asia/Ho_Chi_Minh", currency: "VND" }, rows, generated_at: "2026-08-13T09:00:00Z" },
       isLoading: false,
     } as unknown as ReturnType<typeof dashboardHooks.useOvertimeBreakdown>);
 

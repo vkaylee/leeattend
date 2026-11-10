@@ -6,13 +6,13 @@ import Button from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 const SCOPE_ICONS = {
-  workspace: Globe,
+  organization: Globe,
   department: Building,
   employee: Users,
 } as const;
 
 const SCOPE_COLORS = {
-  workspace: {
+  organization: {
     bg: "bg-amber-50 dark:bg-amber-950/40",
     text: "text-amber-600 dark:text-amber-400",
     border: "border-amber-100 dark:border-amber-800",
@@ -29,7 +29,7 @@ const SCOPE_COLORS = {
   },
 } as const;
 
-export type ScopeType = "workspace" | "department" | "employee";
+export type ScopeType = "organization" | "department" | "employee";
 
 interface ScopeSelectorProps {
   assigneeType: ScopeType;
@@ -50,7 +50,7 @@ export function ScopeSelector({
         {t("payroll.assignment_scope", "Assignment Scope")}
       </div>
       <div className="grid grid-cols-3 gap-3">
-        {(["employee", "department", "workspace"] as const).map((scope) => {
+        {(["employee", "department", "organization"] as const).map((scope) => {
           const Icon = SCOPE_ICONS[scope];
           const colors = SCOPE_COLORS[scope];
           const isActive = assigneeType === scope;

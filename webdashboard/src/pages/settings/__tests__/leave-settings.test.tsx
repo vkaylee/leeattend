@@ -60,8 +60,8 @@ vi.mock("@/components/ui/toast", () => ({ useToast: () => ({ success: vi.fn(), e
 const mockAssignments = [
   {
     id: "assign-1",
-    workspace_id: "ws-1",
-    assignee_type: "workspace",
+    organization_id: "org-1",
+    assignee_type: "organization",
     assignee_id: null,
     policy_id: "pol-1",
     effective_from: "2026-01-01",
@@ -72,7 +72,7 @@ const mockAssignments = [
   },
   {
     id: "assign-2",
-    workspace_id: "ws-1",
+    organization_id: "org-1",
     assignee_type: "department",
     assignee_id: "dept-1",
     policy_id: "pol-1",
@@ -84,7 +84,7 @@ const mockAssignments = [
   },
   {
     id: "assign-3",
-    workspace_id: "ws-1",
+    organization_id: "org-1",
     assignee_type: "employee",
     assignee_id: "emp-1",
     policy_id: "pol-1",
@@ -162,7 +162,7 @@ describe("LeaveSettings Page", () => {
     expect(await screen.findAllByText("General Vacation"));
     expect(screen.getAllByText("Dept Policy")[0]).toBeDefined();
     expect(screen.getAllByText("Employee Policy")[0]).toBeDefined();
-    expect(screen.getAllByText("workspace")[0]).toBeDefined();
+    expect(screen.getAllByText("organization")[0]).toBeDefined();
     expect(screen.getAllByText("department")[0]).toBeDefined();
     expect(screen.getAllByText("employee")[0]).toBeDefined();
 

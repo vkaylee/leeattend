@@ -15,7 +15,7 @@ import { useAssignOvertimePolicy } from './assign-overtime-policy-components/use
 
 interface AssignOvertimePolicyModalProps {
   initialId?: string;
-  initialType?: 'employee' | 'department' | 'workspace';
+  initialType?: 'employee' | 'department' | 'organization';
   isOpen: boolean;
   onClose: () => void;
 }

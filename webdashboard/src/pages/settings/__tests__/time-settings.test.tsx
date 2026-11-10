@@ -171,7 +171,7 @@ describe("TimeSettings Page", () => {
     );
 
     // Find and click new version button
-    const newVersionBtn = await screen.findByText("common.workspace_settings.new_version");
+    const newVersionBtn = await screen.findByText("common.organization_settings.new_version");
     await user.click(newVersionBtn);
 
     // Modal should be open

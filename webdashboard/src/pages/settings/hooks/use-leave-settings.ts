@@ -52,7 +52,6 @@ export function useLeaveSettings() {
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["leave-assignments"] });
       void queryClient.invalidateQueries({ queryKey: ["leave-balances"] });
-      void queryClient.invalidateQueries({ queryKey: ["workspace-leave-balances"] });
     },
   });
 

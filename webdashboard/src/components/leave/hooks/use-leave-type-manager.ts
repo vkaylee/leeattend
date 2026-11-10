@@ -33,7 +33,7 @@ export function useLeaveTypeManager() {
     },
     onError: (error: unknown) => {
       // Backend returns 409 Conflict for a duplicate leave-type code (unique
-      // constraint on workspace_id + code). When the conflicting code belongs to
+      // constraint on organization + code). When the conflicting code belongs to
       // a RETIRED (soft-deleted) leave type, the error carries a structured
       // `retry` hint so the UI can offer to restore it instead of creating new.
       if (error instanceof ApiError && error.isConflict) {

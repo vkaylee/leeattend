@@ -83,7 +83,7 @@ export default function DashboardPage() {
   const executiveMetricCount = executiveMetrics?.metrics.length ?? 0;
 
 
-  // The breakdown endpoint resolves dates itself from the workspace timezone; it
+  // The breakdown endpoint resolves dates itself from the organization timezone; it
   // needs the *resolved* reporting window (not the raw filters) so the department
   // table matches the KPI grid exactly. Non-custom periods like `this_month` only
   // carry dates after the backend resolves them into context.period.
@@ -151,7 +151,7 @@ export default function DashboardPage() {
         {!executiveLoading && !executiveError ? (
           <>
             <ExecutiveCostPanel
-              currency={executiveMetrics?.workspace.currency ?? "USD"}
+              currency={executiveMetrics?.organization.currency ?? "USD"}
               data={executiveMetrics}
             />
             <ExecutiveOvertimeBreakdown

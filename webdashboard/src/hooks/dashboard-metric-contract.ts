@@ -114,8 +114,8 @@ export const dashboardDataQualitySchema = z.object({
 }).strict();
 
 export const dashboardMetricsResponseSchema = z.object({
-  contract_version: z.literal("executive-dashboard.v1"),
-  workspace: z.object({
+  contract_version: z.literal("executive-dashboard.v2"),
+  organization: z.object({
     timezone: z.string().min(1),
     currency: z.string().regex(/^[A-Z]{3}$/),
   }).strict(),
@@ -124,7 +124,7 @@ export const dashboardMetricsResponseSchema = z.object({
     comparison: z.enum(comparisonBasisValues),
     filters: z.record(z.string(), z.string()),
     scope: z.object({
-      kind: z.enum(["workspace", "department", "location"]),
+      kind: z.enum(["organization", "department", "location"]),
       department_ids: z.array(uuid),
       location_ids: z.array(uuid),
       omitted_dimensions: z.array(z.string().min(1)),

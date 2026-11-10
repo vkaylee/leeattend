@@ -9,7 +9,7 @@ import Button from "@/components/ui/button";
 import { PageContainer } from "@/components/ui/page-container";
 import PageHeader from "@/components/ui/page-header";
 import { Typography } from "@/components/ui/typography";
-import { useWorkspaceLifecycleInstances } from "@/hooks/use-lifecycle";
+import { useOrganizationLifecycleInstances } from "@/hooks/use-lifecycle";
 import { type LifecycleInstanceSummary } from "@/lib/api";
 
 export default function PersonnelLifecyclePage() {
@@ -21,7 +21,7 @@ export default function PersonnelLifecyclePage() {
   const [selectedStatus, setSelectedStatus] = useState<string>("all");
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  const { data: instances = [], isLoading } = useWorkspaceLifecycleInstances();
+  const { data: instances = [], isLoading } = useOrganizationLifecycleInstances();
 
   // Metrics
   const metrics = useMemo(() => {

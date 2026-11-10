@@ -14,7 +14,7 @@ vi.mock("@/hooks/use-dashboard", () => ({
 
 // Mock useWorkspace (provides workspace timezone)
 vi.mock("@/hooks/use-workspace", () => ({
-    useWorkspace: () => ({ workspace: { timezone: "Asia/Ho_Chi_Minh" } }),
+    useOrganization: () => ({ organization: { timezone: "Asia/Ho_Chi_Minh" } }),
 }));
 
 // Mock react-i18next

@@ -107,7 +107,7 @@ export default function OtApprovalsPage() {
     handlePreviousMonth,
     handleNextMonth,
     queryClient,
-    workspace,
+    organization,
     t,
   } = approvals;
 
@@ -181,7 +181,7 @@ export default function OtApprovalsPage() {
           setSourceFilter={setSourceFilter}
           sourceFilter={sourceFilter}
           startDate={startDate}
-          workspace={workspace?.id ? workspace : null}
+          organization={organization?.id ? organization : null}
         />
       </div>
 

@@ -22,7 +22,7 @@ import {
   createLifecycleChecklist,
   updateChecklistItemStatus,
   fetchMyPendingTasks,
-  fetchWorkspaceLifecycleInstances,
+  fetchLifecycleInstances,
 } from "@/lib/api/lifecycle";
 
 export const lifecycleKeys = {
@@ -182,9 +182,9 @@ export const useMyPendingTasks = () => {
   });
 };
 
-export const useWorkspaceLifecycleInstances = () => {
+export const useOrganizationLifecycleInstances = () => {
   return useQuery({
     queryKey: lifecycleKeys.instances(),
-    queryFn: () => fetchWorkspaceLifecycleInstances(),
+    queryFn: () => fetchLifecycleInstances(),
   });
 };

@@ -6,7 +6,7 @@ import { format, subMonths, startOfMonth, endOfMonth } from "date-fns";
 import type { useToast } from "@/components/ui/toast";
 
 import { translateRosterEntriesToMonth } from "@/components/shifts/roster/roster-utils";
-import { fetchWorkspaceSchedules, bulkUpsertRoster } from "@/lib/api";
+import { fetchSchedules, bulkUpsertRoster } from "@/lib/api";
 
 import { runRosterBulk } from "./roster-bulk-utils";
 
@@ -28,7 +28,7 @@ export async function copyPreviousMonth({
   const prevEndStr = format(endOfMonth(prevMonth), "yyyy-MM-dd");
 
   try {
-    const prevSchedules = await fetchWorkspaceSchedules(prevStartStr,
+    const prevSchedules = await fetchSchedules(prevStartStr,
     prevEndStr,);
     const currentYearMonth = format(currentMonth, "yyyy-MM");
     const monthDayStrings = new Set(

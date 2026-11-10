@@ -1,5 +1,5 @@
 {
-  "workspace_settings": {
+  "organization_settings": {
     "title": "Cài đặt tổ chức",
     "description": "Quản lý cấu hình, nhân sự và giao diện tổ chức.",
     "general_config": "Cấu hình chung",
@@ -294,6 +294,7 @@
         "bool_true": "Đúng (True)",
         "bool_false": "Sai (False)",
         "scopes": {
+            "organization": "Tổ chức",
           "workspace": "Tổ chức",
           "employer": "Đơn vị tuyển dụng",
           "department": "Phòng ban",
@@ -551,7 +552,7 @@
       "control_panel": "Cấu hình hệ thống",
       "operations": "Vận hành & Nghiệp vụ",
       "security_system": "Bảo mật & Hệ thống",
-      "workspace": "Tổ chức"
+      "organization": "Tổ chức"
     },
     "workflows": {
       "general_section": "Thông tin chung",

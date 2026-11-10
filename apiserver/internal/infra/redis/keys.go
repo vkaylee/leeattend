@@ -78,16 +78,8 @@ func KeyRateLimit(identity, tier, matchedPath string) string {
 }
 
 // Key Builders — single-organization cache family
-func KeyCacheWorkspace() string {
-	return "cache:workspace"
-}
-
 func KeyCacheShifts() string {
 	return "cache:shifts"
-}
-
-func KeyCacheWorkspaceConfig() string {
-	return "cache:workspace_config"
 }
 
 func KeyRosterVersion() string {

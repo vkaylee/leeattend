@@ -19,7 +19,7 @@ export interface ConfirmAttendanceModalProps {
     row: DailyAttendanceReport | null;
 }
 
-// Render a UTC punch timestamp in the workspace timezone (Excel parity), not
+// Render a UTC punch timestamp in the organization timezone (Excel parity), not
 // the viewer's browser timezone. Falls back to UTC when the timezone is invalid.
 const utcToLocalHHmm = (iso: string | null | undefined, timezone: string): string => {
     if (!iso) { return ""; }

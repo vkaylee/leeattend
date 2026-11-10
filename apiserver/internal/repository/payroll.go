@@ -40,7 +40,7 @@ func (r PayrollRepository) db(ctx context.Context) (DBTX, error) {
 func organizationLocation(ctx context.Context, db DBTX) *time.Location {
 	var tzName string
 	if err := db.QueryRow(ctx, `SELECT timezone FROM organization_settings LIMIT 1`).Scan(&tzName); err == nil && tzName != "" {
-		return timezone.ParseWorkspaceTZ(tzName)
+		return timezone.ParseTimezone(tzName)
 	}
 	return time.UTC
 }

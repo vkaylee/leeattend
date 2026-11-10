@@ -48,7 +48,7 @@ export async function assignShift(
   });
 }
 
-export const fetchWorkspaceSchedules = async (
+export const fetchSchedules = async (
   startDate: string,
   endDate: string,
   employmentIds?: string[]

@@ -43,7 +43,7 @@ export function LeaveHistoryModal({employeeId, employeeName, leaveTypeId, leaveT
     mutationFn: (data: { leave_type_id: string; amount: number; reason: string; transaction_date: string }) => adjustLeaveBalance(employeeId, data),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["leave-history"] });
-      void queryClient.invalidateQueries({ queryKey: ["workspace-leave-balances"] });
+      void queryClient.invalidateQueries({ queryKey: ["leave-balances"] });
       toast.success(t("leave_balances.history.messages.adjust_success")); 
       setActiveTab("history");
     },

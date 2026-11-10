@@ -136,7 +136,7 @@ func (h OrganizationHandler) Get(w http.ResponseWriter, r *http.Request) {
 	org, err := h.Repository.GetOrganization(r.Context())
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			apperror.WriteError(w, r, apperror.NotFound(apperror.KeyWorkspaceNotFound))
+			apperror.WriteError(w, r, apperror.NotFound(apperror.KeyOrganizationNotFound))
 			return
 		}
 		h.writeRepositoryError(w, r, err)
@@ -364,6 +364,15 @@ func (h OrganizationHandler) CheckFeatureFlag(w http.ResponseWriter, r *http.Req
 	apperror.WriteJSON(w, http.StatusOK, FeatureFlagCheck{Key: key, Enabled: flag.Enabled})
 }
 
+func isSupportedConfigScope(scopeType string) bool {
+	switch scopeType {
+	case "organization", "employer", "department", "employee", "employment":
+		return true
+	default:
+		return false
+	}
+}
+
 func (h OrganizationHandler) PutConfig(w http.ResponseWriter, r *http.Request) {
 	userID, userOK := httpinfra.UserIDFromContext(r.Context())
 	if !userOK || h.Authorizer == nil || !h.Authorizer.HasPermission(r.Context(), userID, "organization:settings:write") {
@@ -373,6 +382,10 @@ func (h OrganizationHandler) PutConfig(w http.ResponseWriter, r *http.Request) {
 	request, err := DecodeJSON[ConfigEntryRequest](r, 1<<20)
 	if err != nil || request.ConfigKey == "" || request.EffectiveFrom == "" {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
+		return
+	}
+	if request.ScopeType != "" && !isSupportedConfigScope(request.ScopeType) {
+		apperror.WriteError(w, r, apperror.Validation(apperror.KeyInvalidScopeType))
 		return
 	}
 	if err := h.Repository.PutConfig(r.Context(), request, userID); err != nil {

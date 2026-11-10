@@ -60,7 +60,7 @@ export async function deleteEmployeeContract(employeeId: string, contractId: str
   });
 }
 
-export async function fetchWorkspaceContracts(): Promise<EmployeeContractWithEmployee[]> {
+export async function fetchContracts(): Promise<EmployeeContractWithEmployee[]> {
   const { data } = await client.GET<EmployeeContractWithEmployee[]>("/v1/contracts");
   return data;
 }

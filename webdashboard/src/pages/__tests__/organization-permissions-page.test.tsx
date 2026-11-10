@@ -44,12 +44,12 @@ const CUSTOM_ROLE = { id: "role-custom", name: "hr_specialist", is_system: false
 const CATALOG_GROUPS = [
     "attendance", "departments", "documents", "employees", "employment_phases", "ess",
     "holidays", "infra", "leave", "members", "overtime", "payroll", "recruitment",
-    "reports", "security", "shifts", "workspace",
+    "reports", "security", "shifts", "organization",
 ];
 
 const REQUIRED_CATALOG_IDS = [
     "overtime:request:create_on_behalf",
-    "workspace:update",
+    "organization:settings:read",
     "members:roles:manage",
     "employees:read",
     "payroll:read",
@@ -111,7 +111,7 @@ describe("OrganizationPermissionsPage", () => {
         vi.mocked(useOrganizationPermissionsMatrix).mockReturnValue({
             matrix: buildMatrix(
  
-                ["workspace:update", "members:roles:manage", "employees:read", "payroll:read", "audit_logs:read"],
+                ["organization:settings:read", "members:roles:manage", "employees:read", "payroll:read", "audit_logs:read"],
                 ["employees:read", "leave:approve:l1"],
             ),
             isLoading: false,
@@ -292,7 +292,7 @@ describe("OrganizationPermissionsPage", () => {
             // Change mock return value to a different matrix (e.g., only 1 permission)
             vi.mocked(useOrganizationPermissionsMatrix).mockReturnValue({
                 matrix: buildMatrix(
-                    ["workspace:update"],
+                    ["organization:settings:read"],
                     [],
                 ),
                 isLoading: false,
@@ -445,7 +445,7 @@ describe("OrganizationPermissionsPage", () => {
     describe("permission ID integrity (backend sync)", () => {
         it("all permission IDs use colon-separated backend format", () => {
             renderPage();
-            // Verify no old mock IDs remain (edit_workspace, view_employees, etc.)
+            // Verify no old mock IDs remain (edit_organization, view_employees, etc.)
             expect(screen.queryByText("Edit Workspace Info")).toBeNull();
             expect(screen.queryByText("Manage Billing")).toBeNull();
             expect(screen.queryByText("Danger Zone")).toBeNull();

@@ -10,13 +10,13 @@ import { PayrollRuleAssignment, Department } from "@/lib/api/types";
 import { cn } from "@/lib/utils";
 
 export const SCOPE_ICONS = {
-  workspace: Globe,
+  organization: Globe,
   department: Building,
   employee: Users,
 } as const;
 
 export const SCOPE_COLORS = {
-  workspace: {
+  organization: {
     bg: "bg-amber-50 dark:bg-amber-950/40",
     text: "text-amber-600 dark:text-amber-400",
     border: "border-amber-100 dark:border-amber-800",
@@ -42,7 +42,7 @@ interface AssignmentCardProps {
   deptMap: Record<string, Department>;
   handleDelete: (id: string) => void;
   isDeleting: boolean;
-  scope: "workspace" | "department" | "employee";
+  scope: "organization" | "department" | "employee";
   setDeletingId: (id: string | null) => void;
   t: TFunction;
 }
@@ -63,8 +63,8 @@ export function AssignmentCard({
   const Icon = SCOPE_ICONS[scope];
 
   const getAssigneeName = (assignment: PayrollRuleAssignment) => {
-    if (assignment.assignee_type === "workspace") {
-      return t("payroll_rules.scope_workspace", "Entire Workspace");
+    if (assignment.assignee_type === "organization") {
+      return t("payroll_rules.scope_organization", "Entire Organization");
     }
     if (assignment.assignee_type === "department") {
       const dept = assignment.assignee_id ? deptMap[assignment.assignee_id] : null;

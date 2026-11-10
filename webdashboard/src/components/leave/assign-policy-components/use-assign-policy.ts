@@ -94,7 +94,7 @@ export function useAssignPolicy(
     if (assigneeType === 'employee' && !assignEmpId) return;
     if (assigneeType === 'department' && !assignDeptId) return;
 
-    const assignee_id_raw = assigneeType === 'workspace' ? null : (assigneeType === 'department' ? assignDeptId : assignEmpId);
+    const assignee_id_raw = assigneeType === 'organization' ? null : (assigneeType === 'department' ? assignDeptId : assignEmpId);
     
     assignMutation.mutate({ 
       assignee_type: assigneeType, 

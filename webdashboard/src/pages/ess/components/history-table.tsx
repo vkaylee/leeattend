@@ -97,8 +97,9 @@ export function HistoryTable({ entries }: HistoryTableProps) {
                     title={t("ess.clock.empty_history", { defaultValue: "Chưa có lượt chấm công nào trong 7 ngày qua" })}
                   />
                 ) : (
-                  entries.map((entry) => (
-                    <tr className="transition-all group hover:bg-slate-50 dark:hover:bg-slate-800/50" key={entry.id}>
+                  entries.map((entry) => {
+                    return (
+                      <tr className="transition-all group hover:bg-slate-50 dark:hover:bg-slate-800/50" key={entry.id}>
                     <td className="px-8 py-5">
                       <div className="flex items-center gap-3">
                         <span className="text-sm font-bold text-slate-700 dark:text-slate-200">
@@ -140,7 +141,9 @@ export function HistoryTable({ entries }: HistoryTableProps) {
                       )}
                     </td>
                   </tr>
-                 )))}
+                    );
+                  })
+                )}
               </tbody>
             </table>
           </div>

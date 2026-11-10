@@ -83,7 +83,7 @@ vi.mock("@/components/ui/dropdown-menu", () => ({
 // Mock the API library
 vi.mock("../../lib/api", () => ({
   fetchOrganization: vi.fn().mockResolvedValue({ name: "Test Organization" }),
-  fetchWorkspaceAttendanceAdjustments: vi.fn(),
+  fetchAttendanceAdjustments: vi.fn(),
   fetchEmployees: vi.fn(),
   approveAttendanceAdjustment: vi.fn(),
   submitAttendanceAdjustment: vi.fn(),
@@ -135,7 +135,7 @@ describe("AttendanceAdjustmentsPage", () => {
       default_language: "vi",
       holiday_overnight_strategy: "split",
     } as any);
-    vi.mocked(api.fetchWorkspaceAttendanceAdjustments).mockResolvedValue({
+    vi.mocked(api.fetchAttendanceAdjustments).mockResolvedValue({
       data: [
         { 
           id: "adj-1", 
@@ -231,7 +231,7 @@ describe("AttendanceAdjustmentsPage", () => {
 
   it("handles status filter changes from table header dropdown", async () => {
     const user = userEvent.setup();
-    vi.mocked(api.fetchWorkspaceAttendanceAdjustments).mockResolvedValue({
+    vi.mocked(api.fetchAttendanceAdjustments).mockResolvedValue({
       data: [
         { 
           id: "adj-pending-1", 
@@ -252,13 +252,13 @@ describe("AttendanceAdjustmentsPage", () => {
 
     // Initial fetch should be triggered with status: undefined (since statusFilter defaults to "all")
     await waitFor(() => {
-      expect(api.fetchWorkspaceAttendanceAdjustments).toHaveBeenCalledWith(expect.objectContaining({
+      expect(api.fetchAttendanceAdjustments).toHaveBeenCalledWith(expect.objectContaining({
         status: undefined,
       }));
     });
 
     // Clear calls to mock to isolate the dropdown filter click trigger
-    vi.mocked(api.fetchWorkspaceAttendanceAdjustments).mockClear();
+    vi.mocked(api.fetchAttendanceAdjustments).mockClear();
 
     // Click the "Pending" option inside the dropdown (FilterPanel renders Buttons with data-testid)
     const pendingOption = document.querySelector('[data-testid="adjustments-status-filter-option-pending"]');
@@ -267,7 +267,7 @@ describe("AttendanceAdjustmentsPage", () => {
 
     // Wait for the query to be triggered with status: "pending"
     await waitFor(() => {
-      expect(api.fetchWorkspaceAttendanceAdjustments).toHaveBeenCalledWith(expect.objectContaining({
+      expect(api.fetchAttendanceAdjustments).toHaveBeenCalledWith(expect.objectContaining({
         status: "pending",
       }));
     });

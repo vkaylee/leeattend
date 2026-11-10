@@ -41,7 +41,7 @@ export function getPendingSummaries(
 export function useOtApprovals() {
   const toast = useToast();
   const { t } = useTranslation(["common", "attendance"]);
-  const { workspace } = useOrganization();
+  const { organization } = useOrganization();
   const queryClient = useQueryClient();
   const { hasPermission, isLoading: permissionsLoading } = useMyPermissions();
 
@@ -91,9 +91,9 @@ export function useOtApprovals() {
   const { approveOt, isProcessing } = useApproveOt();
 
   const { data: employeesData } = useQuery<PaginatedResponse<Employee>>({
-    queryKey: ["employees-list-all", workspace?.id],
+    queryKey: ["employees-list-all", organization?.id],
     queryFn: () => fetchEmployees(1, 1000),
-    enabled: !!workspace?.id,
+    enabled: !!organization?.id,
   });
 
   // ── Memoized maps ────────────────────────────────────────────────
@@ -201,7 +201,7 @@ export function useOtApprovals() {
     handleNextMonth,
     // Misc
     queryClient,
-    workspace,
+    organization,
     t,
   };
 }

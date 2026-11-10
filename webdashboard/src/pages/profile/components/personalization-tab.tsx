@@ -43,14 +43,14 @@ export const PersonalizationTab: React.FC = () => {
             onClick={() => { setUserTheme(null); }} 
             variant="ghost"
           >
-            <Undo2 size={14} /> {t("profile.personalization.use_workspace_default").toUpperCase()}
+            <Undo2 size={14} /> {t("profile.personalization.use_organization_default").toUpperCase()}
           </Button>
         ) : null}
       </div>
 
       <div className="space-y-10">
         <div className="space-y-6">
-          <label className={LABEL_BASE}>{t("common.workspace_settings.primary_color")}</label>
+          <label className={LABEL_BASE}>{t("common.organization_settings.primary_color")}</label>
           <div className="flex flex-wrap gap-5 items-center">
             {colorPresets.map((preset) => (
               <Button className={cn(

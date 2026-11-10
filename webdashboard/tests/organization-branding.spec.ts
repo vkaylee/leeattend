@@ -27,10 +27,10 @@ test.describe('Organization Branding', () => {
     await logoInput.press('Enter');
 
     // Set tagline
-    await page.getByTestId('workspace-tagline-input').fill(testTagline);
+    await page.getByTestId('organization-tagline-input').fill(testTagline);
 
     // Save
-    const saveBtn = page.getByTestId('save-workspace-config-btn');
+    const saveBtn = page.getByTestId('save-organization-config-btn');
     await saveBtn.click();
 
     // Wait for mutation to complete by checking button state
@@ -42,6 +42,6 @@ test.describe('Organization Branding', () => {
     await expect(logo).toHaveCSS('background-image', `url("${testLogoUrl}")`);
 
     // Tagline input retains updated value
-    await expect(page.getByTestId('workspace-tagline-input')).toHaveValue(testTagline);
+    await expect(page.getByTestId('organization-tagline-input')).toHaveValue(testTagline);
   });
 });

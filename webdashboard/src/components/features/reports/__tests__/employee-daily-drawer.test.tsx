@@ -31,7 +31,7 @@ vi.mock("@/lib/api", async (importOriginal) => {
         ...actual,
         fetchAttendanceReport: vi.fn(),
         reprocessAttendance: vi.fn(),
-        fetchWorkspaceAttendanceAdjustments: vi.fn(),
+        fetchAttendanceAdjustments: vi.fn(),
         adminConfirmAttendance: vi.fn(),
         approveOt: vi.fn(),
         fetchRawAttendanceLogs: vi.fn(),
@@ -92,7 +92,7 @@ describe("EmployeeDailyDrawer", () => {
             total: 1,
         });
  
-        (api.fetchWorkspaceAttendanceAdjustments as Mock).mockResolvedValue({ data: [], total: 0, page: 1, limit: 20 });
+        (api.fetchAttendanceAdjustments as Mock).mockResolvedValue({ data: [], total: 0, page: 1, limit: 20 });
  
         (api.reprocessAttendance as Mock).mockResolvedValue(true);
  

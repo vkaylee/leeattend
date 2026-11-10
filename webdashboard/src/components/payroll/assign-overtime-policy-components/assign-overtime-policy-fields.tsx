@@ -13,8 +13,8 @@ export function AssigneeTypeSelector({
   setTargetId,
   t
 }: {
-  selectedType: 'employee' | 'department' | 'workspace';
-  setSelectedType: (val: 'employee' | 'department' | 'workspace') => void;
+  selectedType: 'employee' | 'department' | 'organization';
+  setSelectedType: (val: 'employee' | 'department' | 'organization') => void;
   setTargetId: (val: string) => void;
   t: (key: string) => string;
 }) {
@@ -25,7 +25,7 @@ export function AssigneeTypeSelector({
         {[
           { id: 'employee', label: t('common.employee'), icon: <User size={12}/> },
           { id: 'department', label: t('common.department'), icon: <Building2 size={12}/> },
-          { id: 'workspace', label: t('common.global'), icon: <ShieldCheck size={12}/> }
+          { id: 'organization', label: t('common.global'), icon: <ShieldCheck size={12}/> }
         ].map(opt => (
           <Button className={cn(
               'flex-1 flex items-center justify-center gap-2 py-2 rounded-xl text-xs font-bold transition-all',
@@ -34,7 +34,7 @@ export function AssigneeTypeSelector({
             data-testid={`assignee-type-${opt.id}`}
             key={opt.id}
             onClick={() => {
-              setSelectedType(opt.id as 'employee' | 'department' | 'workspace');
+              setSelectedType(opt.id as 'employee' | 'department' | 'organization');
               setTargetId('');
             }}
             type='button'
@@ -55,12 +55,12 @@ export function AssigneePicker({
   t
 }: {
   departments: Department[];
-  selectedType: 'employee' | 'department' | 'workspace';
+  selectedType: 'employee' | 'department' | 'organization';
   setTargetId: (val: string) => void;
   t: (key: string) => string;
   targetId: string;
 }) {
-  if (selectedType === 'workspace') return null;
+  if (selectedType === 'organization') return null;
 
   if (selectedType === 'employee') {
     return (

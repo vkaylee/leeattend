@@ -1,12 +1,12 @@
 import { Eye, History } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import type { WorkspaceLeaveBalance } from "@/lib/api/types";
+import type { OrganizationLeaveBalance } from "@/lib/api/types";
 
 import Button from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 interface DesktopBalanceRowProps {
-  balance: WorkspaceLeaveBalance;
+  balance: OrganizationLeaveBalance;
   onViewDetails: () => void;
   onViewHistory: () => void;
 }

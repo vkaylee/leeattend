@@ -42,7 +42,7 @@ export default function OrganizationRolesPage() {
           </PermissionGate>
         }
         description={t("rolesPage.subtitle", {
-          defaultValue: "Define custom roles and manage access levels across the workspace",
+          defaultValue: "Define custom roles and manage access levels across the organization",
         })}
         icon={<ShieldCheck size={20} />}
         title={t("rolesPage.title", { defaultValue: "Role Management" })}

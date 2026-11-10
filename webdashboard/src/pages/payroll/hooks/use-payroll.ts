@@ -35,8 +35,8 @@ export function usePayroll() {
     employeePayslipsLoading,
     employees,
     empsLoading,
-    workspacePayslips,
-    workspacePayslipsLoading,
+    organizationPayslips,
+    organizationPayslipsLoading,
   } = usePayrollData({
     calcMonth,
     calcYear,
@@ -56,7 +56,7 @@ export function usePayroll() {
   } = usePayrollLifecycle({
     calcMonth,
     calcYear,
-    hasCalculatedPayslips: workspacePayslips.length > 0,
+    hasCalculatedPayslips: organizationPayslips.length > 0,
   });
   const handleViewDetail = (employee: Employee) => {
     setSelectedEmployee(employee);
@@ -71,7 +71,7 @@ export function usePayroll() {
 
   const handleAdjustmentResolved = () => {
     void queryClient.invalidateQueries({ queryKey: ["payslips", selectedEmployee?.id] });
-    void queryClient.invalidateQueries({ queryKey: ["workspace-payslips"] });
+    void queryClient.invalidateQueries({ queryKey: ["organization-payslips"] });
     void queryClient.invalidateQueries({ queryKey: ["adjustments"] });
   };
 
@@ -95,8 +95,8 @@ export function usePayroll() {
     setIsDetailDrawerOpen,
     employees,
     empsLoading,
-    workspacePayslips,
-    workspacePayslipsLoading,
+    organizationPayslips,
+    organizationPayslipsLoading,
     employeePayslips,
     employeePayslipsLoading,
     employeeAdjustments,

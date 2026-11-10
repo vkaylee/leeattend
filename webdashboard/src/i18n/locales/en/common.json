@@ -110,7 +110,7 @@
     },
     "auto": "Auto",
     "back": "Back",
-    "back_to_workspace": "Back to Organization",
+    "back_to_organization": "Back to Organization",
     "base_for_ot": "OT Base",
     "billing": "Billing",
     "break": "Break",
@@ -934,7 +934,7 @@
     "work_day": "Work Day",
     "working": "Working...",
     "workspace_owner": "Owner",
-    "workspace_settings": {
+    "organization_settings": {
       "attendance_config": "Attendance Configuration",
       "branding": "Branding",
       "date_format": "Date Format",
@@ -1010,9 +1010,9 @@
         "60min": "60 minutes",
         "60min_desc": "1h blocks"
       },
-      "workspace_logo": "Organization Logo",
-      "workspace_name": "Organization Name",
-      "workspace_name_placeholder": "e.g., LeeAttend Corp",
+      "organization_logo": "Organization Logo",
+      "organization_name": "Organization Name",
+      "organization_name_placeholder": "e.g., LeeAttend Corp",
       "dark_mode_preference": "Chế độ hiển thị"
     },
     "year": "Year",
@@ -1790,7 +1790,7 @@
   "status_active_caps": "ACTIVE",
   "status_off": "OFF",
   "status_expired": "EXPIRED",
-  "workspace": {
+  "organization": {
     "roles": {
       "title": "Organization Roles"
     }
@@ -2166,7 +2166,7 @@
     "ot_time": "Tăng ca"
   },
   "no_results": "Không tìm thấy cài đặt phù hợp",
-  "workspace_settings": {
+  "organization_settings": {
     "dark_mode_preference": "Chế độ hiển thị"
   },
   "title": "Roles",

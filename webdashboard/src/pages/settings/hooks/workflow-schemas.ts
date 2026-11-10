@@ -21,12 +21,12 @@ export const workflowSchema = z.object({
 
 export type WorkflowFormValues = z.infer<typeof workflowSchema>;
 
-export interface WorkspaceRoleDef {
+export interface OrganizationRoleDef {
   id: string;
   name: string;
 }
 
-export interface WorkspaceMemberDef {
+export interface OrganizationMemberDef {
   email: string;
   full_name?: string;
   user_id: string;

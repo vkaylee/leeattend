@@ -8,7 +8,7 @@ import { useDerivedStateFrom } from "@/hooks/use-derived-state-from";
 import { useProfile } from "@/hooks/use-profile";
 import { logError } from "@/lib/logger";
 import { useSearchPatch } from "@/lib/state";
-import { Route } from "@/routes/_authenticated/_workspace/profile";
+import { Route } from "@/routes/_authenticated/_organization/profile";
 
 export type TabType = ProfileSearch["tab"];
 

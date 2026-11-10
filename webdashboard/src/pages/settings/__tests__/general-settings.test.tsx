@@ -37,7 +37,7 @@ vi.mock("@/components/ui/toast", () => ({ useToast: () => ({ success: vi.fn(), e
 
 const mockOrganization = {
   id: "test-org-id",
-  name: "Test Workspace",
+  name: "Test Organization",
   date_format: "DD/MM/YYYY",
   time_format: "24h",
   timezone: "UTC",
@@ -67,7 +67,7 @@ describe("GeneralSettings Page", () => {
 
     // Wait for content
     expect(await screen.findByTestId("general-settings-title")).toBeDefined();
-    expect(screen.getByTestId("save-workspace-config-btn")).toBeDefined();
+    expect(screen.getByTestId("save-organization-config-btn")).toBeDefined();
   });
 
   it("switches tabs correctly", async () => {
@@ -83,14 +83,14 @@ describe("GeneralSettings Page", () => {
     // Click Appearance tab
     fireEvent.click(screen.getByTestId("tab-appearance"));
 
-    // Workspace Name input should be visible in Appearance tab
-    expect(await screen.findByTestId("workspace-name-input")).toBeDefined();
+    // Organization Name input should be visible in Appearance tab
+    expect(await screen.findByTestId("organization-name-input")).toBeDefined();
     
     // Click Localization tab
     fireEvent.click(screen.getByTestId("tab-localization"));
     
     // Wait until Appearance input is gone or Localization header appears
-    expect(await screen.findByText("common.workspace_settings.general_config")).toBeDefined();
+    expect(await screen.findByText("common.organization_settings.general_config")).toBeDefined();
   });
 
   it("calls updateMutation on save", async () => {
@@ -105,12 +105,12 @@ describe("GeneralSettings Page", () => {
     // Wait for content
     await screen.findByTestId("general-settings-title");
 
-    const saveBtn = screen.getByTestId("save-workspace-config-btn");
+    const saveBtn = screen.getByTestId("save-organization-config-btn");
     fireEvent.click(saveBtn);
 
     await waitFor(() => {
       expect(api.updateOrganization).toHaveBeenCalledWith(expect.objectContaining({
-        name: "Test Workspace",
+        name: "Test Organization",
         date_format: "DD/MM/YYYY"
       }));
     });

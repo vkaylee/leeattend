@@ -5,7 +5,7 @@ import { useDepartments } from "@/hooks/use-departments";
 import { fetchOrganization, fetchEmployers } from "@/lib/api";
 
 export function useReportsMetadata() {
-  const { data: workspace } = useQuery({
+  const { data: organization } = useQuery({
     queryKey: ["organization"],
     queryFn: () => fetchOrganization(),
   });
@@ -17,5 +17,5 @@ export function useReportsMetadata() {
     queryFn: () => fetchEmployers(),
   });
 
-  return { workspace, departments, employers };
+  return { organization, departments, employers };
 }

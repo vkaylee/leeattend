@@ -114,7 +114,7 @@ export default function EmployeeAttendancePolicyTab({ employeeId}: Props) {
         <div className="flex items-center gap-3 mb-4">
           <Clock className="text-slate-400" size={16} />
           <Typography className="text-[10px] font-bold text-slate-500 uppercase tracking-widest" variant="h4">
-            {t("common.payroll.overtime_policies") ? "Default workspace rules" : "Default workspace rules"}
+            {t("common.payroll.overtime_policies") ? "Default organization rules" : "Default organization rules"}
           </Typography>
         </div>
         {defaultRules ? (
@@ -179,7 +179,7 @@ export default function EmployeeAttendancePolicyTab({ employeeId}: Props) {
               {t("employees.policies.no_assignments") || "No policy override"}
             </Typography>
             <Typography className="text-xs text-slate-400 dark:text-slate-500 mt-2 max-w-md mx-auto">
-              {t("employees.policies.no_assignments_desc") || "Employee uses default workspace rules. Click \"Add New\" to set custom attendance policy."}
+              {t("employees.policies.no_assignments_desc") || "Employee uses default organization rules. Click \"Add New\" to set custom attendance policy."}
             </Typography>
           </div>
         )}

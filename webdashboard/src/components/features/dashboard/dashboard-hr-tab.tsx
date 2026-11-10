@@ -6,7 +6,7 @@ import CollapsibleSection from "@/components/features/dashboard/collapsible-sect
 import { HrKpiCards } from "@/components/features/dashboard/hr-kpi-cards";
 import { HrPromoCards } from "@/components/features/dashboard/hr-promo-cards";
 import { HrQuickStats } from "@/components/features/dashboard/hr-quick-stats";
-import { type WorkspaceStats } from "@/hooks/use-dashboard";
+import { type OrganizationStats } from "@/hooks/use-dashboard";
 
 export interface DonutData {
   fill: string;
@@ -20,7 +20,7 @@ interface DashboardHrTabProps {
   donutData: DonutData[];
   formatCurrency: (value: number) => string;
   hasDonutData: boolean;
-  hrStats: WorkspaceStats | undefined;
+  hrStats: OrganizationStats | undefined;
   isLoading: boolean;
   t: TFunction;
   toggleSection: (id: string) => void;

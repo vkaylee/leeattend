@@ -10,7 +10,7 @@ vi.mock("../client", () => ({
 }));
 
 import {
-  fetchWorkspaceAssignments,
+  fetchAssignments,
   fetchEmployeeAssignments,
   createEmployeeAssignment,
   updateEmployeeAssignment,
@@ -23,12 +23,12 @@ describe("employee-assignments api", () => {
     vi.clearAllMocks();
   });
 
-  describe("fetchWorkspaceAssignments", () => {
+  describe("fetchAssignments", () => {
     it("fetches assignments from the flat endpoint", async () => {
       const mockData = [{ id: "assign-1", employee_id: "emp-1", employee_name: "Nguyen Van A", status: "active" }];
       vi.mocked(client.GET).mockResolvedValueOnce({ data: mockData } as unknown as never);
 
-      const result = await fetchWorkspaceAssignments();
+      const result = await fetchAssignments();
       expect(result).toEqual(mockData);
       expect(client.GET).toHaveBeenCalledWith("/v1/assignments");
     });

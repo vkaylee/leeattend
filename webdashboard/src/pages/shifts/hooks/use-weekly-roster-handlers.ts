@@ -6,7 +6,7 @@ import { format, addDays } from "date-fns";
 import type { useToast } from "@/components/ui/toast";
 import type { AssignPatternRequest, EffectiveSchedule, Employee, EmployeeSchedule, EmployeeWorkingPattern } from "@/lib/api/types";
 
-import { fetchWorkspaceSchedules } from "@/lib/api";
+import { fetchSchedules } from "@/lib/api";
 import { writeFrequentShift } from "@/lib/frequent-shifts-storage";
 
 type ToastApi = ReturnType<typeof useToast>;
@@ -91,7 +91,7 @@ export function useWeeklyRosterHandlers({
     const previousWeekStart = addDays(startOfWeek, -7);
     const previousWeekEnd = addDays(startOfWeek, -1);
     try {
-      const previousSchedules = await fetchWorkspaceSchedules(format(previousWeekStart, "yyyy-MM-dd"),
+      const previousSchedules = await fetchSchedules(format(previousWeekStart, "yyyy-MM-dd"),
       format(previousWeekEnd, "yyyy-MM-dd"),);
       const empPrevious = previousSchedules.find(
         (s: EmployeeSchedule) =>

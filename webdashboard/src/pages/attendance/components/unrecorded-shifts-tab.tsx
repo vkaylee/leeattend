@@ -107,7 +107,7 @@ export function UnrecordedShiftsTab() {
     isLoading,
     queryKey,
     tracesByKey,
-    workspaceTimezone,
+    organizationTimezone,
     fetchNextPage,
   } = useUnrecordedShiftsData({
     employeeIds,
@@ -129,7 +129,7 @@ export function UnrecordedShiftsTab() {
     fetchNextPage,
     employeeMap,
     selectedDate,
-    workspaceTimezone,
+    organizationTimezone,
     selectedDept,
   });
 

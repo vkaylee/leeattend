@@ -12,7 +12,7 @@ export function AssigneeTypeSelect({ assigneeType, setAssigneeType, t }: { assig
   return (
     <div className="space-y-2">
       <label className="text-[10px] font-bold text-primary-400 uppercase tracking-widest ml-1" htmlFor="assignee-type">{t("leave_requests.policy.table.type")}</label>
-      <Combobox className="bg-slate-50 dark:bg-slate-800 border-primary-100 dark:border-primary-800/50 h-14" data-testid="assign-type-select" id="assignee-type" onChange={setAssigneeType} options={[{ value: "workspace", label: t("leave_requests.policy.assignee_types.workspace"), description: t("leave_requests.policy.assignee_types.workspace_desc") }, { value: "department", label: t("leave_requests.policy.assignee_types.department"), description: t("leave_requests.policy.assignee_types.department_desc") }, { value: "employee", label: t("leave_requests.policy.assignee_types.employee"), description: t("leave_requests.policy.assignee_types.employee_desc") }]} value={assigneeType} />
+      <Combobox className="bg-slate-50 dark:bg-slate-800 border-primary-100 dark:border-primary-800/50 h-14" data-testid="assign-type-select" id="assignee-type" onChange={setAssigneeType} options={[{ value: "organization", label: t("leave_requests.policy.assignee_types.organization"), description: t("leave_requests.policy.assignee_types.organization_desc") }, { value: "department", label: t("leave_requests.policy.assignee_types.department"), description: t("leave_requests.policy.assignee_types.department_desc") }, { value: "employee", label: t("leave_requests.policy.assignee_types.employee"), description: t("leave_requests.policy.assignee_types.employee_desc") }]} value={assigneeType} />
     </div>
   );
 }

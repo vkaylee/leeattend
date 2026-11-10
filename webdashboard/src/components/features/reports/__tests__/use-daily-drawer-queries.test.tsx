@@ -26,7 +26,7 @@ const {
 
 vi.mock("@/lib/api", () => ({
     fetchAttendanceReport: mockFetchAttendanceReport,
-    fetchWorkspaceAttendanceAdjustments: mockFetchWorkspaceAttendanceAdjustments,
+    fetchAttendanceAdjustments: mockFetchWorkspaceAttendanceAdjustments,
     fetchRawAttendanceLogs: mockFetchRawAttendanceLogs,
     fetchShifts: mockFetchShifts,
 }));

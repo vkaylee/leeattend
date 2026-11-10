@@ -3,13 +3,13 @@ import { describe, expect, it } from "vitest";
 import {
     attendanceTrendSchema,
     departmentAttendanceSchema,
-    workspaceStatsSchema,
+    organizationStatsSchema,
 } from "../dashboard-schemas";
 
 const rate = (value: string | null) => ({ value, numerator: 5, denominator: 10, unit: "employee_days" });
 
 describe("dashboard operational schemas (rate contract)", () => {
-    it("accepts workspace stats with rate fields", () => {
+    it("accepts organization stats with rate fields", () => {
         const payload = {
             total_employees: 10,
             present_today: 8,
@@ -24,10 +24,10 @@ describe("dashboard operational schemas (rate contract)", () => {
             absence_rate: rate("10"),
             late_rate: rate("10"),
         };
-        expect(() => workspaceStatsSchema.parse(payload)).not.toThrow();
+        expect(() => organizationStatsSchema.parse(payload)).not.toThrow();
     });
 
-    it("rejects workspace stats missing a rate field", () => {
+    it("rejects organization stats missing a rate field", () => {
         const { attendance_rate: _omit, ...rest } = {
             total_employees: 10,
             present_today: 8,
@@ -42,7 +42,7 @@ describe("dashboard operational schemas (rate contract)", () => {
             absence_rate: rate("10"),
             late_rate: rate("10"),
         };
-        expect(() => workspaceStatsSchema.parse(rest)).toThrow();
+        expect(() => organizationStatsSchema.parse(rest)).toThrow();
     });
 
     it("accepts attendance trend with eligible + rate fields", () => {

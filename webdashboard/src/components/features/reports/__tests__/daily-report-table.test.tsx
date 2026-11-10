@@ -17,7 +17,7 @@ vi.mock("react-i18next", () => ({
 // now reads workspace.timezone for correct punch positioning.
 vi.mock("@/hooks/use-workspace", () => ({
     useWorkspace: () => ({
-        workspace: { timezone: "UTC" },
+        organization: { timezone: "UTC" },
     }),
 }));
 

@@ -530,13 +530,13 @@
     "subtitle": "管理个人信息和账号设置",
     "join_date": "加入日期",
     "preferred_language": "首选语言",
-    "follow_workspace": "跟随组织设置",
+    "follow_organization": "跟随组织设置",
     "bio": "个人简介",
     "bio_placeholder": "简短的自我介绍...",
     "personalization": {
       "title": "个性化",
       "subtitle": "自定义您的个人 UI 颜色",
-      "use_workspace_default": "使用组织默认设置",
+      "use_organization_default": "使用组织默认设置",
       "note": "* 此更改仅适用于您当前使用的浏览器。"
     },
     "security": {

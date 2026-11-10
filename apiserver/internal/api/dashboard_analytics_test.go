@@ -184,7 +184,7 @@ func TestDashboardAnalytics_ForbiddenWithoutBasePermission(t *testing.T) {
 	}{
 		{"ExecutiveOverview", "/api/v1/dashboard/executive-overview", h.ExecutiveOverview},
 		{"OvertimeBreakdown", "/api/v1/dashboard/overtime-breakdown", h.OvertimeBreakdown},
-		{"WorkspaceStats", "/api/v1/dashboard/workspace-stats", h.WorkspaceStats},
+		{"OrganizationStats", "/api/v1/dashboard/organization-stats", h.OrganizationStats},
 		{"AttendanceTrend", "/api/v1/dashboard/attendance-trend", h.AttendanceTrend},
 		{"DepartmentAttendance", "/api/v1/dashboard/department-attendance", h.DepartmentAttendance},
 		{"UnexcusedAbsences", "/api/v1/dashboard/unexcused-absences", h.UnexcusedAbsences},
@@ -269,7 +269,8 @@ func TestDashboardAnalytics_ExecutiveOverview(t *testing.T) {
 	ctx := testContext(userID)
 	repo := &mockDashboardAnalyticsRepo{
 		executiveOverview: DashboardMetricsResponse{
-			ContractVersion: "executive-dashboard.v1",
+			ContractVersion: "executive-dashboard.v2",
+			Organization:    DashboardOrganizationContext{Timezone: "UTC", Currency: "USD"},
 			Context: DashboardMetricContext{
 				Period:  DashboardReportingPeriod{Key: "today"},
 				Filters: map[string]string{},
@@ -348,7 +349,8 @@ func TestDashboardAnalytics_OvertimeBreakdown(t *testing.T) {
 	ctx := testContext(userID)
 	repo := &mockDashboardAnalyticsRepo{
 		overtimeBreakdown: OvertimeBreakdownResponse{
-			ContractVersion: "overtime-breakdown.v1",
+			ContractVersion: "overtime-breakdown.v2",
+			Organization:    DashboardOrganizationContext{Timezone: "UTC", Currency: "USD"},
 			Rows: []OvertimeBreakdownRow{
 				{DepartmentID: uuid.New(), DepartmentName: "Eng", SystemOTHours: 10, ApprovedOTHours: 8, CostAvailable: false},
 			},
@@ -500,7 +502,7 @@ func TestDashboardAnalytics_AllRemainingEndpoints(t *testing.T) {
 		path    string
 		handler func(http.ResponseWriter, *http.Request)
 	}{
-		{"WorkspaceStats", "/api/v1/dashboard/workspace-stats", h.WorkspaceStats},
+		{"OrganizationStats", "/api/v1/dashboard/organization-stats", h.OrganizationStats},
 		{"AttendanceTrend", "/api/v1/dashboard/attendance-trend", h.AttendanceTrend},
 		{"DepartmentAttendance", "/api/v1/dashboard/department-attendance?range=today", h.DepartmentAttendance},
 		{"OvertimeTrend", "/api/v1/dashboard/overtime-trend", h.OvertimeTrend},

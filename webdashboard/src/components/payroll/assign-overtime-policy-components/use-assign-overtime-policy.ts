@@ -8,7 +8,7 @@ import { fetchOvertimePolicies, assignOvertimePolicy } from '@/lib/api/payroll';
 
 interface UseAssignOvertimePolicyConfig {
   initialId?: string;
-  initialType?: 'employee' | 'department' | 'workspace';
+  initialType?: 'employee' | 'department' | 'organization';
   isOpen: boolean;
   onClose: () => void;
 }
@@ -22,7 +22,7 @@ export function useAssignOvertimePolicy({isOpen,
   const queryClient = useQueryClient();
   const toast = useToast();
 
-  const [selectedType, setSelectedType] = useState<'employee' | 'department' | 'workspace'>(initialType);
+  const [selectedType, setSelectedType] = useState<'employee' | 'department' | 'organization'>(initialType);
   const [targetId, setTargetId] = useState(initialId);
   const [policyId, setPolicyId] = useState('');
   const [effectiveFrom, setEffectiveFrom] = useState(new Date().toISOString().split('T')[0]);
@@ -46,7 +46,7 @@ export function useAssignOvertimePolicy({isOpen,
 
   const handleSubmit = (e: React.SyntheticEvent) => {
     e.preventDefault();
-    if (selectedType !== 'workspace' && !targetId) {
+    if (selectedType !== 'organization' && !targetId) {
       toast.error(t('common.error'));
       return;
     }
@@ -57,7 +57,7 @@ export function useAssignOvertimePolicy({isOpen,
 
     assignMutation.mutate({
       assignee_type: selectedType,
-      assignee_id: selectedType === 'workspace' ? null : targetId,
+      assignee_id: selectedType === 'organization' ? null : targetId,
       policy_id: policyId,
       effective_from: effectiveFrom
     });

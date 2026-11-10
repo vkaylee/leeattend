@@ -48,7 +48,7 @@ func TestSingleOrganizationHandlerInjectsOrganizationContext(t *testing.T) {
 	organizationID := uuid.MustParse("018d0000-0000-7000-8000-000000000001")
 	handler := singleOrganizationHandler(organizationID, func(w http.ResponseWriter, r *http.Request) {
 		called = true
-		if got, ok := httpinfra.WorkspaceIDFromContext(r.Context()); !ok || got != organizationID {
+		if got, ok := httpinfra.OrganizationIDFromContext(r.Context()); !ok || got != organizationID {
 			t.Errorf("expected organization context %s, got %s (ok=%v)", organizationID, got, ok)
 		}
 		if got := r.PathValue("ws_id"); got != "" {

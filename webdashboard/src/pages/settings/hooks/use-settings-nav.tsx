@@ -37,27 +37,27 @@ export interface SettingItem {
   permissions?: string[];
 }
 
-const getWorkspaceGroup = (t: TFunction): SettingItem[] => [
+const getOrganizationGroup = (t: TFunction): SettingItem[] => [
   {
     description: t("settings.categories.general_desc", { defaultValue: "Cấu hình chung và thông tin tổ chức" }),
     icon: <Settings2 className="w-4 h-4" />,
     label: t("settings.categories.general", { defaultValue: "Cài đặt chung" }),
     path: ROUTES.SETTINGS.GENERAL,
-    permissions: ["organization:settings:read", "workspace:settings:read"],
+    permissions: ["organization:settings:read"],
   },
   {
     description: t("settings.categories.locations_desc", { defaultValue: "Quản lý các chi nhánh và địa điểm làm việc" }),
     icon: <MapPin className="w-4 h-4" />,
     label: t("settings.categories.locations", { defaultValue: "Địa điểm làm việc" }),
     path: ROUTES.SETTINGS.LOCATIONS,
-    permissions: ["organization:settings:read", "workspace:settings:read"],
+    permissions: ["organization:settings:read"],
   },
   {
     description: t("settings.categories.custom_fields_desc", { defaultValue: "Quản lý trường dữ liệu tùy chỉnh cho nhân sự" }),
     icon: <Braces className="w-4 h-4" />,
     label: t("settings.categories.custom_fields", { defaultValue: "Trường tùy chỉnh" }),
     path: ROUTES.SETTINGS.CUSTOM_FIELDS,
-    permissions: ["organization:settings:read", "workspace:settings:read"],
+    permissions: ["organization:settings:read"],
   },
 ];
 
@@ -119,28 +119,28 @@ const getOperationsGroup = (t: TFunction): SettingItem[] => [
     icon: <Clock className="w-4 h-4" />,
     label: t("settings.categories.overtime", { defaultValue: "Quy định Tăng ca" }),
     path: ROUTES.SETTINGS.OVERTIME,
-    permissions: ["organization:settings:read", "workspace:settings:read", "approval_workflows:read"],
+    permissions: ["organization:settings:read", "approval_workflows:read"],
   },
   {
     description: t("settings.categories.workflows_desc", { defaultValue: "Thiết lập quy trình phê duyệt đa cấp" }),
     icon: <Workflow className="w-4 h-4" />,
     label: t("settings.categories.workflows", { defaultValue: "Quy trình phê duyệt" }),
     path: ROUTES.SETTINGS.WORKFLOWS,
-    permissions: ["organization:settings:read", "workspace:settings:read", "approval_workflows:read"],
+    permissions: ["organization:settings:read", "approval_workflows:read"],
   },
   {
     description: t("settings.categories.lifecycle_desc", { defaultValue: "Mẫu danh mục thủ tục tiếp nhận và bàn giao" }),
     icon: <ClipboardList className="w-4 h-4" />,
     label: t("settings.categories.lifecycle", { defaultValue: "Quy trình Onboarding" }),
     path: ROUTES.SETTINGS.LIFECYCLE_TEMPLATES,
-    permissions: ["organization:settings:read", "workspace:settings:read"],
+    permissions: ["organization:settings:read"],
   },
   {
     description: t("settings.categories.condition_types_desc", { defaultValue: "Cấu hình điều kiện làm việc đặc thù" }),
     icon: <Tags className="w-4 h-4" />,
     label: t("settings.categories.condition_types", { defaultValue: "Điều kiện làm việc" }),
     path: ROUTES.SETTINGS.CONDITION_TYPES,
-    permissions: ["organization:settings:read", "workspace:settings:read"],
+    permissions: ["organization:settings:read"],
   },
   {
     description: t("shifts.rules.subtitle", { defaultValue: "Mẫu lịch xoay ca và quy tắc gán ca tự động" }),
@@ -157,7 +157,7 @@ const getSystemGroup = (t: TFunction): SettingItem[] => [
     icon: <Database className="w-4 h-4" />,
     label: t("settings.categories.storage", { defaultValue: "Lưu trữ tài liệu" }),
     path: ROUTES.SETTINGS.STORAGE,
-    permissions: ["organization:settings:read", "workspace:settings:read"],
+    permissions: ["organization:settings:read"],
   },
   {
     description: t("smtp.subtitle", { defaultValue: "Cấu hình kết nối máy chủ gửi email thông báo" }),
@@ -172,7 +172,7 @@ const getSystemGroup = (t: TFunction): SettingItem[] => [
     icon: <Scale className="w-4 h-4" />,
     label: t("settings.categories.econtracts", { defaultValue: "Hợp đồng điện tử" }),
     path: ROUTES.SETTINGS.ECONTRACTS,
-    permissions: ["organization:settings:read", "workspace:settings:read"],
+    permissions: ["organization:settings:read"],
   },
 ];
 
@@ -180,14 +180,14 @@ export interface SettingsNavState {
   accessGroup: SettingItem[];
   operationsGroup: SettingItem[];
   systemGroup: SettingItem[];
-  workspaceGroup: SettingItem[];
+  organizationGroup: SettingItem[];
 }
 
 export function useSettingsNav(): SettingsNavState {
   const { t } = useTranslation();
   const { hasAnyPermission } = useMyPermissions();
 
-  const workspaceGroup = useMemo(() => getWorkspaceGroup(t), [t]);
+  const organizationGroup = useMemo(() => getOrganizationGroup(t), [t]);
   const accessGroup = useMemo(() => getAccessGroup(t), [t]);
   const operationsGroup = useMemo(() => getOperationsGroup(t), [t]);
   const systemGroup = useMemo(() => getSystemGroup(t), [t]);
@@ -201,6 +201,6 @@ export function useSettingsNav(): SettingsNavState {
     accessGroup: filterItems(accessGroup),
     operationsGroup: filterItems(operationsGroup),
     systemGroup: filterItems(systemGroup),
-    workspaceGroup: filterItems(workspaceGroup),
+    organizationGroup: filterItems(organizationGroup),
   };
 }

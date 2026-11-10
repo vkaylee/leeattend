@@ -193,7 +193,7 @@ export const ROUTE_METADATA_MAP: Record<string, RouteMetadata> = {
     defaultTitle: "Tài liệu của tôi",
   },
 
-  // Workspace Settings
+  // Organization Settings
   [ROUTES.SETTINGS.ROOT]: {
     breadcrumbKey: "settings.title",
     defaultBreadcrumb: "Trung tâm Cài đặt",

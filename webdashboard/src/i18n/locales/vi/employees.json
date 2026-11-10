@@ -530,13 +530,13 @@
     "subtitle": "Quản lý thông tin cá nhân và cài đặt tài khoản",
     "join_date": "Ngày tham gia",
     "preferred_language": "Ngôn ngữ ưu tiên",
-    "follow_workspace": "Theo cài đặt tổ chức",
+    "follow_organization": "Theo cài đặt tổ chức",
     "bio": "Tiểu sử",
     "bio_placeholder": "Giới thiệu ngắn về bản thân bạn...",
     "personalization": {
       "title": "Cá nhân hóa",
       "subtitle": "Tùy chỉnh màu sắc giao diện cá nhân",
-      "use_workspace_default": "Dùng mặc định của tổ chức",
+      "use_organization_default": "Dùng mặc định của tổ chức",
       "note": "* Thay đổi này chỉ áp dụng cho bạn trên trình duyệt này."
     },
     "security": {

@@ -22,7 +22,7 @@ Canonical rules:
 
 Existing paths keep current payloads and defaults:
 
-- `/v1/dashboard/workspace-stats`
+- `/v1/dashboard/organization-stats`
 - `/v1/dashboard/attendance-trend`
 - `/v1/dashboard/department-attendance`
 - `/v1/dashboard/unexcused-absences`
@@ -48,4 +48,4 @@ Consumers must not parse old responses with the new metric schema. Keep old Zod 
 
 ## Security and privacy
 
-Handlers must authorize before service execution. Workspace and department scope must be applied before querying. Payroll, cost, budget, and employee-level absence remain separately gated. Do not log metric payloads containing confidential data.
+Handlers must authorize before service execution. Organization and department scope must be applied before querying. Payroll, cost, budget, and employee-level absence remain separately gated. Do not log metric payloads containing confidential data.

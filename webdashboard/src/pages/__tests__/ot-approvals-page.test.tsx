@@ -129,7 +129,7 @@ vi.mock("@/lib/api/overtime-requests", () => ({
     cancelRequest: vi.fn(),
     employeeConsent: vi.fn(),
     getMyAssignments: vi.fn(),
-    getWorkspaceQuotaSummary: vi.fn(),
+    getQuotaSummary: vi.fn(),
     getEmployeeQuota: vi.fn(),
     listRequestBehalfAssignments: vi.fn(),
     createRequestBehalfAssignment: vi.fn(),

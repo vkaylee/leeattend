@@ -21,7 +21,7 @@ import {
   StagingLogsResponse,
 } from "@/lib/api";
 import { useSearchPatch } from "@/lib/state";
-import { Route } from "@/routes/_authenticated/_workspace/attendance-logs";
+import { Route } from "@/routes/_authenticated/_organization/attendance-logs";
 
 const PAGE_SIZE = 20;
 

@@ -23,7 +23,7 @@ type HandlerOptions struct {
 //
 // Matches Rust apiserver/src/utils/logging.rs ProductionJsonFormatter:
 // - Fixed keys: timestamp (UTC millisecond RFC3339), level (uppercase string), message, service ("apiserver")
-// - Correlation keys: request_id, workspace_id, actor_id, span_id (omitted if absent)
+// - Correlation keys: request_id, organization_id, actor_id, span_id (omitted if absent)
 // - On ERROR level: extracts error.type if error attribute exists
 // - All non-envelope attributes are nested under "fields" with centralized PII masking applied.
 type JSONHandler struct {
@@ -91,16 +91,16 @@ func (h *JSONHandler) WithGroup(name string) slog.Handler {
 }
 
 type logEnvelope struct {
-	Timestamp   string         `json:"timestamp"`
-	Level       string         `json:"level"`
-	Message     string         `json:"message"`
-	Service     string         `json:"service"`
-	RequestID   string         `json:"request_id,omitempty"`
-	WorkspaceID string         `json:"workspace_id,omitempty"`
-	ActorID     string         `json:"actor_id,omitempty"`
-	SpanID      string         `json:"span_id,omitempty"`
-	ErrorType   any            `json:"error.type,omitempty"`
-	Fields      map[string]any `json:"fields,omitempty"`
+	Timestamp      string         `json:"timestamp"`
+	Level          string         `json:"level"`
+	Message        string         `json:"message"`
+	Service        string         `json:"service"`
+	RequestID      string         `json:"request_id,omitempty"`
+	OrganizationID string         `json:"organization_id,omitempty"`
+	ActorID        string         `json:"actor_id,omitempty"`
+	SpanID         string         `json:"span_id,omitempty"`
+	ErrorType      any            `json:"error.type,omitempty"`
+	Fields         map[string]any `json:"fields,omitempty"`
 }
 
 // Handle formats and outputs a log record.
@@ -128,14 +128,14 @@ func (h *JSONHandler) Handle(ctx context.Context, r slog.Record) error {
 	timestampStr := ts.Format("2006-01-02T15:04:05.000Z")
 
 	envelope := logEnvelope{
-		Timestamp:   timestampStr,
-		Level:       levelStr,
-		Message:     r.Message,
-		Service:     "apiserver",
-		RequestID:   GetRequestID(ctx),
-		WorkspaceID: GetWorkspaceID(ctx),
-		ActorID:     GetActorID(ctx),
-		SpanID:      GetSpanID(ctx),
+		Timestamp:      timestampStr,
+		Level:          levelStr,
+		Message:        r.Message,
+		Service:        "apiserver",
+		RequestID:      GetRequestID(ctx),
+		OrganizationID: GetOrganizationID(ctx),
+		ActorID:        GetActorID(ctx),
+		SpanID:         GetSpanID(ctx),
 	}
 
 	fields := make(map[string]any)
@@ -150,8 +150,8 @@ func (h *JSONHandler) Handle(ctx context.Context, r slog.Record) error {
 		switch key {
 		case "request_id":
 			envelope.RequestID = val.String()
-		case "workspace_id":
-			envelope.WorkspaceID = val.String()
+		case "organization_id":
+			envelope.OrganizationID = val.String()
 		case "actor_id":
 			envelope.ActorID = val.String()
 		case "span_id":

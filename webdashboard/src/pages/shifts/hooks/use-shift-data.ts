@@ -9,7 +9,7 @@ import {
   fetchAssignmentHistory,
   fetchShifts,
   fetchWorkingPatterns,
-  fetchWorkspaceSchedules,
+  fetchSchedules,
 } from "@/lib/api";
 import {
   AssignmentHistory,
@@ -54,7 +54,7 @@ export function useShiftData({
 
   const { data: allSchedules } = useQuery<EmployeeSchedule[]>({
     queryKey: ["schedules", format(startOfWeek, 'yyyy-MM-dd'), selectedEmploymentId],
-    queryFn: () => fetchWorkspaceSchedules(format(weekDays[0], 'yyyy-MM-dd'),
+    queryFn: () => fetchSchedules(format(weekDays[0], 'yyyy-MM-dd'),
     format(weekDays[6], 'yyyy-MM-dd'),
     selectedEmploymentId ? [selectedEmploymentId] : undefined),
     enabled: viewMode !== "week" || !!selectedEmploymentId,
@@ -89,7 +89,7 @@ export function useShiftData({
       if (!monthStart || !monthEnd) {
         return Promise.resolve([]);
       }
-      return fetchWorkspaceSchedules(format(monthStart, 'yyyy-MM-dd'),
+      return fetchSchedules(format(monthStart, 'yyyy-MM-dd'),
       format(monthEnd, 'yyyy-MM-dd'),
       selectedEmploymentIds.length > 0 ? selectedEmploymentIds : undefined);
     },

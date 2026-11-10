@@ -32,9 +32,9 @@ export interface UseNoShowRowsParams {
   rows: NoShowReportRow[];
   /** The target calendar day ("yyyy-MM-dd") being viewed. */
   viewingDate: string;
-  /** IANA workspace timezone, used as fallback when a row has no per-employee
+  /** IANA organization timezone, used as fallback when a row has no per-employee
    *  timezone resolved. */
-  workspaceTimezone: string;
+  organizationTimezone: string;
 }
 
 const ZONE_REFRESH_INTERVAL_MS = 30_000;
@@ -46,7 +46,7 @@ export function computeNoShowRows(
   params: UseNoShowRowsParams,
   referenceTime = new Date(),
 ): ZonedNoShowRow[] {
-  const { rows, employeeMap, viewingDate, workspaceTimezone } = params;
+  const { rows, employeeMap, viewingDate, organizationTimezone } = params;
   const today = getTodayIso();
   const pastDate = isViewingPastDate(viewingDate, today);
 
@@ -65,10 +65,10 @@ export function computeNoShowRows(
     // The shift's assigned calendar day anchors the shift window.
     const shiftDate = toIsoDate(row.date);
 
-    // Use per-employee timezone from the backend, falling back to workspace
+    // Use per-employee timezone from the backend, falling back to organization
     // timezone. This ensures zone computation uses the correct TZ for
     // employees in different locations.
-    const empTz = row.timezone ?? workspaceTimezone;
+    const empTz = row.timezone ?? organizationTimezone;
 
     // Historical date → fixed record, no live clock.
     const zone = pastDate
@@ -111,7 +111,7 @@ export function useNoShowRows(params: UseNoShowRowsParams): ZonedNoShowRow[] {
       params.rows,
       params.employeeMap,
       params.viewingDate,
-      params.workspaceTimezone,
+      params.organizationTimezone,
       referenceTime,
     ],
   );

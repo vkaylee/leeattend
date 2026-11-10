@@ -9,9 +9,9 @@ import { OvertimeQuotasTab } from "./components/overtime/overtime-quotas-tab";
 
 export default function OvertimeSettings() {
   const { t } = useTranslation();
-  const { workspace: ws } = useOrganization();
+  const { organization } = useOrganization();
 
-  if (!ws) return null;
+  if (!organization) return null;
 
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">

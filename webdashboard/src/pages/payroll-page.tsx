@@ -25,8 +25,8 @@ export default function PayrollPage() {
     setIsDetailDrawerOpen,
     employees,
     empsLoading,
-    workspacePayslips,
-    workspacePayslipsLoading,
+    organizationPayslips,
+    organizationPayslipsLoading,
     employeePayslips,
     employeePayslipsLoading,
     employeeAdjustments,
@@ -73,12 +73,12 @@ export default function PayrollPage() {
       <div className="flex-1 min-h-0">
         <PayrollSummaryTable 
           employees={employees}
-          isLoading={empsLoading || workspacePayslipsLoading}
+          isLoading={empsLoading || organizationPayslipsLoading}
           onSearchChange={setSearchTerm}
           onToggleSelect={toggleSelect}
           onToggleSelectAll={toggleSelectAll}
           onViewDetail={handleViewDetail}
-          payslips={workspacePayslips}
+          payslips={organizationPayslips}
           searchTerm={searchTerm}
           selectedIds={selectedIds}
           isLocked={isLocked}

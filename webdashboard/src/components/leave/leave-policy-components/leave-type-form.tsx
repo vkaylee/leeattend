@@ -7,7 +7,7 @@ import { Typography } from "@/components/ui/typography";
 import { cn } from "@/lib/utils";
 
 interface LeaveTypeFormProps {
-  // Lower-cased codes of leave types already defined in the workspace.
+  // Lower-cased codes of leave types already defined in the organization.
   // Used for client-side duplicate detection (best-effort; the server
   // enforces the case-insensitive unique constraint as source of truth).
   existingCodes: string[];

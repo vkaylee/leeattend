@@ -22,7 +22,7 @@ export * from "./shifts";
 export { fetchNotifications, fetchUnreadCount, markNotificationAsRead, markAllNotificationsAsRead } from "./notifications";
 export type { NotificationType } from "./notifications";
 export * from "./contracts";
-export * from "./workspace-config";
+export * from "./organization-config";
 export * from "./approval-workflows";
 export * from "./employers";
 export * from "./locations";

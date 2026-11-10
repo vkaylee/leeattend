@@ -110,7 +110,7 @@
     },
     "auto": "Tự động",
     "back": "Quay lại",
-    "back_to_workspace": "Quay lại tổ chức",
+    "back_to_organization": "Quay lại tổ chức",
     "base_for_ot": "Tính OT",
     "billing": "Thanh toán",
     "break": "Nghỉ",
@@ -934,7 +934,7 @@
     "work_day": "Ngày làm việc",
     "working": "Đang xử lý...",
     "workspace_owner": "Chủ sở hữu",
-    "workspace_settings": {
+    "organization_settings": {
       "attendance_config": "Cấu hình chấm công",
       "branding": "Nhận diện thương hiệu",
       "date_format": "Định dạng ngày",
@@ -1010,9 +1010,9 @@
         "60min": "60 phút",
         "60min_desc": "Khối 1 giờ"
       },
-      "workspace_logo": "Logo tổ chức",
-      "workspace_name": "Tên tổ chức",
-      "workspace_name_placeholder": "VD: LeeAttend Corp",
+      "organization_logo": "Logo tổ chức",
+      "organization_name": "Tên tổ chức",
+      "organization_name_placeholder": "VD: LeeAttend Corp",
       "dark_mode_preference": "Chế độ hiển thị"
     },
     "year": "Năm",
@@ -1787,7 +1787,7 @@
     "title": "Tổng quan",
     "totalEmployees": "Tổng số nhân viên"
   },
-  "workspace": {
+  "organization": {
     "roles": {
       "title": "Vai trò tổ chức"
     }
@@ -2166,7 +2166,7 @@
     "ot_time": "Tăng ca"
   },
   "no_results": "Không tìm thấy cài đặt phù hợp",
-  "workspace_settings": {
+  "organization_settings": {
     "dark_mode_preference": "Chế độ hiển thị"
   },
   "title": "Roles",

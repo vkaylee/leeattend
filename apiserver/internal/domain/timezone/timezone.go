@@ -8,7 +8,7 @@ import (
 
 var ErrInvalidTimezone = errors.New("invalid timezone")
 
-func ParseWorkspaceTZ(name string) *time.Location {
+func ParseTimezone(name string) *time.Location {
 	if name == "" {
 		return time.UTC
 	}

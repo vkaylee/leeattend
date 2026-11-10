@@ -13,7 +13,7 @@ export async function fetchHolidays(
 }
 
 export async function createHoliday(
-    data: Omit<Holiday, 'id' | 'workspace_id' | 'created_at' | 'updated_at'>,
+    data: Omit<Holiday, 'id' | 'created_at' | 'updated_at'>,
 ): Promise<Holiday> {
     const { data: resData } = await client.POST<Holiday>("/v1/holidays", {
         body: data,

@@ -12,7 +12,7 @@ import {
   fetchAttendancePolicyVersions,
   AttendanceRules,
   AttendancePolicyVersion,
-  Workspace,
+  type Organization,
 } from "@/lib/api";
 
 import { PageHeader, TabContent } from "./time-settings/components";
@@ -24,7 +24,7 @@ export default function TimeSettings() {
   const { t } = useTranslation();
   
 
-  const { data: workspace, isLoading: isLoadingWs, isError: isErrorWs, error: errorWs } = useQuery({
+  const { data: organization, isLoading: isLoadingOrganization, isError: isErrorOrganization, error: errorOrganization } = useQuery({
     queryKey: ["organization"],
     queryFn: () => fetchOrganization(),
   });
@@ -39,10 +39,10 @@ export default function TimeSettings() {
     queryFn: () => fetchAttendancePolicyVersions(),
   });
 
-  const isError = isErrorWs || isErrorRules || isErrorVersions;
-  const error = errorWs ?? errorRules ?? errorVersions;
+  const isError = isErrorOrganization || isErrorRules || isErrorVersions;
+  const error = errorOrganization ?? errorRules ?? errorVersions;
 
-  if (isLoadingWs || isLoadingRules || isLoadingVersions) {
+  if (isLoadingOrganization || isLoadingRules || isLoadingVersions) {
     return (
       <div className="space-y-6">
         <Skeleton className="h-[200px] w-full rounded-2xl" />
@@ -77,7 +77,7 @@ export default function TimeSettings() {
     );
   }
 
-  if (!workspace || !rules) {
+  if (!organization || !rules) {
     return (
       <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 sm:p-8 border border-slate-200/80 dark:border-slate-800/80 shadow-2xs flex flex-col items-center justify-center min-h-[300px] text-center space-y-4">
         <div className="w-16 h-16 rounded-full bg-amber-50 dark:bg-amber-950/30 flex items-center justify-center text-amber-500 border border-amber-100 dark:border-amber-900/50">
@@ -88,19 +88,19 @@ export default function TimeSettings() {
             {t("common.settings.time.missing_title") || "No Data Found"}
           </Typography>
           <Typography className="text-sm text-slate-500 dark:text-slate-400 mt-1 max-w-md" variant="p">
-            {t("common.settings.time.missing_desc") || "Workspace details or default rules are not configured for this workspace."}
+            {t("common.settings.time.missing_desc") || "Organization details or default rules are not configured for this organization."}
           </Typography>
         </div>
       </div>
     );
   }
 
-  return workspace?.id ? (
+  return organization?.id ? (
     <TimeSettingsContent
-      key={`${workspace.id}-${versions.length}`}
+      key={`${organization.id}-${versions.length}`}
       rules={rules}
       versions={versions}
-      workspace={{ ...workspace, id: workspace.id }}
+      organization={{ ...organization, id: organization.id }}
     />
   ) : null;
 }
@@ -108,13 +108,13 @@ export default function TimeSettings() {
 interface TimeSettingsContentProps {
   rules: AttendanceRules;
   versions: AttendancePolicyVersion[];
-  workspace: Workspace;
+  organization: Organization;
 }
 
 function TimeSettingsContent({
   rules,
   versions,
-  workspace,
+  organization,
 }: TimeSettingsContentProps) {
   const { t } = useTranslation();
 

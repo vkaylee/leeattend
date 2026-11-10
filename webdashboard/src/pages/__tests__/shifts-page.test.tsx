@@ -30,7 +30,7 @@ vi.mock("../../lib/api", () => ({
   searchEmployees: vi.fn(),
   fetchShifts: vi.fn(),
   fetchOrganization: vi.fn(),
-  fetchWorkspaceSchedules: vi.fn(),
+  fetchSchedules: vi.fn(),
   fetchAssignmentHistory: vi.fn(),
   assignShift: vi.fn(),
   createShift: vi.fn(),
@@ -222,7 +222,7 @@ describe("ShiftsPage - Shift Picker Modal", () => {
  
     vi.mocked(api.fetchOrganization).mockResolvedValue({ id: "test-ws-id", name: "Test Workspace" } as unknown as Workspace);
  
-    vi.mocked(api.fetchWorkspaceSchedules).mockResolvedValue(mockSchedules as unknown as EmployeeSchedule[]);
+    vi.mocked(api.fetchSchedules).mockResolvedValue(mockSchedules as unknown as EmployeeSchedule[]);
  
     vi.mocked(api.fetchAssignmentHistory).mockResolvedValue([]);
  
@@ -477,12 +477,12 @@ describe("ShiftsPage - Shift Picker Modal", () => {
       await renderShiftsPage();
 
       // Clear any call history from initial render
-      vi.mocked(api.fetchWorkspaceSchedules).mockClear();
+      vi.mocked(api.fetchSchedules).mockClear();
 
       await selectEmployee(user, "emp-1");
 
       await waitFor(() => {
-        expect(api.fetchWorkspaceSchedules).toHaveBeenCalledWith(
+        expect(api.fetchSchedules).toHaveBeenCalledWith(
           expect.any(String),
           expect.any(String),
           ["employment-1"]
@@ -501,8 +501,8 @@ describe("ShiftsPage - Shift Picker Modal", () => {
       // Verify that monthly view is loaded
       await screen.findByTestId("monthly-employee-search");
 
-      // Clear call history of fetchWorkspaceSchedules
-      vi.mocked(api.fetchWorkspaceSchedules).mockClear();
+      // Clear call history of fetchSchedules
+      vi.mocked(api.fetchSchedules).mockClear();
 
       // Select John Doe (emp-1) in the employee search combobox
       const searchSelect = screen.getByTestId("monthly-employee-search");
@@ -510,7 +510,7 @@ describe("ShiftsPage - Shift Picker Modal", () => {
 
       // Wait for it to refetch with the active employment ID
       await waitFor(() => {
-        expect(api.fetchWorkspaceSchedules).toHaveBeenCalledWith(
+        expect(api.fetchSchedules).toHaveBeenCalledWith(
           expect.any(String),
           expect.any(String),
           ["employment-1"]

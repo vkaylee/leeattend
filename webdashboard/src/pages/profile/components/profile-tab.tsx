@@ -81,16 +81,16 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
 
             <div className="space-y-3 px-1">
               <label className={LABEL_BASE}>{t("profile.preferred_language")}</label>
-              <Combobox 
-                className="bg-slate-50 dark:bg-slate-800 border-slate-100 dark:border-slate-800 h-14" 
-                onChange={(value) => { setFormData({ ...formData, preferred_language: value }); }} 
+              <Combobox
+                className="bg-slate-50 dark:bg-slate-800 border-slate-100 dark:border-slate-800 h-14"
+                onChange={(value) => { setFormData({ ...formData, preferred_language: value }); }}
                 options={[
-                  { value: "", label: t("profile.follow_workspace").toUpperCase(), icon: <Globe size={14} /> }, 
-                  { value: "vi", label: t("common.languages.vi").toUpperCase(), icon: <Globe size={14} /> }, 
-                  { value: "en", label: t("common.languages.en").toUpperCase(), icon: <Globe size={14} /> }, 
+                  { value: "", label: t("profile.follow_organization").toUpperCase(), icon: <Globe size={14} /> },
+                  { value: "vi", label: t("common.languages.vi").toUpperCase(), icon: <Globe size={14} /> },
+                  { value: "en", label: t("common.languages.en").toUpperCase(), icon: <Globe size={14} /> },
                   { value: "zh", label: t("common.languages.zh").toUpperCase(), icon: <Globe size={14} /> }
-                ]} 
-                value={formData.preferred_language} 
+                ]}
+                value={formData.preferred_language}
               />
             </div>
           </div>

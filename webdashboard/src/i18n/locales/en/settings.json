@@ -1,5 +1,5 @@
 {
-  "workspace_settings": {
+  "organization_settings": {
     "title": "Organization Settings",
     "description": "Manage configuration, personnel, and organization appearance.",
     "general_config": "General Configuration",
@@ -294,6 +294,7 @@
         "bool_true": "True",
         "bool_false": "False",
         "scopes": {
+            "organization": "Organization",
           "workspace": "Organization",
           "employer": "Employer",
           "department": "Department",
@@ -551,7 +552,7 @@
       "control_panel": "System Configuration",
       "operations": "Operations",
       "security_system": "Security & System",
-      "workspace": "Organization"
+      "organization": "Organization"
     },
     "workflows": {
       "general_section": "General Config",

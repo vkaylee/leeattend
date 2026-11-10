@@ -86,10 +86,10 @@ export const useMyOtAssignments = (employmentId?: string) => {
   });
 };
 
-export const useWorkspaceQuotaSummary = (month: string) => {
+export const useOrganizationQuotaSummary = (month: string) => {
   return useOrganizationQuery({
     queryKey: overtimeRequestKeys.quotaSummaries(month),
-    queryFn: () => overtimeRequestsApi.getWorkspaceQuotaSummary(month),
+    queryFn: () => overtimeRequestsApi.getQuotaSummary(month),
     enabled: !!month,
   });
 };

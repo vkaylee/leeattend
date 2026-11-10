@@ -128,10 +128,10 @@ describe("overtimeRequestsApi", () => {
     expect(result).toEqual(mock);
   });
 
-  it("getWorkspaceQuotaSummary: returns quota list", async () => {
+  it("getQuotaSummary: returns quota list", async () => {
     const mock = [{ employee_id: "e1", monthly_used: 10 }];
     vi.mocked(apiFetch).mockResolvedValueOnce(okRes(mock));
-    const result = await overtimeRequestsApi.getWorkspaceQuotaSummary("2026-03");
+    const result = await overtimeRequestsApi.getQuotaSummary("2026-03");
     expect(result).toEqual(mock);
   });
 

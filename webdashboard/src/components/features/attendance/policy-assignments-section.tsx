@@ -52,12 +52,12 @@ function AssignmentCard({ assignment, getTargetName, workUnitLabel, roundingLabe
         </div>
       </div>
       <div className="flex items-center gap-8 px-6">
-        <div><Typography className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1" variant="p">{t("common.workspace_settings.work_unit")}</Typography><Typography className="text-sm font-bold text-slate-700 dark:text-slate-300" variant="p">{workUnitLabel(assignment.rules.work_unit_minutes)}</Typography></div>
-        <div><Typography className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1" variant="p">{t("common.workspace_settings.rounding_policy")}</Typography><Typography className="text-sm font-bold text-slate-700 dark:text-slate-300" variant="p">{roundingLabel(assignment.rules.rounding_policy)}</Typography></div>
-        <div><Typography className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1" variant="p">{t("common.workspace_settings.early_arrival_strategy")}</Typography><Typography className="text-sm font-bold text-slate-700 dark:text-slate-300" variant="p">{t(`common.workspace_settings.early_arrival_options.${assignment.rules.early_arrival_strategy}`)}</Typography></div>
+        <div><Typography className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1" variant="p">{t("common.organization_settings.work_unit")}</Typography><Typography className="text-sm font-bold text-slate-700 dark:text-slate-300" variant="p">{workUnitLabel(assignment.rules.work_unit_minutes)}</Typography></div>
+        <div><Typography className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1" variant="p">{t("common.organization_settings.rounding_policy")}</Typography><Typography className="text-sm font-bold text-slate-700 dark:text-slate-300" variant="p">{roundingLabel(assignment.rules.rounding_policy)}</Typography></div>
+        <div><Typography className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1" variant="p">{t("common.organization_settings.early_arrival_strategy")}</Typography><Typography className="text-sm font-bold text-slate-700 dark:text-slate-300" variant="p">{t(`common.organization_settings.early_arrival_options.${assignment.rules.early_arrival_strategy}`)}</Typography></div>
         <div>
           <Typography className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1" variant="p">
-            {t("common.workspace_settings.grace_period_minutes") || "Grace Period"}
+            {t("common.organization_settings.grace_period_minutes") || "Grace Period"}
           </Typography>
           <Typography className="text-sm font-bold text-slate-700 dark:text-slate-300" variant="p">
             {assignment.rules.grace_period_minutes != null
@@ -230,7 +230,7 @@ function PolicyAssignmentsSectionContent() {
                 <span>{t("attendance_policy_overrides.drawer.override_notice")}</span>
               </div>
               <div className="space-y-3">
-                <label className={LABEL_BASE}>{t("common.workspace_settings.valid_from") || "Effective From"}</label>
+                <label className={LABEL_BASE}>{t("common.organization_settings.valid_from") || "Effective From"}</label>
                 <input 
                   className="w-full px-6 py-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl focus:ring-4 focus:ring-primary-500/10 outline-none transition-all font-bold text-sm tracking-tight shadow-sm" 
                   onChange={e => { setValidFrom(e.target.value); }} 
@@ -239,35 +239,35 @@ function PolicyAssignmentsSectionContent() {
                 />
               </div>
               <div className="space-y-3">
-                <label className={LABEL_BASE}>{t("common.workspace_settings.work_unit")}</label>
+                <label className={LABEL_BASE}>{t("common.organization_settings.work_unit")}</label>
                 <Combobox 
                   className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 h-14" 
                   onChange={(v) => { setWorkUnitMinutes(parseInt(v)); }} 
-                  options={["1", "15", "30", "60"].map(v => ({ value: v, label: t(`common.workspace_settings.work_unit_options.${v}min`), description: t(`common.workspace_settings.work_unit_options.${v}min_desc`), icon: <Clock size={14} /> }))} 
+                  options={["1", "15", "30", "60"].map(v => ({ value: v, label: t(`common.organization_settings.work_unit_options.${v}min`), description: t(`common.organization_settings.work_unit_options.${v}min_desc`), icon: <Clock size={14} />}))}
                   value={workUnitMinutes.toString()} 
                 />
               </div>
               <div className="space-y-3">
-                <label className={LABEL_BASE}>{t("common.workspace_settings.rounding_policy")}</label>
+                <label className={LABEL_BASE}>{t("common.organization_settings.rounding_policy")}</label>
                 <Combobox 
                   className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 h-14" 
                   onChange={(v) => { setRoundingPolicy(v as "none" | "floor" | "round" | "ceil"); }}
-                  options={["none", "floor", "ceil", "round"].map(v => ({ value: v, label: t(`common.workspace_settings.rounding_options.${v}`), icon: v === "none" ? <ShieldAlert size={14} /> : <Calculator size={14} /> }))} 
+                  options={["none", "floor", "ceil", "round"].map(v => ({ value: v, label: t(`common.organization_settings.rounding_options.${v}`), icon: v === "none" ? <ShieldAlert size={14} /> : <Calculator size={14} />}))}
                   value={roundingPolicy} 
                 />
               </div>
               <div className="space-y-3">
-                <label className={LABEL_BASE}>{t("common.workspace_settings.early_arrival_strategy")}</label>
+                <label className={LABEL_BASE}>{t("common.organization_settings.early_arrival_strategy")}</label>
                 <Combobox 
                   className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 h-14" 
                   onChange={(v) => { setEarlyArrivalStrategy(v as StrategyType); }} 
-                  options={["block", "allow", "clamp"].map(v => ({ value: v, label: t(`common.workspace_settings.early_arrival_options.${v}`), description: t(`common.workspace_settings.early_arrival_options.${v}_desc`), icon: v === "block" ? <ShieldAlert size={14} /> : v === "allow" ? <Zap size={14} /> : <Settings2 size={14} /> }))} 
+                  options={["block", "allow", "clamp"].map(v => ({ value: v, label: t(`common.organization_settings.early_arrival_options.${v}`), description: t(`common.organization_settings.early_arrival_options.${v}_desc`), icon: v === "block" ? <ShieldAlert size={14} /> : v === "allow" ? <Zap size={14} /> : <Settings2 size={14} />}))}
                   value={earlyArrivalStrategy} 
                 />
               </div>
               <div className="space-y-3">
                 <label className={LABEL_BASE}>
-                  {t("common.workspace_settings.grace_period_minutes") || "Late Grace Period (minutes)"}
+                  {t("common.organization_settings.grace_period_minutes") || "Late Grace Period (minutes)"}
                 </label>
                 <input 
                   className="w-full px-6 py-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl focus:ring-4 focus:ring-primary-500/10 outline-none transition-all font-bold text-sm tracking-tight shadow-sm" 
@@ -277,7 +277,7 @@ function PolicyAssignmentsSectionContent() {
                     const val = parseInt(e.target.value);
                     setGracePeriodMinutes(isNaN(val) ? undefined : val);
                   }} 
-                  placeholder={t("attendance_policy_overrides.drawer.grace_period_placeholder", "Using default workspace value")}
+                  placeholder={t("attendance_policy_overrides.drawer.grace_period_placeholder", "Using default organization value")}
                   type="number" 
                   value={gracePeriodMinutes ?? ""} 
                 />

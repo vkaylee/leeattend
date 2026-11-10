@@ -1,5 +1,5 @@
 {
-  "workspace_settings": {
+  "organization_settings": {
     "title": "组织设置",
     "description": "管理配置、人员和组织外观。",
     "general_config": "常规配置",
@@ -294,6 +294,7 @@
         "bool_true": "真 (True)",
         "bool_false": "假 (False)",
         "scopes": {
+            "organization": "组织",
           "workspace": "组织",
           "employer": "雇主",
           "department": "部门",
@@ -551,7 +552,7 @@
       "control_panel": "系统配置",
       "operations": "业务与运营",
       "security_system": "安全与系统",
-      "workspace": "组织"
+      "organization": "组织"
     },
     "workflows": {
       "general_section": "基本配置",

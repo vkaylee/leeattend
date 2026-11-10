@@ -1,4 +1,4 @@
-// Permission group icons for the workspace permission management UI.
+// Permission group icons for the organization permission management UI.
 // Permission IDs and labels are provided by the backend permission catalog.
 
 import type { LucideIcon } from "lucide-react";
@@ -37,5 +37,5 @@ export const permissionGroupIcons: Record<string, LucideIcon> = {
   reports: BarChart3,
   security: ShieldCheck,
   shifts: CalendarDays,
-  workspace: Building2,
+  organization: Building2,
 };

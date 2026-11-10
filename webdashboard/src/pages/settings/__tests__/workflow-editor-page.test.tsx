@@ -6,7 +6,7 @@ import React from "react";
 import { vi, describe, it, expect, beforeEach } from "vitest";
 
 import * as approvalHooks from "@/hooks/use-approval-workflows";
-import * as workspaceHooks from "@/hooks/use-organization";
+import * as organizationHooks from "@/hooks/use-organization";
 
 import WorkflowEditorPage from "../workflow-editor-page";
 
@@ -63,12 +63,12 @@ describe("WorkflowEditorPage", () => {
     vi.mocked(useParams).mockReturnValue({ workflowId: undefined });
     vi.mocked(useSearch).mockReturnValue({ tab: "overtime" });
 
-    vi.mocked(workspaceHooks.useOrganization).mockReturnValue({
-      workspace: { id: "ws-123", name: "Test Workspace" },
+    vi.mocked(organizationHooks.useOrganization).mockReturnValue({
+      organization: { id: "org-123", name: "Test Organization" },
       isLoading: false,
     } as any);
 
-    vi.mocked(workspaceHooks.useOrganizationRoles).mockReturnValue({
+    vi.mocked(organizationHooks.useOrganizationRoles).mockReturnValue({
       roles: [
         { id: "role-1", name: "Admin" },
         { id: "role-2", name: "HR Manager" },
@@ -76,7 +76,7 @@ describe("WorkflowEditorPage", () => {
       isLoading: false,
     } as any);
 
-    vi.mocked(workspaceHooks.useOrganizationMembers).mockReturnValue({
+    vi.mocked(organizationHooks.useOrganizationMembers).mockReturnValue({
       members: [
         { user_id: "user-1", email: "user1@example.com", full_name: "Alice" },
         { user_id: "user-2", email: "user2@example.com", full_name: "Bob" },
@@ -84,7 +84,7 @@ describe("WorkflowEditorPage", () => {
       isLoading: false,
     } as any);
 
-    vi.mocked(workspaceHooks.usePermissionCatalog).mockReturnValue({
+    vi.mocked(organizationHooks.usePermissionCatalog).mockReturnValue({
       catalog: [],
       isError: false,
       isLoading: false,

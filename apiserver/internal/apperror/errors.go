@@ -63,10 +63,7 @@ const (
 	KeyValidation                 = "error.validation"
 	KeyConflict                   = "error.conflict"
 	KeyServiceUnavailable         = "error.service_unavailable"
-	KeyMissingWorkspace           = "error.missing_workspace"
-	KeyInvalidWorkspaceId         = "error.invalid_workspace_id"
 	KeyNoEmployeeRecord           = "error.no_employee_record"
-	KeyNotWorkspaceMember         = "error.not_workspace_member"
 	KeyNotOrganizationMember      = "error.not_organization_member"
 	KeyUserNotFound               = "error.user_not_found"
 	KeyEmployeeNotFound           = "error.employee_not_found"
@@ -83,13 +80,14 @@ const (
 	KeyCannotCancelJob            = "error.cannot_cancel_job"
 	KeyNoReportFileGenerated      = "error.no_report_file_generated"
 	KeyErrorFileNotFound          = "error.error_file_not_found"
-	KeyWorkspaceNotFound          = "error.workspace_not_found"
+	KeyOrganizationNotFound       = "error.organization_not_found"
 	KeyRoleNotFound               = "error.role_not_found"
 	KeyUnknownPermission          = "error.unknown_permission"
 	KeyRoleNotFoundOrSystem       = "error.role_not_found_or_system"
 	KeyCannotRemoveSelf           = "error.cannot_remove_self"
 	KeyExpirationFuture           = "error.expiration_future"
 	KeyInvalidTimezone            = "error.invalid_timezone"
+	KeyInvalidScopeType           = "error.invalid_scope_type"
 	KeyInvalidDateFormat          = "error.invalid_date_format"
 	KeyInvalidStartDate           = "error.invalid_start_date_format"
 	KeyInvalidEndDate             = "error.invalid_end_date_format"
@@ -466,25 +464,15 @@ var i18nCatalog = map[string]translationEntry{
 		vi: "Dịch vụ hiện không khả dụng.",
 		zh: "服务暂不可用。",
 	},
-	"error.missing_workspace": {
-		en: "Missing organization context. Provide the organization route context.",
-		vi: "Thiếu thông tin tổ chức. Vui lòng cung cấp ngữ cảnh tổ chức từ tuyến API.",
-		zh: "缺少组织上下文。请提供 API 路由中的组织上下文。",
-	},
-	"error.invalid_workspace_id": {
-		en: "Invalid organization ID format",
-		vi: "Định dạng ID tổ chức không hợp lệ",
-		zh: "组织 ID 格式无效",
+	"error.organization_not_found": {
+		en: "Organization not found",
+		vi: "Không tìm thấy tổ chức",
+		zh: "未找到组织",
 	},
 	"error.no_employee_record": {
 		en: "No employee record linked to your account",
 		vi: "Không có thông tin nhân viên nào liên kết với tài khoản của bạn",
 		zh: "您的账户未关联任何员工档案",
-	},
-	"error.not_workspace_member": {
-		en: "Not a member of this workspace",
-		vi: "Bạn không phải là thành viên của workspace này",
-		zh: "您不是该工作空间的成员",
 	},
 	"error.user_not_found": {
 		en: "User not found",
@@ -581,15 +569,10 @@ var i18nCatalog = map[string]translationEntry{
 		vi: "Không tìm thấy file lỗi hoặc đã hết hạn",
 		zh: "未找到错误文件或已过期",
 	},
-	"error.workspace_not_found": {
-		en: "Workspace not found",
-		vi: "Không tìm thấy Workspace",
-		zh: "未找到工作空间",
-	},
 	"error.cannot_remove_self": {
-		en: "You cannot remove yourself from the workspace",
-		vi: "Bạn không thể tự xóa bản thân khỏi workspace",
-		zh: "您不能将自己从工作空间中移除",
+		en: "You cannot remove yourself from the organization",
+		vi: "Bạn không thể tự xóa bản thân khỏi tổ chức",
+		zh: "您不能将自己从组织中移除",
 	},
 	"error.role_not_found": {
 		en: "Role not found",
@@ -892,9 +875,9 @@ var i18nCatalog = map[string]translationEntry{
 		zh: "计算溢出",
 	},
 	"error.user_already_linked": {
-		en: "User is already linked to employee {name} in this workspace",
-		vi: "Tài khoản đã được gán cho nhân viên {name} trong workspace này",
-		zh: "该用户已在此工作空间中与员工 {name} 关联",
+		en: "User is already linked to employee {name} in this organization",
+		vi: "Tài khoản đã được gán cho nhân viên {name} trong tổ chức này",
+		zh: "该用户已在此组织中与员工 {name} 关联",
 	},
 	"error.employee_already_active": {
 		en: "Employee is already active",
@@ -1036,10 +1019,10 @@ var i18nCatalog = map[string]translationEntry{
 		vi: "Không được phép chỉnh sửa lượt chấm công của nhân viên khác",
 		zh: "不允许编辑其他员工的记录",
 	},
-	"error.time_tracking_edit_other_workspace": {
-		en: "Not allowed to edit entries from other workspaces",
-		vi: "Không được phép chỉnh sửa lượt chấm công của workspace khác",
-		zh: "不允许编辑其他工作空间的记录",
+	"error.time_tracking_edit_other_organization": {
+		en: "Not allowed to edit entries from another organization",
+		vi: "Không được phép chỉnh sửa lượt chấm công của tổ chức khác",
+		zh: "不允许编辑其他组织的记录",
 	},
 	"error.leave_half_day_single_day": {
 		en: "Half-day leave must be a single day (start_date == end_date)",

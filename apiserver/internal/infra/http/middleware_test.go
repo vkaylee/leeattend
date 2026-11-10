@@ -118,9 +118,9 @@ func TestAuthMiddleware_Authorized(t *testing.T) {
 	}
 }
 
-func TestRejectLegacyWorkspaceRoutes(t *testing.T) {
+func TestRejectRetiredScopedRoutes(t *testing.T) {
 	called := false
-	handler := RejectLegacyWorkspaceRoutes()(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+	handler := RejectRetiredScopedRoutes()(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		called = true
 		w.WriteHeader(http.StatusOK)
 	}))

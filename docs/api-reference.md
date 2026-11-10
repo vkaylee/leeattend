@@ -5,7 +5,7 @@ Base URL: `http://localhost:3000`
 
 ### Single-organization routing
 
-Flat `/api/v1/...` routes are canonical for the single-organization appliance. Organization scope is resolved from trusted server configuration; clients MUST NOT supply organization or tenant identifiers. Legacy `/workspaces/{id}` paths are rejected with HTTP 404 by RejectLegacyWorkspaceRoutes middleware.
+Flat `/api/v1/...` routes are canonical for the single-organization appliance. Organization scope is resolved from trusted server configuration; clients MUST NOT supply organization or tenant identifiers. Legacy `/workspaces/{id}` paths are rejected with HTTP 404 by RejectLegacyOrganizationRoutes middleware.
 
 ### 0. Authentication & Context (Updated)
 

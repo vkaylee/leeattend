@@ -1,7 +1,7 @@
 /* eslint-disable max-lines -- API wrapper: 400+ lines of thin exported functions; splitting would scatter imports */
 import type { components } from "@/types/api-generated";
 
-import type { LeavePolicyAssignmentDetail, LeaveRequest, EmployeeLeaveBalance, WorkspaceLeaveBalance, LeaveHistoryItem, LeavePolicy, LeaveType, LeaveTypeConfig, PaginatedResponse } from './types';
+import type { LeavePolicyAssignmentDetail, LeaveRequest, EmployeeLeaveBalance, OrganizationLeaveBalance, LeaveHistoryItem, LeavePolicy, LeaveType, LeaveTypeConfig, PaginatedResponse } from './types';
 
 import { createBehalfAssignmentApi } from "./behalf-assignment-factory";
 import { client } from "./client";
@@ -32,8 +32,7 @@ export async function submitLeaveRequest(
   return resData;
 }
 
-export const fetchLeaveRequests = fetchWorkspaceLeaveRequests;
-export async function fetchWorkspaceLeaveRequests(
+export async function fetchLeaveRequests(
   params?: {
     status?: "pending" | "approved" | "rejected" | "cancelled" | "pre_approved";
     employee_id?: string;
@@ -88,11 +87,10 @@ export async function fetchEmployeeLeaveBalances(
   return resData;
 }
 
-export const fetchLeaveBalances = fetchWorkspaceLeaveBalances;
-export async function fetchWorkspaceLeaveBalances(
+export async function fetchLeaveBalances(
   params?: { page?: number; limit?: number; q?: string; year?: number }
-): Promise<PaginatedResponse<WorkspaceLeaveBalance>> {
-  const { data: resData } = await client.GET<PaginatedResponse<WorkspaceLeaveBalance>>("/v1/leave/balances", {
+): Promise<PaginatedResponse<OrganizationLeaveBalance>> {
+  const { data: resData } = await client.GET<PaginatedResponse<OrganizationLeaveBalance>>("/v1/leave/balances", {
     params: {
       query: {
         page: params?.page,
@@ -296,7 +294,7 @@ export async function uploadLeaveExcel(
   return resData;
 }
 
-/** Fetch the latest leave import job for the workspace (page resume). */
+/** Fetch the latest leave import job for the organization (page resume). */
 export async function fetchLatestLeaveImport(): Promise<LeaveImportJob | null> {
   const { data: resData } = await client.GET<LeaveImportJob | null>("/v1/leave/import/latest");
   return resData;

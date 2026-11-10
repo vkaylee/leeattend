@@ -49,8 +49,8 @@ function metric(overrides: Partial<DashboardMetric> = {}): DashboardMetric {
 
 function response(metrics: DashboardMetric[], currency = "VND"): DashboardMetricsResponse {
   return {
-    contract_version: "executive-dashboard.v1",
-    workspace: { timezone: "Asia/Ho_Chi_Minh", currency },
+    contract_version: "executive-dashboard.v2",
+    organization: { timezone: "Asia/Ho_Chi_Minh", currency },
     context: {
       period: {
         key: "this_month",
@@ -61,7 +61,7 @@ function response(metrics: DashboardMetric[], currency = "VND"): DashboardMetric
       },
       comparison: "previous_period",
       filters: {},
-      scope: { kind: "workspace", department_ids: [], location_ids: [], omitted_dimensions: [] },
+      scope: { kind: "organization", department_ids: [], location_ids: [], omitted_dimensions: [] },
     },
     metrics,
     insights: [],

@@ -9,7 +9,7 @@ import {
   createEmployeeAssignment,
   deleteEmployeeAssignment,
   fetchEmployeeAssignments,
-  fetchWorkspaceAssignments,
+  fetchAssignments,
   updateEmployeeAssignment,
   type EmployeeAssignmentWithEmployee,
 } from "@/lib/api/employee-assignments";
@@ -18,14 +18,13 @@ export const employeeAssignmentKeys = {
   all: ["employee-assignments"] as const,
   list: (employeeId: string) =>
     [...employeeAssignmentKeys.all, employeeId] as const,
-  workspace: () =>
-    [...employeeAssignmentKeys.all, "workspace"] as const,
+  organization: () =>
+    [...employeeAssignmentKeys.all, "organization"] as const,
 };
-export const useAssignments = useWorkspaceAssignments;
-export function useWorkspaceAssignments() {
+export function useAssignments() {
   return useQuery<EmployeeAssignmentWithEmployee[]>({
-    queryKey: employeeAssignmentKeys.workspace(),
-    queryFn: () => fetchWorkspaceAssignments(),
+    queryKey: employeeAssignmentKeys.organization(),
+    queryFn: () => fetchAssignments(),
   });
 }
 

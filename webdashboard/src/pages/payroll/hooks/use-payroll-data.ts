@@ -10,7 +10,7 @@ import {
   searchEmployees,
   fetchEmployeePayslips,
   fetchPayslips,
-  fetchWorkspaceAttendanceAdjustments,
+  fetchAttendanceAdjustments,
   Employee,
 } from "@/lib/api";
 
@@ -39,8 +39,8 @@ export function usePayrollData({
 
   const employees = useMemo(() => employeesData?.data ?? [], [employeesData?.data]);
 
-  const { data: workspacePayslipsData = [], isLoading: workspacePayslipsLoading } = useQuery({
-    queryKey: ["workspace-payslips", calcYear, calcMonth],
+  const { data: organizationPayslipsData = [], isLoading: organizationPayslipsLoading } = useQuery({
+    queryKey: ["organization-payslips", calcYear, calcMonth],
     queryFn: () => fetchPayslips(calcYear, calcMonth),
     placeholderData: keepPreviousData,
   });
@@ -56,7 +56,7 @@ export function usePayrollData({
 
   const { data: allAdjustmentsResponse } = useQuery({
     queryKey: ["adjustments", "pending"],
-    queryFn: () => fetchWorkspaceAttendanceAdjustments({ status: "pending" }),
+    queryFn: () => fetchAttendanceAdjustments({ status: "pending" }),
     placeholderData: keepPreviousData,
   });
 
@@ -74,7 +74,7 @@ export function usePayrollData({
     employeePayslipsLoading,
     employees,
     empsLoading,
-    workspacePayslips: workspacePayslipsData,
-    workspacePayslipsLoading,
+    organizationPayslips: organizationPayslipsData,
+    organizationPayslipsLoading,
   };
 }

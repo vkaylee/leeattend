@@ -100,10 +100,10 @@ function SettingsHubSkeleton() {
 export default function SettingsHubPage() {
   const { t } = useTranslation();
   const { isLoading: permsLoading } = useMyPermissions();
-  const { workspaceGroup, accessGroup, operationsGroup, systemGroup } = useSettingsNav();
+  const { organizationGroup, accessGroup, operationsGroup, systemGroup } = useSettingsNav();
   if (permsLoading) return <SettingsHubSkeleton />;
 
-  const totalItems = workspaceGroup.length + accessGroup.length + operationsGroup.length + systemGroup.length;
+  const totalItems = organizationGroup.length + accessGroup.length + operationsGroup.length + systemGroup.length;
   if (totalItems === 0) {
     return (
       <div className="flex items-center justify-center min-h-[50vh]" data-testid="settings-hub-empty">
@@ -117,7 +117,7 @@ export default function SettingsHubPage() {
   }
 
   const sections = [
-    { key: "workspace", titleKey: "settings.layout.workspace", emoji: "🏢", items: workspaceGroup },
+    { key: "organization", titleKey: "settings.layout.organization", emoji: "🏢", items: organizationGroup },
     { key: "access", titleKey: "settings.layout.access", emoji: "🔐", items: accessGroup },
     { key: "operations", titleKey: "settings.layout.operations", emoji: "⚙️", items: operationsGroup },
     { key: "system", titleKey: "settings.layout.security_system", emoji: "🖥️", items: systemGroup },

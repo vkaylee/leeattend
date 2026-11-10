@@ -25,8 +25,8 @@ Chuyển đổi giao diện LeeAttend từ mô hình định tuyến trang đơn
 ### Task 1: Database Migration - Thêm cột `window_layout` vào `dashboard_preferences`
 - **Mục tiêu:** Thêm cột `window_layout JSONB DEFAULT '{}'::jsonb NOT NULL` vào bảng `dashboard_preferences`.
 - **Files:**
-  - `apiserver/migrations/20261107000000_add_window_layout_to_dashboard_preferences/up.sql`
-  - `apiserver/migrations/20261107000000_add_window_layout_to_dashboard_preferences/down.sql`
+  - `apiserver/migrations/20261110000000_single_organization_baseline/up.sql`
+  - `apiserver/migrations/20261110000000_single_organization_baseline/down.sql`
 - **Chi tiết:**
   - `up.sql`: `ALTER TABLE public.dashboard_preferences ADD COLUMN IF NOT EXISTS window_layout jsonb DEFAULT '{}'::jsonb NOT NULL;`
   - `down.sql`: `ALTER TABLE public.dashboard_preferences DROP COLUMN IF EXISTS window_layout;`
