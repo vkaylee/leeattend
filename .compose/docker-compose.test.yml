@@ -171,7 +171,7 @@ services:
       - e2e-web
       - frontend
       - web
-    image: localhost/leeattend-test_webdashboard
+    image: localhost/leeattend-test_bun_init
     build:
       context: ../webdashboard
       dockerfile: Dockerfile
