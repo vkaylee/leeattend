@@ -85,7 +85,7 @@ describe("BonusPolicyManager", () => {
     fireEvent.click(saveButton);
     
     await waitFor(() => {
-      expect(api.createIncentivePolicy).toHaveBeenCalledWith(mockWsId, expect.objectContaining({
+      expect(api.createIncentivePolicy).toHaveBeenCalledWith(expect.objectContaining({
         name: "Monthly Diligence",
         base_amount: 300000,
         tiers: expect.any(Array) as unknown as unknown[]

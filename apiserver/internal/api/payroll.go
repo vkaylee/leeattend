@@ -52,13 +52,13 @@ type AssignSalaryComponentRequest struct {
 }
 
 type SalaryBaseGroup struct {
-	ID          uuid.UUID  `json:"id"`
-	Name        string     `json:"name"`
-	Slug        string     `json:"slug"`
-	Description *string    `json:"description"`
-	IsSystem    bool       `json:"is_system"`
-	CreatedAt   string     `json:"created_at"`
-	UpdatedAt   string     `json:"updated_at"`
+	ID          uuid.UUID `json:"id"`
+	Name        string    `json:"name"`
+	Slug        string    `json:"slug"`
+	Description *string   `json:"description"`
+	IsSystem    bool      `json:"is_system"`
+	CreatedAt   string    `json:"created_at"`
+	UpdatedAt   string    `json:"updated_at"`
 }
 
 type SalaryBaseGroupMember struct {
@@ -337,7 +337,7 @@ type PayrollHandler struct {
 }
 
 func (h PayrollHandler) ListPayslips(w http.ResponseWriter, r *http.Request) {
-	
+
 	if !h.allowed(r, "payroll:read") {
 		h.forbidden(w, r)
 		return
@@ -355,7 +355,7 @@ func (h PayrollHandler) ListPayslips(w http.ResponseWriter, r *http.Request) {
 	apperror.WriteJSON(w, http.StatusOK, rows)
 }
 func (h PayrollHandler) ListEmployee(w http.ResponseWriter, r *http.Request) {
-	
+
 	empID, empOK := pathUUID(r, "employee_id")
 	if !empOK || !h.allowed(r, "payroll:read") {
 		h.forbidden(w, r)
@@ -369,7 +369,7 @@ func (h PayrollHandler) ListEmployee(w http.ResponseWriter, r *http.Request) {
 	apperror.WriteJSON(w, http.StatusOK, rows)
 }
 func (h PayrollHandler) ListSalaryComponents(w http.ResponseWriter, r *http.Request) {
-	
+
 	if !h.allowedRead(r) {
 		h.forbidden(w, r)
 		return
@@ -386,7 +386,7 @@ func (h PayrollHandler) ListSalaryComponents(w http.ResponseWriter, r *http.Requ
 }
 
 func (h PayrollHandler) CreateSalaryComponent(w http.ResponseWriter, r *http.Request) {
-	
+
 	if !h.allowedManage(r) {
 		h.forbidden(w, r)
 		return
@@ -405,7 +405,7 @@ func (h PayrollHandler) CreateSalaryComponent(w http.ResponseWriter, r *http.Req
 }
 
 func (h PayrollHandler) ListEmploymentSalaryComponents(w http.ResponseWriter, r *http.Request) {
-	
+
 	empID, empOK := employmentIDFromRequest(r)
 	if !empOK || !h.allowedRead(r) {
 		h.forbidden(w, r)
@@ -423,7 +423,7 @@ func (h PayrollHandler) ListEmploymentSalaryComponents(w http.ResponseWriter, r 
 }
 
 func (h PayrollHandler) AssignEmploymentSalaryComponent(w http.ResponseWriter, r *http.Request) {
-	
+
 	empID, empOK := employmentIDFromRequest(r)
 	if !empOK || !h.allowedManage(r) {
 		h.forbidden(w, r)
@@ -447,7 +447,7 @@ func (h PayrollHandler) AssignEmploymentSalaryComponent(w http.ResponseWriter, r
 }
 
 func (h PayrollHandler) ListSalaryBases(w http.ResponseWriter, r *http.Request) {
-	
+
 	if !h.allowedRead(r) {
 		h.forbidden(w, r)
 		return
@@ -467,7 +467,7 @@ func (h PayrollHandler) ListSalaryBases(w http.ResponseWriter, r *http.Request) 
 }
 
 func (h PayrollHandler) CreateSalaryBase(w http.ResponseWriter, r *http.Request) {
-	
+
 	if !h.allowedManage(r) {
 		h.forbidden(w, r)
 		return
@@ -486,7 +486,7 @@ func (h PayrollHandler) CreateSalaryBase(w http.ResponseWriter, r *http.Request)
 }
 
 func (h PayrollHandler) AssignBaseMember(w http.ResponseWriter, r *http.Request) {
-	
+
 	baseID, baseOK := pathUUID(r, "base_id")
 	if !baseOK || !h.allowedManage(r) {
 		h.forbidden(w, r)
@@ -505,7 +505,7 @@ func (h PayrollHandler) AssignBaseMember(w http.ResponseWriter, r *http.Request)
 }
 
 func (h PayrollHandler) UnassignBaseMember(w http.ResponseWriter, r *http.Request) {
-	
+
 	baseID, baseOK := pathUUID(r, "base_id")
 	compID, compOK := pathUUID(r, "component_id")
 	if !baseOK || !compOK || !h.allowedManage(r) {
@@ -519,7 +519,7 @@ func (h PayrollHandler) UnassignBaseMember(w http.ResponseWriter, r *http.Reques
 	apperror.WriteJSON(w, http.StatusOK, map[string]bool{"success": true})
 }
 func (h PayrollHandler) GetPayrollSettings(w http.ResponseWriter, r *http.Request) {
-	
+
 	if !h.allowedMember(r) {
 		h.forbidden(w, r)
 		return
@@ -533,7 +533,7 @@ func (h PayrollHandler) GetPayrollSettings(w http.ResponseWriter, r *http.Reques
 }
 
 func (h PayrollHandler) UpdatePayrollSettings(w http.ResponseWriter, r *http.Request) {
-	
+
 	if !h.allowedMember(r) {
 		h.forbidden(w, r)
 		return
@@ -558,7 +558,7 @@ func (h PayrollHandler) UpdatePayrollSettings(w http.ResponseWriter, r *http.Req
 }
 
 func (h PayrollHandler) GetPayrollSettingsHistory(w http.ResponseWriter, r *http.Request) {
-	
+
 	if !h.allowedMember(r) {
 		h.forbidden(w, r)
 		return
@@ -575,7 +575,7 @@ func (h PayrollHandler) GetPayrollSettingsHistory(w http.ResponseWriter, r *http
 }
 
 func (h PayrollHandler) GetEmployeePayrollConfig(w http.ResponseWriter, r *http.Request) {
-	
+
 	empID, empOK := pathUUID(r, "id")
 	if !empOK || !h.allowedMember(r) {
 		h.forbidden(w, r)
@@ -593,7 +593,7 @@ func (h PayrollHandler) GetEmployeePayrollConfig(w http.ResponseWriter, r *http.
 }
 
 func (h PayrollHandler) SetEmployeePayrollConfig(w http.ResponseWriter, r *http.Request) {
-	
+
 	empID, empOK := pathUUID(r, "id")
 	if !empOK || !h.allowedMember(r) {
 		h.forbidden(w, r)
@@ -622,7 +622,7 @@ func (h PayrollHandler) SetEmployeePayrollConfig(w http.ResponseWriter, r *http.
 }
 
 func (h PayrollHandler) GetIncentivePolicies(w http.ResponseWriter, r *http.Request) {
-	
+
 	if !h.allowedMember(r) {
 		h.forbidden(w, r)
 		return
@@ -639,7 +639,7 @@ func (h PayrollHandler) GetIncentivePolicies(w http.ResponseWriter, r *http.Requ
 }
 
 func (h PayrollHandler) CreateIncentivePolicy(w http.ResponseWriter, r *http.Request) {
-	
+
 	if !h.allowedMember(r) {
 		h.forbidden(w, r)
 		return
@@ -665,7 +665,7 @@ func (h PayrollHandler) CreateIncentivePolicy(w http.ResponseWriter, r *http.Req
 }
 
 func (h PayrollHandler) DeleteIncentivePolicy(w http.ResponseWriter, r *http.Request) {
-	
+
 	policyID, pOK := pathUUID(r, "policy_id")
 	if !pOK || !h.allowedMember(r) {
 		h.forbidden(w, r)
@@ -679,7 +679,7 @@ func (h PayrollHandler) DeleteIncentivePolicy(w http.ResponseWriter, r *http.Req
 }
 
 func (h PayrollHandler) CloneIncentivePolicy(w http.ResponseWriter, r *http.Request) {
-	
+
 	policyID, pOK := pathUUID(r, "policy_id")
 	if !pOK || !h.allowedMember(r) {
 		h.forbidden(w, r)
@@ -694,7 +694,7 @@ func (h PayrollHandler) CloneIncentivePolicy(w http.ResponseWriter, r *http.Requ
 }
 
 func (h PayrollHandler) ListPayrollRules(w http.ResponseWriter, r *http.Request) {
-	
+
 	if !h.allowedMember(r) {
 		h.forbidden(w, r)
 		return
@@ -711,7 +711,7 @@ func (h PayrollHandler) ListPayrollRules(w http.ResponseWriter, r *http.Request)
 }
 
 func (h PayrollHandler) CreatePayrollRule(w http.ResponseWriter, r *http.Request) {
-	
+
 	if !h.allowedMember(r) {
 		h.forbidden(w, r)
 		return
@@ -730,7 +730,7 @@ func (h PayrollHandler) CreatePayrollRule(w http.ResponseWriter, r *http.Request
 }
 
 func (h PayrollHandler) ListPayrollRuleTiers(w http.ResponseWriter, r *http.Request) {
-	
+
 	ruleID, rOK := pathUUID(r, "rule_id")
 	if !rOK || !h.allowedMember(r) {
 		h.forbidden(w, r)
@@ -748,7 +748,7 @@ func (h PayrollHandler) ListPayrollRuleTiers(w http.ResponseWriter, r *http.Requ
 }
 
 func (h PayrollHandler) CreatePayrollRuleTier(w http.ResponseWriter, r *http.Request) {
-	
+
 	ruleID, rOK := pathUUID(r, "rule_id")
 	if !rOK || !h.allowedMember(r) {
 		h.forbidden(w, r)
@@ -772,7 +772,7 @@ func (h PayrollHandler) CreatePayrollRuleTier(w http.ResponseWriter, r *http.Req
 }
 
 func (h PayrollHandler) DeletePayrollRuleTier(w http.ResponseWriter, r *http.Request) {
-	
+
 	ruleID, rOK := pathUUID(r, "rule_id")
 	tierID, tOK := pathUUID(r, "tier_id")
 	if !rOK || !tOK || !h.allowedMember(r) {
@@ -787,7 +787,7 @@ func (h PayrollHandler) DeletePayrollRuleTier(w http.ResponseWriter, r *http.Req
 }
 
 func (h PayrollHandler) ListPayrollRuleAssignments(w http.ResponseWriter, r *http.Request) {
-	
+
 	ruleID, rOK := pathUUID(r, "rule_id")
 	if !rOK || !h.allowedMember(r) {
 		h.forbidden(w, r)
@@ -805,7 +805,7 @@ func (h PayrollHandler) ListPayrollRuleAssignments(w http.ResponseWriter, r *htt
 }
 
 func (h PayrollHandler) AssignPayrollRule(w http.ResponseWriter, r *http.Request) {
-	
+
 	ruleID, rOK := pathUUID(r, "rule_id")
 	if !rOK || !h.allowedMember(r) {
 		h.forbidden(w, r)
@@ -844,7 +844,7 @@ func (h PayrollHandler) AssignPayrollRule(w http.ResponseWriter, r *http.Request
 }
 
 func (h PayrollHandler) DeletePayrollRuleAssignment(w http.ResponseWriter, r *http.Request) {
-	
+
 	ruleID, rOK := pathUUID(r, "rule_id")
 	assignmentID, aOK := pathUUID(r, "assignment_id")
 	if !rOK || !aOK || !h.allowedMember(r) {
@@ -859,7 +859,7 @@ func (h PayrollHandler) DeletePayrollRuleAssignment(w http.ResponseWriter, r *ht
 }
 
 func (h PayrollHandler) CalculatePayroll(w http.ResponseWriter, r *http.Request) {
-	
+
 	empID, eOK := pathUUID(r, "id")
 	if !eOK || !h.allowedCalculate(r) {
 		h.forbidden(w, r)
@@ -884,7 +884,7 @@ func (h PayrollHandler) CalculatePayroll(w http.ResponseWriter, r *http.Request)
 }
 
 func (h PayrollHandler) CalculateBatchPayroll(w http.ResponseWriter, r *http.Request) {
-	
+
 	if !h.allowedCalculate(r) {
 		h.forbidden(w, r)
 		return

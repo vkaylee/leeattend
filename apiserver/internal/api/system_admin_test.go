@@ -39,7 +39,9 @@ func (m mockSystemAuthorizer) HasPermission(_ context.Context, _ uuid.UUID, perm
 func (m mockSystemAuthorizer) HasScopedPermission(_ context.Context, _ uuid.UUID, _ string, _ *uuid.UUID) bool {
 	return m.allowed
 }
-func (m mockSystemAuthorizer) IsMember(context.Context, uuid.UUID) (bool, error) { return m.allowed, nil }
+func (m mockSystemAuthorizer) IsMember(context.Context, uuid.UUID) (bool, error) {
+	return m.allowed, nil
+}
 func (m mockSystemAuthorizer) EffectivePermissions(context.Context, uuid.UUID) ([]string, []string, error) {
 	return nil, nil, nil
 }

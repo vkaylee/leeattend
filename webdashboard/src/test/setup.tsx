@@ -26,6 +26,7 @@ const viLocale = {
   ...attendance,
   ...leave,
   ...settings,
+  errors: common.errors,
 };
 
 // Ignore Happy DOM AbortError caused by pending async tasks during teardown
@@ -49,6 +50,21 @@ const resolveKey = (key: string, object: Record<string, unknown>, variables?: Re
       if (o === null || o === undefined) return undefined;
       return (o as Record<string, unknown>)[index];
     }, object) as string | undefined;
+  }
+  if (!result && key.startsWith('errors.')) {
+    const namespaces = [
+      common.errors,
+      (object as Record<string, unknown>).errors,
+      ((object as Record<string, unknown>).common as Record<string, unknown> | undefined)?.errors,
+    ];
+    for (const namespace of namespaces) {
+      if (namespace === null || namespace === undefined) continue;
+      result = key.split('.').slice(1).reduce((o: unknown, index) => {
+        if (o === null || o === undefined) return undefined;
+        return (o as Record<string, unknown>)[index];
+      }, namespace) as string | undefined;
+      if (result) break;
+    }
   }
   if (!result) {
     console.warn(`Missing key in test mock: ${key}`);

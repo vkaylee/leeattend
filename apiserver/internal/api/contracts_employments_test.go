@@ -14,7 +14,7 @@ import (
 )
 
 type mockContractRepo struct {
-	contracts   map[uuid.UUID]EmployeeContract
+	contracts             map[uuid.UUID]EmployeeContract
 	contractsWithEmployee []EmployeeContractWithEmployee
 }
 
@@ -207,7 +207,7 @@ func (mockCEAuthz) EffectivePermissions(context.Context, uuid.UUID) ([]string, [
 func (mockCEAuthz) GetManagedDepartmentIDs(context.Context, uuid.UUID) ([]uuid.UUID, error) {
 	return nil, nil
 }
-func (mockCEAuthz) IsGlobalManager(context.Context, uuid.UUID) bool { return false }
+func (mockCEAuthz) IsGlobalManager(context.Context, uuid.UUID) bool       { return false }
 func (mockCEAuthz) HasPermission(context.Context, uuid.UUID, string) bool { return true }
 func (mockCEAuthz) HasScopedPermission(context.Context, uuid.UUID, string, *uuid.UUID) bool {
 	return true

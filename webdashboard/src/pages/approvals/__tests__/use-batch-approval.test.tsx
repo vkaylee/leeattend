@@ -127,12 +127,10 @@ describe("useBatchApproval", () => {
       status: "approved",
     });
     expect(api.approveAttendanceAdjustment).toHaveBeenCalledWith(
-      "ws-test-123",
       "adj-1",
       { status: "approved" }
     );
     expect(swapApi.approveShiftSwap).toHaveBeenCalledWith(
-      "ws-test-123",
       "swap-1",
       { status: "approved" }
     );

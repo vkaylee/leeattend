@@ -103,8 +103,8 @@ func TestHolidayHandler_Unauthenticated(t *testing.T) {
 		Authorizer: mockHolidayAuthorizer{isMember: true},
 	}
 
-	req := httptest.NewRequest(http.MethodGet, "/api/v1" + "/holidays", nil)
-	
+	req := httptest.NewRequest(http.MethodGet, "/api/v1"+"/holidays", nil)
+
 	rec := httptest.NewRecorder()
 	handler.List(rec, req)
 
@@ -120,8 +120,8 @@ func TestHolidayHandler_NonMemberForbidden(t *testing.T) {
 		Authorizer: mockHolidayAuthorizer{isMember: false},
 	}
 
-	req := httptest.NewRequest(http.MethodGet, "/api/v1" + "/holidays", nil)
-	
+	req := httptest.NewRequest(http.MethodGet, "/api/v1"+"/holidays", nil)
+
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), userID))
 	rec := httptest.NewRecorder()
 	handler.List(rec, req)
@@ -165,8 +165,8 @@ func TestHolidayHandler_ListPaginationAndFilters(t *testing.T) {
 		Authorizer: mockHolidayAuthorizer{isMember: true},
 	}
 
-	req := httptest.NewRequest(http.MethodGet, "/api/v1" + "/holidays?year=2026&location_id="+locID.String()+"&page=2&limit=25", nil)
-	
+	req := httptest.NewRequest(http.MethodGet, "/api/v1"+"/holidays?year=2026&location_id="+locID.String()+"&page=2&limit=25", nil)
+
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), userID))
 	rec := httptest.NewRecorder()
 	handler.List(rec, req)
@@ -198,8 +198,8 @@ func TestHolidayHandler_GetNotFound(t *testing.T) {
 		Authorizer: mockHolidayAuthorizer{isMember: true},
 	}
 
-	req := httptest.NewRequest(http.MethodGet, "/api/v1" + "/holidays/"+hID.String(), nil)
-	
+	req := httptest.NewRequest(http.MethodGet, "/api/v1"+"/holidays/"+hID.String(), nil)
+
 	req.SetPathValue("id", hID.String())
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), userID))
 	rec := httptest.NewRecorder()
@@ -218,8 +218,8 @@ func TestHolidayHandler_CreateRequiresPermission(t *testing.T) {
 	}
 
 	body := `{"name":"National Day","date":"2026-09-02"}`
-	req := httptest.NewRequest(http.MethodPost, "/api/v1" + "/holidays", bytes.NewBufferString(body))
-	
+	req := httptest.NewRequest(http.MethodPost, "/api/v1"+"/holidays", bytes.NewBufferString(body))
+
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), userID))
 	rec := httptest.NewRecorder()
 	handler.Create(rec, req)
@@ -245,8 +245,8 @@ func TestHolidayHandler_CreateConflict(t *testing.T) {
 	}
 
 	body := `{"name":"National Day","date":"2026-09-02"}`
-	req := httptest.NewRequest(http.MethodPost, "/api/v1" + "/holidays", bytes.NewBufferString(body))
-	
+	req := httptest.NewRequest(http.MethodPost, "/api/v1"+"/holidays", bytes.NewBufferString(body))
+
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), userID))
 	rec := httptest.NewRecorder()
 	handler.Create(rec, req)
@@ -281,8 +281,8 @@ func TestHolidayHandler_CreateSuccess(t *testing.T) {
 	}
 
 	body := `{"name":"National Day","date":"2026-09-02","ot_multiplier":2.0}`
-	req := httptest.NewRequest(http.MethodPost, "/api/v1" + "/holidays", bytes.NewBufferString(body))
-	
+	req := httptest.NewRequest(http.MethodPost, "/api/v1"+"/holidays", bytes.NewBufferString(body))
+
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), userID))
 	rec := httptest.NewRecorder()
 	handler.Create(rec, req)
@@ -315,8 +315,8 @@ func TestHolidayHandler_UpdateAndPatch(t *testing.T) {
 	}
 
 	body := `{"name":"Company Anniversary","holiday_type":"company","is_paid":false}`
-	req := httptest.NewRequest(http.MethodPut, "/api/v1" + "/holidays/"+hID.String(), bytes.NewBufferString(body))
-	
+	req := httptest.NewRequest(http.MethodPut, "/api/v1"+"/holidays/"+hID.String(), bytes.NewBufferString(body))
+
 	req.SetPathValue("id", hID.String())
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), userID))
 	rec := httptest.NewRecorder()
@@ -348,8 +348,8 @@ func TestHolidayHandler_DeleteSuccessAndNotFound(t *testing.T) {
 		},
 	}
 
-	req := httptest.NewRequest(http.MethodDelete, "/api/v1" + "/holidays/"+hID.String(), nil)
-	
+	req := httptest.NewRequest(http.MethodDelete, "/api/v1"+"/holidays/"+hID.String(), nil)
+
 	req.SetPathValue("id", hID.String())
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), userID))
 	rec := httptest.NewRecorder()
@@ -363,8 +363,8 @@ func TestHolidayHandler_DeleteSuccessAndNotFound(t *testing.T) {
 	}
 
 	notFoundID := uuid.New()
-	req2 := httptest.NewRequest(http.MethodDelete, "/api/v1" + "/holidays/"+notFoundID.String(), nil)
-	
+	req2 := httptest.NewRequest(http.MethodDelete, "/api/v1"+"/holidays/"+notFoundID.String(), nil)
+
 	req2.SetPathValue("id", notFoundID.String())
 	req2 = req2.WithContext(httpinfra.WithUserIDForTest(req2.Context(), userID))
 	rec2 := httptest.NewRecorder()
@@ -431,8 +431,8 @@ func TestHolidayHandler_ProcessLeaveResponses(t *testing.T) {
 				},
 			}
 
-			req := httptest.NewRequest(http.MethodPost, "/api/v1" + "/holidays/"+hID.String()+"/process-leave", nil)
-			
+			req := httptest.NewRequest(http.MethodPost, "/api/v1"+"/holidays/"+hID.String()+"/process-leave", nil)
+
 			req.SetPathValue("id", hID.String())
 			req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), userID))
 			rec := httptest.NewRecorder()

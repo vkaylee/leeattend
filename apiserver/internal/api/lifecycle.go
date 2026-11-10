@@ -11,6 +11,7 @@ import (
 	"github.com/vkaylee/leeattend/apiserver/internal/apperror"
 	httpinfra "github.com/vkaylee/leeattend/apiserver/internal/infra/http"
 )
+
 var (
 	ErrTemplateNotFound      = errors.New("lifecycle: template not found")
 	ErrTemplateItemNotFound  = errors.New("lifecycle: template item not found")
@@ -208,6 +209,7 @@ type LifecycleHandler struct {
 	Repository LifecycleRepository
 	Authorizer Authorizer
 }
+
 func (h LifecycleHandler) allowed(r *http.Request, permission string) bool {
 	uid, ok := httpinfra.UserIDFromContext(r.Context())
 	return ok && h.Authorizer != nil && h.Authorizer.HasPermission(r.Context(), uid, permission)

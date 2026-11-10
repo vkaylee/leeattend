@@ -51,6 +51,11 @@ vi.mock("@/hooks/use-i18n-sync", () => ({
 
 
 
+vi.mock("@/hooks/use-custom-fields", () => ({
+    useCustomFieldDefinitions: () => ({ data: [] }),
+    useCustomFieldValues: () => ({ data: [] }),
+}));
+
 vi.mock("@/hooks/use-dashboard", () => ({
     useDashboardMetrics: () => ({ data: null, isLoading: false, error: null }),
     useDashboardStats: () => ({

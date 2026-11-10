@@ -248,8 +248,6 @@ func (mockLifecycleAuth) GetUsersWithPermission(context.Context, string) ([]uuid
 	return nil, nil
 }
 
-
-
 func lifecycleRequest(method, path string, body []byte, userID uuid.UUID) *http.Request {
 	req := httptest.NewRequest(method, path, bytes.NewReader(body))
 	return req.WithContext(httpinfra.WithUserIDForTest(req.Context(), userID))

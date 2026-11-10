@@ -141,7 +141,6 @@ func (r RecruitmentSourceRepository) UpdateRecruitmentSource(ctx context.Context
 	return item, err
 }
 
-
 func (r RecruitmentSourceRepository) DeleteRecruitmentSource(ctx context.Context, id uuid.UUID) error {
 	db, err := r.db(ctx)
 	if err != nil {

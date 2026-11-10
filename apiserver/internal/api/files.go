@@ -236,13 +236,13 @@ type FileURLResponse struct {
 }
 
 type SignatureRequestRecord struct {
-	ID          uuid.UUID `json:"id"`
-	DocumentID  uuid.UUID `json:"document_id"`
-	SignerID    uuid.UUID `json:"signer_id"`
-	Status      string    `json:"status"`
-	SignedAt    *string   `json:"signed_at,omitempty"`
-	CreatedAt   string    `json:"created_at"`
-	UpdatedAt   string    `json:"updated_at"`
+	ID         uuid.UUID `json:"id"`
+	DocumentID uuid.UUID `json:"document_id"`
+	SignerID   uuid.UUID `json:"signer_id"`
+	Status     string    `json:"status"`
+	SignedAt   *string   `json:"signed_at,omitempty"`
+	CreatedAt  string    `json:"created_at"`
+	UpdatedAt  string    `json:"updated_at"`
 }
 
 type CreateSignatureRequestBody struct {
@@ -293,21 +293,21 @@ func (h FileHandler) CreateUploadURL(w http.ResponseWriter, r *http.Request) {
 	storageKey := fmt.Sprintf("%s/%s", fileID.String(), req.FileName)
 	now := time.Now().UTC()
 	file := FileRecord{
-		ID:          fileID,
-		FileName:    req.FileName,
-		StorageKey:  storageKey,
-		FileSize:    req.FileSize,
-		MimeType:    req.MimeType,
-		Category:    req.Category,
-		OwnerType:   req.OwnerType,
-		OwnerID:     req.OwnerID,
-		UploadedBy:  &userID,
-		IsActive:    true,
-		ScanStatus:  "pending",
-		Version:     1,
-		IsLatest:    true,
-		CreatedAt:   now.Format(time.RFC3339),
-		UpdatedAt:   now.Format(time.RFC3339),
+		ID:         fileID,
+		FileName:   req.FileName,
+		StorageKey: storageKey,
+		FileSize:   req.FileSize,
+		MimeType:   req.MimeType,
+		Category:   req.Category,
+		OwnerType:  req.OwnerType,
+		OwnerID:    req.OwnerID,
+		UploadedBy: &userID,
+		IsActive:   true,
+		ScanStatus: "pending",
+		Version:    1,
+		IsLatest:   true,
+		CreatedAt:  now.Format(time.RFC3339),
+		UpdatedAt:  now.Format(time.RFC3339),
 	}
 	if h.Repository != nil {
 		if err := h.Repository.CreateFile(r.Context(), file); err != nil {

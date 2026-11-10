@@ -187,7 +187,7 @@ export default function ContractFormModal({ isOpen, onClose, editingContract,emp
     ],
   });
 
-  const activeEmployment: Employment | undefined = employments.find((e) => e.status === "active");
+  const activeEmployment: Employment | undefined = (Array.isArray(employments) ? employments : []).find((e) => e.status === "active");
   const [overlapData, setOverlapData] = useState<CreateContractRequest | null>(null);
   const [isConfirmingOverlap, setIsConfirmingOverlap] = useState(false);
 

@@ -70,7 +70,7 @@ func approvalRequest(t *testing.T, method, path, body string) *http.Request {
 
 func TestApprovalWorkflowListForbiddenWithoutPermission(t *testing.T) {
 	handler := ApprovalWorkflowHandler{Repository: &mockApprovalWorkflowRepository{}, Authorizer: mockAuthorizer{}}
-	req := approvalRequest(t, http.MethodGet, "/api/v1" + "/approval-workflows", "")
+	req := approvalRequest(t, http.MethodGet, "/api/v1"+"/approval-workflows", "")
 	rec := httptest.NewRecorder()
 	handler.List(rec, req)
 	if rec.Code != http.StatusForbidden {
@@ -82,7 +82,7 @@ func TestApprovalWorkflowCreateSuccess(t *testing.T) {
 	repo := &mockApprovalWorkflowRepository{}
 	handler := ApprovalWorkflowHandler{Repository: repo, Authorizer: mockAuthorizer{perms: map[string]bool{"approval_workflows:manage": true}}}
 	body := `{"entity_type":"leave_request","name":"Standard Leave Approval","is_active":true,"steps":[{"step_order":1,"step_name":"Manager Approval","approver_type":"manager","action_required":"approve","can_skip":false}]}`
-	req := approvalRequest(t, http.MethodPost, "/api/v1" + "/approval-workflows", body)
+	req := approvalRequest(t, http.MethodPost, "/api/v1"+"/approval-workflows", body)
 	rec := httptest.NewRecorder()
 	handler.Create(rec, req)
 	if rec.Code != http.StatusCreated {
@@ -98,7 +98,7 @@ func TestApprovalWorkflowProcessValidationRejectsInvalidAction(t *testing.T) {
 	repo := &mockApprovalWorkflowRepository{}
 	handler := ApprovalWorkflowHandler{Repository: repo, Authorizer: mockAuthorizer{}}
 	body := `{"entity_type":"leave_request","entity_id":"` + entityID.String() + `","action":"invalid_action"}`
-	req := approvalRequest(t, http.MethodPost, "/api/v1" + "/approval-workflows/approve", body)
+	req := approvalRequest(t, http.MethodPost, "/api/v1"+"/approval-workflows/approve", body)
 	rec := httptest.NewRecorder()
 	handler.Process(rec, req)
 	if rec.Code != http.StatusBadRequest {
@@ -113,7 +113,7 @@ func TestApprovalWorkflowHistorySuccess(t *testing.T) {
 	entityID := uuid.New()
 	repo := &mockApprovalWorkflowRepository{history: []ApprovalActionLogRecord{{ID: uuid.New(), Action: "approved"}}}
 	handler := ApprovalWorkflowHandler{Repository: repo, Authorizer: mockAuthorizer{}}
-	req := approvalRequest(t, http.MethodGet, "/api/v1" + "/approval-workflows/history/leave_request/"+entityID.String(), "")
+	req := approvalRequest(t, http.MethodGet, "/api/v1"+"/approval-workflows/history/leave_request/"+entityID.String(), "")
 	req.SetPathValue("type", "leave_request")
 	req.SetPathValue("id", entityID.String())
 	rec := httptest.NewRecorder()
@@ -129,7 +129,7 @@ func TestApprovalWorkflowHistorySuccess(t *testing.T) {
 func TestApprovalWorkflowGetSuccess(t *testing.T) {
 	workflowID := uuid.New()
 	handler := ApprovalWorkflowHandler{Repository: &mockApprovalWorkflowRepository{}, Authorizer: mockAuthorizer{perms: map[string]bool{"approval_workflows:read": true}}}
-	req := approvalRequest(t, http.MethodGet, "/api/v1" + "/approval-workflows/"+workflowID.String(), "")
+	req := approvalRequest(t, http.MethodGet, "/api/v1"+"/approval-workflows/"+workflowID.String(), "")
 	req.SetPathValue("id", workflowID.String())
 	rec := httptest.NewRecorder()
 	handler.Get(rec, req)
@@ -142,7 +142,7 @@ func TestApprovalWorkflowUpdateSuccess(t *testing.T) {
 	workflowID := uuid.New()
 	repo := &mockApprovalWorkflowRepository{}
 	handler := ApprovalWorkflowHandler{Repository: repo, Authorizer: mockAuthorizer{perms: map[string]bool{"approval_workflows:manage": true}}}
-	req := approvalRequest(t, http.MethodPut, "/api/v1" + "/approval-workflows/"+workflowID.String(), `{"name":"Updated"}`)
+	req := approvalRequest(t, http.MethodPut, "/api/v1"+"/approval-workflows/"+workflowID.String(), `{"name":"Updated"}`)
 	req.SetPathValue("id", workflowID.String())
 	rec := httptest.NewRecorder()
 	handler.Update(rec, req)
@@ -154,7 +154,7 @@ func TestApprovalWorkflowUpdateSuccess(t *testing.T) {
 func TestApprovalWorkflowDeleteSuccess(t *testing.T) {
 	workflowID := uuid.New()
 	handler := ApprovalWorkflowHandler{Repository: &mockApprovalWorkflowRepository{}, Authorizer: mockAuthorizer{perms: map[string]bool{"approval_workflows:manage": true}}}
-	req := approvalRequest(t, http.MethodDelete, "/api/v1" + "/approval-workflows/"+workflowID.String(), "")
+	req := approvalRequest(t, http.MethodDelete, "/api/v1"+"/approval-workflows/"+workflowID.String(), "")
 	req.SetPathValue("id", workflowID.String())
 	rec := httptest.NewRecorder()
 	handler.Delete(rec, req)
@@ -168,7 +168,7 @@ func TestApprovalWorkflowPendingTasksSuccess(t *testing.T) {
 		Repository: &mockApprovalWorkflowRepository{},
 		Authorizer: mockAuthorizer{perms: map[string]bool{"approval_workflows:read": true}},
 	}
-	req := approvalRequest(t, http.MethodGet, "/api/v1" + "/approval-workflows/pending-tasks", "")
+	req := approvalRequest(t, http.MethodGet, "/api/v1"+"/approval-workflows/pending-tasks", "")
 	rec := httptest.NewRecorder()
 	handler.PendingTasks(rec, req)
 	if rec.Code != http.StatusOK {

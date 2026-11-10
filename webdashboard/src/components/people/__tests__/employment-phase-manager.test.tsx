@@ -79,7 +79,7 @@ describe("EmploymentPhaseManager", () => {
     fireEvent.click(saveButton);
 
     await waitFor(() => {
-      expect(api.createEmploymentPhase).toHaveBeenCalledWith(mockWsId, expect.objectContaining({
+      expect(api.createEmploymentPhase).toHaveBeenCalledWith(expect.objectContaining({
         name: "Internship",
         phase_type: "internship"
       }));

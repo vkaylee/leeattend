@@ -323,12 +323,12 @@ type GenericJobStatusResponse struct {
 }
 
 type ListDurableJobsParams struct {
-	JobID       *uuid.UUID
-	State       *string
-	TaskType    *string
-	Search      *string
-	Cursor      *string
-	Limit       int
+	JobID    *uuid.UUID
+	State    *string
+	TaskType *string
+	Search   *string
+	Cursor   *string
+	Limit    int
 }
 
 type MonitorRepository interface {
@@ -388,7 +388,6 @@ func (h MonitorHandler) requireAuditPermission(r *http.Request) (uuid.UUID, *app
 	}
 	return userID, nil
 }
-
 
 func sanitizeSummary(val string) string {
 	val = strings.Join(strings.Fields(val), " ")
@@ -1685,4 +1684,3 @@ func (h MonitorHandler) GetMonitorJob(w http.ResponseWriter, r *http.Request) {
 
 	apperror.WriteJSON(w, http.StatusOK, job)
 }
-

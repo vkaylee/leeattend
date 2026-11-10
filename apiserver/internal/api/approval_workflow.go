@@ -132,6 +132,7 @@ type ApprovalWorkflowHandler struct {
 	Repository ApprovalWorkflowRepository
 	Authorizer Authorizer
 }
+
 func (h ApprovalWorkflowHandler) List(w http.ResponseWriter, r *http.Request) {
 	if !h.allowed(r, "approval_workflows:read") {
 		h.forbidden(w, r)

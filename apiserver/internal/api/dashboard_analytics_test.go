@@ -129,6 +129,7 @@ func (a mockDashboardAuthz) HasScopedPermission(ctx context.Context, userID uuid
 func (a mockDashboardAuthz) GetUsersWithPermission(context.Context, string) ([]uuid.UUID, error) {
 	return nil, nil
 }
+
 type mockNarrowScoperAuthz struct {
 	permissions map[string]bool
 	depts       []uuid.UUID

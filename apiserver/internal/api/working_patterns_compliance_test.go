@@ -29,13 +29,13 @@ func (m *mockPatternComplianceChecker) CheckBulkPatternCompliance(_ context.Cont
 }
 
 func newPatternAssignRequest(empID uuid.UUID, body string) *http.Request {
-	req := httptest.NewRequest(http.MethodPost, "/api/v1" + "/employments/"+empID.String()+"/working-patterns", bytes.NewReader([]byte(body)))
+	req := httptest.NewRequest(http.MethodPost, "/api/v1"+"/employments/"+empID.String()+"/working-patterns", bytes.NewReader([]byte(body)))
 	req.SetPathValue("employment_id", empID.String())
 	return req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
 }
 
 func newPatternBulkAssignRequest(body string) *http.Request {
-	req := httptest.NewRequest(http.MethodPost, "/api/v1" + "/working-patterns/bulk-assign", bytes.NewReader([]byte(body)))
+	req := httptest.NewRequest(http.MethodPost, "/api/v1"+"/working-patterns/bulk-assign", bytes.NewReader([]byte(body)))
 	return req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
 }
 

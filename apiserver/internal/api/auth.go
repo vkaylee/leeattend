@@ -12,7 +12,6 @@ import (
 	"github.com/vkaylee/leeattend/apiserver/internal/service"
 )
 
-
 type AuthHandler struct {
 	Service      service.AuthService
 	Authorizer   Authorizer

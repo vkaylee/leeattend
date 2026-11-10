@@ -219,7 +219,7 @@ func TestLeaveHandlerSubmitDefaultsFullDayAndPending(t *testing.T) {
 	employmentID, leaveTypeID := uuid.New(), uuid.New()
 	repo := &mockLeaveRepository{}
 	handler := LeaveHandler{Repository: repo, Authorizer: mockLeaveAuthorizer{allowed: map[string]bool{"leave:requests:submit": true}}}
-	req := leaveRequest(t, http.MethodPost, "/api/v1" + "/leave/submit", `{"employment_id":"`+employmentID.String()+`","leave_type_id":"`+leaveTypeID.String()+`","start_date":"2026-10-20","end_date":"2026-10-21"}`)
+	req := leaveRequest(t, http.MethodPost, "/api/v1"+"/leave/submit", `{"employment_id":"`+employmentID.String()+`","leave_type_id":"`+leaveTypeID.String()+`","start_date":"2026-10-20","end_date":"2026-10-21"}`)
 	rec := httptest.NewRecorder()
 	handler.Submit(rec, req)
 	if rec.Code != http.StatusCreated {
@@ -234,7 +234,7 @@ func TestLeaveHandlerSubmitRejectsInvalidCustomHours(t *testing.T) {
 	employmentID, leaveTypeID := uuid.New(), uuid.New()
 	repo := &mockLeaveRepository{}
 	handler := LeaveHandler{Repository: repo, Authorizer: mockLeaveAuthorizer{allowed: map[string]bool{"leave:requests:submit": true}}}
-	req := leaveRequest(t, http.MethodPost, "/api/v1" + "/leave/submit", `{"employment_id":"`+employmentID.String()+`","leave_type_id":"`+leaveTypeID.String()+`","start_date":"2026-10-20","end_date":"2026-10-20","duration_type":"custom_hours","start_time":"17:00","end_time":"09:00"}`)
+	req := leaveRequest(t, http.MethodPost, "/api/v1"+"/leave/submit", `{"employment_id":"`+employmentID.String()+`","leave_type_id":"`+leaveTypeID.String()+`","start_date":"2026-10-20","end_date":"2026-10-20","duration_type":"custom_hours","start_time":"17:00","end_time":"09:00"}`)
 	rec := httptest.NewRecorder()
 	handler.Submit(rec, req)
 	if rec.Code != http.StatusBadRequest {
@@ -248,7 +248,7 @@ func TestLeaveHandlerSubmitRejectsInvalidCustomHours(t *testing.T) {
 func TestLeaveHandlerSubmitAutoApprovesWithPermission(t *testing.T) {
 	repo := &mockLeaveRepository{}
 	handler := LeaveHandler{Repository: repo, Authorizer: mockLeaveAuthorizer{allowed: map[string]bool{"leave:requests:submit": true, "leave:requests:approve": true}}}
-	req := leaveRequest(t, http.MethodPost, "/api/v1" + "/leave/submit", `{"employment_id":"`+uuid.New().String()+`","leave_type_id":"`+uuid.New().String()+`","start_date":"2026-10-20","end_date":"2026-10-20"}`)
+	req := leaveRequest(t, http.MethodPost, "/api/v1"+"/leave/submit", `{"employment_id":"`+uuid.New().String()+`","leave_type_id":"`+uuid.New().String()+`","start_date":"2026-10-20","end_date":"2026-10-20"}`)
 	rec := httptest.NewRecorder()
 	handler.Submit(rec, req)
 	if rec.Code != http.StatusCreated || repo.submit.Status != "pre_approved" {
@@ -259,7 +259,7 @@ func TestLeaveHandlerSubmitAutoApprovesWithPermission(t *testing.T) {
 func TestLeaveHandlerApproveRequiresAllowedStatus(t *testing.T) {
 	repo := &mockLeaveRepository{}
 	handler := LeaveHandler{Repository: repo, Authorizer: mockLeaveAuthorizer{allowed: map[string]bool{"leave:requests:approve": true}}}
-	req := leaveRequest(t, http.MethodPost, "/api/v1" + "/leave/requests/"+uuid.New().String()+"/approve", `{"status":"pending"}`)
+	req := leaveRequest(t, http.MethodPost, "/api/v1"+"/leave/requests/"+uuid.New().String()+"/approve", `{"status":"pending"}`)
 	req.SetPathValue("id", uuid.New().String())
 	rec := httptest.NewRecorder()
 	handler.Approve(rec, req)
@@ -272,7 +272,7 @@ func TestLeaveHandlerBalancesPreserveDecimal(t *testing.T) {
 	employeeID := uuid.New()
 	repo := &mockLeaveRepository{balances: []EmployeeLeaveBalanceRecord{{LeaveTypeID: uuid.New(), AccruedAmount: decimal.RequireFromString("1.25"), Remaining: decimal.RequireFromString("13.25")}}}
 	handler := LeaveHandler{Repository: repo, Authorizer: mockLeaveAuthorizer{allowed: map[string]bool{"leave:balances:read": true}}}
-	req := leaveRequest(t, http.MethodGet, "/api/v1" + "/employees/"+employeeID.String()+"/leave/balances", "")
+	req := leaveRequest(t, http.MethodGet, "/api/v1"+"/employees/"+employeeID.String()+"/leave/balances", "")
 	req.SetPathValue("id", employeeID.String())
 	rec := httptest.NewRecorder()
 	handler.Balances(rec, req)
@@ -287,7 +287,7 @@ func TestLeaveHandlerUpdateTypeConfig(t *testing.T) {
 		updateConfigRecord: LeaveTypeRecord{ID: typeID, Code: "annual", Name: "Annual", IsPaid: true},
 	}
 	handler := LeaveHandler{Repository: repo, Authorizer: mockLeaveAuthorizer{allowed: map[string]bool{"leave:types:manage": true}}}
-	req := leaveRequest(t, http.MethodPut, "/api/v1" + "/leave/types/"+typeID.String()+"/config", `{"policy_config":{"requires_document":true,"allow_negative_balance":false,"approval_required":true}}`)
+	req := leaveRequest(t, http.MethodPut, "/api/v1"+"/leave/types/"+typeID.String()+"/config", `{"policy_config":{"requires_document":true,"allow_negative_balance":false,"approval_required":true}}`)
 	req.SetPathValue("id", typeID.String())
 	rec := httptest.NewRecorder()
 	handler.UpdateTypeConfig(rec, req)
@@ -300,7 +300,7 @@ func TestLeaveHandlerDeleteType(t *testing.T) {
 	typeID := uuid.New()
 	repo := &mockLeaveRepository{}
 	handler := LeaveHandler{Repository: repo, Authorizer: mockLeaveAuthorizer{allowed: map[string]bool{"leave:types:manage": true}}}
-	req := leaveRequest(t, http.MethodDelete, "/api/v1" + "/leave/types/"+typeID.String(), "")
+	req := leaveRequest(t, http.MethodDelete, "/api/v1"+"/leave/types/"+typeID.String(), "")
 	req.SetPathValue("id", typeID.String())
 	rec := httptest.NewRecorder()
 	handler.DeleteType(rec, req)
@@ -315,7 +315,7 @@ func TestLeaveHandlerRestoreType(t *testing.T) {
 		restoreTypeRecord: LeaveTypeRecord{ID: typeID, Code: "annual", Name: "Annual", IsPaid: true},
 	}
 	handler := LeaveHandler{Repository: repo, Authorizer: mockLeaveAuthorizer{allowed: map[string]bool{"leave:types:manage": true}}}
-	req := leaveRequest(t, http.MethodPost, "/api/v1" + "/leave/types/"+typeID.String()+"/restore", "")
+	req := leaveRequest(t, http.MethodPost, "/api/v1"+"/leave/types/"+typeID.String()+"/restore", "")
 	req.SetPathValue("id", typeID.String())
 	rec := httptest.NewRecorder()
 	handler.RestoreType(rec, req)
@@ -327,7 +327,7 @@ func TestLeaveHandlerRestoreType(t *testing.T) {
 func TestLeaveHandlerLifecycleForbidden(t *testing.T) {
 	typeID := uuid.New()
 	handler := LeaveHandler{Repository: &mockLeaveRepository{}, Authorizer: mockLeaveAuthorizer{allowed: map[string]bool{}}}
-	req := leaveRequest(t, http.MethodDelete, "/api/v1" + "/leave/types/"+typeID.String(), "")
+	req := leaveRequest(t, http.MethodDelete, "/api/v1"+"/leave/types/"+typeID.String(), "")
 	req.SetPathValue("id", typeID.String())
 	rec := httptest.NewRecorder()
 	handler.DeleteType(rec, req)
@@ -353,7 +353,7 @@ func TestLeaveHandlerOrganizationBalances(t *testing.T) {
 		wsTotal: 1,
 	}
 	handler := LeaveHandler{Repository: repo, Authorizer: mockLeaveAuthorizer{allowed: map[string]bool{"leave:balances:read": true}}}
-	req := leaveRequest(t, http.MethodGet, "/api/v1" + "/leave/balances?page=1&limit=20", "")
+	req := leaveRequest(t, http.MethodGet, "/api/v1"+"/leave/balances?page=1&limit=20", "")
 	rec := httptest.NewRecorder()
 	handler.OrganizationBalances(rec, req)
 	if rec.Code != http.StatusOK {
@@ -369,7 +369,7 @@ func TestLeaveHandlerOrganizationBalances(t *testing.T) {
 
 	// Test forbidden
 	handlerForbidden := LeaveHandler{Repository: repo, Authorizer: mockLeaveAuthorizer{allowed: map[string]bool{}}}
-	reqForbidden := leaveRequest(t, http.MethodGet, "/api/v1" + "/leave/balances", "")
+	reqForbidden := leaveRequest(t, http.MethodGet, "/api/v1"+"/leave/balances", "")
 	recForbidden := httptest.NewRecorder()
 	handlerForbidden.OrganizationBalances(recForbidden, reqForbidden)
 	if recForbidden.Code != http.StatusForbidden {
@@ -389,7 +389,7 @@ func TestLeaveHandlerEmployeeHistory(t *testing.T) {
 		},
 	}
 	handler := LeaveHandler{Repository: repo, Authorizer: mockLeaveAuthorizer{allowed: map[string]bool{"leave:balances:read": true}}}
-	req := leaveRequest(t, http.MethodGet, "/api/v1" + "/employees/"+empID.String()+"/leave/history?year=2026", "")
+	req := leaveRequest(t, http.MethodGet, "/api/v1"+"/employees/"+empID.String()+"/leave/history?year=2026", "")
 	req.SetPathValue("id", empID.String())
 	rec := httptest.NewRecorder()
 	handler.EmployeeHistory(rec, req)
@@ -403,7 +403,7 @@ func TestLeaveHandlerAdjustBalance(t *testing.T) {
 	repo := &mockLeaveRepository{}
 	handler := LeaveHandler{Repository: repo, Authorizer: mockLeaveAuthorizer{allowed: map[string]bool{"leave:balances:adjust": true}}}
 	body := `{"leave_type_id":"` + leaveTypeID.String() + `","amount":2.5,"reason":"Correction","transaction_date":"2026-06-01"}`
-	req := leaveRequest(t, http.MethodPost, "/api/v1" + "/employees/"+empID.String()+"/leave/adjust", body)
+	req := leaveRequest(t, http.MethodPost, "/api/v1"+"/employees/"+empID.String()+"/leave/adjust", body)
 	req.SetPathValue("id", empID.String())
 	rec := httptest.NewRecorder()
 	handler.AdjustBalance(rec, req)
@@ -416,7 +416,7 @@ func TestLeaveHandlerAdjustBalance(t *testing.T) {
 
 	// Test validation error: missing effective_date
 	badBody := `{"leave_type_id":"` + leaveTypeID.String() + `","amount":2.5,"reason":"Correction"}`
-	reqBad := leaveRequest(t, http.MethodPost, "/api/v1" + "/employees/"+empID.String()+"/leave/adjust", badBody)
+	reqBad := leaveRequest(t, http.MethodPost, "/api/v1"+"/employees/"+empID.String()+"/leave/adjust", badBody)
 	reqBad.SetPathValue("id", empID.String())
 	recBad := httptest.NewRecorder()
 	handler.AdjustBalance(recBad, reqBad)
@@ -459,7 +459,7 @@ func TestLeaveHandlerPoliciesCRUD(t *testing.T) {
 	handler := LeaveHandler{Repository: repo, Authorizer: mockLeaveAuthorizer{allowed: map[string]bool{"leave:policies:manage": true}}}
 
 	// List
-	reqList := leaveRequest(t, http.MethodGet, "/api/v1" + "/leave/policies", "")
+	reqList := leaveRequest(t, http.MethodGet, "/api/v1"+"/leave/policies", "")
 	recList := httptest.NewRecorder()
 	handler.ListPolicies(recList, reqList)
 	if recList.Code != http.StatusOK {
@@ -468,7 +468,7 @@ func TestLeaveHandlerPoliciesCRUD(t *testing.T) {
 
 	// Create
 	createBody := `{"leave_type_id":"` + typeID.String() + `","name":"New Policy","rule_config":{}}`
-	reqCreate := leaveRequest(t, http.MethodPost, "/api/v1" + "/leave/policies", createBody)
+	reqCreate := leaveRequest(t, http.MethodPost, "/api/v1"+"/leave/policies", createBody)
 	recCreate := httptest.NewRecorder()
 	handler.CreatePolicy(recCreate, reqCreate)
 	if recCreate.Code != http.StatusCreated {
@@ -477,7 +477,7 @@ func TestLeaveHandlerPoliciesCRUD(t *testing.T) {
 
 	// Update
 	updateBody := `{"name":"Updated Policy"}`
-	reqUpdate := leaveRequest(t, http.MethodPatch, "/api/v1" + "/leave/policies/"+policyID.String(), updateBody)
+	reqUpdate := leaveRequest(t, http.MethodPatch, "/api/v1"+"/leave/policies/"+policyID.String(), updateBody)
 	reqUpdate.SetPathValue("policy_id", policyID.String())
 	recUpdate := httptest.NewRecorder()
 	handler.UpdatePolicy(recUpdate, reqUpdate)
@@ -486,7 +486,7 @@ func TestLeaveHandlerPoliciesCRUD(t *testing.T) {
 	}
 
 	// Delete
-	reqDelete := leaveRequest(t, http.MethodDelete, "/api/v1" + "/leave/policies/"+policyID.String(), "")
+	reqDelete := leaveRequest(t, http.MethodDelete, "/api/v1"+"/leave/policies/"+policyID.String(), "")
 	reqDelete.SetPathValue("policy_id", policyID.String())
 	recDelete := httptest.NewRecorder()
 	handler.DeletePolicy(recDelete, reqDelete)
@@ -521,7 +521,7 @@ func TestLeaveHandlerPolicyAssignments(t *testing.T) {
 
 	// Assign
 	assignBody := `{"policy_id":"` + policyID.String() + `","assignee_type":"organization","effective_from":"2026-01-01"}`
-	reqAssign := leaveRequest(t, http.MethodPost, "/api/v1" + "/leave/policies/assign", assignBody)
+	reqAssign := leaveRequest(t, http.MethodPost, "/api/v1"+"/leave/policies/assign", assignBody)
 	recAssign := httptest.NewRecorder()
 	handler.AssignPolicy(recAssign, reqAssign)
 	if recAssign.Code != http.StatusCreated {
@@ -530,7 +530,7 @@ func TestLeaveHandlerPolicyAssignments(t *testing.T) {
 	// Assign user policy
 	targetUserID := uuid.New()
 	assignUserBody := `{"policy_id":"` + policyID.String() + `","assignee_type":"user","assignee_id":"` + targetUserID.String() + `","effective_from":"2026-01-01"}`
-	reqAssignUser := leaveRequest(t, http.MethodPost, "/api/v1" + "/leave/policies/assign", assignUserBody)
+	reqAssignUser := leaveRequest(t, http.MethodPost, "/api/v1"+"/leave/policies/assign", assignUserBody)
 	recAssignUser := httptest.NewRecorder()
 	handler.AssignPolicy(recAssignUser, reqAssignUser)
 	if recAssignUser.Code != http.StatusCreated {
@@ -538,7 +538,7 @@ func TestLeaveHandlerPolicyAssignments(t *testing.T) {
 	}
 
 	// List assignments
-	reqList := leaveRequest(t, http.MethodGet, "/api/v1" + "/leave/policies/assignments", "")
+	reqList := leaveRequest(t, http.MethodGet, "/api/v1"+"/leave/policies/assignments", "")
 	recList := httptest.NewRecorder()
 	handler.ListPolicyAssignments(recList, reqList)
 	if recList.Code != http.StatusOK {
@@ -546,7 +546,7 @@ func TestLeaveHandlerPolicyAssignments(t *testing.T) {
 	}
 
 	// Delete assignment
-	reqDelete := leaveRequest(t, http.MethodDelete, "/api/v1" + "/leave/policies/assignments/"+assignmentID.String(), "")
+	reqDelete := leaveRequest(t, http.MethodDelete, "/api/v1"+"/leave/policies/assignments/"+assignmentID.String(), "")
 	reqDelete.SetPathValue("assignment_id", assignmentID.String())
 	recDelete := httptest.NewRecorder()
 	handler.DeletePolicyAssignment(recDelete, reqDelete)
@@ -567,7 +567,7 @@ func TestLeaveHandlerAccrualAndJobStatus(t *testing.T) {
 	handler := LeaveHandler{Repository: repo, Authorizer: mockLeaveAuthorizer{allowed: map[string]bool{"leave:accrual:run": true}}}
 
 	// Trigger accrual
-	reqRun := leaveRequest(t, http.MethodPost, "/api/v1" + "/leave/accrual/run", `{"date":"2026-10-20"}`)
+	reqRun := leaveRequest(t, http.MethodPost, "/api/v1"+"/leave/accrual/run", `{"date":"2026-10-20"}`)
 	recRun := httptest.NewRecorder()
 	handler.TriggerAccrual(recRun, reqRun)
 	if recRun.Code != http.StatusOK {
@@ -575,7 +575,7 @@ func TestLeaveHandlerAccrualAndJobStatus(t *testing.T) {
 	}
 
 	// Check status
-	reqStatus := leaveRequest(t, http.MethodGet, "/api/v1" + "/jobs/"+jobID.String()+"/status", "")
+	reqStatus := leaveRequest(t, http.MethodGet, "/api/v1"+"/jobs/"+jobID.String()+"/status", "")
 	reqStatus.SetPathValue("job_id", jobID.String())
 	recStatus := httptest.NewRecorder()
 	handler.JobStatus(recStatus, reqStatus)
@@ -613,7 +613,7 @@ func TestLeaveHandlerBehalfAssignments(t *testing.T) {
 	}
 
 	// List behalf assignments
-	reqList := leaveRequest(t, http.MethodGet, "/api/v1" + "/leave/behalf-assignments", "")
+	reqList := leaveRequest(t, http.MethodGet, "/api/v1"+"/leave/behalf-assignments", "")
 	recList := httptest.NewRecorder()
 	handler.ListBehalfAssignments(recList, reqList)
 	if recList.Code != http.StatusOK {
@@ -622,7 +622,7 @@ func TestLeaveHandlerBehalfAssignments(t *testing.T) {
 
 	// Create behalf assignment
 	createBody := `{"assignee_user_id":"` + uuid.New().String() + `","target_employee_id":"` + targetEmpID.String() + `"}`
-	reqCreate := leaveRequest(t, http.MethodPost, "/api/v1" + "/leave/behalf-assignments", createBody)
+	reqCreate := leaveRequest(t, http.MethodPost, "/api/v1"+"/leave/behalf-assignments", createBody)
 	recCreate := httptest.NewRecorder()
 	handler.CreateBehalfAssignment(recCreate, reqCreate)
 	if recCreate.Code != http.StatusOK {
@@ -630,7 +630,7 @@ func TestLeaveHandlerBehalfAssignments(t *testing.T) {
 	}
 
 	// My targets
-	reqTargets := leaveRequest(t, http.MethodGet, "/api/v1" + "/leave/behalf-assignments/my-targets", "")
+	reqTargets := leaveRequest(t, http.MethodGet, "/api/v1"+"/leave/behalf-assignments/my-targets", "")
 	recTargets := httptest.NewRecorder()
 	handler.GetMyBehalfTargets(recTargets, reqTargets)
 	if recTargets.Code != http.StatusOK {
@@ -638,7 +638,7 @@ func TestLeaveHandlerBehalfAssignments(t *testing.T) {
 	}
 
 	// Delete behalf assignment
-	reqDelete := leaveRequest(t, http.MethodDelete, "/api/v1" + "/leave/behalf-assignments/"+behalfID.String(), "")
+	reqDelete := leaveRequest(t, http.MethodDelete, "/api/v1"+"/leave/behalf-assignments/"+behalfID.String(), "")
 	reqDelete.SetPathValue("id", behalfID.String())
 	recDelete := httptest.NewRecorder()
 	handler.DeleteBehalfAssignment(recDelete, reqDelete)
@@ -667,7 +667,7 @@ func TestLeaveHandlerImportEndpoints(t *testing.T) {
 	}
 
 	// Template download
-	reqTpl := leaveRequest(t, http.MethodGet, "/api/v1" + "/leave/upload-template", "")
+	reqTpl := leaveRequest(t, http.MethodGet, "/api/v1"+"/leave/upload-template", "")
 	recTpl := httptest.NewRecorder()
 	handler.UploadTemplate(recTpl, reqTpl)
 	if recTpl.Code != http.StatusOK {
@@ -678,7 +678,7 @@ func TestLeaveHandlerImportEndpoints(t *testing.T) {
 	}
 
 	// Latest import
-	reqLatest := leaveRequest(t, http.MethodGet, "/api/v1" + "/leave/import/latest", "")
+	reqLatest := leaveRequest(t, http.MethodGet, "/api/v1"+"/leave/import/latest", "")
 	recLatest := httptest.NewRecorder()
 	handler.LatestImport(recLatest, reqLatest)
 	if recLatest.Code != http.StatusOK {
@@ -686,7 +686,7 @@ func TestLeaveHandlerImportEndpoints(t *testing.T) {
 	}
 
 	// Import errors
-	reqErr := leaveRequest(t, http.MethodGet, "/api/v1" + "/leave/import/"+jobID.String()+"/errors", "")
+	reqErr := leaveRequest(t, http.MethodGet, "/api/v1"+"/leave/import/"+jobID.String()+"/errors", "")
 	reqErr.SetPathValue("job_id", jobID.String())
 	recErr := httptest.NewRecorder()
 	handler.ImportErrors(recErr, reqErr)
