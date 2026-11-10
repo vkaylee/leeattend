@@ -44,7 +44,7 @@ export async function submitAttendanceAdjustment(
   return resData;
 }
 
-export async function fetchWorkspaceAttendanceAdjustments(
+export async function fetchAttendanceAdjustments(
   params?: {
     status?: string;
     employee_id?: string;

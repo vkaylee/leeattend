@@ -17,11 +17,11 @@
  * throws away the date and ignores timezone) against "HH:MM:SS" shift times.
  * That breaks the moment the reference time `A` is any instant other than "the
  * client's current local wall clock" — which is exactly what the timeline
- * scrubber needs (A fixed in the past/future, ±12h, in the *workspace* TZ).
+ * scrubber needs (A fixed in the past/future, ±12h, in the *organization* TZ).
  *
  * So this version works entirely in absolute epoch-minutes. The caller resolves
  * the shift's start/end to absolute instants from (shiftDate + "HH:MM:SS") in
- * the workspace timezone, and passes the reference time `A` as a `Date`. The
+ * the organization timezone, and passes the reference time `A` as a `Date`. The
  * helper `epochMinutesInTz` does the wall-clock → UTC conversion with
  * `Intl.DateTimeFormat` (no extra deps — date-fns-tz is not in the bundle).
  */
@@ -51,7 +51,7 @@ export interface ComputeZoneInput {
   /** The shift's assigned calendar day "yyyy-MM-dd" (overnight shifts are
    *  anchored to their start date). */
   shiftDate: string;
-  /** IANA workspace timezone, e.g. "Asia/Ho_Chi_Minh". */
+  /** IANA organization timezone, e.g. "Asia/Ho_Chi_Minh". */
   tz: string;
 }
 
@@ -138,7 +138,7 @@ export function computeZone(input: ComputeZoneInput): ZoneInfo {
   }
 
   // Absolute epoch-minutes of the shift boundaries, anchored to `shiftDate` in
-  // the workspace timezone. Overnight shifts (end ≤ start) push the end +24h.
+  // the organization timezone. Overnight shifts (end ≤ start) push the end +24h.
   const startMins = epochMinutesInTz(shiftDate, scheduledStart, tz);
   let endMins = epochMinutesInTz(shiftDate, scheduledEnd, tz);
   if (endMins <= startMins) {
@@ -157,7 +157,7 @@ export function computeZone(input: ComputeZoneInput): ZoneInfo {
   return { zone: "b", minutes: Math.ceil(refMins - graceEndsAt) };
 }
 
-/** True when the user pinned `A` on a calendar day before today (in workspace
+/** True when the user pinned `A` on a calendar day before today (in organization
  *  tz) → every row is a fixed historical record, no live countdown. */
 export function isViewingPastDate(shiftDate: string, today: string): boolean {
   if (!shiftDate || !today) return false;

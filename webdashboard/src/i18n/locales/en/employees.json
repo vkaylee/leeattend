@@ -530,13 +530,13 @@
     "subtitle": "Manage personal information and account settings",
     "join_date": "Join Date",
     "preferred_language": "Preferred Language",
-    "follow_workspace": "Follow organization settings",
+    "follow_organization": "Follow organization settings",
     "bio": "Bio",
     "bio_placeholder": "A brief introduction about yourself...",
     "personalization": {
       "title": "Personalization",
       "subtitle": "Customize your personal UI colors",
-      "use_workspace_default": "Use organization default",
+      "use_organization_default": "Use organization default",
       "note": "* This change only applies to you on this browser."
     },
     "security": {

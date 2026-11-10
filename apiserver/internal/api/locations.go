@@ -22,7 +22,6 @@ var (
 
 type WorkLocation struct {
 	ID             uuid.UUID `json:"id"`
-	WorkspaceID    uuid.UUID `json:"workspace_id"`
 	Name           string    `json:"name"`
 	Address        *string   `json:"address"`
 	Timezone       string    `json:"timezone"`
@@ -57,11 +56,11 @@ type LocationListResponse struct {
 }
 
 type LocationRepository interface {
-	ListLocations(ctx context.Context, wsID uuid.UUID, page, limit int) (LocationListResponse, error)
-	CreateLocation(ctx context.Context, wsID uuid.UUID, req CreateLocationRequest) (WorkLocation, error)
-	GetLocation(ctx context.Context, wsID, id uuid.UUID) (WorkLocation, error)
-	UpdateLocation(ctx context.Context, wsID, id uuid.UUID, req UpdateLocationRequest) (WorkLocation, error)
-	DeleteLocation(ctx context.Context, wsID, id uuid.UUID) error
+	ListLocations(ctx context.Context, page, limit int) (LocationListResponse, error)
+	CreateLocation(ctx context.Context, req CreateLocationRequest) (WorkLocation, error)
+	GetLocation(ctx context.Context, id uuid.UUID) (WorkLocation, error)
+	UpdateLocation(ctx context.Context, id uuid.UUID, req UpdateLocationRequest) (WorkLocation, error)
+	DeleteLocation(ctx context.Context, id uuid.UUID) error
 }
 
 type LocationHandler struct {
@@ -80,7 +79,7 @@ func (h LocationHandler) List(w http.ResponseWriter, r *http.Request) {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}
-	res, err := h.Repository.ListLocations(r.Context(), wsID, p.Page, p.Limit)
+	res, err := h.Repository.ListLocations(r.Context(), p.Page, p.Limit)
 	if err != nil {
 		h.writeError(w, r, err)
 		return
@@ -104,7 +103,7 @@ func (h LocationHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	req.Name = strings.TrimSpace(req.Name)
-	loc, err := h.Repository.CreateLocation(r.Context(), wsID, req)
+	loc, err := h.Repository.CreateLocation(r.Context(), req)
 	if err != nil {
 		h.writeError(w, r, err)
 		return
@@ -119,7 +118,7 @@ func (h LocationHandler) Get(w http.ResponseWriter, r *http.Request) {
 		h.forbidden(w, r)
 		return
 	}
-	loc, err := h.Repository.GetLocation(r.Context(), wsID, id)
+	loc, err := h.Repository.GetLocation(r.Context(), id)
 	if err != nil {
 		h.writeError(w, r, err)
 		return
@@ -147,7 +146,7 @@ func (h LocationHandler) Update(w http.ResponseWriter, r *http.Request) {
 		}
 		req.Name = &trimmed
 	}
-	loc, err := h.Repository.UpdateLocation(r.Context(), wsID, id, req)
+	loc, err := h.Repository.UpdateLocation(r.Context(), id, req)
 	if err != nil {
 		h.writeError(w, r, err)
 		return
@@ -162,7 +161,7 @@ func (h LocationHandler) Delete(w http.ResponseWriter, r *http.Request) {
 		h.forbidden(w, r)
 		return
 	}
-	if err := h.Repository.DeleteLocation(r.Context(), wsID, id); err != nil {
+	if err := h.Repository.DeleteLocation(r.Context(), id); err != nil {
 		h.writeError(w, r, err)
 		return
 	}

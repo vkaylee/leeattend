@@ -45,7 +45,7 @@ export function ExecutiveOvertimeBreakdown({ range, topN = 10, costStatus = "dat
     [data],
   );
 
-  const currency = data?.workspace.currency ?? "USD";
+  const currency = data?.organization.currency ?? "USD";
 
   const columns: ChartTableColumn<Row>[] = [
     { header: t("dashboard.executive.breakdown.department"), key: "department_name" },

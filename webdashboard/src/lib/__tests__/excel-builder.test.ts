@@ -123,7 +123,7 @@ describe("excel-builder", () => {
     it("generates summary report with correct structure", async () => {
       const options = {
         reportType: "summary" as const,
-        workspaceName: "Test Workspace",
+        organizationName: "Test Workspace",
         dateRange: { start: "2026-01-01", end: "2026-01-31" },
       };
 
@@ -166,7 +166,7 @@ describe("excel-builder", () => {
     it("generates detail report with correct structure", async () => {
       const options = {
         reportType: "detail" as const,
-        workspaceName: "Test Workspace",
+        organizationName: "Test Workspace",
         dateRange: { start: "2026-01-15", end: "2026-01-17" },
       };
 
@@ -324,7 +324,7 @@ describe("excel-builder", () => {
     it("omits date range when not provided", async () => {
       const options = {
         reportType: "summary" as const,
-        workspaceName: "Test Workspace",
+        organizationName: "Test Workspace",
       };
 
       // Track merge calls before

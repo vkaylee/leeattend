@@ -141,13 +141,13 @@ vi.mock("recharts", () => ({
 
 describe("TanStack Router .lazy.tsx file structure", () => {
     it("lazy route for dashboard exports Route with createLazyFileRoute", async () => {
-        const module_ = await import("../../routes/_authenticated/_workspace/index.lazy");
+        const module_ = await import("../../routes/_authenticated/_organization/index.lazy");
         expect(module_.Route).toBeDefined();
         expect(module_.Route.options.component).toBeDefined();
     });
 
     it("lazy route for employees exports Route with EmployeesPage", async () => {
-        const module_ = await import(/* @vite-ignore */ "../../routes/_authenticated/_workspace/employees.lazy");
+        const module_ = await import(/* @vite-ignore */ "../../routes/_authenticated/_organization/employees.lazy");
         expect(module_.Route).toBeDefined();
         expect(module_.Route.options.component).toBeDefined();
     });
@@ -159,31 +159,31 @@ describe("TanStack Router .lazy.tsx file structure", () => {
     });
 
     it("lazy route for reports exports Route with ReportsPage", async () => {
-        const module_ = await import(/* @vite-ignore */ "../../routes/_authenticated/_workspace/reports.lazy");
+        const module_ = await import(/* @vite-ignore */ "../../routes/_authenticated/_organization/reports.lazy");
         expect(module_.Route).toBeDefined();
         expect(module_.Route.options.component).toBeDefined();
     });
 
     it("lazy route for settings/general exports Route with GeneralSettings", async () => {
-        const module_ = await import("../../routes/_authenticated/_workspace/settings/general.lazy");
+        const module_ = await import("../../routes/_authenticated/_organization/settings/general.lazy");
         expect(module_.Route).toBeDefined();
         expect(module_.Route.options.component).toBeDefined();
     });
 
     it("skeleton route (employees) has no component", async () => {
-        const module_ = await import("../../routes/_authenticated/_workspace/employees");
+        const module_ = await import("../../routes/_authenticated/_organization/employees");
         expect(module_.Route).toBeDefined();
         expect(module_.Route.options.component).toBeUndefined();
     });
 
     it("skeleton route (dashboard) has no component", async () => {
-        const module_ = await import("../../routes/_authenticated/_workspace/index");
+        const module_ = await import("../../routes/_authenticated/_organization/index");
         expect(module_.Route).toBeDefined();
         expect(module_.Route.options.component).toBeUndefined();
     });
 
-    it("layout route _workspace retains AppShell component", async () => {
-        const module_ = await import("../../routes/_authenticated/_workspace");
+    it("layout route _organization retains AppShell component", async () => {
+        const module_ = await import("../../routes/_authenticated/_organization");
         expect(module_.Route.options.component).toBeDefined();
     });
 
@@ -193,7 +193,7 @@ describe("TanStack Router .lazy.tsx file structure", () => {
     });
 
     it("settings layout retains SettingsLayout component", async () => {
-        const module_ = await import("../../routes/_authenticated/_workspace/settings");
+        const module_ = await import("../../routes/_authenticated/_organization/settings");
         expect(module_.Route.options.component).toBeDefined();
     });
 

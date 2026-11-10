@@ -5,10 +5,10 @@ import { type TFunction } from "i18next";
 import CollapsibleSection from "@/components/features/dashboard/collapsible-section";
 import StaggerChildren from "@/components/ui/stagger-children";
 import StatCard from "@/components/ui/stat-card";
-import { type WorkspaceStats } from "@/hooks/use-dashboard";
+import { type OrganizationStats } from "@/hooks/use-dashboard";
 
 interface HrKpiCardsProps {
-  hrStats: WorkspaceStats | undefined;
+  hrStats: OrganizationStats | undefined;
   isCollapsed: boolean;
   isLoading: boolean;
   onToggle: (id: string) => void;

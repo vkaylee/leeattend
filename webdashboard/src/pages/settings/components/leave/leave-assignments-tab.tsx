@@ -98,8 +98,8 @@ export function LeaveAssignmentsTab({
         isLoading={isLoading}
         renderCard={(a) => {
           const getAssigneeName = () => {
-            if (a.assignee_type === "workspace") {
-              return t("leave_requests.policy.assignee_types.workspace");
+            if (a.assignee_type === "organization") {
+              return t("leave_requests.policy.assignee_types.organization");
             }
             if (a.assignee_type === "department") {
               const dept = departments.find((d) => d.id === a.assignee_id);
@@ -125,7 +125,7 @@ export function LeaveAssignmentsTab({
                   </div>
                 </div>
                 <span className={cn("shrink-0 px-2.5 py-1 rounded-lg text-[9px] font-bold uppercase tracking-widest border shadow-sm",
-                  a.assignee_type === "workspace" ? "bg-teal-50 dark:bg-teal-950 text-teal-600 dark:text-teal-300 border-teal-100" :
+                  a.assignee_type === "organization" ? "bg-teal-50 dark:bg-teal-950 text-teal-600 dark:text-teal-300 border-teal-100" :
                   a.assignee_type === "department" ? "bg-blue-50 dark:bg-blue-950 text-blue-600 dark:text-blue-300 border-blue-100 dark:border-blue-800" :
                   "bg-emerald-50 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-300 border-emerald-100 dark:border-emerald-800"
                 )}>
@@ -140,7 +140,7 @@ export function LeaveAssignmentsTab({
                   <div className="mt-1 flex items-center gap-1.5">
                     <Users className="h-3 w-3 text-slate-400" />
                     <span className="text-xs font-bold text-slate-600 dark:text-slate-300 truncate max-w-[140px]">
-                      {a.assignee_type !== "workspace" ? getAssigneeName() : getAssigneeName()}
+                      {getAssigneeName()}
                     </span>
                   </div>
                 </div>
@@ -204,8 +204,8 @@ export function LeaveAssignmentsTab({
               <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
                 {assignments.map((a) => {
                   const getAssigneeName = () => {
-                    if (a.assignee_type === "workspace") {
-                      return t("leave_requests.policy.assignee_types.workspace");
+                    if (a.assignee_type === "organization") {
+                      return t("leave_requests.policy.assignee_types.organization");
                     }
                     if (a.assignee_type === "department") {
                       const dept = departments.find((d) => d.id === a.assignee_id);
@@ -225,17 +225,15 @@ export function LeaveAssignmentsTab({
                       <td className="px-6 py-5">
                         <div className="flex items-center gap-3">
                           <span className={cn("px-2.5 py-1 rounded-lg text-[9px] font-bold uppercase tracking-widest border shadow-sm shrink-0",
-                            a.assignee_type === "workspace" ? "bg-teal-50 dark:bg-teal-950 text-teal-600 dark:text-teal-300 border-teal-100" :
+                            a.assignee_type === "organization" ? "bg-teal-50 dark:bg-teal-950 text-teal-600 dark:text-teal-300 border-teal-100" :
                             a.assignee_type === "department" ? "bg-blue-50 dark:bg-blue-950 text-blue-600 dark:text-blue-300 border-blue-100 dark:border-blue-800" :
                             "bg-emerald-50 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-300 border-emerald-100 dark:border-emerald-800"
                           )}>
                             {a.assignee_type}
                           </span>
-                          {a.assignee_type !== "workspace" && (
-                            <span className="font-bold text-slate-700 dark:text-slate-200 text-xs truncate max-w-[180px]">
-                              {getAssigneeName()}
-                            </span>
-                          )}
+                          <span className="font-bold text-slate-700 dark:text-slate-200 text-xs truncate max-w-[180px]">
+                            {getAssigneeName()}
+                          </span>
                         </div>
                       </td>
                       <td className="px-6 py-5 text-xs font-mono text-slate-600 dark:text-slate-300 font-bold">

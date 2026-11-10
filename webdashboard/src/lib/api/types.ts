@@ -5,7 +5,10 @@ import type { components } from "@/types/api-generated";
 // interfaces, and schema gaps (Group B/C).
 // Anchor aliases: Group A names referenced by overrides below.
 // Kept here (not in the barrel) so they can be used in local scope.
-export type Department = components["schemas"]["Department"];
+export type Department = Omit<components["schemas"]["Department"], "workspace_id"> & {
+  /** Legacy generated-schema field; runtime API no longer supplies workspace scope. */
+  workspace_id?: string;
+};
 export type Employee = components["schemas"]["Employee"] & {
   employment_status?: string | null;
   hire_date?: string | null;
@@ -45,15 +48,36 @@ export interface PaginatedResponse<T> {
   truncated?: boolean;
 }
 
+export interface FileRecord {
+  category: string;
+  content_hash?: string | null;
+  created_at: string;
+  expires_at?: string | null;
+  file_name: string;
+  file_size: number;
+  folder_id?: string | null;
+  id: string;
+  is_active: boolean;
+  is_latest: boolean;
+  mime_type: string;
+  owner_id: string;
+  owner_type: string;
+  parent_file_id?: string | null;
+  scan_status: string;
+  scanned_at?: string | null;
+  storage_key: string;
+  updated_at: string;
+  uploaded_by?: string | null;
+  version: number;
+}
 
-
-// --- Workspace Config (EAV) ---
+// --- Organization Config (EAV) ---
 export interface CreateConfigEntryRequest {
   config_key: string;
   effective_from: string;
   effective_to?: string | null;
   scope_id?: string | null;
-  scope_type: "workspace" | "employer" | "department" | "employee";
+  scope_type: "organization" | "employer" | "department" | "employee" | "employment";
   value_bool?: boolean | null;
   value_decimal?: number | null;
   value_int?: number | null;

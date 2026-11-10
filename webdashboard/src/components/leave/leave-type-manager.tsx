@@ -178,7 +178,7 @@ export function LeaveTypeManager() {
               {t("settings.leave.type_manager.get_started", "Get Started")}
             </Button>
           }
-          description={t("settings.leave.type_manager.empty_desc", "Your workspace is fresh and clean. Start by creating leave types manually or use our professional templates.")}
+          description={t("settings.leave.type_manager.empty_desc", "Your organization is fresh and clean. Start by creating leave types manually or use our professional templates.")}
           icon={<Sparkles className="text-primary-400" size={40} />}
           title={t("settings.leave.type_manager.empty_title", "No Leave Types Configured")}
         />
@@ -335,7 +335,7 @@ function AddLeaveTypeModal({ existingCodes, onClose, onSave, isSaving }: AddLeav
   const [step, setStep] = useState<"template" | "form">("template");
   const [formData, setFormData] = useState({ code: "", name: "", is_paid: true });
 
-  // Proactive inline duplicate detection (matches the workspace-unique,
+  // Proactive inline duplicate detection (matches the organization-unique,
   // case-insensitive code constraint enforced server-side).
   const normalizedCode = formData.code.trim().toLowerCase();
   const _isDuplicateCode =

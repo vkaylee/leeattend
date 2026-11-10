@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 
-import { fetchEmployees, fetchWorkingConditions, fetchWorkspaceWorkingConditions, type WorkingConditionWithEmployee } from "@/lib/api";
+import { fetchEmployees, fetchWorkingConditions, fetchWorkingConditionsForAllEmployees, type WorkingConditionWithEmployee } from "@/lib/api";
 import { employeeKeys } from "@/lib/query-keys";
 import { useOrganizationQuery } from "@/hooks/common/use-organization-query";
 
@@ -13,7 +13,7 @@ export const MAX_EMPLOYEE_FETCH = 3000;
 export { employeeKeys } from "@/lib/query-keys";
 
 /**
- * Shared hook to fetch the full employee list for a workspace.
+ * Shared hook to fetch the full employee list for the organization.
  *
  * Replaces the duplicated `fetchEmployees(wsId!, 1, 3000)` pattern
  * found across multiple pages. Centralizes query key, enabled guard,
@@ -46,24 +46,24 @@ export function useAllEmployees(
 export const workingConditionKeys = {
   all: ["working-conditions"] as const,
   list: (employeeId: string) => [...workingConditionKeys.all, employeeId] as const,
-  workspace: () => [...workingConditionKeys.all, "workspace"] as const,
+  organization: () => [...workingConditionKeys.all, "organization"] as const,
 };
 
-export function useWorkspaceWorkingConditions() {
+export function useOrganizationWorkingConditions() {
   return useQuery<WorkingConditionWithEmployee[]>({
-    queryKey: workingConditionKeys.workspace(),
-    queryFn: () => fetchWorkspaceWorkingConditions(),
+    queryKey: workingConditionKeys.organization(),
+    queryFn: () => fetchWorkingConditionsForAllEmployees(),
   });
 }
 
 export function useWorkingConditions(employeeId?: string) {
   return useQuery({
-    queryKey: employeeId ? workingConditionKeys.list(employeeId) : workingConditionKeys.workspace(),
+    queryKey: employeeId ? workingConditionKeys.list(employeeId) : workingConditionKeys.organization(),
     queryFn: () => {
       if (employeeId) {
         return fetchWorkingConditions(employeeId);
       }
-      return fetchWorkspaceWorkingConditions();
+      return fetchWorkingConditionsForAllEmployees();
     },
   });
 }

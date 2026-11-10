@@ -26,7 +26,6 @@ export function useBehalfAssignmentData(type: BehalfAssignmentType) {
             : await fetchAdjustmentBehalfAssignments();
           return assignments.map((assignment: OtClaimBehalfAssignment) => ({
             ...assignment,
-            workspace_id: assignment.workspace_id ?? "",
           }));
         }
         case "leave":

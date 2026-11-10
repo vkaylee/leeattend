@@ -85,7 +85,7 @@ const mockInstances: LifecycleInstanceSummary[] = [
 
 
 vi.mock("@/hooks/use-lifecycle", () => ({
-  useWorkspaceLifecycleInstances: () => ({
+  useOrganizationLifecycleInstances: () => ({
     data: mockInstances,
     isLoading: false,
     error: null,

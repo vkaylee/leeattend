@@ -18,7 +18,7 @@ import PageHeader from "@/components/ui/page-header";
 import { useToast } from "@/components/ui/toast";
 import { useConfirm } from "@/hooks/use-confirm";
 import { useAllEmployees } from "@/hooks/use-employees";
-import { deleteEmployeeContract, fetchWorkspaceContracts } from "@/lib/api/contracts";
+import { deleteEmployeeContract, fetchContracts } from "@/lib/api/contracts";
 import { ROUTES } from "@/lib/routes";
 
 interface SelectEmployeeModalProps {
@@ -107,7 +107,7 @@ export default function EContractsPage() {
   
   const { confirm, ConfirmationDialog } = useConfirm();
 
-  const searchParams = useSearch({ from: "/_authenticated/_workspace/econtracts" });
+  const searchParams = useSearch({ from: "/_authenticated/_organization/econtracts" });
 
   const [search, setSearch] = useState(searchParams.q ?? "");
   const [selectedType, setSelectedType] = useState<string>("all");
@@ -119,8 +119,8 @@ export default function EContractsPage() {
   const [editingContract, setEditingContract] = useState<EmployeeContract | null>(null);
 
   const { data: contracts = [], isLoading: isLoadingContracts } = useQuery({
-    queryKey: ["workspace-contracts"],
-    queryFn: () => fetchWorkspaceContracts(),
+    queryKey: ["organization-contracts"],
+    queryFn: () => fetchContracts(),
   });
 
   const { employees, isLoading: isLoadingEmployees } = useAllEmployees();
@@ -129,7 +129,7 @@ export default function EContractsPage() {
     mutationFn: ({ employeeId, contractId }: { employeeId: string; contractId: string }) =>
       deleteEmployeeContract(employeeId, contractId),
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ["workspace-contracts"] });
+      void queryClient.invalidateQueries({ queryKey: ["organization-contracts"] });
       toast.success(t("common.deleted_success", { defaultValue: "Contract deleted successfully" }));
     },
     onError: (err: unknown) => {

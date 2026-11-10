@@ -196,7 +196,7 @@ export function EContractsTable({
         ) : undefined}
         description={search || selectedType !== "all" || selectedStatus !== "all" 
           ? t("employees.details.contracts.search_no_results", { defaultValue: "Try adjusting your search criteria or filters to locate specific contracts" })
-          : t("employees.details.contracts.empty_state", { defaultValue: "No employment contracts have been registered in this workspace yet" })}
+          : t("employees.details.contracts.empty_state", { defaultValue: "No employment contracts have been registered in this organization yet" })}
         icon={<FileText size={48} />}
         title={t("employees.details.contracts.no_contracts_found", { defaultValue: "No Contracts Found" })}
       />
@@ -210,7 +210,7 @@ export function EContractsTable({
         title: t("employees.details.contracts.no_contracts_found", { defaultValue: "No Contracts Found" }),
         description: search || selectedType !== "all" || selectedStatus !== "all"
           ? t("employees.details.contracts.search_no_results", { defaultValue: "Try adjusting your search criteria or filters to locate specific contracts" })
-          : t("employees.details.contracts.empty_state", { defaultValue: "No employment contracts have been registered in this workspace yet" }),
+          : t("employees.details.contracts.empty_state", { defaultValue: "No employment contracts have been registered in this organization yet" }),
         icon: <FileText size={48} />,
         action: (search || selectedType !== "all" || selectedStatus !== "all") ? (
           <Button onClick={onClearFilters} variant="outline">

@@ -48,7 +48,7 @@ function TimelineHeader({ count, t }: { count: number; t: TFunction }) {
       <div className="flex items-center gap-3">
         <History className="w-6 h-6 text-primary-500" />
         <Typography className="text-lg font-bold text-slate-800 dark:text-slate-100 tracking-tight" variant="h2">
-          {t("common.workspace_settings.attendance_config")}
+          {t("common.organization_settings.attendance_config")}
         </Typography>
       </div>
       <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
@@ -69,13 +69,13 @@ function EmptyTimeline({ onNewVersion, t }: { onNewVersion?: () => void; t: TFun
             onClick={onNewVersion}
             variant="primary"
           >
-            {t("common.workspace_settings.new_version", { defaultValue: "Tạo phiên bản đầu tiên" })}
+            {t("common.organization_settings.new_version", { defaultValue: "Tạo phiên bản đầu tiên" })}
           </Button>
         ) : undefined
       }
-      description={t("common.workspace_settings.no_versions_desc") || "Nếu không tạo phiên bản cụ thể, cấu hình chấm công mặc định sẽ được áp dụng."}
+      description={t("common.organization_settings.no_versions_desc") || "Nếu không tạo phiên bản cụ thể, cấu hình chấm công mặc định sẽ được áp dụng."}
       icon={<Calculator size={40} />}
-      title={t("common.workspace_settings.no_versions") || "Chưa có phiên bản cấu hình"}
+      title={t("common.organization_settings.no_versions") || "Chưa có phiên bản cấu hình"}
     />
   );
 }
@@ -151,7 +151,7 @@ function TimelineItemGrid({
     <div className="mt-4 grid grid-cols-2 gap-4">
       <div className="p-4 bg-white dark:bg-slate-900 rounded-xl border border-slate-100 dark:border-slate-800">
         <Typography className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1" variant="p">
-          {t("common.workspace_settings.work_unit")}
+          {t("common.organization_settings.work_unit")}
         </Typography>
         <Typography className={cn(
             "text-lg font-bold tracking-tight",
@@ -164,7 +164,7 @@ function TimelineItemGrid({
       </div>
       <div className="p-4 bg-white dark:bg-slate-900 rounded-xl border border-slate-100 dark:border-slate-800">
         <Typography className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1" variant="p">
-          {t("common.workspace_settings.rounding_policy")}
+          {t("common.organization_settings.rounding_policy")}
         </Typography>
         <Typography className={cn(
             "text-lg font-bold tracking-tight",
@@ -177,7 +177,7 @@ function TimelineItemGrid({
       </div>
       <div className="p-4 bg-white dark:bg-slate-900 rounded-xl border border-slate-100 dark:border-slate-800">
         <Typography className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1" variant="p">
-          {t("common.workspace_settings.early_arrival_strategy")}
+          {t("common.organization_settings.early_arrival_strategy")}
         </Typography>
         <Typography className={cn(
             "text-sm font-bold tracking-tight",
@@ -185,12 +185,12 @@ function TimelineItemGrid({
           )}
           variant="p"
         >
-          {t(`common.workspace_settings.early_arrival_options.${version.early_arrival_strategy}`)}
+          {t(`common.organization_settings.early_arrival_options.${version.early_arrival_strategy}`)}
         </Typography>
       </div>
       <div className="p-4 bg-white dark:bg-slate-900 rounded-xl border border-slate-100 dark:border-slate-800">
         <Typography className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1" variant="p">
-          {t("common.workspace_settings.grace_period_minutes") || "Late Grace Period"}
+          {t("common.organization_settings.grace_period_minutes") || "Late Grace Period"}
         </Typography>
         <Typography className={cn(
             "text-lg font-bold tracking-tight",

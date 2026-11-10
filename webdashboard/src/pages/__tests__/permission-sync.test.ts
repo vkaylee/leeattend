@@ -23,13 +23,13 @@ describe("Permission catalog presentation", () => {
       "infra",
       "leave",
       "members",
+      "organization",
       "overtime",
       "payroll",
       "recruitment",
       "reports",
       "security",
       "shifts",
-      "workspace",
     ]);
   });
 

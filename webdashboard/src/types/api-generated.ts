@@ -11,7 +11,7 @@ export interface paths { "/api/v1/workspaces/{ws_id}/contracts": {
         cookie?: never;
     };
     /** Lấy danh sách hợp đồng toàn bộ workspace */
-    get: operations["list_workspace_contracts"];
+    get: operations["list_organization_contracts"];
     put?: never;
     post?: never;
     delete?: never;
@@ -349,14 +349,14 @@ export interface paths { "/api/v1/workspaces/{ws_id}/contracts": {
     patch?: never;
     trace?: never;
 };
-"/dashboard/workspace-stats": {
+"/dashboard/organization-stats": {
     parameters: {
         query?: never;
         header?: never;
         path?: never;
         cookie?: never;
     };
-    get: operations["get_workspace_stats"];
+    get: operations["get_organization_stats"];
     put?: never;
     post?: never;
     delete?: never;
@@ -1480,7 +1480,7 @@ export interface paths { "/api/v1/workspaces/{ws_id}/contracts": {
         path?: never;
         cookie?: never;
     };
-    get: operations["get_workspace_attendance_adjustments"];
+    get: operations["get_organization_attendance_adjustments"];
     put?: never;
     post: operations["submit_attendance_adjustment"];
     delete?: never;
@@ -2413,9 +2413,9 @@ export interface paths { "/api/v1/workspaces/{ws_id}/contracts": {
         path?: never;
         cookie?: never;
     };
-    get: operations["get_workspace_members"];
+    get: operations["get_organization_members"];
     put?: never;
-    post: operations["add_workspace_member"];
+    post: operations["add_organization_member"];
     delete?: never;
     options?: never;
     head?: never;
@@ -2432,10 +2432,10 @@ export interface paths { "/api/v1/workspaces/{ws_id}/contracts": {
     get?: never;
     put?: never;
     post?: never;
-    delete: operations["remove_workspace_member"];
+    delete: operations["remove_organization_member"];
     options?: never;
     head?: never;
-    patch: operations["update_workspace_member_role"];
+    patch: operations["update_organization_member_role"];
     trace?: never;
 };
 "/v1/workspaces/{ws_id}/members/{user_id}/permissions": {
@@ -2745,9 +2745,9 @@ export interface paths { "/api/v1/workspaces/{ws_id}/contracts": {
         path?: never;
         cookie?: never;
     };
-    get: operations["get_workspace_roles"];
+    get: operations["get_organization_roles"];
     put?: never;
-    post: operations["create_workspace_role"];
+    post: operations["create_organization_role"];
     delete?: never;
     options?: never;
     head?: never;
@@ -2762,9 +2762,9 @@ export interface paths { "/api/v1/workspaces/{ws_id}/contracts": {
         cookie?: never;
     };
     get?: never;
-    put: operations["update_workspace_role"];
+    put: operations["update_organization_role"];
     post?: never;
-    delete: operations["delete_workspace_role"];
+    delete: operations["delete_organization_role"];
     options?: never;
     head?: never;
     patch?: never;
@@ -2793,14 +2793,14 @@ export interface paths { "/api/v1/workspaces/{ws_id}/contracts": {
         path?: never;
         cookie?: never;
     };
-    get: operations["get_workspaces"];
+    get: operations["get_organizations"];
     put?: never;
     /**
      * POST /workspaces
      *     Creates a new workspace.
      *     Requires: SystemRole::PlatformAdmin — prevents arbitrary users from creating workspaces.
      */
-    post: operations["create_workspace"];
+    post: operations["create_organization"];
     delete?: never;
     options?: never;
     head?: never;
@@ -3262,7 +3262,7 @@ export interface paths { "/api/v1/workspaces/{ws_id}/contracts": {
         path?: never;
         cookie?: never;
     };
-    get: operations["get_workspace_schedules"];
+    get: operations["get_organization_schedules"];
     put?: never;
     post?: never;
     delete?: never;
@@ -3540,13 +3540,13 @@ export interface paths { "/api/v1/workspaces/{ws_id}/contracts": {
         path?: never;
         cookie?: never;
     };
-    get: operations["get_workspace_by_id"];
+    get: operations["get_organization_by_id"];
     put?: never;
     post?: never;
     delete?: never;
     options?: never;
     head?: never;
-    patch: operations["update_workspace"];
+    patch: operations["update_organization"];
     trace?: never;
 };
 "/workspaces/{ws_id}/approval-workflows": {
@@ -3914,7 +3914,7 @@ export interface paths { "/api/v1/workspaces/{ws_id}/contracts": {
         path?: never;
         cookie?: never;
     };
-    get: operations["get_workspace_leave_balances"];
+    get: operations["get_organization_leave_balances"];
     put?: never;
     post?: never;
     delete?: never;
@@ -4050,7 +4050,7 @@ export interface paths { "/api/v1/workspaces/{ws_id}/contracts": {
         path?: never;
         cookie?: never;
     };
-    get: operations["get_workspace_leave_requests"];
+    get: operations["get_organization_leave_requests"];
     put?: never;
     post?: never;
     delete?: never;
@@ -4524,7 +4524,7 @@ export interface paths { "/api/v1/workspaces/{ws_id}/contracts": {
         cookie?: never;
     };
     /** GET /workspaces/{ws_id}/payroll/payslips */
-    get: operations["get_workspace_payslips"];
+    get: operations["get_organization_payslips"];
     put?: never;
     post?: never;
     delete?: never;
@@ -5967,7 +5967,7 @@ export interface components {
             generated_at: string;
             insights: components["schemas"]["DashboardInsight"][];
             metrics: components["schemas"]["DashboardMetric"][];
-            workspace: components["schemas"]["DashboardWorkspaceContext"];
+            organization: components["schemas"]["DashboardOrganizationContext"];
         };
         DashboardPreferences: {
             active_view: string;
@@ -6000,7 +6000,7 @@ export interface components {
         };
         /** @enum {string} */
         DashboardTargetOperator: "lt" | "lte" | "eq" | "gte" | "gt";
-        DashboardWorkspaceContext: {
+        DashboardOrganizationContext: {
             currency: string;
             timezone: string;
         };
@@ -7404,7 +7404,7 @@ export interface components {
             /** Format: date-time */
             generated_at: string;
             rows: components["schemas"]["OvertimeBreakdownRow"][];
-            workspace: components["schemas"]["OvertimeBreakdownWorkspace"];
+            organization: components["schemas"]["DashboardOrganizationContext"];
         };
         /**
          * @description Department × overtime hours/cost breakdown for the executive dashboard.
@@ -7423,11 +7423,6 @@ export interface components {
             system_ot_hours: number;
             /** Format: double */
             unapproved_ot_hours: number;
-        };
-        /** @description Workspace + currency context attached to the breakdown response. */
-        OvertimeBreakdownWorkspace: {
-            currency: string;
-            timezone: string;
         };
         OvertimePolicy: {
             /** Format: date-time */
@@ -9483,7 +9478,7 @@ export interface components {
             /** Format: uuid */
             workspace_id?: string | null;
         };
-        WorkspaceStats: {
+        OrganizationStats: {
             absence_rate: components["schemas"]["RateQuantity"];
             /** Format: int64 */
             absent_today: number;
@@ -9513,7 +9508,7 @@ export interface components {
     pathItems: never;
 }
 export type $defs = Record<string, never>;
-export interface operations { list_workspace_contracts: {
+export interface operations { list_organization_contracts: {
     parameters: {
         query?: never;
         header?: never;
@@ -10206,7 +10201,7 @@ get_unexcused_absences: {
         };
     };
 };
-get_workspace_stats: {
+get_organization_stats: {
     parameters: {
         query?: {
             /** @description IANA timezone for date bucketing */
@@ -10224,7 +10219,7 @@ get_workspace_stats: {
                 [name: string]: unknown;
             };
             content: {
-                "application/json": components["schemas"]["WorkspaceStats"];
+                "application/json": components["schemas"]["OrganizationStats"];
             };
         };
     };
@@ -12137,7 +12132,7 @@ delete_assignment_rule: {
         };
     };
 };
-get_workspace_attendance_adjustments: {
+get_organization_attendance_adjustments: {
     parameters: {
         query?: {
             status?: null | components["schemas"]["AdjustmentStatus"];
@@ -14420,7 +14415,7 @@ delete_location: {
         };
     };
 };
-get_workspace_members: {
+get_organization_members: {
     parameters: {
         query?: {
             page?: number | null;
@@ -14454,7 +14449,7 @@ get_workspace_members: {
         };
     };
 };
-add_workspace_member: {
+add_organization_member: {
     parameters: {
         query?: never;
         header?: never;
@@ -14479,7 +14474,7 @@ add_workspace_member: {
         };
     };
 };
-remove_workspace_member: {
+remove_organization_member: {
     parameters: {
         query?: never;
         header?: never;
@@ -14502,7 +14497,7 @@ remove_workspace_member: {
         };
     };
 };
-update_workspace_member_role: {
+update_organization_member_role: {
     parameters: {
         query?: never;
         header?: never;
@@ -15164,7 +15159,7 @@ get_no_show_report: {
         };
     };
 };
-get_workspace_roles: {
+get_organization_roles: {
     parameters: {
         query?: {
             page?: number | null;
@@ -15198,7 +15193,7 @@ get_workspace_roles: {
         };
     };
 };
-create_workspace_role: {
+create_organization_role: {
     parameters: {
         query?: never;
         header?: never;
@@ -15225,7 +15220,7 @@ create_workspace_role: {
         };
     };
 };
-update_workspace_role: {
+update_organization_role: {
     parameters: {
         query?: never;
         header?: never;
@@ -15254,7 +15249,7 @@ update_workspace_role: {
         };
     };
 };
-delete_workspace_role: {
+delete_organization_role: {
     parameters: {
         query?: never;
         header?: never;
@@ -15336,7 +15331,7 @@ update_role_permissions: {
         };
     };
 };
-get_workspaces: {
+get_organizations: {
     parameters: {
         query?: never;
         header?: never;
@@ -15356,7 +15351,7 @@ get_workspaces: {
         };
     };
 };
-create_workspace: {
+create_organization: {
     parameters: {
         query?: never;
         header?: never;
@@ -16562,7 +16557,7 @@ restore_leave_type: {
         };
     };
 };
-get_workspace_schedules: {
+get_organization_schedules: {
     parameters: {
         query: {
             start_date: string;
@@ -17255,7 +17250,7 @@ delete_pattern: {
         };
     };
 };
-get_workspace_by_id: {
+get_organization_by_id: {
     parameters: {
         query?: never;
         header?: never;
@@ -17278,7 +17273,7 @@ get_workspace_by_id: {
         };
     };
 };
-update_workspace: {
+update_organization: {
     parameters: {
         query?: never;
         header?: never;
@@ -18162,7 +18157,7 @@ trigger_accrual_run: {
         };
     };
 };
-get_workspace_leave_balances: {
+get_organization_leave_balances: {
     parameters: {
         query?: {
             page?: number | null;
@@ -18419,7 +18414,7 @@ update_leave_policy: {
         };
     };
 };
-get_workspace_leave_requests: {
+get_organization_leave_requests: {
     parameters: {
         query?: {
             status?: null | components["schemas"]["LeaveStatus"];
@@ -19457,7 +19452,7 @@ clone_incentive_policy: {
         };
     };
 };
-get_workspace_payslips: {
+get_organization_payslips: {
     parameters: {
         query: {
             /** @description Year */

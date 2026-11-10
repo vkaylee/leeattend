@@ -5,7 +5,7 @@ import type { Employee, EmployeeSchedule } from "@/lib/api/types";
 import { orderSchedulesBySelection } from "@/components/shifts/roster/roster-utils";
 
 interface UseMonthlySchedulesProps {
-  /** Full employee list from the workspace (may be undefined while loading). */
+  /** Full employee list from the organization (may be undefined while loading). */
   employees: Employee[] | undefined;
   /** Monthly schedule rows keyed by employee/employment. */
   monthSchedules: EmployeeSchedule[] | undefined;

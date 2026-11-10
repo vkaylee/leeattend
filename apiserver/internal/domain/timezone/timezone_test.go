@@ -10,7 +10,7 @@ func TestValidateAndParseTimezone(t *testing.T) {
 	if err != nil || loc == nil {
 		t.Fatalf("expected valid timezone, got %v", err)
 	}
-	if ParseWorkspaceTZ("not/a-zone") != time.UTC {
+	if ParseTimezone("not/a-zone") != time.UTC {
 		t.Fatal("invalid timezone must degrade to UTC")
 	}
 	if _, err := ValidateTZ("not/a-zone"); err == nil {

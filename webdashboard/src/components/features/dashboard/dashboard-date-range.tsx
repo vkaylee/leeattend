@@ -12,7 +12,7 @@ interface DashboardDateRangeProps {
   onChange: (range: { startDate: string; endDate: string }) => void;
   startDate: string;
   endDate: string;
-  /** Workspace timezone label (informational; the caller sends it as a param). */
+  /** Organization timezone label (informational; the caller sends it as a param). */
   timezone?: string;
 }
 

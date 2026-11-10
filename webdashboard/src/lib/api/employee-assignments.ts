@@ -69,7 +69,7 @@ export const deleteEmployeeAssignment = async (
   });
 };
 
-export const fetchWorkspaceAssignments = async (): Promise<EmployeeAssignmentWithEmployee[]> => {
+export const fetchAssignments = async (): Promise<EmployeeAssignmentWithEmployee[]> => {
   const { data } = await client.GET<EmployeeAssignmentWithEmployee[]>("/v1/assignments");
   return data;
 };

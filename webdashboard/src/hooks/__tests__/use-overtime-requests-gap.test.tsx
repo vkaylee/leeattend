@@ -8,7 +8,7 @@ import {
   useOvertimeRequests,
   useOvertimeRequest,
   useMyOtAssignments,
-  useWorkspaceQuotaSummary,
+  useOrganizationQuotaSummary,
   useEmployeeQuota,
   useCreateOvertimeRequest,
   useSubmitOvertimeRequest,
@@ -25,7 +25,7 @@ const api = vi.hoisted(() => ({
   cancelRequest: vi.fn(),
   employeeConsent: vi.fn(),
   getMyAssignments: vi.fn(),
-  getWorkspaceQuotaSummary: vi.fn(),
+  getQuotaSummary: vi.fn(),
   getEmployeeQuota: vi.fn(),
 }));
 
@@ -213,15 +213,15 @@ describe("useMyOtAssignments – error handling", () => {
   });
 });
 
-describe("useWorkspaceQuotaSummary – error handling", () => {
+describe("useOrganizationQuotaSummary – error handling", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it("propagates isError when getWorkspaceQuotaSummary rejects", async () => {
-    (api.getWorkspaceQuotaSummary as Mock).mockRejectedValue(new Error("No quotas configured"));
+  it("propagates isError when getQuotaSummary rejects", async () => {
+    (api.getQuotaSummary as Mock).mockRejectedValue(new Error("No quotas configured"));
 
-    const { result } = renderHook(() => useWorkspaceQuotaSummary("2026-08"), {
+    const { result } = renderHook(() => useOrganizationQuotaSummary("2026-08"), {
       wrapper: createWrapper(),
     });
 
@@ -230,8 +230,8 @@ describe("useWorkspaceQuotaSummary – error handling", () => {
   });
 
   it("returns an empty array when no quotas exist", async () => {
-    (api.getWorkspaceQuotaSummary as Mock).mockResolvedValue([]);
-    const { result } = renderHook(() => useWorkspaceQuotaSummary("2026-08"), {
+    (api.getQuotaSummary as Mock).mockResolvedValue([]);
+    const { result } = renderHook(() => useOrganizationQuotaSummary("2026-08"), {
       wrapper: createWrapper(),
     });
 

@@ -125,6 +125,8 @@
         "lump_sum_desc": "Cấp toàn bộ định mức vào đầu năm"
       },
       "assignee_types": {
+        "organization": "Toàn tổ chức (Tất cả)",
+        "organization_desc": "Áp dụng cho mọi nhân viên trong tổ chức",
         "workspace": "Toàn tổ chức (Tất cả)",
         "workspace_desc": "Áp dụng cho mọi nhân viên trong tổ chức",
         "department": "Theo phòng ban",

@@ -108,16 +108,16 @@ function GeneralSettingsContent({ organization }: { organization: Organization }
         actions={
           <Button
             className="rounded-xl px-5 py-2 text-xs font-semibold shadow-xs normal-case tracking-normal"
-            data-testid="save-workspace-config-btn"
+            data-testid="save-organization-config-btn"
             icon={<Save size={15} />}
             loading={updateOrganizationMutation.isPending}
             onClick={handleSaveConfig}
             variant="primary"
           >
-            {t("common.workspace_settings.save_config", { defaultValue: "Lưu thay đổi" })}
+            {t("common.organization_settings.save_config", { defaultValue: "Lưu thay đổi" })}
           </Button>
         }
-        description={t("common.workspace_settings.description")}
+        description={t("common.organization_settings.description")}
         icon={<Settings2 size={20} />}
         title={
           <Typography className="text-xl font-bold tracking-tight text-slate-800 dark:text-slate-100" data-testid="general-settings-title" variant="h1">
@@ -170,24 +170,24 @@ function GeneralSettingsContent({ organization }: { organization: Organization }
             <div className="flex items-center gap-2.5 border-b border-slate-100 dark:border-slate-800/80 pb-4">
               <Globe className="w-5 h-5 text-primary-500" />
               <Typography className="text-base font-bold text-slate-800 dark:text-slate-100" variant="h4">
-                {t("common.workspace_settings.general_config")}
+                {t("common.organization_settings.general_config")}
               </Typography>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
-                <label className={SETTINGS_LABEL}>{t("common.workspace_settings.date_format")}</label>
-                <Combobox className="bg-slate-50 dark:bg-slate-800/80 border-slate-200/70 dark:border-slate-700/70 h-11 rounded-xl normal-case tracking-normal text-xs font-medium px-4" onChange={setDateFormat} options={[{ value: "DD/MM/YYYY", label: "DD/MM/YYYY", description: t("common.workspace_settings.date_format_options.vn"), icon: <Calendar size={14} /> }, { value: "MM/DD/YYYY", label: "MM/DD/YYYY", description: t("common.workspace_settings.date_format_options.us"), icon: <Calendar size={14} /> }, { value: "YYYY-MM-DD", label: "YYYY-MM-DD", description: t("common.workspace_settings.date_format_options.iso"), icon: <Calendar size={14} /> }]} value={dateFormat} />
+                <label className={SETTINGS_LABEL}>{t("common.organization_settings.date_format")}</label>
+                <Combobox className="bg-slate-50 dark:bg-slate-800/80 border-slate-200/70 dark:border-slate-700/70 h-11 rounded-xl normal-case tracking-normal text-xs font-medium px-4" onChange={setDateFormat} options={[{ value: "DD/MM/YYYY", label: "DD/MM/YYYY", description: t("common.organization_settings.date_format_options.vn"), icon: <Calendar size={14} /> }, { value: "MM/DD/YYYY", label: "MM/DD/YYYY", description: t("common.organization_settings.date_format_options.us"), icon: <Calendar size={14} /> }, { value: "YYYY-MM-DD", label: "YYYY-MM-DD", description: t("common.organization_settings.date_format_options.iso"), icon: <Calendar size={14} /> }]} value={dateFormat} />
               </div>
               <div className="space-y-2">
-                <label className={SETTINGS_LABEL}>{t("common.workspace_settings.time_format")}</label>
-                <Combobox className="bg-slate-50 dark:bg-slate-800/80 border-slate-200/70 dark:border-slate-700/70 h-11 rounded-xl normal-case tracking-normal text-xs font-medium px-4" onChange={setTimeFormat} options={[{ value: "24h", label: t("common.workspace_settings.time_format_options.24h"), description: t("common.workspace_settings.time_format_options.example_24h"), icon: <Clock size={14} /> }, { value: "12h", label: t("common.workspace_settings.time_format_options.12h"), description: t("common.workspace_settings.time_format_options.example_12h"), icon: <Clock size={14} /> }]} value={timeFormat} />
+                <label className={SETTINGS_LABEL}>{t("common.organization_settings.time_format")}</label>
+                <Combobox className="bg-slate-50 dark:bg-slate-800/80 border-slate-200/70 dark:border-slate-700/70 h-11 rounded-xl normal-case tracking-normal text-xs font-medium px-4" onChange={setTimeFormat} options={[{ value: "24h", label: t("common.organization_settings.time_format_options.24h"), description: t("common.organization_settings.time_format_options.example_24h"), icon: <Clock size={14} /> }, { value: "12h", label: t("common.organization_settings.time_format_options.12h"), description: t("common.organization_settings.time_format_options.example_12h"), icon: <Clock size={14} /> }]} value={timeFormat} />
               </div>
               <div className="space-y-2">
-                <label className={SETTINGS_LABEL}>{t("common.workspace_settings.timezone")}</label>
-                <Combobox className="bg-slate-50 dark:bg-slate-800/80 border-slate-200/70 dark:border-slate-700/70 h-11 rounded-xl normal-case tracking-normal text-xs font-medium px-4" data-testid="timezone-select" onChange={setTimezone} options={[{ value: "Asia/Ho_Chi_Minh", label: "(GMT+07:00) Asia/Ho Chi Minh", description: t("common.workspace_settings.timezone_options.vn"), icon: <Globe size={14} /> }, { value: "Asia/Bangkok", label: "(GMT+07:00) Asia/Bangkok", description: t("common.workspace_settings.timezone_options.th"), icon: <Globe size={14} /> }, { value: "UTC", label: "(GMT+00:00) UTC", description: t("common.workspace_settings.timezone_options.utc"), icon: <Globe size={14} /> }]} value={timezone} />
+                <label className={SETTINGS_LABEL}>{t("common.organization_settings.timezone")}</label>
+                <Combobox className="bg-slate-50 dark:bg-slate-800/80 border-slate-200/70 dark:border-slate-700/70 h-11 rounded-xl normal-case tracking-normal text-xs font-medium px-4" data-testid="timezone-select" onChange={setTimezone} options={[{ value: "Asia/Ho_Chi_Minh", label: "(GMT+07:00) Asia/Ho Chi Minh", description: t("common.organization_settings.timezone_options.vn"), icon: <Globe size={14} /> }, { value: "Asia/Bangkok", label: "(GMT+07:00) Asia/Bangkok", description: t("common.organization_settings.timezone_options.th"), icon: <Globe size={14} /> }, { value: "UTC", label: "(GMT+00:00) UTC", description: t("common.organization_settings.timezone_options.utc"), icon: <Globe size={14} /> }]} value={timezone} />
               </div>
               <div className="space-y-2">
-                <label className={SETTINGS_LABEL}>{t("common.workspace_settings.default_language")}</label>
+                <label className={SETTINGS_LABEL}>{t("common.organization_settings.default_language")}</label>
                 <Combobox className="bg-slate-50 dark:bg-slate-800/80 border-slate-200/70 dark:border-slate-700/70 h-11 rounded-xl normal-case tracking-normal text-xs font-medium px-4" onChange={setDefaultLanguage} options={[{ value: "vi", label: t("common.languages.vi"), icon: <Languages size={14} /> }, { value: "en", label: t("common.languages.en"), icon: <Languages size={14} /> }, { value: "zh", label: t("common.languages.zh"), icon: <Languages size={14} /> }]} value={defaultLanguage} />
               </div>
             </div>
@@ -201,22 +201,22 @@ function GeneralSettingsContent({ organization }: { organization: Organization }
               <div className="flex items-center gap-2.5 border-b border-slate-100 dark:border-slate-800/80 pb-4">
                 <Building2 className="w-5 h-5 text-indigo-500" />
                 <Typography className="text-base font-bold text-slate-800 dark:text-slate-100" variant="h4">
-                  {t("common.workspace_settings.branding", { defaultValue: "Nhận diện thương hiệu" })}
+                  {t("common.organization_settings.branding", { defaultValue: "Nhận diện thương hiệu" })}
                 </Typography>
               </div>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
-                  <label className={SETTINGS_LABEL}>{t("common.workspace_settings.workspace_name", { defaultValue: "Tên Workspace" })}</label>
+                  <label className={SETTINGS_LABEL}>{t("common.organization_settings.organization_name", { defaultValue: "Tên tổ chức" })}</label>
                   <div className="relative">
                     <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400">
                       <Building2 size={16} />
                     </div>
                     <input
                       className="w-full h-11 pl-10 pr-4 bg-slate-50 dark:bg-slate-800/80 border border-slate-200/70 dark:border-slate-700/70 rounded-xl text-xs font-medium focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 transition-all text-slate-700 dark:text-slate-200 outline-none"
-                      data-testid="workspace-name-input"
+                      data-testid="organization-name-input"
                       onChange={(e) => { setOrganizationName(e.target.value); }}
-                      placeholder={t("common.workspace_settings.workspace_name_placeholder", { defaultValue: "e.g., LeeAttend Corp" })}
+                      placeholder={t("common.organization_settings.organization_name_placeholder", { defaultValue: "e.g., LeeAttend Corp" })}
                       type="text"
                       value={organizationName}
                     />
@@ -224,16 +224,16 @@ function GeneralSettingsContent({ organization }: { organization: Organization }
                 </div>
 
                 <div className="space-y-2">
-                  <label className={SETTINGS_LABEL}>{t("common.workspace_settings.tagline", { defaultValue: "Khẩu hiệu / Mô tả" })}</label>
+                  <label className={SETTINGS_LABEL}>{t("common.organization_settings.tagline", { defaultValue: "Khẩu hiệu / Mô tả" })}</label>
                   <div className="relative">
                     <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400">
                       <Type size={16} />
                     </div>
                     <input
                       className="w-full h-11 pl-10 pr-4 bg-slate-50 dark:bg-slate-800/80 border border-slate-200/70 dark:border-slate-700/70 rounded-xl text-xs font-medium focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 transition-all text-slate-700 dark:text-slate-200 outline-none"
-                      data-testid="workspace-tagline-input"
+                      data-testid="organization-tagline-input"
                       onChange={(e) => { setTagline(e.target.value); }}
-                      placeholder={t("common.workspace_settings.tagline_placeholder", { defaultValue: "e.g., Human Resources Management" })}
+                      placeholder={t("common.organization_settings.tagline_placeholder", { defaultValue: "e.g., Human Resources Management" })}
                       type="text"
                       value={tagline}
                     />
@@ -253,7 +253,7 @@ function GeneralSettingsContent({ organization }: { organization: Organization }
               <div className="flex items-center gap-2.5 border-b border-slate-100 dark:border-slate-800/80 pb-4">
                 <Palette className="w-5 h-5 text-pink-500" />
                 <Typography className="text-base font-bold text-slate-800 dark:text-slate-100" variant="h4">
-                  {t("common.workspace_settings.theme_config")}
+                  {t("common.organization_settings.theme_config")}
                 </Typography>
               </div>
               <div className="space-y-6">
@@ -287,7 +287,7 @@ function DarkModeSelector() {
 
   return (
     <div className="space-y-2 pt-2 border-t border-slate-100 dark:border-slate-800/80">
-      <label className={SETTINGS_LABEL}>{t("common.workspace_settings.dark_mode_preference", { defaultValue: "Chế độ hiển thị" })}</label>
+      <label className={SETTINGS_LABEL}>{t("common.organization_settings.dark_mode_preference", { defaultValue: "Chế độ hiển thị" })}</label>
       <div className="flex gap-2">
         {options.map((opt) => (
           <Button

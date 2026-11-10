@@ -17,7 +17,6 @@ import { client } from "./client";
 
 export interface LifecycleInstanceSummary {
   id: string;
-  workspace_id: string;
   employment_id: string;
   employee_id: string;
   employee_name: string;
@@ -36,10 +35,10 @@ export interface LifecycleInstanceSummary {
   updated_at: string;
 }
 
-export async function fetchWorkspaceLifecycleInstances(): Promise<LifecycleInstanceSummary[]> {
+export async function fetchLifecycleInstances(): Promise<LifecycleInstanceSummary[]> {
   const res = await apiFetch("/v1/lifecycle/instances");
   if (!res.ok) {
-    throw new ApiError(res.status, "Failed to fetch workspace lifecycle instances");
+    throw new ApiError(res.status, "Failed to fetch organization lifecycle instances");
   }
   return res.json() as Promise<LifecycleInstanceSummary[]>;
 }

@@ -57,7 +57,7 @@ function makeNavState(
   overrides: Partial<hooks.SettingsNavState> = {}
 ) {
   return {
-    workspaceGroup: [],
+    organizationGroup: [],
     accessGroup: [],
     operationsGroup: [],
     systemGroup: [],
@@ -74,7 +74,7 @@ describe("SettingsSidebar (macOS 2-column layout)", () => {
   it("renders sidebar with header and admin badge", () => {
     vi.spyOn(hooks, "useSettingsNav").mockReturnValue(
       makeNavState({
-        workspaceGroup: [makeItem("General", "/settings/general")],
+        organizationGroup: [makeItem("General", "/settings/general")],
       })
     );
 
@@ -87,7 +87,7 @@ describe("SettingsSidebar (macOS 2-column layout)", () => {
   it("renders back to workspace link for Focus Mode", () => {
     vi.spyOn(hooks, "useSettingsNav").mockReturnValue(
       makeNavState({
-        workspaceGroup: [makeItem("General", "/settings/general")],
+        organizationGroup: [makeItem("General", "/settings/general")],
       })
     );
 
@@ -99,7 +99,7 @@ describe("SettingsSidebar (macOS 2-column layout)", () => {
   it("renders a bounded touch-enabled scroll region for settings items", () => {
     vi.spyOn(hooks, "useSettingsNav").mockReturnValue(
       makeNavState({
-        workspaceGroup: [makeItem("General", "/settings/general")],
+        organizationGroup: [makeItem("General", "/settings/general")],
       })
     );
 
@@ -116,7 +116,7 @@ describe("SettingsSidebar (macOS 2-column layout)", () => {
   it("renders all four sections when items are populated", () => {
     vi.spyOn(hooks, "useSettingsNav").mockReturnValue(
       makeNavState({
-        workspaceGroup: [makeItem("General", "/settings/general")],
+        organizationGroup: [makeItem("General", "/settings/general")],
         accessGroup: [makeItem("Roles", "/settings/roles")],
         operationsGroup: [makeItem("Time", "/settings/time")],
         systemGroup: [makeItem("Storage", "/settings/storage")],
@@ -124,7 +124,7 @@ describe("SettingsSidebar (macOS 2-column layout)", () => {
     );
 
     render(<SettingsSidebar />);
-    expect(screen.getByTestId("settings-section-workspace")).toBeInTheDocument();
+    expect(screen.getByTestId("settings-section-organization")).toBeInTheDocument();
     expect(screen.getByTestId("settings-section-access")).toBeInTheDocument();
     expect(
       screen.getByTestId("settings-section-operations")
@@ -139,7 +139,7 @@ describe("SettingsSidebar (macOS 2-column layout)", () => {
   it("hides empty sections when no items exist in that section", () => {
     vi.spyOn(hooks, "useSettingsNav").mockReturnValue(
       makeNavState({
-        workspaceGroup: [makeItem("General", "/settings/general")],
+        organizationGroup: [makeItem("General", "/settings/general")],
         accessGroup: [],
         operationsGroup: [],
         systemGroup: [],
@@ -147,7 +147,7 @@ describe("SettingsSidebar (macOS 2-column layout)", () => {
     );
 
     render(<SettingsSidebar />);
-    expect(screen.getByTestId("settings-section-workspace")).toBeInTheDocument();
+    expect(screen.getByTestId("settings-section-organization")).toBeInTheDocument();
     expect(
       screen.queryByTestId("settings-section-access")
     ).not.toBeInTheDocument();
@@ -162,7 +162,7 @@ describe("SettingsSidebar (macOS 2-column layout)", () => {
   it("filters setting items in real-time when typing in search input", () => {
     vi.spyOn(hooks, "useSettingsNav").mockReturnValue(
       makeNavState({
-        workspaceGroup: [
+        organizationGroup: [
           makeItem("Cài đặt chung", "/settings/general"),
           makeItem("Thanh toán", "/settings/billing"),
         ],
@@ -187,7 +187,7 @@ describe("SettingsSidebar (macOS 2-column layout)", () => {
   it("shows no results message when search matches nothing", () => {
     vi.spyOn(hooks, "useSettingsNav").mockReturnValue(
       makeNavState({
-        workspaceGroup: [makeItem("General", "/settings/general")],
+        organizationGroup: [makeItem("General", "/settings/general")],
       })
     );
 

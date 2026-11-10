@@ -11,7 +11,6 @@ export interface WorkLocation {
   status: string;
   timezone: string;
   updated_at: string;
-  workspace_id: string;
 }
 
 export interface CreateWorkLocationRequest {

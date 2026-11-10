@@ -48,16 +48,16 @@ describe("useRuleAssignments", () => {
     vi.mocked(payrollApi.fetchPayrollRuleAssignments).mockResolvedValueOnce([
       {
         id: "a-1",
-        workspace_id: "ws-1",
+        organization_id: "org-1",
         rule_definition_id: "rule-1",
-        assignee_type: "workspace",
+        assignee_type: "organization",
         assignee_id: null,
         effective_from: "2026-01-01",
         created_at: "2026-01-01T00:00:00Z",
       },
       {
         id: "a-2",
-        workspace_id: "ws-1",
+        organization_id: "org-1",
         rule_definition_id: "rule-1",
         assignee_type: "department",
         assignee_id: "dept-1",
@@ -70,7 +70,7 @@ describe("useRuleAssignments", () => {
     vi.mocked(departmentsApi.fetchDepartments).mockResolvedValueOnce([
       {
         id: "dept-1",
-        workspace_id: "ws-1",
+        organization_id: "org-1",
         name: "Engineering",
         active_employee_count: 5,
         created_at: "",
@@ -91,7 +91,7 @@ describe("useRuleAssignments", () => {
     expect(result.current.deptMap["dept-1"].name).toBe("Engineering");
 
     // Check grouping
-    expect(result.current.grouped.workspace).toHaveLength(1);
+    expect(result.current.grouped.organization).toHaveLength(1);
     expect(result.current.grouped.department).toHaveLength(1);
     expect(result.current.grouped.employee).toHaveLength(0);
   });
@@ -108,7 +108,7 @@ describe("useRuleAssignments", () => {
     });
 
     result.current.createMutation.mutate({
-      assignee_type: "workspace",
+      assignee_type: "organization",
       effective_from: "2026-01-01",
     });
 
@@ -117,7 +117,7 @@ describe("useRuleAssignments", () => {
     });
 
     expect(payrollApi.createPayrollRuleAssignment).toHaveBeenCalledWith("rule-1",
-      { assignee_type: "workspace", effective_from: "2026-01-01" }
+      { assignee_type: "organization", effective_from: "2026-01-01" }
     );
     expect(mockToastSuccess).toHaveBeenCalledWith("Success");
   });

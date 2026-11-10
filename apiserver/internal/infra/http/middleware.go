@@ -104,12 +104,12 @@ func BodyLimitMiddleware(maxBytes int64) Middleware {
 	}
 }
 
-// RejectLegacyWorkspaceRoutes prevents clients from selecting organization scope by URL.
-func RejectLegacyWorkspaceRoutes() Middleware {
+// RejectRetiredScopedRoutes prevents clients from selecting organization scope by retired URL paths.
+func RejectRetiredScopedRoutes() Middleware {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			if strings.Contains(r.URL.Path, "/workspaces/") {
-				http.Error(w, "legacy workspace routes are not supported", http.StatusNotFound)
+				http.Error(w, "legacy organization routes are not supported", http.StatusNotFound)
 				return
 			}
 			next.ServeHTTP(w, r)
@@ -204,25 +204,10 @@ func OrganizationIDFromContext(ctx context.Context) (uuid.UUID, bool) {
 // WithOrganizationID attaches the resolved organization UUID to a request context.
 func WithOrganizationID(ctx context.Context, id uuid.UUID) context.Context {
 	ctx = context.WithValue(ctx, contextKeyOrganizationID, id)
-	return observability.WithWorkspaceID(ctx, id.String())
+	return observability.WithOrganizationID(ctx, id.String())
 }
 
 // WithOrganizationIDForTest is a package test helper for handler contract tests.
 func WithOrganizationIDForTest(ctx context.Context, id uuid.UUID) context.Context {
 	return WithOrganizationID(ctx, id)
-}
-
-// WorkspaceIDFromContext is retained for persistence-boundary call sites during the organization cutover.
-func WorkspaceIDFromContext(ctx context.Context) (uuid.UUID, bool) {
-	return OrganizationIDFromContext(ctx)
-}
-
-// WithWorkspaceID is retained for persistence-boundary call sites during the organization cutover.
-func WithWorkspaceID(ctx context.Context, id uuid.UUID) context.Context {
-	return WithOrganizationID(ctx, id)
-}
-
-// WithWorkspaceIDForTest is retained for existing handler tests during the organization cutover.
-func WithWorkspaceIDForTest(ctx context.Context, id uuid.UUID) context.Context {
-	return WithOrganizationIDForTest(ctx, id)
 }

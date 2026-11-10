@@ -13,7 +13,7 @@ export const rateQuantitySchema = z.object({
   unit: z.string().min(1),
 }).strict();
 
-export const workspaceStatsSchema = z.object({
+export const organizationStatsSchema = z.object({
   absent_today: count,
   avg_work_hours_today: count,
   early_departure_today: count,
@@ -245,11 +245,11 @@ export const recruitmentEffectivenessSchema = z.object({
 });
 
 export const overtimeBreakdownSchema = z.object({
-  contract_version: z.string().min(1),
-  workspace: z.object({
+  contract_version: z.literal("overtime-breakdown.v2"),
+  organization: z.object({
     timezone: z.string().min(1),
     currency: z.string().min(1),
-  }),
+  }).strict(),
   rows: z.array(z.object({
     department_id: z.string().min(1),
     department_name: z.string().min(1),
@@ -263,7 +263,7 @@ export const overtimeBreakdownSchema = z.object({
 });
 
 export const dashboardSchemaByKey = {
-  "workspace-stats": workspaceStatsSchema,
+  "organization-stats": organizationStatsSchema,
   "attendance-trend": attendanceTrendSchema,
   "department-attendance": departmentAttendanceSchema,
   "unexcused-absences": unexcusedAbsencesSchema,

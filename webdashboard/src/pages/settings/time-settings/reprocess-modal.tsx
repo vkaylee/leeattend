@@ -62,7 +62,7 @@ export function ReprocessModal({
               />
             </div>
             <Typography className="text-center text-xs text-slate-400 mt-2 font-medium" variant="p">
-              {t("common.workspace_settings.please_wait_minutes")}
+              {t("common.organization_settings.please_wait_minutes")}
             </Typography>
           </div>
         ) : (

@@ -7,11 +7,11 @@ vi.mock("../helpers", () => ({
 import { apiFetch } from "../helpers";
 import {
   submitLeaveRequest,
-  fetchWorkspaceLeaveRequests,
+  fetchLeaveRequests,
   fetchMyLeaveRequests,
   approveLeaveRequest,
   fetchEmployeeLeaveBalances,
-  fetchWorkspaceLeaveBalances,
+  fetchLeaveBalances,
   fetchLeaveHistory,
   adjustLeaveBalance,
   fetchLeavePolicies,
@@ -101,16 +101,16 @@ describe("leaves API", () => {
     ).rejects.toThrow();
   });
 
-  it("fetchWorkspaceLeaveRequests: paginated", async () => {
+  it("fetchLeaveRequests: paginated", async () => {
     const mock = { data: [{ id: "lr-1" }], total: 1, page: 1, limit: 50 };
     vi.mocked(apiFetch).mockResolvedValueOnce(okRes(mock));
-    const result = await fetchWorkspaceLeaveRequests({ status: "pending", page: 1, limit: 50 });
+    const result = await fetchLeaveRequests({ status: "pending", page: 1, limit: 50 });
     expect(result).toEqual(mock);
   });
 
-  it("fetchWorkspaceLeaveRequests: employee_id 'all' becomes undefined", async () => {
+  it("fetchLeaveRequests: employee_id 'all' becomes undefined", async () => {
     vi.mocked(apiFetch).mockResolvedValueOnce(okRes({ data: [], total: 0 }));
-    await fetchWorkspaceLeaveRequests({ employee_id: "all" });
+    await fetchLeaveRequests({ employee_id: "all" });
     expect(apiFetch).toHaveBeenCalledTimes(1);
   });
 
@@ -135,10 +135,10 @@ describe("leaves API", () => {
     expect(result).toEqual(mock);
   });
 
-  it("fetchWorkspaceLeaveBalances: paginated with q/year", async () => {
+  it("fetchLeaveBalances: paginated with q/year", async () => {
     const mock = { data: [], total: 0 };
     vi.mocked(apiFetch).mockResolvedValueOnce(okRes(mock));
-    const result = await fetchWorkspaceLeaveBalances({ q: "bob", year: 2026 });
+    const result = await fetchLeaveBalances({ q: "bob", year: 2026 });
     expect(result).toEqual(mock);
   });
 

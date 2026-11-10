@@ -3,7 +3,7 @@ import React from "react";
 import { describe, it, expect, vi } from "vitest";
 
 import Button from "@/components/ui/button";
-import { Route } from "@/routes/_authenticated/_workspace/settings";
+import { Route } from "@/routes/_authenticated/_organization/settings";
 
 interface MockRouteOptions {
   options: {

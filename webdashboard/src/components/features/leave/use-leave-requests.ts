@@ -18,7 +18,7 @@ import {
 } from "@/lib/api";
 import { logError } from "@/lib/logger";
 import { useSearchPatch } from "@/lib/state";
-import { Route } from "@/routes/_authenticated/_workspace/leave-requests";
+import { Route } from "@/routes/_authenticated/_organization/leave-requests";
 
 export type TabType = LeaveRequestsSearch["tab"];
 export type LeaveStatusFilter = LeaveRequestsSearch["status"];

@@ -9,7 +9,7 @@ import Button from "@/components/ui/button";
 import { ToastProvider } from "@/components/ui/toast";
 import { useConfirm } from "@/hooks/use-confirm";
 import { useAllEmployees } from "@/hooks/use-employees";
-import { fetchWorkspaceContracts, deleteEmployeeContract } from "@/lib/api/contracts";
+import { fetchContracts, deleteEmployeeContract } from "@/lib/api/contracts";
 
 import EContractsPage from "../econtracts-page";
 
@@ -46,7 +46,7 @@ vi.mock("@/hooks/use-datetime", () => ({
 
 // Mock API endpoints
 vi.mock("@/lib/api/contracts", () => ({
-  fetchWorkspaceContracts: vi.fn(),
+  fetchContracts: vi.fn(),
   deleteEmployeeContract: vi.fn(),
 }));
 
@@ -116,7 +116,7 @@ describe("EContractsPage Component - Registry", () => {
       },
     });
 
-    (fetchWorkspaceContracts as Mock).mockResolvedValue(mockContracts);
+    (fetchContracts as Mock).mockResolvedValue(mockContracts);
     (useAllEmployees as Mock).mockReturnValue({
       employees: mockEmployees,
       isLoading: false,

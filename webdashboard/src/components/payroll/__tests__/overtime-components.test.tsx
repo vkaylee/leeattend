@@ -62,13 +62,13 @@ describe('AssignOvertimePolicyModal', () => {
 
     expect(screen.getByTestId('assignee-type-employee')).toBeDefined();
     expect(screen.getByTestId('assignee-type-department')).toBeDefined();
-    expect(screen.getByTestId('assignee-type-workspace')).toBeDefined();
+    expect(screen.getByTestId('assignee-type-organization')).toBeDefined();
   });
 
   it('hides Target ID input when Global is selected', async () => {
     renderWithProviders(<AssignOvertimePolicyModal isOpen={true} onClose={vi.fn()} />);
 
-    fireEvent.click(screen.getByTestId('assignee-type-workspace'));
+    fireEvent.click(screen.getByTestId('assignee-type-organization'));
     await waitFor(() => {
       expect(screen.queryByTestId('assign-employee-search')).toBeNull();
       expect(screen.queryByTestId('assign-dept-select')).toBeNull();

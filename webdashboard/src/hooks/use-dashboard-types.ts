@@ -9,7 +9,7 @@ export interface RateQuantity {
   unit: string;
 }
 
-export interface WorkspaceStats {
+export interface OrganizationStats {
   absent_today: number;
   avg_work_hours_today: number;
   early_departure_today: number;
@@ -270,8 +270,8 @@ export interface OvertimeBreakdownRow {
 
 /** Envelope returned by `GET /v1/dashboard/overtime-breakdown`. */
 export interface OvertimeBreakdownResponse {
-  contract_version: string;
-  workspace: {
+  contract_version: "overtime-breakdown.v2";
+  organization: {
     timezone: string;
     currency: string;
   };

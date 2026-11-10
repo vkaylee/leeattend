@@ -8,8 +8,6 @@ import Button from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
 import { Typography } from "@/components/ui/typography";
 import { useEnterPaperOt } from "@/hooks/use-attendance";
-import { useOrganization } from "@/hooks/use-organization";
-
 import type { OtSummary } from "./ot-approvals-table";
 
 interface AddPhotoDialogProps {
@@ -30,7 +28,6 @@ export function AddPhotoDialog({
 }: AddPhotoDialogProps) {
   const { t } = useTranslation();
   const toast = useToast();
-  const { workspace } = useOrganization();
   const { enterPaperOt, isSubmitting } = useEnterPaperOt();
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
   const [fileName, setFileName] = useState<string | null>(null);

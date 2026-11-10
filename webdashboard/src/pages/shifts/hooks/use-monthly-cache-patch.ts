@@ -6,7 +6,7 @@ import { format } from "date-fns";
 
 import type { EmployeeSchedule } from "@/lib/api/types";
 
-import { fetchWorkspaceSchedules } from "@/lib/api";
+import { fetchSchedules } from "@/lib/api";
 
 interface UseMonthlyCachePatchProps { monthDays: Date[];
 queryClient: QueryClient;  }
@@ -35,7 +35,7 @@ export function useMonthlyRosterCachePatch({
   const refetchAndPatchRow = useCallback(
     async (employmentId: string) => {
       if (!monthStartStr || !monthEndStr) return;
-      const fresh = await fetchWorkspaceSchedules(monthStartStr, monthEndStr, [
+      const fresh = await fetchSchedules(monthStartStr, monthEndStr, [
         employmentId,
       ]);
       if (fresh.length === 0) return;

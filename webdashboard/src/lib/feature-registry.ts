@@ -304,7 +304,7 @@ export const ACTION_FEATURES: FeatureItem[] = [
     to: ROUTES.SETTINGS.TIME,
     icon: Wifi,
     gradient: "from-blue-600 to-cyan-600 shadow-blue-500/25",
-    permissions: ["settings:time", "settings:read"],
+    permissions: ["organization:settings:read"],
     keywords: ["wifi", "bssid", "ip", "cham cong wifi", "diem danh wifi", "cai dat wifi", "time settings"],
     testId: "dsm-action-setting-time-wifi",
   },

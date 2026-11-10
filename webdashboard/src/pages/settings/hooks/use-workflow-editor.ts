@@ -18,8 +18,8 @@ import { ROUTES } from "@/lib/routes";
 import {
   workflowSchema,
   WorkflowFormValues,
-  WorkspaceRoleDef,
-  WorkspaceMemberDef,
+  OrganizationRoleDef,
+  OrganizationMemberDef,
   createDefaultFormValues,
   formatWorkflowPayload,
 } from "./workflow-schemas";
@@ -38,7 +38,7 @@ export function useWorkflowOptions() {
   }, [catalog, t]);
 
   const roleOptions = useMemo(() => {
-    const rolesList = roles as WorkspaceRoleDef[] | undefined;
+    const rolesList = roles as OrganizationRoleDef[] | undefined;
     return (rolesList ?? []).map((r) => ({
       value: r.id,
       label: r.name,
@@ -46,7 +46,7 @@ export function useWorkflowOptions() {
   }, [roles]);
 
   const memberOptions = useMemo(() => {
-    const membersList = members as WorkspaceMemberDef[] | undefined;
+    const membersList = members as OrganizationMemberDef[] | undefined;
     return (membersList ?? []).map((m) => ({
       description: m.email,
       label: m.full_name ?? m.email,
@@ -72,7 +72,7 @@ interface UseWorkflowFormProps {
 export function useWorkflowForm({ workflowId, defaultEntityType, onSuccess }: UseWorkflowFormProps) {
   const { t } = useTranslation();
   const toast = useToast();
-  const { workspace } = useOrganization();
+  const { organization } = useOrganization();
   const { data: workflow, isLoading: isDetailsLoading } = useApprovalWorkflow(workflowId);
   const { mutateAsync: createWorkflow, isPending: isCreating } = useCreateApprovalWorkflow();
   const { mutateAsync: updateWorkflow, isPending: isUpdating } = useUpdateApprovalWorkflow(workflowId);
@@ -148,7 +148,7 @@ export function useWorkflowForm({ workflowId, defaultEntityType, onSuccess }: Us
     onSubmit,
     isPending,
     isDetailsLoading,
-    workspace,
+    organization,
   };
 }
 
@@ -189,7 +189,7 @@ export function useWorkflowEditor() {
     onSubmit,
     isPending,
     isDetailsLoading,
-    workspace,
+    organization,
   } = useWorkflowForm({
     workflowId: workflowId ?? "",
     defaultEntityType,
@@ -206,7 +206,7 @@ export function useWorkflowEditor() {
 
   return {
     t,
-    ws: workspace,
+    organization,
     workflowId,
     isDetailsLoading,
     form,

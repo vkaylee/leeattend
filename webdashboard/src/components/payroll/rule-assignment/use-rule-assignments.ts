@@ -10,7 +10,9 @@ import {
   createPayrollRuleAssignment,
   deletePayrollRuleAssignment,
 } from "@/lib/api/payroll";
-import { PayrollRuleAssignment, Department, AssigneeType } from "@/lib/api/types";
+import { PayrollRuleAssignment, Department } from "@/lib/api/types";
+
+type AssigneeType = "organization" | "department" | "employee";
 
 export function useRuleAssignments(ruleId: string) {
   const { t } = useTranslation();
@@ -63,7 +65,7 @@ export function useRuleAssignments(ruleId: string) {
 
   const grouped = useMemo(() => {
     const g: Record<AssigneeType, PayrollRuleAssignment[]> = {
-      workspace: [],
+      organization: [],
       department: [],
       employee: [],
     };

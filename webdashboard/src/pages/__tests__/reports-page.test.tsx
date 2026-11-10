@@ -46,12 +46,11 @@ window.IntersectionObserver = MockIntersectionObserver as unknown as typeof Inte
 vi.mock("../../lib/api", () => ({
   fetchOrganization: vi.fn().mockResolvedValue({ date_format: "DD/MM/YYYY", timezone: "UTC", default_language: "en" }),
   fetchAttendanceReport: vi.fn(),
-  fetchOrganization: vi.fn(),
   reprocessAttendance: vi.fn(),
   fetchEmployees: vi.fn(),
   searchEmployees: vi.fn(),
   fetchDepartments: vi.fn(),
-  fetchWorkspaceAttendanceAdjustments: vi.fn(),
+  fetchAttendanceAdjustments: vi.fn(),
   adminConfirmAttendance: vi.fn(),
 }));
 
@@ -95,7 +94,7 @@ describe("ReportsPage", () => {
       page: 1,
       limit: 50
     } as unknown as PaginatedResponse<AttendanceSummary>));
-    vi.mocked(api.fetchWorkspaceAttendanceAdjustments).mockResolvedValue({ data: [], total: 0, page: 1, limit: 20 });
+    vi.mocked(api.fetchAttendanceAdjustments).mockResolvedValue({ data: [], total: 0, page: 1, limit: 20 });
     vi.mocked(api.adminConfirmAttendance).mockResolvedValue(undefined);
   });
 

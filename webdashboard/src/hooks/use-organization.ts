@@ -12,7 +12,6 @@ export function useOrganization() {
   const organization = query.data ?? null;
   return {
     organization,
-    workspace: organization,
     organizationName: organization?.name ?? "",
     isLoading: query.isLoading,
     isError: query.isError,
@@ -30,8 +29,8 @@ export {
 } from "./use-organization-roles";
 export {
   organizationConfigKeys,
-  useWorkspaceConfigs as useOrganizationConfigs,
-  useWorkspaceConfig as useOrganizationConfig,
-  useUpsertWorkspaceConfig as useUpsertOrganizationConfig,
-  useDeleteWorkspaceConfig as useDeleteOrganizationConfig,
+  useOrganizationConfigs,
+  useOrganizationConfig,
+  useUpsertOrganizationConfig,
+  useDeleteOrganizationConfig,
 } from "./use-organization-config";

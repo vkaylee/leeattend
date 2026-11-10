@@ -34,7 +34,7 @@ export const SettingsSidebar = memo(function SettingsSidebar({
   const location = useLocation();
   const [searchTerm, setSearchTerm] = useState("");
 
-  const { workspaceGroup, accessGroup, operationsGroup, systemGroup } =
+  const { organizationGroup, accessGroup, operationsGroup, systemGroup } =
     useSettingsNav();
 
   // Normalize search for Vietnamese diacritics
@@ -59,11 +59,11 @@ export const SettingsSidebar = memo(function SettingsSidebar({
   const sections: SectionDefinition[] = useMemo(() => {
     return [
       {
-        id: "workspace",
-        testId: "settings-section-workspace",
-        titleKey: "settings.layout.workspace",
-        defaultTitle: "Không gian làm việc",
-        items: filterGroup(workspaceGroup),
+        id: "organization",
+        testId: "settings-section-organization",
+        titleKey: "settings.layout.organization",
+        defaultTitle: "Tổ chức",
+        items: filterGroup(organizationGroup),
       },
       {
         id: "access",
@@ -87,7 +87,7 @@ export const SettingsSidebar = memo(function SettingsSidebar({
         items: filterGroup(systemGroup),
       },
     ].filter((s) => s.items.length > 0);
-  }, [workspaceGroup, accessGroup, operationsGroup, systemGroup, cleanSearch]);
+  }, [organizationGroup, accessGroup, operationsGroup, systemGroup, cleanSearch]);
 
   return (
     <aside
@@ -98,12 +98,12 @@ export const SettingsSidebar = memo(function SettingsSidebar({
       )}
       data-testid="settings-sidebar"
     >
-      {/* 1. Header & Return to Workspace (Linear/Stripe style) */}
+      {/* 1. Header & Return to Organization (Linear/Stripe style) */}
       <div className="pb-3 mb-2.5 px-0.5 border-b border-slate-200/60 dark:border-slate-800/60 hidden md:flex items-center justify-between">
         <Link
           className="inline-flex items-center gap-2 py-1 px-1.5 -ml-1 rounded-lg text-slate-700 dark:text-slate-200 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-slate-100 dark:hover:bg-slate-800/60 transition-colors group outline-none focus-visible:ring-2 focus-visible:ring-primary"
           data-testid="settings-back-to-app"
-          title={t("common.back_to_workspace", "Quay lại bảng làm việc")}
+          title={t("common.back_to_organization", "Quay lại bảng làm việc")}
           to={ROUTES.HOME}
         >
           <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-0.5 text-slate-400 group-hover:text-primary-600 dark:group-hover:text-primary-400" />

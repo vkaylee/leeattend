@@ -25,7 +25,7 @@ import { Typography } from "@/components/ui/typography";
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
 import { useAllEmployees } from "@/hooks/use-employees";
 import { useSearchPatch } from "@/lib/state";
-import { Route } from "@/routes/_authenticated/_workspace/shift-swaps";
+import { Route } from "@/routes/_authenticated/_organization/shift-swaps";
 
 import {
   fetchShiftSwaps,
@@ -313,7 +313,7 @@ function useShiftSwaps(activeTab: TabType, t: TFunction, options: { onSuccessCre
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["shift-swaps"] });
       void queryClient.invalidateQueries({ queryKey: ["employee-rosters"] });
-      void queryClient.invalidateQueries({ queryKey: ["workspace-schedules"] });
+      void queryClient.invalidateQueries({ queryKey: ["schedules"] });
       toast.success(t("common.success"));
     },
   });

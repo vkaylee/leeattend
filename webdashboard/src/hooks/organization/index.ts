@@ -2,10 +2,10 @@
 
 export { useOrganization } from "@/hooks/use-organization";
 export {
-  useWorkspaceConfig as useOrganizationConfig,
-  useWorkspaceConfigs as useOrganizationConfigs,
-  useUpsertWorkspaceConfig as useUpsertOrganizationConfig,
-  useDeleteWorkspaceConfig as useDeleteOrganizationConfig,
+  useOrganizationConfig,
+  useOrganizationConfigs,
+  useUpsertOrganizationConfig,
+  useDeleteOrganizationConfig,
 } from "@/hooks/use-organization-config";
 export {
   useOrganizationMembers,

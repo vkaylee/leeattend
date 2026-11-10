@@ -85,10 +85,6 @@ vi.mock("@/hooks/use-employee-assignments", () => ({
     data: mockAssignments,
     isLoading: false,
   }),
-  useWorkspaceAssignments: () => ({
-    data: mockAssignments,
-    isLoading: false,
-  }),
   useDeleteEmployeeAssignment: () => ({
     mutateAsync: mockDeleteMutateAsync,
   }),

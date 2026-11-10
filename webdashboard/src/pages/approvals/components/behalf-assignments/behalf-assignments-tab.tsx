@@ -7,6 +7,7 @@ import type { BehalfAssignment, OrganizationMember } from "@/lib/api/types";
 import Modal from "@/components/ui/modal";
 import { useToast } from "@/components/ui/toast";
 import { useBehalfAssignments } from "@/hooks/use-behalf-assignments";
+import { organizationKeys } from "@/hooks/use-organization-queries";
 import { useDepartments } from "@/hooks/use-departments";
 import { fetchAllOrganizationMembers } from "@/lib/api";
 import { logError } from "@/lib/logger";
@@ -96,7 +97,7 @@ export function BehalfAssignmentsTab({
   };
 
   const { data: assignees = [], isLoading: assigneesLoading } = useQuery({
-    queryKey: ["workspace-members", "behalf-assignees"],
+    queryKey: [...organizationKeys.members(), "behalf-assignees"],
     queryFn: () => fetchAllOrganizationMembers(),
   });
 

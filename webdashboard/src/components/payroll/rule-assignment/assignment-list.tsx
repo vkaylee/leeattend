@@ -8,7 +8,7 @@ import { AssignmentCard, SCOPE_COLORS, SCOPE_ICONS } from "./assignment-card";
 interface Props {
   deptMap: Record<string, Department>;
   grouped: {
-    workspace: PayrollRuleAssignment[];
+    organization: PayrollRuleAssignment[];
     department: PayrollRuleAssignment[];
     employee: PayrollRuleAssignment[];
   };
@@ -27,7 +27,7 @@ export function AssignmentList({ grouped, deptMap, onDelete, isDeleting }: Props
 
   return (
     <div className="space-y-3">
-      {(["workspace", "department", "employee"] as const).map((scope) => {
+      {(["organization", "department", "employee"] as const).map((scope) => {
         const items = grouped[scope];
         if (items.length === 0) return null;
         const colors = SCOPE_COLORS[scope];

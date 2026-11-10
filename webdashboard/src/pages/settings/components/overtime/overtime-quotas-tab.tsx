@@ -8,12 +8,12 @@ import ResponsiveTable from "@/components/ui/responsive-table";
 import { Typography } from "@/components/ui/typography";
 import { useConfirm } from "@/hooks/use-confirm";
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
-import { useWorkspaceConfigs, useDeleteWorkspaceConfig } from "@/hooks/use-organization-config";
-import { type WorkspaceConfigEntry } from "@/lib/api/types";
+import { useOrganizationConfigs, useDeleteOrganizationConfig } from "@/hooks/use-organization-config";
+import { type OrganizationConfigEntry } from "@/lib/api/types";
 
 import { UpsertConfigModal } from "./upsert-config-modal";
 
-function formatConfigValue(cfg: WorkspaceConfigEntry): string | number {
+function formatConfigValue(cfg: OrganizationConfigEntry): string | number {
   if (typeof cfg.value_int === "number") {
     return cfg.value_int;
   }
@@ -36,17 +36,17 @@ function formatConfigValue(cfg: WorkspaceConfigEntry): string | number {
 export function OvertimeQuotasTab() {
   const { t } = useTranslation();
   const { formatDate } = useDateTimeFormatter();
-  const { data: configs, isLoading } = useWorkspaceConfigs();
-  const { mutate: deleteConfig, isPending: isDeleting } = useDeleteWorkspaceConfig();
+  const { data: configs, isLoading } = useOrganizationConfigs();
+  const { mutate: deleteConfig, isPending: isDeleting } = useDeleteOrganizationConfig();
   const { confirm } = useConfirm();
 
   const [upsertModalOpen, setUpsertModalOpen] = useState(false);
-  const [selectedConfig, setSelectedConfig] = useState<WorkspaceConfigEntry | null>(null);
+  const [selectedConfig, setSelectedConfig] = useState<OrganizationConfigEntry | null>(null);
 
   // Filter only overtime-related configs if we want to isolate them
   const otConfigs = configs?.filter(c => c.config_key.startsWith("overtime.")) ?? [];
 
-  const handleEdit = (config: WorkspaceConfigEntry) => {
+  const handleEdit = (config: OrganizationConfigEntry) => {
     setSelectedConfig(config);
     setUpsertModalOpen(true);
   };
@@ -112,7 +112,7 @@ export function OvertimeQuotasTab() {
           title={t("settings.overtime.no_configs", { defaultValue: "Chưa có cấu hình hạn mức" })}
         />
       ) : (
-        <ResponsiveTable<WorkspaceConfigEntry>
+        <ResponsiveTable<OrganizationConfigEntry>
           data={otConfigs}
           emptyState={{
             icon: <Key className="h-8 w-8" />,

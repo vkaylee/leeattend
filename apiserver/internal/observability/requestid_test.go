@@ -49,7 +49,7 @@ func TestContextHelpers(t *testing.T) {
 	ctx := context.Background()
 
 	// Initial empty getters
-	if GetRequestID(ctx) != "" || GetTraceContext(ctx) != "" || GetWorkspaceID(ctx) != "" || GetActorID(ctx) != "" || GetSpanID(ctx) != "" {
+	if GetRequestID(ctx) != "" || GetTraceContext(ctx) != "" || GetOrganizationID(ctx) != "" || GetActorID(ctx) != "" || GetSpanID(ctx) != "" {
 		t.Error("expected empty strings for unset context values")
 	}
 	var nilCtx context.Context
@@ -65,7 +65,7 @@ func TestContextHelpers(t *testing.T) {
 
 	ctx = WithRequestID(ctx, reqID)
 	ctx = WithTraceContext(ctx, traceCtx)
-	ctx = WithWorkspaceID(ctx, wsID)
+	ctx = WithOrganizationID(ctx, wsID)
 	ctx = WithActorID(ctx, actorID)
 	ctx = WithSpanID(ctx, spanID)
 
@@ -75,8 +75,8 @@ func TestContextHelpers(t *testing.T) {
 	if GetTraceContext(ctx) != traceCtx {
 		t.Errorf("expected %q, got %q", traceCtx, GetTraceContext(ctx))
 	}
-	if GetWorkspaceID(ctx) != wsID {
-		t.Errorf("expected %q, got %q", wsID, GetWorkspaceID(ctx))
+	if GetOrganizationID(ctx) != wsID {
+		t.Errorf("expected %q, got %q", wsID, GetOrganizationID(ctx))
 	}
 	if GetActorID(ctx) != actorID {
 		t.Errorf("expected %q, got %q", actorID, GetActorID(ctx))

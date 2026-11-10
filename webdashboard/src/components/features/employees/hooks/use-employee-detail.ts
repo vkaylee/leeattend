@@ -5,6 +5,7 @@ import type { Employee, OrganizationMember, Employment } from "@/lib/api";
 
 import { fetchOrganizationMembers, fetchEmployeeEmployments } from "@/lib/api";
 import { useLocations } from "@/pages/settings/hooks/use-locations";
+import { organizationKeys } from "@/hooks/use-organization-queries";
 
 import type { DetailTabType } from "../drawer-header";
 
@@ -47,7 +48,7 @@ export function useEmployeeDetail({ isOpen,employee }: UseEmployeeDetailProps) {
     const { data: members } = useQuery({
         enabled: !!employee?.user_id,
         queryFn: () => fetchOrganizationMembers(),
-        queryKey: ["workspace-members"],
+        queryKey: organizationKeys.members(),
     });
 
     const { data: locations } = useLocations();

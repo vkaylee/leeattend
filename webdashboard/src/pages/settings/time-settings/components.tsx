@@ -23,7 +23,7 @@ export function PageHeader({ onNewVersion, t }: { onNewVersion: () => void; t: T
           onClick={onNewVersion}
           variant="primary"
         >
-          {t("common.workspace_settings.new_version", { defaultValue: "Phiên bản mới" })}
+          {t("common.organization_settings.new_version", { defaultValue: "Phiên bản mới" })}
         </Button>
       }
       description={t("common.settings.categories.time_desc")}

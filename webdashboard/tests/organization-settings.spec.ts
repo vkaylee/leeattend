@@ -24,7 +24,7 @@ test.describe('Organization Settings Flow', () => {
     await page.keyboard.press('Escape');
 
     // Save should be visible
-    const saveBtn = page.getByTestId('save-workspace-config-btn');
+    const saveBtn = page.getByTestId('save-organization-config-btn');
     await expect(saveBtn).toBeVisible();
   });
 });

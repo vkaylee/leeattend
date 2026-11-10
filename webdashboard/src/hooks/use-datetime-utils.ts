@@ -21,10 +21,10 @@ const LOCALE_INTL_MAP: Record<string, string> = {
 
 /**
  * Build an Intl formatter for the given IANA timezone, falling back to UTC
- * when the workspace timezone is missing or invalid — the same fallback the
- * backend uses (`parse_workspace_tz`).
+ * when the organization timezone is missing or invalid — the same fallback the
+ * backend uses (`parse_organization_tz`).
  */
-export function makeWorkspaceTzFormatter(timezone: string | undefined, hour12: boolean): Intl.DateTimeFormat {
+export function makeOrganizationTzFormatter(timezone: string | undefined, hour12: boolean): Intl.DateTimeFormat {
   try {
     return new Intl.DateTimeFormat("en-GB", {
       timeZone: timezone ?? UTC_TZ,
@@ -42,8 +42,8 @@ export function makeWorkspaceTzFormatter(timezone: string | undefined, hour12: b
   }
 }
 
-/** Date-only formatter in the workspace timezone (UTC fallback). */
-export function makeWorkspaceDateFormatter(timezone: string | undefined): Intl.DateTimeFormat {
+/** Date-only formatter in the organization timezone (UTC fallback). */
+export function makeOrganizationDateFormatter(timezone: string | undefined): Intl.DateTimeFormat {
   try {
     return new Intl.DateTimeFormat("en-GB", {
       timeZone: timezone ?? UTC_TZ,
@@ -62,13 +62,13 @@ export function makeWorkspaceDateFormatter(timezone: string | undefined): Intl.D
 }
 
 /**
- * Format a real UTC timestamp in the workspace timezone (matching the Excel
+ * Format a real UTC timestamp in the organization timezone (matching the Excel
  * export's `format_datetime(actual_punch_in, tz)`). Naive schedule times
  * ("HH:mm:ss") are never passed here — they carry no timezone.
  */
-export function formatInWorkspaceTz(date: Date, timePattern: string, timezone: string | undefined): string {
+export function formatInOrganizationTz(date: Date, timePattern: string, timezone: string | undefined): string {
   const hour12 = timePattern.includes("a");
-  const formatted = makeWorkspaceTzFormatter(timezone, hour12).format(date);
+  const formatted = makeOrganizationTzFormatter(timezone, hour12).format(date);
   // date-fns "hh:mm a" emits uppercase AM/PM; en-GB Intl emits lowercase "am"/"pm".
   return hour12 ? formatted.replace(" am", " AM").replace(" pm", " PM") : formatted;
 }
@@ -91,7 +91,7 @@ export function formatDateOnly(date: string | Date | null | undefined, pattern: 
 /**
  * Format a time value. Handles two cases:
  * 1. Naive "HH:mm:ss" strings (scheduled_start/end) — no timezone shift
- * 2. Real UTC timestamps — rendered in the workspace timezone (Excel parity)
+ * 2. Real UTC timestamps — rendered in the organization timezone (Excel parity)
  * Returns "---" for null/undefined, or the raw string on parse failure.
  */
 export function formatTimeOnly(
@@ -109,7 +109,7 @@ export function formatTimeOnly(
       dt.setHours(parseInt(h), parseInt(m), s ? parseInt(s) : 0);
       return format(dt, timePattern, { locale });
     }
-    return formatInWorkspaceTz(d, timePattern, timezone);
+    return formatInOrganizationTz(d, timePattern, timezone);
   } catch { /* invalid date/time — return raw string as best-effort display */
     return String(date);
   }
@@ -134,15 +134,15 @@ export function formatTime24hOnly(
       dt.setHours(parseInt(h), parseInt(m), s ? parseInt(s) : 0);
       return format(dt, "HH:mm", { locale });
     }
-    return formatInWorkspaceTz(d, "HH:mm", timezone);
+    return formatInOrganizationTz(d, "HH:mm", timezone);
   } catch { /* invalid date/time — return empty string as input placeholder */
     return "";
   }
 }
 
 /**
- * Format a combined date+time in the configured workspace format.
- * Both date and time parts render in the workspace timezone so timestamps
+ * Format a combined date+time in the configured organization format.
+ * Both date and time parts render in the organization timezone so timestamps
  * near midnight don't shift to a different calendar day.
  * Returns "---" for null/undefined, or the raw string on parse failure.
  */
@@ -158,8 +158,8 @@ export function formatDateTimeOnly(
     if (isNaN(d.getTime())) {
       return String(date);
     }
-    const dayPart = makeWorkspaceDateFormatter(timezone).format(d);
-    const timePart = formatInWorkspaceTz(d, timePattern, timezone);
+    const dayPart = makeOrganizationDateFormatter(timezone).format(d);
+    const timePart = formatInOrganizationTz(d, timePattern, timezone);
     const [dd, mm, yyyy] = dayPart.split("/");
     const ordered =
       dateFormat.startsWith("MM/DD")
@@ -174,7 +174,7 @@ export function formatDateTimeOnly(
 }
 
 /**
- * Format month and year based on the workspace date pattern.
+ * Format month and year based on the organization date pattern.
  * DD/MM/YYYY → MM/yyyy, MM/DD/YYYY → MM/yyyy, YYYY-MM-DD → yyyy-MM
  * Returns "---" for null/undefined, or the raw string on parse failure.
  */
@@ -199,7 +199,7 @@ export function formatMonthYearOnly(
 /**
  * Locale-aware date+time formatting using Intl.DateTimeFormat with medium
  * dateStyle/timeStyle. Suitable for audit logs, system timestamps, and
- * other contexts where the workspace timezone is irrelevant.
+ * other contexts where the organization timezone is irrelevant.
  * Returns "---" for null/undefined, or the raw string on parse failure.
  */
 export function formatDateTimeLocaleOnly(

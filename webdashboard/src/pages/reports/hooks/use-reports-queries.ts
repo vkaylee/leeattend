@@ -27,7 +27,7 @@ export function useReportsQueries({
   employeeStatus,
   selectedEmployerId,
 }: UseReportsQueriesProps) {
-  const { workspace, departments, employers } = useReportsMetadata();
+  const { organization, departments, employers } = useReportsMetadata();
   const { employeeIdsFilter } = useReportsEmployeeSearch({ debouncedSearch });
 
   const {
@@ -75,7 +75,7 @@ export function useReportsQueries({
   });
 
   return {
-    workspace,
+    organization,
     departments,
     employers,
     reportPages,

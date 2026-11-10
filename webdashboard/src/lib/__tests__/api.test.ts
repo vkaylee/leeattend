@@ -139,9 +139,9 @@ describe("api.ts comprehensive tests", () => {
       expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/v1/attendance/import-jobs/j1"), expect.any(Object));
     });
 
-    it("fetchWorkspaceAttendanceAdjustments", async () => {
+    it("fetchAttendanceAdjustments", async () => {
       mockSuccess([]);
-      await api.fetchWorkspaceAttendanceAdjustments({ status: "pending" });
+      await api.fetchAttendanceAdjustments({ status: "pending" });
       expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/v1/attendance/adjustments?status=pending"), expect.any(Object));
     });
 
@@ -165,9 +165,9 @@ describe("api.ts comprehensive tests", () => {
       expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/v1/leave/submit"), expect.objectContaining({ method: "POST" }));
     });
 
-    it("fetchWorkspaceLeaveRequests", async () => {
+    it("fetchLeaveRequests", async () => {
       mockSuccess([]);
-      await api.fetchWorkspaceLeaveRequests({ status: "pending" });
+      await api.fetchLeaveRequests({ status: "pending" });
       expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/v1/leave/requests?status=pending"), expect.any(Object));
     });
 
@@ -281,9 +281,9 @@ describe("api.ts comprehensive tests", () => {
   });
 
   describe("Roster API", () => {
-    it("fetchWorkspaceSchedules", async () => {
+    it("fetchSchedules", async () => {
       mockSuccess([]);
-      await api.fetchWorkspaceSchedules("2026-01-01", "2026-01-07");
+      await api.fetchSchedules("2026-01-01", "2026-01-07");
       expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/v1/schedules"), expect.any(Object));
     });
 

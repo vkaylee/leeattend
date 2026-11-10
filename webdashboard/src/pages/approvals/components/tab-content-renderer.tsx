@@ -25,12 +25,12 @@ interface TabContentRendererProps {
   setSourceFilter: (filter: SourceFilter) => void;
   sourceFilter: SourceFilter;
   startDate: string;
-  workspace: { id: string } | null | undefined;
+  organization: { id: string } | null | undefined;
 }
 
 export function TabContentRenderer({
   activeTab,
-  workspace,
+  organization,
   canApprove,
   canCreateOnBehalf,
   isLoading,
@@ -47,7 +47,7 @@ export function TabContentRenderer({
   isFetchingNextPage,
   onPreviewAttachment,
 }: TabContentRendererProps) {
-  if (!workspace) return null;
+  if (!organization) return null;
 
   switch (activeTab) {
     case "pre":

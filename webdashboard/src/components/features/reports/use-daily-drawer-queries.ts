@@ -4,7 +4,7 @@ import { useMemo } from "react";
 import {
     fetchAttendanceReport,
     DailyAttendanceReport,
-    fetchWorkspaceAttendanceAdjustments,
+    fetchAttendanceAdjustments,
     AttendanceAdjustmentRequest,
     fetchRawAttendanceLogs,
     fetchShifts,
@@ -46,7 +46,7 @@ export function useDailyDrawerQueries({employeeId,
         enabled: isOpen  && !!employeeId,
     });
 
-    const { data: pendingAdjustmentsResponse } = useQuery({ queryKey: ["attendance-adjustments", "pending"], queryFn: () => fetchWorkspaceAttendanceAdjustments({ status: "pending" }),
+    const { data: pendingAdjustmentsResponse } = useQuery({ queryKey: ["attendance-adjustments", "pending"], queryFn: () => fetchAttendanceAdjustments({ status: "pending" }),
     enabled: isOpen , });
 
     const { data: shifts } = useQuery({ queryKey: ["shifts"], queryFn: () => fetchShifts(),

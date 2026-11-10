@@ -10,7 +10,7 @@ import {
   punchIn,
   punchOut,
   submitAttendanceAdjustment,
-  fetchWorkspaceAttendanceAdjustments,
+  fetchAttendanceAdjustments,
   approveAttendanceAdjustment,
   fetchRawAttendanceLogs,
   uploadAttendance,
@@ -121,10 +121,10 @@ describe("attendance API (extended)", () => {
     expect(JSON.parse(opts.body as string).employment_id).toBe("e1");
   });
 
-  it("fetchWorkspaceAttendanceAdjustments: paginated", async () => {
+  it("fetchAttendanceAdjustments: paginated", async () => {
     const mock = { data: [{ id: "adj-1" }], total: 1 };
     vi.mocked(apiFetch).mockResolvedValueOnce(okRes(mock));
-    const result = await fetchWorkspaceAttendanceAdjustments({ status: "pending", page: 1 });
+    const result = await fetchAttendanceAdjustments({ status: "pending", page: 1 });
     expect(result).toEqual(mock);
   });
 

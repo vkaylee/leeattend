@@ -332,7 +332,7 @@ export const GROUP_LABEL_KEYS: Record<NavGroup, string> = {
   time: "common.sections.time_leave",
   shifts: "common.sections.shifts_management",
   payroll: "common.sections.payroll",
-  settings: "common.workspace_settings.title",
+  settings: "common.organization_settings.title",
   system: "settings.title",
   ess: "common.sections.self_service",
 };

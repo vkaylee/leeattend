@@ -122,7 +122,7 @@ export default function WorkingConditionFormModal({
         minute_allowance: values.minute_allowance ?? 0,
       });
 
-      // Invalidate both detail query and workspace registry
+      // Invalidate both detail query and organization registry
       void queryClient.invalidateQueries({ queryKey: ["working-conditions"] });
       toast.success(t("working_conditions.create_success", { defaultValue: "Đã gán điều kiện làm việc thành công" }));
       onClose();

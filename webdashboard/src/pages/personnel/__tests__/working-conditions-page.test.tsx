@@ -102,7 +102,7 @@ vi.mock("@/lib/api", async (importOriginal) => {
 });
 
 vi.mock("@/hooks/use-employees", () => ({
-  useWorkspaceWorkingConditions: () => ({
+  useOrganizationWorkingConditions: () => ({
     data: mockConditions,
     isLoading: false,
     error: null,

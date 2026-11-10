@@ -41,7 +41,7 @@ describe("PermissionManagementModal", () => {
       { id: "members:invite", group: "members", label_key: "permissions.items.members:invite.name" },
       { id: "members:remove", group: "members", label_key: "permissions.items.members:remove.name" },
       { id: "members:roles:manage", group: "members", label_key: "permissions.items.members:roles:manage.name" },
-      { id: "settings:read", group: "workspace", label_key: "permissions.items.settings:read.name" },
+      { id: "organization:settings:read", group: "organization", label_key: "permissions.items.organization:settings:read.name" },
     ]);
  
     vi.mocked(api.fetchMemberPermissions).mockResolvedValue([
@@ -129,7 +129,7 @@ describe("PermissionManagementModal", () => {
     });
 
     const searchInput = screen.getByPlaceholderText(/Search permissions|Tìm kiếm quyền/i);
-    fireEvent.change(searchInput, { target: { value: "settings:read" } });
+    fireEvent.change(searchInput, { target: { value: "organization:settings:read" } });
 
     // Wait for the option to appear and click it
     const optionButton = await screen.findByRole("button", { name: /settings:read/ });
@@ -145,7 +145,7 @@ describe("PermissionManagementModal", () => {
 
     await waitFor(() => {
       expect(api.assignExtraPermission).toHaveBeenCalledWith("user-1",
-        "settings:read",
+        "organization:settings:read",
         expect.any(String) // ISO string
       );
     });

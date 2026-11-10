@@ -45,7 +45,7 @@ export function useAssignmentForm(
     }
     onSubmit({
       assignee_type: assigneeType,
-      assignee_id: assigneeType === "workspace" ? undefined : assigneeId || undefined,
+      assignee_id: assigneeType === "organization" ? undefined : assigneeId || undefined,
       effective_from: effectiveFrom,
       effective_to: effectiveTo || undefined,
       override_config: overrideConfig,

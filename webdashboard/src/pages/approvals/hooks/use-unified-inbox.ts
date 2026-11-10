@@ -6,7 +6,7 @@ import { useTranslation } from "react-i18next";
 import { useDepartments } from "@/hooks/use-departments";
 import { useAllEmployees } from "@/hooks/use-employees";
 import {
-  fetchWorkspaceAttendanceAdjustments,
+  fetchAttendanceAdjustments,
   fetchLeaveRequests,
 } from "@/lib/api";
 import { fetchAttendanceSummaries } from "@/lib/api/attendance-overtime";
@@ -115,7 +115,7 @@ export function useUnifiedInbox(): UseUnifiedInboxReturn {
 
   const adjustmentsQuery = useQuery({
     queryKey: ["unified-inbox-adjustments"],
-    queryFn: () => fetchWorkspaceAttendanceAdjustments({ limit: 100 }),
+    queryFn: () => fetchAttendanceAdjustments({ limit: 100 }),
     staleTime: 30_000,
   });
 

@@ -13,7 +13,7 @@ import AdjustmentDrawer from "../adjustment-drawer";
 // Mock API
 vi.mock("@/lib/api", () => ({
   fetchOrganization: vi.fn().mockResolvedValue({ date_format: "DD/MM/YYYY", timezone: "UTC", default_language: "en" }),
-  fetchWorkspaceAttendanceAdjustments: vi.fn(),
+  fetchAttendanceAdjustments: vi.fn(),
   approveAttendanceAdjustment: vi.fn(),
 }));
 
@@ -45,7 +45,7 @@ describe("AdjustmentDrawer", () => {
 
   it("renders pending adjustments for the specific employee", async () => {
  
-    vi.mocked(api.fetchWorkspaceAttendanceAdjustments).mockResolvedValue({
+    vi.mocked(api.fetchAttendanceAdjustments).mockResolvedValue({
       data: [
         {
           id: "adj-1",
@@ -80,7 +80,7 @@ describe("AdjustmentDrawer", () => {
 
   it("calls approve API when Approve is clicked", async () => {
  
-    vi.mocked(api.fetchWorkspaceAttendanceAdjustments).mockResolvedValue({
+    vi.mocked(api.fetchAttendanceAdjustments).mockResolvedValue({
       data: [
         {
           id: "adj-1",

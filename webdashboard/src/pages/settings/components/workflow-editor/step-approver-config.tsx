@@ -107,7 +107,7 @@ export function SpecificUserConfig({ index, control, options }: SpecificUserConf
         className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider"
         htmlFor={`step-specific-user-${index}`}
       >
-        {t("settings.workflows.search_user_label", { defaultValue: "Search Workspace User" })}
+        {t("settings.workflows.search_user_label", { defaultValue: "Search Organization User" })}
       </label>
       <Controller
         control={control}

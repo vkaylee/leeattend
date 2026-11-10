@@ -37,7 +37,7 @@ describe("no-show regression coverage", () => {
       employeeMap: new Map(),
       rows: [absentRow(date)],
       viewingDate: date,
-      workspaceTimezone: "UTC",
+      organizationTimezone: "UTC",
     };
 
     const pending = computeNoShowRows(params, new Date(`${date}T08:10:00.000Z`));

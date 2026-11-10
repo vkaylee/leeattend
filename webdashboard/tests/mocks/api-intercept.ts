@@ -30,7 +30,7 @@ export async function setupApiMocks(page: Page) {
     collapsed_sections: { summary: false, charts: false, actions: true },
   };
   const executiveOverview = {
-    contract_version: "executive-dashboard.v1",
+    contract_version: "executive-dashboard.v2",
     organization: { timezone: "Asia/Ho_Chi_Minh", currency: "VND" },
     context: {
       period: {
@@ -305,7 +305,7 @@ export async function setupApiMocks(page: Page) {
     }
     if (/\/api\/dashboard\/overtime-breakdown/.exec(pathname)) {
       return fulfill({
-        contract_version: "overtime-breakdown.v1",
+        contract_version: "overtime-breakdown.v2",
         organization: { timezone: "Asia/Ho_Chi_Minh", currency: "VND" },
         rows: [{
           department_id: "dept-1",

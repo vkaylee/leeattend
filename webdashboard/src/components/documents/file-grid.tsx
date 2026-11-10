@@ -1,19 +1,17 @@
 import { FileIcon, FileText, Image as ImageIcon, FileArchive, FileCode, FileSpreadsheet, Download, Trash2 } from "lucide-react";
 import React from "react";
 
-import type { components } from "@/types/api-generated";
+import type { FileRecord } from "@/lib/api/types";
 
 import Button from "@/components/ui/button";
 import { Typography } from "@/components/ui/typography";
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
 
-type WorkspaceFile = components["schemas"]["WorkspaceFile"];
-
 export interface FileGridProps {
-  files: WorkspaceFile[];
-  onDeleteFile: (file: WorkspaceFile) => void;
-  onDownloadFile: (file: WorkspaceFile) => void;
-  onViewFile: (file: WorkspaceFile) => void;
+  files: FileRecord[];
+  onDeleteFile: (file: FileRecord) => void;
+  onDownloadFile: (file: FileRecord) => void;
+  onViewFile: (file: FileRecord) => void;
 }
 
 /**

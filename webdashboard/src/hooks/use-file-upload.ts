@@ -4,16 +4,16 @@ import { useTranslation } from 'react-i18next';
 
 import { client, fetch } from '@/lib/api/client';
 import { components } from '@/types/api-generated';
+import type { FileRecord } from '@/lib/api/types';
 import { maybeNull } from '@/types/api-overrides';
 import { computeSHA256 } from '@/utils/hash';
 
-interface PresignedUploadResponse { file: WorkspaceFile; upload_url: string }
+interface PresignedUploadResponse { file: FileRecord; upload_url: string }
 
-type WorkspaceFile = components['schemas']['WorkspaceFile'];
 export interface UseFileUploadOptions {
   category: string;
   onError?: (error: Error) => void;
-  onSuccess?: (file: WorkspaceFile) => void;
+  onSuccess?: (file: FileRecord) => void;
   ownerId: string;
   ownerType: string;
 }
@@ -48,7 +48,7 @@ export function useFileUpload({
         // position). openapi-fetch's defaultBodySerializer handles FormData
         // natively, so no custom serializer is needed. See coding-standard §10.1.
         try {
-          const { data } = await client.POST<WorkspaceFile>('/v1/files/upload', {
+          const { data } = await client.POST<FileRecord>('/v1/files/upload', {
             body: formData as never,
           });
           setProgress(100);

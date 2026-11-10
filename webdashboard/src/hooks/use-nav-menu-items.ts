@@ -91,7 +91,7 @@ export function useNavMenuItems(): NavMenuStructure {
     icon: Settings,
     label: t("settings.title"),
     testId: "sidebar-link-settings",
-    permissions: ["organization:settings:read", "workspace:settings:read", "members:roles:manage"],
+    permissions: ["organization:settings:read", "members:roles:manage"],
   };
 
   const groups: MenuGroupType[] = [

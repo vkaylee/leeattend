@@ -164,7 +164,7 @@ export function useShiftEditor(shiftId?: string) {
 
   const [isDirty, setIsDirty] = useState(false);
 
-  const { data: workspaceRules } = useQuery({
+  const { data: attendanceRules } = useQuery({
     queryKey: ["attendance-rules"],
     queryFn: () => fetchDefaultAttendanceRules(),
   });
@@ -297,7 +297,7 @@ export function useShiftEditor(shiftId?: string) {
     isDirty,
     setIsDirty,
     blocker,
-    workspaceRules,
+    attendanceRules,
     // Intervals — all config is per-interval
     intervalDrafts,
     addInterval,

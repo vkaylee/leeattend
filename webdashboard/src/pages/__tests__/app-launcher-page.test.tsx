@@ -78,7 +78,7 @@ function grantAllPermissions() {
     "leave:requests:approve", "leave:balances:read", "attendance:adjustments:approve",
     "attendance:adjustments:submit_on_behalf", "shift_swaps:manage", "reports:read",
     "overtime:approve", "overtime:claim_on_behalf", "shifts:read",
-    "payroll:read", "workspace:settings:read", "members:roles:manage",
+    "payroll:read", "organization:settings:read", "members:roles:manage",
     "security:settings:manage", "infra:monitor",
     "ess:profile", "ess:attendance", "ess:clock",
   ];

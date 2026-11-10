@@ -9,7 +9,7 @@ import {
 } from "@/lib/api/storage-config";
 
 export const storageConfigKeys = {
-  all: ["workspace-storage"] as const,
+  all: ["organization-storage"] as const,
   detail: () => [...storageConfigKeys.all, "detail"] as const,
 };
 

@@ -110,7 +110,7 @@ func (m mockOrganizationRepo) DeleteConfig(_ context.Context, _ uuid.UUID) error
 func TestOrganizationIDFromContextIgnoresPathValue(t *testing.T) {
 	resolvedID := uuid.New()
 	pathID := uuid.New()
-	req := httptest.NewRequest(http.MethodGet, "/api/v1/workspaces/"+pathID.String(), nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/organization/settings", nil)
 	req.SetPathValue("ws_id", pathID.String())
 	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), resolvedID))
 
@@ -122,7 +122,7 @@ func TestOrganizationIDFromContextIgnoresPathValue(t *testing.T) {
 
 func TestOrganizationIDFromContextRequiresTrustedContext(t *testing.T) {
 	pathID := uuid.New()
-	req := httptest.NewRequest(http.MethodGet, "/api/v1/workspaces/"+pathID.String(), nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/organization/settings", nil)
 	req.SetPathValue("ws_id", pathID.String())
 
 	if got, ok := organizationIDFromContext(req); ok || got != uuid.Nil {
@@ -319,6 +319,21 @@ func TestOrganizationHandler_ConfigEndpoints(t *testing.T) {
 	h.DeleteConfig(rec, req)
 	if rec.Code != http.StatusOK {
 		t.Fatalf("expected 200 for delete config, got %d", rec.Code)
+	}
+}
+
+func TestOrganizationHandler_PutConfigRejectsLegacyScope(t *testing.T) {
+	userID := uuid.New()
+	h := OrganizationHandler{
+		Repository: mockOrganizationRepo{},
+		Authorizer: mockAuthorizer{perms: map[string]bool{"organization:settings:write": true}},
+	}
+	req := httptest.NewRequest(http.MethodPut, "/api/v1/configs", bytes.NewBufferString(`{"scope_type":"workspace","config_key":"theme_mode","effective_from":"2026-01-01","value":{"Text":"dark"}}`))
+	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), userID))
+	rec := httptest.NewRecorder()
+	h.PutConfig(rec, req)
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400 for legacy workspace scope, got %d", rec.Code)
 	}
 }
 

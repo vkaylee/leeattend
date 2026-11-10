@@ -15,13 +15,11 @@ import React, { useState } from "react";
 
 import { format } from "date-fns";
 
-import type { components } from "@/types/api-generated";
+import type { FileRecord } from "@/lib/api/types";
 
 import Button from "@/components/ui/button";
 import SmartTable, { type EditableCellValue } from "@/components/ui/smart-table";
 import { formatBytes } from "@/lib/utils";
-
-type WorkspaceFile = components["schemas"]["WorkspaceFile"];
 
 // Utility to get nice icons for different mime types
 const getFileIcon = (mimeType: string) => {
@@ -34,15 +32,15 @@ const getFileIcon = (mimeType: string) => {
 };
 
 interface FileListProps {
-  files: WorkspaceFile[];
+  files: FileRecord[];
   isLoading?: boolean;
   onDelete: (fileIds: string[]) => void;
-  onDownload: (file: WorkspaceFile) => void;
+  onDownload: (file: FileRecord) => void;
   onRename: (fileId: string, newName: string) => Promise<void>;
-  onShare: (file: WorkspaceFile) => void;
+  onShare: (file: FileRecord) => void;
 }
 
-const columns: ColumnDef<WorkspaceFile>[] = [
+const columns: ColumnDef<FileRecord>[] = [
   {
     accessorKey: "file_name",
     header: "Name",
@@ -125,9 +123,9 @@ const getContextMenuItemsHelper = ({
   onShare,
   onDelete,
 }: {
-  row: WorkspaceFile;
-  onDownload: (file: WorkspaceFile) => void;
-  onShare: (file: WorkspaceFile) => void;
+  row: FileRecord;
+  onDownload: (file: FileRecord) => void;
+  onShare: (file: FileRecord) => void;
   onDelete: (fileIds: string[]) => void;
 }) => [
   {
@@ -169,14 +167,14 @@ export function FileList({
     }
   };
 
-  const getContextMenuItems = (row: WorkspaceFile) =>
+  const getContextMenuItems = (row: FileRecord) =>
     getContextMenuItemsHelper({ row, onDownload, onShare, onDelete });
 
   return (
     <div className="h-full w-full flex flex-col gap-4">
       {/* Table Area */}
       <div className="flex-1 min-h-[400px]">
-        <SmartTable<WorkspaceFile>
+        <SmartTable<FileRecord>
           columns={columns}
           contextMenuItems={getContextMenuItems}
           data={files}

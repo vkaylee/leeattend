@@ -53,7 +53,7 @@ export interface GenerateOptions {
   filename?: string;
   onProgress?: (percent: number) => void;
   reportType: ReportType;
-  workspaceName?: string;
+  organizationName?: string;
 }
 
 /**
@@ -116,10 +116,10 @@ export async function generateExcel(
 }
 
 function setupWorksheetTitles(worksheet: Worksheet, colCount: number, options: GenerateOptions) {
-  const { reportType, workspaceName, dateRange } = options;
+  const { reportType, organizationName, dateRange } = options;
   const titleText = reportType === "summary"
-    ? `Attendance Summary Report${workspaceName ? ` - ${workspaceName}` : ""}`
-    : `Attendance Detail Report${workspaceName ? ` - ${workspaceName}` : ""}`;
+    ? `Attendance Summary Report${organizationName ? ` - ${organizationName}` : ""}`
+    : `Attendance Detail Report${organizationName ? ` - ${organizationName}` : ""}`;
 
   const titleCell = worksheet.getCell("A1");
   titleCell.value = titleText;

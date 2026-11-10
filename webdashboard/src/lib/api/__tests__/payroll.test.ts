@@ -36,7 +36,7 @@ import {
   fetchDepartmentPayrollConfigs,
   setDepartmentPayrollConfig,
   calculateBatchPayslips,
-  fetchWorkspacePayslips,
+  fetchPayslips,
   assignOvertimePolicy,
   fetchPayrollRules,
   createPayrollRule,
@@ -320,10 +320,10 @@ describe("payroll API", () => {
     await expect(calculateBatchPayslips({ employment_ids: ["e1"], year: 2026, month: 3 })).rejects.toThrow();
   });
 
-  it("fetchWorkspacePayslips: GET with query year/month", async () => {
+  it("fetchPayslips: GET with query year/month", async () => {
     const mock = [{ id: "p-1", net: 900 }];
     vi.mocked(apiFetch).mockResolvedValueOnce(okRes(mock));
-    const result = await fetchWorkspacePayslips(2026, 3);
+    const result = await fetchPayslips(2026, 3);
     expect(result).toEqual(mock);
   });
 

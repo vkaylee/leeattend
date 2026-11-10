@@ -5,7 +5,7 @@ import { z } from "zod";
 /**
  * URL search-param contract for `/attendance-logs`.
  *
- * Owned by the route file (`routes/_authenticated/_workspace/attendance-logs.tsx`)
+ * Owned by the route file (`routes/_authenticated/_organization/attendance-logs.tsx`)
  * via `validateSearch`. Every field has `.catch()` — see ADR-006.
  */
 export const attendanceLogsSearchSchema = z

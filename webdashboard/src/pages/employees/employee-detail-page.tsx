@@ -296,7 +296,7 @@ export default function EmployeeDetailPage() {
         </div>
       </div>
 
-      {/* ── Full-Width Tab Content Workspace ───────────────────────── */}
+      {/* ── Full-Width Tab Content Organization ───────────────────────── */}
       <div
         aria-labelledby={`tab-${activeDetailTab}`}
         className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-6 sm:p-10 shadow-xs min-h-[500px]"

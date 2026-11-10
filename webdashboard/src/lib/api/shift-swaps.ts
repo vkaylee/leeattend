@@ -19,7 +19,6 @@ export interface ShiftSwapRequest {
     target_shift_id?: string | null;
     target_shift_name?: string | null;
     updated_at: string;
-    workspace_id?: string;
 }
 
 export async function fetchShiftSwaps(

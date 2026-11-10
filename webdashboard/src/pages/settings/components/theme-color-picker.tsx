@@ -28,7 +28,7 @@ export function ThemeColorPicker({
   return (
     <div className="space-y-3">
       <label className={labelClassName}>
-        {t("common.workspace_settings.primary_color")}
+        {t("common.organization_settings.primary_color")}
       </label>
       <div className="flex flex-wrap gap-3 items-center">
         {presets.map((preset) => (
@@ -53,14 +53,14 @@ export function ThemeColorPicker({
         <div className="h-8 w-px bg-slate-200 dark:bg-slate-700 mx-1" />
         <div className="flex items-center gap-2 bg-slate-50 dark:bg-slate-800 px-3 py-1.5 rounded-xl border border-slate-200/80 dark:border-slate-700/80 shadow-2xs">
           <input
-            aria-label={t("common.workspace_settings.primary_color")}
+            aria-label={t("common.organization_settings.primary_color")}
             className="w-6 h-6 rounded-md cursor-pointer bg-transparent border-none p-0"
             onChange={(e) => onThemeColorChange(e.target.value)}
             type="color"
             value={themePrimaryColor}
           />
           <input
-            aria-label={t("common.workspace_settings.primary_color")}
+            aria-label={t("common.organization_settings.primary_color")}
             className="bg-transparent border-none text-xs font-mono font-semibold text-slate-600 dark:text-slate-300 w-20 outline-none"
             onChange={(e) => onThemeColorChange(e.target.value)}
             type="text"

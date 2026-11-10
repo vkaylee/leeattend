@@ -216,7 +216,7 @@ func TestFilePresignedUploadAndMetadata(t *testing.T) {
 		t.Fatalf("invalid presigned response: %+v", resp)
 	}
 	if resp.File.StorageKey != resp.File.ID.String()+"/contract.pdf" {
-		t.Errorf("expected storage key without workspace prefix, got: %s", resp.File.StorageKey)
+		t.Errorf("expected storage key without organization prefix, got: %s", resp.File.StorageKey)
 	}
 
 	// Fetch metadata

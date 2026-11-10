@@ -21,7 +21,7 @@
       "hierarchy_explanation": "Cấu hình lương được ưu tiên theo thứ tự: Cá nhân > Phòng ban > Tổ chức.",
       "individual_policy": "Chính sách cá nhân",
       "department_policy": "Chính sách phòng ban",
-      "workspace_default": "Mặc định tổ chức",
+      "organization_default": "Mặc định tổ chức",
       "pending_adjustments": "Có yêu cầu hiệu chỉnh",
       "recalc_needed": "Cần tính toán lại",
       "view_adjustments": "Xem hiệu chỉnh"
@@ -227,6 +227,7 @@
     "search_employees": "Tìm kiếm nhân viên...",
     "select_department": "Chọn phòng ban",
     "select_department_placeholder": "Chọn một phòng ban...",
+    "organization_scope_info": "Áp dụng trên toàn tổ chức.",
     "workspace_scope_info": "Áp dụng trên toàn tổ chức.",
     "effective_to": "Hiệu lực đến",
     "override_config": "Cấu hình ghi đè",
@@ -300,12 +301,15 @@
     },
     "scope_employee": "Nhân viên",
     "scope_department": "Phòng ban",
+    "scope_organization": "Tổ chức",
     "scope_workspace": "Tổ chức",
     "scope_level_employee": "Cấp nhân viên",
     "scope_level_department": "Cấp phòng ban",
+    "scope_level_organization": "Cấp tổ chức",
     "scope_level_workspace": "Cấp tổ chức"
   },
   "payroll_rules": {
+    "scope_organization": "Toàn tổ chức",
     "scope_workspace": "Toàn tổ chức",
     "rule_assignments": "Gán quy tắc tính lương"
   }

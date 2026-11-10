@@ -13,7 +13,7 @@ import { Sidebar } from "./sidebar";
 import { Topbar } from "./topbar";
 
 export interface AppShellProps {
-  variant?: "workspace" | "infra";
+  variant?: "organization" | "infra";
 }
 
 // ── AppShell ───────────────────────────────────────────────────────

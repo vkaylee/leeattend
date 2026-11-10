@@ -2,7 +2,7 @@ import { Eye, History } from "lucide-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
 
-import type { WorkspaceLeaveBalance } from "@/lib/api/types";
+import type { OrganizationLeaveBalance } from "@/lib/api/types";
 
 import Button from "@/components/ui/button";
 import ResponsiveTable from "@/components/ui/responsive-table";
@@ -12,14 +12,14 @@ import { cn } from "@/lib/utils";
 import { DesktopBalanceRow } from "./desktop-balance-row";
 
 interface LeaveBalancesTableProps {
-  balances: WorkspaceLeaveBalance[];
+  balances: OrganizationLeaveBalance[];
   isLoading: boolean;
-  onViewDetails: (balance: WorkspaceLeaveBalance) => void;
+  onViewDetails: (balance: OrganizationLeaveBalance) => void;
   onViewHistory: (employee: { id: string, name: string, leaveTypeId?: string, leaveTypeName?: string }) => void;
 }
 
 function BalanceMobileCard({ balance, onViewDetails, onViewHistory }: {
-  balance: WorkspaceLeaveBalance;
+  balance: OrganizationLeaveBalance;
   onViewDetails: () => void;
   onViewHistory: () => void;
 }) {
@@ -108,7 +108,7 @@ export const LeaveBalancesTable: React.FC<LeaveBalancesTableProps> = ({
 }) => {
   const { t } = useTranslation();
 
-  const handleHistory = (balance: WorkspaceLeaveBalance) => {
+  const handleHistory = (balance: OrganizationLeaveBalance) => {
     onViewHistory({
       id: balance.employee_id,
       name: balance.employee_name,
@@ -118,7 +118,7 @@ export const LeaveBalancesTable: React.FC<LeaveBalancesTableProps> = ({
   };
 
   return (
-    <ResponsiveTable<WorkspaceLeaveBalance>
+    <ResponsiveTable<OrganizationLeaveBalance>
       data={balances}
       emptyState={{
         icon: <History className="h-8 w-8" />,

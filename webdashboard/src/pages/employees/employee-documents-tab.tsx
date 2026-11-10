@@ -2,19 +2,16 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import type { components } from "@/types/api-generated";
+import type { FileRecord } from "@/lib/api/types";
 
 import { FileList } from "@/components/files/file-list";
 import { FileUpload } from "@/components/files/file-upload";
 import Button from "@/components/ui/button";
 import { toast } from "@/components/ui/toast-imperative";
 import { Typography } from "@/components/ui/typography";
-import { useOrganization } from "@/hooks/use-organization";
 import { client } from "@/lib/api/client";
 import { logError } from "@/lib/logger";
 import { maybeNull } from "@/types/api-overrides";
-
-type WorkspaceFile = components["schemas"]["WorkspaceFile"];
 
 interface EmployeeDocumentsTabProps {
   employeeId: string;
@@ -23,7 +20,6 @@ interface EmployeeDocumentsTabProps {
 export function EmployeeDocumentsTab({ employeeId }: EmployeeDocumentsTabProps) {
   const _t = useTranslation().t;
   const queryClient = useQueryClient();
-  const { workspace: currentWorkspace } = useOrganization();
   
   // State for Split Pane / File Upload Panel visibility
   const [showUploadPanel, setShowUploadPanel] = useState(false);
@@ -32,11 +28,9 @@ export function EmployeeDocumentsTab({ employeeId }: EmployeeDocumentsTabProps) 
   const { data: filesData, isLoading } = useQuery({
     queryKey: ["files", "employee", employeeId],
     queryFn: async () => {
-      if (!currentWorkspace?.id) return [];
-      const { data } = await client.GET<WorkspaceFile[]>('/v1/workspaces/{ws_id}/files/by-owner/{owner_type}/{owner_id}', {
+      const { data } = await client.GET<FileRecord[]>('/v1/files/by-owner/{owner_type}/{owner_id}', {
         params: {
           path: {
-            ws_id: currentWorkspace.id,
             owner_type: 'Employee',
             owner_id: employeeId,
           },
@@ -44,20 +38,16 @@ export function EmployeeDocumentsTab({ employeeId }: EmployeeDocumentsTabProps) 
       });
       return data;
     },
-    enabled: !!currentWorkspace?.id && !!employeeId,
+    enabled: !!employeeId,
   });
 
-  const files = filesData ?? [];
+  const files: FileRecord[] = Array.isArray(filesData) ? filesData : [];
 
-  const handleDownload = async (file: WorkspaceFile) => {
-    if (!currentWorkspace?.id) return;
+  const handleDownload = async (file: FileRecord) => {
     try {
-      const { data } = await client.GET<{ url?: string }>('/v1/workspaces/{ws_id}/files/{id}/url', {
+      const { data } = await client.GET<{ url?: string }>('/v1/files/{id}/url', {
         params: {
-          path: {
-            ws_id: currentWorkspace.id,
-            id: file.id,
-          },
+          path: { id: file.id },
         },
       });
 
@@ -76,17 +66,15 @@ export function EmployeeDocumentsTab({ employeeId }: EmployeeDocumentsTabProps) 
   // eslint-disable-next-line @typescript-eslint/require-await -- async required by FileList prop signature
   const handleRename = async (fileId: string, newName: string) => {
     toast.success(`Renamed file to: ${newName}`);
-    // Will implement PUT /v1/workspaces/{ws_id}/files/{id} in backend later
+    // Rename endpoint is not part of current file API contract.
   };
 
   const handleDelete = async (fileIds: string[]) => {
-    if (!currentWorkspace?.id) return;
-    
     // Optimistic UI update could be added here
     try {
       for (const id of fileIds) {
-        await client.DELETE('/v1/workspaces/{ws_id}/files/{id}', {
-          params: { path: { ws_id: currentWorkspace.id, id } },
+        await client.DELETE('/v1/files/{id}', {
+          params: { path: { id } },
         });
       }
       toast.success(`${fileIds.length} file(s) deleted successfully.`);
@@ -97,11 +85,11 @@ export function EmployeeDocumentsTab({ employeeId }: EmployeeDocumentsTabProps) 
     }
   };
 
-  const handleShare = (file: WorkspaceFile) => {
+  const handleShare = (file: FileRecord) => {
     toast.info(`Sharing feature coming in Phase 5 Distribution for file: ${file.file_name}`);
   };
 
-  const handleUploadSuccess = (file: WorkspaceFile) => {
+  const handleUploadSuccess = (file: FileRecord) => {
     toast.success(`File uploaded successfully: ${file.file_name}`);
     setShowUploadPanel(false);
     void queryClient.invalidateQueries({ queryKey: ["files", "employee", employeeId] });
@@ -131,7 +119,7 @@ export function EmployeeDocumentsTab({ employeeId }: EmployeeDocumentsTabProps) 
       </div>
 
       {/* Upload Panel (Collapsible) */}
-      {showUploadPanel && currentWorkspace ? (
+      {showUploadPanel ? (
         <div className="animate-in slide-in-from-top-4 fade-in duration-300">
           <FileUpload category="EmployeeDoc"
           maxSizeMB={50} // 50MB for Employee Docs

@@ -1,17 +1,17 @@
 # Database Architecture
 
-LeeAttend is a single-organization appliance with one PostgreSQL database and one `public` schema. The ordered baseline migration installs the schema, and `apiserver/migrations/20261108000000_single_organization_cutover/` converts the compatibility tables/columns to the final organization-scoped model.
+LeeAttend is a single-organization appliance with one PostgreSQL database and one `public` schema. Fresh installation uses one baseline migration that creates the final organization-scoped model directly.
 
 ## Topology
 
 | Component | Contract |
 |---|---|
 | PostgreSQL | One database, one `public` schema |
-| Baseline migration | `apiserver/migrations/20261103000000_init/` |
+| Baseline migration | `apiserver/migrations/20261110000000_single_organization_baseline/` |
 | Runtime pools | API and worker pools connect to the same database; no tenant routing |
-| Final schema migration | `apiserver/migrations/20261108000000_single_organization_cutover/` |
+| Migration runner | `apiserver/migrations/run-dev.sh` |
 
-Physical database split is gone. Legacy platform tables (`system_roles`, `user_system_roles`, and `system_db_clusters`) are removed by `apiserver/migrations/20261106000000_remove_system_roles/`. The cutover migration then renames `workspaces` to `organization_settings`, `workspace_roles` to `roles`, `workspace_role_permissions` to `role_permissions`, and `workspace_members` to `user_roles`, and drops every `workspace_id` column.
+Physical database split is gone. The baseline creates final organization tables directly, including `organization_settings`, `roles`, `role_permissions`, and `user_roles`; it does not create legacy platform or workspace objects.
 
 ## Schema groups
 
@@ -39,10 +39,7 @@ No tenant database is created, selected, cached, evicted, or provisioned. Runtim
 
 ```text
 apiserver/migrations/
-├── 20261103000000_init/
-├── 20261106000000_remove_system_roles/
-├── 20261107000000_add_window_layout_to_dashboard_preferences/
-└── 20261108000000_single_organization_cutover/
+└── 20261110000000_single_organization_baseline/
 
 Apply the baseline once against the target database. `up.sql` is ordered system-first then business-schema. `down.sql` drops and recreates `public`; it is a destructive recovery operation and requires a verified backup before use.
 
@@ -51,10 +48,10 @@ Migration directory versions MUST remain unique. New post-baseline changes MUST 
 ## Deployment and rollback
 
 1. Take an encrypted PostgreSQL backup and record the application/image version.
-2. Apply `20261103000000_init` to a clean or approved target database.
+2. Apply `20261110000000_single_organization_baseline` only to a fresh target database.
 3. Verify migration history, expected table/partition counts, constraints, triggers, and bootstrap compatibility.
-4. For rollback testing only, run `down.sql` against a disposable database, then re-apply `up.sql`.
-5. In a failed production migration, restore the backup or roll forward with a corrective migration; do not run `down.sql` against the live database without explicit approval.
+4. For disposable recovery testing only, run `down.sql`, recreate `public`, then re-apply `up.sql`.
+5. For an existing database, restore a compatible backup or recreate the disposable database; do not attempt an old-chain upgrade.
 
 ## Target architecture after all phases
 

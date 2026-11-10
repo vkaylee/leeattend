@@ -7,7 +7,7 @@ import { useWorkflowEditor } from "./hooks/use-workflow-editor";
 
 export default function WorkflowEditorPage() {
   const {
-    ws,
+    organization,
     workflowId,
     isDetailsLoading,
     form,
@@ -26,7 +26,7 @@ export default function WorkflowEditorPage() {
 
   const entityType = form.watch("entity_type");
 
-  if (!ws) return null;
+  if (!organization) return null;
 
   if (workflowId && isDetailsLoading) {
     return (

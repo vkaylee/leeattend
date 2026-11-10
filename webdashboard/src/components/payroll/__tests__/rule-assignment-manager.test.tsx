@@ -79,16 +79,16 @@ describe("RuleAssignmentManager", () => {
     vi.mocked(payrollApi.fetchPayrollRuleAssignments).mockResolvedValueOnce([
       {
         id: "a-1",
-        workspace_id: "ws-1",
+        organization_id: "org-1",
         rule_definition_id: "rule-1",
-        assignee_type: "workspace",
+        assignee_type: "organization",
         assignee_id: null,
         effective_from: "2026-01-01",
         created_at: "2026-01-01T00:00:00Z",
       },
       {
         id: "a-2",
-        workspace_id: "ws-1",
+        organization_id: "org-1",
         rule_definition_id: "rule-1",
         assignee_type: "department",
         assignee_id: "dept-1",
@@ -99,24 +99,24 @@ describe("RuleAssignmentManager", () => {
     ]);
 
     vi.mocked(departmentsApi.fetchDepartments).mockResolvedValueOnce([
-      { id: "dept-1", workspace_id: "ws-1", name: "Engineering", active_employee_count: 5, created_at: "", updated_at: "" },
+      { id: "dept-1", organization_id: "org-1", name: "Engineering", active_employee_count: 5, created_at: "", updated_at: "" },
     ]);
 
     renderComponent();
 
     // Verify groups and items are rendered
-    expect(await screen.findByText(/workspace level/i)).toBeInTheDocument();
+    expect(await screen.findByText(/organization level/i)).toBeInTheDocument();
     expect(await screen.findByText(/department level/i)).toBeInTheDocument();
     
     // Check specific assignment renders
-    expect(await screen.findByText("Entire Workspace")).toBeInTheDocument();
+    expect(await screen.findByText("Entire Organization")).toBeInTheDocument();
     expect(await screen.findByText("Engineering")).toBeInTheDocument();
     
     // Check override config renders
     expect(screen.getByText(/10%/i)).toBeInTheDocument();
   });
 
-  it("opens modal and can submit workspace level assignment", async () => {
+  it("opens modal and can submit organization level assignment", async () => {
     vi.mocked(payrollApi.fetchPayrollRuleAssignments).mockResolvedValueOnce([]);
     vi.mocked(departmentsApi.fetchDepartments).mockResolvedValueOnce([]);
  
@@ -132,8 +132,8 @@ describe("RuleAssignmentManager", () => {
     expect(screen.getByTestId("mock-modal")).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Assign Rule" })).toBeInTheDocument();
 
-    // Select Workspace scope
-    await user.click(screen.getByRole("button", { name: /workspace/i }));
+    // Select organization scope
+    await user.click(screen.getByRole("button", { name: /organization/i }));
     
     // Effective From has a default value (today)
     const effectiveFromInput = screen.getByLabelText(/Effective From/i);
@@ -146,7 +146,7 @@ describe("RuleAssignmentManager", () => {
     await waitFor(() => {
       expect(payrollApi.createPayrollRuleAssignment).toHaveBeenCalledWith("rule-1",
         expect.objectContaining({
-          assignee_type: "workspace",
+          assignee_type: "organization",
           assignee_id: undefined,
         })
       );
@@ -177,9 +177,9 @@ describe("RuleAssignmentManager", () => {
     vi.mocked(payrollApi.fetchPayrollRuleAssignments).mockResolvedValueOnce([
       {
         id: "a-1",
-        workspace_id: "ws-1",
+        organization_id: "org-1",
         rule_definition_id: "rule-1",
-        assignee_type: "workspace",
+        assignee_type: "organization",
         assignee_id: null,
         effective_from: "2026-01-01",
         created_at: "2026-01-01T00:00:00Z",

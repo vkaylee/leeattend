@@ -99,7 +99,7 @@ export function AssignmentFormModal({
         />
 
         <ModalActions 
-          isDisabled={isSubmitting || (assigneeType !== "workspace" && !assigneeId)}
+          isDisabled={isSubmitting || (assigneeType !== "organization" && !assigneeId)}
           isSubmitting={isSubmitting}
           onClose={handleClose}
           submitLabel={t("payroll.assign_rule", "Assign Rule")}

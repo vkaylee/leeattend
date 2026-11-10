@@ -14,82 +14,82 @@ import { Route as RegisterRouteImport } from "./routes/register"
 import { Route as LoginRouteImport } from "./routes/login"
 import { Route as ForgotPasswordRouteImport } from "./routes/forgot-password"
 import { Route as AuthenticatedRouteImport } from "./routes/_authenticated"
-import { Route as AuthenticatedWorkspaceRouteImport } from "./routes/_authenticated/_workspace"
+import { Route as AuthenticatedOrganizationRouteImport } from "./routes/_authenticated/_organization"
 import { Route as AuthenticatedInfraRouteImport } from "./routes/_authenticated/_infra"
-import { Route as AuthenticatedWorkspaceIndexRouteImport } from "./routes/_authenticated/_workspace/index"
-import { Route as AuthenticatedWorkspaceWorkingPatternsRouteImport } from "./routes/_authenticated/_workspace/working-patterns"
-import { Route as AuthenticatedWorkspaceWorkingConditionsRouteImport } from "./routes/_authenticated/_workspace/working-conditions"
-import { Route as AuthenticatedWorkspaceShiftsRouteImport } from "./routes/_authenticated/_workspace/shifts"
-import { Route as AuthenticatedWorkspaceShiftSwapsRouteImport } from "./routes/_authenticated/_workspace/shift-swaps"
-import { Route as AuthenticatedWorkspaceSettingsRouteImport } from "./routes/_authenticated/_workspace/settings"
-import { Route as AuthenticatedWorkspaceReportsRouteImport } from "./routes/_authenticated/_workspace/reports"
-import { Route as AuthenticatedWorkspaceProfileRouteImport } from "./routes/_authenticated/_workspace/profile"
-import { Route as AuthenticatedWorkspacePayrollRouteImport } from "./routes/_authenticated/_workspace/payroll"
-import { Route as AuthenticatedWorkspaceOrgChartRouteImport } from "./routes/_authenticated/_workspace/org-chart"
-import { Route as AuthenticatedWorkspaceNotificationsRouteImport } from "./routes/_authenticated/_workspace/notifications"
-import { Route as AuthenticatedWorkspaceLifecycleRouteImport } from "./routes/_authenticated/_workspace/lifecycle"
-import { Route as AuthenticatedWorkspaceLeaveRequestsRouteImport } from "./routes/_authenticated/_workspace/leave-requests"
-import { Route as AuthenticatedWorkspaceLeaveBalancesRouteImport } from "./routes/_authenticated/_workspace/leave-balances"
-import { Route as AuthenticatedWorkspaceHolidaysRouteImport } from "./routes/_authenticated/_workspace/holidays"
-import { Route as AuthenticatedWorkspaceEmployeesRouteImport } from "./routes/_authenticated/_workspace/employees"
-import { Route as AuthenticatedWorkspaceEcontractsRouteImport } from "./routes/_authenticated/_workspace/econtracts"
-import { Route as AuthenticatedWorkspaceDepartmentsRouteImport } from "./routes/_authenticated/_workspace/departments"
-import { Route as AuthenticatedWorkspaceDashboardRouteImport } from "./routes/_authenticated/_workspace/dashboard"
-import { Route as AuthenticatedWorkspaceAuditLogsRouteImport } from "./routes/_authenticated/_workspace/audit-logs"
-import { Route as AuthenticatedWorkspaceAttendanceLogsRouteImport } from "./routes/_authenticated/_workspace/attendance-logs"
-import { Route as AuthenticatedWorkspaceAttendanceAdjustmentsRouteImport } from "./routes/_authenticated/_workspace/attendance-adjustments"
-import { Route as AuthenticatedWorkspaceAssignmentsRouteImport } from "./routes/_authenticated/_workspace/assignments"
-import { Route as AuthenticatedWorkspaceAssignmentRulesRouteImport } from "./routes/_authenticated/_workspace/assignment-rules"
-import { Route as AuthenticatedWorkspaceWorkingPatternsIndexRouteImport } from "./routes/_authenticated/_workspace/working-patterns.index"
-import { Route as AuthenticatedWorkspaceShiftsIndexRouteImport } from "./routes/_authenticated/_workspace/shifts.index"
-import { Route as AuthenticatedWorkspaceSettingsIndexRouteImport } from "./routes/_authenticated/_workspace/settings/index"
-import { Route as AuthenticatedWorkspaceDocumentsIndexRouteImport } from "./routes/_authenticated/_workspace/documents.index"
-import { Route as AuthenticatedWorkspaceAssignmentRulesIndexRouteImport } from "./routes/_authenticated/_workspace/assignment-rules.index"
-import { Route as AuthenticatedWorkspaceApprovalsIndexRouteImport } from "./routes/_authenticated/_workspace/approvals/index"
-import { Route as AuthenticatedWorkspaceWorkingPatternsNewRouteImport } from "./routes/_authenticated/_workspace/working-patterns.new"
-import { Route as AuthenticatedWorkspaceShiftsRulesRouteImport } from "./routes/_authenticated/_workspace/shifts.rules"
-import { Route as AuthenticatedWorkspaceShiftsNewRouteImport } from "./routes/_authenticated/_workspace/shifts.new"
-import { Route as AuthenticatedWorkspaceSettingsWorkflowsRouteImport } from "./routes/_authenticated/_workspace/settings/workflows"
-import { Route as AuthenticatedWorkspaceSettingsTimeRouteImport } from "./routes/_authenticated/_workspace/settings/time"
-import { Route as AuthenticatedWorkspaceSettingsStorageRouteImport } from "./routes/_authenticated/_workspace/settings/storage"
-import { Route as AuthenticatedWorkspaceSettingsSmtpRouteImport } from "./routes/_authenticated/_workspace/settings/smtp"
-import { Route as AuthenticatedWorkspaceSettingsRolesRouteImport } from "./routes/_authenticated/_workspace/settings/roles"
-import { Route as AuthenticatedWorkspaceSettingsPermissionsRouteImport } from "./routes/_authenticated/_workspace/settings/permissions"
-import { Route as AuthenticatedWorkspaceSettingsPayrollRouteImport } from "./routes/_authenticated/_workspace/settings/payroll"
-import { Route as AuthenticatedWorkspaceSettingsOvertimeRouteImport } from "./routes/_authenticated/_workspace/settings/overtime"
-import { Route as AuthenticatedWorkspaceSettingsOrganizationRouteImport } from "./routes/_authenticated/_workspace/settings/organization"
-import { Route as AuthenticatedWorkspaceSettingsMembersRouteImport } from "./routes/_authenticated/_workspace/settings/members"
-import { Route as AuthenticatedWorkspaceSettingsLocationsRouteImport } from "./routes/_authenticated/_workspace/settings/locations"
-import { Route as AuthenticatedWorkspaceSettingsLifecycleTemplatesRouteImport } from "./routes/_authenticated/_workspace/settings/lifecycle-templates"
-import { Route as AuthenticatedWorkspaceSettingsLeaveRouteImport } from "./routes/_authenticated/_workspace/settings/leave"
-import { Route as AuthenticatedWorkspaceSettingsHolidaysRouteImport } from "./routes/_authenticated/_workspace/settings/holidays"
-import { Route as AuthenticatedWorkspaceSettingsGeneralRouteImport } from "./routes/_authenticated/_workspace/settings/general"
-import { Route as AuthenticatedWorkspaceSettingsEcontractsRouteImport } from "./routes/_authenticated/_workspace/settings/econtracts"
-import { Route as AuthenticatedWorkspaceSettingsCustomFieldsRouteImport } from "./routes/_authenticated/_workspace/settings/custom-fields"
-import { Route as AuthenticatedWorkspaceSettingsConditionTypesRouteImport } from "./routes/_authenticated/_workspace/settings/condition-types"
-import { Route as AuthenticatedWorkspaceSettingsBillingRouteImport } from "./routes/_authenticated/_workspace/settings/billing"
-import { Route as AuthenticatedWorkspaceEssProfileRouteImport } from "./routes/_authenticated/_workspace/ess/profile"
-import { Route as AuthenticatedWorkspaceEssOtRouteImport } from "./routes/_authenticated/_workspace/ess/ot"
-import { Route as AuthenticatedWorkspaceEssDocumentsRouteImport } from "./routes/_authenticated/_workspace/ess/documents"
-import { Route as AuthenticatedWorkspaceEssClockRouteImport } from "./routes/_authenticated/_workspace/ess/clock"
-import { Route as AuthenticatedWorkspaceEssAttendanceRouteImport } from "./routes/_authenticated/_workspace/ess/attendance"
-import { Route as AuthenticatedWorkspaceEmployeesEmployeeIdRouteImport } from "./routes/_authenticated/_workspace/employees_.$employeeId"
-import { Route as AuthenticatedWorkspaceDocumentsTemplatesRouteImport } from "./routes/_authenticated/_workspace/documents.templates"
-import { Route as AuthenticatedWorkspaceAssignmentRulesNewRouteImport } from "./routes/_authenticated/_workspace/assignment-rules.new"
-import { Route as AuthenticatedWorkspaceApprovalsOtRouteImport } from "./routes/_authenticated/_workspace/approvals/ot"
+import { Route as AuthenticatedOrganizationIndexRouteImport } from "./routes/_authenticated/_organization/index"
+import { Route as AuthenticatedOrganizationWorkingPatternsRouteImport } from "./routes/_authenticated/_organization/working-patterns"
+import { Route as AuthenticatedOrganizationWorkingConditionsRouteImport } from "./routes/_authenticated/_organization/working-conditions"
+import { Route as AuthenticatedOrganizationShiftsRouteImport } from "./routes/_authenticated/_organization/shifts"
+import { Route as AuthenticatedOrganizationShiftSwapsRouteImport } from "./routes/_authenticated/_organization/shift-swaps"
+import { Route as AuthenticatedOrganizationSettingsRouteImport } from "./routes/_authenticated/_organization/settings"
+import { Route as AuthenticatedOrganizationReportsRouteImport } from "./routes/_authenticated/_organization/reports"
+import { Route as AuthenticatedOrganizationProfileRouteImport } from "./routes/_authenticated/_organization/profile"
+import { Route as AuthenticatedOrganizationPayrollRouteImport } from "./routes/_authenticated/_organization/payroll"
+import { Route as AuthenticatedOrganizationOrgChartRouteImport } from "./routes/_authenticated/_organization/org-chart"
+import { Route as AuthenticatedOrganizationNotificationsRouteImport } from "./routes/_authenticated/_organization/notifications"
+import { Route as AuthenticatedOrganizationLifecycleRouteImport } from "./routes/_authenticated/_organization/lifecycle"
+import { Route as AuthenticatedOrganizationLeaveRequestsRouteImport } from "./routes/_authenticated/_organization/leave-requests"
+import { Route as AuthenticatedOrganizationLeaveBalancesRouteImport } from "./routes/_authenticated/_organization/leave-balances"
+import { Route as AuthenticatedOrganizationHolidaysRouteImport } from "./routes/_authenticated/_organization/holidays"
+import { Route as AuthenticatedOrganizationEmployeesRouteImport } from "./routes/_authenticated/_organization/employees"
+import { Route as AuthenticatedOrganizationEcontractsRouteImport } from "./routes/_authenticated/_organization/econtracts"
+import { Route as AuthenticatedOrganizationDepartmentsRouteImport } from "./routes/_authenticated/_organization/departments"
+import { Route as AuthenticatedOrganizationDashboardRouteImport } from "./routes/_authenticated/_organization/dashboard"
+import { Route as AuthenticatedOrganizationAuditLogsRouteImport } from "./routes/_authenticated/_organization/audit-logs"
+import { Route as AuthenticatedOrganizationAttendanceLogsRouteImport } from "./routes/_authenticated/_organization/attendance-logs"
+import { Route as AuthenticatedOrganizationAttendanceAdjustmentsRouteImport } from "./routes/_authenticated/_organization/attendance-adjustments"
+import { Route as AuthenticatedOrganizationAssignmentsRouteImport } from "./routes/_authenticated/_organization/assignments"
+import { Route as AuthenticatedOrganizationAssignmentRulesRouteImport } from "./routes/_authenticated/_organization/assignment-rules"
+import { Route as AuthenticatedOrganizationWorkingPatternsIndexRouteImport } from "./routes/_authenticated/_organization/working-patterns.index"
+import { Route as AuthenticatedOrganizationShiftsIndexRouteImport } from "./routes/_authenticated/_organization/shifts.index"
+import { Route as AuthenticatedOrganizationSettingsIndexRouteImport } from "./routes/_authenticated/_organization/settings/index"
+import { Route as AuthenticatedOrganizationDocumentsIndexRouteImport } from "./routes/_authenticated/_organization/documents.index"
+import { Route as AuthenticatedOrganizationAssignmentRulesIndexRouteImport } from "./routes/_authenticated/_organization/assignment-rules.index"
+import { Route as AuthenticatedOrganizationApprovalsIndexRouteImport } from "./routes/_authenticated/_organization/approvals/index"
+import { Route as AuthenticatedOrganizationWorkingPatternsNewRouteImport } from "./routes/_authenticated/_organization/working-patterns.new"
+import { Route as AuthenticatedOrganizationShiftsRulesRouteImport } from "./routes/_authenticated/_organization/shifts.rules"
+import { Route as AuthenticatedOrganizationShiftsNewRouteImport } from "./routes/_authenticated/_organization/shifts.new"
+import { Route as AuthenticatedOrganizationSettingsWorkflowsRouteImport } from "./routes/_authenticated/_organization/settings/workflows"
+import { Route as AuthenticatedOrganizationSettingsTimeRouteImport } from "./routes/_authenticated/_organization/settings/time"
+import { Route as AuthenticatedOrganizationSettingsStorageRouteImport } from "./routes/_authenticated/_organization/settings/storage"
+import { Route as AuthenticatedOrganizationSettingsSmtpRouteImport } from "./routes/_authenticated/_organization/settings/smtp"
+import { Route as AuthenticatedOrganizationSettingsRolesRouteImport } from "./routes/_authenticated/_organization/settings/roles"
+import { Route as AuthenticatedOrganizationSettingsPermissionsRouteImport } from "./routes/_authenticated/_organization/settings/permissions"
+import { Route as AuthenticatedOrganizationSettingsPayrollRouteImport } from "./routes/_authenticated/_organization/settings/payroll"
+import { Route as AuthenticatedOrganizationSettingsOvertimeRouteImport } from "./routes/_authenticated/_organization/settings/overtime"
+import { Route as AuthenticatedOrganizationSettingsOrganizationRouteImport } from "./routes/_authenticated/_organization/settings/organization"
+import { Route as AuthenticatedOrganizationSettingsMembersRouteImport } from "./routes/_authenticated/_organization/settings/members"
+import { Route as AuthenticatedOrganizationSettingsLocationsRouteImport } from "./routes/_authenticated/_organization/settings/locations"
+import { Route as AuthenticatedOrganizationSettingsLifecycleTemplatesRouteImport } from "./routes/_authenticated/_organization/settings/lifecycle-templates"
+import { Route as AuthenticatedOrganizationSettingsLeaveRouteImport } from "./routes/_authenticated/_organization/settings/leave"
+import { Route as AuthenticatedOrganizationSettingsHolidaysRouteImport } from "./routes/_authenticated/_organization/settings/holidays"
+import { Route as AuthenticatedOrganizationSettingsGeneralRouteImport } from "./routes/_authenticated/_organization/settings/general"
+import { Route as AuthenticatedOrganizationSettingsEcontractsRouteImport } from "./routes/_authenticated/_organization/settings/econtracts"
+import { Route as AuthenticatedOrganizationSettingsCustomFieldsRouteImport } from "./routes/_authenticated/_organization/settings/custom-fields"
+import { Route as AuthenticatedOrganizationSettingsConditionTypesRouteImport } from "./routes/_authenticated/_organization/settings/condition-types"
+import { Route as AuthenticatedOrganizationSettingsBillingRouteImport } from "./routes/_authenticated/_organization/settings/billing"
+import { Route as AuthenticatedOrganizationEssProfileRouteImport } from "./routes/_authenticated/_organization/ess/profile"
+import { Route as AuthenticatedOrganizationEssOtRouteImport } from "./routes/_authenticated/_organization/ess/ot"
+import { Route as AuthenticatedOrganizationEssDocumentsRouteImport } from "./routes/_authenticated/_organization/ess/documents"
+import { Route as AuthenticatedOrganizationEssClockRouteImport } from "./routes/_authenticated/_organization/ess/clock"
+import { Route as AuthenticatedOrganizationEssAttendanceRouteImport } from "./routes/_authenticated/_organization/ess/attendance"
+import { Route as AuthenticatedOrganizationEmployeesEmployeeIdRouteImport } from "./routes/_authenticated/_organization/employees_.$employeeId"
+import { Route as AuthenticatedOrganizationDocumentsTemplatesRouteImport } from "./routes/_authenticated/_organization/documents.templates"
+import { Route as AuthenticatedOrganizationAssignmentRulesNewRouteImport } from "./routes/_authenticated/_organization/assignment-rules.new"
+import { Route as AuthenticatedOrganizationApprovalsOtRouteImport } from "./routes/_authenticated/_organization/approvals/ot"
 import { Route as AuthenticatedInfraSystemSmtpRouteImport } from "./routes/_authenticated/_infra/system/smtp"
 import { Route as AuthenticatedInfraInfraMonitorRouteImport } from "./routes/_authenticated/_infra/infra/monitor"
-import { Route as AuthenticatedWorkspaceShiftsRulesIndexRouteImport } from "./routes/_authenticated/_workspace/shifts.rules.index"
-import { Route as AuthenticatedWorkspaceSettingsWorkflowsIndexRouteImport } from "./routes/_authenticated/_workspace/settings/workflows.index"
-import { Route as AuthenticatedWorkspaceWorkingPatternsPatternIdEditRouteImport } from "./routes/_authenticated/_workspace/working-patterns.$patternId.edit"
-import { Route as AuthenticatedWorkspaceShiftsShiftIdEditRouteImport } from "./routes/_authenticated/_workspace/shifts.$shiftId.edit"
-import { Route as AuthenticatedWorkspaceSettingsWorkflowsNewRouteImport } from "./routes/_authenticated/_workspace/settings/workflows.new"
-import { Route as AuthenticatedWorkspaceAssignmentRulesRuleIdEditRouteImport } from "./routes/_authenticated/_workspace/assignment-rules.$ruleId.edit"
-import { Route as AuthenticatedWorkspaceShiftsRulesWorkingPatternsNewRouteImport } from "./routes/_authenticated/_workspace/shifts.rules.working-patterns.new"
-import { Route as AuthenticatedWorkspaceShiftsRulesAssignmentRulesNewRouteImport } from "./routes/_authenticated/_workspace/shifts.rules.assignment-rules.new"
-import { Route as AuthenticatedWorkspaceSettingsWorkflowsWorkflowIdEditRouteImport } from "./routes/_authenticated/_workspace/settings/workflows.$workflowId.edit"
-import { Route as AuthenticatedWorkspaceShiftsRulesWorkingPatternsPatternIdEditRouteImport } from "./routes/_authenticated/_workspace/shifts.rules.working-patterns.$patternId.edit"
-import { Route as AuthenticatedWorkspaceShiftsRulesAssignmentRulesRuleIdEditRouteImport } from "./routes/_authenticated/_workspace/shifts.rules.assignment-rules.$ruleId.edit"
+import { Route as AuthenticatedOrganizationShiftsRulesIndexRouteImport } from "./routes/_authenticated/_organization/shifts.rules.index"
+import { Route as AuthenticatedOrganizationSettingsWorkflowsIndexRouteImport } from "./routes/_authenticated/_organization/settings/workflows.index"
+import { Route as AuthenticatedOrganizationWorkingPatternsPatternIdEditRouteImport } from "./routes/_authenticated/_organization/working-patterns.$patternId.edit"
+import { Route as AuthenticatedOrganizationShiftsShiftIdEditRouteImport } from "./routes/_authenticated/_organization/shifts.$shiftId.edit"
+import { Route as AuthenticatedOrganizationSettingsWorkflowsNewRouteImport } from "./routes/_authenticated/_organization/settings/workflows.new"
+import { Route as AuthenticatedOrganizationAssignmentRulesRuleIdEditRouteImport } from "./routes/_authenticated/_organization/assignment-rules.$ruleId.edit"
+import { Route as AuthenticatedOrganizationShiftsRulesWorkingPatternsNewRouteImport } from "./routes/_authenticated/_organization/shifts.rules.working-patterns.new"
+import { Route as AuthenticatedOrganizationShiftsRulesAssignmentRulesNewRouteImport } from "./routes/_authenticated/_organization/shifts.rules.assignment-rules.new"
+import { Route as AuthenticatedOrganizationSettingsWorkflowsWorkflowIdEditRouteImport } from "./routes/_authenticated/_organization/settings/workflows.$workflowId.edit"
+import { Route as AuthenticatedOrganizationShiftsRulesWorkingPatternsPatternIdEditRouteImport } from "./routes/_authenticated/_organization/shifts.rules.working-patterns.$patternId.edit"
+import { Route as AuthenticatedOrganizationShiftsRulesAssignmentRulesRuleIdEditRouteImport } from "./routes/_authenticated/_organization/shifts.rules.assignment-rules.$ruleId.edit"
 
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
   id: "/reset-password",
@@ -119,597 +119,598 @@ const AuthenticatedRoute = AuthenticatedRouteImport.update({
   id: "/_authenticated",
   getParentRoute: () => rootRouteImport,
 } as any)
-const AuthenticatedWorkspaceRoute = AuthenticatedWorkspaceRouteImport.update({
-  id: "/_workspace",
-  getParentRoute: () => AuthenticatedRoute,
-} as any)
+const AuthenticatedOrganizationRoute =
+  AuthenticatedOrganizationRouteImport.update({
+    id: "/_organization",
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 const AuthenticatedInfraRoute = AuthenticatedInfraRouteImport.update({
   id: "/_infra",
   getParentRoute: () => AuthenticatedRoute,
 } as any)
-const AuthenticatedWorkspaceIndexRoute =
-  AuthenticatedWorkspaceIndexRouteImport.update({
+const AuthenticatedOrganizationIndexRoute =
+  AuthenticatedOrganizationIndexRouteImport.update({
     id: "/",
     path: "/",
-    getParentRoute: () => AuthenticatedWorkspaceRoute,
+    getParentRoute: () => AuthenticatedOrganizationRoute,
   } as any).lazy(() =>
-    import("./routes/_authenticated/_workspace/index.lazy").then(
+    import("./routes/_authenticated/_organization/index.lazy").then(
       (d) => d.Route,
     ),
   )
-const AuthenticatedWorkspaceWorkingPatternsRoute =
-  AuthenticatedWorkspaceWorkingPatternsRouteImport.update({
+const AuthenticatedOrganizationWorkingPatternsRoute =
+  AuthenticatedOrganizationWorkingPatternsRouteImport.update({
     id: "/working-patterns",
     path: "/working-patterns",
-    getParentRoute: () => AuthenticatedWorkspaceRoute,
+    getParentRoute: () => AuthenticatedOrganizationRoute,
   } as any)
-const AuthenticatedWorkspaceWorkingConditionsRoute =
-  AuthenticatedWorkspaceWorkingConditionsRouteImport.update({
+const AuthenticatedOrganizationWorkingConditionsRoute =
+  AuthenticatedOrganizationWorkingConditionsRouteImport.update({
     id: "/working-conditions",
     path: "/working-conditions",
-    getParentRoute: () => AuthenticatedWorkspaceRoute,
+    getParentRoute: () => AuthenticatedOrganizationRoute,
   } as any).lazy(() =>
-    import("./routes/_authenticated/_workspace/working-conditions.lazy").then(
+    import("./routes/_authenticated/_organization/working-conditions.lazy").then(
       (d) => d.Route,
     ),
   )
-const AuthenticatedWorkspaceShiftsRoute =
-  AuthenticatedWorkspaceShiftsRouteImport.update({
+const AuthenticatedOrganizationShiftsRoute =
+  AuthenticatedOrganizationShiftsRouteImport.update({
     id: "/shifts",
     path: "/shifts",
-    getParentRoute: () => AuthenticatedWorkspaceRoute,
+    getParentRoute: () => AuthenticatedOrganizationRoute,
   } as any)
-const AuthenticatedWorkspaceShiftSwapsRoute =
-  AuthenticatedWorkspaceShiftSwapsRouteImport.update({
+const AuthenticatedOrganizationShiftSwapsRoute =
+  AuthenticatedOrganizationShiftSwapsRouteImport.update({
     id: "/shift-swaps",
     path: "/shift-swaps",
-    getParentRoute: () => AuthenticatedWorkspaceRoute,
+    getParentRoute: () => AuthenticatedOrganizationRoute,
   } as any).lazy(() =>
-    import("./routes/_authenticated/_workspace/shift-swaps.lazy").then(
+    import("./routes/_authenticated/_organization/shift-swaps.lazy").then(
       (d) => d.Route,
     ),
   )
-const AuthenticatedWorkspaceSettingsRoute =
-  AuthenticatedWorkspaceSettingsRouteImport.update({
+const AuthenticatedOrganizationSettingsRoute =
+  AuthenticatedOrganizationSettingsRouteImport.update({
     id: "/settings",
     path: "/settings",
-    getParentRoute: () => AuthenticatedWorkspaceRoute,
+    getParentRoute: () => AuthenticatedOrganizationRoute,
   } as any)
-const AuthenticatedWorkspaceReportsRoute =
-  AuthenticatedWorkspaceReportsRouteImport.update({
+const AuthenticatedOrganizationReportsRoute =
+  AuthenticatedOrganizationReportsRouteImport.update({
     id: "/reports",
     path: "/reports",
-    getParentRoute: () => AuthenticatedWorkspaceRoute,
+    getParentRoute: () => AuthenticatedOrganizationRoute,
   } as any).lazy(() =>
-    import("./routes/_authenticated/_workspace/reports.lazy").then(
+    import("./routes/_authenticated/_organization/reports.lazy").then(
       (d) => d.Route,
     ),
   )
-const AuthenticatedWorkspaceProfileRoute =
-  AuthenticatedWorkspaceProfileRouteImport.update({
+const AuthenticatedOrganizationProfileRoute =
+  AuthenticatedOrganizationProfileRouteImport.update({
     id: "/profile",
     path: "/profile",
-    getParentRoute: () => AuthenticatedWorkspaceRoute,
+    getParentRoute: () => AuthenticatedOrganizationRoute,
   } as any).lazy(() =>
-    import("./routes/_authenticated/_workspace/profile.lazy").then(
+    import("./routes/_authenticated/_organization/profile.lazy").then(
       (d) => d.Route,
     ),
   )
-const AuthenticatedWorkspacePayrollRoute =
-  AuthenticatedWorkspacePayrollRouteImport.update({
+const AuthenticatedOrganizationPayrollRoute =
+  AuthenticatedOrganizationPayrollRouteImport.update({
     id: "/payroll",
     path: "/payroll",
-    getParentRoute: () => AuthenticatedWorkspaceRoute,
+    getParentRoute: () => AuthenticatedOrganizationRoute,
   } as any).lazy(() =>
-    import("./routes/_authenticated/_workspace/payroll.lazy").then(
+    import("./routes/_authenticated/_organization/payroll.lazy").then(
       (d) => d.Route,
     ),
   )
-const AuthenticatedWorkspaceOrgChartRoute =
-  AuthenticatedWorkspaceOrgChartRouteImport.update({
+const AuthenticatedOrganizationOrgChartRoute =
+  AuthenticatedOrganizationOrgChartRouteImport.update({
     id: "/org-chart",
     path: "/org-chart",
-    getParentRoute: () => AuthenticatedWorkspaceRoute,
+    getParentRoute: () => AuthenticatedOrganizationRoute,
   } as any).lazy(() =>
-    import("./routes/_authenticated/_workspace/org-chart.lazy").then(
+    import("./routes/_authenticated/_organization/org-chart.lazy").then(
       (d) => d.Route,
     ),
   )
-const AuthenticatedWorkspaceNotificationsRoute =
-  AuthenticatedWorkspaceNotificationsRouteImport.update({
+const AuthenticatedOrganizationNotificationsRoute =
+  AuthenticatedOrganizationNotificationsRouteImport.update({
     id: "/notifications",
     path: "/notifications",
-    getParentRoute: () => AuthenticatedWorkspaceRoute,
+    getParentRoute: () => AuthenticatedOrganizationRoute,
   } as any).lazy(() =>
-    import("./routes/_authenticated/_workspace/notifications.lazy").then(
+    import("./routes/_authenticated/_organization/notifications.lazy").then(
       (d) => d.Route,
     ),
   )
-const AuthenticatedWorkspaceLifecycleRoute =
-  AuthenticatedWorkspaceLifecycleRouteImport.update({
+const AuthenticatedOrganizationLifecycleRoute =
+  AuthenticatedOrganizationLifecycleRouteImport.update({
     id: "/lifecycle",
     path: "/lifecycle",
-    getParentRoute: () => AuthenticatedWorkspaceRoute,
+    getParentRoute: () => AuthenticatedOrganizationRoute,
   } as any).lazy(() =>
-    import("./routes/_authenticated/_workspace/lifecycle.lazy").then(
+    import("./routes/_authenticated/_organization/lifecycle.lazy").then(
       (d) => d.Route,
     ),
   )
-const AuthenticatedWorkspaceLeaveRequestsRoute =
-  AuthenticatedWorkspaceLeaveRequestsRouteImport.update({
+const AuthenticatedOrganizationLeaveRequestsRoute =
+  AuthenticatedOrganizationLeaveRequestsRouteImport.update({
     id: "/leave-requests",
     path: "/leave-requests",
-    getParentRoute: () => AuthenticatedWorkspaceRoute,
+    getParentRoute: () => AuthenticatedOrganizationRoute,
   } as any).lazy(() =>
-    import("./routes/_authenticated/_workspace/leave-requests.lazy").then(
+    import("./routes/_authenticated/_organization/leave-requests.lazy").then(
       (d) => d.Route,
     ),
   )
-const AuthenticatedWorkspaceLeaveBalancesRoute =
-  AuthenticatedWorkspaceLeaveBalancesRouteImport.update({
+const AuthenticatedOrganizationLeaveBalancesRoute =
+  AuthenticatedOrganizationLeaveBalancesRouteImport.update({
     id: "/leave-balances",
     path: "/leave-balances",
-    getParentRoute: () => AuthenticatedWorkspaceRoute,
+    getParentRoute: () => AuthenticatedOrganizationRoute,
   } as any).lazy(() =>
-    import("./routes/_authenticated/_workspace/leave-balances.lazy").then(
+    import("./routes/_authenticated/_organization/leave-balances.lazy").then(
       (d) => d.Route,
     ),
   )
-const AuthenticatedWorkspaceHolidaysRoute =
-  AuthenticatedWorkspaceHolidaysRouteImport.update({
+const AuthenticatedOrganizationHolidaysRoute =
+  AuthenticatedOrganizationHolidaysRouteImport.update({
     id: "/holidays",
     path: "/holidays",
-    getParentRoute: () => AuthenticatedWorkspaceRoute,
+    getParentRoute: () => AuthenticatedOrganizationRoute,
   } as any).lazy(() =>
-    import("./routes/_authenticated/_workspace/holidays.lazy").then(
+    import("./routes/_authenticated/_organization/holidays.lazy").then(
       (d) => d.Route,
     ),
   )
-const AuthenticatedWorkspaceEmployeesRoute =
-  AuthenticatedWorkspaceEmployeesRouteImport.update({
+const AuthenticatedOrganizationEmployeesRoute =
+  AuthenticatedOrganizationEmployeesRouteImport.update({
     id: "/employees",
     path: "/employees",
-    getParentRoute: () => AuthenticatedWorkspaceRoute,
+    getParentRoute: () => AuthenticatedOrganizationRoute,
   } as any).lazy(() =>
-    import("./routes/_authenticated/_workspace/employees.lazy").then(
+    import("./routes/_authenticated/_organization/employees.lazy").then(
       (d) => d.Route,
     ),
   )
-const AuthenticatedWorkspaceEcontractsRoute =
-  AuthenticatedWorkspaceEcontractsRouteImport.update({
+const AuthenticatedOrganizationEcontractsRoute =
+  AuthenticatedOrganizationEcontractsRouteImport.update({
     id: "/econtracts",
     path: "/econtracts",
-    getParentRoute: () => AuthenticatedWorkspaceRoute,
+    getParentRoute: () => AuthenticatedOrganizationRoute,
   } as any).lazy(() =>
-    import("./routes/_authenticated/_workspace/econtracts.lazy").then(
+    import("./routes/_authenticated/_organization/econtracts.lazy").then(
       (d) => d.Route,
     ),
   )
-const AuthenticatedWorkspaceDepartmentsRoute =
-  AuthenticatedWorkspaceDepartmentsRouteImport.update({
+const AuthenticatedOrganizationDepartmentsRoute =
+  AuthenticatedOrganizationDepartmentsRouteImport.update({
     id: "/departments",
     path: "/departments",
-    getParentRoute: () => AuthenticatedWorkspaceRoute,
+    getParentRoute: () => AuthenticatedOrganizationRoute,
   } as any).lazy(() =>
-    import("./routes/_authenticated/_workspace/departments.lazy").then(
+    import("./routes/_authenticated/_organization/departments.lazy").then(
       (d) => d.Route,
     ),
   )
-const AuthenticatedWorkspaceDashboardRoute =
-  AuthenticatedWorkspaceDashboardRouteImport.update({
+const AuthenticatedOrganizationDashboardRoute =
+  AuthenticatedOrganizationDashboardRouteImport.update({
     id: "/dashboard",
     path: "/dashboard",
-    getParentRoute: () => AuthenticatedWorkspaceRoute,
+    getParentRoute: () => AuthenticatedOrganizationRoute,
   } as any).lazy(() =>
-    import("./routes/_authenticated/_workspace/dashboard.lazy").then(
+    import("./routes/_authenticated/_organization/dashboard.lazy").then(
       (d) => d.Route,
     ),
   )
-const AuthenticatedWorkspaceAuditLogsRoute =
-  AuthenticatedWorkspaceAuditLogsRouteImport.update({
+const AuthenticatedOrganizationAuditLogsRoute =
+  AuthenticatedOrganizationAuditLogsRouteImport.update({
     id: "/audit-logs",
     path: "/audit-logs",
-    getParentRoute: () => AuthenticatedWorkspaceRoute,
+    getParentRoute: () => AuthenticatedOrganizationRoute,
   } as any).lazy(() =>
-    import("./routes/_authenticated/_workspace/audit-logs.lazy").then(
+    import("./routes/_authenticated/_organization/audit-logs.lazy").then(
       (d) => d.Route,
     ),
   )
-const AuthenticatedWorkspaceAttendanceLogsRoute =
-  AuthenticatedWorkspaceAttendanceLogsRouteImport.update({
+const AuthenticatedOrganizationAttendanceLogsRoute =
+  AuthenticatedOrganizationAttendanceLogsRouteImport.update({
     id: "/attendance-logs",
     path: "/attendance-logs",
-    getParentRoute: () => AuthenticatedWorkspaceRoute,
+    getParentRoute: () => AuthenticatedOrganizationRoute,
   } as any).lazy(() =>
-    import("./routes/_authenticated/_workspace/attendance-logs.lazy").then(
+    import("./routes/_authenticated/_organization/attendance-logs.lazy").then(
       (d) => d.Route,
     ),
   )
-const AuthenticatedWorkspaceAttendanceAdjustmentsRoute =
-  AuthenticatedWorkspaceAttendanceAdjustmentsRouteImport.update({
+const AuthenticatedOrganizationAttendanceAdjustmentsRoute =
+  AuthenticatedOrganizationAttendanceAdjustmentsRouteImport.update({
     id: "/attendance-adjustments",
     path: "/attendance-adjustments",
-    getParentRoute: () => AuthenticatedWorkspaceRoute,
+    getParentRoute: () => AuthenticatedOrganizationRoute,
   } as any).lazy(() =>
-    import("./routes/_authenticated/_workspace/attendance-adjustments.lazy").then(
+    import("./routes/_authenticated/_organization/attendance-adjustments.lazy").then(
       (d) => d.Route,
     ),
   )
-const AuthenticatedWorkspaceAssignmentsRoute =
-  AuthenticatedWorkspaceAssignmentsRouteImport.update({
+const AuthenticatedOrganizationAssignmentsRoute =
+  AuthenticatedOrganizationAssignmentsRouteImport.update({
     id: "/assignments",
     path: "/assignments",
-    getParentRoute: () => AuthenticatedWorkspaceRoute,
+    getParentRoute: () => AuthenticatedOrganizationRoute,
   } as any).lazy(() =>
-    import("./routes/_authenticated/_workspace/assignments.lazy").then(
+    import("./routes/_authenticated/_organization/assignments.lazy").then(
       (d) => d.Route,
     ),
   )
-const AuthenticatedWorkspaceAssignmentRulesRoute =
-  AuthenticatedWorkspaceAssignmentRulesRouteImport.update({
+const AuthenticatedOrganizationAssignmentRulesRoute =
+  AuthenticatedOrganizationAssignmentRulesRouteImport.update({
     id: "/assignment-rules",
     path: "/assignment-rules",
-    getParentRoute: () => AuthenticatedWorkspaceRoute,
+    getParentRoute: () => AuthenticatedOrganizationRoute,
   } as any)
-const AuthenticatedWorkspaceWorkingPatternsIndexRoute =
-  AuthenticatedWorkspaceWorkingPatternsIndexRouteImport.update({
+const AuthenticatedOrganizationWorkingPatternsIndexRoute =
+  AuthenticatedOrganizationWorkingPatternsIndexRouteImport.update({
     id: "/",
     path: "/",
-    getParentRoute: () => AuthenticatedWorkspaceWorkingPatternsRoute,
+    getParentRoute: () => AuthenticatedOrganizationWorkingPatternsRoute,
   } as any).lazy(() =>
-    import("./routes/_authenticated/_workspace/working-patterns.index.lazy").then(
+    import("./routes/_authenticated/_organization/working-patterns.index.lazy").then(
       (d) => d.Route,
     ),
   )
-const AuthenticatedWorkspaceShiftsIndexRoute =
-  AuthenticatedWorkspaceShiftsIndexRouteImport.update({
+const AuthenticatedOrganizationShiftsIndexRoute =
+  AuthenticatedOrganizationShiftsIndexRouteImport.update({
     id: "/",
     path: "/",
-    getParentRoute: () => AuthenticatedWorkspaceShiftsRoute,
+    getParentRoute: () => AuthenticatedOrganizationShiftsRoute,
   } as any).lazy(() =>
-    import("./routes/_authenticated/_workspace/shifts.index.lazy").then(
+    import("./routes/_authenticated/_organization/shifts.index.lazy").then(
       (d) => d.Route,
     ),
   )
-const AuthenticatedWorkspaceSettingsIndexRoute =
-  AuthenticatedWorkspaceSettingsIndexRouteImport.update({
+const AuthenticatedOrganizationSettingsIndexRoute =
+  AuthenticatedOrganizationSettingsIndexRouteImport.update({
     id: "/",
     path: "/",
-    getParentRoute: () => AuthenticatedWorkspaceSettingsRoute,
+    getParentRoute: () => AuthenticatedOrganizationSettingsRoute,
   } as any).lazy(() =>
-    import("./routes/_authenticated/_workspace/settings/index.lazy").then(
+    import("./routes/_authenticated/_organization/settings/index.lazy").then(
       (d) => d.Route,
     ),
   )
-const AuthenticatedWorkspaceDocumentsIndexRoute =
-  AuthenticatedWorkspaceDocumentsIndexRouteImport.update({
+const AuthenticatedOrganizationDocumentsIndexRoute =
+  AuthenticatedOrganizationDocumentsIndexRouteImport.update({
     id: "/documents/",
     path: "/documents/",
-    getParentRoute: () => AuthenticatedWorkspaceRoute,
+    getParentRoute: () => AuthenticatedOrganizationRoute,
   } as any).lazy(() =>
-    import("./routes/_authenticated/_workspace/documents.index.lazy").then(
+    import("./routes/_authenticated/_organization/documents.index.lazy").then(
       (d) => d.Route,
     ),
   )
-const AuthenticatedWorkspaceAssignmentRulesIndexRoute =
-  AuthenticatedWorkspaceAssignmentRulesIndexRouteImport.update({
+const AuthenticatedOrganizationAssignmentRulesIndexRoute =
+  AuthenticatedOrganizationAssignmentRulesIndexRouteImport.update({
     id: "/",
     path: "/",
-    getParentRoute: () => AuthenticatedWorkspaceAssignmentRulesRoute,
+    getParentRoute: () => AuthenticatedOrganizationAssignmentRulesRoute,
   } as any).lazy(() =>
-    import("./routes/_authenticated/_workspace/assignment-rules.index.lazy").then(
+    import("./routes/_authenticated/_organization/assignment-rules.index.lazy").then(
       (d) => d.Route,
     ),
   )
-const AuthenticatedWorkspaceApprovalsIndexRoute =
-  AuthenticatedWorkspaceApprovalsIndexRouteImport.update({
+const AuthenticatedOrganizationApprovalsIndexRoute =
+  AuthenticatedOrganizationApprovalsIndexRouteImport.update({
     id: "/approvals/",
     path: "/approvals/",
-    getParentRoute: () => AuthenticatedWorkspaceRoute,
+    getParentRoute: () => AuthenticatedOrganizationRoute,
   } as any).lazy(() =>
-    import("./routes/_authenticated/_workspace/approvals/index.lazy").then(
+    import("./routes/_authenticated/_organization/approvals/index.lazy").then(
       (d) => d.Route,
     ),
   )
-const AuthenticatedWorkspaceWorkingPatternsNewRoute =
-  AuthenticatedWorkspaceWorkingPatternsNewRouteImport.update({
+const AuthenticatedOrganizationWorkingPatternsNewRoute =
+  AuthenticatedOrganizationWorkingPatternsNewRouteImport.update({
     id: "/new",
     path: "/new",
-    getParentRoute: () => AuthenticatedWorkspaceWorkingPatternsRoute,
+    getParentRoute: () => AuthenticatedOrganizationWorkingPatternsRoute,
   } as any).lazy(() =>
-    import("./routes/_authenticated/_workspace/working-patterns.new.lazy").then(
+    import("./routes/_authenticated/_organization/working-patterns.new.lazy").then(
       (d) => d.Route,
     ),
   )
-const AuthenticatedWorkspaceShiftsRulesRoute =
-  AuthenticatedWorkspaceShiftsRulesRouteImport.update({
+const AuthenticatedOrganizationShiftsRulesRoute =
+  AuthenticatedOrganizationShiftsRulesRouteImport.update({
     id: "/rules",
     path: "/rules",
-    getParentRoute: () => AuthenticatedWorkspaceShiftsRoute,
+    getParentRoute: () => AuthenticatedOrganizationShiftsRoute,
   } as any)
-const AuthenticatedWorkspaceShiftsNewRoute =
-  AuthenticatedWorkspaceShiftsNewRouteImport.update({
+const AuthenticatedOrganizationShiftsNewRoute =
+  AuthenticatedOrganizationShiftsNewRouteImport.update({
     id: "/new",
     path: "/new",
-    getParentRoute: () => AuthenticatedWorkspaceShiftsRoute,
+    getParentRoute: () => AuthenticatedOrganizationShiftsRoute,
   } as any).lazy(() =>
-    import("./routes/_authenticated/_workspace/shifts.new.lazy").then(
+    import("./routes/_authenticated/_organization/shifts.new.lazy").then(
       (d) => d.Route,
     ),
   )
-const AuthenticatedWorkspaceSettingsWorkflowsRoute =
-  AuthenticatedWorkspaceSettingsWorkflowsRouteImport.update({
+const AuthenticatedOrganizationSettingsWorkflowsRoute =
+  AuthenticatedOrganizationSettingsWorkflowsRouteImport.update({
     id: "/workflows",
     path: "/workflows",
-    getParentRoute: () => AuthenticatedWorkspaceSettingsRoute,
+    getParentRoute: () => AuthenticatedOrganizationSettingsRoute,
   } as any)
-const AuthenticatedWorkspaceSettingsTimeRoute =
-  AuthenticatedWorkspaceSettingsTimeRouteImport.update({
+const AuthenticatedOrganizationSettingsTimeRoute =
+  AuthenticatedOrganizationSettingsTimeRouteImport.update({
     id: "/time",
     path: "/time",
-    getParentRoute: () => AuthenticatedWorkspaceSettingsRoute,
+    getParentRoute: () => AuthenticatedOrganizationSettingsRoute,
   } as any).lazy(() =>
-    import("./routes/_authenticated/_workspace/settings/time.lazy").then(
+    import("./routes/_authenticated/_organization/settings/time.lazy").then(
       (d) => d.Route,
     ),
   )
-const AuthenticatedWorkspaceSettingsStorageRoute =
-  AuthenticatedWorkspaceSettingsStorageRouteImport.update({
+const AuthenticatedOrganizationSettingsStorageRoute =
+  AuthenticatedOrganizationSettingsStorageRouteImport.update({
     id: "/storage",
     path: "/storage",
-    getParentRoute: () => AuthenticatedWorkspaceSettingsRoute,
+    getParentRoute: () => AuthenticatedOrganizationSettingsRoute,
   } as any).lazy(() =>
-    import("./routes/_authenticated/_workspace/settings/storage.lazy").then(
+    import("./routes/_authenticated/_organization/settings/storage.lazy").then(
       (d) => d.Route,
     ),
   )
-const AuthenticatedWorkspaceSettingsSmtpRoute =
-  AuthenticatedWorkspaceSettingsSmtpRouteImport.update({
+const AuthenticatedOrganizationSettingsSmtpRoute =
+  AuthenticatedOrganizationSettingsSmtpRouteImport.update({
     id: "/smtp",
     path: "/smtp",
-    getParentRoute: () => AuthenticatedWorkspaceSettingsRoute,
+    getParentRoute: () => AuthenticatedOrganizationSettingsRoute,
   } as any).lazy(() =>
-    import("./routes/_authenticated/_workspace/settings/smtp.lazy").then(
+    import("./routes/_authenticated/_organization/settings/smtp.lazy").then(
       (d) => d.Route,
     ),
   )
-const AuthenticatedWorkspaceSettingsRolesRoute =
-  AuthenticatedWorkspaceSettingsRolesRouteImport.update({
+const AuthenticatedOrganizationSettingsRolesRoute =
+  AuthenticatedOrganizationSettingsRolesRouteImport.update({
     id: "/roles",
     path: "/roles",
-    getParentRoute: () => AuthenticatedWorkspaceSettingsRoute,
+    getParentRoute: () => AuthenticatedOrganizationSettingsRoute,
   } as any).lazy(() =>
-    import("./routes/_authenticated/_workspace/settings/roles.lazy").then(
+    import("./routes/_authenticated/_organization/settings/roles.lazy").then(
       (d) => d.Route,
     ),
   )
-const AuthenticatedWorkspaceSettingsPermissionsRoute =
-  AuthenticatedWorkspaceSettingsPermissionsRouteImport.update({
+const AuthenticatedOrganizationSettingsPermissionsRoute =
+  AuthenticatedOrganizationSettingsPermissionsRouteImport.update({
     id: "/permissions",
     path: "/permissions",
-    getParentRoute: () => AuthenticatedWorkspaceSettingsRoute,
+    getParentRoute: () => AuthenticatedOrganizationSettingsRoute,
   } as any).lazy(() =>
-    import("./routes/_authenticated/_workspace/settings/permissions.lazy").then(
+    import("./routes/_authenticated/_organization/settings/permissions.lazy").then(
       (d) => d.Route,
     ),
   )
-const AuthenticatedWorkspaceSettingsPayrollRoute =
-  AuthenticatedWorkspaceSettingsPayrollRouteImport.update({
+const AuthenticatedOrganizationSettingsPayrollRoute =
+  AuthenticatedOrganizationSettingsPayrollRouteImport.update({
     id: "/payroll",
     path: "/payroll",
-    getParentRoute: () => AuthenticatedWorkspaceSettingsRoute,
+    getParentRoute: () => AuthenticatedOrganizationSettingsRoute,
   } as any).lazy(() =>
-    import("./routes/_authenticated/_workspace/settings/payroll.lazy").then(
+    import("./routes/_authenticated/_organization/settings/payroll.lazy").then(
       (d) => d.Route,
     ),
   )
-const AuthenticatedWorkspaceSettingsOvertimeRoute =
-  AuthenticatedWorkspaceSettingsOvertimeRouteImport.update({
+const AuthenticatedOrganizationSettingsOvertimeRoute =
+  AuthenticatedOrganizationSettingsOvertimeRouteImport.update({
     id: "/overtime",
     path: "/overtime",
-    getParentRoute: () => AuthenticatedWorkspaceSettingsRoute,
+    getParentRoute: () => AuthenticatedOrganizationSettingsRoute,
   } as any).lazy(() =>
-    import("./routes/_authenticated/_workspace/settings/overtime.lazy").then(
+    import("./routes/_authenticated/_organization/settings/overtime.lazy").then(
       (d) => d.Route,
     ),
   )
-const AuthenticatedWorkspaceSettingsOrganizationRoute =
-  AuthenticatedWorkspaceSettingsOrganizationRouteImport.update({
+const AuthenticatedOrganizationSettingsOrganizationRoute =
+  AuthenticatedOrganizationSettingsOrganizationRouteImport.update({
     id: "/organization",
     path: "/organization",
-    getParentRoute: () => AuthenticatedWorkspaceSettingsRoute,
+    getParentRoute: () => AuthenticatedOrganizationSettingsRoute,
   } as any).lazy(() =>
-    import("./routes/_authenticated/_workspace/settings/organization.lazy").then(
+    import("./routes/_authenticated/_organization/settings/organization.lazy").then(
       (d) => d.Route,
     ),
   )
-const AuthenticatedWorkspaceSettingsMembersRoute =
-  AuthenticatedWorkspaceSettingsMembersRouteImport.update({
+const AuthenticatedOrganizationSettingsMembersRoute =
+  AuthenticatedOrganizationSettingsMembersRouteImport.update({
     id: "/members",
     path: "/members",
-    getParentRoute: () => AuthenticatedWorkspaceSettingsRoute,
+    getParentRoute: () => AuthenticatedOrganizationSettingsRoute,
   } as any).lazy(() =>
-    import("./routes/_authenticated/_workspace/settings/members.lazy").then(
+    import("./routes/_authenticated/_organization/settings/members.lazy").then(
       (d) => d.Route,
     ),
   )
-const AuthenticatedWorkspaceSettingsLocationsRoute =
-  AuthenticatedWorkspaceSettingsLocationsRouteImport.update({
+const AuthenticatedOrganizationSettingsLocationsRoute =
+  AuthenticatedOrganizationSettingsLocationsRouteImport.update({
     id: "/locations",
     path: "/locations",
-    getParentRoute: () => AuthenticatedWorkspaceSettingsRoute,
+    getParentRoute: () => AuthenticatedOrganizationSettingsRoute,
   } as any).lazy(() =>
-    import("./routes/_authenticated/_workspace/settings/locations.lazy").then(
+    import("./routes/_authenticated/_organization/settings/locations.lazy").then(
       (d) => d.Route,
     ),
   )
-const AuthenticatedWorkspaceSettingsLifecycleTemplatesRoute =
-  AuthenticatedWorkspaceSettingsLifecycleTemplatesRouteImport.update({
+const AuthenticatedOrganizationSettingsLifecycleTemplatesRoute =
+  AuthenticatedOrganizationSettingsLifecycleTemplatesRouteImport.update({
     id: "/lifecycle-templates",
     path: "/lifecycle-templates",
-    getParentRoute: () => AuthenticatedWorkspaceSettingsRoute,
+    getParentRoute: () => AuthenticatedOrganizationSettingsRoute,
   } as any).lazy(() =>
-    import("./routes/_authenticated/_workspace/settings/lifecycle-templates.lazy").then(
+    import("./routes/_authenticated/_organization/settings/lifecycle-templates.lazy").then(
       (d) => d.Route,
     ),
   )
-const AuthenticatedWorkspaceSettingsLeaveRoute =
-  AuthenticatedWorkspaceSettingsLeaveRouteImport.update({
+const AuthenticatedOrganizationSettingsLeaveRoute =
+  AuthenticatedOrganizationSettingsLeaveRouteImport.update({
     id: "/leave",
     path: "/leave",
-    getParentRoute: () => AuthenticatedWorkspaceSettingsRoute,
+    getParentRoute: () => AuthenticatedOrganizationSettingsRoute,
   } as any).lazy(() =>
-    import("./routes/_authenticated/_workspace/settings/leave.lazy").then(
+    import("./routes/_authenticated/_organization/settings/leave.lazy").then(
       (d) => d.Route,
     ),
   )
-const AuthenticatedWorkspaceSettingsHolidaysRoute =
-  AuthenticatedWorkspaceSettingsHolidaysRouteImport.update({
+const AuthenticatedOrganizationSettingsHolidaysRoute =
+  AuthenticatedOrganizationSettingsHolidaysRouteImport.update({
     id: "/holidays",
     path: "/holidays",
-    getParentRoute: () => AuthenticatedWorkspaceSettingsRoute,
+    getParentRoute: () => AuthenticatedOrganizationSettingsRoute,
   } as any).lazy(() =>
-    import("./routes/_authenticated/_workspace/settings/holidays.lazy").then(
+    import("./routes/_authenticated/_organization/settings/holidays.lazy").then(
       (d) => d.Route,
     ),
   )
-const AuthenticatedWorkspaceSettingsGeneralRoute =
-  AuthenticatedWorkspaceSettingsGeneralRouteImport.update({
+const AuthenticatedOrganizationSettingsGeneralRoute =
+  AuthenticatedOrganizationSettingsGeneralRouteImport.update({
     id: "/general",
     path: "/general",
-    getParentRoute: () => AuthenticatedWorkspaceSettingsRoute,
+    getParentRoute: () => AuthenticatedOrganizationSettingsRoute,
   } as any).lazy(() =>
-    import("./routes/_authenticated/_workspace/settings/general.lazy").then(
+    import("./routes/_authenticated/_organization/settings/general.lazy").then(
       (d) => d.Route,
     ),
   )
-const AuthenticatedWorkspaceSettingsEcontractsRoute =
-  AuthenticatedWorkspaceSettingsEcontractsRouteImport.update({
+const AuthenticatedOrganizationSettingsEcontractsRoute =
+  AuthenticatedOrganizationSettingsEcontractsRouteImport.update({
     id: "/econtracts",
     path: "/econtracts",
-    getParentRoute: () => AuthenticatedWorkspaceSettingsRoute,
+    getParentRoute: () => AuthenticatedOrganizationSettingsRoute,
   } as any).lazy(() =>
-    import("./routes/_authenticated/_workspace/settings/econtracts.lazy").then(
+    import("./routes/_authenticated/_organization/settings/econtracts.lazy").then(
       (d) => d.Route,
     ),
   )
-const AuthenticatedWorkspaceSettingsCustomFieldsRoute =
-  AuthenticatedWorkspaceSettingsCustomFieldsRouteImport.update({
+const AuthenticatedOrganizationSettingsCustomFieldsRoute =
+  AuthenticatedOrganizationSettingsCustomFieldsRouteImport.update({
     id: "/custom-fields",
     path: "/custom-fields",
-    getParentRoute: () => AuthenticatedWorkspaceSettingsRoute,
+    getParentRoute: () => AuthenticatedOrganizationSettingsRoute,
   } as any).lazy(() =>
-    import("./routes/_authenticated/_workspace/settings/custom-fields.lazy").then(
+    import("./routes/_authenticated/_organization/settings/custom-fields.lazy").then(
       (d) => d.Route,
     ),
   )
-const AuthenticatedWorkspaceSettingsConditionTypesRoute =
-  AuthenticatedWorkspaceSettingsConditionTypesRouteImport.update({
+const AuthenticatedOrganizationSettingsConditionTypesRoute =
+  AuthenticatedOrganizationSettingsConditionTypesRouteImport.update({
     id: "/condition-types",
     path: "/condition-types",
-    getParentRoute: () => AuthenticatedWorkspaceSettingsRoute,
+    getParentRoute: () => AuthenticatedOrganizationSettingsRoute,
   } as any).lazy(() =>
-    import("./routes/_authenticated/_workspace/settings/condition-types.lazy").then(
+    import("./routes/_authenticated/_organization/settings/condition-types.lazy").then(
       (d) => d.Route,
     ),
   )
-const AuthenticatedWorkspaceSettingsBillingRoute =
-  AuthenticatedWorkspaceSettingsBillingRouteImport.update({
+const AuthenticatedOrganizationSettingsBillingRoute =
+  AuthenticatedOrganizationSettingsBillingRouteImport.update({
     id: "/billing",
     path: "/billing",
-    getParentRoute: () => AuthenticatedWorkspaceSettingsRoute,
+    getParentRoute: () => AuthenticatedOrganizationSettingsRoute,
   } as any).lazy(() =>
-    import("./routes/_authenticated/_workspace/settings/billing.lazy").then(
+    import("./routes/_authenticated/_organization/settings/billing.lazy").then(
       (d) => d.Route,
     ),
   )
-const AuthenticatedWorkspaceEssProfileRoute =
-  AuthenticatedWorkspaceEssProfileRouteImport.update({
+const AuthenticatedOrganizationEssProfileRoute =
+  AuthenticatedOrganizationEssProfileRouteImport.update({
     id: "/ess/profile",
     path: "/ess/profile",
-    getParentRoute: () => AuthenticatedWorkspaceRoute,
+    getParentRoute: () => AuthenticatedOrganizationRoute,
   } as any).lazy(() =>
-    import("./routes/_authenticated/_workspace/ess/profile.lazy").then(
+    import("./routes/_authenticated/_organization/ess/profile.lazy").then(
       (d) => d.Route,
     ),
   )
-const AuthenticatedWorkspaceEssOtRoute =
-  AuthenticatedWorkspaceEssOtRouteImport.update({
+const AuthenticatedOrganizationEssOtRoute =
+  AuthenticatedOrganizationEssOtRouteImport.update({
     id: "/ess/ot",
     path: "/ess/ot",
-    getParentRoute: () => AuthenticatedWorkspaceRoute,
+    getParentRoute: () => AuthenticatedOrganizationRoute,
   } as any).lazy(() =>
-    import("./routes/_authenticated/_workspace/ess/ot.lazy").then(
+    import("./routes/_authenticated/_organization/ess/ot.lazy").then(
       (d) => d.Route,
     ),
   )
-const AuthenticatedWorkspaceEssDocumentsRoute =
-  AuthenticatedWorkspaceEssDocumentsRouteImport.update({
+const AuthenticatedOrganizationEssDocumentsRoute =
+  AuthenticatedOrganizationEssDocumentsRouteImport.update({
     id: "/ess/documents",
     path: "/ess/documents",
-    getParentRoute: () => AuthenticatedWorkspaceRoute,
+    getParentRoute: () => AuthenticatedOrganizationRoute,
   } as any).lazy(() =>
-    import("./routes/_authenticated/_workspace/ess/documents.lazy").then(
+    import("./routes/_authenticated/_organization/ess/documents.lazy").then(
       (d) => d.Route,
     ),
   )
-const AuthenticatedWorkspaceEssClockRoute =
-  AuthenticatedWorkspaceEssClockRouteImport.update({
+const AuthenticatedOrganizationEssClockRoute =
+  AuthenticatedOrganizationEssClockRouteImport.update({
     id: "/ess/clock",
     path: "/ess/clock",
-    getParentRoute: () => AuthenticatedWorkspaceRoute,
+    getParentRoute: () => AuthenticatedOrganizationRoute,
   } as any).lazy(() =>
-    import("./routes/_authenticated/_workspace/ess/clock.lazy").then(
+    import("./routes/_authenticated/_organization/ess/clock.lazy").then(
       (d) => d.Route,
     ),
   )
-const AuthenticatedWorkspaceEssAttendanceRoute =
-  AuthenticatedWorkspaceEssAttendanceRouteImport.update({
+const AuthenticatedOrganizationEssAttendanceRoute =
+  AuthenticatedOrganizationEssAttendanceRouteImport.update({
     id: "/ess/attendance",
     path: "/ess/attendance",
-    getParentRoute: () => AuthenticatedWorkspaceRoute,
+    getParentRoute: () => AuthenticatedOrganizationRoute,
   } as any).lazy(() =>
-    import("./routes/_authenticated/_workspace/ess/attendance.lazy").then(
+    import("./routes/_authenticated/_organization/ess/attendance.lazy").then(
       (d) => d.Route,
     ),
   )
-const AuthenticatedWorkspaceEmployeesEmployeeIdRoute =
-  AuthenticatedWorkspaceEmployeesEmployeeIdRouteImport.update({
+const AuthenticatedOrganizationEmployeesEmployeeIdRoute =
+  AuthenticatedOrganizationEmployeesEmployeeIdRouteImport.update({
     id: "/employees_/$employeeId",
     path: "/employees/$employeeId",
-    getParentRoute: () => AuthenticatedWorkspaceRoute,
+    getParentRoute: () => AuthenticatedOrganizationRoute,
   } as any).lazy(() =>
-    import("./routes/_authenticated/_workspace/employees_.$employeeId.lazy").then(
+    import("./routes/_authenticated/_organization/employees_.$employeeId.lazy").then(
       (d) => d.Route,
     ),
   )
-const AuthenticatedWorkspaceDocumentsTemplatesRoute =
-  AuthenticatedWorkspaceDocumentsTemplatesRouteImport.update({
+const AuthenticatedOrganizationDocumentsTemplatesRoute =
+  AuthenticatedOrganizationDocumentsTemplatesRouteImport.update({
     id: "/documents/templates",
     path: "/documents/templates",
-    getParentRoute: () => AuthenticatedWorkspaceRoute,
+    getParentRoute: () => AuthenticatedOrganizationRoute,
   } as any).lazy(() =>
-    import("./routes/_authenticated/_workspace/documents.templates.lazy").then(
+    import("./routes/_authenticated/_organization/documents.templates.lazy").then(
       (d) => d.Route,
     ),
   )
-const AuthenticatedWorkspaceAssignmentRulesNewRoute =
-  AuthenticatedWorkspaceAssignmentRulesNewRouteImport.update({
+const AuthenticatedOrganizationAssignmentRulesNewRoute =
+  AuthenticatedOrganizationAssignmentRulesNewRouteImport.update({
     id: "/new",
     path: "/new",
-    getParentRoute: () => AuthenticatedWorkspaceAssignmentRulesRoute,
+    getParentRoute: () => AuthenticatedOrganizationAssignmentRulesRoute,
   } as any).lazy(() =>
-    import("./routes/_authenticated/_workspace/assignment-rules.new.lazy").then(
+    import("./routes/_authenticated/_organization/assignment-rules.new.lazy").then(
       (d) => d.Route,
     ),
   )
-const AuthenticatedWorkspaceApprovalsOtRoute =
-  AuthenticatedWorkspaceApprovalsOtRouteImport.update({
+const AuthenticatedOrganizationApprovalsOtRoute =
+  AuthenticatedOrganizationApprovalsOtRouteImport.update({
     id: "/approvals/ot",
     path: "/approvals/ot",
-    getParentRoute: () => AuthenticatedWorkspaceRoute,
+    getParentRoute: () => AuthenticatedOrganizationRoute,
   } as any).lazy(() =>
-    import("./routes/_authenticated/_workspace/approvals/ot.lazy").then(
+    import("./routes/_authenticated/_organization/approvals/ot.lazy").then(
       (d) => d.Route,
     ),
   )
@@ -733,272 +734,274 @@ const AuthenticatedInfraInfraMonitorRoute =
       (d) => d.Route,
     ),
   )
-const AuthenticatedWorkspaceShiftsRulesIndexRoute =
-  AuthenticatedWorkspaceShiftsRulesIndexRouteImport.update({
+const AuthenticatedOrganizationShiftsRulesIndexRoute =
+  AuthenticatedOrganizationShiftsRulesIndexRouteImport.update({
     id: "/",
     path: "/",
-    getParentRoute: () => AuthenticatedWorkspaceShiftsRulesRoute,
+    getParentRoute: () => AuthenticatedOrganizationShiftsRulesRoute,
   } as any).lazy(() =>
-    import("./routes/_authenticated/_workspace/shifts.rules.index.lazy").then(
+    import("./routes/_authenticated/_organization/shifts.rules.index.lazy").then(
       (d) => d.Route,
     ),
   )
-const AuthenticatedWorkspaceSettingsWorkflowsIndexRoute =
-  AuthenticatedWorkspaceSettingsWorkflowsIndexRouteImport.update({
+const AuthenticatedOrganizationSettingsWorkflowsIndexRoute =
+  AuthenticatedOrganizationSettingsWorkflowsIndexRouteImport.update({
     id: "/",
     path: "/",
-    getParentRoute: () => AuthenticatedWorkspaceSettingsWorkflowsRoute,
+    getParentRoute: () => AuthenticatedOrganizationSettingsWorkflowsRoute,
   } as any).lazy(() =>
-    import("./routes/_authenticated/_workspace/settings/workflows.index.lazy").then(
+    import("./routes/_authenticated/_organization/settings/workflows.index.lazy").then(
       (d) => d.Route,
     ),
   )
-const AuthenticatedWorkspaceWorkingPatternsPatternIdEditRoute =
-  AuthenticatedWorkspaceWorkingPatternsPatternIdEditRouteImport.update({
+const AuthenticatedOrganizationWorkingPatternsPatternIdEditRoute =
+  AuthenticatedOrganizationWorkingPatternsPatternIdEditRouteImport.update({
     id: "/$patternId/edit",
     path: "/$patternId/edit",
-    getParentRoute: () => AuthenticatedWorkspaceWorkingPatternsRoute,
+    getParentRoute: () => AuthenticatedOrganizationWorkingPatternsRoute,
   } as any).lazy(() =>
-    import("./routes/_authenticated/_workspace/working-patterns.$patternId.edit.lazy").then(
+    import("./routes/_authenticated/_organization/working-patterns.$patternId.edit.lazy").then(
       (d) => d.Route,
     ),
   )
-const AuthenticatedWorkspaceShiftsShiftIdEditRoute =
-  AuthenticatedWorkspaceShiftsShiftIdEditRouteImport.update({
+const AuthenticatedOrganizationShiftsShiftIdEditRoute =
+  AuthenticatedOrganizationShiftsShiftIdEditRouteImport.update({
     id: "/$shiftId/edit",
     path: "/$shiftId/edit",
-    getParentRoute: () => AuthenticatedWorkspaceShiftsRoute,
+    getParentRoute: () => AuthenticatedOrganizationShiftsRoute,
   } as any).lazy(() =>
-    import("./routes/_authenticated/_workspace/shifts.$shiftId.edit.lazy").then(
+    import("./routes/_authenticated/_organization/shifts.$shiftId.edit.lazy").then(
       (d) => d.Route,
     ),
   )
-const AuthenticatedWorkspaceSettingsWorkflowsNewRoute =
-  AuthenticatedWorkspaceSettingsWorkflowsNewRouteImport.update({
+const AuthenticatedOrganizationSettingsWorkflowsNewRoute =
+  AuthenticatedOrganizationSettingsWorkflowsNewRouteImport.update({
     id: "/new",
     path: "/new",
-    getParentRoute: () => AuthenticatedWorkspaceSettingsWorkflowsRoute,
+    getParentRoute: () => AuthenticatedOrganizationSettingsWorkflowsRoute,
   } as any).lazy(() =>
-    import("./routes/_authenticated/_workspace/settings/workflows.new.lazy").then(
+    import("./routes/_authenticated/_organization/settings/workflows.new.lazy").then(
       (d) => d.Route,
     ),
   )
-const AuthenticatedWorkspaceAssignmentRulesRuleIdEditRoute =
-  AuthenticatedWorkspaceAssignmentRulesRuleIdEditRouteImport.update({
+const AuthenticatedOrganizationAssignmentRulesRuleIdEditRoute =
+  AuthenticatedOrganizationAssignmentRulesRuleIdEditRouteImport.update({
     id: "/$ruleId/edit",
     path: "/$ruleId/edit",
-    getParentRoute: () => AuthenticatedWorkspaceAssignmentRulesRoute,
+    getParentRoute: () => AuthenticatedOrganizationAssignmentRulesRoute,
   } as any).lazy(() =>
-    import("./routes/_authenticated/_workspace/assignment-rules.$ruleId.edit.lazy").then(
+    import("./routes/_authenticated/_organization/assignment-rules.$ruleId.edit.lazy").then(
       (d) => d.Route,
     ),
   )
-const AuthenticatedWorkspaceShiftsRulesWorkingPatternsNewRoute =
-  AuthenticatedWorkspaceShiftsRulesWorkingPatternsNewRouteImport.update({
+const AuthenticatedOrganizationShiftsRulesWorkingPatternsNewRoute =
+  AuthenticatedOrganizationShiftsRulesWorkingPatternsNewRouteImport.update({
     id: "/working-patterns/new",
     path: "/working-patterns/new",
-    getParentRoute: () => AuthenticatedWorkspaceShiftsRulesRoute,
+    getParentRoute: () => AuthenticatedOrganizationShiftsRulesRoute,
   } as any).lazy(() =>
-    import("./routes/_authenticated/_workspace/shifts.rules.working-patterns.new.lazy").then(
+    import("./routes/_authenticated/_organization/shifts.rules.working-patterns.new.lazy").then(
       (d) => d.Route,
     ),
   )
-const AuthenticatedWorkspaceShiftsRulesAssignmentRulesNewRoute =
-  AuthenticatedWorkspaceShiftsRulesAssignmentRulesNewRouteImport.update({
+const AuthenticatedOrganizationShiftsRulesAssignmentRulesNewRoute =
+  AuthenticatedOrganizationShiftsRulesAssignmentRulesNewRouteImport.update({
     id: "/assignment-rules/new",
     path: "/assignment-rules/new",
-    getParentRoute: () => AuthenticatedWorkspaceShiftsRulesRoute,
+    getParentRoute: () => AuthenticatedOrganizationShiftsRulesRoute,
   } as any).lazy(() =>
-    import("./routes/_authenticated/_workspace/shifts.rules.assignment-rules.new.lazy").then(
+    import("./routes/_authenticated/_organization/shifts.rules.assignment-rules.new.lazy").then(
       (d) => d.Route,
     ),
   )
-const AuthenticatedWorkspaceSettingsWorkflowsWorkflowIdEditRoute =
-  AuthenticatedWorkspaceSettingsWorkflowsWorkflowIdEditRouteImport.update({
+const AuthenticatedOrganizationSettingsWorkflowsWorkflowIdEditRoute =
+  AuthenticatedOrganizationSettingsWorkflowsWorkflowIdEditRouteImport.update({
     id: "/$workflowId/edit",
     path: "/$workflowId/edit",
-    getParentRoute: () => AuthenticatedWorkspaceSettingsWorkflowsRoute,
+    getParentRoute: () => AuthenticatedOrganizationSettingsWorkflowsRoute,
   } as any).lazy(() =>
-    import("./routes/_authenticated/_workspace/settings/workflows.$workflowId.edit.lazy").then(
+    import("./routes/_authenticated/_organization/settings/workflows.$workflowId.edit.lazy").then(
       (d) => d.Route,
     ),
   )
-const AuthenticatedWorkspaceShiftsRulesWorkingPatternsPatternIdEditRoute =
-  AuthenticatedWorkspaceShiftsRulesWorkingPatternsPatternIdEditRouteImport.update(
+const AuthenticatedOrganizationShiftsRulesWorkingPatternsPatternIdEditRoute =
+  AuthenticatedOrganizationShiftsRulesWorkingPatternsPatternIdEditRouteImport.update(
     {
       id: "/working-patterns/$patternId/edit",
       path: "/working-patterns/$patternId/edit",
-      getParentRoute: () => AuthenticatedWorkspaceShiftsRulesRoute,
+      getParentRoute: () => AuthenticatedOrganizationShiftsRulesRoute,
     } as any,
   ).lazy(() =>
-    import("./routes/_authenticated/_workspace/shifts.rules.working-patterns.$patternId.edit.lazy").then(
+    import("./routes/_authenticated/_organization/shifts.rules.working-patterns.$patternId.edit.lazy").then(
       (d) => d.Route,
     ),
   )
-const AuthenticatedWorkspaceShiftsRulesAssignmentRulesRuleIdEditRoute =
-  AuthenticatedWorkspaceShiftsRulesAssignmentRulesRuleIdEditRouteImport.update({
-    id: "/assignment-rules/$ruleId/edit",
-    path: "/assignment-rules/$ruleId/edit",
-    getParentRoute: () => AuthenticatedWorkspaceShiftsRulesRoute,
-  } as any).lazy(() =>
-    import("./routes/_authenticated/_workspace/shifts.rules.assignment-rules.$ruleId.edit.lazy").then(
+const AuthenticatedOrganizationShiftsRulesAssignmentRulesRuleIdEditRoute =
+  AuthenticatedOrganizationShiftsRulesAssignmentRulesRuleIdEditRouteImport.update(
+    {
+      id: "/assignment-rules/$ruleId/edit",
+      path: "/assignment-rules/$ruleId/edit",
+      getParentRoute: () => AuthenticatedOrganizationShiftsRulesRoute,
+    } as any,
+  ).lazy(() =>
+    import("./routes/_authenticated/_organization/shifts.rules.assignment-rules.$ruleId.edit.lazy").then(
       (d) => d.Route,
     ),
   )
 
 export interface FileRoutesByFullPath {
-  "/": typeof AuthenticatedWorkspaceIndexRoute
+  "/": typeof AuthenticatedOrganizationIndexRoute
   "/forgot-password": typeof ForgotPasswordRoute
   "/login": typeof LoginRoute
   "/register": typeof RegisterRoute
   "/reset-password": typeof ResetPasswordRoute
-  "/assignment-rules": typeof AuthenticatedWorkspaceAssignmentRulesRouteWithChildren
-  "/assignments": typeof AuthenticatedWorkspaceAssignmentsRoute
-  "/attendance-adjustments": typeof AuthenticatedWorkspaceAttendanceAdjustmentsRoute
-  "/attendance-logs": typeof AuthenticatedWorkspaceAttendanceLogsRoute
-  "/audit-logs": typeof AuthenticatedWorkspaceAuditLogsRoute
-  "/dashboard": typeof AuthenticatedWorkspaceDashboardRoute
-  "/departments": typeof AuthenticatedWorkspaceDepartmentsRoute
-  "/econtracts": typeof AuthenticatedWorkspaceEcontractsRoute
-  "/employees": typeof AuthenticatedWorkspaceEmployeesRoute
-  "/holidays": typeof AuthenticatedWorkspaceHolidaysRoute
-  "/leave-balances": typeof AuthenticatedWorkspaceLeaveBalancesRoute
-  "/leave-requests": typeof AuthenticatedWorkspaceLeaveRequestsRoute
-  "/lifecycle": typeof AuthenticatedWorkspaceLifecycleRoute
-  "/notifications": typeof AuthenticatedWorkspaceNotificationsRoute
-  "/org-chart": typeof AuthenticatedWorkspaceOrgChartRoute
-  "/payroll": typeof AuthenticatedWorkspacePayrollRoute
-  "/profile": typeof AuthenticatedWorkspaceProfileRoute
-  "/reports": typeof AuthenticatedWorkspaceReportsRoute
-  "/settings": typeof AuthenticatedWorkspaceSettingsRouteWithChildren
-  "/shift-swaps": typeof AuthenticatedWorkspaceShiftSwapsRoute
-  "/shifts": typeof AuthenticatedWorkspaceShiftsRouteWithChildren
-  "/working-conditions": typeof AuthenticatedWorkspaceWorkingConditionsRoute
-  "/working-patterns": typeof AuthenticatedWorkspaceWorkingPatternsRouteWithChildren
+  "/assignment-rules": typeof AuthenticatedOrganizationAssignmentRulesRouteWithChildren
+  "/assignments": typeof AuthenticatedOrganizationAssignmentsRoute
+  "/attendance-adjustments": typeof AuthenticatedOrganizationAttendanceAdjustmentsRoute
+  "/attendance-logs": typeof AuthenticatedOrganizationAttendanceLogsRoute
+  "/audit-logs": typeof AuthenticatedOrganizationAuditLogsRoute
+  "/dashboard": typeof AuthenticatedOrganizationDashboardRoute
+  "/departments": typeof AuthenticatedOrganizationDepartmentsRoute
+  "/econtracts": typeof AuthenticatedOrganizationEcontractsRoute
+  "/employees": typeof AuthenticatedOrganizationEmployeesRoute
+  "/holidays": typeof AuthenticatedOrganizationHolidaysRoute
+  "/leave-balances": typeof AuthenticatedOrganizationLeaveBalancesRoute
+  "/leave-requests": typeof AuthenticatedOrganizationLeaveRequestsRoute
+  "/lifecycle": typeof AuthenticatedOrganizationLifecycleRoute
+  "/notifications": typeof AuthenticatedOrganizationNotificationsRoute
+  "/org-chart": typeof AuthenticatedOrganizationOrgChartRoute
+  "/payroll": typeof AuthenticatedOrganizationPayrollRoute
+  "/profile": typeof AuthenticatedOrganizationProfileRoute
+  "/reports": typeof AuthenticatedOrganizationReportsRoute
+  "/settings": typeof AuthenticatedOrganizationSettingsRouteWithChildren
+  "/shift-swaps": typeof AuthenticatedOrganizationShiftSwapsRoute
+  "/shifts": typeof AuthenticatedOrganizationShiftsRouteWithChildren
+  "/working-conditions": typeof AuthenticatedOrganizationWorkingConditionsRoute
+  "/working-patterns": typeof AuthenticatedOrganizationWorkingPatternsRouteWithChildren
   "/infra/monitor": typeof AuthenticatedInfraInfraMonitorRoute
   "/system/smtp": typeof AuthenticatedInfraSystemSmtpRoute
-  "/approvals/ot": typeof AuthenticatedWorkspaceApprovalsOtRoute
-  "/assignment-rules/new": typeof AuthenticatedWorkspaceAssignmentRulesNewRoute
-  "/documents/templates": typeof AuthenticatedWorkspaceDocumentsTemplatesRoute
-  "/employees/$employeeId": typeof AuthenticatedWorkspaceEmployeesEmployeeIdRoute
-  "/ess/attendance": typeof AuthenticatedWorkspaceEssAttendanceRoute
-  "/ess/clock": typeof AuthenticatedWorkspaceEssClockRoute
-  "/ess/documents": typeof AuthenticatedWorkspaceEssDocumentsRoute
-  "/ess/ot": typeof AuthenticatedWorkspaceEssOtRoute
-  "/ess/profile": typeof AuthenticatedWorkspaceEssProfileRoute
-  "/settings/billing": typeof AuthenticatedWorkspaceSettingsBillingRoute
-  "/settings/condition-types": typeof AuthenticatedWorkspaceSettingsConditionTypesRoute
-  "/settings/custom-fields": typeof AuthenticatedWorkspaceSettingsCustomFieldsRoute
-  "/settings/econtracts": typeof AuthenticatedWorkspaceSettingsEcontractsRoute
-  "/settings/general": typeof AuthenticatedWorkspaceSettingsGeneralRoute
-  "/settings/holidays": typeof AuthenticatedWorkspaceSettingsHolidaysRoute
-  "/settings/leave": typeof AuthenticatedWorkspaceSettingsLeaveRoute
-  "/settings/lifecycle-templates": typeof AuthenticatedWorkspaceSettingsLifecycleTemplatesRoute
-  "/settings/locations": typeof AuthenticatedWorkspaceSettingsLocationsRoute
-  "/settings/members": typeof AuthenticatedWorkspaceSettingsMembersRoute
-  "/settings/organization": typeof AuthenticatedWorkspaceSettingsOrganizationRoute
-  "/settings/overtime": typeof AuthenticatedWorkspaceSettingsOvertimeRoute
-  "/settings/payroll": typeof AuthenticatedWorkspaceSettingsPayrollRoute
-  "/settings/permissions": typeof AuthenticatedWorkspaceSettingsPermissionsRoute
-  "/settings/roles": typeof AuthenticatedWorkspaceSettingsRolesRoute
-  "/settings/smtp": typeof AuthenticatedWorkspaceSettingsSmtpRoute
-  "/settings/storage": typeof AuthenticatedWorkspaceSettingsStorageRoute
-  "/settings/time": typeof AuthenticatedWorkspaceSettingsTimeRoute
-  "/settings/workflows": typeof AuthenticatedWorkspaceSettingsWorkflowsRouteWithChildren
-  "/shifts/new": typeof AuthenticatedWorkspaceShiftsNewRoute
-  "/shifts/rules": typeof AuthenticatedWorkspaceShiftsRulesRouteWithChildren
-  "/working-patterns/new": typeof AuthenticatedWorkspaceWorkingPatternsNewRoute
-  "/approvals/": typeof AuthenticatedWorkspaceApprovalsIndexRoute
-  "/assignment-rules/": typeof AuthenticatedWorkspaceAssignmentRulesIndexRoute
-  "/documents/": typeof AuthenticatedWorkspaceDocumentsIndexRoute
-  "/settings/": typeof AuthenticatedWorkspaceSettingsIndexRoute
-  "/shifts/": typeof AuthenticatedWorkspaceShiftsIndexRoute
-  "/working-patterns/": typeof AuthenticatedWorkspaceWorkingPatternsIndexRoute
-  "/assignment-rules/$ruleId/edit": typeof AuthenticatedWorkspaceAssignmentRulesRuleIdEditRoute
-  "/settings/workflows/new": typeof AuthenticatedWorkspaceSettingsWorkflowsNewRoute
-  "/shifts/$shiftId/edit": typeof AuthenticatedWorkspaceShiftsShiftIdEditRoute
-  "/working-patterns/$patternId/edit": typeof AuthenticatedWorkspaceWorkingPatternsPatternIdEditRoute
-  "/settings/workflows/": typeof AuthenticatedWorkspaceSettingsWorkflowsIndexRoute
-  "/shifts/rules/": typeof AuthenticatedWorkspaceShiftsRulesIndexRoute
-  "/settings/workflows/$workflowId/edit": typeof AuthenticatedWorkspaceSettingsWorkflowsWorkflowIdEditRoute
-  "/shifts/rules/assignment-rules/new": typeof AuthenticatedWorkspaceShiftsRulesAssignmentRulesNewRoute
-  "/shifts/rules/working-patterns/new": typeof AuthenticatedWorkspaceShiftsRulesWorkingPatternsNewRoute
-  "/shifts/rules/assignment-rules/$ruleId/edit": typeof AuthenticatedWorkspaceShiftsRulesAssignmentRulesRuleIdEditRoute
-  "/shifts/rules/working-patterns/$patternId/edit": typeof AuthenticatedWorkspaceShiftsRulesWorkingPatternsPatternIdEditRoute
+  "/approvals/ot": typeof AuthenticatedOrganizationApprovalsOtRoute
+  "/assignment-rules/new": typeof AuthenticatedOrganizationAssignmentRulesNewRoute
+  "/documents/templates": typeof AuthenticatedOrganizationDocumentsTemplatesRoute
+  "/employees/$employeeId": typeof AuthenticatedOrganizationEmployeesEmployeeIdRoute
+  "/ess/attendance": typeof AuthenticatedOrganizationEssAttendanceRoute
+  "/ess/clock": typeof AuthenticatedOrganizationEssClockRoute
+  "/ess/documents": typeof AuthenticatedOrganizationEssDocumentsRoute
+  "/ess/ot": typeof AuthenticatedOrganizationEssOtRoute
+  "/ess/profile": typeof AuthenticatedOrganizationEssProfileRoute
+  "/settings/billing": typeof AuthenticatedOrganizationSettingsBillingRoute
+  "/settings/condition-types": typeof AuthenticatedOrganizationSettingsConditionTypesRoute
+  "/settings/custom-fields": typeof AuthenticatedOrganizationSettingsCustomFieldsRoute
+  "/settings/econtracts": typeof AuthenticatedOrganizationSettingsEcontractsRoute
+  "/settings/general": typeof AuthenticatedOrganizationSettingsGeneralRoute
+  "/settings/holidays": typeof AuthenticatedOrganizationSettingsHolidaysRoute
+  "/settings/leave": typeof AuthenticatedOrganizationSettingsLeaveRoute
+  "/settings/lifecycle-templates": typeof AuthenticatedOrganizationSettingsLifecycleTemplatesRoute
+  "/settings/locations": typeof AuthenticatedOrganizationSettingsLocationsRoute
+  "/settings/members": typeof AuthenticatedOrganizationSettingsMembersRoute
+  "/settings/organization": typeof AuthenticatedOrganizationSettingsOrganizationRoute
+  "/settings/overtime": typeof AuthenticatedOrganizationSettingsOvertimeRoute
+  "/settings/payroll": typeof AuthenticatedOrganizationSettingsPayrollRoute
+  "/settings/permissions": typeof AuthenticatedOrganizationSettingsPermissionsRoute
+  "/settings/roles": typeof AuthenticatedOrganizationSettingsRolesRoute
+  "/settings/smtp": typeof AuthenticatedOrganizationSettingsSmtpRoute
+  "/settings/storage": typeof AuthenticatedOrganizationSettingsStorageRoute
+  "/settings/time": typeof AuthenticatedOrganizationSettingsTimeRoute
+  "/settings/workflows": typeof AuthenticatedOrganizationSettingsWorkflowsRouteWithChildren
+  "/shifts/new": typeof AuthenticatedOrganizationShiftsNewRoute
+  "/shifts/rules": typeof AuthenticatedOrganizationShiftsRulesRouteWithChildren
+  "/working-patterns/new": typeof AuthenticatedOrganizationWorkingPatternsNewRoute
+  "/approvals/": typeof AuthenticatedOrganizationApprovalsIndexRoute
+  "/assignment-rules/": typeof AuthenticatedOrganizationAssignmentRulesIndexRoute
+  "/documents/": typeof AuthenticatedOrganizationDocumentsIndexRoute
+  "/settings/": typeof AuthenticatedOrganizationSettingsIndexRoute
+  "/shifts/": typeof AuthenticatedOrganizationShiftsIndexRoute
+  "/working-patterns/": typeof AuthenticatedOrganizationWorkingPatternsIndexRoute
+  "/assignment-rules/$ruleId/edit": typeof AuthenticatedOrganizationAssignmentRulesRuleIdEditRoute
+  "/settings/workflows/new": typeof AuthenticatedOrganizationSettingsWorkflowsNewRoute
+  "/shifts/$shiftId/edit": typeof AuthenticatedOrganizationShiftsShiftIdEditRoute
+  "/working-patterns/$patternId/edit": typeof AuthenticatedOrganizationWorkingPatternsPatternIdEditRoute
+  "/settings/workflows/": typeof AuthenticatedOrganizationSettingsWorkflowsIndexRoute
+  "/shifts/rules/": typeof AuthenticatedOrganizationShiftsRulesIndexRoute
+  "/settings/workflows/$workflowId/edit": typeof AuthenticatedOrganizationSettingsWorkflowsWorkflowIdEditRoute
+  "/shifts/rules/assignment-rules/new": typeof AuthenticatedOrganizationShiftsRulesAssignmentRulesNewRoute
+  "/shifts/rules/working-patterns/new": typeof AuthenticatedOrganizationShiftsRulesWorkingPatternsNewRoute
+  "/shifts/rules/assignment-rules/$ruleId/edit": typeof AuthenticatedOrganizationShiftsRulesAssignmentRulesRuleIdEditRoute
+  "/shifts/rules/working-patterns/$patternId/edit": typeof AuthenticatedOrganizationShiftsRulesWorkingPatternsPatternIdEditRoute
 }
 export interface FileRoutesByTo {
-  "/": typeof AuthenticatedWorkspaceIndexRoute
+  "/": typeof AuthenticatedOrganizationIndexRoute
   "/forgot-password": typeof ForgotPasswordRoute
   "/login": typeof LoginRoute
   "/register": typeof RegisterRoute
   "/reset-password": typeof ResetPasswordRoute
-  "/assignments": typeof AuthenticatedWorkspaceAssignmentsRoute
-  "/attendance-adjustments": typeof AuthenticatedWorkspaceAttendanceAdjustmentsRoute
-  "/attendance-logs": typeof AuthenticatedWorkspaceAttendanceLogsRoute
-  "/audit-logs": typeof AuthenticatedWorkspaceAuditLogsRoute
-  "/dashboard": typeof AuthenticatedWorkspaceDashboardRoute
-  "/departments": typeof AuthenticatedWorkspaceDepartmentsRoute
-  "/econtracts": typeof AuthenticatedWorkspaceEcontractsRoute
-  "/employees": typeof AuthenticatedWorkspaceEmployeesRoute
-  "/holidays": typeof AuthenticatedWorkspaceHolidaysRoute
-  "/leave-balances": typeof AuthenticatedWorkspaceLeaveBalancesRoute
-  "/leave-requests": typeof AuthenticatedWorkspaceLeaveRequestsRoute
-  "/lifecycle": typeof AuthenticatedWorkspaceLifecycleRoute
-  "/notifications": typeof AuthenticatedWorkspaceNotificationsRoute
-  "/org-chart": typeof AuthenticatedWorkspaceOrgChartRoute
-  "/payroll": typeof AuthenticatedWorkspacePayrollRoute
-  "/profile": typeof AuthenticatedWorkspaceProfileRoute
-  "/reports": typeof AuthenticatedWorkspaceReportsRoute
-  "/shift-swaps": typeof AuthenticatedWorkspaceShiftSwapsRoute
-  "/working-conditions": typeof AuthenticatedWorkspaceWorkingConditionsRoute
+  "/assignments": typeof AuthenticatedOrganizationAssignmentsRoute
+  "/attendance-adjustments": typeof AuthenticatedOrganizationAttendanceAdjustmentsRoute
+  "/attendance-logs": typeof AuthenticatedOrganizationAttendanceLogsRoute
+  "/audit-logs": typeof AuthenticatedOrganizationAuditLogsRoute
+  "/dashboard": typeof AuthenticatedOrganizationDashboardRoute
+  "/departments": typeof AuthenticatedOrganizationDepartmentsRoute
+  "/econtracts": typeof AuthenticatedOrganizationEcontractsRoute
+  "/employees": typeof AuthenticatedOrganizationEmployeesRoute
+  "/holidays": typeof AuthenticatedOrganizationHolidaysRoute
+  "/leave-balances": typeof AuthenticatedOrganizationLeaveBalancesRoute
+  "/leave-requests": typeof AuthenticatedOrganizationLeaveRequestsRoute
+  "/lifecycle": typeof AuthenticatedOrganizationLifecycleRoute
+  "/notifications": typeof AuthenticatedOrganizationNotificationsRoute
+  "/org-chart": typeof AuthenticatedOrganizationOrgChartRoute
+  "/payroll": typeof AuthenticatedOrganizationPayrollRoute
+  "/profile": typeof AuthenticatedOrganizationProfileRoute
+  "/reports": typeof AuthenticatedOrganizationReportsRoute
+  "/shift-swaps": typeof AuthenticatedOrganizationShiftSwapsRoute
+  "/working-conditions": typeof AuthenticatedOrganizationWorkingConditionsRoute
   "/infra/monitor": typeof AuthenticatedInfraInfraMonitorRoute
   "/system/smtp": typeof AuthenticatedInfraSystemSmtpRoute
-  "/approvals/ot": typeof AuthenticatedWorkspaceApprovalsOtRoute
-  "/assignment-rules/new": typeof AuthenticatedWorkspaceAssignmentRulesNewRoute
-  "/documents/templates": typeof AuthenticatedWorkspaceDocumentsTemplatesRoute
-  "/employees/$employeeId": typeof AuthenticatedWorkspaceEmployeesEmployeeIdRoute
-  "/ess/attendance": typeof AuthenticatedWorkspaceEssAttendanceRoute
-  "/ess/clock": typeof AuthenticatedWorkspaceEssClockRoute
-  "/ess/documents": typeof AuthenticatedWorkspaceEssDocumentsRoute
-  "/ess/ot": typeof AuthenticatedWorkspaceEssOtRoute
-  "/ess/profile": typeof AuthenticatedWorkspaceEssProfileRoute
-  "/settings/billing": typeof AuthenticatedWorkspaceSettingsBillingRoute
-  "/settings/condition-types": typeof AuthenticatedWorkspaceSettingsConditionTypesRoute
-  "/settings/custom-fields": typeof AuthenticatedWorkspaceSettingsCustomFieldsRoute
-  "/settings/econtracts": typeof AuthenticatedWorkspaceSettingsEcontractsRoute
-  "/settings/general": typeof AuthenticatedWorkspaceSettingsGeneralRoute
-  "/settings/holidays": typeof AuthenticatedWorkspaceSettingsHolidaysRoute
-  "/settings/leave": typeof AuthenticatedWorkspaceSettingsLeaveRoute
-  "/settings/lifecycle-templates": typeof AuthenticatedWorkspaceSettingsLifecycleTemplatesRoute
-  "/settings/locations": typeof AuthenticatedWorkspaceSettingsLocationsRoute
-  "/settings/members": typeof AuthenticatedWorkspaceSettingsMembersRoute
-  "/settings/organization": typeof AuthenticatedWorkspaceSettingsOrganizationRoute
-  "/settings/overtime": typeof AuthenticatedWorkspaceSettingsOvertimeRoute
-  "/settings/payroll": typeof AuthenticatedWorkspaceSettingsPayrollRoute
-  "/settings/permissions": typeof AuthenticatedWorkspaceSettingsPermissionsRoute
-  "/settings/roles": typeof AuthenticatedWorkspaceSettingsRolesRoute
-  "/settings/smtp": typeof AuthenticatedWorkspaceSettingsSmtpRoute
-  "/settings/storage": typeof AuthenticatedWorkspaceSettingsStorageRoute
-  "/settings/time": typeof AuthenticatedWorkspaceSettingsTimeRoute
-  "/shifts/new": typeof AuthenticatedWorkspaceShiftsNewRoute
-  "/working-patterns/new": typeof AuthenticatedWorkspaceWorkingPatternsNewRoute
-  "/approvals": typeof AuthenticatedWorkspaceApprovalsIndexRoute
-  "/assignment-rules": typeof AuthenticatedWorkspaceAssignmentRulesIndexRoute
-  "/documents": typeof AuthenticatedWorkspaceDocumentsIndexRoute
-  "/settings": typeof AuthenticatedWorkspaceSettingsIndexRoute
-  "/shifts": typeof AuthenticatedWorkspaceShiftsIndexRoute
-  "/working-patterns": typeof AuthenticatedWorkspaceWorkingPatternsIndexRoute
-  "/assignment-rules/$ruleId/edit": typeof AuthenticatedWorkspaceAssignmentRulesRuleIdEditRoute
-  "/settings/workflows/new": typeof AuthenticatedWorkspaceSettingsWorkflowsNewRoute
-  "/shifts/$shiftId/edit": typeof AuthenticatedWorkspaceShiftsShiftIdEditRoute
-  "/working-patterns/$patternId/edit": typeof AuthenticatedWorkspaceWorkingPatternsPatternIdEditRoute
-  "/settings/workflows": typeof AuthenticatedWorkspaceSettingsWorkflowsIndexRoute
-  "/shifts/rules": typeof AuthenticatedWorkspaceShiftsRulesIndexRoute
-  "/settings/workflows/$workflowId/edit": typeof AuthenticatedWorkspaceSettingsWorkflowsWorkflowIdEditRoute
-  "/shifts/rules/assignment-rules/new": typeof AuthenticatedWorkspaceShiftsRulesAssignmentRulesNewRoute
-  "/shifts/rules/working-patterns/new": typeof AuthenticatedWorkspaceShiftsRulesWorkingPatternsNewRoute
-  "/shifts/rules/assignment-rules/$ruleId/edit": typeof AuthenticatedWorkspaceShiftsRulesAssignmentRulesRuleIdEditRoute
-  "/shifts/rules/working-patterns/$patternId/edit": typeof AuthenticatedWorkspaceShiftsRulesWorkingPatternsPatternIdEditRoute
+  "/approvals/ot": typeof AuthenticatedOrganizationApprovalsOtRoute
+  "/assignment-rules/new": typeof AuthenticatedOrganizationAssignmentRulesNewRoute
+  "/documents/templates": typeof AuthenticatedOrganizationDocumentsTemplatesRoute
+  "/employees/$employeeId": typeof AuthenticatedOrganizationEmployeesEmployeeIdRoute
+  "/ess/attendance": typeof AuthenticatedOrganizationEssAttendanceRoute
+  "/ess/clock": typeof AuthenticatedOrganizationEssClockRoute
+  "/ess/documents": typeof AuthenticatedOrganizationEssDocumentsRoute
+  "/ess/ot": typeof AuthenticatedOrganizationEssOtRoute
+  "/ess/profile": typeof AuthenticatedOrganizationEssProfileRoute
+  "/settings/billing": typeof AuthenticatedOrganizationSettingsBillingRoute
+  "/settings/condition-types": typeof AuthenticatedOrganizationSettingsConditionTypesRoute
+  "/settings/custom-fields": typeof AuthenticatedOrganizationSettingsCustomFieldsRoute
+  "/settings/econtracts": typeof AuthenticatedOrganizationSettingsEcontractsRoute
+  "/settings/general": typeof AuthenticatedOrganizationSettingsGeneralRoute
+  "/settings/holidays": typeof AuthenticatedOrganizationSettingsHolidaysRoute
+  "/settings/leave": typeof AuthenticatedOrganizationSettingsLeaveRoute
+  "/settings/lifecycle-templates": typeof AuthenticatedOrganizationSettingsLifecycleTemplatesRoute
+  "/settings/locations": typeof AuthenticatedOrganizationSettingsLocationsRoute
+  "/settings/members": typeof AuthenticatedOrganizationSettingsMembersRoute
+  "/settings/organization": typeof AuthenticatedOrganizationSettingsOrganizationRoute
+  "/settings/overtime": typeof AuthenticatedOrganizationSettingsOvertimeRoute
+  "/settings/payroll": typeof AuthenticatedOrganizationSettingsPayrollRoute
+  "/settings/permissions": typeof AuthenticatedOrganizationSettingsPermissionsRoute
+  "/settings/roles": typeof AuthenticatedOrganizationSettingsRolesRoute
+  "/settings/smtp": typeof AuthenticatedOrganizationSettingsSmtpRoute
+  "/settings/storage": typeof AuthenticatedOrganizationSettingsStorageRoute
+  "/settings/time": typeof AuthenticatedOrganizationSettingsTimeRoute
+  "/shifts/new": typeof AuthenticatedOrganizationShiftsNewRoute
+  "/working-patterns/new": typeof AuthenticatedOrganizationWorkingPatternsNewRoute
+  "/approvals": typeof AuthenticatedOrganizationApprovalsIndexRoute
+  "/assignment-rules": typeof AuthenticatedOrganizationAssignmentRulesIndexRoute
+  "/documents": typeof AuthenticatedOrganizationDocumentsIndexRoute
+  "/settings": typeof AuthenticatedOrganizationSettingsIndexRoute
+  "/shifts": typeof AuthenticatedOrganizationShiftsIndexRoute
+  "/working-patterns": typeof AuthenticatedOrganizationWorkingPatternsIndexRoute
+  "/assignment-rules/$ruleId/edit": typeof AuthenticatedOrganizationAssignmentRulesRuleIdEditRoute
+  "/settings/workflows/new": typeof AuthenticatedOrganizationSettingsWorkflowsNewRoute
+  "/shifts/$shiftId/edit": typeof AuthenticatedOrganizationShiftsShiftIdEditRoute
+  "/working-patterns/$patternId/edit": typeof AuthenticatedOrganizationWorkingPatternsPatternIdEditRoute
+  "/settings/workflows": typeof AuthenticatedOrganizationSettingsWorkflowsIndexRoute
+  "/shifts/rules": typeof AuthenticatedOrganizationShiftsRulesIndexRoute
+  "/settings/workflows/$workflowId/edit": typeof AuthenticatedOrganizationSettingsWorkflowsWorkflowIdEditRoute
+  "/shifts/rules/assignment-rules/new": typeof AuthenticatedOrganizationShiftsRulesAssignmentRulesNewRoute
+  "/shifts/rules/working-patterns/new": typeof AuthenticatedOrganizationShiftsRulesWorkingPatternsNewRoute
+  "/shifts/rules/assignment-rules/$ruleId/edit": typeof AuthenticatedOrganizationShiftsRulesAssignmentRulesRuleIdEditRoute
+  "/shifts/rules/working-patterns/$patternId/edit": typeof AuthenticatedOrganizationShiftsRulesWorkingPatternsPatternIdEditRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -1008,81 +1011,81 @@ export interface FileRoutesById {
   "/register": typeof RegisterRoute
   "/reset-password": typeof ResetPasswordRoute
   "/_authenticated/_infra": typeof AuthenticatedInfraRouteWithChildren
-  "/_authenticated/_workspace": typeof AuthenticatedWorkspaceRouteWithChildren
-  "/_authenticated/_workspace/assignment-rules": typeof AuthenticatedWorkspaceAssignmentRulesRouteWithChildren
-  "/_authenticated/_workspace/assignments": typeof AuthenticatedWorkspaceAssignmentsRoute
-  "/_authenticated/_workspace/attendance-adjustments": typeof AuthenticatedWorkspaceAttendanceAdjustmentsRoute
-  "/_authenticated/_workspace/attendance-logs": typeof AuthenticatedWorkspaceAttendanceLogsRoute
-  "/_authenticated/_workspace/audit-logs": typeof AuthenticatedWorkspaceAuditLogsRoute
-  "/_authenticated/_workspace/dashboard": typeof AuthenticatedWorkspaceDashboardRoute
-  "/_authenticated/_workspace/departments": typeof AuthenticatedWorkspaceDepartmentsRoute
-  "/_authenticated/_workspace/econtracts": typeof AuthenticatedWorkspaceEcontractsRoute
-  "/_authenticated/_workspace/employees": typeof AuthenticatedWorkspaceEmployeesRoute
-  "/_authenticated/_workspace/holidays": typeof AuthenticatedWorkspaceHolidaysRoute
-  "/_authenticated/_workspace/leave-balances": typeof AuthenticatedWorkspaceLeaveBalancesRoute
-  "/_authenticated/_workspace/leave-requests": typeof AuthenticatedWorkspaceLeaveRequestsRoute
-  "/_authenticated/_workspace/lifecycle": typeof AuthenticatedWorkspaceLifecycleRoute
-  "/_authenticated/_workspace/notifications": typeof AuthenticatedWorkspaceNotificationsRoute
-  "/_authenticated/_workspace/org-chart": typeof AuthenticatedWorkspaceOrgChartRoute
-  "/_authenticated/_workspace/payroll": typeof AuthenticatedWorkspacePayrollRoute
-  "/_authenticated/_workspace/profile": typeof AuthenticatedWorkspaceProfileRoute
-  "/_authenticated/_workspace/reports": typeof AuthenticatedWorkspaceReportsRoute
-  "/_authenticated/_workspace/settings": typeof AuthenticatedWorkspaceSettingsRouteWithChildren
-  "/_authenticated/_workspace/shift-swaps": typeof AuthenticatedWorkspaceShiftSwapsRoute
-  "/_authenticated/_workspace/shifts": typeof AuthenticatedWorkspaceShiftsRouteWithChildren
-  "/_authenticated/_workspace/working-conditions": typeof AuthenticatedWorkspaceWorkingConditionsRoute
-  "/_authenticated/_workspace/working-patterns": typeof AuthenticatedWorkspaceWorkingPatternsRouteWithChildren
-  "/_authenticated/_workspace/": typeof AuthenticatedWorkspaceIndexRoute
+  "/_authenticated/_organization": typeof AuthenticatedOrganizationRouteWithChildren
+  "/_authenticated/_organization/assignment-rules": typeof AuthenticatedOrganizationAssignmentRulesRouteWithChildren
+  "/_authenticated/_organization/assignments": typeof AuthenticatedOrganizationAssignmentsRoute
+  "/_authenticated/_organization/attendance-adjustments": typeof AuthenticatedOrganizationAttendanceAdjustmentsRoute
+  "/_authenticated/_organization/attendance-logs": typeof AuthenticatedOrganizationAttendanceLogsRoute
+  "/_authenticated/_organization/audit-logs": typeof AuthenticatedOrganizationAuditLogsRoute
+  "/_authenticated/_organization/dashboard": typeof AuthenticatedOrganizationDashboardRoute
+  "/_authenticated/_organization/departments": typeof AuthenticatedOrganizationDepartmentsRoute
+  "/_authenticated/_organization/econtracts": typeof AuthenticatedOrganizationEcontractsRoute
+  "/_authenticated/_organization/employees": typeof AuthenticatedOrganizationEmployeesRoute
+  "/_authenticated/_organization/holidays": typeof AuthenticatedOrganizationHolidaysRoute
+  "/_authenticated/_organization/leave-balances": typeof AuthenticatedOrganizationLeaveBalancesRoute
+  "/_authenticated/_organization/leave-requests": typeof AuthenticatedOrganizationLeaveRequestsRoute
+  "/_authenticated/_organization/lifecycle": typeof AuthenticatedOrganizationLifecycleRoute
+  "/_authenticated/_organization/notifications": typeof AuthenticatedOrganizationNotificationsRoute
+  "/_authenticated/_organization/org-chart": typeof AuthenticatedOrganizationOrgChartRoute
+  "/_authenticated/_organization/payroll": typeof AuthenticatedOrganizationPayrollRoute
+  "/_authenticated/_organization/profile": typeof AuthenticatedOrganizationProfileRoute
+  "/_authenticated/_organization/reports": typeof AuthenticatedOrganizationReportsRoute
+  "/_authenticated/_organization/settings": typeof AuthenticatedOrganizationSettingsRouteWithChildren
+  "/_authenticated/_organization/shift-swaps": typeof AuthenticatedOrganizationShiftSwapsRoute
+  "/_authenticated/_organization/shifts": typeof AuthenticatedOrganizationShiftsRouteWithChildren
+  "/_authenticated/_organization/working-conditions": typeof AuthenticatedOrganizationWorkingConditionsRoute
+  "/_authenticated/_organization/working-patterns": typeof AuthenticatedOrganizationWorkingPatternsRouteWithChildren
+  "/_authenticated/_organization/": typeof AuthenticatedOrganizationIndexRoute
   "/_authenticated/_infra/infra/monitor": typeof AuthenticatedInfraInfraMonitorRoute
   "/_authenticated/_infra/system/smtp": typeof AuthenticatedInfraSystemSmtpRoute
-  "/_authenticated/_workspace/approvals/ot": typeof AuthenticatedWorkspaceApprovalsOtRoute
-  "/_authenticated/_workspace/assignment-rules/new": typeof AuthenticatedWorkspaceAssignmentRulesNewRoute
-  "/_authenticated/_workspace/documents/templates": typeof AuthenticatedWorkspaceDocumentsTemplatesRoute
-  "/_authenticated/_workspace/employees_/$employeeId": typeof AuthenticatedWorkspaceEmployeesEmployeeIdRoute
-  "/_authenticated/_workspace/ess/attendance": typeof AuthenticatedWorkspaceEssAttendanceRoute
-  "/_authenticated/_workspace/ess/clock": typeof AuthenticatedWorkspaceEssClockRoute
-  "/_authenticated/_workspace/ess/documents": typeof AuthenticatedWorkspaceEssDocumentsRoute
-  "/_authenticated/_workspace/ess/ot": typeof AuthenticatedWorkspaceEssOtRoute
-  "/_authenticated/_workspace/ess/profile": typeof AuthenticatedWorkspaceEssProfileRoute
-  "/_authenticated/_workspace/settings/billing": typeof AuthenticatedWorkspaceSettingsBillingRoute
-  "/_authenticated/_workspace/settings/condition-types": typeof AuthenticatedWorkspaceSettingsConditionTypesRoute
-  "/_authenticated/_workspace/settings/custom-fields": typeof AuthenticatedWorkspaceSettingsCustomFieldsRoute
-  "/_authenticated/_workspace/settings/econtracts": typeof AuthenticatedWorkspaceSettingsEcontractsRoute
-  "/_authenticated/_workspace/settings/general": typeof AuthenticatedWorkspaceSettingsGeneralRoute
-  "/_authenticated/_workspace/settings/holidays": typeof AuthenticatedWorkspaceSettingsHolidaysRoute
-  "/_authenticated/_workspace/settings/leave": typeof AuthenticatedWorkspaceSettingsLeaveRoute
-  "/_authenticated/_workspace/settings/lifecycle-templates": typeof AuthenticatedWorkspaceSettingsLifecycleTemplatesRoute
-  "/_authenticated/_workspace/settings/locations": typeof AuthenticatedWorkspaceSettingsLocationsRoute
-  "/_authenticated/_workspace/settings/members": typeof AuthenticatedWorkspaceSettingsMembersRoute
-  "/_authenticated/_workspace/settings/organization": typeof AuthenticatedWorkspaceSettingsOrganizationRoute
-  "/_authenticated/_workspace/settings/overtime": typeof AuthenticatedWorkspaceSettingsOvertimeRoute
-  "/_authenticated/_workspace/settings/payroll": typeof AuthenticatedWorkspaceSettingsPayrollRoute
-  "/_authenticated/_workspace/settings/permissions": typeof AuthenticatedWorkspaceSettingsPermissionsRoute
-  "/_authenticated/_workspace/settings/roles": typeof AuthenticatedWorkspaceSettingsRolesRoute
-  "/_authenticated/_workspace/settings/smtp": typeof AuthenticatedWorkspaceSettingsSmtpRoute
-  "/_authenticated/_workspace/settings/storage": typeof AuthenticatedWorkspaceSettingsStorageRoute
-  "/_authenticated/_workspace/settings/time": typeof AuthenticatedWorkspaceSettingsTimeRoute
-  "/_authenticated/_workspace/settings/workflows": typeof AuthenticatedWorkspaceSettingsWorkflowsRouteWithChildren
-  "/_authenticated/_workspace/shifts/new": typeof AuthenticatedWorkspaceShiftsNewRoute
-  "/_authenticated/_workspace/shifts/rules": typeof AuthenticatedWorkspaceShiftsRulesRouteWithChildren
-  "/_authenticated/_workspace/working-patterns/new": typeof AuthenticatedWorkspaceWorkingPatternsNewRoute
-  "/_authenticated/_workspace/approvals/": typeof AuthenticatedWorkspaceApprovalsIndexRoute
-  "/_authenticated/_workspace/assignment-rules/": typeof AuthenticatedWorkspaceAssignmentRulesIndexRoute
-  "/_authenticated/_workspace/documents/": typeof AuthenticatedWorkspaceDocumentsIndexRoute
-  "/_authenticated/_workspace/settings/": typeof AuthenticatedWorkspaceSettingsIndexRoute
-  "/_authenticated/_workspace/shifts/": typeof AuthenticatedWorkspaceShiftsIndexRoute
-  "/_authenticated/_workspace/working-patterns/": typeof AuthenticatedWorkspaceWorkingPatternsIndexRoute
-  "/_authenticated/_workspace/assignment-rules/$ruleId/edit": typeof AuthenticatedWorkspaceAssignmentRulesRuleIdEditRoute
-  "/_authenticated/_workspace/settings/workflows/new": typeof AuthenticatedWorkspaceSettingsWorkflowsNewRoute
-  "/_authenticated/_workspace/shifts/$shiftId/edit": typeof AuthenticatedWorkspaceShiftsShiftIdEditRoute
-  "/_authenticated/_workspace/working-patterns/$patternId/edit": typeof AuthenticatedWorkspaceWorkingPatternsPatternIdEditRoute
-  "/_authenticated/_workspace/settings/workflows/": typeof AuthenticatedWorkspaceSettingsWorkflowsIndexRoute
-  "/_authenticated/_workspace/shifts/rules/": typeof AuthenticatedWorkspaceShiftsRulesIndexRoute
-  "/_authenticated/_workspace/settings/workflows/$workflowId/edit": typeof AuthenticatedWorkspaceSettingsWorkflowsWorkflowIdEditRoute
-  "/_authenticated/_workspace/shifts/rules/assignment-rules/new": typeof AuthenticatedWorkspaceShiftsRulesAssignmentRulesNewRoute
-  "/_authenticated/_workspace/shifts/rules/working-patterns/new": typeof AuthenticatedWorkspaceShiftsRulesWorkingPatternsNewRoute
-  "/_authenticated/_workspace/shifts/rules/assignment-rules/$ruleId/edit": typeof AuthenticatedWorkspaceShiftsRulesAssignmentRulesRuleIdEditRoute
-  "/_authenticated/_workspace/shifts/rules/working-patterns/$patternId/edit": typeof AuthenticatedWorkspaceShiftsRulesWorkingPatternsPatternIdEditRoute
+  "/_authenticated/_organization/approvals/ot": typeof AuthenticatedOrganizationApprovalsOtRoute
+  "/_authenticated/_organization/assignment-rules/new": typeof AuthenticatedOrganizationAssignmentRulesNewRoute
+  "/_authenticated/_organization/documents/templates": typeof AuthenticatedOrganizationDocumentsTemplatesRoute
+  "/_authenticated/_organization/employees_/$employeeId": typeof AuthenticatedOrganizationEmployeesEmployeeIdRoute
+  "/_authenticated/_organization/ess/attendance": typeof AuthenticatedOrganizationEssAttendanceRoute
+  "/_authenticated/_organization/ess/clock": typeof AuthenticatedOrganizationEssClockRoute
+  "/_authenticated/_organization/ess/documents": typeof AuthenticatedOrganizationEssDocumentsRoute
+  "/_authenticated/_organization/ess/ot": typeof AuthenticatedOrganizationEssOtRoute
+  "/_authenticated/_organization/ess/profile": typeof AuthenticatedOrganizationEssProfileRoute
+  "/_authenticated/_organization/settings/billing": typeof AuthenticatedOrganizationSettingsBillingRoute
+  "/_authenticated/_organization/settings/condition-types": typeof AuthenticatedOrganizationSettingsConditionTypesRoute
+  "/_authenticated/_organization/settings/custom-fields": typeof AuthenticatedOrganizationSettingsCustomFieldsRoute
+  "/_authenticated/_organization/settings/econtracts": typeof AuthenticatedOrganizationSettingsEcontractsRoute
+  "/_authenticated/_organization/settings/general": typeof AuthenticatedOrganizationSettingsGeneralRoute
+  "/_authenticated/_organization/settings/holidays": typeof AuthenticatedOrganizationSettingsHolidaysRoute
+  "/_authenticated/_organization/settings/leave": typeof AuthenticatedOrganizationSettingsLeaveRoute
+  "/_authenticated/_organization/settings/lifecycle-templates": typeof AuthenticatedOrganizationSettingsLifecycleTemplatesRoute
+  "/_authenticated/_organization/settings/locations": typeof AuthenticatedOrganizationSettingsLocationsRoute
+  "/_authenticated/_organization/settings/members": typeof AuthenticatedOrganizationSettingsMembersRoute
+  "/_authenticated/_organization/settings/organization": typeof AuthenticatedOrganizationSettingsOrganizationRoute
+  "/_authenticated/_organization/settings/overtime": typeof AuthenticatedOrganizationSettingsOvertimeRoute
+  "/_authenticated/_organization/settings/payroll": typeof AuthenticatedOrganizationSettingsPayrollRoute
+  "/_authenticated/_organization/settings/permissions": typeof AuthenticatedOrganizationSettingsPermissionsRoute
+  "/_authenticated/_organization/settings/roles": typeof AuthenticatedOrganizationSettingsRolesRoute
+  "/_authenticated/_organization/settings/smtp": typeof AuthenticatedOrganizationSettingsSmtpRoute
+  "/_authenticated/_organization/settings/storage": typeof AuthenticatedOrganizationSettingsStorageRoute
+  "/_authenticated/_organization/settings/time": typeof AuthenticatedOrganizationSettingsTimeRoute
+  "/_authenticated/_organization/settings/workflows": typeof AuthenticatedOrganizationSettingsWorkflowsRouteWithChildren
+  "/_authenticated/_organization/shifts/new": typeof AuthenticatedOrganizationShiftsNewRoute
+  "/_authenticated/_organization/shifts/rules": typeof AuthenticatedOrganizationShiftsRulesRouteWithChildren
+  "/_authenticated/_organization/working-patterns/new": typeof AuthenticatedOrganizationWorkingPatternsNewRoute
+  "/_authenticated/_organization/approvals/": typeof AuthenticatedOrganizationApprovalsIndexRoute
+  "/_authenticated/_organization/assignment-rules/": typeof AuthenticatedOrganizationAssignmentRulesIndexRoute
+  "/_authenticated/_organization/documents/": typeof AuthenticatedOrganizationDocumentsIndexRoute
+  "/_authenticated/_organization/settings/": typeof AuthenticatedOrganizationSettingsIndexRoute
+  "/_authenticated/_organization/shifts/": typeof AuthenticatedOrganizationShiftsIndexRoute
+  "/_authenticated/_organization/working-patterns/": typeof AuthenticatedOrganizationWorkingPatternsIndexRoute
+  "/_authenticated/_organization/assignment-rules/$ruleId/edit": typeof AuthenticatedOrganizationAssignmentRulesRuleIdEditRoute
+  "/_authenticated/_organization/settings/workflows/new": typeof AuthenticatedOrganizationSettingsWorkflowsNewRoute
+  "/_authenticated/_organization/shifts/$shiftId/edit": typeof AuthenticatedOrganizationShiftsShiftIdEditRoute
+  "/_authenticated/_organization/working-patterns/$patternId/edit": typeof AuthenticatedOrganizationWorkingPatternsPatternIdEditRoute
+  "/_authenticated/_organization/settings/workflows/": typeof AuthenticatedOrganizationSettingsWorkflowsIndexRoute
+  "/_authenticated/_organization/shifts/rules/": typeof AuthenticatedOrganizationShiftsRulesIndexRoute
+  "/_authenticated/_organization/settings/workflows/$workflowId/edit": typeof AuthenticatedOrganizationSettingsWorkflowsWorkflowIdEditRoute
+  "/_authenticated/_organization/shifts/rules/assignment-rules/new": typeof AuthenticatedOrganizationShiftsRulesAssignmentRulesNewRoute
+  "/_authenticated/_organization/shifts/rules/working-patterns/new": typeof AuthenticatedOrganizationShiftsRulesWorkingPatternsNewRoute
+  "/_authenticated/_organization/shifts/rules/assignment-rules/$ruleId/edit": typeof AuthenticatedOrganizationShiftsRulesAssignmentRulesRuleIdEditRoute
+  "/_authenticated/_organization/shifts/rules/working-patterns/$patternId/edit": typeof AuthenticatedOrganizationShiftsRulesWorkingPatternsPatternIdEditRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -1247,81 +1250,81 @@ export interface FileRouteTypes {
     | "/register"
     | "/reset-password"
     | "/_authenticated/_infra"
-    | "/_authenticated/_workspace"
-    | "/_authenticated/_workspace/assignment-rules"
-    | "/_authenticated/_workspace/assignments"
-    | "/_authenticated/_workspace/attendance-adjustments"
-    | "/_authenticated/_workspace/attendance-logs"
-    | "/_authenticated/_workspace/audit-logs"
-    | "/_authenticated/_workspace/dashboard"
-    | "/_authenticated/_workspace/departments"
-    | "/_authenticated/_workspace/econtracts"
-    | "/_authenticated/_workspace/employees"
-    | "/_authenticated/_workspace/holidays"
-    | "/_authenticated/_workspace/leave-balances"
-    | "/_authenticated/_workspace/leave-requests"
-    | "/_authenticated/_workspace/lifecycle"
-    | "/_authenticated/_workspace/notifications"
-    | "/_authenticated/_workspace/org-chart"
-    | "/_authenticated/_workspace/payroll"
-    | "/_authenticated/_workspace/profile"
-    | "/_authenticated/_workspace/reports"
-    | "/_authenticated/_workspace/settings"
-    | "/_authenticated/_workspace/shift-swaps"
-    | "/_authenticated/_workspace/shifts"
-    | "/_authenticated/_workspace/working-conditions"
-    | "/_authenticated/_workspace/working-patterns"
-    | "/_authenticated/_workspace/"
+    | "/_authenticated/_organization"
+    | "/_authenticated/_organization/assignment-rules"
+    | "/_authenticated/_organization/assignments"
+    | "/_authenticated/_organization/attendance-adjustments"
+    | "/_authenticated/_organization/attendance-logs"
+    | "/_authenticated/_organization/audit-logs"
+    | "/_authenticated/_organization/dashboard"
+    | "/_authenticated/_organization/departments"
+    | "/_authenticated/_organization/econtracts"
+    | "/_authenticated/_organization/employees"
+    | "/_authenticated/_organization/holidays"
+    | "/_authenticated/_organization/leave-balances"
+    | "/_authenticated/_organization/leave-requests"
+    | "/_authenticated/_organization/lifecycle"
+    | "/_authenticated/_organization/notifications"
+    | "/_authenticated/_organization/org-chart"
+    | "/_authenticated/_organization/payroll"
+    | "/_authenticated/_organization/profile"
+    | "/_authenticated/_organization/reports"
+    | "/_authenticated/_organization/settings"
+    | "/_authenticated/_organization/shift-swaps"
+    | "/_authenticated/_organization/shifts"
+    | "/_authenticated/_organization/working-conditions"
+    | "/_authenticated/_organization/working-patterns"
+    | "/_authenticated/_organization/"
     | "/_authenticated/_infra/infra/monitor"
     | "/_authenticated/_infra/system/smtp"
-    | "/_authenticated/_workspace/approvals/ot"
-    | "/_authenticated/_workspace/assignment-rules/new"
-    | "/_authenticated/_workspace/documents/templates"
-    | "/_authenticated/_workspace/employees_/$employeeId"
-    | "/_authenticated/_workspace/ess/attendance"
-    | "/_authenticated/_workspace/ess/clock"
-    | "/_authenticated/_workspace/ess/documents"
-    | "/_authenticated/_workspace/ess/ot"
-    | "/_authenticated/_workspace/ess/profile"
-    | "/_authenticated/_workspace/settings/billing"
-    | "/_authenticated/_workspace/settings/condition-types"
-    | "/_authenticated/_workspace/settings/custom-fields"
-    | "/_authenticated/_workspace/settings/econtracts"
-    | "/_authenticated/_workspace/settings/general"
-    | "/_authenticated/_workspace/settings/holidays"
-    | "/_authenticated/_workspace/settings/leave"
-    | "/_authenticated/_workspace/settings/lifecycle-templates"
-    | "/_authenticated/_workspace/settings/locations"
-    | "/_authenticated/_workspace/settings/members"
-    | "/_authenticated/_workspace/settings/organization"
-    | "/_authenticated/_workspace/settings/overtime"
-    | "/_authenticated/_workspace/settings/payroll"
-    | "/_authenticated/_workspace/settings/permissions"
-    | "/_authenticated/_workspace/settings/roles"
-    | "/_authenticated/_workspace/settings/smtp"
-    | "/_authenticated/_workspace/settings/storage"
-    | "/_authenticated/_workspace/settings/time"
-    | "/_authenticated/_workspace/settings/workflows"
-    | "/_authenticated/_workspace/shifts/new"
-    | "/_authenticated/_workspace/shifts/rules"
-    | "/_authenticated/_workspace/working-patterns/new"
-    | "/_authenticated/_workspace/approvals/"
-    | "/_authenticated/_workspace/assignment-rules/"
-    | "/_authenticated/_workspace/documents/"
-    | "/_authenticated/_workspace/settings/"
-    | "/_authenticated/_workspace/shifts/"
-    | "/_authenticated/_workspace/working-patterns/"
-    | "/_authenticated/_workspace/assignment-rules/$ruleId/edit"
-    | "/_authenticated/_workspace/settings/workflows/new"
-    | "/_authenticated/_workspace/shifts/$shiftId/edit"
-    | "/_authenticated/_workspace/working-patterns/$patternId/edit"
-    | "/_authenticated/_workspace/settings/workflows/"
-    | "/_authenticated/_workspace/shifts/rules/"
-    | "/_authenticated/_workspace/settings/workflows/$workflowId/edit"
-    | "/_authenticated/_workspace/shifts/rules/assignment-rules/new"
-    | "/_authenticated/_workspace/shifts/rules/working-patterns/new"
-    | "/_authenticated/_workspace/shifts/rules/assignment-rules/$ruleId/edit"
-    | "/_authenticated/_workspace/shifts/rules/working-patterns/$patternId/edit"
+    | "/_authenticated/_organization/approvals/ot"
+    | "/_authenticated/_organization/assignment-rules/new"
+    | "/_authenticated/_organization/documents/templates"
+    | "/_authenticated/_organization/employees_/$employeeId"
+    | "/_authenticated/_organization/ess/attendance"
+    | "/_authenticated/_organization/ess/clock"
+    | "/_authenticated/_organization/ess/documents"
+    | "/_authenticated/_organization/ess/ot"
+    | "/_authenticated/_organization/ess/profile"
+    | "/_authenticated/_organization/settings/billing"
+    | "/_authenticated/_organization/settings/condition-types"
+    | "/_authenticated/_organization/settings/custom-fields"
+    | "/_authenticated/_organization/settings/econtracts"
+    | "/_authenticated/_organization/settings/general"
+    | "/_authenticated/_organization/settings/holidays"
+    | "/_authenticated/_organization/settings/leave"
+    | "/_authenticated/_organization/settings/lifecycle-templates"
+    | "/_authenticated/_organization/settings/locations"
+    | "/_authenticated/_organization/settings/members"
+    | "/_authenticated/_organization/settings/organization"
+    | "/_authenticated/_organization/settings/overtime"
+    | "/_authenticated/_organization/settings/payroll"
+    | "/_authenticated/_organization/settings/permissions"
+    | "/_authenticated/_organization/settings/roles"
+    | "/_authenticated/_organization/settings/smtp"
+    | "/_authenticated/_organization/settings/storage"
+    | "/_authenticated/_organization/settings/time"
+    | "/_authenticated/_organization/settings/workflows"
+    | "/_authenticated/_organization/shifts/new"
+    | "/_authenticated/_organization/shifts/rules"
+    | "/_authenticated/_organization/working-patterns/new"
+    | "/_authenticated/_organization/approvals/"
+    | "/_authenticated/_organization/assignment-rules/"
+    | "/_authenticated/_organization/documents/"
+    | "/_authenticated/_organization/settings/"
+    | "/_authenticated/_organization/shifts/"
+    | "/_authenticated/_organization/working-patterns/"
+    | "/_authenticated/_organization/assignment-rules/$ruleId/edit"
+    | "/_authenticated/_organization/settings/workflows/new"
+    | "/_authenticated/_organization/shifts/$shiftId/edit"
+    | "/_authenticated/_organization/working-patterns/$patternId/edit"
+    | "/_authenticated/_organization/settings/workflows/"
+    | "/_authenticated/_organization/shifts/rules/"
+    | "/_authenticated/_organization/settings/workflows/$workflowId/edit"
+    | "/_authenticated/_organization/shifts/rules/assignment-rules/new"
+    | "/_authenticated/_organization/shifts/rules/working-patterns/new"
+    | "/_authenticated/_organization/shifts/rules/assignment-rules/$ruleId/edit"
+    | "/_authenticated/_organization/shifts/rules/working-patterns/$patternId/edit"
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -1369,11 +1372,11 @@ declare module "@tanstack/react-router" {
       preLoaderRoute: typeof AuthenticatedRouteImport
       parentRoute: typeof rootRouteImport
     }
-    "/_authenticated/_workspace": {
-      id: "/_authenticated/_workspace"
+    "/_authenticated/_organization": {
+      id: "/_authenticated/_organization"
       path: ""
       fullPath: "/"
-      preLoaderRoute: typeof AuthenticatedWorkspaceRouteImport
+      preLoaderRoute: typeof AuthenticatedOrganizationRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     "/_authenticated/_infra": {
@@ -1383,432 +1386,432 @@ declare module "@tanstack/react-router" {
       preLoaderRoute: typeof AuthenticatedInfraRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
-    "/_authenticated/_workspace/": {
-      id: "/_authenticated/_workspace/"
+    "/_authenticated/_organization/": {
+      id: "/_authenticated/_organization/"
       path: "/"
       fullPath: "/"
-      preLoaderRoute: typeof AuthenticatedWorkspaceIndexRouteImport
-      parentRoute: typeof AuthenticatedWorkspaceRoute
+      preLoaderRoute: typeof AuthenticatedOrganizationIndexRouteImport
+      parentRoute: typeof AuthenticatedOrganizationRoute
     }
-    "/_authenticated/_workspace/working-patterns": {
-      id: "/_authenticated/_workspace/working-patterns"
+    "/_authenticated/_organization/working-patterns": {
+      id: "/_authenticated/_organization/working-patterns"
       path: "/working-patterns"
       fullPath: "/working-patterns"
-      preLoaderRoute: typeof AuthenticatedWorkspaceWorkingPatternsRouteImport
-      parentRoute: typeof AuthenticatedWorkspaceRoute
+      preLoaderRoute: typeof AuthenticatedOrganizationWorkingPatternsRouteImport
+      parentRoute: typeof AuthenticatedOrganizationRoute
     }
-    "/_authenticated/_workspace/working-conditions": {
-      id: "/_authenticated/_workspace/working-conditions"
+    "/_authenticated/_organization/working-conditions": {
+      id: "/_authenticated/_organization/working-conditions"
       path: "/working-conditions"
       fullPath: "/working-conditions"
-      preLoaderRoute: typeof AuthenticatedWorkspaceWorkingConditionsRouteImport
-      parentRoute: typeof AuthenticatedWorkspaceRoute
+      preLoaderRoute: typeof AuthenticatedOrganizationWorkingConditionsRouteImport
+      parentRoute: typeof AuthenticatedOrganizationRoute
     }
-    "/_authenticated/_workspace/shifts": {
-      id: "/_authenticated/_workspace/shifts"
+    "/_authenticated/_organization/shifts": {
+      id: "/_authenticated/_organization/shifts"
       path: "/shifts"
       fullPath: "/shifts"
-      preLoaderRoute: typeof AuthenticatedWorkspaceShiftsRouteImport
-      parentRoute: typeof AuthenticatedWorkspaceRoute
+      preLoaderRoute: typeof AuthenticatedOrganizationShiftsRouteImport
+      parentRoute: typeof AuthenticatedOrganizationRoute
     }
-    "/_authenticated/_workspace/shift-swaps": {
-      id: "/_authenticated/_workspace/shift-swaps"
+    "/_authenticated/_organization/shift-swaps": {
+      id: "/_authenticated/_organization/shift-swaps"
       path: "/shift-swaps"
       fullPath: "/shift-swaps"
-      preLoaderRoute: typeof AuthenticatedWorkspaceShiftSwapsRouteImport
-      parentRoute: typeof AuthenticatedWorkspaceRoute
+      preLoaderRoute: typeof AuthenticatedOrganizationShiftSwapsRouteImport
+      parentRoute: typeof AuthenticatedOrganizationRoute
     }
-    "/_authenticated/_workspace/settings": {
-      id: "/_authenticated/_workspace/settings"
+    "/_authenticated/_organization/settings": {
+      id: "/_authenticated/_organization/settings"
       path: "/settings"
       fullPath: "/settings"
-      preLoaderRoute: typeof AuthenticatedWorkspaceSettingsRouteImport
-      parentRoute: typeof AuthenticatedWorkspaceRoute
+      preLoaderRoute: typeof AuthenticatedOrganizationSettingsRouteImport
+      parentRoute: typeof AuthenticatedOrganizationRoute
     }
-    "/_authenticated/_workspace/reports": {
-      id: "/_authenticated/_workspace/reports"
+    "/_authenticated/_organization/reports": {
+      id: "/_authenticated/_organization/reports"
       path: "/reports"
       fullPath: "/reports"
-      preLoaderRoute: typeof AuthenticatedWorkspaceReportsRouteImport
-      parentRoute: typeof AuthenticatedWorkspaceRoute
+      preLoaderRoute: typeof AuthenticatedOrganizationReportsRouteImport
+      parentRoute: typeof AuthenticatedOrganizationRoute
     }
-    "/_authenticated/_workspace/profile": {
-      id: "/_authenticated/_workspace/profile"
+    "/_authenticated/_organization/profile": {
+      id: "/_authenticated/_organization/profile"
       path: "/profile"
       fullPath: "/profile"
-      preLoaderRoute: typeof AuthenticatedWorkspaceProfileRouteImport
-      parentRoute: typeof AuthenticatedWorkspaceRoute
+      preLoaderRoute: typeof AuthenticatedOrganizationProfileRouteImport
+      parentRoute: typeof AuthenticatedOrganizationRoute
     }
-    "/_authenticated/_workspace/payroll": {
-      id: "/_authenticated/_workspace/payroll"
+    "/_authenticated/_organization/payroll": {
+      id: "/_authenticated/_organization/payroll"
       path: "/payroll"
       fullPath: "/payroll"
-      preLoaderRoute: typeof AuthenticatedWorkspacePayrollRouteImport
-      parentRoute: typeof AuthenticatedWorkspaceRoute
+      preLoaderRoute: typeof AuthenticatedOrganizationPayrollRouteImport
+      parentRoute: typeof AuthenticatedOrganizationRoute
     }
-    "/_authenticated/_workspace/org-chart": {
-      id: "/_authenticated/_workspace/org-chart"
+    "/_authenticated/_organization/org-chart": {
+      id: "/_authenticated/_organization/org-chart"
       path: "/org-chart"
       fullPath: "/org-chart"
-      preLoaderRoute: typeof AuthenticatedWorkspaceOrgChartRouteImport
-      parentRoute: typeof AuthenticatedWorkspaceRoute
+      preLoaderRoute: typeof AuthenticatedOrganizationOrgChartRouteImport
+      parentRoute: typeof AuthenticatedOrganizationRoute
     }
-    "/_authenticated/_workspace/notifications": {
-      id: "/_authenticated/_workspace/notifications"
+    "/_authenticated/_organization/notifications": {
+      id: "/_authenticated/_organization/notifications"
       path: "/notifications"
       fullPath: "/notifications"
-      preLoaderRoute: typeof AuthenticatedWorkspaceNotificationsRouteImport
-      parentRoute: typeof AuthenticatedWorkspaceRoute
+      preLoaderRoute: typeof AuthenticatedOrganizationNotificationsRouteImport
+      parentRoute: typeof AuthenticatedOrganizationRoute
     }
-    "/_authenticated/_workspace/lifecycle": {
-      id: "/_authenticated/_workspace/lifecycle"
+    "/_authenticated/_organization/lifecycle": {
+      id: "/_authenticated/_organization/lifecycle"
       path: "/lifecycle"
       fullPath: "/lifecycle"
-      preLoaderRoute: typeof AuthenticatedWorkspaceLifecycleRouteImport
-      parentRoute: typeof AuthenticatedWorkspaceRoute
+      preLoaderRoute: typeof AuthenticatedOrganizationLifecycleRouteImport
+      parentRoute: typeof AuthenticatedOrganizationRoute
     }
-    "/_authenticated/_workspace/leave-requests": {
-      id: "/_authenticated/_workspace/leave-requests"
+    "/_authenticated/_organization/leave-requests": {
+      id: "/_authenticated/_organization/leave-requests"
       path: "/leave-requests"
       fullPath: "/leave-requests"
-      preLoaderRoute: typeof AuthenticatedWorkspaceLeaveRequestsRouteImport
-      parentRoute: typeof AuthenticatedWorkspaceRoute
+      preLoaderRoute: typeof AuthenticatedOrganizationLeaveRequestsRouteImport
+      parentRoute: typeof AuthenticatedOrganizationRoute
     }
-    "/_authenticated/_workspace/leave-balances": {
-      id: "/_authenticated/_workspace/leave-balances"
+    "/_authenticated/_organization/leave-balances": {
+      id: "/_authenticated/_organization/leave-balances"
       path: "/leave-balances"
       fullPath: "/leave-balances"
-      preLoaderRoute: typeof AuthenticatedWorkspaceLeaveBalancesRouteImport
-      parentRoute: typeof AuthenticatedWorkspaceRoute
+      preLoaderRoute: typeof AuthenticatedOrganizationLeaveBalancesRouteImport
+      parentRoute: typeof AuthenticatedOrganizationRoute
     }
-    "/_authenticated/_workspace/holidays": {
-      id: "/_authenticated/_workspace/holidays"
+    "/_authenticated/_organization/holidays": {
+      id: "/_authenticated/_organization/holidays"
       path: "/holidays"
       fullPath: "/holidays"
-      preLoaderRoute: typeof AuthenticatedWorkspaceHolidaysRouteImport
-      parentRoute: typeof AuthenticatedWorkspaceRoute
+      preLoaderRoute: typeof AuthenticatedOrganizationHolidaysRouteImport
+      parentRoute: typeof AuthenticatedOrganizationRoute
     }
-    "/_authenticated/_workspace/employees": {
-      id: "/_authenticated/_workspace/employees"
+    "/_authenticated/_organization/employees": {
+      id: "/_authenticated/_organization/employees"
       path: "/employees"
       fullPath: "/employees"
-      preLoaderRoute: typeof AuthenticatedWorkspaceEmployeesRouteImport
-      parentRoute: typeof AuthenticatedWorkspaceRoute
+      preLoaderRoute: typeof AuthenticatedOrganizationEmployeesRouteImport
+      parentRoute: typeof AuthenticatedOrganizationRoute
     }
-    "/_authenticated/_workspace/econtracts": {
-      id: "/_authenticated/_workspace/econtracts"
+    "/_authenticated/_organization/econtracts": {
+      id: "/_authenticated/_organization/econtracts"
       path: "/econtracts"
       fullPath: "/econtracts"
-      preLoaderRoute: typeof AuthenticatedWorkspaceEcontractsRouteImport
-      parentRoute: typeof AuthenticatedWorkspaceRoute
+      preLoaderRoute: typeof AuthenticatedOrganizationEcontractsRouteImport
+      parentRoute: typeof AuthenticatedOrganizationRoute
     }
-    "/_authenticated/_workspace/departments": {
-      id: "/_authenticated/_workspace/departments"
+    "/_authenticated/_organization/departments": {
+      id: "/_authenticated/_organization/departments"
       path: "/departments"
       fullPath: "/departments"
-      preLoaderRoute: typeof AuthenticatedWorkspaceDepartmentsRouteImport
-      parentRoute: typeof AuthenticatedWorkspaceRoute
+      preLoaderRoute: typeof AuthenticatedOrganizationDepartmentsRouteImport
+      parentRoute: typeof AuthenticatedOrganizationRoute
     }
-    "/_authenticated/_workspace/dashboard": {
-      id: "/_authenticated/_workspace/dashboard"
+    "/_authenticated/_organization/dashboard": {
+      id: "/_authenticated/_organization/dashboard"
       path: "/dashboard"
       fullPath: "/dashboard"
-      preLoaderRoute: typeof AuthenticatedWorkspaceDashboardRouteImport
-      parentRoute: typeof AuthenticatedWorkspaceRoute
+      preLoaderRoute: typeof AuthenticatedOrganizationDashboardRouteImport
+      parentRoute: typeof AuthenticatedOrganizationRoute
     }
-    "/_authenticated/_workspace/audit-logs": {
-      id: "/_authenticated/_workspace/audit-logs"
+    "/_authenticated/_organization/audit-logs": {
+      id: "/_authenticated/_organization/audit-logs"
       path: "/audit-logs"
       fullPath: "/audit-logs"
-      preLoaderRoute: typeof AuthenticatedWorkspaceAuditLogsRouteImport
-      parentRoute: typeof AuthenticatedWorkspaceRoute
+      preLoaderRoute: typeof AuthenticatedOrganizationAuditLogsRouteImport
+      parentRoute: typeof AuthenticatedOrganizationRoute
     }
-    "/_authenticated/_workspace/attendance-logs": {
-      id: "/_authenticated/_workspace/attendance-logs"
+    "/_authenticated/_organization/attendance-logs": {
+      id: "/_authenticated/_organization/attendance-logs"
       path: "/attendance-logs"
       fullPath: "/attendance-logs"
-      preLoaderRoute: typeof AuthenticatedWorkspaceAttendanceLogsRouteImport
-      parentRoute: typeof AuthenticatedWorkspaceRoute
+      preLoaderRoute: typeof AuthenticatedOrganizationAttendanceLogsRouteImport
+      parentRoute: typeof AuthenticatedOrganizationRoute
     }
-    "/_authenticated/_workspace/attendance-adjustments": {
-      id: "/_authenticated/_workspace/attendance-adjustments"
+    "/_authenticated/_organization/attendance-adjustments": {
+      id: "/_authenticated/_organization/attendance-adjustments"
       path: "/attendance-adjustments"
       fullPath: "/attendance-adjustments"
-      preLoaderRoute: typeof AuthenticatedWorkspaceAttendanceAdjustmentsRouteImport
-      parentRoute: typeof AuthenticatedWorkspaceRoute
+      preLoaderRoute: typeof AuthenticatedOrganizationAttendanceAdjustmentsRouteImport
+      parentRoute: typeof AuthenticatedOrganizationRoute
     }
-    "/_authenticated/_workspace/assignments": {
-      id: "/_authenticated/_workspace/assignments"
+    "/_authenticated/_organization/assignments": {
+      id: "/_authenticated/_organization/assignments"
       path: "/assignments"
       fullPath: "/assignments"
-      preLoaderRoute: typeof AuthenticatedWorkspaceAssignmentsRouteImport
-      parentRoute: typeof AuthenticatedWorkspaceRoute
+      preLoaderRoute: typeof AuthenticatedOrganizationAssignmentsRouteImport
+      parentRoute: typeof AuthenticatedOrganizationRoute
     }
-    "/_authenticated/_workspace/assignment-rules": {
-      id: "/_authenticated/_workspace/assignment-rules"
+    "/_authenticated/_organization/assignment-rules": {
+      id: "/_authenticated/_organization/assignment-rules"
       path: "/assignment-rules"
       fullPath: "/assignment-rules"
-      preLoaderRoute: typeof AuthenticatedWorkspaceAssignmentRulesRouteImport
-      parentRoute: typeof AuthenticatedWorkspaceRoute
+      preLoaderRoute: typeof AuthenticatedOrganizationAssignmentRulesRouteImport
+      parentRoute: typeof AuthenticatedOrganizationRoute
     }
-    "/_authenticated/_workspace/working-patterns/": {
-      id: "/_authenticated/_workspace/working-patterns/"
+    "/_authenticated/_organization/working-patterns/": {
+      id: "/_authenticated/_organization/working-patterns/"
       path: "/"
       fullPath: "/working-patterns/"
-      preLoaderRoute: typeof AuthenticatedWorkspaceWorkingPatternsIndexRouteImport
-      parentRoute: typeof AuthenticatedWorkspaceWorkingPatternsRoute
+      preLoaderRoute: typeof AuthenticatedOrganizationWorkingPatternsIndexRouteImport
+      parentRoute: typeof AuthenticatedOrganizationWorkingPatternsRoute
     }
-    "/_authenticated/_workspace/shifts/": {
-      id: "/_authenticated/_workspace/shifts/"
+    "/_authenticated/_organization/shifts/": {
+      id: "/_authenticated/_organization/shifts/"
       path: "/"
       fullPath: "/shifts/"
-      preLoaderRoute: typeof AuthenticatedWorkspaceShiftsIndexRouteImport
-      parentRoute: typeof AuthenticatedWorkspaceShiftsRoute
+      preLoaderRoute: typeof AuthenticatedOrganizationShiftsIndexRouteImport
+      parentRoute: typeof AuthenticatedOrganizationShiftsRoute
     }
-    "/_authenticated/_workspace/settings/": {
-      id: "/_authenticated/_workspace/settings/"
+    "/_authenticated/_organization/settings/": {
+      id: "/_authenticated/_organization/settings/"
       path: "/"
       fullPath: "/settings/"
-      preLoaderRoute: typeof AuthenticatedWorkspaceSettingsIndexRouteImport
-      parentRoute: typeof AuthenticatedWorkspaceSettingsRoute
+      preLoaderRoute: typeof AuthenticatedOrganizationSettingsIndexRouteImport
+      parentRoute: typeof AuthenticatedOrganizationSettingsRoute
     }
-    "/_authenticated/_workspace/documents/": {
-      id: "/_authenticated/_workspace/documents/"
+    "/_authenticated/_organization/documents/": {
+      id: "/_authenticated/_organization/documents/"
       path: "/documents"
       fullPath: "/documents/"
-      preLoaderRoute: typeof AuthenticatedWorkspaceDocumentsIndexRouteImport
-      parentRoute: typeof AuthenticatedWorkspaceRoute
+      preLoaderRoute: typeof AuthenticatedOrganizationDocumentsIndexRouteImport
+      parentRoute: typeof AuthenticatedOrganizationRoute
     }
-    "/_authenticated/_workspace/assignment-rules/": {
-      id: "/_authenticated/_workspace/assignment-rules/"
+    "/_authenticated/_organization/assignment-rules/": {
+      id: "/_authenticated/_organization/assignment-rules/"
       path: "/"
       fullPath: "/assignment-rules/"
-      preLoaderRoute: typeof AuthenticatedWorkspaceAssignmentRulesIndexRouteImport
-      parentRoute: typeof AuthenticatedWorkspaceAssignmentRulesRoute
+      preLoaderRoute: typeof AuthenticatedOrganizationAssignmentRulesIndexRouteImport
+      parentRoute: typeof AuthenticatedOrganizationAssignmentRulesRoute
     }
-    "/_authenticated/_workspace/approvals/": {
-      id: "/_authenticated/_workspace/approvals/"
+    "/_authenticated/_organization/approvals/": {
+      id: "/_authenticated/_organization/approvals/"
       path: "/approvals"
       fullPath: "/approvals/"
-      preLoaderRoute: typeof AuthenticatedWorkspaceApprovalsIndexRouteImport
-      parentRoute: typeof AuthenticatedWorkspaceRoute
+      preLoaderRoute: typeof AuthenticatedOrganizationApprovalsIndexRouteImport
+      parentRoute: typeof AuthenticatedOrganizationRoute
     }
-    "/_authenticated/_workspace/working-patterns/new": {
-      id: "/_authenticated/_workspace/working-patterns/new"
+    "/_authenticated/_organization/working-patterns/new": {
+      id: "/_authenticated/_organization/working-patterns/new"
       path: "/new"
       fullPath: "/working-patterns/new"
-      preLoaderRoute: typeof AuthenticatedWorkspaceWorkingPatternsNewRouteImport
-      parentRoute: typeof AuthenticatedWorkspaceWorkingPatternsRoute
+      preLoaderRoute: typeof AuthenticatedOrganizationWorkingPatternsNewRouteImport
+      parentRoute: typeof AuthenticatedOrganizationWorkingPatternsRoute
     }
-    "/_authenticated/_workspace/shifts/rules": {
-      id: "/_authenticated/_workspace/shifts/rules"
+    "/_authenticated/_organization/shifts/rules": {
+      id: "/_authenticated/_organization/shifts/rules"
       path: "/rules"
       fullPath: "/shifts/rules"
-      preLoaderRoute: typeof AuthenticatedWorkspaceShiftsRulesRouteImport
-      parentRoute: typeof AuthenticatedWorkspaceShiftsRoute
+      preLoaderRoute: typeof AuthenticatedOrganizationShiftsRulesRouteImport
+      parentRoute: typeof AuthenticatedOrganizationShiftsRoute
     }
-    "/_authenticated/_workspace/shifts/new": {
-      id: "/_authenticated/_workspace/shifts/new"
+    "/_authenticated/_organization/shifts/new": {
+      id: "/_authenticated/_organization/shifts/new"
       path: "/new"
       fullPath: "/shifts/new"
-      preLoaderRoute: typeof AuthenticatedWorkspaceShiftsNewRouteImport
-      parentRoute: typeof AuthenticatedWorkspaceShiftsRoute
+      preLoaderRoute: typeof AuthenticatedOrganizationShiftsNewRouteImport
+      parentRoute: typeof AuthenticatedOrganizationShiftsRoute
     }
-    "/_authenticated/_workspace/settings/workflows": {
-      id: "/_authenticated/_workspace/settings/workflows"
+    "/_authenticated/_organization/settings/workflows": {
+      id: "/_authenticated/_organization/settings/workflows"
       path: "/workflows"
       fullPath: "/settings/workflows"
-      preLoaderRoute: typeof AuthenticatedWorkspaceSettingsWorkflowsRouteImport
-      parentRoute: typeof AuthenticatedWorkspaceSettingsRoute
+      preLoaderRoute: typeof AuthenticatedOrganizationSettingsWorkflowsRouteImport
+      parentRoute: typeof AuthenticatedOrganizationSettingsRoute
     }
-    "/_authenticated/_workspace/settings/time": {
-      id: "/_authenticated/_workspace/settings/time"
+    "/_authenticated/_organization/settings/time": {
+      id: "/_authenticated/_organization/settings/time"
       path: "/time"
       fullPath: "/settings/time"
-      preLoaderRoute: typeof AuthenticatedWorkspaceSettingsTimeRouteImport
-      parentRoute: typeof AuthenticatedWorkspaceSettingsRoute
+      preLoaderRoute: typeof AuthenticatedOrganizationSettingsTimeRouteImport
+      parentRoute: typeof AuthenticatedOrganizationSettingsRoute
     }
-    "/_authenticated/_workspace/settings/storage": {
-      id: "/_authenticated/_workspace/settings/storage"
+    "/_authenticated/_organization/settings/storage": {
+      id: "/_authenticated/_organization/settings/storage"
       path: "/storage"
       fullPath: "/settings/storage"
-      preLoaderRoute: typeof AuthenticatedWorkspaceSettingsStorageRouteImport
-      parentRoute: typeof AuthenticatedWorkspaceSettingsRoute
+      preLoaderRoute: typeof AuthenticatedOrganizationSettingsStorageRouteImport
+      parentRoute: typeof AuthenticatedOrganizationSettingsRoute
     }
-    "/_authenticated/_workspace/settings/smtp": {
-      id: "/_authenticated/_workspace/settings/smtp"
+    "/_authenticated/_organization/settings/smtp": {
+      id: "/_authenticated/_organization/settings/smtp"
       path: "/smtp"
       fullPath: "/settings/smtp"
-      preLoaderRoute: typeof AuthenticatedWorkspaceSettingsSmtpRouteImport
-      parentRoute: typeof AuthenticatedWorkspaceSettingsRoute
+      preLoaderRoute: typeof AuthenticatedOrganizationSettingsSmtpRouteImport
+      parentRoute: typeof AuthenticatedOrganizationSettingsRoute
     }
-    "/_authenticated/_workspace/settings/roles": {
-      id: "/_authenticated/_workspace/settings/roles"
+    "/_authenticated/_organization/settings/roles": {
+      id: "/_authenticated/_organization/settings/roles"
       path: "/roles"
       fullPath: "/settings/roles"
-      preLoaderRoute: typeof AuthenticatedWorkspaceSettingsRolesRouteImport
-      parentRoute: typeof AuthenticatedWorkspaceSettingsRoute
+      preLoaderRoute: typeof AuthenticatedOrganizationSettingsRolesRouteImport
+      parentRoute: typeof AuthenticatedOrganizationSettingsRoute
     }
-    "/_authenticated/_workspace/settings/permissions": {
-      id: "/_authenticated/_workspace/settings/permissions"
+    "/_authenticated/_organization/settings/permissions": {
+      id: "/_authenticated/_organization/settings/permissions"
       path: "/permissions"
       fullPath: "/settings/permissions"
-      preLoaderRoute: typeof AuthenticatedWorkspaceSettingsPermissionsRouteImport
-      parentRoute: typeof AuthenticatedWorkspaceSettingsRoute
+      preLoaderRoute: typeof AuthenticatedOrganizationSettingsPermissionsRouteImport
+      parentRoute: typeof AuthenticatedOrganizationSettingsRoute
     }
-    "/_authenticated/_workspace/settings/payroll": {
-      id: "/_authenticated/_workspace/settings/payroll"
+    "/_authenticated/_organization/settings/payroll": {
+      id: "/_authenticated/_organization/settings/payroll"
       path: "/payroll"
       fullPath: "/settings/payroll"
-      preLoaderRoute: typeof AuthenticatedWorkspaceSettingsPayrollRouteImport
-      parentRoute: typeof AuthenticatedWorkspaceSettingsRoute
+      preLoaderRoute: typeof AuthenticatedOrganizationSettingsPayrollRouteImport
+      parentRoute: typeof AuthenticatedOrganizationSettingsRoute
     }
-    "/_authenticated/_workspace/settings/overtime": {
-      id: "/_authenticated/_workspace/settings/overtime"
+    "/_authenticated/_organization/settings/overtime": {
+      id: "/_authenticated/_organization/settings/overtime"
       path: "/overtime"
       fullPath: "/settings/overtime"
-      preLoaderRoute: typeof AuthenticatedWorkspaceSettingsOvertimeRouteImport
-      parentRoute: typeof AuthenticatedWorkspaceSettingsRoute
+      preLoaderRoute: typeof AuthenticatedOrganizationSettingsOvertimeRouteImport
+      parentRoute: typeof AuthenticatedOrganizationSettingsRoute
     }
-    "/_authenticated/_workspace/settings/organization": {
-      id: "/_authenticated/_workspace/settings/organization"
+    "/_authenticated/_organization/settings/organization": {
+      id: "/_authenticated/_organization/settings/organization"
       path: "/organization"
       fullPath: "/settings/organization"
-      preLoaderRoute: typeof AuthenticatedWorkspaceSettingsOrganizationRouteImport
-      parentRoute: typeof AuthenticatedWorkspaceSettingsRoute
+      preLoaderRoute: typeof AuthenticatedOrganizationSettingsOrganizationRouteImport
+      parentRoute: typeof AuthenticatedOrganizationSettingsRoute
     }
-    "/_authenticated/_workspace/settings/members": {
-      id: "/_authenticated/_workspace/settings/members"
+    "/_authenticated/_organization/settings/members": {
+      id: "/_authenticated/_organization/settings/members"
       path: "/members"
       fullPath: "/settings/members"
-      preLoaderRoute: typeof AuthenticatedWorkspaceSettingsMembersRouteImport
-      parentRoute: typeof AuthenticatedWorkspaceSettingsRoute
+      preLoaderRoute: typeof AuthenticatedOrganizationSettingsMembersRouteImport
+      parentRoute: typeof AuthenticatedOrganizationSettingsRoute
     }
-    "/_authenticated/_workspace/settings/locations": {
-      id: "/_authenticated/_workspace/settings/locations"
+    "/_authenticated/_organization/settings/locations": {
+      id: "/_authenticated/_organization/settings/locations"
       path: "/locations"
       fullPath: "/settings/locations"
-      preLoaderRoute: typeof AuthenticatedWorkspaceSettingsLocationsRouteImport
-      parentRoute: typeof AuthenticatedWorkspaceSettingsRoute
+      preLoaderRoute: typeof AuthenticatedOrganizationSettingsLocationsRouteImport
+      parentRoute: typeof AuthenticatedOrganizationSettingsRoute
     }
-    "/_authenticated/_workspace/settings/lifecycle-templates": {
-      id: "/_authenticated/_workspace/settings/lifecycle-templates"
+    "/_authenticated/_organization/settings/lifecycle-templates": {
+      id: "/_authenticated/_organization/settings/lifecycle-templates"
       path: "/lifecycle-templates"
       fullPath: "/settings/lifecycle-templates"
-      preLoaderRoute: typeof AuthenticatedWorkspaceSettingsLifecycleTemplatesRouteImport
-      parentRoute: typeof AuthenticatedWorkspaceSettingsRoute
+      preLoaderRoute: typeof AuthenticatedOrganizationSettingsLifecycleTemplatesRouteImport
+      parentRoute: typeof AuthenticatedOrganizationSettingsRoute
     }
-    "/_authenticated/_workspace/settings/leave": {
-      id: "/_authenticated/_workspace/settings/leave"
+    "/_authenticated/_organization/settings/leave": {
+      id: "/_authenticated/_organization/settings/leave"
       path: "/leave"
       fullPath: "/settings/leave"
-      preLoaderRoute: typeof AuthenticatedWorkspaceSettingsLeaveRouteImport
-      parentRoute: typeof AuthenticatedWorkspaceSettingsRoute
+      preLoaderRoute: typeof AuthenticatedOrganizationSettingsLeaveRouteImport
+      parentRoute: typeof AuthenticatedOrganizationSettingsRoute
     }
-    "/_authenticated/_workspace/settings/holidays": {
-      id: "/_authenticated/_workspace/settings/holidays"
+    "/_authenticated/_organization/settings/holidays": {
+      id: "/_authenticated/_organization/settings/holidays"
       path: "/holidays"
       fullPath: "/settings/holidays"
-      preLoaderRoute: typeof AuthenticatedWorkspaceSettingsHolidaysRouteImport
-      parentRoute: typeof AuthenticatedWorkspaceSettingsRoute
+      preLoaderRoute: typeof AuthenticatedOrganizationSettingsHolidaysRouteImport
+      parentRoute: typeof AuthenticatedOrganizationSettingsRoute
     }
-    "/_authenticated/_workspace/settings/general": {
-      id: "/_authenticated/_workspace/settings/general"
+    "/_authenticated/_organization/settings/general": {
+      id: "/_authenticated/_organization/settings/general"
       path: "/general"
       fullPath: "/settings/general"
-      preLoaderRoute: typeof AuthenticatedWorkspaceSettingsGeneralRouteImport
-      parentRoute: typeof AuthenticatedWorkspaceSettingsRoute
+      preLoaderRoute: typeof AuthenticatedOrganizationSettingsGeneralRouteImport
+      parentRoute: typeof AuthenticatedOrganizationSettingsRoute
     }
-    "/_authenticated/_workspace/settings/econtracts": {
-      id: "/_authenticated/_workspace/settings/econtracts"
+    "/_authenticated/_organization/settings/econtracts": {
+      id: "/_authenticated/_organization/settings/econtracts"
       path: "/econtracts"
       fullPath: "/settings/econtracts"
-      preLoaderRoute: typeof AuthenticatedWorkspaceSettingsEcontractsRouteImport
-      parentRoute: typeof AuthenticatedWorkspaceSettingsRoute
+      preLoaderRoute: typeof AuthenticatedOrganizationSettingsEcontractsRouteImport
+      parentRoute: typeof AuthenticatedOrganizationSettingsRoute
     }
-    "/_authenticated/_workspace/settings/custom-fields": {
-      id: "/_authenticated/_workspace/settings/custom-fields"
+    "/_authenticated/_organization/settings/custom-fields": {
+      id: "/_authenticated/_organization/settings/custom-fields"
       path: "/custom-fields"
       fullPath: "/settings/custom-fields"
-      preLoaderRoute: typeof AuthenticatedWorkspaceSettingsCustomFieldsRouteImport
-      parentRoute: typeof AuthenticatedWorkspaceSettingsRoute
+      preLoaderRoute: typeof AuthenticatedOrganizationSettingsCustomFieldsRouteImport
+      parentRoute: typeof AuthenticatedOrganizationSettingsRoute
     }
-    "/_authenticated/_workspace/settings/condition-types": {
-      id: "/_authenticated/_workspace/settings/condition-types"
+    "/_authenticated/_organization/settings/condition-types": {
+      id: "/_authenticated/_organization/settings/condition-types"
       path: "/condition-types"
       fullPath: "/settings/condition-types"
-      preLoaderRoute: typeof AuthenticatedWorkspaceSettingsConditionTypesRouteImport
-      parentRoute: typeof AuthenticatedWorkspaceSettingsRoute
+      preLoaderRoute: typeof AuthenticatedOrganizationSettingsConditionTypesRouteImport
+      parentRoute: typeof AuthenticatedOrganizationSettingsRoute
     }
-    "/_authenticated/_workspace/settings/billing": {
-      id: "/_authenticated/_workspace/settings/billing"
+    "/_authenticated/_organization/settings/billing": {
+      id: "/_authenticated/_organization/settings/billing"
       path: "/billing"
       fullPath: "/settings/billing"
-      preLoaderRoute: typeof AuthenticatedWorkspaceSettingsBillingRouteImport
-      parentRoute: typeof AuthenticatedWorkspaceSettingsRoute
+      preLoaderRoute: typeof AuthenticatedOrganizationSettingsBillingRouteImport
+      parentRoute: typeof AuthenticatedOrganizationSettingsRoute
     }
-    "/_authenticated/_workspace/ess/profile": {
-      id: "/_authenticated/_workspace/ess/profile"
+    "/_authenticated/_organization/ess/profile": {
+      id: "/_authenticated/_organization/ess/profile"
       path: "/ess/profile"
       fullPath: "/ess/profile"
-      preLoaderRoute: typeof AuthenticatedWorkspaceEssProfileRouteImport
-      parentRoute: typeof AuthenticatedWorkspaceRoute
+      preLoaderRoute: typeof AuthenticatedOrganizationEssProfileRouteImport
+      parentRoute: typeof AuthenticatedOrganizationRoute
     }
-    "/_authenticated/_workspace/ess/ot": {
-      id: "/_authenticated/_workspace/ess/ot"
+    "/_authenticated/_organization/ess/ot": {
+      id: "/_authenticated/_organization/ess/ot"
       path: "/ess/ot"
       fullPath: "/ess/ot"
-      preLoaderRoute: typeof AuthenticatedWorkspaceEssOtRouteImport
-      parentRoute: typeof AuthenticatedWorkspaceRoute
+      preLoaderRoute: typeof AuthenticatedOrganizationEssOtRouteImport
+      parentRoute: typeof AuthenticatedOrganizationRoute
     }
-    "/_authenticated/_workspace/ess/documents": {
-      id: "/_authenticated/_workspace/ess/documents"
+    "/_authenticated/_organization/ess/documents": {
+      id: "/_authenticated/_organization/ess/documents"
       path: "/ess/documents"
       fullPath: "/ess/documents"
-      preLoaderRoute: typeof AuthenticatedWorkspaceEssDocumentsRouteImport
-      parentRoute: typeof AuthenticatedWorkspaceRoute
+      preLoaderRoute: typeof AuthenticatedOrganizationEssDocumentsRouteImport
+      parentRoute: typeof AuthenticatedOrganizationRoute
     }
-    "/_authenticated/_workspace/ess/clock": {
-      id: "/_authenticated/_workspace/ess/clock"
+    "/_authenticated/_organization/ess/clock": {
+      id: "/_authenticated/_organization/ess/clock"
       path: "/ess/clock"
       fullPath: "/ess/clock"
-      preLoaderRoute: typeof AuthenticatedWorkspaceEssClockRouteImport
-      parentRoute: typeof AuthenticatedWorkspaceRoute
+      preLoaderRoute: typeof AuthenticatedOrganizationEssClockRouteImport
+      parentRoute: typeof AuthenticatedOrganizationRoute
     }
-    "/_authenticated/_workspace/ess/attendance": {
-      id: "/_authenticated/_workspace/ess/attendance"
+    "/_authenticated/_organization/ess/attendance": {
+      id: "/_authenticated/_organization/ess/attendance"
       path: "/ess/attendance"
       fullPath: "/ess/attendance"
-      preLoaderRoute: typeof AuthenticatedWorkspaceEssAttendanceRouteImport
-      parentRoute: typeof AuthenticatedWorkspaceRoute
+      preLoaderRoute: typeof AuthenticatedOrganizationEssAttendanceRouteImport
+      parentRoute: typeof AuthenticatedOrganizationRoute
     }
-    "/_authenticated/_workspace/employees_/$employeeId": {
-      id: "/_authenticated/_workspace/employees_/$employeeId"
+    "/_authenticated/_organization/employees_/$employeeId": {
+      id: "/_authenticated/_organization/employees_/$employeeId"
       path: "/employees/$employeeId"
       fullPath: "/employees/$employeeId"
-      preLoaderRoute: typeof AuthenticatedWorkspaceEmployeesEmployeeIdRouteImport
-      parentRoute: typeof AuthenticatedWorkspaceRoute
+      preLoaderRoute: typeof AuthenticatedOrganizationEmployeesEmployeeIdRouteImport
+      parentRoute: typeof AuthenticatedOrganizationRoute
     }
-    "/_authenticated/_workspace/documents/templates": {
-      id: "/_authenticated/_workspace/documents/templates"
+    "/_authenticated/_organization/documents/templates": {
+      id: "/_authenticated/_organization/documents/templates"
       path: "/documents/templates"
       fullPath: "/documents/templates"
-      preLoaderRoute: typeof AuthenticatedWorkspaceDocumentsTemplatesRouteImport
-      parentRoute: typeof AuthenticatedWorkspaceRoute
+      preLoaderRoute: typeof AuthenticatedOrganizationDocumentsTemplatesRouteImport
+      parentRoute: typeof AuthenticatedOrganizationRoute
     }
-    "/_authenticated/_workspace/assignment-rules/new": {
-      id: "/_authenticated/_workspace/assignment-rules/new"
+    "/_authenticated/_organization/assignment-rules/new": {
+      id: "/_authenticated/_organization/assignment-rules/new"
       path: "/new"
       fullPath: "/assignment-rules/new"
-      preLoaderRoute: typeof AuthenticatedWorkspaceAssignmentRulesNewRouteImport
-      parentRoute: typeof AuthenticatedWorkspaceAssignmentRulesRoute
+      preLoaderRoute: typeof AuthenticatedOrganizationAssignmentRulesNewRouteImport
+      parentRoute: typeof AuthenticatedOrganizationAssignmentRulesRoute
     }
-    "/_authenticated/_workspace/approvals/ot": {
-      id: "/_authenticated/_workspace/approvals/ot"
+    "/_authenticated/_organization/approvals/ot": {
+      id: "/_authenticated/_organization/approvals/ot"
       path: "/approvals/ot"
       fullPath: "/approvals/ot"
-      preLoaderRoute: typeof AuthenticatedWorkspaceApprovalsOtRouteImport
-      parentRoute: typeof AuthenticatedWorkspaceRoute
+      preLoaderRoute: typeof AuthenticatedOrganizationApprovalsOtRouteImport
+      parentRoute: typeof AuthenticatedOrganizationRoute
     }
     "/_authenticated/_infra/system/smtp": {
       id: "/_authenticated/_infra/system/smtp"
@@ -1824,82 +1827,82 @@ declare module "@tanstack/react-router" {
       preLoaderRoute: typeof AuthenticatedInfraInfraMonitorRouteImport
       parentRoute: typeof AuthenticatedInfraRoute
     }
-    "/_authenticated/_workspace/shifts/rules/": {
-      id: "/_authenticated/_workspace/shifts/rules/"
+    "/_authenticated/_organization/shifts/rules/": {
+      id: "/_authenticated/_organization/shifts/rules/"
       path: "/"
       fullPath: "/shifts/rules/"
-      preLoaderRoute: typeof AuthenticatedWorkspaceShiftsRulesIndexRouteImport
-      parentRoute: typeof AuthenticatedWorkspaceShiftsRulesRoute
+      preLoaderRoute: typeof AuthenticatedOrganizationShiftsRulesIndexRouteImport
+      parentRoute: typeof AuthenticatedOrganizationShiftsRulesRoute
     }
-    "/_authenticated/_workspace/settings/workflows/": {
-      id: "/_authenticated/_workspace/settings/workflows/"
+    "/_authenticated/_organization/settings/workflows/": {
+      id: "/_authenticated/_organization/settings/workflows/"
       path: "/"
       fullPath: "/settings/workflows/"
-      preLoaderRoute: typeof AuthenticatedWorkspaceSettingsWorkflowsIndexRouteImport
-      parentRoute: typeof AuthenticatedWorkspaceSettingsWorkflowsRoute
+      preLoaderRoute: typeof AuthenticatedOrganizationSettingsWorkflowsIndexRouteImport
+      parentRoute: typeof AuthenticatedOrganizationSettingsWorkflowsRoute
     }
-    "/_authenticated/_workspace/working-patterns/$patternId/edit": {
-      id: "/_authenticated/_workspace/working-patterns/$patternId/edit"
+    "/_authenticated/_organization/working-patterns/$patternId/edit": {
+      id: "/_authenticated/_organization/working-patterns/$patternId/edit"
       path: "/$patternId/edit"
       fullPath: "/working-patterns/$patternId/edit"
-      preLoaderRoute: typeof AuthenticatedWorkspaceWorkingPatternsPatternIdEditRouteImport
-      parentRoute: typeof AuthenticatedWorkspaceWorkingPatternsRoute
+      preLoaderRoute: typeof AuthenticatedOrganizationWorkingPatternsPatternIdEditRouteImport
+      parentRoute: typeof AuthenticatedOrganizationWorkingPatternsRoute
     }
-    "/_authenticated/_workspace/shifts/$shiftId/edit": {
-      id: "/_authenticated/_workspace/shifts/$shiftId/edit"
+    "/_authenticated/_organization/shifts/$shiftId/edit": {
+      id: "/_authenticated/_organization/shifts/$shiftId/edit"
       path: "/$shiftId/edit"
       fullPath: "/shifts/$shiftId/edit"
-      preLoaderRoute: typeof AuthenticatedWorkspaceShiftsShiftIdEditRouteImport
-      parentRoute: typeof AuthenticatedWorkspaceShiftsRoute
+      preLoaderRoute: typeof AuthenticatedOrganizationShiftsShiftIdEditRouteImport
+      parentRoute: typeof AuthenticatedOrganizationShiftsRoute
     }
-    "/_authenticated/_workspace/settings/workflows/new": {
-      id: "/_authenticated/_workspace/settings/workflows/new"
+    "/_authenticated/_organization/settings/workflows/new": {
+      id: "/_authenticated/_organization/settings/workflows/new"
       path: "/new"
       fullPath: "/settings/workflows/new"
-      preLoaderRoute: typeof AuthenticatedWorkspaceSettingsWorkflowsNewRouteImport
-      parentRoute: typeof AuthenticatedWorkspaceSettingsWorkflowsRoute
+      preLoaderRoute: typeof AuthenticatedOrganizationSettingsWorkflowsNewRouteImport
+      parentRoute: typeof AuthenticatedOrganizationSettingsWorkflowsRoute
     }
-    "/_authenticated/_workspace/assignment-rules/$ruleId/edit": {
-      id: "/_authenticated/_workspace/assignment-rules/$ruleId/edit"
+    "/_authenticated/_organization/assignment-rules/$ruleId/edit": {
+      id: "/_authenticated/_organization/assignment-rules/$ruleId/edit"
       path: "/$ruleId/edit"
       fullPath: "/assignment-rules/$ruleId/edit"
-      preLoaderRoute: typeof AuthenticatedWorkspaceAssignmentRulesRuleIdEditRouteImport
-      parentRoute: typeof AuthenticatedWorkspaceAssignmentRulesRoute
+      preLoaderRoute: typeof AuthenticatedOrganizationAssignmentRulesRuleIdEditRouteImport
+      parentRoute: typeof AuthenticatedOrganizationAssignmentRulesRoute
     }
-    "/_authenticated/_workspace/shifts/rules/working-patterns/new": {
-      id: "/_authenticated/_workspace/shifts/rules/working-patterns/new"
+    "/_authenticated/_organization/shifts/rules/working-patterns/new": {
+      id: "/_authenticated/_organization/shifts/rules/working-patterns/new"
       path: "/working-patterns/new"
       fullPath: "/shifts/rules/working-patterns/new"
-      preLoaderRoute: typeof AuthenticatedWorkspaceShiftsRulesWorkingPatternsNewRouteImport
-      parentRoute: typeof AuthenticatedWorkspaceShiftsRulesRoute
+      preLoaderRoute: typeof AuthenticatedOrganizationShiftsRulesWorkingPatternsNewRouteImport
+      parentRoute: typeof AuthenticatedOrganizationShiftsRulesRoute
     }
-    "/_authenticated/_workspace/shifts/rules/assignment-rules/new": {
-      id: "/_authenticated/_workspace/shifts/rules/assignment-rules/new"
+    "/_authenticated/_organization/shifts/rules/assignment-rules/new": {
+      id: "/_authenticated/_organization/shifts/rules/assignment-rules/new"
       path: "/assignment-rules/new"
       fullPath: "/shifts/rules/assignment-rules/new"
-      preLoaderRoute: typeof AuthenticatedWorkspaceShiftsRulesAssignmentRulesNewRouteImport
-      parentRoute: typeof AuthenticatedWorkspaceShiftsRulesRoute
+      preLoaderRoute: typeof AuthenticatedOrganizationShiftsRulesAssignmentRulesNewRouteImport
+      parentRoute: typeof AuthenticatedOrganizationShiftsRulesRoute
     }
-    "/_authenticated/_workspace/settings/workflows/$workflowId/edit": {
-      id: "/_authenticated/_workspace/settings/workflows/$workflowId/edit"
+    "/_authenticated/_organization/settings/workflows/$workflowId/edit": {
+      id: "/_authenticated/_organization/settings/workflows/$workflowId/edit"
       path: "/$workflowId/edit"
       fullPath: "/settings/workflows/$workflowId/edit"
-      preLoaderRoute: typeof AuthenticatedWorkspaceSettingsWorkflowsWorkflowIdEditRouteImport
-      parentRoute: typeof AuthenticatedWorkspaceSettingsWorkflowsRoute
+      preLoaderRoute: typeof AuthenticatedOrganizationSettingsWorkflowsWorkflowIdEditRouteImport
+      parentRoute: typeof AuthenticatedOrganizationSettingsWorkflowsRoute
     }
-    "/_authenticated/_workspace/shifts/rules/working-patterns/$patternId/edit": {
-      id: "/_authenticated/_workspace/shifts/rules/working-patterns/$patternId/edit"
+    "/_authenticated/_organization/shifts/rules/working-patterns/$patternId/edit": {
+      id: "/_authenticated/_organization/shifts/rules/working-patterns/$patternId/edit"
       path: "/working-patterns/$patternId/edit"
       fullPath: "/shifts/rules/working-patterns/$patternId/edit"
-      preLoaderRoute: typeof AuthenticatedWorkspaceShiftsRulesWorkingPatternsPatternIdEditRouteImport
-      parentRoute: typeof AuthenticatedWorkspaceShiftsRulesRoute
+      preLoaderRoute: typeof AuthenticatedOrganizationShiftsRulesWorkingPatternsPatternIdEditRouteImport
+      parentRoute: typeof AuthenticatedOrganizationShiftsRulesRoute
     }
-    "/_authenticated/_workspace/shifts/rules/assignment-rules/$ruleId/edit": {
-      id: "/_authenticated/_workspace/shifts/rules/assignment-rules/$ruleId/edit"
+    "/_authenticated/_organization/shifts/rules/assignment-rules/$ruleId/edit": {
+      id: "/_authenticated/_organization/shifts/rules/assignment-rules/$ruleId/edit"
       path: "/assignment-rules/$ruleId/edit"
       fullPath: "/shifts/rules/assignment-rules/$ruleId/edit"
-      preLoaderRoute: typeof AuthenticatedWorkspaceShiftsRulesAssignmentRulesRuleIdEditRouteImport
-      parentRoute: typeof AuthenticatedWorkspaceShiftsRulesRoute
+      preLoaderRoute: typeof AuthenticatedOrganizationShiftsRulesAssignmentRulesRuleIdEditRouteImport
+      parentRoute: typeof AuthenticatedOrganizationShiftsRulesRoute
     }
   }
 }
@@ -1917,301 +1920,312 @@ const AuthenticatedInfraRouteChildren: AuthenticatedInfraRouteChildren = {
 const AuthenticatedInfraRouteWithChildren =
   AuthenticatedInfraRoute._addFileChildren(AuthenticatedInfraRouteChildren)
 
-interface AuthenticatedWorkspaceAssignmentRulesRouteChildren {
-  AuthenticatedWorkspaceAssignmentRulesNewRoute: typeof AuthenticatedWorkspaceAssignmentRulesNewRoute
-  AuthenticatedWorkspaceAssignmentRulesIndexRoute: typeof AuthenticatedWorkspaceAssignmentRulesIndexRoute
-  AuthenticatedWorkspaceAssignmentRulesRuleIdEditRoute: typeof AuthenticatedWorkspaceAssignmentRulesRuleIdEditRoute
+interface AuthenticatedOrganizationAssignmentRulesRouteChildren {
+  AuthenticatedOrganizationAssignmentRulesNewRoute: typeof AuthenticatedOrganizationAssignmentRulesNewRoute
+  AuthenticatedOrganizationAssignmentRulesIndexRoute: typeof AuthenticatedOrganizationAssignmentRulesIndexRoute
+  AuthenticatedOrganizationAssignmentRulesRuleIdEditRoute: typeof AuthenticatedOrganizationAssignmentRulesRuleIdEditRoute
 }
 
-const AuthenticatedWorkspaceAssignmentRulesRouteChildren: AuthenticatedWorkspaceAssignmentRulesRouteChildren =
+const AuthenticatedOrganizationAssignmentRulesRouteChildren: AuthenticatedOrganizationAssignmentRulesRouteChildren =
   {
-    AuthenticatedWorkspaceAssignmentRulesNewRoute:
-      AuthenticatedWorkspaceAssignmentRulesNewRoute,
-    AuthenticatedWorkspaceAssignmentRulesIndexRoute:
-      AuthenticatedWorkspaceAssignmentRulesIndexRoute,
-    AuthenticatedWorkspaceAssignmentRulesRuleIdEditRoute:
-      AuthenticatedWorkspaceAssignmentRulesRuleIdEditRoute,
+    AuthenticatedOrganizationAssignmentRulesNewRoute:
+      AuthenticatedOrganizationAssignmentRulesNewRoute,
+    AuthenticatedOrganizationAssignmentRulesIndexRoute:
+      AuthenticatedOrganizationAssignmentRulesIndexRoute,
+    AuthenticatedOrganizationAssignmentRulesRuleIdEditRoute:
+      AuthenticatedOrganizationAssignmentRulesRuleIdEditRoute,
   }
 
-const AuthenticatedWorkspaceAssignmentRulesRouteWithChildren =
-  AuthenticatedWorkspaceAssignmentRulesRoute._addFileChildren(
-    AuthenticatedWorkspaceAssignmentRulesRouteChildren,
+const AuthenticatedOrganizationAssignmentRulesRouteWithChildren =
+  AuthenticatedOrganizationAssignmentRulesRoute._addFileChildren(
+    AuthenticatedOrganizationAssignmentRulesRouteChildren,
   )
 
-interface AuthenticatedWorkspaceSettingsWorkflowsRouteChildren {
-  AuthenticatedWorkspaceSettingsWorkflowsNewRoute: typeof AuthenticatedWorkspaceSettingsWorkflowsNewRoute
-  AuthenticatedWorkspaceSettingsWorkflowsIndexRoute: typeof AuthenticatedWorkspaceSettingsWorkflowsIndexRoute
-  AuthenticatedWorkspaceSettingsWorkflowsWorkflowIdEditRoute: typeof AuthenticatedWorkspaceSettingsWorkflowsWorkflowIdEditRoute
+interface AuthenticatedOrganizationSettingsWorkflowsRouteChildren {
+  AuthenticatedOrganizationSettingsWorkflowsNewRoute: typeof AuthenticatedOrganizationSettingsWorkflowsNewRoute
+  AuthenticatedOrganizationSettingsWorkflowsIndexRoute: typeof AuthenticatedOrganizationSettingsWorkflowsIndexRoute
+  AuthenticatedOrganizationSettingsWorkflowsWorkflowIdEditRoute: typeof AuthenticatedOrganizationSettingsWorkflowsWorkflowIdEditRoute
 }
 
-const AuthenticatedWorkspaceSettingsWorkflowsRouteChildren: AuthenticatedWorkspaceSettingsWorkflowsRouteChildren =
+const AuthenticatedOrganizationSettingsWorkflowsRouteChildren: AuthenticatedOrganizationSettingsWorkflowsRouteChildren =
   {
-    AuthenticatedWorkspaceSettingsWorkflowsNewRoute:
-      AuthenticatedWorkspaceSettingsWorkflowsNewRoute,
-    AuthenticatedWorkspaceSettingsWorkflowsIndexRoute:
-      AuthenticatedWorkspaceSettingsWorkflowsIndexRoute,
-    AuthenticatedWorkspaceSettingsWorkflowsWorkflowIdEditRoute:
-      AuthenticatedWorkspaceSettingsWorkflowsWorkflowIdEditRoute,
+    AuthenticatedOrganizationSettingsWorkflowsNewRoute:
+      AuthenticatedOrganizationSettingsWorkflowsNewRoute,
+    AuthenticatedOrganizationSettingsWorkflowsIndexRoute:
+      AuthenticatedOrganizationSettingsWorkflowsIndexRoute,
+    AuthenticatedOrganizationSettingsWorkflowsWorkflowIdEditRoute:
+      AuthenticatedOrganizationSettingsWorkflowsWorkflowIdEditRoute,
   }
 
-const AuthenticatedWorkspaceSettingsWorkflowsRouteWithChildren =
-  AuthenticatedWorkspaceSettingsWorkflowsRoute._addFileChildren(
-    AuthenticatedWorkspaceSettingsWorkflowsRouteChildren,
+const AuthenticatedOrganizationSettingsWorkflowsRouteWithChildren =
+  AuthenticatedOrganizationSettingsWorkflowsRoute._addFileChildren(
+    AuthenticatedOrganizationSettingsWorkflowsRouteChildren,
   )
 
-interface AuthenticatedWorkspaceSettingsRouteChildren {
-  AuthenticatedWorkspaceSettingsBillingRoute: typeof AuthenticatedWorkspaceSettingsBillingRoute
-  AuthenticatedWorkspaceSettingsConditionTypesRoute: typeof AuthenticatedWorkspaceSettingsConditionTypesRoute
-  AuthenticatedWorkspaceSettingsCustomFieldsRoute: typeof AuthenticatedWorkspaceSettingsCustomFieldsRoute
-  AuthenticatedWorkspaceSettingsEcontractsRoute: typeof AuthenticatedWorkspaceSettingsEcontractsRoute
-  AuthenticatedWorkspaceSettingsGeneralRoute: typeof AuthenticatedWorkspaceSettingsGeneralRoute
-  AuthenticatedWorkspaceSettingsHolidaysRoute: typeof AuthenticatedWorkspaceSettingsHolidaysRoute
-  AuthenticatedWorkspaceSettingsLeaveRoute: typeof AuthenticatedWorkspaceSettingsLeaveRoute
-  AuthenticatedWorkspaceSettingsLifecycleTemplatesRoute: typeof AuthenticatedWorkspaceSettingsLifecycleTemplatesRoute
-  AuthenticatedWorkspaceSettingsLocationsRoute: typeof AuthenticatedWorkspaceSettingsLocationsRoute
-  AuthenticatedWorkspaceSettingsMembersRoute: typeof AuthenticatedWorkspaceSettingsMembersRoute
-  AuthenticatedWorkspaceSettingsOrganizationRoute: typeof AuthenticatedWorkspaceSettingsOrganizationRoute
-  AuthenticatedWorkspaceSettingsOvertimeRoute: typeof AuthenticatedWorkspaceSettingsOvertimeRoute
-  AuthenticatedWorkspaceSettingsPayrollRoute: typeof AuthenticatedWorkspaceSettingsPayrollRoute
-  AuthenticatedWorkspaceSettingsPermissionsRoute: typeof AuthenticatedWorkspaceSettingsPermissionsRoute
-  AuthenticatedWorkspaceSettingsRolesRoute: typeof AuthenticatedWorkspaceSettingsRolesRoute
-  AuthenticatedWorkspaceSettingsSmtpRoute: typeof AuthenticatedWorkspaceSettingsSmtpRoute
-  AuthenticatedWorkspaceSettingsStorageRoute: typeof AuthenticatedWorkspaceSettingsStorageRoute
-  AuthenticatedWorkspaceSettingsTimeRoute: typeof AuthenticatedWorkspaceSettingsTimeRoute
-  AuthenticatedWorkspaceSettingsWorkflowsRoute: typeof AuthenticatedWorkspaceSettingsWorkflowsRouteWithChildren
-  AuthenticatedWorkspaceSettingsIndexRoute: typeof AuthenticatedWorkspaceSettingsIndexRoute
+interface AuthenticatedOrganizationSettingsRouteChildren {
+  AuthenticatedOrganizationSettingsBillingRoute: typeof AuthenticatedOrganizationSettingsBillingRoute
+  AuthenticatedOrganizationSettingsConditionTypesRoute: typeof AuthenticatedOrganizationSettingsConditionTypesRoute
+  AuthenticatedOrganizationSettingsCustomFieldsRoute: typeof AuthenticatedOrganizationSettingsCustomFieldsRoute
+  AuthenticatedOrganizationSettingsEcontractsRoute: typeof AuthenticatedOrganizationSettingsEcontractsRoute
+  AuthenticatedOrganizationSettingsGeneralRoute: typeof AuthenticatedOrganizationSettingsGeneralRoute
+  AuthenticatedOrganizationSettingsHolidaysRoute: typeof AuthenticatedOrganizationSettingsHolidaysRoute
+  AuthenticatedOrganizationSettingsLeaveRoute: typeof AuthenticatedOrganizationSettingsLeaveRoute
+  AuthenticatedOrganizationSettingsLifecycleTemplatesRoute: typeof AuthenticatedOrganizationSettingsLifecycleTemplatesRoute
+  AuthenticatedOrganizationSettingsLocationsRoute: typeof AuthenticatedOrganizationSettingsLocationsRoute
+  AuthenticatedOrganizationSettingsMembersRoute: typeof AuthenticatedOrganizationSettingsMembersRoute
+  AuthenticatedOrganizationSettingsOrganizationRoute: typeof AuthenticatedOrganizationSettingsOrganizationRoute
+  AuthenticatedOrganizationSettingsOvertimeRoute: typeof AuthenticatedOrganizationSettingsOvertimeRoute
+  AuthenticatedOrganizationSettingsPayrollRoute: typeof AuthenticatedOrganizationSettingsPayrollRoute
+  AuthenticatedOrganizationSettingsPermissionsRoute: typeof AuthenticatedOrganizationSettingsPermissionsRoute
+  AuthenticatedOrganizationSettingsRolesRoute: typeof AuthenticatedOrganizationSettingsRolesRoute
+  AuthenticatedOrganizationSettingsSmtpRoute: typeof AuthenticatedOrganizationSettingsSmtpRoute
+  AuthenticatedOrganizationSettingsStorageRoute: typeof AuthenticatedOrganizationSettingsStorageRoute
+  AuthenticatedOrganizationSettingsTimeRoute: typeof AuthenticatedOrganizationSettingsTimeRoute
+  AuthenticatedOrganizationSettingsWorkflowsRoute: typeof AuthenticatedOrganizationSettingsWorkflowsRouteWithChildren
+  AuthenticatedOrganizationSettingsIndexRoute: typeof AuthenticatedOrganizationSettingsIndexRoute
 }
 
-const AuthenticatedWorkspaceSettingsRouteChildren: AuthenticatedWorkspaceSettingsRouteChildren =
+const AuthenticatedOrganizationSettingsRouteChildren: AuthenticatedOrganizationSettingsRouteChildren =
   {
-    AuthenticatedWorkspaceSettingsBillingRoute:
-      AuthenticatedWorkspaceSettingsBillingRoute,
-    AuthenticatedWorkspaceSettingsConditionTypesRoute:
-      AuthenticatedWorkspaceSettingsConditionTypesRoute,
-    AuthenticatedWorkspaceSettingsCustomFieldsRoute:
-      AuthenticatedWorkspaceSettingsCustomFieldsRoute,
-    AuthenticatedWorkspaceSettingsEcontractsRoute:
-      AuthenticatedWorkspaceSettingsEcontractsRoute,
-    AuthenticatedWorkspaceSettingsGeneralRoute:
-      AuthenticatedWorkspaceSettingsGeneralRoute,
-    AuthenticatedWorkspaceSettingsHolidaysRoute:
-      AuthenticatedWorkspaceSettingsHolidaysRoute,
-    AuthenticatedWorkspaceSettingsLeaveRoute:
-      AuthenticatedWorkspaceSettingsLeaveRoute,
-    AuthenticatedWorkspaceSettingsLifecycleTemplatesRoute:
-      AuthenticatedWorkspaceSettingsLifecycleTemplatesRoute,
-    AuthenticatedWorkspaceSettingsLocationsRoute:
-      AuthenticatedWorkspaceSettingsLocationsRoute,
-    AuthenticatedWorkspaceSettingsMembersRoute:
-      AuthenticatedWorkspaceSettingsMembersRoute,
-    AuthenticatedWorkspaceSettingsOrganizationRoute:
-      AuthenticatedWorkspaceSettingsOrganizationRoute,
-    AuthenticatedWorkspaceSettingsOvertimeRoute:
-      AuthenticatedWorkspaceSettingsOvertimeRoute,
-    AuthenticatedWorkspaceSettingsPayrollRoute:
-      AuthenticatedWorkspaceSettingsPayrollRoute,
-    AuthenticatedWorkspaceSettingsPermissionsRoute:
-      AuthenticatedWorkspaceSettingsPermissionsRoute,
-    AuthenticatedWorkspaceSettingsRolesRoute:
-      AuthenticatedWorkspaceSettingsRolesRoute,
-    AuthenticatedWorkspaceSettingsSmtpRoute:
-      AuthenticatedWorkspaceSettingsSmtpRoute,
-    AuthenticatedWorkspaceSettingsStorageRoute:
-      AuthenticatedWorkspaceSettingsStorageRoute,
-    AuthenticatedWorkspaceSettingsTimeRoute:
-      AuthenticatedWorkspaceSettingsTimeRoute,
-    AuthenticatedWorkspaceSettingsWorkflowsRoute:
-      AuthenticatedWorkspaceSettingsWorkflowsRouteWithChildren,
-    AuthenticatedWorkspaceSettingsIndexRoute:
-      AuthenticatedWorkspaceSettingsIndexRoute,
+    AuthenticatedOrganizationSettingsBillingRoute:
+      AuthenticatedOrganizationSettingsBillingRoute,
+    AuthenticatedOrganizationSettingsConditionTypesRoute:
+      AuthenticatedOrganizationSettingsConditionTypesRoute,
+    AuthenticatedOrganizationSettingsCustomFieldsRoute:
+      AuthenticatedOrganizationSettingsCustomFieldsRoute,
+    AuthenticatedOrganizationSettingsEcontractsRoute:
+      AuthenticatedOrganizationSettingsEcontractsRoute,
+    AuthenticatedOrganizationSettingsGeneralRoute:
+      AuthenticatedOrganizationSettingsGeneralRoute,
+    AuthenticatedOrganizationSettingsHolidaysRoute:
+      AuthenticatedOrganizationSettingsHolidaysRoute,
+    AuthenticatedOrganizationSettingsLeaveRoute:
+      AuthenticatedOrganizationSettingsLeaveRoute,
+    AuthenticatedOrganizationSettingsLifecycleTemplatesRoute:
+      AuthenticatedOrganizationSettingsLifecycleTemplatesRoute,
+    AuthenticatedOrganizationSettingsLocationsRoute:
+      AuthenticatedOrganizationSettingsLocationsRoute,
+    AuthenticatedOrganizationSettingsMembersRoute:
+      AuthenticatedOrganizationSettingsMembersRoute,
+    AuthenticatedOrganizationSettingsOrganizationRoute:
+      AuthenticatedOrganizationSettingsOrganizationRoute,
+    AuthenticatedOrganizationSettingsOvertimeRoute:
+      AuthenticatedOrganizationSettingsOvertimeRoute,
+    AuthenticatedOrganizationSettingsPayrollRoute:
+      AuthenticatedOrganizationSettingsPayrollRoute,
+    AuthenticatedOrganizationSettingsPermissionsRoute:
+      AuthenticatedOrganizationSettingsPermissionsRoute,
+    AuthenticatedOrganizationSettingsRolesRoute:
+      AuthenticatedOrganizationSettingsRolesRoute,
+    AuthenticatedOrganizationSettingsSmtpRoute:
+      AuthenticatedOrganizationSettingsSmtpRoute,
+    AuthenticatedOrganizationSettingsStorageRoute:
+      AuthenticatedOrganizationSettingsStorageRoute,
+    AuthenticatedOrganizationSettingsTimeRoute:
+      AuthenticatedOrganizationSettingsTimeRoute,
+    AuthenticatedOrganizationSettingsWorkflowsRoute:
+      AuthenticatedOrganizationSettingsWorkflowsRouteWithChildren,
+    AuthenticatedOrganizationSettingsIndexRoute:
+      AuthenticatedOrganizationSettingsIndexRoute,
   }
 
-const AuthenticatedWorkspaceSettingsRouteWithChildren =
-  AuthenticatedWorkspaceSettingsRoute._addFileChildren(
-    AuthenticatedWorkspaceSettingsRouteChildren,
+const AuthenticatedOrganizationSettingsRouteWithChildren =
+  AuthenticatedOrganizationSettingsRoute._addFileChildren(
+    AuthenticatedOrganizationSettingsRouteChildren,
   )
 
-interface AuthenticatedWorkspaceShiftsRulesRouteChildren {
-  AuthenticatedWorkspaceShiftsRulesIndexRoute: typeof AuthenticatedWorkspaceShiftsRulesIndexRoute
-  AuthenticatedWorkspaceShiftsRulesAssignmentRulesNewRoute: typeof AuthenticatedWorkspaceShiftsRulesAssignmentRulesNewRoute
-  AuthenticatedWorkspaceShiftsRulesWorkingPatternsNewRoute: typeof AuthenticatedWorkspaceShiftsRulesWorkingPatternsNewRoute
-  AuthenticatedWorkspaceShiftsRulesAssignmentRulesRuleIdEditRoute: typeof AuthenticatedWorkspaceShiftsRulesAssignmentRulesRuleIdEditRoute
-  AuthenticatedWorkspaceShiftsRulesWorkingPatternsPatternIdEditRoute: typeof AuthenticatedWorkspaceShiftsRulesWorkingPatternsPatternIdEditRoute
+interface AuthenticatedOrganizationShiftsRulesRouteChildren {
+  AuthenticatedOrganizationShiftsRulesIndexRoute: typeof AuthenticatedOrganizationShiftsRulesIndexRoute
+  AuthenticatedOrganizationShiftsRulesAssignmentRulesNewRoute: typeof AuthenticatedOrganizationShiftsRulesAssignmentRulesNewRoute
+  AuthenticatedOrganizationShiftsRulesWorkingPatternsNewRoute: typeof AuthenticatedOrganizationShiftsRulesWorkingPatternsNewRoute
+  AuthenticatedOrganizationShiftsRulesAssignmentRulesRuleIdEditRoute: typeof AuthenticatedOrganizationShiftsRulesAssignmentRulesRuleIdEditRoute
+  AuthenticatedOrganizationShiftsRulesWorkingPatternsPatternIdEditRoute: typeof AuthenticatedOrganizationShiftsRulesWorkingPatternsPatternIdEditRoute
 }
 
-const AuthenticatedWorkspaceShiftsRulesRouteChildren: AuthenticatedWorkspaceShiftsRulesRouteChildren =
+const AuthenticatedOrganizationShiftsRulesRouteChildren: AuthenticatedOrganizationShiftsRulesRouteChildren =
   {
-    AuthenticatedWorkspaceShiftsRulesIndexRoute:
-      AuthenticatedWorkspaceShiftsRulesIndexRoute,
-    AuthenticatedWorkspaceShiftsRulesAssignmentRulesNewRoute:
-      AuthenticatedWorkspaceShiftsRulesAssignmentRulesNewRoute,
-    AuthenticatedWorkspaceShiftsRulesWorkingPatternsNewRoute:
-      AuthenticatedWorkspaceShiftsRulesWorkingPatternsNewRoute,
-    AuthenticatedWorkspaceShiftsRulesAssignmentRulesRuleIdEditRoute:
-      AuthenticatedWorkspaceShiftsRulesAssignmentRulesRuleIdEditRoute,
-    AuthenticatedWorkspaceShiftsRulesWorkingPatternsPatternIdEditRoute:
-      AuthenticatedWorkspaceShiftsRulesWorkingPatternsPatternIdEditRoute,
+    AuthenticatedOrganizationShiftsRulesIndexRoute:
+      AuthenticatedOrganizationShiftsRulesIndexRoute,
+    AuthenticatedOrganizationShiftsRulesAssignmentRulesNewRoute:
+      AuthenticatedOrganizationShiftsRulesAssignmentRulesNewRoute,
+    AuthenticatedOrganizationShiftsRulesWorkingPatternsNewRoute:
+      AuthenticatedOrganizationShiftsRulesWorkingPatternsNewRoute,
+    AuthenticatedOrganizationShiftsRulesAssignmentRulesRuleIdEditRoute:
+      AuthenticatedOrganizationShiftsRulesAssignmentRulesRuleIdEditRoute,
+    AuthenticatedOrganizationShiftsRulesWorkingPatternsPatternIdEditRoute:
+      AuthenticatedOrganizationShiftsRulesWorkingPatternsPatternIdEditRoute,
   }
 
-const AuthenticatedWorkspaceShiftsRulesRouteWithChildren =
-  AuthenticatedWorkspaceShiftsRulesRoute._addFileChildren(
-    AuthenticatedWorkspaceShiftsRulesRouteChildren,
+const AuthenticatedOrganizationShiftsRulesRouteWithChildren =
+  AuthenticatedOrganizationShiftsRulesRoute._addFileChildren(
+    AuthenticatedOrganizationShiftsRulesRouteChildren,
   )
 
-interface AuthenticatedWorkspaceShiftsRouteChildren {
-  AuthenticatedWorkspaceShiftsNewRoute: typeof AuthenticatedWorkspaceShiftsNewRoute
-  AuthenticatedWorkspaceShiftsRulesRoute: typeof AuthenticatedWorkspaceShiftsRulesRouteWithChildren
-  AuthenticatedWorkspaceShiftsIndexRoute: typeof AuthenticatedWorkspaceShiftsIndexRoute
-  AuthenticatedWorkspaceShiftsShiftIdEditRoute: typeof AuthenticatedWorkspaceShiftsShiftIdEditRoute
+interface AuthenticatedOrganizationShiftsRouteChildren {
+  AuthenticatedOrganizationShiftsNewRoute: typeof AuthenticatedOrganizationShiftsNewRoute
+  AuthenticatedOrganizationShiftsRulesRoute: typeof AuthenticatedOrganizationShiftsRulesRouteWithChildren
+  AuthenticatedOrganizationShiftsIndexRoute: typeof AuthenticatedOrganizationShiftsIndexRoute
+  AuthenticatedOrganizationShiftsShiftIdEditRoute: typeof AuthenticatedOrganizationShiftsShiftIdEditRoute
 }
 
-const AuthenticatedWorkspaceShiftsRouteChildren: AuthenticatedWorkspaceShiftsRouteChildren =
+const AuthenticatedOrganizationShiftsRouteChildren: AuthenticatedOrganizationShiftsRouteChildren =
   {
-    AuthenticatedWorkspaceShiftsNewRoute: AuthenticatedWorkspaceShiftsNewRoute,
-    AuthenticatedWorkspaceShiftsRulesRoute:
-      AuthenticatedWorkspaceShiftsRulesRouteWithChildren,
-    AuthenticatedWorkspaceShiftsIndexRoute:
-      AuthenticatedWorkspaceShiftsIndexRoute,
-    AuthenticatedWorkspaceShiftsShiftIdEditRoute:
-      AuthenticatedWorkspaceShiftsShiftIdEditRoute,
+    AuthenticatedOrganizationShiftsNewRoute:
+      AuthenticatedOrganizationShiftsNewRoute,
+    AuthenticatedOrganizationShiftsRulesRoute:
+      AuthenticatedOrganizationShiftsRulesRouteWithChildren,
+    AuthenticatedOrganizationShiftsIndexRoute:
+      AuthenticatedOrganizationShiftsIndexRoute,
+    AuthenticatedOrganizationShiftsShiftIdEditRoute:
+      AuthenticatedOrganizationShiftsShiftIdEditRoute,
   }
 
-const AuthenticatedWorkspaceShiftsRouteWithChildren =
-  AuthenticatedWorkspaceShiftsRoute._addFileChildren(
-    AuthenticatedWorkspaceShiftsRouteChildren,
+const AuthenticatedOrganizationShiftsRouteWithChildren =
+  AuthenticatedOrganizationShiftsRoute._addFileChildren(
+    AuthenticatedOrganizationShiftsRouteChildren,
   )
 
-interface AuthenticatedWorkspaceWorkingPatternsRouteChildren {
-  AuthenticatedWorkspaceWorkingPatternsNewRoute: typeof AuthenticatedWorkspaceWorkingPatternsNewRoute
-  AuthenticatedWorkspaceWorkingPatternsIndexRoute: typeof AuthenticatedWorkspaceWorkingPatternsIndexRoute
-  AuthenticatedWorkspaceWorkingPatternsPatternIdEditRoute: typeof AuthenticatedWorkspaceWorkingPatternsPatternIdEditRoute
+interface AuthenticatedOrganizationWorkingPatternsRouteChildren {
+  AuthenticatedOrganizationWorkingPatternsNewRoute: typeof AuthenticatedOrganizationWorkingPatternsNewRoute
+  AuthenticatedOrganizationWorkingPatternsIndexRoute: typeof AuthenticatedOrganizationWorkingPatternsIndexRoute
+  AuthenticatedOrganizationWorkingPatternsPatternIdEditRoute: typeof AuthenticatedOrganizationWorkingPatternsPatternIdEditRoute
 }
 
-const AuthenticatedWorkspaceWorkingPatternsRouteChildren: AuthenticatedWorkspaceWorkingPatternsRouteChildren =
+const AuthenticatedOrganizationWorkingPatternsRouteChildren: AuthenticatedOrganizationWorkingPatternsRouteChildren =
   {
-    AuthenticatedWorkspaceWorkingPatternsNewRoute:
-      AuthenticatedWorkspaceWorkingPatternsNewRoute,
-    AuthenticatedWorkspaceWorkingPatternsIndexRoute:
-      AuthenticatedWorkspaceWorkingPatternsIndexRoute,
-    AuthenticatedWorkspaceWorkingPatternsPatternIdEditRoute:
-      AuthenticatedWorkspaceWorkingPatternsPatternIdEditRoute,
+    AuthenticatedOrganizationWorkingPatternsNewRoute:
+      AuthenticatedOrganizationWorkingPatternsNewRoute,
+    AuthenticatedOrganizationWorkingPatternsIndexRoute:
+      AuthenticatedOrganizationWorkingPatternsIndexRoute,
+    AuthenticatedOrganizationWorkingPatternsPatternIdEditRoute:
+      AuthenticatedOrganizationWorkingPatternsPatternIdEditRoute,
   }
 
-const AuthenticatedWorkspaceWorkingPatternsRouteWithChildren =
-  AuthenticatedWorkspaceWorkingPatternsRoute._addFileChildren(
-    AuthenticatedWorkspaceWorkingPatternsRouteChildren,
+const AuthenticatedOrganizationWorkingPatternsRouteWithChildren =
+  AuthenticatedOrganizationWorkingPatternsRoute._addFileChildren(
+    AuthenticatedOrganizationWorkingPatternsRouteChildren,
   )
 
-interface AuthenticatedWorkspaceRouteChildren {
-  AuthenticatedWorkspaceAssignmentRulesRoute: typeof AuthenticatedWorkspaceAssignmentRulesRouteWithChildren
-  AuthenticatedWorkspaceAssignmentsRoute: typeof AuthenticatedWorkspaceAssignmentsRoute
-  AuthenticatedWorkspaceAttendanceAdjustmentsRoute: typeof AuthenticatedWorkspaceAttendanceAdjustmentsRoute
-  AuthenticatedWorkspaceAttendanceLogsRoute: typeof AuthenticatedWorkspaceAttendanceLogsRoute
-  AuthenticatedWorkspaceAuditLogsRoute: typeof AuthenticatedWorkspaceAuditLogsRoute
-  AuthenticatedWorkspaceDashboardRoute: typeof AuthenticatedWorkspaceDashboardRoute
-  AuthenticatedWorkspaceDepartmentsRoute: typeof AuthenticatedWorkspaceDepartmentsRoute
-  AuthenticatedWorkspaceEcontractsRoute: typeof AuthenticatedWorkspaceEcontractsRoute
-  AuthenticatedWorkspaceEmployeesRoute: typeof AuthenticatedWorkspaceEmployeesRoute
-  AuthenticatedWorkspaceHolidaysRoute: typeof AuthenticatedWorkspaceHolidaysRoute
-  AuthenticatedWorkspaceLeaveBalancesRoute: typeof AuthenticatedWorkspaceLeaveBalancesRoute
-  AuthenticatedWorkspaceLeaveRequestsRoute: typeof AuthenticatedWorkspaceLeaveRequestsRoute
-  AuthenticatedWorkspaceLifecycleRoute: typeof AuthenticatedWorkspaceLifecycleRoute
-  AuthenticatedWorkspaceNotificationsRoute: typeof AuthenticatedWorkspaceNotificationsRoute
-  AuthenticatedWorkspaceOrgChartRoute: typeof AuthenticatedWorkspaceOrgChartRoute
-  AuthenticatedWorkspacePayrollRoute: typeof AuthenticatedWorkspacePayrollRoute
-  AuthenticatedWorkspaceProfileRoute: typeof AuthenticatedWorkspaceProfileRoute
-  AuthenticatedWorkspaceReportsRoute: typeof AuthenticatedWorkspaceReportsRoute
-  AuthenticatedWorkspaceSettingsRoute: typeof AuthenticatedWorkspaceSettingsRouteWithChildren
-  AuthenticatedWorkspaceShiftSwapsRoute: typeof AuthenticatedWorkspaceShiftSwapsRoute
-  AuthenticatedWorkspaceShiftsRoute: typeof AuthenticatedWorkspaceShiftsRouteWithChildren
-  AuthenticatedWorkspaceWorkingConditionsRoute: typeof AuthenticatedWorkspaceWorkingConditionsRoute
-  AuthenticatedWorkspaceWorkingPatternsRoute: typeof AuthenticatedWorkspaceWorkingPatternsRouteWithChildren
-  AuthenticatedWorkspaceIndexRoute: typeof AuthenticatedWorkspaceIndexRoute
-  AuthenticatedWorkspaceApprovalsOtRoute: typeof AuthenticatedWorkspaceApprovalsOtRoute
-  AuthenticatedWorkspaceDocumentsTemplatesRoute: typeof AuthenticatedWorkspaceDocumentsTemplatesRoute
-  AuthenticatedWorkspaceEmployeesEmployeeIdRoute: typeof AuthenticatedWorkspaceEmployeesEmployeeIdRoute
-  AuthenticatedWorkspaceEssAttendanceRoute: typeof AuthenticatedWorkspaceEssAttendanceRoute
-  AuthenticatedWorkspaceEssClockRoute: typeof AuthenticatedWorkspaceEssClockRoute
-  AuthenticatedWorkspaceEssDocumentsRoute: typeof AuthenticatedWorkspaceEssDocumentsRoute
-  AuthenticatedWorkspaceEssOtRoute: typeof AuthenticatedWorkspaceEssOtRoute
-  AuthenticatedWorkspaceEssProfileRoute: typeof AuthenticatedWorkspaceEssProfileRoute
-  AuthenticatedWorkspaceApprovalsIndexRoute: typeof AuthenticatedWorkspaceApprovalsIndexRoute
-  AuthenticatedWorkspaceDocumentsIndexRoute: typeof AuthenticatedWorkspaceDocumentsIndexRoute
+interface AuthenticatedOrganizationRouteChildren {
+  AuthenticatedOrganizationAssignmentRulesRoute: typeof AuthenticatedOrganizationAssignmentRulesRouteWithChildren
+  AuthenticatedOrganizationAssignmentsRoute: typeof AuthenticatedOrganizationAssignmentsRoute
+  AuthenticatedOrganizationAttendanceAdjustmentsRoute: typeof AuthenticatedOrganizationAttendanceAdjustmentsRoute
+  AuthenticatedOrganizationAttendanceLogsRoute: typeof AuthenticatedOrganizationAttendanceLogsRoute
+  AuthenticatedOrganizationAuditLogsRoute: typeof AuthenticatedOrganizationAuditLogsRoute
+  AuthenticatedOrganizationDashboardRoute: typeof AuthenticatedOrganizationDashboardRoute
+  AuthenticatedOrganizationDepartmentsRoute: typeof AuthenticatedOrganizationDepartmentsRoute
+  AuthenticatedOrganizationEcontractsRoute: typeof AuthenticatedOrganizationEcontractsRoute
+  AuthenticatedOrganizationEmployeesRoute: typeof AuthenticatedOrganizationEmployeesRoute
+  AuthenticatedOrganizationHolidaysRoute: typeof AuthenticatedOrganizationHolidaysRoute
+  AuthenticatedOrganizationLeaveBalancesRoute: typeof AuthenticatedOrganizationLeaveBalancesRoute
+  AuthenticatedOrganizationLeaveRequestsRoute: typeof AuthenticatedOrganizationLeaveRequestsRoute
+  AuthenticatedOrganizationLifecycleRoute: typeof AuthenticatedOrganizationLifecycleRoute
+  AuthenticatedOrganizationNotificationsRoute: typeof AuthenticatedOrganizationNotificationsRoute
+  AuthenticatedOrganizationOrgChartRoute: typeof AuthenticatedOrganizationOrgChartRoute
+  AuthenticatedOrganizationPayrollRoute: typeof AuthenticatedOrganizationPayrollRoute
+  AuthenticatedOrganizationProfileRoute: typeof AuthenticatedOrganizationProfileRoute
+  AuthenticatedOrganizationReportsRoute: typeof AuthenticatedOrganizationReportsRoute
+  AuthenticatedOrganizationSettingsRoute: typeof AuthenticatedOrganizationSettingsRouteWithChildren
+  AuthenticatedOrganizationShiftSwapsRoute: typeof AuthenticatedOrganizationShiftSwapsRoute
+  AuthenticatedOrganizationShiftsRoute: typeof AuthenticatedOrganizationShiftsRouteWithChildren
+  AuthenticatedOrganizationWorkingConditionsRoute: typeof AuthenticatedOrganizationWorkingConditionsRoute
+  AuthenticatedOrganizationWorkingPatternsRoute: typeof AuthenticatedOrganizationWorkingPatternsRouteWithChildren
+  AuthenticatedOrganizationIndexRoute: typeof AuthenticatedOrganizationIndexRoute
+  AuthenticatedOrganizationApprovalsOtRoute: typeof AuthenticatedOrganizationApprovalsOtRoute
+  AuthenticatedOrganizationDocumentsTemplatesRoute: typeof AuthenticatedOrganizationDocumentsTemplatesRoute
+  AuthenticatedOrganizationEmployeesEmployeeIdRoute: typeof AuthenticatedOrganizationEmployeesEmployeeIdRoute
+  AuthenticatedOrganizationEssAttendanceRoute: typeof AuthenticatedOrganizationEssAttendanceRoute
+  AuthenticatedOrganizationEssClockRoute: typeof AuthenticatedOrganizationEssClockRoute
+  AuthenticatedOrganizationEssDocumentsRoute: typeof AuthenticatedOrganizationEssDocumentsRoute
+  AuthenticatedOrganizationEssOtRoute: typeof AuthenticatedOrganizationEssOtRoute
+  AuthenticatedOrganizationEssProfileRoute: typeof AuthenticatedOrganizationEssProfileRoute
+  AuthenticatedOrganizationApprovalsIndexRoute: typeof AuthenticatedOrganizationApprovalsIndexRoute
+  AuthenticatedOrganizationDocumentsIndexRoute: typeof AuthenticatedOrganizationDocumentsIndexRoute
 }
 
-const AuthenticatedWorkspaceRouteChildren: AuthenticatedWorkspaceRouteChildren =
+const AuthenticatedOrganizationRouteChildren: AuthenticatedOrganizationRouteChildren =
   {
-    AuthenticatedWorkspaceAssignmentRulesRoute:
-      AuthenticatedWorkspaceAssignmentRulesRouteWithChildren,
-    AuthenticatedWorkspaceAssignmentsRoute:
-      AuthenticatedWorkspaceAssignmentsRoute,
-    AuthenticatedWorkspaceAttendanceAdjustmentsRoute:
-      AuthenticatedWorkspaceAttendanceAdjustmentsRoute,
-    AuthenticatedWorkspaceAttendanceLogsRoute:
-      AuthenticatedWorkspaceAttendanceLogsRoute,
-    AuthenticatedWorkspaceAuditLogsRoute: AuthenticatedWorkspaceAuditLogsRoute,
-    AuthenticatedWorkspaceDashboardRoute: AuthenticatedWorkspaceDashboardRoute,
-    AuthenticatedWorkspaceDepartmentsRoute:
-      AuthenticatedWorkspaceDepartmentsRoute,
-    AuthenticatedWorkspaceEcontractsRoute:
-      AuthenticatedWorkspaceEcontractsRoute,
-    AuthenticatedWorkspaceEmployeesRoute: AuthenticatedWorkspaceEmployeesRoute,
-    AuthenticatedWorkspaceHolidaysRoute: AuthenticatedWorkspaceHolidaysRoute,
-    AuthenticatedWorkspaceLeaveBalancesRoute:
-      AuthenticatedWorkspaceLeaveBalancesRoute,
-    AuthenticatedWorkspaceLeaveRequestsRoute:
-      AuthenticatedWorkspaceLeaveRequestsRoute,
-    AuthenticatedWorkspaceLifecycleRoute: AuthenticatedWorkspaceLifecycleRoute,
-    AuthenticatedWorkspaceNotificationsRoute:
-      AuthenticatedWorkspaceNotificationsRoute,
-    AuthenticatedWorkspaceOrgChartRoute: AuthenticatedWorkspaceOrgChartRoute,
-    AuthenticatedWorkspacePayrollRoute: AuthenticatedWorkspacePayrollRoute,
-    AuthenticatedWorkspaceProfileRoute: AuthenticatedWorkspaceProfileRoute,
-    AuthenticatedWorkspaceReportsRoute: AuthenticatedWorkspaceReportsRoute,
-    AuthenticatedWorkspaceSettingsRoute:
-      AuthenticatedWorkspaceSettingsRouteWithChildren,
-    AuthenticatedWorkspaceShiftSwapsRoute:
-      AuthenticatedWorkspaceShiftSwapsRoute,
-    AuthenticatedWorkspaceShiftsRoute:
-      AuthenticatedWorkspaceShiftsRouteWithChildren,
-    AuthenticatedWorkspaceWorkingConditionsRoute:
-      AuthenticatedWorkspaceWorkingConditionsRoute,
-    AuthenticatedWorkspaceWorkingPatternsRoute:
-      AuthenticatedWorkspaceWorkingPatternsRouteWithChildren,
-    AuthenticatedWorkspaceIndexRoute: AuthenticatedWorkspaceIndexRoute,
-    AuthenticatedWorkspaceApprovalsOtRoute:
-      AuthenticatedWorkspaceApprovalsOtRoute,
-    AuthenticatedWorkspaceDocumentsTemplatesRoute:
-      AuthenticatedWorkspaceDocumentsTemplatesRoute,
-    AuthenticatedWorkspaceEmployeesEmployeeIdRoute:
-      AuthenticatedWorkspaceEmployeesEmployeeIdRoute,
-    AuthenticatedWorkspaceEssAttendanceRoute:
-      AuthenticatedWorkspaceEssAttendanceRoute,
-    AuthenticatedWorkspaceEssClockRoute: AuthenticatedWorkspaceEssClockRoute,
-    AuthenticatedWorkspaceEssDocumentsRoute:
-      AuthenticatedWorkspaceEssDocumentsRoute,
-    AuthenticatedWorkspaceEssOtRoute: AuthenticatedWorkspaceEssOtRoute,
-    AuthenticatedWorkspaceEssProfileRoute:
-      AuthenticatedWorkspaceEssProfileRoute,
-    AuthenticatedWorkspaceApprovalsIndexRoute:
-      AuthenticatedWorkspaceApprovalsIndexRoute,
-    AuthenticatedWorkspaceDocumentsIndexRoute:
-      AuthenticatedWorkspaceDocumentsIndexRoute,
+    AuthenticatedOrganizationAssignmentRulesRoute:
+      AuthenticatedOrganizationAssignmentRulesRouteWithChildren,
+    AuthenticatedOrganizationAssignmentsRoute:
+      AuthenticatedOrganizationAssignmentsRoute,
+    AuthenticatedOrganizationAttendanceAdjustmentsRoute:
+      AuthenticatedOrganizationAttendanceAdjustmentsRoute,
+    AuthenticatedOrganizationAttendanceLogsRoute:
+      AuthenticatedOrganizationAttendanceLogsRoute,
+    AuthenticatedOrganizationAuditLogsRoute:
+      AuthenticatedOrganizationAuditLogsRoute,
+    AuthenticatedOrganizationDashboardRoute:
+      AuthenticatedOrganizationDashboardRoute,
+    AuthenticatedOrganizationDepartmentsRoute:
+      AuthenticatedOrganizationDepartmentsRoute,
+    AuthenticatedOrganizationEcontractsRoute:
+      AuthenticatedOrganizationEcontractsRoute,
+    AuthenticatedOrganizationEmployeesRoute:
+      AuthenticatedOrganizationEmployeesRoute,
+    AuthenticatedOrganizationHolidaysRoute:
+      AuthenticatedOrganizationHolidaysRoute,
+    AuthenticatedOrganizationLeaveBalancesRoute:
+      AuthenticatedOrganizationLeaveBalancesRoute,
+    AuthenticatedOrganizationLeaveRequestsRoute:
+      AuthenticatedOrganizationLeaveRequestsRoute,
+    AuthenticatedOrganizationLifecycleRoute:
+      AuthenticatedOrganizationLifecycleRoute,
+    AuthenticatedOrganizationNotificationsRoute:
+      AuthenticatedOrganizationNotificationsRoute,
+    AuthenticatedOrganizationOrgChartRoute:
+      AuthenticatedOrganizationOrgChartRoute,
+    AuthenticatedOrganizationPayrollRoute:
+      AuthenticatedOrganizationPayrollRoute,
+    AuthenticatedOrganizationProfileRoute:
+      AuthenticatedOrganizationProfileRoute,
+    AuthenticatedOrganizationReportsRoute:
+      AuthenticatedOrganizationReportsRoute,
+    AuthenticatedOrganizationSettingsRoute:
+      AuthenticatedOrganizationSettingsRouteWithChildren,
+    AuthenticatedOrganizationShiftSwapsRoute:
+      AuthenticatedOrganizationShiftSwapsRoute,
+    AuthenticatedOrganizationShiftsRoute:
+      AuthenticatedOrganizationShiftsRouteWithChildren,
+    AuthenticatedOrganizationWorkingConditionsRoute:
+      AuthenticatedOrganizationWorkingConditionsRoute,
+    AuthenticatedOrganizationWorkingPatternsRoute:
+      AuthenticatedOrganizationWorkingPatternsRouteWithChildren,
+    AuthenticatedOrganizationIndexRoute: AuthenticatedOrganizationIndexRoute,
+    AuthenticatedOrganizationApprovalsOtRoute:
+      AuthenticatedOrganizationApprovalsOtRoute,
+    AuthenticatedOrganizationDocumentsTemplatesRoute:
+      AuthenticatedOrganizationDocumentsTemplatesRoute,
+    AuthenticatedOrganizationEmployeesEmployeeIdRoute:
+      AuthenticatedOrganizationEmployeesEmployeeIdRoute,
+    AuthenticatedOrganizationEssAttendanceRoute:
+      AuthenticatedOrganizationEssAttendanceRoute,
+    AuthenticatedOrganizationEssClockRoute:
+      AuthenticatedOrganizationEssClockRoute,
+    AuthenticatedOrganizationEssDocumentsRoute:
+      AuthenticatedOrganizationEssDocumentsRoute,
+    AuthenticatedOrganizationEssOtRoute: AuthenticatedOrganizationEssOtRoute,
+    AuthenticatedOrganizationEssProfileRoute:
+      AuthenticatedOrganizationEssProfileRoute,
+    AuthenticatedOrganizationApprovalsIndexRoute:
+      AuthenticatedOrganizationApprovalsIndexRoute,
+    AuthenticatedOrganizationDocumentsIndexRoute:
+      AuthenticatedOrganizationDocumentsIndexRoute,
   }
 
-const AuthenticatedWorkspaceRouteWithChildren =
-  AuthenticatedWorkspaceRoute._addFileChildren(
-    AuthenticatedWorkspaceRouteChildren,
+const AuthenticatedOrganizationRouteWithChildren =
+  AuthenticatedOrganizationRoute._addFileChildren(
+    AuthenticatedOrganizationRouteChildren,
   )
 
 interface AuthenticatedRouteChildren {
   AuthenticatedInfraRoute: typeof AuthenticatedInfraRouteWithChildren
-  AuthenticatedWorkspaceRoute: typeof AuthenticatedWorkspaceRouteWithChildren
+  AuthenticatedOrganizationRoute: typeof AuthenticatedOrganizationRouteWithChildren
 }
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedInfraRoute: AuthenticatedInfraRouteWithChildren,
-  AuthenticatedWorkspaceRoute: AuthenticatedWorkspaceRouteWithChildren,
+  AuthenticatedOrganizationRoute: AuthenticatedOrganizationRouteWithChildren,
 }
 
 const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(

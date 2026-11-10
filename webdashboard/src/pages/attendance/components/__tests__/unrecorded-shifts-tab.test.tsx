@@ -23,7 +23,7 @@ const { mockExportNoShowToExcel, mockHookData, mockExportHook } = vi.hoisted(() 
     isLoading: false,
     queryKey: ["unrecorded-shifts"],
     tracesByKey: new Map<string, any[]>(),
-    workspaceTimezone: "UTC",
+    organizationTimezone: "UTC",
   },
   mockExportHook: {
     exportFn: vi.fn() as () => Promise<void>,
@@ -64,7 +64,7 @@ vi.mock("@/hooks/use-employees", () => ({
 }));
 
 vi.mock("@/hooks/use-workspace", () => ({
-  useWorkspace: () => ({ workspace: { timezone: "UTC" }, isLoading: false }),
+  useOrganization: () => ({ organization: { timezone: "UTC" }, isLoading: false }),
 }));
 
 vi.mock("../../../../lib/excel-no-show", () => ({
@@ -127,7 +127,7 @@ function resetHookData() {
   mockHookData.isLoading = false;
   mockHookData.queryKey = ["unrecorded-shifts", "test-ws-id"];
   mockHookData.tracesByKey = new Map();
-  mockHookData.workspaceTimezone = "UTC";
+  mockHookData.organizationTimezone = "UTC";
 }
 
 // ── Tests ───────────────────────────────────────────────────────────────────

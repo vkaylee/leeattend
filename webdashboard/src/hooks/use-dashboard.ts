@@ -25,7 +25,7 @@ import {
   type RecruitmentSourceBreakdown,
   type TurnoverAnalytics,
   type UnexcusedAbsencesPoint,
-  type WorkspaceStats,
+  type OrganizationStats,
 } from "./use-dashboard-types";
 
 export type {
@@ -47,7 +47,7 @@ export type {
   TurnoverAnalytics,
   TurnoverRate,
   UnexcusedAbsencesPoint,
-  WorkspaceStats,
+  OrganizationStats,
 } from "./use-dashboard-types";
 
 /** Shared query params for chart endpoints that accept an explicit custom range. */
@@ -106,7 +106,7 @@ interface DashboardQueryOptions<T> {
   getPath: () => string;
   /** Parses untrusted API JSON into T. */
   parse?: (payload: unknown) => T;
-  /** Unique cache key segment (e.g. "workspace-stats"). */
+  /** Unique cache key segment (e.g. "organization-stats"). */
   key: DashboardSchemaKey;
 }
 
@@ -150,9 +150,9 @@ function useDashboardQuery<T>(options: DashboardQueryOptions<T>) {
 // ── Public hooks (one-liners) ─────────────────────────────────────────────
 
 export const useDashboardStats = () =>
-  useDashboardQuery<WorkspaceStats>({
-    key: "workspace-stats",
-    getPath: () => "/v1/dashboard/workspace-stats",
+  useDashboardQuery<OrganizationStats>({
+    key: "organization-stats",
+    getPath: () => "/v1/dashboard/organization-stats",
   });
 
 export function useAttendanceTrend(range: ChartRangeParams = {}) {

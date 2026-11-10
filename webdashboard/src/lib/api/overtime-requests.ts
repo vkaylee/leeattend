@@ -172,7 +172,7 @@ export const overtimeRequestsApi = {
     return data;
   },
 
-  getWorkspaceQuotaSummary: async (month: string): Promise<QuotaSummary[]> => {
+  getQuotaSummary: async (month: string): Promise<QuotaSummary[]> => {
     const { data } = await client.GET<QuotaSummary[]>(
       "/v1/overtime/quota/summary",
       { params: { query: { month } } },

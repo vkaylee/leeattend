@@ -4,7 +4,7 @@ import { type TFunction } from "i18next";
 import { Cell, PieChart, Pie, ResponsiveContainer, Tooltip } from "recharts";
 
 import { Typography } from "@/components/ui/typography";
-import { type WorkspaceStats } from "@/hooks/use-dashboard";
+import { type OrganizationStats } from "@/hooks/use-dashboard";
 
 interface DonutData {
   fill: string;
@@ -15,11 +15,11 @@ interface DonutData {
 interface AttendanceBreakdownProps {
   donutData: DonutData[];
   hasDonutData: boolean;
-  hrStats?: WorkspaceStats;
+  hrStats?: OrganizationStats;
   t: TFunction;
 }
 
-function rateLabel(rate: WorkspaceStats["attendance_rate"] | undefined, fallback: string, t: TFunction): string {
+function rateLabel(rate: OrganizationStats["attendance_rate"] | undefined, fallback: string, t: TFunction): string {
   if (!rate || rate.value == null) return "—";
   return t("dashboard.hr.rate_value", { value: rate.value });
 }

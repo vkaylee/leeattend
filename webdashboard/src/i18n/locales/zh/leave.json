@@ -125,6 +125,8 @@
         "lump_sum_desc": "年初发放全年权利"
       },
       "assignee_types": {
+        "organization": "全组织 (全部)",
+        "organization_desc": "适用于组织中的所有员工",
         "workspace": "全组织 (全部)",
         "workspace_desc": "适用于组织中的所有员工",
         "department": "按部门",

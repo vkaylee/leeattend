@@ -280,10 +280,30 @@ ORDER BY COALESCE(h.system_ot_minutes, 0) DESC`
 		return api.OvertimeBreakdownResponse{}, err
 	}
 
+	var currency string
+	if err := db.QueryRow(ctx, `SELECT COALESCE((
+		SELECT currency_code
+		FROM employers
+		WHERE deleted_at IS NULL AND currency_code IS NOT NULL
+		ORDER BY created_at
+		LIMIT 1
+	), 'USD')`).Scan(&currency); err != nil {
+		return api.OvertimeBreakdownResponse{}, err
+	}
+
+	tzName := "UTC"
+	if q.Timezone != nil && *q.Timezone != "" {
+		tzName = *q.Timezone
+	}
+
 	return api.OvertimeBreakdownResponse{
-		ContractVersion: "overtime-breakdown.v1",
-		Rows:            breakdownRows,
-		GeneratedAt:     time.Now().UTC().Format(time.RFC3339),
+		ContractVersion: "overtime-breakdown.v2",
+		Organization: api.DashboardOrganizationContext{
+			Timezone: tzName,
+			Currency: currency,
+		},
+		Rows:        breakdownRows,
+		GeneratedAt: time.Now().UTC().Format(time.RFC3339),
 	}, nil
 }
 
@@ -292,7 +312,7 @@ func (r DashboardAnalyticsRepository) GetDashboardStats(ctx context.Context, tzN
 	if err != nil {
 		return api.DashboardStats{}, err
 	}
-	loc := timezone.ParseWorkspaceTZ(tzName)
+	loc := timezone.ParseTimezone(tzName)
 	now := time.Now().In(loc)
 	today := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, loc)
 	todayStr := today.Format("2006-01-02")
@@ -403,7 +423,7 @@ func (r DashboardAnalyticsRepository) GetAttendanceTrend(ctx context.Context, st
 	if err != nil {
 		return nil, err
 	}
-	loc := timezone.ParseWorkspaceTZ(tzName)
+	loc := timezone.ParseTimezone(tzName)
 	utcStart := timezone.StartOfDayUTC(loc, startDate)
 	utcEndExclusive := timezone.StartOfNextDayUTC(loc, endDate)
 
@@ -528,7 +548,7 @@ func (r DashboardAnalyticsRepository) GetDepartmentAttendance(ctx context.Contex
 	if err != nil {
 		return nil, err
 	}
-	loc := timezone.ParseWorkspaceTZ(tzName)
+	loc := timezone.ParseTimezone(tzName)
 	utcStart := timezone.StartOfDayUTC(loc, startDate)
 	utcEndExclusive := timezone.StartOfNextDayUTC(loc, endDate)
 
@@ -2051,7 +2071,11 @@ WHERE h.period = $7`
 	}
 
 	return api.DashboardMetricsResponse{
-		ContractVersion: "executive-dashboard.v1",
+		ContractVersion: "executive-dashboard.v2",
+		Organization: api.DashboardOrganizationContext{
+			Timezone: q.Timezone,
+			Currency: cur.currencyCode,
+		},
 		Context: api.DashboardMetricContext{
 			Period: api.DashboardReportingPeriod{
 				Key:       q.Period,

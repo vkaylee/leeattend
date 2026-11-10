@@ -110,7 +110,7 @@
     },
     "auto": "自动",
     "back": "返回",
-    "back_to_workspace": "返回组织",
+    "back_to_organization": "返回组织",
     "base_for_ot": "加班基数",
     "billing": "账单",
     "break": "休息",
@@ -934,7 +934,7 @@
     "work_day": "工作日",
     "working": "正在处理...",
     "workspace_owner": "所有者",
-    "workspace_settings": {
+    "organization_settings": {
       "attendance_config": "考勤配置",
       "branding": "品牌标识",
       "date_format": "日期格式",
@@ -1010,9 +1010,9 @@
         "60min": "60 分钟",
         "60min_desc": "1小时块"
       },
-      "workspace_logo": "组织标志",
-      "workspace_name": "组织名称",
-      "workspace_name_placeholder": "例如：LeeAttend Corp",
+      "organization_logo": "组织标志",
+      "organization_name": "组织名称",
+      "organization_name_placeholder": "例如：LeeAttend Corp",
       "dark_mode_preference": "Chế độ hiển thị"
     },
     "year": "年",
@@ -1787,7 +1787,7 @@
     "title": "概览",
     "totalEmployees": "员工总数"
   },
-  "workspace": {
+  "organization": {
     "roles": {
       "title": "组织角色"
     }
@@ -2166,7 +2166,7 @@
     "ot_time": "Tăng ca"
   },
   "no_results": "Không tìm thấy cài đặt phù hợp",
-  "workspace_settings": {
+  "organization_settings": {
     "dark_mode_preference": "Chế độ hiển thị"
   },
   "title": "Roles",

@@ -6,7 +6,7 @@ Single-company Linux appliance. No SaaS control plane, telemetry, activation cal
 
 `docker-compose.yml` runs one PostgreSQL database, PgBouncer, Redis, MinIO, Go API, and local React Dashboard. PostgreSQL has no host port; every application and operator connection goes through PgBouncer. Its only host binding is loopback-only for local migration and maintenance tools. Redis and MinIO have no host ports. Frontend and API networks are internal; publish only a customer-managed TLS reverse proxy to the LAN.
 
-System and business tables share one PostgreSQL database. The baseline is `apiserver/migrations/20261103000000_init/`; `apiserver/migrations/20261108000000_single_organization_cutover/` converts it to the final schema with `organization_settings`, `roles`, `user_roles`, and no workspace columns or tables.
+System and business tables share one PostgreSQL database. Fresh installation applies `apiserver/migrations/20261110000000_single_organization_baseline/`, which creates `organization_settings`, `roles`, `user_roles`, and no workspace columns or tables.
 
 The architecture is one company, one database, and one schema. Organization scope is fixed during API bootstrap; it is never selected from URL, header, local storage, or client state. Repositories therefore carry no organization predicate.
 
@@ -45,10 +45,10 @@ Secrets MUST come from a protected secret store or root-readable file. Never com
    docker compose -f docker-compose.yml up -d db pgbouncer
    docker compose -f docker-compose.yml exec -T db sh -c \
      'PGPASSWORD="$POSTGRES_PASSWORD" psql "host=pgbouncer port=6432 user=$POSTGRES_USER dbname=$POSTGRES_DB sslmode=require" -v ON_ERROR_STOP=1 --single-transaction' \
-     < apiserver/migrations/20261103000000_init/up.sql
+     < apiserver/migrations/20261110000000_single_organization_baseline/up.sql
    ```
 
-   Apply subsequent migrations through the same endpoint in version order. The baseline contains system objects first and business objects second.
+   Apply the baseline only to a fresh database. It creates final organization tables directly and records one migration marker. Reset or restore an existing old-chain database; do not upgrade it in place.
 3. Place the license file on encrypted storage with mode `0600`.
 4. Configure TLS termination and proxy `/api/` to `apiserver:3000`; do not expose API, database, Redis, or MinIO directly.
 5. Apply the reviewed Compose file:

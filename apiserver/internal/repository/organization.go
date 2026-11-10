@@ -120,7 +120,7 @@ func (r OrganizationRepository) PutConfig(ctx context.Context, req api.ConfigEnt
 		return err
 	}
 	scopeType := req.ScopeType
-	if scopeType == "" || scopeType == "workspace" {
+	if scopeType == "" {
 		scopeType = "organization"
 	}
 	scopeID := req.ScopeID

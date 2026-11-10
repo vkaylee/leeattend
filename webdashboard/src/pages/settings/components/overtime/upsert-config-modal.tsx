@@ -9,13 +9,13 @@ import Button from "@/components/ui/button";
 import Modal from "@/components/ui/modal";
 import { useToast } from "@/components/ui/toast";
 import { Typography } from "@/components/ui/typography";
-import { useUpsertWorkspaceConfig } from "@/hooks/use-organization-config";
-import { type WorkspaceConfigEntry, type CreateConfigEntryRequest } from "@/lib/api/types";
+import { useUpsertOrganizationConfig } from "@/hooks/use-organization-config";
+import { type OrganizationConfigEntry, type CreateConfigEntryRequest } from "@/lib/api/types";
 import { logError } from "@/lib/logger";
 
 const configSchema = z.object({
   config_key: z.string().min(1, "settings.overtime.config.errors.key_required"),
-  scope_type: z.enum(["workspace", "employer", "department", "employee"]),
+  scope_type: z.enum(["organization", "employer", "department", "employee", "employment"]),
   scope_id: z.string().optional(),
   value_type: z.enum(["int", "decimal", "text", "bool", "json"]),
   value: z.string().min(1, "settings.overtime.config.errors.value_required"),
@@ -24,7 +24,7 @@ const configSchema = z.object({
 
 type ConfigFormValues = z.infer<typeof configSchema>;
 
-function parseConfigValue(config: WorkspaceConfigEntry): {
+function parseConfigValue(config: OrganizationConfigEntry): {
   vType: "int" | "decimal" | "text" | "bool" | "json";
   vVal: string;
 } {
@@ -50,12 +50,12 @@ function useUpsertConfigForm({
   config,
   onClose,
 }: {
-  config: WorkspaceConfigEntry | null;
+  config: OrganizationConfigEntry | null;
   onClose: () => void;
 }) {
   const { t } = useTranslation(["settings", "common"]);
   const toast = useToast();
-  const { mutateAsync: upsertConfig, isPending } = useUpsertWorkspaceConfig();
+  const { mutateAsync: upsertConfig, isPending } = useUpsertOrganizationConfig();
 
   const form = useForm<ConfigFormValues>({
     resolver: zodResolver(configSchema),
@@ -70,7 +70,7 @@ function useUpsertConfigForm({
         }
       : {
           config_key: "",
-          scope_type: "workspace",
+          scope_type: "organization",
           scope_id: "",
           value_type: "text",
           value: "",
@@ -94,7 +94,7 @@ function useUpsertConfigForm({
   const onSubmit = async (data: ConfigFormValues) => {
     try {
       let scopeId: string | null = null;
-      if (data.scope_type !== "workspace" && data.scope_id) {
+      if (data.scope_type !== "organization" && data.scope_id) {
         scopeId = data.scope_id;
       }
 
@@ -150,7 +150,7 @@ export function UpsertConfigModal({
   isOpen,
   onClose,
 }: {
-  config: WorkspaceConfigEntry | null;
+  config: OrganizationConfigEntry | null;
   isOpen: boolean;
   onClose: () => void;
 }) {
@@ -180,13 +180,13 @@ export function UpsertConfigModal({
                 className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50"
                 id="scope_type"
               >
-                <option value="workspace">{t("settings.overtime.config.scopes.workspace")}</option>
+                <option value="organization">{t("settings.overtime.config.scopes.organization", { defaultValue: "Organization" })}</option>
                 <option value="employer">{t("settings.overtime.config.scopes.employer")}</option>
                 <option value="department">{t("settings.overtime.config.scopes.department")}</option>
                 <option value="employee">{t("settings.overtime.config.scopes.employee")}</option>
               </select>
             </div>
-            {form.watch("scope_type") !== "workspace" && (
+            {form.watch("scope_type") !== "organization" && (
               <div>
                 <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2" htmlFor="scope_id">{t("settings.overtime.config.scope_id")}</label>
                 <input

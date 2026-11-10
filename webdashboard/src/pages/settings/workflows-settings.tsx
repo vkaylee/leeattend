@@ -7,7 +7,7 @@ import { SettingsHeader } from "@/components/ui/settings/settings-header";
 import { SettingsSegmentedControl, type SegmentedOption } from "@/components/ui/settings/settings-segmented-control";
 import { useOrganization } from "@/hooks/use-organization";
 import { ROUTES } from "@/lib/routes";
-import { Route } from "@/routes/_authenticated/_workspace/settings/workflows";
+import { Route } from "@/routes/_authenticated/_organization/settings/workflows";
 
 import { ApprovalWorkflowsTab } from "./components/overtime/approval-workflows-tab";
 
@@ -27,7 +27,7 @@ const WorkflowTabContent = ({ activeTab }: WorkflowTabContentProps) => {
 
 export default function WorkflowsSettings() {
   const { t } = useTranslation();
-  const { workspace: ws } = useOrganization();
+  const { organization } = useOrganization();
   const search = Route.useSearch();
   const navigate = useNavigate();
 
@@ -40,7 +40,7 @@ export default function WorkflowsSettings() {
     });
   };
 
-  if (!ws) return null;
+  if (!organization) return null;
 
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">

@@ -12,7 +12,7 @@ export function GlobalLoader() {
         </div>
       </div>
       <Typography className="mt-8 text-[10px] font-bold text-primary-600 dark:text-primary-400 uppercase tracking-[0.3em] animate-pulse opacity-80" variant="p">
-        Initializing Workspace...
+        Initializing Organization...
       </Typography>
     </div>
   );

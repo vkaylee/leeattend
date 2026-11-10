@@ -123,7 +123,6 @@ export interface StagingLog {
   raw_data: StagingLogRawData | null;
   raw_user_id: string;
   status: string;
-  workspace_id?: string;
 }
 
 export interface StagingLogsResponse {

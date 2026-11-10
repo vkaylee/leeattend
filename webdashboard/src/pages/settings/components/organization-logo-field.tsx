@@ -38,7 +38,7 @@ export function OrganizationLogoField({
   return (
     <div className="space-y-2">
       <label className={labelClassName}>
-        {t("common.workspace_settings.workspace_logo", {
+        {t("common.organization_settings.organization_logo", {
           defaultValue: "Logo tổ chức",
         })}
       </label>
@@ -46,13 +46,13 @@ export function OrganizationLogoField({
       {isEditing ? (
         <div className="rounded-xl border border-primary-300 dark:border-primary-700 bg-primary-50/30 dark:bg-primary-950/20 p-3 space-y-2.5">
           <div className="text-[11px] font-medium text-slate-600 dark:text-slate-400">
-            {t("common.workspace_settings.enter_logo_url", {
+            {t("common.organization_settings.enter_logo_url", {
               defaultValue: "Nhập URL hình ảnh logo (HTTPS):",
             })}
           </div>
           <div className="flex items-center gap-2">
             <input
-              aria-label={t("common.workspace_settings.workspace_logo", {
+              aria-label={t("common.organization_settings.organization_logo", {
                 defaultValue: "Logo URL",
               })}
               className="flex-1 h-9 px-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-mono text-slate-800 dark:text-slate-100 outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
@@ -88,7 +88,7 @@ export function OrganizationLogoField({
       ) : logoUrl ? (
         <div className="relative group rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 flex flex-col items-center justify-center p-4 h-32">
           <div
-            aria-label={t("common.workspace_settings.workspace_logo", { defaultValue: "Logo tổ chức" })}
+            aria-label={t("common.organization_settings.organization_logo", { defaultValue: "Logo tổ chức" })}
             className="h-16 w-full bg-contain bg-no-repeat bg-center drop-shadow-2xs"
             role="img"
             style={{ backgroundImage: `url(${logoUrl})` }}
@@ -129,7 +129,7 @@ export function OrganizationLogoField({
               className="text-xs font-semibold text-slate-600 dark:text-slate-300 group-hover:text-primary-600"
               variant="p"
             >
-              {t("common.workspace_settings.upload_logo", {
+              {t("common.organization_settings.upload_logo", {
                 defaultValue: "Nhấp để cài đặt logo URL",
               })}
             </Typography>

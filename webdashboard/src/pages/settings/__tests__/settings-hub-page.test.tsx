@@ -52,7 +52,7 @@ function makeItem(label: string, path: string): any {
 
 function makeNavState(overrides: Partial<hooks.SettingsNavState> = {}) {
   return {
-    workspaceGroup: [],
+    organizationGroup: [],
     accessGroup: [],
     operationsGroup: [],
     systemGroup: [],
@@ -88,7 +88,7 @@ describe("SettingsHubPage", () => {
     vi.spyOn(hooks, "useSettingsNav").mockReturnValue(makeNavState());
     render(<SettingsHubPage />);
     expect(screen.getByTestId("settings-hub-empty")).toBeInTheDocument();
-    expect(screen.queryByTestId("settings-section-workspace")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("settings-section-organization")).not.toBeInTheDocument();
   });
 
 
@@ -97,14 +97,14 @@ describe("SettingsHubPage", () => {
   it("renders the workspace section with correct test id", () => {
     vi.spyOn(hooks, "useSettingsNav").mockReturnValue(
       makeNavState({
-        workspaceGroup: [
+        organizationGroup: [
           makeItem("General", "/settings/general"),
           makeItem("Billing", "/settings/billing"),
         ],
       }),
     );
     render(<SettingsHubPage />);
-    expect(screen.getByTestId("settings-section-workspace")).toBeInTheDocument();
+    expect(screen.getByTestId("settings-section-organization")).toBeInTheDocument();
     expect(screen.getByText("General")).toBeInTheDocument();
     expect(screen.getByText("Billing")).toBeInTheDocument();
   });
@@ -157,26 +157,26 @@ describe("SettingsHubPage", () => {
   it("hides workspace section when it has no items", () => {
     vi.spyOn(hooks, "useSettingsNav").mockReturnValue(
       makeNavState({
-        workspaceGroup: [],
+        organizationGroup: [],
         accessGroup: [makeItem("Roles", "/settings/roles")],
       }),
     );
     render(<SettingsHubPage />);
-    expect(screen.queryByTestId("settings-section-workspace")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("settings-section-organization")).not.toBeInTheDocument();
     expect(screen.getByTestId("settings-section-access")).toBeInTheDocument();
   });
 
   it("hides all empty sections and only shows populated ones", () => {
     vi.spyOn(hooks, "useSettingsNav").mockReturnValue(
       makeNavState({
-        workspaceGroup: [makeItem("General", "/settings/general")],
+        organizationGroup: [makeItem("General", "/settings/general")],
         accessGroup: [],
         operationsGroup: [],
       }),
     );
     render(<SettingsHubPage />);
 
-    expect(screen.getByTestId("settings-section-workspace")).toBeInTheDocument();
+    expect(screen.getByTestId("settings-section-organization")).toBeInTheDocument();
     expect(screen.queryByTestId("settings-section-access")).not.toBeInTheDocument();
     expect(screen.queryByTestId("settings-section-operations")).not.toBeInTheDocument();
     expect(screen.queryByTestId("settings-section-system")).not.toBeInTheDocument();
@@ -188,7 +188,7 @@ describe("SettingsHubPage", () => {
   it("renders all four sections simultaneously", () => {
     vi.spyOn(hooks, "useSettingsNav").mockReturnValue(
       makeNavState({
-        workspaceGroup: [makeItem("General", "/settings/general")],
+        organizationGroup: [makeItem("General", "/settings/general")],
         accessGroup: [makeItem("Roles", "/settings/roles")],
         operationsGroup: [makeItem("Time", "/settings/time")],
         systemGroup: [makeItem("Storage", "/settings/storage")],
@@ -196,7 +196,7 @@ describe("SettingsHubPage", () => {
     );
     render(<SettingsHubPage />);
 
-    expect(screen.getByTestId("settings-section-workspace")).toBeInTheDocument();
+    expect(screen.getByTestId("settings-section-organization")).toBeInTheDocument();
     expect(screen.getByTestId("settings-section-access")).toBeInTheDocument();
     expect(screen.getByTestId("settings-section-operations")).toBeInTheDocument();
     expect(screen.getByTestId("settings-section-system")).toBeInTheDocument();
@@ -211,7 +211,7 @@ describe("SettingsHubPage", () => {
   it("renders the header with title and control panel subtitle", () => {
     vi.spyOn(hooks, "useSettingsNav").mockReturnValue(
       makeNavState({
-        workspaceGroup: [makeItem("General", "/settings/general")],
+        organizationGroup: [makeItem("General", "/settings/general")],
       }),
     );
     render(<SettingsHubPage />);

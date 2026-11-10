@@ -18,9 +18,6 @@ type OrganizationRBACRepository struct {
 	BeginTx  func(context.Context) (TxBeginner, error)
 }
 
-// WorkspaceRBACRepository retains backwards compatibility during cutover.
-type WorkspaceRBACRepository = OrganizationRBACRepository
-
 func (r OrganizationRBACRepository) begin(ctx context.Context) (TxBeginner, error) {
 	if r.BeginTx != nil {
 		return r.BeginTx(ctx)

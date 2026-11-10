@@ -106,7 +106,7 @@ describe("use-dashboard hooks", () => {
 
             await waitFor(() => { expect(result.current.isLoading).toBe(false); });
 
-            expect(api.apiFetch).toHaveBeenCalledWith("/v1/dashboard/workspace-stats");
+            expect(api.apiFetch).toHaveBeenCalledWith("/v1/dashboard/organization-stats");
             expect(result.current.data).toEqual(mockStats);
         });
 
@@ -124,8 +124,8 @@ describe("use-dashboard hooks", () => {
             expect(result.current.error).toBeInstanceOf(DashboardQueryError);
             expect(result.current.error).toMatchObject({
                 code: "HTTP_ERROR",
-                endpoint: "/v1/dashboard/workspace-stats",
-                queryKey: "workspace-stats",
+                endpoint: "/v1/dashboard/organization-stats",
+                queryKey: "organization-stats",
                 status: 503,
             });
         });

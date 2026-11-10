@@ -3,7 +3,7 @@ import { z } from "zod";
 /**
  * URL search-param contract for `/shifts`.
  *
- * Owned by the route file (`routes/_authenticated/_workspace/shifts.index.tsx`)
+ * Owned by the route file (`routes/_authenticated/_organization/shifts.index.tsx`)
  * via `validateSearch`. Every field has `.catch()` — see ADR-006.
  */
 export const shiftsSearchSchema = z

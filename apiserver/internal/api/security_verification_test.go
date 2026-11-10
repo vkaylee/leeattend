@@ -11,9 +11,9 @@ import (
 	httpinfra "github.com/vkaylee/leeattend/apiserver/internal/infra/http"
 )
 
-// TestTenantIsolation_CrossWorkspaceBoundary verifies authorization boundaries
+// TestSingleOrganizationAuthorizationBoundary verifies authorization boundaries
 // for the single organization API without client-selected organization scope.
-func TestTenantIsolation_CrossWorkspaceBoundary(t *testing.T) {
+func TestSingleOrganizationAuthorizationBoundary(t *testing.T) {
 	userID := uuid.New()
 	request := func(method, path, body string, authenticated bool) *http.Request {
 		req := httptest.NewRequest(method, path, bytes.NewBufferString(body))

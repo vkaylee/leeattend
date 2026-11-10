@@ -21,7 +21,7 @@
       "hierarchy_explanation": "Payroll config is prioritized: Individual > Department > Organization.",
       "individual_policy": "Individual Policy",
       "department_policy": "Department Policy",
-      "workspace_default": "Organization Default",
+      "organization_default": "Organization Default",
       "pending_adjustments": "Has pending adjustments",
       "recalc_needed": "Recalculation needed",
       "view_adjustments": "View adjustments"
@@ -227,6 +227,7 @@
     "search_employees": "Search Employees...",
     "select_department": "Select Department",
     "select_department_placeholder": "Choose a department...",
+    "organization_scope_info": "Applied organization-wide.",
     "workspace_scope_info": "Applied organization-wide.",
     "effective_to": "Effective To",
     "override_config": "Override Configuration",
@@ -300,12 +301,15 @@
     },
     "scope_employee": "Employee",
     "scope_department": "Department",
+    "scope_organization": "Organization",
     "scope_workspace": "Organization",
     "scope_level_employee": "Employee Level",
     "scope_level_department": "Department Level",
+    "scope_level_organization": "Organization Level",
     "scope_level_workspace": "Organization Level"
   },
   "payroll_rules": {
+    "scope_organization": "Organization Wide",
     "scope_workspace": "Organization Wide",
     "rule_assignments": "Rule Assignments"
   }

@@ -42,7 +42,7 @@ export interface UseUnrecordedShiftsDataResult {
   isLoading: boolean;
   queryKey: unknown[];
   tracesByKey: Map<string, ScheduleTrace[]>;
-  workspaceTimezone: string;
+  organizationTimezone: string;
 }
 
 export function getNextNoShowPageParam(
@@ -64,7 +64,7 @@ export function useUnrecordedShiftsData({
 }: UseUnrecordedShiftsDataParams): UseUnrecordedShiftsDataResult {
   
   const { organization } = useOrganization();
-  const workspaceTimezone = organization?.timezone ?? "UTC";
+  const organizationTimezone = organization?.timezone ?? "UTC";
 
   const queryKey = ["unrecorded-shifts", selectedDate,
   selectedShiftTypes,
@@ -126,7 +126,7 @@ export function useUnrecordedShiftsData({
     rows: allRows,
     employeeMap,
     viewingDate: selectedDate,
-    workspaceTimezone,
+    organizationTimezone,
   });
 
   const departments = useMemo(() => {
@@ -168,7 +168,7 @@ export function useUnrecordedShiftsData({
     isLoading,
     queryKey,
     tracesByKey,
-    workspaceTimezone,
+    organizationTimezone,
     fetchNextPage,
   };
 }

@@ -10,7 +10,7 @@ import {
 
 /**
  * The new `computeZone` is TZ-aware and works in absolute epoch-minutes. To keep
- * tests deterministic we pin the workspace TZ to UTC and build `referenceTime`
+ * tests deterministic we pin the organization timezone to UTC and build `referenceTime`
  * with `Date.UTC` (so results do not depend on the runner's local timezone).
  */
 const TZ = "UTC";

@@ -87,7 +87,7 @@ export type OvertimeRequestEmployee = components["schemas"]["OvertimeRequestEmpl
 export type OvertimeRequest = components["schemas"]["OvertimeRequest"];
 export type OvertimeRequestDetail = components["schemas"]["OvertimeRequestDetail"];
 export type CreateOvertimeRequestPayload = components["schemas"]["CreateOvertimeRequestPayload"];
-export type BehalfAssignment = Omit<components["schemas"]["BehalfAssignment"], "assignee_employee_id_number" | "assignee_name">;
+export type BehalfAssignment = Omit<components["schemas"]["BehalfAssignment"], "assignee_employee_id_number" | "assignee_name" | "workspace_id">;
 export type CreateBehalfAssignmentRequest = components["schemas"]["CreateBehalfAssignmentRequest"];
 export type CustomFieldDefinition = components["schemas"]["CustomFieldDefinition"];
 export type CreateCustomFieldDefinitionRequest = components["schemas"]["CreateCustomFieldDefinitionRequest"];
@@ -122,8 +122,35 @@ export type Notification = components["schemas"]["Notification"];
 export type NotificationResponse = components["schemas"]["NotificationResponse"];
 export type UnreadCountResponse = components["schemas"]["UnreadCountResponse"];
 export type ContractType = components["schemas"]["ContractType"];
-export type Workspace = components["schemas"]["Workspace"];
-export type WorkspaceConfigEntry = components["schemas"]["WorkspaceConfigEntry"];
-export type WorkspaceLeaveBalance = components["schemas"]["WorkspaceLeaveBalance"];
-export type LeaveBalance = components["schemas"]["WorkspaceLeaveBalance"];
-export type OrganizationLeaveBalance = components["schemas"]["WorkspaceLeaveBalance"];
+export interface OrganizationConfigEntry {
+  config_key: string;
+  created_at: string;
+  created_by?: string | null;
+  effective_from: string;
+  effective_to?: string | null;
+  id: string;
+  scope_id?: string | null;
+  scope_type: string;
+  updated_at: string;
+  value_bool?: boolean | null;
+  value_decimal?: string | null;
+  value_int?: number | null;
+  value_json?: unknown;
+  value_text?: string | null;
+}
+export interface OrganizationLeaveBalance {
+  accrued_amount: number;
+  assignment_type?: string | null;
+  carried_over: number;
+  employee_id: string;
+  employee_name: string;
+  entitlement: number;
+  is_paid: boolean;
+  leave_type_code: string;
+  leave_type_id: string;
+  leave_type_name: string;
+  policy_name?: string | null;
+  remaining: number;
+  used: number;
+}
+export type LeaveBalance = OrganizationLeaveBalance;

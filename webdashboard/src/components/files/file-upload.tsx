@@ -3,6 +3,7 @@ import React, { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import type { components } from "@/types/api-generated";
+import type { FileRecord } from "@/lib/api/types";
 
 import Button from "@/components/ui/button";
 import { Typography } from "@/components/ui/typography";
@@ -16,7 +17,7 @@ interface FileUploadProps {
   category: FileCategory;
   className?: string;
   maxSizeMB?: number;
-  onUploadSuccess?: (file: components["schemas"]["WorkspaceFile"]) => void;
+  onUploadSuccess?: (file: FileRecord) => void;
   ownerId: string;
   ownerType: FileOwnerType;
 }

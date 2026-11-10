@@ -50,7 +50,7 @@ export function formatRoleName(
 }
 
 /**
- * MemberMobileCard — mobile card for workspace members.
+ * MemberMobileCard — mobile card for organization members.
  * Complexity (13) from JSX conditionals: avatar vs initials, role badges, extra roles popover,
  * and conditional action buttons (owner cannot be removed). Decomposing further reduces readability.
  */

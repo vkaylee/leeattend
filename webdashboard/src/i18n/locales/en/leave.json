@@ -125,6 +125,8 @@
         "lump_sum_desc": "Grants full entitlement at start of year"
       },
       "assignee_types": {
+        "organization": "Organization-wide (All)",
+        "organization_desc": "Applies to all employees in the organization",
         "workspace": "Organization-wide (All)",
         "workspace_desc": "Applies to all employees in the organization",
         "department": "By Department",

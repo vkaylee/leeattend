@@ -79,12 +79,12 @@ export function usePolicyAssignments() {
   );
 
   const workUnitLabel = useCallback((v: number) =>
-    t(`common.workspace_settings.work_unit_options.${v}min`, { defaultValue: `${v} min` }),
+    t(`common.organization_settings.work_unit_options.${v}min`, { defaultValue: `${v} min` }),
     [t]
   );
 
   const roundingLabel = useCallback((v: string) =>
-    t(`common.workspace_settings.rounding_options.${v}`, { defaultValue: v }),
+    t(`common.organization_settings.rounding_options.${v}`, { defaultValue: v }),
     [t]
   );
 

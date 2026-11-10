@@ -5,20 +5,20 @@ import { useTranslation } from 'react-i18next';
 import { useProfile } from './use-profile';
 import { useOrganization } from "@/hooks/use-organization";
 interface SyncLangOptions {
-  currentWorkspaceDefaultLang?: string;
+  currentOrganizationDefaultLang?: string;
   hasInitialized: RefObject<boolean>;
   i18n: { changeLanguage: (lang: string) => Promise<unknown>; language: string };
   userPreferredLang?: string | null;
 }
 
-function syncLanguage({ hasInitialized, userPreferredLang, currentWorkspaceDefaultLang, i18n }: SyncLangOptions, user: unknown) {
+function syncLanguage({ hasInitialized, userPreferredLang, currentOrganizationDefaultLang, i18n }: SyncLangOptions, user: unknown) {
   if (hasInitialized.current) return;
   const localStorageLang = localStorage.getItem('i18nextLng');
   if (localStorageLang && ['en', 'vi', 'zh'].includes(localStorageLang)) {
     if (user) hasInitialized.current = true;
     return;
   }
-  const langToSet = userPreferredLang ?? currentWorkspaceDefaultLang ?? undefined;
+  const langToSet = userPreferredLang ?? currentOrganizationDefaultLang ?? undefined;
   if (langToSet && i18n.language !== langToSet) {
     void i18n.changeLanguage(langToSet);
     localStorage.setItem('i18nextLng', langToSet);
@@ -36,7 +36,7 @@ export function useI18nSync() {
     syncLanguage({
       hasInitialized,
       userPreferredLang: user?.preferred_language,
-      currentWorkspaceDefaultLang: organization?.default_language,
+      currentOrganizationDefaultLang: organization?.default_language,
       i18n,
     }, user);
   }, [user?.preferred_language, organization?.default_language, i18n, user]);

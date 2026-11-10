@@ -37,8 +37,8 @@ const metric = {
 };
 
 const response = {
-  contract_version: "executive-dashboard.v1",
-  workspace: { timezone: "Asia/Ho_Chi_Minh", currency: "VND" },
+  contract_version: "executive-dashboard.v2",
+  organization: { timezone: "Asia/Ho_Chi_Minh", currency: "VND" },
   context: {
     period: {
       key: "this_month",
@@ -50,7 +50,7 @@ const response = {
     comparison: "previous_period",
     filters: {},
     scope: {
-      kind: "workspace",
+      kind: "organization",
       department_ids: [],
       location_ids: [],
       omitted_dimensions: [],

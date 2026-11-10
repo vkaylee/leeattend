@@ -71,7 +71,7 @@ export const getHighestPrioritySource = (
 
 /**
  * Order roster rows to match the user's selection order rather than the
- * workspace/API order. Rows whose id is not in `orderedIds` are dropped.
+ * organization/API order. Rows whose id is not in `orderedIds` are dropped.
  */
 export const orderSchedulesBySelection = <T extends { employee_id?: string }>(
   schedules: T[],

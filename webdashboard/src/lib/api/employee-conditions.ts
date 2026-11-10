@@ -16,7 +16,7 @@ function normalizeCondition(item: WorkingConditionWire): WorkingCondition {
   return { ...item, type: item.type_ ?? item.type };
 }
 
-export async function fetchWorkspaceWorkingConditions(): Promise<WorkingConditionWithEmployee[]> {
+export async function fetchWorkingConditionsForAllEmployees(): Promise<WorkingConditionWithEmployee[]> {
   const { data } = await client.GET<WorkingConditionWithEmployee[]>("/v1/working-conditions");
   return data.map((item) => normalizeCondition(item) as WorkingConditionWithEmployee);
 }

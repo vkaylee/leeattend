@@ -23,7 +23,7 @@
     "reports": "Reports & Dashboard",
     "security": "Security & Audit",
     "shifts": "Shifts & Scheduling",
-    "workspace": "Organization & Setup"
+    "organization": "Organization & Setup"
   },
   "items": {
     "overtime:request:create_on_behalf": {

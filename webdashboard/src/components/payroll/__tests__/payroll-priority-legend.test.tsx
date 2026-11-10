@@ -27,6 +27,6 @@ describe('PayrollPriorityLegend', () => {
     // Check for items
     expect(screen.getByText('payroll.traceability.individual_policy')).toBeInTheDocument();
     expect(screen.getByText('payroll.traceability.department_policy')).toBeInTheDocument();
-    expect(screen.getByText('payroll.traceability.workspace_default')).toBeInTheDocument();
+    expect(screen.getByText('payroll.traceability.organization_default')).toBeInTheDocument();
   });
 });

@@ -17,7 +17,7 @@ fetchNextPage: () => Promise<unknown>;
 queryKey: unknown[];
 selectedDate: string;
 selectedDept: string;
-workspaceTimezone: string;  }
+organizationTimezone: string;  }
 
 interface UseNoShowExportReturn {
   /** Start the export. Idempotent while already exporting. */
@@ -35,7 +35,7 @@ export function useNoShowExport({
   fetchNextPage,
   employeeMap,
   selectedDate,
-  workspaceTimezone,
+  organizationTimezone,
   selectedDept,
 }: UseNoShowExportParams): UseNoShowExportReturn {
   const { t } = useTranslation();
@@ -74,7 +74,7 @@ export function useNoShowExport({
         rows: allReportRows,
         employeeMap,
         viewingDate: selectedDate,
-        workspaceTimezone,
+        organizationTimezone,
       }).filter((r) =>
         selectedDept === "__all__" ? true : r.department_name === selectedDept,
       );
@@ -102,7 +102,7 @@ export function useNoShowExport({
   fetchNextPage,
   employeeMap,
   selectedDate,
-  workspaceTimezone,
+  organizationTimezone,
   selectedDept,
   t,]);
 

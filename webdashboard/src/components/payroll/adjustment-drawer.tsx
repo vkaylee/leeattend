@@ -6,7 +6,7 @@ import { useTranslation } from "react-i18next";
 import Button from "@/components/ui/button";
 import { Typography } from "@/components/ui/typography";
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
-import { fetchWorkspaceAttendanceAdjustments, approveAttendanceAdjustment } from "@/lib/api";
+import { fetchAttendanceAdjustments, approveAttendanceAdjustment } from "@/lib/api";
 
 import Sheet from "../ui/sheet";
 import { useToast } from "../ui/toast";
@@ -33,7 +33,7 @@ export default function AdjustmentDrawer({
   const toast = useToast();
   const { formatDate, formatTime } = useDateTimeFormatter();
 
-  const { data: paginatedAdjustments, isLoading } = useQuery({ queryKey: ["adjustments", "pending"], queryFn: () => fetchWorkspaceAttendanceAdjustments({ status: "pending" }),
+  const { data: paginatedAdjustments, isLoading } = useQuery({ queryKey: ["adjustments", "pending"], queryFn: () => fetchAttendanceAdjustments({ status: "pending" }),
   enabled: isOpen , });
 
   const employeeAdjustments = useMemo(() => {

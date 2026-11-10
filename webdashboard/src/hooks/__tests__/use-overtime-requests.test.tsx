@@ -12,7 +12,7 @@ import {
   useCancelOvertimeRequest,
   useEmployeeConsent,
   useMyOtAssignments,
-  useWorkspaceQuotaSummary,
+  useOrganizationQuotaSummary,
   useEmployeeQuota,
   overtimeRequestKeys,
 } from "../use-overtime-requests";
@@ -25,7 +25,7 @@ const api = vi.hoisted(() => ({
   cancelRequest: vi.fn(),
   employeeConsent: vi.fn(),
   getMyAssignments: vi.fn(),
-  getWorkspaceQuotaSummary: vi.fn(),
+  getQuotaSummary: vi.fn(),
   getEmployeeQuota: vi.fn(),
 }));
 
@@ -281,30 +281,30 @@ describe("useMyOtAssignments", () => {
   });
 });
 
-describe("useWorkspaceQuotaSummary", () => {
+describe("useOrganizationQuotaSummary", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    (api.getWorkspaceQuotaSummary as Mock).mockResolvedValue([
+    (api.getQuotaSummary as Mock).mockResolvedValue([
       { employee_id: "emp-1", monthly_used: 5, monthly_limit: 40, yearly_used: 12, yearly_limit: 200 },
     ]);
   });
 
   it("fetches the workspace quota summary for the given month", async () => {
-    const { result } = renderHook(() => useWorkspaceQuotaSummary("2026-08"), {
+    const { result } = renderHook(() => useOrganizationQuotaSummary("2026-08"), {
       wrapper: createWrapper(),
     });
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
 
-    expect(api.getWorkspaceQuotaSummary).toHaveBeenCalledWith("2026-08");
+    expect(api.getQuotaSummary).toHaveBeenCalledWith("2026-08");
     expect(result.current.data).toHaveLength(1);
   });
 
   it("does not fetch without a month", () => {
-    const { result } = renderHook(() => useWorkspaceQuotaSummary(""), { wrapper: createWrapper() });
+    const { result } = renderHook(() => useOrganizationQuotaSummary(""), { wrapper: createWrapper() });
 
     expect(result.current.isFetching).toBe(false);
-    expect(api.getWorkspaceQuotaSummary).not.toHaveBeenCalled();
+    expect(api.getQuotaSummary).not.toHaveBeenCalled();
   });
 });
 

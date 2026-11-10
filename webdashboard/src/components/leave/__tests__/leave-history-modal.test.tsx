@@ -96,7 +96,7 @@ describe('LeaveHistoryModal', () => {
         });
     });
 
-    it('invalidates workspace-leave-balances cache upon successful adjustment', async () => {
+    it('invalidates leave-balances cache upon successful adjustment', async () => {
         // Setup successful adjustment
  
         vi.mocked(api.adjustLeaveBalance).mockResolvedValue({} as unknown as never);
@@ -125,7 +125,7 @@ describe('LeaveHistoryModal', () => {
         // Validate cache invalidation
         await waitFor(() => {
             expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ["leave-history"] });
-            expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ["workspace-leave-balances"] });
+            expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ["leave-balances"] });
         });
     });
 });

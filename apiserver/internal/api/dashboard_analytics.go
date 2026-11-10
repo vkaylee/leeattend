@@ -136,10 +136,16 @@ type OvertimeBreakdownRow struct {
 	CostAvailable     bool             `json:"cost_available"`
 }
 
+type DashboardOrganizationContext struct {
+	Timezone string `json:"timezone"`
+	Currency string `json:"currency"`
+}
+
 type OvertimeBreakdownResponse struct {
-	ContractVersion string                 `json:"contract_version"`
-	Rows            []OvertimeBreakdownRow `json:"rows"`
-	GeneratedAt     string                 `json:"generated_at"`
+	ContractVersion string                       `json:"contract_version"`
+	Organization    DashboardOrganizationContext `json:"organization"`
+	Rows            []OvertimeBreakdownRow       `json:"rows"`
+	GeneratedAt     string                       `json:"generated_at"`
 }
 
 // Executive overview response models
@@ -247,13 +253,14 @@ type DashboardDataQuality struct {
 }
 
 type DashboardMetricsResponse struct {
-	ContractVersion string                  `json:"contract_version"`
-	Context         DashboardMetricContext  `json:"context"`
-	Metrics         []DashboardMetric       `json:"metrics"`
-	Insights        []DashboardInsight      `json:"insights"`
-	Actions         DashboardActionsSummary `json:"actions"`
-	DataQuality     DashboardDataQuality    `json:"data_quality"`
-	GeneratedAt     time.Time               `json:"generated_at"`
+	ContractVersion string                       `json:"contract_version"`
+	Organization    DashboardOrganizationContext `json:"organization"`
+	Context         DashboardMetricContext       `json:"context"`
+	Metrics         []DashboardMetric            `json:"metrics"`
+	Insights        []DashboardInsight           `json:"insights"`
+	Actions         DashboardActionsSummary      `json:"actions"`
+	DataQuality     DashboardDataQuality         `json:"data_quality"`
+	GeneratedAt     time.Time                    `json:"generated_at"`
 }
 
 // Turnover analytics response models
@@ -596,7 +603,7 @@ func (h DashboardAnalyticsHandler) getTimezone(ctx context.Context, requested st
 	if err != nil || orgTZ == "" {
 		orgTZ = "UTC"
 	}
-	loc := timezone.ParseWorkspaceTZ(orgTZ)
+	loc := timezone.ParseTimezone(orgTZ)
 	return loc, orgTZ, nil
 }
 
@@ -876,8 +883,8 @@ func (h DashboardAnalyticsHandler) OvertimeBreakdown(w http.ResponseWriter, r *h
 	apperror.WriteJSON(w, http.StatusOK, resp)
 }
 
-// 3. GET /api/v1/dashboard/workspace-stats
-func (h DashboardAnalyticsHandler) WorkspaceStats(w http.ResponseWriter, r *http.Request) {
+// 3. GET /api/v1/dashboard/organization-stats
+func (h DashboardAnalyticsHandler) OrganizationStats(w http.ResponseWriter, r *http.Request) {
 	userID, ok := h.resolveContext(w, r)
 	if !ok {
 		return
