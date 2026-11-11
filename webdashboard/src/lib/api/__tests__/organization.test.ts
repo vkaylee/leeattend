@@ -28,6 +28,22 @@ describe("organization API", () => {
     expect(client.GET).toHaveBeenCalledWith("/api/v1/members");
   });
 
+  it("returns an array for an empty paginated members response", async () => {
+    vi.mocked(client.GET).mockResolvedValueOnce({
+      data: {
+        data: [],
+        total: 0,
+        page: 1,
+        limit: 50,
+      },
+    } as never);
+
+    const members = await fetchOrganizationMembers();
+
+    expect(Array.isArray(members)).toBe(true);
+    expect(members.find((member) => member.user_id === "missing-user")).toBeUndefined();
+  });
+
   it("unwraps paginated roles response before returning roles", async () => {
     vi.mocked(client.GET).mockResolvedValueOnce({
       data: {
