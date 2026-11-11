@@ -73,7 +73,7 @@ MCP_COMMAND=(
   --timeout-action=5000
   --timeout-navigation=30000
   --timeout-settle=1000
-  --idle-timeout=300000
+  --idle-timeout=0
   "$@"
 )
 

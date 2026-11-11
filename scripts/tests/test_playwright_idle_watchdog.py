@@ -40,7 +40,7 @@ def image_build_result(
 WATCHDOG = ROOT / "scripts/playwright-idle-watchdog.py"
 
 
-def watchdog_command(child: str, *, idle: int = 3, grace: int = 1) -> list[str]:
+def watchdog_command(child: str, *, idle: int = 3, grace: int = 1, session_idle: int = 300) -> list[str]:
     return [
         sys.executable,
         str(WATCHDOG),
@@ -48,6 +48,8 @@ def watchdog_command(child: str, *, idle: int = 3, grace: int = 1) -> list[str]:
         str(idle),
         "--grace-seconds",
         str(grace),
+        "--session-idle-seconds",
+        str(session_idle),
         "--",
         sys.executable,
         "-c",
@@ -65,7 +67,9 @@ def test_idle_timeout_cli_defaults_to_ten_seconds(monkeypatch) -> None:
         [str(WATCHDOG), "--", sys.executable, "-c", "pass"],
     )
 
-    assert parse_args().idle_seconds == 10
+    args = parse_args()
+    assert args.idle_seconds == 10
+    assert args.session_idle_seconds == 300
 
 
 def test_existing_podman_image_skips_build() -> None:
@@ -316,3 +320,65 @@ def test_idle_timeout_cli_rejects_out_of_range_value() -> None:
 
     assert result.returncode == 2
     assert b"--idle-seconds must be an integer from 1 to 60 seconds" in result.stderr
+
+
+@pytest.mark.parametrize("value", ["0", "3601", "invalid"])
+def test_session_idle_timeout_rejects_invalid_value(value: str) -> None:
+    result = subprocess.run(
+        [sys.executable, str(WATCHDOG), "--session-idle-seconds", value,
+         "--", sys.executable, "-c", "pass"],
+        capture_output=True, check=False, timeout=3,
+    )
+    assert result.returncode == 2
+    assert b"--session-idle-seconds" in result.stderr
+
+
+@pytest.mark.parametrize("activity", ["idle", "ping", "tools/list", "notification", "tool", "slow_tool"])
+def test_session_idle_tracks_completed_tools_only(activity: str) -> None:
+    import select
+
+    child = '''
+import json, sys, time
+for line in sys.stdin:
+    message = json.loads(line)
+    if "id" not in message:
+        continue
+    if message.get("params", {}).get("slow"):
+        time.sleep(2.5)
+    print(json.dumps({"jsonrpc": "2.0", "id": message["id"], "result": {}}), flush=True)
+'''
+    with subprocess.Popen(
+        watchdog_command(child, idle=6, session_idle=2),
+        stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+    ) as process:
+        assert process.stdin is not None and process.stdout is not None
+
+        def exchange(identifier: int, method: str, *, slow: bool = False) -> None:
+            process.stdin.write(json.dumps({"jsonrpc": "2.0", "id": identifier,
+                                           "method": method, "params": {"slow": slow}}).encode() + b"\n")
+            process.stdin.flush()
+            assert select.select([process.stdout], [], [], 4)[0], "MCP response timed out"
+            response = process.stdout.readline()
+            assert response, "Session idle killed active request"
+            assert json.loads(response)["id"] == identifier
+
+        exchange(1, "initialize")
+        started = time.monotonic()
+        if activity in {"tool", "slow_tool"}:
+            time.sleep(0.1 if activity == "slow_tool" else 1.2)
+            exchange(2, "tools/call", slow=activity == "slow_tool")
+        elif activity != "idle":
+            for identifier in range(2, 5):
+                time.sleep(0.5)
+                if activity == "notification":
+                    process.stdin.write(b'{"jsonrpc":"2.0","method":"notifications/progress"}\n')
+                    process.stdin.flush()
+                else:
+                    exchange(identifier, activity)
+        process.wait(timeout=4)
+        elapsed = time.monotonic() - started
+        assert process.returncode == 124
+        assert process.stderr is not None
+        assert b"session idle for 2s" in process.stderr.read()
+        minimum = 4.5 if activity == "slow_tool" else 3.1 if activity == "tool" else 1.9
+        assert minimum <= elapsed < minimum + 1.2

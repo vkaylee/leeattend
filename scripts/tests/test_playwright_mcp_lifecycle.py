@@ -10,6 +10,7 @@ import shlex
 import shutil
 import signal
 import subprocess
+import sys
 import time
 import uuid
 from pathlib import Path
@@ -22,7 +23,7 @@ COMPOSE = shutil.which("podman-compose")
 
 
 class Session:
-    def __init__(self, tmp_path: Path, *, idle: int = 1500, extra: tuple[str, ...] = ()) -> None:
+    def __init__(self, tmp_path: Path, *, session_idle: int = 300, extra: tuple[str, ...] = ()) -> None:
         assert ENGINE and COMPOSE, "Container engine and project Compose engine required"
         self.name = f"playwright-lifecycle-{uuid.uuid4().hex}"
         # Inject a test-only exact name, never infer ownership from a ps difference.
@@ -34,9 +35,13 @@ class Session:
         )
         shim.chmod(0o755)
         self.errors = (tmp_path / f"{self.name}.stderr").open("wb")
+        command = ["bash", str(ROOT / "scripts/playwright-mcp-role.sh")]
+        if session_idle != 300:
+            command = [sys.executable, str(ROOT / "scripts/playwright-idle-watchdog.py"),
+                       "--idle-seconds", os.environ.get("PLAYWRIGHT_MCP_IDLE_TIMEOUT_SECS", "10"),
+                       "--session-idle-seconds", str(session_idle), "--", *command, "--supervised"]
         self.process = subprocess.Popen(
-            ["bash", str(ROOT / "scripts/playwright-mcp-role.sh"), "employee",
-             "--endpoint", "http://caddy", f"--idle-timeout={idle}", *extra],
+            [*command, "employee", "--endpoint", "http://caddy", *extra],
             cwd=ROOT, env={**os.environ, "DOCKER_COMPOSE_CMD": str(shim)},
             stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=self.errors, bufsize=0,
         )
@@ -122,22 +127,36 @@ def wait_for(check, timeout: float = 8) -> None:
     pytest.fail("Container lifecycle deadline exceeded")
 
 
-def test_native_browser_idle_and_reopen(tmp_path: Path) -> None:
-    session = Session(tmp_path, idle=6000)
-    try:
+def test_session_idle_removes_container_and_fresh_reconnect_works(tmp_path: Path) -> None:
+    with contextlib.ExitStack() as cleanup:
+        session = Session(tmp_path, session_idle=2)
+        cleanup.callback(session.close)
         session.initialize()
         session.navigate()
         assert session.browser_running()
-        wait_for(lambda: not session.browser_running())
-        assert session.process.poll() is None
-        assert "tools" in session.call("tools/list")
-        session.navigate()
-        assert session.browser_running()
-        # Normal tool calls must finish within the configured native idle interval.
-        session.call("tools/call", {"name": "browser_wait_for", "arguments": {"time": 2}})
-        assert session.browser_running()
-    finally:
-        session.close()
+        # In-flight tool outlasts session idle without native browser interruption.
+        session.call("tools/call", {"name": "browser_wait_for", "arguments": {"time": 3}})
+        assert session.process.wait(timeout=8) == 124
+        wait_for(lambda: session.engine("container", "inspect", session.name).returncode != 0)
+        fresh = Session(tmp_path)
+        cleanup.callback(fresh.close)
+        fresh.initialize()
+        fresh.navigate()
+        assert fresh.browser_running()
+
+
+def test_idle_session_does_not_stop_parallel_active_session(tmp_path: Path) -> None:
+    with contextlib.ExitStack() as cleanup:
+        active = Session(tmp_path)
+        cleanup.callback(active.close)
+        active.initialize()
+        idle = Session(tmp_path, session_idle=2)
+        cleanup.callback(idle.close)
+        idle.initialize()
+        assert idle.process.wait(timeout=8) == 124
+        wait_for(lambda: idle.engine("container", "inspect", idle.name).returncode != 0)
+        assert active.process.poll() is None
+        assert "tools" in active.call("tools/list")
 
 
 def test_startup_failure_removes_own_container(tmp_path: Path) -> None:
@@ -151,7 +170,7 @@ def test_startup_failure_removes_own_container(tmp_path: Path) -> None:
 
 def test_pending_request_timeout_removes_own_container(tmp_path: Path, monkeypatch) -> None:
     monkeypatch.setenv("PLAYWRIGHT_MCP_IDLE_TIMEOUT_SECS", "10")
-    session = Session(tmp_path, idle=30000)
+    session = Session(tmp_path)
     try:
         session.initialize()
         session.navigate()

@@ -47,7 +47,7 @@ def test_wrapper_forwards_configured_endpoint_to_cli(tmp_path: Path, extra_args:
     assert result.returncode == 0, result.stderr
     args = args_file.read_text().splitlines()
     assert "--allowed-origins=http://example.com" in args
-    assert "--idle-timeout=300000" in args
+    assert "--idle-timeout=0" in args
     if extra_args:
         assert args[-1] == extra_args[0]
-        assert args.index("--idle-timeout=300000") < len(args) - 1
+        assert args.index("--idle-timeout=0") < len(args) - 1

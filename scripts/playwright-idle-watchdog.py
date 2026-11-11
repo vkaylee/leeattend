@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run a stdio MCP process and stop it after startup or request silence."""
+"""Run a stdio MCP process with startup, request-silence and session-idle limits."""
 
 from __future__ import annotations
 
@@ -22,6 +22,7 @@ TIMEOUT_EXIT_STATUS = 124
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--idle-seconds", type=int, default=10)
+    parser.add_argument("--session-idle-seconds", type=int, default=300)
     parser.add_argument("--grace-seconds", type=int)
     parser.add_argument("--initialize-instructions")
     parser.add_argument("command", nargs=argparse.REMAINDER)
@@ -30,6 +31,8 @@ def parse_args() -> argparse.Namespace:
         args.command = args.command[1:]
     if not 1 <= args.idle_seconds <= MAX_IDLE_SECONDS:
         parser.error(f"--idle-seconds must be an integer from 1 to {MAX_IDLE_SECONDS} seconds")
+    if not 1 <= args.session_idle_seconds <= 3600:
+        parser.error("--session-idle-seconds must be an integer from 1 to 3600 seconds")
     if args.initialize_instructions == "":
         parser.error("--initialize-instructions must not be empty")
     if args.grace_seconds is None:
@@ -79,6 +82,7 @@ def run(  # noqa: PLR0915
     idle_seconds: int,
     grace_seconds: int,
     initialize_instructions: str | None = None,
+    session_idle_seconds: int = 300,
 ) -> int:
     process = subprocess.Popen(
         list(command),
@@ -100,6 +104,8 @@ def run(  # noqa: PLR0915
     initialized = False
     pending: set[str] = set()
     initialize_ids: set[str] = set()
+    tool_ids: set[str] = set()
+    session_idle_at: float | None = None
     request_buffer = bytearray()
     response_buffer = bytearray()
     term_at: float | None = time.monotonic() + idle_seconds - grace_seconds
@@ -147,6 +153,15 @@ def run(  # noqa: PLR0915
                     file=sys.stderr,
                 )
 
+            if not terminating and not pending and session_idle_at is not None and now >= session_idle_at:
+                timed_out = True
+                terminate(signal.SIGTERM)
+                print(
+                    f"Playwright MCP session idle for {session_idle_seconds}s; sent TERM "
+                    f"with {grace_seconds}s cleanup grace.",
+                    file=sys.stderr,
+                )
+
             if terminating and shutdown_deadline is not None and now >= shutdown_deadline:
                 signal_process_group(process, signal.SIGKILL)
                 break
@@ -176,6 +191,8 @@ def run(  # noqa: PLR0915
                                     schedule_deadline(time.monotonic())
                                 if message["method"] == "initialize":
                                     initialize_ids.add(identifier)
+                                elif message["method"] == "tools/call":
+                                    tool_ids.add(identifier)
                                 pending.add(identifier)
                 else:
                     data = os.read(process.stdout.fileno(), 65536)
@@ -195,12 +212,17 @@ def run(  # noqa: PLR0915
                                 if identifier is None or identifier not in pending or "method" in message:
                                     continue
                                 pending.remove(identifier)
+                                if identifier in tool_ids:
+                                    tool_ids.remove(identifier)
+                                    if initialized:
+                                        session_idle_at = time.monotonic() + session_idle_seconds
                                 if identifier not in initialize_ids:
                                     continue
                                 initialize_ids.remove(identifier)
                                 if "result" not in message:
                                     continue
                                 initialized = True
+                                session_idle_at = time.monotonic() + session_idle_seconds
                                 result = message["result"]
                                 if initialize_instructions is not None and isinstance(result, dict):
                                     result["instructions"] = initialize_instructions
@@ -235,6 +257,7 @@ def main() -> int:
         args.idle_seconds,
         args.grace_seconds,
         args.initialize_instructions,
+        args.session_idle_seconds,
     )
 
 
