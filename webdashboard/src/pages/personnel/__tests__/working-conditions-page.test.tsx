@@ -20,8 +20,9 @@ vi.mock("react-i18next", () => ({
 
 
 // Mock TanStack Router
+let mockSearch: { q?: string; employeeId?: string } = { q: "" };
 vi.mock("@tanstack/react-router", () => ({
-  useSearch: () => ({ q: "" }),
+  useSearch: () => mockSearch,
   Link: ({ to, children, ...props }: { to?: string; children: React.ReactNode }) => (
     <a href={to} {...props}>
       {children}
@@ -157,6 +158,7 @@ function renderWithProviders(ui: React.ReactElement) {
 describe("PersonnelWorkingConditionsPage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockSearch = { q: "" };
   });
 
   it("renders page header and metric cards accurately", async () => {
@@ -178,6 +180,24 @@ describe("PersonnelWorkingConditionsPage", () => {
       expect(screen.getAllByText("EMP-001").length).toBeGreaterThan(0);
       expect(screen.getAllByText("EMP-002").length).toBeGreaterThan(0);
     });
+  });
+
+  it("filters working conditions by employee URL filter", async () => {
+    mockSearch = { employeeId: "emp-1" };
+    renderWithProviders(<PersonnelWorkingConditionsPage />);
+
+    await waitFor(() => {
+      expect(screen.getAllByText("Nguyen Van A").length).toBeGreaterThan(0);
+      expect(screen.queryByText("Tran Thi B")).not.toBeInTheDocument();
+    });
+    expect(screen.getByTestId("employee-filter-chip")).toBeInTheDocument();
+  });
+
+  it("renders a clear link for employee URL filter", () => {
+    mockSearch = { employeeId: "emp-1" };
+    renderWithProviders(<PersonnelWorkingConditionsPage />);
+
+    expect(screen.getByRole("link", { name: "Bỏ bộ lọc" })).toHaveAttribute("href", "/working-conditions");
   });
 
   it("filters working conditions by search input", async () => {

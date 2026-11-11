@@ -206,6 +206,9 @@
         "lifecycle": "Quy trình & Checklist"
       },
       "edit_profile": "Sửa hồ sơ",
+      "centralized_management_hint": "Quản lý nhiều nhân viên trong bảng tập trung",
+      "filtered_employee": "Đang lọc theo nhân viên",
+      "open_centralized_page": "Mở trang bảng",
       "original_hire_date": "Ngày gia nhập gốc",
       "terminate": "Nghỉ việc",
       "rehire": "Vào làm lại",

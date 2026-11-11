@@ -206,6 +206,9 @@
         "lifecycle": "Checklists"
       },
       "edit_profile": "Edit Profile",
+      "centralized_management_hint": "Manage multiple employees in a centralized table",
+      "filtered_employee": "Filtered by employee",
+      "open_centralized_page": "Open table page",
       "original_hire_date": "Original Hire Date",
       "terminate": "Terminate",
       "rehire": "Rehire",

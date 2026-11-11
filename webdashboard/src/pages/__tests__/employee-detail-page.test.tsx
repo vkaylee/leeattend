@@ -181,6 +181,20 @@ describe("EmployeeDetailPage", () => {
     });
   });
 
+  it("offers centralized table link for table-first employee tabs", async () => {
+    const user = userEvent.setup();
+    mockSearch = {};
+    renderComponent();
+
+    expect(await screen.findByRole("heading", { name: "Alice Nguyen" })).toBeInTheDocument();
+    await user.click(screen.getByTestId("tab-assignments"));
+
+    expect(screen.getByRole("link", { name: /open table page|mở trang bảng/i })).toHaveAttribute(
+      "href",
+      "/assignments",
+    );
+  });
+
   it("renders error state when employee is not found", async () => {
     vi.mocked(api.fetchEmployee).mockRejectedValueOnce(new Error("Employee not found"));
 

@@ -284,7 +284,7 @@ func TestEmployeeAssignments_ValidationAndCRUD(t *testing.T) {
 	assignmentRepo := newMockEmployeeAssignmentRepo()
 	assignmentRepo.activeEmps[employeeID] = ActiveEmployment{ID: employmentID}
 	employeeRepo := &mockEmployeeRepoForAssignments{employees: map[uuid.UUID]EmployeeRecord{employeeID: {ID: employeeID, FullName: "Alice"}}}
-	handler := AssignmentHandler{Assignments: assignmentRepo, Employees: employeeRepo, Authorizer: assignmentSliceAuthorizer{isMember: true}}
+	handler := AssignmentHandler{Assignments: assignmentRepo, Employees: employeeRepo, Authorizer: assignmentSliceAuthorizer{isMember: true, permissions: map[string]bool{"employees:read": true}}}
 
 	createBody := fmt.Sprintf(`{"host_location_id":"%s","start_date":"2026-06-01"}`, hostLocID)
 	assignmentRepo.activeEmps = map[uuid.UUID]ActiveEmployment{}
@@ -383,13 +383,28 @@ func TestEmployeeAssignments_ValidationAndCRUD(t *testing.T) {
 		t.Fatalf("expected successful delete with null body, got %d: %s", rec.Code, rec.Body.String())
 	}
 
-	nonMemberHandler := AssignmentHandler{Assignments: assignmentRepo, Authorizer: assignmentSliceAuthorizer{isMember: false}}
+	nonMemberHandler := AssignmentHandler{Assignments: assignmentRepo, Authorizer: assignmentSliceAuthorizer{isMember: false, permissions: map[string]bool{"employees:read": true}}}
 	rec = httptest.NewRecorder()
 	req = makeAssignmentRequest(http.MethodGet, "/api/v1/employees/"+employeeID.String()+"/assignments", "")
 	req.SetPathValue("employee_id", employeeID.String())
 	nonMemberHandler.ListEmployeeAssignments(rec, req)
 	if rec.Code != http.StatusForbidden {
 		t.Fatalf("expected 403 for non-member, got %d", rec.Code)
+	}
+}
+
+func TestEmployeeAssignments_ListRequiresEmployeeReadPermission(t *testing.T) {
+	handler := AssignmentHandler{
+		Assignments: newMockEmployeeAssignmentRepo(),
+		Authorizer:  assignmentSliceAuthorizer{isMember: true, permissions: map[string]bool{}},
+	}
+	req := makeAssignmentRequest(http.MethodGet, "/api/v1/assignments", "")
+	rec := httptest.NewRecorder()
+
+	handler.ListAssignments(rec, req)
+
+	if rec.Code != http.StatusForbidden {
+		t.Fatalf("expected 403 without employees:read, got %d: %s", rec.Code, rec.Body.String())
 	}
 }
 

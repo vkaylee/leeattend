@@ -206,6 +206,9 @@
         "lifecycle": "流程清单"
       },
       "edit_profile": "编辑档案",
+      "centralized_management_hint": "在集中表格中管理多名员工",
+      "filtered_employee": "按员工筛选",
+      "open_centralized_page": "打开表格页面",
       "original_hire_date": "原始入职日期",
       "terminate": "终止",
       "rehire": "重新入职",
