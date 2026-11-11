@@ -74,12 +74,12 @@ def message_id(message: dict[str, object]) -> str | None:
     return json.dumps(message["id"], sort_keys=True, separators=(",", ":"))
 
 
-def run(
+def run(  # noqa: PLR0915
     command: Iterable[str],
     idle_seconds: int,
     grace_seconds: int,
     initialize_instructions: str | None = None,
-) -> int:  # noqa: PLR0915
+) -> int:
     process = subprocess.Popen(
         list(command),
         stdin=subprocess.PIPE,
@@ -104,6 +104,7 @@ def run(
     response_buffer = bytearray()
     term_at: float | None = time.monotonic() + idle_seconds - grace_seconds
     shutdown_deadline: float | None = None
+    eof_deadline: float | None = None
 
     def schedule_deadline(now: float) -> None:
         nonlocal term_at
@@ -134,6 +135,9 @@ def run(
                         write_all(sys.stdout.fileno(), data)
                 break
 
+            if not terminating and eof_deadline is not None and now >= eof_deadline:
+                terminate(signal.SIGTERM)
+
             if not terminating and term_at is not None and now >= term_at:
                 timed_out = True
                 terminate(signal.SIGTERM)
@@ -156,6 +160,7 @@ def run(
                         selector.unregister(sys.stdin.fileno())
                         stdin_open = False
                         process.stdin.close()
+                        eof_deadline = time.monotonic() + grace_seconds
                     elif not terminating:
                         process.stdin.write(data)
                         process.stdin.flush()

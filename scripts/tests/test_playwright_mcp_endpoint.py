@@ -7,6 +7,8 @@ import os
 import subprocess
 from pathlib import Path
 
+import pytest
+
 ROOT = Path(__file__).resolve().parents[2]
 WRAPPER = ROOT / "scripts/playwright-mcp-role.sh"
 
@@ -19,7 +21,8 @@ def test_mcp_config_exposes_one_least_privilege_playwright_server() -> None:
     assert config["mcpServers"]["playwright"]["args"][0] == "employee"
 
 
-def test_wrapper_forwards_configured_endpoint_to_cli(tmp_path: Path) -> None:
+@pytest.mark.parametrize("extra_args", [[], ["--idle-timeout=1500"]])
+def test_wrapper_forwards_configured_endpoint_to_cli(tmp_path: Path, extra_args: list[str]) -> None:
     compose = tmp_path / "compose"
     docker = tmp_path / "docker"
     args_file = tmp_path / "compose-args"
@@ -29,7 +32,7 @@ def test_wrapper_forwards_configured_endpoint_to_cli(tmp_path: Path) -> None:
     docker.chmod(0o755)
 
     result = subprocess.run(
-        ["bash", str(WRAPPER), "--supervised", "employee", "--endpoint", "http://example.com"],
+        ["bash", str(WRAPPER), "--supervised", "employee", "--endpoint", "http://example.com", *extra_args],
         cwd=ROOT,
         env={
             **os.environ,
@@ -42,4 +45,9 @@ def test_wrapper_forwards_configured_endpoint_to_cli(tmp_path: Path) -> None:
     )
 
     assert result.returncode == 0, result.stderr
-    assert "--allowed-origins=http://example.com" in args_file.read_text().splitlines()
+    args = args_file.read_text().splitlines()
+    assert "--allowed-origins=http://example.com" in args
+    assert "--idle-timeout=300000" in args
+    if extra_args:
+        assert args[-1] == extra_args[0]
+        assert args.index("--idle-timeout=300000") < len(args) - 1

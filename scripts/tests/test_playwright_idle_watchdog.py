@@ -4,10 +4,14 @@ from __future__ import annotations
 
 import json
 import os
+import signal
 import subprocess
 import sys
 import time
 from pathlib import Path
+
+import pytest
+
 ROOT = Path(__file__).resolve().parents[2]
 
 
@@ -94,15 +98,16 @@ def test_missing_docker_image_builds_once() -> None:
 
 def test_silent_startup_is_terminated() -> None:
     started = time.monotonic()
-    result = subprocess.run(
+    with subprocess.Popen(
         watchdog_command("import time; time.sleep(10)"),
-        capture_output=True,
-        check=False,
-        timeout=5,
-    )
-
-    assert result.returncode == 124
-    assert b"Playwright MCP idle for 3s" in result.stderr
+        stdin=subprocess.PIPE,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    ) as process:
+        process.wait(timeout=5)
+        assert process.returncode == 124
+        assert process.stderr is not None
+        assert b"Playwright MCP idle for 3s" in process.stderr.read()
     assert 2 <= time.monotonic() - started < 4
 
 
@@ -136,16 +141,19 @@ def test_server_output_progress_resets_pending_request_deadline() -> None:
         "time.sleep(1.3); sys.stdout.buffer.write(notification); sys.stdout.buffer.flush(); "
         "time.sleep(0.7)"
     )
-    result = subprocess.run(
+    with subprocess.Popen(
         watchdog_command(child, idle=3, grace=1),
-        input=b'{"jsonrpc":"2.0","id":1,"method":"initialize"}\n',
-        capture_output=True,
-        check=False,
-        timeout=5,
-    )
-
-    assert result.returncode == 0
-    assert result.stdout.count(b'"method":"notifications/progress"') == 2
+        stdin=subprocess.PIPE,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    ) as process:
+        assert process.stdin is not None
+        process.stdin.write(b'{"jsonrpc":"2.0","id":1,"method":"initialize"}\n')
+        process.stdin.flush()
+        process.wait(timeout=5)
+        assert process.returncode == 0
+        assert process.stdout is not None
+        assert process.stdout.read().count(b'"method":"notifications/progress"') == 2
 
 
 def test_replied_initialization_leaves_healthy_idle_process_alive() -> None:
@@ -154,16 +162,19 @@ def test_replied_initialization_leaves_healthy_idle_process_alive() -> None:
         "sys.stdout.buffer.write(b'{\"jsonrpc\":\"2.0\",\"id\":1,\"result\":{}}\\n'); "
         "sys.stdout.buffer.flush(); time.sleep(2.5)"
     )
-    result = subprocess.run(
+    with subprocess.Popen(
         watchdog_command(child, idle=2, grace=1),
-        input=b'{"jsonrpc":"2.0","id":1,"method":"initialize"}\n',
-        capture_output=True,
-        check=False,
-        timeout=5,
-    )
-
-    assert result.returncode == 0
-    assert result.stdout == b'{"jsonrpc":"2.0","id":1,"result":{}}\n'
+        stdin=subprocess.PIPE,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    ) as process:
+        assert process.stdin is not None
+        process.stdin.write(b'{"jsonrpc":"2.0","id":1,"method":"initialize"}\n')
+        process.stdin.flush()
+        process.wait(timeout=5)
+        assert process.returncode == 0
+        assert process.stdout is not None
+        assert process.stdout.read() == b'{"jsonrpc":"2.0","id":1,"result":{}}\n'
 
 
 def test_process_exit_is_reaped_without_waiting_for_idle_deadline() -> None:
@@ -235,15 +246,64 @@ def test_initialize_response_includes_server_instructions() -> None:
 def test_process_ignoring_term_is_force_killed_at_deadline() -> None:
     child = "import signal, time; signal.signal(signal.SIGTERM, signal.SIG_IGN); time.sleep(10)"
     started = time.monotonic()
-    result = subprocess.run(
+    with subprocess.Popen(
         watchdog_command(child),
-        capture_output=True,
-        check=False,
-        timeout=5,
-    )
-
-    assert result.returncode == 124
+        stdin=subprocess.PIPE,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    ) as process:
+        process.wait(timeout=5)
+        assert process.returncode == 124
     assert time.monotonic() - started < 4
+
+
+@pytest.mark.parametrize("shutdown", [None, signal.SIGTERM, signal.SIGINT])
+def test_client_shutdown_bounds_initialized_child_lifetime(shutdown: int | None) -> None:
+    child = (
+        "import signal, sys, time; signal.signal(signal.SIGTERM, signal.SIG_IGN); "
+        "signal.signal(signal.SIGINT, signal.SIG_IGN); sys.stdin.buffer.readline(); "
+        "print('{\"jsonrpc\":\"2.0\",\"id\":1,\"result\":{}}', flush=True); time.sleep(30)"
+    )
+    process = subprocess.Popen(
+        watchdog_command(child), stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+    )
+    try:
+        assert process.stdin is not None
+        assert process.stdout is not None
+        process.stdin.write(b'{"jsonrpc":"2.0","id":1,"method":"initialize"}\n')
+        process.stdin.flush()
+        assert json.loads(process.stdout.readline())["id"] == 1
+        started = time.monotonic()
+        if shutdown is None:
+            process.stdin.close()
+        else:
+            process.send_signal(shutdown)
+        process.wait(timeout=4)
+        assert process.returncode == 256 - signal.SIGKILL
+        assert time.monotonic() - started < 3.5
+    finally:
+        if process.poll() is None:
+            process.terminate()
+            process.wait(timeout=3)
+        if process.stdin is not None and not process.stdin.closed:
+            process.stdin.close()
+        process.stdout.close()
+        assert process.stderr is not None
+        process.stderr.close()
+
+
+def test_client_eof_allows_final_response_to_flush() -> None:
+    response = b'{"jsonrpc":"2.0","id":1,"result":{}}\n'
+    child = (
+        "import sys; sys.stdin.buffer.read(); "
+        f"sys.stdout.buffer.write({response!r}); sys.stdout.buffer.flush()"
+    )
+    result = subprocess.run(
+        watchdog_command(child), input=b'{"jsonrpc":"2.0","id":1,"method":"ping"}\n',
+        capture_output=True, timeout=4, check=False,
+    )
+    assert result.returncode == 0
+    assert result.stdout == response
 
 
 def test_idle_timeout_cli_rejects_out_of_range_value() -> None:
