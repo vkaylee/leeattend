@@ -3,12 +3,14 @@ package standalone
 import (
 	"context"
 	"errors"
+	"fmt"
 	"strings"
 	"testing"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
+	"github.com/vkaylee/leeattend/apiserver/internal/auth"
 )
 
 type bootstrapRow struct {
@@ -136,5 +138,13 @@ func TestEnsureDefaultRolesAndPermissions(t *testing.T) {
 	}
 	if !hasRoles || !hasPermissions || !hasSalaryGroups {
 		t.Fatalf("missing catalog seed statements: roles=%v perms=%v salary=%v", hasRoles, hasPermissions, hasSalaryGroups)
+	}
+
+	adminSeed := tx.executed[1]
+	for _, permission := range auth.AllPermissions() {
+		grant := fmt.Sprintf("('admin', '%s')", permission)
+		if !strings.Contains(adminSeed, grant) {
+			t.Errorf("admin seed missing canonical permission %q", permission)
+		}
 	}
 }
