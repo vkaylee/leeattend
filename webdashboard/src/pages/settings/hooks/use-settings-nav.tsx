@@ -67,14 +67,14 @@ const getAccessGroup = (t: TFunction): SettingItem[] => [
     icon: <ShieldAlert className="w-4 h-4" />,
     label: t("settings.categories.roles", { defaultValue: "Vai trò & Chức danh" }),
     path: ROUTES.SETTINGS.ROLES,
-    permissions: ["members:roles:manage"],
+    permissions: ["roles:manage", "members:roles:manage"],
   },
   {
     description: t("settings.categories.permissions_desc", { defaultValue: "Cấp phát hoặc thu hồi quyền hạn cá nhân" }),
     icon: <KeyRound className="w-4 h-4" />,
     label: t("settings.categories.permissions", { defaultValue: "Phân quyền người dùng" }),
     path: ROUTES.SETTINGS.PERMISSIONS,
-    permissions: ["members:roles:manage"],
+    permissions: ["roles:manage", "members:roles:manage"],
   },
   {
     description: t("settings.categories.members_desc", { defaultValue: "Quản lý tài khoản người dùng và lời mời" }),

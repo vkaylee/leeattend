@@ -16,11 +16,47 @@ INSERT INTO public.roles (id, name, description, color, is_system, scope_type) V
     ('a0000000-0000-0000-0000-000000000002', 'admin', 'Administrator with full access', 'rose', TRUE, 'global'),
     ('a0000000-0000-0000-0000-000000000003', 'hr_manager', 'HR Manager with employee and attendance control', 'purple', TRUE, 'global'),
     ('a0000000-0000-0000-0000-000000000004', 'shift_manager', 'Shift Manager for schedule planning', 'blue', TRUE, 'global'),
-    ('a0000000-0000-0000-0000-000000000005', 'team_lead', 'Team Lead for daily attendance monitoring', 'green', TRUE, 'global'),
-    ('a0000000-0000-0000-0000-000000000006', 'employee', 'Standard employee with self-service access', 'gray', TRUE, 'global')
+    ('a0000000-0000-0000-0000-000000000005', 'team_lead', 'Team Lead for daily attendance monitoring', 'green', TRUE, 'scoped'),
+    ('a0000000-0000-0000-0000-000000000006', 'employee', 'Standard employee with self-service access', 'gray', TRUE, 'scoped')
 ON CONFLICT (name) DO NOTHING;
+
+UPDATE public.roles
+SET scope_type = CASE name
+    WHEN 'admin' THEN 'global'
+    WHEN 'hr_manager' THEN 'global'
+    WHEN 'shift_manager' THEN 'global'
+    WHEN 'team_lead' THEN 'scoped'
+    WHEN 'employee' THEN 'scoped'
+    ELSE scope_type
+END
+WHERE name IN ('admin', 'hr_manager', 'shift_manager', 'team_lead', 'employee');
 `
 const seedOrganizationRolePermissionsSQL = `
+-- Scoped team-lead grants require handler-level department enforcement. Revoke
+-- canonical cross-department grants from pre-existing rows until those handlers
+-- accept and enforce target department scope. Legacy rows remain untouched.
+DELETE FROM public.role_permissions rp
+USING public.roles r
+WHERE rp.role_id = r.id
+  AND (
+      (r.name = 'team_lead' AND rp.permission_name IN (
+          'attendance:adjustments:approve',
+          'attendance:adjustments:submit',
+          'attendance:logs:read',
+          'attendance:summaries:read',
+          'dashboard:read',
+          'employees:read',
+          'leave:balances:read',
+          'leave:requests:read',
+          'leave:requests:submit',
+          'overtime:approve',
+          'overtime:request:read',
+          'rosters:read',
+          'shift_swaps:read'
+      ))
+      OR (r.name = 'employee' AND rp.permission_name = 'attendance:adjustments:submit')
+  );
+
 INSERT INTO public.role_permissions (role_id, permission_name)
 SELECT r.id, p.permission_name
 FROM (VALUES
@@ -48,6 +84,7 @@ FROM (VALUES
     ('admin', 'departments:transfer'),
     ('admin', 'departments:update'),
     ('admin', 'documents:contract:read'),
+    ('admin', 'documents:manage'),
     ('admin', 'documents:medical:read'),
     ('admin', 'employees:bulk_edit'),
     ('admin', 'employees:create'),
@@ -81,9 +118,12 @@ FROM (VALUES
     ('admin', 'lifecycle:manage'),
     ('admin', 'lifecycle:read'),
     ('admin', 'members:invite'),
+    ('admin', 'members:permissions:manage'),
     ('admin', 'members:read'),
     ('admin', 'members:remove'),
+    ('admin', 'members:roles:assign'),
     ('admin', 'members:roles:manage'),
+    ('admin', 'roles:manage'),
     ('admin', 'organization:settings:read'),
     ('admin', 'organization:settings:write'),
     ('admin', 'overtime:approve'),
@@ -168,6 +208,7 @@ FROM (VALUES
     ('hr_manager', 'dashboard:read'),
     ('hr_manager', 'departments:read'),
     ('hr_manager', 'documents:contract:read'),
+    ('hr_manager', 'documents:manage'),
     ('hr_manager', 'documents:medical:read'),
     ('hr_manager', 'employees:bulk_edit'),
     ('hr_manager', 'employees:create'),
@@ -182,17 +223,23 @@ FROM (VALUES
     ('hr_manager', 'ess:profile'),
     ('hr_manager', 'files:read'),
     ('hr_manager', 'holidays:read'),
-    ('hr_manager', 'leave_types:read'),
+    ('hr_manager', 'leave:requests:approve'),
+    ('hr_manager', 'leave:requests:read'),
+    ('hr_manager', 'leave:requests:submit'),
+    ('hr_manager', 'leave:balances:read'),
+    ('hr_manager', 'leave:types:manage'),
     ('hr_manager', 'leaves:approve'),
-    ('hr_manager', 'leaves:assign'),
     ('hr_manager', 'leaves:balance:read'),
-    ('hr_manager', 'leaves:cancel'),
-    ('hr_manager', 'leaves:import'),
     ('hr_manager', 'leaves:read'),
     ('hr_manager', 'leaves:submit'),
+    ('hr_manager', 'leave_types:read'),
+    ('hr_manager', 'leaves:assign'),
+    ('hr_manager', 'leaves:cancel'),
+    ('hr_manager', 'leaves:import'),
     ('hr_manager', 'lifecycle:manage'),
     ('hr_manager', 'lifecycle:read'),
     ('hr_manager', 'members:read'),
+    ('hr_manager', 'members:roles:assign'),
     ('hr_manager', 'overtime:approve'),
     ('hr_manager', 'overtime:assign'),
     ('hr_manager', 'overtime:read'),
@@ -220,14 +267,20 @@ FROM (VALUES
     ('shift_manager', 'ess:payslips'),
     ('shift_manager', 'ess:profile'),
     ('shift_manager', 'holidays:read'),
+    ('shift_manager', 'patterns:create'),
+    ('shift_manager', 'patterns:delete'),
+    ('shift_manager', 'patterns:read'),
+    ('shift_manager', 'rosters:manage'),
+    ('shift_manager', 'rosters:read'),
+    ('shift_manager', 'shifts:assign'),
+    ('shift_manager', 'shift_swaps:manage'),
+    ('shift_manager', 'shift_swaps:approve'),
+    ('shift_manager', 'shift_swaps:read'),
     ('shift_manager', 'leaves:read'),
     ('shift_manager', 'rosters:assign'),
     ('shift_manager', 'rosters:delete'),
-    ('shift_manager', 'rosters:read'),
     ('shift_manager', 'schedules:read'),
-    ('shift_manager', 'shift_swaps:approve'),
     ('shift_manager', 'shift_swaps:create'),
-    ('shift_manager', 'shift_swaps:read'),
     ('shift_manager', 'shifts:create'),
     ('shift_manager', 'shifts:delete'),
     ('shift_manager', 'shifts:read'),
@@ -236,14 +289,8 @@ FROM (VALUES
     ('shift_manager', 'working_patterns:delete'),
     ('shift_manager', 'working_patterns:read'),
     ('shift_manager', 'working_patterns:update'),
-    ('team_lead', 'attendance:adjustments:approve'),
-    ('team_lead', 'attendance:adjustments:submit'),
-    ('team_lead', 'attendance:logs:read'),
-    ('team_lead', 'attendance:summaries:read'),
     ('team_lead', 'dashboard:preferences'),
-    ('team_lead', 'dashboard:read'),
     ('team_lead', 'departments:read'),
-    ('team_lead', 'employees:read'),
     ('team_lead', 'ess:attendance'),
     ('team_lead', 'ess:clock'),
     ('team_lead', 'ess:leave'),
@@ -251,11 +298,9 @@ FROM (VALUES
     ('team_lead', 'ess:profile'),
     ('team_lead', 'holidays:read'),
     ('team_lead', 'leaves:read'),
-    ('team_lead', 'overtime:approve'),
     ('team_lead', 'overtime:read'),
     ('team_lead', 'rosters:read'),
     ('team_lead', 'schedules:read'),
-    ('team_lead', 'shift_swaps:read'),
     ('team_lead', 'shifts:read'),
     ('employee', 'attendance:adjustments:submit'),
     ('employee', 'ess:attendance'),

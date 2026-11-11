@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"regexp"
 	"strings"
 	"testing"
 
@@ -140,11 +141,34 @@ func TestEnsureDefaultRolesAndPermissions(t *testing.T) {
 		t.Fatalf("missing catalog seed statements: roles=%v perms=%v salary=%v", hasRoles, hasPermissions, hasSalaryGroups)
 	}
 
+	roleSeed := tx.executed[0]
+	for _, expected := range []string{
+		"'admin', 'Administrator with full access', 'rose', TRUE, 'global'",
+		"'hr_manager', 'HR Manager with employee and attendance control', 'purple', TRUE, 'global'",
+		"'shift_manager', 'Shift Manager for schedule planning', 'blue', TRUE, 'global'",
+		"'team_lead', 'Team Lead for daily attendance monitoring', 'green', TRUE, 'scoped'",
+		"'employee', 'Standard employee with self-service access', 'gray', TRUE, 'scoped'",
+	} {
+		if !strings.Contains(roleSeed, expected) {
+			t.Errorf("role seed missing expected scope definition %q", expected)
+		}
+	}
+
 	adminSeed := tx.executed[1]
 	for _, permission := range auth.AllPermissions() {
 		grant := fmt.Sprintf("('admin', '%s')", permission)
 		if !strings.Contains(adminSeed, grant) {
 			t.Errorf("admin seed missing canonical permission %q", permission)
 		}
+	}
+
+	grants := regexp.MustCompile(`\('([^']+)', '([^']+)'\)`).FindAllStringSubmatch(adminSeed, -1)
+	seen := make(map[string]bool, len(grants))
+	for _, grant := range grants {
+		key := grant[1] + ":" + grant[2]
+		if seen[key] {
+			t.Errorf("duplicate role permission seed %q", key)
+		}
+		seen[key] = true
 	}
 }

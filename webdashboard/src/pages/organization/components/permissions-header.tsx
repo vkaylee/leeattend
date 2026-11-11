@@ -79,7 +79,7 @@ export function PermissionsHeader({
             </DropdownMenuContent>
           </DropdownMenu>
 
-          <PermissionGate permission="members:roles:manage">
+          <PermissionGate permission="roles:manage">
             <Button
               className={cn(
                 "flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold shadow-xs transition-all normal-case tracking-normal",

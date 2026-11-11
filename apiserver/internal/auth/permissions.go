@@ -14,11 +14,14 @@ const (
 	PermissionOrganizationSettingsRead  Permission = "organization:settings:read"
 	PermissionOrganizationSettingsWrite Permission = "organization:settings:write"
 
-	// Members
-	PermissionMembersRead        Permission = "members:read"
-	PermissionMembersInvite      Permission = "members:invite"
-	PermissionMembersRolesManage Permission = "members:roles:manage"
-	PermissionMembersRemove      Permission = "members:remove"
+	// Members and RBAC administration
+	PermissionMembersRead              Permission = "members:read"
+	PermissionMembersInvite            Permission = "members:invite"
+	PermissionMembersRolesManage       Permission = "members:roles:manage" // Deprecated: use roles:manage or members:roles:assign.
+	PermissionMembersRolesAssign       Permission = "members:roles:assign"
+	PermissionMembersPermissionsManage Permission = "members:permissions:manage"
+	PermissionMembersRemove            Permission = "members:remove"
+	PermissionRolesManage              Permission = "roles:manage"
 
 	// Employees
 	PermissionEmployeesRead   Permission = "employees:read"
@@ -138,6 +141,11 @@ const (
 	// Documents
 	PermissionDocumentsMedicalRead  Permission = "documents:medical:read"
 	PermissionDocumentsContractRead Permission = "documents:contract:read"
+	PermissionDocumentsManage       Permission = "documents:manage"
+
+	// Files
+	PermissionFilesRead   Permission = "files:read"
+	PermissionFilesManage Permission = "files:manage"
 
 	// Advanced Payroll & Approvals
 	PermissionPayrollApprove       Permission = "payroll:approve"
@@ -164,7 +172,10 @@ var allCanonicalPermissions = []Permission{
 	PermissionMembersRead,
 	PermissionMembersInvite,
 	PermissionMembersRolesManage,
+	PermissionMembersRolesAssign,
+	PermissionMembersPermissionsManage,
 	PermissionMembersRemove,
+	PermissionRolesManage,
 	PermissionEmployeesRead,
 	PermissionEmployeesCreate,
 	PermissionEmployeesUpdate,
@@ -244,6 +255,9 @@ var allCanonicalPermissions = []Permission{
 	PermissionAttendanceForceClockOut,
 	PermissionDocumentsMedicalRead,
 	PermissionDocumentsContractRead,
+	PermissionDocumentsManage,
+	PermissionFilesRead,
+	PermissionFilesManage,
 	PermissionPayrollApprove,
 	PermissionPayrollDisburse,
 	PermissionPayrollSensitiveRead,

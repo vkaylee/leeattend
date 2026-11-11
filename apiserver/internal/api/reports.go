@@ -284,13 +284,12 @@ func (h ReportHandler) AttendanceReport(w http.ResponseWriter, r *http.Request) 
 		h.validation(w, r)
 		return
 	}
-	isGlobal := h.Authorizer != nil && (h.Authorizer.HasPermission(r.Context(), userID, "reports:read") ||
+	hasReportAccess := h.Authorizer != nil && (h.Authorizer.HasPermission(r.Context(), userID, "reports:read") ||
 		h.Authorizer.HasPermission(r.Context(), userID, "overtime:approve") ||
-		h.Authorizer.HasPermission(r.Context(), userID, "attendance:summaries:read") ||
-		h.Authorizer.HasPermission(r.Context(), userID, "attendance_summaries:read"))
+		h.Authorizer.HasPermission(r.Context(), userID, "attendance:summaries:read"))
+	isGlobal := hasReportAccess && h.Authorizer.IsGlobalManager(r.Context(), userID)
 	if !isGlobal {
-		hasBehalf := h.Authorizer != nil && (h.Authorizer.HasPermission(r.Context(), userID, "overtime:claim_on_behalf") ||
-			h.Authorizer.HasPermission(r.Context(), userID, "overtime_claim:behalf"))
+		hasBehalf := h.Authorizer != nil && h.Authorizer.HasPermission(r.Context(), userID, "overtime:claim_on_behalf")
 		if !hasBehalf {
 			h.forbidden(w, r)
 			return

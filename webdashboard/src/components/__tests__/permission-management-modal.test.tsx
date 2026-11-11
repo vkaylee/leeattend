@@ -40,7 +40,7 @@ describe("PermissionManagementModal", () => {
     vi.mocked(api.fetchPermissionCatalog).mockResolvedValue([
       { id: "members:invite", group: "members", label_key: "permissions.items.members:invite.name" },
       { id: "members:remove", group: "members", label_key: "permissions.items.members:remove.name" },
-      { id: "members:roles:manage", group: "members", label_key: "permissions.items.members:roles:manage.name" },
+      { id: "members:permissions:manage", group: "members", label_key: "permissions.items.members:permissions:manage.name" },
       { id: "organization:settings:read", group: "organization", label_key: "permissions.items.organization:settings:read.name" },
     ]);
  

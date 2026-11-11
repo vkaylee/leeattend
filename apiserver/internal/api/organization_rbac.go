@@ -201,11 +201,29 @@ func writeRBACError(w http.ResponseWriter, r *http.Request, err error) {
 	}
 }
 func (h OrganizationRBACHandler) require(w http.ResponseWriter, r *http.Request, p string) (uuid.UUID, bool) {
-	uid, ok := h.permission(r, p)
-	if !ok {
-		apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
+	return h.requireAny(w, r, p)
+}
+
+func (h OrganizationRBACHandler) requireAny(w http.ResponseWriter, r *http.Request, permissions ...string) (uuid.UUID, bool) {
+	for _, permission := range permissions {
+		if uid, ok := h.permission(r, permission); ok {
+			return uid, true
+		}
 	}
-	return uid, ok
+	apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
+	return uuid.Nil, false
+}
+
+func (h OrganizationRBACHandler) requireMemberRoleAssignment(w http.ResponseWriter, r *http.Request) (uuid.UUID, bool) {
+	return h.requireAny(w, r, "members:roles:assign", "members:roles:manage")
+}
+
+func (h OrganizationRBACHandler) requireRoleManagement(w http.ResponseWriter, r *http.Request) (uuid.UUID, bool) {
+	return h.requireAny(w, r, "roles:manage", "members:roles:manage")
+}
+
+func (h OrganizationRBACHandler) requireMemberPermissionManagement(w http.ResponseWriter, r *http.Request) (uuid.UUID, bool) {
+	return h.requireAny(w, r, "members:permissions:manage", "members:roles:manage")
 }
 
 func (h OrganizationRBACHandler) ListMembers(w http.ResponseWriter, r *http.Request) {
@@ -280,7 +298,7 @@ func (h OrganizationRBACHandler) UpdateMemberRole(w http.ResponseWriter, r *http
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}
-	if _, ok := h.require(w, r, "members:roles:manage"); !ok {
+	if _, ok := h.requireMemberRoleAssignment(w, r); !ok {
 		return
 	}
 	req, e := DecodeJSON[UpdateMemberRoleRequest](r, 1<<20)
@@ -336,7 +354,7 @@ func (h OrganizationRBACHandler) AssignExtraRole(w http.ResponseWriter, r *http.
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}
-	if _, ok := h.require(w, r, "members:roles:manage"); !ok {
+	if _, ok := h.requireMemberRoleAssignment(w, r); !ok {
 		return
 	}
 	req, e := DecodeJSON[AssignRoleRequest](r, 1<<20)
@@ -358,7 +376,7 @@ func (h OrganizationRBACHandler) RevokeExtraRole(w http.ResponseWriter, r *http.
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}
-	if _, ok := h.require(w, r, "members:roles:manage"); !ok {
+	if _, ok := h.requireMemberRoleAssignment(w, r); !ok {
 		return
 	}
 	n, e := h.Repository.RevokeExtraRole(r.Context(), role)
@@ -394,7 +412,7 @@ func (h OrganizationRBACHandler) AssignExtraPermission(w http.ResponseWriter, r 
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}
-	actor, ok := h.require(w, r, "members:roles:manage")
+	actor, ok := h.requireMemberPermissionManagement(w, r)
 	if !ok {
 		return
 	}
@@ -425,7 +443,7 @@ func (h OrganizationRBACHandler) RevokeExtraPermission(w http.ResponseWriter, r 
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}
-	if _, ok := h.require(w, r, "members:roles:manage"); !ok {
+	if _, ok := h.requireMemberPermissionManagement(w, r); !ok {
 		return
 	}
 	n, e := h.Repository.RevokeExtraPermission(r.Context(), perm)
@@ -456,7 +474,7 @@ func (h OrganizationRBACHandler) ListRoles(w http.ResponseWriter, r *http.Reques
 	apperror.WriteJSON(w, http.StatusOK, RoleListResponse{Data: x, Total: total, Page: p.Page, Limit: p.Limit})
 }
 func (h OrganizationRBACHandler) CreateRole(w http.ResponseWriter, r *http.Request) {
-	if _, ok := h.require(w, r, "members:roles:manage"); !ok {
+	if _, ok := h.requireRoleManagement(w, r); !ok {
 		return
 	}
 	req, e := DecodeJSON[CreateRoleRequest](r, 1<<20)
@@ -484,7 +502,7 @@ func (h OrganizationRBACHandler) UpdateRole(w http.ResponseWriter, r *http.Reque
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}
-	if _, ok := h.require(w, r, "members:roles:manage"); !ok {
+	if _, ok := h.requireRoleManagement(w, r); !ok {
 		return
 	}
 	req, e := DecodeJSON[UpdateRoleRequest](r, 1<<20)
@@ -505,7 +523,7 @@ func (h OrganizationRBACHandler) DeleteRole(w http.ResponseWriter, r *http.Reque
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}
-	if _, ok := h.require(w, r, "members:roles:manage"); !ok {
+	if _, ok := h.requireRoleManagement(w, r); !ok {
 		return
 	}
 	n, e := h.Repository.DeleteRole(r.Context(), role)
@@ -525,7 +543,7 @@ func (h OrganizationRBACHandler) GetRolePermissions(w http.ResponseWriter, r *ht
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}
-	if _, ok := h.require(w, r, "members:roles:manage"); !ok {
+	if _, ok := h.requireRoleManagement(w, r); !ok {
 		return
 	}
 	x, e := h.Repository.RolePermissions(r.Context(), role)
@@ -541,7 +559,7 @@ func (h OrganizationRBACHandler) SetRolePermissions(w http.ResponseWriter, r *ht
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}
-	if _, ok := h.require(w, r, "members:roles:manage"); !ok {
+	if _, ok := h.requireRoleManagement(w, r); !ok {
 		return
 	}
 	mutable, e := h.Repository.RoleIsMutable(r.Context(), role)
@@ -565,7 +583,7 @@ func (h OrganizationRBACHandler) SetRolePermissions(w http.ResponseWriter, r *ht
 	apperror.WriteJSON(w, http.StatusOK, req.Permissions)
 }
 func (h OrganizationRBACHandler) PermissionCatalog(w http.ResponseWriter, r *http.Request) {
-	if _, ok := h.require(w, r, "members:roles:manage"); !ok {
+	if _, ok := h.requireRoleManagement(w, r); !ok {
 		return
 	}
 	x := make([]PermissionCatalogItem, 0, len(authpkg.AllPermissions()))
@@ -576,7 +594,7 @@ func (h OrganizationRBACHandler) PermissionCatalog(w http.ResponseWriter, r *htt
 	apperror.WriteJSON(w, http.StatusOK, x)
 }
 func (h OrganizationRBACHandler) AvailablePermissions(w http.ResponseWriter, r *http.Request) {
-	if _, ok := h.require(w, r, "members:roles:manage"); !ok {
+	if _, ok := h.requireRoleManagement(w, r); !ok {
 		return
 	}
 	x := make([]string, 0, len(authpkg.AllPermissions()))

@@ -19,7 +19,7 @@ export function useOrganizationPermissionsPage() {
   } = usePermissionCatalog();
   const { matrix, isLoading: isMatrixLoading, refetch } = useOrganizationPermissionsMatrix();
   const { hasPermission } = useMyPermissions();
-  const hasManagePermission = hasPermission("members:roles:manage");
+  const hasManagePermission = hasPermission("roles:manage");
 
   const [permissions, setPermissions] = useState<Record<string, string[]>>(matrix);
   const [hasChanges, setHasChanges] = useState(false);

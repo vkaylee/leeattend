@@ -50,7 +50,7 @@ export function RoleCard({ role, activeMenu, setActiveMenu, onEdit, onDelete }: 
               <User size={14} />
             </div>
           </div>
-          <PermissionGate permission="members:roles:manage">
+          <PermissionGate permission="roles:manage">
             <Link
               className="text-xs font-bold text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1"
               to={ROUTES.SETTINGS.PERMISSIONS}

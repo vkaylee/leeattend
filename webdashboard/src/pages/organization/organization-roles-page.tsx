@@ -29,7 +29,7 @@ export default function OrganizationRolesPage() {
     <div className="space-y-8 animate-in fade-in duration-500">
       <SettingsHeader
         actions={
-          <PermissionGate permission="members:roles:manage">
+          <PermissionGate permission="roles:manage">
             <Button
               className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold normal-case tracking-normal shadow-xs"
               onClick={handleCreate}

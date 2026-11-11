@@ -77,7 +77,7 @@ export const RoleCardActions = ({
   const { t } = useTranslation();
   
   return (
-    <PermissionGate permission="members:roles:manage">
+    <PermissionGate permission="roles:manage">
       <div className="relative">
         <Button
           aria-label={t("common.actions", "Thao tác")}

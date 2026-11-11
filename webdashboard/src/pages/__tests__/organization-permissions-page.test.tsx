@@ -50,7 +50,7 @@ const CATALOG_GROUPS = [
 const REQUIRED_CATALOG_IDS = [
     "overtime:request:create_on_behalf",
     "organization:settings:read",
-    "members:roles:manage",
+    "roles:manage",
     "employees:read",
     "payroll:read",
     "audit_logs:read",
@@ -111,7 +111,7 @@ describe("OrganizationPermissionsPage", () => {
         vi.mocked(useOrganizationPermissionsMatrix).mockReturnValue({
             matrix: buildMatrix(
  
-                ["organization:settings:read", "members:roles:manage", "employees:read", "payroll:read", "audit_logs:read"],
+                ["organization:settings:read", "roles:manage", "employees:read", "payroll:read", "audit_logs:read"],
                 ["employees:read", "leave:approve:l1"],
             ),
             isLoading: false,
@@ -119,12 +119,12 @@ describe("OrganizationPermissionsPage", () => {
         } as unknown as ReturnType<typeof useOrganizationPermissionsMatrix>);
 
         vi.mocked(useMyPermissions).mockReturnValue({
-            hasPermission: (p: string) => p === "members:roles:manage",
+            hasPermission: (p: string) => p === "roles:manage",
             hasAnyPermission: () => true,
             hasScopedPermission: () => true,
             hasRole: () => true,
             isLoading: false,
-            permissions: ["members:roles:manage"],
+            permissions: ["roles:manage"],
             roles: ["admin"],
             managedDepartmentIds: null
         });
@@ -215,7 +215,7 @@ describe("OrganizationPermissionsPage", () => {
     // ─── Access Control ────────────────────────────────────────
 
     describe("access control", () => {
-        it("disables ALL checkboxes when user lacks members:roles:manage", () => {
+        it("disables ALL checkboxes when user lacks roles:manage", () => {
             vi.mocked(useMyPermissions).mockReturnValue({
                 hasPermission: () => false,
                 hasAnyPermission: () => false,

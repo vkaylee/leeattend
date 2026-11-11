@@ -527,6 +527,28 @@ func TestAttendanceReportDateValidation(t *testing.T) {
 	}
 }
 
+type mockScopedReportAuthorizer struct{}
+
+func (mockScopedReportAuthorizer) IsMember(context.Context, uuid.UUID) (bool, error) {
+	return true, nil
+}
+func (mockScopedReportAuthorizer) HasPermission(_ context.Context, _ uuid.UUID, permission string) bool {
+	return permission == "attendance:summaries:read"
+}
+func (mockScopedReportAuthorizer) EffectivePermissions(context.Context, uuid.UUID) ([]string, []string, error) {
+	return nil, nil, nil
+}
+func (mockScopedReportAuthorizer) GetManagedDepartmentIDs(context.Context, uuid.UUID) ([]uuid.UUID, error) {
+	return []uuid.UUID{uuid.New()}, nil
+}
+func (mockScopedReportAuthorizer) IsGlobalManager(context.Context, uuid.UUID) bool { return false }
+func (mockScopedReportAuthorizer) HasScopedPermission(_ context.Context, _ uuid.UUID, _ string, _ *uuid.UUID) bool {
+	return false
+}
+func (mockScopedReportAuthorizer) GetUsersWithPermission(context.Context, string) ([]uuid.UUID, error) {
+	return nil, nil
+}
+
 // mockDenyAuthorizer denies every permission.
 type mockDenyAuthorizer struct{}
 
@@ -567,6 +589,23 @@ func (mockBehalfAuthorizer) HasScopedPermission(_ context.Context, _ uuid.UUID, 
 }
 func (mockBehalfAuthorizer) GetUsersWithPermission(context.Context, string) ([]uuid.UUID, error) {
 	return nil, nil
+}
+
+func TestAttendanceReportScopedPermissionCannotBecomeGlobal(t *testing.T) {
+	repo := &mockReportRepo{}
+	handler := ReportHandler{Repository: repo, Authorizer: mockScopedReportAuthorizer{}}
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/reports/attendance?start_date=2026-01-01&end_date=2026-01-31", nil)
+	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
+	rec := httptest.NewRecorder()
+
+	handler.AttendanceReport(rec, req)
+	if rec.Code != http.StatusForbidden {
+		t.Fatalf("expected scoped report permission without behalf assignment to be forbidden, got %d: %s", rec.Code, rec.Body.String())
+	}
+	if repo.AttendanceCalls != 0 {
+		t.Fatal("repository must not be queried when scoped permission is not global")
+	}
 }
 
 func TestAttendanceReportForbiddenWithoutPermissions(t *testing.T) {
