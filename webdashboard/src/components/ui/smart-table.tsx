@@ -5,6 +5,7 @@ import {
 } from "@tanstack/react-table";
 import React from "react";
 
+import { useHorizontalDragScroll } from "@/hooks/use-horizontal-drag-scroll";
 import { cn } from "@/lib/utils";
 
 import type {
@@ -101,6 +102,10 @@ export default function SmartTable<T>({
     stickyLeftColumns,
     stickyRightColumns,
   });
+  const {
+    onClickCapture: handleHorizontalDragClick,
+    setRef: setHorizontalDragScrollRef,
+  } = useHorizontalDragScroll<HTMLDivElement>({ enabled: !enableDragSelect });
 
   return (
     /* eslint-disable-next-line jsx-a11y/no-static-element-interactions */
@@ -110,7 +115,11 @@ export default function SmartTable<T>({
       onPaste={(e) => { void smart.handlePaste(e); }}
     >
       {/* Scrollable Container with rounded corners */}
-      <div className="flex-1 overflow-auto scrollbar-thin border border-slate-200 dark:border-slate-800 rounded-3xl bg-white dark:bg-slate-900 shadow-sm relative">
+      <div
+        className="flex-1 overflow-auto scrollbar-thin border border-slate-200 dark:border-slate-800 rounded-3xl bg-white dark:bg-slate-900 shadow-sm relative"
+        onClickCapture={handleHorizontalDragClick}
+        ref={setHorizontalDragScrollRef}
+      >
         <table className="w-full border-collapse text-left table-fixed" style={{ width: smart.table.getTotalSize() }}>
           {/* Header */}
           <SmartTableHeader density={density} getPinStyles={smart.getPinStyles} table={smart.table} />

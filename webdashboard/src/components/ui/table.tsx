@@ -1,21 +1,33 @@
 import { forwardRef, type HTMLAttributes, type TdHTMLAttributes, type ThHTMLAttributes } from "react";
 
+import { useHorizontalDragScroll } from "@/hooks/use-horizontal-drag-scroll";
 import { cn } from "@/lib/utils";
 
 export const Table = forwardRef<
   HTMLTableElement,
   HTMLAttributes<HTMLTableElement>
->(({ className, ...props }, ref) => (
-  <div className="bg-white dark:bg-slate-900 rounded-[3rem] border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden w-full">
-    <div className="overflow-x-auto w-full">
-      <table
-        className={cn("w-full text-left border-collapse", className)}
-        ref={ref}
-        {...props}
-      />
+>(({ className, ...props }, ref) => {
+  const {
+    onClickCapture: handleHorizontalDragClick,
+    setRef: setHorizontalDragScrollRef,
+  } = useHorizontalDragScroll<HTMLDivElement>();
+
+  return (
+    <div className="bg-white dark:bg-slate-900 rounded-[3rem] border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden w-full">
+      <div
+        className="overflow-x-auto w-full"
+        onClickCapture={handleHorizontalDragClick}
+        ref={setHorizontalDragScrollRef}
+      >
+        <table
+          className={cn("w-full text-left border-collapse", className)}
+          ref={ref}
+          {...props}
+        />
+      </div>
     </div>
-  </div>
-));
+  );
+});
 Table.displayName = "Table";
 
 export const TableHeader = forwardRef<
