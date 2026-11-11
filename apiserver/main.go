@@ -31,6 +31,11 @@ import (
 // Version is the current apiserver Go component version.
 const Version = "0.1.0"
 
+func registerOrganizationSettingsRoutes(mux *http.ServeMux, get, patch http.HandlerFunc) {
+	mux.HandleFunc("PATCH /api/v1", patch)
+	mux.HandleFunc("GET /api/v1", get)
+}
+
 func main() {
 	cfg, err := config.Load()
 	if err != nil {
@@ -138,8 +143,7 @@ func main() {
 	}
 	authHandler.Authorizer = organizationAuthorizer
 
-	mux.HandleFunc("PATCH /api/v1", organizationHandler.Patch)
-	mux.HandleFunc("PATCH /api/v1/organization/settings", organizationHandler.Patch)
+	registerOrganizationSettingsRoutes(mux, organizationHandler.Get, organizationHandler.Patch)
 	mux.HandleFunc("GET /api/v1/feature-flags", organizationHandler.ListFeatureFlags)
 	mux.HandleFunc("GET /api/v1/members", rbacHandler.ListMembers)
 	mux.HandleFunc("POST /api/v1/members", rbacHandler.AddMember)
@@ -174,7 +178,6 @@ func main() {
 	mux.HandleFunc("GET /api/v1/configs/{key}", organizationHandler.GetConfig)
 	mux.HandleFunc("DELETE /api/v1/configs/{key}", organizationHandler.DeleteConfig)
 	mux.HandleFunc("GET /api/v1", organizationHandler.Get)
-	mux.HandleFunc("GET /api/v1/organization/settings", organizationHandler.Get)
 	healthHandler := health.NewHandler(Version, nil, nil)
 	healthHandler.SetLive(true)
 	departmentRepo := repository.DepartmentRepository{DB: db}

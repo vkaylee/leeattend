@@ -2,6 +2,7 @@ package standalone
 
 import (
 	"context"
+	"errors"
 	"strings"
 	"testing"
 
@@ -101,6 +102,18 @@ func TestBootstrapInitializesSharedSchemaTransactionIdempotently(t *testing.T) {
 	}
 	if settingsInserts != 1 || userInserts != 1 {
 		t.Fatalf("bootstrap was not idempotent: settings=%d users=%d", settingsInserts, userInserts)
+	}
+}
+
+func TestBootstrapRejectsMultipleOrganizationSettings(t *testing.T) {
+	tx := &bootstrapTx{settingsCount: 2, roleID: uuid.New()}
+	if err := Bootstrap(context.Background(), tx, "Example Company", "admin@example.invalid", "password"); err == nil {
+		t.Fatal("expected bootstrap to reject multiple organization settings rows")
+	} else if !errors.Is(err, ErrInvalidBootstrap) {
+		t.Fatalf("expected invalid bootstrap error, got %v", err)
+	}
+	if tx.commits != 0 {
+		t.Fatalf("expected conflicting bootstrap to avoid commit, got %d", tx.commits)
 	}
 }
 

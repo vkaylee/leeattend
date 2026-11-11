@@ -31,6 +31,34 @@ func TestHealthRoutesMounted(t *testing.T) {
 	}
 }
 
+func TestOrganizationSettingsRoutesRejectLegacyAlias(t *testing.T) {
+	mux := http.NewServeMux()
+	get := func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(http.StatusNoContent) }
+	patch := func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(http.StatusNoContent) }
+	registerOrganizationSettingsRoutes(mux, get, patch)
+
+	for _, test := range []struct {
+		method string
+		path   string
+	}{
+		{method: http.MethodGet, path: "/api/v1"},
+		{method: http.MethodPatch, path: "/api/v1"},
+		{method: http.MethodGet, path: "/api/v1/organization/settings"},
+		{method: http.MethodPatch, path: "/api/v1/organization/settings"},
+	} {
+		req := httptest.NewRequest(test.method, test.path, nil)
+		rec := httptest.NewRecorder()
+		mux.ServeHTTP(rec, req)
+		want := http.StatusNoContent
+		if test.path != "/api/v1" {
+			want = http.StatusNotFound
+		}
+		if rec.Code != want {
+			t.Fatalf("%s %s: expected %d, got %d", test.method, test.path, want, rec.Code)
+		}
+	}
+}
+
 func TestAppVersionConstant(t *testing.T) {
 	if Version != "0.1.0" {
 		t.Fatalf("unexpected version: %s", Version)
