@@ -38,12 +38,12 @@ test.describe("Overtime Flow", () => {
     }
   });
 
-  test('should display employee overtime dashboard and quota', async ({ page }) => {
+  test('should display employee overtime dashboard and assignment state', async ({ page }) => {
     // Navigate to Employee OT Page
     await page.goto("/ess/ot");
     await expect(page.getByRole('heading', { level: 1, name: /Overtime/i })).toBeVisible();
 
-    // Quota Widget Should be visible
-    await expect(page.getByRole('heading', { level: 3, name: /(Overtime|OT) Quota/i })).toBeVisible();
+    // The page exposes supported assignment data, not an unsupported quota contract.
+    await expect(page.getByText(/No Overtime Assignments/i)).toBeVisible();
   });
 });
