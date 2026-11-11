@@ -79,7 +79,7 @@ func TestDifferentialExecutionMock(t *testing.T) {
 		"metadata": {"id": "DIFF-TEST-001"},
 		"request": {
 			"method": "GET",
-			"path": "/api/v1/workspaces/ws-1",
+			"path": "/api/v1/organization/settings",
 			"path_params": {},
 			"query": {},
 			"headers": {},

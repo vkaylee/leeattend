@@ -32,7 +32,7 @@ describe("fetchAttendanceReport", () => {
 
         const calledUrl = vi.mocked(apiFetch).mock.calls[0][0];
 
-        expect(calledUrl).toContain("/v1/reports/attendance");
+        expect(calledUrl).toContain("/api/v1/reports/attendance");
         expect(calledUrl).toContain("start_date=2026-03-01");
         expect(calledUrl).toContain("end_date=2026-03-31");
         expect(calledUrl).toContain("type=summary");

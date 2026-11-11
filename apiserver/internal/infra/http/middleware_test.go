@@ -93,7 +93,6 @@ func TestAuthMiddleware_Authorized(t *testing.T) {
 	if err != nil {
 		t.Fatalf("token gen error: %v", err)
 	}
-
 	var extractedID uuid.UUID
 	handler := AuthMiddleware(testSecret, nil)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var ok bool
@@ -115,21 +114,5 @@ func TestAuthMiddleware_Authorized(t *testing.T) {
 	}
 	if extractedID != userID {
 		t.Errorf("expected user id %s, got %s", userID, extractedID)
-	}
-}
-
-func TestRejectRetiredScopedRoutes(t *testing.T) {
-	called := false
-	handler := RejectRetiredScopedRoutes()(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		called = true
-		w.WriteHeader(http.StatusOK)
-	}))
-
-	req := httptest.NewRequest(http.MethodGet, "/api/v1/workspaces/legacy/employees", nil)
-	rec := httptest.NewRecorder()
-	handler.ServeHTTP(rec, req)
-
-	if called || rec.Code != http.StatusNotFound {
-		t.Fatalf("expected legacy workspace route rejection, called=%v status=%d", called, rec.Code)
 	}
 }

@@ -20,7 +20,7 @@ export interface WorkflowStepRequest {
 
 export const approvalWorkflowsApi = {
   listWorkflows: async (entityType?: string): Promise<ApprovalWorkflow[]> => {
-    const { data: resData } = await client.GET<{ data: ApprovalWorkflow[] }>("/v1/approval-workflows", {
+    const { data: resData } = await client.GET<{ data: ApprovalWorkflow[] }>("/api/v1/approval-workflows", {
       params: {
         query: entityType ? { entity_type: entityType } : undefined,
       },
@@ -29,7 +29,7 @@ export const approvalWorkflowsApi = {
   },
 
   getWorkflow: async (id: string): Promise<ApprovalWorkflow> => {
-    const { data: resData } = await client.GET<ApprovalWorkflow>("/v1/approval-workflows/{id}", {
+    const { data: resData } = await client.GET<ApprovalWorkflow>("/api/v1/approval-workflows/{id}", {
       params: {
         path: { id },
       },
@@ -38,14 +38,14 @@ export const approvalWorkflowsApi = {
   },
 
   createWorkflow: async (payload: CreateWorkflowRequest): Promise<ApprovalWorkflow> => {
-    const { data: resData } = await client.POST<ApprovalWorkflow>("/v1/approval-workflows", {
+    const { data: resData } = await client.POST<ApprovalWorkflow>("/api/v1/approval-workflows", {
       body: payload,
     });
     return resData;
   },
 
   updateWorkflow: async (id: string, payload: UpdateWorkflowRequest): Promise<ApprovalWorkflow> => {
-    const { data: resData } = await client.PUT<ApprovalWorkflow>("/v1/approval-workflows/{id}", {
+    const { data: resData } = await client.PUT<ApprovalWorkflow>("/api/v1/approval-workflows/{id}", {
       params: { path: { id } },
       body: payload,
     });
@@ -53,7 +53,7 @@ export const approvalWorkflowsApi = {
   },
 
   deleteWorkflow: async (id: string): Promise<void> => {
-    await client.DELETE("/v1/approval-workflows/{id}", {
+    await client.DELETE("/api/v1/approval-workflows/{id}", {
       params: {
         path: { id },
       },
@@ -61,7 +61,7 @@ export const approvalWorkflowsApi = {
   },
 
   getApprovalHistory: async (entityType: string, entityId: string): Promise<ApprovalActionLog[]> => {
-    const { data: resData } = await client.GET<ApprovalActionLog[]>("/v1/approval-workflows/history/{type}/{id}", {
+    const { data: resData } = await client.GET<ApprovalActionLog[]>("/api/v1/approval-workflows/history/{type}/{id}", {
       params: {
         path: { type: entityType, id: entityId },
       },
@@ -75,7 +75,7 @@ export const approvalWorkflowsApi = {
     action: string;
     note?: string;
   }): Promise<void> => {
-    await client.POST("/v1/approval-workflows/approve", {
+    await client.POST("/api/v1/approval-workflows/approve", {
       body: payload,
     });
   },

@@ -26,7 +26,7 @@ export type UpdateLeavePolicyRequestBody = components["schemas"]["UpdateLeavePol
 export async function submitLeaveRequest(
   data: SubmitLeaveRequestBody,
 ): Promise<LeaveRequest> {
-  const { data: resData } = await client.POST<LeaveRequest>("/v1/leave/submit", {
+  const { data: resData } = await client.POST<LeaveRequest>("/api/v1/leave/submit", {
     body: data,
   });
   return resData;
@@ -40,7 +40,7 @@ export async function fetchLeaveRequests(
     limit?: number;
   }
 ): Promise<PaginatedResponse<LeaveRequest>> {
-  const { data: resData } = await client.GET<PaginatedResponse<LeaveRequest>>("/v1/leave/requests", {
+  const { data: resData } = await client.GET<PaginatedResponse<LeaveRequest>>("/api/v1/leave/requests", {
     params: {
       query: {
         status: params?.status,
@@ -56,7 +56,7 @@ export async function fetchLeaveRequests(
 export async function fetchMyLeaveRequests(
   employeeId: string
 ): Promise<LeaveRequest[]> {
-  const { data: resData } = await client.GET<LeaveRequest[]>("/v1/employees/{id}/leave/requests", {
+  const { data: resData } = await client.GET<LeaveRequest[]>("/api/v1/employees/{id}/leave/requests", {
     params: {
       path: { id: employeeId },
     },
@@ -68,7 +68,7 @@ export async function approveLeaveRequest(
   requestId: string,
   data: ApproveLeaveRequestBody,
 ): Promise<void> {
-  await client.POST("/v1/leave/requests/{id}/approve", {
+  await client.POST("/api/v1/leave/requests/{id}/approve", {
     params: {
       path: { id: requestId },
     },
@@ -79,7 +79,7 @@ export async function approveLeaveRequest(
 export async function fetchEmployeeLeaveBalances(
   employeeId: string,
 ): Promise<EmployeeLeaveBalance[]> {
-  const { data: resData } = await client.GET<EmployeeLeaveBalance[]>("/v1/employees/{id}/leave/balances", {
+  const { data: resData } = await client.GET<EmployeeLeaveBalance[]>("/api/v1/employees/{id}/leave/balances", {
     params: {
       path: { id: employeeId },
     },
@@ -90,7 +90,7 @@ export async function fetchEmployeeLeaveBalances(
 export async function fetchLeaveBalances(
   params?: { page?: number; limit?: number; q?: string; year?: number }
 ): Promise<PaginatedResponse<OrganizationLeaveBalance>> {
-  const { data: resData } = await client.GET<PaginatedResponse<OrganizationLeaveBalance>>("/v1/leave/balances", {
+  const { data: resData } = await client.GET<PaginatedResponse<OrganizationLeaveBalance>>("/api/v1/leave/balances", {
     params: {
       query: {
         page: params?.page,
@@ -107,7 +107,7 @@ export async function fetchLeaveHistory(
   employeeId: string,
   leaveTypeId?: string,
 ): Promise<LeaveHistoryItem[]> {
-  const { data: resData } = await client.GET<LeaveHistoryItem[]>("/v1/employees/{id}/leave/history", {
+  const { data: resData } = await client.GET<LeaveHistoryItem[]>("/api/v1/employees/{id}/leave/history", {
     params: {
       path: { id: employeeId },
       query: leaveTypeId ? { leave_type_id: leaveTypeId } : undefined,
@@ -120,7 +120,7 @@ export async function adjustLeaveBalance(
   employeeId: string,
   data: AdjustBalanceRequestBody,
 ): Promise<void> {
-  await client.POST("/v1/employees/{id}/leave/adjust", {
+  await client.POST("/api/v1/employees/{id}/leave/adjust", {
     params: {
       path: { id: employeeId },
     },
@@ -129,14 +129,14 @@ export async function adjustLeaveBalance(
 }
 
 export async function fetchLeavePolicies(): Promise<LeavePolicy[]> {
-  const { data: resData } = await client.GET<LeavePolicy[]>("/v1/leave/policies");
+  const { data: resData } = await client.GET<LeavePolicy[]>("/api/v1/leave/policies");
   return resData;
 }
 
 export async function createLeavePolicy(
   data: CreateLeavePolicyRequestBody
 ): Promise<LeavePolicy> {
-  const { data: resData } = await client.POST<LeavePolicy>("/v1/leave/policies", {
+  const { data: resData } = await client.POST<LeavePolicy>("/api/v1/leave/policies", {
     body: data,
   });
   return resData;
@@ -146,7 +146,7 @@ export async function updateLeavePolicy(
   policyId: string,
   data: UpdateLeavePolicyRequestBody
 ): Promise<LeavePolicy> {
-  const { data: resData } = await client.PATCH<LeavePolicy>("/v1/leave/policies/{policy_id}", {
+  const { data: resData } = await client.PATCH<LeavePolicy>("/api/v1/leave/policies/{policy_id}", {
     params: { path: { policy_id: policyId } },
     body: data,
   });
@@ -156,7 +156,7 @@ export async function updateLeavePolicy(
 export async function deleteLeavePolicy(
   policyId: string
 ): Promise<void> {
-  await client.DELETE("/v1/leave/policies/{policy_id}", {
+  await client.DELETE("/api/v1/leave/policies/{policy_id}", {
     params: {
       path: { policy_id: policyId },
     },
@@ -164,14 +164,14 @@ export async function deleteLeavePolicy(
 }
 
 export async function fetchLeaveTypes(): Promise<LeaveType[]> {
-  const { data: resData } = await client.GET<LeaveType[]>("/v1/leave/types");
+  const { data: resData } = await client.GET<LeaveType[]>("/api/v1/leave/types");
   return resData;
 }
 
 export async function createLeaveType(
   data: CreateLeaveTypeRequestBody
 ): Promise<LeaveType> {
-  const { data: resData } = await client.POST<LeaveType>("/v1/leave/types", {
+  const { data: resData } = await client.POST<LeaveType>("/api/v1/leave/types", {
     body: data,
   });
   return resData;
@@ -180,7 +180,7 @@ export async function createLeaveType(
 export async function deleteLeaveType(
   id: string
 ): Promise<void> {
-  await client.DELETE("/v1/leave/types/{id}", {
+  await client.DELETE("/api/v1/leave/types/{id}", {
     params: {
       path: { id },
     },
@@ -191,7 +191,7 @@ export async function restoreLeaveType(
   id: string
 ): Promise<LeaveType> {
   const { data: resData } = await client.POST<LeaveType>(
-    "/v1/leave/types/{id}/restore",
+    "/api/v1/leave/types/{id}/restore",
     {
       params: {
         path: { id },
@@ -202,14 +202,14 @@ export async function restoreLeaveType(
 }
 
 export async function fetchLeavePolicyAssignments(): Promise<LeavePolicyAssignmentDetail[]> {
-  const { data: resData } = await client.GET<LeavePolicyAssignmentDetail[]>("/v1/leave/policies/assignments");
+  const { data: resData } = await client.GET<LeavePolicyAssignmentDetail[]>("/api/v1/leave/policies/assignments");
   return resData;
 }
 
 export async function assignLeavePolicy(
   data: AssignLeavePolicyRequestBody
 ): Promise<void> {
-  await client.POST("/v1/leave/policies/assign", {
+  await client.POST("/api/v1/leave/policies/assign", {
     body: data,
   });
 }
@@ -217,7 +217,7 @@ export async function assignLeavePolicy(
 export async function deleteLeavePolicyAssignment(
   assignmentId: string
 ): Promise<void> {
-  await client.DELETE("/v1/leave/policies/assignments/{assignment_id}", {
+  await client.DELETE("/api/v1/leave/policies/assignments/{assignment_id}", {
     params: {
       path: { assignment_id: assignmentId },
     },
@@ -233,7 +233,7 @@ export interface AccrualJobResponse {
 export async function triggerAccrualRun(
   data: TriggerAccrualRequestBody
 ): Promise<AccrualJobResponse> {
-  const { data: resData } = await client.POST<AccrualJobResponse>("/v1/leave/accrual/run", {
+  const { data: resData } = await client.POST<AccrualJobResponse>("/api/v1/leave/accrual/run", {
     body: data,
   });
   return resData;
@@ -249,7 +249,7 @@ export interface JobStatusResponse {
 export async function fetchJobStatus(
   jobId: string
 ): Promise<JobStatusResponse> {
-  const { data: resData } = await client.GET<JobStatusResponse>("/v1/jobs/{job_id}/status", {
+  const { data: resData } = await client.GET<JobStatusResponse>("/api/v1/jobs/{job_id}/status", {
     params: { path: { job_id: jobId } },
   });
   return resData;
@@ -259,7 +259,7 @@ export async function updateLeaveTypeConfig(
   id: string,
   config: LeaveTypeConfig
 ): Promise<LeaveType> {
-  const { data: resData } = await client.PUT<LeaveType>("/v1/leave/types/{id}/config", {
+  const { data: resData } = await client.PUT<LeaveType>("/api/v1/leave/types/{id}/config", {
     params: {
       path: { id },
     },
@@ -288,7 +288,7 @@ export async function uploadLeaveExcel(
 ): Promise<{ job_id: string; status: string }> {
   const formData = new FormData();
   formData.append('file', file);
-  const { data: resData } = await client.POST<{ job_id: string; status: string }>("/v1/leave/upload-excel", {
+  const { data: resData } = await client.POST<{ job_id: string; status: string }>("/api/v1/leave/upload-excel", {
     body: formData,
   });
   return resData;
@@ -296,36 +296,36 @@ export async function uploadLeaveExcel(
 
 /** Fetch the latest leave import job for the organization (page resume). */
 export async function fetchLatestLeaveImport(): Promise<LeaveImportJob | null> {
-  const { data: resData } = await client.GET<LeaveImportJob | null>("/v1/leave/import/latest");
+  const { data: resData } = await client.GET<LeaveImportJob | null>("/api/v1/leave/import/latest");
   return resData;
 }
 
 /** Fetch the latest leave import job (for polling). */
 export async function fetchLeaveImportStatus(): Promise<LeaveImportJob | null> {
-  const { data: resData } = await client.GET<LeaveImportJob | null>("/v1/leave/import/latest");
+  const { data: resData } = await client.GET<LeaveImportJob | null>("/api/v1/leave/import/latest");
   return resData;
 }
 
 /** Get the URL for downloading the error Excel file (URL-only, for non-fetch usage). */
 export function getLeaveImportErrorsUrl(jobId: string): string {
-  return `${API_BASE_URL}/v1/leave/import/${jobId}/errors`;
+  return `${API_BASE_URL}/api/v1/leave/import/${jobId}/errors`;
 }
 
 /** Get the URL for downloading the import template Excel (URL-only, for non-fetch usage). */
 export function getLeaveImportTemplateUrl(lang = "en"): string {
-  return `${API_BASE_URL}/v1/leave/upload-template?lang=${lang}`;
+  return `${API_BASE_URL}/api/v1/leave/upload-template?lang=${lang}`;
 }
 
 /** Download the leave import template Excel via authenticated fetch. */
 export async function downloadLeaveImportTemplate(lang = "en"): Promise<void> {
-  const response = await apiFetch(`/v1/leave/upload-template?lang=${lang}`);
+  const response = await apiFetch(`/api/v1/leave/upload-template?lang=${lang}`);
   if (!response.ok) throw new Error("Failed to download template");
   downloadBlob(await response.blob(), "leave_import_template.xlsx");
 }
 
 /** Download the error Excel file via authenticated fetch. */
 export async function downloadLeaveImportErrors(jobId: string): Promise<void> {
-  const response = await apiFetch(`/v1/leave/import/${jobId}/errors`);
+  const response = await apiFetch(`/api/v1/leave/import/${jobId}/errors`);
   if (!response.ok) await ApiError.rejectResponse(response);
   downloadBlob(await response.blob(), `leave_import_errors_${jobId}.xlsx`);
 }
@@ -333,7 +333,7 @@ export async function downloadLeaveImportErrors(jobId: string): Promise<void> {
 // ── Leave Behalf Assignments (factory-generated CRUD) ─────────────────────
 
 const leaveBehalfApi = createBehalfAssignmentApi({
-  basePath: "/v1/leave/behalf-assignments",
+  basePath: "/api/v1/leave/behalf-assignments",
 });
 
 export const fetchLeaveBehalfAssignments = () => leaveBehalfApi.list();

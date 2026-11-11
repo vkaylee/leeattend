@@ -15,10 +15,9 @@ import (
 type contextKey string
 
 const (
-	contextKeyUserID         contextKey = "user_id"
-	contextKeyOrganizationID contextKey = "organization_id"
-	contextKeyClaims         contextKey = "jwt_claims"
-	contextKeyLocale         contextKey = "locale"
+	contextKeyUserID contextKey = "user_id"
+	contextKeyClaims contextKey = "jwt_claims"
+	contextKeyLocale contextKey = "locale"
 )
 
 // Middleware wraps an http.Handler with cross-cutting behavior.
@@ -104,19 +103,6 @@ func BodyLimitMiddleware(maxBytes int64) Middleware {
 	}
 }
 
-// RejectRetiredScopedRoutes prevents clients from selecting organization scope by retired URL paths.
-func RejectRetiredScopedRoutes() Middleware {
-	return func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			if strings.Contains(r.URL.Path, "/workspaces/") {
-				http.Error(w, "legacy organization routes are not supported", http.StatusNotFound)
-				return
-			}
-			next.ServeHTTP(w, r)
-		})
-	}
-}
-
 // TokenRevocationChecker checks Redis-backed revocation state without coupling middleware to Redis.
 type TokenRevocationChecker interface {
 	IsSignatureRevoked(context.Context, string) (bool, error)
@@ -193,21 +179,4 @@ func UserIDFromContext(ctx context.Context) (uuid.UUID, bool) {
 // WithUserIDForTest is a package test helper for handler contract tests.
 func WithUserIDForTest(ctx context.Context, id uuid.UUID) context.Context {
 	return context.WithValue(ctx, contextKeyUserID, id)
-}
-
-// OrganizationIDFromContext retrieves singleton organization UUID.
-func OrganizationIDFromContext(ctx context.Context) (uuid.UUID, bool) {
-	val, ok := ctx.Value(contextKeyOrganizationID).(uuid.UUID)
-	return val, ok
-}
-
-// WithOrganizationID attaches the resolved organization UUID to a request context.
-func WithOrganizationID(ctx context.Context, id uuid.UUID) context.Context {
-	ctx = context.WithValue(ctx, contextKeyOrganizationID, id)
-	return observability.WithOrganizationID(ctx, id.String())
-}
-
-// WithOrganizationIDForTest is a package test helper for handler contract tests.
-func WithOrganizationIDForTest(ctx context.Context, id uuid.UUID) context.Context {
-	return WithOrganizationID(ctx, id)
 }

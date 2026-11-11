@@ -36,7 +36,7 @@ export interface LifecycleInstanceSummary {
 }
 
 export async function fetchLifecycleInstances(): Promise<LifecycleInstanceSummary[]> {
-  const res = await apiFetch("/v1/lifecycle/instances");
+  const res = await apiFetch("/api/v1/lifecycle/instances");
   if (!res.ok) {
     throw new ApiError(res.status, "Failed to fetch organization lifecycle instances");
   }
@@ -44,14 +44,14 @@ export async function fetchLifecycleInstances(): Promise<LifecycleInstanceSummar
 }
 
 export async function fetchLifecycleTemplates(): Promise<LifecycleChecklistTemplate[]> {
-  const { data } = await client.GET<LifecycleChecklistTemplate[]>("/v1/lifecycle-templates");
+  const { data } = await client.GET<LifecycleChecklistTemplate[]>("/api/v1/lifecycle-templates");
   return data;
 }
 
 export async function createLifecycleTemplate(
   body: CreateLifecycleChecklistTemplateRequest
 ): Promise<LifecycleChecklistTemplate> {
-  const { data } = await client.POST<LifecycleChecklistTemplate>("/v1/lifecycle-templates", {
+  const { data } = await client.POST<LifecycleChecklistTemplate>("/api/v1/lifecycle-templates", {
     body,
   });
   return data;
@@ -60,7 +60,7 @@ export async function createLifecycleTemplate(
 export async function getLifecycleTemplate(
   id: string
 ): Promise<LifecycleChecklistTemplate> {
-  const { data } = await client.GET<LifecycleChecklistTemplate>("/v1/lifecycle-templates/{id}", {
+  const { data } = await client.GET<LifecycleChecklistTemplate>("/api/v1/lifecycle-templates/{id}", {
     params: {
       path: { id },
     },
@@ -72,7 +72,7 @@ export async function updateLifecycleTemplate(
   id: string,
   body: UpdateLifecycleChecklistTemplateRequest
 ): Promise<LifecycleChecklistTemplate> {
-  const { data } = await client.PATCH<LifecycleChecklistTemplate>("/v1/lifecycle-templates/{id}", {
+  const { data } = await client.PATCH<LifecycleChecklistTemplate>("/api/v1/lifecycle-templates/{id}", {
     params: {
       path: { id },
     },
@@ -84,7 +84,7 @@ export async function updateLifecycleTemplate(
 export async function deleteLifecycleTemplate(
   id: string
 ): Promise<void> {
-  await client.DELETE("/v1/lifecycle-templates/{id}", {
+  await client.DELETE("/api/v1/lifecycle-templates/{id}", {
     params: {
       path: { id },
     },
@@ -95,7 +95,7 @@ export async function deleteLifecycleTemplate(
 export async function fetchLifecycleTemplateItems(
   id: string
 ): Promise<LifecycleChecklistTemplateItem[]> {
-  const { data } = await client.GET<LifecycleChecklistTemplateItem[]>("/v1/lifecycle-templates/{id}/items", {
+  const { data } = await client.GET<LifecycleChecklistTemplateItem[]>("/api/v1/lifecycle-templates/{id}/items", {
     params: {
       path: { id },
     },
@@ -107,7 +107,7 @@ export async function createLifecycleTemplateItem(
   id: string,
   body: CreateLifecycleChecklistTemplateItemRequest
 ): Promise<LifecycleChecklistTemplateItem> {
-  const { data } = await client.POST<LifecycleChecklistTemplateItem>("/v1/lifecycle-templates/{id}/items", {
+  const { data } = await client.POST<LifecycleChecklistTemplateItem>("/api/v1/lifecycle-templates/{id}/items", {
     params: {
       path: { id },
     },
@@ -120,7 +120,7 @@ export async function getLifecycleTemplateItem(
   tid: string,
   iid: string
 ): Promise<LifecycleChecklistTemplateItem> {
-  const { data } = await client.GET<LifecycleChecklistTemplateItem>("/v1/lifecycle-templates/{tid}/items/{iid}", {
+  const { data } = await client.GET<LifecycleChecklistTemplateItem>("/api/v1/lifecycle-templates/{tid}/items/{iid}", {
     params: {
       path: { tid, iid },
     },
@@ -133,7 +133,7 @@ export async function updateLifecycleTemplateItem(
   iid: string,
   body: UpdateLifecycleChecklistTemplateItemRequest
 ): Promise<LifecycleChecklistTemplateItem> {
-  const { data } = await client.PUT<LifecycleChecklistTemplateItem>("/v1/lifecycle-templates/{tid}/items/{iid}", {
+  const { data } = await client.PUT<LifecycleChecklistTemplateItem>("/api/v1/lifecycle-templates/{tid}/items/{iid}", {
     params: {
       path: { tid, iid },
     },
@@ -146,7 +146,7 @@ export async function deleteLifecycleTemplateItem(
   tid: string,
   iid: string
 ): Promise<void> {
-  await client.DELETE("/v1/lifecycle-templates/{tid}/items/{iid}", {
+  await client.DELETE("/api/v1/lifecycle-templates/{tid}/items/{iid}", {
     params: {
       path: { tid, iid },
     },
@@ -157,7 +157,7 @@ export async function deleteLifecycleTemplateItem(
 export async function fetchLifecycleChecklists(
   empId: string
 ): Promise<LifecycleChecklistResponse[]> {
-  const { data } = await client.GET<LifecycleChecklistResponse[]>("/v1/employments/{emp_id}/lifecycle", {
+  const { data } = await client.GET<LifecycleChecklistResponse[]>("/api/v1/employments/{emp_id}/lifecycle", {
     params: {
       path: { emp_id: empId },
     },
@@ -169,7 +169,7 @@ export async function createLifecycleChecklist(
   empId: string,
   body: CreateChecklistRequest
 ): Promise<LifecycleChecklistResponse> {
-  const { data } = await client.POST<LifecycleChecklistResponse>("/v1/employments/{emp_id}/lifecycle", {
+  const { data } = await client.POST<LifecycleChecklistResponse>("/api/v1/employments/{emp_id}/lifecycle", {
     params: {
       path: { emp_id: empId },
     },
@@ -181,7 +181,7 @@ export async function createLifecycleChecklist(
 export async function getLifecycleChecklist(
   id: string
 ): Promise<LifecycleChecklistResponse> {
-  const { data } = await client.GET<LifecycleChecklistResponse>("/v1/lifecycle/{id}", {
+  const { data } = await client.GET<LifecycleChecklistResponse>("/api/v1/lifecycle/{id}", {
     params: {
       path: { id },
     },
@@ -194,7 +194,7 @@ export async function updateChecklistItemStatus(
   iid: string,
   body: UpdateChecklistItemStatusRequest
 ): Promise<LifecycleChecklistResponse> {
-  const { data } = await client.PATCH<LifecycleChecklistResponse>("/v1/lifecycle/{id}/items/{iid}", {
+  const { data } = await client.PATCH<LifecycleChecklistResponse>("/api/v1/lifecycle/{id}/items/{iid}", {
     params: {
       path: { id, iid },
     },
@@ -204,6 +204,6 @@ export async function updateChecklistItemStatus(
 }
 
 export async function fetchMyPendingTasks(): Promise<PendingTaskResponse[]> {
-  const { data } = await client.GET<PendingTaskResponse[]>("/v1/lifecycle/my-tasks");
+  const { data } = await client.GET<PendingTaskResponse[]>("/api/v1/lifecycle/my-tasks");
   return data;
 }

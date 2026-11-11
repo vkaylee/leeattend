@@ -38,7 +38,7 @@ export const clearAuthSession = () => {
   // fails (network down, tab closed) the cookies still expire naturally via
   // Max-Age. We intentionally do NOT `await` — logout must be fire-and-forget
   // so the user isn't blocked on a slow/flaky network call.
-  fetch(`${API_BASE_URL}/v1/auth/logout`, {
+  fetch(`${API_BASE_URL}/api/v1/auth/logout`, {
     method: "POST",
     credentials: "include",
     headers: { "Content-Type": "application/json" },

@@ -11,21 +11,21 @@ describe("API client", () => {
   afterEach(() => vi.restoreAllMocks());
 
   it("builds flat paths with encoded entity IDs and array query values", () => {
-    expect(buildUrl("/v1/employees/{id}", {
+    expect(buildUrl("/api/v1/employees/{id}", {
       path: { id: "employee/1", ws_id: "ignored" },
       query: { ids: ["a", null, "b"], page: 2, status: "all", absent: undefined },
-    })).toBe("/v1/employees/employee%2F1?ids=a&ids=b&page=2");
+    })).toBe("/api/v1/employees/employee%2F1?ids=a&ids=b&page=2");
   });
 
   it("rejects missing path parameters instead of issuing malformed URLs", () => {
-    expect(() => buildUrl("/v1/employees/{id}")).toThrow("Missing path parameter: id");
+    expect(() => buildUrl("/api/v1/employees/{id}")).toThrow("Missing path parameter: id");
   });
 
   it("preserves JSON, FormData, and Blob request bodies", async () => {
     vi.mocked(apiFetch).mockResolvedValue(new Response(JSON.stringify({ id: "e1" }), {
       headers: { "content-type": "application/json" },
     }));
-    await client.POST<{ id: string }>("/v1/employees", { body: { name: "A" } });
+    await client.POST<{ id: string }>("/api/v1/employees", { body: { name: "A" } });
     expect(vi.mocked(apiFetch).mock.calls[0][1]).toMatchObject({
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -35,7 +35,7 @@ describe("API client", () => {
     const form = new FormData();
     form.append("file", new Blob(["data"]), "file.csv");
     vi.mocked(apiFetch).mockResolvedValueOnce(new Response("uploaded"));
-    await client.POST<string>("/v1/files/upload", { body: form });
+    await client.POST<string>("/api/v1/files/upload", { body: form });
     expect(vi.mocked(apiFetch).mock.calls[1][1]?.body).toBe(form);
   });
 
@@ -46,10 +46,10 @@ describe("API client", () => {
       statusText: "Bad Request",
       headers: { "content-type": "application/json" },
     }));
-    await expect(client.GET("/v1/test")).rejects.toBeInstanceOf(ApiError);
+    await expect(client.GET("/api/v1/test")).rejects.toBeInstanceOf(ApiError);
 
     vi.mocked(apiFetch).mockResolvedValueOnce(new Response(null, { status: 204 }));
-    const result = await client.DELETE("/v1/employees/e1");
+    const result = await client.DELETE("/api/v1/employees/e1");
     expect(result.data).toBeUndefined();
   });
 });

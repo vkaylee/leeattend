@@ -16,14 +16,14 @@ interface ConfigValue {
 
 export const organizationConfigApi = {
   listConfigs: async (prefix?: string): Promise<OrganizationConfigEntry[]> => {
-    const { data } = await client.GET<OrganizationConfigEntry[]>("/v1/configs", {
+    const { data } = await client.GET<OrganizationConfigEntry[]>("/api/v1/configs", {
       params: { query: prefix ? { prefix } : undefined },
     });
     return data;
   },
 
   getConfig: async (key: string, date?: string): Promise<components["schemas"]["ResolvedConfig"] | null> => {
-    const { data } = await client.GET<components["schemas"]["ResolvedConfig"]>("/v1/configs/{key}", {
+    const { data } = await client.GET<components["schemas"]["ResolvedConfig"]>("/api/v1/configs/{key}", {
       params: { path: { key }, query: date ? { date } : undefined },
     });
     return data ?? null;
@@ -37,7 +37,7 @@ export const organizationConfigApi = {
     else if (payload.value_json !== undefined && payload.value_json !== null) value = { Json: payload.value_json };
     else value = { Text: payload.value_text ?? "" };
 
-    const { data } = await client.PUT<OrganizationConfigEntry>("/v1/configs", {
+    const { data } = await client.PUT<OrganizationConfigEntry>("/api/v1/configs", {
       body: {
         config_key: payload.config_key,
         effective_from: payload.effective_from,
@@ -51,6 +51,6 @@ export const organizationConfigApi = {
   },
 
   deleteConfig: async (id: string): Promise<void> => {
-    await client.DELETE("/v1/configs/{id}", { params: { path: { id } } });
+    await client.DELETE("/api/v1/configs/{id}", { params: { path: { id } } });
   },
 };

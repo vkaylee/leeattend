@@ -28,86 +28,86 @@ import {
 } from "./types";
 
 export async function fetchIncentivePolicies(): Promise<PayrollIncentivePolicyResponse[]> {
-  const { data: resData } = await client.GET<PayrollIncentivePolicyResponse[]>("/v1/payroll/incentive-policies");
+  const { data: resData } = await client.GET<PayrollIncentivePolicyResponse[]>("/api/v1/payroll/incentive-policies");
   return resData;
 }
 
 export async function createIncentivePolicy(data: { base_amount: number; effective_from: string; name: string; payout_type: string; tiers: Omit<IncentiveTier, 'id' | 'policy_id'>[] }): Promise<void> {
-  await client.POST("/v1/payroll/incentive-policies", {
+  await client.POST("/api/v1/payroll/incentive-policies", {
     body: data,
   });
 }
 
 export async function cloneIncentivePolicy(policyId: string): Promise<void> {
-  await client.POST("/v1/payroll/incentive-policies/{policy_id}/clone", {
+  await client.POST("/api/v1/payroll/incentive-policies/{policy_id}/clone", {
     params: { path: { policy_id: policyId } }
   });
 }
 
 export async function deleteIncentivePolicy(policyId: string): Promise<void> {
-  await client.DELETE("/v1/payroll/incentive-policies/{policy_id}", {
+  await client.DELETE("/api/v1/payroll/incentive-policies/{policy_id}", {
     params: { path: { policy_id: policyId } }
   });
 }
 
 export async function createSalaryBaseGroup(data: { name: string; slug: string; description?: string }): Promise<SalaryBaseGroup> {
-  const { data: resData } = await client.POST<SalaryBaseGroup>("/v1/salary-bases", {
+  const { data: resData } = await client.POST<SalaryBaseGroup>("/api/v1/salary-bases", {
     body: data
   });
   return resData;
 }
 
 export async function fetchSalaryBaseGroups(): Promise<{ groups: SalaryBaseGroup[], members: SalaryBaseGroupMember[] }> {
-  const { data: resData } = await client.GET<{ groups: SalaryBaseGroup[], members: SalaryBaseGroupMember[] }>("/v1/salary-bases");
+  const { data: resData } = await client.GET<{ groups: SalaryBaseGroup[], members: SalaryBaseGroupMember[] }>("/api/v1/salary-bases");
   return resData;
 }
 
 export async function assignComponentToSalaryBase(baseId: string, componentId: string): Promise<void> {
-  await client.POST("/v1/salary-bases/{base_id}/members", {
+  await client.POST("/api/v1/salary-bases/{base_id}/members", {
     params: { path: { base_id: baseId } },
     body: { component_definition_id: componentId }
   });
 }
 
 export async function unassignComponentFromSalaryBase(baseId: string, componentId: string): Promise<void> {
-  await client.DELETE("/v1/salary-bases/{base_id}/members/{component_id}", {
+  await client.DELETE("/api/v1/salary-bases/{base_id}/members/{component_id}", {
     params: { path: { base_id: baseId, component_id: componentId } }
   });
 }
 
 export async function fetchPayrollSettings(): Promise<PayrollSettings> {
-  const { data: resData } = await client.GET<PayrollSettings>("/v1/payroll-settings");
+  const { data: resData } = await client.GET<PayrollSettings>("/api/v1/payroll-settings");
   return resData;
 }
 
 export async function updatePayrollSettings(data: UpdatePayrollSettingsRequest): Promise<PayrollSettings> {
-  const { data: resData } = await client.PATCH<PayrollSettings>("/v1/payroll-settings", {
+  const { data: resData } = await client.PATCH<PayrollSettings>("/api/v1/payroll-settings", {
     body: data
   });
   return resData;
 }
 
 export async function fetchPayrollSettingsHistory(): Promise<PayrollSettings[]> {
-  const { data: resData } = await client.GET<PayrollSettings[]>("/v1/payroll-settings/history");
+  const { data: resData } = await client.GET<PayrollSettings[]>("/api/v1/payroll-settings/history");
   return resData;
 }
 
 export async function fetchSalaryComponents(): Promise<SalaryComponentDefinition[]> {
-  const { data: resData } = await client.GET<SalaryComponentDefinition[]>("/v1/salary-components");
+  const { data: resData } = await client.GET<SalaryComponentDefinition[]>("/api/v1/salary-components");
   return resData;
 }
 
 export async function createSalaryComponent(
   data: CreateSalaryComponentRequest
 ): Promise<SalaryComponentDefinition> {
-  const { data: resData } = await client.POST<SalaryComponentDefinition>("/v1/salary-components", {
+  const { data: resData } = await client.POST<SalaryComponentDefinition>("/api/v1/salary-components", {
     body: data
   });
   return resData;
 }
 
 export async function fetchEmployeeSalaryComponents(employmentId: string): Promise<EmployeeSalaryComponentDetail[]> {
-  const { data: resData } = await fetch<EmployeeSalaryComponentDetail[]>("GET", "/v1/employments/{employment_id}/salary-components", {
+  const { data: resData } = await fetch<EmployeeSalaryComponentDetail[]>("GET", "/api/v1/employments/{employment_id}/salary-components", {
     params: { path: { employment_id: employmentId } },
   });
   return resData;
@@ -117,7 +117,7 @@ export async function assignEmployeeSalaryComponent(
   employmentId: string,
   data: { amount: string; component_definition_id: string; effective_date: string; }
 ): Promise<EmployeeSalaryComponent> {
-  const { data: resData } = await client.POST<EmployeeSalaryComponent>("/v1/employments/{employment_id}/salary-components", {
+  const { data: resData } = await client.POST<EmployeeSalaryComponent>("/api/v1/employments/{employment_id}/salary-components", {
     params: { path: { employment_id: employmentId } },
     body: data
   });
@@ -129,7 +129,7 @@ export async function calculate_payroll(
   year: number,
   month: number,
 ): Promise<Payslip> {
-  const { data: resData } = await client.POST<Payslip>("/v1/employees/{employee_id}/calculate-payroll", {
+  const { data: resData } = await client.POST<Payslip>("/api/v1/employees/{employee_id}/calculate-payroll", {
     params: { 
       path: { employee_id: employeeId },
       query: { year, month }
@@ -141,14 +141,14 @@ export async function calculate_payroll(
 export async function fetchEmployeePayslips(
   employeeId: string,
 ): Promise<Payslip[]> {
-  const { data: resData } = await client.GET<Payslip[]>("/v1/employees/{employee_id}/payslips", {
+  const { data: resData } = await client.GET<Payslip[]>("/api/v1/employees/{employee_id}/payslips", {
     params: { path: { employee_id: employeeId } }
   });
   return resData;
 }
 
 export async function fetchEmployeePayrollConfigs(employeeId: string): Promise<ConfigRecord[]> {
-  const { data: resData } = await fetch<ConfigRecord[]>("GET", "/v1/employees/{id}/payroll-config", {
+  const { data: resData } = await fetch<ConfigRecord[]>("GET", "/api/v1/employees/{id}/payroll-config", {
     params: { path: { id: employeeId } },
   });
   return resData;
@@ -156,26 +156,26 @@ export async function fetchEmployeePayrollConfigs(employeeId: string): Promise<C
 
 // Overtime Policies
 export async function fetchOvertimePolicies(): Promise<OvertimePolicy[]> {
-  const { data: resData } = await client.GET<{ data: OvertimePolicy[] }>("/v1/overtime/policies");
+  const { data: resData } = await client.GET<{ data: OvertimePolicy[] }>("/api/v1/overtime/policies");
   return resData.data;
 }
 
 export async function fetchOvertimePolicy(policyId: string): Promise<[OvertimePolicy, OvertimeRule[]]> {
-  const { data: resData } = await fetch<[OvertimePolicy, OvertimeRule[]]>("GET", "/v1/overtime/policies/{policy_id}", {
+  const { data: resData } = await fetch<[OvertimePolicy, OvertimeRule[]]>("GET", "/api/v1/overtime/policies/{policy_id}", {
     params: { path: { policy_id: policyId } },
   });
   return resData;
 }
 
 export async function createOvertimePolicy(data: CreateOvertimePolicyRequest): Promise<OvertimePolicy> {
-  const { data: resData } = await fetch<OvertimePolicy>("POST", "/v1/overtime/policies", {
+  const { data: resData } = await fetch<OvertimePolicy>("POST", "/api/v1/overtime/policies", {
     body: data,
   });
   return resData;
 }
 
 export async function addOvertimeRule(policyId: string, data: { days_of_week: number; is_holiday: boolean; multiplier: string; priority: number; time_end?: string | null; time_start?: string | null }): Promise<OvertimeRule> {
-  const { data: resData } = await client.POST<OvertimeRule>("/v1/overtime/policies/{policy_id}/rules", {
+  const { data: resData } = await client.POST<OvertimeRule>("/api/v1/overtime/policies/{policy_id}/rules", {
     params: { path: { policy_id: policyId } },
     body: data
   });
@@ -183,7 +183,7 @@ export async function addOvertimeRule(policyId: string, data: { days_of_week: nu
 }
 
 export async function setEmployeePayrollConfig(employeeId: string, data: SetEmployeePayrollConfigRequest): Promise<EmployeePayrollConfig> {
-  const { data: resData } = await client.POST<EmployeePayrollConfig>("/v1/employees/{id}/payroll-config", {
+  const { data: resData } = await client.POST<EmployeePayrollConfig>("/api/v1/employees/{id}/payroll-config", {
     params: { path: { id: employeeId } },
     body: data,
   });
@@ -191,14 +191,14 @@ export async function setEmployeePayrollConfig(employeeId: string, data: SetEmpl
 }
 
 export async function fetchDepartmentPayrollConfigs(deptId: string): Promise<DepartmentPayrollConfig[]> {
-  const { data: resData } = await client.GET<DepartmentPayrollConfig[]>("/v1/departments/{id}/payroll-config", {
+  const { data: resData } = await client.GET<DepartmentPayrollConfig[]>("/api/v1/departments/{id}/payroll-config", {
     params: { path: { id: deptId } },
   });
   return resData;
 }
 
 export async function setDepartmentPayrollConfig(deptId: string, data: SetDepartmentPayrollConfigRequest): Promise<DepartmentPayrollConfig> {
-  const { data: resData } = await client.POST<DepartmentPayrollConfig>("/v1/departments/{id}/payroll-config", {
+  const { data: resData } = await client.POST<DepartmentPayrollConfig>("/api/v1/departments/{id}/payroll-config", {
     params: { path: { id: deptId } },
     body: data,
   });
@@ -206,14 +206,14 @@ export async function setDepartmentPayrollConfig(deptId: string, data: SetDepart
 }
 
 export async function calculateBatchPayslips(data: { employment_ids: string[]; year: number; month: number }): Promise<{ results: BatchCalculateResult[] }> {
-  const { data: resData } = await client.POST<{ results: BatchCalculateResult[] }>("/v1/payroll/calculate-batch", {
+  const { data: resData } = await client.POST<{ results: BatchCalculateResult[] }>("/api/v1/payroll/calculate-batch", {
     body: data
   });
   return resData;
 }
 
 export async function fetchPayslips(year: number, month: number): Promise<Payslip[]> {
-  const { data: resData } = await client.GET<Payslip[]>("/v1/payroll/payslips", {
+  const { data: resData } = await client.GET<Payslip[]>("/api/v1/payroll/payslips", {
     params: { 
       query: { year, month }
     }
@@ -222,7 +222,7 @@ export async function fetchPayslips(year: number, month: number): Promise<Paysli
 }
 
 export async function assignOvertimePolicy(data: { assignee_id?: string | null; assignee_type: string; effective_from: string; policy_id: string }): Promise<void> {
-  await client.POST("/v1/overtime/policies/assign", {
+  await client.POST("/api/v1/overtime/policies/assign", {
     body: data
   });
 }
@@ -230,26 +230,26 @@ export async function assignOvertimePolicy(data: { assignee_id?: string | null; 
 // --- Payroll Rules API ---
 
 export async function fetchPayrollRules(): Promise<PayrollRuleDefinition[]> {
-  const { data: resData } = await client.GET<PayrollRuleDefinition[]>("/v1/payroll-rules");
+  const { data: resData } = await client.GET<PayrollRuleDefinition[]>("/api/v1/payroll-rules");
   return resData;
 }
 
 export async function createPayrollRule(data: CreatePayrollRuleDefinitionRequest): Promise<PayrollRuleDefinition> {
-  const { data: resData } = await client.POST<PayrollRuleDefinition>("/v1/payroll-rules", {
+  const { data: resData } = await client.POST<PayrollRuleDefinition>("/api/v1/payroll-rules", {
     body: data
   });
   return resData;
 }
 
 export async function fetchPayrollRuleTiers(ruleId: string): Promise<PayrollRuleTier[]> {
-  const { data: resData } = await client.GET<PayrollRuleTier[]>("/v1/payroll-rules/{rule_id}/tiers", {
+  const { data: resData } = await client.GET<PayrollRuleTier[]>("/api/v1/payroll-rules/{rule_id}/tiers", {
     params: { path: { rule_id: ruleId } }
   });
   return resData;
 }
 
 export async function createPayrollRuleTier(ruleId: string, data: { fixed_amount?: string | null; max_amount?: string | null; min_amount: string; rate: string; tier_order: number }): Promise<PayrollRuleTier> {
-  const { data: resData } = await client.POST<PayrollRuleTier>("/v1/payroll-rules/{rule_id}/tiers", {
+  const { data: resData } = await client.POST<PayrollRuleTier>("/api/v1/payroll-rules/{rule_id}/tiers", {
     params: { path: { rule_id: ruleId } },
     body: data
   });
@@ -259,14 +259,14 @@ export async function createPayrollRuleTier(ruleId: string, data: { fixed_amount
 // --- Payroll Rule Assignments ---
 
 export async function fetchPayrollRuleAssignments(ruleId: string): Promise<PayrollRuleAssignment[]> {
-  const { data: resData } = await client.GET<PayrollRuleAssignment[]>("/v1/payroll-rules/{rule_id}/assignments", {
+  const { data: resData } = await client.GET<PayrollRuleAssignment[]>("/api/v1/payroll-rules/{rule_id}/assignments", {
     params: { path: { rule_id: ruleId } }
   });
   return resData;
 }
 
 export async function createPayrollRuleAssignment(ruleId: string, data: { assignee_id?: string | null; assignee_type: string; effective_from: string; effective_to?: string | null; override_config?: unknown }): Promise<PayrollRuleAssignment> {
-  const { data: resData } = await fetch<PayrollRuleAssignment>("POST", "/v1/payroll-rules/{rule_id}/assignments", {
+  const { data: resData } = await fetch<PayrollRuleAssignment>("POST", "/api/v1/payroll-rules/{rule_id}/assignments", {
     params: { path: { rule_id: ruleId } },
     body: data,
   });
@@ -274,7 +274,7 @@ export async function createPayrollRuleAssignment(ruleId: string, data: { assign
 }
 
 export async function deletePayrollRuleAssignment(ruleId: string, assignmentId: string): Promise<void> {
-  await client.DELETE("/v1/payroll-rules/{rule_id}/assignments/{assignment_id}", {
+  await client.DELETE("/api/v1/payroll-rules/{rule_id}/assignments/{assignment_id}", {
     params: { path: { rule_id: ruleId, assignment_id: assignmentId } }
   });
 }

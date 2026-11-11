@@ -26,7 +26,7 @@ export async function fetchMyBehalfTargets(
   domain: BehalfDomain,
 ): Promise<Employee[]> {
   const path = DOMAIN_PATH_MAP[domain];
-  const response = await apiFetch(`/v1/${path}`);
+  const response = await apiFetch(`/api/v1/${path}`);
 
   if (!response.ok) await ApiError.rejectResponse(response);
 

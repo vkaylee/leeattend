@@ -17,13 +17,13 @@ function normalizeCondition(item: WorkingConditionWire): WorkingCondition {
 }
 
 export async function fetchWorkingConditionsForAllEmployees(): Promise<WorkingConditionWithEmployee[]> {
-  const { data } = await client.GET<WorkingConditionWithEmployee[]>("/v1/working-conditions");
+  const { data } = await client.GET<WorkingConditionWithEmployee[]>("/api/v1/working-conditions");
   return data.map((item) => normalizeCondition(item) as WorkingConditionWithEmployee);
 }
 
 export async function fetchWorkingConditions(employeeId: string): Promise<WorkingCondition[]> {
   const { data } = await client.GET<WorkingConditionWire[] | { data: WorkingConditionWire[] }>(
-    "/v1/employees/{id}/conditions",
+    "/api/v1/employees/{id}/conditions",
     {
       params: {
         path: { id: employeeId },
@@ -37,7 +37,7 @@ export async function createWorkingCondition(
   employeeId: string,
   condition: CreateWorkingConditionRequest,
 ): Promise<WorkingCondition> {
-  const { data } = await client.POST<WorkingConditionWire>("/v1/employees/{id}/conditions", {
+  const { data } = await client.POST<WorkingConditionWire>("/api/v1/employees/{id}/conditions", {
     params: {
       path: { id: employeeId },
     },
@@ -47,7 +47,7 @@ export async function createWorkingCondition(
 }
 
 export async function deleteWorkingCondition(employeeId: string, conditionId: string): Promise<void> {
-  await client.DELETE("/v1/employees/{id}/conditions/{cond_id}", {
+  await client.DELETE("/api/v1/employees/{id}/conditions/{cond_id}", {
     params: {
       path: { id: employeeId, cond_id: conditionId },
     },

@@ -28,12 +28,12 @@ export interface TemplatePreviewResponse {
 }
 
 export async function fetchFolders(): Promise<DocumentFolder[]> {
-  const { data } = await client.GET<DocumentFolder[]>("/v1/documents/folders");
+  const { data } = await client.GET<DocumentFolder[]>("/api/v1/documents/folders");
   return data;
 }
 
 export async function createFolder(name: string, parentFolderId?: string): Promise<DocumentFolder> {
-  const { data } = await client.POST<DocumentFolder>("/v1/documents/folders", {
+  const { data } = await client.POST<DocumentFolder>("/api/v1/documents/folders", {
     body: {
       name,
       parent_folder_id: parentFolderId ?? null,
@@ -43,7 +43,7 @@ export async function createFolder(name: string, parentFolderId?: string): Promi
 }
 
 export async function renameFolder(id: string, name: string): Promise<DocumentFolder> {
-  const { data } = await client.PUT<DocumentFolder>("/v1/documents/folders/{id}", {
+  const { data } = await client.PUT<DocumentFolder>("/api/v1/documents/folders/{id}", {
     params: {
       path: { id },
     },
@@ -55,7 +55,7 @@ export async function renameFolder(id: string, name: string): Promise<DocumentFo
 }
 
 export async function deleteFolder(id: string): Promise<void> {
-  await client.DELETE("/v1/documents/folders/{id}", {
+  await client.DELETE("/api/v1/documents/folders/{id}", {
     params: {
       path: { id },
     },
@@ -66,7 +66,7 @@ export async function distributeDocument(
   documentId: string,
   targetEmployeeIds: string[],
 ): Promise<DistributeDocumentResponse> {
-  const { data } = await client.POST<DistributeDocumentResponse>("/v1/documents/distributions", {
+  const { data } = await client.POST<DistributeDocumentResponse>("/api/v1/documents/distributions", {
     body: {
       document_id: documentId,
       target_employee_ids: targetEmployeeIds,
@@ -76,12 +76,12 @@ export async function distributeDocument(
 }
 
 export async function fetchPendingAcknowledgements(): Promise<PendingAcknowledgement[]> {
-  const { data } = await client.GET<PendingAcknowledgement[]>("/v1/ess/documents/pending");
+  const { data } = await client.GET<PendingAcknowledgement[]>("/api/v1/ess/documents/pending");
   return data;
 }
 
 export async function acknowledgeDocument(id: string): Promise<AcknowledgeDocumentResponse> {
-  const { data } = await client.POST<AcknowledgeDocumentResponse>("/v1/ess/documents/{id}/acknowledge", {
+  const { data } = await client.POST<AcknowledgeDocumentResponse>("/api/v1/ess/documents/{id}/acknowledge", {
     params: {
       path: { id },
     },
@@ -94,7 +94,7 @@ export async function previewTemplate(
   employeeId: string,
   manualVariables?: Record<string, string>,
 ): Promise<TemplatePreviewResponse> {
-  const { data } = await client.POST<TemplatePreviewResponse>("/v1/documents/templates/preview", {
+  const { data } = await client.POST<TemplatePreviewResponse>("/api/v1/documents/templates/preview", {
     body: {
       template_content: templateContent,
       employee_id: employeeId,

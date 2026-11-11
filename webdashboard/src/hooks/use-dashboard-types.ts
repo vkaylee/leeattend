@@ -268,7 +268,7 @@ export interface OvertimeBreakdownRow {
   cost_available: boolean;
 }
 
-/** Envelope returned by `GET /v1/dashboard/overtime-breakdown`. */
+/** Envelope returned by `GET /api/v1/dashboard/overtime-breakdown`. */
 export interface OvertimeBreakdownResponse {
   contract_version: "overtime-breakdown.v2";
   organization: {

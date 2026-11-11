@@ -24,7 +24,7 @@ describe("fetchAuditLogs", () => {
       endDate: "2026-01-31T23:59:59.999Z",
     })).resolves.toEqual(response);
 
-    expect(apiFetch).toHaveBeenCalledWith("GET", "/v1/audit-logs", {
+    expect(apiFetch).toHaveBeenCalledWith("GET", "/api/v1/audit-logs", {
       params: {
         query: {
           page: 2,

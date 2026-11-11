@@ -27,7 +27,7 @@ export interface SmtpTestResponse {
 }
 
 export async function fetchSmtpConfig(): Promise<SmtpConfigData> {
-  const res = await apiFetch("/v1/system/smtp/config", {
+  const res = await apiFetch("/api/v1/system/smtp/config", {
     timeout: TIMEOUT.DEFAULT,
   });
   if (!res.ok) await ApiError.rejectResponse(res);
@@ -35,7 +35,7 @@ export async function fetchSmtpConfig(): Promise<SmtpConfigData> {
 }
 
 export async function saveSmtpConfig(config: SmtpConfigData): Promise<void> {
-  const res = await apiFetch("/v1/system/smtp/config", {
+  const res = await apiFetch("/api/v1/system/smtp/config", {
     method: "PUT",
     body: JSON.stringify(config),
     timeout: TIMEOUT.DEFAULT,
@@ -44,7 +44,7 @@ export async function saveSmtpConfig(config: SmtpConfigData): Promise<void> {
 }
 
 export async function testSmtp(toEmail: string): Promise<SmtpTestResponse> {
-  const res = await apiFetch("/v1/system/smtp/test", {
+  const res = await apiFetch("/api/v1/system/smtp/test", {
     method: "POST",
     body: JSON.stringify({ to_email: toEmail }),
     timeout: TIMEOUT.REPORT_OPERATION,

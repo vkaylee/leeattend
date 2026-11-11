@@ -106,7 +106,7 @@ describe("use-dashboard hooks", () => {
 
             await waitFor(() => { expect(result.current.isLoading).toBe(false); });
 
-            expect(api.apiFetch).toHaveBeenCalledWith("/v1/dashboard/organization-stats");
+            expect(api.apiFetch).toHaveBeenCalledWith("/api/v1/dashboard/organization-stats");
             expect(result.current.data).toEqual(mockStats);
         });
 
@@ -124,7 +124,7 @@ describe("use-dashboard hooks", () => {
             expect(result.current.error).toBeInstanceOf(DashboardQueryError);
             expect(result.current.error).toMatchObject({
                 code: "HTTP_ERROR",
-                endpoint: "/v1/dashboard/organization-stats",
+                endpoint: "/api/v1/dashboard/organization-stats",
                 queryKey: "organization-stats",
                 status: 503,
             });
@@ -147,7 +147,7 @@ describe("use-dashboard hooks", () => {
 
             await waitFor(() => { expect(result.current.isLoading).toBe(false); });
 
-            expect(api.apiFetch).toHaveBeenCalledWith("/v1/dashboard/attendance-trend");
+            expect(api.apiFetch).toHaveBeenCalledWith("/api/v1/dashboard/attendance-trend");
             expect(result.current.data).toEqual(mockData);
         });
     });
@@ -168,7 +168,7 @@ describe("use-dashboard hooks", () => {
 
             await waitFor(() => { expect(result.current.isLoading).toBe(false); });
 
-            expect(api.apiFetch).toHaveBeenCalledWith("/v1/dashboard/department-attendance?range=week");
+            expect(api.apiFetch).toHaveBeenCalledWith("/api/v1/dashboard/department-attendance?range=week");
             expect(result.current.data).toEqual(mockData);
         });
 
@@ -189,7 +189,7 @@ describe("use-dashboard hooks", () => {
             await waitFor(() => { expect(result.current.isLoading).toBe(false); });
 
             expect(api.apiFetch).toHaveBeenCalledWith(
-                "/v1/dashboard/department-attendance?top_n=8&start_date=2026-08-01&end_date=2026-08-14&timezone=Asia%2FHo_Chi_Minh",
+                "/api/v1/dashboard/department-attendance?top_n=8&start_date=2026-08-01&end_date=2026-08-14&timezone=Asia%2FHo_Chi_Minh",
             );
         });
     });
@@ -209,7 +209,7 @@ describe("use-dashboard hooks", () => {
 
             await waitFor(() => { expect(result.current.isLoading).toBe(false); });
 
-            expect(api.apiFetch).toHaveBeenCalledWith("/v1/dashboard/unexcused-absences?start_date=2023-01-01&end_date=2023-01-31&group_by=employee");
+            expect(api.apiFetch).toHaveBeenCalledWith("/api/v1/dashboard/unexcused-absences?start_date=2023-01-01&end_date=2023-01-31&group_by=employee");
             expect(result.current.data).toEqual(mockData);
         });
         
@@ -225,7 +225,7 @@ describe("use-dashboard hooks", () => {
 
             await waitFor(() => { expect(result.current.isLoading).toBe(false); });
 
-            expect(api.apiFetch).toHaveBeenCalledWith("/v1/dashboard/unexcused-absences");
+            expect(api.apiFetch).toHaveBeenCalledWith("/api/v1/dashboard/unexcused-absences");
         });
     });
 
@@ -275,7 +275,7 @@ describe("use-dashboard hooks", () => {
             });
             await waitFor(() => { expect(api.apiFetch).toHaveBeenCalledTimes(2); });
 
-            const expectedEndpoint = "/v1/dashboard/executive-overview?period=custom&comparison=previous_period&start_date=2026-08-01&end_date=2026-08-13&department_ids=11111111-1111-4111-8111-111111111111&department_ids=22222222-2222-4222-8222-222222222222&location_ids=33333333-3333-4333-8333-333333333333&location_ids=44444444-4444-4444-8444-444444444444";
+            const expectedEndpoint = "/api/v1/dashboard/executive-overview?period=custom&comparison=previous_period&start_date=2026-08-01&end_date=2026-08-13&department_ids=11111111-1111-4111-8111-111111111111&department_ids=22222222-2222-4222-8222-222222222222&location_ids=33333333-3333-4333-8333-333333333333&location_ids=44444444-4444-4444-8444-444444444444";
             expect(first.queryClient.getQueryCache().getAll()[0]?.queryKey).toEqual([
                 "executive-overview",
                 expectedEndpoint,
@@ -292,7 +292,7 @@ describe("use-dashboard hooks", () => {
             renderMetrics(filters);
             await waitFor(() => {
                 expect(api.apiFetch).toHaveBeenCalledWith(
-                    "/v1/dashboard/executive-overview?period=custom&comparison=previous_period&start_date=2026-08-01&end_date=2026-08-13&department_ids=11111111-1111-4111-8111-111111111111&department_ids=22222222-2222-4222-8222-222222222222&location_ids=33333333-3333-4333-8333-333333333333&location_ids=44444444-4444-4444-8444-444444444444",
+                    "/api/v1/dashboard/executive-overview?period=custom&comparison=previous_period&start_date=2026-08-01&end_date=2026-08-13&department_ids=11111111-1111-4111-8111-111111111111&department_ids=22222222-2222-4222-8222-222222222222&location_ids=33333333-3333-4333-8333-333333333333&location_ids=44444444-4444-4444-8444-444444444444",
                 );
             });
         });
@@ -322,7 +322,7 @@ describe("use-dashboard hooks", () => {
 
             await waitFor(() => { expect(result.current.isLoading).toBe(false); });
 
-            expect(api.apiFetch).toHaveBeenCalledWith("/v1/dashboard/turnover-analytics?start=2023-01-01&end=2023-01-31");
+            expect(api.apiFetch).toHaveBeenCalledWith("/api/v1/dashboard/turnover-analytics?start=2023-01-01&end=2023-01-31");
             expect(result.current.data).toEqual(mockData);
         });
 
@@ -347,7 +347,7 @@ describe("use-dashboard hooks", () => {
             await waitFor(() => { expect(result.current.isLoading).toBe(false); });
 
             expect(api.apiFetch).toHaveBeenCalledWith(
-                "/v1/dashboard/turnover-analytics?start=2023-01-01&end=2023-01-31&comparison=same_period_last_year&target=10",
+                "/api/v1/dashboard/turnover-analytics?start=2023-01-01&end=2023-01-31&comparison=same_period_last_year&target=10",
             );
         });
     });

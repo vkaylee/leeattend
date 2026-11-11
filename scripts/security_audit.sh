@@ -43,12 +43,13 @@ else
 fi
 
 echo ""
-echo "--- Static check 2: expected middleware references ---"
+echo "--- Static check 2: canonical middleware and route references ---"
 MAIN_SRC="apiserver/main.go"
-if grep -q 'RejectLegacyWorkspaceRoutes' "$MAIN_SRC" && grep -q 'AuthMiddlewareWithRevocation' "$MAIN_SRC"; then
-    pass_check "Legacy-route rejection and JWT middleware references found in $MAIN_SRC"
+LEGACY_ROUTE_ALIASES=$(grep -n -E '"/(api/auth|api/me|api/users|v1/|ws/)' "$MAIN_SRC" || true)
+if grep -q 'AuthMiddlewareWithRevocation' "$MAIN_SRC" && [ -z "$LEGACY_ROUTE_ALIASES" ]; then
+    pass_check "JWT middleware present and legacy route aliases absent from $MAIN_SRC"
 else
-    fail_check "Middleware references" "Expected middleware reference missing from $MAIN_SRC"
+    fail_check "Canonical middleware and routes" "Legacy aliases or authentication middleware mismatch in $MAIN_SRC: ${LEGACY_ROUTE_ALIASES:-missing middleware}"
 fi
 
 echo ""

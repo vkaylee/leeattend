@@ -11,7 +11,7 @@ import { client } from "./client";
 export async function fetchCustomFieldDefinitions(
   entityType?: string,
 ): Promise<CustomFieldDefinition[]> {
-  const { data } = await client.GET<CustomFieldDefinition[]>("/v1/custom-fields/definitions", {
+  const { data } = await client.GET<CustomFieldDefinition[]>("/api/v1/custom-fields/definitions", {
     params: {
       query: { entity_type: entityType },
     },
@@ -22,7 +22,7 @@ export async function fetchCustomFieldDefinitions(
 export async function createCustomFieldDefinition(
   body: CreateCustomFieldDefinitionRequest,
 ): Promise<CustomFieldDefinition> {
-  const { data } = await client.POST<CustomFieldDefinition>("/v1/custom-fields/definitions", {
+  const { data } = await client.POST<CustomFieldDefinition>("/api/v1/custom-fields/definitions", {
     body,
   });
   return data;
@@ -31,7 +31,7 @@ export async function createCustomFieldDefinition(
 export async function getCustomFieldDefinition(
   id: string,
 ): Promise<CustomFieldDefinition> {
-  const { data } = await client.GET<CustomFieldDefinition>("/v1/custom-fields/definitions/{id}", {
+  const { data } = await client.GET<CustomFieldDefinition>("/api/v1/custom-fields/definitions/{id}", {
     params: {
       path: { id },
     },
@@ -43,7 +43,7 @@ export async function updateCustomFieldDefinition(
   id: string,
   body: UpdateCustomFieldDefinitionRequest,
 ): Promise<CustomFieldDefinition> {
-  const { data } = await client.PATCH<CustomFieldDefinition>("/v1/custom-fields/definitions/{id}", {
+  const { data } = await client.PATCH<CustomFieldDefinition>("/api/v1/custom-fields/definitions/{id}", {
     params: {
       path: { id },
     },
@@ -53,7 +53,7 @@ export async function updateCustomFieldDefinition(
 }
 
 export async function deleteCustomFieldDefinition(id: string): Promise<void> {
-  await client.DELETE("/v1/custom-fields/definitions/{id}", {
+  await client.DELETE("/api/v1/custom-fields/definitions/{id}", {
     params: {
       path: { id },
     },
@@ -65,7 +65,7 @@ export async function fetchCustomFieldValues(
   entityId: string,
 ): Promise<CustomFieldValueResponse[]> {
   const { data } = await client.GET<CustomFieldValueResponse[]>(
-    "/v1/custom-fields/values/{entity_type}/{entity_id}",
+    "/api/v1/custom-fields/values/{entity_type}/{entity_id}",
     {
       params: {
         path: { entity_type: entityType, entity_id: entityId },
@@ -81,7 +81,7 @@ export async function setCustomFieldValues(
   values: SetCustomFieldValueRequest[],
 ): Promise<CustomFieldValueResponse[]> {
   const { data } = await client.PUT<CustomFieldValueResponse[]>(
-    "/v1/custom-fields/values/{entity_type}/{entity_id}",
+    "/api/v1/custom-fields/values/{entity_type}/{entity_id}",
     {
       params: {
         path: { entity_type: entityType, entity_id: entityId },

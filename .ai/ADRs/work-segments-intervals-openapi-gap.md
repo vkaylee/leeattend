@@ -14,18 +14,18 @@ After auditing the Rust backend (`apiserver/src/openapi.rs`, `apiserver/src/rout
 
 | # | Function | Path | Backend Status |
 |---|----------|------|----------------|
-| 1 | `fetchWorkSegments` | `GET /workspaces/{ws_id}/work-segments` | ✅ Handler + OpenAPI |
-| 2 | `createWorkSegment` | `POST /workspaces/{ws_id}/work-segments` | ✅ Handler + OpenAPI |
-| 3 | `getWorkSegment` | `GET /workspaces/{ws_id}/work-segments/{id}` | ✅ Handler + OpenAPI |
-| 4 | `updateWorkSegment` | `PUT /workspaces/{ws_id}/work-segments/{id}` | ✅ Handler + OpenAPI |
-| 5 | `deleteWorkSegment` | `DELETE /workspaces/{ws_id}/work-segments/{id}` | ✅ Handler + OpenAPI |
-| 6 | `bulkCreateWorkSegments` | `POST /workspaces/{ws_id}/work-segments/bulk` | ✅ Handler + OpenAPI |
-| 7 | `scheduleWorkSegments` | `GET /workspaces/{ws_id}/work-segments/schedule` | ❌ No handler exists |
-| 8 | `fetchShiftIntervals` | `GET /workspaces/{ws_id}/shifts/{id}/intervals` | ❌ No route exists |
-| 9 | `createShiftInterval` | `POST /workspaces/{ws_id}/shifts/{id}/intervals` | ❌ No route exists |
-| 10 | `updateShiftInterval` | `PUT /workspaces/{ws_id}/shifts/{id}/intervals/{iid}` | ❌ No route exists |
-| 11 | `deleteShiftInterval` | `DELETE /workspaces/{ws_id}/shifts/{id}/intervals/{iid}` | ❌ No route exists |
-| 12 | `reorderShiftIntervals` | `POST /workspaces/{ws_id}/shifts/{id}/intervals/reorder` | ❌ No route exists |
+| 1 | `fetchWorkSegments` | `GET /api/v1/work-segments` | ✅ Handler + OpenAPI |
+| 2 | `createWorkSegment` | `POST /api/v1/work-segments` | ✅ Handler + OpenAPI |
+| 3 | `getWorkSegment` | `GET /api/v1/work-segments/{id}` | ✅ Handler + OpenAPI |
+| 4 | `updateWorkSegment` | `PUT /api/v1/work-segments/{id}` | ✅ Handler + OpenAPI |
+| 5 | `deleteWorkSegment` | `DELETE /api/v1/work-segments/{id}` | ✅ Handler + OpenAPI |
+| 6 | `bulkCreateWorkSegments` | `POST /api/v1/work-segments/bulk` | ✅ Handler + OpenAPI |
+| 7 | `scheduleWorkSegments` | `GET /api/v1/work-segments/schedule` | ❌ No handler exists |
+| 8 | `fetchShiftIntervals` | `GET /api/v1/shifts/{id}/intervals` | ❌ No route exists |
+| 9 | `createShiftInterval` | `POST /api/v1/shifts/{id}/intervals` | ❌ No route exists |
+| 10 | `updateShiftInterval` | `PUT /api/v1/shifts/{id}/intervals/{iid}` | ❌ No route exists |
+| 11 | `deleteShiftInterval` | `DELETE /api/v1/shifts/{id}/intervals/{iid}` | ❌ No route exists |
+| 12 | `reorderShiftIntervals` | `POST /api/v1/shifts/{id}/intervals/reorder` | ❌ No route exists |
 
 **6 of 12 functions (items 1–6)** have complete backend support: Axum routes defined in
 `apiserver/src/routes/shifts.rs`, handler functions in `apiserver/src/handlers/work_segments.rs`,

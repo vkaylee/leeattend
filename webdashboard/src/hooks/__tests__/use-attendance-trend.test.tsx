@@ -62,7 +62,7 @@ describe("useAttendanceTrend hook", () => {
 
         await waitFor(() => { expect(result.current.isLoading).toBe(false); });
 
-        expect(api.apiFetch).toHaveBeenCalledWith("/v1/dashboard/attendance-trend");
+        expect(api.apiFetch).toHaveBeenCalledWith("/api/v1/dashboard/attendance-trend");
         expect(result.current.data).toEqual(mockTrendData);
         expect(result.current.data).toHaveLength(3);
     });

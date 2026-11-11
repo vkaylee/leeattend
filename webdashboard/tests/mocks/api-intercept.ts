@@ -265,7 +265,7 @@ export async function setupApiMocks(page: Page) {
     }
 
     // 7. Dashboard Stats & Trends
-    if (/\/api\/dashboard\/workspace-stats/.exec(pathname)) {
+    if (/\/api\/dashboard\/organization-stats/.exec(pathname)) {
       return fulfill({
         absent_today: 2,
         avg_work_hours_today: 7.5,

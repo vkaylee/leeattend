@@ -52,7 +52,7 @@ describe("bulkUpsertRoster", () => {
     await bulkUpsertRoster("emp-1", items);
 
     const call = vi.mocked(apiFetch).mock.calls[0];
-    expect(call[0]).toBe("/v1/employees/emp-1/rosters/bulk");
+    expect(call[0]).toBe("/api/v1/employees/emp-1/rosters/bulk");
     const opts = call[1] as RequestInit;
     expect(opts.method).toBe("POST");
     expect(JSON.parse(opts.body as string).items).toEqual(items);

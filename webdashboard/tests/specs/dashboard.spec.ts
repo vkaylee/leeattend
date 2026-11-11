@@ -18,7 +18,7 @@ test.describe("Standalone Desktop Dashboard Contracts", () => {
 
   test("shows the loading skeleton while permissions are pending", async ({ page }) => {
     const { promise: permissionsPending, resolve: releasePermissions } = Promise.withResolvers<void>();
-    await page.route("**/api/me/permissions", async (route) => {
+    await page.route("**/api/v1/me/permissions", async (route) => {
       await permissionsPending;
       await route.fallback();
     });

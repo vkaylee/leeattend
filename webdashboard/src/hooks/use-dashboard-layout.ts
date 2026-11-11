@@ -58,7 +58,7 @@ function useDashboardPreferences() {
     return useQuery<DashboardLayoutPreferences>({
         queryKey: ["dashboard-preferences"],
         queryFn: async () => {
-            const response = await apiFetch("/v1/dashboard/preferences");
+            const response = await apiFetch("/api/v1/dashboard/preferences");
             if (!response.ok) {
                 throw new DashboardPreferencesError("Dashboard preferences could not be loaded.", response.status);
             }
@@ -74,7 +74,7 @@ function useDashboardPreferences() {
 function useDashboardMutation() {
     return useMutation({
         mutationFn: async (update: DashboardPreferencesUpdate) => {
-            const response = await apiFetch("/v1/dashboard/preferences", {
+            const response = await apiFetch("/api/v1/dashboard/preferences", {
                 method: "PUT",
                 body: JSON.stringify(update),
             });

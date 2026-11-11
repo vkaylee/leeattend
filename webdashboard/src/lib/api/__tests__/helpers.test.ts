@@ -108,7 +108,7 @@ describe('apiFetch interceptor logic', () => {
 
     setAccessToken('test-token');
 
-    const promise = apiFetch('/v1/test');
+    const promise = apiFetch('/api/v1/test');
     await vi.runAllTimersAsync();
     await promise;
 
@@ -127,7 +127,7 @@ describe('apiFetch interceptor logic', () => {
 
     localStorage.setItem('i18nextLng', 'zh-CN');
 
-    const promise = apiFetch('/v1/test');
+    const promise = apiFetch('/api/v1/test');
     await vi.runAllTimersAsync();
     await promise;
 
@@ -153,7 +153,7 @@ describe('apiFetch interceptor logic', () => {
       }
     }));
 
-    const promise = apiFetch('/v1/slow', { timeout: 1000 });
+    const promise = apiFetch('/api/v1/slow', { timeout: 1000 });
     
     // Advance timer by 1001ms
     await vi.advanceTimersByTimeAsync(1001);
@@ -173,8 +173,8 @@ describe('getFullUrl', () => {
   // resolves to "/api" (see config.ts). We assert against that contract.
 
   it('returns absolute http(s) URLs unchanged (covers the early-return branch)', () => {
-    expect(getFullUrl('https://example.com/v1/health')).toBe(
-      'https://example.com/v1/health',
+    expect(getFullUrl('https://example.com/api/v1/health')).toBe(
+      'https://example.com/api/v1/health',
     );
   });
 
@@ -187,7 +187,7 @@ describe('getFullUrl', () => {
   });
 
   it('normalises a leading slash before prepending', () => {
-    expect(getFullUrl('/v1/health')).toBe('/api/v1/health');
+    expect(getFullUrl('/api/v1/health')).toBe('/api/v1/health');
   });
 });
 
@@ -239,7 +239,7 @@ describe('handleUnauthorized (401 retry-on-refresh) via apiFetch', () => {
   });
 
   it('redirects without refresh, logout, or error logging when no session exists', async () => {
-    const fakeLocation = { pathname: '/workspace', href: '' };
+    const fakeLocation = { pathname: '/dashboard', href: '' };
     const originalLocation = window.location;
     Object.defineProperty(window, 'location', {
       value: fakeLocation,
@@ -250,7 +250,7 @@ describe('handleUnauthorized (401 retry-on-refresh) via apiFetch', () => {
     mockFetch.mockResolvedValueOnce(new Response('unauthenticated', { status: 401 }));
     const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
-    await expect(apiFetch('/v1/secured')).rejects.toThrow('Session expired');
+    await expect(apiFetch('/api/v1/secured')).rejects.toThrow('Session expired');
 
     expect(mockFetch).toHaveBeenCalledTimes(1);
     expect(errorSpy).not.toHaveBeenCalled();
@@ -270,7 +270,7 @@ describe('handleUnauthorized (401 retry-on-refresh) via apiFetch', () => {
     mockFetch.mockResolvedValueOnce(new Response(JSON.stringify({ access_token: 'restored-at' }), { status: 200 }));
     mockFetch.mockResolvedValueOnce(new Response(JSON.stringify({ ok: true }), { status: 200 }));
 
-    await expect(apiFetch('/v1/secured')).resolves.toMatchObject({ status: 200 });
+    await expect(apiFetch('/api/v1/secured')).resolves.toMatchObject({ status: 200 });
     expect(mockFetch).toHaveBeenCalledTimes(3);
     expect(getAccessToken()).toBe('restored-at');
   });
@@ -294,14 +294,14 @@ describe('handleUnauthorized (401 retry-on-refresh) via apiFetch', () => {
     );
 
     setAccessToken('expired-token');
-    const promise = apiFetch('/v1/secured');
+    const promise = apiFetch('/api/v1/secured');
     await vi.runAllTimersAsync();
     const response = await promise;
 
     expect(mockFetch).toHaveBeenCalledTimes(3);
     // refresh endpoint uses the HttpOnly cookie without a JSON payload
     const refreshCall = mockFetch.mock.calls[1];
-    expect(refreshCall[0]).toContain('/v1/auth/refresh');
+    expect(refreshCall[0]).toContain('/api/v1/auth/refresh');
     const refreshOpts = refreshCall[1] as RequestInit;
     expect(refreshOpts.credentials).toBe('include');
     expect(refreshOpts.body).toBeUndefined();
@@ -319,7 +319,7 @@ describe('handleUnauthorized (401 retry-on-refresh) via apiFetch', () => {
     localStorage.setItem('leeattend.authenticated', '1');
     // happy-dom window.location is read-only; gently swap it for an assignable
     // stand-in so we can assert the redirect without triggering navigation.
-    const fakeLocation = { pathname: '/workspace', href: '' };
+    const fakeLocation = { pathname: '/dashboard', href: '' };
     const originalLocation = window.location;
     Object.defineProperty(window, 'location', {
       value: fakeLocation,
@@ -344,7 +344,7 @@ describe('handleUnauthorized (401 retry-on-refresh) via apiFetch', () => {
       }),
     );
 
-    const promise = apiFetch('/v1/secured');
+    const promise = apiFetch('/api/v1/secured');
     await vi.runAllTimersAsync();
 
     await expect(promise).rejects.toThrow('[500] DATABASE_ERROR: db down');

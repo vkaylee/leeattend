@@ -15,7 +15,7 @@ export { employeeKeys } from "@/lib/query-keys";
 /**
  * Shared hook to fetch the full employee list for the organization.
  *
- * Replaces the duplicated `fetchEmployees(wsId!, 1, 3000)` pattern
+ * Replaces duplicated full-roster fetch options across pages.
  * found across multiple pages. Centralizes query key, enabled guard,
  * and the fetch limit into one reusable hook.
  *

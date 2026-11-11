@@ -1974,7 +1974,6 @@
       "documents": "Access payslips, contracts, and HR documents",
       "infra_monitor": "Monitor edge agents and system health",
       "db_clusters": "Manage database cluster configurations",
-      "tenants": "Oversee organization instances",
       "charts": "Attendance trends, overtime, turnover and workforce analytics"
     },
     "dual_run": {

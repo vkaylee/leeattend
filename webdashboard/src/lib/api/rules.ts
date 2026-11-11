@@ -41,17 +41,17 @@ export interface UpdateAssignmentRuleRequest {
 }
 
 export async function fetchAssignmentRules(): Promise<AssignmentRule[]> {
-  const { data: resData } = await client.GET<AssignmentRule[]>("/v1/assignment-rules");
+  const { data: resData } = await client.GET<AssignmentRule[]>("/api/v1/assignment-rules");
   return resData;
 }
 
 export async function createAssignmentRule(data: CreateAssignmentRuleRequest): Promise<AssignmentRule> {
-  const { data: resData } = await client.POST<AssignmentRule>("/v1/assignment-rules", { body: data });
+  const { data: resData } = await client.POST<AssignmentRule>("/api/v1/assignment-rules", { body: data });
   return resData;
 }
 
 export async function updateAssignmentRule(ruleId: string, data: UpdateAssignmentRuleRequest): Promise<AssignmentRule> {
-  const { data: resData } = await client.PATCH<AssignmentRule>("/v1/assignment-rules/{rule_id}", {
+  const { data: resData } = await client.PATCH<AssignmentRule>("/api/v1/assignment-rules/{rule_id}", {
     params: { path: { rule_id: ruleId } },
     body: data,
   });
@@ -59,7 +59,7 @@ export async function updateAssignmentRule(ruleId: string, data: UpdateAssignmen
 }
 
 export async function deleteAssignmentRule(ruleId: string): Promise<void> {
-  await client.DELETE("/v1/assignment-rules/{rule_id}", {
+  await client.DELETE("/api/v1/assignment-rules/{rule_id}", {
     params: { path: { rule_id: ruleId } },
   });
 }

@@ -12,7 +12,7 @@ export async function approveOt(
   employeeId: string,
   data: { date: string; approved_minutes: number; manager_note?: string; status: "approved" | "rejected" }
 ): Promise<void> {
-  await client.POST("/v1/attendance/approve-ot/{employee_id}", {
+  await client.POST("/api/v1/attendance/approve-ot/{employee_id}", {
     params: { path: { employee_id: employeeId } },
     body: data,
   });
@@ -24,7 +24,7 @@ export async function fetchAttendanceSummaries(
   employeeId?: string
 ): Promise<AttendanceDailySummary[]> {
   const { data: resData } = await client.GET<PaginatedResponse<AttendanceDailySummary> | AttendanceDailySummary[]>(
-    "/v1/attendance/summaries",
+    "/api/v1/attendance/summaries",
     {
       params: {
         query: { start_date: start, end_date: end, employee_id: employeeId },
@@ -47,7 +47,7 @@ export async function fetchAttendanceSummariesPaginated(
     otStatus?: string;
   }
 ): Promise<PaginatedResponse<AttendanceDailySummary>> {
-  const { data: resData } = await client.GET<PaginatedResponse<AttendanceDailySummary>>("/v1/attendance/summaries", {
+  const { data: resData } = await client.GET<PaginatedResponse<AttendanceDailySummary>>("/api/v1/attendance/summaries", {
     params: {
       query: {
         start_date: start,
@@ -72,7 +72,7 @@ export async function enterPaperOt(
   }
 ): Promise<AttendanceDailySummary> {
   const { data: resData } = await client.POST<AttendanceDailySummary>(
-    "/v1/attendance/paper-forms/overtime/{employee_id}",
+    "/api/v1/attendance/paper-forms/overtime/{employee_id}",
     {
       params: { path: { employee_id: employeeId } },
       body: data,
@@ -96,7 +96,7 @@ export async function bulkUploadPaperOt(
   const formData = new FormData();
   formData.append("file", file);
 
-  const res = await apiFetch("/v1/attendance/paper-forms/overtime/bulk", {
+  const res = await apiFetch("/api/v1/attendance/paper-forms/overtime/bulk", {
     method: "POST",
     body: formData,
   });
@@ -136,7 +136,7 @@ export async function fetchStagingLogs(
   page = 1,
   limit = 50
 ): Promise<StagingLogsResponse> {
-  const { data: resData } = await client.GET<StagingLogsResponse>("/v1/attendance/staging-logs", {
+  const { data: resData } = await client.GET<StagingLogsResponse>("/api/v1/attendance/staging-logs", {
     params: {
       query: { page, limit },
     },
@@ -148,14 +148,14 @@ export async function resolveStagingLog(
   logId: string,
   employeeId: string
 ): Promise<void> {
-  await client.POST("/v1/attendance/staging-logs/{id}/resolve", {
+  await client.POST("/api/v1/attendance/staging-logs/{id}/resolve", {
     params: { path: { id: logId } },
     body: { employee_id: employeeId },
   });
 }
 
 export async function dismissStagingLog(logId: string): Promise<void> {
-  await client.DELETE("/v1/attendance/staging-logs/{id}", {
+  await client.DELETE("/api/v1/attendance/staging-logs/{id}", {
     params: { path: { id: logId } },
   });
 }

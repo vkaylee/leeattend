@@ -12,12 +12,12 @@ import type {
 import { client } from "./client";
 
 export async function fetchWorkingPatterns(): Promise<WorkingPattern[]> {
-  const { data } = await client.GET<WorkingPattern[]>("/v1/working-patterns");
+  const { data } = await client.GET<WorkingPattern[]>("/api/v1/working-patterns");
   return data;
 }
 
 export async function createWorkingPattern(data: CreateWorkingPatternRequest): Promise<WorkingPattern> {
-  const { data: result } = await client.POST<WorkingPattern>("/v1/working-patterns", {
+  const { data: result } = await client.POST<WorkingPattern>("/api/v1/working-patterns", {
     body: data,
   });
   return result;
@@ -27,7 +27,7 @@ export async function updateWorkingPattern(
   patternId: string,
   data: UpdateWorkingPatternRequest
 ): Promise<WorkingPattern> {
-  const { data: result } = await client.PUT<WorkingPattern>("/v1/working-patterns/{pattern_id}", {
+  const { data: result } = await client.PUT<WorkingPattern>("/api/v1/working-patterns/{pattern_id}", {
     params: { path: { pattern_id: patternId } },
     body: data,
   });
@@ -35,7 +35,7 @@ export async function updateWorkingPattern(
 }
 
 export async function fetchPatternDetails(patternId: string): Promise<WorkingPatternDetail[]> {
-  const { data } = await client.GET<WorkingPatternDetail[]>("/v1/working-patterns/{pattern_id}", {
+  const { data } = await client.GET<WorkingPatternDetail[]>("/api/v1/working-patterns/{pattern_id}", {
     params: {
       path: { pattern_id: patternId },
     },
@@ -47,7 +47,7 @@ export async function assignPattern(
   employmentId: string, 
   data: AssignPatternRequest
 ): Promise<EmployeeWorkingPattern> {
-  const { data: result } = await client.POST<EmployeeWorkingPattern>("/v1/employments/{employment_id}/working-patterns", {
+  const { data: result } = await client.POST<EmployeeWorkingPattern>("/api/v1/employments/{employment_id}/working-patterns", {
     params: {
       path: { employment_id: employmentId },
     },
@@ -59,7 +59,7 @@ export async function assignPattern(
 export async function bulkAssignPattern(
   data: BulkAssignPatternRequest & { allow_warnings?: boolean; override_reason?: string }
 ): Promise<BulkAssignResponse> {
-  const { data: result } = await client.POST<BulkAssignResponse>("/v1/working-patterns/bulk-assign", {
+  const { data: result } = await client.POST<BulkAssignResponse>("/api/v1/working-patterns/bulk-assign", {
     body: data,
   });
   return result;
@@ -68,7 +68,7 @@ export async function bulkAssignPattern(
 export async function fetchEmployeePatternHistory(
   employmentId: string
 ): Promise<EmployeeWorkingPattern[]> {
-  const { data } = await client.GET<EmployeeWorkingPattern[]>("/v1/employments/{employment_id}/working-patterns", {
+  const { data } = await client.GET<EmployeeWorkingPattern[]>("/api/v1/employments/{employment_id}/working-patterns", {
     params: {
       path: { employment_id: employmentId },
     },
@@ -77,7 +77,7 @@ export async function fetchEmployeePatternHistory(
 }
 
 export async function deleteWorkingPattern(patternId: string): Promise<void> {
-  await client.DELETE("/v1/working-patterns/{pattern_id}", {
+  await client.DELETE("/api/v1/working-patterns/{pattern_id}", {
     params: {
       path: { pattern_id: patternId },
     },

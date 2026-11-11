@@ -407,11 +407,6 @@ func (h OrganizationHandler) writeRepositoryError(w http.ResponseWriter, r *http
 	apperror.WriteError(w, r, apperror.Internal(err))
 }
 
-func organizationIDFromContext(r *http.Request) (uuid.UUID, bool) {
-	id, ok := httpinfra.OrganizationIDFromContext(r.Context())
-	return id, ok && id != uuid.Nil
-}
-
 func pathUUID(r *http.Request, key string) (uuid.UUID, bool) {
 	id, err := uuid.Parse(r.PathValue(key))
 	return id, err == nil

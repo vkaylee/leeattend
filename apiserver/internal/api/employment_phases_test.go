@@ -113,7 +113,6 @@ func (mockPhaseAuthorizer) GetUsersWithPermission(context.Context, string) ([]uu
 }
 
 func TestEmploymentPhaseDefinitionsAndPermissions(t *testing.T) {
-	organizationID := uuid.New()
 	userID := uuid.New()
 	repo := &mockEmploymentPhaseRepo{}
 	handler := EmploymentPhaseHandler{
@@ -129,7 +128,6 @@ func TestEmploymentPhaseDefinitionsAndPermissions(t *testing.T) {
 	}
 	raw, _ := json.Marshal(body)
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/employment-phases", bytes.NewReader(raw))
-	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), organizationID))
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), userID))
 	rec := httptest.NewRecorder()
 
@@ -139,7 +137,6 @@ func TestEmploymentPhaseDefinitionsAndPermissions(t *testing.T) {
 	}
 
 	listReq := httptest.NewRequest(http.MethodGet, "/api/v1/employment-phases", nil)
-	listReq = listReq.WithContext(httpinfra.WithOrganizationIDForTest(listReq.Context(), organizationID))
 	listReq = listReq.WithContext(httpinfra.WithUserIDForTest(listReq.Context(), userID))
 	listRec := httptest.NewRecorder()
 	handler.ListDefinitions(listRec, listReq)
@@ -149,7 +146,6 @@ func TestEmploymentPhaseDefinitionsAndPermissions(t *testing.T) {
 }
 
 func TestEmploymentPhaseAssignOverlapTransition(t *testing.T) {
-	organizationID := uuid.New()
 	empID := uuid.New()
 	userID := uuid.New()
 	defID := uuid.New()
@@ -167,7 +163,6 @@ func TestEmploymentPhaseAssignOverlapTransition(t *testing.T) {
 	}
 	raw1, _ := json.Marshal(assign1)
 	req1 := httptest.NewRequest(http.MethodPost, "/api/v1/employments/"+empID.String()+"/phases", bytes.NewReader(raw1))
-	req1 = req1.WithContext(httpinfra.WithOrganizationIDForTest(req1.Context(), organizationID))
 	req1.SetPathValue("employment_id", empID.String())
 	req1 = req1.WithContext(httpinfra.WithUserIDForTest(req1.Context(), userID))
 	rec1 := httptest.NewRecorder()
@@ -184,7 +179,6 @@ func TestEmploymentPhaseAssignOverlapTransition(t *testing.T) {
 	}
 	raw2, _ := json.Marshal(assign2)
 	req2 := httptest.NewRequest(http.MethodPost, "/api/v1/employments/"+empID.String()+"/phases", bytes.NewReader(raw2))
-	req2 = req2.WithContext(httpinfra.WithOrganizationIDForTest(req2.Context(), organizationID))
 	req2.SetPathValue("employment_id", empID.String())
 	req2 = req2.WithContext(httpinfra.WithUserIDForTest(req2.Context(), userID))
 	rec2 := httptest.NewRecorder()

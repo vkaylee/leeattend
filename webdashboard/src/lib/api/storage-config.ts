@@ -6,14 +6,14 @@ export type CreateStorageConfigRequest = components["schemas"]["CreateStorageCon
 export type StorageConfigResponse = components["schemas"]["StorageConfigResponse"];
 
 export async function fetchStorageConfig(): Promise<StorageConfigResponse> {
-  const { data } = await client.GET<StorageConfigResponse>("/v1/settings/storage");
+  const { data } = await client.GET<StorageConfigResponse>("/api/v1/settings/storage");
   return data;
 }
 
 export async function upsertStorageConfig(
   payload: CreateStorageConfigRequest,
 ): Promise<StorageConfigResponse> {
-  const { data } = await client.PUT<StorageConfigResponse>("/v1/settings/storage", {
+  const { data } = await client.PUT<StorageConfigResponse>("/api/v1/settings/storage", {
     body: payload,
   });
   return data;
@@ -22,13 +22,13 @@ export async function upsertStorageConfig(
 export async function testStorageConfig(
   payload: CreateStorageConfigRequest,
 ): Promise<boolean> {
-  const { data } = await client.POST<boolean>("/v1/settings/storage/test", {
+  const { data } = await client.POST<boolean>("/api/v1/settings/storage/test", {
     body: payload,
   });
   return data;
 }
 
 export async function deleteStorageConfig(): Promise<null> {
-  await client.DELETE("/v1/settings/storage");
+  await client.DELETE("/api/v1/settings/storage");
   return null;
 }

@@ -45,7 +45,7 @@ export type UpdateConditionTypeRequest = Omit<
 export async function fetchConditionTypes(
   activeOnly?: boolean,
 ): Promise<ConditionTypeDefinition[]> {
-  const { data } = await client.GET<ConditionTypeDefinition[]>("/v1/condition-types", {
+  const { data } = await client.GET<ConditionTypeDefinition[]>("/api/v1/condition-types", {
     params: {
       query: activeOnly !== undefined ? { active_only: activeOnly } : undefined,
     },
@@ -56,7 +56,7 @@ export async function fetchConditionTypes(
 export async function fetchConditionType(
   id: string,
 ): Promise<ConditionTypeDefinition> {
-  const { data } = await client.GET<ConditionTypeDefinition>("/v1/condition-types/{id}", {
+  const { data } = await client.GET<ConditionTypeDefinition>("/api/v1/condition-types/{id}", {
     params: {
       path: { id },
     },
@@ -67,7 +67,7 @@ export async function fetchConditionType(
 export async function createConditionType(
   req: CreateConditionTypeRequest,
 ): Promise<ConditionTypeDefinition> {
-  const { data } = await client.POST<ConditionTypeDefinition>("/v1/condition-types", {
+  const { data } = await client.POST<ConditionTypeDefinition>("/api/v1/condition-types", {
     body: req,
   });
   return data as ConditionTypeDefinition;
@@ -77,7 +77,7 @@ export async function updateConditionType(
   id: string,
   req: UpdateConditionTypeRequest,
 ): Promise<ConditionTypeDefinition> {
-  const { data } = await client.PATCH<ConditionTypeDefinition>("/v1/condition-types/{id}", {
+  const { data } = await client.PATCH<ConditionTypeDefinition>("/api/v1/condition-types/{id}", {
     params: {
       path: { id },
     },
@@ -87,7 +87,7 @@ export async function updateConditionType(
 }
 
 export async function deleteConditionType(id: string): Promise<void> {
-  await client.DELETE("/v1/condition-types/{id}", {
+  await client.DELETE("/api/v1/condition-types/{id}", {
     params: {
       path: { id },
     },

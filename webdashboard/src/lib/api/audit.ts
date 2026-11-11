@@ -5,7 +5,7 @@ import { fetch } from "./client";
 export const fetchAuditLogs = async (
   params: { page: number; limit: number; action?: string; startDate?: string; endDate?: string }
 ): Promise<PaginatedResponse<AuditLog>> => {
-  const { data: resData } = await fetch<PaginatedResponse<AuditLog>>("GET", "/v1/audit-logs", {
+  const { data: resData } = await fetch<PaginatedResponse<AuditLog>>("GET", "/api/v1/audit-logs", {
     params: {
       query: {
         page: params.page,

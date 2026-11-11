@@ -54,7 +54,7 @@ interface TestAssignment {
 }
 
 const BASE_CONFIG: BehalfAssignmentConfig = {
-  basePath: "/v1/test/behalf-assignments",
+  basePath: "/api/v1/test/behalf-assignments",
 };
 
 function makeApi<T = TestAssignment>(
@@ -81,7 +81,7 @@ describe("createBehalfAssignmentApi", () => {
       await api.list();
 
       const [url, opts] = vi.mocked(apiFetch).mock.calls[0];
-      expect(url).toBe("/v1/test/behalf-assignments");
+      expect(url).toBe("/api/v1/test/behalf-assignments");
       expect(opts).toBeUndefined(); // GET uses default options
     });
 
@@ -159,7 +159,7 @@ describe("createBehalfAssignmentApi", () => {
       });
 
       const [url, opts] = vi.mocked(apiFetch).mock.calls[0];
-      expect(url).toBe("/v1/test/behalf-assignments");
+      expect(url).toBe("/api/v1/test/behalf-assignments");
       expect((opts as RequestInit).method).toBe("POST");
       expect(
         JSON.parse((opts as RequestInit).body as string),
@@ -217,7 +217,7 @@ describe("createBehalfAssignmentApi", () => {
 
       const [url, opts] = vi.mocked(apiFetch).mock.calls[0];
       expect(url).toBe(
-        "/v1/test/behalf-assignments/ba-99",
+        "/api/v1/test/behalf-assignments/ba-99",
       );
       expect((opts as RequestInit).method).toBe("DELETE");
     });
@@ -246,10 +246,10 @@ describe("createBehalfAssignmentApi", () => {
   describe("multiple instances", () => {
     it("routes to different base paths independently", async () => {
       const otApi = makeApi({
-        basePath: "/v1/attendance/claim-ot/behalf-assignments",
+        basePath: "/api/v1/attendance/claim-ot/behalf-assignments",
       });
       const adjApi = makeApi({
-        basePath: "/v1/attendance/adjustments/behalf-assignments",
+        basePath: "/api/v1/attendance/adjustments/behalf-assignments",
       });
 
       vi.mocked(apiFetch)

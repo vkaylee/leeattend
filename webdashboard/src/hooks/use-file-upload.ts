@@ -48,7 +48,7 @@ export function useFileUpload({
         // position). openapi-fetch's defaultBodySerializer handles FormData
         // natively, so no custom serializer is needed. See coding-standard §10.1.
         try {
-          const { data } = await client.POST<FileRecord>('/v1/files/upload', {
+          const { data } = await client.POST<FileRecord>('/api/v1/files/upload', {
             body: formData as never,
           });
           setProgress(100);
@@ -63,7 +63,7 @@ export function useFileUpload({
         // `{ file, upload_url }` payload below (backend-schema drift).
         let presignedData: PresignedUploadResponse;
         try {
-          const { data } = await fetch<PresignedUploadResponse>("POST", "/v1/files/presigned", {
+          const { data } = await fetch<PresignedUploadResponse>("POST", "/api/v1/files/presigned", {
             body: {
               category: category as components["schemas"]["FileCategory"],
               content_hash: contentHash,

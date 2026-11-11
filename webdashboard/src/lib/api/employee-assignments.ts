@@ -23,7 +23,7 @@ export type {
 export const fetchEmployeeAssignments = async (
   employeeId: string,
 ): Promise<EmployeeAssignment[]> => {
-  const { data } = await client.GET<EmployeeAssignment[]>("/v1/employees/{employee_id}/assignments", {
+  const { data } = await client.GET<EmployeeAssignment[]>("/api/v1/employees/{employee_id}/assignments", {
     params: {
       path: { employee_id: employeeId },
     },
@@ -35,7 +35,7 @@ export const createEmployeeAssignment = async (
   employeeId: string,
   data: CreateEmployeeAssignmentRequest,
 ): Promise<EmployeeAssignment> => {
-  const { data: result } = await client.POST<EmployeeAssignment>("/v1/employees/{employee_id}/assignments", {
+  const { data: result } = await client.POST<EmployeeAssignment>("/api/v1/employees/{employee_id}/assignments", {
     params: {
       path: { employee_id: employeeId },
     },
@@ -49,7 +49,7 @@ export const updateEmployeeAssignment = async (
   assignmentId: string,
   data: UpdateEmployeeAssignmentRequest,
 ): Promise<EmployeeAssignment> => {
-  const { data: result } = await client.PATCH<EmployeeAssignment>("/v1/employees/{employee_id}/assignments/{assignment_id}", {
+  const { data: result } = await client.PATCH<EmployeeAssignment>("/api/v1/employees/{employee_id}/assignments/{assignment_id}", {
     params: {
       path: { employee_id: employeeId, assignment_id: assignmentId },
     },
@@ -62,7 +62,7 @@ export const deleteEmployeeAssignment = async (
   employeeId: string,
   assignmentId: string,
 ): Promise<void> => {
-  await client.DELETE("/v1/employees/{employee_id}/assignments/{assignment_id}", {
+  await client.DELETE("/api/v1/employees/{employee_id}/assignments/{assignment_id}", {
     params: {
       path: { employee_id: employeeId, assignment_id: assignmentId },
     },
@@ -70,6 +70,6 @@ export const deleteEmployeeAssignment = async (
 };
 
 export const fetchAssignments = async (): Promise<EmployeeAssignmentWithEmployee[]> => {
-  const { data } = await client.GET<EmployeeAssignmentWithEmployee[]>("/v1/assignments");
+  const { data } = await client.GET<EmployeeAssignmentWithEmployee[]>("/api/v1/assignments");
   return data;
 };

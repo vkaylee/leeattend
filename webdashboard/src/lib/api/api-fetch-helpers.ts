@@ -64,7 +64,7 @@ export async function forceRefreshToken(): Promise<boolean> {
       // The refresh token is HttpOnly, so send a cookie-only request.
       // Omitting both body and Content-Type lets the backend use its cookie
       // fallback without attempting to deserialize a fake JSON payload.
-      const refreshResponse = await fetch(`${API_BASE_URL}/v1/auth/refresh`, {
+      const refreshResponse = await fetch(`${API_BASE_URL}/api/v1/auth/refresh`, {
         method: "POST",
         credentials: "include",
       });

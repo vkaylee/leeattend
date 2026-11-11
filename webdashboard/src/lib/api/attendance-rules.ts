@@ -30,12 +30,12 @@ export interface UpdateAttendanceRulesRequest {
 }
 
 export async function fetchDefaultAttendanceRules(): Promise<AttendanceRules> {
-  const { data: resData } = await client.GET<AttendanceRules>("/v1/attendance/rules");
+  const { data: resData } = await client.GET<AttendanceRules>("/api/v1/attendance/rules");
   return resData;
 }
 
 export async function fetchAttendancePolicyVersions(): Promise<AttendancePolicyVersion[]> {
-  const { data: resData } = await client.GET<AttendancePolicyVersion[]>("/v1/attendance/rules/versions");
+  const { data: resData } = await client.GET<AttendancePolicyVersion[]>("/api/v1/attendance/rules/versions");
   return resData;
 }
 
@@ -59,21 +59,21 @@ export interface UpsertPolicyAssignmentRequest {
 }
 
 export async function fetchPolicyAssignments(): Promise<PolicyAssignmentResponse[]> {
-  const { data: resData } = await client.GET<PolicyAssignmentResponse[]>("/v1/attendance/policies/assignments");
+  const { data: resData } = await client.GET<PolicyAssignmentResponse[]>("/api/v1/attendance/policies/assignments");
   return resData;
 }
 
 export async function upsertPolicyAssignment(
   data: UpsertPolicyAssignmentRequest
 ): Promise<PolicyAssignmentResponse> {
-  const { data: resData } = await client.POST<PolicyAssignmentResponse>("/v1/attendance/policies/assignments", {
+  const { data: resData } = await client.POST<PolicyAssignmentResponse>("/api/v1/attendance/policies/assignments", {
     body: data,
   });
   return resData;
 }
 
 export async function deletePolicyAssignment(assignmentId: string): Promise<void> {
-  await client.DELETE("/v1/attendance/policies/assignments/{assignment_id}", {
+  await client.DELETE("/api/v1/attendance/policies/assignments/{assignment_id}", {
     params: { path: { assignment_id: assignmentId } },
   });
 }
@@ -81,7 +81,7 @@ export async function deletePolicyAssignment(assignmentId: string): Promise<void
 export async function updateDefaultAttendanceRules(
   data: UpdateAttendanceRulesRequest
 ): Promise<AttendancePolicyVersion> {
-  const { data: resData } = await client.PATCH<AttendancePolicyVersion>("/v1/attendance/rules", {
+  const { data: resData } = await client.PATCH<AttendancePolicyVersion>("/api/v1/attendance/rules", {
     body: data,
   });
   return resData;

@@ -46,7 +46,7 @@ describe("forgotPassword", () => {
     vi.restoreAllMocks();
   });
 
-  it("calls POST /v1/auth/forgot-password with email in body", async () => {
+  it("calls POST /api/v1/auth/forgot-password with email in body", async () => {
     const mockApiFetch = apiFetch as Mock;
     mockApiFetch.mockResolvedValue(
       new Response(JSON.stringify({ message: "ok" }), {
@@ -59,7 +59,7 @@ describe("forgotPassword", () => {
 
     expect(mockApiFetch).toHaveBeenCalledTimes(1);
     const [url, options] = mockApiFetch.mock.calls[0];
-    expect(url).toContain("/v1/auth/forgot-password");
+    expect(url).toContain("/api/v1/auth/forgot-password");
     expect(options.method).toBe("POST");
     expect(options.body).toBe(JSON.stringify({ email: "user@example.com" }));
     expect(options.timeout).toBe(10000);
@@ -118,7 +118,7 @@ describe("resetPassword", () => {
     vi.restoreAllMocks();
   });
 
-  it("calls POST /v1/auth/reset-password with token and new_password", async () => {
+  it("calls POST /api/v1/auth/reset-password with token and new_password", async () => {
     const mockApiFetch = apiFetch as Mock;
     mockApiFetch.mockResolvedValue(
       new Response(JSON.stringify({ message: "Password reset successfully" }), {
@@ -131,7 +131,7 @@ describe("resetPassword", () => {
 
     expect(mockApiFetch).toHaveBeenCalledTimes(1);
     const [url, options] = mockApiFetch.mock.calls[0];
-    expect(url).toContain("/v1/auth/reset-password");
+    expect(url).toContain("/api/v1/auth/reset-password");
     expect(options.method).toBe("POST");
     expect(options.body).toBe(
       JSON.stringify({ token: "reset-token-123", new_password: "newSecurePass1" }),
@@ -199,7 +199,7 @@ describe("login", () => {
 
     const result = await login("alice@example.com", "secret");
 
-    expect(client.POST).toHaveBeenCalledWith("/auth/login", {
+    expect(client.POST).toHaveBeenCalledWith("/api/v1/auth/login", {
       body: { email: "alice@example.com", password: "secret" },
     });
     expect(result).toEqual(mock.data);
@@ -216,7 +216,7 @@ describe("logout", () => {
   it("POSTs logout and clears auth session", async () => {
     (client.POST as Mock).mockResolvedValueOnce({});
     await logout();
-    expect(client.POST).toHaveBeenCalledWith("/auth/logout", {
+    expect(client.POST).toHaveBeenCalledWith("/api/v1/auth/logout", {
       body: { refresh_token: "" },
     });
   });
@@ -230,7 +230,7 @@ describe("register", () => {
       data: { access_token: "at", user: { id: "u-new" } },
     });
     const result = await register(payload as never);
-    expect(client.POST).toHaveBeenCalledWith("/auth/register", { body: payload });
+    expect(client.POST).toHaveBeenCalledWith("/api/v1/auth/register", { body: payload });
     expect(result).toHaveProperty("access_token", "at");
   });
   it("returns undefined when server returns no data (guard removed — SafeClient guarantees presence)", async () => {
@@ -247,7 +247,7 @@ describe("changePassword", () => {
       current_password: "old",
       new_password: "new",
     } as never);
-    expect(client.POST).toHaveBeenCalledWith("/auth/change-password", {
+    expect(client.POST).toHaveBeenCalledWith("/api/v1/auth/change-password", {
       body: { current_password: "old", new_password: "new" },
     });
     expect(msg).toBe("Password changed successfully");
@@ -265,7 +265,7 @@ describe("fetchMe / updateMe", () => {
   it("fetchMe GETs /me and returns the User", async () => {
     (client.GET as Mock).mockResolvedValueOnce({ data: { id: "u-1" } });
     const user = await fetchMe();
-    expect(client.GET).toHaveBeenCalledWith("/me");
+    expect(client.GET).toHaveBeenCalledWith("/api/v1/me");
     expect(user).toEqual({ id: "u-1" });
   });
   it("returns undefined when server returns no data (guard removed)", async () => {
@@ -277,7 +277,7 @@ describe("fetchMe / updateMe", () => {
       data: { id: "u-1", full_name: "X", preferred_language: "en" },
     });
     const updated = await updateMe({ full_name: "X", preferred_language: "en" });
-    expect(client.PATCH).toHaveBeenCalledWith("/me", {
+    expect(client.PATCH).toHaveBeenCalledWith("/api/v1/me", {
       body: { full_name: "X", preferred_language: "en" },
     });
     expect(updated).toEqual({ id: "u-1", full_name: "X", preferred_language: "en" });
@@ -293,19 +293,19 @@ describe("fetchUsers", () => {
   it("GETs /users", async () => {
     (client.GET as Mock).mockResolvedValueOnce({ data: [{ id: "u-1" }, { id: "u-2" }] });
     const users = await fetchUsers();
-    expect(client.GET).toHaveBeenCalledWith("/users");
+    expect(client.GET).toHaveBeenCalledWith("/api/v1/users");
     expect(users).toHaveLength(2);
   });
 });
 describe("fetchMyPermissions", () => {
   beforeEach(() => vi.clearAllMocks());
-  it("GETs /me/permissions via fetch<T>()", async () => {
+  it("GETs /api/v1/me/permissions via fetch<T>()", async () => {
     const { fetch: fetchMock } = await import("../client");
     (fetchMock as Mock).mockResolvedValueOnce({
       data: { permissions: ["p"], roles: ["r"], managed_department_ids: null },
     });
     const p = await fetchMyPermissions();
-    expect(fetchMock).toHaveBeenCalledWith("GET", "/me/permissions");
+    expect(fetchMock).toHaveBeenCalledWith("GET", "/api/v1/me/permissions");
     expect(p.permissions).toEqual(["p"]);
   });
 });

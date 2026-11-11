@@ -16,12 +16,12 @@ interface PaginatedResponse<T> {
 }
 
 export async function fetchShifts(): Promise<Shift[]> {
-  const { data } = await client.GET<PaginatedResponse<Shift>>("/v1/shifts");
+  const { data } = await client.GET<PaginatedResponse<Shift>>("/api/v1/shifts");
   return data.data;
 }
 
 export async function createShift(data: CreateShiftRequest): Promise<Shift> {
-  const { data: result } = await client.POST<Shift>("/v1/shifts", {
+  const { data: result } = await client.POST<Shift>("/api/v1/shifts", {
     body: data,
   });
   return result;
@@ -31,7 +31,7 @@ export async function updateShift(
   shiftId: string,
   data: UpdateShiftRequest
 ): Promise<Shift> {
-  const { data: result } = await client.PUT<Shift>("/v1/shifts/{shift_id}", {
+  const { data: result } = await client.PUT<Shift>("/api/v1/shifts/{shift_id}", {
     params: {
       path: { shift_id: shiftId },
     },
@@ -43,7 +43,7 @@ export async function updateShift(
 export async function assignShift(
   data: { employment_id: string; shift_id: string; start_date: string; end_date?: string | null; allow_warnings?: boolean; override_reason?: string }
 ): Promise<void> {
-  await client.POST("/v1/shifts/assign", {
+  await client.POST("/api/v1/shifts/assign", {
     body: data,
   });
 }
@@ -53,7 +53,7 @@ export const fetchSchedules = async (
   endDate: string,
   employmentIds?: string[]
 ): Promise<EmployeeSchedule[]> => {
-  const { data } = await client.GET<PaginatedResponse<EmployeeSchedule>>("/v1/schedules", {
+  const { data } = await client.GET<PaginatedResponse<EmployeeSchedule>>("/api/v1/schedules", {
     params: {
       query: {
         start_date: startDate,
@@ -67,7 +67,7 @@ export const fetchSchedules = async (
 };
 
 export const fetchAssignmentHistory = async (): Promise<AssignmentHistory[]> => {
-  const { data } = await client.GET<AssignmentHistory[]>("/v1/assignment-history");
+  const { data } = await client.GET<AssignmentHistory[]>("/api/v1/assignment-history");
   return data;
 };
 
@@ -76,7 +76,7 @@ export const fetchEmployeeRosters = async (
   startDate?: string,
   endDate?: string
 ): Promise<ShiftRoster[]> => {
-  const { data } = await client.GET<PaginatedResponse<ShiftRoster>>("/v1/employees/{id}/rosters", {
+  const { data } = await client.GET<PaginatedResponse<ShiftRoster>>("/api/v1/employees/{id}/rosters", {
     params: {
       path: { id: employeeId },
       query: {
@@ -96,7 +96,7 @@ export async function upsertRoster(
   // Only include override fields when explicitly set so they don't pollute normal requests.
   if (data.allow_warnings !== undefined) body.allow_warnings = data.allow_warnings;
   if (data.override_reason !== undefined) body.override_reason = data.override_reason;
-  const { data: result } = await client.POST<ShiftRoster>("/v1/employees/{id}/rosters", {
+  const { data: result } = await client.POST<ShiftRoster>("/api/v1/employees/{id}/rosters", {
     params: {
       path: { id: employeeId },
     },
@@ -118,7 +118,7 @@ export async function bulkUpsertRoster(
   if (opts?.override_reason !== undefined) body.override_reason = opts.override_reason;
 
   const response = await apiFetch(
-    `/v1/employees/${encodeURIComponent(employeeId)}/rosters/bulk`,
+    `/api/v1/employees/${encodeURIComponent(employeeId)}/rosters/bulk`,
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -150,7 +150,7 @@ export async function bulkUpsertRoster(
 }
 
 export async function deleteRoster(employeeId: string, date: string): Promise<void> {
-  await client.DELETE("/v1/employees/{id}/rosters/{date}", {
+  await client.DELETE("/api/v1/employees/{id}/rosters/{date}", {
     params: {
       path: { id: employeeId, date },
     },
@@ -161,7 +161,7 @@ export async function deleteRoster(employeeId: string, date: string): Promise<vo
 export async function getShiftVersions(
   shiftId: string,
 ): Promise<ShiftVersionHistoryItem[]> {
-  const { data } = await client.GET<ShiftVersionHistoryItem[]>("/v1/shifts/{shift_id}/versions", {
+  const { data } = await client.GET<ShiftVersionHistoryItem[]>("/api/v1/shifts/{shift_id}/versions", {
     params: {
       path: { shift_id: shiftId },
     },

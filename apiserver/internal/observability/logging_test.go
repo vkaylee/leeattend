@@ -49,9 +49,6 @@ func TestJSONHandler_BasicEnvelope(t *testing.T) {
 	if _, ok := entry["request_id"]; ok {
 		t.Errorf("unexpected request_id when unset in context")
 	}
-	if _, ok := entry["organization_id"]; ok {
-		t.Errorf("unexpected organization_id when unset in context")
-	}
 	if _, ok := entry["actor_id"]; ok {
 		t.Errorf("unexpected actor_id when unset in context")
 	}
@@ -69,12 +66,10 @@ func TestJSONHandler_ContextCorrelationFields(t *testing.T) {
 
 	ctx := context.Background()
 	reqID := "01946850-891a-7b3b-9a4f-9588fb7cfa02"
-	organizationID := "01946850-891a-7b3b-9a4f-9588fb7cfa03"
 	actorID := "01946850-891a-7b3b-9a4f-9588fb7cfa04"
 	spanID := "987654321"
 
 	ctx = WithRequestID(ctx, reqID)
-	ctx = WithOrganizationID(ctx, organizationID)
 	ctx = WithActorID(ctx, actorID)
 	ctx = WithSpanID(ctx, spanID)
 
@@ -84,9 +79,6 @@ func TestJSONHandler_ContextCorrelationFields(t *testing.T) {
 
 	if entry["request_id"] != reqID {
 		t.Errorf("expected request_id %q, got %v", reqID, entry["request_id"])
-	}
-	if entry["organization_id"] != organizationID {
-		t.Errorf("expected organization_id %q, got %v", organizationID, entry["organization_id"])
 	}
 	if entry["actor_id"] != actorID {
 		t.Errorf("expected actor_id %q, got %v", actorID, entry["actor_id"])

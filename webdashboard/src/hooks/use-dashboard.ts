@@ -152,7 +152,7 @@ function useDashboardQuery<T>(options: DashboardQueryOptions<T>) {
 export const useDashboardStats = () =>
   useDashboardQuery<OrganizationStats>({
     key: "organization-stats",
-    getPath: () => "/v1/dashboard/organization-stats",
+    getPath: () => "/api/v1/dashboard/organization-stats",
   });
 
 export function useAttendanceTrend(range: ChartRangeParams = {}) {
@@ -162,7 +162,7 @@ export function useAttendanceTrend(range: ChartRangeParams = {}) {
       const params = new URLSearchParams();
       setRangeParams(params, range);
       const qs = params.toString();
-      return `/v1/dashboard/attendance-trend${qs ? `?${qs}` : ""}`;
+      return `/api/v1/dashboard/attendance-trend${qs ? `?${qs}` : ""}`;
     },
     extraQueryKeyParams: [range.startDate, range.endDate, range.timezone],
   });
@@ -182,7 +182,7 @@ export function useDepartmentAttendance(options: {
       if (topN) params.set("top_n", String(topN));
       if (rangeParams) setRangeParams(params, rangeParams);
       const qs = params.toString();
-      return `/v1/dashboard/department-attendance${qs ? `?${qs}` : ""}`;
+      return `/api/v1/dashboard/department-attendance${qs ? `?${qs}` : ""}`;
     },
     extraQueryKeyParams: [range, topN, rangeParams?.startDate, rangeParams?.endDate, rangeParams?.timezone],
   });
@@ -203,7 +203,7 @@ export function useUnexcusedAbsences(
       if (groupBy) params.set("group_by", groupBy);
       if (timezone) params.set("timezone", timezone);
       const qs = params.toString();
-      return `/v1/dashboard/unexcused-absences${qs ? `?${qs}` : ""}`;
+      return `/api/v1/dashboard/unexcused-absences${qs ? `?${qs}` : ""}`;
     },
     extraQueryKeyParams: [startDate, endDate, groupBy, timezone],
   });
@@ -212,19 +212,19 @@ export function useUnexcusedAbsences(
 export const useOvertimeTrend = () =>
   useDashboardQuery<OvertimeTrendPoint[]>({
     key: "overtime-trend",
-    getPath: () => "/v1/dashboard/overtime-trend",
+    getPath: () => "/api/v1/dashboard/overtime-trend",
   });
 
 export const usePeakTimes = () =>
   useDashboardQuery<PeakTimeSlot[]>({
     key: "peak-times",
-    getPath: () => "/v1/dashboard/peak-times",
+    getPath: () => "/api/v1/dashboard/peak-times",
   });
 
 export const useLeaveTypesBreakdown = () =>
   useDashboardQuery<LeaveTypeBreakdown[]>({
     key: "leave-types-breakdown",
-    getPath: () => "/v1/dashboard/leave-types",
+    getPath: () => "/api/v1/dashboard/leave-types",
   });
 
 export function useLatenessByDay(range: ChartRangeParams = {}) {
@@ -234,7 +234,7 @@ export function useLatenessByDay(range: ChartRangeParams = {}) {
       const params = new URLSearchParams();
       setRangeParams(params, range);
       const qs = params.toString();
-      return `/v1/dashboard/lateness-by-day${qs ? `?${qs}` : ""}`;
+      return `/api/v1/dashboard/lateness-by-day${qs ? `?${qs}` : ""}`;
     },
     extraQueryKeyParams: [range.startDate, range.endDate, range.timezone],
   });
@@ -243,7 +243,7 @@ export function useLatenessByDay(range: ChartRangeParams = {}) {
 export const useRecruitmentSourceBreakdown = () =>
   useDashboardQuery<RecruitmentSourceBreakdown[]>({
     key: "recruitment-sources-breakdown",
-    getPath: () => "/v1/dashboard/recruitment-sources",
+    getPath: () => "/api/v1/dashboard/recruitment-sources",
   });
 
 export interface TurnoverAnalyticsParams extends ChartRangeParams {
@@ -264,7 +264,7 @@ export function useTurnoverAnalytics(params: TurnoverAnalyticsParams = {}) {
         ...(params.target ? { target: params.target } : {}),
       });
       const qs = sp.toString();
-      return `/v1/dashboard/turnover-analytics${qs ? `?${qs}` : ""}`;
+      return `/api/v1/dashboard/turnover-analytics${qs ? `?${qs}` : ""}`;
     },
     extraQueryKeyParams: [params.startDate, params.endDate, params.comparison, params.target],
     extraEnabled: !!params.startDate && !!params.endDate,
@@ -301,7 +301,7 @@ export function useRecruitmentEffectiveness(params: RecruitmentEffectivenessPara
         ...(params.sourceIds ? { source_ids: params.sourceIds } : {}),
       });
       const qs = sp.toString();
-      return `/v1/dashboard/recruitment-effectiveness${qs ? `?${qs}` : ""}`;
+      return `/api/v1/dashboard/recruitment-effectiveness${qs ? `?${qs}` : ""}`;
     },
     extraQueryKeyParams: [
       params.startDate,
@@ -318,7 +318,7 @@ export function useRecruitmentEffectiveness(params: RecruitmentEffectivenessPara
 }
 
 export function useDashboardMetrics(filters: DashboardMetricsFilters) {
-  const endpoint = `/v1/dashboard/executive-overview${dashboardMetricsQuery(filters)}`;
+  const endpoint = `/api/v1/dashboard/executive-overview${dashboardMetricsQuery(filters)}`;
 
   return useDashboardQuery<DashboardMetricsResponse>({
     key: "executive-overview",
@@ -336,7 +336,7 @@ export function useDashboardMetrics(filters: DashboardMetricsFilters) {
  * the raw filters — only the backend-resolved period has them.
  */
 export function useOvertimeBreakdown(range: ChartRangeParams = {}, topN = 10) {
-  const endpoint = `/v1/dashboard/overtime-breakdown?${new URLSearchParams({
+  const endpoint = `/api/v1/dashboard/overtime-breakdown?${new URLSearchParams({
     ...(range.startDate ? { start_date: range.startDate } : {}),
     ...(range.endDate ? { end_date: range.endDate } : {}),
     ...(range.timezone ? { timezone: range.timezone } : {}),

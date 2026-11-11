@@ -105,7 +105,7 @@ describe("useFileUpload", () => {
       expect(clientMock.POST).toHaveBeenCalledTimes(1);
 
       const [url, init] = (clientMock.POST as Mock).mock.calls[0];
-      expect(url).toBe("/v1/files/upload");
+      expect(url).toBe("/api/v1/files/upload");
 
       const formData = init.body as FormData;
       expect(formData.get("category")).toBe("onboarding");
@@ -199,7 +199,7 @@ describe("useFileUpload", () => {
 
       const [method, url, init] = (legacyFetchMock as Mock).mock.calls[0];
       expect(method).toBe("POST");
-      expect(url).toBe("/v1/files/presigned");
+      expect(url).toBe("/api/v1/files/presigned");
       expect(init.body).toMatchObject({
         category: "onboarding",
         content_hash: "hash123",

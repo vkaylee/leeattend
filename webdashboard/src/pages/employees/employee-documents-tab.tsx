@@ -28,7 +28,7 @@ export function EmployeeDocumentsTab({ employeeId }: EmployeeDocumentsTabProps) 
   const { data: filesData, isLoading } = useQuery({
     queryKey: ["files", "employee", employeeId],
     queryFn: async () => {
-      const { data } = await client.GET<FileRecord[]>('/v1/files/by-owner/{owner_type}/{owner_id}', {
+      const { data } = await client.GET<FileRecord[]>('/api/v1/files/by-owner/{owner_type}/{owner_id}', {
         params: {
           path: {
             owner_type: 'Employee',
@@ -45,7 +45,7 @@ export function EmployeeDocumentsTab({ employeeId }: EmployeeDocumentsTabProps) 
 
   const handleDownload = async (file: FileRecord) => {
     try {
-      const { data } = await client.GET<{ url?: string }>('/v1/files/{id}/url', {
+      const { data } = await client.GET<{ url?: string }>('/api/v1/files/{id}/url', {
         params: {
           path: { id: file.id },
         },
@@ -73,7 +73,7 @@ export function EmployeeDocumentsTab({ employeeId }: EmployeeDocumentsTabProps) 
     // Optimistic UI update could be added here
     try {
       for (const id of fileIds) {
-        await client.DELETE('/v1/files/{id}', {
+        await client.DELETE('/api/v1/files/{id}', {
           params: { path: { id } },
         });
       }

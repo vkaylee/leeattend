@@ -31,7 +31,7 @@ export async function fetchWorkSegments(
     employment_ids: params?.employment_ids && params.employment_ids.length > 0 ? params.employment_ids.join(",") : undefined,
   };
 
-  const { data: resData } = await client.GET<WorkSegmentListResponse>("/v1/work-segments", {
+  const { data: resData } = await client.GET<WorkSegmentListResponse>("/api/v1/work-segments", {
     params: {
       query: queryParams,
     },
@@ -42,7 +42,7 @@ export async function fetchWorkSegments(
 export async function createWorkSegment(
   body: CreateWorkSegmentRequest
 ): Promise<WorkSegment> {
-  const { data: resData } = await client.POST<WorkSegment>("/v1/work-segments", {
+  const { data: resData } = await client.POST<WorkSegment>("/api/v1/work-segments", {
     body,
   });
   return resData;
@@ -52,7 +52,7 @@ export async function getWorkSegment(
   segmentId: string
 ): Promise<WorkSegment> {
   const { data: resData } = await client.GET<WorkSegment>(
-    "/v1/work-segments/{segment_id}",
+    "/api/v1/work-segments/{segment_id}",
     { params: { path: { segment_id: segmentId } } },
   );
   return resData;
@@ -63,7 +63,7 @@ export async function updateWorkSegment(
   body: UpdateWorkSegmentRequest
 ): Promise<WorkSegment> {
   const { data: resData } = await client.PUT<WorkSegment>(
-    "/v1/work-segments/{segment_id}",
+    "/api/v1/work-segments/{segment_id}",
     {
       params: { path: { segment_id: segmentId } },
       body,
@@ -75,7 +75,7 @@ export async function updateWorkSegment(
 export async function deleteWorkSegment(
   segmentId: string
 ): Promise<void> {
-  await client.DELETE("/v1/work-segments/{segment_id}", {
+  await client.DELETE("/api/v1/work-segments/{segment_id}", {
     params: { path: { segment_id: segmentId } },
   });
 }
@@ -83,7 +83,7 @@ export async function deleteWorkSegment(
 export async function bulkCreateWorkSegments(
   body: BulkCreateWorkSegmentsRequest
 ): Promise<WorkSegment[]> {
-  const { data: resData } = await client.POST<WorkSegment[]>("/v1/work-segments/bulk", {
+  const { data: resData } = await client.POST<WorkSegment[]>("/api/v1/work-segments/bulk", {
     body,
   });
   return resData;
@@ -96,7 +96,7 @@ export async function scheduleWorkSegments(
     ...params,
     employment_ids: params.employment_ids && params.employment_ids.length > 0 ? params.employment_ids.join(",") : undefined,
   };
-  const { data: resData } = await client.GET<{ scheduled: number; skipped: number }>("/v1/work-segments/schedule", {
+  const { data: resData } = await client.GET<{ scheduled: number; skipped: number }>("/api/v1/work-segments/schedule", {
     params: {
       query: queryParams,
     },
@@ -109,7 +109,7 @@ export async function scheduleWorkSegments(
 export async function fetchShiftIntervals(
   shiftId: string
 ): Promise<ShiftDefaultInterval[]> {
-  const { data: resData } = await client.GET<ShiftDefaultInterval[]>("/v1/shifts/{shift_id}/intervals", {
+  const { data: resData } = await client.GET<ShiftDefaultInterval[]>("/api/v1/shifts/{shift_id}/intervals", {
     params: { path: { shift_id: shiftId } },
   });
   return resData;
@@ -120,7 +120,7 @@ export async function createShiftInterval(
   body: CreateShiftIntervalRequest
 ): Promise<ShiftDefaultInterval> {
   const { data: resData } = await client.POST<ShiftDefaultInterval>(
-    "/v1/shifts/{shift_id}/intervals",
+    "/api/v1/shifts/{shift_id}/intervals",
     {
       params: { path: { shift_id: shiftId } },
       body,
@@ -135,7 +135,7 @@ export async function updateShiftInterval(
   body: UpdateShiftIntervalRequest
 ): Promise<ShiftDefaultInterval> {
   const { data: resData } = await client.PUT<ShiftDefaultInterval>(
-    "/v1/shifts/{shift_id}/intervals/{interval_id}",
+    "/api/v1/shifts/{shift_id}/intervals/{interval_id}",
     {
       params: { path: { shift_id: shiftId, interval_id: intervalId } },
       body,
@@ -149,7 +149,7 @@ export async function deleteShiftInterval(
   intervalId: string
 ): Promise<void> {
   await client.DELETE(
-    "/v1/shifts/{shift_id}/intervals/{interval_id}",
+    "/api/v1/shifts/{shift_id}/intervals/{interval_id}",
     { params: { path: { shift_id: shiftId, interval_id: intervalId } } },
   );
 }
@@ -158,7 +158,7 @@ export async function reorderShiftIntervals(
   shiftId: string,
   intervalIds: string[]
 ): Promise<void> {
-  await client.POST("/v1/shifts/{shift_id}/intervals/reorder", {
+  await client.POST("/api/v1/shifts/{shift_id}/intervals/reorder", {
     params: { path: { shift_id: shiftId } },
     body: { interval_ids: intervalIds },
   });

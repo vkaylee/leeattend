@@ -1974,7 +1974,6 @@
       "documents": "Truy cập phiếu lương, hợp đồng và tài liệu nhân sự",
       "infra_monitor": "Giám sát edge agent và tình trạng hệ thống",
       "db_clusters": "Quản lý cấu hình cụm cơ sở dữ liệu",
-      "tenants": "Quản lý các tổ chức",
       "charts": "Biểu đồ chấm công, tăng ca, biến động nhân sự và phân tích"
     },
     "dual_run": {

@@ -30,7 +30,7 @@ describe("employee-assignments api", () => {
 
       const result = await fetchAssignments();
       expect(result).toEqual(mockData);
-      expect(client.GET).toHaveBeenCalledWith("/v1/assignments");
+      expect(client.GET).toHaveBeenCalledWith("/api/v1/assignments");
     });
   });
 
@@ -41,7 +41,7 @@ describe("employee-assignments api", () => {
 
       const result = await fetchEmployeeAssignments("emp-1");
       expect(result).toEqual(mockList);
-      expect(client.GET).toHaveBeenCalledWith("/v1/employees/{employee_id}/assignments", {
+      expect(client.GET).toHaveBeenCalledWith("/api/v1/employees/{employee_id}/assignments", {
         params: { path: { employee_id: "emp-1" } },
       });
     });
@@ -59,7 +59,7 @@ describe("employee-assignments api", () => {
       const result = await createEmployeeAssignment("emp-1", payload);
       expect(result).toEqual(mockCreated);
       expect(client.POST).toHaveBeenCalledWith(
-        "/v1/employees/{employee_id}/assignments",
+        "/api/v1/employees/{employee_id}/assignments",
         {
           params: { path: { employee_id: "emp-1" } },
           body: payload,
@@ -77,7 +77,7 @@ describe("employee-assignments api", () => {
       const result = await updateEmployeeAssignment("emp-1", "assign-1", payload);
       expect(result).toEqual(mockUpdated);
       expect(client.PATCH).toHaveBeenCalledWith(
-        "/v1/employees/{employee_id}/assignments/{assignment_id}",
+        "/api/v1/employees/{employee_id}/assignments/{assignment_id}",
         {
           params: { path: { employee_id: "emp-1", assignment_id: "assign-1" } },
           body: payload,
@@ -92,7 +92,7 @@ describe("employee-assignments api", () => {
 
       await deleteEmployeeAssignment("emp-1", "assign-1");
       expect(client.DELETE).toHaveBeenCalledWith(
-        "/v1/employees/{employee_id}/assignments/{assignment_id}",
+        "/api/v1/employees/{employee_id}/assignments/{assignment_id}",
         {
           params: { path: { employee_id: "emp-1", assignment_id: "assign-1" } },
         }

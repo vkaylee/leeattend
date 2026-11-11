@@ -72,7 +72,7 @@ describe("API Standardization Enforcement", () => {
     }
   });
 
-  it("should always prefix internal endpoints with /v1/ when using apiFetch()", () => {
+  it("should always prefix internal endpoints with /api/v1/ when using apiFetch()", () => {
     for (const file of sourceFiles) {
       // Ignore standardization tests and generated files
       if (file.includes("api-generated") || file.includes("__tests__")) continue;
@@ -86,8 +86,7 @@ describe("API Standardization Enforcement", () => {
       let match;
       while ((match = endpointRegex.exec(content)) !== null) {
         const endpoint = match[1];
-        // Allow /debug endpoints for tests if needed, but in our project they are /v1/debug
-        expect(endpoint.startsWith("/v1/"), `File ${file} calls apiFetch("${endpoint}") which does not start with /v1/. All API routes must be prefixed with /v1/!`).toBe(true);
+        expect(endpoint.startsWith("/api/v1/"), `File ${file} calls apiFetch("${endpoint}") which does not start with /api/v1/. All API routes must be prefixed with /api/v1/!`).toBe(true);
       }
     }
   });

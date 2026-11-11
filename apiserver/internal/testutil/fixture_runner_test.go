@@ -8,7 +8,7 @@ import (
 
 func TestRunFixtureSubstitutesPathAndQuery(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path != "/api/v1/workspaces/ws-1" {
+		if r.URL.Path != "/api/v1/organization/settings" {
 			t.Errorf("path = %q", r.URL.Path)
 		}
 		if r.URL.Query().Get("page") != "2" {
@@ -23,7 +23,7 @@ func TestRunFixtureSubstitutesPathAndQuery(t *testing.T) {
 	fixture, err := LoadFixture([]byte(`{
 		"schema_version":"1.0.0",
 		"metadata":{"id":"TEST-001"},
-		"request":{"method":"GET","path":"/api/v1/workspaces/{workspace_id}","path_params":{"workspace_id":"ws-1"},"query":{"page":2},"headers":{},"body":null},
+		"request":{"method":"GET","path":"/api/v1/organization/settings","path_params":{},"query":{"page":2},"headers":{},"body":null},
 		"expected_response":{"status":200}
 	}`))
 	if err != nil {

@@ -24,7 +24,7 @@ export interface ShiftSwapRequest {
 export async function fetchShiftSwaps(
     status?: ShiftSwapStatus,
 ): Promise<ShiftSwapRequest[]> {
-    const { data } = await client.GET<ShiftSwapRequest[]>("/v1/shift-swaps", {
+    const { data } = await client.GET<ShiftSwapRequest[]>("/api/v1/shift-swaps", {
         params: {
             query: { status: status },
         },
@@ -40,7 +40,7 @@ export async function createShiftSwap(
         reason?: string;
     },
 ): Promise<ShiftSwapRequest> {
-    const { data: resData } = await client.POST<ShiftSwapRequest>("/v1/shift-swaps", {
+    const { data: resData } = await client.POST<ShiftSwapRequest>("/api/v1/shift-swaps", {
         body: data,
     });
     return resData;
@@ -50,7 +50,7 @@ export async function approveShiftSwap(
     swapId: string,
     data: { status: ShiftSwapStatus },
 ): Promise<void> {
-    await client.PUT("/v1/shift-swaps/{id}/approve", {
+    await client.PUT("/api/v1/shift-swaps/{id}/approve", {
         params: {
             path: { id: swapId },
         },
@@ -69,6 +69,6 @@ export interface SwapStats {
 }
 
 export async function fetchShiftSwapStats(): Promise<SwapStats> {
-  const { data: resData } = await client.GET<SwapStats>("/v1/shift-swaps/stats");
+  const { data: resData } = await client.GET<SwapStats>("/api/v1/shift-swaps/stats");
   return resData;
 }

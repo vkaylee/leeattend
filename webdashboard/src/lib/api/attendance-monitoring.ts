@@ -24,7 +24,7 @@ import {
 export async function createReportExportJob(
   request: CreateReportExportRequest
 ): Promise<CreateReportExportResponse> {
-  const { data: resData } = await client.POST<CreateReportExportResponse>("/v1/reports/export", {
+  const { data: resData } = await client.POST<CreateReportExportResponse>("/api/v1/reports/export", {
     body: request,
   });
   return resData;
@@ -34,20 +34,20 @@ export async function fetchExportJobStatus(
   jobId: string
 ): Promise<components["schemas"]["JobStatusResponse"]> {
   const { data: resData } = await client.GET<components["schemas"]["JobStatusResponse"]>(
-    "/v1/reports/jobs/{job_id}",
+    "/api/v1/reports/jobs/{job_id}",
     { params: { path: { job_id: jobId } } },
   );
   return resData;
 }
 
 export async function cancelExportJob(jobId: string): Promise<void> {
-  await client.DELETE("/v1/reports/jobs/{job_id}", {
+  await client.DELETE("/api/v1/reports/jobs/{job_id}", {
     params: { path: { job_id: jobId } },
   });
 }
 
 export async function downloadExportReport(jobId: string): Promise<Blob> {
-  const response = await apiFetch(`/v1/reports/jobs/${encodeURIComponent(jobId)}/download`, {
+  const response = await apiFetch(`/api/v1/reports/jobs/${encodeURIComponent(jobId)}/download`, {
     timeout: TIMEOUT.REPORT_OPERATION,
   });
   if (!response.ok) await ApiError.rejectResponse(response);
@@ -84,7 +84,7 @@ const unavailableDependency = (limitation: string) => ({
 });
 
 export async function fetchMonitorOverview(): Promise<WorkerMonitorStats> {
-  const { data: resData } = await client.GET<WorkerMonitorStats>("/v1/monitor/overview", {});
+  const { data: resData } = await client.GET<WorkerMonitorStats>("/api/v1/monitor/overview", {});
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- SafeClient types say non-null but API may return null
   return resData ?? {
     active_workers: null,
@@ -203,7 +203,7 @@ export interface FetchMonitorAlertsParams {
 export async function fetchMonitorAlerts(
   params: FetchMonitorAlertsParams = {},
 ): Promise<MonitorAlertsResponse> {
-  const { data } = await client.GET<MonitorAlertsResponse>("/v1/monitor/alerts", {
+  const { data } = await client.GET<MonitorAlertsResponse>("/api/v1/monitor/alerts", {
     params: {
       query: {
         cursor: params.cursor ?? undefined,
@@ -217,7 +217,7 @@ export async function fetchMonitorAlerts(
 }
 
 export async function fetchMonitorAlert(alertId: string): Promise<MonitorAlertDetail> {
-  const { data } = await client.GET<MonitorAlertDetail>("/v1/monitor/alerts/{alert_id}", {
+  const { data } = await client.GET<MonitorAlertDetail>("/api/v1/monitor/alerts/{alert_id}", {
     params: { path: { alert_id: alertId } },
   });
   return data;
@@ -227,7 +227,7 @@ export async function acknowledgeMonitorAlert(
   alertId: string,
   request: MonitorAlertMutationRequest,
 ): Promise<MonitorAlert> {
-  const { data } = await client.POST<MonitorAlert>("/v1/monitor/alerts/{alert_id}/acknowledge", {
+  const { data } = await client.POST<MonitorAlert>("/api/v1/monitor/alerts/{alert_id}/acknowledge", {
     params: { path: { alert_id: alertId } },
     body: request,
   });
@@ -238,7 +238,7 @@ export async function resolveMonitorAlert(
   alertId: string,
   request: MonitorAlertMutationRequest,
 ): Promise<MonitorAlert> {
-  const { data } = await client.POST<MonitorAlert>("/v1/monitor/alerts/{alert_id}/resolve", {
+  const { data } = await client.POST<MonitorAlert>("/api/v1/monitor/alerts/{alert_id}/resolve", {
     params: { path: { alert_id: alertId } },
     body: request,
   });
@@ -246,7 +246,7 @@ export async function resolveMonitorAlert(
 }
 
 export async function fetchMonitorJobs(params: FetchMonitorJobsParams): Promise<MonitorJobsResponse> {
-  const { data: resData } = await client.GET<MonitorJobsResponse>("/v1/monitor/jobs", {
+  const { data: resData } = await client.GET<MonitorJobsResponse>("/api/v1/monitor/jobs", {
     params: {
       query: {
         cursor: params.cursor ?? undefined,
@@ -292,7 +292,7 @@ export interface OtClaimBehalfAssignment {
 }
 
 const otClaimBehalfApi = createBehalfAssignmentApi<OtClaimBehalfAssignment>({
-  basePath: "/v1/attendance/claim-ot/behalf-assignments",
+  basePath: "/api/v1/attendance/claim-ot/behalf-assignments",
 });
 
 export const fetchBehalfAssignments = (): Promise<OtClaimBehalfAssignment[]> =>
@@ -311,7 +311,7 @@ export async function claimOt(
     reason?: string | null;
   }
 ): Promise<void> {
-  await client.POST("/v1/attendance/claim-ot/{employee_id}", {
+  await client.POST("/api/v1/attendance/claim-ot/{employee_id}", {
     params: { path: { employee_id: employeeId } },
     body: data
   });
@@ -360,7 +360,7 @@ export async function adminConfirmAttendance(
 // ── Attendance Adjustment Behalf Assignments (factory-generated CRUD) ──────
 
 const adjustmentBehalfApi = createBehalfAssignmentApi<OtClaimBehalfAssignment>({
-  basePath: "/v1/attendance/adjustments/behalf-assignments",
+  basePath: "/api/v1/attendance/adjustments/behalf-assignments",
 });
 
 export const fetchAdjustmentBehalfAssignments = (): Promise<OtClaimBehalfAssignment[]> =>

@@ -30,17 +30,17 @@ export interface UpdateWorkLocationRequest {
 }
 
 export async function fetchLocations(): Promise<WorkLocation[]> {
-  const { data } = await client.GET<WorkLocation[]>("/v1/locations");
+  const { data } = await client.GET<WorkLocation[]>("/api/v1/locations");
   return unwrapDataArray<WorkLocation>(data);
 }
 
 export async function createLocation(payload: CreateWorkLocationRequest): Promise<WorkLocation> {
-  const { data } = await client.POST<WorkLocation>("/v1/locations", { body: payload });
+  const { data } = await client.POST<WorkLocation>("/api/v1/locations", { body: payload });
   return data;
 }
 
 export async function updateLocation(id: string, payload: UpdateWorkLocationRequest): Promise<WorkLocation> {
-  const { data } = await client.PUT<WorkLocation>("/v1/locations/{id}", {
+  const { data } = await client.PUT<WorkLocation>("/api/v1/locations/{id}", {
     params: { path: { id } },
     body: payload,
   });
@@ -48,7 +48,7 @@ export async function updateLocation(id: string, payload: UpdateWorkLocationRequ
 }
 
 export async function deleteLocation(id: string): Promise<void> {
-  await client.DELETE("/v1/locations/{id}", {
+  await client.DELETE("/api/v1/locations/{id}", {
     params: { path: { id } },
   });
 }

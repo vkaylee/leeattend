@@ -104,13 +104,13 @@ export interface QuotaSummary {
 }
 
 const otRequestBehalfApi = createBehalfAssignmentApi({
-  basePath: "/v1/overtime/requests/behalf-assignments",
+  basePath: "/api/v1/overtime/requests/behalf-assignments",
   dataWrapper: true,
 });
 
 export const overtimeRequestsApi = {
   listRequests: async (params?: OvertimeRequestQueryParams): Promise<PaginatedResponse<OvertimeRequest>> => {
-    const { data } = await client.GET<PaginatedResponse<OvertimeRequest>>("/v1/overtime/requests", {
+    const { data } = await client.GET<PaginatedResponse<OvertimeRequest>>("/api/v1/overtime/requests", {
       params: {
         query: params,
       },
@@ -119,21 +119,21 @@ export const overtimeRequestsApi = {
   },
 
   getRequest: async (id: string): Promise<OvertimeRequestDetail> => {
-    const { data } = await client.GET<OvertimeRequestDetail>("/v1/overtime/requests/{id}", {
+    const { data } = await client.GET<OvertimeRequestDetail>("/api/v1/overtime/requests/{id}", {
       params: { path: { id } },
     });
     return data;
   },
 
   createRequest: async (payload: CreateOvertimeRequestPayload): Promise<OvertimeRequest> => {
-    const { data } = await client.POST<OvertimeRequest>("/v1/overtime/requests", {
+    const { data } = await client.POST<OvertimeRequest>("/api/v1/overtime/requests", {
       body: payload,
     });
     return data;
   },
 
   submitRequest: async (id: string): Promise<void> => {
-    await client.POST("/v1/overtime/requests/{id}/submit", {
+    await client.POST("/api/v1/overtime/requests/{id}/submit", {
       params: {
         path: { id },
       },
@@ -141,7 +141,7 @@ export const overtimeRequestsApi = {
   },
 
   cancelRequest: async (id: string): Promise<void> => {
-    await client.PUT("/v1/overtime/requests/{id}/cancel", {
+    await client.PUT("/api/v1/overtime/requests/{id}/cancel", {
       params: {
         path: { id },
       },
@@ -153,7 +153,7 @@ export const overtimeRequestsApi = {
     status: ConsentStatus;
     decline_reason?: string;
   }): Promise<void> => {
-    await client.POST("/v1/overtime/requests/{id}/consent/{emp_id}", {
+    await client.POST("/api/v1/overtime/requests/{id}/consent/{emp_id}", {
       params: {
         path: { id, emp_id: payload.employment_id },
       },
@@ -166,7 +166,7 @@ export const overtimeRequestsApi = {
 
   getMyAssignments: async (employmentId: string): Promise<MyOvertimeAssignment[]> => {
     const { data } = await client.GET<MyOvertimeAssignment[]>(
-      "/v1/payroll/overtime/assignments",
+      "/api/v1/payroll/overtime/assignments",
       { params: { query: { employment_id: employmentId } } },
     );
     return data;
@@ -174,7 +174,7 @@ export const overtimeRequestsApi = {
 
   getQuotaSummary: async (month: string): Promise<QuotaSummary[]> => {
     const { data } = await client.GET<QuotaSummary[]>(
-      "/v1/overtime/quota/summary",
+      "/api/v1/overtime/quota/summary",
       { params: { query: { month } } },
     );
     return data;
@@ -182,7 +182,7 @@ export const overtimeRequestsApi = {
 
   getEmployeeQuota: async (employeeId: string, date: string): Promise<QuotaSummary> => {
     const { data } = await client.GET<QuotaSummary>(
-      "/v1/overtime/quota/{employee_id}",
+      "/api/v1/overtime/quota/{employee_id}",
       { params: { path: { employee_id: employeeId }, query: { date } } },
     );
     return data;

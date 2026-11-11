@@ -11,7 +11,7 @@ import {
 } from "./types";
 
 export async function login(username: string, password: string): Promise<AuthResponse> {
-  const { data } = await client.POST<AuthResponse>("/auth/login", {
+  const { data } = await client.POST<AuthResponse>("/api/v1/auth/login", {
     body: { email: username, password },
   });
   setAccessToken(data.access_token);
@@ -21,14 +21,14 @@ export async function login(username: string, password: string): Promise<AuthRes
 }
 
 export async function logout(): Promise<void> {
-  await client.POST("/auth/logout", {
+  await client.POST("/api/v1/auth/logout", {
     body: { refresh_token: "" },
   });
   clearAuthSession();
 }
 
 export async function register(data: RegisterRequest): Promise<AuthResponse> {
-  const { data: resData } = await client.POST<AuthResponse>("/auth/register", {
+  const { data: resData } = await client.POST<AuthResponse>("/api/v1/auth/register", {
     body: data,
   });
   return resData;
@@ -37,26 +37,26 @@ export async function register(data: RegisterRequest): Promise<AuthResponse> {
 export async function changePassword(
   data: ChangePasswordRequest,
 ): Promise<string> {
-  await client.POST("/auth/change-password", {
+  await client.POST("/api/v1/auth/change-password", {
     body: data,
   });
   return "Password changed successfully";
 }
 
 export async function fetchMe(): Promise<User> {
-  const { data } = await client.GET<User>("/me");
+  const { data } = await client.GET<User>("/api/v1/me");
   return data;
 }
 
 export async function updateMe(data: UpdateUserRequest): Promise<User> {
-  const { data: resData } = await client.PATCH<User>("/me", {
+  const { data: resData } = await client.PATCH<User>("/api/v1/me", {
     body: data,
   });
   return resData;
 }
 
 export async function fetchUsers(): Promise<User[]> {
-  const { data } = await client.GET<User[]>("/users");
+  const { data } = await client.GET<User[]>("/api/v1/users");
   return data;
 }
 
@@ -70,7 +70,7 @@ export async function fetchMyPermissions(): Promise<{
     permissions: string[];
     roles: string[];
     managed_department_ids: string[] | null;
-  }>("GET", "/me/permissions");
+  }>("GET", "/api/v1/me/permissions");
   return data;
 }
 
@@ -79,7 +79,7 @@ export async function fetchMyPermissions(): Promise<{
  * to prevent email enumeration, even if the email is not registered.
  */
 export async function forgotPassword(email: string): Promise<void> {
-  const response = await apiFetch("/v1/auth/forgot-password", {
+  const response = await apiFetch("/api/v1/auth/forgot-password", {
     method: "POST",
     body: JSON.stringify({ email }),
     timeout: TIMEOUT.DEFAULT,
@@ -100,7 +100,7 @@ export async function resetPassword(
   token: string,
   newPassword: string,
 ): Promise<string> {
-  const response = await apiFetch("/v1/auth/reset-password", {
+  const response = await apiFetch("/api/v1/auth/reset-password", {
     method: "POST",
     body: JSON.stringify({ token, new_password: newPassword }),
     timeout: TIMEOUT.DEFAULT,

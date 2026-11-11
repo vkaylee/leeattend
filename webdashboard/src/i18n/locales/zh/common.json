@@ -1966,7 +1966,6 @@
       "documents": "访问工资单、合同和人事文档",
       "infra_monitor": "监控边缘代理和系统健康",
       "db_clusters": "管理数据库集群配置",
-      "tenants": "管理组织实例",
       "charts": "考勤趋势、加班、离职率和劳动力分析图表"
     },
     "dual_run": {

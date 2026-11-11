@@ -43,7 +43,7 @@ export async function fetchAttendanceReport(
   } = params;
 
   const { data: resData } = await client.GET<PaginatedResponse<AttendanceSummary | DailyAttendanceReport>>(
-    "/v1/reports/attendance",
+    "/api/v1/reports/attendance",
     {
       params: {
         query: {
@@ -75,10 +75,10 @@ export async function uploadAttendance(
   formData.append("file", file);
 
   const url = endpoint === "/employees/upload"
-    ? "/v1/employees/upload"
+    ? "/api/v1/employees/upload"
     : endpoint === "/attendance/logs/upload"
-      ? "/v1/attendance/logs/upload"
-      : "/v1/attendance/upload";
+      ? "/api/v1/attendance/logs/upload"
+      : "/api/v1/attendance/upload";
 
   const res = await apiFetch(url, {
     method: "POST",
@@ -92,7 +92,7 @@ export async function fetchLatestImportJob(
   targetType?: "log" | "adjustment" | "employee" | "leave_import"
 ): Promise<AttendanceImportJob | null> {
   const { data: resData } = await client.GET<AttendanceImportJob | null>(
-    "/v1/attendance/import-jobs/latest",
+    "/api/v1/attendance/import-jobs/latest",
     {
       params: {
         query: targetType ? { target_type: targetType } : undefined,
@@ -104,7 +104,7 @@ export async function fetchLatestImportJob(
 
 export async function fetchImportJobStatus(jobId: string): Promise<AttendanceImportJob> {
   const { data: resData } = await client.GET<AttendanceImportJob>(
-    "/v1/attendance/import-jobs/{id}",
+    "/api/v1/attendance/import-jobs/{id}",
     {
       params: {
         path: { id: jobId },
@@ -119,7 +119,7 @@ export async function reprocessAttendance(
   startDate: string,
   endDate: string
 ): Promise<void> {
-  await client.POST("/v1/attendance/reprocess/{employee_id}", {
+  await client.POST("/api/v1/attendance/reprocess/{employee_id}", {
     params: {
       path: { employee_id: employeeId },
       query: { start_date: startDate, end_date: endDate },
@@ -131,7 +131,7 @@ export async function reprocessAllAttendance(
   startDate: string,
   endDate: string
 ): Promise<{ message: string; job_id: string }> {
-  const { data: resData } = await client.POST<{ message: string; job_id: string }>("/v1/attendance/reprocess-all", {
+  const { data: resData } = await client.POST<{ message: string; job_id: string }>("/api/v1/attendance/reprocess-all", {
     params: { query: { start_date: startDate, end_date: endDate } },
   });
   return resData;
@@ -165,7 +165,7 @@ export async function fetchNoShowReport(
 ): Promise<PaginatedResponse<NoShowReportRow>> {
   const { date, page, limit, employeeIds, shiftType } = params;
   const { data: resData } = await client.GET<PaginatedResponse<NoShowReportRow>>(
-    "/v1/reports/no-show",
+    "/api/v1/reports/no-show",
     {
       params: {
         query: {
@@ -199,7 +199,7 @@ export interface GenericJobStatus {
 }
 
 export async function checkReprocessStatus(jobId: string): Promise<GenericJobStatus> {
-  const { data: resData } = await client.GET<GenericJobStatus>("/v1/reports/jobs/{job_id}", {
+  const { data: resData } = await client.GET<GenericJobStatus>("/api/v1/reports/jobs/{job_id}", {
     params: { path: { job_id: jobId } },
   });
   return resData;

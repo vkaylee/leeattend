@@ -8,7 +8,7 @@ import { client } from "./client";
 
 
 export async function fetchEmployeeContracts(employeeId: string): Promise<EmployeeContract[]> {
-  const { data } = await client.GET<EmployeeContract[]>("/v1/employees/{employee_id}/contracts", {
+  const { data } = await client.GET<EmployeeContract[]>("/api/v1/employees/{employee_id}/contracts", {
     params: {
       path: { employee_id: employeeId },
     },
@@ -17,7 +17,7 @@ export async function fetchEmployeeContracts(employeeId: string): Promise<Employ
 }
 
 export async function fetchEmployeeContract(employeeId: string, contractId: string): Promise<EmployeeContract> {
-  const { data } = await client.GET<EmployeeContract>("/v1/employees/{employee_id}/contracts/{contract_id}", {
+  const { data } = await client.GET<EmployeeContract>("/api/v1/employees/{employee_id}/contracts/{contract_id}", {
     params: {
       path: { employee_id: employeeId, contract_id: contractId },
     },
@@ -29,7 +29,7 @@ export async function createEmployeeContract(
   employeeId: string,
   data: CreateContractRequest,
 ): Promise<EmployeeContract> {
-  const { data: result } = await client.POST<EmployeeContract>("/v1/employees/{employee_id}/contracts", {
+  const { data: result } = await client.POST<EmployeeContract>("/api/v1/employees/{employee_id}/contracts", {
     params: {
       path: { employee_id: employeeId },
     },
@@ -43,7 +43,7 @@ export async function updateEmployeeContract(
   contractId: string,
   data: UpdateContractRequest,
 ): Promise<EmployeeContract> {
-  const { data: result } = await client.PATCH<EmployeeContract>("/v1/employees/{employee_id}/contracts/{contract_id}", {
+  const { data: result } = await client.PATCH<EmployeeContract>("/api/v1/employees/{employee_id}/contracts/{contract_id}", {
     params: {
       path: { employee_id: employeeId, contract_id: contractId },
     },
@@ -53,7 +53,7 @@ export async function updateEmployeeContract(
 }
 
 export async function deleteEmployeeContract(employeeId: string, contractId: string): Promise<void> {
-  await client.DELETE("/v1/employees/{employee_id}/contracts/{contract_id}", {
+  await client.DELETE("/api/v1/employees/{employee_id}/contracts/{contract_id}", {
     params: {
       path: { employee_id: employeeId, contract_id: contractId },
     },
@@ -61,6 +61,6 @@ export async function deleteEmployeeContract(employeeId: string, contractId: str
 }
 
 export async function fetchContracts(): Promise<EmployeeContractWithEmployee[]> {
-  const { data } = await client.GET<EmployeeContractWithEmployee[]>("/v1/contracts");
+  const { data } = await client.GET<EmployeeContractWithEmployee[]>("/api/v1/contracts");
   return data;
 }

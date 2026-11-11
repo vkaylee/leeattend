@@ -13,11 +13,10 @@ const HeaderRequestID = "x-request-id"
 type contextKey string
 
 const (
-	requestIDKey      contextKey = "request_id"
-	traceContextKey   contextKey = "trace_context"
-	organizationIDKey contextKey = "organization_id"
-	actorIDKey        contextKey = "actor_id"
-	spanIDKey         contextKey = "span_id"
+	requestIDKey    contextKey = "request_id"
+	traceContextKey contextKey = "trace_context"
+	actorIDKey      contextKey = "actor_id"
+	spanIDKey       contextKey = "span_id"
 )
 
 // GenerateRequestID generates a new UUIDv7 string.
@@ -68,22 +67,6 @@ func GetTraceContext(ctx context.Context) string {
 		return ""
 	}
 	if v, ok := ctx.Value(traceContextKey).(string); ok {
-		return v
-	}
-	return ""
-}
-
-// WithOrganizationID stores the trusted organization ID in context.
-func WithOrganizationID(ctx context.Context, id string) context.Context {
-	return context.WithValue(ctx, organizationIDKey, id)
-}
-
-// GetOrganizationID retrieves the organization ID from context, or empty string if unset.
-func GetOrganizationID(ctx context.Context) string {
-	if ctx == nil {
-		return ""
-	}
-	if v, ok := ctx.Value(organizationIDKey).(string); ok {
 		return v
 	}
 	return ""

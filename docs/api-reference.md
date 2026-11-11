@@ -5,7 +5,7 @@ Base URL: `http://localhost:3000`
 
 ### Single-organization routing
 
-Flat `/api/v1/...` routes are canonical for the single-organization appliance. Organization scope is resolved from trusted server configuration; clients MUST NOT supply organization or tenant identifiers. Legacy `/workspaces/{id}` paths are rejected with HTTP 404 by RejectLegacyOrganizationRoutes middleware.
+Flat `/api/v1/...` routes are canonical for the single-organization appliance. Organization settings are singleton business data; clients MUST NOT supply organization or tenant selectors. Legacy `/workspaces/{id}` paths have no registered handler and return HTTP 404.
 
 ### 0. Authentication & Context (Updated)
 
@@ -13,7 +13,7 @@ Hệ thống sử dụng JWT (JSON Web Token) để xác thực người dùng.
 
 - **Access Token**: Gửi trong header `Authorization: Bearer <token>`. Hết hạn sau 1 giờ.
 - **Refresh Token**: Dùng để lấy Access Token mới. Hết hạn sau 7 ngày.
-- **Organization context**: The server resolves the single organization from the shared database. Clients MUST NOT send `X-Workspace-Id`.
+- **Organization settings**: The server reads one singleton organization-settings row. Clients MUST NOT send organization selectors or scope headers.
 
 #### 🌐 API URL Resolution Strategy (Client-side)
 Đối với các ứng dụng Web (đặc biệt trong môi trường Development với Vite), client sẽ ưu tiên gọi API thông qua đường dẫn tương đối `/api`. Vite sẽ tự động proxy các request này đến backend server đang chạy trên một port ngẫu nhiên.

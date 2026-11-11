@@ -57,7 +57,7 @@ describe("documents API", () => {
     vi.mocked(apiFetch).mockResolvedValueOnce(okRes(mock));
     const result = await fetchFolders();
     expect(result).toEqual(mock);
-    expect(vi.mocked(apiFetch).mock.calls[0][0]).toBe("/v1/documents/folders");
+    expect(vi.mocked(apiFetch).mock.calls[0][0]).toBe("/api/v1/documents/folders");
   });
 
   it("fetchFolders: ApiError on 500", async () => {
@@ -70,7 +70,7 @@ describe("documents API", () => {
     vi.mocked(apiFetch).mockResolvedValueOnce(okRes(mock));
     const result = await createFolder("Finance");
     expect(result).toEqual(mock);
-    expect(vi.mocked(apiFetch).mock.calls[0][0]).toBe("/v1/documents/folders");
+    expect(vi.mocked(apiFetch).mock.calls[0][0]).toBe("/api/v1/documents/folders");
     const opts = vi.mocked(apiFetch).mock.calls[0][1] as RequestInit;
     expect(opts.method).toBe("POST");
     const body = JSON.parse(opts.body as string);
@@ -97,7 +97,7 @@ describe("documents API", () => {
     const opts = vi.mocked(apiFetch).mock.calls[0][1] as RequestInit;
     expect(opts.method).toBe("PUT");
     expect(JSON.parse(opts.body as string).name).toBe("NewName");
-    expect(vi.mocked(apiFetch).mock.calls[0][0]).toBe("/v1/documents/folders/f-1");
+    expect(vi.mocked(apiFetch).mock.calls[0][0]).toBe("/api/v1/documents/folders/f-1");
   });
 
   it("deleteFolder: DELETE", async () => {
@@ -105,14 +105,14 @@ describe("documents API", () => {
     await expect(deleteFolder("f-1")).resolves.toBeUndefined();
     const opts = vi.mocked(apiFetch).mock.calls[0][1] as RequestInit;
     expect(opts.method).toBe("DELETE");
-    expect(vi.mocked(apiFetch).mock.calls[0][0]).toBe("/v1/documents/folders/f-1");
+    expect(vi.mocked(apiFetch).mock.calls[0][0]).toBe("/api/v1/documents/folders/f-1");
   });
 
   it("distributeDocument: POST forwards document_id + target_employee_ids", async () => {
     vi.mocked(apiFetch).mockResolvedValueOnce(okRes({ status: "success", count: 2 }));
     const result = await distributeDocument("doc-1", ["e1", "e2"]);
     expect(result).toEqual({ status: "success", count: 2 });
-    expect(vi.mocked(apiFetch).mock.calls[0][0]).toBe("/v1/documents/distributions");
+    expect(vi.mocked(apiFetch).mock.calls[0][0]).toBe("/api/v1/documents/distributions");
     const opts = vi.mocked(apiFetch).mock.calls[0][1] as RequestInit;
     const body = JSON.parse(opts.body as string);
     expect(body.document_id).toBe("doc-1");
@@ -124,7 +124,7 @@ describe("documents API", () => {
     vi.mocked(apiFetch).mockResolvedValueOnce(okRes(mock));
     const result = await fetchPendingAcknowledgements();
     expect(result).toEqual(mock);
-    expect(vi.mocked(apiFetch).mock.calls[0][0]).toBe("/v1/ess/documents/pending");
+    expect(vi.mocked(apiFetch).mock.calls[0][0]).toBe("/api/v1/ess/documents/pending");
   });
 
   it("fetchPendingAcknowledgements: ApiError on 500", async () => {
@@ -136,14 +136,14 @@ describe("documents API", () => {
     vi.mocked(apiFetch).mockResolvedValueOnce(okRes({ status: "acknowledged" }));
     const result = await acknowledgeDocument("ack-1");
     expect(result).toEqual({ status: "acknowledged" });
-    expect(vi.mocked(apiFetch).mock.calls[0][0]).toBe("/v1/ess/documents/ack-1/acknowledge");
+    expect(vi.mocked(apiFetch).mock.calls[0][0]).toBe("/api/v1/ess/documents/ack-1/acknowledge");
   });
 
   it("previewTemplate: POST forwards template + employee + optional variables", async () => {
     vi.mocked(apiFetch).mockResolvedValueOnce(okRes({ filled_content: "Hello Bob" }));
     const result = await previewTemplate("Hello {{name}}", "emp-1", { name: "Bob" });
     expect(result).toEqual({ filled_content: "Hello Bob" });
-    expect(vi.mocked(apiFetch).mock.calls[0][0]).toBe("/v1/documents/templates/preview");
+    expect(vi.mocked(apiFetch).mock.calls[0][0]).toBe("/api/v1/documents/templates/preview");
     const opts = vi.mocked(apiFetch).mock.calls[0][1] as RequestInit;
     const body = JSON.parse(opts.body as string);
     expect(body.template_content).toBe("Hello {{name}}");

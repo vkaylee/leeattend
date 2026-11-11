@@ -42,7 +42,7 @@ describe("fetchMyBehalfTargets", () => {
     const result = await fetchMyBehalfTargets("leave");
 
     expect(apiFetch).toHaveBeenCalledWith(
-      "/v1/leave/behalf-assignments/my-targets",
+      "/api/v1/leave/behalf-assignments/my-targets",
     );
     expect(result).toEqual(MOCK_EMPLOYEES);
   });
@@ -57,7 +57,7 @@ describe("fetchMyBehalfTargets", () => {
     const result = await fetchMyBehalfTargets("attendance_adjustment");
 
     expect(apiFetch).toHaveBeenCalledWith(
-      "/v1/attendance/adjustments/behalf-assignments/my-targets",
+      "/api/v1/attendance/adjustments/behalf-assignments/my-targets",
     );
     expect(result).toEqual(MOCK_EMPLOYEES);
   });
@@ -72,7 +72,7 @@ describe("fetchMyBehalfTargets", () => {
     const result = await fetchMyBehalfTargets("overtime_request");
 
     expect(apiFetch).toHaveBeenCalledWith(
-      "/v1/overtime/requests/behalf-assignments/my-targets",
+      "/api/v1/overtime/requests/behalf-assignments/my-targets",
     );
     expect(result).toEqual(MOCK_EMPLOYEES);
   });

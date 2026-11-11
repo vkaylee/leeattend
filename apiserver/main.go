@@ -6,7 +6,6 @@ import (
 	"crypto/ed25519"
 	"encoding/base64"
 	"fmt"
-	"github.com/google/uuid"
 	"log/slog"
 	"net"
 	"net/http"
@@ -31,28 +30,6 @@ import (
 
 // Version is the current apiserver Go component version.
 const Version = "0.1.0"
-
-// singleOrganizationHandler binds every request to bootstrapped organization.
-func singleOrganizationHandler(organizationID uuid.UUID, handler http.HandlerFunc) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		if organizationID == uuid.Nil {
-			http.Error(w, "organization unavailable", http.StatusServiceUnavailable)
-			return
-		}
-		handler(w, r.WithContext(httpinfra.WithOrganizationID(r.Context(), organizationID)))
-	}
-}
-
-func resolveOrganizationID(ctx context.Context, db repository.DBTX) (uuid.UUID, error) {
-	if db == nil {
-		return uuid.Nil, fmt.Errorf("database unavailable")
-	}
-	var organizationID uuid.UUID
-	if err := db.QueryRow(ctx, `SELECT id FROM organization_settings WHERE (SELECT count(*) FROM organization_settings) = 1 LIMIT 1`).Scan(&organizationID); err != nil {
-		return uuid.Nil, fmt.Errorf("organization unavailable: %w", err)
-	}
-	return organizationID, nil
-}
 
 func main() {
 	cfg, err := config.Load()
@@ -490,10 +467,6 @@ func main() {
 	mux.HandleFunc("GET /api/v1/approval-workflows/pending-tasks", workflowHandler.PendingTasks)
 	notifRepo := repository.NotificationRepository{SystemDB: db}
 	notifHandler := api.NotificationHandler{Repository: notifRepo}
-	mux.HandleFunc("GET /v1/notifications", notifHandler.List)
-	mux.HandleFunc("GET /v1/notifications/unread-count", notifHandler.UnreadCount)
-	mux.HandleFunc("PATCH /v1/notifications/{id}/read", notifHandler.MarkRead)
-	mux.HandleFunc("POST /v1/notifications/read-all", notifHandler.MarkAllRead)
 	mux.HandleFunc("GET /api/v1/notifications", notifHandler.List)
 	mux.HandleFunc("GET /api/v1/notifications/unread-count", notifHandler.UnreadCount)
 	mux.HandleFunc("PATCH /api/v1/notifications/{id}/read", notifHandler.MarkRead)
@@ -543,43 +516,22 @@ func main() {
 		fileStorage = s3Client
 	}
 	fileHandler := api.FileHandler{Repository: fileRepo, Storage: fileStorage, Authorizer: organizationAuthorizer}
-	mux.HandleFunc("POST /v1/files/upload", fileHandler.UploadFile)
 	mux.HandleFunc("POST /api/v1/files/upload", fileHandler.UploadFile)
-	mux.HandleFunc("POST /v1/files/presigned", fileHandler.CreateUploadURL)
 	mux.HandleFunc("POST /api/v1/files/presigned", fileHandler.CreateUploadURL)
-	mux.HandleFunc("GET /v1/files/{id}", fileHandler.GetMetadata)
 	mux.HandleFunc("GET /api/v1/files/{id}", fileHandler.GetMetadata)
-	mux.HandleFunc("PUT /v1/files/{id}", fileHandler.UpdateFile)
 	mux.HandleFunc("PUT /api/v1/files/{id}", fileHandler.UpdateFile)
-	mux.HandleFunc("DELETE /v1/files/{id}", fileHandler.DeleteFile)
 	mux.HandleFunc("DELETE /api/v1/files/{id}", fileHandler.DeleteFile)
-	mux.HandleFunc("GET /v1/files/{id}/download", fileHandler.DownloadFile)
 	mux.HandleFunc("GET /api/v1/files/{id}/download", fileHandler.DownloadFile)
-	mux.HandleFunc("GET /v1/files/{id}/url", fileHandler.GetURL)
 	mux.HandleFunc("GET /api/v1/files/{id}/url", fileHandler.GetURL)
-	mux.HandleFunc("GET /v1/files/{id}/versions", fileHandler.ListVersions)
 	mux.HandleFunc("GET /api/v1/files/{id}/versions", fileHandler.ListVersions)
-	mux.HandleFunc("GET /v1/files/by-owner/{owner_type}/{owner_id}", fileHandler.ListByOwner)
 	mux.HandleFunc("GET /api/v1/files/by-owner/{owner_type}/{owner_id}", fileHandler.ListByOwner)
 
-	mux.HandleFunc("POST /v1/documents/{document_id}/signature-requests", fileHandler.CreateSignatureRequest)
 	mux.HandleFunc("POST /api/v1/documents/{document_id}/signature-requests", fileHandler.CreateSignatureRequest)
-	mux.HandleFunc("GET /v1/ess/signatures/pending", fileHandler.ListPendingSignatures)
 	mux.HandleFunc("GET /api/v1/ess/signatures/pending", fileHandler.ListPendingSignatures)
-	mux.HandleFunc("POST /v1/ess/signatures/{request_id}/sign", fileHandler.SignDocument)
 	mux.HandleFunc("POST /api/v1/ess/signatures/{request_id}/sign", fileHandler.SignDocument)
 
 	documentRepo := repository.DocumentRepository{DB: db}
 	documentHandler := api.DocumentHandler{Repository: documentRepo, Authorizer: organizationAuthorizer}
-	mux.HandleFunc("GET /v1/documents/folders", documentHandler.ListFolders)
-	mux.HandleFunc("POST /v1/documents/folders", documentHandler.CreateFolder)
-	mux.HandleFunc("GET /v1/documents/folders/{id}", documentHandler.GetFolder)
-	mux.HandleFunc("PUT /v1/documents/folders/{id}", documentHandler.RenameFolder)
-	mux.HandleFunc("DELETE /v1/documents/folders/{id}", documentHandler.DeleteFolder)
-	mux.HandleFunc("POST /v1/documents/distributions", documentHandler.Distribute)
-	mux.HandleFunc("POST /v1/documents/templates/preview", documentHandler.PreviewTemplate)
-	mux.HandleFunc("POST /v1/documents/templates/{id}/generate", documentHandler.GenerateTemplate)
-
 	mux.HandleFunc("GET /api/v1/documents/folders", documentHandler.ListFolders)
 	mux.HandleFunc("POST /api/v1/documents/folders", documentHandler.CreateFolder)
 	mux.HandleFunc("GET /api/v1/documents/folders/{id}", documentHandler.GetFolder)
@@ -652,55 +604,27 @@ func main() {
 		JWTSecret:  cfg.JWTSecret.Expose(),
 	}
 	mux.HandleFunc("GET /api/v1/monitor/overview", monitorHandler.GetOverview)
-	mux.HandleFunc("GET /v1/monitor/overview", monitorHandler.GetOverview)
-	mux.HandleFunc("GET /monitor/overview", monitorHandler.GetOverview)
 	mux.HandleFunc("GET /api/v1/monitor/jobs", monitorHandler.GetMonitorJobs)
-	mux.HandleFunc("GET /v1/monitor/jobs", monitorHandler.GetMonitorJobs)
-	mux.HandleFunc("GET /monitor/jobs", monitorHandler.GetMonitorJobs)
 	mux.HandleFunc("GET /api/v1/monitor/correlations", monitorHandler.GetMonitorCorrelations)
-	mux.HandleFunc("GET /v1/monitor/correlations", monitorHandler.GetMonitorCorrelations)
-	mux.HandleFunc("GET /monitor/correlations", monitorHandler.GetMonitorCorrelations)
 	mux.HandleFunc("GET /api/v1/monitor/stream", monitorHandler.Stream)
-	mux.HandleFunc("GET /v1/monitor/stream", monitorHandler.Stream)
-	mux.HandleFunc("GET /monitor/stream", monitorHandler.Stream)
 	mux.HandleFunc("GET /api/v1/monitor/alerts", monitorHandler.ListAlerts)
-	mux.HandleFunc("GET /v1/monitor/alerts", monitorHandler.ListAlerts)
-	mux.HandleFunc("GET /monitor/alerts", monitorHandler.ListAlerts)
 	mux.HandleFunc("GET /api/v1/monitor/alerts/{alert_id}", monitorHandler.GetAlert)
-	mux.HandleFunc("GET /v1/monitor/alerts/{alert_id}", monitorHandler.GetAlert)
-	mux.HandleFunc("GET /monitor/alerts/{alert_id}", monitorHandler.GetAlert)
 	mux.HandleFunc("POST /api/v1/monitor/alerts/{alert_id}/acknowledge", monitorHandler.AcknowledgeAlert)
-	mux.HandleFunc("POST /v1/monitor/alerts/{alert_id}/acknowledge", monitorHandler.AcknowledgeAlert)
-	mux.HandleFunc("POST /monitor/alerts/{alert_id}/acknowledge", monitorHandler.AcknowledgeAlert)
 	mux.HandleFunc("POST /api/v1/monitor/alerts/{alert_id}/resolve", monitorHandler.ResolveAlert)
-	mux.HandleFunc("POST /v1/monitor/alerts/{alert_id}/resolve", monitorHandler.ResolveAlert)
-	mux.HandleFunc("POST /monitor/alerts/{alert_id}/resolve", monitorHandler.ResolveAlert)
 	mux.HandleFunc("GET /api/v1/ws/reports/{job_id}", monitorHandler.ReportStreamWS)
-	mux.HandleFunc("GET /v1/ws/reports/{job_id}", monitorHandler.ReportStreamWS)
-	mux.HandleFunc("GET /ws/reports/{job_id}", monitorHandler.ReportStreamWS)
 	mux.HandleFunc("GET /api/v1/audit-logs", monitorHandler.GetAuditLogs)
 	mux.HandleFunc("GET /api/v1/jobs/{job_id}", monitorHandler.GetJobStatus)
 	mux.HandleFunc("GET /api/v1/monitor/jobs/{job_id}", monitorHandler.GetMonitorJob)
 	mux.HandleFunc("POST /api/v1/auth/login", authHandler.Login)
-	mux.HandleFunc("POST /api/auth/login", authHandler.Login)
 	mux.HandleFunc("POST /api/v1/auth/refresh", authHandler.Refresh)
-	mux.HandleFunc("POST /api/auth/refresh", authHandler.Refresh)
 	mux.HandleFunc("POST /api/v1/auth/logout", authHandler.Logout)
-	mux.HandleFunc("POST /api/auth/logout", authHandler.Logout)
 	mux.HandleFunc("POST /api/v1/auth/forgot-password", authHandler.ForgotPassword)
-	mux.HandleFunc("POST /api/auth/forgot-password", authHandler.ForgotPassword)
 	mux.HandleFunc("POST /api/v1/auth/reset-password", authHandler.ResetPassword)
-	mux.HandleFunc("POST /api/auth/reset-password", authHandler.ResetPassword)
 	mux.HandleFunc("POST /api/v1/auth/change-password", authHandler.ChangePassword)
-	mux.HandleFunc("POST /api/auth/change-password", authHandler.ChangePassword)
 	mux.HandleFunc("GET /api/v1/me", authHandler.Me)
-	mux.HandleFunc("GET /api/me", authHandler.Me)
 	mux.HandleFunc("PATCH /api/v1/me", authHandler.UpdateMe)
-	mux.HandleFunc("PATCH /api/me", authHandler.UpdateMe)
 	mux.HandleFunc("GET /api/v1/me/permissions", authHandler.MyPermissions)
-	mux.HandleFunc("GET /api/me/permissions", authHandler.MyPermissions)
 	mux.HandleFunc("GET /api/v1/users", authHandler.OrganizationUsers)
-	mux.HandleFunc("GET /api/users", authHandler.OrganizationUsers)
 	preferencesRepo := repository.DashboardPreferencesRepository{DB: db}
 	preferencesHandler := api.DashboardPreferencesHandler{Repository: preferencesRepo, Authorizer: organizationAuthorizer}
 	mux.HandleFunc("GET /api/v1/dashboard/preferences", preferencesHandler.Get)
@@ -729,18 +653,11 @@ func main() {
 		"/api/v1/health",
 		"/api/v1/health/ready",
 		"/api/v1/auth/login",
-		"/api/auth/login",
 		"/api/v1/auth/refresh",
-		"/api/auth/refresh",
 		"/api/v1/auth/forgot-password",
-		"/api/auth/forgot-password",
 		"/api/v1/auth/reset-password",
-		"/api/auth/reset-password",
 		"/api/v1/ws/reports/",
-		"/v1/ws/reports/",
-		"/ws/reports/",
 		"/api/v1/ws",
-		"/ws",
 	}
 	var revocationChecker httpinfra.TokenRevocationChecker
 	var rateLimiter httpinfra.RateLimiterBackend
@@ -758,7 +675,6 @@ func main() {
 		httpinfra.RateLimitMiddleware(rateLimitConfig, cfg.JWTSecret.Expose(), rateLimiter),
 		httpinfra.LocaleMiddleware(),
 		httpinfra.CORSMiddleware(cfg.AllowedOrigins),
-		httpinfra.RejectRetiredScopedRoutes(),
 		httpinfra.AuthMiddlewareWithRevocation(cfg.JWTSecret.Expose(), publicPrefixes, revocationChecker),
 	)(mux)
 

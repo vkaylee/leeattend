@@ -9,7 +9,7 @@ import type {
 export async function punchIn(
   data: { employment_id: string; entry_type?: "Work" | "Break" | "Overtime"; note?: string },
 ): Promise<TimeEntry> {
-  const { data: resData } = await client.POST<TimeEntry>("/v1/time/punch-in", {
+  const { data: resData } = await client.POST<TimeEntry>("/api/v1/time/punch-in", {
     body: data,
   });
   return resData;
@@ -18,7 +18,7 @@ export async function punchIn(
 export async function punchOut(
   data: { employee_id: string; note?: string },
 ): Promise<TimeEntry> {
-  const { data: resData } = await client.POST<TimeEntry>("/v1/time/punch-out/{employee_id}", {
+  const { data: resData } = await client.POST<TimeEntry>("/api/v1/time/punch-out/{employee_id}", {
     params: {
       path: { employee_id: data.employee_id },
     },
@@ -38,7 +38,7 @@ export async function submitAttendanceAdjustment(
     attachment_file_ids?: string[];
   }
 ): Promise<AttendanceAdjustmentRequest> {
-  const { data: resData } = await client.POST<AttendanceAdjustmentRequest>("/v1/attendance/adjustments", {
+  const { data: resData } = await client.POST<AttendanceAdjustmentRequest>("/api/v1/attendance/adjustments", {
     body: data,
   });
   return resData;
@@ -52,7 +52,7 @@ export async function fetchAttendanceAdjustments(
     limit?: number;
   }
 ): Promise<PaginatedResponse<AttendanceAdjustmentRequest>> {
-  const { data: resData } = await client.GET<PaginatedResponse<AttendanceAdjustmentRequest>>("/v1/attendance/adjustments", {
+  const { data: resData } = await client.GET<PaginatedResponse<AttendanceAdjustmentRequest>>("/api/v1/attendance/adjustments", {
     params: {
       query: {
         status: params?.status as "pending" | "approved" | "rejected" | null | undefined,
@@ -69,7 +69,7 @@ export async function approveAttendanceAdjustment(
   requestId: string,
   data: { status: "pending" | "approved" | "rejected" }
 ): Promise<void> {
-  await client.PUT("/v1/attendance/adjustments/{id}/approve", {
+  await client.PUT("/api/v1/attendance/adjustments/{id}/approve", {
     params: { path: { id: requestId } },
     body: data,
   });
@@ -83,7 +83,7 @@ export async function fetchRawAttendanceLogs(params: {
   limit?: number;
 }): Promise<{ data: RawAttendanceLog[]; total: number; page: number; limit: number }> {
   const { data: resData } = await client.GET<{ data: RawAttendanceLog[]; total: number; page: number; limit: number }>(
-    "/v1/attendance/raw-logs",
+    "/api/v1/attendance/raw-logs",
     {
       params: {
         query: {

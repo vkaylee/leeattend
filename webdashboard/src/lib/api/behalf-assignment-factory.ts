@@ -22,7 +22,7 @@ export interface BehalfAssignmentConfig {
    * Concrete collection path for the behalf-assignment endpoint — the
    * organization is implied by the shared contract and never appears in the URL.
    *
-   * @example "/v1/leave/behalf-assignments"
+   * @example "/api/v1/leave/behalf-assignments"
    */
   basePath: string;
 

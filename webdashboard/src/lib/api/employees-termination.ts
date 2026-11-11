@@ -16,7 +16,7 @@ export async function uploadTerminationImportPreview(
 ): Promise<TerminationPreviewResponse> {
   const formData = new FormData();
   formData.append("file", file);
-  const res = await apiFetch("/v1/employees/import-termination/preview", {
+  const res = await apiFetch("/api/v1/employees/import-termination/preview", {
     method: "POST",
     body: formData,
   });
@@ -29,7 +29,7 @@ export async function confirmTerminationImport(
   rows: ConfirmTerminationRow[],
 ): Promise<{ success_count: number; job_id?: string }> {
   const { data } = await client.POST<{ success_count: number; job_id?: string }>(
-    "/v1/employees/import-termination/confirm",
+    "/api/v1/employees/import-termination/confirm",
     {
       body: {
         rows,
@@ -41,7 +41,7 @@ export async function confirmTerminationImport(
 
 /** Download bulk termination Excel template via authenticated fetch */
 export async function downloadTerminationTemplate(lang = "en"): Promise<void> {
-  const response = await apiFetch(`/v1/employees/import-termination/template?lang=${lang}`);
+  const response = await apiFetch(`/api/v1/employees/import-termination/template?lang=${lang}`);
   if (!response.ok) throw new Error("Failed to download template");
   const filename = lang === "vi"
     ? "mau_import_nghi_viec.xlsx"

@@ -70,20 +70,18 @@ func (mockLocationAuthz) GetUsersWithPermission(context.Context, string) ([]uuid
 	return nil, nil
 }
 
-func locationRequest(method, path, body string, organizationID uuid.UUID) *http.Request {
+func locationRequest(method, path, body string) *http.Request {
 	req := httptest.NewRequest(method, path, bytes.NewBufferString(body))
-	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), organizationID))
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
 	return req
 }
 
 func TestLocationHandlerList(t *testing.T) {
-	organizationID := uuid.New()
 	h := LocationHandler{
 		Repository: &mockLocationRepo{locations: []WorkLocation{{ID: uuid.New(), Name: "HQ", IsHeadquarters: true}}},
 		Authorizer: mockLocationAuthz{isMember: true},
 	}
-	req := locationRequest(http.MethodGet, "/api/v1/locations", "", organizationID)
+	req := locationRequest(http.MethodGet, "/api/v1/locations", "")
 	rec := httptest.NewRecorder()
 	h.List(rec, req)
 	if rec.Code != http.StatusOK {
@@ -92,12 +90,11 @@ func TestLocationHandlerList(t *testing.T) {
 }
 
 func TestLocationHandlerCreateRejectsHQ(t *testing.T) {
-	organizationID := uuid.New()
 	h := LocationHandler{
 		Repository: &mockLocationRepo{},
 		Authorizer: mockLocationAuthz{isMember: true},
 	}
-	req := locationRequest(http.MethodPost, "/api/v1/locations", `{"name":"Branch","is_headquarters":true}`, organizationID)
+	req := locationRequest(http.MethodPost, "/api/v1/locations", `{"name":"Branch","is_headquarters":true}`)
 	rec := httptest.NewRecorder()
 	h.Create(rec, req)
 	if rec.Code != http.StatusBadRequest {
@@ -106,12 +103,11 @@ func TestLocationHandlerCreateRejectsHQ(t *testing.T) {
 }
 
 func TestLocationHandlerCreateSuccess(t *testing.T) {
-	organizationID := uuid.New()
 	h := LocationHandler{
 		Repository: &mockLocationRepo{},
 		Authorizer: mockLocationAuthz{isMember: true},
 	}
-	req := locationRequest(http.MethodPost, "/api/v1/locations", `{"name":"Branch Office"}`, organizationID)
+	req := locationRequest(http.MethodPost, "/api/v1/locations", `{"name":"Branch Office"}`)
 	rec := httptest.NewRecorder()
 	h.Create(rec, req)
 	if rec.Code != http.StatusCreated {
@@ -120,12 +116,12 @@ func TestLocationHandlerCreateSuccess(t *testing.T) {
 }
 
 func TestLocationHandlerGet(t *testing.T) {
-	organizationID, id := uuid.New(), uuid.New()
+	id := uuid.New()
 	h := LocationHandler{
 		Repository: &mockLocationRepo{},
 		Authorizer: mockLocationAuthz{isMember: true},
 	}
-	req := locationRequest(http.MethodGet, "/api/v1/locations/"+id.String(), "", organizationID)
+	req := locationRequest(http.MethodGet, "/api/v1/locations/"+id.String(), "")
 	req.SetPathValue("id", id.String())
 	rec := httptest.NewRecorder()
 	h.Get(rec, req)
@@ -135,12 +131,12 @@ func TestLocationHandlerGet(t *testing.T) {
 }
 
 func TestLocationHandlerDelete(t *testing.T) {
-	organizationID, id := uuid.New(), uuid.New()
+	id := uuid.New()
 	h := LocationHandler{
 		Repository: &mockLocationRepo{},
 		Authorizer: mockLocationAuthz{isMember: true},
 	}
-	req := locationRequest(http.MethodDelete, "/api/v1/locations/"+id.String(), "", organizationID)
+	req := locationRequest(http.MethodDelete, "/api/v1/locations/"+id.String(), "")
 	req.SetPathValue("id", id.String())
 	rec := httptest.NewRecorder()
 	h.Delete(rec, req)
@@ -150,12 +146,12 @@ func TestLocationHandlerDelete(t *testing.T) {
 }
 
 func TestLocationHandlerNonMemberForbidden(t *testing.T) {
-	organizationID, id := uuid.New(), uuid.New()
+	id := uuid.New()
 	h := LocationHandler{
 		Repository: &mockLocationRepo{},
 		Authorizer: mockLocationAuthz{isMember: false},
 	}
-	req := locationRequest(http.MethodGet, "/api/v1/locations/"+id.String(), "", organizationID)
+	req := locationRequest(http.MethodGet, "/api/v1/locations/"+id.String(), "")
 	req.SetPathValue("id", id.String())
 	rec := httptest.NewRecorder()
 	h.Get(rec, req)

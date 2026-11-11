@@ -107,29 +107,6 @@ func (m mockOrganizationRepo) DeleteConfig(_ context.Context, _ uuid.UUID) error
 	return nil
 }
 
-func TestOrganizationIDFromContextIgnoresPathValue(t *testing.T) {
-	resolvedID := uuid.New()
-	pathID := uuid.New()
-	req := httptest.NewRequest(http.MethodGet, "/api/v1/organization/settings", nil)
-	req.SetPathValue("ws_id", pathID.String())
-	req = req.WithContext(httpinfra.WithOrganizationIDForTest(req.Context(), resolvedID))
-
-	got, ok := organizationIDFromContext(req)
-	if !ok || got != resolvedID {
-		t.Fatalf("expected resolved organization %s, got %s (ok=%v)", resolvedID, got, ok)
-	}
-}
-
-func TestOrganizationIDFromContextRequiresTrustedContext(t *testing.T) {
-	pathID := uuid.New()
-	req := httptest.NewRequest(http.MethodGet, "/api/v1/organization/settings", nil)
-	req.SetPathValue("ws_id", pathID.String())
-
-	if got, ok := organizationIDFromContext(req); ok || got != uuid.Nil {
-		t.Fatalf("expected missing organization context, got %s (ok=%v)", got, ok)
-	}
-}
-
 func TestOrganizationHandler_PatchEmptyPayloadFailsValidation(t *testing.T) {
 	userID := uuid.New()
 	h := OrganizationHandler{
