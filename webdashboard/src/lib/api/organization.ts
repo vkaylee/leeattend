@@ -26,9 +26,13 @@ export async function fetchOrganizationMembers(): Promise<OrganizationMember[]> 
 
 export const fetchAllOrganizationMembers = fetchOrganizationMembers;
 
+interface OrganizationRoleListResponse {
+  data: OrganizationRole[];
+}
+
 export async function fetchOrganizationRoles(): Promise<OrganizationRole[]> {
-  const { data } = await client.GET<OrganizationRole[]>("/api/v1/roles");
-  return data;
+  const { data } = await client.GET<OrganizationRoleListResponse>("/api/v1/roles");
+  return data.data;
 }
 
 export async function addOrganizationMember(email: string, roleId: string): Promise<void> {
