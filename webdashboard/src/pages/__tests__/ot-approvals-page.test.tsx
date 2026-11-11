@@ -234,6 +234,16 @@ describe("OtApprovalsPage", () => {
     expect(screen.getAllByText('"Covering shift"').length).toBeGreaterThan(0);
   });
 
+  it("keeps desktop approval table wide and horizontally scrollable", async () => {
+    const user = userEvent.setup();
+    renderPage();
+    await user.click(screen.getByText("ot_approvals.tabs.post_ot"));
+
+    const table = screen.getByRole("table");
+    expect(table).toHaveClass("min-w-[1200px]");
+    expect(table.parentElement).toHaveClass("overflow-x-auto");
+  });
+
   it("calls approveOt and refetch when approve button is clicked", async () => {
     const user = userEvent.setup();
     renderPage();

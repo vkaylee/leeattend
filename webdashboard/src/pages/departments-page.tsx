@@ -13,6 +13,7 @@ import EmptyState from "@/components/ui/empty-state";
 import { PageContainer } from "@/components/ui/page-container";
 import PageHeader from "@/components/ui/page-header";
 import ResponsiveTable from "@/components/ui/responsive-table";
+import { useHorizontalDragScroll } from "@/hooks/use-horizontal-drag-scroll";
 
 import { useDepartmentsPage } from "./departments/hooks/use-departments-page";
 
@@ -42,7 +43,10 @@ export default function DepartmentsPage() {
     managerOptions,
     filteredDepartments,
   } = useDepartmentsPage();
-
+  const {
+    onClickCapture: handleHorizontalDragClick,
+    setRef: setHorizontalDragScrollRef,
+  } = useHorizontalDragScroll<HTMLDivElement>();
 
   return (
     <PageContainer>
@@ -246,8 +250,13 @@ export default function DepartmentsPage() {
             );
           }}
           renderDesktopTable={() => (
-            <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl sm:rounded-[2.5rem] overflow-hidden shadow-sm animate-in fade-in duration-500">
-              <table className="w-full text-left border-collapse">
+            <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl sm:rounded-[2.5rem] shadow-sm animate-in fade-in duration-500">
+              <div
+                className="overflow-x-auto overscroll-contain"
+                onClickCapture={handleHorizontalDragClick}
+                ref={setHorizontalDragScrollRef}
+              >
+                <table className="w-full min-w-[900px] text-left border-collapse">
                 <thead>
                   <tr className="bg-slate-50 dark:bg-slate-800/10">
                     <th className="px-8 py-5 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest border-b border-slate-50 dark:border-slate-800">{t("departments.columns.name")}</th>
@@ -317,7 +326,8 @@ export default function DepartmentsPage() {
                     );
                   })}
                 </tbody>
-              </table>
+                </table>
+              </div>
             </div>
           )}
         />

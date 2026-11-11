@@ -69,6 +69,14 @@ describe("EmployeeSalaryConfig", () => {
     expect(screen.getByText(/1[.,]000/)).toBeInTheDocument();
   });
 
+  it("keeps salary component table wide and horizontally scrollable", async () => {
+    renderWithProviders(<EmployeeSalaryConfig employeeId={mockEmpId} employmentId="employment-123" />);
+
+    const table = await screen.findByRole("table");
+    expect(table).toHaveClass("min-w-[640px]");
+    expect(table.parentElement).toHaveClass("overflow-x-auto");
+  });
+
   it("allows adding a new salary component to employee", async () => {
  
     vi.mocked(api.assignEmployeeSalaryComponent).mockResolvedValue({} as unknown as never);

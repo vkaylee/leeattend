@@ -11,6 +11,7 @@ import ResponsiveTable from "@/components/ui/responsive-table";
 import TableEmptyRow from "@/components/ui/table-empty-row";
 import { Typography } from "@/components/ui/typography";
 import { useDebounce } from "@/hooks/use-debounce";
+import { useHorizontalDragScroll } from "@/hooks/use-horizontal-drag-scroll";
 import { useInfiniteScroll } from "@/hooks/use-infinite-scroll";
 import { useWorkerJobs } from "@/hooks/use-worker-monitor";
 import { MonitorInfraJobRecord, RecentJob } from "@/lib/api/types";
@@ -164,6 +165,10 @@ export function JobsTable({ uniqueTypes, t }: JobsTableProps) {
     hasNextPage,
     isFetchingNextPage,
   });
+  const {
+    onClickCapture: handleHorizontalDragClick,
+    setRef: setHorizontalDragScrollRef,
+  } = useHorizontalDragScroll<HTMLDivElement>();
 
   return (
     <>
@@ -283,8 +288,12 @@ export function JobsTable({ uniqueTypes, t }: JobsTableProps) {
             />
           )}
           renderDesktopTable={() => (
-            <div className="overflow-x-auto">
-              <table className="w-full">
+            <div
+              className="overflow-x-auto overscroll-contain"
+              onClickCapture={handleHorizontalDragClick}
+              ref={setHorizontalDragScrollRef}
+            >
+              <table className="w-full min-w-[1100px]">
                 <thead>
                   <tr className="bg-slate-50 dark:bg-slate-800/50">
                     <th className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">

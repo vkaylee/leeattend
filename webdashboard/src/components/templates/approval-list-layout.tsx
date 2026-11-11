@@ -7,6 +7,7 @@ import Button from "@/components/ui/button";
 import { PageContainer } from "@/components/ui/page-container";
 import { TableEmptyRow } from "@/components/ui/table-empty-row";
 import { Typography } from "@/components/ui/typography";
+import { useHorizontalDragScroll } from "@/hooks/use-horizontal-drag-scroll";
 import { cn } from "@/lib/utils";
 
 export interface TabConfig {
@@ -101,6 +102,10 @@ export default function ApprovalListLayout({
   hideTabs,
 }: ApprovalListLayoutProps) {
   const { t } = useTranslation();
+  const {
+    onClickCapture: handleHorizontalDragClick,
+    setRef: setHorizontalDragScrollRef,
+  } = useHorizontalDragScroll<HTMLDivElement>();
 
   return (
     <ErrorBoundary>
@@ -128,7 +133,11 @@ export default function ApprovalListLayout({
       {!hideTabs && !!tabs && <ApprovalListTabs activeTab={activeTab} onTabChange={onTabChange} tabs={tabs} />}
 
       <div className="bg-white dark:bg-slate-900 border border-primary-100 dark:border-primary-800/50 rounded-[3rem] overflow-hidden shadow-sm animate-in slide-in-from-bottom-8 duration-700">
-        <div className="overflow-x-auto overscroll-contain">
+        <div
+          className="overflow-x-auto overscroll-contain"
+          onClickCapture={handleHorizontalDragClick}
+          ref={setHorizontalDragScrollRef}
+        >
         <table className="w-full min-w-max text-left border-collapse">
           <thead>
             <tr className="bg-slate-50 dark:bg-slate-800/50 border-b border-primary-100 dark:border-primary-800/50">

@@ -20,6 +20,7 @@ import { Combobox } from "@/components/ui/combobox";
 import { useToast } from "@/components/ui/toast";
 import { Typography } from "@/components/ui/typography";
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
+import { useHorizontalDragScroll } from "@/hooks/use-horizontal-drag-scroll";
 import {
   assignEmployeeSalaryComponent,
   fetchEmployeePayrollConfigs,
@@ -164,6 +165,10 @@ export default function EmployeeSalaryConfig({employeeId, employmentId }: Props)
   const [amount, setAmount] = useState("");
   const [effectiveDate, setEffectiveDate] = useState(format(new Date(), "yyyy-MM-01"));
   const [expandedGroups, setExpandedGroups] = useState<Partial<Record<string, boolean>>>({});
+  const {
+    onClickCapture: handleHorizontalDragClick,
+    setRef: setHorizontalDragScrollRef,
+  } = useHorizontalDragScroll<HTMLDivElement>();
 
   const { data: definitions = [] } = useQuery({ queryKey: ["salary-components"], queryFn: () => fetchSalaryComponents() });
   const { data: employeeComps = [], isLoading } = useQuery({ queryKey: ["employee-salary-components", employmentId], queryFn: () => fetchEmployeeSalaryComponents(employmentId) });
@@ -217,7 +222,11 @@ export default function EmployeeSalaryConfig({employeeId, employmentId }: Props)
         <AddSalaryForm amount={amount} assignMutation={assignMutation} definitions={definitions} effectiveDate={effectiveDate} onSubmit={handleAssign} selectedCompId={selectedCompId} setAmount={setAmount} setEffectiveDate={setEffectiveDate} setSelectedCompId={setSelectedCompId} t={t} />
       ) : null}
 
-      <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[2.5rem] overflow-x-auto overscroll-contain shadow-sm">
+      <div
+        className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[2.5rem] overflow-x-auto overscroll-contain shadow-sm"
+        onClickCapture={handleHorizontalDragClick}
+        ref={setHorizontalDragScrollRef}
+      >
         <table className="w-full min-w-[640px] text-left border-collapse">
           <thead className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-800">
             <tr>

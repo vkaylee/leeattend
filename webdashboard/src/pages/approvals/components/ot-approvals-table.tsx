@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import InfiniteScrollSentinel from "@/components/common/infinite-scroll-sentinel";
 import Button from "@/components/ui/button";
 import ResponsiveTable from "@/components/ui/responsive-table";
+import { useHorizontalDragScroll } from "@/hooks/use-horizontal-drag-scroll";
 import { useInfiniteScroll } from "@/hooks/use-infinite-scroll";
 
 function OtApprovalMobileCard({
@@ -153,6 +154,10 @@ export function OtApprovalsTable({
     isFetchingNextPage,
     fetchNextPage,
   });
+  const {
+    onClickCapture: handleHorizontalDragClick,
+    setRef: setHorizontalDragScrollRef,
+  } = useHorizontalDragScroll<HTMLDivElement>();
 
   return (
     <ResponsiveTable
@@ -173,8 +178,12 @@ export function OtApprovalsTable({
         />
       )}
       renderDesktopTable={() => (
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
+        <div
+          className="overflow-x-auto overscroll-contain"
+          onClickCapture={handleHorizontalDragClick}
+          ref={setHorizontalDragScrollRef}
+        >
+          <table className="w-full min-w-[1200px] text-left border-collapse">
             <thead>
               <tr className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-800">
                 <th className="px-8 py-6 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em]">

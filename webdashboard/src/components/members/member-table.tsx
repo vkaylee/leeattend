@@ -25,7 +25,6 @@ import {
   TableHead,
   TableCell,
 } from "@/components/ui/table";
-import { Typography } from "@/components/ui/typography";
 import { useConfirm } from "@/hooks/use-confirm";
 import { useMyPermissions } from "@/hooks/use-permissions";
 import { useOrganizationMembers, useOrganizationRoles } from "@/hooks/use-organization";
@@ -134,6 +133,7 @@ function MemberMobileCard({
       <div className="mt-4 flex justify-end gap-3 border-t border-slate-100 pt-4 dark:border-slate-800">
         <PermissionGate anyOf={["members:roles:assign", "members:roles:manage"]}>
           <Button
+            aria-label={t("members.table.manage_roles")}
             className="p-3 bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 hover:text-primary-600 dark:text-primary-400 rounded-xl shadow-md border border-slate-100 dark:border-slate-800 transition-all active:scale-90"
             onClick={() => { onManageRoles(member.user_id); }}
             title={t("members.table.manage_roles")}
@@ -144,6 +144,7 @@ function MemberMobileCard({
         </PermissionGate>
         <PermissionGate anyOf={["members:roles:assign", "members:roles:manage"]}>
           <Button
+            aria-label={t("members.table.manage_permissions", { defaultValue: "Manage Permissions" })}
             className="p-3 bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 hover:text-amber-600 dark:text-amber-400 rounded-xl shadow-md border border-slate-100 dark:border-slate-800 transition-all active:scale-90"
             onClick={() => { onManagePermissions(member.user_id); }}
             title={t("members.table.manage_permissions", { defaultValue: "Manage Permissions" })}
@@ -155,6 +156,7 @@ function MemberMobileCard({
         {roles.find(r => r.id === member.role_id)?.name?.toLowerCase() !== "owner" && (
           <PermissionGate permission="members:remove">
             <Button
+              aria-label={t("members.table.remove_member")}
               className="p-3 bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 hover:text-rose-600 dark:text-rose-300 rounded-xl shadow-md border border-slate-100 dark:border-slate-800 transition-all active:scale-90"
               onClick={() => { onRemoveMember(member.user_id); }}
               title={t("members.table.remove_member")}
@@ -273,7 +275,7 @@ export default function MemberTable() {
           />
         )}
         renderDesktopTable={() => (
-          <Table className="animate-in fade-in duration-700">
+          <Table className="animate-in fade-in duration-700 min-w-[760px]">
             <TableHeader>
               <TableRow>
                 <TableHead>{t("common.user")}</TableHead>
@@ -319,14 +321,14 @@ export default function MemberTable() {
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-3 opacity-0 group-hover:opacity-100 transition-all duration-300 translate-x-2 group-hover:translate-x-0">
                         <PermissionGate anyOf={["members:roles:assign", "members:roles:manage"]}>
-                          <Button className="p-3 bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 hover:text-primary-600 dark:text-primary-400 rounded-xl shadow-md border border-slate-100 dark:border-slate-800 transition-all active:scale-90" onClick={() => { handleManageRoles(member.user_id); }} title={t("members.table.manage_roles")} variant="ghost"><UserCog size={20} /></Button>
+                          <Button className="p-3 bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 hover:text-primary-600 dark:text-primary-400 rounded-xl shadow-md border border-slate-100 dark:border-slate-800 transition-all active:scale-90" aria-label={t("members.table.manage_roles")} onClick={() => { handleManageRoles(member.user_id); }} title={t("members.table.manage_roles")} variant="ghost"><UserCog size={20} /></Button>
                         </PermissionGate>
                         <PermissionGate anyOf={["members:roles:assign", "members:roles:manage"]}>
-                          <Button className="p-3 bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 hover:text-amber-600 dark:text-amber-400 rounded-xl shadow-md border border-slate-100 dark:border-slate-800 transition-all active:scale-90" onClick={() => { handleManagePermissions(member.user_id); }} title={t("members.table.manage_permissions", { defaultValue: "Manage Permissions" })} variant="ghost"><KeyRound size={20} /></Button>
+                          <Button className="p-3 bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 hover:text-amber-600 dark:text-amber-400 rounded-xl shadow-md border border-slate-100 dark:border-slate-800 transition-all active:scale-90" aria-label={t("members.table.manage_permissions", { defaultValue: "Manage Permissions" })} onClick={() => { handleManagePermissions(member.user_id); }} title={t("members.table.manage_permissions", { defaultValue: "Manage Permissions" })} variant="ghost"><KeyRound size={20} /></Button>
                         </PermissionGate>
                         {roles.find(r => r.id === member.role_id)?.name?.toLowerCase() !== "owner" && (
                           <PermissionGate permission="members:remove">
-                            <Button className="p-3 bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 hover:text-rose-600 dark:text-rose-300 rounded-xl shadow-md border border-slate-100 dark:border-slate-800 transition-all active:scale-90" onClick={() => handleRemoveMember(member.user_id)} title={t("members.table.remove_member")} variant="ghost"><Trash2 size={20} /></Button>
+                            <Button aria-label={t("members.table.remove_member")} className="p-3 bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 hover:text-rose-600 dark:text-rose-300 rounded-xl shadow-md border border-slate-100 dark:border-slate-800 transition-all active:scale-90" onClick={() => handleRemoveMember(member.user_id)} title={t("members.table.remove_member")} variant="ghost"><Trash2 size={20} /></Button>
                           </PermissionGate>
                         )}
                       </div>

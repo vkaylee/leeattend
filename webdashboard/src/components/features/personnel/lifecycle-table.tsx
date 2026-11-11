@@ -2,9 +2,7 @@ import { Link } from "@tanstack/react-router";
 import {
   ArrowLeftRight,
   ArrowRight,
-  CheckCircle2,
   CheckSquare,
-  Clock,
   ExternalLink,
   ListTodo,
   UserMinus,
@@ -17,6 +15,7 @@ import Button from "@/components/ui/button";
 import EmptyState from "@/components/ui/empty-state";
 import ResponsiveTable from "@/components/ui/responsive-table";
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
+import { useHorizontalDragScroll } from "@/hooks/use-horizontal-drag-scroll";
 import type { LifecycleInstanceSummary } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
@@ -180,6 +179,10 @@ export function LifecycleTable({
 }: LifecycleTableProps) {
   const { t } = useTranslation();
   const { formatDate } = useDateTimeFormatter();
+  const {
+    onClickCapture: handleHorizontalDragClick,
+    setRef: setHorizontalDragScrollRef,
+  } = useHorizontalDragScroll<HTMLDivElement>();
 
   if (isLoading) {
     return (
@@ -248,8 +251,12 @@ export function LifecycleTable({
         />
       )}
       renderDesktopTable={() => (
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
+        <div
+          className="overflow-x-auto overscroll-contain"
+          onClickCapture={handleHorizontalDragClick}
+          ref={setHorizontalDragScrollRef}
+        >
+          <table className="w-full min-w-[980px] text-left border-collapse">
             <thead>
               <tr className="border-b border-slate-100 dark:border-slate-800/60">
                 <th className="px-8 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest">

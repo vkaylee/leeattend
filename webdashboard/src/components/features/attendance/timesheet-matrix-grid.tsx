@@ -6,6 +6,7 @@ import { EmployeeIdentityCell } from "@/components/common/employee-identity-cell
 import Button from "@/components/ui/button";
 import EmptyState from "@/components/ui/empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useHorizontalDragScroll } from "@/hooks/use-horizontal-drag-scroll";
 import type { DailyAttendanceReport } from "@/lib/api";
 import { Employee } from "@/lib/api/types";
 import { cn } from "@/lib/utils";
@@ -53,6 +54,10 @@ export const TimesheetMatrixGrid = React.forwardRef<
   ) => {
     const { t } = useTranslation();
     const [isLegendOpen, setIsLegendOpen] = useState(false);
+    const {
+      onClickCapture: handleHorizontalDragClick,
+      setRef: setHorizontalDragScrollRef,
+    } = useHorizontalDragScroll<HTMLDivElement>();
 
     // Calculate days in the selected month
     const daysInMonth = useMemo(() => {
@@ -202,7 +207,11 @@ export const TimesheetMatrixGrid = React.forwardRef<
         )}
 
         {/* Main Matrix Table */}
-        <div className="flex-1 min-h-0 overflow-auto">
+        <div
+          className="flex-1 min-h-0 overflow-auto overscroll-contain"
+          onClickCapture={handleHorizontalDragClick}
+          ref={setHorizontalDragScrollRef}
+        >
           {isLoading || isLoadingAttendance ? (
             <div className="p-12 space-y-3">
               {Array.from({ length: 6 }).map((_, i) => (
@@ -241,13 +250,13 @@ export const TimesheetMatrixGrid = React.forwardRef<
                   ))}
 
                   {/* Fixed Right Summary Header Columns */}
-                  <th className="px-3 py-3 text-center font-semibold text-emerald-700 dark:text-emerald-300 bg-emerald-500/10 min-w-[56px] border-l border-slate-200 dark:border-slate-700">
+                  <th className="sticky right-[112px] z-30 px-3 py-3 text-center font-semibold text-emerald-700 dark:text-emerald-300 bg-emerald-500/10 min-w-[56px] border-l border-slate-200 dark:border-slate-700 shadow-[-2px_0_5px_rgba(0,0,0,0.04)]">
                     {t("reports.table.std_hours", "Công")}
                   </th>
-                  <th className="px-3 py-3 text-center font-semibold text-blue-700 dark:text-blue-300 bg-blue-500/10 min-w-[56px]">
+                  <th className="sticky right-[56px] z-30 px-3 py-3 text-center font-semibold text-blue-700 dark:text-blue-300 bg-blue-500/10 min-w-[56px] shadow-[-2px_0_5px_rgba(0,0,0,0.04)]">
                     {t("reports.table.leave_days", "Phép")}
                   </th>
-                  <th className="px-3 py-3 text-center font-semibold text-purple-700 dark:text-purple-300 bg-purple-500/10 min-w-[56px]">
+                  <th className="sticky right-0 z-30 px-3 py-3 text-center font-semibold text-purple-700 dark:text-purple-300 bg-purple-500/10 min-w-[56px] shadow-[-2px_0_5px_rgba(0,0,0,0.04)]">
                     {t("reports.table.total_hours", "Tổng tính")}
                   </th>
                 </tr>
@@ -307,13 +316,13 @@ export const TimesheetMatrixGrid = React.forwardRef<
                       })}
 
                       {/* Right Summary Totals */}
-                      <td className="px-2 py-2 text-center font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-500/5 border-l border-slate-200 dark:border-slate-700">
+                      <td className="sticky right-[112px] z-10 px-2 py-2 text-center font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-500/5 border-l border-slate-200 dark:border-slate-700 shadow-[-2px_0_5px_rgba(0,0,0,0.04)]">
                         {totalWork.toFixed(1)}
                       </td>
-                      <td className="px-2 py-2 text-center font-bold text-blue-700 dark:text-blue-300 bg-blue-500/5">
+                      <td className="sticky right-[56px] z-10 px-2 py-2 text-center font-bold text-blue-700 dark:text-blue-300 bg-blue-500/5 shadow-[-2px_0_5px_rgba(0,0,0,0.04)]">
                         {totalLeave.toFixed(1)}
                       </td>
-                      <td className="px-2 py-2 text-center font-black text-purple-700 dark:text-purple-300 bg-purple-500/5">
+                      <td className="sticky right-0 z-10 px-2 py-2 text-center font-black text-purple-700 dark:text-purple-300 bg-purple-500/5 shadow-[-2px_0_5px_rgba(0,0,0,0.04)]">
                         {(totalWork + totalLeave).toFixed(1)}
                       </td>
                     </tr>

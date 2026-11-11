@@ -8,6 +8,7 @@ import ResponsiveTable from "@/components/ui/responsive-table";
 import StatusBadge from "@/components/ui/status-badge";
 import { Typography } from "@/components/ui/typography";
 import { useOrganization } from "@/hooks/use-organization";
+import { useHorizontalDragScroll } from "@/hooks/use-horizontal-drag-scroll";
 import { AttendanceAdjustmentRequest } from "@/lib/api/types";
 
 import type { AttendanceStatusFilter } from "../hooks/use-attendance-adjustments-page";
@@ -177,6 +178,10 @@ export function AdjustmentsTable(props: AdjustmentsTableProps) {
     isFetchingNextPage,
     loadMoreRef,
   } = props;
+  const {
+    onClickCapture: handleHorizontalDragClick,
+    setRef: setHorizontalDragScrollRef,
+  } = useHorizontalDragScroll<HTMLDivElement>();
 
   return (
     <ResponsiveTable<AttendanceAdjustmentRequest>
@@ -202,8 +207,12 @@ export function AdjustmentsTable(props: AdjustmentsTableProps) {
       )}
       renderDesktopTable={() => (
         <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-3xl sm:rounded-[3rem] overflow-hidden shadow-sm animate-in slide-in-from-bottom-8 duration-700">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
+          <div
+            className="overflow-x-auto overscroll-contain"
+            onClickCapture={handleHorizontalDragClick}
+            ref={setHorizontalDragScrollRef}
+          >
+            <table className="w-full min-w-[980px] text-left border-collapse">
               <AdjustmentsTableHeader setStatusFilter={setStatusFilter} statusFilter={statusFilter} />
               <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
                 {isLoading ? (

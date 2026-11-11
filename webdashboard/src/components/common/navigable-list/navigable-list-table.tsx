@@ -3,6 +3,7 @@ import type { TFunction } from "i18next";
 import { ChevronRight } from "lucide-react";
 import React from "react";
 
+import { useHorizontalDragScroll } from "@/hooks/use-horizontal-drag-scroll";
 import { cn } from "@/lib/utils";
 
 import type { ListNavSimple, NavigableListColumn } from "./types";
@@ -204,10 +205,18 @@ export function NavigableListTable<T>({
   visibleColumns: NavigableListColumn<T>[];
 }) {
   const visibility = MOBILE_VISIBILITY[mobileBreakpoint];
+  const {
+    onClickCapture: handleHorizontalDragClick,
+    setRef: setHorizontalDragScrollRef,
+  } = useHorizontalDragScroll<HTMLDivElement>();
   const table = (
     <div className={cn("bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[2.5rem] shadow-sm", isFullPage ? "overflow-x-clip" : "overflow-hidden")}>
-      <div className={cn(isFullPage ? "" : "overflow-auto", maxHeightClass)}>
-        <table className="w-full text-left border-collapse">
+      <div
+        className={cn(isFullPage ? "overflow-x-auto overscroll-contain" : "overflow-auto overscroll-contain", maxHeightClass)}
+        onClickCapture={handleHorizontalDragClick}
+        ref={setHorizontalDragScrollRef}
+      >
+        <table className="w-full min-w-[1100px] text-left border-collapse">
           <thead>
             <tr
               className="bg-slate-50/95 dark:bg-slate-800/95 backdrop-blur-sm border-b border-slate-100 dark:border-slate-800 sticky z-10"

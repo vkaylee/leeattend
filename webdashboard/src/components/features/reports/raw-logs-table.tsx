@@ -38,7 +38,6 @@ export default function RawLogsTable({
         isFetchingNextPage,
         fetchNextPage,
     });
-
     return (
         <ResponsiveTable<RawAttendanceLog>
             data={rawLogsData}
@@ -73,7 +72,7 @@ export default function RawLogsTable({
             )}
             renderDesktopTable={() => (
                 <div className="flex-1 min-h-0 relative overflow-auto">
-                    <Table>
+                    <Table className="min-w-[900px]">
                         <TableHeader className="bg-slate-50/95 dark:bg-slate-800/95 backdrop-blur-sm border-b border-slate-100 dark:border-slate-800 sticky top-0 z-10">
                             <TableRow>
                                 <TableHead className="px-8 py-4 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">{t("common.time")}</TableHead>

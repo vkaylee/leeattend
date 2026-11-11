@@ -7,6 +7,7 @@ import Button from "@/components/ui/button";
 import EmptyState from "@/components/ui/empty-state";
 import ResponsiveTable from "@/components/ui/responsive-table";
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
+import { useHorizontalDragScroll } from "@/hooks/use-horizontal-drag-scroll";
 import { cn } from "@/lib/utils";
 
 function EContractMobileCard({
@@ -151,6 +152,10 @@ export function EContractsTable({
 }: EContractsTableProps) {
   const { t } = useTranslation();
   const { formatDate } = useDateTimeFormatter();
+  const {
+    onClickCapture: handleHorizontalDragClick,
+    setRef: setHorizontalDragScrollRef,
+  } = useHorizontalDragScroll<HTMLDivElement>();
 
   const getContractTypeLabel = (type: ContractType) => {
     switch (type) {
@@ -230,8 +235,12 @@ export function EContractsTable({
         />
       )}
       renderDesktopTable={() => (
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
+        <div
+          className="overflow-x-auto overscroll-contain"
+          onClickCapture={handleHorizontalDragClick}
+          ref={setHorizontalDragScrollRef}
+        >
+          <table className="w-full min-w-[980px] text-left border-collapse">
             <thead>
               <tr className="border-b border-slate-50 dark:border-slate-800/50">
                 <th className="px-8 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest">

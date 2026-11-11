@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 
 import { useDepartments } from "@/hooks/use-departments";
 import { useAllEmployees } from "@/hooks/use-employees";
+import { useMyPermissions } from "@/hooks/use-permissions";
 import {
   fetchAttendanceAdjustments,
   fetchLeaveRequests,
@@ -49,7 +50,18 @@ export interface UseUnifiedInboxReturn {
 
 export function useUnifiedInbox(): UseUnifiedInboxReturn {
   const { t } = useTranslation();
-  
+  const { hasAnyPermission } = useMyPermissions();
+
+  const canReadLeaves = hasAnyPermission(
+    "leave:requests:read",
+    "leave:requests:approve",
+    "leave:requests:submit_on_behalf",
+  );
+  const canApproveAdjustments = hasAnyPermission(
+    "attendance:adjustments:approve",
+  );
+  const canManageSwaps = hasAnyPermission("shift_swaps:manage");
+  const canApproveOvertime = hasAnyPermission("overtime:approve");
 
   // ── Filters & Selection ──────────────────────────────────────────────
   const [filter, setFilterState] = useState<UnifiedInboxFilter>(() => {
@@ -110,41 +122,54 @@ export function useUnifiedInbox(): UseUnifiedInboxReturn {
   const leavesQuery = useQuery({
     queryKey: ["unified-inbox-leaves"],
     queryFn: () => fetchLeaveRequests({ limit: 100 }),
+    enabled: canReadLeaves,
     staleTime: 30_000,
   });
 
   const adjustmentsQuery = useQuery({
     queryKey: ["unified-inbox-adjustments"],
     queryFn: () => fetchAttendanceAdjustments({ limit: 100 }),
+    enabled: canApproveAdjustments,
     staleTime: 30_000,
   });
 
   const swapsQuery = useQuery({
     queryKey: ["unified-inbox-swaps"],
     queryFn: () => fetchShiftSwaps(),
+    enabled: canManageSwaps,
     staleTime: 30_000,
   });
 
   const otQuery = useQuery({
     queryKey: ["unified-inbox-ot", startDate, endDate],
     queryFn: () => fetchAttendanceSummaries(startDate, endDate),
+    enabled: canApproveOvertime,
     staleTime: 30_000,
   });
 
   const isLoading =
-    leavesQuery.isLoading ||
-    adjustmentsQuery.isLoading ||
-    swapsQuery.isLoading ||
-    otQuery.isLoading;
+    (canReadLeaves && leavesQuery.isLoading) ||
+    (canApproveAdjustments && adjustmentsQuery.isLoading) ||
+    (canManageSwaps && swapsQuery.isLoading) ||
+    (canApproveOvertime && otQuery.isLoading);
 
   const refetchAll = useCallback(async () => {
     await Promise.all([
-      leavesQuery.refetch(),
-      adjustmentsQuery.refetch(),
-      swapsQuery.refetch(),
-      otQuery.refetch(),
+      ...(canReadLeaves ? [leavesQuery.refetch()] : []),
+      ...(canApproveAdjustments ? [adjustmentsQuery.refetch()] : []),
+      ...(canManageSwaps ? [swapsQuery.refetch()] : []),
+      ...(canApproveOvertime ? [otQuery.refetch()] : []),
     ]);
-  }, [leavesQuery, adjustmentsQuery, swapsQuery, otQuery]);
+  }, [
+    canApproveAdjustments,
+    canApproveOvertime,
+    canManageSwaps,
+    canReadLeaves,
+    leavesQuery,
+    adjustmentsQuery,
+    swapsQuery,
+    otQuery,
+  ]);
 
   // ── Helper: Compute Team Impact across any approval item (LSP & DRY) ──
   const approvedLeaves = useMemo(() => {

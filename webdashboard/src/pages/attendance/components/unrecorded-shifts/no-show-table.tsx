@@ -4,6 +4,7 @@ import { useCallback, useMemo } from "react";
 import InfiniteScrollSentinel from "@/components/common/infinite-scroll-sentinel";
 import ResponsiveTable from "@/components/ui/responsive-table";
 import { Typography } from "@/components/ui/typography";
+import { useHorizontalDragScroll } from "@/hooks/use-horizontal-drag-scroll";
 import { ScheduleTrace } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
@@ -47,6 +48,10 @@ export function NoShowTable({
   onlyZoneB,
   t,
 }: NoShowTableProps) {
+  const {
+    onClickCapture: handleHorizontalDragClick,
+    setRef: setHorizontalDragScrollRef,
+  } = useHorizontalDragScroll<HTMLDivElement>();
   const columns = useMemo(() => ({
     zone: t("unrecorded_shifts.zone_header"),
     employee_code: t("unrecorded_shifts.columns.employee_code"),
@@ -64,8 +69,12 @@ export function NoShowTable({
   ), [columns, t, tracesByKey]);
 
   const renderDesktopTable = useCallback(() => (
-    <div className="overflow-x-auto">
-      <table className="w-full text-sm">
+    <div
+      className="overflow-x-auto overscroll-contain"
+      onClickCapture={handleHorizontalDragClick}
+      ref={setHorizontalDragScrollRef}
+    >
+      <table className="w-full min-w-[1200px] text-sm">
         <thead>
           <tr className="bg-slate-50 dark:bg-slate-800/60 border-b border-slate-200 dark:border-slate-700">
             {Object.entries(columns).map(([k, label]) => (

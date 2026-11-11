@@ -4,6 +4,8 @@ import { useTranslation } from "react-i18next";
 
 import type { OrganizationLeaveBalance } from "@/lib/api/types";
 
+import { useHorizontalDragScroll } from "@/hooks/use-horizontal-drag-scroll";
+
 import Button from "@/components/ui/button";
 import ResponsiveTable from "@/components/ui/responsive-table";
 import TableEmptyRow from "@/components/ui/table-empty-row";
@@ -107,6 +109,10 @@ export const LeaveBalancesTable: React.FC<LeaveBalancesTableProps> = ({
   onViewHistory,
 }) => {
   const { t } = useTranslation();
+  const {
+    onClickCapture: handleHorizontalDragClick,
+    setRef: setHorizontalDragScrollRef,
+  } = useHorizontalDragScroll<HTMLDivElement>();
 
   const handleHistory = (balance: OrganizationLeaveBalance) => {
     onViewHistory({
@@ -134,8 +140,12 @@ export const LeaveBalancesTable: React.FC<LeaveBalancesTableProps> = ({
         />
       )}
       renderDesktopTable={(data) => (
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
+        <div
+          className="overflow-x-auto overscroll-contain"
+          onClickCapture={handleHorizontalDragClick}
+          ref={setHorizontalDragScrollRef}
+        >
+          <table className="w-full min-w-[760px] text-left border-collapse">
             <thead>
               <tr className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-800">
                 <th className="px-6 py-5 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.2em]">{t("common.employee")}</th>

@@ -7,6 +7,7 @@ import { TFunction } from "i18next";
 import ResponsiveTable from "@/components/ui/responsive-table";
 import TableEmptyRow from "@/components/ui/table-empty-row";
 import { Typography } from "@/components/ui/typography";
+import { useHorizontalDragScroll } from "@/hooks/use-horizontal-drag-scroll";
 import { WorkerHeartbeat } from "@/lib/api/types";
 import { cn } from "@/lib/utils";
 
@@ -135,6 +136,11 @@ function WorkerMobileCard({ t, worker, formatDate }: {
 }
 
 export function WorkersTable({ isUnavailable = false, t, workers }: WorkersTableProps) {
+  const {
+    onClickCapture: handleHorizontalDragClick,
+    setRef: setHorizontalDragScrollRef,
+  } = useHorizontalDragScroll<HTMLDivElement>();
+
   return (
     <div className="overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:rounded-[2.5rem] dark:shadow-black/10">
       <div className="border-b border-slate-100 p-6 dark:border-slate-800">
@@ -159,8 +165,12 @@ export function WorkersTable({ isUnavailable = false, t, workers }: WorkersTable
           <WorkerMobileCard formatDate={formatDistanceToNow} t={t} worker={worker} />
         )}
         renderDesktopTable={() => (
-          <div className="overflow-x-auto">
-            <table className="w-full">
+          <div
+            className="overflow-x-auto overscroll-contain"
+            onClickCapture={handleHorizontalDragClick}
+            ref={setHorizontalDragScrollRef}
+          >
+            <table className="w-full min-w-[900px]">
               <thead>
                 <tr className="bg-slate-50 dark:bg-slate-800/50">
                   <th className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">

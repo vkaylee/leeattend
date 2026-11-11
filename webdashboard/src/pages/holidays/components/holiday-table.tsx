@@ -91,13 +91,15 @@ function HolidayTableRow({ h, leaveTypes, onDelete, onEdit }: { h: Holiday; leav
             </TableCell>
             <TableCell className="px-4 py-4">
                 <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <Button className="p-1.5 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-500 hover:text-primary-600 hover:bg-primary-50 transition-colors"
+                    <Button aria-label={t("common.edit")}
+                        className="p-1.5 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-500 hover:text-primary-600 hover:bg-primary-50 transition-colors"
                         onClick={() => { onEdit(h); }}
                         variant="ghost"
                     >
                         <Pencil size={14} />
                     </Button>
-                    <Button className="p-1.5 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-500 hover:text-rose-600 hover:bg-rose-50 transition-colors"
+                    <Button aria-label={t("common.delete")}
+                        className="p-1.5 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-500 hover:text-rose-600 hover:bg-rose-50 transition-colors"
                         onClick={() => { onDelete(h.id); }}
                         variant="ghost"
                     >
@@ -206,6 +208,7 @@ function HolidayMobileCard({
             {/* Actions */}
             <div className="mt-4 flex justify-end gap-2 border-t border-slate-100 pt-4 dark:border-slate-800">
                 <Button
+                    aria-label={t("common.edit")}
                     className="rounded-lg border border-slate-200 bg-white p-1.5 text-slate-500 transition-colors hover:bg-primary-50 hover:text-primary-600 dark:border-slate-700 dark:bg-slate-800 dark:hover:bg-primary-950/30 dark:hover:text-primary-400"
                     onClick={() => { onEdit(h); }}
                     variant="ghost"
@@ -213,6 +216,7 @@ function HolidayMobileCard({
                     <Pencil size={14} />
                 </Button>
                 <Button
+                    aria-label={t("common.delete")}
                     className="rounded-lg border border-slate-200 bg-white p-1.5 text-slate-500 transition-colors hover:bg-rose-50 hover:text-rose-600 dark:border-slate-700 dark:bg-slate-800 dark:hover:bg-rose-950/30 dark:hover:text-rose-400"
                     onClick={() => { onDelete(h.id); }}
                     variant="ghost"
@@ -263,7 +267,7 @@ export function HolidayTable({ holidays, isLoading, leaveTypes, onDelete, onEdit
                 />
             )}
             renderDesktopTable={() => (
-                <Table>
+                <Table className="min-w-[960px]">
                     <HolidayTableHeader />
                     <TableBody>
                         {holidays.map((h) => (

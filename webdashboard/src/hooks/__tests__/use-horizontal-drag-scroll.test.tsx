@@ -121,4 +121,71 @@ describe("useHorizontalDragScroll", () => {
 
     expect(scroller.scrollLeft).toBe(0);
   });
+
+  it("clamps panning to both horizontal scroll boundaries", () => {
+    render(<TestScroller />);
+    const scroller = screen.getByTestId("scroller");
+    setOverflow(scroller, { clientWidth: 100, scrollWidth: 500 });
+
+    fireEvent.pointerDown(scroller, {
+      button: 0,
+      clientX: 20,
+      clientY: 20,
+      isPrimary: true,
+      pointerId: 1,
+      pointerType: "mouse",
+    });
+    fireEvent.pointerMove(window, {
+      clientX: 200,
+      clientY: 20,
+      isPrimary: true,
+      pointerId: 1,
+      pointerType: "mouse",
+    });
+    expect(scroller.scrollLeft).toBe(0);
+
+    fireEvent.pointerUp(window, { isPrimary: true, pointerId: 1, pointerType: "mouse" });
+    scroller.scrollLeft = 100;
+    fireEvent.pointerDown(scroller, {
+      button: 0,
+      clientX: 20,
+      clientY: 20,
+      isPrimary: true,
+      pointerId: 2,
+      pointerType: "mouse",
+    });
+    fireEvent.pointerMove(window, {
+      clientX: -500,
+      clientY: 20,
+      isPrimary: true,
+      pointerId: 2,
+      pointerType: "mouse",
+    });
+
+    expect(scroller.scrollLeft).toBe(400);
+  });
+
+  it("does not pan when disabled", () => {
+    render(<TestScroller enabled={false} />);
+    const scroller = screen.getByTestId("scroller");
+    setOverflow(scroller, { clientWidth: 100, scrollWidth: 500 });
+
+    fireEvent.pointerDown(scroller, {
+      button: 0,
+      clientX: 20,
+      clientY: 20,
+      isPrimary: true,
+      pointerId: 1,
+      pointerType: "mouse",
+    });
+    fireEvent.pointerMove(window, {
+      clientX: -100,
+      clientY: 20,
+      isPrimary: true,
+      pointerId: 1,
+      pointerType: "mouse",
+    });
+
+    expect(scroller.scrollLeft).toBe(0);
+  });
 });

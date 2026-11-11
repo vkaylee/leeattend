@@ -1,6 +1,5 @@
 import { Link } from "@tanstack/react-router";
 import {
-  ArrowRight,
   Baby,
   Ban,
   Clock,
@@ -18,6 +17,7 @@ import Button from "@/components/ui/button";
 import EmptyState from "@/components/ui/empty-state";
 import ResponsiveTable from "@/components/ui/responsive-table";
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
+import { useHorizontalDragScroll } from "@/hooks/use-horizontal-drag-scroll";
 import type { ConditionTypeDefinition } from "@/lib/api";
 import type { WorkingConditionWithEmployee } from "@/lib/api/employee-conditions";
 import { cn } from "@/lib/utils";
@@ -157,6 +157,10 @@ export function WorkingConditionsTable({
 }: WorkingConditionsTableProps) {
   const { t, i18n } = useTranslation();
   const { formatDate } = useDateTimeFormatter();
+  const {
+    onClickCapture: handleHorizontalDragClick,
+    setRef: setHorizontalDragScrollRef,
+  } = useHorizontalDragScroll<HTMLDivElement>();
   const currentLang = i18n.language.split("-")[0];
 
   if (isLoading) {
@@ -229,8 +233,12 @@ export function WorkingConditionsTable({
         />
       )}
       renderDesktopTable={() => (
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
+        <div
+          className="overflow-x-auto overscroll-contain"
+          onClickCapture={handleHorizontalDragClick}
+          ref={setHorizontalDragScrollRef}
+        >
+          <table className="w-full min-w-[820px] text-left border-collapse">
             <thead>
               <tr className="border-b border-slate-100 dark:border-slate-800/60">
                 <th className="px-8 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest">

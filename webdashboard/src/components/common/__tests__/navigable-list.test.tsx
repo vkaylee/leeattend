@@ -115,6 +115,21 @@ describe("NavigableList", () => {
         expect(container.querySelector(".lg\\:hidden")).toBeDefined();
     });
 
+    it("keeps desktop tables horizontally scrollable for wide data", () => {
+        const { container } = render(
+            <NavigableList
+                {...defaultProps}
+                renderMobileCard={(item) => <article>{item.name} mobile card</article>}
+            />
+        );
+        const desktop = container.querySelector(".hidden.lg\\:block");
+        const scrollContainer = desktop?.querySelector(".overflow-x-auto");
+        const table = desktop?.querySelector("table");
+
+        expect(scrollContainer).toBeDefined();
+        expect(table?.className).toContain("min-w-[1100px]");
+    });
+
     // ── Search ─────────────────────────────────────────────────
 
     it("renders search box when onSearchChange is provided", () => {

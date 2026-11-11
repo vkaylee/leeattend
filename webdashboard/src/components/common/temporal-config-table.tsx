@@ -7,6 +7,7 @@ import { useTranslation } from "react-i18next";
 import Button from "@/components/ui/button";
 import { Typography } from "@/components/ui/typography";
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
+import { useHorizontalDragScroll } from "@/hooks/use-horizontal-drag-scroll";
 import { ConfigRecord } from "@/lib/api/types";
 import { cn } from "@/lib/utils";
 
@@ -228,6 +229,10 @@ function TemporalConfigHeader({ title, t, isAdding, setIsAdding }: { isAdding: b
 
 export default function TemporalConfigTable({ title, records, onSave, isLoading }: Props) {
   const { t } = useTranslation();
+  const {
+    onClickCapture: handleHorizontalDragClick,
+    setRef: setHorizontalDragScrollRef,
+  } = useHorizontalDragScroll<HTMLDivElement>();
   const { formatDate } = useDateTimeFormatter();
   const [isAdding, setIsAdding] = useState(false);
   const [newDays, setNewDays] = useState<number>(26);
@@ -285,7 +290,11 @@ export default function TemporalConfigTable({ title, records, onSave, isLoading 
         />
       ) : null}
 
-      <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[2.5rem] overflow-x-auto overscroll-contain shadow-sm">
+      <div
+        className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[2.5rem] overflow-x-auto overscroll-contain shadow-sm"
+        onClickCapture={handleHorizontalDragClick}
+        ref={setHorizontalDragScrollRef}
+      >
         {isLoading ? (
           <div className="p-20 text-center"><div className="w-10 h-10 border-4 border-primary-600 border-t-transparent rounded-full animate-spin mx-auto"></div></div>
         ) : (

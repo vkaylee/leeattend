@@ -257,6 +257,13 @@ describe("WorkerMonitorPage", () => {
         expect(screen.getAllByText("LeaveAccrual").length).toBeGreaterThan(0);
     });
 
+    it("keeps worker desktop table wide and horizontally scrollable", () => {
+        renderPage();
+        const table = screen.getAllByRole("table").find((candidate) => candidate.classList.contains("min-w-[900px]"));
+        expect(table).toBeDefined();
+        expect(table?.parentElement).toHaveClass("overflow-x-auto");
+    });
+
     it("shows processing and idle status badges", () => {
         renderPage();
         expect(screen.getAllByText("Processing").length).toBeGreaterThan(0);
@@ -273,6 +280,13 @@ describe("WorkerMonitorPage", () => {
     it("renders recent jobs section", () => {
         renderPage();
         expect(screen.getByText("Recent Jobs")).toBeInTheDocument();
+    });
+
+    it("keeps recent jobs desktop table wide and horizontally scrollable", () => {
+        renderPage();
+        const table = screen.getAllByRole("table").find((candidate) => candidate.classList.contains("min-w-[1100px]"));
+        expect(table).toBeDefined();
+        expect(table?.parentElement).toHaveClass("overflow-x-auto");
     });
 
     it("renders recent jobs with truncated IDs", () => {

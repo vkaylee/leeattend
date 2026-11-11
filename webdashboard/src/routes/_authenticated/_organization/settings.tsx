@@ -1,14 +1,34 @@
-import { createFileRoute, Outlet } from "@tanstack/react-router";
+import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
 import { Sliders, ChevronDown } from "lucide-react";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import Button from "@/components/ui/button";
 import { ErrorBoundary } from "@/components/common/error-boundary";
+import { fetchMyPermissions } from "@/lib/api";
+import { ROUTES } from "@/lib/routes";
 import { cn } from "@/lib/utils";
 import { SettingsSidebar } from "@/pages/settings/components/settings-sidebar";
+
+const SETTINGS_PERMISSIONS = [
+  "organization:settings:read",
+  "members:roles:assign",
+  "members:roles:manage",
+] as const;
+
 export const Route = createFileRoute(
   "/_authenticated/_organization/settings"
 )({
+  beforeLoad: async () => {
+    try {
+      const { permissions } = await fetchMyPermissions();
+      if (!SETTINGS_PERMISSIONS.some((permission) => permissions.includes(permission))) {
+        throw redirect({ to: ROUTES.HOME });
+      }
+    } catch (error) {
+      if (error && typeof error === "object" && "isRedirect" in error) throw error;
+      throw redirect({ to: ROUTES.HOME });
+    }
+  },
   component: SettingsPageLayout,
 });
 

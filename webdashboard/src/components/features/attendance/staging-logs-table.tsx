@@ -107,7 +107,7 @@ export function StagingLogsTable({ departments, formatDate, formatTime, isDismis
       isLoading={isLoading}
       renderCard={(log) => <StagingLogMobileCard {...assignmentProps(log)} />}
       renderDesktopTable={() => (
-        <Table>
+        <Table className="min-w-[900px]">
           <TableHeader><TableRow><TableHead>{t('common.time')}</TableHead><TableHead>{t('attendance_logs.unknown_id')}</TableHead><TableHead>{t('common.source')}</TableHead><TableHead className="text-right">{t('common.actions')}</TableHead></TableRow></TableHeader>
           <TableBody>
             {isLoading ? <TableSkeleton rows={3} variant="warning" /> : logs.length === 0 ? <TableRow><TableCell className="px-8 py-24 text-center" colSpan={4}><Typography variant="p">{t('attendance_logs.messages.no_unknown_logs')}</Typography></TableCell></TableRow> : <>{logs.map((log) => <StagingLogRow key={log.id} {...assignmentProps(log)} />)}<InfiniteScrollSentinel colSpan={4} isFetchingNextPage={isFetchingNextPage} sentinelRef={loadMoreRef} /></>}
