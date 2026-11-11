@@ -9,7 +9,7 @@ import { organizationKeys } from "@/hooks/use-organization-queries";
 
 import type { DetailTabType } from "../drawer-header";
 
-const TAB_ORDER: DetailTabType[] = ["profile", "documents", "contracts", "phases", "assignments", "salary", "compensation", "working-conditions", "attendance-policy", "lifecycle"];
+const TAB_ORDER: DetailTabType[] = ["profile", "documents", "contracts", "phases", "salary", "compensation", "attendance-policy"];
 const SCROLL_STEP = 80;
 
 interface UseEmployeeDetailProps {

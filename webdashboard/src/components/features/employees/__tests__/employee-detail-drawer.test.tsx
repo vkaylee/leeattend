@@ -25,9 +25,6 @@ vi.mock("react-i18next", () => ({
 vi.mock("@/components/payroll/employee-salary-config", () => ({
     default: () => <div data-testid="salary-config">SalaryConfig</div>,
 }));
-vi.mock("@/components/employees/working-condition-config", () => ({
-    default: () => <div data-testid="working-condition">WorkingCondition</div>,
-}));
 vi.mock("../employee-contracts-tab", () => ({
     default: () => <div data-testid="contracts-tab">ContractsTab</div>,
 }));
@@ -40,14 +37,8 @@ vi.mock("../employee-phases-tab", () => ({
     default: () => <div data-testid="phases-tab">PhasesTab</div>,
 }));
 
-vi.mock("../employee-assignments-tab", () => ({
-    default: () => <div data-testid="assignments-tab">AssignmentsTab</div>,
-}));
 vi.mock("@/pages/employees/compensation-history-tab", () => ({
     default: () => <div data-testid="compensation-tab">CompensationTab</div>,
-}));
-vi.mock("@/pages/employees/lifecycle-tab", () => ({
-    default: () => <div data-testid="lifecycle-tab">LifecycleTab</div>,
 }));
 
 const mockMembers = [
@@ -222,9 +213,12 @@ describe("EmployeeDetailDrawer", () => {
 
     // ── Tabs ───────────────────────────────────────────────────
 
-    it("starts on Profile tab by default", () => {
+    it("starts on Profile tab and omits centralized tabs", () => {
         renderWithClient(<EmployeeDetailDrawer {...defaultProps} />);
         expect(screen.getByTestId("employees-btn-edit")).toBeDefined();
+        expect(screen.queryByTestId("employees-tab-assignments")).not.toBeInTheDocument();
+        expect(screen.queryByTestId("employees-tab-working-conditions")).not.toBeInTheDocument();
+        expect(screen.queryByTestId("employees-tab-lifecycle")).not.toBeInTheDocument();
     });
 
     it("switches to Salary tab on click", async () => {
@@ -233,14 +227,6 @@ describe("EmployeeDetailDrawer", () => {
 
         await user.click(screen.getByTestId("employees-tab-salary"));
         expect(screen.getByTestId("salary-config")).toBeDefined();
-    });
-
-    it("switches to Working Conditions tab on click", async () => {
-        const user = userEvent.setup();
-        renderWithClient(<EmployeeDetailDrawer {...defaultProps} />);
-
-        await user.click(screen.getByTestId("employees-tab-working-conditions"));
-        expect(screen.getByTestId("working-condition")).toBeDefined();
     });
 
     it("switches to Attendance Policy tab on click", async () => {
@@ -415,21 +401,13 @@ describe("EmployeeDetailDrawer", () => {
 
         // ArrowRight → Phases (index 3)
         await user.keyboard("{ArrowRight}");
-        // ArrowRight → Assignments (index 4)
-        await user.keyboard("{ArrowRight}");
-        // ArrowRight → Salary (index 5)
+        // ArrowRight → Salary (index 4)
         await user.keyboard("{ArrowRight}");
         expect(screen.getByTestId("salary-config")).toBeDefined();
 
-        // ArrowRight → Compensation (index 6) → Working Conditions (index 7)
+        // ArrowRight → Compensation (index 5) → Attendance Policy (index 6)
         await user.keyboard("{ArrowRight}{ArrowRight}");
-        expect(screen.getByTestId("working-condition")).toBeDefined();
-        // ArrowRight → Attendance Policy (index 8)
-        await user.keyboard("{ArrowRight}");
         expect(screen.getByTestId("attendance-policy-tab")).toBeDefined();
-        // ArrowRight → Lifecycle (index 9)
-        await user.keyboard("{ArrowRight}");
-        expect(screen.getByTestId("lifecycle-tab")).toBeDefined();
     });
 
     it("ArrowLeft moves to the previous tab", async () => {
@@ -449,18 +427,18 @@ describe("EmployeeDetailDrawer", () => {
         const user = userEvent.setup();
         renderWithClient(<EmployeeDetailDrawer {...defaultProps} />);
 
-        // On Profile → ArrowLeft → should wrap to Lifecycle (last tab)
+        // On Profile → ArrowLeft → should wrap to Attendance Policy (last tab)
         await user.keyboard("{ArrowLeft}");
-        expect(screen.getByTestId("lifecycle-tab")).toBeDefined();
+        expect(screen.getByTestId("attendance-policy-tab")).toBeDefined();
     });
 
     it("ArrowRight wraps from last tab to first tab", async () => {
         const user = userEvent.setup();
         renderWithClient(<EmployeeDetailDrawer {...defaultProps} />);
 
-        // Navigate to Lifecycle (last tab, index 9): Profile(0) -> 9 steps -> Lifecycle(9)
-        await user.keyboard("{ArrowRight}{ArrowRight}{ArrowRight}{ArrowRight}{ArrowRight}{ArrowRight}{ArrowRight}{ArrowRight}{ArrowRight}");
-        expect(screen.getByTestId("lifecycle-tab")).toBeDefined();
+        // Navigate to Attendance Policy (last tab, index 6): Profile(0) -> 6 steps
+        await user.keyboard("{ArrowRight}{ArrowRight}{ArrowRight}{ArrowRight}{ArrowRight}{ArrowRight}");
+        expect(screen.getByTestId("attendance-policy-tab")).toBeDefined();
 
         // ArrowRight → should wrap to Profile
         await user.keyboard("{ArrowRight}");

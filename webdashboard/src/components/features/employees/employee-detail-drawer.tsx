@@ -5,17 +5,14 @@ import { useTranslation } from "react-i18next";
 import type { Department, Employee, Employment, OrganizationMember } from "@/lib/api";
 import type { WorkLocation } from "@/lib/api/locations";
 
-import WorkingConditionConfig from "@/components/employees/working-condition-config";
 import EmployeeSalaryConfig from "@/components/payroll/employee-salary-config";
 import Sheet from "@/components/ui/sheet";
 import CompensationHistoryTab from "@/pages/employees/compensation-history-tab";
 import { EmployeeDocumentsTab } from "@/pages/employees/employee-documents-tab";
-import EmployeeLifecycleTab from "@/pages/employees/lifecycle-tab";
 
 import type { DeptHistoryEntry } from "./profile-sections";
 
 import DrawerHeader, { DetailTabType } from "./drawer-header";
-import EmployeeAssignmentsTab from "./employee-assignments-tab";
 import EmployeeAttendancePolicyTab from "./employee-attendance-policy-tab";
 import EmployeeContractsTab from "./employee-contracts-tab";
 import EmployeePhasesTab from "./employee-phases-tab";
@@ -54,13 +51,10 @@ export interface DrawerTabContentProps {
 }
 
 const TAB_CONTENT_MAP: Record<DetailTabType, (props: DrawerTabContentProps) => React.ReactNode> = {
-    assignments: (props) => <EmployeeAssignmentsTab employeeId={props.employee.id} formatDate={props.formatDate}  />,
     compensation: (props) => <CompensationHistoryTab employeeId={props.employee.id} employmentId={props.activeEmployment?.id} formatDate={props.formatDate}  />,
     contracts: (props) => <EmployeeContractsTab employeeId={props.employee.id} formatDate={props.formatDate}  />,
     documents: (props) => <EmployeeDocumentsTab employeeId={props.employee.id} />,
-    lifecycle: (props) => <EmployeeLifecycleTab employmentId={props.activeEmployment?.id}  />,
     phases: (props) => <EmployeePhasesTab employeeId={props.employee.id} formatDate={props.formatDate}  />,
-    "working-conditions": (props) => <WorkingConditionConfig employeeId={props.employee.id} />,
     "attendance-policy": (props) => <EmployeeAttendancePolicyTab employeeId={props.employee.id}  />,
     profile: (props) => (
         <ProfileTab departments={props.departments}

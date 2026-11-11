@@ -6,9 +6,7 @@ import {
   Briefcase,
   Building2,
   Calendar,
-  ExternalLink,
   Mail,
-  MapPin,
   Pencil,
   Trash2,
   UserPlus,
@@ -305,21 +303,6 @@ export default function EmployeeDetailPage() {
         ref={scrollRef}
         role="tabpanel"
       >
-        {(activeDetailTab === "assignments" || activeDetailTab === "working-conditions" || activeDetailTab === "lifecycle") && (
-          <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-primary-100 bg-primary-50/60 p-4 dark:border-primary-900/50 dark:bg-primary-950/30">
-            <Typography className="text-sm font-semibold text-primary-900 dark:text-primary-100" variant="p">
-              {t("employees.details.centralized_management_hint", "Quản lý nhiều nhân viên trong trang bảng tập trung")}
-            </Typography>
-            <Link
-              className="inline-flex items-center gap-2 rounded-xl border border-primary-200 bg-white px-3 py-2 text-xs font-bold text-primary-700 transition-colors hover:bg-primary-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 dark:border-primary-800 dark:bg-slate-900 dark:text-primary-300 dark:hover:bg-primary-950"
-              search={{ employeeId }}
-              to={activeDetailTab === "assignments" ? "/assignments" : activeDetailTab === "working-conditions" ? "/working-conditions" : "/lifecycle"}
-            >
-              <ExternalLink aria-hidden size={14} />
-              {t("employees.details.open_centralized_page", "Mở trang bảng")}
-            </Link>
-          </div>
-        )}
         <DrawerTabContent activeDetailTab={activeDetailTab}
         activeEmployment={activeEmployment}
         departments={departments}
