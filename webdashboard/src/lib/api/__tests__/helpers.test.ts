@@ -69,7 +69,7 @@ describe('clearAuthSession', () => {
     clearAuthSession();
     await new Promise(r => setTimeout(r, 0));
     expect(mockFetch).toHaveBeenCalledWith(
-      expect.stringContaining('/auth/logout'),
+      '/api/v1/auth/logout',
       expect.objectContaining({ method: 'POST', credentials: 'include' }),
     );
   });
@@ -301,7 +301,7 @@ describe('handleUnauthorized (401 retry-on-refresh) via apiFetch', () => {
     expect(mockFetch).toHaveBeenCalledTimes(3);
     // refresh endpoint uses the HttpOnly cookie without a JSON payload
     const refreshCall = mockFetch.mock.calls[1];
-    expect(refreshCall[0]).toContain('/api/v1/auth/refresh');
+    expect(refreshCall[0]).toBe('/api/v1/auth/refresh');
     const refreshOpts = refreshCall[1] as RequestInit;
     expect(refreshOpts.credentials).toBe('include');
     expect(refreshOpts.body).toBeUndefined();
