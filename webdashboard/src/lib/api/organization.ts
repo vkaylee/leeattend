@@ -19,9 +19,13 @@ export async function updateOrganization(patch: Partial<Organization>): Promise<
   return data;
 }
 
+interface OrganizationMemberListResponse {
+  data: OrganizationMember[];
+}
+
 export async function fetchOrganizationMembers(): Promise<OrganizationMember[]> {
-  const { data } = await client.GET<OrganizationMember[]>("/api/v1/members");
-  return data;
+  const { data } = await client.GET<OrganizationMemberListResponse>("/api/v1/members");
+  return data.data;
 }
 
 export const fetchAllOrganizationMembers = fetchOrganizationMembers;
