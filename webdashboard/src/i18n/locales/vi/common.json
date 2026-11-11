@@ -2275,6 +2275,7 @@
     "clockOutNow": "Bấm giờ tan ca",
     "clockInNow": "Bấm giờ vào ca",
     "viewMyClock": "Xem chi tiết chấm công",
+    "noEmployeeRecord": "Chưa có hồ sơ nhân viên để chấm công",
     "clock": {
       "geofence_status_label": "Trạng thái vị trí chấm công",
       "wifi_verified": "(Wi-Fi hợp lệ)",

@@ -17,8 +17,12 @@ trigger: always_on
 ## 🧪 Development Test Accounts
 - **Account reference:** `docs/dev-accounts.md`
 - Before authenticated UI/API testing, AI MUST read `docs/dev-accounts.md` and select the least-privileged account matching the scenario.
+- For a request to audit **all UI routes**, AI MUST test all documented roles: `employee`, `team_lead`, `shift_manager`, `hr_manager`, and `admin`. Least privilege applies per scenario, not to the whole audit. AI MUST NOT narrow role coverage without explicit user approval.
+- Before browser interaction, AI MUST create a route × role acceptance matrix covering allowed routes/actions, expected-denied routes/actions, console, and network evidence.
+- AI MUST report findings grouped by role and route, distinguish expected `403`/redirect authorization behavior from unexpected `404`, `5xx`, crashes, repeated errors, and wrong navigation, and list untested routes with reasons.
 - These credentials are development-only. NEVER use them against production, expose passwords in responses, or write credentials/tokens to logs, screenshots, commits, or test artifacts.
 - Mask account identifiers and PII in reports; use the account document only as an operational reference.
+- Detailed UI audit protocol: `.agent/rules/ui-route-audit.md`.
 
 ## 💎 Layer 0: CORE PRINCIPLES (The "Big Five")
 > These universal rules CANNOT be overridden by any external skill or lazy-loaded rule.

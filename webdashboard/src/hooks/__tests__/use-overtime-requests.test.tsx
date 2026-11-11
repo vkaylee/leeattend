@@ -12,8 +12,6 @@ import {
   useCancelOvertimeRequest,
   useEmployeeConsent,
   useMyOtAssignments,
-  useOrganizationQuotaSummary,
-  useEmployeeQuota,
   overtimeRequestKeys,
 } from "../use-overtime-requests";
 
@@ -25,8 +23,6 @@ const api = vi.hoisted(() => ({
   cancelRequest: vi.fn(),
   employeeConsent: vi.fn(),
   getMyAssignments: vi.fn(),
-  getQuotaSummary: vi.fn(),
-  getEmployeeQuota: vi.fn(),
 }));
 
 vi.mock("@/lib/api/overtime-requests", () => ({
@@ -76,16 +72,6 @@ describe("overtimeRequestKeys", () => {
       "overtime-requests",
       "assignments",
       "emp-1",
-    ]);
-    expect(overtimeRequestKeys.quotaSummaries("2026-08")).toEqual([
-      "overtime-quotas",
-      "summary",
-      "2026-08",
-    ]);
-    expect(overtimeRequestKeys.quotaDetail("emp-1", "2026-08-10")).toEqual([
-      "overtime-quotas",
-      "emp-1",
-      "2026-08-10",
     ]);
   });
 });
@@ -278,65 +264,5 @@ describe("useMyOtAssignments", () => {
 
     expect(result.current.isFetching).toBe(false);
     expect(api.getMyAssignments).not.toHaveBeenCalled();
-  });
-});
-
-describe("useOrganizationQuotaSummary", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    (api.getQuotaSummary as Mock).mockResolvedValue([
-      { employee_id: "emp-1", monthly_used: 5, monthly_limit: 40, yearly_used: 12, yearly_limit: 200 },
-    ]);
-  });
-
-  it("fetches the workspace quota summary for the given month", async () => {
-    const { result } = renderHook(() => useOrganizationQuotaSummary("2026-08"), {
-      wrapper: createWrapper(),
-    });
-
-    await waitFor(() => expect(result.current.isLoading).toBe(false));
-
-    expect(api.getQuotaSummary).toHaveBeenCalledWith("2026-08");
-    expect(result.current.data).toHaveLength(1);
-  });
-
-  it("does not fetch without a month", () => {
-    const { result } = renderHook(() => useOrganizationQuotaSummary(""), { wrapper: createWrapper() });
-
-    expect(result.current.isFetching).toBe(false);
-    expect(api.getQuotaSummary).not.toHaveBeenCalled();
-  });
-});
-
-describe("useEmployeeQuota", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    (api.getEmployeeQuota as Mock).mockResolvedValue({
-      employee_id: "emp-1",
-      monthly_used: 5,
-      monthly_limit: 40,
-      yearly_used: 12,
-      yearly_limit: 200,
-    });
-  });
-
-  it("fetches an employee's quota for a specific date", async () => {
-    const { result } = renderHook(() => useEmployeeQuota("emp-1", "2026-08-10"), {
-      wrapper: createWrapper(),
-    });
-
-    await waitFor(() => expect(result.current.isLoading).toBe(false));
-
-    expect(api.getEmployeeQuota).toHaveBeenCalledWith("emp-1", "2026-08-10");
-    expect(result.current.data?.employee_id).toBe("emp-1");
-  });
-
-  it("does not fetch without an employee id or date", () => {
-    const { result } = renderHook(() => useEmployeeQuota("", "2026-08-10"), {
-      wrapper: createWrapper(),
-    });
-
-    expect(result.current.isFetching).toBe(false);
-    expect(api.getEmployeeQuota).not.toHaveBeenCalled();
   });
 });

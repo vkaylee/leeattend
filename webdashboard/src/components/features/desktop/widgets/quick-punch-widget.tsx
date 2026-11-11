@@ -6,12 +6,16 @@ import { useTranslation } from "react-i18next";
 import Button from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
 import { useMyClock } from "@/hooks/use-my-attendance";
+import { useMyProfile } from "@/hooks/use-ess";
 import { ROUTES } from "@/lib/routes";
 
 export function QuickPunchWidget() {
   const { t } = useTranslation();
   const { success, error } = useToast();
-  const { activeEntry, isPunching, punch, isLoading } = useMyClock();
+  const { employee, isLoading: isLoadingProfile } = useMyProfile();
+  const { activeEntry, isPunching, punch, isLoading } = useMyClock({
+    enabled: !isLoadingProfile && Boolean(employee),
+  });
   const [currentTime, setCurrentTime] = useState(() => new Date());
 
   useEffect(() => {
@@ -20,6 +24,20 @@ export function QuickPunchWidget() {
   }, []);
 
   const isClockedIn = Boolean(activeEntry && !activeEntry.punch_out_time);
+
+  if (isLoadingProfile) {
+    return <div className="h-full min-h-36 animate-pulse rounded-2xl bg-slate-100 dark:bg-slate-800" />;
+  }
+
+  if (!employee) {
+    return (
+      <div className="flex h-full min-h-36 items-center justify-center text-center">
+        <span className="text-sm text-slate-500 dark:text-slate-400">
+          {t("ess.noEmployeeRecord", "Chưa có hồ sơ nhân viên để chấm công")}
+        </span>
+      </div>
+    );
+  }
 
   const handlePunch = async () => {
     try {

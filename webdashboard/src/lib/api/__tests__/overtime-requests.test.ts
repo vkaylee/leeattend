@@ -128,20 +128,6 @@ describe("overtimeRequestsApi", () => {
     expect(result).toEqual(mock);
   });
 
-  it("getQuotaSummary: returns quota list", async () => {
-    const mock = [{ employee_id: "e1", monthly_used: 10 }];
-    vi.mocked(apiFetch).mockResolvedValueOnce(okRes(mock));
-    const result = await overtimeRequestsApi.getQuotaSummary("2026-03");
-    expect(result).toEqual(mock);
-  });
-
-  it("getEmployeeQuota: returns quota", async () => {
-    const mock = { employee_id: "e1", yearly_used: 5 };
-    vi.mocked(apiFetch).mockResolvedValueOnce(okRes(mock));
-    const result = await overtimeRequestsApi.getEmployeeQuota("emp-1", "2026-03-01");
-    expect(result).toEqual(mock);
-  });
-
   it("listRequestBehalfAssignments: returns data array", async () => {
     const mock = [{ id: "ba-1", assignee_user_id: "u1" }];
     // Implementation accesses resData.data.

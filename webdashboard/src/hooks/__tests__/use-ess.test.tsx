@@ -74,6 +74,16 @@ describe("useMyClock optimistic updates", () => {
     expect(cachedData).toEqual([newEntry, ...mockEntries]);
   });
 
+  it("does not fetch clock entries when clock access is disabled", async () => {
+    const { Wrapper } = createWrapper();
+    const { result } = renderHook(() => useMyClock({ enabled: false }), {
+      wrapper: Wrapper,
+    });
+
+    expect(result.current.entries).toEqual([]);
+    expect(api.fetchMyTimeEntries).not.toHaveBeenCalled();
+  });
+
   it("updates the clock entries cache immediately on successful punch out", async () => {
     const mockEntries = [
       {

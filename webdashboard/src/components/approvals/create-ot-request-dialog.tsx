@@ -1,11 +1,10 @@
-import { AlertTriangle, Clock, Info, Loader2, Plus, Users } from "lucide-react";
+import { Clock, Info, Loader2, Plus, Users } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import { TFunction } from "i18next";
 
 import Button from "@/components/ui/button";
 import Modal from "@/components/ui/modal";
-import { Typography } from "@/components/ui/typography";
 import { useCreateOtRequestForm } from "@/hooks/use-create-ot-request-form";
 
 export function CreateOtRequestDialog({ onSuccess }: { onSuccess?: () => void }) {
@@ -22,7 +21,6 @@ export function CreateOtRequestDialog({ onSuccess }: { onSuccess?: () => void })
     plannedDate,
     plannedEndTime,
     plannedStartTime,
-    quotaWarning,
     reason,
     selectedEmployees,
     setOpen,
@@ -69,24 +67,6 @@ export function CreateOtRequestDialog({ onSuccess }: { onSuccess?: () => void })
             <div className="h-14 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/50 px-5 flex items-center gap-2 text-amber-700 dark:text-amber-400 text-sm">
               <Info size={14} />
               {t("behalf.no_assignments_configured", "Chưa có cấu hình behalf assignment")}
-            </div>
-          )}
-
-          {/* Quota Warning Banner */}
-          {selectedEmployees.length > 0 && !!quotaWarning && quotaWarning.monthly_limit !== null && (
-            <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl p-4 flex items-start gap-3">
-              <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
-              <div>
-                <Typography className="text-sm font-bold text-amber-800 dark:text-amber-400">
-                  {t("approvals.pre_ot_dialog.quota_warning_title")}
-                </Typography>
-                <Typography className="text-xs text-amber-700 dark:text-amber-500 mt-1">
-                  {t("approvals.pre_ot_dialog.quota_warning_desc", {
-                    limit: quotaWarning.monthly_limit,
-                    used: Math.round(quotaWarning.monthly_used / 60),
-                  })}
-                </Typography>
-              </div>
             </div>
           )}
 

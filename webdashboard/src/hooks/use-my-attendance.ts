@@ -49,7 +49,11 @@ export interface UseMyClockReturn {
   refetch: () => Promise<unknown>;
 }
 
-export function useMyClock(): UseMyClockReturn {
+export interface UseMyClockOptions {
+  enabled?: boolean;
+}
+
+export function useMyClock({ enabled = true }: UseMyClockOptions = {}): UseMyClockReturn {
   const queryClient = useQueryClient();
 
   const { startDate, endDate } = useMemo(() => {
@@ -63,7 +67,8 @@ export function useMyClock(): UseMyClockReturn {
   const entriesQuery = useQuery<TimeEntry[]>({
     queryKey: essKeys.clockEntries(),
     queryFn: () => fetchMyTimeEntries({ start_date: startDate, end_date: endDate }),
-    refetchInterval: 30000,
+    enabled,
+    refetchInterval: enabled ? 30000 : false,
   });
 
   const activeEntry = entriesQuery.data?.find((e) => !e.punch_out_time);

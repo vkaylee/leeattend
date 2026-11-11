@@ -97,7 +97,6 @@ vi.mock("@/hooks/use-overtime-requests", () => ({
     isLoading: false,
   })),
   useCreateOvertimeRequest: vi.fn(() => ({ mutate: vi.fn(), isPending: false })),
-  useEmployeeQuota: vi.fn(() => ({ data: null })),
 }));
 
 vi.mock("@/hooks/use-approval-workflows", () => ({
@@ -129,8 +128,6 @@ vi.mock("@/lib/api/overtime-requests", () => ({
     cancelRequest: vi.fn(),
     employeeConsent: vi.fn(),
     getMyAssignments: vi.fn(),
-    getQuotaSummary: vi.fn(),
-    getEmployeeQuota: vi.fn(),
     listRequestBehalfAssignments: vi.fn(),
     createRequestBehalfAssignment: vi.fn(),
     deleteRequestBehalfAssignment: vi.fn(),

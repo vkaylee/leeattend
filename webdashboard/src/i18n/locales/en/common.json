@@ -2275,6 +2275,7 @@
     "clockOutNow": "Clock Out Now",
     "clockInNow": "Clock In Now",
     "viewMyClock": "View clock details",
+    "noEmployeeRecord": "No employee record is linked for attendance",
     "clock": {
       "geofence_status_label": "Attendance location status",
       "wifi_verified": "(Verified Wi-Fi)",

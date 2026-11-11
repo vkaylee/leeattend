@@ -5,7 +5,7 @@ import { format } from "date-fns";
 
 import { useToast } from "@/components/ui/toast";
 import { useBehalfEmployees } from "@/hooks/use-behalf-employees";
-import { useCreateOvertimeRequest, useEmployeeQuota } from "@/hooks/use-overtime-requests";
+import { useCreateOvertimeRequest } from "@/hooks/use-overtime-requests";
 
 export function useCreateOtRequestForm(onSuccess?: () => void) {
   const { t } = useTranslation();
@@ -20,9 +20,6 @@ export function useCreateOtRequestForm(onSuccess?: () => void) {
 
   const { employees, hasAssignments, isLoading: behalfLoading } = useBehalfEmployees("overtime_request");
   const { mutate: createRequest, isPending } = useCreateOvertimeRequest();
-
-  const sampleEmployeeId = selectedEmployees.length > 0 ? selectedEmployees[0] : "";
-  const { data: quotaWarning } = useEmployeeQuota(sampleEmployeeId, plannedDate);
 
   const calculateMinutes = () => {
     if (!plannedStartTime || !plannedEndTime) return 0;
@@ -92,7 +89,6 @@ export function useCreateOtRequestForm(onSuccess?: () => void) {
     plannedDate,
     plannedEndTime,
     plannedStartTime,
-    quotaWarning,
     reason,
     selectedEmployees,
     setOpen,

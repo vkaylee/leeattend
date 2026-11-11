@@ -10,9 +10,6 @@ export const overtimeRequestKeys = {
   details: () => [...overtimeRequestKeys.all, 'detail'] as const,
   detail: (id: string) => [...overtimeRequestKeys.details(), id] as const,
   assignments: (employmentId: string) => [...overtimeRequestKeys.all, 'assignments', employmentId] as const,
-  quotas: () => ['overtime-quotas'] as const,
-  quotaSummaries: (month: string) => [...overtimeRequestKeys.quotas(), 'summary', month] as const,
-  quotaDetail: (employeeId: string, date: string) => [...overtimeRequestKeys.quotas(), employeeId, date] as const,
 };
 
 export const useOvertimeRequests = (params?: Record<string, unknown>) => {
@@ -83,22 +80,5 @@ export const useMyOtAssignments = (employmentId?: string) => {
       return overtimeRequestsApi.getMyAssignments(employmentId);
     },
     enabled: !!employmentId,
-  });
-};
-
-export const useOrganizationQuotaSummary = (month: string) => {
-  return useOrganizationQuery({
-    queryKey: overtimeRequestKeys.quotaSummaries(month),
-    queryFn: () => overtimeRequestsApi.getQuotaSummary(month),
-    enabled: !!month,
-  });
-};
-
-export const useEmployeeQuota = (employeeId: string, date: string) => {
-  return useOrganizationQuery({
-    queryKey: overtimeRequestKeys.quotaDetail(employeeId, date),
-    queryFn: () => overtimeRequestsApi.getEmployeeQuota(employeeId, date),
-    enabled: !!employeeId && !!date,
-    meta: { suppressErrorToast: [404] },
   });
 };

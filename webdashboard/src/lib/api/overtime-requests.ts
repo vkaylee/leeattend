@@ -46,6 +46,14 @@ export interface OvertimeQuotaWarning {
   used: number;
 }
 
+export interface QuotaSummary {
+  employee_id: string;
+  monthly_limit: number | null;
+  monthly_used: number;
+  yearly_limit: number | null;
+  yearly_used: number;
+}
+
 export interface OvertimeRequest {
   attachment_file_ids?: string[] | null;
   created_at: string;
@@ -93,14 +101,6 @@ export interface CreateOvertimeRequestPayload {
   planned_minutes: number;
   planned_start_time?: string;
   reason: string;
-}
-
-export interface QuotaSummary {
-  employee_id: string;
-  monthly_limit: number | null;
-  monthly_used: number;
-  yearly_limit: number | null;
-  yearly_used: number;
 }
 
 const otRequestBehalfApi = createBehalfAssignmentApi({
@@ -168,22 +168,6 @@ export const overtimeRequestsApi = {
     const { data } = await client.GET<MyOvertimeAssignment[]>(
       "/api/v1/payroll/overtime/assignments",
       { params: { query: { employment_id: employmentId } } },
-    );
-    return data;
-  },
-
-  getQuotaSummary: async (month: string): Promise<QuotaSummary[]> => {
-    const { data } = await client.GET<QuotaSummary[]>(
-      "/api/v1/overtime/quota/summary",
-      { params: { query: { month } } },
-    );
-    return data;
-  },
-
-  getEmployeeQuota: async (employeeId: string, date: string): Promise<QuotaSummary> => {
-    const { data } = await client.GET<QuotaSummary>(
-      "/api/v1/overtime/quota/{employee_id}",
-      { params: { path: { employee_id: employeeId }, query: { date } } },
     );
     return data;
   },

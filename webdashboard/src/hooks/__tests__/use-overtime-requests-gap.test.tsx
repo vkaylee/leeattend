@@ -8,8 +8,6 @@ import {
   useOvertimeRequests,
   useOvertimeRequest,
   useMyOtAssignments,
-  useOrganizationQuotaSummary,
-  useEmployeeQuota,
   useCreateOvertimeRequest,
   useSubmitOvertimeRequest,
   useCancelOvertimeRequest,
@@ -25,8 +23,6 @@ const api = vi.hoisted(() => ({
   cancelRequest: vi.fn(),
   employeeConsent: vi.fn(),
   getMyAssignments: vi.fn(),
-  getQuotaSummary: vi.fn(),
-  getEmployeeQuota: vi.fn(),
 }));
 
 vi.mock("@/lib/api/overtime-requests", () => ({
@@ -210,68 +206,6 @@ describe("useMyOtAssignments – error handling", () => {
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
     expect(result.current.data).toEqual([]);
-  });
-});
-
-describe("useOrganizationQuotaSummary – error handling", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
-
-  it("propagates isError when getQuotaSummary rejects", async () => {
-    (api.getQuotaSummary as Mock).mockRejectedValue(new Error("No quotas configured"));
-
-    const { result } = renderHook(() => useOrganizationQuotaSummary("2026-08"), {
-      wrapper: createWrapper(),
-    });
-
-    await waitFor(() => expect(result.current.isError).toBe(true));
-    expect(result.current.error?.message).toBe("No quotas configured");
-  });
-
-  it("returns an empty array when no quotas exist", async () => {
-    (api.getQuotaSummary as Mock).mockResolvedValue([]);
-    const { result } = renderHook(() => useOrganizationQuotaSummary("2026-08"), {
-      wrapper: createWrapper(),
-    });
-
-    await waitFor(() => expect(result.current.isLoading).toBe(false));
-    expect(result.current.data).toEqual([]);
-  });
-});
-
-describe("useEmployeeQuota – error handling", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
-
-  it("propagates isError when getEmployeeQuota rejects", async () => {
-    (api.getEmployeeQuota as Mock).mockRejectedValue(new Error("Employee not found"));
-
-    const { result } = renderHook(() => useEmployeeQuota("emp-1", "2026-08-10"), {
-      wrapper: createWrapper(),
-    });
-
-    await waitFor(() => expect(result.current.isError).toBe(true));
-    expect(result.current.error?.message).toBe("Employee not found");
-  });
-
-  it("does not fetch when only employeeId is missing", () => {
-    const { result } = renderHook(() => useEmployeeQuota("", "2026-08-10"), {
-      wrapper: createWrapper(),
-    });
-
-    expect(result.current.isFetching).toBe(false);
-    expect(api.getEmployeeQuota).not.toHaveBeenCalled();
-  });
-
-  it("does not fetch when only date is missing", () => {
-    const { result } = renderHook(() => useEmployeeQuota("emp-1", ""), {
-      wrapper: createWrapper(),
-    });
-
-    expect(result.current.isFetching).toBe(false);
-    expect(api.getEmployeeQuota).not.toHaveBeenCalled();
   });
 });
 

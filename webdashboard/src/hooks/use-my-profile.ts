@@ -35,6 +35,7 @@ export function useMyProfile(): UseMyProfileReturn {
   const profileQuery = useQuery<MyProfileResponse>({
     queryKey: essKeys.profile(),
     queryFn: fetchMyProfile,
+    meta: { suppressErrorToast: [403] },
   });
 
   const updateMutation = useMutation<EmployeeProfile, Error, UpdateProfileRequest>({

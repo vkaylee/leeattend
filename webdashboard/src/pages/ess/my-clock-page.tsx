@@ -35,7 +35,7 @@ export default function MyClockPage() {
     isLoading: isLoadingClock,
     isPunching,
     punch,
-  } = useMyClock();
+  } = useMyClock({ enabled: !isLoadingProfile && Boolean(employee) });
 
   const { data: organization } = useQuery({
     queryKey: ["organization"],
