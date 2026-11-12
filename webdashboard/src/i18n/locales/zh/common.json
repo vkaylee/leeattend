@@ -2402,7 +2402,13 @@
     "deleteTitle": "Delete Role",
     "confirmDelete": "Are you sure you want to delete this role?",
     "subtitle": "定义自定义角色并管理组织内的访问级别",
-    "createRole": "Create Role"
+    "createRole": "Create Role",
+    "customRole": "自定义",
+    "descriptionColumn": "描述",
+    "emptyDescription": "创建角色，为组织定义可复用的访问级别。",
+    "emptyTitle": "暂无角色",
+    "listLabel": "组织角色",
+    "roleColumn": "角色"
   },
   "assignments": {
     "title": "外派与调动管理",

@@ -90,10 +90,34 @@ describe("OrganizationRolesPage", () => {
 
     it("renders roles list correctly", () => {
         renderWithProviders(<OrganizationRolesPage />);
+        expect(screen.getByRole("list", { name: "Organization roles" })).toBeDefined();
         expect(screen.getByText("Owner")).toBeDefined();
- 
         expect(screen.getByText("Manager")).toBeDefined();
-        expect(screen.getByText("Workspace Owner")).toBeDefined();
+        expect(screen.getAllByText("Workspace Owner")).toHaveLength(2);
+        expect(screen.queryByText(/Role ID:/)).toBeNull();
+    });
+
+    it("shows an empty state when no roles exist", () => {
+        vi.mocked(useOrganizationRoles).mockReturnValue({
+            roles: [],
+            isLoading: false,
+        } as unknown as ReturnType<typeof useOrganizationRoles>);
+
+        renderWithProviders(<OrganizationRolesPage />);
+
+        expect(screen.getByText("No roles yet")).toBeDefined();
+        expect(screen.getByText("Create a role to define reusable access levels for your organization.")).toBeDefined();
+    });
+
+    it("shows a skeleton while roles are loading", () => {
+        vi.mocked(useOrganizationRoles).mockReturnValue({
+            roles: [],
+            isLoading: true,
+        } as unknown as ReturnType<typeof useOrganizationRoles>);
+
+        renderWithProviders(<OrganizationRolesPage />);
+
+        expect(screen.getByTestId("roles-list-skeleton")).toBeDefined();
     });
 
     it("hides action buttons if user lacks manage permission", () => {

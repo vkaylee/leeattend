@@ -2402,7 +2402,13 @@
     "deleteTitle": "Xác nhận xóa vai trò",
     "confirmDelete": "Bạn có chắc chắn muốn xóa vai trò này? Thao tác này không thể hoàn tác.",
     "subtitle": "Định nghĩa vai trò người dùng và quản lý cấp độ truy cập trong tổ chức",
-    "createRole": "Tạo vai trò mới"
+    "createRole": "Tạo vai trò mới",
+    "customRole": "Tùy chỉnh",
+    "descriptionColumn": "Mô tả",
+    "emptyDescription": "Tạo vai trò để định nghĩa cấp độ truy cập dùng lại trong tổ chức.",
+    "emptyTitle": "Chưa có vai trò",
+    "listLabel": "Danh sách vai trò tổ chức",
+    "roleColumn": "Vai trò"
   },
   "assignments": {
     "title": "Quản lý Phái cử & Luân chuyển",
