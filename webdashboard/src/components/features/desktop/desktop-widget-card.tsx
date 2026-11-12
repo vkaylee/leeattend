@@ -38,19 +38,18 @@ export const DesktopWidgetCard = memo(function DesktopWidgetCard({
       )}
     >
       {/* Widget Header */}
-      <div className="flex items-center justify-between pb-3 mb-3 border-b border-slate-100 dark:border-slate-800/60">
-        <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-xl bg-primary-500/10 text-primary-600 dark:text-primary-400 flex items-center justify-center shrink-0">
-            <Icon className="w-4 h-4" />
-          </div>
-          <div>
-            <h2 className="text-sm font-bold text-slate-800 dark:text-slate-100 leading-tight">
-              {title}
-            </h2>
-            <p className="text-[11px] text-slate-500 dark:text-slate-400 line-clamp-2 leading-relaxed">
-              {description}
-            </p>
-          </div>
+      <div className="relative pb-3 mb-3 border-b border-slate-100 dark:border-slate-800/60">
+        <div className="absolute left-0 top-0 flex h-8 w-8 items-center justify-center rounded-xl bg-primary-500/10 text-primary-600 dark:text-primary-400">
+          <Icon className="w-4 h-4" />
+        </div>
+
+        <div className="min-w-0 px-9 text-center">
+          <h2 className="break-words text-sm font-bold leading-tight text-slate-800 dark:text-slate-100">
+            {title}
+          </h2>
+          <p className="line-clamp-2 text-[11px] leading-relaxed text-slate-500 dark:text-slate-400">
+            {description}
+          </p>
         </div>
 
         {/* Quick hide button */}
@@ -61,7 +60,7 @@ export const DesktopWidgetCard = memo(function DesktopWidgetCard({
             onClick={() => onHideWidget(widget.id)}
             aria-label={`${t("desktop.hideWidget", "Ẩn widget")} ${title}`}
             title={t("desktop.hideWidget", "Ẩn widget này")}
-            className="p-1.5 h-auto min-w-0 rounded-lg text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors focus-visible:ring-2 focus-visible:ring-primary"
+            className="absolute right-0 top-0 p-1.5 h-auto min-w-0 rounded-lg text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors focus-visible:ring-2 focus-visible:ring-primary"
           >
             <EyeOff className="w-3.5 h-3.5" />
           </Button>
