@@ -1,3 +1,7 @@
+import fs from "fs";
+import path from "path";
+import ts from "typescript";
+
 import React from "react";
 
 import { render, screen } from "@testing-library/react";
@@ -14,6 +18,62 @@ vi.unmock("@/components/ui/combobox");
 vi.mock("react-i18next", () => ({ useTranslation: () => ({ t: (key: string) => key }) }));
 
 describe("Shared control standards", () => {
+  it("requires explicit size on shared controls placed in ToolbarRow", () => {
+    const srcDir = path.resolve(__dirname, "../../../../src");
+    const controlNames = new Set([
+      "Button",
+      "Combobox",
+      "EmployeeSearch",
+      "FilterModeButtons",
+      "FilterTrigger",
+      "SearchInput",
+    ]);
+    const files = fs.readdirSync(srcDir, { recursive: true })
+      .filter((entry): entry is string => /\\.(tsx?)$/.test(entry))
+      .filter(entry => !entry.includes("/__tests__/") && !entry.endsWith(".test.tsx"));
+
+    for (const relativeFile of files) {
+      const filePath = path.join(srcDir, relativeFile);
+      const source = fs.readFileSync(filePath, "utf8");
+      const ast = ts.createSourceFile(
+        filePath,
+        source,
+        ts.ScriptTarget.Latest,
+        true,
+        ts.ScriptKind.TSX,
+      );
+      const toolbarRows: ts.JsxElement[] = [];
+
+      function visit(node: ts.Node) {
+        if (ts.isJsxElement(node) && node.openingElement.tagName.getText() === "ToolbarRow") {
+          toolbarRows.push(node);
+        }
+        ts.forEachChild(node, visit);
+      }
+      visit(ast);
+
+      for (const toolbarRow of toolbarRows) {
+        function checkChild(node: ts.Node) {
+          if (ts.isJsxSelfClosingElement(node) || ts.isJsxElement(node)) {
+            const opening = ts.isJsxSelfClosingElement(node) ? node : node.openingElement;
+            const name = opening.tagName.getText();
+            if (controlNames.has(name)) {
+              const hasSize = opening.attributes.properties.some(
+                property => ts.isJsxAttribute(property) && property.name.text === "size",
+              );
+              expect(
+                hasSize,
+                `${relativeFile}: <${name}> inside ToolbarRow must declare size=\\"sm|md|lg\\".`,
+              ).toBe(true);
+            }
+          }
+          ts.forEachChild(node, checkChild);
+        }
+        ts.forEachChild(toolbarRow, checkChild);
+      }
+    }
+  });
+
   it.each<ControlSize>(["sm", "md", "lg"])("shares %s height and typography across controls", (size) => {
     render(<>
       <Button size={size}>Save</Button>
