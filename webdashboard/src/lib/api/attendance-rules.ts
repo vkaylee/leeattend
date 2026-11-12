@@ -44,8 +44,25 @@ export interface PolicyAssignmentResponse {
   rules: AttendanceRules;
   target_id: string;
   target_type: string;
+  target_name?: string | null;
+  target_code?: string | null;
+  department_name?: string | null;
   valid_from: string;
   valid_to?: string | null;
+}
+
+export interface PolicyAssignmentListResponse {
+  data: PolicyAssignmentResponse[];
+  total: number;
+  page: number;
+  limit: number;
+}
+
+export interface PolicyAssignmentListParams {
+  limit?: number;
+  page?: number;
+  q?: string;
+  target_type?: "USER" | "GROUP";
 }
 
 export interface UpsertPolicyAssignmentRequest {
@@ -58,8 +75,12 @@ export interface UpsertPolicyAssignmentRequest {
   work_unit_minutes: number;
 }
 
-export async function fetchPolicyAssignments(): Promise<PolicyAssignmentResponse[]> {
-  const { data: resData } = await client.GET<PolicyAssignmentResponse[]>("/api/v1/attendance/policies/assignments");
+export async function fetchPolicyAssignments(
+  params: PolicyAssignmentListParams = {},
+): Promise<PolicyAssignmentListResponse> {
+  const { data: resData } = await client.GET<PolicyAssignmentListResponse>("/api/v1/attendance/policies/assignments", {
+    params: { query: { ...params } as Record<string, string | number | undefined> },
+  });
   return resData;
 }
 

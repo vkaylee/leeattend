@@ -10,12 +10,12 @@ import type {
 import { client } from "./client";
 
 export async function fetchOrganization(): Promise<Organization> {
-  const { data } = await client.GET<Organization>("/api/v1/organization/settings");
+  const { data } = await client.GET<Organization>("/api/v1");
   return data;
 }
 
 export async function updateOrganization(patch: Partial<Organization>): Promise<Organization> {
-  const { data } = await client.PATCH<Organization>("/api/v1/organization/settings", { body: patch });
+  const { data } = await client.PATCH<Organization>("/api/v1", { body: patch });
   return data;
 }
 

@@ -121,6 +121,10 @@ const (
 	PermissionEmploymentPhasesRead   Permission = "employment_phases:read"
 	PermissionEmploymentPhasesManage Permission = "employment_phases:manage"
 
+	// Attendance Policy Assignments
+	PermissionAttendancePolicyAssignmentsRead   Permission = "attendance_policy_assignments:read"
+	PermissionAttendancePolicyAssignmentsManage Permission = "attendance_policy_assignments:manage"
+
 	// Recruitment
 	PermissionRecruitmentRead   Permission = "recruitment:read"
 	PermissionRecruitmentManage Permission = "recruitment:manage"
@@ -244,6 +248,8 @@ var allCanonicalPermissions = []Permission{
 	PermissionDashboardEmployeeAbsenceRead,
 	PermissionEmploymentPhasesRead,
 	PermissionEmploymentPhasesManage,
+	PermissionAttendancePolicyAssignmentsRead,
+	PermissionAttendancePolicyAssignmentsManage,
 	PermissionRecruitmentRead,
 	PermissionRecruitmentManage,
 	PermissionFeatureFlagsRead,

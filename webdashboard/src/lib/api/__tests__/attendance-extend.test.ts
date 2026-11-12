@@ -379,10 +379,11 @@ describe("attendance API (extended)", () => {
     expect(result).toEqual([{ id: "v1" }]);
   });
 
-  it("fetchPolicyAssignments: GET list", async () => {
-    vi.mocked(apiFetch).mockResolvedValueOnce(okRes([{ id: "pa-1" }]));
+  it("fetchPolicyAssignments: GET paginated list", async () => {
+    const payload = { data: [{ id: "pa-1" }], total: 1, page: 1, limit: 50 };
+    vi.mocked(apiFetch).mockResolvedValueOnce(okRes(payload));
     const result = await fetchPolicyAssignments();
-    expect(result).toEqual([{ id: "pa-1" }]);
+    expect(result).toEqual(payload);
   });
 
   it("upsertPolicyAssignment: POST returns assignment", async () => {

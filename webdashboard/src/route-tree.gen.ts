@@ -31,11 +31,13 @@ import { Route as AuthenticatedOrganizationLifecycleRouteImport } from "./routes
 import { Route as AuthenticatedOrganizationLeaveRequestsRouteImport } from "./routes/_authenticated/_organization/leave-requests"
 import { Route as AuthenticatedOrganizationLeaveBalancesRouteImport } from "./routes/_authenticated/_organization/leave-balances"
 import { Route as AuthenticatedOrganizationHolidaysRouteImport } from "./routes/_authenticated/_organization/holidays"
+import { Route as AuthenticatedOrganizationEmploymentPhasesRouteImport } from "./routes/_authenticated/_organization/employment-phases"
 import { Route as AuthenticatedOrganizationEmployeesRouteImport } from "./routes/_authenticated/_organization/employees"
 import { Route as AuthenticatedOrganizationEcontractsRouteImport } from "./routes/_authenticated/_organization/econtracts"
 import { Route as AuthenticatedOrganizationDepartmentsRouteImport } from "./routes/_authenticated/_organization/departments"
 import { Route as AuthenticatedOrganizationDashboardRouteImport } from "./routes/_authenticated/_organization/dashboard"
 import { Route as AuthenticatedOrganizationAuditLogsRouteImport } from "./routes/_authenticated/_organization/audit-logs"
+import { Route as AuthenticatedOrganizationAttendancePolicyAssignmentsRouteImport } from "./routes/_authenticated/_organization/attendance-policy-assignments"
 import { Route as AuthenticatedOrganizationAttendanceLogsRouteImport } from "./routes/_authenticated/_organization/attendance-logs"
 import { Route as AuthenticatedOrganizationAttendanceAdjustmentsRouteImport } from "./routes/_authenticated/_organization/attendance-adjustments"
 import { Route as AuthenticatedOrganizationAssignmentsRouteImport } from "./routes/_authenticated/_organization/assignments"
@@ -266,6 +268,16 @@ const AuthenticatedOrganizationHolidaysRoute =
       (d) => d.Route,
     ),
   )
+const AuthenticatedOrganizationEmploymentPhasesRoute =
+  AuthenticatedOrganizationEmploymentPhasesRouteImport.update({
+    id: "/employment-phases",
+    path: "/employment-phases",
+    getParentRoute: () => AuthenticatedOrganizationRoute,
+  } as any).lazy(() =>
+    import("./routes/_authenticated/_organization/employment-phases.lazy").then(
+      (d) => d.Route,
+    ),
+  )
 const AuthenticatedOrganizationEmployeesRoute =
   AuthenticatedOrganizationEmployeesRouteImport.update({
     id: "/employees",
@@ -313,6 +325,16 @@ const AuthenticatedOrganizationAuditLogsRoute =
     getParentRoute: () => AuthenticatedOrganizationRoute,
   } as any).lazy(() =>
     import("./routes/_authenticated/_organization/audit-logs.lazy").then(
+      (d) => d.Route,
+    ),
+  )
+const AuthenticatedOrganizationAttendancePolicyAssignmentsRoute =
+  AuthenticatedOrganizationAttendancePolicyAssignmentsRouteImport.update({
+    id: "/attendance-policy-assignments",
+    path: "/attendance-policy-assignments",
+    getParentRoute: () => AuthenticatedOrganizationRoute,
+  } as any).lazy(() =>
+    import("./routes/_authenticated/_organization/attendance-policy-assignments.lazy").then(
       (d) => d.Route,
     ),
   )
@@ -859,11 +881,13 @@ export interface FileRoutesByFullPath {
   "/assignments": typeof AuthenticatedOrganizationAssignmentsRoute
   "/attendance-adjustments": typeof AuthenticatedOrganizationAttendanceAdjustmentsRoute
   "/attendance-logs": typeof AuthenticatedOrganizationAttendanceLogsRoute
+  "/attendance-policy-assignments": typeof AuthenticatedOrganizationAttendancePolicyAssignmentsRoute
   "/audit-logs": typeof AuthenticatedOrganizationAuditLogsRoute
   "/dashboard": typeof AuthenticatedOrganizationDashboardRoute
   "/departments": typeof AuthenticatedOrganizationDepartmentsRoute
   "/econtracts": typeof AuthenticatedOrganizationEcontractsRoute
   "/employees": typeof AuthenticatedOrganizationEmployeesRoute
+  "/employment-phases": typeof AuthenticatedOrganizationEmploymentPhasesRoute
   "/holidays": typeof AuthenticatedOrganizationHolidaysRoute
   "/leave-balances": typeof AuthenticatedOrganizationLeaveBalancesRoute
   "/leave-requests": typeof AuthenticatedOrganizationLeaveRequestsRoute
@@ -938,11 +962,13 @@ export interface FileRoutesByTo {
   "/assignments": typeof AuthenticatedOrganizationAssignmentsRoute
   "/attendance-adjustments": typeof AuthenticatedOrganizationAttendanceAdjustmentsRoute
   "/attendance-logs": typeof AuthenticatedOrganizationAttendanceLogsRoute
+  "/attendance-policy-assignments": typeof AuthenticatedOrganizationAttendancePolicyAssignmentsRoute
   "/audit-logs": typeof AuthenticatedOrganizationAuditLogsRoute
   "/dashboard": typeof AuthenticatedOrganizationDashboardRoute
   "/departments": typeof AuthenticatedOrganizationDepartmentsRoute
   "/econtracts": typeof AuthenticatedOrganizationEcontractsRoute
   "/employees": typeof AuthenticatedOrganizationEmployeesRoute
+  "/employment-phases": typeof AuthenticatedOrganizationEmploymentPhasesRoute
   "/holidays": typeof AuthenticatedOrganizationHolidaysRoute
   "/leave-balances": typeof AuthenticatedOrganizationLeaveBalancesRoute
   "/leave-requests": typeof AuthenticatedOrganizationLeaveRequestsRoute
@@ -1016,11 +1042,13 @@ export interface FileRoutesById {
   "/_authenticated/_organization/assignments": typeof AuthenticatedOrganizationAssignmentsRoute
   "/_authenticated/_organization/attendance-adjustments": typeof AuthenticatedOrganizationAttendanceAdjustmentsRoute
   "/_authenticated/_organization/attendance-logs": typeof AuthenticatedOrganizationAttendanceLogsRoute
+  "/_authenticated/_organization/attendance-policy-assignments": typeof AuthenticatedOrganizationAttendancePolicyAssignmentsRoute
   "/_authenticated/_organization/audit-logs": typeof AuthenticatedOrganizationAuditLogsRoute
   "/_authenticated/_organization/dashboard": typeof AuthenticatedOrganizationDashboardRoute
   "/_authenticated/_organization/departments": typeof AuthenticatedOrganizationDepartmentsRoute
   "/_authenticated/_organization/econtracts": typeof AuthenticatedOrganizationEcontractsRoute
   "/_authenticated/_organization/employees": typeof AuthenticatedOrganizationEmployeesRoute
+  "/_authenticated/_organization/employment-phases": typeof AuthenticatedOrganizationEmploymentPhasesRoute
   "/_authenticated/_organization/holidays": typeof AuthenticatedOrganizationHolidaysRoute
   "/_authenticated/_organization/leave-balances": typeof AuthenticatedOrganizationLeaveBalancesRoute
   "/_authenticated/_organization/leave-requests": typeof AuthenticatedOrganizationLeaveRequestsRoute
@@ -1099,11 +1127,13 @@ export interface FileRouteTypes {
     | "/assignments"
     | "/attendance-adjustments"
     | "/attendance-logs"
+    | "/attendance-policy-assignments"
     | "/audit-logs"
     | "/dashboard"
     | "/departments"
     | "/econtracts"
     | "/employees"
+    | "/employment-phases"
     | "/holidays"
     | "/leave-balances"
     | "/leave-requests"
@@ -1178,11 +1208,13 @@ export interface FileRouteTypes {
     | "/assignments"
     | "/attendance-adjustments"
     | "/attendance-logs"
+    | "/attendance-policy-assignments"
     | "/audit-logs"
     | "/dashboard"
     | "/departments"
     | "/econtracts"
     | "/employees"
+    | "/employment-phases"
     | "/holidays"
     | "/leave-balances"
     | "/leave-requests"
@@ -1255,11 +1287,13 @@ export interface FileRouteTypes {
     | "/_authenticated/_organization/assignments"
     | "/_authenticated/_organization/attendance-adjustments"
     | "/_authenticated/_organization/attendance-logs"
+    | "/_authenticated/_organization/attendance-policy-assignments"
     | "/_authenticated/_organization/audit-logs"
     | "/_authenticated/_organization/dashboard"
     | "/_authenticated/_organization/departments"
     | "/_authenticated/_organization/econtracts"
     | "/_authenticated/_organization/employees"
+    | "/_authenticated/_organization/employment-phases"
     | "/_authenticated/_organization/holidays"
     | "/_authenticated/_organization/leave-balances"
     | "/_authenticated/_organization/leave-requests"
@@ -1491,6 +1525,13 @@ declare module "@tanstack/react-router" {
       preLoaderRoute: typeof AuthenticatedOrganizationHolidaysRouteImport
       parentRoute: typeof AuthenticatedOrganizationRoute
     }
+    "/_authenticated/_organization/employment-phases": {
+      id: "/_authenticated/_organization/employment-phases"
+      path: "/employment-phases"
+      fullPath: "/employment-phases"
+      preLoaderRoute: typeof AuthenticatedOrganizationEmploymentPhasesRouteImport
+      parentRoute: typeof AuthenticatedOrganizationRoute
+    }
     "/_authenticated/_organization/employees": {
       id: "/_authenticated/_organization/employees"
       path: "/employees"
@@ -1524,6 +1565,13 @@ declare module "@tanstack/react-router" {
       path: "/audit-logs"
       fullPath: "/audit-logs"
       preLoaderRoute: typeof AuthenticatedOrganizationAuditLogsRouteImport
+      parentRoute: typeof AuthenticatedOrganizationRoute
+    }
+    "/_authenticated/_organization/attendance-policy-assignments": {
+      id: "/_authenticated/_organization/attendance-policy-assignments"
+      path: "/attendance-policy-assignments"
+      fullPath: "/attendance-policy-assignments"
+      preLoaderRoute: typeof AuthenticatedOrganizationAttendancePolicyAssignmentsRouteImport
       parentRoute: typeof AuthenticatedOrganizationRoute
     }
     "/_authenticated/_organization/attendance-logs": {
@@ -2111,11 +2159,13 @@ interface AuthenticatedOrganizationRouteChildren {
   AuthenticatedOrganizationAssignmentsRoute: typeof AuthenticatedOrganizationAssignmentsRoute
   AuthenticatedOrganizationAttendanceAdjustmentsRoute: typeof AuthenticatedOrganizationAttendanceAdjustmentsRoute
   AuthenticatedOrganizationAttendanceLogsRoute: typeof AuthenticatedOrganizationAttendanceLogsRoute
+  AuthenticatedOrganizationAttendancePolicyAssignmentsRoute: typeof AuthenticatedOrganizationAttendancePolicyAssignmentsRoute
   AuthenticatedOrganizationAuditLogsRoute: typeof AuthenticatedOrganizationAuditLogsRoute
   AuthenticatedOrganizationDashboardRoute: typeof AuthenticatedOrganizationDashboardRoute
   AuthenticatedOrganizationDepartmentsRoute: typeof AuthenticatedOrganizationDepartmentsRoute
   AuthenticatedOrganizationEcontractsRoute: typeof AuthenticatedOrganizationEcontractsRoute
   AuthenticatedOrganizationEmployeesRoute: typeof AuthenticatedOrganizationEmployeesRoute
+  AuthenticatedOrganizationEmploymentPhasesRoute: typeof AuthenticatedOrganizationEmploymentPhasesRoute
   AuthenticatedOrganizationHolidaysRoute: typeof AuthenticatedOrganizationHolidaysRoute
   AuthenticatedOrganizationLeaveBalancesRoute: typeof AuthenticatedOrganizationLeaveBalancesRoute
   AuthenticatedOrganizationLeaveRequestsRoute: typeof AuthenticatedOrganizationLeaveRequestsRoute
@@ -2153,6 +2203,8 @@ const AuthenticatedOrganizationRouteChildren: AuthenticatedOrganizationRouteChil
       AuthenticatedOrganizationAttendanceAdjustmentsRoute,
     AuthenticatedOrganizationAttendanceLogsRoute:
       AuthenticatedOrganizationAttendanceLogsRoute,
+    AuthenticatedOrganizationAttendancePolicyAssignmentsRoute:
+      AuthenticatedOrganizationAttendancePolicyAssignmentsRoute,
     AuthenticatedOrganizationAuditLogsRoute:
       AuthenticatedOrganizationAuditLogsRoute,
     AuthenticatedOrganizationDashboardRoute:
@@ -2163,6 +2215,8 @@ const AuthenticatedOrganizationRouteChildren: AuthenticatedOrganizationRouteChil
       AuthenticatedOrganizationEcontractsRoute,
     AuthenticatedOrganizationEmployeesRoute:
       AuthenticatedOrganizationEmployeesRoute,
+    AuthenticatedOrganizationEmploymentPhasesRoute:
+      AuthenticatedOrganizationEmploymentPhasesRoute,
     AuthenticatedOrganizationHolidaysRoute:
       AuthenticatedOrganizationHolidaysRoute,
     AuthenticatedOrganizationLeaveBalancesRoute:

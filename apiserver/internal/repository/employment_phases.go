@@ -196,7 +196,7 @@ func (r EmploymentPhaseRepository) UpdatePhaseStatus(ctx context.Context, employ
 		SET status = $1,
 		    evaluation_notes = $2,
 		    evaluated_by = $3,
-		    completed_at = NOW(),
+		    completed_at = CASE WHEN $1 IN ('completed', 'terminated') THEN NOW() ELSE NULL END,
 		    updated_at = NOW()
 		WHERE id = $4 AND employment_id = $5
 		RETURNING id, employment_id, phase_definition_id, start_date::text, end_date::text, status, override_config, evaluation_notes, evaluated_by, completed_at, created_at, updated_at`,
@@ -207,6 +207,56 @@ func (r EmploymentPhaseRepository) UpdatePhaseStatus(ctx context.Context, employ
 		return api.EmployeePhase{}, api.ErrEmployeePhaseNotFound
 	}
 	return p, err
+}
+
+func (r EmploymentPhaseRepository) ListOrganizationPhases(ctx context.Context, page, limit int, query, status string, employeeID *uuid.UUID) (api.EmploymentPhaseAssignmentListResponse, error) {
+	db, err := r.db(ctx)
+	if err != nil {
+		return api.EmploymentPhaseAssignmentListResponse{}, err
+	}
+	offset := (page - 1) * limit
+	search := "%" + query + "%"
+	rows, err := db.Query(ctx, `SELECT ep.id, ep.employment_id, ep.phase_definition_id, ep.start_date::text, ep.end_date::text,
+		ep.status, ep.override_config, ep.evaluation_notes, ep.evaluated_by, ep.completed_at, ep.created_at, ep.updated_at,
+		e.id, e.full_name, e.employee_id_number, d.name, pd.name, pd.phase_type
+		FROM employee_phases ep
+		JOIN employments em ON em.id = ep.employment_id AND em.deleted_at IS NULL
+		JOIN employees e ON e.id = em.employee_id AND e.deleted_at IS NULL
+		LEFT JOIN departments d ON d.id = em.department_id
+		JOIN employment_phase_definitions pd ON pd.id = ep.phase_definition_id
+		WHERE ($1 = '%%' OR e.full_name ILIKE $1 OR e.employee_id_number ILIKE $1 OR pd.name ILIKE $1)
+		  AND ($2 = '' OR ep.status = $2)
+		  AND ($5::uuid IS NULL OR e.id = $5::uuid)
+		ORDER BY ep.start_date DESC, ep.id ASC LIMIT $3 OFFSET $4`, search, status, limit, offset, employeeID)
+	if err != nil {
+		return api.EmploymentPhaseAssignmentListResponse{}, err
+	}
+	defer rows.Close()
+	result := api.EmploymentPhaseAssignmentListResponse{Data: make([]api.EmploymentPhaseAssignment, 0), Page: page, Limit: limit}
+	for rows.Next() {
+		var item api.EmploymentPhaseAssignment
+		var created, updated time.Time
+		var completed *time.Time
+		var override []byte
+		if err := rows.Scan(&item.ID, &item.EmploymentID, &item.PhaseDefinitionID, &item.StartDate, &item.EndDate, &item.Status, &override, &item.EvaluationNotes, &item.EvaluatedBy, &completed, &created, &updated, &item.EmployeeID, &item.EmployeeName, &item.EmployeeCode, &item.DepartmentName, &item.PhaseName, &item.PhaseType); err != nil {
+			return api.EmploymentPhaseAssignmentListResponse{}, err
+		}
+		item.OverrideConfig = override
+		item.CreatedAt = created.UTC().Format(time.RFC3339)
+		item.UpdatedAt = updated.UTC().Format(time.RFC3339)
+		if completed != nil {
+			value := completed.UTC().Format(time.RFC3339)
+			item.CompletedAt = &value
+		}
+		result.Data = append(result.Data, item)
+	}
+	if err := rows.Err(); err != nil {
+		return api.EmploymentPhaseAssignmentListResponse{}, err
+	}
+	if err := db.QueryRow(ctx, `SELECT count(*) FROM employee_phases ep JOIN employments em ON em.id = ep.employment_id AND em.deleted_at IS NULL JOIN employees e ON e.id = em.employee_id AND e.deleted_at IS NULL JOIN employment_phase_definitions pd ON pd.id = ep.phase_definition_id WHERE ($1 = '%%' OR e.full_name ILIKE $1 OR e.employee_id_number ILIKE $1 OR pd.name ILIKE $1) AND ($2 = '' OR ep.status = $2) AND ($3::uuid IS NULL OR e.id = $3::uuid)`, search, status, employeeID).Scan(&result.Total); err != nil {
+		return api.EmploymentPhaseAssignmentListResponse{}, err
+	}
+	return result, nil
 }
 
 func (r EmploymentPhaseRepository) ListPhases(ctx context.Context, employmentID uuid.UUID) ([]api.EmployeePhase, error) {

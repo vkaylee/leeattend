@@ -6,12 +6,13 @@ import { useTranslation } from "react-i18next";
 import Button from "@/components/ui/button";
 import Modal from "@/components/ui/modal";
 import { useToast } from "@/components/ui/toast";
-import { updateEmployeePhaseStatus } from "@/lib/api/employees";
+import { updateEmployeePhaseStatus, updateEmploymentPhaseStatus } from "@/lib/api/employees";
 import { EmployeePhase } from "@/lib/api/types";
 import { cn } from "@/lib/utils";
 
 interface Props {
   employeeId: string;
+  employmentId?: string;
   isOpen: boolean;
   onClose: () => void;
   selectedPhase: EmployeePhase;
@@ -20,6 +21,7 @@ interface Props {
 export default function UpdatePhaseStatusModal({
   isOpen,
   onClose,employeeId,
+  employmentId,
   selectedPhase,
 }: Props) {
   const { t } = useTranslation();
@@ -33,13 +35,17 @@ export default function UpdatePhaseStatusModal({
 
   const statusMutation = useMutation({
     mutationFn: (data: { phaseId: string; status: string; evaluation_notes: string }) =>
-      updateEmployeePhaseStatus(employeeId, data.phaseId, {
+      employmentId ? updateEmploymentPhaseStatus(employmentId, data.phaseId, {
+        status: data.status,
+        evaluation_notes: data.evaluation_notes,
+      }) : updateEmployeePhaseStatus(employeeId, data.phaseId, {
         status: data.status,
         evaluation_notes: data.evaluation_notes,
       }),
     onSuccess: () => {
       toast.success(t("common.success"));
       void queryClient.invalidateQueries({ queryKey: ["employee-phases", employeeId] });
+      void queryClient.invalidateQueries({ queryKey: ["employment-phase-assignments"] });
       onClose();
     },
     onError: (err: unknown) => {

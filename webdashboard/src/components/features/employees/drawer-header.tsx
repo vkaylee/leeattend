@@ -1,6 +1,6 @@
 /* eslint-disable react/forbid-elements */
 import { Link } from "@tanstack/react-router";
-import { ChevronDown, ChevronLeft, ChevronRight, ExternalLink, X, User, FolderOpen, FileText, Milestone, DollarSign, History, ShieldCheck, Maximize2, Minimize2 } from "lucide-react";
+import { ChevronDown, ChevronLeft, ChevronRight, ExternalLink, X, User, FolderOpen, FileText, DollarSign, History, Maximize2, Minimize2 } from "lucide-react";
 import { createElement, useCallback, useEffect, useRef, useState, type ComponentType } from "react";
 import type { TFunction } from "i18next";
 
@@ -16,7 +16,7 @@ import {
 import { Typography } from "@/components/ui/typography";
 import { cn } from "@/lib/utils";
 
-export type DetailTabType = "profile" | "documents" | "contracts" | "phases" | "salary" | "compensation" | "attendance-policy";
+export type DetailTabType = "profile" | "documents" | "contracts" | "salary" | "compensation";
 
 export interface TabDefinition {
   id: DetailTabType;
@@ -28,10 +28,8 @@ export const EMPLOYEE_DRAWER_TAB_CONFIG: readonly TabDefinition[] = [
   { id: "profile", i18nKey: "employees.details.tabs.profile", icon: User },
   { id: "documents", i18nKey: "employees.details.tabs.documents", icon: FolderOpen },
   { id: "contracts", i18nKey: "employees.details.tabs.contracts", icon: FileText },
-  { id: "phases", i18nKey: "employees.details.tabs.phases", icon: Milestone },
   { id: "salary", i18nKey: "employees.details.tabs.salary", icon: DollarSign },
   { id: "compensation", i18nKey: "employees.details.tabs.compensation", icon: History },
-  { id: "attendance-policy", i18nKey: "employees.details.tabs.attendance_policy", icon: ShieldCheck },
 ] as const;
 
 export interface DrawerHeaderProps {

@@ -322,13 +322,13 @@ describe("api.ts comprehensive tests", () => {
     it("fetchOrganization", async () => {
       mockSuccess({});
       await api.fetchOrganization();
-      expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/api/v1/organization/settings"), expect.any(Object));
+      expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/api/v1"), expect.any(Object));
     });
 
     it("updateOrganization", async () => {
       mockSuccess({});
       await api.updateOrganization({ name: "U" });
-      expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/api/v1/organization/settings"), expect.objectContaining({ method: "PATCH" }));
+      expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/api/v1"), expect.objectContaining({ method: "PATCH" }));
     });
 
     it("fetchOrganizationMembers", async () => {

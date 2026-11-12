@@ -177,7 +177,6 @@ func main() {
 	mux.HandleFunc("GET /api/v1/configs", organizationHandler.ListConfigs)
 	mux.HandleFunc("GET /api/v1/configs/{key}", organizationHandler.GetConfig)
 	mux.HandleFunc("DELETE /api/v1/configs/{key}", organizationHandler.DeleteConfig)
-	mux.HandleFunc("GET /api/v1", organizationHandler.Get)
 	healthHandler := health.NewHandler(Version, nil, nil)
 	healthHandler.SetLive(true)
 	departmentRepo := repository.DepartmentRepository{DB: db}
@@ -554,6 +553,7 @@ func main() {
 	phaseHandler := api.EmploymentPhaseHandler{Repository: phaseRepo, Authorizer: organizationAuthorizer}
 	mux.HandleFunc("POST /api/v1/employment-phases", phaseHandler.CreateDefinition)
 	mux.HandleFunc("GET /api/v1/employment-phases", phaseHandler.ListDefinitions)
+	mux.HandleFunc("GET /api/v1/employment-phase-assignments", phaseHandler.ListOrganization)
 	mux.HandleFunc("POST /api/v1/employees/{user_id}/phases", phaseHandler.AssignEmployee)
 	mux.HandleFunc("GET /api/v1/employees/{user_id}/phases", phaseHandler.ListEmployee)
 	mux.HandleFunc("PUT /api/v1/employees/{user_id}/phases/{phase_id}/status", phaseHandler.UpdateEmployeeStatus)

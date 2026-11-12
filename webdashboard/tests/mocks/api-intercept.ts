@@ -143,11 +143,12 @@ export async function setupApiMocks(page: Page) {
     const method = route.request().method();
     let pathname = new URL(url).pathname;
     
-    pathname = pathname.replace(/^\/api\/v1\//, "/api/");
+    if (pathname === "/api/v1") {
+      pathname = "/api";
+    } else {
+      pathname = pathname.replace(/^\/api\/v1\//, "/api/");
+    }
 
-    
-
- 
     const fulfill = async (data?: unknown, status = 200) => {
       if (data === undefined) {
         return route.fulfill({ status });
@@ -208,7 +209,7 @@ export async function setupApiMocks(page: Page) {
       });
     }
 
-    if (pathname === '/api/organization/settings') {
+    if (pathname === '/api') {
       if (method === 'GET') return fulfill(structuredClone(activeOrganization));
       if (method === 'PATCH' || method === 'PUT') {
         const body = JSON.parse(route.request().postData() ?? '{}');

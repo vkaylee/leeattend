@@ -14,8 +14,9 @@ import (
 )
 
 type mockEmploymentPhaseRepo struct {
-	definitions []EmploymentPhaseDefinition
-	phases      map[uuid.UUID][]EmployeePhase
+	definitions       []EmploymentPhaseDefinition
+	phases            map[uuid.UUID][]EmployeePhase
+	organizationQuery *uuid.UUID
 }
 
 func (m *mockEmploymentPhaseRepo) CreateDefinition(ctx context.Context, def EmploymentPhaseDefinition) (EmploymentPhaseDefinition, error) {
@@ -25,6 +26,10 @@ func (m *mockEmploymentPhaseRepo) CreateDefinition(ctx context.Context, def Empl
 
 func (m *mockEmploymentPhaseRepo) ListDefinitions(context.Context) ([]EmploymentPhaseDefinition, error) {
 	return append([]EmploymentPhaseDefinition(nil), m.definitions...), nil
+}
+func (m *mockEmploymentPhaseRepo) ListOrganizationPhases(_ context.Context, _ int, _ int, _ string, _ string, employeeID *uuid.UUID) (EmploymentPhaseAssignmentListResponse, error) {
+	m.organizationQuery = employeeID
+	return EmploymentPhaseAssignmentListResponse{Data: []EmploymentPhaseAssignment{}, Page: 1, Limit: 50}, nil
 }
 
 func (m *mockEmploymentPhaseRepo) AssignPhase(ctx context.Context, employmentID uuid.UUID, req AssignEmployeePhaseRequest) (EmployeePhase, error) {
@@ -117,7 +122,10 @@ func TestEmploymentPhaseDefinitionsAndPermissions(t *testing.T) {
 	repo := &mockEmploymentPhaseRepo{}
 	handler := EmploymentPhaseHandler{
 		Repository: repo,
-		Authorizer: mockPhaseAuthorizer{allowed: map[string]bool{"employment_phases:manage": true}},
+		Authorizer: mockPhaseAuthorizer{allowed: map[string]bool{
+			"employment_phases:manage": true,
+			"employment_phases:read":   true,
+		}},
 	}
 
 	body := CreateEmploymentPhaseDefinitionRequest{
@@ -142,6 +150,46 @@ func TestEmploymentPhaseDefinitionsAndPermissions(t *testing.T) {
 	handler.ListDefinitions(listRec, listReq)
 	if listRec.Code != http.StatusOK {
 		t.Fatalf("expected 200, got %d", listRec.Code)
+	}
+}
+
+func TestEmploymentPhaseListUsesReadPermission(t *testing.T) {
+	userID := uuid.New()
+	handler := EmploymentPhaseHandler{Repository: &mockEmploymentPhaseRepo{}, Authorizer: mockPhaseAuthorizer{allowed: map[string]bool{"employment_phases:read": true}}}
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/employment-phase-assignments?page=1&limit=10", nil).WithContext(httpinfra.WithUserIDForTest(context.Background(), userID))
+	rec := httptest.NewRecorder()
+	handler.ListOrganization(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", rec.Code, rec.Body.String())
+	}
+}
+
+func TestEmploymentPhaseListValidatesEmployeeFilter(t *testing.T) {
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/employment-phase-assignments?employee_id=bad", nil).WithContext(httpinfra.WithUserIDForTest(context.Background(), uuid.New()))
+	rec := httptest.NewRecorder()
+	EmploymentPhaseHandler{Repository: &mockEmploymentPhaseRepo{}, Authorizer: mockPhaseAuthorizer{allowed: map[string]bool{"employment_phases:read": true}}}.ListOrganization(rec, req)
+	if rec.Code != http.StatusBadRequest && rec.Code != http.StatusUnprocessableEntity {
+		t.Fatalf("expected validation error, got %d", rec.Code)
+	}
+}
+
+func TestEmploymentPhaseListPassesEmployeeFilter(t *testing.T) {
+	employeeID := uuid.New()
+	repo := &mockEmploymentPhaseRepo{}
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/employment-phase-assignments?employee_id="+employeeID.String(), nil).WithContext(httpinfra.WithUserIDForTest(context.Background(), uuid.New()))
+	rec := httptest.NewRecorder()
+	EmploymentPhaseHandler{Repository: repo, Authorizer: mockPhaseAuthorizer{allowed: map[string]bool{"employment_phases:read": true}}}.ListOrganization(rec, req)
+	if rec.Code != http.StatusOK || repo.organizationQuery == nil || *repo.organizationQuery != employeeID {
+		t.Fatalf("expected employee filter to reach repository, status=%d", rec.Code)
+	}
+}
+
+func TestEmploymentPhaseListForbiddenWithoutReadPermission(t *testing.T) {
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/employment-phase-assignments", nil).WithContext(httpinfra.WithUserIDForTest(context.Background(), uuid.New()))
+	rec := httptest.NewRecorder()
+	EmploymentPhaseHandler{Repository: &mockEmploymentPhaseRepo{}, Authorizer: mockPhaseAuthorizer{allowed: map[string]bool{}}}.ListOrganization(rec, req)
+	if rec.Code != http.StatusForbidden {
+		t.Fatalf("expected 403, got %d", rec.Code)
 	}
 }
 

@@ -1090,7 +1090,7 @@ func (h LeaveHandler) DeleteBehalfAssignment(w http.ResponseWriter, r *http.Requ
 		h.forbidden(w, r)
 		return
 	}
-	if err := br.DeleteBehalfAssignment(r.Context(), id); err != nil {
+	if err := br.DeleteBehalfAssignment(r.Context(), id, "leave_request"); err != nil {
 		h.writeError(w, r, err)
 		return
 	}

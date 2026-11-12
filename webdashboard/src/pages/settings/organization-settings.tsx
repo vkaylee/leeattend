@@ -1,15 +1,14 @@
-import { Building2, Layers, Briefcase } from "lucide-react";
+import { Building2, Briefcase } from "lucide-react";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import EmploymentPhaseManager from "@/components/people/employment-phase-manager";
 import { SettingsHeader } from "@/components/ui/settings/settings-header";
 import { SettingsSegmentedControl } from "@/components/ui/settings/settings-segmented-control";
 import { Typography } from "@/components/ui/typography";
 
 import EmployersPage from "./employers-page";
 
-type TabType = "employers" | "employment_phases";
+type TabType = "employers";
 
 export default function OrganizationSettings() {
   const { t } = useTranslation();
@@ -34,12 +33,6 @@ export default function OrganizationSettings() {
               testId: "tab-employers",
               value: "employers",
             },
-            {
-              icon: <Layers size={14} />,
-              label: "Lộ trình & Mốc",
-              testId: "tab-phases",
-              value: "employment_phases",
-            },
           ]}
           testId="organization-tabs"
           value={activeTab}
@@ -52,11 +45,6 @@ export default function OrganizationSettings() {
         {activeTab === "employers" ? (
           <div className="bg-white dark:bg-slate-900/90 rounded-2xl border border-slate-200/80 dark:border-slate-800/80 overflow-hidden shadow-2xs p-6">
             <EmployersPage />
-          </div>
-        ) : null}
-        {activeTab === "employment_phases" ? (
-          <div className="bg-white dark:bg-slate-900/90 rounded-2xl border border-slate-200/80 dark:border-slate-800/80 overflow-hidden shadow-2xs p-6">
-            <EmploymentPhaseManager   />
           </div>
         ) : null}
       </div>

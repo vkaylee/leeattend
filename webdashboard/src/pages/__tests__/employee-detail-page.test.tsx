@@ -152,10 +152,8 @@ describe("EmployeeDetailPage", () => {
       "tab-profile",
       "tab-documents",
       "tab-contracts",
-      "tab-phases",
       "tab-salary",
       "tab-compensation",
-      "tab-attendance-policy",
     ];
 
     for (const tabId of expectedTabs) {

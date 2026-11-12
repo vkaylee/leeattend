@@ -9,6 +9,8 @@ const centralizedTabs = {
   assignments: "/assignments",
   "working-conditions": "/working-conditions",
   lifecycle: "/lifecycle",
+  phases: "/employment-phases",
+  "attendance-policy": "/attendance-policy-assignments",
 } as const;
 
 export const Route = createFileRoute(
