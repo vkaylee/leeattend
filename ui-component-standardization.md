@@ -33,6 +33,13 @@
 
 ## Progress
 - [x] Existing rulebooks and controls inspected.
-- [ ] Shared tokens and existing primitives updated.
-- [ ] Tabs/Typography and enforcement updated.
-- [ ] Regression and integration checks executed; outcomes recorded.
+- [x] Shared control tokens and existing primitives updated.
+- [x] Toolbar alignment pattern added with `ToolbarRow`; Attendance and Reports callers migrated.
+- [x] ResponsiveToolbar compatibility preserved through legacy `searchSlot` support.
+- [x] Regression and integration checks executed; outcomes recorded.
+- [ ] Migrate future desktop toolbar callers as they need unified search/filter layout.
+
+## Verified outcomes
+- Focused: `./leedevkit test web --unit-only --pattern 'ReportFilters|ResponsiveToolbar'` — 3 files, 10 tests passed.
+- Full: `./leedevkit test web` — 322 unit files, 3001 unit tests, 43 integration/E2E tests passed, 9 E2E tests skipped; typecheck, i18n, and lint passed.
+- Lint emitted existing warnings but 0 errors; `git diff --check` passed.

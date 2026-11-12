@@ -9,6 +9,7 @@ import { FilterModeButtons } from "@/components/common/filter-mode-buttons";
 import Button from "@/components/ui/button";
 import { LABEL_BASE } from "@/components/ui/form-field";
 import ResponsiveToolbar from "@/components/ui/responsive-toolbar";
+import ToolbarRow from "@/components/ui/toolbar-row";
 import { cn } from "@/lib/utils";
 
 import type { FilterMode } from "../hooks/use-attendance-logs-page";
@@ -46,7 +47,7 @@ export function AttendanceLogsFilters(props: AttendanceLogsFiltersProps) {
   const { dateRange, setDateRange, employeeId, setEmployeeId, filterMode, handleFilterModeChange, handleSpecificMonthChange, specificMonth, departments } = props;
 
   const employeeSearch = (
-    <div className="flex h-[var(--ui-height-sm)] w-full items-center gap-3 self-center">
+    <div className="flex h-[var(--ui-height-sm)] min-w-0 w-full flex-1 items-center gap-3 self-center">
       <div className="min-w-0 flex-1 self-center">
         <EmployeeSearch clearOnEscape data-testid="employee-search" departments={departments} keyboardShortcut={["/", "Enter"]} onChange={(value) => { setEmployeeId((Array.isArray(value) ? value[0] : value) || "all"); }} placeholder={employeeId === "all" ? t("common.all_employees") : undefined} size="sm" value={employeeId === "all" ? "" : employeeId}  />
       </div>
@@ -57,11 +58,16 @@ export function AttendanceLogsFilters(props: AttendanceLogsFiltersProps) {
   return (
     <ResponsiveToolbar
       className="items-center rounded-2xl border border-slate-200 bg-white p-1 shadow-sm dark:border-slate-700 dark:bg-slate-900"
+      desktopContent={
+        <ToolbarRow className="flex-nowrap">
+          {employeeSearch}
+          <FilterModeButtons filterMode={filterMode} onFilterModeChange={handleFilterModeChange} onSpecificMonthChange={handleSpecificMonthChange} size="sm" specificMonth={specificMonth} t={t} />
+        </ToolbarRow>
+      }
       filterCount={(filterMode !== "this_month" ? 1 : 0) + (employeeId !== "all" ? 1 : 0)}
-      searchSlot={employeeSearch}
     >
       <div className="flex items-center gap-3">
-        <FilterModeButtons className="self-center" filterMode={filterMode} onFilterModeChange={handleFilterModeChange} onSpecificMonthChange={handleSpecificMonthChange} size="sm" specificMonth={specificMonth} t={t} />
+        <FilterModeButtons filterMode={filterMode} onFilterModeChange={handleFilterModeChange} onSpecificMonthChange={handleSpecificMonthChange} size="sm" specificMonth={specificMonth} t={t} />
         <div className="lg:hidden">{employeeSearch}</div>
       </div>
       {filterMode === "custom" ? <CustomRangeFilter dateRange={dateRange} setDateRange={setDateRange} /> : null}
