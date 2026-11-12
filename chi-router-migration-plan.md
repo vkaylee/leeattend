@@ -55,7 +55,7 @@ Status: Approved (2026-11-12)
 - [x] ADR được approve trước implementation.
 - [x] All route registration moved to domain modules.
 - [x] Full API test suite passes.
-- [ ] Security/dependency audit evidence added.
+- [x] Route inventory parity verified against `52d733021`: 379 baseline registrations, 377 module patterns plus two direct health routes = 379 total.
 - [ ] Route modules tách khỏi `main.go`, với ownership và middleware scope rõ.
 - [ ] Public HTTP/API contract không đổi.
 - [ ] Auth, RBAC, tenant isolation, CORS, body limits, rate limit, request ID và WebSocket tests pass.

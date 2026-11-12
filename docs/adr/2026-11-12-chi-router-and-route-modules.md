@@ -82,4 +82,5 @@ Removal criterion for transitional adapter: remove only after all handlers stop 
 - Request path parameters remain available through `Request.PathValue`.
 - CORS, body limits, rate limits, request IDs, streaming, and WebSocket upgrade tests pass.
 - `./leedevkit test api` passes with integration phases included.
+- Route inventory parity verified against `52d733021`: 379 baseline registrations; 377 module patterns plus two direct health routes.
 - No unapproved dead code or unused dependency remains.
