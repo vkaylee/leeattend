@@ -1,0 +1,46 @@
+package main
+
+import (
+	"github.com/go-chi/chi/v5"
+	"github.com/vkaylee/leeattend/apiserver/internal/api"
+)
+
+func registerLeaveRoutes(router chi.Router, leave api.LeaveHandler, holiday api.HolidayHandler) {
+	registerRoute(router, "GET /api/v1/leave/types", leave.ListTypes)
+	registerRoute(router, "POST /api/v1/leave/types", leave.CreateType)
+	registerRoute(router, "PUT /api/v1/leave/types/{id}/config", leave.UpdateTypeConfig)
+	registerRoute(router, "DELETE /api/v1/leave/types/{id}", leave.DeleteType)
+	registerRoute(router, "POST /api/v1/leave/types/{id}/restore", leave.RestoreType)
+	registerRoute(router, "POST /api/v1/leave/submit", leave.Submit)
+	registerRoute(router, "GET /api/v1/leave/requests", leave.ListRequests)
+	registerRoute(router, "POST /api/v1/leave/requests/{id}/approve", leave.Approve)
+	registerRoute(router, "GET /api/v1/employees/{id}/leave/balances", leave.Balances)
+	registerRoute(router, "GET /api/v1/leave/balances", leave.OrganizationBalances)
+	registerRoute(router, "GET /api/v1/employees/{id}/leave/history", leave.EmployeeHistory)
+	registerRoute(router, "POST /api/v1/employees/{id}/leave/adjust", leave.AdjustBalance)
+	registerRoute(router, "GET /api/v1/employees/{id}/leave/requests", leave.MyRequests)
+	registerRoute(router, "GET /api/v1/leave/policies", leave.ListPolicies)
+	registerRoute(router, "POST /api/v1/leave/policies", leave.CreatePolicy)
+	registerRoute(router, "PATCH /api/v1/leave/policies/{policy_id}", leave.UpdatePolicy)
+	registerRoute(router, "DELETE /api/v1/leave/policies/{policy_id}", leave.DeletePolicy)
+	registerRoute(router, "POST /api/v1/leave/policies/assign", leave.AssignPolicy)
+	registerRoute(router, "GET /api/v1/leave/policies/assignments", leave.ListPolicyAssignments)
+	registerRoute(router, "DELETE /api/v1/leave/policies/assignments/{assignment_id}", leave.DeletePolicyAssignment)
+	registerRoute(router, "POST /api/v1/leave/accrual/run", leave.TriggerAccrual)
+	registerRoute(router, "GET /api/v1/jobs/{job_id}/status", leave.JobStatus)
+	registerRoute(router, "POST /api/v1/leave/upload-excel", leave.UploadExcel)
+	registerRoute(router, "GET /api/v1/leave/import/latest", leave.LatestImport)
+	registerRoute(router, "GET /api/v1/leave/import/{job_id}/errors", leave.ImportErrors)
+	registerRoute(router, "GET /api/v1/leave/upload-template", leave.UploadTemplate)
+	registerRoute(router, "GET /api/v1/leave/behalf-assignments", leave.ListBehalfAssignments)
+	registerRoute(router, "POST /api/v1/leave/behalf-assignments", leave.CreateBehalfAssignment)
+	registerRoute(router, "GET /api/v1/leave/behalf-assignments/my-targets", leave.GetMyBehalfTargets)
+	registerRoute(router, "DELETE /api/v1/leave/behalf-assignments/{id}", leave.DeleteBehalfAssignment)
+	registerRoute(router, "GET /api/v1/holidays", holiday.List)
+	registerRoute(router, "POST /api/v1/holidays", holiday.Create)
+	registerRoute(router, "GET /api/v1/holidays/{id}", holiday.Get)
+	registerRoute(router, "PUT /api/v1/holidays/{id}", holiday.Update)
+	registerRoute(router, "PATCH /api/v1/holidays/{id}", holiday.Update)
+	registerRoute(router, "DELETE /api/v1/holidays/{id}", holiday.Delete)
+	registerRoute(router, "POST /api/v1/holidays/{id}/process-leave", holiday.ProcessLeave)
+}

@@ -5,11 +5,12 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/go-chi/chi/v5"
 	"github.com/vkaylee/leeattend/apiserver/internal/infra/health"
 )
 
 func TestHealthRoutesMounted(t *testing.T) {
-	mux := http.NewServeMux()
+	mux := chi.NewRouter()
 	h := health.NewHandler(Version, nil, nil)
 	h.SetLive(true)
 	mux.HandleFunc("GET /health", h.Liveness)
@@ -32,7 +33,7 @@ func TestHealthRoutesMounted(t *testing.T) {
 }
 
 func TestOrganizationSettingsRoutesRejectLegacyAlias(t *testing.T) {
-	mux := http.NewServeMux()
+	mux := chi.NewRouter()
 	get := func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(http.StatusNoContent) }
 	patch := func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(http.StatusNoContent) }
 	registerOrganizationSettingsRoutes(mux, get, patch)

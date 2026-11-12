@@ -1,6 +1,6 @@
 # LeeAttend API Server (Go)
 
-Central high-performance API server for LeeAttend, built with Go 1.26+, standard library `net/http.ServeMux`, `oapi-codegen` strict server, `pgx/v5` connection pool, and `sqlc`.
+Central high-performance API server for LeeAttend, built with Go 1.26+, `github.com/go-chi/chi/v5`, `oapi-codegen` strict server, `pgx/v5` connection pool, and `sqlc`.
 
 > **Migration Note:** Migrated from Rust/Axum to Go in October 2026 (Phase 9 Production Cutover complete). Legacy Rust source in `src/` and `Cargo.toml` is decommissioned and retained for archival reference only. Database schema migrations in `migrations/` remain active.
 
@@ -50,9 +50,16 @@ The server listens on `http://127.0.0.1:3000` when started directly.
 
 - `GET /health`: Check if the server is running.
 
+### Route ownership
+
+- `apiserver/routes.go` owns router construction and dependency wiring.
+- `router` holds public routes: health, login/refresh/password recovery, and report WebSocket upgrade.
+- `protectedRouter` holds authenticated routes. Do not add public paths to auth prefix lists; register them on `router` explicitly.
+- `registerRoute` preserves `http.Request.PathValue` for existing handlers during migration.
+
 ## 🛠 Tech Stack
 
-- **Web Engine**: Standard Library `net/http.ServeMux` (Go 1.22+ method-and-path routing)
+- **Web Engine**: `github.com/go-chi/chi/v5` with `net/http` handlers and explicit public/protected route ownership
 - **API Contract**: `oapi-codegen` v2 (StrictServerInterface compile-time contract enforcement)
 - **Database Layer**: `pgx/v5` connection pool + `sqlc` compile-time typed SQL (Zero ORM)
 - **Precision Math**: `shopspring/decimal` (Zero floating-point in payroll/hours/money)
