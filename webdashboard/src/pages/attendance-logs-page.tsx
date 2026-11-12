@@ -101,7 +101,7 @@ export default function AttendanceLogsPage() {
   
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-700 pb-20">
+    <div className="space-y-4 animate-in fade-in duration-700 pb-20">
       <AttendanceLogsHeader dateRange={state.dateRange} setIsImportDialogOpen={setIsImportDialogOpen} />
       <AttendanceLogsTabs activeTab={activeTab} setActiveTab={state.setActiveTab} stagingCount={stagingCount} />
       <TabContent state={state} />

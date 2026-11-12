@@ -1,7 +1,9 @@
-import React, { memo } from "react";
+import React, { memo, useId } from "react";
 
 import { Typography } from "@/components/ui/typography";
 import { cn } from "@/lib/utils";
+
+import { type ControlSize, CONTROL_SIZE_STYLES, CONTROL_TEXT_STYLE } from "./control-styles";
 
 // ── Shared input class ─────────────────────────────────────────────
 
@@ -38,6 +40,7 @@ export interface FormFieldProps {
   required?: boolean;
   /** Textarea rows (default: 5) */
   rows?: number;
+  size?: ControlSize;
   /** Input type — "textarea" renders a <textarea> */
   type?: "text" | "date" | "time" | "tel" | "email" | "number" | "textarea" | "password";
   value?: string;
@@ -57,12 +60,15 @@ const FormField = memo(function FormField({
   id,
   "data-testid": testId,
   rows = 5,
+  size = "md",
   className,
   disabled,
   error,
   ref,
 }: FormFieldProps) {
-  const inputId = id ?? name;
+  const generatedId = useId();
+  const inputId = id ?? name ?? generatedId;
+  const errorId = `${inputId}-error`;
 
   const sharedProps = {
     id: inputId,
@@ -75,6 +81,8 @@ const FormField = memo(function FormField({
     placeholder,
     "data-testid": testId,
     disabled,
+    "aria-invalid": error ? true : undefined,
+    "aria-describedby": error ? errorId : undefined,
   };
 
   return (
@@ -88,8 +96,9 @@ const FormField = memo(function FormField({
           {...sharedProps}
           className={cn(
             INPUT_BASE,
-            "py-4 font-medium text-sm resize-none",
             inputClassName,
+            CONTROL_TEXT_STYLE,
+            "py-4 text-control-md resize-none",
           )}
           onChange={onChange}
           rows={rows}
@@ -100,15 +109,16 @@ const FormField = memo(function FormField({
           {...sharedProps}
           className={cn(
             INPUT_BASE,
-            "h-[var(--ui-height-md)] font-medium text-sm",
             inputClassName,
+            CONTROL_TEXT_STYLE,
+            CONTROL_SIZE_STYLES[size],
           )}
           onChange={onChange}
           type={type}
         />
       )}
       {!!error && (
-        <Typography className="text-xs text-rose-500 font-medium px-1 mt-1" variant="p">{error}</Typography>
+        <Typography className="text-xs text-rose-500 font-medium px-1 mt-1" id={errorId} variant="p">{error}</Typography>
       )}
     </div>
   );

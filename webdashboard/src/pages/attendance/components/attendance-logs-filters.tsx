@@ -28,14 +28,14 @@ interface AttendanceLogsFiltersProps {
 function CustomRangeFilter({ dateRange, setDateRange }: { dateRange: { start: string, end: string }, setDateRange: React.Dispatch<React.SetStateAction<{ start: string, end: string }>> }) {
   const { t } = useTranslation();
   return (
-    <div className="bg-white dark:bg-slate-900 p-6 rounded-[2rem] border border-slate-200 dark:border-slate-700 shadow-sm grid grid-cols-1 md:grid-cols-2 gap-8 animate-in slide-in-from-top-2 duration-300 max-w-2xl">
-      <div className="space-y-2">
+    <div className="grid max-w-2xl grid-cols-1 gap-3 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm animate-in slide-in-from-top-2 duration-300 dark:border-slate-700 dark:bg-slate-900 md:grid-cols-2">
+      <div className="space-y-1.5">
         <label className={cn(LABEL_BASE, "flex items-center gap-2")}><Calendar size={12} /> {t("common.from_date")}</label>
-        <input className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-xl px-4 py-3 outline-none focus:ring-4 focus:ring-primary-500/10 transition-all font-bold text-sm" onChange={(e) => { setDateRange((prev) => ({ ...prev, start: e.target.value })); }} type="date" value={dateRange.start} />
+        <input className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 h-[var(--ui-height-sm)] rounded-xl px-4 outline-none focus:ring-2 focus:ring-primary-500/20 transition-all font-medium text-sm" onChange={(e) => { setDateRange((prev) => ({ ...prev, start: e.target.value })); }} type="date" value={dateRange.start} />
       </div>
-      <div className="space-y-2">
+      <div className="space-y-1.5">
         <label className={cn(LABEL_BASE, "flex items-center gap-2")}><Calendar size={12} /> {t("common.to_date")}</label>
-        <input className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-xl px-4 py-3 outline-none focus:ring-4 focus:ring-primary-500/10 transition-all font-bold text-sm" onChange={(e) => { setDateRange((prev) => ({ ...prev, end: e.target.value })); }} type="date" value={dateRange.end} />
+        <input className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 h-[var(--ui-height-sm)] rounded-xl px-4 outline-none focus:ring-2 focus:ring-primary-500/20 transition-all font-medium text-sm" onChange={(e) => { setDateRange((prev) => ({ ...prev, end: e.target.value })); }} type="date" value={dateRange.end} />
       </div>
     </div>
   );
@@ -46,25 +46,25 @@ export function AttendanceLogsFilters(props: AttendanceLogsFiltersProps) {
   const { dateRange, setDateRange, employeeId, setEmployeeId, filterMode, handleFilterModeChange, handleSpecificMonthChange, specificMonth, departments } = props;
 
   const employeeSearch = (
-    <div className="flex w-full items-center gap-3">
-      <div className="min-w-0 flex-1">
-        <EmployeeSearch clearOnEscape data-testid="employee-search" departments={departments} keyboardShortcut={["/", "Enter"]} onChange={(value) => { setEmployeeId((Array.isArray(value) ? value[0] : value) || "all"); }} placeholder={employeeId === "all" ? t("common.all_employees") : undefined} value={employeeId === "all" ? "" : employeeId}  />
+    <div className="flex h-[var(--ui-height-sm)] w-full items-center gap-3 self-center">
+      <div className="min-w-0 flex-1 self-center">
+        <EmployeeSearch clearOnEscape data-testid="employee-search" departments={departments} keyboardShortcut={["/", "Enter"]} onChange={(value) => { setEmployeeId((Array.isArray(value) ? value[0] : value) || "all"); }} placeholder={employeeId === "all" ? t("common.all_employees") : undefined} size="sm" value={employeeId === "all" ? "" : employeeId}  />
       </div>
-      {employeeId !== "all" && (<Button className="p-2.5 bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 hover:text-primary-600 dark:text-primary-400 rounded-xl transition-all" onClick={() => { setEmployeeId("all"); }} type="button" variant="ghost"><Users size={18} /></Button>)}
+      {employeeId !== "all" && (<Button aria-label={t("common.clear")} className="shrink-0" icon={<Users size={18} />} onClick={() => { setEmployeeId("all"); }} size="sm" type="button" variant="ghost" />)}
     </div>
   );
 
   return (
     <ResponsiveToolbar
-      className="rounded-[2rem] border border-slate-200 bg-white p-2 shadow-sm dark:border-slate-700 dark:bg-slate-900"
+      className="items-center rounded-2xl border border-slate-200 bg-white p-1 shadow-sm dark:border-slate-700 dark:bg-slate-900"
       filterCount={(filterMode !== "this_month" ? 1 : 0) + (employeeId !== "all" ? 1 : 0)}
       searchSlot={employeeSearch}
     >
-      <div className="space-y-4">
-        <FilterModeButtons filterMode={filterMode} onFilterModeChange={handleFilterModeChange} onSpecificMonthChange={handleSpecificMonthChange} specificMonth={specificMonth} t={t} />
+      <div className="flex items-center gap-3">
+        <FilterModeButtons className="self-center" filterMode={filterMode} onFilterModeChange={handleFilterModeChange} onSpecificMonthChange={handleSpecificMonthChange} size="sm" specificMonth={specificMonth} t={t} />
         <div className="lg:hidden">{employeeSearch}</div>
-        {filterMode === "custom" ? <CustomRangeFilter dateRange={dateRange} setDateRange={setDateRange} /> : null}
       </div>
+      {filterMode === "custom" ? <CustomRangeFilter dateRange={dateRange} setDateRange={setDateRange} /> : null}
     </ResponsiveToolbar>
   );
 }

@@ -2,6 +2,7 @@ import { ChevronDown } from "lucide-react";
 import React, { forwardRef } from "react";
 
 import Button from "@/components/ui/button";
+import type { ControlSize } from "@/components/ui/control-styles";
 import { cn } from "@/lib/utils";
 
 // ── Types ────────────────────────────────────────────────────────────
@@ -23,6 +24,8 @@ export interface FilterTriggerProps extends Omit<React.ButtonHTMLAttributes<HTML
   label: string;
   /** Visual variant */
   variant: FilterTriggerVariant;
+  /** Shared single-line control size. */
+  size?: ControlSize;
 }
 
 // ── Internal: Count Badge ────────────────────────────────────────────
@@ -119,6 +122,7 @@ const FilterTrigger = forwardRef<HTMLButtonElement, FilterTriggerProps>(function
     chevron = false,
     className,
     children,
+    size = "md",
     ...restProps
   },
   ref,
@@ -144,13 +148,15 @@ const FilterTrigger = forwardRef<HTMLButtonElement, FilterTriggerProps>(function
     <Button
       aria-label={label}
       className={cn(
-        "relative flex items-center gap-2 rounded-2xl border px-4 text-sm font-bold uppercase tracking-tight shadow-inner transition-all",
+        "relative flex items-center gap-2 border shadow-inner transition-all",
         hasActive || showBadge
           ? "border-primary-500 dark:border-primary-500 bg-primary-50 dark:bg-primary-950 text-primary-600 dark:text-primary-400"
           : "border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:border-primary-200 dark:hover:border-primary-800",
+        size === "sm" ? "rounded-xl" : "rounded-2xl",
         className,
       )}
       ref={ref}
+      size={size}
       type="button"
       variant="ghost"
       {...restProps}

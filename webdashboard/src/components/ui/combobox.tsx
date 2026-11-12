@@ -7,6 +7,8 @@ import { Command } from "cmdk";
 
 import { cn, removeDiacritics } from "@/lib/utils";
 
+import { type ControlSize, CONTROL_SIZE_STYLES, CONTROL_TEXT_STYLE } from "./control-styles";
+
 interface ComboboxOption {
   description?: string | React.ReactNode;
   displayDescription?: React.ReactNode;
@@ -34,6 +36,7 @@ interface ComboboxProps {
   placeholder?: string;
   searchPlaceholder?: string;
   shouldFilter?: boolean;
+  size?: ControlSize;
   value?: string;
 }
 
@@ -151,6 +154,7 @@ function ComboboxTrigger({
   open,
   placeholder,
   selectedOption,
+  size,
   testId,
 }: {
   autoFocus?: boolean;
@@ -161,6 +165,7 @@ function ComboboxTrigger({
   open: boolean;
   placeholder: string;
   selectedOption?: ComboboxOption;
+  size: ControlSize;
   testId?: string;
 }) {
   return (
@@ -168,7 +173,7 @@ function ComboboxTrigger({
       <button
         // eslint-disable-next-line jsx-a11y/no-autofocus -- combobox trigger needs autoFocus for keyboard navigation UX
         autoFocus={autoFocus}
-        className={cn("flex h-[var(--ui-height-md)] w-full items-center justify-between rounded-2xl border border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-6 text-sm font-bold text-primary-600 dark:text-primary-400 transition-all hover:border-primary-200 dark:hover:border-primary-800 hover:bg-white dark:hover:bg-slate-700 focus:outline-none focus:ring-4 focus:ring-primary-500/10 shadow-inner uppercase tracking-tight disabled:opacity-50 disabled:cursor-not-allowed", className)}
+        className={cn("flex w-full items-center justify-between border border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-primary-600 dark:text-primary-400 transition-all hover:border-primary-200 dark:hover:border-primary-800 hover:bg-white dark:hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-primary-500 shadow-inner disabled:opacity-50 disabled:cursor-not-allowed", CONTROL_TEXT_STYLE, CONTROL_SIZE_STYLES[size], className)}
         data-testid={testId}
         disabled={disabled}
         id={id}
@@ -290,6 +295,7 @@ export function Combobox({
   id,
   "data-testid": testId,
   shouldFilter,
+  size = "md",
   autoFocus,
   keyboardShortcut,
   clearOnEscape,
@@ -342,6 +348,7 @@ export function Combobox({
         open={open}
         placeholder={triggerPlaceholder}
         selectedOption={selectedOption}
+        size={size}
         testId={testId}
       />
 

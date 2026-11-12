@@ -14,60 +14,52 @@ interface AttendanceLogsTabsProps {
   unrecordedCount?: number;
 }
 
+const TABS = [
+  { icon: Clock, key: "recorded" as const, tone: "primary" },
+  { icon: AlertTriangle, key: "unknown" as const, tone: "amber" },
+  { icon: UserX, key: "unrecorded" as const, tone: "rose" },
+] as const;
+
+const ACTIVE_TONE = {
+  amber: "bg-amber-50 text-amber-600 border-amber-100 dark:bg-amber-950 dark:text-amber-300 dark:border-amber-800",
+  primary: "bg-primary-50 text-primary-600 border-primary-100 dark:bg-primary-950 dark:text-primary-400 dark:border-primary-800",
+  rose: "bg-rose-50 text-rose-600 border-rose-100 dark:bg-rose-950 dark:text-rose-300 dark:border-rose-800",
+} as const;
+
 export function AttendanceLogsTabs({ activeTab, setActiveTab, stagingCount, unrecordedCount }: AttendanceLogsTabsProps) {
   const { t } = useTranslation();
+  const counts = { unknown: stagingCount, unrecorded: unrecordedCount };
 
   return (
-    <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm p-1 flex items-center gap-1 w-fit">
-      <Button className={cn(
-          "px-6 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all flex items-center gap-2",
-          activeTab === "recorded"
-            ? "bg-primary-50 dark:bg-primary-950 text-primary-600 dark:text-primary-400 shadow-sm border border-primary-100 dark:border-primary-800"
-            : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800"
-        )}
-        onClick={() => { setActiveTab("recorded"); }}
-        type="button"
-        variant="ghost"
-      >
-        <Clock size={14} />
-        {t("attendance_logs.tabs.recorded")}
-      </Button>
-      <Button className={cn(
-          activeTab === "unknown"
-            ? "bg-amber-50 dark:bg-amber-950 text-amber-600 dark:text-amber-300 shadow-sm border border-amber-100 dark:border-amber-800"
-            : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800"
-        )}
-        onClick={() => { setActiveTab("unknown"); }}
-        type="button"
-        variant="ghost"
-      >
-        <AlertTriangle size={14} />
-        {t("attendance_logs.tabs.unknown")}
-        {(stagingCount ?? 0) > 0 && (
-          <span className="ml-1 px-2 py-0.5 bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-200 rounded-full text-[9px] font-bold">
-            {stagingCount}
-          </span>
-        )}
-      </Button>
-      <Button className={cn(
-          "px-6 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all flex items-center gap-2",
-          activeTab === "unrecorded"
-            ? "bg-rose-50 dark:bg-rose-950 text-rose-600 dark:text-rose-300 shadow-sm border border-rose-100 dark:border-rose-800"
-            : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800"
-        )}
-        onClick={() => { setActiveTab("unrecorded"); }}
-        type="button"
-        variant="ghost"
-      >
-        <UserX size={14} />
-        {t("attendance_logs.tabs.unrecorded")}
-        {(unrecordedCount ?? 0) > 0 && (
-          <span className="ml-1 px-2 py-0.5 bg-rose-100 dark:bg-rose-950 text-rose-700 dark:text-rose-200 rounded-full text-[9px] font-bold">
-            {unrecordedCount}
-          </span>
-        )}
-      </Button>
+    <div aria-label={t("attendance_logs.title")} className="flex w-fit max-w-full items-center gap-1 overflow-x-auto rounded-2xl border border-slate-200 bg-white p-1 shadow-sm dark:border-slate-700 dark:bg-slate-900" role="tablist">
+      {TABS.map(({ icon: Icon, key, tone }) => {
+        const isActive = activeTab === key;
+        const count = counts[key as keyof typeof counts];
+        return (
+          <Button
+            aria-selected={isActive}
+            className={cn(
+              "shrink-0 whitespace-nowrap border transition-all",
+              isActive ? ACTIVE_TONE[tone] : "border-transparent text-slate-500 hover:bg-slate-50 hover:text-slate-700 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200",
+            )}
+            data-value={key}
+            key={key}
+            onClick={() => { setActiveTab(key); }}
+            role="tab"
+            size="sm"
+            tabIndex={isActive ? 0 : -1}
+            variant="ghost"
+          >
+            <Icon aria-hidden="true" size={14} />
+            {t(`attendance_logs.tabs.${key}`)}
+            {(count ?? 0) > 0 && (
+              <span className={cn("ml-1 rounded-full px-2 py-0.5 text-[9px] font-bold", key === "unknown" ? "bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-200" : "bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-200")}>
+                {count}
+              </span>
+            )}
+          </Button>
+        );
+      })}
     </div>
   );
 }
-

@@ -1,6 +1,7 @@
 import React, { memo, useCallback } from "react";
 
 import Button from "@/components/ui/button";
+import { CONTROL_TEXT_STYLE } from "@/components/ui/control-styles";
 import { cn } from "@/lib/utils";
 
 export interface PageTab {
@@ -23,10 +24,12 @@ const PageTabButton = memo(function PageTabButton({
   tab,
   isActive,
   onTabChange,
+  onKeyDown,
 }: {
   tab: PageTab;
   isActive: boolean;
   onTabChange: (tabId: string) => void;
+  onKeyDown: (event: React.KeyboardEvent<HTMLButtonElement>) => void;
 }) {
   const handleClick = useCallback(() => {
     onTabChange(tab.id);
@@ -36,46 +39,44 @@ const PageTabButton = memo(function PageTabButton({
   if (isActive) {
     switch (tab.colorScheme) {
       case "amber":
-        activeClasses =
-          "bg-white dark:bg-slate-900 text-amber-600 dark:text-amber-300 shadow-sm border border-slate-100 dark:border-slate-800";
+        activeClasses = "bg-white dark:bg-slate-900 text-amber-600 dark:text-amber-300 shadow-sm border border-slate-100 dark:border-slate-800";
         break;
       case "emerald":
-        activeClasses =
-          "bg-white dark:bg-slate-900 text-emerald-600 dark:text-emerald-300 shadow-sm border border-slate-100 dark:border-slate-800";
+        activeClasses = "bg-white dark:bg-slate-900 text-emerald-600 dark:text-emerald-300 shadow-sm border border-slate-100 dark:border-slate-800";
         break;
       case "rose":
-        activeClasses =
-          "bg-white dark:bg-slate-900 text-rose-600 dark:text-rose-300 shadow-sm border border-slate-100 dark:border-slate-800";
+        activeClasses = "bg-white dark:bg-slate-900 text-rose-600 dark:text-rose-300 shadow-sm border border-slate-100 dark:border-slate-800";
         break;
       case "blue":
-        activeClasses =
-          "bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-300 shadow-sm border border-slate-100 dark:border-slate-800";
+        activeClasses = "bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-300 shadow-sm border border-slate-100 dark:border-slate-800";
         break;
       case "violet":
-        activeClasses =
-          "bg-white dark:bg-slate-900 text-violet-600 dark:text-violet-300 shadow-sm border border-slate-100 dark:border-slate-800";
+        activeClasses = "bg-white dark:bg-slate-900 text-violet-600 dark:text-violet-300 shadow-sm border border-slate-100 dark:border-slate-800";
         break;
       case "primary":
       default:
-        activeClasses =
-          "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100 dark:border-slate-800";
+        activeClasses = "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100 dark:border-slate-800";
         break;
     }
   } else {
-    activeClasses =
-      "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 border border-transparent";
+    activeClasses = "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 border border-transparent";
   }
 
   return (
     <Button
       aria-selected={isActive}
       className={cn(
-        "flex items-center gap-2 px-8 py-2.5 rounded-[18px] text-xs font-bold uppercase tracking-widest transition-all duration-200 whitespace-nowrap shadow-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:outline-none",
+        CONTROL_TEXT_STYLE,
+        "flex whitespace-nowrap items-center transition-all duration-200 shadow-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:outline-none",
         activeClasses
       )}
       data-testid={tab.testId}
+      data-value={tab.id}
       onClick={handleClick}
+      onKeyDown={onKeyDown}
       role="tab"
+      size="sm"
+      tabIndex={isActive ? 0 : -1}
       type="button"
       variant="ghost"
     >
@@ -86,8 +87,31 @@ const PageTabButton = memo(function PageTabButton({
 });
 
 export const PageTabs = memo(function PageTabs({ tabs, activeTab, onTabChange, className }: PageTabsProps) {
-  // Filter out permission-gated (hidden) tabs
   const visibleTabs = tabs.filter((tab) => !tab.hidden);
+
+  const handleKeyDown = useCallback(
+    (event: React.KeyboardEvent<HTMLButtonElement>) => {
+      const tabList = event.currentTarget.parentElement;
+      if (!tabList) return;
+      const tabButtons = Array.from(tabList.querySelectorAll<HTMLButtonElement>('[role="tab"]:not(:disabled)'));
+      const currentIndex = tabButtons.indexOf(event.currentTarget);
+      if (currentIndex < 0) return;
+
+      let nextIndex = currentIndex;
+      if (event.key === "ArrowRight" || event.key === "ArrowDown") nextIndex = (currentIndex + 1) % tabButtons.length;
+      if (event.key === "ArrowLeft" || event.key === "ArrowUp") nextIndex = (currentIndex - 1 + tabButtons.length) % tabButtons.length;
+      if (event.key === "Home") nextIndex = 0;
+      if (event.key === "End") nextIndex = tabButtons.length - 1;
+      if (nextIndex === currentIndex) return;
+
+      event.preventDefault();
+      const nextButton = tabButtons[nextIndex];
+      nextButton?.focus();
+      const nextTab = nextButton?.dataset.value;
+      if (nextTab) onTabChange(nextTab);
+    },
+    [onTabChange]
+  );
 
   return (
     <div
@@ -101,6 +125,7 @@ export const PageTabs = memo(function PageTabs({ tabs, activeTab, onTabChange, c
         <PageTabButton
           isActive={activeTab === tab.id}
           key={tab.id}
+          onKeyDown={handleKeyDown}
           onTabChange={onTabChange}
           tab={tab}
         />

@@ -235,6 +235,17 @@ describe("EmployeeSearch Component", () => {
     expect(screen.getByTestId("employee-dept-filter")).toBeDefined();
   });
 
+  it("uses requested shared control size for employee and department controls", () => {
+    const departments = [{ id: "d1", name: "Engineering" }] as any;
+    render(
+      <EmployeeSearch departments={departments} onChange={vi.fn()} size="sm" />,
+      { wrapper }
+    );
+
+    expect(screen.getByRole("combobox")).toHaveClass("h-[var(--ui-height-sm)]");
+    expect(screen.getByTestId("employee-dept-filter")).toHaveClass("h-[var(--ui-height-sm)]");
+  });
+
   it("passes selected department ids into the useInfiniteQuery queryKey (controlled)", () => {
     const departments = [
       { id: "d1", name: "Engineering" },

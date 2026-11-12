@@ -3,6 +3,8 @@ import React, { forwardRef, useCallback, useRef } from 'react';
 
 import { cn } from '@/lib/utils';
 
+import { CONTROL_SIZE_STYLES, CONTROL_TEXT_STYLE } from './control-styles';
+
 export interface SearchInputProps
   extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'size'> {
   /** Optional keyboard shortcut label (e.g., "⌘K" or "/") */
@@ -17,11 +19,7 @@ export interface SearchInputProps
   loading?: boolean;
 }
 
-const sizeClasses = {
-  sm: 'h-8 px-2.5 text-xs gap-2',
-  md: 'h-9 px-3 text-sm gap-2.5',
-  lg: 'h-11 px-4 text-base gap-3',
-};
+const sizeClasses = CONTROL_SIZE_STYLES;
 
 const iconSizes = {
   sm: 'h-3.5 w-3.5',
@@ -74,10 +72,11 @@ export const SearchInput = forwardRef<HTMLInputElement, SearchInputProps>(
     return (
       <div
         className={cn(
-          'group relative flex w-full items-center rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-900/60 shadow-2xs transition-all duration-200',
+          'group relative flex w-full items-center border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-900/60 shadow-2xs transition-all duration-200',
           'hover:border-slate-300 dark:hover:border-slate-700 hover:bg-white dark:hover:bg-slate-900',
           'focus-within:border-primary-500 dark:focus-within:border-primary-400 focus-within:ring-2 focus-within:ring-primary-500/20 focus-within:bg-white dark:focus-within:bg-slate-900',
           disabled && 'opacity-60 cursor-not-allowed pointer-events-none',
+          CONTROL_TEXT_STYLE,
           sizeClasses[size],
           containerClassName
         )}

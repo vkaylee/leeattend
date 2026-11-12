@@ -39,7 +39,7 @@ describe('SearchInput Component', () => {
 
   it('supports size variants', () => {
     const { container } = render(<SearchInput size="lg" />);
-    expect(container.firstChild).toHaveClass('h-11');
+    expect(container.firstChild).toHaveClass('h-[var(--ui-height-lg)]', 'text-base');
   });
 
   it('handles loading state with spinner', () => {

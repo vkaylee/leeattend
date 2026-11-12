@@ -2,6 +2,7 @@ import { CalendarRange } from "lucide-react";
 
 import { MonthYearPicker } from "@/components/common/month-year-picker";
 import Button from "@/components/ui/button";
+import type { ControlSize } from "@/components/ui/control-styles";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -15,6 +16,7 @@ export type FilterMode = "this_month" | "last_month" | "custom" | "specific_mont
 interface FilterModeButtonsProps {
   className?: string;
   filterMode: FilterMode;
+  size?: ControlSize;
   onFilterModeChange: (mode: FilterMode) => void;
   onSpecificMonthChange: (month: number, year: number) => void;
   specificMonth: { month: number; year: number };
@@ -30,6 +32,7 @@ export function FilterModeButtons({
   specificMonth,
   t,
   uppercase = false,
+  size = "sm",
 }: FilterModeButtonsProps) {
   const { curMonth, curYear, prevMonth, prevYear } = useMonthPair();
   const fmt = (s: string) => uppercase ? s.toUpperCase() : s;
@@ -40,19 +43,21 @@ export function FilterModeButtons({
 
   return (
     <div className={cn(
-      "flex flex-wrap items-center gap-1 bg-slate-100 dark:bg-slate-700/50 shadow-inner border border-slate-200 dark:border-slate-700/50",
-      className ?? "rounded-2xl p-1",
+      "inline-flex h-[var(--ui-height-sm)] flex-nowrap items-center gap-1 bg-slate-100 dark:bg-slate-700/50 shadow-inner border border-slate-200 dark:border-slate-700/50",
+      size === "sm" ? "rounded-xl" : "rounded-2xl",
+      className,
     )}>
       {(["this_month", "last_month"] as const).map(mode => (
         <Button
           className={cn(
-            "px-5 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all",
+            "shrink-0 transition-all",
             filterMode === mode
               ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100 dark:border-slate-800"
               : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
           )}
           key={mode}
           onClick={() => { onFilterModeChange(mode); }}
+          size={size}
           type="button"
           variant="ghost"
         >
@@ -64,11 +69,12 @@ export function FilterModeButtons({
         <DropdownMenuTrigger asChild>
           <Button
             className={cn(
-              "flex items-center gap-2 px-5 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all",
+              "shrink-0 transition-all",
               filterMode === "specific_month"
                 ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100 dark:border-slate-800"
                 : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
             )}
+            size={size}
             type="button"
             variant="ghost"
           >
@@ -88,12 +94,13 @@ export function FilterModeButtons({
       </DropdownMenu>
       <Button
         className={cn(
-          "px-5 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all",
+          "shrink-0 transition-all",
           filterMode === "custom"
             ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100 dark:border-slate-800"
             : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
         )}
         onClick={() => { onFilterModeChange("custom"); }}
+        size={size}
         type="button"
         variant="ghost"
       >

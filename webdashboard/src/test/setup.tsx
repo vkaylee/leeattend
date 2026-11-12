@@ -157,18 +157,21 @@ vi.mock("@/components/ui/combobox", () => ({
     options, 
     value, 
     onChange, 
-    id, 
+    id,
     "data-testid": testId,
-    emptyText
-  }: { 
-    options: { value: string; label: string }[]; 
-    value: string; 
-    onChange: (value_: string) => void; 
-    id?: string; 
+    emptyText,
+    size = "md",
+  }: {
+    options: { value: string; label: string }[];
+    value: string;
+    onChange: (value_: string) => void;
+    id?: string;
     "data-testid"?: string;
     emptyText?: string;
+    size?: "sm" | "md" | "lg";
   }) => (
     <select aria-label="Role"
+      className={`h-[var(--ui-height-${size})]`}
       data-testid={testId}
       id={id}
       onChange={(e) => { onChange(e.target.value); }}

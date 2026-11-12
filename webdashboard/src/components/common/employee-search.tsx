@@ -3,6 +3,7 @@ import React, { useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import Button from "@/components/ui/button";
+import type { ControlSize } from "@/components/ui/control-styles";
 import { FilterPanel } from "@/components/ui/filter-panel";
 import { FilterTrigger } from "@/components/ui/filter-trigger";
 
@@ -12,7 +13,7 @@ import { useEmployeeSelection } from '../../hooks/use-employee-selection';
 import { Department, Employee } from '../../lib/api/types';
 import { Combobox } from '../ui/combobox';
 
-interface EmployeeSearchProps {
+export interface EmployeeSearchProps {
   className?: string;
   clearOnEscape?: boolean;
   'data-testid'?: string;
@@ -28,6 +29,7 @@ interface EmployeeSearchProps {
   permission?: string;
   placeholder?: string;
   selectedDepartmentIds?: string[];
+  size?: ControlSize;
   value?: string | string[];
 }
 
@@ -160,6 +162,7 @@ export function EmployeeSearch({
   departments,
   selectedDepartmentIds,
   onDepartmentFilterChange,
+  size = "md",
 }: EmployeeSearchProps) {
   const { t } = useTranslation();
   const [searchTerm, setSearchTerm] = useState('');
@@ -219,6 +222,7 @@ export function EmployeeSearch({
             onSearchChange={setSearchTerm}
             options={options}
             placeholder={placeholder ?? t('common.search')}
+            size={size}
             value={selectedValue}
           />
         </div>
@@ -245,6 +249,7 @@ export function EmployeeSearch({
                     data-testid="employee-dept-filter"
                     hasActive={effectiveDeptIds.length > 0}
                     label={t('common.filter_by_department', 'Filter by department')}
+                    size={size}
                     variant="pill-button"
                   />
                 }

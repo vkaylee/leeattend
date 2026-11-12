@@ -9,13 +9,16 @@ const typographyVariants = cva("text-slate-900 dark:text-slate-100", {
     variant: {
       hero: "text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight leading-tight",
       tagline: "text-base sm:text-lg font-medium text-slate-500 dark:text-slate-400 leading-relaxed",
-      h1: "text-2xl font-bold tracking-tight",
-      h2: "text-3xl font-semibold tracking-tight transition-colors first:mt-0",
-      h3: "text-2xl font-semibold tracking-tight",
+      h1: "text-3xl font-bold tracking-tight",
+      h2: "text-2xl font-semibold tracking-tight transition-colors first:mt-0",
+      h3: "text-xl font-semibold tracking-tight",
       h4: "text-xl font-semibold tracking-tight",
       h5: "text-lg font-semibold tracking-tight",
       h6: "text-base font-semibold tracking-tight",
       p: "leading-7 [&:not(:first-child)]:mt-6",
+      body: "text-base leading-7",
+      helper: "text-sm leading-5 text-slate-500 dark:text-slate-400",
+      error: "text-sm leading-5 text-rose-600 dark:text-rose-400",
       small: "text-sm font-medium leading-none",
       overline: "text-xs font-bold uppercase tracking-[0.25em]",
       label: "text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70",
@@ -65,6 +68,9 @@ const variantElementMap: Record<NonNullable<VariantProps<typeof typographyVarian
   small: "small",
   overline: "span",
   label: "label",
+  body: "p",
+  helper: "p",
+  error: "p",
 };
 export const Typography = React.forwardRef<HTMLElement, TypographyProps>(
   ({ className, variant, color, align, noWrap, as, ...props }, ref) => {
