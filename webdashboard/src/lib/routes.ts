@@ -47,6 +47,7 @@ export const ROUTES = {
   SHIFTS_EDIT: "/shifts/$shiftId/edit",
   SHIFT_SWAPS: "/shift-swaps",
   PAYROLL: "/payroll",
+  SALARY_MANAGEMENT: "/salary-management",
   DOCUMENTS: "/documents",
   PROFILE: "/profile",
 

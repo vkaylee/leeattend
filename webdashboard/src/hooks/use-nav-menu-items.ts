@@ -143,6 +143,7 @@ export function useNavMenuItems(): NavMenuStructure {
       testId: "sidebar-section-payroll",
       items: [
         { to: ROUTES.PAYROLL, icon: DollarSign, label: t("payroll.title"), testId: "sidebar-link-payroll", permissions: ["payroll:read"] },
+        { to: ROUTES.SALARY_MANAGEMENT, icon: DollarSign, label: t("salary_management.title", { defaultValue: "Salary & allowances" }), testId: "sidebar-link-salary-management", permissions: ["payroll:read"] },
         { to: ROUTES.DOCUMENTS, icon: FileText, label: t("common.my_documents", { defaultValue: "Documents" }), testId: "sidebar-link-documents", permissions: ["payroll:read"] },
       ],
     },
@@ -208,7 +209,7 @@ const TIME_PATHS: string[] = [
   ROUTES.HOLIDAYS,
 ];
 const SHIFTS_PATHS: string[] = [ROUTES.SHIFTS];
-const PAYROLL_PATHS: string[] = [ROUTES.PAYROLL, ROUTES.DOCUMENTS];
+const PAYROLL_PATHS: string[] = [ROUTES.PAYROLL, ROUTES.SALARY_MANAGEMENT, ROUTES.DOCUMENTS];
 
 /**
  * Determines which nav group is active based on the current route path.

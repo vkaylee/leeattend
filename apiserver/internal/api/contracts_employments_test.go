@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/google/uuid"
 	httpinfra "github.com/vkaylee/leeattend/apiserver/internal/infra/http"
@@ -99,11 +100,57 @@ func (m *mockContractRepo) SoftDeleteContract(_ context.Context, contractID uuid
 }
 
 type mockEmploymentRepo struct {
-	employments map[uuid.UUID]Employment
+	employments                map[uuid.UUID]Employment
+	relationships              map[uuid.UUID]EmploymentRelationship
+	relationshipList           EmploymentRelationshipListResponse
+	relationshipErr            error
+	createdRelationship        EmploymentRelationshipCreated
+	createRelationshipErr      error
+	lastRelationshipEmployerID *uuid.UUID
+	lastRelationshipAsOf       *time.Time
 }
 
 func newMockEmploymentRepo() *mockEmploymentRepo {
-	return &mockEmploymentRepo{employments: make(map[uuid.UUID]Employment)}
+	return &mockEmploymentRepo{employments: make(map[uuid.UUID]Employment), relationships: make(map[uuid.UUID]EmploymentRelationship)}
+}
+
+func (m *mockEmploymentRepo) ListEmploymentRelationships(_ context.Context, employeeID uuid.UUID, page, limit int, employerID *uuid.UUID, asOf *time.Time) (EmploymentRelationshipListResponse, error) {
+	m.lastRelationshipEmployerID = employerID
+	m.lastRelationshipAsOf = asOf
+	if m.relationshipErr != nil {
+		return EmploymentRelationshipListResponse{}, m.relationshipErr
+	}
+	if m.relationshipList.Data != nil {
+		return m.relationshipList, nil
+	}
+	data := make([]EmploymentRelationship, 0)
+	for _, relationship := range m.relationships {
+		if relationship.EmployeeID == employeeID {
+			data = append(data, relationship)
+		}
+	}
+	return EmploymentRelationshipListResponse{Data: data, Total: int64(len(data)), Page: page, Limit: limit}, nil
+}
+
+func (m *mockEmploymentRepo) CreateEmploymentRelationship(_ context.Context, employeeID uuid.UUID, req CreateEmploymentRelationshipRequest) (EmploymentRelationshipCreated, error) {
+	if m.createRelationshipErr != nil {
+		return EmploymentRelationshipCreated{}, m.createRelationshipErr
+	}
+	if m.createdRelationship.Relationship.ID != uuid.Nil {
+		return m.createdRelationship, nil
+	}
+	relationship := EmploymentRelationship{ID: uuid.New(), EmployeeID: employeeID, EmployerID: req.EmployerID, Status: req.Status, StartDate: req.StartDate, EndDate: req.EndDate, TerminationReason: req.TerminationReason, Notes: req.Notes}
+	segment := Employment{ID: uuid.New(), EmployeeID: employeeID, EmployerID: req.EmployerID, Status: req.Status, StartDate: req.StartDate, EndDate: req.EndDate, JobTitle: req.JobTitle, EmploymentType: req.EmploymentType, ManagerEmploymentID: req.ManagerEmploymentID, DepartmentID: req.DepartmentID, PrimaryLocationID: req.PrimaryLocationID, TerminationReason: req.TerminationReason, Notes: req.Notes}
+	m.createdRelationship = EmploymentRelationshipCreated{Relationship: relationship, Segment: segment}
+	return m.createdRelationship, nil
+}
+
+func (m *mockEmploymentRepo) GetEmploymentRelationship(_ context.Context, id uuid.UUID) (EmploymentRelationship, error) {
+	relationship, ok := m.relationships[id]
+	if !ok {
+		return EmploymentRelationship{}, ErrEmploymentRelationshipNotFound
+	}
+	return relationship, nil
 }
 
 func (m *mockEmploymentRepo) ListEmployments(_ context.Context, employeeID uuid.UUID) ([]Employment, error) {
@@ -195,7 +242,8 @@ func (m *mockEmploymentRepo) SoftDeleteEmployment(_ context.Context, id uuid.UUI
 }
 
 type mockCEAuthz struct {
-	isMember bool
+	isMember          bool
+	deniedPermissions map[string]bool
 }
 
 func (a mockCEAuthz) IsMember(context.Context, uuid.UUID) (bool, error) {
@@ -207,8 +255,10 @@ func (mockCEAuthz) EffectivePermissions(context.Context, uuid.UUID) ([]string, [
 func (mockCEAuthz) GetManagedDepartmentIDs(context.Context, uuid.UUID) ([]uuid.UUID, error) {
 	return nil, nil
 }
-func (mockCEAuthz) IsGlobalManager(context.Context, uuid.UUID) bool       { return false }
-func (mockCEAuthz) HasPermission(context.Context, uuid.UUID, string) bool { return true }
+func (mockCEAuthz) IsGlobalManager(context.Context, uuid.UUID) bool { return false }
+func (a mockCEAuthz) HasPermission(_ context.Context, _ uuid.UUID, permission string) bool {
+	return !a.deniedPermissions[permission]
+}
 func (mockCEAuthz) HasScopedPermission(context.Context, uuid.UUID, string, *uuid.UUID) bool {
 	return true
 }
@@ -261,15 +311,28 @@ func TestContractsHandler_ListAndAuth(t *testing.T) {
 	if recForbidden.Code != http.StatusForbidden {
 		t.Fatalf("expected 403, got %d", recForbidden.Code)
 	}
+
+	handlerWithoutContractRead := ContractEmploymentHandler{
+		Contracts:  contractRepo,
+		Authorizer: mockCEAuthz{isMember: true, deniedPermissions: map[string]bool{"documents:contract:read": true}},
+	}
+	recWithoutPermission := httptest.NewRecorder()
+	handlerWithoutContractRead.ListContracts(recWithoutPermission, req)
+	if recWithoutPermission.Code != http.StatusForbidden {
+		t.Fatalf("expected 403 without contract read permission, got %d", recWithoutPermission.Code)
+	}
 }
 
 func TestContractsHandler_CreateGetUpdateDeleteAndOverlap(t *testing.T) {
 	empID := uuid.New()
 	employmentID := uuid.New()
 	contractRepo := newMockContractRepo()
+	employmentRepo := newMockEmploymentRepo()
+	employmentRepo.employments[employmentID] = Employment{ID: employmentID, EmployeeID: empID, EmployerID: uuid.New(), Status: "active", StartDate: "2026-01-01", EmploymentType: "full_time"}
 	handler := ContractEmploymentHandler{
-		Contracts:  contractRepo,
-		Authorizer: mockCEAuthz{isMember: true},
+		Contracts:   contractRepo,
+		Employments: employmentRepo,
+		Authorizer:  mockCEAuthz{isMember: true},
 	}
 
 	// 1. Create first contract
@@ -342,6 +405,32 @@ func TestContractsHandler_CreateGetUpdateDeleteAndOverlap(t *testing.T) {
 		t.Fatalf("expected 200, got %d", recGet.Code)
 	}
 
+	// A contract cannot be read through another employee's parent path.
+	wrongEmployeeID := uuid.New()
+	reqWrongParent := testRequest(http.MethodGet, "/api/v1/employees/"+wrongEmployeeID.String()+"/contracts/"+c2.ID.String(), "")
+	reqWrongParent.SetPathValue("employee_id", wrongEmployeeID.String())
+	reqWrongParent.SetPathValue("contract_id", c2.ID.String())
+	recWrongParent := httptest.NewRecorder()
+	handler.GetContract(recWrongParent, reqWrongParent)
+	if recWrongParent.Code != http.StatusNotFound {
+		t.Fatalf("expected 404 for contract parent mismatch, got %d", recWrongParent.Code)
+	}
+
+	// Contract mutations require document management permission.
+	withoutContractManage := ContractEmploymentHandler{
+		Contracts:   contractRepo,
+		Employments: employmentRepo,
+		Authorizer:  mockCEAuthz{isMember: true, deniedPermissions: map[string]bool{"documents:manage": true}},
+	}
+	reqDeniedUpdate := testRequest(http.MethodPatch, "/api/v1/employees/"+empID.String()+"/contracts/"+c2.ID.String(), `{"status":"draft"}`)
+	reqDeniedUpdate.SetPathValue("employee_id", empID.String())
+	reqDeniedUpdate.SetPathValue("contract_id", c2.ID.String())
+	recDeniedUpdate := httptest.NewRecorder()
+	withoutContractManage.UpdateContract(recDeniedUpdate, reqDeniedUpdate)
+	if recDeniedUpdate.Code != http.StatusForbidden {
+		t.Fatalf("expected 403 without contract manage permission, got %d", recDeniedUpdate.Code)
+	}
+
 	// 5. Update contract
 	updatePayload := `{"status": "terminated"}`
 	reqUpdate := testRequest(http.MethodPatch, "/api/v1/employees/"+empID.String()+"/contracts/"+c2.ID.String(), updatePayload)
@@ -356,7 +445,26 @@ func TestContractsHandler_CreateGetUpdateDeleteAndOverlap(t *testing.T) {
 		t.Fatalf("expected status terminated, got %s", contractRepo.contracts[c2.ID].Status)
 	}
 
-	// 6. Delete contract
+	// 6. Wrong parent cannot update or delete contract.
+	wrongUpdate := testRequest(http.MethodPatch, "/api/v1/employees/"+wrongEmployeeID.String()+"/contracts/"+c2.ID.String(), `{"status":"draft"}`)
+	wrongUpdate.SetPathValue("employee_id", wrongEmployeeID.String())
+	wrongUpdate.SetPathValue("contract_id", c2.ID.String())
+	recWrongUpdate := httptest.NewRecorder()
+	handler.UpdateContract(recWrongUpdate, wrongUpdate)
+	if recWrongUpdate.Code != http.StatusNotFound {
+		t.Fatalf("expected 404 for contract update parent mismatch, got %d", recWrongUpdate.Code)
+	}
+
+	wrongDelete := testRequest(http.MethodDelete, "/api/v1/employees/"+wrongEmployeeID.String()+"/contracts/"+c2.ID.String(), "")
+	wrongDelete.SetPathValue("employee_id", wrongEmployeeID.String())
+	wrongDelete.SetPathValue("contract_id", c2.ID.String())
+	recWrongDelete := httptest.NewRecorder()
+	handler.DeleteContract(recWrongDelete, wrongDelete)
+	if recWrongDelete.Code != http.StatusNotFound {
+		t.Fatalf("expected 404 for contract delete parent mismatch, got %d", recWrongDelete.Code)
+	}
+
+	// 7. Delete contract
 	reqDel := testRequest(http.MethodDelete, "/api/v1/employees/"+empID.String()+"/contracts/"+c2.ID.String(), "")
 	reqDel.SetPathValue("employee_id", empID.String())
 	reqDel.SetPathValue("contract_id", c2.ID.String())
@@ -364,6 +472,120 @@ func TestContractsHandler_CreateGetUpdateDeleteAndOverlap(t *testing.T) {
 	handler.DeleteContract(recDel, reqDel)
 	if recDel.Code != http.StatusNoContent {
 		t.Fatalf("expected 204, got %d", recDel.Code)
+	}
+}
+
+func TestEmploymentRelationshipsHandler_Create(t *testing.T) {
+	employeeID := uuid.New()
+	employerID := uuid.New()
+	employmentRepo := newMockEmploymentRepo()
+	handler := ContractEmploymentHandler{Employments: employmentRepo, Authorizer: mockCEAuthz{isMember: true}}
+	body := fmt.Sprintf(`{"employer_id":"%s","status":"active","start_date":"2026-01-01","employment_type":"full_time"}`, employerID.String())
+	req := testRequest(http.MethodPost, "/api/v1/employees/"+employeeID.String()+"/employment-relationships", body)
+	req.SetPathValue("employee_id", employeeID.String())
+	rec := httptest.NewRecorder()
+	handler.CreateEmploymentRelationship(rec, req)
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("expected 201, got %d: %s", rec.Code, rec.Body.String())
+	}
+	var created EmploymentRelationshipCreated
+	if err := json.Unmarshal(rec.Body.Bytes(), &created); err != nil {
+		t.Fatalf("unmarshal error: %v", err)
+	}
+	if created.Relationship.EmployeeID != employeeID || created.Relationship.EmployerID != employerID || created.Segment.EmployeeID != employeeID || created.Segment.EmployerID != employerID {
+		t.Fatalf("unexpected created relationship: %+v", created)
+	}
+
+	denied := ContractEmploymentHandler{Employments: employmentRepo, Authorizer: mockCEAuthz{isMember: true, deniedPermissions: map[string]bool{"employees:create": true}}}
+	deniedRec := httptest.NewRecorder()
+	denied.CreateEmploymentRelationship(deniedRec, req)
+	if deniedRec.Code != http.StatusForbidden {
+		t.Fatalf("expected 403 without employee create permission, got %d", deniedRec.Code)
+	}
+
+	invalidBody := testRequest(http.MethodPost, "/api/v1/employees/"+employeeID.String()+"/employment-relationships", `{"employer_id":"bad"}`)
+	invalidBody.SetPathValue("employee_id", employeeID.String())
+	invalidRec := httptest.NewRecorder()
+	handler.CreateEmploymentRelationship(invalidRec, invalidBody)
+	if invalidRec.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400 for invalid create payload, got %d", invalidRec.Code)
+	}
+}
+
+func TestEmploymentRelationshipsHandler_ListGetAndValidation(t *testing.T) {
+	employeeID := uuid.New()
+	relationshipID := uuid.New()
+	employmentRepo := newMockEmploymentRepo()
+	employmentRepo.relationships[relationshipID] = EmploymentRelationship{ID: relationshipID, EmployeeID: employeeID, EmployerID: uuid.New(), Status: "active", StartDate: "2026-01-01"}
+	handler := ContractEmploymentHandler{Employments: employmentRepo, Authorizer: mockCEAuthz{isMember: true}}
+
+	req := testRequest(http.MethodGet, "/api/v1/employees/"+employeeID.String()+"/employment-relationships?page=2&limit=10&as_of=2026-06-01", "")
+	req.SetPathValue("employee_id", employeeID.String())
+	rec := httptest.NewRecorder()
+	handler.ListEmploymentRelationships(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", rec.Code, rec.Body.String())
+	}
+	var list EmploymentRelationshipListResponse
+	if err := json.Unmarshal(rec.Body.Bytes(), &list); err != nil {
+		t.Fatalf("unmarshal error: %v", err)
+	}
+	if list.Total != 1 || list.Page != 2 || list.Limit != 10 || len(list.Data) != 1 {
+		t.Fatalf("unexpected relationship list: %+v", list)
+	}
+	if employmentRepo.lastRelationshipAsOf == nil || employmentRepo.lastRelationshipAsOf.Format("2006-01-02") != "2026-06-01" {
+		t.Fatalf("expected as_of filter to reach repository, got %v", employmentRepo.lastRelationshipAsOf)
+	}
+
+	employerID := employmentRepo.relationships[relationshipID].EmployerID
+	employerFilter := testRequest(http.MethodGet, "/api/v1/employees/"+employeeID.String()+"/employment-relationships?employer_id="+employerID.String(), "")
+	employerFilter.SetPathValue("employee_id", employeeID.String())
+	employerFilterRec := httptest.NewRecorder()
+	handler.ListEmploymentRelationships(employerFilterRec, employerFilter)
+	if employerFilterRec.Code != http.StatusOK || employmentRepo.lastRelationshipEmployerID == nil || *employmentRepo.lastRelationshipEmployerID != employerID {
+		t.Fatalf("expected employer filter to reach repository: status=%d employer=%v", employerFilterRec.Code, employmentRepo.lastRelationshipEmployerID)
+	}
+
+	getReq := testRequest(http.MethodGet, "/api/v1/employees/"+employeeID.String()+"/employment-relationships/"+relationshipID.String(), "")
+	getReq.SetPathValue("employee_id", employeeID.String())
+	getReq.SetPathValue("relationship_id", relationshipID.String())
+	getRec := httptest.NewRecorder()
+	handler.GetEmploymentRelationship(getRec, getReq)
+	if getRec.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", getRec.Code, getRec.Body.String())
+	}
+
+	invalidEmployer := testRequest(http.MethodGet, "/api/v1/employees/"+employeeID.String()+"/employment-relationships?employer_id=invalid", "")
+	invalidEmployer.SetPathValue("employee_id", employeeID.String())
+	invalidEmployerRec := httptest.NewRecorder()
+	handler.ListEmploymentRelationships(invalidEmployerRec, invalidEmployer)
+	if invalidEmployerRec.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400 for invalid employer filter, got %d", invalidEmployerRec.Code)
+	}
+
+	invalidPage := testRequest(http.MethodGet, "/api/v1/employees/"+employeeID.String()+"/employment-relationships?limit=0", "")
+	invalidPage.SetPathValue("employee_id", employeeID.String())
+	invalidPageRec := httptest.NewRecorder()
+	handler.ListEmploymentRelationships(invalidPageRec, invalidPage)
+	if invalidPageRec.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400 for invalid pagination, got %d", invalidPageRec.Code)
+	}
+
+	wrongEmployeeID := uuid.New()
+	wrongParent := testRequest(http.MethodGet, "/api/v1/employees/"+wrongEmployeeID.String()+"/employment-relationships/"+relationshipID.String(), "")
+	wrongParent.SetPathValue("employee_id", wrongEmployeeID.String())
+	wrongParent.SetPathValue("relationship_id", relationshipID.String())
+	wrongParentRec := httptest.NewRecorder()
+	handler.GetEmploymentRelationship(wrongParentRec, wrongParent)
+	if wrongParentRec.Code != http.StatusNotFound {
+		t.Fatalf("expected 404 for relationship parent mismatch, got %d", wrongParentRec.Code)
+	}
+
+	denied := ContractEmploymentHandler{Employments: employmentRepo, Authorizer: mockCEAuthz{isMember: true, deniedPermissions: map[string]bool{"employees:read": true}}}
+	deniedRec := httptest.NewRecorder()
+	denied.ListEmploymentRelationships(deniedRec, req)
+	if deniedRec.Code != http.StatusForbidden {
+		t.Fatalf("expected 403 without employee read permission, got %d", deniedRec.Code)
 	}
 }
 
@@ -395,6 +617,37 @@ func TestEmploymentsHandler_CRUDAndOverlap(t *testing.T) {
 	}
 	var emp Employment
 	_ = json.Unmarshal(rec.Body.Bytes(), &emp)
+
+	// A request cannot create employment for a different employee parent.
+	wrongEmployeeID := uuid.New()
+	wrongCreate := fmt.Sprintf(`{
+		"employee_id": "%s",
+		"employer_id": "%s",
+		"status": "active",
+		"employment_type": "part_time",
+		"start_date": "2027-01-01",
+		"end_date": "2027-12-31"
+	}`, wrongEmployeeID.String(), employer1.String())
+	reqWrongCreate := testRequest(http.MethodPost, "/api/v1/employees/"+empID.String()+"/employments", wrongCreate)
+	reqWrongCreate.SetPathValue("employee_id", empID.String())
+	recWrongCreate := httptest.NewRecorder()
+	handler.CreateEmployment(recWrongCreate, reqWrongCreate)
+	if recWrongCreate.Code != http.StatusNotFound {
+		t.Fatalf("expected 404 for employment create parent mismatch, got %d", recWrongCreate.Code)
+	}
+
+	withoutEmployeeCreate := ContractEmploymentHandler{
+		Employments: employmentRepo,
+		Authorizer:  mockCEAuthz{isMember: true, deniedPermissions: map[string]bool{"employees:create": true}},
+	}
+	deniedCreatePayload := fmt.Sprintf(`{"employee_id":"%s","employer_id":"%s","status":"active","employment_type":"part_time","start_date":"2027-01-01"}`, empID.String(), employer2.String())
+	reqDeniedCreate := testRequest(http.MethodPost, "/api/v1/employees/"+empID.String()+"/employments", deniedCreatePayload)
+	reqDeniedCreate.SetPathValue("employee_id", empID.String())
+	recDeniedCreate := httptest.NewRecorder()
+	withoutEmployeeCreate.CreateEmployment(recDeniedCreate, reqDeniedCreate)
+	if recDeniedCreate.Code != http.StatusForbidden {
+		t.Fatalf("expected 403 without employee create permission, got %d", recDeniedCreate.Code)
+	}
 
 	// 2. Overlap with same employer -> 409 Conflict
 	sameEmployerOverlap := fmt.Sprintf(`{
@@ -430,7 +683,35 @@ func TestEmploymentsHandler_CRUDAndOverlap(t *testing.T) {
 		t.Fatalf("expected 201 for different employer overlap, got %d: %s", recDiff.Code, recDiff.Body.String())
 	}
 
-	// 4. Update with double option null to clear end_date
+	// 4. Wrong parent cannot read, update, or delete employment.
+	wrongGet := testRequest(http.MethodGet, "/api/v1/employees/"+wrongEmployeeID.String()+"/employments/"+emp.ID.String(), "")
+	wrongGet.SetPathValue("employee_id", wrongEmployeeID.String())
+	wrongGet.SetPathValue("employment_id", emp.ID.String())
+	recWrongGet := httptest.NewRecorder()
+	handler.GetEmployment(recWrongGet, wrongGet)
+	if recWrongGet.Code != http.StatusNotFound {
+		t.Fatalf("expected 404 for employment get parent mismatch, got %d", recWrongGet.Code)
+	}
+
+	wrongPatch := testRequest(http.MethodPatch, "/api/v1/employees/"+wrongEmployeeID.String()+"/employments/"+emp.ID.String(), `{"status":"inactive"}`)
+	wrongPatch.SetPathValue("employee_id", wrongEmployeeID.String())
+	wrongPatch.SetPathValue("employment_id", emp.ID.String())
+	recWrongPatch := httptest.NewRecorder()
+	handler.UpdateEmployment(recWrongPatch, wrongPatch)
+	if recWrongPatch.Code != http.StatusNotFound {
+		t.Fatalf("expected 404 for employment update parent mismatch, got %d", recWrongPatch.Code)
+	}
+
+	wrongDelete := testRequest(http.MethodDelete, "/api/v1/employees/"+wrongEmployeeID.String()+"/employments/"+emp.ID.String(), "")
+	wrongDelete.SetPathValue("employee_id", wrongEmployeeID.String())
+	wrongDelete.SetPathValue("employment_id", emp.ID.String())
+	recWrongDelete := httptest.NewRecorder()
+	handler.DeleteEmployment(recWrongDelete, wrongDelete)
+	if recWrongDelete.Code != http.StatusNotFound {
+		t.Fatalf("expected 404 for employment delete parent mismatch, got %d", recWrongDelete.Code)
+	}
+
+	// 5. Update with double option null to clear end_date
 	updatePayload := `{"end_date": null}`
 	reqPatch := testRequest(http.MethodPatch, "/api/v1/employees/"+empID.String()+"/employments/"+emp.ID.String(), updatePayload)
 	reqPatch.SetPathValue("employee_id", empID.String())
@@ -444,7 +725,7 @@ func TestEmploymentsHandler_CRUDAndOverlap(t *testing.T) {
 		t.Fatalf("expected EndDate to be nil after null update, got %v", *employmentRepo.employments[emp.ID].EndDate)
 	}
 
-	// 5. Delete employment -> 204 No Content
+	// 6. Delete employment -> 204 No Content
 	reqDel := testRequest(http.MethodDelete, "/api/v1/employees/"+empID.String()+"/employments/"+emp.ID.String(), "")
 	reqDel.SetPathValue("employee_id", empID.String())
 	reqDel.SetPathValue("employment_id", emp.ID.String())

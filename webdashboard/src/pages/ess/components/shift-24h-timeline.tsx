@@ -205,7 +205,10 @@ export function Shift24hTimeline({
         </div>
 
         {/* 24h Axis Hour Ticks */}
-        <div className="relative w-full h-5 mt-2 text-[10px] font-mono text-slate-400 dark:text-slate-500 select-none">
+        <div
+          className="relative w-full h-5 mt-2 text-[10px] font-mono text-slate-400 dark:text-slate-500 select-none"
+          data-testid="timeline-hour-axis"
+        >
           {hourTicks.map((h) => {
             const left = minsToPercent(h * 60);
             return (

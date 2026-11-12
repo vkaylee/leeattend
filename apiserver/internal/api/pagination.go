@@ -3,6 +3,7 @@ package api
 import (
 	"errors"
 	"fmt"
+	"math"
 	"net/url"
 	"strconv"
 )
@@ -33,6 +34,9 @@ func ParsePagination(values url.Values) (Pagination, error) {
 		}
 	}
 	if page < 1 || limit < 1 || limit > MaxLimit {
+		return Pagination{}, ErrInvalidPagination
+	}
+	if page > (math.MaxInt/limit)+1 {
 		return Pagination{}, ErrInvalidPagination
 	}
 	return Pagination{Page: page, Limit: limit, Offset: (page - 1) * limit}, nil

@@ -2571,5 +2571,20 @@
       "no_template_selected": "Please select a workflow checklist template.",
       "employee_has_no_employment": "This employee does not currently have an active employment profile."
     }
+  },
+  "salary_management": {
+    "title": "Salary & allowances",
+    "subtitle": "Review salary and allowance configuration by effective date.",
+    "filters": "Salary filters",
+    "search": "Search employee code or name",
+    "as_of": "Effective on",
+    "unconfigured": "Missing salary configuration",
+    "employee": "Employee",
+    "employer": "Legal entity",
+    "empty": "No salary records",
+    "empty_description": "No salary records match current filters.",
+    "error": "Salary records could not be loaded.",
+    "pagination": "Salary records pagination",
+    "component_count": "Configured items"
   }
 }

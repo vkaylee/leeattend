@@ -50,7 +50,8 @@ if [ "$required_objects" != "4" ]; then
   exit 1
 fi
 
-for migration_dir in $(find "$MIGRATIONS_DIR" -mindepth 1 -maxdepth 1 -type d -name '[0-9]*_*' -printf '%f\n' | sort); do
+for migration_path in $(find "$MIGRATIONS_DIR" -mindepth 1 -maxdepth 1 -type d -name '[0-9]*_*' -print | sort); do
+  migration_dir=${migration_path##*/}
   version="$migration_dir"
   if [ "$version" = "$BASELINE_VERSION" ]; then
     continue

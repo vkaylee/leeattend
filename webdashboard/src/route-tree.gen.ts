@@ -22,6 +22,7 @@ import { Route as AuthenticatedOrganizationWorkingConditionsRouteImport } from "
 import { Route as AuthenticatedOrganizationShiftsRouteImport } from "./routes/_authenticated/_organization/shifts"
 import { Route as AuthenticatedOrganizationShiftSwapsRouteImport } from "./routes/_authenticated/_organization/shift-swaps"
 import { Route as AuthenticatedOrganizationSettingsRouteImport } from "./routes/_authenticated/_organization/settings"
+import { Route as AuthenticatedOrganizationSalaryManagementRouteImport } from "./routes/_authenticated/_organization/salary-management"
 import { Route as AuthenticatedOrganizationReportsRouteImport } from "./routes/_authenticated/_organization/reports"
 import { Route as AuthenticatedOrganizationProfileRouteImport } from "./routes/_authenticated/_organization/profile"
 import { Route as AuthenticatedOrganizationPayrollRouteImport } from "./routes/_authenticated/_organization/payroll"
@@ -178,6 +179,16 @@ const AuthenticatedOrganizationSettingsRoute =
     path: "/settings",
     getParentRoute: () => AuthenticatedOrganizationRoute,
   } as any)
+const AuthenticatedOrganizationSalaryManagementRoute =
+  AuthenticatedOrganizationSalaryManagementRouteImport.update({
+    id: "/salary-management",
+    path: "/salary-management",
+    getParentRoute: () => AuthenticatedOrganizationRoute,
+  } as any).lazy(() =>
+    import("./routes/_authenticated/_organization/salary-management.lazy").then(
+      (d) => d.Route,
+    ),
+  )
 const AuthenticatedOrganizationReportsRoute =
   AuthenticatedOrganizationReportsRouteImport.update({
     id: "/reports",
@@ -897,6 +908,7 @@ export interface FileRoutesByFullPath {
   "/payroll": typeof AuthenticatedOrganizationPayrollRoute
   "/profile": typeof AuthenticatedOrganizationProfileRoute
   "/reports": typeof AuthenticatedOrganizationReportsRoute
+  "/salary-management": typeof AuthenticatedOrganizationSalaryManagementRoute
   "/settings": typeof AuthenticatedOrganizationSettingsRouteWithChildren
   "/shift-swaps": typeof AuthenticatedOrganizationShiftSwapsRoute
   "/shifts": typeof AuthenticatedOrganizationShiftsRouteWithChildren
@@ -978,6 +990,7 @@ export interface FileRoutesByTo {
   "/payroll": typeof AuthenticatedOrganizationPayrollRoute
   "/profile": typeof AuthenticatedOrganizationProfileRoute
   "/reports": typeof AuthenticatedOrganizationReportsRoute
+  "/salary-management": typeof AuthenticatedOrganizationSalaryManagementRoute
   "/shift-swaps": typeof AuthenticatedOrganizationShiftSwapsRoute
   "/working-conditions": typeof AuthenticatedOrganizationWorkingConditionsRoute
   "/infra/monitor": typeof AuthenticatedInfraInfraMonitorRoute
@@ -1058,6 +1071,7 @@ export interface FileRoutesById {
   "/_authenticated/_organization/payroll": typeof AuthenticatedOrganizationPayrollRoute
   "/_authenticated/_organization/profile": typeof AuthenticatedOrganizationProfileRoute
   "/_authenticated/_organization/reports": typeof AuthenticatedOrganizationReportsRoute
+  "/_authenticated/_organization/salary-management": typeof AuthenticatedOrganizationSalaryManagementRoute
   "/_authenticated/_organization/settings": typeof AuthenticatedOrganizationSettingsRouteWithChildren
   "/_authenticated/_organization/shift-swaps": typeof AuthenticatedOrganizationShiftSwapsRoute
   "/_authenticated/_organization/shifts": typeof AuthenticatedOrganizationShiftsRouteWithChildren
@@ -1143,6 +1157,7 @@ export interface FileRouteTypes {
     | "/payroll"
     | "/profile"
     | "/reports"
+    | "/salary-management"
     | "/settings"
     | "/shift-swaps"
     | "/shifts"
@@ -1224,6 +1239,7 @@ export interface FileRouteTypes {
     | "/payroll"
     | "/profile"
     | "/reports"
+    | "/salary-management"
     | "/shift-swaps"
     | "/working-conditions"
     | "/infra/monitor"
@@ -1303,6 +1319,7 @@ export interface FileRouteTypes {
     | "/_authenticated/_organization/payroll"
     | "/_authenticated/_organization/profile"
     | "/_authenticated/_organization/reports"
+    | "/_authenticated/_organization/salary-management"
     | "/_authenticated/_organization/settings"
     | "/_authenticated/_organization/shift-swaps"
     | "/_authenticated/_organization/shifts"
@@ -1460,6 +1477,13 @@ declare module "@tanstack/react-router" {
       path: "/settings"
       fullPath: "/settings"
       preLoaderRoute: typeof AuthenticatedOrganizationSettingsRouteImport
+      parentRoute: typeof AuthenticatedOrganizationRoute
+    }
+    "/_authenticated/_organization/salary-management": {
+      id: "/_authenticated/_organization/salary-management"
+      path: "/salary-management"
+      fullPath: "/salary-management"
+      preLoaderRoute: typeof AuthenticatedOrganizationSalaryManagementRouteImport
       parentRoute: typeof AuthenticatedOrganizationRoute
     }
     "/_authenticated/_organization/reports": {
@@ -2175,6 +2199,7 @@ interface AuthenticatedOrganizationRouteChildren {
   AuthenticatedOrganizationPayrollRoute: typeof AuthenticatedOrganizationPayrollRoute
   AuthenticatedOrganizationProfileRoute: typeof AuthenticatedOrganizationProfileRoute
   AuthenticatedOrganizationReportsRoute: typeof AuthenticatedOrganizationReportsRoute
+  AuthenticatedOrganizationSalaryManagementRoute: typeof AuthenticatedOrganizationSalaryManagementRoute
   AuthenticatedOrganizationSettingsRoute: typeof AuthenticatedOrganizationSettingsRouteWithChildren
   AuthenticatedOrganizationShiftSwapsRoute: typeof AuthenticatedOrganizationShiftSwapsRoute
   AuthenticatedOrganizationShiftsRoute: typeof AuthenticatedOrganizationShiftsRouteWithChildren
@@ -2235,6 +2260,8 @@ const AuthenticatedOrganizationRouteChildren: AuthenticatedOrganizationRouteChil
       AuthenticatedOrganizationProfileRoute,
     AuthenticatedOrganizationReportsRoute:
       AuthenticatedOrganizationReportsRoute,
+    AuthenticatedOrganizationSalaryManagementRoute:
+      AuthenticatedOrganizationSalaryManagementRoute,
     AuthenticatedOrganizationSettingsRoute:
       AuthenticatedOrganizationSettingsRouteWithChildren,
     AuthenticatedOrganizationShiftSwapsRoute:

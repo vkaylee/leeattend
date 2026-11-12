@@ -2571,5 +2571,20 @@
       "no_template_selected": "Vui lòng chọn một mẫu quy trình.",
       "employee_has_no_employment": "Nhân sự này hiện không có hồ sơ công tác hợp lệ."
     }
+  },
+  "salary_management": {
+    "title": "Lương & phụ cấp",
+    "subtitle": "Lương/phụ cấp theo ngày hiệu lực.",
+    "filters": "Bộ lọc lương",
+    "search": "Tìm mã hoặc tên nhân sự",
+    "as_of": "Hiệu lực vào ngày",
+    "unconfigured": "Chưa cấu hình lương",
+    "employee": "Nhân sự",
+    "employer": "Pháp nhân",
+    "empty": "Không có dữ liệu lương",
+    "empty_description": "Không có bản ghi phù hợp.",
+    "error": "Không thể tải dữ liệu lương.",
+    "pagination": "Phân trang bản ghi lương",
+    "component_count": "Khoản đã cấu hình"
   }
 }
