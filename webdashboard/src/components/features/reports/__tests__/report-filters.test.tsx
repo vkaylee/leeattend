@@ -28,6 +28,18 @@ describe("ReportFilters — day-31 month arithmetic", () => {
     vi.useRealTimers();
   });
 
+  it("uses one geometry contract for month and status segmented controls", () => {
+    render(<ReportFilters {...baseProps} />);
+
+    const monthButton = screen.getAllByText(/Tháng/)[0].closest("button");
+    const statusButton = screen.getByText("reports.filters.status.active");
+
+    expect(monthButton).toHaveClass("!h-full", "!px-3");
+    expect(statusButton).toHaveClass("!h-full", "!px-3");
+    expect(monthButton?.parentElement).toHaveClass("h-[var(--ui-height-sm)]", "p-1");
+    expect(statusButton.parentElement).toHaveClass("h-[var(--ui-height-sm)]", "p-1");
+  });
+
   it("shows distinct labels for this_month and last_month when today is July 31", () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-07-31T12:00:00"));

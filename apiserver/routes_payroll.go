@@ -8,6 +8,7 @@ import (
 func registerPayrollRoutes(router chi.Router, handler api.PayrollHandler) {
 	registerRoute(router, "GET /api/v1/payroll/payslips", handler.ListPayslips)
 	registerRoute(router, "GET /api/v1/employees/{employee_id}/payslips", handler.ListEmployee)
+	registerRoute(router, "GET /api/v1/salary-management", handler.ListSalaryManagement)
 	registerRoute(router, "GET /api/v1/salary-components", handler.ListSalaryComponents)
 	registerRoute(router, "POST /api/v1/salary-components", handler.CreateSalaryComponent)
 	registerRoute(router, "GET /api/v1/employments/{id}/salary-components", handler.ListEmploymentSalaryComponents)
@@ -35,4 +36,7 @@ func registerPayrollRoutes(router chi.Router, handler api.PayrollHandler) {
 	registerRoute(router, "DELETE /api/v1/payroll-rules/{rule_id}/assignments/{assignment_id}", handler.DeletePayrollRuleAssignment)
 	registerRoute(router, "POST /api/v1/employees/{id}/calculate-payroll", handler.CalculatePayroll)
 	registerRoute(router, "POST /api/v1/payroll/calculate-batch", handler.CalculateBatchPayroll)
+	registerRoute(router, "GET /api/v1/payroll/periods/{year}/{month}", handler.GetPayrollPeriod)
+	registerRoute(router, "POST /api/v1/payroll/periods/{year}/{month}/lock", handler.LockPayrollPeriod)
+	registerRoute(router, "POST /api/v1/payroll/periods/{year}/{month}/reopen", handler.ReopenPayrollPeriod)
 }

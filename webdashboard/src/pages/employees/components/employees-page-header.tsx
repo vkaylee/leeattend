@@ -31,12 +31,12 @@ export const EmployeesPageHeader = ({
     <PageHeader
       actions={
         <div className="flex items-center gap-2.5 flex-wrap sm:flex-nowrap">
-          <Link to="/econtracts">
+          <Link to="/contracts">
             <Button
               icon={<FileText size={16} />}
               variant="outline"
             >
-              {t("common.econtracts", { defaultValue: "Hợp đồng điện tử" })}
+              {t("common.contracts", { defaultValue: "Hợp đồng lao động" })}
             </Button>
           </Link>
           <PermissionGate permission="employees:update">

@@ -27,6 +27,10 @@ var (
 	ErrTierNotFound            = errors.New("payroll: tier not found")
 	ErrAssignmentNotFound      = errors.New("payroll: assignment not found")
 	ErrAssignmentConflict      = errors.New("payroll: assignment conflict")
+	ErrPayrollPeriodNotFound   = errors.New("payroll: period not found")
+	ErrPayrollPeriodConflict   = errors.New("payroll: period conflict")
+	ErrPayrollPeriodValidation = errors.New("payroll: period validation failed")
+	ErrPayslipConflict         = errors.New("payroll: payslip conflict")
 )
 
 type CreateSalaryComponentRequest struct {
@@ -300,12 +304,36 @@ type BatchCalculatePayrollResponse struct {
 	Results []BatchCalculateResult `json:"results"`
 }
 
+type PayrollPeriod struct {
+	ID           uuid.UUID  `json:"id"`
+	EmployerID   uuid.UUID  `json:"employer_id"`
+	Year         int        `json:"year"`
+	Month        int        `json:"month"`
+	Status       string     `json:"status"`
+	Version      int64      `json:"version"`
+	LockedAt     *string    `json:"locked_at,omitempty"`
+	LockedBy     *uuid.UUID `json:"locked_by,omitempty"`
+	ReopenedAt   *string    `json:"reopened_at,omitempty"`
+	ReopenedBy   *uuid.UUID `json:"reopened_by,omitempty"`
+	ReopenReason *string    `json:"reopen_reason,omitempty"`
+}
+
+type LockPayrollPeriodRequest struct {
+	Version int64 `json:"version"`
+}
+
+type ReopenPayrollPeriodRequest struct {
+	Version int64  `json:"version"`
+	Reason  string `json:"reason"`
+}
+
 type PayrollRepository interface {
 	ListPayslips(context.Context, time.Time, time.Time) ([]PayslipRecord, error)
 	ListEmployeePayslips(context.Context, uuid.UUID) ([]PayslipRecord, error)
 	ListSalaryComponents(context.Context) ([]SalaryComponentDefinition, error)
 	CreateSalaryComponent(context.Context, CreateSalaryComponentRequest) (SalaryComponentDefinition, error)
 	ListEmploymentSalaryComponents(context.Context, uuid.UUID) ([]EmploymentSalaryComponentResponse, error)
+	ListSalaryManagementRows(context.Context, SalaryManagementQuery) (SalaryManagementResponse, error)
 	AssignEmploymentSalaryComponent(context.Context, uuid.UUID, AssignSalaryComponentRequest) (EmployeeSalaryComponent, error)
 	ListSalaryBases(context.Context) (SalaryBasesResponse, error)
 	CreateSalaryBase(context.Context, CreateSalaryBaseRequest) (SalaryBaseGroup, error)
@@ -330,10 +358,14 @@ type PayrollRepository interface {
 	DeletePayrollRuleAssignment(context.Context, uuid.UUID, uuid.UUID) error
 	CalculateEmployeePayroll(context.Context, uuid.UUID, int, int) (FullPayslipResponse, error)
 	CalculateBatchPayroll(context.Context, BatchCalculatePayrollRequest) (BatchCalculatePayrollResponse, error)
+	GetPayrollPeriod(context.Context, uuid.UUID, int, int) (PayrollPeriod, error)
+	LockPayrollPeriod(context.Context, uuid.UUID, int, int, int64, uuid.UUID) (PayrollPeriod, error)
+	ReopenPayrollPeriod(context.Context, uuid.UUID, int, int, int64, string, uuid.UUID) (PayrollPeriod, error)
 }
 type PayrollHandler struct {
 	Repository PayrollRepository
 	Authorizer Authorizer
+	Audit      PayrollAudit
 }
 
 func (h PayrollHandler) ListPayslips(w http.ResponseWriter, r *http.Request) {
@@ -858,6 +890,87 @@ func (h PayrollHandler) DeletePayrollRuleAssignment(w http.ResponseWriter, r *ht
 	apperror.WriteJSON(w, http.StatusOK, map[string]bool{"success": true})
 }
 
+func (h PayrollHandler) GetPayrollPeriod(w http.ResponseWriter, r *http.Request) {
+	if !h.allowed(r, "payroll:read") {
+		h.forbidden(w, r)
+		return
+	}
+	employerID, ok := payrollPeriodEmployer(r)
+	if !ok {
+		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
+		return
+	}
+	year, month, err := payrollPeriodPath(r)
+	if err != nil {
+		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
+		return
+	}
+	period, err := h.Repository.GetPayrollPeriod(r.Context(), employerID, year, month)
+	if err != nil {
+		h.writeError(w, r, err)
+		return
+	}
+	apperror.WriteJSON(w, http.StatusOK, period)
+}
+
+func (h PayrollHandler) LockPayrollPeriod(w http.ResponseWriter, r *http.Request) {
+	if !h.allowed(r, "payroll:periods:lock") {
+		h.forbidden(w, r)
+		return
+	}
+	employerID, ok := payrollPeriodEmployer(r)
+	if !ok {
+		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
+		return
+	}
+	year, month, err := payrollPeriodPath(r)
+	if err != nil {
+		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
+		return
+	}
+	request, err := DecodeJSON[LockPayrollPeriodRequest](r, 1<<20)
+	if err != nil || request.Version < 1 {
+		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
+		return
+	}
+	actorID, _ := httpinfra.UserIDFromContext(r.Context())
+	period, err := h.Repository.LockPayrollPeriod(r.Context(), employerID, year, month, request.Version, actorID)
+	if err != nil {
+		h.writeError(w, r, err)
+		return
+	}
+	apperror.WriteJSON(w, http.StatusOK, period)
+}
+
+func (h PayrollHandler) ReopenPayrollPeriod(w http.ResponseWriter, r *http.Request) {
+	if !h.allowed(r, "payroll:periods:reopen") {
+		h.forbidden(w, r)
+		return
+	}
+	employerID, ok := payrollPeriodEmployer(r)
+	if !ok {
+		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
+		return
+	}
+	year, month, err := payrollPeriodPath(r)
+	if err != nil {
+		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
+		return
+	}
+	request, err := DecodeJSON[ReopenPayrollPeriodRequest](r, 1<<20)
+	if err != nil || request.Version < 1 || strings.TrimSpace(request.Reason) == "" || len(request.Reason) > 500 {
+		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
+		return
+	}
+	actorID, _ := httpinfra.UserIDFromContext(r.Context())
+	period, err := h.Repository.ReopenPayrollPeriod(r.Context(), employerID, year, month, request.Version, strings.TrimSpace(request.Reason), actorID)
+	if err != nil {
+		h.writeError(w, r, err)
+		return
+	}
+	apperror.WriteJSON(w, http.StatusOK, period)
+}
+
 func (h PayrollHandler) CalculatePayroll(w http.ResponseWriter, r *http.Request) {
 
 	empID, eOK := pathUUID(r, "id")
@@ -959,6 +1072,23 @@ func employmentIDFromRequest(r *http.Request) (uuid.UUID, bool) {
 	return pathUUID(r, "employment_id")
 }
 
+func payrollPeriodEmployer(r *http.Request) (uuid.UUID, bool) {
+	id, err := uuid.Parse(r.URL.Query().Get("employer_id"))
+	return id, err == nil
+}
+
+func payrollPeriodPath(r *http.Request) (int, int, error) {
+	year, err := strconv.Atoi(r.PathValue("year"))
+	if err != nil || year < 2000 || year > 2100 {
+		return 0, 0, ErrPayrollPeriodValidation
+	}
+	month, err := strconv.Atoi(r.PathValue("month"))
+	if err != nil || month < 1 || month > 12 {
+		return 0, 0, ErrPayrollPeriodValidation
+	}
+	return year, month, nil
+}
+
 func parsePayrollPeriod(r *http.Request) (time.Time, time.Time, error) {
 	year, err := strconv.Atoi(r.URL.Query().Get("year"))
 	if err != nil {
@@ -980,7 +1110,7 @@ func (h PayrollHandler) forbidden(w http.ResponseWriter, r *http.Request) {
 	apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
 }
 func (h PayrollHandler) writeError(w http.ResponseWriter, r *http.Request, err error) {
-	if errors.Is(err, pgx.ErrNoRows) || errors.Is(err, ErrComponentNotFound) || errors.Is(err, ErrEmploymentNotFound) || errors.Is(err, ErrPayrollSettingsNotFound) || errors.Is(err, ErrIncentivePolicyNotFound) || errors.Is(err, ErrRuleNotFound) || errors.Is(err, ErrTierNotFound) || errors.Is(err, ErrAssignmentNotFound) {
+	if errors.Is(err, pgx.ErrNoRows) || errors.Is(err, ErrComponentNotFound) || errors.Is(err, ErrEmploymentNotFound) || errors.Is(err, ErrPayrollSettingsNotFound) || errors.Is(err, ErrIncentivePolicyNotFound) || errors.Is(err, ErrRuleNotFound) || errors.Is(err, ErrTierNotFound) || errors.Is(err, ErrAssignmentNotFound) || errors.Is(err, ErrPayrollPeriodNotFound) || errors.Is(err, ErrEmployerNotFound) {
 		apperror.WriteError(w, r, apperror.NotFound(apperror.KeyNotFound))
 		return
 	}
@@ -992,7 +1122,7 @@ func (h PayrollHandler) writeError(w http.ResponseWriter, r *http.Request, err e
 		apperror.WriteError(w, r, apperror.Validation("error.no_active_employment"))
 		return
 	}
-	if errors.Is(err, ErrPayrollValidation) {
+	if errors.Is(err, ErrPayrollValidation) || errors.Is(err, ErrPayrollPeriodValidation) {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}
@@ -1000,7 +1130,7 @@ func (h PayrollHandler) writeError(w http.ResponseWriter, r *http.Request, err e
 		apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyInvalidBaseGroup))
 		return
 	}
-	if errors.Is(err, ErrComponentConflict) || errors.Is(err, ErrConflict) || errors.Is(err, ErrAssignmentConflict) {
+	if errors.Is(err, ErrComponentConflict) || errors.Is(err, ErrConflict) || errors.Is(err, ErrAssignmentConflict) || errors.Is(err, ErrPayrollPeriodConflict) || errors.Is(err, ErrPayslipConflict) {
 		apperror.WriteError(w, r, apperror.Conflict(apperror.KeyConflict))
 		return
 	}

@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"errors"
 	"strings"
 	"testing"
 	"time"
@@ -18,51 +19,199 @@ func TestPayrollRepository_CalculateEmployeePayroll_UsesEmploymentDepartmentHist
 	employeeID := uuid.New()
 	employmentID := uuid.New()
 	departmentID := uuid.New()
-	db := &fakeDBTX{
-		queryRowFn: func(_ context.Context, sql string, _ ...any) pgx.Row {
-			if strings.Contains(sql, "SELECT EXISTS (SELECT 1 FROM employees") {
-				return fakeRow{scanFn: func(dest ...any) error {
-					*(dest[0].(*bool)) = true
-					return nil
-				}}
-			}
-			if strings.Contains(sql, "FROM employments WHERE employee_id") {
-				return fakeRow{scanFn: func(dest ...any) error {
-					*(dest[0].(*uuid.UUID)) = employmentID
-					*(dest[1].(**uuid.UUID)) = &departmentID
-					return nil
-				}}
-			}
-			if strings.Contains(sql, "INSERT INTO payslips") {
-				return fakeRow{scanFn: func(dest ...any) error {
-					*(dest[0].(*time.Time)) = time.Now().UTC()
-					*(dest[1].(*time.Time)) = time.Now().UTC()
-					return nil
-				}}
-			}
-			return fakeRow{}
-		},
-		queryFn: func(_ context.Context, sql string, _ ...any) (pgx.Rows, error) {
-			if strings.Contains(sql, "FROM employee_salary_components") {
-				return &fakeRows{}, nil
-			}
-			if strings.Contains(sql, "FROM employments\nWHERE employee_id") {
-				querySeen = true
-				if strings.Contains(sql, "employee_department_history") || !strings.Contains(sql, "deleted_at IS NULL") {
-					t.Fatalf("expected canonical employment department query, got %s", sql)
-				}
-				return &fakeRows{rows: [][]any{{departmentID, "2026-01-01"}}}, nil
-			}
-			return &fakeRows{}, nil
-		},
+	employerID := uuid.New()
+	tx := &payrollPeriodTestTx{}
+	tx.queryRowFn = func(_ context.Context, sql string, _ ...any) pgx.Row {
+		if strings.Contains(sql, "SELECT EXISTS (SELECT 1 FROM employees") {
+			return fakeRow{scanFn: func(dest ...any) error { *(dest[0].(*bool)) = true; return nil }}
+		}
+		if strings.Contains(sql, "SELECT status FROM payroll_periods") {
+			return fakeRow{scanFn: func(dest ...any) error { *(dest[0].(*string)) = "open"; return nil }}
+		}
+		if strings.Contains(sql, "FROM employments WHERE employee_id") {
+			return fakeRow{scanFn: func(dest ...any) error {
+				*(dest[0].(*uuid.UUID)) = employmentID
+				*(dest[1].(**uuid.UUID)) = &departmentID
+				*(dest[2].(*uuid.UUID)) = employerID
+				return nil
+			}}
+		}
+		if strings.Contains(sql, "INSERT INTO payslips") {
+			return fakeRow{scanFn: func(dest ...any) error {
+				*(dest[0].(*time.Time)) = time.Now().UTC()
+				*(dest[1].(*time.Time)) = time.Now().UTC()
+				return nil
+			}}
+		}
+		return fakeRow{}
 	}
-	_, err := (PayrollRepository{DB: db}).CalculateEmployeePayroll(context.Background(), employeeID, 2026, 1)
+	tx.queryFn = func(_ context.Context, sql string, _ ...any) (pgx.Rows, error) {
+		if strings.Contains(sql, "FROM employee_salary_components") {
+			return &fakeRows{}, nil
+		}
+		if strings.Contains(sql, "FROM employments\nWHERE employee_id") {
+			querySeen = true
+			if strings.Contains(sql, "employee_department_history") || !strings.Contains(sql, "deleted_at IS NULL") {
+				t.Fatalf("expected canonical employment department query, got %s", sql)
+			}
+			return &fakeRows{rows: [][]any{{departmentID, "2026-01-01"}}}, nil
+		}
+		return &fakeRows{}, nil
+	}
+	_, err := (PayrollRepository{DB: tx}).CalculateEmployeePayroll(context.Background(), employeeID, 2026, 1)
 	if err != nil {
 		t.Fatalf("calculate payroll: %v", err)
 	}
 	if !querySeen {
 		t.Fatal("expected employment department history query")
 	}
+}
+
+func TestEnsurePayrollPeriodOpen_RejectsLockedPeriod(t *testing.T) {
+	tx := &payrollPeriodTestTx{}
+	tx.queryRowFn = func(_ context.Context, sql string, _ ...any) pgx.Row {
+		if strings.Contains(sql, "SELECT status FROM payroll_periods") {
+			return fakeRow{scanFn: func(dest ...any) error {
+				*(dest[0].(*string)) = "locked"
+				return nil
+			}}
+		}
+		return fakeRow{}
+	}
+
+	err := ensurePayrollPeriodOpen(context.Background(), tx, uuid.New(), 2026, 1)
+	if !errors.Is(err, api.ErrPayrollPeriodConflict) {
+		t.Fatalf("expected locked period conflict, got %v", err)
+	}
+	if tx.committed || tx.rolledBack {
+		t.Fatalf("guard must not manage transaction lifecycle, committed=%t rolled_back=%t", tx.committed, tx.rolledBack)
+	}
+}
+
+func TestEnsurePayrollPeriodOpen_RejectsInvalidPeriodBeforeWrite(t *testing.T) {
+	execCalled := false
+	tx := &payrollPeriodTestTx{}
+	tx.execFn = func(_ context.Context, _ string, _ ...any) (pgconn.CommandTag, error) {
+		execCalled = true
+		return pgconn.NewCommandTag("INSERT 0 1"), nil
+	}
+
+	err := ensurePayrollPeriodOpen(context.Background(), tx, uuid.New(), 2026, 13)
+	if !errors.Is(err, api.ErrPayrollPeriodValidation) {
+		t.Fatalf("expected invalid period error, got %v", err)
+	}
+	if execCalled {
+		t.Fatal("invalid period must not write payroll period")
+	}
+}
+
+func TestPayrollRepository_CalculateEmployeePayroll_RejectsLockedPeriod(t *testing.T) {
+	employeeID := uuid.New()
+	employmentID := uuid.New()
+	employerID := uuid.New()
+	departmentID := uuid.New()
+	queriedAfterGuard := false
+	tx := &payrollPeriodTestTx{}
+	tx.queryRowFn = func(_ context.Context, sql string, _ ...any) pgx.Row {
+		switch {
+		case strings.Contains(sql, "SELECT EXISTS (SELECT 1 FROM employees"):
+			return fakeRow{scanFn: func(dest ...any) error { *(dest[0].(*bool)) = true; return nil }}
+		case strings.Contains(sql, "FROM employments WHERE employee_id"):
+			return fakeRow{scanFn: func(dest ...any) error {
+				*(dest[0].(*uuid.UUID)) = employmentID
+				*(dest[1].(**uuid.UUID)) = &departmentID
+				*(dest[2].(*uuid.UUID)) = employerID
+				return nil
+			}}
+		case strings.Contains(sql, "SELECT status FROM payroll_periods"):
+			return fakeRow{scanFn: func(dest ...any) error { *(dest[0].(*string)) = "locked"; return nil }}
+		default:
+			return fakeRow{}
+		}
+	}
+	tx.queryFn = func(_ context.Context, sql string, _ ...any) (pgx.Rows, error) {
+		if strings.Contains(sql, "FROM employee_salary_components") {
+			queriedAfterGuard = true
+		}
+		return &fakeRows{}, nil
+	}
+
+	_, err := (PayrollRepository{DB: tx}).CalculateEmployeePayroll(context.Background(), employeeID, 2026, 1)
+	if !errors.Is(err, api.ErrPayrollPeriodConflict) {
+		t.Fatalf("expected locked period conflict, got %v", err)
+	}
+	if queriedAfterGuard {
+		t.Fatal("locked period must stop calculation before loading payroll inputs")
+	}
+	if tx.committed || !tx.rolledBack {
+		t.Fatalf("expected rollback without commit, committed=%t rolled_back=%t", tx.committed, tx.rolledBack)
+	}
+}
+
+func TestPayrollRepository_CalculateEmployeePayroll_ProtectsFinalizedPayslip(t *testing.T) {
+	for _, status := range []string{"paid", "finalized"} {
+		t.Run(status, func(t *testing.T) {
+			tx := payrollCalculationFixture(uuid.New(), uuid.New(), uuid.New(), "open", status)
+			_, err := (PayrollRepository{DB: tx}).CalculateEmployeePayroll(context.Background(), uuid.New(), 2026, 1)
+			if !errors.Is(err, api.ErrPayslipConflict) {
+				t.Fatalf("expected payslip conflict for %s payslip, got %v", status, err)
+			}
+			if tx.committed || !tx.rolledBack {
+				t.Fatalf("expected rollback without commit, committed=%t rolled_back=%t", tx.committed, tx.rolledBack)
+			}
+		})
+	}
+}
+
+func TestPayrollRepository_CalculateEmployeePayroll_PropagatesPayslipChildDeleteFailure(t *testing.T) {
+	deleteErr := errors.New("child delete failed")
+	tx := payrollCalculationFixture(uuid.New(), uuid.New(), uuid.New(), "open", "draft")
+	tx.execFn = func(_ context.Context, sql string, _ ...any) (pgconn.CommandTag, error) {
+		if strings.Contains(sql, "DELETE FROM payslip_segments") {
+			return pgconn.CommandTag{}, deleteErr
+		}
+		return pgconn.NewCommandTag("INSERT 0 1"), nil
+	}
+
+	_, err := (PayrollRepository{DB: tx}).CalculateEmployeePayroll(context.Background(), uuid.New(), 2026, 1)
+	if !errors.Is(err, deleteErr) {
+		t.Fatalf("expected child delete error, got %v", err)
+	}
+	if tx.committed || !tx.rolledBack {
+		t.Fatalf("expected rollback without commit, committed=%t rolled_back=%t", tx.committed, tx.rolledBack)
+	}
+}
+
+func payrollCalculationFixture(employeeID, employmentID, employerID uuid.UUID, periodStatus, payslipStatus string) *payrollPeriodTestTx {
+	departmentID := uuid.New()
+	tx := &payrollPeriodTestTx{}
+	tx.queryRowFn = func(_ context.Context, sql string, _ ...any) pgx.Row {
+		switch {
+		case strings.Contains(sql, "SELECT EXISTS (SELECT 1 FROM employees"):
+			return fakeRow{scanFn: func(dest ...any) error { *(dest[0].(*bool)) = true; return nil }}
+		case strings.Contains(sql, "FROM employments WHERE employee_id"):
+			return fakeRow{scanFn: func(dest ...any) error {
+				*(dest[0].(*uuid.UUID)) = employmentID
+				*(dest[1].(**uuid.UUID)) = &departmentID
+				*(dest[2].(*uuid.UUID)) = employerID
+				return nil
+			}}
+		case strings.Contains(sql, "SELECT status FROM payroll_periods"):
+			return fakeRow{scanFn: func(dest ...any) error { *(dest[0].(*string)) = periodStatus; return nil }}
+		case strings.Contains(sql, "FROM payslips"):
+			return fakeRow{scanFn: func(dest ...any) error {
+				*(dest[0].(*uuid.UUID)) = uuid.New()
+				*(dest[1].(*string)) = payslipStatus
+				return nil
+			}}
+		default:
+			return fakeRow{}
+		}
+	}
+	tx.queryFn = func(_ context.Context, _ string, _ ...any) (pgx.Rows, error) {
+		return &fakeRows{}, nil
+	}
+	return tx
 }
 
 func TestPayrollRepository_ListPayslips_ScopeFree(t *testing.T) {

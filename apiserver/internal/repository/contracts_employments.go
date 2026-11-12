@@ -9,6 +9,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/vkaylee/leeattend/apiserver/internal/api"
 	"github.com/vkaylee/leeattend/apiserver/internal/service"
 )
@@ -288,7 +289,23 @@ func (r ContractRepository) SoftDeleteContract(ctx context.Context, contractID u
 }
 
 type EmploymentRepository struct {
-	DB DBTX
+	DB      DBTX
+	BeginTx func(context.Context) (TxBeginner, error)
+}
+
+func (r EmploymentRepository) beginEmploymentTx(ctx context.Context) (TxBeginner, error) {
+	if r.BeginTx != nil {
+		return r.BeginTx(ctx)
+	}
+	db, err := r.db(ctx)
+	if err != nil {
+		return nil, err
+	}
+	beginner, ok := db.(TxBeginner)
+	if !ok {
+		return nil, errors.New("employment repository: database does not support transactions")
+	}
+	return beginner, nil
 }
 
 func (r EmploymentRepository) db(ctx context.Context) (DBTX, error) {
@@ -316,6 +333,127 @@ func scanEmployment(row interface{ Scan(...any) error }) (api.Employment, error)
 const employmentColumns = `id, employee_id, employer_id, primary_location_id, department_id,
 	status, start_date::text, end_date::text, job_title, employment_type, manager_employment_id,
 	created_at, updated_at, termination_reason, notes`
+
+const relationshipColumns = `id, employee_id, employer_id, status,
+	start_date::text, end_date::text, termination_reason, notes, created_at, updated_at`
+
+func scanEmploymentRelationship(row interface{ Scan(...any) error }) (api.EmploymentRelationship, error) {
+	var relationship api.EmploymentRelationship
+	var created, updated time.Time
+	if err := row.Scan(
+		&relationship.ID, &relationship.EmployeeID, &relationship.EmployerID, &relationship.Status,
+		&relationship.StartDate, &relationship.EndDate, &relationship.TerminationReason, &relationship.Notes,
+		&created, &updated,
+	); err != nil {
+		return api.EmploymentRelationship{}, err
+	}
+	relationship.CreatedAt = created.UTC().Format(time.RFC3339)
+	relationship.UpdatedAt = updated.UTC().Format(time.RFC3339)
+	return relationship, nil
+}
+
+func (r EmploymentRepository) ListEmploymentRelationships(ctx context.Context, employeeID uuid.UUID, page, limit int, employerID *uuid.UUID, asOf *time.Time) (api.EmploymentRelationshipListResponse, error) {
+	db, err := r.db(ctx)
+	if err != nil {
+		return api.EmploymentRelationshipListResponse{}, err
+	}
+	args := []any{employeeID}
+	where := `employee_id = $1 AND deleted_at IS NULL`
+	if employerID != nil {
+		args = append(args, *employerID)
+		where += fmt.Sprintf(" AND employer_id = $%d", len(args))
+	}
+	if asOf != nil {
+		args = append(args, asOf.Format("2006-01-02"))
+		where += fmt.Sprintf(" AND start_date <= $%d::date AND (end_date IS NULL OR end_date >= $%d::date)", len(args), len(args))
+	}
+	countRow := db.QueryRow(ctx, `SELECT count(*) FROM employment_relationships WHERE `+where, args...)
+	var total int64
+	if err := countRow.Scan(&total); err != nil {
+		return api.EmploymentRelationshipListResponse{}, err
+	}
+	args = append(args, limit, (page-1)*limit)
+	rows, err := db.Query(ctx, `SELECT `+relationshipColumns+` FROM employment_relationships WHERE `+where+` ORDER BY start_date DESC, id DESC LIMIT $`+fmt.Sprint(len(args)-1)+` OFFSET $`+fmt.Sprint(len(args)), args...)
+	if err != nil {
+		return api.EmploymentRelationshipListResponse{}, err
+	}
+	defer rows.Close()
+	data := make([]api.EmploymentRelationship, 0)
+	for rows.Next() {
+		item, err := scanEmploymentRelationship(rows)
+		if err != nil {
+			return api.EmploymentRelationshipListResponse{}, err
+		}
+		data = append(data, item)
+	}
+	if err := rows.Err(); err != nil {
+		return api.EmploymentRelationshipListResponse{}, err
+	}
+	return api.EmploymentRelationshipListResponse{Data: data, Total: total, Page: page, Limit: limit}, nil
+}
+
+func (r EmploymentRepository) GetEmploymentRelationship(ctx context.Context, id uuid.UUID) (api.EmploymentRelationship, error) {
+	db, err := r.db(ctx)
+	if err != nil {
+		return api.EmploymentRelationship{}, err
+	}
+	item, err := scanEmploymentRelationship(db.QueryRow(ctx, `SELECT `+relationshipColumns+` FROM employment_relationships WHERE id = $1 AND deleted_at IS NULL`, id))
+	if errors.Is(err, pgx.ErrNoRows) {
+		return api.EmploymentRelationship{}, api.ErrEmploymentRelationshipNotFound
+	}
+	return item, err
+}
+
+func (r EmploymentRepository) CreateEmploymentRelationship(ctx context.Context, employeeID uuid.UUID, req api.CreateEmploymentRelationshipRequest) (api.EmploymentRelationshipCreated, error) {
+	txBeginner, err := r.beginEmploymentTx(ctx)
+	if err != nil {
+		return api.EmploymentRelationshipCreated{}, err
+	}
+	var result api.EmploymentRelationshipCreated
+	err = service.WithTx(ctx, txBeginner, func(ctx context.Context, tx pgx.Tx) error {
+		var employeeExists bool
+		if err := tx.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM employees WHERE id = $1 AND deleted_at IS NULL)`, employeeID).Scan(&employeeExists); err != nil {
+			return err
+		}
+		if !employeeExists {
+			return api.ErrEmployeeNotFound
+		}
+		var employerExists bool
+		if err := tx.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM employers WHERE id = $1 AND deleted_at IS NULL)`, req.EmployerID).Scan(&employerExists); err != nil {
+			return err
+		}
+		if !employerExists {
+			return api.ErrEmployerNotFound
+		}
+		if err := tx.QueryRow(ctx, `SELECT id FROM employees WHERE id = $1 AND deleted_at IS NULL FOR UPDATE`, employeeID).Scan(new(uuid.UUID)); err != nil {
+			return err
+		}
+		relationshipID := uuid.New()
+		segmentID := uuid.New()
+		result.Relationship, err = scanEmploymentRelationship(tx.QueryRow(ctx, `INSERT INTO employment_relationships (id, employee_id, employer_id, status, start_date, end_date, termination_reason, notes, created_at, updated_at) VALUES ($1, $2, $3, $4, $5::date, $6::date, $7, $8, NOW(), NOW()) RETURNING `+relationshipColumns, relationshipID, employeeID, req.EmployerID, req.Status, req.StartDate, req.EndDate, req.TerminationReason, req.Notes))
+		if err != nil {
+			return mapRelationshipConstraintError(err)
+		}
+		segment, err := scanEmployment(tx.QueryRow(ctx, `INSERT INTO employments (id, employee_id, employer_id, relationship_id, primary_location_id, department_id, status, start_date, end_date, job_title, employment_type, manager_employment_id, created_at, updated_at, termination_reason, notes) VALUES ($1, $2, $3, $4, $5, $6, $7, $8::date, $9::date, $10, $11, $12, NOW(), NOW(), $13, $14) RETURNING `+employmentColumns, segmentID, employeeID, req.EmployerID, relationshipID, req.PrimaryLocationID, req.DepartmentID, req.Status, req.StartDate, req.EndDate, req.JobTitle, req.EmploymentType, req.ManagerEmploymentID, req.TerminationReason, req.Notes))
+		if err != nil {
+			return mapRelationshipConstraintError(err)
+		}
+		result.Segment = segment
+		return nil
+	})
+	if err != nil {
+		return api.EmploymentRelationshipCreated{}, err
+	}
+	return result, nil
+}
+
+func mapRelationshipConstraintError(err error) error {
+	var pgErr *pgconn.PgError
+	if errors.As(err, &pgErr) && (pgErr.Code == "23P01" || pgErr.Code == "23505" || pgErr.Code == "23514") {
+		return fmt.Errorf("%w: %s", api.ErrConflict, pgErr.ConstraintName)
+	}
+	return err
+}
 
 func (r EmploymentRepository) ListEmployments(ctx context.Context, employeeID uuid.UUID) ([]api.Employment, error) {
 	db, err := r.db(ctx)

@@ -2,6 +2,10 @@ import { CalendarRange } from "lucide-react";
 
 import { MonthYearPicker } from "@/components/common/month-year-picker";
 import Button from "@/components/ui/button";
+import {
+  SEGMENTED_CONTROL_STYLE,
+  SEGMENTED_ITEM_STYLE,
+} from "@/components/ui/control-styles";
 import type { ControlSize } from "@/components/ui/control-styles";
 import {
   DropdownMenu,
@@ -43,14 +47,14 @@ export function FilterModeButtons({
 
   return (
     <div className={cn(
-      "inline-flex h-[var(--ui-height-sm)] flex-nowrap items-center gap-1 bg-slate-100 dark:bg-slate-700/50 shadow-inner border border-slate-200 dark:border-slate-700/50",
-      size === "sm" ? "rounded-xl" : "rounded-2xl",
+      SEGMENTED_CONTROL_STYLE,
+      size === "sm" ? "" : "rounded-2xl",
       className,
     )}>
       {(["this_month", "last_month"] as const).map(mode => (
         <Button
           className={cn(
-            "shrink-0 transition-all",
+            SEGMENTED_ITEM_STYLE,
             filterMode === mode
               ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100 dark:border-slate-800"
               : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
@@ -69,7 +73,7 @@ export function FilterModeButtons({
         <DropdownMenuTrigger asChild>
           <Button
             className={cn(
-              "shrink-0 transition-all",
+              SEGMENTED_ITEM_STYLE,
               filterMode === "specific_month"
                 ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100 dark:border-slate-800"
                 : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
@@ -94,7 +98,7 @@ export function FilterModeButtons({
       </DropdownMenu>
       <Button
         className={cn(
-          "shrink-0 transition-all",
+          SEGMENTED_ITEM_STYLE,
           filterMode === "custom"
             ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100 dark:border-slate-800"
             : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"

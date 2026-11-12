@@ -33,6 +33,19 @@ describe("ResponsiveToolbar", () => {
     expect(screen.getAllByText("2").length).toBeGreaterThanOrEqual(1);
   });
 
+  it("renders unified desktop content in one toolbar row", () => {
+    render(
+      <ResponsiveToolbar
+        desktopContent={<div data-testid="unified-toolbar-content">Controls</div>}
+      >
+        <button type="button">Mobile filter</button>
+      </ResponsiveToolbar>,
+    );
+
+    expect(screen.getByTestId("unified-toolbar-content")).toBeInTheDocument();
+    expect(screen.queryByText("Mobile filter")).not.toBeInTheDocument();
+  });
+
   it("opens and applies the mobile filter sheet", async () => {
     render(
       <ResponsiveToolbar filterCount={1}>

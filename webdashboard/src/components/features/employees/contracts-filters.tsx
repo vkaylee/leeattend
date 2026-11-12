@@ -5,7 +5,7 @@ import { useTranslation } from "react-i18next";
 import { Combobox } from "@/components/ui/combobox";
 import { SearchInput } from "@/components/ui/search-input";
 
-export interface EContractsFiltersProps {
+export interface ContractsFiltersProps {
   onSearchChange: (value: string) => void;
   onStatusChange: (value: string) => void;
   onTypeChange: (value: string) => void;
@@ -14,14 +14,14 @@ export interface EContractsFiltersProps {
   selectedType: string;
 }
 
-export function EContractsFilters({
+export function ContractsFilters({
   search,
   onSearchChange,
   selectedType,
   onTypeChange,
   selectedStatus,
   onStatusChange
-}: EContractsFiltersProps) {
+}: ContractsFiltersProps) {
   const { t } = useTranslation();
 
   return (

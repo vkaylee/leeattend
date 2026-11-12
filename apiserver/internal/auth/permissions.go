@@ -103,6 +103,8 @@ const (
 	PermissionPayrollSettingsManage   Permission = "payroll:settings:manage"
 	PermissionPayrollComponentsManage Permission = "payroll:components:manage"
 	PermissionPayrollIncentivesManage Permission = "payroll:incentives:manage"
+	PermissionPayrollPeriodsLock      Permission = "payroll:periods:lock"
+	PermissionPayrollPeriodsReopen    Permission = "payroll:periods:reopen"
 
 	// Holidays
 	PermissionHolidaysRead   Permission = "holidays:read"
@@ -239,6 +241,8 @@ var allCanonicalPermissions = []Permission{
 	PermissionPayrollSettingsManage,
 	PermissionPayrollComponentsManage,
 	PermissionPayrollIncentivesManage,
+	PermissionPayrollPeriodsLock,
+	PermissionPayrollPeriodsReopen,
 	PermissionHolidaysRead,
 	PermissionHolidaysManage,
 	PermissionReportsRead,

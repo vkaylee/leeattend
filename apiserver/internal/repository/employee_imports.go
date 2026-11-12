@@ -237,13 +237,20 @@ func (r EmployeeImportRepository) TerminateEmploymentsTransactional(ctx context.
 		}
 		var startDate time.Time
 		var currentStatus string
-		err = tx.QueryRow(ctx, `SELECT status, start_date FROM employments WHERE id = $1 AND deleted_at IS NULL FOR UPDATE`,
-			row.EmploymentID).Scan(&currentStatus, &startDate)
+		var relationshipID *uuid.UUID
+		err = tx.QueryRow(ctx, `SELECT status, start_date, relationship_id
+				FROM employments
+				WHERE id = $1 AND deleted_at IS NULL
+				FOR UPDATE`,
+			row.EmploymentID).Scan(&currentStatus, &startDate, &relationshipID)
 		if err != nil {
 			if errors.Is(err, pgx.ErrNoRows) {
 				continue
 			}
 			return successCount, err
+		}
+		if termDate.Before(startDate) {
+			return successCount, fmt.Errorf("termination date precedes employment start date")
 		}
 		if currentStatus == "terminated" {
 			continue
@@ -255,6 +262,19 @@ func (r EmployeeImportRepository) TerminateEmploymentsTransactional(ctx context.
 			row.TerminationDate, row.TerminationReason, row.TerminationNotes, row.EmploymentID)
 		if err != nil {
 			return successCount, err
+		}
+
+		if relationshipID != nil {
+			if err := tx.QueryRow(ctx, `SELECT id FROM employment_relationships WHERE id = $1 AND deleted_at IS NULL FOR UPDATE`, *relationshipID).Scan(new(uuid.UUID)); err != nil {
+				return successCount, err
+			}
+			_, err = tx.Exec(ctx, `UPDATE employment_relationships
+					SET status = 'terminated', end_date = $1::date, termination_reason = $2, notes = $3, updated_at = NOW()
+					WHERE id = $4 AND deleted_at IS NULL`,
+				row.TerminationDate, row.TerminationReason, row.TerminationNotes, *relationshipID)
+			if err != nil {
+				return successCount, err
+			}
 		}
 
 		year := termDate.Year()

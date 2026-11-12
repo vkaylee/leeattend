@@ -22,6 +22,7 @@ import { Route as AuthenticatedOrganizationWorkingConditionsRouteImport } from "
 import { Route as AuthenticatedOrganizationShiftsRouteImport } from "./routes/_authenticated/_organization/shifts"
 import { Route as AuthenticatedOrganizationShiftSwapsRouteImport } from "./routes/_authenticated/_organization/shift-swaps"
 import { Route as AuthenticatedOrganizationSettingsRouteImport } from "./routes/_authenticated/_organization/settings"
+import { Route as AuthenticatedOrganizationSalaryManagementRouteImport } from "./routes/_authenticated/_organization/salary-management"
 import { Route as AuthenticatedOrganizationReportsRouteImport } from "./routes/_authenticated/_organization/reports"
 import { Route as AuthenticatedOrganizationProfileRouteImport } from "./routes/_authenticated/_organization/profile"
 import { Route as AuthenticatedOrganizationPayrollRouteImport } from "./routes/_authenticated/_organization/payroll"
@@ -36,6 +37,7 @@ import { Route as AuthenticatedOrganizationEmployeesRouteImport } from "./routes
 import { Route as AuthenticatedOrganizationEcontractsRouteImport } from "./routes/_authenticated/_organization/econtracts"
 import { Route as AuthenticatedOrganizationDepartmentsRouteImport } from "./routes/_authenticated/_organization/departments"
 import { Route as AuthenticatedOrganizationDashboardRouteImport } from "./routes/_authenticated/_organization/dashboard"
+import { Route as AuthenticatedOrganizationContractsRouteImport } from "./routes/_authenticated/_organization/contracts"
 import { Route as AuthenticatedOrganizationAuditLogsRouteImport } from "./routes/_authenticated/_organization/audit-logs"
 import { Route as AuthenticatedOrganizationAttendancePolicyAssignmentsRouteImport } from "./routes/_authenticated/_organization/attendance-policy-assignments"
 import { Route as AuthenticatedOrganizationAttendanceLogsRouteImport } from "./routes/_authenticated/_organization/attendance-logs"
@@ -178,6 +180,16 @@ const AuthenticatedOrganizationSettingsRoute =
     path: "/settings",
     getParentRoute: () => AuthenticatedOrganizationRoute,
   } as any)
+const AuthenticatedOrganizationSalaryManagementRoute =
+  AuthenticatedOrganizationSalaryManagementRouteImport.update({
+    id: "/salary-management",
+    path: "/salary-management",
+    getParentRoute: () => AuthenticatedOrganizationRoute,
+  } as any).lazy(() =>
+    import("./routes/_authenticated/_organization/salary-management.lazy").then(
+      (d) => d.Route,
+    ),
+  )
 const AuthenticatedOrganizationReportsRoute =
   AuthenticatedOrganizationReportsRouteImport.update({
     id: "/reports",
@@ -315,6 +327,16 @@ const AuthenticatedOrganizationDashboardRoute =
     getParentRoute: () => AuthenticatedOrganizationRoute,
   } as any).lazy(() =>
     import("./routes/_authenticated/_organization/dashboard.lazy").then(
+      (d) => d.Route,
+    ),
+  )
+const AuthenticatedOrganizationContractsRoute =
+  AuthenticatedOrganizationContractsRouteImport.update({
+    id: "/contracts",
+    path: "/contracts",
+    getParentRoute: () => AuthenticatedOrganizationRoute,
+  } as any).lazy(() =>
+    import("./routes/_authenticated/_organization/contracts.lazy").then(
       (d) => d.Route,
     ),
   )
@@ -883,6 +905,7 @@ export interface FileRoutesByFullPath {
   "/attendance-logs": typeof AuthenticatedOrganizationAttendanceLogsRoute
   "/attendance-policy-assignments": typeof AuthenticatedOrganizationAttendancePolicyAssignmentsRoute
   "/audit-logs": typeof AuthenticatedOrganizationAuditLogsRoute
+  "/contracts": typeof AuthenticatedOrganizationContractsRoute
   "/dashboard": typeof AuthenticatedOrganizationDashboardRoute
   "/departments": typeof AuthenticatedOrganizationDepartmentsRoute
   "/econtracts": typeof AuthenticatedOrganizationEcontractsRoute
@@ -897,6 +920,7 @@ export interface FileRoutesByFullPath {
   "/payroll": typeof AuthenticatedOrganizationPayrollRoute
   "/profile": typeof AuthenticatedOrganizationProfileRoute
   "/reports": typeof AuthenticatedOrganizationReportsRoute
+  "/salary-management": typeof AuthenticatedOrganizationSalaryManagementRoute
   "/settings": typeof AuthenticatedOrganizationSettingsRouteWithChildren
   "/shift-swaps": typeof AuthenticatedOrganizationShiftSwapsRoute
   "/shifts": typeof AuthenticatedOrganizationShiftsRouteWithChildren
@@ -964,6 +988,7 @@ export interface FileRoutesByTo {
   "/attendance-logs": typeof AuthenticatedOrganizationAttendanceLogsRoute
   "/attendance-policy-assignments": typeof AuthenticatedOrganizationAttendancePolicyAssignmentsRoute
   "/audit-logs": typeof AuthenticatedOrganizationAuditLogsRoute
+  "/contracts": typeof AuthenticatedOrganizationContractsRoute
   "/dashboard": typeof AuthenticatedOrganizationDashboardRoute
   "/departments": typeof AuthenticatedOrganizationDepartmentsRoute
   "/econtracts": typeof AuthenticatedOrganizationEcontractsRoute
@@ -978,6 +1003,7 @@ export interface FileRoutesByTo {
   "/payroll": typeof AuthenticatedOrganizationPayrollRoute
   "/profile": typeof AuthenticatedOrganizationProfileRoute
   "/reports": typeof AuthenticatedOrganizationReportsRoute
+  "/salary-management": typeof AuthenticatedOrganizationSalaryManagementRoute
   "/shift-swaps": typeof AuthenticatedOrganizationShiftSwapsRoute
   "/working-conditions": typeof AuthenticatedOrganizationWorkingConditionsRoute
   "/infra/monitor": typeof AuthenticatedInfraInfraMonitorRoute
@@ -1044,6 +1070,7 @@ export interface FileRoutesById {
   "/_authenticated/_organization/attendance-logs": typeof AuthenticatedOrganizationAttendanceLogsRoute
   "/_authenticated/_organization/attendance-policy-assignments": typeof AuthenticatedOrganizationAttendancePolicyAssignmentsRoute
   "/_authenticated/_organization/audit-logs": typeof AuthenticatedOrganizationAuditLogsRoute
+  "/_authenticated/_organization/contracts": typeof AuthenticatedOrganizationContractsRoute
   "/_authenticated/_organization/dashboard": typeof AuthenticatedOrganizationDashboardRoute
   "/_authenticated/_organization/departments": typeof AuthenticatedOrganizationDepartmentsRoute
   "/_authenticated/_organization/econtracts": typeof AuthenticatedOrganizationEcontractsRoute
@@ -1058,6 +1085,7 @@ export interface FileRoutesById {
   "/_authenticated/_organization/payroll": typeof AuthenticatedOrganizationPayrollRoute
   "/_authenticated/_organization/profile": typeof AuthenticatedOrganizationProfileRoute
   "/_authenticated/_organization/reports": typeof AuthenticatedOrganizationReportsRoute
+  "/_authenticated/_organization/salary-management": typeof AuthenticatedOrganizationSalaryManagementRoute
   "/_authenticated/_organization/settings": typeof AuthenticatedOrganizationSettingsRouteWithChildren
   "/_authenticated/_organization/shift-swaps": typeof AuthenticatedOrganizationShiftSwapsRoute
   "/_authenticated/_organization/shifts": typeof AuthenticatedOrganizationShiftsRouteWithChildren
@@ -1129,6 +1157,7 @@ export interface FileRouteTypes {
     | "/attendance-logs"
     | "/attendance-policy-assignments"
     | "/audit-logs"
+    | "/contracts"
     | "/dashboard"
     | "/departments"
     | "/econtracts"
@@ -1143,6 +1172,7 @@ export interface FileRouteTypes {
     | "/payroll"
     | "/profile"
     | "/reports"
+    | "/salary-management"
     | "/settings"
     | "/shift-swaps"
     | "/shifts"
@@ -1210,6 +1240,7 @@ export interface FileRouteTypes {
     | "/attendance-logs"
     | "/attendance-policy-assignments"
     | "/audit-logs"
+    | "/contracts"
     | "/dashboard"
     | "/departments"
     | "/econtracts"
@@ -1224,6 +1255,7 @@ export interface FileRouteTypes {
     | "/payroll"
     | "/profile"
     | "/reports"
+    | "/salary-management"
     | "/shift-swaps"
     | "/working-conditions"
     | "/infra/monitor"
@@ -1289,6 +1321,7 @@ export interface FileRouteTypes {
     | "/_authenticated/_organization/attendance-logs"
     | "/_authenticated/_organization/attendance-policy-assignments"
     | "/_authenticated/_organization/audit-logs"
+    | "/_authenticated/_organization/contracts"
     | "/_authenticated/_organization/dashboard"
     | "/_authenticated/_organization/departments"
     | "/_authenticated/_organization/econtracts"
@@ -1303,6 +1336,7 @@ export interface FileRouteTypes {
     | "/_authenticated/_organization/payroll"
     | "/_authenticated/_organization/profile"
     | "/_authenticated/_organization/reports"
+    | "/_authenticated/_organization/salary-management"
     | "/_authenticated/_organization/settings"
     | "/_authenticated/_organization/shift-swaps"
     | "/_authenticated/_organization/shifts"
@@ -1462,6 +1496,13 @@ declare module "@tanstack/react-router" {
       preLoaderRoute: typeof AuthenticatedOrganizationSettingsRouteImport
       parentRoute: typeof AuthenticatedOrganizationRoute
     }
+    "/_authenticated/_organization/salary-management": {
+      id: "/_authenticated/_organization/salary-management"
+      path: "/salary-management"
+      fullPath: "/salary-management"
+      preLoaderRoute: typeof AuthenticatedOrganizationSalaryManagementRouteImport
+      parentRoute: typeof AuthenticatedOrganizationRoute
+    }
     "/_authenticated/_organization/reports": {
       id: "/_authenticated/_organization/reports"
       path: "/reports"
@@ -1558,6 +1599,13 @@ declare module "@tanstack/react-router" {
       path: "/dashboard"
       fullPath: "/dashboard"
       preLoaderRoute: typeof AuthenticatedOrganizationDashboardRouteImport
+      parentRoute: typeof AuthenticatedOrganizationRoute
+    }
+    "/_authenticated/_organization/contracts": {
+      id: "/_authenticated/_organization/contracts"
+      path: "/contracts"
+      fullPath: "/contracts"
+      preLoaderRoute: typeof AuthenticatedOrganizationContractsRouteImport
       parentRoute: typeof AuthenticatedOrganizationRoute
     }
     "/_authenticated/_organization/audit-logs": {
@@ -2161,6 +2209,7 @@ interface AuthenticatedOrganizationRouteChildren {
   AuthenticatedOrganizationAttendanceLogsRoute: typeof AuthenticatedOrganizationAttendanceLogsRoute
   AuthenticatedOrganizationAttendancePolicyAssignmentsRoute: typeof AuthenticatedOrganizationAttendancePolicyAssignmentsRoute
   AuthenticatedOrganizationAuditLogsRoute: typeof AuthenticatedOrganizationAuditLogsRoute
+  AuthenticatedOrganizationContractsRoute: typeof AuthenticatedOrganizationContractsRoute
   AuthenticatedOrganizationDashboardRoute: typeof AuthenticatedOrganizationDashboardRoute
   AuthenticatedOrganizationDepartmentsRoute: typeof AuthenticatedOrganizationDepartmentsRoute
   AuthenticatedOrganizationEcontractsRoute: typeof AuthenticatedOrganizationEcontractsRoute
@@ -2175,6 +2224,7 @@ interface AuthenticatedOrganizationRouteChildren {
   AuthenticatedOrganizationPayrollRoute: typeof AuthenticatedOrganizationPayrollRoute
   AuthenticatedOrganizationProfileRoute: typeof AuthenticatedOrganizationProfileRoute
   AuthenticatedOrganizationReportsRoute: typeof AuthenticatedOrganizationReportsRoute
+  AuthenticatedOrganizationSalaryManagementRoute: typeof AuthenticatedOrganizationSalaryManagementRoute
   AuthenticatedOrganizationSettingsRoute: typeof AuthenticatedOrganizationSettingsRouteWithChildren
   AuthenticatedOrganizationShiftSwapsRoute: typeof AuthenticatedOrganizationShiftSwapsRoute
   AuthenticatedOrganizationShiftsRoute: typeof AuthenticatedOrganizationShiftsRouteWithChildren
@@ -2207,6 +2257,8 @@ const AuthenticatedOrganizationRouteChildren: AuthenticatedOrganizationRouteChil
       AuthenticatedOrganizationAttendancePolicyAssignmentsRoute,
     AuthenticatedOrganizationAuditLogsRoute:
       AuthenticatedOrganizationAuditLogsRoute,
+    AuthenticatedOrganizationContractsRoute:
+      AuthenticatedOrganizationContractsRoute,
     AuthenticatedOrganizationDashboardRoute:
       AuthenticatedOrganizationDashboardRoute,
     AuthenticatedOrganizationDepartmentsRoute:
@@ -2235,6 +2287,8 @@ const AuthenticatedOrganizationRouteChildren: AuthenticatedOrganizationRouteChil
       AuthenticatedOrganizationProfileRoute,
     AuthenticatedOrganizationReportsRoute:
       AuthenticatedOrganizationReportsRoute,
+    AuthenticatedOrganizationSalaryManagementRoute:
+      AuthenticatedOrganizationSalaryManagementRoute,
     AuthenticatedOrganizationSettingsRoute:
       AuthenticatedOrganizationSettingsRouteWithChildren,
     AuthenticatedOrganizationShiftSwapsRoute:

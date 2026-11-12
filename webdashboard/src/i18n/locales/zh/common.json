@@ -189,6 +189,8 @@
     "disable": "禁用",
     "duration": "时长",
     "econtracts": "电子合同",
+    "contracts": "劳动合同",
+    "contracts_subtitle": "管理组织内的劳动合同。",
     "edit": "编辑",
     "effective_date": "生效日期",
     "effective_from": "生效日期",
@@ -2571,5 +2573,28 @@
       "no_template_selected": "请选择一个清单模板。",
       "employee_has_no_employment": "该员工当前没有有效的雇佣关系。"
     }
+  },
+  "econtracts": {
+    "not_ready_subtitle": "启用签署后，电子签名信封将显示在此处。",
+    "not_ready_description": "电子签名供应商集成尚不可用。普通劳动合同仍可在劳动合同页面查看。",
+    "not_ready_title": "电子签署流程不可用"
+  },
+  "salary_management": {
+    "component": "项目",
+    "amount": "金额",
+    "scope_note": "仅显示已配置的工资和津贴项目",
+    "title": "薪资与津贴",
+    "subtitle": "按生效日期查看薪资和津贴配置。",
+    "filters": "薪资筛选",
+    "search": "搜索员工编号或姓名",
+    "as_of": "生效日期",
+    "unconfigured": "缺少薪资配置",
+    "employee": "员工",
+    "employer": "法人实体",
+    "empty": "没有薪资记录",
+    "empty_description": "没有符合当前筛选条件的记录。",
+    "error": "无法加载薪资记录。",
+    "pagination": "薪资记录分页",
+    "component_count": "已配置项目"
   }
 }

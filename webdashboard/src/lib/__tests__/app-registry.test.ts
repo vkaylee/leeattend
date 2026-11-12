@@ -117,12 +117,14 @@ describe("app filtering logic", () => {
 
   it("hides feature-flagged apps by default even with matching permissions", () => {
     const visible = filterApps(APP_REGISTRY, ["employees:update"]);
+    expect(visible.find((a) => a.id === "contracts")).toBeUndefined();
     expect(visible.find((a) => a.id === "econtracts")).toBeUndefined();
   });
 
   it("shows a feature-flagged app when the flag is enabled", () => {
     localStorage.setItem("ff_econtracts", "true");
-    const visible = filterApps(APP_REGISTRY, ["employees:update"]);
+    const visible = filterApps(APP_REGISTRY, ["documents:contract:read"]);
+    expect(visible.find((a) => a.id === "contracts")).toBeDefined();
     expect(visible.find((a) => a.id === "econtracts")).toBeDefined();
   });
 

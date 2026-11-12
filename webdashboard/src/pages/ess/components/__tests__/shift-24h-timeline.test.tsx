@@ -33,7 +33,7 @@ describe("Shift24hTimeline Component", () => {
 
     // Verify 24h hour marks
     expect(screen.getByText("00:00")).toBeInTheDocument();
-    expect(screen.getByText("12:00")).toBeInTheDocument();
+    expect(screen.getByTestId("timeline-hour-axis")).toHaveTextContent("12:00");
     expect(screen.getByText("24:00")).toBeInTheDocument();
   });
 

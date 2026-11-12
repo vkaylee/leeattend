@@ -11,6 +11,7 @@ export * from "./employees";
 export * from "./attendance";
 export * from "./leaves";
 export * from "./payroll";
+export * from "./salary-management";
 export * from "./departments";
 export * from "./working-patterns";
 export * from "./rules";

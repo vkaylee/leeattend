@@ -12,10 +12,14 @@ func registerEmploymentRoutes(
 	customFields api.CustomFieldHandler,
 ) {
 	registerRoute(router, "GET /api/v1/contracts", contracts.ListContracts)
+	registerRoute(router, "GET /api/v1/employees/{employee_id}/contracts", contracts.ListEmployeeContracts)
 	registerRoute(router, "POST /api/v1/employees/{employee_id}/contracts", contracts.CreateContract)
 	registerRoute(router, "GET /api/v1/employees/{employee_id}/contracts/{contract_id}", contracts.GetContract)
 	registerRoute(router, "PATCH /api/v1/employees/{employee_id}/contracts/{contract_id}", contracts.UpdateContract)
 	registerRoute(router, "DELETE /api/v1/employees/{employee_id}/contracts/{contract_id}", contracts.DeleteContract)
+	registerRoute(router, "GET /api/v1/employees/{employee_id}/employment-relationships", contracts.ListEmploymentRelationships)
+	registerRoute(router, "POST /api/v1/employees/{employee_id}/employment-relationships", contracts.CreateEmploymentRelationship)
+	registerRoute(router, "GET /api/v1/employees/{employee_id}/employment-relationships/{relationship_id}", contracts.GetEmploymentRelationship)
 	registerRoute(router, "GET /api/v1/employees/{employee_id}/employments", contracts.ListEmployments)
 	registerRoute(router, "POST /api/v1/employees/{employee_id}/employments", contracts.CreateEmployment)
 	registerRoute(router, "GET /api/v1/employees/{employee_id}/employments/{employment_id}", contracts.GetEmployment)

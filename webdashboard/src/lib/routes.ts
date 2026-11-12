@@ -23,6 +23,7 @@ export const ROUTES = {
   EMPLOYEES: "/employees",
   DEPARTMENTS: "/departments",
   ORG_CHART: "/org-chart",
+  CONTRACTS: "/contracts",
   ECONTRACTS: "/econtracts",
   ASSIGNMENTS: "/assignments",
   WORKING_CONDITIONS: "/working-conditions",
@@ -47,6 +48,7 @@ export const ROUTES = {
   SHIFTS_EDIT: "/shifts/$shiftId/edit",
   SHIFT_SWAPS: "/shift-swaps",
   PAYROLL: "/payroll",
+  SALARY_MANAGEMENT: "/salary-management",
   DOCUMENTS: "/documents",
   PROFILE: "/profile",
 

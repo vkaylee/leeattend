@@ -7,7 +7,12 @@ import { FilterModeButtons } from "@/components/common/filter-mode-buttons";
 import Button from "@/components/ui/button";
 import { FilterPanel } from "@/components/ui/filter-panel";
 import { FilterTrigger } from "@/components/ui/filter-trigger";
+import {
+  SEGMENTED_CONTROL_STYLE,
+  SEGMENTED_ITEM_STYLE,
+} from "@/components/ui/control-styles";
 import { SearchInput } from "@/components/ui/search-input";
+import ToolbarRow from "@/components/ui/toolbar-row";
 import { cn } from "@/lib/utils";
 
 interface ReportFiltersProps {
@@ -43,17 +48,18 @@ function StatusFilterSelector({
 }) {
   const options = ["active", "terminated", "all"] as const;
   return (
-    <div className="flex flex-wrap items-center gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl border border-slate-200 dark:border-slate-700">
+    <div className={SEGMENTED_CONTROL_STYLE}>
       {options.map(status => (
         <Button
           className={cn(
-            "px-3.5 py-1.5 rounded-lg text-xs font-semibold tracking-wide transition-all h-auto",
+            SEGMENTED_ITEM_STYLE,
             employeeStatus === status
               ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100 dark:border-slate-800"
               : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
           )}
           key={status}
           onClick={() => { onEmployeeStatusChange(status); }}
+          size="sm"
           variant="ghost"
         >
           {t(`reports.filters.status.${status}`)}
@@ -139,6 +145,7 @@ function EmployerFilterSelector({
           hasActive={!!selectedEmployerId}
           icon={<Briefcase size={14} />}
           label={selectedEmployer ? selectedEmployer.name : t("reports.all_employers")}
+          size="sm"
           variant="pill-button"
         />
       }
@@ -169,28 +176,27 @@ export default function ReportFilters({
 }: ReportFiltersProps) {
   return (
     <div className="flex flex-col gap-3">
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
-        <div className="flex flex-wrap items-center gap-2 bg-white dark:bg-slate-900 p-1.5 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm">
+      <ToolbarRow className="lg:flex-nowrap lg:justify-between">
+        <div className="flex min-w-0 flex-1 flex-nowrap items-center gap-2 overflow-x-auto">
           <FilterModeButtons
-            className="rounded-xl p-1"
             filterMode={filterMode}
             onFilterModeChange={onFilterModeChange}
             onSpecificMonthChange={onSpecificMonthChange}
+            size="sm"
             specificMonth={specificMonth}
             t={t}
           />
-          <div className="hidden sm:block w-px h-6 bg-slate-200 dark:bg-slate-800 self-center" />
+          <div className="hidden h-6 w-px shrink-0 bg-slate-200 sm:block dark:bg-slate-800" />
           <StatusFilterSelector employeeStatus={employeeStatus} onEmployeeStatusChange={onEmployeeStatusChange} t={t} />
           {!!employers && employers.length > 0 && (
             <>
-              <div className="hidden sm:block w-px h-6 bg-slate-200 dark:bg-slate-800 self-center" />
+              <div className="hidden h-6 w-px shrink-0 bg-slate-200 sm:block dark:bg-slate-800" />
               <EmployerFilterSelector employers={employers} onEmployerChange={onEmployerChange} selectedEmployerId={selectedEmployerId} t={t} />
             </>
           )}
         </div>
 
-        {/* Integrated Search Input right in the toolbar */}
-        <div className="min-w-[220px] max-w-sm w-full sm:w-auto">
+        <div className="min-w-[220px] max-w-sm shrink-0 sm:w-auto">
           <SearchInput
             containerClassName="bg-white dark:bg-slate-900"
             data-testid="report-search-shared"
@@ -204,7 +210,7 @@ export default function ReportFilters({
             value={searchQuery}
           />
         </div>
-      </div>
+      </ToolbarRow>
 
       {departments && departments.length > 0 ? (
         <DepartmentChips departments={departments} onDepartmentChange={onDepartmentChange} selectedDepartmentId={selectedDepartmentId} t={t} />

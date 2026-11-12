@@ -152,6 +152,7 @@ describe("useFilteredMenuItems", () => {
 
   it("shows org section items when user has org permissions", () => {
     activePermissions.add("employees:read");
+    activePermissions.add("documents:contract:read");
     activePermissions.add("departments:read");
 
     const { result } = renderHook(() => useFilteredMenuItems(), { wrapper });

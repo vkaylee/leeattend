@@ -24,7 +24,9 @@ export interface ResponsiveToolbarProps {
   filterCount?: number;
   /** Hide the inline desktop filter group while retaining the mobile sheet. */
   mobileOnly?: boolean;
-  /** Search input slot — always visible at both breakpoints */
+  /** Unified desktop content. Prefer this over separate searchSlot and children layout. */
+  desktopContent?: React.ReactNode;
+  /** Search input slot — legacy desktop slot; use desktopContent for new callers. */
   searchSlot?: React.ReactNode;
 }
 
@@ -176,6 +178,7 @@ function FilterSheet({
 export default function ResponsiveToolbar({
   children,
   actions,
+  desktopContent,
   searchSlot,
   filterCount = 0,
   breakpoint: bp = "lg",
@@ -189,11 +192,18 @@ export default function ResponsiveToolbar({
   return (
     <>
       <div className={cn("flex w-full items-center gap-2", mobileOnly && "lg:hidden", className)}>
-        {searchSlot ? <div className="min-w-0 flex-1 lg:max-w-md">{searchSlot}</div> : null}
-
-        <div className={cn(desktop, "min-w-0 flex-1 items-center gap-3", mobileOnly && "lg:hidden")}>
-          <div className="flex flex-1 flex-wrap items-center gap-3">{children}</div>
-        </div>
+        {desktopContent ? (
+          <div className={cn(desktop, "min-w-0 flex-1 items-center", mobileOnly && "lg:hidden")}>
+            {desktopContent}
+          </div>
+        ) : (
+          <>
+            {searchSlot ? <div className="min-w-0 flex-1 lg:max-w-md">{searchSlot}</div> : null}
+            <div className={cn(desktop, "min-w-0 flex-1 items-center gap-3", mobileOnly && "lg:hidden")}>
+              <div className="flex flex-1 flex-wrap items-center gap-3">{children}</div>
+            </div>
+          </>
+        )}
 
         <div className={cn(mobile, "items-center gap-2")}>
           <Button

@@ -25,9 +25,11 @@ vi.mock("react-i18next", () => ({
 }));
 
 import { Route as InfraRoute } from "../_authenticated/_infra";
+import { Route as ContractsRoute } from "../_authenticated/_organization/contracts";
 import { Route as AssignmentsRoute } from "../_authenticated/_organization/assignments";
 import { Route as EmployeeDetailRoute } from "../_authenticated/_organization/employees_.$employeeId";
 import { Route as LifecycleRoute } from "../_authenticated/_organization/lifecycle";
+import { Route as SalaryManagementRoute } from "../_authenticated/_organization/salary-management";
 import { Route as SettingsRoute } from "../_authenticated/_organization/settings";
 import { Route as WorkingConditionsRoute } from "../_authenticated/_organization/working-conditions";
 
@@ -37,11 +39,13 @@ interface RouteOptions {
 
 const settingsBeforeLoad = (SettingsRoute.options as RouteOptions).beforeLoad!;
 const infraBeforeLoad = (InfraRoute.options as RouteOptions).beforeLoad!;
+const contractsBeforeLoad = (ContractsRoute.options as RouteOptions).beforeLoad!;
 const personnelHubBeforeLoads = [
   (AssignmentsRoute.options as RouteOptions).beforeLoad!,
   (WorkingConditionsRoute.options as RouteOptions).beforeLoad!,
   (LifecycleRoute.options as RouteOptions).beforeLoad!,
 ];
+const salaryManagementBeforeLoad = (SalaryManagementRoute.options as RouteOptions).beforeLoad!;
 
 describe("permission route guards", () => {
   beforeEach(() => {
@@ -75,6 +79,31 @@ describe("permission route guards", () => {
     });
   });
 
+  it("allows contracts users with contract read permission", async () => {
+    fetchMyPermissions.mockResolvedValue({ permissions: ["documents:contract:read"] });
+
+    await expect(contractsBeforeLoad()).resolves.toBeUndefined();
+    expect(redirect).not.toHaveBeenCalled();
+  });
+
+  it("redirects users without contract read permission", async () => {
+    fetchMyPermissions.mockResolvedValue({ permissions: ["employees:read"] });
+
+    await expect(contractsBeforeLoad()).rejects.toMatchObject({
+      isRedirect: true,
+      to: "/",
+    });
+  });
+
+  it("fails closed when contract permission lookup fails", async () => {
+    fetchMyPermissions.mockRejectedValue(new Error("permission service unavailable"));
+
+    await expect(contractsBeforeLoad()).rejects.toMatchObject({
+      isRedirect: true,
+      to: "/",
+    });
+  });
+
   it("redirects personnel hubs without employee read permission", async () => {
     fetchMyPermissions.mockResolvedValue({ permissions: ["ess:attendance"] });
 
@@ -89,6 +118,14 @@ describe("permission route guards", () => {
     for (const beforeLoad of personnelHubBeforeLoads) {
       await expect(beforeLoad()).resolves.toBeUndefined();
     }
+  });
+
+  it("allows salary management only with payroll read permission", async () => {
+    fetchMyPermissions.mockResolvedValue({ permissions: ["payroll:read"] });
+    await expect(salaryManagementBeforeLoad()).resolves.toBeUndefined();
+
+    fetchMyPermissions.mockResolvedValue({ permissions: ["employees:read"] });
+    await expect(salaryManagementBeforeLoad()).rejects.toMatchObject({ isRedirect: true, to: "/" });
   });
 
   it("fails closed when permission lookup fails", async () => {

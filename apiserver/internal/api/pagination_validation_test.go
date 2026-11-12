@@ -25,6 +25,11 @@ func TestParsePagination_DefaultsAndBounds(t *testing.T) {
 	if !errors.Is(err, ErrInvalidPagination) {
 		t.Fatalf("expected limit failure, got %v", err)
 	}
+
+	_, err = ParsePagination(url.Values{"page": []string{"9223372036854775807"}, "limit": []string{"3000"}})
+	if !errors.Is(err, ErrInvalidPagination) {
+		t.Fatalf("expected offset overflow failure, got %v", err)
+	}
 }
 
 func TestDecodeJSON_DisallowUnknownFields(t *testing.T) {

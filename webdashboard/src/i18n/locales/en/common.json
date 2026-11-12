@@ -189,6 +189,8 @@
     "disable": "Disable",
     "duration": "Duration",
     "econtracts": "e-Contracts",
+    "contracts": "Employment contracts",
+    "contracts_subtitle": "Manage employment contracts across the organization.",
     "edit": "Edit",
     "effective_date": "Effective Date",
     "effective_from": "Effective From",
@@ -2571,5 +2573,28 @@
       "no_template_selected": "Please select a workflow checklist template.",
       "employee_has_no_employment": "This employee does not currently have an active employment profile."
     }
+  },
+  "econtracts": {
+    "not_ready_subtitle": "Electronic-signature envelopes will appear here when the signing backend is enabled.",
+    "not_ready_description": "Electronic-signature provider integration is not available yet. Ordinary legal contracts remain available in Contracts.",
+    "not_ready_title": "E-signature workflow unavailable"
+  },
+  "salary_management": {
+    "component": "Component",
+    "amount": "Amount",
+    "scope_note": "Showing configured salary and allowance components",
+    "title": "Salary & allowances",
+    "subtitle": "Review salary and allowance configuration by effective date.",
+    "filters": "Salary filters",
+    "search": "Search employee code or name",
+    "as_of": "Effective on",
+    "unconfigured": "Missing salary configuration",
+    "employee": "Employee",
+    "employer": "Legal entity",
+    "empty": "No salary records",
+    "empty_description": "No salary records match current filters.",
+    "error": "Salary records could not be loaded.",
+    "pagination": "Salary records pagination",
+    "component_count": "Configured items"
   }
 }

@@ -138,7 +138,11 @@ func buildRouter(cfg *config.Config, db repository.DBTX, redisClient *redisinfra
 	notifRepo := repository.NotificationRepository{SystemDB: db}
 	notifHandler := api.NotificationHandler{Repository: notifRepo}
 	registerNotificationRoutes(protectedRouter, notifHandler)
-	payrollHandler := api.PayrollHandler{Repository: payrollRepo, Authorizer: organizationAuthorizer}
+	payrollHandler := api.PayrollHandler{
+		Repository: payrollRepo,
+		Authorizer: organizationAuthorizer,
+		Audit:      repository.AuditLogWriter{DB: db},
+	}
 	registerPayrollRoutes(protectedRouter, payrollHandler)
 	reportRepo := repository.ReportRepository{DB: db}
 	reportQueue := &repository.RedisReportQueue{Client: redisClient}
