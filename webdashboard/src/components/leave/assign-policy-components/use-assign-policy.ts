@@ -7,7 +7,6 @@ import { format } from "date-fns";
 import type { LeaveAssignment } from "@/pages/settings/hooks/use-leave-settings";
 
 import { useToast } from "@/components/ui/toast";
-import { useAllEmployees } from "@/hooks/use-employees";
 import { useDepartments } from "@/hooks/use-departments";
 import {
   fetchLeavePolicies,
@@ -56,8 +55,6 @@ export function useAssignPolicy(
     }
   }
 
-  const { employees, isLoading: employeesLoading } = useAllEmployees({ enabled: isOpen });
-  
   const { data: departments = [], isLoading: departmentsLoading } = useDepartments({
     enabled: isOpen,
   });
@@ -115,8 +112,6 @@ export function useAssignPolicy(
     setAssignPolicyId,
     effectiveFrom,
     setEffectiveFrom,
-    employees,
-    employeesLoading,
     departments,
     departmentsLoading,
     policies,

@@ -72,6 +72,25 @@ describe("EmployeeSearch Component", () => {
     expect(screen.getByRole("combobox")).toBeDefined();
   });
 
+  it("passes load-more callback when another employee page exists", () => {
+    const fetchNextPage = vi.fn();
+    vi.mocked(useInfiniteQuery).mockReturnValue({
+      data: {
+        pages: [{ data: mockEmployees, total: 3, page: 1, limit: 2 }],
+        pageParams: [1],
+      },
+      isLoading: false,
+      fetchNextPage,
+      hasNextPage: true,
+      isFetchingNextPage: false,
+    } as any);
+
+    render(<EmployeeSearch data-testid="employee-search" onChange={vi.fn()} />, { wrapper });
+    fireEvent.click(screen.getByTestId("employee-search-load-more"));
+
+    expect(fetchNextPage).toHaveBeenCalledOnce();
+  });
+
   it("renders chips in multiple mode", async () => {
     const onChange = vi.fn();
     const value = ["1"];

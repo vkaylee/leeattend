@@ -160,6 +160,9 @@ vi.mock("@/components/ui/combobox", () => ({
     id,
     "data-testid": testId,
     emptyText,
+    hasMore,
+    isLoadingMore,
+    onLoadMore,
     size = "md",
   }: {
     options: { value: string; label: string }[];
@@ -168,9 +171,13 @@ vi.mock("@/components/ui/combobox", () => ({
     id?: string;
     "data-testid"?: string;
     emptyText?: string;
+    hasMore?: boolean;
+    isLoadingMore?: boolean;
+    onLoadMore?: () => void;
     size?: "sm" | "md" | "lg";
   }) => (
-    <select aria-label="Role"
+    <>
+      <select aria-label="Role"
       className={`h-[var(--ui-height-${size})]`}
       data-testid={testId}
       id={id}
@@ -190,7 +197,21 @@ vi.mock("@/components/ui/combobox", () => ({
           {opt.label}
         </option>
       ))}
-    </select>
+      </select>
+      {hasMore ? (
+        <div
+          data-testid={testId ? `${testId}-load-more` : "combo-load-more"}
+          onClick={onLoadMore}
+          onKeyDown={(event) => {
+            if (event.key === "Enter" || event.key === " ") onLoadMore?.();
+          }}
+          role="button"
+          tabIndex={0}
+        >
+          Load more
+        </div>
+      ) : null}
+    </>
   ),
 }));
 

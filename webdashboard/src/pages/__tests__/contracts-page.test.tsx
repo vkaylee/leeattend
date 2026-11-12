@@ -60,6 +60,41 @@ vi.mock("@/hooks/use-confirm", () => ({
 }));
 
 // Mock ContractFormModal
+vi.mock("@/components/common/employee-search", () => ({
+  EmployeeSearch: ({ onChange, placeholder, value }: { onChange: (value: string) => void; placeholder?: string; value?: string }) => {
+    const [query, setQuery] = React.useState("");
+    const options = [
+      { id: "emp-1", name: "John Doe", code: "EMP001" },
+      { id: "emp-2", name: "Jane Smith", code: "EMP002" },
+    ].filter((employee) => `${employee.name} ${employee.code}`.toLowerCase().includes(query.toLowerCase()));
+
+    return (
+      <div>
+        <input
+          onChange={(event) => { setQuery(event.target.value); }}
+          placeholder={placeholder}
+          value={query}
+        />
+        {options.map((employee) => (
+          <div
+            aria-selected={false}
+            key={employee.id}
+            onClick={() => { onChange(employee.id); }}
+            onKeyDown={(event) => {
+              if (event.key === "Enter" || event.key === " ") onChange(employee.id);
+            }}
+            role="option"
+            tabIndex={0}
+          >
+            {employee.name}
+          </div>
+        ))}
+        <span data-testid="selected-employee-id">{value}</span>
+      </div>
+    );
+  },
+}));
+
 vi.mock("@/components/features/employees/contract-form-modal", () => ({
   default: ({ isOpen, onClose, editingContract, employeeId }: { isOpen: boolean; onClose: () => void; editingContract?: { id: string } | null; employeeId?: string }) => {
     if (!isOpen) return null;
@@ -212,9 +247,12 @@ describe("ContractsPage Component - Registry", () => {
     // Select employee
     const selectEmpBtn = within(dialog).getByText("John Doe");
     await user.click(selectEmpBtn);
+    await user.click(within(dialog).getByRole("button", { name: /Continue/i }));
 
     // Should open contract form modal
-    expect(screen.getByTestId("mock-contract-form-modal")).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByTestId("mock-contract-form-modal")).toBeInTheDocument();
+    });
     expect(screen.getByText("Employee ID: emp-1")).toBeInTheDocument();
   });
 

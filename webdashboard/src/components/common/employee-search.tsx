@@ -180,6 +180,9 @@ export function EmployeeSearch({
     employees,
     selectedMeta,
     setSelectedMeta,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
   } = useEmployeeSearch({
     debouncedSearchTerm,
     selectedIds,
@@ -219,6 +222,9 @@ export function EmployeeSearch({
             id={id}
             keyboardShortcut={keyboardShortcut}
             onChange={handleSelect}
+            hasMore={hasNextPage}
+            isLoadingMore={isFetchingNextPage}
+            onLoadMore={() => { void fetchNextPage(); }}
             onSearchChange={setSearchTerm}
             options={options}
             placeholder={placeholder ?? t('common.search')}
