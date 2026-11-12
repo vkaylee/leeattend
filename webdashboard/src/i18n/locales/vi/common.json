@@ -2580,6 +2580,9 @@
     "not_ready_title": "Quy trình ký điện tử chưa sẵn sàng"
   },
   "salary_management": {
+    "component": "Khoản",
+    "amount": "Số tiền",
+    "scope_note": "Chỉ hiển thị khoản lương và phụ cấp đã cấu hình",
     "title": "Lương & phụ cấp",
     "subtitle": "Lương/phụ cấp theo ngày hiệu lực.",
     "filters": "Bộ lọc lương",

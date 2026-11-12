@@ -1,13 +1,17 @@
 package api
 
 import (
+	"context"
 	"net/http"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/shopspring/decimal"
 	"github.com/vkaylee/leeattend/apiserver/internal/apperror"
+	"github.com/vkaylee/leeattend/apiserver/internal/audit"
+	httpinfra "github.com/vkaylee/leeattend/apiserver/internal/infra/http"
 )
 
 // SalaryManagementQuery defines bounded, server-side collection filters.
@@ -22,25 +26,29 @@ type SalaryManagementQuery struct {
 	Limit            int
 }
 
-// SalaryManagementRow omits salary amounts because data-governance.md §2
-// prohibits T2 fields in collection responses.
+// SalaryManagementRow represents one configured salary component for one employment.
+// Amount is returned under the approved payroll-read T2 exception and never logged or cached.
 type SalaryManagementRow struct {
-	EmploymentID             uuid.UUID  `json:"employment_id"`
-	EmployeeID               uuid.UUID  `json:"employee_id"`
-	EmployeeIDNumber         string     `json:"employee_id_number"`
-	EmployeeName             string     `json:"employee_name"`
-	EmployerID               uuid.UUID  `json:"employer_id"`
-	EmployerName             string     `json:"employer_name"`
-	DepartmentID             *uuid.UUID `json:"department_id"`
-	DepartmentName           *string    `json:"department_name"`
-	JobTitle                 *string    `json:"job_title"`
-	EmploymentStatus         string     `json:"employment_status"`
-	EmploymentType           string     `json:"employment_type"`
-	EmploymentStartDate      string     `json:"employment_start_date"`
-	EmploymentEndDate        *string    `json:"employment_end_date"`
-	SalaryStatus             string     `json:"salary_status"`
-	ConfiguredComponentCount int        `json:"configured_component_count"`
-	LatestEffectiveDate      *string    `json:"latest_effective_date"`
+	EmploymentID          uuid.UUID       `json:"employment_id"`
+	EmployeeID            uuid.UUID       `json:"employee_id"`
+	EmployeeIDNumber      string          `json:"employee_id_number"`
+	EmployeeName          string          `json:"employee_name"`
+	EmployerID            uuid.UUID       `json:"employer_id"`
+	EmployerName          string          `json:"employer_name"`
+	DepartmentID          *uuid.UUID      `json:"department_id"`
+	DepartmentName        *string         `json:"department_name"`
+	JobTitle              *string         `json:"job_title"`
+	EmploymentStatus      string          `json:"employment_status"`
+	EmploymentType        string          `json:"employment_type"`
+	EmploymentStartDate   string          `json:"employment_start_date"`
+	EmploymentEndDate     *string         `json:"employment_end_date"`
+	ComponentID           uuid.UUID       `json:"component_id"`
+	ComponentDefinitionID uuid.UUID       `json:"component_definition_id"`
+	ComponentName         string          `json:"component_name"`
+	ComponentCode         string          `json:"component_code"`
+	Amount                decimal.Decimal `json:"amount"`
+	EffectiveDate         string          `json:"effective_date"`
+	SalaryStatus          string          `json:"salary_status"`
 }
 
 type SalaryManagementResponse struct {
@@ -49,6 +57,10 @@ type SalaryManagementResponse struct {
 	Page  int                   `json:"page"`
 	Limit int                   `json:"limit"`
 	AsOf  string                `json:"as_of"`
+}
+
+type PayrollAudit interface {
+	Emit(context.Context, audit.Event) error
 }
 
 func (h PayrollHandler) ListSalaryManagement(w http.ResponseWriter, r *http.Request) {
@@ -70,6 +82,22 @@ func (h PayrollHandler) ListSalaryManagement(w http.ResponseWriter, r *http.Requ
 	}
 	if result.Data == nil {
 		result.Data = []SalaryManagementRow{}
+	}
+	if h.Audit != nil {
+		if userID, ok := httpinfra.UserIDFromContext(r.Context()); ok {
+			_ = h.Audit.Emit(r.Context(), audit.Event{
+				Name:     "salary_management.read",
+				ActorID:  userID.String(),
+				Resource: "salary-management",
+				Outcome:  "success",
+				Details: map[string]string{
+					"row_count": strconv.Itoa(len(result.Data)),
+					"page":      strconv.Itoa(result.Page),
+					"limit":     strconv.Itoa(result.Limit),
+				},
+				At: time.Now().UTC(),
+			})
+		}
 	}
 	w.Header().Set("Cache-Control", "no-store")
 	apperror.WriteJSON(w, http.StatusOK, result)

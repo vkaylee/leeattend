@@ -30,6 +30,7 @@ var (
 	ErrPayrollPeriodNotFound   = errors.New("payroll: period not found")
 	ErrPayrollPeriodConflict   = errors.New("payroll: period conflict")
 	ErrPayrollPeriodValidation = errors.New("payroll: period validation failed")
+	ErrPayslipConflict         = errors.New("payroll: payslip conflict")
 )
 
 type CreateSalaryComponentRequest struct {
@@ -364,6 +365,7 @@ type PayrollRepository interface {
 type PayrollHandler struct {
 	Repository PayrollRepository
 	Authorizer Authorizer
+	Audit      PayrollAudit
 }
 
 func (h PayrollHandler) ListPayslips(w http.ResponseWriter, r *http.Request) {
@@ -1128,7 +1130,7 @@ func (h PayrollHandler) writeError(w http.ResponseWriter, r *http.Request, err e
 		apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyInvalidBaseGroup))
 		return
 	}
-	if errors.Is(err, ErrComponentConflict) || errors.Is(err, ErrConflict) || errors.Is(err, ErrAssignmentConflict) || errors.Is(err, ErrPayrollPeriodConflict) {
+	if errors.Is(err, ErrComponentConflict) || errors.Is(err, ErrConflict) || errors.Is(err, ErrAssignmentConflict) || errors.Is(err, ErrPayrollPeriodConflict) || errors.Is(err, ErrPayslipConflict) {
 		apperror.WriteError(w, r, apperror.Conflict(apperror.KeyConflict))
 		return
 	}

@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
+	"github.com/vkaylee/leeattend/apiserver/internal/audit"
 	httpinfra "github.com/vkaylee/leeattend/apiserver/internal/infra/http"
 )
 
@@ -36,6 +37,15 @@ func TestListSalaryManagementRejectsMalformedQuery(t *testing.T) {
 	}
 }
 
+type salaryAuditRecorder struct {
+	events []audit.Event
+}
+
+func (r *salaryAuditRecorder) Emit(_ context.Context, event audit.Event) error {
+	r.events = append(r.events, event)
+	return nil
+}
+
 func TestListSalaryManagementRequiresPayrollReadAndSetsNoStore(t *testing.T) {
 	repo := &salaryManagementRepository{}
 	for _, test := range []struct {
@@ -48,7 +58,8 @@ func TestListSalaryManagementRequiresPayrollReadAndSetsNoStore(t *testing.T) {
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			authorizer := payrollAuthorizer{allowedPerms: map[string]bool{"payroll:read": test.permitted}}
-			handler := PayrollHandler{Repository: repo, Authorizer: authorizer}
+			auditRecorder := &salaryAuditRecorder{}
+			handler := PayrollHandler{Repository: repo, Authorizer: authorizer, Audit: auditRecorder}
 			req := httptest.NewRequest(http.MethodGet, "/api/v1/salary-management?as_of=2026-01-01&page=2&limit=10", nil)
 			req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
 			rec := httptest.NewRecorder()
@@ -65,6 +76,21 @@ func TestListSalaryManagementRequiresPayrollReadAndSetsNoStore(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+func TestListSalaryManagementEmitsReadAuditAfterAuthorization(t *testing.T) {
+	recorder := &salaryAuditRecorder{}
+	handler := PayrollHandler{Repository: &salaryManagementRepository{}, Authorizer: payrollAuthorizer{}, Audit: recorder}
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/salary-management?as_of=2026-01-01", nil)
+	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
+	rec := httptest.NewRecorder()
+	handler.ListSalaryManagement(rec, req)
+	if rec.Code != http.StatusOK || len(recorder.events) != 1 {
+		t.Fatalf("status/events = %d/%d, want 200/1", rec.Code, len(recorder.events))
+	}
+	if recorder.events[0].Name != "salary_management.read" || recorder.events[0].Details["row_count"] != "0" {
+		t.Fatalf("unexpected audit event: %+v", recorder.events[0])
 	}
 }
 

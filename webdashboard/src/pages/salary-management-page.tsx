@@ -33,11 +33,7 @@ function SalarySkeleton() {
 }
 
 function SalaryRow({ row, t }: { row: SalaryManagementRow; t: (key: string, options?: { defaultValue?: string }) => string }) {
-  const statusLabel = row.salary_status === "current"
-    ? t("common.active", { defaultValue: "Active" })
-    : row.salary_status === "future"
-      ? t("common.upcoming", { defaultValue: "Upcoming" })
-      : t("salary_management.unconfigured", { defaultValue: "Missing configuration" });
+  const statusLabel = t("common.active", { defaultValue: "Active" });
 
   return (
     <tr className="border-b border-slate-100 last:border-0 dark:border-slate-800">
@@ -47,10 +43,14 @@ function SalaryRow({ row, t }: { row: SalaryManagementRow; t: (key: string, opti
       </td>
       <td className="px-5 py-4 text-sm text-slate-600 dark:text-slate-300">{row.employer_name}</td>
       <td className="px-5 py-4 text-sm text-slate-600 dark:text-slate-300">{row.department_name ?? "—"}</td>
-      <td className="px-5 py-4 text-right text-sm text-slate-600 dark:text-slate-300">{row.configured_component_count}</td>
-      <td className="px-5 py-4 text-right text-sm text-slate-600 dark:text-slate-300">{row.latest_effective_date ?? "—"}</td>
+      <td className="px-5 py-4">
+        <div className="font-medium text-slate-800 dark:text-slate-100">{row.component_name}</div>
+        <div className="text-xs text-slate-500">{row.component_code}</div>
+      </td>
+      <td className="px-5 py-4 text-right text-sm font-semibold text-slate-700 dark:text-slate-200">{row.amount}</td>
+      <td className="px-5 py-4 text-right text-sm text-slate-600 dark:text-slate-300">{row.effective_date}</td>
       <td className="px-5 py-4 text-right">
-        <span className="rounded-full bg-slate-100 px-2 py-1 text-xs font-semibold text-slate-600 dark:bg-slate-800 dark:text-slate-300">{statusLabel}</span>
+        <span className="rounded-full bg-emerald-50 px-2 py-1 text-xs font-semibold text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300">{statusLabel}</span>
       </td>
     </tr>
   );
@@ -94,13 +94,10 @@ export default function SalaryManagementPage() {
           <option value="inactive">{t("common.inactive", { defaultValue: "Inactive" })}</option>
           <option value="">{t("common.all", { defaultValue: "All statuses" })}</option>
         </select>
-        <label className="flex items-center gap-2 px-2 text-sm text-slate-600 dark:text-slate-300">
-          <input aria-label={t("salary_management.unconfigured", { defaultValue: "Missing salary configuration" })} checked={search.unconfigured ?? false} onChange={(event) => updateSearch({ unconfigured: event.target.checked || undefined, page: 1 })} type="checkbox" />
-          {t("salary_management.unconfigured", { defaultValue: "Missing salary configuration" })}
-        </label>
+        <span className="px-2 text-xs text-slate-500 dark:text-slate-400">{t("salary_management.scope_note", { defaultValue: "Showing configured salary and allowance components" })}</span>
       </section>
       {query.isError ? <div aria-live="polite" className="rounded-2xl border border-rose-200 bg-rose-50 p-6 text-sm text-rose-700 dark:border-rose-900 dark:bg-rose-950/40 dark:text-rose-200"><p>{t("salary_management.error", { defaultValue: "Salary records could not be loaded." })}</p><Button className="mt-3" onClick={() => { void query.refetch(); }} variant="outline">{t("common.retry", { defaultValue: "Retry" })}</Button></div> : null}
-      {query.isLoading ? <SalarySkeleton /> : rows.length === 0 ? <EmptyState description={t("salary_management.empty_description", { defaultValue: "No salary records match current filters." })} icon={<DollarSign size={40} />} title={t("salary_management.empty", { defaultValue: "No salary records" })} /> : <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900"><table className="w-full min-w-[960px] text-left"><caption className="sr-only">{t("salary_management.title", { defaultValue: "Salary & allowances" })}</caption><thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500 dark:bg-slate-800/60"><tr><th className="px-5 py-4">{t("salary_management.employee", { defaultValue: "Employee" })}</th><th className="px-5 py-4">{t("salary_management.employer", { defaultValue: "Legal entity" })}</th><th className="px-5 py-4">{t("common.department", { defaultValue: "Department" })}</th><th className="px-5 py-4 text-right">{t("salary_management.component_count", { defaultValue: "Configured items" })}</th><th className="px-5 py-4 text-right">{t("common.effective_date", { defaultValue: "Latest effective date" })}</th><th className="px-5 py-4 text-right">{t("common.status", { defaultValue: "Status" })}</th></tr></thead><tbody>{rows.map((row) => <SalaryRow key={row.employment_id} row={row} t={t} />)}</tbody></table></div>}
+      {query.isLoading ? <SalarySkeleton /> : rows.length === 0 ? <EmptyState description={t("salary_management.empty_description", { defaultValue: "No salary records match current filters." })} icon={<DollarSign size={40} />} title={t("salary_management.empty", { defaultValue: "No salary records" })} /> : <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900"><table className="w-full min-w-[1120px] text-left"><caption className="sr-only">{t("salary_management.title", { defaultValue: "Salary & allowances" })}</caption><thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500 dark:bg-slate-800/60"><tr><th className="px-5 py-4">{t("salary_management.employee", { defaultValue: "Employee" })}</th><th className="px-5 py-4">{t("salary_management.employer", { defaultValue: "Legal entity" })}</th><th className="px-5 py-4">{t("common.department", { defaultValue: "Department" })}</th><th className="px-5 py-4">{t("salary_management.component", { defaultValue: "Component" })}</th><th className="px-5 py-4 text-right">{t("salary_management.amount", { defaultValue: "Amount" })}</th><th className="px-5 py-4 text-right">{t("common.effective_date", { defaultValue: "Effective date" })}</th><th className="px-5 py-4 text-right">{t("common.status", { defaultValue: "Status" })}</th></tr></thead><tbody>{rows.map((row) => <SalaryRow key={row.component_id} row={row} t={t} />)}</tbody></table></div>}
       {total > 0 ? <nav aria-label={t("salary_management.pagination", { defaultValue: "Salary records pagination" })} className="flex flex-col items-center justify-between gap-3 text-sm text-slate-500 sm:flex-row"><span>{resultLabel}</span><div className="flex gap-2"><Button aria-label={t("common.previous", { defaultValue: "Previous page" })} disabled={page <= 1} onClick={() => updateSearch({ page: page - 1 })} variant="outline"><ChevronLeft size={16} /></Button><span className="px-2 py-2">{page} / {totalPages}</span><Button aria-label={t("common.next", { defaultValue: "Next page" })} disabled={page >= totalPages} onClick={() => updateSearch({ page: page + 1 })} variant="outline"><ChevronRight size={16} /></Button></div></nav> : null}
     </PageContainer>
   );

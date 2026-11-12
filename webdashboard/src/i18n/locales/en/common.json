@@ -2580,6 +2580,9 @@
     "not_ready_title": "E-signature workflow unavailable"
   },
   "salary_management": {
+    "component": "Component",
+    "amount": "Amount",
+    "scope_note": "Showing configured salary and allowance components",
     "title": "Salary & allowances",
     "subtitle": "Review salary and allowance configuration by effective date.",
     "filters": "Salary filters",

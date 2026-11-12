@@ -18,6 +18,7 @@ import (
 	"github.com/vkaylee/leeattend/apiserver/internal/domain/payroll/rates"
 	"github.com/vkaylee/leeattend/apiserver/internal/domain/payroll/rules"
 	"github.com/vkaylee/leeattend/apiserver/internal/domain/timezone"
+	"github.com/vkaylee/leeattend/apiserver/internal/service"
 )
 
 type PayrollRepository struct {
@@ -1350,32 +1351,70 @@ func (r PayrollRepository) CalculateEmployeePayroll(ctx context.Context, employe
 	if err != nil {
 		return api.FullPayslipResponse{}, err
 	}
-
-	var empExists bool
-	if err := db.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM employees WHERE id = $1 AND deleted_at IS NULL)`, employeeID).Scan(&empExists); err != nil {
+	beginner, ok := db.(TxBeginner)
+	if !ok {
+		return api.FullPayslipResponse{}, errors.New("payroll repository: database does not support transactions")
+	}
+	var response api.FullPayslipResponse
+	if err := service.WithTx(ctx, beginner, func(ctx context.Context, tx pgx.Tx) error {
+		var empExists bool
+		if err := tx.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM employees WHERE id = $1 AND deleted_at IS NULL)`, employeeID).Scan(&empExists); err != nil {
+			return err
+		}
+		if !empExists {
+			return api.ErrEmployeeNotFound
+		}
+		var employmentID, employerID uuid.UUID
+		var deptID *uuid.UUID
+		err := tx.QueryRow(ctx, `SELECT id, department_id, employer_id FROM employments WHERE employee_id = $1 AND status = 'active' AND deleted_at IS NULL ORDER BY start_date DESC, id DESC LIMIT 1`, employeeID).Scan(&employmentID, &deptID, &employerID)
+		if errors.Is(err, pgx.ErrNoRows) {
+			return api.ErrNoActiveEmployment
+		}
+		if err != nil {
+			return err
+		}
+		if err := ensurePayrollPeriodOpen(ctx, tx, employerID, year, month); err != nil {
+			return err
+		}
+		response, err = r.calculateEmploymentPayslip(ctx, tx, employmentID, employeeID, deptID, year, month)
+		return err
+	}); err != nil {
 		return api.FullPayslipResponse{}, err
 	}
-	if !empExists {
-		return api.FullPayslipResponse{}, api.ErrEmployeeNotFound
-	}
+	return response, nil
+}
 
-	var employmentID uuid.UUID
-	var deptID *uuid.UUID
-	err = db.QueryRow(ctx, `SELECT id, department_id FROM employments WHERE employee_id = $1 AND status = 'active' AND deleted_at IS NULL ORDER BY start_date DESC, id DESC LIMIT 1`, employeeID).Scan(&employmentID, &deptID)
-	if errors.Is(err, pgx.ErrNoRows) {
-		return api.FullPayslipResponse{}, api.ErrNoActiveEmployment
+func ensurePayrollPeriodOpen(ctx context.Context, tx pgx.Tx, employerID uuid.UUID, year, month int) error {
+	if year < 2000 || year > 2100 || month < 1 || month > 12 {
+		return api.ErrPayrollPeriodValidation
 	}
-	if err != nil {
-		return api.FullPayslipResponse{}, err
+	if _, err := tx.Exec(ctx, `
+		INSERT INTO payroll_periods (employer_id, period_year, period_month)
+		VALUES ($1, $2, $3)
+		ON CONFLICT (employer_id, period_year, period_month) DO NOTHING`, employerID, year, month); err != nil {
+		return mapPayrollPeriodError(err)
 	}
-
-	return r.calculateEmploymentPayslip(ctx, db, employmentID, employeeID, deptID, year, month)
+	var status string
+	if err := tx.QueryRow(ctx, `SELECT status FROM payroll_periods WHERE employer_id = $1 AND period_year = $2 AND period_month = $3 FOR UPDATE`, employerID, year, month).Scan(&status); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return api.ErrPayrollPeriodNotFound
+		}
+		return err
+	}
+	if status != "open" {
+		return api.ErrPayrollPeriodConflict
+	}
+	return nil
 }
 
 func (r PayrollRepository) CalculateBatchPayroll(ctx context.Context, req api.BatchCalculatePayrollRequest) (api.BatchCalculatePayrollResponse, error) {
 	db, err := r.db(ctx)
 	if err != nil {
 		return api.BatchCalculatePayrollResponse{}, err
+	}
+	beginner, ok := db.(TxBeginner)
+	if !ok {
+		return api.BatchCalculatePayrollResponse{}, errors.New("payroll repository: database does not support transactions")
 	}
 
 	seen := make(map[uuid.UUID]bool)
@@ -1387,45 +1426,60 @@ func (r PayrollRepository) CalculateBatchPayroll(ctx context.Context, req api.Ba
 		}
 	}
 
-	results := make([]api.BatchCalculateResult, 0, len(deduped))
-	for _, employmentID := range deduped {
-		var employeeID uuid.UUID
-		var deptID *uuid.UUID
-		var status string
-		err := db.QueryRow(ctx, `SELECT employee_id, department_id, status FROM employments WHERE id = $1 AND deleted_at IS NULL`, employmentID).Scan(&employeeID, &deptID, &status)
-		if err != nil {
-			msg := "employment not found"
-			results = append(results, api.BatchCalculateResult{
-				EmploymentID: employmentID,
-				EmployeeID:   uuid.Nil,
-				Status:       "error",
-				ErrorMessage: &msg,
-			})
-			continue
-		}
+	var response api.BatchCalculatePayrollResponse
+	if err := service.WithTx(ctx, beginner, func(ctx context.Context, tx pgx.Tx) error {
+		response.Results = make([]api.BatchCalculateResult, 0, len(deduped))
+		for _, employmentID := range deduped {
+			var employeeID, employerID uuid.UUID
+			var deptID *uuid.UUID
+			var status string
+			err := tx.QueryRow(ctx, `SELECT employee_id, employer_id, department_id, status FROM employments WHERE id = $1 AND deleted_at IS NULL`, employmentID).Scan(&employeeID, &employerID, &deptID, &status)
+			if err != nil {
+				msg := "employment not found"
+				response.Results = append(response.Results, api.BatchCalculateResult{
+					EmploymentID: employmentID,
+					EmployeeID:   uuid.Nil,
+					Status:       "error",
+					ErrorMessage: &msg,
+				})
+				continue
+			}
+			if err := ensurePayrollPeriodOpen(ctx, tx, employerID, req.Year, req.Month); err != nil {
+				msg := err.Error()
+				response.Results = append(response.Results, api.BatchCalculateResult{
+					EmploymentID: employmentID,
+					EmployeeID:   employeeID,
+					Status:       "error",
+					ErrorMessage: &msg,
+				})
+				continue
+			}
 
-		fullResp, err := r.calculateEmploymentPayslip(ctx, db, employmentID, employeeID, deptID, req.Year, req.Month)
-		if err != nil {
-			msg := err.Error()
-			results = append(results, api.BatchCalculateResult{
+			fullResp, err := r.calculateEmploymentPayslip(ctx, tx, employmentID, employeeID, deptID, req.Year, req.Month)
+			if err != nil {
+				msg := err.Error()
+				response.Results = append(response.Results, api.BatchCalculateResult{
+					EmploymentID: employmentID,
+					EmployeeID:   employeeID,
+					Status:       "error",
+					ErrorMessage: &msg,
+				})
+				continue
+			}
+
+			payslipCopy := fullResp.PayslipRecord
+			response.Results = append(response.Results, api.BatchCalculateResult{
 				EmploymentID: employmentID,
 				EmployeeID:   employeeID,
-				Status:       "error",
-				ErrorMessage: &msg,
+				Status:       "success",
+				Payslip:      &payslipCopy,
 			})
-			continue
 		}
-
-		payslipCopy := fullResp.PayslipRecord
-		results = append(results, api.BatchCalculateResult{
-			EmploymentID: employmentID,
-			EmployeeID:   employeeID,
-			Status:       "success",
-			Payslip:      &payslipCopy,
-		})
+		return nil
+	}); err != nil {
+		return api.BatchCalculatePayrollResponse{}, err
 	}
-
-	return api.BatchCalculatePayrollResponse{Results: results}, nil
+	return response, nil
 }
 
 func (r PayrollRepository) calculateEmploymentPayslip(ctx context.Context, db DBTX, employmentID, employeeID uuid.UUID, deptID *uuid.UUID, year, month int) (api.FullPayslipResponse, error) {
@@ -1896,15 +1950,25 @@ ORDER BY tier_order ASC`, tieredRuleIDs)
 	})
 
 	var existingID uuid.UUID
-	err = db.QueryRow(ctx, `SELECT id FROM payslips WHERE employment_id = $1 AND period_start = $2::date`, employmentID, startStr).Scan(&existingID)
+	var existingStatus string
+	err = db.QueryRow(ctx, `SELECT id, status FROM payslips WHERE employment_id = $1 AND period_start = $2::date FOR UPDATE`, employmentID, startStr).Scan(&existingID, &existingStatus)
 	var finalPayslipID uuid.UUID
 	var createdTime, updatedTime time.Time
 
 	if err == nil {
+		if existingStatus == "paid" || existingStatus == "finalized" {
+			return api.FullPayslipResponse{}, api.ErrPayslipConflict
+		}
 		finalPayslipID = existingID
-		_, _ = db.Exec(ctx, `DELETE FROM payslip_segments WHERE payslip_id = $1`, finalPayslipID)
-		_, _ = db.Exec(ctx, `DELETE FROM payslip_incentives WHERE payslip_id = $1`, finalPayslipID)
-		_, _ = db.Exec(ctx, `DELETE FROM payslip_rule_evaluations WHERE payslip_id = $1`, finalPayslipID)
+		if _, err := db.Exec(ctx, `DELETE FROM payslip_segments WHERE payslip_id = $1`, finalPayslipID); err != nil {
+			return api.FullPayslipResponse{}, err
+		}
+		if _, err := db.Exec(ctx, `DELETE FROM payslip_incentives WHERE payslip_id = $1`, finalPayslipID); err != nil {
+			return api.FullPayslipResponse{}, err
+		}
+		if _, err := db.Exec(ctx, `DELETE FROM payslip_rule_evaluations WHERE payslip_id = $1`, finalPayslipID); err != nil {
+			return api.FullPayslipResponse{}, err
+		}
 
 		err = db.QueryRow(ctx, `UPDATE payslips SET
 base_pay_amount = $1, overtime_pay_amount = $2, deductions_amount = $3, net_pay_amount = $4, status = 'draft', standard_units = $5, overtime_units = $6, holiday_work_premium_amount = $7, updated_at = NOW()
@@ -1913,7 +1977,7 @@ WHERE id = $8 RETURNING created_at, updated_at`,
 		if err != nil {
 			return api.FullPayslipResponse{}, err
 		}
-	} else {
+	} else if errors.Is(err, pgx.ErrNoRows) {
 		finalPayslipID = payslipID
 		err = db.QueryRow(ctx, `INSERT INTO payslips (id, employment_id, period_start, period_end, base_pay_amount, overtime_pay_amount, deductions_amount, net_pay_amount, status, standard_units, overtime_units, holiday_work_premium_amount, created_at, updated_at)
 VALUES ($1, $2, $3::date, $4::date, $5, $6, $7, $8, 'draft', $9, $10, $11, NOW(), NOW())
@@ -1922,6 +1986,8 @@ RETURNING created_at, updated_at`,
 		if err != nil {
 			return api.FullPayslipResponse{}, err
 		}
+	} else {
+		return api.FullPayslipResponse{}, err
 	}
 
 	segmentResponses := make([]api.PayslipSegmentResponse, 0, len(segmentSnapshots))

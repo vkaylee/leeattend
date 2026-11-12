@@ -1,9 +1,14 @@
 import { fetch } from "./client";
 
 export interface SalaryManagementRow {
-  configured_component_count: number;
+  amount: string;
+  component_code: string;
+  component_definition_id: string;
+  component_id: string;
+  component_name: string;
   department_id?: string | null;
   department_name?: string | null;
+  effective_date: string;
   employee_id: string;
   employee_id_number: string;
   employee_name: string;
@@ -15,8 +20,7 @@ export interface SalaryManagementRow {
   employment_status: string;
   employment_type: string;
   job_title?: string | null;
-  latest_effective_date?: string | null;
-  salary_status: "current" | "future" | "unconfigured";
+  salary_status: "current";
 }
 
 export interface SalaryManagementSearch {

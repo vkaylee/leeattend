@@ -26,6 +26,41 @@ describe("salary-management page", () => {
     expect(screen.getByRole("status", { name: "Loading salary records" })).toBeDefined();
   });
 
+  it("renders configured component amount and effective date", async () => {
+    vi.mocked(fetchSalaryManagement).mockResolvedValue({
+      as_of: "2026-11-12",
+      data: [{
+        amount: "5000.00",
+        component_code: "BASE",
+        component_definition_id: "definition-1",
+        component_id: "component-1",
+        component_name: "Base salary",
+        department_id: null,
+        department_name: "Engineering",
+        effective_date: "2026-10-01",
+        employee_id: "employee-1",
+        employee_id_number: "EMP-001",
+        employee_name: "Employee A",
+        employer_id: "employer-1",
+        employer_name: "Legal Entity",
+        employment_end_date: null,
+        employment_id: "employment-1",
+        employment_start_date: "2026-01-01",
+        employment_status: "active",
+        employment_type: "full_time",
+        job_title: "Engineer",
+        salary_status: "current",
+      }],
+      limit: 25,
+      page: 1,
+      total: 1,
+    });
+    renderPage();
+    expect(await screen.findByText("Base salary")).toBeDefined();
+    expect(screen.getByText("5000.00")).toBeDefined();
+    expect(screen.getByText("2026-10-01")).toBeDefined();
+  });
+
   it("renders empty state when API returns no records", async () => {
     vi.mocked(fetchSalaryManagement).mockResolvedValue({ as_of: "2026-11-12", data: [], limit: 25, page: 1, total: 0 });
     renderPage();

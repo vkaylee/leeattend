@@ -2580,6 +2580,9 @@
     "not_ready_title": "电子签署流程不可用"
   },
   "salary_management": {
+    "component": "项目",
+    "amount": "金额",
+    "scope_note": "仅显示已配置的工资和津贴项目",
     "title": "薪资与津贴",
     "subtitle": "按生效日期查看薪资和津贴配置。",
     "filters": "薪资筛选",
