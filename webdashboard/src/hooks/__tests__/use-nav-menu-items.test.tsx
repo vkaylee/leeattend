@@ -67,6 +67,14 @@ describe("useNavMenuItems", () => {
     expect(sections).toEqual(["org", "time", "shifts", "payroll", "system", "ess"]);
   });
 
+  it("keeps role management inside Settings instead of the main sidebar", () => {
+    const { result } = renderHook(() => useNavMenuItems(), { wrapper });
+
+    const sidebarRoutes = result.current.groups.flatMap((group) => group.items.map((item) => item.to));
+    expect(sidebarRoutes).not.toContain("/settings/roles");
+    expect(result.current.settings.to).toBe("/settings");
+  });
+
   it("each group has a sectionIcon, label, testId, and items", () => {
     const { result } = renderHook(() => useNavMenuItems(), { wrapper });
 

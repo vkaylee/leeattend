@@ -62,7 +62,7 @@ export const SettingsSidebar = memo(function SettingsSidebar({
         id: "organization",
         testId: "settings-section-organization",
         titleKey: "settings.layout.organization",
-        defaultTitle: "Tổ chức",
+        defaultTitle: "Tổ chức & Nhân sự",
         items: filterGroup(organizationGroup),
       },
       {

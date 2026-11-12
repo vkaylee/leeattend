@@ -211,8 +211,8 @@
       "locations_desc": "管理物理分支机构和办公地点。",
       "custom_fields": "自定义字段",
       "custom_fields_desc": "管理员工自定义数据字段。",
-      "roles": "角色与权限",
-      "roles_desc": "管理组织角色与职位权限。",
+      "roles": "角色",
+      "roles_desc": "管理系统角色与访问权限。",
       "permissions": "用户权限",
       "permissions_desc": "授予或撤销个人权限。",
       "organization": "组织架构",
@@ -552,7 +552,7 @@
       "control_panel": "系统配置",
       "operations": "业务与运营",
       "security_system": "安全与系统",
-      "organization": "组织"
+      "organization": "组织与人员"
     },
     "workflows": {
       "general_section": "基本配置",

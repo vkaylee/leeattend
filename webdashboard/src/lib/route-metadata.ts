@@ -286,9 +286,9 @@ export const ROUTE_METADATA_MAP: Record<string, RouteMetadata> = {
   },
   [ROUTES.SETTINGS.ROLES]: {
     breadcrumbKey: "settings.categories.roles",
-    defaultBreadcrumb: "Vai trò & Chức danh",
+    defaultBreadcrumb: "Vai trò",
     titleKey: "settings.categories.roles",
-    defaultTitle: "Vai trò & Chức danh",
+    defaultTitle: "Vai trò",
   },
   [ROUTES.SETTINGS.PERMISSIONS]: {
     breadcrumbKey: "settings.categories.permissions",

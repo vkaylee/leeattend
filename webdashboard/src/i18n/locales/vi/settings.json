@@ -211,8 +211,8 @@
       "locations_desc": "Quản lý các chi nhánh và địa điểm làm việc.",
       "custom_fields": "Trường tùy chỉnh",
       "custom_fields_desc": "Quản lý trường dữ liệu tùy chỉnh cho nhân sự.",
-      "roles": "Vai trò & Chức danh",
-      "roles_desc": "Quản lý vai trò và phân quyền chức vụ cho nhân sự.",
+      "roles": "Vai trò",
+      "roles_desc": "Quản lý vai trò và quyền truy cập hệ thống.",
       "permissions": "Phân quyền người dùng",
       "permissions_desc": "Cấp phát hoặc thu hồi quyền hạn cá nhân.",
       "organization": "Cơ cấu tổ chức",
@@ -552,7 +552,7 @@
       "control_panel": "Cấu hình hệ thống",
       "operations": "Vận hành & Nghiệp vụ",
       "security_system": "Bảo mật & Hệ thống",
-      "organization": "Tổ chức"
+      "organization": "Tổ chức & Nhân sự"
     },
     "workflows": {
       "general_section": "Thông tin chung",

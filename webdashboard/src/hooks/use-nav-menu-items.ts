@@ -6,7 +6,6 @@ import {
   Settings,
   UserCircle,
   Clock,
-  CheckCircle,
   UserRound,
   CalendarRange,
   Building2,
@@ -29,7 +28,6 @@ import {
   Inbox,
   FileText,
   ShieldCheck,
-  ShieldAlert,
   Palmtree,
   HeartHandshake,
   ClipboardList,
@@ -156,7 +154,6 @@ export function useNavMenuItems(): NavMenuStructure {
       items: [
         { to: ROUTES.INFRA_MONITOR, icon: Activity, label: t("monitor.title", { defaultValue: "Worker Monitor" }), testId: "sidebar-link-infra-monitor", permissions: ["infra:monitor"] },
         { to: ROUTES.AUDIT_LOGS, icon: ShieldCheck, label: t("audit_logs.title", { defaultValue: "Audit Logs" }), testId: "sidebar-link-audit-logs", permissions: ["audit_logs:read"] },
-        { to: ROUTES.SETTINGS.ROLES, icon: ShieldAlert, label: t("settings.categories.roles", { defaultValue: "Vai trò & Phân quyền" }), testId: "sidebar-link-roles", permissions: ["roles:manage", "members:roles:manage"] },
       ],
     },
     {

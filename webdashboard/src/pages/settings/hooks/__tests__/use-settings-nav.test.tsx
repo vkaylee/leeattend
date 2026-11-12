@@ -16,6 +16,14 @@ vi.mock("@/hooks/use-permissions", () => ({
 }));
 
 describe("useSettingsNav", () => {
+  it("labels role management as Roles, separate from job titles", () => {
+    const { result } = renderHook(() => useSettingsNav());
+
+    const rolesItem = result.current.accessGroup.find((item) => item.path === "/settings/roles");
+    expect(rolesItem?.label).toBe("settings.categories.roles");
+    expect(rolesItem?.description).toBe("settings.categories.roles_desc");
+  });
+
   it("does not expose Audit Logs in Settings Hub navigation", () => {
     const { result } = renderHook(() => useSettingsNav());
 

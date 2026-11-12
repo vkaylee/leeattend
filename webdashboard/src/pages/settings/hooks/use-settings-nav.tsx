@@ -63,9 +63,9 @@ const getOrganizationGroup = (t: TFunction): SettingItem[] => [
 
 const getAccessGroup = (t: TFunction): SettingItem[] => [
   {
-    description: t("settings.categories.roles_desc", { defaultValue: "Quản lý vai trò và phân quyền chức vụ" }),
+    description: t("settings.categories.roles_desc", { defaultValue: "Quản lý vai trò và quyền truy cập hệ thống" }),
     icon: <ShieldAlert className="w-4 h-4" />,
-    label: t("settings.categories.roles", { defaultValue: "Vai trò & Chức danh" }),
+    label: t("settings.categories.roles", { defaultValue: "Vai trò" }),
     path: ROUTES.SETTINGS.ROLES,
     permissions: ["roles:manage", "members:roles:manage"],
   },

@@ -211,8 +211,8 @@
       "locations_desc": "Manage physical branches and locations.",
       "custom_fields": "Custom Fields",
       "custom_fields_desc": "Manage custom data fields for employees.",
-      "roles": "Roles & Permissions",
-      "roles_desc": "Manage organizational roles and permissions.",
+      "roles": "Roles",
+      "roles_desc": "Manage system roles and access permissions.",
       "permissions": "User Permissions",
       "permissions_desc": "Grant or revoke individual user permissions.",
       "organization": "Organization",
@@ -552,7 +552,7 @@
       "control_panel": "System Configuration",
       "operations": "Operations",
       "security_system": "Security & System",
-      "organization": "Organization"
+      "organization": "Organization & People"
     },
     "workflows": {
       "general_section": "General Config",
