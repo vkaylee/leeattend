@@ -766,7 +766,10 @@ func loadFixedShifts(ctx context.Context, db DBTX, empIDs []uuid.UUID, startStr,
 }
 
 func loadDeptHistory(ctx context.Context, db DBTX, employeeIDs []uuid.UUID) (map[uuid.UUID][]deptHistoryEntry, error) {
-	rows, err := db.Query(ctx, `SELECT employee_id, department_id, effective_date::text FROM employee_department_history WHERE employee_id = ANY($1) ORDER BY effective_date DESC`, employeeIDs)
+	rows, err := db.Query(ctx, `SELECT employee_id, department_id, start_date::text
+		FROM employments
+		WHERE employee_id = ANY($1) AND deleted_at IS NULL AND department_id IS NOT NULL
+		ORDER BY start_date DESC, id DESC`, employeeIDs)
 	if err != nil {
 		return nil, err
 	}
@@ -778,7 +781,10 @@ func loadDeptHistory(ctx context.Context, db DBTX, employeeIDs []uuid.UUID) (map
 		if err := rows.Scan(&empID, &deptID, &effStr); err != nil {
 			return nil, err
 		}
-		eff, _ := time.Parse("2006-01-02", effStr)
+		eff, err := time.Parse("2006-01-02", effStr)
+		if err != nil {
+			return nil, err
+		}
 		res[empID] = append(res[empID], deptHistoryEntry{departmentID: deptID, effectiveDate: eff})
 	}
 	return res, rows.Err()

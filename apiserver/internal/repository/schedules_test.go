@@ -1,11 +1,44 @@
 package repository
 
 import (
+	"context"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 )
+
+func TestLoadDeptHistory_UsesEmploymentSegments(t *testing.T) {
+	employeeID := uuid.New()
+	departmentID := uuid.New()
+	var query string
+	db := &fakeDBTX{
+		queryFn: func(_ context.Context, sql string, args ...any) (pgx.Rows, error) {
+			query = sql
+			if len(args) != 1 || args[0].([]uuid.UUID)[0] != employeeID {
+				t.Fatalf("unexpected employee IDs: %v", args)
+			}
+			return &fakeRows{rows: [][]any{{employeeID, departmentID, "2026-01-01"}}}, nil
+		},
+	}
+
+	history, err := loadDeptHistory(context.Background(), db, []uuid.UUID{employeeID})
+	if err != nil {
+		t.Fatalf("load department history: %v", err)
+	}
+	if strings.Contains(query, "employee_department_history") {
+		t.Fatalf("stale department history table query: %s", query)
+	}
+	if !strings.Contains(query, "FROM employments") || !strings.Contains(query, "deleted_at IS NULL") {
+		t.Fatalf("expected active employment segments query, got %s", query)
+	}
+	entries := history[employeeID]
+	if len(entries) != 1 || entries[0].departmentID != departmentID {
+		t.Fatalf("unexpected department history: %+v", entries)
+	}
+}
 
 func TestResolveEffectiveShift_RosterOverridesPatternAndFixed(t *testing.T) {
 	employmentID, employeeID, rosterShift, fixedShift := uuid.New(), uuid.New(), uuid.New(), uuid.New()

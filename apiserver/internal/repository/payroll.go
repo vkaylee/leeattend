@@ -1506,10 +1506,10 @@ ORDER BY esc.effective_date ASC, esc.id ASC`, employmentID, endStr)
 
 	var deptChanges []time.Time
 	currentDept := deptID
-	deptRows, err := db.Query(ctx, `SELECT department_id, effective_date::text
-FROM employee_department_history
-WHERE employee_id = $1 AND effective_date <= $2::date
-ORDER BY effective_date ASC`, employeeID, endStr)
+	deptRows, err := db.Query(ctx, `SELECT department_id, start_date::text
+FROM employments
+WHERE employee_id = $1 AND deleted_at IS NULL AND department_id IS NOT NULL AND start_date <= $2::date
+ORDER BY start_date ASC, id ASC`, employeeID, endStr)
 	if err == nil {
 		defer deptRows.Close()
 		for deptRows.Next() {

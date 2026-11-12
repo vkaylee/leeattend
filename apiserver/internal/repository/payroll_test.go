@@ -13,6 +13,58 @@ import (
 	"github.com/vkaylee/leeattend/apiserver/internal/api"
 )
 
+func TestPayrollRepository_CalculateEmployeePayroll_UsesEmploymentDepartmentHistory(t *testing.T) {
+	querySeen := false
+	employeeID := uuid.New()
+	employmentID := uuid.New()
+	departmentID := uuid.New()
+	db := &fakeDBTX{
+		queryRowFn: func(_ context.Context, sql string, _ ...any) pgx.Row {
+			if strings.Contains(sql, "SELECT EXISTS (SELECT 1 FROM employees") {
+				return fakeRow{scanFn: func(dest ...any) error {
+					*(dest[0].(*bool)) = true
+					return nil
+				}}
+			}
+			if strings.Contains(sql, "FROM employments WHERE employee_id") {
+				return fakeRow{scanFn: func(dest ...any) error {
+					*(dest[0].(*uuid.UUID)) = employmentID
+					*(dest[1].(**uuid.UUID)) = &departmentID
+					return nil
+				}}
+			}
+			if strings.Contains(sql, "INSERT INTO payslips") {
+				return fakeRow{scanFn: func(dest ...any) error {
+					*(dest[0].(*time.Time)) = time.Now().UTC()
+					*(dest[1].(*time.Time)) = time.Now().UTC()
+					return nil
+				}}
+			}
+			return fakeRow{}
+		},
+		queryFn: func(_ context.Context, sql string, _ ...any) (pgx.Rows, error) {
+			if strings.Contains(sql, "FROM employee_salary_components") {
+				return &fakeRows{}, nil
+			}
+			if strings.Contains(sql, "FROM employments\nWHERE employee_id") {
+				querySeen = true
+				if strings.Contains(sql, "employee_department_history") || !strings.Contains(sql, "deleted_at IS NULL") {
+					t.Fatalf("expected canonical employment department query, got %s", sql)
+				}
+				return &fakeRows{rows: [][]any{{departmentID, "2026-01-01"}}}, nil
+			}
+			return &fakeRows{}, nil
+		},
+	}
+	_, err := (PayrollRepository{DB: db}).CalculateEmployeePayroll(context.Background(), employeeID, 2026, 1)
+	if err != nil {
+		t.Fatalf("calculate payroll: %v", err)
+	}
+	if !querySeen {
+		t.Fatal("expected employment department history query")
+	}
+}
+
 func TestPayrollRepository_ListPayslips_ScopeFree(t *testing.T) {
 	queryExecuted := false
 	db := &fakeDBTX{
