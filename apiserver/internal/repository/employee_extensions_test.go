@@ -181,6 +181,10 @@ func TestEmployeeDepartmentRepository_TransferSplit(t *testing.T) {
 		fakeDBTX: fakeDBTX{
 			queryRowFn: func(_ context.Context, sql string, _ ...any) pgx.Row {
 				return fakeRow{scanFn: func(dest ...any) error {
+					if strings.Contains(sql, "FOR UPDATE") {
+						*(dest[0].(*uuid.UUID)) = empID
+						return nil
+					}
 					*(dest[0].(*bool)) = true
 					return nil
 				}}
@@ -190,8 +194,8 @@ func TestEmployeeDepartmentRepository_TransferSplit(t *testing.T) {
 					end1 := "2026-06-30"
 					return &rowsStub{
 						data: [][]any{
-							{activeSegID, empID, uuid.New(), nil, oldDeptID, "active", "2026-01-01", end1, nil, "full_time", nil, nil, nil},
-							{nextSegID, empID, uuid.New(), nil, oldDeptID, "active", "2026-07-01", nil, nil, "full_time", nil, nil, nil},
+							{activeSegID, empID, uuid.New(), nil, nil, oldDeptID, "active", "2026-01-01", end1, nil, "full_time", nil, nil, nil},
+							{nextSegID, empID, uuid.New(), nil, nil, oldDeptID, "active", "2026-07-01", nil, nil, "full_time", nil, nil, nil},
 						},
 					}, nil
 				}
@@ -202,7 +206,7 @@ func TestEmployeeDepartmentRepository_TransferSplit(t *testing.T) {
 					updatedEndDate = args[0].(string)
 				}
 				if strings.Contains(sql, "INSERT INTO employments") {
-					insertedNewDept = args[4].(uuid.UUID)
+					insertedNewDept = args[5].(uuid.UUID)
 				}
 				if strings.Contains(sql, "UPDATE employments SET department_id = $1") {
 					cascadedDeptID = args[0].(uuid.UUID)

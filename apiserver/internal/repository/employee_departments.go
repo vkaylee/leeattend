@@ -84,6 +84,7 @@ type employmentSegment struct {
 	ID                  uuid.UUID
 	EmployeeID          uuid.UUID
 	EmployerID          uuid.UUID
+	RelationshipID      *uuid.UUID
 	PrimaryLocationID   *uuid.UUID
 	DepartmentID        *uuid.UUID
 	Status              string
@@ -107,6 +108,9 @@ func (r EmployeeDepartmentRepository) TransferEmployee(ctx context.Context, empl
 		if err := employeeExists(ctx, tx, employeeID); err != nil {
 			return err
 		}
+		if err := tx.QueryRow(ctx, `SELECT id FROM employees WHERE id = $1 AND deleted_at IS NULL FOR UPDATE`, employeeID).Scan(new(uuid.UUID)); err != nil {
+			return err
+		}
 		var deptExists bool
 		if err := tx.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM departments WHERE id = $1 AND deleted_at IS NULL)`, req.DepartmentID).Scan(&deptExists); err != nil {
 			return err
@@ -115,7 +119,7 @@ func (r EmployeeDepartmentRepository) TransferEmployee(ctx context.Context, empl
 			return api.ErrDepartmentNotFound
 		}
 
-		rows, err := tx.Query(ctx, `SELECT id, employee_id, employer_id, primary_location_id, department_id, status, start_date::text, end_date::text, job_title, employment_type, manager_employment_id, notes, termination_reason FROM employments WHERE employee_id = $1 AND deleted_at IS NULL ORDER BY start_date ASC`, employeeID)
+		rows, err := tx.Query(ctx, `SELECT id, employee_id, employer_id, relationship_id, primary_location_id, department_id, status, start_date::text, end_date::text, job_title, employment_type, manager_employment_id, notes, termination_reason FROM employments WHERE employee_id = $1 AND deleted_at IS NULL ORDER BY start_date ASC, id ASC`, employeeID)
 		if err != nil {
 			return err
 		}
@@ -124,7 +128,7 @@ func (r EmployeeDepartmentRepository) TransferEmployee(ctx context.Context, empl
 		segments := make([]employmentSegment, 0)
 		for rows.Next() {
 			var s employmentSegment
-			if err := rows.Scan(&s.ID, &s.EmployeeID, &s.EmployerID, &s.PrimaryLocationID, &s.DepartmentID, &s.Status, &s.StartDate, &s.EndDate, &s.JobTitle, &s.EmploymentType, &s.ManagerEmploymentID, &s.Notes, &s.TerminationReason); err != nil {
+			if err := rows.Scan(&s.ID, &s.EmployeeID, &s.EmployerID, &s.RelationshipID, &s.PrimaryLocationID, &s.DepartmentID, &s.Status, &s.StartDate, &s.EndDate, &s.JobTitle, &s.EmploymentType, &s.ManagerEmploymentID, &s.Notes, &s.TerminationReason); err != nil {
 				return err
 			}
 			segments = append(segments, s)
@@ -165,7 +169,7 @@ func (r EmployeeDepartmentRepository) TransferEmployee(ctx context.Context, empl
 			}
 			newID := uuid.New()
 			var endDateVal *string = active.EndDate
-			_, err = tx.Exec(ctx, `INSERT INTO employments (id, employee_id, employer_id, primary_location_id, department_id, status, start_date, end_date, created_at, updated_at, deleted_at, job_title, employment_type, manager_employment_id, notes, termination_reason) VALUES ($1, $2, $3, $4, $5, $6, $7::date, NULLIF($8, '')::date, NOW(), NOW(), NULL, $9, $10, $11, $12, $13)`, newID, active.EmployeeID, active.EmployerID, active.PrimaryLocationID, req.DepartmentID, active.Status, req.EffectiveDate, func() string {
+			_, err = tx.Exec(ctx, `INSERT INTO employments (id, employee_id, employer_id, relationship_id, primary_location_id, department_id, status, start_date, end_date, created_at, updated_at, deleted_at, job_title, employment_type, manager_employment_id, notes, termination_reason) VALUES ($1, $2, $3, $4, $5, $6, $7, $8::date, NULLIF($9, '')::date, NOW(), NOW(), NULL, $10, $11, $12, $13, $14)`, newID, active.EmployeeID, active.EmployerID, active.RelationshipID, active.PrimaryLocationID, req.DepartmentID, active.Status, req.EffectiveDate, func() string {
 				if endDateVal != nil {
 					return *endDateVal
 				}
