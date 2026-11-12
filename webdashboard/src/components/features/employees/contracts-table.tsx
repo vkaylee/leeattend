@@ -10,7 +10,7 @@ import { useDateTimeFormatter } from "@/hooks/use-datetime";
 import { useHorizontalDragScroll } from "@/hooks/use-horizontal-drag-scroll";
 import { cn } from "@/lib/utils";
 
-function EContractMobileCard({
+function ContractMobileCard({
   contract,
   formatDate,
   onDelete,
@@ -123,7 +123,7 @@ function EContractMobileCard({
   );
 }
 
-export interface EContractsTableProps {
+export interface ContractsTableProps {
   contracts: EmployeeContractWithEmployee[];
   isLoading: boolean;
   onClearFilters: () => void;
@@ -135,12 +135,12 @@ export interface EContractsTableProps {
 }
 
 /**
- * EContractsTable — contracts listing with desktop table + mobile cards.
+ * ContractsTable — ordinary legal contracts listing with desktop table + mobile cards.
  * Complexity (15) from JSX conditionals for isLoading/empty states + extensive desktop table markup.
- * Display logic extracted into EContractMobileCard. Remaining branches are all UI rendering.
+ * Display logic extracted into ContractMobileCard. Remaining branches are all UI rendering.
  */
 // eslint-disable-next-line complexity, max-lines-per-function
-export function EContractsTable({
+export function ContractsTable({
   contracts,
   isLoading,
   search,
@@ -149,7 +149,7 @@ export function EContractsTable({
   onClearFilters,
   onEdit,
   onDelete
-}: EContractsTableProps) {
+}: ContractsTableProps) {
   const { t } = useTranslation();
   const { formatDate } = useDateTimeFormatter();
   const {
@@ -226,7 +226,7 @@ export function EContractsTable({
       getCardKey={(contract) => contract.id}
       isLoading={isLoading}
       renderCard={(contract) => (
-        <EContractMobileCard
+        <ContractMobileCard
           contract={contract}
           formatDate={formatDate}
           onDelete={onDelete}

@@ -120,15 +120,24 @@ export const APP_REGISTRY: AppDefinition[] = [
     testId: "app-card-org-chart",
   },
   {
+    id: "contracts",
+    icon: Scale,
+    labelKey: "common.contracts",
+    descriptionKey: "appLauncher.descriptions.econtracts",
+    to: ROUTES.CONTRACTS,
+    group: "org",
+    permissions: ["documents:contract:read"],
+    testId: "app-card-contracts",
+  },
+  {
     id: "econtracts",
     icon: Scale,
     labelKey: "common.econtracts",
     descriptionKey: "appLauncher.descriptions.econtracts",
     to: ROUTES.ECONTRACTS,
     group: "org",
-    permissions: ["employees:update"],
-    // Backend not wired yet (see plans/webdashboard-tech-debt-plan.md TD-1).
-    // Hidden by default; remove the flag after full rollout.
+    permissions: ["documents:contract:read"],
+    // Backend not wired yet; keep envelope workflow hidden.
     featureFlag: "ff_econtracts",
     testId: "app-card-econtracts",
   },

@@ -19,8 +19,6 @@ import { cn } from "@/lib/utils";
 import { useEmployeeContracts } from "@/pages/employees/hooks/use-employee-contracts";
 
 import { contractSchema, type ContractFormValues } from "./contract-form-schema";
-import { EsignSection } from "./esign-section";
-
 // ── Types ───────────────────────────────────────────────────────────────────
 
 interface ContractFormModalProps {
@@ -40,8 +38,6 @@ interface ContractFormBodyProps {
   phases: { id: string; is_active: boolean; name: string; phase_type: string }[] | undefined;
   register: UseFormRegister<ContractFormValues>;
   setIndefinite: () => void;
-  watchAuthType: string | undefined;
-  watchEnableEsign: boolean | undefined;
 }
 
 interface OverlapModalProps {
@@ -121,7 +117,7 @@ function StatusSelector({ register }: { register: UseFormRegister<ContractFormVa
 // eslint-disable-next-line complexity -- form rendering naturally has conditional branches for error/empty/edit states
 function ContractFormFields({
   applyDuration, editingContract, errors, isIndefinite, isSubmitting,
-  onClose, phases, register, setIndefinite, watchAuthType, watchEnableEsign,
+  onClose, phases, register, setIndefinite,
 }: ContractFormBodyProps) {
   return (
     <div className="space-y-4">
@@ -163,7 +159,6 @@ function ContractFormFields({
 
       {editingContract ? <StatusSelector register={register} /> : null}
 
-      {!editingContract ? <EsignSection errors={errors} register={register} watchAuthType={watchAuthType} watchEnableEsign={watchEnableEsign} /> : null}
       <FormField label="Ghi chú" {...register("notes")} error={errors.notes?.message} placeholder="Ghi chú thêm về hợp đồng..." />
 
       <div className="flex items-center justify-end gap-3 pt-6 border-t border-slate-100 dark:border-slate-800">
@@ -193,13 +188,11 @@ export default function ContractFormModal({ isOpen, onClose, editingContract,emp
 
   const { register, handleSubmit, reset, control, setValue, formState: { errors, isSubmitting } } = useForm<ContractFormValues>({
     resolver: standardSchemaResolver(contractSchema),
-    defaultValues: { contract_type: "probation", status: "active", start_date: new Date().toISOString().split("T")[0], end_date: "", contract_number: "", notes: "", assign_phase_id: "", enable_esign: false, esign_auth_type: "sms", national_id: "", consent_privacy: false },
+    defaultValues: { contract_type: "probation", status: "active", start_date: new Date().toISOString().split("T")[0], end_date: "", contract_number: "", notes: "", assign_phase_id: "" },
   });
 
   const contractType = useWatch({ control, name: "contract_type" });
   const startDateValue = useWatch({ control, name: "start_date" });
-  const watchEnableEsign = useWatch({ control, name: "enable_esign" });
-  const watchAuthType = useWatch({ control, name: "esign_auth_type" });
   const isIndefinite = contractType === "indefinite";
 
   const applyDuration = (months?: number, years?: number) => {
@@ -251,7 +244,6 @@ export default function ContractFormModal({ isOpen, onClose, editingContract,emp
             applyDuration={applyDuration} editingContract={editingContract} errors={errors}
             isIndefinite={isIndefinite} isSubmitting={isSubmitting} onClose={onClose} phases={phases}
             register={register} setIndefinite={() => { setValue("contract_type", "indefinite", { shouldValidate: true }); setValue("end_date", "", { shouldValidate: true }); }}
-            watchAuthType={watchAuthType} watchEnableEsign={watchEnableEsign}
           />
         </form>
       </Modal>

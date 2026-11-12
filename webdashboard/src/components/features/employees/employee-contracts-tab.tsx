@@ -1,4 +1,3 @@
-import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { FileText, Pencil, Plus, Trash2, Eye } from "lucide-react";
 import React, { useState } from "react";
@@ -8,14 +7,10 @@ import type { ContractStatus, ContractType, EmployeeContract } from "@/lib/api";
 
 import PermissionGate from "@/components/common/permission-gate";
 import Button from "@/components/ui/button";
-import { EContractEnvelope } from "@/lib/api/econtracts";
-import { fetchEmployers } from "@/lib/api/employers";
 import { cn } from "@/lib/utils";
 import { useEmployeeContracts } from "@/pages/employees/hooks/use-employee-contracts";
 
 import ContractFormModal from "./contract-form-modal";
-import EContractDetailsDrawer from "./econtract-details-drawer";
-
 interface EmployeeContractsTabProps {
   employeeId: string;
   formatDate: (date: string) => string;
@@ -28,14 +23,6 @@ export default function EmployeeContractsTab({employeeId, formatDate }: Employee
   const [editingContract, setEditingContract] = useState<EmployeeContract | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const { t } = useTranslation();
-
-  const [selectedEnvelope, setSelectedEnvelope] = useState<EContractEnvelope | null>(null);
-  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
-
-  // e-signature backend not yet wired — employers are fetched for future use
-  // but envelopes are always empty for now.
-  const { data: _employers = [] } = useQuery({ queryKey: ["employers"], queryFn: () => fetchEmployers(),
- });
 
   if (isLoading) {
     return (
@@ -77,7 +64,7 @@ export default function EmployeeContractsTab({employeeId, formatDate }: Employee
           <Link
             className="flex items-center gap-1.5 text-[10px] font-bold text-slate-500 hover:text-primary-600 dark:text-slate-400 dark:hover:text-primary-400 uppercase tracking-widest hover:bg-slate-50 dark:hover:bg-slate-800/50 py-1.5 px-3 rounded-full transition-colors h-auto shadow-none border-none"
             search={{ q: employeeId }}
-            to="/econtracts"
+            to="/contracts"
           >
             <Eye size={14} /> VIEW IN REGISTRY
           </Link>
@@ -106,7 +93,6 @@ export default function EmployeeContractsTab({employeeId, formatDate }: Employee
         ) : (
           <div className="relative pl-12 space-y-8 before:absolute before:left-[11px] before:top-4 before:bottom-4 before:w-px before:bg-slate-100 dark:before:bg-slate-700">
             {contracts.map((contract: EmployeeContract, index: number) => {
-              // Envelopes disabled until e-signature backend is wired
               return (
                 <div className="relative animate-in slide-in-from-left duration-500" key={contract.id}>
                   <div className={cn("absolute -left-[3.15rem] top-1 w-6 h-6 rounded-full border-4 border-white dark:border-slate-900 shadow-xl ring-4 z-10", index === 0 && contract.status === "active" ? 'bg-emerald-50 dark:bg-emerald-950 ring-emerald-50 dark:ring-emerald-900/30 animate-pulse' : 'bg-primary-600 ring-primary-50 dark:ring-primary-900/30')}></div>
@@ -118,7 +104,6 @@ export default function EmployeeContractsTab({employeeId, formatDate }: Employee
                           <span className={cn("text-[9px] font-bold uppercase tracking-widest px-2.5 py-0.5 rounded-full border shadow-sm", getStatusColor(contract.status))}>
                             {contract.status === "active" ? t("employees.table.active").toUpperCase() : contract.status.toUpperCase()}
                           </span>
-                          {/* Envelopes disabled until e-signature backend is wired — badge hidden */}
                         </div>
                         {!!contract.contract_number && <div className="text-[10px] font-mono text-slate-500 dark:text-slate-400">{t("employees.details.contracts.contract_number").replace("{{number}}", contract.contract_number)}</div>}
                       </div>
@@ -152,8 +137,6 @@ export default function EmployeeContractsTab({employeeId, formatDate }: Employee
                       </div>
                     </div>
 
-                    {/* Envelopes disabled until e-signature backend is wired */}
-
                     <FileText className="absolute -right-6 -bottom-6 w-24 h-24 text-slate-100 dark:text-slate-800 opacity-50 -rotate-12 group-hover:rotate-0 transition-transform duration-700 z-0 pointer-events-none" />
                   </div>
                 </div>
@@ -168,12 +151,6 @@ export default function EmployeeContractsTab({employeeId, formatDate }: Employee
       isOpen={isModalOpen}
       onClose={() => { setIsModalOpen(false); }}  />
 
-      <EContractDetailsDrawer envelope={selectedEnvelope}
-      isOpen={isDrawerOpen}
-      onClose={() => {
-        setIsDrawerOpen(false);
-        setSelectedEnvelope(null);
-      }}  />
     </div>
   );
 }

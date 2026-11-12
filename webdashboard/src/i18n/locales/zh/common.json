@@ -189,6 +189,8 @@
     "disable": "禁用",
     "duration": "时长",
     "econtracts": "电子合同",
+    "contracts": "劳动合同",
+    "contracts_subtitle": "管理组织内的劳动合同。",
     "edit": "编辑",
     "effective_date": "生效日期",
     "effective_from": "生效日期",
@@ -2571,6 +2573,11 @@
       "no_template_selected": "请选择一个清单模板。",
       "employee_has_no_employment": "该员工当前没有有效的雇佣关系。"
     }
+  },
+  "econtracts": {
+    "not_ready_subtitle": "启用签署后，电子签名信封将显示在此处。",
+    "not_ready_description": "电子签名供应商集成尚不可用。普通劳动合同仍可在劳动合同页面查看。",
+    "not_ready_title": "电子签署流程不可用"
   },
   "salary_management": {
     "title": "薪资与津贴",

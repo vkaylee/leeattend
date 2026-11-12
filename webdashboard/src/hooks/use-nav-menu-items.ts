@@ -108,7 +108,8 @@ export function useNavMenuItems(): NavMenuStructure {
         { to: ROUTES.ATTENDANCE_POLICY_ASSIGNMENTS, icon: ShieldCheck, label: t("common.attendance_policy_assignments", { defaultValue: "Attendance Policies" }), testId: "sidebar-link-attendance-policy-assignments", permissions: ["attendance_policy_assignments:read"] },
         { to: ROUTES.DEPARTMENTS, icon: Building2, label: t("common.departments"), testId: "sidebar-link-departments", permissions: ["departments:read"] },
         { to: ROUTES.ORG_CHART, icon: FolderTree, label: t("common.org_chart"), testId: "sidebar-link-org-chart", permissions: ["departments:read"] },
-        ...(isFeatureEnabled("ff_econtracts") ? [{ to: ROUTES.ECONTRACTS, icon: Scale, label: t("common.econtracts", { defaultValue: "e-Contracts Hub" }), testId: "sidebar-link-econtracts", permissions: ["employees:update"] }] : []),
+        { to: ROUTES.CONTRACTS, icon: Scale, label: t("common.contracts", { defaultValue: "Hợp đồng lao động" }), testId: "sidebar-link-contracts", permissions: ["documents:contract:read"] },
+        ...(isFeatureEnabled("ff_econtracts") ? [{ to: ROUTES.ECONTRACTS, icon: Scale, label: t("common.econtracts", { defaultValue: "e-Contracts Hub" }), testId: "sidebar-link-econtracts", permissions: ["documents:contract:read"] }] : []),
       ],
     },
     {
@@ -199,7 +200,7 @@ export function useFilteredMenuItems(): NavMenuStructure {
 // ── Path-based active group detection ──────────────────────────────
 const ORG_PATHS: string[] = [
   ROUTES.EMPLOYEES, ROUTES.DEPARTMENTS,
-  ROUTES.ORG_CHART, ROUTES.ECONTRACTS, ROUTES.ASSIGNMENTS,
+  ROUTES.ORG_CHART, ROUTES.CONTRACTS, ROUTES.ECONTRACTS, ROUTES.ASSIGNMENTS,
   ROUTES.WORKING_CONDITIONS, ROUTES.LIFECYCLE, ROUTES.EMPLOYMENT_PHASES,
   ROUTES.ATTENDANCE_POLICY_ASSIGNMENTS,
 ];

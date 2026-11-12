@@ -11,7 +11,7 @@ import { useConfirm } from "@/hooks/use-confirm";
 import { useAllEmployees } from "@/hooks/use-employees";
 import { fetchContracts, deleteEmployeeContract } from "@/lib/api/contracts";
 
-import EContractsPage from "../econtracts-page";
+import ContractsPage from "../contracts-page";
 
 // Mock i18next translation
 vi.mock("react-i18next", () => ({
@@ -103,7 +103,7 @@ const mockEmployees = [
   { id: "emp-2", full_name: "Jane Smith", employee_id_number: "EMP002" },
 ];
 
-describe("EContractsPage Component - Registry", () => {
+describe("ContractsPage Component - Registry", () => {
   let queryClient: QueryClient;
   const mockConfirm = vi.fn();
 
@@ -132,7 +132,7 @@ describe("EContractsPage Component - Registry", () => {
     return render(
       <QueryClientProvider client={queryClient}>
         <ToastProvider>
-          <EContractsPage />
+          <ContractsPage />
         </ToastProvider>
       </QueryClientProvider>
     );
@@ -140,7 +140,7 @@ describe("EContractsPage Component - Registry", () => {
 
   it("renders page title and contracts table list", async () => {
     renderPage();
-    expect(screen.getByText("Centralized Contract Registry")).toBeInTheDocument();
+    expect(screen.getByText("Employment contracts")).toBeInTheDocument();
     // ResponsiveTable renders both desktop and mobile views
     expect((await screen.findAllByText("CON-1001")).length).toBeGreaterThan(0);
     expect(screen.getAllByText("CON-1002").length).toBeGreaterThan(0);
@@ -197,12 +197,12 @@ describe("EContractsPage Component - Registry", () => {
     expect((await screen.findAllByText("CON-1001")).length).toBeGreaterThan(0);
   });
 
-  it("opens SelectEmployeeModal and selects employee to sign new contract", async () => {
+  it("opens SelectEmployeeModal and selects employee to add new contract", async () => {
     const user = userEvent.setup();
     renderPage();
     await screen.findAllByText("CON-1001");
 
-    const signBtn = screen.getByRole("button", { name: /SIGN CONTRACT/i });
+    const signBtn = screen.getByRole("button", { name: /ADD CONTRACT/i });
     await user.click(signBtn);
 
     // Modal should be open
@@ -223,7 +223,7 @@ describe("EContractsPage Component - Registry", () => {
     renderPage();
     await screen.findAllByText("CON-1001");
 
-    const signBtn = screen.getByRole("button", { name: /SIGN CONTRACT/i });
+    const signBtn = screen.getByRole("button", { name: /ADD CONTRACT/i });
     await user.click(signBtn);
 
     const dialog = screen.getByRole("dialog");

@@ -23,6 +23,7 @@ export const ROUTES = {
   EMPLOYEES: "/employees",
   DEPARTMENTS: "/departments",
   ORG_CHART: "/org-chart",
+  CONTRACTS: "/contracts",
   ECONTRACTS: "/econtracts",
   ASSIGNMENTS: "/assignments",
   WORKING_CONDITIONS: "/working-conditions",

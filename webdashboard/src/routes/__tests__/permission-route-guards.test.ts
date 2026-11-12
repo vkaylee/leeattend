@@ -25,6 +25,7 @@ vi.mock("react-i18next", () => ({
 }));
 
 import { Route as InfraRoute } from "../_authenticated/_infra";
+import { Route as ContractsRoute } from "../_authenticated/_organization/contracts";
 import { Route as AssignmentsRoute } from "../_authenticated/_organization/assignments";
 import { Route as EmployeeDetailRoute } from "../_authenticated/_organization/employees_.$employeeId";
 import { Route as LifecycleRoute } from "../_authenticated/_organization/lifecycle";
@@ -38,6 +39,7 @@ interface RouteOptions {
 
 const settingsBeforeLoad = (SettingsRoute.options as RouteOptions).beforeLoad!;
 const infraBeforeLoad = (InfraRoute.options as RouteOptions).beforeLoad!;
+const contractsBeforeLoad = (ContractsRoute.options as RouteOptions).beforeLoad!;
 const personnelHubBeforeLoads = [
   (AssignmentsRoute.options as RouteOptions).beforeLoad!,
   (WorkingConditionsRoute.options as RouteOptions).beforeLoad!,
@@ -72,6 +74,31 @@ describe("permission route guards", () => {
     fetchMyPermissions.mockResolvedValue({ permissions: ["employees:read"] });
 
     await expect(infraBeforeLoad()).rejects.toMatchObject({
+      isRedirect: true,
+      to: "/",
+    });
+  });
+
+  it("allows contracts users with contract read permission", async () => {
+    fetchMyPermissions.mockResolvedValue({ permissions: ["documents:contract:read"] });
+
+    await expect(contractsBeforeLoad()).resolves.toBeUndefined();
+    expect(redirect).not.toHaveBeenCalled();
+  });
+
+  it("redirects users without contract read permission", async () => {
+    fetchMyPermissions.mockResolvedValue({ permissions: ["employees:read"] });
+
+    await expect(contractsBeforeLoad()).rejects.toMatchObject({
+      isRedirect: true,
+      to: "/",
+    });
+  });
+
+  it("fails closed when contract permission lookup fails", async () => {
+    fetchMyPermissions.mockRejectedValue(new Error("permission service unavailable"));
+
+    await expect(contractsBeforeLoad()).rejects.toMatchObject({
       isRedirect: true,
       to: "/",
     });

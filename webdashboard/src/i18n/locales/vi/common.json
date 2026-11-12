@@ -189,6 +189,8 @@
     "disable": "Tắt",
     "duration": "Thời lượng",
     "econtracts": "Hợp đồng điện tử",
+    "contracts": "Hợp đồng lao động",
+    "contracts_subtitle": "Quản lý hợp đồng lao động trong toàn tổ chức.",
     "edit": "Chỉnh sửa",
     "effective_date": "Ngày hiệu lực",
     "effective_from": "Ngày hiệu lực",
@@ -2571,6 +2573,11 @@
       "no_template_selected": "Vui lòng chọn một mẫu quy trình.",
       "employee_has_no_employment": "Nhân sự này hiện không có hồ sơ công tác hợp lệ."
     }
+  },
+  "econtracts": {
+    "not_ready_subtitle": "Các phong bì ký điện tử sẽ hiển thị tại đây khi backend ký được bật.",
+    "not_ready_description": "Tích hợp nhà cung cấp ký điện tử chưa sẵn sàng. Hợp đồng lao động vẫn có trong mục Hợp đồng.",
+    "not_ready_title": "Quy trình ký điện tử chưa sẵn sàng"
   },
   "salary_management": {
     "title": "Lương & phụ cấp",

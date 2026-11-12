@@ -1,16 +1,16 @@
 import { createLazyFileRoute } from "@tanstack/react-router";
 
 import { ErrorBoundary } from "@/components/common/error-boundary";
-import EContractsPage from "@/pages/econtracts-page";
+import EContractsPlaceholderPage from "@/pages/econtracts-page";
 
 
-function EContractsPageWithErrorBoundary() {
+function EContractsPlaceholderWithErrorBoundary() {
   return (
     <ErrorBoundary variant="full">
-      <EContractsPage />
+      <EContractsPlaceholderPage />
     </ErrorBoundary>
   );
 }
 export const Route = createLazyFileRoute("/_authenticated/_organization/econtracts")({
-  component: EContractsPageWithErrorBoundary,
+  component: EContractsPlaceholderWithErrorBoundary,
 });
