@@ -102,7 +102,7 @@ function useUpsertConfigForm({
         config_key: data.config_key,
         scope_type: data.scope_type,
         scope_id: scopeId,
-        effective_from: new Date(data.effective_from).toISOString(),
+        effective_from: data.effective_from,
       };
 
       switch (data.value_type) {

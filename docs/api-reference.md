@@ -107,6 +107,10 @@ Cập nhật thông tin hoặc cấu hình hệ thống của tổ chức.
   ```
 - **Response (200)**: `OrganizationSettings` (updated)
 
+#### Configuration storage boundaries
+
+`organization_settings` stores stable singleton fields. `config_entries` stores registered business keys with typed values, scopes, and effective dates. Current registered keys are `payroll.std_working_day_mode`, `payroll.fixed_std_days`, `payroll.working_days_per_week`, `payroll.hours_per_day`, `payroll.max_ot_hours_per_day`, `payroll.max_ot_hours_per_month`, and `overtime.max_hours_per_month`. Unknown keys, wrong value types, invalid scopes, malformed dates, and inverted date ranges return validation errors. `system_settings` remains reserved for system/integration JSON documents; SMTP uses key `smtp` and credential fields are masked in API responses.
+
 ---
 
 ### 2. Members and Roles

@@ -54,10 +54,23 @@ BEGIN
     FROM public.schema_migrations
     WHERE version = '20261110000000_single_organization_baseline';
 
-    IF v_marker_count <> 1 OR (SELECT count(*) FROM public.schema_migrations) <> 1 THEN
-        RAISE EXCEPTION 'baseline schema check failed: migration marker state is not exactly one current marker';
+    IF v_marker_count <> 1 THEN
+        RAISE EXCEPTION 'schema check failed: baseline migration marker is missing';
     END IF;
 
-    RAISE NOTICE 'baseline schema check: PASS';
+    IF to_regclass('public.config_entries') IS NULL THEN
+        RAISE EXCEPTION 'schema check failed: config_entries table is missing';
+    END IF;
+
+    IF NOT EXISTS (
+        SELECT 1
+        FROM pg_constraint
+        WHERE conrelid = 'public.config_entries'::regclass
+          AND conname = 'config_entries_effective_date_range_check'
+    ) THEN
+        RAISE EXCEPTION 'schema check failed: config_entries temporal constraint is missing';
+    END IF;
+
+    RAISE NOTICE 'schema contract check: PASS';
 END;
 $$;

@@ -39,11 +39,14 @@ No tenant database is created, selected, cached, evicted, or provisioned. Runtim
 
 ```text
 apiserver/migrations/
-└── 20261110000000_single_organization_baseline/
+├── 20261110000000_single_organization_baseline/
+└── 20261112000000_config_entries_integrity/
 
-Apply the baseline once against the target database. `up.sql` is ordered system-first then business-schema. `down.sql` drops and recreates `public`; it is a destructive recovery operation and requires a verified backup before use.
+Apply baseline once against fresh target database. `run-dev.sh` then applies each unapplied post-baseline directory in version order. `down.sql` files are rollback/recovery artifacts and require verified backup before use.
 
-Migration directory versions MUST remain unique. New post-baseline changes MUST use a new migration directory under `apiserver/migrations/`; do not recreate `system/` or `tenant/` directories.
+Migration directory versions MUST remain unique. New post-baseline changes MUST use new migration directory under `apiserver/migrations/`; do not recreate `system/` or `tenant/` directories.
+
+`config_entries` uses typed values, explicit business-key registry in Go, effective dates, and NULL-safe uniqueness for organization scope. `system_settings` remains JSON key/value storage for system/integration documents such as `smtp`; it is not business configuration.
 
 ## Deployment and rollback
 

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"strings"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -380,12 +381,20 @@ func (h OrganizationHandler) PutConfig(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	request, err := DecodeJSON[ConfigEntryRequest](r, 1<<20)
-	if err != nil || request.ConfigKey == "" || request.EffectiveFrom == "" {
+	if err != nil {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}
-	if request.ScopeType != "" && !isSupportedConfigScope(request.ScopeType) {
-		apperror.WriteError(w, r, apperror.Validation(apperror.KeyInvalidScopeType))
+	request.ConfigKey = strings.TrimSpace(request.ConfigKey)
+	if request.EffectiveTo != nil && strings.TrimSpace(*request.EffectiveTo) == "" {
+		request.EffectiveTo = nil
+	}
+	if err := validateConfigEntry(request); err != nil {
+		key := apperror.KeyValidation
+		if errors.Is(err, errConfigScope) {
+			key = apperror.KeyInvalidScopeType
+		}
+		apperror.WriteError(w, r, apperror.Validation(key))
 		return
 	}
 	if err := h.Repository.PutConfig(r.Context(), request, userID); err != nil {
