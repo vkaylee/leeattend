@@ -144,7 +144,7 @@ func (m *mockLeaveBehalfRepo) CreateBehalfAssignment(context.Context, CreateBeha
 func (m *mockLeaveBehalfRepo) ListBehalfAssignments(context.Context, string) ([]BehalfAssignment, error) {
 	return m.assignments, m.err
 }
-func (m *mockLeaveBehalfRepo) DeleteBehalfAssignment(context.Context, uuid.UUID) error {
+func (m *mockLeaveBehalfRepo) DeleteBehalfAssignment(context.Context, uuid.UUID, string) error {
 	return m.err
 }
 func (m *mockLeaveBehalfRepo) ListMyBehalfTargets(context.Context, uuid.UUID, string) ([]EmployeeRecord, error) {

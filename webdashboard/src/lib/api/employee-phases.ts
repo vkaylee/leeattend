@@ -10,6 +10,45 @@ import type {
 
 import { client } from "./client";
 
+export interface EmploymentPhaseAssignment extends EmployeePhase {
+  employee_id: string;
+  employee_name: string;
+  employee_code: string;
+  department_name?: string | null;
+  phase_name: string;
+  phase_type: string;
+}
+
+export interface EmploymentPhaseAssignmentListResponse {
+  data: EmploymentPhaseAssignment[];
+  total: number;
+  page: number;
+  limit: number;
+}
+
+export interface EmploymentPhaseAssignmentListParams {
+  employeeId?: string;
+  limit?: number;
+  page?: number;
+  q?: string;
+  status?: string;
+}
+
+export async function fetchEmploymentPhaseAssignments(
+  params: EmploymentPhaseAssignmentListParams = {},
+): Promise<EmploymentPhaseAssignmentListResponse> {
+  const { employeeId, ...query } = params;
+  const { data } = await client.GET<EmploymentPhaseAssignmentListResponse>("/api/v1/employment-phase-assignments", {
+    params: {
+      query: {
+        ...query,
+        employee_id: employeeId,
+      },
+    },
+  });
+  return data;
+}
+
 export async function fetchEmploymentPhases(): Promise<EmploymentPhaseDefinition[]> {
   const { data } = await client.GET<EmploymentPhaseDefinition[]>("/api/v1/employment-phases");
   return unwrapDataArray<EmploymentPhaseDefinition>(data);

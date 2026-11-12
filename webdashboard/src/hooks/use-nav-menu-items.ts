@@ -33,6 +33,7 @@ import {
   Palmtree,
   HeartHandshake,
   ClipboardList,
+  Milestone,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
@@ -105,6 +106,8 @@ export function useNavMenuItems(): NavMenuStructure {
         { to: ROUTES.ASSIGNMENTS, icon: ArrowLeftRight, label: t("common.assignments", { defaultValue: "Phái cử & Luân chuyển" }), testId: "sidebar-link-assignments", permissions: ["employees:read"] },
         { to: ROUTES.WORKING_CONDITIONS, icon: HeartHandshake, label: t("common.working_conditions", { defaultValue: "Điều kiện làm việc" }), testId: "sidebar-link-working-conditions", permissions: ["employees:read"] },
         { to: ROUTES.LIFECYCLE, icon: ClipboardList, label: t("common.lifecycle", { defaultValue: "Quy trình & Vòng đời" }), testId: "sidebar-link-lifecycle", permissions: ["employees:read"] },
+        { to: ROUTES.EMPLOYMENT_PHASES, icon: Milestone, label: t("common.employment_phases", { defaultValue: "Employment Phases" }), testId: "sidebar-link-employment-phases", permissions: ["employment_phases:read"] },
+        { to: ROUTES.ATTENDANCE_POLICY_ASSIGNMENTS, icon: ShieldCheck, label: t("common.attendance_policy_assignments", { defaultValue: "Attendance Policies" }), testId: "sidebar-link-attendance-policy-assignments", permissions: ["attendance_policy_assignments:read"] },
         { to: ROUTES.DEPARTMENTS, icon: Building2, label: t("common.departments"), testId: "sidebar-link-departments", permissions: ["departments:read"] },
         { to: ROUTES.ORG_CHART, icon: FolderTree, label: t("common.org_chart"), testId: "sidebar-link-org-chart", permissions: ["departments:read"] },
         ...(isFeatureEnabled("ff_econtracts") ? [{ to: ROUTES.ECONTRACTS, icon: Scale, label: t("common.econtracts", { defaultValue: "e-Contracts Hub" }), testId: "sidebar-link-econtracts", permissions: ["employees:update"] }] : []),
@@ -198,7 +201,9 @@ export function useFilteredMenuItems(): NavMenuStructure {
 // ── Path-based active group detection ──────────────────────────────
 const ORG_PATHS: string[] = [
   ROUTES.EMPLOYEES, ROUTES.DEPARTMENTS,
-  ROUTES.ORG_CHART, ROUTES.ECONTRACTS,
+  ROUTES.ORG_CHART, ROUTES.ECONTRACTS, ROUTES.ASSIGNMENTS,
+  ROUTES.WORKING_CONDITIONS, ROUTES.LIFECYCLE, ROUTES.EMPLOYMENT_PHASES,
+  ROUTES.ATTENDANCE_POLICY_ASSIGNMENTS,
 ];
 const TIME_PATHS: string[] = [
   ROUTES.ATTENDANCE_LOGS, ROUTES.LEAVE_REQUESTS, ROUTES.ATTENDANCE_ADJUSTMENTS,

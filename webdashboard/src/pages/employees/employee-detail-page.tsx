@@ -7,7 +7,6 @@ import {
   Building2,
   Calendar,
   Mail,
-  MapPin,
   Pencil,
   Trash2,
   UserPlus,

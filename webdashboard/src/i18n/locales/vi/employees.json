@@ -198,15 +198,13 @@
         "documents": "Tài liệu & Hồ sơ",
         "contracts": "Hợp đồng",
         "phases": "Hành trình",
-        "assignments": "Phái cử",
         "salary": "Mức lương & Đãi ngộ",
         "compensation": "Lịch sử lương",
-        "working_conditions": "Điều kiện làm việc",
-        "attendance_policy": "Chính sách chuyên cần",
-        "lifecycle": "Quy trình & Checklist"
+        "attendance_policy": "Chính sách chuyên cần"
       },
       "edit_profile": "Sửa hồ sơ",
-      "original_hire_date": "Ngày gia nhập gốc",
+            "filtered_employee": "Đang lọc theo nhân viên",
+            "original_hire_date": "Ngày gia nhập gốc",
       "terminate": "Nghỉ việc",
       "rehire": "Vào làm lại",
       "terminated_at": "Nghỉ việc ngày",

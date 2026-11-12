@@ -44,7 +44,7 @@ describe("PolicyAssignmentsSection", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    (api.fetchPolicyAssignments as Mock).mockResolvedValue([]);
+    (api.fetchPolicyAssignments as Mock).mockResolvedValue({ data: [], total: 0, page: 1, limit: 50 });
     (api.fetchDepartments as Mock).mockResolvedValue([
       { id: "dept-1", name: "Engineering" }
     ]);
@@ -67,7 +67,7 @@ describe("PolicyAssignmentsSection", () => {
   });
 
   it("displays assignments and resolves target names", async () => {
-    (api.fetchPolicyAssignments as Mock).mockResolvedValue([
+    (api.fetchPolicyAssignments as Mock).mockResolvedValue({ data: [
       {
         id: "assign-1",
         target_type: "GROUP",
@@ -79,7 +79,7 @@ describe("PolicyAssignmentsSection", () => {
           early_arrival_strategy: "allow"
         }
       }
-    ]);
+    ], total: 1, page: 1, limit: 50 });
 
     renderWithProviders(<PolicyAssignmentsSection   />);
     

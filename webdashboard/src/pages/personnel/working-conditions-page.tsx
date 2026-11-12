@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { CheckCircle2, DollarSign, HeartHandshake, Plus, Users, XCircle } from "lucide-react";
+import { Link, useSearch } from "@tanstack/react-router";
+import { CheckCircle2, DollarSign, HeartHandshake, Plus, Users, X, XCircle } from "lucide-react";
 import React, { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -22,13 +23,15 @@ import type { WorkingConditionWithEmployee } from "@/lib/api/employee-conditions
 
 export default function PersonnelWorkingConditionsPage() {
   const { t, i18n } = useTranslation();
+  const searchParams = useSearch({ strict: false }) as { employeeId?: string; q?: string };
+  const employeeFilter = searchParams.employeeId;
   const toast = useToast();
   const queryClient = useQueryClient();
   
   const { confirm, ConfirmationDialog } = useConfirm();
   const currentLang = i18n.language.split("-")[0];
 
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useState(searchParams.q ?? "");
   const [selectedType, setSelectedType] = useState<string>("all");
   const [paymentFilter, setPaymentFilter] = useState<string>("all");
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -92,9 +95,10 @@ export default function PersonnelWorkingConditionsPage() {
         (paymentFilter === "paid" && c.is_paid) ||
         (paymentFilter === "unpaid" && !c.is_paid);
 
-      return matchSearch && matchType && matchPayment;
+      const matchEmployee = !employeeFilter || c.employee_id === employeeFilter;
+      return matchSearch && matchType && matchPayment && matchEmployee;
     });
-  }, [conditions, search, selectedType, paymentFilter, typeDefs, currentLang]);
+  }, [conditions, search, selectedType, paymentFilter, typeDefs, currentLang, employeeFilter]);
 
   const handleDelete = async (condition: WorkingConditionWithEmployee) => {
     const isConfirmed = await confirm({
@@ -141,6 +145,22 @@ export default function PersonnelWorkingConditionsPage() {
         })}
         title={t("working_conditions.title", { defaultValue: "Quản lý Điều kiện Làm việc Đặc thù" })}
       />
+
+      {employeeFilter && (
+        <div className="flex items-center gap-2" data-testid="employee-filter-chip">
+          <span className="rounded-full border border-primary-200 bg-primary-50 px-3 py-1 text-xs font-semibold text-primary-700 dark:border-primary-800 dark:bg-primary-950 dark:text-primary-300">
+            {t("employees.details.filtered_employee", { defaultValue: "Đang lọc theo nhân viên" })}
+          </span>
+          <Link
+            aria-label={t("common.clear_filter", { defaultValue: "Bỏ bộ lọc" })}
+            className="rounded-full p-1 text-slate-500 hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 dark:hover:bg-slate-800"
+            search={{}}
+            to="/working-conditions"
+          >
+            <X aria-hidden size={14} />
+          </Link>
+        </div>
+      )}
 
       {/* ── KPI Metric Cards ────────────────────────────────────────── */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">

@@ -13,12 +13,60 @@ ROOT = Path(__file__).resolve().parents[2]
 WRAPPER = ROOT / "scripts/playwright-mcp-role.sh"
 
 
-def test_mcp_config_exposes_one_least_privilege_playwright_server() -> None:
+def test_mcp_config_exposes_isolated_server_per_role() -> None:
     config = json.loads((ROOT / ".mcp.json").read_text())
-    servers = [key for key in config["mcpServers"] if key.startswith("playwright")]
+    servers = [key for key in config["mcpServers"] if key.startswith("playwright-")]
+    roles = ["employee", "team-lead", "shift-manager", "hr-manager", "admin"]
 
-    assert servers == ["playwright"]
-    assert config["mcpServers"]["playwright"]["args"][0] == "employee"
+    assert servers == [f"playwright-{role}" for role in roles]
+    for role in roles:
+        assert config["mcpServers"][f"playwright-{role}"]["args"] == [role, "--endpoint", "http://caddy"]
+
+
+def test_wrapper_selects_role_from_environment(tmp_path: Path) -> None:
+    compose = tmp_path / "compose"
+    args_file = tmp_path / "compose-args"
+    compose.write_text('#!/bin/sh\nprintf "%s\\n" "$@" > "$COMPOSE_ARGS_FILE"\n')
+    compose.chmod(0o755)
+
+    result = subprocess.run(
+        ["bash", str(WRAPPER), "--supervised", "--endpoint", "http://example.com"],
+        cwd=ROOT,
+        env={
+            **os.environ,
+            "DOCKER_COMPOSE_CMD": str(compose),
+            "COMPOSE_ARGS_FILE": str(args_file),
+            "PLAYWRIGHT_ROLE": "hr-manager",
+        },
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert args_file.exists()
+
+
+def test_wrapper_rejects_unknown_environment_role(tmp_path: Path) -> None:
+    compose = tmp_path / "compose"
+    compose.write_text('#!/bin/sh\nexit 0\n')
+    compose.chmod(0o755)
+
+    result = subprocess.run(
+        ["bash", str(WRAPPER), "--supervised", "--endpoint", "http://example.com"],
+        cwd=ROOT,
+        env={
+            **os.environ,
+            "DOCKER_COMPOSE_CMD": str(compose),
+            "PLAYWRIGHT_ROLE": "owner",
+        },
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+    assert result.returncode == 2
+    assert "Unsupported Playwright role: owner" in result.stderr
 
 
 @pytest.mark.parametrize("extra_args", [[], ["--idle-timeout=1500"]])

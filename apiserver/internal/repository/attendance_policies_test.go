@@ -98,20 +98,26 @@ func TestAttendancePolicyRepository_ListPolicyAssignments(t *testing.T) {
 		queryFn: func(_ context.Context, _ string, _ ...any) (pgx.Rows, error) {
 			return &rowsStub{
 				data: [][]any{
-					{assignID, "USER", targetID, now, (*time.Time)(nil), []byte(`{"work_unit_minutes": 30, "rounding_policy": "floor", "early_arrival_strategy": "block"}`)},
+					{assignID, "USER", targetID, now, (*time.Time)(nil), []byte(`{"work_unit_minutes": 30, "rounding_policy": "floor", "early_arrival_strategy": "block"}`), (*string)(nil), (*string)(nil), (*string)(nil)},
 				},
 			}, nil
+		},
+		queryRowFn: func(_ context.Context, _ string, _ ...any) pgx.Row {
+			return fakeRow{scanFn: func(dest ...any) error {
+				*(dest[0].(*int64)) = 1
+				return nil
+			}}
 		},
 	}
 	repo := AttendancePolicyRepository{
 		DB: db,
 	}
 
-	list, err := repo.ListPolicyAssignments(context.Background())
+	list, err := repo.ListPolicyAssignments(context.Background(), 1, 50, "", "")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if len(list) != 1 || list[0].TargetType != "USER" || list[0].TargetID != targetID.String() {
+	if len(list.Data) != 1 || list.Data[0].TargetType != "USER" || list.Data[0].TargetID != targetID.String() {
 		t.Fatalf("unexpected assignments list: %+v", list)
 	}
 }

@@ -45,6 +45,23 @@ type EmployeePhase struct {
 	UpdatedAt         string          `json:"updated_at"`
 }
 
+type EmploymentPhaseAssignment struct {
+	EmployeePhase
+	EmployeeID     uuid.UUID `json:"employee_id"`
+	EmployeeName   string    `json:"employee_name"`
+	EmployeeCode   string    `json:"employee_code"`
+	DepartmentName *string   `json:"department_name,omitempty"`
+	PhaseName      string    `json:"phase_name"`
+	PhaseType      string    `json:"phase_type"`
+}
+
+type EmploymentPhaseAssignmentListResponse struct {
+	Data  []EmploymentPhaseAssignment `json:"data"`
+	Total int64                       `json:"total"`
+	Page  int                         `json:"page"`
+	Limit int                         `json:"limit"`
+}
+
 type CreateEmploymentPhaseDefinitionRequest struct {
 	Name         string          `json:"name"`
 	Description  *string         `json:"description"`
@@ -68,6 +85,7 @@ type UpdateEmployeePhaseStatusRequest struct {
 type EmploymentPhaseRepository interface {
 	CreateDefinition(context.Context, EmploymentPhaseDefinition) (EmploymentPhaseDefinition, error)
 	ListDefinitions(context.Context) ([]EmploymentPhaseDefinition, error)
+	ListOrganizationPhases(context.Context, int, int, string, string, *uuid.UUID) (EmploymentPhaseAssignmentListResponse, error)
 	AssignPhase(context.Context, uuid.UUID, AssignEmployeePhaseRequest) (EmployeePhase, error)
 	UpdatePhaseStatus(context.Context, uuid.UUID, uuid.UUID, UpdateEmployeePhaseStatusRequest, uuid.UUID) (EmployeePhase, error)
 	ListPhases(context.Context, uuid.UUID) ([]EmployeePhase, error)
@@ -98,6 +116,12 @@ func (h EmploymentPhaseHandler) err(w http.ResponseWriter, r *http.Request, err 
 }
 func validPhaseDate(s string) bool { _, err := time.Parse("2006-01-02", s); return err == nil }
 
+func validPhaseDateRange(startDate, endDate string) bool {
+	start, startErr := time.Parse("2006-01-02", startDate)
+	end, endErr := time.Parse("2006-01-02", endDate)
+	return startErr == nil && endErr == nil && !end.Before(start)
+}
+
 func (h EmploymentPhaseHandler) CreateDefinition(w http.ResponseWriter, r *http.Request) {
 	if !h.allowed(r, "employment_phases:manage") {
 		h.deny(w, r)
@@ -126,7 +150,7 @@ func (h EmploymentPhaseHandler) CreateDefinition(w http.ResponseWriter, r *http.
 	apperror.WriteJSON(w, http.StatusCreated, out)
 }
 func (h EmploymentPhaseHandler) ListDefinitions(w http.ResponseWriter, r *http.Request) {
-	if !h.allowed(r, "employment_phases:manage") {
+	if !h.allowed(r, "employment_phases:read") {
 		h.deny(w, r)
 		return
 	}
@@ -141,9 +165,42 @@ func (h EmploymentPhaseHandler) ListDefinitions(w http.ResponseWriter, r *http.R
 	}
 	apperror.WriteJSON(w, http.StatusOK, out)
 }
+func (h EmploymentPhaseHandler) ListOrganization(w http.ResponseWriter, r *http.Request) {
+	if !h.allowed(r, "employment_phases:read") {
+		h.deny(w, r)
+		return
+	}
+	pagination, err := ParsePagination(r.URL.Query())
+	if err != nil {
+		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
+		return
+	}
+	status := strings.TrimSpace(r.URL.Query().Get("status"))
+	query := strings.TrimSpace(r.URL.Query().Get("q"))
+	var employeeID *uuid.UUID
+	if rawEmployeeID := strings.TrimSpace(r.URL.Query().Get("employee_id")); rawEmployeeID != "" {
+		parsedEmployeeID, parseErr := uuid.Parse(rawEmployeeID)
+		if parseErr != nil {
+			apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
+			return
+		}
+		employeeID = &parsedEmployeeID
+	}
+	if h.Repository == nil {
+		apperror.WriteJSON(w, http.StatusOK, EmploymentPhaseAssignmentListResponse{Data: []EmploymentPhaseAssignment{}, Page: pagination.Page, Limit: pagination.Limit})
+		return
+	}
+	result, err := h.Repository.ListOrganizationPhases(r.Context(), pagination.Page, pagination.Limit, query, status, employeeID)
+	if err != nil {
+		h.err(w, r, err)
+		return
+	}
+	apperror.WriteJSON(w, http.StatusOK, result)
+}
+
 func (h EmploymentPhaseHandler) assign(w http.ResponseWriter, r *http.Request, employmentID uuid.UUID) {
 	var req AssignEmployeePhaseRequest
-	if json.NewDecoder(r.Body).Decode(&req) != nil || req.PhaseDefinitionID == uuid.Nil || !validPhaseDate(req.StartDate) || !validPhaseDate(req.EndDate) || (len(req.OverrideConfig) > 0 && !json.Valid(req.OverrideConfig)) {
+	if json.NewDecoder(r.Body).Decode(&req) != nil || req.PhaseDefinitionID == uuid.Nil || !validPhaseDateRange(req.StartDate, req.EndDate) || (len(req.OverrideConfig) > 0 && !json.Valid(req.OverrideConfig)) {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}
@@ -169,7 +226,7 @@ func (h EmploymentPhaseHandler) AssignEmployee(w http.ResponseWriter, r *http.Re
 }
 func (h EmploymentPhaseHandler) ListEmployee(w http.ResponseWriter, r *http.Request) {
 	empID, ok := pathUUID(r, "user_id")
-	if !ok || !h.allowed(r, "employment_phases:manage") {
+	if !ok || !h.allowed(r, "employment_phases:read") {
 		h.deny(w, r)
 		return
 	}
@@ -204,7 +261,7 @@ func (h EmploymentPhaseHandler) AssignEmployment(w http.ResponseWriter, r *http.
 }
 func (h EmploymentPhaseHandler) ListEmployment(w http.ResponseWriter, r *http.Request) {
 	employmentID, ok := pathUUID(r, "employment_id")
-	if !ok || !h.allowed(r, "employment_phases:manage") {
+	if !ok || !h.allowed(r, "employment_phases:read") {
 		h.deny(w, r)
 		return
 	}
@@ -233,7 +290,7 @@ func (h EmploymentPhaseHandler) list(w http.ResponseWriter, r *http.Request, emp
 }
 func (h EmploymentPhaseHandler) updateStatus(w http.ResponseWriter, r *http.Request, employmentID, phaseID uuid.UUID) {
 	var req UpdateEmployeePhaseStatusRequest
-	if json.NewDecoder(r.Body).Decode(&req) != nil || req.Status == "" {
+	if json.NewDecoder(r.Body).Decode(&req) != nil || (req.Status != "active" && req.Status != "completed" && req.Status != "terminated") {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}

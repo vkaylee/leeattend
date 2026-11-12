@@ -143,7 +143,7 @@ describe("EmployeeDetailPage", () => {
     expect(screen.getByTestId("terminate-employee-btn")).toBeInTheDocument();
   });
 
-  it("renders 10 sticky navigation tabs", async () => {
+  it("renders remaining sticky navigation tabs without centralized tabs", async () => {
     renderComponent();
 
     expect(await screen.findByRole("heading", { name: "Alice Nguyen" })).toBeInTheDocument();
@@ -152,13 +152,8 @@ describe("EmployeeDetailPage", () => {
       "tab-profile",
       "tab-documents",
       "tab-contracts",
-      "tab-phases",
-      "tab-assignments",
       "tab-salary",
       "tab-compensation",
-      "tab-working-conditions",
-      "tab-attendance-policy",
-      "tab-lifecycle",
     ];
 
     for (const tabId of expectedTabs) {
@@ -179,6 +174,16 @@ describe("EmployeeDetailPage", () => {
       search: expect.any(Function),
       replace: true,
     });
+  });
+
+  it("does not render centralized tabs or table link", async () => {
+    renderComponent();
+
+    expect(await screen.findByRole("heading", { name: "Alice Nguyen" })).toBeInTheDocument();
+    expect(screen.queryByTestId("tab-assignments")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("tab-working-conditions")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("tab-lifecycle")).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /open table page|mở trang bảng/i })).not.toBeInTheDocument();
   });
 
   it("renders error state when employee is not found", async () => {

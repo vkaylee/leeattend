@@ -20,13 +20,23 @@ import {
 export type FilterType = "ALL" | "GROUP" | "USER";
 export type StrategyType = "allow" | "block" | "clamp";
 
-export function usePolicyAssignments() {
+export interface PolicyAssignmentsOptions {
+  limit?: number;
+  page?: number;
+  q?: string;
+  targetType?: Exclude<FilterType, "ALL">;
+  onTargetTypeChange?: (targetType?: Exclude<FilterType, "ALL">) => void;
+  onPageChange?: (page: number) => void;
+}
+
+export function usePolicyAssignments(options: PolicyAssignmentsOptions = {}) {
   const queryClient = useQueryClient();
   const toast = useToast();
   const { t } = useTranslation();
 
   // Form state
-  const [activeFilter, setActiveFilter] = useState<FilterType>("ALL");
+  const [localFilter, setLocalFilter] = useState<FilterType>("ALL");
+  const activeFilter: FilterType = options.targetType ?? localFilter;
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [targetType, setTargetType] = useState<"USER" | "GROUP">("GROUP");
   const [targetId, setTargetId] = useState("");
@@ -37,13 +47,20 @@ export function usePolicyAssignments() {
   const [gracePeriodMinutes, setGracePeriodMinutes] = useState<number | undefined>(undefined);
 
   // Queries
-  const { data: assignments = [], isLoading: isLoadingAssignments } = useQuery<PolicyAssignmentResponse[]>({ queryKey: ["attendance-policy-assignments"], queryFn: () => fetchPolicyAssignments() });
+  const page = options.page ?? 1;
+  const limit = options.limit ?? 50;
+  const serverTargetType = options.targetType ?? (activeFilter === "ALL" ? undefined : activeFilter);
+  const { data: assignmentsResponse, isLoading: isLoadingAssignments, isError: isAssignmentsError, refetch: refetchAssignments } = useQuery({
+      queryKey: ["attendance-policy-assignments", page, limit, options.q, serverTargetType],
+    queryFn: () => fetchPolicyAssignments({ page, limit, q: options.q, target_type: serverTargetType }),
+  });
+  const assignments = assignmentsResponse?.data ?? [];
 
   const { data: departments = [] } = useOrganizationQuery({ queryKey: departmentKeys.all(),
   queryFn: fetchDepartments, });
 
   const { data: employeesResponse } = useOrganizationQuery({ queryKey: employeeKeys.lookup(),
-  queryFn: () => fetchEmployees(1, 1000), });
+  queryFn: () => fetchEmployees(1, 300), });
 
   const employees = useMemo(() => employeesResponse?.data ?? [], [employeesResponse]);
 
@@ -65,18 +82,16 @@ export function usePolicyAssignments() {
   });
 
   // Derived state & helpers
-  const filteredAssignments = useMemo(() =>
-    assignments.filter(a => activeFilter === "ALL" || a.target_type === activeFilter),
-    [assignments, activeFilter]
-  );
+  const filteredAssignments = assignments;
 
   const deptMap = useMemo(() => new Map(departments.map(d => [d.id, d.name])), [departments]);
   const empMap = useMemo(() => new Map(employees.map((e: Employee) => [e.id, e.full_name])), [employees]);
 
-  const getTargetName = useCallback((type: string, id: string) =>
-    type === "GROUP" ? deptMap.get(id) ?? "Unknown Department" : empMap.get(id) ?? "Unknown Employee",
-    [deptMap, empMap]
-  );
+  const getTargetName = useCallback((type: string, id: string) => {
+    const assignment = assignments.find((item) => item.target_type === type && item.target_id === id);
+    if (assignment?.target_name) return assignment.target_name;
+    return type === "GROUP" ? deptMap.get(id) ?? "Unknown Department" : empMap.get(id) ?? "Unknown Employee";
+  }, [assignments, deptMap, empMap]);
 
   const workUnitLabel = useCallback((v: number) =>
     t(`common.organization_settings.work_unit_options.${v}min`, { defaultValue: `${v} min` }),
@@ -115,10 +130,18 @@ export function usePolicyAssignments() {
     departments,
     employees,
     isLoadingAssignments,
+    isAssignmentsError,
+    refetchAssignments,
+    totalAssignments: assignmentsResponse?.total ?? 0,
+    page,
+    limit,
     deleteMutation,
     upsertMutation,
     activeFilter,
-    setActiveFilter,
+    setActiveFilter: (filter: FilterType) => {
+      setLocalFilter(filter);
+      options.onTargetTypeChange?.(filter === "ALL" ? undefined : filter);
+    },
     isDrawerOpen,
     setIsDrawerOpen,
     targetType,

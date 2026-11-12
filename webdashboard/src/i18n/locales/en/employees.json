@@ -198,15 +198,13 @@
         "documents": "Documents & Records",
         "contracts": "Contracts",
         "phases": "Career Phases",
-        "assignments": "Assignments",
         "salary": "Salary & Benefits",
         "compensation": "Compensation History",
-        "working_conditions": "Working Conditions",
-        "attendance_policy": "Attendance Policy",
-        "lifecycle": "Checklists"
+        "attendance_policy": "Attendance Policy"
       },
       "edit_profile": "Edit Profile",
-      "original_hire_date": "Original Hire Date",
+            "filtered_employee": "Filtered by employee",
+            "original_hire_date": "Original Hire Date",
       "terminate": "Terminate",
       "rehire": "Rehire",
       "terminated_at": "Terminated on",

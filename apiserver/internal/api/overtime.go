@@ -521,7 +521,7 @@ func (h OvertimeHandler) DeleteRequestBehalf(w http.ResponseWriter, r *http.Requ
 		h.forbidden(w, r)
 		return
 	}
-	if err := h.BehalfRepository.DeleteBehalfAssignment(r.Context(), assignmentID); err != nil {
+	if err := h.BehalfRepository.DeleteBehalfAssignment(r.Context(), assignmentID, OvertimeRequestBehalfAssignmentType); err != nil {
 		h.fail(w, r, err)
 		return
 	}
@@ -627,7 +627,7 @@ func (h OvertimeHandler) DeleteClaimBehalf(w http.ResponseWriter, r *http.Reques
 		h.forbidden(w, r)
 		return
 	}
-	if err := h.BehalfRepository.DeleteBehalfAssignment(r.Context(), assignmentID); err != nil {
+	if err := h.BehalfRepository.DeleteBehalfAssignment(r.Context(), assignmentID, OvertimeRequestBehalfAssignmentType); err != nil {
 		h.fail(w, r, err)
 		return
 	}

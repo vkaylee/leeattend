@@ -58,8 +58,8 @@ func (m *mockAttendancePolicyRepo) GetDefaultPolicyVersions(_ context.Context) (
 func (m *mockAttendancePolicyRepo) UpdateDefaultPolicyRules(_ context.Context, _ uuid.UUID, _ UpdateAttendanceRulesRequest) (AttendancePolicyVersionResponse, error) {
 	return m.versionResult, m.err
 }
-func (m *mockAttendancePolicyRepo) ListPolicyAssignments(_ context.Context) ([]PolicyAssignmentResponse, error) {
-	return m.assignments, m.err
+func (m *mockAttendancePolicyRepo) ListPolicyAssignments(_ context.Context, page, limit int, _, _ string) (PolicyAssignmentListResponse, error) {
+	return PolicyAssignmentListResponse{Data: m.assignments, Total: int64(len(m.assignments)), Page: page, Limit: limit}, m.err
 }
 func (m *mockAttendancePolicyRepo) UpsertPolicyAssignment(_ context.Context, _ uuid.UUID, _ UpsertPolicyAssignmentRequest) (PolicyAssignmentResponse, error) {
 	return m.assignmentResult, m.err
@@ -81,7 +81,7 @@ func (m *mockBehalfRepo) CreateBehalfAssignment(_ context.Context, _ CreateBehal
 func (m *mockBehalfRepo) ListBehalfAssignments(_ context.Context, _ string) ([]BehalfAssignment, error) {
 	return m.assignments, m.err
 }
-func (m *mockBehalfRepo) DeleteBehalfAssignment(_ context.Context, _ uuid.UUID) error {
+func (m *mockBehalfRepo) DeleteBehalfAssignment(_ context.Context, _ uuid.UUID, _ string) error {
 	return m.err
 }
 func (m *mockBehalfRepo) ListMyBehalfTargets(_ context.Context, _ uuid.UUID, _ string) ([]EmployeeRecord, error) {

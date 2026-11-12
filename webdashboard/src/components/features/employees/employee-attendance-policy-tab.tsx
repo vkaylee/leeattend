@@ -34,15 +34,16 @@ export default function EmployeeAttendancePolicyTab({ employeeId}: Props) {
   const { data: defaultRules } = useQuery({ queryKey: ["attendance-rules"], queryFn: () => fetchDefaultAttendanceRules(),
  });
 
-  const { data: assignments = [], isLoading } = useQuery({ queryKey: ["policy-assignments"], queryFn: () => fetchPolicyAssignments(),
+  const { data: assignmentsResponse, isLoading } = useQuery({ queryKey: ["attendance-policy-assignments"], queryFn: () => fetchPolicyAssignments(),
  });
 
+  const assignments = assignmentsResponse?.data ?? [];
   const employeeAssignment = assignments.find((a) => a.target_type === "USER" && a.target_id === employeeId);
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => deletePolicyAssignment(id),
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ["policy-assignments"] });
+      void queryClient.invalidateQueries({ queryKey: ["attendance-policy-assignments"] });
     },
   });
 
@@ -57,7 +58,7 @@ export default function EmployeeAttendancePolicyTab({ employeeId}: Props) {
         grace_period_minutes: defaultRules?.grace_period_minutes ?? null,
       }),
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ["policy-assignments"] });
+      void queryClient.invalidateQueries({ queryKey: ["attendance-policy-assignments"] });
     },
   });
 

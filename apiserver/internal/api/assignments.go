@@ -279,7 +279,7 @@ func (h AssignmentHandler) assignmentError(w http.ResponseWriter, r *http.Reques
 }
 
 func (h AssignmentHandler) ListAssignments(w http.ResponseWriter, r *http.Request) {
-	if !h.member(w, r) {
+	if !h.member(w, r) || !h.permission(w, r, "employees:read") {
 		return
 	}
 	items, err := h.Assignments.ListAssignments(r.Context())

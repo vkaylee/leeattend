@@ -11,8 +11,11 @@ if [[ "${1:-}" == --supervised ]]; then
   shift
 fi
 
-ROLE="${1:-employee}"
-shift || true
+ROLE="${PLAYWRIGHT_ROLE:-employee}"
+if [[ "${1:-}" != --* && -n "${1:-}" ]]; then
+  ROLE="$1"
+  shift
+fi
 case "$ROLE" in
   employee|team-lead|shift-manager|hr-manager|admin) ;;
   *)

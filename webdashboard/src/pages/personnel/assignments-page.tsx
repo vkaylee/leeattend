@@ -1,4 +1,5 @@
-import { ArrowLeftRight, CheckCircle2, Clock, Plus, Users } from "lucide-react";
+import { Link, useSearch } from "@tanstack/react-router";
+import { ArrowLeftRight, CheckCircle2, Clock, Plus, Users, X } from "lucide-react";
 import React, { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -19,12 +20,14 @@ import type { EmployeeAssignmentWithEmployee } from "@/lib/api/employee-assignme
 
 export default function PersonnelAssignmentsPage() {
   const { t } = useTranslation();
+  const searchParams = useSearch({ strict: false }) as { employeeId?: string; q?: string };
   const toast = useToast();
   
   const { confirm, ConfirmationDialog } = useConfirm();
 
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useState(searchParams.q ?? "");
   const [selectedStatus, setSelectedStatus] = useState<string>("all");
+  const employeeFilter = searchParams.employeeId;
 
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingAssignment, setEditingAssignment] = useState<EmployeeAssignmentWithEmployee | null>(null);
@@ -54,9 +57,10 @@ export default function PersonnelAssignmentsPage() {
         (a.reason?.toLowerCase().includes(q) ?? false);
 
       const matchStatus = selectedStatus === "all" || a.status === selectedStatus;
-      return matchSearch && matchStatus;
+      const matchEmployee = !employeeFilter || a.employee_id === employeeFilter;
+      return matchSearch && matchStatus && matchEmployee;
     });
-  }, [assignments, search, selectedStatus]);
+  }, [assignments, search, selectedStatus, employeeFilter]);
 
   const handleDelete = async (assignment: EmployeeAssignmentWithEmployee) => {
     const isConfirmed = await confirm({
@@ -108,6 +112,22 @@ export default function PersonnelAssignmentsPage() {
         })}
         title={t("assignments.title", { defaultValue: "Quản lý Phái cử & Luân chuyển" })}
       />
+
+      {employeeFilter && (
+        <div className="flex items-center gap-2" data-testid="employee-filter-chip">
+          <span className="rounded-full border border-primary-200 bg-primary-50 px-3 py-1 text-xs font-semibold text-primary-700 dark:border-primary-800 dark:bg-primary-950 dark:text-primary-300">
+            {t("employees.details.filtered_employee", { defaultValue: "Đang lọc theo nhân viên" })}
+          </span>
+          <Link
+            aria-label={t("common.clear_filter", { defaultValue: "Bỏ bộ lọc" })}
+            className="rounded-full p-1 text-slate-500 hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 dark:hover:bg-slate-800"
+            search={{}}
+            to="/assignments"
+          >
+            <X aria-hidden size={14} />
+          </Link>
+        </div>
+      )}
 
       {/* ── KPI Metric Cards ────────────────────────────────────────── */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">

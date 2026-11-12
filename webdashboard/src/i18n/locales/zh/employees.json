@@ -198,15 +198,13 @@
         "documents": "文档与档案",
         "contracts": "劳动合同",
         "phases": "职业历程",
-        "assignments": "调派记录",
         "salary": "薪资与福利",
         "compensation": "薪资历史",
-        "working_conditions": "工作条件",
-        "attendance_policy": "考勤政策",
-        "lifecycle": "流程清单"
+        "attendance_policy": "考勤政策"
       },
       "edit_profile": "编辑档案",
-      "original_hire_date": "原始入职日期",
+            "filtered_employee": "按员工筛选",
+            "original_hire_date": "原始入职日期",
       "terminate": "终止",
       "rehire": "重新入职",
       "terminated_at": "离职日期",

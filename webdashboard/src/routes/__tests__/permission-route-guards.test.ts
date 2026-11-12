@@ -25,14 +25,23 @@ vi.mock("react-i18next", () => ({
 }));
 
 import { Route as InfraRoute } from "../_authenticated/_infra";
+import { Route as AssignmentsRoute } from "../_authenticated/_organization/assignments";
+import { Route as EmployeeDetailRoute } from "../_authenticated/_organization/employees_.$employeeId";
+import { Route as LifecycleRoute } from "../_authenticated/_organization/lifecycle";
 import { Route as SettingsRoute } from "../_authenticated/_organization/settings";
+import { Route as WorkingConditionsRoute } from "../_authenticated/_organization/working-conditions";
 
 interface RouteOptions {
-  beforeLoad?: () => Promise<void>;
+  beforeLoad?: (args?: { params?: { employeeId?: string }; search?: unknown }) => Promise<void> | void;
 }
 
 const settingsBeforeLoad = (SettingsRoute.options as RouteOptions).beforeLoad!;
 const infraBeforeLoad = (InfraRoute.options as RouteOptions).beforeLoad!;
+const personnelHubBeforeLoads = [
+  (AssignmentsRoute.options as RouteOptions).beforeLoad!,
+  (WorkingConditionsRoute.options as RouteOptions).beforeLoad!,
+  (LifecycleRoute.options as RouteOptions).beforeLoad!,
+];
 
 describe("permission route guards", () => {
   beforeEach(() => {
@@ -66,6 +75,22 @@ describe("permission route guards", () => {
     });
   });
 
+  it("redirects personnel hubs without employee read permission", async () => {
+    fetchMyPermissions.mockResolvedValue({ permissions: ["ess:attendance"] });
+
+    for (const beforeLoad of personnelHubBeforeLoads) {
+      await expect(beforeLoad()).rejects.toMatchObject({ isRedirect: true, to: "/" });
+    }
+  });
+
+  it("allows personnel hubs with employee read permission", async () => {
+    fetchMyPermissions.mockResolvedValue({ permissions: ["employees:read"] });
+
+    for (const beforeLoad of personnelHubBeforeLoads) {
+      await expect(beforeLoad()).resolves.toBeUndefined();
+    }
+  });
+
   it("fails closed when permission lookup fails", async () => {
     fetchMyPermissions.mockRejectedValue(new Error("permission service unavailable"));
 
@@ -73,5 +98,32 @@ describe("permission route guards", () => {
       isRedirect: true,
       to: "/",
     });
+  });
+
+  it.each([
+    ["assignments", "/assignments"],
+    ["working-conditions", "/working-conditions"],
+    ["lifecycle", "/lifecycle"],
+  ])("redirects legacy %s bookmark to filtered centralized page", (tab, to) => {
+    expect(() =>
+      (EmployeeDetailRoute.options as RouteOptions).beforeLoad!({
+        params: { employeeId: "emp-1" },
+        search: { tab },
+      }),
+    ).toThrow();
+    expect(redirect).toHaveBeenCalledWith({
+      to,
+      search: { employeeId: "emp-1" },
+    });
+  });
+
+  it("keeps non-centralized profile tabs on employee detail", () => {
+    expect(() =>
+      (EmployeeDetailRoute.options as RouteOptions).beforeLoad!({
+        params: { employeeId: "emp-1" },
+        search: { tab: "contracts" },
+      }),
+    ).not.toThrow();
+    expect(redirect).not.toHaveBeenCalled();
   });
 });

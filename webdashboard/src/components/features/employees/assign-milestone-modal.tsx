@@ -7,13 +7,14 @@ import Button from "@/components/ui/button";
 import Modal from "@/components/ui/modal";
 import { useToast } from "@/components/ui/toast";
 import { Typography } from "@/components/ui/typography";
-import { assignEmployeePhase } from "@/lib/api/employees";
+import { assignEmployeePhase, assignEmploymentPhase } from "@/lib/api/employees";
 import { EmployeeContract, EmploymentPhaseDefinition } from "@/lib/api/types";
 
 interface Props {
   contracts: EmployeeContract[];
   definitions?: EmploymentPhaseDefinition[];
   employeeId: string;
+  employmentId?: string;
   isOpen: boolean;
   onClose: () => void;
 }
@@ -50,6 +51,7 @@ function WarningAlert({ warning, title }: WarningProps) {
 export default function AssignMilestoneModal({
   isOpen,
   onClose,employeeId,
+  employmentId,
   definitions,
   contracts,
 }: Props) {
@@ -64,10 +66,11 @@ export default function AssignMilestoneModal({
   });
 
   const assignMutation = useMutation({
-    mutationFn: (data: typeof assignData) => assignEmployeePhase(employeeId, data),
+    mutationFn: (data: typeof assignData) => employmentId ? assignEmploymentPhase(employmentId, data) : assignEmployeePhase(employeeId, data),
     onSuccess: () => {
       toast.success(t("common.success"));
       void queryClient.invalidateQueries({ queryKey: ["employee-phases", employeeId] });
+      void queryClient.invalidateQueries({ queryKey: ["employment-phase-assignments"] });
       onClose();
       setAssignData({ phase_definition_id: "", start_date: "", end_date: "" });
     },

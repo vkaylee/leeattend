@@ -210,34 +210,62 @@ func (r AttendancePolicyRepository) UpdateDefaultPolicyRules(ctx context.Context
 	return result, err
 }
 
-func (r AttendancePolicyRepository) ListPolicyAssignments(ctx context.Context) ([]api.PolicyAssignmentResponse, error) {
+func (r AttendancePolicyRepository) ListPolicyAssignments(ctx context.Context, page, limit int, query, targetType string) (api.PolicyAssignmentListResponse, error) {
 	db, err := r.db(ctx)
 	if err != nil {
-		return nil, err
+		return api.PolicyAssignmentListResponse{}, err
 	}
-	rows, err := db.Query(ctx, `SELECT DISTINCT ON (a.id) a.id, a.target_type, a.target_id, a.valid_from, a.valid_to, v.rules FROM attendance_policy_assignments a JOIN attendance_policies p ON p.id = a.policy_id JOIN attendance_policy_versions v ON v.policy_id = a.policy_id WHERE a.valid_from <= NOW() AND (a.valid_to IS NULL OR a.valid_to >= NOW()) AND v.valid_from <= NOW() AND (v.valid_to IS NULL OR v.valid_to >= NOW()) ORDER BY a.id, v.valid_from DESC, v.created_at DESC`)
+	offset := (page - 1) * limit
+	search := "%" + query + "%"
+	const assignmentQuery = `
+		SELECT DISTINCT ON (a.id) a.id, a.target_type, a.target_id, a.valid_from, a.valid_to, v.rules,
+			CASE WHEN a.target_type = 'GROUP' THEN d.name WHEN a.target_type = 'USER' THEN e.full_name ELSE NULL END,
+			CASE WHEN a.target_type = 'USER' THEN e.employee_id_number ELSE NULL END,
+			CASE WHEN a.target_type = 'USER' THEN dept.name ELSE NULL END
+		FROM attendance_policy_assignments a
+		JOIN attendance_policies p ON p.id = a.policy_id
+		JOIN attendance_policy_versions v ON v.policy_id = a.policy_id
+		LEFT JOIN departments d ON a.target_type = 'GROUP' AND d.id = a.target_id
+		LEFT JOIN employees e ON a.target_type = 'USER' AND e.id = a.target_id AND e.deleted_at IS NULL
+		LEFT JOIN employments em ON em.employee_id = e.id AND em.status = 'active' AND em.deleted_at IS NULL
+		LEFT JOIN departments dept ON dept.id = em.department_id
+		WHERE a.valid_from <= NOW() AND (a.valid_to IS NULL OR a.valid_to >= NOW())
+		  AND v.valid_from <= NOW() AND (v.valid_to IS NULL OR v.valid_to >= NOW())
+		  AND ($1 = '%%' OR COALESCE(d.name, e.full_name, e.employee_id_number, '') ILIKE $1)
+		  AND ($2 = '' OR a.target_type = $2)
+		ORDER BY a.id, v.valid_from DESC, v.created_at DESC
+		LIMIT $3 OFFSET $4`
+	rows, err := db.Query(ctx, assignmentQuery, search, targetType, limit, offset)
 	if err != nil {
-		return nil, err
+		return api.PolicyAssignmentListResponse{}, err
 	}
 	defer rows.Close()
-	result := make([]api.PolicyAssignmentResponse, 0)
+	result := api.PolicyAssignmentListResponse{Data: make([]api.PolicyAssignmentResponse, 0), Page: page, Limit: limit}
 	for rows.Next() {
 		var id, targetID uuid.UUID
-		var targetType string
+		var targetTypeValue string
 		var validFrom time.Time
 		var validTo *time.Time
 		var raw []byte
-		if err := rows.Scan(&id, &targetType, &targetID, &validFrom, &validTo, &raw); err != nil {
-			return nil, err
+		var targetName, targetCode, departmentName *string
+		if err := rows.Scan(&id, &targetTypeValue, &targetID, &validFrom, &validTo, &raw, &targetName, &targetCode, &departmentName); err != nil {
+			return api.PolicyAssignmentListResponse{}, err
 		}
 		var validToValue *string
 		if validTo != nil {
 			value := validTo.UTC().Format(time.RFC3339)
 			validToValue = &value
 		}
-		result = append(result, api.PolicyAssignmentResponse{ID: id.String(), TargetType: targetType, TargetID: targetID.String(), ValidFrom: validFrom.UTC().Format(time.RFC3339), ValidTo: validToValue, Rules: decodeAttendanceRules(raw)})
+		result.Data = append(result.Data, api.PolicyAssignmentResponse{ID: id.String(), TargetType: targetTypeValue, TargetID: targetID.String(), TargetName: targetName, TargetCode: targetCode, DepartmentName: departmentName, ValidFrom: validFrom.UTC().Format(time.RFC3339), ValidTo: validToValue, Rules: decodeAttendanceRules(raw)})
 	}
-	return result, rows.Err()
+	if err := rows.Err(); err != nil {
+		return api.PolicyAssignmentListResponse{}, err
+	}
+	countQuery := `SELECT count(*) FROM attendance_policy_assignments a LEFT JOIN departments d ON a.target_type = 'GROUP' AND d.id = a.target_id LEFT JOIN employees e ON a.target_type = 'USER' AND e.id = a.target_id AND e.deleted_at IS NULL WHERE a.valid_from <= NOW() AND (a.valid_to IS NULL OR a.valid_to >= NOW()) AND ($1 = '%%' OR COALESCE(d.name, e.full_name, e.employee_id_number, '') ILIKE $1) AND ($2 = '' OR a.target_type = $2)`
+	if err := db.QueryRow(ctx, countQuery, search, targetType).Scan(&result.Total); err != nil {
+		return api.PolicyAssignmentListResponse{}, err
+	}
+	return result, nil
 }
 
 func (r AttendancePolicyRepository) UpsertPolicyAssignment(ctx context.Context, userID uuid.UUID, req api.UpsertPolicyAssignmentRequest) (api.PolicyAssignmentResponse, error) {
@@ -285,8 +313,14 @@ func (r AttendancePolicyRepository) DeletePolicyAssignment(ctx context.Context, 
 	if err != nil {
 		return err
 	}
-	_, err = db.Exec(ctx, `UPDATE attendance_policy_assignments SET valid_to = NOW(), updated_at = NOW() WHERE id = $1`, assignmentID)
-	return err
+	result, err := db.Exec(ctx, `UPDATE attendance_policy_assignments SET valid_to = NOW(), updated_at = NOW() WHERE id = $1 AND valid_to IS NULL`, assignmentID)
+	if err != nil {
+		return err
+	}
+	if result.RowsAffected() == 0 {
+		return pgx.ErrNoRows
+	}
+	return nil
 }
 
 func scanBehalf(row interface{ Scan(...any) error }) (api.BehalfAssignment, error) {
@@ -336,12 +370,12 @@ func (r AttendancePolicyRepository) ListBehalfAssignments(ctx context.Context, a
 	return result, rows.Err()
 }
 
-func (r AttendancePolicyRepository) DeleteBehalfAssignment(ctx context.Context, assignmentID uuid.UUID) error {
+func (r AttendancePolicyRepository) DeleteBehalfAssignment(ctx context.Context, assignmentID uuid.UUID, assignmentType string) error {
 	db, err := r.db(ctx)
 	if err != nil {
 		return err
 	}
-	result, err := db.Exec(ctx, `DELETE FROM behalf_assignments WHERE id = $1`, assignmentID)
+	result, err := db.Exec(ctx, `DELETE FROM behalf_assignments WHERE id = $1 AND assignment_type = $2`, assignmentID, assignmentType)
 	if err != nil {
 		return err
 	}

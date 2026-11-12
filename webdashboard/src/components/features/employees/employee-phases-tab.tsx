@@ -90,6 +90,7 @@ export default function EmployeePhasesTab({employeeId, formatDate }: Props) {
         <AssignMilestoneModal contracts={contracts}
         definitions={definitions}
         employeeId={employeeId}
+        employmentId={undefined}
         isOpen={isAssignModalOpen}
         onClose={() => {
           setIsAssignModalOpen(false);
@@ -98,6 +99,7 @@ export default function EmployeePhasesTab({employeeId, formatDate }: Props) {
 
       {isStatusModalOpen && selectedPhase ? (
         <UpdatePhaseStatusModal employeeId={employeeId}
+        employmentId={undefined}
         isOpen={isStatusModalOpen}
         onClose={() => {
           setIsStatusModalOpen(false);

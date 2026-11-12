@@ -91,9 +91,6 @@ vi.mock("react-i18next", () => ({
 vi.mock("@/components/payroll/employee-salary-config", () => ({
     default: () => <div data-testid="salary-config">SalaryConfig</div>,
 }));
-vi.mock("@/components/employees/working-condition-config", () => ({
-    default: () => <div data-testid="working-condition">WorkingCondition</div>,
-}));
 vi.mock("@/components/features/employees/employee-detail-drawer", () => ({
     default: ({ employee, isOpen, onTerminate }: { employee: Employee | null; isOpen: boolean; onTerminate: (employee: Employee) => void }) => (
         isOpen && employee ? (

@@ -24,7 +24,7 @@ import { Typography } from "@/components/ui/typography";
 import { Employee, PolicyAssignmentResponse } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
-import { usePolicyAssignments, StrategyType } from "./hooks/use-policy-assignments";
+import { usePolicyAssignments, StrategyType, type PolicyAssignmentsOptions } from "./hooks/use-policy-assignments";
 
 interface AssignmentCardProps {
   assignment: PolicyAssignmentResponse;
@@ -48,7 +48,7 @@ function AssignmentCard({ assignment, getTargetName, workUnitLabel, roundingLabe
               {assignment.target_type === "GROUP" ? t("attendance_policy_overrides.labels.department") : t("attendance_policy_overrides.labels.employee")}
             </span>
           </div>
-          <Typography className="text-lg font-bold text-slate-800 dark:text-slate-200" variant="h4">{getTargetName(assignment.target_type, assignment.target_id)}</Typography>
+          <Typography className="text-lg font-bold text-slate-800 dark:text-slate-200" variant="h4">{assignment.target_name ?? getTargetName(assignment.target_type, assignment.target_id)}</Typography>
         </div>
       </div>
       <div className="flex items-center gap-8 px-6">
@@ -88,7 +88,7 @@ function AssignmentCard({ assignment, getTargetName, workUnitLabel, roundingLabe
 }
 
   // eslint-disable-next-line max-lines-per-function
-function PolicyAssignmentsSectionContent() {
+function PolicyAssignmentsSectionContent({ options = {} }: { options?: PolicyAssignmentsOptions }) {
   const { t } = useTranslation();
   
   const {
@@ -119,8 +119,13 @@ function PolicyAssignmentsSectionContent() {
     getTargetName,
     workUnitLabel,
     roundingLabel,
-    handleSave
-  } = usePolicyAssignments();
+    handleSave,
+    isAssignmentsError,
+    refetchAssignments,
+    totalAssignments,
+    page,
+    limit,
+  } = usePolicyAssignments(options);
 
   const targetOptions = useMemo(() => 
     targetType === "GROUP" 
@@ -130,6 +135,7 @@ function PolicyAssignmentsSectionContent() {
   );
 
   if (isLoadingAssignments) return <div className="h-40 animate-pulse bg-slate-100 dark:bg-slate-800 rounded-[2.5rem] mt-8" data-testid="policy-assignments-skeleton"></div>;
+  if (isAssignmentsError) return <div className="mt-8 rounded-2xl border border-rose-200 bg-rose-50 p-6 text-sm text-rose-700"><p>{t("common.error", { defaultValue: "Unable to load data." })}</p><Button className="mt-3" onClick={() => { void refetchAssignments(); }} variant="outline">{t("common.retry", { defaultValue: "Retry" })}</Button></div>;
 
   return (
     <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden mt-8">
@@ -188,6 +194,14 @@ function PolicyAssignmentsSectionContent() {
             ))}
           </div>
         )}
+        <div className="mt-6 flex items-center justify-between text-sm">
+          <span>{totalAssignments} {t("common.results", { defaultValue: "results" })}</span>
+          <div className="flex items-center gap-2">
+            <Button disabled={page <= 1} onClick={() => { options.onPageChange?.(page - 1); }} variant="outline">{t("common.previous", { defaultValue: "Previous" })}</Button>
+            <span>{page} / {Math.max(1, Math.ceil(totalAssignments / limit))}</span>
+            <Button disabled={page >= Math.max(1, Math.ceil(totalAssignments / limit))} onClick={() => { options.onPageChange?.(page + 1); }} variant="outline">{t("common.next", { defaultValue: "Next" })}</Button>
+          </div>
+        </div>
       </div>
       <Sheet isOpen={isDrawerOpen} onClose={() => { setIsDrawerOpen(false); }} subtitle={t("attendance_policy_overrides.drawer.add_subtitle")} title={t("attendance_policy_overrides.drawer.add_title")}>
         <div className="space-y-8">
@@ -295,10 +309,10 @@ function PolicyAssignmentsSectionContent() {
   );
 }
 
-export function PolicyAssignmentsSection() {
+export function PolicyAssignmentsSection({ options = {} }: { options?: PolicyAssignmentsOptions }) {
   return (
     <ErrorBoundary variant="compact">
-      <PolicyAssignmentsSectionContent   />
+      <PolicyAssignmentsSectionContent options={options} />
     </ErrorBoundary>
   );
 }
