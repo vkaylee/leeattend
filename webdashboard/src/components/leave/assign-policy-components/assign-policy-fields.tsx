@@ -1,8 +1,9 @@
-import { UserCircle, ShieldCheck, Building2 } from "lucide-react";
+import { ShieldCheck, Building2 } from "lucide-react";
 import React from "react";
- 
+
+import { EmployeeSearch } from "@/components/common/employee-search";
 import { Combobox } from "@/components/ui/combobox";
-import { Employee, Department, LeavePolicy, LeaveType } from "@/lib/api/types";
+import { Department, LeavePolicy, LeaveType } from "@/lib/api/types";
 
 interface FieldProps {
   t: (key: string) => string;
@@ -17,11 +18,17 @@ export function AssigneeTypeSelect({ assigneeType, setAssigneeType, t }: { assig
   );
 }
 
-export function EmployeePicker({ assignEmpId, setAssignEmpId, employees, employeesLoading, t }: { assignEmpId: string; setAssignEmpId: (val: string) => void; employees: Employee[]; employeesLoading: boolean } & FieldProps) {
+export function EmployeePicker({ assignEmpId, setAssignEmpId, t }: { assignEmpId: string; setAssignEmpId: (val: string) => void } & FieldProps) {
   return (
     <div className="space-y-2 animate-in slide-in-from-top-2">
       <label className="text-[10px] font-bold text-primary-400 uppercase tracking-widest ml-1" htmlFor="assign-emp">{t("common.employee")}</label>
-      <Combobox className="bg-slate-50 dark:bg-slate-800 border-primary-100 dark:border-primary-800/50 h-14" data-testid="assign-emp-select" id="assign-emp" onChange={setAssignEmpId} options={employees.map(e => ({ value: e.id, label: e.full_name, description: e.employee_id_number, icon: <UserCircle size={14} /> }))} placeholder={employeesLoading ? t("common.loading") : t("common.select_employee")} value={assignEmpId} />
+      <EmployeeSearch
+        data-testid="assign-emp-select"
+        id="assign-emp"
+        onChange={(value) => { setAssignEmpId(typeof value === "string" ? value : value[0] ?? ""); }}
+        placeholder={t("common.select_employee")}
+        value={assignEmpId}
+      />
     </div>
   );
 }

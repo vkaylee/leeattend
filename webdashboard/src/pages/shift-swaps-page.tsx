@@ -23,7 +23,6 @@ import StatusBadge from "@/components/ui/status-badge";
 import { useToast } from "@/components/ui/toast";
 import { Typography } from "@/components/ui/typography";
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
-import { useAllEmployees } from "@/hooks/use-employees";
 import { useSearchPatch } from "@/lib/state";
 import { Route } from "@/routes/_authenticated/_organization/shift-swaps";
 
@@ -173,8 +172,6 @@ function ShiftSwapsContent({ t }: { t: TFunction }) {
     },
   });
 
-  const { employees } = useAllEmployees();
-
   const tabs: TabConfig[] = [
     { id: "pending_admin", label: t("shift_swaps.status.pending_admin"), icon: <Clock size={14} />, colorScheme: "amber" },
     { id: "approved", label: t("shift_swaps.status.approved"), icon: <CheckCircle size={14} />, colorScheme: "emerald" },
@@ -222,7 +219,6 @@ function ShiftSwapsContent({ t }: { t: TFunction }) {
               ) : null}
               {showCreateForm ? (
                 <ShiftSwapCreateForm
-                  employees={employees}
                   handleCreate={() => {
                     createMutation.mutate({ requester_id: requesterId, target_id: targetId, swap_date: swapDate, reason: reason || undefined });
                   }}

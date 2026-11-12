@@ -16,6 +16,15 @@ vi.mock("../../../lib/api", () => ({
   assignLeavePolicy: vi.fn(),
 }));
 
+vi.mock("@/components/common/employee-search", () => ({
+  EmployeeSearch: ({ onChange, value }: { onChange: (value: string) => void; value?: string }) => (
+    <select aria-label="Nhân viên" onChange={(event) => { onChange(event.target.value); }} value={value}>
+      <option value="">Select employee</option>
+      <option value="emp-1">Alice Doe</option>
+    </select>
+  ),
+}));
+
 describe("AssignPolicyModal", () => {
   let queryClient: QueryClient;
 
@@ -62,7 +71,6 @@ describe("AssignPolicyModal", () => {
   it("fetches data when opened", async () => {
     renderModal(true);
     await waitFor(() => {
-      expect(api.fetchEmployees).toHaveBeenCalledWith(1, 3000, undefined);
       expect(api.fetchDepartments).toHaveBeenCalledWith();
       expect(api.fetchLeavePolicies).toHaveBeenCalledWith();
     });

@@ -5,40 +5,30 @@ import React, { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import type { EmployeeContract } from "@/lib/api";
-import type { Employee } from "@/lib/api/types";
 
 import ContractFormModal from "@/components/features/employees/contract-form-modal";
 import { ContractsFilters } from "@/components/features/employees/contracts-filters";
 import { ContractsTable } from "@/components/features/employees/contracts-table";
+import { EmployeeSearch } from "@/components/common/employee-search";
 import Button from "@/components/ui/button";
-import FormField from "@/components/ui/form-field";
 import { PageContainer } from "@/components/ui/page-container";
 import Modal from "@/components/ui/modal";
 import PageHeader from "@/components/ui/page-header";
 import { useToast } from "@/components/ui/toast";
 import { useConfirm } from "@/hooks/use-confirm";
-import { useAllEmployees } from "@/hooks/use-employees";
 import { deleteEmployeeContract, fetchContracts } from "@/lib/api/contracts";
 import { isFeatureEnabled } from "@/lib/feature-flags";
 import { ROUTES } from "@/lib/routes";
 
 interface SelectEmployeeModalProps {
-  employees: Employee[];
   isOpen: boolean;
   onClose: () => void;
   onSelect: (employeeId: string) => void;
 }
 
-function SelectEmployeeModal({ isOpen, onClose, onSelect, employees }: SelectEmployeeModalProps) {
+function SelectEmployeeModal({ isOpen, onClose, onSelect }: SelectEmployeeModalProps) {
   const { t } = useTranslation();
-  const [search, setSearch] = useState("");
-
-  const filtered = useMemo(() => {
-    return employees.filter(emp =>
-      emp.full_name.toLowerCase().includes(search.toLowerCase()) ||
-      emp.employee_id_number.toLowerCase().includes(search.toLowerCase())
-    );
-  }, [employees, search]);
+  const [employeeId, setEmployeeId] = useState("");
 
   return (
     <Modal
@@ -49,53 +39,24 @@ function SelectEmployeeModal({ isOpen, onClose, onSelect, employees }: SelectEmp
       title={t("employees.details.contracts.select_employee", { defaultValue: "Select Employee" })}
     >
       <div className="space-y-4 pt-4">
-        <FormField
-          className="!px-0"
-          inputClassName="bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 dark:bg-slate-900/55 dark:border-slate-800 text-sm"
-          label={t("employees.table.search_placeholder", { defaultValue: "Search Employee" })}
-          onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => { setSearch(e.target.value); }}
+        <EmployeeSearch
+          data-testid="contracts-employee-search"
+          onChange={(value) => { setEmployeeId(typeof value === "string" ? value : value[0] ?? ""); }}
           placeholder={t("employees.table.search_placeholder", { defaultValue: "Search employee by name or code..." })}
-          value={search}
+          value={employeeId}
         />
-
-        <div className="max-h-72 overflow-y-auto space-y-1.5 pr-1">
-          {filtered.length === 0 ? (
-            <div className="text-center py-8 text-slate-400 text-xs">
-              {t("common.no_data", { defaultValue: "No employees found" })}
-            </div>
-          ) : (
-            filtered.map((emp) => (
-              <div
-                className="w-full flex items-center justify-between p-3.5 rounded-xl border border-slate-100 hover:border-primary-200 dark:border-slate-800/60 dark:hover:border-primary-900/50 hover:bg-primary-50/20 dark:hover:bg-primary-950/10 text-left cursor-pointer transition-all group focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
-                key={emp.id}
-                onClick={() => {
-                  onSelect(emp.id);
-                  onClose();
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" || e.key === " ") {
-                    e.preventDefault();
-                    onSelect(emp.id);
-                    onClose();
-                  }
-                }}
-                role="button"
-                tabIndex={0}
-              >
-                <div>
-                  <div className="text-xs font-bold text-slate-700 dark:text-slate-200 uppercase tracking-wider group-hover:text-primary-600 transition-colors">
-                    {emp.full_name}
-                  </div>
-                  {!!emp.employee_id_number && (
-                    <div className="text-[10px] font-mono text-slate-400 mt-0.5">
-                      {emp.employee_id_number}
-                    </div>
-                  )}
-                </div>
-              </div>
-            ))
-          )}
-        </div>
+        <Button
+          className="w-full"
+          disabled={!employeeId}
+          onClick={() => {
+            onSelect(employeeId);
+            setEmployeeId("");
+            onClose();
+          }}
+          variant="primary"
+        >
+          {t("common.save", { defaultValue: "Continue" })}
+        </Button>
       </div>
     </Modal>
   );
@@ -123,8 +84,6 @@ export default function ContractsPage() {
     queryKey: ["organization-contracts"],
     queryFn: () => fetchContracts(),
   });
-
-  const { employees, isLoading: isLoadingEmployees } = useAllEmployees();
 
   const deleteMutation = useMutation({
     mutationFn: ({ employeeId, contractId }: { employeeId: string; contractId: string }) =>
@@ -165,7 +124,7 @@ export default function ContractsPage() {
     });
   }, [contracts, search, selectedType, selectedStatus]);
 
-  const isPageLoading = isLoadingContracts || isLoadingEmployees;
+  const isPageLoading = isLoadingContracts;
 
   return (
     <PageContainer>
@@ -229,7 +188,6 @@ export default function ContractsPage() {
       </div>
 
       <SelectEmployeeModal
-        employees={employees}
         isOpen={isSelectEmpOpen}
         onClose={() => { setIsSelectEmpOpen(false); }}
         onSelect={(employeeId) => {

@@ -35,8 +35,6 @@ export function AssignPolicyModal({ isOpen, onClose,editingAssignment }: AssignP
     setAssignPolicyId,
     effectiveFrom,
     setEffectiveFrom,
-    employees,
-    employeesLoading,
     departments,
     departmentsLoading,
     policies,
@@ -65,8 +63,6 @@ export function AssignPolicyModal({ isOpen, onClose,editingAssignment }: AssignP
         {assigneeType === 'employee' && (
           <EmployeePicker 
             assignEmpId={assignEmpId}
-            employees={employees}
-            employeesLoading={employeesLoading}
             setAssignEmpId={setAssignEmpId}
             t={t}
           />

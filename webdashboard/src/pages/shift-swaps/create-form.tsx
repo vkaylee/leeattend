@@ -3,18 +3,12 @@ import React from "react";
 
 import { TFunction } from "i18next";
 
+import { EmployeeSearch } from "@/components/common/employee-search";
 import Button from "@/components/ui/button";
-import { Combobox } from "@/components/ui/combobox";
 import FormField from "@/components/ui/form-field";
 import { Typography } from "@/components/ui/typography";
 
-interface Employee {
-  full_name: string;
-  id: string;
-}
-
 interface ShiftSwapCreateFormProps {
-  employees: Employee[];
   handleCreate: () => void;
   isPending: boolean;
   reason: string;
@@ -30,7 +24,6 @@ interface ShiftSwapCreateFormProps {
 }
 
 export function ShiftSwapCreateForm({
-  employees,
   handleCreate,
   isPending,
   reason,
@@ -53,7 +46,6 @@ export function ShiftSwapCreateForm({
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-6">
         <EmployeeSelect
-          employees={employees}
           label={t("shift_swaps.requester")}
           onChange={setRequesterId}
           placeholder={t("common.employee")}
@@ -61,7 +53,7 @@ export function ShiftSwapCreateForm({
         />
         <EmployeeSelect
           disabled={!requesterId}
-          employees={employees.filter((e) => e.id !== requesterId)}
+          excludeId={requesterId}
           label={t("shift_swaps.target")}
           onChange={setTargetId}
           placeholder={t("common.employee")}
@@ -120,14 +112,14 @@ export function ShiftSwapCreateForm({
 
 function EmployeeSelect({
   disabled,
-  employees,
+  excludeId,
   label,
   onChange,
   placeholder,
   value,
 }: {
   disabled?: boolean;
-  employees: Employee[];
+  excludeId?: string;
   label: string;
   onChange: (v: string) => void;
   placeholder: string;
@@ -138,14 +130,11 @@ function EmployeeSelect({
       <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">
         {label}
       </label>
-      <Combobox
-        className="h-14 bg-slate-50 dark:bg-slate-800 border-slate-100 dark:border-slate-700"
-        disabled={disabled}
-        onChange={onChange}
-        options={employees.map((e) => ({
-          label: e.full_name.toUpperCase(),
-          value: e.id,
-        }))}
+      <EmployeeSearch
+        onChange={(selected) => {
+          const id = typeof selected === "string" ? selected : selected[0] ?? "";
+          onChange(id === excludeId ? "" : id);
+        }}
         placeholder={placeholder}
         value={value}
       />
