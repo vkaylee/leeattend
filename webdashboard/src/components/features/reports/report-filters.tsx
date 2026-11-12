@@ -7,6 +7,10 @@ import { FilterModeButtons } from "@/components/common/filter-mode-buttons";
 import Button from "@/components/ui/button";
 import { FilterPanel } from "@/components/ui/filter-panel";
 import { FilterTrigger } from "@/components/ui/filter-trigger";
+import {
+  SEGMENTED_CONTROL_STYLE,
+  SEGMENTED_ITEM_STYLE,
+} from "@/components/ui/control-styles";
 import { SearchInput } from "@/components/ui/search-input";
 import ToolbarRow from "@/components/ui/toolbar-row";
 import { cn } from "@/lib/utils";
@@ -44,11 +48,11 @@ function StatusFilterSelector({
 }) {
   const options = ["active", "terminated", "all"] as const;
   return (
-    <div className="inline-flex h-[var(--ui-height-sm)] flex-nowrap items-center gap-1 rounded-xl border border-slate-200 bg-slate-100 p-1 dark:border-slate-700 dark:bg-slate-800">
+    <div className={SEGMENTED_CONTROL_STYLE}>
       {options.map(status => (
         <Button
           className={cn(
-            "shrink-0 rounded-lg transition-all",
+            SEGMENTED_ITEM_STYLE,
             employeeStatus === status
               ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100 dark:border-slate-800"
               : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
