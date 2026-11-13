@@ -1187,6 +1187,34 @@ ORDER BY created_at DESC, id DESC`, employmentID, year, month)
 	return result, rows.Err()
 }
 
+func (r PayrollRepository) ListPayrollFormulaRuleVersions(ctx context.Context, ruleID uuid.UUID) ([]api.PayrollFormulaRuleVersion, error) {
+	db, err := r.db(ctx)
+	if err != nil {
+		return nil, err
+	}
+	rows, err := db.Query(ctx, `SELECT v.id, v.rule_id, v.version_number, v.expression, v.effective_from::text, v.status, v.created_by, v.published_by, v.published_at, v.created_at
+FROM payroll_formula_rule_versions v WHERE v.rule_id = $1 ORDER BY v.version_number DESC`, ruleID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	result := make([]api.PayrollFormulaRuleVersion, 0)
+	for rows.Next() {
+		var version api.PayrollFormulaRuleVersion
+		var publishedAt, createdAt time.Time
+		if err := rows.Scan(&version.VersionID, &version.RuleID, &version.Version, &version.Expression, &version.EffectiveFrom, &version.Status, &version.CreatedBy, &version.PublishedBy, &publishedAt, &createdAt); err != nil {
+			return nil, err
+		}
+		if !publishedAt.IsZero() {
+			value := publishedAt.UTC().Format(time.RFC3339)
+			version.PublishedAt = &value
+		}
+		version.CreatedAt = createdAt.UTC().Format(time.RFC3339)
+		result = append(result, version)
+	}
+	return result, rows.Err()
+}
+
 func (r PayrollRepository) ListPayrollFormulaRules(ctx context.Context) ([]api.PayrollFormulaRule, error) {
 	db, err := r.db(ctx)
 	if err != nil {

@@ -42,6 +42,10 @@ func (mockPayrollRepository) ListPayrollCalculationRuns(context.Context, uuid.UU
 	return []PayrollCalculationRun{}, nil
 }
 
+func (mockPayrollRepository) ListPayrollFormulaRuleVersions(context.Context, uuid.UUID) ([]PayrollFormulaRuleVersion, error) {
+	return []PayrollFormulaRuleVersion{}, nil
+}
+
 func (mockPayrollRepository) ListPayrollFormulaRules(context.Context) ([]PayrollFormulaRule, error) {
 	return []PayrollFormulaRule{}, nil
 }

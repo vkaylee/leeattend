@@ -354,6 +354,19 @@ type PayrollFormulaRule struct {
 	Status        string    `json:"status"`
 }
 
+type PayrollFormulaRuleVersion struct {
+	VersionID     uuid.UUID `json:"version_id"`
+	RuleID        uuid.UUID `json:"rule_id"`
+	Version       int       `json:"version"`
+	Expression    string    `json:"expression"`
+	EffectiveFrom string    `json:"effective_from"`
+	Status        string    `json:"status"`
+	CreatedBy     uuid.UUID `json:"created_by"`
+	PublishedBy   *uuid.UUID `json:"published_by,omitempty"`
+	PublishedAt   *string   `json:"published_at,omitempty"`
+	CreatedAt     string    `json:"created_at"`
+}
+
 type PayrollCalculationRun struct {
 	ID               uuid.UUID       `json:"id"`
 	EmploymentID     uuid.UUID       `json:"employment_id"`
@@ -425,6 +438,7 @@ type PayrollRepository interface {
 	ListPayrollInputs(context.Context, uuid.UUID) ([]PayrollInput, error)
 	CorrectPayrollInput(context.Context, uuid.UUID, CorrectPayrollInputRequest, uuid.UUID) (PayrollInput, error)
 	ListPayrollFormulaRules(context.Context) ([]PayrollFormulaRule, error)
+	ListPayrollFormulaRuleVersions(context.Context, uuid.UUID) ([]PayrollFormulaRuleVersion, error)
 	CreatePayrollFormulaRule(context.Context, CreatePayrollFormulaRuleRequest, uuid.UUID) (PayrollFormulaRule, error)
 	PublishPayrollFormulaRule(context.Context, uuid.UUID, uuid.UUID) (PayrollFormulaRule, error)
 	RetirePayrollFormulaRule(context.Context, uuid.UUID, uuid.UUID) (PayrollFormulaRule, error)
@@ -1069,6 +1083,27 @@ func (h PayrollHandler) ListPayrollCalculationRuns(w http.ResponseWriter, r *htt
 		runs = []PayrollCalculationRun{}
 	}
 	apperror.WriteJSON(w, http.StatusOK, runs)
+}
+
+func (h PayrollHandler) ListPayrollFormulaRuleVersions(w http.ResponseWriter, r *http.Request) {
+	if !h.allowed(r, "payroll:read") {
+		h.forbidden(w, r)
+		return
+	}
+	ruleID, ok := pathUUID(r, "rule_id")
+	if !ok {
+		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
+		return
+	}
+	versions, err := h.Repository.ListPayrollFormulaRuleVersions(r.Context(), ruleID)
+	if err != nil {
+		h.writeError(w, r, err)
+		return
+	}
+	if versions == nil {
+		versions = []PayrollFormulaRuleVersion{}
+	}
+	apperror.WriteJSON(w, http.StatusOK, versions)
 }
 
 func (h PayrollHandler) ListPayrollFormulaRules(w http.ResponseWriter, r *http.Request) {
