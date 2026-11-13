@@ -22,6 +22,14 @@ func (mockPayrollRepository) CreatePayrollInputBatch(_ context.Context, req Crea
 	return PayrollInputBatch{ID: uuid.New(), PeriodYear: req.PeriodYear, PeriodMonth: req.PeriodMonth, Source: req.Source, IdempotencyKey: req.IdempotencyKey, Status: "accepted", InputCount: len(req.Inputs)}, nil
 }
 
+func (mockPayrollRepository) ApprovePayrollInputBatch(_ context.Context, batchID, actorID uuid.UUID) (PayrollInputBatch, error) {
+	return PayrollInputBatch{ID: batchID, Status: "approved", ApprovedBy: &actorID}, nil
+}
+
+func (mockPayrollRepository) LockPayrollInputBatch(_ context.Context, batchID, actorID uuid.UUID) (PayrollInputBatch, error) {
+	return PayrollInputBatch{ID: batchID, Status: "locked", LockedBy: &actorID}, nil
+}
+
 func (mockPayrollRepository) ListPayslips(context.Context, time.Time, time.Time) ([]PayslipRecord, error) {
 	return []PayslipRecord{{ID: uuid.New(), NetPayAmount: decimal.RequireFromString("1234.50")}}, nil
 }
@@ -1142,6 +1150,30 @@ func TestPayrollInputImportValidatesAndAuthorizes(t *testing.T) {
 	}
 	if got := request(payrollAuthorizer{}, body).Code; got != http.StatusCreated {
 		t.Fatalf("valid status = %d, want 201", got)
+	}
+}
+
+func TestPayrollInputLifecycleEndpoints(t *testing.T) {
+	batchID := uuid.New()
+	actorID := uuid.New()
+	request := func(path, permission string) *httptest.ResponseRecorder {
+		req := httptest.NewRequest(http.MethodPost, path, nil)
+		req.SetPathValue("batch_id", batchID.String())
+		req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), actorID))
+		rec := httptest.NewRecorder()
+		PayrollHandler{Repository: mockPayrollRepository{}, Authorizer: payrollAuthorizer{allowedPerms: map[string]bool{permission: true}}}.ApprovePayrollInputBatch(rec, req)
+		return rec
+	}
+	if got := request("/api/v1/payroll/inputs/"+batchID.String()+"/approve", "payroll:approve").Code; got != http.StatusOK {
+		t.Fatalf("approve status = %d, want 200", got)
+	}
+	lockedReq := httptest.NewRequest(http.MethodPost, "/api/v1/payroll/inputs/"+batchID.String()+"/lock", nil)
+	lockedReq.SetPathValue("batch_id", batchID.String())
+	lockedReq = lockedReq.WithContext(httpinfra.WithUserIDForTest(lockedReq.Context(), actorID))
+	lockedRec := httptest.NewRecorder()
+	PayrollHandler{Repository: mockPayrollRepository{}, Authorizer: payrollAuthorizer{allowedPerms: map[string]bool{"payroll:manage": true}}}.LockPayrollInputBatch(lockedRec, lockedReq)
+	if lockedRec.Code != http.StatusOK {
+		t.Fatalf("lock status = %d, want 200", lockedRec.Code)
 	}
 }
 

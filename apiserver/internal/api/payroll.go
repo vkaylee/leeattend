@@ -31,6 +31,7 @@ var (
 	ErrPayrollPeriodValidation = errors.New("payroll: period validation failed")
 	ErrPayslipConflict         = errors.New("payroll: payslip conflict")
 	ErrPayrollInputConflict    = errors.New("payroll: input batch conflict")
+	ErrPayrollInputNotFound    = errors.New("payroll: input batch not found")
 )
 
 type CreateSalaryComponentRequest struct {
@@ -289,15 +290,23 @@ type PayrollInput struct {
 }
 
 type PayrollInputBatch struct {
-	ID             uuid.UUID `json:"id"`
-	PeriodYear     int       `json:"period_year"`
-	PeriodMonth    int       `json:"period_month"`
-	Source         string    `json:"source"`
-	IdempotencyKey string    `json:"idempotency_key"`
-	Status         string    `json:"status"`
-	InputCount     int       `json:"input_count"`
-	CreatedAt      string    `json:"created_at"`
+	ID             uuid.UUID  `json:"id"`
+	PeriodYear     int        `json:"period_year"`
+	PeriodMonth    int        `json:"period_month"`
+	Source         string     `json:"source"`
+	IdempotencyKey string     `json:"idempotency_key"`
+	Status         string     `json:"status"`
+	InputCount     int        `json:"input_count"`
+	SubmittedBy    uuid.UUID  `json:"submitted_by"`
+	ApprovedBy     *uuid.UUID `json:"approved_by,omitempty"`
+	LockedBy       *uuid.UUID `json:"locked_by,omitempty"`
+	CreatedAt      string     `json:"created_at"`
 }
+
+type UpdatePayrollInputBatchRequest struct {
+	Version int64 `json:"version"`
+}
+
 
 type PayrollPeriod struct {
 	ID           uuid.UUID  `json:"id"`
@@ -350,6 +359,8 @@ type PayrollRepository interface {
 	CalculateEmployeePayroll(context.Context, uuid.UUID, int, int) (FullPayslipResponse, error)
 	CalculateBatchPayroll(context.Context, BatchCalculatePayrollRequest) (BatchCalculatePayrollResponse, error)
 	CreatePayrollInputBatch(context.Context, CreatePayrollInputRequest, uuid.UUID) (PayrollInputBatch, error)
+	ApprovePayrollInputBatch(context.Context, uuid.UUID, uuid.UUID) (PayrollInputBatch, error)
+	LockPayrollInputBatch(context.Context, uuid.UUID, uuid.UUID) (PayrollInputBatch, error)
 	GetPayrollPeriod(context.Context, uuid.UUID, int, int) (PayrollPeriod, error)
 	LockPayrollPeriod(context.Context, uuid.UUID, int, int, int64, uuid.UUID) (PayrollPeriod, error)
 	ReopenPayrollPeriod(context.Context, uuid.UUID, int, int, int64, string, uuid.UUID) (PayrollPeriod, error)
@@ -960,6 +971,43 @@ func validPayrollInputRequest(req CreatePayrollInputRequest) bool {
 	return true
 }
 
+func (h PayrollHandler) ApprovePayrollInputBatch(w http.ResponseWriter, r *http.Request) {
+	h.transitionPayrollInputBatch(w, r, "approve")
+}
+
+func (h PayrollHandler) LockPayrollInputBatch(w http.ResponseWriter, r *http.Request) {
+	h.transitionPayrollInputBatch(w, r, "lock")
+}
+
+func (h PayrollHandler) transitionPayrollInputBatch(w http.ResponseWriter, r *http.Request, action string) {
+	permission := "payroll:manage"
+	if action == "approve" {
+		permission = "payroll:approve"
+	}
+	if !h.allowed(r, permission) {
+		h.forbidden(w, r)
+		return
+	}
+	batchID, ok := pathUUID(r, "batch_id")
+	actorID, actorOK := httpinfra.UserIDFromContext(r.Context())
+	if !ok || !actorOK {
+		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
+		return
+	}
+	var batch PayrollInputBatch
+	var err error
+	if action == "approve" {
+		batch, err = h.Repository.ApprovePayrollInputBatch(r.Context(), batchID, actorID)
+	} else {
+		batch, err = h.Repository.LockPayrollInputBatch(r.Context(), batchID, actorID)
+	}
+	if err != nil {
+		h.writeError(w, r, err)
+		return
+	}
+	apperror.WriteJSON(w, http.StatusOK, batch)
+}
+
 func (h PayrollHandler) CalculateBatchPayroll(w http.ResponseWriter, r *http.Request) {
 
 	if !h.allowedCalculate(r) {
@@ -1074,7 +1122,7 @@ func (h PayrollHandler) forbidden(w http.ResponseWriter, r *http.Request) {
 	apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
 }
 func (h PayrollHandler) writeError(w http.ResponseWriter, r *http.Request, err error) {
-	if errors.Is(err, pgx.ErrNoRows) || errors.Is(err, ErrComponentNotFound) || errors.Is(err, ErrEmploymentNotFound) || errors.Is(err, ErrPayrollSettingsNotFound) || errors.Is(err, ErrIncentivePolicyNotFound) || errors.Is(err, ErrRuleNotFound) || errors.Is(err, ErrTierNotFound) || errors.Is(err, ErrAssignmentNotFound) || errors.Is(err, ErrPayrollPeriodNotFound) || errors.Is(err, ErrEmployerNotFound) {
+	if errors.Is(err, pgx.ErrNoRows) || errors.Is(err, ErrComponentNotFound) || errors.Is(err, ErrEmploymentNotFound) || errors.Is(err, ErrPayrollSettingsNotFound) || errors.Is(err, ErrIncentivePolicyNotFound) || errors.Is(err, ErrPayrollInputNotFound) || errors.Is(err, ErrRuleNotFound) || errors.Is(err, ErrTierNotFound) || errors.Is(err, ErrAssignmentNotFound) || errors.Is(err, ErrPayrollPeriodNotFound) || errors.Is(err, ErrEmployerNotFound) {
 		apperror.WriteError(w, r, apperror.NotFound(apperror.KeyNotFound))
 		return
 	}

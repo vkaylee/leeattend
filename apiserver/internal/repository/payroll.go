@@ -939,7 +939,7 @@ func (r PayrollRepository) CreatePayrollInputBatch(ctx context.Context, req api.
 			if existingHash != requestHash {
 				return api.ErrPayrollInputConflict
 			}
-			batch, scanErr := scanPayrollInputBatch(tx.QueryRow(ctx, `SELECT b.id, b.period_year, b.period_month, b.source, b.idempotency_key, b.status, count(i.id), b.created_at
+			batch, scanErr := scanPayrollInputBatch(tx.QueryRow(ctx, `SELECT b.id, b.period_year, b.period_month, b.source, b.idempotency_key, b.status, count(i.id), b.submitted_by, b.approved_by, b.locked_by, b.created_at
 				FROM payroll_input_batches b LEFT JOIN payroll_inputs i ON i.batch_id = b.id
 				WHERE b.id = $1 GROUP BY b.id`, existingID))
 			if scanErr != nil {
@@ -1021,8 +1021,8 @@ func (r PayrollRepository) CreatePayrollInputBatch(ctx context.Context, req api.
 		batchID := uuid.New()
 		if err := tx.QueryRow(ctx, `INSERT INTO payroll_input_batches (id, period_year, period_month, source, idempotency_key, request_hash, status, submitted_by)
 			VALUES ($1, $2, $3, $4, $5, $6, 'submitted', $7)
-			RETURNING id, period_year, period_month, source, idempotency_key, status, 0, created_at`, batchID, req.PeriodYear, req.PeriodMonth, strings.TrimSpace(req.Source), req.IdempotencyKey, requestHash, actorID).Scan(
-			&result.ID, &result.PeriodYear, &result.PeriodMonth, &result.Source, &result.IdempotencyKey, &result.Status, &result.InputCount, &result.CreatedAt); err != nil {
+			RETURNING id, period_year, period_month, source, idempotency_key, status, 0, submitted_by, approved_by, locked_by, created_at`, batchID, req.PeriodYear, req.PeriodMonth, strings.TrimSpace(req.Source), req.IdempotencyKey, requestHash, actorID).Scan(
+			&result.ID, &result.PeriodYear, &result.PeriodMonth, &result.Source, &result.IdempotencyKey, &result.Status, &result.InputCount, &result.SubmittedBy, &result.ApprovedBy, &result.LockedBy, &result.CreatedAt); err != nil {
 			if isConflictError(err) {
 				return api.ErrPayrollInputConflict
 			}
@@ -1056,7 +1056,7 @@ func (r PayrollRepository) CreatePayrollInputBatch(ctx context.Context, req api.
 func scanPayrollInputBatch(row interface{ Scan(...any) error }) (api.PayrollInputBatch, error) {
 	var batch api.PayrollInputBatch
 	var created time.Time
-	if err := row.Scan(&batch.ID, &batch.PeriodYear, &batch.PeriodMonth, &batch.Source, &batch.IdempotencyKey, &batch.Status, &batch.InputCount, &created); err != nil {
+	if err := row.Scan(&batch.ID, &batch.PeriodYear, &batch.PeriodMonth, &batch.Source, &batch.IdempotencyKey, &batch.Status, &batch.InputCount, &batch.SubmittedBy, &batch.ApprovedBy, &batch.LockedBy, &created); err != nil {
 		return api.PayrollInputBatch{}, err
 	}
 	batch.CreatedAt = created.UTC().Format(time.RFC3339)
@@ -1091,6 +1091,44 @@ func payrollInputRequestHash(req api.CreatePayrollInputRequest) (string, error) 
 		return "", err
 	}
 	return fmt.Sprintf("%x", sha256.Sum256(payload)), nil
+}
+
+func (r PayrollRepository) transitionPayrollInputBatch(ctx context.Context, batchID, actorID uuid.UUID, fromStatus, toStatus string) (api.PayrollInputBatch, error) {
+	db, err := r.db(ctx)
+	if err != nil {
+		return api.PayrollInputBatch{}, err
+	}
+	var batch api.PayrollInputBatch
+	var created time.Time
+	query := `UPDATE payroll_input_batches
+	SET status = $1, approved_by = CASE WHEN $1 = 'approved' THEN $2 ELSE approved_by END,
+	    locked_by = CASE WHEN $1 = 'locked' THEN $2 ELSE locked_by END, updated_at = CURRENT_TIMESTAMP
+	WHERE id = $3 AND status = $4
+	RETURNING id, period_year, period_month, source, idempotency_key, status, 0, submitted_by, approved_by, locked_by, created_at`
+	if err := db.QueryRow(ctx, query, toStatus, actorID, batchID, fromStatus).Scan(
+		&batch.ID, &batch.PeriodYear, &batch.PeriodMonth, &batch.Source, &batch.IdempotencyKey, &batch.Status, &batch.InputCount, &batch.SubmittedBy, &batch.ApprovedBy, &batch.LockedBy, &created); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			var exists bool
+			if existsErr := db.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM payroll_input_batches WHERE id = $1)`, batchID).Scan(&exists); existsErr != nil {
+				return api.PayrollInputBatch{}, existsErr
+			}
+			if !exists {
+				return api.PayrollInputBatch{}, api.ErrPayrollInputNotFound
+			}
+			return api.PayrollInputBatch{}, api.ErrPayrollInputConflict
+		}
+		return api.PayrollInputBatch{}, err
+	}
+	batch.CreatedAt = created.UTC().Format(time.RFC3339)
+	return batch, nil
+}
+
+func (r PayrollRepository) ApprovePayrollInputBatch(ctx context.Context, batchID, actorID uuid.UUID) (api.PayrollInputBatch, error) {
+	return r.transitionPayrollInputBatch(ctx, batchID, actorID, "submitted", "approved")
+}
+
+func (r PayrollRepository) LockPayrollInputBatch(ctx context.Context, batchID, actorID uuid.UUID) (api.PayrollInputBatch, error) {
+	return r.transitionPayrollInputBatch(ctx, batchID, actorID, "approved", "locked")
 }
 
 func uniqueUUIDs(ids []uuid.UUID) map[uuid.UUID]struct{} {
