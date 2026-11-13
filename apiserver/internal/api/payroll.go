@@ -345,6 +345,21 @@ type PayrollFormulaRule struct {
 	Status        string    `json:"status"`
 }
 
+type PayrollCalculationRun struct {
+	ID               uuid.UUID       `json:"id"`
+	EmploymentID     uuid.UUID       `json:"employment_id"`
+	PayslipID        *uuid.UUID      `json:"payslip_id,omitempty"`
+	PeriodYear       int             `json:"period_year"`
+	PeriodMonth      int             `json:"period_month"`
+	FormulaVersionID *uuid.UUID      `json:"formula_version_id,omitempty"`
+	EngineVersion    string          `json:"engine_version"`
+	InputSnapshot    json.RawMessage `json:"input_snapshot"`
+	OutputSnapshot   json.RawMessage `json:"output_snapshot"`
+	CalculationTrace json.RawMessage `json:"calculation_trace"`
+	CreatedBy        *uuid.UUID      `json:"created_by,omitempty"`
+	CreatedAt        string          `json:"created_at"`
+}
+
 type PayrollPeriod struct {
 	ID           uuid.UUID  `json:"id"`
 	EmployerID   uuid.UUID  `json:"employer_id"`
@@ -402,6 +417,7 @@ type PayrollRepository interface {
 	CreatePayrollFormulaRule(context.Context, CreatePayrollFormulaRuleRequest, uuid.UUID) (PayrollFormulaRule, error)
 	PublishPayrollFormulaRule(context.Context, uuid.UUID, uuid.UUID) (PayrollFormulaRule, error)
 	RetirePayrollFormulaRule(context.Context, uuid.UUID, uuid.UUID) (PayrollFormulaRule, error)
+	ListPayrollCalculationRuns(context.Context, uuid.UUID, int, int) ([]PayrollCalculationRun, error)
 	GetPayrollPeriod(context.Context, uuid.UUID, int, int) (PayrollPeriod, error)
 	LockPayrollPeriod(context.Context, uuid.UUID, int, int, int64, uuid.UUID) (PayrollPeriod, error)
 	ReopenPayrollPeriod(context.Context, uuid.UUID, int, int, int64, string, uuid.UUID) (PayrollPeriod, error)
@@ -1015,6 +1031,33 @@ func validPayrollInputRequest(req CreatePayrollInputRequest) bool {
 		seen[key] = struct{}{}
 	}
 	return true
+}
+
+func (h PayrollHandler) ListPayrollCalculationRuns(w http.ResponseWriter, r *http.Request) {
+	if !h.allowed(r, "payroll:read") {
+		h.forbidden(w, r)
+		return
+	}
+	employmentID, ok := pathUUID(r, "id")
+	if !ok {
+		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
+		return
+	}
+	year, err := strconv.Atoi(r.URL.Query().Get("year"))
+	month, monthErr := strconv.Atoi(r.URL.Query().Get("month"))
+	if err != nil || monthErr != nil || year < 2000 || year > 2100 || month < 1 || month > 12 {
+		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
+		return
+	}
+	runs, err := h.Repository.ListPayrollCalculationRuns(r.Context(), employmentID, year, month)
+	if err != nil {
+		h.writeError(w, r, err)
+		return
+	}
+	if runs == nil {
+		runs = []PayrollCalculationRun{}
+	}
+	apperror.WriteJSON(w, http.StatusOK, runs)
 }
 
 func (h PayrollHandler) ListPayrollFormulaRules(w http.ResponseWriter, r *http.Request) {

@@ -30,6 +30,10 @@ func (mockPayrollRepository) LockPayrollInputBatch(_ context.Context, batchID, a
 	return PayrollInputBatch{ID: batchID, Status: "locked", LockedBy: &actorID}, nil
 }
 
+func (mockPayrollRepository) ListPayrollCalculationRuns(context.Context, uuid.UUID, int, int) ([]PayrollCalculationRun, error) {
+	return []PayrollCalculationRun{}, nil
+}
+
 func (mockPayrollRepository) ListPayrollFormulaRules(context.Context) ([]PayrollFormulaRule, error) {
 	return []PayrollFormulaRule{}, nil
 }

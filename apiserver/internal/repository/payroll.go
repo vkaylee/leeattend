@@ -1093,6 +1093,32 @@ func payrollInputRequestHash(req api.CreatePayrollInputRequest) (string, error) 
 	return fmt.Sprintf("%x", sha256.Sum256(payload)), nil
 }
 
+func (r PayrollRepository) ListPayrollCalculationRuns(ctx context.Context, employmentID uuid.UUID, year, month int) ([]api.PayrollCalculationRun, error) {
+	db, err := r.db(ctx)
+	if err != nil {
+		return nil, err
+	}
+	rows, err := db.Query(ctx, `SELECT id, employment_id, payslip_id, period_year, period_month, formula_version_id, engine_version, input_snapshot, output_snapshot, calculation_trace, created_by, created_at
+FROM payroll_calculation_runs
+WHERE employment_id = $1 AND period_year = $2 AND period_month = $3
+ORDER BY created_at DESC, id DESC`, employmentID, year, month)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	result := make([]api.PayrollCalculationRun, 0)
+	for rows.Next() {
+		var run api.PayrollCalculationRun
+		var created time.Time
+		if err := rows.Scan(&run.ID, &run.EmploymentID, &run.PayslipID, &run.PeriodYear, &run.PeriodMonth, &run.FormulaVersionID, &run.EngineVersion, &run.InputSnapshot, &run.OutputSnapshot, &run.CalculationTrace, &run.CreatedBy, &created); err != nil {
+			return nil, err
+		}
+		run.CreatedAt = created.UTC().Format(time.RFC3339)
+		result = append(result, run)
+	}
+	return result, rows.Err()
+}
+
 func (r PayrollRepository) ListPayrollFormulaRules(ctx context.Context) ([]api.PayrollFormulaRule, error) {
 	db, err := r.db(ctx)
 	if err != nil {
