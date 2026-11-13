@@ -1963,6 +1963,19 @@ ORDER BY priority ASC`, policyIDs)
 		}
 	}
 
+	kpiCalc, err := calculateKPIBonus(ctx, db, employmentID, year, month, endStr)
+	if err != nil {
+		return api.FullPayslipResponse{}, err
+	}
+	if kpiCalc.Amount.GreaterThan(decimal.Zero) {
+		totalIncentives = totalIncentives.Add(kpiCalc.Amount)
+		incentiveResults = append(incentiveResults, api.IncentiveEvaluationResult{
+			PolicyName:     "KPI_BONUS",
+			Amount:         kpiCalc.Amount,
+			StandardAmount: kpiCalc.Amount,
+		})
+	}
+
 	var ruleEvaluationRecords []api.PayslipRuleEvaluationRecord
 	totalDeductions := decimal.Zero
 
@@ -2164,6 +2177,10 @@ VALUES ($1, $2, $3, $4, NOW())`, ruleEvaluationRecords[i].ID, finalPayslipID, ru
 		if err != nil {
 			return api.FullPayslipResponse{}, err
 		}
+	}
+
+	if err := persistKPICalculation(ctx, db, employmentID, year, month, kpiCalc, nil); err != nil {
+		return api.FullPayslipResponse{}, err
 	}
 
 	return api.FullPayslipResponse{
