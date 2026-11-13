@@ -127,6 +127,18 @@ func (r OrganizationRepository) PutConfig(ctx context.Context, req api.ConfigEnt
 	if scopeType == "organization" {
 		scopeID = nil
 	}
+	if scopeType == "employer" {
+		if scopeID == nil || *scopeID == uuid.Nil {
+			return api.ErrEmployerNotFound
+		}
+		var active bool
+		if err := db.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM employers WHERE id = $1 AND deleted_at IS NULL)`, *scopeID).Scan(&active); err != nil {
+			return err
+		}
+		if !active {
+			return api.ErrEmployerNotFound
+		}
+	}
 	var valJSON any
 	if len(req.Value.JSON) > 0 {
 		valJSON = []byte(req.Value.JSON)
@@ -169,6 +181,7 @@ func (r OrganizationRepository) ListConfigs(ctx context.Context) ([]api.Organiza
 		value_int, value_decimal, value_text, value_bool, value_json,
 		effective_from, effective_to, created_by, created_at, updated_at
 FROM config_entries
+WHERE scope_type = 'organization' AND scope_id IS NULL
 ORDER BY created_at DESC`)
 	if err != nil {
 		return nil, err
@@ -209,7 +222,7 @@ ORDER BY created_at DESC`)
 	return entries, nil
 }
 
-func (r OrganizationRepository) GetConfig(ctx context.Context, key string) (api.ResolvedConfig, error) {
+func (r OrganizationRepository) GetConfig(ctx context.Context, key string, request api.ConfigReadRequest) (api.ResolvedConfig, error) {
 	db, err := r.db()
 	if err != nil {
 		return api.ResolvedConfig{}, err
@@ -217,20 +230,21 @@ func (r OrganizationRepository) GetConfig(ctx context.Context, key string) (api.
 	var entry api.OrganizationConfigEntry
 	var effectiveTo *time.Time
 	var valJSON []byte
+	scopeID := any(nil)
+	if request.ScopeID != nil {
+		scopeID = *request.ScopeID
+	}
 	row := db.QueryRow(ctx, `SELECT id, scope_type, scope_id, config_key,
 		value_int, value_decimal, value_text, value_bool, value_json, effective_to
 FROM config_entries
-WHERE config_key = $1 AND scope_type = 'organization'
-  AND effective_from <= CURRENT_DATE
-ORDER BY effective_from DESC LIMIT 1`, key)
+WHERE config_key = $1 AND scope_type = $2 AND scope_id IS NOT DISTINCT FROM $3::uuid
+  AND effective_from <= $4::date
+  AND (effective_to IS NULL OR effective_to >= $4::date)
+ORDER BY effective_from DESC, id DESC LIMIT 1`, key, request.ScopeType, scopeID, request.AsOf.Format("2006-01-02"))
 	err = row.Scan(&entry.ID, &entry.ScopeType, &entry.ScopeID, &entry.ConfigKey,
 		&entry.ValueInt, &entry.ValueDecimal, &entry.ValueText, &entry.ValueBool, &valJSON, &effectiveTo)
 	if err != nil {
 		return api.ResolvedConfig{}, err
-	}
-	now := time.Now().UTC().Truncate(24 * time.Hour)
-	if effectiveTo != nil && now.After(*effectiveTo) {
-		return api.ResolvedConfig{}, pgx.ErrNoRows
 	}
 	res := api.ResolvedConfig{
 		Key:       key,

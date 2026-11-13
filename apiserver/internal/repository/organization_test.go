@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"errors"
 	"strings"
 	"testing"
 	"time"
@@ -174,6 +175,37 @@ func TestOrganizationRepository_PutConfigBindsTypedValues(t *testing.T) {
 	}
 }
 
+func TestOrganizationRepository_PutConfigRejectsDeletedEmployer(t *testing.T) {
+	employerID := uuid.New()
+	db := &fakeDBTX{
+		queryRowFn: func(_ context.Context, query string, args ...any) pgx.Row {
+			if !strings.Contains(query, "FROM employers") || len(args) != 1 || args[0] != employerID {
+				t.Fatalf("unexpected employer validation query: %s args=%v", query, args)
+			}
+			return fakeRow{scanFn: func(dest ...any) error {
+				*(dest[0].(*bool)) = false
+				return nil
+			}}
+		},
+		execFn: func(_ context.Context, _ string, _ ...any) (pgconn.CommandTag, error) {
+			t.Fatal("deleted employer must not receive config write")
+			return pgconn.CommandTag{}, nil
+		},
+	}
+	repo := OrganizationRepository{DB: db}
+	enabled := true
+	err := repo.PutConfig(context.Background(), api.ConfigEntryRequest{
+		ScopeType:     "employer",
+		ScopeID:       &employerID,
+		ConfigKey:     "schedule.lifecycle.enabled",
+		Value:         api.ConfigValue{Bool: &enabled},
+		EffectiveFrom: "2026-01-01",
+	}, uuid.New())
+	if !errors.Is(err, api.ErrEmployerNotFound) {
+		t.Fatalf("expected missing employer error, got %v", err)
+	}
+}
+
 func TestOrganizationRepository_ListAndGetConfigs(t *testing.T) {
 	entryID := uuid.New()
 	now := time.Now().UTC()
@@ -188,6 +220,9 @@ func TestOrganizationRepository_ListAndGetConfigs(t *testing.T) {
 			}, nil
 		},
 		queryRowFn: func(_ context.Context, gotQuery string, gotArgs ...any) pgx.Row {
+			if !strings.Contains(gotQuery, "scope_id IS NOT DISTINCT FROM") || len(gotArgs) != 4 {
+				t.Fatalf("expected point-in-time scoped config query, query=%s args=%v", gotQuery, gotArgs)
+			}
 			return fakeRow{scanFn: func(dest ...any) error {
 				return pgx.ErrNoRows
 			}}
@@ -209,7 +244,7 @@ func TestOrganizationRepository_ListAndGetConfigs(t *testing.T) {
 		t.Fatalf("unexpected list query: %s", listQuery)
 	}
 
-	_, err = repo.GetConfig(context.Background(), "non_existent")
+	_, err = repo.GetConfig(context.Background(), "non_existent", api.ConfigReadRequest{ScopeType: "organization", AsOf: now})
 	if err != pgx.ErrNoRows {
 		t.Fatalf("expected ErrNoRows, got: %v", err)
 	}

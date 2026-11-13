@@ -46,6 +46,13 @@ func guardLifecycleDateMutation(ctx context.Context, db DBTX, employmentIDs []uu
 	if periodManaged {
 		return ErrLifecycleMutationBlocked
 	}
+	activated, err := hasActivatedLifecycleScope(ctx, db, employmentIDs, dates[0], dates[len(dates)-1])
+	if err != nil {
+		return err
+	}
+	if activated {
+		return ErrLifecycleMutationBlocked
+	}
 	return nil
 }
 
@@ -75,6 +82,13 @@ func guardLifecycleDateRange(ctx context.Context, db DBTX, employmentIDs []uuid.
 		return ErrLifecycleSchemaUnavailable
 	}
 	if periodManaged {
+		return ErrLifecycleMutationBlocked
+	}
+	activated, err := hasActivatedLifecycleScope(ctx, db, employmentIDs, startDate, endDate)
+	if err != nil {
+		return err
+	}
+	if activated {
 		return ErrLifecycleMutationBlocked
 	}
 	return nil
@@ -173,6 +187,32 @@ func lifecycleSchemaState(ctx context.Context, db DBTX) (lifecycleSchema, error)
 		EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'attendance_periods'),
 		EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'payroll_periods')`).Scan(&schema.scheduleRevisions, &schema.attendancePeriods, &schema.payrollPeriods)
 	return schema, err
+}
+
+func hasActivatedLifecycleScope(ctx context.Context, db DBTX, employmentIDs []uuid.UUID, startDate, endDate string) (bool, error) {
+	var activated bool
+	err := db.QueryRow(ctx, `SELECT EXISTS (
+		SELECT 1
+		FROM feature_flags ff
+		JOIN employments e ON e.id = ANY($1) AND e.deleted_at IS NULL
+		WHERE ff.flag_key = 'schedule_lifecycle' AND ff.enabled = true
+		  AND EXISTS (
+			SELECT 1
+			FROM generate_series($2::date, $3::date, interval '1 day') AS days(business_date)
+			WHERE COALESCE((
+				SELECT c.value_bool
+				FROM config_entries c
+				WHERE c.scope_type = 'employer'
+				  AND c.scope_id = e.employer_id
+				  AND c.config_key = 'schedule.lifecycle.enabled'
+				  AND c.effective_from <= days.business_date
+				  AND (c.effective_to IS NULL OR c.effective_to >= days.business_date)
+				ORDER BY c.effective_from DESC, c.id DESC
+				LIMIT 1
+			), false) = true
+		  )
+	)`, employmentIDs, startDate, endDate).Scan(&activated)
+	return activated, err
 }
 
 func hasOfficialSchedule(ctx context.Context, db DBTX, available bool, employmentIDs []uuid.UUID, dates []string) (bool, error) {

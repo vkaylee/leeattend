@@ -29,6 +29,36 @@ func TestGuardLifecycleDateMutationPreservesLegacyBeforeActivation(t *testing.T)
 	}
 }
 
+func TestGuardLifecycleDateRangeChecksActivatedScope(t *testing.T) {
+	employmentID := uuid.New()
+	db := &fakeDBTX{queryRowFn: func(_ context.Context, query string, args ...any) pgx.Row {
+		return fakeRow{scanFn: func(dest ...any) error {
+			switch {
+			case strings.Contains(query, "information_schema.tables"):
+				if len(dest) != 3 {
+					t.Fatalf("expected three lifecycle schema flags, got %d", len(dest))
+				}
+				*(dest[0].(*bool)) = true
+				*(dest[1].(*bool)) = false
+				*(dest[2].(*bool)) = false
+			case strings.Contains(query, "schedule_day_revisions"):
+				*(dest[0].(*bool)) = false
+			case strings.Contains(query, "feature_flags") && strings.Contains(query, "generate_series") && strings.Contains(query, "schedule.lifecycle.enabled"):
+				if len(args) != 3 || args[1] != "2026-11-01" || args[2] != "2026-11-30" {
+					t.Fatalf("unexpected activation args: %v", args)
+				}
+				*(dest[0].(*bool)) = true
+			default:
+				t.Fatalf("unexpected lifecycle query: %s", query)
+			}
+			return nil
+		}}
+	}}
+	if err := guardLifecycleDateRange(context.Background(), db, []uuid.UUID{employmentID}, "2026-11-01", "2026-11-30"); !errors.Is(err, ErrLifecycleMutationBlocked) {
+		t.Fatalf("expected activated scope mutation block, got %v", err)
+	}
+}
+
 func TestGuardLifecycleDateMutationBlocksOfficialDate(t *testing.T) {
 	calls := 0
 	db := &fakeDBTX{

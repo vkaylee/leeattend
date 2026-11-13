@@ -9,11 +9,13 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
+	"github.com/vkaylee/leeattend/apiserver/internal/audit"
 	httpinfra "github.com/vkaylee/leeattend/apiserver/internal/infra/http"
 )
 
 type mockAuthorizer struct {
-	perms map[string]bool
+	perms         map[string]bool
+	globalManager bool
 }
 
 func (m mockAuthorizer) IsMember(_ context.Context, _ uuid.UUID) (bool, error) {
@@ -33,7 +35,7 @@ func (m mockAuthorizer) GetManagedDepartmentIDs(_ context.Context, _ uuid.UUID) 
 }
 
 func (m mockAuthorizer) IsGlobalManager(_ context.Context, _ uuid.UUID) bool {
-	return false
+	return m.globalManager
 }
 
 func (m mockAuthorizer) HasScopedPermission(_ context.Context, _ uuid.UUID, perm string, _ *uuid.UUID) bool {
@@ -42,6 +44,15 @@ func (m mockAuthorizer) HasScopedPermission(_ context.Context, _ uuid.UUID, perm
 
 func (m mockAuthorizer) GetUsersWithPermission(_ context.Context, _ string) ([]uuid.UUID, error) {
 	return nil, nil
+}
+
+type organizationAuditRecorder struct {
+	events []audit.Event
+}
+
+func (r *organizationAuditRecorder) Emit(_ context.Context, event audit.Event) error {
+	r.events = append(r.events, event)
+	return nil
 }
 
 type mockOrganizationRepo struct{}
@@ -98,7 +109,7 @@ func (m mockOrganizationRepo) ListConfigs(_ context.Context) ([]OrganizationConf
 	return []OrganizationConfigEntry{{ID: uuid.New(), ConfigKey: "max_overtime_hours"}}, nil
 }
 
-func (m mockOrganizationRepo) GetConfig(_ context.Context, key string) (ResolvedConfig, error) {
+func (m mockOrganizationRepo) GetConfig(_ context.Context, key string, _ ConfigReadRequest) (ResolvedConfig, error) {
 	text := "stored"
 	return ResolvedConfig{Key: key, Value: ConfigValue{Text: &text}, ScopeType: "organization"}, nil
 }
@@ -395,6 +406,57 @@ func TestOrganizationHandler_PutConfigRejectsLegacyScope(t *testing.T) {
 	h.PutConfig(rec, req)
 	if rec.Code != http.StatusBadRequest {
 		t.Fatalf("expected 400 for legacy workspace scope, got %d", rec.Code)
+	}
+}
+
+func TestOrganizationHandler_PutLifecycleConfigEmitsAudit(t *testing.T) {
+	userID, employerID := uuid.New(), uuid.New()
+	auditRecorder := &organizationAuditRecorder{}
+	h := OrganizationHandler{
+		Repository: mockOrganizationRepo{},
+		Authorizer: mockAuthorizer{perms: map[string]bool{"organization:settings:write": true}},
+		Audit:      auditRecorder,
+	}
+	body := bytes.NewBufferString(`{"scope_type":"employer","scope_id":"` + employerID.String() + `","config_key":"schedule.lifecycle.enabled","value":{"Bool":true},"effective_from":"2026-11-13"}`)
+	req := httptest.NewRequest(http.MethodPut, "/api/v1/configs", body)
+	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), userID))
+	rec := httptest.NewRecorder()
+	h.PutConfig(rec, req)
+	if rec.Code != http.StatusForbidden {
+		t.Fatalf("expected non-global manager to be forbidden, got %d: %s", rec.Code, rec.Body.String())
+	}
+	if len(auditRecorder.events) != 0 {
+		t.Fatalf("forbidden config write must not emit audit, got %+v", auditRecorder.events)
+	}
+	h.Authorizer = mockAuthorizer{perms: map[string]bool{"organization:settings:write": true}, globalManager: true}
+	req = httptest.NewRequest(http.MethodPut, "/api/v1/configs", bytes.NewBufferString(`{"scope_type":"employer","scope_id":"`+employerID.String()+`","config_key":"schedule.lifecycle.enabled","value":{"Bool":true},"effective_from":"2026-11-13"}`))
+	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), userID))
+	rec = httptest.NewRecorder()
+	h.PutConfig(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected global manager write 200, got %d: %s", rec.Code, rec.Body.String())
+	}
+	if len(auditRecorder.events) != 1 || auditRecorder.events[0].Name != "schedule_lifecycle.activation.updated" {
+		t.Fatalf("expected lifecycle activation audit, got %+v", auditRecorder.events)
+	}
+}
+
+func TestParseConfigReadRequest(t *testing.T) {
+	employerID := uuid.New()
+	valid := httptest.NewRequest(http.MethodGet, "/api/v1/configs/schedule.lifecycle.enabled?scope_type=employer&scope_id="+employerID.String()+"&as_of=2026-11-14", nil)
+	request, err := parseConfigReadRequest(valid)
+	if err != nil || request.ScopeType != "employer" || request.ScopeID == nil || *request.ScopeID != employerID || request.AsOf.Format("2006-01-02") != "2026-11-14" {
+		t.Fatalf("unexpected parsed config request: %+v err=%v", request, err)
+	}
+	for _, target := range []string{
+		"/api/v1/configs/key?scope_type=employer",
+		"/api/v1/configs/key?scope_type=organization&scope_id=" + employerID.String(),
+		"/api/v1/configs/key?scope_type=employer&scope_id=bad",
+		"/api/v1/configs/key?scope_type=organization&as_of=bad",
+	} {
+		if _, err := parseConfigReadRequest(httptest.NewRequest(http.MethodGet, target, nil)); err == nil {
+			t.Fatalf("expected invalid config read request for %s", target)
+		}
 	}
 }
 

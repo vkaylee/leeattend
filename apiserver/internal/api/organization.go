@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"regexp"
 	"strings"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -138,6 +139,12 @@ type ResolvedConfig struct {
 	ScopeType string      `json:"scope_type"`
 	ScopeID   *uuid.UUID  `json:"scope_id"`
 }
+type ConfigReadRequest struct {
+	ScopeType string
+	ScopeID   *uuid.UUID
+	AsOf      time.Time
+}
+
 type OrganizationRepository interface {
 	GetOrganization(context.Context) (OrganizationRecord, error)
 	UpdateOrganization(context.Context, OrganizationPatch) (OrganizationRecord, error)
@@ -150,7 +157,7 @@ type OrganizationRepository interface {
 	DeleteFeatureFlag(context.Context, uuid.UUID) (bool, error)
 	UpsertFeatureFlag(context.Context, FeatureFlagRequest) (FeatureFlagRecord, error)
 	ListConfigs(context.Context) ([]OrganizationConfigEntry, error)
-	GetConfig(context.Context, string) (ResolvedConfig, error)
+	GetConfig(context.Context, string, ConfigReadRequest) (ResolvedConfig, error)
 	DeleteConfig(context.Context, uuid.UUID) error
 	PutConfig(context.Context, ConfigEntryRequest, uuid.UUID) error
 }
@@ -208,12 +215,53 @@ func (h OrganizationHandler) GetConfig(w http.ResponseWriter, r *http.Request) {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}
-	cfg, err := h.Repository.GetConfig(r.Context(), key)
+	readRequest, err := parseConfigReadRequest(r)
+	if err != nil {
+		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
+		return
+	}
+	if readRequest.ScopeType == "employer" && !h.Authorizer.IsGlobalManager(r.Context(), userID) {
+		apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
+		return
+	}
+	cfg, err := h.Repository.GetConfig(r.Context(), key, readRequest)
 	if err != nil {
 		h.writeRepositoryError(w, r, err)
 		return
 	}
 	apperror.WriteJSON(w, http.StatusOK, cfg)
+}
+
+func parseConfigReadRequest(r *http.Request) (ConfigReadRequest, error) {
+	request := ConfigReadRequest{ScopeType: "organization", AsOf: time.Now().UTC()}
+	query := r.URL.Query()
+	if scopeType := strings.TrimSpace(query.Get("scope_type")); scopeType != "" {
+		request.ScopeType = scopeType
+	}
+	if request.ScopeType != "organization" && request.ScopeType != "employer" {
+		return ConfigReadRequest{}, errConfigScope
+	}
+	if scopeID := strings.TrimSpace(query.Get("scope_id")); scopeID != "" {
+		id, err := uuid.Parse(scopeID)
+		if err != nil {
+			return ConfigReadRequest{}, errConfigScopeID
+		}
+		request.ScopeID = &id
+	}
+	if request.ScopeType == "organization" && request.ScopeID != nil {
+		return ConfigReadRequest{}, errConfigScopeID
+	}
+	if request.ScopeType == "employer" && (request.ScopeID == nil || *request.ScopeID == uuid.Nil) {
+		return ConfigReadRequest{}, errConfigScopeID
+	}
+	if asOf := strings.TrimSpace(query.Get("as_of")); asOf != "" {
+		parsed, err := time.Parse("2006-01-02", asOf)
+		if err != nil {
+			return ConfigReadRequest{}, errConfigDate
+		}
+		request.AsOf = parsed.UTC()
+	}
+	return request, nil
 }
 
 func (h OrganizationHandler) DeleteConfig(w http.ResponseWriter, r *http.Request) {
@@ -480,11 +528,44 @@ func (h OrganizationHandler) PutConfig(w http.ResponseWriter, r *http.Request) {
 		apperror.WriteError(w, r, apperror.Validation(key))
 		return
 	}
+	if request.ConfigKey == "schedule.lifecycle.enabled" && !h.Authorizer.IsGlobalManager(r.Context(), userID) {
+		apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
+		return
+	}
 	if err := h.Repository.PutConfig(r.Context(), request, userID); err != nil {
 		h.writeRepositoryError(w, r, err)
 		return
 	}
+	h.emitConfigAudit(r, request)
 	w.WriteHeader(http.StatusOK)
+}
+
+func (h OrganizationHandler) emitConfigAudit(r *http.Request, request ConfigEntryRequest) {
+	if h.Audit == nil {
+		return
+	}
+	userID, ok := httpinfra.UserIDFromContext(r.Context())
+	if !ok {
+		return
+	}
+	name := "config.updated"
+	if request.ConfigKey == "schedule.lifecycle.enabled" {
+		name = "schedule_lifecycle.activation.updated"
+	}
+	resource := request.ConfigKey
+	if request.ScopeID != nil {
+		resource = request.ScopeID.String()
+	}
+	details := map[string]string{
+		"config_key": request.ConfigKey,
+		"scope_type": request.ScopeType,
+	}
+	if request.ScopeID != nil {
+		details["scope_id"] = request.ScopeID.String()
+	}
+	_ = h.Audit.Emit(r.Context(), audit.Event{
+		Name: name, ActorID: userID.String(), Resource: resource, Outcome: "success", Details: details,
+	})
 }
 
 func (h OrganizationHandler) writeRepositoryError(w http.ResponseWriter, r *http.Request, err error) {
@@ -492,7 +573,7 @@ func (h OrganizationHandler) writeRepositoryError(w http.ResponseWriter, r *http
 		apperror.WriteError(w, r, apperror.Conflict(apperror.KeyConflict))
 		return
 	}
-	if errors.Is(err, pgx.ErrNoRows) {
+	if errors.Is(err, pgx.ErrNoRows) || errors.Is(err, ErrEmployerNotFound) {
 		apperror.WriteError(w, r, apperror.NotFound(apperror.KeyNotFound))
 		return
 	}
