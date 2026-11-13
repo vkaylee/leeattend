@@ -30,6 +30,14 @@ func (mockPayrollRepository) LockPayrollInputBatch(_ context.Context, batchID, a
 	return PayrollInputBatch{ID: batchID, Status: "locked", LockedBy: &actorID}, nil
 }
 
+func (mockPayrollRepository) ListPayrollFormulaRules(context.Context) ([]PayrollFormulaRule, error) {
+	return []PayrollFormulaRule{}, nil
+}
+
+func (mockPayrollRepository) RetirePayrollFormulaRule(_ context.Context, ruleID, _ uuid.UUID) (PayrollFormulaRule, error) {
+	return PayrollFormulaRule{ID: ruleID, Status: "retired"}, nil
+}
+
 func (mockPayrollRepository) CreatePayrollFormulaRule(_ context.Context, req CreatePayrollFormulaRuleRequest, _ uuid.UUID) (PayrollFormulaRule, error) {
 	return PayrollFormulaRule{ID: uuid.New(), Code: req.Code, Name: req.Name, ComponentCode: req.ComponentCode, Version: 1, Expression: req.Expression, EffectiveFrom: req.EffectiveFrom, Status: "draft"}, nil
 }

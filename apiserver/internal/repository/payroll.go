@@ -1093,6 +1093,30 @@ func payrollInputRequestHash(req api.CreatePayrollInputRequest) (string, error) 
 	return fmt.Sprintf("%x", sha256.Sum256(payload)), nil
 }
 
+func (r PayrollRepository) ListPayrollFormulaRules(ctx context.Context) ([]api.PayrollFormulaRule, error) {
+	db, err := r.db(ctx)
+	if err != nil {
+		return nil, err
+	}
+	rows, err := db.Query(ctx, `SELECT r.id, r.code, r.name, r.component_code, v.id, v.version_number, v.expression, v.effective_from::text, v.status
+FROM payroll_formula_rules r
+JOIN LATERAL (SELECT id, version_number, expression, effective_from, status FROM payroll_formula_rule_versions WHERE rule_id = r.id ORDER BY version_number DESC LIMIT 1) v ON true
+ORDER BY r.code ASC`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	result := make([]api.PayrollFormulaRule, 0)
+	for rows.Next() {
+		var rule api.PayrollFormulaRule
+		if err := rows.Scan(&rule.ID, &rule.Code, &rule.Name, &rule.ComponentCode, &rule.VersionID, &rule.Version, &rule.Expression, &rule.EffectiveFrom, &rule.Status); err != nil {
+			return nil, err
+		}
+		result = append(result, rule)
+	}
+	return result, rows.Err()
+}
+
 func (r PayrollRepository) CreatePayrollFormulaRule(ctx context.Context, req api.CreatePayrollFormulaRuleRequest, actorID uuid.UUID) (api.PayrollFormulaRule, error) {
 	db, err := r.db(ctx)
 	if err != nil {
@@ -1121,6 +1145,24 @@ func (r PayrollRepository) CreatePayrollFormulaRule(ctx context.Context, req api
 		return api.PayrollFormulaRule{}, err
 	}
 	return result, nil
+}
+
+func (r PayrollRepository) RetirePayrollFormulaRule(ctx context.Context, ruleID, actorID uuid.UUID) (api.PayrollFormulaRule, error) {
+	db, err := r.db(ctx)
+	if err != nil {
+		return api.PayrollFormulaRule{}, err
+	}
+	var result api.PayrollFormulaRule
+	err = db.QueryRow(ctx, `UPDATE payroll_formula_rule_versions v
+SET status = 'retired'
+FROM payroll_formula_rules r
+WHERE v.rule_id = r.id AND r.id = $1 AND v.status = 'published'
+RETURNING r.id, r.code, r.name, r.component_code, v.id, v.version_number, v.expression, v.effective_from::text, v.status`, ruleID).Scan(
+		&result.ID, &result.Code, &result.Name, &result.ComponentCode, &result.VersionID, &result.Version, &result.Expression, &result.EffectiveFrom, &result.Status)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return api.PayrollFormulaRule{}, api.ErrRuleNotFound
+	}
+	return result, err
 }
 
 func (r PayrollRepository) PublishPayrollFormulaRule(ctx context.Context, ruleID, actorID uuid.UUID) (api.PayrollFormulaRule, error) {

@@ -398,8 +398,10 @@ type PayrollRepository interface {
 	CreatePayrollInputBatch(context.Context, CreatePayrollInputRequest, uuid.UUID) (PayrollInputBatch, error)
 	ApprovePayrollInputBatch(context.Context, uuid.UUID, uuid.UUID) (PayrollInputBatch, error)
 	LockPayrollInputBatch(context.Context, uuid.UUID, uuid.UUID) (PayrollInputBatch, error)
+	ListPayrollFormulaRules(context.Context) ([]PayrollFormulaRule, error)
 	CreatePayrollFormulaRule(context.Context, CreatePayrollFormulaRuleRequest, uuid.UUID) (PayrollFormulaRule, error)
 	PublishPayrollFormulaRule(context.Context, uuid.UUID, uuid.UUID) (PayrollFormulaRule, error)
+	RetirePayrollFormulaRule(context.Context, uuid.UUID, uuid.UUID) (PayrollFormulaRule, error)
 	GetPayrollPeriod(context.Context, uuid.UUID, int, int) (PayrollPeriod, error)
 	LockPayrollPeriod(context.Context, uuid.UUID, int, int, int64, uuid.UUID) (PayrollPeriod, error)
 	ReopenPayrollPeriod(context.Context, uuid.UUID, int, int, int64, string, uuid.UUID) (PayrollPeriod, error)
@@ -1010,6 +1012,22 @@ func validPayrollInputRequest(req CreatePayrollInputRequest) bool {
 	return true
 }
 
+func (h PayrollHandler) ListPayrollFormulaRules(w http.ResponseWriter, r *http.Request) {
+	if !h.allowed(r, "payroll:read") {
+		h.forbidden(w, r)
+		return
+	}
+	rules, err := h.Repository.ListPayrollFormulaRules(r.Context())
+	if err != nil {
+		h.writeError(w, r, err)
+		return
+	}
+	if rules == nil {
+		rules = []PayrollFormulaRule{}
+	}
+	apperror.WriteJSON(w, http.StatusOK, rules)
+}
+
 func (h PayrollHandler) CreatePayrollFormulaRule(w http.ResponseWriter, r *http.Request) {
 	if !h.allowed(r, "payroll:manage") {
 		h.forbidden(w, r)
@@ -1039,6 +1057,25 @@ func (h PayrollHandler) CreatePayrollFormulaRule(w http.ResponseWriter, r *http.
 		return
 	}
 	apperror.WriteJSON(w, http.StatusCreated, rule)
+}
+
+func (h PayrollHandler) RetirePayrollFormulaRule(w http.ResponseWriter, r *http.Request) {
+	if !h.allowed(r, "payroll:manage") {
+		h.forbidden(w, r)
+		return
+	}
+	ruleID, ok := pathUUID(r, "rule_id")
+	actorID, actorOK := httpinfra.UserIDFromContext(r.Context())
+	if !ok || !actorOK {
+		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
+		return
+	}
+	rule, err := h.Repository.RetirePayrollFormulaRule(r.Context(), ruleID, actorID)
+	if err != nil {
+		h.writeError(w, r, err)
+		return
+	}
+	apperror.WriteJSON(w, http.StatusOK, rule)
 }
 
 func (h PayrollHandler) PublishPayrollFormulaRule(w http.ResponseWriter, r *http.Request) {
