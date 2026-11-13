@@ -103,7 +103,6 @@
     "components": {
       "title": "Danh mục thành phần lương",
       "subtitle": "Định nghĩa các khoản thu nhập và khấu trừ.",
-      "assign_to_bases": "Gán vào nhóm cơ sở",
       "form_subtitle": "Thông số thành phần",
       "add_new": "Thêm thành phần lương",
       "no_components": "Chưa có thành phần lương nào",
@@ -240,24 +239,6 @@
     "override_amount": "Số tiền ghi đè",
     "override": "Ghi đè",
     "delete_assignment": "Xóa phân bổ",
-    "system_bases": {
-      "gross": {
-        "name": "Lương Cơ Bản (Gross)",
-        "description": "Lương gốc dùng để tính toán các khoản phụ cấp, bảo hiểm và thuế"
-      },
-      "net": {
-        "name": "Lương Thực Nhận (Net)",
-        "description": "Thu nhập thực tế nhân viên nhận được sau khi đã trừ các khoản khấu trừ"
-      },
-      "bhxh": {
-        "name": "Nền Đóng Bảo Hiểm",
-        "description": "Quỹ lương dùng để tính tỷ lệ đóng BHXH, BHYT, BHTN"
-      },
-      "taxable": {
-        "name": "Thu Nhập Chịu Thuế",
-        "description": "Quỹ thu nhập dùng làm căn cứ tính Thuế Thu Nhập Cá Nhân (TNCN)"
-      }
-    },
     "statutory_rules": {
       "title": "Quy định pháp lý",
       "subtitle": "Quản lý các khoản khấu trừ pháp lý và quy tắc động",
@@ -271,12 +252,10 @@
       "display_order": "Thứ tự Hiển thị",
       "logic_config": "Cấu hình Logic",
       "rate": "Tỷ lệ (%)",
-      "calc_base": "Cơ sở Tính toán",
       "cap_amount": "Mức trần đóng",
       "cap_amount_placeholder": "Bỏ trống nếu không có mức trần đóng (Ví dụ: 4048000)",
       "cap_amount_guide": "Nếu số tiền khấu trừ tính theo tỷ lệ vượt quá mức trần này, hệ thống sẽ lấy đúng bằng mức trần này.",
       "fixed_amount": "Số tiền Cố định",
-      "tier_base_amount": "Cơ sở phân cấp",
       "tier_bracket_note": "Lưu ý: Các bậc phân cấp (Ví dụ: 0-5M, 5-10M) sẽ được cấu hình sau khi tạo quy tắc.",
       "mandatory_rule": "Quy tắc Bắt buộc",
       "mandatory_rule_desc": "Không thể bỏ qua theo mặc định",

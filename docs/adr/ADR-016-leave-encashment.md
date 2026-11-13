@@ -10,6 +10,8 @@
 
 ---
 
+> **2026-11-13 update:** Salary base groups and their membership table are retired by `20261113020000_retire_salary_base_groups`. The group-based schema proposal below is historical, not an implementation contract. Future encashment must select salary components through payroll formulas/rules; that replacement is not implemented by the retirement.
+
 ## 1. Context
 
 ### 1.1 Legal Basis

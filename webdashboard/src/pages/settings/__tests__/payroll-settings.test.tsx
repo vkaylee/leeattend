@@ -22,7 +22,6 @@ vi.mock("@/components/payroll/bonus-policy-manager", () => ({ default: () => <di
 vi.mock("@/components/payroll/overtime-policy-manager", () => ({ default: () => <div data-testid="overtime-policy-manager" /> }));
 vi.mock("@/components/payroll/payroll-rules-manager", () => ({ default: () => <div data-testid="payroll-rules-manager" /> }));
 vi.mock("@/components/payroll/payroll-settings-section", () => ({ default: () => <div data-testid="payroll-settings-section" /> }));
-vi.mock("@/components/payroll/salary-base-group-manager", () => ({ default: () => <div data-testid="salary-base-group-manager" /> }));
 vi.mock("@/components/payroll/salary-component-manager", () => ({ default: () => <div data-testid="salary-component-manager" /> }));
 
 describe("PayrollSettings Page", () => {
@@ -48,14 +47,12 @@ describe("PayrollSettings Page", () => {
     });
   });
 
-  it("switches to bases tab", async () => {
+  it("keeps components without the retired salary bases tab", () => {
     render(<PayrollSettings />);
 
     fireEvent.click(screen.getByTestId("payroll-group-formulas"));
-    fireEvent.click(screen.getByTestId("payroll-tab-bases"));
-    await waitFor(() => {
-      expect(screen.getByTestId("salary-base-group-manager")).toBeDefined();
-    });
+    expect(screen.getByTestId("salary-component-manager")).toBeInTheDocument();
+    expect(screen.queryByTestId("payroll-tab-bases")).not.toBeInTheDocument();
   });
   
   it("switches to incentives tab", async () => {

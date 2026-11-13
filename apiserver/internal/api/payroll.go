@@ -18,7 +18,6 @@ import (
 
 var (
 	ErrPayrollValidation       = errors.New("payroll: validation failed")
-	ErrInvalidBaseGroup        = errors.New("payroll: invalid base group")
 	ErrComponentNotFound       = errors.New("payroll: component not found")
 	ErrComponentConflict       = errors.New("payroll: component already exists")
 	ErrPayrollSettingsNotFound = errors.New("payroll: settings not found")
@@ -34,9 +33,8 @@ var (
 )
 
 type CreateSalaryComponentRequest struct {
-	Name         string       `json:"name"`
-	Code         string       `json:"code"`
-	BaseGroupIDs *[]uuid.UUID `json:"base_group_ids,omitempty"`
+	Name string `json:"name"`
+	Code string `json:"code"`
 }
 
 type EmploymentSalaryComponentResponse struct {
@@ -53,37 +51,6 @@ type AssignSalaryComponentRequest struct {
 	ComponentDefinitionID uuid.UUID       `json:"component_definition_id"`
 	Amount                decimal.Decimal `json:"amount"`
 	EffectiveDate         string          `json:"effective_date"`
-}
-
-type SalaryBaseGroup struct {
-	ID          uuid.UUID `json:"id"`
-	Name        string    `json:"name"`
-	Slug        string    `json:"slug"`
-	Description *string   `json:"description"`
-	IsSystem    bool      `json:"is_system"`
-	CreatedAt   string    `json:"created_at"`
-	UpdatedAt   string    `json:"updated_at"`
-}
-
-type SalaryBaseGroupMember struct {
-	ComponentDefinitionID uuid.UUID `json:"component_definition_id"`
-	BaseGroupID           uuid.UUID `json:"base_group_id"`
-	CreatedAt             string    `json:"created_at"`
-}
-
-type SalaryBasesResponse struct {
-	Groups  []SalaryBaseGroup       `json:"groups"`
-	Members []SalaryBaseGroupMember `json:"members"`
-}
-
-type CreateSalaryBaseRequest struct {
-	Name        string  `json:"name"`
-	Slug        string  `json:"slug"`
-	Description *string `json:"description,omitempty"`
-}
-
-type AssignSalaryBaseMemberRequest struct {
-	ComponentDefinitionID uuid.UUID `json:"component_definition_id"`
 }
 
 type PayrollQuery struct {
@@ -478,78 +445,6 @@ func (h PayrollHandler) AssignEmploymentSalaryComponent(w http.ResponseWriter, r
 	apperror.WriteJSON(w, http.StatusCreated, comp)
 }
 
-func (h PayrollHandler) ListSalaryBases(w http.ResponseWriter, r *http.Request) {
-
-	if !h.allowedRead(r) {
-		h.forbidden(w, r)
-		return
-	}
-	bases, err := h.Repository.ListSalaryBases(r.Context())
-	if err != nil {
-		h.writeError(w, r, err)
-		return
-	}
-	if bases.Groups == nil {
-		bases.Groups = []SalaryBaseGroup{}
-	}
-	if bases.Members == nil {
-		bases.Members = []SalaryBaseGroupMember{}
-	}
-	apperror.WriteJSON(w, http.StatusOK, bases)
-}
-
-func (h PayrollHandler) CreateSalaryBase(w http.ResponseWriter, r *http.Request) {
-
-	if !h.allowedManage(r) {
-		h.forbidden(w, r)
-		return
-	}
-	req, err := DecodeJSON[CreateSalaryBaseRequest](r, 1<<20)
-	if err != nil || strings.TrimSpace(req.Name) == "" || strings.TrimSpace(req.Slug) == "" {
-		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
-		return
-	}
-	base, err := h.Repository.CreateSalaryBase(r.Context(), req)
-	if err != nil {
-		h.writeError(w, r, err)
-		return
-	}
-	apperror.WriteJSON(w, http.StatusCreated, base)
-}
-
-func (h PayrollHandler) AssignBaseMember(w http.ResponseWriter, r *http.Request) {
-
-	baseID, baseOK := pathUUID(r, "base_id")
-	if !baseOK || !h.allowedManage(r) {
-		h.forbidden(w, r)
-		return
-	}
-	req, err := DecodeJSON[AssignSalaryBaseMemberRequest](r, 1<<20)
-	if err != nil || req.ComponentDefinitionID == uuid.Nil {
-		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
-		return
-	}
-	if err := h.Repository.AssignBaseMember(r.Context(), baseID, req.ComponentDefinitionID); err != nil {
-		h.writeError(w, r, err)
-		return
-	}
-	apperror.WriteJSON(w, http.StatusOK, map[string]bool{"success": true})
-}
-
-func (h PayrollHandler) UnassignBaseMember(w http.ResponseWriter, r *http.Request) {
-
-	baseID, baseOK := pathUUID(r, "base_id")
-	compID, compOK := pathUUID(r, "component_id")
-	if !baseOK || !compOK || !h.allowedManage(r) {
-		h.forbidden(w, r)
-		return
-	}
-	if err := h.Repository.UnassignBaseMember(r.Context(), baseID, compID); err != nil {
-		h.writeError(w, r, err)
-		return
-	}
-	apperror.WriteJSON(w, http.StatusOK, map[string]bool{"success": true})
-}
 func (h PayrollHandler) GetPayrollSettings(w http.ResponseWriter, r *http.Request) {
 
 	if !h.allowedMember(r) {

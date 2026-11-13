@@ -103,7 +103,6 @@
     "components": {
       "title": "Salary Components Catalog",
       "subtitle": "Define income and deduction items.",
-      "assign_to_bases": "Assign to Bases",
       "form_subtitle": "Component parameters",
       "add_new": "Add Component",
       "no_components": "No components yet",
@@ -240,24 +239,6 @@
     "override_amount": "Override Amount",
     "override": "Override",
     "delete_assignment": "Delete Assignment",
-    "system_bases": {
-      "gross": {
-        "name": "Gross Salary",
-        "description": "Base for all basic, taxable, and insurable income components"
-      },
-      "net": {
-        "name": "Net Salary",
-        "description": "Final take-home pay after all deductions"
-      },
-      "bhxh": {
-        "name": "Social Insurance Base",
-        "description": "Base for calculating social insurance, health insurance, and unemployment insurance contributions"
-      },
-      "taxable": {
-        "name": "Taxable Income",
-        "description": "Base for calculating personal income tax (PIT)"
-      }
-    },
     "statutory_rules": {
       "title": "Statutory Rules",
       "subtitle": "Manage dynamic statutory deductions and rules",
@@ -271,12 +252,10 @@
       "display_order": "Display Order",
       "logic_config": "Logic Configuration",
       "rate": "Rate (%)",
-      "calc_base": "Calculation Base",
       "cap_amount": "Cap Amount",
       "cap_amount_placeholder": "Leave empty if there is no cap limit",
       "cap_amount_guide": "If the calculated deduction exceeds this cap, the cap amount will be used.",
       "fixed_amount": "Fixed Amount",
-      "tier_base_amount": "Tier Base Amount",
       "tier_bracket_note": "Note: Tier brackets (e.g. 0-5M, 5-10M) will be configured after creating the rule.",
       "mandatory_rule": "Mandatory Rule",
       "mandatory_rule_desc": "Cannot be bypassed by default",

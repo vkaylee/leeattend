@@ -43,7 +43,6 @@ const LEGACY_VIOLATIONS = new Set([
   "components/payroll/rule-assignment/components/modal-actions.tsx",
   "components/payroll/rule-assignment/scope-selector.tsx",
   "components/payroll/rule-tier-manager.tsx",
-  "components/payroll/salary-base-group-manager.tsx",
   "components/payroll/salary-component-manager.tsx",
   "components/payroll/summary-table/payroll-summary-table-row.tsx",
   "components/payroll/summary-table/selection-banner.tsx",

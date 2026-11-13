@@ -599,7 +599,6 @@
       "calculate_btn": "Tính lương mới",
       "components": {
         "add_new": "Thêm thành phần",
-        "assign_to_bases": "Gán vào nhóm cơ sở",
         "code_label": "Mã",
         "form_subtitle": "Thông số thành phần",
         "name_placeholder": "Ví dụ: Phụ cấp ăn trưa",
@@ -607,7 +606,6 @@
         "no_ot": "Không tính OT",
         "ot_base_desc": "Hệ thống cộng dồn các khoản này để tính lương giờ.",
         "ot_base_label": "Dùng làm gốc tính OT",
-        "salary_bases": "Lương căn bản",
         "subtitle": "Định nghĩa các khoản thu nhập và khấu trừ.",
         "tax_exempt": "Miễn thuế",
         "taxable": "Tính thuế",
@@ -1961,6 +1959,44 @@
     },
     "monthly": {
       "copy": "Sao chép"
+    }
+  },
+  "scheduleLifecycle": {
+    "title": "Vòng đời lịch làm việc",
+    "subtitle": "Xem trước thay đổi, công bố revision chính thức và kiểm tra bằng chứng.",
+    "dateLabel": "Ngày bằng chứng",
+    "reasonLabel": "Lý do",
+    "reasonPlaceholder": "Giải thích thay đổi lịch",
+    "reasonHint": "Bắt buộc khi công bố hoặc lập lại lịch. Tối đa 2.000 ký tự.",
+    "preview": "Xem trước",
+    "publish": "Công bố chính thức",
+    "replan": "Xem trước lập lại lịch",
+    "confirmReplan": "Xác nhận lập lại lịch",
+    "history": "Lịch sử revision",
+    "evidence": "Mở bằng chứng",
+    "revisions": "Revision",
+    "segments": "Đoạn lịch",
+    "closures": "Ngày đã khóa",
+    "empty": "Không có revision lịch trong kỳ này.",
+    "noHistory": "Không tìm thấy lịch sử revision.",
+    "noReason": "Không có lý do",
+    "statusesLabel": "Trạng thái lịch theo ngày",
+    "provisionalNotice": "Bản xem trước là tạm thời và không phải bằng chứng chính thức.",
+    "diffNotice": "Kiểm tra diff do máy chủ tạo trước khi xác nhận.",
+    "previewRequired": "Tạo bản xem trước trước khi công bố.",
+    "evidenceRequired": "Tải bằng chứng trước khi lập lại lịch.",
+    "replanPreviewRequired": "Tạo bản xem trước lập lại lịch trước khi xác nhận.",
+    "requestFailed": "Yêu cầu vòng đời lịch thất bại.",
+    "states": {
+      "provisional": "Tạm thời",
+      "published": "Đã công bố",
+      "superseded": "Đã thay thế",
+      "explicit_off": "Nghỉ rõ ràng",
+      "missing": "Thiếu lịch",
+      "closed": "Đã khóa",
+      "draft": "Bản nháp",
+      "conflict": "Xung đột",
+      "legacy_unverified": "Di sản chưa xác minh"
     }
   },
   "appLauncher": {

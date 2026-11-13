@@ -11,8 +11,6 @@ import {
   CreatePayrollRuleDefinitionRequest,
   PayrollIncentivePolicyResponse,
   PayrollRuleAssignment,
-  SalaryBaseGroup,
-  SalaryBaseGroupMember,
   OvertimePolicy,
   OvertimeRule,
   PayrollRuleDefinition,
@@ -47,31 +45,6 @@ export async function cloneIncentivePolicy(policyId: string): Promise<void> {
 export async function deleteIncentivePolicy(policyId: string): Promise<void> {
   await client.DELETE("/api/v1/payroll/incentive-policies/{policy_id}", {
     params: { path: { policy_id: policyId } }
-  });
-}
-
-export async function createSalaryBaseGroup(data: { name: string; slug: string; description?: string }): Promise<SalaryBaseGroup> {
-  const { data: resData } = await client.POST<SalaryBaseGroup>("/api/v1/salary-bases", {
-    body: data
-  });
-  return resData;
-}
-
-export async function fetchSalaryBaseGroups(): Promise<{ groups: SalaryBaseGroup[], members: SalaryBaseGroupMember[] }> {
-  const { data: resData } = await client.GET<{ groups: SalaryBaseGroup[], members: SalaryBaseGroupMember[] }>("/api/v1/salary-bases");
-  return resData;
-}
-
-export async function assignComponentToSalaryBase(baseId: string, componentId: string): Promise<void> {
-  await client.POST("/api/v1/salary-bases/{base_id}/members", {
-    params: { path: { base_id: baseId } },
-    body: { component_definition_id: componentId }
-  });
-}
-
-export async function unassignComponentFromSalaryBase(baseId: string, componentId: string): Promise<void> {
-  await client.DELETE("/api/v1/salary-bases/{base_id}/members/{component_id}", {
-    params: { path: { base_id: baseId, component_id: componentId } }
   });
 }
 

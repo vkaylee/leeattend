@@ -68,6 +68,8 @@ describe("SalaryComponentManager", () => {
     const addButton = screen.getByText(/common.add/i);
     fireEvent.click(addButton);
 
+    expect(screen.queryByText("payroll.components.assign_to_bases")).not.toBeInTheDocument();
+    expect(screen.queryByRole("checkbox")).not.toBeInTheDocument();
     const nameInput = await screen.findByLabelText(/common.name/i);
     fireEvent.change(nameInput, { target: { value: "Gas" } });
     
@@ -78,10 +80,10 @@ describe("SalaryComponentManager", () => {
     fireEvent.click(saveButton);
 
     await waitFor(() => {
-      expect(api.createSalaryComponent).toHaveBeenCalledWith(expect.objectContaining({
+      expect(api.createSalaryComponent).toHaveBeenCalledWith({
         name: "Gas",
         code: "GAS"
-      }));
+      });
     });
   });
 });

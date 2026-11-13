@@ -15,7 +15,6 @@ import PayrollRulesManager from "../payroll-rules-manager";
 vi.mock("@/lib/api/payroll", () => ({
   fetchPayrollRules: vi.fn(),
   createPayrollRule: vi.fn(),
-  fetchSalaryBaseGroups: vi.fn(),
 }));
 
 // Mock child components to simplify
@@ -53,14 +52,6 @@ describe("PayrollRulesManager", () => {
     },
   ];
 
-  const mockBasesResponse = {
-    groups: [
-      { id: "base-1", name: "Gross Salary", slug: "gross" },
-      { id: "base-2", name: "Social Insurance", slug: "social_insurance" },
-    ],
-    members: []
-  };
-
   beforeEach(() => {
     vi.clearAllMocks();
     queryClient = new QueryClient({
@@ -68,8 +59,6 @@ describe("PayrollRulesManager", () => {
     });
  
     vi.mocked(api.fetchPayrollRules).mockResolvedValue(mockRules as unknown as never);
- 
-    vi.mocked(api.fetchSalaryBaseGroups).mockResolvedValue(mockBasesResponse as unknown as never);
   });
 
   const renderWithProviders = (ui: React.ReactElement) => {
@@ -98,6 +87,7 @@ describe("PayrollRulesManager", () => {
     const addButton = await screen.findByText(/common.add/i);
     await user.click(addButton);
 
+    expect(screen.queryByLabelText("payroll.statutory_rules.calc_base")).not.toBeInTheDocument();
     const nameInput = await screen.findByPlaceholderText(/Social Insurance/i);
     await user.type(nameInput, "Health Insurance");
     
@@ -123,7 +113,7 @@ describe("PayrollRulesManager", () => {
       expect(api.createPayrollRule).toHaveBeenCalledWith(expect.objectContaining({
         name: "Health Insurance",
         code: "HI",
-        rule_config: expect.objectContaining({ rate: 1.5 }) as unknown as Record<string, unknown>
+        rule_config: { rate: 1.5, cap_amount: undefined }
       }));
     }, { timeout: 3000 });
   });

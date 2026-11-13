@@ -3,14 +3,14 @@ import { CheckCircle2, Calculator, Percent } from "lucide-react";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import type { CreatePayrollRuleDefinitionRequest, PayrollRuleDefinition, SalaryBaseGroup } from "@/lib/api/types";
+import type { CreatePayrollRuleDefinitionRequest, PayrollRuleDefinition } from "@/lib/api/types";
 
 import Button from "@/components/ui/button";
 import { Typography } from "@/components/ui/typography";
 import { createPayrollRule } from "@/lib/api/payroll";
 import { cn } from "@/lib/utils";
 
-import { asFixedConfig, asPercentageConfig, asTieredConfig } from "./payroll-rule-config";
+import { asFixedConfig, asPercentageConfig } from "./payroll-rule-config";
 
 interface RuleBasicFieldsProps {
   formData: Partial<PayrollRuleDefinition>;
@@ -47,9 +47,9 @@ export function RuleBasicFields({ formData, setFormData }: RuleBasicFieldsProps)
           <select className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl px-5 py-4 font-bold text-sm text-slate-700 dark:text-slate-200 focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all uppercase tracking-tight shadow-sm" id="rule-calc" onChange={e => {
             const method = e.target.value as "percentage" | "fixed" | "tiered";
             let newConfig = {};
-            if (method === "percentage") newConfig = { rate: 0, base: "gross" };
+            if (method === "percentage") newConfig = { rate: 0 };
             else if (method === "fixed") newConfig = { amount: 0, frequency: "monthly" };
-            else newConfig = { base: "taxable_income" };
+            else newConfig = {};
             setFormData({...formData, calculation_method: method, rule_config: newConfig});
           }} required value={formData.calculation_method}>
             <option value="percentage">{t("payroll.statutory_rules.methods.percentage")}</option>
@@ -76,7 +76,7 @@ export function RuleBasicFields({ formData, setFormData }: RuleBasicFieldsProps)
   );
 }
 
-function PercentageConfigFields({ formData, setFormData, bases }: { formData: Partial<PayrollRuleDefinition>; setFormData: (data: Partial<PayrollRuleDefinition>) => void; bases: SalaryBaseGroup[]; }) {
+function PercentageConfigFields({ formData, setFormData }: { formData: Partial<PayrollRuleDefinition>; setFormData: (data: Partial<PayrollRuleDefinition>) => void; }) {
   const { t } = useTranslation();
   const config = asPercentageConfig(formData.rule_config);
   return (
@@ -85,13 +85,6 @@ function PercentageConfigFields({ formData, setFormData, bases }: { formData: Pa
         <div className="space-y-3">
           <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-1" htmlFor="rule-rate"><Percent size={12}/> {t("payroll.statutory_rules.rate")}</label>
           <input className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl px-5 py-4 font-bold text-sm text-slate-700 dark:text-slate-200 focus:ring-4 focus:ring-primary-500/10 outline-none transition-all shadow-sm" id="rule-rate" onChange={e => { setFormData({...formData, rule_config: {...config, rate: parseFloat(e.target.value)}}); }} required step="0.01" type="number" value={config.rate || ""} />
-        </div>
-        <div className="space-y-3">
-          <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1" htmlFor="rule-calc-base">{t("payroll.statutory_rules.calc_base")}</label>
-          <select className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl px-5 py-4 font-bold text-sm text-slate-700 dark:text-slate-200 focus:ring-4 focus:ring-primary-500/10 outline-none transition-all shadow-sm uppercase tracking-tight" id="rule-calc-base" onChange={e => { setFormData({...formData, rule_config: {...config, base: e.target.value}}); }} required value={config.base}>
-            {bases.map(b => (<option key={b.slug} value={b.slug}>{b.name}</option>))}
-            {bases.length === 0 ? (<><option value="gross">Gross Salary (Total)</option><option value="taxable_income">Taxable Income</option></>) : null}
-          </select>
         </div>
       </div>
       <div className="space-y-3">
@@ -119,27 +112,9 @@ function FixedConfigFields({ formData, setFormData }: { formData: Partial<Payrol
   );
 }
 
-function TieredConfigFields({ formData, setFormData, bases }: { formData: Partial<PayrollRuleDefinition>; setFormData: (data: Partial<PayrollRuleDefinition>) => void; bases: SalaryBaseGroup[]; }) {
-  const { t } = useTranslation();
-  const config = asTieredConfig(formData.rule_config);
-  return (
-    <div className="grid grid-cols-1 gap-8">
-      <div className="space-y-3">
-        <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1" htmlFor="rule-tier-base">{t("payroll.statutory_rules.tier_base_amount")}</label>
-        <select className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl px-5 py-4 font-bold text-sm text-slate-700 dark:text-slate-200 focus:ring-4 focus:ring-primary-500/10 outline-none transition-all shadow-sm uppercase tracking-tight" id="rule-tier-base" onChange={e => { setFormData({...formData, rule_config: {...config, base: e.target.value}}); }} required value={config.base}>
-          {bases.map(b => (<option key={b.slug} value={b.slug}>{b.name}</option>))}
-          {bases.length === 0 ? (<><option value="taxable_income">Taxable Income</option><option value="gross">Gross Salary (Total)</option></>) : null}
-        </select>
-        <Typography className="text-xs text-slate-500 dark:text-slate-400 mt-2 ml-1 italic" variant="p">{t("payroll.statutory_rules.tier_bracket_note")}</Typography>
-      </div>
-    </div>
-  );
-}
-
-function RuleLogicConfig({ formData, setFormData, bases }: {
+function RuleLogicConfig({ formData, setFormData }: {
   formData: Partial<PayrollRuleDefinition>;
   setFormData: (data: Partial<PayrollRuleDefinition>) => void;
-  bases: SalaryBaseGroup[];
 }) {
   const { t } = useTranslation();
   return (
@@ -148,22 +123,21 @@ function RuleLogicConfig({ formData, setFormData, bases }: {
         <Calculator className="text-primary-600 dark:text-primary-400" size={18} />
         <Typography className="font-bold text-slate-700 dark:text-slate-200 text-sm uppercase tracking-widest" variant="h3">{t("payroll.statutory_rules.logic_config")}</Typography>
       </div>
-      {formData.calculation_method === "percentage" ? <PercentageConfigFields bases={bases} formData={formData} setFormData={setFormData} /> : null}
+      {formData.calculation_method === "percentage" ? <PercentageConfigFields formData={formData} setFormData={setFormData} /> : null}
       {formData.calculation_method === "fixed" ? <FixedConfigFields formData={formData} setFormData={setFormData} /> : null}
-      {formData.calculation_method === "tiered" ? <TieredConfigFields bases={bases} formData={formData} setFormData={setFormData} /> : null}
+      {formData.calculation_method === "tiered" ? <Typography variant="p">{t("payroll.statutory_rules.tier_bracket_note")}</Typography> : null}
     </div>
   );
 }
 
 interface PayrollRuleFormProps {
-  bases: SalaryBaseGroup[];
   onCancel: () => void;
   onSuccess: () => void;
 }
 
-export function PayrollRuleForm({bases, onCancel, onSuccess }: PayrollRuleFormProps) {
+export function PayrollRuleForm({ onCancel, onSuccess }: PayrollRuleFormProps) {
   const { t } = useTranslation();
-  const [formData, setFormData] = useState<Partial<PayrollRuleDefinition>>({ name: "", description: "", code: "", category: "statutory_deduction", applies_to: "employee", calculation_method: "percentage", is_mandatory: true, display_order: 1, rule_config: { rate: 0, base: "gross" } });
+  const [formData, setFormData] = useState<Partial<PayrollRuleDefinition>>({ name: "", description: "", code: "", category: "statutory_deduction", applies_to: "employee", calculation_method: "percentage", is_mandatory: true, display_order: 1, rule_config: { rate: 0 } });
 
   const createMutation = useMutation({
     mutationFn: (data: CreatePayrollRuleDefinitionRequest) => createPayrollRule(data),
@@ -178,7 +152,7 @@ export function PayrollRuleForm({bases, onCancel, onSuccess }: PayrollRuleFormPr
   return (
     <form className="space-y-10 pt-4 animate-in fade-in duration-500" onSubmit={handleSubmit}>
       <RuleBasicFields formData={formData} setFormData={setFormData} />
-      <RuleLogicConfig bases={bases} formData={formData} setFormData={setFormData} />
+      <RuleLogicConfig formData={formData} setFormData={setFormData} />
 
       <div className="space-y-5">
         {[{ key: "is_mandatory", label: t("payroll.statutory_rules.mandatory_rule"), desc: t("payroll.statutory_rules.mandatory_rule_desc"), icon: CheckCircle2 }].map(field => (

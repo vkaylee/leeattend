@@ -103,7 +103,6 @@
     "components": {
       "title": "薪资组成部分目录",
       "subtitle": "定义收入和扣款项目。",
-      "assign_to_bases": "分配到基数",
       "form_subtitle": "组成部分参数",
       "add_new": "添加组成部分",
       "no_components": "暂无组成部分",
@@ -240,24 +239,6 @@
     "override_amount": "覆盖金额",
     "override": "覆盖",
     "delete_assignment": "删除分配",
-    "system_bases": {
-      "gross": {
-        "name": "总薪资 (Gross)",
-        "description": "所有基本、应税和应保收入的基数"
-      },
-      "net": {
-        "name": "净薪资 (Net)",
-        "description": "扣除所有款项后的最终实发工资"
-      },
-      "bhxh": {
-        "name": "社保基数",
-        "description": "计算社会保险、医疗保险和失业保险的基数"
-      },
-      "taxable": {
-        "name": "应纳税所得额",
-        "description": "计算个人所得税 (PIT) 的基数"
-      }
-    },
     "statutory_rules": {
       "title": "法定规则",
       "subtitle": "管理动态法定扣除额和规则",
@@ -271,12 +252,10 @@
       "display_order": "显示顺序",
       "logic_config": "逻辑配置",
       "rate": "比率 (%)",
-      "calc_base": "计算基数",
       "cap_amount": "上限金额",
       "cap_amount_placeholder": "若无上限则留空 (例如: 4048000)",
       "cap_amount_guide": "如果按比例计算的扣除额超过此上限，系统将采用此上限值。",
       "fixed_amount": "固定金额",
-      "tier_base_amount": "分级基准金额",
       "tier_bracket_note": "注：分级区间 (例如: 0-5M, 5-10M) 将在规则创建后进行配置。",
       "mandatory_rule": "强制规则",
       "mandatory_rule_desc": "默认情况下不能跳过",

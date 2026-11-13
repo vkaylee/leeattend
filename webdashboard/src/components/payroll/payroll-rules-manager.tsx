@@ -7,7 +7,7 @@ import Button from "@/components/ui/button";
 import Modal from "@/components/ui/modal";
 import { useToast } from "@/components/ui/toast";
 import { Typography } from "@/components/ui/typography";
-import { fetchPayrollRules, fetchSalaryBaseGroups } from "@/lib/api/payroll";
+import { fetchPayrollRules } from "@/lib/api/payroll";
 
 import { PayrollRuleForm } from "./payroll-rule-form";
 import { RuleRow } from "./payroll-rule-list";
@@ -20,8 +20,6 @@ export default function PayrollRulesManager() {
   const [expandedRuleId, setExpandedRuleId] = useState<string | null>(null);
 
   const { data: rules, isLoading } = useQuery({ queryKey: ["payroll-rules"], queryFn: () => fetchPayrollRules() });
-  const { data: basesResponse } = useQuery({ queryKey: ["salary-base-groups"], queryFn: () => fetchSalaryBaseGroups() });
-  const bases = basesResponse?.groups;
 
   return (
     <div className="animate-in fade-in duration-700 space-y-6">
@@ -55,7 +53,7 @@ export default function PayrollRulesManager() {
       </div>
 
       <Modal icon={<FileText size={24} />} isOpen={isModalOpen} maxWidth="lg" onClose={() => { setIsModalOpen(false); }} subtitle={t("payroll.statutory_rules.create_rule_desc")} title={t("payroll.statutory_rules.add_rule")}>
-        <PayrollRuleForm bases={bases ?? []}
+        <PayrollRuleForm
         onCancel={() => { setIsModalOpen(false); }}
         onSuccess={() => {
           toast.success(t("common.success"));

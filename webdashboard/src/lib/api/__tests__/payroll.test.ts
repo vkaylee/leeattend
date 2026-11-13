@@ -19,10 +19,6 @@ import {
   createIncentivePolicy,
   cloneIncentivePolicy,
   deleteIncentivePolicy,
-  createSalaryBaseGroup,
-  fetchSalaryBaseGroups,
-  assignComponentToSalaryBase,
-  unassignComponentFromSalaryBase,
   fetchEmployeeSalaryComponents,
   assignEmployeeSalaryComponent,
   calculate_payroll,
@@ -109,14 +105,15 @@ describe("payroll API", () => {
   });
 
   it("createSalaryComponent: POST forwards body, returns created record", async () => {
-    const body = { name: "HRA", code: "HRA", component_type: "earning", calculation_type: "fixed" };
+    const body = { name: "HRA", code: "HRA" };
     const created = { id: "sc-new", ...body };
     vi.mocked(apiFetch).mockResolvedValueOnce(okRes(created));
-    const result = await createSalaryComponent(body as never);
+    const result = await createSalaryComponent(body);
     expect(result).toEqual(created);
     const call = vi.mocked(apiFetch).mock.calls[0];
     expect(call[0]).toContain("/salary-components");
     expect(call[1] && (call[1] as RequestInit).method).toBe("POST");
+    expect(JSON.parse((call[1] as RequestInit).body as string)).toEqual(body);
   });
 
   it("createSalaryComponent: ApiError on 422 validation", async () => {
@@ -157,40 +154,6 @@ describe("payroll API", () => {
     await deleteIncentivePolicy("policy-1");
     const opts = vi.mocked(apiFetch).mock.calls[0][1] as RequestInit;
     expect(opts.method).toBe("DELETE");
-  });
-
-  it("createSalaryBaseGroup: returns created group", async () => {
-    const mock = { id: "bg-1", name: "MGMT", slug: "mgmt" };
-    vi.mocked(apiFetch).mockResolvedValueOnce(okRes(mock));
-    const result = await createSalaryBaseGroup({ name: "MGMT", slug: "mgmt" });
-    expect(result).toEqual(mock);
-  });
-
-  it("createSalaryBaseGroup: ApiError on 500", async () => {
-    vi.mocked(apiFetch).mockResolvedValueOnce(errRes(500, "Error", {}));
-    await expect(createSalaryBaseGroup({ name: "X", slug: "x" })).rejects.toThrow();
-  });
-
-  it("fetchSalaryBaseGroups: happy path", async () => {
-    const mock = { groups: [{ id: "bg-1" }], members: [] };
-    vi.mocked(apiFetch).mockResolvedValueOnce(okRes(mock));
-    const result = await fetchSalaryBaseGroups();
-    expect(result).toEqual(mock);
-  });
-
-  it("assignComponentToSalaryBase: POST body forwards component id", async () => {
-    vi.mocked(apiFetch).mockResolvedValueOnce(okRes(undefined));
-    await assignComponentToSalaryBase("base-1", "comp-1");
-    const opts = vi.mocked(apiFetch).mock.calls[0][1] as RequestInit;
-    expect(JSON.parse(opts.body as string).component_definition_id).toBe("comp-1");
-  });
-
-  it("unassignComponentFromSalaryBase: DELETE", async () => {
-    vi.mocked(apiFetch).mockResolvedValueOnce(okRes(undefined));
-    await unassignComponentFromSalaryBase("base-1", "comp-1");
-    const opts = vi.mocked(apiFetch).mock.calls[0][1] as RequestInit;
-    expect(opts.method).toBe("DELETE");
-    expect(vi.mocked(apiFetch).mock.calls[0][0]).toContain("base-1/members/comp-1");
   });
 
   it("fetchEmployeeSalaryComponents: happy path", async () => {

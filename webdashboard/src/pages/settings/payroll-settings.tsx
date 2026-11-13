@@ -7,13 +7,12 @@ import BonusPolicyManager from "@/components/payroll/bonus-policy-manager";
 import OvertimePolicyManager from "@/components/payroll/overtime-policy-manager";
 import PayrollRulesManager from "@/components/payroll/payroll-rules-manager";
 import PayrollSettingsSection from "@/components/payroll/payroll-settings-section";
-import SalaryBaseGroupManager from "@/components/payroll/salary-base-group-manager";
 import SalaryComponentManager from "@/components/payroll/salary-component-manager";
 import { PageTabs } from "@/components/ui/page-tabs";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Typography } from "@/components/ui/typography";
 
-type TabType = "policy" | "components" | "bases" | "incentives" | "overtime" | "statutory_rules";
+type TabType = "policy" | "components" | "incentives" | "overtime" | "statutory_rules";
 
 function PayrollTabContent({ activeTab }: { activeTab: TabType }) {
   switch (activeTab) {
@@ -21,8 +20,6 @@ function PayrollTabContent({ activeTab }: { activeTab: TabType }) {
       return <PayrollSettingsSection   />;
     case "components":
       return <SalaryComponentManager   />;
-    case "bases":
-      return <SalaryBaseGroupManager   />;
     case "overtime":
       return <OvertimePolicyManager   />;
     case "incentives":
@@ -48,7 +45,7 @@ export default function PayrollSettings() {
 
   const subTabMapping: Record<ParentGroupType, TabType[]> = {
     core: ["policy", "statutory_rules"],
-    formulas: ["components", "bases"],
+    formulas: ["components"],
     benefits: ["incentives", "overtime"],
   };
 
@@ -64,7 +61,6 @@ export default function PayrollSettings() {
   const navItems = [
     { id: "policy" as TabType, icon: FileText, label: t("common.settings.tabs.payroll_policy"), testId: "payroll-tab-policy" },
     { id: "components" as TabType, icon: Blocks, label: t("common.settings.tabs.salary_components"), testId: "payroll-tab-components" },
-    { id: "bases" as TabType, icon: Coins, label: t("common.settings.tabs.salary_bases", "Lương cơ sở"), testId: "payroll-tab-bases" },
     { id: "incentives" as TabType, icon: Sparkles, label: t("common.settings.tabs.incentives"), testId: "payroll-tab-incentives" },
     { id: "overtime" as TabType, icon: Calculator, label: t("common.settings.tabs.overtime_policy"), testId: "payroll-tab-overtime" },
     { id: "statutory_rules" as TabType, icon: FileText, label: t("common.settings.tabs.statutory_rules"), testId: "payroll-tab-rules" },

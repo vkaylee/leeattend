@@ -599,7 +599,6 @@
       "calculate_btn": "计算新薪资",
       "components": {
         "add_new": "添加组件",
-        "assign_to_bases": "分配到基数",
         "code_label": "代码",
         "form_subtitle": "组件参数",
         "name_placeholder": "例如：午餐津贴",
@@ -607,7 +606,6 @@
         "no_ot": "不计加班费",
         "ot_base_desc": "系统汇总这些项目以计算小时工资。",
         "ot_base_label": "用作加班费基数",
-        "salary_bases": "薪资基数",
         "subtitle": "定义收入和扣除项。",
         "tax_exempt": "免税",
         "taxable": "应纳税",
@@ -1999,6 +1997,44 @@
     },
     "monthly": {
       "copy": "复制"
+    }
+  },
+  "scheduleLifecycle": {
+    "title": "排班生命周期",
+    "subtitle": "预览临时变更、发布正式修订并检查证据。",
+    "dateLabel": "证据日期",
+    "reasonLabel": "原因",
+    "reasonPlaceholder": "说明排班变更原因",
+    "reasonHint": "发布或重新排班时必填，最多 2,000 个字符。",
+    "preview": "预览",
+    "publish": "发布正式排班",
+    "replan": "预览重新排班",
+    "confirmReplan": "确认重新排班",
+    "history": "修订历史",
+    "evidence": "打开证据",
+    "revisions": "修订",
+    "segments": "工作时段",
+    "closures": "关闭日期",
+    "empty": "此期间没有排班修订。",
+    "noHistory": "未找到修订历史。",
+    "noReason": "未记录原因",
+    "statusesLabel": "每日排班状态",
+    "provisionalNotice": "预览为临时结果，不属于正式证据。",
+    "diffNotice": "确认重新排班前，请检查服务器生成的差异。",
+    "previewRequired": "发布前请先创建预览。",
+    "evidenceRequired": "重新排班前请先加载证据。",
+    "replanPreviewRequired": "确认前请先创建重新排班预览。",
+    "requestFailed": "排班生命周期请求失败。",
+    "states": {
+      "provisional": "临时",
+      "published": "已发布",
+      "superseded": "已替代",
+      "explicit_off": "明确休息",
+      "missing": "缺少排班",
+      "closed": "已关闭",
+      "draft": "草稿",
+      "conflict": "冲突",
+      "legacy_unverified": "旧数据未验证"
     }
   },
   "dsmLauncher": {

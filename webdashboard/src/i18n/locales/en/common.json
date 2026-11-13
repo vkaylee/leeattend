@@ -599,7 +599,6 @@
       "calculate_btn": "Calculate New",
       "components": {
         "add_new": "Add Component",
-        "assign_to_bases": "Assign to Bases",
         "code_label": "Code",
         "form_subtitle": "Component parameters",
         "name_placeholder": "Ex: Meal Allowance",
@@ -607,7 +606,6 @@
         "no_ot": "No OT",
         "ot_base_desc": "System aggregates these items to calculate hourly rate.",
         "ot_base_label": "Use as base for OT",
-        "salary_bases": "Salary Bases",
         "subtitle": "Define income and deduction items.",
         "tax_exempt": "Exempt",
         "taxable": "Taxable",
@@ -1961,6 +1959,44 @@
     },
     "monthly": {
       "copy": "Copy"
+    }
+  },
+  "scheduleLifecycle": {
+    "title": "Schedule lifecycle",
+    "subtitle": "Preview provisional changes, publish official revisions, and inspect evidence.",
+    "dateLabel": "Evidence date",
+    "reasonLabel": "Reason",
+    "reasonPlaceholder": "Explain this schedule change",
+    "reasonHint": "Required for publication and replan. Maximum 2,000 characters.",
+    "preview": "Preview",
+    "publish": "Publish official",
+    "replan": "Preview replan",
+    "confirmReplan": "Confirm replan",
+    "history": "Revision history",
+    "evidence": "Open evidence",
+    "revisions": "Revisions",
+    "segments": "Segments",
+    "closures": "Closure days",
+    "empty": "No schedule revisions for this period.",
+    "noHistory": "No revision history found.",
+    "noReason": "No reason recorded",
+    "statusesLabel": "Schedule status by day",
+    "provisionalNotice": "Preview is provisional and does not count as official evidence.",
+    "diffNotice": "Review server-generated diff before confirming replan.",
+    "previewRequired": "Create a preview before publishing.",
+    "evidenceRequired": "Load evidence before replanning.",
+    "replanPreviewRequired": "Create a replan preview before confirming.",
+    "requestFailed": "Schedule lifecycle request failed.",
+    "states": {
+      "provisional": "Provisional",
+      "published": "Published",
+      "superseded": "Superseded",
+      "explicit_off": "Explicit off",
+      "missing": "Missing",
+      "closed": "Closed",
+      "draft": "Draft",
+      "conflict": "Conflict",
+      "legacy_unverified": "Legacy unverified"
     }
   },
   "appLauncher": {

@@ -4589,58 +4589,6 @@ export interface paths { "/api/v1/workspaces/{ws_id}/contracts": {
     patch?: never;
     trace?: never;
 };
-"/workspaces/{ws_id}/salary-bases": {
-    parameters: {
-        query?: never;
-        header?: never;
-        path?: never;
-        cookie?: never;
-    };
-    /** GET /workspaces/{ws_id}/salary-bases */
-    get: operations["get_salary_bases"];
-    put?: never;
-    /** POST /workspaces/{ws_id}/salary-bases */
-    post: operations["create_salary_base"];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-};
-"/workspaces/{ws_id}/salary-bases/{base_id}/members": {
-    parameters: {
-        query?: never;
-        header?: never;
-        path?: never;
-        cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    /** POST /workspaces/{ws_id}/salary-bases/{base_id}/members */
-    post: operations["assign_component_to_base"];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-};
-"/workspaces/{ws_id}/salary-bases/{base_id}/members/{component_id}": {
-    parameters: {
-        query?: never;
-        header?: never;
-        path?: never;
-        cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    post?: never;
-    /** DELETE /workspaces/{ws_id}/salary-bases/{base_id}/members/{component_id} */
-    delete: operations["unassign_component_from_base"];
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-};
 "/workspaces/{ws_id}/salary-components": {
     parameters: {
         query?: never;
@@ -4792,10 +4740,6 @@ export interface components {
             effective_to?: string | null;
             /** Format: uuid */
             policy_id: string;
-        };
-        AssignMemberRequest: {
-            /** Format: uuid */
-            component_definition_id: string;
         };
         AssignPatternRequest: {
             /** @description If true, soft compliance warnings are accepted */
@@ -5333,11 +5277,6 @@ export interface components {
             /** Format: uuid */
             workspace_id?: string | null;
         };
-        CreateBaseRequest: {
-            description?: string | null;
-            name: string;
-            slug: string;
-        };
         CreateBehalfAssignmentRequest: {
             /** Format: uuid */
             assignee_user_id: string;
@@ -5674,7 +5613,6 @@ export interface components {
             time_start?: string | null;
         };
         CreateSalaryComponentRequest: {
-            base_group_ids?: string[] | null;
             code: string;
             name: string;
         };
@@ -8169,32 +8107,6 @@ export interface components {
         RoundingPolicy: "floor" | "round" | "ceil" | "none";
         /** @enum {string} */
         RuleAppliesTo: "employee" | "employer";
-        SalaryBaseGroup: {
-            /** Format: date-time */
-            created_at: string;
-            description?: string | null;
-            /** Format: uuid */
-            id: string;
-            is_system: boolean;
-            name: string;
-            slug: string;
-            /** Format: date-time */
-            updated_at: string;
-            /** Format: uuid */
-            workspace_id?: string | null;
-        };
-        SalaryBaseGroupMember: {
-            /** Format: uuid */
-            base_group_id: string;
-            /** Format: uuid */
-            component_definition_id: string;
-            /** Format: date-time */
-            created_at: string;
-        };
-        SalaryBasesResponse: {
-            groups: components["schemas"]["SalaryBaseGroup"][];
-            members: components["schemas"]["SalaryBaseGroupMember"][];
-        };
         SalaryComponentDefinition: {
             code: string;
             /** Format: date-time */
@@ -19585,108 +19497,6 @@ download_report: {
         };
         /** @description Job failed */
         410: {
-            headers: {
-                [name: string]: unknown;
-            };
-            content?: never;
-        };
-    };
-};
-get_salary_bases: {
-    parameters: {
-        query?: never;
-        header?: never;
-        path: {
-            /** @description Workspace ID */
-            ws_id: string;
-        };
-        cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-        /** @description Salary bases response */
-        200: {
-            headers: {
-                [name: string]: unknown;
-            };
-            content: {
-                "application/json": components["schemas"]["SalaryBasesResponse"];
-            };
-        };
-    };
-};
-create_salary_base: {
-    parameters: {
-        query?: never;
-        header?: never;
-        path: {
-            /** @description Workspace ID */
-            ws_id: string;
-        };
-        cookie?: never;
-    };
-    requestBody: {
-        content: {
-            "application/json": components["schemas"]["CreateBaseRequest"];
-        };
-    };
-    responses: {
-        /** @description Created salary base group */
-        201: {
-            headers: {
-                [name: string]: unknown;
-            };
-            content: {
-                "application/json": components["schemas"]["SalaryBaseGroup"];
-            };
-        };
-    };
-};
-assign_component_to_base: {
-    parameters: {
-        query?: never;
-        header?: never;
-        path: {
-            /** @description Workspace ID */
-            ws_id: string;
-            /** @description Salary Base Group ID */
-            base_id: string;
-        };
-        cookie?: never;
-    };
-    requestBody: {
-        content: {
-            "application/json": components["schemas"]["AssignMemberRequest"];
-        };
-    };
-    responses: {
-        /** @description Assigned component to salary base group */
-        200: {
-            headers: {
-                [name: string]: unknown;
-            };
-            content?: never;
-        };
-    };
-};
-unassign_component_from_base: {
-    parameters: {
-        query?: never;
-        header?: never;
-        path: {
-            /** @description Workspace ID */
-            ws_id: string;
-            /** @description Salary Base Group ID */
-            base_id: string;
-            /** @description Component Definition ID */
-            component_id: string;
-        };
-        cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-        /** @description Unassigned component from salary base group */
-        200: {
             headers: {
                 [name: string]: unknown;
             };

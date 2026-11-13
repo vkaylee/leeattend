@@ -133,24 +133,6 @@ func (r PayrollRepository) CreateSalaryComponent(ctx context.Context, req api.Cr
 	if err != nil {
 		return api.SalaryComponentDefinition{}, err
 	}
-	if req.BaseGroupIDs != nil && len(*req.BaseGroupIDs) > 0 {
-		uniqueIDs := make([]uuid.UUID, 0, len(*req.BaseGroupIDs))
-		seen := make(map[uuid.UUID]struct{})
-		for _, id := range *req.BaseGroupIDs {
-			if _, exists := seen[id]; !exists {
-				seen[id] = struct{}{}
-				uniqueIDs = append(uniqueIDs, id)
-			}
-		}
-		var validCount int
-		err := db.QueryRow(ctx, `SELECT count(DISTINCT id) FROM salary_base_groups WHERE id = ANY($1)`, uniqueIDs).Scan(&validCount)
-		if err != nil {
-			return api.SalaryComponentDefinition{}, err
-		}
-		if validCount != len(uniqueIDs) {
-			return api.SalaryComponentDefinition{}, api.ErrInvalidBaseGroup
-		}
-	}
 
 	id := uuid.New()
 	var def api.SalaryComponentDefinition
@@ -162,14 +144,6 @@ func (r PayrollRepository) CreateSalaryComponent(ctx context.Context, req api.Cr
 	def.CreatedAt = created.UTC().Format(time.RFC3339)
 	def.UpdatedAt = updated.UTC().Format(time.RFC3339)
 
-	if req.BaseGroupIDs != nil && len(*req.BaseGroupIDs) > 0 {
-		for _, bgID := range *req.BaseGroupIDs {
-			_, err = db.Exec(ctx, `INSERT INTO salary_component_base_members (component_definition_id, base_group_id, created_at) VALUES ($1, $2, NOW()) ON CONFLICT (component_definition_id, base_group_id) DO NOTHING`, def.ID, bgID)
-			if err != nil {
-				return api.SalaryComponentDefinition{}, err
-			}
-		}
-	}
 	return def, nil
 }
 
@@ -243,118 +217,6 @@ func (r PayrollRepository) AssignEmploymentSalaryComponent(ctx context.Context, 
 	item.CreatedAt = created.UTC().Format(time.RFC3339)
 	item.UpdatedAt = updated.UTC().Format(time.RFC3339)
 	return item, nil
-}
-
-func (r PayrollRepository) ListSalaryBases(ctx context.Context) (api.SalaryBasesResponse, error) {
-	db, err := r.db(ctx)
-	if err != nil {
-		return api.SalaryBasesResponse{}, err
-	}
-
-	groupRows, err := db.Query(ctx, `SELECT id, name, slug, description, is_system, created_at, updated_at FROM salary_base_groups ORDER BY is_system DESC, name ASC`)
-	if err != nil {
-		return api.SalaryBasesResponse{}, err
-	}
-	defer groupRows.Close()
-
-	groups := make([]api.SalaryBaseGroup, 0)
-	for groupRows.Next() {
-		var g api.SalaryBaseGroup
-		var created, updated time.Time
-		if err := groupRows.Scan(&g.ID, &g.Name, &g.Slug, &g.Description, &g.IsSystem, &created, &updated); err != nil {
-			return api.SalaryBasesResponse{}, err
-		}
-		g.CreatedAt = created.UTC().Format(time.RFC3339)
-		g.UpdatedAt = updated.UTC().Format(time.RFC3339)
-		groups = append(groups, g)
-	}
-	if err := groupRows.Err(); err != nil {
-		return api.SalaryBasesResponse{}, err
-	}
-
-	memberRows, err := db.Query(ctx, `SELECT scbm.component_definition_id, scbm.base_group_id, scbm.created_at
-FROM salary_component_base_members scbm
-INNER JOIN salary_base_groups sbg ON sbg.id = scbm.base_group_id
-ORDER BY scbm.created_at ASC`)
-	if err != nil {
-		return api.SalaryBasesResponse{}, err
-	}
-	defer memberRows.Close()
-
-	members := make([]api.SalaryBaseGroupMember, 0)
-	for memberRows.Next() {
-		var m api.SalaryBaseGroupMember
-		var created time.Time
-		if err := memberRows.Scan(&m.ComponentDefinitionID, &m.BaseGroupID, &created); err != nil {
-			return api.SalaryBasesResponse{}, err
-		}
-		m.CreatedAt = created.UTC().Format(time.RFC3339)
-		members = append(members, m)
-	}
-	if err := memberRows.Err(); err != nil {
-		return api.SalaryBasesResponse{}, err
-	}
-
-	return api.SalaryBasesResponse{Groups: groups, Members: members}, nil
-}
-
-func (r PayrollRepository) CreateSalaryBase(ctx context.Context, req api.CreateSalaryBaseRequest) (api.SalaryBaseGroup, error) {
-	db, err := r.db(ctx)
-	if err != nil {
-		return api.SalaryBaseGroup{}, err
-	}
-
-	id := uuid.New()
-	var g api.SalaryBaseGroup
-	var created, updated time.Time
-	err = db.QueryRow(ctx, `INSERT INTO salary_base_groups (id, name, slug, description, is_system, created_at, updated_at) VALUES ($1, $2, $3, $4, FALSE, NOW(), NOW()) RETURNING id, name, slug, description, is_system, created_at, updated_at`, id, strings.TrimSpace(req.Name), strings.TrimSpace(req.Slug), req.Description).Scan(&g.ID, &g.Name, &g.Slug, &g.Description, &g.IsSystem, &created, &updated)
-	if err != nil {
-		return api.SalaryBaseGroup{}, mapConstraintError(err)
-	}
-	g.CreatedAt = created.UTC().Format(time.RFC3339)
-	g.UpdatedAt = updated.UTC().Format(time.RFC3339)
-	return g, nil
-}
-
-func (r PayrollRepository) AssignBaseMember(ctx context.Context, baseID, componentID uuid.UUID) error {
-	db, err := r.db(ctx)
-	if err != nil {
-		return err
-	}
-
-	var validGroup bool
-	err = db.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM salary_base_groups WHERE id = $1)`, baseID).Scan(&validGroup)
-	if err != nil {
-		return err
-	}
-	if !validGroup {
-		return api.ErrInvalidBaseGroup
-	}
-
-	var validComp bool
-	err = db.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM salary_component_definitions WHERE id = $1)`, componentID).Scan(&validComp)
-	if err != nil {
-		return err
-	}
-	if !validComp {
-		return api.ErrComponentNotFound
-	}
-
-	_, err = db.Exec(ctx, `INSERT INTO salary_component_base_members (component_definition_id, base_group_id, created_at) VALUES ($1, $2, NOW()) ON CONFLICT (component_definition_id, base_group_id) DO NOTHING`, componentID, baseID)
-	return err
-}
-
-func (r PayrollRepository) UnassignBaseMember(ctx context.Context, baseID, componentID uuid.UUID) error {
-	db, err := r.db(ctx)
-	if err != nil {
-		return err
-	}
-
-	_, err = db.Exec(ctx, `DELETE FROM salary_component_base_members
-WHERE component_definition_id = $1
-  AND base_group_id = $2
-  AND base_group_id IN (SELECT id FROM salary_base_groups WHERE id = $2)`, componentID, baseID)
-	return err
 }
 
 func (r PayrollRepository) GetPayrollSettings(ctx context.Context) (*api.PayrollSettings, error) {

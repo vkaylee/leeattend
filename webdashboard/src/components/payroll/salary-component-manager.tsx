@@ -7,9 +7,8 @@ import Button from "@/components/ui/button";
 import Modal from "@/components/ui/modal";
 import { useToast } from "@/components/ui/toast";
 import { Typography } from "@/components/ui/typography";
-import { fetchSalaryComponents, createSalaryComponent, fetchSalaryBaseGroups } from "@/lib/api/payroll";
+import { fetchSalaryComponents, createSalaryComponent } from "@/lib/api/payroll";
 import { CreateSalaryComponentRequest } from "@/lib/api/types";
-import { cn } from "@/lib/utils";
 
 export default function SalaryComponentManager() {
   const { t } = useTranslation();
@@ -18,12 +17,11 @@ export default function SalaryComponentManager() {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const { data: components, isLoading } = useQuery({ queryKey: ["salary-components"], queryFn: () => fetchSalaryComponents() });
-  const { data: baseGroupsData } = useQuery({ queryKey: ["salary-base-groups"], queryFn: () => fetchSalaryBaseGroups() });
-  const [formData, setFormData] = useState<CreateSalaryComponentRequest>({ name: "", code: "", base_group_ids: [] });
+  const [formData, setFormData] = useState<CreateSalaryComponentRequest>({ name: "", code: "" });
 
   const createMutation = useMutation({
     mutationFn: (data: CreateSalaryComponentRequest) => createSalaryComponent(data),
-    onSuccess: () => { toast.success(t("common.success")); void queryClient.invalidateQueries({ queryKey: ["salary-components"] }); void queryClient.invalidateQueries({ queryKey: ["salary-base-groups"] }); setIsModalOpen(false); setFormData({ name: "", code: "", base_group_ids: [] }); },
+    onSuccess: () => { toast.success(t("common.success")); void queryClient.invalidateQueries({ queryKey: ["salary-components"] }); setIsModalOpen(false); setFormData({ name: "", code: "" }); },
   });
 
   const handleSubmit = (e: React.SyntheticEvent) => { e.preventDefault(); createMutation.mutate(formData); };
@@ -78,36 +76,6 @@ export default function SalaryComponentManager() {
             <div className="space-y-3 px-1">
               <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1" htmlFor="comp-code">{t("payroll.components.code_label")}</label>
               <input className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl px-5 py-4 font-mono font-bold text-sm text-slate-700 dark:text-slate-200 focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all tracking-tight shadow-sm" id="comp-code" onChange={e => { setFormData({...formData, code: e.target.value.toUpperCase()}); }} placeholder="MEAL" required type="text" value={formData.code} />
-            </div>
-          </div>
-
-          <div className="space-y-3">
-            <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">{t("payroll.components.assign_to_bases")}</label>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {baseGroupsData?.groups.filter(g => g.slug !== "gross").map(group => {
-                const isSelected = formData.base_group_ids?.includes(group.id);
-                return (
-                  <label aria-label={group.name} className={cn("flex items-center gap-4 p-4 rounded-2xl cursor-pointer transition-all group/check border-2 shadow-sm active:scale-[0.98]", isSelected ? "bg-white dark:bg-slate-900 border-primary-100 dark:border-primary-800 shadow-md" : "bg-slate-50 dark:bg-slate-800/50 border-transparent hover:bg-white dark:hover:bg-slate-900 shadow-inner")} htmlFor={`group-${group.id}`} key={group.id}>
-                    <input 
-                      checked={isSelected} 
-                      className="w-5 h-5 rounded-lg text-primary-600 dark:text-primary-400 focus:ring-primary-500 transition-all border-slate-200 dark:border-slate-700 shadow-inner cursor-pointer"
-                      id={`group-${group.id}`}
-                      onChange={(e) => {
-                        const current = formData.base_group_ids ?? [];
-                        setFormData({
-                          ...formData,
-                          base_group_ids: e.target.checked ? [...current, group.id] : current.filter(id => id !== group.id)
-                        });
-                      }}
-                      type="checkbox"
-                    />
-                    <span className="flex flex-col">
-                      <span className="font-bold text-slate-800 dark:text-slate-100 text-sm">{group.name}</span>
-                      <span className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5 line-clamp-1">{group.description}</span>
-                    </span>
-                  </label>
-                );
-              })}
             </div>
           </div>
 
