@@ -142,6 +142,7 @@ func persistKPICalculation(ctx context.Context, db DBTX, employmentID, payslipID
 		return err
 	}
 	_, err = db.Exec(ctx, `INSERT INTO payroll_calculation_runs (employment_id, payslip_id, period_year, period_month, formula_version_id, engine_version, input_snapshot, output_snapshot, calculation_trace, created_by)
-VALUES ($1, $2, $3, $4, $5, 'formula-v1', $6, $7, $8, $9)`, employmentID, payslipID, year, month, calc.FormulaID, inputSnapshot, outputSnapshot, trace, actorID)
+VALUES ($1, $2, $3, $4, $5, 'formula-v1', $6, $7, $8, $9)
+ON CONFLICT (payslip_id, formula_version_id) WHERE payslip_id IS NOT NULL AND formula_version_id IS NOT NULL DO UPDATE SET input_snapshot = EXCLUDED.input_snapshot, output_snapshot = EXCLUDED.output_snapshot, calculation_trace = EXCLUDED.calculation_trace, created_by = EXCLUDED.created_by`, employmentID, payslipID, year, month, calc.FormulaID, inputSnapshot, outputSnapshot, trace, actorID)
 	return err
 }
