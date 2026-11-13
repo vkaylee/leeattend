@@ -145,6 +145,13 @@ type ConfigReadRequest struct {
 	AsOf      time.Time
 }
 
+type ConfigListRequest struct {
+	ScopeType string
+	ScopeID   *uuid.UUID
+	AsOf      *time.Time
+	Prefix    string
+}
+
 type OrganizationRepository interface {
 	GetOrganization(context.Context) (OrganizationRecord, error)
 	UpdateOrganization(context.Context, OrganizationPatch) (OrganizationRecord, error)
@@ -156,7 +163,7 @@ type OrganizationRepository interface {
 	GetFeatureFlagByID(context.Context, uuid.UUID) (FeatureFlagRecord, error)
 	DeleteFeatureFlag(context.Context, uuid.UUID) (bool, error)
 	UpsertFeatureFlag(context.Context, FeatureFlagRequest) (FeatureFlagRecord, error)
-	ListConfigs(context.Context) ([]OrganizationConfigEntry, error)
+	ListConfigs(context.Context, ConfigListRequest) ([]OrganizationConfigEntry, error)
 	GetConfig(context.Context, string, ConfigReadRequest) (ResolvedConfig, error)
 	DeleteConfig(context.Context, uuid.UUID) error
 	PutConfig(context.Context, ConfigEntryRequest, uuid.UUID) error
@@ -196,7 +203,16 @@ func (h OrganizationHandler) ListConfigs(w http.ResponseWriter, r *http.Request)
 		apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
 		return
 	}
-	configs, err := h.Repository.ListConfigs(r.Context())
+	listRequest, err := parseConfigListRequest(r)
+	if err != nil {
+		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
+		return
+	}
+	if listRequest.ScopeType == "employer" && !h.Authorizer.IsGlobalManager(r.Context(), userID) {
+		apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
+		return
+	}
+	configs, err := h.Repository.ListConfigs(r.Context(), listRequest)
 	if err != nil {
 		h.writeRepositoryError(w, r, err)
 		return
@@ -230,6 +246,39 @@ func (h OrganizationHandler) GetConfig(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	apperror.WriteJSON(w, http.StatusOK, cfg)
+}
+
+func parseConfigListRequest(r *http.Request) (ConfigListRequest, error) {
+	request := ConfigListRequest{ScopeType: "organization", Prefix: strings.TrimSpace(r.URL.Query().Get("prefix"))}
+	query := r.URL.Query()
+	if scopeType := strings.TrimSpace(query.Get("scope_type")); scopeType != "" {
+		request.ScopeType = scopeType
+	}
+	if request.ScopeType != "organization" && request.ScopeType != "employer" {
+		return ConfigListRequest{}, errConfigScope
+	}
+	if scopeID := strings.TrimSpace(query.Get("scope_id")); scopeID != "" {
+		id, err := uuid.Parse(scopeID)
+		if err != nil {
+			return ConfigListRequest{}, errConfigScopeID
+		}
+		request.ScopeID = &id
+	}
+	if request.ScopeType == "organization" && request.ScopeID != nil {
+		return ConfigListRequest{}, errConfigScopeID
+	}
+	if request.ScopeType == "employer" && (request.ScopeID == nil || *request.ScopeID == uuid.Nil) {
+		return ConfigListRequest{}, errConfigScopeID
+	}
+	if asOf := strings.TrimSpace(query.Get("as_of")); asOf != "" {
+		parsed, err := time.Parse("2006-01-02", asOf)
+		if err != nil {
+			return ConfigListRequest{}, errConfigDate
+		}
+		parsed = parsed.UTC()
+		request.AsOf = &parsed
+	}
+	return request, nil
 }
 
 func parseConfigReadRequest(r *http.Request) (ConfigReadRequest, error) {

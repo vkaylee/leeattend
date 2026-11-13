@@ -172,17 +172,31 @@ func (r OrganizationRepository) PutConfig(ctx context.Context, req api.ConfigEnt
 	return mapConstraintError(err)
 }
 
-func (r OrganizationRepository) ListConfigs(ctx context.Context) ([]api.OrganizationConfigEntry, error) {
+func (r OrganizationRepository) ListConfigs(ctx context.Context, request api.ConfigListRequest) ([]api.OrganizationConfigEntry, error) {
 	db, err := r.db()
 	if err != nil {
 		return nil, err
 	}
+	args := []any{request.ScopeType}
+	where := "scope_type = $1"
+	if request.ScopeID == nil {
+		where += " AND scope_id IS NULL"
+	} else {
+		args = append(args, *request.ScopeID)
+		where += " AND scope_id = $2"
+	}
+	if request.Prefix != "" {
+		args = append(args, request.Prefix+"%")
+		where += fmt.Sprintf(" AND config_key LIKE $%d", len(args))
+	}
+	if request.AsOf != nil {
+		args = append(args, request.AsOf.Format("2006-01-02"))
+		where += fmt.Sprintf(" AND effective_from <= $%d::date AND (effective_to IS NULL OR effective_to >= $%d::date)", len(args), len(args))
+	}
 	rows, err := db.Query(ctx, `SELECT id, scope_type, scope_id, config_key,
 		value_int, value_decimal, value_text, value_bool, value_json,
 		effective_from, effective_to, created_by, created_at, updated_at
-FROM config_entries
-WHERE scope_type = 'organization' AND scope_id IS NULL
-ORDER BY created_at DESC`)
+FROM config_entries WHERE `+where+` ORDER BY created_at DESC`, args...)
 	if err != nil {
 		return nil, err
 	}

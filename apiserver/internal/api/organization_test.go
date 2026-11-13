@@ -105,7 +105,7 @@ func (m mockOrganizationRepo) PutConfig(_ context.Context, _ ConfigEntryRequest,
 	return nil
 }
 
-func (m mockOrganizationRepo) ListConfigs(_ context.Context) ([]OrganizationConfigEntry, error) {
+func (m mockOrganizationRepo) ListConfigs(_ context.Context, _ ConfigListRequest) ([]OrganizationConfigEntry, error) {
 	return []OrganizationConfigEntry{{ID: uuid.New(), ConfigKey: "max_overtime_hours"}}, nil
 }
 
@@ -438,6 +438,24 @@ func TestOrganizationHandler_PutLifecycleConfigEmitsAudit(t *testing.T) {
 	}
 	if len(auditRecorder.events) != 1 || auditRecorder.events[0].Name != "schedule_lifecycle.activation.updated" {
 		t.Fatalf("expected lifecycle activation audit, got %+v", auditRecorder.events)
+	}
+}
+
+func TestParseConfigListRequest(t *testing.T) {
+	employerID := uuid.New()
+	request, err := parseConfigListRequest(httptest.NewRequest(http.MethodGet, "/api/v1/configs?scope_type=employer&scope_id="+employerID.String()+"&as_of=2026-11-14&prefix=schedule.", nil))
+	if err != nil || request.ScopeType != "employer" || request.ScopeID == nil || *request.ScopeID != employerID || request.AsOf == nil || request.Prefix != "schedule." {
+		t.Fatalf("unexpected parsed config list request: %+v err=%v", request, err)
+	}
+	for _, target := range []string{
+		"/api/v1/configs?scope_type=employer",
+		"/api/v1/configs?scope_type=organization&scope_id=" + employerID.String(),
+		"/api/v1/configs?scope_type=employer&scope_id=bad",
+		"/api/v1/configs?scope_type=organization&as_of=bad",
+	} {
+		if _, err := parseConfigListRequest(httptest.NewRequest(http.MethodGet, target, nil)); err == nil {
+			t.Fatalf("expected invalid config list request for %s", target)
+		}
 	}
 }
 

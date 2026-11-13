@@ -233,7 +233,7 @@ func TestOrganizationRepository_ListAndGetConfigs(t *testing.T) {
 		},
 	}
 	repo := OrganizationRepository{DB: db}
-	entries, err := repo.ListConfigs(context.Background())
+	entries, err := repo.ListConfigs(context.Background(), api.ConfigListRequest{ScopeType: "organization"})
 	if err != nil {
 		t.Fatalf("unexpected list error: %v", err)
 	}
