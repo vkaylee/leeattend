@@ -41,6 +41,32 @@ func TestValidateConfigEntry(t *testing.T) {
 	}
 }
 
+func TestValidateScheduleLifecycleActivationConfig(t *testing.T) {
+	employerID := uuid.New()
+	enabled := true
+	request := ConfigEntryRequest{
+		ScopeType: "employer", ScopeID: &employerID, ConfigKey: "schedule.lifecycle.enabled",
+		Value: ConfigValue{Bool: &enabled}, EffectiveFrom: "2026-11-13",
+	}
+	if err := validateConfigEntry(request); err != nil {
+		t.Fatalf("valid lifecycle activation rejected: %v", err)
+	}
+	request.ScopeType = "organization"
+	request.ScopeID = nil
+	if err := validateConfigEntry(request); err == nil {
+		t.Fatal("organization-scoped lifecycle activation should be rejected")
+	}
+}
+
+func TestValidateKPIParameters(t *testing.T) {
+	value := decimal.RequireFromString("0.6")
+	for _, key := range []string{"payroll.kpi.output_weight", "payroll.kpi.quality_weight", "payroll.kpi.target_bonus", "payroll.kpi.score_cap", "payroll.kpi.bonus_cap"} {
+		if err := validateConfigEntry(ConfigEntryRequest{ConfigKey: key, Value: ConfigValue{Decimal: &value}, EffectiveFrom: "2026-11-14"}); err != nil {
+			t.Fatalf("%s rejected: %v", key, err)
+		}
+	}
+}
+
 func TestConfigValueTypeRejectsMultipleValues(t *testing.T) {
 	text := "fixed"
 	value := ConfigValue{Text: &text, Bool: new(bool)}

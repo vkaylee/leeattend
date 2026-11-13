@@ -56,6 +56,53 @@ ORDER BY m.code, b.created_at DESC, i.id DESC`, employmentID, year, month)
 	if len(values) == 0 {
 		return kpiCalculation{Inputs: inputs}, nil
 	}
+	var outputWeight, qualityWeight, scoreCap, targetBonus, bonusCap decimal.Decimal
+	cfgRows, cfgErr := db.Query(ctx, `SELECT config_key, value_decimal::text
+FROM config_entries
+WHERE scope_type = 'organization' AND scope_id IS NULL AND config_key = ANY($1) AND effective_from <= $2::date
+ORDER BY effective_from DESC, created_at DESC`, []string{"payroll.kpi.output_weight", "payroll.kpi.quality_weight", "payroll.kpi.score_cap", "payroll.kpi.target_bonus", "payroll.kpi.bonus_cap"}, asOf)
+	if cfgErr != nil {
+		return kpiCalculation{}, cfgErr
+	}
+	seenConfig := make(map[string]bool)
+	for cfgRows.Next() {
+		var key, raw string
+		if err := cfgRows.Scan(&key, &raw); err != nil {
+			cfgRows.Close()
+			return kpiCalculation{}, err
+		}
+		if seenConfig[key] {
+			continue
+		}
+		seenConfig[key] = true
+		value, err := decimal.NewFromString(raw)
+		if err != nil {
+			cfgRows.Close()
+			return kpiCalculation{}, err
+		}
+		switch key {
+		case "payroll.kpi.output_weight":
+			outputWeight = value
+		case "payroll.kpi.quality_weight":
+			qualityWeight = value
+		case "payroll.kpi.score_cap":
+			scoreCap = value
+		case "payroll.kpi.target_bonus":
+			targetBonus = value
+		case "payroll.kpi.bonus_cap":
+			bonusCap = value
+		}
+	}
+	if err := cfgRows.Err(); err != nil {
+		cfgRows.Close()
+		return kpiCalculation{}, err
+	}
+	cfgRows.Close()
+	values["output_weight"] = outputWeight
+	values["quality_weight"] = qualityWeight
+	values["score_cap"] = scoreCap
+	values["target_bonus"] = targetBonus
+	values["bonus_cap"] = bonusCap
 
 	var formulaID uuid.UUID
 	var expression string

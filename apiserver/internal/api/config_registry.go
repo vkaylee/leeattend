@@ -32,7 +32,13 @@ var configKeyRegistry = map[string]ConfigKeyDefinition{
 	"payroll.hours_per_day":          {Type: ConfigValueDecimal, AllowedScopes: []string{"organization", "department", "employment"}, EffectiveDated: true},
 	"payroll.max_ot_hours_per_day":   {Type: ConfigValueDecimal, AllowedScopes: []string{"organization"}, EffectiveDated: true},
 	"payroll.max_ot_hours_per_month": {Type: ConfigValueDecimal, AllowedScopes: []string{"organization"}, EffectiveDated: true},
+	"payroll.kpi.output_weight":      {Type: ConfigValueDecimal, AllowedScopes: []string{"organization"}, EffectiveDated: true},
+	"payroll.kpi.quality_weight":     {Type: ConfigValueDecimal, AllowedScopes: []string{"organization"}, EffectiveDated: true},
+	"payroll.kpi.target_bonus":       {Type: ConfigValueDecimal, AllowedScopes: []string{"organization"}, EffectiveDated: true},
+	"payroll.kpi.score_cap":          {Type: ConfigValueDecimal, AllowedScopes: []string{"organization"}, EffectiveDated: true},
+	"payroll.kpi.bonus_cap":          {Type: ConfigValueDecimal, AllowedScopes: []string{"organization"}, EffectiveDated: true},
 	"overtime.max_hours_per_month":   {Type: ConfigValueDecimal, AllowedScopes: []string{"organization", "employer", "department", "employee", "employment"}, EffectiveDated: true},
+	"schedule.lifecycle.enabled":     {Type: ConfigValueBool, AllowedScopes: []string{"employer"}, EffectiveDated: true},
 }
 
 var (
