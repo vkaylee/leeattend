@@ -30,6 +30,14 @@ func (mockPayrollRepository) LockPayrollInputBatch(_ context.Context, batchID, a
 	return PayrollInputBatch{ID: batchID, Status: "locked", LockedBy: &actorID}, nil
 }
 
+func (mockPayrollRepository) CreatePayrollFormulaRule(_ context.Context, req CreatePayrollFormulaRuleRequest, _ uuid.UUID) (PayrollFormulaRule, error) {
+	return PayrollFormulaRule{ID: uuid.New(), Code: req.Code, Name: req.Name, ComponentCode: req.ComponentCode, Version: 1, Expression: req.Expression, EffectiveFrom: req.EffectiveFrom, Status: "draft"}, nil
+}
+
+func (mockPayrollRepository) PublishPayrollFormulaRule(_ context.Context, ruleID, _ uuid.UUID) (PayrollFormulaRule, error) {
+	return PayrollFormulaRule{ID: ruleID, Version: 1, Status: "published"}, nil
+}
+
 func (mockPayrollRepository) ListPayslips(context.Context, time.Time, time.Time) ([]PayslipRecord, error) {
 	return []PayslipRecord{{ID: uuid.New(), NetPayAmount: decimal.RequireFromString("1234.50")}}, nil
 }
@@ -1150,6 +1158,16 @@ func TestPayrollInputImportValidatesAndAuthorizes(t *testing.T) {
 	}
 	if got := request(payrollAuthorizer{}, body).Code; got != http.StatusCreated {
 		t.Fatalf("valid status = %d, want 201", got)
+	}
+}
+
+func TestPayrollFormulaRuleEndpointsRequireManage(t *testing.T) {
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/payroll/formulas", bytes.NewBufferString(`{"code":"kpi.bonus","name":"KPI Bonus","component_code":"KPI_BONUS","expression":"actual * rate","effective_from":"2026-10-01"}`))
+	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
+	rec := httptest.NewRecorder()
+	PayrollHandler{Repository: mockPayrollRepository{}, Authorizer: payrollAuthorizer{allowedPerms: map[string]bool{}}}.CreatePayrollFormulaRule(rec, req)
+	if rec.Code != http.StatusForbidden {
+		t.Fatalf("create forbidden status = %d, want 403", rec.Code)
 	}
 }
 

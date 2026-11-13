@@ -25,10 +25,19 @@ const (
 )
 
 func Evaluate(expression string, values map[string]decimal.Decimal) (decimal.Decimal, error) {
+	return evaluate(expression, values, false)
+}
+
+func Validate(expression string) error {
+	_, err := evaluate(expression, nil, true)
+	return err
+}
+
+func evaluate(expression string, values map[string]decimal.Decimal, allowUnknown bool) (decimal.Decimal, error) {
 	if strings.TrimSpace(expression) == "" || len(expression) > maxExpressionLength {
 		return decimal.Zero, ErrInvalidExpression
 	}
-	parser := parser{input: expression, values: values}
+	parser := parser{input: expression, values: values, allowUnknown: allowUnknown}
 	result, err := parser.parseExpression()
 	if err != nil {
 		return decimal.Zero, err
@@ -41,11 +50,12 @@ func Evaluate(expression string, values map[string]decimal.Decimal) (decimal.Dec
 }
 
 type parser struct {
-	input    string
-	position int
-	values   map[string]decimal.Decimal
-	steps    int
-	depth    int
+	input        string
+	position     int
+	values       map[string]decimal.Decimal
+	allowUnknown bool
+	steps        int
+	depth        int
 }
 
 func (p *parser) parseExpression() (decimal.Decimal, error) {
@@ -191,6 +201,9 @@ func (p *parser) parsePrimary() (decimal.Decimal, error) {
 	}
 	value, ok := p.values[name]
 	if !ok {
+		if p.allowUnknown {
+			return decimal.Zero, nil
+		}
 		return decimal.Zero, fmt.Errorf("%w: %s", ErrUnknownVariable, name)
 	}
 	return value, nil

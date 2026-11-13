@@ -1093,6 +1093,64 @@ func payrollInputRequestHash(req api.CreatePayrollInputRequest) (string, error) 
 	return fmt.Sprintf("%x", sha256.Sum256(payload)), nil
 }
 
+func (r PayrollRepository) CreatePayrollFormulaRule(ctx context.Context, req api.CreatePayrollFormulaRuleRequest, actorID uuid.UUID) (api.PayrollFormulaRule, error) {
+	db, err := r.db(ctx)
+	if err != nil {
+		return api.PayrollFormulaRule{}, err
+	}
+	beginner, ok := db.(service.TxBeginner)
+	if !ok {
+		return api.PayrollFormulaRule{}, errors.New("payroll repository: database does not support transactions")
+	}
+	var result api.PayrollFormulaRule
+	err = service.WithTx(ctx, beginner, func(ctx context.Context, tx pgx.Tx) error {
+		ruleID := uuid.New()
+		if _, err := tx.Exec(ctx, `INSERT INTO payroll_formula_rules (id, code, name, component_code, created_by) VALUES ($1, $2, $3, $4, $5)`, ruleID, strings.TrimSpace(req.Code), strings.TrimSpace(req.Name), strings.TrimSpace(req.ComponentCode), actorID); err != nil {
+			if isConflictError(err) {
+				return api.ErrConflict
+			}
+			return err
+		}
+		if err := tx.QueryRow(ctx, `INSERT INTO payroll_formula_rule_versions (rule_id, version_number, expression, effective_from, status, created_by) VALUES ($1, 1, $2, $3::date, 'draft', $4) RETURNING $5::uuid, $6::text, $7::text, $8::text, id, version_number, expression, effective_from::text, status`, ruleID, req.Expression, req.EffectiveFrom, actorID, ruleID, req.Code, req.Name, req.ComponentCode).Scan(
+			&result.ID, &result.Code, &result.Name, &result.ComponentCode, &result.VersionID, &result.Version, &result.Expression, &result.EffectiveFrom, &result.Status); err != nil {
+			return err
+		}
+		return nil
+	})
+	if err != nil {
+		return api.PayrollFormulaRule{}, err
+	}
+	return result, nil
+}
+
+func (r PayrollRepository) PublishPayrollFormulaRule(ctx context.Context, ruleID, actorID uuid.UUID) (api.PayrollFormulaRule, error) {
+	db, err := r.db(ctx)
+	if err != nil {
+		return api.PayrollFormulaRule{}, err
+	}
+	var result api.PayrollFormulaRule
+	err = db.QueryRow(ctx, `UPDATE payroll_formula_rule_versions v
+	SET status = 'published', published_by = $2, published_at = CURRENT_TIMESTAMP
+	FROM payroll_formula_rules r
+	WHERE v.rule_id = r.id AND r.id = $1 AND v.status = 'draft'
+	RETURNING r.id, r.code, r.name, r.component_code, v.id, v.version_number, v.expression, v.effective_from::text, v.status`, ruleID, actorID).Scan(
+		&result.ID, &result.Code, &result.Name, &result.ComponentCode, &result.VersionID, &result.Version, &result.Expression, &result.EffectiveFrom, &result.Status)
+	if errors.Is(err, pgx.ErrNoRows) {
+		var exists bool
+		if existsErr := db.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM payroll_formula_rules WHERE id = $1)`, ruleID).Scan(&exists); existsErr != nil {
+			return api.PayrollFormulaRule{}, existsErr
+		}
+		if !exists {
+			return api.PayrollFormulaRule{}, api.ErrRuleNotFound
+		}
+		return api.PayrollFormulaRule{}, api.ErrConflict
+	}
+	if err != nil {
+		return api.PayrollFormulaRule{}, err
+	}
+	return result, nil
+}
+
 func (r PayrollRepository) transitionPayrollInputBatch(ctx context.Context, batchID, actorID uuid.UUID, fromStatus, toStatus string) (api.PayrollInputBatch, error) {
 	db, err := r.db(ctx)
 	if err != nil {

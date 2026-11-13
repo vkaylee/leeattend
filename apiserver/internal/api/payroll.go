@@ -317,6 +317,26 @@ type PreviewPayrollFormulaResponse struct {
 	Value string `json:"value"`
 }
 
+type CreatePayrollFormulaRuleRequest struct {
+	Code          string `json:"code"`
+	Name          string `json:"name"`
+	ComponentCode string `json:"component_code"`
+	Expression    string `json:"expression"`
+	EffectiveFrom string `json:"effective_from"`
+}
+
+type PayrollFormulaRule struct {
+	ID            uuid.UUID `json:"id"`
+	Code          string    `json:"code"`
+	Name          string    `json:"name"`
+	ComponentCode string    `json:"component_code"`
+	VersionID     uuid.UUID `json:"version_id"`
+	Version       int       `json:"version"`
+	Expression    string    `json:"expression"`
+	EffectiveFrom string    `json:"effective_from"`
+	Status        string    `json:"status"`
+}
+
 type PayrollPeriod struct {
 	ID           uuid.UUID  `json:"id"`
 	EmployerID   uuid.UUID  `json:"employer_id"`
@@ -370,6 +390,8 @@ type PayrollRepository interface {
 	CreatePayrollInputBatch(context.Context, CreatePayrollInputRequest, uuid.UUID) (PayrollInputBatch, error)
 	ApprovePayrollInputBatch(context.Context, uuid.UUID, uuid.UUID) (PayrollInputBatch, error)
 	LockPayrollInputBatch(context.Context, uuid.UUID, uuid.UUID) (PayrollInputBatch, error)
+	CreatePayrollFormulaRule(context.Context, CreatePayrollFormulaRuleRequest, uuid.UUID) (PayrollFormulaRule, error)
+	PublishPayrollFormulaRule(context.Context, uuid.UUID, uuid.UUID) (PayrollFormulaRule, error)
 	GetPayrollPeriod(context.Context, uuid.UUID, int, int) (PayrollPeriod, error)
 	LockPayrollPeriod(context.Context, uuid.UUID, int, int, int64, uuid.UUID) (PayrollPeriod, error)
 	ReopenPayrollPeriod(context.Context, uuid.UUID, int, int, int64, string, uuid.UUID) (PayrollPeriod, error)
@@ -978,6 +1000,56 @@ func validPayrollInputRequest(req CreatePayrollInputRequest) bool {
 		seen[key] = struct{}{}
 	}
 	return true
+}
+
+func (h PayrollHandler) CreatePayrollFormulaRule(w http.ResponseWriter, r *http.Request) {
+	if !h.allowed(r, "payroll:manage") {
+		h.forbidden(w, r)
+		return
+	}
+	actorID, ok := httpinfra.UserIDFromContext(r.Context())
+	if !ok {
+		h.forbidden(w, r)
+		return
+	}
+	req, err := DecodeJSON[CreatePayrollFormulaRuleRequest](r, 1<<20)
+	if err != nil || strings.TrimSpace(req.Code) == "" || strings.TrimSpace(req.Name) == "" || strings.TrimSpace(req.ComponentCode) == "" || len(req.Expression) == 0 || len(req.Expression) > 4096 {
+		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
+		return
+	}
+	if _, err := time.Parse("2006-01-02", req.EffectiveFrom); err != nil {
+		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
+		return
+	}
+	if err := formula.Validate(req.Expression); err != nil {
+		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
+		return
+	}
+	rule, err := h.Repository.CreatePayrollFormulaRule(r.Context(), req, actorID)
+	if err != nil {
+		h.writeError(w, r, err)
+		return
+	}
+	apperror.WriteJSON(w, http.StatusCreated, rule)
+}
+
+func (h PayrollHandler) PublishPayrollFormulaRule(w http.ResponseWriter, r *http.Request) {
+	if !h.allowed(r, "payroll:manage") {
+		h.forbidden(w, r)
+		return
+	}
+	ruleID, ok := pathUUID(r, "rule_id")
+	actorID, actorOK := httpinfra.UserIDFromContext(r.Context())
+	if !ok || !actorOK {
+		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
+		return
+	}
+	rule, err := h.Repository.PublishPayrollFormulaRule(r.Context(), ruleID, actorID)
+	if err != nil {
+		h.writeError(w, r, err)
+		return
+	}
+	apperror.WriteJSON(w, http.StatusOK, rule)
 }
 
 func (h PayrollHandler) PreviewPayrollFormula(w http.ResponseWriter, r *http.Request) {

@@ -36,6 +36,8 @@ func registerPayrollRoutes(router chi.Router, handler api.PayrollHandler) {
 	registerRoute(router, "POST /api/v1/payroll/inputs/{batch_id}/approve", handler.ApprovePayrollInputBatch)
 	registerRoute(router, "POST /api/v1/payroll/inputs/{batch_id}/lock", handler.LockPayrollInputBatch)
 	registerRoute(router, "POST /api/v1/payroll/formulas/preview", handler.PreviewPayrollFormula)
+	registerRoute(router, "POST /api/v1/payroll/formulas", handler.CreatePayrollFormulaRule)
+	registerRoute(router, "POST /api/v1/payroll/formulas/{rule_id}/publish", handler.PublishPayrollFormulaRule)
 	registerRoute(router, "GET /api/v1/payroll/periods/{year}/{month}", handler.GetPayrollPeriod)
 	registerRoute(router, "POST /api/v1/payroll/periods/{year}/{month}/lock", handler.LockPayrollPeriod)
 	registerRoute(router, "POST /api/v1/payroll/periods/{year}/{month}/reopen", handler.ReopenPayrollPeriod)
