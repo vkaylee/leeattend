@@ -18,6 +18,7 @@ import {
   Mail,
   Users,
   Zap,
+  Flag,
 } from "lucide-react";
 import React, { useMemo } from "react";
 import { useTranslation } from "react-i18next";
@@ -173,6 +174,13 @@ const getSystemGroup = (t: TFunction): SettingItem[] => [
     label: t("settings.categories.econtracts", { defaultValue: "Hợp đồng điện tử" }),
     path: ROUTES.SETTINGS.ECONTRACTS,
     permissions: ["organization:settings:read"],
+  },
+  {
+    description: t("settings.categories.feature_flags_desc", { defaultValue: "Bật hoặc tắt tính năng runtime của tổ chức" }),
+    icon: <Flag className="w-4 h-4" />,
+    label: t("settings.categories.feature_flags", { defaultValue: "Feature flags" }),
+    path: ROUTES.SETTINGS.FEATURE_FLAGS,
+    permissions: ["feature_flags:read"],
   },
 ];
 

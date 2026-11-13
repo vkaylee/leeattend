@@ -68,6 +68,7 @@ import { Route as AuthenticatedOrganizationSettingsLifecycleTemplatesRouteImport
 import { Route as AuthenticatedOrganizationSettingsLeaveRouteImport } from "./routes/_authenticated/_organization/settings/leave"
 import { Route as AuthenticatedOrganizationSettingsHolidaysRouteImport } from "./routes/_authenticated/_organization/settings/holidays"
 import { Route as AuthenticatedOrganizationSettingsGeneralRouteImport } from "./routes/_authenticated/_organization/settings/general"
+import { Route as AuthenticatedOrganizationSettingsFeatureFlagsRouteImport } from "./routes/_authenticated/_organization/settings/feature-flags"
 import { Route as AuthenticatedOrganizationSettingsEcontractsRouteImport } from "./routes/_authenticated/_organization/settings/econtracts"
 import { Route as AuthenticatedOrganizationSettingsCustomFieldsRouteImport } from "./routes/_authenticated/_organization/settings/custom-fields"
 import { Route as AuthenticatedOrganizationSettingsConditionTypesRouteImport } from "./routes/_authenticated/_organization/settings/condition-types"
@@ -628,6 +629,16 @@ const AuthenticatedOrganizationSettingsGeneralRoute =
       (d) => d.Route,
     ),
   )
+const AuthenticatedOrganizationSettingsFeatureFlagsRoute =
+  AuthenticatedOrganizationSettingsFeatureFlagsRouteImport.update({
+    id: "/feature-flags",
+    path: "/feature-flags",
+    getParentRoute: () => AuthenticatedOrganizationSettingsRoute,
+  } as any).lazy(() =>
+    import("./routes/_authenticated/_organization/settings/feature-flags.lazy").then(
+      (d) => d.Route,
+    ),
+  )
 const AuthenticatedOrganizationSettingsEcontractsRoute =
   AuthenticatedOrganizationSettingsEcontractsRouteImport.update({
     id: "/econtracts",
@@ -941,6 +952,7 @@ export interface FileRoutesByFullPath {
   "/settings/condition-types": typeof AuthenticatedOrganizationSettingsConditionTypesRoute
   "/settings/custom-fields": typeof AuthenticatedOrganizationSettingsCustomFieldsRoute
   "/settings/econtracts": typeof AuthenticatedOrganizationSettingsEcontractsRoute
+  "/settings/feature-flags": typeof AuthenticatedOrganizationSettingsFeatureFlagsRoute
   "/settings/general": typeof AuthenticatedOrganizationSettingsGeneralRoute
   "/settings/holidays": typeof AuthenticatedOrganizationSettingsHolidaysRoute
   "/settings/leave": typeof AuthenticatedOrganizationSettingsLeaveRoute
@@ -1021,6 +1033,7 @@ export interface FileRoutesByTo {
   "/settings/condition-types": typeof AuthenticatedOrganizationSettingsConditionTypesRoute
   "/settings/custom-fields": typeof AuthenticatedOrganizationSettingsCustomFieldsRoute
   "/settings/econtracts": typeof AuthenticatedOrganizationSettingsEcontractsRoute
+  "/settings/feature-flags": typeof AuthenticatedOrganizationSettingsFeatureFlagsRoute
   "/settings/general": typeof AuthenticatedOrganizationSettingsGeneralRoute
   "/settings/holidays": typeof AuthenticatedOrganizationSettingsHolidaysRoute
   "/settings/leave": typeof AuthenticatedOrganizationSettingsLeaveRoute
@@ -1107,6 +1120,7 @@ export interface FileRoutesById {
   "/_authenticated/_organization/settings/condition-types": typeof AuthenticatedOrganizationSettingsConditionTypesRoute
   "/_authenticated/_organization/settings/custom-fields": typeof AuthenticatedOrganizationSettingsCustomFieldsRoute
   "/_authenticated/_organization/settings/econtracts": typeof AuthenticatedOrganizationSettingsEcontractsRoute
+  "/_authenticated/_organization/settings/feature-flags": typeof AuthenticatedOrganizationSettingsFeatureFlagsRoute
   "/_authenticated/_organization/settings/general": typeof AuthenticatedOrganizationSettingsGeneralRoute
   "/_authenticated/_organization/settings/holidays": typeof AuthenticatedOrganizationSettingsHolidaysRoute
   "/_authenticated/_organization/settings/leave": typeof AuthenticatedOrganizationSettingsLeaveRoute
@@ -1193,6 +1207,7 @@ export interface FileRouteTypes {
     | "/settings/condition-types"
     | "/settings/custom-fields"
     | "/settings/econtracts"
+    | "/settings/feature-flags"
     | "/settings/general"
     | "/settings/holidays"
     | "/settings/leave"
@@ -1273,6 +1288,7 @@ export interface FileRouteTypes {
     | "/settings/condition-types"
     | "/settings/custom-fields"
     | "/settings/econtracts"
+    | "/settings/feature-flags"
     | "/settings/general"
     | "/settings/holidays"
     | "/settings/leave"
@@ -1358,6 +1374,7 @@ export interface FileRouteTypes {
     | "/_authenticated/_organization/settings/condition-types"
     | "/_authenticated/_organization/settings/custom-fields"
     | "/_authenticated/_organization/settings/econtracts"
+    | "/_authenticated/_organization/settings/feature-flags"
     | "/_authenticated/_organization/settings/general"
     | "/_authenticated/_organization/settings/holidays"
     | "/_authenticated/_organization/settings/leave"
@@ -1818,6 +1835,13 @@ declare module "@tanstack/react-router" {
       preLoaderRoute: typeof AuthenticatedOrganizationSettingsGeneralRouteImport
       parentRoute: typeof AuthenticatedOrganizationSettingsRoute
     }
+    "/_authenticated/_organization/settings/feature-flags": {
+      id: "/_authenticated/_organization/settings/feature-flags"
+      path: "/feature-flags"
+      fullPath: "/settings/feature-flags"
+      preLoaderRoute: typeof AuthenticatedOrganizationSettingsFeatureFlagsRouteImport
+      parentRoute: typeof AuthenticatedOrganizationSettingsRoute
+    }
     "/_authenticated/_organization/settings/econtracts": {
       id: "/_authenticated/_organization/settings/econtracts"
       path: "/econtracts"
@@ -2063,6 +2087,7 @@ interface AuthenticatedOrganizationSettingsRouteChildren {
   AuthenticatedOrganizationSettingsConditionTypesRoute: typeof AuthenticatedOrganizationSettingsConditionTypesRoute
   AuthenticatedOrganizationSettingsCustomFieldsRoute: typeof AuthenticatedOrganizationSettingsCustomFieldsRoute
   AuthenticatedOrganizationSettingsEcontractsRoute: typeof AuthenticatedOrganizationSettingsEcontractsRoute
+  AuthenticatedOrganizationSettingsFeatureFlagsRoute: typeof AuthenticatedOrganizationSettingsFeatureFlagsRoute
   AuthenticatedOrganizationSettingsGeneralRoute: typeof AuthenticatedOrganizationSettingsGeneralRoute
   AuthenticatedOrganizationSettingsHolidaysRoute: typeof AuthenticatedOrganizationSettingsHolidaysRoute
   AuthenticatedOrganizationSettingsLeaveRoute: typeof AuthenticatedOrganizationSettingsLeaveRoute
@@ -2091,6 +2116,8 @@ const AuthenticatedOrganizationSettingsRouteChildren: AuthenticatedOrganizationS
       AuthenticatedOrganizationSettingsCustomFieldsRoute,
     AuthenticatedOrganizationSettingsEcontractsRoute:
       AuthenticatedOrganizationSettingsEcontractsRoute,
+    AuthenticatedOrganizationSettingsFeatureFlagsRoute:
+      AuthenticatedOrganizationSettingsFeatureFlagsRoute,
     AuthenticatedOrganizationSettingsGeneralRoute:
       AuthenticatedOrganizationSettingsGeneralRoute,
     AuthenticatedOrganizationSettingsHolidaysRoute:

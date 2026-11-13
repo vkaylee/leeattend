@@ -15,6 +15,7 @@ func registerOrganizationSettingsRoutes(router chi.Router, get, patch http.Handl
 func registerOrganizationRoutes(router chi.Router, organization api.OrganizationHandler, rbac api.OrganizationRBACHandler) {
 	registerOrganizationSettingsRoutes(router, organization.Get, organization.Patch)
 	registerRoute(router, "GET /api/v1/feature-flags", organization.ListFeatureFlags)
+	registerRoute(router, "GET /api/v1/feature-flags/effective", organization.ListEffectiveFeatureFlags)
 	registerRoute(router, "GET /api/v1/members", rbac.ListMembers)
 	registerRoute(router, "POST /api/v1/members", rbac.AddMember)
 	registerRoute(router, "PATCH /api/v1/members/{user_id}", rbac.UpdateMemberRole)

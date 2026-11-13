@@ -1,4 +1,36 @@
 {
+  "settings": {
+    "feature_flags": {
+      "title": "Feature flags",
+      "description": "Control runtime features for this organization.",
+      "empty": "No feature flags configured.",
+      "load_error": "Unable to load feature flags.",
+      "confirm": "Change {{flag_key}} to {{enabled}}?",
+      "updated": "Updated",
+      "toggle": "toggle",
+      "no_description": "No description",
+      "disabled": "Disabled"
+    },
+    "categories": {
+      "feature_flags": "Feature flags",
+      "feature_flags_desc": "Control runtime features for this organization."
+    }
+  },
+  "feature_flags": {
+    "title": "Feature flags",
+    "description": "Control runtime features for this organization.",
+    "empty": "No feature flags configured.",
+    "load_error": "Unable to load feature flags.",
+    "confirm": "Change {{flag_key}} to {{enabled}}?",
+    "updated": "Updated",
+    "toggle": "toggle",
+    "no_description": "No description",
+    "disabled": "Disabled"
+  },
+  "categories": {
+    "feature_flags": "Feature flags",
+    "feature_flags_desc": "Control runtime features for this organization"
+  },
   "organization_settings": {
     "title": "Organization Settings",
     "description": "Manage configuration, personnel, and organization appearance.",
@@ -236,7 +268,9 @@
       "storage": "Document Storage",
       "storage_desc": "Configure MinIO S3 and document storage.",
       "econtracts": "e-Contracts Integration",
-      "econtracts_desc": "Configure digital signatures, sign credentials, and rule routing rules."
+      "econtracts_desc": "Configure digital signatures, sign credentials, and rule routing rules.",
+      "feature_flags": "Feature flags",
+      "feature_flags_desc": "Control runtime features for this organization."
     },
     "organization": {
       "departments_redirect_desc": "Manage the organizational structure, assign managers, configure payroll rules, and monitor active employee counts for each department.",

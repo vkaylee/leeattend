@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"strings"
 
@@ -11,6 +12,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/shopspring/decimal"
 	"github.com/vkaylee/leeattend/apiserver/internal/apperror"
+	"github.com/vkaylee/leeattend/apiserver/internal/audit"
 	httpinfra "github.com/vkaylee/leeattend/apiserver/internal/infra/http"
 )
 
@@ -123,9 +125,14 @@ type OrganizationRepository interface {
 	PutConfig(context.Context, ConfigEntryRequest, uuid.UUID) error
 }
 
+type OrganizationFeatureFlagAudit interface {
+	Emit(context.Context, audit.Event) error
+}
+
 type OrganizationHandler struct {
 	Repository OrganizationRepository
 	Authorizer Authorizer
+	Audit      OrganizationFeatureFlagAudit
 }
 
 func (h OrganizationHandler) Get(w http.ResponseWriter, r *http.Request) {
@@ -230,6 +237,25 @@ func (h OrganizationHandler) ListFeatureFlags(w http.ResponseWriter, r *http.Req
 	apperror.WriteJSON(w, http.StatusOK, flags)
 }
 
+// ListEffectiveFeatureFlags exposes only runtime state needed by authenticated clients.
+// Management metadata remains protected by feature_flags:read.
+func (h OrganizationHandler) ListEffectiveFeatureFlags(w http.ResponseWriter, r *http.Request) {
+	if _, ok := httpinfra.UserIDFromContext(r.Context()); !ok {
+		apperror.WriteError(w, r, apperror.Unauthorized(apperror.KeyAuthenticationRequired))
+		return
+	}
+	flags, err := h.Repository.ListFeatureFlags(r.Context())
+	if err != nil {
+		h.writeRepositoryError(w, r, err)
+		return
+	}
+	effective := make([]FeatureFlagCheck, 0, len(flags))
+	for _, flag := range flags {
+		effective = append(effective, FeatureFlagCheck{Key: flag.FlagKey, Enabled: flag.Enabled})
+	}
+	apperror.WriteJSON(w, http.StatusOK, effective)
+}
+
 func (h OrganizationHandler) CreateFeatureFlag(w http.ResponseWriter, r *http.Request) {
 	userID, userOK := httpinfra.UserIDFromContext(r.Context())
 	if !userOK || h.Authorizer == nil || !h.Authorizer.HasPermission(r.Context(), userID, "feature_flags:manage") {
@@ -246,6 +272,7 @@ func (h OrganizationHandler) CreateFeatureFlag(w http.ResponseWriter, r *http.Re
 		h.writeRepositoryError(w, r, err)
 		return
 	}
+	h.emitFeatureFlagAudit(r, "feature_flag.created", flag)
 	apperror.WriteJSON(w, http.StatusCreated, flag)
 }
 
@@ -297,6 +324,7 @@ func (h OrganizationHandler) UpdateFeatureFlag(w http.ResponseWriter, r *http.Re
 		h.writeRepositoryError(w, r, err)
 		return
 	}
+	h.emitFeatureFlagAudit(r, "feature_flag.updated", flag)
 	apperror.WriteJSON(w, http.StatusOK, flag)
 }
 
@@ -316,6 +344,7 @@ func (h OrganizationHandler) UpsertFeatureFlag(w http.ResponseWriter, r *http.Re
 		h.writeRepositoryError(w, r, err)
 		return
 	}
+	h.emitFeatureFlagAudit(r, "feature_flag.upserted", flag)
 	apperror.WriteJSON(w, http.StatusOK, flag)
 }
 
@@ -339,7 +368,29 @@ func (h OrganizationHandler) DeleteFeatureFlag(w http.ResponseWriter, r *http.Re
 		apperror.WriteError(w, r, apperror.NotFound(apperror.KeyFeatureFlagNotFound))
 		return
 	}
+	if h.Audit != nil {
+		if userID, ok := httpinfra.UserIDFromContext(r.Context()); ok {
+			_ = h.Audit.Emit(r.Context(), audit.Event{
+				Name: "feature_flag.deleted", ActorID: userID.String(), Resource: flagID.String(), Outcome: "success",
+				Details: map[string]string{"flag_id": flagID.String()},
+			})
+		}
+	}
 	w.WriteHeader(http.StatusNoContent)
+}
+
+func (h OrganizationHandler) emitFeatureFlagAudit(r *http.Request, name string, flag FeatureFlagRecord) {
+	if h.Audit == nil {
+		return
+	}
+	userID, ok := httpinfra.UserIDFromContext(r.Context())
+	if !ok {
+		return
+	}
+	_ = h.Audit.Emit(r.Context(), audit.Event{
+		Name: name, ActorID: userID.String(), Resource: flag.ID.String(), Outcome: "success",
+		Details: map[string]string{"flag_key": flag.FlagKey, "enabled": fmt.Sprintf("%t", flag.Enabled)},
+	})
 }
 
 func (h OrganizationHandler) CheckFeatureFlag(w http.ResponseWriter, r *http.Request) {

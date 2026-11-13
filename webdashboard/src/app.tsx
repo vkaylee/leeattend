@@ -11,6 +11,7 @@ import { DarkModeProvider } from "./context/dark-mode-context";
 import { useVersionCheck } from "./hooks/use-version-check";
 import i18n from "./i18n/config";
 import { parseApiError } from "./lib/api/error-handler";
+import { loadRuntimeFeatureFlags } from "./lib/feature-flags";
 import { logError } from "./lib/logger";
 import { createAppRouter } from "./router";
 
@@ -70,6 +71,10 @@ const router = createAppRouter(queryClient);
 
 function AppContent() {
   const { hasNewVersion, dismiss, refresh } = useVersionCheck();
+
+  React.useEffect(() => {
+    void loadRuntimeFeatureFlags();
+  }, []);
 
   return (
     <>

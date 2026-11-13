@@ -36,7 +36,7 @@ import {
 import { useTranslation } from "react-i18next";
 
 import { useMyPermissions } from "@/hooks/use-permissions";
-import { isFeatureEnabled } from "@/lib/feature-flags";
+import { isFeatureEnabled, useFeatureFlagVersion } from "@/lib/feature-flags";
 import { ROUTES } from "@/lib/routes";
 
 // ── Types ──────────────────────────────────────────────────────────
@@ -73,6 +73,7 @@ export interface NavMenuStructure {
  * i18n keys and test IDs are identical to the original sidebar.tsx.
  */
 export function useNavMenuItems(): NavMenuStructure {
+  useFeatureFlagVersion();
   const { t } = useTranslation([
     "common", "employees", "attendance", "leave", "shift_swaps", "monitor", "audit_logs",
   ]);

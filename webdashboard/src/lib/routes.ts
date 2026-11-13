@@ -89,5 +89,6 @@ export const ROUTES = {
     STORAGE: "/settings/storage",
     ECONTRACTS: "/settings/econtracts",
     SMTP: "/settings/smtp",
+    FEATURE_FLAGS: "/settings/feature-flags",
   },
 } as const;

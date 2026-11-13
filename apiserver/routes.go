@@ -30,7 +30,11 @@ func buildRouter(cfg *config.Config, db repository.DBTX, redisClient *redisinfra
 
 	organizationAuthorizer := repository.OrganizationAuthorizer{DB: db}
 	organizationRepo := repository.OrganizationRepository{DB: db}
-	organizationHandler := api.OrganizationHandler{Repository: organizationRepo, Authorizer: organizationAuthorizer}
+	organizationHandler := api.OrganizationHandler{
+		Repository: organizationRepo,
+		Authorizer: organizationAuthorizer,
+		Audit:      repository.AuditLogWriter{DB: db},
+	}
 	var cryptoService *crypto.Service
 	if encJSON := cfg.EncryptionKeysJSON.Expose(); encJSON != "" {
 		if cs, err := crypto.FromJSON(encJSON); err == nil {

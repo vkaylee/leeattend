@@ -226,6 +226,35 @@ func TestOrganizationHandler_FeatureFlagsCRUD(t *testing.T) {
 	}
 }
 
+func TestOrganizationHandler_EffectiveFeatureFlagsRequiresAuthentication(t *testing.T) {
+	h := OrganizationHandler{Repository: mockOrganizationRepo{}, Authorizer: mockAuthorizer{}}
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/feature-flags/effective", nil)
+	rec := httptest.NewRecorder()
+	h.ListEffectiveFeatureFlags(rec, req)
+	if rec.Code != http.StatusUnauthorized {
+		t.Fatalf("expected 401 without authentication, got %d", rec.Code)
+	}
+}
+
+func TestOrganizationHandler_EffectiveFeatureFlagsReturnsRuntimeState(t *testing.T) {
+	userID := uuid.New()
+	h := OrganizationHandler{Repository: mockOrganizationRepo{}, Authorizer: mockAuthorizer{}}
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/feature-flags/effective", nil)
+	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), userID))
+	rec := httptest.NewRecorder()
+	h.ListEffectiveFeatureFlags(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200 for effective flags, got %d", rec.Code)
+	}
+	var flags []FeatureFlagCheck
+	if err := json.Unmarshal(rec.Body.Bytes(), &flags); err != nil {
+		t.Fatalf("decode effective flags: %v", err)
+	}
+	if flags == nil {
+		t.Fatal("expected non-nil effective flags list")
+	}
+}
+
 func TestOrganizationHandler_Get(t *testing.T) {
 	userID := uuid.New()
 	h := OrganizationHandler{Repository: mockOrganizationRepo{}, Authorizer: mockAuthorizer{}}

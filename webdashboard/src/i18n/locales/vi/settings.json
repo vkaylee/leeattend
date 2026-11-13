@@ -1,4 +1,36 @@
 {
+  "settings": {
+    "feature_flags": {
+      "title": "Feature flags",
+      "description": "Bật hoặc tắt tính năng runtime cho tổ chức.",
+      "empty": "Chưa có feature flag nào được cấu hình.",
+      "load_error": "Không thể tải danh sách feature flag.",
+      "confirm": "Đổi trạng thái {{flag_key}} thành {{enabled}}?",
+      "updated": "Cập nhật",
+      "toggle": "bật/tắt",
+      "no_description": "Chưa có mô tả",
+      "disabled": "Đã tắt"
+    },
+    "categories": {
+      "feature_flags": "Feature flags",
+      "feature_flags_desc": "Bật hoặc tắt tính năng runtime của tổ chức"
+    }
+  },
+  "feature_flags": {
+    "title": "Feature flags",
+    "description": "Bật hoặc tắt tính năng runtime cho tổ chức.",
+    "empty": "Chưa có feature flag nào được cấu hình.",
+    "load_error": "Không thể tải danh sách feature flag.",
+    "confirm": "Đổi trạng thái {{flag_key}} thành {{enabled}}?",
+    "updated": "Cập nhật",
+    "toggle": "bật/tắt",
+    "no_description": "Chưa có mô tả",
+    "disabled": "Đã tắt"
+  },
+  "categories": {
+    "feature_flags": "Feature flags",
+    "feature_flags_desc": "Bật hoặc tắt tính năng runtime của tổ chức"
+  },
   "organization_settings": {
     "title": "Cài đặt tổ chức",
     "description": "Quản lý cấu hình, nhân sự và giao diện tổ chức.",
@@ -236,7 +268,9 @@
       "storage": "Lưu trữ tài liệu",
       "storage_desc": "Cấu hình lưu trữ MinIO S3 và tài liệu.",
       "econtracts": "Hợp đồng điện tử",
-      "econtracts_desc": "Cấu hình tích hợp và chữ ký số hợp đồng."
+      "econtracts_desc": "Cấu hình tích hợp và chữ ký số hợp đồng.",
+      "feature_flags": "Feature flags",
+      "feature_flags_desc": "Bật hoặc tắt tính năng runtime của tổ chức"
     },
     "organization": {
       "departments_redirect_desc": "Quản lý cơ cấu phòng ban, bổ nhiệm Trưởng bộ phận (Manager), thiết lập chính sách lương và theo dõi số lượng nhân sự thuộc từng bộ phận.",

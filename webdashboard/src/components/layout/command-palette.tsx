@@ -18,6 +18,7 @@ import {
   getAllFeatures,
   type FeatureItem,
 } from "@/lib/feature-registry";
+import { useFeatureFlagVersion } from "@/lib/feature-flags";
 import { removeDiacritics } from "@/lib/utils";
 
 export interface CommandPaletteProps {
@@ -32,6 +33,7 @@ export function openCommandPalette(): void {
 }
 
 export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
+  useFeatureFlagVersion();
   const { t } = useTranslation(["common", "dashboard"]);
   const navigate = useNavigate();
   const { hasAnyPermission } = useMyPermissions();
