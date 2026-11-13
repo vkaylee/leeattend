@@ -9,7 +9,8 @@
       "updated": "Updated",
       "toggle": "toggle",
       "no_description": "No description",
-      "disabled": "Disabled"
+      "disabled": "Disabled",
+      "unregistered": "Unregistered consumer"
     },
     "categories": {
       "feature_flags": "Feature flags",
@@ -25,7 +26,8 @@
     "updated": "Updated",
     "toggle": "toggle",
     "no_description": "No description",
-    "disabled": "Disabled"
+    "disabled": "Disabled",
+    "unregistered": "Unregistered consumer"
   },
   "categories": {
     "feature_flags": "Feature flags",

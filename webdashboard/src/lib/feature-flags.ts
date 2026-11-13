@@ -8,6 +8,21 @@ export const FEATURE_FLAGS = {
 } as const;
 
 export type FeatureFlagName = keyof typeof FEATURE_FLAGS;
+
+export interface FeatureFlagCatalogEntry {
+  description: string;
+  owner: string;
+  removalTarget: string;
+}
+
+export const FEATURE_FLAG_CATALOG: Record<FeatureFlagName, FeatureFlagCatalogEntry> = {
+  ff_econtracts: {
+    description: "Enable the e-Contracts workflow and settings.",
+    owner: "platform",
+    removalTarget: "2026-12-13",
+  },
+};
+
 export interface RuntimeFeatureFlag {
   key: string;
   enabled: boolean;

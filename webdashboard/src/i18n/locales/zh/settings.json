@@ -9,7 +9,8 @@
       "updated": "更新时间",
       "toggle": "切换",
       "no_description": "暂无描述",
-      "disabled": "已禁用"
+      "disabled": "已禁用",
+      "unregistered": "未注册消费者"
     },
     "categories": {
       "feature_flags": "功能开关",
@@ -25,7 +26,8 @@
     "updated": "更新时间",
     "toggle": "切换",
     "no_description": "暂无描述",
-    "disabled": "已禁用"
+    "disabled": "已禁用",
+    "unregistered": "未注册消费者"
   },
   "categories": {
     "feature_flags": "功能开关",

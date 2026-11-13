@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"regexp"
 	"strings"
 
 	"github.com/google/uuid"
@@ -17,6 +18,35 @@ import (
 )
 
 var ErrConflict = errors.New("api: conflict")
+
+var featureFlagKeyPattern = regexp.MustCompile(`^ff_[a-z0-9]+(?:_[a-z0-9]+)*$`)
+
+const (
+	maxFeatureFlagKeyLength         = 128
+	maxFeatureFlagDescriptionLength = 1000
+	maxFeatureFlagMetadataBytes     = 16 << 10
+)
+
+func validFeatureFlagMetadata(metadata json.RawMessage) bool {
+	if len(metadata) == 0 {
+		return true
+	}
+	if len(metadata) > maxFeatureFlagMetadataBytes {
+		return false
+	}
+	var object map[string]json.RawMessage
+	return json.Unmarshal(metadata, &object) == nil && object != nil
+}
+
+func validFeatureFlagRequest(req FeatureFlagRequest) bool {
+	if len(req.FlagKey) == 0 || len(req.FlagKey) > maxFeatureFlagKeyLength || !featureFlagKeyPattern.MatchString(req.FlagKey) {
+		return false
+	}
+	if req.Description != nil && len(*req.Description) > maxFeatureFlagDescriptionLength {
+		return false
+	}
+	return validFeatureFlagMetadata(req.Metadata)
+}
 
 type OrganizationRecord struct {
 	Name              string  `json:"name"`
@@ -263,7 +293,7 @@ func (h OrganizationHandler) CreateFeatureFlag(w http.ResponseWriter, r *http.Re
 		return
 	}
 	req, err := DecodeJSON[FeatureFlagRequest](r, 1<<20)
-	if err != nil || req.FlagKey == "" || len(req.FlagKey) > 255 {
+	if err != nil || !validFeatureFlagRequest(req) {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyInvalidFeatureFlagKey))
 		return
 	}
@@ -311,7 +341,9 @@ func (h OrganizationHandler) UpdateFeatureFlag(w http.ResponseWriter, r *http.Re
 		return
 	}
 	patch, err := DecodeJSON[FeatureFlagPatch](r, 1<<20)
-	if err != nil || (patch.Enabled == nil && patch.Description == nil && patch.Metadata == nil) {
+	if err != nil || (patch.Enabled == nil && patch.Description == nil && patch.Metadata == nil) ||
+		(patch.Description != nil && len(*patch.Description) > maxFeatureFlagDescriptionLength) ||
+		(patch.Metadata != nil && !validFeatureFlagMetadata(*patch.Metadata)) {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}
@@ -335,7 +367,7 @@ func (h OrganizationHandler) UpsertFeatureFlag(w http.ResponseWriter, r *http.Re
 		return
 	}
 	req, err := DecodeJSON[FeatureFlagRequest](r, 1<<20)
-	if err != nil || req.FlagKey == "" || len(req.FlagKey) > 255 {
+	if err != nil || !validFeatureFlagRequest(req) {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyInvalidFeatureFlagKey))
 		return
 	}

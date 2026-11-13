@@ -159,7 +159,7 @@ func TestOrganizationHandler_FeatureFlagsCRUD(t *testing.T) {
 	}
 
 	// 2. Create
-	req = httptest.NewRequest(http.MethodPost, "/api/v1/feature-flags", bytes.NewBufferString(`{"flag_key":"dark_mode","enabled":true}`))
+	req = httptest.NewRequest(http.MethodPost, "/api/v1/feature-flags", bytes.NewBufferString(`{"flag_key":"ff_dark_mode","enabled":true}`))
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), userID))
 	rec = httptest.NewRecorder()
 	h.CreateFeatureFlag(rec, req)
@@ -168,7 +168,7 @@ func TestOrganizationHandler_FeatureFlagsCRUD(t *testing.T) {
 	}
 
 	// 3. Create invalid key fails
-	req = httptest.NewRequest(http.MethodPost, "/api/v1/feature-flags", bytes.NewBufferString(`{"flag_key":"","enabled":true}`))
+	req = httptest.NewRequest(http.MethodPost, "/api/v1/feature-flags", bytes.NewBufferString(`{"flag_key":"dark_mode","enabled":true}`))
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), userID))
 	rec = httptest.NewRecorder()
 	h.CreateFeatureFlag(rec, req)
@@ -197,7 +197,7 @@ func TestOrganizationHandler_FeatureFlagsCRUD(t *testing.T) {
 	}
 
 	// 6. Upsert
-	req = httptest.NewRequest(http.MethodPut, "/api/v1/feature-flags", bytes.NewBufferString(`{"flag_key":"beta_payroll","enabled":true}`))
+	req = httptest.NewRequest(http.MethodPut, "/api/v1/feature-flags", bytes.NewBufferString(`{"flag_key":"ff_beta_payroll","enabled":true}`))
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), userID))
 	rec = httptest.NewRecorder()
 	h.UpsertFeatureFlag(rec, req)
@@ -223,6 +223,61 @@ func TestOrganizationHandler_FeatureFlagsCRUD(t *testing.T) {
 	h.CheckFeatureFlag(rec, req)
 	if rec.Code != http.StatusOK {
 		t.Fatalf("expected 200 for check, got %d", rec.Code)
+	}
+}
+
+func TestOrganizationHandler_FeatureFlagValidation(t *testing.T) {
+	userID := uuid.New()
+	h := OrganizationHandler{
+		Repository: mockOrganizationRepo{},
+		Authorizer: mockAuthorizer{perms: map[string]bool{"feature_flags:manage": true}},
+	}
+	cases := []string{"dark_mode", "ff_dark-mode", "ff_dark_mode_", "ff__dark_mode"}
+	for _, key := range cases {
+		t.Run(key, func(t *testing.T) {
+			req := httptest.NewRequest(http.MethodPost, "/api/v1/feature-flags", bytes.NewBufferString(`{"flag_key":"`+key+`","enabled":true}`))
+			req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), userID))
+			rec := httptest.NewRecorder()
+			h.CreateFeatureFlag(rec, req)
+			if rec.Code != http.StatusBadRequest {
+				t.Fatalf("expected 400 for invalid key %q, got %d", key, rec.Code)
+			}
+		})
+	}
+}
+
+func TestOrganizationHandler_FeatureFlagAcceptsValidKeyAndMetadata(t *testing.T) {
+	userID := uuid.New()
+	h := OrganizationHandler{
+		Repository: mockOrganizationRepo{},
+		Authorizer: mockAuthorizer{perms: map[string]bool{"feature_flags:manage": true}},
+	}
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/feature-flags", bytes.NewBufferString(`{"flag_key":"ff_dark_mode","enabled":true,"metadata":{"owner":"platform"}}`))
+	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), userID))
+	rec := httptest.NewRecorder()
+	h.CreateFeatureFlag(rec, req)
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("expected 201 for valid flag, got %d", rec.Code)
+	}
+}
+
+func TestOrganizationHandler_FeatureFlagMetadataValidation(t *testing.T) {
+	userID := uuid.New()
+	h := OrganizationHandler{
+		Repository: mockOrganizationRepo{},
+		Authorizer: mockAuthorizer{perms: map[string]bool{"feature_flags:manage": true}},
+	}
+	for _, payload := range []string{
+		`{"flag_key":"ff_dark_mode","metadata":[]}`,
+		`{"flag_key":"ff_dark_mode","metadata":"invalid"}`,
+	} {
+		req := httptest.NewRequest(http.MethodPost, "/api/v1/feature-flags", bytes.NewBufferString(payload))
+		req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), userID))
+		rec := httptest.NewRecorder()
+		h.CreateFeatureFlag(rec, req)
+		if rec.Code != http.StatusBadRequest {
+			t.Fatalf("expected 400 for invalid metadata, got %d", rec.Code)
+		}
 	}
 }
 

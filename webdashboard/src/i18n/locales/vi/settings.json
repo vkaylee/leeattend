@@ -9,7 +9,8 @@
       "updated": "Cập nhật",
       "toggle": "bật/tắt",
       "no_description": "Chưa có mô tả",
-      "disabled": "Đã tắt"
+      "disabled": "Đã tắt",
+      "unregistered": "Chưa đăng ký consumer"
     },
     "categories": {
       "feature_flags": "Feature flags",
@@ -25,7 +26,8 @@
     "updated": "Cập nhật",
     "toggle": "bật/tắt",
     "no_description": "Chưa có mô tả",
-    "disabled": "Đã tắt"
+    "disabled": "Đã tắt",
+    "unregistered": "Chưa đăng ký consumer"
   },
   "categories": {
     "feature_flags": "Feature flags",
