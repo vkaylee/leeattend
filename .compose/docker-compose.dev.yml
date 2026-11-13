@@ -114,7 +114,7 @@ services:
         condition: service_healthy
 
   apiserver:
-    image: golang:1.26-bookworm
+    image: golang:1.26.11-bookworm
     working_dir: /app/apiserver
     command: go run .
     environment:

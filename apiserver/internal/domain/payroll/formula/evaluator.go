@@ -20,15 +20,9 @@ var (
 
 const (
 	maxExpressionLength = 4096
-	maxDepth             = 64
-	maxSteps             = 10000
+	maxDepth            = 64
+	maxSteps            = 10000
 )
-
-type Evaluator struct {
-	values map[string]decimal.Decimal
-	steps  int
-	depth  int
-}
 
 func Evaluate(expression string, values map[string]decimal.Decimal) (decimal.Decimal, error) {
 	if strings.TrimSpace(expression) == "" || len(expression) > maxExpressionLength {
@@ -266,9 +260,19 @@ func (p *parser) parseFunction(name string) (decimal.Decimal, error) {
 	p.position++
 	switch name {
 	case "min":
-		return aggregate(args, func(a, b decimal.Decimal) decimal.Decimal { if a.LessThan(b) { return a }; return b })
+		return aggregate(args, func(a, b decimal.Decimal) decimal.Decimal {
+			if a.LessThan(b) {
+				return a
+			}
+			return b
+		})
 	case "max":
-		return aggregate(args, func(a, b decimal.Decimal) decimal.Decimal { if a.GreaterThan(b) { return a }; return b })
+		return aggregate(args, func(a, b decimal.Decimal) decimal.Decimal {
+			if a.GreaterThan(b) {
+				return a
+			}
+			return b
+		})
 	case "round":
 		if len(args) != 2 || !args[1].IsInteger() || args[1].IsNegative() || args[1].GreaterThan(decimal.NewFromInt(6)) {
 			return decimal.Zero, ErrInvalidExpression
@@ -281,12 +285,20 @@ func (p *parser) parseFunction(name string) (decimal.Decimal, error) {
 		if args[1].GreaterThan(args[2]) {
 			return decimal.Zero, ErrInvalidExpression
 		}
-		if args[0].LessThan(args[1]) { return args[1], nil }
-		if args[0].GreaterThan(args[2]) { return args[2], nil }
+		if args[0].LessThan(args[1]) {
+			return args[1], nil
+		}
+		if args[0].GreaterThan(args[2]) {
+			return args[2], nil
+		}
 		return args[0], nil
 	case "if":
-		if len(args) != 3 { return decimal.Zero, ErrInvalidExpression }
-		if !args[0].IsZero() { return args[1], nil }
+		if len(args) != 3 {
+			return decimal.Zero, ErrInvalidExpression
+		}
+		if !args[0].IsZero() {
+			return args[1], nil
+		}
 		return args[2], nil
 	default:
 		return decimal.Zero, fmt.Errorf("%w: %s", ErrUnknownFunction, name)
@@ -294,9 +306,13 @@ func (p *parser) parseFunction(name string) (decimal.Decimal, error) {
 }
 
 func aggregate(args []decimal.Decimal, combine func(decimal.Decimal, decimal.Decimal) decimal.Decimal) (decimal.Decimal, error) {
-	if len(args) == 0 { return decimal.Zero, ErrInvalidExpression }
+	if len(args) == 0 {
+		return decimal.Zero, ErrInvalidExpression
+	}
 	result := args[0]
-	for _, value := range args[1:] { result = combine(result, value) }
+	for _, value := range args[1:] {
+		result = combine(result, value)
+	}
 	return result, nil
 }
 

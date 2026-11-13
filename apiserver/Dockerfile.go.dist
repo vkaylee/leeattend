@@ -1,7 +1,7 @@
 # Multi-stage production build for Go API Server (P8-01)
 # Constraints: CGO_ENABLED=0, nonroot UID 65532, distroless runtime, static binary
 
-ARG GO_VERSION=1.26.9
+ARG GO_VERSION=1.26.11
 FROM golang:${GO_VERSION}-bookworm AS builder
 
 ENV CGO_ENABLED=0 \

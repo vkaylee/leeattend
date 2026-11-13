@@ -307,7 +307,6 @@ type UpdatePayrollInputBatchRequest struct {
 	Version int64 `json:"version"`
 }
 
-
 type PayrollPeriod struct {
 	ID           uuid.UUID  `json:"id"`
 	EmployerID   uuid.UUID  `json:"employer_id"`
