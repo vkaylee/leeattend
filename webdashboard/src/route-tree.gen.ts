@@ -73,6 +73,7 @@ import { Route as AuthenticatedOrganizationSettingsEcontractsRouteImport } from 
 import { Route as AuthenticatedOrganizationSettingsCustomFieldsRouteImport } from "./routes/_authenticated/_organization/settings/custom-fields"
 import { Route as AuthenticatedOrganizationSettingsConditionTypesRouteImport } from "./routes/_authenticated/_organization/settings/condition-types"
 import { Route as AuthenticatedOrganizationSettingsBillingRouteImport } from "./routes/_authenticated/_organization/settings/billing"
+import { Route as AuthenticatedOrganizationSalaryManagementSetupRouteImport } from "./routes/_authenticated/_organization/salary-management.setup"
 import { Route as AuthenticatedOrganizationEssProfileRouteImport } from "./routes/_authenticated/_organization/ess/profile"
 import { Route as AuthenticatedOrganizationEssOtRouteImport } from "./routes/_authenticated/_organization/ess/ot"
 import { Route as AuthenticatedOrganizationEssDocumentsRouteImport } from "./routes/_authenticated/_organization/ess/documents"
@@ -89,6 +90,7 @@ import { Route as AuthenticatedOrganizationSettingsWorkflowsIndexRouteImport } f
 import { Route as AuthenticatedOrganizationWorkingPatternsPatternIdEditRouteImport } from "./routes/_authenticated/_organization/working-patterns.$patternId.edit"
 import { Route as AuthenticatedOrganizationShiftsShiftIdEditRouteImport } from "./routes/_authenticated/_organization/shifts.$shiftId.edit"
 import { Route as AuthenticatedOrganizationSettingsWorkflowsNewRouteImport } from "./routes/_authenticated/_organization/settings/workflows.new"
+import { Route as AuthenticatedOrganizationSalaryManagementEmploymentIdEditRouteImport } from "./routes/_authenticated/_organization/salary-management.$employmentId.edit"
 import { Route as AuthenticatedOrganizationAssignmentRulesRuleIdEditRouteImport } from "./routes/_authenticated/_organization/assignment-rules.$ruleId.edit"
 import { Route as AuthenticatedOrganizationShiftsRulesWorkingPatternsNewRouteImport } from "./routes/_authenticated/_organization/shifts.rules.working-patterns.new"
 import { Route as AuthenticatedOrganizationShiftsRulesAssignmentRulesNewRouteImport } from "./routes/_authenticated/_organization/shifts.rules.assignment-rules.new"
@@ -679,6 +681,16 @@ const AuthenticatedOrganizationSettingsBillingRoute =
       (d) => d.Route,
     ),
   )
+const AuthenticatedOrganizationSalaryManagementSetupRoute =
+  AuthenticatedOrganizationSalaryManagementSetupRouteImport.update({
+    id: "/setup",
+    path: "/setup",
+    getParentRoute: () => AuthenticatedOrganizationSalaryManagementRoute,
+  } as any).lazy(() =>
+    import("./routes/_authenticated/_organization/salary-management.setup.lazy").then(
+      (d) => d.Route,
+    ),
+  )
 const AuthenticatedOrganizationEssProfileRoute =
   AuthenticatedOrganizationEssProfileRouteImport.update({
     id: "/ess/profile",
@@ -839,6 +851,16 @@ const AuthenticatedOrganizationSettingsWorkflowsNewRoute =
       (d) => d.Route,
     ),
   )
+const AuthenticatedOrganizationSalaryManagementEmploymentIdEditRoute =
+  AuthenticatedOrganizationSalaryManagementEmploymentIdEditRouteImport.update({
+    id: "/$employmentId/edit",
+    path: "/$employmentId/edit",
+    getParentRoute: () => AuthenticatedOrganizationSalaryManagementRoute,
+  } as any).lazy(() =>
+    import("./routes/_authenticated/_organization/salary-management.$employmentId.edit.lazy").then(
+      (d) => d.Route,
+    ),
+  )
 const AuthenticatedOrganizationAssignmentRulesRuleIdEditRoute =
   AuthenticatedOrganizationAssignmentRulesRuleIdEditRouteImport.update({
     id: "/$ruleId/edit",
@@ -931,7 +953,7 @@ export interface FileRoutesByFullPath {
   "/payroll": typeof AuthenticatedOrganizationPayrollRoute
   "/profile": typeof AuthenticatedOrganizationProfileRoute
   "/reports": typeof AuthenticatedOrganizationReportsRoute
-  "/salary-management": typeof AuthenticatedOrganizationSalaryManagementRoute
+  "/salary-management": typeof AuthenticatedOrganizationSalaryManagementRouteWithChildren
   "/settings": typeof AuthenticatedOrganizationSettingsRouteWithChildren
   "/shift-swaps": typeof AuthenticatedOrganizationShiftSwapsRoute
   "/shifts": typeof AuthenticatedOrganizationShiftsRouteWithChildren
@@ -948,6 +970,7 @@ export interface FileRoutesByFullPath {
   "/ess/documents": typeof AuthenticatedOrganizationEssDocumentsRoute
   "/ess/ot": typeof AuthenticatedOrganizationEssOtRoute
   "/ess/profile": typeof AuthenticatedOrganizationEssProfileRoute
+  "/salary-management/setup": typeof AuthenticatedOrganizationSalaryManagementSetupRoute
   "/settings/billing": typeof AuthenticatedOrganizationSettingsBillingRoute
   "/settings/condition-types": typeof AuthenticatedOrganizationSettingsConditionTypesRoute
   "/settings/custom-fields": typeof AuthenticatedOrganizationSettingsCustomFieldsRoute
@@ -978,6 +1001,7 @@ export interface FileRoutesByFullPath {
   "/shifts/": typeof AuthenticatedOrganizationShiftsIndexRoute
   "/working-patterns/": typeof AuthenticatedOrganizationWorkingPatternsIndexRoute
   "/assignment-rules/$ruleId/edit": typeof AuthenticatedOrganizationAssignmentRulesRuleIdEditRoute
+  "/salary-management/$employmentId/edit": typeof AuthenticatedOrganizationSalaryManagementEmploymentIdEditRoute
   "/settings/workflows/new": typeof AuthenticatedOrganizationSettingsWorkflowsNewRoute
   "/shifts/$shiftId/edit": typeof AuthenticatedOrganizationShiftsShiftIdEditRoute
   "/working-patterns/$patternId/edit": typeof AuthenticatedOrganizationWorkingPatternsPatternIdEditRoute
@@ -1015,7 +1039,7 @@ export interface FileRoutesByTo {
   "/payroll": typeof AuthenticatedOrganizationPayrollRoute
   "/profile": typeof AuthenticatedOrganizationProfileRoute
   "/reports": typeof AuthenticatedOrganizationReportsRoute
-  "/salary-management": typeof AuthenticatedOrganizationSalaryManagementRoute
+  "/salary-management": typeof AuthenticatedOrganizationSalaryManagementRouteWithChildren
   "/shift-swaps": typeof AuthenticatedOrganizationShiftSwapsRoute
   "/working-conditions": typeof AuthenticatedOrganizationWorkingConditionsRoute
   "/infra/monitor": typeof AuthenticatedInfraInfraMonitorRoute
@@ -1029,6 +1053,7 @@ export interface FileRoutesByTo {
   "/ess/documents": typeof AuthenticatedOrganizationEssDocumentsRoute
   "/ess/ot": typeof AuthenticatedOrganizationEssOtRoute
   "/ess/profile": typeof AuthenticatedOrganizationEssProfileRoute
+  "/salary-management/setup": typeof AuthenticatedOrganizationSalaryManagementSetupRoute
   "/settings/billing": typeof AuthenticatedOrganizationSettingsBillingRoute
   "/settings/condition-types": typeof AuthenticatedOrganizationSettingsConditionTypesRoute
   "/settings/custom-fields": typeof AuthenticatedOrganizationSettingsCustomFieldsRoute
@@ -1057,6 +1082,7 @@ export interface FileRoutesByTo {
   "/shifts": typeof AuthenticatedOrganizationShiftsIndexRoute
   "/working-patterns": typeof AuthenticatedOrganizationWorkingPatternsIndexRoute
   "/assignment-rules/$ruleId/edit": typeof AuthenticatedOrganizationAssignmentRulesRuleIdEditRoute
+  "/salary-management/$employmentId/edit": typeof AuthenticatedOrganizationSalaryManagementEmploymentIdEditRoute
   "/settings/workflows/new": typeof AuthenticatedOrganizationSettingsWorkflowsNewRoute
   "/shifts/$shiftId/edit": typeof AuthenticatedOrganizationShiftsShiftIdEditRoute
   "/working-patterns/$patternId/edit": typeof AuthenticatedOrganizationWorkingPatternsPatternIdEditRoute
@@ -1098,7 +1124,7 @@ export interface FileRoutesById {
   "/_authenticated/_organization/payroll": typeof AuthenticatedOrganizationPayrollRoute
   "/_authenticated/_organization/profile": typeof AuthenticatedOrganizationProfileRoute
   "/_authenticated/_organization/reports": typeof AuthenticatedOrganizationReportsRoute
-  "/_authenticated/_organization/salary-management": typeof AuthenticatedOrganizationSalaryManagementRoute
+  "/_authenticated/_organization/salary-management": typeof AuthenticatedOrganizationSalaryManagementRouteWithChildren
   "/_authenticated/_organization/settings": typeof AuthenticatedOrganizationSettingsRouteWithChildren
   "/_authenticated/_organization/shift-swaps": typeof AuthenticatedOrganizationShiftSwapsRoute
   "/_authenticated/_organization/shifts": typeof AuthenticatedOrganizationShiftsRouteWithChildren
@@ -1116,6 +1142,7 @@ export interface FileRoutesById {
   "/_authenticated/_organization/ess/documents": typeof AuthenticatedOrganizationEssDocumentsRoute
   "/_authenticated/_organization/ess/ot": typeof AuthenticatedOrganizationEssOtRoute
   "/_authenticated/_organization/ess/profile": typeof AuthenticatedOrganizationEssProfileRoute
+  "/_authenticated/_organization/salary-management/setup": typeof AuthenticatedOrganizationSalaryManagementSetupRoute
   "/_authenticated/_organization/settings/billing": typeof AuthenticatedOrganizationSettingsBillingRoute
   "/_authenticated/_organization/settings/condition-types": typeof AuthenticatedOrganizationSettingsConditionTypesRoute
   "/_authenticated/_organization/settings/custom-fields": typeof AuthenticatedOrganizationSettingsCustomFieldsRoute
@@ -1146,6 +1173,7 @@ export interface FileRoutesById {
   "/_authenticated/_organization/shifts/": typeof AuthenticatedOrganizationShiftsIndexRoute
   "/_authenticated/_organization/working-patterns/": typeof AuthenticatedOrganizationWorkingPatternsIndexRoute
   "/_authenticated/_organization/assignment-rules/$ruleId/edit": typeof AuthenticatedOrganizationAssignmentRulesRuleIdEditRoute
+  "/_authenticated/_organization/salary-management/$employmentId/edit": typeof AuthenticatedOrganizationSalaryManagementEmploymentIdEditRoute
   "/_authenticated/_organization/settings/workflows/new": typeof AuthenticatedOrganizationSettingsWorkflowsNewRoute
   "/_authenticated/_organization/shifts/$shiftId/edit": typeof AuthenticatedOrganizationShiftsShiftIdEditRoute
   "/_authenticated/_organization/working-patterns/$patternId/edit": typeof AuthenticatedOrganizationWorkingPatternsPatternIdEditRoute
@@ -1203,6 +1231,7 @@ export interface FileRouteTypes {
     | "/ess/documents"
     | "/ess/ot"
     | "/ess/profile"
+    | "/salary-management/setup"
     | "/settings/billing"
     | "/settings/condition-types"
     | "/settings/custom-fields"
@@ -1233,6 +1262,7 @@ export interface FileRouteTypes {
     | "/shifts/"
     | "/working-patterns/"
     | "/assignment-rules/$ruleId/edit"
+    | "/salary-management/$employmentId/edit"
     | "/settings/workflows/new"
     | "/shifts/$shiftId/edit"
     | "/working-patterns/$patternId/edit"
@@ -1284,6 +1314,7 @@ export interface FileRouteTypes {
     | "/ess/documents"
     | "/ess/ot"
     | "/ess/profile"
+    | "/salary-management/setup"
     | "/settings/billing"
     | "/settings/condition-types"
     | "/settings/custom-fields"
@@ -1312,6 +1343,7 @@ export interface FileRouteTypes {
     | "/shifts"
     | "/working-patterns"
     | "/assignment-rules/$ruleId/edit"
+    | "/salary-management/$employmentId/edit"
     | "/settings/workflows/new"
     | "/shifts/$shiftId/edit"
     | "/working-patterns/$patternId/edit"
@@ -1370,6 +1402,7 @@ export interface FileRouteTypes {
     | "/_authenticated/_organization/ess/documents"
     | "/_authenticated/_organization/ess/ot"
     | "/_authenticated/_organization/ess/profile"
+    | "/_authenticated/_organization/salary-management/setup"
     | "/_authenticated/_organization/settings/billing"
     | "/_authenticated/_organization/settings/condition-types"
     | "/_authenticated/_organization/settings/custom-fields"
@@ -1400,6 +1433,7 @@ export interface FileRouteTypes {
     | "/_authenticated/_organization/shifts/"
     | "/_authenticated/_organization/working-patterns/"
     | "/_authenticated/_organization/assignment-rules/$ruleId/edit"
+    | "/_authenticated/_organization/salary-management/$employmentId/edit"
     | "/_authenticated/_organization/settings/workflows/new"
     | "/_authenticated/_organization/shifts/$shiftId/edit"
     | "/_authenticated/_organization/working-patterns/$patternId/edit"
@@ -1870,6 +1904,13 @@ declare module "@tanstack/react-router" {
       preLoaderRoute: typeof AuthenticatedOrganizationSettingsBillingRouteImport
       parentRoute: typeof AuthenticatedOrganizationSettingsRoute
     }
+    "/_authenticated/_organization/salary-management/setup": {
+      id: "/_authenticated/_organization/salary-management/setup"
+      path: "/setup"
+      fullPath: "/salary-management/setup"
+      preLoaderRoute: typeof AuthenticatedOrganizationSalaryManagementSetupRouteImport
+      parentRoute: typeof AuthenticatedOrganizationSalaryManagementRoute
+    }
     "/_authenticated/_organization/ess/profile": {
       id: "/_authenticated/_organization/ess/profile"
       path: "/ess/profile"
@@ -1982,6 +2023,13 @@ declare module "@tanstack/react-router" {
       preLoaderRoute: typeof AuthenticatedOrganizationSettingsWorkflowsNewRouteImport
       parentRoute: typeof AuthenticatedOrganizationSettingsWorkflowsRoute
     }
+    "/_authenticated/_organization/salary-management/$employmentId/edit": {
+      id: "/_authenticated/_organization/salary-management/$employmentId/edit"
+      path: "/$employmentId/edit"
+      fullPath: "/salary-management/$employmentId/edit"
+      preLoaderRoute: typeof AuthenticatedOrganizationSalaryManagementEmploymentIdEditRouteImport
+      parentRoute: typeof AuthenticatedOrganizationSalaryManagementRoute
+    }
     "/_authenticated/_organization/assignment-rules/$ruleId/edit": {
       id: "/_authenticated/_organization/assignment-rules/$ruleId/edit"
       path: "/$ruleId/edit"
@@ -2059,6 +2107,24 @@ const AuthenticatedOrganizationAssignmentRulesRouteChildren: AuthenticatedOrgani
 const AuthenticatedOrganizationAssignmentRulesRouteWithChildren =
   AuthenticatedOrganizationAssignmentRulesRoute._addFileChildren(
     AuthenticatedOrganizationAssignmentRulesRouteChildren,
+  )
+
+interface AuthenticatedOrganizationSalaryManagementRouteChildren {
+  AuthenticatedOrganizationSalaryManagementSetupRoute: typeof AuthenticatedOrganizationSalaryManagementSetupRoute
+  AuthenticatedOrganizationSalaryManagementEmploymentIdEditRoute: typeof AuthenticatedOrganizationSalaryManagementEmploymentIdEditRoute
+}
+
+const AuthenticatedOrganizationSalaryManagementRouteChildren: AuthenticatedOrganizationSalaryManagementRouteChildren =
+  {
+    AuthenticatedOrganizationSalaryManagementSetupRoute:
+      AuthenticatedOrganizationSalaryManagementSetupRoute,
+    AuthenticatedOrganizationSalaryManagementEmploymentIdEditRoute:
+      AuthenticatedOrganizationSalaryManagementEmploymentIdEditRoute,
+  }
+
+const AuthenticatedOrganizationSalaryManagementRouteWithChildren =
+  AuthenticatedOrganizationSalaryManagementRoute._addFileChildren(
+    AuthenticatedOrganizationSalaryManagementRouteChildren,
   )
 
 interface AuthenticatedOrganizationSettingsWorkflowsRouteChildren {
@@ -2251,7 +2317,7 @@ interface AuthenticatedOrganizationRouteChildren {
   AuthenticatedOrganizationPayrollRoute: typeof AuthenticatedOrganizationPayrollRoute
   AuthenticatedOrganizationProfileRoute: typeof AuthenticatedOrganizationProfileRoute
   AuthenticatedOrganizationReportsRoute: typeof AuthenticatedOrganizationReportsRoute
-  AuthenticatedOrganizationSalaryManagementRoute: typeof AuthenticatedOrganizationSalaryManagementRoute
+  AuthenticatedOrganizationSalaryManagementRoute: typeof AuthenticatedOrganizationSalaryManagementRouteWithChildren
   AuthenticatedOrganizationSettingsRoute: typeof AuthenticatedOrganizationSettingsRouteWithChildren
   AuthenticatedOrganizationShiftSwapsRoute: typeof AuthenticatedOrganizationShiftSwapsRoute
   AuthenticatedOrganizationShiftsRoute: typeof AuthenticatedOrganizationShiftsRouteWithChildren
@@ -2315,7 +2381,7 @@ const AuthenticatedOrganizationRouteChildren: AuthenticatedOrganizationRouteChil
     AuthenticatedOrganizationReportsRoute:
       AuthenticatedOrganizationReportsRoute,
     AuthenticatedOrganizationSalaryManagementRoute:
-      AuthenticatedOrganizationSalaryManagementRoute,
+      AuthenticatedOrganizationSalaryManagementRouteWithChildren,
     AuthenticatedOrganizationSettingsRoute:
       AuthenticatedOrganizationSettingsRouteWithChildren,
     AuthenticatedOrganizationShiftSwapsRoute:

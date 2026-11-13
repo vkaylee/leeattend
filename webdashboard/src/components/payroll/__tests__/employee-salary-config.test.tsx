@@ -7,6 +7,10 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { ToastProvider } from "@/components/ui/toast";
 import * as api from "@/lib/api/payroll";
 
+vi.mock("@tanstack/react-router", () => ({
+  Link: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+}));
+
 import EmployeeSalaryConfig from "../employee-salary-config";
 
 
@@ -61,6 +65,17 @@ describe("EmployeeSalaryConfig", () => {
       </QueryClientProvider>
     );
   };
+
+  it("shows catalog setup guidance when no salary definitions exist", async () => {
+    vi.mocked(api.fetchSalaryComponents).mockResolvedValue([]);
+    renderWithProviders(<EmployeeSalaryConfig employeeId={mockEmpId} employmentId="employment-123" />);
+
+    const addButton = await screen.findByRole("button", { name: /payroll.employee_config.add_btn/i });
+    fireEvent.click(addButton);
+    expect(await screen.findByText("Chưa có khoản lương để gán")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Mở danh mục khoản lương" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /common.save/i })).not.toBeInTheDocument();
+  });
 
   it("renders employee salary components", async () => {
     renderWithProviders(<EmployeeSalaryConfig employeeId={mockEmpId} employmentId="employment-123"  />);

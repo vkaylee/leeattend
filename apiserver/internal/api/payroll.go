@@ -957,7 +957,7 @@ func (h PayrollHandler) allowedManage(r *http.Request) bool {
 	if !ok || h.Authorizer == nil {
 		return false
 	}
-	return h.Authorizer.HasPermission(r.Context(), u, "payroll:components:manage")
+	return h.Authorizer.HasPermission(r.Context(), u, "payroll:components:manage") || h.Authorizer.HasPermission(r.Context(), u, "payroll:manage")
 }
 
 func employmentIDFromRequest(r *http.Request) (uuid.UUID, bool) {
