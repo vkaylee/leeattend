@@ -53,7 +53,7 @@ function safeErrorMessage(error: unknown): string {
 
 function JsonPreview({ value }: { value: unknown }) {
   return (
-    <pre className="max-h-48 overflow-auto rounded-xl bg-slate-950 p-3 text-left text-[11px] leading-relaxed text-slate-100" tabIndex={0}>
+    <pre className="max-h-48 overflow-auto rounded-xl bg-slate-950 p-3 text-left text-[11px] leading-relaxed text-slate-100">
       {JSON.stringify(value, null, 2)}
     </pre>
   );

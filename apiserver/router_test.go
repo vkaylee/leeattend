@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/vkaylee/leeattend/apiserver/internal/api"
 	httpinfra "github.com/vkaylee/leeattend/apiserver/internal/infra/http"
 )
 
@@ -83,6 +84,33 @@ func TestPublicRouterDoesNotRequireAuthentication(t *testing.T) {
 	router.ServeHTTP(rec, req)
 	if rec.Code != http.StatusNoContent {
 		t.Fatalf("status = %d, want %d", rec.Code, http.StatusNoContent)
+	}
+}
+
+func TestPayrollRoutesRetireSalaryBases(t *testing.T) {
+	router := chi.NewRouter()
+	registerPayrollRoutes(router, api.PayrollHandler{})
+	for _, route := range []struct {
+		method string
+		path   string
+	}{
+		{http.MethodGet, "/api/v1/salary-bases"},
+		{http.MethodPost, "/api/v1/salary-bases"},
+		{http.MethodPost, "/api/v1/salary-bases/b0000000-0000-0000-0000-000000000001/members"},
+		{http.MethodDelete, "/api/v1/salary-bases/b0000000-0000-0000-0000-000000000001/members/11111111-1111-1111-1111-111111111111"},
+	} {
+		t.Run(route.method+" "+route.path, func(t *testing.T) {
+			rec := httptest.NewRecorder()
+			router.ServeHTTP(rec, httptest.NewRequest(route.method, route.path, nil))
+			if rec.Code != http.StatusNotFound {
+				t.Fatalf("retired route status = %d, want 404", rec.Code)
+			}
+		})
+	}
+	for _, method := range []string{http.MethodGet, http.MethodPost} {
+		if !router.Match(chi.NewRouteContext(), method, "/api/v1/salary-components") {
+			t.Fatalf("retained salary component route missing: %s", method)
+		}
 	}
 }
 

@@ -2,9 +2,11 @@ package repository
 
 import (
 	"context"
+	"crypto/sha256"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"sort"
 	"strings"
 	"time"
 
@@ -914,6 +916,191 @@ VALUES ($1, $2, $3, $4, $5)`, tierID, newPolicyID, t.priority, t.payout.InexactF
 	}, nil
 }
 
+func (r PayrollRepository) CreatePayrollInputBatch(ctx context.Context, req api.CreatePayrollInputRequest, actorID uuid.UUID) (api.PayrollInputBatch, error) {
+	db, err := r.db(ctx)
+	if err != nil {
+		return api.PayrollInputBatch{}, err
+	}
+	beginner, ok := db.(service.TxBeginner)
+	if !ok {
+		return api.PayrollInputBatch{}, errors.New("payroll repository: database does not support transactions")
+	}
+	requestHash, err := payrollInputRequestHash(req)
+	if err != nil {
+		return api.PayrollInputBatch{}, err
+	}
+
+	var result api.PayrollInputBatch
+	err = service.WithTx(ctx, beginner, func(ctx context.Context, tx pgx.Tx) error {
+		var existingHash string
+		var existingID uuid.UUID
+		err := tx.QueryRow(ctx, `SELECT id, request_hash FROM payroll_input_batches WHERE idempotency_key = $1 FOR UPDATE`, req.IdempotencyKey).Scan(&existingID, &existingHash)
+		if err == nil {
+			if existingHash != requestHash {
+				return api.ErrPayrollInputConflict
+			}
+			batch, scanErr := scanPayrollInputBatch(tx.QueryRow(ctx, `SELECT b.id, b.period_year, b.period_month, b.source, b.idempotency_key, b.status, count(i.id), b.created_at
+				FROM payroll_input_batches b LEFT JOIN payroll_inputs i ON i.batch_id = b.id
+				WHERE b.id = $1 GROUP BY b.id`, existingID))
+			if scanErr != nil {
+				return scanErr
+			}
+			result = batch
+			return nil
+		}
+		if !errors.Is(err, pgx.ErrNoRows) {
+			return err
+		}
+
+		metricCodes := make([]string, 0, len(req.Inputs))
+		employmentIDs := make([]uuid.UUID, 0, len(req.Inputs))
+		for _, input := range req.Inputs {
+			metricCodes = append(metricCodes, input.MetricCode)
+			employmentIDs = append(employmentIDs, input.EmploymentID)
+		}
+
+		metricRows, err := tx.Query(ctx, `SELECT code, unit FROM payroll_metric_definitions WHERE code = ANY($1) AND is_active = true`, metricCodes)
+		if err != nil {
+			return err
+		}
+		metricUnits := make(map[string]string, len(metricCodes))
+		for metricRows.Next() {
+			var code, unit string
+			if err := metricRows.Scan(&code, &unit); err != nil {
+				metricRows.Close()
+				return err
+			}
+			metricUnits[code] = unit
+		}
+		if err := metricRows.Err(); err != nil {
+			metricRows.Close()
+			return err
+		}
+		metricRows.Close()
+		for _, input := range req.Inputs {
+			unit, exists := metricUnits[input.MetricCode]
+			if !exists || unit != input.Unit {
+				return api.ErrPayrollValidation
+			}
+		}
+
+		employmentRows, err := tx.Query(ctx, `SELECT id FROM employments WHERE id = ANY($1) AND deleted_at IS NULL`, employmentIDs)
+		if err != nil {
+			return err
+		}
+		validEmployments := make(map[uuid.UUID]struct{}, len(employmentIDs))
+		for employmentRows.Next() {
+			var id uuid.UUID
+			if err := employmentRows.Scan(&id); err != nil {
+				employmentRows.Close()
+				return err
+			}
+			validEmployments[id] = struct{}{}
+		}
+		if err := employmentRows.Err(); err != nil {
+			employmentRows.Close()
+			return err
+		}
+		employmentRows.Close()
+		if len(validEmployments) != len(uniqueUUIDs(employmentIDs)) {
+			return api.ErrEmploymentNotFound
+		}
+
+		var locked bool
+		if err := tx.QueryRow(ctx, `SELECT EXISTS (
+			SELECT 1 FROM payroll_periods p
+			JOIN employments e ON e.employer_id = p.employer_id
+			WHERE e.id = ANY($1) AND p.period_year = $2 AND p.period_month = $3 AND p.status = 'locked'
+		)`, employmentIDs, req.PeriodYear, req.PeriodMonth).Scan(&locked); err != nil {
+			return err
+		}
+		if locked {
+			return api.ErrPayrollInputConflict
+		}
+
+		batchID := uuid.New()
+		if err := tx.QueryRow(ctx, `INSERT INTO payroll_input_batches (id, period_year, period_month, source, idempotency_key, request_hash, status, submitted_by)
+			VALUES ($1, $2, $3, $4, $5, $6, 'submitted', $7)
+			RETURNING id, period_year, period_month, source, idempotency_key, status, 0, created_at`, batchID, req.PeriodYear, req.PeriodMonth, strings.TrimSpace(req.Source), req.IdempotencyKey, requestHash, actorID).Scan(
+			&result.ID, &result.PeriodYear, &result.PeriodMonth, &result.Source, &result.IdempotencyKey, &result.Status, &result.InputCount, &result.CreatedAt); err != nil {
+			if isConflictError(err) {
+				return api.ErrPayrollInputConflict
+			}
+			return err
+		}
+
+		valueArgs := make([]any, 0, len(req.Inputs)*6)
+		valueParts := make([]string, 0, len(req.Inputs))
+		for index, input := range req.Inputs {
+			base := index*6 + 1
+			ref := any(nil)
+			if input.SourceReference != nil {
+				ref = *input.SourceReference
+			}
+			valueParts = append(valueParts, fmt.Sprintf("($%d, $%d, (SELECT id FROM payroll_metric_definitions WHERE code = $%d), $%d, $%d, $%d)", base, base+1, base+2, base+3, base+4, base+5))
+			valueArgs = append(valueArgs, batchID, input.EmploymentID, input.MetricCode, input.Value.String(), input.Unit, ref)
+		}
+		_, err = tx.Exec(ctx, `INSERT INTO payroll_inputs (batch_id, employment_id, metric_definition_id, value, unit, source_reference) VALUES `+strings.Join(valueParts, ", "), valueArgs...)
+		if err != nil {
+			return err
+		}
+		result.InputCount = len(req.Inputs)
+		return nil
+	})
+	if err != nil {
+		return api.PayrollInputBatch{}, err
+	}
+	return result, nil
+}
+
+func scanPayrollInputBatch(row interface{ Scan(...any) error }) (api.PayrollInputBatch, error) {
+	var batch api.PayrollInputBatch
+	var created time.Time
+	if err := row.Scan(&batch.ID, &batch.PeriodYear, &batch.PeriodMonth, &batch.Source, &batch.IdempotencyKey, &batch.Status, &batch.InputCount, &created); err != nil {
+		return api.PayrollInputBatch{}, err
+	}
+	batch.CreatedAt = created.UTC().Format(time.RFC3339)
+	return batch, nil
+}
+
+func payrollInputRequestHash(req api.CreatePayrollInputRequest) (string, error) {
+	type hashInput struct {
+		EmploymentID uuid.UUID       `json:"employment_id"`
+		MetricCode   string          `json:"metric_code"`
+		Value        decimal.Decimal `json:"value"`
+		Unit         string          `json:"unit"`
+		Reference    *string         `json:"source_reference,omitempty"`
+	}
+	inputs := make([]hashInput, 0, len(req.Inputs))
+	for _, input := range req.Inputs {
+		inputs = append(inputs, hashInput{input.EmploymentID, input.MetricCode, input.Value, input.Unit, input.SourceReference})
+	}
+	sort.Slice(inputs, func(i, j int) bool {
+		if inputs[i].EmploymentID != inputs[j].EmploymentID {
+			return inputs[i].EmploymentID.String() < inputs[j].EmploymentID.String()
+		}
+		return inputs[i].MetricCode < inputs[j].MetricCode
+	})
+	payload, err := json.Marshal(struct {
+		Year   int         `json:"year"`
+		Month  int         `json:"month"`
+		Source string      `json:"source"`
+		Inputs []hashInput `json:"inputs"`
+	}{req.PeriodYear, req.PeriodMonth, strings.TrimSpace(req.Source), inputs})
+	if err != nil {
+		return "", err
+	}
+	return fmt.Sprintf("%x", sha256.Sum256(payload)), nil
+}
+
+func uniqueUUIDs(ids []uuid.UUID) map[uuid.UUID]struct{} {
+	unique := make(map[uuid.UUID]struct{}, len(ids))
+	for _, id := range ids {
+		unique[id] = struct{}{}
+	}
+	return unique
+}
+
 func (r PayrollRepository) ListPayrollRules(ctx context.Context) ([]api.PayrollRuleDefinition, error) {
 	db, err := r.db(ctx)
 	if err != nil {
@@ -1213,12 +1400,13 @@ func (r PayrollRepository) CalculateEmployeePayroll(ctx context.Context, employe
 	if err != nil {
 		return api.FullPayslipResponse{}, err
 	}
-	beginner, ok := db.(TxBeginner)
+	beginner, ok := db.(service.TxBeginner)
 	if !ok {
 		return api.FullPayslipResponse{}, errors.New("payroll repository: database does not support transactions")
 	}
+
 	var response api.FullPayslipResponse
-	if err := service.WithTx(ctx, beginner, func(ctx context.Context, tx pgx.Tx) error {
+	err = service.WithTx(ctx, beginner, func(ctx context.Context, tx pgx.Tx) error {
 		var empExists bool
 		if err := tx.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM employees WHERE id = $1 AND deleted_at IS NULL)`, employeeID).Scan(&empExists); err != nil {
 			return err
@@ -1226,6 +1414,7 @@ func (r PayrollRepository) CalculateEmployeePayroll(ctx context.Context, employe
 		if !empExists {
 			return api.ErrEmployeeNotFound
 		}
+
 		var employmentID, employerID uuid.UUID
 		var deptID *uuid.UUID
 		err := tx.QueryRow(ctx, `SELECT id, department_id, employer_id FROM employments WHERE employee_id = $1 AND status = 'active' AND deleted_at IS NULL ORDER BY start_date DESC, id DESC LIMIT 1`, employeeID).Scan(&employmentID, &deptID, &employerID)
@@ -1240,7 +1429,8 @@ func (r PayrollRepository) CalculateEmployeePayroll(ctx context.Context, employe
 		}
 		response, err = r.calculateEmploymentPayslip(ctx, tx, employmentID, employeeID, deptID, year, month)
 		return err
-	}); err != nil {
+	})
+	if err != nil {
 		return api.FullPayslipResponse{}, err
 	}
 	return response, nil
@@ -1274,13 +1464,13 @@ func (r PayrollRepository) CalculateBatchPayroll(ctx context.Context, req api.Ba
 	if err != nil {
 		return api.BatchCalculatePayrollResponse{}, err
 	}
-	beginner, ok := db.(TxBeginner)
+	beginner, ok := db.(service.TxBeginner)
 	if !ok {
 		return api.BatchCalculatePayrollResponse{}, errors.New("payroll repository: database does not support transactions")
 	}
 
 	seen := make(map[uuid.UUID]bool)
-	var deduped []uuid.UUID
+	deduped := make([]uuid.UUID, 0, len(req.EmploymentIDs))
 	for _, id := range req.EmploymentIDs {
 		if !seen[id] {
 			seen[id] = true
@@ -1289,7 +1479,7 @@ func (r PayrollRepository) CalculateBatchPayroll(ctx context.Context, req api.Ba
 	}
 
 	var response api.BatchCalculatePayrollResponse
-	if err := service.WithTx(ctx, beginner, func(ctx context.Context, tx pgx.Tx) error {
+	err = service.WithTx(ctx, beginner, func(ctx context.Context, tx pgx.Tx) error {
 		response.Results = make([]api.BatchCalculateResult, 0, len(deduped))
 		for _, employmentID := range deduped {
 			var employeeID, employerID uuid.UUID
@@ -1298,47 +1488,26 @@ func (r PayrollRepository) CalculateBatchPayroll(ctx context.Context, req api.Ba
 			err := tx.QueryRow(ctx, `SELECT employee_id, employer_id, department_id, status FROM employments WHERE id = $1 AND deleted_at IS NULL`, employmentID).Scan(&employeeID, &employerID, &deptID, &status)
 			if err != nil {
 				msg := "employment not found"
-				response.Results = append(response.Results, api.BatchCalculateResult{
-					EmploymentID: employmentID,
-					EmployeeID:   uuid.Nil,
-					Status:       "error",
-					ErrorMessage: &msg,
-				})
+				response.Results = append(response.Results, api.BatchCalculateResult{EmploymentID: employmentID, Status: "error", ErrorMessage: &msg})
 				continue
 			}
 			if err := ensurePayrollPeriodOpen(ctx, tx, employerID, req.Year, req.Month); err != nil {
 				msg := err.Error()
-				response.Results = append(response.Results, api.BatchCalculateResult{
-					EmploymentID: employmentID,
-					EmployeeID:   employeeID,
-					Status:       "error",
-					ErrorMessage: &msg,
-				})
+				response.Results = append(response.Results, api.BatchCalculateResult{EmploymentID: employmentID, EmployeeID: employeeID, Status: "error", ErrorMessage: &msg})
 				continue
 			}
-
 			fullResp, err := r.calculateEmploymentPayslip(ctx, tx, employmentID, employeeID, deptID, req.Year, req.Month)
 			if err != nil {
 				msg := err.Error()
-				response.Results = append(response.Results, api.BatchCalculateResult{
-					EmploymentID: employmentID,
-					EmployeeID:   employeeID,
-					Status:       "error",
-					ErrorMessage: &msg,
-				})
+				response.Results = append(response.Results, api.BatchCalculateResult{EmploymentID: employmentID, EmployeeID: employeeID, Status: "error", ErrorMessage: &msg})
 				continue
 			}
-
 			payslipCopy := fullResp.PayslipRecord
-			response.Results = append(response.Results, api.BatchCalculateResult{
-				EmploymentID: employmentID,
-				EmployeeID:   employeeID,
-				Status:       "success",
-				Payslip:      &payslipCopy,
-			})
+			response.Results = append(response.Results, api.BatchCalculateResult{EmploymentID: employmentID, EmployeeID: employeeID, Status: "success", Payslip: &payslipCopy})
 		}
 		return nil
-	}); err != nil {
+	})
+	if err != nil {
 		return api.BatchCalculatePayrollResponse{}, err
 	}
 	return response, nil

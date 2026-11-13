@@ -30,6 +30,7 @@ var (
 	ErrPayrollPeriodConflict   = errors.New("payroll: period conflict")
 	ErrPayrollPeriodValidation = errors.New("payroll: period validation failed")
 	ErrPayslipConflict         = errors.New("payroll: payslip conflict")
+	ErrPayrollInputConflict    = errors.New("payroll: input batch conflict")
 )
 
 type CreateSalaryComponentRequest struct {
@@ -271,6 +272,33 @@ type BatchCalculatePayrollResponse struct {
 	Results []BatchCalculateResult `json:"results"`
 }
 
+type CreatePayrollInputRequest struct {
+	PeriodYear     int            `json:"period_year"`
+	PeriodMonth    int            `json:"period_month"`
+	Source         string         `json:"source"`
+	IdempotencyKey string         `json:"idempotency_key"`
+	Inputs         []PayrollInput `json:"inputs"`
+}
+
+type PayrollInput struct {
+	EmploymentID    uuid.UUID       `json:"employment_id"`
+	MetricCode      string          `json:"metric_code"`
+	Value           decimal.Decimal `json:"value"`
+	Unit            string          `json:"unit"`
+	SourceReference *string         `json:"source_reference,omitempty"`
+}
+
+type PayrollInputBatch struct {
+	ID             uuid.UUID `json:"id"`
+	PeriodYear     int       `json:"period_year"`
+	PeriodMonth    int       `json:"period_month"`
+	Source         string    `json:"source"`
+	IdempotencyKey string    `json:"idempotency_key"`
+	Status         string    `json:"status"`
+	InputCount     int       `json:"input_count"`
+	CreatedAt      string    `json:"created_at"`
+}
+
 type PayrollPeriod struct {
 	ID           uuid.UUID  `json:"id"`
 	EmployerID   uuid.UUID  `json:"employer_id"`
@@ -296,16 +324,12 @@ type ReopenPayrollPeriodRequest struct {
 
 type PayrollRepository interface {
 	ListPayslips(context.Context, time.Time, time.Time) ([]PayslipRecord, error)
+	ListSalaryManagementRows(context.Context, SalaryManagementQuery) (SalaryManagementResponse, error)
 	ListEmployeePayslips(context.Context, uuid.UUID) ([]PayslipRecord, error)
 	ListSalaryComponents(context.Context) ([]SalaryComponentDefinition, error)
 	CreateSalaryComponent(context.Context, CreateSalaryComponentRequest) (SalaryComponentDefinition, error)
 	ListEmploymentSalaryComponents(context.Context, uuid.UUID) ([]EmploymentSalaryComponentResponse, error)
-	ListSalaryManagementRows(context.Context, SalaryManagementQuery) (SalaryManagementResponse, error)
 	AssignEmploymentSalaryComponent(context.Context, uuid.UUID, AssignSalaryComponentRequest) (EmployeeSalaryComponent, error)
-	ListSalaryBases(context.Context) (SalaryBasesResponse, error)
-	CreateSalaryBase(context.Context, CreateSalaryBaseRequest) (SalaryBaseGroup, error)
-	AssignBaseMember(context.Context, uuid.UUID, uuid.UUID) error
-	UnassignBaseMember(context.Context, uuid.UUID, uuid.UUID) error
 	GetPayrollSettings(context.Context) (*PayrollSettings, error)
 	GetPayrollSettingsHistory(context.Context) ([]PayrollSettings, error)
 	UpdatePayrollSettings(context.Context, UpdatePayrollSettingsRequest) (PayrollSettings, error)
@@ -325,6 +349,7 @@ type PayrollRepository interface {
 	DeletePayrollRuleAssignment(context.Context, uuid.UUID, uuid.UUID) error
 	CalculateEmployeePayroll(context.Context, uuid.UUID, int, int) (FullPayslipResponse, error)
 	CalculateBatchPayroll(context.Context, BatchCalculatePayrollRequest) (BatchCalculatePayrollResponse, error)
+	CreatePayrollInputBatch(context.Context, CreatePayrollInputRequest, uuid.UUID) (PayrollInputBatch, error)
 	GetPayrollPeriod(context.Context, uuid.UUID, int, int) (PayrollPeriod, error)
 	LockPayrollPeriod(context.Context, uuid.UUID, int, int, int64, uuid.UUID) (PayrollPeriod, error)
 	ReopenPayrollPeriod(context.Context, uuid.UUID, int, int, int64, string, uuid.UUID) (PayrollPeriod, error)
@@ -891,6 +916,50 @@ func (h PayrollHandler) CalculatePayroll(w http.ResponseWriter, r *http.Request)
 	apperror.WriteJSON(w, http.StatusOK, resp)
 }
 
+func (h PayrollHandler) CreatePayrollInputBatch(w http.ResponseWriter, r *http.Request) {
+	if !h.allowed(r, "payroll:inputs:manage") && !h.allowed(r, "payroll:manage") {
+		h.forbidden(w, r)
+		return
+	}
+	userID, ok := httpinfra.UserIDFromContext(r.Context())
+	if !ok {
+		h.forbidden(w, r)
+		return
+	}
+	req, err := DecodeJSON[CreatePayrollInputRequest](r, 4<<20)
+	if err != nil || !validPayrollInputRequest(req) {
+		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
+		return
+	}
+	batch, err := h.Repository.CreatePayrollInputBatch(r.Context(), req, userID)
+	if err != nil {
+		h.writeError(w, r, err)
+		return
+	}
+	apperror.WriteJSON(w, http.StatusCreated, batch)
+}
+
+func validPayrollInputRequest(req CreatePayrollInputRequest) bool {
+	if req.PeriodYear < 2000 || req.PeriodYear > 2100 || req.PeriodMonth < 1 || req.PeriodMonth > 12 {
+		return false
+	}
+	if strings.TrimSpace(req.Source) == "" || len(req.Source) > 100 || strings.TrimSpace(req.IdempotencyKey) == "" || len(req.IdempotencyKey) > 200 || len(req.Inputs) == 0 || len(req.Inputs) > 10000 {
+		return false
+	}
+	seen := make(map[string]struct{}, len(req.Inputs))
+	for _, input := range req.Inputs {
+		if input.EmploymentID == uuid.Nil || strings.TrimSpace(input.MetricCode) == "" || len(input.MetricCode) > 100 || strings.TrimSpace(input.Unit) == "" || len(input.Unit) > 40 || input.Value.IsNegative() {
+			return false
+		}
+		key := input.EmploymentID.String() + "|" + input.MetricCode
+		if _, exists := seen[key]; exists {
+			return false
+		}
+		seen[key] = struct{}{}
+	}
+	return true
+}
+
 func (h PayrollHandler) CalculateBatchPayroll(w http.ResponseWriter, r *http.Request) {
 
 	if !h.allowedCalculate(r) {
@@ -1021,11 +1090,7 @@ func (h PayrollHandler) writeError(w http.ResponseWriter, r *http.Request, err e
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}
-	if errors.Is(err, ErrInvalidBaseGroup) {
-		apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyInvalidBaseGroup))
-		return
-	}
-	if errors.Is(err, ErrComponentConflict) || errors.Is(err, ErrConflict) || errors.Is(err, ErrAssignmentConflict) || errors.Is(err, ErrPayrollPeriodConflict) || errors.Is(err, ErrPayslipConflict) {
+	if errors.Is(err, ErrComponentConflict) || errors.Is(err, ErrConflict) || errors.Is(err, ErrAssignmentConflict) || errors.Is(err, ErrPayrollPeriodConflict) || errors.Is(err, ErrPayslipConflict) || errors.Is(err, ErrPayrollInputConflict) {
 		apperror.WriteError(w, r, apperror.Conflict(apperror.KeyConflict))
 		return
 	}

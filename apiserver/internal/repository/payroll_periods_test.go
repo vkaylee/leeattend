@@ -41,6 +41,8 @@ func TestPayrollRepositoryLockPeriodAuditsAtomically(t *testing.T) {
 		switch {
 		case strings.Contains(query, "FROM employers"):
 			return fakeRow{scanFn: func(dest ...any) error { *(dest[0].(*bool)) = true; return nil }}
+		case strings.Contains(query, "attendance_periods"):
+			return fakeRow{scanFn: func(dest ...any) error { *(dest[0].(*string)) = "closed"; return nil }}
 		case strings.Contains(query, "FOR UPDATE"):
 			return fakeRow{scanFn: payrollPeriodScan(periodID, employerID, 1, "open")}
 		case strings.Contains(query, "UPDATE payroll_periods"):
@@ -62,6 +64,27 @@ func TestPayrollRepositoryLockPeriodAuditsAtomically(t *testing.T) {
 	}
 	if period.Status != "locked" || period.Version != 2 || !tx.committed || tx.rolledBack {
 		t.Fatalf("period/transaction = %s/%d/%t/%t, want locked/2/true/false", period.Status, period.Version, tx.committed, tx.rolledBack)
+	}
+}
+
+func TestPayrollRepositoryLockPeriodRequiresClosedAttendance(t *testing.T) {
+	tx := &payrollPeriodTestTx{}
+	tx.fakeDBTX.queryRowFn = func(_ context.Context, query string, _ ...any) pgx.Row {
+		switch {
+		case strings.Contains(query, "FROM employers"):
+			return fakeRow{scanFn: func(dest ...any) error { *(dest[0].(*bool)) = true; return nil }}
+		case strings.Contains(query, "attendance_periods"):
+			return fakeRow{scanFn: func(dest ...any) error { *(dest[0].(*string)) = "open"; return nil }}
+		default:
+			return fakeRow{scanFn: payrollPeriodScan(uuid.New(), uuid.New(), 1, "open")}
+		}
+	}
+	tx.fakeDBTX.execFn = func(_ context.Context, _ string, _ ...any) (pgconn.CommandTag, error) {
+		return pgconn.NewCommandTag("INSERT 0 0"), nil
+	}
+	_, err := (PayrollRepository{DB: tx}).LockPayrollPeriod(context.Background(), uuid.New(), 2026, 1, 1, uuid.New())
+	if !errors.Is(err, api.ErrPayrollPeriodConflict) || tx.committed || !tx.rolledBack {
+		t.Fatalf("error/transaction = %v/%t/%t, want attendance conflict/false/true", err, tx.committed, tx.rolledBack)
 	}
 }
 

@@ -137,8 +137,8 @@ func TestEnsureDefaultRolesAndPermissions(t *testing.T) {
 			hasSalaryGroups = true
 		}
 	}
-	if !hasRoles || !hasPermissions || !hasSalaryGroups {
-		t.Fatalf("missing catalog seed statements: roles=%v perms=%v salary=%v", hasRoles, hasPermissions, hasSalaryGroups)
+	if !hasRoles || !hasPermissions || hasSalaryGroups {
+		t.Fatalf("unexpected catalog seed statements: roles=%v perms=%v retired_salary_groups=%v", hasRoles, hasPermissions, hasSalaryGroups)
 	}
 
 	roleSeed := tx.executed[0]

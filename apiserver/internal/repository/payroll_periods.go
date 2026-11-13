@@ -104,6 +104,16 @@ func (r PayrollRepository) mutatePayrollPeriod(ctx context.Context, employerID u
 	if period.Version != expectedVersion || (action == "lock" && period.Status == "locked") || (action == "reopen" && period.Status == "open") {
 		return api.PayrollPeriod{}, api.ErrPayrollPeriodConflict
 	}
+	if action == "lock" {
+		var attendanceStatus string
+		err := tx.QueryRow(ctx, `SELECT status FROM attendance_periods WHERE employer_id = $1 AND period_year = $2 AND period_month = $3 FOR UPDATE`, employerID, year, month).Scan(&attendanceStatus)
+		if errors.Is(err, pgx.ErrNoRows) || err != nil || attendanceStatus != "closed" {
+			if err != nil && !errors.Is(err, pgx.ErrNoRows) {
+				return api.PayrollPeriod{}, err
+			}
+			return api.PayrollPeriod{}, api.ErrPayrollPeriodConflict
+		}
+	}
 	if action == "reopen" && reason == "" {
 		return api.PayrollPeriod{}, api.ErrPayrollPeriodValidation
 	}

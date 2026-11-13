@@ -120,7 +120,7 @@ export interface ScheduleHistoryEntry {
   revision_number: number;
   source: string;
   source_snapshot: Record<string, unknown>;
-  state: ScheduleLifecycleState | string;
+  state: ScheduleLifecycleState;
   timezone: string;
 }
 
@@ -148,7 +148,7 @@ export interface ScheduleEvidenceClosureDay {
   id: string;
   period_id: string;
   schedule_revision_id: string;
-  schedule_state: ScheduleLifecycleState | string;
+  schedule_state: ScheduleLifecycleState;
 }
 
 export interface ScheduleEvidenceAuditAction {

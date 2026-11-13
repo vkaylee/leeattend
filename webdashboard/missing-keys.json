@@ -1,1 +1,287 @@
-[]
+[
+  {
+    "file": "src/components/features/attendance/policy-assignments-section.tsx",
+    "key": "attendance.attendance_policy_overrides.labels.department",
+    "lang": "en"
+  },
+  {
+    "file": "src/components/features/attendance/policy-assignments-section.tsx",
+    "key": "attendance.attendance_policy_overrides.labels.department",
+    "lang": "vi"
+  },
+  {
+    "file": "src/components/features/attendance/policy-assignments-section.tsx",
+    "key": "attendance.attendance_policy_overrides.labels.department",
+    "lang": "zh"
+  },
+  {
+    "file": "src/components/features/attendance/policy-assignments-section.tsx",
+    "key": "attendance.attendance_policy_overrides.labels.employee",
+    "lang": "en"
+  },
+  {
+    "file": "src/components/features/attendance/policy-assignments-section.tsx",
+    "key": "attendance.attendance_policy_overrides.labels.employee",
+    "lang": "vi"
+  },
+  {
+    "file": "src/components/features/attendance/policy-assignments-section.tsx",
+    "key": "attendance.attendance_policy_overrides.labels.employee",
+    "lang": "zh"
+  },
+  {
+    "file": "src/components/features/attendance/policy-assignments-section.tsx",
+    "key": "attendance.attendance_policy_overrides.labels.not_set",
+    "lang": "en"
+  },
+  {
+    "file": "src/components/features/attendance/policy-assignments-section.tsx",
+    "key": "attendance.attendance_policy_overrides.labels.not_set",
+    "lang": "vi"
+  },
+  {
+    "file": "src/components/features/attendance/policy-assignments-section.tsx",
+    "key": "attendance.attendance_policy_overrides.labels.not_set",
+    "lang": "zh"
+  },
+  {
+    "file": "src/components/features/attendance/policy-assignments-section.tsx",
+    "key": "attendance.attendance_policy_overrides.title",
+    "lang": "en"
+  },
+  {
+    "file": "src/components/features/attendance/policy-assignments-section.tsx",
+    "key": "attendance.attendance_policy_overrides.title",
+    "lang": "vi"
+  },
+  {
+    "file": "src/components/features/attendance/policy-assignments-section.tsx",
+    "key": "attendance.attendance_policy_overrides.title",
+    "lang": "zh"
+  },
+  {
+    "file": "src/components/features/attendance/policy-assignments-section.tsx",
+    "key": "attendance.attendance_policy_overrides.description",
+    "lang": "en"
+  },
+  {
+    "file": "src/components/features/attendance/policy-assignments-section.tsx",
+    "key": "attendance.attendance_policy_overrides.description",
+    "lang": "vi"
+  },
+  {
+    "file": "src/components/features/attendance/policy-assignments-section.tsx",
+    "key": "attendance.attendance_policy_overrides.description",
+    "lang": "zh"
+  },
+  {
+    "file": "src/components/features/attendance/policy-assignments-section.tsx",
+    "key": "attendance.attendance_policy_overrides.add_button",
+    "lang": "en"
+  },
+  {
+    "file": "src/components/features/attendance/policy-assignments-section.tsx",
+    "key": "attendance.attendance_policy_overrides.add_button",
+    "lang": "vi"
+  },
+  {
+    "file": "src/components/features/attendance/policy-assignments-section.tsx",
+    "key": "attendance.attendance_policy_overrides.add_button",
+    "lang": "zh"
+  },
+  {
+    "file": "src/components/features/attendance/policy-assignments-section.tsx",
+    "key": "attendance.attendance_policy_overrides.empty_state.title",
+    "lang": "en"
+  },
+  {
+    "file": "src/components/features/attendance/policy-assignments-section.tsx",
+    "key": "attendance.attendance_policy_overrides.empty_state.title",
+    "lang": "vi"
+  },
+  {
+    "file": "src/components/features/attendance/policy-assignments-section.tsx",
+    "key": "attendance.attendance_policy_overrides.empty_state.title",
+    "lang": "zh"
+  },
+  {
+    "file": "src/components/features/attendance/policy-assignments-section.tsx",
+    "key": "attendance.attendance_policy_overrides.empty_state.description",
+    "lang": "en"
+  },
+  {
+    "file": "src/components/features/attendance/policy-assignments-section.tsx",
+    "key": "attendance.attendance_policy_overrides.empty_state.description",
+    "lang": "vi"
+  },
+  {
+    "file": "src/components/features/attendance/policy-assignments-section.tsx",
+    "key": "attendance.attendance_policy_overrides.empty_state.description",
+    "lang": "zh"
+  },
+  {
+    "file": "src/components/features/attendance/policy-assignments-section.tsx",
+    "key": "attendance.attendance_policy_overrides.messages.delete_title",
+    "lang": "en"
+  },
+  {
+    "file": "src/components/features/attendance/policy-assignments-section.tsx",
+    "key": "attendance.attendance_policy_overrides.messages.delete_title",
+    "lang": "vi"
+  },
+  {
+    "file": "src/components/features/attendance/policy-assignments-section.tsx",
+    "key": "attendance.attendance_policy_overrides.messages.delete_title",
+    "lang": "zh"
+  },
+  {
+    "file": "src/components/features/attendance/policy-assignments-section.tsx",
+    "key": "attendance.attendance_policy_overrides.messages.delete_message",
+    "lang": "en"
+  },
+  {
+    "file": "src/components/features/attendance/policy-assignments-section.tsx",
+    "key": "attendance.attendance_policy_overrides.messages.delete_message",
+    "lang": "vi"
+  },
+  {
+    "file": "src/components/features/attendance/policy-assignments-section.tsx",
+    "key": "attendance.attendance_policy_overrides.messages.delete_message",
+    "lang": "zh"
+  },
+  {
+    "file": "src/components/features/attendance/policy-assignments-section.tsx",
+    "key": "attendance.attendance_policy_overrides.drawer.add_subtitle",
+    "lang": "en"
+  },
+  {
+    "file": "src/components/features/attendance/policy-assignments-section.tsx",
+    "key": "attendance.attendance_policy_overrides.drawer.add_subtitle",
+    "lang": "vi"
+  },
+  {
+    "file": "src/components/features/attendance/policy-assignments-section.tsx",
+    "key": "attendance.attendance_policy_overrides.drawer.add_subtitle",
+    "lang": "zh"
+  },
+  {
+    "file": "src/components/features/attendance/policy-assignments-section.tsx",
+    "key": "attendance.attendance_policy_overrides.drawer.add_title",
+    "lang": "en"
+  },
+  {
+    "file": "src/components/features/attendance/policy-assignments-section.tsx",
+    "key": "attendance.attendance_policy_overrides.drawer.add_title",
+    "lang": "vi"
+  },
+  {
+    "file": "src/components/features/attendance/policy-assignments-section.tsx",
+    "key": "attendance.attendance_policy_overrides.drawer.add_title",
+    "lang": "zh"
+  },
+  {
+    "file": "src/components/features/attendance/policy-assignments-section.tsx",
+    "key": "attendance.attendance_policy_overrides.drawer.step_target",
+    "lang": "en"
+  },
+  {
+    "file": "src/components/features/attendance/policy-assignments-section.tsx",
+    "key": "attendance.attendance_policy_overrides.drawer.step_target",
+    "lang": "vi"
+  },
+  {
+    "file": "src/components/features/attendance/policy-assignments-section.tsx",
+    "key": "attendance.attendance_policy_overrides.drawer.step_target",
+    "lang": "zh"
+  },
+  {
+    "file": "src/components/features/attendance/policy-assignments-section.tsx",
+    "key": "attendance.attendance_policy_overrides.drawer.select_target_type",
+    "lang": "en"
+  },
+  {
+    "file": "src/components/features/attendance/policy-assignments-section.tsx",
+    "key": "attendance.attendance_policy_overrides.drawer.select_target_type",
+    "lang": "vi"
+  },
+  {
+    "file": "src/components/features/attendance/policy-assignments-section.tsx",
+    "key": "attendance.attendance_policy_overrides.drawer.select_target_type",
+    "lang": "zh"
+  },
+  {
+    "file": "src/components/features/attendance/policy-assignments-section.tsx",
+    "key": "attendance.attendance_policy_overrides.drawer.search_placeholder",
+    "lang": "en"
+  },
+  {
+    "file": "src/components/features/attendance/policy-assignments-section.tsx",
+    "key": "attendance.attendance_policy_overrides.drawer.search_placeholder",
+    "lang": "vi"
+  },
+  {
+    "file": "src/components/features/attendance/policy-assignments-section.tsx",
+    "key": "attendance.attendance_policy_overrides.drawer.search_placeholder",
+    "lang": "zh"
+  },
+  {
+    "file": "src/components/features/attendance/policy-assignments-section.tsx",
+    "key": "attendance.attendance_policy_overrides.drawer.step_rules",
+    "lang": "en"
+  },
+  {
+    "file": "src/components/features/attendance/policy-assignments-section.tsx",
+    "key": "attendance.attendance_policy_overrides.drawer.step_rules",
+    "lang": "vi"
+  },
+  {
+    "file": "src/components/features/attendance/policy-assignments-section.tsx",
+    "key": "attendance.attendance_policy_overrides.drawer.step_rules",
+    "lang": "zh"
+  },
+  {
+    "file": "src/components/features/attendance/policy-assignments-section.tsx",
+    "key": "attendance.attendance_policy_overrides.drawer.override_notice",
+    "lang": "en"
+  },
+  {
+    "file": "src/components/features/attendance/policy-assignments-section.tsx",
+    "key": "attendance.attendance_policy_overrides.drawer.override_notice",
+    "lang": "vi"
+  },
+  {
+    "file": "src/components/features/attendance/policy-assignments-section.tsx",
+    "key": "attendance.attendance_policy_overrides.drawer.override_notice",
+    "lang": "zh"
+  },
+  {
+    "file": "src/components/features/attendance/policy-assignments-section.tsx",
+    "key": "attendance.attendance_policy_overrides.drawer.grace_period_placeholder",
+    "lang": "en"
+  },
+  {
+    "file": "src/components/features/attendance/policy-assignments-section.tsx",
+    "key": "attendance.attendance_policy_overrides.drawer.grace_period_placeholder",
+    "lang": "vi"
+  },
+  {
+    "file": "src/components/features/attendance/policy-assignments-section.tsx",
+    "key": "attendance.attendance_policy_overrides.drawer.grace_period_placeholder",
+    "lang": "zh"
+  },
+  {
+    "file": "src/components/features/attendance/policy-assignments-section.tsx",
+    "key": "attendance.attendance_policy_overrides.drawer.save_button",
+    "lang": "en"
+  },
+  {
+    "file": "src/components/features/attendance/policy-assignments-section.tsx",
+    "key": "attendance.attendance_policy_overrides.drawer.save_button",
+    "lang": "vi"
+  },
+  {
+    "file": "src/components/features/attendance/policy-assignments-section.tsx",
+    "key": "attendance.attendance_policy_overrides.drawer.save_button",
+    "lang": "zh"
+  }
+]

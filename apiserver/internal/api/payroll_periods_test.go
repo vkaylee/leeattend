@@ -22,17 +22,12 @@ func TestPayrollPeriodHandlersValidateAuthorizationAndPayload(t *testing.T) {
 
 	employerID := uuid.New()
 	userID := uuid.New()
-	base := func(method, path, body string, perms map[string]bool) (*httptest.ResponseRecorder, PayrollHandler) {
-		req := httptest.NewRequest(method, path, bytes.NewBufferString(body))
-		req.SetPathValue("year", "2026")
-		req.SetPathValue("month", "1")
-		req.URL.RawQuery = "employer_id=" + employerID.String()
-		req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), userID))
+	base := func(perms map[string]bool) (*httptest.ResponseRecorder, PayrollHandler) {
 		rec := httptest.NewRecorder()
 		return rec, PayrollHandler{Repository: mockPayrollRepository{}, Authorizer: payrollAuthorizer{allowedPerms: perms}}
 	}
 
-	rec, handler := base(http.MethodGet, "/", "", map[string]bool{"payroll:read": true})
+	rec, handler := base(map[string]bool{"payroll:read": true})
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
 	req.SetPathValue("year", "2026")
 	req.SetPathValue("month", "1")
@@ -43,7 +38,7 @@ func TestPayrollPeriodHandlersValidateAuthorizationAndPayload(t *testing.T) {
 		t.Fatalf("GET period status = %d, want 200: %s", rec.Code, rec.Body.String())
 	}
 
-	rec, handler = base(http.MethodPost, "/", `{}`, map[string]bool{"payroll:periods:lock": true})
+	rec, handler = base(map[string]bool{"payroll:periods:lock": true})
 	req = httptest.NewRequest(http.MethodPost, "/", bytes.NewBufferString(`{"version":0}`))
 	req.SetPathValue("year", "2026")
 	req.SetPathValue("month", "1")
@@ -54,7 +49,7 @@ func TestPayrollPeriodHandlersValidateAuthorizationAndPayload(t *testing.T) {
 		t.Fatalf("invalid lock version status = %d, want 400", rec.Code)
 	}
 
-	rec, handler = base(http.MethodPost, "/", `{"version":1}`, map[string]bool{})
+	rec, handler = base(map[string]bool{})
 	req = httptest.NewRequest(http.MethodPost, "/", bytes.NewBufferString(`{"version":1}`))
 	req.SetPathValue("year", "2026")
 	req.SetPathValue("month", "1")
@@ -65,7 +60,7 @@ func TestPayrollPeriodHandlersValidateAuthorizationAndPayload(t *testing.T) {
 		t.Fatalf("unauthorized lock status = %d, want 403", rec.Code)
 	}
 
-	rec, handler = base(http.MethodPost, "/", `{"version":1,"reason":""}`, map[string]bool{"payroll:periods:reopen": true})
+	rec, handler = base(map[string]bool{"payroll:periods:reopen": true})
 	req = httptest.NewRequest(http.MethodPost, "/", bytes.NewBufferString(`{"version":1,"reason":""}`))
 	req.SetPathValue("year", "2026")
 	req.SetPathValue("month", "1")
