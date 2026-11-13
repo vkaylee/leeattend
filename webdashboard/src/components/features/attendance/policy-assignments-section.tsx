@@ -46,7 +46,7 @@ function AssignmentCard({ assignment, getTargetName, workUnitLabel, roundingLabe
         <div>
           <div className="flex items-center gap-2 mb-1">
             <span className={cn("px-2 py-0.5 text-[9px] font-bold uppercase tracking-widest rounded-md", assignment.target_type === "GROUP" ? "bg-primary-100 text-primary-700 dark:bg-primary-900/50 dark:text-primary-300" : "bg-teal-100 text-teal-700 dark:bg-teal-900/50 dark:text-teal-300")}>
-              {assignment.target_type === "GROUP" ? t("attendance_policy_overrides.labels.department") : t("attendance_policy_overrides.labels.employee")}
+              {assignment.target_type === "GROUP" ? t("attendance.attendance_policy_overrides.labels.department") : t("attendance.attendance_policy_overrides.labels.employee")}
             </span>
           </div>
           <Typography className="text-lg font-bold text-slate-800 dark:text-slate-200" variant="h4">{assignment.target_name ?? getTargetName(assignment.target_type, assignment.target_id)}</Typography>
@@ -63,7 +63,7 @@ function AssignmentCard({ assignment, getTargetName, workUnitLabel, roundingLabe
           <Typography className="text-sm font-bold text-slate-700 dark:text-slate-300" variant="p">
             {assignment.rules.grace_period_minutes != null
               ? `${assignment.rules.grace_period_minutes}m`
-              : t("attendance_policy_overrides.labels.not_set", "Not Set")}
+              : t("attendance.attendance_policy_overrides.labels.not_set", "Not Set")}
           </Typography>
         </div>
       </div>
@@ -138,10 +138,10 @@ function PolicyAssignmentsSectionContent({ options = {} }: { options?: PolicyAss
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <Typography className="text-xl font-bold text-slate-800 dark:text-slate-100 tracking-tight uppercase" variant="h2">
-              {t("attendance_policy_overrides.title")}
+              {t("attendance.attendance_policy_overrides.title")}
             </Typography>
             <Typography className="text-sm text-slate-500 dark:text-slate-400 mt-1" variant="p">
-              {t("attendance_policy_overrides.description")}
+              {t("attendance.attendance_policy_overrides.description")}
             </Typography>
           </div>
           <div className="flex flex-wrap items-center gap-3">
@@ -154,12 +154,12 @@ function PolicyAssignmentsSectionContent({ options = {} }: { options?: PolicyAss
                   size="sm" 
                   variant="ghost"
                 >
-                  {t(`attendance_policy_overrides.filters.${f === "ALL" ? "all" : f === "GROUP" ? "depts" : "users"}`)}
+                  {t(`attendance.attendance_policy_overrides.filters.${f === "ALL" ? "all" : f === "GROUP" ? "depts" : "users"}`)}
                 </Button>
               ))}
             </div>
             <Button icon={<Plus size={18} />} onClick={() => { setIsDrawerOpen(true); }} variant="primary">
-              {t("attendance_policy_overrides.add_button")}
+              {t("attendance.attendance_policy_overrides.add_button")}
             </Button>
           </div>
         </div>
@@ -169,10 +169,10 @@ function PolicyAssignmentsSectionContent({ options = {} }: { options?: PolicyAss
           <div className="text-center py-12 border-2 border-dashed border-slate-100 dark:border-slate-800 rounded-3xl bg-slate-50/50 dark:bg-slate-800/30">
             <Filter className="w-12 h-12 text-slate-300 dark:text-slate-600 mx-auto mb-4" />
             <Typography className="text-lg font-bold text-slate-600 dark:text-slate-300" variant="h3">
-              {t("attendance_policy_overrides.empty_state.title")}
+              {t("attendance.attendance_policy_overrides.empty_state.title")}
             </Typography>
             <Typography className="text-sm text-slate-500 mt-1" variant="p">
-              {t("attendance_policy_overrides.empty_state.description")}
+              {t("attendance.attendance_policy_overrides.empty_state.description")}
             </Typography>
           </div>
         ) : (
@@ -184,8 +184,8 @@ function PolicyAssignmentsSectionContent({ options = {} }: { options?: PolicyAss
                 key={a.id}
                 onDelete={async (id) => {
                   const ok = await confirm({
-                    title: t("attendance_policy_overrides.delete_title", "Delete assignment"),
-                    message: t("attendance_policy_overrides.delete_message", "Delete this attendance policy assignment?"),
+                    title: t("attendance.attendance_policy_overrides.messages.delete_title", "Delete assignment"),
+                    message: t("attendance.attendance_policy_overrides.messages.delete_message", "Delete this attendance policy assignment?"),
                   });
                   if (ok) deleteMutation.mutate(id);
                 }}
@@ -205,11 +205,11 @@ function PolicyAssignmentsSectionContent({ options = {} }: { options?: PolicyAss
         </div>
       </div>
       <ConfirmationDialog />
-      <Sheet isOpen={isDrawerOpen} onClose={() => { setIsDrawerOpen(false); }} subtitle={t("attendance_policy_overrides.drawer.add_subtitle")} title={t("attendance_policy_overrides.drawer.add_title")}>
+      <Sheet isOpen={isDrawerOpen} onClose={() => { setIsDrawerOpen(false); }} subtitle={t("attendance.attendance_policy_overrides.drawer.add_subtitle")} title={t("attendance.attendance_policy_overrides.drawer.add_title")}>
         <div className="space-y-8">
           <div className="space-y-4">
             <Typography className="text-xs font-bold text-slate-500 uppercase tracking-widest" variant="h3">
-              {t("attendance_policy_overrides.drawer.step_target")}
+              {t("attendance.attendance_policy_overrides.drawer.step_target")}
             </Typography>
             <div className="grid grid-cols-2 gap-3 mb-4">
               {(([{ type: "GROUP", icon: <Building2 size={24} />, label: "department" }, { type: "USER", icon: <User size={24} />, label: "employee" }] as const).map(t_ => (
@@ -220,30 +220,30 @@ function PolicyAssignmentsSectionContent({ options = {} }: { options?: PolicyAss
                   variant="outline"
                 >
                   {t_.icon}
-                  <span className="text-xs font-bold uppercase tracking-widest">{t(`attendance_policy_overrides.labels.${t_.label}`)}</span>
+                  <span className="text-xs font-bold uppercase tracking-widest">{t(`attendance.attendance_policy_overrides.labels.${t_.label}`)}</span>
                 </Button>
               )))}
             </div>
             <div>
               <label className={LABEL_BASE}>
-                {t("attendance_policy_overrides.drawer.select_target_type", { type: t(`attendance_policy_overrides.labels.${targetType === "GROUP" ? "department" : "employee"}`) })}
+                {t("attendance.attendance_policy_overrides.drawer.select_target_type", { type: t(`attendance.attendance_policy_overrides.labels.${targetType === "GROUP" ? "department" : "employee"}`) })}
               </label>
               <Combobox 
                 onChange={setTargetId} 
                 options={targetOptions} 
-                placeholder={t("attendance_policy_overrides.drawer.search_placeholder", { type: t(`attendance_policy_overrides.labels.${targetType === "GROUP" ? "department" : "employee"}`) })} 
+                placeholder={t("attendance.attendance_policy_overrides.drawer.search_placeholder", { type: t(`attendance.attendance_policy_overrides.labels.${targetType === "GROUP" ? "department" : "employee"}`) })}
                 value={targetId} 
               />
             </div>
           </div>
           <div className="space-y-4">
             <Typography className="text-xs font-bold text-slate-500 uppercase tracking-widest" variant="h3">
-              {t("attendance_policy_overrides.drawer.step_rules")}
+              {t("attendance.attendance_policy_overrides.drawer.step_rules")}
             </Typography>
             <div className="space-y-5 bg-slate-50/50 dark:bg-slate-800/30 p-6 rounded-[2rem] border border-slate-100 dark:border-slate-800">
               <div className="text-xs bg-primary-500/10 border border-primary-500/20 rounded-xl p-3 flex items-start gap-2.5 text-primary-700 dark:text-primary-400 mb-2">
                 <Info className="mt-0.5 shrink-0" size={14} />
-                <span>{t("attendance_policy_overrides.drawer.override_notice")}</span>
+                <span>{t("attendance.attendance_policy_overrides.drawer.override_notice")}</span>
               </div>
               <div className="space-y-3">
                 <label className={LABEL_BASE}>{t("common.organization_settings.valid_from") || "Effective From"}</label>
@@ -293,7 +293,7 @@ function PolicyAssignmentsSectionContent({ options = {} }: { options?: PolicyAss
                     const val = parseInt(e.target.value);
                     setGracePeriodMinutes(isNaN(val) ? undefined : val);
                   }} 
-                  placeholder={t("attendance_policy_overrides.drawer.grace_period_placeholder", "Using default organization value")}
+                  placeholder={t("attendance.attendance_policy_overrides.drawer.grace_period_placeholder", "Using default organization value")}
                   type="number" 
                   value={gracePeriodMinutes ?? ""} 
                 />
@@ -302,7 +302,7 @@ function PolicyAssignmentsSectionContent({ options = {} }: { options?: PolicyAss
           </div>
           <div className="pt-4 border-t border-slate-100 dark:border-slate-800">
             <Button className="w-full" loading={upsertMutation.isPending} onClick={handleSave} variant="primary">
-              {t("attendance_policy_overrides.drawer.save_button")}
+              {t("attendance.attendance_policy_overrides.drawer.save_button")}
             </Button>
           </div>
         </div>
