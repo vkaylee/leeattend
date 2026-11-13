@@ -13,8 +13,8 @@ func TestCanonicalPermissionsCatalog(t *testing.T) {
 	all := AllPermissions()
 
 	// Canonical permissions exclude retired workspace, edge-agent, and device controls.
-	if len(all) != 115 {
-		t.Fatalf("expected exactly 115 permissions, got %d", len(all))
+	if len(all) != 116 {
+		t.Fatalf("expected exactly 116 permissions, got %d", len(all))
 	}
 
 	// 2. Check no duplicates
