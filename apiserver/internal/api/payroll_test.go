@@ -1153,6 +1153,26 @@ func TestPayrollInputImportValidatesAndAuthorizes(t *testing.T) {
 	}
 }
 
+func TestPayrollFormulaPreviewRequiresManageAndEvaluates(t *testing.T) {
+	request := func(permission bool, body string) *httptest.ResponseRecorder {
+		req := httptest.NewRequest(http.MethodPost, "/api/v1/payroll/formulas/preview", bytes.NewBufferString(body))
+		req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
+		rec := httptest.NewRecorder()
+		PayrollHandler{Repository: mockPayrollRepository{}, Authorizer: payrollAuthorizer{allowedPerms: map[string]bool{"payroll:manage": permission}}}.PreviewPayrollFormula(rec, req)
+		return rec
+	}
+	if got := request(false, `{"expression":"1 + 1","values":{}}`).Code; got != http.StatusForbidden {
+		t.Fatalf("forbidden status = %d, want 403", got)
+	}
+	valid := request(true, `{"expression":"min(actual / target, 1.2)","values":{"actual":"950","target":"1000"}}`)
+	if valid.Code != http.StatusOK || !contains(valid.Body.String(), `"value":"0.95"`) {
+		t.Fatalf("preview = %d %s, want 200 with 0.95", valid.Code, valid.Body.String())
+	}
+	if got := request(true, `{"expression":"DROP TABLE payroll_inputs","values":{}}`).Code; got != http.StatusBadRequest {
+		t.Fatalf("unsafe status = %d, want 400", got)
+	}
+}
+
 func TestPayrollInputLifecycleEndpoints(t *testing.T) {
 	batchID := uuid.New()
 	actorID := uuid.New()

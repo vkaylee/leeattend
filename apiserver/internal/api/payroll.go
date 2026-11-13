@@ -13,6 +13,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/shopspring/decimal"
 	"github.com/vkaylee/leeattend/apiserver/internal/apperror"
+	"github.com/vkaylee/leeattend/apiserver/internal/domain/payroll/formula"
 	httpinfra "github.com/vkaylee/leeattend/apiserver/internal/infra/http"
 )
 
@@ -305,6 +306,15 @@ type PayrollInputBatch struct {
 
 type UpdatePayrollInputBatchRequest struct {
 	Version int64 `json:"version"`
+}
+
+type PreviewPayrollFormulaRequest struct {
+	Expression string                     `json:"expression"`
+	Values     map[string]decimal.Decimal `json:"values"`
+}
+
+type PreviewPayrollFormulaResponse struct {
+	Value string `json:"value"`
 }
 
 type PayrollPeriod struct {
@@ -968,6 +978,24 @@ func validPayrollInputRequest(req CreatePayrollInputRequest) bool {
 		seen[key] = struct{}{}
 	}
 	return true
+}
+
+func (h PayrollHandler) PreviewPayrollFormula(w http.ResponseWriter, r *http.Request) {
+	if !h.allowed(r, "payroll:manage") {
+		h.forbidden(w, r)
+		return
+	}
+	req, err := DecodeJSON[PreviewPayrollFormulaRequest](r, 1<<20)
+	if err != nil || len(req.Expression) == 0 || len(req.Expression) > 4096 || len(req.Values) > 100 {
+		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
+		return
+	}
+	value, err := formula.Evaluate(req.Expression, req.Values)
+	if err != nil {
+		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
+		return
+	}
+	apperror.WriteJSON(w, http.StatusOK, PreviewPayrollFormulaResponse{Value: value.String()})
 }
 
 func (h PayrollHandler) ApprovePayrollInputBatch(w http.ResponseWriter, r *http.Request) {
