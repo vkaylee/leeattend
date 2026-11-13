@@ -355,16 +355,16 @@ type PayrollFormulaRule struct {
 }
 
 type PayrollFormulaRuleVersion struct {
-	VersionID     uuid.UUID `json:"version_id"`
-	RuleID        uuid.UUID `json:"rule_id"`
-	Version       int       `json:"version"`
-	Expression    string    `json:"expression"`
-	EffectiveFrom string    `json:"effective_from"`
-	Status        string    `json:"status"`
-	CreatedBy     uuid.UUID `json:"created_by"`
+	VersionID     uuid.UUID  `json:"version_id"`
+	RuleID        uuid.UUID  `json:"rule_id"`
+	Version       int        `json:"version"`
+	Expression    string     `json:"expression"`
+	EffectiveFrom string     `json:"effective_from"`
+	Status        string     `json:"status"`
+	CreatedBy     uuid.UUID  `json:"created_by"`
 	PublishedBy   *uuid.UUID `json:"published_by,omitempty"`
-	PublishedAt   *string   `json:"published_at,omitempty"`
-	CreatedAt     string    `json:"created_at"`
+	PublishedAt   *string    `json:"published_at,omitempty"`
+	CreatedAt     string     `json:"created_at"`
 }
 
 type PayrollCalculationRun struct {
