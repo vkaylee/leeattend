@@ -2183,6 +2183,11 @@ VALUES ($1, $2, $3, $4, NOW())`, ruleEvaluationRecords[i].ID, finalPayslipID, ru
 		return api.FullPayslipResponse{}, err
 	}
 
+	trace := make([]api.PayrollCalculationTrace, 0, len(kpiCalc.Trace))
+	for _, item := range kpiCalc.Trace {
+		trace = append(trace, api.PayrollCalculationTrace{Step: item["step"], Rule: item["rule"], Expression: item["expression"], Result: item["result"]})
+	}
+
 	return api.FullPayslipResponse{
 		PayslipRecord: api.PayslipRecord{
 			ID:                       finalPayslipID,
@@ -2204,5 +2209,6 @@ VALUES ($1, $2, $3, $4, NOW())`, ruleEvaluationRecords[i].ID, finalPayslipID, ru
 		Incentives:       incentiveResults,
 		RuleEvaluations:  ruleEvaluationRecords,
 		SalaryComponents: salaryComponents,
+		CalculationTrace: trace,
 	}, nil
 }

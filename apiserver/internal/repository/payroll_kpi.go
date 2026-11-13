@@ -74,7 +74,7 @@ ORDER BY v.effective_from DESC, v.version_number DESC LIMIT 1`, asOf).Scan(&form
 	if err != nil {
 		return kpiCalculation{}, err
 	}
-	trace := []map[string]string{{"step": "formula", "rule": "kpi.bonus", "expression": expression, "result": amount.String()}}
+	trace := []map[string]string{{"step": "input", "rule": "kpi.bonus", "expression": "locked KPI inputs", "result": "loaded"}, {"step": "formula", "rule": "kpi.bonus", "expression": expression, "result": amount.String()}}
 	return kpiCalculation{Amount: amount.Round(2), FormulaID: &formulaID, Inputs: inputs, Trace: trace}, nil
 }
 

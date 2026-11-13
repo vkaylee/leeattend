@@ -239,6 +239,13 @@ type IncentiveEvaluationResult struct {
 	TierID         *uuid.UUID      `json:"tier_id"`
 }
 
+type PayrollCalculationTrace struct {
+	Step       string `json:"step"`
+	Rule       string `json:"rule"`
+	Expression string `json:"expression"`
+	Result     string `json:"result"`
+}
+
 type PayslipRuleEvaluationRecord struct {
 	ID        uuid.UUID       `json:"id"`
 	PayslipID uuid.UUID       `json:"payslip_id"`
@@ -253,6 +260,7 @@ type FullPayslipResponse struct {
 	Incentives       []IncentiveEvaluationResult     `json:"incentives"`
 	RuleEvaluations  []PayslipRuleEvaluationRecord   `json:"rule_evaluations"`
 	SalaryComponents []SalaryComponentWithDefinition `json:"salary_components"`
+	CalculationTrace []PayrollCalculationTrace       `json:"calculation_trace,omitempty"`
 }
 
 type BatchCalculatePayrollRequest struct {
