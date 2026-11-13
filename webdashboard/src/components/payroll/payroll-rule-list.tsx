@@ -12,6 +12,7 @@ import { cn } from "@/lib/utils";
 
 import RuleAssignmentManager from "./rule-assignment-manager";
 import RuleTierManager from "./rule-tier-manager";
+import { PayrollFormulaHistory } from "./payroll-formula-history";
 
 // eslint-disable-next-line complexity, react-refresh/only-export-components -- subtitle builder with 4 category branches + 3 calculation-method branches; exported for reuse
 export function getRuleSubtitle(rule: PayrollRuleDefinition, t: TFunction): string {
@@ -108,6 +109,7 @@ export function RuleRow({ rule, expandedRuleId, setExpandedRuleId}: RuleRowProps
         <div className="px-12 pb-8 pt-2 animate-in slide-in-from-top-4 duration-300 space-y-6">
           {rule.calculation_method === "tiered" ? <RuleTierManager ruleId={rule.id}  /> : null}
           <RuleAssignmentManager calculationMethod={rule.calculation_method} ruleId={rule.id}  />
+          {rule.code.startsWith("kpi.") ? <PayrollFormulaHistory ruleId={rule.id} /> : null}
         </div>
       ) : null}
     </div>

@@ -292,6 +292,14 @@
       },
       "active_assignments_count": "{{count}} active assignment(s) across all scopes"
     },
+    "formula_history": {
+      "empty": "No formula versions",
+      "title": "Formula history"
+    },
+    "calculation_trace": {
+      "empty": "No calculation trace",
+      "title": "Calculation trace"
+    },
     "scope_employee": "Employee",
     "scope_department": "Department",
     "scope_organization": "Organization",

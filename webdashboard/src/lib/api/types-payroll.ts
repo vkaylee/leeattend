@@ -31,6 +31,45 @@ export interface PayrollSegment {
   std_days_source?: string | null;
 }
 
+export interface PayrollFormulaRuleVersion {
+  created_at: string;
+  created_by: string;
+  effective_from: string;
+  expression: string;
+  published_at?: string | null;
+  published_by?: string | null;
+  rule_id: string;
+  status: string;
+  version: number;
+  version_id: string;
+}
+
+export interface PayrollInput {
+  employment_id: string;
+  id?: string;
+  metric_code: string;
+  source_reference?: string | null;
+  status?: string;
+  unit: string;
+  validation_message?: string | null;
+  value: string;
+}
+
+export interface PayrollCalculationRun {
+  calculation_trace: unknown;
+  created_at: string;
+  created_by?: string | null;
+  employment_id: string;
+  engine_version: string;
+  formula_version_id?: string | null;
+  id: string;
+  input_snapshot: unknown;
+  output_snapshot: unknown;
+  period_month: number;
+  period_year: number;
+  payslip_id?: string | null;
+}
+
 export interface Payslip {
   base_pay_amount: string;
   created_at: string;

@@ -292,6 +292,14 @@
       },
       "active_assignments_count": "在所有范围内有 {{count}} 个有效分配"
     },
+    "formula_history": {
+      "empty": "暂无公式版本",
+      "title": "公式历史"
+    },
+    "calculation_trace": {
+      "empty": "暂无计算记录",
+      "title": "计算明细"
+    },
     "scope_employee": "员工",
     "scope_department": "部门",
     "scope_organization": "组织",

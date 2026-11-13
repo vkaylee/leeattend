@@ -24,6 +24,7 @@ import {
   SetDepartmentPayrollConfigRequest,
   IncentiveTier,
 } from "./types";
+import type { PayrollCalculationRun, PayrollFormulaRuleVersion, PayrollInput } from "./types-payroll";
 
 export async function fetchIncentivePolicies(): Promise<PayrollIncentivePolicyResponse[]> {
   const { data: resData } = await client.GET<PayrollIncentivePolicyResponse[]>("/api/v1/payroll/incentive-policies");
@@ -201,6 +202,21 @@ export async function assignOvertimePolicy(data: { assignee_id?: string | null; 
 }
 
 // --- Payroll Rules API ---
+
+export async function fetchPayrollFormulaVersions(ruleId: string): Promise<PayrollFormulaRuleVersion[]> {
+  const { data: response } = await fetch<PayrollFormulaRuleVersion[]>("GET", "/api/v1/payroll/formulas/{rule_id}/versions", { params: { path: { rule_id: ruleId } } });
+  return response;
+}
+
+export async function fetchPayrollCalculationRuns(employmentId: string, year: number, month: number): Promise<PayrollCalculationRun[]> {
+  const { data: response } = await fetch<PayrollCalculationRun[]>("GET", "/api/v1/employments/{id}/payroll/calculation-runs", { params: { path: { id: employmentId }, query: { year, month } } });
+  return response;
+}
+
+export async function fetchPayrollInputs(batchId: string): Promise<PayrollInput[]> {
+  const { data: response } = await fetch<PayrollInput[]>("GET", "/api/v1/payroll/inputs/{batch_id}", { params: { path: { batch_id: batchId } } });
+  return response;
+}
 
 export async function fetchPayrollRules(): Promise<PayrollRuleDefinition[]> {
   const { data: resData } = await client.GET<PayrollRuleDefinition[]>("/api/v1/payroll-rules");
