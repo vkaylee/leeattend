@@ -92,6 +92,9 @@ func (r WorkSegmentRepository) CreateSegment(ctx context.Context, req api.Create
 	applySegmentDefaults(&req)
 	var segment api.WorkSegment
 	err = service.WithTx(ctx, tx, func(ctx context.Context, db pgx.Tx) error {
+		if err := guardLifecycleDateMutation(ctx, db, []uuid.UUID{req.EmploymentID}, []string{req.Date}); err != nil {
+			return err
+		}
 		if err := validateSegmentReferences(ctx, db, req.EmploymentID, req.TemplateID); err != nil {
 			return err
 		}
@@ -116,6 +119,9 @@ func (r WorkSegmentRepository) UpdateSegment(ctx context.Context, segmentID uuid
 	now := time.Now().UTC()
 	var segment api.WorkSegment
 	err = service.WithTx(ctx, tx, func(ctx context.Context, db pgx.Tx) error {
+		if err := guardLifecycleSegmentMutation(ctx, db, segmentID); err != nil && !errors.Is(err, pgx.ErrNoRows) {
+			return err
+		}
 		if req.TemplateID != nil {
 			if err := validateSegmentReferences(ctx, db, uuid.Nil, *req.TemplateID); err != nil {
 				return err
@@ -143,6 +149,9 @@ func (r WorkSegmentRepository) DeleteSegment(ctx context.Context, segmentID uuid
 	if err != nil {
 		return err
 	}
+	if err := guardLifecycleSegmentMutation(ctx, db, segmentID); err != nil && !errors.Is(err, pgx.ErrNoRows) {
+		return err
+	}
 	tag, err := db.Exec(ctx, `DELETE FROM work_segments WHERE id = $1`, segmentID)
 	if err != nil {
 		return err
@@ -161,7 +170,26 @@ func (r WorkSegmentRepository) BulkCreateSegments(ctx context.Context, req api.B
 	now := time.Now().UTC()
 	segments := make([]api.WorkSegment, 0, len(req.Segments))
 	err = service.WithTx(ctx, tx, func(ctx context.Context, db pgx.Tx) error {
+		employmentIDs := make([]uuid.UUID, 0, len(req.Segments))
+		dates := make([]string, 0, len(req.Segments))
+		for _, item := range req.Segments {
+			employmentIDs = append(employmentIDs, item.EmploymentID)
+			dates = append(dates, item.Date)
+		}
+		if err := guardLifecycleDateMutation(ctx, db, employmentIDs, dates); err != nil {
+			return err
+		}
 		if req.ReplaceExisting {
+			employmentIDs := make([]uuid.UUID, 0, len(req.Segments))
+			dates := make([]string, 0, len(req.Segments))
+			for _, item := range req.Segments {
+				employmentIDs = append(employmentIDs, item.EmploymentID)
+				dates = append(dates, item.Date)
+			}
+			if err := guardLifecycleDateMutation(ctx, db, employmentIDs, dates); err != nil {
+				return err
+			}
+
 			for _, item := range req.Segments {
 				if _, err := db.Exec(ctx, `DELETE FROM work_segments WHERE employment_id = $1 AND date = $2::date`, item.EmploymentID, item.Date); err != nil {
 					return err

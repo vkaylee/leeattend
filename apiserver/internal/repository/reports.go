@@ -19,6 +19,21 @@ type ReportRepository struct {
 	DB DBTX
 }
 
+const officialScheduleCTE = `WITH official_schedule AS (
+	SELECT sdr.id AS revision_id,
+		sdr.employment_id,
+		sdr.business_date,
+		sdr.state,
+		MIN(ws.scheduled_start)::text AS scheduled_start,
+		MAX(ws.scheduled_end)::text AS scheduled_end,
+		MIN(st.name) AS shift_name
+	FROM schedule_day_revisions sdr
+	LEFT JOIN work_segments ws ON ws.schedule_revision_id = sdr.id
+	LEFT JOIN shift_templates st ON st.id = ws.template_id
+	WHERE sdr.state IN ('published', 'explicit_off')
+	GROUP BY sdr.id, sdr.employment_id, sdr.business_date, sdr.state
+)`
+
 func (r ReportRepository) db(ctx context.Context) (DBTX, error) {
 	if r.DB == nil {
 		return nil, errors.New("report repository: database is not configured")
@@ -125,8 +140,8 @@ func (r ReportRepository) GetAttendanceReport(ctx context.Context, params api.At
 		if err := db.QueryRow(ctx, countQuery, args...).Scan(&total); err != nil {
 			return api.PaginatedReportResponse{}, err
 		}
-		dataQuery := fmt.Sprintf(`SELECT ads.date::text, emp.id AS employment_id, e.id AS employee_id, e.full_name, e.employee_id_number,
-       st.name AS shift_name, ws.scheduled_start::text, ws.scheduled_end::text,
+		dataQuery := fmt.Sprintf(officialScheduleCTE+` SELECT ads.date::text, emp.id AS employment_id, e.id AS employee_id, e.full_name, e.employee_id_number,
+       os.shift_name, os.scheduled_start, os.scheduled_end,
        te.punch_in_time::text, te.punch_out_time::text,
        COALESCE(ads.actual_work_minutes, 0),
        COALESCE(ads.standard_minutes, 0),
@@ -135,8 +150,7 @@ func (r ReportRepository) GetAttendanceReport(ctx context.Context, params api.At
 FROM employments emp
 JOIN employees e ON e.id = emp.employee_id
 JOIN attendance_daily_summaries ads ON ads.employment_id = emp.id
-LEFT JOIN work_segments ws ON ws.employment_id = emp.id AND ws.date = ads.date
-LEFT JOIN shift_templates st ON st.id = ws.template_id
+LEFT JOIN official_schedule os ON os.employment_id = emp.id AND os.business_date = ads.date
 LEFT JOIN time_entries te ON te.employment_id = emp.id AND te.punch_in_time::date = ads.date
 WHERE %s%s
 ORDER BY ads.date ASC, e.full_name ASC
@@ -295,17 +309,10 @@ func (r ReportRepository) GetNoShowReport(ctx context.Context, params api.NoShow
 		return api.PaginatedReportResponse{}, err
 	}
 	offset := (params.Page - 1) * params.Limit
-
-	subquery := `(
-    SELECT id, employment_id, template_id, date, scheduled_start, scheduled_end FROM work_segments
-    UNION ALL
-    SELECT sr.id, sr.employment_id, sr.template_id, sr.date, '09:00:00'::time, '17:00:00'::time
-    FROM shift_rosters sr
-    JOIN employments emp ON emp.id = sr.employment_id
-    WHERE NOT EXISTS (SELECT 1 FROM work_segments ws2 WHERE ws2.employment_id = sr.employment_id AND ws2.date = sr.date)
-) ws`
-
-	whereClause := `ws.date = $1::date AND te.id IS NULL AND emp.deleted_at IS NULL AND e.deleted_at IS NULL`
+	whereClause := `emp.start_date <= $1::date AND (emp.end_date IS NULL OR emp.end_date >= $1::date)
+	AND emp.deleted_at IS NULL AND e.deleted_at IS NULL
+	AND (os.state IS NULL OR os.state <> 'explicit_off')
+	AND NOT EXISTS (SELECT 1 FROM time_entries te WHERE te.employment_id = emp.id AND te.punch_in_time::date = $1::date)`
 	args := []any{params.Date}
 	idx := 2
 
@@ -320,28 +327,24 @@ func (r ReportRepository) GetNoShowReport(ctx context.Context, params api.NoShow
 		idx++
 	}
 
-	var total int64
-	countQuery := fmt.Sprintf(`SELECT count(*) FROM %s
-JOIN employments emp ON emp.id = ws.employment_id
+	fromClause := officialScheduleCTE + ` SELECT `
+	joins := `
+FROM employments emp
 JOIN employees e ON e.id = emp.employee_id
-LEFT JOIN time_entries te ON te.employment_id = ws.employment_id AND te.punch_in_time::date = ws.date
-WHERE %s`, subquery, whereClause)
+LEFT JOIN official_schedule os ON os.employment_id = emp.id AND os.business_date = $1::date`
 
+	var total int64
+	countQuery := officialScheduleCTE + ` SELECT count(*)` + joins + `
+WHERE ` + whereClause
 	if err := db.QueryRow(ctx, countQuery, args...).Scan(&total); err != nil {
 		return api.PaginatedReportResponse{}, err
 	}
 
-	dataQuery := fmt.Sprintf(`SELECT ws.id, ws.employment_id, e.id AS employee_id, e.full_name, e.employee_id_number,
-       st.name AS shift_name, ws.scheduled_start::text, ws.scheduled_end::text,
-       ws.date::text
-FROM %s
-JOIN employments emp ON emp.id = ws.employment_id
-JOIN employees e ON e.id = emp.employee_id
-LEFT JOIN shift_templates st ON st.id = ws.template_id
-LEFT JOIN time_entries te ON te.employment_id = ws.employment_id AND te.punch_in_time::date = ws.date
+	dataQuery := fromClause + `os.revision_id, emp.id, e.id, e.full_name, e.employee_id_number,
+       os.shift_name, os.scheduled_start, os.scheduled_end, $1::date, os.state` + joins + fmt.Sprintf(`
 WHERE %s
-ORDER BY e.full_name ASC
-LIMIT $%d OFFSET $%d`, subquery, whereClause, idx, idx+1)
+ORDER BY e.full_name ASC, emp.id ASC
+LIMIT $%d OFFSET $%d`, whereClause, idx, idx+1)
 
 	args = append(args, params.Limit, offset)
 	rows, err := db.Query(ctx, dataQuery, args...)
@@ -352,18 +355,22 @@ LIMIT $%d OFFSET $%d`, subquery, whereClause, idx, idx+1)
 
 	results := make([]api.NoShowReportRow, 0)
 	for rows.Next() {
-		var dummyID uuid.UUID
+		var revisionID *uuid.UUID
 		var row api.NoShowReportRow
-		var shiftName, schedStart, schedEnd string
-		if err := rows.Scan(&dummyID, &row.EmploymentID, &row.EmployeeID, &row.EmployeeName, &row.EmployeeIDNumber,
-			&shiftName, &schedStart, &schedEnd, &row.Date); err != nil {
+		var shiftName, schedStart, schedEnd, scheduleState *string
+		if err := rows.Scan(&revisionID, &row.EmploymentID, &row.EmployeeID, &row.EmployeeName, &row.EmployeeIDNumber,
+			&shiftName, &schedStart, &schedEnd, &row.Date, &scheduleState); err != nil {
 			return api.PaginatedReportResponse{}, err
 		}
-		row.ShiftName = &shiftName
-		row.ScheduledStart = &schedStart
-		row.ScheduledEnd = &schedEnd
+		row.ShiftName = shiftName
+		row.ScheduledStart = schedStart
+		row.ScheduledEnd = schedEnd
 		row.Status = "absent"
-		row.RecordingIssue = "missing_punch_in"
+		if scheduleState == nil {
+			row.RecordingIssue = "missing_schedule"
+		} else {
+			row.RecordingIssue = "missing_punch_in"
+		}
 		results = append(results, row)
 	}
 	if err := rows.Err(); err != nil {

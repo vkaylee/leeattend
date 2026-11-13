@@ -119,10 +119,24 @@ func main() {
 		Handler: handler,
 	}
 
+	officeWorker, workerErr := service.NewScheduleOfficeWorker(
+		repository.ScheduleOfficeOutboxStore{DB: db},
+		repository.ScheduleOfficeProducer{DB: db, Source: repository.UnsupportedScheduleOfficePolicySource{}},
+		repository.ScheduleOfficePublisher{Publisher: repository.ScheduleRepository{DB: db}},
+	)
+	if workerErr != nil {
+		logger.Warn("schedule office worker disabled", "error", workerErr)
+	}
 	var hooks []func(context.Context) error
+	if officeWorker != nil {
+		hooks = append(hooks, officeWorker.Shutdown)
+	}
 	application := app.New(server, hooks...)
 	ctx, cancel := app.NotifySignals(context.Background())
 	defer cancel()
+	if officeWorker != nil {
+		officeWorker.Start(ctx)
+	}
 
 	if err := application.Run(ctx); err != nil {
 		logger.Error("server fatal", "error", err)

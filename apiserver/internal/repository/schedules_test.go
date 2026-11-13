@@ -68,3 +68,69 @@ func TestResolveEffectiveShift_PatternPrecedesRuleAndFixed(t *testing.T) {
 		t.Fatalf("expected pattern precedence, got source=%q shifts=%v", source, shifts)
 	}
 }
+
+func TestResolveEffectiveShift_RotationUsesCalendarDates(t *testing.T) {
+	employmentID, employeeID, shift := uuid.New(), uuid.New(), uuid.New()
+	location, err := time.LoadLocation("America/New_York")
+	if err != nil {
+		t.Fatalf("load timezone: %v", err)
+	}
+	anchor := time.Date(2026, time.March, 7, 0, 0, 0, 0, location)
+	date := time.Date(2026, time.March, 9, 0, 0, 0, 0, location)
+	cycleLength := 7
+	patterns := []patternEntry{{patternID: uuid.New(), startDate: anchor, anchorDate: &anchor, patternType: "rotation", cycleLengthDays: &cycleLength, scheduleDay: 2, templateID: &shift}}
+
+	shifts, source, _ := resolveEffectiveShift(employmentID, employeeID, "E-1", nil, date, int(date.Weekday()), nil, nil, nil, patterns, nil, nil, nil)
+	if source != "pattern" || len(shifts) != 1 || shifts[0] == nil || *shifts[0] != shift {
+		t.Fatalf("expected calendar-day rotation across DST, got source=%q shifts=%v", source, shifts)
+	}
+}
+
+func TestResolveEffectiveShift_SameHighestPriorityRulesConflict(t *testing.T) {
+	employmentID, employeeID, firstShift, secondShift := uuid.New(), uuid.New(), uuid.New(), uuid.New()
+	date := time.Date(2026, time.October, 20, 0, 0, 0, 0, time.UTC)
+	rules := []assignmentRuleWithDetails{
+		{id: uuid.New(), name: "First", priority: 10, details: map[int][]uuid.UUID{int(date.Weekday()): {firstShift}}},
+		{id: uuid.New(), name: "Second", priority: 10, details: map[int][]uuid.UUID{int(date.Weekday()): {secondShift}}},
+	}
+
+	shifts, source, traces := resolveEffectiveShift(employmentID, employeeID, "E-1", nil, date, int(date.Weekday()), nil, nil, nil, nil, rules, nil, nil)
+	if source != "conflict" || len(shifts) != 1 || shifts[0] != nil || len(traces) != 2 {
+		t.Fatalf("expected same-priority conflict, got source=%q shifts=%v traces=%+v", source, shifts, traces)
+	}
+}
+
+func TestResolveEffectiveShift_NullRosterAndPatternAreExplicitOff(t *testing.T) {
+	employmentID, employeeID := uuid.New(), uuid.New()
+	date := time.Date(2026, time.October, 20, 0, 0, 0, 0, time.UTC)
+	key := employmentID.String() + ":" + date.Format("2006-01-02")
+
+	shifts, source, _ := resolveEffectiveShift(employmentID, employeeID, "E-1", nil, date, int(date.Weekday()), nil, nil, map[string]*uuid.UUID{key: nil}, nil, nil, nil, nil)
+	if source != "roster" || len(shifts) != 1 || shifts[0] != nil {
+		t.Fatalf("expected explicit off roster, got source=%q shifts=%v", source, shifts)
+	}
+
+	patterns := []patternEntry{{patternID: uuid.New(), startDate: date, scheduleDay: int(date.Weekday()), templateID: nil}}
+	shifts, source, _ = resolveEffectiveShift(employmentID, employeeID, "E-1", nil, date, int(date.Weekday()), nil, nil, nil, patterns, nil, nil, nil)
+	if source != "pattern" || len(shifts) != 1 || shifts[0] != nil {
+		t.Fatalf("expected explicit off pattern, got source=%q shifts=%v", source, shifts)
+	}
+
+	shifts, source, _ = resolveEffectiveShift(employmentID, employeeID, "E-1", nil, date, int(date.Weekday()), nil, nil, nil, nil, nil, nil, nil)
+	if source != "none" || len(shifts) != 1 || shifts[0] != nil {
+		t.Fatalf("expected missing schedule to remain distinct, got source=%q shifts=%v", source, shifts)
+	}
+}
+
+func TestSelectEffectiveShiftVersion(t *testing.T) {
+	templateID, firstVersion, secondVersion := uuid.New(), uuid.New(), uuid.New()
+	firstFrom := time.Date(2026, time.January, 1, 0, 0, 0, 0, time.UTC)
+	firstTo := time.Date(2026, time.June, 30, 0, 0, 0, 0, time.UTC)
+	secondFrom := time.Date(2026, time.July, 1, 0, 0, 0, 0, time.UTC)
+	shifts := map[uuid.UUID]shiftTemplateInfo{templateID: {versions: []shiftVersionInfo{{id: firstVersion, effectiveFrom: firstFrom, effectiveTo: &firstTo}, {id: secondVersion, effectiveFrom: secondFrom}}}}
+
+	version, selected, conflict := selectEffectiveShiftVersion(shifts, templateID, time.Date(2026, time.July, 1, 0, 0, 0, 0, time.UTC))
+	if !selected || conflict || version.id != secondVersion {
+		t.Fatalf("expected effective successor version, got selected=%t conflict=%t version=%v", selected, conflict, version.id)
+	}
+}

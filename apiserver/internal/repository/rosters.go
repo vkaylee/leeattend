@@ -87,6 +87,9 @@ func (r RosterRepository) UpsertRoster(ctx context.Context, req api.CreateRoster
 	id := uuid.New()
 	now := time.Now().UTC()
 	err = service.WithTx(ctx, tx, func(ctx context.Context, db pgx.Tx) error {
+		if err := guardLifecycleDateMutation(ctx, db, []uuid.UUID{req.EmploymentID}, []string{req.Date}); err != nil {
+			return err
+		}
 		if err := validateRosterReferences(ctx, db, req.EmploymentID, req.ShiftID); err != nil {
 			return err
 		}
@@ -115,6 +118,13 @@ func (r RosterRepository) BulkUpsertRoster(ctx context.Context, employmentID uui
 		if err := validateRosterEmployment(ctx, db, employmentID); err != nil {
 			return err
 		}
+		dates := make([]string, 0, len(items))
+		for _, item := range items {
+			dates = append(dates, item.Date)
+		}
+		if err := guardLifecycleDateMutation(ctx, db, []uuid.UUID{employmentID}, dates); err != nil {
+			return err
+		}
 		for _, item := range items {
 			if err := validateRosterReferences(ctx, db, employmentID, item.ShiftID); err != nil {
 				return err
@@ -133,6 +143,9 @@ func (r RosterRepository) DeleteRoster(ctx context.Context, employmentID uuid.UU
 		return err
 	}
 	return service.WithTx(ctx, tx, func(ctx context.Context, db pgx.Tx) error {
+		if err := guardLifecycleDateMutation(ctx, db, []uuid.UUID{employmentID}, []string{date}); err != nil {
+			return err
+		}
 		result, err := db.Exec(ctx, `DELETE FROM shift_rosters WHERE employment_id = $1 AND date = $2::date`, employmentID, date)
 		if err != nil {
 			return err

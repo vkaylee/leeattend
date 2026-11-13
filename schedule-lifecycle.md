@@ -1,38 +1,34 @@
 # Hybrid Schedule Lifecycle
 
-Status: Awaiting approval
+Status: Approved
 
-## Goal
-Keep the rule engine for previews; establish published schedules as operational evidence, retain amendments, and preserve approved attendance results.
+## Decision và scope
+**Planning only; chưa cho phép triển khai.** [Đặc tả triển khai](schedule-lifecycle-spec.md) chốt schema, API, quyền, transaction, cutover và acceptance.
 
-## Confirmed decisions
-1. Publication: automatic for approved fixed-office policies; explicit batch publication for rotating rosters.
-2. Closure: per attendance month scoped by employer; reopening requires explicit authority, reason and retained history.
-3. Delivery: staged backend/schema/contracts before UI and consumer cutover. The overall workflow remains incomplete until consumers are migrated and end-to-end verification passes.
+Hybrid: dùng lại `resolveEffectiveShift` cho preview và publication; hành chính tự công bố theo policy đã duyệt, ca xoay công bố batch. Official theo `employment_id + business_date`, current head rõ ràng, revision bất biến; reuse `work_segments` cho toàn bộ interval. Sửa ca tạo revision mới, bắt buộc reason/diff; không giả thời điểm publication; công bố muộn có quyền/reason/nhãn retroactive, không xóa punches/evidence. Missing khác explicit off. Chốt công theo employer/tháng; reuse `payroll_periods` làm khóa lương riêng. Dữ liệu muộn vẫn nhận, không tự sửa kết quả đã chốt. Không thêm service, resolver thứ hai hay event-sourcing platform.
 
-These choices are confirmed by the user. Detailed implementation approval remains pending.
+## Verified source facts
+- `repository/schedules.go`: precedence roster/pattern/rule/fixed; đang dùng current shift version, chỉ interval `sort_order = 0`; rotation dùng elapsed hours. Cần sửa ngay trong resolver hiện hữu.
+- `repository/work_segments.go`: còn UPDATE/DELETE và bulk replace; baseline có employment cascade, interval set-null, unique interval không phân revision.
+- `repository/reports.go`: daily đọc segment chưa có revision; no-show dựng `09:00–17:00`; summary hiện nhóm theo employment, không phải employee/employer như summary cũ.
+- `repository/payroll_periods.go`, `repository/payroll.go`: đã có employer/month lock, version, `FOR UPDATE`, audit cùng transaction; chưa có attendance closure dependency.
+- `repository/audit.go`: nhận DBTX, actor phải UUID. `repository/outbox.go` chỉ enqueue; chưa tìm thấy PostgreSQL outbox consumer/office publisher trong Go. Generic approval không tự công bố lịch.
 
-## Constraints and rule references
-- Architecture Governance §1–3: reuse current resolver and work-segment infrastructure where suitable; record lifecycle and ownership in an ADR before implementation.
-- Database Rules §3–4: transactional publication/amendment/audit; additive migrations with tested rollback and data preservation.
-- Access Control §1–2: explicit publication, amendment, closure and reopening permissions; enforce ownership/department boundaries.
-- Data Governance §1–3: minimize captured employee attributes, protect evidence, define retention; do not log raw PII.
-- Development Workflow §2–7: verify state transitions, migration, concurrency, failures and compatibility; do not report unit-only evidence as completion.
+Các đường dẫn repository trên thuộc `apiserver/internal/`; bằng chứng và giới hạn kiểm chứng nằm trong spec.
 
-## Tasks
-- [ ] Inspect existing attendance approval/period locks, audit records, work-segment status and consumers; select reuse points and document confirmed gaps.
-- [ ] Approve lifecycle/API contract and ADR: preview, publication revision, superseding amendment, attendance closure and authorized correction; distinguish off-day from missing schedule and leave from base schedule.
-- [ ] Add minimum persistence and guards: snapshot selected schedule and relevant resolution inputs, publication metadata, immutable revisions, closure references; preserve existing data without fabricating historical publication evidence.
-- [ ] Connect resolver to idempotent transactional batch publication; detect stale previews and concurrent changes, preserve manual overrides, record audit atomically; automatically publish only under approved policy.
-- [ ] Route official schedule views, attendance matching and no-show reporting through the same published schedule contract; expose missing publication explicitly and remove synthetic roster hours.
-- [ ] Add scoped UI actions/history and evidence retrieval with i18n, accessible states and permission checks; show provisional vs published vs closed results clearly.
-- [ ] Verify unit then full applicable integration/E2E suites via discovered repository wrappers; test migrations, rollback, repeat requests, concurrent publication, forbidden edits, retroactive corrections, overnight/multi-segment days, and historical reconstruction after rule/profile changes.
+## Implementation gates
+1. [ ] Duyệt spec/ADR và machine-readable API contract; áp dụng **Architecture Governance §§1–3**, **API Governance §§1–4**.
+2. [ ] Expand schema additive, up/down có guard; giữ baseline, provenance legacy và FK evidence; **Database Rules §§3–4**, **Migration and Rollback §§1–4**.
+3. [ ] Sửa resolver: tie/missing/off, calendar-date/DST, effective version, temporal employment, holiday/leave, mọi interval.
+4. [ ] Publication/amend atomically với head, segment, idempotency và audit; khóa đúng thứ tự; stale/audit failure rollback.
+5. [ ] Scope employer/department/self; system actor tuple không giả user UUID, policy approval và office publisher có producer/horizon; **Access Control §§1–2**, **Data Governance §§1–3**.
+6. [ ] Chuyển mọi reader/writer sang official contract và guards, gồm matching, reports/no-show, summaries, OT/import/adjustment/bulk.
+7. [ ] Close/reopen/reclose bằng snapshot exact revision; payroll lock riêng nhưng ràng buộc closure; late punches không rewrite snapshot.
+8. [ ] UI hiện hữu: provisional/published/superseded/closed, diff/reason/history/evidence; i18n, accessibility, route × role acceptance.
+9. [ ] Shadow/reconcile và activate từng employer; zero integrity mismatch; chặn app cũ; rollback trước activation, roll-forward sau evidence.
+10. [ ] Unit + DB/API integration + migration + frontend + full suite theo spec; đọc từng phase, không nhận skipped gate là pass; **Development Workflow §§2–7**, **Testing Standards §§1–2**.
 
-## Acceptance
-- A closed attendance result can be explained using the original published schedule, relevant rule/pattern/shift inputs, original punches and corrections, calculation policy, and approval records.
-- Editing present-day configuration cannot silently alter published schedules or closed attendance.
-- Automatic office scheduling requires no per-person daily approval; rotating rosters follow the approved publication policy.
-- Unknown/missing schedules are not treated as approved off-days or automatically counted as absence.
-- No separate engine, new service, or unbounded pre-generation; discovery must determine bounded publication coverage and consumer cutover strategy.
+## Done criteria
+Office auto publish, rotating batch, amendment, close, authorized reopen/reclose và evidence export đạt acceptance matrix. Mọi revision/closure cũ tái hiện được sau thay đổi nguồn; không double-count interval/employer, không bypass guard, không mất raw data. Reconciliation đủ coverage, không còn writer/reader legacy hoạt động trong scope đã bật.
 
-Implementation has not started. Runtime tests are not applicable to this planning-only artifact.
+Tài liệu chưa phải bằng chứng triển khai: chưa code, chưa migration, chưa runtime test. Kiểm tra tài liệu duy nhất: `git diff --check -- schedule-lifecycle.md schedule-lifecycle-spec.md`.

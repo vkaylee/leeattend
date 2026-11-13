@@ -141,6 +141,9 @@ func (r EmployeeAssignmentRepository) CreateEmployeeAssignment(ctx context.Conte
 	if err != nil {
 		return api.EmployeeAssignment{}, err
 	}
+	if err := guardLifecycleDateRange(ctx, db, []uuid.UUID{employmentID}, req.StartDate, patternEndDate(req.StartDate, req.EndDate)); err != nil {
+		return api.EmployeeAssignment{}, err
+	}
 	id := uuid.New()
 	item, err := scanEmployeeAssignment(db.QueryRow(ctx, `INSERT INTO employee_assignments
 		(id, home_location_id, host_location_id, start_date, end_date, reason, status, created_at, updated_at, employment_id)
@@ -155,6 +158,14 @@ func (r EmployeeAssignmentRepository) CreateEmployeeAssignment(ctx context.Conte
 func (r EmployeeAssignmentRepository) UpdateEmployeeAssignment(ctx context.Context, employeeID, assignmentID uuid.UUID, req api.UpdateEmployeeAssignmentRequest) (api.EmployeeAssignment, error) {
 	db, err := r.db(ctx)
 	if err != nil {
+		return api.EmployeeAssignment{}, err
+	}
+	var assignmentEmploymentID uuid.UUID
+	var startDate, endDate string
+	if err := db.QueryRow(ctx, `SELECT employment_id, start_date::text, COALESCE(end_date, start_date)::text FROM employee_assignments WHERE id = $1`, assignmentID).Scan(&assignmentEmploymentID, &startDate, &endDate); err != nil {
+		return api.EmployeeAssignment{}, err
+	}
+	if err := guardLifecycleDateRange(ctx, db, []uuid.UUID{assignmentEmploymentID}, startDate, endDate); err != nil {
 		return api.EmployeeAssignment{}, err
 	}
 	sets := []string{"ea.updated_at = NOW()"}
@@ -196,6 +207,14 @@ func (r EmployeeAssignmentRepository) UpdateEmployeeAssignment(ctx context.Conte
 func (r EmployeeAssignmentRepository) DeleteEmployeeAssignment(ctx context.Context, employeeID, assignmentID uuid.UUID) error {
 	db, err := r.db(ctx)
 	if err != nil {
+		return err
+	}
+	var assignmentEmploymentID uuid.UUID
+	var startDate, endDate string
+	if err := db.QueryRow(ctx, `SELECT employment_id, start_date::text, COALESCE(end_date, start_date)::text FROM employee_assignments WHERE id = $1`, assignmentID).Scan(&assignmentEmploymentID, &startDate, &endDate); err != nil {
+		return err
+	}
+	if err := guardLifecycleDateRange(ctx, db, []uuid.UUID{assignmentEmploymentID}, startDate, endDate); err != nil {
 		return err
 	}
 	result, err := db.Exec(ctx, `DELETE FROM employee_assignments ea USING employments em
@@ -274,6 +293,9 @@ func (r AssignmentRuleRepository) CreateAssignmentRule(ctx context.Context, req 
 	if err != nil {
 		return api.AssignmentRule{}, err
 	}
+	if err := guardLifecycleGlobalMutation(ctx, db); err != nil {
+		return api.AssignmentRule{}, err
+	}
 	conditions, err := marshalConditions(req.Conditions)
 	if err != nil {
 		return api.AssignmentRule{}, err
@@ -292,6 +314,9 @@ func (r AssignmentRuleRepository) CreateAssignmentRule(ctx context.Context, req 
 func (r AssignmentRuleRepository) UpdateAssignmentRule(ctx context.Context, ruleID uuid.UUID, req api.UpdateAssignmentRuleRequest) (api.AssignmentRule, error) {
 	db, err := r.db(ctx)
 	if err != nil {
+		return api.AssignmentRule{}, err
+	}
+	if err := guardLifecycleGlobalMutation(ctx, db); err != nil {
 		return api.AssignmentRule{}, err
 	}
 	sets := []string{"updated_at = NOW()"}
@@ -345,6 +370,9 @@ func (r AssignmentRuleRepository) UpdateAssignmentRule(ctx context.Context, rule
 func (r AssignmentRuleRepository) DeleteAssignmentRule(ctx context.Context, ruleID uuid.UUID) error {
 	db, err := r.db(ctx)
 	if err != nil {
+		return err
+	}
+	if err := guardLifecycleGlobalMutation(ctx, db); err != nil {
 		return err
 	}
 	_, err = db.Exec(ctx, `DELETE FROM assignment_rules WHERE id = $1`, ruleID)

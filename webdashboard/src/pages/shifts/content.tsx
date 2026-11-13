@@ -6,6 +6,7 @@ import { MonthlyRosterGrid } from "@/components/shifts/monthly-roster-grid";
 import { PriorityLegend } from "@/components/shifts/priority-legend";
 import { ShiftList } from "@/components/shifts/shift-list";
 import { WeeklyRosterGrid } from "@/components/shifts/weekly-roster-grid";
+import { ScheduleLifecyclePanel } from "@/components/shifts/schedule-lifecycle-panel";
 
 import { useShifts } from "./hooks/use-shifts";
 
@@ -70,6 +71,7 @@ export function ShiftsContent({ hook, monthlyRoster }: ShiftsContentProps) {
           weekDays={weekDays}
         />
         <PriorityLegend />
+        {employeeSchedule ? <ScheduleLifecyclePanel employeeSchedule={employeeSchedule} weekDays={weekDays} /> : null}
         <AssignmentHistory
           history={history}
           selectedEmployee={selectedEmployee}

@@ -143,6 +143,9 @@ func (r WorkingPatternRepository) UpdatePattern(ctx context.Context, patternID u
 	}
 	var pattern api.WorkingPattern
 	err = service.WithTx(ctx, tx, func(ctx context.Context, db pgx.Tx) error {
+		if err := guardLifecyclePatternMutation(ctx, db, patternID); err != nil {
+			return err
+		}
 		tag, err := db.Exec(ctx, `UPDATE working_patterns SET name = $1, description = $2, pattern_type = $3, cycle_length_days = $4, updated_at = $5 WHERE id = $6 AND deleted_at IS NULL`, req.Name, req.Description, patternType, req.CycleLengthDays, now, patternID)
 		if err != nil {
 			return err
@@ -180,6 +183,9 @@ func (r WorkingPatternRepository) DeletePattern(ctx context.Context, patternID u
 	if err != nil {
 		return err
 	}
+	if err := guardLifecyclePatternMutation(ctx, db, patternID); err != nil {
+		return err
+	}
 	tag, err := db.Exec(ctx, `UPDATE working_patterns SET deleted_at = now() WHERE id = $1 AND deleted_at IS NULL`, patternID)
 	if err != nil {
 		return err
@@ -199,6 +205,9 @@ func (r WorkingPatternRepository) AssignPattern(ctx context.Context, employmentI
 	var assignment api.EmployeeWorkingPattern
 	err = service.WithTx(ctx, tx, func(ctx context.Context, db pgx.Tx) error {
 		var exists bool
+		if err := guardLifecycleDateRange(ctx, db, []uuid.UUID{employmentID}, req.StartDate, patternEndDate(req.StartDate, req.EndDate)); err != nil {
+			return err
+		}
 		if err := db.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM employments WHERE id = $1 AND deleted_at IS NULL)`, employmentID).Scan(&exists); err != nil {
 			return err
 		}
@@ -242,6 +251,9 @@ func (r WorkingPatternRepository) BulkAssignPattern(ctx context.Context, req api
 	now := time.Now().UTC()
 	var response api.BulkAssignPatternResponse
 	err = service.WithTx(ctx, tx, func(ctx context.Context, db pgx.Tx) error {
+		if err := guardLifecycleDateRange(ctx, db, req.EmploymentIDs, req.StartDate, patternEndDate(req.StartDate, req.EndDate)); err != nil {
+			return err
+		}
 		var validCount int64
 		if err := db.QueryRow(ctx, `SELECT count(*) FROM employments WHERE id = ANY($1) AND deleted_at IS NULL`, req.EmploymentIDs).Scan(&validCount); err != nil {
 			return err
@@ -295,6 +307,13 @@ func (r WorkingPatternRepository) BulkAssignPattern(ctx context.Context, req api
 		return api.BulkAssignPatternResponse{}, err
 	}
 	return response, nil
+}
+
+func patternEndDate(startDate string, endDate *string) string {
+	if endDate == nil || *endDate == "" {
+		return startDate
+	}
+	return *endDate
 }
 
 func (r WorkingPatternRepository) EmploymentPatternHistory(ctx context.Context, employmentID uuid.UUID) ([]api.EmployeeWorkingPattern, error) {

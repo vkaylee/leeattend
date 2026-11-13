@@ -157,6 +157,9 @@ func (r ShiftRepository) UpdateShift(ctx context.Context, templateID, actorID uu
 	newVersionID := uuid.New()
 	var record api.ShiftRecord
 	err = service.WithTx(ctx, tx, func(ctx context.Context, db pgx.Tx) error {
+		if err := guardLifecycleShiftMutation(ctx, db, templateID); err != nil {
+			return err
+		}
 		var currentVersionID uuid.UUID
 		var versionNumber int
 		var currentEffectiveFrom time.Time
@@ -295,6 +298,9 @@ func (r ShiftRepository) AssignShift(ctx context.Context, actorID uuid.UUID, req
 	}
 	now := time.Now().UTC()
 	err = service.WithTx(ctx, tx, func(ctx context.Context, db pgx.Tx) error {
+		if err := guardLifecycleDateRange(ctx, db, []uuid.UUID{req.EmploymentID}, req.StartDate, shiftEndDate(req.StartDate, req.EndDate)); err != nil {
+			return err
+		}
 		var exists bool
 		if err := db.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM employments WHERE id = $1 AND deleted_at IS NULL)`, req.EmploymentID).Scan(&exists); err != nil {
 			return err
@@ -373,6 +379,13 @@ func (r ShiftRepository) AssignShift(ctx context.Context, actorID uuid.UUID, req
 		return nil
 	})
 	return err
+}
+
+func shiftEndDate(startDate string, endDate *string) string {
+	if endDate == nil || *endDate == "" {
+		return startDate
+	}
+	return *endDate
 }
 
 func loadComplianceShiftIntervals(ctx context.Context, db pgx.Tx, templateID uuid.UUID) (map[uuid.UUID][]compliance.Interval, error) {

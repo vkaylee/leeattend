@@ -1,9 +1,12 @@
 package api
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -43,6 +46,45 @@ func (m *mockScheduleRepository) GetOrganizationSchedules(_ context.Context, _, 
 
 type mockScheduleAuthorizer struct {
 	isMember bool
+}
+
+type schedulePermissionAuthorizer struct {
+	allowed bool
+}
+
+func (a schedulePermissionAuthorizer) IsMember(context.Context, uuid.UUID) (bool, error) {
+	return true, nil
+}
+func (a schedulePermissionAuthorizer) EffectivePermissions(context.Context, uuid.UUID) ([]string, []string, error) {
+	return nil, nil, nil
+}
+func (a schedulePermissionAuthorizer) HasPermission(context.Context, uuid.UUID, string) bool {
+	return a.allowed
+}
+func (a schedulePermissionAuthorizer) GetManagedDepartmentIDs(context.Context, uuid.UUID) ([]uuid.UUID, error) {
+	return nil, nil
+}
+func (a schedulePermissionAuthorizer) IsGlobalManager(context.Context, uuid.UUID) bool { return false }
+func (a schedulePermissionAuthorizer) HasScopedPermission(context.Context, uuid.UUID, string, *uuid.UUID) bool {
+	return false
+}
+func (a schedulePermissionAuthorizer) GetUsersWithPermission(context.Context, string) ([]uuid.UUID, error) {
+	return nil, nil
+}
+
+type lifecycleRepositoryMock struct{}
+
+func (lifecycleRepositoryMock) CreatePreview(context.Context, uuid.UUID, SchedulePreviewRequest) (SchedulePreviewResponse, error) {
+	return SchedulePreviewResponse{}, ErrScheduleLifecycleUnavailable
+}
+func (lifecycleRepositoryMock) Publish(context.Context, uuid.UUID, string, SchedulePublishRequest) (SchedulePublicationResponse, error) {
+	return SchedulePublicationResponse{}, ErrScheduleLifecycleUnavailable
+}
+func (lifecycleRepositoryMock) PreviewReplan(context.Context, uuid.UUID, uuid.UUID, string, ScheduleReplanPreviewRequest) (ScheduleReplanPreviewResponse, error) {
+	return ScheduleReplanPreviewResponse{}, ErrScheduleLifecycleUnavailable
+}
+func (lifecycleRepositoryMock) CommitReplan(context.Context, uuid.UUID, uuid.UUID, string, string, ScheduleReplanRequest) (ScheduleReplanResponse, error) {
+	return ScheduleReplanResponse{}, ErrScheduleLifecycleUnavailable
 }
 
 func (m mockScheduleAuthorizer) IsMember(_ context.Context, _ uuid.UUID) (bool, error) {
@@ -133,6 +175,66 @@ func TestScheduleHandler_ValidationRequiredDates(t *testing.T) {
 				t.Fatalf("expected validation error (400 or 422), got %d: %s", rec.Code, rec.Body.String())
 			}
 		})
+	}
+}
+
+func TestScheduleHandler_LifecycleAuthRunsBeforeValidation(t *testing.T) {
+	userID := uuid.New()
+	handler := ScheduleHandler{
+		Lifecycle:  lifecycleRepositoryMock{},
+		Authorizer: schedulePermissionAuthorizer{allowed: false},
+	}
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/schedules/preview", strings.NewReader(`{"unknown":true}`))
+	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), userID))
+	rec := httptest.NewRecorder()
+
+	handler.Preview(rec, req)
+	if rec.Code != http.StatusForbidden {
+		t.Fatalf("expected auth denial before payload validation, got %d", rec.Code)
+	}
+}
+
+func TestScheduleHandler_PublishRequiresIdempotencyKey(t *testing.T) {
+	userID := uuid.New()
+	handler := ScheduleHandler{
+		Lifecycle:  lifecycleRepositoryMock{},
+		Authorizer: schedulePermissionAuthorizer{allowed: true},
+	}
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/schedules/publish", strings.NewReader(`{}`))
+	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), userID))
+	rec := httptest.NewRecorder()
+
+	handler.Publish(rec, req)
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("expected missing idempotency key validation, got %d", rec.Code)
+	}
+}
+
+func TestScheduleHandler_LifecycleUnavailableIsExplicit(t *testing.T) {
+	userID := uuid.New()
+	handler := ScheduleHandler{
+		Lifecycle:  lifecycleRepositoryMock{},
+		Authorizer: schedulePermissionAuthorizer{allowed: true},
+	}
+	request := `{"employment_ids":["` + uuid.NewString() + `"],"start_date":"2026-11-16","end_date":"2026-11-16","timezone":"UTC","mode":"office","expected_revisions":{"` + uuid.NewString() + `:2026-11-16":0}}`
+	// Keep request structurally valid enough to reach repository capability check.
+	var payload map[string]any
+	if err := json.Unmarshal([]byte(request), &payload); err != nil {
+		t.Fatal(err)
+	}
+	employmentID := payload["employment_ids"].([]any)[0].(string)
+	payload["expected_revisions"] = map[string]int64{employmentID + ":2026-11-16": 0}
+	body, err := json.Marshal(payload)
+	if err != nil {
+		t.Fatal(err)
+	}
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/schedules/preview", bytes.NewReader(body))
+	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), userID))
+	rec := httptest.NewRecorder()
+
+	handler.Preview(rec, req)
+	if rec.Code != http.StatusServiceUnavailable {
+		t.Fatalf("expected explicit lifecycle unavailability, got %d", rec.Code)
 	}
 }
 

@@ -73,6 +73,9 @@ FROM (VALUES
     ('admin', 'attendance:reprocess'),
     ('admin', 'attendance:staging:manage'),
     ('admin', 'attendance:summaries:read'),
+    ('admin', 'attendance:closure:close'),
+    ('admin', 'attendance:closure:read'),
+    ('admin', 'attendance:closure:reopen'),
     ('admin', 'audit_logs:export'),
     ('admin', 'audit_logs:read'),
     ('admin', 'dashboard:employee_absence:read'),
@@ -146,7 +149,6 @@ FROM (VALUES
     ('admin', 'rosters:assign'),
     ('admin', 'rosters:delete'),
     ('admin', 'rosters:read'),
-    ('admin', 'schedules:read'),
     ('admin', 'shift_swaps:approve'),
     ('admin', 'shift_swaps:create'),
     ('admin', 'shift_swaps:read'),
@@ -189,14 +191,19 @@ FROM (VALUES
     ('admin', 'payroll:components:manage'),
     ('admin', 'payroll:disburse'),
     ('admin', 'payroll:incentives:manage'),
-    ('admin', 'payroll:periods:lock'),
-    ('admin', 'payroll:periods:reopen'),
     ('admin', 'payroll:sensitive:read'),
     ('admin', 'payroll:settings:manage'),
     ('admin', 'recruitment:manage'),
     ('admin', 'recruitment:read'),
     ('admin', 'reports:export'),
     ('admin', 'rosters:manage'),
+    ('admin', 'schedules:amend'),
+    ('admin', 'schedules:evidence:export'),
+    ('admin', 'schedules:history:read'),
+    ('admin', 'schedules:preview'),
+    ('admin', 'schedules:publish:office'),
+    ('admin', 'schedules:publish:rotating'),
+    ('admin', 'schedules:read'),
     ('admin', 'security:settings:manage'),
     ('admin', 'shifts:assign'),
     ('admin', 'shift_swaps:manage'),
@@ -207,6 +214,9 @@ FROM (VALUES
     ('hr_manager', 'attendance:logs:import'),
     ('hr_manager', 'attendance:logs:read'),
     ('hr_manager', 'attendance:summaries:read'),
+    ('hr_manager', 'attendance:closure:close'),
+    ('hr_manager', 'attendance:closure:read'),
+    ('hr_manager', 'attendance:closure:reopen'),
     ('hr_manager', 'dashboard:employee_absence:read'),
     ('hr_manager', 'dashboard:preferences'),
     ('hr_manager', 'dashboard:read'),
@@ -252,12 +262,16 @@ FROM (VALUES
     ('hr_manager', 'payroll:calculate'),
     ('hr_manager', 'payroll:export'),
     ('hr_manager', 'payroll:manage'),
-    ('hr_manager', 'payroll:periods:lock'),
-    ('hr_manager', 'payroll:periods:reopen'),
     ('hr_manager', 'payroll:read'),
     ('hr_manager', 'reports:create'),
     ('hr_manager', 'reports:read'),
     ('hr_manager', 'rosters:read'),
+    ('hr_manager', 'schedules:amend'),
+    ('hr_manager', 'schedules:evidence:export'),
+    ('hr_manager', 'schedules:history:read'),
+    ('hr_manager', 'schedules:preview'),
+    ('hr_manager', 'schedules:publish:office'),
+    ('hr_manager', 'schedules:publish:rotating'),
     ('hr_manager', 'schedules:read'),
     ('hr_manager', 'shift_swaps:read'),
     ('hr_manager', 'shifts:read'),
@@ -280,6 +294,12 @@ FROM (VALUES
     ('shift_manager', 'patterns:read'),
     ('shift_manager', 'rosters:manage'),
     ('shift_manager', 'rosters:read'),
+    ('shift_manager', 'schedules:amend'),
+    ('shift_manager', 'schedules:evidence:export'),
+    ('shift_manager', 'schedules:history:read'),
+    ('shift_manager', 'schedules:preview'),
+    ('shift_manager', 'schedules:publish:rotating'),
+    ('shift_manager', 'schedules:read'),
     ('shift_manager', 'shifts:assign'),
     ('shift_manager', 'shift_swaps:manage'),
     ('shift_manager', 'shift_swaps:approve'),
@@ -287,7 +307,6 @@ FROM (VALUES
     ('shift_manager', 'leaves:read'),
     ('shift_manager', 'rosters:assign'),
     ('shift_manager', 'rosters:delete'),
-    ('shift_manager', 'schedules:read'),
     ('shift_manager', 'shift_swaps:create'),
     ('shift_manager', 'shifts:create'),
     ('shift_manager', 'shifts:delete'),
@@ -308,6 +327,7 @@ FROM (VALUES
     ('team_lead', 'leaves:read'),
     ('team_lead', 'overtime:read'),
     ('team_lead', 'rosters:read'),
+    ('team_lead', 'schedules:preview'),
     ('team_lead', 'schedules:read'),
     ('team_lead', 'shifts:read'),
     ('employee', 'attendance:adjustments:submit'),
@@ -319,35 +339,21 @@ FROM (VALUES
     ('employee', 'holidays:read'),
     ('employee', 'leaves:submit'),
     ('employee', 'overtime:request:create'),
-    ('employee', 'overtime:request:read')
+    ('employee', 'overtime:request:read'),
+    ('employee', 'schedules:preview'),
+    ('employee', 'schedules:read')
 ) AS p(role_name, permission_name)
 JOIN public.roles r ON r.name = p.role_name
 ON CONFLICT (role_id, permission_name) DO NOTHING;
 `
 
-const seedSalaryBaseGroupsSQL = `
-DO $$
-BEGIN
-    IF EXISTS (SELECT FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'salary_base_groups') THEN
-        INSERT INTO public.salary_base_groups (id, name, slug, description, is_system) VALUES
-            ('b0000000-0000-0000-0000-000000000001', 'Gross Salary', 'gross', 'Base for all basic, taxable, and insurable income components', TRUE),
-            ('b0000000-0000-0000-0000-000000000002', 'Net Salary', 'net', 'Final take-home pay after all deductions', TRUE)
-        ON CONFLICT (id) DO NOTHING;
-    END IF;
-END $$;
-`
-
-// EnsureDefaultRolesAndPermissions seeds baseline organization roles, granular permissions,
-// and salary groups idempotently.
+// EnsureDefaultRolesAndPermissions seeds baseline organization roles and granular permissions idempotently.
 func EnsureDefaultRolesAndPermissions(ctx context.Context, tx dbExecutor) error {
 	if _, err := tx.Exec(ctx, seedOrganizationRolesSQL); err != nil {
 		return fmt.Errorf("standalone: seed roles: %w", err)
 	}
 	if _, err := tx.Exec(ctx, seedOrganizationRolePermissionsSQL); err != nil {
 		return fmt.Errorf("standalone: seed role permissions: %w", err)
-	}
-	if _, err := tx.Exec(ctx, seedSalaryBaseGroupsSQL); err != nil {
-		return fmt.Errorf("standalone: seed salary base groups: %w", err)
 	}
 	return nil
 }

@@ -46,6 +46,12 @@ export interface ScheduleTrace {
 
 export interface EffectiveSchedule {
   allow_early_ot?: boolean | null;
+  closed?: boolean;
+  published_at?: string | null;
+  provisional?: boolean;
+  revision_id?: string | null;
+  revision_number?: number | null;
+  schedule_status?: string | null;
   break_duration_minutes?: number | null;
   break_end?: string | null;
   break_is_overtime?: boolean | null;

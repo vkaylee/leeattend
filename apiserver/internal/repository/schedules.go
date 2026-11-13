@@ -33,8 +33,20 @@ type employeeRow struct {
 }
 
 type shiftTemplateInfo struct {
-	name                           string
-	reportSymbol                   *string
+	name     string
+	versions []shiftVersionInfo
+}
+
+type shiftVersionInfo struct {
+	id            uuid.UUID
+	reportSymbol  *string
+	effectiveFrom time.Time
+	effectiveTo   *time.Time
+	intervals     []shiftIntervalInfo
+}
+
+type shiftIntervalInfo struct {
+	sortOrder                      int
 	startTime                      *string
 	endTime                        *string
 	breakDurationMinutes           *int
@@ -45,6 +57,44 @@ type shiftTemplateInfo struct {
 	allowEarlyOT                   *bool
 	breakIsOvertime                *bool
 	maxEarlyOTMinutes              *int
+}
+
+func primaryShiftInterval(version shiftVersionInfo) *shiftIntervalInfo {
+	if len(version.intervals) == 0 {
+		return nil
+	}
+	return &version.intervals[0]
+}
+
+func selectEffectiveShiftVersion(shifts map[uuid.UUID]shiftTemplateInfo, templateID uuid.UUID, date time.Time) (shiftVersionInfo, bool, bool) {
+	meta, ok := shifts[templateID]
+	if !ok {
+		return shiftVersionInfo{}, false, false
+	}
+	var selected shiftVersionInfo
+	matches := 0
+	for _, version := range meta.versions {
+		if date.Before(version.effectiveFrom) || (version.effectiveTo != nil && date.After(*version.effectiveTo)) {
+			continue
+		}
+		selected = version
+		matches++
+	}
+	return selected, matches == 1, matches > 1
+}
+
+func calendarDayDifference(date, anchor time.Time) int {
+	dateDay := time.Date(date.Year(), date.Month(), date.Day(), 0, 0, 0, 0, time.UTC)
+	anchorDay := time.Date(anchor.Year(), anchor.Month(), anchor.Day(), 0, 0, 0, 0, time.UTC)
+	return int(dateDay.Sub(anchorDay) / (24 * time.Hour))
+}
+
+func normalizedCycleDay(day, cycleLength int) int {
+	day %= cycleLength
+	if day < 0 {
+		day += cycleLength
+	}
+	return day
 }
 
 type patternEntry struct {
@@ -97,217 +147,242 @@ type assignmentRuleWithDetails struct {
 	details   map[int][]uuid.UUID
 }
 
+type resolvedScheduleDay struct {
+	date        string
+	shiftIDs    []*uuid.UUID
+	source      string
+	traces      []api.ScheduleTrace
+	isHoliday   bool
+	holidayPaid bool
+	holidayName *string
+	timezone    string
+}
+
+type resolvedEmployeeSchedule struct {
+	employmentID     uuid.UUID
+	employeeID       uuid.UUID
+	employeeIDNumber string
+	fullName         string
+	days             []resolvedScheduleDay
+}
+
+type scheduleResolution struct {
+	employees []resolvedEmployeeSchedule
+	shifts    map[uuid.UUID]shiftTemplateInfo
+}
+
 func (r ScheduleRepository) GetOrganizationSchedules(ctx context.Context, startDate, endDate time.Time, employmentIDs []uuid.UUID, page, limit int) (api.PaginatedEmployeeSchedules, error) {
 	db, err := r.db(ctx)
 	if err != nil {
 		return api.PaginatedEmployeeSchedules{}, err
 	}
-	if page < 1 {
-		page = 1
-	}
-	if limit < 1 {
-		limit = 50
-	}
-	if limit > api.MaxLimit {
-		limit = api.MaxLimit
-	}
-	offset := (page - 1) * limit
-
-	var total int64
-	var empRows []employeeRow
-	if len(employmentIDs) > 0 {
-		countErr := db.QueryRow(ctx, `SELECT count(*) FROM employees e
-			JOIN employments emp ON emp.employee_id = e.id
-			WHERE emp.deleted_at IS NULL AND emp.id = ANY($1)`, employmentIDs).Scan(&total)
-		if countErr != nil {
-			return api.PaginatedEmployeeSchedules{}, countErr
-		}
-		rows, qErr := db.Query(ctx, `SELECT emp.id, e.full_name, e.employee_id_number, e.tags, emp.primary_location_id, e.id, emp.start_date::text, emp.end_date::text
-			FROM employees e
-			JOIN employments emp ON emp.employee_id = e.id
-			WHERE emp.deleted_at IS NULL AND emp.id = ANY($1)
-			ORDER BY emp.start_date DESC, emp.id ASC
-			LIMIT $2 OFFSET $3`, employmentIDs, limit, offset)
-		if qErr != nil {
-			return api.PaginatedEmployeeSchedules{}, qErr
-		}
-		defer rows.Close()
-		empRows, err = scanEmployeeRows(rows)
-		if err != nil {
-			return api.PaginatedEmployeeSchedules{}, err
-		}
-	} else {
-		startStr := startDate.Format("2006-01-02")
-		endStr := endDate.Format("2006-01-02")
-		countErr := db.QueryRow(ctx, `SELECT count(*) FROM employees e
-			JOIN employments emp ON emp.employee_id = e.id
-			WHERE emp.deleted_at IS NULL
-			AND emp.start_date <= $1::date AND (emp.end_date IS NULL OR emp.end_date >= $2::date)`, endStr, startStr).Scan(&total)
-		if countErr != nil {
-			return api.PaginatedEmployeeSchedules{}, countErr
-		}
-		rows, qErr := db.Query(ctx, `SELECT emp.id, e.full_name, e.employee_id_number, e.tags, emp.primary_location_id, e.id, emp.start_date::text, emp.end_date::text
-			FROM employees e
-			JOIN employments emp ON emp.employee_id = e.id
-			WHERE emp.deleted_at IS NULL
-			AND emp.start_date <= $1::date AND (emp.end_date IS NULL OR emp.end_date >= $2::date)
-			ORDER BY emp.start_date DESC, emp.id ASC
-			LIMIT $3 OFFSET $4`, endStr, startStr, limit, offset)
-		if qErr != nil {
-			return api.PaginatedEmployeeSchedules{}, qErr
-		}
-		defer rows.Close()
-		empRows, err = scanEmployeeRows(rows)
-		if err != nil {
-			return api.PaginatedEmployeeSchedules{}, err
-		}
-	}
-
-	if len(empRows) == 0 {
-		return api.PaginatedEmployeeSchedules{Data: []api.EmployeeSchedule{}, Total: total, Page: page, Limit: limit}, nil
-	}
-
-	targetEmploymentIDs := make([]uuid.UUID, len(empRows))
-	targetEmployeeIDs := make([]uuid.UUID, len(empRows))
-	for i, row := range empRows {
-		targetEmploymentIDs[i] = row.employmentID
-		targetEmployeeIDs[i] = row.employeeID
-	}
-
-	startStr := startDate.Format("2006-01-02")
-	endStr := endDate.Format("2006-01-02")
-
-	contracts, err := loadContracts(ctx, db, targetEmploymentIDs, startStr, endStr)
+	resolution, total, err := resolveScheduleData(ctx, db, startDate, endDate, employmentIDs, page, limit)
 	if err != nil {
 		return api.PaginatedEmployeeSchedules{}, err
 	}
-	assignments, err := loadAssignments(ctx, db, targetEmploymentIDs, startStr, endStr)
-	if err != nil {
-		return api.PaginatedEmployeeSchedules{}, err
-	}
-	holidays, err := loadHolidays(ctx, db, startStr, endStr)
-	if err != nil {
-		return api.PaginatedEmployeeSchedules{}, err
-	}
-	rosters, err := loadShiftRosters(ctx, db, targetEmploymentIDs, startStr, endStr)
-	if err != nil {
-		return api.PaginatedEmployeeSchedules{}, err
-	}
-	patternAssignments, err := loadPatternAssignments(ctx, db, targetEmploymentIDs, startStr, endStr)
-	if err != nil {
-		return api.PaginatedEmployeeSchedules{}, err
-	}
-	rules, err := loadAssignmentRules(ctx, db)
-	if err != nil {
-		return api.PaginatedEmployeeSchedules{}, err
-	}
-	fixedShifts, err := loadFixedShifts(ctx, db, targetEmploymentIDs, startStr, endStr)
-	if err != nil {
-		return api.PaginatedEmployeeSchedules{}, err
-	}
-	deptHistory, err := loadDeptHistory(ctx, db, targetEmployeeIDs)
-	if err != nil {
-		return api.PaginatedEmployeeSchedules{}, err
-	}
-	shifts, err := loadShifts(ctx, db)
-	if err != nil {
-		return api.PaginatedEmployeeSchedules{}, err
-	}
-
-	result := make([]api.EmployeeSchedule, 0, len(empRows))
-	for _, emp := range empRows {
-		schedStart := startDate
-		if emp.startDate.After(schedStart) {
-			schedStart = emp.startDate
-		}
-		schedEnd := endDate
-		if emp.endDate != nil && emp.endDate.Before(schedEnd) {
-			schedEnd = *emp.endDate
-		}
-		if schedStart.After(schedEnd) {
-			continue
-		}
-
-		empContracts := contracts[emp.employmentID]
-		empAssignments := assignments[emp.employmentID]
-		empPatterns := patternAssignments[emp.employmentID]
-		empFixed := fixedShifts[emp.employmentID]
-		empDept := deptHistory[emp.employeeID]
-
+	result := make([]api.EmployeeSchedule, 0, len(resolution.employees))
+	for _, employee := range resolution.employees {
 		dailyList := make([]api.EffectiveSchedule, 0)
-		for cur := schedStart; !cur.After(schedEnd); cur = cur.AddDate(0, 0, 1) {
-			curStr := cur.Format("2006-01-02")
-			dow := int(cur.Weekday())
-
-			var activeEmployerID *uuid.UUID
-			for _, c := range empContracts {
-				if !cur.Before(c.startDate) && (c.endDate == nil || !cur.After(*c.endDate)) {
-					id := c.employerID
-					activeEmployerID = &id
-					break
-				}
-			}
-
-			activeLocID := emp.primaryLocationID
-			for _, a := range empAssignments {
-				if !cur.Before(a.startDate) && (a.endDate == nil || !cur.After(*a.endDate)) {
-					id := a.hostLocationID
-					activeLocID = &id
-					break
-				}
-			}
-
-			holiday, isHoliday := holidays[curStr]
-
-			shiftIDs, source, traces := resolveEffectiveShift(
-				emp.employmentID, emp.employeeID, emp.employeeIDNumber, emp.tags,
-				cur, dow, activeLocID, activeEmployerID,
-				rosters, empPatterns, rules, empFixed, empDept,
-			)
-
-			for _, sid := range shiftIDs {
-				effective := api.EffectiveSchedule{
-					Date:      curStr,
-					ShiftID:   sid,
-					Source:    source,
-					Traces:    traces,
-					IsHoliday: isHoliday,
-				}
-				if isHoliday {
-					effective.IsHolidayPaid = holiday.isPaid
-					name := holiday.name
-					effective.HolidayName = &name
-				}
-				if sid != nil {
-					if meta, ok := shifts[*sid]; ok {
+		for _, day := range employee.days {
+			for _, shiftID := range day.shiftIDs {
+				effective := api.EffectiveSchedule{Date: day.date, ShiftID: shiftID, Source: day.source, Traces: day.traces, IsHoliday: day.isHoliday, IsHolidayPaid: day.holidayPaid, HolidayName: day.holidayName}
+				if shiftID != nil {
+					if meta, ok := resolution.shifts[*shiftID]; ok {
 						effective.ShiftName = &meta.name
-						effective.ShiftSymbol = meta.reportSymbol
-						effective.StartTime = meta.startTime
-						effective.EndTime = meta.endTime
-						effective.BreakDurationMinutes = meta.breakDurationMinutes
-						effective.BreakStart = meta.breakStart
-						effective.BreakEnd = meta.breakEnd
-						effective.IsBreakAutoDeduct = meta.isBreakAutoDeduct
-						effective.EarlyPunchInGracePeriodMinutes = meta.earlyPunchInGracePeriodMinutes
-						effective.AllowEarlyOT = meta.allowEarlyOT
-						effective.BreakIsOvertime = meta.breakIsOvertime
-						effective.MaxEarlyOTMinutes = meta.maxEarlyOTMinutes
+						if version, selected, _ := selectEffectiveShiftVersion(resolution.shifts, *shiftID, parseScheduleDate(day.date)); selected {
+							effective.ShiftSymbol = version.reportSymbol
+							if interval := primaryShiftInterval(version); interval != nil {
+								effective.StartTime, effective.EndTime = interval.startTime, interval.endTime
+								effective.BreakDurationMinutes, effective.BreakStart, effective.BreakEnd = interval.breakDurationMinutes, interval.breakStart, interval.breakEnd
+								effective.IsBreakAutoDeduct, effective.EarlyPunchInGracePeriodMinutes = interval.isBreakAutoDeduct, interval.earlyPunchInGracePeriodMinutes
+								effective.AllowEarlyOT, effective.BreakIsOvertime, effective.MaxEarlyOTMinutes = interval.allowEarlyOT, interval.breakIsOvertime, interval.maxEarlyOTMinutes
+							}
+						}
 					}
 				}
 				dailyList = append(dailyList, effective)
 			}
 		}
-
-		result = append(result, api.EmployeeSchedule{
-			EmploymentID:     emp.employmentID,
-			EmployeeID:       emp.employeeID,
-			EmployeeIDNumber: emp.employeeIDNumber,
-			FullName:         emp.fullName,
-			Schedules:        dailyList,
-		})
+		result = append(result, api.EmployeeSchedule{EmploymentID: employee.employmentID, EmployeeID: employee.employeeID, EmployeeIDNumber: employee.employeeIDNumber, FullName: employee.fullName, Schedules: dailyList})
 	}
+	return api.PaginatedEmployeeSchedules{Data: result, Total: total, Page: normalizedPage(page), Limit: normalizedLimit(limit)}, nil
+}
 
-	return api.PaginatedEmployeeSchedules{Data: result, Total: total, Page: page, Limit: limit}, nil
+func resolveScheduleData(ctx context.Context, db DBTX, startDate, endDate time.Time, employmentIDs []uuid.UUID, page, limit int) (scheduleResolution, int64, error) {
+	page, limit = normalizedPage(page), normalizedLimit(limit)
+	offset := (page - 1) * limit
+	startStr, endStr := startDate.Format("2006-01-02"), endDate.Format("2006-01-02")
+	var total int64
+	var empRows []employeeRow
+	if len(employmentIDs) > 0 {
+		if err := db.QueryRow(ctx, `SELECT count(*) FROM employees e JOIN employments emp ON emp.employee_id = e.id WHERE emp.deleted_at IS NULL AND emp.id = ANY($1)`, employmentIDs).Scan(&total); err != nil {
+			return scheduleResolution{}, 0, err
+		}
+		rows, err := db.Query(ctx, `SELECT emp.id, e.full_name, e.employee_id_number, e.tags, emp.primary_location_id, e.id, emp.start_date::text, emp.end_date::text FROM employees e JOIN employments emp ON emp.employee_id = e.id WHERE emp.deleted_at IS NULL AND emp.id = ANY($1) ORDER BY emp.start_date DESC, emp.id ASC LIMIT $2 OFFSET $3`, employmentIDs, limit, offset)
+		if err != nil {
+			return scheduleResolution{}, 0, err
+		}
+		empRows, err = scanEmployeeRows(rows)
+		rows.Close()
+		if err != nil {
+			return scheduleResolution{}, 0, err
+		}
+	} else {
+		if err := db.QueryRow(ctx, `SELECT count(*) FROM employees e JOIN employments emp ON emp.employee_id = e.id WHERE emp.deleted_at IS NULL AND emp.start_date <= $1::date AND (emp.end_date IS NULL OR emp.end_date >= $2::date)`, endStr, startStr).Scan(&total); err != nil {
+			return scheduleResolution{}, 0, err
+		}
+		rows, err := db.Query(ctx, `SELECT emp.id, e.full_name, e.employee_id_number, e.tags, emp.primary_location_id, e.id, emp.start_date::text, emp.end_date::text FROM employees e JOIN employments emp ON emp.employee_id = e.id WHERE emp.deleted_at IS NULL AND emp.start_date <= $1::date AND (emp.end_date IS NULL OR emp.end_date >= $2::date) ORDER BY emp.start_date DESC, emp.id ASC LIMIT $3 OFFSET $4`, endStr, startStr, limit, offset)
+		if err != nil {
+			return scheduleResolution{}, 0, err
+		}
+		empRows, err = scanEmployeeRows(rows)
+		rows.Close()
+		if err != nil {
+			return scheduleResolution{}, 0, err
+		}
+	}
+	if len(empRows) == 0 {
+		return scheduleResolution{employees: []resolvedEmployeeSchedule{}, shifts: map[uuid.UUID]shiftTemplateInfo{}}, total, nil
+	}
+	employmentIDsForLoad := make([]uuid.UUID, len(empRows))
+	employeeIDs := make([]uuid.UUID, len(empRows))
+	locationIDs := make([]uuid.UUID, 0, len(empRows))
+	for i, employee := range empRows {
+		employmentIDsForLoad[i], employeeIDs[i] = employee.employmentID, employee.employeeID
+		if employee.primaryLocationID != nil {
+			locationIDs = append(locationIDs, *employee.primaryLocationID)
+		}
+	}
+	contracts, err := loadContracts(ctx, db, employmentIDsForLoad, startStr, endStr)
+	if err != nil {
+		return scheduleResolution{}, 0, err
+	}
+	assignments, err := loadAssignments(ctx, db, employmentIDsForLoad, startStr, endStr)
+	if err != nil {
+		return scheduleResolution{}, 0, err
+	}
+	for _, values := range assignments {
+		for _, value := range values {
+			locationIDs = append(locationIDs, value.hostLocationID)
+		}
+	}
+	locationTimezones, err := loadLocationTimezones(ctx, db, locationIDs)
+	if err != nil {
+		return scheduleResolution{}, 0, err
+	}
+	holidays, err := loadHolidays(ctx, db, startStr, endStr)
+	if err != nil {
+		return scheduleResolution{}, 0, err
+	}
+	rosters, err := loadShiftRosters(ctx, db, employmentIDsForLoad, startStr, endStr)
+	if err != nil {
+		return scheduleResolution{}, 0, err
+	}
+	patterns, err := loadPatternAssignments(ctx, db, employmentIDsForLoad, startStr, endStr)
+	if err != nil {
+		return scheduleResolution{}, 0, err
+	}
+	rules, err := loadAssignmentRules(ctx, db)
+	if err != nil {
+		return scheduleResolution{}, 0, err
+	}
+	fixed, err := loadFixedShifts(ctx, db, employmentIDsForLoad, startStr, endStr)
+	if err != nil {
+		return scheduleResolution{}, 0, err
+	}
+	deptHistory, err := loadDeptHistory(ctx, db, employeeIDs)
+	if err != nil {
+		return scheduleResolution{}, 0, err
+	}
+	shifts, err := loadShifts(ctx, db)
+	if err != nil {
+		return scheduleResolution{}, 0, err
+	}
+	result := scheduleResolution{employees: make([]resolvedEmployeeSchedule, 0, len(empRows)), shifts: shifts}
+	for _, employee := range empRows {
+		schedStart, schedEnd := startDate, endDate
+		if employee.startDate.After(schedStart) {
+			schedStart = employee.startDate
+		}
+		if employee.endDate != nil && employee.endDate.Before(schedEnd) {
+			schedEnd = *employee.endDate
+		}
+		if schedStart.After(schedEnd) {
+			continue
+		}
+		resolved := resolvedEmployeeSchedule{employmentID: employee.employmentID, employeeID: employee.employeeID, employeeIDNumber: employee.employeeIDNumber, fullName: employee.fullName}
+		for current := schedStart; !current.After(schedEnd); current = current.AddDate(0, 0, 1) {
+			dateStr := current.Format("2006-01-02")
+			var employerID, locationID *uuid.UUID
+			for _, value := range contracts[employee.employmentID] {
+				if !current.Before(value.startDate) && (value.endDate == nil || !current.After(*value.endDate)) {
+					id := value.employerID
+					employerID = &id
+					break
+				}
+			}
+			locationID = employee.primaryLocationID
+			for _, value := range assignments[employee.employmentID] {
+				if !current.Before(value.startDate) && (value.endDate == nil || !current.After(*value.endDate)) {
+					id := value.hostLocationID
+					locationID = &id
+					break
+				}
+			}
+			holiday, isHoliday := holidays[dateStr]
+			shiftIDs, source, traces := resolveEffectiveShift(employee.employmentID, employee.employeeID, employee.employeeIDNumber, employee.tags, current, int(current.Weekday()), locationID, employerID, rosters, patterns[employee.employmentID], rules, fixed[employee.employmentID], deptHistory[employee.employeeID])
+			resolved.days = append(resolved.days, resolvedScheduleDay{date: dateStr, shiftIDs: shiftIDs, source: source, traces: traces, isHoliday: isHoliday, holidayPaid: holiday.isPaid, holidayName: stringPtr(holiday.name), timezone: resolvedTimezone(locationID, locationTimezones)})
+		}
+		result.employees = append(result.employees, resolved)
+	}
+	return result, total, nil
+}
+
+func normalizedPage(page int) int {
+	if page < 1 {
+		return 1
+	}
+	return page
+}
+func normalizedLimit(limit int) int {
+	if limit < 1 {
+		return 50
+	}
+	if limit > api.MaxLimit {
+		return api.MaxLimit
+	}
+	return limit
+}
+func parseScheduleDate(value string) time.Time {
+	parsed, _ := time.Parse("2006-01-02", value)
+	return parsed
+}
+func resolvedTimezone(locationID *uuid.UUID, timezones map[uuid.UUID]string) string {
+	if locationID != nil && timezones[*locationID] != "" {
+		return timezones[*locationID]
+	}
+	return "UTC"
+}
+
+func loadLocationTimezones(ctx context.Context, db DBTX, locationIDs []uuid.UUID) (map[uuid.UUID]string, error) {
+	result := make(map[uuid.UUID]string)
+	if len(locationIDs) == 0 {
+		return result, nil
+	}
+	rows, err := db.Query(ctx, `SELECT id, timezone FROM work_locations WHERE id = ANY($1) AND status = 'active'`, locationIDs)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var id uuid.UUID
+		var timezone string
+		if err := rows.Scan(&id, &timezone); err != nil {
+			return nil, err
+		}
+		result[id] = timezone
+	}
+	return result, rows.Err()
 }
 
 func resolveEffectiveShift(
@@ -351,10 +426,7 @@ func resolveEffectiveShift(
 			if p.cycleLengthDays != nil && *p.cycleLengthDays > 0 {
 				cycleLen = *p.cycleLengthDays
 			}
-			daysSince := int(date.Sub(anchor).Hours()/24) % cycleLen
-			if daysSince < 0 {
-				daysSince += cycleLen
-			}
+			daysSince := normalizedCycleDay(calendarDayDifference(date, anchor), cycleLen)
 			if p.scheduleDay == daysSince {
 				matchedPatternShifts = append(matchedPatternShifts, p.templateID)
 				pid := p.patternID
@@ -389,33 +461,46 @@ func resolveEffectiveShift(
 	}
 
 	traces := make([]api.ScheduleTrace, 0)
-	var winnerRule *assignmentRuleWithDetails
+	allMatchedRules := make([]*assignmentRuleWithDetails, 0)
+	highestPriority := 0
 	for i := range rules {
 		rule := &rules[i]
-		if matchRule(rule, date, activeDeptID, employeeIDNumber, tags, activeLocID, activeEmployerID) {
-			rid := rule.id
-			if winnerRule == nil {
-				winnerRule = rule
-				traces = append(traces, api.ScheduleTrace{
-					RuleID:   &rid,
-					RuleName: rule.name,
-					Priority: rule.priority,
-					Status:   "applied",
-					Reason:   new("Highest priority matching rule"),
-				})
-			} else {
-				traces = append(traces, api.ScheduleTrace{
-					RuleID:   &rid,
-					RuleName: rule.name,
-					Priority: rule.priority,
-					Status:   "overridden",
-					Reason:   new("Overridden by higher priority rule"),
-				})
-			}
+		if !matchRule(rule, date, activeDeptID, employeeIDNumber, tags, activeLocID, activeEmployerID) {
+			continue
+		}
+		allMatchedRules = append(allMatchedRules, rule)
+		if len(allMatchedRules) == 1 || rule.priority > highestPriority {
+			highestPriority = rule.priority
 		}
 	}
-	if winnerRule != nil {
-		if sids, exists := winnerRule.details[dow]; exists && len(sids) > 0 {
+	matchedRules := make([]*assignmentRuleWithDetails, 0, len(allMatchedRules))
+	for _, rule := range allMatchedRules {
+		if rule.priority == highestPriority {
+			matchedRules = append(matchedRules, rule)
+		}
+	}
+	for _, rule := range allMatchedRules {
+		if rule.priority >= highestPriority {
+			continue
+		}
+		rid := rule.id
+		reason := "Overridden by higher priority rule"
+		traces = append(traces, api.ScheduleTrace{RuleID: &rid, RuleName: rule.name, Priority: rule.priority, Status: "overridden", Reason: &reason})
+	}
+	if len(matchedRules) > 1 {
+		for _, rule := range matchedRules {
+			rid := rule.id
+			reason := "Conflicts with another matching rule at same priority"
+			traces = append(traces, api.ScheduleTrace{RuleID: &rid, RuleName: rule.name, Priority: rule.priority, Status: "conflict", Reason: &reason})
+		}
+		return []*uuid.UUID{nil}, "conflict", traces
+	}
+	if len(matchedRules) == 1 {
+		rule := matchedRules[0]
+		rid := rule.id
+		reason := "Highest priority matching rule"
+		traces = append(traces, api.ScheduleTrace{RuleID: &rid, RuleName: rule.name, Priority: rule.priority, Status: "applied", Reason: &reason})
+		if sids, exists := rule.details[dow]; exists {
 			ptrs := make([]*uuid.UUID, len(sids))
 			for i := range sids {
 				id := sids[i]
@@ -791,24 +876,45 @@ func loadDeptHistory(ctx context.Context, db DBTX, employeeIDs []uuid.UUID) (map
 }
 
 func loadShifts(ctx context.Context, db DBTX) (map[uuid.UUID]shiftTemplateInfo, error) {
-	rows, err := db.Query(ctx, `SELECT st.id, st.name, sv.report_symbol, sdi.start_time::text, sdi.end_time::text,
-		sdi.break_duration_minutes, sdi.break_start::text, sdi.break_end::text, sdi.is_break_auto_deduct,
-		sdi.early_punch_in_grace_period_minutes, sdi.allow_early_ot, sdi.break_is_overtime, sdi.max_early_ot_minutes
+	rows, err := db.Query(ctx, `SELECT st.id, st.name, sv.id, sv.report_symbol, sv.effective_from, sv.effective_to,
+		sdi.sort_order, sdi.start_time::text, sdi.end_time::text, sdi.break_duration_minutes, sdi.break_start::text, sdi.break_end::text,
+		sdi.is_break_auto_deduct, sdi.early_punch_in_grace_period_minutes, sdi.allow_early_ot, sdi.break_is_overtime,
+		sdi.max_early_ot_minutes
 		FROM shift_templates st
-		LEFT JOIN shift_versions sv ON sv.id = st.current_version_id
-		LEFT JOIN shift_default_intervals sdi ON sdi.version_id = sv.id AND sdi.sort_order = 0`)
+		LEFT JOIN shift_versions sv ON sv.template_id = st.id
+		LEFT JOIN shift_default_intervals sdi ON sdi.version_id = sv.id
+		ORDER BY st.id, sv.effective_from, sv.id, sdi.sort_order`)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 	res := make(map[uuid.UUID]shiftTemplateInfo)
 	for rows.Next() {
-		var id uuid.UUID
+		var templateID uuid.UUID
 		var info shiftTemplateInfo
-		if err := rows.Scan(&id, &info.name, &info.reportSymbol, &info.startTime, &info.endTime, &info.breakDurationMinutes, &info.breakStart, &info.breakEnd, &info.isBreakAutoDeduct, &info.earlyPunchInGracePeriodMinutes, &info.allowEarlyOT, &info.breakIsOvertime, &info.maxEarlyOTMinutes); err != nil {
+		var versionID *uuid.UUID
+		var reportSymbol *string
+		var effectiveFrom, effectiveTo *time.Time
+		var sortOrder *int
+		var interval shiftIntervalInfo
+		if err := rows.Scan(&templateID, &info.name, &versionID, &reportSymbol, &effectiveFrom, &effectiveTo,
+			&sortOrder, &interval.startTime, &interval.endTime, &interval.breakDurationMinutes, &interval.breakStart, &interval.breakEnd,
+			&interval.isBreakAutoDeduct, &interval.earlyPunchInGracePeriodMinutes, &interval.allowEarlyOT, &interval.breakIsOvertime,
+			&interval.maxEarlyOTMinutes); err != nil {
 			return nil, err
 		}
-		res[id] = info
+		current := res[templateID]
+		current.name = info.name
+		if versionID != nil && effectiveFrom != nil {
+			if len(current.versions) == 0 || current.versions[len(current.versions)-1].id != *versionID {
+				current.versions = append(current.versions, shiftVersionInfo{id: *versionID, reportSymbol: reportSymbol, effectiveFrom: *effectiveFrom, effectiveTo: effectiveTo})
+			}
+			if sortOrder != nil {
+				interval.sortOrder = *sortOrder
+				current.versions[len(current.versions)-1].intervals = append(current.versions[len(current.versions)-1].intervals, interval)
+			}
+		}
+		res[templateID] = current
 	}
 	return res, rows.Err()
 }

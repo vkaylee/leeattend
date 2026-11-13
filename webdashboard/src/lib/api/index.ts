@@ -21,6 +21,8 @@ export * from "./shift-swaps";
 export * from "./audit";
 export * from "./system";
 export * from "./shifts";
+export * from "./schedule-lifecycle";
+export type * from "./types-schedule-lifecycle";
 export { fetchNotifications, fetchUnreadCount, markNotificationAsRead, markAllNotificationsAsRead } from "./notifications";
 export type { NotificationType } from "./notifications";
 export * from "./contracts";

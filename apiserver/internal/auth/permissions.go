@@ -48,6 +48,9 @@ const (
 	PermissionAttendanceAdjustmentsManageBehalf Permission = "attendance:adjustments:manage_behalf"
 	PermissionAttendanceReprocess               Permission = "attendance:reprocess"
 	PermissionAttendanceStagingManage           Permission = "attendance:staging:manage"
+	PermissionAttendanceClosureRead             Permission = "attendance:closure:read"
+	PermissionAttendanceClosureClose            Permission = "attendance:closure:close"
+	PermissionAttendanceClosureReopen           Permission = "attendance:closure:reopen"
 
 	// Overtime
 	PermissionOvertimeClaim               Permission = "overtime:claim"
@@ -94,6 +97,15 @@ const (
 	PermissionRostersRead   Permission = "rosters:read"
 	PermissionRostersManage Permission = "rosters:manage"
 
+	// Schedule lifecycle
+	PermissionSchedulesRead            Permission = "schedules:read"
+	PermissionSchedulesPreview         Permission = "schedules:preview"
+	PermissionSchedulesPublishOffice   Permission = "schedules:publish:office"
+	PermissionSchedulesPublishRotating Permission = "schedules:publish:rotating"
+	PermissionSchedulesAmend           Permission = "schedules:amend"
+	PermissionSchedulesEvidenceExport  Permission = "schedules:evidence:export"
+	PermissionSchedulesHistoryRead     Permission = "schedules:history:read"
+
 	// Assignment Rules
 	PermissionAssignmentRulesManage Permission = "assignment_rules:manage"
 
@@ -103,8 +115,6 @@ const (
 	PermissionPayrollSettingsManage   Permission = "payroll:settings:manage"
 	PermissionPayrollComponentsManage Permission = "payroll:components:manage"
 	PermissionPayrollIncentivesManage Permission = "payroll:incentives:manage"
-	PermissionPayrollPeriodsLock      Permission = "payroll:periods:lock"
-	PermissionPayrollPeriodsReopen    Permission = "payroll:periods:reopen"
 
 	// Holidays
 	PermissionHolidaysRead   Permission = "holidays:read"
@@ -202,6 +212,9 @@ var allCanonicalPermissions = []Permission{
 	PermissionAttendanceAdjustmentsManageBehalf,
 	PermissionAttendanceReprocess,
 	PermissionAttendanceStagingManage,
+	PermissionAttendanceClosureRead,
+	PermissionAttendanceClosureClose,
+	PermissionAttendanceClosureReopen,
 	PermissionOvertimeClaim,
 	PermissionOvertimeApprove,
 	PermissionOvertimeClaimOnBehalf,
@@ -235,14 +248,19 @@ var allCanonicalPermissions = []Permission{
 	PermissionPatternsDelete,
 	PermissionRostersRead,
 	PermissionRostersManage,
+	PermissionSchedulesRead,
+	PermissionSchedulesPreview,
+	PermissionSchedulesPublishOffice,
+	PermissionSchedulesPublishRotating,
+	PermissionSchedulesAmend,
+	PermissionSchedulesEvidenceExport,
+	PermissionSchedulesHistoryRead,
 	PermissionAssignmentRulesManage,
 	PermissionPayrollRead,
 	PermissionPayrollCalculate,
 	PermissionPayrollSettingsManage,
 	PermissionPayrollComponentsManage,
 	PermissionPayrollIncentivesManage,
-	PermissionPayrollPeriodsLock,
-	PermissionPayrollPeriodsReopen,
 	PermissionHolidaysRead,
 	PermissionHolidaysManage,
 	PermissionReportsRead,

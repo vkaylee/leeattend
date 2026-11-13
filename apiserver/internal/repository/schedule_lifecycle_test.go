@@ -1,0 +1,187 @@
+package repository
+
+import (
+	"context"
+	"encoding/json"
+	"errors"
+	"strings"
+	"testing"
+	"time"
+
+	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
+	"github.com/vkaylee/leeattend/apiserver/internal/api"
+)
+
+func TestScheduleLifecycleCreatePreviewRejectsInvalidScopeBeforeWrites(t *testing.T) {
+	execCalled := false
+	tx := &fakeTx{fakeDBTX: fakeDBTX{execFn: func(context.Context, string, ...any) (pgconn.CommandTag, error) {
+		execCalled = true
+		return pgconn.NewCommandTag("INSERT 0 1"), nil
+	}}}
+	repo := ScheduleRepository{DB: tx}
+
+	_, err := repo.CreatePreview(context.Background(), uuid.New(), api.SchedulePreviewRequest{})
+	if !errors.Is(err, ErrSchedulePreviewScope) {
+		t.Fatalf("expected typed scope error, got %v", err)
+	}
+	if execCalled {
+		t.Fatal("invalid scope must not write preview")
+	}
+}
+
+func TestSanitizedPreviewDayWorkIncludesAllIntervalsAndNoPII(t *testing.T) {
+	versionID := uuid.New()
+	start, end := "08:00:00", "17:00:00"
+	version := shiftVersionInfo{id: versionID, effectiveFrom: time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC), intervals: []shiftIntervalInfo{{sortOrder: 0, startTime: &start, endTime: &end}, {sortOrder: 1, startTime: &start, endTime: &end}}}
+	shiftID := uuid.New()
+	day, err := sanitizedPreviewDay(resolvedScheduleDay{date: "2026-11-16", shiftIDs: []*uuid.UUID{&shiftID}, source: "pattern", timezone: "UTC", traces: []api.ScheduleTrace{{RuleName: "private name", Status: "applied", Priority: 80, Reason: new("private reason")}}}, map[uuid.UUID]shiftTemplateInfo{shiftID: {versions: []shiftVersionInfo{version}}})
+	if err != nil {
+		t.Fatalf("sanitize work preview: %v", err)
+	}
+	encoded, err := json.Marshal(day)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(string(encoded), "private name") || strings.Contains(string(encoded), "private reason") {
+		t.Fatalf("preview contains resolver PII: %s", encoded)
+	}
+	if day["status"] != "work" || day["shift_version_id"] != versionID.String() || len(day["intervals"].([]map[string]any)) != 2 {
+		t.Fatalf("unexpected work preview: %+v", day)
+	}
+}
+
+func TestSanitizedPreviewDayExplicitOffMissingAndConflict(t *testing.T) {
+	cases := []struct{ name, source, status string }{{"explicit off", "roster", "explicit_off"}, {"missing", "none", "missing"}, {"conflict", "conflict", "conflict"}}
+	for _, test := range cases {
+		t.Run(test.name, func(t *testing.T) {
+			day, err := sanitizedPreviewDay(resolvedScheduleDay{date: "2026-11-16", shiftIDs: []*uuid.UUID{nil}, source: test.source, timezone: "UTC"}, nil)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if day["status"] != test.status {
+				t.Fatalf("expected %s, got %+v", test.status, day)
+			}
+		})
+	}
+}
+
+func TestValidateExpectedRevisionsDetectsMismatch(t *testing.T) {
+	employmentID := uuid.New()
+	date := time.Date(2026, 11, 16, 0, 0, 0, 0, time.UTC)
+	key := employmentID.String() + ":" + date.Format("2006-01-02")
+	err := validateExpectedRevisions(map[string]int64{key: 2}, map[string]int64{key: 3}, []uuid.UUID{employmentID}, date, date)
+	if !errors.Is(err, ErrScheduleRevisionStale) {
+		t.Fatalf("expected revision mismatch, got %v", err)
+	}
+}
+
+func TestValidateExpectedRevisionsRejectsExtraKeys(t *testing.T) {
+	employmentID := uuid.New()
+	date := time.Date(2026, 11, 16, 0, 0, 0, 0, time.UTC)
+	key := employmentID.String() + ":" + date.Format("2006-01-02")
+	err := validateExpectedRevisions(map[string]int64{key: 0, "extra": 0}, map[string]int64{}, []uuid.UUID{employmentID}, date, date)
+	if !errors.Is(err, ErrSchedulePreviewScope) {
+		t.Fatalf("expected scope error, got %v", err)
+	}
+}
+
+func TestScheduleLifecyclePreviewReplanRollsBackOnStaleRevision(t *testing.T) {
+	employmentID := uuid.New()
+	currentID := uuid.New()
+	tx := &fakeTx{fakeDBTX: fakeDBTX{
+		queryRowFn: func(_ context.Context, sql string, _ ...any) pgx.Row {
+			if strings.Contains(sql, "FROM schedule_day_revisions") {
+				return fakeRow{scanFn: func(dest ...any) error {
+					*(dest[0].(*uuid.UUID)) = currentID
+					*(dest[1].(*uuid.UUID)) = employmentID
+					*(dest[2].(*uuid.UUID)) = uuid.New()
+					*(dest[3].(*string)) = "2026-11-16"
+					*(dest[4].(*string)) = "UTC"
+					*(dest[5].(*int64)) = 4
+					return nil
+				}}
+			}
+			return fakeRow{}
+		},
+	}}
+	repo := ScheduleRepository{DB: tx}
+
+	_, err := repo.PreviewReplan(context.Background(), uuid.New(), employmentID, "2026-11-16", api.ScheduleReplanPreviewRequest{
+		ExpectedRevision: 3,
+		Reason:           "Correct schedule",
+		Replacement: api.ScheduleReplanReplacement{
+			Status:         "work",
+			Source:         "manual",
+			ShiftVersionID: new(uuid.UUID),
+			Intervals:      []api.ScheduleReplanInterval{{SortOrder: 0, Start: "08:00", End: "17:00"}},
+		},
+	})
+	if !errors.Is(err, ErrScheduleRevisionStale) {
+		t.Fatalf("expected stale revision, got %v", err)
+	}
+	if tx.committed {
+		t.Fatal("stale preview transaction must not commit")
+	}
+}
+
+func TestScheduleLifecyclePublishReplaysBeforePreviewAndGuards(t *testing.T) {
+	actorID := uuid.New()
+	batchID := uuid.New()
+	request := api.SchedulePublishRequest{
+		EmploymentIDs:      []uuid.UUID{uuid.New()},
+		StartDate:          "2026-11-16",
+		EndDate:            "2026-11-16",
+		Timezone:           "UTC",
+		ApprovalInstanceID: new(uuid.UUID),
+		PreviewID:          uuid.New(),
+		PreviewHash:        strings.Repeat("a", 64),
+		Reason:             "Approved schedule",
+		ExpectedRevisions:  map[string]int64{},
+	}
+	expected, err := hashJSON(publishHashInput(actorID, request, "", ""))
+	if err != nil {
+		t.Fatal(err)
+	}
+	storedResponse := api.SchedulePublicationResponse{BatchID: batchID, Status: "published", PublishedAt: time.Date(2026, 11, 13, 1, 0, 0, 0, time.UTC), AffectedDays: 1}
+	storedJSON, err := json.Marshal(storedResponse)
+	if err != nil {
+		t.Fatal(err)
+	}
+	queryCount := 0
+	tx := &fakeTx{fakeDBTX: fakeDBTX{
+		execFn: func(_ context.Context, sql string, _ ...any) (pgconn.CommandTag, error) {
+			if !strings.Contains(sql, "pg_advisory_xact_lock") {
+				t.Fatalf("replay must not write before lookup, got %s", sql)
+			}
+			return pgconn.NewCommandTag("SELECT 1"), nil
+		},
+		queryRowFn: func(_ context.Context, sql string, _ ...any) pgx.Row {
+			queryCount++
+			if !strings.Contains(sql, "FROM schedule_publication_batches") {
+				t.Fatalf("expected idempotency lookup first, got %s", sql)
+			}
+			return fakeRow{scanFn: func(dest ...any) error {
+				*(dest[0].(*uuid.UUID)) = batchID
+				*(dest[1].(*string)) = expected
+				*(dest[2].(**uuid.UUID)) = &actorID
+				*(dest[3].(*string)) = "human"
+				*(dest[4].(**string)) = nil
+				*(dest[5].(*[]byte)) = storedJSON
+				return nil
+			}}
+		},
+	}}
+	repo := ScheduleRepository{DB: tx}
+	response, err := repo.Publish(context.Background(), actorID, "replay-key", request)
+	if err != nil {
+		t.Fatalf("expected replay, got %v", err)
+	}
+	if response.BatchID != batchID || queryCount != 1 {
+		t.Fatalf("unexpected replay response=%+v query_count=%d", response, queryCount)
+	}
+	if tx.committed == false {
+		t.Fatal("idempotent replay must commit read-only transaction")
+	}
+}

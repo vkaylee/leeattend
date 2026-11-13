@@ -186,6 +186,157 @@ func TestReportRepository_GetAttendanceReportDailyMapsOTClaimStatus(t *testing.T
 	}
 }
 
+func TestReportRepository_GetNoShowReportUsesOfficialScheduleCoverage(t *testing.T) {
+	var countQuery, dataQuery string
+	db := &fakeDBTX{
+		queryRowFn: func(_ context.Context, query string, _ ...any) pgx.Row {
+			countQuery = query
+			return fakeRow{scanFn: func(dest ...any) error {
+				*(dest[0].(*int64)) = 0
+				return nil
+			}}
+		},
+		queryFn: func(_ context.Context, query string, _ ...any) (pgx.Rows, error) {
+			dataQuery = query
+			return &fakeRows{}, nil
+		},
+	}
+
+	response, err := (ReportRepository{DB: db}).GetNoShowReport(context.Background(), api.NoShowReportFilter{
+		Date: "2026-01-01", Page: 1, Limit: 20,
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if response.Total != 0 {
+		t.Fatalf("expected empty result, got total %d", response.Total)
+	}
+	for name, query := range map[string]string{"count": countQuery, "data": dataQuery} {
+		if !strings.Contains(query, "schedule_day_revisions") || !strings.Contains(query, "work_segments") {
+			t.Fatalf("%s query must use official schedule tables: %s", name, query)
+		}
+		if strings.Contains(query, "shift_rosters") || strings.Contains(query, "09:00:00") || strings.Contains(query, "17:00:00") {
+			t.Fatalf("%s query must not synthesize roster hours: %s", name, query)
+		}
+		if !strings.Contains(query, "explicit_off") {
+			t.Fatalf("%s query must exclude explicit off: %s", name, query)
+		}
+	}
+}
+
+type reportRows struct {
+	rows [][]any
+	idx  int
+}
+
+func (r *reportRows) Close()                                       {}
+func (r *reportRows) Err() error                                   { return nil }
+func (r *reportRows) CommandTag() pgconn.CommandTag                { return pgconn.CommandTag{} }
+func (r *reportRows) FieldDescriptions() []pgconn.FieldDescription { return nil }
+func (r *reportRows) Values() ([]any, error)                       { return nil, nil }
+func (r *reportRows) RawValues() [][]byte                          { return nil }
+func (r *reportRows) Conn() *pgx.Conn                              { return nil }
+func (r *reportRows) Next() bool {
+	if r.idx >= len(r.rows) {
+		return false
+	}
+	r.idx++
+	return true
+}
+func (r *reportRows) Scan(dest ...any) error {
+	row := r.rows[r.idx-1]
+	for i, value := range row {
+		switch target := dest[i].(type) {
+		case **uuid.UUID:
+			if value == nil {
+				*target = nil
+				continue
+			}
+			id := value.(uuid.UUID)
+			*target = &id
+		case *uuid.UUID:
+			*target = value.(uuid.UUID)
+		case **string:
+			if value == nil {
+				*target = nil
+				continue
+			}
+			text := value.(string)
+			*target = &text
+		case *string:
+			*target = value.(string)
+		}
+	}
+	return nil
+}
+
+func TestReportRepository_GetNoShowReportClassifiesMissingCoverage(t *testing.T) {
+	employmentID, employeeID, revisionID := uuid.New(), uuid.New(), uuid.New()
+	db := &fakeDBTX{
+		queryRowFn: func(_ context.Context, _ string, _ ...any) pgx.Row {
+			return fakeRow{scanFn: func(dest ...any) error {
+				*(dest[0].(*int64)) = 2
+				return nil
+			}}
+		},
+		queryFn: func(_ context.Context, _ string, _ ...any) (pgx.Rows, error) {
+			return &reportRows{rows: [][]any{
+				{nil, employmentID, employeeID, "Missing", "EMP-M", nil, nil, nil, "2026-01-01", nil},
+				{revisionID, employmentID, employeeID, "Absent", "EMP-A", "Day", "08:00:00", "17:00:00", "2026-01-01", "published"},
+			}}, nil
+		},
+	}
+
+	response, err := (ReportRepository{DB: db}).GetNoShowReport(context.Background(), api.NoShowReportFilter{
+		Date: "2026-01-01", Page: 1, Limit: 20,
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	var rows []api.NoShowReportRow
+	if err := json.Unmarshal(response.Data, &rows); err != nil {
+		t.Fatalf("failed to decode no-show rows: %v", err)
+	}
+	if len(rows) != 2 {
+		t.Fatalf("expected two rows, got %d", len(rows))
+	}
+	if rows[0].Status != "absent" || rows[0].RecordingIssue != "missing_schedule" {
+		t.Fatalf("missing schedule must preserve absent status and report missing coverage: %+v", rows[0])
+	}
+	if rows[1].Status != "absent" || rows[1].RecordingIssue != "missing_punch_in" {
+		t.Fatalf("published schedule must preserve absent compatibility: %+v", rows[1])
+	}
+}
+
+func TestReportRepository_GetNoShowReportAggregatesOfficialIntervals(t *testing.T) {
+	var dataQuery string
+	db := &fakeDBTX{
+		queryRowFn: func(_ context.Context, _ string, _ ...any) pgx.Row {
+			return fakeRow{scanFn: func(dest ...any) error {
+				*(dest[0].(*int64)) = 0
+				return nil
+			}}
+		},
+		queryFn: func(_ context.Context, query string, _ ...any) (pgx.Rows, error) {
+			dataQuery = query
+			return &fakeRows{}, nil
+		},
+	}
+
+	_, err := (ReportRepository{DB: db}).GetNoShowReport(context.Background(), api.NoShowReportFilter{
+		Date: "2026-01-01", Page: 1, Limit: 20,
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !strings.Contains(dataQuery, "GROUP BY sdr.id, sdr.employment_id, sdr.business_date, sdr.state") {
+		t.Fatalf("official intervals must be collapsed per revision: %s", dataQuery)
+	}
+	if !strings.Contains(dataQuery, "NOT EXISTS (SELECT 1 FROM time_entries") {
+		t.Fatalf("no-show query must check punches without interval multiplication: %s", dataQuery)
+	}
+}
+
 func TestReportRepository_ResolveBehalfEmployeeIDs(t *testing.T) {
 	userID := uuid.New()
 	employeeID := uuid.New()
