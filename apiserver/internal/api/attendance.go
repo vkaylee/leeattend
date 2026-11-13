@@ -436,11 +436,7 @@ func (h AttendanceHandler) ReprocessAll(w http.ResponseWriter, r *http.Request) 
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}
-	jobID := uuid.New()
-	apperror.WriteJSON(w, http.StatusOK, map[string]interface{}{
-		"message": "Reprocess jobs queued successfully",
-		"job_id":  jobID.String(),
-	})
+	apperror.WriteError(w, r, apperror.ServiceUnavailable(apperror.KeyServiceUnavailable))
 }
 
 // ReprocessEmployee handles POST /api/v1/attendance/reprocess/{employee_id}.
@@ -468,11 +464,7 @@ func (h AttendanceHandler) ReprocessEmployee(w http.ResponseWriter, r *http.Requ
 		return
 	}
 	_ = employeeID
-	jobID := uuid.New()
-	apperror.WriteJSON(w, http.StatusAccepted, map[string]interface{}{
-		"message": "Reprocess job queued successfully",
-		"job_id":  jobID.String(),
-	})
+	apperror.WriteError(w, r, apperror.ServiceUnavailable(apperror.KeyServiceUnavailable))
 }
 
 // UpdateTimeEntry handles PUT /api/v1/time/entries/{id}.

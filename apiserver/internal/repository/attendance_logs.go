@@ -138,6 +138,9 @@ func insertImportedRawLog(ctx context.Context, db DBTX, employmentID uuid.UUID, 
 }
 
 func insertApprovedAdjustment(ctx context.Context, db DBTX, employmentID, userID uuid.UUID, row api.AttendanceImportRow) error {
+	if err := guardLifecycleDateMutation(ctx, db, []uuid.UUID{employmentID}, []string{row.PunchTime.UTC().Format("2006-01-02")}); err != nil {
+		return err
+	}
 	_, err := db.Exec(ctx, `INSERT INTO attendance_adjustment_requests (id, requested_punch_time, reason, status, requested_by_user_id, approved_by_user_id, employment_id, created_at, updated_at)
 		VALUES ($1, $2, 'Import from Excel/CSV', 'approved', $3, $3, $4, NOW(), NOW())`,
 		uuid.New(), row.PunchTime, userID, employmentID)
@@ -413,6 +416,9 @@ func (r AttendanceRepository) EnterPaperOT(ctx context.Context, employee uuid.UU
 	if err != nil {
 		return api.AttendanceDailySummary{}, err
 	}
+	if err := guardLifecycleDateMutation(ctx, db, []uuid.UUID{employmentID}, []string{req.Date}); err != nil {
+		return api.AttendanceDailySummary{}, err
+	}
 	return upsertPaperOT(ctx, db, employmentID, req, user)
 }
 
@@ -478,6 +484,9 @@ func (r AttendanceRepository) BulkPaperOT(ctx context.Context, rows []api.BulkPa
 			employmentID, empErr := employmentForEmployee(ctx, db, employeeID)
 			if empErr != nil {
 				return errors.New("no active employment found for employee")
+			}
+			if guardErr := guardLifecycleDateMutation(ctx, db, []uuid.UUID{employmentID}, []string{row.Date}); guardErr != nil {
+				return guardErr
 			}
 			_, upsertErr := upsertPaperOT(ctx, db, employmentID, api.PaperOTRequest{Date: row.Date, ClaimedMinutes: row.ClaimedMinutes, Reason: row.Reason}, user)
 			return upsertErr

@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -431,7 +432,7 @@ func TestAttendanceSummaries_Success(t *testing.T) {
 	}
 }
 
-func TestAttendanceReprocessAll_Success(t *testing.T) {
+func TestAttendanceReprocessAllUnavailable(t *testing.T) {
 	userID := uuid.New()
 	handler := AttendanceHandler{
 		Repository: &mockAttendanceRepo{},
@@ -443,12 +444,15 @@ func TestAttendanceReprocessAll_Success(t *testing.T) {
 
 	rec := httptest.NewRecorder()
 	handler.ReprocessAll(rec, req)
-	if rec.Code != http.StatusOK {
-		t.Fatalf("expected 200, got %d", rec.Code)
+	if rec.Code != http.StatusServiceUnavailable {
+		t.Fatalf("expected 503, got %d", rec.Code)
+	}
+	if strings.Contains(rec.Body.String(), "job_id") {
+		t.Fatalf("did not expect fabricated job_id: %s", rec.Body.String())
 	}
 }
 
-func TestAttendanceReprocessEmployee_Success(t *testing.T) {
+func TestAttendanceReprocessEmployeeUnavailable(t *testing.T) {
 	empID := uuid.New()
 	userID := uuid.New()
 	handler := AttendanceHandler{
@@ -462,8 +466,11 @@ func TestAttendanceReprocessEmployee_Success(t *testing.T) {
 
 	rec := httptest.NewRecorder()
 	handler.ReprocessEmployee(rec, req)
-	if rec.Code != http.StatusAccepted {
-		t.Fatalf("expected 202, got %d", rec.Code)
+	if rec.Code != http.StatusServiceUnavailable {
+		t.Fatalf("expected 503, got %d", rec.Code)
+	}
+	if strings.Contains(rec.Body.String(), "job_id") {
+		t.Fatalf("did not expect fabricated job_id: %s", rec.Body.String())
 	}
 }
 

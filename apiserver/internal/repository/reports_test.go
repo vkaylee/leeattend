@@ -186,7 +186,7 @@ func TestReportRepository_GetAttendanceReportDailyMapsOTClaimStatus(t *testing.T
 	}
 }
 
-func TestReportRepository_GetNoShowReportUsesOfficialScheduleCoverage(t *testing.T) {
+func TestReportRepository_GetNoShowReportUsesLatestOfficialRevision(t *testing.T) {
 	var countQuery, dataQuery string
 	db := &fakeDBTX{
 		queryRowFn: func(_ context.Context, query string, _ ...any) pgx.Row {
@@ -212,6 +212,9 @@ func TestReportRepository_GetNoShowReportUsesOfficialScheduleCoverage(t *testing
 		t.Fatalf("expected empty result, got total %d", response.Total)
 	}
 	for name, query := range map[string]string{"count": countQuery, "data": dataQuery} {
+		if !strings.Contains(query, "latest_official_revisions") || !strings.Contains(query, "DISTINCT ON (employment_id, business_date)") || !strings.Contains(query, "revision_number DESC") {
+			t.Fatalf("%s query must select latest official revision: %s", name, query)
+		}
 		if !strings.Contains(query, "schedule_day_revisions") || !strings.Contains(query, "work_segments") {
 			t.Fatalf("%s query must use official schedule tables: %s", name, query)
 		}

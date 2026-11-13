@@ -328,6 +328,9 @@ func (r AttendanceRepository) ApproveAdjustment(ctx context.Context, adjustmentI
 		if err := row.Scan(&employmentID, &requestedPunchTime); err != nil {
 			return err
 		}
+		if err := guardLifecycleDateMutation(ctx, db, []uuid.UUID{employmentID}, []string{requestedPunchTime.UTC().Format("2006-01-02")}); err != nil {
+			return err
+		}
 		result, err := db.Exec(ctx, `UPDATE attendance_adjustment_requests SET status = $1::adjustment_status_type, approved_by_user_id = $2, updated_at = CURRENT_TIMESTAMP WHERE id = $3`, status, approverID, adjustmentID)
 		if err != nil {
 			return err
@@ -407,7 +410,7 @@ func (r AttendanceRepository) GetAttendanceSummaries(ctx context.Context, startD
 	idx := 3
 
 	if employeeID != nil {
-		whereClauses = append(whereClauses, fmt.Sprintf("s.employment_id IN (SELECT id FROM employments WHERE employee_id = $%d)", idx))
+		whereClauses = append(whereClauses, fmt.Sprintf("s.employment_id IN (SELECT id FROM employments WHERE employee_id = $%d AND deleted_at IS NULL)", idx))
 		args = append(args, *employeeID)
 		idx++
 	}
@@ -479,6 +482,14 @@ func (r AttendanceRepository) UpdateTimeEntry(ctx context.Context, entryID uuid.
 		return api.TimeEntryRecord{}, err
 	}
 
+	businessDate, err := time.Parse(time.RFC3339, record.PunchInTime)
+	if err != nil {
+		return api.TimeEntryRecord{}, err
+	}
+	if err := guardLifecycleDateMutation(ctx, db, []uuid.UUID{record.EmploymentID}, []string{businessDate.UTC().Format("2006-01-02")}); err != nil {
+		return api.TimeEntryRecord{}, err
+	}
+
 	punchInTime := record.PunchInTime
 	if req.PunchInTime != nil {
 		punchInTime = *req.PunchInTime
@@ -528,6 +539,14 @@ func (r AttendanceRepository) UpdateTimeEntry(ctx context.Context, entryID uuid.
 func (r AttendanceRepository) DeleteTimeEntry(ctx context.Context, entryID uuid.UUID) error {
 	db, err := r.db(ctx)
 	if err != nil {
+		return err
+	}
+	var employmentID uuid.UUID
+	var punchInTime time.Time
+	if err := db.QueryRow(ctx, `SELECT employment_id, punch_in_time FROM time_entries WHERE id = $1`, entryID).Scan(&employmentID, &punchInTime); err != nil {
+		return err
+	}
+	if err := guardLifecycleDateMutation(ctx, db, []uuid.UUID{employmentID}, []string{punchInTime.UTC().Format("2006-01-02")}); err != nil {
 		return err
 	}
 	cmd, err := db.Exec(ctx, `DELETE FROM time_entries WHERE id = $1`, entryID)

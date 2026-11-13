@@ -19,7 +19,13 @@ type ReportRepository struct {
 	DB DBTX
 }
 
-const officialScheduleCTE = `WITH official_schedule AS (
+const officialScheduleCTE = `WITH latest_official_revisions AS (
+		SELECT DISTINCT ON (employment_id, business_date)
+			id, employment_id, business_date, state
+		FROM schedule_day_revisions
+		WHERE state IN ('published', 'explicit_off')
+		ORDER BY employment_id, business_date, revision_number DESC, id DESC
+	), official_schedule AS (
 	SELECT sdr.id AS revision_id,
 		sdr.employment_id,
 		sdr.business_date,
@@ -27,11 +33,10 @@ const officialScheduleCTE = `WITH official_schedule AS (
 		MIN(ws.scheduled_start)::text AS scheduled_start,
 		MAX(ws.scheduled_end)::text AS scheduled_end,
 		MIN(st.name) AS shift_name
-	FROM schedule_day_revisions sdr
+	FROM latest_official_revisions sdr
 	LEFT JOIN work_segments ws ON ws.schedule_revision_id = sdr.id
 	LEFT JOIN shift_templates st ON st.id = ws.template_id
-	WHERE sdr.state IN ('published', 'explicit_off')
-	GROUP BY sdr.id, sdr.employment_id, sdr.business_date, sdr.state
+		GROUP BY sdr.id, sdr.employment_id, sdr.business_date, sdr.state
 )`
 
 func (r ReportRepository) db(ctx context.Context) (DBTX, error) {
@@ -207,10 +212,12 @@ LIMIT $%d OFFSET $%d`, whereClause, filterClause, argIndex, argIndex+1)
 		}, nil
 	}
 
-	baseClause := `emp.deleted_at IS NULL AND e.deleted_at IS NULL`
+	baseClause := `emp.deleted_at IS NULL AND e.deleted_at IS NULL
+		AND emp.start_date <= $2::date
+		AND (emp.end_date IS NULL OR emp.end_date >= $1::date)`
 	countFilterClause := ""
-	countArgs := []any{}
-	countArgIndex := 1
+	countArgs := []any{params.StartDate, params.EndDate}
+	countArgIndex := 3
 	dataFilterClause := ""
 	dataArgs := []any{params.StartDate, params.EndDate}
 	dataArgIndex := 3
