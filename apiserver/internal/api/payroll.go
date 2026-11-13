@@ -291,11 +291,20 @@ type CreatePayrollInputRequest struct {
 }
 
 type PayrollInput struct {
-	EmploymentID    uuid.UUID       `json:"employment_id"`
-	MetricCode      string          `json:"metric_code"`
-	Value           decimal.Decimal `json:"value"`
-	Unit            string          `json:"unit"`
-	SourceReference *string         `json:"source_reference,omitempty"`
+	ID                uuid.UUID       `json:"id,omitempty"`
+	EmploymentID      uuid.UUID       `json:"employment_id"`
+	MetricCode        string          `json:"metric_code"`
+	Value             decimal.Decimal `json:"value"`
+	Unit              string          `json:"unit"`
+	Status            string          `json:"status,omitempty"`
+	ValidationMessage *string         `json:"validation_message,omitempty"`
+	SourceReference   *string         `json:"source_reference,omitempty"`
+}
+
+type CorrectPayrollInputRequest struct {
+	Value  decimal.Decimal `json:"value"`
+	Unit   string          `json:"unit"`
+	Reason string          `json:"reason"`
 }
 
 type PayrollInputBatch struct {
@@ -413,6 +422,8 @@ type PayrollRepository interface {
 	CreatePayrollInputBatch(context.Context, CreatePayrollInputRequest, uuid.UUID) (PayrollInputBatch, error)
 	ApprovePayrollInputBatch(context.Context, uuid.UUID, uuid.UUID) (PayrollInputBatch, error)
 	LockPayrollInputBatch(context.Context, uuid.UUID, uuid.UUID) (PayrollInputBatch, error)
+	ListPayrollInputs(context.Context, uuid.UUID) ([]PayrollInput, error)
+	CorrectPayrollInput(context.Context, uuid.UUID, CorrectPayrollInputRequest, uuid.UUID) (PayrollInput, error)
 	ListPayrollFormulaRules(context.Context) ([]PayrollFormulaRule, error)
 	CreatePayrollFormulaRule(context.Context, CreatePayrollFormulaRuleRequest, uuid.UUID) (PayrollFormulaRule, error)
 	PublishPayrollFormulaRule(context.Context, uuid.UUID, uuid.UUID) (PayrollFormulaRule, error)
@@ -1143,6 +1154,51 @@ func (h PayrollHandler) PublishPayrollFormulaRule(w http.ResponseWriter, r *http
 		return
 	}
 	apperror.WriteJSON(w, http.StatusOK, rule)
+}
+
+func (h PayrollHandler) ListPayrollInputs(w http.ResponseWriter, r *http.Request) {
+	if !h.allowed(r, "payroll:read") {
+		h.forbidden(w, r)
+		return
+	}
+	batchID, ok := pathUUID(r, "batch_id")
+	if !ok {
+		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
+		return
+	}
+	inputs, err := h.Repository.ListPayrollInputs(r.Context(), batchID)
+	if err != nil {
+		h.writeError(w, r, err)
+		return
+	}
+	if inputs == nil {
+		inputs = []PayrollInput{}
+	}
+	apperror.WriteJSON(w, http.StatusOK, inputs)
+}
+
+func (h PayrollHandler) CorrectPayrollInput(w http.ResponseWriter, r *http.Request) {
+	if !h.allowed(r, "payroll:manage") {
+		h.forbidden(w, r)
+		return
+	}
+	inputID, ok := pathUUID(r, "input_id")
+	actorID, actorOK := httpinfra.UserIDFromContext(r.Context())
+	if !ok || !actorOK {
+		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
+		return
+	}
+	req, err := DecodeJSON[CorrectPayrollInputRequest](r, 1<<20)
+	if err != nil || req.Value.IsNegative() || strings.TrimSpace(req.Unit) == "" || len(strings.TrimSpace(req.Reason)) == 0 || len(req.Reason) > 500 {
+		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
+		return
+	}
+	input, err := h.Repository.CorrectPayrollInput(r.Context(), inputID, req, actorID)
+	if err != nil {
+		h.writeError(w, r, err)
+		return
+	}
+	apperror.WriteJSON(w, http.StatusOK, input)
 }
 
 func (h PayrollHandler) PreviewPayrollFormula(w http.ResponseWriter, r *http.Request) {
