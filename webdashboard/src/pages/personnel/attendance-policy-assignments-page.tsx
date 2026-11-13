@@ -5,8 +5,10 @@ import { useTranslation } from "react-i18next";
 
 import { PolicyAssignmentsSection } from "@/components/features/attendance/policy-assignments-section";
 import Button from "@/components/ui/button";
-import { PageContainer } from "@/components/ui/page-container";
+import { CONTROL_FOCUS_RING } from "@/components/ui/control-styles";
 import PageHeader from "@/components/ui/page-header";
+import { PageContainer } from "@/components/ui/page-container";
+import { SearchInput } from "@/components/ui/search-input";
 
 export default function AttendancePolicyAssignmentsPage() {
   const { t } = useTranslation();
@@ -26,20 +28,19 @@ export default function AttendancePolicyAssignmentsPage() {
         title={t("common.attendance_policy_assignments", { defaultValue: "Attendance Policies" })}
       />
       <div className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900 sm:flex-row">
-        <label className="flex min-w-0 flex-1 items-center gap-2 rounded-xl border border-slate-200 px-3 dark:border-slate-700">
-          <span className="sr-only">{t("common.search", { defaultValue: "Search" })}</span>
-          <input
-            aria-label={t("common.search", { defaultValue: "Search" })}
-            className="min-w-0 flex-1 bg-transparent py-2 text-sm outline-none"
-            onChange={(event) => { setQuery(event.target.value); }}
-            onKeyDown={(event) => { if (event.key === "Enter") updateSearch({ q: query || undefined, page: 1 }); }}
-            placeholder={t("common.search", { defaultValue: "Search" })}
-            value={query}
-          />
-        </label>
+        <SearchInput
+          aria-label={t("common.search", { defaultValue: "Search" })}
+          containerClassName="min-w-0 flex-1"
+          onChange={(event) => { setQuery(event.target.value); }}
+          onKeyDown={(event) => { if (event.key === "Enter") updateSearch({ q: query || undefined, page: 1 }); }}
+          onClear={() => { setQuery(""); updateSearch({ q: undefined, page: 1 }); }}
+          placeholder={t("common.search", { defaultValue: "Search" })}
+          size="sm"
+          value={query}
+        />
         <select
           aria-label={t("common.target_type", { defaultValue: "Target type" })}
-          className="rounded-xl border border-slate-200 bg-transparent px-3 text-sm dark:border-slate-700"
+          className={`rounded-xl border border-slate-200 bg-transparent px-3 text-sm dark:border-slate-700 ${CONTROL_FOCUS_RING}`}
           onChange={(event) => updateSearch({ target_type: event.target.value || undefined, page: 1 })}
           value={search.target_type ?? ""}
         >

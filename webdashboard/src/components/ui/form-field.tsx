@@ -3,12 +3,17 @@ import React, { memo, useId } from "react";
 import { Typography } from "@/components/ui/typography";
 import { cn } from "@/lib/utils";
 
-import { type ControlSize, CONTROL_SIZE_STYLES, CONTROL_TEXT_STYLE } from "./control-styles";
+import {
+  CONTROL_FOCUS_RING,
+  CONTROL_SIZE_STYLES,
+  CONTROL_TEXT_STYLE,
+  type ControlSize,
+} from "./control-styles";
 
 // ── Shared input class ─────────────────────────────────────────────
 
 const INPUT_BASE =
-  "w-full px-6 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl focus:ring-2 focus:ring-primary-500 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all shadow-sm";
+  "w-full px-6 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl focus:bg-white dark:focus:bg-slate-900 outline-none transition-[border-color,background-color,box-shadow] shadow-sm";
 
 const LABEL_BASE =
   "text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1";
@@ -96,6 +101,7 @@ const FormField = memo(function FormField({
           {...sharedProps}
           className={cn(
             INPUT_BASE,
+            CONTROL_FOCUS_RING,
             inputClassName,
             CONTROL_TEXT_STYLE,
             "py-4 text-control-md resize-none",
@@ -109,6 +115,7 @@ const FormField = memo(function FormField({
           {...sharedProps}
           className={cn(
             INPUT_BASE,
+            CONTROL_FOCUS_RING,
             inputClassName,
             CONTROL_TEXT_STYLE,
             CONTROL_SIZE_STYLES[size],

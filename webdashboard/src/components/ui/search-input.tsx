@@ -3,7 +3,12 @@ import React, { forwardRef, useCallback, useRef } from 'react';
 
 import { cn } from '@/lib/utils';
 
-import { CONTROL_SIZE_STYLES, CONTROL_TEXT_STYLE } from './control-styles';
+import {
+  CONTROL_FOCUS_RING,
+  CONTROL_FOCUS_WITHIN,
+  CONTROL_SIZE_STYLES,
+  CONTROL_TEXT_STYLE,
+} from './control-styles';
 
 export interface SearchInputProps
   extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'size'> {
@@ -72,9 +77,10 @@ export const SearchInput = forwardRef<HTMLInputElement, SearchInputProps>(
     return (
       <div
         className={cn(
-          'group relative flex w-full items-center border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-900/60 shadow-2xs transition-all duration-200',
+          'group relative flex w-full items-center border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-900/60 shadow-2xs transition-[border-color,background-color,box-shadow] duration-200',
           'hover:border-slate-300 dark:hover:border-slate-700 hover:bg-white dark:hover:bg-slate-900',
-          'focus-within:border-primary-500 dark:focus-within:border-primary-400 focus-within:ring-2 focus-within:ring-primary-500/20 focus-within:bg-white dark:focus-within:bg-slate-900',
+          'focus-within:bg-white dark:focus-within:bg-slate-900',
+          CONTROL_FOCUS_WITHIN,
           disabled && 'opacity-60 cursor-not-allowed pointer-events-none',
           CONTROL_TEXT_STYLE,
           sizeClasses[size],
@@ -166,7 +172,7 @@ export const SearchTriggerButton = forwardRef<HTMLButtonElement, SearchTriggerBu
       className={cn(
         'group flex h-9 w-full items-center justify-between rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900/70 px-3 text-xs text-slate-500 dark:text-slate-400 shadow-2xs transition-all duration-200',
         'hover:border-primary-500/60 dark:hover:border-primary-400/60 hover:bg-white dark:hover:bg-slate-900 hover:text-slate-800 dark:hover:text-slate-200',
-        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2',
+        CONTROL_FOCUS_RING,
         className
       )}
       ref={ref}

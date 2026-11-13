@@ -16,6 +16,7 @@ import { useTranslation } from "react-i18next";
 import { format } from "date-fns";
 
 import Button from "@/components/ui/button";
+import { CONTROL_FOCUS_RING } from "@/components/ui/control-styles";
 import { Combobox } from "@/components/ui/combobox";
 import { useToast } from "@/components/ui/toast";
 import { Typography } from "@/components/ui/typography";
@@ -57,7 +58,7 @@ function AddSalaryForm({
   selectedCompId, setAmount, setEffectiveDate, setSelectedCompId, t,
 }: AddSalaryFormProps) {
   return (
-    <form className="bg-white dark:bg-slate-900 border-2 border-primary-100 dark:border-primary-800 p-4 sm:p-10 rounded-[2.5rem] shadow-xl shadow-primary-50/50 animate-in slide-in-from-top-4 duration-500" onSubmit={onSubmit}>
+    <form className="rounded-2xl border border-primary-100 bg-white p-4 shadow-sm shadow-primary-50/50 animate-in slide-in-from-top-4 duration-500 dark:border-primary-800 dark:bg-slate-900 sm:p-6" onSubmit={onSubmit}>
       <div className="flex items-center gap-3 mb-8 text-primary-700 dark:text-primary-300">
         <div className="w-8 h-8 rounded-xl bg-primary-50 dark:bg-primary-950 flex items-center justify-center shadow-inner"><ArrowUpRight size={16} /></div>
         <Typography className="text-[10px] font-bold uppercase tracking-[0.2em]" variant="h4">{t("payroll.employee_config.add_new_title")}</Typography>
@@ -69,11 +70,11 @@ function AddSalaryForm({
         </div>
         <div className="space-y-3">
           <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">{t("common.amount")} ({t("common.currency")})</label>
-          <input className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl px-5 py-4 focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all font-bold text-sm tracking-tight" onChange={e => { setAmount(e.target.value); }} placeholder="1,000" required type="number" value={amount} />
+          <input className={cn("w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl px-5 py-4 focus:bg-white dark:focus:bg-slate-900 outline-none transition-[border-color,background-color,box-shadow] font-bold text-sm tracking-tight", CONTROL_FOCUS_RING)} onChange={e => { setAmount(e.target.value); }} placeholder="1,000" required type="number" value={amount} />
         </div>
         <div className="space-y-3">
           <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">{t("common.effective_date")}</label>
-          <input className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl px-5 py-4 focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all font-bold text-sm" onChange={e => { setEffectiveDate(e.target.value); }} required type="date" value={effectiveDate} />
+          <input className={cn("w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl px-5 py-4 focus:bg-white dark:focus:bg-slate-900 outline-none transition-[border-color,background-color,box-shadow] font-bold text-sm", CONTROL_FOCUS_RING)} onChange={e => { setEffectiveDate(e.target.value); }} required type="date" value={effectiveDate} />
         </div>
       </div>
       <div className="mt-10 flex justify-end">
@@ -223,7 +224,7 @@ export default function EmployeeSalaryConfig({employeeId, employmentId }: Props)
       ) : null}
 
       <div
-        className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[2.5rem] overflow-x-auto overscroll-contain shadow-sm"
+        className="overflow-x-auto overscroll-contain rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900"
         onClickCapture={handleHorizontalDragClick}
         ref={setHorizontalDragScrollRef}
       >
@@ -242,7 +243,7 @@ export default function EmployeeSalaryConfig({employeeId, employmentId }: Props)
         </table>
       </div>
 
-      <div className="p-8 bg-amber-50 dark:bg-amber-950/50 border border-amber-100 dark:border-amber-800 rounded-[2.5rem] flex gap-5 shadow-inner">
+      <div className="flex gap-4 rounded-2xl border border-amber-100 bg-amber-50 p-5 shadow-inner dark:border-amber-800 dark:bg-amber-950/50">
         <div className="w-12 h-12 rounded-2xl bg-white dark:bg-slate-900 flex items-center justify-center text-amber-500 shadow-sm border border-amber-100 dark:border-amber-800 shrink-0"><AlertCircle size={24} /></div>
         <div className="text-xs text-amber-900 leading-relaxed font-medium pt-1">
           <Typography className="font-bold uppercase tracking-[0.2em] mb-2 text-amber-950 opacity-80" variant="p">{t("payroll.employee_config.effective_note_title")}</Typography>

@@ -8,7 +8,6 @@ import {
   Calculator,
   Zap,
   Trash2,
-  ChevronRight,
   Filter,
   Info
 } from "lucide-react";
@@ -21,6 +20,8 @@ import { Combobox } from "@/components/ui/combobox";
 import { LABEL_BASE } from "@/components/ui/form-field";
 import Sheet from "@/components/ui/sheet";
 import { Typography } from "@/components/ui/typography";
+import { CONTROL_FOCUS_RING } from "@/components/ui/control-styles";
+import { useConfirm } from "@/hooks/use-confirm";
 import { Employee, PolicyAssignmentResponse } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
@@ -37,7 +38,7 @@ interface AssignmentCardProps {
 function AssignmentCard({ assignment, getTargetName, workUnitLabel, roundingLabel, onDelete }: AssignmentCardProps) {
   const { t } = useTranslation();
   return (
-    <div className="group relative border border-slate-100 dark:border-slate-800 rounded-2xl p-6 bg-slate-50/50 dark:bg-slate-800/20 hover:bg-white dark:hover:bg-slate-800 transition-all flex items-center justify-between">
+    <div className="group relative flex flex-col gap-5 rounded-2xl border border-slate-100 bg-slate-50/50 p-5 transition-all hover:bg-white dark:border-slate-800 dark:bg-slate-800/20 dark:hover:bg-slate-800 sm:flex-row sm:items-center sm:justify-between">
       <div className="flex items-center gap-5">
         <div className={cn("w-12 h-12 rounded-xl flex items-center justify-center shadow-sm border", assignment.target_type === "GROUP" ? "bg-primary-50 dark:bg-primary-950/30 border-primary-100 dark:border-primary-800 text-primary-600 dark:text-primary-400" : "bg-teal-50 dark:bg-teal-950/30 border-teal-100 dark:border-teal-800 text-teal-600 dark:text-teal-400")}>
           {assignment.target_type === "GROUP" ? <Building2 size={24} /> : <User size={24} />}
@@ -51,7 +52,7 @@ function AssignmentCard({ assignment, getTargetName, workUnitLabel, roundingLabe
           <Typography className="text-lg font-bold text-slate-800 dark:text-slate-200" variant="h4">{assignment.target_name ?? getTargetName(assignment.target_type, assignment.target_id)}</Typography>
         </div>
       </div>
-      <div className="flex items-center gap-8 px-6">
+      <div className="grid grid-cols-2 gap-4 sm:flex sm:items-center sm:gap-6 sm:px-4">
         <div><Typography className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1" variant="p">{t("common.organization_settings.work_unit")}</Typography><Typography className="text-sm font-bold text-slate-700 dark:text-slate-300" variant="p">{workUnitLabel(assignment.rules.work_unit_minutes)}</Typography></div>
         <div><Typography className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1" variant="p">{t("common.organization_settings.rounding_policy")}</Typography><Typography className="text-sm font-bold text-slate-700 dark:text-slate-300" variant="p">{roundingLabel(assignment.rules.rounding_policy)}</Typography></div>
         <div><Typography className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1" variant="p">{t("common.organization_settings.early_arrival_strategy")}</Typography><Typography className="text-sm font-bold text-slate-700 dark:text-slate-300" variant="p">{t(`common.organization_settings.early_arrival_options.${assignment.rules.early_arrival_strategy}`)}</Typography></div>
@@ -67,19 +68,12 @@ function AssignmentCard({ assignment, getTargetName, workUnitLabel, roundingLabe
         </div>
       </div>
       <div className="flex items-center gap-2">
-        <Button 
+        <Button
           aria-label={t("common.delete", "Delete")}
-          className="text-slate-400 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/30 transition-colors border-0 shadow-none" 
+          className="text-slate-400 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/30 transition-colors border-0 shadow-none"
           icon={<Trash2 size={18} />}
           onClick={() => { onDelete(assignment.id); }}
           size="icon"
-          variant="outline"
-        />
-        <Button 
-          aria-label={t("common.show_details", "Show Details")}
-          className="text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors border-0 shadow-none" 
-          icon={<ChevronRight size={20} />} 
-          size="icon" 
           variant="outline"
         />
       </div>
@@ -90,7 +84,8 @@ function AssignmentCard({ assignment, getTargetName, workUnitLabel, roundingLabe
   // eslint-disable-next-line max-lines-per-function
 function PolicyAssignmentsSectionContent({ options = {} }: { options?: PolicyAssignmentsOptions }) {
   const { t } = useTranslation();
-  
+  const { confirm, ConfirmationDialog } = useConfirm();
+
   const {
     departments,
     employees,
@@ -134,13 +129,13 @@ function PolicyAssignmentsSectionContent({ options = {} }: { options?: PolicyAss
     [targetType, departments, employees]
   );
 
-  if (isLoadingAssignments) return <div className="h-40 animate-pulse bg-slate-100 dark:bg-slate-800 rounded-[2.5rem] mt-8" data-testid="policy-assignments-skeleton"></div>;
-  if (isAssignmentsError) return <div className="mt-8 rounded-2xl border border-rose-200 bg-rose-50 p-6 text-sm text-rose-700"><p>{t("common.error", { defaultValue: "Unable to load data." })}</p><Button className="mt-3" onClick={() => { void refetchAssignments(); }} variant="outline">{t("common.retry", { defaultValue: "Retry" })}</Button></div>;
+  if (isLoadingAssignments) return <div className="h-40 animate-pulse rounded-2xl bg-slate-100 dark:bg-slate-800" data-testid="policy-assignments-skeleton"></div>;
+  if (isAssignmentsError) return <div className="rounded-2xl border border-rose-200 bg-rose-50 p-6 text-sm text-rose-700 dark:border-rose-900 dark:bg-rose-950/30 dark:text-rose-300"><p>{t("common.error", { defaultValue: "Unable to load data." })}</p><Button className="mt-3" onClick={() => { void refetchAssignments(); }} variant="outline">{t("common.retry", { defaultValue: "Retry" })}</Button></div>;
 
   return (
-    <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden mt-8">
-      <div className="p-10 border-b border-slate-50 dark:border-slate-800">
-        <div className="flex items-center justify-between">
+    <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
+      <div className="border-b border-slate-100 p-5 dark:border-slate-800 sm:p-6">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <Typography className="text-xl font-bold text-slate-800 dark:text-slate-100 tracking-tight uppercase" variant="h2">
               {t("attendance_policy_overrides.title")}
@@ -149,8 +144,8 @@ function PolicyAssignmentsSectionContent({ options = {} }: { options?: PolicyAss
               {t("attendance_policy_overrides.description")}
             </Typography>
           </div>
-          <div className="flex items-center gap-3">
-            <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-xl">
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="flex rounded-xl bg-slate-100 p-1 dark:bg-slate-800">
               {(["ALL", "GROUP", "USER"] as const).map(f => (
                 <Button 
                   className={cn("px-4 rounded-lg", activeFilter === f ? "bg-white dark:bg-slate-900 shadow-sm text-slate-800 dark:text-slate-200" : "text-slate-500 hover:text-slate-700")} 
@@ -169,7 +164,7 @@ function PolicyAssignmentsSectionContent({ options = {} }: { options?: PolicyAss
           </div>
         </div>
       </div>
-      <div className="p-10">
+      <div className="p-5 sm:p-6">
         {filteredAssignments.length === 0 ? (
           <div className="text-center py-12 border-2 border-dashed border-slate-100 dark:border-slate-800 rounded-3xl bg-slate-50/50 dark:bg-slate-800/30">
             <Filter className="w-12 h-12 text-slate-300 dark:text-slate-600 mx-auto mb-4" />
@@ -183,13 +178,19 @@ function PolicyAssignmentsSectionContent({ options = {} }: { options?: PolicyAss
         ) : (
           <div className="space-y-4">
             {filteredAssignments.map(a => (
-              <AssignmentCard 
-                assignment={a} 
-                getTargetName={getTargetName} 
-                key={a.id} 
-                onDelete={(id) => { deleteMutation.mutate(id); }} 
-                roundingLabel={roundingLabel} 
-                workUnitLabel={workUnitLabel} 
+              <AssignmentCard
+                assignment={a}
+                getTargetName={getTargetName}
+                key={a.id}
+                onDelete={async (id) => {
+                  const ok = await confirm({
+                    title: t("attendance_policy_overrides.delete_title", "Delete assignment"),
+                    message: t("attendance_policy_overrides.delete_message", "Delete this attendance policy assignment?"),
+                  });
+                  if (ok) deleteMutation.mutate(id);
+                }}
+                roundingLabel={roundingLabel}
+                workUnitLabel={workUnitLabel}
               />
             ))}
           </div>
@@ -203,6 +204,7 @@ function PolicyAssignmentsSectionContent({ options = {} }: { options?: PolicyAss
           </div>
         </div>
       </div>
+      <ConfirmationDialog />
       <Sheet isOpen={isDrawerOpen} onClose={() => { setIsDrawerOpen(false); }} subtitle={t("attendance_policy_overrides.drawer.add_subtitle")} title={t("attendance_policy_overrides.drawer.add_title")}>
         <div className="space-y-8">
           <div className="space-y-4">
@@ -246,7 +248,7 @@ function PolicyAssignmentsSectionContent({ options = {} }: { options?: PolicyAss
               <div className="space-y-3">
                 <label className={LABEL_BASE}>{t("common.organization_settings.valid_from") || "Effective From"}</label>
                 <input 
-                  className="w-full px-6 py-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl focus:ring-4 focus:ring-primary-500/10 outline-none transition-all font-bold text-sm tracking-tight shadow-sm" 
+                  className={cn("w-full px-6 py-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none transition-[border-color,background-color,box-shadow] font-bold text-sm tracking-tight shadow-sm", CONTROL_FOCUS_RING)}
                   onChange={e => { setValidFrom(e.target.value); }} 
                   type="date" 
                   value={validFrom} 
@@ -284,7 +286,7 @@ function PolicyAssignmentsSectionContent({ options = {} }: { options?: PolicyAss
                   {t("common.organization_settings.grace_period_minutes") || "Late Grace Period (minutes)"}
                 </label>
                 <input 
-                  className="w-full px-6 py-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl focus:ring-4 focus:ring-primary-500/10 outline-none transition-all font-bold text-sm tracking-tight shadow-sm" 
+                  className={cn("w-full px-6 py-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none transition-[border-color,background-color,box-shadow] font-bold text-sm tracking-tight shadow-sm", CONTROL_FOCUS_RING)}
                   max={1440}
                   min={0}
                   onChange={e => {

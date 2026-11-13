@@ -42,6 +42,16 @@ describe('SearchInput Component', () => {
     expect(container.firstChild).toHaveClass('h-[var(--ui-height-lg)]', 'text-base');
   });
 
+  it('uses shared double-ring focus treatment on its container', () => {
+    const { container } = render(<SearchInput aria-label="Search" />);
+    expect(container.firstChild).toHaveClass(
+      'focus-within:border-primary-500',
+      'focus-within:ring-2',
+      'focus-within:ring-offset-2',
+      'focus-within:ring-offset-[var(--background)]',
+    );
+  });
+
   it('handles loading state with spinner', () => {
     const { container } = render(<SearchInput loading />);
     expect(container.querySelector('.animate-spin')).toBeInTheDocument();

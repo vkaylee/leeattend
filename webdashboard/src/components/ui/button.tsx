@@ -3,7 +3,11 @@ import React, { memo, forwardRef } from "react";
 
 import { cn } from "@/lib/utils";
 
-import { CONTROL_SIZE_STYLES, CONTROL_TEXT_STYLE } from "./control-styles";
+import {
+  CONTROL_FOCUS_RING,
+  CONTROL_SIZE_STYLES,
+  CONTROL_TEXT_STYLE,
+} from "./control-styles";
 
 // ── Variant styles ─────────────────────────────────────────────────
 
@@ -61,7 +65,8 @@ const Button = memo(
     return (
       <button
         className={cn(
-          "inline-flex items-center justify-center transition-all active:scale-95 focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 focus:outline-none disabled:bg-slate-200 disabled:text-slate-600 disabled:shadow-none disabled:cursor-not-allowed dark:disabled:bg-slate-800 dark:disabled:text-slate-400",
+          "inline-flex items-center justify-center transition-all active:scale-95 disabled:bg-slate-200 disabled:text-slate-600 disabled:shadow-none disabled:cursor-not-allowed dark:disabled:bg-slate-800 dark:disabled:text-slate-400",
+          CONTROL_FOCUS_RING,
           VARIANT_STYLES[variant],
           className,
           SIZE_STYLES[size],
