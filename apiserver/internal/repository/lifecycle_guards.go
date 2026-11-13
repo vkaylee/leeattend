@@ -195,22 +195,14 @@ func hasActivatedLifecycleScope(ctx context.Context, db DBTX, employmentIDs []uu
 		SELECT 1
 		FROM feature_flags ff
 		JOIN employments e ON e.id = ANY($1) AND e.deleted_at IS NULL
+		JOIN config_entries c
+		  ON c.scope_type = 'employer'
+		 AND c.scope_id = e.employer_id
+		 AND c.config_key = 'schedule.lifecycle.enabled'
+		 AND c.value_bool = true
+		 AND daterange(c.effective_from, COALESCE(c.effective_to + 1, 'infinity'::date), '[)')
+		     && daterange($2::date, $3::date + 1, '[)')
 		WHERE ff.flag_key = 'schedule_lifecycle' AND ff.enabled = true
-		  AND EXISTS (
-			SELECT 1
-			FROM generate_series($2::date, $3::date, interval '1 day') AS days(business_date)
-			WHERE COALESCE((
-				SELECT c.value_bool
-				FROM config_entries c
-				WHERE c.scope_type = 'employer'
-				  AND c.scope_id = e.employer_id
-				  AND c.config_key = 'schedule.lifecycle.enabled'
-				  AND c.effective_from <= days.business_date
-				  AND (c.effective_to IS NULL OR c.effective_to >= days.business_date)
-				ORDER BY c.effective_from DESC, c.id DESC
-				LIMIT 1
-			), false) = true
-		  )
 	)`, employmentIDs, startDate, endDate).Scan(&activated)
 	return activated, err
 }

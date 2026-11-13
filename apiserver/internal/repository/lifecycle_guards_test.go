@@ -43,7 +43,7 @@ func TestGuardLifecycleDateRangeChecksActivatedScope(t *testing.T) {
 				*(dest[2].(*bool)) = false
 			case strings.Contains(query, "schedule_day_revisions"):
 				*(dest[0].(*bool)) = false
-			case strings.Contains(query, "feature_flags") && strings.Contains(query, "generate_series") && strings.Contains(query, "schedule.lifecycle.enabled"):
+			case strings.Contains(query, "feature_flags") && strings.Contains(query, "daterange") && strings.Contains(query, "schedule.lifecycle.enabled"):
 				if len(args) != 3 || args[1] != "2026-11-01" || args[2] != "2026-11-30" {
 					t.Fatalf("unexpected activation args: %v", args)
 				}
