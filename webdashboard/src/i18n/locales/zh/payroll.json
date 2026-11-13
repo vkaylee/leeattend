@@ -1,5 +1,16 @@
 {
   "payroll": {
+    "setup": {
+      "employee_error": "无法加载员工信息。",
+      "no_employment": "没有雇佣关系",
+      "no_employment_description": "该员工没有可用于分配薪资的雇佣关系。",
+      "not_found": "未找到员工",
+      "search_employee": "按员工姓名或编号搜索",
+      "select_employee": "选择员工",
+      "select_subtitle": "选择员工开始分配薪资。",
+      "subtitle": "为所选雇佣关系分配基本工资和津贴。",
+      "title": "薪资设置"
+    },
     "rule_tiers": {
       "title": "税级 / 阶梯",
       "subtitle": "配置累进阶梯",

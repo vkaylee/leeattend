@@ -1,5 +1,16 @@
 {
   "payroll": {
+    "setup": {
+      "employee_error": "Unable to load employee information.",
+      "no_employment": "No employment relationship",
+      "no_employment_description": "This employee has no employment relationship available for salary assignment.",
+      "not_found": "Employee not found",
+      "search_employee": "Search by employee name or code",
+      "select_employee": "Select employee",
+      "select_subtitle": "Choose an employee to start assigning salary.",
+      "subtitle": "Assign base salary and allowances to the selected employment.",
+      "title": "Salary setup"
+    },
     "rule_tiers": {
       "title": "Tax Brackets / Tiers",
       "subtitle": "Configure progressive brackets",

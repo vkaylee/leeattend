@@ -72,8 +72,8 @@ describe("EmployeeSalaryConfig", () => {
 
     const addButton = await screen.findByRole("button", { name: /payroll.employee_config.add_btn/i });
     fireEvent.click(addButton);
-    expect(await screen.findByText("Chưa có khoản lương để gán")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Mở danh mục khoản lương" })).toBeInTheDocument();
+    expect(await screen.findByText("payroll.employee_config.no_definitions")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "payroll.employee_config.open_catalog" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /common.save/i })).not.toBeInTheDocument();
   });
 

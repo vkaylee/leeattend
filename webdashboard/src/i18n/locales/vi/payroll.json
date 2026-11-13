@@ -1,5 +1,16 @@
 {
   "payroll": {
+    "setup": {
+      "employee_error": "Không thể tải thông tin nhân sự.",
+      "no_employment": "Chưa có quan hệ lao động",
+      "no_employment_description": "Nhân sự này chưa có quan hệ lao động để gán lương.",
+      "not_found": "Không tìm thấy nhân sự",
+      "search_employee": "Tìm theo tên hoặc mã nhân viên",
+      "select_employee": "Chọn nhân sự",
+      "select_subtitle": "Chọn nhân sự để bắt đầu gán lương.",
+      "subtitle": "Gán lương cơ bản và phụ cấp cho quan hệ lao động đã chọn.",
+      "title": "Thiết lập lương"
+    },
     "rule_tiers": {
       "title": "Bậc thuế / Phân cấp",
       "subtitle": "Cấu hình các bậc lũy tiến",
