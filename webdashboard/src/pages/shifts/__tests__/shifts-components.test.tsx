@@ -7,6 +7,7 @@ import Button from "@/components/ui/button";
 import { ShiftsContent } from "../content";
 import { ShiftsModals } from "../modals";
 
+vi.mock("@/components/shifts/schedule-lifecycle-panel", () => ({ ScheduleLifecyclePanel: () => <div data-testid="schedule-lifecycle-panel" /> }));
 vi.mock("@/components/shifts/monthly-roster-grid", () => ({ MonthlyRosterGrid: () => <div data-testid="monthly-roster" /> }));
 vi.mock("@/components/shifts/weekly-roster-grid", () => ({ WeeklyRosterGrid: (props: any) => {
   return (

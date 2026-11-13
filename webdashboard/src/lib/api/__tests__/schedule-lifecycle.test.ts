@@ -43,7 +43,7 @@ describe("schedule lifecycle API", () => {
   });
 
   it("adds idempotency keys to publish and replan commits", async () => {
-    vi.mocked(apiFetch).mockResolvedValue(response({}));
+    vi.mocked(apiFetch).mockResolvedValueOnce(response({})).mockResolvedValueOnce(response({}));
     await publishSchedules({
       employment_ids: ["employment-1"],
       start_date: "2026-11-01",
@@ -69,7 +69,7 @@ describe("schedule lifecycle API", () => {
   });
 
   it("uses history and evidence routes with encoded path values", async () => {
-    vi.mocked(apiFetch).mockResolvedValue(response({ data: [] }));
+    vi.mocked(apiFetch).mockResolvedValueOnce(response({ data: [] })).mockResolvedValueOnce(response({ data: {} }));
     await fetchScheduleHistory({ employment_id: "employment-1", limit: 50 });
     await fetchScheduleEvidence("employment/1", "2026-11-01");
     expect(vi.mocked(apiFetch).mock.calls[0][0]).toContain("/api/v1/schedules/history");
