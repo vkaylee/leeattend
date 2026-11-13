@@ -2631,6 +2631,7 @@
     "empty_description": "没有符合当前筛选条件的记录。",
     "error": "无法加载薪资记录。",
     "pagination": "薪资记录分页",
+    "setup": "设置薪资",
     "component_count": "已配置项目"
   }
 }

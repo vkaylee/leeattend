@@ -2631,6 +2631,7 @@
     "empty_description": "No salary records match current filters.",
     "error": "Salary records could not be loaded.",
     "pagination": "Salary records pagination",
+    "setup": "Set up salary",
     "component_count": "Configured items"
   }
 }

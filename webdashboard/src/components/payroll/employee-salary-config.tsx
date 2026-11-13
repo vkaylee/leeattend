@@ -1,6 +1,7 @@
 import type { TFunction } from "i18next";
 
 import { UseMutationResult, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Link } from "@tanstack/react-router";
 import {
   AlertCircle,
   ArrowUpRight,
@@ -57,6 +58,18 @@ function AddSalaryForm({
   amount, assignMutation, definitions, effectiveDate, onSubmit,
   selectedCompId, setAmount, setEffectiveDate, setSelectedCompId, t,
 }: AddSalaryFormProps) {
+  if (definitions.length === 0) {
+    return (
+      <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-100">
+        <Typography className="font-bold" variant="h4">{t("payroll.employee_config.no_definitions", "Chưa có khoản lương để gán")}</Typography>
+        <Typography className="mt-1 text-xs" variant="p">{t("payroll.employee_config.no_definitions_description", "Tạo danh mục khoản lương trước, rồi quay lại trang này để gán cho nhân sự.")}</Typography>
+        <Link className="mt-4 inline-flex" to="/settings/payroll" search={{ tab: "components" } as never}>
+          <Button size="sm" variant="outline">{t("payroll.employee_config.open_catalog", "Mở danh mục khoản lương")}</Button>
+        </Link>
+      </div>
+    );
+  }
+
   return (
     <form className="rounded-2xl border border-primary-100 bg-white p-4 shadow-sm shadow-primary-50/50 animate-in slide-in-from-top-4 duration-500 dark:border-primary-800 dark:bg-slate-900 sm:p-6" onSubmit={onSubmit}>
       <div className="flex items-center gap-3 mb-8 text-primary-700 dark:text-primary-300">
@@ -78,7 +91,7 @@ function AddSalaryForm({
         </div>
       </div>
       <div className="mt-10 flex justify-end">
-        <Button className="bg-primary-600 text-white px-12 py-4 rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-primary-700 transition-all shadow-xl shadow-primary-100 dark:shadow-black/30 active:scale-95 disabled:opacity-50" disabled={assignMutation.isPending} type="submit" variant="primary">{assignMutation.isPending ? t("common.saving").toUpperCase() : t("common.save")}</Button>
+        <Button className="bg-primary-600 text-white px-12 py-4 rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-primary-700 transition-all shadow-xl shadow-primary-100 dark:shadow-black/30 active:scale-95 disabled:opacity-50" disabled={assignMutation.isPending || !selectedCompId || !amount} type="submit" variant="primary">{assignMutation.isPending ? t("common.saving").toUpperCase() : t("common.save")}</Button>
       </div>
     </form>
   );

@@ -240,7 +240,9 @@
       "not_set": "Not Set"
     },
     "messages": {
+      "delete_message": "Delete this attendance policy assignment?",
       "delete_success": "Policy override removed",
+      "delete_title": "Delete assignment",
       "save_success": "Policy override saved",
       "validation_select_target": "Please select a department or employee"
     },

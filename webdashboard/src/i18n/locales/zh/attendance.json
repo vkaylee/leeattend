@@ -240,7 +240,9 @@
       "not_set": "未设置"
     },
     "messages": {
+      "delete_message": "确定要删除此考勤政策分配吗？",
       "delete_success": "政策覆盖已移除",
+      "delete_title": "删除分配",
       "save_success": "政策覆盖已保存",
       "validation_select_target": "请选择部门或员工"
     },

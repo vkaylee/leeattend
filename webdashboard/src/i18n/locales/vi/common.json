@@ -2631,6 +2631,7 @@
     "empty_description": "Không có bản ghi phù hợp.",
     "error": "Không thể tải dữ liệu lương.",
     "pagination": "Phân trang bản ghi lương",
+    "setup": "Thiết lập lương",
     "component_count": "Khoản đã cấu hình"
   }
 }

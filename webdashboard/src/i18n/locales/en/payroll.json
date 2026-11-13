@@ -126,6 +126,9 @@
       "effective_note": "Note: If multiple records exist for the same item, the one with the latest effective date (closest to calculation date) will be used.",
       "item_type": "Salary Item Type",
       "no_config": "No salary config found",
+      "no_definitions": "No salary components available",
+      "no_definitions_description": "Create a salary component first, then return here to assign it to this employee.",
+      "open_catalog": "Open salary catalog",
       "salary_item": "Salary Item",
       "add_new_title": "Add New Config"
     },

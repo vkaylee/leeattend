@@ -240,7 +240,9 @@
       "not_set": "Chưa Thiết Lập"
     },
     "messages": {
+      "delete_message": "Bạn có chắc muốn xóa phân công chính sách chấm công này không?",
       "delete_success": "Đã xóa ghi đè chính sách",
+      "delete_title": "Xóa phân công",
       "save_success": "Đã lưu ghi đè chính sách",
       "validation_select_target": "Vui lòng chọn phòng ban hoặc nhân viên"
     },

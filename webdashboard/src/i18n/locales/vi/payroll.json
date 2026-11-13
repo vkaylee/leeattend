@@ -126,6 +126,9 @@
       "effective_note": "Lưu ý: Nếu có nhiều bản ghi cho cùng một khoản lương, bản ghi có ngày hiệu lực mới nhất (và gần nhất với ngày tính lương) sẽ được sử dụng.",
       "item_type": "Loại khoản lương",
       "no_config": "Chưa có cấu hình lương",
+      "no_definitions": "Chưa có khoản lương nào",
+      "no_definitions_description": "Hãy tạo danh mục khoản lương trước, sau đó quay lại để gán cho nhân sự này.",
+      "open_catalog": "Mở danh mục khoản lương",
       "salary_item": "Khoản lương",
       "add_new_title": "Thêm cấu hình mới"
     },
