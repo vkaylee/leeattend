@@ -78,7 +78,7 @@ ORDER BY v.effective_from DESC, v.version_number DESC LIMIT 1`, asOf).Scan(&form
 	return kpiCalculation{Amount: amount.Round(2), FormulaID: &formulaID, Inputs: inputs, Trace: trace}, nil
 }
 
-func persistKPICalculation(ctx context.Context, db DBTX, employmentID uuid.UUID, year, month int, calc kpiCalculation, actorID *uuid.UUID) error {
+func persistKPICalculation(ctx context.Context, db DBTX, employmentID, payslipID uuid.UUID, year, month int, calc kpiCalculation, actorID *uuid.UUID) error {
 	if calc.FormulaID == nil {
 		return nil
 	}
@@ -94,7 +94,7 @@ func persistKPICalculation(ctx context.Context, db DBTX, employmentID uuid.UUID,
 	if err != nil {
 		return err
 	}
-	_, err = db.Exec(ctx, `INSERT INTO payroll_calculation_runs (employment_id, period_year, period_month, formula_version_id, engine_version, input_snapshot, output_snapshot, calculation_trace, created_by)
-VALUES ($1, $2, $3, $4, 'formula-v1', $5, $6, $7, $8)`, employmentID, year, month, calc.FormulaID, inputSnapshot, outputSnapshot, trace, actorID)
+	_, err = db.Exec(ctx, `INSERT INTO payroll_calculation_runs (employment_id, payslip_id, period_year, period_month, formula_version_id, engine_version, input_snapshot, output_snapshot, calculation_trace, created_by)
+VALUES ($1, $2, $3, $4, $5, 'formula-v1', $6, $7, $8, $9)`, employmentID, payslipID, year, month, calc.FormulaID, inputSnapshot, outputSnapshot, trace, actorID)
 	return err
 }

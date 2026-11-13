@@ -393,8 +393,8 @@ type PayrollRepository interface {
 	ListPayrollRuleAssignments(context.Context, uuid.UUID) ([]PayrollRuleAssignment, error)
 	AssignPayrollRule(context.Context, uuid.UUID, AssignPayrollRuleRequest) (PayrollRuleAssignment, error)
 	DeletePayrollRuleAssignment(context.Context, uuid.UUID, uuid.UUID) error
-	CalculateEmployeePayroll(context.Context, uuid.UUID, int, int) (FullPayslipResponse, error)
-	CalculateBatchPayroll(context.Context, BatchCalculatePayrollRequest) (BatchCalculatePayrollResponse, error)
+	CalculateEmployeePayroll(context.Context, uuid.UUID, int, int, uuid.UUID) (FullPayslipResponse, error)
+	CalculateBatchPayroll(context.Context, BatchCalculatePayrollRequest, uuid.UUID) (BatchCalculatePayrollResponse, error)
 	CreatePayrollInputBatch(context.Context, CreatePayrollInputRequest, uuid.UUID) (PayrollInputBatch, error)
 	ApprovePayrollInputBatch(context.Context, uuid.UUID, uuid.UUID) (PayrollInputBatch, error)
 	LockPayrollInputBatch(context.Context, uuid.UUID, uuid.UUID) (PayrollInputBatch, error)
@@ -960,7 +960,12 @@ func (h PayrollHandler) CalculatePayroll(w http.ResponseWriter, r *http.Request)
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}
-	resp, err := h.Repository.CalculateEmployeePayroll(r.Context(), empID, year, month)
+	actorID, actorOK := httpinfra.UserIDFromContext(r.Context())
+	if !actorOK {
+		h.forbidden(w, r)
+		return
+	}
+	resp, err := h.Repository.CalculateEmployeePayroll(r.Context(), empID, year, month, actorID)
 	if err != nil {
 		h.writeError(w, r, err)
 		return
@@ -1174,7 +1179,12 @@ func (h PayrollHandler) CalculateBatchPayroll(w http.ResponseWriter, r *http.Req
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}
-	resp, err := h.Repository.CalculateBatchPayroll(r.Context(), req)
+	actorID, actorOK := httpinfra.UserIDFromContext(r.Context())
+	if !actorOK {
+		h.forbidden(w, r)
+		return
+	}
+	resp, err := h.Repository.CalculateBatchPayroll(r.Context(), req, actorID)
 	if err != nil {
 		h.writeError(w, r, err)
 		return

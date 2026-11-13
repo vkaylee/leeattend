@@ -58,7 +58,7 @@ func TestPayrollRepository_CalculateEmployeePayroll_UsesEmploymentDepartmentHist
 		}
 		return &fakeRows{}, nil
 	}
-	_, err := (PayrollRepository{DB: tx}).CalculateEmployeePayroll(context.Background(), employeeID, 2026, 1)
+	_, err := (PayrollRepository{DB: tx}).CalculateEmployeePayroll(context.Background(), employeeID, 2026, 1, uuid.New())
 	if err != nil {
 		t.Fatalf("calculate payroll: %v", err)
 	}
@@ -136,7 +136,7 @@ func TestPayrollRepository_CalculateEmployeePayroll_RejectsLockedPeriod(t *testi
 		return &fakeRows{}, nil
 	}
 
-	_, err := (PayrollRepository{DB: tx}).CalculateEmployeePayroll(context.Background(), employeeID, 2026, 1)
+	_, err := (PayrollRepository{DB: tx}).CalculateEmployeePayroll(context.Background(), employeeID, 2026, 1, uuid.New())
 	if !errors.Is(err, api.ErrPayrollPeriodConflict) {
 		t.Fatalf("expected locked period conflict, got %v", err)
 	}
@@ -152,7 +152,7 @@ func TestPayrollRepository_CalculateEmployeePayroll_ProtectsFinalizedPayslip(t *
 	for _, status := range []string{"paid", "finalized"} {
 		t.Run(status, func(t *testing.T) {
 			tx := payrollCalculationFixture(uuid.New(), uuid.New(), uuid.New(), "open", status)
-			_, err := (PayrollRepository{DB: tx}).CalculateEmployeePayroll(context.Background(), uuid.New(), 2026, 1)
+			_, err := (PayrollRepository{DB: tx}).CalculateEmployeePayroll(context.Background(), uuid.New(), 2026, 1, uuid.New())
 			if !errors.Is(err, api.ErrPayslipConflict) {
 				t.Fatalf("expected payslip conflict for %s payslip, got %v", status, err)
 			}
@@ -173,7 +173,7 @@ func TestPayrollRepository_CalculateEmployeePayroll_PropagatesPayslipChildDelete
 		return pgconn.NewCommandTag("INSERT 0 1"), nil
 	}
 
-	_, err := (PayrollRepository{DB: tx}).CalculateEmployeePayroll(context.Background(), uuid.New(), 2026, 1)
+	_, err := (PayrollRepository{DB: tx}).CalculateEmployeePayroll(context.Background(), uuid.New(), 2026, 1, uuid.New())
 	if !errors.Is(err, deleteErr) {
 		t.Fatalf("expected child delete error, got %v", err)
 	}

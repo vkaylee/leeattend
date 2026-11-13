@@ -385,7 +385,7 @@ func (mockPayrollRepository) DeletePayrollRuleAssignment(_ context.Context, _, a
 	return nil
 }
 
-func (mockPayrollRepository) CalculateEmployeePayroll(_ context.Context, employeeID uuid.UUID, _, _ int) (FullPayslipResponse, error) {
+func (mockPayrollRepository) CalculateEmployeePayroll(_ context.Context, employeeID uuid.UUID, _, _ int, _ uuid.UUID) (FullPayslipResponse, error) {
 	if employeeID == uuid.MustParse("00000000-0000-0000-0000-000000000044") {
 		return FullPayslipResponse{}, ErrEmployeeNotFound
 	}
@@ -451,7 +451,7 @@ func (mockPayrollRepository) ReopenPayrollPeriod(_ context.Context, employerID u
 	return PayrollPeriod{ID: uuid.New(), EmployerID: employerID, Year: year, Month: month, Status: "open", Version: version + 1, ReopenReason: &reason}, nil
 }
 
-func (mockPayrollRepository) CalculateBatchPayroll(_ context.Context, req BatchCalculatePayrollRequest) (BatchCalculatePayrollResponse, error) {
+func (mockPayrollRepository) CalculateBatchPayroll(_ context.Context, req BatchCalculatePayrollRequest, _ uuid.UUID) (BatchCalculatePayrollResponse, error) {
 	results := make([]BatchCalculateResult, 0, len(req.EmploymentIDs))
 	for _, id := range req.EmploymentIDs {
 		if id == uuid.MustParse("00000000-0000-0000-0000-000000000099") {
