@@ -8,6 +8,7 @@ on:
       - '.compose/go/**'
       - '.compose/docker-compose.test.yml'
       - 'scripts/_go-gates.sh'
+      - '.golangci.yml'
       - 'leedevkit.toml'
       - '.github/workflows/go-gates.yml'
 
@@ -21,6 +22,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -47,6 +50,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
