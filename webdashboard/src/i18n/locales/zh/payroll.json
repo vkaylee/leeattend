@@ -298,6 +298,9 @@
       "effective_from": "生效日期",
       "empty": "暂无公式版本",
       "expression": "表达式",
+      "publish": "发布",
+      "retire": "停用",
+      "action_conflict": "公式状态已更改。请刷新历史记录后重试。",
       "title": "公式历史"
     },
     "calculation_trace": {

@@ -204,6 +204,11 @@ export async function assignOvertimePolicy(data: { assignee_id?: string | null; 
 
 // --- Payroll Rules API ---
 
+export async function fetchPayrollFormulaRules(): Promise<PayrollRuleDefinition[]> {
+  const { data: response } = await fetch<PayrollRuleDefinition[]>("GET", "/api/v1/payroll/formulas");
+  return response;
+}
+
 export async function fetchPayrollFormulaVersions(ruleId: string): Promise<PayrollFormulaRuleVersion[]> {
   const { data: response } = await fetch<PayrollFormulaRuleVersion[]>("GET", "/api/v1/payroll/formulas/{rule_id}/versions", { params: { path: { rule_id: ruleId } } });
   return response;
@@ -211,6 +216,16 @@ export async function fetchPayrollFormulaVersions(ruleId: string): Promise<Payro
 
 export async function createPayrollFormulaVersion(ruleId: string, data: { expression: string; effective_from: string }): Promise<PayrollFormulaRuleVersion> {
   const { data: response } = await fetch<PayrollFormulaRuleVersion>("POST", "/api/v1/payroll/formulas/{rule_id}/versions", { params: { path: { rule_id: ruleId } }, body: data });
+  return response;
+}
+
+export async function publishPayrollFormulaRule(ruleId: string): Promise<PayrollFormulaRuleVersion> {
+  const { data: response } = await fetch<PayrollFormulaRuleVersion>("POST", "/api/v1/payroll/formulas/{rule_id}/publish", { params: { path: { rule_id: ruleId } } });
+  return response;
+}
+
+export async function retirePayrollFormulaRule(ruleId: string): Promise<PayrollFormulaRuleVersion> {
+  const { data: response } = await fetch<PayrollFormulaRuleVersion>("POST", "/api/v1/payroll/formulas/{rule_id}/retire", { params: { path: { rule_id: ruleId } } });
   return response;
 }
 

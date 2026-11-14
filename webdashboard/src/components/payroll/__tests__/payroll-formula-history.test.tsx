@@ -4,13 +4,16 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 import { ApiError } from "@/lib/api/errors";
-import { createPayrollFormulaVersion, fetchPayrollFormulaVersions } from "@/lib/api/payroll";
+import { createPayrollFormulaVersion, fetchPayrollFormulaVersions, publishPayrollFormulaRule, retirePayrollFormulaRule } from "@/lib/api/payroll";
 
 import { PayrollFormulaHistory } from "../payroll-formula-history";
 
 vi.mock("@/lib/api/payroll", () => ({
   createPayrollFormulaVersion: vi.fn(),
+  fetchPayrollFormulaRules: vi.fn(),
   fetchPayrollFormulaVersions: vi.fn(),
+  publishPayrollFormulaRule: vi.fn(),
+  retirePayrollFormulaRule: vi.fn(),
 }));
 
 vi.mock("react-i18next", () => ({

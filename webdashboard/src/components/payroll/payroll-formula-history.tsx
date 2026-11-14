@@ -6,7 +6,7 @@ import { useTranslation } from "react-i18next";
 import Button from "@/components/ui/button";
 import { Typography } from "@/components/ui/typography";
 import { ApiError } from "@/lib/api/errors";
-import { createPayrollFormulaVersion, fetchPayrollFormulaVersions } from "@/lib/api/payroll";
+import { createPayrollFormulaVersion, fetchPayrollFormulaRules, fetchPayrollFormulaVersions, publishPayrollFormulaRule, retirePayrollFormulaRule } from "@/lib/api/payroll";
 import { payrollKeys } from "@/lib/query-keys";
 
 export function PayrollFormulaHistory({ ruleId }: { ruleId: string }) {
@@ -18,6 +18,9 @@ export function PayrollFormulaHistory({ ruleId }: { ruleId: string }) {
     queryKey: payrollKeys.formulaVersions(ruleId),
     queryFn: () => fetchPayrollFormulaVersions(ruleId),
   });
+  const { data: rules } = useQuery({ queryKey: payrollKeys.rules(), queryFn: fetchPayrollFormulaRules });
+  const rule = rules?.find((candidate) => candidate.id === ruleId);
+
   const createMutation = useMutation({
     mutationFn: () => createPayrollFormulaVersion(ruleId, { expression: expression.trim(), effective_from: effectiveFrom }),
     onSuccess: () => {
@@ -26,10 +29,16 @@ export function PayrollFormulaHistory({ ruleId }: { ruleId: string }) {
       void queryClient.invalidateQueries({ queryKey: payrollKeys.formulaVersions(ruleId) });
     },
   });
+  const actionMutation = useMutation({
+    mutationFn: ({ action }: { action: "publish" | "retire" }) => action === "publish" ? publishPayrollFormulaRule(ruleId) : retirePayrollFormulaRule(ruleId),
+    onSuccess: () => { void queryClient.invalidateQueries({ queryKey: payrollKeys.formulaVersions(ruleId) }); },
+  });
   const isConflict = createMutation.error instanceof ApiError && createMutation.error.status === 409;
+  const actionConflict = actionMutation.error instanceof ApiError && actionMutation.error.status === 409;
 
   if (isLoading) return <div className="p-4 text-sm text-slate-500">{t("common.loading")}</div>;
   if (isError) return <div className="p-4 text-sm text-red-600">{t("common.error")}</div>;
+  if (rule?.status === "retired") return <div className="p-4 text-sm text-slate-500">{t("payroll.formula_history.retired_read_only", "This formula is retired and read-only.")}</div>;
 
   return (
     <div className="space-y-3" data-testid="payroll-formula-history">
@@ -54,6 +63,9 @@ export function PayrollFormulaHistory({ ruleId }: { ruleId: string }) {
           </div>
           <code className="mt-2 block rounded-lg bg-slate-50 p-2 text-xs dark:bg-slate-800">{version.expression}</code>
           <Typography className="mt-2 block text-slate-500" variant="small">{version.effective_from}</Typography>
+          {version.status === "draft" ? <Button disabled={actionMutation.isPending} onClick={() => { actionMutation.mutate({ action: "publish" }); }} size="sm" type="button" variant="outline">{t("payroll.formula_history.publish", "Publish")}</Button> : null}
+          {version.status === "published" ? <Button disabled={actionMutation.isPending} onClick={() => { actionMutation.mutate({ action: "retire" }); }} size="sm" type="button" variant="destructive">{t("payroll.formula_history.retire", "Retire")}</Button> : null}
+          {actionMutation.isError ? <p className="mt-2 text-xs text-red-600" role="alert">{actionConflict ? t("payroll.formula_history.action_conflict", "Formula status changed. Refresh history and retry.") : t("common.error")}</p> : null}
         </div>
       ))}
     </div>
