@@ -68,7 +68,7 @@ Xây nền payroll mở rộng theo mô hình `source metric → payroll input �
 
 ### 6. Hoàn thiện vertical slice `production KPI → KPI_BONUS`
 
-- [ ] Seed canonical definitions: `production.output`, `production.target_output`, `production.quality_rate`, `kpi.output_weight`, `kpi.quality_weight`, `kpi.target_bonus`, `KPI_BONUS`.
+- [x] Seed canonical definitions: production metrics, effective KPI policy parameters, and published `kpi.bonus` → `KPI_BONUS` formula. Fresh installs seed formula during standalone bootstrap; existing DBs use migration `20261114060000_payroll_kpi_formula_seed`.
 - [x] Implement pure KPI rule: `output_score = min(actual/target, cap)`, weighted score, bonus cap và rounding; xử lý target bằng 0/missing input rõ ràng.
 - [x] Import dữ liệu production qua JSON batch contract; CSV adapter để phase sau, nhưng giữ cùng contract.
 - [x] Payroll result includes `KPI_BONUS` component and calculation trace endpoint/UI with input snapshot, formula version, result, and engine metadata. Intermediate KPI policy detail remains a follow-up UI enhancement.
@@ -106,7 +106,7 @@ Xây nền payroll mở rộng theo mô hình `source metric → payroll input �
 - [ ] Old payroll results remain unchanged after new policy/rule publication.
 - [x] Calculation result is explainable and auditable without exposing restricted data.
 - [ ] Existing salary component, incentive policy, calculate and period-lock behavior remains compatible.
-- [ ] API, DB integration, web and role-based acceptance tests pass.
+- [ ] API and role-based payroll acceptance pass. Web full gate remains blocked by performance-budget baseline; runtime DB migration rehearsal remains pending.
 
 ## Decisions requiring approval before implementation
 
