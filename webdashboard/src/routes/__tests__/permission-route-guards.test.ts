@@ -29,6 +29,8 @@ import { Route as AssignmentsRoute } from "../_authenticated/_organization/assig
 import { Route as ContractsRoute } from "../_authenticated/_organization/contracts";
 import { Route as EmployeeDetailRoute } from "../_authenticated/_organization/employees_.$employeeId";
 import { Route as LifecycleRoute } from "../_authenticated/_organization/lifecycle";
+import { Route as PayrollRoute } from "../_authenticated/_organization/payroll";
+import { Route as PayrollSettingsRoute } from "../_authenticated/_organization/settings/payroll";
 import { Route as SalaryManagementRoute } from "../_authenticated/_organization/salary-management";
 import { Route as SalaryManagementSetupRoute } from "../_authenticated/_organization/salary-management.setup";
 import { Route as SettingsRoute } from "../_authenticated/_organization/settings";
@@ -45,6 +47,10 @@ const personnelHubBeforeLoads = [
   (AssignmentsRoute.options as RouteOptions).beforeLoad!,
   (WorkingConditionsRoute.options as RouteOptions).beforeLoad!,
   (LifecycleRoute.options as RouteOptions).beforeLoad!,
+];
+const payrollBeforeLoads = [
+  (PayrollRoute.options as RouteOptions).beforeLoad!,
+  (PayrollSettingsRoute.options as RouteOptions).beforeLoad!,
 ];
 const salaryManagementBeforeLoad = (SalaryManagementRoute.options as RouteOptions).beforeLoad!;
 const salaryManagementSetupBeforeLoad = (SalaryManagementSetupRoute.options as RouteOptions).beforeLoad!;
@@ -119,6 +125,23 @@ describe("permission route guards", () => {
 
     for (const beforeLoad of personnelHubBeforeLoads) {
       await expect(beforeLoad()).resolves.toBeUndefined();
+    }
+  });
+
+  it("allows payroll routes only with payroll read permission", async () => {
+    fetchMyPermissions.mockResolvedValue({ permissions: ["payroll:read"] });
+    for (const beforeLoad of payrollBeforeLoads) await expect(beforeLoad()).resolves.toBeUndefined();
+
+    fetchMyPermissions.mockResolvedValue({ permissions: ["employees:read"] });
+    for (const beforeLoad of payrollBeforeLoads) {
+      await expect(beforeLoad()).rejects.toMatchObject({ isRedirect: true, to: "/" });
+    }
+  });
+
+  it("fails closed for payroll routes when permission lookup fails", async () => {
+    fetchMyPermissions.mockRejectedValue(new Error("permission service unavailable"));
+    for (const beforeLoad of payrollBeforeLoads) {
+      await expect(beforeLoad()).rejects.toMatchObject({ isRedirect: true, to: "/" });
     }
   });
 
