@@ -45,17 +45,20 @@ function FeatureFlagRow({ flag, canManage }: { flag: FeatureFlag; canManage: boo
     if (!canManage || mutation.isPending) return;
     mutation.mutate(enabled);
   };
+  const catalogEntry = Object.prototype.hasOwnProperty.call(FEATURE_FLAG_CATALOG, flag.flag_key)
+    ? (FEATURE_FLAG_CATALOG as Record<string, { description: string }>)[flag.flag_key]
+    : undefined;
 
   return (
     <>
       <div className="flex flex-col gap-4 rounded-2xl border border-slate-200/80 bg-white p-5 shadow-2xs dark:border-slate-800/80 dark:bg-slate-900/90 sm:flex-row sm:items-center sm:justify-between" data-testid={`feature-flag-${flag.flag_key}`}>
         <div className="min-w-0">
           <Typography className="font-semibold text-slate-800 dark:text-slate-100" variant="h3">{flag.flag_key}</Typography>
-          <Typography className="mt-1 text-sm text-slate-500 dark:text-slate-400" variant="p">{flag.description ?? FEATURE_FLAG_CATALOG[flag.flag_key as keyof typeof FEATURE_FLAG_CATALOG]?.description ?? t("feature_flags.no_description", { defaultValue: "No description" })}</Typography>
+          <Typography className="mt-1 text-sm text-slate-500 dark:text-slate-400" variant="p">{flag.description ?? catalogEntry?.description ?? t("feature_flags.no_description", { defaultValue: "No description" })}</Typography>
           <Typography className="mt-2 text-xs text-slate-400 dark:text-slate-500" variant="p">{t("feature_flags.updated", { defaultValue: "Updated" })}: {new Date(flag.updated_at).toLocaleString()}</Typography>
         </div>
         <div className="flex items-center gap-3 self-end sm:self-auto">
-          {FEATURE_FLAG_CATALOG[flag.flag_key as keyof typeof FEATURE_FLAG_CATALOG] ? null : <span className="text-xs text-amber-600 dark:text-amber-400">{t("feature_flags.unregistered", { defaultValue: "Unregistered consumer" })}</span>}
+          {catalogEntry ? null : <span className="text-xs text-amber-600 dark:text-amber-400">{t("feature_flags.unregistered", { defaultValue: "Unregistered consumer" })}</span>}
           <span className="text-sm font-medium text-slate-600 dark:text-slate-300">{flag.enabled ? t("common.enabled", { defaultValue: "Enabled" }) : t("feature_flags.disabled", { defaultValue: "Disabled" })}</span>
           <SettingsSwitch ariaLabel={`${flag.flag_key} ${t("feature_flags.toggle", { defaultValue: "toggle" })}`} checked={flag.enabled} disabled={!canManage || mutation.isPending} onCheckedChange={handleToggle} testId={`feature-flag-toggle-${flag.flag_key}`} />
         </div>

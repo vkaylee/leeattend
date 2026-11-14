@@ -34,7 +34,7 @@ export function WorkingConditionsFilters({
     { value: "all", label: t("working_conditions.filters.all_types", { defaultValue: "TẤT CẢ LOẠI ĐIỀU KIỆN" }) },
     ...typeDefs.map((def) => ({
       value: def.code,
-      label: (def.name_i18n?.[currentLang] || def.name_i18n?.en || def.code).toUpperCase(),
+      label: (def.name_i18n[currentLang] || def.name_i18n.en || def.code).toUpperCase(),
     })),
   ];
 

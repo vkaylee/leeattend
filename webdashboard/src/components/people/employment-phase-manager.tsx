@@ -9,8 +9,8 @@ import { useToast } from "@/components/ui/toast";
 import { Typography } from "@/components/ui/typography";
 import { fetchEmploymentPhases, createEmploymentPhase } from "@/lib/api/employees";
 import { EmploymentPhaseDefinition, CreateEmploymentPhaseDefinitionRequest } from "@/lib/api/types";
-import { cn } from "@/lib/utils";
 import { createQueryKey } from "@/lib/query-keys";
+import { cn } from "@/lib/utils";
 
 
 export default function EmploymentPhaseManager() {

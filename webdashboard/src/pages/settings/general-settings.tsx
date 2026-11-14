@@ -15,11 +15,11 @@ import { Typography } from "@/components/ui/typography";
 import { useDarkModeContext } from "@/context/use-dark-mode-context";
 import { useTheme } from "@/hooks/use-theme";
 import { fetchOrganization, updateOrganization, Organization } from "@/lib/api";
+import { createQueryKey } from "@/lib/query-keys";
 import { cn } from "@/lib/utils";
 
 import { OrganizationLogoField } from "./components/organization-logo-field";
 import { ThemeColorPicker } from "./components/theme-color-picker";
-import { createQueryKey } from "@/lib/query-keys";
 
 
 type TabType = "localization" | "appearance";

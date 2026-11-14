@@ -3,8 +3,8 @@ import { useQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
 
 import { AttendanceReportSort, AttendanceSummary, PaginatedResponse, fetchAttendanceReport } from "@/lib/api";
-import { formatHours } from "@/lib/utils/attendance";
 import { createQueryKey } from "@/lib/query-keys";
+import { formatHours } from "@/lib/utils/attendance";
 
 
 interface UseReportsStatsProps {

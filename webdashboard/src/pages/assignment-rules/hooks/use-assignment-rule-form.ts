@@ -9,9 +9,9 @@ import {
   updateAssignmentRule,
   AssignmentRuleConditions,
 } from "@/lib/api";
+import { createQueryKey } from "@/lib/query-keys";
 
 import { useAssignmentRulesData } from "./use-assignment-rules-data";
-import { createQueryKey } from "@/lib/query-keys";
 
 
 export function useAssignmentRuleForm(ruleId?: string) {

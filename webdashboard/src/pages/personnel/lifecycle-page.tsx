@@ -45,7 +45,7 @@ export default function PersonnelLifecyclePage() {
       const matchSearch =
         !search ||
         c.employee_name.toLowerCase().includes(q) ||
-        (c.employee_code?.toLowerCase().includes(q) ?? false) ||
+        c.employee_code.toLowerCase().includes(q) ||
         (c.department_name?.toLowerCase().includes(q) ?? false) ||
         (c.template_name?.toLowerCase().includes(q) ?? false) ||
         c.checklist_type.toLowerCase().includes(q);

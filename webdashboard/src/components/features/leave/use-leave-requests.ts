@@ -17,9 +17,9 @@ import {
   LeaveRequest,
 } from "@/lib/api";
 import { logError } from "@/lib/logger";
+import { createQueryKey } from "@/lib/query-keys";
 import { useSearchPatch } from "@/lib/state";
 import { Route } from "@/routes/_authenticated/_organization/leave-requests";
-import { createQueryKey } from "@/lib/query-keys";
 
 
 export type TabType = LeaveRequestsSearch["tab"];
@@ -65,15 +65,15 @@ export function useLeaveRequests() {
       });
     },
     getNextPageParam: (lastPage, allPages) => {
-      const totalLoaded = allPages.reduce((sum, p) => sum + (p?.data?.length || 0), 0);
-      return totalLoaded >= (lastPage?.total || 0) ? undefined : allPages.length + 1;
+      const totalLoaded = allPages.reduce((sum, p) => sum + p.data.length, 0);
+      return totalLoaded >= lastPage.total ? undefined : allPages.length + 1;
     },
     initialPageParam: 1,
     enabled: activeTab !== "behalf_assignments",
   });
 
   const requests = useMemo(
-    () => paginatedRequests?.pages.flatMap((p) => p?.data ?? []) ?? [],
+    () => paginatedRequests?.pages.flatMap((p) => p.data) ?? [],
     [paginatedRequests]
   );
   const requestsTotal = paginatedRequests?.pages[0]?.total ?? 0;

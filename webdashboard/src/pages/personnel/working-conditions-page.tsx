@@ -82,7 +82,7 @@ export default function PersonnelWorkingConditionsPage() {
     return conditions.filter((c) => {
       const q = search.toLowerCase();
       const def = typeDefs.find((d) => d.code === c.type.toUpperCase());
-      const displayName = def?.name_i18n?.[currentLang] || def?.name_i18n?.en || c.type;
+      const displayName = def?.name_i18n[currentLang] || def?.name_i18n.en || c.type;
 
       const matchSearch =
         !search ||

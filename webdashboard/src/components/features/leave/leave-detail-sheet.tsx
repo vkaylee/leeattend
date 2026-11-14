@@ -38,7 +38,7 @@ export function LeaveDetailSheet({
   if (!request) return null;
 
   const leaveType = leaveTypes.find((lt) => lt.id === request.leave_type_id);
-  const typeName = leaveType?.name ?? request.leave_type_id ?? "Nghỉ phép";
+  const typeName = leaveType?.name || request.leave_type_id;
 
   const getStatusBadge = (status: string) => {
     switch (status) {

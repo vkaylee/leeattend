@@ -13,6 +13,7 @@ import {
   fetchWorkingPatterns,
   updateWorkingPattern,
 } from "@/lib/api";
+import { createQueryKey } from "@/lib/query-keys";
 
 import {
   getFirstShiftId,
@@ -20,7 +21,6 @@ import {
   shouldInit,
 } from "./use-working-pattern-form-helpers";
 import { useWorkingPatternGrid } from "./use-working-pattern-grid";
-import { createQueryKey } from "@/lib/query-keys";
 
 
 export { isCycleLengthInvalid, convertGridToDetails } from "./use-working-pattern-form-helpers";

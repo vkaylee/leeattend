@@ -85,7 +85,7 @@ export const ThemeSwitch = memo(function ThemeSwitch({
   enableViewTransition = true,
 }: ThemeSwitchProps) {
   const darkModeContext = useDarkModeContext();
-  const isDark = darkModeContext.isDark ?? (darkModeContext.mode === 'dark');
+  const isDark = darkModeContext.isDark || darkModeContext.mode === 'dark';
   const setMode = darkModeContext.setMode;
 
   const handleToggle = useCallback(

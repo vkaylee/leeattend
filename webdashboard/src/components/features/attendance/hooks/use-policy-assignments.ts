@@ -13,8 +13,7 @@ import {
   Employee,
   UpsertPolicyAssignmentRequest
 } from "@/lib/api";
-import { departmentKeys, employeeKeys } from "@/lib/query-keys";
-import { createQueryKey } from "@/lib/query-keys";
+import { departmentKeys, employeeKeys, createQueryKey  } from "@/lib/query-keys";
 
 
 export type FilterType = "ALL" | "GROUP" | "USER";

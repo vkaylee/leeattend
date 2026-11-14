@@ -9,10 +9,10 @@ import { Typography } from "@/components/ui/typography";
 import { useConfirm } from "@/hooks/use-confirm";
 import { fetchLeavePolicies, createLeavePolicy, deleteLeavePolicy, updateLeavePolicy, fetchLeaveTypes, type CreateLeavePolicyRequestBody, type UpdateLeavePolicyRequestBody } from "@/lib/api/leaves";
 import { LeavePolicy } from "@/lib/api/types";
+import { createQueryKey } from "@/lib/query-keys";
 
 import { PolicyCard } from "./policy-card";
 import { PolicyModal } from "./policy-modal";
-import { createQueryKey } from "@/lib/query-keys";
 
 
 export function LeavePolicyManager() {

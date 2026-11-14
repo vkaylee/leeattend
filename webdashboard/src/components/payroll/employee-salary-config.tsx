@@ -31,10 +31,10 @@ import {
   setEmployeePayrollConfig,
 } from "@/lib/api/payroll";
 import { EmployeeSalaryComponentDetail } from "@/lib/api/types";
+import { createQueryKey } from "@/lib/query-keys";
 import { cn } from "@/lib/utils";
 
 import TemporalConfigTable from "../common/temporal-config-table";
-import { createQueryKey } from "@/lib/query-keys";
 
 
 interface SalaryCompDefinition {

@@ -41,7 +41,7 @@ export function useQuickAccess() {
   useEffect(() => {
     const handleLocalChange = (e: Event) => {
       const customEvent = e as CustomEvent<string[]>;
-      if (customEvent.detail && Array.isArray(customEvent.detail)) {
+      if (Array.isArray(customEvent.detail)) {
         setAllIds(customEvent.detail);
       } else {
         setAllIds(getQuickAccess());

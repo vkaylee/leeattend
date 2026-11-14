@@ -6,12 +6,12 @@ import { useTranslation } from "react-i18next";
 import Button from "@/components/ui/button";
 import { Typography } from "@/components/ui/typography";
 import { fetchIncentivePolicies } from "@/lib/api/payroll";
+import { createQueryKey } from "@/lib/query-keys";
 import { cn } from "@/lib/utils";
 
 import { BonusPolicyCard } from "./bonus-policy-card";
 import { BonusPolicyForm } from "./bonus-policy-form";
 import { useBonusPolicyMutations } from "./hooks/use-bonus-policy-mutations";
-import { createQueryKey } from "@/lib/query-keys";
 
 
 export default function BonusPolicyManager() {

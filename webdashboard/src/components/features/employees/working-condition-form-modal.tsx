@@ -20,8 +20,8 @@ import {
   type ConditionTypeDefinition,
   type Employee,
 } from "@/lib/api";
-import { cn } from "@/lib/utils";
 import { createQueryKey } from "@/lib/query-keys";
+import { cn } from "@/lib/utils";
 
 
 const conditionFormSchema = z
@@ -166,7 +166,7 @@ export default function WorkingConditionFormModal({
                 data-testid="condition-employee-combobox"
                 id="condition-employee-combobox"
                 onChange={setSelectedEmployeeId}
-                options={(employees ?? []).map((emp: Employee) => ({
+                options={employees.map((emp: Employee) => ({
                   value: emp.id,
                   label: `${emp.full_name}${emp.employee_id_number ? ` (${emp.employee_id_number})` : ""}`,
                   description: emp.department_name ?? emp.job_title ?? undefined,
@@ -199,7 +199,7 @@ export default function WorkingConditionFormModal({
               }}
             >
               {(typeDefs ?? []).map((def) => {
-                const name = def.name_i18n?.[currentLang] || def.name_i18n?.en || def.code;
+                const name = def.name_i18n[currentLang] || def.name_i18n.en || def.code;
                 return (
                   <option key={def.id} value={def.code}>
                     {name} ({def.code})

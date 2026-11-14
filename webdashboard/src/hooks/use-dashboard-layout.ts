@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRef, useState } from "react";
 
 import { apiFetch } from "@/lib/api/helpers";
+import { createQueryKey } from "@/lib/query-keys";
 
 import {
     ALL_WIDGETS,
@@ -16,7 +17,6 @@ import {
     type DashboardView,
     type WidgetId,
 } from "./use-dashboard-layout-presets";
-import { createQueryKey } from "@/lib/query-keys";
 
 
 export type { DashboardView, WidgetId } from "./use-dashboard-layout-presets";

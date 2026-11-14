@@ -54,7 +54,7 @@ export const useWorkerUtilization = (stats: WorkerMonitorStats | undefined): Uti
         const idle = stats?.idle_workers ?? null;
         const total = stats?.total_workers ?? null;
         const unavailable = active === null || idle === null || total === null;
-        const thresholds = stats?.thresholds?.worker_utilization;
+        const thresholds = stats?.thresholds.worker_utilization;
         const thresholdsAvailable = thresholds !== undefined && thresholds.source !== "unavailable";
         const percent = unavailable
             ? null
@@ -90,7 +90,7 @@ export const useQueuePressure = (stats: WorkerMonitorStats | undefined): QueuePr
         const low = metricValue(queueHealth?.depth_low, stats?.pending_low);
         const unavailable = high === null || normal === null || low === null;
         const total = unavailable ? null : high + normal + low;
-        const thresholds = stats?.thresholds?.queue_pressure;
+        const thresholds = stats?.thresholds.queue_pressure;
         const thresholdsAvailable = thresholds !== undefined && thresholds.source !== "unavailable";
         return {
             high,

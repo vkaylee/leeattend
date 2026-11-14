@@ -16,11 +16,10 @@ import {
   updateEmployeeEmployment, Employment,
 } from "@/lib/api";
 import { logError } from "@/lib/logger";
-import { employeeKeys } from "@/lib/query-keys";
+import { employeeKeys, createQueryKey  } from "@/lib/query-keys";
 import { useLocations } from "@/pages/settings/hooks/use-locations";
 
 import EmployeeFormInputs from "./employee-form-inputs";
-import { createQueryKey } from "@/lib/query-keys";
 
 
 interface EmployeeFormModalProps {

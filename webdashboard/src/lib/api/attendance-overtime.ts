@@ -35,7 +35,7 @@ export async function fetchAttendanceSummaries(
   if (Array.isArray(resData)) {
     return resData;
   }
-  return resData && "data" in resData && Array.isArray(resData.data) ? resData.data : [];
+  return "data" in resData && Array.isArray(resData.data) ? resData.data : [];
 }
 
 export async function fetchAttendanceSummariesPaginated(

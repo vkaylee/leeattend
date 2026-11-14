@@ -14,13 +14,12 @@ import Button from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
 import { useOrganizationMutation } from "@/hooks/common/use-organization-query";
 import { fetchEmployeeEmployments, updateEmployeeEmployment } from "@/lib/api";
-import { employeeKeys } from "@/lib/query-keys";
+import { employeeKeys, createQueryKey  } from "@/lib/query-keys";
 import { maybeNull } from "@/types/api-overrides";
 
 import type { DeptHistoryEntry } from "./profile-sections";
 
 import { DepartmentSection, LocationSection, UserSection, HireDatesSection } from "./profile-sections";
-import { createQueryKey } from "@/lib/query-keys";
 
 
 export function ProfileActions({

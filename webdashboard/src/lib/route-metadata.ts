@@ -315,7 +315,7 @@ export const ROUTE_METADATA_MAP: Record<string, RouteMetadata> = {
  * Handles exact matches and nested prefixes.
  */
 export function getRouteMetadata(pathname: string): RouteMetadata {
-  if (ROUTE_METADATA_MAP[pathname]) {
+  if (Object.prototype.hasOwnProperty.call(ROUTE_METADATA_MAP, pathname)) {
     return ROUTE_METADATA_MAP[pathname];
   }
 

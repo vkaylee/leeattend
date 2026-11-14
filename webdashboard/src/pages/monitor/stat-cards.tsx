@@ -95,11 +95,13 @@ function MetricCard({
 }
 
 export function MonitorStatCards({ isLoading, stats, t }: MonitorStatCardsProps) {
-  const utilization = stats?.active_workers !== null && stats?.active_workers !== undefined && stats?.total_workers !== null && stats?.total_workers !== undefined && stats.total_workers > 0
-    ? Math.round((stats.active_workers / stats.total_workers) * 100)
+  const activeWorkers = stats?.active_workers;
+  const totalWorkers = stats?.total_workers;
+  const utilization = activeWorkers != null && totalWorkers != null && totalWorkers > 0
+    ? Math.round((activeWorkers / totalWorkers) * 100)
     : null;
-  const utilizationThreshold = stats?.thresholds?.worker_utilization;
-  const queueThreshold = stats?.thresholds?.queue_pressure;
+  const utilizationThreshold = stats?.thresholds.worker_utilization;
+  const queueThreshold = stats?.thresholds.queue_pressure;
   const thresholdUnavailable = t("monitor.threshold_unavailable", { defaultValue: "Unavailable" });
   const utilizationThresholdText = utilizationThreshold && utilizationThreshold.source !== "unavailable"
     ? t("monitor.percent_threshold", { defaultValue: "Warn {{warning}}% · critical {{critical}}%", warning: utilizationThreshold.warning_at_percent, critical: utilizationThreshold.critical_at_percent })

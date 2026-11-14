@@ -17,13 +17,13 @@ import { Typography } from "@/components/ui/typography";
 import { useMyClock, useMyProfile } from "@/hooks/use-ess";
 import { fetchOrganization, submitAttendanceAdjustment } from "@/lib/api";
 import { toUTCISO } from "@/lib/datetime";
+import { createQueryKey } from "@/lib/query-keys";
 
 import { HistoryTable } from "./components/history-table";
 import { MyClockSkeleton } from "./components/my-clock-skeleton";
 import { PunchGeofenceStatus } from "./components/punch-geofence-status";
 import { Shift24hTimeline } from "./components/shift-24h-timeline";
 import { TodayHoursSummary } from "./components/today-hours-summary";
-import { createQueryKey } from "@/lib/query-keys";
 
 export default function MyClockPage() {
   const { t } = useTranslation();
@@ -49,7 +49,7 @@ export default function MyClockPage() {
   const todayStr = useMemo(() => new Date().toISOString().split("T")[0], []);
 
   const todayPunches = useMemo(() => {
-    return (entries ?? [])
+    return entries
       .filter((e) => e.punch_in_time.startsWith(todayStr))
       .map((e) => ({
         punchInTime: e.punch_in_time,

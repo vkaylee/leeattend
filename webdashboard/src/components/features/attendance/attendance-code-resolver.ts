@@ -55,7 +55,7 @@ export function resolveDailyAttendanceCode(
   }
 
   // 2. Custom shift symbol override (e.g. "CT", "TS", "Ô")
-  if (row.shift_symbol && ATTENDANCE_CODE_REGISTRY[row.shift_symbol]) {
+  if (row.shift_symbol) {
     return getAttendanceCodeConfig(row.shift_symbol);
   }
 
@@ -68,7 +68,7 @@ export function resolveDailyAttendanceCode(
   }
 
   // 4. Standard Work Hours
-  const stdHours = row.computed_std_hours ?? (row.std_work_units ? row.std_work_units * 8 : 0);
+  const stdHours = row.computed_std_hours || row.std_work_units * 8;
   if (stdHours >= 7.0) {
     return getAttendanceCodeConfig("X");
   }

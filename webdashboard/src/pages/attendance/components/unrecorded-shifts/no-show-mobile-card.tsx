@@ -93,13 +93,13 @@ export function NoShowMobileCard({
       {/* Punch times */}
       <div className="mt-3 grid grid-cols-2 gap-3 border-t border-slate-100 pt-4 dark:border-slate-800">
         <div>
-          <div className="text-[9px] font-bold uppercase tracking-wider text-slate-400">{columns.punch_in ?? "Punch-in"}</div>
+          <div className="text-[9px] font-bold uppercase tracking-wider text-slate-400">{columns.punch_in}</div>
           <div className="mt-1 font-mono text-sm font-bold tabular-nums text-slate-700 dark:text-slate-200">
             {formatDateTime(row.actual_punch_in)}
           </div>
         </div>
         <div>
-          <div className="text-[9px] font-bold uppercase tracking-wider text-slate-400">{columns.punch_out ?? "Punch-out"}</div>
+          <div className="text-[9px] font-bold uppercase tracking-wider text-slate-400">{columns.punch_out}</div>
           <div className="mt-1 font-mono text-sm font-bold tabular-nums text-slate-700 dark:text-slate-200">
             {formatDateTime(row.actual_punch_out)}
           </div>

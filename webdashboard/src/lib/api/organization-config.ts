@@ -26,7 +26,7 @@ export const organizationConfigApi = {
     const { data } = await client.GET<components["schemas"]["ResolvedConfig"]>("/api/v1/configs/{key}", {
       params: { path: { key }, query: date ? { date } : undefined },
     });
-    return data ?? null;
+    return data;
   },
 
   upsertConfig: async (payload: CreateConfigEntryRequest): Promise<OrganizationConfigEntry> => {

@@ -39,7 +39,7 @@ export function DesktopHeader({ onOpenCustomizer }: DesktopHeaderProps) {
   }, [t]);
 
   const GreetingIcon = greeting.icon;
-  const displayName = user?.full_name || user?.email?.split("@")[0] || "đồng nghiệp";
+  const displayName = user?.full_name || user?.email.split("@")[0] || "đồng nghiệp";
 
   return (
     <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 pb-2">

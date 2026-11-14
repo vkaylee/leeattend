@@ -7,7 +7,7 @@ import { useTranslation } from "react-i18next";
  * Maps i18n language codes to their corresponding locale and currency.
  * Extend this record when adding new languages — single source of truth.
  */
-const LOCALE_CURRENCY_MAP: Record<string, { locale: string; currency: string }> = {
+const LOCALE_CURRENCY_MAP: Partial<Record<string, { locale: string; currency: string }>> = {
   vi: { locale: "vi-VN", currency: "VND" },
   "vi-VN": { locale: "vi-VN", currency: "VND" },
   zh: { locale: "zh-CN", currency: "CNY" },
@@ -36,8 +36,8 @@ export function useCurrency() {
       const rawLang = i18n.language || "vi";
       const baseLang = rawLang.split("-")[0].toLowerCase();
       const { locale, currency } =
-        LOCALE_CURRENCY_MAP[rawLang] ??
-        LOCALE_CURRENCY_MAP[baseLang] ??
+        LOCALE_CURRENCY_MAP[rawLang] ||
+        LOCALE_CURRENCY_MAP[baseLang] ||
         DEFAULT_LOCALE;
       return new Intl.NumberFormat(locale, {
         style: "currency",
