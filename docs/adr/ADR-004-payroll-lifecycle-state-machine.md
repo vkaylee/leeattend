@@ -2,11 +2,28 @@
 
 | Property       | Value                                                    |
 |----------------|----------------------------------------------------------|
-| **Status**     | Proposed                                                 |
-| **Date**       | 2026-08-03                                               |
+| **Status**     | Accepted — additive lifecycle implementation            |
+| **Date**       | 2026-11-14                                               |
 | **Author**     | AI + Lee                                                 |
 | **Depends on** | [ADR-003](ADR-003-payroll-formula-engine.md)             |
 | **Domain**     | Payroll Lifecycle & Governance                           |
+
+---
+
+## Implementation Reality (2026-11-14)
+
+This ADR's original multi-stage `in_progress/verified/approved/committed/closed` model is future-state guidance. Current Go/PostgreSQL implementation keeps existing payroll period compatibility: `open → locked`, with optimistic version checks and audit rows for lock/reopen actions.
+
+Formula/input lifecycles are separate and shipped:
+
+- Input batch: `submitted → approved → locked`.
+- Input row: `accepted | warning | rejected | corrected`.
+- Formula version: `draft → published → retired`.
+- Locked input batches are the only KPI calculation source.
+- Locked/finalized payroll cannot be directly mutated; correction history is used before lock, and calculation snapshots link to payslips.
+- Every successful input/formula transition emits a sanitized audit event. Authorization runs in handlers before repository calls.
+
+Do not implement the richer state machine by changing current statuses in place. Add migration-safe states, permissions, APIs, tests, and UI together. Historical payroll results must remain unchanged after later formula publication.
 
 ---
 

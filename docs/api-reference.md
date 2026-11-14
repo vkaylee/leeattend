@@ -583,6 +583,31 @@ Kích hoạt tính toán lại (reprocess) dữ liệu chấm công cho một nh
 
 ### 11. Payroll & Shifts
 
+#### Flexible Formula and KPI Contracts
+
+Formula/input endpoints require authenticated payroll permissions. IDs are UUIDs. Collections return bounded server-side results for current employee/batch queries.
+
+| Method | Endpoint | Permission | Purpose |
+|---|---|---|---|
+| `POST` | `/api/v1/payroll/inputs/import` | `payroll:inputs:manage` or `payroll:manage` | Submit normalized production metrics with period, source, idempotency key, employment, metric code, value, and unit. |
+| `POST` | `/api/v1/payroll/inputs/{batch_id}/approve` | `payroll:approve` | Approve submitted input batch. |
+| `POST` | `/api/v1/payroll/inputs/{batch_id}/lock` | `payroll:manage` | Lock approved batch for calculation. |
+| `GET` | `/api/v1/payroll/inputs/{batch_id}` | `payroll:read` | Read input rows and row governance status. |
+| `POST` | `/api/v1/payroll/inputs/{input_id}/correct` | `payroll:manage` | Record correction before batch lock; creates correction history. |
+| `POST` | `/api/v1/payroll/formulas/preview` | `payroll:manage` | Evaluate safe DSL expression against sample decimal values without persistence. |
+| `GET` | `/api/v1/payroll/formulas` | `payroll:read` | List formula rules and latest version. |
+| `GET` | `/api/v1/payroll/formulas/{rule_id}/versions` | `payroll:read` | List immutable formula versions. |
+| `POST` | `/api/v1/payroll/formulas` | `payroll:manage` | Create rule and version 1 draft. |
+| `POST` | `/api/v1/payroll/formulas/{rule_id}/versions` | `payroll:manage` | Create next draft version; published versions are never edited. |
+| `POST` | `/api/v1/payroll/formulas/{rule_id}/publish` | `payroll:manage` | Publish draft version after validation. |
+| `POST` | `/api/v1/payroll/formulas/{rule_id}/retire` | `payroll:manage` | Retire published rule. |
+| `GET` | `/api/v1/employments/{id}/payroll/calculation-runs` | `payroll:read` | Read payslip-linked input/output snapshots and safe trace. |
+
+Input lifecycle: `submitted → approved → locked`. Row status: `accepted`, `warning`, `rejected`, `corrected`. Formula lifecycle: `draft → published → retired`.
+
+Safe formula DSL supports arithmetic, comparison, `min`, `max`, `round`, `if`, and `clamp`, with expression/depth/step limits. Raw salary, metric values, expressions, correction reasons, source references, and PII must not be logged or placed in client error messages.
+
+
 Quản lý lương, ca làm việc và báo cáo công. Hệ thống hỗ trợ cấu hình lương động dựa trên các thành phần thu nhập (Components) và chính sách công chuẩn của từng tổ chức.
 - **UI Note**: Trong WebDashboard, cài đặt lương đã được hợp nhất vào `Settings > Payroll`.
 

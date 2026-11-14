@@ -2,11 +2,36 @@
 
 | Property       | Value                                          |
 |----------------|------------------------------------------------|
-| **Status**     | Proposed                                       |
-| **Date**       | 2026-08-03                                     |
+| **Status**     | Accepted — vertical slice implementation       |
+| **Date**       | 2026-11-14                                     |
 | **Author**     | AI + Lee                                       |
 | **Supersedes** | N/A (greenfield layer over existing payroll)   |
 | **Domain**     | Payroll Calculation Engine                     |
+
+---
+
+## Implementation Reality (2026-11-14)
+
+This ADR's original Rust/workspace/template-DAG design is retained as historical direction. Current LeeAttend runtime is Go `net/http` with PostgreSQL and one implicit organization. Shipped formula architecture is an additive vertical slice:
+
+```text
+production metric → normalized PayrollInput → submitted/approved/locked batch
+→ published safe-DSL formula version → KPI_BONUS component
+→ payroll calculation run → immutable input/output/trace snapshot
+```
+
+Current source of truth:
+
+- `apiserver/internal/domain/payroll/formula`: bounded expression evaluator; no arbitrary code, SQL, HTTP, or JavaScript.
+- `apiserver/internal/repository/payroll.go`: input batches, formula versions, lifecycle transitions.
+- `apiserver/internal/repository/payroll_kpi.go`: locked-input KPI calculation and snapshots.
+- `apiserver/migrations/20261113030000_payroll_input_registry`: metric/input registry.
+- `apiserver/migrations/20261113040000_payroll_formula_versions`: formula versions/calculation runs.
+- `apiserver/migrations/20261114020000_payroll_input_row_governance`: row statuses and correction history.
+
+Formula lifecycle: `draft → published → retired`. Published versions are not edited; new drafts use `POST /api/v1/payroll/formulas/{rule_id}/versions`. Calculation traces contain safe metadata only. Audit events use `audit_logs` and omit salary, metric values, expressions, reasons, source references, and PII.
+
+Deferred from this ADR: multi-tenant/workspace selectors, template DAG replacement, arbitrary custom code, multi-country providers, and post-processing plugins. Revisit only after KPI vertical slice compatibility, migration, and role acceptance gates pass.
 
 ---
 
