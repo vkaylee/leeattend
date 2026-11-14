@@ -35,7 +35,17 @@ func (r ScheduleRepository) GetScheduleActivationReadiness(ctx context.Context, 
 	if err := db.QueryRow(ctx, `SELECT count(*) FROM outbox_jobs WHERE job_type = 'ScheduleOfficeCoverageRefresh' AND status = 'dead_letter' AND payload->>'employer_id' = $1`, employerID.String()).Scan(&result.DeadLetterCount); err != nil {
 		return result, err
 	}
-	result.Ready = result.GlobalFlagEnabled && result.EmployerActivation && result.OpenMismatchCount == 0 && result.CurrentDuplicateCount == 0 && result.DeadLetterCount == 0
+	if err := db.QueryRow(ctx, `SELECT count(*) FROM employments e CROSS JOIN generate_series($2::date, $3::date, interval '1 day') d WHERE e.employer_id = $1 AND e.deleted_at IS NULL AND e.start_date <= d::date AND (e.end_date IS NULL OR e.end_date >= d::date)`, employerID, startDate, endDate).Scan(&result.ExpectedCoverageDays); err != nil {
+		return result, err
+	}
+	if err := db.QueryRow(ctx, `SELECT count(DISTINCT r.employment_id::text || ':' || r.business_date::text) FROM schedule_day_revisions r WHERE r.employer_id = $1 AND r.business_date BETWEEN $2::date AND $3::date AND r.state IN ('published', 'explicit_off')`, employerID, startDate, endDate).Scan(&result.CoveredOfficialDays); err != nil {
+		return result, err
+	}
+	result.MissingCoverageDays = result.ExpectedCoverageDays - result.CoveredOfficialDays
+	if result.MissingCoverageDays < 0 {
+		result.MissingCoverageDays = 0
+	}
+	result.Ready = result.GlobalFlagEnabled && result.EmployerActivation && result.OpenMismatchCount == 0 && result.CurrentDuplicateCount == 0 && result.DeadLetterCount == 0 && result.MissingCoverageDays == 0
 	return result, nil
 }
 
