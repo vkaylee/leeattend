@@ -307,6 +307,29 @@ func TestTimeHistory_MissingDateRange(t *testing.T) {
 	}
 }
 
+func TestParseTimeHistoryQuery(t *testing.T) {
+	tests := []struct {
+		name  string
+		query string
+		valid bool
+	}{
+		{name: "valid range", query: "?start=2026-01-01T00:00:00Z&end=2026-12-31T23:59:59Z", valid: true},
+		{name: "missing end", query: "?start=2026-01-01T00:00:00Z", valid: false},
+		{name: "invalid start", query: "?start=not-a-time&end=2026-12-31T23:59:59Z", valid: false},
+		{name: "invalid end", query: "?start=2026-01-01T00:00:00Z&end=not-a-time", valid: false},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			req := httptest.NewRequest(http.MethodGet, "/api/v1/time/history/"+uuid.New().String()+test.query, nil)
+			_, valid := parseTimeHistoryQuery(req)
+			if valid != test.valid {
+				t.Fatalf("valid = %t, want %t", valid, test.valid)
+			}
+		})
+	}
+}
+
 func TestCreateAdjustment_Success(t *testing.T) {
 	userID := uuid.New()
 	empID := uuid.New()
