@@ -23,9 +23,10 @@ const (
 )
 
 var (
-	ErrScheduleEvidenceUnavailable = errors.New("schedule evidence schema unavailable")
-	ErrScheduleHistoryNotFound     = errors.New("schedule history not found")
-	ErrScheduleEvidenceNotFound    = errors.New("schedule evidence not found")
+	ErrScheduleEvidenceUnavailable    = errors.New("schedule evidence schema unavailable")
+	ErrScheduleHistoryNotFound        = errors.New("schedule history not found")
+	ErrScheduleEvidenceNotFound       = errors.New("schedule evidence not found")
+	ErrScheduleShadowMismatchNotFound = errors.New("schedule shadow mismatch not found")
 )
 
 type ScheduleHistoryCursor struct {
@@ -193,7 +194,7 @@ func (h ScheduleHandler) ActivationReadiness(w http.ResponseWriter, r *http.Requ
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}
-	if _, err := ParseDate(endDate); err != nil {
+	if _, err := ParseDate(endDate); err != nil || startDate > endDate {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}
@@ -250,7 +251,7 @@ func (h ScheduleHandler) ListShadowMismatches(w http.ResponseWriter, r *http.Req
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}
-	if _, err := ParseDate(endDate); err != nil {
+	if _, err := ParseDate(endDate); err != nil || startDate > endDate {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}
@@ -419,7 +420,7 @@ func writeScheduleEvidenceError(w http.ResponseWriter, r *http.Request, err erro
 	switch {
 	case errors.Is(err, ErrScheduleEvidenceUnavailable):
 		writeScheduleEvidenceUnavailable(w, r)
-	case errors.Is(err, ErrScheduleHistoryNotFound), errors.Is(err, ErrScheduleEvidenceNotFound):
+	case errors.Is(err, ErrScheduleHistoryNotFound), errors.Is(err, ErrScheduleEvidenceNotFound), errors.Is(err, ErrScheduleShadowMismatchNotFound):
 		apperror.WriteError(w, r, apperror.NotFound(apperror.KeyNotFound))
 	default:
 		apperror.WriteError(w, r, apperror.Internal(err))

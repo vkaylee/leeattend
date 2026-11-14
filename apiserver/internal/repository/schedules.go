@@ -11,7 +11,23 @@ import (
 )
 
 type ScheduleRepository struct {
-	DB DBTX
+	DB      DBTX
+	BeginTx func(context.Context) (TxBeginner, error)
+}
+
+func (r ScheduleRepository) begin(ctx context.Context) (TxBeginner, error) {
+	if r.BeginTx != nil {
+		return r.BeginTx(ctx)
+	}
+	db, err := r.db(ctx)
+	if err != nil {
+		return nil, err
+	}
+	beginner, ok := db.(TxBeginner)
+	if !ok {
+		return nil, errors.New("schedule repository: database does not support transactions")
+	}
+	return beginner, nil
 }
 
 func (r ScheduleRepository) db(ctx context.Context) (DBTX, error) {

@@ -12,6 +12,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/vkaylee/leeattend/apiserver/internal/api"
+	"github.com/vkaylee/leeattend/apiserver/internal/service"
 )
 
 func (r ScheduleRepository) GetScheduleActivationReadiness(ctx context.Context, employerID uuid.UUID, startDate, endDate string) (api.ScheduleActivationReadiness, error) {
@@ -23,19 +24,35 @@ func (r ScheduleRepository) GetScheduleActivationReadiness(ctx context.Context, 
 	if err := db.QueryRow(ctx, `SELECT COALESCE(enabled, false) FROM feature_flags WHERE flag_key = 'schedule_lifecycle'`).Scan(&result.GlobalFlagEnabled); err != nil && !errors.Is(err, pgx.ErrNoRows) {
 		return result, err
 	}
-	if err := db.QueryRow(ctx, `SELECT COALESCE((SELECT c.value_bool FROM config_entries c WHERE c.scope_type = 'employer' AND c.scope_id = $1 AND c.config_key = 'schedule.lifecycle.enabled' AND c.effective_from <= $2::date AND (c.effective_to IS NULL OR c.effective_to >= $2::date) ORDER BY c.effective_from DESC, c.id DESC LIMIT 1), false)`, employerID, startDate).Scan(&result.EmployerActivation); err != nil {
+	if err := db.QueryRow(ctx, `SELECT COALESCE(bool_and(COALESCE(active.value_bool, false)), false)
+		FROM generate_series($2::date, $3::date, interval '1 day') AS days(day)
+		LEFT JOIN LATERAL (
+			SELECT c.value_bool
+			FROM config_entries c
+			WHERE c.scope_type = 'employer'
+			  AND c.scope_id = $1
+			  AND c.config_key = 'schedule.lifecycle.enabled'
+			  AND c.effective_from <= days.day::date
+			  AND (c.effective_to IS NULL OR c.effective_to >= days.day::date)
+			ORDER BY c.effective_from DESC, c.id DESC
+			LIMIT 1
+		) active ON true`, employerID, startDate, endDate).Scan(&result.EmployerActivation); err != nil {
 		return result, err
 	}
 	if err := db.QueryRow(ctx, `SELECT count(*) FROM schedule_shadow_mismatches WHERE employer_id = $1 AND business_date BETWEEN $2::date AND $3::date AND status = 'open'`, employerID, startDate, endDate).Scan(&result.OpenMismatchCount); err != nil {
 		return result, err
 	}
-	if err := db.QueryRow(ctx, `SELECT count(*) FROM schedule_day_revisions a JOIN schedule_day_revisions b ON b.employment_id = a.employment_id AND b.business_date = a.business_date AND b.state IN ('published', 'explicit_off') AND a.state IN ('published', 'explicit_off') AND b.id <> a.id WHERE a.employer_id = $1 AND a.business_date BETWEEN $2::date AND $3::date`, employerID, startDate, endDate).Scan(&result.CurrentDuplicateCount); err != nil {
+	if err := db.QueryRow(ctx, `SELECT count(*) FROM (SELECT employment_id, business_date FROM schedule_day_revisions WHERE employer_id = $1 AND business_date BETWEEN $2::date AND $3::date AND state IN ('published', 'explicit_off') GROUP BY employment_id, business_date HAVING count(*) > 1) duplicates`, employerID, startDate, endDate).Scan(&result.CurrentDuplicateCount); err != nil {
 		return result, err
 	}
 	if err := db.QueryRow(ctx, `SELECT count(*) FROM schedule_legacy_mutation_evidence WHERE operation = 'guard_blocked' AND business_date BETWEEN $2::date AND $3::date AND employment_id IN (SELECT id FROM employments WHERE employer_id = $1)`, employerID, startDate, endDate).Scan(&result.LegacyMutationCount); err != nil {
 		return result, err
 	}
-	if err := db.QueryRow(ctx, `SELECT count(*) FROM outbox_jobs WHERE job_type = 'ScheduleOfficeCoverageRefresh' AND status = 'dead_letter' AND payload->>'employer_id' = $1`, employerID.String()).Scan(&result.DeadLetterCount); err != nil {
+	if err := db.QueryRow(ctx, `SELECT count(*) FROM outbox_jobs
+		WHERE job_type = 'ScheduleOfficeCoverageRefresh'
+		  AND status = 'dead_letter'
+		  AND payload->>'employer_id' = $1
+		  AND payload->>'business_date' BETWEEN $2 AND $3`, employerID.String(), startDate, endDate).Scan(&result.DeadLetterCount); err != nil {
 		return result, err
 	}
 	if err := db.QueryRow(ctx, `SELECT count(*) FROM employments e CROSS JOIN generate_series($2::date, $3::date, interval '1 day') d WHERE e.employer_id = $1 AND e.deleted_at IS NULL AND e.start_date <= d::date AND (e.end_date IS NULL OR e.end_date >= d::date)`, employerID, startDate, endDate).Scan(&result.ExpectedCoverageDays); err != nil {
@@ -48,7 +65,7 @@ func (r ScheduleRepository) GetScheduleActivationReadiness(ctx context.Context, 
 	if result.MissingCoverageDays < 0 {
 		result.MissingCoverageDays = 0
 	}
-	result.Ready = result.GlobalFlagEnabled && result.EmployerActivation && result.OpenMismatchCount == 0 && result.CurrentDuplicateCount == 0 && result.DeadLetterCount == 0 && result.MissingCoverageDays == 0
+	result.Ready = result.GlobalFlagEnabled && result.EmployerActivation && result.OpenMismatchCount == 0 && result.CurrentDuplicateCount == 0 && result.DeadLetterCount == 0 && result.LegacyMutationCount == 0 && result.MissingCoverageDays == 0
 	return result, nil
 }
 
@@ -62,7 +79,40 @@ type ScheduleShadowMismatchRecord struct {
 	ResolverVersion  string
 }
 
-func (r ScheduleRepository) RecordScheduleShadowMismatch(ctx context.Context, record ScheduleShadowMismatchRecord) error {
+func (r ScheduleRepository) RecordScheduleMismatches(ctx context.Context, records []ScheduleShadowMismatchRecord) error {
+	if len(records) == 0 {
+		return nil
+	}
+	for _, record := range records {
+		if err := validateScheduleShadowMismatchRecord(record); err != nil {
+			return err
+		}
+	}
+	beginner, err := r.begin(ctx)
+	if err != nil {
+		return err
+	}
+	return service.WithTx(ctx, beginner, func(ctx context.Context, tx pgx.Tx) error {
+		placeholders := make([]string, len(records))
+		args := make([]any, 0, len(records)*7)
+		for i, record := range records {
+			base := i*7 + 1
+			placeholders[i] = fmt.Sprintf("($%d, $%d, $%d::date, $%d, $%d, $%d, $%d)", base, base+1, base+2, base+3, base+4, base+5, base+6)
+			args = append(args, scheduleShadowMismatchArgs(record)...)
+		}
+		_, err := tx.Exec(ctx, `INSERT INTO schedule_shadow_mismatches
+			(employer_id, employment_id, business_date, mismatch_kind, legacy_snapshot, resolver_snapshot, resolver_version)
+			VALUES `+strings.Join(placeholders, ", ")+`
+			ON CONFLICT (employer_id, employment_id, business_date, mismatch_kind) WHERE status = 'open'
+			DO UPDATE SET legacy_snapshot = EXCLUDED.legacy_snapshot,
+			              resolver_snapshot = EXCLUDED.resolver_snapshot,
+			              resolver_version = EXCLUDED.resolver_version,
+			              last_seen_at = CURRENT_TIMESTAMP`, args...)
+		return err
+	})
+}
+
+func validateScheduleShadowMismatchRecord(record ScheduleShadowMismatchRecord) error {
 	if record.EmployerID == uuid.Nil || record.EmploymentID == uuid.Nil || record.ResolverVersion == "" {
 		return fmt.Errorf("shadow mismatch identity is required")
 	}
@@ -79,18 +129,29 @@ func (r ScheduleRepository) RecordScheduleShadowMismatch(ctx context.Context, re
 			return fmt.Errorf("%s shadow snapshot must be a JSON object", name)
 		}
 	}
+	return nil
+}
+
+func scheduleShadowMismatchArgs(record ScheduleShadowMismatchRecord) []any {
+	return []any{record.EmployerID, record.EmploymentID, record.BusinessDate, record.MismatchKind, record.LegacySnapshot, record.ResolverSnapshot, record.ResolverVersion}
+}
+
+func (r ScheduleRepository) RecordScheduleShadowMismatch(ctx context.Context, record ScheduleShadowMismatchRecord) error {
+	if err := validateScheduleShadowMismatchRecord(record); err != nil {
+		return err
+	}
 	db, err := r.db(ctx)
 	if err != nil {
 		return err
 	}
 	_, err = db.Exec(ctx, `INSERT INTO schedule_shadow_mismatches
-		(employer_id, employment_id, business_date, mismatch_kind, legacy_snapshot, resolver_snapshot, resolver_version)
-		VALUES ($1, $2, $3::date, $4, $5, $6, $7)
-		ON CONFLICT (employer_id, employment_id, business_date, mismatch_kind) WHERE status = 'open'
-		DO UPDATE SET legacy_snapshot = EXCLUDED.legacy_snapshot,
-		              resolver_snapshot = EXCLUDED.resolver_snapshot,
-		              resolver_version = EXCLUDED.resolver_version,
-		              last_seen_at = CURRENT_TIMESTAMP`, record.EmployerID, record.EmploymentID, record.BusinessDate, record.MismatchKind, record.LegacySnapshot, record.ResolverSnapshot, record.ResolverVersion)
+			(employer_id, employment_id, business_date, mismatch_kind, legacy_snapshot, resolver_snapshot, resolver_version)
+			VALUES ($1, $2, $3::date, $4, $5, $6, $7)
+			ON CONFLICT (employer_id, employment_id, business_date, mismatch_kind) WHERE status = 'open'
+			DO UPDATE SET legacy_snapshot = EXCLUDED.legacy_snapshot,
+			              resolver_snapshot = EXCLUDED.resolver_snapshot,
+			              resolver_version = EXCLUDED.resolver_version,
+			              last_seen_at = CURRENT_TIMESTAMP`, scheduleShadowMismatchArgs(record)...)
 	return err
 }
 
@@ -214,22 +275,28 @@ func (r ScheduleRepository) ListScheduleHistory(ctx context.Context, query api.S
 }
 
 func (r ScheduleRepository) ResolveScheduleShadowMismatch(ctx context.Context, mismatchID uuid.UUID, status, note string, actorID uuid.UUID) error {
-	db, err := r.db(ctx)
+	if mismatchID == uuid.Nil || actorID == uuid.Nil || (status != "resolved" && status != "waived") || strings.TrimSpace(note) == "" || len(note) > 2000 {
+		return fmt.Errorf("invalid shadow mismatch resolution")
+	}
+	beginner, err := r.begin(ctx)
 	if err != nil {
 		return err
 	}
-	result, err := db.Exec(ctx, `UPDATE schedule_shadow_mismatches
-		SET status = $2, resolution_note = $3, resolved_at = CURRENT_TIMESTAMP, last_seen_at = CURRENT_TIMESTAMP
-		WHERE id = $1 AND status = 'open'`, mismatchID, status, note)
-	if err != nil {
+	return service.WithTx(ctx, beginner, func(ctx context.Context, tx pgx.Tx) error {
+		note = strings.TrimSpace(note)
+		result, err := tx.Exec(ctx, `UPDATE schedule_shadow_mismatches
+			SET status = $2, resolution_note = $3, resolved_at = CURRENT_TIMESTAMP
+			WHERE id = $1 AND status = 'open'`, mismatchID, status, note)
+		if err != nil {
+			return err
+		}
+		if result.RowsAffected() != 1 {
+			return api.ErrScheduleShadowMismatchNotFound
+		}
+		_, err = tx.Exec(ctx, `INSERT INTO audit_logs (actor_id, target_resource_id, action, details, actor_type, created_at)
+			VALUES ($1, $2, 'schedule.shadow_mismatch.resolved', jsonb_build_object('status', $3, 'note', $4), 'human', CURRENT_TIMESTAMP)`, actorID, mismatchID, status, note)
 		return err
-	}
-	if result.RowsAffected() != 1 {
-		return api.ErrScheduleHistoryNotFound
-	}
-	_, err = db.Exec(ctx, `INSERT INTO audit_logs (actor_id, target_resource_id, action, details, actor_type, created_at)
-		VALUES ($1, $2, 'schedule.shadow_mismatch.resolved', jsonb_build_object('status', $3, 'note', $4), 'human', CURRENT_TIMESTAMP)`, actorID, mismatchID, status, note)
-	return err
+	})
 }
 
 func (r ScheduleRepository) ListScheduleShadowMismatches(ctx context.Context, employerID uuid.UUID, startDate, endDate string) ([]api.ScheduleShadowMismatch, error) {
