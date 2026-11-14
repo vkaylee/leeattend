@@ -261,6 +261,36 @@ func validAssignmentDate(value string) bool {
 	return err == nil
 }
 
+func validUpdateEmployeeAssignmentRequest(req UpdateEmployeeAssignmentRequest, err error) bool {
+	return err == nil && validUpdateEmployeeAssignmentFields(req) && validAssignmentReason(req)
+}
+
+func validUpdateEmployeeAssignmentFields(req UpdateEmployeeAssignmentRequest) bool {
+	return (req.Status == nil || req.Status.valid()) && (!req.EndDatePresent || req.EndDate == nil || *req.EndDate == nil || validAssignmentDate(**req.EndDate))
+}
+
+func validAssignmentReason(req UpdateEmployeeAssignmentRequest) bool {
+	return !req.ReasonPresent || req.Reason == nil || *req.Reason == nil || len(**req.Reason) <= 1<<20
+}
+
+func validCreateEmployeeAssignmentRequest(req CreateEmployeeAssignmentRequest) bool {
+	return req.HostLocationID != uuid.Nil && validAssignmentDate(req.StartDate) && (req.EndDate == nil || validAssignmentDate(*req.EndDate))
+}
+
+func (h AssignmentHandler) validateEmployee(w http.ResponseWriter, r *http.Request, employeeID uuid.UUID) bool {
+	if h.Employees == nil {
+		return true
+	}
+	if _, err := h.Employees.GetEmployee(r.Context(), employeeID); err == nil {
+		return true
+	} else if errors.Is(err, pgx.ErrNoRows) {
+		apperror.WriteError(w, r, apperror.NotFound(apperror.KeyEmployeeNotFound))
+	} else {
+		h.assignmentError(w, r, err)
+	}
+	return false
+}
+
 func (h AssignmentHandler) assignmentError(w http.ResponseWriter, r *http.Request, err error) {
 	switch {
 	case errors.Is(err, ErrEmployeeAssignmentNotFound):
@@ -322,19 +352,12 @@ func (h AssignmentHandler) CreateEmployeeAssignment(w http.ResponseWriter, r *ht
 		return
 	}
 	req, err := DecodeJSON[CreateEmployeeAssignmentRequest](r, 1<<20)
-	if err != nil || req.HostLocationID == uuid.Nil || !validAssignmentDate(req.StartDate) || (req.EndDate != nil && !validAssignmentDate(*req.EndDate)) {
+	if err != nil || !validCreateEmployeeAssignmentRequest(req) {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}
-	if h.Employees != nil {
-		if _, err := h.Employees.GetEmployee(r.Context(), ids[0]); err != nil {
-			if errors.Is(err, pgx.ErrNoRows) {
-				apperror.WriteError(w, r, apperror.NotFound(apperror.KeyEmployeeNotFound))
-			} else {
-				h.assignmentError(w, r, err)
-			}
-			return
-		}
+	if !h.validateEmployee(w, r, ids[0]) {
+		return
 	}
 	active, err := h.Assignments.GetActiveEmployment(r.Context(), ids[0], time.Now().UTC().Format("2006-01-02"))
 	if err != nil {
@@ -363,11 +386,7 @@ func (h AssignmentHandler) UpdateEmployeeAssignment(w http.ResponseWriter, r *ht
 		return
 	}
 	req, err := DecodeJSON[UpdateEmployeeAssignmentRequest](r, 1<<20)
-	if err != nil || (req.Status != nil && !req.Status.valid()) || (req.EndDatePresent && req.EndDate != nil && *req.EndDate != nil && !validAssignmentDate(**req.EndDate)) {
-		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
-		return
-	}
-	if req.ReasonPresent && req.Reason != nil && *req.Reason != nil && len(**req.Reason) > 1<<20 {
+	if !validUpdateEmployeeAssignmentRequest(req, err) {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}
