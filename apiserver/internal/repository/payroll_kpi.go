@@ -8,6 +8,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/shopspring/decimal"
+	"github.com/vkaylee/leeattend/apiserver/internal/api"
 	"github.com/vkaylee/leeattend/apiserver/internal/domain/payroll/formula"
 )
 
@@ -16,6 +17,7 @@ type kpiCalculation struct {
 	FormulaID *uuid.UUID
 	Inputs    map[string]string
 	Trace     []map[string]string
+	Policy    *api.WorkPolicyGroupVersion
 }
 
 func calculateKPIBonus(ctx context.Context, db DBTX, employmentID uuid.UUID, year, month int, asOf string) (kpiCalculation, error) {
@@ -129,7 +131,7 @@ func persistKPICalculation(ctx context.Context, db DBTX, employmentID, payslipID
 	if calc.FormulaID == nil {
 		return nil
 	}
-	inputSnapshot, err := json.Marshal(calc.Inputs)
+	inputSnapshot, err := marshalKPICalculationInputs(calc)
 	if err != nil {
 		return err
 	}
@@ -137,7 +139,11 @@ func persistKPICalculation(ctx context.Context, db DBTX, employmentID, payslipID
 	if err != nil {
 		return err
 	}
-	trace, err := json.Marshal(calc.Trace)
+	traceSteps := append([]map[string]string(nil), calc.Trace...)
+	if calc.Policy != nil {
+		traceSteps = append(traceSteps, map[string]string{"step": "policy", "rule": "labor_policy_group", "expression": "effective membership resolution", "result": calc.Policy.ID.String()})
+	}
+	trace, err := json.Marshal(traceSteps)
 	if err != nil {
 		return err
 	}
@@ -145,4 +151,17 @@ func persistKPICalculation(ctx context.Context, db DBTX, employmentID, payslipID
 VALUES ($1, $2, $3, $4, $5, 'formula-v1', $6, $7, $8, $9)
 ON CONFLICT (payslip_id, formula_version_id) WHERE payslip_id IS NOT NULL AND formula_version_id IS NOT NULL DO UPDATE SET input_snapshot = EXCLUDED.input_snapshot, output_snapshot = EXCLUDED.output_snapshot, calculation_trace = EXCLUDED.calculation_trace, created_by = EXCLUDED.created_by`, employmentID, payslipID, year, month, calc.FormulaID, inputSnapshot, outputSnapshot, trace, actorID)
 	return err
+}
+
+func marshalKPICalculationInputs(calc kpiCalculation) ([]byte, error) {
+	inputPayload := map[string]any{"kpi_inputs": calc.Inputs}
+	if calc.Policy != nil {
+		inputPayload["policy"] = map[string]any{
+			"group_id": calc.Policy.GroupID.String(), "version_id": calc.Policy.ID.String(),
+			"effective_from": calc.Policy.EffectiveFrom, "effective_to": calc.Policy.EffectiveTo,
+			"work_credit_policy_id": calc.Policy.WorkCreditPolicyID.String(), "pay_basis_policy_id": calc.Policy.PayBasisPolicyID.String(),
+			"overtime_policy_id": calc.Policy.OvertimePolicyID.String(), "pay_method": string(calc.Policy.PayMethod),
+		}
+	}
+	return json.Marshal(inputPayload)
 }
