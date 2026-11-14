@@ -265,6 +265,15 @@ func validUpdateEmployeeAssignmentRequest(req UpdateEmployeeAssignmentRequest, e
 	return err == nil && validUpdateEmployeeAssignmentFields(req) && validAssignmentReason(req)
 }
 
+func validUpdateAssignmentRuleRequest(req UpdateAssignmentRuleRequest, err error) bool {
+	return err == nil && validAssignmentRuleDates(req)
+}
+
+func validAssignmentRuleDates(req UpdateAssignmentRuleRequest) bool {
+	return (!req.StartDatePresent || req.StartDate == nil || *req.StartDate == nil || validAssignmentDate(**req.StartDate)) &&
+		(!req.EndDatePresent || req.EndDate == nil || *req.EndDate == nil || validAssignmentDate(**req.EndDate))
+}
+
 func validUpdateEmployeeAssignmentFields(req UpdateEmployeeAssignmentRequest) bool {
 	return (req.Status == nil || req.Status.valid()) && (!req.EndDatePresent || req.EndDate == nil || *req.EndDate == nil || validAssignmentDate(**req.EndDate))
 }
@@ -445,7 +454,7 @@ func (h AssignmentHandler) UpdateAssignmentRule(w http.ResponseWriter, r *http.R
 		return
 	}
 	req, err := DecodeJSON[UpdateAssignmentRuleRequest](r, 1<<20)
-	if err != nil || (req.StartDatePresent && req.StartDate != nil && *req.StartDate != nil && !validAssignmentDate(**req.StartDate)) || (req.EndDatePresent && req.EndDate != nil && *req.EndDate != nil && !validAssignmentDate(**req.EndDate)) {
+	if !validUpdateAssignmentRuleRequest(req, err) {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}
