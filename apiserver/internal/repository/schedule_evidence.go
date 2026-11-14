@@ -61,6 +61,12 @@ func (r ScheduleRepository) GetScheduleActivationReadiness(ctx context.Context, 
 	if err := db.QueryRow(ctx, `SELECT count(DISTINCT r.employment_id::text || ':' || r.business_date::text) FROM schedule_day_revisions r WHERE r.employer_id = $1 AND r.business_date BETWEEN $2::date AND $3::date AND r.state IN ('published', 'explicit_off')`, employerID, startDate, endDate).Scan(&result.CoveredOfficialDays); err != nil {
 		return result, err
 	}
+	if err := db.QueryRow(ctx, `SELECT count(*) FROM employments e JOIN schedule_office_policies p ON p.employer_id = e.employer_id AND p.status = 'active' AND p.effective_from <= $3::date AND (p.effective_to IS NULL OR p.effective_to >= $2::date) JOIN approval_workflow_instances i ON i.id = p.approval_instance_id AND i.entity_type = 'schedule_policy' AND i.status = 'approved' CROSS JOIN generate_series(GREATEST($2::date, p.effective_from), LEAST($3::date, COALESCE(p.effective_to, $3::date)), interval '1 day') days WHERE e.employer_id = $1 AND e.deleted_at IS NULL AND e.start_date <= days.day::date AND (e.end_date IS NULL OR e.end_date >= days.day::date)`, employerID, startDate, endDate).Scan(&result.RequiredOfficeDays); err != nil {
+		return result, err
+	}
+	if err := db.QueryRow(ctx, `SELECT count(DISTINCT r.employment_id::text || ':' || r.business_date::text) FROM schedule_day_revisions r JOIN schedule_office_policies p ON p.employer_id = r.employer_id AND p.status = 'active' AND p.effective_from <= r.business_date AND (p.effective_to IS NULL OR p.effective_to >= r.business_date) JOIN approval_workflow_instances i ON i.id = p.approval_instance_id AND i.entity_type = 'schedule_policy' AND i.status = 'approved' WHERE r.employer_id = $1 AND r.business_date BETWEEN $2::date AND $3::date AND r.state IN ('published', 'explicit_off')`, employerID, startDate, endDate).Scan(&result.CoveredOfficeDays); err != nil {
+		return result, err
+	}
 	result.MissingCoverageDays = result.ExpectedCoverageDays - result.CoveredOfficialDays
 	if result.MissingCoverageDays < 0 {
 		result.MissingCoverageDays = 0

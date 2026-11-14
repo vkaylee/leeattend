@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 )
 
 func TestHorizonCoversTodayThroughNextCalendarMonth(t *testing.T) {
@@ -21,6 +22,16 @@ func TestHorizonCoversTodayThroughNextCalendarMonth(t *testing.T) {
 
 func TestUnsupportedScheduleOfficePolicySourceFailsClosed(t *testing.T) {
 	_, err := (UnsupportedScheduleOfficePolicySource{}).ApprovedEmployers(context.Background(), nil, time.Now())
+	if !errors.Is(err, ErrScheduleOfficePolicyUnavailable) {
+		t.Fatalf("expected typed unavailable error, got %v", err)
+	}
+}
+
+func TestApprovedScheduleOfficePolicySourceMapsMissingSchema(t *testing.T) {
+	db := &fakeDBTX{queryFn: func(context.Context, string, ...any) (pgx.Rows, error) {
+		return nil, errors.New(`relation "schedule_office_policies" does not exist`)
+	}}
+	_, err := (ApprovedScheduleOfficePolicySource{}).ApprovedEmployers(context.Background(), db, time.Now())
 	if !errors.Is(err, ErrScheduleOfficePolicyUnavailable) {
 		t.Fatalf("expected typed unavailable error, got %v", err)
 	}

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -93,6 +94,72 @@ func horizon(now time.Time) (time.Time, time.Time) {
 	start := time.Date(local.Year(), local.Month(), local.Day(), 0, 0, 0, 0, time.UTC)
 	end := time.Date(local.Year(), local.Month()+2, 0, 0, 0, 0, 0, time.UTC)
 	return start, end
+}
+
+type ApprovedScheduleOfficePolicySource struct{}
+
+func (ApprovedScheduleOfficePolicySource) ApprovedEmployers(ctx context.Context, db DBTX, now time.Time) ([]uuid.UUID, error) {
+	rows, err := db.Query(ctx, `SELECT DISTINCT p.employer_id
+		FROM schedule_office_policies p
+		JOIN approval_workflow_instances i ON i.id = p.approval_instance_id
+		WHERE p.status = 'active'
+		  AND i.entity_type = 'schedule_policy'
+		  AND i.status = 'approved'
+		  AND p.effective_from <= $1::date
+		  AND (p.effective_to IS NULL OR p.effective_to >= $1::date)
+		  AND (p.revoked_at IS NULL OR p.revoked_at > $2)`, now, now)
+	if err != nil {
+		return nil, mapScheduleOfficePolicySchemaError(err)
+	}
+	defer rows.Close()
+	result := make([]uuid.UUID, 0)
+	for rows.Next() {
+		var employerID uuid.UUID
+		if err := rows.Scan(&employerID); err != nil {
+			return nil, err
+		}
+		result = append(result, employerID)
+	}
+	return result, rows.Err()
+}
+
+func (ApprovedScheduleOfficePolicySource) Coverage(ctx context.Context, db DBTX, employerID uuid.UUID, start, end time.Time) ([]ScheduleOfficeCoverageCandidate, error) {
+	rows, err := db.Query(ctx, `SELECT p.approval_instance_id, e.employer_id, e.id, days.day::text, 'office'
+		FROM schedule_office_policies p
+		JOIN approval_workflow_instances i ON i.id = p.approval_instance_id
+		JOIN employments e ON e.employer_id = p.employer_id AND e.deleted_at IS NULL
+		CROSS JOIN LATERAL generate_series(GREATEST($2::date, p.effective_from), LEAST($3::date, COALESCE(p.effective_to, $3::date)), interval '1 day') days(day)
+		WHERE p.employer_id = $1
+		  AND p.status = 'active'
+		  AND i.entity_type = 'schedule_policy'
+		  AND i.status = 'approved'
+		  AND e.start_date <= days.day::date
+		  AND (e.end_date IS NULL OR e.end_date >= days.day::date)
+		  AND NOT EXISTS (SELECT 1 FROM schedule_day_revisions r WHERE r.employment_id = e.id AND r.business_date = days.day::date AND r.state IN ('published', 'explicit_off'))
+		ORDER BY days.day, e.id`, employerID, start, end)
+	if err != nil {
+		return nil, mapScheduleOfficePolicySchemaError(err)
+	}
+	defer rows.Close()
+	result := make([]ScheduleOfficeCoverageCandidate, 0)
+	for rows.Next() {
+		var candidate ScheduleOfficeCoverageCandidate
+		if err := rows.Scan(&candidate.ApprovalInstanceID, &candidate.EmployerID, &candidate.EmploymentID, &candidate.BusinessDate, &candidate.Mode); err != nil {
+			return nil, err
+		}
+		result = append(result, candidate)
+	}
+	return result, rows.Err()
+}
+
+func mapScheduleOfficePolicySchemaError(err error) error {
+	if err == nil {
+		return nil
+	}
+	if strings.Contains(strings.ToLower(err.Error()), "schedule_office_policies") {
+		return ErrScheduleOfficePolicyUnavailable
+	}
+	return err
 }
 
 type UnsupportedScheduleOfficePolicySource struct{}
