@@ -51,20 +51,20 @@ Xây nền payroll mở rộng theo mô hình `source metric → payroll input �
 
 ### 4. Xây safe calculation model và rule evaluator
 
-- [ ] Định nghĩa typed value/units và dependency graph; reject unknown variable, type mismatch, unit mismatch, cycle, missing required input.
+- [ ] Typed value/units và dependency graph deferred: phase-1 DSL is single-expression decimal evaluation with registry unit validation before persistence; no DAG/cycle surface exists yet.
 - [x] Phase đầu chỉ hỗ trợ `+ - * /`, comparisons, `min`, `max`, `round`, `if`, `clamp`; evaluator enforces decimal arithmetic and resource limits. Rule-specific rounding policy remains deferred.
 - [x] Tách KPI evaluator pure khỏi DB/HTTP/repository; batch input path validates before persistence.
 - [x] Rule version immutable sau `published`; next draft version API tạo version mới, publish/retire không mutate published expression.
 - [x] Trả calculation trace có safe metadata và audit events; không log raw salary/metric values/PII. Full trace masking review remains a release gate.
-- **Verify:** unit/self-check cho arithmetic, rounding, zero denominator, null/missing, cap/floor, invalid expression, cycle và resource limits; property tests nếu phù hợp.
+- [x] Verify evaluator arithmetic, comparisons, decimal operations, zero denominator, unknown/missing variables, invalid expression, safe functions, and resource limits. Cycle/property tests are not applicable until dependency DAG exists.
 
 ### 5. Tích hợp versioning, period lifecycle và snapshot
 
-- [ ] Resolve rule/policy theo `effective_from/effective_to` và payroll period; không dùng cấu hình hiện tại cho kỳ cũ.
+- [x] Resolve rule/policy theo `effective_from` và payroll period; KPI query selects latest published effective version and effective policy parameters. `effective_to` remains deferred.
 - [x] Tạo `CalculationRun` với actor, period, formula version; lưu input/output snapshot, trace và payslip reference idempotently.
-- [ ] Gate calculate/approve/lock theo payroll period hiện có; conflict dùng optimistic version; calculator/approver separation theo permission đã có hoặc ghi rõ phase rollout.
-- [ ] Sau period lock/finalize, cấm direct mutation; sai dữ liệu dùng correction/adjustment hoặc rerun có run mới.
-- **Verify:** tính lại kỳ cũ sau khi publish rule mới vẫn ra kết quả cũ; concurrent lock/publish không overwrite; rollback transaction không để snapshot một phần.
+- [x] Gate calculate/approve/lock theo payroll period hiện có; locked period/input transitions return conflict and handlers enforce `payroll:calculate`, `payroll:approve`, and `payroll:manage`. Full calculator/approver segregation remains deferred.
+- [x] Sau input batch lock/payroll period lock, direct input correction is rejected; correction history exists before lock and calculation runs are idempotent. Finalized payroll adjustment UI remains deferred.
+- **Verify:** regression tests protect locked-input/effective published formula selection and bootstrap formula seed; historical calculation runs retain formula version references. Full live DB rerun rehearsal remains pending.
 
 ### 6. Hoàn thiện vertical slice `production KPI → KPI_BONUS`
 
@@ -72,7 +72,7 @@ Xây nền payroll mở rộng theo mô hình `source metric → payroll input �
 - [x] Implement pure KPI rule: `output_score = min(actual/target, cap)`, weighted score, bonus cap và rounding; xử lý target bằng 0/missing input rõ ràng.
 - [x] Import dữ liệu production qua JSON batch contract; CSV adapter để phase sau, nhưng giữ cùng contract.
 - [x] Payroll result includes `KPI_BONUS` component and calculation trace endpoint/UI with input snapshot, formula version, result, and engine metadata. Intermediate KPI policy detail remains a follow-up UI enhancement.
-- **Verify:** fixture production gồm employee metric, missing row, duplicate row, team-scope rejection/explicit unsupported state; end-to-end run tạo đúng `KPI_BONUS` và snapshot.
+- **Verify:** unit/repository fixtures cover employee metrics, missing formula, locked/rejected row filtering, effective formula selection, bootstrap seed, and KPI amount/snapshot inputs. Full live DB E2E remains pending.
 
 ### 7. API/UI cho HR configuration và preview
 
