@@ -186,6 +186,45 @@ func TestReportRepository_GetAttendanceReportDailyMapsOTClaimStatus(t *testing.T
 	}
 }
 
+func TestReportRepository_GetAttendanceReportDailyUsesEffectiveHoursForUnits(t *testing.T) {
+	employmentID, employeeID := uuid.New(), uuid.New()
+	db := &fakeDBTX{
+		queryRowFn: func(_ context.Context, _ string, _ ...any) pgx.Row {
+			return fakeRow{scanFn: func(dest ...any) error {
+				*(dest[0].(*int64)) = 1
+				return nil
+			}}
+		},
+		queryFn: func(_ context.Context, query string, _ ...any) (pgx.Rows, error) {
+			if !strings.Contains(query, "COALESCE(hours.hours_per_day, 8.0)") {
+				t.Fatalf("daily query must use effective hours: %s", query)
+			}
+			return &reportRows{rows: [][]any{{
+				"2026-01-01", employmentID, employeeID, "Employee", "EMP01",
+				nil, nil, nil, nil, nil,
+				480, 480, 60, "approved", 6.0,
+			}}}, nil
+		},
+	}
+
+	response, err := (ReportRepository{DB: db}).GetAttendanceReport(context.Background(), api.AttendanceReportFilter{
+		StartDate: "2026-01-01", EndDate: "2026-01-31", ReportType: "daily", Page: 1, Limit: 20,
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	var rows []api.DailyAttendanceRow
+	if err := json.Unmarshal(response.Data, &rows); err != nil {
+		t.Fatalf("failed to decode daily rows: %v", err)
+	}
+	if len(rows) != 1 {
+		t.Fatalf("expected one daily row, got %d", len(rows))
+	}
+	if rows[0].StdWorkUnits != 1.33 || rows[0].OTWorkUnits != 0.17 {
+		t.Fatalf("expected 6-hour denominator units 1.33 and 0.17, got %.2f and %.2f", rows[0].StdWorkUnits, rows[0].OTWorkUnits)
+	}
+}
+
 func TestReportRepository_GetNoShowReportUsesLatestOfficialRevision(t *testing.T) {
 	var countQuery, dataQuery string
 	db := &fakeDBTX{
@@ -268,6 +307,10 @@ func (r *reportRows) Scan(dest ...any) error {
 			*target = &text
 		case *string:
 			*target = value.(string)
+		case *int:
+			*target = value.(int)
+		case *float64:
+			*target = value.(float64)
 		}
 	}
 	return nil
