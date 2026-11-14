@@ -224,6 +224,12 @@ func (h WorkPolicyGroupHandler) CreateMembership(w http.ResponseWriter, r *http.
 		h.writeError(w, r, err)
 		return
 	}
+	if h.Audit != nil {
+		_ = h.Audit.Emit(r.Context(), audit.Event{
+			Name: "payroll.work_policy_membership.created", ActorID: userID.String(), Resource: result.ID.String(), Outcome: "success",
+			Details: map[string]string{"group_id": result.GroupID.String(), "employment_id": result.EmploymentID.String(), "effective_from": result.EffectiveFrom}, At: time.Now().UTC(),
+		})
+	}
 	apperror.WriteJSON(w, http.StatusCreated, result)
 }
 

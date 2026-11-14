@@ -1,6 +1,6 @@
 # Cải tiến cấu hình chính sách làm việc và tính lương
 
-Status: In progress — domain/API/membership/version/resolver slices implemented; API full gate passed 2026-11-14; migration rehearsal passed; calculation integration, UI acceptance, and full web regression remain. Web gate currently fails on unrelated existing UI/translation/performance tests.
+Status: In progress — domain/API/membership/version/resolver/payroll-snapshot slices implemented; API full gate passed 2026-11-14; migration rehearsal passed; calculation parity, UI acceptance, and full web regression remain. Web gate currently fails on unrelated existing UI/translation/performance tests.
 
 ## Mục tiêu và phạm vi
 HR quản lý chính sách theo nhóm lao động, hỗ trợ lương tháng/giờ/ca và quy đổi công theo thời lượng cấu hình được. Tách nghĩa vụ theo lịch, công quy đổi, căn cứ trả lương và OT; không hardcode giá trị, tên nhóm hoặc tự chọn quy chế trả lương. Không tạo payroll/formula engine thứ hai. Mục tiêu đo được: HR cấu hình nhanh hơn, sai ít hơn và giải thích được kết quả mà không đọc log; không tuyên bố vượt trội thị trường khi chưa có benchmark.

@@ -61,6 +61,34 @@ describe("PayrollSettingsSection", () => {
     expect(screen.getByText(/01\/01\/2026/i)).toBeInTheDocument();
   });
 
+  it("does not submit until configurable standard values are entered", async () => {
+    renderWithProviders(<PayrollSettingsSection />);
+
+    fireEvent.click(await screen.findByText(/common.add_new/i));
+    fireEvent.click(screen.getByText(/common.save/i));
+
+    await waitFor(() => {
+      expect(api.updatePayrollSettings).not.toHaveBeenCalled();
+    });
+    expect(screen.getAllByText(/payroll.settings.validation.positive/i).length).toBeGreaterThanOrEqual(2);
+  });
+
+  it("shows save errors without closing the form", async () => {
+    vi.mocked(api.updatePayrollSettings).mockRejectedValue(new Error("conflict"));
+    renderWithProviders(<PayrollSettingsSection />);
+
+    fireEvent.click(await screen.findByText(/common.add_new/i));
+    const numberInputs = await screen.findAllByRole("spinbutton");
+    fireEvent.change(numberInputs[0], { target: { value: "24" } });
+    fireEvent.change(numberInputs[1], { target: { value: "8" } });
+    fireEvent.click(screen.getByText(/common.save/i));
+
+    await waitFor(() => {
+      expect(api.updatePayrollSettings).toHaveBeenCalled();
+    });
+    expect(screen.getByText(/common.save/i)).toBeInTheDocument();
+  });
+
   it("calls update API when save button is clicked", async () => {
  
     vi.mocked(api.updatePayrollSettings).mockResolvedValue({} as unknown as never);
@@ -69,8 +97,10 @@ describe("PayrollSettingsSection", () => {
     const addButton = await screen.findByText(/common.add_new/i);
     fireEvent.click(addButton);
 
-    const daysInput = await screen.findByDisplayValue("26");
+    const daysInput = await screen.findByLabelText("payroll.settings.std_days");
+    const hoursInput = screen.getByLabelText("payroll.settings.hours_per_day");
     fireEvent.change(daysInput, { target: { value: "24" } });
+    fireEvent.change(hoursInput, { target: { value: "8" } });
 
     const saveButton = screen.getByText(/common.save/i);
     fireEvent.click(saveButton);

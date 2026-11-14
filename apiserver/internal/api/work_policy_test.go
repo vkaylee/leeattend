@@ -10,12 +10,22 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/shopspring/decimal"
+	"github.com/vkaylee/leeattend/apiserver/internal/audit"
 	httpinfra "github.com/vkaylee/leeattend/apiserver/internal/infra/http"
 )
 
 type workPolicyRepositoryStub struct {
 	created        bool
 	versionCreated bool
+}
+
+type workPolicyAuditRecorder struct {
+	events []audit.Event
+}
+
+func (r *workPolicyAuditRecorder) Emit(_ context.Context, event audit.Event) error {
+	r.events = append(r.events, event)
+	return nil
 }
 
 func (s *workPolicyRepositoryStub) ListWorkPolicyGroupVersions(context.Context, int, int) (WorkPolicyGroupListResponse, error) {
@@ -129,7 +139,8 @@ func TestWorkPolicyGroupVersionCreateDelegatesValidatedRequest(t *testing.T) {
 
 func TestWorkPolicyGroupCreateDelegatesValidatedRequest(t *testing.T) {
 	repo := &workPolicyRepositoryStub{}
-	handler := WorkPolicyGroupHandler{Repository: repo, Authorizer: payrollAuthorizer{allowedPerms: map[string]bool{"payroll:manage": true}}}
+	auditRecorder := &workPolicyAuditRecorder{}
+	handler := WorkPolicyGroupHandler{Repository: repo, Authorizer: payrollAuthorizer{allowedPerms: map[string]bool{"payroll:manage": true}}, Audit: auditRecorder}
 	rec := httptest.NewRecorder()
 	body := `{"name":"Operations","minutes_per_credit":450,"attendance_policy_id":"` + uuid.NewString() + `","working_pattern_id":"` + uuid.NewString() + `","pay_method":"monthly","monthly_denominator":"fixed","monthly_standard_days":"22","overtime_policy_id":"` + uuid.NewString() + `","effective_from":"2026-01-01"}`
 	handler.Create(rec, workPolicyRequest(http.MethodPost, body, uuid.New()))
@@ -141,5 +152,8 @@ func TestWorkPolicyGroupCreateDelegatesValidatedRequest(t *testing.T) {
 	}
 	if value := decimal.RequireFromString("22"); value.IsZero() {
 		t.Fatal("test fixture must preserve positive monthly days")
+	}
+	if len(auditRecorder.events) != 1 || auditRecorder.events[0].Name != "payroll.work_policy_group.created" {
+		t.Fatalf("expected create audit event, got %+v", auditRecorder.events)
 	}
 }

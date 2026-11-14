@@ -93,6 +93,12 @@
       "effective_date": "Effective Date",
       "std_days": "Std. Work Days",
       "no_history": "No config history",
+      "no_history_description": "No policy is configured yet. Create the first version to begin.",
+      "validation": {
+        "date": "Choose an effective date.",
+        "positive": "Value must be greater than 0.",
+        "non_negative": "Value must be 0 or greater."
+      },
       "dept_title": "Department Payroll Config",
       "global_history": "System-wide Config History",
       "std_days_history": "Std. Days History",

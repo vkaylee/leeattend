@@ -1,10 +1,11 @@
 import type { TFunction } from "i18next";
 
 import { Plus, Calendar, History, Save, Calculator, AlertCircle, CheckCircle2 } from "lucide-react";
-import React, { useState } from "react";
+import React, { useId, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import Button from "@/components/ui/button";
+import EmptyState from "@/components/ui/empty-state";
 import { Typography } from "@/components/ui/typography";
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
 import { useHorizontalDragScroll } from "@/hooks/use-horizontal-drag-scroll";
@@ -18,17 +19,29 @@ interface Props {
   title: string;
 }
 
+interface FormErrors {
+  date?: string;
+  days?: string;
+  hours?: string;
+  otDay?: string;
+  otMonth?: string;
+  form?: string;
+}
+
 interface TemporalConfigAddFormProps {
+  errors: FormErrors;
+  fieldIdPrefix: string;
   handleSave: () => Promise<void>;
-  newDays: number;
+  isSaving: boolean;
+  newDays: string;
   newEffectiveDate: string;
-  newHours: number;
+  newHours: string;
   newMaxOtDay: string;
   newMaxOtMonth: string;
   setIsAdding: (val: boolean) => void;
-  setNewDays: (val: number) => void;
+  setNewDays: (val: string) => void;
   setNewEffectiveDate: (val: string) => void;
-  setNewHours: (val: number) => void;
+  setNewHours: (val: string) => void;
   setNewMaxOtDay: (val: string) => void;
   setNewMaxOtMonth: (val: string) => void;
   t: TFunction;
@@ -47,6 +60,9 @@ function TemporalConfigAddForm({
   setNewMaxOtMonth,
   setIsAdding,
   handleSave,
+  errors,
+  fieldIdPrefix,
+  isSaving,
   t
 }: TemporalConfigAddFormProps) {
   return (
@@ -58,27 +74,32 @@ function TemporalConfigAddForm({
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
         <div className="space-y-3">
-          <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">{t("payroll.settings.effective_date")}</label>
-          <input className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl px-5 py-4 text-sm font-bold focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all" onChange={e => { setNewEffectiveDate(e.target.value); }} type="date" value={newEffectiveDate} />
+          <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1" htmlFor={`${fieldIdPrefix}-effective-date`}>{t("payroll.settings.effective_date")}</label>
+          <input aria-describedby={errors.date ? "work-policy-date-error" : undefined} aria-invalid={!!errors.date} className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl px-5 py-4 text-sm font-bold focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all" id={`${fieldIdPrefix}-effective-date`} onChange={e => { setNewEffectiveDate(e.target.value); }} type="date" value={newEffectiveDate} />
+          {!!errors.date && <Typography className="text-xs text-red-600" id="work-policy-date-error" variant="p">{errors.date}</Typography>}
         </div>
         <div className="space-y-3">
-          <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">{t("payroll.settings.std_days")}</label>
-          <input className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl px-5 py-4 text-sm font-bold focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all font-mono" onChange={e => { setNewDays(parseFloat(e.target.value)); }} type="number" value={newDays} />
+          <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1" htmlFor={`${fieldIdPrefix}-days`}>{t("payroll.settings.std_days")}</label>
+          <input aria-describedby={errors.days ? "work-policy-days-error" : undefined} aria-invalid={!!errors.days} className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl px-5 py-4 text-sm font-bold focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all font-mono" id={`${fieldIdPrefix}-days`} min="0.01" onChange={e => { setNewDays(e.target.value); }} type="number" value={newDays} />
+          {!!errors.days && <Typography className="text-xs text-red-600" id="work-policy-days-error" variant="p">{errors.days}</Typography>}
         </div>
         <div className="space-y-3">
-          <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">{t("payroll.settings.hours_per_day")}</label>
-          <input className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl px-5 py-4 text-sm font-bold focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all font-mono" onChange={e => { setNewHours(parseFloat(e.target.value)); }} type="number" value={newHours} />
+          <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1" htmlFor={`${fieldIdPrefix}-hours`}>{t("payroll.settings.hours_per_day")}</label>
+          <input aria-describedby={errors.hours ? "work-policy-hours-error" : undefined} aria-invalid={!!errors.hours} className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl px-5 py-4 text-sm font-bold focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all font-mono" id={`${fieldIdPrefix}-hours`} min="0.01" onChange={e => { setNewHours(e.target.value); }} type="number" value={newHours} />
+          {!!errors.hours && <Typography className="text-xs text-red-600" id="work-policy-hours-error" variant="p">{errors.hours}</Typography>}
         </div>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
         <div className="space-y-3">
-          <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">{t("payroll.settings.max_ot_hours_per_day")}</label>
-          <input className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl px-5 py-4 text-sm font-bold focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all font-mono" onChange={e => { setNewMaxOtDay(e.target.value); }} placeholder={t("payroll.settings.no_limit") || ""} step="0.5" type="number" value={newMaxOtDay} />
+          <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1" htmlFor={`${fieldIdPrefix}-ot-day`}>{t("payroll.settings.max_ot_hours_per_day")}</label>
+          <input aria-describedby={errors.otDay ? "work-policy-ot-day-error" : undefined} aria-invalid={!!errors.otDay} className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl px-5 py-4 text-sm font-bold focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all font-mono" id={`${fieldIdPrefix}-ot-day`} onChange={e => { setNewMaxOtDay(e.target.value); }} placeholder={t("payroll.settings.no_limit") || ""} min="0" step="0.01" type="number" value={newMaxOtDay} />
+          {!!errors.otDay && <Typography className="text-xs text-red-600" id="work-policy-ot-day-error" variant="p">{errors.otDay}</Typography>}
           <Typography className="text-[9px] text-slate-400 ml-1" variant="p">{t("payroll.settings.ot_empty_hint")}</Typography>
         </div>
         <div className="space-y-3">
-          <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">{t("payroll.settings.max_ot_hours_per_month")}</label>
-          <input className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl px-5 py-4 text-sm font-bold focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all font-mono" onChange={e => { setNewMaxOtMonth(e.target.value); }} placeholder={t("payroll.settings.no_limit") || ""} step="0.5" type="number" value={newMaxOtMonth} />
+          <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1" htmlFor={`${fieldIdPrefix}-ot-month`}>{t("payroll.settings.max_ot_hours_per_month")}</label>
+          <input aria-describedby={errors.otMonth ? "work-policy-ot-month-error" : undefined} aria-invalid={!!errors.otMonth} className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl px-5 py-4 text-sm font-bold focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all font-mono" id={`${fieldIdPrefix}-ot-month`} onChange={e => { setNewMaxOtMonth(e.target.value); }} placeholder={t("payroll.settings.no_limit") || ""} min="0" step="0.01" type="number" value={newMaxOtMonth} />
+          {!!errors.otMonth && <Typography className="text-xs text-red-600" id="work-policy-ot-month-error" variant="p">{errors.otMonth}</Typography>}
           <Typography className="text-[9px] text-slate-400 ml-1" variant="p">{t("payroll.settings.ot_empty_hint")}</Typography>
         </div>
       </div>
@@ -90,7 +111,7 @@ function TemporalConfigAddForm({
 
       <div className="flex justify-end gap-4">
         <Button className="px-8 py-4 rounded-2xl font-bold text-[10px] uppercase tracking-widest text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all" onClick={() => { setIsAdding(false); }} variant="ghost">{t("common.cancel")}</Button>
-        <Button className="flex items-center gap-3 bg-primary-600 text-white px-10 py-4 rounded-2xl font-bold text-[10px] uppercase tracking-widest hover:bg-primary-700 transition-all shadow-xl shadow-primary-100 dark:shadow-black/30 active:scale-95" onClick={handleSave} variant="primary"><Save size={16} /> {t("common.save").toUpperCase()}</Button>
+        <Button className="flex items-center gap-3 bg-primary-600 text-white px-10 py-4 rounded-2xl font-bold text-[10px] uppercase tracking-widest hover:bg-primary-700 transition-all shadow-xl shadow-primary-100 dark:shadow-black/30 active:scale-95" disabled={isSaving} onClick={handleSave} variant="primary"><Save size={16} /> {isSaving ? t("common.loading") : t("common.save").toUpperCase()}</Button>
       </div>
     </div>
   );
@@ -229,35 +250,57 @@ function TemporalConfigHeader({ title, t, isAdding, setIsAdding }: { isAdding: b
 
 export default function TemporalConfigTable({ title, records, onSave, isLoading }: Props) {
   const { t } = useTranslation();
+  const formId = useId().replace(/:/g, "");
+  const validationMessage = t("payroll.settings.validation.positive");
   const {
     onClickCapture: handleHorizontalDragClick,
     setRef: setHorizontalDragScrollRef,
   } = useHorizontalDragScroll<HTMLDivElement>();
   const { formatDate } = useDateTimeFormatter();
   const [isAdding, setIsAdding] = useState(false);
-  const [newDays, setNewDays] = useState<number>(26);
-  const [newHours, setNewHours] = useState<number>(8);
-  const [newMaxOtDay, setNewMaxOtDay] = useState<string>("4");
-  const [newMaxOtMonth, setNewMaxOtMonth] = useState<string>("40");
+  const [newDays, setNewDays] = useState("");
+  const [newHours, setNewHours] = useState("");
+  const [newMaxOtDay, setNewMaxOtDay] = useState("");
+  const [newMaxOtMonth, setNewMaxOtMonth] = useState("");
+  const [errors, setErrors] = useState<FormErrors>({});
+  const [saveError, setSaveError] = useState<string>();
+  const [isSaving, setIsSaving] = useState(false);
 
   const firstOfMonth = new Date(); firstOfMonth.setDate(1);
   const [newEffectiveDate, setNewEffectiveDate] = useState(firstOfMonth.toISOString().split('T')[0]);
 
   const handleSave = async () => {
-    await onSave({
-      std_working_days: newDays,
-      hours_per_day: newHours,
-      max_ot_hours_per_day: newMaxOtDay === '' ? null : parseFloat(newMaxOtDay),
-      max_ot_hours_per_month: newMaxOtMonth === '' ? null : parseFloat(newMaxOtMonth),
-      effective_date: newEffectiveDate,
-    });
-    setIsAdding(false);
+    const nextErrors: FormErrors = {};
+    const days = Number(newDays);
+    const hours = Number(newHours);
+    const otDay = newMaxOtDay === "" ? null : Number(newMaxOtDay);
+    const otMonth = newMaxOtMonth === "" ? null : Number(newMaxOtMonth);
+    if (!newEffectiveDate) nextErrors.date = t("payroll.settings.validation.date");
+    if (!Number.isFinite(days) || days <= 0) nextErrors.days = validationMessage;
+    if (!Number.isFinite(hours) || hours <= 0) nextErrors.hours = validationMessage;
+    if (otDay !== null && (!Number.isFinite(otDay) || otDay < 0)) nextErrors.otDay = t("payroll.settings.validation.non_negative");
+    if (otMonth !== null && (!Number.isFinite(otMonth) || otMonth < 0)) nextErrors.otMonth = t("payroll.settings.validation.non_negative");
+    setErrors(nextErrors);
+    if (Object.keys(nextErrors).length > 0) return;
+    setSaveError(undefined);
+    setIsSaving(true);
+    try {
+      await onSave({
+        std_working_days: days,
+        hours_per_day: hours,
+        max_ot_hours_per_day: otDay,
+        max_ot_hours_per_month: otMonth,
+        effective_date: newEffectiveDate,
+      });
+      setIsAdding(false);
+    } catch (error: unknown) {
+      setSaveError(error instanceof Error ? error.message : t("common.error"));
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const displayRecords = [...records];
-  if (displayRecords.length === 0 && !isLoading) {
-    displayRecords.push({ std_working_days: 26, hours_per_day: 8, effective_date: "1970-01-01", is_virtual: true });
-  }
 
   const sortedRecords = displayRecords.sort((a, b) => new Date(b.effective_date).getTime() - new Date(a.effective_date).getTime());
   const now = new Date();
@@ -272,9 +315,14 @@ export default function TemporalConfigTable({ title, records, onSave, isLoading 
         title={title}
       />
 
+      {!!saveError && <Typography aria-live="polite" className="text-sm text-red-600" role="alert" variant="p">{saveError}</Typography>}
+
       {isAdding ? (
         <TemporalConfigAddForm
+          errors={errors}
+          fieldIdPrefix={formId}
           handleSave={handleSave}
+          isSaving={isSaving}
           newDays={newDays}
           newEffectiveDate={newEffectiveDate}
           newHours={newHours}
@@ -295,8 +343,14 @@ export default function TemporalConfigTable({ title, records, onSave, isLoading 
         onClickCapture={handleHorizontalDragClick}
         ref={setHorizontalDragScrollRef}
       >
-        {isLoading ? (
-          <div className="p-20 text-center"><div className="w-10 h-10 border-4 border-primary-600 border-t-transparent rounded-full animate-spin mx-auto"></div></div>
+          {isLoading ? (
+          <div aria-label={t("common.loading")} className="p-20 text-center" role="status"><div className="w-10 h-10 border-4 border-primary-600 border-t-transparent rounded-full animate-spin mx-auto"></div></div>
+        ) : sortedRecords.length === 0 ? (
+          <EmptyState
+            description={t("payroll.settings.no_history_description")}
+            icon={<Calculator size={28} />}
+            title={t("payroll.settings.no_history")}
+          />
         ) : (
           <TemporalConfigTableContent
             activeIndex={activeIndex}

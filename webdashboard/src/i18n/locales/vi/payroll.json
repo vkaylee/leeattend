@@ -93,6 +93,12 @@
       "effective_date": "Ngày có hiệu lực",
       "std_days": "Ngày công chuẩn",
       "no_history": "Chưa có lịch sử cấu hình",
+      "no_history_description": "Chưa có chính sách được cấu hình. Tạo phiên bản đầu tiên để bắt đầu.",
+      "validation": {
+        "date": "Chọn ngày có hiệu lực.",
+        "positive": "Giá trị phải lớn hơn 0.",
+        "non_negative": "Giá trị phải lớn hơn hoặc bằng 0."
+      },
       "dept_title": "Cấu hình lương phòng ban",
       "global_history": "Lịch sử cấu hình toàn hệ thống",
       "std_days_history": "Lịch sử công chuẩn",

@@ -93,6 +93,12 @@
       "effective_date": "生效日期",
       "std_days": "标准工作日",
       "no_history": "无配置历史",
+      "no_history_description": "尚未配置政策。创建第一个版本以开始。",
+      "validation": {
+        "date": "请选择生效日期。",
+        "positive": "数值必须大于 0。",
+        "non_negative": "数值必须大于或等于 0。"
+      },
       "dept_title": "部门薪资配置",
       "global_history": "系统范围内配置历史",
       "std_days_history": "标准天数历史",
