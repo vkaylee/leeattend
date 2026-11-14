@@ -37,6 +37,7 @@ func registerSchedulingRoutes(
 	registerRoute(router, "POST /api/v1/schedules/{employment_id}/{business_date}/replan/preview", schedule.PreviewReplan)
 	registerRoute(router, "POST /api/v1/schedules/{employment_id}/{business_date}/replan", schedule.CommitReplan)
 	registerRoute(router, "GET /api/v1/schedules/history", schedule.History)
+	registerRoute(router, "GET /api/v1/schedules/shadow-mismatches", schedule.ListShadowMismatches)
 	registerRoute(router, "GET /api/v1/schedules/evidence/{employment_id}/{business_date}", schedule.Evidence)
 	registerRoute(router, "POST /api/v1/shift-swaps", swap.Create)
 	registerRoute(router, "GET /api/v1/shift-swaps", swap.List)

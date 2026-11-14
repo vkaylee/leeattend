@@ -187,6 +187,7 @@ type ScheduleRepository interface {
 type ScheduleHandler struct {
 	Repository ScheduleRepository
 	Lifecycle  ScheduleLifecycleRepository
+	Shadow     ScheduleShadowMismatchRepository
 	Authorizer Authorizer
 }
 

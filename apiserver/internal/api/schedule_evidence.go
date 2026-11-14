@@ -154,6 +154,37 @@ type ScheduleEvidenceRepository interface {
 	GetScheduleEvidence(context.Context, uuid.UUID, uuid.UUID, string) (ScheduleEvidenceResponse, error)
 }
 
+func (h ScheduleHandler) ListShadowMismatches(w http.ResponseWriter, r *http.Request) {
+	if !h.requireScheduleEvidencePermission(w, r, scheduleHistoryPermission) {
+		return
+	}
+	if h.Shadow == nil {
+		writeScheduleEvidenceUnavailable(w, r)
+		return
+	}
+	employerID, err := ParseUUID(r.URL.Query().Get("employer_id"))
+	if err != nil {
+		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
+		return
+	}
+	startDate := r.URL.Query().Get("start_date")
+	endDate := r.URL.Query().Get("end_date")
+	if _, err := ParseDate(startDate); err != nil {
+		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
+		return
+	}
+	if _, err := ParseDate(endDate); err != nil {
+		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
+		return
+	}
+	mismatches, err := h.Shadow.ListScheduleShadowMismatches(r.Context(), employerID, startDate, endDate)
+	if err != nil {
+		writeScheduleEvidenceError(w, r, err)
+		return
+	}
+	apperror.WriteJSON(w, http.StatusOK, map[string]any{"data": mismatches})
+}
+
 func (h ScheduleHandler) History(w http.ResponseWriter, r *http.Request) {
 	if !h.requireScheduleEvidencePermission(w, r, scheduleHistoryPermission) {
 		return

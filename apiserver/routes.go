@@ -103,7 +103,7 @@ func buildRouter(cfg *config.Config, db repository.DBTX, redisClient *redisinfra
 	rosterRepo := repository.RosterRepository{DB: db}
 	rosterHandler := api.RosterHandler{Repository: rosterRepo, Authorizer: organizationAuthorizer}
 	scheduleRepo := repository.ScheduleRepository{DB: db}
-	scheduleHandler := api.ScheduleHandler{Repository: scheduleRepo, Lifecycle: scheduleRepo, Authorizer: organizationAuthorizer}
+	scheduleHandler := api.ScheduleHandler{Repository: scheduleRepo, Lifecycle: scheduleRepo, Shadow: scheduleRepo, Authorizer: organizationAuthorizer}
 	swapRepo := repository.ShiftSwapRepository{DB: db}
 	swapHandler := api.ShiftSwapHandler{Repository: swapRepo, Authorizer: organizationAuthorizer}
 	segmentRepo := repository.WorkSegmentRepository{DB: db}
