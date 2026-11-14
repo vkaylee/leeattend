@@ -116,6 +116,16 @@ type ScheduleEvidenceDiffLink struct {
 	PreviousRevisionID *uuid.UUID `json:"previous_revision_id"`
 }
 
+type ScheduleActivationReadiness struct {
+	EmployerID            uuid.UUID `json:"employer_id"`
+	GlobalFlagEnabled     bool      `json:"global_flag_enabled"`
+	EmployerActivation    bool      `json:"employer_activation"`
+	OpenMismatchCount     int64     `json:"open_mismatch_count"`
+	DeadLetterCount       int64     `json:"dead_letter_count"`
+	CurrentDuplicateCount int64     `json:"current_duplicate_count"`
+	Ready                 bool      `json:"ready"`
+}
+
 type ScheduleShadowMismatch struct {
 	ID               uuid.UUID       `json:"id"`
 	EmployerID       uuid.UUID       `json:"employer_id"`
@@ -146,6 +156,7 @@ type ScheduleEvidenceResponse struct {
 type ScheduleShadowMismatchRepository interface {
 	ListScheduleShadowMismatches(context.Context, uuid.UUID, string, string) ([]ScheduleShadowMismatch, error)
 	ResolveScheduleShadowMismatch(context.Context, uuid.UUID, string, string, uuid.UUID) error
+	GetScheduleActivationReadiness(context.Context, uuid.UUID, string, string) (ScheduleActivationReadiness, error)
 }
 
 type ScheduleEvidenceRepository interface {
@@ -158,6 +169,36 @@ type ScheduleEvidenceRepository interface {
 type ScheduleShadowMismatchResolutionRequest struct {
 	Status string `json:"status"`
 	Note   string `json:"note"`
+}
+
+func (h ScheduleHandler) ActivationReadiness(w http.ResponseWriter, r *http.Request) {
+	if !h.requireScheduleEvidencePermission(w, r, scheduleHistoryPermission) {
+		return
+	}
+	if h.Shadow == nil {
+		writeScheduleEvidenceUnavailable(w, r)
+		return
+	}
+	employerID, err := ParseUUID(r.URL.Query().Get("employer_id"))
+	if err != nil {
+		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
+		return
+	}
+	startDate, endDate := r.URL.Query().Get("start_date"), r.URL.Query().Get("end_date")
+	if _, err := ParseDate(startDate); err != nil {
+		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
+		return
+	}
+	if _, err := ParseDate(endDate); err != nil {
+		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
+		return
+	}
+	result, err := h.Shadow.GetScheduleActivationReadiness(r.Context(), employerID, startDate, endDate)
+	if err != nil {
+		writeScheduleEvidenceError(w, r, err)
+		return
+	}
+	apperror.WriteJSON(w, http.StatusOK, result)
 }
 
 func (h ScheduleHandler) ResolveShadowMismatch(w http.ResponseWriter, r *http.Request) {

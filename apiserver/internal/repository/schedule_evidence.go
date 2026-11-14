@@ -4,13 +4,40 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/vkaylee/leeattend/apiserver/internal/api"
 )
+
+func (r ScheduleRepository) GetScheduleActivationReadiness(ctx context.Context, employerID uuid.UUID, startDate, endDate string) (api.ScheduleActivationReadiness, error) {
+	db, err := r.db(ctx)
+	if err != nil {
+		return api.ScheduleActivationReadiness{}, err
+	}
+	result := api.ScheduleActivationReadiness{EmployerID: employerID}
+	if err := db.QueryRow(ctx, `SELECT COALESCE(enabled, false) FROM feature_flags WHERE flag_key = 'schedule_lifecycle'`).Scan(&result.GlobalFlagEnabled); err != nil && !errors.Is(err, pgx.ErrNoRows) {
+		return result, err
+	}
+	if err := db.QueryRow(ctx, `SELECT COALESCE((SELECT c.value_bool FROM config_entries c WHERE c.scope_type = 'employer' AND c.scope_id = $1 AND c.config_key = 'schedule.lifecycle.enabled' AND c.effective_from <= $2::date AND (c.effective_to IS NULL OR c.effective_to >= $2::date) ORDER BY c.effective_from DESC, c.id DESC LIMIT 1), false)`, employerID, startDate).Scan(&result.EmployerActivation); err != nil {
+		return result, err
+	}
+	if err := db.QueryRow(ctx, `SELECT count(*) FROM schedule_shadow_mismatches WHERE employer_id = $1 AND business_date BETWEEN $2::date AND $3::date AND status = 'open'`, employerID, startDate, endDate).Scan(&result.OpenMismatchCount); err != nil {
+		return result, err
+	}
+	if err := db.QueryRow(ctx, `SELECT count(*) FROM schedule_day_revisions a JOIN schedule_day_revisions b ON b.employment_id = a.employment_id AND b.business_date = a.business_date AND b.state IN ('published', 'explicit_off') AND a.state IN ('published', 'explicit_off') AND b.id <> a.id WHERE a.employer_id = $1 AND a.business_date BETWEEN $2::date AND $3::date`, employerID, startDate, endDate).Scan(&result.CurrentDuplicateCount); err != nil {
+		return result, err
+	}
+	if err := db.QueryRow(ctx, `SELECT count(*) FROM outbox_jobs WHERE job_type = 'ScheduleOfficeCoverageRefresh' AND status = 'dead_letter' AND payload->>'employer_id' = $1`, employerID.String()).Scan(&result.DeadLetterCount); err != nil {
+		return result, err
+	}
+	result.Ready = result.GlobalFlagEnabled && result.EmployerActivation && result.OpenMismatchCount == 0 && result.CurrentDuplicateCount == 0 && result.DeadLetterCount == 0
+	return result, nil
+}
 
 type ScheduleShadowMismatchRecord struct {
 	EmployerID       uuid.UUID
