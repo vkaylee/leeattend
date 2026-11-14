@@ -69,6 +69,11 @@ if [ "${MODE}" != "unit" ]; then
     echo "== staticcheck =="
     staticcheck ${PACKAGE} || fail "staticcheck"
 
+    # Existing complexity debt is report-only during gradual remediation.
+    # Tool/configuration failures still fail; lint findings do not block the gate.
+    echo "== golangci-lint (complexity report) =="
+    golangci-lint run ${PACKAGE} --issues-exit-code=0 || fail "golangci-lint"
+
     echo "== govulncheck =="
     govulncheck ${PACKAGE} || fail "govulncheck"
 
