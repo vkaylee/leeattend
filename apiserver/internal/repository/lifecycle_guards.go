@@ -18,6 +18,14 @@ type lifecycleSchema struct {
 	payrollPeriods    bool
 }
 
+func recordLegacyMutationEvidence(ctx context.Context, db DBTX, employmentIDs []uuid.UUID, dates []string, operation string) error {
+	if len(employmentIDs) == 0 || len(dates) == 0 {
+		return nil
+	}
+	_, err := db.Exec(ctx, `INSERT INTO schedule_legacy_mutation_evidence (employment_id, business_date, operation, details) SELECT employment_id, day::date, $3, jsonb_build_object('employment_ids', $1::text[], 'dates', $2::text[]) FROM unnest($1::uuid[]) AS employment_id CROSS JOIN unnest($2::text[]) AS day`, employmentIDs, dates, operation)
+	return err
+}
+
 func guardLifecycleDateMutation(ctx context.Context, db DBTX, employmentIDs []uuid.UUID, dates []string) error {
 	if len(employmentIDs) == 0 || len(dates) == 0 {
 		return nil
@@ -34,6 +42,7 @@ func guardLifecycleDateMutation(ctx context.Context, db DBTX, employmentIDs []uu
 		if !schema.complete() {
 			return ErrLifecycleSchemaUnavailable
 		}
+		_ = recordLegacyMutationEvidence(ctx, db, employmentIDs, dates, "guard_blocked")
 		return ErrLifecycleMutationBlocked
 	}
 	periodManaged, err := hasClosedPeriod(ctx, db, schema, employmentIDs, dates[0], dates[len(dates)-1])
@@ -72,6 +81,7 @@ func guardLifecycleDateRange(ctx context.Context, db DBTX, employmentIDs []uuid.
 		if !schema.complete() {
 			return ErrLifecycleSchemaUnavailable
 		}
+		_ = recordLegacyMutationEvidence(ctx, db, employmentIDs, []string{startDate, endDate}, "guard_blocked")
 		return ErrLifecycleMutationBlocked
 	}
 	periodManaged, err := hasClosedPeriod(ctx, db, schema, employmentIDs, startDate, endDate)

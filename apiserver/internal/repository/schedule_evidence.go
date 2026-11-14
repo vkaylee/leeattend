@@ -32,6 +32,9 @@ func (r ScheduleRepository) GetScheduleActivationReadiness(ctx context.Context, 
 	if err := db.QueryRow(ctx, `SELECT count(*) FROM schedule_day_revisions a JOIN schedule_day_revisions b ON b.employment_id = a.employment_id AND b.business_date = a.business_date AND b.state IN ('published', 'explicit_off') AND a.state IN ('published', 'explicit_off') AND b.id <> a.id WHERE a.employer_id = $1 AND a.business_date BETWEEN $2::date AND $3::date`, employerID, startDate, endDate).Scan(&result.CurrentDuplicateCount); err != nil {
 		return result, err
 	}
+	if err := db.QueryRow(ctx, `SELECT count(*) FROM schedule_legacy_mutation_evidence WHERE operation = 'guard_blocked' AND business_date BETWEEN $2::date AND $3::date AND employment_id IN (SELECT id FROM employments WHERE employer_id = $1)`, employerID, startDate, endDate).Scan(&result.LegacyMutationCount); err != nil {
+		return result, err
+	}
 	if err := db.QueryRow(ctx, `SELECT count(*) FROM outbox_jobs WHERE job_type = 'ScheduleOfficeCoverageRefresh' AND status = 'dead_letter' AND payload->>'employer_id' = $1`, employerID.String()).Scan(&result.DeadLetterCount); err != nil {
 		return result, err
 	}

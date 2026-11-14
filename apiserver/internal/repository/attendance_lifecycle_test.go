@@ -15,7 +15,7 @@ import (
 
 func TestInsertApprovedAdjustmentBlocksOfficialDate(t *testing.T) {
 	calls := 0
-	execCalls := 0
+	adjustmentExecCalls := 0
 	db := &fakeDBTX{
 		queryRowFn: func(_ context.Context, query string, _ ...any) pgx.Row {
 			calls++
@@ -30,8 +30,11 @@ func TestInsertApprovedAdjustmentBlocksOfficialDate(t *testing.T) {
 				return nil
 			}}
 		},
-		execFn: func(context.Context, string, ...any) (pgconn.CommandTag, error) {
-			execCalls++
+		execFn: func(_ context.Context, query string, _ ...any) (pgconn.CommandTag, error) {
+			if strings.Contains(query, "schedule_legacy_mutation_evidence") {
+				return pgconn.NewCommandTag("INSERT 1"), nil
+			}
+			adjustmentExecCalls++
 			return pgconn.NewCommandTag("INSERT 1"), nil
 		},
 	}
@@ -42,8 +45,8 @@ func TestInsertApprovedAdjustmentBlocksOfficialDate(t *testing.T) {
 	if !errors.Is(err, ErrLifecycleMutationBlocked) {
 		t.Fatalf("expected official date mutation block, got %v", err)
 	}
-	if execCalls != 0 {
-		t.Fatalf("expected no adjustment insert after lifecycle block, got %d exec calls", execCalls)
+	if adjustmentExecCalls != 0 {
+		t.Fatalf("expected no adjustment insert after lifecycle block, got %d adjustment exec calls", adjustmentExecCalls)
 	}
 }
 
