@@ -12,6 +12,7 @@ import (
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/shopspring/decimal"
 	"github.com/vkaylee/leeattend/apiserver/internal/api"
+	"github.com/vkaylee/leeattend/apiserver/internal/service"
 )
 
 type DepartmentRepository struct {
@@ -254,6 +255,11 @@ func (r DepartmentRepository) SetDepartmentPayrollConfig(ctx context.Context, de
 		return api.DepartmentPayrollConfig{}, api.ErrDepartmentNotFound
 	}
 
+	beginner, ok := db.(service.TxBeginner)
+	if !ok {
+		return api.DepartmentPayrollConfig{}, errors.New("department repository: database does not support transactions")
+	}
+
 	upsertQuery := `INSERT INTO config_entries (id, scope_type, scope_id, config_key, value_decimal, effective_from, created_by, created_at, updated_at)
 		VALUES ($1, 'department', $2, $3, $4, $5::date, $6, NOW(), NOW())
 		ON CONFLICT (scope_type, scope_id, config_key, effective_from)
@@ -263,15 +269,15 @@ func (r DepartmentRepository) SetDepartmentPayrollConfig(ctx context.Context, de
 	fixedID := uuid.New()
 	var finalID uuid.UUID
 	var createdAt time.Time
-	err = db.QueryRow(ctx, upsertQuery, fixedID, deptID, "payroll.fixed_std_days", req.StdWorkingDays, req.EffectiveDate, actorID).Scan(&finalID, &createdAt)
-	if err != nil {
-		return api.DepartmentPayrollConfig{}, err
-	}
-
-	hoursID := uuid.New()
-	var dummyID uuid.UUID
-	var dummyTime time.Time
-	err = db.QueryRow(ctx, upsertQuery, hoursID, deptID, "payroll.hours_per_day", req.HoursPerDay, req.EffectiveDate, actorID).Scan(&dummyID, &dummyTime)
+	err = service.WithTx(ctx, beginner, func(ctx context.Context, tx pgx.Tx) error {
+		if err := tx.QueryRow(ctx, upsertQuery, fixedID, deptID, "payroll.fixed_std_days", req.StdWorkingDays, req.EffectiveDate, actorID).Scan(&finalID, &createdAt); err != nil {
+			return err
+		}
+		hoursID := uuid.New()
+		var dummyID uuid.UUID
+		var dummyTime time.Time
+		return tx.QueryRow(ctx, upsertQuery, hoursID, deptID, "payroll.hours_per_day", req.HoursPerDay, req.EffectiveDate, actorID).Scan(&dummyID, &dummyTime)
+	})
 	if err != nil {
 		return api.DepartmentPayrollConfig{}, err
 	}

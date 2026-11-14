@@ -1,11 +1,13 @@
 package repository
 
 import (
+	"context"
 	"encoding/json"
 	"strings"
 	"testing"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/vkaylee/leeattend/apiserver/internal/api"
 	"github.com/vkaylee/leeattend/apiserver/internal/domain/workpolicy"
 )
@@ -34,5 +36,27 @@ func TestMarshalKPICalculationInputsIncludesEffectivePolicyWithoutSalary(t *test
 	}
 	if !strings.Contains(text, policy.ID.String()) || !strings.Contains(text, "2026-06-01") {
 		t.Fatalf("snapshot omitted policy version metadata: %s", text)
+	}
+}
+
+func TestPersistKPICalculationSnapshotsWithoutFormula(t *testing.T) {
+	calls := 0
+	db := &fakeDBTX{}
+	db.execFn = func(_ context.Context, query string, _ ...any) (pgconn.CommandTag, error) {
+		calls++
+		if strings.Contains(query, "INSERT INTO payroll_calculation_runs") {
+			if !strings.Contains(query, "formula_version_id") {
+				t.Fatalf("snapshot insert omitted formula version column: %s", query)
+			}
+			return pgconn.NewCommandTag("INSERT 0 1"), nil
+		}
+		return pgconn.NewCommandTag("UPDATE 0"), nil
+	}
+	policy := &api.WorkPolicyGroupVersion{ID: uuid.New(), GroupID: uuid.New(), EffectiveFrom: "2026-06-01", PayMethod: workpolicy.PayMethodHourly}
+	if err := persistKPICalculation(context.Background(), db, uuid.New(), uuid.New(), 2026, 6, kpiCalculation{Policy: policy}, nil); err != nil {
+		t.Fatalf("persist policy-only snapshot: %v", err)
+	}
+	if calls != 1 {
+		t.Fatalf("expected one policy snapshot write, got %d calls", calls)
 	}
 }

@@ -261,8 +261,8 @@ func (r WorkPolicyRepository) ResolveWorkPolicy(ctx context.Context, employmentI
 		JOIN work_credit_policies wc ON wc.id = v.work_credit_policy_id
 		JOIN pay_basis_policies pb ON pb.id = v.pay_basis_policy_id
 		WHERE m.employment_id = $1
-		  AND m.effective_from <= $2::date AND (m.effective_to IS NULL OR m.effective_to >= $2::date)
-		  AND v.effective_from <= $2::date AND (v.effective_to IS NULL OR v.effective_to >= $2::date)
+		  AND m.effective_from <= $2::date AND (m.effective_to IS NULL OR m.effective_to > $2::date)
+		  AND v.effective_from <= $2::date AND (v.effective_to IS NULL OR v.effective_to > $2::date)
 		ORDER BY v.effective_from DESC, v.id DESC
 		LIMIT 1`, employmentID, asOf.Format("2006-01-02"))
 	result, err := workPolicyGroupVersion(row)
@@ -340,6 +340,9 @@ func parseWorkPolicyRange(fromValue string, toValue *string) (*time.Time, *time.
 	to, err := time.Parse("2006-01-02", strings.TrimSpace(*toValue))
 	if err != nil {
 		return nil, nil, err
+	}
+	if !to.After(from) {
+		return nil, nil, api.ErrWorkPolicyGroupValidation
 	}
 	return &from, &to, nil
 }

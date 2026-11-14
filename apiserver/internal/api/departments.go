@@ -5,6 +5,7 @@ import (
 	"errors"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -189,15 +190,20 @@ func (h DepartmentHandler) SetPayrollConfig(w http.ResponseWriter, r *http.Reque
 		return
 	}
 	userID, userOK := httpinfra.UserIDFromContext(r.Context())
-	if !userOK {
-		apperror.WriteError(w, r, apperror.Unauthorized(apperror.KeyAuthenticationRequired))
+	if !userOK || h.Authorizer == nil || !h.Authorizer.HasScopedPermission(r.Context(), userID, string(auth.PermissionDepartmentsUpdate), &deptID) {
+		apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
 		return
 	}
 	req, err := DecodeJSON[SetDepartmentPayrollConfigRequest](r, 1<<20)
-	if err != nil || req.EffectiveDate == "" {
+	if err != nil || strings.TrimSpace(req.EffectiveDate) == "" || req.StdWorkingDays.IsNegative() || req.HoursPerDay.IsNegative() {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}
+	if _, err := time.Parse("2006-01-02", strings.TrimSpace(req.EffectiveDate)); err != nil {
+		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
+		return
+	}
+	req.EffectiveDate = strings.TrimSpace(req.EffectiveDate)
 	config, err := h.Repository.SetDepartmentPayrollConfig(r.Context(), deptID, req, userID)
 	if err != nil {
 		h.writePayrollError(w, r, err)

@@ -13,11 +13,13 @@ import (
 )
 
 type kpiCalculation struct {
-	Amount    decimal.Decimal
-	FormulaID *uuid.UUID
-	Inputs    map[string]string
-	Trace     []map[string]string
-	Policy    *api.WorkPolicyGroupVersion
+	Amount        decimal.Decimal
+	FormulaID     *uuid.UUID
+	Inputs        map[string]string
+	Trace         []map[string]string
+	Policy        *api.WorkPolicyGroupVersion
+	StandardUnits int32
+	OvertimeUnits int32
 }
 
 func calculateKPIBonus(ctx context.Context, db DBTX, employmentID uuid.UUID, year, month int, asOf string) (kpiCalculation, error) {
@@ -128,28 +130,38 @@ ORDER BY v.effective_from DESC, v.version_number DESC LIMIT 1`, asOf).Scan(&form
 }
 
 func persistKPICalculation(ctx context.Context, db DBTX, employmentID, payslipID uuid.UUID, year, month int, calc kpiCalculation, actorID *uuid.UUID) error {
-	if calc.FormulaID == nil {
-		return nil
-	}
 	inputSnapshot, err := marshalKPICalculationInputs(calc)
 	if err != nil {
 		return err
 	}
-	outputSnapshot, err := json.Marshal(map[string]string{"KPI_BONUS": calc.Amount.String()})
+	outputSnapshot, err := json.Marshal(map[string]string{
+		"KPI_BONUS":      calc.Amount.String(),
+		"standard_units": decimal.NewFromInt32(calc.StandardUnits).String(),
+		"overtime_units": decimal.NewFromInt32(calc.OvertimeUnits).String(),
+	})
 	if err != nil {
 		return err
 	}
 	traceSteps := append([]map[string]string(nil), calc.Trace...)
 	if calc.Policy != nil {
 		traceSteps = append(traceSteps, map[string]string{"step": "policy", "rule": "labor_policy_group", "expression": "effective membership resolution", "result": calc.Policy.ID.String()})
+	} else {
+		traceSteps = append(traceSteps, map[string]string{"step": "policy", "rule": "labor_policy_group", "expression": "effective membership resolution", "result": "not_configured"})
 	}
 	trace, err := json.Marshal(traceSteps)
 	if err != nil {
 		return err
 	}
+	if calc.FormulaID == nil {
+		_, err = db.Exec(ctx, `INSERT INTO payroll_calculation_runs (employment_id, payslip_id, period_year, period_month, formula_version_id, engine_version, input_snapshot, output_snapshot, calculation_trace, created_by)
+		VALUES ($1, $2, $3, $4, NULL, 'payroll-v1', $5, $6, $7, $8)
+		ON CONFLICT (payslip_id) WHERE payslip_id IS NOT NULL AND formula_version_id IS NULL DO UPDATE SET input_snapshot = EXCLUDED.input_snapshot, output_snapshot = EXCLUDED.output_snapshot, calculation_trace = EXCLUDED.calculation_trace, created_by = EXCLUDED.created_by, engine_version = EXCLUDED.engine_version`, employmentID, payslipID, year, month, inputSnapshot, outputSnapshot, trace, actorID)
+		return err
+	}
+	formulaID := *calc.FormulaID
 	_, err = db.Exec(ctx, `INSERT INTO payroll_calculation_runs (employment_id, payslip_id, period_year, period_month, formula_version_id, engine_version, input_snapshot, output_snapshot, calculation_trace, created_by)
 VALUES ($1, $2, $3, $4, $5, 'formula-v1', $6, $7, $8, $9)
-ON CONFLICT (payslip_id, formula_version_id) WHERE payslip_id IS NOT NULL AND formula_version_id IS NOT NULL DO UPDATE SET input_snapshot = EXCLUDED.input_snapshot, output_snapshot = EXCLUDED.output_snapshot, calculation_trace = EXCLUDED.calculation_trace, created_by = EXCLUDED.created_by`, employmentID, payslipID, year, month, calc.FormulaID, inputSnapshot, outputSnapshot, trace, actorID)
+ON CONFLICT (payslip_id, formula_version_id) WHERE payslip_id IS NOT NULL AND formula_version_id IS NOT NULL DO UPDATE SET input_snapshot = EXCLUDED.input_snapshot, output_snapshot = EXCLUDED.output_snapshot, calculation_trace = EXCLUDED.calculation_trace, created_by = EXCLUDED.created_by, engine_version = EXCLUDED.engine_version`, employmentID, payslipID, year, month, formulaID, inputSnapshot, outputSnapshot, trace, actorID)
 	return err
 }
 

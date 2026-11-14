@@ -450,7 +450,7 @@ func (r PayrollRepository) UpdatePayrollSettings(ctx context.Context, req api.Up
 
 	currentMode := "fixed"
 	currentFixedDays := decimal.NewFromInt(26)
-	currentDaysPerWeek := 6
+	currentDaysPerWeek := 5
 	currentHoursPerDay := decimal.NewFromInt(8)
 	var currentMaxOtDay *decimal.Decimal
 	var currentMaxOtMonth *decimal.Decimal
@@ -1848,8 +1848,8 @@ func resolveWorkPolicyOptional(ctx context.Context, db DBTX, employmentID uuid.U
 		JOIN work_credit_policies wc ON wc.id = v.work_credit_policy_id
 		JOIN pay_basis_policies pb ON pb.id = v.pay_basis_policy_id
 		WHERE m.employment_id = $1
-		  AND m.effective_from <= $2::date AND (m.effective_to IS NULL OR m.effective_to >= $2::date)
-		  AND v.effective_from <= $2::date AND (v.effective_to IS NULL OR v.effective_to >= $2::date)
+		  AND m.effective_from <= $2::date AND (m.effective_to IS NULL OR m.effective_to > $2::date)
+		  AND v.effective_from <= $2::date AND (v.effective_to IS NULL OR v.effective_to > $2::date)
 		ORDER BY v.effective_from DESC, v.id DESC LIMIT 1`, employmentID, asOf.Format("2006-01-02"))
 	policy, err := workPolicyGroupVersion(row)
 	if errors.Is(err, pgx.ErrNoRows) {
@@ -2224,6 +2224,8 @@ ORDER BY priority ASC`, policyIDs)
 		return api.FullPayslipResponse{}, policyErr
 	}
 	kpiCalc.Policy = resolvedPolicy
+	kpiCalc.StandardUnits = totalStdUnits
+	kpiCalc.OvertimeUnits = totalOtUnits
 	if kpiCalc.Amount.GreaterThan(decimal.Zero) {
 		totalIncentives = totalIncentives.Add(kpiCalc.Amount)
 		incentiveResults = append(incentiveResults, api.IncentiveEvaluationResult{

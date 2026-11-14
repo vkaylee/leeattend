@@ -253,6 +253,18 @@ BEGIN
         RAISE EXCEPTION 'schema check failed: labor policy migration marker is missing';
     END IF;
 
+    IF to_regclass('public.payroll_calculation_runs_policy_snapshot_idx') IS NULL THEN
+        RAISE EXCEPTION 'schema check failed: policy-only payroll snapshot index is missing';
+    END IF;
+
+    SELECT count(*) INTO v_marker_count
+    FROM public.schema_migrations
+    WHERE version = '20261114090000_payroll_calculation_run_policy_snapshot';
+
+    IF v_marker_count <> 1 THEN
+        RAISE EXCEPTION 'schema check failed: payroll policy snapshot migration marker is missing';
+    END IF;
+
     SELECT count(*) INTO v_marker_count
     FROM public.schema_migrations
     WHERE version = '20261112030000_payroll_periods';
