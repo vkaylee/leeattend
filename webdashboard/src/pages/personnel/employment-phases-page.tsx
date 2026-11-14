@@ -3,7 +3,7 @@ import type { ColumnDef } from "@tanstack/react-table";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useSearch } from "@tanstack/react-router";
 import { Milestone, Plus, Search, UserRound } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import type { Employee, Employment } from "@/lib/api/types";
@@ -53,16 +53,11 @@ export default function EmploymentPhasesPage() {
     queryKey: ["employment-phase-contracts", selectedEmployeeId],
     queryFn: () => fetchEmployeeContracts(selectedEmployeeId),
   });
-  const selectedContracts = contracts.filter((contract) => !selectedEmploymentId || contract.employment_id === selectedEmploymentId);
-
-  useEffect(() => {
-    if (!selectedEmployeeId) {
-      setSelectedEmploymentId("");
-      return;
-    }
-    const preferred = employments.find((employment) => employment.status === "active") ?? employments[0];
-    setSelectedEmploymentId((current) => employments.some((employment) => employment.id === current) ? current : preferred?.id ?? "");
-  }, [employments, selectedEmployeeId]);
+  const preferred = employments.find((employment) => employment.status === "active") ?? employments[0];
+  const activeEmploymentId = selectedEmployeeId
+    ? (employments.some((employment) => employment.id === selectedEmploymentId) ? selectedEmploymentId : preferred?.id ?? "")
+    : "";
+  const selectedContracts = contracts.filter((contract) => !activeEmploymentId || contract.employment_id === activeEmploymentId);
 
   const page = search.page ?? 1;
   const limit = search.limit ?? 50;
@@ -127,7 +122,7 @@ export default function EmploymentPhasesPage() {
             onChange={setSelectedEmploymentId}
             options={employmentOptions}
             placeholder={t("common.select_employment", { defaultValue: "Select employment" })}
-            value={selectedEmploymentId}
+            value={activeEmploymentId}
           />
         </div> : null}
         <label className="flex min-w-0 flex-1 items-center gap-2 rounded-xl border border-slate-200 px-3 dark:border-slate-700">

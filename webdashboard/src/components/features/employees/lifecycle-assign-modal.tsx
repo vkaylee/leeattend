@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { ClipboardList, UserCheck } from "lucide-react";
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { z } from "zod";
@@ -53,6 +53,18 @@ export default function LifecycleAssignModal({
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>("");
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>("");
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [prevIsOpen, setPrevIsOpen] = useState(isOpen);
+
+  if (isOpen !== prevIsOpen) {
+    setPrevIsOpen(isOpen);
+    if (isOpen) {
+      setSelectedTemplateId("");
+      setErrorMsg(null);
+      if (!initialEmploymentId) {
+        setSelectedEmployeeId("");
+      }
+    }
+  }
 
   const { employees } = useAllEmployees({ enabled: isOpen && !initialEmploymentId });
   const { data: templates = [], isLoading: isLoadingTemplates } = useLifecycleTemplates();
@@ -70,16 +82,6 @@ export default function LifecycleAssignModal({
 
   const effectiveEmploymentId = initialEmploymentId || selectedEmployee?.active_employment_id || "";
   const effectiveEmployeeName = initialEmployeeName || selectedEmployee?.full_name || "";
-
-  useEffect(() => {
-    if (isOpen) {
-      setSelectedTemplateId("");
-      setErrorMsg(null);
-      if (!initialEmploymentId) {
-        setSelectedEmployeeId("");
-      }
-    }
-  }, [isOpen, initialEmploymentId]);
 
   const mutation = useMutation({
     mutationFn: async () => {

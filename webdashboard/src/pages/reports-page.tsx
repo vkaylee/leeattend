@@ -57,13 +57,14 @@ export default function ReportsPage() {
 
   const matrixGridRef = React.useRef<TimesheetMatrixGridHandle>(null);
 
+  const startDate = dateRange?.start;
   // Active month & year for matrix should be synchronized with dateRange and specificMonth!
   const activeMonthYear = React.useMemo(() => {
     if (filterMode === "specific_month") {
       return specificMonth;
     }
-    if (dateRange?.start) {
-      const parts = dateRange.start.split("-");
+    if (startDate) {
+      const parts = startDate.split("-");
       if (parts.length >= 2) {
         const y = parseInt(parts[0], 10);
         const m = parseInt(parts[1], 10);
@@ -73,7 +74,7 @@ export default function ReportsPage() {
       }
     }
     return specificMonth;
-  }, [filterMode, dateRange?.start, specificMonth]);
+  }, [filterMode, startDate, specificMonth]);
 
   const { attendanceMap, isLoading: isLoadingAttendance } = useMonthlyTimesheetData({
     month: activeMonthYear.month,

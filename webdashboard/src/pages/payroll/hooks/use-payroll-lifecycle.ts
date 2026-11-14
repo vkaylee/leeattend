@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useCallback } from "react";
 
 export type PayrollPeriodStatus = "DRAFT" | "CALCULATED" | "LOCKED";
 
@@ -24,46 +24,40 @@ function getStorageKey(year: number, month: number): string {
   return `${STORAGE_PREFIX}_${year}_${month}`;
 }
 
+function readAuditFromStorage(year: number, month: number, hasCalculatedPayslips: boolean): PayrollPeriodAudit {
+  if (typeof window === "undefined") {
+    return { status: "DRAFT" };
+  }
+  try {
+    const stored = localStorage.getItem(getStorageKey(year, month));
+    const parsed: unknown = stored ? JSON.parse(stored) : null;
+    if (isPayrollPeriodAudit(parsed)) {
+      return parsed;
+    }
+  } catch {
+    // Fallback on storage read error
+  }
+  return { status: hasCalculatedPayslips ? "CALCULATED" : "DRAFT" };
+}
+
 export function usePayrollLifecycle({
   calcMonth,
   calcYear,
   hasCalculatedPayslips,
 }: UsePayrollLifecycleOptions) {
-  const [audit, setAudit] = useState<PayrollPeriodAudit>(() => {
-    if (typeof window === "undefined") {
-      return { status: "DRAFT" };
-    }
-    try {
-      const stored = localStorage.getItem(getStorageKey(calcYear, calcMonth));
-      const parsed: unknown = stored ? JSON.parse(stored) : null;
-      if (isPayrollPeriodAudit(parsed)) {
-        return parsed;
-      }
-    } catch {
-      // Fallback on storage read error
-    }
-    return { status: hasCalculatedPayslips ? "CALCULATED" : "DRAFT" };
-  });
+  const [audit, setAudit] = useState<PayrollPeriodAudit>(() =>
+    readAuditFromStorage(calcYear, calcMonth, hasCalculatedPayslips)
+  );
+  const [prevPeriod, setPrevPeriod] = useState({ calcMonth, calcYear, hasCalculatedPayslips });
 
-  // Sync state when period or calculation presence changes
-  useEffect(() => {
-    
-    try {
-      const stored = localStorage.getItem(getStorageKey(calcYear, calcMonth));
-      const parsed: unknown = stored ? JSON.parse(stored) : null;
-      if (isPayrollPeriodAudit(parsed)) {
-        setAudit(parsed);
-      } else {
-        setAudit({
-          status: hasCalculatedPayslips ? "CALCULATED" : "DRAFT",
-        });
-      }
-    } catch {
-      setAudit({
-        status: hasCalculatedPayslips ? "CALCULATED" : "DRAFT",
-      });
-    }
-  }, [calcYear, calcMonth, hasCalculatedPayslips]);
+  if (
+    prevPeriod.calcYear !== calcYear ||
+    prevPeriod.calcMonth !== calcMonth ||
+    prevPeriod.hasCalculatedPayslips !== hasCalculatedPayslips
+  ) {
+    setPrevPeriod({ calcMonth, calcYear, hasCalculatedPayslips });
+    setAudit(readAuditFromStorage(calcYear, calcMonth, hasCalculatedPayslips));
+  }
 
   const persistAudit = useCallback((newAudit: PayrollPeriodAudit) => {
     setAudit(newAudit);

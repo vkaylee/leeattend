@@ -1,7 +1,7 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { HeartHandshake } from "lucide-react";
 import React, { useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 
 import { standardSchemaResolver } from "@hookform/resolvers/standard-schema";
@@ -61,7 +61,14 @@ export default function WorkingConditionFormModal({
   const currentLang = i18n.language.split("-")[0];
 
   const { employees } = useAllEmployees({ enabled: isOpen && !employeeId });
-  const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>("");
+  const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>(employeeId ?? "");
+  const [prevOpen, setPrevOpen] = useState(isOpen);
+  if (isOpen !== prevOpen) {
+    setPrevOpen(isOpen);
+    if (isOpen) {
+      setSelectedEmployeeId(employeeId ?? "");
+    }
+  }
 
   const { data: typeDefs } = useQuery<ConditionTypeDefinition[]>({ queryKey: ["condition-types"], queryFn: () => (fetchConditionTypes(true)),
   enabled: isOpen, });
@@ -71,7 +78,6 @@ export default function WorkingConditionFormModal({
     handleSubmit,
     control,
     setValue,
-    watch,
     reset,
     formState: { errors, isSubmitting },
   } = useForm<ConditionFormValues>({
@@ -86,11 +92,10 @@ export default function WorkingConditionFormModal({
     },
   });
 
-  const isPaid = watch("is_paid");
+  const isPaid = useWatch({ control, name: "is_paid", defaultValue: true });
 
   useEffect(() => {
     if (isOpen) {
-      setSelectedEmployeeId(employeeId ?? "");
       const firstType = (typeDefs ?? []).find((d) => d.is_active);
       reset({
         type_: firstType?.code ?? "",
@@ -101,7 +106,7 @@ export default function WorkingConditionFormModal({
         minute_allowance: 0,
       });
     }
-  }, [isOpen, employeeId, typeDefs, reset]);
+  }, [isOpen, typeDefs, reset]);
 
   const onSubmit = async (values: ConditionFormValues) => {
     try {

@@ -21,20 +21,34 @@ export interface DepartmentFormModalProps {
   t: TFunction;
 }
 
-export function DepartmentFormModal({ 
-  departments, 
-  editingDept, 
-  isOpen, 
-  onClose,employees, 
-  t 
+function loadParentMap(): Record<string, string> {
+  try {
+    const saved = localStorage.getItem("leeattend_dept_parents");
+    if (!saved) return {};
+    const parsed = JSON.parse(saved) as unknown;
+    if (parsed && typeof parsed === "object") {
+      return parsed as Record<string, string>;
+    }
+    return {};
+  } catch {
+    return {};
+  }
+}
+
+export function DepartmentFormModal({
+  departments,
+  editingDept,
+  isOpen,
+  onClose,employees,
+  t
 }: DepartmentFormModalProps) {
-  const { 
-    selectedManagerId, 
-    setSelectedManagerId, 
+  const {
+    selectedManagerId,
+    setSelectedManagerId,
     selectedParentId,
     setSelectedParentId,
     handleSubmit,
-    isLoading 
+    isLoading
   } = useDepartmentForm(editingDept, onClose, t);
 
   const sortedEmployees = useMemo(() => {
@@ -44,22 +58,8 @@ export function DepartmentFormModal({
     return [...thisDept, ...others];
   }, [employees, editingDept]);
 
-  // Load parent map from localStorage to filter out descendants and prevent cyclic parenting
-  const parentMap = useMemo<Record<string, string>>(() => {
-    try {
-      const saved = localStorage.getItem("leeattend_dept_parents");
-      if (!saved) return {};
-      const parsed = JSON.parse(saved) as unknown;
-      if (parsed && typeof parsed === "object") {
-        return parsed as Record<string, string>;
-      }
-      return {};
-    } catch { /* localStorage unavailable or corrupt — return empty fallback */
-      return {};
-    }
-  }, []);
-
   const validParents = useMemo(() => {
+    const parentMap = loadParentMap();
     return departments.filter(d => {
       // Cannot be self
       if (d.id === editingDept?.id) return false;
@@ -73,7 +73,7 @@ export function DepartmentFormModal({
       }
       return true;
     });
-  }, [departments, editingDept, parentMap]);
+  }, [departments, editingDept]);
 
   return (
     <Modal icon={<LayoutGrid size={24} />} isOpen={isOpen} maxWidth="lg" onClose={onClose} subtitle={t("departments.modal.subtitle")} title={editingDept ? t("departments.modal.edit_title") : t("departments.modal.add_title")}>

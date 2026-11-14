@@ -55,8 +55,12 @@ export function DashboardFilterBar({ filters, onChange }: DashboardFilterBarProp
   const { t } = useTranslation();
   const { data: departments = [] } = useDepartments();
   const [draftFilters, setDraftFilters] = useState(filters);
+  const [prevFilters, setPrevFilters] = useState(filters);
 
-  useEffect(() => { setDraftFilters(filters); }, [filters]);
+  if (filters !== prevFilters) {
+    setPrevFilters(filters);
+    setDraftFilters(filters);
+  }
 
   const departmentOptions = useMemo(
     () => departments.map((department) => ({ label: department.name, value: department.id })),

@@ -43,9 +43,12 @@ export default function DesktopPage() {
     // First sort according to custom order
     const ordered: typeof availableWidgets = [];
     for (const id of order) {
-      if (enabledIds.includes(id) && enabledMap.has(id)) {
-        ordered.push(enabledMap.get(id)!);
-        enabledMap.delete(id);
+      if (enabledIds.includes(id)) {
+        const widget = enabledMap.get(id);
+        if (widget) {
+          ordered.push(widget);
+          enabledMap.delete(id);
+        }
       }
     }
 

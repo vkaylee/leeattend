@@ -87,7 +87,7 @@ export function useBatchApproval(): UseBatchApprovalReturn {
       }
 
       default:
-        throw new Error(`Unsupported approval type: ${item.type}`);
+        throw new Error(`Unsupported approval type: ${String((item as { type?: unknown }).type)}`);
     }
   };
 

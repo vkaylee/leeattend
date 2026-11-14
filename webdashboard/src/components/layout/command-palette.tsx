@@ -39,6 +39,14 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
   const navigate = useNavigate();
   const { hasAnyPermission } = useMyPermissions();
   const [search, setSearch] = useState("");
+  const [prevIsOpen, setPrevIsOpen] = useState(isOpen);
+
+  if (isOpen !== prevIsOpen) {
+    setPrevIsOpen(isOpen);
+    if (!isOpen) {
+      setSearch("");
+    }
+  }
 
   // Listen to Cmd+K / Ctrl+K keyboard shortcut
   useEffect(() => {
@@ -57,13 +65,6 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
     window.addEventListener("keydown", handleKeyDown);
     return () => { window.removeEventListener("keydown", handleKeyDown); };
   }, [isOpen, onClose]);
-
-  // Reset search when dialog opens/closes
-  useEffect(() => {
-    if (!isOpen) {
-      setSearch("");
-    }
-  }, [isOpen]);
 
   const allFeatures = useMemo(() => {
     const raw = getAllFeatures();

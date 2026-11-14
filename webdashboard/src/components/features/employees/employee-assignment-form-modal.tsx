@@ -1,5 +1,5 @@
 import { Briefcase } from "lucide-react";
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 
@@ -63,7 +63,16 @@ function useAssignmentForm({
   const updateAssignment = useUpdateEmployeeAssignment();
   const { data: locations, isError: locationsUnavailable } = useLocations();
   const { employees } = useAllEmployees({ enabled: isOpen && !employeeId });
-  const [selectedEmployeeId, setSelectedEmployeeId] = React.useState<string>("");
+  const targetInitialEmployeeId = editingAssignment?.employee_id ?? employeeId ?? "";
+  const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>(targetInitialEmployeeId);
+  const [prevOpenState, setPrevOpenState] = useState({ editingAssignment, isOpen });
+
+  if (isOpen !== prevOpenState.isOpen || editingAssignment !== prevOpenState.editingAssignment) {
+    setPrevOpenState({ editingAssignment, isOpen });
+    if (isOpen) {
+      setSelectedEmployeeId(targetInitialEmployeeId);
+    }
+  }
   const {
     register,
     handleSubmit,
@@ -84,7 +93,6 @@ function useAssignmentForm({
   useEffect(() => {
     if (isOpen) {
       if (editingAssignment) {
-        setSelectedEmployeeId(editingAssignment.employee_id ?? employeeId ?? "");
         reset({
           status: editingAssignment.status,
           start_date: editingAssignment.start_date,
@@ -93,7 +101,6 @@ function useAssignmentForm({
           reason: editingAssignment.reason ?? "",
         });
       } else {
-        setSelectedEmployeeId(employeeId ?? "");
         reset({
           status: "scheduled",
           start_date: new Date().toISOString().split("T")[0],
@@ -103,7 +110,7 @@ function useAssignmentForm({
         });
       }
     }
-  }, [isOpen, editingAssignment, employeeId, reset]);
+  }, [isOpen, editingAssignment, reset]);
 
   const onSubmit = async (data: AssignmentFormValues) => {
     try {
