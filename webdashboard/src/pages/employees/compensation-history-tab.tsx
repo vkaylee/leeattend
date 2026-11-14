@@ -5,6 +5,8 @@ import { useTranslation } from "react-i18next";
 import CompensationTimeline from "@/components/compensation/compensation-timeline";
 import { Typography } from "@/components/ui/typography";
 import { fetchCompensationHistory } from "@/lib/api/employees";
+import { createQueryKey } from "@/lib/query-keys";
+
 
 interface CompensationHistoryTabProps { employeeId: string;
 employmentId?: string;
@@ -20,7 +22,7 @@ export default function CompensationHistoryTab({
   const { data, isLoading, error } = useQuery({
     enabled: !!employeeId,
     queryFn: () => fetchCompensationHistory(employeeId, employmentId),
-    queryKey: ["employee-compensation-history", employeeId, employmentId],
+    queryKey: createQueryKey("employee-compensation-history", employeeId, employmentId),
   });
 
   if (isLoading) {

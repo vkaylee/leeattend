@@ -13,6 +13,8 @@ import {
   updateDefaultAttendanceRules,
 } from "@/lib/api";
 import { maybeNull } from "@/types/api-overrides";
+import { createQueryKey } from "@/lib/query-keys";
+
 type RoundingPolicy = "none" | "floor" | "round" | "ceil";
 
 export function useTimeSettingsRules(
@@ -33,8 +35,8 @@ export function useTimeSettingsRules(
     mutationFn: (data: UpdateAttendanceRulesRequest) => updateDefaultAttendanceRules(data),
     onSuccess: () => {
       toast.success(t("common.success"));
-      void queryClient.invalidateQueries({ queryKey: ["attendance-rules"] });
-      void queryClient.invalidateQueries({ queryKey: ["attendance-policy-versions"] });
+      void queryClient.invalidateQueries({ queryKey: createQueryKey("attendance-rules") });
+      void queryClient.invalidateQueries({ queryKey: createQueryKey("attendance-policy-versions") });
       params.onSuccess();
     },
   });
@@ -70,7 +72,7 @@ export function useBulkReprocess(t: TFunction) {
   const bulkReprocessInFlight = useRef(false);
 
   const jobStatusQuery = useQuery({
-    queryKey: ["generic-job-status", pollingJobId],
+    queryKey: createQueryKey("generic-job-status", pollingJobId),
     queryFn: () => {
       if (!pollingJobId) return Promise.reject(new Error("No job ID"));
       return checkReprocessStatus(pollingJobId);
@@ -87,8 +89,8 @@ export function useBulkReprocess(t: TFunction) {
       if (jobStatusQuery.data.status === "completed") {
         setTimeout(() => {
           toast.success(t("common.success") + " - Reprocessing finished");
-          void queryClient.invalidateQueries({ queryKey: ["attendance-report"] });
-          void queryClient.invalidateQueries({ queryKey: ["attendance-logs"] });
+          void queryClient.invalidateQueries({ queryKey: createQueryKey("attendance-report") });
+          void queryClient.invalidateQueries({ queryKey: createQueryKey("attendance-logs") });
           setShowReprocessConfirm(false);
           setPollingJobId(null);
         }, 0);

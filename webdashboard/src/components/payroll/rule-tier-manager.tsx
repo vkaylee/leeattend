@@ -7,6 +7,8 @@ import Button from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
 import { Typography } from "@/components/ui/typography";
 import { fetchPayrollRuleTiers, createPayrollRuleTier } from "@/lib/api/payroll";
+import { createQueryKey } from "@/lib/query-keys";
+
 
 interface Props {
   onClose?: () => void;
@@ -19,7 +21,7 @@ export default function RuleTierManager({ruleId, onClose: _onClose }: Props) {
   const toast = useToast();
 
   const { data: tiers, isLoading } = useQuery({
-    queryKey: ["payroll-rule-tiers", ruleId],
+    queryKey: createQueryKey("payroll-rule-tiers", ruleId),
     queryFn: () => fetchPayrollRuleTiers(ruleId),
     enabled: !!ruleId,
   });
@@ -47,7 +49,7 @@ export default function RuleTierManager({ruleId, onClose: _onClose }: Props) {
       }),
     onSuccess: () => {
       toast.success(t("common.success"));
-      void queryClient.invalidateQueries({ queryKey: ["payroll-rule-tiers", ruleId] });
+      void queryClient.invalidateQueries({ queryKey: createQueryKey("payroll-rule-tiers", ruleId) });
       setNewTier({ min_amount: 0, max_amount: undefined, rate: 0, fixed_amount: 0 });
     },
   });

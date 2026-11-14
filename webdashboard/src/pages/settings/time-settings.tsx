@@ -16,19 +16,21 @@ import {
 import { PageHeader, TabContent } from "./time-settings/components";
 import { useTimeSettingsRules, useBulkReprocess } from "./time-settings/hooks";
 import { ReprocessModal } from "./time-settings/reprocess-modal";
+import { createQueryKey } from "@/lib/query-keys";
+
 
   // eslint-disable-next-line complexity
 export default function TimeSettings() {
   const { t } = useTranslation();
-  
+
 
   const { data: rules, isLoading: isLoadingRules, isError: isErrorRules, error: errorRules } = useQuery({
-    queryKey: ["attendance-rules"],
+    queryKey: createQueryKey("attendance-rules"),
     queryFn: () => fetchDefaultAttendanceRules(),
   });
 
   const { data: versions = [], isLoading: isLoadingVersions, isError: isErrorVersions, error: errorVersions } = useQuery({
-    queryKey: ["attendance-policy-versions"],
+    queryKey: createQueryKey("attendance-policy-versions"),
     queryFn: () => fetchAttendancePolicyVersions(),
   });
 

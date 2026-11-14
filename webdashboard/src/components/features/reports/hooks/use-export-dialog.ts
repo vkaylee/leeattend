@@ -10,6 +10,8 @@ import {
   fetchExportJobStatus,
   downloadExportReport,
 } from "../../../../lib/api/attendance";
+import { createQueryKey } from "@/lib/query-keys";
+
 
 export interface UseExportDialogOptions {
   employeeIds?: string[];
@@ -71,7 +73,7 @@ export function useExportDialog({ isOpen,startDate, endDate, reportType, employe
   const phase = derivePhase(jobId, useFallbackPolling, streamStatus, phaseState);
 
   const { data: pollingStatus } = useQuery({
-    queryKey: ["export-job-fallback", jobId],
+    queryKey: createQueryKey("export-job-fallback", jobId),
     queryFn: () => fetchExportJobStatus(jobId ?? ""),
     enabled: !!jobId && useFallbackPolling && phase === "polling",
     refetchInterval: (query) => {

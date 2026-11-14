@@ -13,6 +13,8 @@ import { useToast } from "@/components/ui/toast";
 import { useOrganizationMutation } from "@/hooks/common/use-organization-query";
 import { transferEmployee, Department } from "@/lib/api";
 import { employeeKeys } from "@/lib/query-keys";
+import { createQueryKey } from "@/lib/query-keys";
+
 
 interface TransferEmployeeModalProps {
   departments: Department[] | undefined;
@@ -43,7 +45,7 @@ export default function TransferEmployeeModal({
     return transferEmployee(employeeId, data);
   },
   onSuccess: () => {
-    void queryClient.invalidateQueries({ queryKey: ["deptHistory", employeeId] });
+    void queryClient.invalidateQueries({ queryKey: createQueryKey("deptHistory", employeeId) });
     onClose();
     setSelectedDeptId("");
     toast.success(t("common.success"));

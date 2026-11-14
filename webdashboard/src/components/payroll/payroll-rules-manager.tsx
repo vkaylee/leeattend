@@ -11,6 +11,8 @@ import { fetchPayrollRules } from "@/lib/api/payroll";
 
 import { PayrollRuleForm } from "./payroll-rule-form";
 import { RuleRow } from "./payroll-rule-list";
+import { createQueryKey } from "@/lib/query-keys";
+
 
 export default function PayrollRulesManager() {
   const { t } = useTranslation();
@@ -19,7 +21,7 @@ export default function PayrollRulesManager() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [expandedRuleId, setExpandedRuleId] = useState<string | null>(null);
 
-  const { data: rules, isLoading } = useQuery({ queryKey: ["payroll-rules"], queryFn: () => fetchPayrollRules() });
+  const { data: rules, isLoading } = useQuery({ queryKey: createQueryKey("payroll-rules"), queryFn: () => fetchPayrollRules() });
 
   return (
     <div className="animate-in fade-in duration-700 space-y-6">
@@ -57,7 +59,7 @@ export default function PayrollRulesManager() {
         onCancel={() => { setIsModalOpen(false); }}
         onSuccess={() => {
           toast.success(t("common.success"));
-          void queryClient.invalidateQueries({ queryKey: ["payroll-rules"] });
+          void queryClient.invalidateQueries({ queryKey: createQueryKey("payroll-rules") });
           setIsModalOpen(false);
         }}  />
       </Modal>

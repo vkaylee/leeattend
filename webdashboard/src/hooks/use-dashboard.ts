@@ -25,6 +25,8 @@ import {
   type UnexcusedAbsencesPoint,
   type OrganizationStats,
 } from "./use-dashboard-types";
+import { createQueryKey } from "@/lib/query-keys";
+
 
 export type {
   AttendanceTrendPoint,
@@ -108,10 +110,10 @@ interface DashboardQueryOptions<T> {
   parse?: (payload: unknown) => T;
 }
 
- 
+
 function useDashboardQuery<T>(options: DashboardQueryOptions<T>) {
   return useQuery<T>({
-    queryKey: [options.key, ...(options.extraQueryKeyParams ?? [])],
+    queryKey: createQueryKey(options.key, ...(options.extraQueryKeyParams ?? [])),
     queryFn: async () => {
       const endpoint = options.getPath();
 

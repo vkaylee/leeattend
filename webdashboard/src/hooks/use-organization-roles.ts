@@ -12,6 +12,8 @@ import {
 import { logError } from "@/lib/logger";
 
 import { organizationKeys } from "./use-organization-queries";
+import { createQueryKey } from "@/lib/query-keys";
+
 
 export function usePermissionCatalog() {
   const catalogQuery = useQuery({
@@ -103,7 +105,7 @@ export function useOrganizationPermissionsMatrix() {
   const roleIds = roles.map((role) => role.id).sort().join(",");
 
   const matrixQuery = useQuery({
-    queryKey: [...organizationKeys.permissionsMatrix(), roleIds],
+    queryKey: createQueryKey(...organizationKeys.permissionsMatrix(), roleIds),
     queryFn: async () => {
       const matrix: Record<string, string[]> = {};
       await Promise.all(roles.map(async (role) => {

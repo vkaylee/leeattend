@@ -9,6 +9,8 @@ import { useToast } from "@/components/ui/toast";
 import { Typography } from "@/components/ui/typography";
 import { assignEmployeePhase, assignEmploymentPhase } from "@/lib/api/employees";
 import { EmployeeContract, EmploymentPhaseDefinition } from "@/lib/api/types";
+import { createQueryKey } from "@/lib/query-keys";
+
 
 interface Props {
   contracts: EmployeeContract[];
@@ -69,8 +71,8 @@ export default function AssignMilestoneModal({
     mutationFn: (data: typeof assignData) => employmentId ? assignEmploymentPhase(employmentId, data) : assignEmployeePhase(employeeId, data),
     onSuccess: () => {
       toast.success(t("common.success"));
-      void queryClient.invalidateQueries({ queryKey: ["employee-phases", employeeId] });
-      void queryClient.invalidateQueries({ queryKey: ["employment-phase-assignments"] });
+      void queryClient.invalidateQueries({ queryKey: createQueryKey("employee-phases", employeeId) });
+      void queryClient.invalidateQueries({ queryKey: createQueryKey("employment-phase-assignments") });
       onClose();
       setAssignData({ phase_definition_id: "", start_date: "", end_date: "" });
     },

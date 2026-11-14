@@ -21,6 +21,8 @@ import {
   type Employee,
 } from "@/lib/api";
 import { cn } from "@/lib/utils";
+import { createQueryKey } from "@/lib/query-keys";
+
 
 const conditionFormSchema = z
   .object({
@@ -70,7 +72,7 @@ export default function WorkingConditionFormModal({
     }
   }
 
-  const { data: typeDefs } = useQuery<ConditionTypeDefinition[]>({ queryKey: ["condition-types"], queryFn: () => (fetchConditionTypes(true)),
+  const { data: typeDefs } = useQuery<ConditionTypeDefinition[]>({ queryKey: createQueryKey("condition-types"), queryFn: () => (fetchConditionTypes(true)),
   enabled: isOpen, });
 
   const {
@@ -128,7 +130,7 @@ export default function WorkingConditionFormModal({
       });
 
       // Invalidate both detail query and organization registry
-      void queryClient.invalidateQueries({ queryKey: ["working-conditions"] });
+      void queryClient.invalidateQueries({ queryKey: createQueryKey("working-conditions") });
       toast.success(t("working_conditions.create_success", { defaultValue: "Đã gán điều kiện làm việc thành công" }));
       onClose();
     } catch (err: unknown) {

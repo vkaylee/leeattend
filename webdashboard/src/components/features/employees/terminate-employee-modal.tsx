@@ -14,6 +14,8 @@ import { useOrganizationMutation } from "@/hooks/common/use-organization-query";
 import { updateEmployeeEmployment } from "@/lib/api";
 import { employeeKeys } from "@/lib/query-keys";
 import { cn } from "@/lib/utils";
+import { createQueryKey } from "@/lib/query-keys";
+
 
 interface TerminateEmployeeModalProps {
   activeEmploymentId: string | null;
@@ -59,8 +61,8 @@ export default function TerminateEmployeeModal({
     });
   },
   onSuccess: () => {
-    void queryClient.invalidateQueries({ queryKey: ["deptHistory", employeeId] });
-    void queryClient.invalidateQueries({ queryKey: ["employee-employments",employeeId] });
+    void queryClient.invalidateQueries({ queryKey: createQueryKey("deptHistory", employeeId) });
+    void queryClient.invalidateQueries({ queryKey: createQueryKey("employee-employments",employeeId) });
     onClose();
     toast.success(t("common.success"));
     onSuccess?.();

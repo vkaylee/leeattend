@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { 
-  Plus, 
+import {
+  Plus,
   Clock,
   Hash,
   Percent
@@ -14,6 +14,8 @@ import { Typography } from "@/components/ui/typography";
 import { addOvertimeRule } from '@/lib/api/payroll';
 import { OvertimeRule } from "@/lib/api/types";
 import { cn } from '@/lib/utils';
+import { createQueryKey } from "@/lib/query-keys";
+
 
 
 interface OvertimeRuleEditorProps {
@@ -38,10 +40,10 @@ function OvertimeRuleInputs({
         <label className='flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400' htmlFor='rule-priority'>
           <Hash size={10}/> Priority
         </label>
-        <input 
+        <input
           className='w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs outline-none focus:ring-2 focus:ring-primary-500'
-          id='rule-priority' 
-          onChange={e => { setPriority(parseInt(e.target.value)); }} 
+          id='rule-priority'
+          onChange={e => { setPriority(parseInt(e.target.value)); }}
           type='number'
           value={priority}
         />
@@ -50,11 +52,11 @@ function OvertimeRuleInputs({
         <label className='flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400' htmlFor='rule-multiplier'>
           <Percent size={10}/> Multiplier
         </label>
-        <input 
+        <input
           className='w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs outline-none focus:ring-2 focus:ring-primary-500'
-          id='rule-multiplier' 
+          id='rule-multiplier'
           onChange={e => { setMultiplier(parseFloat(e.target.value)); }}
-          step='0.1' 
+          step='0.1'
           type='number'
           value={multiplier}
         />
@@ -63,10 +65,10 @@ function OvertimeRuleInputs({
         <label className='flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400' htmlFor='rule-start'>
           <Clock size={10}/> Start
         </label>
-        <input 
+        <input
           className='w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs outline-none focus:ring-2 focus:ring-primary-500'
-          id='rule-start' 
-          onChange={e => { setStartTime(e.target.value); }} 
+          id='rule-start'
+          onChange={e => { setStartTime(e.target.value); }}
           type='time'
           value={startTime}
         />
@@ -75,10 +77,10 @@ function OvertimeRuleInputs({
         <label className='flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400' htmlFor='rule-end'>
           <Clock size={10}/> End
         </label>
-        <input 
+        <input
           className='w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs outline-none focus:ring-2 focus:ring-primary-500'
-          id='rule-end' 
-          onChange={e => { setEndTime(e.target.value); }} 
+          id='rule-end'
+          onChange={e => { setEndTime(e.target.value); }}
           type='time'
           value={endTime}
         />
@@ -118,7 +120,7 @@ function OvertimeRuleForm({
 
   return (
     <div className='bg-slate-50 dark:bg-slate-800/50 rounded-2xl p-4 border border-slate-100 dark:border-slate-800 space-y-4 animate-in zoom-in-95 duration-200'>
-      <OvertimeRuleInputs 
+      <OvertimeRuleInputs
         endTime={endTime} multiplier={multiplier} priority={priority} setEndTime={setEndTime} setMultiplier={setMultiplier} setPriority={setPriority} setStartTime={setStartTime} startTime={startTime}
       />
 
@@ -137,21 +139,21 @@ function OvertimeRuleForm({
             </Button>
           ))}
         </div>
-        
+
         <div className='flex items-center gap-3'>
           <label className='flex items-center gap-2 cursor-pointer group'>
-            <input 
-              checked={isHoliday} 
-              className='w-4 h-4 rounded border-slate-300 dark:border-slate-600 text-primary-600 dark:text-primary-400 focus:ring-primary-500' 
+            <input
+              checked={isHoliday}
+              className='w-4 h-4 rounded border-slate-300 dark:border-slate-600 text-primary-600 dark:text-primary-400 focus:ring-primary-500'
               onChange={e => { setIsHoliday(e.target.checked); }}
               type='checkbox'
             />
             <span className='text-xs font-bold text-slate-500 dark:text-slate-400 group-hover:text-slate-700 dark:hover:text-slate-200 transition-colors'>Holiday Only</span>
           </label>
-          
+
           <Button className='bg-primary-600 text-white px-4 py-2 rounded-xl text-xs font-bold hover:bg-primary-700 transition-all shadow-sm'
             disabled={isPending}
-            onClick={() => { 
+            onClick={() => {
               onSubmit({
                 priority,
                 multiplier: String(multiplier),
@@ -159,7 +161,7 @@ function OvertimeRuleForm({
                 time_end: endTime || undefined,
                 days_of_week: days,
                 is_holiday: isHoliday
-              }); 
+              });
             }}
             variant="ghost"
           >
@@ -190,7 +192,7 @@ export default function OvertimeRuleEditor({policyId, rules }: OvertimeRuleEdito
       });
     },
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['overtime-policies'] });
+      void queryClient.invalidateQueries({ queryKey: createQueryKey('overtime-policies') });
       setIsAdding(false);
       toast.success(t('common.success'));
     },
@@ -210,7 +212,7 @@ export default function OvertimeRuleEditor({policyId, rules }: OvertimeRuleEdito
       </div>
 
       {isAdding ? (
-        <OvertimeRuleForm 
+        <OvertimeRuleForm
           isPending={addMutation.isPending}
           onSubmit={(data) => { addMutation.mutate(data); }}
         />

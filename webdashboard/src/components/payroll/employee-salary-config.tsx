@@ -34,6 +34,8 @@ import { EmployeeSalaryComponentDetail } from "@/lib/api/types";
 import { cn } from "@/lib/utils";
 
 import TemporalConfigTable from "../common/temporal-config-table";
+import { createQueryKey } from "@/lib/query-keys";
+
 
 interface SalaryCompDefinition {
   code: string;
@@ -184,9 +186,9 @@ export default function EmployeeSalaryConfig({employeeId, employmentId }: Props)
     setRef: setHorizontalDragScrollRef,
   } = useHorizontalDragScroll<HTMLDivElement>();
 
-  const { data: definitions = [] } = useQuery({ queryKey: ["salary-components"], queryFn: () => fetchSalaryComponents() });
-  const { data: employeeComps = [], isLoading } = useQuery({ queryKey: ["employee-salary-components", employmentId], queryFn: () => fetchEmployeeSalaryComponents(employmentId) });
-  const { data: individualConfigs = [], isLoading: isConfigsLoading } = useQuery({ queryKey: ["employee-payroll-configs", employeeId], queryFn: () => fetchEmployeePayrollConfigs(employeeId) });
+  const { data: definitions = [] } = useQuery({ queryKey: createQueryKey("salary-components"), queryFn: () => fetchSalaryComponents() });
+  const { data: employeeComps = [], isLoading } = useQuery({ queryKey: createQueryKey("employee-salary-components", employmentId), queryFn: () => fetchEmployeeSalaryComponents(employmentId) });
+  const { data: individualConfigs = [], isLoading: isConfigsLoading } = useQuery({ queryKey: createQueryKey("employee-payroll-configs", employeeId), queryFn: () => fetchEmployeePayrollConfigs(employeeId) });
 
   const groupedComps = employeeComps.reduce<Partial<Record<string, EmployeeSalaryComponentDetail[]>>>((acc, comp) => {
     const key = comp.component_definition_id;
@@ -204,12 +206,12 @@ export default function EmployeeSalaryConfig({employeeId, employmentId }: Props)
       hours_per_day: String(data.hours_per_day),
       std_working_days: String(data.std_working_days),
     }),
-    onSuccess: () => { void queryClient.invalidateQueries({ queryKey: ["employee-payroll-configs", employeeId] }); toast.success(t("common.success")); },
+    onSuccess: () => { void queryClient.invalidateQueries({ queryKey: createQueryKey("employee-payroll-configs", employeeId) }); toast.success(t("common.success")); },
   });
 
   const assignMutation = useMutation({
     mutationFn: (data: { amount: string; component_definition_id: string; effective_date: string; }) => assignEmployeeSalaryComponent(employmentId, data),
-    onSuccess: () => { toast.success(t("common.success")); void queryClient.invalidateQueries({ queryKey: ["employee-salary-components", employmentId] }); setIsAdding(false); setAmount(""); setSelectedCompId(""); },
+    onSuccess: () => { toast.success(t("common.success")); void queryClient.invalidateQueries({ queryKey: createQueryKey("employee-salary-components", employmentId) }); setIsAdding(false); setAmount(""); setSelectedCompId(""); },
   });
 
   const handleAssign = (e: React.SyntheticEvent) => {

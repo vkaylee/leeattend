@@ -13,6 +13,8 @@ import { PageContainer } from "@/components/ui/page-container";
 import PageHeader from "@/components/ui/page-header";
 import { Typography } from "@/components/ui/typography";
 import { fetchEmployee, fetchEmployeeEmployments } from "@/lib/api/employees";
+import { createQueryKey } from "@/lib/query-keys";
+
 
 interface SalarySetupSearch {
   as_of?: string;
@@ -75,12 +77,12 @@ export default function SalarySetupPage() {
 
   const employeeQuery = useQuery({
     enabled: Boolean(employeeId),
-    queryKey: ["salary-setup-employee", employeeId],
+    queryKey: createQueryKey("salary-setup-employee", employeeId),
     queryFn: () => fetchEmployee(employeeId ?? ""),
   });
   const employmentsQuery = useQuery({
     enabled: Boolean(employeeId),
-    queryKey: ["salary-setup-employments", employeeId],
+    queryKey: createQueryKey("salary-setup-employments", employeeId),
     queryFn: () => fetchEmployeeEmployments(employeeId ?? ""),
   });
 

@@ -21,6 +21,8 @@ import {
   fetchConditionTypes,
   type ConditionTypeDefinition,
 } from "@/lib/api";
+import { createQueryKey } from "@/lib/query-keys";
+
 
 export default function PersonnelWorkingConditionsPage() {
   const { t, i18n } = useTranslation();
@@ -28,7 +30,7 @@ export default function PersonnelWorkingConditionsPage() {
   const employeeFilter = searchParams.employeeId;
   const toast = useToast();
   const queryClient = useQueryClient();
-  
+
   const { confirm, ConfirmationDialog } = useConfirm();
   const currentLang = i18n.language.split("-")[0];
 
@@ -40,7 +42,7 @@ export default function PersonnelWorkingConditionsPage() {
   const { data: conditions = [], isLoading: isLoadingConditions } = useOrganizationWorkingConditions();
 
   const { data: typeDefs = [], isLoading: isLoadingTypes } = useQuery<ConditionTypeDefinition[]>({
-    queryKey: ["condition-types"],
+    queryKey: createQueryKey("condition-types"),
     queryFn: () => fetchConditionTypes(false),
   });
 
@@ -49,7 +51,7 @@ export default function PersonnelWorkingConditionsPage() {
       await deleteWorkingCondition(employeeId, conditionId);
     },
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ["working-conditions"] });
+      void queryClient.invalidateQueries({ queryKey: createQueryKey("working-conditions") });
       toast.success(
         t("working_conditions.delete_success", { defaultValue: "Đã xóa điều kiện làm việc thành công" })
       );
@@ -119,7 +121,7 @@ export default function PersonnelWorkingConditionsPage() {
     }
   };
 
-  
+
 
   const isLoading = isLoadingConditions || isLoadingTypes;
 

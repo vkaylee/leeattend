@@ -9,6 +9,8 @@ import { useToast } from "@/components/ui/toast";
 import { Typography } from "@/components/ui/typography";
 import { fetchSalaryComponents, createSalaryComponent } from "@/lib/api/payroll";
 import { CreateSalaryComponentRequest } from "@/lib/api/types";
+import { createQueryKey } from "@/lib/query-keys";
+
 
 export default function SalaryComponentManager() {
   const { t } = useTranslation();
@@ -16,12 +18,12 @@ export default function SalaryComponentManager() {
   const toast = useToast();
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  const { data: components, isLoading } = useQuery({ queryKey: ["salary-components"], queryFn: () => fetchSalaryComponents() });
+  const { data: components, isLoading } = useQuery({ queryKey: createQueryKey("salary-components"), queryFn: () => fetchSalaryComponents() });
   const [formData, setFormData] = useState<CreateSalaryComponentRequest>({ name: "", code: "" });
 
   const createMutation = useMutation({
     mutationFn: (data: CreateSalaryComponentRequest) => createSalaryComponent(data),
-    onSuccess: () => { toast.success(t("common.success")); void queryClient.invalidateQueries({ queryKey: ["salary-components"] }); setIsModalOpen(false); setFormData({ name: "", code: "" }); },
+    onSuccess: () => { toast.success(t("common.success")); void queryClient.invalidateQueries({ queryKey: createQueryKey("salary-components") }); setIsModalOpen(false); setFormData({ name: "", code: "" }); },
   });
 
   const handleSubmit = (e: React.SyntheticEvent) => { e.preventDefault(); createMutation.mutate(formData); };
@@ -57,7 +59,7 @@ export default function SalaryComponentManager() {
                   <Typography className="text-[10px] font-mono font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mt-2 opacity-70" variant="p">{comp.code}</Typography>
                 </div>
               </div>
-              
+
               <div className="flex items-center gap-10">
                 <Button className="p-2.5 bg-white dark:bg-slate-900 text-slate-300 dark:text-slate-600 hover:text-rose-600 dark:text-rose-300 rounded-xl shadow-md border border-slate-100 dark:border-slate-800 transition-all opacity-0 group-hover:opacity-100 active:scale-90" variant="ghost"><Trash2 size={18} /></Button>
               </div>

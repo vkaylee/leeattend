@@ -12,6 +12,8 @@ import { Typography } from "@/components/ui/typography";
 import { client } from "@/lib/api/client";
 import { logError } from "@/lib/logger";
 import { maybeNull } from "@/types/api-overrides";
+import { createQueryKey } from "@/lib/query-keys";
+
 
 interface EmployeeDocumentsTabProps {
   employeeId: string;
@@ -20,13 +22,13 @@ interface EmployeeDocumentsTabProps {
 export function EmployeeDocumentsTab({ employeeId }: EmployeeDocumentsTabProps) {
   const _t = useTranslation().t;
   const queryClient = useQueryClient();
-  
+
   // State for Split Pane / File Upload Panel visibility
   const [showUploadPanel, setShowUploadPanel] = useState(false);
 
   // Fetch Files
   const { data: filesData, isLoading } = useQuery({
-    queryKey: ["files", "employee", employeeId],
+    queryKey: createQueryKey("files", "employee", employeeId),
     queryFn: async () => {
       const { data } = await client.GET<FileRecord[]>('/api/v1/files/by-owner/{owner_type}/{owner_id}', {
         params: {
@@ -78,7 +80,7 @@ export function EmployeeDocumentsTab({ employeeId }: EmployeeDocumentsTabProps) 
         });
       }
       toast.success(`${fileIds.length} file(s) deleted successfully.`);
-      void queryClient.invalidateQueries({ queryKey: ["files", "employee", employeeId] });
+      void queryClient.invalidateQueries({ queryKey: createQueryKey("files", "employee", employeeId) });
     } catch (e: unknown) {
       logError(e, { component: 'EmployeeDocumentsTab.delete' });
       toast.error("Failed to delete some files.");
@@ -92,12 +94,12 @@ export function EmployeeDocumentsTab({ employeeId }: EmployeeDocumentsTabProps) 
   const handleUploadSuccess = (file: FileRecord) => {
     toast.success(`File uploaded successfully: ${file.file_name}`);
     setShowUploadPanel(false);
-    void queryClient.invalidateQueries({ queryKey: ["files", "employee", employeeId] });
+    void queryClient.invalidateQueries({ queryKey: createQueryKey("files", "employee", employeeId) });
   };
 
   return (
     <div className="flex flex-col h-full bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden animate-in fade-in zoom-in-95 duration-300 p-6 gap-6">
-      
+
       {/* Header Actions */}
       <div className="flex items-center justify-between">
         <div>
@@ -108,7 +110,7 @@ export function EmployeeDocumentsTab({ employeeId }: EmployeeDocumentsTabProps) 
             Manage contracts, ID cards, and compliance documents for this employee.
           </Typography>
         </div>
-        
+
         <Button
           className="px-4 py-2 text-sm rounded-xl transition-all shadow-sm"
           onClick={() => { setShowUploadPanel(!showUploadPanel); }}

@@ -3,7 +3,7 @@ import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { format } from "date-fns";
- 
+
 import type { LeaveAssignment } from "@/pages/settings/hooks/use-leave-settings";
 
 import { useToast } from "@/components/ui/toast";
@@ -14,6 +14,8 @@ import {
   assignLeavePolicy,
   deleteLeavePolicyAssignment,
 } from "@/lib/api";
+import { createQueryKey } from "@/lib/query-keys";
+
 
   // eslint-disable-next-line complexity
 export function useAssignPolicy(
@@ -58,11 +60,11 @@ export function useAssignPolicy(
   const { data: departments = [], isLoading: departmentsLoading } = useDepartments({
     enabled: isOpen,
   });
-  
-  const { data: policies = [], isLoading: policiesLoading } = useQuery({ queryKey: ["leave-policies"], queryFn: () => fetchLeavePolicies(), 
+
+  const { data: policies = [], isLoading: policiesLoading } = useQuery({ queryKey: createQueryKey("leave-policies"), queryFn: () => fetchLeavePolicies(),
   enabled: isOpen  });
-  
-  const { data: leaveTypes = [] } = useQuery({ queryKey: ["leave-types"], queryFn: () => fetchLeaveTypes(), 
+
+  const { data: leaveTypes = [] } = useQuery({ queryKey: createQueryKey("leave-types"), queryFn: () => fetchLeaveTypes(),
   enabled: isOpen  });
 
   const assignMutation = useMutation({
@@ -74,11 +76,11 @@ export function useAssignPolicy(
       return assignLeavePolicy(data);
     },
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ["leave-balances"] });
-      void queryClient.invalidateQueries({ queryKey: ["leave-policies"] });
-      void queryClient.invalidateQueries({ queryKey: ["leave-assignments"] });
-      toast.success(editingAssignment 
-        ? t("leave_requests.policy.messages.update_assignment_success", { defaultValue: "Policy assignment updated successfully" }) 
+      void queryClient.invalidateQueries({ queryKey: createQueryKey("leave-balances") });
+      void queryClient.invalidateQueries({ queryKey: createQueryKey("leave-policies") });
+      void queryClient.invalidateQueries({ queryKey: createQueryKey("leave-assignments") });
+      toast.success(editingAssignment
+        ? t("leave_requests.policy.messages.update_assignment_success", { defaultValue: "Policy assignment updated successfully" })
         : t("leave_requests.policy.messages.assign_success")
       );
       onClose();
@@ -92,12 +94,12 @@ export function useAssignPolicy(
     if (assigneeType === 'department' && !assignDeptId) return;
 
     const assignee_id_raw = assigneeType === 'organization' ? null : (assigneeType === 'department' ? assignDeptId : assignEmpId);
-    
-    assignMutation.mutate({ 
-      assignee_type: assigneeType, 
-      assignee_id: (assignee_id_raw === "" || assignee_id_raw === null) ? null : assignee_id_raw, 
-      policy_id: assignPolicyId, 
-      effective_from: effectiveFrom 
+
+    assignMutation.mutate({
+      assignee_type: assigneeType,
+      assignee_id: (assignee_id_raw === "" || assignee_id_raw === null) ? null : assignee_id_raw,
+      policy_id: assignPolicyId,
+      effective_from: effectiveFrom
     });
   };
 

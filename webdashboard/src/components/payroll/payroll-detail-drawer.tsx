@@ -1,10 +1,10 @@
 /* eslint-disable complexity */
 import * as Dialog from "@radix-ui/react-dialog";
 import { useQuery } from "@tanstack/react-query";
-import { 
-  X, 
-  History, 
-  Settings2, 
+import {
+  X,
+  History,
+  Settings2,
   Banknote,
   CalendarDays
 } from "lucide-react";
@@ -23,6 +23,8 @@ import { maybeNull } from "@/types/api-overrides";
 import EmployeeSalaryConfig from "./employee-salary-config";
 import PayrollTable from "./payroll-table";
 import { CalculationTrace } from "./calculation-trace";
+import { createQueryKey } from "@/lib/query-keys";
+
 
 interface PayrollDetailDrawerProps {
   adjustments: AttendanceAdjustmentRequest[];
@@ -80,7 +82,7 @@ function PayrollDetailSummary({ payslips, canReadSensitive, hireDate }: { employ
           <div>
             <Typography className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.2em] mb-1 opacity-70" variant="p">{t("common.payroll.table.net_pay")} (Latest)</Typography>
             <Typography className="text-2xl font-bold text-slate-700 dark:text-slate-200 font-mono tracking-tighter" variant="p">
-              {!canReadSensitive ? "***" : (payslips.length > 0 
+              {!canReadSensitive ? "***" : (payslips.length > 0
                 ? new Intl.NumberFormat('vi-VN').format(parseFloat(payslips[0].net_pay_amount))
                 : "—")}
             </Typography>
@@ -113,7 +115,7 @@ export default function PayrollDetailDrawer({
   const canReadSensitive = hasPermission("payroll:sensitive:read");
   const [activeTab, setActiveTab] = useState<"history" | "config">("history");
 
-  const { data: employments = [] } = useQuery({ queryKey: ["employments", employee?.id], queryFn: () => employee ? fetchEmployeeEmployments(employee.id) : Promise.resolve([]),
+  const { data: employments = [] } = useQuery({ queryKey: createQueryKey("employments", employee?.id), queryFn: () => employee ? fetchEmployeeEmployments(employee.id) : Promise.resolve([]),
   enabled: isOpen && !!employee , });
 
   if (!employee) return null;
@@ -161,7 +163,7 @@ export default function PayrollDetailDrawer({
           <main className="min-h-0 flex-1 overflow-y-auto p-10 bg-white dark:bg-slate-900 custom-scrollbar scroll-smooth">
             {activeTab === "history" ? (
               <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-700">
-                <PayrollDetailSummary 
+                <PayrollDetailSummary
                   canReadSensitive={canReadSensitive}
                   employee={employee}
                   hireDate={hireDate}

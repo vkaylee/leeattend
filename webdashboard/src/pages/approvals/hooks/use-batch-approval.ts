@@ -15,6 +15,8 @@ import {
   BatchApprovalResult,
   UnifiedApprovalItem,
 } from "../types/unified-approvals";
+import { createQueryKey } from "@/lib/query-keys";
+
 
 export interface UseBatchApprovalReturn {
   batchApprove: (items: UnifiedApprovalItem[]) => Promise<BatchApprovalResult>;
@@ -33,17 +35,17 @@ export function useBatchApproval(): UseBatchApprovalReturn {
 
   const invalidateAll = async () => {
     await Promise.all([
-      queryClient.invalidateQueries({ queryKey: ["unified-inbox-leaves"] }),
+      queryClient.invalidateQueries({ queryKey: createQueryKey("unified-inbox-leaves") }),
       queryClient.invalidateQueries({
-        queryKey: ["unified-inbox-adjustments"],
+        queryKey: createQueryKey("unified-inbox-adjustments"),
       }),
-      queryClient.invalidateQueries({ queryKey: ["unified-inbox-ot"] }),
-      queryClient.invalidateQueries({ queryKey: ["unified-inbox-swaps"] }),
-      queryClient.invalidateQueries({ queryKey: ["leave-requests"] }),
-      queryClient.invalidateQueries({ queryKey: ["attendance-adjustments"] }),
-      queryClient.invalidateQueries({ queryKey: ["shift-swaps"] }),
+      queryClient.invalidateQueries({ queryKey: createQueryKey("unified-inbox-ot") }),
+      queryClient.invalidateQueries({ queryKey: createQueryKey("unified-inbox-swaps") }),
+      queryClient.invalidateQueries({ queryKey: createQueryKey("leave-requests") }),
+      queryClient.invalidateQueries({ queryKey: createQueryKey("attendance-adjustments") }),
+      queryClient.invalidateQueries({ queryKey: createQueryKey("shift-swaps") }),
       queryClient.invalidateQueries({
-        queryKey: ["attendance-daily-summaries"],
+        queryKey: createQueryKey("attendance-daily-summaries"),
       }),
     ]);
   };

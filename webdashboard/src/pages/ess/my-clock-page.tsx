@@ -23,10 +23,12 @@ import { MyClockSkeleton } from "./components/my-clock-skeleton";
 import { PunchGeofenceStatus } from "./components/punch-geofence-status";
 import { Shift24hTimeline } from "./components/shift-24h-timeline";
 import { TodayHoursSummary } from "./components/today-hours-summary";
+import { createQueryKey } from "@/lib/query-keys";
+
 export default function MyClockPage() {
   const { t } = useTranslation();
   const toast = useToast();
-  
+
 
   const { employee, isLoading: isLoadingProfile } = useMyProfile();
   const {
@@ -38,7 +40,7 @@ export default function MyClockPage() {
   } = useMyClock({ enabled: !isLoadingProfile && Boolean(employee) });
 
   const { data: organization } = useQuery({
-    queryKey: ["organization"],
+    queryKey: createQueryKey("organization"),
     queryFn: fetchOrganization,
   });
   const [isAdjustmentModalOpen, setIsAdjustmentModalOpen] = useState(false);
@@ -76,7 +78,7 @@ export default function MyClockPage() {
     }
   };
 
-   
+
   const handleAdjustmentSubmit = async (data: AdjustmentData) => {
     if (!employee) {
       toast.error(t("common.error"));

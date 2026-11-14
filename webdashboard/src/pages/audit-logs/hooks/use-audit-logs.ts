@@ -2,6 +2,8 @@ import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 
 import { fetchAuditLogs } from "@/lib/api";
+import { createQueryKey } from "@/lib/query-keys";
+
 
 export function useAuditLogs() {
     const [page, setPage] = useState(1);
@@ -12,7 +14,7 @@ export function useAuditLogs() {
     const [endDateFilter, setEndDateFilter] = useState("");
 
     const { data, isLoading, isError } = useQuery({
-        queryKey: ["audit_logs", page, actionFilter, startDateFilter, endDateFilter],
+        queryKey: createQueryKey("audit_logs", page, actionFilter, startDateFilter, endDateFilter),
         queryFn: () => fetchAuditLogs({
             page,
             limit,

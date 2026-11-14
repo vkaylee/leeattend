@@ -19,6 +19,8 @@ import {
 import { logError } from "@/lib/logger";
 import { useSearchPatch } from "@/lib/state";
 import { Route } from "@/routes/_authenticated/_organization/leave-requests";
+import { createQueryKey } from "@/lib/query-keys";
+
 
 export type TabType = LeaveRequestsSearch["tab"];
 export type LeaveStatusFilter = LeaveRequestsSearch["status"];
@@ -53,7 +55,7 @@ export function useLeaveRequests() {
     hasNextPage,
     isFetchingNextPage,
   } = useInfiniteQuery<PaginatedResponse<LeaveRequest>>({
-    queryKey: ["leave-requests",activeTab, employeeId, statusFilter],
+    queryKey: createQueryKey("leave-requests",activeTab, employeeId, statusFilter),
     queryFn: ({ pageParam }) => {
       return fetchLeaveRequests({
         status: activeTab !== "behalf_assignments" && statusFilter !== "all" ? statusFilter : undefined,
@@ -82,11 +84,11 @@ export function useLeaveRequests() {
     fetchNextPage: () => { void fetchNextPage(); },
   });
 
-  const { data: leaveTypes = [] } = useQuery({ queryKey: ["leave-types"], queryFn: () => fetchLeaveTypes() });
+  const { data: leaveTypes = [] } = useQuery({ queryKey: createQueryKey("leave-types"), queryFn: () => fetchLeaveTypes() });
 
   const approveMutation = useMutation({
     mutationFn: (data: { id: string; status: "cancelled" | "pending" | "approved" | "rejected" | "pre_approved" }) => approveLeaveRequest(data.id, { status: data.status }),
-    onSuccess: () => { void queryClient.invalidateQueries({ queryKey: ["leave-requests"] }); toast.success(t("common.success")); },
+    onSuccess: () => { void queryClient.invalidateQueries({ queryKey: createQueryKey("leave-requests") }); toast.success(t("common.success")); },
   });
 
   const [importJob, setImportJob] = useState<LeaveImportJob | null>(null);
@@ -124,7 +126,7 @@ export function useLeaveRequests() {
             if (job.status !== "processing" && job.status !== "pending") {
               window.clearInterval(pollingRef.current);
               pollingRef.current = undefined;
-              void queryClient.invalidateQueries({ queryKey: ["leave-requests"] });
+              void queryClient.invalidateQueries({ queryKey: createQueryKey("leave-requests") });
             }
           }
         } catch (e: unknown) {
@@ -151,7 +153,7 @@ export function useLeaveRequests() {
         setImportBannerDismissedState(false);
       }
     }).catch((e: unknown) => { logError(e, { component: 'useLeaveRequests.importComplete' }); });
-    void queryClient.invalidateQueries({ queryKey: ["leave-requests"] });
+    void queryClient.invalidateQueries({ queryKey: createQueryKey("leave-requests") });
   }, [queryClient]);
   return {
     isModalOpen, setIsModalOpen,

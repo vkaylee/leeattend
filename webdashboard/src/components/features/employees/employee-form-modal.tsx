@@ -20,6 +20,8 @@ import { employeeKeys } from "@/lib/query-keys";
 import { useLocations } from "@/pages/settings/hooks/use-locations";
 
 import EmployeeFormInputs from "./employee-form-inputs";
+import { createQueryKey } from "@/lib/query-keys";
+
 
 interface EmployeeFormModalProps {
   editingEmployee: Employee | null;
@@ -92,10 +94,10 @@ export default function EmployeeFormModal({
   const { t } = useTranslation();
   const { createMutation, updateMutation } = useEmployeeMutations(onClose, onSuccess);
   const { data: locations, isError: locationsUnavailable } = useLocations();
-  const { data: employers } = useQuery({ queryKey: ["employers"], queryFn: () => fetchEmployers(),
+  const { data: employers } = useQuery({ queryKey: createQueryKey("employers"), queryFn: () => fetchEmployers(),
  });
 
-  const { data: employments = [] } = useQuery({ queryKey: ["employee-employments", editingEmployee?.id], queryFn: () => {
+  const { data: employments = [] } = useQuery({ queryKey: createQueryKey("employee-employments", editingEmployee?.id), queryFn: () => {
     if (!editingEmployee?.id) throw new Error("editingEmployee.id required");
     return fetchEmployeeEmployments(editingEmployee.id);
   },

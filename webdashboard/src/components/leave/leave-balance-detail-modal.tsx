@@ -12,6 +12,8 @@ import { LeaveBalanceBreakdown } from "./leave-balance-detail-components/leave-b
 import { LeaveBalanceHeader } from "./leave-balance-detail-components/leave-balance-header";
 import { LeaveBalanceHero } from "./leave-balance-detail-components/leave-balance-hero";
 import { HistoryList } from "./leave-balance-detail-components/leave-balance-history";
+import { createQueryKey } from "@/lib/query-keys";
+
 
 interface LeaveBalanceDetailModalProps {
   balance: LeaveBalance;
@@ -24,7 +26,7 @@ export function LeaveBalanceDetailModal({ balance, isOpen, onClose }: LeaveBalan
   const [activeTab, setActiveTab] = useState("all");
 
   const { data: history = [], isLoading } = useQuery({
-    queryKey: ["leave-history",balance.employee_id, balance.leave_type_id],
+    queryKey: createQueryKey("leave-history",balance.employee_id, balance.leave_type_id),
     queryFn: () => fetchLeaveHistory(balance.employee_id, balance.leave_type_id),
     enabled: isOpen ,
   });
@@ -39,7 +41,7 @@ export function LeaveBalanceDetailModal({ balance, isOpen, onClose }: LeaveBalan
 
   return createPortal(
     <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 animate-in fade-in duration-300">
-      <div 
+      <div
         className="absolute inset-0 bg-slate-900/20 backdrop-blur-md"
         onClick={onClose}
         onKeyDown={(e) => {
@@ -55,7 +57,7 @@ export function LeaveBalanceDetailModal({ balance, isOpen, onClose }: LeaveBalan
 
         <div className="min-h-0 flex-1 overflow-y-auto p-6 md:p-8 space-y-8">
           <LeaveBalanceHero balance={balance} usagePercent={usagePercent} />
-          
+
           <LeaveBalanceBreakdown balance={balance} />
 
           {/* History Section */}

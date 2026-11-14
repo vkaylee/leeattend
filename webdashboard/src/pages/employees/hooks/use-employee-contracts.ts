@@ -8,6 +8,8 @@ import {
   updateEmployeeContract,
   deleteEmployeeContract,
 } from "@/lib/api";
+import { createQueryKey } from "@/lib/query-keys";
+
 
 export function useEmployeeContracts(employeeId: string) {
   const queryClient = useQueryClient();
@@ -23,7 +25,7 @@ export function useEmployeeContracts(employeeId: string) {
     mutationFn: (data: CreateContractRequest) => createEmployeeContract(employeeId, data),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey });
-      void queryClient.invalidateQueries({ queryKey: ["organization-contracts"] });
+      void queryClient.invalidateQueries({ queryKey: createQueryKey("organization-contracts") });
     },
   });
 
@@ -32,7 +34,7 @@ export function useEmployeeContracts(employeeId: string) {
       updateEmployeeContract(employeeId, contractId, data),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey });
-      void queryClient.invalidateQueries({ queryKey: ["organization-contracts"] });
+      void queryClient.invalidateQueries({ queryKey: createQueryKey("organization-contracts") });
     },
   });
 
@@ -40,7 +42,7 @@ export function useEmployeeContracts(employeeId: string) {
     mutationFn: (contractId: string) => deleteEmployeeContract(employeeId, contractId),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey });
-      void queryClient.invalidateQueries({ queryKey: ["organization-contracts"] });
+      void queryClient.invalidateQueries({ queryKey: createQueryKey("organization-contracts") });
     },
   });
 

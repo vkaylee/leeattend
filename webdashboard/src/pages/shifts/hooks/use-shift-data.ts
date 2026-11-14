@@ -20,6 +20,8 @@ import {
 } from "@/lib/api/types";
 
 import type { ViewMode } from "./use-shifts-types";
+import { createQueryKey } from "@/lib/query-keys";
+
 
 interface UseShiftDataProps { monthEnd?: Date;
 monthStart?: Date;
@@ -29,7 +31,7 @@ startOfWeek: Date;
 viewMode: ViewMode;
 weekDays: Date[];  }
 
-   
+
 export function useShiftData({
   startOfWeek,
   weekDays,
@@ -40,19 +42,19 @@ export function useShiftData({
   selectedEmployeeIds,
 }: UseShiftDataProps) {
   const { data: shifts } = useQuery<Shift[]>({
-    queryKey: ["shifts"],
+    queryKey: createQueryKey("shifts"),
     queryFn: () => fetchShifts(),
   });
 
   const { data: patterns } = useQuery<WorkingPattern[]>({
-    queryKey: ["working-patterns"],
+    queryKey: createQueryKey("working-patterns"),
     queryFn: () => fetchWorkingPatterns(),
   });
 
   const selectedEmploymentId = selectedEmployee?.active_employment_id;
 
   const { data: allSchedules } = useQuery<EmployeeSchedule[]>({
-    queryKey: ["schedules", format(startOfWeek, 'yyyy-MM-dd'), selectedEmploymentId],
+    queryKey: createQueryKey("schedules", format(startOfWeek, 'yyyy-MM-dd'), selectedEmploymentId),
     queryFn: () => fetchSchedules(format(weekDays[0], 'yyyy-MM-dd'),
     format(weekDays[6], 'yyyy-MM-dd'),
     selectedEmploymentId ? [selectedEmploymentId] : undefined),
@@ -83,7 +85,7 @@ export function useShiftData({
     error: monthError,
     refetch: refetchMonthSchedules,
   } = useQuery<EmployeeSchedule[]>({
-    queryKey: ["schedules", monthStart ? format(monthStart, 'yyyy-MM-dd') : "", "monthly", selectedEmploymentIds],
+    queryKey: createQueryKey("schedules", monthStart ? format(monthStart, 'yyyy-MM-dd') : "", "monthly", selectedEmploymentIds),
     queryFn: () => {
       if (!monthStart || !monthEnd) {
         return Promise.resolve([]);
@@ -96,7 +98,7 @@ export function useShiftData({
   });
 
   const { data: history } = useQuery<AssignmentHistory[]>({
-    queryKey: ["assignment_history"],
+    queryKey: createQueryKey("assignment_history"),
     queryFn: () => fetchAssignmentHistory(),
   });
 

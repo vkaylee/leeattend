@@ -1,4 +1,4 @@
- 
+
 import { useQuery } from "@tanstack/react-query";
 import React, { useMemo } from "react";
 import { useTranslation } from "react-i18next";
@@ -6,6 +6,8 @@ import { useTranslation } from "react-i18next";
 import { FilterPanel } from "@/components/ui/filter-panel";
 import { FilterTrigger } from "@/components/ui/filter-trigger";
 import { fetchShifts } from "@/lib/api";
+import { createQueryKey } from "@/lib/query-keys";
+
 
 /**
  * Multi-select shift-type filter built on FilterPanel (the existing `Combobox`
@@ -20,10 +22,10 @@ export function ShiftTypePicker({
   onChange: (names: string[]) => void;
 }) {
   const { t } = useTranslation();
-  
+
 
   const { data: shifts = [] } = useQuery({
-    queryKey: ["shifts-catalogue"],
+    queryKey: createQueryKey("shifts-catalogue"),
     queryFn: () => fetchShifts(),
     staleTime: 5 * 60 * 1000,
   });

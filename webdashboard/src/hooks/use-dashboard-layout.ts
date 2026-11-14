@@ -16,6 +16,8 @@ import {
     type DashboardView,
     type WidgetId,
 } from "./use-dashboard-layout-presets";
+import { createQueryKey } from "@/lib/query-keys";
+
 
 export type { DashboardView, WidgetId } from "./use-dashboard-layout-presets";
 export { ALL_WIDGETS } from "./use-dashboard-layout-presets";
@@ -56,7 +58,7 @@ interface PendingDashboardWrite {
 
 function useDashboardPreferences() {
     return useQuery<DashboardLayoutPreferences>({
-        queryKey: ["dashboard-preferences"],
+        queryKey: createQueryKey("dashboard-preferences"),
         queryFn: async () => {
             const response = await apiFetch("/api/v1/dashboard/preferences");
             if (!response.ok) {

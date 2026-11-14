@@ -12,6 +12,8 @@ import Button from "@/components/ui/button";
 import Sheet from "@/components/ui/sheet";
 import { fetchDepartmentPayrollConfigs, setDepartmentPayrollConfig } from "@/lib/api";
 import { cn } from "@/lib/utils";
+import { createQueryKey } from "@/lib/query-keys";
+
 
 export interface DepartmentDetailDrawerProps {
   dept: Department | null;
@@ -140,7 +142,7 @@ export function DepartmentDetailDrawer({
 
   // Fetch standard days history for settings tab
   const { data: deptConfigs = [], isLoading: isConfigsLoading } = useQuery({
-    queryKey: ["dept-payroll-configs", dept?.id],
+    queryKey: createQueryKey("dept-payroll-configs", dept?.id),
     queryFn: () => fetchDepartmentPayrollConfigs(dept?.id ?? ""),
     enabled: isOpen && !!dept?.id,
   });
@@ -153,7 +155,7 @@ export function DepartmentDetailDrawer({
         std_working_days: data.std_working_days.toString(),
       }),
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ["dept-payroll-configs", dept?.id] });
+      void queryClient.invalidateQueries({ queryKey: createQueryKey("dept-payroll-configs", dept?.id) });
     },
   });
 

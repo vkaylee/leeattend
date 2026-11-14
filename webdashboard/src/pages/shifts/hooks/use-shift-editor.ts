@@ -20,6 +20,8 @@ import {
   updateShift,
   fetchDefaultAttendanceRules,
 } from "@/lib/api";
+import { createQueryKey } from "@/lib/query-keys";
+
 
 export interface IntervalDraft {
   allowEarlyOt: boolean;
@@ -90,13 +92,13 @@ export function useShiftEditor(shiftId?: string) {
   const navigate = useNavigate();
   const toast = useToast();
   const queryClient = useQueryClient();
-  
+
 
   const isEditMode = !!shiftId;
 
   // Fetch all shifts to find editing shift — must come before useMemo that uses editingShift
   const { data: shifts, isLoading: isLoadingShifts } = useQuery<Shift[]>({
-    queryKey: ["shifts"],
+    queryKey: createQueryKey("shifts"),
     queryFn: () => fetchShifts(),
     enabled: isEditMode,
   });
@@ -165,7 +167,7 @@ export function useShiftEditor(shiftId?: string) {
   const [isDirty, setIsDirty] = useState(false);
 
   const { data: attendanceRules } = useQuery({
-    queryKey: ["attendance-rules"],
+    queryKey: createQueryKey("attendance-rules"),
     queryFn: () => fetchDefaultAttendanceRules(),
   });
 
@@ -200,7 +202,7 @@ export function useShiftEditor(shiftId?: string) {
     mutationFn: (data) => createShift(data),
     onSuccess: (data) => {
       toast.success(t("shifts.messages.create_shift_success", { name: data.name }));
-      void queryClient.invalidateQueries({ queryKey: ["shifts"] });
+      void queryClient.invalidateQueries({ queryKey: createQueryKey("shifts") });
       setIsDirty(false);
       void navigate({ to: "/shifts", search: { tab: "directory", view: "week" } });
     },
@@ -213,9 +215,9 @@ export function useShiftEditor(shiftId?: string) {
     mutationFn: ({ id, data }) => updateShift(id, data),
     onSuccess: () => {
       toast.success(t("shifts.messages.update_shift_success"));
-      void queryClient.invalidateQueries({ queryKey: ["shifts"] });
-      void queryClient.invalidateQueries({ queryKey: ["schedules"] });
-      void queryClient.invalidateQueries({ queryKey: ["assignment_history"] });
+      void queryClient.invalidateQueries({ queryKey: createQueryKey("shifts") });
+      void queryClient.invalidateQueries({ queryKey: createQueryKey("schedules") });
+      void queryClient.invalidateQueries({ queryKey: createQueryKey("assignment_history") });
       setIsDirty(false);
       void navigate({ to: "/shifts", search: { tab: "directory", view: "week" } });
     },

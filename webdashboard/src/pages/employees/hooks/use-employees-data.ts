@@ -16,6 +16,8 @@ import {
 import { employeeKeys } from "@/lib/query-keys";
 
 import type { SortKey, SortDir } from "./use-employees-state";
+import { createQueryKey } from "@/lib/query-keys";
+
 
 const PAGE_SIZE = 20;
 
@@ -128,8 +130,8 @@ export const useEmployeesData = ({
     end_date: data.endDate,
   }),
   onSuccess: (_data, variables) => {
-    void queryClient.invalidateQueries({ queryKey: ["deptHistory"] });
-    void queryClient.invalidateQueries({ queryKey: ["employee-employments", variables.employeeId] });
+    void queryClient.invalidateQueries({ queryKey: createQueryKey("deptHistory") });
+    void queryClient.invalidateQueries({ queryKey: createQueryKey("employee-employments", variables.employeeId) });
     if (selectedEmployee?.id === variables.employeeId) {
       setSelectedEmployee?.({
         ...selectedEmployee,

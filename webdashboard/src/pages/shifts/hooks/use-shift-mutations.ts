@@ -20,6 +20,8 @@ import {
   upsertRoster,
 } from "@/lib/api";
 import { ApiError, ComplianceConflictError, parseComplianceConflict } from "@/lib/api/errors";
+import { createQueryKey } from "@/lib/query-keys";
+
 
 interface UseShiftMutationsProps { onComplianceConflict?: (error: ComplianceConflictError) => void;
 onSuccess?: (type: string) => void;
@@ -57,8 +59,8 @@ export function useShiftMutations({ selectedEmployeeId, selectedEmploymentId, on
     onSuccess: () => {
       toast.success(t("shifts.messages.assign_success"));
       onSuccess?.("assignPattern");
-      void queryClient.invalidateQueries({ queryKey: ["schedules"] });
-      void queryClient.invalidateQueries({ queryKey: ["assignment_history"] });
+      void queryClient.invalidateQueries({ queryKey: createQueryKey("schedules") });
+      void queryClient.invalidateQueries({ queryKey: createQueryKey("assignment_history") });
     },
     onError: (error: Error) => { toast.error(error.message, t("shifts.messages.assign_error")); }
   });
@@ -70,8 +72,8 @@ export function useShiftMutations({ selectedEmployeeId, selectedEmploymentId, on
     },
     onSuccess: () => {
       toast.success(t("shifts.messages.update_roster_success"));
-      void queryClient.invalidateQueries({ queryKey: ["schedules"] });
-      void queryClient.invalidateQueries({ queryKey: ["assignment_history"] });
+      void queryClient.invalidateQueries({ queryKey: createQueryKey("schedules") });
+      void queryClient.invalidateQueries({ queryKey: createQueryKey("assignment_history") });
     },
     onError: (error: Error) => {
       if (handlePossibleComplianceConflict(error)) return;
@@ -87,8 +89,8 @@ export function useShiftMutations({ selectedEmployeeId, selectedEmploymentId, on
     onSuccess: () => {
       toast.success(t("shifts.messages.bulk_update_success"));
       onSuccess?.("bulkRoster");
-      void queryClient.invalidateQueries({ queryKey: ["schedules"] });
-      void queryClient.invalidateQueries({ queryKey: ["assignment_history"] });
+      void queryClient.invalidateQueries({ queryKey: createQueryKey("schedules") });
+      void queryClient.invalidateQueries({ queryKey: createQueryKey("assignment_history") });
     },
     onError: (error: Error) => {
       if (handlePossibleComplianceConflict(error)) return;
@@ -103,8 +105,8 @@ export function useShiftMutations({ selectedEmployeeId, selectedEmploymentId, on
     },
     onSuccess: () => {
       toast.success(t("shifts.messages.remove_override_success"));
-      void queryClient.invalidateQueries({ queryKey: ["schedules"] });
-      void queryClient.invalidateQueries({ queryKey: ["assignment_history"] });
+      void queryClient.invalidateQueries({ queryKey: createQueryKey("schedules") });
+      void queryClient.invalidateQueries({ queryKey: createQueryKey("assignment_history") });
     },
     onError: (error: Error) => { toast.error(error.message, t("shifts.messages.remove_override_error")); }
   });
@@ -114,7 +116,7 @@ export function useShiftMutations({ selectedEmployeeId, selectedEmploymentId, on
     onSuccess: (data) => {
       toast.success(t("shifts.messages.create_shift_success", { name: data.name }));
       onSuccess?.("createShift");
-      void queryClient.invalidateQueries({ queryKey: ["shifts"] });
+      void queryClient.invalidateQueries({ queryKey: createQueryKey("shifts") });
     },
     onError: (error: Error) => { toast.error(error.message, t("shifts.messages.create_shift_error")); }
   });
@@ -124,9 +126,9 @@ export function useShiftMutations({ selectedEmployeeId, selectedEmploymentId, on
     onSuccess: () => {
       toast.success(t("shifts.messages.update_shift_success"));
       onSuccess?.("updateShift");
-      void queryClient.invalidateQueries({ queryKey: ["shifts"] });
-      void queryClient.invalidateQueries({ queryKey: ["schedules"] });
-      void queryClient.invalidateQueries({ queryKey: ["assignment_history"] });
+      void queryClient.invalidateQueries({ queryKey: createQueryKey("shifts") });
+      void queryClient.invalidateQueries({ queryKey: createQueryKey("schedules") });
+      void queryClient.invalidateQueries({ queryKey: createQueryKey("assignment_history") });
     },
     onError: (error: Error) => { toast.error(error.message, t("shifts.messages.update_shift_error")); }
   });

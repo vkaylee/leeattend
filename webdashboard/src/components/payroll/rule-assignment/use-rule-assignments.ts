@@ -10,6 +10,8 @@ import {
   deletePayrollRuleAssignment,
 } from "@/lib/api/payroll";
 import { PayrollRuleAssignment, Department } from "@/lib/api/types";
+import { createQueryKey } from "@/lib/query-keys";
+
 
 type AssigneeType = "organization" | "department" | "employee";
 
@@ -19,7 +21,7 @@ export function useRuleAssignments(ruleId: string) {
   const toast = useToast();
 
   const assignmentsQuery = useQuery({
-    queryKey: ["payroll-rule-assignments", ruleId],
+    queryKey: createQueryKey("payroll-rule-assignments", ruleId),
     queryFn: async () => {
       const res = await fetchPayrollRuleAssignments(ruleId);
       const maybeRes = ((): typeof res | undefined => res)();
@@ -36,7 +38,7 @@ export function useRuleAssignments(ruleId: string) {
     onSuccess: () => {
       toast.success(t("common.success", "Success"));
       void queryClient.invalidateQueries({
-        queryKey: ["payroll-rule-assignments", ruleId],
+        queryKey: createQueryKey("payroll-rule-assignments", ruleId),
       });
     },
     onError: (error: Error) => { toast.error(error.message || t("common.error", "Error")); },
@@ -48,7 +50,7 @@ export function useRuleAssignments(ruleId: string) {
     onSuccess: () => {
       toast.success(t("common.success", "Success"));
       void queryClient.invalidateQueries({
-        queryKey: ["payroll-rule-assignments", ruleId],
+        queryKey: createQueryKey("payroll-rule-assignments", ruleId),
       });
     },
     onError: (error: Error) => { toast.error(error.message || t("common.error", "Error")); },

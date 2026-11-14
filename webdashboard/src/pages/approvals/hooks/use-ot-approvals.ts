@@ -16,6 +16,8 @@ import { invalidateAttendanceQueries } from "@/lib/utils/query-invalidation";
 
 import type { SourceFilter } from "../components/ot-approvals-filters";
 import type { OtSummary } from "../components/ot-approvals-table";
+import { createQueryKey } from "@/lib/query-keys";
+
 
 // ── Helpers ──────────────────────────────────────────────────────────
 
@@ -91,7 +93,7 @@ export function useOtApprovals() {
   const { approveOt, isProcessing } = useApproveOt();
 
   const { data: employeesData } = useQuery<PaginatedResponse<Employee>>({
-    queryKey: ["employees-list-all", organization?.id],
+    queryKey: createQueryKey("employees-list-all", organization?.id),
     queryFn: () => fetchEmployees(1, 1000),
     enabled: !!organization?.id,
   });

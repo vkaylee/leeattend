@@ -1,9 +1,11 @@
- 
+
 import { useQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
 
 import { AttendanceReportSort, AttendanceSummary, PaginatedResponse, fetchAttendanceReport } from "@/lib/api";
 import { formatHours } from "@/lib/utils/attendance";
+import { createQueryKey } from "@/lib/query-keys";
+
 
 interface UseReportsStatsProps {
   dateRange: { start: string; end: string };
@@ -23,9 +25,9 @@ export function useReportsStats({
   selectedEmployerId
 }: UseReportsStatsProps) {
   const { data: allStatsResponse } = useQuery<PaginatedResponse<AttendanceSummary>>({
-    queryKey: ["attendance-report-stats", dateRange, "summary", sortBy, employeeIdsFilter, selectedDepartmentId, employeeStatus, selectedEmployerId],
+    queryKey: createQueryKey("attendance-report-stats", dateRange, "summary", sortBy, employeeIdsFilter, selectedDepartmentId, employeeStatus, selectedEmployerId),
     queryFn: () => {
-      
+
       return fetchAttendanceReport({
         start: dateRange.start,
         end: dateRange.end,

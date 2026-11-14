@@ -8,6 +8,8 @@ import {
   markAllNotificationsAsRead,
   markNotificationAsRead,
 } from "@/lib/api";
+import { createQueryKey } from "@/lib/query-keys";
+
 
 // Query Keys
 export const notificationKeys = {
@@ -43,7 +45,7 @@ export function useNotifications(limit = 20): UseNotificationsReturn {
 
   // 2. Fetch Infinite List of Notifications
   const infiniteQuery = useInfiniteQuery({
-    queryKey: [...notificationKeys.list(), { limit }],
+    queryKey: createQueryKey(...notificationKeys.list(), { limit }),
     queryFn: ({ pageParam }) => fetchNotifications(limit, pageParam),
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (lastPage) => lastPage.next_cursor ?? undefined,
@@ -84,7 +86,7 @@ export function useNotifications(limit = 20): UseNotificationsReturn {
     isLoading: infiniteQuery.isLoading,
     isError: infiniteQuery.isError,
     error: infiniteQuery.error,
-    
+
     // Pagination
     hasNextPage: infiniteQuery.hasNextPage,
     fetchNextPage: () => { void infiniteQuery.fetchNextPage(); },

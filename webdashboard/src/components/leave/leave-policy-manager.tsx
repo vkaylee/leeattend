@@ -12,6 +12,8 @@ import { LeavePolicy } from "@/lib/api/types";
 
 import { PolicyCard } from "./policy-card";
 import { PolicyModal } from "./policy-modal";
+import { createQueryKey } from "@/lib/query-keys";
+
 
 export function LeavePolicyManager() {
   const { t } = useTranslation();
@@ -21,14 +23,14 @@ export function LeavePolicyManager() {
   const [editingPolicy, setEditingPolicy] = useState<LeavePolicy | null>(null);
   const { confirm, ConfirmationDialog } = useConfirm();
 
-  const { data: policies = [], isLoading } = useQuery({ queryKey: ["leave-policies"], queryFn: () => fetchLeavePolicies(), });
+  const { data: policies = [], isLoading } = useQuery({ queryKey: createQueryKey("leave-policies"), queryFn: () => fetchLeavePolicies(), });
 
-  const { data: leaveTypes = [] } = useQuery({ queryKey: ["leave-types"], queryFn: () => fetchLeaveTypes(), });
+  const { data: leaveTypes = [] } = useQuery({ queryKey: createQueryKey("leave-types"), queryFn: () => fetchLeaveTypes(), });
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => deleteLeavePolicy(id),
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ["leave-policies"] });
+      void queryClient.invalidateQueries({ queryKey: createQueryKey("leave-policies") });
       toast.success(t("settings.leave.policy_manager.success_delete", "Policy deleted successfully"));
     },
   });
@@ -48,7 +50,7 @@ export function LeavePolicyManager() {
         ? updateLeavePolicy(editingPolicy.id, data as Record<string, unknown> as UpdateLeavePolicyRequestBody)
         : createLeavePolicy(data as Record<string, unknown> as CreateLeavePolicyRequestBody),
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ["leave-policies"] });
+      void queryClient.invalidateQueries({ queryKey: createQueryKey("leave-policies") });
       toast.success(editingPolicy ? t("settings.leave.policy_manager.success_update", "Policy updated") : t("settings.leave.policy_manager.success_create", "Policy created"));
       setIsCreating(false);
       setEditingPolicy(null);
@@ -79,7 +81,7 @@ export function LeavePolicyManager() {
             <Typography className="text-xs font-bold uppercase tracking-widest" variant="p">{t("settings.leave.policy_manager.empty_title", "No policies defined yet")}</Typography>
           </div>
         ) : policies.map((policy) => (
-          <PolicyCard 
+          <PolicyCard
             bonusCount={policy.rule_config.seniority_bonus?.length ?? 0}
             key={policy.id}
             onDelete={handleDelete}

@@ -15,6 +15,8 @@ import { useDateTimeFormatter } from "@/hooks/use-datetime";
 import { useInfiniteScroll } from "@/hooks/use-infinite-scroll";
 import { overtimeRequestsApi } from "@/lib/api/overtime-requests";
 import { maybeNull } from "@/types/api-overrides";
+import { createQueryKey } from "@/lib/query-keys";
+
 
 const PRE_OT_PAGE_SIZE = 20;
 
@@ -38,7 +40,7 @@ export function PreOtApprovalsTab({
     hasNextPage,
     isFetchingNextPage,
   } = useInfiniteQuery<PaginatedResponse<OvertimeRequest>>({
-    queryKey: ["overtime-requests", "list", { limit: PRE_OT_PAGE_SIZE }],
+    queryKey: createQueryKey("overtime-requests", "list", { limit: PRE_OT_PAGE_SIZE }),
     queryFn: ({ pageParam }) => {
       return overtimeRequestsApi.listRequests({
         page: pageParam as number,
@@ -102,7 +104,7 @@ export function PreOtApprovalsTab({
       {
         onSuccess: () => {
           toast.success(action === "approve" ? t("ot_approvals.pre.success_approve") : t("ot_approvals.pre.success_reject"));
-          void queryClient.invalidateQueries({ queryKey: ["overtime-requests", "list"] });
+          void queryClient.invalidateQueries({ queryKey: createQueryKey("overtime-requests", "list") });
         },
         onError: () => {
           toast.error(t("ot_approvals.pre.fail_process"));
@@ -175,7 +177,7 @@ export function PreOtApprovalsTab({
                 {req.employees && req.employees.length > 0 ? req.employees.map(emp => emp.full_name ?? emp.employee_id).join(", ") : t("ot_approvals.pre.employees")}
               </Typography>
             </div>
- 
+
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 bg-slate-50 dark:bg-slate-800/50 p-4 rounded-2xl">
               <div>
                 <span className="block text-[10px] font-bold text-slate-500 uppercase">{t("common.date")}</span>
@@ -214,7 +216,7 @@ export function PreOtApprovalsTab({
               </div>
             )}
           </div>
-          
+
           <div className="flex flex-col items-end justify-center gap-2 shrink-0">
             {canApprove ? (
               <div className="flex gap-2">

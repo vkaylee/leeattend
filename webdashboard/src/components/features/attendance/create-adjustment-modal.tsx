@@ -14,6 +14,8 @@ import { useBehalfEmployees } from "@/hooks/use-behalf-employees";
 import { submitAttendanceAdjustment } from "@/lib/api";
 import { toUTCISO } from "@/lib/datetime";
 import { generateUUID } from "@/utils/uuid";
+import { createQueryKey } from "@/lib/query-keys";
+
 
 export interface CreateAdjustmentModalProps {
   isOpen: boolean;
@@ -55,8 +57,8 @@ function useCreateAdjustmentForm({timezone, onClose }: CreateAdjustmentFormProps
       attachment_file_ids?: string[];
     }) => submitAttendanceAdjustment(data),
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ["attendance-adjustments"] });
-      void queryClient.invalidateQueries({ queryKey: ["time-history"] });
+      void queryClient.invalidateQueries({ queryKey: createQueryKey("attendance-adjustments") });
+      void queryClient.invalidateQueries({ queryKey: createQueryKey("time-history") });
       toast.success(`${t("time_tracking.modal.new_title")} ${t("common.success").toLowerCase()}`);
       handleClose();
     },

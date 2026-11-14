@@ -1,4 +1,4 @@
- 
+
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
 
@@ -7,6 +7,8 @@ import { AttendanceReportSort, AttendanceSummary, PaginatedResponse, fetchAttend
 import { useReportsEmployeeSearch } from "./use-reports-employee-search";
 import { useReportsMetadata } from "./use-reports-metadata";
 import { useReportsStats } from "./use-reports-stats";
+import { createQueryKey } from "@/lib/query-keys";
+
 
 const PAGE_SIZE = 50;
 
@@ -37,9 +39,9 @@ export function useReportsQueries({
     hasNextPage,
     isFetchingNextPage,
   } = useInfiniteQuery<PaginatedResponse<AttendanceSummary>>({
-    queryKey: ["attendance-report", dateRange, "summary", PAGE_SIZE, sortBy, employeeIdsFilter, selectedDepartmentId, employeeStatus, selectedEmployerId],
+    queryKey: createQueryKey("attendance-report", dateRange, "summary", PAGE_SIZE, sortBy, employeeIdsFilter, selectedDepartmentId, employeeStatus, selectedEmployerId),
     queryFn: ({ pageParam }) => {
-      
+
       return fetchAttendanceReport({
         start: dateRange.start,
         end: dateRange.end,

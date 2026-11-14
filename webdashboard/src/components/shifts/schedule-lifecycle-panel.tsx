@@ -24,6 +24,8 @@ import {
   previewSchedules,
   publishSchedules,
 } from "@/lib/api";
+import { createQueryKey } from "@/lib/query-keys";
+
 
 interface ScheduleLifecyclePanelProps {
   employeeSchedule: EmployeeSchedule;
@@ -148,7 +150,7 @@ export function ScheduleLifecyclePanel({ employeeSchedule, weekDays }: ScheduleL
     },
     onSuccess: () => {
       setPreview(null);
-      void queryClient.invalidateQueries({ queryKey: ["schedules"] });
+      void queryClient.invalidateQueries({ queryKey: createQueryKey("schedules") });
     },
   });
   const historyMutation = useMutation({
@@ -184,7 +186,7 @@ export function ScheduleLifecyclePanel({ employeeSchedule, weekDays }: ScheduleL
     },
     onSuccess: () => {
       setReplanPreview(null);
-      void queryClient.invalidateQueries({ queryKey: ["schedules"] });
+      void queryClient.invalidateQueries({ queryKey: createQueryKey("schedules") });
     },
   });
   const activeError = [previewMutation, publishMutation, historyMutation, evidenceMutation, replanPreviewMutation, replanMutation].find((mutation) => mutation.isError)?.error;

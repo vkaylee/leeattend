@@ -11,6 +11,8 @@ import { uploadAttendance, fetchLatestImportJob, fetchImportJobStatus } from "@/
 import { AttendanceImportJob } from "@/lib/api/types";
 import { logError } from "@/lib/logger";
 import { cn } from "@/lib/utils";
+import { createQueryKey } from "@/lib/query-keys";
+
 
 export interface ExpectedColumn {
   description: string;
@@ -153,7 +155,7 @@ function ImportRequirements({
       <div className="w-9 h-9 rounded-xl bg-white dark:bg-slate-900 flex items-center justify-center text-primary-600 dark:text-primary-400 shadow-sm border border-primary-200 dark:border-primary-800 shrink-0"><AlertCircle size={18} /></div>
       <div className="text-xs text-primary-800 dark:text-primary-200 leading-relaxed font-medium pt-0.5 flex-1">
         <Typography className="font-bold uppercase tracking-[0.2em] mb-2 text-slate-700 dark:text-slate-300" variant="p">{t("attendance_import.file_requirements.title")}</Typography>
-        
+
         {expectedColumns ? (
           <div className="space-y-3">
             <Typography className="text-slate-600 dark:text-slate-400 text-[11px] leading-relaxed italic" variant="p">
@@ -172,8 +174,8 @@ function ImportRequirements({
                     </span>
                     <span className={cn(
                       "text-[9px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider",
-                      col.required 
-                        ? "bg-rose-50 dark:bg-rose-950/30 text-rose-600 dark:text-rose-400 border border-rose-100 dark:border-rose-900/50" 
+                      col.required
+                        ? "bg-rose-50 dark:bg-rose-950/30 text-rose-600 dark:text-rose-400 border border-rose-100 dark:border-rose-900/50"
                         : "bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700"
                     )}>
                       {col.required ? t("attendance_import.required") : t("attendance_import.optional")}
@@ -271,11 +273,11 @@ function ImportActions({ onClose, file, uploading, handleUpload, t }: { onClose:
 }
 
 // eslint-disable-next-line complexity
-export default function AttendanceImportDialog({ 
-  isOpen, 
-  onClose, 
-  endpoint, 
-  title, 
+export default function AttendanceImportDialog({
+  isOpen,
+  onClose,
+  endpoint,
+  title,
   targetType,
   customRequirements,
   expectedColumns,
@@ -288,7 +290,7 @@ export default function AttendanceImportDialog({
   const [activeJobId, setActiveJobId] = useState<string | null>(null);
 
   const { data: jobStatus } = useQuery({
-    queryKey: ["import-job", activeJobId],
+    queryKey: createQueryKey("import-job", activeJobId),
     queryFn: () => activeJobId ? fetchImportJobStatus(activeJobId) : Promise.reject(new Error("Missing Job ID")),
     enabled: !!activeJobId,
     refetchInterval: (query) => {
@@ -298,7 +300,7 @@ export default function AttendanceImportDialog({
   });
 
   const { data: latestJob } = useQuery({
-    queryKey: ["latest-import-job", targetType],
+    queryKey: createQueryKey("latest-import-job", targetType),
     queryFn: () => fetchLatestImportJob(targetType),
     enabled: isOpen,
   });
@@ -317,7 +319,7 @@ export default function AttendanceImportDialog({
     try {
       const result = await uploadAttendance(file, endpoint);
       setActiveJobId(result.job_id); setFile(null);
-      void queryClient.invalidateQueries({ queryKey: ["latest-import-job"] });
+      void queryClient.invalidateQueries({ queryKey: createQueryKey("latest-import-job") });
     } catch (error) { logError(error, { component: "AttendanceImport" }); } finally { setUploading(false); }
   };
 
@@ -330,14 +332,14 @@ export default function AttendanceImportDialog({
           <ImportProgress jobStatus={jobStatus} t={t} />
           {isFinished ? (
             <div className="pt-3 flex justify-end border-t border-slate-200 dark:border-slate-800">
-              <Button 
-                className="px-10" 
-                onClick={() => { 
-                  onClose(); 
+              <Button
+                className="px-10"
+                onClick={() => {
+                  onClose();
                   setTimeout(() => {
-                    setActiveJobId(null); 
+                    setActiveJobId(null);
                     setFile(null);
-                    void queryClient.invalidateQueries(); 
+                    void queryClient.invalidateQueries();
                   }, 300);
                 }}
                 size="lg"

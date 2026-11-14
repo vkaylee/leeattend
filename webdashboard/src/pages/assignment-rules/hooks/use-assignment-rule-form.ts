@@ -11,13 +11,15 @@ import {
 } from "@/lib/api";
 
 import { useAssignmentRulesData } from "./use-assignment-rules-data";
+import { createQueryKey } from "@/lib/query-keys";
+
 
 export function useAssignmentRuleForm(ruleId?: string) {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const toast = useToast();
   const queryClient = useQueryClient();
-  
+
   const isEditMode = !!ruleId;
 
   // Form State
@@ -54,7 +56,7 @@ export function useAssignmentRuleForm(ruleId?: string) {
     onSuccess: () => {
       toast.success(t("rules.messages.create_success"));
       setIsDirty(false);
-      void queryClient.invalidateQueries({ queryKey: ["assignment-rules"] });
+      void queryClient.invalidateQueries({ queryKey: createQueryKey("assignment-rules") });
       void navigate({ to: "/shifts/rules", search: { tab: "rules" } });
     },
     onError: () => {
@@ -68,7 +70,7 @@ export function useAssignmentRuleForm(ruleId?: string) {
     onSuccess: () => {
       toast.success(t("rules.messages.update_success"));
       setIsDirty(false);
-      void queryClient.invalidateQueries({ queryKey: ["assignment-rules"] });
+      void queryClient.invalidateQueries({ queryKey: createQueryKey("assignment-rules") });
       void navigate({ to: "/shifts/rules", search: { tab: "rules" } });
     },
     onError: () => {

@@ -11,6 +11,8 @@ import {
 } from "@/lib/api";
 import { formatHours } from "@/lib/utils/attendance";
 import { maybeNull } from "@/types/api-overrides";
+import { createQueryKey } from "@/lib/query-keys";
+
 
 interface UseDailyDrawerQueriesProps {
     dateRange: { start: string; end: string };
@@ -32,7 +34,7 @@ export function useDailyDrawerQueries({employeeId,
     viewMode,
 }: UseDailyDrawerQueriesProps) {
     const { data: reportResponse, isLoading } = useQuery({
-        queryKey: ["attendance-report",dateRange, "daily", 1, 100, undefined, [employeeId], employerId],
+        queryKey: createQueryKey("attendance-report",dateRange, "daily", 1, 100, undefined, [employeeId], employerId),
         queryFn: () =>
             fetchAttendanceReport({
                 start: dateRange.start,
@@ -46,10 +48,10 @@ export function useDailyDrawerQueries({employeeId,
         enabled: isOpen  && !!employeeId,
     });
 
-    const { data: pendingAdjustmentsResponse } = useQuery({ queryKey: ["attendance-adjustments", "pending"], queryFn: () => fetchAttendanceAdjustments({ status: "pending" }),
+    const { data: pendingAdjustmentsResponse } = useQuery({ queryKey: createQueryKey("attendance-adjustments", "pending"), queryFn: () => fetchAttendanceAdjustments({ status: "pending" }),
     enabled: isOpen , });
 
-    const { data: shifts } = useQuery({ queryKey: ["shifts"], queryFn: () => fetchShifts(),
+    const { data: shifts } = useQuery({ queryKey: createQueryKey("shifts"), queryFn: () => fetchShifts(),
     enabled: isOpen , });
 
     const {
@@ -59,7 +61,7 @@ export function useDailyDrawerQueries({employeeId,
         hasNextPage,
         isFetchingNextPage
     } = useInfiniteQuery({
-        queryKey: ["raw-logs",dateRange, [employeeId]],
+        queryKey: createQueryKey("raw-logs",dateRange, [employeeId]),
         queryFn: ({ pageParam }) => {
             const from = dateRange.start ? new Date(`${dateRange.start}T00:00:00`).toISOString() : undefined;
             const to = dateRange.end ? new Date(`${dateRange.end}T23:59:59`).toISOString() : undefined;

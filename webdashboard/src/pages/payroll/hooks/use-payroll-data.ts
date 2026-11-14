@@ -12,6 +12,8 @@ import {
   Employee,
 } from "@/lib/api";
 import { employeeKeys } from "@/lib/query-keys";
+import { createQueryKey } from "@/lib/query-keys";
+
 
 interface UsePayrollDataOptions { calcMonth: number;
 calcYear: number;
@@ -39,13 +41,13 @@ export function usePayrollData({
   const employees = useMemo(() => employeesData?.data ?? [], [employeesData?.data]);
 
   const { data: organizationPayslipsData = [], isLoading: organizationPayslipsLoading } = useQuery({
-    queryKey: ["organization-payslips", calcYear, calcMonth],
+    queryKey: createQueryKey("organization-payslips", calcYear, calcMonth),
     queryFn: () => fetchPayslips(calcYear, calcMonth),
     placeholderData: keepPreviousData,
   });
 
   const { data: employeePayslips = [], isLoading: employeePayslipsLoading } = useQuery({
-    queryKey: ["payslips", selectedEmployee?.id],
+    queryKey: createQueryKey("payslips", selectedEmployee?.id),
     queryFn: () => {
       if (!selectedEmployee) throw new Error("Employee is required");
       return fetchEmployeePayslips(selectedEmployee.id);
@@ -54,7 +56,7 @@ export function usePayrollData({
   });
 
   const { data: allAdjustmentsResponse } = useQuery({
-    queryKey: ["adjustments", "pending"],
+    queryKey: createQueryKey("adjustments", "pending"),
     queryFn: () => fetchAttendanceAdjustments({ status: "pending" }),
     placeholderData: keepPreviousData,
   });

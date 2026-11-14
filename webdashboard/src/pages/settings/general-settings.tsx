@@ -19,16 +19,18 @@ import { cn } from "@/lib/utils";
 
 import { OrganizationLogoField } from "./components/organization-logo-field";
 import { ThemeColorPicker } from "./components/theme-color-picker";
+import { createQueryKey } from "@/lib/query-keys";
+
 
 type TabType = "localization" | "appearance";
 
 export default function GeneralSettings() {
-  
+
 
   const { data: organization, isLoading: isLoadingOrganization } = useQuery({
-    queryKey: ["organization"],
+    queryKey: createQueryKey("organization"),
     queryFn: () => {
-      
+
       return fetchOrganization();
     },
   });
@@ -84,12 +86,12 @@ function GeneralSettingsContent({ organization }: { organization: Organization }
     onSuccess: (updatedOrganization, data) => {
       toast.success(t("common.success"));
       queryClient.setQueryData<Organization>(["organization"], (current) => current ? { ...current, ...data, ...updatedOrganization } : updatedOrganization);
-      void queryClient.invalidateQueries({ queryKey: ["organization"] });
+      void queryClient.invalidateQueries({ queryKey: createQueryKey("organization") });
     },
   });
 
   function handleSaveConfig() {
-    updateOrganizationMutation.mutate({ 
+    updateOrganizationMutation.mutate({
       date_format: dateFormat,
       time_format: timeFormat,
       timezone,
@@ -204,7 +206,7 @@ function GeneralSettingsContent({ organization }: { organization: Organization }
                   {t("common.organization_settings.branding", { defaultValue: "Nhận diện thương hiệu" })}
                 </Typography>
               </div>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
                   <label className={SETTINGS_LABEL}>{t("common.organization_settings.organization_name", { defaultValue: "Tên tổ chức" })}</label>

@@ -11,6 +11,8 @@ import { CustomFieldSection } from "@/components/custom-fields/custom-field-sect
 import Button from "@/components/ui/button";
 import Modal from "@/components/ui/modal";
 import { fetchDepartmentPayrollConfigs, setDepartmentPayrollConfig } from "@/lib/api";
+import { createQueryKey } from "@/lib/query-keys";
+
 
 export interface DepartmentConfigModalProps {
   editingDept: Department | null;
@@ -22,13 +24,13 @@ export interface DepartmentConfigModalProps {
 export function DepartmentConfigModal({ editingDept, isOpen, onClose,t }: DepartmentConfigModalProps) {
   const queryClient = useQueryClient();
 
-  const { data: deptConfigs = [], isLoading: isConfigsLoading } = useQuery({ 
-    queryKey: ["dept-payroll-configs", editingDept?.id], 
+  const { data: deptConfigs = [], isLoading: isConfigsLoading } = useQuery({
+    queryKey: createQueryKey("dept-payroll-configs", editingDept?.id),
     queryFn: () => {
       if (!editingDept?.id) return Promise.reject(new Error("No department ID"));
       return fetchDepartmentPayrollConfigs(editingDept.id);
-    }, 
-    enabled: isOpen && !!editingDept?.id 
+    },
+    enabled: isOpen && !!editingDept?.id
   });
 
   const saveConfigMutation = useMutation({
@@ -40,17 +42,17 @@ export function DepartmentConfigModal({ editingDept, isOpen, onClose,t }: Depart
         std_working_days: data.std_working_days.toString(),
       });
     },
-    onSuccess: () => { void queryClient.invalidateQueries({ queryKey: ["dept-payroll-configs", editingDept?.id] }); },
+    onSuccess: () => { void queryClient.invalidateQueries({ queryKey: createQueryKey("dept-payroll-configs", editingDept?.id) }); },
   });
 
   return (
     <Modal icon={<Calculator size={24} />} isOpen={Boolean(isOpen && editingDept)} maxWidth="3xl" onClose={onClose} subtitle={editingDept?.name.toUpperCase()} title={t("payroll.settings.dept_title")}>
       <div className="space-y-10 pt-4 animate-in fade-in duration-500">
-        <TemporalConfigTable 
-          isLoading={isConfigsLoading} 
-          onSave={async (data) => { await saveConfigMutation.mutateAsync(data); }} 
-          records={deptConfigs} 
-          title={t("payroll.settings.std_days_history")} 
+        <TemporalConfigTable
+          isLoading={isConfigsLoading}
+          onSave={async (data) => { await saveConfigMutation.mutateAsync(data); }}
+          records={deptConfigs}
+          title={t("payroll.settings.std_days_history")}
         />
         {!!editingDept?.id && (
           <CustomFieldSection entityId={editingDept.id} entityType="department" />

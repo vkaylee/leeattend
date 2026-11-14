@@ -10,6 +10,8 @@ import { useToast } from "@/components/ui/toast";
 import { useOrganizationMutation } from "@/hooks/common/use-organization-query";
 import { updateEmployeeEmployment } from "@/lib/api";
 import { employeeKeys } from "@/lib/query-keys";
+import { createQueryKey } from "@/lib/query-keys";
+
 
 interface EditTerminationModalProps {
   currentEndDate: string | null;
@@ -45,8 +47,8 @@ export default function EditTerminationModal({
       });
     },
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ["deptHistory", employeeId] });
-      void queryClient.invalidateQueries({ queryKey: ["employee-employments",employeeId] });
+      void queryClient.invalidateQueries({ queryKey: createQueryKey("deptHistory", employeeId) });
+      void queryClient.invalidateQueries({ queryKey: createQueryKey("employee-employments",employeeId) });
       onClose();
       toast.success(t("common.success"));
       onSuccess?.();

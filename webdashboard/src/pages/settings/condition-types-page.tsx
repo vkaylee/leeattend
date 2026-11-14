@@ -18,6 +18,8 @@ import { cn } from "@/lib/utils";
 
 import { ConditionTypeForm } from "./components/condition-type-form";
 import { useConditionTypeActions } from "./hooks/use-condition-type-actions";
+import { createQueryKey } from "@/lib/query-keys";
+
 
 const LUCIDE_ICONS: Record<string, React.ReactNode> = {
   Clock: <Clock size={18} />,
@@ -82,12 +84,12 @@ function ConditionTypeRow({ item, onDelete, onEdit }: {
 export default function ConditionTypesPage() {
   const { t } = useTranslation();
   const { confirm, ConfirmationDialog } = useConfirm();
-  
+
   const [isAdding, setIsAdding] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
 
   const { data: types = [], isLoading } = useQuery({
-    queryKey: ["condition-types"],
+    queryKey: createQueryKey("condition-types"),
     queryFn: () => fetchConditionTypes(),
   });
 

@@ -17,6 +17,8 @@ import type { AssignmentType, BehalfAssignmentInput } from "./types";
 import { AddAssignmentForm } from "./add-assignment-form";
 import { AssignmentItem } from "./assignment-item";
 import { BehalfAssignmentsEmptyState, BehalfAssignmentsHeader } from "./behalf-assignments-header";
+import { createQueryKey } from "@/lib/query-keys";
+
 
 export function BehalfAssignmentsTab({
   assignmentType = "ot",
@@ -97,7 +99,7 @@ export function BehalfAssignmentsTab({
   };
 
   const { data: assignees = [], isLoading: assigneesLoading } = useQuery({
-    queryKey: [...organizationKeys.members(), "behalf-assignees"],
+    queryKey: createQueryKey(...organizationKeys.members(), "behalf-assignees"),
     queryFn: () => fetchAllOrganizationMembers(),
   });
 

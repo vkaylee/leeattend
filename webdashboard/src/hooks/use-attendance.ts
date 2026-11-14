@@ -13,6 +13,8 @@ import {
   claimOt,
 } from "@/lib/api";
 import { maybeNull } from "@/types/api-overrides";
+import { createQueryKey } from "@/lib/query-keys";
+
 
 interface SummaryParams {
   employeeId?: string;
@@ -49,7 +51,7 @@ export function useAttendanceSummariesInfinite(
   options?: { employeeId?: string; otStatus?: string },
 ) {
   const infiniteQuery = useInfiniteQuery<PaginatedResponse<AttendanceDailySummary>>({
-    queryKey: [...attendanceKeys.all, "summaries", { start, end, employeeId: options?.employeeId, otStatus: options?.otStatus }],
+    queryKey: createQueryKey(...attendanceKeys.all, "summaries", { start, end, employeeId: options?.employeeId, otStatus: options?.otStatus }),
     queryFn: ({ pageParam }) => fetchAttendanceSummariesPaginated(start, end, {
       employeeId: options?.employeeId,
       page: pageParam as number,

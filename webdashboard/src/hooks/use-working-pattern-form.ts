@@ -20,6 +20,8 @@ import {
   shouldInit,
 } from "./use-working-pattern-form-helpers";
 import { useWorkingPatternGrid } from "./use-working-pattern-grid";
+import { createQueryKey } from "@/lib/query-keys";
+
 
 export { isCycleLengthInvalid, convertGridToDetails } from "./use-working-pattern-form-helpers";
 
@@ -105,7 +107,7 @@ function useCreatePatternMutation({ t, setIsDirty }: MutationParams) {
     mutationFn: (data: CreateWorkingPatternRequest) => createWorkingPattern(data),
     onSuccess: () => {
       toast.success(t("patterns.messages.create_success"));
-      void queryClient.invalidateQueries({ queryKey: ["working-patterns"] });
+      void queryClient.invalidateQueries({ queryKey: createQueryKey("working-patterns") });
       setIsDirty(false);
       void navigate({ to: "/shifts/rules", search: { tab: "patterns" } });
     },
@@ -124,8 +126,8 @@ function useUpdatePatternMutation({ patternId, t, setIsDirty }: MutationParams) 
     mutationFn: (data: UpdateWorkingPatternRequest) => updateWorkingPattern(patternId ?? "", data),
     onSuccess: () => {
       toast.success(t("patterns.messages.update_success"));
-      void queryClient.invalidateQueries({ queryKey: ["working-patterns"] });
-      void queryClient.invalidateQueries({ queryKey: ["pattern-details", patternId ?? ""] });
+      void queryClient.invalidateQueries({ queryKey: createQueryKey("working-patterns") });
+      void queryClient.invalidateQueries({ queryKey: createQueryKey("pattern-details", patternId ?? "") });
       setIsDirty(false);
       void navigate({ to: "/shifts/rules", search: { tab: "patterns" } });
     },
@@ -227,7 +229,7 @@ export function useWorkingPatternForm(patternId?: string) {
   const createMutation = useCreatePatternMutation({ t, setIsDirty });
   const updateMutation = useUpdatePatternMutation({ patternId, t, setIsDirty });
   return {
-   
+
     isEditMode,
     isLoadingPatterns,
     shifts,

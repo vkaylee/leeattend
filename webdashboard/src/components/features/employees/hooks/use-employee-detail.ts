@@ -8,6 +8,8 @@ import { fetchOrganizationMembers, fetchEmployeeEmployments } from "@/lib/api";
 import { useLocations } from "@/pages/settings/hooks/use-locations";
 
 import type { DetailTabType } from "../drawer-header";
+import { createQueryKey } from "@/lib/query-keys";
+
 
 const TAB_ORDER: DetailTabType[] = ["profile", "documents", "contracts", "salary", "compensation"];
 const SCROLL_STEP = 80;
@@ -56,7 +58,7 @@ export function useEmployeeDetail({ isOpen,employee }: UseEmployeeDetailProps) {
     const { data: employments = [] } = useQuery({
         enabled: !!employee?.id,
         queryFn: () => employee ? fetchEmployeeEmployments(employee.id) : Promise.resolve([]),
-        queryKey: ["employee-employments",employee?.id],
+        queryKey: createQueryKey("employee-employments",employee?.id),
     });
     const activeEmployment = employments.find((e: Employment) => e.status === "active") ?? employments[0];
 

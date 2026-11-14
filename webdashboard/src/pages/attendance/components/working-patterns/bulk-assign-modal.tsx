@@ -16,6 +16,8 @@ import { cn } from "@/lib/utils";
 import { type ComplianceIssue } from "@/lib/utils/shift-compliance-utils";
 
 import { useWorkingPatterns } from "../../hooks/use-working-patterns";
+import { createQueryKey } from "@/lib/query-keys";
+
 
 // ── Helpers ────────────────────────────────────────────────────────────
 
@@ -84,7 +86,7 @@ export function BulkAssignModal({ hook }: BulkAssignModalProps) {
 
   // Fetch pattern details for visual preview
   const { data: previewDetails } = useQuery<WorkingPatternDetail[]>({
-    queryKey: ["pattern-preview", selectedPatternId],
+    queryKey: createQueryKey("pattern-preview", selectedPatternId),
     queryFn: () => fetchPatternDetails(selectedPatternId),
     enabled: !!selectedPatternId,
   });

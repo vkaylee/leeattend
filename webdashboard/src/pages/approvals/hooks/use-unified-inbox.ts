@@ -23,6 +23,8 @@ import {
   UnifiedApprovalRequester,
   UnifiedInboxFilter,
 } from "../types/unified-approvals";
+import { createQueryKey } from "@/lib/query-keys";
+
 
 export interface UnifiedInboxCounts {
   adjustment: number;
@@ -121,28 +123,28 @@ export function useUnifiedInbox(): UseUnifiedInboxReturn {
 
   // ── Queries ──────────────────────────────────────────────────────────
   const leavesQuery = useQuery({
-    queryKey: ["unified-inbox-leaves"],
+    queryKey: createQueryKey("unified-inbox-leaves"),
     queryFn: () => fetchLeaveRequests({ limit: 100 }),
     enabled: canReadLeaves,
     staleTime: 30_000,
   });
 
   const adjustmentsQuery = useQuery({
-    queryKey: ["unified-inbox-adjustments"],
+    queryKey: createQueryKey("unified-inbox-adjustments"),
     queryFn: () => fetchAttendanceAdjustments({ limit: 100 }),
     enabled: canApproveAdjustments,
     staleTime: 30_000,
   });
 
   const swapsQuery = useQuery({
-    queryKey: ["unified-inbox-swaps"],
+    queryKey: createQueryKey("unified-inbox-swaps"),
     queryFn: () => fetchShiftSwaps(),
     enabled: canManageSwaps,
     staleTime: 30_000,
   });
 
   const otQuery = useQuery({
-    queryKey: ["unified-inbox-ot", startDate, endDate],
+    queryKey: createQueryKey("unified-inbox-ot", startDate, endDate),
     queryFn: () => fetchAttendanceSummaries(startDate, endDate),
     enabled: canApproveOvertime,
     staleTime: 30_000,

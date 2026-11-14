@@ -15,6 +15,8 @@ import { Typography } from "@/components/ui/typography";
 import { useInfiniteScroll } from "@/hooks/use-infinite-scroll";
 import { fetchAttendanceReport } from "@/lib/api";
 import { cn } from "@/lib/utils";
+import { createQueryKey } from "@/lib/query-keys";
+
 
 const DELEGATED_CLAIMS_PAGE_SIZE = 20;
 
@@ -52,7 +54,7 @@ export function DelegatedClaimsTab({
     hasNextPage,
     isFetchingNextPage,
   } = useInfiniteQuery<PaginatedResponse<DailyAttendanceReport>>({
-    queryKey: ["attendance-report-delegated", startDate, endDate, "daily"],
+    queryKey: createQueryKey("attendance-report-delegated", startDate, endDate, "daily"),
     queryFn: ({ pageParam }) => {
       return fetchAttendanceReport({
         start: startDate,
@@ -356,9 +358,9 @@ export function DelegatedClaimsTab({
             }
             return next;
           });
-          void queryClient.invalidateQueries({ queryKey: ["attendance-report-delegated"] });
-          void queryClient.invalidateQueries({ queryKey: ["attendance-report"] });
-          void queryClient.invalidateQueries({ queryKey: ["attendance"] });
+          void queryClient.invalidateQueries({ queryKey: createQueryKey("attendance-report-delegated") });
+          void queryClient.invalidateQueries({ queryKey: createQueryKey("attendance-report") });
+          void queryClient.invalidateQueries({ queryKey: createQueryKey("attendance") });
         }}
         open={confirmClaimsOpen}
         selectedRows={activeRowsToClaim}

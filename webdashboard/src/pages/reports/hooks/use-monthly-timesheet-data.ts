@@ -2,6 +2,8 @@ import { useQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
 
 import { fetchAttendanceReport, type DailyAttendanceReport } from "@/lib/api";
+import { createQueryKey } from "@/lib/query-keys";
+
 
 export interface UseMonthlyTimesheetDataParams {
   enabled?: boolean;
@@ -29,7 +31,7 @@ export function useMonthlyTimesheetData({
   const endDate = useMemo(() => formatDayKey(year, month, lastDay), [year, month, lastDay]);
 
   const query = useQuery({
-    queryKey: ["monthly-timesheet-daily", year, month],
+    queryKey: createQueryKey("monthly-timesheet-daily", year, month),
     queryFn: async () => {
       const res = await fetchAttendanceReport({
         start: startDate,

@@ -14,6 +14,8 @@ import {
 } from "@/lib/api";
 
 import { essKeys } from "./use-ess-keys";
+import { createQueryKey } from "@/lib/query-keys";
+
 
 export interface UseMyAttendanceReturn {
   entries: AttendanceEntry[];
@@ -111,7 +113,7 @@ export interface UseMyAttendanceSummariesReturn {
 
 export function useMyAttendanceSummaries(start: string, end: string): UseMyAttendanceSummariesReturn {
   const query = useQuery<AttendanceDailySummary[]>({
-    queryKey: [...essKeys.all, "summaries", start, end],
+    queryKey: createQueryKey(...essKeys.all, "summaries", start, end),
     queryFn: () => fetchMyAttendanceSummaries(start, end),
   });
 
@@ -136,7 +138,7 @@ export function useSubmitOtClaim(): UseSubmitOtClaimReturn {
     mutationFn: (data: { date: string; minutes: number; reason: string }) =>
       submitMyOtClaim(data.date, data.minutes, data.reason),
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: [...essKeys.all, "summaries"] });
+      void queryClient.invalidateQueries({ queryKey: createQueryKey(...essKeys.all, "summaries") });
     },
   });
 

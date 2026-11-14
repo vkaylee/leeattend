@@ -12,6 +12,8 @@ import {
   deletePolicyAssignment,
   fetchDefaultAttendanceRules,
 } from "@/lib/api/attendance-rules";
+import { createQueryKey } from "@/lib/query-keys";
+
 
 interface Props {
   employeeId: string;
@@ -31,10 +33,10 @@ export default function EmployeeAttendancePolicyTab({ employeeId}: Props) {
   const queryClient = useQueryClient();
   const { confirm, ConfirmationDialog } = useConfirm();
 
-  const { data: defaultRules } = useQuery({ queryKey: ["attendance-rules"], queryFn: () => fetchDefaultAttendanceRules(),
+  const { data: defaultRules } = useQuery({ queryKey: createQueryKey("attendance-rules"), queryFn: () => fetchDefaultAttendanceRules(),
  });
 
-  const { data: assignmentsResponse, isLoading } = useQuery({ queryKey: ["attendance-policy-assignments"], queryFn: () => fetchPolicyAssignments(),
+  const { data: assignmentsResponse, isLoading } = useQuery({ queryKey: createQueryKey("attendance-policy-assignments"), queryFn: () => fetchPolicyAssignments(),
  });
 
   const assignments = assignmentsResponse?.data ?? [];
@@ -43,7 +45,7 @@ export default function EmployeeAttendancePolicyTab({ employeeId}: Props) {
   const deleteMutation = useMutation({
     mutationFn: (id: string) => deletePolicyAssignment(id),
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ["attendance-policy-assignments"] });
+      void queryClient.invalidateQueries({ queryKey: createQueryKey("attendance-policy-assignments") });
     },
   });
 
@@ -58,7 +60,7 @@ export default function EmployeeAttendancePolicyTab({ employeeId}: Props) {
         grace_period_minutes: defaultRules?.grace_period_minutes ?? null,
       }),
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ["attendance-policy-assignments"] });
+      void queryClient.invalidateQueries({ queryKey: createQueryKey("attendance-policy-assignments") });
     },
   });
 

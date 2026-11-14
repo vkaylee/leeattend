@@ -10,6 +10,8 @@ import { PageContainer } from "@/components/ui/page-container";
 import PageHeader from "@/components/ui/page-header";
 import { SearchInput } from "@/components/ui/search-input";
 import { fetchSalaryManagement, type SalaryManagementRow } from "@/lib/api/salary-management";
+import { createQueryKey } from "@/lib/query-keys";
+
 
 const PAGE_SIZE = 25;
 
@@ -63,7 +65,7 @@ export default function SalaryManagementPage() {
   const search = useSearch({ strict: false });
   const page = Math.max(1, search.page ?? 1);
   const query = useQuery({
-    queryKey: ["salary-management", search],
+    queryKey: createQueryKey("salary-management", search),
     queryFn: () => fetchSalaryManagement({ ...search, limit: PAGE_SIZE, page }),
   });
   const rows = query.data?.data ?? [];

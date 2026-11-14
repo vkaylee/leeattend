@@ -9,6 +9,8 @@ import {
     upsertRoster,
     DailyAttendanceReport,
 } from "@/lib/api";
+import { createQueryKey } from "@/lib/query-keys";
+
 
 interface UseDailyDrawerMutationsProps {
     employeeId?: string;
@@ -30,7 +32,7 @@ export function useDailyDrawerMutations({employeeId,
         mutationFn: ({ empId, date }: { empId: string; date: string }) =>
             reprocessAttendance(empId, date, date),
         onSuccess: () => {
-            void queryClient.invalidateQueries({ queryKey: ["attendance-report"] });
+            void queryClient.invalidateQueries({ queryKey: createQueryKey("attendance-report") });
             toast.success(t("common.success"));
             onReprocessSuccess();
         },
@@ -47,8 +49,8 @@ export function useDailyDrawerMutations({employeeId,
             reason?: string;
         }) => adminConfirmAttendance(row, existingRequestId, reason),
         onSuccess: () => {
-            void queryClient.invalidateQueries({ queryKey: ["attendance-report"] });
-            void queryClient.invalidateQueries({ queryKey: ["attendance-adjustments"] });
+            void queryClient.invalidateQueries({ queryKey: createQueryKey("attendance-report") });
+            void queryClient.invalidateQueries({ queryKey: createQueryKey("attendance-adjustments") });
             toast.success(t("reports.confirm.success"));
             onConfirmSuccess();
         },
@@ -65,7 +67,7 @@ export function useDailyDrawerMutations({employeeId,
                 status: action,
             }),
         onSuccess: (_data, variables) => {
-            void queryClient.invalidateQueries({ queryKey: ["attendance-report"] });
+            void queryClient.invalidateQueries({ queryKey: createQueryKey("attendance-report") });
             const message =
                 variables.action === "approved"
                     ? t("reports.ot_approve.success_approved")
@@ -87,7 +89,7 @@ export function useDailyDrawerMutations({employeeId,
             await reprocessAttendance(empId, row.date, row.date);
         },
         onSuccess: () => {
-            void queryClient.invalidateQueries({ queryKey: ["attendance-report"] });
+            void queryClient.invalidateQueries({ queryKey: createQueryKey("attendance-report") });
             toast.success(t("reports.unscheduled.success"));
             onResolveSuccess();
         },

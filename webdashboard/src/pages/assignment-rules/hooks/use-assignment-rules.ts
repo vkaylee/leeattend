@@ -6,6 +6,8 @@ import { useConfirm } from "@/hooks/use-confirm";
 import { deleteAssignmentRule } from "@/lib/api";
 
 import { useAssignmentRulesData } from "./use-assignment-rules-data";
+import { createQueryKey } from "@/lib/query-keys";
+
 
 export function useAssignmentRules() {
   const { t } = useTranslation();
@@ -18,7 +20,7 @@ export function useAssignmentRules() {
     mutationFn: (id: string) => deleteAssignmentRule(id),
     onSuccess: () => {
       toast.success(t("rules.messages.delete_success"));
-      void queryClient.invalidateQueries({ queryKey: ["assignment-rules"] });
+      void queryClient.invalidateQueries({ queryKey: createQueryKey("assignment-rules") });
     },
   });
 

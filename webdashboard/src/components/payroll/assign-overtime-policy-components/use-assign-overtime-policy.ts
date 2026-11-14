@@ -5,6 +5,8 @@ import { useTranslation } from 'react-i18next';
 import { useToast } from '@/components/ui/toast';
 import { useDepartments } from '@/hooks/use-departments';
 import { fetchOvertimePolicies, assignOvertimePolicy } from '@/lib/api/payroll';
+import { createQueryKey } from "@/lib/query-keys";
+
 
 interface UseAssignOvertimePolicyConfig {
   initialId?: string;
@@ -27,7 +29,7 @@ export function useAssignOvertimePolicy({isOpen,
   const [policyId, setPolicyId] = useState('');
   const [effectiveFrom, setEffectiveFrom] = useState(new Date().toISOString().split('T')[0]);
 
-  const { data: policies = [] } = useQuery({ queryKey: ['overtime-policies'], queryFn: () => fetchOvertimePolicies(),
+  const { data: policies = [] } = useQuery({ queryKey: createQueryKey('overtime-policies'), queryFn: () => fetchOvertimePolicies(),
   enabled: isOpen });
 
   const { data: departments = [] } = useDepartments({ enabled: isOpen });
@@ -35,7 +37,7 @@ export function useAssignOvertimePolicy({isOpen,
   const assignMutation = useMutation({
     mutationFn: (data: Parameters<typeof assignOvertimePolicy>[0]) => assignOvertimePolicy(data),
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['overtime-policy-assignment'] });
+      void queryClient.invalidateQueries({ queryKey: createQueryKey('overtime-policy-assignment') });
       toast.success(t('common.success'));
       onClose();
     },

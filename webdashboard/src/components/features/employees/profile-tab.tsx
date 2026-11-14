@@ -20,6 +20,8 @@ import { maybeNull } from "@/types/api-overrides";
 import type { DeptHistoryEntry } from "./profile-sections";
 
 import { DepartmentSection, LocationSection, UserSection, HireDatesSection } from "./profile-sections";
+import { createQueryKey } from "@/lib/query-keys";
+
 
 export function ProfileActions({
     employee,
@@ -121,7 +123,7 @@ export default function ProfileTab({
     const [isEditTerminationModalOpen, setIsEditTerminationModalOpen] = useState(false);
     const [isUndoTerminationModalOpen, setIsUndoTerminationModalOpen] = useState(false);
 
-    const { data: employments = [] } = useQuery({ queryKey: ["employee-employments", employee.id], queryFn: () => fetchEmployeeEmployments(employee.id),
+    const { data: employments = [] } = useQuery({ queryKey: createQueryKey("employee-employments", employee.id), queryFn: () => fetchEmployeeEmployments(employee.id),
     enabled: !!employee.id, });
     const activeEmployment = employments.find(e => e.status === "active") ?? employments[0];
     const terminatedEmployment = employments.find(e => e.status === "terminated");
@@ -150,7 +152,7 @@ export default function ProfileTab({
             return updateEmployeeEmployment(employee.id, activeEmployment.id, { primary_location_id: locationId });
         },
         onSuccess: () => {
-            void queryClient.invalidateQueries({ queryKey: ["employee-employments",employee.id] });
+            void queryClient.invalidateQueries({ queryKey: createQueryKey("employee-employments",employee.id) });
             handleSetIsEditingLocation(false);
             toast.success(t("common.success"));
         },

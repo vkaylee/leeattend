@@ -4,6 +4,8 @@ import { useState } from "react";
 import { useDepartments } from "@/hooks/use-departments";
 import { useAllEmployees } from "@/hooks/use-employees";
 import { fetchLeavePolicyAssignments, deleteLeavePolicyAssignment } from "@/lib/api";
+import { createQueryKey } from "@/lib/query-keys";
+
 
 export type TabType = "types" | "policies" | "assignments";
 
@@ -21,13 +23,13 @@ export interface LeaveAssignment {
 
 export function useLeaveSettings() {
   const queryClient = useQueryClient();
-  
+
   const [activeTab, setActiveTab] = useState<TabType>("types");
   const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
   const [editingAssignment, setEditingAssignment] = useState<LeaveAssignment | null>(null);
 
   const { data: assignments = [], isLoading: assignmentsLoading } = useQuery<LeaveAssignment[]>({
-    queryKey: ["leave-assignments"],
+    queryKey: createQueryKey("leave-assignments"),
     queryFn: () => {
       return fetchLeavePolicyAssignments();
     },
@@ -44,12 +46,12 @@ export function useLeaveSettings() {
 
   const deleteAssignmentMutation = useMutation({
     mutationFn: (assignmentId: string) => {
-      
+
       return deleteLeavePolicyAssignment(assignmentId);
     },
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ["leave-assignments"] });
-      void queryClient.invalidateQueries({ queryKey: ["leave-balances"] });
+      void queryClient.invalidateQueries({ queryKey: createQueryKey("leave-assignments") });
+      void queryClient.invalidateQueries({ queryKey: createQueryKey("leave-balances") });
     },
   });
 

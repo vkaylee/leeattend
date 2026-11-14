@@ -14,6 +14,8 @@ import { Typography } from "@/components/ui/typography";
 import { useOrganizationMutation } from "@/hooks/common/use-organization-query";
 import { rehireEmployee, fetchEmployers, Employee } from "@/lib/api";
 import { employeeKeys } from "@/lib/query-keys";
+import { createQueryKey } from "@/lib/query-keys";
+
 
 interface RehireEmployeeModalProps {
   employeeId: string | null;
@@ -32,7 +34,7 @@ export default function RehireEmployeeModal({
   const toast = useToast();
   const [selectedEmployerId, setSelectedEmployerId] = useState("");
 
-  const { data: employers = [] } = useQuery({ queryKey: ["employers"], queryFn: () => fetchEmployers(),
+  const { data: employers = [] } = useQuery({ queryKey: createQueryKey("employers"), queryFn: () => fetchEmployers(),
   enabled: isOpen, });
 
   const rehireMutation = useOrganizationMutation<
@@ -44,8 +46,8 @@ export default function RehireEmployeeModal({
     return rehireEmployee(employeeId, data);
   },
   onSuccess: (updatedEmp: Employee) => {
-    void queryClient.invalidateQueries({ queryKey: ["employmentHistory", employeeId] });
-    void queryClient.invalidateQueries({ queryKey: ["employee-employments",employeeId] });
+    void queryClient.invalidateQueries({ queryKey: createQueryKey("employmentHistory", employeeId) });
+    void queryClient.invalidateQueries({ queryKey: createQueryKey("employee-employments",employeeId) });
     onClose();
     toast.success(t("common.success"));
     onSuccess?.(updatedEmp);

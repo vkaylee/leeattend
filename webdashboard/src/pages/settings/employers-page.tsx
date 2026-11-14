@@ -22,11 +22,13 @@ import {
 import { employeeKeys } from "@/lib/query-keys";
 import { EmployerCard } from "@/pages/settings/components/employer-card";
 import { EmployerFormModal } from "@/pages/settings/components/employer-form-modal";
+import { createQueryKey } from "@/lib/query-keys";
 
- 
+
+
 export default function EmployersPage() {
   const { t } = useTranslation();
-  
+
   const queryClient = useQueryClient();
   const toast = useToast();
 
@@ -35,7 +37,7 @@ export default function EmployersPage() {
 
   // Queries
   const { data: employers = [], isLoading: isEmployersLoading } = useQuery({
-    queryKey: ["employers"],
+    queryKey: createQueryKey("employers"),
     queryFn: () => {
       return fetchEmployers();
     },
@@ -52,12 +54,12 @@ export default function EmployersPage() {
   // Mutations
   const createMutation = useMutation({
     mutationFn: (data: CreateEmployerRequest) => {
-      
+
       return createEmployer(data);
     },
     onSuccess: () => {
       toast.success(t("settings.employers.messages.created_success", { defaultValue: "Đã tạo pháp nhân thành công." }));
-      void queryClient.invalidateQueries({ queryKey: ["employers"] });
+      void queryClient.invalidateQueries({ queryKey: createQueryKey("employers") });
       setIsModalOpen(false);
     },
     onError: (err: unknown) => {
@@ -69,12 +71,12 @@ export default function EmployersPage() {
   const updateMutation = useMutation({
     mutationFn: (data: UpdateEmployerRequest) => {
       if (!editingEmployer) throw new Error("No employer selected for editing");
-      
+
       return updateEmployer(editingEmployer.id, data);
     },
     onSuccess: () => {
       toast.success(t("settings.employers.messages.updated_success", { defaultValue: "Đã cập nhật thông tin pháp nhân." }));
-      void queryClient.invalidateQueries({ queryKey: ["employers"] });
+      void queryClient.invalidateQueries({ queryKey: createQueryKey("employers") });
       setIsModalOpen(false);
       setEditingEmployer(null);
     },
@@ -86,12 +88,12 @@ export default function EmployersPage() {
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => {
-      
+
       return deleteEmployer(id);
     },
     onSuccess: () => {
       toast.success(t("settings.employers.messages.deleted_success", { defaultValue: "Đã xóa pháp nhân thành công." }));
-      void queryClient.invalidateQueries({ queryKey: ["employers"] });
+      void queryClient.invalidateQueries({ queryKey: createQueryKey("employers") });
     },
     onError: (err: unknown) => {
       const msg = err instanceof Error ? err.message : String(err);
@@ -100,7 +102,7 @@ export default function EmployersPage() {
     },
   });
 
-  
+
 
   const handleFormSubmit = async (data: CreateEmployerRequest | UpdateEmployerRequest) => {
     if (editingEmployer) {

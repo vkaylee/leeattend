@@ -9,6 +9,8 @@ import { useToast } from "@/components/ui/toast";
 import { updateEmployeePhaseStatus, updateEmploymentPhaseStatus } from "@/lib/api/employees";
 import { EmployeePhase } from "@/lib/api/types";
 import { cn } from "@/lib/utils";
+import { createQueryKey } from "@/lib/query-keys";
+
 
 interface Props {
   employeeId: string;
@@ -44,8 +46,8 @@ export default function UpdatePhaseStatusModal({
       }),
     onSuccess: () => {
       toast.success(t("common.success"));
-      void queryClient.invalidateQueries({ queryKey: ["employee-phases", employeeId] });
-      void queryClient.invalidateQueries({ queryKey: ["employment-phase-assignments"] });
+      void queryClient.invalidateQueries({ queryKey: createQueryKey("employee-phases", employeeId) });
+      void queryClient.invalidateQueries({ queryKey: createQueryKey("employment-phase-assignments") });
       onClose();
     },
     onError: (err: unknown) => {

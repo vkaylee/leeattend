@@ -21,6 +21,8 @@ import StatusBadge from "@/components/ui/status-badge";
 import { fetchEmployeeContracts } from "@/lib/api/contracts";
 import { fetchEmploymentPhaseAssignments, fetchEmploymentPhases, type EmploymentPhaseAssignment } from "@/lib/api/employee-phases";
 import { fetchEmployees, fetchEmployeeEmployments } from "@/lib/api/employees";
+import { createQueryKey } from "@/lib/query-keys";
+
 
 function displayDate(value: string) {
   return new Date(value).toLocaleDateString();
@@ -38,19 +40,19 @@ export default function EmploymentPhasesPage() {
   const [selectedEmploymentId, setSelectedEmploymentId] = useState("");
 
   const { data: employeesResponse } = useQuery({
-    queryKey: ["employment-phase-employee-picker"],
+    queryKey: createQueryKey("employment-phase-employee-picker"),
     queryFn: () => fetchEmployees(1, 300),
   });
   const employees = useMemo(() => employeesResponse?.data ?? [], [employeesResponse?.data]);
   const selectedEmployeeId = search.employeeId ?? "";
   const { data: employments = [] } = useQuery({
     enabled: Boolean(selectedEmployeeId),
-    queryKey: ["employment-phase-employments", selectedEmployeeId],
+    queryKey: createQueryKey("employment-phase-employments", selectedEmployeeId),
     queryFn: () => fetchEmployeeEmployments(selectedEmployeeId),
   });
   const { data: contracts = [] } = useQuery({
     enabled: Boolean(selectedEmployeeId),
-    queryKey: ["employment-phase-contracts", selectedEmployeeId],
+    queryKey: createQueryKey("employment-phase-contracts", selectedEmployeeId),
     queryFn: () => fetchEmployeeContracts(selectedEmployeeId),
   });
   const preferred = employments.find((employment) => employment.status === "active") ?? employments[0];
@@ -63,10 +65,10 @@ export default function EmploymentPhasesPage() {
   const limit = search.limit ?? 50;
   const status = search.status ?? "";
   const { data, isLoading, isError, refetch } = useQuery({
-    queryKey: ["employment-phase-assignments", page, limit, search.q, status, selectedEmployeeId],
+    queryKey: createQueryKey("employment-phase-assignments", page, limit, search.q, status, selectedEmployeeId),
     queryFn: () => fetchEmploymentPhaseAssignments({ employeeId: selectedEmployeeId || undefined, limit, page, q: search.q, status }),
   });
-  const { data: definitions = [] } = useQuery({ queryKey: ["employment-phases"], queryFn: fetchEmploymentPhases });
+  const { data: definitions = [] } = useQuery({ queryKey: createQueryKey("employment-phases"), queryFn: fetchEmploymentPhases });
 
   const columns = useMemo<ColumnDef<EmploymentPhaseAssignment>[]>(() => [
     { accessorKey: "employee_name", header: t("common.employee", { defaultValue: "Employee" }) },
@@ -152,7 +154,7 @@ export default function EmploymentPhasesPage() {
 
       <EmploymentPhaseManager />
 
-      {assignOpen ? <AssignMilestoneModal contracts={selectedContracts} definitions={definitions} employeeId={selected?.employee_id ?? selectedEmployeeId} employmentId={selected?.employment_id ?? selectedEmploymentId} isOpen={assignOpen} onClose={() => { setAssignOpen(false); void queryClient.invalidateQueries({ queryKey: ["employment-phase-assignments"] }); }} /> : null}
+      {assignOpen ? <AssignMilestoneModal contracts={selectedContracts} definitions={definitions} employeeId={selected?.employee_id ?? selectedEmployeeId} employmentId={selected?.employment_id ?? selectedEmploymentId} isOpen={assignOpen} onClose={() => { setAssignOpen(false); void queryClient.invalidateQueries({ queryKey: createQueryKey("employment-phase-assignments") }); }} /> : null}
       {statusOpen && selected ? <UpdatePhaseStatusModal employeeId={selected.employee_id} employmentId={selected.employment_id} isOpen={statusOpen} onClose={() => { setStatusOpen(false); setSelected(null); }} selectedPhase={selected} /> : null}
     </PageContainer>
   );

@@ -22,6 +22,8 @@ import {
 } from "@/lib/api";
 import { useSearchPatch } from "@/lib/state";
 import { Route } from "@/routes/_authenticated/_organization/attendance-logs";
+import { createQueryKey } from "@/lib/query-keys";
+
 
 const PAGE_SIZE = 20;
 
@@ -59,17 +61,17 @@ function useAttendanceMutations() {
   const dismissMutation = useMutation({
     mutationFn: (logId: string) => dismissStagingLog(logId),
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ["staging-logs"] });
-      void queryClient.invalidateQueries({ queryKey: ["staging-logs-count"] });
+      void queryClient.invalidateQueries({ queryKey: createQueryKey("staging-logs") });
+      void queryClient.invalidateQueries({ queryKey: createQueryKey("staging-logs-count") });
     },
   });
 
   const resolveMutation = useMutation({
     mutationFn: ({ logId, employeeId }: { logId: string; employeeId: string }) => resolveStagingLog(logId, employeeId),
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ["staging-logs"] });
-      void queryClient.invalidateQueries({ queryKey: ["staging-logs-count"] });
-      void queryClient.invalidateQueries({ queryKey: ["attendance-raw-logs"] });
+      void queryClient.invalidateQueries({ queryKey: createQueryKey("staging-logs") });
+      void queryClient.invalidateQueries({ queryKey: createQueryKey("staging-logs-count") });
+      void queryClient.invalidateQueries({ queryKey: createQueryKey("attendance-raw-logs") });
     },
   });
 
@@ -79,7 +81,7 @@ function useAttendanceMutations() {
 
 function useAttendanceData(employeeId: string, dateRange: { start: string; end: string }, activeTab: TabType) {
   const { data: recordedPages, isLoading, fetchNextPage, hasNextPage, isFetchingNextPage } = useInfiniteQuery<{ data: RawAttendanceLog[]; total: number; page: number; limit: number }>({
-    queryKey: ["attendance-raw-logs", employeeId, dateRange],
+    queryKey: createQueryKey("attendance-raw-logs", employeeId, dateRange),
     queryFn: ({ pageParam }) => {
       const from = dateRange.start ? new Date(`${dateRange.start}T00:00:00`).toISOString() : undefined;
       const to = dateRange.end ? new Date(`${dateRange.end}T23:59:59`).toISOString() : undefined;
@@ -97,7 +99,7 @@ function useAttendanceData(employeeId: string, dateRange: { start: string; end: 
   const recordedTotal = recordedPages?.pages[0]?.total ?? 0;
 
   const { data: stagingPages, isLoading: stagingLoading, fetchNextPage: fetchNextStagingPage, hasNextPage: hasNextStagingPage, isFetchingNextPage: isFetchingNextStagingPage } = useInfiniteQuery<StagingLogsResponse>({
-    queryKey: ["staging-logs"],
+    queryKey: createQueryKey("staging-logs"),
     queryFn: ({ pageParam }) => fetchStagingLogs(pageParam as number, PAGE_SIZE),
     getNextPageParam: (lastPage, allPages) => {
       const totalLoaded = allPages.reduce((sum, p) => sum + (p.data.length || 0), 0);
@@ -111,7 +113,7 @@ function useAttendanceData(employeeId: string, dateRange: { start: string; end: 
   const stagingTotal = stagingPages?.pages[0]?.total ?? 0;
 
   const { data: stagingCount } = useQuery({
-    queryKey: ["staging-logs-count"],
+    queryKey: createQueryKey("staging-logs-count"),
     queryFn: async () => (await fetchStagingLogs(1, 1)).total,
   });
 
@@ -121,7 +123,7 @@ function useAttendanceData(employeeId: string, dateRange: { start: string; end: 
 export function useAttendanceLogsPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  
+
   const { formatDate, formatTime } = useDateTimeFormatter();
 
   const search = Route.useSearch();

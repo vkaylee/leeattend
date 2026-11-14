@@ -34,10 +34,12 @@ import { cn } from "@/lib/utils";
 
 import { EmployeeOverlays } from "./components/employee-overlays";
 import { useEmployeesModals } from "./hooks/use-employees-modals";
+import { createQueryKey } from "@/lib/query-keys";
+
 
 export default function EmployeeDetailPage() {
   const { t } = useTranslation();
-  
+
   const { formatDate } = useDateTimeFormatter();
   const params: { employeeId?: string } = useParams({ strict: false });
   const search: { tab?: DetailTabType } = useSearch({ strict: false });
@@ -60,7 +62,7 @@ export default function EmployeeDetailPage() {
 
   const { data: employee, isLoading, error, refetch } = useQuery({
     enabled: Boolean(employeeId),
-    queryKey: ["employee", employeeId],
+    queryKey: createQueryKey("employee", employeeId),
     queryFn: () => fetchEmployee(employeeId),
   });
 
@@ -78,7 +80,7 @@ export default function EmployeeDetailPage() {
 
   const { data: deptHistory } = useQuery({
     enabled: Boolean(employeeId),
-    queryKey: ["deptHistory", employeeId],
+    queryKey: createQueryKey("deptHistory", employeeId),
     queryFn: () => fetchEmployeeDepartmentHistory(employeeId),
   });
 

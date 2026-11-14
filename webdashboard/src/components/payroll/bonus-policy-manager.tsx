@@ -11,12 +11,14 @@ import { cn } from "@/lib/utils";
 import { BonusPolicyCard } from "./bonus-policy-card";
 import { BonusPolicyForm } from "./bonus-policy-form";
 import { useBonusPolicyMutations } from "./hooks/use-bonus-policy-mutations";
+import { createQueryKey } from "@/lib/query-keys";
+
 
 export default function BonusPolicyManager() {
   const { t } = useTranslation();
   const [isCreating, setIsCreating] = useState(false);
 
-  const { data: policies = [], isLoading } = useQuery({ queryKey: ["incentive-policies"], queryFn: () => fetchIncentivePolicies(), });
+  const { data: policies = [], isLoading } = useQuery({ queryKey: createQueryKey("incentive-policies"), queryFn: () => fetchIncentivePolicies(), });
 
   const { createMutation, deleteMutation, cloneMutation } = useBonusPolicyMutations(() => { setIsCreating(false); });
 

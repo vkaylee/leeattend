@@ -19,6 +19,8 @@ import { useConfirm } from "@/hooks/use-confirm";
 import { deleteEmployeeContract, fetchContracts } from "@/lib/api/contracts";
 import { isFeatureEnabled } from "@/lib/feature-flags";
 import { ROUTES } from "@/lib/routes";
+import { createQueryKey } from "@/lib/query-keys";
+
 
 interface SelectEmployeeModalProps {
   isOpen: boolean;
@@ -81,7 +83,7 @@ export default function ContractsPage() {
   const [editingContract, setEditingContract] = useState<EmployeeContract | null>(null);
 
   const { data: contracts = [], isLoading: isLoadingContracts } = useQuery({
-    queryKey: ["organization-contracts"],
+    queryKey: createQueryKey("organization-contracts"),
     queryFn: () => fetchContracts(),
   });
 
@@ -89,7 +91,7 @@ export default function ContractsPage() {
     mutationFn: ({ employeeId, contractId }: { employeeId: string; contractId: string }) =>
       deleteEmployeeContract(employeeId, contractId),
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ["organization-contracts"] });
+      void queryClient.invalidateQueries({ queryKey: createQueryKey("organization-contracts") });
       toast.success(t("common.deleted_success", { defaultValue: "Contract deleted successfully" }));
     },
     onError: (err: unknown) => {

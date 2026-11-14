@@ -13,6 +13,8 @@ import { useEmployeeContracts } from "@/pages/employees/hooks/use-employee-contr
 import AssignMilestoneModal from "./assign-milestone-modal";
 import PhaseJourneyTimeline from "./phase-journey-timeline";
 import UpdatePhaseStatusModal from "./update-phase-status-modal";
+import { createQueryKey } from "@/lib/query-keys";
+
 
 interface Props {
   employeeId: string;
@@ -27,12 +29,12 @@ export default function EmployeePhasesTab({employeeId, formatDate }: Props) {
   const [selectedPhase, setSelectedPhase] = useState<EmployeePhase | null>(null);
 
   const { data: phases, isLoading: isLoadingPhases } = useQuery({
-    queryKey: ["employee-phases", employeeId],
+    queryKey: createQueryKey("employee-phases", employeeId),
     queryFn: () => fetchEmployeePhases(employeeId),
     enabled: !!employeeId,
   });
 
-  const { data: definitions } = useQuery({ queryKey: ["employment-phases"], queryFn: () => fetchEmploymentPhases(),
+  const { data: definitions } = useQuery({ queryKey: createQueryKey("employment-phases"), queryFn: () => fetchEmploymentPhases(),
  });
 
   const { contracts } = useEmployeeContracts(employeeId);

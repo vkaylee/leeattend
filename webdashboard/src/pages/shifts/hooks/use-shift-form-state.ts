@@ -11,6 +11,8 @@ import { fetchEmployee } from "@/lib/api";
 
 import type { ShiftsSearch } from "../search-schema";
 import type { TabType, ViewMode } from "./use-shifts-types";
+import { createQueryKey } from "@/lib/query-keys";
+
 
 export function useShiftFormState() {
   // useSearch({ strict: false }) returns a permissive type; we cast to
@@ -40,7 +42,7 @@ export function useShiftFormState() {
   const initialIds = search.employeeIds ? search.employeeIds.split(",") : [];
   const [selectedEmployeeIds, setSelectedEmployeeIdsState] = useState<string[]>(initialIds);
   const [selectedEmployees, setSelectedEmployeesState] = useState<Employee[]>([]);
-  
+
   const [selectedDays, setSelectedDays] = useState<string[]>([]);
   const [targetDates, setTargetDates] = useState<string[]>([]);
   const [isShiftPickerOpen, setIsShiftPickerOpen] = useState(false);
@@ -72,7 +74,7 @@ export function useShiftFormState() {
   // Do not gate on selectedEmployee — that would create a circular TDZ with the
   // derived-state declaration below. The query only runs when URL has employeeIds.
   const { data: initialEmployee } = useQuery({
-    queryKey: ["employee", employeeId],
+    queryKey: createQueryKey("employee", employeeId),
     queryFn: () => {
       if (!employeeId) throw new Error("Missing params");
       return fetchEmployee(employeeId);

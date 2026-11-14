@@ -10,11 +10,13 @@ import { usePayrollData } from "./use-payroll-data";
 import { usePayrollLifecycle } from "./use-payroll-lifecycle";
 import { usePayrollPeriod } from "./use-payroll-period";
 import { usePayrollSelection } from "./use-payroll-selection";
+import { createQueryKey } from "@/lib/query-keys";
+
 export function usePayroll() {
   const { t } = useTranslation();
-  
+
   const queryClient = useQueryClient();
-  
+
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [isBatchCalcModalOpen, setIsBatchCalcModalOpen] = useState(false);
@@ -26,7 +28,7 @@ export function usePayroll() {
     const timer = setTimeout(() => { setDebouncedSearchTerm(searchTerm); }, 300);
     return () => { clearTimeout(timer); };
   }, [searchTerm]);
-  
+
   const { calcMonth, calcYear, changeMonth, setCalcMonth, setCalcYear } = usePayrollPeriod();
 
   const {
@@ -70,9 +72,9 @@ export function usePayroll() {
   }, [employees]);
 
   const handleAdjustmentResolved = () => {
-    void queryClient.invalidateQueries({ queryKey: ["payslips", selectedEmployee?.id] });
-    void queryClient.invalidateQueries({ queryKey: ["organization-payslips"] });
-    void queryClient.invalidateQueries({ queryKey: ["adjustments"] });
+    void queryClient.invalidateQueries({ queryKey: createQueryKey("payslips", selectedEmployee?.id) });
+    void queryClient.invalidateQueries({ queryKey: createQueryKey("organization-payslips") });
+    void queryClient.invalidateQueries({ queryKey: createQueryKey("adjustments") });
   };
 
   return {

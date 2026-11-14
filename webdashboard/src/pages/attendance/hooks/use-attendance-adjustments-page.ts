@@ -17,6 +17,8 @@ import {
 import { logError } from "@/lib/logger";
 import { useSearchPatch } from "@/lib/state";
 import { Route } from "@/routes/_authenticated/_organization/attendance-adjustments";
+import { createQueryKey } from "@/lib/query-keys";
+
 
 export type TabType = AdjustmentSearch["tab"];
 export type AttendanceStatusFilter = AdjustmentSearch["status"];
@@ -25,7 +27,7 @@ const PAGE_SIZE = 20;
 
 export function useAttendanceAdjustmentsPage() {
   const { t } = useTranslation();
-  
+
   const queryClient = useQueryClient();
   const { formatDate, formatTime } = useDateTimeFormatter();
   const toast = useToast();
@@ -50,7 +52,7 @@ export function useAttendanceAdjustmentsPage() {
     hasNextPage,
     isFetchingNextPage,
   } = useInfiniteQuery<PaginatedResponse<AttendanceAdjustmentRequest>>({
-    queryKey: ["attendance-adjustments", activeTab, employeeId, statusFilter],
+    queryKey: createQueryKey("attendance-adjustments", activeTab, employeeId, statusFilter),
     queryFn: ({ pageParam }) => {
       return fetchAttendanceAdjustments({
         status: activeTab !== "behalf_assignments" && statusFilter !== "all" ? statusFilter : undefined,
@@ -85,8 +87,8 @@ export function useAttendanceAdjustmentsPage() {
     mutationFn: (data: { id: string; status: "pending" | "approved" | "rejected" }) =>
       approveAttendanceAdjustment(data.id, { status: data.status }),
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ["attendance-adjustments"] });
-      void queryClient.invalidateQueries({ queryKey: ["time-history"] });
+      void queryClient.invalidateQueries({ queryKey: createQueryKey("attendance-adjustments") });
+      void queryClient.invalidateQueries({ queryKey: createQueryKey("time-history") });
       toast.success(t("common.success"));
     },
   });

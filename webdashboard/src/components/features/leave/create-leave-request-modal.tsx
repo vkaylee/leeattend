@@ -16,6 +16,8 @@ import { maybeNull } from "@/types/api-overrides";
 import { generateUUID } from "@/utils/uuid";
 
 import { CreateLeaveRequestForm } from "./create-leave-request-form";
+import { createQueryKey } from "@/lib/query-keys";
+
 
 export interface CreateLeaveRequestModalProps {
   isOpen: boolean;
@@ -60,10 +62,10 @@ export function CreateLeaveRequestModal({ isOpen, onClose,leaveTypes, t }: Creat
 
   const empIdToUse = canSubmitOnBehalf ? selectedEmpId : (employee?.id ?? "");
 
-  const { data: balances = [] } = useQuery({ queryKey: ["leave-balances", empIdToUse], queryFn: () => fetchEmployeeLeaveBalances(empIdToUse), 
+  const { data: balances = [] } = useQuery({ queryKey: createQueryKey("leave-balances", empIdToUse), queryFn: () => fetchEmployeeLeaveBalances(empIdToUse),
   enabled: !!empIdToUse && isOpen });
 
-  const { data: employments = [] } = useQuery({ queryKey: ["employee-employments", empIdToUse], queryFn: () => fetchEmployeeEmployments(empIdToUse),
+  const { data: employments = [] } = useQuery({ queryKey: createQueryKey("employee-employments", empIdToUse), queryFn: () => fetchEmployeeEmployments(empIdToUse),
   enabled: !!empIdToUse && isOpen, });
   const activeEmployment = employments.find(e => e.status === "active") ?? employments[0];
 
@@ -73,19 +75,19 @@ export function CreateLeaveRequestModal({ isOpen, onClose,leaveTypes, t }: Creat
 
   const submitMutation = useMutation({
     mutationFn: (data: { employment_id: string; leave_type_id: string; start_date: string; end_date: string; reason?: string; duration_type?: LeaveDurationType; start_time?: string; end_time?: string }) => submitLeaveRequest(data),
-    onSuccess: () => { 
-      void queryClient.invalidateQueries({ queryKey: ["leave-requests"] }); 
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: createQueryKey("leave-requests") });
       handleClose();
-      toast.success(t("common.success")); 
+      toast.success(t("common.success"));
     },
   });
 
   const handleSubmit = (e: React.SyntheticEvent<HTMLFormElement>) => {
-    e.preventDefault(); 
+    e.preventDefault();
     if (!leaveTypeId) { toast.error(t("leave_requests.invalid_leave_type")); return; }
     if (!empIdToUse) { toast.error("Please select an employee"); return; }
     if (!maybeNull(activeEmployment)) { toast.error(t("leave_requests.no_employment_info", "Không tìm thấy thông tin công việc")); return; }
- 
+
     const payload: {
       employment_id: string;
       leave_type_id: string;

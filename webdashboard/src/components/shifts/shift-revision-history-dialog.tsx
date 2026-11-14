@@ -18,6 +18,8 @@ import { Typography } from "@/components/ui/typography";
 import { getShiftVersions } from "@/lib/api/shifts";
 
 import { IntervalDiff } from "./shift-revision-diff";
+import { createQueryKey } from "@/lib/query-keys";
+
 
 // ── Types ──────────────────────────────────────────────────────────
 
@@ -183,7 +185,7 @@ export function ShiftRevisionHistoryDialog({
   const {
     data: versions,
     isLoading,
-  } = useQuery({ queryKey: ["shift-versions", shiftId], queryFn: () => getShiftVersions(shiftId),
+  } = useQuery({ queryKey: createQueryKey("shift-versions", shiftId), queryFn: () => getShiftVersions(shiftId),
   enabled: isOpen ,
   staleTime: 30_000, });
 

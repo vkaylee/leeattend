@@ -39,6 +39,8 @@ import { ShiftSwapGuide } from "./shift-swaps/guide";
 import { ShiftSwapListItem } from "./shift-swaps/list-item";
 import { ShiftSwapStats } from "./shift-swaps/stats";
 import { getTableHeaders } from "./shift-swaps/utils";
+import { createQueryKey } from "@/lib/query-keys";
+
 
 function ShiftSwapMobileCard({
   formatDate,
@@ -139,9 +141,9 @@ type TabType = ShiftSwapsSearch["tab"];
 
 export default function ShiftSwapsPage() {
   const { t } = useTranslation();
-  
 
-  
+
+
 
   return <ShiftSwapsContent t={t}  />;
 }
@@ -283,19 +285,19 @@ function useShiftSwaps(activeTab: TabType, t: TFunction, options: { onSuccessCre
   const toast = useToast();
 
   const { data: swaps = [], isLoading } = useQuery<ShiftSwapRequest[]>({
-    queryKey: ["shift-swaps", activeTab],
+    queryKey: createQueryKey("shift-swaps", activeTab),
     queryFn: () => fetchShiftSwaps(activeTab),
   });
 
   const { data: stats } = useQuery({
-    queryKey: ["shift-swap-stats"],
+    queryKey: createQueryKey("shift-swap-stats"),
     queryFn: () => fetchShiftSwapStats(),
   });
 
   const createMutation = useMutation({
     mutationFn: (data: { requester_id: string; target_id: string; swap_date: string; reason?: string }) => createShiftSwap(data),
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ["shift-swaps"] });
+      void queryClient.invalidateQueries({ queryKey: createQueryKey("shift-swaps") });
       toast.success(t("shift_swaps.messages.create_success"));
       options.onSuccessCreate();
     },
@@ -307,9 +309,9 @@ function useShiftSwaps(activeTab: TabType, t: TFunction, options: { onSuccessCre
   const approveMutation = useMutation({
     mutationFn: (data: { id: string; status: ShiftSwapStatus }) => approveShiftSwap(data.id, { status: data.status }),
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ["shift-swaps"] });
-      void queryClient.invalidateQueries({ queryKey: ["employee-rosters"] });
-      void queryClient.invalidateQueries({ queryKey: ["schedules"] });
+      void queryClient.invalidateQueries({ queryKey: createQueryKey("shift-swaps") });
+      void queryClient.invalidateQueries({ queryKey: createQueryKey("employee-rosters") });
+      void queryClient.invalidateQueries({ queryKey: createQueryKey("schedules") });
       toast.success(t("common.success"));
     },
   });

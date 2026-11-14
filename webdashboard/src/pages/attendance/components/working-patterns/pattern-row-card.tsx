@@ -9,6 +9,8 @@ import StatusBadge from "@/components/ui/status-badge";
 import { Typography } from "@/components/ui/typography";
 import { fetchPatternDetails } from "@/lib/api";
 import { Shift, WorkingPattern, WorkingPatternDetail } from "@/lib/api/types";
+import { createQueryKey } from "@/lib/query-keys";
+
 
 interface PatternRowCardProps {
   expandedPatternId: string | null;
@@ -20,7 +22,7 @@ interface PatternRowCardProps {
   shifts?: Shift[];
 }
 
-   
+
 export function PatternRowCard({
   onDelete,
   onEdit,
@@ -28,10 +30,10 @@ export function PatternRowCard({
   shifts,
 }: PatternRowCardProps) {
   const { t } = useTranslation();
-  
+
 
   const { data: details, isLoading: isLoadingDetails } = useQuery<WorkingPatternDetail[]>({
-    queryKey: ["pattern-details", pattern.id],
+    queryKey: createQueryKey("pattern-details", pattern.id),
     queryFn: () => fetchPatternDetails(pattern.id),
     enabled: !!pattern.id,
   });

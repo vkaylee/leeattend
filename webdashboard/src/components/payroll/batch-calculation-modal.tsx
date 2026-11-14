@@ -18,6 +18,8 @@ import { calculateBatchPayslips } from "@/lib/api";
 import { BatchCalculateResult } from "@/lib/api/types";
 import { cn } from "@/lib/utils";
 import { usePayrollPeriod } from "@/pages/payroll/hooks/use-payroll-period";
+import { createQueryKey } from "@/lib/query-keys";
+
 
 interface BatchCalculationModalProps {
   employeeIds: string[];
@@ -96,8 +98,8 @@ function BatchCalculationResults({
   );
 }
 
-export default function BatchCalculationModal({ 
-  isOpen, 
+export default function BatchCalculationModal({
+  isOpen,
   onClose,employeeIds,
   employeeNames
 }: BatchCalculationModalProps) {
@@ -109,11 +111,11 @@ export default function BatchCalculationModal({
   const [results, setResults] = useState<BatchCalculateResult[] | null>(null);
 
   const batchMutation = useMutation({
-    mutationFn: (data: { year: number; month: number }) => 
+    mutationFn: (data: { year: number; month: number }) =>
       calculateBatchPayslips({ employment_ids: employeeIds, year: data.year, month: data.month }),
     onSuccess: (data) => {
       setResults(data.results);
-      void queryClient.invalidateQueries({ queryKey: ["payslips"] });
+      void queryClient.invalidateQueries({ queryKey: createQueryKey("payslips") });
       toast.success(t("payroll.messages.calculate_success"));
     },
   });
@@ -122,12 +124,12 @@ export default function BatchCalculationModal({
   const resetAndClose = () => { setResults(null); batchMutation.reset(); onClose(); };
 
   return (
-    <Modal 
-      icon={<Calculator size={24} />} 
-      isOpen={isOpen} 
-      maxWidth="lg" 
-      onClose={batchMutation.isPending ? () => { /* empty */ } : resetAndClose} 
-      subtitle={t("payroll.modal.subtitle")} 
+    <Modal
+      icon={<Calculator size={24} />}
+      isOpen={isOpen}
+      maxWidth="lg"
+      onClose={batchMutation.isPending ? () => { /* empty */ } : resetAndClose}
+      subtitle={t("payroll.modal.subtitle")}
       testId="batch-calc-modal"
       title={t("payroll.modal.title")}
     >
@@ -155,9 +157,9 @@ export default function BatchCalculationModal({
 
             <div className="pt-4 grid grid-cols-2 gap-5">
               <Button className="px-8 py-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl font-bold text-xs uppercase tracking-widest text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all" onClick={onClose} type="button" variant="ghost">{t("common.cancel")}</Button>
-              <Button className="px-8 py-4 bg-slate-900 text-white rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-primary-700 transition-all shadow-xl shadow-slate-200 dark:shadow-black/30 active:scale-95" 
+              <Button className="px-8 py-4 bg-slate-900 text-white rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-primary-700 transition-all shadow-xl shadow-slate-200 dark:shadow-black/30 active:scale-95"
                 data-testid="batch-calc-submit-btn"
-                onClick={handleCalculate} 
+                onClick={handleCalculate}
                 variant="ghost"
               >
                 {t("payroll.modal.submit")}
@@ -171,10 +173,10 @@ export default function BatchCalculationModal({
         ) : null}
 
         {results ? (
-          <BatchCalculationResults 
-            employeeNames={employeeNames} 
-            resetAndClose={resetAndClose} 
-            results={results} 
+          <BatchCalculationResults
+            employeeNames={employeeNames}
+            resetAndClose={resetAndClose}
+            results={results}
           />
         ) : null}
       </div>

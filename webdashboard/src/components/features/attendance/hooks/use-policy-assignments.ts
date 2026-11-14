@@ -14,6 +14,8 @@ import {
   UpsertPolicyAssignmentRequest
 } from "@/lib/api";
 import { departmentKeys, employeeKeys } from "@/lib/query-keys";
+import { createQueryKey } from "@/lib/query-keys";
+
 
 export type FilterType = "ALL" | "GROUP" | "USER";
 export type StrategyType = "allow" | "block" | "clamp";
@@ -49,7 +51,7 @@ export function usePolicyAssignments(options: PolicyAssignmentsOptions = {}) {
   const limit = options.limit ?? 50;
   const serverTargetType = options.targetType ?? (activeFilter === "ALL" ? undefined : activeFilter);
   const { data: assignmentsResponse, isLoading: isLoadingAssignments, isError: isAssignmentsError, refetch: refetchAssignments } = useQuery({
-      queryKey: ["attendance-policy-assignments", page, limit, options.q, serverTargetType],
+      queryKey: createQueryKey("attendance-policy-assignments", page, limit, options.q, serverTargetType),
     queryFn: () => fetchPolicyAssignments({ page, limit, q: options.q, target_type: serverTargetType }),
   });
   const assignments = useMemo(() => assignmentsResponse?.data ?? [], [assignmentsResponse?.data]);
@@ -67,7 +69,7 @@ export function usePolicyAssignments(options: PolicyAssignmentsOptions = {}) {
     mutationFn: (id: string) => deletePolicyAssignment(id),
     onSuccess: () => {
       toast.success(t("attendance_policy_overrides.messages.delete_success"));
-      void queryClient.invalidateQueries({ queryKey: ["attendance-policy-assignments"] });
+      void queryClient.invalidateQueries({ queryKey: createQueryKey("attendance-policy-assignments") });
     }
   });
 
@@ -75,7 +77,7 @@ export function usePolicyAssignments(options: PolicyAssignmentsOptions = {}) {
     mutationFn: (data: UpsertPolicyAssignmentRequest) => upsertPolicyAssignment(data),
     onSuccess: () => {
       toast.success(t("attendance_policy_overrides.messages.save_success"));
-      void queryClient.invalidateQueries({ queryKey: ["attendance-policy-assignments"] });
+      void queryClient.invalidateQueries({ queryKey: createQueryKey("attendance-policy-assignments") });
     }
   });
 

@@ -9,12 +9,14 @@ import { usePagination } from "@/hooks/use-pagination";
 import { fetchLeaveBalances, triggerAccrualRun, fetchJobStatus } from "@/lib/api";
 import { OrganizationLeaveBalance } from "@/lib/api/types";
 import { logError } from "@/lib/logger";
+import { createQueryKey } from "@/lib/query-keys";
+
 
 export function useLeaveBalances() {
   const { t } = useTranslation();
   const toast = useToast();
   const queryClient = useQueryClient();
-  
+
   const [searchTerm, setSearchTerm] = useState("");
   const { page, setPage, reset } = usePagination({ initialPageSize: 20 });
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
@@ -26,9 +28,9 @@ export function useLeaveBalances() {
   const [selectedBalance, setSelectedBalance] = useState<OrganizationLeaveBalance | null>(null);
 
   const { data: paginatedData, isLoading } = useQuery({
-    queryKey: ["leave-balances", page, debouncedSearch, selectedYear],
+    queryKey: createQueryKey("leave-balances", page, debouncedSearch, selectedYear),
     queryFn: () => {
-      
+
       return fetchLeaveBalances({ page, limit, q: debouncedSearch, year: selectedYear });
     },
     placeholderData: (previousData) => previousData
@@ -41,10 +43,10 @@ export function useLeaveBalances() {
     for (let index = 0; index < MAX_POLLS; index++) {
       await new Promise(resolve => setTimeout(resolve, POLL_INTERVAL));
       try {
-        
+
         const status = await fetchJobStatus(jobId);
         if (status.status === 'completed') {
-          void queryClient.invalidateQueries({ queryKey: ["leave-balances"] });
+          void queryClient.invalidateQueries({ queryKey: createQueryKey("leave-balances") });
           toast.success(t("leave_balances.accrual_completed"));
           return;
         }
@@ -63,7 +65,7 @@ export function useLeaveBalances() {
 
   const accrualMutation = useMutation({
     mutationFn: () => {
-      
+
       return triggerAccrualRun({ date: new Date().toISOString().split('T')[0] });
     },
     onSuccess: (data) => {
@@ -71,7 +73,7 @@ export function useLeaveBalances() {
         toast.success(t("leave_balances.accrual_queued"));
         void pollJobStatus(data.job_id);
       } else {
-        void queryClient.invalidateQueries({ queryKey: ["leave-balances"] });
+        void queryClient.invalidateQueries({ queryKey: createQueryKey("leave-balances") });
         toast.success(data.message || t("common.success"));
       }
     },

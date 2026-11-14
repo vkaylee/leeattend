@@ -10,6 +10,8 @@ import { fetchLeaveTypes } from "@/lib/api/leaves";
 import { logError } from "@/lib/logger";
 
 import { useHolidayForm } from "./use-holiday-form";
+import { createQueryKey } from "@/lib/query-keys";
+
 
 export function useHolidays() {
     const { t } = useTranslation();
@@ -19,16 +21,16 @@ export function useHolidays() {
     const [error, setError] = useState<string | null>(null);
     const { confirm, ConfirmationDialog } = useConfirm();
 
-    
+
 
     const { data: holidays = [], isLoading, refetch: loadHolidays } = useQuery({
         queryFn: () => fetchHolidays(year),
-        queryKey: ["holidays", year],
+        queryKey: createQueryKey("holidays", year),
     });
 
     const { data: leaveTypes = [] } = useQuery({
         queryFn: () => fetchLeaveTypes(),
-        queryKey: ["leaveTypes"],
+        queryKey: createQueryKey("leaveTypes"),
     });
 
     const onSaveSuccess = useCallback(() => {

@@ -30,6 +30,8 @@ import {
 } from "@/lib/api";
 import { ApiError, ComplianceConflictError, parseComplianceConflict } from "@/lib/api/errors";
 import { employeeKeys } from "@/lib/query-keys";
+import { createQueryKey } from "@/lib/query-keys";
+
 
 type BulkAssignPatternRequestLocal = Parameters<typeof bulkAssignPattern>[0];
 
@@ -79,9 +81,9 @@ shifts: Shift[];
 weeklyGrid: string[][];  }
 
 function useWorkingPatternQueries(expandedPatternId: string | null) {
-  const { data: patterns, isLoading } = useQuery<WorkingPattern[]>({ queryFn: () => fetchWorkingPatterns(), queryKey: ["working-patterns"] });
-  const { data: shifts } = useQuery<Shift[]>({ queryFn: () => fetchShifts(), queryKey: ["shifts"] });
-  const { data: patternDetails } = useQuery<WorkingPatternDetail[]>({ enabled: !!expandedPatternId, queryFn: () => expandedPatternId ? fetchPatternDetails(expandedPatternId) : Promise.resolve([]), queryKey: ["pattern-details", expandedPatternId] });
+  const { data: patterns, isLoading } = useQuery<WorkingPattern[]>({ queryFn: () => fetchWorkingPatterns(), queryKey: createQueryKey("working-patterns") });
+  const { data: shifts } = useQuery<Shift[]>({ queryFn: () => fetchShifts(), queryKey: createQueryKey("shifts") });
+  const { data: patternDetails } = useQuery<WorkingPatternDetail[]>({ enabled: !!expandedPatternId, queryFn: () => expandedPatternId ? fetchPatternDetails(expandedPatternId) : Promise.resolve([]), queryKey: createQueryKey("pattern-details", expandedPatternId) });
   return { patterns: patterns ?? [], shifts: shifts ?? [], patternDetails: patternDetails ?? [], isLoading };
 }
 
@@ -112,7 +114,7 @@ function useWorkingPatternMutations(setters: {
       setters.setWeeklyGrid(Array.from({ length: 7 }, () => []));
       setters.setPatternType("weekly");
       setters.setCycleLengthDays(6);
-      void queryClient.invalidateQueries({ queryKey: ["working-patterns"] });
+      void queryClient.invalidateQueries({ queryKey: createQueryKey("working-patterns") });
     },
   });
 
@@ -122,7 +124,7 @@ function useWorkingPatternMutations(setters: {
       if (data.success_count > 0) {
         toast.success(t("patterns.messages.bulk_assign_success_count", { count: data.success_count }));
         setters.setIsBulkModalOpen(false); setters.setSelectedEmployeeIds([]);
-        void queryClient.invalidateQueries({ queryKey: ["schedules"] });
+        void queryClient.invalidateQueries({ queryKey: createQueryKey("schedules") });
       } else if (data.failed_employees.length > 0) {
         toast.error(t("patterns.messages.bulk_assign_conflict", { count: data.failed_employees.length }));
       }
@@ -152,7 +154,7 @@ function useWorkingPatternMutations(setters: {
     mutationFn: (patternId) => deleteWorkingPattern(patternId),
     onSuccess: () => {
       toast.success(t("patterns.messages.delete_success"));
-      void queryClient.invalidateQueries({ queryKey: ["working-patterns"] });
+      void queryClient.invalidateQueries({ queryKey: createQueryKey("working-patterns") });
     },
   });
 
@@ -164,7 +166,7 @@ export function useWorkingPatterns(): UseWorkingPatternsReturn {
   const { ConfirmationDialog, confirm } = useConfirm();
   const { t } = useTranslation();
   const toast = useToast();
-  
+
 
   const [assignStartDate, setAssignStartDate] = useState(format(startOfToday(), "yyyy-MM-01"));
   const [assignAnchorDate, setAssignAnchorDate] = useState(format(startOfToday(), "yyyy-MM-01"));
@@ -254,9 +256,9 @@ export function useWorkingPatterns(): UseWorkingPatternsReturn {
         return;
       }
     }
-    const details: WorkingPatternDetailRequest[] = weeklyGrid.flatMap<WorkingPatternDetailRequest>((shiftIds, index) => 
-      shiftIds.length > 0 
-        ? shiftIds.map((sid) => ({ schedule_day: index, shift_id: sid })) 
+    const details: WorkingPatternDetailRequest[] = weeklyGrid.flatMap<WorkingPatternDetailRequest>((shiftIds, index) =>
+      shiftIds.length > 0
+        ? shiftIds.map((sid) => ({ schedule_day: index, shift_id: sid }))
         : [{ schedule_day: index, shift_id: null }]
     );
     createMutation.mutate({

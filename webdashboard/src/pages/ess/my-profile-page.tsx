@@ -11,6 +11,8 @@ import { PersonalInfoSection } from "./components/personal-info-section";
 import { ErrorState, Header, LoadingState } from "./components/profile-common";
 import { ProfileHero } from "./components/profile-hero";
 import { useMyProfilePage } from "./hooks/use-my-profile-page";
+import { createQueryKey } from "@/lib/query-keys";
+
 
   // eslint-disable-next-line complexity
 export default function MyProfilePage() {
@@ -37,9 +39,9 @@ export default function MyProfilePage() {
     ConfirmationDialog,
   } = useMyProfilePage();
 
-  
+
   const { data: employments = [] } = useQuery({
-    queryKey: ["employments", employee?.id],
+    queryKey: createQueryKey("employments", employee?.id),
     queryFn: () => employee ? fetchEmployeeEmployments(employee.id) : Promise.resolve([]),
     enabled: !!employee,
   });

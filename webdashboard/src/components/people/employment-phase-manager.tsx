@@ -10,6 +10,8 @@ import { Typography } from "@/components/ui/typography";
 import { fetchEmploymentPhases, createEmploymentPhase } from "@/lib/api/employees";
 import { EmploymentPhaseDefinition, CreateEmploymentPhaseDefinitionRequest } from "@/lib/api/types";
 import { cn } from "@/lib/utils";
+import { createQueryKey } from "@/lib/query-keys";
+
 
 export default function EmploymentPhaseManager() {
   const { t } = useTranslation();
@@ -17,16 +19,16 @@ export default function EmploymentPhaseManager() {
   const toast = useToast();
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  const { data: phases, isLoading } = useQuery({ queryKey: ["employment-phases"], queryFn: () => fetchEmploymentPhases() });
+  const { data: phases, isLoading } = useQuery({ queryKey: createQueryKey("employment-phases"), queryFn: () => fetchEmploymentPhases() });
   const [formData, setFormData] = useState<Partial<EmploymentPhaseDefinition> & { default_duration_days?: number }>({ name: "", description: "", phase_type: "probation", default_duration_days: 60, is_active: true, display_order: 1 });
 
   const createMutation = useMutation({
     mutationFn: (data: CreateEmploymentPhaseDefinitionRequest) => createEmploymentPhase(data),
-    onSuccess: () => { 
-        toast.success(t("common.success")); 
-        void queryClient.invalidateQueries({ queryKey: ["employment-phases"] }); 
-        setIsModalOpen(false); 
-        setFormData({ name: "", description: "", phase_type: "probation", default_duration_days: 60, is_active: true, display_order: 1 }); 
+    onSuccess: () => {
+        toast.success(t("common.success"));
+        void queryClient.invalidateQueries({ queryKey: createQueryKey("employment-phases") });
+        setIsModalOpen(false);
+        setFormData({ name: "", description: "", phase_type: "probation", default_duration_days: 60, is_active: true, display_order: 1 });
     },
     onError: (err: unknown) => {
         const error = err as Error;
@@ -34,8 +36,8 @@ export default function EmploymentPhaseManager() {
     },
   });
 
-  const handleSubmit = (e: React.SyntheticEvent) => { 
-    e.preventDefault(); 
+  const handleSubmit = (e: React.SyntheticEvent) => {
+    e.preventDefault();
     if (!formData.name || !formData.phase_type) return;
     createMutation.mutate({
       name: formData.name,
@@ -43,7 +45,7 @@ export default function EmploymentPhaseManager() {
       phase_type: formData.phase_type,
       display_order: formData.display_order ?? null,
       rule_config: { duration_days: formData.default_duration_days }
-    }); 
+    });
   };
 
   return (
@@ -56,7 +58,7 @@ export default function EmploymentPhaseManager() {
           <div className="max-w-xl">
             <Typography className="text-xl font-extrabold text-slate-800 dark:text-slate-100 tracking-tight uppercase leading-none" variant="h2">Career Stages</Typography>
             <Typography className="text-[11px] font-medium text-slate-500 dark:text-slate-400 leading-relaxed mt-2" variant="p">
-              Quản lý các cột mốc trong lộ trình phát triển của nhân sự (VD: Onboarding, Thử việc, Chính thức). 
+              Quản lý các cột mốc trong lộ trình phát triển của nhân sự (VD: Onboarding, Thử việc, Chính thức).
               <br/>
               <span className="text-blue-600 dark:text-blue-400 font-bold bg-blue-50 dark:bg-blue-950/30 px-1 py-0.5 rounded mt-1 inline-block">💡 Mẹo:</span> Thứ tự sắp xếp sẽ quyết định vị trí hiển thị của Cột mốc trong các danh sách chọn.
             </Typography>
@@ -83,7 +85,7 @@ export default function EmploymentPhaseManager() {
                   <Typography className="text-[10px] font-mono font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mt-2 opacity-70" variant="p">{phase.phase_type}</Typography>
                 </div>
               </div>
-              
+
               <div className="flex items-center gap-10">
                 <div className="flex flex-col items-end gap-2.5">
                   <div className="flex items-center gap-2">
