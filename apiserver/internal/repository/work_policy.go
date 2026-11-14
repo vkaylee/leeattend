@@ -158,6 +158,78 @@ func insertWorkPolicyGroup(ctx context.Context, tx pgx.Tx, req api.CreateWorkPol
 	return nil
 }
 
+func (r WorkPolicyRepository) ListWorkPolicyMemberships(ctx context.Context, groupID uuid.UUID) ([]api.WorkPolicyMembership, error) {
+	db, err := r.db(ctx)
+	if err != nil {
+		return nil, err
+	}
+	rows, err := db.Query(ctx, `SELECT id, employment_id, group_id, effective_from::text, effective_to::text FROM labor_policy_memberships WHERE group_id = $1 ORDER BY effective_from DESC, id DESC`, groupID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	result := make([]api.WorkPolicyMembership, 0)
+	for rows.Next() {
+		var item api.WorkPolicyMembership
+		if err := rows.Scan(&item.ID, &item.EmploymentID, &item.GroupID, &item.EffectiveFrom, &item.EffectiveTo); err != nil {
+			return nil, err
+		}
+		result = append(result, item)
+	}
+	return result, rows.Err()
+}
+
+func (r WorkPolicyRepository) CreateWorkPolicyMembership(ctx context.Context, groupID uuid.UUID, req api.CreateWorkPolicyMembershipRequest, actorID uuid.UUID) (api.WorkPolicyMembership, error) {
+	from, to, err := parseWorkPolicyRange(req.EffectiveFrom, req.EffectiveTo)
+	if err != nil {
+		return api.WorkPolicyMembership{}, api.ErrWorkPolicyGroupValidation
+	}
+	beginner, err := r.begin(ctx)
+	if err != nil {
+		return api.WorkPolicyMembership{}, err
+	}
+	item := api.WorkPolicyMembership{ID: uuid.New(), EmploymentID: req.EmploymentID, GroupID: groupID, EffectiveFrom: req.EffectiveFrom, EffectiveTo: req.EffectiveTo}
+	err = service.WithTx(ctx, beginner, func(ctx context.Context, tx pgx.Tx) error {
+		var exists bool
+		if err := tx.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM labor_policy_groups WHERE id = $1)`, groupID).Scan(&exists); err != nil {
+			return err
+		}
+		if !exists {
+			return api.ErrWorkPolicyGroupNotFound
+		}
+		if err := tx.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM employments WHERE id = $1 AND deleted_at IS NULL)`, req.EmploymentID).Scan(&exists); err != nil {
+			return err
+		}
+		if !exists {
+			return api.ErrEmploymentNotFound
+		}
+		_, err := tx.Exec(ctx, `INSERT INTO labor_policy_memberships (id, employment_id, group_id, effective_from, effective_to, created_by) VALUES ($1, $2, $3, $4, $5, $6)`, item.ID, req.EmploymentID, groupID, from, to, actorID)
+		if isConflictError(err) {
+			return api.ErrWorkPolicyMembershipConflict
+		}
+		return err
+	})
+	if err != nil {
+		return api.WorkPolicyMembership{}, err
+	}
+	return item, nil
+}
+
+func parseWorkPolicyRange(fromValue string, toValue *string) (time.Time, *time.Time, error) {
+	from, err := time.Parse("2006-01-02", strings.TrimSpace(fromValue))
+	if err != nil {
+		return time.Time{}, nil, err
+	}
+	if toValue == nil || strings.TrimSpace(*toValue) == "" {
+		return from, nil, nil
+	}
+	to, err := time.Parse("2006-01-02", strings.TrimSpace(*toValue))
+	if err != nil {
+		return time.Time{}, nil, err
+	}
+	return from, &to, nil
+}
+
 func apiWorkPolicyMethod(value string) workpolicy.PayMethod {
 	return workpolicy.PayMethod(value)
 }

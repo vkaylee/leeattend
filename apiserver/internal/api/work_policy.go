@@ -16,8 +16,9 @@ import (
 )
 
 var (
-	ErrWorkPolicyGroupValidation = errors.New("work policy group: validation failed")
-	ErrWorkPolicyGroupNotFound   = errors.New("work policy group: not found")
+	ErrWorkPolicyGroupValidation    = errors.New("work policy group: validation failed")
+	ErrWorkPolicyGroupNotFound      = errors.New("work policy group: not found")
+	ErrWorkPolicyMembershipConflict = errors.New("work policy membership: conflict")
 )
 
 type WorkPolicyGroupVersion struct {
@@ -46,6 +47,20 @@ type WorkPolicyGroupListResponse struct {
 	Limit int                      `json:"limit"`
 }
 
+type WorkPolicyMembership struct {
+	ID            uuid.UUID `json:"id"`
+	EmploymentID  uuid.UUID `json:"employment_id"`
+	GroupID       uuid.UUID `json:"group_id"`
+	EffectiveFrom string    `json:"effective_from"`
+	EffectiveTo   *string   `json:"effective_to,omitempty"`
+}
+
+type CreateWorkPolicyMembershipRequest struct {
+	EmploymentID  uuid.UUID `json:"employment_id"`
+	EffectiveFrom string    `json:"effective_from"`
+	EffectiveTo   *string   `json:"effective_to,omitempty"`
+}
+
 type CreateWorkPolicyGroupRequest struct {
 	Name                string                         `json:"name"`
 	MinutesPerCredit    int                            `json:"minutes_per_credit"`
@@ -62,6 +77,8 @@ type CreateWorkPolicyGroupRequest struct {
 type WorkPolicyGroupRepository interface {
 	ListWorkPolicyGroupVersions(context.Context, int, int) (WorkPolicyGroupListResponse, error)
 	CreateWorkPolicyGroup(context.Context, CreateWorkPolicyGroupRequest, uuid.UUID) (WorkPolicyGroupVersion, error)
+	ListWorkPolicyMemberships(context.Context, uuid.UUID) ([]WorkPolicyMembership, error)
+	CreateWorkPolicyMembership(context.Context, uuid.UUID, CreateWorkPolicyMembershipRequest, uuid.UUID) (WorkPolicyMembership, error)
 }
 
 type WorkPolicyGroupAudit interface {
@@ -97,6 +114,48 @@ func (h WorkPolicyGroupHandler) List(w http.ResponseWriter, r *http.Request) {
 	apperror.WriteJSON(w, http.StatusOK, result)
 }
 
+func (h WorkPolicyGroupHandler) ListMemberships(w http.ResponseWriter, r *http.Request) {
+	if !h.allowed(r, "payroll:read") {
+		apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
+		return
+	}
+	groupID, ok := pathUUID(r, "group_id")
+	if !ok {
+		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
+		return
+	}
+	result, err := h.Repository.ListWorkPolicyMemberships(r.Context(), groupID)
+	if err != nil {
+		h.writeError(w, r, err)
+		return
+	}
+	apperror.WriteJSON(w, http.StatusOK, result)
+}
+
+func (h WorkPolicyGroupHandler) CreateMembership(w http.ResponseWriter, r *http.Request) {
+	userID, ok := httpinfra.UserIDFromContext(r.Context())
+	if !ok || !h.allowed(r, "payroll:manage") {
+		apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
+		return
+	}
+	groupID, groupOK := pathUUID(r, "group_id")
+	if !groupOK {
+		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
+		return
+	}
+	req, err := DecodeJSON[CreateWorkPolicyMembershipRequest](r, 1<<20)
+	if err != nil || validateWorkPolicyMembershipRequest(req) != nil {
+		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
+		return
+	}
+	result, err := h.Repository.CreateWorkPolicyMembership(r.Context(), groupID, req, userID)
+	if err != nil {
+		h.writeError(w, r, err)
+		return
+	}
+	apperror.WriteJSON(w, http.StatusCreated, result)
+}
+
 func (h WorkPolicyGroupHandler) Create(w http.ResponseWriter, r *http.Request) {
 	userID, ok := httpinfra.UserIDFromContext(r.Context())
 	if !ok || !h.allowed(r, "payroll:manage") {
@@ -121,6 +180,17 @@ func (h WorkPolicyGroupHandler) Create(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 	apperror.WriteJSON(w, http.StatusCreated, result)
+}
+
+func validateWorkPolicyMembershipRequest(req CreateWorkPolicyMembershipRequest) error {
+	if req.EmploymentID == uuid.Nil {
+		return ErrWorkPolicyGroupValidation
+	}
+	from, to, err := workPolicyEffectiveRange(req.EffectiveFrom, req.EffectiveTo)
+	if err != nil || to != nil && !to.After(from) {
+		return ErrWorkPolicyGroupValidation
+	}
+	return nil
 }
 
 func validateWorkPolicyGroupRequest(req CreateWorkPolicyGroupRequest) error {
@@ -170,7 +240,7 @@ func (h WorkPolicyGroupHandler) writeError(w http.ResponseWriter, r *http.Reques
 		apperror.WriteError(w, r, apperror.NotFound(apperror.KeyNotFound))
 	case errors.Is(err, ErrWorkPolicyGroupValidation):
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
-	case errors.Is(err, ErrConflict):
+	case errors.Is(err, ErrConflict), errors.Is(err, ErrWorkPolicyMembershipConflict):
 		apperror.WriteError(w, r, apperror.Conflict(apperror.KeyConflict))
 	default:
 		apperror.WriteError(w, r, apperror.Internal(err))
