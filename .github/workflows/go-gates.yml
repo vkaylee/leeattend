@@ -28,7 +28,7 @@ jobs:
       - name: Build pinned Go gate image
         run: docker build -t localhost/leeattend-test_go -f .compose/go/Dockerfile .compose/go
 
-      - name: Lint gates (gofmt, vet, staticcheck, govulncheck, mod verify)
+      - name: Lint gates (gofmt, vet, staticcheck, golangci-lint, govulncheck, mod verify)
         run: ./scripts/_go-gates.sh --lint-only
 
       - name: Unit gates (-race)
