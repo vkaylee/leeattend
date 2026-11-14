@@ -11,6 +11,12 @@ WITH legacy_days AS (
     UNION
     SELECT employment_id, date AS business_date
     FROM public.shift_rosters
+), locked_employments AS (
+    SELECT e.id, e.employer_id
+    FROM public.employments e
+    JOIN (SELECT DISTINCT employment_id FROM legacy_days) d ON d.employment_id = e.id
+    WHERE e.deleted_at IS NULL
+    FOR UPDATE
 ), candidates AS (
     SELECT
         d.employment_id,
@@ -36,8 +42,7 @@ WITH legacy_days AS (
             ), '[]'::jsonb)
         ) AS source_snapshot
     FROM legacy_days d
-    JOIN public.employments e ON e.id = d.employment_id
-    WHERE e.deleted_at IS NULL
+    JOIN locked_employments e ON e.id = d.employment_id
       AND NOT EXISTS (
           SELECT 1
           FROM public.schedule_day_revisions existing
