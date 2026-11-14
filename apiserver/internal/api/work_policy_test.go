@@ -32,6 +32,10 @@ func (s *workPolicyRepositoryStub) ListWorkPolicyGroupVersions(context.Context, 
 	return WorkPolicyGroupListResponse{}, nil
 }
 
+func (s *workPolicyRepositoryStub) ListWorkPolicyGroupHistory(context.Context, uuid.UUID, int, int) (WorkPolicyGroupListResponse, error) {
+	return WorkPolicyGroupListResponse{}, nil
+}
+
 func (s *workPolicyRepositoryStub) CreateWorkPolicyGroup(_ context.Context, req CreateWorkPolicyGroupRequest, actorID uuid.UUID) (WorkPolicyGroupVersion, error) {
 	s.created = true
 	return WorkPolicyGroupVersion{
@@ -60,6 +64,18 @@ func (s *workPolicyRepositoryStub) CreateWorkPolicyMembership(_ context.Context,
 func workPolicyRequest(method string, body string, userID uuid.UUID) *http.Request {
 	req := httptest.NewRequest(method, "/api/v1/payroll/work-policy-groups", bytes.NewBufferString(body))
 	return req.WithContext(httpinfra.WithUserIDForTest(req.Context(), userID))
+}
+
+func TestWorkPolicyHistoryRequiresReadPermission(t *testing.T) {
+	handler := WorkPolicyGroupHandler{Repository: &workPolicyRepositoryStub{}, Authorizer: payrollAuthorizer{allowedPerms: map[string]bool{"payroll:read": false}}}
+	rec := httptest.NewRecorder()
+	req := workPolicyRequest(http.MethodGet, "", uuid.New())
+	req.SetPathValue("group_id", uuid.NewString())
+	req.URL.RawQuery = "page=1&limit=20"
+	handler.History(rec, req)
+	if rec.Code != http.StatusForbidden {
+		t.Fatalf("status = %d, want 403", rec.Code)
+	}
 }
 
 func TestWorkPolicyGroupCreateRequiresManagePermission(t *testing.T) {

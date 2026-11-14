@@ -80,6 +80,45 @@ func (r WorkPolicyRepository) ListWorkPolicyGroupVersions(ctx context.Context, p
 	return result, nil
 }
 
+func (r WorkPolicyRepository) ListWorkPolicyGroupHistory(ctx context.Context, groupID uuid.UUID, page, limit int) (api.WorkPolicyGroupListResponse, error) {
+	db, err := r.db(ctx)
+	if err != nil {
+		return api.WorkPolicyGroupListResponse{}, err
+	}
+	offset := (page - 1) * limit
+	rows, err := db.Query(ctx, `
+		SELECT v.id, v.group_id, g.name, v.work_credit_policy_id, wc.name, wc.minutes_per_credit,
+		       wc.attendance_policy_id, wc.working_pattern_id, v.pay_basis_policy_id, pb.name,
+		       pb.method, pb.monthly_denominator, pb.monthly_standard_days::text, v.overtime_policy_id,
+		       v.effective_from::text, v.effective_to::text
+		FROM labor_policy_group_versions v
+		JOIN labor_policy_groups g ON g.id = v.group_id
+		JOIN work_credit_policies wc ON wc.id = v.work_credit_policy_id
+		JOIN pay_basis_policies pb ON pb.id = v.pay_basis_policy_id
+		WHERE v.group_id = $1
+		ORDER BY v.effective_from DESC, v.id DESC
+		LIMIT $2 OFFSET $3`, groupID, limit, offset)
+	if err != nil {
+		return api.WorkPolicyGroupListResponse{}, err
+	}
+	defer rows.Close()
+	result := api.WorkPolicyGroupListResponse{Data: make([]api.WorkPolicyGroupVersion, 0), Page: page, Limit: limit}
+	for rows.Next() {
+		item, scanErr := workPolicyGroupVersion(rows)
+		if scanErr != nil {
+			return api.WorkPolicyGroupListResponse{}, scanErr
+		}
+		result.Data = append(result.Data, item)
+	}
+	if err := rows.Err(); err != nil {
+		return api.WorkPolicyGroupListResponse{}, err
+	}
+	if err := db.QueryRow(ctx, `SELECT count(*) FROM labor_policy_group_versions WHERE group_id = $1`, groupID).Scan(&result.Total); err != nil {
+		return api.WorkPolicyGroupListResponse{}, err
+	}
+	return result, nil
+}
+
 func (r WorkPolicyRepository) CreateWorkPolicyGroup(ctx context.Context, req api.CreateWorkPolicyGroupRequest, actorID uuid.UUID) (api.WorkPolicyGroupVersion, error) {
 	db, err := r.db(ctx)
 	if err != nil {

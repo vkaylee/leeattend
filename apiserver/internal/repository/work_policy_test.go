@@ -13,6 +13,45 @@ import (
 	"github.com/vkaylee/leeattend/apiserver/internal/domain/workpolicy"
 )
 
+func TestWorkPolicyRepository_ListWorkPolicyGroupHistoryPaginatesByGroup(t *testing.T) {
+	groupID := uuid.New()
+	versionID := uuid.New()
+	var dataQuery string
+	db := &fakeDBTX{
+		queryFn: func(_ context.Context, query string, args ...any) (pgx.Rows, error) {
+			dataQuery = query
+			if len(args) != 3 || args[0] != groupID || args[1] != 20 || args[2] != 20 {
+				t.Fatalf("unexpected history args: %#v", args)
+			}
+			return &rowsStub{data: [][]any{{
+				versionID, groupID, "Operations", uuid.New(), "Work credit", 450,
+				uuid.New(), uuid.New(), uuid.New(), "Pay basis", "monthly", "fixed", "22",
+				uuid.New(), "2026-01-01", nil,
+			}}}, nil
+		},
+		queryRowFn: func(_ context.Context, query string, args ...any) pgx.Row {
+			if !strings.Contains(query, "count(*) FROM labor_policy_group_versions WHERE group_id = $1") || len(args) != 1 || args[0] != groupID {
+				t.Fatalf("unexpected history count query: %s %#v", query, args)
+			}
+			return fakeRow{scanFn: func(dest ...any) error {
+				*(dest[0].(*int64)) = 21
+				return nil
+			}}
+		},
+	}
+
+	result, err := (WorkPolicyRepository{DB: db}).ListWorkPolicyGroupHistory(context.Background(), groupID, 2, 20)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if result.Total != 21 || result.Page != 2 || result.Limit != 20 || len(result.Data) != 1 || result.Data[0].ID != versionID {
+		t.Fatalf("unexpected history response: %+v", result)
+	}
+	if !strings.Contains(dataQuery, "WHERE v.group_id = $1") || !strings.Contains(dataQuery, "ORDER BY v.effective_from DESC") {
+		t.Fatalf("history query must be scoped and stable: %s", dataQuery)
+	}
+}
+
 func TestParseWorkPolicyRangeRejectsNonIncreasingEnd(t *testing.T) {
 	for _, end := range []string{"2026-01-01", "2025-12-31"} {
 		_, _, err := parseWorkPolicyRange("2026-01-01", &end)
