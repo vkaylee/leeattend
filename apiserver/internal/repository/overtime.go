@@ -8,6 +8,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
+	"github.com/shopspring/decimal"
 	"github.com/vkaylee/leeattend/apiserver/internal/api"
 	"github.com/vkaylee/leeattend/apiserver/internal/service"
 )
@@ -411,6 +412,33 @@ func (r OvertimeRepository) EmployeeDepartmentID(ctx context.Context, employeeID
 	var id *uuid.UUID
 	err = db.QueryRow(ctx, `SELECT department_id FROM employments WHERE employee_id = $1 AND status = 'active' AND deleted_at IS NULL ORDER BY start_date DESC LIMIT 1`, employeeID).Scan(&id)
 	return id, err
+}
+
+func resolveOvertimeMultiplier(ctx context.Context, db DBTX, employmentID uuid.UUID, asOf time.Time) (decimal.Decimal, error) {
+	var multiplier decimal.Decimal
+	err := db.QueryRow(ctx, `
+		SELECT COALESCE((
+			SELECT r.multiplier
+			FROM overtime_policy_assignments a
+			JOIN overtime_rules r ON r.policy_id = a.policy_id
+			WHERE a.effective_from <= $2::date
+			  AND (a.effective_to IS NULL OR a.effective_to >= $2::date)
+			  AND ((a.assignee_type = 'employee' AND a.assignee_id = e.employee_id)
+			    OR (a.assignee_type = 'department' AND a.assignee_id = e.department_id)
+			    OR (a.assignee_type = 'organization' AND a.assignee_id IS NULL))
+			ORDER BY CASE a.assignee_type WHEN 'employee' THEN 1 WHEN 'department' THEN 2 WHEN 'organization' THEN 3 END,
+			         a.effective_from DESC, r.priority DESC, r.id DESC
+			LIMIT 1
+		), 1.5)
+		FROM employments e
+		WHERE e.id = $1 AND e.deleted_at IS NULL`, employmentID, asOf.Format("2006-01-02")).Scan(&multiplier)
+	if err != nil {
+		return decimal.Zero, err
+	}
+	if !multiplier.IsPositive() {
+		return decimal.RequireFromString("1.5"), nil
+	}
+	return multiplier, nil
 }
 
 func (r OvertimeRepository) ClaimOvertime(ctx context.Context, employeeID uuid.UUID, req api.ClaimOTRequest, user uuid.UUID) error {

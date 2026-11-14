@@ -2253,7 +2253,15 @@ WHERE employment_id = $1 AND date >= $2::date AND date <= $3::date`, employmentI
 	}
 
 	hourlyRate := rates.CalculateHourlyRate(totalBaseSalary, stdDays, hoursPerDay)
-	totalOvertimePay := hourlyRate.Mul(decimal.NewFromInt(int64(totalOtUnits))).Mul(decimal.RequireFromString("1.5")).Round(2)
+	overtimeMultiplier := decimal.RequireFromString("1.5")
+	if policy := workPolicyAssignmentAt(policyAssignments, endDate); policy != nil {
+		if multiplier, multiplierErr := resolveOvertimeMultiplier(ctx, db, employmentID, endDate); multiplierErr != nil {
+			return api.FullPayslipResponse{}, multiplierErr
+		} else {
+			overtimeMultiplier = multiplier
+		}
+	}
+	totalOvertimePay := hourlyRate.Mul(decimal.NewFromInt(int64(totalOtUnits))).Mul(overtimeMultiplier).Round(2)
 	if maxOtHours != nil {
 		cappedUnits, cappedPay := rates.ApplyOTCap(totalOtUnits, totalOvertimePay, *maxOtHours, 60)
 		totalOtUnits = cappedUnits
