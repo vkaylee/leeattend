@@ -145,6 +145,7 @@ type ScheduleEvidenceResponse struct {
 
 type ScheduleShadowMismatchRepository interface {
 	ListScheduleShadowMismatches(context.Context, uuid.UUID, string, string) ([]ScheduleShadowMismatch, error)
+	ResolveScheduleShadowMismatch(context.Context, uuid.UUID, string, string, uuid.UUID) error
 }
 
 type ScheduleEvidenceRepository interface {
@@ -152,6 +153,37 @@ type ScheduleEvidenceRepository interface {
 	AuthorizeScheduleEmployment(context.Context, uuid.UUID, uuid.UUID, string) (bool, error)
 	ListScheduleHistory(context.Context, ScheduleHistoryQuery) (ScheduleHistoryResponse, error)
 	GetScheduleEvidence(context.Context, uuid.UUID, uuid.UUID, string) (ScheduleEvidenceResponse, error)
+}
+
+type ScheduleShadowMismatchResolutionRequest struct {
+	Status string `json:"status"`
+	Note   string `json:"note"`
+}
+
+func (h ScheduleHandler) ResolveShadowMismatch(w http.ResponseWriter, r *http.Request) {
+	if !h.requireScheduleEvidencePermission(w, r, scheduleEvidencePermission) {
+		return
+	}
+	if h.Shadow == nil {
+		writeScheduleEvidenceUnavailable(w, r)
+		return
+	}
+	mismatchID, err := ParseUUID(r.PathValue("mismatch_id"))
+	if err != nil {
+		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
+		return
+	}
+	request, err := DecodeJSON[ScheduleShadowMismatchResolutionRequest](r, 1<<16)
+	if err != nil || (request.Status != "resolved" && request.Status != "waived") || strings.TrimSpace(request.Note) == "" || len(request.Note) > 2000 {
+		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
+		return
+	}
+	userID, _ := httpinfra.UserIDFromContext(r.Context())
+	if err := h.Shadow.ResolveScheduleShadowMismatch(r.Context(), mismatchID, request.Status, strings.TrimSpace(request.Note), userID); err != nil {
+		writeScheduleEvidenceError(w, r, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
 }
 
 func (h ScheduleHandler) ListShadowMismatches(w http.ResponseWriter, r *http.Request) {

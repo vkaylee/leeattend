@@ -130,6 +130,25 @@ func (r ScheduleRepository) ListScheduleHistory(ctx context.Context, query api.S
 	return api.ScheduleHistoryResponse{Data: entries, NextCursor: cursor}, nil
 }
 
+func (r ScheduleRepository) ResolveScheduleShadowMismatch(ctx context.Context, mismatchID uuid.UUID, status, note string, actorID uuid.UUID) error {
+	db, err := r.db(ctx)
+	if err != nil {
+		return err
+	}
+	result, err := db.Exec(ctx, `UPDATE schedule_shadow_mismatches
+		SET status = $2, resolution_note = $3, resolved_at = CURRENT_TIMESTAMP, last_seen_at = CURRENT_TIMESTAMP
+		WHERE id = $1 AND status = 'open'`, mismatchID, status, note)
+	if err != nil {
+		return err
+	}
+	if result.RowsAffected() != 1 {
+		return api.ErrScheduleHistoryNotFound
+	}
+	_, err = db.Exec(ctx, `INSERT INTO audit_logs (actor_id, target_resource_id, action, details, actor_type, created_at)
+		VALUES ($1, $2, 'schedule.shadow_mismatch.resolved', jsonb_build_object('status', $3, 'note', $4), 'human', CURRENT_TIMESTAMP)`, actorID, mismatchID, status, note)
+	return err
+}
+
 func (r ScheduleRepository) ListScheduleShadowMismatches(ctx context.Context, employerID uuid.UUID, startDate, endDate string) ([]api.ScheduleShadowMismatch, error) {
 	db, err := r.db(ctx)
 	if err != nil {
