@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/shopspring/decimal"
@@ -27,6 +28,10 @@ func (s *workPolicyRepositoryStub) CreateWorkPolicyGroup(_ context.Context, req 
 		GroupID: actorID,
 		Name:    req.Name,
 	}, nil
+}
+
+func (s *workPolicyRepositoryStub) ResolveWorkPolicy(context.Context, uuid.UUID, time.Time) (WorkPolicyGroupVersion, error) {
+	return WorkPolicyGroupVersion{GroupID: uuid.New(), EffectiveFrom: "2026-01-01"}, nil
 }
 
 func (s *workPolicyRepositoryStub) CreateWorkPolicyGroupVersion(_ context.Context, groupID uuid.UUID, req CreateWorkPolicyGroupVersionRequest, _ uuid.UUID) (WorkPolicyGroupVersion, error) {
@@ -95,6 +100,18 @@ func TestWorkPolicyMembershipListRequiresReadPermission(t *testing.T) {
 	handler.ListMemberships(rec, req)
 	if rec.Code != http.StatusForbidden {
 		t.Fatalf("status = %d, want 403", rec.Code)
+	}
+}
+
+func TestWorkPolicyResolveRejectsInvalidAsOf(t *testing.T) {
+	handler := WorkPolicyGroupHandler{Repository: &workPolicyRepositoryStub{}, Authorizer: payrollAuthorizer{allowedPerms: map[string]bool{"payroll:read": true}}}
+	rec := httptest.NewRecorder()
+	req := workPolicyRequest(http.MethodGet, "", uuid.New())
+	req.URL.RawQuery = "as_of=invalid"
+	req.SetPathValue("employment_id", uuid.NewString())
+	handler.Resolve(rec, req)
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("status = %d, want 400", rec.Code)
 	}
 }
 

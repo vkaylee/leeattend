@@ -19,6 +19,10 @@ func TestWorkPolicyRoutesRequireAuthorization(t *testing.T) {
 	}{
 		{method: http.MethodGet, path: "/api/v1/payroll/work-policy-groups"},
 		{method: http.MethodPost, path: "/api/v1/payroll/work-policy-groups"},
+		{method: http.MethodPost, path: "/api/v1/payroll/work-policy-groups/00000000-0000-0000-0000-000000000001/versions"},
+		{method: http.MethodGet, path: "/api/v1/employments/00000000-0000-0000-0000-000000000001/work-policy?as_of=2026-01-01"},
+		{method: http.MethodGet, path: "/api/v1/payroll/work-policy-groups/00000000-0000-0000-0000-000000000001/memberships"},
+		{method: http.MethodPost, path: "/api/v1/payroll/work-policy-groups/00000000-0000-0000-0000-000000000001/memberships"},
 	} {
 		req := httptest.NewRequest(test.method, test.path, nil)
 		rec := httptest.NewRecorder()

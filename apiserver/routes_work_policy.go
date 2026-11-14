@@ -7,6 +7,7 @@ import (
 
 func registerWorkPolicyRoutes(router chi.Router, handler api.WorkPolicyGroupHandler) {
 	registerRoute(router, "GET /api/v1/payroll/work-policy-groups", handler.List)
+	registerRoute(router, "GET /api/v1/employments/{employment_id}/work-policy", handler.Resolve)
 	registerRoute(router, "POST /api/v1/payroll/work-policy-groups", handler.Create)
 	registerRoute(router, "POST /api/v1/payroll/work-policy-groups/{group_id}/versions", handler.CreateVersion)
 	registerRoute(router, "GET /api/v1/payroll/work-policy-groups/{group_id}/memberships", handler.ListMemberships)

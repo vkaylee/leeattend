@@ -245,6 +245,33 @@ func insertWorkPolicyGroup(ctx context.Context, tx pgx.Tx, req api.CreateWorkPol
 	return nil
 }
 
+func (r WorkPolicyRepository) ResolveWorkPolicy(ctx context.Context, employmentID uuid.UUID, asOf time.Time) (api.WorkPolicyGroupVersion, error) {
+	db, err := r.db(ctx)
+	if err != nil {
+		return api.WorkPolicyGroupVersion{}, err
+	}
+	row := db.QueryRow(ctx, `
+		SELECT v.id, v.group_id, g.name, v.work_credit_policy_id, wc.name, wc.minutes_per_credit,
+		       wc.attendance_policy_id, wc.working_pattern_id, v.pay_basis_policy_id, pb.name,
+		       pb.method, pb.monthly_denominator, pb.monthly_standard_days::text, v.overtime_policy_id,
+		       v.effective_from::text, v.effective_to::text
+		FROM labor_policy_memberships m
+		JOIN labor_policy_groups g ON g.id = m.group_id
+		JOIN labor_policy_group_versions v ON v.group_id = m.group_id
+		JOIN work_credit_policies wc ON wc.id = v.work_credit_policy_id
+		JOIN pay_basis_policies pb ON pb.id = v.pay_basis_policy_id
+		WHERE m.employment_id = $1
+		  AND m.effective_from <= $2::date AND (m.effective_to IS NULL OR m.effective_to >= $2::date)
+		  AND v.effective_from <= $2::date AND (v.effective_to IS NULL OR v.effective_to >= $2::date)
+		ORDER BY v.effective_from DESC, v.id DESC
+		LIMIT 1`, employmentID, asOf.Format("2006-01-02"))
+	result, err := workPolicyGroupVersion(row)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return api.WorkPolicyGroupVersion{}, api.ErrWorkPolicyResolutionNotFound
+	}
+	return result, err
+}
+
 func (r WorkPolicyRepository) ListWorkPolicyMemberships(ctx context.Context, groupID uuid.UUID) ([]api.WorkPolicyMembership, error) {
 	db, err := r.db(ctx)
 	if err != nil {

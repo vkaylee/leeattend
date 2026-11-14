@@ -615,6 +615,8 @@ These endpoints define effective-dated policy bundles. They do not replace exist
 |---|---|---|---|
 | `GET` | `/api/v1/payroll/work-policy-groups` | `payroll:read` | List effective-dated policy group versions with bounded pagination. |
 | `POST` | `/api/v1/payroll/work-policy-groups` | `payroll:manage` | Create a policy group version atomically. |
+| `POST` | `/api/v1/payroll/work-policy-groups/{group_id}/versions` | `payroll:manage` | Create immutable next version for existing group. |
+| `GET` | `/api/v1/employments/{employment_id}/work-policy?as_of=YYYY-MM-DD` | `payroll:read` | Resolve membership and group version at point in time; no latest fallback. |
 | `GET` | `/api/v1/payroll/work-policy-groups/{group_id}/memberships` | `payroll:read` | List employment memberships for a group. |
 | `POST` | `/api/v1/payroll/work-policy-groups/{group_id}/memberships` | `payroll:manage` | Assign an employment to a group for an effective date range. Overlap returns `409`. |
 

@@ -19,6 +19,7 @@ var (
 	ErrWorkPolicyGroupValidation    = errors.New("work policy group: validation failed")
 	ErrWorkPolicyGroupNotFound      = errors.New("work policy group: not found")
 	ErrWorkPolicyReferenceNotFound  = errors.New("work policy group: reference not found")
+	ErrWorkPolicyResolutionNotFound = errors.New("work policy resolution: not found")
 	ErrWorkPolicyMembershipConflict = errors.New("work policy membership: conflict")
 )
 
@@ -92,6 +93,7 @@ type WorkPolicyGroupRepository interface {
 	ListWorkPolicyGroupVersions(context.Context, int, int) (WorkPolicyGroupListResponse, error)
 	CreateWorkPolicyGroup(context.Context, CreateWorkPolicyGroupRequest, uuid.UUID) (WorkPolicyGroupVersion, error)
 	CreateWorkPolicyGroupVersion(context.Context, uuid.UUID, CreateWorkPolicyGroupVersionRequest, uuid.UUID) (WorkPolicyGroupVersion, error)
+	ResolveWorkPolicy(context.Context, uuid.UUID, time.Time) (WorkPolicyGroupVersion, error)
 	ListWorkPolicyMemberships(context.Context, uuid.UUID) ([]WorkPolicyMembership, error)
 	CreateWorkPolicyMembership(context.Context, uuid.UUID, CreateWorkPolicyMembershipRequest, uuid.UUID) (WorkPolicyMembership, error)
 }
@@ -122,6 +124,30 @@ func (h WorkPolicyGroupHandler) List(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	result, err := h.Repository.ListWorkPolicyGroupVersions(r.Context(), pagination.Page, pagination.Limit)
+	if err != nil {
+		h.writeError(w, r, err)
+		return
+	}
+	apperror.WriteJSON(w, http.StatusOK, result)
+}
+
+func (h WorkPolicyGroupHandler) Resolve(w http.ResponseWriter, r *http.Request) {
+	if !h.allowed(r, "payroll:read") {
+		apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
+		return
+	}
+	employmentID, ok := pathUUID(r, "employment_id")
+	if !ok {
+		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
+		return
+	}
+	asOf := strings.TrimSpace(r.URL.Query().Get("as_of"))
+	asOfTime, err := time.Parse("2006-01-02", asOf)
+	if err != nil {
+		apperror.WriteError(w, r, apperror.Validation(apperror.KeyInvalidDateFormat))
+		return
+	}
+	result, err := h.Repository.ResolveWorkPolicy(r.Context(), employmentID, asOfTime)
 	if err != nil {
 		h.writeError(w, r, err)
 		return
@@ -294,7 +320,7 @@ func validateWorkPolicyDefinitions(req CreateWorkPolicyGroupRequest) error {
 
 func (h WorkPolicyGroupHandler) writeError(w http.ResponseWriter, r *http.Request, err error) {
 	switch {
-	case errors.Is(err, ErrWorkPolicyGroupNotFound), errors.Is(err, ErrWorkPolicyReferenceNotFound):
+	case errors.Is(err, ErrWorkPolicyGroupNotFound), errors.Is(err, ErrWorkPolicyReferenceNotFound), errors.Is(err, ErrWorkPolicyResolutionNotFound):
 		apperror.WriteError(w, r, apperror.NotFound(apperror.KeyNotFound))
 	case errors.Is(err, ErrWorkPolicyGroupValidation):
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
