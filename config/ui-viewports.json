@@ -3,6 +3,11 @@
   "minWidth": 360,
   "maxWidth": 1920,
   "baseline": "desktop-large",
+  "tiers": {
+    "required": ["desktop-large", "desktop", "laptop", "laptop-small"],
+    "secondary": ["tablet-landscape", "tablet-portrait"],
+    "smoke": ["mobile-large", "mobile", "mobile-small"]
+  },
   "supported": [
     { "name": "desktop-large", "category": "desktop", "width": 1920, "height": 1080 },
     { "name": "desktop", "category": "desktop", "width": 1440, "height": 900 },

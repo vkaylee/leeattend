@@ -54,15 +54,18 @@ baseline = next(
     viewport for viewport in manifest["supported"]
     if viewport["name"] == manifest["baseline"]
 )
-viewports = ", ".join(
-    f'{viewport["name"]}={viewport["width"]}x{viewport["height"]}'
-    for viewport in manifest["supported"]
+by_name = {viewport["name"]: viewport for viewport in manifest["supported"]}
+format_tier = lambda names: ", ".join(
+    f'{name}={by_name[name]["width"]}x{by_name[name]["height"]}' for name in names
 )
 print(
-    f'Viewport policy: default to {baseline["name"]} '
-    f'({baseline["width"]}x{baseline["height"]}); supported: {viewports}. '
-    'Before each UI scenario, announce selected viewport, call browser_resize, '
-    'then verify window.innerWidth and window.innerHeight.'
+    f'Viewport policy: desktop-first. Default to {baseline["name"]} '
+    f'({baseline["width"]}x{baseline["height"]}). Required desktop: '
+    f'{format_tier(manifest["tiers"]["required"])}. Secondary tablet: '
+    f'{format_tier(manifest["tiers"]["secondary"])}. Mobile smoke only: '
+    f'{format_tier(manifest["tiers"]["smoke"])}. Before each UI scenario, '
+    'announce selected viewport, call browser_resize, then verify '
+    'window.innerWidth and window.innerHeight.'
 )
 PY
 )"

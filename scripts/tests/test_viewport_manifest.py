@@ -28,6 +28,14 @@ def test_manifest_has_unique_supported_viewports_and_valid_bounds() -> None:
     assert all(viewport["width"] >= manifest["minWidth"] for viewport in supported)
     assert all(viewport["width"] <= manifest["maxWidth"] for viewport in supported)
 
+    tiers = manifest["tiers"]
+    tier_names = [name for tier in tiers.values() for name in tier]
+    assert len(tier_names) == len(set(tier_names))
+    assert set(tier_names) == set(names)
+    assert set(tiers["required"]) == {"desktop-large", "desktop", "laptop", "laptop-small"}
+    assert set(tiers["secondary"]) == {"tablet-landscape", "tablet-portrait"}
+    assert set(tiers["smoke"]) == {"mobile-large", "mobile", "mobile-small"}
+
 
 def test_manifest_includes_required_responsive_boundaries() -> None:
     manifest = load_manifest()

@@ -21,17 +21,28 @@ const viewportSize = (name: string) => {
   const { width, height } = getViewport(name);
   return { width, height };
 };
+const viewportTier = process.env.PLAYWRIGHT_VIEWPORT_TIER ?? "all";
+const viewportNames = viewportTier === "all"
+  ? viewportManifest.supported.map((viewport) => viewport.name)
+  : viewportManifest.tiers[viewportTier];
+
+if (!viewportNames) {
+  throw new Error(`Unknown viewport tier: ${viewportTier}`);
+}
 
 const chromiumDevice = {
   ...devices["Desktop Chrome"],
   viewport: viewportSize(baselineViewport.name),
 };
-const responsiveProjects = viewportManifest.supported.map((viewport) => ({
-  name: `responsive-${viewport.name}`,
-  testMatch: /responsive\.spec\.ts/,
-  use: { ...chromiumDevice, viewport: viewportSize(viewport.name) },
-  metadata: { viewport: viewport.name, category: viewport.category },
-}));
+const responsiveProjects = viewportNames.map((name) => {
+  const viewport = getViewport(name);
+  return {
+    name: `responsive-${viewport.name}`,
+    testMatch: /responsive\.spec\.ts/,
+    use: { ...chromiumDevice, viewport: viewportSize(viewport.name) },
+    metadata: { viewport: viewport.name, category: viewport.category, tier: viewportTier },
+  };
+});
 
 /**
  * See https://playwright.dev/docs/test-configuration.
