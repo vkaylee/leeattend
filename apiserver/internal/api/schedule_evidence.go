@@ -118,19 +118,20 @@ type ScheduleEvidenceDiffLink struct {
 }
 
 type ScheduleActivationReadiness struct {
-	EmployerID            uuid.UUID `json:"employer_id"`
-	GlobalFlagEnabled     bool      `json:"global_flag_enabled"`
-	EmployerActivation    bool      `json:"employer_activation"`
-	OpenMismatchCount     int64     `json:"open_mismatch_count"`
-	DeadLetterCount       int64     `json:"dead_letter_count"`
-	RequiredOfficeDays    int64     `json:"required_office_days"`
-	CoveredOfficeDays     int64     `json:"covered_office_days"`
-	LegacyMutationCount   int64     `json:"legacy_mutation_count"`
-	CurrentDuplicateCount int64     `json:"current_duplicate_count"`
-	ExpectedCoverageDays  int64     `json:"expected_coverage_days"`
-	CoveredOfficialDays   int64     `json:"covered_official_days"`
-	MissingCoverageDays   int64     `json:"missing_coverage_days"`
-	Ready                 bool      `json:"ready"`
+	EmployerID                uuid.UUID `json:"employer_id"`
+	GlobalFlagEnabled         bool      `json:"global_flag_enabled"`
+	EmployerActivation        bool      `json:"employer_activation"`
+	OpenMismatchCount         int64     `json:"open_mismatch_count"`
+	DeadLetterCount           int64     `json:"dead_letter_count"`
+	RequiredOfficeDays        int64     `json:"required_office_days"`
+	CoveredOfficeDays         int64     `json:"covered_office_days"`
+	MissingOfficeCoverageDays int64     `json:"missing_office_coverage_days"`
+	LegacyMutationCount       int64     `json:"legacy_mutation_count"`
+	CurrentDuplicateCount     int64     `json:"current_duplicate_count"`
+	ExpectedCoverageDays      int64     `json:"expected_coverage_days"`
+	CoveredOfficialDays       int64     `json:"covered_official_days"`
+	MissingCoverageDays       int64     `json:"missing_coverage_days"`
+	Ready                     bool      `json:"ready"`
 }
 
 type ScheduleShadowMismatch struct {

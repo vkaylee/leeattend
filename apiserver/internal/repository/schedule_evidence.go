@@ -71,7 +71,11 @@ func (r ScheduleRepository) GetScheduleActivationReadiness(ctx context.Context, 
 	if result.MissingCoverageDays < 0 {
 		result.MissingCoverageDays = 0
 	}
-	result.Ready = result.GlobalFlagEnabled && result.EmployerActivation && result.OpenMismatchCount == 0 && result.CurrentDuplicateCount == 0 && result.DeadLetterCount == 0 && result.LegacyMutationCount == 0 && result.MissingCoverageDays == 0
+	result.MissingOfficeCoverageDays = result.RequiredOfficeDays - result.CoveredOfficeDays
+	if result.MissingOfficeCoverageDays < 0 {
+		result.MissingOfficeCoverageDays = 0
+	}
+	result.Ready = result.GlobalFlagEnabled && result.EmployerActivation && result.OpenMismatchCount == 0 && result.CurrentDuplicateCount == 0 && result.DeadLetterCount == 0 && result.LegacyMutationCount == 0 && result.MissingCoverageDays == 0 && result.MissingOfficeCoverageDays == 0
 	return result, nil
 }
 

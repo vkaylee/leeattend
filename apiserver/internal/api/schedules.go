@@ -144,25 +144,30 @@ type ScheduleTrace struct {
 }
 
 type EffectiveSchedule struct {
-	Date                           string          `json:"date"`
-	ShiftID                        *uuid.UUID      `json:"shift_id"`
-	Source                         string          `json:"source"`
-	ShiftName                      *string         `json:"shift_name"`
-	ShiftSymbol                    *string         `json:"shift_symbol"`
-	StartTime                      *string         `json:"start_time"`
-	EndTime                        *string         `json:"end_time"`
-	BreakDurationMinutes           *int            `json:"break_duration_minutes"`
-	BreakStart                     *string         `json:"break_start"`
-	BreakEnd                       *string         `json:"break_end"`
-	IsBreakAutoDeduct              *bool           `json:"is_break_auto_deduct"`
-	EarlyPunchInGracePeriodMinutes *int            `json:"early_punch_in_grace_period_minutes"`
-	AllowEarlyOT                   *bool           `json:"allow_early_ot"`
-	BreakIsOvertime                *bool           `json:"break_is_overtime"`
-	MaxEarlyOTMinutes              *int            `json:"max_early_ot_minutes"`
-	Traces                         []ScheduleTrace `json:"traces"`
-	IsHoliday                      bool            `json:"is_holiday"`
-	IsHolidayPaid                  bool            `json:"is_holiday_paid"`
-	HolidayName                    *string         `json:"holiday_name"`
+	Date                           string            `json:"date"`
+	RevisionID                     *uuid.UUID        `json:"revision_id,omitempty"`
+	ScheduleStatus                 string            `json:"schedule_status"`
+	Provisional                    bool              `json:"provisional"`
+	Timezone                       *string           `json:"timezone,omitempty"`
+	Intervals                      []json.RawMessage `json:"intervals,omitempty"`
+	ShiftID                        *uuid.UUID        `json:"shift_id"`
+	Source                         string            `json:"source"`
+	ShiftName                      *string           `json:"shift_name"`
+	ShiftSymbol                    *string           `json:"shift_symbol"`
+	StartTime                      *string           `json:"start_time"`
+	EndTime                        *string           `json:"end_time"`
+	BreakDurationMinutes           *int              `json:"break_duration_minutes"`
+	BreakStart                     *string           `json:"break_start"`
+	BreakEnd                       *string           `json:"break_end"`
+	IsBreakAutoDeduct              *bool             `json:"is_break_auto_deduct"`
+	EarlyPunchInGracePeriodMinutes *int              `json:"early_punch_in_grace_period_minutes"`
+	AllowEarlyOT                   *bool             `json:"allow_early_ot"`
+	BreakIsOvertime                *bool             `json:"break_is_overtime"`
+	MaxEarlyOTMinutes              *int              `json:"max_early_ot_minutes"`
+	Traces                         []ScheduleTrace   `json:"traces"`
+	IsHoliday                      bool              `json:"is_holiday"`
+	IsHolidayPaid                  bool              `json:"is_holiday_paid"`
+	HolidayName                    *string           `json:"holiday_name"`
 }
 
 type EmployeeSchedule struct {

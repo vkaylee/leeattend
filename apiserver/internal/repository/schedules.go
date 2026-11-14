@@ -201,7 +201,16 @@ func (r ScheduleRepository) GetOrganizationSchedules(ctx context.Context, startD
 		dailyList := make([]api.EffectiveSchedule, 0)
 		for _, day := range employee.days {
 			for _, shiftID := range day.shiftIDs {
-				effective := api.EffectiveSchedule{Date: day.date, ShiftID: shiftID, Source: day.source, Traces: day.traces, IsHoliday: day.isHoliday, IsHolidayPaid: day.holidayPaid, HolidayName: day.holidayName}
+				status := "missing"
+				if day.source == "conflict" {
+					status = "conflict"
+				} else if shiftID == nil && (day.source == "roster" || day.source == "pattern") {
+					status = "explicit_off"
+				} else if shiftID != nil {
+					status = "work"
+				}
+				zone := day.timezone
+				effective := api.EffectiveSchedule{Date: day.date, Source: day.source, ScheduleStatus: status, Provisional: true, Timezone: &zone, ShiftID: shiftID, Traces: day.traces, IsHoliday: day.isHoliday, IsHolidayPaid: day.holidayPaid, HolidayName: day.holidayName}
 				if shiftID != nil {
 					if meta, ok := resolution.shifts[*shiftID]; ok {
 						effective.ShiftName = &meta.name
