@@ -1032,15 +1032,17 @@ func (r PayrollRepository) CreatePayrollInputBatch(ctx context.Context, req api.
 		valueArgs := make([]any, 0, len(req.Inputs)*6)
 		valueParts := make([]string, 0, len(req.Inputs))
 		for index, input := range req.Inputs {
-			base := index*6 + 1
+			base := index*8 + 1
 			ref := any(nil)
 			if input.SourceReference != nil {
 				ref = *input.SourceReference
 			}
-			valueParts = append(valueParts, fmt.Sprintf("($%d, $%d, (SELECT id FROM payroll_metric_definitions WHERE code = $%d), $%d, $%d, $%d)", base, base+1, base+2, base+3, base+4, base+5))
-			valueArgs = append(valueArgs, batchID, input.EmploymentID, input.MetricCode, input.Value.String(), input.Unit, ref)
+			status, validationMessage := payrollInputRowStatus(input.Value)
+
+			valueParts = append(valueParts, fmt.Sprintf("($%d, $%d, (SELECT id FROM payroll_metric_definitions WHERE code = $%d), $%d, $%d, $%d, $%d, $%d)", base, base+1, base+2, base+3, base+4, base+5, base+6, base+7))
+			valueArgs = append(valueArgs, batchID, input.EmploymentID, input.MetricCode, input.Value.String(), input.Unit, ref, status, validationMessage)
 		}
-		_, err = tx.Exec(ctx, `INSERT INTO payroll_inputs (batch_id, employment_id, metric_definition_id, value, unit, source_reference) VALUES `+strings.Join(valueParts, ", "), valueArgs...)
+		_, err = tx.Exec(ctx, `INSERT INTO payroll_inputs (batch_id, employment_id, metric_definition_id, value, unit, source_reference, status, validation_message) VALUES `+strings.Join(valueParts, ", "), valueArgs...)
 		if err != nil {
 			return err
 		}
@@ -1051,6 +1053,13 @@ func (r PayrollRepository) CreatePayrollInputBatch(ctx context.Context, req api.
 		return api.PayrollInputBatch{}, err
 	}
 	return result, nil
+}
+
+func payrollInputRowStatus(value decimal.Decimal) (string, any) {
+	if value.IsZero() {
+		return "warning", "zero metric value requires review"
+	}
+	return "accepted", nil
 }
 
 func scanPayrollInputBatch(row interface{ Scan(...any) error }) (api.PayrollInputBatch, error) {

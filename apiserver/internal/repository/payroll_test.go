@@ -14,6 +14,17 @@ import (
 	"github.com/vkaylee/leeattend/apiserver/internal/api"
 )
 
+func TestPayrollInputRowStatus(t *testing.T) {
+	status, message := payrollInputRowStatus(decimal.Zero)
+	if status != "warning" || message != "zero metric value requires review" {
+		t.Fatalf("zero value status = %q, message = %v", status, message)
+	}
+	status, message = payrollInputRowStatus(decimal.NewFromInt(1))
+	if status != "accepted" || message != nil {
+		t.Fatalf("positive value status = %q, message = %v", status, message)
+	}
+}
+
 func TestPayrollRepository_CalculateEmployeePayroll_UsesEmploymentDepartmentHistory(t *testing.T) {
 	querySeen := false
 	employeeID := uuid.New()

@@ -23,7 +23,7 @@ func calculateKPIBonus(ctx context.Context, db DBTX, employmentID uuid.UUID, yea
 FROM payroll_inputs i
 JOIN payroll_input_batches b ON b.id = i.batch_id
 JOIN payroll_metric_definitions m ON m.id = i.metric_definition_id
-WHERE i.employment_id = $1 AND b.period_year = $2 AND b.period_month = $3 AND b.status = 'locked'
+WHERE i.employment_id = $1 AND b.period_year = $2 AND b.period_month = $3 AND b.status = 'locked' AND i.status IN ('accepted', 'corrected', 'warning')
 ORDER BY m.code, b.created_at DESC, i.id DESC`, employmentID, year, month)
 	if err != nil {
 		return kpiCalculation{}, err
