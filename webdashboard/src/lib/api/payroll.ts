@@ -1,4 +1,6 @@
 /* eslint-disable max-lines -- API wrapper module: 300 lines of exported functions; splitting would scatter imports */
+import type { PayrollCalculationRun, PayrollFormulaRuleVersion, PayrollInput } from "./types-payroll";
+
 import { client, fetch } from "./client";
 import {
   Payslip,
@@ -24,7 +26,6 @@ import {
   SetDepartmentPayrollConfigRequest,
   IncentiveTier,
 } from "./types";
-import type { PayrollCalculationRun, PayrollFormulaRuleVersion, PayrollInput } from "./types-payroll";
 
 export async function fetchIncentivePolicies(): Promise<PayrollIncentivePolicyResponse[]> {
   const { data: resData } = await client.GET<PayrollIncentivePolicyResponse[]>("/api/v1/payroll/incentive-policies");
@@ -205,6 +206,11 @@ export async function assignOvertimePolicy(data: { assignee_id?: string | null; 
 
 export async function fetchPayrollFormulaVersions(ruleId: string): Promise<PayrollFormulaRuleVersion[]> {
   const { data: response } = await fetch<PayrollFormulaRuleVersion[]>("GET", "/api/v1/payroll/formulas/{rule_id}/versions", { params: { path: { rule_id: ruleId } } });
+  return response;
+}
+
+export async function createPayrollFormulaVersion(ruleId: string, data: { expression: string; effective_from: string }): Promise<PayrollFormulaRuleVersion> {
+  const { data: response } = await fetch<PayrollFormulaRuleVersion>("POST", "/api/v1/payroll/formulas/{rule_id}/versions", { params: { path: { rule_id: ruleId } }, body: data });
   return response;
 }
 

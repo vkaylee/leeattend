@@ -1269,21 +1269,75 @@ func (r PayrollRepository) CreatePayrollFormulaRule(ctx context.Context, req api
 	return result, nil
 }
 
+func (r PayrollRepository) CreatePayrollFormulaRuleVersion(ctx context.Context, ruleID uuid.UUID, req api.CreatePayrollFormulaRuleVersionRequest, actorID uuid.UUID) (api.PayrollFormulaRuleVersion, error) {
+	db, err := r.db(ctx)
+	if err != nil {
+		return api.PayrollFormulaRuleVersion{}, err
+	}
+	beginner, ok := db.(service.TxBeginner)
+	if !ok {
+		return api.PayrollFormulaRuleVersion{}, errors.New("payroll repository: database does not support transactions")
+	}
+	var result api.PayrollFormulaRuleVersion
+	err = service.WithTx(ctx, beginner, func(ctx context.Context, tx pgx.Tx) error {
+		var retired bool
+		if err := tx.QueryRow(ctx, `SELECT retired_at IS NOT NULL FROM payroll_formula_rules WHERE id = $1 FOR UPDATE`, ruleID).Scan(&retired); err != nil {
+			if errors.Is(err, pgx.ErrNoRows) {
+				return api.ErrRuleNotFound
+			}
+			return err
+		}
+		if retired {
+			return api.ErrConflict
+		}
+		var created time.Time
+		err := tx.QueryRow(ctx, `
+			INSERT INTO payroll_formula_rule_versions (rule_id, version_number, expression, effective_from, status, created_by)
+			SELECT $1, COALESCE(MAX(version_number), 0) + 1, $2, $3::date, 'draft', $4
+			FROM payroll_formula_rule_versions
+			WHERE rule_id = $1
+			RETURNING id, rule_id, version_number, expression, effective_from::text, status, created_by, created_at`, ruleID, req.Expression, req.EffectiveFrom, actorID).Scan(
+			&result.VersionID, &result.RuleID, &result.Version, &result.Expression, &result.EffectiveFrom, &result.Status, &result.CreatedBy, &created)
+		if err != nil {
+			if isConflictError(err) {
+				return api.ErrConflict
+			}
+			return err
+		}
+		result.CreatedAt = created.UTC().Format(time.RFC3339)
+		return nil
+	})
+	if err != nil {
+		return api.PayrollFormulaRuleVersion{}, err
+	}
+	return result, nil
+}
+
 func (r PayrollRepository) RetirePayrollFormulaRule(ctx context.Context, ruleID, actorID uuid.UUID) (api.PayrollFormulaRule, error) {
 	db, err := r.db(ctx)
 	if err != nil {
 		return api.PayrollFormulaRule{}, err
 	}
-	var result api.PayrollFormulaRule
-	err = db.QueryRow(ctx, `UPDATE payroll_formula_rule_versions v
-SET status = 'retired'
-FROM payroll_formula_rules r
-WHERE v.rule_id = r.id AND r.id = $1 AND v.status = 'published'
-RETURNING r.id, r.code, r.name, r.component_code, v.id, v.version_number, v.expression, v.effective_from::text, v.status`, ruleID).Scan(
-		&result.ID, &result.Code, &result.Name, &result.ComponentCode, &result.VersionID, &result.Version, &result.Expression, &result.EffectiveFrom, &result.Status)
-	if errors.Is(err, pgx.ErrNoRows) {
-		return api.PayrollFormulaRule{}, api.ErrRuleNotFound
+	beginner, ok := db.(service.TxBeginner)
+	if !ok {
+		return api.PayrollFormulaRule{}, errors.New("payroll repository: database does not support transactions")
 	}
+	var result api.PayrollFormulaRule
+	err = service.WithTx(ctx, beginner, func(ctx context.Context, tx pgx.Tx) error {
+		if err := tx.QueryRow(ctx, `UPDATE payroll_formula_rule_versions v
+		SET status = 'retired', retired_at = CURRENT_TIMESTAMP
+		FROM payroll_formula_rules r
+		WHERE v.rule_id = r.id AND r.id = $1 AND v.status = 'published'
+		RETURNING r.id, r.code, r.name, r.component_code, v.id, v.version_number, v.expression, v.effective_from::text, v.status`, ruleID).Scan(
+			&result.ID, &result.Code, &result.Name, &result.ComponentCode, &result.VersionID, &result.Version, &result.Expression, &result.EffectiveFrom, &result.Status); err != nil {
+			if errors.Is(err, pgx.ErrNoRows) {
+				return api.ErrRuleNotFound
+			}
+			return err
+		}
+		_, err := tx.Exec(ctx, `UPDATE payroll_formula_rules SET retired_at = CURRENT_TIMESTAMP WHERE id = $1`, ruleID)
+		return err
+	})
 	return result, err
 }
 

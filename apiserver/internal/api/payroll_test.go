@@ -70,6 +70,10 @@ func (mockPayrollRepository) CreatePayrollFormulaRule(_ context.Context, req Cre
 	return PayrollFormulaRule{ID: uuid.New(), Code: req.Code, Name: req.Name, ComponentCode: req.ComponentCode, Version: 1, Expression: req.Expression, EffectiveFrom: req.EffectiveFrom, Status: "draft"}, nil
 }
 
+func (mockPayrollRepository) CreatePayrollFormulaRuleVersion(_ context.Context, ruleID uuid.UUID, req CreatePayrollFormulaRuleVersionRequest, actorID uuid.UUID) (PayrollFormulaRuleVersion, error) {
+	return PayrollFormulaRuleVersion{RuleID: ruleID, VersionID: uuid.New(), Version: 2, Expression: req.Expression, EffectiveFrom: req.EffectiveFrom, Status: "draft", CreatedBy: actorID}, nil
+}
+
 func (mockPayrollRepository) PublishPayrollFormulaRule(_ context.Context, ruleID, _ uuid.UUID) (PayrollFormulaRule, error) {
 	return PayrollFormulaRule{ID: ruleID, Version: 1, Status: "published"}, nil
 }
@@ -1319,6 +1323,40 @@ func TestPayrollFormulaLifecycleEmitsAuditEvents(t *testing.T) {
 		if event.Name != want[index] || event.ActorID != actorID.String() {
 			t.Fatalf("unexpected formula audit event: %+v", event)
 		}
+	}
+}
+
+func TestPayrollFormulaVersionEndpointValidatesAndAudits(t *testing.T) {
+	actorID := uuid.New()
+	ruleID := uuid.New()
+	auditRecorder := &payrollAuditRecorder{}
+	handler := PayrollHandler{
+		Repository: mockPayrollRepository{},
+		Authorizer: payrollAuthorizer{allowedPerms: map[string]bool{"payroll:manage": true}},
+		Audit:      auditRecorder,
+	}
+	request := httptest.NewRequest(http.MethodPost, "/api/v1/payroll/formulas/"+ruleID.String()+"/versions", bytes.NewBufferString(`{"expression":"actual * rate","effective_from":"2026-11-01"}`))
+	request.SetPathValue("rule_id", ruleID.String())
+	request = request.WithContext(httpinfra.WithUserIDForTest(request.Context(), actorID))
+	response := httptest.NewRecorder()
+	handler.CreatePayrollFormulaRuleVersion(response, request)
+	if response.Code != http.StatusCreated {
+		t.Fatalf("create version status = %d, want 201", response.Code)
+	}
+	if len(auditRecorder.events) != 1 || auditRecorder.events[0].Name != "payroll.formula.version_created" {
+		t.Fatalf("unexpected version audit events: %+v", auditRecorder.events)
+	}
+
+	invalid := httptest.NewRequest(http.MethodPost, "/api/v1/payroll/formulas/"+ruleID.String()+"/versions", bytes.NewBufferString(`{"expression":"DROP TABLE payroll_inputs","effective_from":"2026-11-01"}`))
+	invalid.SetPathValue("rule_id", ruleID.String())
+	invalid = invalid.WithContext(httpinfra.WithUserIDForTest(invalid.Context(), actorID))
+	invalidResponse := httptest.NewRecorder()
+	handler.CreatePayrollFormulaRuleVersion(invalidResponse, invalid)
+	if invalidResponse.Code != http.StatusBadRequest {
+		t.Fatalf("unsafe version status = %d, want 400", invalidResponse.Code)
+	}
+	if len(auditRecorder.events) != 1 {
+		t.Fatalf("invalid version emitted audit event: %+v", auditRecorder.events)
 	}
 }
 

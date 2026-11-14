@@ -343,6 +343,11 @@ type CreatePayrollFormulaRuleRequest struct {
 	EffectiveFrom string `json:"effective_from"`
 }
 
+type CreatePayrollFormulaRuleVersionRequest struct {
+	Expression    string `json:"expression"`
+	EffectiveFrom string `json:"effective_from"`
+}
+
 type PayrollFormulaRule struct {
 	ID            uuid.UUID `json:"id"`
 	Code          string    `json:"code"`
@@ -441,6 +446,7 @@ type PayrollRepository interface {
 	ListPayrollFormulaRules(context.Context) ([]PayrollFormulaRule, error)
 	ListPayrollFormulaRuleVersions(context.Context, uuid.UUID) ([]PayrollFormulaRuleVersion, error)
 	CreatePayrollFormulaRule(context.Context, CreatePayrollFormulaRuleRequest, uuid.UUID) (PayrollFormulaRule, error)
+	CreatePayrollFormulaRuleVersion(context.Context, uuid.UUID, CreatePayrollFormulaRuleVersionRequest, uuid.UUID) (PayrollFormulaRuleVersion, error)
 	PublishPayrollFormulaRule(context.Context, uuid.UUID, uuid.UUID) (PayrollFormulaRule, error)
 	RetirePayrollFormulaRule(context.Context, uuid.UUID, uuid.UUID) (PayrollFormulaRule, error)
 	ListPayrollCalculationRuns(context.Context, uuid.UUID, int, int) ([]PayrollCalculationRun, error)
@@ -1174,6 +1180,49 @@ func (h PayrollHandler) CreatePayrollFormulaRule(w http.ResponseWriter, r *http.
 		},
 	})
 	apperror.WriteJSON(w, http.StatusCreated, rule)
+}
+
+func (h PayrollHandler) CreatePayrollFormulaRuleVersion(w http.ResponseWriter, r *http.Request) {
+	if !h.allowed(r, "payroll:manage") {
+		h.forbidden(w, r)
+		return
+	}
+	ruleID, ok := pathUUID(r, "rule_id")
+	actorID, actorOK := httpinfra.UserIDFromContext(r.Context())
+	if !ok || !actorOK {
+		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
+		return
+	}
+	req, err := DecodeJSON[CreatePayrollFormulaRuleVersionRequest](r, 1<<20)
+	if err != nil || len(req.Expression) == 0 || len(req.Expression) > 4096 {
+		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
+		return
+	}
+	if _, err := time.Parse("2006-01-02", req.EffectiveFrom); err != nil {
+		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
+		return
+	}
+	if err := formula.Validate(req.Expression); err != nil {
+		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
+		return
+	}
+	version, err := h.Repository.CreatePayrollFormulaRuleVersion(r.Context(), ruleID, req, actorID)
+	if err != nil {
+		h.writeError(w, r, err)
+		return
+	}
+	h.emitPayrollAudit(r, audit.Event{
+		Name:     "payroll.formula.version_created",
+		Resource: version.RuleID.String(),
+		Outcome:  "success",
+		Details: map[string]string{
+			"rule_id":        version.RuleID.String(),
+			"version_id":     version.VersionID.String(),
+			"version":        strconv.Itoa(version.Version),
+			"effective_from": version.EffectiveFrom,
+		},
+	})
+	apperror.WriteJSON(w, http.StatusCreated, version)
 }
 
 func (h PayrollHandler) RetirePayrollFormulaRule(w http.ResponseWriter, r *http.Request) {
