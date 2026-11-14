@@ -16,6 +16,22 @@ var ErrInvalidBootstrap = errors.New("standalone: invalid bootstrap configuratio
 // Bootstrap creates the singleton organization settings and its first administrator.
 // It is idempotent for an already-complete installation and refuses conflicting
 // existing state, preventing accidental takeover of a non-standalone database.
+func ensurePayrollKPIFormula(ctx context.Context, tx pgx.Tx, actorID uuid.UUID) error {
+	if _, err := tx.Exec(ctx, `INSERT INTO payroll_formula_rules (code, name, component_code, created_by)
+VALUES ('kpi.bonus', 'KPI Bonus', 'KPI_BONUS', $1)
+ON CONFLICT (code) DO NOTHING`, actorID); err != nil {
+		return fmt.Errorf("standalone: seed KPI formula rule: %w", err)
+	}
+	if _, err := tx.Exec(ctx, `INSERT INTO payroll_formula_rule_versions (rule_id, version_number, expression, effective_from, status, created_by, published_by, published_at)
+SELECT id, 1, 'min(target_bonus * (min(actual / target, score_cap) * output_weight + quality * quality_weight), bonus_cap)', CURRENT_DATE, 'published', $1, $1, CURRENT_TIMESTAMP
+FROM payroll_formula_rules
+WHERE code = 'kpi.bonus'
+  AND NOT EXISTS (SELECT 1 FROM payroll_formula_rule_versions v WHERE v.rule_id = payroll_formula_rules.id)`, actorID); err != nil {
+		return fmt.Errorf("standalone: seed KPI formula version: %w", err)
+	}
+	return nil
+}
+
 func Bootstrap(ctx context.Context, db interface {
 	Begin(context.Context) (pgx.Tx, error)
 }, organizationName, email, password string) error {
@@ -67,6 +83,9 @@ func Bootstrap(ctx context.Context, db interface {
 	}
 	if _, err := tx.Exec(ctx, `INSERT INTO user_roles (user_id, role_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`, userID, roleID); err != nil {
 		return fmt.Errorf("standalone: assign admin role: %w", err)
+	}
+	if err := ensurePayrollKPIFormula(ctx, tx, userID); err != nil {
+		return err
 	}
 	if err := tx.Commit(ctx); err != nil {
 		return fmt.Errorf("standalone: commit bootstrap: %w", err)

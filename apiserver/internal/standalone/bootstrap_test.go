@@ -94,7 +94,7 @@ func TestBootstrapInitializesSharedSchemaTransactionIdempotently(t *testing.T) {
 	if tx.commits != 2 {
 		t.Fatalf("expected two committed bootstrap transactions, got %d", tx.commits)
 	}
-	settingsInserts, userInserts := 0, 0
+	settingsInserts, userInserts, formulaRules, formulaVersions := 0, 0, 0, 0
 	for _, sql := range tx.executed {
 		if strings.Contains(sql, "INSERT INTO organization_settings") {
 			settingsInserts++
@@ -102,9 +102,15 @@ func TestBootstrapInitializesSharedSchemaTransactionIdempotently(t *testing.T) {
 		if strings.Contains(sql, "INSERT INTO users") {
 			userInserts++
 		}
+		if strings.Contains(sql, "INSERT INTO payroll_formula_rules") {
+			formulaRules++
+		}
+		if strings.Contains(sql, "INSERT INTO payroll_formula_rule_versions") {
+			formulaVersions++
+		}
 	}
-	if settingsInserts != 1 || userInserts != 1 {
-		t.Fatalf("bootstrap was not idempotent: settings=%d users=%d", settingsInserts, userInserts)
+	if settingsInserts != 1 || userInserts != 1 || formulaRules != 2 || formulaVersions != 2 {
+		t.Fatalf("bootstrap was not idempotent: settings=%d users=%d formula_rules=%d formula_versions=%d", settingsInserts, userInserts, formulaRules, formulaVersions)
 	}
 }
 
