@@ -120,7 +120,7 @@ export function AttendanceStatusBadge({
   className,
 }: AttendanceStatusBadgeProps) {
   const { t } = useTranslation();
-  const config = statusConfig[status] ?? statusConfig.recorded;
+  const config = statusConfig[status];
 
   const baseText = customLabel || t(config.labelKey, config.defaultLabel);
   const displayText =

@@ -10,9 +10,9 @@ import {
   updateRolePermissions,
 } from "@/lib/api";
 import { logError } from "@/lib/logger";
+import { createQueryKey } from "@/lib/query-keys";
 
 import { organizationKeys } from "./use-organization-queries";
-import { createQueryKey } from "@/lib/query-keys";
 
 
 export function usePermissionCatalog() {

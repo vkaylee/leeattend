@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 
 import { PageContainer } from "@/components/ui/page-container";
 import { fetchEmployeeEmployments } from "@/lib/api";
+import { createQueryKey } from "@/lib/query-keys";
 
 import { AddContactModal } from "./components/add-contact-modal";
 import { BankDetailsSection } from "./components/bank-details-section";
@@ -11,7 +12,6 @@ import { PersonalInfoSection } from "./components/personal-info-section";
 import { ErrorState, Header, LoadingState } from "./components/profile-common";
 import { ProfileHero } from "./components/profile-hero";
 import { useMyProfilePage } from "./hooks/use-my-profile-page";
-import { createQueryKey } from "@/lib/query-keys";
 
 
   // eslint-disable-next-line complexity

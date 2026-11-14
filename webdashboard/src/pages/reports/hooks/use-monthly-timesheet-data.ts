@@ -40,7 +40,7 @@ export function useMonthlyTimesheetData({
         limit: 10000,
       });
 
-      const list = (res && typeof res === "object" && "data" in res && Array.isArray(res.data))
+      const list = (typeof res === "object" && "data" in res && Array.isArray(res.data))
         ? (res.data as DailyAttendanceReport[])
         : Array.isArray(res)
           ? (res as DailyAttendanceReport[])

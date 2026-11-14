@@ -192,9 +192,7 @@ function CustomTooltip({ active, payload, label }: CustomTooltipProps) {
     const { t } = useTranslation();
     if (!active || !payload?.length) return null;
 
-    const data = payload[0]?.payload;
-    if (!data) return null;
-
+    const data = payload[0].payload;
     return (
         <div className="bg-white dark:bg-slate-900 rounded-2xl p-4 border border-slate-100 dark:border-slate-800 shadow-xl min-w-[200px]">
             <Typography className="text-xs font-bold text-slate-700 dark:text-slate-200 mb-2" variant="p">

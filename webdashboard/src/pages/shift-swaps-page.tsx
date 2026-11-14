@@ -23,6 +23,7 @@ import StatusBadge from "@/components/ui/status-badge";
 import { useToast } from "@/components/ui/toast";
 import { Typography } from "@/components/ui/typography";
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
+import { createQueryKey } from "@/lib/query-keys";
 import { useSearchPatch } from "@/lib/state";
 import { Route } from "@/routes/_authenticated/_organization/shift-swaps";
 
@@ -39,7 +40,6 @@ import { ShiftSwapGuide } from "./shift-swaps/guide";
 import { ShiftSwapListItem } from "./shift-swaps/list-item";
 import { ShiftSwapStats } from "./shift-swaps/stats";
 import { getTableHeaders } from "./shift-swaps/utils";
-import { createQueryKey } from "@/lib/query-keys";
 
 
 function ShiftSwapMobileCard({

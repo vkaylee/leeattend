@@ -8,12 +8,12 @@ import Button from "@/components/ui/button";
 import { Typography } from "@/components/ui/typography";
 import { fetchEmployeePhases, fetchEmploymentPhases } from "@/lib/api/employees";
 import { EmployeePhase } from "@/lib/api/types";
+import { createQueryKey } from "@/lib/query-keys";
 import { useEmployeeContracts } from "@/pages/employees/hooks/use-employee-contracts";
 
 import AssignMilestoneModal from "./assign-milestone-modal";
 import PhaseJourneyTimeline from "./phase-journey-timeline";
 import UpdatePhaseStatusModal from "./update-phase-status-modal";
-import { createQueryKey } from "@/lib/query-keys";
 
 
 interface Props {

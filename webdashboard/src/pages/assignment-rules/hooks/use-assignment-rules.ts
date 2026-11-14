@@ -4,9 +4,9 @@ import { useTranslation } from "react-i18next";
 import { useToast } from "@/components/ui/toast";
 import { useConfirm } from "@/hooks/use-confirm";
 import { deleteAssignmentRule } from "@/lib/api";
+import { createQueryKey } from "@/lib/query-keys";
 
 import { useAssignmentRulesData } from "./use-assignment-rules-data";
-import { createQueryKey } from "@/lib/query-keys";
 
 
 export function useAssignmentRules() {

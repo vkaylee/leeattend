@@ -117,7 +117,7 @@ function KpiCard({
 }
 
 function WarningStrip({ warnings, t }: { warnings: RecruitmentEffectivenessAnalytics["warnings"]; t: TranslateFn }) {
-    if (!warnings || warnings.length === 0) return null;
+    if (warnings.length === 0) return null;
 
     return (
         <div aria-live="polite" className="mb-5 space-y-2">
@@ -128,7 +128,7 @@ function WarningStrip({ warnings, t }: { warnings: RecruitmentEffectivenessAnaly
                         : w.code === "NO_DATA_SOURCE"
                             ? "dashboard.hr.effective_warning_no_data_source"
                             : "dashboard.hr.effective_warning_incomplete_data";
-                const label = w.message?.startsWith("dashboard.") ? t(w.message) : (w.message ?? t(labelKey));
+                const label = w.message.startsWith("dashboard.") ? t(w.message) : w.message;
                 return (
                     <div
                         className="flex items-start gap-2 rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/40 px-4 py-2.5"
@@ -494,7 +494,7 @@ export default function RecruitmentSourceChart() {
                 tabs={tabs}
             />
 
-            {isEmpty || !data ? (
+            {isEmpty ? (
                 <div className="flex items-center justify-center h-64 text-slate-400">
                     {t("common.no_data")}
                 </div>

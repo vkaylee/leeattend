@@ -57,7 +57,7 @@ export default function EmploymentPhasesPage() {
   });
   const preferred = employments.find((employment) => employment.status === "active") ?? employments[0];
   const activeEmploymentId = selectedEmployeeId
-    ? (employments.some((employment) => employment.id === selectedEmploymentId) ? selectedEmploymentId : preferred?.id ?? "")
+    ? (employments.some((employment) => employment.id === selectedEmploymentId) ? selectedEmploymentId : preferred.id || "")
     : "";
   const selectedContracts = contracts.filter((contract) => !activeEmploymentId || contract.employment_id === activeEmploymentId);
 

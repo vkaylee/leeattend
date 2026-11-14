@@ -8,8 +8,8 @@ import Modal from "@/components/ui/modal";
 import { useToast } from "@/components/ui/toast";
 import { updateEmployeePhaseStatus, updateEmploymentPhaseStatus } from "@/lib/api/employees";
 import { EmployeePhase } from "@/lib/api/types";
-import { cn } from "@/lib/utils";
 import { createQueryKey } from "@/lib/query-keys";
+import { cn } from "@/lib/utils";
 
 
 interface Props {

@@ -5,10 +5,10 @@ import type { Employee, OrganizationMember, Employment } from "@/lib/api";
 
 import { organizationKeys } from "@/hooks/use-organization-queries";
 import { fetchOrganizationMembers, fetchEmployeeEmployments } from "@/lib/api";
+import { createQueryKey } from "@/lib/query-keys";
 import { useLocations } from "@/pages/settings/hooks/use-locations";
 
 import type { DetailTabType } from "../drawer-header";
-import { createQueryKey } from "@/lib/query-keys";
 
 
 const TAB_ORDER: DetailTabType[] = ["profile", "documents", "contracts", "salary", "compensation"];

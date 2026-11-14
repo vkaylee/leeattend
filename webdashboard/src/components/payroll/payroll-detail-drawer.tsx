@@ -17,13 +17,13 @@ import { useOrganization } from "@/hooks/use-organization";
 import { useMyPermissions } from "@/hooks/use-permissions";
 import { fetchEmployeeEmployments } from "@/lib/api";
 import { Employee, Payslip, AttendanceAdjustmentRequest } from "@/lib/api/types";
+import { createQueryKey } from "@/lib/query-keys";
 import { cn } from "@/lib/utils";
 import { maybeNull } from "@/types/api-overrides";
 
+import { CalculationTrace } from "./calculation-trace";
 import EmployeeSalaryConfig from "./employee-salary-config";
 import PayrollTable from "./payroll-table";
-import { CalculationTrace } from "./calculation-trace";
-import { createQueryKey } from "@/lib/query-keys";
 
 
 interface PayrollDetailDrawerProps {
@@ -123,7 +123,7 @@ export default function PayrollDetailDrawer({
   const activeEmployment = employments.find(emp => emp.id === employee.active_employment_id) ?? employments[0];
   const hireDate = maybeNull(activeEmployment)?.start_date ?? "—";
   const latestPayslip = payslips[0];
-  const tracePeriod = latestPayslip ? new Date(latestPayslip.period_start) : null;
+  const tracePeriod = new Date(latestPayslip.period_start);
 
   return (
     <Dialog.Root onOpenChange={onClose} open={isOpen}>
@@ -183,7 +183,7 @@ export default function PayrollDetailDrawer({
                     organization={organization}
                     payslips={payslips}
                   />
-                  {activeEmployment && tracePeriod && !Number.isNaN(tracePeriod.getTime()) ? (
+                  {!Number.isNaN(tracePeriod.getTime()) ? (
                     <CalculationTrace
                       employmentId={activeEmployment.id}
                       month={tracePeriod.getUTCMonth() + 1}

@@ -7,12 +7,12 @@ import { useTranslation } from "react-i18next";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Typography } from "@/components/ui/typography";
 import { LeaveBalance, fetchLeaveHistory } from "@/lib/api";
+import { createQueryKey } from "@/lib/query-keys";
 
 import { LeaveBalanceBreakdown } from "./leave-balance-detail-components/leave-balance-breakdown";
 import { LeaveBalanceHeader } from "./leave-balance-detail-components/leave-balance-header";
 import { LeaveBalanceHero } from "./leave-balance-detail-components/leave-balance-hero";
 import { HistoryList } from "./leave-balance-detail-components/leave-balance-history";
-import { createQueryKey } from "@/lib/query-keys";
 
 
 interface LeaveBalanceDetailModalProps {

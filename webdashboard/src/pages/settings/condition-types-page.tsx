@@ -14,11 +14,11 @@ import {
   type ConditionTypeDefinition,
   type CreateConditionTypeRequest,
 } from "@/lib/api";
+import { createQueryKey } from "@/lib/query-keys";
 import { cn } from "@/lib/utils";
 
 import { ConditionTypeForm } from "./components/condition-type-form";
 import { useConditionTypeActions } from "./hooks/use-condition-type-actions";
-import { createQueryKey } from "@/lib/query-keys";
 
 
 const LUCIDE_ICONS: Record<string, React.ReactNode> = {

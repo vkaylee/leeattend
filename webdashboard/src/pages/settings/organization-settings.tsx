@@ -41,11 +41,9 @@ export default function OrganizationSettings() {
       <div className="animate-in fade-in duration-300">
 
 
-        {activeTab === "employers" ? (
-          <div className="bg-white dark:bg-slate-900/90 rounded-2xl border border-slate-200/80 dark:border-slate-800/80 overflow-hidden shadow-2xs p-6">
-            <EmployersPage />
-          </div>
-        ) : null}
+        <div className="bg-white dark:bg-slate-900/90 rounded-2xl border border-slate-200/80 dark:border-slate-800/80 overflow-hidden shadow-2xs p-6">
+          <EmployersPage />
+        </div>
       </div>
     </div>
   );

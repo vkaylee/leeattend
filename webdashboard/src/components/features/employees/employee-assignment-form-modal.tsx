@@ -227,7 +227,7 @@ export default function EmployeeAssignmentFormModal({
                   data-testid="assignment-employee-combobox"
                   id="assignment-employee-combobox"
                   onChange={setSelectedEmployeeId}
-                  options={(employees ?? []).map((emp) => ({
+                  options={employees.map((emp) => ({
                     value: emp.id,
                     label: `${emp.full_name} (${emp.employee_id_number})`,
                     description: emp.department_name ?? emp.job_title ?? undefined,
@@ -276,7 +276,7 @@ export default function EmployeeAssignmentFormModal({
                     data-testid="assignment-location-combobox"
                     id="assignment-location-combobox"
                     onChange={field.onChange}
-                    options={(locations ?? []).map((loc) => ({
+                    options={locations.map((loc) => ({
                       value: loc.id,
                       label: loc.name,
                       description: loc.is_headquarters ? "Headquarters" : loc.timezone,

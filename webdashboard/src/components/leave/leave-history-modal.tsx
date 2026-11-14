@@ -7,6 +7,7 @@ import { format } from "date-fns";
 
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
 import { adjustLeaveBalance, fetchLeaveHistory, fetchLeaveTypes } from "@/lib/api";
+import { createQueryKey } from "@/lib/query-keys";
 import { cn } from "@/lib/utils";
 
 import Button from "../ui/button";
@@ -14,7 +15,6 @@ import Modal from "../ui/modal";
 import { useToast } from "../ui/toast";
 import { AdjustmentForm } from "./history-modal-components/adjustment-form";
 import { HistoryTable } from "./history-modal-components/history-table";
-import { createQueryKey } from "@/lib/query-keys";
 
 
 interface LeaveHistoryModalProps {

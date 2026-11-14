@@ -58,7 +58,7 @@ export function useReportsHandlers({
 
   const handleDateRangeChange = (newRange: { start: string; end: string }) => {
     setDateRange(newRange);
-    if (newRange?.start) {
+    if (newRange.start) {
       const parts = newRange.start.split("-");
       if (parts.length >= 2) {
         const y = parseInt(parts[0], 10);

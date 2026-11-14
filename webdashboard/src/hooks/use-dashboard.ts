@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 
 import { apiFetch } from "@/lib/api";
+import { createQueryKey } from "@/lib/query-keys";
 
 import {
   dashboardMetricsResponseSchema,
@@ -25,7 +26,6 @@ import {
   type UnexcusedAbsencesPoint,
   type OrganizationStats,
 } from "./use-dashboard-types";
-import { createQueryKey } from "@/lib/query-keys";
 
 
 export type {

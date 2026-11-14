@@ -236,7 +236,7 @@ export const MobilePermissionRoleSection = ({
     [permissionGroups],
   );
   const grantedCount = permissionGroups.reduce(
-    (count, group) => count + group.permissions.filter((perm) => permissions[role.id]?.includes(perm.id)).length,
+    (count, group) => count + group.permissions.filter((perm) => permissions[role.id].includes(perm.id)).length,
     0,
   );
   const contentId = `permissions-mobile-role-content-${role.id}`;
@@ -285,7 +285,7 @@ export const MobilePermissionRoleSection = ({
               </div>
               <div className="space-y-2">
                 {group.permissions.map((perm) => {
-                  const isChecked = permissions[role.id]?.includes(perm.id) ?? false;
+                  const isChecked = permissions[role.id].includes(perm.id);
                   const isDisabled = role.is_system || !hasManagePermission;
                   const permissionLabel = t(perm.label_key, { defaultValue: perm.id });
                   return (

@@ -8,10 +8,10 @@ import Modal from "@/components/ui/modal";
 import { useToast } from "@/components/ui/toast";
 import { Typography } from "@/components/ui/typography";
 import { fetchPayrollRules } from "@/lib/api/payroll";
+import { createQueryKey } from "@/lib/query-keys";
 
 import { PayrollRuleForm } from "./payroll-rule-form";
 import { RuleRow } from "./payroll-rule-list";
-import { createQueryKey } from "@/lib/query-keys";
 
 
 export default function PayrollRulesManager() {

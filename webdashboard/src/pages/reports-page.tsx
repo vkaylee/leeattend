@@ -57,7 +57,7 @@ export default function ReportsPage() {
 
   const matrixGridRef = React.useRef<TimesheetMatrixGridHandle>(null);
 
-  const startDate = dateRange?.start;
+  const startDate = dateRange.start;
   // Active month & year for matrix should be synchronized with dateRange and specificMonth!
   const activeMonthYear = React.useMemo(() => {
     if (filterMode === "specific_month") {
@@ -90,8 +90,8 @@ export default function ReportsPage() {
       const q = searchQuery.toLowerCase();
       result = result.filter(
         (emp) =>
-          emp.full_name?.toLowerCase().includes(q) ||
-          emp.employee_id_number?.toLowerCase().includes(q) ||
+          emp.full_name.toLowerCase().includes(q) ||
+          emp.employee_id_number.toLowerCase().includes(q) ||
           emp.department_name?.toLowerCase().includes(q) ||
           (emp as { employee_code?: string }).employee_code?.toLowerCase().includes(q) ||
           (emp as { department?: string }).department?.toLowerCase().includes(q)

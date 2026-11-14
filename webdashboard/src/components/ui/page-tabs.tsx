@@ -106,8 +106,8 @@ export const PageTabs = memo(function PageTabs({ tabs, activeTab, onTabChange, c
 
       event.preventDefault();
       const nextButton = tabButtons[nextIndex];
-      nextButton?.focus();
-      const nextTab = nextButton?.dataset.value;
+      nextButton.focus();
+      const nextTab = nextButton.dataset.value;
       if (nextTab) onTabChange(nextTab);
     },
     [onTabChange]

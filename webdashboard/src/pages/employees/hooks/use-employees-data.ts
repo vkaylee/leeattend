@@ -13,10 +13,9 @@ import {
   updateEmployeeEmployment,
   type UpdateEmployeeRequest,
 } from "@/lib/api";
-import { employeeKeys } from "@/lib/query-keys";
+import { employeeKeys, createQueryKey  } from "@/lib/query-keys";
 
 import type { SortKey, SortDir } from "./use-employees-state";
-import { createQueryKey } from "@/lib/query-keys";
 
 
 const PAGE_SIZE = 20;

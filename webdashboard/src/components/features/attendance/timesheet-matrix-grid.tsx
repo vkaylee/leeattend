@@ -120,7 +120,7 @@ export const TimesheetMatrixGrid = React.forwardRef<
         const deptName = emp.department_name || (emp as { department?: string }).department || "";
         return [
           `"${empCode}"`,
-          `"${emp.full_name ?? ""}"`,
+          `"${emp.full_name}"`,
           `"${deptName}"`,
           ...dayCodes.map((c) => `"${c}"`),
           `"${workDays.toFixed(1)}"`,

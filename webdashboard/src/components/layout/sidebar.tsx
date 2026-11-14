@@ -35,8 +35,8 @@ export function Sidebar({
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       const isInput =
-        ["INPUT", "TEXTAREA"].includes((e.target as HTMLElement)?.tagName) ||
-        (e.target as HTMLElement)?.isContentEditable;
+        ["INPUT", "TEXTAREA"].includes((e.target as HTMLElement).tagName) ||
+        (e.target as HTMLElement).isContentEditable;
       if (isInput) return;
 
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "b") {
@@ -182,7 +182,7 @@ export function Sidebar({
 
       {/* ── Bottom Section: Settings & Toggle ── */}
       <div className="border-t border-border p-2 space-y-1 shrink-0 bg-card/40">
-        {!!settings && (
+        {settings.to && (
           <Link
             aria-label={settings.label}
             className={cn(

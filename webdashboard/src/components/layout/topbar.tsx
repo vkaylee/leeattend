@@ -163,7 +163,7 @@ export function Topbar({
         >
           {user?.avatar_url ? (
             <img
-              alt={user.full_name ?? user?.email ?? "Profile"}
+              alt={user.full_name || user.email || "Profile"}
               className="h-6 w-6 rounded-md object-cover border border-border"
               src={user.avatar_url}
             />

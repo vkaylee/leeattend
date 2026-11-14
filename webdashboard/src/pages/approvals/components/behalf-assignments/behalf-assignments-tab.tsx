@@ -11,13 +11,13 @@ import { useDepartments } from "@/hooks/use-departments";
 import { organizationKeys } from "@/hooks/use-organization-queries";
 import { fetchAllOrganizationMembers } from "@/lib/api";
 import { logError } from "@/lib/logger";
+import { createQueryKey } from "@/lib/query-keys";
 
 import type { AssignmentType, BehalfAssignmentInput } from "./types";
 
 import { AddAssignmentForm } from "./add-assignment-form";
 import { AssignmentItem } from "./assignment-item";
 import { BehalfAssignmentsEmptyState, BehalfAssignmentsHeader } from "./behalf-assignments-header";
-import { createQueryKey } from "@/lib/query-keys";
 
 
 export function BehalfAssignmentsTab({

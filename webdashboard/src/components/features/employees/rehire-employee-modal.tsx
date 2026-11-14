@@ -13,8 +13,7 @@ import { useToast } from "@/components/ui/toast";
 import { Typography } from "@/components/ui/typography";
 import { useOrganizationMutation } from "@/hooks/common/use-organization-query";
 import { rehireEmployee, fetchEmployers, Employee } from "@/lib/api";
-import { employeeKeys } from "@/lib/query-keys";
-import { createQueryKey } from "@/lib/query-keys";
+import { employeeKeys, createQueryKey  } from "@/lib/query-keys";
 
 
 interface RehireEmployeeModalProps {

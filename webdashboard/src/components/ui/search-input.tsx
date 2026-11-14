@@ -54,7 +54,7 @@ export const SearchInput = forwardRef<HTMLInputElement, SearchInputProps>(
     forwardedRef
   ) => {
     const internalRef = useRef<HTMLInputElement>(null);
-    const inputRef = (forwardedRef as React.RefObject<HTMLInputElement>) || internalRef;
+    const inputRef = typeof forwardedRef === 'function' ? internalRef : forwardedRef ?? internalRef;
 
     const hasValue = value !== undefined ? Boolean(value) : false;
 
@@ -69,9 +69,7 @@ export const SearchInput = forwardRef<HTMLInputElement, SearchInputProps>(
         } as React.ChangeEvent<HTMLInputElement>;
         onChange(event);
       }
-      if (inputRef && 'current' in inputRef && inputRef.current) {
-        inputRef.current.focus();
-      }
+      inputRef.current?.focus();
     }, [onClear, onChange, inputRef]);
 
     return (

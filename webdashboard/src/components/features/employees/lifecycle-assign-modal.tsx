@@ -77,7 +77,7 @@ export default function LifecycleAssignModal({
   // Derive target employment ID and employee name
   const selectedEmployee = useMemo(() => {
     if (initialEmploymentId) return null;
-    return (employees ?? []).find((emp: Employee) => emp.id === selectedEmployeeId);
+    return employees.find((emp: Employee) => emp.id === selectedEmployeeId);
   }, [employees, selectedEmployeeId, initialEmploymentId]);
 
   const effectiveEmploymentId = initialEmploymentId || selectedEmployee?.active_employment_id || "";
@@ -136,7 +136,7 @@ export default function LifecycleAssignModal({
     description: formatChecklistTypeLabel(tpl.checklist_type, t),
   }));
 
-  const employeeOptions = (employees ?? [])
+  const employeeOptions = employees
     .filter((emp: Employee) => Boolean(emp.active_employment_id))
     .map((emp: Employee) => ({
       value: emp.id,

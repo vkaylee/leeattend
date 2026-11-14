@@ -30,11 +30,11 @@ import {
   fetchEmployee,
   fetchEmployeeDepartmentHistory,
 } from "@/lib/api";
+import { createQueryKey } from "@/lib/query-keys";
 import { cn } from "@/lib/utils";
 
 import { EmployeeOverlays } from "./components/employee-overlays";
 import { useEmployeesModals } from "./hooks/use-employees-modals";
-import { createQueryKey } from "@/lib/query-keys";
 
 
 export default function EmployeeDetailPage() {

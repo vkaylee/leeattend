@@ -48,7 +48,7 @@ export async function fetchConditionTypes(
       query: activeOnly !== undefined ? { active_only: activeOnly } : undefined,
     },
   });
-  return (data) ?? [];
+  return data;
 }
 
 export async function fetchConditionType(

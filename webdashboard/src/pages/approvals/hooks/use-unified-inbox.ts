@@ -13,6 +13,7 @@ import {
 } from "@/lib/api";
 import { fetchAttendanceSummaries } from "@/lib/api/attendance-overtime";
 import { fetchShiftSwaps } from "@/lib/api/shift-swaps";
+import { createQueryKey } from "@/lib/query-keys";
 import { removeDiacritics } from "@/lib/utils";
 
 import {
@@ -23,7 +24,6 @@ import {
   UnifiedApprovalRequester,
   UnifiedInboxFilter,
 } from "../types/unified-approvals";
-import { createQueryKey } from "@/lib/query-keys";
 
 
 export interface UnifiedInboxCounts {
@@ -98,7 +98,7 @@ export function useUnifiedInbox(): UseUnifiedInboxReturn {
 
   const employeeMap = useMemo(() => {
     const map = new Map<string, UnifiedApprovalRequester>();
-    for (const emp of employees ?? []) {
+    for (const emp of employees) {
       const info: UnifiedApprovalRequester = {
         id: emp.id,
         name: emp.full_name,
@@ -221,7 +221,7 @@ export function useUnifiedInbox(): UseUnifiedInboxReturn {
       items.push({
         id: l.id,
         type: "leave",
-        status: (l.status as ApprovalItemStatus) || "pending",
+        status: l.status as ApprovalItemStatus,
         requester: req,
         submittedAt: l.created_at || new Date().toISOString(),
         targetDate: l.start_date,
@@ -254,7 +254,7 @@ export function useUnifiedInbox(): UseUnifiedInboxReturn {
       items.push({
         id: a.id,
         type: "adjustment",
-        status: (a.status as ApprovalItemStatus) || "pending",
+        status: a.status as ApprovalItemStatus,
         requester: req,
         submittedAt: a.created_at || new Date().toISOString(),
         targetDate,
@@ -280,7 +280,7 @@ export function useUnifiedInbox(): UseUnifiedInboxReturn {
       const normalizedStatus: ApprovalItemStatus =
         s.status === "pending_admin" || s.status === "pending_target"
           ? "pending"
-          : (s.status) || "pending";
+          : s.status;
 
       const impact = getTeamImpact(s.swap_date, req.departmentName, s.id);
 
@@ -369,7 +369,7 @@ export function useUnifiedInbox(): UseUnifiedInboxReturn {
         if (it.type === "leave") leave++;
         else if (it.type === "overtime") overtime++;
         else if (it.type === "adjustment") adjustment++;
-        else if (it.type === "shift_swap") shift_swap++;
+        else shift_swap++;
       }
     }
 

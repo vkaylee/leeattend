@@ -18,9 +18,9 @@ import {
   WorkingPattern,
   Employee,
 } from "@/lib/api/types";
+import { createQueryKey } from "@/lib/query-keys";
 
 import type { ViewMode } from "./use-shifts-types";
-import { createQueryKey } from "@/lib/query-keys";
 
 
 interface UseShiftDataProps { monthEnd?: Date;

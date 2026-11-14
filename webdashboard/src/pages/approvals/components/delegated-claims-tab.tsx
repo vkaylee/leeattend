@@ -14,8 +14,8 @@ import { useToast } from "@/components/ui/toast";
 import { Typography } from "@/components/ui/typography";
 import { useInfiniteScroll } from "@/hooks/use-infinite-scroll";
 import { fetchAttendanceReport } from "@/lib/api";
-import { cn } from "@/lib/utils";
 import { createQueryKey } from "@/lib/query-keys";
+import { cn } from "@/lib/utils";
 
 
 const DELEGATED_CLAIMS_PAGE_SIZE = 20;

@@ -94,7 +94,7 @@ export default function LocationsSettings() {
               </div>
             </div>
           ))
-        ) : locations?.length === 0 ? (
+        ) : locations.length === 0 ? (
           <EmptyState
             action={
               <Button className="rounded-2xl px-6 normal-case tracking-normal" onClick={handleAdd} variant="primary">
@@ -107,7 +107,7 @@ export default function LocationsSettings() {
             title={t("settings.locations.empty_title", { defaultValue: "No Locations" })}
           />
         ) : (
-          locations?.map((location) => (
+          locations.map((location) => (
             <div 
               className={cn(
                 "group relative bg-white dark:bg-slate-900 rounded-2xl border p-5 shadow-2xs transition-all duration-200",

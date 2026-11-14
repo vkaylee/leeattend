@@ -11,8 +11,8 @@ import { CustomFieldSection } from "@/components/custom-fields/custom-field-sect
 import Button from "@/components/ui/button";
 import Sheet from "@/components/ui/sheet";
 import { fetchDepartmentPayrollConfigs, setDepartmentPayrollConfig } from "@/lib/api";
-import { cn } from "@/lib/utils";
 import { createQueryKey } from "@/lib/query-keys";
+import { cn } from "@/lib/utils";
 
 
 export interface DepartmentDetailDrawerProps {

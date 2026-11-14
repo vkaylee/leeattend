@@ -16,9 +16,9 @@ import Button from "@/components/ui/button";
 import Modal from "@/components/ui/modal";
 import { Typography } from "@/components/ui/typography";
 import { getShiftVersions } from "@/lib/api/shifts";
+import { createQueryKey } from "@/lib/query-keys";
 
 import { IntervalDiff } from "./shift-revision-diff";
-import { createQueryKey } from "@/lib/query-keys";
 
 
 // ── Types ──────────────────────────────────────────────────────────

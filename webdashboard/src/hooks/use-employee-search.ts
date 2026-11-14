@@ -48,8 +48,8 @@ export function useEmployeeSearch({
       return res ?? { data: [], limit: 50, page: pageParam, total: 0 };
     },
     getNextPageParam: (lastPage, allPages) => {
-      const totalLoaded = allPages.reduce((sum, p) => sum + (p?.data?.length ?? 0), 0);
-      if (totalLoaded >= (lastPage?.total ?? 0)) return undefined;
+      const totalLoaded = allPages.reduce((sum, p) => sum + p.data.length, 0);
+      if (totalLoaded >= lastPage.total) return undefined;
       return allPages.length + 1;
     },
     initialPageParam: 1,
@@ -68,7 +68,7 @@ export function useEmployeeSearch({
 
   const firstSelectedId = selectedIds[0];
   const { data: selectedEmpData } = useOrganizationQuery({
-    queryKey: employeeKeys.detail(firstSelectedId ?? ""),
+    queryKey: employeeKeys.detail(firstSelectedId),
     queryFn: () => {
       if (!firstSelectedId) throw new Error("No selected ID");
       return fetchEmployee(firstSelectedId);

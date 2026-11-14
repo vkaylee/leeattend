@@ -12,11 +12,11 @@ import { Typography } from "@/components/ui/typography";
 import { usePatternCompliance } from "@/hooks/attendance/use-pattern-compliance";
 import { fetchPatternDetails } from "@/lib/api";
 import { WorkingPatternDetail } from "@/lib/api/types";
+import { createQueryKey } from "@/lib/query-keys";
 import { cn } from "@/lib/utils";
 import { type ComplianceIssue } from "@/lib/utils/shift-compliance-utils";
 
 import { useWorkingPatterns } from "../../hooks/use-working-patterns";
-import { createQueryKey } from "@/lib/query-keys";
 
 
 // ── Helpers ────────────────────────────────────────────────────────────
