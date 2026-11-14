@@ -212,13 +212,13 @@ func (h AttendanceHandler) TimeHistory(w http.ResponseWriter, r *http.Request) {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}
-	start, err := time.Parse(time.RFC3339, startRaw)
-	if err != nil {
-		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
-		return
-	}
-	end, err := time.Parse(time.RFC3339, endRaw)
-	if err != nil {
+	var (
+		start, end       time.Time
+		startErr, endErr error
+	)
+	start, startErr = time.Parse(time.RFC3339, startRaw)
+	end, endErr = time.Parse(time.RFC3339, endRaw)
+	if errors.Join(startErr, endErr) != nil {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}
