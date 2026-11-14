@@ -1951,6 +1951,20 @@ func workPolicyAssignmentAt(assignments []workPolicyAssignment, asOf time.Time) 
 	return nil
 }
 
+func payrollStandardDaysForPolicy(policy *api.WorkPolicyGroupVersion, legacy decimal.Decimal) (decimal.Decimal, error) {
+	if policy == nil {
+		return legacy, nil
+	}
+	if policy.PayMethod != workpolicy.PayMethodMonthly ||
+		policy.MonthlyDenominator == nil ||
+		*policy.MonthlyDenominator != workpolicy.MonthlyDenominatorFixed ||
+		policy.MonthlyStandardDays == nil ||
+		!policy.MonthlyStandardDays.GreaterThan(decimal.Zero) {
+		return decimal.Zero, api.ErrPayrollValidation
+	}
+	return *policy.MonthlyStandardDays, nil
+}
+
 func (r PayrollRepository) calculateEmploymentPayslip(ctx context.Context, db DBTX, employmentID, employeeID uuid.UUID, deptID *uuid.UUID, year, month int, actorID uuid.UUID) (api.FullPayslipResponse, error) {
 	startDate, endDate, err := payroll.MonthBoundaries(year, month)
 	if err != nil {
@@ -2181,6 +2195,11 @@ WHERE employment_id = $1 AND date >= $2::date AND date <= $3::date`, employmentI
 	}
 
 	for _, seg := range segmentsList {
+		policy := workPolicyAssignmentAt(policyAssignments, seg.Start)
+		segmentStdDays, err := payrollStandardDaysForPolicy(policy, stdDays)
+		if err != nil {
+			return api.FullPayslipResponse{}, err
+		}
 		segBase := decimal.Zero
 		seenDef := make(map[uuid.UUID]bool)
 		for i := len(salaryHistory) - 1; i >= 0; i-- {
@@ -2196,7 +2215,7 @@ WHERE employment_id = $1 AND date >= $2::date AND date <= $3::date`, employmentI
 			segBase = totalBaseSalary
 		}
 
-		dailyRate := rates.CalculateDailyRate(segBase, stdDays)
+		dailyRate := rates.CalculateDailyRate(segBase, segmentStdDays)
 		segStdMin := 0
 		segOtMin := 0
 
@@ -2241,7 +2260,7 @@ WHERE employment_id = $1 AND date >= $2::date AND date <= $3::date`, employmentI
 			start:              seg.Start,
 			end:                seg.End,
 			appliedBase:        segBase,
-			stdDays:            stdDays,
+			stdDays:            segmentStdDays,
 			hoursPerDay:        hoursPerDay,
 			actualDays:         actualDays,
 			amount:             segAmount,

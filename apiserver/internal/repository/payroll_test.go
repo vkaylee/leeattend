@@ -12,7 +12,41 @@ import (
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/shopspring/decimal"
 	"github.com/vkaylee/leeattend/apiserver/internal/api"
+	"github.com/vkaylee/leeattend/apiserver/internal/domain/workpolicy"
 )
+
+func TestPayrollStandardDaysForPolicy(t *testing.T) {
+	legacy := decimal.NewFromInt(26)
+	if got, err := payrollStandardDaysForPolicy(nil, legacy); err != nil || !got.Equal(legacy) {
+		t.Fatalf("legacy payroll should retain standard days: %s, %v", got, err)
+	}
+
+	days := decimal.NewFromInt(22)
+	denominator := workpolicy.MonthlyDenominatorFixed
+	policy := &api.WorkPolicyGroupVersion{
+		PayMethod:           workpolicy.PayMethodMonthly,
+		MonthlyDenominator:  &denominator,
+		MonthlyStandardDays: &days,
+	}
+	if got, err := payrollStandardDaysForPolicy(policy, legacy); err != nil || !got.Equal(days) {
+		t.Fatalf("fixed monthly policy should use configured days: %s, %v", got, err)
+	}
+
+	for name, invalid := range map[string]*api.WorkPolicyGroupVersion{
+		"hourly": {PayMethod: workpolicy.PayMethodHourly},
+		"shift":  {PayMethod: workpolicy.PayMethodShift},
+		"schedule denominator": {
+			PayMethod:          workpolicy.PayMethodMonthly,
+			MonthlyDenominator: func() *workpolicy.MonthlyDenominator { value := workpolicy.MonthlyDenominatorSchedule; return &value }(),
+		},
+	} {
+		t.Run(name, func(t *testing.T) {
+			if _, err := payrollStandardDaysForPolicy(invalid, legacy); err != api.ErrPayrollValidation {
+				t.Fatalf("expected payroll validation error, got %v", err)
+			}
+		})
+	}
+}
 
 func TestPayrollInputRowStatus(t *testing.T) {
 	status, message := payrollInputRowStatus(decimal.Zero)
