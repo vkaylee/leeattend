@@ -30,10 +30,10 @@ import { Route as ContractsRoute } from "../_authenticated/_organization/contrac
 import { Route as EmployeeDetailRoute } from "../_authenticated/_organization/employees_.$employeeId";
 import { Route as LifecycleRoute } from "../_authenticated/_organization/lifecycle";
 import { Route as PayrollRoute } from "../_authenticated/_organization/payroll";
-import { Route as PayrollSettingsRoute } from "../_authenticated/_organization/settings/payroll";
 import { Route as SalaryManagementRoute } from "../_authenticated/_organization/salary-management";
 import { Route as SalaryManagementSetupRoute } from "../_authenticated/_organization/salary-management.setup";
 import { Route as SettingsRoute } from "../_authenticated/_organization/settings";
+import { Route as PayrollSettingsRoute } from "../_authenticated/_organization/settings/payroll";
 import { Route as WorkingConditionsRoute } from "../_authenticated/_organization/working-conditions";
 
 interface RouteOptions {
