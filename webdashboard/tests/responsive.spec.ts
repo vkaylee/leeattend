@@ -5,12 +5,21 @@ test.describe("Responsive layout contracts", () => {
     expect(authPage).toBeDefined();
   });
 
+  const categoryOf = (testInfo: { project: { metadata?: { category?: string } } }) =>
+    testInfo.project.metadata?.category;
+
+  const isMobile = (testInfo: { project: { metadata?: { category?: string } } }) =>
+    categoryOf(testInfo) === "mobile";
+
+  const isDesktop = (testInfo: { project: { metadata?: { category?: string } } }) =>
+    categoryOf(testInfo) === "desktop";
+
   test("uses sidebar and topbar navigation across viewports", async ({ page }, testInfo) => {
     const topbar = page.getByTestId("topbar-container");
     const sidebar = page.getByTestId("sidebar-container");
 
     await expect(topbar).toBeVisible();
-    if (testInfo.project.name === "responsive-mobile") {
+    if (isMobile(testInfo)) {
       await expect(sidebar).toBeHidden();
       await expect(page.getByTestId("topbar-mobile-menu-btn")).toBeVisible();
     } else {
@@ -34,7 +43,7 @@ test.describe("Responsive layout contracts", () => {
   });
 
   test("keeps mobile navigation drawer within viewport", async ({ page }, testInfo) => {
-    test.skip(testInfo.project.name !== "responsive-mobile", "Mobile drawer contract applies only to mobile viewport.");
+    test.skip(!isMobile(testInfo), "Mobile drawer contract applies only to mobile viewport.");
 
     await page.getByTestId("topbar-mobile-menu-btn").click();
     const drawer = page.getByTestId("sidebar-mobile-drawer");
@@ -46,7 +55,7 @@ test.describe("Responsive layout contracts", () => {
   });
 
   test("keeps primary touch controls at least 44px tall on mobile", async ({ page }, testInfo) => {
-    test.skip(testInfo.project.name !== "responsive-mobile", "Touch targets are asserted at mobile boundary.");
+    test.skip(!isMobile(testInfo), "Touch targets are asserted at mobile boundary.");
 
     const controls = [
       page.getByTestId("topbar-mobile-menu-btn"),
@@ -62,7 +71,7 @@ test.describe("Responsive layout contracts", () => {
   });
 
   test("keeps sidebar visible on desktop", async ({ page }, testInfo) => {
-    test.skip(testInfo.project.name !== "responsive-desktop", "Desktop sidebar contract applies at desktop boundary.");
+    test.skip(!isDesktop(testInfo), "Desktop sidebar contract applies at desktop boundary.");
 
     await page.goto("/employees");
     await expect(page.getByTestId("sidebar-container")).toBeVisible();

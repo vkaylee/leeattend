@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "minWidth": 360,
+  "maxWidth": 1920,
+  "baseline": "desktop-large",
+  "supported": [
+    { "name": "desktop-large", "category": "desktop", "width": 1920, "height": 1080 },
+    { "name": "desktop", "category": "desktop", "width": 1440, "height": 900 },
+    { "name": "laptop", "category": "desktop", "width": 1366, "height": 768 },
+    { "name": "laptop-small", "category": "desktop", "width": 1280, "height": 800 },
+    { "name": "tablet-landscape", "category": "tablet", "width": 1024, "height": 768 },
+    { "name": "tablet-portrait", "category": "tablet", "width": 768, "height": 1024 },
+    { "name": "mobile-large", "category": "mobile", "width": 412, "height": 915 },
+    { "name": "mobile", "category": "mobile", "width": 390, "height": 844 },
+    { "name": "mobile-small", "category": "mobile", "width": 360, "height": 800 }
+  ]
+}

@@ -1,5 +1,37 @@
 // @ts-nocheck
+import { createRequire } from "node:module";
+
 import { defineConfig, devices } from "@playwright/test";
+
+const require = createRequire(import.meta.url);
+const viewportManifest = require("../config/ui-viewports.json");
+
+const viewportByName = new Map(
+  viewportManifest.supported.map((viewport) => [viewport.name, viewport]),
+);
+const getViewport = (name: string) => {
+  const viewport = viewportByName.get(name);
+  if (!viewport) {
+    throw new Error(`Unknown viewport: ${name}`);
+  }
+  return viewport;
+};
+const baselineViewport = getViewport(viewportManifest.baseline);
+const viewportSize = (name: string) => {
+  const { width, height } = getViewport(name);
+  return { width, height };
+};
+
+const chromiumDevice = {
+  ...devices["Desktop Chrome"],
+  viewport: viewportSize(baselineViewport.name),
+};
+const responsiveProjects = viewportManifest.supported.map((viewport) => ({
+  name: `responsive-${viewport.name}`,
+  testMatch: /responsive\.spec\.ts/,
+  use: { ...chromiumDevice, viewport: viewportSize(viewport.name) },
+  metadata: { viewport: viewport.name, category: viewport.category },
+}));
 
 /**
  * See https://playwright.dev/docs/test-configuration.
@@ -49,38 +81,28 @@ export default defineConfig({
     projects: [
     {
       name: "chromium",
-      testIgnore: /dashboard\.spec\.ts/,
-      use: { ...devices["Desktop Chrome"] },
+      testIgnore: /dashboard\.spec\.ts|responsive\.spec\.ts/,
+      use: chromiumDevice,
+      metadata: { viewport: baselineViewport.name, category: baselineViewport.category },
     },
     {
       name: "dashboard-desktop",
       testMatch: /dashboard\.spec\.ts/,
-      use: { ...devices["Desktop Chrome"] },
+      use: chromiumDevice,
+      metadata: { viewport: baselineViewport.name, category: baselineViewport.category },
     },
     {
       name: "dashboard-tablet",
       testMatch: /dashboard\.spec\.ts/,
-      use: { ...devices["Desktop Chrome"], viewport: { width: 800, height: 1024 } },
+      use: { ...chromiumDevice, viewport: viewportSize("tablet-portrait") },
+      metadata: { viewport: "tablet-portrait", category: "tablet" },
     },
     {
       name: "dashboard-mobile",
       testMatch: /dashboard\.spec\.ts/,
-      use: { ...devices["Pixel 7"] },
+      use: { ...devices["Pixel 7"], viewport: viewportSize("mobile") },
+      metadata: { viewport: "mobile", category: "mobile" },
     },
-    {
-      name: "responsive-desktop",
-      testMatch: /responsive\.spec\.ts/,
-      use: { ...devices["Desktop Chrome"], viewport: { width: 1024, height: 768 } },
-    },
-    {
-      name: "responsive-mobile",
-      testMatch: /responsive\.spec\.ts/,
-      use: { ...devices["Pixel 7"] },
-    },
-    {
-      name: "responsive-tablet",
-      testMatch: /responsive\.spec\.ts/,
-      use: { ...devices["Desktop Chrome"], viewport: { width: 800, height: 1024 } },
-    },
+    ...responsiveProjects,
   ],
 });

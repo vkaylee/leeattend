@@ -38,7 +38,35 @@ case "$ROLE" in
   hr-manager) ROLE_GUIDANCE="Access only pages and actions permitted to an HR manager." ;;
   admin) ROLE_GUIDANCE="Access only pages and actions permitted to an administrator." ;;
 esac
-ROLE_INSTRUCTIONS="Use Playwright MCP only for UI tasks. This browser session starts unauthenticated; open ${ENDPOINT}/login before authentication. ${ROLE_GUIDANCE} Never bypass application authorization or inspect secrets, cookies, or storage tokens."
+VIEWPORT_MANIFEST="$ROOT/config/ui-viewports.json"
+if [[ ! -f "$VIEWPORT_MANIFEST" ]]; then
+  printf 'Missing viewport manifest: %s\n' "$VIEWPORT_MANIFEST" >&2
+  exit 1
+fi
+VIEWPORT_GUIDANCE="$($ROOT/scripts/_python.sh - "$VIEWPORT_MANIFEST" <<'PY'
+import json
+import sys
+
+with open(sys.argv[1], encoding="utf-8") as manifest_file:
+    manifest = json.load(manifest_file)
+
+baseline = next(
+    viewport for viewport in manifest["supported"]
+    if viewport["name"] == manifest["baseline"]
+)
+viewports = ", ".join(
+    f'{viewport["name"]}={viewport["width"]}x{viewport["height"]}'
+    for viewport in manifest["supported"]
+)
+print(
+    f'Viewport policy: default to {baseline["name"]} '
+    f'({baseline["width"]}x{baseline["height"]}); supported: {viewports}. '
+    'Before each UI scenario, announce selected viewport, call browser_resize, '
+    'then verify window.innerWidth and window.innerHeight.'
+)
+PY
+)"
+ROLE_INSTRUCTIONS="Use Playwright MCP only for UI tasks. This browser session starts unauthenticated; open ${ENDPOINT}/login before authentication. ${ROLE_GUIDANCE} Never bypass application authorization or inspect secrets, cookies, or storage tokens. ${VIEWPORT_GUIDANCE}"
 
 if [[ "$SUPERVISED" == false ]]; then
   PYTHON="$ROOT/.venv/bin/python3"
