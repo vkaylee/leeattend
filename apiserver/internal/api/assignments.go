@@ -261,6 +261,20 @@ func validAssignmentDate(value string) bool {
 	return err == nil
 }
 
+
+func validUpdateEmployeeAssignmentRequest(req UpdateEmployeeAssignmentRequest, err error) bool {
+	return err == nil && validUpdateEmployeeAssignmentFields(req) && validAssignmentReason(req)
+}
+
+func validUpdateEmployeeAssignmentFields(req UpdateEmployeeAssignmentRequest) bool {
+	return (req.Status == nil || req.Status.valid()) && (!req.EndDatePresent || req.EndDate == nil || *req.EndDate == nil || validAssignmentDate(**req.EndDate))
+}
+
+func validAssignmentReason(req UpdateEmployeeAssignmentRequest) bool {
+	return !req.ReasonPresent || req.Reason == nil || *req.Reason == nil || len(**req.Reason) <= 1<<20
+}
+
+
 func (h AssignmentHandler) assignmentError(w http.ResponseWriter, r *http.Request, err error) {
 	switch {
 	case errors.Is(err, ErrEmployeeAssignmentNotFound):
@@ -363,11 +377,7 @@ func (h AssignmentHandler) UpdateEmployeeAssignment(w http.ResponseWriter, r *ht
 		return
 	}
 	req, err := DecodeJSON[UpdateEmployeeAssignmentRequest](r, 1<<20)
-	if err != nil || (req.Status != nil && !req.Status.valid()) || (req.EndDatePresent && req.EndDate != nil && *req.EndDate != nil && !validAssignmentDate(**req.EndDate)) {
-		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
-		return
-	}
-	if req.ReasonPresent && req.Reason != nil && *req.Reason != nil && len(**req.Reason) > 1<<20 {
+	if !validUpdateEmployeeAssignmentRequest(req, err) {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}
