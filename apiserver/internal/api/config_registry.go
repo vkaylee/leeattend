@@ -42,7 +42,6 @@ var (
 	errConfigScopeID    = errors.New("config scope id is required or forbidden")
 	errConfigDate       = errors.New("config effective date is invalid")
 	errConfigDateRange  = errors.New("config effective date range is invalid")
-	errConfigValue      = errors.New("config value must contain exactly one type")
 )
 
 func configValueType(value ConfigValue) (ConfigValueType, bool) {

@@ -114,8 +114,6 @@ func (h EmploymentPhaseHandler) err(w http.ResponseWriter, r *http.Request, err 
 		apperror.WriteError(w, r, apperror.Internal(err))
 	}
 }
-func validPhaseDate(s string) bool { _, err := time.Parse("2006-01-02", s); return err == nil }
-
 func validPhaseDateRange(startDate, endDate string) bool {
 	start, startErr := time.Parse("2006-01-02", startDate)
 	end, endErr := time.Parse("2006-01-02", endDate)
