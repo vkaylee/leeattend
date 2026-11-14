@@ -21,6 +21,7 @@ PROJECT_NAME="${COMPOSE_PROJECT_NAME:-leeattend-test}"
 
 MODE="all"
 PACKAGE="./..."
+LINT_BASE_REF="${LINT_BASE_REF:-origin/main}"
 FIX=false
 while [ $# -gt 0 ]; do
     case "$1" in
@@ -28,10 +29,20 @@ while [ $# -gt 0 ]; do
         --unit-only) MODE="unit" ;;
         --fix) FIX=true ;;
         --package) PACKAGE="${2:-./...}"; shift ;;
+        --base-ref) LINT_BASE_REF="${2:-origin/main}"; shift ;;
         *) echo "unknown argument: $1" >&2; exit 2 ;;
     esac
     shift
 done
+
+LINT_BASE_COMMIT="$(git rev-parse --verify "${LINT_BASE_REF}^{commit}")" || {
+    echo "GATE FAIL: lint base ref not found: ${LINT_BASE_REF}" >&2
+    exit 1
+}
+LINT_GO_CHANGED=false
+if ! git diff --quiet "${LINT_BASE_COMMIT}" -- ':(glob)apiserver/**/*.go'; then
+    LINT_GO_CHANGED=true
+fi
 
 ENGINE=("podman-compose")
 if ! command -v podman-compose >/dev/null 2>&1; then
@@ -69,10 +80,15 @@ if [ "${MODE}" != "unit" ]; then
     echo "== staticcheck =="
     staticcheck ${PACKAGE} || fail "staticcheck"
 
-    # Existing complexity debt is report-only during gradual remediation.
-    # Tool/configuration failures still fail; lint findings do not block the gate.
     echo "== golangci-lint (complexity report) =="
-    golangci-lint run ${PACKAGE} --issues-exit-code=0 || fail "golangci-lint"
+    golangci-lint run ${PACKAGE} --issues-exit-code=0 || fail "golangci-lint report"
+
+    echo "== golangci-lint (new findings) =="
+    if [ "${LINT_GO_CHANGED}" != "true" ]; then
+        echo "No apiserver Go source changes relative to ${LINT_BASE_COMMIT}; new-finding scan skipped."
+    else
+        golangci-lint run ${PACKAGE} --new-from-rev="${LINT_BASE_COMMIT}" || fail "golangci-lint new findings"
+    fi
 
     echo "== govulncheck =="
     govulncheck ${PACKAGE} || fail "govulncheck"
@@ -94,4 +110,4 @@ echo "ALL GATES PASSED"
 GATES_EOF
 
 exec "${COMPOSE[@]}" exec -T -w /workspace/apiserver "$SERVICE" \
-    env MODE="$MODE" PACKAGE="$PACKAGE" FIX="$FIX" bash -c "$GATES"
+    env MODE="$MODE" PACKAGE="$PACKAGE" FIX="$FIX" LINT_BASE_COMMIT="$LINT_BASE_COMMIT" LINT_GO_CHANGED="$LINT_GO_CHANGED" bash -c "$GATES"
