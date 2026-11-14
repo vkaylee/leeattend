@@ -130,6 +130,30 @@ func (r ScheduleRepository) ListScheduleHistory(ctx context.Context, query api.S
 	return api.ScheduleHistoryResponse{Data: entries, NextCursor: cursor}, nil
 }
 
+func (r ScheduleRepository) ListScheduleShadowMismatches(ctx context.Context, employerID uuid.UUID, startDate, endDate string) ([]api.ScheduleShadowMismatch, error) {
+	db, err := r.db(ctx)
+	if err != nil {
+		return nil, err
+	}
+	rows, err := db.Query(ctx, `SELECT id, employer_id, employment_id, business_date::text, mismatch_kind, legacy_snapshot, resolver_snapshot, resolver_version, status, first_seen_at, last_seen_at, resolved_at, resolution_note
+		FROM schedule_shadow_mismatches
+		WHERE employer_id = $1 AND business_date BETWEEN $2::date AND $3::date
+		ORDER BY business_date ASC, employment_id ASC, id ASC`, employerID, startDate, endDate)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	result := make([]api.ScheduleShadowMismatch, 0)
+	for rows.Next() {
+		var mismatch api.ScheduleShadowMismatch
+		if err := rows.Scan(&mismatch.ID, &mismatch.EmployerID, &mismatch.EmploymentID, &mismatch.BusinessDate, &mismatch.MismatchKind, &mismatch.LegacySnapshot, &mismatch.ResolverSnapshot, &mismatch.ResolverVersion, &mismatch.Status, &mismatch.FirstSeenAt, &mismatch.LastSeenAt, &mismatch.ResolvedAt, &mismatch.ResolutionNote); err != nil {
+			return nil, err
+		}
+		result = append(result, mismatch)
+	}
+	return result, rows.Err()
+}
+
 func (r ScheduleRepository) GetScheduleEvidence(ctx context.Context, actorID, employmentID uuid.UUID, businessDate string) (api.ScheduleEvidenceResponse, error) {
 	db, err := r.db(ctx)
 	if err != nil {

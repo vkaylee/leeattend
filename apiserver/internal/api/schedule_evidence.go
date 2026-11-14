@@ -116,6 +116,22 @@ type ScheduleEvidenceDiffLink struct {
 	PreviousRevisionID *uuid.UUID `json:"previous_revision_id"`
 }
 
+type ScheduleShadowMismatch struct {
+	ID               uuid.UUID       `json:"id"`
+	EmployerID       uuid.UUID       `json:"employer_id"`
+	EmploymentID     uuid.UUID       `json:"employment_id"`
+	BusinessDate     string          `json:"business_date"`
+	MismatchKind     string          `json:"mismatch_kind"`
+	LegacySnapshot   json.RawMessage `json:"legacy_snapshot"`
+	ResolverSnapshot json.RawMessage `json:"resolver_snapshot"`
+	ResolverVersion  string          `json:"resolver_version"`
+	Status           string          `json:"status"`
+	FirstSeenAt      time.Time       `json:"first_seen_at"`
+	LastSeenAt       time.Time       `json:"last_seen_at"`
+	ResolvedAt       *time.Time      `json:"resolved_at"`
+	ResolutionNote   *string         `json:"resolution_note"`
+}
+
 type ScheduleEvidenceResponse struct {
 	EmploymentID uuid.UUID                     `json:"employment_id"`
 	BusinessDate string                        `json:"business_date"`
@@ -125,6 +141,10 @@ type ScheduleEvidenceResponse struct {
 	DiffChain    []ScheduleEvidenceDiffLink    `json:"diff_chain"`
 	AuditActions []ScheduleEvidenceAuditAction `json:"audit_actions"`
 	Events       []ScheduleEvidenceEvent       `json:"events"`
+}
+
+type ScheduleShadowMismatchRepository interface {
+	ListScheduleShadowMismatches(context.Context, uuid.UUID, string, string) ([]ScheduleShadowMismatch, error)
 }
 
 type ScheduleEvidenceRepository interface {
