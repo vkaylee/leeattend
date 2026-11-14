@@ -13,6 +13,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/shopspring/decimal"
 	"github.com/vkaylee/leeattend/apiserver/internal/apperror"
+	"github.com/vkaylee/leeattend/apiserver/internal/audit"
 	"github.com/vkaylee/leeattend/apiserver/internal/domain/payroll/formula"
 	httpinfra "github.com/vkaylee/leeattend/apiserver/internal/infra/http"
 )
@@ -1034,6 +1035,17 @@ func (h PayrollHandler) CreatePayrollInputBatch(w http.ResponseWriter, r *http.R
 		h.writeError(w, r, err)
 		return
 	}
+	h.emitPayrollAudit(r, audit.Event{
+		Name:     "payroll.input.submitted",
+		Resource: batch.ID.String(),
+		Outcome:  "success",
+		Details: map[string]string{
+			"batch_id":     batch.ID.String(),
+			"period_year":  strconv.Itoa(batch.PeriodYear),
+			"period_month": strconv.Itoa(batch.PeriodMonth),
+			"input_count":  strconv.Itoa(batch.InputCount),
+		},
+	})
 	apperror.WriteJSON(w, http.StatusCreated, batch)
 }
 
@@ -1150,6 +1162,17 @@ func (h PayrollHandler) CreatePayrollFormulaRule(w http.ResponseWriter, r *http.
 		h.writeError(w, r, err)
 		return
 	}
+	h.emitPayrollAudit(r, audit.Event{
+		Name:     "payroll.formula.created",
+		Resource: rule.ID.String(),
+		Outcome:  "success",
+		Details: map[string]string{
+			"rule_id":        rule.ID.String(),
+			"version_id":     rule.VersionID.String(),
+			"version":        strconv.Itoa(rule.Version),
+			"effective_from": rule.EffectiveFrom,
+		},
+	})
 	apperror.WriteJSON(w, http.StatusCreated, rule)
 }
 
@@ -1169,6 +1192,16 @@ func (h PayrollHandler) RetirePayrollFormulaRule(w http.ResponseWriter, r *http.
 		h.writeError(w, r, err)
 		return
 	}
+	h.emitPayrollAudit(r, audit.Event{
+		Name:     "payroll.formula.retired",
+		Resource: rule.ID.String(),
+		Outcome:  "success",
+		Details: map[string]string{
+			"rule_id":    rule.ID.String(),
+			"version_id": rule.VersionID.String(),
+			"version":    strconv.Itoa(rule.Version),
+		},
+	})
 	apperror.WriteJSON(w, http.StatusOK, rule)
 }
 
@@ -1188,6 +1221,17 @@ func (h PayrollHandler) PublishPayrollFormulaRule(w http.ResponseWriter, r *http
 		h.writeError(w, r, err)
 		return
 	}
+	h.emitPayrollAudit(r, audit.Event{
+		Name:     "payroll.formula.published",
+		Resource: rule.ID.String(),
+		Outcome:  "success",
+		Details: map[string]string{
+			"rule_id":        rule.ID.String(),
+			"version_id":     rule.VersionID.String(),
+			"version":        strconv.Itoa(rule.Version),
+			"effective_from": rule.EffectiveFrom,
+		},
+	})
 	apperror.WriteJSON(w, http.StatusOK, rule)
 }
 
@@ -1233,6 +1277,17 @@ func (h PayrollHandler) CorrectPayrollInput(w http.ResponseWriter, r *http.Reque
 		h.writeError(w, r, err)
 		return
 	}
+	h.emitPayrollAudit(r, audit.Event{
+		Name:     "payroll.input.corrected",
+		Resource: input.ID.String(),
+		Outcome:  "success",
+		Details: map[string]string{
+			"input_id":      input.ID.String(),
+			"employment_id": input.EmploymentID.String(),
+			"metric_code":   input.MetricCode,
+			"status":        input.Status,
+		},
+	})
 	apperror.WriteJSON(w, http.StatusOK, input)
 }
 
@@ -1288,6 +1343,19 @@ func (h PayrollHandler) transitionPayrollInputBatch(w http.ResponseWriter, r *ht
 		h.writeError(w, r, err)
 		return
 	}
+	eventName := "payroll.input.approved"
+	if action == "lock" {
+		eventName = "payroll.input.locked"
+	}
+	h.emitPayrollAudit(r, audit.Event{
+		Name:     eventName,
+		Resource: batch.ID.String(),
+		Outcome:  "success",
+		Details: map[string]string{
+			"batch_id": batch.ID.String(),
+			"status":   batch.Status,
+		},
+	})
 	apperror.WriteJSON(w, http.StatusOK, batch)
 }
 
@@ -1406,6 +1474,19 @@ func (h PayrollHandler) allowed(r *http.Request, permission string) bool {
 	u, ok := httpinfra.UserIDFromContext(r.Context())
 	return ok && h.Authorizer != nil && h.Authorizer.HasPermission(r.Context(), u, permission)
 }
+
+func (h PayrollHandler) emitPayrollAudit(r *http.Request, event audit.Event) {
+	if h.Audit == nil {
+		return
+	}
+	actorID, ok := httpinfra.UserIDFromContext(r.Context())
+	if !ok {
+		return
+	}
+	event.ActorID = actorID.String()
+	_ = h.Audit.Emit(r.Context(), event)
+}
+
 func (h PayrollHandler) forbidden(w http.ResponseWriter, r *http.Request) {
 	apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
 }

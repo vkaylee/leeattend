@@ -4,18 +4,30 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/shopspring/decimal"
+	"github.com/vkaylee/leeattend/apiserver/internal/audit"
 	httpinfra "github.com/vkaylee/leeattend/apiserver/internal/infra/http"
 )
 
 type mockPayrollRepository struct {
 	settingsNotFound bool
+}
+
+type payrollAuditRecorder struct {
+	events []audit.Event
+}
+
+func (r *payrollAuditRecorder) Emit(_ context.Context, event audit.Event) error {
+	r.events = append(r.events, event)
+	return nil
 }
 
 func (mockPayrollRepository) CreatePayrollInputBatch(_ context.Context, req CreatePayrollInputRequest, _ uuid.UUID) (PayrollInputBatch, error) {
@@ -1164,6 +1176,84 @@ func TestPayrollRuleAssignmentsEndpoints(t *testing.T) {
 	}
 }
 
+func TestPayrollInputAuditEventsAvoidSensitiveValues(t *testing.T) {
+	actorID := uuid.New()
+	employmentID := uuid.New()
+	auditRecorder := &payrollAuditRecorder{}
+	handler := PayrollHandler{
+		Repository: mockPayrollRepository{},
+		Authorizer: payrollAuthorizer{allowedPerms: map[string]bool{"payroll:inputs:manage": true, "payroll:manage": true}},
+		Audit:      auditRecorder,
+	}
+	body := `{"period_year":2026,"period_month":10,"source":"production","idempotency_key":"batch-1","inputs":[{"employment_id":"` + employmentID.String() + `","metric_code":"production.output","value":"950","unit":"product","source_reference":"internal-source"}]}`
+	createReq := httptest.NewRequest(http.MethodPost, "/api/v1/payroll/inputs/import", bytes.NewBufferString(body))
+	createReq = createReq.WithContext(httpinfra.WithUserIDForTest(createReq.Context(), actorID))
+	createRec := httptest.NewRecorder()
+	handler.CreatePayrollInputBatch(createRec, createReq)
+	if createRec.Code != http.StatusCreated {
+		t.Fatalf("create status = %d, want 201", createRec.Code)
+	}
+
+	inputID := uuid.New()
+	correctReq := httptest.NewRequest(http.MethodPost, "/api/v1/payroll/inputs/"+inputID.String()+"/correct", bytes.NewBufferString(`{"value":"1000","unit":"product","reason":"source correction"}`))
+	correctReq.SetPathValue("input_id", inputID.String())
+	correctReq = correctReq.WithContext(httpinfra.WithUserIDForTest(correctReq.Context(), actorID))
+	correctRec := httptest.NewRecorder()
+	handler.CorrectPayrollInput(correctRec, correctReq)
+	if correctRec.Code != http.StatusOK {
+		t.Fatalf("correct status = %d, want 200", correctRec.Code)
+	}
+
+	if len(auditRecorder.events) != 2 {
+		t.Fatalf("audit event count = %d, want 2", len(auditRecorder.events))
+	}
+	if auditRecorder.events[0].Name != "payroll.input.submitted" || auditRecorder.events[1].Name != "payroll.input.corrected" {
+		t.Fatalf("unexpected input events: %+v", auditRecorder.events)
+	}
+	for _, event := range auditRecorder.events {
+		if event.ActorID != actorID.String() {
+			t.Fatalf("unexpected actor: %+v", event)
+		}
+		if strings.Contains(fmt.Sprint(event.Details), "950") || strings.Contains(fmt.Sprint(event.Details), "1000") || strings.Contains(fmt.Sprint(event.Details), "source correction") {
+			t.Fatalf("sensitive input value leaked into audit details: %+v", event)
+		}
+	}
+}
+
+func TestPayrollInputLifecycleEmitsAuditEvents(t *testing.T) {
+	actorID := uuid.New()
+	batchID := uuid.New()
+	auditRecorder := &payrollAuditRecorder{}
+	authorizer := payrollAuthorizer{allowedPerms: map[string]bool{"payroll:inputs:manage": true, "payroll:approve": true, "payroll:manage": true}}
+	handler := PayrollHandler{Repository: mockPayrollRepository{}, Authorizer: authorizer, Audit: auditRecorder}
+
+	request := func(path string, action func(http.ResponseWriter, *http.Request)) {
+		req := httptest.NewRequest(http.MethodPost, path, nil)
+		req.SetPathValue("batch_id", batchID.String())
+		req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), actorID))
+		rec := httptest.NewRecorder()
+		action(rec, req)
+		if rec.Code != http.StatusOK {
+			t.Fatalf("%s status = %d, want 200", path, rec.Code)
+		}
+	}
+
+	request("/api/v1/payroll/inputs/"+batchID.String()+"/approve", handler.ApprovePayrollInputBatch)
+	request("/api/v1/payroll/inputs/"+batchID.String()+"/lock", handler.LockPayrollInputBatch)
+
+	if len(auditRecorder.events) != 2 {
+		t.Fatalf("audit event count = %d, want 2", len(auditRecorder.events))
+	}
+	if auditRecorder.events[0].Name != "payroll.input.approved" || auditRecorder.events[1].Name != "payroll.input.locked" {
+		t.Fatalf("unexpected lifecycle events: %+v", auditRecorder.events)
+	}
+	for _, event := range auditRecorder.events {
+		if event.ActorID != actorID.String() || event.Resource != batchID.String() {
+			t.Fatalf("unexpected audit context: %+v", event)
+		}
+	}
+}
+
 func TestPayrollInputImportValidatesAndAuthorizes(t *testing.T) {
 	employmentID := uuid.New()
 	body := `{"period_year":2026,"period_month":10,"source":"production","idempotency_key":"batch-1","inputs":[{"employment_id":"` + employmentID.String() + `","metric_code":"production.output","value":"950","unit":"product"}]}`
@@ -1182,6 +1272,53 @@ func TestPayrollInputImportValidatesAndAuthorizes(t *testing.T) {
 	}
 	if got := request(payrollAuthorizer{}, body).Code; got != http.StatusCreated {
 		t.Fatalf("valid status = %d, want 201", got)
+	}
+}
+
+func TestPayrollFormulaLifecycleEmitsAuditEvents(t *testing.T) {
+	actorID := uuid.New()
+	ruleID := uuid.New()
+	auditRecorder := &payrollAuditRecorder{}
+	handler := PayrollHandler{
+		Repository: mockPayrollRepository{},
+		Authorizer: payrollAuthorizer{allowedPerms: map[string]bool{"payroll:manage": true}},
+		Audit:      auditRecorder,
+	}
+
+	createReq := httptest.NewRequest(http.MethodPost, "/api/v1/payroll/formulas", bytes.NewBufferString(`{"code":"kpi.bonus","name":"KPI Bonus","component_code":"KPI_BONUS","expression":"actual * rate","effective_from":"2026-10-01"}`))
+	createReq = createReq.WithContext(httpinfra.WithUserIDForTest(createReq.Context(), actorID))
+	createRec := httptest.NewRecorder()
+	handler.CreatePayrollFormulaRule(createRec, createReq)
+	if createRec.Code != http.StatusCreated {
+		t.Fatalf("create status = %d, want 201", createRec.Code)
+	}
+
+	publishReq := httptest.NewRequest(http.MethodPost, "/api/v1/payroll/formulas/"+ruleID.String()+"/publish", nil)
+	publishReq.SetPathValue("rule_id", ruleID.String())
+	publishReq = publishReq.WithContext(httpinfra.WithUserIDForTest(publishReq.Context(), actorID))
+	publishRec := httptest.NewRecorder()
+	handler.PublishPayrollFormulaRule(publishRec, publishReq)
+	if publishRec.Code != http.StatusOK {
+		t.Fatalf("publish status = %d, want 200", publishRec.Code)
+	}
+
+	retireReq := httptest.NewRequest(http.MethodPost, "/api/v1/payroll/formulas/"+ruleID.String()+"/retire", nil)
+	retireReq.SetPathValue("rule_id", ruleID.String())
+	retireReq = retireReq.WithContext(httpinfra.WithUserIDForTest(retireReq.Context(), actorID))
+	retireRec := httptest.NewRecorder()
+	handler.RetirePayrollFormulaRule(retireRec, retireReq)
+	if retireRec.Code != http.StatusOK {
+		t.Fatalf("retire status = %d, want 200", retireRec.Code)
+	}
+
+	want := []string{"payroll.formula.created", "payroll.formula.published", "payroll.formula.retired"}
+	if len(auditRecorder.events) != len(want) {
+		t.Fatalf("audit event count = %d, want %d", len(auditRecorder.events), len(want))
+	}
+	for index, event := range auditRecorder.events {
+		if event.Name != want[index] || event.ActorID != actorID.String() {
+			t.Fatalf("unexpected formula audit event: %+v", event)
+		}
 	}
 }
 
