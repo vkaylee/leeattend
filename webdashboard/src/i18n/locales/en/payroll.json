@@ -293,7 +293,11 @@
       "active_assignments_count": "{{count}} active assignment(s) across all scopes"
     },
     "formula_history": {
+      "conflict": "Formula version conflicts with an existing version.",
+      "create_version": "Create draft version",
+      "effective_from": "Effective from",
       "empty": "No formula versions",
+      "expression": "Expression",
       "title": "Formula history"
     },
     "calculation_trace": {

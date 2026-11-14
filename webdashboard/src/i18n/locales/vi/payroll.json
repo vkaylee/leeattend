@@ -293,7 +293,11 @@
       "active_assignments_count": "Có {{count}} phân bổ đang hoạt động trên các phạm vi"
     },
     "formula_history": {
+      "conflict": "Phiên bản công thức bị trùng với phiên bản hiện có.",
+      "create_version": "Tạo phiên bản nháp",
+      "effective_from": "Ngày có hiệu lực",
       "empty": "Chưa có phiên bản công thức",
+      "expression": "Biểu thức",
       "title": "Lịch sử công thức"
     },
     "calculation_trace": {

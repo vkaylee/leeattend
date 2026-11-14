@@ -293,7 +293,11 @@
       "active_assignments_count": "在所有范围内有 {{count}} 个有效分配"
     },
     "formula_history": {
+      "conflict": "公式版本与现有版本冲突。",
+      "create_version": "创建草稿版本",
+      "effective_from": "生效日期",
       "empty": "暂无公式版本",
+      "expression": "表达式",
       "title": "公式历史"
     },
     "calculation_trace": {
