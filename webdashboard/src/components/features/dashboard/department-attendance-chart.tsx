@@ -12,11 +12,11 @@ import {
     YAxis,
 } from "recharts";
 
-import { Typography } from "@/components/ui/typography";
-import { DashboardChartError, useDashboardChartError } from "@/components/features/dashboard/dashboard-chart-state";
 import { ChartSummary } from "@/components/features/dashboard/chart-summary";
 import { ChartTableTwin, type ChartTableColumn } from "@/components/features/dashboard/chart-table-twin";
+import { DashboardChartError, useDashboardChartError } from "@/components/features/dashboard/dashboard-chart-state";
 import { DashboardDateRange } from "@/components/features/dashboard/dashboard-date-range";
+import { Typography } from "@/components/ui/typography";
 import { useDepartmentAttendance, type DepartmentAttendancePoint } from "@/hooks/use-dashboard";
 import { useOrganization } from "@/hooks/use-organization";
 
@@ -127,7 +127,7 @@ export default function DepartmentAttendanceChart() {
             ) : (
                 <>
                     <ChartSummary text={summary} />
-                    <div role="img" aria-label={summary}>
+                    <div aria-label={summary} role="img">
                         <ResponsiveContainer height={320} width="100%">
                             <BarChart data={chartData} layout="vertical" margin={{ top: 5, right: 30, left: 10, bottom: 5 }}>
                                 <CartesianGrid

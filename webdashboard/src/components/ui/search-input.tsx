@@ -12,16 +12,16 @@ import {
 
 export interface SearchInputProps
   extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'size'> {
-  /** Optional keyboard shortcut label (e.g., "⌘K" or "/") */
-  shortcut?: string;
-  /** Callback when clear (X) button is clicked */
-  onClear?: () => void;
-  /** Size variant */
-  size?: 'sm' | 'md' | 'lg';
   /** Extra container styling */
   containerClassName?: string;
   /** Show spinner instead of search icon */
   loading?: boolean;
+  /** Callback when clear (X) button is clicked */
+  onClear?: () => void;
+  /** Optional keyboard shortcut label (e.g., "⌘K" or "/") */
+  shortcut?: string;
+  /** Size variant */
+  size?: 'sm' | 'md' | 'lg';
 }
 
 const sizeClasses = CONTROL_SIZE_STYLES;
@@ -121,7 +121,7 @@ export const SearchInput = forwardRef<HTMLInputElement, SearchInputProps>(
         />
 
         {/* Clear button (when input has value) */}
-        {hasValue && (
+        {!!hasValue && (
           <button
             aria-label="Clear search input"
             className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md text-slate-400 hover:text-slate-700 dark:text-slate-500 dark:hover:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-slate-800 transition-colors"
@@ -134,7 +134,7 @@ export const SearchInput = forwardRef<HTMLInputElement, SearchInputProps>(
         )}
 
         {/* Shortcut badge (e.g. ⌘K or /) */}
-        {shortcut && !hasValue && (
+        {!!shortcut && !hasValue && (
           <kbd className="pointer-events-none shrink-0 select-none rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-1.5 py-0.5 text-[10px] font-mono font-medium text-slate-400 dark:text-slate-500 shadow-2xs">
             {shortcut}
           </kbd>
@@ -183,7 +183,7 @@ export const SearchTriggerButton = forwardRef<HTMLButtonElement, SearchTriggerBu
         <Search className="h-3.5 w-3.5 text-slate-400 dark:text-slate-500 transition-colors group-hover:text-primary-500" />
         <span className="truncate font-medium">{placeholder}</span>
       </span>
-      {shortcut && (
+      {!!shortcut && (
         <kbd className="shrink-0 rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-1.5 py-0.5 text-[10px] font-mono font-semibold text-slate-400 dark:text-slate-500 shadow-2xs">
           {shortcut}
         </kbd>

@@ -3,50 +3,50 @@
 
 /** A percentage rate plus its raw numerator/denominator. `value` is null when the denominator is zero. */
 export interface RateQuantity {
-  value: string | null;
-  numerator: number;
   denominator: number;
+  numerator: number;
   unit: string;
+  value: string | null;
 }
 
 export interface OrganizationStats {
+  absence_rate: RateQuantity;
   absent_today: number;
+  attendance_rate: RateQuantity;
   avg_work_hours_today: number;
   early_departure_today: number;
   estimated_monthly_payroll: string;
+  late_rate: RateQuantity;
   late_today: number;
   on_leave_today: number;
   pending_leave_requests: number;
   present_today: number;
   total_employees: number;
-  attendance_rate: RateQuantity;
-  absence_rate: RateQuantity;
-  late_rate: RateQuantity;
 }
 
 export interface AttendanceTrendPoint {
+  absence_rate: RateQuantity;
   absent: number;
+  attendance_rate: RateQuantity;
   date: string;
+  eligible: number;
   late: number;
+  late_rate: RateQuantity;
   on_leave: number;
   present: number;
-  eligible: number;
-  attendance_rate: RateQuantity;
-  absence_rate: RateQuantity;
-  late_rate: RateQuantity;
 }
 
 export interface DepartmentAttendancePoint {
+  absence_rate: RateQuantity;
   absent: number;
+  attendance_rate: RateQuantity;
   department_id: string;
   department_name: string;
   late: number;
+  late_rate: RateQuantity;
   on_leave: number;
   on_time: number;
   total_employees: number;
-  attendance_rate: RateQuantity;
-  absence_rate: RateQuantity;
-  late_rate: RateQuantity;
 }
 
 export interface UnexcusedAbsencesPoint {
@@ -114,10 +114,10 @@ export interface TurnoverRate {
 
 export interface TurnoverComparison {
   basis: "none" | "previous_period" | "same_period_last_year" | "target" | "budget" | "benchmark";
-  period_start: string;
-  period_end: string;
-  rate: TurnoverRate | null;
   delta_percentage_points: string | null;
+  period_end: string;
+  period_start: string;
+  rate: TurnoverRate | null;
 }
 
 export interface TurnoverWarning {
@@ -172,70 +172,70 @@ export interface TurnoverTarget {
 }
 
 export interface TurnoverAnalytics {
-  by_department: TurnoverByDepartment[];
-  by_source: TurnoverBySource[];
-  period_end: string;
-  period_start: string;
-  tenure_distribution: TurnoverTenureBucket[];
-  total_terminated: number;
-  turnover_rate: TurnoverRate;
   average_headcount: number;
-  voluntary_count: number;
-  involuntary_count: number;
-  unknown_classification_count: number;
-  retention_rate: string | null;
-  early_attrition: TurnoverRate;
-  regrettable_attrition: string | null;
-  comparison: TurnoverComparison | null;
-  target: TurnoverTarget;
-  monthly_trend: TurnoverTrendPoint[];
-  cohort_retention: CohortRetentionRow[];
-  termination_reasons: TurnoverReasonRow[];
-  classification: TurnoverClassification[];
+  by_department: TurnoverByDepartment[];
   by_employment_type: TurnoverByEmploymentType[];
   by_location: TurnoverByLocation[];
   by_manager: TurnoverByManager[];
+  by_source: TurnoverBySource[];
+  classification: TurnoverClassification[];
+  cohort_retention: CohortRetentionRow[];
+  comparison: TurnoverComparison | null;
+  early_attrition: TurnoverRate;
+  involuntary_count: number;
+  monthly_trend: TurnoverTrendPoint[];
+  period_end: string;
+  period_start: string;
+  regrettable_attrition: string | null;
+  retention_rate: string | null;
+  target: TurnoverTarget;
+  tenure_distribution: TurnoverTenureBucket[];
+  termination_reasons: TurnoverReasonRow[];
+  total_terminated: number;
+  turnover_rate: TurnoverRate;
+  unknown_classification_count: number;
+  voluntary_count: number;
   warnings: TurnoverWarning[];
 }
 
 /** One source row in the recruitment effectiveness ranking. */
 export interface RecruitmentEffectivenessSource {
-  source_id: string | null;
-  source_type: string;
-  source_name: string;
+  cost_per_hire: string | null;
+  cost_per_hire_available: boolean;
   hires: number;
   hires_ratio: string | null;
   retained_90d: number;
   retention_90d: string | null;
-  cost_per_hire: string | null;
-  cost_per_hire_available: boolean;
+  source_id: string | null;
+  source_name: string;
+  source_type: string;
   turnover_in_range: number;
 }
 
 /** One stage of the honest conversion funnel. `count` null = no data source. */
 export interface RecruitmentFunnelStage {
-  stage: string;
+  conversion_rate: string | null;
   count: number | null;
   data_source: string | null;
-  conversion_rate: string | null;
+  stage: string;
 }
 
 /** Overview KPIs for the recruitment effectiveness dashboard. */
 export interface RecruitmentEffectivenessOverview {
-  hires: number;
   average_cost_per_hire: string | null;
+  comparison_hires: number | null;
+  comparison_hires_delta: number | null;
   cost_available: boolean;
+  hires: number;
   retained_90d: number;
   retention_90d: string | null;
   turnover_in_range: number;
-  comparison_hires: number | null;
-  comparison_hires_delta: number | null;
 }
 
 /** One month bucket in the monthly hires trend. */
 export interface RecruitmentTrendPoint {
-  month: string;
   hires: number;
+  month: string;
 }
 
 /** One unavailable metric — a self-describing data-availability gap. */
@@ -246,35 +246,35 @@ export interface RecruitmentDataGap {
 
 /** Combined recruitment effectiveness analytics response. */
 export interface RecruitmentEffectivenessAnalytics {
-  period_start: string;
-  period_end: string;
-  total_hires: number;
-  overview: RecruitmentEffectivenessOverview;
-  funnel: RecruitmentFunnelStage[];
   by_source: RecruitmentEffectivenessSource[];
-  hires_trend: RecruitmentTrendPoint[];
   data_gaps: RecruitmentDataGap[];
+  funnel: RecruitmentFunnelStage[];
+  hires_trend: RecruitmentTrendPoint[];
+  overview: RecruitmentEffectivenessOverview;
+  period_end: string;
+  period_start: string;
+  total_hires: number;
   warnings: TurnoverWarning[];
 }
 
 /** One department row in the overtime-breakdown endpoint. */
 export interface OvertimeBreakdownRow {
+  approved_ot_hours: number;
+  cost_available: boolean;
   department_id: string;
   department_name: string;
-  system_ot_hours: number;
-  approved_ot_hours: number;
-  unapproved_ot_hours: number;
   overtime_cost: string | null;
-  cost_available: boolean;
+  system_ot_hours: number;
+  unapproved_ot_hours: number;
 }
 
 /** Envelope returned by `GET /api/v1/dashboard/overtime-breakdown`. */
 export interface OvertimeBreakdownResponse {
   contract_version: "overtime-breakdown.v2";
+  generated_at: string;
   organization: {
     timezone: string;
     currency: string;
   };
   rows: OvertimeBreakdownRow[];
-  generated_at: string;
 }

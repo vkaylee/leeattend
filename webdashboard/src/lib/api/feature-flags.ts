@@ -1,18 +1,18 @@
 import { fetch as apiFetch, client } from "./client";
 
 export interface FeatureFlag {
-  id: string;
-  flag_key: string;
-  enabled: boolean;
-  description: string | null;
-  metadata: Record<string, unknown>;
   created_at: string;
+  description: string | null;
+  enabled: boolean;
+  flag_key: string;
+  id: string;
+  metadata: Record<string, unknown>;
   updated_at: string;
 }
 
 export interface EffectiveFeatureFlag {
-  key: string;
   enabled: boolean;
+  key: string;
 }
 
 export async function fetchFeatureFlags(): Promise<FeatureFlag[]> {

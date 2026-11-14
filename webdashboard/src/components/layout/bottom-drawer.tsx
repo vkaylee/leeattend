@@ -12,8 +12,8 @@ import { Typography } from "@/components/ui/typography";
 import { useDarkModeContext } from "@/context/use-dark-mode-context";
 import { useFocusTrap } from "@/hooks/use-focus-trap";
 import { useLanguage } from "@/hooks/use-language";
-import { useScrollLock } from "@/hooks/use-scroll-lock";
 import { useFilteredMenuItems, getActiveNavGroup } from "@/hooks/use-nav-menu-items";
+import { useScrollLock } from "@/hooks/use-scroll-lock";
 import { ROUTES } from "@/lib/routes";
 import { cn } from "@/lib/utils";
 
@@ -187,14 +187,14 @@ export default function BottomDrawer({ isOpen, onClose }: BottomDrawerProps) {
         {/* Quick Command Palette Trigger on Mobile */}
         <div className="px-4 pt-3 pb-1 shrink-0">
           <Button
-            type="button"
-            variant="ghost"
+            className="w-full h-auto flex items-center justify-between p-3.5 rounded-2xl bg-gradient-to-r from-primary-600 to-indigo-600 text-white shadow-md hover:from-primary-700 hover:to-indigo-700 active:scale-[0.98] transition-all text-left group"
+            data-testid="bottom-drawer-launcher-trigger"
             onClick={() => {
               onClose();
               openCommandPalette();
             }}
-            className="w-full h-auto flex items-center justify-between p-3.5 rounded-2xl bg-gradient-to-r from-primary-600 to-indigo-600 text-white shadow-md hover:from-primary-700 hover:to-indigo-700 active:scale-[0.98] transition-all text-left group"
-            data-testid="bottom-drawer-launcher-trigger"
+            type="button"
+            variant="ghost"
           >
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 rounded-xl bg-white/20 flex items-center justify-center shrink-0">

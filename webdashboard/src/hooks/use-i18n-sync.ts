@@ -1,9 +1,9 @@
 import { useEffect, useRef, type RefObject } from 'react';
 import { useTranslation } from 'react-i18next';
 
+import { useOrganization } from "@/hooks/use-organization";
 
 import { useProfile } from './use-profile';
-import { useOrganization } from "@/hooks/use-organization";
 interface SyncLangOptions {
   currentOrganizationDefaultLang?: string;
   hasInitialized: RefObject<boolean>;

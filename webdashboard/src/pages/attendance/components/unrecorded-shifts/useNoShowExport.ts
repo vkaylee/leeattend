@@ -1,4 +1,4 @@
-/* eslint-disable complexity, unicorn/filename-case */
+/* eslint-disable unicorn/filename-case */
 import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -14,10 +14,10 @@ import { zoneLabel } from "./utils";
 
 interface UseNoShowExportParams { employeeMap: Map<string, { department_name: string; employee_id_number: string }>;
 fetchNextPage: () => Promise<unknown>;
+organizationTimezone: string;
 queryKey: unknown[];
 selectedDate: string;
-selectedDept: string;
-organizationTimezone: string;  }
+selectedDept: string;  }
 
 interface UseNoShowExportReturn {
   /** Start the export. Idempotent while already exporting. */

@@ -1,5 +1,8 @@
 import { format } from "date-fns";
 import { enUS } from "date-fns/locale";
+
+import { useOrganization } from "@/hooks/use-organization";
+
 import {
   LOCALE_MAP,
   formatDateOnly,
@@ -10,7 +13,6 @@ import {
   formatDateTimeLocaleOnly,
 } from "./use-datetime-utils";
 import { useLanguage } from "./use-language";
-import { useOrganization } from "@/hooks/use-organization";
 
 /**
  * Hook providing locale- and organization-aware date/time formatters.

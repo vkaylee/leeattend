@@ -14,7 +14,6 @@ import {
   ClipboardCheck,
   ArrowLeftRight,
   BarChart3,
-  CheckCircle,
   CalendarRange,
   Zap,
   DollarSign,

@@ -2,8 +2,8 @@ import { renderHook, act } from '@testing-library/react';
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
-import { useTheme } from '../use-theme';
 import * as useOrganizationHook from '../use-organization';
+import { useTheme } from '../use-theme';
 
 // Mock useOrganization
 vi.mock('../use-organization', () => ({

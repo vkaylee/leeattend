@@ -29,7 +29,7 @@ export function ReportsHeader({
       actions={
         <div className="flex items-center gap-3 flex-wrap">
           {/* View Mode Switcher (Matrix Grid vs Summary Hours) */}
-          {onViewModeChange && (
+          {!!onViewModeChange && (
             <div
               aria-label={t("reports.view_mode_group", "Chế độ xem báo cáo")}
               className="flex items-center bg-slate-100 dark:bg-slate-800/80 p-1 rounded-2xl border border-slate-200 dark:border-slate-700"

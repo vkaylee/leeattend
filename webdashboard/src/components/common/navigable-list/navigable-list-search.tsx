@@ -21,7 +21,7 @@ export function NavigableListSearchContent({
         data-testid={searchTestId}
         onChange={(e) => onSearchChange?.(e.target.value)}
         onClear={() => onSearchChange?.("")}
-        onFocus={(e) => e.target.select()}
+        onFocus={(e) => { e.target.select(); }}
         onKeyDown={listNav.onKeyDown}
         placeholder={searchPlaceholder}
         ref={searchInputRef}

@@ -214,8 +214,8 @@ export const PermissionTableRow = ({
 interface MobilePermissionRoleSectionProps {
   defaultExpanded: boolean;
   hasManagePermission: boolean;
-  permissions: Record<string, string[]>;
   permissionGroups: PermissionCatalogGroup[];
+  permissions: Record<string, string[]>;
   role: OrganizationRole;
   togglePermission: (role: OrganizationRole, permId: string) => void;
 }

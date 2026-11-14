@@ -2,8 +2,6 @@ import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
 
 import { useOrganizationQuery } from "@/hooks/common/use-organization-query";
-import { employeeKeys } from "@/lib/query-keys";
-
 import { MAX_EMPLOYEE_FETCH } from "@/hooks/use-employees";
 import {
   fetchEmployees,
@@ -13,6 +11,7 @@ import {
   fetchAttendanceAdjustments,
   Employee,
 } from "@/lib/api";
+import { employeeKeys } from "@/lib/query-keys";
 
 interface UsePayrollDataOptions { calcMonth: number;
 calcYear: number;

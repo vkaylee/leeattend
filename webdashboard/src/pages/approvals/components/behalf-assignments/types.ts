@@ -20,8 +20,8 @@ targetEmployeeId: string;
 targetType: "employee" | "department";  }
 
 export interface AssignmentItemProps {
-  assignment: BehalfAssignment;
   assignees: OrganizationMember[];
+  assignment: BehalfAssignment;
   assignmentType: AssignmentType;
   departments: {
     description?: string | null;

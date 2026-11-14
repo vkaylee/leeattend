@@ -85,9 +85,7 @@ export function TeamScheduleImpactCard({
           </span>
         </div>
         <p className="text-amber-800/90 dark:text-amber-300/80">
-          {departmentName && (
-            <span className="font-medium">[{departmentName}] </span>
-          )}
+          {!!departmentName && <span className="font-medium">[{departmentName}] </span>}
           {t("approvals.impact.away_list", "Đã có người nghỉ phép:")}{" "}
           <span className="font-semibold underline">
             {colleaguesAwayNames.join(", ")}

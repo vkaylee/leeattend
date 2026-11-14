@@ -1,14 +1,15 @@
-import { History } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
+import { History } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
-import { fetchPayrollFormulaVersions } from "@/lib/api/payroll";
 import { Typography } from "@/components/ui/typography";
+import { fetchPayrollFormulaVersions } from "@/lib/api/payroll";
+import { payrollKeys } from "@/lib/query-keys";
 
 export function PayrollFormulaHistory({ ruleId }: { ruleId: string }) {
   const { t } = useTranslation();
   const { data, isLoading, isError } = useQuery({
-    queryKey: ["payroll-formula-versions", ruleId],
+    queryKey: payrollKeys.formulaVersions(ruleId),
     queryFn: () => fetchPayrollFormulaVersions(ruleId),
   });
 
@@ -22,10 +23,10 @@ export function PayrollFormulaHistory({ ruleId }: { ruleId: string }) {
         <div className="rounded-xl border border-slate-200 p-4 dark:border-slate-700" key={version.version_id}>
           <div className="flex items-center gap-2">
             <History className="h-4 w-4 text-primary-600" />
-            <Typography variant="p" className="font-semibold">v{version.version} · {version.status}</Typography>
+            <Typography className="font-semibold" variant="p">v{version.version} · {version.status}</Typography>
           </div>
           <code className="mt-2 block rounded-lg bg-slate-50 p-2 text-xs dark:bg-slate-800">{version.expression}</code>
-          <Typography variant="small" className="mt-2 block text-slate-500">{version.effective_from}</Typography>
+          <Typography className="mt-2 block text-slate-500" variant="small">{version.effective_from}</Typography>
         </div>
       ))}
     </div>

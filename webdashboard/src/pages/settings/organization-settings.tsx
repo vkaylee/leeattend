@@ -4,7 +4,6 @@ import { useTranslation } from "react-i18next";
 
 import { SettingsHeader } from "@/components/ui/settings/settings-header";
 import { SettingsSegmentedControl } from "@/components/ui/settings/settings-segmented-control";
-import { Typography } from "@/components/ui/typography";
 
 import EmployersPage from "./employers-page";
 
@@ -25,7 +24,7 @@ export default function OrganizationSettings() {
 
       <div className="overflow-x-auto max-w-full pb-1">
         <SettingsSegmentedControl
-          onChange={(val) => setActiveTab(val as TabType)}
+          onChange={(val) => { setActiveTab(val); }}
           options={[
             {
               icon: <Briefcase size={14} />,

@@ -1,10 +1,11 @@
-import React, { useMemo } from "react";
 import { KeyRound } from "lucide-react";
+import React, { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 
 import { permissionGroupIcons } from "@/lib/permission-groups";
 
 import type { PermissionCatalogItem, OrganizationRole } from "../../../lib/api/types";
+import type { PermissionCatalogGroup } from "./permissions-matrix-subcomponents";
 
 import {
   MobilePermissionRoleSection,
@@ -15,16 +16,14 @@ import {
   ScrollVisualCues,
 } from "./permissions-matrix-subcomponents";
 
-import type { PermissionCatalogGroup } from "./permissions-matrix-subcomponents";
-
 interface PermissionsMatrixProps {
   canScrollLeft: boolean;
-  catalog: PermissionCatalogItem[];
-  isCatalogError: boolean;
-  isCatalogLoading: boolean;
   canScrollRight: boolean;
+  catalog: PermissionCatalogItem[];
   handleScroll: () => void;
   hasManagePermission: boolean;
+  isCatalogError: boolean;
+  isCatalogLoading: boolean;
   isMatrixLoading: boolean;
   isRolesLoading: boolean;
   permissions: Record<string, string[]>;

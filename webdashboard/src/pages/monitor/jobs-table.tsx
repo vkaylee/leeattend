@@ -336,9 +336,9 @@ export function JobsTable({ uniqueTypes, t }: JobsTableProps) {
 
                       return (
                         <tr
+                          aria-label={t("monitor.open_job_details", { defaultValue: "Open job details" })}
                           className="cursor-pointer border-t border-slate-50 motion-safe:transition-colors hover:bg-slate-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary-500 dark:border-slate-800 dark:hover:bg-slate-800/50"
                           key={job.job_id}
-                          aria-label={t("monitor.open_job_details", { defaultValue: "Open job details" })}
                           onClick={() => { setSelectedJob(job); }}
                           onKeyDown={(e) => {
                             if (e.key === "Enter" || e.key === " ") {

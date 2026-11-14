@@ -1,4 +1,4 @@
-import { Briefcase, ChevronRight, Clock3, Palmtree } from "lucide-react";
+import { ChevronRight, Clock3, Palmtree } from "lucide-react";
 import React, { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -177,7 +177,6 @@ export function ReportsTable(props: ReportsTableProps) {
         maxHeightClass=""
         onKeyDownRef={keyDownRef}
         onSelect={(row) => { handleEmployeeClick(row.employee_id, row.employee_name, row.employer_id); }}
-        searchInputRef={searchInputRef}
         renderMobileCard={(row) => (
           <ReportMobileCard
             onSelect={() => { handleEmployeeClick(row.employee_id, row.employee_name, row.employer_id); }}
@@ -187,6 +186,7 @@ export function ReportsTable(props: ReportsTableProps) {
         )}
         resetDeps={[searchQuery, filterMode, specificMonth, dateRange]}
         rowIdPrefix="summary-row"
+        searchInputRef={searchInputRef}
         showChevron
       />
     </div>

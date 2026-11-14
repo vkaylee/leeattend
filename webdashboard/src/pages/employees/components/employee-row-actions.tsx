@@ -3,6 +3,8 @@ import { ArrowLeftRight, Eye, MoreHorizontal, Pencil, UserMinus, UserPlus } from
 import React from "react";
 import { useTranslation } from "react-i18next";
 
+import type { Employee } from "@/lib/api/types";
+
 import PermissionGate from "@/components/common/permission-gate";
 import Button from "@/components/ui/button";
 import {
@@ -12,7 +14,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import type { Employee } from "@/lib/api/types";
+
 import type { EmployeeModalState } from "../types/employee-modals";
 
 interface EmployeeRowActionsProps {

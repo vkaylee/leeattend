@@ -2,6 +2,7 @@ import { Link } from "@tanstack/react-router";
 import { BarChart3, Download, Upload } from "lucide-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
+
 import PermissionGate from "@/components/common/permission-gate";
 import Button from "@/components/ui/button";
 import { PageHeader } from "@/components/ui/page-header";

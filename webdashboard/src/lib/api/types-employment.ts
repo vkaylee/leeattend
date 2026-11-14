@@ -46,16 +46,11 @@ export interface ScheduleTrace {
 
 export interface EffectiveSchedule {
   allow_early_ot?: boolean | null;
-  closed?: boolean;
-  published_at?: string | null;
-  provisional?: boolean;
-  revision_id?: string | null;
-  revision_number?: number | null;
-  schedule_status?: string | null;
   break_duration_minutes?: number | null;
   break_end?: string | null;
   break_is_overtime?: boolean | null;
   break_start?: string | null;
+  closed?: boolean;
   date: string;
   early_punch_in_grace_period_minutes?: number | null;
   end_time?: string | null;
@@ -64,6 +59,11 @@ export interface EffectiveSchedule {
   is_holiday?: boolean;
   is_holiday_paid?: boolean;
   max_early_ot_minutes?: number | null;
+  provisional?: boolean;
+  published_at?: string | null;
+  revision_id?: string | null;
+  revision_number?: number | null;
+  schedule_status?: string | null;
   shift_id?: string | null;
   shift_name?: string | null;
   shift_symbol?: string | null;

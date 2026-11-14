@@ -5,9 +5,9 @@ import type { CreateWorkingConditionRequest, WorkingCondition } from "./types";
 import { client } from "./client";
 
 export interface WorkingConditionWithEmployee extends WorkingCondition {
+  employee_code?: string;
   employee_id: string;
   employee_name: string;
-  employee_code?: string;
 }
 
 type WorkingConditionWire = WorkingCondition;

@@ -9,8 +9,8 @@ import type { RawAttendanceLog, Employee } from "@/lib/api/types";
 import type { AttendanceLogsSearch } from "@/pages/attendance/search-schema";
 
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
-import { useAllEmployees } from "@/hooks/use-employees";
 import { useDepartments } from "@/hooks/use-departments";
+import { useAllEmployees } from "@/hooks/use-employees";
 import { useInfiniteScroll } from "@/hooks/use-infinite-scroll";
 import {
   fetchRawAttendanceLogs,

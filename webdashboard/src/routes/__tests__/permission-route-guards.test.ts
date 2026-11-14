@@ -25,8 +25,8 @@ vi.mock("react-i18next", () => ({
 }));
 
 import { Route as InfraRoute } from "../_authenticated/_infra";
-import { Route as ContractsRoute } from "../_authenticated/_organization/contracts";
 import { Route as AssignmentsRoute } from "../_authenticated/_organization/assignments";
+import { Route as ContractsRoute } from "../_authenticated/_organization/contracts";
 import { Route as EmployeeDetailRoute } from "../_authenticated/_organization/employees_.$employeeId";
 import { Route as LifecycleRoute } from "../_authenticated/_organization/lifecycle";
 import { Route as SalaryManagementRoute } from "../_authenticated/_organization/salary-management";

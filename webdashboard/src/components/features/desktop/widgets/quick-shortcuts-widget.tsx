@@ -2,16 +2,17 @@ import { Link } from "@tanstack/react-router";
 import { Clock, CalendarPlus, Zap, Banknote, ChevronRight } from "lucide-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
+
 import { ROUTES } from "@/lib/routes";
 
 interface ShortcutItem {
-  to: string;
-  titleKey: string;
-  titleFallback: string;
-  descKey: string;
   descFallback: string;
-  icon: React.ElementType;
+  descKey: string;
   gradient: string;
+  icon: React.ElementType;
+  titleFallback: string;
+  titleKey: string;
+  to: string;
 }
 
 const SHORTCUTS: ShortcutItem[] = [
@@ -65,10 +66,10 @@ export function QuickShortcutsWidget() {
           const desc = t(item.descKey, { defaultValue: item.descFallback });
           return (
             <Link
-              key={item.to}
-              to={item.to}
               aria-label={`${title}: ${desc}`}
               className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50/70 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800/60 hover:bg-white dark:hover:bg-slate-800 hover:shadow-2xs hover:border-slate-200 dark:hover:border-slate-700 transition-all text-xs group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              key={item.to}
+              to={item.to}
             >
               <div className="flex items-center gap-2.5 min-w-0">
                 <div

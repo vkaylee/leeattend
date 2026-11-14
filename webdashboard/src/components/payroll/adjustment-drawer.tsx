@@ -7,6 +7,7 @@ import Button from "@/components/ui/button";
 import { Typography } from "@/components/ui/typography";
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
 import { fetchAttendanceAdjustments, approveAttendanceAdjustment } from "@/lib/api";
+import { attendanceKeys } from "@/lib/query-keys";
 
 import Sheet from "../ui/sheet";
 import { useToast } from "../ui/toast";
@@ -33,7 +34,7 @@ export default function AdjustmentDrawer({
   const toast = useToast();
   const { formatDate, formatTime } = useDateTimeFormatter();
 
-  const { data: paginatedAdjustments, isLoading } = useQuery({ queryKey: ["adjustments", "pending"], queryFn: () => fetchAttendanceAdjustments({ status: "pending" }),
+  const { data: paginatedAdjustments, isLoading } = useQuery({ queryKey: attendanceKeys.pendingAdjustments(), queryFn: () => fetchAttendanceAdjustments({ status: "pending" }),
   enabled: isOpen , });
 
   const employeeAdjustments = useMemo(() => {
@@ -42,10 +43,10 @@ export default function AdjustmentDrawer({
   }, [paginatedAdjustments, employmentId]);
 
   const resolveMutation = useMutation({
-    mutationFn: (data: { id: string; status: "approved" | "rejected" }) => 
+    mutationFn: (data: { id: string; status: "approved" | "rejected" }) =>
       approveAttendanceAdjustment(data.id, { status: data.status }),
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ["adjustments"] });
+      void queryClient.invalidateQueries({ queryKey: attendanceKeys.all() });
       toast.success(t("common.success"));
       if (onAdjustmentResolved) onAdjustmentResolved();
     },

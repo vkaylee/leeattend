@@ -135,8 +135,8 @@ describe("PayslipDocument", () => {
     const { container } = renderWithProviders(
       <PayslipDocument
         employee={createMockEmployee()}
-        payslip={createMockPayslip()}
         organization={createMockOrganization()}
+        payslip={createMockPayslip()}
       />
     );
 
@@ -149,8 +149,8 @@ describe("PayslipDocument", () => {
     renderWithProviders(
       <PayslipDocument
         employee={createMockEmployee()}
-        payslip={createMockPayslip()}
         organization={createMockOrganization({ name: "Tech Corp Vietnam" })}
+        payslip={createMockPayslip()}
       />
     );
 
@@ -163,8 +163,8 @@ describe("PayslipDocument", () => {
     renderWithProviders(
       <PayslipDocument
         employee={createMockEmployee()}
-        payslip={createMockPayslip()}
         organization={null}
+        payslip={createMockPayslip()}
       />
     );
 
@@ -175,8 +175,8 @@ describe("PayslipDocument", () => {
     renderWithProviders(
       <PayslipDocument
         employee={createMockEmployee()}
-        payslip={createMockPayslip()}
         organization={createMockOrganization()}
+        payslip={createMockPayslip()}
       />
     );
 
@@ -194,8 +194,8 @@ describe("PayslipDocument", () => {
           employee_id_number: "EMP001",
           department_name: "Engineering",
         })}
-        payslip={createMockPayslip()}
         organization={createMockOrganization()}
+        payslip={createMockPayslip()}
       />
     );
 
@@ -210,8 +210,8 @@ describe("PayslipDocument", () => {
     renderWithProviders(
       <PayslipDocument
         employee={createMockEmployee()}
-        payslip={createMockPayslip({ net_pay_amount: "10000000" })}
         organization={createMockOrganization()}
+        payslip={createMockPayslip({ net_pay_amount: "10000000" })}
       />
     );
 
@@ -278,8 +278,8 @@ describe("PayslipDocument", () => {
     renderWithProviders(
       <PayslipDocument
         employee={createMockEmployee()}
-        payslip={payslip}
         organization={createMockOrganization()}
+        payslip={payslip}
       />
     );
 
@@ -331,8 +331,8 @@ describe("PayslipDocument", () => {
     renderWithProviders(
       <PayslipDocument
         employee={createMockEmployee()}
-        payslip={payslip}
         organization={createMockOrganization()}
+        payslip={payslip}
       />
     );
 
@@ -372,8 +372,8 @@ describe("PayslipDocument", () => {
     renderWithProviders(
       <PayslipDocument
         employee={createMockEmployee()}
-        payslip={payslip}
         organization={createMockOrganization()}
+        payslip={payslip}
       />
     );
 
@@ -400,8 +400,8 @@ describe("PayslipDocument", () => {
     renderWithProviders(
       <PayslipDocument
         employee={createMockEmployee()}
-        payslip={payslip}
         organization={createMockOrganization()}
+        payslip={payslip}
       />
     );
 
@@ -413,11 +413,11 @@ describe("PayslipDocument", () => {
     renderWithProviders(
       <PayslipDocument
         employee={createMockEmployee()}
+        organization={createMockOrganization()}
         payslip={createMockPayslip({
           overtime_pay_amount: "500000",
           overtime_units: 10,
         })}
-        organization={createMockOrganization()}
       />
     );
 
@@ -429,8 +429,8 @@ describe("PayslipDocument", () => {
     renderWithProviders(
       <PayslipDocument
         employee={createMockEmployee()}
-        payslip={createMockPayslip({ overtime_pay_amount: "0" })}
         organization={createMockOrganization()}
+        payslip={createMockPayslip({ overtime_pay_amount: "0" })}
       />
     );
 
@@ -441,13 +441,13 @@ describe("PayslipDocument", () => {
     renderWithProviders(
       <PayslipDocument
         employee={createMockEmployee()}
+        organization={createMockOrganization()}
         payslip={createMockPayslip({
           incentives: [
             { policy_name: "Diligence Bonus", amount: "500000", standard_amount: "500000" },
             { policy_name: "Safety Bonus", amount: "200000", standard_amount: "200000" },
           ],
         })}
-        organization={createMockOrganization()}
       />
     );
 
@@ -459,8 +459,8 @@ describe("PayslipDocument", () => {
     renderWithProviders(
       <PayslipDocument
         employee={createMockEmployee()}
-        payslip={createMockPayslip({ incentives: [] })}
         organization={createMockOrganization()}
+        payslip={createMockPayslip({ incentives: [] })}
       />
     );
 
@@ -471,11 +471,11 @@ describe("PayslipDocument", () => {
     renderWithProviders(
       <PayslipDocument
         employee={createMockEmployee()}
+        organization={createMockOrganization()}
         payslip={createMockPayslip({
           deductions_amount: "500000",
           net_pay_amount: "10000000",
         })}
-        organization={createMockOrganization()}
       />
     );
 
@@ -488,8 +488,8 @@ describe("PayslipDocument", () => {
     renderWithProviders(
       <PayslipDocument
         employee={createMockEmployee()}
-        payslip={createMockPayslip()}
         organization={createMockOrganization()}
+        payslip={createMockPayslip()}
       />
     );
 
@@ -500,8 +500,8 @@ describe("PayslipDocument", () => {
     renderWithProviders(
       <PayslipDocument
         employee={createMockEmployee({ department_name: undefined })}
-        payslip={createMockPayslip()}
         organization={createMockOrganization()}
+        payslip={createMockPayslip()}
       />
     );
 
@@ -512,8 +512,8 @@ describe("PayslipDocument", () => {
     renderWithProviders(
       <PayslipDocument
         employee={createMockEmployee()}
-        payslip={createMockPayslip()}
         organization={createMockOrganization()}
+        payslip={createMockPayslip()}
       />
     );
 

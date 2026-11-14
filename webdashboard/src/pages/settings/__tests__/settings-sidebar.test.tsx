@@ -1,9 +1,10 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import React from "react";
+
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import * as hooks from "../hooks/use-settings-nav";
 import SettingsSidebar from "../components/settings-sidebar";
+import * as hooks from "../hooks/use-settings-nav";
 
 // ── Mocks ─────────────────────────────────────────────────────────────
 

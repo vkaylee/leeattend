@@ -1,13 +1,14 @@
 import { render, screen, fireEvent, renderHook, act } from "@testing-library/react";
 import React from "react";
-import { describe, it, expect, vi, beforeEach } from "vitest";
+
+import { describe, it, expect, vi } from "vitest";
 
 import type { Employee } from "@/lib/api/types";
 
+import { useEmployeeBulkSelection } from "../../hooks/use-employee-bulk-selection";
 import { EmployeeBulkActionBar } from "../employee-bulk-action-bar";
 import { EmployeeQuickTabs } from "../employee-quick-tabs";
 import { EmployeeRowActions } from "../employee-row-actions";
-import { useEmployeeBulkSelection } from "../../hooks/use-employee-bulk-selection";
 
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({ t: (k: string, fallback?: unknown) => (typeof fallback === "string" ? fallback : k) }),

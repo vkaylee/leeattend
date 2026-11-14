@@ -39,16 +39,16 @@ interface DrawerTabRefs {
 }
 
 interface EmployeeDailyDrawerHeaderProps {
+    dailyTabRef: React.RefObject<HTMLButtonElement | null>;
     employers?: { employerId?: string; employerName: string; employeeIdNumber?: string }[];
     isLoading: boolean;
     onEmployerChange: (id: string | undefined) => void;
+    rawTabRef: React.RefObject<HTMLButtonElement | null>;
     reportData: DailyAttendanceReport[];
     selectedEmployerId?: string;
     setViewMode: (mode: "daily" | "raw") => void;
     t: TFunction;
     tabIdPrefix: string;
-    dailyTabRef: React.RefObject<HTMLButtonElement | null>;
-    rawTabRef: React.RefObject<HTMLButtonElement | null>;
     totalOtHours: string | number;
     totalStdHours: string | number;
     viewMode: "daily" | "raw";
@@ -374,15 +374,15 @@ export default function EmployeeDailyDrawer(props: EmployeeDailyDrawerProps) {
                 contentClassName="!overflow-hidden"
                 headerExtra={
                     <EmployeeDailyDrawerHeader
+                        dailyTabRef={dailyTabRef}
                         employers={props.employers}
                         isLoading={data.isLoading}
                         onEmployerChange={data.setSelectedEmployerId}
+                        rawTabRef={rawTabRef}
                         reportData={data.reportData}
                         selectedEmployerId={data.selectedEmployerId}
                         setViewMode={data.setViewMode}
                         t={t}
-                        dailyTabRef={dailyTabRef}
-                        rawTabRef={rawTabRef}
                         tabIdPrefix={tabIdPrefix}
                         totalOtHours={data.totalOtHours}
                         totalStdHours={data.totalStdHours}
@@ -455,7 +455,7 @@ export default function EmployeeDailyDrawer(props: EmployeeDailyDrawerProps) {
                 resolveModalData={data.resolveModalData}
                 resolveUnscheduledMutationPending={data.resolveUnscheduledMutationPending}
                 setConfirmDialog={data.setConfirmDialog}
-  // eslint-disable-next-line max-lines
+   
                 setConfirmModalData={data.setConfirmModalData}
                 setResolveModalData={data.setResolveModalData}
                 shifts={data.shifts}

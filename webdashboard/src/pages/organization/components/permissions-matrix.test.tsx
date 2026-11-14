@@ -1,11 +1,12 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import React from "react";
+
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { PermissionsMatrix } from "./permissions-matrix";
-
 import type { PermissionCatalogItem, OrganizationRole } from "../../../lib/api/types";
+
+import { PermissionsMatrix } from "./permissions-matrix";
 
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({

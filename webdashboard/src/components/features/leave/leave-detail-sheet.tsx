@@ -1,7 +1,6 @@
 import {
   Calendar,
   CheckCircle2,
-  Clock,
   FileText,
   User,
   XCircle,
@@ -9,9 +8,10 @@ import {
 import React from "react";
 import { useTranslation } from "react-i18next";
 
+import type { Employee, LeaveRequest, LeaveType } from "@/lib/api/types";
+
 import Button from "@/components/ui/button";
 import Sheet from "@/components/ui/sheet";
-import type { Employee, LeaveRequest, LeaveType } from "@/lib/api/types";
 import { cn } from "@/lib/utils";
 
 export interface LeaveDetailSheetProps {
@@ -119,7 +119,7 @@ export function LeaveDetailSheet({
                 {emp?.employee_id_number ? `Mã: ${emp.employee_id_number}` : ""}
               </div>
             </div>
-            {emp?.department_name && (
+            {!!emp?.department_name && (
               <span className="rounded-md bg-muted px-2 py-1 text-xs font-medium text-muted-foreground">
                 {emp.department_name}
               </span>
@@ -165,7 +165,7 @@ export function LeaveDetailSheet({
         </div>
 
         {/* Approval Actions (if pending) */}
-        {request.status === "pending" && onApprove && (
+        {request.status === "pending" && !!onApprove && (
           <div className="flex items-center gap-3 pt-2">
             <Button
               className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white"

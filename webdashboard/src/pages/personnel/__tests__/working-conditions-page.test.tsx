@@ -1,13 +1,16 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import React from "react";
+
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-import Button from "@/components/ui/button";
-import { ToastProvider } from "@/components/ui/toast";
 import type * as LibApi from "@/lib/api";
 import type { ConditionTypeDefinition } from "@/lib/api";
 import type { WorkingConditionWithEmployee } from "@/lib/api/employee-conditions";
+
+import Button from "@/components/ui/button";
+import { ToastProvider } from "@/components/ui/toast";
+
 import PersonnelWorkingConditionsPage from "../working-conditions-page";
 
 // Mock i18next translation

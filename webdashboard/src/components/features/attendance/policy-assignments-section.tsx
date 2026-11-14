@@ -17,10 +17,10 @@ import { useTranslation } from "react-i18next";
 import { ErrorBoundary } from "@/components/common/error-boundary";
 import Button from "@/components/ui/button";
 import { Combobox } from "@/components/ui/combobox";
+import { CONTROL_FOCUS_RING } from "@/components/ui/control-styles";
 import { LABEL_BASE } from "@/components/ui/form-field";
 import Sheet from "@/components/ui/sheet";
 import { Typography } from "@/components/ui/typography";
-import { CONTROL_FOCUS_RING } from "@/components/ui/control-styles";
 import { useConfirm } from "@/hooks/use-confirm";
 import { Employee, PolicyAssignmentResponse } from "@/lib/api";
 import { cn } from "@/lib/utils";
@@ -184,8 +184,8 @@ function PolicyAssignmentsSectionContent({ options = {} }: { options?: PolicyAss
                 key={a.id}
                 onDelete={async (id) => {
                   const ok = await confirm({
-                    title: t("attendance_policy_overrides.delete_title", "Delete assignment"),
-                    message: t("attendance_policy_overrides.delete_message", "Delete this attendance policy assignment?"),
+                    title: t("attendance_policy_overrides.messages.delete_title", "Delete assignment"),
+                    message: t("attendance_policy_overrides.messages.delete_message", "Delete this attendance policy assignment?"),
                   });
                   if (ok) deleteMutation.mutate(id);
                 }}

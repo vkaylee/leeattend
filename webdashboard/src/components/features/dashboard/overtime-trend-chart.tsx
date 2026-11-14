@@ -12,8 +12,8 @@ import {
     Legend,
 } from "recharts";
 
-import { Typography } from "@/components/ui/typography";
 import { DashboardChartError } from "@/components/features/dashboard/dashboard-chart-state";
+import { Typography } from "@/components/ui/typography";
 import { useOvertimeTrend } from "@/hooks/use-dashboard";
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
 

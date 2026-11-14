@@ -1,8 +1,8 @@
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { HeartHandshake } from "lucide-react";
 import React, { useEffect, useState } from "react";
-import { Controller, useForm } from "react-hook-form";
+import { useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { standardSchemaResolver } from "@hookform/resolvers/standard-schema";
 import { z } from "zod";
@@ -237,7 +237,7 @@ export default function WorkingConditionFormModal({
                     ? "bg-white dark:bg-slate-700 text-emerald-600 dark:text-emerald-300 shadow-xs"
                     : "text-slate-400"
                 )}
-                onClick={() => setValue("is_paid", true)}
+                onClick={() => { setValue("is_paid", true); }}
                 type="button"
                 variant="ghost"
               >
@@ -250,7 +250,7 @@ export default function WorkingConditionFormModal({
                     ? "bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 shadow-xs"
                     : "text-slate-400"
                 )}
-                onClick={() => setValue("is_paid", false)}
+                onClick={() => { setValue("is_paid", false); }}
                 type="button"
                 variant="ghost"
               >

@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-non-null-assertion */
+ 
 import { useQuery } from "@tanstack/react-query";
 import React, { useMemo } from "react";
 import { useTranslation } from "react-i18next";

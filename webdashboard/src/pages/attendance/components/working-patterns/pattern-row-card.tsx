@@ -20,7 +20,7 @@ interface PatternRowCardProps {
   shifts?: Shift[];
 }
 
-  // eslint-disable-next-line complexity
+   
 export function PatternRowCard({
   onDelete,
   onEdit,

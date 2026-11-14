@@ -1,9 +1,11 @@
 import { render, screen, fireEvent } from "@testing-library/react";
 import React from "react";
+
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-import { LeaveDetailSheet } from "../leave-detail-sheet";
 import type { Employee, LeaveRequest, LeaveType } from "@/lib/api/types";
+
+import { LeaveDetailSheet } from "../leave-detail-sheet";
 
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({

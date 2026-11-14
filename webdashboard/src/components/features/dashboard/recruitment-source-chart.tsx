@@ -15,17 +15,17 @@ import {
     YAxis,
 } from "recharts";
 
+import { ChartTableTwin, type ChartTableColumn } from "@/components/features/dashboard/chart-table-twin";
+import { DashboardChartError } from "@/components/features/dashboard/dashboard-chart-state";
+import { DashboardDateRange } from "@/components/features/dashboard/dashboard-date-range";
 import Button from "@/components/ui/button";
 import { Typography } from "@/components/ui/typography";
-import { DashboardChartError } from "@/components/features/dashboard/dashboard-chart-state";
-import { ChartTableTwin, type ChartTableColumn } from "@/components/features/dashboard/chart-table-twin";
-import { DashboardDateRange } from "@/components/features/dashboard/dashboard-date-range";
 import {
     useRecruitmentEffectiveness,
     type RecruitmentEffectivenessAnalytics,
 } from "@/hooks/use-dashboard";
-import { useDepartments } from "@/hooks/use-departments";
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
+import { useDepartments } from "@/hooks/use-departments";
 import { colorByEntityWithKnown } from "@/lib/stable-colors";
 import { cn } from "@/lib/utils";
 
@@ -135,7 +135,7 @@ function WarningStrip({ warnings, t }: { warnings: RecruitmentEffectivenessAnaly
                         key={w.code}
                         role="note"
                     >
-                        <span className="text-amber-500" aria-hidden="true">⚠</span>
+                        <span aria-hidden="true" className="text-amber-500">⚠</span>
                         <span className="text-[11px] font-semibold text-amber-700 dark:text-amber-400">
                             {label}
                         </span>
@@ -458,7 +458,7 @@ export default function RecruitmentSourceChart() {
                     sourceTypes={sourceTypes}
                     t={t}
                 />
-                <DashboardChartError icon={<span className="text-4xl" aria-hidden="true">!</span>} />
+                <DashboardChartError icon={<span aria-hidden="true" className="text-4xl">!</span>} />
             </div>
         );
     }
@@ -485,7 +485,7 @@ export default function RecruitmentSourceChart() {
                 t={t}
             />
 
-            {data ? <WarningStrip warnings={data.warnings} t={t} /> : null}
+            {data ? <WarningStrip t={t} warnings={data.warnings} /> : null}
 
             <ChartTabs
                 activeTab={activeTab}
@@ -502,7 +502,7 @@ export default function RecruitmentSourceChart() {
                 <div className="space-y-6">
                     <KpiHeader data={data} t={t} />
 
-                    {activeTab === "overview" && <OverviewTab data={data} t={t} formatDate={formatDate} />}
+                    {activeTab === "overview" && <OverviewTab data={data} formatDate={formatDate} t={t} />}
                     {activeTab === "funnel" && <FunnelTab data={data} t={t} />}
                     {activeTab === "ranking" && <RankingTab data={filteredData(data, sourceNameFilter)} t={t} />}
                     {activeTab === "table" && <TableTab data={filteredData(data, sourceNameFilter)} t={t} />}
@@ -530,7 +530,7 @@ function filteredData(
 function OverviewTab({ data, t, formatDate }: { data: RecruitmentEffectivenessAnalytics; t: TranslateFn; formatDate: (d: string | Date | null | undefined) => string }) {
     return (
         <>
-            {data.hires_trend.length > 0 ? <HiresTrendChart data={data.hires_trend} t={t} formatDate={formatDate} /> : null}
+            {data.hires_trend.length > 0 ? <HiresTrendChart data={data.hires_trend} formatDate={formatDate} t={t} /> : null}
         </>
     );
 }
@@ -554,7 +554,7 @@ function HiresTrendChart({ data, t, formatDate }: { data: RecruitmentEffectivene
             <Typography className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-3" variant="h4">
                 {t("dashboard.hr.effective_hires_trend")}
             </Typography>
-            <div role="img" aria-label={t("dashboard.hr.effective_hires_trend")}>
+            <div aria-label={t("dashboard.hr.effective_hires_trend")} role="img">
                 <ResponsiveContainer height={260} width="100%">
                     <LineChart data={chartData} margin={{ top: 5, right: 10, left: -20, bottom: 5 }}>
                         <CartesianGrid className="text-slate-100 dark:text-slate-800" stroke="currentColor" strokeDasharray="3 3" />
@@ -630,7 +630,7 @@ function FunnelTab({ data, t }: { data: RecruitmentEffectivenessAnalytics; t: Tr
                 {t("dashboard.hr.effective_funnel_honesty_note")}
             </Typography>
 
-            <div role="img" aria-label={t("dashboard.hr.effective_funnel_title")}>
+            <div aria-label={t("dashboard.hr.effective_funnel_title")} role="img">
                 <ResponsiveContainer height={Math.max(220, funnelRows.length * 56)} width="100%">
                     <BarChart data={funnelRows} layout="vertical" margin={{ top: 10, right: 20, left: 10, bottom: 10 }}>
                         <CartesianGrid horizontal={false} stroke="#e2e8f0" strokeDasharray="3 3" />
@@ -656,7 +656,9 @@ function FunnelTab({ data, t }: { data: RecruitmentEffectivenessAnalytics; t: Tr
                                     const row = funnelRows.find((r) => r.countValue === Number(value));
                                     if (row && !row.hasData) return [t("dashboard.hr.effective_no_data_source"), t("dashboard.hr.effective_count")];
                                 }
-                                return [String(value ?? ""), String(name ?? "")];
+                                const displayValue = typeof value === "number" || typeof value === "string" ? String(value) : "";
+                                const displayName = typeof name === "string" || typeof name === "number" ? String(name) : "";
+                                return [displayValue, displayName];
                             }}
                         />
                         <Bar dataKey="countValue" radius={[0, 8, 8, 0]}>
@@ -737,7 +739,7 @@ function RankingTab({ data, t }: { data: RecruitmentEffectivenessAnalytics; t: T
                 {t("dashboard.hr.effective_ranking_honesty_note")}
             </Typography>
 
-            <div role="img" aria-label={t("dashboard.hr.effective_ranking_title")}>
+            <div aria-label={t("dashboard.hr.effective_ranking_title")} role="img">
                 <ResponsiveContainer height={Math.max(200, chartData.length * 44)} width="100%">
                     <BarChart data={chartData} layout="vertical" margin={{ top: 10, right: 20, left: 10, bottom: 10 }}>
                         <CartesianGrid horizontal={false} stroke="#e2e8f0" strokeDasharray="3 3" />

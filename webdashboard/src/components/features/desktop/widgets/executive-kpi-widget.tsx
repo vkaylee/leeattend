@@ -1,9 +1,10 @@
 import { Link } from "@tanstack/react-router";
-import { TrendingUp, Clock, DollarSign, Award, ArrowUpRight } from "lucide-react";
+import { DollarSign, Award, ArrowUpRight } from "lucide-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
 
 import { Skeleton } from "@/components/ui/skeleton";
+import { Typography } from "@/components/ui/typography";
 import { useCurrency } from "@/hooks/use-currency";
 import { useDashboardStats } from "@/hooks/use-dashboard";
 import { ROUTES } from "@/lib/routes";
@@ -25,7 +26,7 @@ export function ExecutiveKpiWidget() {
   if (isError || !stats) {
     return (
       <div className="flex flex-col items-center justify-center p-6 text-center text-xs text-slate-400">
-        <p>{t("desktop.kpiUnavailable", "Không thể tải số liệu KPI điều hành")}</p>
+        <Typography variant="p">{t("desktop.kpiUnavailable", "Không thể tải số liệu KPI điều hành")}</Typography>
       </div>
     );
   }
@@ -50,9 +51,9 @@ export function ExecutiveKpiWidget() {
           </div>
         </div>
         <Link
-          to={ROUTES.PAYROLL}
-          className="p-1.5 rounded-lg text-slate-400 hover:text-primary-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
           aria-label={t("desktop.viewPayroll", "Xem bảng tính lương")}
+          className="p-1.5 rounded-lg text-slate-400 hover:text-primary-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+          to={ROUTES.PAYROLL}
         >
           <ArrowUpRight className="w-4 h-4" />
         </Link>
@@ -77,9 +78,9 @@ export function ExecutiveKpiWidget() {
         </div>
 
         <Link
-          to={ROUTES.REPORTS}
-          className="p-1.5 rounded-lg text-slate-400 hover:text-primary-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
           aria-label={t("desktop.viewReports", "Xem báo cáo chuyên cần")}
+          className="p-1.5 rounded-lg text-slate-400 hover:text-primary-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+          to={ROUTES.REPORTS}
         >
           <ArrowUpRight className="w-4 h-4" />
         </Link>

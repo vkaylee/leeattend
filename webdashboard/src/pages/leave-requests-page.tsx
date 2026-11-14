@@ -1,7 +1,4 @@
 
-import { useDepartments } from "@/hooks/use-departments";
-
-import { useQuery } from "@tanstack/react-query";
 import { Clock, Plus, ShieldCheck, Upload } from "lucide-react";
 import React, { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -11,14 +8,13 @@ import FloatingRecordBadge from "@/components/common/floating-record-badge";
 import InfiniteScrollSentinel from "@/components/common/infinite-scroll-sentinel";
 import { ResilientWidget } from "@/components/common/resilient-widget";
 import { CreateLeaveRequestModal } from "@/components/features/leave/create-leave-request-modal";
+import { LeaveDetailSheet } from "@/components/features/leave/leave-detail-sheet";
 import { LeaveImportBanner } from "@/components/features/leave/leave-import-banner";
-import LeaveImportDialog from "@/components/features/leave/leave-import-dialog";
 import { LeaveRequestMobileCard } from "@/components/features/leave/leave-request-mobile-card";
  import { LeaveRequestRow } from "@/components/features/leave/leave-request-row";
-import { LeaveDetailSheet } from "@/components/features/leave/leave-detail-sheet";
- import { LeaveStatusFilterHeader } from "@/components/features/leave/leave-status-filter-header";
+import { LeaveStatusFilterHeader } from "@/components/features/leave/leave-status-filter-header";
  import { useLeaveRequests, TabType, LeaveStatusFilter } from "@/components/features/leave/use-leave-requests";
-import { PDFPreviewModal } from "@/components/files/pdf-preview-modal";
+ import { PDFPreviewModal } from "@/components/files/pdf-preview-modal";
 import ApprovalListLayout from "@/components/templates/approval-list-layout";
 import Button from "@/components/ui/button";
 import { FilterPanel } from "@/components/ui/filter-panel";
@@ -29,6 +25,7 @@ import { PageTabs, PageTab } from "@/components/ui/page-tabs";
 import ResponsiveTable from "@/components/ui/responsive-table";
 import ResponsiveToolbar from "@/components/ui/responsive-toolbar";
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
+import { useDepartments } from "@/hooks/use-departments";
 import { useMyPermissions } from "@/hooks/use-permissions";
 import { Employee, LeaveRequest } from "@/lib/api";
 
@@ -205,7 +202,7 @@ export default function LeaveRequestsPage() {
                       leaveTypes={leaveTypes}
                       onApprove={handleApprove}
                       onPreviewAttachment={handlePreview}
-                      onSelect={(req) => setSelectedRequest(req)}
+                      onSelect={(req) => { setSelectedRequest(req); }}
                       request={request}
                       t={t}
                     />
@@ -223,7 +220,7 @@ export default function LeaveRequestsPage() {
               isOpen={Boolean(selectedRequest)}
               leaveTypes={leaveTypes}
               onApprove={handleApprove}
-              onClose={() => setSelectedRequest(null)}
+              onClose={() => { setSelectedRequest(null); }}
               request={selectedRequest}
             />
              <CreateLeaveRequestModal isOpen={isModalOpen} leaveTypes={leaveTypes} onClose={() => { setIsModalOpen(false); }} t={t}  />

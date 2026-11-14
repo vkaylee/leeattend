@@ -40,6 +40,7 @@ export const LanguageSwitcher = memo(function LanguageSwitcher({ compact = false
     <Popover.Root onOpenChange={setOpen} open={open}>
       <Popover.Trigger asChild>
         <button
+          aria-label={`Select language: currently ${currentOption.name}`}
           className={cn(
             'flex items-center gap-2.5 rounded-xl px-4 py-2 text-sm font-semibold min-h-[44px] cursor-pointer',
             'bg-slate-50/50 dark:bg-slate-800/50 border border-slate-200/50 dark:border-slate-700/50 shadow-sm backdrop-blur-md',
@@ -50,7 +51,6 @@ export const LanguageSwitcher = memo(function LanguageSwitcher({ compact = false
           )}
           data-testid="language-switcher-trigger"
           type="button"
-          aria-label={`Select language: currently ${currentOption.name}`}
         >
           {compact ? (
             <Globe size={18} />

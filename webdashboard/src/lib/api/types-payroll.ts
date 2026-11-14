@@ -65,9 +65,9 @@ export interface PayrollCalculationRun {
   id: string;
   input_snapshot: unknown;
   output_snapshot: unknown;
+  payslip_id?: string | null;
   period_month: number;
   period_year: number;
-  payslip_id?: string | null;
 }
 
 export interface Payslip {

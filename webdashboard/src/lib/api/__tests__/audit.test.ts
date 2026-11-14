@@ -4,8 +4,8 @@ vi.mock("../client", () => ({
   fetch: vi.fn(),
 }));
 
-import { fetch as apiFetch } from "../client";
 import { fetchAuditLogs } from "../audit";
+import { fetch as apiFetch } from "../client";
 
 describe("fetchAuditLogs", () => {
   beforeEach(() => {

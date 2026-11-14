@@ -12,11 +12,11 @@ import FormField from "@/components/ui/form-field";
 import Modal from "@/components/ui/modal";
 import { useToast } from "@/components/ui/toast";
 import { Typography } from "@/components/ui/typography";
-import { useAllEmployees } from "@/hooks/use-employees";
 import {
   useCreateEmployeeAssignment,
   useUpdateEmployeeAssignment,
 } from "@/hooks/use-employee-assignments";
+import { useAllEmployees } from "@/hooks/use-employees";
 import { type EmployeeAssignment } from "@/lib/api";
 import { useLocations } from "@/pages/settings/hooks/use-locations";
 const assignmentSchema = z

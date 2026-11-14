@@ -13,11 +13,11 @@ import {
     YAxis,
 } from "recharts";
 
-import { Typography } from "@/components/ui/typography";
-import { DashboardChartError } from "@/components/features/dashboard/dashboard-chart-state";
 import { ChartSummary } from "@/components/features/dashboard/chart-summary";
 import { ChartTableTwin, type ChartTableColumn } from "@/components/features/dashboard/chart-table-twin";
+import { DashboardChartError } from "@/components/features/dashboard/dashboard-chart-state";
 import { MetricSelector } from "@/components/features/dashboard/metric-selector";
+import { Typography } from "@/components/ui/typography";
 import { useAttendanceTrend, type AttendanceTrendPoint } from "@/hooks/use-dashboard";
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
 
@@ -114,7 +114,7 @@ export default function AttendanceTrendChart() {
             ) : (
                 <>
                     <ChartSummary text={summary} />
-                    <div role="img" aria-label={summary}>
+                    <div aria-label={summary} role="img">
                         <ResponsiveContainer height={280} width="100%">
                             <LineChart data={chartData} margin={{ top: 5, right: 10, left: -20, bottom: 5 }}>
                                 <CartesianGrid className="text-slate-100 dark:text-slate-800" stroke="currentColor" strokeDasharray="3 3" />

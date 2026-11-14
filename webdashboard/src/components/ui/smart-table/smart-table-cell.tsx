@@ -10,18 +10,18 @@ import { logError } from "@/lib/logger";
 import { cn } from "@/lib/utils";
 import { maybeNull } from "@/types/api-overrides";
 
+import type { TableDensity } from "../table-density-toggle";
 import type { CellCoordinate, EditableCellValue } from "./types";
 
 import CellEditControl from "./cell-edit-control";
 import CellErrorTooltip from "./cell-error-tooltip";
-import type { TableDensity } from "../table-density-toggle";
 
 interface SmartTableCellProps<T> {
   cell: Cell<T, unknown>;
   cellError?: string;
-  density?: TableDensity;
   cellRefs: React.RefObject<Record<string, HTMLTableCellElement | null>>;
   colIndex: number;
+  density?: TableDensity;
   editingCell: CellCoordinate | null;
   editValue: EditableCellValue;
   focusedCell: CellCoordinate | null;
@@ -127,7 +127,7 @@ function SmartTableCellInner<T>({
     isFirstPinnedRight && "border-l border-l-slate-200 dark:border-l-slate-700 shadow-[-2px_0_5px_-2px_rgba(0,0,0,0.1)]",
     hasError && "border border-rose-500 bg-rose-50/20 dark:bg-rose-950/25 focus-visible:ring-rose-500",
     meta?.cellClassName,
-  ), [isPinned, isCellFocused, isCellEditing, isLastPinnedLeft, isFirstPinnedRight, hasError, meta?.cellClassName]);
+  ), [density, isPinned, isCellFocused, isCellEditing, isLastPinnedLeft, isFirstPinnedRight, hasError, meta?.cellClassName]);
 
   return (
     <td

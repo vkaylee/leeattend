@@ -2,7 +2,6 @@ import { useQuery } from "@tanstack/react-query";
 
 import { apiFetch } from "@/lib/api";
 
-import { dashboardSchemaByKey, overtimeBreakdownSchema, type DashboardSchemaKey } from "./dashboard-schemas";
 import {
   dashboardMetricsResponseSchema,
   type DashboardMetricsResponse,
@@ -11,7 +10,7 @@ import {
   dashboardMetricsQuery,
   type DashboardMetricsFilters,
 } from "./dashboard-metrics-filters";
-
+import { dashboardSchemaByKey, overtimeBreakdownSchema, type DashboardSchemaKey } from "./dashboard-schemas";
 import {
   type AttendanceTrendPoint,
   type DepartmentAttendancePoint,
@@ -20,7 +19,6 @@ import {
   type OvertimeBreakdownResponse,
   type OvertimeTrendPoint,
   type PeakTimeSlot,
-  type RateQuantity,
   type RecruitmentEffectivenessAnalytics,
   type RecruitmentSourceBreakdown,
   type TurnoverAnalytics,
@@ -52,8 +50,8 @@ export type {
 
 /** Shared query params for chart endpoints that accept an explicit custom range. */
 export interface ChartRangeParams {
-  startDate?: string;
   endDate?: string;
+  startDate?: string;
   timezone?: string;
 }
 
@@ -104,13 +102,13 @@ interface DashboardQueryOptions<T> {
   extraQueryKeyParams?: readonly unknown[];
   /** Lazily builds the API path (captures hook args in closure). */
   getPath: () => string;
-  /** Parses untrusted API JSON into T. */
-  parse?: (payload: unknown) => T;
   /** Unique cache key segment (e.g. "organization-stats"). */
   key: DashboardSchemaKey;
+  /** Parses untrusted API JSON into T. */
+  parse?: (payload: unknown) => T;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unnecessary-type-parameters -- T determines return type through useQuery<T>
+ 
 function useDashboardQuery<T>(options: DashboardQueryOptions<T>) {
   return useQuery<T>({
     queryKey: [options.key, ...(options.extraQueryKeyParams ?? [])],
@@ -276,14 +274,14 @@ export interface RecruitmentEffectivenessParams extends ChartRangeParams {
   comparison?: "none" | "previous_period" | "same_period_last_year";
   /** Comma-separated department UUIDs. Empty = no filter. */
   departmentIds?: string;
-  /** Comma-separated location UUIDs. Empty = no filter. */
-  locationIds?: string;
   /** Comma-separated job-role strings. Empty = no filter. */
   jobRoles?: string;
-  /** Comma-separated source types (`direct`|`referral`|`agency`). Empty = no filter. */
-  sourceTypes?: string;
+  /** Comma-separated location UUIDs. Empty = no filter. */
+  locationIds?: string;
   /** Comma-separated recruitment-source UUIDs. Empty = no filter. */
   sourceIds?: string;
+  /** Comma-separated source types (`direct`|`referral`|`agency`). Empty = no filter. */
+  sourceTypes?: string;
 }
 
 export function useRecruitmentEffectiveness(params: RecruitmentEffectivenessParams = {}) {

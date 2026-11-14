@@ -7,6 +7,7 @@ import type { PendingTaskResponse } from "@/lib/api/types";
 import Button from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/components/ui/toast";
+import { Typography } from "@/components/ui/typography";
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
 import { useMyPendingTasks, useCompletePendingTask } from "@/hooks/use-lifecycle";
 import { cn } from "@/lib/utils";
@@ -57,15 +58,15 @@ export function DesktopPendingTasksWidget() {
         <div className="w-10 h-10 rounded-2xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mb-2">
           <CheckCircle2 className="w-5 h-5" />
         </div>
-        <p className="text-xs font-bold text-slate-800 dark:text-slate-100">
+        <Typography className="text-xs font-bold text-slate-800 dark:text-slate-100" variant="p">
           {t("desktop.noPendingTasks", "Không có công việc tồn đọng")}
-        </p>
-        <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 max-w-sm leading-relaxed">
+        </Typography>
+        <Typography className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 max-w-sm leading-relaxed" variant="p">
           {t(
             "desktop.noPendingTasksDesc",
             "Bạn đã hoàn thành tất cả thủ tục và quy trình nhân sự cần giải quyết.",
           )}
-        </p>
+        </Typography>
       </div>
     );
   }
@@ -79,17 +80,17 @@ export function DesktopPendingTasksWidget() {
         const isOverdue = task.due_date && new Date(task.due_date) < new Date();
         return (
           <div
-            key={task.id}
             className="p-3 rounded-xl bg-slate-50/60 dark:bg-slate-900/40 border border-slate-100 dark:border-slate-800/60 flex items-start justify-between gap-3 text-xs"
+            key={task.id}
           >
             <div className="flex items-start gap-2.5 flex-1 min-w-0">
               <Button
-                type="button"
-                variant="ghost"
-                loading={isMutating ? true : undefined}
-                onClick={() => handleCompleteTask(task)}
                 aria-label={`Complete task: ${task.title}`}
                 className="text-slate-400 hover:text-emerald-500 transition-colors p-0 h-auto min-w-0 mt-0.5 focus-visible:ring-2 focus-visible:ring-primary"
+                loading={isMutating ? true : undefined}
+                onClick={() => { handleCompleteTask(task); }}
+                type="button"
+                variant="ghost"
               >
                 <Circle className="w-4 h-4" />
               </Button>
@@ -103,9 +104,9 @@ export function DesktopPendingTasksWidget() {
                   </span>
                 </div>
                 {!!task.description && (
-                  <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate mt-0.5">
+                  <Typography className="text-[11px] text-slate-500 dark:text-slate-400 truncate mt-0.5" variant="p">
                     {task.description}
-                  </p>
+                  </Typography>
                 )}
                 {!!task.due_date && (
                   <div className="text-[10px] font-semibold flex items-center gap-1 mt-1">

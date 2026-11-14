@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 
-import type { BehalfAssignment } from "@/lib/api/types";
 import type { OtClaimBehalfAssignment } from "@/lib/api/attendance-monitoring";
+import type { BehalfAssignment } from "@/lib/api/types";
 
 import {
   fetchBehalfAssignments,

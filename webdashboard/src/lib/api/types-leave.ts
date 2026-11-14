@@ -27,9 +27,9 @@ export type AccrualFrequency = "monthly" | "quarterly" | "yearly";
 
 export interface SeniorityBonus {
   bonus_amount?: number;
-  months?: number;
-  min_years?: number;
   extra_days?: number;
+  min_years?: number;
+  months?: number;
 }
 
 export interface LeavePolicyConfig {

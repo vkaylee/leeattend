@@ -89,8 +89,8 @@ Typography.displayName = "Typography";
 
 export interface GradientTextProps extends React.HTMLAttributes<HTMLSpanElement> {
   from?: string;
-  via?: string;
   to?: string;
+  via?: string;
 }
 
 /**

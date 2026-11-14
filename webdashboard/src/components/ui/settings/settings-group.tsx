@@ -19,7 +19,7 @@ export function SettingsGroup({
 }: SettingsGroupProps) {
   return (
     <div className={cn("space-y-1.5", className)} data-testid={testId}>
-      {title && (
+      {!!title && (
         <div className="px-3 text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 select-none">
           {title}
         </div>
@@ -27,7 +27,7 @@ export function SettingsGroup({
       <div className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-2xs divide-y divide-slate-100 dark:border-slate-800/80 dark:bg-slate-900/90 dark:divide-slate-800/70">
         {children}
       </div>
-      {description && (
+      {!!description && (
         <div className="px-3 text-[11px] leading-relaxed text-slate-400 dark:text-slate-500">
           {description}
         </div>

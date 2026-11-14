@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback } from "react";
 
 import type { DesktopLayoutState } from "./types";
 
@@ -85,8 +85,8 @@ export function useDesktopLayout() {
     setLayout(defaultState);
   }, []);
 
-  const openCustomizer = useCallback(() => setIsCustomizing(true), []);
-  const closeCustomizer = useCallback(() => setIsCustomizing(false), []);
+  const openCustomizer = useCallback(() => { setIsCustomizing(true); }, []);
+  const closeCustomizer = useCallback(() => { setIsCustomizing(false); }, []);
 
   return {
     enabledIds: layout.enabledIds,

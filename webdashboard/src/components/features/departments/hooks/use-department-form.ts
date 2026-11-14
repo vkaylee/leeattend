@@ -1,11 +1,11 @@
 import type { TFunction } from "i18next";
 
-import { useOrganizationMutation } from "@/hooks/common/use-organization-query";
 import { useState } from "react";
 
 import type { Department } from "@/lib/api";
 
 import { useToast } from "@/components/ui/toast";
+import { useOrganizationMutation } from "@/hooks/common/use-organization-query";
 import { createDepartment, updateDepartment } from "@/lib/api";
 import { departmentKeys } from "@/lib/query-keys";
 export function useDepartmentForm(editingDept: Department | null, onClose: () => void, t: TFunction) {

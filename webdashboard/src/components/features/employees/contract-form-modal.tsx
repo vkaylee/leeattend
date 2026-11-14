@@ -114,7 +114,7 @@ function StatusSelector({ register }: { register: UseFormRegister<ContractFormVa
   );
 }
 
-// eslint-disable-next-line complexity -- form rendering naturally has conditional branches for error/empty/edit states
+ 
 function ContractFormFields({
   applyDuration, editingContract, errors, isIndefinite, isSubmitting,
   onClose, phases, register, setIndefinite,

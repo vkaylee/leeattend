@@ -1,5 +1,5 @@
-import { Fragment, isValidElement, type ReactNode } from "react";
 import { Clock } from "lucide-react";
+import { Fragment, isValidElement, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 
 import { ErrorBoundary } from "@/components/common/error-boundary";

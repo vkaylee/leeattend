@@ -2,11 +2,9 @@ import {
   Building2,
   ShieldAlert,
   KeyRound,
-  CreditCard,
   Clock,
   Banknote,
   CalendarDays,
-  Cpu,
   Settings2,
   MapPin,
   Workflow,
@@ -187,8 +185,8 @@ const getSystemGroup = (t: TFunction): SettingItem[] => [
 export interface SettingsNavState {
   accessGroup: SettingItem[];
   operationsGroup: SettingItem[];
-  systemGroup: SettingItem[];
   organizationGroup: SettingItem[];
+  systemGroup: SettingItem[];
 }
 
 export function useSettingsNav(): SettingsNavState {

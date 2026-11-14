@@ -1,5 +1,4 @@
 import React, { useState } from "react";
-import { cn } from "@/lib/utils";
 import { useTranslation } from "react-i18next";
 
 import type { Department, Employee, Employment, OrganizationMember } from "@/lib/api";
@@ -7,6 +6,7 @@ import type { WorkLocation } from "@/lib/api/locations";
 
 import EmployeeSalaryConfig from "@/components/payroll/employee-salary-config";
 import Sheet from "@/components/ui/sheet";
+import { cn } from "@/lib/utils";
 import CompensationHistoryTab from "@/pages/employees/compensation-history-tab";
 import { EmployeeDocumentsTab } from "@/pages/employees/employee-documents-tab";
 

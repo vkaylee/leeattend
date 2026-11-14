@@ -67,8 +67,8 @@ export function TemplateGallery({ onSelectTemplate, onSkip }: TemplateGalleryPro
         <div className="flex items-center justify-between gap-4">
           <div className="flex-1">
             <SearchInput
-              onChange={(e) => setSearch(e.target.value)}
-              onClear={() => setSearch("")}
+              onChange={(e) => { setSearch(e.target.value); }}
+              onClear={() => { setSearch(""); }}
               placeholder={t("settings.leave.gallery.search_placeholder", "Search templates (e.g. 'Annual', 'Sick')...")}
               size="sm"
               value={search}

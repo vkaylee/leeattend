@@ -50,7 +50,7 @@ export function useMonthlyTimesheetData({
     staleTime: 5 * 60 * 1000, // 5 minutes cache
   });
 
-  const dailyReports = query.data ?? [];
+  const dailyReports = useMemo(() => query.data ?? [], [query.data]);
 
   // O(1) Lookup Map: Key = `${employee_id}:${date_str}`
   const attendanceMap = useMemo(() => {

@@ -4,12 +4,13 @@ import type { Employee } from "@/lib/api/types";
 
 import FloatingRecordBadge from "@/components/common/floating-record-badge";
 import { FilterChips } from "@/components/ui/filter-chips";
+
 import { ContractExpirationAlerts } from "./employees/components/contract-expiration-alerts";
+import { EmployeeBulkActionBar } from "./employees/components/employee-bulk-action-bar";
 import { EmployeeOverlays } from "./employees/components/employee-overlays";
+import { EmployeeQuickTabs } from "./employees/components/employee-quick-tabs";
 import { EmployeeTable } from "./employees/components/employee-table";
 import { EmployeesPageHeader } from "./employees/components/employees-page-header";
-import { EmployeeBulkActionBar } from "./employees/components/employee-bulk-action-bar";
-import { EmployeeQuickTabs } from "./employees/components/employee-quick-tabs";
 import { useEmployeeBulkSelection } from "./employees/hooks/use-employee-bulk-selection";
 import { useEmployeeFilterChips } from "./employees/hooks/use-employee-filter-chips";
 import { useEmployeesPage } from "./employees/hooks/use-employees-page";

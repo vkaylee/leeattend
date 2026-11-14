@@ -7,8 +7,8 @@ import React, { memo, useCallback, useMemo } from "react";
 
 import { cn } from "@/lib/utils";
 
-import type { CellCoordinate, EditableCellValue } from "./types";
 import type { TableDensity } from "../table-density-toggle";
+import type { CellCoordinate, EditableCellValue } from "./types";
 
 import { SmartTableCell } from "./smart-table-cell";
 

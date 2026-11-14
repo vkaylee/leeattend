@@ -1,5 +1,6 @@
 import { render, screen, fireEvent } from "@testing-library/react";
 import React from "react";
+
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 import { Sidebar } from "../sidebar";
@@ -12,7 +13,7 @@ vi.mock("@tanstack/react-router", () => ({
     className,
     ...props
   }: React.AnchorHTMLAttributes<HTMLAnchorElement> & { to?: string }) => (
-    <a href={to} className={className} {...props}>
+    <a className={className} href={to} {...props}>
       {children}
     </a>
   ),

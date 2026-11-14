@@ -143,8 +143,8 @@ describe("PayslipModal", () => {
         employee={mockEmployee}
         isOpen={true}
         onClose={onClose}
-        payslip={mockPayslip}
         organization={mockOrganization}
+        payslip={mockPayslip}
       />
     );
 
@@ -160,8 +160,8 @@ describe("PayslipModal", () => {
         employee={mockEmployee}
         isOpen={true}
         onClose={onClose}
-        payslip={mockPayslip}
         organization={mockOrganization}
+        payslip={mockPayslip}
       />
     );
 
@@ -175,8 +175,8 @@ describe("PayslipModal", () => {
         employee={mockEmployee}
         isOpen={true}
         onClose={onClose}
-        payslip={mockPayslip}
         organization={mockOrganization}
+        payslip={mockPayslip}
       />
     );
 
@@ -210,8 +210,8 @@ describe("PayslipModal", () => {
         employee={mockEmployee}
         isOpen={true}
         onClose={onClose}
-        payslip={mockPayslip}
         organization={mockOrganization}
+        payslip={mockPayslip}
       />
     );
 
@@ -238,8 +238,8 @@ describe("PayslipModal", () => {
         employee={mockEmployee}
         isOpen={true}
         onClose={onClose}
-        payslip={mockPayslip}
         organization={mockOrganization}
+        payslip={mockPayslip}
       />
     );
 
@@ -256,8 +256,8 @@ describe("PayslipModal", () => {
         employee={mockEmployee}
         isOpen={false}
         onClose={onClose}
-        payslip={mockPayslip}
         organization={mockOrganization}
+        payslip={mockPayslip}
       />
     );
 
@@ -271,8 +271,8 @@ describe("PayslipModal", () => {
         employee={mockEmployee}
         isOpen={true}
         onClose={onClose}
-        payslip={mockPayslip}
         organization={mockOrganization}
+        payslip={mockPayslip}
       />
     );
 
@@ -291,8 +291,8 @@ describe("PayslipModal", () => {
         employee={mockEmployee}
         isOpen={true}
         onClose={onClose}
-        payslip={mockPayslip}
         organization={mockOrganization}
+        payslip={mockPayslip}
       />
     );
 
@@ -313,8 +313,8 @@ describe("PayslipModal", () => {
         employee={mockEmployee}
         isOpen={true}
         onClose={onClose}
-        payslip={malformedPayslip}
         organization={mockOrganization}
+        payslip={malformedPayslip}
       />
     );
 

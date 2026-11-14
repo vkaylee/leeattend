@@ -214,7 +214,7 @@ export default function UnifiedInboxPage() {
                 )}
                 data-testid={`type-tab-${tab.id}`}
                 key={tab.id}
-                onClick={() => setFilter({ type: tab.id })}
+                onClick={() => { setFilter({ type: tab.id }); }}
                 role="tab"
                 size="sm"
                 variant="ghost"
@@ -254,7 +254,7 @@ export default function UnifiedInboxPage() {
                   )}
                   data-testid={`status-tab-${st.id}`}
                   key={st.id}
-                  onClick={() => setFilter({ status: st.id })}
+                  onClick={() => { setFilter({ status: st.id }); }}
                   size="sm"
                   variant="ghost"
                 >
@@ -271,7 +271,7 @@ export default function UnifiedInboxPage() {
               aria-label={t("approvals.search_placeholder", "Tìm kiếm nhân sự, lý do...")}
               className="w-full h-9 pl-9 pr-8 rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-xs text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-500"
               data-testid="inbox-search-input"
-              onChange={(e) => setFilter({ searchQuery: e.target.value })}
+              onChange={(e) => { setFilter({ searchQuery: e.target.value }); }}
               placeholder={t(
                 "approvals.search_placeholder",
                 "Tìm kiếm nhân sự, lý do..."
@@ -279,11 +279,11 @@ export default function UnifiedInboxPage() {
               type="text"
               value={filter.searchQuery || ""}
             />
-            {filter.searchQuery && (
+            {!!filter.searchQuery && (
               <Button
                 aria-label={t("common.clear", "Xóa tìm kiếm")}
                 className="absolute right-2 top-1/2 -translate-y-1/2 h-5 w-5 p-0 text-slate-400 hover:text-slate-600 rounded-full"
-                onClick={() => setFilter({ searchQuery: "" })}
+                onClick={() => { setFilter({ searchQuery: "" }); }}
                 size="sm"
                 variant="ghost"
               >
@@ -374,7 +374,7 @@ export default function UnifiedInboxPage() {
         isProcessing={isProcessing}
         item={selectedItem}
         onApprove={handleQuickApprove}
-        onClose={() => setSelectedItem(null)}
+        onClose={() => { setSelectedItem(null); }}
         onReject={handleQuickRejectPrompt}
       />
 

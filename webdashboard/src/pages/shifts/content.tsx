@@ -4,9 +4,9 @@ import { AssignmentHistory } from "@/components/shifts/assignment-history";
 import { useMonthlyRoster } from "@/components/shifts/hooks/use-monthly-roster";
 import { MonthlyRosterGrid } from "@/components/shifts/monthly-roster-grid";
 import { PriorityLegend } from "@/components/shifts/priority-legend";
+import { ScheduleLifecyclePanel } from "@/components/shifts/schedule-lifecycle-panel";
 import { ShiftList } from "@/components/shifts/shift-list";
 import { WeeklyRosterGrid } from "@/components/shifts/weekly-roster-grid";
-import { ScheduleLifecyclePanel } from "@/components/shifts/schedule-lifecycle-panel";
 
 import { useShifts } from "./hooks/use-shifts";
 

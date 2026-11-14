@@ -12,8 +12,8 @@ export type ScheduleLifecycleState =
 
 export interface SchedulePreviewRequest {
   approval_instance_id?: string | null;
-  end_date: string;
   employment_ids: string[];
+  end_date: string;
   expected_revisions: Record<string, number>;
   mode: "office";
   reason: string;

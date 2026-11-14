@@ -1,8 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 
+import { useOrganizationQuery } from "@/hooks/common/use-organization-query";
 import { fetchEmployees, fetchWorkingConditions, fetchWorkingConditionsForAllEmployees, type WorkingConditionWithEmployee } from "@/lib/api";
 import { employeeKeys } from "@/lib/query-keys";
-import { useOrganizationQuery } from "@/hooks/common/use-organization-query";
 
 /**
  * Maximum number of employees fetched in a single "all employees" request.

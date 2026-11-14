@@ -44,7 +44,7 @@ export function useDashboardCharts(widgetOrder: WidgetId[], visibleWidgets: Reco
   const chartErrorHandlers = useMemo(() => {
     const handlers = new Map<WidgetId, (hasError: boolean) => void>();
     CHART_WIDGET_IDS.forEach((id) => {
-      handlers.set(id, (hasError) => reportChartError(id, hasError));
+      handlers.set(id, (hasError) => { reportChartError(id, hasError); });
     });
     return handlers;
   }, [reportChartError]);

@@ -15,8 +15,8 @@ interface PayslipModalProps {
   employee: Employee;
   isOpen: boolean;
   onClose: () => void;
-  payslip: Payslip;
   organization: Organization | null;
+  payslip: Payslip;
 }
 
 export default function PayslipModal({
@@ -74,8 +74,8 @@ export default function PayslipModal({
              <div className='bg-white dark:bg-slate-900 rounded-2xl shadow-sm overflow-hidden print:shadow-none print:rounded-none' ref={printRef}>
                 <PayslipDocument
                   employee={employee}
-                  payslip={payslip}
                   organization={organization}
+                  payslip={payslip}
                 />
              </div>
           </div>

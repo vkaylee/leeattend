@@ -10,9 +10,9 @@ import Button from "@/components/ui/button";
 import { Typography } from "@/components/ui/typography";
 import { cn } from "@/lib/utils";
 
+import { PayrollFormulaHistory } from "./payroll-formula-history";
 import RuleAssignmentManager from "./rule-assignment-manager";
 import RuleTierManager from "./rule-tier-manager";
-import { PayrollFormulaHistory } from "./payroll-formula-history";
 
 // eslint-disable-next-line complexity, react-refresh/only-export-components -- subtitle builder with 4 category branches + 3 calculation-method branches; exported for reuse
 export function getRuleSubtitle(rule: PayrollRuleDefinition, t: TFunction): string {

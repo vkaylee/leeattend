@@ -4,8 +4,6 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { CalendarDays } from "lucide-react";
 import React, { useState } from "react";
 
-import { generateUUID } from "@/utils/uuid";
-
 import type { LeaveDurationType, LeaveType } from "@/lib/api/types";
 
 import Modal from "@/components/ui/modal";
@@ -15,6 +13,7 @@ import { useMyProfile } from "@/hooks/use-ess";
 import { useMyPermissions } from "@/hooks/use-permissions";
 import { fetchEmployeeLeaveBalances, submitLeaveRequest, fetchEmployeeEmployments } from "@/lib/api";
 import { maybeNull } from "@/types/api-overrides";
+import { generateUUID } from "@/utils/uuid";
 
 import { CreateLeaveRequestForm } from "./create-leave-request-form";
 

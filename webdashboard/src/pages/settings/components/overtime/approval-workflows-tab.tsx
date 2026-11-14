@@ -114,7 +114,7 @@ export function ApprovalWorkflowsTab({ entityType = "ot_request" }: { entityType
 
   const handleCreate = () => {
     void navigate({
-      to: "/settings/workflows/new" as never,
+      to: "/settings/workflows/new",
       search: { tab: currentTab } as never,
     });
   };

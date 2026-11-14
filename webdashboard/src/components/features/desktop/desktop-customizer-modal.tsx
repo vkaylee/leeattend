@@ -1,4 +1,4 @@
-import { SlidersHorizontal, RotateCcw, Check, Plus, Minus } from "lucide-react";
+import { SlidersHorizontal, RotateCcw, Check, Plus } from "lucide-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
 
@@ -8,12 +8,12 @@ import Modal from "@/components/ui/modal";
 import type { DesktopWidgetDefinition } from "./types";
 
 interface DesktopCustomizerModalProps {
-  isOpen: boolean;
-  onClose: () => void;
   availableWidgets: DesktopWidgetDefinition[];
+  isOpen: boolean;
   isWidgetEnabled: (id: string) => boolean;
-  onToggleWidget: (id: string) => void;
+  onClose: () => void;
   onResetToDefault: () => void;
+  onToggleWidget: (id: string) => void;
 }
 
 export function DesktopCustomizerModal({
@@ -28,13 +28,13 @@ export function DesktopCustomizerModal({
 
   return (
     <Modal
-      isOpen={isOpen}
-      onClose={onClose}
-      title={t("desktop.customizeTitle", "Tùy biến Desktop & Widget")}
-      subtitle={t("desktop.customizeSubtitle", "Bật hoặc tắt các widget hiển thị trên màn hình chính của bạn")}
       icon={<SlidersHorizontal className="w-5 h-5 text-primary-500" />}
+      isOpen={isOpen}
       maxWidth="lg"
+      onClose={onClose}
+      subtitle={t("desktop.customizeSubtitle", "Bật hoặc tắt các widget hiển thị trên màn hình chính của bạn")}
       testId="desktop-customizer-modal"
+      title={t("desktop.customizeTitle", "Tùy biến Desktop & Widget")}
     >
       <div className="space-y-6 pt-2">
         {/* Widgets List */}
@@ -45,12 +45,12 @@ export function DesktopCustomizerModal({
 
             return (
               <div
-                key={widget.id}
                 className={`flex items-center justify-between p-3.5 rounded-2xl border transition-all ${
                   enabled
                     ? "bg-primary-50/30 dark:bg-primary-950/20 border-primary-500/30"
                     : "bg-slate-50/50 dark:bg-slate-900/30 border-slate-200/60 dark:border-slate-800/60 opacity-75"
                 }`}
+                key={widget.id}
               >
                 <div className="flex items-center gap-3 min-w-0 pr-4">
                   <div
@@ -74,16 +74,16 @@ export function DesktopCustomizerModal({
 
                 {/* Toggle Button */}
                 <Button
-                  type="button"
-                  variant={enabled ? "primary" : "outline"}
-                  onClick={() => onToggleWidget(widget.id)}
+                  aria-label={`${enabled ? t("desktop.disableWidget", "Tắt widget") : t("desktop.enableWidget", "Bật widget")} ${widget.titleFallback}`}
                   className={`h-8 px-3 rounded-xl text-xs font-semibold shrink-0 flex items-center gap-1.5 ${
                     enabled
                       ? "bg-primary-600 hover:bg-primary-700 text-white"
                       : "text-slate-600 dark:text-slate-300"
                   }`}
-                  aria-label={`${enabled ? t("desktop.disableWidget", "Tắt widget") : t("desktop.enableWidget", "Bật widget")} ${widget.titleFallback}`}
                   data-testid={`toggle-widget-${widget.id}`}
+                  onClick={() => { onToggleWidget(widget.id); }}
+                  type="button"
+                  variant={enabled ? "primary" : "outline"}
                 >
                   {enabled ? (
                     <>
@@ -105,21 +105,21 @@ export function DesktopCustomizerModal({
         {/* Footer Actions */}
         <div className="flex items-center justify-between pt-4 border-t border-slate-100 dark:border-slate-800">
           <Button
-            type="button"
-            variant="ghost"
-            onClick={onResetToDefault}
             className="text-xs font-semibold text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 flex items-center gap-1.5"
             data-testid="reset-widgets-btn"
+            onClick={onResetToDefault}
+            type="button"
+            variant="ghost"
           >
             <RotateCcw className="w-3.5 h-3.5" />
             <span>{t("desktop.resetDefault", "Khôi phục mặc định")}</span>
           </Button>
 
           <Button
+            className="px-5 rounded-xl text-xs font-bold"
+            onClick={onClose}
             type="button"
             variant="primary"
-            onClick={onClose}
-            className="px-5 rounded-xl text-xs font-bold"
           >
             {t("common.done", "Xong")}
           </Button>

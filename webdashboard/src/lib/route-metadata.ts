@@ -4,9 +4,9 @@ export interface RouteMetadata {
   /** Translation key for breadcrumb item, or fallback string */
   breadcrumbKey: string;
   defaultBreadcrumb: string;
+  defaultTitle: string;
   /** Translation key for page title, or fallback string */
   titleKey: string;
-  defaultTitle: string;
 }
 
 /**

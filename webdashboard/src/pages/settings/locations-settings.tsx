@@ -5,13 +5,13 @@ import { useTranslation } from "react-i18next";
 
 import Button from "@/components/ui/button";
 import EmptyState from "@/components/ui/empty-state";
+import { SettingsHeader } from "@/components/ui/settings/settings-header";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/components/ui/toast";
 import { Typography } from "@/components/ui/typography";
 import { WorkLocation } from "@/lib/api/locations";
 import { cn } from "@/lib/utils";
 
-import { SettingsHeader } from "@/components/ui/settings/settings-header";
 import LocationFormDrawer from "./components/location-form-drawer";
 import { useLocations, useDeleteLocation } from "./hooks/use-locations";
 

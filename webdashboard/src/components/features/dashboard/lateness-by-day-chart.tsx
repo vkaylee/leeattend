@@ -12,9 +12,9 @@ import {
     YAxis,
 } from "recharts";
 
-import { DashboardChartError, useDashboardChartError } from "@/components/features/dashboard/dashboard-chart-state";
 import { ChartSummary } from "@/components/features/dashboard/chart-summary";
 import { ChartTableTwin, type ChartTableColumn } from "@/components/features/dashboard/chart-table-twin";
+import { DashboardChartError, useDashboardChartError } from "@/components/features/dashboard/dashboard-chart-state";
 import { MetricSelector } from "@/components/features/dashboard/metric-selector";
 import { Typography } from "@/components/ui/typography";
 import { useLatenessByDay, type LatenessByDay } from "@/hooks/use-dashboard";
@@ -71,7 +71,7 @@ export default function LatenessByDayChart() {
             ) : (
                 <>
                     <ChartSummary text={summary} />
-                    <div role="img" aria-label={summary}>
+                    <div aria-label={summary} role="img">
                         <ResponsiveContainer height={280} width="100%">
                             <BarChart data={chartData} margin={{ top: 5, right: 10, left: -20, bottom: 5 }}>
                                 <CartesianGrid

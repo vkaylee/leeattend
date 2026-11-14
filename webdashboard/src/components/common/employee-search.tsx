@@ -2,8 +2,9 @@ import { User, X } from 'lucide-react';
 import React, { useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import Button from "@/components/ui/button";
 import type { ControlSize } from "@/components/ui/control-styles";
+
+import Button from "@/components/ui/button";
 import { FilterPanel } from "@/components/ui/filter-panel";
 import { FilterTrigger } from "@/components/ui/filter-trigger";
 
@@ -219,11 +220,11 @@ export function EmployeeSearch({
           <Combobox
             clearOnEscape={clearOnEscape}
             data-testid={testId}
+            hasMore={hasNextPage}
             id={id}
+            isLoadingMore={isFetchingNextPage}
             keyboardShortcut={keyboardShortcut}
             onChange={handleSelect}
-            hasMore={hasNextPage}
-            isLoadingMore={isFetchingNextPage}
             onLoadMore={() => { void fetchNextPage(); }}
             onSearchChange={setSearchTerm}
             options={options}

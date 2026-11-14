@@ -15,8 +15,8 @@ import {
   Employee, fetchEmployers, fetchEmployeeEmployments,
   updateEmployeeEmployment, Employment,
 } from "@/lib/api";
-import { employeeKeys } from "@/lib/query-keys";
 import { logError } from "@/lib/logger";
+import { employeeKeys } from "@/lib/query-keys";
 import { useLocations } from "@/pages/settings/hooks/use-locations";
 
 import EmployeeFormInputs from "./employee-form-inputs";

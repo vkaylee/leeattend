@@ -1,7 +1,8 @@
-import { CheckCircle2, Clock, Coffee, Zap } from "lucide-react";
+import { Clock, Coffee, Zap } from "lucide-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
 
+import { Typography } from "@/components/ui/typography";
 import { cn } from "@/lib/utils";
 
 interface TodayHoursSummaryProps {
@@ -47,11 +48,11 @@ export function TodayHoursSummary({
     >
       <div className="flex items-center justify-between">
         <div className="space-y-0.5">
-          <h4 className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+          <Typography className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2" variant="h4">
             <Clock className="h-4 w-4 text-primary-600 dark:text-primary-400" />
             {t("ess.clock.today_progress", "Tiến độ giờ làm hôm nay")}
-          </h4>
-          <p className="text-xs text-slate-500 dark:text-slate-400">
+          </Typography>
+          <Typography className="text-xs text-slate-500 dark:text-slate-400" variant="p">
             {isGoalReached
               ? t(
                   "ess.clock.goal_reached",
@@ -60,7 +61,7 @@ export function TodayHoursSummary({
               : t("ess.clock.goal_remaining", "Còn {{remaining}} để đạt 8 tiếng", {
                   remaining: formatMins(remainingMinutes),
                 })}
-          </p>
+          </Typography>
         </div>
 
         <span

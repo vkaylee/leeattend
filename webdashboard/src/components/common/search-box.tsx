@@ -29,9 +29,9 @@ export default function SearchBox({
         <SearchInput
             containerClassName={className}
             data-testid={testId}
-            onChange={(e) => onChange(e.target.value)}
-            onClear={() => onChange("")}
-            onFocus={(e) => e.target.select()}
+            onChange={(e) => { onChange(e.target.value); }}
+            onClear={() => { onChange(""); }}
+            onFocus={(e) => { e.target.select(); }}
             onKeyDown={onKeyDown}
             placeholder={displayPlaceholder}
             ref={inputRef}

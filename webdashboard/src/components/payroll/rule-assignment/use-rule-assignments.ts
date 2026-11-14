@@ -2,9 +2,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 
-import { useDepartments } from "@/hooks/use-departments";
-
 import { useToast } from "@/components/ui/toast";
+import { useDepartments } from "@/hooks/use-departments";
 import {
   fetchPayrollRuleAssignments,
   createPayrollRuleAssignment,

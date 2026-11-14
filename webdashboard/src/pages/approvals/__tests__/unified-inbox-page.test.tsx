@@ -1,11 +1,12 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import React from "react";
+
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import UnifiedInboxPage from "../unified-inbox-page";
 import * as batchHook from "../hooks/use-batch-approval";
 import * as inboxHook from "../hooks/use-unified-inbox";
 import { UnifiedApprovalItem } from "../types/unified-approvals";
+import UnifiedInboxPage from "../unified-inbox-page";
 
 // ── Mocks ─────────────────────────────────────────────────────────────
 

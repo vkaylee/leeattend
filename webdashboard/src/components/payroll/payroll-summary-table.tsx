@@ -191,15 +191,15 @@ function PayrollMobileCard({
 interface PayrollSummaryTableProps {
   employees: Employee[];
   isLoading: boolean;
+  isLocked?: boolean;
+  lockedAt?: string | null;
+  lockedBy?: string | null;
   onSearchChange: (value: string) => void;
   onToggleSelect: (id: string) => void;
   onToggleSelectAll: (ids?: string[]) => void;
   onViewDetail: (employee: Employee) => void;
   payslips: Payslip[];
   searchTerm: string;
-  isLocked?: boolean;
-  lockedAt?: string | null;
-  lockedBy?: string | null;
   selectedIds: Set<string>;
 }
 
@@ -329,14 +329,14 @@ export default function PayrollSummaryTable({
         </div>
       ) : (
         <>
-          {isLocked && (
+          {!!isLocked && (
             <div className="mx-6 my-2 px-4 py-2.5 rounded-2xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-between text-xs text-rose-700 dark:text-rose-300">
               <div className="flex items-center gap-2">
                 <Lock className="w-4 h-4 text-rose-600 dark:text-rose-400 shrink-0" />
                 <span className="font-semibold">Kỳ lương đã khóa chốt sổ:</span>
                 <span>Dữ liệu ở chế độ chỉ đọc để đảm bảo tính bất biến số liệu kế toán và thuế.</span>
               </div>
-              {lockedBy && (
+              {!!lockedBy && (
                 <span className="text-[11px] opacity-80 shrink-0">
                   Khóa bởi {lockedBy} {lockedAt ? `(${new Date(lockedAt).toLocaleDateString("vi-VN")})` : ""}
                 </span>
@@ -358,8 +358,6 @@ export default function PayrollSummaryTable({
               contextMenuItems={contextMenuItems}
               data={paginatedEmployees}
               density={density}
-              stickyLeftColumns={2}
-              stickyRightColumns={1}
               emptyState={{
                 title: t("common.no_records_found"),
                 icon: <User className="h-10 w-10" />,
@@ -384,6 +382,8 @@ export default function PayrollSummaryTable({
                 />
               )}
               selectedRowIds={selectedIds}
+              stickyLeftColumns={2}
+              stickyRightColumns={1}
               validateCell={validateCell}
             />
           </div>

@@ -43,20 +43,20 @@ export const SettingsSidebar = memo(function SettingsSidebar({
     [searchTerm]
   );
 
-  const filterGroup = (items: SettingItem[]): SettingItem[] => {
-    if (!cleanSearch) return items;
-    return items.filter((item) => {
-      const labelMatch = removeDiacritics(item.label.toLowerCase()).includes(
-        cleanSearch
-      );
-      const descMatch = removeDiacritics(
-        (item.description || "").toLowerCase()
-      ).includes(cleanSearch);
-      return labelMatch || descMatch;
-    });
-  };
-
   const sections: SectionDefinition[] = useMemo(() => {
+    const filterGroup = (items: SettingItem[]): SettingItem[] => {
+      if (!cleanSearch) return items;
+      return items.filter((item) => {
+        const labelMatch = removeDiacritics(item.label.toLowerCase()).includes(
+          cleanSearch
+        );
+        const descMatch = removeDiacritics(
+          (item.description || "").toLowerCase()
+        ).includes(cleanSearch);
+        return labelMatch || descMatch;
+      });
+    };
+
     return [
       {
         id: "organization",
@@ -87,7 +87,7 @@ export const SettingsSidebar = memo(function SettingsSidebar({
         items: filterGroup(systemGroup),
       },
     ].filter((s) => s.items.length > 0);
-  }, [organizationGroup, accessGroup, operationsGroup, systemGroup, cleanSearch]);
+  }, [cleanSearch, organizationGroup, accessGroup, operationsGroup, systemGroup]);
 
   return (
     <aside
@@ -123,7 +123,7 @@ export const SettingsSidebar = memo(function SettingsSidebar({
         <input
           className="w-full pl-8 pr-7 py-1.5 text-xs rounded-xl bg-white dark:bg-slate-950/60 border border-slate-200/80 dark:border-slate-800/80 placeholder:text-slate-400 text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all shadow-2xs"
           data-testid="settings-search-input"
-          onChange={(e) => setSearchTerm(e.target.value)}
+          onChange={(e) => { setSearchTerm(e.target.value); }}
           placeholder={t(
             "settings.searchPlaceholder",
             "Tìm cài đặt & tính năng..."
@@ -131,10 +131,10 @@ export const SettingsSidebar = memo(function SettingsSidebar({
           type="text"
           value={searchTerm}
         />
-        {searchTerm && (
+        {!!searchTerm && (
           <Button
             className="absolute right-1 top-1/2 -translate-y-1/2 h-5 w-5 p-0 text-slate-400 hover:text-slate-600 rounded-md"
-            onClick={() => setSearchTerm("")}
+            onClick={() => { setSearchTerm(""); }}
             size="sm"
             type="button"
             variant="ghost"
@@ -191,7 +191,7 @@ export const SettingsSidebar = memo(function SettingsSidebar({
                       <div className="truncate leading-tight font-medium">
                         {item.label}
                       </div>
-                      {item.description && (
+                      {!!item.description && (
                         <div
                           className={cn(
                             "text-[10px] whitespace-normal break-words leading-relaxed mt-0.5",

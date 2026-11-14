@@ -1,5 +1,6 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
+
 import Button from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -40,7 +41,7 @@ export function ThemeColorPicker({
                 : "border-transparent hover:scale-105"
             )}
             key={preset.color}
-            onClick={() => onThemeColorChange(preset.color)}
+            onClick={() => { onThemeColorChange(preset.color); }}
             style={{ backgroundColor: preset.color }}
             title={preset.name}
             variant="ghost"
@@ -55,14 +56,14 @@ export function ThemeColorPicker({
           <input
             aria-label={t("common.organization_settings.primary_color")}
             className="w-6 h-6 rounded-md cursor-pointer bg-transparent border-none p-0"
-            onChange={(e) => onThemeColorChange(e.target.value)}
+            onChange={(e) => { onThemeColorChange(e.target.value); }}
             type="color"
             value={themePrimaryColor}
           />
           <input
             aria-label={t("common.organization_settings.primary_color")}
             className="bg-transparent border-none text-xs font-mono font-semibold text-slate-600 dark:text-slate-300 w-20 outline-none"
-            onChange={(e) => onThemeColorChange(e.target.value)}
+            onChange={(e) => { onThemeColorChange(e.target.value); }}
             type="text"
             value={themePrimaryColor}
           />

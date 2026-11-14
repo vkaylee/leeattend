@@ -4,8 +4,9 @@ import React from "react";
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-import { useWorkerMonitor, useWorkerJobs } from "@/hooks/use-worker-monitor";
 import type { WorkerMonitorStats } from "@/lib/api/types-monitoring";
+
+import { useWorkerMonitor, useWorkerJobs } from "@/hooks/use-worker-monitor";
 
 vi.mock("react-i18next", () => ({
     useTranslation: () => ({
@@ -44,11 +45,11 @@ vi.mock("@/hooks/use-monitor-charts", () => ({
 }));
 interface UseWorkerJobsTestMock {
     data?: { pages: { jobs: unknown[]; next_cursor: string | null }[] };
-    jobs: unknown[];
-    hasNextPage: boolean;
     fetchNextPage: () => void;
+    hasNextPage: boolean;
     isFetchingNextPage: boolean;
     isLoading: boolean;
+    jobs: unknown[];
 }
 
 const testMetric = (unit = "jobs") => ({

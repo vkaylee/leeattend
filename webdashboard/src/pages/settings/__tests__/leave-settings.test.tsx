@@ -5,7 +5,6 @@ import { vi, describe, it, expect, beforeEach } from "vitest";
 
 import { useAllEmployees } from "@/hooks/use-employees";
 import * as departmentsApi from "@/lib/api/departments";
-import * as helpers from "@/lib/api/helpers";
 import * as api from "@/lib/api/leaves";
 
 import LeaveSettings from "../leave-settings";

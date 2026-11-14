@@ -11,14 +11,14 @@ export interface PageHeaderProps {
   className?: string;
   /** data-testid for the h1 element */
   "data-testid"?: string;
+  /** Whether to apply VitePress-style gradient clip to title */
+  gradientTitle?: boolean;
   /** Hides the title block (title, subtitle, icon) to avoid duplicate headers */
   hideTitle?: boolean;
   /** Optional icon rendered in a styled container before the title */
   icon?: React.ReactNode;
   subtitle?: string;
   title: string;
-  /** Whether to apply VitePress-style gradient clip to title */
-  gradientTitle?: boolean;
 }
 
 const PageHeader = memo(function PageHeader({
@@ -49,9 +49,9 @@ const PageHeader = memo(function PageHeader({
           )}
           <div>
             {gradientTitle ? (
-              <h1 className="text-2xl font-black tracking-tight mb-0.5 normal-case" data-testid={testId}>
+              <Typography as="h1" className="text-2xl font-black tracking-tight mb-0.5 normal-case" data-testid={testId} variant="h1">
                 <GradientText>{title}</GradientText>
-              </h1>
+              </Typography>
             ) : (
               <Typography as="h1" className="font-bold mb-0.5 normal-case" data-testid={testId} variant="h3">
                 {title}

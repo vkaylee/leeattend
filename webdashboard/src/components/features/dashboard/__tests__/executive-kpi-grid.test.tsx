@@ -1,4 +1,5 @@
 import { fireEvent, render, screen } from "@testing-library/react";
+
 import { describe, it, expect, vi } from "vitest";
 
 import type { DashboardMetric, DashboardMetricsResponse } from "@/hooks/dashboard-metric-contract";
@@ -65,14 +66,14 @@ function response(metrics: DashboardMetric[], currency = "USD"): DashboardMetric
 
 describe("ExecutiveKpiGrid", () => {
   it("renders fifteen skeleton cards while loading", () => {
-    render(<ExecutiveKpiGrid loading error={false} onRetry={vi.fn()} />);
+    render(<ExecutiveKpiGrid error={false} loading onRetry={vi.fn()} />);
     const grid = screen.getByLabelText("dashboard.executive.loading");
     expect(grid.children).toHaveLength(15);
   });
 
   it("renders an error state with a retry button", () => {
     const onRetry = vi.fn();
-    render(<ExecutiveKpiGrid loading={false} error onRetry={onRetry} />);
+    render(<ExecutiveKpiGrid error loading={false} onRetry={onRetry} />);
     expect(screen.getByRole("alert")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: /dashboard.executive.retry/i }));
     expect(onRetry).toHaveBeenCalled();
@@ -97,7 +98,7 @@ describe("ExecutiveKpiGrid", () => {
       metric({ key: "budget_variance", unit: "currency", value: 100_000 }),
       metric({ key: "pending_hr_actions", unit: "count", value: 7 }),
     ];
-    render(<ExecutiveKpiGrid loading={false} error={false} data={response(metrics)} onRetry={vi.fn()} />);
+    render(<ExecutiveKpiGrid data={response(metrics)} error={false} loading={false} onRetry={vi.fn()} />);
     // All fifteen grid slots render (late_rate is still in the payload but no
     // longer a grid slot — replaced by the overtime/labor metric set).
     for (const key of ["headcount", "attendance_rate", "absence_rate", "turnover_rate", "system_ot_hours", "approved_ot_hours", "unapproved_ot_hours", "ot_approval_rate", "overtime", "ot_cost_per_employee", "labor_cost", "payroll_actual", "payroll_forecast", "budget_variance", "pending_hr_actions"]) {
@@ -107,7 +108,7 @@ describe("ExecutiveKpiGrid", () => {
   });
 
   it("renders a data-gap fallback for missing metric keys", () => {
-    render(<ExecutiveKpiGrid loading={false} error={false} data={response([metric({ key: "headcount" })])} onRetry={vi.fn()} />);
+    render(<ExecutiveKpiGrid data={response([metric({ key: "headcount" })])} error={false} loading={false} onRetry={vi.fn()} />);
     // Fourteen missing slots fall back to the data-gap placeholder text.
     expect(screen.getAllByText("dashboard.executive.status.data_gap").length).toBeGreaterThanOrEqual(14);
   });
@@ -123,7 +124,7 @@ describe("ExecutiveKpiGrid", () => {
       metric({ key: "overtime_cost", unit: "currency", value: 1250 }),
       metric({ key: "pending_hr_actions", unit: "count", value: 7 }),
     ];
-    render(<ExecutiveKpiGrid loading={false} error={false} data={response(metrics)} onRetry={vi.fn()} />);
+    render(<ExecutiveKpiGrid data={response(metrics)} error={false} loading={false} onRetry={vi.fn()} />);
     expect(screen.getByText("dashboard.executive.metrics.overtime.label")).toBeInTheDocument();
     // Currency rendering: "USD 1,250".
     expect(screen.getByText(/USD\s*1,250/i)).toBeInTheDocument();
@@ -139,7 +140,7 @@ describe("ExecutiveKpiGrid", () => {
       metric({ key: "overtime_hours", unit: "hours", value: 8 }),
       metric({ key: "pending_hr_actions", unit: "count", value: 7 }),
     ];
-    render(<ExecutiveKpiGrid loading={false} error={false} data={response(metrics)} onRetry={vi.fn()} />);
+    render(<ExecutiveKpiGrid data={response(metrics)} error={false} loading={false} onRetry={vi.fn()} />);
     expect(screen.getAllByText("dashboard.executive.status.not_applicable").length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText("dashboard.executive.status.restricted").length).toBeGreaterThanOrEqual(1);
   });
@@ -154,7 +155,7 @@ describe("ExecutiveKpiGrid", () => {
       metric({ key: "overtime_hours", unit: "hours", value: 0 }),
       metric({ key: "pending_hr_actions", unit: "count", value: 0 }),
     ];
-    render(<ExecutiveKpiGrid loading={false} error={false} data={response(metrics)} onRetry={vi.fn()} />);
+    render(<ExecutiveKpiGrid data={response(metrics)} error={false} loading={false} onRetry={vi.fn()} />);
     // Zero values render as "0", not the data-gap status text.
     expect(screen.getAllByText("0").length).toBeGreaterThanOrEqual(1);
   });

@@ -1,8 +1,8 @@
+import { loadRuntimeFeatureFlags } from "@/lib/feature-flags";
+
 import { client, fetch } from "./client";
 import { ApiError } from "./errors";
 import { apiFetch, setAccessToken, setCurrentUserId, clearAuthSession, TIMEOUT } from "./helpers";
-import { loadRuntimeFeatureFlags } from "@/lib/feature-flags";
-
 import { markAuthSession } from "./token-store";
 import {
   AuthResponse,

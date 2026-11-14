@@ -1,7 +1,5 @@
 import type { components } from "@/types/api-generated";
 
-import { Nullable } from "@/types/api-overrides";
-
 import { client } from "./client";
 
 export type ConditionEarlyArrivalStrategy = "Allow" | "Block" | "Clamp";
@@ -50,7 +48,7 @@ export async function fetchConditionTypes(
       query: activeOnly !== undefined ? { active_only: activeOnly } : undefined,
     },
   });
-  return (data as Nullable<ConditionTypeDefinition[]>) ?? [];
+  return (data) ?? [];
 }
 
 export async function fetchConditionType(
@@ -61,7 +59,7 @@ export async function fetchConditionType(
       path: { id },
     },
   });
-  return data as ConditionTypeDefinition;
+  return data;
 }
 
 export async function createConditionType(
@@ -70,7 +68,7 @@ export async function createConditionType(
   const { data } = await client.POST<ConditionTypeDefinition>("/api/v1/condition-types", {
     body: req,
   });
-  return data as ConditionTypeDefinition;
+  return data;
 }
 
 export async function updateConditionType(
@@ -83,7 +81,7 @@ export async function updateConditionType(
     },
     body: req,
   });
-  return data as ConditionTypeDefinition;
+  return data;
 }
 
 export async function deleteConditionType(id: string): Promise<void> {

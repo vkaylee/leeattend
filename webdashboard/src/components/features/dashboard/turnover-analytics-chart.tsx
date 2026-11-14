@@ -16,11 +16,11 @@ import {
     YAxis,
 } from "recharts";
 
+import { ChartTableTwin, type ChartTableColumn } from "@/components/features/dashboard/chart-table-twin";
+import { DashboardChartError } from "@/components/features/dashboard/dashboard-chart-state";
+import { DashboardDateRange } from "@/components/features/dashboard/dashboard-date-range";
 import Button from "@/components/ui/button";
 import { Typography } from "@/components/ui/typography";
-import { DashboardChartError } from "@/components/features/dashboard/dashboard-chart-state";
-import { ChartTableTwin, type ChartTableColumn } from "@/components/features/dashboard/chart-table-twin";
-import { DashboardDateRange } from "@/components/features/dashboard/dashboard-date-range";
 import {
     useTurnoverAnalytics,
     type TurnoverAnalytics,
@@ -185,7 +185,7 @@ function WarningStrip({ warnings, t }: { warnings: TurnoverAnalytics["warnings"]
                         key={w.code}
                         role="note"
                     >
-                        <span className="text-amber-500" aria-hidden="true">⚠</span>
+                        <span aria-hidden="true" className="text-amber-500">⚠</span>
                         <span className="text-[11px] font-semibold text-amber-700 dark:text-amber-400">
                             {label}
                         </span>
@@ -231,7 +231,7 @@ function KpiHeader({ data, t }: { data: TurnoverAnalytics; t: TranslateFn }) {
                 />
             </div>
             <div className="mt-3">
-                <ComparisonBadge comparison={data.comparison} target={data.target} t={t} />
+                <ComparisonBadge comparison={data.comparison} t={t} target={data.target} />
             </div>
         </div>
     );
@@ -396,7 +396,7 @@ export default function TurnoverAnalyticsChart() {
                     setSelectedPeriod={setSelectedPeriod}
                     t={t}
                 />
-                <DashboardChartError icon={<span className="text-4xl" aria-hidden="true">!</span>} />
+                <DashboardChartError icon={<span aria-hidden="true" className="text-4xl">!</span>} />
             </div>
         );
     }
@@ -422,7 +422,7 @@ export default function TurnoverAnalyticsChart() {
                 t={t}
             />
 
-            {data ? <WarningStrip warnings={data.warnings} t={t} /> : null}
+            {data ? <WarningStrip t={t} warnings={data.warnings} /> : null}
 
             <ChartTabs
                 activeTab={activeTab}
@@ -439,7 +439,7 @@ export default function TurnoverAnalyticsChart() {
                 <div className="space-y-6">
                     {data ? <KpiHeader data={data} t={t} /> : null}
 
-                    {activeTab === "overview" && <OverviewTab data={data} t={t} formatDate={formatDate} />}
+                    {activeTab === "overview" && <OverviewTab data={data} formatDate={formatDate} t={t} />}
                     {activeTab === "tenure" && <TenureTab data={data} t={t} />}
                     {activeTab === "source" && <SourceTab data={data} t={t} />}
                     {activeTab === "department" && <DepartmentTab data={data} t={t} />}
@@ -456,7 +456,7 @@ export default function TurnoverAnalyticsChart() {
 function OverviewTab({ data, t, formatDate }: { data: TurnoverAnalytics; t: TranslateFn; formatDate: (d: string | Date | null | undefined) => string }) {
     return (
         <>
-            {data.monthly_trend.length > 0 ? <TrendChart data={data.monthly_trend} t={t} formatDate={formatDate} /> : null}
+            {data.monthly_trend.length > 0 ? <TrendChart data={data.monthly_trend} formatDate={formatDate} t={t} /> : null}
             {data.cohort_retention.length > 0 ? <CohortChart data={data.cohort_retention} t={t} /> : null}
         </>
     );
@@ -489,7 +489,7 @@ function TrendChart({ data, t, formatDate }: { data: TurnoverAnalytics["monthly_
             <Typography className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-3" variant="h4">
                 {t("dashboard.hr.monthly_trend")}
             </Typography>
-            <div role="img" aria-label={t("dashboard.hr.monthly_trend")}>
+            <div aria-label={t("dashboard.hr.monthly_trend")} role="img">
                 <ResponsiveContainer height={260} width="100%">
                     <LineChart data={chartData} margin={{ top: 5, right: 10, left: -20, bottom: 5 }}>
                         <CartesianGrid className="text-slate-100 dark:text-slate-800" stroke="currentColor" strokeDasharray="3 3" />
@@ -680,7 +680,7 @@ function HorizontalBarChart<T extends { count: number }>({
 
     return (
         <div>
-            <div role="img" aria-label={chartKey}>
+            <div aria-label={chartKey} role="img">
                 <ResponsiveContainer height={Math.max(200, chartData.length * 44)} width="100%">
                     <BarChart data={chartData} layout="vertical" margin={{ top: 10, right: 20, left: 10, bottom: 10 }}>
                         <CartesianGrid horizontal={false} stroke="#e2e8f0" strokeDasharray="3 3" />
@@ -798,7 +798,7 @@ function ReasonsTab({ data, t }: { data: TurnoverAnalytics; t: TranslateFn }) {
                     <Typography className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-3" variant="h4">
                         {t("dashboard.hr.classification")}
                     </Typography>
-                    <div role="img" aria-label={t("dashboard.hr.classification")}>
+                    <div aria-label={t("dashboard.hr.classification")} role="img">
                         <ResponsiveContainer height={160} width="100%">
                             <BarChart data={classificationRows} layout="vertical" margin={{ top: 10, right: 20, left: 10, bottom: 10 }}>
                                 <CartesianGrid horizontal={false} stroke="#e2e8f0" strokeDasharray="3 3" />

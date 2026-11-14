@@ -1,5 +1,6 @@
-import { client } from "./client";
 import type { Holiday } from './types';
+
+import { client } from "./client";
 
 export async function fetchHolidays(
     year?: number,

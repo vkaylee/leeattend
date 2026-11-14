@@ -1,4 +1,5 @@
 import { fireEvent, render, screen } from "@testing-library/react";
+
 import { describe, it, expect, vi } from "vitest";
 
 import type { DashboardMetric, DashboardMetricsResponse } from "@/hooks/dashboard-metric-contract";

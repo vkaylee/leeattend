@@ -7,9 +7,9 @@ import type {
 import { client } from "./client";
 
 export interface EmployeeAssignmentWithEmployee extends EmployeeAssignment {
+  employee_code?: string;
   employee_id: string;
   employee_name: string;
-  employee_code?: string;
   home_location_name?: string;
   host_location_name?: string;
 }

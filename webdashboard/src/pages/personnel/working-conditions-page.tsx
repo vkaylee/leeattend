@@ -4,6 +4,8 @@ import { CheckCircle2, DollarSign, HeartHandshake, Plus, Users, X, XCircle } fro
 import React, { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
+import type { WorkingConditionWithEmployee } from "@/lib/api/employee-conditions";
+
 import WorkingConditionFormModal from "@/components/features/employees/working-condition-form-modal";
 import { WorkingConditionsFilters } from "@/components/features/personnel/working-conditions-filters";
 import { WorkingConditionsTable } from "@/components/features/personnel/working-conditions-table";
@@ -19,11 +21,10 @@ import {
   fetchConditionTypes,
   type ConditionTypeDefinition,
 } from "@/lib/api";
-import type { WorkingConditionWithEmployee } from "@/lib/api/employee-conditions";
 
 export default function PersonnelWorkingConditionsPage() {
   const { t, i18n } = useTranslation();
-  const searchParams = useSearch({ strict: false }) as { employeeId?: string; q?: string };
+  const searchParams = useSearch({ strict: false });
   const employeeFilter = searchParams.employeeId;
   const toast = useToast();
   const queryClient = useQueryClient();
@@ -146,7 +147,7 @@ export default function PersonnelWorkingConditionsPage() {
         title={t("working_conditions.title", { defaultValue: "Quản lý Điều kiện Làm việc Đặc thù" })}
       />
 
-      {employeeFilter && (
+      {!!employeeFilter && (
         <div className="flex items-center gap-2" data-testid="employee-filter-chip">
           <span className="rounded-full border border-primary-200 bg-primary-50 px-3 py-1 text-xs font-semibold text-primary-700 dark:border-primary-800 dark:bg-primary-950 dark:text-primary-300">
             {t("employees.details.filtered_employee", { defaultValue: "Đang lọc theo nhân viên" })}
@@ -248,7 +249,7 @@ export default function PersonnelWorkingConditionsPage() {
       </div>
 
       {/* ── Dual-Mode Working Condition Form Modal ─────────────────── */}
-      {isModalOpen && (
+      {!!isModalOpen && (
         <WorkingConditionFormModal isOpen={isModalOpen}
         onClose={() => {
           setIsModalOpen(false);

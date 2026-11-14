@@ -13,8 +13,8 @@ import { useTranslation } from "react-i18next";
 
 import Button from "@/components/ui/button";
 import { Typography } from "@/components/ui/typography";
-import { useMyPermissions } from "@/hooks/use-permissions";
 import { useOrganization } from "@/hooks/use-organization";
+import { useMyPermissions } from "@/hooks/use-permissions";
 import { fetchEmployeeEmployments } from "@/lib/api";
 import { Employee, Payslip, AttendanceAdjustmentRequest } from "@/lib/api/types";
 import { cn } from "@/lib/utils";

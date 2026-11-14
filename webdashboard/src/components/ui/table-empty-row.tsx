@@ -1,5 +1,7 @@
 import React, { memo } from "react";
-import EmptyState, { type EmptyStateProps } from "./empty-state";
+
+import EmptyState from "./empty-state";
+import { Typography } from "./typography";
 
 export interface TableEmptyRowProps {
   /** Call-to-action button */
@@ -45,9 +47,9 @@ export const TableEmptyRow = memo(function TableEmptyRow({
             />
           ) : (
             <div className="py-12 flex flex-col items-center justify-center max-w-md mx-auto text-center space-y-2">
-              <p className="text-sm font-semibold text-foreground/90">{title}</p>
+              <Typography className="text-sm font-semibold text-foreground/90" variant="p">{title}</Typography>
               {Boolean(description) && (
-                <p className="text-xs text-muted-foreground leading-relaxed">{description}</p>
+                <Typography className="text-xs text-muted-foreground leading-relaxed" variant="p">{description}</Typography>
               )}
               {Boolean(action) && <div className="pt-3">{action}</div>}
             </div>

@@ -5,7 +5,6 @@ import { useTranslation } from "react-i18next";
 import { useToast } from "@/components/ui/toast";
 import { useOrganizationInfiniteQuery, useOrganizationMutation, useOrganizationQuery } from "@/hooks/common/use-organization-query";
 import { useDepartments } from "@/hooks/use-departments";
-import { employeeKeys } from "@/lib/query-keys";
 import {
   searchEmployees,
   updateEmployee,
@@ -14,6 +13,7 @@ import {
   updateEmployeeEmployment,
   type UpdateEmployeeRequest,
 } from "@/lib/api";
+import { employeeKeys } from "@/lib/query-keys";
 
 import type { SortKey, SortDir } from "./use-employees-state";
 

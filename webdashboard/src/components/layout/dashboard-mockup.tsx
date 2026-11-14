@@ -1,4 +1,5 @@
 import { useTranslation } from "react-i18next";
+
 import { Typography } from "@/components/ui/typography";
 
 import { ATTENDANCE_BARS, DAY_LABELS, MOCK_EMPLOYEES, STATUS_STYLE, STAT_CARDS } from "./auth-mock-data";

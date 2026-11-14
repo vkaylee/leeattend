@@ -1,4 +1,3 @@
-import { client } from "./client";
 import type {
   BulkCreateWorkSegmentsRequest,
   CreateShiftIntervalRequest,
@@ -8,6 +7,8 @@ import type {
   UpdateWorkSegmentRequest,
   WorkSegment,
 } from "./types";
+
+import { client } from "./client";
 
 export interface WorkSegmentListResponse {
   segments: WorkSegment[];

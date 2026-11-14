@@ -2,6 +2,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { ClipboardList, UserCheck } from "lucide-react";
 import React, { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+
 import { z } from "zod";
 
 import Button from "@/components/ui/button";
@@ -180,7 +181,7 @@ export default function LifecycleAssignModal({
                 })}
                 value={selectedEmployeeId}
               />
-              {selectedEmployee && !selectedEmployee.active_employment_id && (
+              {!!selectedEmployee && !selectedEmployee.active_employment_id && (
                 <p className="text-xs text-rose-500 font-medium">
                   {t("lifecycle.errors.employee_has_no_employment", {
                     defaultValue: "Nhân sự này hiện không có hồ sơ công tác hợp lệ.",
@@ -229,7 +230,7 @@ export default function LifecycleAssignModal({
             />
           </div>
 
-          {errorMsg && (
+          {!!errorMsg && (
             <div className="p-3 text-xs font-semibold text-rose-600 bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900 rounded-xl">
               {errorMsg}
             </div>

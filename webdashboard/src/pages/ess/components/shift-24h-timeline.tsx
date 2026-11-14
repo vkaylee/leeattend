@@ -1,15 +1,15 @@
-import { Clock, Info } from "lucide-react";
-import React, { useEffect, useMemo, useState } from "react";
+import { Clock } from "lucide-react";
+import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { cn } from "@/lib/utils";
 
 interface ShiftTimeWindow {
-  startHour: number; // e.g. 8.5 for 08:30
-  endHour: number; // e.g. 17.5 for 17:30
-  breakStartHour?: number; // e.g. 12.0
   breakEndHour?: number; // e.g. 13.0
+  breakStartHour?: number; // e.g. 12.0
+  endHour: number; // e.g. 17.5 for 17:30
   label?: string;
+  startHour: number; // e.g. 8.5 for 08:30
 }
 
 interface ActualPunchSpan {
@@ -64,7 +64,7 @@ export function Shift24hTimeline({
       const d = new Date();
       setCurrentMinutes(d.getHours() * 60 + d.getMinutes());
     }, 30000); // Update every 30s
-    return () => clearInterval(timer);
+    return () => { clearInterval(timer); };
   }, []);
 
   // Scheduled shift boundaries
@@ -176,7 +176,7 @@ export function Shift24hTimeline({
                 </div>
 
                 {/* Punch Out Marker Dot if checked out */}
-                {punch.punchOutTime && (
+                {!!punch.punchOutTime && (
                   <div
                     className="absolute -top-2.5 z-20 -translate-x-1/2 flex flex-col items-center group cursor-pointer"
                     data-testid={`punch-out-dot-${idx}`}

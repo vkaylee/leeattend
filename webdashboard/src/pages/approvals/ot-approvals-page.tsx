@@ -176,12 +176,12 @@ export default function OtApprovalsPage() {
             setPreviewTitle(title);
             setIsPreviewOpen(true);
           }}
+          organization={organization?.id ? organization : null}
           pendingSummaries={pendingSummaries}
           setPhotoTargetSummary={setPhotoTargetSummary}
           setSourceFilter={setSourceFilter}
           sourceFilter={sourceFilter}
           startDate={startDate}
-          organization={organization?.id ? organization : null}
         />
       </div>
 

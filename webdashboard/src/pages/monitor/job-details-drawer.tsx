@@ -1,10 +1,9 @@
 import { Ban, CheckCircle2, Clock, Copy, Loader2, RefreshCw, ShieldAlert, XCircle } from "lucide-react";
 import React from "react";
 
-import Button from "@/components/ui/button";
-
 import { TFunction } from "i18next";
 
+import Button from "@/components/ui/button";
 import Sheet from "@/components/ui/sheet";
 import { useToast } from "@/components/ui/toast";
 import { Typography } from "@/components/ui/typography";

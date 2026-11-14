@@ -7,7 +7,6 @@ export const Route = createFileRoute(
 )({
   beforeLoad: () => {
     if (!isFeatureEnabled("ff_econtracts")) {
-      // eslint-disable-next-line @typescript-eslint/only-throw-error
       throw redirect({ to: "/" });
     }
   },

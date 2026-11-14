@@ -1,16 +1,16 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, renderHook, waitFor } from "@testing-library/react";
 import React from "react";
+
 import { describe, it, expect, vi, beforeEach, type Mock } from "vitest";
 
 import { useOrganization } from "../use-organization";
+import { organizationKeys } from "../use-organization-queries";
 import {
-  usePermissionCatalog,
   useOrganizationRoles,
   useRolePermissions,
   useOrganizationPermissionsMatrix,
 } from "../use-organization-roles";
-import { organizationKeys } from "../use-organization-queries";
 
 const api = vi.hoisted(() => ({
   fetchOrganization: vi.fn(),

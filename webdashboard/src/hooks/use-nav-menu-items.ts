@@ -23,8 +23,6 @@ import {
   ArrowLeftRight,
   DollarSign,
   Activity,
-  Zap,
-  Mail,
   Inbox,
   FileText,
   ShieldCheck,

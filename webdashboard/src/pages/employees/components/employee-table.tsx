@@ -11,8 +11,8 @@ import StatusBadge from "@/components/ui/status-badge";
 import { cn } from "@/lib/utils";
 
 import type { Employee, Department } from "../../../lib/api/types";
-import type { EmployeeModalState } from "../types/employee-modals";
 import type { SortKey, SortDir } from "../hooks/use-employees-page";
+import type { EmployeeModalState } from "../types/employee-modals";
 
 import { useEmployeeColumns } from "../hooks/use-employee-columns";
 
@@ -48,7 +48,7 @@ function EmployeeMobileCard({ employee, isSelected, onSelect }: {
           <div className="truncate text-sm font-bold uppercase tracking-tight text-slate-800 dark:text-slate-100">{employee.full_name}</div>
           <div className="mt-1 flex items-center gap-2">
             <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-slate-400">{employee.employee_id_number}</span>
-            {employee.job_title && (
+            {!!employee.job_title && (
               <span className="truncate text-[10px] font-semibold text-slate-500 dark:text-slate-400">
                 • {employee.job_title}
               </span>

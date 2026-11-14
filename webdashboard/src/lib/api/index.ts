@@ -7,7 +7,7 @@ export * from "./auth";
 export * from "./documents";
 export * from "./organization";
 export * from "./feature-flags";
-// eslint-disable-next-line import-x/export -- re-exports Employment from types.ts via employees
+ 
 export * from "./employees";
 export * from "./attendance";
 export * from "./leaves";

@@ -22,13 +22,13 @@ async function loadFileSaver() {
 
 /** A single enriched row as rendered in the Unrecorded Shifts table. */
 export interface NoShowRow {
+  actual_punch_in: string | null;
+  actual_punch_out: string | null;
   department_name: string;
   employee_id_number: string;
   employee_name: string;
   scheduled_end: string | null;
   scheduled_start: string | null;
-  actual_punch_in: string | null;
-  actual_punch_out: string | null;
   shift_name: string | null;
   zone_label: string | null;
 }

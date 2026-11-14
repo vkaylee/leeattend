@@ -1,6 +1,5 @@
 import * as Dialog from "@radix-ui/react-dialog";
 import { useNavigate } from "@tanstack/react-router";
-import { Command } from "cmdk";
 import {
   CornerDownLeft,
   Search,
@@ -10,15 +9,17 @@ import {
 import React, { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
+import { Command } from "cmdk";
+
 import Button from "@/components/ui/button";
 import { useMyPermissions } from "@/hooks/use-permissions";
+import { useFeatureFlagVersion } from "@/lib/feature-flags";
 import {
   buildFeatureSearchIndex,
   filterFeatures,
   getAllFeatures,
   type FeatureItem,
 } from "@/lib/feature-registry";
-import { useFeatureFlagVersion } from "@/lib/feature-flags";
 import { removeDiacritics } from "@/lib/utils";
 
 export interface CommandPaletteProps {
@@ -54,7 +55,7 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
       }
     };
     window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
+    return () => { window.removeEventListener("keydown", handleKeyDown); };
   }, [isOpen, onClose]);
 
   // Reset search when dialog opens/closes
@@ -91,7 +92,7 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
   };
 
   return (
-    <Dialog.Root onOpenChange={(open) => !open && onClose()} open={isOpen}>
+    <Dialog.Root onOpenChange={(open) => { if (!open) onClose(); }} open={isOpen}>
       <Dialog.Portal>
         <Dialog.Overlay
           className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs transition-opacity animate-in fade-in duration-150"
@@ -126,11 +127,11 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
                 )}
                 value={search}
               />
-              {search && (
+              {!!search && (
                 <Button
                   aria-label="Clear search"
                   className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
-                  onClick={() => setSearch("")}
+                  onClick={() => { setSearch(""); }}
                   size="sm"
                   variant="ghost"
                 >
@@ -170,7 +171,7 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
                       className="group flex cursor-pointer select-none items-center justify-between rounded-lg px-2.5 py-2 text-sm text-foreground transition-colors hover:bg-primary/10 hover:text-primary data-[selected=true]:bg-primary/10 data-[selected=true]:text-primary outline-none"
                       data-testid={`command-item-${item.id}`}
                       key={item.id}
-                      onSelect={() => handleSelectItem(item)}
+                      onSelect={() => { handleSelectItem(item); }}
                       value={itemSearchIndex}
                     >
                       <div className="flex items-center gap-2.5 min-w-0">
@@ -206,7 +207,7 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
                       className="group flex cursor-pointer select-none items-center justify-between rounded-lg px-2.5 py-2 text-sm text-foreground transition-colors hover:bg-emerald-500/10 hover:text-emerald-600 dark:hover:text-emerald-400 data-[selected=true]:bg-emerald-500/10 data-[selected=true]:text-emerald-600 dark:data-[selected=true]:text-emerald-400 outline-none"
                       data-testid={`command-item-${item.id}`}
                       key={item.id}
-                      onSelect={() => handleSelectItem(item)}
+                      onSelect={() => { handleSelectItem(item); }}
                       value={itemSearchIndex}
                     >
                       <div className="flex items-center gap-2.5 min-w-0">

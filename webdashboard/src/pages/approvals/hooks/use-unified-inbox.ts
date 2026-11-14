@@ -1,7 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
-import { endOfMonth, format, startOfMonth } from "date-fns";
 import { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+
+import { endOfMonth, format, startOfMonth } from "date-fns";
 
 import { useDepartments } from "@/hooks/use-departments";
 import { useAllEmployees } from "@/hooks/use-employees";
@@ -24,28 +25,28 @@ import {
 } from "../types/unified-approvals";
 
 export interface UnifiedInboxCounts {
+  adjustment: number;
   all: number;
   leave: number;
   overtime: number;
-  adjustment: number;
   shift_swap: number;
 }
 
 export interface UseUnifiedInboxReturn {
-  items: UnifiedApprovalItem[];
   allItems: UnifiedApprovalItem[];
-  pendingCounts: UnifiedInboxCounts;
-  isLoading: boolean;
-  filter: UnifiedInboxFilter;
-  setFilter: (patch: Partial<UnifiedInboxFilter>) => void;
-  selectedIds: Set<string>;
-  toggleSelect: (id: string) => void;
-  selectAll: () => void;
   clearSelection: () => void;
+  filter: UnifiedInboxFilter;
   isAllSelected: boolean;
-  selectedItem: UnifiedApprovalItem | null;
-  setSelectedItem: (item: UnifiedApprovalItem | null) => void;
+  isLoading: boolean;
+  items: UnifiedApprovalItem[];
+  pendingCounts: UnifiedInboxCounts;
   refetchAll: () => Promise<void>;
+  selectAll: () => void;
+  selectedIds: Set<string>;
+  selectedItem: UnifiedApprovalItem | null;
+  setFilter: (patch: Partial<UnifiedInboxFilter>) => void;
+  setSelectedItem: (item: UnifiedApprovalItem | null) => void;
+  toggleSelect: (id: string) => void;
 }
 
 export function useUnifiedInbox(): UseUnifiedInboxReturn {
@@ -231,7 +232,7 @@ export function useUnifiedInbox(): UseUnifiedInboxReturn {
               : `${l.start_date} → ${l.end_date}`,
           reason: l.reason ?? undefined,
           durationLabel: l.duration_type,
-          rawPayload: l as unknown as Record<string, unknown>,
+          rawPayload: l,
         },
         impact,
       });
@@ -277,7 +278,7 @@ export function useUnifiedInbox(): UseUnifiedInboxReturn {
       const normalizedStatus: ApprovalItemStatus =
         s.status === "pending_admin" || s.status === "pending_target"
           ? "pending"
-          : (s.status as ApprovalItemStatus) || "pending";
+          : (s.status) || "pending";
 
       const impact = getTeamImpact(s.swap_date, req.departmentName, s.id);
 

@@ -1,4 +1,3 @@
-import { client } from "./client";
 import type {
   ScheduleEvidenceResponse,
   ScheduleHistoryResponse,
@@ -11,6 +10,8 @@ import type {
   ScheduleReplanRequest,
   ScheduleReplanResponse,
 } from "./types-schedule-lifecycle";
+
+import { client } from "./client";
 
 const schedulePath = "/api/v1/schedules";
 

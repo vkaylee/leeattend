@@ -8,7 +8,7 @@ import type { ThemeMode } from "@/hooks/use-dark-mode";
 import Button from "@/components/ui/button";
 import { Combobox } from "@/components/ui/combobox";
 const SETTINGS_LABEL = "text-xs font-semibold text-slate-700 dark:text-slate-300 ml-0.5";
-import { SettingsSegmentedControl } from "@/components/ui/settings/settings-segmented-control";
+import { SettingsHeader } from "@/components/ui/settings/settings-header";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/components/ui/toast";
 import { Typography } from "@/components/ui/typography";
@@ -16,7 +16,7 @@ import { useDarkModeContext } from "@/context/use-dark-mode-context";
 import { useTheme } from "@/hooks/use-theme";
 import { fetchOrganization, updateOrganization, Organization } from "@/lib/api";
 import { cn } from "@/lib/utils";
-import { SettingsHeader } from "@/components/ui/settings/settings-header";
+
 import { OrganizationLogoField } from "./components/organization-logo-field";
 import { ThemeColorPicker } from "./components/theme-color-picker";
 
@@ -138,7 +138,7 @@ function GeneralSettingsContent({ organization }: { organization: Organization }
                 : "text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"
             )}
             data-testid="tab-localization"
-            onClick={() => setActiveTab("localization")}
+            onClick={() => { setActiveTab("localization"); }}
             role="tab"
             type="button"
           >
@@ -154,7 +154,7 @@ function GeneralSettingsContent({ organization }: { organization: Organization }
                 : "text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"
             )}
             data-testid="tab-appearance"
-            onClick={() => setActiveTab("appearance")}
+            onClick={() => { setActiveTab("appearance"); }}
             role="tab"
             type="button"
           >
@@ -298,7 +298,7 @@ function DarkModeSelector() {
                 : "bg-slate-50 dark:bg-slate-900 border-slate-200/70 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50"
             )}
             key={opt.mode}
-            onClick={() => setMode(opt.mode)}
+            onClick={() => { setMode(opt.mode); }}
             variant="ghost"
           >
             {opt.icon}

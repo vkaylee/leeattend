@@ -15,6 +15,12 @@ import React, { createElement, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import PermissionGate from "@/components/common/permission-gate";
+import {
+  EMPLOYEE_DRAWER_TAB_CONFIG,
+  type DetailTabType,
+} from "@/components/features/employees/drawer-header";
+import { DrawerTabContent } from "@/components/features/employees/employee-detail-drawer";
+import { useEmployeeDetail } from "@/components/features/employees/hooks/use-employee-detail";
 import Button from "@/components/ui/button";
 import StatusBadge from "@/components/ui/status-badge";
 import { Typography } from "@/components/ui/typography";
@@ -23,17 +29,9 @@ import { useDepartments } from "@/hooks/use-departments";
 import {
   fetchEmployee,
   fetchEmployeeDepartmentHistory,
-  type Employee,
 } from "@/lib/api";
-import { employeeKeys } from "@/lib/query-keys";
 import { cn } from "@/lib/utils";
 
-import { DrawerTabContent } from "@/components/features/employees/employee-detail-drawer";
-import {
-  EMPLOYEE_DRAWER_TAB_CONFIG,
-  type DetailTabType,
-} from "@/components/features/employees/drawer-header";
-import { useEmployeeDetail } from "@/components/features/employees/hooks/use-employee-detail";
 import { EmployeeOverlays } from "./components/employee-overlays";
 import { useEmployeesModals } from "./hooks/use-employees-modals";
 
@@ -41,8 +39,8 @@ export default function EmployeeDetailPage() {
   const { t } = useTranslation();
   
   const { formatDate } = useDateTimeFormatter();
-  const params = useParams({ strict: false }) as { employeeId?: string };
-  const search = useSearch({ strict: false }) as { tab?: DetailTabType };
+  const params: { employeeId?: string } = useParams({ strict: false });
+  const search: { tab?: DetailTabType } = useSearch({ strict: false });
   const navigate = useNavigate();
 
   const employeeId = params.employeeId ?? "";
@@ -175,28 +173,28 @@ export default function EmployeeDetailPage() {
                   {employee.employee_id_number}
                 </span>
 
-                {employee.job_title && (
+                {!!employee.job_title && (
                   <span className="flex items-center gap-1.5 font-semibold">
                     <Briefcase className="text-slate-400" size={13} />
                     <span>{employee.job_title}</span>
                   </span>
                 )}
 
-                {employee.department_name && (
+                {!!employee.department_name && (
                   <span className="flex items-center gap-1.5 font-semibold">
                     <Building2 className="text-slate-400" size={13} />
                     <span>{employee.department_name}</span>
                   </span>
                 )}
 
-                {employee.hire_date && (
+                {!!employee.hire_date && (
                   <span className="flex items-center gap-1.5 text-slate-500 dark:text-slate-400">
                     <Calendar className="text-slate-400" size={13} />
                     <span>{t("common.hire_date", "Vào làm")}: {formatDate(employee.hire_date)}</span>
                   </span>
                 )}
 
-                {linkedUser?.email && (
+                {!!linkedUser?.email && (
                   <span className="flex items-center gap-1.5 text-slate-500 dark:text-slate-400">
                     <Mail className="text-slate-400" size={13} />
                     <span>{linkedUser.email}</span>

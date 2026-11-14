@@ -111,7 +111,7 @@ export function NoShowTable({
         </tbody>
       </table>
     </div>
-  ), [filteredRows, columns, t, tracesByKey, hasNextPage, isFetchingNextPage, loadMoreRef]);
+  ), [filteredRows, columns, t, tracesByKey, hasNextPage, isFetchingNextPage, loadMoreRef, handleHorizontalDragClick, setHorizontalDragScrollRef]);
 
   if (filteredRows.length === 0) {
     return (

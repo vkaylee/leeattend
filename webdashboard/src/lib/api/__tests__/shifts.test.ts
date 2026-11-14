@@ -7,7 +7,7 @@ vi.mock("../helpers", () => ({
   TIMEOUT: { DEFAULT: 10000, REPORT_OPERATION: 180000 },
 }));
 
-import { apiFetch, TIMEOUT } from "../helpers";
+import { apiFetch } from "../helpers";
 import { bulkUpsertRoster } from "../shifts";
 
 function okRes(payload: unknown, status = 200) {

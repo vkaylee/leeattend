@@ -5,11 +5,11 @@ import { useDarkModeContext } from '@/context/use-dark-mode-context';
 import { cn } from '@/lib/utils';
 
 export interface ThemeSwitchProps {
+  /** Accessible label override */
+  'aria-label'?: string;
   className?: string;
   /** Test identifier, defaults to "theme-switch" */
   'data-testid'?: string;
-  /** Accessible label override */
-  'aria-label'?: string;
   /** Whether to trigger Circular Wipe View Transition if supported (default: true) */
   enableViewTransition?: boolean;
 }
@@ -92,7 +92,7 @@ export const ThemeSwitch = memo(function ThemeSwitch({
     (event: React.MouseEvent<HTMLButtonElement>) => {
       const nextMode = isDark ? 'light' : 'dark';
       if (enableViewTransition) {
-        triggerCircularWipe(event, () => setMode(nextMode), isDark);
+        triggerCircularWipe(event, () => { setMode(nextMode); }, isDark);
       } else {
         setMode(nextMode);
       }

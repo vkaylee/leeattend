@@ -3,8 +3,8 @@ import { useMemo } from "react";
 
 import { format } from "date-fns";
 
-import { useAllEmployees } from "@/hooks/use-employees";
 import { useDepartments } from "@/hooks/use-departments";
+import { useAllEmployees } from "@/hooks/use-employees";
 import {
   fetchAssignmentHistory,
   fetchShifts,
@@ -16,7 +16,6 @@ import {
   EmployeeSchedule,
   Shift,
   WorkingPattern,
-  Department,
   Employee,
 } from "@/lib/api/types";
 

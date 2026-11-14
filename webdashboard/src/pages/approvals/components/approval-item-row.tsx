@@ -18,13 +18,13 @@ import {
 } from "../types/unified-approvals";
 
 interface ApprovalItemRowProps {
-  item: UnifiedApprovalItem;
+  isProcessing?: boolean;
   isSelected: boolean;
-  onToggleSelect: (id: string) => void;
+  item: UnifiedApprovalItem;
   onClick: (item: UnifiedApprovalItem) => void;
   onQuickApprove: (item: UnifiedApprovalItem) => void;
   onQuickReject: (item: UnifiedApprovalItem) => void;
-  isProcessing?: boolean;
+  onToggleSelect: (id: string) => void;
 }
 
 const typeIconMap: Record<ApprovalType, React.ReactNode> = {
@@ -103,14 +103,14 @@ export function ApprovalItemRow({
       )}
       data-testid={`approval-item-${item.id}`}
       onClick={handleRowClick}
-      role="button"
-      tabIndex={0}
       onKeyDown={(e) => {
         if (e.key === "Enter" || e.key === " ") {
           e.preventDefault();
           onClick(item);
         }
       }}
+      role="button"
+      tabIndex={0}
     >
       {/* Left: Checkbox + Type Icon + Requester & Summary */}
       <div className="flex items-start gap-3.5 min-w-0">
@@ -126,7 +126,7 @@ export function ApprovalItemRow({
               className="h-4 w-4 rounded border-slate-300 text-primary-600 focus:ring-primary-500 cursor-pointer"
               data-testid={`checkbox-${item.id}`}
               disabled={isProcessing}
-              onChange={() => onToggleSelect(item.id)}
+              onChange={() => { onToggleSelect(item.id); }}
               type="checkbox"
             />
         ) : (
@@ -149,12 +149,12 @@ export function ApprovalItemRow({
             <span className="font-bold text-sm text-slate-900 dark:text-slate-100 truncate">
               {item.requester.name}
             </span>
-            {item.requester.idNumber && (
+            {!!item.requester.idNumber && (
               <span className="text-xs font-mono text-slate-400 dark:text-slate-500">
                 #{item.requester.idNumber}
               </span>
             )}
-            {item.requester.departmentName && (
+            {!!item.requester.departmentName && (
               <span className="text-xs px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 font-medium truncate max-w-[150px]">
                 {item.requester.departmentName}
               </span>
@@ -173,7 +173,7 @@ export function ApprovalItemRow({
             {item.subtitle}
           </p>
 
-          {item.details.reason && (
+          {!!item.details.reason && (
             <p className="text-xs text-slate-500 dark:text-slate-500 italic line-clamp-1">
               &quot;{item.details.reason}&quot;
             </p>
@@ -187,7 +187,7 @@ export function ApprovalItemRow({
           <p className="text-xs font-semibold text-slate-800 dark:text-slate-200">
             {item.targetDate}
           </p>
-          {item.impact && item.impact.colleaguesAwayCount > 0 && (
+          {!!item.impact && item.impact.colleaguesAwayCount > 0 && (
             <span
               className={cn(
                 "inline-flex items-center text-[10px] font-bold px-2 py-0.5 rounded-full",
@@ -209,7 +209,7 @@ export function ApprovalItemRow({
               className="h-8 w-8 p-0 rounded-xl bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white dark:bg-emerald-950/60 dark:text-emerald-400 dark:hover:bg-emerald-600 border border-emerald-200 dark:border-emerald-800 transition-all active:scale-95"
               data-testid={`quick-approve-${item.id}`}
               disabled={isProcessing}
-              onClick={() => onQuickApprove(item)}
+              onClick={() => { onQuickApprove(item); }}
               size="sm"
               variant="outline"
             >
@@ -220,7 +220,7 @@ export function ApprovalItemRow({
               className="h-8 w-8 p-0 rounded-xl bg-rose-50 text-rose-600 hover:bg-rose-600 hover:text-white dark:bg-rose-950/60 dark:text-rose-400 dark:hover:bg-rose-600 border border-rose-200 dark:border-rose-800 transition-all active:scale-95"
               data-testid={`quick-reject-${item.id}`}
               disabled={isProcessing}
-              onClick={() => onQuickReject(item)}
+              onClick={() => { onQuickReject(item); }}
               size="sm"
               variant="outline"
             >

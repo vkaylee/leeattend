@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 
-import { useMyPermissions } from "@/hooks/use-permissions";
 import { usePermissionCatalog, useOrganizationRoles, useOrganizationPermissionsMatrix } from "@/hooks/use-organization";
+import { useMyPermissions } from "@/hooks/use-permissions";
 import { updateRolePermissions } from "@/lib/api";
 import { logError } from "@/lib/logger";
 

@@ -12,8 +12,9 @@ import React from "react";
 
 import { TFunction } from "i18next";
 
-import { Typography } from "@/components/ui/typography";
 import type { MonitorMetric, WorkerMonitorStats } from "@/lib/api/types";
+
+import { Typography } from "@/components/ui/typography";
 import { cn } from "@/lib/utils";
 
 interface MonitorStatCardsProps {
@@ -120,10 +121,10 @@ export function MonitorStatCards({ isLoading, stats, t }: MonitorStatCardsProps)
           </div>
         </div>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
-          <MetricCard icon={Zap} isLoading={isLoading} label={t("monitor.active_workers")} metric={{ unit: "workers", time_window: { duration_seconds: 0 }, value: stats?.active_workers ?? null }} threshold={thresholdUnavailable} tone="border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-300" t={t} unit="workers" value={stats?.active_workers ?? null} />
-          <MetricCard icon={Coffee} isLoading={isLoading} label={t("monitor.idle_workers")} metric={{ unit: "workers", time_window: { duration_seconds: 0 }, value: stats?.idle_workers ?? null }} threshold={thresholdUnavailable} tone="border-slate-200 bg-slate-50 text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300" t={t} unit="workers" value={stats?.idle_workers ?? null} />
-          <MetricCard icon={Server} isLoading={isLoading} label={t("monitor.total_workers")} metric={{ unit: "workers", time_window: { duration_seconds: 0 }, value: stats?.total_workers ?? null }} threshold={thresholdUnavailable} tone="border-primary-200 bg-primary-50 text-primary-700 dark:border-primary-900 dark:bg-primary-950/40 dark:text-primary-300" t={t} unit="workers" value={stats?.total_workers ?? null} />
-          <MetricCard icon={Activity} isLoading={isLoading} label={t("monitor.utilization", { defaultValue: "Worker utilization" })} metric={{ unit: "%", time_window: { duration_seconds: 0 }, value: utilization }} threshold={utilizationThresholdText} tone="border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-300" t={t} unit="%" value={utilization} />
+          <MetricCard icon={Zap} isLoading={isLoading} label={t("monitor.active_workers")} metric={{ unit: "workers", time_window: { duration_seconds: 0 }, value: stats?.active_workers ?? null }} t={t} threshold={thresholdUnavailable} tone="border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-300" unit="workers" value={stats?.active_workers ?? null} />
+          <MetricCard icon={Coffee} isLoading={isLoading} label={t("monitor.idle_workers")} metric={{ unit: "workers", time_window: { duration_seconds: 0 }, value: stats?.idle_workers ?? null }} t={t} threshold={thresholdUnavailable} tone="border-slate-200 bg-slate-50 text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300" unit="workers" value={stats?.idle_workers ?? null} />
+          <MetricCard icon={Server} isLoading={isLoading} label={t("monitor.total_workers")} metric={{ unit: "workers", time_window: { duration_seconds: 0 }, value: stats?.total_workers ?? null }} t={t} threshold={thresholdUnavailable} tone="border-primary-200 bg-primary-50 text-primary-700 dark:border-primary-900 dark:bg-primary-950/40 dark:text-primary-300" unit="workers" value={stats?.total_workers ?? null} />
+          <MetricCard icon={Activity} isLoading={isLoading} label={t("monitor.utilization", { defaultValue: "Worker utilization" })} metric={{ unit: "%", time_window: { duration_seconds: 0 }, value: utilization }} t={t} threshold={utilizationThresholdText} tone="border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-300" unit="%" value={utilization} />
         </div>
       </section>
       <section aria-labelledby="monitor-queue-signals-heading">
@@ -134,8 +135,8 @@ export function MonitorStatCards({ isLoading, stats, t }: MonitorStatCardsProps)
           </div>
         </div>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <MetricCard icon={ArrowUp} isLoading={isLoading} label={t("monitor.pending_high")} metric={stats?.queue_health.depth_high} threshold={queueThresholdText("high")} tone="border-orange-200 bg-orange-50 text-orange-700 dark:border-orange-900 dark:bg-orange-950/40 dark:text-orange-300" t={t} unit={metricUnit(stats?.queue_health.depth_high, "jobs")} value={metricValue(stats?.queue_health.depth_high, stats?.pending_high)} />
-          <MetricCard icon={ArrowDown} isLoading={isLoading} label={t("monitor.pending_low")} metric={stats?.queue_health.depth_low} threshold={queueThresholdText("low")} tone="border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-300" t={t} unit={metricUnit(stats?.queue_health.depth_low, "jobs")} value={metricValue(stats?.queue_health.depth_low, stats?.pending_low)} />
+          <MetricCard icon={ArrowUp} isLoading={isLoading} label={t("monitor.pending_high")} metric={stats?.queue_health.depth_high} t={t} threshold={queueThresholdText("high")} tone="border-orange-200 bg-orange-50 text-orange-700 dark:border-orange-900 dark:bg-orange-950/40 dark:text-orange-300" unit={metricUnit(stats?.queue_health.depth_high, "jobs")} value={metricValue(stats?.queue_health.depth_high, stats?.pending_high)} />
+          <MetricCard icon={ArrowDown} isLoading={isLoading} label={t("monitor.pending_low")} metric={stats?.queue_health.depth_low} t={t} threshold={queueThresholdText("low")} tone="border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-300" unit={metricUnit(stats?.queue_health.depth_low, "jobs")} value={metricValue(stats?.queue_health.depth_low, stats?.pending_low)} />
         </div>
       </section>
       <section aria-labelledby="monitor-throughput-heading">
@@ -143,11 +144,11 @@ export function MonitorStatCards({ isLoading, stats, t }: MonitorStatCardsProps)
           <Typography className="text-lg font-bold tracking-tight text-slate-800 dark:text-slate-100" id="monitor-throughput-heading" variant="h4">{t("monitor.job_throughput", { defaultValue: "Job throughput" })}</Typography>
         </div>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <MetricCard icon={CheckCircle2} isLoading={isLoading} label={t("monitor.completed_today")} metric={{ unit: "jobs", time_window: { duration_seconds: 0 }, value: stats?.completed_today ?? null }} threshold={thresholdUnavailable} tone="border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-300" t={t} unit="jobs" value={stats?.completed_today ?? null} windowLabel={formatCalendarDayWindow(t)} />
-          <MetricCard icon={Activity} isLoading={isLoading} label={t("monitor.failed_today")} metric={{ unit: "jobs", time_window: { duration_seconds: 0 }, value: stats?.failed_today ?? null }} threshold={thresholdUnavailable} tone="border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-900 dark:bg-rose-950/40 dark:text-rose-300" t={t} unit="jobs" value={stats?.failed_today ?? null} windowLabel={formatCalendarDayWindow(t)} />
+          <MetricCard icon={CheckCircle2} isLoading={isLoading} label={t("monitor.completed_today")} metric={{ unit: "jobs", time_window: { duration_seconds: 0 }, value: stats?.completed_today ?? null }} t={t} threshold={thresholdUnavailable} tone="border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-300" unit="jobs" value={stats?.completed_today ?? null} windowLabel={formatCalendarDayWindow(t)} />
+          <MetricCard icon={Activity} isLoading={isLoading} label={t("monitor.failed_today")} metric={{ unit: "jobs", time_window: { duration_seconds: 0 }, value: stats?.failed_today ?? null }} t={t} threshold={thresholdUnavailable} tone="border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-900 dark:bg-rose-950/40 dark:text-rose-300" unit="jobs" value={stats?.failed_today ?? null} windowLabel={formatCalendarDayWindow(t)} />
         </div>
       </section>
-      <div className="sr-only" aria-live="polite">{stats?.completed_today !== null && stats?.completed_today !== undefined ? `${t("monitor.completed_today")}: ${stats.completed_today}` : t("monitor.metric_unavailable", { defaultValue: "Metric unavailable" })}</div>
+      <div aria-live="polite" className="sr-only">{stats?.completed_today !== null && stats?.completed_today !== undefined ? `${t("monitor.completed_today")}: ${stats.completed_today}` : t("monitor.metric_unavailable", { defaultValue: "Metric unavailable" })}</div>
     </div>
   );
 }

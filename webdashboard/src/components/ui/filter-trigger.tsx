@@ -1,8 +1,9 @@
 import { ChevronDown } from "lucide-react";
 import React, { forwardRef } from "react";
 
-import Button from "@/components/ui/button";
 import type { ControlSize } from "@/components/ui/control-styles";
+
+import Button from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 // ── Types ────────────────────────────────────────────────────────────
@@ -22,10 +23,10 @@ export interface FilterTriggerProps extends Omit<React.ButtonHTMLAttributes<HTML
   icon?: React.ReactNode;
   /** Accessible label (required for icon-button) */
   label: string;
-  /** Visual variant */
-  variant: FilterTriggerVariant;
   /** Shared single-line control size. */
   size?: ControlSize;
+  /** Visual variant */
+  variant: FilterTriggerVariant;
 }
 
 // ── Internal: Count Badge ────────────────────────────────────────────

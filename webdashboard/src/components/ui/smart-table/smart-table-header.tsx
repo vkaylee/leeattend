@@ -10,6 +10,7 @@ import { ChevronUp, ChevronDown } from "lucide-react";
 import React, { memo } from "react";
 
 import { cn } from "@/lib/utils";
+
 import type { TableDensity } from "../table-density-toggle";
 
 export interface SmartTableHeaderProps<T> {

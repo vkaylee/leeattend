@@ -227,7 +227,7 @@ export function useWorkingPatternForm(patternId?: string) {
   const createMutation = useCreatePatternMutation({ t, setIsDirty });
   const updateMutation = useUpdatePatternMutation({ patternId, t, setIsDirty });
   return {
-  // eslint-disable-next-line max-lines
+   
     isEditMode,
     isLoadingPatterns,
     shifts,

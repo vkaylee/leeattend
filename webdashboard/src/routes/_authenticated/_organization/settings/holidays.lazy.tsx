@@ -5,5 +5,5 @@ import { ROUTES } from "@/lib/routes";
 export const Route = createLazyFileRoute(
   "/_authenticated/_organization/settings/holidays",
 )({
-  component: () => <Navigate to={ROUTES.HOLIDAYS} replace />,
+  component: () => <Navigate replace to={ROUTES.HOLIDAYS} />,
 });

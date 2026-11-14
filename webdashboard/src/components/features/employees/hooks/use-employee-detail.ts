@@ -3,9 +3,9 @@ import { useEffect, useRef, useState } from "react";
 
 import type { Employee, OrganizationMember, Employment } from "@/lib/api";
 
+import { organizationKeys } from "@/hooks/use-organization-queries";
 import { fetchOrganizationMembers, fetchEmployeeEmployments } from "@/lib/api";
 import { useLocations } from "@/pages/settings/hooks/use-locations";
-import { organizationKeys } from "@/hooks/use-organization-queries";
 
 import type { DetailTabType } from "../drawer-header";
 

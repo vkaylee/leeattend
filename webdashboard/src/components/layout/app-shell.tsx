@@ -4,8 +4,8 @@ import React, { useCallback, useEffect, useState } from "react";
 import { ErrorBoundary } from "@/components/common/error-boundary";
 import { HeaderActionsProvider } from "@/hooks/use-header-actions";
 import { useI18nSync } from "@/hooks/use-i18n-sync";
-import { useTheme } from "@/hooks/use-theme";
 import { useOrganization } from "@/hooks/use-organization";
+import { useTheme } from "@/hooks/use-theme";
 import { cn } from "@/lib/utils";
 
 import { CommandPalette } from "./command-palette";
@@ -55,7 +55,7 @@ export default function AppShell({ variant: _variant }: AppShellProps) {
         setIsCommandPaletteOpen((prev) => !prev);
       }
     };
-    const handleOpenEvent = () => setIsCommandPaletteOpen(true);
+    const handleOpenEvent = () => { setIsCommandPaletteOpen(true); };
     window.addEventListener("keydown", handleKeyDown);
     window.addEventListener("open-command-palette", handleOpenEvent);
     return () => {
@@ -72,7 +72,7 @@ export default function AppShell({ variant: _variant }: AppShellProps) {
           <Sidebar
             isCollapsed={isSidebarCollapsed}
             isMobileOpen={isMobileSidebarOpen}
-            onMobileClose={() => setIsMobileSidebarOpen(false)}
+            onMobileClose={() => { setIsMobileSidebarOpen(false); }}
             onToggleCollapse={toggleSidebarCollapse}
           />
         )}
@@ -81,8 +81,8 @@ export default function AppShell({ variant: _variant }: AppShellProps) {
         <div className="flex flex-1 flex-col overflow-hidden min-w-0">
           <Topbar
             isSettings={isSettings}
-            onOpenMobileMenu={() => setIsMobileSidebarOpen(true)}
-            onOpenSearch={() => setIsCommandPaletteOpen(true)}
+            onOpenMobileMenu={() => { setIsMobileSidebarOpen(true); }}
+            onOpenSearch={() => { setIsCommandPaletteOpen(true); }}
             organizationName={organization?.name ?? "LeeAttend"}
           />
 
@@ -104,7 +104,7 @@ export default function AppShell({ variant: _variant }: AppShellProps) {
         {/* ── Global Command Palette (⌘K) ── */}
         <CommandPalette
           isOpen={isCommandPaletteOpen}
-          onClose={() => setIsCommandPaletteOpen(false)}
+          onClose={() => { setIsCommandPaletteOpen(false); }}
         />
       </div>
     </HeaderActionsProvider>

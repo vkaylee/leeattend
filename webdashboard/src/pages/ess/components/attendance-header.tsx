@@ -2,8 +2,6 @@ import * as Popover from "@radix-ui/react-popover";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
-import { format } from "date-fns";
-
 import { MonthYearPicker } from "@/components/common/month-year-picker";
 import Button from "@/components/ui/button";
 import { PageHeader } from "@/components/ui/page-header";

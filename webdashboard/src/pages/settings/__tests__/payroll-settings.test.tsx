@@ -2,8 +2,6 @@ import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 
 import { vi, describe, it, expect, beforeEach } from "vitest";
 
-import * as api from "@/lib/api";
-
 import PayrollSettings from "../payroll-settings";
 
 vi.mock("react-i18next", () => ({

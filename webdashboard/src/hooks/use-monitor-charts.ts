@@ -4,26 +4,26 @@ import type { WorkerMonitorStats, RecentJob } from "@/lib/api/types";
 
 export interface UtilizationData {
     active: number | null;
+    criticalAtPercent: number | null;
     idle: number | null;
     percent: number | null;
+    scaleDownBelowPercent: number | null;
+    thresholdsAvailable: boolean;
     total: number | null;
     unavailable: boolean;
-    thresholdsAvailable: boolean;
-    scaleDownBelowPercent: number | null;
     warningAtPercent: number | null;
-    criticalAtPercent: number | null;
 }
 
 export type PressureLevel = "low" | "medium" | "high" | "critical";
 
 export interface QueuePressureData {
     high: number | null;
-    normal: number | null;
     low: number | null;
+    normal: number | null;
     pressureLevel: PressureLevel | "unavailable";
+    thresholdsAvailable: boolean;
     total: number | null;
     unavailable: boolean;
-    thresholdsAvailable: boolean;
 }
 
 export interface JobStatusCount {

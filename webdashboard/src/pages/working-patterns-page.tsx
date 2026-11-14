@@ -1,6 +1,5 @@
 import { useNavigate } from "@tanstack/react-router";
 import React, { useState } from "react";
-import { useTranslation } from "react-i18next";
 
 import { PageContainer } from "@/components/ui/page-container";
 
@@ -11,7 +10,6 @@ import { PatternList } from "./attendance/components/working-patterns/pattern-li
 import { useWorkingPatterns } from "./attendance/hooks/use-working-patterns";
 
 export default function WorkingPatternsPage({ hideHeaderTitle }: { hideHeaderTitle?: boolean }) {
-  const { t } = useTranslation();
   const navigate = useNavigate();
   const hook = useWorkingPatterns();
   const {

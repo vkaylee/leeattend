@@ -4,7 +4,7 @@ const decimalString = z.string().regex(/^-?\d+(?:\.\d+)?$/, "Expected decimal va
 const decimalValue = z.union([z.number().finite(), decimalString]);
 const date = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Expected YYYY-MM-DD");
 const rfc3339 = z.string().datetime({ offset: true });
-const uuid = z.string().uuid();
+const uuid = z.uuid();
 
 const metricStatusValues = ["available", "not_applicable", "data_gap", "restricted"] as const;
 const comparisonBasisValues = ["none", "previous_period", "same_period_last_year", "target", "budget", "benchmark"] as const;

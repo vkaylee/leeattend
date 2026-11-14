@@ -2,6 +2,8 @@ import { KeyRound, Plus, Trash2, Clock } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
+import type { PermissionCatalogItem } from "@/lib/api/types";
+
 import Button from "@/components/ui/button";
 import Modal from "@/components/ui/modal";
 import { SearchInput } from "@/components/ui/search-input";
@@ -10,8 +12,6 @@ import { useConfirm } from "@/hooks/use-confirm";
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
 import { useMemberPermissions } from "@/hooks/use-organization";
 import { logError } from "@/lib/logger";
-
-import type { PermissionCatalogItem } from "@/lib/api/types";
 
 interface PermissionManagementModalProps {
     isOpen: boolean;
@@ -225,11 +225,11 @@ export default function PermissionManagementModal({
                         </div>
                     )}
 
-                    {isCatalogError && (
+                    {!!isCatalogError && (
                         <Typography className="text-sm text-rose-600 dark:text-rose-400" role="alert" variant="p">
                             {t("permissions.catalog_load_error", { defaultValue: "Permission catalog could not be loaded. Please try again." })}
                         </Typography>
-                    )}
+                      )}
 
                     {/* Assign new permission */}
                     <AssignPermissionForm 

@@ -77,8 +77,8 @@ describe("PayrollTable", () => {
       <PayrollTable adjustments={[]} employee={null}
         isLoading={false}
         onResolveAdjustments={vi.fn()}
-        payslips={mockPayslips}
         organization={null}
+        payslips={mockPayslips}
       />
     );
 
@@ -93,8 +93,8 @@ describe("PayrollTable", () => {
       <PayrollTable adjustments={[]} employee={null}
         isLoading={false}
         onResolveAdjustments={vi.fn()}
-        payslips={mockPayslips}
         organization={null}
+        payslips={mockPayslips}
       />
     );
 
@@ -123,8 +123,8 @@ describe("PayrollTable", () => {
         isLoading={false}
         onResolveAdjustments={vi.fn()}
 
-        payslips={mockPayslips}
         organization={null}
+        payslips={mockPayslips}
       />
     );
 

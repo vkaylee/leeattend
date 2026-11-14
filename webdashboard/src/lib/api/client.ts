@@ -20,6 +20,13 @@ export interface ClientResponse<T> {
 
 const QUERY_OMITTED = new Set<unknown>([undefined, null, "all"]);
 
+function formatQueryParamValue(val: unknown): string {
+  if (typeof val === "string") return val;
+  if (typeof val === "number" || typeof val === "boolean" || typeof val === "bigint") return String(val);
+  if (val instanceof Date) return val.toISOString();
+  return JSON.stringify(val);
+}
+
 function buildQueryString(query: QueryParams | undefined): string {
   if (!query) return "";
   const search = new URLSearchParams();
@@ -28,15 +35,15 @@ function buildQueryString(query: QueryParams | undefined): string {
     if (Array.isArray(value)) {
       for (const item of value) {
         if (QUERY_OMITTED.has(item)) continue;
-        search.append(key, String(item));
+        search.append(key, formatQueryParamValue(item));
       }
       continue;
     }
-    if (typeof value === "object") {
+    if (value !== null && typeof value === "object") {
       search.set(key, JSON.stringify(value));
       continue;
     }
-    search.set(key, String(value));
+    search.set(key, formatQueryParamValue(value));
   }
   const serialized = search.toString();
   return serialized ? `?${serialized}` : "";

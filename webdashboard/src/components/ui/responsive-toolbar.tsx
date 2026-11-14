@@ -20,12 +20,12 @@ export interface ResponsiveToolbarProps {
   children: React.ReactNode;
   /** Additional class for the desktop toolbar wrapper */
   className?: string;
+  /** Unified desktop content. Prefer this over separate searchSlot and children layout. */
+  desktopContent?: React.ReactNode;
   /** Number of active filters (for badge on mobile trigger button). If > 0, a badge is shown. */
   filterCount?: number;
   /** Hide the inline desktop filter group while retaining the mobile sheet. */
   mobileOnly?: boolean;
-  /** Unified desktop content. Prefer this over separate searchSlot and children layout. */
-  desktopContent?: React.ReactNode;
   /** Search input slot — legacy desktop slot; use desktopContent for new callers. */
   searchSlot?: React.ReactNode;
 }

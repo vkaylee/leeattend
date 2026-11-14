@@ -4,7 +4,6 @@ import { useState, useCallback } from "react";
 import type { ComplianceViolation } from "@/lib/api/errors";
 import type { Shift, EmployeeSchedule } from "@/lib/api/types";
 
-
 import { useMonthNavigation } from "./use-month-navigation";
 import { useRosterHandlers } from "./use-roster-handlers";
 import { useShiftData } from "./use-shift-data";

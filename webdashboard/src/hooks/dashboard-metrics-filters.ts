@@ -21,7 +21,7 @@ export const dashboardComparisons = [
 export const dashboardRiskThresholds = ["info", "watch", "high", "critical"] as const;
 
 const datePattern = /^\d{4}-\d{2}-\d{2}$/;
-const uuid = z.string().uuid();
+const uuid = z.uuid();
 const periodSchema = z.enum(dashboardPeriods);
 const comparisonSchema = z.enum(dashboardComparisons);
 const riskThresholdSchema = z.enum(dashboardRiskThresholds);
@@ -213,13 +213,13 @@ export function serializeDashboardMetricsFilters(
   }
   if (canonical.startDate) params.set("start_date", canonical.startDate);
   if (canonical.endDate) params.set("end_date", canonical.endDate);
-  canonical.departmentIds.forEach((id) => params.append("department_ids", id));
-  canonical.locationIds.forEach((id) => params.append("location_ids", id));
-  canonical.businessUnitIds.forEach((id) => params.append("business_unit_ids", id));
-  canonical.managerIds.forEach((id) => params.append("manager_ids", id));
-  canonical.employmentTypes.forEach((value) => params.append("employment_types", value));
-  canonical.employeeStatuses.forEach((value) => params.append("employee_statuses", value));
-  canonical.shiftIds.forEach((id) => params.append("shift_ids", id));
+  canonical.departmentIds.forEach((id) => { params.append("department_ids", id); });
+  canonical.locationIds.forEach((id) => { params.append("location_ids", id); });
+  canonical.businessUnitIds.forEach((id) => { params.append("business_unit_ids", id); });
+  canonical.managerIds.forEach((id) => { params.append("manager_ids", id); });
+  canonical.employmentTypes.forEach((value) => { params.append("employment_types", value); });
+  canonical.employeeStatuses.forEach((value) => { params.append("employee_statuses", value); });
+  canonical.shiftIds.forEach((id) => { params.append("shift_ids", id); });
   if (canonical.topN !== DEFAULT_DASHBOARD_METRICS_FILTERS.topN) {
     params.set("top_n", String(canonical.topN));
   }

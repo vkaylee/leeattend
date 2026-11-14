@@ -2,8 +2,6 @@ import * as Popover from "@radix-ui/react-popover";
 import { ChevronLeft, ChevronRight, Upload } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
-import { format } from "date-fns";
-
 import { CreateOtRequestDialog } from "@/components/approvals/create-ot-request-dialog";
 import { MonthYearPicker } from "@/components/common/month-year-picker";
 import Button from "@/components/ui/button";

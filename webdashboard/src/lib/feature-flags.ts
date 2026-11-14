@@ -24,8 +24,8 @@ export const FEATURE_FLAG_CATALOG: Record<FeatureFlagName, FeatureFlagCatalogEnt
 };
 
 export interface RuntimeFeatureFlag {
-  key: string;
   enabled: boolean;
+  key: string;
 }
 
 let runtimeFlags: Partial<Record<string, boolean>> = {};

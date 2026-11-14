@@ -7,9 +7,9 @@ import type { SmtpConfigData } from "@/lib/api/smtp-config";
 import Button from "@/components/ui/button";
 import ConfirmDialog from "@/components/ui/confirm-dialog";
 import { SettingsHeader } from "@/components/ui/settings/settings-header";
-import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Typography } from "@/components/ui/typography";
+import { cn } from "@/lib/utils";
 
 import { SmtpHttpApiSection } from "./components/smtp-http-api-section";
 import { SmtpTestCard } from "./components/smtp-test-card";
@@ -134,17 +134,17 @@ export default function SmtpSettingsPage() {
                     type={actualType}
                     value={inputValue(form[key])}
                   />
-                  {isPasswordField && (
+                  {isPasswordField ? (
                     <Button
                       aria-label={showPassword ? "Hide password" : "Show password"}
                       className="absolute right-2 top-1/2 -translate-y-1/2 !h-7 !w-7 !min-w-0 p-0 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 shadow-none border-none"
-                      onClick={() => setShowPassword((prev) => !prev)}
+                      onClick={() => { setShowPassword((prev) => !prev); }}
                       type="button"
                       variant="ghost"
                     >
                       {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                     </Button>
-                  )}
+                  ) : null}
                 </div>
                 {hint ? (
                   <Typography className="text-[11px] text-slate-400 dark:text-slate-500" variant="p">{hint}</Typography>

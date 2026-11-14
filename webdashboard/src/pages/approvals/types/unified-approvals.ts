@@ -3,53 +3,53 @@ export type ApprovalType = "leave" | "overtime" | "adjustment" | "shift_swap";
 export type ApprovalItemStatus = "pending" | "approved" | "rejected" | "cancelled";
 
 export interface UnifiedApprovalRequester {
-  id: string;
-  name: string;
-  idNumber?: string;
   avatarUrl?: string;
   departmentId?: string;
   departmentName?: string;
+  id: string;
+  idNumber?: string;
   jobTitle?: string;
+  name: string;
 }
 
 export interface UnifiedApprovalDetails {
-  reason?: string;
   dateStr: string;
   durationLabel?: string;
-  shiftInfo?: string;
   notes?: string;
   rawPayload?: Record<string, unknown>;
+  reason?: string;
+  shiftInfo?: string;
 }
 
 export interface TeamImpactInfo {
-  departmentName?: string;
-  totalTeamMembers?: number;
   colleaguesAwayCount: number;
   colleaguesAwayNames: string[];
+  departmentName?: string;
   isHighImpact: boolean; // e.g. > 25% of team absent
+  totalTeamMembers?: number;
 }
 
 export interface UnifiedApprovalItem {
+  details: UnifiedApprovalDetails;
   id: string;
-  type: ApprovalType;
-  status: ApprovalItemStatus;
+  impact?: TeamImpactInfo;
   requester: UnifiedApprovalRequester;
+  status: ApprovalItemStatus;
   submittedAt: string;
+  subtitle: string;
   targetDate: string;
   title: string;
-  subtitle: string;
-  details: UnifiedApprovalDetails;
-  impact?: TeamImpactInfo;
+  type: ApprovalType;
 }
 
 export interface UnifiedInboxFilter {
-  type: ApprovalType | "all";
-  status: ApprovalItemStatus | "all";
   departmentId?: string;
   searchQuery?: string;
+  status: ApprovalItemStatus | "all";
+  type: ApprovalType | "all";
 }
 
 export interface BatchApprovalResult {
-  succeeded: string[];
   failed: { id: string; error: string }[];
+  succeeded: string[];
 }

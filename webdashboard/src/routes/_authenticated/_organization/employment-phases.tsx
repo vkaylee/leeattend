@@ -1,10 +1,11 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
+
 import { z } from "zod";
 
 import { fetchMyPermissions } from "@/lib/api";
 
 const searchSchema = z.object({
-  employeeId: z.string().uuid().optional(),
+  employeeId: z.uuid().optional(),
   q: z.string().optional(),
   status: z.string().optional(),
   page: z.coerce.number().int().min(1).optional(),

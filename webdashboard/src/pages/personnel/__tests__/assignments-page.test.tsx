@@ -1,11 +1,14 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import React from "react";
+
 import { describe, it, expect, vi, beforeEach } from "vitest";
+
+import type { EmployeeAssignmentWithEmployee } from "@/lib/api/employee-assignments";
 
 import Button from "@/components/ui/button";
 import { ToastProvider } from "@/components/ui/toast";
-import type { EmployeeAssignmentWithEmployee } from "@/lib/api/employee-assignments";
+
 import PersonnelAssignmentsPage from "../assignments-page";
 
 // Mock i18next translation

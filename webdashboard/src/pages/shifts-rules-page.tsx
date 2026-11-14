@@ -2,7 +2,6 @@ import { useSearch } from "@tanstack/react-router";
 import React from "react";
 import { useTranslation } from "react-i18next";
 
-
 import AssignmentRulesPage from "./assignment-rules-page";
 import WorkingPatternsPage from "./working-patterns-page";
 

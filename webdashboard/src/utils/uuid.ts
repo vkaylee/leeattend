@@ -1,11 +1,11 @@
 export function generateUUID(): string {
   const cryptoApi = globalThis.crypto;
 
-  if (typeof cryptoApi?.randomUUID === "function") {
+  if (typeof cryptoApi.randomUUID === "function") {
     return cryptoApi.randomUUID();
   }
 
-  if (typeof cryptoApi?.getRandomValues !== "function") {
+  if (typeof cryptoApi.getRandomValues !== "function") {
     throw new Error("Secure UUID generation is unavailable in this environment");
   }
 

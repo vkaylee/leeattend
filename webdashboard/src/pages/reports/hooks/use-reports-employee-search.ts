@@ -1,8 +1,8 @@
-import { useOrganizationQuery } from "@/hooks/common/use-organization-query";
-import { employeeKeys } from "@/lib/query-keys";
 import { useMemo } from "react";
 
+import { useOrganizationQuery } from "@/hooks/common/use-organization-query";
 import { searchEmployees } from "@/lib/api";
+import { employeeKeys } from "@/lib/query-keys";
 
 interface UseReportsEmployeeSearchProps {
   debouncedSearch: string;

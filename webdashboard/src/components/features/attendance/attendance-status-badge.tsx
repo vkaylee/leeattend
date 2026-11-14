@@ -136,7 +136,7 @@ export function AttendanceStatusBadge({
       data-status={status}
       data-testid={`attendance-status-${status}`}
     >
-      {showIcon && <span className="shrink-0">{config.icon}</span>}
+      {!!showIcon && <span className="shrink-0">{config.icon}</span>}
       <span className="truncate">{displayText}</span>
     </span>
   );

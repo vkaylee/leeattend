@@ -67,7 +67,7 @@ function StagingLogRow({ assigningLogId, departments, formatDate, formatTime, is
   const { t } = useTranslation();
 
   return (
-    <TableRow key={log.id} className="group transition-colors hover:bg-amber-50 dark:bg-amber-950/30">
+    <TableRow className="group transition-colors hover:bg-amber-50 dark:bg-amber-950/30" key={log.id}>
       <TableCell className="px-8 py-5">
         <div className="flex items-center gap-4">
           <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-amber-100 bg-amber-50 text-amber-600 dark:border-amber-800/50 dark:bg-amber-950 dark:text-amber-300"><AlertTriangle size={18} /></div>

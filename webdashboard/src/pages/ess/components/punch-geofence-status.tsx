@@ -1,4 +1,4 @@
-import { CheckCircle2, Info, MapPin, ShieldCheck, Wifi } from "lucide-react";
+import { MapPin, ShieldCheck, Wifi } from "lucide-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
 

@@ -4,11 +4,10 @@ import { useTranslation } from "react-i18next";
 
 import type { OrganizationLeaveBalance } from "@/lib/api/types";
 
-import { useHorizontalDragScroll } from "@/hooks/use-horizontal-drag-scroll";
-
 import Button from "@/components/ui/button";
 import ResponsiveTable from "@/components/ui/responsive-table";
 import TableEmptyRow from "@/components/ui/table-empty-row";
+import { useHorizontalDragScroll } from "@/hooks/use-horizontal-drag-scroll";
 import { cn } from "@/lib/utils";
 
 import { DesktopBalanceRow } from "./desktop-balance-row";

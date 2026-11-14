@@ -20,12 +20,12 @@ interface TabContentRendererProps {
   isLoading: boolean;
   isProcessing: boolean;
   onPreviewAttachment?: (fileUrl: string, title: string) => void;
+  organization: { id: string } | null | undefined;
   pendingSummaries: OtSummary[];
   setPhotoTargetSummary: (summary: OtSummary) => void;
   setSourceFilter: (filter: SourceFilter) => void;
   sourceFilter: SourceFilter;
   startDate: string;
-  organization: { id: string } | null | undefined;
 }
 
 export function TabContentRenderer({

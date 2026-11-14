@@ -8,8 +8,8 @@ import type { AttendanceDailySummary, Employee, PaginatedResponse } from "@/lib/
 
 import { useToast } from "@/components/ui/toast";
 import { useApproveOt, useAttendanceSummariesInfinite } from "@/hooks/use-attendance";
-import { useMyPermissions } from "@/hooks/use-permissions";
 import { useOrganization } from "@/hooks/use-organization";
+import { useMyPermissions } from "@/hooks/use-permissions";
 import { fetchEmployees } from "@/lib/api";
 import { logError } from "@/lib/logger";
 import { invalidateAttendanceQueries } from "@/lib/utils/query-invalidation";

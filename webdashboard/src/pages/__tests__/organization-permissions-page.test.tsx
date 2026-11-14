@@ -5,10 +5,10 @@ import React from "react";
 import userEvent from "@testing-library/user-event";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-import { useMyPermissions } from "../../hooks/use-permissions";
 import { usePermissionCatalog, useOrganizationRoles, useOrganizationPermissionsMatrix } from "@/hooks/use-organization";
+
+import { useMyPermissions } from "../../hooks/use-permissions";
 import * as api from "../../lib/api";
-import { OrganizationRole } from "../../lib/api/types";
 import OrganizationPermissionsPage from "../organization/organization-permissions-page";
 vi.mock("react-i18next", () => ({
  

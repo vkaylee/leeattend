@@ -14,18 +14,18 @@ export type WidgetColSpan =
   | "col-span-full";
 
 export interface DesktopWidgetDefinition {
-  id: string;
-  titleKey?: string;
-  titleFallback: string;
-  descriptionKey?: string;
-  descriptionFallback: string;
   category: WidgetCategory;
+  colSpan: WidgetColSpan;
+  component: React.ComponentType;
   defaultEnabled: boolean;
   defaultOrder: number;
-  colSpan: WidgetColSpan;
+  descriptionFallback: string;
+  descriptionKey?: string;
   icon: React.ElementType;
-  component: React.ComponentType;
+  id: string;
   permissions?: string[];
+  titleFallback: string;
+  titleKey?: string;
 }
 
 export interface DesktopLayoutState {

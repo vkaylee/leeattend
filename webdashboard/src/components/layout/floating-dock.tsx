@@ -25,18 +25,18 @@ import { ROUTES } from "@/lib/routes";
 import { cn } from "@/lib/utils";
 
 export interface FloatingDockProps {
-  onOpenLauncher?: () => void;
   className?: string;
+  onOpenLauncher?: () => void;
 }
 
 interface DockAppItem {
-  id: string;
-  labelKey: string;
   defaultLabel: string;
-  to: string;
   icon: React.ElementType;
-  testId: string;
+  id: string;
   isActive: (pathname: string) => boolean;
+  labelKey: string;
+  testId: string;
+  to: string;
 }
 
 const DOCK_APPS: DockAppItem[] = [
@@ -122,9 +122,7 @@ export const FloatingDock = memo(function FloatingDock({
 
   return (
     <nav
-      role="navigation"
       aria-label={t("common.settings.navigation", "Navigation")}
-      data-testid="floating-dock"
       className={cn(
         "hidden lg:flex fixed bottom-5 left-1/2 -translate-x-1/2 z-40 items-center gap-1.5 md:gap-2",
         "bg-white/90 dark:bg-slate-950/90 backdrop-blur-2xl",
@@ -133,18 +131,20 @@ export const FloatingDock = memo(function FloatingDock({
         "transition-all duration-300",
         className
       )}
+      data-testid="floating-dock"
+      role="navigation"
     >
       {/* 1. DSM 7 Fullscreen Launcher Trigger */}
-      {onOpenLauncher && (
+      {!!onOpenLauncher && (
         <Button
+          aria-label={t("appLauncher.dsmLauncher", "Main Menu (⌘K)")}
+          className="relative p-0 h-10 w-10 rounded-2xl bg-gradient-to-br from-primary-500 to-primary-700 text-white hover:from-primary-600 hover:to-primary-800 hover:scale-110 active:scale-95 shadow-md shadow-primary-500/25 transition-all group shrink-0"
+          data-testid="dock-dsm-launcher-btn"
+          onClick={onOpenLauncher}
+          size="sm"
+          title={t("appLauncher.dsmLauncher", "Main Menu (⌘K)")}
           type="button"
           variant="ghost"
-          size="sm"
-          data-testid="dock-dsm-launcher-btn"
-          aria-label={t("appLauncher.dsmLauncher", "Main Menu (⌘K)")}
-          title={t("appLauncher.dsmLauncher", "Main Menu (⌘K)")}
-          onClick={onOpenLauncher}
-          className="relative p-0 h-10 w-10 rounded-2xl bg-gradient-to-br from-primary-500 to-primary-700 text-white hover:from-primary-600 hover:to-primary-800 hover:scale-110 active:scale-95 shadow-md shadow-primary-500/25 transition-all group shrink-0"
         >
           <LayoutGrid className="w-5 h-5 group-hover:rotate-12 transition-transform duration-200" />
         </Button>
@@ -162,10 +162,6 @@ export const FloatingDock = memo(function FloatingDock({
 
           return (
             <Link
-              key={item.id}
-              to={item.to}
-              data-testid={item.testId}
-              title={label}
               aria-label={label}
               className={cn(
                 "relative flex items-center justify-center h-10 w-10 rounded-2xl transition-all duration-200 group shrink-0",
@@ -173,11 +169,13 @@ export const FloatingDock = memo(function FloatingDock({
                   ? "bg-primary-50 dark:bg-primary-950/60 text-primary-600 dark:text-primary-400 font-bold shadow-2xs"
                   : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100/80 dark:hover:bg-slate-800/80 hover:scale-110 active:scale-95"
               )}
+              data-testid={item.testId}
+              key={item.id}
+              title={label}
+              to={item.to}
             >
               <Icon className="w-4 h-4 transition-transform duration-200 group-hover:scale-110" />
-              {active && (
-                <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-primary-500 shadow-xs shadow-primary-500/80" />
-              )}
+              {!!active && <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-primary-500 shadow-xs shadow-primary-500/80" />}
             </Link>
           );
         })}
@@ -190,11 +188,11 @@ export const FloatingDock = memo(function FloatingDock({
       <div className="flex items-center gap-1 shrink-0">
         {/* Notifications */}
         <Link
-          to={ROUTES.NOTIFICATIONS}
-          data-testid="dock-notifications"
           aria-label={t("common.notifications", "Notifications")}
-          title={t("common.notifications", "Thông báo")}
           className="relative flex items-center justify-center h-10 w-10 rounded-2xl text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100/80 dark:hover:bg-slate-800/80 hover:scale-110 active:scale-95 transition-all shrink-0"
+          data-testid="dock-notifications"
+          title={t("common.notifications", "Thông báo")}
+          to={ROUTES.NOTIFICATIONS}
         >
           <Bell className="w-4 h-4" />
           {unreadCount > 0 && (
@@ -206,33 +204,33 @@ export const FloatingDock = memo(function FloatingDock({
 
         {/* Theme Toggle */}
         <Button
+          aria-label={t(`common.theme.${mode}`, mode)}
+          className="h-10 w-10 p-0 rounded-2xl text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100/80 dark:hover:bg-slate-800/80 hover:scale-110 active:scale-95 transition-all shrink-0"
+          data-testid="dock-theme-toggle"
+          onClick={cycleTheme}
+          size="sm"
+          title={t(`common.theme.${mode}`, mode)}
           type="button"
           variant="ghost"
-          size="sm"
-          data-testid="dock-theme-toggle"
-          aria-label={t(`common.theme.${mode}`, mode)}
-          title={t(`common.theme.${mode}`, mode)}
-          onClick={cycleTheme}
-          className="h-10 w-10 p-0 rounded-2xl text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100/80 dark:hover:bg-slate-800/80 hover:scale-110 active:scale-95 transition-all shrink-0"
         >
           <ThemeIcon className="w-4 h-4" />
         </Button>
 
         {/* Language Switcher */}
-        <div data-testid="dock-lang-toggle" className="shrink-0">
+        <div className="shrink-0" data-testid="dock-lang-toggle">
           <LanguageSwitcher
-            compact
             className="h-10 min-h-[40px] px-2.5 rounded-2xl border-0 bg-transparent hover:bg-slate-100/80 dark:hover:bg-slate-800/80 text-slate-600 dark:text-slate-400 shadow-none hover:scale-105 active:scale-95"
+            compact
           />
         </div>
 
         {/* Profile Link (Matches accessible name "Profile" for E2E contract) */}
         <Link
-          to={ROUTES.ESS_PROFILE}
-          data-testid="dock-user-avatar"
           aria-label="Profile"
-          title={t("common.profile", "Profile")}
           className="relative flex items-center justify-center h-10 w-10 rounded-2xl hover:scale-110 active:scale-95 transition-all group shrink-0"
+          data-testid="dock-user-avatar"
+          title={t("common.profile", "Profile")}
+          to={ROUTES.ESS_PROFILE}
         >
           <div className="w-7 h-7 rounded-xl bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 flex items-center justify-center font-bold text-[11px] shadow-sm group-hover:bg-primary-600 dark:group-hover:bg-primary-500 group-hover:text-white transition-colors">
             {user?.full_name ? (
@@ -245,14 +243,14 @@ export const FloatingDock = memo(function FloatingDock({
 
         {/* Logout Button (Matches accessible name "Logout" for E2E contract) */}
         <Button
+          aria-label="Logout"
+          className="h-10 w-10 p-0 rounded-2xl text-slate-400 hover:text-rose-500 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 hover:scale-110 active:scale-95 transition-all shrink-0"
+          data-testid="dock-logout"
+          onClick={handleLogout}
+          size="sm"
+          title={t("common.logout", "Logout")}
           type="button"
           variant="ghost"
-          size="sm"
-          data-testid="dock-logout"
-          aria-label="Logout"
-          title={t("common.logout", "Logout")}
-          onClick={handleLogout}
-          className="h-10 w-10 p-0 rounded-2xl text-slate-400 hover:text-rose-500 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 hover:scale-110 active:scale-95 transition-all shrink-0"
         >
           <LogOut className="w-4 h-4" />
         </Button>

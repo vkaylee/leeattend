@@ -5,7 +5,6 @@ import type {
 } from "@/lib/api/types";
 
 import { useOrganizationQuery, useOrganizationMutation } from "@/hooks/common/use-organization-query";
-import { departmentKeys, employeeKeys } from "@/lib/query-keys";
 import {
   createCustomFieldDefinition,
   deleteCustomFieldDefinition,
@@ -14,6 +13,7 @@ import {
   setCustomFieldValues,
   updateCustomFieldDefinition,
 } from "@/lib/api/custom-fields";
+import { departmentKeys, employeeKeys } from "@/lib/query-keys";
 
 export const customFieldKeys = {
   all: ["custom-fields"] as const,

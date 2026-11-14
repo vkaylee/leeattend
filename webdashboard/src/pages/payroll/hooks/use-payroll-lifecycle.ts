@@ -3,9 +3,9 @@ import { useState, useEffect, useCallback } from "react";
 export type PayrollPeriodStatus = "DRAFT" | "CALCULATED" | "LOCKED";
 
 export interface PayrollPeriodAudit {
-  status: PayrollPeriodStatus;
   lockedAt?: string | null;
   lockedBy?: string | null;
+  status: PayrollPeriodStatus;
 }
 
 interface UsePayrollLifecycleOptions { calcMonth: number;

@@ -1,5 +1,5 @@
 import { AlignJustify, Maximize2, Rows } from "lucide-react";
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import Button from "@/components/ui/button";
@@ -101,7 +101,7 @@ export function TableDensityToggle({
             )}
             data-testid={`density-btn-${opt.id}`}
             key={opt.id}
-            onClick={() => onDensityChange(opt.id)}
+            onClick={() => { onDensityChange(opt.id); }}
             size="sm"
             variant="ghost"
           >

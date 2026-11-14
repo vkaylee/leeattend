@@ -1,10 +1,8 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 
-import type { Department } from "@/lib/api/types";
-
-import { useAllEmployees } from "@/hooks/use-employees";
 import { useDepartments } from "@/hooks/use-departments";
+import { useAllEmployees } from "@/hooks/use-employees";
 import { fetchLeavePolicyAssignments, deleteLeavePolicyAssignment } from "@/lib/api";
 
 export type TabType = "types" | "policies" | "assignments";

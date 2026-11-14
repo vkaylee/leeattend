@@ -1,7 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
-import { ArrowLeft, DollarSign } from "lucide-react";
 import { Link, useNavigate, useParams, useSearch } from "@tanstack/react-router";
+import { ArrowLeft, DollarSign } from "lucide-react";
 import { useTranslation } from "react-i18next";
+
+import type { Employee, Employment } from "@/lib/api/types";
 
 import { EmployeeSearch } from "@/components/common/employee-search";
 import EmployeeSalaryConfig from "@/components/payroll/employee-salary-config";
@@ -11,14 +13,13 @@ import { PageContainer } from "@/components/ui/page-container";
 import PageHeader from "@/components/ui/page-header";
 import { Typography } from "@/components/ui/typography";
 import { fetchEmployee, fetchEmployeeEmployments } from "@/lib/api/employees";
-import type { Employee, Employment } from "@/lib/api/types";
 
 interface SalarySetupSearch {
   as_of?: string;
   department_id?: string;
   employee_id?: string;
-  employment_id?: string;
   employer_id?: string;
+  employment_id?: string;
   page?: number;
   search?: string;
   status?: string;
@@ -59,8 +60,8 @@ function EmploymentSummary({ employee, employment }: { employee: Employee; emplo
 export default function SalarySetupPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const params = useParams({ strict: false }) as { employmentId?: string };
-  const search = useSearch({ strict: false }) as SalarySetupSearch;
+  const params = useParams({ strict: false });
+  const search = useSearch({ strict: false });
   const employeeId = search.employee_id;
   const routeEmploymentId = params.employmentId;
   const backSearch = {

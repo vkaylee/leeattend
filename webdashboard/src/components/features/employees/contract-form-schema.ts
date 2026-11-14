@@ -8,7 +8,7 @@ export const contractSchema = z.object({
   start_date: z.string().min(1, { message: "Ngày hiệu lực là bắt buộc" }),
   end_date: z.string().optional(),
   notes: z.string().optional(),
-  // eslint-disable-next-line complexity
+   
 }).superRefine((data, ctx) => {
   if (data.contract_type !== "indefinite") {
     if (!data.end_date || data.end_date.trim() === "") {

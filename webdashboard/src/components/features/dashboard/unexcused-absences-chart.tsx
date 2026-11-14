@@ -13,13 +13,13 @@ import {
     YAxis,
 } from "recharts";
 
-import Button from "@/components/ui/button";
 import PermissionGate from "@/components/common/permission-gate";
-import { Typography } from "@/components/ui/typography";
-import { DashboardChartError, useDashboardChartError } from "@/components/features/dashboard/dashboard-chart-state";
 import { ChartSummary } from "@/components/features/dashboard/chart-summary";
 import { ChartTableTwin, type ChartTableColumn } from "@/components/features/dashboard/chart-table-twin";
+import { DashboardChartError, useDashboardChartError } from "@/components/features/dashboard/dashboard-chart-state";
 import { DashboardDateRange } from "@/components/features/dashboard/dashboard-date-range";
+import Button from "@/components/ui/button";
+import { Typography } from "@/components/ui/typography";
 import { useUnexcusedAbsences, type UnexcusedAbsencesPoint } from "@/hooks/use-dashboard";
 import { useOrganization } from "@/hooks/use-organization";
 import { cn } from "@/lib/utils";
@@ -117,7 +117,7 @@ export default function UnexcusedAbsencesChart() {
             ) : (
                 <>
                     <ChartSummary text={summary} />
-                    <div role="img" aria-label={summary}>
+                    <div aria-label={summary} role="img">
                         <ResponsiveContainer height={CHART_HEIGHT} width="100%">
                             <BarChart
                                 data={chartData}

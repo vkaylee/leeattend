@@ -69,7 +69,7 @@ export default function DesktopPage() {
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {Array.from({ length: 6 }).map((_, i) => (
-            <Skeleton key={i} className="h-56 rounded-3xl" />
+            <Skeleton className="h-56 rounded-3xl" key={i} />
           ))}
         </div>
       </div>
@@ -84,40 +84,40 @@ export default function DesktopPage() {
       {/* Main Desktop Canvas */}
       {activeWidgets.length === 0 ? (
         <div
-          data-testid="desktop-empty-state"
           className="flex items-center justify-center min-h-[50vh] p-8 rounded-3xl border border-dashed border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/20"
+          data-testid="desktop-empty-state"
         >
           <EmptyState
-            icon={<LayoutGrid className="w-10 h-10 text-primary-500" />}
-            title={t("desktop.emptyTitle", "Màn hình chưa có Widget nào")}
-            description={t(
-              "desktop.emptyDesc",
-              "Bạn đã ẩn tất cả các widget. Bấm vào nút bên dưới để chọn và gắn các widget hữu ích lên Desktop.",
-            )}
             action={
               <Button
-                type="button"
-                variant="primary"
-                onClick={openCustomizer}
                 className="mt-4 flex items-center gap-2 rounded-2xl font-bold px-5"
                 data-testid="desktop-empty-add-widget-btn"
+                onClick={openCustomizer}
+                type="button"
+                variant="primary"
               >
                 <PlusCircle className="w-4 h-4" />
                 <span>{t("desktop.attachWidgetsNow", "Gắn Widget vào Desktop")}</span>
               </Button>
             }
+            description={t(
+              "desktop.emptyDesc",
+              "Bạn đã ẩn tất cả các widget. Bấm vào nút bên dưới để chọn và gắn các widget hữu ích lên Desktop.",
+            )}
+            icon={<LayoutGrid className="w-10 h-10 text-primary-500" />}
+            title={t("desktop.emptyTitle", "Màn hình chưa có Widget nào")}
           />
         </div>
       ) : (
         <div
-          data-testid="desktop-widget-grid"
           className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 items-stretch"
+          data-testid="desktop-widget-grid"
         >
           {activeWidgets.map((widget) => (
             <DesktopWidgetCard
               key={widget.id}
-              widget={widget}
               onHideWidget={toggleWidget}
+              widget={widget}
             />
           ))}
         </div>
@@ -125,12 +125,12 @@ export default function DesktopPage() {
 
       {/* Widget Customization Dialog */}
       <DesktopCustomizerModal
-        isOpen={isCustomizing}
-        onClose={closeCustomizer}
         availableWidgets={availableWidgets}
+        isOpen={isCustomizing}
         isWidgetEnabled={isWidgetEnabled}
-        onToggleWidget={toggleWidget}
+        onClose={closeCustomizer}
         onResetToDefault={resetToDefault}
+        onToggleWidget={toggleWidget}
       />
     </div>
   );

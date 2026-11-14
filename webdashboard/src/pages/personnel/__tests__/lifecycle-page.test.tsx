@@ -1,11 +1,13 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import React from "react";
+
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-import { ToastProvider } from "@/components/ui/toast";
-import type * as LibApi from "@/lib/api";
 import type { LifecycleInstanceSummary } from "@/lib/api";
+
+import { ToastProvider } from "@/components/ui/toast";
+
 import PersonnelLifecyclePage from "../lifecycle-page";
 
 // Mock i18next translation
@@ -111,7 +113,7 @@ vi.mock("@/components/features/employees/lifecycle-assign-modal", () => ({
     return (
       <div data-testid="mock-lifecycle-assign-modal">
         <span>Khởi tạo Quy trình Vòng đời</span>
-        <div role="button" tabIndex={0} onClick={onClose}>
+        <div onClick={onClose} role="button" tabIndex={0}>
           Close
         </div>
       </div>

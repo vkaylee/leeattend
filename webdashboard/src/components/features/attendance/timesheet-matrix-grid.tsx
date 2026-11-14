@@ -1,19 +1,19 @@
-import { Download, HelpCircle, User } from "lucide-react";
+import { HelpCircle, User } from "lucide-react";
 import React, { useImperativeHandle, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+
+import type { DailyAttendanceReport } from "@/lib/api";
 
 import { EmployeeIdentityCell } from "@/components/common/employee-identity-cell";
 import Button from "@/components/ui/button";
 import EmptyState from "@/components/ui/empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useHorizontalDragScroll } from "@/hooks/use-horizontal-drag-scroll";
-import type { DailyAttendanceReport } from "@/lib/api";
 import { Employee } from "@/lib/api/types";
 import { cn } from "@/lib/utils";
 import { formatDayKey, makeTimesheetCellKey } from "@/pages/reports/hooks/use-monthly-timesheet-data";
 
 import {
-  ATTENDANCE_CODE_REGISTRY,
   getAllAttendanceCodes,
   getAttendanceCodeConfig,
 } from "./attendance-code-registry";
@@ -81,7 +81,7 @@ export const TimesheetMatrixGrid = React.forwardRef<
     }, [daysInMonth, year, month]);
 
     // Real attendance code resolver using O(1) indexed attendanceMap
-    const getEmployeeDayCode = (empId: string, day: number, isWeekend: boolean) => {
+    const getEmployeeDayCode = React.useCallback((empId: string, day: number, isWeekend: boolean) => {
       if (attendanceMap) {
         const dateStr = formatDayKey(year, month, day);
         const cellKey = makeTimesheetCellKey(empId, dateStr);
@@ -90,7 +90,7 @@ export const TimesheetMatrixGrid = React.forwardRef<
       }
       if (isWeekend) return getAttendanceCodeConfig("Ro");
       return getAttendanceCodeConfig("-");
-    };
+    }, [attendanceMap, month, year]);
 
     const registeredCodes = useMemo(() => getAllAttendanceCodes(), []);
 
@@ -139,7 +139,7 @@ export const TimesheetMatrixGrid = React.forwardRef<
       link.click();
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
-    }, [daysList, employees, month, year, attendanceMap]);
+    }, [daysList, employees, getEmployeeDayCode, month, year]);
 
     // Expose export function to parent via ref
     useImperativeHandle(
@@ -182,7 +182,7 @@ export const TimesheetMatrixGrid = React.forwardRef<
         </div>
 
         {/* Expandable Legend Bar */}
-        {isLegendOpen && (
+        {!!isLegendOpen && (
           <div className="px-4 py-2.5 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/60 flex flex-wrap items-center gap-2 text-xs animate-in slide-in-from-top-2 duration-200">
             <span className="font-semibold text-slate-700 dark:text-slate-200 shrink-0">
               {t("reports.legend_rules", "Quy ước ký hiệu:")}

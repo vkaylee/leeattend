@@ -219,9 +219,9 @@ export default function ShiftEditorPage() {
                   {t("shifts.modal.location", "Chi nhánh / Địa điểm Scope")}
                 </span>
                 {locationsUnavailable ? (
-                  <p className="text-sm text-slate-500 dark:text-slate-400" role="status">
+                  <Typography className="text-sm text-slate-500 dark:text-slate-400" role="status" variant="p">
                     {t("settings.locations.unavailable", "Work locations are unavailable for your account.")}
-                  </p>
+                  </Typography>
                 ) : (
                   <Combobox
                     clearOnEscape

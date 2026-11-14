@@ -43,7 +43,7 @@ export default function WorkerUtilizationGauge({ data, isLoading }: Props) {
         </div>
       ) : data.unavailable ? (
         <div className="w-[160px] h-[160px] flex flex-col items-center justify-center gap-2 text-center" role="status">
-          <span className="text-4xl font-black tracking-tighter text-slate-400 dark:text-slate-500" aria-hidden="true">—</span>
+          <span aria-hidden="true" className="text-4xl font-black tracking-tighter text-slate-400 dark:text-slate-500">—</span>
           <Typography className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest" variant="p">
             {t("monitor.metric_unavailable", { defaultValue: "Metric unavailable" })}
           </Typography>
@@ -118,12 +118,12 @@ export default function WorkerUtilizationGauge({ data, isLoading }: Props) {
       </div>
 
       {/* Scaling hints */}
-      {!isLoading && data.percent !== null && data.thresholdsAvailable && data.percent >= (data.criticalAtPercent ?? Number.POSITIVE_INFINITY) && (
+      {!isLoading && data.percent !== null && !!data.thresholdsAvailable && data.percent >= (data.criticalAtPercent ?? Number.POSITIVE_INFINITY) && (
         <Typography className="text-[10px] text-rose-500 dark:text-rose-400 font-medium text-center" variant="p">
           {t("monitor.charts.scale_up_warning")}
         </Typography>
       )}
-      {!isLoading && data.percent !== null && data.thresholdsAvailable && data.percent < (data.scaleDownBelowPercent ?? 0) && data.percent > 0 && (
+      {!isLoading && data.percent !== null && !!data.thresholdsAvailable && data.percent < (data.scaleDownBelowPercent ?? 0) && data.percent > 0 && (
         <Typography className="text-[10px] text-sky-500 dark:text-sky-400 font-medium text-center" variant="p">
           {t("monitor.charts.scale_down_hint")}
         </Typography>

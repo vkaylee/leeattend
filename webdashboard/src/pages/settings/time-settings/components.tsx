@@ -6,7 +6,6 @@ import { TFunction } from "i18next";
 import { PolicyAssignmentsSection } from "@/components/features/attendance/policy-assignments-section";
 import Button from "@/components/ui/button";
 import { SettingsHeader } from "@/components/ui/settings/settings-header";
-import { Typography } from "@/components/ui/typography";
 import { AttendancePolicyVersion } from "@/lib/api";
 
 import { BulkReprocessSection } from "./bulk-reprocess";
@@ -80,7 +79,7 @@ export function TabContent({
 }: TabContentProps) {
   return (
     <>
-      <AttendanceVersionTimeline onNewVersion={() => setShowCreateModal(true)} t={t} versions={versions} />
+      <AttendanceVersionTimeline onNewVersion={() => { setShowCreateModal(true); }} t={t} versions={versions} />
       <PolicyAssignmentsSection   />
       <BulkReprocessSection
         reprocessEnd={reprocessEnd}

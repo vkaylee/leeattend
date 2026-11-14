@@ -3,13 +3,14 @@ import { ArrowRight, Briefcase, ExternalLink, Pencil, Trash2 } from "lucide-reac
 import React from "react";
 import { useTranslation } from "react-i18next";
 
+import type { AssignmentStatus } from "@/lib/api";
+import type { EmployeeAssignmentWithEmployee } from "@/lib/api/employee-assignments";
+
 import Button from "@/components/ui/button";
 import EmptyState from "@/components/ui/empty-state";
 import ResponsiveTable from "@/components/ui/responsive-table";
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
 import { useHorizontalDragScroll } from "@/hooks/use-horizontal-drag-scroll";
-import type { AssignmentStatus } from "@/lib/api";
-import type { EmployeeAssignmentWithEmployee } from "@/lib/api/employee-assignments";
 import { cn } from "@/lib/utils";
 
 const getStatusColor = (status: AssignmentStatus) => {
@@ -51,9 +52,9 @@ function AssignmentMobileCard({
           <div className="min-w-0 flex-1">
             <Link
               className="truncate text-sm font-bold uppercase tracking-tight text-slate-800 dark:text-slate-100 hover:text-primary-600 dark:hover:text-primary-400 flex items-center gap-1"
+              params={{ employeeId: assignment.employee_id }}
               search={{ tab: "assignments" }}
               to="/employees/$employeeId"
-              params={{ employeeId: assignment.employee_id }}
             >
               <span className="truncate">{assignment.employee_name}</span>
               <ExternalLink className="opacity-50 shrink-0" size={12} />
@@ -107,7 +108,7 @@ function AssignmentMobileCard({
           aria-label={t("assignments.actions.edit", { defaultValue: "Chỉnh sửa phái cử" })}
           className="h-8 text-xs font-semibold"
           icon={<Pencil size={13} />}
-          onClick={() => onEdit(assignment)}
+          onClick={() => { onEdit(assignment); }}
           size="sm"
           variant="outline"
         >
@@ -117,7 +118,7 @@ function AssignmentMobileCard({
           aria-label={t("assignments.actions.delete", { defaultValue: "Xóa phái cử" })}
           className="h-8 text-xs font-semibold text-rose-600 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/30"
           icon={<Trash2 size={13} />}
-          onClick={() => onDelete(assignment)}
+          onClick={() => { onDelete(assignment); }}
           size="sm"
           variant="ghost"
         >
@@ -253,9 +254,9 @@ export function AssignmentsTable({
                     <div className="flex flex-col">
                       <Link
                         className="text-xs font-bold text-slate-800 dark:text-slate-100 uppercase tracking-wide group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors flex items-center gap-1.5"
+                        params={{ employeeId: a.employee_id }}
                         search={{ tab: "assignments" }}
                         to="/employees/$employeeId"
-                        params={{ employeeId: a.employee_id }}
                       >
                         <span>{a.employee_name}</span>
                         <ExternalLink className="opacity-0 group-hover:opacity-70 transition-opacity" size={11} />
@@ -299,7 +300,7 @@ export function AssignmentsTable({
                       <Button
                         aria-label={t("assignments.actions.edit", { defaultValue: "Chỉnh sửa" })}
                         className="p-2 text-slate-400 hover:text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900/30 rounded-xl transition-colors h-auto w-auto shadow-none"
-                        onClick={() => onEdit(a)}
+                        onClick={() => { onEdit(a); }}
                         size="icon"
                         variant="ghost"
                       >
@@ -308,7 +309,7 @@ export function AssignmentsTable({
                       <Button
                         aria-label={t("assignments.actions.delete", { defaultValue: "Xóa" })}
                         className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/30 rounded-xl transition-colors h-auto w-auto shadow-none"
-                        onClick={() => onDelete(a)}
+                        onClick={() => { onDelete(a); }}
                         size="icon"
                         variant="ghost"
                       >

@@ -1,8 +1,9 @@
 /* eslint-disable react/forbid-elements */
+import type { TFunction } from "i18next";
+
 import { Link } from "@tanstack/react-router";
 import { ChevronDown, ChevronLeft, ChevronRight, ExternalLink, X, User, FolderOpen, FileText, DollarSign, History, Maximize2, Minimize2 } from "lucide-react";
 import { createElement, useCallback, useEffect, useRef, useState, type ComponentType } from "react";
-import type { TFunction } from "i18next";
 
 import type { Employee } from "@/lib/api";
 
@@ -19,9 +20,9 @@ import { cn } from "@/lib/utils";
 export type DetailTabType = "profile" | "documents" | "contracts" | "salary" | "compensation";
 
 export interface TabDefinition {
-  id: DetailTabType;
   i18nKey: string;
   icon: ComponentType<{ size?: number; className?: string }>;
+  id: DetailTabType;
 }
 
 export const EMPLOYEE_DRAWER_TAB_CONFIG: readonly TabDefinition[] = [
@@ -218,7 +219,7 @@ export default function DrawerHeader({
                             <ExternalLink size={20} />
                         </Button>
                     </Link>
-                    {onToggleExpand && (
+                    {!!onToggleExpand && (
                         <Button
                             aria-label={isExpanded ? t("common.minimize", "Thu nhỏ") : t("common.maximize", "Phóng to")}
                             className="p-3 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-[1.25rem] transition-all shadow-md active:scale-90 border border-slate-100 dark:border-slate-800 text-slate-400 dark:text-slate-500 hover:text-primary-600 dark:hover:text-primary-400 h-auto w-auto shadow-none hidden sm:flex items-center justify-center"
@@ -230,7 +231,7 @@ export default function DrawerHeader({
                         >
                             {isExpanded ? <Minimize2 size={20} /> : <Maximize2 size={20} />}
                         </Button>
-                    )}
+                      )}
                     <Button aria-label={t("common.close")} className="p-3 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-[1.25rem] transition-all shadow-md active:scale-90 border border-slate-100 dark:border-slate-800 text-slate-300 dark:text-slate-600 hover:text-rose-600 dark:text-rose-300 h-auto w-auto shadow-none" onClick={onClose} size="icon" type="button" variant="ghost"><X size={24} /></Button>
                 </div>
             </div>

@@ -1,5 +1,6 @@
-import type { Organization, OrganizationMember } from "@/types/organization";
 import type { User } from "@/lib/api";
+import type { Organization, OrganizationMember } from "@/types/organization";
+
 import { generateUUID } from "@/utils/uuid";
 
 export const userFactory = (overrides: Partial<User> = {}): User => {

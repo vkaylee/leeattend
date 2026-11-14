@@ -7,11 +7,11 @@ import type { NavigableListColumn } from "@/components/common/navigable-list";
 import StatusBadge from "@/components/ui/status-badge";
 
 import type { Employee, Department } from "../../../lib/api/types";
+import type { EmployeeModalState } from "../types/employee-modals";
 import type { SortKey, SortDir } from "./use-employees-page";
 
 import { EmployeeRowActions } from "../components/employee-row-actions";
 import { DepartmentFilterHeader, EmployeeNameCell, StatusFilterHeader } from "../components/employee-table-subcomponents";
-import type { EmployeeModalState } from "../types/employee-modals";
 interface UseEmployeeColumnsProps {
   departments: Department[] | undefined;
   filterDeptIds: string[];

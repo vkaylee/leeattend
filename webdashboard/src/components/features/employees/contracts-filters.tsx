@@ -30,8 +30,8 @@ export function ContractsFilters({
         <SearchInput
           aria-label={t("employees.details.contracts.search_label", { defaultValue: "Search contracts" })}
           containerClassName="h-10"
-          onChange={(e) => onSearchChange(e.target.value)}
-          onClear={() => onSearchChange("")}
+          onChange={(e) => { onSearchChange(e.target.value); }}
+          onClear={() => { onSearchChange(""); }}
           placeholder={t("employees.details.contracts.search_placeholder_input", { defaultValue: "Search employee, ID or contract..." })}
           size="sm"
           value={search}

@@ -1,6 +1,3 @@
-import { useOrganizationMutation } from "@/hooks/common/use-organization-query";
-import { useDepartments } from "@/hooks/use-departments";
-import { useAllEmployees } from "@/hooks/use-employees";
 import { FolderTree } from "lucide-react";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -9,10 +6,13 @@ import { DepartmentConfigModal } from "@/components/features/departments/departm
 import { DepartmentDetailDrawer } from "@/components/features/departments/department-detail-drawer";
 import { DepartmentFormModal } from "@/components/features/departments/department-form-modal";
 import { DepartmentOrgChart } from "@/components/features/departments/department-org-chart";
+import { useOrganizationMutation } from "@/hooks/common/use-organization-query";
 import { useConfirm } from "@/hooks/use-confirm";
+import { useDepartments } from "@/hooks/use-departments";
+import { useAllEmployees } from "@/hooks/use-employees";
+import { departmentKeys } from "@/lib/query-keys";
 
 import { deleteDepartment, Department } from "../lib/api";
-import { departmentKeys } from "@/lib/query-keys";
 
 export default function OrgChartPage() {
   const { t } = useTranslation();

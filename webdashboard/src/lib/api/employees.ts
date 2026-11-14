@@ -90,9 +90,9 @@ export async function fetchEmploymentHistory(_id: string): Promise<EmploymentPer
 }
 
 export interface RehireEmployeeRequest {
-  hire_date: string;
-  employer_id: string;
   department_id?: string | null;
+  employer_id: string;
+  hire_date: string;
   primary_location_id?: string | null;
 }
 

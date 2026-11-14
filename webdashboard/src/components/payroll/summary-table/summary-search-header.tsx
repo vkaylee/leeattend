@@ -27,8 +27,8 @@ export function SummarySearchHeader({
           <SearchInput
             aria-label={t("common.search")}
             containerClassName="bg-white dark:bg-slate-900 rounded-[1.5rem] h-12 px-4 shadow-sm"
-            onChange={(e) => onSearchChange(e.target.value)}
-            onClear={() => onSearchChange("")}
+            onChange={(e) => { onSearchChange(e.target.value); }}
+            onClear={() => { onSearchChange(""); }}
             placeholder={t("payroll.search_placeholder")}
             size="md"
             value={searchTerm}
@@ -36,9 +36,7 @@ export function SummarySearchHeader({
         </div>
         <div className="flex items-center gap-3">
           <span className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.2em] bg-white dark:bg-slate-900 px-4 py-2 rounded-xl border border-slate-100 dark:border-slate-800 shadow-sm">{filteredCount} {t("common.employees")}</span>
-          {density && onDensityChange && (
-            <TableDensityToggle density={density} onDensityChange={onDensityChange} />
-          )}
+          {!!density && !!onDensityChange && <TableDensityToggle density={density} onDensityChange={onDensityChange} />}
         </div>
       </div>
     </div>

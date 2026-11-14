@@ -2,8 +2,9 @@ import { CheckCircle2, XCircle, Info, AlertTriangle, X } from 'lucide-react';
 import React, { createContext, useContext, useState, useCallback, ReactNode, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { addToastListener } from './toast-imperative';
 import type { ToastContextType } from './toast-imperative';
+
+import { addToastListener } from './toast-imperative';
 
 export type { ToastContextType } from './toast-imperative';
 

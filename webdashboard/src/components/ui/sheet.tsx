@@ -1,10 +1,10 @@
 import { X, Menu } from "lucide-react";
 import React, { useEffect, useId, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { useTranslation } from "react-i18next";
 
 import { Typography } from "@/components/ui/typography";
 import { useFocusTrap } from "@/hooks/use-focus-trap";
-import { useTranslation } from "react-i18next";
 import { useScrollLock } from "@/hooks/use-scroll-lock";
 import { cn } from "@/lib/utils";
 

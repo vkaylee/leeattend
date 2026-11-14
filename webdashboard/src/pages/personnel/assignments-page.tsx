@@ -3,6 +3,8 @@ import { ArrowLeftRight, CheckCircle2, Clock, Plus, Users, X } from "lucide-reac
 import React, { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
+import type { EmployeeAssignmentWithEmployee } from "@/lib/api/employee-assignments";
+
 import EmployeeAssignmentFormModal from "@/components/features/employees/employee-assignment-form-modal";
 import { AssignmentsFilters } from "@/components/features/personnel/assignments-filters";
 import { AssignmentsTable } from "@/components/features/personnel/assignments-table";
@@ -16,11 +18,10 @@ import {
   useDeleteEmployeeAssignment,
   useAssignments,
 } from "@/hooks/use-employee-assignments";
-import type { EmployeeAssignmentWithEmployee } from "@/lib/api/employee-assignments";
 
 export default function PersonnelAssignmentsPage() {
   const { t } = useTranslation();
-  const searchParams = useSearch({ strict: false }) as { employeeId?: string; q?: string };
+  const searchParams = useSearch({ strict: false });
   const toast = useToast();
   
   const { confirm, ConfirmationDialog } = useConfirm();
@@ -113,7 +114,7 @@ export default function PersonnelAssignmentsPage() {
         title={t("assignments.title", { defaultValue: "Quản lý Phái cử & Luân chuyển" })}
       />
 
-      {employeeFilter && (
+      {!!employeeFilter && (
         <div className="flex items-center gap-2" data-testid="employee-filter-chip">
           <span className="rounded-full border border-primary-200 bg-primary-50 px-3 py-1 text-xs font-semibold text-primary-700 dark:border-primary-800 dark:bg-primary-950 dark:text-primary-300">
             {t("employees.details.filtered_employee", { defaultValue: "Đang lọc theo nhân viên" })}
@@ -212,7 +213,7 @@ export default function PersonnelAssignmentsPage() {
       </div>
 
       {/* ── Dual-Mode Assignment Form Modal ────────────────────────── */}
-      {isFormOpen && (
+      {!!isFormOpen && (
         <EmployeeAssignmentFormModal editingAssignment={editingAssignment}
         isOpen={isFormOpen}
         onClose={() => {

@@ -243,11 +243,11 @@ describe("EmployeeDailyDrawer", () => {
         renderWithProviders(
             <EmployeeDailyDrawer
                 {...defaultProps}
+                employerId="employer-1"
                 employers={[
                     { employerId: "employer-1", employerName: "Acme Corporation" },
                     { employerId: "employer-2", employerName: "Globex Corporation" },
                 ]}
-                employerId="employer-1"
             />,
         );
 

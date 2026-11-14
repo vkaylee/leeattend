@@ -45,8 +45,8 @@ export function LifecycleFilters({
         <SearchInput
           aria-label={t("lifecycle.search_label", { defaultValue: "Tìm kiếm quy trình nhân sự" })}
           containerClassName="h-10"
-          onChange={(e) => onSearchChange(e.target.value)}
-          onClear={() => onSearchChange("")}
+          onChange={(e) => { onSearchChange(e.target.value); }}
+          onClear={() => { onSearchChange(""); }}
           placeholder={t("lifecycle.search_placeholder", {
             defaultValue: "Tìm nhân sự, mã NV, phòng ban, mẫu checklist...",
           })}

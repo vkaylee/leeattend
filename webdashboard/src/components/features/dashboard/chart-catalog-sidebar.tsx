@@ -209,8 +209,8 @@ export default function ChartCatalogSidebar({
           {/* Search */}
           <SearchInput
             aria-label={t("dashboard.catalog.search_placeholder")}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            onClear={() => setSearchQuery("")}
+            onChange={(e) => { setSearchQuery(e.target.value); }}
+            onClear={() => { setSearchQuery(""); }}
             placeholder={t("dashboard.catalog.search_placeholder")}
             size="sm"
             value={searchQuery}

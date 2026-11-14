@@ -9,6 +9,7 @@ vi.mock("../client", () => ({
   },
 }));
 
+import { client } from "../client";
 import {
   fetchAssignments,
   fetchEmployeeAssignments,
@@ -16,7 +17,6 @@ import {
   updateEmployeeAssignment,
   deleteEmployeeAssignment,
 } from "../employee-assignments";
-import { client } from "../client";
 
 describe("employee-assignments api", () => {
   beforeEach(() => {

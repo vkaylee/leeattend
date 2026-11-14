@@ -6,11 +6,12 @@ import { useTranslation } from 'react-i18next';
 import InfiniteScrollSentinel from '@/components/common/infinite-scroll-sentinel';
 import ResponsiveTable from '@/components/ui/responsive-table';
 import { TableDensityToggle, useTableDensity } from '@/components/ui/table-density-toggle';
-import { AttendanceStatusBadge } from './attendance-status-badge';
 import { useToast } from "@/components/ui/toast";
 import { useInfiniteScroll } from '@/hooks/use-infinite-scroll';
 import { RawAttendanceLog } from '@/lib/api/types';
 import { logError } from "@/lib/logger";
+
+import { AttendanceStatusBadge } from './attendance-status-badge';
 
 interface RecordedLogsTableProps {
   fetchNextPage: () => void;
@@ -25,7 +26,7 @@ interface RecordedLogsTableProps {
   logs: RawAttendanceLog[];
 }
 
-// eslint-disable-next-line max-lines-per-function
+ 
 export function RecordedLogsTable({
   logs,
   fetchNextPage,
@@ -146,7 +147,6 @@ export function RecordedLogsTable({
           contextMenuItems={contextMenuItems}
           data={logs}
           density={density}
-          stickyLeftColumns={2}
           emptyState={{ icon: <Clock className="h-10 w-10" />, title: t("attendance_logs.messages.no_data") }}
           footerRow={footerRow}
           getCardKey={(log) => log.id}
@@ -170,6 +170,7 @@ export function RecordedLogsTable({
               </div>
             </article>
           )}
+          stickyLeftColumns={2}
         />
       </div>
     </div>

@@ -14,8 +14,8 @@ import { useTranslation } from "react-i18next";
 
 import PermissionGate from "@/components/common/permission-gate";
 import Button from "@/components/ui/button";
-import { cn } from "@/lib/utils";
 import { ROUTES } from "@/lib/routes";
+import { cn } from "@/lib/utils";
 
 import type { OrganizationRole } from "../../../lib/api/types";
 

@@ -7,8 +7,8 @@ import {
   approveAttendanceAdjustment,
   approveLeaveRequest,
 } from "@/lib/api";
-import { approveShiftSwap } from "@/lib/api/shift-swaps";
 import { approveOt } from "@/lib/api/attendance-overtime";
+import { approveShiftSwap } from "@/lib/api/shift-swaps";
 import { logError } from "@/lib/logger";
 
 import {
@@ -17,12 +17,12 @@ import {
 } from "../types/unified-approvals";
 
 export interface UseBatchApprovalReturn {
-  isProcessing: boolean;
   batchApprove: (items: UnifiedApprovalItem[]) => Promise<BatchApprovalResult>;
   batchReject: (
     items: UnifiedApprovalItem[],
     reason: string
   ) => Promise<BatchApprovalResult>;
+  isProcessing: boolean;
 }
 
 export function useBatchApproval(): UseBatchApprovalReturn {

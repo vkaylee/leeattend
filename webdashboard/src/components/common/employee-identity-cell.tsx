@@ -36,7 +36,7 @@ export const EmployeeIdentityCell: React.FC<EmployeeIdentityCellProps> = ({
 
   const content = (
     <div className={cn("flex items-center gap-2.5 min-w-0 text-left", className)}>
-      {showAvatar && (
+      {showAvatar ? (
         <div
           aria-hidden="true"
           className={cn(
@@ -46,14 +46,14 @@ export const EmployeeIdentityCell: React.FC<EmployeeIdentityCellProps> = ({
         >
           {initials}
         </div>
-      )}
+      ) : null}
       <div className="min-w-0 flex-1">
         <div className="truncate text-xs font-bold text-slate-900 dark:text-slate-100 group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors">
           {name}
         </div>
         <div className="flex items-center gap-2 text-[10px] text-slate-500 dark:text-slate-400 font-mono">
-          {code && <span className="font-semibold text-slate-600 dark:text-slate-300">{code}</span>}
-          {employerName && (
+          {!!code && <span className="font-semibold text-slate-600 dark:text-slate-300">{code}</span>}
+          {!!employerName && (
             <span className="flex items-center gap-1 font-sans truncate text-slate-400 dark:text-slate-500">
               <Briefcase size={10} />
               {employerName}

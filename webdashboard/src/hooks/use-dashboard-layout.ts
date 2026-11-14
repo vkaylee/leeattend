@@ -47,9 +47,9 @@ const EMPTY_LOCAL_OVERRIDES: LocalOverrides = {
 type DashboardPreferencesUpdate = Partial<Omit<DashboardLayoutPreferences, "id" | "user_id">>;
 
 interface PendingDashboardWrite {
+    rollbackLocal: LocalOverrides;
     sequence: number;
     update: DashboardPreferencesUpdate;
-    rollbackLocal: LocalOverrides;
 }
 
 // ── Hook: useDashboardLayout ───────────────────────────────────────

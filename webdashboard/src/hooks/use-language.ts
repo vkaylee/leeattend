@@ -1,5 +1,5 @@
-import { useCallback, useState, useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
+import { useCallback, useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { updateMe, type User } from "@/lib/api";

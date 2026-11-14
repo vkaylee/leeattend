@@ -353,7 +353,7 @@ function OperationalMetricsSections({ stats, t }: { stats: WorkerMonitorStats; t
           {queueMetrics.map(([label, metric]) => <MonitorMetricCard key={label} label={label} metric={metric} t={t} />)}
         </div>
       </section>
-      {reliability && (
+      {!!reliability && (
         <section aria-label={t("monitor.job_reliability", { defaultValue: "Job reliability" })} className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:p-6">
           <Typography className="mb-4 text-lg font-bold uppercase tracking-tight text-slate-700 dark:text-slate-200" variant="h4">{t("monitor.job_reliability", { defaultValue: "Job reliability" })}</Typography>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">

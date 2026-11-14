@@ -1,11 +1,10 @@
-import { useId, useState } from "react";
-
 import { Table2 } from "lucide-react";
+import { useId, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import Button from "@/components/ui/button";
 import PaginationControls from "@/components/common/pagination-controls";
 import SearchBox from "@/components/common/search-box";
+import Button from "@/components/ui/button";
 import { Typography } from "@/components/ui/typography";
 import { useChartTable } from "@/hooks/use-chart-table";
 import { cn } from "@/lib/utils";
@@ -14,22 +13,22 @@ export interface ChartTableColumn<T> {
   /** Header label key or literal text (prefers a translation key lookup first). */
   header: string;
   key: keyof T;
-  /** Render a cell (defaults to String(value)). */
-  render?: (row: T) => React.ReactNode;
   /** Right-align numeric cells. */
   numeric?: boolean;
+  /** Render a cell (defaults to String(value)). */
+  render?: (row: T) => React.ReactNode;
 }
 
 interface ChartTableTwinProps<T extends object> {
   caption: string;
   columns: ChartTableColumn<T>[];
+  /** Unique identifier prefix for the toggle's aria-controls wiring. */
+  id?: string;
   rows: T[];
   /** Keys searched by the free-text box. */
   searchableKeys?: (keyof T)[];
   /** Toggle label (defaults to a translated "Table view"). */
   toggleLabel?: string;
-  /** Unique identifier prefix for the toggle's aria-controls wiring. */
-  id?: string;
 }
 
 /**

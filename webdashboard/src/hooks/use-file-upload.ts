@@ -2,9 +2,10 @@ import { useMutation } from '@tanstack/react-query';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
+import type { FileRecord } from '@/lib/api/types';
+
 import { client, fetch } from '@/lib/api/client';
 import { components } from '@/types/api-generated';
-import type { FileRecord } from '@/lib/api/types';
 import { maybeNull } from '@/types/api-overrides';
 import { computeSHA256 } from '@/utils/hash';
 
@@ -49,7 +50,7 @@ export function useFileUpload({
         // natively, so no custom serializer is needed. See coding-standard §10.1.
         try {
           const { data } = await client.POST<FileRecord>('/api/v1/files/upload', {
-            body: formData as never,
+            body: formData,
           });
           setProgress(100);
           return data;

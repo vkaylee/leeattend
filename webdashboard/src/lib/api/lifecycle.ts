@@ -11,27 +11,27 @@ import type {
   UpdateChecklistItemStatusRequest,
 } from "./types";
 
+import { client } from "./client";
 import { ApiError } from "./errors";
 import { apiFetch } from "./helpers";
-import { client } from "./client";
 
 export interface LifecycleInstanceSummary {
-  id: string;
-  employment_id: string;
+  checklist_type: string;
+  completed_at?: string | null;
+  completed_items: number;
+  created_at: string;
+  department_name?: string | null;
+  employee_code: string;
   employee_id: string;
   employee_name: string;
-  employee_code: string;
-  department_name?: string | null;
+  employment_id: string;
+  id: string;
+  progress_percent: number;
+  started_at: string;
+  status: string;
   template_id?: string | null;
   template_name?: string | null;
-  checklist_type: string;
-  status: string;
-  progress_percent: number;
   total_items: number;
-  completed_items: number;
-  started_at: string;
-  completed_at?: string | null;
-  created_at: string;
   updated_at: string;
 }
 

@@ -9,9 +9,9 @@ import { Organization, Payslip } from '@/lib/api/types';
 interface PayslipHeaderProps {
   formatDate: (date: string) => string;
   formatMonthYear: (date: string) => string;
+  organization: Organization | null;
   payslip: Payslip;
   t: TFunction;
-  organization: Organization | null;
 }
 
 export function PayslipHeader({ organization, payslip, formatMonthYear, formatDate, t }: PayslipHeaderProps) {

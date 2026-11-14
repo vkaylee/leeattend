@@ -11,19 +11,19 @@ import type {
 import { client } from "./client";
 
 export interface EmploymentPhaseAssignment extends EmployeePhase {
+  department_name?: string | null;
+  employee_code: string;
   employee_id: string;
   employee_name: string;
-  employee_code: string;
-  department_name?: string | null;
   phase_name: string;
   phase_type: string;
 }
 
 export interface EmploymentPhaseAssignmentListResponse {
   data: EmploymentPhaseAssignment[];
-  total: number;
-  page: number;
   limit: number;
+  page: number;
+  total: number;
 }
 
 export interface EmploymentPhaseAssignmentListParams {

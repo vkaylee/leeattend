@@ -21,20 +21,20 @@ import { ROUTES } from "@/lib/routes";
 import { cn } from "@/lib/utils";
 
 interface NavbarProps {
-  organizationName: string;
   onOpenLauncher?: () => void;
+  organizationName: string;
 }
 
 interface SiblingApp {
-  labelKey: string;
   defaultLabel: string;
+  labelKey: string;
   to: string;
 }
 
 interface NavCategory {
+  defaultLabel: string;
   key: string;
   labelKey: string;
-  defaultLabel: string;
   siblings: SiblingApp[];
 }
 
@@ -145,8 +145,8 @@ export default memo(function Navbar({
         className="flex items-center gap-2 md:gap-3 flex-1 min-w-0"
       >
         <Link
-          to={ROUTES.HOME}
           className="flex items-center gap-2 hover:opacity-80 transition-opacity truncate"
+          to={ROUTES.HOME}
         >
           <span className="hidden sm:inline text-slate-400 dark:text-slate-500 font-bold uppercase text-[10px] tracking-[0.25em] opacity-80 truncate">
             {organizationName}
@@ -156,15 +156,14 @@ export default memo(function Navbar({
         <BreadcrumbSeparator className="w-3 h-3 text-slate-300 dark:text-slate-600 hidden sm:inline shrink-0" />
 
         {/* Sibling Category Dropdown if inside a feature module */}
-        {currentCategory && (
-          <>
+        {!!currentCategory && <>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button
-                  variant="ghost"
-                  size="sm"
-                  data-testid="navbar-category-switcher"
                   className="hidden md:flex items-center gap-1 h-7 px-2 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg"
+                  data-testid="navbar-category-switcher"
+                  size="sm"
+                  variant="ghost"
                 >
                   <span>
                     {t(currentCategory.labelKey, currentCategory.defaultLabel)}
@@ -179,16 +178,16 @@ export default memo(function Navbar({
                 <DropdownMenuSeparator />
                 {currentCategory.siblings.map((sibling) => (
                   <DropdownMenuItem
-                    key={sibling.to}
-                    onClick={() => {
-                      void navigate({ to: sibling.to });
-                    }}
                     className={cn(
                       "text-xs px-2.5 py-1.5 rounded-xl cursor-pointer",
                       location.pathname.startsWith(sibling.to)
                         ? "bg-primary-50 dark:bg-primary-950/60 text-primary-600 dark:text-primary-400 font-bold"
                         : "text-slate-700 dark:text-slate-200"
                     )}
+                    key={sibling.to}
+                    onClick={() => {
+                      void navigate({ to: sibling.to });
+                    }}
                   >
                     {t(sibling.labelKey, sibling.defaultLabel)}
                   </DropdownMenuItem>
@@ -196,13 +195,12 @@ export default memo(function Navbar({
               </DropdownMenuContent>
             </DropdownMenu>
             <BreadcrumbSeparator className="w-3 h-3 text-slate-300 dark:text-slate-600 hidden md:inline shrink-0" />
-          </>
-        )}
+          </>}
 
         {/* Current Active Page Title Badge */}
         <span
-          data-testid="navbar-active-page"
           className="text-slate-700 dark:text-slate-200 font-bold uppercase text-[10px] tracking-[0.25em] bg-slate-100 dark:bg-slate-800 px-3 py-1 rounded-lg shadow-inner truncate"
+          data-testid="navbar-active-page"
         >
           {getPageName(location.pathname).toUpperCase()}
         </span>
@@ -211,11 +209,6 @@ export default memo(function Navbar({
       {/* Quick Feature Search Trigger (DSM 7 Launcher) */}
       {Boolean(onOpenLauncher) && (
         <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          data-testid="navbar-dsm-launcher-btn"
-          onClick={onOpenLauncher}
           aria-label={t(
             "appLauncher.openSearch",
             "Mở tìm kiếm tính năng DSM 7"
@@ -226,6 +219,11 @@ export default memo(function Navbar({
             "border border-slate-200/60 dark:border-slate-700/60 text-slate-600 dark:text-slate-300",
             "transition-all duration-150 shadow-2xs group"
           )}
+          data-testid="navbar-dsm-launcher-btn"
+          onClick={onOpenLauncher}
+          size="sm"
+          type="button"
+          variant="outline"
         >
           <Search className="w-3.5 h-3.5 text-slate-400 group-hover:text-primary-500 transition-colors shrink-0" />
           <span className="hidden md:inline font-normal text-slate-600 dark:text-slate-300">

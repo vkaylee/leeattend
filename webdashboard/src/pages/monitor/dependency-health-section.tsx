@@ -2,8 +2,9 @@ import React from "react";
 
 import { TFunction } from "i18next";
 
-import { Typography } from "@/components/ui/typography";
 import type { MonitorDependencyHealth, MonitorDependencyHealthSet } from "@/lib/api/types-monitoring";
+
+import { Typography } from "@/components/ui/typography";
 import { cn } from "@/lib/utils";
 
 function dependencyStatusClasses(status: MonitorDependencyHealth["status"]): string {

@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 
+import { APP_REGISTRY } from "@/lib/app-registry";
 import {
   getAllFeatures,
   filterFeatures,
@@ -7,7 +8,6 @@ import {
   appToFeature,
   type FeatureItem,
 } from "@/lib/feature-registry";
-import { APP_REGISTRY } from "@/lib/app-registry";
 
 describe("Feature Registry & Search Indexer", () => {
   it("converts all apps from APP_REGISTRY to feature items", () => {

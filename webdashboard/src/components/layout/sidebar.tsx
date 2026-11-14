@@ -45,7 +45,7 @@ export function Sidebar({
       }
     };
     window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
+    return () => { window.removeEventListener("keydown", handleKeyDown); };
   }, [onToggleCollapse]);
 
   const isItemActive = (to: string, exact?: boolean) => {
@@ -85,7 +85,7 @@ export function Sidebar({
         </Link>
 
         {/* Mobile close button */}
-        {isMobileOpen && onMobileClose && (
+        {!!isMobileOpen && !!onMobileClose && (
           <Button
             aria-label="Close navigation"
             className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground md:hidden"
@@ -121,7 +121,7 @@ export function Sidebar({
             title={isCollapsed ? dashboard.label : undefined}
             to={dashboard.to}
           >
-            {dashboard.icon && (
+            {!!dashboard.icon && (
               <dashboard.icon
                 aria-hidden="true"
                 className={cn("h-4 w-4 shrink-0", isCollapsed && "h-5 w-5")}
@@ -161,7 +161,7 @@ export function Sidebar({
                     title={isCollapsed ? item.label : undefined}
                     to={item.to}
                   >
-                    {item.icon && (
+                    {!!item.icon && (
                       <item.icon
                         aria-hidden="true"
                         className={cn(
@@ -182,7 +182,7 @@ export function Sidebar({
 
       {/* ── Bottom Section: Settings & Toggle ── */}
       <div className="border-t border-border p-2 space-y-1 shrink-0 bg-card/40">
-        {settings && (
+        {!!settings && (
           <Link
             aria-label={settings.label}
             className={cn(
@@ -197,7 +197,7 @@ export function Sidebar({
             title={isCollapsed ? settings.label : undefined}
             to={settings.to}
           >
-            {settings.icon && (
+            {!!settings.icon && (
               <settings.icon
                 aria-hidden="true"
                 className={cn("h-4 w-4 shrink-0", isCollapsed && "h-5 w-5")}
@@ -260,7 +260,7 @@ export function Sidebar({
       </aside>
 
       {/* Mobile Drawer (with backdrop) */}
-      {isMobileOpen && (
+      {!!isMobileOpen && (
         <div
           aria-modal="true"
           className="fixed inset-0 z-50 flex md:hidden"

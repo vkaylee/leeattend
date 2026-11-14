@@ -31,7 +31,6 @@ export const Route = createFileRoute("/_authenticated")({
       });
       if (maybeNull(user) === null || maybeNull(user) === undefined) {
         clearAuthSession();
-        // eslint-disable-next-line @typescript-eslint/only-throw-error
         throw redirect({ to: "/login" });
       }
       return { user };
@@ -46,7 +45,6 @@ export const Route = createFileRoute("/_authenticated")({
       }
 
       // Auth failure or network error → redirect to login
-      // eslint-disable-next-line @typescript-eslint/only-throw-error
       throw redirect({ to: "/login" });
     }
   },

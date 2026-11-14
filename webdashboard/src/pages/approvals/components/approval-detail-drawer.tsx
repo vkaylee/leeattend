@@ -8,20 +8,20 @@ import {
 } from "lucide-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
+
 import Button from "@/components/ui/button";
 import Sheet from "@/components/ui/sheet";
 
 import { UnifiedApprovalItem } from "../types/unified-approvals";
-
 import { TeamScheduleImpactCard } from "./team-schedule-impact-card";
 
 interface ApprovalDetailDrawerProps {
-  item: UnifiedApprovalItem | null;
   isOpen: boolean;
-  onClose: () => void;
-  onApprove: (item: UnifiedApprovalItem) => void;
-  onReject: (item: UnifiedApprovalItem) => void;
   isProcessing?: boolean;
+  item: UnifiedApprovalItem | null;
+  onApprove: (item: UnifiedApprovalItem) => void;
+  onClose: () => void;
+  onReject: (item: UnifiedApprovalItem) => void;
 }
 
 export function ApprovalDetailDrawer({
@@ -60,21 +60,15 @@ export function ApprovalDetailDrawer({
               {item.requester.name}
             </h4>
             <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
-              {item.requester.idNumber && (
-                <span className="font-mono">#{item.requester.idNumber}</span>
-              )}
-              {item.requester.departmentName && (
-                <span>• {item.requester.departmentName}</span>
-              )}
-              {item.requester.jobTitle && (
-                <span>• {item.requester.jobTitle}</span>
-              )}
+              {!!item.requester.idNumber && <span className="font-mono">#{item.requester.idNumber}</span>}
+              {!!item.requester.departmentName && <span>• {item.requester.departmentName}</span>}
+              {!!item.requester.jobTitle && <span>• {item.requester.jobTitle}</span>}
             </div>
           </div>
         </div>
 
         {/* Smart Team Schedule Impact Card */}
-        {item.impact && (
+        {!!item.impact && (
           <div className="space-y-2">
             <h5 className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
               {t("approvals.drawer.team_context", "Bối cảnh lịch làm việc đội ngũ")}
@@ -103,7 +97,7 @@ export function ApprovalDetailDrawer({
               </span>
             </div>
 
-            {item.details.durationLabel && (
+            {!!item.details.durationLabel && (
               <div className="flex items-center justify-between p-3.5">
                 <span className="text-slate-500 dark:text-slate-400 flex items-center gap-2">
                   <Clock className="h-4 w-4" />
@@ -133,7 +127,7 @@ export function ApprovalDetailDrawer({
               </span>
             </div>
 
-            {item.details.reason && (
+            {!!item.details.reason && (
               <div className="p-3.5 space-y-1">
                 <span className="text-slate-500 dark:text-slate-400 flex items-center gap-2">
                   <FileText className="h-4 w-4" />
@@ -148,13 +142,13 @@ export function ApprovalDetailDrawer({
         </div>
 
         {/* Bottom Actions if Pending */}
-        {isPending && (
+        {!!isPending && (
           <div className="pt-4 flex items-center justify-end gap-3 mt-auto border-t border-slate-200 dark:border-slate-800">
             <Button
               className="bg-rose-600/90 hover:bg-rose-500 text-white font-semibold"
               data-testid="drawer-reject-btn"
               disabled={isProcessing}
-              onClick={() => onReject(item)}
+              onClick={() => { onReject(item); }}
               size="md"
               variant="outline"
             >
@@ -165,7 +159,7 @@ export function ApprovalDetailDrawer({
               className="bg-emerald-600 hover:bg-emerald-500 text-white font-semibold shadow-md"
               data-testid="drawer-approve-btn"
               disabled={isProcessing}
-              onClick={() => onApprove(item)}
+              onClick={() => { onApprove(item); }}
               size="md"
               variant="primary"
             >

@@ -50,11 +50,11 @@ export function SettingsSegmentedControl<T extends string = string>({
             data-testid={opt.testId}
             disabled={opt.disabled}
             key={opt.value}
-            onClick={() => onChange(opt.value)}
+            onClick={() => { onChange(opt.value); }}
             role="tab"
             type="button"
           >
-            {opt.icon && <span className="shrink-0">{opt.icon}</span>}
+            {!!opt.icon && <span className="shrink-0">{opt.icon}</span>}
             <span>{opt.label}</span>
           </button>
         );

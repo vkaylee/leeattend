@@ -61,12 +61,12 @@ export function DesktopHeader({ onOpenCustomizer }: DesktopHeaderProps) {
       <div className="flex items-center gap-3">
         {/* Spotlight Trigger - Hidden as Topbar provides global ⌘K search */}
         <Button
-          type="button"
-          variant="outline"
-          onClick={openCommandPalette}
-          data-testid="desktop-search-trigger"
           aria-label={t("desktop.searchApps", "Tìm ứng dụng & tính năng (⌘K)")}
           className="hidden"
+          data-testid="desktop-search-trigger"
+          onClick={openCommandPalette}
+          type="button"
+          variant="outline"
         >
           <Search className="w-4 h-4 text-primary-500" />
           <span>{t("desktop.searchApps", "Tìm ứng dụng & tính năng...")}</span>
@@ -75,12 +75,12 @@ export function DesktopHeader({ onOpenCustomizer }: DesktopHeaderProps) {
 
         {/* Customize Desktop Button */}
         <Button
-          type="button"
-          onClick={onOpenCustomizer}
-          variant="secondary"
-          className="h-10 px-4 rounded-2xl text-xs font-bold flex items-center gap-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-2xs hover:shadow-xs focus-visible:ring-2 focus-visible:ring-primary"
           aria-label={t("desktop.customizeWidgets", "Gắn Widget")}
+          className="h-10 px-4 rounded-2xl text-xs font-bold flex items-center gap-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-2xs hover:shadow-xs focus-visible:ring-2 focus-visible:ring-primary"
           data-testid="desktop-customize-btn"
+          onClick={onOpenCustomizer}
+          type="button"
+          variant="secondary"
         >
           <SlidersHorizontal className="w-4 h-4 text-primary-500" />
           <span>{t("desktop.customizeWidgets", "Gắn Widget")}</span>

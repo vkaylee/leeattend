@@ -7,7 +7,6 @@ import Button from "@/components/ui/button";
 import ResponsiveTable from "@/components/ui/responsive-table";
 import StatusBadge from "@/components/ui/status-badge";
 import { Typography } from "@/components/ui/typography";
-import { useOrganization } from "@/hooks/use-organization";
 import { useHorizontalDragScroll } from "@/hooks/use-horizontal-drag-scroll";
 import { AttendanceAdjustmentRequest } from "@/lib/api/types";
 
@@ -45,7 +44,7 @@ function AttachmentList({
   );
 }
 
-// eslint-disable-next-line complexity -- remaining branches are JSX conditional rendering + status badge variant switch
+ 
 function AdjustmentMobileCard({
   activeTab,
   canApprove,

@@ -1,10 +1,10 @@
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import { useConfirm } from "../../../hooks/use-confirm";
-import { useAllEmployees } from "../../../hooks/use-employees";
-import { useDepartments } from "../../../hooks/use-departments";
 import { useOrganizationMutation } from "../../../hooks/common/use-organization-query";
+import { useConfirm } from "../../../hooks/use-confirm";
+import { useDepartments } from "../../../hooks/use-departments";
+import { useAllEmployees } from "../../../hooks/use-employees";
 import { deleteDepartment, Department } from "../../../lib/api";
 import { departmentKeys } from "../../../lib/query-keys";
 

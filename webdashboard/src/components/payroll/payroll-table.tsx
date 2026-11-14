@@ -186,8 +186,8 @@ interface PayrollTableProps {
   employee: Employee | null;
   isLoading: boolean;
   onResolveAdjustments: () => void;
-  payslips: Payslip[];
   organization: Organization | null;
+  payslips: Payslip[];
 }
 
 export default function PayrollTable({

@@ -1,6 +1,3 @@
-import { client } from "./client";
-import { ApiError } from "./errors";
-import { apiFetch } from "./helpers";
 import type {
   AttendanceImportJob,
   AttendanceSummary,
@@ -8,6 +5,10 @@ import type {
   PaginatedResponse,
   AttendanceReportSort,
 } from "./types";
+
+import { client } from "./client";
+import { ApiError } from "./errors";
+import { apiFetch } from "./helpers";
 
 export interface FetchAttendanceReportParams {
   departmentId?: string | null;

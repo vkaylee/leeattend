@@ -31,7 +31,7 @@ func (r *payrollAuditRecorder) Emit(_ context.Context, event audit.Event) error 
 }
 
 func (mockPayrollRepository) CreatePayrollInputBatch(_ context.Context, req CreatePayrollInputRequest, _ uuid.UUID) (PayrollInputBatch, error) {
-	return PayrollInputBatch{ID: uuid.New(), PeriodYear: req.PeriodYear, PeriodMonth: req.PeriodMonth, Source: req.Source, IdempotencyKey: req.IdempotencyKey, Status: "accepted", InputCount: len(req.Inputs)}, nil
+	return PayrollInputBatch{ID: uuid.New(), PeriodYear: req.PeriodYear, PeriodMonth: req.PeriodMonth, Source: req.Source, IdempotencyKey: req.IdempotencyKey, Status: "submitted", InputCount: len(req.Inputs)}, nil
 }
 
 func (mockPayrollRepository) ApprovePayrollInputBatch(_ context.Context, batchID, actorID uuid.UUID) (PayrollInputBatch, error) {

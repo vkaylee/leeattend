@@ -27,8 +27,8 @@ export function AssignmentsFilters({
         <SearchInput
           aria-label={t("assignments.search_label", { defaultValue: "Tìm kiếm phái cử" })}
           containerClassName="h-10"
-          onChange={(e) => onSearchChange(e.target.value)}
-          onClear={() => onSearchChange("")}
+          onChange={(e) => { onSearchChange(e.target.value); }}
+          onClear={() => { onSearchChange(""); }}
           placeholder={t("assignments.search_placeholder", { defaultValue: "Tìm nhân sự, mã NV, ghi chú..." })}
           size="sm"
           value={search}

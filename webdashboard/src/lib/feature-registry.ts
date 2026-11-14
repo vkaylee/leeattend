@@ -1,13 +1,13 @@
 /* eslint-disable max-lines -- comprehensive DSM 7 feature catalog (same as app-registry.ts) */
 
 import type React from "react";
+
 import {
   ArrowLeftRight,
   Calendar,
   CalendarCheck,
   CalendarPlus,
   CheckCircle,
-  ClipboardList,
   Clock,
   DollarSign,
   FileSpreadsheet,
@@ -21,6 +21,7 @@ import {
   Wifi,
   Zap,
 } from "lucide-react";
+
 import type { NavGroup } from "@/hooks/use-nav-menu-items";
 import type { FeatureFlagName } from "@/lib/feature-flags";
 

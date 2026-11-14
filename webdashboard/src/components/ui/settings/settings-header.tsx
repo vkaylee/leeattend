@@ -1,4 +1,5 @@
 import React from "react";
+
 import { Typography } from "@/components/ui/typography";
 import { cn } from "@/lib/utils";
 
@@ -32,7 +33,7 @@ export function SettingsHeader({
       data-testid={testId}
     >
       <div className="flex items-center gap-3.5 min-w-0">
-        {icon && (
+        {!!icon && (
           <div
             className={cn(
               "w-10 h-10 rounded-xl flex items-center justify-center shrink-0 shadow-2xs border",
@@ -57,16 +58,14 @@ export function SettingsHeader({
             )}
             {badge}
           </div>
-          {description && (
+          {!!description && (
             <div className="text-xs text-slate-500 dark:text-slate-400 font-medium truncate mt-0.5">
               {description}
             </div>
           )}
         </div>
       </div>
-      {actions && (
-        <div className="flex items-center gap-2 shrink-0">{actions}</div>
-      )}
+      {!!actions && <div className="flex items-center gap-2 shrink-0">{actions}</div>}
     </div>
   );
 }

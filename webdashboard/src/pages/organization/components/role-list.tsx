@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 
 import EmptyState from "@/components/ui/empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Typography } from "@/components/ui/typography";
 
 import type { OrganizationRole } from "../../../lib/api/types";
 
@@ -83,22 +84,22 @@ export function RoleList({
               <RoleIcon role={role} />
               <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-2">
-                  <h3 className="truncate text-sm font-bold text-slate-800 dark:text-slate-100">{role.name}</h3>
+                  <Typography className="truncate text-sm font-bold text-slate-800 dark:text-slate-100" variant="h3">{role.name}</Typography>
                   <span className="rounded-md bg-slate-100 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-slate-500 dark:bg-slate-800 dark:text-slate-400">
                     {role.is_system
                       ? t("common.system", { defaultValue: "System" })
                       : t("rolesPage.customRole", { defaultValue: "Custom" })}
                   </span>
                 </div>
-                <p className="mt-1 truncate text-xs text-slate-500 dark:text-slate-400 md:hidden">
+                <Typography className="mt-1 truncate text-xs text-slate-500 dark:text-slate-400 md:hidden" variant="p">
                   {role.description ?? t("rolesPage.noDescription", { defaultValue: "No description provided." })}
-                </p>
+                </Typography>
               </div>
             </div>
 
-            <p className="hidden truncate text-sm text-slate-500 dark:text-slate-400 md:block">
+            <Typography className="hidden truncate text-sm text-slate-500 dark:text-slate-400 md:block" variant="p">
               {role.description ?? t("rolesPage.noDescription", { defaultValue: "No description provided." })}
-            </p>
+            </Typography>
 
             <div className="justify-self-end">
               <RoleListActions

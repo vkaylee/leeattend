@@ -29,12 +29,12 @@ export interface ZonedNoShowRow extends NoShowReportRow {
 
 export interface UseNoShowRowsParams {
   employeeMap: Map<string, { department_name: string; employee_id_number: string }>;
-  rows: NoShowReportRow[];
-  /** The target calendar day ("yyyy-MM-dd") being viewed. */
-  viewingDate: string;
   /** IANA organization timezone, used as fallback when a row has no per-employee
    *  timezone resolved. */
   organizationTimezone: string;
+  rows: NoShowReportRow[];
+  /** The target calendar day ("yyyy-MM-dd") being viewed. */
+  viewingDate: string;
 }
 
 const ZONE_REFRESH_INTERVAL_MS = 30_000;

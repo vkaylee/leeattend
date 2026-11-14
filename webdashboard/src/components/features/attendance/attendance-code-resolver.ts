@@ -6,6 +6,7 @@
  */
 
 import type { DailyAttendanceReport } from "@/lib/api";
+
 import {
   ATTENDANCE_CODE_REGISTRY,
   getAttendanceCodeConfig,

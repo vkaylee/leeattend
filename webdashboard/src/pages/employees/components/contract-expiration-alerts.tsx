@@ -4,7 +4,6 @@ import { useTranslation } from "react-i18next";
 
 import Button from "@/components/ui/button";
 import { Employee } from "@/lib/api/types";
-import { cn } from "@/lib/utils";
 
 interface ContractExpirationAlertsProps {
   employees: Employee[];
@@ -64,7 +63,7 @@ export function ContractExpirationAlerts({
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500/10 text-amber-800 dark:text-amber-200 border border-amber-500/20 text-xs font-semibold"
               title="Nhân sự sắp hoàn thành thời gian thử việc 60 ngày cần làm thủ tục đánh giá"
             >
-              <AlertTriangle size={14} className="text-amber-600 dark:text-amber-400" />
+              <AlertTriangle className="text-amber-600 dark:text-amber-400" size={14} />
               <span>
                 {probationCandidates.length}{" "}
                 {t("employees.alerts.probation_review_due")}
@@ -76,7 +75,7 @@ export function ContractExpirationAlerts({
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-500/10 text-blue-800 dark:text-blue-200 border border-blue-500/20 text-xs font-semibold"
             title="Tuân thủ Điều 20 Bộ luật Lao động 2019"
           >
-            <FileCheck size={14} className="text-blue-600 dark:text-blue-400" />
+            <FileCheck className="text-blue-600 dark:text-blue-400" size={14} />
             <span>{t("employees.alerts.contract_compliant")}</span>
           </div>
 
@@ -93,7 +92,7 @@ export function ContractExpirationAlerts({
         </div>
       </div>
 
-      {isExpanded && (
+      {!!isExpanded && (
         <div className="px-5 py-3 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/20 text-xs space-y-2 animate-in slide-in-from-top-1 duration-200">
           <div className="text-slate-600 dark:text-slate-300 flex items-center gap-2">
             <span className="font-semibold">

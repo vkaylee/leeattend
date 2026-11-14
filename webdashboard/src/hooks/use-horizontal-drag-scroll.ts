@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useRef } from "react";
 import type React from "react";
+
+import { useCallback, useEffect, useRef } from "react";
 
 const DRAG_THRESHOLD_PX = 8;
 const INTERACTIVE_SELECTOR = [
@@ -17,11 +18,11 @@ const INTERACTIVE_SELECTOR = [
 interface DragState {
   active: boolean;
   initialScrollLeft: number;
+  originalCursor: string;
+  originalUserSelect: string;
   pointerId: number;
   startX: number;
   startY: number;
-  originalCursor: string;
-  originalUserSelect: string;
 }
 
 function isInteractiveTarget(target: EventTarget | null): boolean {
@@ -120,7 +121,7 @@ export function useHorizontalDragScroll<T extends HTMLElement>(
 
     const handlePointerMove = (event: PointerEvent) => {
       const drag = dragRef.current;
-      if (!drag || event.pointerId !== drag.pointerId) return;
+      if (event.pointerId !== drag?.pointerId) return;
 
       const deltaX = event.clientX - drag.startX;
       const deltaY = event.clientY - drag.startY;

@@ -5,11 +5,11 @@ import { useTranslation } from "react-i18next";
 import Button from "@/components/ui/button";
 
 interface ApprovalBatchToolbarProps {
-  selectedCount: number;
   isProcessing: boolean;
   onApproveAll: () => void;
-  onRejectAll: () => void;
   onClearSelection: () => void;
+  onRejectAll: () => void;
+  selectedCount: number;
 }
 
 export function ApprovalBatchToolbar({

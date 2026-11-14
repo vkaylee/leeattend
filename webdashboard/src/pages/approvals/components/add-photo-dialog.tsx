@@ -8,6 +8,7 @@ import Button from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
 import { Typography } from "@/components/ui/typography";
 import { useEnterPaperOt } from "@/hooks/use-attendance";
+
 import type { OtSummary } from "./ot-approvals-table";
 
 interface AddPhotoDialogProps {
@@ -18,7 +19,7 @@ interface AddPhotoDialogProps {
   summary: OtSummary | null;
 }
 
-  // eslint-disable-next-line complexity
+   
 export function AddPhotoDialog({
   open,
   onOpenChange,

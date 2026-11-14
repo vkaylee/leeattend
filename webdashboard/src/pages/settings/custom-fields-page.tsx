@@ -8,9 +8,9 @@ import type { CustomFieldDefinition } from "@/lib/api/types";
 
 import Button from "@/components/ui/button";
 import EmptyState from "@/components/ui/empty-state";
+import ResponsiveTable from "@/components/ui/responsive-table";
 import { SettingsHeader } from "@/components/ui/settings/settings-header";
 import { SettingsSegmentedControl } from "@/components/ui/settings/settings-segmented-control";
-import ResponsiveTable from "@/components/ui/responsive-table";
 import {
   Table,
   TableHeader,
@@ -25,7 +25,6 @@ import {
   useCustomFieldDefinitions,
   useDeleteCustomFieldDefinition,
 } from "@/hooks/use-custom-fields";
-import { cn } from "@/lib/utils";
 
 import CustomFieldDrawer from "./components/custom-field-drawer";
 
@@ -187,7 +186,7 @@ export default function CustomFieldsPage() {
       {/* Entity Tabs Selection */}
       <div className="overflow-x-auto max-w-full pb-1">
         <SettingsSegmentedControl
-          onChange={(tab) => setActiveTab(tab as EntityType)}
+          onChange={(tab) => { setActiveTab(tab); }}
           options={[
             { label: t("entities.employee"), value: "employee" },
             { label: t("entities.employment"), value: "employment" },

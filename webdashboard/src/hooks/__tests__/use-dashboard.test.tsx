@@ -5,6 +5,8 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 
 import * as api from "@/lib/api";
 
+import type { DashboardMetricsFilters } from "../dashboard-metrics-filters";
+
 import {
     DashboardQueryError,
     useDashboardStats,
@@ -14,7 +16,6 @@ import {
     useTurnoverAnalytics,
     useDashboardMetrics,
 } from "../use-dashboard";
-import type { DashboardMetricsFilters } from "../dashboard-metrics-filters";
 
 vi.mock("@/lib/api", async () => {
     const actual = await vi.importActual("@/lib/api");

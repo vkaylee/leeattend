@@ -1,9 +1,9 @@
 import { fireEvent, render, renderHook, screen, act } from "@testing-library/react";
 import React from "react";
+
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
-  TableDensity,
   TableDensityToggle,
   useTableDensity,
 } from "../table-density-toggle";

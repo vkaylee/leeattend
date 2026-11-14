@@ -13,11 +13,12 @@ import {
     YAxis,
 } from "recharts";
 
+import type { DashboardMetric, DashboardMetricsResponse } from "@/hooks/dashboard-metric-contract";
+
 import { ChartSummary } from "@/components/features/dashboard/chart-summary";
 import { ChartTableTwin, type ChartTableColumn } from "@/components/features/dashboard/chart-table-twin";
 import { MetricSelector } from "@/components/features/dashboard/metric-selector";
 import { Typography } from "@/components/ui/typography";
-import type { DashboardMetric, DashboardMetricsResponse } from "@/hooks/dashboard-metric-contract";
 
 type ViewKey = "hours" | "cost";
 
@@ -52,8 +53,8 @@ const SERIES_COLORS: Record<string, string> = {
 interface BarRow {
   key: string;
   label: string;
-  value: number;
   unit: string;
+  value: number;
 }
 
 function number(value: string | number | null): number | null {
@@ -104,7 +105,7 @@ export function ExecutiveCostPanel({ data, currency }: { data?: DashboardMetrics
       });
     }
     return rows;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [bars, metrics, t]);
 
   // Text-reported percent metric (approval rate) — kept off the hour axis.
@@ -113,7 +114,7 @@ export function ExecutiveCostPanel({ data, currency }: { data?: DashboardMetrics
     return HOUR_TEXT_METRICS
       .map((key) => metrics.get(key))
       .filter((metric): metric is DashboardMetric => metric !== undefined);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [view, metrics]);
 
   const columns: ChartTableColumn<BarRow>[] = [
@@ -175,7 +176,7 @@ export function ExecutiveCostPanel({ data, currency }: { data?: DashboardMetrics
               ))}
             </div>
           ) : null}
-          <div role="img" aria-label={summary}>
+          <div aria-label={summary} role="img">
             <ResponsiveContainer height={220} width="100%">
               <BarChart data={barRows} margin={{ top: 5, right: 10, left: -20, bottom: 5 }}>
                 <CartesianGrid className="text-slate-100 dark:text-slate-800" stroke="currentColor" strokeDasharray="3 3" />

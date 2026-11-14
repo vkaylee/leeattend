@@ -7,8 +7,8 @@ import Modal from "@/components/ui/modal";
 
 interface RejectionReasonModalProps {
   isOpen: boolean;
-  itemCount: number;
   isProcessing: boolean;
+  itemCount: number;
   onClose: () => void;
   onConfirm: (reason: string) => void;
 }
@@ -87,7 +87,7 @@ export function RejectionReasonModal({
             )}
             value={reason}
           />
-          {error && (
+          {!!error && (
             <p
               className="text-xs font-medium text-rose-600 dark:text-rose-400 animate-in fade-in"
               id="rejection-reason-error"
@@ -116,7 +116,7 @@ export function RejectionReasonModal({
             type="submit"
             variant="primary"
           >
-            {isProcessing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            {!!isProcessing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             {t("approvals.rejection.confirm_btn", "Xác nhận từ chối")}
           </Button>
         </div>

@@ -1,6 +1,7 @@
+import { useState, useMemo, useEffect } from 'react';
+
 import { useOrganizationInfiniteQuery, useOrganizationQuery } from '@/hooks/common/use-organization-query';
 import { employeeKeys } from '@/lib/query-keys';
-import { useState, useMemo, useEffect } from 'react';
 
 import { searchEmployees, fetchEmployee } from '../lib/api';
 import { Employee, PaginatedResponse } from '../lib/api/types';

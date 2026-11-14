@@ -6,13 +6,14 @@ import { ResilientWidget } from "@/components/common/resilient-widget";
 import ChartCatalogSidebar from "@/components/features/dashboard/chart-catalog-sidebar";
 import CustomizePanel from "@/components/features/dashboard/customize-panel";
 import { DashboardErrorBanner } from "@/components/features/dashboard/dashboard-error-banner";
-import { DashboardHrTab } from "@/components/features/dashboard/dashboard-hr-tab";
-import PendingTasksWidget from "@/components/features/dashboard/pending-tasks-widget";
 import { DashboardFilterBar, useDashboardFilterState } from "@/components/features/dashboard/dashboard-filter-bar";
-import Button from "@/components/ui/button";
-import { ExecutiveKpiGrid } from "@/components/features/dashboard/executive-kpi-grid";
+import { DashboardHrTab } from "@/components/features/dashboard/dashboard-hr-tab";
 import { ExecutiveCostPanel } from "@/components/features/dashboard/executive-cost-panel";
+import { ExecutiveKpiGrid } from "@/components/features/dashboard/executive-kpi-grid";
 import { ExecutiveOvertimeBreakdown } from "@/components/features/dashboard/executive-overtime-breakdown";
+import PendingTasksWidget from "@/components/features/dashboard/pending-tasks-widget";
+import Button from "@/components/ui/button";
+import { Typography } from "@/components/ui/typography";
 import { useCurrency } from "@/hooks/use-currency";
 import { useDashboardMetrics, useDashboardStats } from "@/hooks/use-dashboard";
 import { useDashboardCharts } from "@/hooks/use-dashboard-charts";
@@ -129,16 +130,16 @@ export default function DashboardPage() {
       <section aria-labelledby="executive-dashboard-heading" className="space-y-4 rounded-3xl border border-slate-200 bg-white/70 p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900/70 sm:p-6">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <h1 className="text-xl font-semibold tracking-tight text-slate-900 dark:text-slate-100" id="executive-dashboard-heading">
+            <Typography as="h1" className="text-xl font-semibold tracking-tight text-slate-900 dark:text-slate-100" id="executive-dashboard-heading" variant="h3">
               {t("dashboard.executive.title")}
-            </h1>
-            <p className="text-sm text-slate-500 dark:text-slate-400">
+            </Typography>
+            <Typography className="text-sm text-slate-500 dark:text-slate-400" variant="p">
               {executiveContext
                 ? t("dashboard.executive.context", { period: t(`dashboard.filters.period.${executiveContext.period.key}`), timezone: executiveContext.period.timezone })
                 : t("dashboard.executive.context_pending")}
-            </p>
+            </Typography>
           </div>
-          <span className="text-xs font-medium text-slate-500 dark:text-slate-400" aria-live="polite">
+          <span aria-live="polite" className="text-xs font-medium text-slate-500 dark:text-slate-400">
             {executiveLoading ? t("dashboard.executive.loading") : executiveError ? t("dashboard.executive.error") : t("dashboard.executive.metric_count", { count: executiveMetricCount })}
           </span>
         </div>

@@ -322,8 +322,8 @@ describe("RosterMobileList", () => {
         currentLocale={enUS}
         monthDays={mockMonthDays}
         monthSchedules={mockMonthSchedules as any}
-        onCellKeyDown={onCellKeyDown}
         onCellClick={onCellClick}
+        onCellKeyDown={onCellKeyDown}
         selectedCells={new Set(["emp-1:2026-05-01"])}
         shifts={[]}
       />,
@@ -350,8 +350,8 @@ describe("RosterMobileList", () => {
         currentLocale={enUS}
         monthDays={mockMonthDays.slice(0, 1)}
         monthSchedules={mockMonthSchedules.slice(0, 1) as any}
-        onCellKeyDown={onCellKeyDown}
         onCellClick={onCellClick}
+        onCellKeyDown={onCellKeyDown}
         selectedCells={new Set()}
         shifts={[]}
       />,

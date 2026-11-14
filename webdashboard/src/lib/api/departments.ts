@@ -1,5 +1,6 @@
-import { client } from "./client";
 import type { Department } from "./types";
+
+import { client } from "./client";
 
 export async function fetchDepartments(): Promise<Department[]> {
   const { data } = await client.GET<{ data: Department[] }>("/api/v1/departments");

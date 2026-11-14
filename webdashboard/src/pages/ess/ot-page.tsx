@@ -7,7 +7,6 @@ import { PageContainer } from "@/components/ui/page-container";
 import PageHeader from "@/components/ui/page-header";
 import { useMyProfile } from "@/hooks/use-ess";
 import { useMyOtAssignments } from "@/hooks/use-overtime-requests";
-import { useOrganization } from "@/hooks/use-organization";
 
 import { CreateOtRequestModal } from "./components/create-ot-request-modal";
 import { MyOtAssignmentsList } from "./components/my-ot-assignments-list";

@@ -69,7 +69,7 @@ function SkeletonRow({ hideEmployeeName }: { hideEmployeeName: boolean }) {
  * (SkeletonRow, TableHeader, ReportStatusBadge, ReportOtStatusBadge) already.
  * Further splitting of the card body would reduce readability more than complexity.
  */
-// eslint-disable-next-line complexity, max-lines-per-function
+// eslint-disable-next-line complexity
 function DailyReportMobileCard({
   row,
   adjustmentMap,

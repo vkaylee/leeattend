@@ -14,12 +14,12 @@ import type {
   EditableCellValue,
   SmartTableColumnMeta,
 } from "./smart-table/types";
+import type { TableDensity } from "./table-density-toggle";
 
 import { useSmartTable } from "./smart-table-hooks/use-smart-table";
 import SmartTableContextMenu from "./smart-table/smart-table-context-menu";
 import { SmartTableHeader } from "./smart-table/smart-table-header";
 import { SmartTableRow } from "./smart-table/smart-table-row";
-import type { TableDensity } from "./table-density-toggle";
 
 // Re-export for consumers that import from the SmartTable barrel
 export type { CellEditPayload, ContextMenuItem, EditableCellValue, SmartTableColumnMeta } from "./smart-table/types";

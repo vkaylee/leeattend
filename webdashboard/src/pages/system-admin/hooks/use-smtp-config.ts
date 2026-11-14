@@ -11,6 +11,7 @@ import {
   type HttpApiConfig,
   type SmtpConfigData,
 } from "@/lib/api/smtp-config";
+import { settingsKeys } from "@/lib/query-keys";
 
 const DEFAULT_HTTP_API_TEMPLATE = JSON.stringify(
   {
@@ -101,7 +102,7 @@ export function useSmtpConfig() {
   const { formatTime } = useDateTimeFormatter();
 
   const { data: config, isLoading } = useQuery({
-    queryKey: ["smtp-config"],
+    queryKey: settingsKeys.smtp(),
     queryFn: fetchSmtpConfig,
   });
 
@@ -156,7 +157,7 @@ export function useSmtpConfig() {
     mutationFn: saveSmtpConfig,
     onSuccess: () => {
       toast.success(t("common.saved_success"));
-      void queryClient.invalidateQueries({ queryKey: ["smtp-config"] });
+      void queryClient.invalidateQueries({ queryKey: settingsKeys.smtp() });
       setDirty(false);
       setTestVerifiedAt(null);
       setTestResult(null);

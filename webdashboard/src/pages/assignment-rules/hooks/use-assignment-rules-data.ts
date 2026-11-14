@@ -1,12 +1,12 @@
 import { useQuery } from "@tanstack/react-query";
 
+import { useDepartments } from "@/hooks/use-departments";
 import {
   fetchAssignmentRules,
   fetchWorkingPatterns,
   fetchEmployers,
   fetchLocations,
 } from "@/lib/api";
-import { useDepartments } from "@/hooks/use-departments";
 
 export function useAssignmentRulesData() {
   

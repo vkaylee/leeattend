@@ -1,7 +1,7 @@
 import React from "react";
 
-import { useAllEmployees } from "@/hooks/use-employees";
 import { useDebounce } from "@/hooks/use-debounce";
+import { useAllEmployees } from "@/hooks/use-employees";
 import {
   AttendanceReportSort,
   AttendanceSummary,
@@ -51,10 +51,10 @@ export interface UseReportsPageReturn {
   setSelectedDepartmentId: (v: string | null) => void;
   setSelectedEmployee: (v: { employerId?: string; id: string; name: string } | null) => void;
   setSortBy: (v: AttendanceReportSort | undefined) => void;
+  setViewMode: (mode: ReportViewMode) => void;
   sortBy: AttendanceReportSort | undefined;
   specificMonth: { month: number; year: number };
   viewMode: ReportViewMode;
-  setViewMode: (mode: ReportViewMode) => void;
 }
 
 export function useReportsPage(): UseReportsPageReturn {

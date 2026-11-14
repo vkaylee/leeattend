@@ -1,9 +1,9 @@
 import { ImagePlus, Trash2, UploadCloud, Check, X } from "lucide-react";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
+
 import Button from "@/components/ui/button";
 import { Typography } from "@/components/ui/typography";
-import { cn } from "@/lib/utils";
 
 interface OrganizationLogoFieldProps {
   labelClassName?: string;
@@ -56,7 +56,7 @@ export function OrganizationLogoField({
                 defaultValue: "Logo URL",
               })}
               className="flex-1 h-9 px-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-mono text-slate-800 dark:text-slate-100 outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
-              onChange={(e) => setTempUrl(e.target.value)}
+              onChange={(e) => { setTempUrl(e.target.value); }}
               onKeyDown={(e) => {
                 if (e.key === "Enter") handleApply();
                 if (e.key === "Escape") handleCancel();
@@ -106,7 +106,7 @@ export function OrganizationLogoField({
             <Button
               className="p-2 bg-white dark:bg-slate-800 text-rose-500 rounded-lg shadow-2xs hover:bg-rose-50 border border-slate-200 dark:border-slate-700 transition-colors"
               data-testid="delete-logo-btn"
-              onClick={() => onLogoChange("")}
+              onClick={() => { onLogoChange(""); }}
               title={t("common.delete", { defaultValue: "Delete" })}
               variant="ghost"
             >

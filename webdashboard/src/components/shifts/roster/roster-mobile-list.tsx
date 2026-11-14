@@ -1,8 +1,8 @@
+import type { Locale } from "date-fns/locale";
+
 import { Check, Clock3 } from "lucide-react";
 import React, { memo } from "react";
 import { useTranslation } from "react-i18next";
-
-import type { Locale } from "date-fns/locale";
 
 import { format, isToday as isDateToday } from "date-fns";
 
@@ -10,7 +10,6 @@ import type { ComplianceViolation } from "@/lib/api/errors";
 import type { EmployeeSchedule, Shift } from "@/lib/api/types";
 
 import { Typography } from "@/components/ui/typography";
-
 import { maybeNull } from "@/types/api-overrides";
 
 import { RosterCellContent } from "./roster-cell";

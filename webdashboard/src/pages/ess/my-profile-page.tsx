@@ -1,9 +1,8 @@
 
 import { useQuery } from "@tanstack/react-query";
 
-import { fetchEmployeeEmployments } from "@/lib/api";
-
 import { PageContainer } from "@/components/ui/page-container";
+import { fetchEmployeeEmployments } from "@/lib/api";
 
 import { AddContactModal } from "./components/add-contact-modal";
 import { BankDetailsSection } from "./components/bank-details-section";

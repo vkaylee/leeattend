@@ -155,7 +155,7 @@ export const PayrollHeader: React.FC<PayrollHeaderProps> = ({
             <div className="h-8 w-px bg-slate-200 dark:bg-slate-700" />
 
             {/* Lock / Unlock Toggle Button */}
-            {onToggleLock && (
+            {!!onToggleLock && (
               <Button
                 aria-label={
                   isLocked

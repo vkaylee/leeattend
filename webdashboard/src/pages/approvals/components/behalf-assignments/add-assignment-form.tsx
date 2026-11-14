@@ -9,7 +9,7 @@ import { Typography } from "@/components/ui/typography";
 
 import type { AddAssignmentFormProps } from "./types";
 
-// eslint-disable-next-line complexity
+ 
 export function AddAssignmentForm({
   assigneeId,
   assigneeOptions,

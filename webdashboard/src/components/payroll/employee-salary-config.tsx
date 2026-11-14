@@ -17,8 +17,8 @@ import { useTranslation } from "react-i18next";
 import { format } from "date-fns";
 
 import Button from "@/components/ui/button";
-import { CONTROL_FOCUS_RING } from "@/components/ui/control-styles";
 import { Combobox } from "@/components/ui/combobox";
+import { CONTROL_FOCUS_RING } from "@/components/ui/control-styles";
 import { useToast } from "@/components/ui/toast";
 import { Typography } from "@/components/ui/typography";
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
@@ -63,7 +63,7 @@ function AddSalaryForm({
       <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-100">
         <Typography className="font-bold" variant="h4">{t("payroll.employee_config.no_definitions", "Chưa có khoản lương để gán")}</Typography>
         <Typography className="mt-1 text-xs" variant="p">{t("payroll.employee_config.no_definitions_description", "Tạo danh mục khoản lương trước, rồi quay lại trang này để gán cho nhân sự.")}</Typography>
-        <Link className="mt-4 inline-flex" to="/settings/payroll" search={{ tab: "components" } as never}>
+        <Link className="mt-4 inline-flex" search={{ tab: "components" } as never} to="/settings/payroll">
           <Button size="sm" variant="outline">{t("payroll.employee_config.open_catalog", "Mở danh mục khoản lương")}</Button>
         </Link>
       </div>

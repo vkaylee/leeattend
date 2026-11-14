@@ -40,22 +40,22 @@ export async function fetchAttendancePolicyVersions(): Promise<AttendancePolicyV
 }
 
 export interface PolicyAssignmentResponse {
+  department_name?: string | null;
   id: string;
   rules: AttendanceRules;
-  target_id: string;
-  target_type: string;
-  target_name?: string | null;
   target_code?: string | null;
-  department_name?: string | null;
+  target_id: string;
+  target_name?: string | null;
+  target_type: string;
   valid_from: string;
   valid_to?: string | null;
 }
 
 export interface PolicyAssignmentListResponse {
   data: PolicyAssignmentResponse[];
-  total: number;
-  page: number;
   limit: number;
+  page: number;
+  total: number;
 }
 
 export interface PolicyAssignmentListParams {
@@ -79,7 +79,7 @@ export async function fetchPolicyAssignments(
   params: PolicyAssignmentListParams = {},
 ): Promise<PolicyAssignmentListResponse> {
   const { data: resData } = await client.GET<PolicyAssignmentListResponse>("/api/v1/attendance/policies/assignments", {
-    params: { query: { ...params } as Record<string, string | number | undefined> },
+    params: { query: { ...params } },
   });
   return resData;
 }

@@ -40,9 +40,9 @@ export interface UseUnrecordedShiftsDataResult {
   hasNextPage: boolean | undefined;
   isFetchingNextPage: boolean;
   isLoading: boolean;
+  organizationTimezone: string;
   queryKey: unknown[];
   tracesByKey: Map<string, ScheduleTrace[]>;
-  organizationTimezone: string;
 }
 
 export function getNextNoShowPageParam(

@@ -7,11 +7,11 @@ import { useMyPermissions } from "@/hooks/use-permissions";
 import { ROUTES } from "@/lib/routes";
 
 interface ServiceItem {
-  id: string;
-  name: string;
   icon: React.ElementType;
-  status: "healthy" | "degraded" | "down";
+  id: string;
   latency: string;
+  name: string;
+  status: "healthy" | "degraded" | "down";
 }
 
 const SERVICES: ServiceItem[] = [
@@ -50,8 +50,8 @@ export function SystemHealthWidget() {
           const Icon = srv.icon;
           return (
             <div
-              key={srv.id}
               className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50/60 dark:bg-slate-900/40 border border-slate-100 dark:border-slate-800/60 text-xs"
+              key={srv.id}
             >
               <div className="flex items-center gap-2.5">
                 <div className="w-6 h-6 rounded-lg bg-white dark:bg-slate-800 flex items-center justify-center text-slate-500 shadow-2xs">
@@ -70,12 +70,12 @@ export function SystemHealthWidget() {
       </div>
 
       {/* Footer Details */}
-      {canViewMonitor && (
+      {!!canViewMonitor && (
         <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs text-slate-400">
           <span>LeeAttend v1.26 Enterprise</span>
           <Link
-            to={ROUTES.INFRA_MONITOR}
             className="flex items-center gap-1 text-primary-500 hover:text-primary-600 font-medium"
+            to={ROUTES.INFRA_MONITOR}
           >
             <span>{t("desktop.openMonitor", "Chi tiết giám sát")}</span>
             <ExternalLink className="w-3.5 h-3.5" />

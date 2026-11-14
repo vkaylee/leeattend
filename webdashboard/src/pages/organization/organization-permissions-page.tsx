@@ -47,10 +47,10 @@ export default function OrganizationPermissionsPage() {
           canScrollLeft={canScrollLeft}
           canScrollRight={canScrollRight}
           catalog={catalog}
-          isCatalogError={isCatalogError}
-          isCatalogLoading={isCatalogLoading}
           handleScroll={handleScroll}
           hasManagePermission={hasManagePermission}
+          isCatalogError={isCatalogError}
+          isCatalogLoading={isCatalogLoading}
           isMatrixLoading={isMatrixLoading}
           isRolesLoading={isRolesLoading}
           permissions={permissions}

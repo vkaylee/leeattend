@@ -6,8 +6,8 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
 import i18n from "../../i18n/config";
 import * as api from "../../lib/api";
-import LoginPage from "../login-page";
 import { ApiError } from "../../lib/api/errors";
+import LoginPage from "../login-page";
 
 const { mockNavigate } = vi.hoisted(() => {
   return { mockNavigate: vi.fn() };

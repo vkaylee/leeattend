@@ -4,8 +4,9 @@ import React from "react";
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-import { useMyPermissions } from "../../hooks/use-permissions";
 import { useOrganizationRoles } from "@/hooks/use-organization";
+
+import { useMyPermissions } from "../../hooks/use-permissions";
 import { OrganizationRole } from "../../lib/api/types";
 import OrganizationRolesPage from "../organization/organization-roles-page";
 vi.mock("react-i18next", () => ({

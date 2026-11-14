@@ -2,8 +2,9 @@ import { Download, Users, X } from "lucide-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
 
-import Button from "@/components/ui/button";
 import type { Employee } from "@/lib/api/types";
+
+import Button from "@/components/ui/button";
 
 interface EmployeeBulkActionBarProps {
   employees: Employee[];

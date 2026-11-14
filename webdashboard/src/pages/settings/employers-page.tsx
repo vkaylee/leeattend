@@ -7,8 +7,8 @@ import Button from "@/components/ui/button";
 import EmptyState from "@/components/ui/empty-state";
 import { PageContainer } from "@/components/ui/page-container";
 import PageHeader from "@/components/ui/page-header";
-import { useOrganizationQuery } from "@/hooks/common/use-organization-query";
 import { useToast } from "@/components/ui/toast";
+import { useOrganizationQuery } from "@/hooks/common/use-organization-query";
 import {
   Employer,
   fetchEmployees,
@@ -23,7 +23,7 @@ import { employeeKeys } from "@/lib/query-keys";
 import { EmployerCard } from "@/pages/settings/components/employer-card";
 import { EmployerFormModal } from "@/pages/settings/components/employer-form-modal";
 
-// eslint-disable-next-line complexity
+ 
 export default function EmployersPage() {
   const { t } = useTranslation();
   

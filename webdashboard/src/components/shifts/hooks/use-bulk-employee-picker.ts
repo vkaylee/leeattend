@@ -2,8 +2,8 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { searchEmployees } from "@/lib/api";
-import { employeeKeys } from "@/lib/query-keys";
 import { Employee, PaginatedResponse } from "@/lib/api/types";
+import { employeeKeys } from "@/lib/query-keys";
 
 const PAGE_LIMIT = 50;
 

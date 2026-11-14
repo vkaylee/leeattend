@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 
 import type { Employee } from "@/lib/api";
+
 import type { EmployeeModalState } from "../types/employee-modals";
 
 export const useEmployeesModals = () => {

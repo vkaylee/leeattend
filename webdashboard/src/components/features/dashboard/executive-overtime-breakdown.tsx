@@ -2,19 +2,19 @@ import { ShieldAlert, Table2, TrendingUp } from "lucide-react";
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 
-import { DashboardChartError } from "@/components/features/dashboard/dashboard-chart-state";
 import { ChartSummary } from "@/components/features/dashboard/chart-summary";
 import { ChartTableTwin, type ChartTableColumn } from "@/components/features/dashboard/chart-table-twin";
+import { DashboardChartError } from "@/components/features/dashboard/dashboard-chart-state";
 import { Typography } from "@/components/ui/typography";
 import { useOvertimeBreakdown, type ChartRangeParams } from "@/hooks/use-dashboard";
 
 interface Row {
-  department_name: string;
-  system_ot_hours: number;
   approved_ot_hours: number;
-  unapproved_ot_hours: number;
-  overtime_cost: string | null;
   cost_available: boolean;
+  department_name: string;
+  overtime_cost: string | null;
+  system_ot_hours: number;
+  unapproved_ot_hours: number;
 }
 
 function formatHours(value: number): string {
@@ -76,7 +76,7 @@ export function ExecutiveOvertimeBreakdown({ range, topN = 10, costStatus = "dat
             <TrendingUp size={18} />
           </div>
           <div>
-            <Typography className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em]" variant="h2" id="executive-overtime-breakdown-heading">
+            <Typography className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em]" id="executive-overtime-breakdown-heading" variant="h2">
               {t("dashboard.executive.breakdown.title")}
             </Typography>
             <Typography className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mt-0.5" variant="p">

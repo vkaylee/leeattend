@@ -6,7 +6,7 @@ import Button from "@/components/ui/button";
 import EmptyState from "@/components/ui/empty-state";
 import { SettingsHeader } from "@/components/ui/settings/settings-header";
 import { SettingsSegmentedControl } from "@/components/ui/settings/settings-segmented-control";
-import { cn } from "@/lib/utils";
+
 import { ChecklistItemsPanel } from "./components/checklist-items-panel";
 import { TemplateDrawer } from "./components/template-drawer";
 import { TemplateItemDrawer } from "./components/template-item-drawer";
@@ -49,7 +49,7 @@ export default function LifecycleTemplatesPage() {
       {/* Tabs */}
       <div className="overflow-x-auto max-w-full pb-1">
         <SettingsSegmentedControl
-          onChange={(tab) => ctx.setActiveTab(tab as typeof TABS[number])}
+          onChange={(tab) => { ctx.setActiveTab(tab); }}
           options={TABS.map((tab) => ({
             label: t(TAB_LABELS[tab], { defaultValue: tab.replace("_", " ") }),
             value: tab,

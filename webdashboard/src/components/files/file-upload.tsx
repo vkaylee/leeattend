@@ -2,8 +2,8 @@ import { UploadCloud, X, AlertCircle } from "lucide-react";
 import React, { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import type { components } from "@/types/api-generated";
 import type { FileRecord } from "@/lib/api/types";
+import type { components } from "@/types/api-generated";
 
 import Button from "@/components/ui/button";
 import { Typography } from "@/components/ui/typography";

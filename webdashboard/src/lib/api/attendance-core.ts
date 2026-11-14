@@ -1,10 +1,11 @@
-import { client } from "./client";
 import type {
   TimeEntry,
   AttendanceAdjustmentRequest,
   RawAttendanceLog,
   PaginatedResponse,
 } from "./types";
+
+import { client } from "./client";
 
 export async function punchIn(
   data: { employment_id: string; entry_type?: "Work" | "Break" | "Overtime"; note?: string },

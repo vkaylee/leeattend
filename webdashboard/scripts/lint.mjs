@@ -41,10 +41,11 @@ const env = { ...process.env, ...rootEnv, ...localEnv };
 
 const args = process.argv.slice(2);
 
-// Check if ESLINT_CONCURRENCY is defined in environment
+// Check if ESLINT_CONCURRENCY is defined in environment.
+// Multithreaded ESLint with --fix causes worker thread deadlocks and OOM on type-aware AST passes.
 const concurrency = env.ESLINT_CONCURRENCY;
 
-if (concurrency) {
+if (concurrency && !args.includes('--fix')) {
   // Check if --concurrency is already passed in args to avoid duplication
   if (!args.some(arg => arg.startsWith('--concurrency'))) {
     args.push(`--concurrency=${concurrency}`);

@@ -1,6 +1,3 @@
-import { useDepartments } from "@/hooks/use-departments";
-
-import { useQuery } from "@tanstack/react-query";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -10,8 +7,9 @@ import AttendanceImportDialog from "@/components/features/attendance/attendance-
 import { CreateAdjustmentModal } from "@/components/features/attendance/create-adjustment-modal";
 import { PDFPreviewModal } from "@/components/files/pdf-preview-modal";
 import { PageContainer } from "@/components/ui/page-container";
-import { useMyPermissions } from "@/hooks/use-permissions";
+import { useDepartments } from "@/hooks/use-departments";
 import { useOrganization } from "@/hooks/use-organization";
+import { useMyPermissions } from "@/hooks/use-permissions";
 
 import { BehalfAssignmentsTab } from "./approvals/components/behalf-assignments-tab";
 import { AdjustmentsHeader } from "./attendance/components/adjustments-header";
@@ -19,7 +17,7 @@ import { AdjustmentsTable } from "./attendance/components/adjustments-table";
 import { AdjustmentsTabs } from "./attendance/components/adjustments-tabs";
 import { useAttendanceAdjustmentsPage } from "./attendance/hooks/use-attendance-adjustments-page";
 
-  // eslint-disable-next-line complexity
+   
 export default function AttendanceAdjustmentsPage() {
   const { t } = useTranslation();
   const { hasPermission } = useMyPermissions();

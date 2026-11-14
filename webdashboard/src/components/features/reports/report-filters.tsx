@@ -5,12 +5,12 @@ import type { Department, Employer } from "@/lib/api/types";
 
 import { FilterModeButtons } from "@/components/common/filter-mode-buttons";
 import Button from "@/components/ui/button";
-import { FilterPanel } from "@/components/ui/filter-panel";
-import { FilterTrigger } from "@/components/ui/filter-trigger";
 import {
   SEGMENTED_CONTROL_STYLE,
   SEGMENTED_ITEM_STYLE,
 } from "@/components/ui/control-styles";
+import { FilterPanel } from "@/components/ui/filter-panel";
+import { FilterTrigger } from "@/components/ui/filter-trigger";
 import { SearchInput } from "@/components/ui/search-input";
 import ToolbarRow from "@/components/ui/toolbar-row";
 import { cn } from "@/lib/utils";
@@ -200,9 +200,9 @@ export default function ReportFilters({
           <SearchInput
             containerClassName="bg-white dark:bg-slate-900"
             data-testid="report-search-shared"
-            onChange={(e) => onSearchQueryChange(e.target.value)}
-            onClear={() => onSearchQueryChange("")}
-            onFocus={(e) => e.currentTarget.select()}
+            onChange={(e) => { onSearchQueryChange(e.target.value); }}
+            onClear={() => { onSearchQueryChange(""); }}
+            onFocus={(e) => { e.currentTarget.select(); }}
             onKeyDown={onSearchKeyDown}
             placeholder={t("reports.search_placeholder", "Tìm theo tên nhân viên...")}
             ref={searchInputRef}

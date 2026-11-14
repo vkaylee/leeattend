@@ -52,8 +52,8 @@ export interface GenerateOptions {
   dateRange?: { start: string; end: string };
   filename?: string;
   onProgress?: (percent: number) => void;
-  reportType: ReportType;
   organizationName?: string;
+  reportType: ReportType;
 }
 
 /**

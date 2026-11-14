@@ -14,13 +14,13 @@ import {
 
 interface OrganizationQueryOptions<TData> {
   enabled?: boolean;
+  meta?: Record<string, unknown>;
   placeholderData?: "keepPreviousData";
   queryFn: () => Promise<TData>;
   queryKey: QueryKey;
   refetchInterval?: number;
   refetchOnWindowFocus?: boolean;
   staleTime?: number;
-  meta?: Record<string, unknown>;
 }
 
 export function useOrganizationQuery<TData>(

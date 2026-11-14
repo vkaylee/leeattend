@@ -3,6 +3,7 @@ import React from "react";
 import { useTranslation } from "react-i18next";
 
 import type { ContractStatus, ContractType, EmployeeContract, EmployeeContractWithEmployee } from "@/lib/api";
+
 import Button from "@/components/ui/button";
 import EmptyState from "@/components/ui/empty-state";
 import ResponsiveTable from "@/components/ui/responsive-table";

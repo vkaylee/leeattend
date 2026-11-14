@@ -1,6 +1,7 @@
 import { Eye, EyeOff } from 'lucide-react';
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+
 import Button from "@/components/ui/button";
 import { Typography } from "@/components/ui/typography";
 import { useDateTimeFormatter } from '@/hooks/use-datetime';
@@ -13,8 +14,8 @@ import { PayslipTotals } from './payslip/payslip-totals';
 
 interface PayslipDocumentProps {
   employee: Employee;
-  payslip: Payslip;
   organization: Organization | null;
+  payslip: Payslip;
 }
 
 export default function PayslipDocument({ employee, payslip, organization }: PayslipDocumentProps) {
@@ -41,7 +42,7 @@ export default function PayslipDocument({ employee, payslip, organization }: Pay
         <Button
           aria-label={isMasked ? "Hiển thị số tiền" : "Ẩn số tiền bảo mật"}
           className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors border border-slate-200 dark:border-slate-700 h-auto"
-          onClick={() => setIsMasked(!isMasked)}
+          onClick={() => { setIsMasked(!isMasked); }}
           type="button"
           variant="outline"
         >

@@ -12,8 +12,8 @@ import {
     Legend,
 } from "recharts";
 
-import { Typography } from "@/components/ui/typography";
 import { DashboardChartError } from "@/components/features/dashboard/dashboard-chart-state";
+import { Typography } from "@/components/ui/typography";
 import { usePeakTimes } from "@/hooks/use-dashboard";
 
 const COLORS = {

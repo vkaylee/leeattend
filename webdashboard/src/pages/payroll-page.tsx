@@ -50,6 +50,10 @@ export default function PayrollPage() {
       <PayrollHeader
         calcMonth={calcMonth}
         calcYear={calcYear}
+        isLocked={isLocked}
+        lifecycleStatus={lifecycleStatus}
+        lockedAt={lifecycleAudit.lockedAt}
+        lockedBy={lifecycleAudit.lockedBy}
         onChangeMonth={changeMonth}
         onMonthYearChange={(m, y) => {
           setCalcMonth(m);
@@ -63,10 +67,6 @@ export default function PayrollPage() {
             lockPeriod();
           }
         }}
-        isLocked={isLocked}
-        lifecycleStatus={lifecycleStatus}
-        lockedAt={lifecycleAudit.lockedAt}
-        lockedBy={lifecycleAudit.lockedBy}
         selectedCount={selectedIds.size}
       />
 
@@ -74,6 +74,9 @@ export default function PayrollPage() {
         <PayrollSummaryTable 
           employees={employees}
           isLoading={empsLoading || organizationPayslipsLoading}
+          isLocked={isLocked}
+          lockedAt={lifecycleAudit.lockedAt}
+          lockedBy={lifecycleAudit.lockedBy}
           onSearchChange={setSearchTerm}
           onToggleSelect={toggleSelect}
           onToggleSelectAll={toggleSelectAll}
@@ -81,9 +84,6 @@ export default function PayrollPage() {
           payslips={organizationPayslips}
           searchTerm={searchTerm}
           selectedIds={selectedIds}
-          isLocked={isLocked}
-          lockedAt={lifecycleAudit.lockedAt}
-          lockedBy={lifecycleAudit.lockedBy}
         />
       </div>
 

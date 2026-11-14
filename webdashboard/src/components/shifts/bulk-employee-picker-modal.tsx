@@ -217,8 +217,8 @@ export function BulkEmployeePickerModal({
         <div className="flex items-center gap-3">
           <SearchInput
             containerClassName="flex-1"
-            onChange={(e) => setSearchTerm(e.target.value)}
-            onClear={() => setSearchTerm("")}
+            onChange={(e) => { setSearchTerm(e.target.value); }}
+            onClear={() => { setSearchTerm(""); }}
             placeholder={t("shifts.monthly.bulk_search_placeholder")}
             size="sm"
             value={searchTerm}

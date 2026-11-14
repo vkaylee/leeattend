@@ -2,13 +2,13 @@ import { useQuery } from "@tanstack/react-query";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import type { BehalfAssignment, OrganizationMember } from "@/lib/api/types";
+import type { BehalfAssignment } from "@/lib/api/types";
 
 import Modal from "@/components/ui/modal";
 import { useToast } from "@/components/ui/toast";
 import { useBehalfAssignments } from "@/hooks/use-behalf-assignments";
-import { organizationKeys } from "@/hooks/use-organization-queries";
 import { useDepartments } from "@/hooks/use-departments";
+import { organizationKeys } from "@/hooks/use-organization-queries";
 import { fetchAllOrganizationMembers } from "@/lib/api";
 import { logError } from "@/lib/logger";
 
@@ -140,12 +140,12 @@ export function BehalfAssignmentsTab({
         <div className="grid gap-4 animate-in fade-in duration-500">
           {assignments.map((assignment: BehalfAssignment) => (
             <AssignmentItem
-              key={assignment.id}
               assignees={assignees}
               assignment={assignment}
               assignmentType={assignmentType}
               departments={departments}
               isDeleting={isDeleting}
+              key={assignment.id}
               onDelete={handleDelete}
             />
           ))}

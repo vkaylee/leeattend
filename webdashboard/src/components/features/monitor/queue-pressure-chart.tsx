@@ -89,7 +89,7 @@ export default function QueuePressureChart({ data, isLoading }: Props) {
       ) : data.unavailable ? (
         <div className="h-[160px] flex flex-col items-center justify-center gap-2 text-center" role="status">
           <div className="w-12 h-12 rounded-2xl bg-slate-100 dark:bg-slate-800/60 flex items-center justify-center">
-            <span className="text-xl text-slate-400" aria-hidden="true">—</span>
+            <span aria-hidden="true" className="text-xl text-slate-400">—</span>
           </div>
           <Typography className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest" variant="p">
             {t("monitor.metric_unavailable", { defaultValue: "Metric unavailable" })}
@@ -98,7 +98,7 @@ export default function QueuePressureChart({ data, isLoading }: Props) {
       ) : data.total === 0 ? (
         <div className="h-[160px] flex flex-col items-center justify-center gap-2">
           <div className="w-12 h-12 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 flex items-center justify-center">
-            <span className="text-xl" aria-hidden="true">✓</span>
+            <span aria-hidden="true" className="text-xl">✓</span>
           </div>
           <Typography className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest" variant="p">
             {t("monitor.queue_empty", { defaultValue: "Queue clear" })}

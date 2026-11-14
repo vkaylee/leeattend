@@ -1,9 +1,10 @@
 import { Link } from "@tanstack/react-router";
-import { Users, UserCheck, CalendarOff, ClockAlert, ArrowRight } from "lucide-react";
+import { UserCheck, CalendarOff, ClockAlert, ArrowRight } from "lucide-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
 
 import { Skeleton } from "@/components/ui/skeleton";
+import { Typography } from "@/components/ui/typography";
 import { useDashboardStats } from "@/hooks/use-dashboard";
 import { ROUTES } from "@/lib/routes";
 
@@ -26,12 +27,12 @@ export function TodayOverviewWidget() {
   if (isError || !stats) {
     return (
       <div className="flex flex-col items-center justify-center p-6 text-center text-xs text-slate-400">
-        <p>{t("desktop.statsUnavailable", "Không thể tải số liệu chuyên cần hôm nay")}</p>
+        <Typography variant="p">{t("desktop.statsUnavailable", "Không thể tải số liệu chuyên cần hôm nay")}</Typography>
       </div>
     );
   }
 
-  const attendanceRate = typeof stats.attendance_rate?.value === "string" && stats.attendance_rate.value
+  const attendanceRate = typeof stats.attendance_rate.value === "string" && stats.attendance_rate.value
     ? Math.round(Number(stats.attendance_rate.value))
     : stats.total_employees > 0
       ? Math.round((stats.present_today / stats.total_employees) * 100)
@@ -96,9 +97,9 @@ export function TodayOverviewWidget() {
       {/* Footer navigation */}
       <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs">
         <Link
-          to={ROUTES.ATTENDANCE_LOGS}
-          search={{ tab: "recorded", mode: "this_month" }}
           className="text-primary-600 dark:text-primary-400 hover:underline font-semibold flex items-center gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-md px-1"
+          search={{ tab: "recorded", mode: "this_month" }}
+          to={ROUTES.ATTENDANCE_LOGS}
         >
           <span>{t("desktop.viewAttendanceLogs", "Xem bảng công đầy đủ")}</span>
           <ArrowRight className="w-3.5 h-3.5" />

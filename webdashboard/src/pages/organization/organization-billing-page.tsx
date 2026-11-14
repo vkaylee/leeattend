@@ -1,4 +1,4 @@
-import { CreditCard, Sparkles, CheckCircle2 } from "lucide-react";
+import { CreditCard, CheckCircle2 } from "lucide-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
 

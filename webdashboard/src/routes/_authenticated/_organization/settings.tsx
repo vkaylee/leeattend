@@ -2,8 +2,9 @@ import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
 import { Sliders, ChevronDown } from "lucide-react";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
-import Button from "@/components/ui/button";
+
 import { ErrorBoundary } from "@/components/common/error-boundary";
+import Button from "@/components/ui/button";
 import { fetchMyPermissions } from "@/lib/api";
 import { ROUTES } from "@/lib/routes";
 import { cn } from "@/lib/utils";
@@ -45,7 +46,7 @@ function SettingsPageLayout() {
           aria-label={mobileMenuOpen ? t("common.close", "Đóng") : t("settings.categories_menu", "Danh mục")}
           className="flex items-center justify-between w-full h-auto p-3 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 shadow-2xs text-xs font-semibold text-slate-800 dark:text-slate-100 hover:bg-slate-50 dark:hover:bg-slate-800/60 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 transition-all duration-200 normal-case tracking-normal"
           data-testid="settings-mobile-menu-toggle"
-          onClick={() => setMobileMenuOpen((prev) => !prev)}
+          onClick={() => { setMobileMenuOpen((prev) => !prev); }}
           type="button"
           variant="outline"
         >
@@ -71,7 +72,7 @@ function SettingsPageLayout() {
           )}
           data-testid="settings-sidebar-panel"
         >
-          <SettingsSidebar onItemClick={() => setMobileMenuOpen(false)} />
+          <SettingsSidebar onItemClick={() => { setMobileMenuOpen(false); }} />
         </div>
 
         {/* Right Column: Active Setting Detail Pane */}

@@ -54,8 +54,8 @@ const resolveKey = (key: string, object: Record<string, unknown>, variables?: Re
   if (!result && key.startsWith('errors.')) {
     const namespaces = [
       common.errors,
-      (object as Record<string, unknown>).errors,
-      ((object as Record<string, unknown>).common as Record<string, unknown> | undefined)?.errors,
+      (object).errors,
+      ((object).common as Record<string, unknown> | undefined)?.errors,
     ];
     for (const namespace of namespaces) {
       if (namespace === null || namespace === undefined) continue;
@@ -161,7 +161,7 @@ vi.mock("@/components/ui/combobox", () => ({
     "data-testid": testId,
     emptyText,
     hasMore,
-    isLoadingMore,
+    isLoadingMore: _isLoadingMore,
     onLoadMore,
     size = "md",
   }: {
@@ -239,10 +239,8 @@ function bridgeWrite(key: string | null, value: string | null) {
 // silently redirected every sessionStorage write into localStorage while
 // getItem still read from sessionStorage — so sessionStorage writes vanished.
 //
-/* eslint-disable @typescript-eslint/unbound-method */
 const protoSetItem = Storage.prototype.setItem;
 const protoRemoveItem = Storage.prototype.removeItem;
-/* eslint-enable @typescript-eslint/unbound-method */
 Storage.prototype.setItem = function setItem(key: string, value: string): void {
   protoSetItem.call(this, key, value);
   bridgeWrite(key, value);

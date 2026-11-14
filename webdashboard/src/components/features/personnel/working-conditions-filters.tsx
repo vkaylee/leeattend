@@ -2,9 +2,10 @@ import { Filter } from "lucide-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
 
+import type { ConditionTypeDefinition } from "@/lib/api";
+
 import { Combobox } from "@/components/ui/combobox";
 import { SearchInput } from "@/components/ui/search-input";
-import type { ConditionTypeDefinition } from "@/lib/api";
 
 export interface WorkingConditionsFiltersProps {
   onClearFilters?: () => void;
@@ -43,8 +44,8 @@ export function WorkingConditionsFilters({
         <SearchInput
           aria-label={t("working_conditions.search_label", { defaultValue: "Tìm kiếm điều kiện làm việc" })}
           containerClassName="h-10"
-          onChange={(e) => onSearchChange(e.target.value)}
-          onClear={() => onSearchChange("")}
+          onChange={(e) => { onSearchChange(e.target.value); }}
+          onClear={() => { onSearchChange(""); }}
           placeholder={t("working_conditions.search_placeholder", {
             defaultValue: "Tìm nhân sự, mã NV, loại chế độ...",
           })}

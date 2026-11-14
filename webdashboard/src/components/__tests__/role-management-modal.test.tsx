@@ -5,7 +5,6 @@ import React from "react";
 import userEvent from "@testing-library/user-event";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-
 import * as api from "../../lib/api";
 import RoleManagementModal from "../features/settings/role-management-modal";
 import { ToastProvider } from "../ui/toast";

@@ -1,5 +1,4 @@
 import { useMemo, useState } from "react";
-
 import { useTranslation } from "react-i18next";
 
 import { Typography } from "@/components/ui/typography";
@@ -9,9 +8,9 @@ const MAX_RANGE_DAYS = 366;
 
 interface DashboardDateRangeProps {
   className?: string;
+  endDate: string;
   onChange: (range: { startDate: string; endDate: string }) => void;
   startDate: string;
-  endDate: string;
   /** Organization timezone label (informational; the caller sends it as a param). */
   timezone?: string;
 }

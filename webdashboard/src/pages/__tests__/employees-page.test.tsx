@@ -1,14 +1,14 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen, waitFor, fireEvent, within } from "@testing-library/react";
+import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 import React from "react";
 
 import userEvent from "@testing-library/user-event";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-import { ToastProvider } from "../../components/ui/toast";
 import Button from "../../components/ui/button";
-import { Employee, Department } from "../../lib/api/types";
+import { ToastProvider } from "../../components/ui/toast";
 import * as api from "../../lib/api";
+import { Employee, Department } from "../../lib/api/types";
 import EmployeesPage from "../employees-page";
 
 

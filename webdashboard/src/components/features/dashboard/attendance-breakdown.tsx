@@ -20,7 +20,7 @@ interface AttendanceBreakdownProps {
 }
 
 function rateLabel(rate: OrganizationStats["attendance_rate"] | undefined, fallback: string, t: TFunction): string {
-  if (!rate || rate.value == null) return "—";
+  if (rate?.value == null) return "—";
   return t("dashboard.hr.rate_value", { value: rate.value });
 }
 
@@ -39,16 +39,16 @@ export function AttendanceBreakdown({ donutData, hasDonutData, hrStats, t }: Att
       </Typography>
 
       {hrStats ? (
-        <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 mb-4" aria-label={t("dashboard.hr.rate_summary_label")}>
-          <RateBadge label={t("dashboard.hr.attendance_rate")} value={rateLabel(hrStats.attendance_rate, "—", t)} tone="emerald" />
-          <RateBadge label={t("dashboard.hr.absence_rate")} value={rateLabel(hrStats.absence_rate, "—", t)} tone="rose" />
-          <RateBadge label={t("dashboard.hr.late_rate")} value={rateLabel(hrStats.late_rate, "—", t)} tone="amber" />
+        <div aria-label={t("dashboard.hr.rate_summary_label")} className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 mb-4">
+          <RateBadge label={t("dashboard.hr.attendance_rate")} tone="emerald" value={rateLabel(hrStats.attendance_rate, "—", t)} />
+          <RateBadge label={t("dashboard.hr.absence_rate")} tone="rose" value={rateLabel(hrStats.absence_rate, "—", t)} />
+          <RateBadge label={t("dashboard.hr.late_rate")} tone="amber" value={rateLabel(hrStats.late_rate, "—", t)} />
         </div>
       ) : null}
 
       {hasDonutData ? (
         <div className="flex flex-col items-center">
-          <div role="img" aria-label={summary}>
+          <div aria-label={summary} role="img">
             <ResponsiveContainer height={260} width="100%">
               <PieChart>
                 <Pie
@@ -62,7 +62,7 @@ export function AttendanceBreakdown({ donutData, hasDonutData, hrStats, t }: Att
                   stroke="none"
                 >
                   {donutData.map((entry) => (
-                    <Cell key={entry.name} fill={entry.fill} />
+                    <Cell fill={entry.fill} key={entry.name} />
                   ))}
                 </Pie>
                 <Tooltip

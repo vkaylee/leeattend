@@ -1,5 +1,5 @@
 import { Link, useSearch } from "@tanstack/react-router";
-import { CheckCircle2, Clock, ListTodo, Plus, UserMinus, UserPlus, Users, X } from "lucide-react";
+import { Clock, ListTodo, Plus, UserMinus, UserPlus, Users, X } from "lucide-react";
 import React, { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -15,7 +15,7 @@ import { type LifecycleInstanceSummary } from "@/lib/api";
 
 export default function PersonnelLifecyclePage() {
   const { t } = useTranslation();
-  const searchParams = useSearch({ strict: false }) as { employeeId?: string; q?: string };
+  const searchParams = useSearch({ strict: false });
   const employeeFilter = searchParams.employeeId;
 
   const [search, setSearch] = useState(searchParams.q ?? "");
@@ -84,7 +84,7 @@ export default function PersonnelLifecyclePage() {
         title={t("lifecycle.title", { defaultValue: "Quản lý Quy trình & Vòng đời Nhân sự" })}
       />
 
-      {employeeFilter && (
+      {!!employeeFilter && (
         <div className="flex items-center gap-2" data-testid="employee-filter-chip">
           <span className="rounded-full border border-primary-200 bg-primary-50 px-3 py-1 text-xs font-semibold text-primary-700 dark:border-primary-800 dark:bg-primary-950 dark:text-primary-300">
             {t("employees.details.filtered_employee", { defaultValue: "Đang lọc theo nhân viên" })}
@@ -183,7 +183,7 @@ export default function PersonnelLifecyclePage() {
       </div>
 
       {/* ── Assign Modal ────────────────────────────────────────────── */}
-      {isModalOpen && (
+      {!!isModalOpen && (
         <LifecycleAssignModal isOpen={isModalOpen}
         onClose={() => {
           setIsModalOpen(false);

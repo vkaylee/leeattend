@@ -11,12 +11,13 @@ import {
 import React from "react";
 import { useTranslation } from "react-i18next";
 
+import type { LifecycleInstanceSummary } from "@/lib/api";
+
 import Button from "@/components/ui/button";
 import EmptyState from "@/components/ui/empty-state";
 import ResponsiveTable from "@/components/ui/responsive-table";
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
 import { useHorizontalDragScroll } from "@/hooks/use-horizontal-drag-scroll";
-import type { LifecycleInstanceSummary } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
 import { formatChecklistTypeLabel } from "../employees/lifecycle-assign-modal";

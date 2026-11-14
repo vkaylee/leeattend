@@ -1,12 +1,13 @@
 import { CalendarRange } from "lucide-react";
 
+import type { ControlSize } from "@/components/ui/control-styles";
+
 import { MonthYearPicker } from "@/components/common/month-year-picker";
 import Button from "@/components/ui/button";
 import {
   SEGMENTED_CONTROL_STYLE,
   SEGMENTED_ITEM_STYLE,
 } from "@/components/ui/control-styles";
-import type { ControlSize } from "@/components/ui/control-styles";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -20,9 +21,9 @@ export type FilterMode = "this_month" | "last_month" | "custom" | "specific_mont
 interface FilterModeButtonsProps {
   className?: string;
   filterMode: FilterMode;
-  size?: ControlSize;
   onFilterModeChange: (mode: FilterMode) => void;
   onSpecificMonthChange: (month: number, year: number) => void;
+  size?: ControlSize;
   specificMonth: { month: number; year: number };
   t: (key: string) => string;
   uppercase?: boolean;

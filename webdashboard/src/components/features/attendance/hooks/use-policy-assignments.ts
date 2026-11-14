@@ -2,10 +2,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState, useMemo, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 
-import { useOrganizationQuery } from "@/hooks/common/use-organization-query";
-import { departmentKeys, employeeKeys } from "@/lib/query-keys";
-
 import { useToast } from "@/components/ui/toast";
+import { useOrganizationQuery } from "@/hooks/common/use-organization-query";
 import {
   fetchPolicyAssignments,
   upsertPolicyAssignment,
@@ -13,20 +11,20 @@ import {
   fetchDepartments,
   fetchEmployees,
   Employee,
-  UpsertPolicyAssignmentRequest,
-  PolicyAssignmentResponse
+  UpsertPolicyAssignmentRequest
 } from "@/lib/api";
+import { departmentKeys, employeeKeys } from "@/lib/query-keys";
 
 export type FilterType = "ALL" | "GROUP" | "USER";
 export type StrategyType = "allow" | "block" | "clamp";
 
 export interface PolicyAssignmentsOptions {
   limit?: number;
+  onPageChange?: (page: number) => void;
+  onTargetTypeChange?: (targetType?: Exclude<FilterType, "ALL">) => void;
   page?: number;
   q?: string;
   targetType?: Exclude<FilterType, "ALL">;
-  onTargetTypeChange?: (targetType?: Exclude<FilterType, "ALL">) => void;
-  onPageChange?: (page: number) => void;
 }
 
 export function usePolicyAssignments(options: PolicyAssignmentsOptions = {}) {
@@ -54,7 +52,7 @@ export function usePolicyAssignments(options: PolicyAssignmentsOptions = {}) {
       queryKey: ["attendance-policy-assignments", page, limit, options.q, serverTargetType],
     queryFn: () => fetchPolicyAssignments({ page, limit, q: options.q, target_type: serverTargetType }),
   });
-  const assignments = assignmentsResponse?.data ?? [];
+  const assignments = useMemo(() => assignmentsResponse?.data ?? [], [assignmentsResponse?.data]);
 
   const { data: departments = [] } = useOrganizationQuery({ queryKey: departmentKeys.all(),
   queryFn: fetchDepartments, });

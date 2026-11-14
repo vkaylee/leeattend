@@ -65,14 +65,15 @@ export const TabsTrigger = memo(function TabsTrigger({
 }: TabsTriggerProps) {
   const context = useContext(TabsContext);
   if (!context) throw new Error("TabsTrigger must be used within Tabs");
+  const { baseId, onValueChange, value: contextValue } = context;
 
-  const isActive = context.value === value;
-  const triggerId = `${context.baseId}-trigger-${value}`;
-  const contentId = `${context.baseId}-content-${value}`;
+  const isActive = contextValue === value;
+  const triggerId = `${baseId}-trigger-${value}`;
+  const contentId = `${baseId}-content-${value}`;
 
   const select = useCallback(() => {
-    if (!disabled) context.onValueChange(value);
-  }, [context.onValueChange, disabled, value]);
+    if (!disabled) onValueChange(value);
+  }, [disabled, onValueChange, value]);
 
   const handleClick = useCallback(
     (event: React.MouseEvent<HTMLButtonElement>) => {
@@ -103,9 +104,9 @@ export const TabsTrigger = memo(function TabsTrigger({
       event.preventDefault();
       triggers[nextIndex]?.focus();
       const nextValue = triggers[nextIndex]?.dataset.value;
-      if (nextValue) context.onValueChange(nextValue);
+      if (nextValue) onValueChange(nextValue);
     },
-    [context.onValueChange, disabled, onKeyDown]
+    [disabled, onKeyDown, onValueChange]
   );
 
   return (
@@ -139,8 +140,8 @@ export const TabsTrigger = memo(function TabsTrigger({
 TabsTrigger.displayName = "TabsTrigger";
 
 export interface TabsContentProps extends React.HTMLAttributes<HTMLDivElement> {
-  value: string;
   children: React.ReactNode;
+  value: string;
 }
 
 export const TabsContent = memo(function TabsContent({ value, children, className, ...props }: TabsContentProps) {

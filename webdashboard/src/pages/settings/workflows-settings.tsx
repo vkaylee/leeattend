@@ -4,7 +4,7 @@ import React from "react";
 import { useTranslation } from "react-i18next";
 
 import { SettingsHeader } from "@/components/ui/settings/settings-header";
-import { SettingsSegmentedControl, type SegmentedOption } from "@/components/ui/settings/settings-segmented-control";
+import { SettingsSegmentedControl } from "@/components/ui/settings/settings-segmented-control";
 import { useOrganization } from "@/hooks/use-organization";
 import { ROUTES } from "@/lib/routes";
 import { Route } from "@/routes/_authenticated/_organization/settings/workflows";
@@ -53,7 +53,7 @@ export default function WorkflowsSettings() {
       <div className="bg-white dark:bg-slate-900/90 rounded-2xl border border-slate-200/80 dark:border-slate-800/80 p-6 sm:p-8 shadow-2xs space-y-6">
         <div className="overflow-x-auto max-w-full pb-1">
           <SettingsSegmentedControl
-            onChange={(val) => setActiveTab(val as "overtime" | "leave" | "attendance")}
+            onChange={(val) => { setActiveTab(val); }}
             options={[
               { label: t("settings.overtime.title", { defaultValue: "Tăng ca" }), value: "overtime" },
               { label: t("settings.leave.title", { defaultValue: "Nghỉ phép" }), value: "leave" },

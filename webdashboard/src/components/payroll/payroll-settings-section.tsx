@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 import { useToast } from "@/components/ui/toast";
 import { Typography } from "@/components/ui/typography";
 import { updatePayrollSettings, fetchPayrollSettingsHistory } from "@/lib/api/payroll";
+import { payrollKeys } from "@/lib/query-keys";
 
 import TemporalConfigTable from "../common/temporal-config-table";
 
@@ -14,7 +15,7 @@ export default function PayrollSettingsSection() {
   const queryClient = useQueryClient();
   const toast = useToast();
 
-  const { data: history = [], isLoading: isHistoryLoading } = useQuery({ queryKey: ["payroll-settings-history"], queryFn: () => fetchPayrollSettingsHistory(),
+  const { data: history = [], isLoading: isHistoryLoading } = useQuery({ queryKey: payrollKeys.settingsHistory(), queryFn: () => fetchPayrollSettingsHistory(),
  });
 
   const handleSavePolicy = async (data: { std_working_days: number; hours_per_day: number; max_ot_hours_per_day: number | null; max_ot_hours_per_month: number | null; effective_date: string }) => {
@@ -24,12 +25,12 @@ export default function PayrollSettingsSection() {
         hours_per_day: String(data.hours_per_day),
         max_ot_hours_per_day: data.max_ot_hours_per_day !== null ? String(data.max_ot_hours_per_day) : null,
         max_ot_hours_per_month: data.max_ot_hours_per_month !== null ? String(data.max_ot_hours_per_month) : null,
-       
+
         effective_date: data.effective_date
       });
       toast.success(t("common.success"));
-      void queryClient.invalidateQueries({ queryKey: ["payroll-settings"] });
-      void queryClient.invalidateQueries({ queryKey: ["payroll-settings-history"] });
+      void queryClient.invalidateQueries({ queryKey: payrollKeys.settings() });
+      void queryClient.invalidateQueries({ queryKey: payrollKeys.settingsHistory() });
  
     } catch (error: unknown) {
       toast.error(error instanceof Error ? error.message : t("common.error"));

@@ -3,6 +3,14 @@ import { AlertTriangle, CheckCircle2, FileSearch, History, RefreshCw, Send, Shie
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
+import type {
+  EmployeeSchedule,
+  ScheduleEvidenceResponse,
+  ScheduleHistoryResponse,
+  SchedulePreviewResponse,
+  ScheduleReplanPreviewResponse,
+} from "@/lib/api";
+
 import Button from "@/components/ui/button";
 import { Combobox } from "@/components/ui/combobox";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -15,13 +23,6 @@ import {
   previewScheduleReplan,
   previewSchedules,
   publishSchedules,
-} from "@/lib/api";
-import type {
-  EmployeeSchedule,
-  ScheduleEvidenceResponse,
-  ScheduleHistoryResponse,
-  SchedulePreviewResponse,
-  ScheduleReplanPreviewResponse,
 } from "@/lib/api";
 
 interface ScheduleLifecyclePanelProps {
@@ -65,7 +66,7 @@ function LifecycleStatusList({ schedule, t }: { schedule: EmployeeSchedule; t: (
   }
 
   return (
-    <ul className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4" aria-label={t("scheduleLifecycle.statusesLabel")}>
+    <ul aria-label={t("scheduleLifecycle.statusesLabel")} className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
       {schedule.schedules.map((day) => (
         <li className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 dark:border-slate-700 dark:bg-slate-800/60" key={day.date}>
           <span className="font-mono text-xs text-slate-600 dark:text-slate-300">{day.date}</span>
@@ -127,7 +128,7 @@ export function ScheduleLifecyclePanel({ employeeSchedule, weekDays }: ScheduleL
       retroactive: false,
       expected_revisions: expectedRevisions,
     }),
-    onSuccess: ({ data }) => setPreview(data),
+    onSuccess: ({ data }) => { setPreview(data); },
   });
   const publishMutation = useMutation({
     mutationFn: () => {
@@ -152,11 +153,11 @@ export function ScheduleLifecyclePanel({ employeeSchedule, weekDays }: ScheduleL
   });
   const historyMutation = useMutation({
     mutationFn: () => fetchScheduleHistory({ employment_id: employeeSchedule.employment_id, start_date: dateRange.start, end_date: dateRange.end }),
-    onSuccess: ({ data }) => setHistory(data),
+    onSuccess: ({ data }) => { setHistory(data); },
   });
   const evidenceMutation = useMutation({
     mutationFn: () => fetchScheduleEvidence(employeeSchedule.employment_id, selectedDate),
-    onSuccess: ({ data }) => setEvidence(data),
+    onSuccess: ({ data }) => { setEvidence(data); },
   });
   const replanPreviewMutation = useMutation({
     mutationFn: () => {
@@ -167,7 +168,7 @@ export function ScheduleLifecyclePanel({ employeeSchedule, weekDays }: ScheduleL
         replacement,
       });
     },
-    onSuccess: ({ data }) => setReplanPreview(data),
+    onSuccess: ({ data }) => { setReplanPreview(data); },
   });
   const replanMutation = useMutation({
     mutationFn: () => {
@@ -216,7 +217,7 @@ export function ScheduleLifecyclePanel({ employeeSchedule, weekDays }: ScheduleL
       <div className="grid gap-3 lg:grid-cols-[1fr_auto]">
         <label className="text-xs font-semibold text-slate-600 dark:text-slate-300">
           {t("scheduleLifecycle.reasonLabel")}
-          <textarea aria-describedby="schedule-lifecycle-reason-hint" className="mt-1 min-h-20 w-full resize-y rounded-xl border border-slate-300 bg-white p-3 text-sm font-normal outline-none focus-visible:ring-2 focus-visible:ring-primary-500 dark:border-slate-600 dark:bg-slate-800" maxLength={2000} onChange={(event) => setReason(event.target.value)} placeholder={t("scheduleLifecycle.reasonPlaceholder")} value={reason} />
+          <textarea aria-describedby="schedule-lifecycle-reason-hint" className="mt-1 min-h-20 w-full resize-y rounded-xl border border-slate-300 bg-white p-3 text-sm font-normal outline-none focus-visible:ring-2 focus-visible:ring-primary-500 dark:border-slate-600 dark:bg-slate-800" maxLength={2000} onChange={(event) => { setReason(event.target.value); }} placeholder={t("scheduleLifecycle.reasonPlaceholder")} value={reason} />
           <span className="mt-1 block font-normal text-slate-500" id="schedule-lifecycle-reason-hint">{t("scheduleLifecycle.reasonHint")}</span>
         </label>
         <div className="flex flex-wrap items-end gap-2">
@@ -233,8 +234,8 @@ export function ScheduleLifecyclePanel({ employeeSchedule, weekDays }: ScheduleL
         <Button disabled={!replacement || !selectedSchedule?.revision_number} icon={<RefreshCw size={15} />} loading={replanPreviewMutation.isPending} onClick={() => { replanPreviewMutation.mutate(); }} variant="outline">{t("scheduleLifecycle.replan")}</Button>
       </div>
 
-      {history ? <div className="space-y-3" aria-live="polite"><h3 className="text-sm font-bold text-slate-700 dark:text-slate-200">{t("scheduleLifecycle.history")}</h3>{history.data.length === 0 ? <p className="text-sm text-slate-500">{t("scheduleLifecycle.noHistory")}</p> : history.data.map((entry) => <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-200 p-3 dark:border-slate-700" key={entry.revision_id}><span className="font-mono text-xs">{entry.business_date} · r{entry.revision_number}</span><StatusBadge variant={lifecycleStatus(entry.state)}>{t(`scheduleLifecycle.states.${entry.state}`)}</StatusBadge><span className="text-xs text-slate-500">{entry.reason || t("scheduleLifecycle.noReason")}</span></div>)}</div> : null}
-      {evidence ? <div className="space-y-3" aria-live="polite"><h3 className="text-sm font-bold text-slate-700 dark:text-slate-200">{t("scheduleLifecycle.evidence")}</h3><div className="grid gap-2 text-xs text-slate-600 dark:text-slate-300 sm:grid-cols-3"><span>{t("scheduleLifecycle.revisions")}: {evidence.revisions.length}</span><span>{t("scheduleLifecycle.segments")}: {evidence.segments.length}</span><span>{t("scheduleLifecycle.closures")}: {evidence.closure_days.length}</span></div><JsonPreview value={{ diff_chain: evidence.diff_chain, audit_actions: evidence.audit_actions, events: evidence.events }} /></div> : null}
+      {history ? <div aria-live="polite" className="space-y-3"><h3 className="text-sm font-bold text-slate-700 dark:text-slate-200">{t("scheduleLifecycle.history")}</h3>{history.data.length === 0 ? <p className="text-sm text-slate-500">{t("scheduleLifecycle.noHistory")}</p> : history.data.map((entry) => <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-200 p-3 dark:border-slate-700" key={entry.revision_id}><span className="font-mono text-xs">{entry.business_date} · r{entry.revision_number}</span><StatusBadge variant={lifecycleStatus(entry.state)}>{t(`scheduleLifecycle.states.${entry.state}`)}</StatusBadge><span className="text-xs text-slate-500">{entry.reason || t("scheduleLifecycle.noReason")}</span></div>)}</div> : null}
+      {evidence ? <div aria-live="polite" className="space-y-3"><h3 className="text-sm font-bold text-slate-700 dark:text-slate-200">{t("scheduleLifecycle.evidence")}</h3><div className="grid gap-2 text-xs text-slate-600 dark:text-slate-300 sm:grid-cols-3"><span>{t("scheduleLifecycle.revisions")}: {evidence.revisions.length}</span><span>{t("scheduleLifecycle.segments")}: {evidence.segments.length}</span><span>{t("scheduleLifecycle.closures")}: {evidence.closure_days.length}</span></div><JsonPreview value={{ diff_chain: evidence.diff_chain, audit_actions: evidence.audit_actions, events: evidence.events }} /></div> : null}
       {replanPreview ? <div className="space-y-3 rounded-xl border border-amber-200 bg-amber-50 p-3 dark:border-amber-900 dark:bg-amber-950/30"><div className="flex items-center gap-2 text-xs font-semibold text-amber-800 dark:text-amber-200"><AlertTriangle size={15} />{t("scheduleLifecycle.diffNotice")}</div><JsonPreview value={replanPreview.diff} /><Button disabled={reason.trim().length === 0} loading={replanMutation.isPending} onClick={() => { replanMutation.mutate(); }}>{t("scheduleLifecycle.confirmReplan")}</Button></div> : null}
       {activeError ? <p className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700 dark:border-rose-900 dark:bg-rose-950/30 dark:text-rose-200" role="alert">{t(safeErrorMessage(activeError))}</p> : null}
       {isBusy && !preview && !history && !evidence ? <div aria-label={t("common.loading")} className="space-y-2"><Skeleton className="h-4 w-1/2" /><Skeleton className="h-16 w-full" /></div> : null}

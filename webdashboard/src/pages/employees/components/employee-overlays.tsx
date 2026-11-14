@@ -1,5 +1,6 @@
 import React, { Suspense, lazy } from "react";
 import { useTranslation } from "react-i18next";
+
 import type { Employee, Department, EmployeeDepartmentHistory } from "../../../lib/api/types";
 import type { EmployeeModalState } from "../types/employee-modals";
 // Lazy-loaded overlays — only loaded when user triggers the action.
