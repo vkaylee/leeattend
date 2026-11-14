@@ -13,7 +13,8 @@ import (
 )
 
 type workPolicyRepositoryStub struct {
-	created bool
+	created        bool
+	versionCreated bool
 }
 
 func (s *workPolicyRepositoryStub) ListWorkPolicyGroupVersions(context.Context, int, int) (WorkPolicyGroupListResponse, error) {
@@ -26,6 +27,11 @@ func (s *workPolicyRepositoryStub) CreateWorkPolicyGroup(_ context.Context, req 
 		GroupID: actorID,
 		Name:    req.Name,
 	}, nil
+}
+
+func (s *workPolicyRepositoryStub) CreateWorkPolicyGroupVersion(_ context.Context, groupID uuid.UUID, req CreateWorkPolicyGroupVersionRequest, _ uuid.UUID) (WorkPolicyGroupVersion, error) {
+	s.versionCreated = true
+	return WorkPolicyGroupVersion{GroupID: groupID, Name: req.Name, EffectiveFrom: req.EffectiveFrom}, nil
 }
 
 func (s *workPolicyRepositoryStub) ListWorkPolicyMemberships(context.Context, uuid.UUID) ([]WorkPolicyMembership, error) {
@@ -89,6 +95,18 @@ func TestWorkPolicyMembershipListRequiresReadPermission(t *testing.T) {
 	handler.ListMemberships(rec, req)
 	if rec.Code != http.StatusForbidden {
 		t.Fatalf("status = %d, want 403", rec.Code)
+	}
+}
+
+func TestWorkPolicyGroupVersionCreateDelegatesValidatedRequest(t *testing.T) {
+	repo := &workPolicyRepositoryStub{}
+	handler := WorkPolicyGroupHandler{Repository: repo, Authorizer: payrollAuthorizer{allowedPerms: map[string]bool{"payroll:manage": true}}}
+	rec := httptest.NewRecorder()
+	req := workPolicyRequest(http.MethodPost, `{"name":"Operations","minutes_per_credit":450,"attendance_policy_id":"`+uuid.NewString()+`","working_pattern_id":"`+uuid.NewString()+`","pay_method":"hourly","overtime_policy_id":"`+uuid.NewString()+`","effective_from":"2026-06-01"}`, uuid.New())
+	req.SetPathValue("group_id", uuid.NewString())
+	handler.CreateVersion(rec, req)
+	if rec.Code != http.StatusCreated || !repo.versionCreated {
+		t.Fatalf("status = %d, version_created = %t, want 201/true", rec.Code, repo.versionCreated)
 	}
 }
 

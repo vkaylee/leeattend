@@ -73,6 +73,7 @@ func (r WorkPolicyRepository) ListWorkPolicyGroupVersions(ctx context.Context, p
 	if err := rows.Err(); err != nil {
 		return api.WorkPolicyGroupListResponse{}, err
 	}
+	rows.Close()
 	if err := db.QueryRow(ctx, `SELECT count(*) FROM labor_policy_group_versions`).Scan(&result.Total); err != nil {
 		return api.WorkPolicyGroupListResponse{}, err
 	}
@@ -80,6 +81,23 @@ func (r WorkPolicyRepository) ListWorkPolicyGroupVersions(ctx context.Context, p
 }
 
 func (r WorkPolicyRepository) CreateWorkPolicyGroup(ctx context.Context, req api.CreateWorkPolicyGroupRequest, actorID uuid.UUID) (api.WorkPolicyGroupVersion, error) {
+	db, err := r.db(ctx)
+	if err != nil {
+		return api.WorkPolicyGroupVersion{}, err
+	}
+	var referencesExist bool
+	if err := db.QueryRow(ctx, `SELECT EXISTS (
+		SELECT 1 FROM attendance_policies WHERE id = $1
+	) AND EXISTS (
+		SELECT 1 FROM working_patterns WHERE id = $2 AND is_active = TRUE
+	) AND EXISTS (
+		SELECT 1 FROM overtime_policy_definitions WHERE id = $3
+	)`, req.AttendancePolicyID, req.WorkingPatternID, req.OvertimePolicyID).Scan(&referencesExist); err != nil {
+		return api.WorkPolicyGroupVersion{}, err
+	}
+	if !referencesExist {
+		return api.WorkPolicyGroupVersion{}, api.ErrWorkPolicyReferenceNotFound
+	}
 	beginner, err := r.begin(ctx)
 	if err != nil {
 		return api.WorkPolicyGroupVersion{}, err
@@ -105,6 +123,75 @@ func (r WorkPolicyRepository) CreateWorkPolicyGroup(ctx context.Context, req api
 		return api.WorkPolicyGroupVersion{}, err
 	}
 	return result, nil
+}
+
+func (r WorkPolicyRepository) CreateWorkPolicyGroupVersion(ctx context.Context, groupID uuid.UUID, req api.CreateWorkPolicyGroupVersionRequest, actorID uuid.UUID) (api.WorkPolicyGroupVersion, error) {
+	db, err := r.db(ctx)
+	if err != nil {
+		return api.WorkPolicyGroupVersion{}, err
+	}
+	if err := validateVersionGroup(ctx, db, groupID, req); err != nil {
+		return api.WorkPolicyGroupVersion{}, err
+	}
+	from, to, err := parseWorkPolicyRange(req.EffectiveFrom, req.EffectiveTo)
+	if err != nil {
+		return api.WorkPolicyGroupVersion{}, api.ErrWorkPolicyGroupValidation
+	}
+	workCreditID, payBasisID, versionID := uuid.New(), uuid.New(), uuid.New()
+	result := workPolicyGroupVersionResult(api.CreateWorkPolicyGroupRequest(req), groupID, workCreditID, payBasisID, versionID)
+	beginner, err := r.begin(ctx)
+	if err != nil {
+		return api.WorkPolicyGroupVersion{}, err
+	}
+	err = service.WithTx(ctx, beginner, func(ctx context.Context, tx pgx.Tx) error {
+		return insertWorkPolicyVersion(ctx, tx, req, actorID, from, to, groupID, workCreditID, payBasisID, versionID)
+	})
+	if err != nil {
+		return api.WorkPolicyGroupVersion{}, err
+	}
+	return result, nil
+}
+
+func validateVersionGroup(ctx context.Context, db DBTX, groupID uuid.UUID, req api.CreateWorkPolicyGroupVersionRequest) error {
+	var groupName string
+	if err := db.QueryRow(ctx, `SELECT name FROM labor_policy_groups WHERE id = $1`, groupID).Scan(&groupName); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return api.ErrWorkPolicyGroupNotFound
+		}
+		return err
+	}
+	if strings.TrimSpace(groupName) != strings.TrimSpace(req.Name) {
+		return api.ErrWorkPolicyGroupValidation
+	}
+	var referencesExist bool
+	if err := db.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM attendance_policies WHERE id = $1) AND EXISTS (SELECT 1 FROM working_patterns WHERE id = $2 AND is_active = TRUE) AND EXISTS (SELECT 1 FROM overtime_policy_definitions WHERE id = $3)`, req.AttendancePolicyID, req.WorkingPatternID, req.OvertimePolicyID).Scan(&referencesExist); err != nil {
+		return err
+	}
+	if !referencesExist {
+		return api.ErrWorkPolicyReferenceNotFound
+	}
+	return nil
+}
+
+func insertWorkPolicyVersion(ctx context.Context, tx pgx.Tx, req api.CreateWorkPolicyGroupVersionRequest, actorID uuid.UUID, from, to *time.Time, groupID, workCreditID, payBasisID, versionID uuid.UUID) error {
+	if err := insertPolicyDefinitions(ctx, tx, req.Name, req.MinutesPerCredit, req.AttendancePolicyID, req.WorkingPatternID, req.PayMethod, req.MonthlyDenominator, req.MonthlyStandardDays, actorID, workCreditID, payBasisID); err != nil {
+		return err
+	}
+	_, err := tx.Exec(ctx, `INSERT INTO labor_policy_group_versions (id, group_id, work_credit_policy_id, pay_basis_policy_id, overtime_policy_id, effective_from, effective_to, created_by) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`, versionID, groupID, workCreditID, payBasisID, req.OvertimePolicyID, from, to, actorID)
+	if isConflictError(err) {
+		return api.ErrConflict
+	}
+	return err
+}
+
+func insertPolicyDefinitions(ctx context.Context, tx pgx.Tx, name string, minutes int, attendancePolicyID, workingPatternID uuid.UUID, method workpolicy.PayMethod, denominator *workpolicy.MonthlyDenominator, days *decimal.Decimal, actorID, workCreditID, payBasisID uuid.UUID) error {
+	if _, err := tx.Exec(ctx, `INSERT INTO work_credit_policies (id, name, minutes_per_credit, attendance_policy_id, working_pattern_id, created_by) VALUES ($1, $2, $3, $4, $5, $6)`, workCreditID, name, minutes, attendancePolicyID, workingPatternID, actorID); err != nil {
+		return mapConstraintError(err)
+	}
+	if _, err := tx.Exec(ctx, `INSERT INTO pay_basis_policies (id, name, method, monthly_denominator, monthly_standard_days, created_by) VALUES ($1, $2, $3, $4, $5, $6)`, payBasisID, name, method, denominator, days, actorID); err != nil {
+		return mapConstraintError(err)
+	}
+	return nil
 }
 
 func workPolicyGroupVersion(row interface{ Scan(...any) error }) (api.WorkPolicyGroupVersion, error) {
@@ -215,19 +302,19 @@ func (r WorkPolicyRepository) CreateWorkPolicyMembership(ctx context.Context, gr
 	return item, nil
 }
 
-func parseWorkPolicyRange(fromValue string, toValue *string) (time.Time, *time.Time, error) {
+func parseWorkPolicyRange(fromValue string, toValue *string) (*time.Time, *time.Time, error) {
 	from, err := time.Parse("2006-01-02", strings.TrimSpace(fromValue))
 	if err != nil {
-		return time.Time{}, nil, err
+		return nil, nil, err
 	}
 	if toValue == nil || strings.TrimSpace(*toValue) == "" {
-		return from, nil, nil
+		return &from, nil, nil
 	}
 	to, err := time.Parse("2006-01-02", strings.TrimSpace(*toValue))
 	if err != nil {
-		return time.Time{}, nil, err
+		return nil, nil, err
 	}
-	return from, &to, nil
+	return &from, &to, nil
 }
 
 func apiWorkPolicyMethod(value string) workpolicy.PayMethod {

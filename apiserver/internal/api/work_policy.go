@@ -18,6 +18,7 @@ import (
 var (
 	ErrWorkPolicyGroupValidation    = errors.New("work policy group: validation failed")
 	ErrWorkPolicyGroupNotFound      = errors.New("work policy group: not found")
+	ErrWorkPolicyReferenceNotFound  = errors.New("work policy group: reference not found")
 	ErrWorkPolicyMembershipConflict = errors.New("work policy membership: conflict")
 )
 
@@ -74,9 +75,23 @@ type CreateWorkPolicyGroupRequest struct {
 	EffectiveTo         *string                        `json:"effective_to,omitempty"`
 }
 
+type CreateWorkPolicyGroupVersionRequest struct {
+	Name                string                         `json:"name"`
+	MinutesPerCredit    int                            `json:"minutes_per_credit"`
+	AttendancePolicyID  uuid.UUID                      `json:"attendance_policy_id"`
+	WorkingPatternID    uuid.UUID                      `json:"working_pattern_id"`
+	PayMethod           workpolicy.PayMethod           `json:"pay_method"`
+	MonthlyDenominator  *workpolicy.MonthlyDenominator `json:"monthly_denominator,omitempty"`
+	MonthlyStandardDays *decimal.Decimal               `json:"monthly_standard_days,omitempty"`
+	OvertimePolicyID    uuid.UUID                      `json:"overtime_policy_id"`
+	EffectiveFrom       string                         `json:"effective_from"`
+	EffectiveTo         *string                        `json:"effective_to,omitempty"`
+}
+
 type WorkPolicyGroupRepository interface {
 	ListWorkPolicyGroupVersions(context.Context, int, int) (WorkPolicyGroupListResponse, error)
 	CreateWorkPolicyGroup(context.Context, CreateWorkPolicyGroupRequest, uuid.UUID) (WorkPolicyGroupVersion, error)
+	CreateWorkPolicyGroupVersion(context.Context, uuid.UUID, CreateWorkPolicyGroupVersionRequest, uuid.UUID) (WorkPolicyGroupVersion, error)
 	ListWorkPolicyMemberships(context.Context, uuid.UUID) ([]WorkPolicyMembership, error)
 	CreateWorkPolicyMembership(context.Context, uuid.UUID, CreateWorkPolicyMembershipRequest, uuid.UUID) (WorkPolicyMembership, error)
 }
@@ -112,6 +127,36 @@ func (h WorkPolicyGroupHandler) List(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	apperror.WriteJSON(w, http.StatusOK, result)
+}
+
+func (h WorkPolicyGroupHandler) CreateVersion(w http.ResponseWriter, r *http.Request) {
+	userID, ok := httpinfra.UserIDFromContext(r.Context())
+	if !ok || !h.allowed(r, "payroll:manage") {
+		apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
+		return
+	}
+	groupID, groupOK := pathUUID(r, "group_id")
+	if !groupOK {
+		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
+		return
+	}
+	req, err := DecodeJSON[CreateWorkPolicyGroupVersionRequest](r, 1<<20)
+	if err != nil || validateWorkPolicyGroupVersionRequest(req) != nil {
+		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
+		return
+	}
+	result, err := h.Repository.CreateWorkPolicyGroupVersion(r.Context(), groupID, req, userID)
+	if err != nil {
+		h.writeError(w, r, err)
+		return
+	}
+	if h.Audit != nil {
+		_ = h.Audit.Emit(r.Context(), audit.Event{
+			Name: "payroll.work_policy_group.version_created", ActorID: userID.String(), Resource: result.GroupID.String(), Outcome: "success",
+			Details: map[string]string{"effective_from": result.EffectiveFrom, "pay_method": string(result.PayMethod)}, At: time.Now().UTC(),
+		})
+	}
+	apperror.WriteJSON(w, http.StatusCreated, result)
 }
 
 func (h WorkPolicyGroupHandler) ListMemberships(w http.ResponseWriter, r *http.Request) {
@@ -193,6 +238,19 @@ func validateWorkPolicyMembershipRequest(req CreateWorkPolicyMembershipRequest) 
 	return nil
 }
 
+func validateWorkPolicyGroupVersionRequest(req CreateWorkPolicyGroupVersionRequest) error {
+	from, to, err := workPolicyEffectiveRange(req.EffectiveFrom, req.EffectiveTo)
+	if err != nil || req.OvertimePolicyID == uuid.Nil || strings.TrimSpace(req.Name) == "" || to != nil && !to.After(from) {
+		return ErrWorkPolicyGroupValidation
+	}
+	return validateWorkPolicyDefinitions(CreateWorkPolicyGroupRequest{
+		Name: req.Name, MinutesPerCredit: req.MinutesPerCredit, AttendancePolicyID: req.AttendancePolicyID,
+		WorkingPatternID: req.WorkingPatternID, PayMethod: req.PayMethod, MonthlyDenominator: req.MonthlyDenominator,
+		MonthlyStandardDays: req.MonthlyStandardDays, OvertimePolicyID: req.OvertimePolicyID,
+		EffectiveFrom: req.EffectiveFrom, EffectiveTo: req.EffectiveTo,
+	})
+}
+
 func validateWorkPolicyGroupRequest(req CreateWorkPolicyGroupRequest) error {
 	from, to, err := workPolicyEffectiveRange(req.EffectiveFrom, req.EffectiveTo)
 	if err != nil || req.OvertimePolicyID == uuid.Nil || to != nil && !to.After(from) {
@@ -236,7 +294,7 @@ func validateWorkPolicyDefinitions(req CreateWorkPolicyGroupRequest) error {
 
 func (h WorkPolicyGroupHandler) writeError(w http.ResponseWriter, r *http.Request, err error) {
 	switch {
-	case errors.Is(err, ErrWorkPolicyGroupNotFound):
+	case errors.Is(err, ErrWorkPolicyGroupNotFound), errors.Is(err, ErrWorkPolicyReferenceNotFound):
 		apperror.WriteError(w, r, apperror.NotFound(apperror.KeyNotFound))
 	case errors.Is(err, ErrWorkPolicyGroupValidation):
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))

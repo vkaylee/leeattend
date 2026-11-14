@@ -6,6 +6,7 @@ DECLARE
     v_legacy_col_count integer;
     v_legacy_object_count integer;
     v_required_table_count integer;
+    v_required_table_name text;
     v_marker_count integer;
 BEGIN
     SELECT count(*) INTO v_legacy_col_count
@@ -216,6 +217,40 @@ BEGIN
           AND NOT tgisinternal
     ) THEN
         RAISE EXCEPTION 'schema check failed: payroll period updated_at trigger is missing';
+    END IF;
+
+    FOREACH v_required_table_name IN ARRAY ARRAY[
+        'work_credit_policies'::text,
+        'pay_basis_policies'::text,
+        'labor_policy_groups'::text,
+        'labor_policy_group_versions'::text,
+        'labor_policy_memberships'::text
+    ] LOOP
+        IF to_regclass('public.' || v_required_table_name) IS NULL THEN
+            RAISE EXCEPTION 'schema check failed: work policy table % is missing', v_required_table_name;
+        END IF;
+    END LOOP;
+
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint
+        WHERE conrelid = 'public.labor_policy_group_versions'::regclass
+          AND conname = 'labor_policy_group_versions_effective_no_overlap'
+          AND contype = 'x'
+    ) OR NOT EXISTS (
+        SELECT 1 FROM pg_constraint
+        WHERE conrelid = 'public.labor_policy_memberships'::regclass
+          AND conname = 'labor_policy_memberships_effective_no_overlap'
+          AND contype = 'x'
+    ) THEN
+        RAISE EXCEPTION 'schema check failed: work policy overlap constraints are missing';
+    END IF;
+
+    SELECT count(*) INTO v_marker_count
+    FROM public.schema_migrations
+    WHERE version = '20261114080000_labor_policy_groups';
+
+    IF v_marker_count <> 1 THEN
+        RAISE EXCEPTION 'schema check failed: labor policy migration marker is missing';
     END IF;
 
     SELECT count(*) INTO v_marker_count

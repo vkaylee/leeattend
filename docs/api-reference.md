@@ -607,6 +607,46 @@ Input lifecycle: `submitted → approved → locked`. Row status: `accepted`, `w
 
 Safe formula DSL supports arithmetic, comparison, `min`, `max`, `round`, `if`, and `clamp`, with expression/depth/step limits. Raw salary, metric values, expressions, correction reasons, source references, and PII must not be logged or placed in client error messages.
 
+#### Labor Work-Policy Group API
+
+These endpoints define effective-dated policy bundles. They do not replace existing payroll-settings endpoints yet. UUID references must point to active attendance/working-pattern/overtime policies. `monthly_standard_days` applies only to fixed monthly pay; hourly and shift pay omit monthly denominator fields.
+
+| Method | Endpoint | Permission | Purpose |
+|---|---|---|---|
+| `GET` | `/api/v1/payroll/work-policy-groups` | `payroll:read` | List effective-dated policy group versions with bounded pagination. |
+| `POST` | `/api/v1/payroll/work-policy-groups` | `payroll:manage` | Create a policy group version atomically. |
+| `GET` | `/api/v1/payroll/work-policy-groups/{group_id}/memberships` | `payroll:read` | List employment memberships for a group. |
+| `POST` | `/api/v1/payroll/work-policy-groups/{group_id}/memberships` | `payroll:manage` | Assign an employment to a group for an effective date range. Overlap returns `409`. |
+
+Create group request:
+
+```json
+{
+  "name": "Operations",
+  "minutes_per_credit": 450,
+  "attendance_policy_id": "uuid",
+  "working_pattern_id": "uuid",
+  "pay_method": "monthly|hourly|shift",
+  "monthly_denominator": "fixed|schedule",
+  "monthly_standard_days": "decimal_string",
+  "overtime_policy_id": "uuid",
+  "effective_from": "YYYY-MM-DD",
+  "effective_to": "YYYY-MM-DD"
+}
+```
+
+Membership request:
+
+```json
+{
+  "employment_id": "uuid",
+  "effective_from": "YYYY-MM-DD",
+  "effective_to": "YYYY-MM-DD"
+}
+```
+
+Invalid references, dates, ranges, or policy combinations return `400`; missing referenced records return `404`; effective-range conflicts return `409`. Create operations are audited without salary or PII values.
+
 
 Quản lý lương, ca làm việc và báo cáo công. Hệ thống hỗ trợ cấu hình lương động dựa trên các thành phần thu nhập (Components) và chính sách công chuẩn của từng tổ chức.
 - **UI Note**: Trong WebDashboard, cài đặt lương đã được hợp nhất vào `Settings > Payroll`.
