@@ -265,6 +265,15 @@ BEGIN
         RAISE EXCEPTION 'schema check failed: payroll policy snapshot migration marker is missing';
     END IF;
 
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_attribute
+        WHERE attrelid = 'public.payslip_segments'::regclass
+          AND attname = 'labor_policy_group_version_id'
+          AND NOT attisdropped
+    ) OR to_regclass('public.payslip_segments_labor_policy_version_idx') IS NULL THEN
+        RAISE EXCEPTION 'schema check failed: payslip segment labor policy snapshot storage is missing';
+    END IF;
+
     SELECT count(*) INTO v_marker_count
     FROM public.schema_migrations
     WHERE version = '20261112030000_payroll_periods';

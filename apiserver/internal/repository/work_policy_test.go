@@ -22,6 +22,23 @@ func TestParseWorkPolicyRangeRejectsNonIncreasingEnd(t *testing.T) {
 	}
 }
 
+func TestWorkPolicyAssignmentAtSplitsExclusiveBoundaries(t *testing.T) {
+	versionOne := api.WorkPolicyGroupVersion{ID: uuid.New(), EffectiveFrom: "2026-01-01", EffectiveTo: func() *string { value := "2026-06-15"; return &value }()}
+	versionTwo := api.WorkPolicyGroupVersion{ID: uuid.New(), EffectiveFrom: "2026-06-15"}
+	assignments := []workPolicyAssignment{
+		{policy: versionOne, membershipFrom: "2026-01-01"},
+		{policy: versionTwo, membershipFrom: "2026-06-15"},
+	}
+	before := workPolicyAssignmentAt(assignments, time.Date(2026, 6, 14, 0, 0, 0, 0, time.UTC))
+	if before == nil || before.ID != versionOne.ID {
+		t.Fatalf("expected first policy before boundary, got %+v", before)
+	}
+	onBoundary := workPolicyAssignmentAt(assignments, time.Date(2026, 6, 15, 0, 0, 0, 0, time.UTC))
+	if onBoundary == nil || onBoundary.ID != versionTwo.ID {
+		t.Fatalf("expected replacement policy at exclusive boundary, got %+v", onBoundary)
+	}
+}
+
 func TestResolveWorkPolicyUsesExclusiveEndBoundary(t *testing.T) {
 	employmentID := uuid.New()
 	policyID := uuid.New()

@@ -20,6 +20,7 @@ import (
 	"github.com/vkaylee/leeattend/apiserver/internal/domain/payroll/rates"
 	"github.com/vkaylee/leeattend/apiserver/internal/domain/payroll/rules"
 	"github.com/vkaylee/leeattend/apiserver/internal/domain/timezone"
+	"github.com/vkaylee/leeattend/apiserver/internal/domain/workpolicy"
 	"github.com/vkaylee/leeattend/apiserver/internal/service"
 )
 
@@ -1861,6 +1862,95 @@ func resolveWorkPolicyOptional(ctx context.Context, db DBTX, employmentID uuid.U
 	return &policy, nil
 }
 
+type workPolicyAssignment struct {
+	policy         api.WorkPolicyGroupVersion
+	membershipFrom string
+	membershipTo   *string
+}
+
+func loadWorkPolicyAssignments(ctx context.Context, db DBTX, employmentID uuid.UUID, start, end time.Time) ([]workPolicyAssignment, error) {
+	rows, err := db.Query(ctx, `
+		SELECT v.id, v.group_id, g.name, v.work_credit_policy_id, wc.name, wc.minutes_per_credit,
+		       wc.attendance_policy_id, wc.working_pattern_id, v.pay_basis_policy_id, pb.name,
+		       pb.method, pb.monthly_denominator, pb.monthly_standard_days::text, v.overtime_policy_id,
+		       v.effective_from::text, v.effective_to::text,
+		       m.effective_from::text, m.effective_to::text
+		FROM labor_policy_memberships m
+		JOIN labor_policy_groups g ON g.id = m.group_id
+		JOIN labor_policy_group_versions v ON v.group_id = m.group_id
+		JOIN work_credit_policies wc ON wc.id = v.work_credit_policy_id
+		JOIN pay_basis_policies pb ON pb.id = v.pay_basis_policy_id
+		WHERE m.employment_id = $1
+		  AND m.effective_from <= $3::date AND (m.effective_to IS NULL OR m.effective_to > $2::date)
+		  AND v.effective_from <= $3::date AND (v.effective_to IS NULL OR v.effective_to > $2::date)
+		ORDER BY v.effective_from DESC, v.id DESC`, employmentID, start.Format("2006-01-02"), end.Format("2006-01-02"))
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	assignments := make([]workPolicyAssignment, 0)
+	for rows.Next() {
+		var assignment workPolicyAssignment
+		var method, denominator *string
+		var days *string
+		if err := rows.Scan(
+			&assignment.policy.ID, &assignment.policy.GroupID, &assignment.policy.Name,
+			&assignment.policy.WorkCreditPolicyID, &assignment.policy.WorkCreditPolicyName,
+			&assignment.policy.MinutesPerCredit, &assignment.policy.AttendancePolicyID,
+			&assignment.policy.WorkingPatternID, &assignment.policy.PayBasisPolicyID,
+			&assignment.policy.PayBasisPolicyName, &method, &denominator, &days,
+			&assignment.policy.OvertimePolicyID, &assignment.policy.EffectiveFrom,
+			&assignment.policy.EffectiveTo, &assignment.membershipFrom,
+			&assignment.membershipTo,
+		); err != nil {
+			return nil, err
+		}
+		assignment.policy.PayMethod = workpolicy.PayMethod(*method)
+		if denominator != nil {
+			value := workpolicy.MonthlyDenominator(*denominator)
+			assignment.policy.MonthlyDenominator = &value
+		}
+		if days != nil {
+			value, err := decimal.NewFromString(*days)
+			if err != nil {
+				return nil, err
+			}
+			assignment.policy.MonthlyStandardDays = &value
+		}
+		assignments = append(assignments, assignment)
+	}
+	return assignments, rows.Err()
+}
+
+func workPolicyAssignmentAt(assignments []workPolicyAssignment, asOf time.Time) *api.WorkPolicyGroupVersion {
+	for _, assignment := range assignments {
+		membershipFrom, err := time.Parse("2006-01-02", assignment.membershipFrom)
+		if err != nil || asOf.Before(membershipFrom) {
+			continue
+		}
+		if assignment.membershipTo != nil {
+			membershipTo, parseErr := time.Parse("2006-01-02", *assignment.membershipTo)
+			if parseErr != nil || !asOf.Before(membershipTo) {
+				continue
+			}
+		}
+		versionFrom, err := time.Parse("2006-01-02", assignment.policy.EffectiveFrom)
+		if err != nil || asOf.Before(versionFrom) {
+			continue
+		}
+		if assignment.policy.EffectiveTo != nil {
+			versionTo, parseErr := time.Parse("2006-01-02", *assignment.policy.EffectiveTo)
+			if parseErr != nil || !asOf.Before(versionTo) {
+				continue
+			}
+		}
+		policy := assignment.policy
+		return &policy
+	}
+	return nil
+}
+
 func (r PayrollRepository) calculateEmploymentPayslip(ctx context.Context, db DBTX, employmentID, employeeID uuid.UUID, deptID *uuid.UUID, year, month int, actorID uuid.UUID) (api.FullPayslipResponse, error) {
 	startDate, endDate, err := payroll.MonthBoundaries(year, month)
 	if err != nil {
@@ -1960,7 +2050,29 @@ ORDER BY start_date ASC, id ASC`, employeeID, endStr)
 		}
 	}
 
-	segmentsList := payroll.BuildSegments(startDate, endDate, salaryChanges, deptChanges)
+	policyAssignments, err := loadWorkPolicyAssignments(ctx, db, employmentID, startDate, endDate.AddDate(0, 0, 1))
+	if err != nil {
+		return api.FullPayslipResponse{}, err
+	}
+	policyChanges := make([]time.Time, 0)
+	for _, assignment := range policyAssignments {
+		if effectiveFrom, parseErr := time.Parse("2006-01-02", assignment.policy.EffectiveFrom); parseErr == nil && effectiveFrom.After(startDate) && effectiveFrom.Before(endDate.AddDate(0, 0, 1)) {
+			policyChanges = append(policyChanges, effectiveFrom)
+		}
+		if assignment.membershipFrom != "" {
+			if effectiveFrom, parseErr := time.Parse("2006-01-02", assignment.membershipFrom); parseErr == nil && effectiveFrom.After(startDate) && effectiveFrom.Before(endDate.AddDate(0, 0, 1)) {
+				policyChanges = append(policyChanges, effectiveFrom)
+			}
+		}
+		for _, effectiveTo := range []*string{assignment.policy.EffectiveTo, assignment.membershipTo} {
+			if effectiveTo != nil {
+				if boundary, parseErr := time.Parse("2006-01-02", *effectiveTo); parseErr == nil && boundary.After(startDate) && boundary.Before(endDate.AddDate(0, 0, 1)) {
+					policyChanges = append(policyChanges, boundary)
+				}
+			}
+		}
+	}
+	segmentsList := payroll.BuildSegments(startDate, endDate, append(salaryChanges, policyChanges...), deptChanges)
 	if len(segmentsList) == 0 {
 		segmentsList = []payroll.DateRange{{Start: startDate, End: endDate}}
 	}
@@ -2048,17 +2160,18 @@ WHERE employment_id = $1 AND date >= $2::date AND date <= $3::date`, employmentI
 	stdSource := "organization_settings"
 
 	type segSnapshot struct {
-		id           uuid.UUID
-		start        time.Time
-		end          time.Time
-		appliedBase  decimal.Decimal
-		stdDays      decimal.Decimal
-		hoursPerDay  decimal.Decimal
-		actualDays   decimal.Decimal
-		amount       decimal.Decimal
-		reason       string
-		source       *string
-		departmentID *uuid.UUID
+		id                 uuid.UUID
+		start              time.Time
+		end                time.Time
+		appliedBase        decimal.Decimal
+		stdDays            decimal.Decimal
+		hoursPerDay        decimal.Decimal
+		actualDays         decimal.Decimal
+		amount             decimal.Decimal
+		reason             string
+		source             *string
+		departmentID       *uuid.UUID
+		laborPolicyVersion *uuid.UUID
 	}
 	var segmentSnapshots []segSnapshot
 
@@ -2118,18 +2231,24 @@ WHERE employment_id = $1 AND date >= $2::date AND date <= $3::date`, employmentI
 			}
 		}
 
+		var segmentPolicyVersion *uuid.UUID
+		if policy := workPolicyAssignmentAt(policyAssignments, seg.Start); policy != nil {
+			segmentPolicyVersion = &policy.ID
+		}
+
 		segmentSnapshots = append(segmentSnapshots, segSnapshot{
-			id:           uuid.New(),
-			start:        seg.Start,
-			end:          seg.End,
-			appliedBase:  segBase,
-			stdDays:      stdDays,
-			hoursPerDay:  hoursPerDay,
-			actualDays:   actualDays,
-			amount:       segAmount,
-			reason:       reason,
-			source:       &stdSource,
-			departmentID: currentDept,
+			id:                 uuid.New(),
+			start:              seg.Start,
+			end:                seg.End,
+			appliedBase:        segBase,
+			stdDays:            stdDays,
+			hoursPerDay:        hoursPerDay,
+			actualDays:         actualDays,
+			amount:             segAmount,
+			reason:             reason,
+			source:             &stdSource,
+			departmentID:       currentDept,
+			laborPolicyVersion: segmentPolicyVersion,
 		})
 	}
 
@@ -2397,26 +2516,27 @@ RETURNING created_at, updated_at`,
 	segmentResponses := make([]api.PayslipSegmentResponse, 0, len(segmentSnapshots))
 	for _, snap := range segmentSnapshots {
 		segID := snap.id
-		_, err := db.Exec(ctx, `INSERT INTO payslip_segments (id, payslip_id, start_date, end_date, department_id, applied_base_salary, applied_std_days, actual_work_days, paid_work_days, amount, created_at, applied_hours_per_day, std_days_source)
-VALUES ($1, $2, $3::date, $4::date, $5, $6, $7, $8, $8, $9, NOW(), $10, $11)`,
-			segID, finalPayslipID, snap.start.Format("2006-01-02"), snap.end.Format("2006-01-02"), snap.departmentID, snap.appliedBase.String(), snap.stdDays.String(), snap.actualDays.String(), snap.amount.String(), snap.hoursPerDay.String(), snap.source)
+		_, err := db.Exec(ctx, `INSERT INTO payslip_segments (id, payslip_id, start_date, end_date, department_id, applied_base_salary, applied_std_days, actual_work_days, paid_work_days, amount, created_at, applied_hours_per_day, std_days_source, labor_policy_group_version_id)
+VALUES ($1, $2, $3::date, $4::date, $5, $6, $7, $8, $8, $9, NOW(), $10, $11, $12)`,
+			segID, finalPayslipID, snap.start.Format("2006-01-02"), snap.end.Format("2006-01-02"), snap.departmentID, snap.appliedBase.String(), snap.stdDays.String(), snap.actualDays.String(), snap.amount.String(), snap.hoursPerDay.String(), snap.source, snap.laborPolicyVersion)
 		if err != nil {
 			return api.FullPayslipResponse{}, err
 		}
 		segmentResponses = append(segmentResponses, api.PayslipSegmentResponse{
-			ID:                 segID,
-			PayslipID:          finalPayslipID,
-			StartDate:          snap.start.Format("2006-01-02"),
-			EndDate:            snap.end.Format("2006-01-02"),
-			DepartmentID:       snap.departmentID,
-			AppliedBaseSalary:  snap.appliedBase,
-			AppliedStdDays:     snap.stdDays,
-			AppliedHoursPerDay: snap.hoursPerDay,
-			ActualWorkDays:     snap.actualDays,
-			PaidWorkDays:       snap.actualDays,
-			Amount:             snap.amount,
-			Reason:             snap.reason,
-			StdDaysSource:      snap.source,
+			ID:                   segID,
+			PayslipID:            finalPayslipID,
+			StartDate:            snap.start.Format("2006-01-02"),
+			EndDate:              snap.end.Format("2006-01-02"),
+			DepartmentID:         snap.departmentID,
+			AppliedBaseSalary:    snap.appliedBase,
+			AppliedStdDays:       snap.stdDays,
+			AppliedHoursPerDay:   snap.hoursPerDay,
+			ActualWorkDays:       snap.actualDays,
+			PaidWorkDays:         snap.actualDays,
+			Amount:               snap.amount,
+			Reason:               snap.reason,
+			StdDaysSource:        snap.source,
+			LaborPolicyVersionID: snap.laborPolicyVersion,
 		})
 	}
 

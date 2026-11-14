@@ -218,19 +218,20 @@ type PayrollRuleAssignment struct {
 }
 
 type PayslipSegmentResponse struct {
-	ID                 uuid.UUID       `json:"id"`
-	PayslipID          uuid.UUID       `json:"payslip_id"`
-	StartDate          string          `json:"start_date"`
-	EndDate            string          `json:"end_date"`
-	DepartmentID       *uuid.UUID      `json:"department_id"`
-	AppliedBaseSalary  decimal.Decimal `json:"applied_base_salary"`
-	AppliedStdDays     decimal.Decimal `json:"applied_std_days"`
-	AppliedHoursPerDay decimal.Decimal `json:"applied_hours_per_day"`
-	ActualWorkDays     decimal.Decimal `json:"actual_work_days"`
-	PaidWorkDays       decimal.Decimal `json:"paid_work_days"`
-	Amount             decimal.Decimal `json:"amount"`
-	Reason             string          `json:"reason"`
-	StdDaysSource      *string         `json:"std_days_source,omitempty"`
+	ID                   uuid.UUID       `json:"id"`
+	PayslipID            uuid.UUID       `json:"payslip_id"`
+	StartDate            string          `json:"start_date"`
+	EndDate              string          `json:"end_date"`
+	DepartmentID         *uuid.UUID      `json:"department_id"`
+	AppliedBaseSalary    decimal.Decimal `json:"applied_base_salary"`
+	AppliedStdDays       decimal.Decimal `json:"applied_std_days"`
+	AppliedHoursPerDay   decimal.Decimal `json:"applied_hours_per_day"`
+	ActualWorkDays       decimal.Decimal `json:"actual_work_days"`
+	PaidWorkDays         decimal.Decimal `json:"paid_work_days"`
+	Amount               decimal.Decimal `json:"amount"`
+	Reason               string          `json:"reason"`
+	StdDaysSource        *string         `json:"std_days_source,omitempty"`
+	LaborPolicyVersionID *uuid.UUID      `json:"labor_policy_version_id,omitempty"`
 }
 
 type IncentiveEvaluationResult struct {
