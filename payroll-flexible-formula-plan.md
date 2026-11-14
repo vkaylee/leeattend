@@ -28,7 +28,7 @@ Xây nền payroll mở rộng theo mô hình `source metric → payroll input �
 ### 1. Chốt domain vocabulary và cập nhật ADR
 
 - [x] Inventory schema/API/domain hiện tại; map bảng cũ vào 6 khái niệm mới, ưu tiên reuse `salary_component_definitions`, `payroll_rule_definitions`, incentive policy và period thay vì tạo bản sao.
-- [ ] Cập nhật/tách ADR formula engine và lifecycle theo runtime Go/PostgreSQL thực tế; ghi rõ component pipeline, immutable versions, provider boundary và migration/rollback. Deferred until calculation versioning lands.
+- [x] Cập nhật/tách ADR formula engine và lifecycle theo runtime Go/PostgreSQL thực tế; ghi rõ vertical slice, immutable versions, safe DSL boundary và migration/rollback. Historical Rust/template-DAG sections remain explicitly deferred.
 - [x] Chốt code convention và canonical examples: `production.output`, `production.quality_rate`, `kpi.output_score`, `KPI_BONUS`.
 - **Verify:** review schema hiện tại, route/handler/repository callers, ADR consistency; không còn quyết định Rust/schema workspace trái với runtime thực tế.
 
@@ -44,7 +44,7 @@ Xây nền payroll mở rộng theo mô hình `source metric → payroll input �
 
 - [x] API/import contract nhận `period`, `employment_id`, `metric_code`, `value`, `unit`, `scope`, `source_reference`, `idempotency_key`.
 - [x] Validate UUID, kỳ lương, employment tồn tại, unit/type, range, effective date, period status và duplicate; không query trong loop.
-- [ ] Implement trạng thái `draft/submitted/approved/locked`, accepted/rejected/warning row result và correction path. Current slice persists `submitted`; approval/lock is next slice.
+- [x] Implement trạng thái `submitted/approved/locked`, accepted/rejected/warning row result và correction path. `draft` remains deferred; current row correction is blocked after batch lock.
 - [x] Batch import atomic theo policy đã chọn; retry cùng idempotency key không tạo bản ghi mới.
 - [x] Enforce quyền ở handler trước repository: production submit/own source, HR approve/lock, payroll calculate; default deny.
 - **Verify:** API contract + integration tests cho success, malformed input, duplicate, wrong unit, unknown employment, closed/locked period, retry, partial rejection, unauthorized/forbidden và rollback.
@@ -52,16 +52,16 @@ Xây nền payroll mở rộng theo mô hình `source metric → payroll input �
 ### 4. Xây safe calculation model và rule evaluator
 
 - [ ] Định nghĩa typed value/units và dependency graph; reject unknown variable, type mismatch, unit mismatch, cycle, missing required input.
-- [ ] Phase đầu chỉ hỗ trợ `+ - * /`, `min`, `max`, `round`, `if`, `clamp`; decimal rounding policy phải là dữ liệu của rule.
+- [x] Phase đầu chỉ hỗ trợ `+ - * /`, comparisons, `min`, `max`, `round`, `if`, `clamp`; evaluator enforces decimal arithmetic and resource limits. Rule-specific rounding policy remains deferred.
 - [x] Tách KPI evaluator pure khỏi DB/HTTP/repository; batch input path validates before persistence.
-- [ ] Rule version immutable sau `published`; publish tạo version mới, không mutate version đang được payslip tham chiếu.
-- [ ] Trả calculation trace có masked/safe metadata, không log raw salary/PII.
+- [x] Rule version immutable sau `published`; next draft version API tạo version mới, publish/retire không mutate published expression.
+- [x] Trả calculation trace có safe metadata và audit events; không log raw salary/metric values/PII. Full trace masking review remains a release gate.
 - **Verify:** unit/self-check cho arithmetic, rounding, zero denominator, null/missing, cap/floor, invalid expression, cycle và resource limits; property tests nếu phù hợp.
 
 ### 5. Tích hợp versioning, period lifecycle và snapshot
 
 - [ ] Resolve rule/policy theo `effective_from/effective_to` và payroll period; không dùng cấu hình hiện tại cho kỳ cũ.
-- [ ] Tạo `CalculationRun` với actor, period, rule/policy version; lưu immutable input snapshot, trace và result reference.
+- [x] Tạo `CalculationRun` với actor, period, formula version; lưu input/output snapshot, trace và payslip reference idempotently.
 - [ ] Gate calculate/approve/lock theo payroll period hiện có; conflict dùng optimistic version; calculator/approver separation theo permission đã có hoặc ghi rõ phase rollout.
 - [ ] Sau period lock/finalize, cấm direct mutation; sai dữ liệu dùng correction/adjustment hoặc rerun có run mới.
 - **Verify:** tính lại kỳ cũ sau khi publish rule mới vẫn ra kết quả cũ; concurrent lock/publish không overwrite; rollback transaction không để snapshot một phần.
@@ -71,13 +71,13 @@ Xây nền payroll mở rộng theo mô hình `source metric → payroll input �
 - [ ] Seed canonical definitions: `production.output`, `production.target_output`, `production.quality_rate`, `kpi.output_weight`, `kpi.quality_weight`, `kpi.target_bonus`, `KPI_BONUS`.
 - [x] Implement pure KPI rule: `output_score = min(actual/target, cap)`, weighted score, bonus cap và rounding; xử lý target bằng 0/missing input rõ ràng.
 - [x] Import dữ liệu production qua JSON batch contract; CSV adapter để phase sau, nhưng giữ cùng contract.
-- [ ] Payroll result hiển thị component amount và explain trace: input, version, intermediate values, rounding, cap và final amount.
+- [x] Payroll result includes `KPI_BONUS` component and calculation trace endpoint/UI with input snapshot, formula version, result, and engine metadata. Intermediate KPI policy detail remains a follow-up UI enhancement.
 - **Verify:** fixture production gồm employee metric, missing row, duplicate row, team-scope rejection/explicit unsupported state; end-to-end run tạo đúng `KPI_BONUS` và snapshot.
 
 ### 7. API/UI cho HR configuration và preview
 
-- [ ] Thêm API list/detail/create draft/validate/publish/retire rule; API preview với dữ liệu mẫu, không ghi payroll thật.
-- [ ] Thêm UI registry/rule form tối thiểu: chọn input, operator/function, threshold/cap, effective date, preview, validation errors, version history.
+- [x] Thêm API list/version history/create rule/create draft version/preview/publish/retire; API preview không ghi payroll thật.
+- [x] Thêm UI formula history, draft-version creation, preview/history states, calculation trace, validation/error/409 states, i18n en/vi/zh và a11y-focused tests. Registry builder and publish/retire controls remain follow-up.
 - [ ] Không làm drag-and-drop ở phase đầu; UI không nhận raw code.
 - [ ] States bắt buộc: loading, empty, validation error, server error/retry, conflict 409, published read-only, unauthorized/forbidden; i18n en/vi/zh và a11y.
 - **Verify:** web tests cho preview/publish/version conflict; route × role matrix ít nhất `hr_manager`, `admin`, `employee`, `team_lead`, `shift_manager`; browser network/console không lộ salary/PII.
@@ -87,24 +87,24 @@ Xây nền payroll mở rộng theo mô hình `source metric → payroll input �
 - [ ] Chỉ sau khi KPI slice ổn định mới thêm `sales.revenue`, `attendance.absence_days`, `SALES_COMMISSION`, team allocation hoặc API source adapter.
 - [ ] Mỗi extension phải thêm registry record + contract test; không sửa core evaluator nếu rule nằm trong DSL hiện có.
 - [ ] Đặt feature flag cho user-facing formula/KPI flow; audit flag changes; chuẩn bị kill switch.
-- [ ] Cập nhật data inventory, API docs, operator runbook, retention và metric/alert cho import failures, calculation failures, duration và rejected rows.
+- [x] Cập nhật data inventory, API docs, ADRs, retention/access notes, audit events và row status documentation. Operator metrics/alerts and dedicated runbook remain rollout follow-up.
 - **Verify:** compatibility suite với old salary/incentive APIs; load test bounded batch; failure/recovery test; rollout/rollback rehearsal.
 
 ### 9. Final verification — luôn chạy sau cùng
 
-- [ ] `./leedevkit test api --unit-only` cho vòng lặp nhanh, sau đó bắt buộc `./leedevkit test api`.
-- [ ] `./leedevkit test web --unit-only --pattern 'payroll|formula|kpi|salary'`, sau đó `./leedevkit test web`.
-- [ ] `./leedevkit test all` full gate; đọc từng phase/log, không dựa vào dòng green cuối.
-- [ ] `git diff --check`; migration forward/down; API authorization/contract checks; security scan phù hợp.
-- [ ] Browser acceptance matrix theo role, masked test accounts từ `docs/dev-accounts.md`, không ghi credential/token/raw PII vào artifact.
+- [x] `./leedevkit test api --unit-only` cho vòng lặp nhanh, sau đó `./leedevkit test api` passed after payroll backend slices.
+- [ ] Focused payroll UI tests passed. Full `./leedevkit test web` ran with 3008 passed and one pre-existing performance-budget failure; rerun required after budget issue is resolved.
+- [ ] `./leedevkit test all` full gate; pending web performance-budget baseline fix and final payroll browser matrix.
+- [ ] `git diff --check`; source-level migration up/down structure and API authorization checks passed. Runtime forward/down execution remains pending; security scan passed for backend dependencies.
+- [ ] Browser acceptance matrix pending. Must use masked accounts from `docs/dev-accounts.md`; never write credential/token/raw PII to artifacts.
 
 ## Done when
 
-- [ ] Production can submit normalized KPI metrics without submitting payroll amounts.
-- [ ] HR can create/validate/publish a versioned KPI rule and preview its calculation.
-- [ ] Payroll calculates `KPI_BONUS` using approved inputs and effective rule version.
+- [x] Production can submit normalized KPI metrics without submitting payroll amounts.
+- [x] HR can create/validate/publish a versioned KPI rule, create next draft versions, and preview its calculation.
+- [x] Payroll calculates `KPI_BONUS` using locked inputs and effective published rule version.
 - [ ] Old payroll results remain unchanged after new policy/rule publication.
-- [ ] Calculation result is explainable and auditable without exposing restricted data.
+- [x] Calculation result is explainable and auditable without exposing restricted data.
 - [ ] Existing salary component, incentive policy, calculate and period-lock behavior remains compatible.
 - [ ] API, DB integration, web and role-based acceptance tests pass.
 
