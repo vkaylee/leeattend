@@ -6,10 +6,53 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/vkaylee/leeattend/apiserver/internal/api"
 )
+
+type ScheduleShadowMismatchRecord struct {
+	EmployerID       uuid.UUID
+	EmploymentID     uuid.UUID
+	BusinessDate     string
+	MismatchKind     string
+	LegacySnapshot   json.RawMessage
+	ResolverSnapshot json.RawMessage
+	ResolverVersion  string
+}
+
+func (r ScheduleRepository) RecordScheduleShadowMismatch(ctx context.Context, record ScheduleShadowMismatchRecord) error {
+	if record.EmployerID == uuid.Nil || record.EmploymentID == uuid.Nil || record.ResolverVersion == "" {
+		return fmt.Errorf("shadow mismatch identity is required")
+	}
+	if _, err := time.Parse("2006-01-02", record.BusinessDate); err != nil {
+		return fmt.Errorf("shadow mismatch business date: %w", err)
+	}
+	validKinds := map[string]bool{"intervals": true, "overnight": true, "explicit_off": true, "missing": true, "effective_version": true, "timezone": true, "source": true, "other": true}
+	if !validKinds[record.MismatchKind] {
+		return fmt.Errorf("shadow mismatch kind is invalid")
+	}
+	for name, snapshot := range map[string]json.RawMessage{"legacy": record.LegacySnapshot, "resolver": record.ResolverSnapshot} {
+		var object map[string]any
+		if len(snapshot) == 0 || json.Unmarshal(snapshot, &object) != nil || object == nil {
+			return fmt.Errorf("%s shadow snapshot must be a JSON object", name)
+		}
+	}
+	db, err := r.db(ctx)
+	if err != nil {
+		return err
+	}
+	_, err = db.Exec(ctx, `INSERT INTO schedule_shadow_mismatches
+		(employer_id, employment_id, business_date, mismatch_kind, legacy_snapshot, resolver_snapshot, resolver_version)
+		VALUES ($1, $2, $3::date, $4, $5, $6, $7)
+		ON CONFLICT (employer_id, employment_id, business_date, mismatch_kind) WHERE status = 'open'
+		DO UPDATE SET legacy_snapshot = EXCLUDED.legacy_snapshot,
+		              resolver_snapshot = EXCLUDED.resolver_snapshot,
+		              resolver_version = EXCLUDED.resolver_version,
+		              last_seen_at = CURRENT_TIMESTAMP`, record.EmployerID, record.EmploymentID, record.BusinessDate, record.MismatchKind, record.LegacySnapshot, record.ResolverSnapshot, record.ResolverVersion)
+	return err
+}
 
 func (r ScheduleRepository) AuthorizeScheduleHistory(ctx context.Context, userID, employmentID uuid.UUID) (bool, error) {
 	db, err := r.db(ctx)
