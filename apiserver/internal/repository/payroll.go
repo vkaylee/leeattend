@@ -2226,6 +2226,11 @@ ORDER BY priority ASC`, policyIDs)
 	kpiCalc.Policy = resolvedPolicy
 	kpiCalc.StandardUnits = totalStdUnits
 	kpiCalc.OvertimeUnits = totalOtUnits
+	if resolvedPolicy != nil {
+		kpiCalc.Trace = append(kpiCalc.Trace, map[string]string{"step": "policy", "rule": "labor_policy_group", "expression": "effective membership resolution", "result": resolvedPolicy.ID.String()})
+	} else {
+		kpiCalc.Trace = append(kpiCalc.Trace, map[string]string{"step": "policy", "rule": "labor_policy_group", "expression": "effective membership resolution", "result": "not_configured"})
+	}
 	if kpiCalc.Amount.GreaterThan(decimal.Zero) {
 		totalIncentives = totalIncentives.Add(kpiCalc.Amount)
 		incentiveResults = append(incentiveResults, api.IncentiveEvaluationResult{

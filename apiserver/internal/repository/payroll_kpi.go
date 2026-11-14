@@ -142,13 +142,7 @@ func persistKPICalculation(ctx context.Context, db DBTX, employmentID, payslipID
 	if err != nil {
 		return err
 	}
-	traceSteps := append([]map[string]string(nil), calc.Trace...)
-	if calc.Policy != nil {
-		traceSteps = append(traceSteps, map[string]string{"step": "policy", "rule": "labor_policy_group", "expression": "effective membership resolution", "result": calc.Policy.ID.String()})
-	} else {
-		traceSteps = append(traceSteps, map[string]string{"step": "policy", "rule": "labor_policy_group", "expression": "effective membership resolution", "result": "not_configured"})
-	}
-	trace, err := json.Marshal(traceSteps)
+	trace, err := json.Marshal(calc.Trace)
 	if err != nil {
 		return err
 	}
