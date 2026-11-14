@@ -144,7 +144,7 @@ func TestReportRepository_GetAttendanceReportDailyMapsOTClaimStatus(t *testing.T
 		rows = append(rows, []any{
 			"2026-01-01", employmentID, employeeID, "Alice", "EMP01",
 			"", "", "", "", "",
-			480, 480, 0, status,
+			480, 480, 0, status, 8.0,
 		})
 	}
 

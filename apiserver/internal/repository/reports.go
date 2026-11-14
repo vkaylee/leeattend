@@ -151,10 +151,25 @@ func (r ReportRepository) GetAttendanceReport(ctx context.Context, params api.At
        COALESCE(ads.actual_work_minutes, 0),
        COALESCE(ads.standard_minutes, 0),
        COALESCE(ads.approved_ot_minutes, 0),
-       COALESCE(ads.ot_status::text, 'none')
+       COALESCE(ads.ot_status::text, 'none'),
+       COALESCE(hours.hours_per_day, 8.0)::double precision
 FROM employments emp
 JOIN employees e ON e.id = emp.employee_id
 JOIN attendance_daily_summaries ads ON ads.employment_id = emp.id
+LEFT JOIN LATERAL (
+	SELECT ce.value_decimal AS hours_per_day
+	FROM config_entries ce
+	WHERE ce.config_key = 'payroll.hours_per_day'
+	  AND ce.effective_from <= ads.date
+	  AND (ce.effective_to IS NULL OR ce.effective_to >= ads.date)
+	  AND ce.value_decimal > 0
+	  AND ((ce.scope_type = 'employment' AND ce.scope_id = emp.id)
+	    OR (ce.scope_type = 'department' AND ce.scope_id = emp.department_id)
+	    OR (ce.scope_type = 'organization' AND ce.scope_id IS NULL))
+	ORDER BY CASE ce.scope_type WHEN 'employment' THEN 1 WHEN 'department' THEN 2 WHEN 'organization' THEN 3 END,
+	         ce.effective_from DESC, ce.created_at DESC, ce.id DESC
+	LIMIT 1
+) hours ON TRUE
 LEFT JOIN official_schedule os ON os.employment_id = emp.id AND os.business_date = ads.date
 LEFT JOIN time_entries te ON te.employment_id = emp.id AND te.punch_in_time::date = ads.date
 WHERE %s%s
@@ -172,11 +187,12 @@ LIMIT $%d OFFSET $%d`, whereClause, filterClause, argIndex, argIndex+1)
 		for rows.Next() {
 			var row api.DailyAttendanceRow
 			var actMins, stdMins, otMins int
+			var hoursPerDay float64
 			var shiftName, schedStart, schedEnd, punchIn, punchOut *string
 			var otStatus string
 			if err := rows.Scan(&row.Date, &row.EmploymentID, &row.EmployeeID, &row.EmployeeName, &row.EmployeeIDNumber,
 				&shiftName, &schedStart, &schedEnd, &punchIn, &punchOut,
-				&actMins, &stdMins, &otMins, &otStatus); err != nil {
+				&actMins, &stdMins, &otMins, &otStatus, &hoursPerDay); err != nil {
 				return api.PaginatedReportResponse{}, err
 			}
 			row.ShiftName = shiftName
@@ -187,8 +203,12 @@ LIMIT $%d OFFSET $%d`, whereClause, filterClause, argIndex, argIndex+1)
 			row.ActualWorkMinutes = actMins
 			row.ComputedStdHours = math.Round((float64(stdMins)/60.0)*100) / 100
 			row.ComputedOTHours = math.Round((float64(otMins)/60.0)*100) / 100
-			row.StdWorkUnits = math.Round((float64(stdMins)/480.0)*100) / 100
-			row.OTWorkUnits = math.Round((float64(otMins)/480.0)*100) / 100
+			denominator := hoursPerDay * 60
+			if denominator <= 0 {
+				denominator = 480
+			}
+			row.StdWorkUnits = math.Round((float64(stdMins)/denominator)*100) / 100
+			row.OTWorkUnits = math.Round((float64(otMins)/denominator)*100) / 100
 			row.OTClaimStatus = otStatus
 			if actMins > 0 || stdMins > 0 || (punchIn != nil && punchOut != nil) {
 				row.Status = "present"
@@ -261,14 +281,29 @@ LIMIT $%d OFFSET $%d`, whereClause, filterClause, argIndex, argIndex+1)
 	}
 
 	dataQuery := fmt.Sprintf(`SELECT emp.id AS employment_id, e.id AS employee_id, e.full_name, e.employee_id_number,
-       COALESCE(SUM(ads.standard_minutes), 0) / 480 AS total_std_units,
-       COALESCE(SUM(ads.approved_ot_minutes), 0) / 480 AS total_ot_units,
+       FLOOR(COALESCE(SUM(ads.standard_minutes), 0)::numeric / (COALESCE(hours.hours_per_day, 8.0) * 60))::int AS total_std_units,
+       FLOOR(COALESCE(SUM(ads.approved_ot_minutes), 0)::numeric / (COALESCE(hours.hours_per_day, 8.0) * 60))::int AS total_ot_units,
        ROUND((COALESCE(SUM(ads.standard_minutes), 0)::numeric / 60.0), 2) AS computed_std_hours,
        ROUND((COALESCE(SUM(ads.approved_ot_minutes), 0)::numeric / 60.0), 2) AS computed_ot_hours,
+       COALESCE(hours.hours_per_day, 8.0)::double precision AS unit_coefficient_hours,
        emp.employer_id, em.name AS employer_name
 FROM employments emp
 JOIN employees e ON e.id = emp.employee_id
 LEFT JOIN employers em ON em.id = emp.employer_id
+LEFT JOIN LATERAL (
+	SELECT ce.value_decimal AS hours_per_day
+	FROM config_entries ce
+	WHERE ce.config_key = 'payroll.hours_per_day'
+	  AND ce.effective_from <= $1::date
+	  AND (ce.effective_to IS NULL OR ce.effective_to >= $1::date)
+	  AND ce.value_decimal > 0
+	  AND ((ce.scope_type = 'employment' AND ce.scope_id = emp.id)
+	    OR (ce.scope_type = 'department' AND ce.scope_id = emp.department_id)
+	    OR (ce.scope_type = 'organization' AND ce.scope_id IS NULL))
+	ORDER BY CASE ce.scope_type WHEN 'employment' THEN 1 WHEN 'department' THEN 2 WHEN 'organization' THEN 3 END,
+	         ce.effective_from DESC, ce.created_at DESC, ce.id DESC
+	LIMIT 1
+) hours ON TRUE
 LEFT JOIN attendance_daily_summaries ads ON ads.employment_id = emp.id AND ads.date >= $1::date AND ads.date <= $2::date
 		WHERE %s%s
 		GROUP BY emp.id, e.id, e.full_name, e.employee_id_number, emp.employer_id, em.name
@@ -286,10 +321,9 @@ LEFT JOIN attendance_daily_summaries ads ON ads.employment_id = emp.id AND ads.d
 	for rows.Next() {
 		var row api.AttendanceSummaryRow
 		row.UnitType = "DAY"
-		row.UnitCoefficientHours = 8.0
 		if err := rows.Scan(&row.EmploymentID, &row.EmployeeID, &row.EmployeeName, &row.EmployeeIDNumber,
 			&row.TotalStdUnits, &row.TotalOTUnits,
-			&row.ComputedStdHours, &row.ComputedOTHours,
+			&row.ComputedStdHours, &row.ComputedOTHours, &row.UnitCoefficientHours,
 			&row.EmployerID, &row.EmployerName); err != nil {
 			return api.PaginatedReportResponse{}, err
 		}
