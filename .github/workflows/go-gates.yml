@@ -8,6 +8,7 @@ on:
       - '.compose/go/**'
       - '.compose/docker-compose.test.yml'
       - 'scripts/_go-gates.sh'
+      - '.golangci.yml'
       - 'leedevkit.toml'
       - '.github/workflows/go-gates.yml'
 
@@ -21,6 +22,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -28,7 +31,7 @@ jobs:
       - name: Build pinned Go gate image
         run: docker build -t localhost/leeattend-test_go -f .compose/go/Dockerfile .compose/go
 
-      - name: Lint gates (gofmt, vet, staticcheck, govulncheck, mod verify)
+      - name: Lint gates (gofmt, vet, staticcheck, golangci-lint, govulncheck, mod verify)
         run: ./scripts/_go-gates.sh --lint-only
 
       - name: Unit gates (-race)
@@ -47,6 +50,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3

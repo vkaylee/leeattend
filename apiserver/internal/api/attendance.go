@@ -206,19 +206,8 @@ func (h AttendanceHandler) TimeHistory(w http.ResponseWriter, r *http.Request) {
 		h.forbidden(w, r)
 		return
 	}
-	startRaw := r.URL.Query().Get("start")
-	endRaw := r.URL.Query().Get("end")
-	if startRaw == "" || endRaw == "" {
-		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
-		return
-	}
-	start, err := time.Parse(time.RFC3339, startRaw)
-	if err != nil {
-		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
-		return
-	}
-	end, err := time.Parse(time.RFC3339, endRaw)
-	if err != nil {
+	query, queryOK := parseTimeHistoryQuery(r)
+	if !queryOK {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}
@@ -238,12 +227,29 @@ func (h AttendanceHandler) TimeHistory(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	entries, err := h.Repository.ListTimeHistory(r.Context(), employeeID, start, end)
+	entries, err := h.Repository.ListTimeHistory(r.Context(), employeeID, query.Start, query.End)
 	if err != nil {
 		h.writeError(w, r, err)
 		return
 	}
 	apperror.WriteJSON(w, http.StatusOK, entries)
+}
+
+func parseTimeHistoryQuery(r *http.Request) (TimeHistoryQuery, bool) {
+	startRaw := r.URL.Query().Get("start")
+	endRaw := r.URL.Query().Get("end")
+	if startRaw == "" || endRaw == "" {
+		return TimeHistoryQuery{}, false
+	}
+	start, err := time.Parse(time.RFC3339, startRaw)
+	if err != nil {
+		return TimeHistoryQuery{}, false
+	}
+	end, err := time.Parse(time.RFC3339, endRaw)
+	if err != nil {
+		return TimeHistoryQuery{}, false
+	}
+	return TimeHistoryQuery{Start: start, End: end}, true
 }
 
 // CreateAdjustment handles POST /api/v1/attendance/adjustments.
