@@ -95,6 +95,7 @@ import { Route as AuthenticatedOrganizationAssignmentRulesRuleIdEditRouteImport 
 import { Route as AuthenticatedOrganizationShiftsRulesWorkingPatternsNewRouteImport } from "./routes/_authenticated/_organization/shifts.rules.working-patterns.new"
 import { Route as AuthenticatedOrganizationShiftsRulesAssignmentRulesNewRouteImport } from "./routes/_authenticated/_organization/shifts.rules.assignment-rules.new"
 import { Route as AuthenticatedOrganizationSettingsWorkflowsWorkflowIdEditRouteImport } from "./routes/_authenticated/_organization/settings/workflows.$workflowId.edit"
+import { Route as AuthenticatedOrganizationSettingsLeaveTypesNewRouteImport } from "./routes/_authenticated/_organization/settings/leave_.types.new"
 import { Route as AuthenticatedOrganizationShiftsRulesWorkingPatternsPatternIdEditRouteImport } from "./routes/_authenticated/_organization/shifts.rules.working-patterns.$patternId.edit"
 import { Route as AuthenticatedOrganizationShiftsRulesAssignmentRulesRuleIdEditRouteImport } from "./routes/_authenticated/_organization/shifts.rules.assignment-rules.$ruleId.edit"
 
@@ -901,6 +902,16 @@ const AuthenticatedOrganizationSettingsWorkflowsWorkflowIdEditRoute =
       (d) => d.Route,
     ),
   )
+const AuthenticatedOrganizationSettingsLeaveTypesNewRoute =
+  AuthenticatedOrganizationSettingsLeaveTypesNewRouteImport.update({
+    id: "/leave_/types/new",
+    path: "/leave/types/new",
+    getParentRoute: () => AuthenticatedOrganizationSettingsRoute,
+  } as any).lazy(() =>
+    import("./routes/_authenticated/_organization/settings/leave_.types.new.lazy").then(
+      (d) => d.Route,
+    ),
+  )
 const AuthenticatedOrganizationShiftsRulesWorkingPatternsPatternIdEditRoute =
   AuthenticatedOrganizationShiftsRulesWorkingPatternsPatternIdEditRouteImport.update(
     {
@@ -1007,6 +1018,7 @@ export interface FileRoutesByFullPath {
   "/working-patterns/$patternId/edit": typeof AuthenticatedOrganizationWorkingPatternsPatternIdEditRoute
   "/settings/workflows/": typeof AuthenticatedOrganizationSettingsWorkflowsIndexRoute
   "/shifts/rules/": typeof AuthenticatedOrganizationShiftsRulesIndexRoute
+  "/settings/leave/types/new": typeof AuthenticatedOrganizationSettingsLeaveTypesNewRoute
   "/settings/workflows/$workflowId/edit": typeof AuthenticatedOrganizationSettingsWorkflowsWorkflowIdEditRoute
   "/shifts/rules/assignment-rules/new": typeof AuthenticatedOrganizationShiftsRulesAssignmentRulesNewRoute
   "/shifts/rules/working-patterns/new": typeof AuthenticatedOrganizationShiftsRulesWorkingPatternsNewRoute
@@ -1088,6 +1100,7 @@ export interface FileRoutesByTo {
   "/working-patterns/$patternId/edit": typeof AuthenticatedOrganizationWorkingPatternsPatternIdEditRoute
   "/settings/workflows": typeof AuthenticatedOrganizationSettingsWorkflowsIndexRoute
   "/shifts/rules": typeof AuthenticatedOrganizationShiftsRulesIndexRoute
+  "/settings/leave/types/new": typeof AuthenticatedOrganizationSettingsLeaveTypesNewRoute
   "/settings/workflows/$workflowId/edit": typeof AuthenticatedOrganizationSettingsWorkflowsWorkflowIdEditRoute
   "/shifts/rules/assignment-rules/new": typeof AuthenticatedOrganizationShiftsRulesAssignmentRulesNewRoute
   "/shifts/rules/working-patterns/new": typeof AuthenticatedOrganizationShiftsRulesWorkingPatternsNewRoute
@@ -1179,6 +1192,7 @@ export interface FileRoutesById {
   "/_authenticated/_organization/working-patterns/$patternId/edit": typeof AuthenticatedOrganizationWorkingPatternsPatternIdEditRoute
   "/_authenticated/_organization/settings/workflows/": typeof AuthenticatedOrganizationSettingsWorkflowsIndexRoute
   "/_authenticated/_organization/shifts/rules/": typeof AuthenticatedOrganizationShiftsRulesIndexRoute
+  "/_authenticated/_organization/settings/leave_/types/new": typeof AuthenticatedOrganizationSettingsLeaveTypesNewRoute
   "/_authenticated/_organization/settings/workflows/$workflowId/edit": typeof AuthenticatedOrganizationSettingsWorkflowsWorkflowIdEditRoute
   "/_authenticated/_organization/shifts/rules/assignment-rules/new": typeof AuthenticatedOrganizationShiftsRulesAssignmentRulesNewRoute
   "/_authenticated/_organization/shifts/rules/working-patterns/new": typeof AuthenticatedOrganizationShiftsRulesWorkingPatternsNewRoute
@@ -1268,6 +1282,7 @@ export interface FileRouteTypes {
     | "/working-patterns/$patternId/edit"
     | "/settings/workflows/"
     | "/shifts/rules/"
+    | "/settings/leave/types/new"
     | "/settings/workflows/$workflowId/edit"
     | "/shifts/rules/assignment-rules/new"
     | "/shifts/rules/working-patterns/new"
@@ -1349,6 +1364,7 @@ export interface FileRouteTypes {
     | "/working-patterns/$patternId/edit"
     | "/settings/workflows"
     | "/shifts/rules"
+    | "/settings/leave/types/new"
     | "/settings/workflows/$workflowId/edit"
     | "/shifts/rules/assignment-rules/new"
     | "/shifts/rules/working-patterns/new"
@@ -1439,6 +1455,7 @@ export interface FileRouteTypes {
     | "/_authenticated/_organization/working-patterns/$patternId/edit"
     | "/_authenticated/_organization/settings/workflows/"
     | "/_authenticated/_organization/shifts/rules/"
+    | "/_authenticated/_organization/settings/leave_/types/new"
     | "/_authenticated/_organization/settings/workflows/$workflowId/edit"
     | "/_authenticated/_organization/shifts/rules/assignment-rules/new"
     | "/_authenticated/_organization/shifts/rules/working-patterns/new"
@@ -2058,6 +2075,13 @@ declare module "@tanstack/react-router" {
       preLoaderRoute: typeof AuthenticatedOrganizationSettingsWorkflowsWorkflowIdEditRouteImport
       parentRoute: typeof AuthenticatedOrganizationSettingsWorkflowsRoute
     }
+    "/_authenticated/_organization/settings/leave_/types/new": {
+      id: "/_authenticated/_organization/settings/leave_/types/new"
+      path: "/leave/types/new"
+      fullPath: "/settings/leave/types/new"
+      preLoaderRoute: typeof AuthenticatedOrganizationSettingsLeaveTypesNewRouteImport
+      parentRoute: typeof AuthenticatedOrganizationSettingsRoute
+    }
     "/_authenticated/_organization/shifts/rules/working-patterns/$patternId/edit": {
       id: "/_authenticated/_organization/shifts/rules/working-patterns/$patternId/edit"
       path: "/working-patterns/$patternId/edit"
@@ -2170,6 +2194,7 @@ interface AuthenticatedOrganizationSettingsRouteChildren {
   AuthenticatedOrganizationSettingsTimeRoute: typeof AuthenticatedOrganizationSettingsTimeRoute
   AuthenticatedOrganizationSettingsWorkflowsRoute: typeof AuthenticatedOrganizationSettingsWorkflowsRouteWithChildren
   AuthenticatedOrganizationSettingsIndexRoute: typeof AuthenticatedOrganizationSettingsIndexRoute
+  AuthenticatedOrganizationSettingsLeaveTypesNewRoute: typeof AuthenticatedOrganizationSettingsLeaveTypesNewRoute
 }
 
 const AuthenticatedOrganizationSettingsRouteChildren: AuthenticatedOrganizationSettingsRouteChildren =
@@ -2216,6 +2241,8 @@ const AuthenticatedOrganizationSettingsRouteChildren: AuthenticatedOrganizationS
       AuthenticatedOrganizationSettingsWorkflowsRouteWithChildren,
     AuthenticatedOrganizationSettingsIndexRoute:
       AuthenticatedOrganizationSettingsIndexRoute,
+    AuthenticatedOrganizationSettingsLeaveTypesNewRoute:
+      AuthenticatedOrganizationSettingsLeaveTypesNewRoute,
   }
 
 const AuthenticatedOrganizationSettingsRouteWithChildren =

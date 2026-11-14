@@ -411,6 +411,20 @@
         "delete_assignment_title": "删除政策分配",
         "delete_assignment_message": "您确定要删除此请假政策分配吗？这将软删除该分配，并自动恢复/修复之前的生效时间线。"
       },
+      "new_type": {
+        "title": "创建请假类型",
+        "back_to_leave": "返回请假设置",
+        "step_template": "1. 选择模板",
+        "step_form": "2. 配置详情",
+        "selected_template": "使用模板",
+        "preview_title": "实时组织预览",
+        "preview_badge": "实时",
+        "preview_placeholder_name": "新请假类型",
+        "features_title": "此请假类型包含的功能：",
+        "feature_audit": "不可变审计跟踪与详细余额流水",
+        "feature_policy": "在政策标签页自定义累积与结转规则",
+        "feature_roster": "班次冲突检测与日历标记"
+      },
       "type_manager": {
         "title": "请假类型",
         "desc": "定义您组织中可用的休假类别（例如年假、病假）。",
@@ -462,6 +476,10 @@
         "customize_subtitle": "精细化 {{name}}",
         "search_placeholder": "搜索模板（例如“年假”、“病假”）...",
         "skip": "跳过以手动创建",
+        "custom_title": "自定义请假类型",
+        "custom_desc": "从头配置代码、名称与休假规则，不使用预设模板。",
+        "custom_action": "空白创建",
+        "select_action": "使用此模板",
         "categories": {
           "all": "全部",
           "standard": "标准",

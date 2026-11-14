@@ -1,4 +1,4 @@
-import { ChevronRight, Search } from "lucide-react";
+import { ChevronRight, Plus, Search } from "lucide-react";
 import React, { useState, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -10,12 +10,13 @@ import { cn } from "@/lib/utils";
 import { LEAVE_TEMPLATES, LeaveTemplate } from "../leave-templates";
 
 interface TemplateGalleryProps {
+  className?: string;
   onSelectTemplate: (template: LeaveTemplate) => void;
   onSkip: () => void;
 }
 
 // eslint-disable-next-line max-lines-per-function
-export function TemplateGallery({ onSelectTemplate, onSkip }: TemplateGalleryProps) {
+export function TemplateGallery({ className, onSelectTemplate, onSkip }: TemplateGalleryProps) {
   const { t } = useTranslation();
   const [search, setSearch] = useState("");
   const [activeCategory, setActiveCategory] = useState<string>("all");
@@ -60,10 +61,12 @@ export function TemplateGallery({ onSelectTemplate, onSkip }: TemplateGalleryPro
     return map[color] || map.slate;
   };
 
+  const isModal = !className;
+
   return (
-    <div className="flex flex-col h-[65dvh] max-h-[700px] -m-8">
+    <div className={cn(isModal ? "flex flex-col h-[65dvh] max-h-[700px] -m-8" : "w-full space-y-6", className)}>
       {/* Header with Search */}
-      <div className="px-8 pt-6 pb-6 border-b border-slate-50 dark:border-slate-800 bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm sticky top-0 z-10">
+      <div className={cn(isModal ? "px-8 pt-6 pb-6 border-b border-slate-50 dark:border-slate-800 bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm sticky top-0 z-10" : "space-y-4")}>
         <div className="flex items-center justify-between gap-4">
           <div className="flex-1">
             <SearchInput
@@ -75,23 +78,23 @@ export function TemplateGallery({ onSelectTemplate, onSkip }: TemplateGalleryPro
             />
           </div>
           <Button
-            className="text-[10px] text-primary-600 dark:text-primary-400 whitespace-nowrap hover:underline"
+            className="text-xs text-primary-600 dark:text-primary-400 whitespace-nowrap hover:underline font-semibold"
             onClick={onSkip}
             size="sm"
             variant="ghost"
           >
-            {t("settings.leave.gallery.skip", "Skip to manual")}
+            {t("settings.leave.gallery.skip", "Skip to manual")} →
           </Button>
         </div>
 
-        <div className="flex flex-wrap gap-2 mt-4 pb-2">
+        <div className="flex flex-wrap gap-2 pt-1">
           {categories.map((cat) => (
             <Button
               className={cn(
-                "px-4 py-1.5 rounded-xl text-[9px] font-bold uppercase tracking-widest whitespace-nowrap transition-all h-auto",
+                "px-4 py-1.5 rounded-xl text-[10px] font-bold uppercase tracking-widest whitespace-nowrap transition-all h-auto",
                 activeCategory === cat.id
-                  ? "bg-primary-600 text-white shadow-lg shadow-primary-500/20"
-                  : "bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-100 dark:border-slate-700"
+                  ? "bg-primary-600 text-white shadow-md shadow-primary-500/20"
+                  : "bg-slate-100/80 dark:bg-slate-800/80 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-200/50 dark:border-slate-700/50"
               )}
               key={cat.id}
               onClick={() => {
@@ -106,58 +109,127 @@ export function TemplateGallery({ onSelectTemplate, onSkip }: TemplateGalleryPro
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto p-8 custom-scrollbar">
+      <div className={cn(isModal ? "flex-1 overflow-y-auto p-8 custom-scrollbar" : "pt-2")}>
         {filteredTemplates.length > 0 ? (
-          <div className="grid grid-cols-1 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {activeCategory === "all" && !search ? (
+              <div
+                className={cn(
+                  "group relative flex flex-col justify-between p-6 rounded-3xl border-2 border-dashed border-slate-300 dark:border-slate-700",
+                  "bg-slate-50/60 dark:bg-slate-900/40 hover:border-primary-500 dark:hover:border-primary-500 hover:bg-primary-50/20 dark:hover:bg-primary-950/20",
+                  "hover:shadow-xl hover:shadow-primary-500/5 hover:-translate-y-1 transition-all duration-300",
+                  "text-left h-full min-h-[220px] cursor-pointer focus-visible:ring-2 focus-visible:ring-primary-500 outline-none select-none overflow-hidden"
+                )}
+                onClick={onSkip}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    onSkip();
+                  }
+                }}
+                role="button"
+                tabIndex={0}
+              >
+                <div className="w-full">
+                  <div className="h-12 w-12 rounded-2xl flex items-center justify-center border border-dashed border-primary-300 dark:border-primary-700 bg-primary-50 dark:bg-primary-950/60 text-primary-600 dark:text-primary-400 group-hover:scale-110 transition-transform shadow-xs">
+                    <Plus size={22} />
+                  </div>
+                  <div className="mt-4">
+                    <Typography className="text-base font-bold text-slate-900 dark:text-slate-100 tracking-tight group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors" variant="h4">
+                      {t("settings.leave.gallery.custom_title", "Custom Leave Type")}
+                    </Typography>
+                    <Typography className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2 leading-relaxed mt-2" variant="p">
+                      {t("settings.leave.gallery.custom_desc", "Configure code, name, and entitlement rules from scratch without templates.")}
+                    </Typography>
+                  </div>
+                </div>
+                <div className="mt-6 pt-3.5 border-t border-dashed border-slate-200 dark:border-slate-800 flex items-center justify-between w-full">
+                  <span className="text-xs font-semibold text-primary-600 dark:text-primary-400">
+                    {t("settings.leave.gallery.custom_action", "Create blank")}
+                  </span>
+                  <div className="w-7 h-7 rounded-full bg-primary-100 dark:bg-primary-950 text-primary-600 dark:text-primary-400 group-hover:bg-primary-600 group-hover:text-white flex items-center justify-center transition-all duration-200 group-hover:translate-x-1">
+                    <ChevronRight size={14} />
+                  </div>
+                </div>
+              </div>
+            ) : null}
+
             {filteredTemplates.map((template: LeaveTemplate) => {
               const Icon = template.icon;
               return (
-                <Button
-                  className="group relative flex items-start justify-start gap-3 p-4 rounded-2xl border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900/50 hover:border-primary-200 dark:hover:border-primary-800 hover:bg-primary-50/30 dark:hover:bg-primary-950/10 transition-all text-left h-auto w-full normal-case tracking-normal font-normal"
+                <div
+                  className={cn(
+                    "group relative flex flex-col justify-between p-6 rounded-3xl border border-slate-200/90 dark:border-slate-800",
+                    "bg-white dark:bg-slate-900/90 hover:border-primary-500/80 dark:hover:border-primary-500/80",
+                    "hover:shadow-xl hover:shadow-primary-500/5 hover:-translate-y-1 transition-all duration-300",
+                    "text-left h-full min-h-[220px] cursor-pointer focus-visible:ring-2 focus-visible:ring-primary-500 outline-none select-none overflow-hidden"
+                  )}
                   key={template.id}
                   onClick={() => {
                     onSelectTemplate(template);
                   }}
-                  variant="ghost"
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      onSelectTemplate(template);
+                    }
+                  }}
+                  role="button"
+                  tabIndex={0}
                 >
-                  <div
-                    className={cn(
-                      "h-10 w-10 shrink-0 rounded-xl flex items-center justify-center border transition-transform group-hover:scale-105",
-                      getColorClasses(template.color)
-                    )}
-                  >
-                    <Icon size={18} />
-                  </div>
-                  <div className="flex-1 min-w-0 pr-6">
-                    <div className="flex items-center gap-2 mb-1">
-                      <Typography className="text-sm font-bold text-slate-800 dark:text-slate-100 uppercase tracking-tight truncate" variant="h4">
-                        {t(`settings.leave.templates.${template.id}.name`, template.name)}
-                      </Typography>
-                      <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 shrink-0">
-                        {template.code}
-                      </span>
-                    </div>
-                    <Typography className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2 leading-relaxed" variant="p">
-                      {t(`settings.leave.templates.${template.id}.desc`, template.description)}
-                    </Typography>
-                    <div className="mt-2 flex items-center gap-2">
-                      <span
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-primary-500/5 dark:bg-primary-500/10 rounded-full blur-2xl pointer-events-none group-hover:scale-150 transition-transform duration-500" />
+                  <div className="w-full">
+                    <div className="flex items-center justify-between gap-2">
+                      <div
                         className={cn(
-                          "px-2 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-widest",
-                          template.is_paid
-                            ? "bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600"
-                            : "bg-amber-50 dark:bg-amber-950/50 text-amber-600"
+                          "h-12 w-12 shrink-0 rounded-2xl flex items-center justify-center border shadow-xs transition-transform duration-300 group-hover:scale-110 group-hover:rotate-1",
+                          getColorClasses(template.color)
                         )}
                       >
-                        {template.is_paid ? t("settings.leave.type_manager.paid", "Paid") : t("settings.leave.type_manager.unpaid", "Unpaid")}
-                      </span>
+                        <Icon size={20} />
+                      </div>
+                      <div className="flex items-center gap-1.5 flex-wrap justify-end">
+                        <span className="px-2.5 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-widest bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border border-slate-200/50 dark:border-slate-700/50">
+                          {t(`settings.leave.gallery.categories.${template.category}`, template.category)}
+                        </span>
+                        <span
+                          className={cn(
+                            "px-2.5 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-widest border flex items-center gap-1",
+                            template.is_paid
+                              ? "bg-emerald-50 dark:bg-emerald-950/70 text-emerald-700 dark:text-emerald-300 border-emerald-200/70 dark:border-emerald-800/70"
+                              : "bg-amber-50 dark:bg-amber-950/70 text-amber-700 dark:text-amber-300 border-amber-200/70 dark:border-amber-800/70"
+                          )}
+                        >
+                          <span className={cn("w-1.5 h-1.5 rounded-full", template.is_paid ? "bg-emerald-500" : "bg-amber-500")} />
+                          {template.is_paid ? t("settings.leave.type_manager.paid", "Paid") : t("settings.leave.type_manager.unpaid", "Unpaid")}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="mt-4">
+                      <div className="flex items-center gap-2">
+                        <Typography className="text-base font-bold text-slate-900 dark:text-slate-100 tracking-tight group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors truncate" variant="h4">
+                          {t(`settings.leave.templates.${template.id}.name`, template.name)}
+                        </Typography>
+                        <span className="px-2 py-0.5 rounded-md font-mono text-[10px] font-bold uppercase tracking-wider bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200/60 dark:border-slate-700/60 shrink-0">
+                          {template.code}
+                        </span>
+                      </div>
+                      <Typography className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2 leading-relaxed mt-2" variant="p">
+                        {t(`settings.leave.templates.${template.id}.desc`, template.description)}
+                      </Typography>
                     </div>
                   </div>
-                  <ChevronRight
-                    className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-300 dark:text-slate-700 group-hover:text-primary-400 transition-all group-hover:translate-x-1"
-                    size={16}
-                  />
-                </Button>
+
+                  <div className="mt-6 pt-3.5 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between w-full">
+                    <span className="text-[11px] font-semibold text-slate-400 dark:text-slate-500 group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors">
+                      {t("settings.leave.gallery.select_action", "Use this template")}
+                    </span>
+                    <div className="w-7 h-7 rounded-full bg-slate-50 dark:bg-slate-800 border border-slate-200/60 dark:border-slate-700 group-hover:bg-primary-600 group-hover:border-primary-600 group-hover:text-white flex items-center justify-center transition-all duration-200 group-hover:translate-x-1 text-slate-400">
+                      <ChevronRight size={14} />
+                    </div>
+                  </div>
+                </div>
               );
             })}
           </div>

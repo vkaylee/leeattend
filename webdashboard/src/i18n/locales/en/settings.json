@@ -411,6 +411,20 @@
         "delete_assignment_title": "Delete Policy Assignment",
         "delete_assignment_message": "Are you sure you want to delete this leave policy assignment? This will soft-delete the assignment, and the previous timeline will be restored/healed automatically."
       },
+      "new_type": {
+        "title": "Create Leave Type",
+        "back_to_leave": "Back to Leave Settings",
+        "step_template": "1. Choose Template",
+        "step_form": "2. Configure Details",
+        "selected_template": "Using Template",
+        "preview_title": "Live Organization Preview",
+        "preview_badge": "Realtime",
+        "preview_placeholder_name": "New Leave Type",
+        "features_title": "Included with this leave type:",
+        "feature_audit": "Full immutable audit trail & ledger tracking",
+        "feature_policy": "Custom accrual & rollover rules in Policies tab",
+        "feature_roster": "Roster conflict detection & calendar badges"
+      },
       "type_manager": {
         "title": "Leave Types",
         "desc": "Define the categories of leave available in your organization (e.g., Annual Leave, Sick Leave).",
@@ -462,6 +476,10 @@
         "customize_subtitle": "Refining {{name}}",
         "search_placeholder": "Search templates (e.g. 'Annual', 'Sick')...",
         "skip": "Skip to manual",
+        "custom_title": "Custom Leave Type",
+        "custom_desc": "Configure code, name, and entitlement rules from scratch without templates.",
+        "custom_action": "Create blank",
+        "select_action": "Use this template",
         "categories": {
           "all": "All",
           "standard": "Standard",

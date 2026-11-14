@@ -411,6 +411,20 @@
         "delete_assignment_title": "Xóa Phân bổ Chính sách",
         "delete_assignment_message": "Bạn có chắc chắn muốn xóa phân bổ chính sách nghỉ phép này không? Hành động này sẽ chuyển trạng thái phân bổ thành đã xóa, và khoảng thời gian hiệu lực trước đó sẽ tự động khôi phục."
       },
+      "new_type": {
+        "title": "Tạo loại nghỉ phép",
+        "back_to_leave": "Quay lại Cài đặt Nghỉ phép",
+        "step_template": "1. Chọn mẫu",
+        "step_form": "2. Cấu hình chi tiết",
+        "selected_template": "Đang dùng mẫu",
+        "preview_title": "Xem trước thực tế",
+        "preview_badge": "Thời gian thực",
+        "preview_placeholder_name": "Loại nghỉ phép mới",
+        "features_title": "Tích hợp sẵn cho loại nghỉ phép này:",
+        "feature_audit": "Nhật ký kiểm toán bất biến & theo dõi số dư chi tiết",
+        "feature_policy": "Tùy biến tích lũy & chuyển tiếp tại tab Chính sách",
+        "feature_roster": "Phát hiện trùng ca & hiển thị lịch làm việc"
+      },
       "type_manager": {
         "title": "Loại Nghỉ phép",
         "desc": "Định nghĩa các danh mục nghỉ phép sẵn có trong tổ chức của bạn (ví dụ: Nghỉ phép năm, Nghỉ ốm).",
@@ -462,6 +476,10 @@
         "customize_subtitle": "Tinh chỉnh {{name}}",
         "search_placeholder": "Tìm kiếm mẫu (VD: 'Phép năm', 'Nghỉ ốm')...",
         "skip": "Bỏ qua để tạo thủ công",
+        "custom_title": "Loại nghỉ phép tùy chỉnh",
+        "custom_desc": "Thiết lập mã, tên và quy tắc tính phép từ đầu không qua mẫu.",
+        "custom_action": "Tạo mẫu trống",
+        "select_action": "Dùng mẫu này",
         "categories": {
           "all": "Tất cả",
           "standard": "Tiêu chuẩn",

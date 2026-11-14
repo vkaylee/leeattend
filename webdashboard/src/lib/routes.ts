@@ -79,6 +79,7 @@ export const ROUTES = {
     TIME: "/settings/time",
     PAYROLL: "/settings/payroll",
     LEAVE: "/settings/leave",
+    LEAVE_TYPES_NEW: "/settings/leave/types/new",
     BILLING: "/settings/billing",
     OVERTIME: "/settings/overtime",
     LOCATIONS: "/settings/locations",

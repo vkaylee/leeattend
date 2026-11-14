@@ -14,7 +14,12 @@ interface RetiredLeaveTypeHint {
   name: string;
 }
 
-export function useLeaveTypeManager() {
+export interface UseLeaveTypeManagerOptions {
+  onCreateSuccess?: () => void;
+  onRestoreSuccess?: () => void;
+}
+
+export function useLeaveTypeManager(options?: UseLeaveTypeManagerOptions) {
   const { t } = useTranslation();
   const toast = useToast();
   const queryClient = useQueryClient();
@@ -32,6 +37,7 @@ export function useLeaveTypeManager() {
       void queryClient.invalidateQueries({ queryKey: createQueryKey("leave-types") });
       toast.success(t("settings.leave.type_manager.create_success", "Leave type created successfully"));
       setIsAddingType(false);
+      options?.onCreateSuccess?.();
     },
     onError: (error: unknown) => {
       // Backend returns 409 Conflict for a duplicate leave-type code (unique
@@ -93,6 +99,7 @@ export function useLeaveTypeManager() {
       // return the user to the clean list view.
       setRestoringType(null);
       setIsAddingType(false);
+      options?.onRestoreSuccess?.();
     },
     onError: (error: Error) => {
       toast.error(error.message);

@@ -8,10 +8,15 @@ import * as api from "@/lib/api/leaves";
 
 import { LeaveTypeManager } from "../leave-type-manager";
 
+const mockNavigate = vi.fn();
+vi.mock("@tanstack/react-router", () => ({
+  useNavigate: () => mockNavigate,
+}));
+
 // Mock i18n
 vi.mock("react-i18next", () => ({
-  useTranslation: () => ({ 
-    t: (key: string, fallback: string) => fallback || key 
+  useTranslation: () => ({
+    t: (key: string, fallback: string) => fallback || key
   }),
 }));
 
@@ -101,80 +106,33 @@ describe("LeaveTypeManager & Template Gallery", () => {
   });
 
 
-  it("shows template gallery immediately when opening add modal", async () => {
+  it("navigates to new leave type page when clicking Get Started in empty state", async () => {
     vi.mocked(api.fetchLeaveTypes).mockResolvedValue([]);
 
     render(
       <QueryClientProvider client={queryClient}>
-        <LeaveTypeManager   />
+        <LeaveTypeManager />
       </QueryClientProvider>
     );
 
-    // 1. Click Get Started to open Add Modal
     fireEvent.click(await screen.findByText(/Get Started/i));
-    
-    // 2. Verify Step 1: Template Gallery is shown by default
-    expect(await screen.findByText(/Choose a Template/i)).toBeDefined();
-    expect(await screen.findByRole("heading", { name: /Annual Leave/i })).toBeDefined();
-    expect(screen.getByText(/Mental Health Day/i)).toBeDefined();
+    expect(mockNavigate).toHaveBeenCalledWith({ to: "/settings/leave/types/new" });
   });
 
-  it("applies a template and moves to customization step", async () => {
-    vi.mocked(api.fetchLeaveTypes).mockResolvedValue([]);
+  it("navigates to new leave type page when clicking Add Leave Type button", async () => {
+    const mockLeaveTypes = [
+      { id: "1", code: "AL", name: "Annual Leave", is_paid: true, policy_config: {} }
+    ];
+    vi.mocked(api.fetchLeaveTypes).mockResolvedValue(mockLeaveTypes as never);
 
     render(
       <QueryClientProvider client={queryClient}>
-        <LeaveTypeManager   />
+        <LeaveTypeManager />
       </QueryClientProvider>
     );
 
-    // Open modal (Step 1: Gallery)
-    fireEvent.click(await screen.findByText(/Get Started/i));
-    
-    // Select "Mental Health Day" template
-    const templateCard = await screen.findByRole("heading", { name: /Mental Health Day/i });
-    fireEvent.click(templateCard.closest('button')!);
-    
-    // 3. Verify Step 2: Customization Form is shown
-    expect(await screen.findByText(/Customize Leave Type/i)).toBeDefined();
-    expect(screen.getByText(/Refining Mental Health Day/i)).toBeDefined();
-
-    const nameInput = screen.getByPlaceholderText(/e.g. Annual Leave/i);
-    const codeInput = screen.getByPlaceholderText(/e.g. AL, SL, UL/i);
-    
-    expect((nameInput as HTMLInputElement).value).toBe("Mental Health Day");
-    expect((codeInput as HTMLInputElement).value).toBe("MHD");
-  });
-
-  it("allows toggling Paid Status in Add Template form via the slider track", async () => {
-    vi.mocked(api.fetchLeaveTypes).mockResolvedValue([]);
-
-    render(
-      <QueryClientProvider client={queryClient}>
-        <LeaveTypeManager   />
-      </QueryClientProvider>
-    );
-
-    // Open modal (Step 1: Gallery)
-    fireEvent.click(await screen.findByText(/Get Started/i));
-    
-    // Select "Mental Health Day" template
-    const templateCard = await screen.findByRole("heading", { name: /Mental Health Day/i });
-    fireEvent.click(templateCard.closest('button')!);
-    
-    // Customize Leave Type form shown
-    expect(await screen.findByText(/Customize Leave Type/i)).toBeDefined();
-
-    // Verify Paid Status checkbox
-    const paidInput = screen.getByLabelText(/Paid Status/i) as HTMLInputElement;
-    const initialPaidState = paidInput.checked;
-
-    // Click on the track (next element sibling of the checkbox) which is inside the label wrapper
-    const paidTrack = paidInput.nextElementSibling!;
-    fireEvent.click(paidTrack);
-
-    // Verify it toggled
-    expect(paidInput.checked).toBe(!initialPaidState);
+    fireEvent.click(await screen.findByText(/Add Leave Type/i));
+    expect(mockNavigate).toHaveBeenCalledWith({ to: "/settings/leave/types/new" });
   });
 
   it("allows editing an existing leave type and toggling configuration switches via their tracks", async () => {

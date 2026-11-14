@@ -15,6 +15,7 @@ interface LeaveTypeFormProps {
   isSaving: boolean;
   onBackToTemplates: () => void;
   onCancel: () => void;
+  onChange?: (data: { code: string; name: string; is_paid: boolean }) => void;
   onSave: (data: { code: string; name: string; is_paid: boolean }) => void;
 }
 
@@ -26,9 +27,16 @@ export function LeaveTypeForm({
   onSave,
   onBackToTemplates,
   onCancel,
+  onChange,
 }: LeaveTypeFormProps) {
   const { t } = useTranslation();
   const [formData, setFormData] = useState(initialData);
+
+  const updateField = (patch: Partial<{ code: string; name: string; is_paid: boolean }>) => {
+    const next = { ...formData, ...patch };
+    setFormData(next);
+    onChange?.(next);
+  };
 
   const normalizedCode = formData.code.trim().toLowerCase();
   const isDuplicateCode =
@@ -51,7 +59,7 @@ export function LeaveTypeForm({
             className="w-full rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4 text-sm focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all outline-none"
             id="type-code-input"
             onChange={(e) => {
-              setFormData({ ...formData, code: e.target.value.toUpperCase() });
+              updateField({ code: e.target.value.toUpperCase() });
             }}
             placeholder={t("settings.leave.type_form.type_code_placeholder", "e.g. AL, SL, UL")}
             required
@@ -77,7 +85,7 @@ export function LeaveTypeForm({
             className="w-full rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4 text-sm focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all outline-none"
             id="display-name-input"
             onChange={(e) => {
-              setFormData({ ...formData, name: e.target.value });
+              updateField({ name: e.target.value });
             }}
             placeholder={t("settings.leave.type_form.display_name_placeholder", "e.g. Annual Leave")}
             required
@@ -113,7 +121,7 @@ export function LeaveTypeForm({
               className="sr-only peer"
               id="paid-leave-input"
               onChange={(e) => {
-                setFormData({ ...formData, is_paid: e.target.checked });
+                updateField({ is_paid: e.target.checked });
               }}
               type="checkbox"
             />

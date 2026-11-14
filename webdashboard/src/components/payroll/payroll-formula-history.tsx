@@ -38,7 +38,7 @@ export function PayrollFormulaHistory({ ruleId }: { ruleId: string }) {
 
   if (isLoading) return <div className="p-4 text-sm text-slate-500">{t("common.loading")}</div>;
   if (isError) return <div className="p-4 text-sm text-red-600">{t("common.error")}</div>;
-  if (rule?.status === "retired") return <div className="p-4 text-sm text-slate-500">{t("payroll.formula_history.retired_read_only", "This formula is retired and read-only.")}</div>;
+  if ((rule as unknown as { status?: string })?.status === "retired" || rule?.is_active === false) return <div className="p-4 text-sm text-slate-500">{t("payroll.formula_history.retired_read_only", "This formula is retired and read-only.")}</div>;
 
   return (
     <div className="space-y-3" data-testid="payroll-formula-history">
