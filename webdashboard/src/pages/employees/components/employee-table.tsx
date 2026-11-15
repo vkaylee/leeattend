@@ -26,7 +26,7 @@ function EmployeeMobileCard({ employee, isSelected, onSelect }: {
   return (
     <Button
       className={cn(
-        "w-full rounded-2xl border bg-white p-5 text-left shadow-sm transition-all active:scale-[0.99] dark:bg-slate-900",
+        "!h-auto w-full min-w-0 flex-col items-stretch justify-start rounded-2xl border bg-white p-5 text-left shadow-sm transition-all active:scale-[0.99] dark:bg-slate-900",
         isSelected
           ? "border-primary-300 ring-2 ring-primary-500/20 dark:border-primary-700"
           : "border-slate-100 dark:border-slate-800",
@@ -35,7 +35,7 @@ function EmployeeMobileCard({ employee, isSelected, onSelect }: {
       type="button"
       variant="ghost"
     >
-      <div className="flex items-start gap-3">
+      <div className="flex min-w-0 items-start gap-3">
         <div className={cn(
           "flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border font-bold uppercase",
           isSelected
@@ -57,7 +57,7 @@ function EmployeeMobileCard({ employee, isSelected, onSelect }: {
         </div>
         <ChevronRight className="mt-1 h-4 w-4 shrink-0 text-slate-300 dark:text-slate-600" />
       </div>
-      <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-4 dark:border-slate-800">
+      <div className="mt-4 flex min-w-0 flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-4 dark:border-slate-800">
         {employee.department_name ? (
           <span className="inline-flex min-w-0 items-center gap-1.5 rounded-xl border border-blue-100 bg-blue-50 px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-blue-600 dark:border-blue-800 dark:bg-blue-950 dark:text-blue-300">
             <Building2 size={11} /><span className="truncate">{employee.department_name}</span>

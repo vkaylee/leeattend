@@ -32,7 +32,7 @@ export function HrKpiCards({ hrStats, isLoading, isCollapsed, onToggle, t }: HrK
       onToggle={onToggle}
       title={t("dashboard.sections.summary")}
     >
-      <StaggerChildren className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 sm:gap-6" delay={80}>
+      <StaggerChildren className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6 md:grid-cols-3 xl:grid-cols-6" delay={80}>
         {stats.map((stat, index) => (
           <StatCard
             colorClasses={stat.color}

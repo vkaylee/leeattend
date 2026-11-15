@@ -828,7 +828,7 @@ function ReasonsTab({ data, t }: { data: TurnoverAnalytics; t: TranslateFn }) {
 
 function BreakdownTab({ data, t }: { data: TurnoverAnalytics; t: TranslateFn }) {
     return (
-        <div className="grid gap-8 lg:grid-cols-2">
+        <div className="grid gap-8 xl:grid-cols-2">
             <div>
                 <Typography className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-3" variant="h4">
                     {t("dashboard.hr.by_employment_type")}
@@ -855,7 +855,7 @@ function BreakdownTab({ data, t }: { data: TurnoverAnalytics; t: TranslateFn }) 
                     t={t}
                 />
             </div>
-            <div className="lg:col-span-2">
+            <div className="xl:col-span-2">
                 <Typography className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-3" variant="h4">
                     {t("dashboard.hr.by_manager")}
                 </Typography>

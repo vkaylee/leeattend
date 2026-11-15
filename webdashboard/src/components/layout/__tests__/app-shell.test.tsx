@@ -96,7 +96,7 @@ describe("AppShell Component", () => {
     expect(screen.getByTestId("topbar-container")).toBeInTheDocument();
     const viewport = screen.getByTestId("main-content-viewport");
     expect(viewport).toBeInTheDocument();
-    expect(viewport).toHaveClass("p-4", "md:p-6", "lg:p-8");
+    expect(viewport).toHaveClass("p-4", "sm:p-5", "lg:p-6", "xl:p-8");
     expect(screen.getByTestId("mock-router-outlet")).toBeInTheDocument();
   });
 

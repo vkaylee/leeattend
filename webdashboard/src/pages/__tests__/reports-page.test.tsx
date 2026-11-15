@@ -116,6 +116,14 @@ describe("ReportsPage", () => {
     expect(lastMonthButton).toBeDefined();
   });
 
+  it("keeps report mobile cards expanded for their metrics", async () => {
+    renderWithProviders(<ReportsPage />);
+    const employee = await screen.findByRole("button", { name: /John Doe/i });
+
+    expect(employee).toHaveClass("!h-auto");
+    expect(employee).toHaveClass("min-w-0");
+  });
+
   it("changes date range when clicking last month", async () => {
     const user = userEvent.setup();
     renderWithProviders(<ReportsPage />);

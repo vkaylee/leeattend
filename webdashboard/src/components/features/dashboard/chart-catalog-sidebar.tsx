@@ -186,7 +186,7 @@ export default function ChartCatalogSidebar({
   return (
     <aside
       className={cn(
-        "hidden lg:flex flex-col shrink-0",
+        "hidden xl:flex flex-col shrink-0",
         "sticky top-0 self-start",
         "h-[calc(100dvh-8rem)]",
         "bg-white dark:bg-slate-900",

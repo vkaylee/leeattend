@@ -91,7 +91,7 @@ export default function AppShell({ variant: _variant }: AppShellProps) {
               "flex-1 bg-muted/20 min-w-0",
               isOrgChart || isSettings
                 ? "overflow-hidden p-0 h-full flex flex-col"
-                : "overflow-y-auto p-4 md:p-6 lg:p-8"
+                : "overflow-y-auto p-4 sm:p-5 lg:p-6 xl:p-8"
             )}
             data-app-scroll-container
             data-testid="main-content-viewport"

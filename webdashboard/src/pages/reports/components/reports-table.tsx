@@ -23,12 +23,12 @@ function ReportMobileCard({ row, onSelect, t }: {
 
   return (
     <Button
-      className="h-auto w-full flex flex-col items-stretch justify-start rounded-2xl border border-slate-200/80 bg-white p-4 text-left normal-case tracking-normal shadow-sm transition-all active:scale-[0.99] dark:border-slate-800 dark:bg-slate-900"
+      className="!h-auto w-full min-w-0 flex flex-col items-stretch justify-start rounded-2xl border border-slate-200/80 bg-white p-4 text-left normal-case tracking-normal shadow-sm transition-all active:scale-[0.99] dark:border-slate-800 dark:bg-slate-900"
       onClick={onSelect}
       type="button"
       variant="ghost"
     >
-      <div className="flex items-start justify-between gap-3 w-full">
+      <div className="flex min-w-0 items-start justify-between gap-3 w-full">
         <EmployeeIdentityCell
           avatarSize="md"
           code={row.employee_id_number}
@@ -38,7 +38,7 @@ function ReportMobileCard({ row, onSelect, t }: {
         <ChevronRight className="mt-2 h-4 w-4 shrink-0 text-slate-300 dark:text-slate-600" />
       </div>
 
-      <div className="mt-3.5 grid grid-cols-3 gap-2 border-t border-slate-100 pt-3 dark:border-slate-800 w-full">
+      <div className="mt-3.5 grid min-w-0 grid-cols-3 gap-2 border-t border-slate-100 pt-3 dark:border-slate-800 w-full">
         <div className="rounded-xl bg-slate-50 p-2.5 dark:bg-slate-800/60">
           <div className="flex items-center gap-1 text-[10px] font-medium text-slate-500 dark:text-slate-400">
             <Clock3 size={11} />{t("reports.table.total_hours")}

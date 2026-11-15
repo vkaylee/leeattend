@@ -59,7 +59,7 @@ export function Topbar({
         {isSettings ? (
           <Link
             aria-label={t("common.back_to_organization", "Quay lại bảng làm việc")}
-            className="flex md:hidden items-center justify-center h-8 px-2.5 gap-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted text-xs font-medium transition-colors outline-none focus-visible:ring-2 focus-visible:ring-primary shrink-0"
+            className="flex xl:hidden items-center justify-center h-8 px-2.5 gap-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted text-xs font-medium transition-colors outline-none focus-visible:ring-2 focus-visible:ring-primary shrink-0"
             data-testid="topbar-back-btn"
             to={ROUTES.HOME}
           >
@@ -69,7 +69,7 @@ export function Topbar({
         ) : onOpenMobileMenu ? (
           <Button
             aria-label="Open navigation menu"
-            className="p-0 text-muted-foreground hover:text-foreground md:hidden"
+            className="p-0 text-muted-foreground hover:text-foreground xl:hidden"
             data-testid="topbar-mobile-menu-btn"
             onClick={onOpenMobileMenu}
             size="md"
@@ -99,7 +99,7 @@ export function Topbar({
       </div>
 
       {/* ── Center: Search Bar Trigger (Cmd+K) ── */}
-      <div className="flex-1 max-w-md mx-3 hidden sm:flex">
+      <div className="mx-3 hidden max-w-md flex-1 xl:flex">
         <SearchTriggerButton
           aria-label="Open command palette (⌘K)"
           data-testid="topbar-search-trigger"
@@ -114,7 +114,7 @@ export function Topbar({
         {/* Mobile search trigger icon */}
         <Button
           aria-label="Open search"
-          className="p-0 text-muted-foreground hover:text-foreground transition-colors focus-visible:ring-2 focus-visible:ring-primary sm:hidden"
+          className="p-0 text-muted-foreground hover:text-foreground transition-colors focus-visible:ring-2 focus-visible:ring-primary xl:hidden"
           data-testid="topbar-search-trigger-mobile"
           onClick={onOpenSearch}
           size="md"

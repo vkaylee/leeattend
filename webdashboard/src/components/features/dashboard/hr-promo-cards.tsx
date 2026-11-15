@@ -21,7 +21,7 @@ export function HrPromoCards({ isCollapsed, onToggle, t }: HrPromoCardsProps) {
       onToggle={onToggle}
       title={t("dashboard.sections.actions")}
     >
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      <div className="grid grid-cols-1 gap-8 xl:grid-cols-2">
         <PromoCard
           buttonText={t("dashboard.hr.hr_management_btn").toUpperCase()}
           description={t("dashboard.hr.hr_management_desc")}

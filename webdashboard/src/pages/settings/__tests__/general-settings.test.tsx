@@ -93,6 +93,20 @@ describe("GeneralSettings Page", () => {
     expect(await screen.findByText("common.organization_settings.general_config")).toBeDefined();
   });
 
+  it("keeps settings tabs in a mobile-width container", async () => {
+    render(
+      <QueryClientProvider client={queryClient}>
+        <GeneralSettings />
+      </QueryClientProvider>
+    );
+
+    await screen.findByTestId("general-settings-title");
+
+    expect(screen.getByRole("tablist")).toHaveClass("grid-cols-1");
+    expect(screen.getByTestId("tab-localization")).toHaveClass("py-2");
+    expect(screen.getByTestId("tab-appearance")).toHaveClass("py-2");
+  });
+
   it("calls updateMutation on save", async () => {
     vi.mocked(api.updateOrganization).mockResolvedValue(mockOrganization as unknown as api.Organization);
 

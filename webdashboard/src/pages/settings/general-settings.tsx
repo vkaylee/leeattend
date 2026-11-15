@@ -129,12 +129,12 @@ function GeneralSettingsContent({ organization }: { organization: Organization }
       />
 
       {/* Apple HIG Segmented Control with mobile horizontal scroll */}
-      <div className="flex items-center overflow-x-auto pb-1 max-w-full">
-        <div className="inline-flex items-center gap-1 rounded-xl bg-slate-100/90 dark:bg-slate-800/80 p-1 border border-slate-200/60 dark:border-slate-700/60 shrink-0" role="tablist">
+      <div className="flex max-w-full items-center pb-1">
+        <div className="grid w-full grid-cols-1 gap-1 rounded-xl border border-slate-200/60 bg-slate-100/90 p-1 dark:border-slate-700/60 dark:bg-slate-800/80 sm:inline-flex sm:w-auto sm:grid-cols-none" role="tablist">
           <button
             aria-selected={activeTab === "localization"}
             className={cn(
-              "flex items-center gap-2 px-4 py-1.5 rounded-lg text-xs font-semibold transition-all duration-150 select-none whitespace-nowrap shrink-0",
+              "flex min-w-0 items-center justify-center gap-2 rounded-lg px-4 py-2 text-xs font-semibold transition-all duration-150 select-none sm:whitespace-nowrap",
               activeTab === "localization"
                 ? "bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 shadow-2xs font-bold"
                 : "text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"
@@ -150,7 +150,7 @@ function GeneralSettingsContent({ organization }: { organization: Organization }
           <button
             aria-selected={activeTab === "appearance"}
             className={cn(
-              "flex items-center gap-2 px-4 py-1.5 rounded-lg text-xs font-semibold transition-all duration-150 select-none whitespace-nowrap shrink-0",
+              "flex min-w-0 items-center justify-center gap-2 rounded-lg px-4 py-2 text-xs font-semibold transition-all duration-150 select-none sm:whitespace-nowrap",
               activeTab === "appearance"
                 ? "bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 shadow-2xs font-bold"
                 : "text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"

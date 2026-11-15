@@ -161,6 +161,14 @@ describe("EmployeesPage", () => {
         expect(screen.getAllByText("Bob Tran").length).toBeGreaterThan(0);
     });
 
+    it("keeps mobile employee cards in a constrained column layout", async () => {
+        renderPage();
+        const cards = await screen.findAllByRole("button", { name: /Alice Nguyen/i });
+
+        expect(cards.some((card) => card.className.includes("flex-col"))).toBe(true);
+        expect(cards.some((card) => card.className.includes("min-w-0"))).toBe(true);
+    });
+
     it("shows empty state when no employees exist", async () => {
 
         vi.mocked(api.searchEmployees).mockResolvedValue({
