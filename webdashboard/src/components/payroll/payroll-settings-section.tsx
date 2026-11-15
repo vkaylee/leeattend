@@ -18,7 +18,7 @@ export default function PayrollSettingsSection() {
   const toast = useToast();
   const [selectedPolicyGroupId, setSelectedPolicyGroupId] = useState<string>();
   const [isCreatingVersion, setIsCreatingVersion] = useState(false);
-  const [versionForm, setVersionForm] = useState({ effective_from: "", minutes_per_credit: "", pay_method: "monthly" as "monthly" | "hourly" | "shift", attendance_policy_id: "", working_pattern_id: "", overtime_policy_id: "" });
+  const [versionForm, setVersionForm] = useState({ effective_from: "", minutes_per_credit: "", pay_method: "monthly" as "monthly" | "hourly" | "shift", monthly_denominator: "fixed" as "fixed" | "schedule", monthly_standard_days: "26", attendance_policy_id: "", working_pattern_id: "", overtime_policy_id: "", rate_component_definition_id: "" });
   const [versionError, setVersionError] = useState<string>();
   const [membershipForm, setMembershipForm] = useState({ employment_id: "", effective_from: "", effective_to: "" });
   const [membershipError, setMembershipError] = useState<string>();
@@ -70,14 +70,14 @@ export default function PayrollSettingsSection() {
         attendance_policy_id: attendancePolicyID,
         working_pattern_id: workingPatternID,
         pay_method: versionForm.pay_method,
-        monthly_denominator: versionForm.pay_method === "monthly" ? "fixed" : undefined,
-        monthly_standard_days: versionForm.pay_method === "monthly" ? (selected.monthly_standard_days ?? "26") : undefined,
-        rate_component_definition_id: selected.rate_component_definition_id ?? null,
+        monthly_denominator: versionForm.pay_method === "monthly" ? versionForm.monthly_denominator : undefined,
+        monthly_standard_days: versionForm.pay_method === "monthly" && versionForm.monthly_denominator === "fixed" ? versionForm.monthly_standard_days : undefined,
+        rate_component_definition_id: versionForm.pay_method === "monthly" ? null : (versionForm.rate_component_definition_id || selected.rate_component_definition_id || null),
         overtime_policy_id: overtimePolicyID,
         effective_from: versionForm.effective_from,
       });
       toast.success(t("common.success"));
-      setVersionForm({ effective_from: "", minutes_per_credit: "", pay_method: "monthly", attendance_policy_id: "", working_pattern_id: "", overtime_policy_id: "" });
+      setVersionForm({ effective_from: "", minutes_per_credit: "", pay_method: "monthly", monthly_denominator: "fixed", monthly_standard_days: "26", attendance_policy_id: "", working_pattern_id: "", overtime_policy_id: "", rate_component_definition_id: "" });
       void queryClient.invalidateQueries({ queryKey: payrollKeys.workPolicyGroups() });
       void queryClient.invalidateQueries({ queryKey: payrollKeys.workPolicyHistory(selectedPolicyGroupId) });
     } catch (error: unknown) {
@@ -229,6 +229,10 @@ export default function PayrollSettingsSection() {
                   {t("common.payroll.settings.work_policy_overtime", "Overtime policy")}
                   <select id="policy-overtime" value={versionForm.overtime_policy_id} onChange={(event) => setVersionForm((form) => ({ ...form, overtime_policy_id: event.target.value }))} className="mt-1 block h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm dark:border-slate-700 dark:bg-slate-900"><option value="">{t("common.select", "Select")}</option>{referenceOptions?.overtime.map((option) => <option key={option.id} value={option.id}>{option.label}</option>)}</select>
                 </label>
+                {versionForm.pay_method === "monthly" ? <>
+                <label className="text-xs font-semibold text-slate-600 dark:text-slate-300" htmlFor="policy-monthly-denominator">{t("common.payroll.settings.work_policy_denominator", "Monthly denominator")}<select id="policy-monthly-denominator" value={versionForm.monthly_denominator} onChange={(event) => setVersionForm((form) => ({ ...form, monthly_denominator: event.target.value as typeof form.monthly_denominator }))} className="mt-1 block h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm dark:border-slate-700 dark:bg-slate-900"><option value="fixed">fixed</option><option value="schedule">schedule</option></select></label>
+                {versionForm.monthly_denominator === "fixed" ? <label className="text-xs font-semibold text-slate-600 dark:text-slate-300" htmlFor="policy-monthly-days">{t("common.payroll.settings.work_policy_days", "Monthly standard days")}<input id="policy-monthly-days" type="number" min="1" step="0.01" value={versionForm.monthly_standard_days} onChange={(event) => setVersionForm((form) => ({ ...form, monthly_standard_days: event.target.value }))} className="mt-1 block h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm dark:border-slate-700 dark:bg-slate-900" /></label> : null}
+                </> : <label className="text-xs font-semibold text-slate-600 dark:text-slate-300" htmlFor="policy-rate-component">{t("common.payroll.settings.work_policy_rate_component", "Rate component")}<select id="policy-rate-component" value={versionForm.rate_component_definition_id} onChange={(event) => setVersionForm((form) => ({ ...form, rate_component_definition_id: event.target.value }))} className="mt-1 block h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm dark:border-slate-700 dark:bg-slate-900"><option value="">{t("common.select", "Select")}</option>{referenceOptions?.salaryComponents.map((option) => <option key={option.id} value={option.id}>{option.label}</option>)}</select></label>}
                 <label className="text-xs font-semibold text-slate-600 dark:text-slate-300" htmlFor="policy-pay-method">
                   {t("common.payroll.settings.work_policy_method", "Pay method")}
                   <select id="policy-pay-method" value={versionForm.pay_method} onChange={(event) => setVersionForm((form) => ({ ...form, pay_method: event.target.value as typeof form.pay_method }))} className="mt-1 block h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm dark:border-slate-700 dark:bg-slate-900">

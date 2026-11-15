@@ -21,16 +21,18 @@ export interface WorkPolicyGroupVersion {
   effective_to?: string;
 }
 
-export async function fetchWorkPolicyReferenceOptions(): Promise<{ attendance: { id: string; label: string }[]; patterns: { id: string; label: string }[]; overtime: { id: string; label: string }[] }> {
-  const [attendance, patterns, overtime] = await Promise.all([
+export async function fetchWorkPolicyReferenceOptions(): Promise<{ attendance: { id: string; label: string }[]; patterns: { id: string; label: string }[]; overtime: { id: string; label: string }[]; salaryComponents: { id: string; label: string }[] }> {
+  const [attendance, patterns, overtime, salaryComponents] = await Promise.all([
     client.GET<AttendancePolicyVersion[]>("/api/v1/attendance/rules/versions").then((response) => response.data),
     fetchWorkingPatterns(),
     fetchOvertimePolicies(),
+    fetchSalaryComponents(),
   ]);
   return {
     attendance: (attendance ?? []).map((item) => ({ id: item.id, label: `${item.id} (${item.valid_from})` })),
     patterns: patterns.map((item) => ({ id: item.id, label: item.name })),
     overtime: overtime.map((item) => ({ id: item.id, label: item.name })),
+    salaryComponents: salaryComponents.map((item) => ({ id: item.id, label: `${item.name} (${item.code})` })),
   };
 }
 

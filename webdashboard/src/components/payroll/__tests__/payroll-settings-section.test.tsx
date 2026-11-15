@@ -50,7 +50,7 @@ describe("PayrollSettingsSection", () => {
     vi.mocked(api.fetchWorkPolicyGroups).mockResolvedValue([]);
     vi.mocked(api.fetchWorkPolicyGroupHistory).mockResolvedValue([]);
     vi.mocked(api.fetchWorkPolicyMemberships).mockResolvedValue([]);
-    vi.mocked(api.fetchWorkPolicyReferenceOptions).mockResolvedValue({ attendance: [], patterns: [], overtime: [] });
+    vi.mocked(api.fetchWorkPolicyReferenceOptions).mockResolvedValue({ attendance: [], patterns: [], overtime: [], salaryComponents: [] });
   });
 
   const renderWithProviders = (ui: React.ReactElement) => {
@@ -115,13 +115,13 @@ describe("PayrollSettingsSection", () => {
     }]);
     vi.mocked(api.fetchWorkPolicyGroupHistory).mockResolvedValue([]);
     vi.mocked(api.fetchWorkPolicyMemberships).mockResolvedValue([]);
-    vi.mocked(api.fetchWorkPolicyReferenceOptions).mockResolvedValue({ attendance: [], patterns: [], overtime: [] });
+    vi.mocked(api.fetchWorkPolicyReferenceOptions).mockResolvedValue({ attendance: [], patterns: [], overtime: [], salaryComponents: [] });
     vi.mocked(api.createWorkPolicyGroupVersion).mockResolvedValue({} as never);
     renderWithProviders(<PayrollSettingsSection />);
 
     fireEvent.click(await screen.findByRole("button", { name: "Operations" }));
-    fireEvent.change(screen.getByLabelText("common.payroll.settings.work_policy_effective_from"), { target: { value: "2026-07-01" } });
-    fireEvent.change(screen.getByLabelText("common.payroll.settings.work_policy_minutes"), { target: { value: "450" } });
+    fireEvent.change((await screen.findAllByLabelText("common.payroll.settings.work_policy_effective_from"))[0], { target: { value: "2026-07-01" } });
+    fireEvent.change(await screen.findByLabelText("common.payroll.settings.work_policy_minutes"), { target: { value: "450" } });
     fireEvent.click(screen.getByRole("button", { name: "common.payroll.settings.work_policy_create" }));
 
     await waitFor(() => {
@@ -168,11 +168,11 @@ describe("PayrollSettingsSection", () => {
     }]);
     vi.mocked(api.fetchWorkPolicyGroupHistory).mockResolvedValue([]);
     vi.mocked(api.fetchWorkPolicyMemberships).mockResolvedValue([]);
-    vi.mocked(api.fetchWorkPolicyReferenceOptions).mockResolvedValue({ attendance: [], patterns: [], overtime: [] });
+    vi.mocked(api.fetchWorkPolicyReferenceOptions).mockResolvedValue({ attendance: [], patterns: [], overtime: [], salaryComponents: [] });
     renderWithProviders(<PayrollSettingsSection />);
 
     fireEvent.click(await screen.findByRole("button", { name: "Operations" }));
-    fireEvent.click(screen.getByRole("button", { name: "common.payroll.settings.work_policy_create" }));
+    fireEvent.click(await screen.findByRole("button", { name: "common.payroll.settings.work_policy_create" }));
 
     expect(await screen.findByRole("alert")).toHaveTextContent("common.payroll.settings.work_policy_validation");
     expect(api.createWorkPolicyGroupVersion).not.toHaveBeenCalled();

@@ -106,8 +106,10 @@ describe("payroll API", () => {
     vi.mocked(apiFetch).mockResolvedValueOnce(okRes([{ id: "attendance-1", valid_from: "2026-01-01" }]));
     vi.mocked(apiFetch).mockResolvedValueOnce(okRes([{ id: "pattern-1", name: "Weekly" }]));
     vi.mocked(apiFetch).mockResolvedValueOnce(okRes({ data: [{ id: "overtime-1", name: "Standard OT" }] }));
+    vi.mocked(apiFetch).mockResolvedValueOnce(okRes([]));
     const result = await fetchWorkPolicyReferenceOptions();
     expect(result.attendance[0]).toEqual({ id: "attendance-1", label: "attendance-1 (2026-01-01)" });
+    expect(result.patterns).toEqual([{ id: "pattern-1", label: "Weekly" }]);
   });
 
   beforeEach(() => {
