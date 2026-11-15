@@ -187,6 +187,110 @@ type scheduleResolution struct {
 	shifts    map[uuid.UUID]shiftTemplateInfo
 }
 
+func (r ScheduleRepository) GetOfficialSchedules(ctx context.Context, startDate, endDate time.Time, employmentIDs []uuid.UUID, page, limit int) (api.PaginatedEmployeeSchedules, error) {
+	db, err := r.db(ctx)
+	if err != nil {
+		return api.PaginatedEmployeeSchedules{}, err
+	}
+	page, limit = normalizedPage(page), normalizedLimit(limit)
+	start, end := startDate.Format("2006-01-02"), endDate.Format("2006-01-02")
+	var total int64
+	if err := db.QueryRow(ctx, `SELECT count(*) FROM employees e JOIN employments emp ON emp.employee_id = e.id WHERE emp.deleted_at IS NULL AND emp.start_date <= $2::date AND (emp.end_date IS NULL OR emp.end_date >= $1::date) AND (COALESCE(cardinality($3::uuid[]), 0) = 0 OR emp.id = ANY($3::uuid[]))`, start, end, employmentIDs).Scan(&total); err != nil {
+		return api.PaginatedEmployeeSchedules{}, err
+	}
+	rows, err := db.Query(ctx, `WITH eligible_employments AS (
+		SELECT emp.id AS employment_id, e.id AS employee_id, e.full_name,
+			COALESCE(t.employee_number, e.employee_id_number) AS employee_id_number,
+			emp.start_date, emp.end_date
+		FROM employments emp
+		JOIN employees e ON e.id = emp.employee_id
+		LEFT JOIN employment_relationships er ON er.id = emp.relationship_id AND er.employee_id = emp.employee_id
+		LEFT JOIN employee_tenures t ON t.id = er.tenure_id AND t.employee_id = e.id AND t.deleted_at IS NULL
+			AND t.start_date <= emp.start_date AND (t.end_date IS NULL OR t.end_date >= emp.start_date)
+		WHERE emp.deleted_at IS NULL AND emp.start_date <= $2::date AND (emp.end_date IS NULL OR emp.end_date >= $1::date)
+			AND (COALESCE(cardinality($3::uuid[]), 0) = 0 OR emp.id = ANY($3::uuid[]))
+		ORDER BY emp.start_date DESC, emp.id
+		LIMIT $4 OFFSET $5
+	), eligible_days AS (
+		SELECT ee.*, days.day::date AS business_date
+		FROM eligible_employments ee
+		CROSS JOIN LATERAL generate_series(GREATEST(ee.start_date, $1::date), LEAST(COALESCE(ee.end_date, $2::date), $2::date), interval '1 day') days
+	)
+	SELECT ed.employment_id, ed.employee_id, ed.full_name, ed.employee_id_number, ed.business_date::text,
+		r.id, r.state, r.timezone, r.published_at, r.source,
+		(array_agg(ws.template_id ORDER BY ws.sort_order, ws.id) FILTER (WHERE ws.id IS NOT NULL))[1],
+		(array_agg(st.name ORDER BY ws.sort_order, ws.id) FILTER (WHERE ws.id IS NOT NULL))[1],
+		(array_agg(sv.report_symbol ORDER BY ws.sort_order, ws.id) FILTER (WHERE ws.id IS NOT NULL))[1],
+		(array_agg(ws.scheduled_start::text ORDER BY ws.sort_order, ws.id) FILTER (WHERE ws.id IS NOT NULL))[1],
+		(array_agg(ws.scheduled_end::text ORDER BY ws.sort_order, ws.id) FILTER (WHERE ws.id IS NOT NULL))[1],
+		COALESCE(jsonb_agg(jsonb_build_object(
+			'shift_id', sv.template_id,
+			'shift_version_id', ws.selected_shift_version_id,
+			'sort_order', ws.sort_order,
+			'start_time', ws.scheduled_start::text,
+			'end_time', ws.scheduled_end::text,
+			'scheduled_start_at', ws.scheduled_start_at,
+			'scheduled_end_at', ws.scheduled_end_at,
+			'breaks', ws.breaks_snapshot,
+			'shift_name', st.name,
+			'shift_symbol', sv.report_symbol
+		) ORDER BY ws.sort_order, ws.id) FILTER (WHERE ws.id IS NOT NULL), '[]'::jsonb)
+	FROM eligible_days ed
+	LEFT JOIN schedule_day_revisions r ON r.employment_id = ed.employment_id AND r.business_date = ed.business_date AND r.state IN ('published', 'explicit_off')
+	LEFT JOIN work_segments ws ON ws.schedule_revision_id = r.id
+	LEFT JOIN shift_versions sv ON sv.id = ws.selected_shift_version_id
+	LEFT JOIN shift_templates st ON st.id = ws.template_id
+	GROUP BY ed.employment_id, ed.employee_id, ed.full_name, ed.employee_id_number, ed.business_date, r.id, r.state, r.timezone, r.published_at, r.source
+	ORDER BY ed.start_date DESC, ed.employment_id, ed.business_date
+	`, start, end, employmentIDs, limit, (page-1)*limit)
+	if err != nil {
+		return api.PaginatedEmployeeSchedules{}, err
+	}
+	defer rows.Close()
+	result := make([]api.EmployeeSchedule, 0)
+	index := make(map[uuid.UUID]int)
+	for rows.Next() {
+		var employmentID, employeeID uuid.UUID
+		var fullName, employeeNumber, date string
+		var revisionID, templateID *uuid.UUID
+		var state, timezone, source, shiftName, shiftSymbol, startTime, endTime *string
+		var publishedAt *time.Time
+		var intervalsJSON []byte
+		if err := rows.Scan(&employmentID, &employeeID, &fullName, &employeeNumber, &date, &revisionID, &state, &timezone, &publishedAt, &source, &templateID, &shiftName, &shiftSymbol, &startTime, &endTime, &intervalsJSON); err != nil {
+			return api.PaginatedEmployeeSchedules{}, err
+		}
+		status := "missing"
+		if state != nil {
+			status = "work"
+			if *state == "explicit_off" {
+				status = "explicit_off"
+			}
+		}
+		intervals := make([]json.RawMessage, 0)
+		if len(intervalsJSON) > 0 {
+			if err := json.Unmarshal(intervalsJSON, &intervals); err != nil {
+				return api.PaginatedEmployeeSchedules{}, err
+			}
+		}
+		zone := timezone
+		day := api.EffectiveSchedule{Date: date, RevisionID: revisionID, ScheduleStatus: status, Provisional: false, Timezone: zone, PublishedAt: publishedAt, Intervals: intervals, ShiftID: templateID, Source: "", ShiftName: shiftName, ShiftSymbol: shiftSymbol, StartTime: startTime, EndTime: endTime, Traces: []api.ScheduleTrace{}}
+		if source != nil {
+			day.Source = *source
+		}
+		position, ok := index[employmentID]
+		if !ok {
+			position = len(result)
+			index[employmentID] = position
+			result = append(result, api.EmployeeSchedule{EmploymentID: employmentID, EmployeeID: employeeID, EmployeeIDNumber: employeeNumber, FullName: fullName, Schedules: make([]api.EffectiveSchedule, 0)})
+		}
+		result[position].Schedules = append(result[position].Schedules, day)
+	}
+	if err := rows.Err(); err != nil {
+		return api.PaginatedEmployeeSchedules{}, err
+	}
+	return api.PaginatedEmployeeSchedules{Data: result, Total: total, Page: page, Limit: limit}, nil
+}
+
 func (r ScheduleRepository) GetOrganizationSchedules(ctx context.Context, startDate, endDate time.Time, employmentIDs []uuid.UUID, page, limit int) (api.PaginatedEmployeeSchedules, error) {
 	db, err := r.db(ctx)
 	if err != nil {

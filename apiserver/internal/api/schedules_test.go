@@ -18,6 +18,16 @@ type mockScheduleRepository struct {
 	called bool
 }
 
+type officialScheduleRepositoryMock struct {
+	mockScheduleRepository
+	officialCalled bool
+}
+
+func (m *officialScheduleRepositoryMock) GetOfficialSchedules(_ context.Context, _, _ time.Time, _ []uuid.UUID, page, limit int) (PaginatedEmployeeSchedules, error) {
+	m.officialCalled = true
+	return PaginatedEmployeeSchedules{Data: []EmployeeSchedule{{Schedules: []EffectiveSchedule{{Date: "2026-10-20", RevisionID: new(uuid.UUID), ScheduleStatus: "missing", Provisional: false}}}}, Page: page, Limit: limit}, nil
+}
+
 func (m *mockScheduleRepository) GetOrganizationSchedules(_ context.Context, _, _ time.Time, _ []uuid.UUID, page, limit int) (PaginatedEmployeeSchedules, error) {
 	m.called = true
 	return PaginatedEmployeeSchedules{
@@ -287,6 +297,42 @@ func TestScheduleHandler_LifecycleUnavailableIsExplicit(t *testing.T) {
 	handler.Preview(rec, req)
 	if rec.Code != http.StatusServiceUnavailable {
 		t.Fatalf("expected explicit lifecycle unavailability, got %d", rec.Code)
+	}
+}
+
+func TestScheduleHandler_OfficialViewUsesOfficialCapability(t *testing.T) {
+	repo := &officialScheduleRepositoryMock{}
+	handler := ScheduleHandler{Repository: repo, Authorizer: mockScheduleAuthorizer{isMember: true}}
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/schedules?start_date=2026-10-01&end_date=2026-10-31&view=official", nil)
+	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
+	rec := httptest.NewRecorder()
+	handler.List(rec, req)
+	if rec.Code != http.StatusOK || !repo.officialCalled || repo.called {
+		t.Fatalf("official view status=%d official=%v legacy=%v", rec.Code, repo.officialCalled, repo.called)
+	}
+}
+
+func TestScheduleHandler_OfficialViewUnavailableFailsClosed(t *testing.T) {
+	repo := &mockScheduleRepository{}
+	handler := ScheduleHandler{Repository: repo, Authorizer: mockScheduleAuthorizer{isMember: true}}
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/schedules?start_date=2026-10-01&end_date=2026-10-31&view=official", nil)
+	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
+	rec := httptest.NewRecorder()
+	handler.List(rec, req)
+	if rec.Code != http.StatusServiceUnavailable || repo.called {
+		t.Fatalf("official capability absence status=%d legacy=%v", rec.Code, repo.called)
+	}
+}
+
+func TestScheduleHandler_UnknownViewRejected(t *testing.T) {
+	repo := &mockScheduleRepository{}
+	handler := ScheduleHandler{Repository: repo, Authorizer: mockScheduleAuthorizer{isMember: true}}
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/schedules?start_date=2026-10-01&end_date=2026-10-31&view=unknown", nil)
+	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
+	rec := httptest.NewRecorder()
+	handler.List(rec, req)
+	if rec.Code != http.StatusBadRequest || repo.called {
+		t.Fatalf("unknown view status=%d legacy=%v", rec.Code, repo.called)
 	}
 }
 

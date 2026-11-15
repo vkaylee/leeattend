@@ -10,6 +10,29 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
+func TestGetOfficialSchedulesQueryUsesCurrentRevisionAndOfficialSegments(t *testing.T) {
+	queries := make([]string, 0, 2)
+	db := &fakeDBTX{
+		queryRowFn: func(_ context.Context, query string, _ ...any) pgx.Row {
+			queries = append(queries, query)
+			return fakeRow{scanFn: func(dest ...any) error { *(dest[0].(*int64)) = 0; return nil }}
+		},
+		queryFn: func(_ context.Context, query string, _ ...any) (pgx.Rows, error) {
+			queries = append(queries, query)
+			return &fakeRows{}, nil
+		},
+	}
+	if _, err := (ScheduleRepository{DB: db}).GetOfficialSchedules(context.Background(), time.Date(2026, 10, 1, 0, 0, 0, 0, time.UTC), time.Date(2026, 10, 2, 0, 0, 0, 0, time.UTC), nil, 1, 50); err != nil {
+		t.Fatalf("official schedules: %v", err)
+	}
+	if len(queries) != 2 || !strings.Contains(queries[1], "schedule_day_revisions") || !strings.Contains(queries[1], "state IN ('published', 'explicit_off')") || !strings.Contains(queries[1], "ws.schedule_revision_id = r.id") || !strings.Contains(queries[1], "sv.id = ws.selected_shift_version_id") {
+		t.Fatalf("official query missing current revision joins: %v", queries)
+	}
+	if strings.Contains(queries[1], "shift_rosters") || strings.Contains(queries[1], "assignment_rules") {
+		t.Fatalf("official query must not resolve legacy sources: %s", queries[1])
+	}
+}
+
 func TestLoadDeptHistory_UsesEmploymentSegments(t *testing.T) {
 	employeeID := uuid.New()
 	departmentID := uuid.New()

@@ -155,6 +155,7 @@ type EffectiveSchedule struct {
 	ScheduleStatus                 string            `json:"schedule_status"`
 	Provisional                    bool              `json:"provisional"`
 	Timezone                       *string           `json:"timezone,omitempty"`
+	PublishedAt                    *time.Time        `json:"published_at,omitempty"`
 	Intervals                      []json.RawMessage `json:"intervals,omitempty"`
 	ShiftID                        *uuid.UUID        `json:"shift_id"`
 	Source                         string            `json:"source"`
@@ -193,6 +194,10 @@ type PaginatedEmployeeSchedules struct {
 
 type ScheduleRepository interface {
 	GetOrganizationSchedules(context.Context, time.Time, time.Time, []uuid.UUID, int, int) (PaginatedEmployeeSchedules, error)
+}
+
+type OfficialScheduleRepository interface {
+	GetOfficialSchedules(context.Context, time.Time, time.Time, []uuid.UUID, int, int) (PaginatedEmployeeSchedules, error)
 }
 
 type ScheduleHandler struct {
@@ -508,7 +513,16 @@ func (h ScheduleHandler) List(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var result PaginatedEmployeeSchedules
-	result, err = h.Repository.GetOrganizationSchedules(r.Context(), query.start, query.end, query.employmentIDs, query.page, query.limit)
+	if query.view == "official" {
+		official, ok := h.Repository.(OfficialScheduleRepository)
+		if !ok {
+			apperror.WriteError(w, r, apperror.ServiceUnavailable(apperror.KeyServiceUnavailable))
+			return
+		}
+		result, err = official.GetOfficialSchedules(r.Context(), query.start, query.end, query.employmentIDs, query.page, query.limit)
+	} else {
+		result, err = h.Repository.GetOrganizationSchedules(r.Context(), query.start, query.end, query.employmentIDs, query.page, query.limit)
+	}
 	if err != nil {
 		apperror.WriteError(w, r, apperror.Internal(err))
 		return
@@ -520,6 +534,7 @@ type parsedOrganizationSchedulesQuery struct {
 	start, end    time.Time
 	employmentIDs []uuid.UUID
 	page, limit   int
+	view          string
 }
 
 func parseOrganizationSchedulesQuery(r *http.Request) (parsedOrganizationSchedulesQuery, error) {
@@ -540,6 +555,13 @@ func parseOrganizationSchedulesQuery(r *http.Request) (parsedOrganizationSchedul
 	if err != nil {
 		return parsedOrganizationSchedulesQuery{}, err
 	}
+	view := strings.TrimSpace(values.Get("view"))
+	if view == "" {
+		view = "legacy"
+	}
+	if view != "legacy" && view != "official" {
+		return parsedOrganizationSchedulesQuery{}, errors.New("unsupported schedule view")
+	}
 	ids := make([]uuid.UUID, 0)
 	if raw := strings.TrimSpace(values.Get("employment_ids")); raw != "" {
 		for _, value := range strings.Split(raw, ",") {
@@ -550,5 +572,5 @@ func parseOrganizationSchedulesQuery(r *http.Request) (parsedOrganizationSchedul
 			ids = append(ids, id)
 		}
 	}
-	return parsedOrganizationSchedulesQuery{start: start, end: end, employmentIDs: ids, page: pagination.Page, limit: minInt(pagination.Limit, MaxLimit)}, nil
+	return parsedOrganizationSchedulesQuery{start: start, end: end, employmentIDs: ids, page: pagination.Page, limit: minInt(pagination.Limit, MaxLimit), view: view}, nil
 }
