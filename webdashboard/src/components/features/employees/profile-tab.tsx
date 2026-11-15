@@ -11,6 +11,7 @@ import { CustomFieldSection } from "@/components/custom-fields/custom-field-sect
 import EditTerminationModal from "@/components/features/employees/edit-termination-modal";
 import UndoTerminationModal from "@/components/features/employees/undo-termination-modal";
 import Button from "@/components/ui/button";
+import StatusBadge from "@/components/ui/status-badge";
 import { useToast } from "@/components/ui/toast";
 import { useOrganizationMutation } from "@/hooks/common/use-organization-query";
 import { fetchEmployeeEmployments, updateEmployeeEmployment } from "@/lib/api";

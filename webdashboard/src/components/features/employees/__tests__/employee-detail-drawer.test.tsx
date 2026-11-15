@@ -192,6 +192,13 @@ describe("EmployeeDetailDrawer", () => {
         expect(screen.getByText(/employees.table.active/i)).toBeDefined();
     });
 
+    it("renders employment history with start and end dates", async () => {
+        renderWithClient(<EmployeeDetailDrawer {...defaultProps} />);
+        expect(await screen.findByText("employment-old")).toBeDefined();
+        expect(screen.getByText("employment-1")).toBeDefined();
+        expect(screen.getAllByText("2020-01-01").length).toBeGreaterThan(0);
+    });
+
     it("displays terminated status badge for terminated employees", () => {
         renderWithClient(<EmployeeDetailDrawer {...defaultProps} employee={terminatedEmployee} />);
         expect(screen.getByText(/employees.table.terminated/i)).toBeDefined();

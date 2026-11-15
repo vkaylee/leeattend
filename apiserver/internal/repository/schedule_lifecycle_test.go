@@ -190,6 +190,44 @@ func TestSanitizedPreviewDayWorkIncludesAllIntervalsAndNoPII(t *testing.T) {
 	}
 }
 
+func TestPreviewIntervalsPreservesSplitAndOvernightIntervals(t *testing.T) {
+	firstStart, firstEnd := "08:00:00", "12:00:00"
+	nightStart, nightEnd := "22:00:00", "06:00:00"
+	version := shiftVersionInfo{id: uuid.New(), intervals: []shiftIntervalInfo{
+		{sortOrder: 0, startTime: &firstStart, endTime: &firstEnd},
+		{sortOrder: 1, startTime: &nightStart, endTime: &nightEnd},
+	}}
+	intervals, err := previewIntervals(version, "2026-11-16", "UTC")
+	if err != nil {
+		t.Fatalf("preview intervals: %v", err)
+	}
+	if len(intervals) != 2 {
+		t.Fatalf("interval count = %d, want 2", len(intervals))
+	}
+	first := intervals[0]["start_at"].(time.Time)
+	nightEndAt := intervals[1]["end_at"].(time.Time)
+	if first.Format(time.RFC3339) != "2026-11-16T08:00:00Z" || nightEndAt.Format(time.RFC3339) != "2026-11-17T06:00:00Z" {
+		t.Fatalf("unexpected interval timestamps: first=%s night_end=%s", first, nightEndAt)
+	}
+}
+
+func TestPreviewIntervalsUsesTimezoneAcrossDSTBoundary(t *testing.T) {
+	start, end := "01:30:00", "03:30:00"
+	version := shiftVersionInfo{id: uuid.New(), intervals: []shiftIntervalInfo{{sortOrder: 0, startTime: &start, endTime: &end}}}
+	intervals, err := previewIntervals(version, "2026-03-08", "America/New_York")
+	if err != nil {
+		t.Fatalf("preview DST interval: %v", err)
+	}
+	startAt := intervals[0]["start_at"].(time.Time)
+	endAt := intervals[0]["end_at"].(time.Time)
+	if startAt.Location().String() != "America/New_York" || endAt.Location().String() != "America/New_York" {
+		t.Fatalf("timezone lost: start=%s end=%s", startAt.Location(), endAt.Location())
+	}
+	if endAt.Sub(startAt) != 1*time.Hour {
+		t.Fatalf("DST elapsed duration = %s, want 1h", endAt.Sub(startAt))
+	}
+}
+
 func TestSanitizedPreviewDayExplicitOffMissingAndConflict(t *testing.T) {
 	cases := []struct{ name, source, status string }{{"explicit off", "roster", "explicit_off"}, {"missing", "none", "missing"}, {"conflict", "conflict", "conflict"}}
 	for _, test := range cases {
