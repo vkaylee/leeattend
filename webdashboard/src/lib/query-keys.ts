@@ -88,6 +88,8 @@ export const payrollKeys = {
     ["payroll-calculation-runs", employmentId, year, month] as const,
   settings: () => ["payroll-settings"] as const,
   settingsHistory: () => ["payroll-settings-history"] as const,
+  workPolicyGroups: () => ["payroll-work-policy-groups"] as const,
+  workPolicyHistory: (groupId?: string) => ["payroll-work-policy-history", groupId] as const,
   rules: () => ["payroll-rules"] as const,
   ruleTiers: (ruleId?: string) => ["payroll-rule-tiers", ruleId] as const,
   ruleAssignments: (ruleId?: string) => ["payroll-rule-assignments", ruleId] as const,

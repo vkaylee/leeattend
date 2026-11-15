@@ -15,6 +15,7 @@ vi.mock("@/lib/api/payroll", () => ({
   fetchPayrollSettings: vi.fn(),
   updatePayrollSettings: vi.fn(),
   fetchPayrollSettingsHistory: vi.fn(),
+  fetchWorkPolicyGroups: vi.fn(),
 }));
 
 // Mock i18n
@@ -40,6 +41,7 @@ describe("PayrollSettingsSection", () => {
     vi.mocked(api.fetchPayrollSettingsHistory).mockResolvedValue([
       { fixed_std_days: 26, hours_per_day: 8, effective_date: "2026-01-01" }
     ] as unknown as never);
+    vi.mocked(api.fetchWorkPolicyGroups).mockResolvedValue([]);
   });
 
   const renderWithProviders = (ui: React.ReactElement) => {

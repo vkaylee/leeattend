@@ -1,6 +1,26 @@
 /* eslint-disable max-lines -- API wrapper module: 300 lines of exported functions; splitting would scatter imports */
 import type { PayrollCalculationRun, PayrollFormulaRuleVersion, PayrollInput } from "./types-payroll";
 
+export interface WorkPolicyGroupVersion {
+  id: string;
+  group_id: string;
+  name: string;
+  minutes_per_credit: number;
+  pay_method: "monthly" | "hourly" | "shift";
+  monthly_denominator?: "fixed" | "schedule";
+  monthly_standard_days?: string;
+  overtime_policy_id: string;
+  effective_from: string;
+  effective_to?: string;
+}
+
+interface WorkPolicyGroupListResponse {
+  data: WorkPolicyGroupVersion[];
+  total: number;
+  page: number;
+  limit: number;
+}
+
 import { client, fetch } from "./client";
 import {
   Payslip,
@@ -48,6 +68,20 @@ export async function deleteIncentivePolicy(policyId: string): Promise<void> {
   await client.DELETE("/api/v1/payroll/incentive-policies/{policy_id}", {
     params: { path: { policy_id: policyId } }
   });
+}
+
+export async function fetchWorkPolicyGroups(): Promise<WorkPolicyGroupVersion[]> {
+  const { data } = await fetch<WorkPolicyGroupListResponse>("GET", "/api/v1/payroll/work-policy-groups", {
+    params: { query: { page: 1, limit: 100 } },
+  });
+  return data?.data ?? [];
+}
+
+export async function fetchWorkPolicyGroupHistory(groupId: string): Promise<WorkPolicyGroupVersion[]> {
+  const { data } = await fetch<WorkPolicyGroupListResponse>("GET", "/api/v1/payroll/work-policy-groups/{group_id}/history", {
+    params: { path: { group_id: groupId }, query: { page: 1, limit: 100 } },
+  });
+  return data?.data ?? [];
 }
 
 export async function fetchPayrollSettings(): Promise<PayrollSettings> {
