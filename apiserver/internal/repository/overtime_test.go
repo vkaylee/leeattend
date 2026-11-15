@@ -193,6 +193,19 @@ func TestOvertimeRepository_ClaimAndApprove(t *testing.T) {
 				return nil
 			}}
 		}
+		if strings.Contains(sql, "system_detected_ot_minutes") {
+			return fakeRow{scanFn: func(dest ...any) error {
+				*(dest[0].(*int)) = 60
+				*(dest[1].(*string)) = "pending_employee"
+				return nil
+			}}
+		}
+		if strings.Contains(sql, "UPDATE attendance_daily_summaries") {
+			return fakeRow{scanFn: func(dest ...any) error {
+				*(dest[0].(*uuid.UUID)) = uuid.New()
+				return nil
+			}}
+		}
 		if strings.Contains(sql, "INSERT INTO attendance_daily_summaries") {
 			return fakeRow{scanFn: func(dest ...any) error {
 				*(dest[0].(*uuid.UUID)) = uuid.New()
@@ -215,6 +228,19 @@ func TestOvertimeRepository_ClaimAndApprove(t *testing.T) {
 			if strings.Contains(sql, "FROM employments") {
 				return fakeRow{scanFn: func(dest ...any) error {
 					*(dest[0].(*uuid.UUID)) = employmentID
+					return nil
+				}}
+			}
+			if strings.Contains(sql, "system_detected_ot_minutes") {
+				return fakeRow{scanFn: func(dest ...any) error {
+					*(dest[0].(*int)) = 60
+					*(dest[1].(*string)) = "pending_employee"
+					return nil
+				}}
+			}
+			if strings.Contains(sql, "UPDATE attendance_daily_summaries") {
+				return fakeRow{scanFn: func(dest ...any) error {
+					*(dest[0].(*uuid.UUID)) = uuid.New()
 					return nil
 				}}
 			}

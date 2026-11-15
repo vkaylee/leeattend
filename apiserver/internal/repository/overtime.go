@@ -561,8 +561,19 @@ func (r OvertimeRepository) ClaimOvertime(ctx context.Context, employeeID uuid.U
 		if err := db.QueryRow(ctx, `SELECT id FROM employments WHERE employee_id = $1 AND status = 'active' AND deleted_at IS NULL ORDER BY start_date DESC LIMIT 1`, employeeID).Scan(&employmentID); err != nil {
 			return err
 		}
+		var detectedMinutes int
+		var status string
+		if err := db.QueryRow(ctx, `SELECT system_detected_ot_minutes, ot_status::text FROM attendance_daily_summaries WHERE employment_id = $1 AND date = $2 FOR UPDATE`, employmentID, date).Scan(&detectedMinutes, &status); err != nil {
+			if errors.Is(err, pgx.ErrNoRows) {
+				return api.ErrOvertimeValidation
+			}
+			return err
+		}
+		if detectedMinutes <= 0 || req.ClaimedMinutes > detectedMinutes || status != "pending_employee" && status != "rejected" {
+			return api.ErrOvertimeValidation
+		}
 		var summaryID uuid.UUID
-		err = db.QueryRow(ctx, `INSERT INTO attendance_daily_summaries (id, employment_id, date, claimed_ot_minutes, ot_reason, ot_status, entered_via, claim_entered_by_user_id, claim_entered_at) VALUES ($1, $2, $3, $4, $5, 'pending_manager', 'self_service', $6, NOW()) ON CONFLICT (employment_id, date) DO UPDATE SET claimed_ot_minutes = EXCLUDED.claimed_ot_minutes, ot_reason = EXCLUDED.ot_reason, ot_status = 'pending_manager', entered_via = 'self_service', claim_entered_by_user_id = EXCLUDED.claim_entered_by_user_id, claim_entered_at = NOW(), updated_at = NOW() WHERE attendance_daily_summaries.ot_status IN ('pending_employee', 'rejected') RETURNING id`, uuid.New(), employmentID, date, req.ClaimedMinutes, req.Reason, user).Scan(&summaryID)
+		err = db.QueryRow(ctx, `UPDATE attendance_daily_summaries SET claimed_ot_minutes = $1, ot_reason = $2, ot_status = 'pending_manager', entered_via = 'self_service', claim_entered_by_user_id = $3, claim_entered_at = NOW(), updated_at = NOW() WHERE employment_id = $4 AND date = $5 RETURNING id`, req.ClaimedMinutes, req.Reason, user, employmentID, date).Scan(&summaryID)
 		if err != nil {
 			return err
 		}
@@ -583,7 +594,11 @@ func (r OvertimeRepository) ApproveOvertime(ctx context.Context, employeeID uuid
 	if err := db.QueryRow(ctx, `SELECT id FROM employments WHERE employee_id = $1 AND status = 'active' AND deleted_at IS NULL ORDER BY start_date DESC LIMIT 1`, employeeID).Scan(&employmentID); err != nil {
 		return err
 	}
-	tag, err := db.Exec(ctx, `UPDATE attendance_daily_summaries SET approved_ot_minutes = $1, manager_note = $2, ot_status = $3, updated_at = NOW() WHERE employment_id = $4 AND date = $5 AND ot_status = 'pending_manager'`, req.ApprovedMinutes, req.ManagerNote, req.Status, employmentID, date)
+	approvedMinutes := req.ApprovedMinutes
+	if req.Status == "rejected" {
+		approvedMinutes = 0
+	}
+	tag, err := db.Exec(ctx, `UPDATE attendance_daily_summaries SET approved_ot_minutes = $1, manager_note = $2, ot_status = $3, updated_at = NOW() WHERE employment_id = $4 AND date = $5 AND ot_status = 'pending_manager' AND $1 <= claimed_ot_minutes AND $1 <= system_detected_ot_minutes`, approvedMinutes, req.ManagerNote, req.Status, employmentID, date)
 	if err != nil {
 		return err
 	}
