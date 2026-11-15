@@ -1517,13 +1517,13 @@ RETURNING created_at, updated_at`, ruleID, strings.TrimSpace(req.Name), req.Desc
 	}, nil
 }
 
-func (r PayrollRepository) ListPayrollRuleTiers(ctx context.Context, ruleID uuid.UUID) ([]api.PayrollRuleTier, error) {
+func (r PayrollRepository) ListPayrollRuleTiers(ctx context.Context, ruleID ids.PayrollRuleID) ([]api.PayrollRuleTier, error) {
 	db, err := r.db(ctx)
 	if err != nil {
 		return nil, err
 	}
 	var exists bool
-	if err := db.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM payroll_rule_definitions WHERE id = $1)`, ruleID).Scan(&exists); err != nil {
+	if err := db.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM payroll_rule_definitions WHERE id = $1)`, uuid.UUID(ruleID)).Scan(&exists); err != nil {
 		return nil, err
 	}
 	if !exists {
@@ -1533,7 +1533,7 @@ func (r PayrollRepository) ListPayrollRuleTiers(ctx context.Context, ruleID uuid
 	rows, err := db.Query(ctx, `SELECT id, rule_definition_id, tier_order, min_amount::text, max_amount::text, rate::text, fixed_amount::text, created_at
 FROM payroll_rule_tiers
 WHERE rule_definition_id = $1
-ORDER BY tier_order ASC`, ruleID)
+ORDER BY tier_order ASC`, uuid.UUID(ruleID))
 	if err != nil {
 		return nil, err
 	}
@@ -1561,13 +1561,13 @@ ORDER BY tier_order ASC`, ruleID)
 	return result, rows.Err()
 }
 
-func (r PayrollRepository) CreatePayrollRuleTier(ctx context.Context, ruleID uuid.UUID, req api.CreatePayrollRuleTierRequest) (api.PayrollRuleTier, error) {
+func (r PayrollRepository) CreatePayrollRuleTier(ctx context.Context, ruleID ids.PayrollRuleID, req api.CreatePayrollRuleTierRequest) (api.PayrollRuleTier, error) {
 	db, err := r.db(ctx)
 	if err != nil {
 		return api.PayrollRuleTier{}, err
 	}
 	var exists bool
-	if err := db.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM payroll_rule_definitions WHERE id = $1)`, ruleID).Scan(&exists); err != nil {
+	if err := db.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM payroll_rule_definitions WHERE id = $1)`, uuid.UUID(ruleID)).Scan(&exists); err != nil {
 		return api.PayrollRuleTier{}, err
 	}
 	if !exists {
@@ -1590,7 +1590,7 @@ func (r PayrollRepository) CreatePayrollRuleTier(ctx context.Context, ruleID uui
 	}
 	err = db.QueryRow(ctx, `INSERT INTO payroll_rule_tiers (id, rule_definition_id, tier_order, min_amount, max_amount, rate, fixed_amount, created_at)
 VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())
-RETURNING created_at`, tierID, ruleID, req.TierOrder, req.MinAmount.String(), maxParam, req.Rate.String(), fixed.String()).Scan(&created)
+RETURNING created_at`, uuid.UUID(tierID), uuid.UUID(ruleID), req.TierOrder, req.MinAmount.String(), maxParam, req.Rate.String(), fixed.String()).Scan(&created)
 	if err != nil {
 		if isConflictError(err) {
 			return api.PayrollRuleTier{}, api.ErrConflict
@@ -1600,7 +1600,7 @@ RETURNING created_at`, tierID, ruleID, req.TierOrder, req.MinAmount.String(), ma
 
 	return api.PayrollRuleTier{
 		ID:               tierID,
-		RuleDefinitionID: ruleID,
+		RuleDefinitionID: uuid.UUID(ruleID),
 		TierOrder:        req.TierOrder,
 		MinAmount:        req.MinAmount,
 		MaxAmount:        req.MaxAmount,
@@ -1610,12 +1610,12 @@ RETURNING created_at`, tierID, ruleID, req.TierOrder, req.MinAmount.String(), ma
 	}, nil
 }
 
-func (r PayrollRepository) DeletePayrollRuleTier(ctx context.Context, ruleID, tierID uuid.UUID) error {
+func (r PayrollRepository) DeletePayrollRuleTier(ctx context.Context, ruleID ids.PayrollRuleID, tierID ids.PayrollRuleTierID) error {
 	db, err := r.db(ctx)
 	if err != nil {
 		return err
 	}
-	_, err = db.Exec(ctx, `DELETE FROM payroll_rule_tiers WHERE id = $1 AND rule_definition_id = $2`, tierID, ruleID)
+	_, err = db.Exec(ctx, `DELETE FROM payroll_rule_tiers WHERE id = $1 AND rule_definition_id = $2`, uuid.UUID(tierID), uuid.UUID(ruleID))
 	return err
 }
 

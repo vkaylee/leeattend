@@ -433,9 +433,9 @@ type PayrollRepository interface {
 	CloneIncentivePolicy(context.Context, uuid.UUID) (PayrollIncentivePolicy, error)
 	ListPayrollRules(context.Context) ([]PayrollRuleDefinition, error)
 	CreatePayrollRule(context.Context, CreatePayrollRuleDefinitionRequest) (PayrollRuleDefinition, error)
-	ListPayrollRuleTiers(context.Context, uuid.UUID) ([]PayrollRuleTier, error)
-	CreatePayrollRuleTier(context.Context, uuid.UUID, CreatePayrollRuleTierRequest) (PayrollRuleTier, error)
-	DeletePayrollRuleTier(context.Context, uuid.UUID, uuid.UUID) error
+	ListPayrollRuleTiers(context.Context, ids.PayrollRuleID) ([]PayrollRuleTier, error)
+	CreatePayrollRuleTier(context.Context, ids.PayrollRuleID, CreatePayrollRuleTierRequest) (PayrollRuleTier, error)
+	DeletePayrollRuleTier(context.Context, ids.PayrollRuleID, ids.PayrollRuleTierID) error
 	ListPayrollRuleAssignments(context.Context, uuid.UUID) ([]PayrollRuleAssignment, error)
 	AssignPayrollRule(context.Context, uuid.UUID, AssignPayrollRuleRequest) (PayrollRuleAssignment, error)
 	DeletePayrollRuleAssignment(context.Context, uuid.UUID, uuid.UUID) error
@@ -791,7 +791,7 @@ func (h PayrollHandler) ListPayrollRuleTiers(w http.ResponseWriter, r *http.Requ
 		h.forbidden(w, r)
 		return
 	}
-	tiers, err := h.Repository.ListPayrollRuleTiers(r.Context(), ruleID)
+	tiers, err := h.Repository.ListPayrollRuleTiers(r.Context(), ids.PayrollRuleID(ruleID))
 	if err != nil {
 		h.writeError(w, r, err)
 		return
@@ -818,7 +818,7 @@ func (h PayrollHandler) CreatePayrollRuleTier(w http.ResponseWriter, r *http.Req
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}
-	tier, err := h.Repository.CreatePayrollRuleTier(r.Context(), ruleID, req)
+	tier, err := h.Repository.CreatePayrollRuleTier(r.Context(), ids.PayrollRuleID(ruleID), req)
 	if err != nil {
 		h.writeError(w, r, err)
 		return
@@ -834,7 +834,7 @@ func (h PayrollHandler) DeletePayrollRuleTier(w http.ResponseWriter, r *http.Req
 		h.forbidden(w, r)
 		return
 	}
-	if err := h.Repository.DeletePayrollRuleTier(r.Context(), ruleID, tierID); err != nil {
+	if err := h.Repository.DeletePayrollRuleTier(r.Context(), ids.PayrollRuleID(ruleID), ids.PayrollRuleTierID(tierID)); err != nil {
 		h.writeError(w, r, err)
 		return
 	}

@@ -10,6 +10,8 @@ type PayrollInputBatchID uuid.UUID
 type PayrollInputID uuid.UUID
 type PayrollFormulaRuleID uuid.UUID
 type PayrollFormulaRuleVersionID uuid.UUID
+type PayrollRuleID uuid.UUID
+type PayrollRuleTierID uuid.UUID
 type EmploymentID uuid.UUID
 type AttendancePolicyID uuid.UUID
 type WorkingPatternID uuid.UUID

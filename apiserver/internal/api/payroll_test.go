@@ -336,14 +336,14 @@ func (mockPayrollRepository) CreatePayrollRule(_ context.Context, req CreatePayr
 	}, nil
 }
 
-func (mockPayrollRepository) ListPayrollRuleTiers(_ context.Context, ruleID uuid.UUID) ([]PayrollRuleTier, error) {
-	if ruleID == uuid.MustParse("00000000-0000-0000-0000-000000000099") {
+func (mockPayrollRepository) ListPayrollRuleTiers(_ context.Context, ruleID ids.PayrollRuleID) ([]PayrollRuleTier, error) {
+	if uuid.UUID(ruleID) == uuid.MustParse("00000000-0000-0000-0000-000000000099") {
 		return nil, ErrRuleNotFound
 	}
 	return []PayrollRuleTier{
 		{
 			ID:               uuid.New(),
-			RuleDefinitionID: ruleID,
+			RuleDefinitionID: uuid.UUID(ruleID),
 			TierOrder:        1,
 			MinAmount:        decimal.Zero,
 			Rate:             decimal.RequireFromString("5"),
@@ -353,8 +353,8 @@ func (mockPayrollRepository) ListPayrollRuleTiers(_ context.Context, ruleID uuid
 	}, nil
 }
 
-func (mockPayrollRepository) CreatePayrollRuleTier(_ context.Context, ruleID uuid.UUID, req CreatePayrollRuleTierRequest) (PayrollRuleTier, error) {
-	if ruleID == uuid.MustParse("00000000-0000-0000-0000-000000000099") {
+func (mockPayrollRepository) CreatePayrollRuleTier(_ context.Context, ruleID ids.PayrollRuleID, req CreatePayrollRuleTierRequest) (PayrollRuleTier, error) {
+	if uuid.UUID(ruleID) == uuid.MustParse("00000000-0000-0000-0000-000000000099") {
 		return PayrollRuleTier{}, ErrRuleNotFound
 	}
 	fixed := decimal.Zero
@@ -363,7 +363,7 @@ func (mockPayrollRepository) CreatePayrollRuleTier(_ context.Context, ruleID uui
 	}
 	return PayrollRuleTier{
 		ID:               uuid.New(),
-		RuleDefinitionID: ruleID,
+		RuleDefinitionID: uuid.UUID(ruleID),
 		TierOrder:        req.TierOrder,
 		MinAmount:        req.MinAmount,
 		MaxAmount:        req.MaxAmount,
@@ -373,21 +373,21 @@ func (mockPayrollRepository) CreatePayrollRuleTier(_ context.Context, ruleID uui
 	}, nil
 }
 
-func (mockPayrollRepository) DeletePayrollRuleTier(_ context.Context, _, tierID uuid.UUID) error {
-	if tierID == uuid.MustParse("00000000-0000-0000-0000-000000000099") {
+func (mockPayrollRepository) DeletePayrollRuleTier(_ context.Context, _ ids.PayrollRuleID, tierID ids.PayrollRuleTierID) error {
+	if uuid.UUID(tierID) == uuid.MustParse("00000000-0000-0000-0000-000000000099") {
 		return ErrTierNotFound
 	}
 	return nil
 }
 
 func (mockPayrollRepository) ListPayrollRuleAssignments(_ context.Context, ruleID uuid.UUID) ([]PayrollRuleAssignment, error) {
-	if ruleID == uuid.MustParse("00000000-0000-0000-0000-000000000099") {
+	if uuid.UUID(ruleID) == uuid.MustParse("00000000-0000-0000-0000-000000000099") {
 		return nil, ErrRuleNotFound
 	}
 	return []PayrollRuleAssignment{
 		{
 			ID:               uuid.New(),
-			RuleDefinitionID: ruleID,
+			RuleDefinitionID: uuid.UUID(ruleID),
 			AssigneeType:     "organization",
 			EffectiveFrom:    "2026-01-01",
 			CreatedAt:        "2026-01-01T00:00:00Z",
@@ -396,7 +396,7 @@ func (mockPayrollRepository) ListPayrollRuleAssignments(_ context.Context, ruleI
 }
 
 func (mockPayrollRepository) AssignPayrollRule(_ context.Context, ruleID uuid.UUID, req AssignPayrollRuleRequest) (PayrollRuleAssignment, error) {
-	if ruleID == uuid.MustParse("00000000-0000-0000-0000-000000000099") {
+	if uuid.UUID(ruleID) == uuid.MustParse("00000000-0000-0000-0000-000000000099") {
 		return PayrollRuleAssignment{}, ErrRuleNotFound
 	}
 	if req.AssigneeType == "organization" && req.EffectiveFrom == "2026-09-09" {
@@ -404,7 +404,7 @@ func (mockPayrollRepository) AssignPayrollRule(_ context.Context, ruleID uuid.UU
 	}
 	return PayrollRuleAssignment{
 		ID:               uuid.New(),
-		RuleDefinitionID: ruleID,
+		RuleDefinitionID: uuid.UUID(ruleID),
 		AssigneeType:     req.AssigneeType,
 		AssigneeID:       req.AssigneeID,
 		EffectiveFrom:    req.EffectiveFrom,
