@@ -2012,18 +2012,61 @@ func loadCompletedShiftCounts(ctx context.Context, db DBTX, employmentID uuid.UU
 	return counts, nil
 }
 
-func payrollStandardDaysForPolicy(policy *api.WorkPolicyGroupVersion, legacy decimal.Decimal) (decimal.Decimal, error) {
+func payrollStandardDaysForPolicy(policy *api.WorkPolicyGroupVersion, legacy, scheduledDays decimal.Decimal) (decimal.Decimal, error) {
 	if policy == nil {
 		return legacy, nil
 	}
-	if policy.PayMethod != workpolicy.PayMethodMonthly ||
-		policy.MonthlyDenominator == nil ||
-		*policy.MonthlyDenominator != workpolicy.MonthlyDenominatorFixed ||
-		policy.MonthlyStandardDays == nil ||
-		!policy.MonthlyStandardDays.GreaterThan(decimal.Zero) {
+	if policy.PayMethod != workpolicy.PayMethodMonthly || policy.MonthlyDenominator == nil {
 		return decimal.Zero, api.ErrPayrollValidation
 	}
-	return *policy.MonthlyStandardDays, nil
+	switch *policy.MonthlyDenominator {
+	case workpolicy.MonthlyDenominatorFixed:
+		if policy.MonthlyStandardDays == nil || !policy.MonthlyStandardDays.GreaterThan(decimal.Zero) {
+			return decimal.Zero, api.ErrPayrollValidation
+		}
+		return *policy.MonthlyStandardDays, nil
+	case workpolicy.MonthlyDenominatorSchedule:
+		if !scheduledDays.GreaterThan(decimal.Zero) {
+			return decimal.Zero, api.ErrPayrollValidation
+		}
+		return scheduledDays, nil
+	default:
+		return decimal.Zero, api.ErrPayrollValidation
+	}
+}
+
+func scheduledWorkdayCountInRange(counts map[string]int, start, end time.Time) int {
+	result := 0
+	for current := start; !current.After(end); current = current.AddDate(0, 0, 1) {
+		if counts[current.Format("2006-01-02")] > 0 {
+			result++
+		}
+	}
+	return result
+}
+
+func loadScheduledWorkdayCounts(ctx context.Context, db DBTX, employmentID uuid.UUID, startDate, endDate string) (map[string]int, error) {
+	rows, err := db.Query(ctx, `SELECT DISTINCT date::text
+	FROM work_segments
+	WHERE employment_id = $1 AND date >= $2::date AND date <= $3::date
+	  AND segment_type = 'work' AND segment_status <> 'cancelled'`, employmentID, startDate, endDate)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	counts := make(map[string]int)
+	for rows.Next() {
+		var date string
+		if err := rows.Scan(&date); err != nil {
+			return nil, err
+		}
+		counts[date] = 1
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return counts, nil
 }
 
 func (r PayrollRepository) calculateEmploymentPayslip(ctx context.Context, db DBTX, employmentID, employeeID uuid.UUID, deptID *uuid.UUID, year, month int, actorID uuid.UUID) (api.FullPayslipResponse, error) {
@@ -2251,16 +2294,31 @@ WHERE employment_id = $1 AND date >= $2::date AND date <= $3::date`, employmentI
 	}
 
 	maxOtHours := resolveMonthlyOTQuota(canonicalMaxOtHours, legacyMaxOtHours)
-	completedShiftCounts := map[string]int{}
+	needsCompletedShiftCounts := false
+	needsScheduledWorkdayCounts := false
 	for _, assignment := range policyAssignments {
-		if assignment.policy.PayMethod != workpolicy.PayMethodShift {
-			continue
+		if assignment.policy.PayMethod == workpolicy.PayMethodShift {
+			needsCompletedShiftCounts = true
 		}
+		if assignment.policy.PayMethod == workpolicy.PayMethodMonthly &&
+			assignment.policy.MonthlyDenominator != nil &&
+			*assignment.policy.MonthlyDenominator == workpolicy.MonthlyDenominatorSchedule {
+			needsScheduledWorkdayCounts = true
+		}
+	}
+	completedShiftCounts := map[string]int{}
+	if needsCompletedShiftCounts {
 		completedShiftCounts, err = loadCompletedShiftCounts(ctx, db, employmentID, startStr, endStr)
 		if err != nil {
 			return api.FullPayslipResponse{}, err
 		}
-		break
+	}
+	scheduledWorkdayCounts := map[string]int{}
+	if needsScheduledWorkdayCounts {
+		scheduledWorkdayCounts, err = loadScheduledWorkdayCounts(ctx, db, employmentID, startStr, endStr)
+		if err != nil {
+			return api.FullPayslipResponse{}, err
+		}
 	}
 
 	totalBasePay := decimal.Zero
@@ -2294,7 +2352,12 @@ WHERE employment_id = $1 AND date >= $2::date AND date <= $3::date`, employmentI
 		policy := workPolicyAssignmentAt(policyAssignments, seg.Start)
 		segmentStdDays := stdDays
 		if policy == nil || policy.PayMethod == workpolicy.PayMethodMonthly {
-			segmentStdDays, err = payrollStandardDaysForPolicy(policy, stdDays)
+			scheduledDays := decimal.Zero
+			if policy != nil && policy.MonthlyDenominator != nil &&
+				*policy.MonthlyDenominator == workpolicy.MonthlyDenominatorSchedule {
+				scheduledDays = decimal.NewFromInt(int64(scheduledWorkdayCountInRange(scheduledWorkdayCounts, seg.Start, seg.End)))
+			}
+			segmentStdDays, err = payrollStandardDaysForPolicy(policy, stdDays, scheduledDays)
 			if err != nil {
 				return api.FullPayslipResponse{}, err
 			}

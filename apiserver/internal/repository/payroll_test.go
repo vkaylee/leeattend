@@ -36,7 +36,7 @@ func TestCalculateShiftPolicyPay(t *testing.T) {
 
 func TestPayrollStandardDaysForPolicy(t *testing.T) {
 	legacy := decimal.NewFromInt(26)
-	if got, err := payrollStandardDaysForPolicy(nil, legacy); err != nil || !got.Equal(legacy) {
+	if got, err := payrollStandardDaysForPolicy(nil, legacy, decimal.Zero); err != nil || !got.Equal(legacy) {
 		t.Fatalf("legacy payroll should retain standard days: %s, %v", got, err)
 	}
 
@@ -47,23 +47,39 @@ func TestPayrollStandardDaysForPolicy(t *testing.T) {
 		MonthlyDenominator:  &denominator,
 		MonthlyStandardDays: &days,
 	}
-	if got, err := payrollStandardDaysForPolicy(policy, legacy); err != nil || !got.Equal(days) {
+	if got, err := payrollStandardDaysForPolicy(policy, legacy, decimal.Zero); err != nil || !got.Equal(days) {
 		t.Fatalf("fixed monthly policy should use configured days: %s, %v", got, err)
 	}
 
 	for name, invalid := range map[string]*api.WorkPolicyGroupVersion{
 		"hourly": {PayMethod: workpolicy.PayMethodHourly},
 		"shift":  {PayMethod: workpolicy.PayMethodShift},
-		"schedule denominator": {
-			PayMethod:          workpolicy.PayMethodMonthly,
-			MonthlyDenominator: func() *workpolicy.MonthlyDenominator { value := workpolicy.MonthlyDenominatorSchedule; return &value }(),
-		},
 	} {
 		t.Run(name, func(t *testing.T) {
-			if _, err := payrollStandardDaysForPolicy(invalid, legacy); err != api.ErrPayrollValidation {
+			if _, err := payrollStandardDaysForPolicy(invalid, legacy, decimal.Zero); err != api.ErrPayrollValidation {
 				t.Fatalf("expected payroll validation error, got %v", err)
 			}
 		})
+	}
+
+	schedule := workpolicy.MonthlyDenominatorSchedule
+	scheduledPolicy := &api.WorkPolicyGroupVersion{
+		PayMethod:          workpolicy.PayMethodMonthly,
+		MonthlyDenominator: &schedule,
+	}
+	if got, err := payrollStandardDaysForPolicy(scheduledPolicy, legacy, decimal.NewFromInt(21)); err != nil || !got.Equal(decimal.NewFromInt(21)) {
+		t.Fatalf("schedule monthly policy should use scheduled workdays: %s, %v", got, err)
+	}
+	if _, err := payrollStandardDaysForPolicy(scheduledPolicy, legacy, decimal.Zero); err != api.ErrPayrollValidation {
+		t.Fatalf("missing scheduled workdays should fail closed, got %v", err)
+	}
+}
+
+func TestScheduledWorkdayCountInRange(t *testing.T) {
+	counts := map[string]int{"2026-01-01": 2, "2026-01-02": 1, "2026-01-04": 1}
+	got := scheduledWorkdayCountInRange(counts, time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC), time.Date(2026, 1, 3, 0, 0, 0, 0, time.UTC))
+	if got != 2 {
+		t.Fatalf("scheduled workday count = %d, want 2 distinct days", got)
 	}
 }
 
