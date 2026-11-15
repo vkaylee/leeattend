@@ -2822,6 +2822,10 @@ VALUES ($1, $2, $3, $4, NOW())`, ruleEvaluationRecords[i].ID, finalPayslipID, ru
 		}
 	}
 
+	kpiCalc.BasePay = assembled.TotalBasePay
+	kpiCalc.OvertimePay = assembled.TotalOvertimePay
+	kpiCalc.Deductions = assembled.DeductionsAmount
+	kpiCalc.NetPay = assembled.NetPay
 	if err := persistKPICalculation(ctx, db, employmentID, finalPayslipID, year, month, kpiCalc, &actorID); err != nil {
 		return api.FullPayslipResponse{}, err
 	}

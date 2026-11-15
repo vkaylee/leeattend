@@ -21,6 +21,10 @@ type kpiCalculation struct {
 	StandardUnits   int32
 	OvertimeUnits   int32
 	StandardCredits decimal.Decimal
+	BasePay         decimal.Decimal
+	OvertimePay     decimal.Decimal
+	Deductions      decimal.Decimal
+	NetPay          decimal.Decimal
 }
 
 func calculateKPIBonus(ctx context.Context, db DBTX, employmentID uuid.UUID, year, month int, asOf string) (kpiCalculation, error) {
@@ -140,6 +144,10 @@ func persistKPICalculation(ctx context.Context, db DBTX, employmentID, payslipID
 		"standard_units":   decimal.NewFromInt32(calc.StandardUnits).String(),
 		"overtime_units":   decimal.NewFromInt32(calc.OvertimeUnits).String(),
 		"standard_credits": calc.StandardCredits.String(),
+		"base_pay":         calc.BasePay.String(),
+		"overtime_pay":     calc.OvertimePay.String(),
+		"deductions":       calc.Deductions.String(),
+		"net_pay":          calc.NetPay.String(),
 	})
 	if err != nil {
 		return err

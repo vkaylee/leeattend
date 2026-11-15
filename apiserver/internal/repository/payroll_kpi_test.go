@@ -40,13 +40,51 @@ func TestMarshalKPICalculationInputsIncludesEffectivePolicyWithoutSalary(t *test
 	}
 }
 
-func TestMarshalKPICalculationOutputIncludesStandardCredits(t *testing.T) {
-	calc := kpiCalculation{StandardCredits: decimal.RequireFromString("1.5")}
+func TestMarshalKPICalculationOutputIncludesImpactFields(t *testing.T) {
+	calc := kpiCalculation{
+		StandardCredits: decimal.RequireFromString("1.5"),
+		BasePay:         decimal.RequireFromString("1000"),
+		OvertimePay:     decimal.RequireFromString("100"),
+		Deductions:      decimal.RequireFromString("50"),
+		NetPay:          decimal.RequireFromString("1050"),
+	}
 	output, err := json.Marshal(map[string]string{
 		"standard_credits": calc.StandardCredits.String(),
+		"base_pay":         calc.BasePay.String(),
+		"overtime_pay":     calc.OvertimePay.String(),
+		"deductions":       calc.Deductions.String(),
+		"net_pay":          calc.NetPay.String(),
 	})
-	if err != nil || !strings.Contains(string(output), "1.5") {
-		t.Fatalf("expected standard credits in output, got %s, err=%v", output, err)
+	if err != nil || !strings.Contains(string(output), "1.5") || !strings.Contains(string(output), "1050") {
+		t.Fatalf("expected impact fields in output, got %s, err=%v", output, err)
+	}
+}
+
+func TestPersistKPICalculationStoresImpactFields(t *testing.T) {
+	var output []byte
+	db := &fakeDBTX{execFn: func(_ context.Context, query string, args ...any) (pgconn.CommandTag, error) {
+		if strings.Contains(query, "INSERT INTO payroll_calculation_runs") {
+			var ok bool
+			output, ok = args[5].([]byte)
+			if !ok {
+				t.Fatalf("expected output snapshot bytes, got %T", args[5])
+			}
+		}
+		return pgconn.NewCommandTag("INSERT 0 1"), nil
+	}}
+	calc := kpiCalculation{
+		BasePay:     decimal.RequireFromString("1000"),
+		OvertimePay: decimal.RequireFromString("100"),
+		Deductions:  decimal.RequireFromString("50"),
+		NetPay:      decimal.RequireFromString("1050"),
+	}
+	if err := persistKPICalculation(context.Background(), db, uuid.New(), uuid.New(), 2026, 6, calc, nil); err != nil {
+		t.Fatalf("persist impact snapshot: %v", err)
+	}
+	for _, field := range []string{`"base_pay":"1000"`, `"overtime_pay":"100"`, `"deductions":"50"`, `"net_pay":"1050"`} {
+		if !strings.Contains(string(output), field) {
+			t.Fatalf("output snapshot omitted %s: %s", field, output)
+		}
 	}
 }
 
