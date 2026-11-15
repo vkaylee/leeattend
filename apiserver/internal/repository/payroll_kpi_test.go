@@ -71,3 +71,17 @@ func TestPersistKPICalculationSnapshotsWithoutFormula(t *testing.T) {
 		t.Fatalf("expected one policy snapshot write, got %d calls", calls)
 	}
 }
+
+func TestPersistKPICalculationSnapshotsWithoutFormulaIsAppendOnly(t *testing.T) {
+	var query string
+	db := &fakeDBTX{execFn: func(_ context.Context, sql string, _ ...any) (pgconn.CommandTag, error) {
+		query = sql
+		return pgconn.NewCommandTag("INSERT 0 1"), nil
+	}}
+	if err := persistKPICalculation(context.Background(), db, uuid.New(), uuid.New(), 2026, 6, kpiCalculation{}, nil); err != nil {
+		t.Fatalf("persist policy-only snapshot: %v", err)
+	}
+	if strings.Contains(query, "ON CONFLICT") || strings.Contains(query, "DO UPDATE") {
+		t.Fatalf("policy-only snapshot must append without overwrite clause: %s", query)
+	}
+}

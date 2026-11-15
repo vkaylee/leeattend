@@ -353,8 +353,8 @@ BEGIN
         RAISE EXCEPTION 'schema check failed: department payroll reconciliation migration marker is missing';
     END IF;
 
-    IF to_regclass('public.payroll_calculation_runs_policy_snapshot_idx') IS NULL THEN
-        RAISE EXCEPTION 'schema check failed: policy-only payroll snapshot index is missing';
+    IF to_regclass('public.payroll_calculation_runs_policy_snapshot_idx') IS NOT NULL THEN
+        RAISE EXCEPTION 'schema check failed: policy-only payroll snapshot index must be removed for append-only history';
     END IF;
 
     SELECT count(*) INTO v_marker_count
@@ -363,6 +363,14 @@ BEGIN
 
     IF v_marker_count <> 1 THEN
         RAISE EXCEPTION 'schema check failed: payroll policy snapshot migration marker is missing';
+    END IF;
+
+    SELECT count(*) INTO v_marker_count
+    FROM public.schema_migrations
+    WHERE version = '20261115050000_append_only_payroll_policy_snapshots';
+
+    IF v_marker_count <> 1 THEN
+        RAISE EXCEPTION 'schema check failed: append-only payroll policy snapshot migration marker is missing';
     END IF;
 
     IF NOT EXISTS (
