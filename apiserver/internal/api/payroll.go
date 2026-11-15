@@ -420,8 +420,8 @@ type PayrollRepository interface {
 	ListEmployeePayslips(context.Context, uuid.UUID) ([]PayslipRecord, error)
 	ListSalaryComponents(context.Context) ([]SalaryComponentDefinition, error)
 	CreateSalaryComponent(context.Context, CreateSalaryComponentRequest) (SalaryComponentDefinition, error)
-	ListEmploymentSalaryComponents(context.Context, uuid.UUID) ([]EmploymentSalaryComponentResponse, error)
-	AssignEmploymentSalaryComponent(context.Context, uuid.UUID, AssignSalaryComponentRequest) (EmployeeSalaryComponent, error)
+	ListEmploymentSalaryComponents(context.Context, ids.EmploymentID) ([]EmploymentSalaryComponentResponse, error)
+	AssignEmploymentSalaryComponent(context.Context, ids.EmploymentID, AssignSalaryComponentRequest) (EmployeeSalaryComponent, error)
 	GetPayrollSettings(context.Context) (*PayrollSettings, error)
 	GetPayrollSettingsHistory(context.Context) ([]PayrollSettings, error)
 	UpdatePayrollSettings(context.Context, UpdatePayrollSettingsRequest) (PayrollSettings, error)
@@ -538,7 +538,7 @@ func (h PayrollHandler) ListEmploymentSalaryComponents(w http.ResponseWriter, r 
 		h.forbidden(w, r)
 		return
 	}
-	comps, err := h.Repository.ListEmploymentSalaryComponents(r.Context(), empID)
+	comps, err := h.Repository.ListEmploymentSalaryComponents(r.Context(), ids.EmploymentID(empID))
 	if err != nil {
 		h.writeError(w, r, err)
 		return
@@ -565,7 +565,7 @@ func (h PayrollHandler) AssignEmploymentSalaryComponent(w http.ResponseWriter, r
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}
-	comp, err := h.Repository.AssignEmploymentSalaryComponent(r.Context(), empID, req)
+	comp, err := h.Repository.AssignEmploymentSalaryComponent(r.Context(), ids.EmploymentID(empID), req)
 	if err != nil {
 		h.writeError(w, r, err)
 		return

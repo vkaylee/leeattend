@@ -119,11 +119,11 @@ func (mockPayrollRepository) ListSalaryManagementRows(_ context.Context, query S
 	return SalaryManagementResponse{Data: []SalaryManagementRow{}, Page: query.Page, Limit: query.Limit}, nil
 }
 
-func (mockPayrollRepository) ListEmploymentSalaryComponents(_ context.Context, employmentID uuid.UUID) ([]EmploymentSalaryComponentResponse, error) {
+func (mockPayrollRepository) ListEmploymentSalaryComponents(_ context.Context, employmentID ids.EmploymentID) ([]EmploymentSalaryComponentResponse, error) {
 	return []EmploymentSalaryComponentResponse{
 		{
 			ID:                    uuid.New(),
-			EmploymentID:          employmentID,
+			EmploymentID:          uuid.UUID(employmentID),
 			ComponentDefinitionID: uuid.MustParse("11111111-1111-1111-1111-111111111111"),
 			Amount:                decimal.RequireFromString("5000000.00"),
 			EffectiveDate:         "2026-01-01",
@@ -133,13 +133,13 @@ func (mockPayrollRepository) ListEmploymentSalaryComponents(_ context.Context, e
 	}, nil
 }
 
-func (mockPayrollRepository) AssignEmploymentSalaryComponent(_ context.Context, employmentID uuid.UUID, req AssignSalaryComponentRequest) (EmployeeSalaryComponent, error) {
+func (mockPayrollRepository) AssignEmploymentSalaryComponent(_ context.Context, employmentID ids.EmploymentID, req AssignSalaryComponentRequest) (EmployeeSalaryComponent, error) {
 	if req.ComponentDefinitionID == uuid.MustParse("00000000-0000-0000-0000-000000000001") {
 		return EmployeeSalaryComponent{}, ErrComponentNotFound
 	}
 	return EmployeeSalaryComponent{
 		ID:                    uuid.New(),
-		EmploymentID:          employmentID,
+		EmploymentID:          uuid.UUID(employmentID),
 		ComponentDefinitionID: req.ComponentDefinitionID,
 		Amount:                req.Amount,
 		EffectiveDate:         req.EffectiveDate,

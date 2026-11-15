@@ -151,7 +151,7 @@ func (r PayrollRepository) CreateSalaryComponent(ctx context.Context, req api.Cr
 	return def, nil
 }
 
-func (r PayrollRepository) ListEmploymentSalaryComponents(ctx context.Context, employmentID uuid.UUID) ([]api.EmploymentSalaryComponentResponse, error) {
+func (r PayrollRepository) ListEmploymentSalaryComponents(ctx context.Context, employmentID ids.EmploymentID) ([]api.EmploymentSalaryComponentResponse, error) {
 	db, err := r.db(ctx)
 	if err != nil {
 		return nil, err
@@ -166,7 +166,7 @@ func (r PayrollRepository) ListEmploymentSalaryComponents(ctx context.Context, e
 	INNER JOIN salary_component_definitions scd ON scd.id = esc.component_definition_id
 	WHERE esc.employment_id = $1
 	  AND esc.effective_date <= $2
-	ORDER BY esc.employment_id, esc.component_definition_id, esc.effective_date DESC, esc.created_at DESC`, employmentID, refDate)
+	ORDER BY esc.employment_id, esc.component_definition_id, esc.effective_date DESC, esc.created_at DESC`, uuid.UUID(employmentID), refDate)
 	if err != nil {
 		return nil, err
 	}
@@ -185,7 +185,7 @@ func (r PayrollRepository) ListEmploymentSalaryComponents(ctx context.Context, e
 	return result, rows.Err()
 }
 
-func (r PayrollRepository) AssignEmploymentSalaryComponent(ctx context.Context, employmentID uuid.UUID, req api.AssignSalaryComponentRequest) (api.EmployeeSalaryComponent, error) {
+func (r PayrollRepository) AssignEmploymentSalaryComponent(ctx context.Context, employmentID ids.EmploymentID, req api.AssignSalaryComponentRequest) (api.EmployeeSalaryComponent, error) {
 	db, err := r.db(ctx)
 	if err != nil {
 		return api.EmployeeSalaryComponent{}, err
@@ -201,7 +201,7 @@ func (r PayrollRepository) AssignEmploymentSalaryComponent(ctx context.Context, 
 	}
 
 	var empExists bool
-	err = db.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM employments WHERE id = $1 AND deleted_at IS NULL)`, employmentID).Scan(&empExists)
+	err = db.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM employments WHERE id = $1 AND deleted_at IS NULL)`, uuid.UUID(employmentID)).Scan(&empExists)
 	if err != nil {
 		return api.EmployeeSalaryComponent{}, err
 	}
@@ -213,7 +213,7 @@ func (r PayrollRepository) AssignEmploymentSalaryComponent(ctx context.Context, 
 	var item api.EmployeeSalaryComponent
 	var amt string
 	var created, updated time.Time
-	err = db.QueryRow(ctx, `INSERT INTO employee_salary_components (id, employment_id, component_definition_id, amount, effective_date, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, NOW(), NOW()) RETURNING id, employment_id, component_definition_id, amount::text, effective_date::text, created_at, updated_at`, id, employmentID, req.ComponentDefinitionID, req.Amount, req.EffectiveDate).Scan(&item.ID, &item.EmploymentID, &item.ComponentDefinitionID, &amt, &item.EffectiveDate, &created, &updated)
+	err = db.QueryRow(ctx, `INSERT INTO employee_salary_components (id, employment_id, component_definition_id, amount, effective_date, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, NOW(), NOW()) RETURNING id, employment_id, component_definition_id, amount::text, effective_date::text, created_at, updated_at`, id, uuid.UUID(employmentID), req.ComponentDefinitionID, req.Amount, req.EffectiveDate).Scan(&item.ID, &item.EmploymentID, &item.ComponentDefinitionID, &amt, &item.EffectiveDate, &created, &updated)
 	if err != nil {
 		return api.EmployeeSalaryComponent{}, mapConstraintError(err)
 	}
