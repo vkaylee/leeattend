@@ -67,9 +67,12 @@ func (r EmployeeImportRepository) TerminationCandidates(ctx context.Context, cod
 		upperCodes[i] = strings.ToUpper(strings.TrimSpace(c))
 	}
 
-	empRows, err := db.Query(ctx, `SELECT id, employee_id_number, full_name
-		FROM employees
-		WHERE deleted_at IS NULL AND UPPER(employee_id_number) = ANY($1)`,
+	empRows, err := db.Query(ctx, `SELECT DISTINCT t.employee_id, t.employee_number, e.full_name
+		FROM employee_tenures t
+		JOIN employees e ON e.id = t.employee_id
+		WHERE t.deleted_at IS NULL
+		  AND e.deleted_at IS NULL
+		  AND UPPER(t.employee_number) = ANY($1)`,
 		upperCodes)
 	if err != nil {
 		return nil, err
