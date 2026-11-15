@@ -91,6 +91,10 @@ func (m *activationRepositoryMock) ActivateScheduleEmployer(context.Context, uui
 	m.called = true
 	return m.err
 }
+func (m *activationRepositoryMock) DeactivateScheduleEmployer(context.Context, uuid.UUID, string, string, string, uuid.UUID) error {
+	m.called = true
+	return m.err
+}
 
 type lifecycleRepositoryMock struct{}
 
@@ -153,6 +157,34 @@ func TestScheduleHandler_ActivationRejectsInvalidRange(t *testing.T) {
 	handler.Activate(rec, req)
 	if rec.Code != http.StatusBadRequest || activation.called {
 		t.Fatalf("expected range validation, status=%d called=%v", rec.Code, activation.called)
+	}
+}
+
+func TestScheduleHandler_DeactivationRejectsInvalidRange(t *testing.T) {
+	activation := &activationRepositoryMock{}
+	handler := ScheduleHandler{Activation: activation, Authorizer: schedulePermissionAuthorizer{allowed: true}}
+	employerID := uuid.New()
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/schedules/deactivation/"+employerID.String(), strings.NewReader(`{"start_date":"2026-11-30","end_date":"2026-11-01","reason":"rollback"}`))
+	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
+	req.SetPathValue("employer_id", employerID.String())
+	rec := httptest.NewRecorder()
+	handler.Deactivate(rec, req)
+	if rec.Code != http.StatusBadRequest || activation.called {
+		t.Fatalf("expected deactivation range validation, status=%d called=%v", rec.Code, activation.called)
+	}
+}
+
+func TestScheduleHandler_DeactivationPassesReasonAndReturnsNoContent(t *testing.T) {
+	activation := &activationRepositoryMock{}
+	handler := ScheduleHandler{Activation: activation, Authorizer: schedulePermissionAuthorizer{allowed: true}}
+	employerID := uuid.New()
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/schedules/deactivation/"+employerID.String(), strings.NewReader(`{"start_date":"2026-11-01","end_date":"2026-11-30","reason":"rollback"}`))
+	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
+	req.SetPathValue("employer_id", employerID.String())
+	rec := httptest.NewRecorder()
+	handler.Deactivate(rec, req)
+	if rec.Code != http.StatusNoContent || !activation.called {
+		t.Fatalf("expected deactivation call, status=%d called=%v", rec.Code, activation.called)
 	}
 }
 

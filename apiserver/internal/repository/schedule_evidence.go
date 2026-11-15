@@ -169,6 +169,65 @@ func (r ScheduleRepository) RecordScheduleShadowMismatch(ctx context.Context, re
 	return err
 }
 
+func (r ScheduleRepository) AuthorizeScheduleEmployer(ctx context.Context, userID, employerID uuid.UUID, startDate, endDate string) (bool, error) {
+	db, err := r.db(ctx)
+	if err != nil {
+		return false, err
+	}
+	var allowed bool
+	err = db.QueryRow(ctx, `SELECT EXISTS (
+		SELECT 1
+		FROM user_roles ur
+		JOIN role_permissions rp ON rp.role_id = ur.role_id
+		JOIN roles role ON role.id = ur.role_id
+		WHERE ur.user_id = $1 AND rp.permission_name = 'schedules:history:read'
+		  AND role.scope_type = 'global'
+		UNION ALL
+		SELECT 1
+		FROM user_extra_roles uer
+		JOIN role_permissions rp ON rp.role_id = uer.role_id
+		JOIN roles role ON role.id = uer.role_id
+		WHERE uer.user_id = $1 AND uer.expires_at > now()
+		  AND rp.permission_name = 'schedules:history:read'
+		  AND role.scope_type = 'global'
+		UNION ALL
+		SELECT 1
+		FROM employees manager
+		JOIN departments managed ON managed.manager_id = manager.id AND managed.deleted_at IS NULL
+		JOIN employments target ON target.department_id = managed.id AND target.employer_id = $2
+		WHERE manager.user_id = $1 AND manager.deleted_at IS NULL AND target.deleted_at IS NULL
+		  AND target.start_date <= $4::date
+		  AND (target.end_date IS NULL OR target.end_date >= $3::date)
+	)`, userID, employerID, startDate, endDate).Scan(&allowed)
+	return allowed, err
+}
+
+func (r ScheduleRepository) AuthorizeScheduleShadowMismatch(ctx context.Context, userID, mismatchID uuid.UUID) (bool, error) {
+	db, err := r.db(ctx)
+	if err != nil {
+		return false, err
+	}
+	var allowed bool
+	err = db.QueryRow(ctx, `SELECT EXISTS (
+		SELECT 1
+		FROM schedule_shadow_mismatches sm
+		JOIN user_roles ur ON ur.user_id = $1
+		JOIN role_permissions rp ON rp.role_id = ur.role_id
+		JOIN roles role ON role.id = ur.role_id
+		WHERE sm.id = $2 AND rp.permission_name = 'schedules:evidence:export' AND role.scope_type = 'global'
+		UNION ALL
+		SELECT 1
+		FROM schedule_shadow_mismatches sm
+		JOIN employments target ON target.id = sm.employment_id AND target.deleted_at IS NULL
+		JOIN departments managed ON managed.id = target.department_id AND managed.deleted_at IS NULL
+		JOIN employees manager ON manager.id = managed.manager_id AND manager.user_id = $1 AND manager.deleted_at IS NULL
+		JOIN user_roles ur ON ur.user_id = $1
+		JOIN role_permissions rp ON rp.role_id = ur.role_id
+		WHERE sm.id = $2 AND rp.permission_name = 'schedules:evidence:export'
+	)`, userID, mismatchID).Scan(&allowed)
+	return allowed, err
+}
+
 func (r ScheduleRepository) AuthorizeScheduleHistory(ctx context.Context, userID, employmentID uuid.UUID) (bool, error) {
 	db, err := r.db(ctx)
 	if err != nil {

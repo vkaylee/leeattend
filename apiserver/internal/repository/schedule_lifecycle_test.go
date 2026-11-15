@@ -77,6 +77,67 @@ func TestActivateScheduleEmployerDoesNotWriteWhenNotReady(t *testing.T) {
 	}
 }
 
+func TestDeactivateScheduleEmployerRejectsImmutableEvidence(t *testing.T) {
+	tx := &fakeTx{fakeDBTX: fakeDBTX{queryRowFn: func(_ context.Context, query string, _ ...any) pgx.Row {
+		return fakeRow{scanFn: func(dest ...any) error { *(dest[0].(*bool)) = true; return nil }}
+	}}}
+	err := (ScheduleRepository{DB: tx}).DeactivateScheduleEmployer(context.Background(), uuid.New(), "2026-11-01", "2026-11-30", "rollback", uuid.New())
+	if !errors.Is(err, api.ErrScheduleActivationEvidence) {
+		t.Fatalf("expected immutable evidence error, got %v", err)
+	}
+	if tx.committed {
+		t.Fatal("evidence-blocked deactivation must not commit")
+	}
+}
+
+func TestDeactivateScheduleEmployerWritesDisableAndAuditAtomically(t *testing.T) {
+	writes := 0
+	tx := &fakeTx{fakeDBTX: fakeDBTX{
+		queryRowFn: func(_ context.Context, query string, _ ...any) pgx.Row {
+			return fakeRow{scanFn: func(dest ...any) error {
+				*(dest[0].(*bool)) = strings.Contains(query, "effective_from = $2::date")
+				return nil
+			}}
+		},
+		execFn: func(_ context.Context, query string, _ ...any) (pgconn.CommandTag, error) {
+			if strings.Contains(query, "config_entries") || strings.Contains(query, "activation.disabled") {
+				writes++
+			}
+			return pgconn.NewCommandTag("UPDATE 1"), nil
+		},
+	}}
+	if err := (ScheduleRepository{DB: tx}).DeactivateScheduleEmployer(context.Background(), uuid.New(), "2026-11-01", "2026-11-30", "rollback", uuid.New()); err != nil {
+		t.Fatalf("deactivate employer: %v", err)
+	}
+	if writes != 2 || !tx.committed {
+		t.Fatalf("expected disable and audit writes, writes=%d committed=%v", writes, tx.committed)
+	}
+}
+
+func TestValidateSystemOfficePublicationAuthorityChecksApprovalEmployerAndDate(t *testing.T) {
+	approvalID, employerID, employmentID := uuid.New(), uuid.New(), uuid.New()
+	queries := 0
+	db := &fakeDBTX{queryRowFn: func(_ context.Context, query string, _ ...any) pgx.Row {
+		queries++
+		if !strings.Contains(query, "schedule_office_policies") || !strings.Contains(query, "approval_workflow_instances") || !strings.Contains(query, "e.employer_id") {
+			t.Fatalf("authority query missing policy binding: %s", query)
+		}
+		return fakeRow{scanFn: func(dest ...any) error { *(dest[0].(*bool)) = true; return nil }}
+	}}
+	if err := validateSystemOfficePublicationAuthority(context.Background(), db, ScheduleOfficeCoverageEvent{ApprovalInstanceID: approvalID, EmployerID: employerID, EmploymentID: employmentID, BusinessDate: "2026-11-16", Mode: "office"}); err != nil || queries != 1 {
+		t.Fatalf("authority validation err=%v queries=%d", err, queries)
+	}
+}
+
+func TestValidateSystemOfficePublicationAuthorityFailsClosed(t *testing.T) {
+	db := &fakeDBTX{queryRowFn: func(context.Context, string, ...any) pgx.Row {
+		return fakeRow{scanFn: func(dest ...any) error { *(dest[0].(*bool)) = false; return nil }}
+	}}
+	if err := validateSystemOfficePublicationAuthority(context.Background(), db, ScheduleOfficeCoverageEvent{ApprovalInstanceID: uuid.New(), EmployerID: uuid.New(), EmploymentID: uuid.New(), BusinessDate: "2026-11-16", Mode: "office"}); !errors.Is(err, ErrScheduleOfficePolicyUnavailable) {
+		t.Fatalf("expected unavailable authority error, got %v", err)
+	}
+}
+
 func TestScheduleLifecycleCreatePreviewRejectsInvalidScopeBeforeWrites(t *testing.T) {
 	execCalled := false
 	tx := &fakeTx{fakeDBTX: fakeDBTX{execFn: func(context.Context, string, ...any) (pgconn.CommandTag, error) {

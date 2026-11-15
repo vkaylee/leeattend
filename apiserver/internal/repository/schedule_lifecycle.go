@@ -134,6 +134,51 @@ func (r ScheduleRepository) ActivateScheduleEmployer(ctx context.Context, employ
 	})
 }
 
+func (r ScheduleRepository) DeactivateScheduleEmployer(ctx context.Context, employerID uuid.UUID, startDate, endDate, reason string, actorID uuid.UUID) error {
+	if employerID == uuid.Nil || actorID == uuid.Nil || strings.TrimSpace(reason) == "" || len(strings.TrimSpace(reason)) > 2000 || startDate == "" || endDate == "" || startDate > endDate {
+		return api.ErrScheduleActivationNotReady
+	}
+	beginner, err := r.beginLifecycle(ctx)
+	if err != nil {
+		return err
+	}
+	return service.WithTx(ctx, beginner, func(ctx context.Context, tx pgx.Tx) error {
+		var hasEvidence bool
+		if err := tx.QueryRow(ctx, `SELECT EXISTS (
+			SELECT 1 FROM schedule_day_revisions r
+			WHERE r.employer_id = $1 AND r.business_date BETWEEN $2::date AND $3::date
+			  AND r.state IN ('published', 'explicit_off')
+			UNION ALL
+			SELECT 1 FROM attendance_closure_days d
+			WHERE d.employer_id = $1 AND d.business_date BETWEEN $2::date AND $3::date
+		)`, employerID, startDate, endDate).Scan(&hasEvidence); err != nil {
+			return err
+		}
+		if hasEvidence {
+			return api.ErrScheduleActivationEvidence
+		}
+		var exactRange bool
+		if err := tx.QueryRow(ctx, `SELECT EXISTS (
+			SELECT 1 FROM config_entries
+			WHERE scope_type = 'employer' AND scope_id = $1 AND config_key = 'schedule.lifecycle.enabled'
+			  AND effective_from = $2::date AND effective_to = $3::date AND value_bool = true
+		)`, employerID, startDate, endDate).Scan(&exactRange); err != nil {
+			return err
+		}
+		if !exactRange {
+			return api.ErrScheduleActivationNotReady
+		}
+		if _, err := tx.Exec(ctx, `UPDATE config_entries SET value_bool = false, updated_at = CURRENT_TIMESTAMP
+			WHERE scope_type = 'employer' AND scope_id = $1 AND config_key = 'schedule.lifecycle.enabled'
+			  AND effective_from = $2::date AND effective_to = $3::date`, employerID, startDate, endDate); err != nil {
+			return err
+		}
+		_, err := tx.Exec(ctx, `INSERT INTO audit_logs (actor_id, target_resource_id, action, details, actor_type, created_at)
+			VALUES ($1, $2, 'schedule_lifecycle.activation.disabled', jsonb_build_object('start_date', $3, 'end_date', $4, 'reason', $5), 'human', CURRENT_TIMESTAMP)`, actorID, employerID, startDate, endDate, strings.TrimSpace(reason))
+		return err
+	})
+}
+
 func (r ScheduleRepository) CreatePreview(ctx context.Context, actorID uuid.UUID, request api.SchedulePreviewRequest) (api.SchedulePreviewResponse, error) {
 	startDate, endDate, err := validatePreviewInput(actorID, request)
 	if err != nil {
@@ -526,6 +571,26 @@ func (r ScheduleRepository) Publish(ctx context.Context, actorID uuid.UUID, idem
 }
 
 // PublishSystemScheduleOffice publishes one approved future employment/day using the same publication transaction as human office publication.
+func validateSystemOfficePublicationAuthority(ctx context.Context, tx DBTX, event ScheduleOfficeCoverageEvent) error {
+	var allowed bool
+	if err := tx.QueryRow(ctx, `SELECT EXISTS (
+		SELECT 1
+		FROM schedule_office_policies p
+		JOIN approval_workflow_instances i ON i.id = p.approval_instance_id
+		JOIN employments e ON e.id = $2 AND e.employer_id = p.employer_id AND e.deleted_at IS NULL
+		WHERE p.approval_instance_id = $1 AND p.employer_id = $3
+		  AND p.status = 'active' AND i.entity_type = 'schedule_policy' AND i.status = 'approved'
+		  AND p.effective_from <= $4::date AND (p.effective_to IS NULL OR p.effective_to >= $4::date)
+		  AND e.start_date <= $4::date AND (e.end_date IS NULL OR e.end_date >= $4::date)
+	)`, event.ApprovalInstanceID, event.EmploymentID, event.EmployerID, event.BusinessDate).Scan(&allowed); err != nil {
+		return err
+	}
+	if !allowed {
+		return ErrScheduleOfficePolicyUnavailable
+	}
+	return nil
+}
+
 func (r ScheduleRepository) PublishSystemScheduleOffice(ctx context.Context, payload []byte, idempotencyKey string) (string, error) {
 	var event ScheduleOfficeCoverageEvent
 	if err := json.Unmarshal(payload, &event); err != nil {
@@ -553,6 +618,9 @@ func (r ScheduleRepository) PublishSystemScheduleOffice(ctx context.Context, pay
 			}
 			batchID = stored.ID
 			return nil
+		}
+		if err := validateSystemOfficePublicationAuthority(ctx, tx, event); err != nil {
+			return err
 		}
 		if err := ensureMutationPeriodOpen(ctx, tx, event.EmployerID, event.BusinessDate); err != nil {
 			return err
@@ -644,6 +712,9 @@ func (r ScheduleRepository) CommitReplan(ctx context.Context, actorID, employmen
 		}
 		preview, err := lockPreview(ctx, tx, actorID, request.PreviewID, "replan", request.PreviewHash)
 		if err != nil {
+			return err
+		}
+		if err := lockScheduleRevisionTargets(ctx, tx, []scheduleRevisionLockKey{{employmentID: employmentID, businessDate: businessDate}}); err != nil {
 			return err
 		}
 		current, err := loadCurrentRevision(ctx, tx, employmentID, businessDate, true)
@@ -803,12 +874,72 @@ type publicationActor struct {
 	Name *string
 }
 
+type scheduleRevisionLockKey struct {
+	employmentID uuid.UUID
+	businessDate string
+}
+
+func lockScheduleRevisionTargets(ctx context.Context, tx DBTX, keys []scheduleRevisionLockKey) error {
+	if len(keys) == 0 {
+		return nil
+	}
+	unique := make(map[string]scheduleRevisionLockKey, len(keys))
+	for _, key := range keys {
+		if key.employmentID == uuid.Nil || key.businessDate == "" {
+			return ErrSchedulePreviewScope
+		}
+		unique[key.employmentID.String()+":"+key.businessDate] = key
+	}
+	keys = keys[:0]
+	for _, key := range unique {
+		keys = append(keys, key)
+	}
+	sort.Slice(keys, func(i, j int) bool {
+		left := keys[i].employmentID.String() + ":" + keys[i].businessDate
+		right := keys[j].employmentID.String() + ":" + keys[j].businessDate
+		return left < right
+	})
+	employmentIDs := make([]uuid.UUID, 0, len(keys))
+	dates := make([]string, 0, len(keys))
+	seenEmployments := make(map[uuid.UUID]struct{}, len(keys))
+	for _, key := range keys {
+		dates = append(dates, key.businessDate)
+		if _, exists := seenEmployments[key.employmentID]; !exists {
+			employmentIDs = append(employmentIDs, key.employmentID)
+			seenEmployments[key.employmentID] = struct{}{}
+		}
+	}
+	sort.Slice(employmentIDs, func(i, j int) bool { return employmentIDs[i].String() < employmentIDs[j].String() })
+	if _, err := tx.Exec(ctx, `SELECT id FROM employments WHERE id = ANY($1) ORDER BY id FOR UPDATE`, employmentIDs); err != nil {
+		return err
+	}
+	if _, err := tx.Exec(ctx, `SELECT id FROM schedule_day_revisions WHERE employment_id = ANY($1) AND business_date BETWEEN $2::date AND $3::date FOR UPDATE`, employmentIDs, dates[0], dates[len(dates)-1]); err != nil {
+		return err
+	}
+	return nil
+}
+
 func publishPreview(ctx context.Context, tx pgx.Tx, actor publicationActor, idempotencyKey, requestHash string, request api.SchedulePublishRequest, preview lockedPreview, _ *api.SchedulePublicationResponse) error {
 	var snapshot struct {
 		Data []map[string]any `json:"data"`
 	}
 	if err := json.Unmarshal(preview.ResultSnapshot, &snapshot); err != nil || len(snapshot.Data) == 0 {
 		return ErrScheduleResolverUnavailable
+	}
+	keys := make([]scheduleRevisionLockKey, 0, len(snapshot.Data))
+	for _, day := range snapshot.Data {
+		employmentID, err := uuidFromMap(day, "employment_id")
+		if err != nil {
+			return err
+		}
+		businessDate, ok := day["business_date"].(string)
+		if !ok || businessDate == "" {
+			return ErrSchedulePreviewScope
+		}
+		keys = append(keys, scheduleRevisionLockKey{employmentID: employmentID, businessDate: businessDate})
+	}
+	if err := lockScheduleRevisionTargets(ctx, tx, keys); err != nil {
+		return err
 	}
 	batchID := uuid.New()
 	publishedAt := time.Now().UTC()

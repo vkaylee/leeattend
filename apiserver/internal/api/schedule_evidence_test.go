@@ -43,6 +43,14 @@ func (s *scheduleEvidenceRepositoryStub) GetScheduleEvidence(context.Context, uu
 	return ScheduleEvidenceResponse{}, nil
 }
 
+func (s *scheduleEvidenceRepositoryStub) AuthorizeScheduleEmployer(context.Context, uuid.UUID, uuid.UUID, string, string) (bool, error) {
+	return true, nil
+}
+
+func (s *scheduleEvidenceRepositoryStub) AuthorizeScheduleShadowMismatch(context.Context, uuid.UUID, uuid.UUID) (bool, error) {
+	return true, nil
+}
+
 func (s *scheduleEvidenceRepositoryStub) ListScheduleShadowMismatches(context.Context, uuid.UUID, string, string) ([]ScheduleShadowMismatch, error) {
 	return nil, nil
 }

@@ -123,6 +123,7 @@ type ScheduleReplanResponse struct {
 
 type ScheduleActivationRepository interface {
 	ActivateScheduleEmployer(context.Context, uuid.UUID, string, string, string, uuid.UUID) error
+	DeactivateScheduleEmployer(context.Context, uuid.UUID, string, string, string, uuid.UUID) error
 }
 
 type ScheduleLifecycleRepository interface {
@@ -206,6 +207,48 @@ type ScheduleHandler struct {
 	Shadow     ScheduleShadowMismatchRepository
 	Activation ScheduleActivationRepository
 	Authorizer Authorizer
+}
+
+func (h ScheduleHandler) Deactivate(w http.ResponseWriter, r *http.Request) {
+	userID, ok := h.requirePermission(w, r, scheduleLifecyclePermissionActivate)
+	if !ok {
+		return
+	}
+	if h.Activation == nil {
+		apperror.WriteError(w, r, apperror.ServiceUnavailable(apperror.KeyServiceUnavailable))
+		return
+	}
+	employerID, err := ParseUUID(r.PathValue("employer_id"))
+	if err != nil {
+		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
+		return
+	}
+	request, err := DecodeJSON[struct {
+		StartDate string `json:"start_date"`
+		EndDate   string `json:"end_date"`
+		Reason    string `json:"reason"`
+	}](r, 1<<16)
+	if err != nil || strings.TrimSpace(request.Reason) == "" {
+		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
+		return
+	}
+	if _, err := ParseDate(request.StartDate); err != nil {
+		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
+		return
+	}
+	if _, err := ParseDate(request.EndDate); err != nil || request.StartDate > request.EndDate {
+		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
+		return
+	}
+	if err := h.Activation.DeactivateScheduleEmployer(r.Context(), employerID, request.StartDate, request.EndDate, strings.TrimSpace(request.Reason), userID); err != nil {
+		if errors.Is(err, ErrScheduleActivationEvidence) {
+			apperror.WriteError(w, r, apperror.Conflict(apperror.KeyConflict))
+		} else {
+			apperror.WriteError(w, r, apperror.Internal(err))
+		}
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
 }
 
 func (h ScheduleHandler) Activate(w http.ResponseWriter, r *http.Request) {

@@ -28,6 +28,7 @@ var (
 	ErrScheduleEvidenceNotFound       = errors.New("schedule evidence not found")
 	ErrScheduleShadowMismatchNotFound = errors.New("schedule shadow mismatch not found")
 	ErrScheduleActivationNotReady     = errors.New("schedule activation is not ready")
+	ErrScheduleActivationEvidence     = errors.New("schedule activation has immutable evidence")
 )
 
 type ScheduleHistoryCursor struct {
@@ -176,15 +177,24 @@ type ScheduleEvidenceRepository interface {
 	GetScheduleEvidence(context.Context, uuid.UUID, uuid.UUID, string) (ScheduleEvidenceResponse, error)
 }
 
+type ScheduleEmployerEvidenceAuthorizer interface {
+	AuthorizeScheduleEmployer(context.Context, uuid.UUID, uuid.UUID, string, string) (bool, error)
+}
+
+type ScheduleMismatchEvidenceAuthorizer interface {
+	AuthorizeScheduleShadowMismatch(context.Context, uuid.UUID, uuid.UUID) (bool, error)
+}
+
 type ScheduleShadowMismatchResolutionRequest struct {
 	Status string `json:"status"`
 	Note   string `json:"note"`
 }
 
 func (h ScheduleHandler) ActivationReadiness(w http.ResponseWriter, r *http.Request) {
-	if !h.requireGlobalScheduleEvidencePermission(w, r, scheduleHistoryPermission) {
+	if !h.requireScheduleEvidencePermission(w, r, scheduleHistoryPermission) {
 		return
 	}
+	userID, _ := httpinfra.UserIDFromContext(r.Context())
 	if h.Shadow == nil {
 		writeScheduleEvidenceUnavailable(w, r)
 		return
@@ -201,6 +211,20 @@ func (h ScheduleHandler) ActivationReadiness(w http.ResponseWriter, r *http.Requ
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}
+	authorizer, ok := h.scheduleEmployerEvidenceAuthorizer()
+	if !ok {
+		writeScheduleEvidenceUnavailable(w, r)
+		return
+	}
+	allowed, err := authorizer.AuthorizeScheduleEmployer(r.Context(), userID, employerID, startDate, endDate)
+	if err != nil {
+		writeScheduleEvidenceError(w, r, err)
+		return
+	}
+	if !allowed {
+		apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
+		return
+	}
 	result, err := h.Shadow.GetScheduleActivationReadiness(r.Context(), employerID, startDate, endDate)
 	if err != nil {
 		writeScheduleEvidenceError(w, r, err)
@@ -210,7 +234,13 @@ func (h ScheduleHandler) ActivationReadiness(w http.ResponseWriter, r *http.Requ
 }
 
 func (h ScheduleHandler) ResolveShadowMismatch(w http.ResponseWriter, r *http.Request) {
-	if !h.requireGlobalScheduleEvidencePermission(w, r, scheduleEvidencePermission) {
+	if !h.requireScheduleEvidencePermission(w, r, scheduleEvidencePermission) {
+		return
+	}
+	userID, _ := httpinfra.UserIDFromContext(r.Context())
+	scoped, ok := h.scheduleMismatchEvidenceAuthorizer()
+	if !ok {
+		writeScheduleEvidenceUnavailable(w, r)
 		return
 	}
 	if h.Shadow == nil {
@@ -222,12 +252,20 @@ func (h ScheduleHandler) ResolveShadowMismatch(w http.ResponseWriter, r *http.Re
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}
+	allowed, err := scoped.AuthorizeScheduleShadowMismatch(r.Context(), userID, mismatchID)
+	if err != nil {
+		writeScheduleEvidenceError(w, r, err)
+		return
+	}
+	if !allowed {
+		apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
+		return
+	}
 	request, err := DecodeJSON[ScheduleShadowMismatchResolutionRequest](r, 1<<16)
 	if err != nil || (request.Status != "resolved" && request.Status != "waived") || strings.TrimSpace(request.Note) == "" || len(request.Note) > 2000 {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}
-	userID, _ := httpinfra.UserIDFromContext(r.Context())
 	if err := h.Shadow.ResolveScheduleShadowMismatch(r.Context(), mismatchID, request.Status, strings.TrimSpace(request.Note), userID); err != nil {
 		writeScheduleEvidenceError(w, r, err)
 		return
@@ -236,9 +274,10 @@ func (h ScheduleHandler) ResolveShadowMismatch(w http.ResponseWriter, r *http.Re
 }
 
 func (h ScheduleHandler) ListShadowMismatches(w http.ResponseWriter, r *http.Request) {
-	if !h.requireGlobalScheduleEvidencePermission(w, r, scheduleHistoryPermission) {
+	if !h.requireScheduleEvidencePermission(w, r, scheduleHistoryPermission) {
 		return
 	}
+	userID, _ := httpinfra.UserIDFromContext(r.Context())
 	if h.Shadow == nil {
 		writeScheduleEvidenceUnavailable(w, r)
 		return
@@ -258,6 +297,20 @@ func (h ScheduleHandler) ListShadowMismatches(w http.ResponseWriter, r *http.Req
 	end, endErr := ParseDate(endDate)
 	if startErr != nil || endErr != nil || startDate > endDate || end.Sub(start).Hours()/24 > 62 {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
+		return
+	}
+	authorizer, ok := h.scheduleEmployerEvidenceAuthorizer()
+	if !ok {
+		writeScheduleEvidenceUnavailable(w, r)
+		return
+	}
+	allowed, err := authorizer.AuthorizeScheduleEmployer(r.Context(), userID, employerID, startDate, endDate)
+	if err != nil {
+		writeScheduleEvidenceError(w, r, err)
+		return
+	}
+	if !allowed {
+		apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
 		return
 	}
 	mismatches, err := h.Shadow.ListScheduleShadowMismatches(r.Context(), employerID, startDate, endDate)
@@ -337,19 +390,6 @@ func (h ScheduleHandler) Evidence(w http.ResponseWriter, r *http.Request) {
 	apperror.WriteJSON(w, http.StatusOK, result)
 }
 
-func (h ScheduleHandler) requireGlobalScheduleEvidencePermission(w http.ResponseWriter, r *http.Request, permission string) bool {
-	userID, ok := httpinfra.UserIDFromContext(r.Context())
-	if !ok {
-		apperror.WriteError(w, r, apperror.Unauthorized(apperror.KeyAuthenticationRequired))
-		return false
-	}
-	if h.Authorizer == nil || !h.Authorizer.HasPermission(r.Context(), userID, permission) || !h.Authorizer.IsGlobalManager(r.Context(), userID) {
-		apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
-		return false
-	}
-	return true
-}
-
 func (h ScheduleHandler) requireScheduleEvidencePermission(w http.ResponseWriter, r *http.Request, permission string) bool {
 	userID, ok := httpinfra.UserIDFromContext(r.Context())
 	if !ok {
@@ -366,6 +406,26 @@ func (h ScheduleHandler) requireScheduleEvidencePermission(w http.ResponseWriter
 func (h ScheduleHandler) scheduleEvidenceRepository() (ScheduleEvidenceRepository, bool) {
 	repository, ok := h.Repository.(ScheduleEvidenceRepository)
 	return repository, ok && repository != nil
+}
+
+func (h ScheduleHandler) scheduleEmployerEvidenceAuthorizer() (ScheduleEmployerEvidenceAuthorizer, bool) {
+	if authorizer, ok := h.Repository.(ScheduleEmployerEvidenceAuthorizer); ok {
+		return authorizer, true
+	}
+	if authorizer, ok := h.Shadow.(ScheduleEmployerEvidenceAuthorizer); ok {
+		return authorizer, true
+	}
+	return nil, false
+}
+
+func (h ScheduleHandler) scheduleMismatchEvidenceAuthorizer() (ScheduleMismatchEvidenceAuthorizer, bool) {
+	if authorizer, ok := h.Repository.(ScheduleMismatchEvidenceAuthorizer); ok {
+		return authorizer, true
+	}
+	if authorizer, ok := h.Shadow.(ScheduleMismatchEvidenceAuthorizer); ok {
+		return authorizer, true
+	}
+	return nil, false
 }
 
 func parseScheduleHistoryQuery(r *http.Request) (ScheduleHistoryQuery, error) {

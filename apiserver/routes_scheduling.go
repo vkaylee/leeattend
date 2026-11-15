@@ -33,6 +33,7 @@ func registerSchedulingRoutes(
 	registerRoute(router, "DELETE /api/v1/employees/{id}/rosters/{date}", roster.Delete)
 	registerRoute(router, "GET /api/v1/schedules", schedule.List)
 	registerRoute(router, "POST /api/v1/schedules/activation/{employer_id}", schedule.Activate)
+	registerRoute(router, "POST /api/v1/schedules/deactivation/{employer_id}", schedule.Deactivate)
 	registerRoute(router, "POST /api/v1/schedules/preview", schedule.Preview)
 	registerRoute(router, "POST /api/v1/schedules/publish", schedule.Publish)
 	registerRoute(router, "POST /api/v1/schedules/{employment_id}/{business_date}/replan/preview", schedule.PreviewReplan)
