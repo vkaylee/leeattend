@@ -307,7 +307,7 @@ func TestPayrollRepository_ListEmployeePayslips_ScopeFree(t *testing.T) {
 			if strings.Contains(strings.ToLower(sql), "workspace_id") {
 				t.Fatalf("expected query to be scope-free without workspace_id: %s", sql)
 			}
-			if !strings.Contains(sql, "FROM payslips p JOIN employments e ON e.id=p.employment_id WHERE e.employee_id=$1") {
+			if !strings.Contains(sql, "FROM payslips p JOIN employments e ON e.id=p.employment_id") || !strings.Contains(sql, "JOIN employee_tenures") || !strings.Contains(sql, "e.employee_id=$1") {
 				t.Fatalf("unexpected SQL join/filter: %s", sql)
 			}
 			if len(args) != 1 || args[0] != empID {

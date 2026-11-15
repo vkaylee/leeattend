@@ -239,7 +239,7 @@ func (r ShiftSwapRepository) ListEmployeeSwaps(ctx context.Context, employeeID u
 	if err != nil {
 		return nil, err
 	}
-	rows, err := db.Query(ctx, `SELECT id, requester_id, target_id, swap_date::text, requester_template_id, target_template_id, status, reason, requested_by_user_id, approved_by_user_id, created_at, updated_at FROM shift_swap_requests WHERE (requester_id = $1 OR target_id = $1) ORDER BY created_at DESC LIMIT 50`, employeeID)
+	rows, err := db.Query(ctx, `SELECT s.id, s.requester_id, s.target_id, s.swap_date::text, s.requester_template_id, s.target_template_id, s.status, s.reason, s.requested_by_user_id, s.approved_by_user_id, s.created_at, s.updated_at FROM shift_swap_requests s WHERE (s.requester_id = $1 OR s.target_id = $1) AND EXISTS (SELECT 1 FROM employments em JOIN employment_relationships er ON er.id = em.relationship_id AND er.employee_id = em.employee_id JOIN employee_tenures t ON t.id = er.tenure_id AND t.employee_id = er.employee_id WHERE em.employee_id = $1 AND em.deleted_at IS NULL AND t.deleted_at IS NULL AND t.start_date <= CURRENT_DATE AND (t.end_date IS NULL OR t.end_date >= CURRENT_DATE)) ORDER BY created_at DESC LIMIT 50`, employeeID)
 	if err != nil {
 		return nil, err
 	}

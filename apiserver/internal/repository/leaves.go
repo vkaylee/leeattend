@@ -300,7 +300,7 @@ func (r LeaveRepository) ResolveEmployeeForUser(ctx context.Context, userID uuid
 		return uuid.Nil, err
 	}
 	var empID uuid.UUID
-	err = db.QueryRow(ctx, `SELECT id FROM employees WHERE user_id = $1 AND deleted_at IS NULL LIMIT 1`, userID).Scan(&empID)
+	err = db.QueryRow(ctx, `SELECT t.employee_id FROM employee_tenures t JOIN employees e ON e.id = t.employee_id WHERE t.user_id = $1 AND t.deleted_at IS NULL AND t.start_date <= CURRENT_DATE AND (t.end_date IS NULL OR t.end_date >= CURRENT_DATE) AND e.deleted_at IS NULL ORDER BY t.start_date DESC, t.id DESC LIMIT 1`, userID).Scan(&empID)
 	return empID, err
 }
 func weekdayCount(startDate, endDate string) int {
@@ -584,7 +584,10 @@ func (r LeaveRepository) ListEmployeeLeaveRequests(ctx context.Context, employee
 		SELECT lr.id, lr.employment_id, lr.leave_type_id, lr.start_date::text, lr.end_date::text, lr.reason, lr.status::text, lr.duration_type, lr.start_time::text, lr.end_time::text, lr.requested_by_user_id, lr.approved_by_user_id, lr.created_at, lr.updated_at, lr.attachment_file_ids
 		FROM leave_requests lr
 		JOIN employments e ON e.id = lr.employment_id
-		WHERE e.employee_id = $1 AND e.deleted_at IS NULL
+		JOIN employment_relationships er ON er.id = e.relationship_id AND er.employee_id = e.employee_id
+		JOIN employee_tenures t ON t.id = er.tenure_id AND t.employee_id = er.employee_id
+		WHERE e.employee_id = $1 AND e.deleted_at IS NULL AND t.deleted_at IS NULL
+		  AND t.start_date <= CURRENT_DATE AND (t.end_date IS NULL OR t.end_date >= CURRENT_DATE)
 		ORDER BY lr.created_at DESC
 	`, employeeID)
 	if err != nil {

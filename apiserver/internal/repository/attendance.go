@@ -190,7 +190,7 @@ func resolveActiveEmployment(ctx context.Context, db DBTX, employeeID uuid.UUID)
 	}
 	var employmentID uuid.UUID
 	var status string
-	err := db.QueryRow(ctx, `SELECT id, status FROM employments WHERE employee_id = $1 AND deleted_at IS NULL ORDER BY (status = 'active') DESC, start_date DESC, id DESC LIMIT 1`, employeeID).Scan(&employmentID, &status)
+	err := db.QueryRow(ctx, `SELECT em.id, em.status FROM employments em JOIN employment_relationships er ON er.id = em.relationship_id AND er.employee_id = em.employee_id JOIN employee_tenures t ON t.id = er.tenure_id AND t.employee_id = er.employee_id WHERE em.employee_id = $1 AND em.deleted_at IS NULL AND t.deleted_at IS NULL AND t.start_date <= CURRENT_DATE AND (t.end_date IS NULL OR t.end_date >= CURRENT_DATE) ORDER BY (em.status = 'active') DESC, em.start_date DESC, em.id DESC LIMIT 1`, employeeID).Scan(&employmentID, &status)
 	if err != nil {
 		return uuid.Nil, api.ErrNoActiveEmployment
 	}
