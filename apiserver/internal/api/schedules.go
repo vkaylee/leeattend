@@ -14,7 +14,17 @@ import (
 	httpinfra "github.com/vkaylee/leeattend/apiserver/internal/infra/http"
 )
 
-var ErrScheduleLifecycleUnavailable = errors.New("schedule lifecycle is unavailable")
+var (
+	ErrScheduleLifecycleUnavailable = errors.New("schedule lifecycle is unavailable")
+	ErrSchedulePreviewStale         = errors.New("schedule lifecycle preview is stale")
+	ErrScheduleAlreadyPublished     = errors.New("schedule lifecycle day is already published")
+	ErrScheduleRevisionStale        = errors.New("schedule lifecycle revision is stale")
+	ErrScheduleNoCurrentRevision    = errors.New("schedule lifecycle has no current revision")
+	ErrScheduleLockedPeriod         = errors.New("schedule lifecycle period is locked")
+	ErrSchedulePreviewScope         = errors.New("schedule lifecycle preview scope is invalid")
+	ErrScheduleTimezoneMismatch     = errors.New("schedule lifecycle timezone does not match resolver")
+	ErrScheduleIdempotencyConflict  = errors.New("schedule lifecycle idempotency key conflicts with stored request")
+)
 
 const (
 	scheduleLifecyclePermissionPreview  = "schedules:preview"
@@ -429,11 +439,16 @@ func (h ScheduleHandler) lifecycleUnavailable(w http.ResponseWriter, r *http.Req
 }
 
 func (h ScheduleHandler) writeLifecycleError(w http.ResponseWriter, r *http.Request, err error) {
-	if errors.Is(err, ErrScheduleLifecycleUnavailable) {
+	switch {
+	case errors.Is(err, ErrScheduleLifecycleUnavailable):
 		h.lifecycleUnavailable(w, r)
-		return
+	case errors.Is(err, ErrSchedulePreviewStale), errors.Is(err, ErrScheduleRevisionStale), errors.Is(err, ErrScheduleAlreadyPublished), errors.Is(err, ErrScheduleLockedPeriod), errors.Is(err, ErrScheduleNoCurrentRevision), errors.Is(err, ErrScheduleIdempotencyConflict):
+		apperror.WriteError(w, r, apperror.Conflict(apperror.KeyConflict))
+	case errors.Is(err, ErrSchedulePreviewScope), errors.Is(err, ErrScheduleTimezoneMismatch):
+		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
+	default:
+		apperror.WriteError(w, r, apperror.Internal(err))
 	}
-	apperror.WriteError(w, r, apperror.Internal(err))
 }
 
 func idempotencyKey(r *http.Request) (string, error) {

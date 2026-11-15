@@ -98,6 +98,21 @@ func (m *activationRepositoryMock) DeactivateScheduleEmployer(context.Context, u
 
 type lifecycleRepositoryMock struct{}
 
+type lifecycleErrorMock struct{ err error }
+
+func (m lifecycleErrorMock) CreatePreview(context.Context, uuid.UUID, SchedulePreviewRequest) (SchedulePreviewResponse, error) {
+	return SchedulePreviewResponse{}, m.err
+}
+func (lifecycleErrorMock) Publish(context.Context, uuid.UUID, string, SchedulePublishRequest) (SchedulePublicationResponse, error) {
+	return SchedulePublicationResponse{}, ErrScheduleLifecycleUnavailable
+}
+func (lifecycleErrorMock) PreviewReplan(context.Context, uuid.UUID, uuid.UUID, string, ScheduleReplanPreviewRequest) (ScheduleReplanPreviewResponse, error) {
+	return ScheduleReplanPreviewResponse{}, ErrScheduleLifecycleUnavailable
+}
+func (lifecycleErrorMock) CommitReplan(context.Context, uuid.UUID, uuid.UUID, string, string, ScheduleReplanRequest) (ScheduleReplanResponse, error) {
+	return ScheduleReplanResponse{}, ErrScheduleLifecycleUnavailable
+}
+
 func (lifecycleRepositoryMock) CreatePreview(context.Context, uuid.UUID, SchedulePreviewRequest) (SchedulePreviewResponse, error) {
 	return SchedulePreviewResponse{}, ErrScheduleLifecycleUnavailable
 }
@@ -301,6 +316,18 @@ func TestScheduleHandler_PublishRequiresIdempotencyKey(t *testing.T) {
 	handler.Publish(rec, req)
 	if rec.Code != http.StatusBadRequest {
 		t.Fatalf("expected missing idempotency key validation, got %d", rec.Code)
+	}
+}
+
+func TestScheduleHandler_LifecycleConflictErrorsReturn409(t *testing.T) {
+	handler := ScheduleHandler{}
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/schedules", nil)
+	for _, lifecycleErr := range []error{ErrSchedulePreviewStale, ErrScheduleRevisionStale, ErrScheduleAlreadyPublished, ErrScheduleLockedPeriod, ErrScheduleNoCurrentRevision, ErrScheduleIdempotencyConflict} {
+		rec := httptest.NewRecorder()
+		handler.writeLifecycleError(rec, req, lifecycleErr)
+		if rec.Code != http.StatusConflict {
+			t.Fatalf("error %v status=%d want 409", lifecycleErr, rec.Code)
+		}
 	}
 }
 

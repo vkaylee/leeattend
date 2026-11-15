@@ -19,14 +19,14 @@ import (
 
 var (
 	ErrScheduleResolverUnavailable = errors.New("schedule lifecycle resolver cannot produce a complete sanitized result")
-	ErrScheduleIdempotencyConflict = errors.New("schedule lifecycle idempotency key conflicts with stored request")
-	ErrSchedulePreviewStale        = errors.New("schedule lifecycle preview is stale")
-	ErrScheduleAlreadyPublished    = errors.New("schedule lifecycle day is already published")
-	ErrScheduleRevisionStale       = errors.New("schedule lifecycle revision is stale")
-	ErrScheduleNoCurrentRevision   = errors.New("schedule lifecycle has no current revision")
-	ErrScheduleLockedPeriod        = errors.New("schedule lifecycle period is locked")
-	ErrSchedulePreviewScope        = errors.New("schedule lifecycle preview scope is invalid")
-	ErrScheduleTimezoneMismatch    = errors.New("schedule lifecycle timezone does not match resolver")
+	ErrScheduleIdempotencyConflict = api.ErrScheduleIdempotencyConflict
+	ErrSchedulePreviewStale        = api.ErrSchedulePreviewStale
+	ErrScheduleAlreadyPublished    = api.ErrScheduleAlreadyPublished
+	ErrScheduleRevisionStale       = api.ErrScheduleRevisionStale
+	ErrScheduleNoCurrentRevision   = api.ErrScheduleNoCurrentRevision
+	ErrScheduleLockedPeriod        = api.ErrScheduleLockedPeriod
+	ErrSchedulePreviewScope        = api.ErrSchedulePreviewScope
+	ErrScheduleTimezoneMismatch    = api.ErrScheduleTimezoneMismatch
 )
 
 const (
@@ -910,6 +910,9 @@ func lockScheduleRevisionTargets(ctx context.Context, tx DBTX, keys []scheduleRe
 		}
 	}
 	sort.Slice(employmentIDs, func(i, j int) bool { return employmentIDs[i].String() < employmentIDs[j].String() })
+	if _, err := tx.Exec(ctx, `SELECT e.id FROM employees e JOIN employments em ON em.employee_id = e.id WHERE em.id = ANY($1) ORDER BY e.id FOR UPDATE`, employmentIDs); err != nil {
+		return err
+	}
 	if _, err := tx.Exec(ctx, `SELECT id FROM employments WHERE id = ANY($1) ORDER BY id FOR UPDATE`, employmentIDs); err != nil {
 		return err
 	}

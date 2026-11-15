@@ -114,6 +114,20 @@ func TestDeactivateScheduleEmployerWritesDisableAndAuditAtomically(t *testing.T)
 	}
 }
 
+func TestLockScheduleRevisionTargetsLocksEmployeeBeforeEmployment(t *testing.T) {
+	queries := make([]string, 0, 3)
+	db := &fakeDBTX{execFn: func(_ context.Context, query string, _ ...any) (pgconn.CommandTag, error) {
+		queries = append(queries, query)
+		return pgconn.NewCommandTag("SELECT 1"), nil
+	}}
+	if err := lockScheduleRevisionTargets(context.Background(), db, []scheduleRevisionLockKey{{employmentID: uuid.New(), businessDate: "2026-11-16"}}); err != nil {
+		t.Fatalf("lock schedule targets: %v", err)
+	}
+	if len(queries) != 3 || !strings.Contains(queries[0], "FROM employees") || !strings.Contains(queries[0], "FOR UPDATE") || !strings.Contains(queries[1], "FROM employments") || !strings.Contains(queries[2], "FROM schedule_day_revisions") {
+		t.Fatalf("unexpected lock order: %v", queries)
+	}
+}
+
 func TestValidateSystemOfficePublicationAuthorityChecksApprovalEmployerAndDate(t *testing.T) {
 	approvalID, employerID, employmentID := uuid.New(), uuid.New(), uuid.New()
 	queries := 0
