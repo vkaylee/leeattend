@@ -5,20 +5,23 @@ package repository
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"os"
 	"testing"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/vkaylee/leeattend/apiserver/internal/api"
+	"github.com/vkaylee/leeattend/apiserver/internal/domain/ids"
 	"github.com/vkaylee/leeattend/apiserver/internal/domain/workpolicy"
 )
 
-func TestIntegrationPayrollPolicySnapshotsAreAppendOnlyAcrossReruns(t *testing.T) {
+func requireIntegrationDatabase(t *testing.T) (*pgxpool.Pool, context.Context) {
+	t.Helper()
 	if os.Getenv("LEEATTEND_DB_INTEGRATION") != "1" {
 		t.Fatal("LEEATTEND_DB_INTEGRATION=1 is required for database integration tests")
 	}
-
 	connectionString := os.Getenv("DB_PRIMARY_URL")
 	if connectionString == "" {
 		connectionString = os.Getenv("DATABASE_URL")
@@ -26,14 +29,17 @@ func TestIntegrationPayrollPolicySnapshotsAreAppendOnlyAcrossReruns(t *testing.T
 	if connectionString == "" {
 		t.Fatal("DB_PRIMARY_URL or DATABASE_URL is required for database integration tests")
 	}
-
 	ctx := context.Background()
 	pool, err := pgxpool.New(ctx, connectionString)
 	if err != nil {
 		t.Fatalf("open database pool: %v", err)
 	}
-	defer pool.Close()
+	t.Cleanup(pool.Close)
+	return pool, ctx
+}
 
+func TestIntegrationPayrollPolicySnapshotsAreAppendOnlyAcrossReruns(t *testing.T) {
+	pool, ctx := requireIntegrationDatabase(t)
 	tx, err := pool.Begin(ctx)
 	if err != nil {
 		t.Fatalf("begin transaction: %v", err)
@@ -144,5 +150,112 @@ func TestIntegrationPayrollPolicySnapshotsAreAppendOnlyAcrossReruns(t *testing.T
 	}
 	if !seenVersions[policyB.ID.String()] {
 		t.Fatalf("new policy snapshot provenance missing: %s", policyB.ID)
+	}
+}
+
+func TestIntegrationResolveWorkPolicyUsesExclusiveMembershipAndVersionBoundaries(t *testing.T) {
+	pool, ctx := requireIntegrationDatabase(t)
+	tx, err := pool.Begin(ctx)
+	if err != nil {
+		t.Fatalf("begin transaction: %v", err)
+	}
+	defer func() { _ = tx.Rollback(ctx) }()
+
+	userID := uuid.New()
+	employerID := uuid.New()
+	employeeID := uuid.New()
+	employmentID := uuid.New()
+	attendancePolicyID := uuid.New()
+	workingPatternID := uuid.New()
+	overtimePolicyID := uuid.New()
+	groupID := uuid.New()
+	workCreditA := uuid.New()
+	payBasisA := uuid.New()
+	versionA := uuid.New()
+	workCreditB := uuid.New()
+	payBasisB := uuid.New()
+	versionB := uuid.New()
+	missingMembershipEmploymentID := uuid.New()
+
+	_, err = tx.Exec(ctx, `INSERT INTO users (id, email, password_hash) VALUES ($1, $2, 'integration-test-hash')`, userID, userID.String()+"@invalid.test")
+	if err != nil {
+		t.Fatalf("insert resolver user: %v", err)
+	}
+	_, err = tx.Exec(ctx, `INSERT INTO employers (id, name) VALUES ($1, 'resolver-test-employer')`, employerID)
+	if err != nil {
+		t.Fatalf("insert resolver employer: %v", err)
+	}
+	_, err = tx.Exec(ctx, `INSERT INTO employees (id, employee_id_number, full_name, hire_date, original_hire_date) VALUES ($1, $2, 'resolver-test-employee', DATE '2026-01-01', DATE '2026-01-01')`, employeeID, employeeID.String())
+	if err != nil {
+		t.Fatalf("insert resolver employee: %v", err)
+	}
+	_, err = tx.Exec(ctx, `INSERT INTO employments (id, employee_id, employer_id, status, start_date) VALUES ($1, $2, $3, 'active', DATE '2026-01-01')`, employmentID, employeeID, employerID)
+	if err != nil {
+		t.Fatalf("insert resolver employment: %v", err)
+	}
+	_, err = tx.Exec(ctx, `INSERT INTO overtime_policy_definitions (id, name) VALUES ($1, 'resolver-test-overtime')`, overtimePolicyID)
+	if err != nil {
+		t.Fatalf("insert resolver overtime policy: %v", err)
+	}
+	_, err = tx.Exec(ctx, `INSERT INTO attendance_policies (id, name) VALUES ($1, 'resolver-test-attendance')`, attendancePolicyID)
+	if err != nil {
+		t.Fatalf("insert resolver attendance policy: %v", err)
+	}
+	_, err = tx.Exec(ctx, `INSERT INTO working_patterns (id, name) VALUES ($1, 'resolver-test-pattern')`, workingPatternID)
+	if err != nil {
+		t.Fatalf("insert resolver working pattern: %v", err)
+	}
+	_, err = tx.Exec(ctx, `INSERT INTO labor_policy_groups (id, name, created_by) VALUES ($1, 'resolver-test-group', $2)`, groupID, userID)
+	if err != nil {
+		t.Fatalf("insert resolver group: %v", err)
+	}
+	for _, definition := range []struct {
+		workCredit, payBasis, version uuid.UUID
+		minutes, days                 int
+		from, to                      string
+	}{
+		{workCreditA, payBasisA, versionA, 480, 26, "2026-01-01", "2026-06-01"},
+		{workCreditB, payBasisB, versionB, 450, 22, "2026-06-01", ""},
+	} {
+		_, err = tx.Exec(ctx, `INSERT INTO work_credit_policies (id, name, minutes_per_credit, attendance_policy_id, working_pattern_id, created_by) VALUES ($1, $2, $3, $4, $5, $6)`, definition.workCredit, definition.version.String(), definition.minutes, attendancePolicyID, workingPatternID, userID)
+		if err != nil {
+			t.Fatalf("insert resolver work credit policy: %v", err)
+		}
+		_, err = tx.Exec(ctx, `INSERT INTO pay_basis_policies (id, name, method, monthly_denominator, monthly_standard_days, created_by) VALUES ($1, $2, 'monthly', 'fixed', $3, $4)`, definition.payBasis, definition.version.String(), definition.days, userID)
+		if err != nil {
+			t.Fatalf("insert resolver pay basis policy: %v", err)
+		}
+		var effectiveTo any
+		if definition.to != "" {
+			effectiveTo = definition.to
+		}
+		_, err = tx.Exec(ctx, `INSERT INTO labor_policy_group_versions (id, group_id, work_credit_policy_id, pay_basis_policy_id, overtime_policy_id, effective_from, effective_to, created_by) VALUES ($1, $2, $3, $4, $5, $6::date, $7::date, $8)`, definition.version, groupID, definition.workCredit, definition.payBasis, overtimePolicyID, definition.from, effectiveTo, userID)
+		if err != nil {
+			t.Fatalf("insert resolver version: %v", err)
+		}
+	}
+	_, err = tx.Exec(ctx, `INSERT INTO labor_policy_memberships (id, employment_id, group_id, effective_from, effective_to, created_by) VALUES ($1, $2, $3, DATE '2026-01-01', NULL, $4)`, uuid.New(), employmentID, groupID, userID)
+	if err != nil {
+		t.Fatalf("insert resolver membership: %v", err)
+	}
+
+	repo := WorkPolicyRepository{DB: tx}
+	beforeBoundary, err := repo.ResolveWorkPolicy(ctx, ids.EmploymentID(employmentID), time.Date(2026, 5, 31, 0, 0, 0, 0, time.UTC))
+	if err != nil {
+		t.Fatalf("resolve before version boundary: %v", err)
+	}
+	if beforeBoundary.ID != versionA || beforeBoundary.MinutesPerCredit != 480 {
+		t.Fatalf("before boundary resolved %+v, want version A/480 minutes", beforeBoundary)
+	}
+	onBoundary, err := repo.ResolveWorkPolicy(ctx, ids.EmploymentID(employmentID), time.Date(2026, 6, 1, 0, 0, 0, 0, time.UTC))
+	if err != nil {
+		t.Fatalf("resolve on version boundary: %v", err)
+	}
+	if onBoundary.ID != versionB || onBoundary.MinutesPerCredit != 450 {
+		t.Fatalf("on boundary resolved %+v, want version B/450 minutes", onBoundary)
+	}
+	_, err = repo.ResolveWorkPolicy(ctx, ids.EmploymentID(missingMembershipEmploymentID), time.Date(2026, 6, 1, 0, 0, 0, 0, time.UTC))
+	if !errors.Is(err, api.ErrWorkPolicyResolutionNotFound) {
+		t.Fatalf("missing membership error = %v, want not found", err)
 	}
 }

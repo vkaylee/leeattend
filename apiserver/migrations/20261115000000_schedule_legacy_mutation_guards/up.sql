@@ -32,7 +32,7 @@ BEGIN
             SELECT 1
             FROM employee_working_patterns a
             JOIN schedule_day_revisions r ON r.employment_id = a.employment_id
-            WHERE a.pattern_id = COALESCE(NEW.pattern_id, OLD.pattern_id)
+            WHERE a.pattern_id = COALESCE(new_data->>'pattern_id', old_data->>'pattern_id')::uuid
               AND r.state IN ('published', 'explicit_off')
         ) INTO blocked;
     ELSIF TG_TABLE_NAME = 'shift_versions' THEN
@@ -67,10 +67,10 @@ BEGIN
             CROSS JOIN feature_flags ff
             WHERE ff.flag_key = 'schedule_lifecycle'
               AND ff.enabled = true
-              AND ewp.pattern_id = CASE
-                    WHEN TG_TABLE_NAME = 'assignment_rules' THEN COALESCE(NEW.pattern_id, OLD.pattern_id)
-                    ELSE COALESCE(NEW.id, OLD.id)
-                  END
+              AND ewp.pattern_id = (CASE
+                    WHEN TG_TABLE_NAME = 'assignment_rules' THEN COALESCE(new_data->>'pattern_id', old_data->>'pattern_id')
+                    ELSE COALESCE(new_data->>'id', old_data->>'id')
+                  END)::uuid
               AND r.state IN ('published', 'explicit_off')
               AND r.business_date >= ewp.start_date
               AND (ewp.end_date IS NULL OR r.business_date <= ewp.end_date)
