@@ -121,7 +121,7 @@ func main() {
 
 	officeWorker, workerErr := service.NewScheduleOfficeWorker(
 		repository.ScheduleOfficeOutboxStore{DB: db},
-		repository.ScheduleOfficeProducer{DB: db, Source: repository.ApprovedScheduleOfficePolicySource{}},
+		repository.ScheduleOfficeProducer{DB: db, Source: repository.ApprovedScheduleOfficePolicySource{}, Shadow: repository.ScheduleRepository{DB: db}.RunScheduleShadowComparison},
 		repository.ScheduleOfficePublisher{Publisher: repository.ScheduleRepository{DB: db}},
 	)
 	if workerErr != nil {

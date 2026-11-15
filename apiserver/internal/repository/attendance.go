@@ -487,7 +487,7 @@ func (r AttendanceRepository) UpdateTimeEntry(ctx context.Context, entryID uuid.
 		return api.TimeEntryRecord{}, err
 	}
 	if err := guardLifecycleDateMutation(ctx, db, []uuid.UUID{record.EmploymentID}, []string{businessDate.UTC().Format("2006-01-02")}); err != nil {
-		return api.TimeEntryRecord{}, err
+		return api.TimeEntryRecord{}, finishLifecycleMutationDB(ctx, db, err)
 	}
 
 	punchInTime := record.PunchInTime
@@ -547,7 +547,7 @@ func (r AttendanceRepository) DeleteTimeEntry(ctx context.Context, entryID uuid.
 		return err
 	}
 	if err := guardLifecycleDateMutation(ctx, db, []uuid.UUID{employmentID}, []string{punchInTime.UTC().Format("2006-01-02")}); err != nil {
-		return err
+		return finishLifecycleMutationDB(ctx, db, err)
 	}
 	cmd, err := db.Exec(ctx, `DELETE FROM time_entries WHERE id = $1`, entryID)
 	if err != nil {

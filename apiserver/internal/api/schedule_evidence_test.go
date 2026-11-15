@@ -75,7 +75,7 @@ func (s scheduleEvidenceAuthorizerStub) GetManagedDepartmentIDs(context.Context,
 	return nil, nil
 }
 func (s scheduleEvidenceAuthorizerStub) IsGlobalManager(context.Context, uuid.UUID) bool {
-	return false
+	return s.allowed
 }
 func (s scheduleEvidenceAuthorizerStub) HasScopedPermission(context.Context, uuid.UUID, string, *uuid.UUID) bool {
 	return false

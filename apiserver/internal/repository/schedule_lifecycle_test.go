@@ -14,6 +14,54 @@ import (
 	"github.com/vkaylee/leeattend/apiserver/internal/api"
 )
 
+func TestActivateScheduleEmployerWritesConfigAndAuditAtomically(t *testing.T) {
+	actorID, employerID := uuid.New(), uuid.New()
+	writes := 0
+	tx := &fakeTx{fakeDBTX: fakeDBTX{
+		queryRowFn: func(_ context.Context, query string, _ ...any) pgx.Row {
+			if !strings.Contains(query, "FROM feature_flags") {
+				t.Fatalf("unexpected activation readiness query: %s", query)
+			}
+			return fakeRow{scanFn: func(dest ...any) error {
+				*(dest[0].(*bool)) = true
+				return nil
+			}}
+		},
+		execFn: func(_ context.Context, query string, _ ...any) (pgconn.CommandTag, error) {
+			if strings.Contains(query, "config_entries") || strings.Contains(query, "schedule_lifecycle.activation.enabled") {
+				writes++
+			}
+			return pgconn.NewCommandTag("INSERT 0 1"), nil
+		},
+	}}
+	repo := ScheduleRepository{DB: tx}
+	if err := repo.ActivateScheduleEmployer(context.Background(), employerID, "2026-11-01", "2026-11-30", "clean evidence", actorID); err != nil {
+		t.Fatalf("activate employer: %v", err)
+	}
+	if writes != 2 || !tx.committed {
+		t.Fatalf("expected config and audit writes in committed transaction, writes=%d committed=%v", writes, tx.committed)
+	}
+}
+
+func TestActivateScheduleEmployerDoesNotWriteWhenNotReady(t *testing.T) {
+	writes := 0
+	tx := &fakeTx{fakeDBTX: fakeDBTX{
+		queryRowFn: func(context.Context, string, ...any) pgx.Row {
+			return fakeRow{scanFn: func(dest ...any) error { *(dest[0].(*bool)) = false; return nil }}
+		},
+		execFn: func(context.Context, string, ...any) (pgconn.CommandTag, error) {
+			writes++
+			return pgconn.NewCommandTag("INSERT 0 1"), nil
+		},
+	}}
+	if err := (ScheduleRepository{DB: tx}).ActivateScheduleEmployer(context.Background(), uuid.New(), "2026-11-01", "2026-11-30", "not ready", uuid.New()); !errors.Is(err, api.ErrScheduleActivationNotReady) {
+		t.Fatalf("expected not-ready error, got %v", err)
+	}
+	if writes != 0 || tx.committed {
+		t.Fatalf("not-ready activation must not write or commit, writes=%d committed=%v", writes, tx.committed)
+	}
+}
+
 func TestScheduleLifecycleCreatePreviewRejectsInvalidScopeBeforeWrites(t *testing.T) {
 	execCalled := false
 	tx := &fakeTx{fakeDBTX: fakeDBTX{execFn: func(context.Context, string, ...any) (pgconn.CommandTag, error) {

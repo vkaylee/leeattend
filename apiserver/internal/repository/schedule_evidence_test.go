@@ -94,6 +94,8 @@ func TestGetScheduleActivationReadinessReportsIndependentBlockers(t *testing.T) 
 				*(dest[0].(*bool)) = true
 			case strings.Contains(query, "FROM config_entries"):
 				*(dest[0].(*bool)) = true
+			case strings.Contains(query, "FROM schedule_office_policies") && strings.Contains(query, "SELECT EXISTS"):
+				*(dest[0].(*bool)) = true
 			case strings.Contains(query, "FROM schedule_shadow_mismatches"):
 				*(dest[0].(*int64)) = 2
 			case strings.Contains(query, "FROM (SELECT employment_id, business_date FROM schedule_day_revisions"):
@@ -102,10 +104,14 @@ func TestGetScheduleActivationReadinessReportsIndependentBlockers(t *testing.T) 
 				*(dest[0].(*int64)) = 1
 			case strings.Contains(query, "FROM outbox_jobs"):
 				*(dest[0].(*int64)) = 4
-			case strings.Contains(query, "generate_series"):
+			case strings.Contains(query, "count(DISTINCT") && strings.Contains(query, "schedule_office_policies"):
+				*(dest[0].(*int64)) = 3
+			case strings.Contains(query, "generate_series") && strings.Contains(query, "schedule_office_policies"):
+				*(dest[0].(*int64)) = 5
+			case strings.Contains(query, "generate_series") && strings.Contains(query, "employments e"):
 				*(dest[0].(*int64)) = 5
 			case strings.Contains(query, "count(DISTINCT"):
-				*(dest[0].(*int64)) = 3
+				*(dest[0].(*int64)) = 5
 			default:
 				t.Fatalf("unexpected readiness query: %s", query)
 			}
@@ -123,11 +129,14 @@ func TestGetScheduleActivationReadinessReportsIndependentBlockers(t *testing.T) 
 	if result.OpenMismatchCount != 2 || result.CurrentDuplicateCount != 3 || result.LegacyMutationCount != 1 || result.DeadLetterCount != 4 {
 		t.Fatalf("readiness counters overwritten: %+v", result)
 	}
-	if result.ExpectedCoverageDays != 5 || result.CoveredOfficialDays != 3 || result.MissingCoverageDays != 2 {
+	if result.ExpectedCoverageDays != 5 || result.CoveredOfficialDays != 5 || result.MissingCoverageDays != 0 {
 		t.Fatalf("unexpected coverage counters: %+v", result)
 	}
 	if result.Ready {
 		t.Fatal("expected blocked readiness when any blocker is present")
+	}
+	if result.RequiredOfficeDays != 5 || result.CoveredOfficeDays != 3 || result.MissingOfficeCoverageDays != 2 {
+		t.Fatalf("unexpected office coverage in blocker fixture: %+v", result)
 	}
 }
 
@@ -135,7 +144,7 @@ func TestGetScheduleActivationReadinessCleanStateIsReady(t *testing.T) {
 	db := &fakeDBTX{queryRowFn: func(_ context.Context, query string, _ ...any) pgx.Row {
 		return fakeRow{scanFn: func(dest ...any) error {
 			switch {
-			case strings.Contains(query, "FROM feature_flags"), strings.Contains(query, "FROM config_entries"):
+			case strings.Contains(query, "FROM feature_flags"), strings.Contains(query, "FROM config_entries"), strings.Contains(query, "SELECT EXISTS (SELECT 1 FROM schedule_office_policies"):
 				*(dest[0].(*bool)) = true
 			case strings.Contains(query, "generate_series"):
 				*(dest[0].(*int64)) = 5

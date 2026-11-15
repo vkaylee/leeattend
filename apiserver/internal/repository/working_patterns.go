@@ -172,6 +172,7 @@ func (r WorkingPatternRepository) UpdatePattern(ctx context.Context, patternID u
 		}
 		return nil
 	})
+	err = finishLifecycleMutation(ctx, tx, err)
 	if err != nil {
 		return api.WorkingPattern{}, err
 	}
@@ -237,6 +238,7 @@ func (r WorkingPatternRepository) AssignPattern(ctx context.Context, employmentI
 		}
 		return nil
 	})
+	err = finishLifecycleMutation(ctx, tx, err)
 	if err != nil {
 		return api.EmployeeWorkingPattern{}, err
 	}
@@ -303,6 +305,7 @@ func (r WorkingPatternRepository) BulkAssignPattern(ctx context.Context, req api
 		}
 		return nil
 	})
+	err = finishLifecycleMutation(ctx, tx, err)
 	if err != nil {
 		return api.BulkAssignPatternResponse{}, err
 	}

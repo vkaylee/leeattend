@@ -31,6 +31,7 @@ type ScheduleOfficeCoverageSource interface {
 type ScheduleOfficeProducer struct {
 	DB     DBTX
 	Source ScheduleOfficeCoverageSource
+	Shadow func(context.Context, uuid.UUID, time.Time, time.Time) (ScheduleShadowRunResult, error)
 	Now    func() time.Time
 }
 
@@ -48,6 +49,13 @@ func (p ScheduleOfficeProducer) Scan(ctx context.Context) (int, error) {
 	}
 	created := 0
 	for _, employerID := range employers {
+		if p.Shadow != nil {
+			shadowStart := now.AddDate(0, 0, -1)
+			shadowEnd := now.AddDate(0, 1, 0)
+			if _, err := p.Shadow(ctx, employerID, shadowStart, shadowEnd); err != nil {
+				return created, err
+			}
+		}
 		count, err := p.scanEmployer(ctx, employerID, now)
 		if err != nil {
 			return created, err
@@ -99,15 +107,15 @@ func horizon(now time.Time) (time.Time, time.Time) {
 type ApprovedScheduleOfficePolicySource struct{}
 
 func (ApprovedScheduleOfficePolicySource) ApprovedEmployers(ctx context.Context, db DBTX, now time.Time) ([]uuid.UUID, error) {
+	_, horizonEnd := horizon(now)
 	rows, err := db.Query(ctx, `SELECT DISTINCT p.employer_id
 		FROM schedule_office_policies p
 		JOIN approval_workflow_instances i ON i.id = p.approval_instance_id
 		WHERE p.status = 'active'
 		  AND i.entity_type = 'schedule_policy'
 		  AND i.status = 'approved'
-		  AND p.effective_from <= $1::date
-		  AND (p.effective_to IS NULL OR p.effective_to >= $1::date)
-		  AND (p.revoked_at IS NULL OR p.revoked_at > $2)`, now, now)
+		  AND p.effective_from <= $2::date
+		  AND (p.effective_to IS NULL OR p.effective_to >= $1::date)`, now, horizonEnd)
 	if err != nil {
 		return nil, mapScheduleOfficePolicySchemaError(err)
 	}

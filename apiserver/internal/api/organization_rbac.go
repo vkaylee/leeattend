@@ -619,7 +619,7 @@ func permissionGroup(id string) string {
 		return "overtime"
 	case "leave":
 		return "leave"
-	case "shifts", "shift_swaps", "patterns", "rosters", "assignment_rules":
+	case "shifts", "shift_swaps", "patterns", "rosters", "assignment_rules", "schedules":
 		return "shifts"
 	case "payroll":
 		return "payroll"

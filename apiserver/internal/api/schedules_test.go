@@ -72,6 +72,16 @@ func (a schedulePermissionAuthorizer) GetUsersWithPermission(context.Context, st
 	return nil, nil
 }
 
+type activationRepositoryMock struct {
+	called bool
+	err    error
+}
+
+func (m *activationRepositoryMock) ActivateScheduleEmployer(context.Context, uuid.UUID, string, string, string, uuid.UUID) error {
+	m.called = true
+	return m.err
+}
+
 type lifecycleRepositoryMock struct{}
 
 func (lifecycleRepositoryMock) CreatePreview(context.Context, uuid.UUID, SchedulePreviewRequest) (SchedulePreviewResponse, error) {
@@ -107,6 +117,48 @@ func (m mockScheduleAuthorizer) HasScopedPermission(context.Context, uuid.UUID, 
 }
 func (m mockScheduleAuthorizer) GetUsersWithPermission(context.Context, string) ([]uuid.UUID, error) {
 	return nil, nil
+}
+
+func TestScheduleHandler_ActivationRequiresPermissionBeforeValidation(t *testing.T) {
+	activation := &activationRepositoryMock{}
+	handler := ScheduleHandler{Activation: activation, Authorizer: schedulePermissionAuthorizer{allowed: false}}
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/schedules/activation/not-a-uuid", strings.NewReader(`{"start_date":"bad"}`))
+	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
+	rec := httptest.NewRecorder()
+
+	handler.Activate(rec, req)
+	if rec.Code != http.StatusForbidden || activation.called {
+		t.Fatalf("expected early authorization denial, status=%d called=%v", rec.Code, activation.called)
+	}
+}
+
+func TestScheduleHandler_ActivationRejectsInvalidRange(t *testing.T) {
+	activation := &activationRepositoryMock{}
+	handler := ScheduleHandler{Activation: activation, Authorizer: schedulePermissionAuthorizer{allowed: true}}
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/schedules/activation/"+uuid.NewString(), strings.NewReader(`{"start_date":"2026-11-30","end_date":"2026-11-01","reason":"ready"}`))
+	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
+	req.SetPathValue("employer_id", uuid.NewString())
+	rec := httptest.NewRecorder()
+
+	handler.Activate(rec, req)
+	if rec.Code != http.StatusBadRequest || activation.called {
+		t.Fatalf("expected range validation, status=%d called=%v", rec.Code, activation.called)
+	}
+}
+
+func TestScheduleHandler_ActivationPassesReasonAndReturnsNoContent(t *testing.T) {
+	activation := &activationRepositoryMock{}
+	handler := ScheduleHandler{Activation: activation, Authorizer: schedulePermissionAuthorizer{allowed: true}}
+	employerID := uuid.New()
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/schedules/activation/"+employerID.String(), strings.NewReader(`{"start_date":"2026-11-01","end_date":"2026-11-30","reason":"clean evidence"}`))
+	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
+	req.SetPathValue("employer_id", employerID.String())
+	rec := httptest.NewRecorder()
+
+	handler.Activate(rec, req)
+	if rec.Code != http.StatusNoContent || !activation.called {
+		t.Fatalf("expected activation call, status=%d called=%v", rec.Code, activation.called)
+	}
 }
 
 func TestScheduleHandler_Unauthenticated(t *testing.T) {

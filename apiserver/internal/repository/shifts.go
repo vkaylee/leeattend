@@ -202,6 +202,7 @@ func (r ShiftRepository) UpdateShift(ctx context.Context, templateID, actorID uu
 		}
 		return scanShift(ctx, db, templateID, &record)
 	})
+	err = finishLifecycleMutation(ctx, tx, err)
 	if err != nil {
 		return api.ShiftRecord{}, err
 	}
@@ -378,7 +379,7 @@ func (r ShiftRepository) AssignShift(ctx context.Context, actorID uuid.UUID, req
 		_ = actorID
 		return nil
 	})
-	return err
+	return finishLifecycleMutation(ctx, tx, err)
 }
 
 func shiftEndDate(startDate string, endDate *string) string {

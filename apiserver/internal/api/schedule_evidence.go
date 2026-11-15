@@ -27,6 +27,7 @@ var (
 	ErrScheduleHistoryNotFound        = errors.New("schedule history not found")
 	ErrScheduleEvidenceNotFound       = errors.New("schedule evidence not found")
 	ErrScheduleShadowMismatchNotFound = errors.New("schedule shadow mismatch not found")
+	ErrScheduleActivationNotReady     = errors.New("schedule activation is not ready")
 )
 
 type ScheduleHistoryCursor struct {
@@ -126,6 +127,7 @@ type ScheduleActivationReadiness struct {
 	RequiredOfficeDays        int64     `json:"required_office_days"`
 	CoveredOfficeDays         int64     `json:"covered_office_days"`
 	MissingOfficeCoverageDays int64     `json:"missing_office_coverage_days"`
+	OfficePolicyConfigured    bool      `json:"office_policy_configured"`
 	LegacyMutationCount       int64     `json:"legacy_mutation_count"`
 	CurrentDuplicateCount     int64     `json:"current_duplicate_count"`
 	ExpectedCoverageDays      int64     `json:"expected_coverage_days"`
@@ -180,7 +182,7 @@ type ScheduleShadowMismatchResolutionRequest struct {
 }
 
 func (h ScheduleHandler) ActivationReadiness(w http.ResponseWriter, r *http.Request) {
-	if !h.requireScheduleEvidencePermission(w, r, scheduleHistoryPermission) {
+	if !h.requireGlobalScheduleEvidencePermission(w, r, scheduleHistoryPermission) {
 		return
 	}
 	if h.Shadow == nil {
@@ -193,11 +195,9 @@ func (h ScheduleHandler) ActivationReadiness(w http.ResponseWriter, r *http.Requ
 		return
 	}
 	startDate, endDate := r.URL.Query().Get("start_date"), r.URL.Query().Get("end_date")
-	if _, err := ParseDate(startDate); err != nil {
-		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
-		return
-	}
-	if _, err := ParseDate(endDate); err != nil || startDate > endDate {
+	start, startErr := ParseDate(startDate)
+	end, endErr := ParseDate(endDate)
+	if startErr != nil || endErr != nil || startDate > endDate || end.Sub(start).Hours()/24 > 62 {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}
@@ -210,7 +210,7 @@ func (h ScheduleHandler) ActivationReadiness(w http.ResponseWriter, r *http.Requ
 }
 
 func (h ScheduleHandler) ResolveShadowMismatch(w http.ResponseWriter, r *http.Request) {
-	if !h.requireScheduleEvidencePermission(w, r, scheduleEvidencePermission) {
+	if !h.requireGlobalScheduleEvidencePermission(w, r, scheduleEvidencePermission) {
 		return
 	}
 	if h.Shadow == nil {
@@ -236,7 +236,7 @@ func (h ScheduleHandler) ResolveShadowMismatch(w http.ResponseWriter, r *http.Re
 }
 
 func (h ScheduleHandler) ListShadowMismatches(w http.ResponseWriter, r *http.Request) {
-	if !h.requireScheduleEvidencePermission(w, r, scheduleHistoryPermission) {
+	if !h.requireGlobalScheduleEvidencePermission(w, r, scheduleHistoryPermission) {
 		return
 	}
 	if h.Shadow == nil {
@@ -254,7 +254,9 @@ func (h ScheduleHandler) ListShadowMismatches(w http.ResponseWriter, r *http.Req
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}
-	if _, err := ParseDate(endDate); err != nil || startDate > endDate {
+	start, startErr := ParseDate(startDate)
+	end, endErr := ParseDate(endDate)
+	if startErr != nil || endErr != nil || startDate > endDate || end.Sub(start).Hours()/24 > 62 {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}
@@ -333,6 +335,19 @@ func (h ScheduleHandler) Evidence(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	apperror.WriteJSON(w, http.StatusOK, result)
+}
+
+func (h ScheduleHandler) requireGlobalScheduleEvidencePermission(w http.ResponseWriter, r *http.Request, permission string) bool {
+	userID, ok := httpinfra.UserIDFromContext(r.Context())
+	if !ok {
+		apperror.WriteError(w, r, apperror.Unauthorized(apperror.KeyAuthenticationRequired))
+		return false
+	}
+	if h.Authorizer == nil || !h.Authorizer.HasPermission(r.Context(), userID, permission) || !h.Authorizer.IsGlobalManager(r.Context(), userID) {
+		apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
+		return false
+	}
+	return true
 }
 
 func (h ScheduleHandler) requireScheduleEvidencePermission(w http.ResponseWriter, r *http.Request, permission string) bool {

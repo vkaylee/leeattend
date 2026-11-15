@@ -35,12 +35,13 @@ func TestGuardLifecycleDateRangeChecksActivatedScope(t *testing.T) {
 		return fakeRow{scanFn: func(dest ...any) error {
 			switch {
 			case strings.Contains(query, "information_schema.tables"):
-				if len(dest) != 3 {
-					t.Fatalf("expected three lifecycle schema flags, got %d", len(dest))
+				if len(dest) != 4 {
+					t.Fatalf("expected four lifecycle schema flags, got %d", len(dest))
 				}
 				*(dest[0].(*bool)) = true
 				*(dest[1].(*bool)) = false
 				*(dest[2].(*bool)) = false
+				*(dest[3].(*bool)) = true
 			case strings.Contains(query, "schedule_day_revisions"):
 				*(dest[0].(*bool)) = false
 			case strings.Contains(query, "feature_flags") && strings.Contains(query, "daterange") && strings.Contains(query, "schedule.lifecycle.enabled"):

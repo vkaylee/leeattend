@@ -142,7 +142,7 @@ func (r EmployeeAssignmentRepository) CreateEmployeeAssignment(ctx context.Conte
 		return api.EmployeeAssignment{}, err
 	}
 	if err := guardLifecycleDateRange(ctx, db, []uuid.UUID{employmentID}, req.StartDate, patternEndDate(req.StartDate, req.EndDate)); err != nil {
-		return api.EmployeeAssignment{}, err
+		return api.EmployeeAssignment{}, finishLifecycleMutationDB(ctx, db, err)
 	}
 	id := uuid.New()
 	item, err := scanEmployeeAssignment(db.QueryRow(ctx, `INSERT INTO employee_assignments
@@ -166,7 +166,7 @@ func (r EmployeeAssignmentRepository) UpdateEmployeeAssignment(ctx context.Conte
 		return api.EmployeeAssignment{}, err
 	}
 	if err := guardLifecycleDateRange(ctx, db, []uuid.UUID{assignmentEmploymentID}, startDate, endDate); err != nil {
-		return api.EmployeeAssignment{}, err
+		return api.EmployeeAssignment{}, finishLifecycleMutationDB(ctx, db, err)
 	}
 	sets := []string{"ea.updated_at = NOW()"}
 	args := make([]any, 0, 5)
@@ -215,7 +215,7 @@ func (r EmployeeAssignmentRepository) DeleteEmployeeAssignment(ctx context.Conte
 		return err
 	}
 	if err := guardLifecycleDateRange(ctx, db, []uuid.UUID{assignmentEmploymentID}, startDate, endDate); err != nil {
-		return err
+		return finishLifecycleMutationDB(ctx, db, err)
 	}
 	result, err := db.Exec(ctx, `DELETE FROM employee_assignments ea USING employments em
 		WHERE ea.employment_id = em.id AND ea.id = $1
@@ -294,7 +294,7 @@ func (r AssignmentRuleRepository) CreateAssignmentRule(ctx context.Context, req 
 		return api.AssignmentRule{}, err
 	}
 	if err := guardLifecycleGlobalMutation(ctx, db); err != nil {
-		return api.AssignmentRule{}, err
+		return api.AssignmentRule{}, finishLifecycleMutationDB(ctx, db, err)
 	}
 	conditions, err := marshalConditions(req.Conditions)
 	if err != nil {
@@ -317,7 +317,7 @@ func (r AssignmentRuleRepository) UpdateAssignmentRule(ctx context.Context, rule
 		return api.AssignmentRule{}, err
 	}
 	if err := guardLifecycleGlobalMutation(ctx, db); err != nil {
-		return api.AssignmentRule{}, err
+		return api.AssignmentRule{}, finishLifecycleMutationDB(ctx, db, err)
 	}
 	sets := []string{"updated_at = NOW()"}
 	args := make([]any, 0, 9)

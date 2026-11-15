@@ -17,10 +17,11 @@ import (
 var ErrScheduleLifecycleUnavailable = errors.New("schedule lifecycle is unavailable")
 
 const (
-	scheduleLifecyclePermissionPreview = "schedules:preview"
-	scheduleLifecyclePermissionPublish = "schedules:publish:office"
-	scheduleLifecyclePermissionAmend   = "schedules:amend"
-	scheduleLifecycleResolverVersion   = "schedule-resolver-v1"
+	scheduleLifecyclePermissionPreview  = "schedules:preview"
+	scheduleLifecyclePermissionPublish  = "schedules:publish:office"
+	scheduleLifecyclePermissionAmend    = "schedules:amend"
+	scheduleLifecyclePermissionActivate = "schedules:activate"
+	scheduleLifecycleResolverVersion    = "schedule-resolver-v1"
 )
 
 type SchedulePreviewRequest struct {
@@ -120,6 +121,10 @@ type ScheduleReplanResponse struct {
 	Diff                  any       `json:"diff"`
 }
 
+type ScheduleActivationRepository interface {
+	ActivateScheduleEmployer(context.Context, uuid.UUID, string, string, string, uuid.UUID) error
+}
+
 type ScheduleLifecycleRepository interface {
 	CreatePreview(context.Context, uuid.UUID, SchedulePreviewRequest) (SchedulePreviewResponse, error)
 	Publish(context.Context, uuid.UUID, string, SchedulePublishRequest) (SchedulePublicationResponse, error)
@@ -133,6 +138,7 @@ type OrganizationSchedulesQuery struct {
 	EmploymentIDs []uuid.UUID
 	Page          int
 	Limit         int
+	View          string
 }
 
 type ScheduleTrace struct {
@@ -193,7 +199,50 @@ type ScheduleHandler struct {
 	Repository ScheduleRepository
 	Lifecycle  ScheduleLifecycleRepository
 	Shadow     ScheduleShadowMismatchRepository
+	Activation ScheduleActivationRepository
 	Authorizer Authorizer
+}
+
+func (h ScheduleHandler) Activate(w http.ResponseWriter, r *http.Request) {
+	userID, ok := h.requirePermission(w, r, scheduleLifecyclePermissionActivate)
+	if !ok {
+		return
+	}
+	if h.Activation == nil {
+		apperror.WriteError(w, r, apperror.ServiceUnavailable(apperror.KeyServiceUnavailable))
+		return
+	}
+	employerID, err := ParseUUID(r.PathValue("employer_id"))
+	if err != nil {
+		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
+		return
+	}
+	request, err := DecodeJSON[struct {
+		StartDate string `json:"start_date"`
+		EndDate   string `json:"end_date"`
+		Reason    string `json:"reason"`
+	}](r, 1<<16)
+	if err != nil || strings.TrimSpace(request.Reason) == "" {
+		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
+		return
+	}
+	if _, err := ParseDate(request.StartDate); err != nil {
+		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
+		return
+	}
+	if _, err := ParseDate(request.EndDate); err != nil || request.StartDate > request.EndDate {
+		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
+		return
+	}
+	if err := h.Activation.ActivateScheduleEmployer(r.Context(), employerID, request.StartDate, request.EndDate, strings.TrimSpace(request.Reason), userID); err != nil {
+		if errors.Is(err, ErrScheduleActivationNotReady) {
+			apperror.WriteError(w, r, apperror.Conflict(apperror.KeyConflict))
+		} else {
+			apperror.WriteError(w, r, apperror.Internal(err))
+		}
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
 }
 
 func (h ScheduleHandler) Preview(w http.ResponseWriter, r *http.Request) {
@@ -458,7 +507,8 @@ func (h ScheduleHandler) List(w http.ResponseWriter, r *http.Request) {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}
-	result, err := h.Repository.GetOrganizationSchedules(r.Context(), query.start, query.end, query.employmentIDs, query.page, query.limit)
+	var result PaginatedEmployeeSchedules
+	result, err = h.Repository.GetOrganizationSchedules(r.Context(), query.start, query.end, query.employmentIDs, query.page, query.limit)
 	if err != nil {
 		apperror.WriteError(w, r, apperror.Internal(err))
 		return

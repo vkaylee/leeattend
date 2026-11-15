@@ -3,8 +3,11 @@ package repository
 import (
 	"context"
 	"errors"
+	"sort"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
+	"github.com/vkaylee/leeattend/apiserver/internal/service"
 )
 
 var (
@@ -12,18 +15,68 @@ var (
 	ErrLifecycleSchemaUnavailable = errors.New("schedule lifecycle schema is unavailable for managed target")
 )
 
+type lifecycleMutationBlockedError struct {
+	employmentIDs []uuid.UUID
+	dates         []string
+}
+
+func (e *lifecycleMutationBlockedError) Error() string { return ErrLifecycleMutationBlocked.Error() }
+func (e *lifecycleMutationBlockedError) Unwrap() error { return ErrLifecycleMutationBlocked }
+
+func blockedMutation(employmentIDs []uuid.UUID, dates []string) error {
+	return &lifecycleMutationBlockedError{employmentIDs: append([]uuid.UUID(nil), employmentIDs...), dates: append([]string(nil), dates...)}
+}
+
+func writeBlockedMutationEvidence(ctx context.Context, beginner TxBeginner, blocked error) error {
+	var event *lifecycleMutationBlockedError
+	if !errors.As(blocked, &event) || beginner == nil {
+		return nil
+	}
+	return service.WithTx(ctx, beginner, func(ctx context.Context, tx pgx.Tx) error {
+		return recordLegacyMutationEvidence(ctx, tx, event.employmentIDs, event.dates, "guard_blocked")
+	})
+}
+
+func finishLifecycleMutation(ctx context.Context, beginner TxBeginner, err error) error {
+	if err == nil {
+		return nil
+	}
+	if evidenceErr := writeBlockedMutationEvidence(ctx, beginner, err); evidenceErr != nil {
+		return errors.Join(err, evidenceErr)
+	}
+	return err
+}
+
+func finishLifecycleMutationDB(ctx context.Context, db DBTX, err error) error {
+	beginner, ok := db.(TxBeginner)
+	if !ok {
+		return err
+	}
+	return finishLifecycleMutation(ctx, beginner, err)
+}
+
 type lifecycleSchema struct {
 	scheduleRevisions bool
 	attendancePeriods bool
 	payrollPeriods    bool
+	legacyEvidence    bool
 }
 
 func recordLegacyMutationEvidence(ctx context.Context, db DBTX, employmentIDs []uuid.UUID, dates []string, operation string) error {
 	if len(employmentIDs) == 0 || len(dates) == 0 {
 		return nil
 	}
-	_, err := db.Exec(ctx, `INSERT INTO schedule_legacy_mutation_evidence (employment_id, business_date, operation, details) SELECT employment_id, day::date, $3, jsonb_build_object('employment_ids', $1::text[], 'dates', $2::text[]) FROM unnest($1::uuid[]) AS employment_id CROSS JOIN unnest($2::text[]) AS day`, employmentIDs, dates, operation)
+	_, err := db.Exec(ctx, `INSERT INTO schedule_legacy_mutation_evidence (employment_id, business_date, operation, details) SELECT e.employment_id, d.day::date, $3, jsonb_build_object('employment_ids', $1::text[], 'dates', $2::text[]) FROM unnest($1::uuid[]) AS e(employment_id) CROSS JOIN unnest($2::text[]) AS d(day)`, employmentIDs, dates, operation)
 	return err
+}
+
+func normalizedMutationDates(dates []string) (string, string) {
+	if len(dates) == 0 {
+		return "", ""
+	}
+	ordered := append([]string(nil), dates...)
+	sort.Strings(ordered)
+	return ordered[0], ordered[len(ordered)-1]
 }
 
 func guardLifecycleDateMutation(ctx context.Context, db DBTX, employmentIDs []uuid.UUID, dates []string) error {
@@ -38,14 +91,14 @@ func guardLifecycleDateMutation(ctx context.Context, db DBTX, employmentIDs []uu
 	if err != nil {
 		return err
 	}
+	startDate, endDate := normalizedMutationDates(dates)
 	if managed {
-		if !schema.complete() {
+		if !schema.complete() || !schema.legacyEvidence {
 			return ErrLifecycleSchemaUnavailable
 		}
-		_ = recordLegacyMutationEvidence(ctx, db, employmentIDs, dates, "guard_blocked")
-		return ErrLifecycleMutationBlocked
+		return blockedMutation(employmentIDs, []string{startDate, endDate})
 	}
-	periodManaged, err := hasClosedPeriod(ctx, db, schema, employmentIDs, dates[0], dates[len(dates)-1])
+	periodManaged, err := hasClosedPeriod(ctx, db, schema, employmentIDs, startDate, endDate)
 	if err != nil {
 		return err
 	}
@@ -53,14 +106,14 @@ func guardLifecycleDateMutation(ctx context.Context, db DBTX, employmentIDs []uu
 		return ErrLifecycleSchemaUnavailable
 	}
 	if periodManaged {
-		return ErrLifecycleMutationBlocked
+		return blockedMutation(employmentIDs, []string{startDate, endDate})
 	}
-	activated, err := hasActivatedLifecycleScope(ctx, db, employmentIDs, dates[0], dates[len(dates)-1])
+	activated, err := hasActivatedLifecycleScope(ctx, db, employmentIDs, startDate, endDate)
 	if err != nil {
 		return err
 	}
 	if activated {
-		return ErrLifecycleMutationBlocked
+		return blockedMutation(employmentIDs, []string{startDate, endDate})
 	}
 	return nil
 }
@@ -78,11 +131,10 @@ func guardLifecycleDateRange(ctx context.Context, db DBTX, employmentIDs []uuid.
 		return err
 	}
 	if managed {
-		if !schema.complete() {
+		if !schema.complete() || !schema.legacyEvidence {
 			return ErrLifecycleSchemaUnavailable
 		}
-		_ = recordLegacyMutationEvidence(ctx, db, employmentIDs, []string{startDate, endDate}, "guard_blocked")
-		return ErrLifecycleMutationBlocked
+		return blockedMutation(employmentIDs, []string{startDate, endDate})
 	}
 	periodManaged, err := hasClosedPeriod(ctx, db, schema, employmentIDs, startDate, endDate)
 	if err != nil {
@@ -92,14 +144,14 @@ func guardLifecycleDateRange(ctx context.Context, db DBTX, employmentIDs []uuid.
 		return ErrLifecycleSchemaUnavailable
 	}
 	if periodManaged {
-		return ErrLifecycleMutationBlocked
+		return blockedMutation(employmentIDs, []string{startDate, endDate})
 	}
 	activated, err := hasActivatedLifecycleScope(ctx, db, employmentIDs, startDate, endDate)
 	if err != nil {
 		return err
 	}
 	if activated {
-		return ErrLifecycleMutationBlocked
+		return blockedMutation(employmentIDs, []string{startDate, endDate})
 	}
 	return nil
 }
@@ -195,7 +247,8 @@ func lifecycleSchemaState(ctx context.Context, db DBTX) (lifecycleSchema, error)
 	err := db.QueryRow(ctx, `SELECT
 		EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'schedule_day_revisions'),
 		EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'attendance_periods'),
-		EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'payroll_periods')`).Scan(&schema.scheduleRevisions, &schema.attendancePeriods, &schema.payrollPeriods)
+		EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'payroll_periods'),
+			EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'schedule_legacy_mutation_evidence')`).Scan(&schema.scheduleRevisions, &schema.attendancePeriods, &schema.payrollPeriods, &schema.legacyEvidence)
 	return schema, err
 }
 
@@ -283,9 +336,9 @@ func hasAnyLifecycleData(ctx context.Context, db DBTX, schema lifecycleSchema) (
 }
 
 func (s lifecycleSchema) any() bool {
-	return s.scheduleRevisions || s.attendancePeriods || s.payrollPeriods
+	return s.scheduleRevisions || s.attendancePeriods || s.payrollPeriods || s.legacyEvidence
 }
 
 func (s lifecycleSchema) complete() bool {
-	return s.scheduleRevisions && s.attendancePeriods && s.payrollPeriods
+	return s.scheduleRevisions && s.attendancePeriods && s.payrollPeriods && s.legacyEvidence
 }

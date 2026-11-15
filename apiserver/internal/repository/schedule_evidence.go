@@ -52,13 +52,17 @@ func (r ScheduleRepository) GetScheduleActivationReadiness(ctx context.Context, 
 		WHERE job_type = 'ScheduleOfficeCoverageRefresh'
 		  AND status = 'dead_letter'
 		  AND payload->>'employer_id' = $1
-		  AND payload->>'business_date' BETWEEN $2 AND $3`, employerID.String(), startDate, endDate).Scan(&result.DeadLetterCount); err != nil {
+		  AND payload->>'business_date' BETWEEN $2 AND $3
+			  AND EXISTS (SELECT 1 FROM employments e WHERE e.id::text = payload->>'employment_id' AND e.employer_id = $1::uuid AND e.deleted_at IS NULL AND e.start_date <= (payload->>'business_date')::date AND (e.end_date IS NULL OR e.end_date >= (payload->>'business_date')::date))`, employerID.String(), startDate, endDate).Scan(&result.DeadLetterCount); err != nil {
 		return result, err
 	}
 	if err := db.QueryRow(ctx, `SELECT count(*) FROM employments e CROSS JOIN generate_series($2::date, $3::date, interval '1 day') d WHERE e.employer_id = $1 AND e.deleted_at IS NULL AND e.start_date <= d::date AND (e.end_date IS NULL OR e.end_date >= d::date)`, employerID, startDate, endDate).Scan(&result.ExpectedCoverageDays); err != nil {
 		return result, err
 	}
-	if err := db.QueryRow(ctx, `SELECT count(DISTINCT r.employment_id::text || ':' || r.business_date::text) FROM schedule_day_revisions r WHERE r.employer_id = $1 AND r.business_date BETWEEN $2::date AND $3::date AND r.state IN ('published', 'explicit_off')`, employerID, startDate, endDate).Scan(&result.CoveredOfficialDays); err != nil {
+	if err := db.QueryRow(ctx, `SELECT count(*) FROM employments e CROSS JOIN generate_series($2::date, $3::date, interval '1 day') d JOIN schedule_day_revisions r ON r.employment_id = e.id AND r.business_date = d::date AND r.state IN ('published', 'explicit_off') WHERE e.employer_id = $1 AND e.deleted_at IS NULL AND e.start_date <= d::date AND (e.end_date IS NULL OR e.end_date >= d::date)`, employerID, startDate, endDate).Scan(&result.CoveredOfficialDays); err != nil {
+		return result, err
+	}
+	if err := db.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM schedule_office_policies p JOIN approval_workflow_instances i ON i.id = p.approval_instance_id WHERE p.employer_id = $1 AND p.status = 'active' AND p.effective_from <= $3::date AND (p.effective_to IS NULL OR p.effective_to >= $2::date) AND i.entity_type = 'schedule_policy' AND i.status = 'approved')`, employerID, startDate, endDate).Scan(&result.OfficePolicyConfigured); err != nil {
 		return result, err
 	}
 	if err := db.QueryRow(ctx, `SELECT count(*) FROM employments e JOIN schedule_office_policies p ON p.employer_id = e.employer_id AND p.status = 'active' AND p.effective_from <= $3::date AND (p.effective_to IS NULL OR p.effective_to >= $2::date) JOIN approval_workflow_instances i ON i.id = p.approval_instance_id AND i.entity_type = 'schedule_policy' AND i.status = 'approved' CROSS JOIN generate_series(GREATEST($2::date, p.effective_from), LEAST($3::date, COALESCE(p.effective_to, $3::date)), interval '1 day') days WHERE e.employer_id = $1 AND e.deleted_at IS NULL AND e.start_date <= days.day::date AND (e.end_date IS NULL OR e.end_date >= days.day::date)`, employerID, startDate, endDate).Scan(&result.RequiredOfficeDays); err != nil {
@@ -75,7 +79,7 @@ func (r ScheduleRepository) GetScheduleActivationReadiness(ctx context.Context, 
 	if result.MissingOfficeCoverageDays < 0 {
 		result.MissingOfficeCoverageDays = 0
 	}
-	result.Ready = result.GlobalFlagEnabled && result.EmployerActivation && result.OpenMismatchCount == 0 && result.CurrentDuplicateCount == 0 && result.DeadLetterCount == 0 && result.LegacyMutationCount == 0 && result.MissingCoverageDays == 0 && result.MissingOfficeCoverageDays == 0
+	result.Ready = result.GlobalFlagEnabled && result.EmployerActivation && result.OfficePolicyConfigured && result.OpenMismatchCount == 0 && result.CurrentDuplicateCount == 0 && result.DeadLetterCount == 0 && result.LegacyMutationCount == 0 && result.MissingCoverageDays == 0 && result.MissingOfficeCoverageDays == 0
 	return result, nil
 }
 

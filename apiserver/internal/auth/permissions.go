@@ -105,6 +105,7 @@ const (
 	PermissionSchedulesAmend           Permission = "schedules:amend"
 	PermissionSchedulesEvidenceExport  Permission = "schedules:evidence:export"
 	PermissionSchedulesHistoryRead     Permission = "schedules:history:read"
+	PermissionSchedulesActivate        Permission = "schedules:activate"
 
 	// Assignment Rules
 	PermissionAssignmentRulesManage Permission = "assignment_rules:manage"
@@ -256,6 +257,7 @@ var allCanonicalPermissions = []Permission{
 	PermissionSchedulesAmend,
 	PermissionSchedulesEvidenceExport,
 	PermissionSchedulesHistoryRead,
+	PermissionSchedulesActivate,
 	PermissionAssignmentRulesManage,
 	PermissionPayrollRead,
 	PermissionPayrollCalculate,

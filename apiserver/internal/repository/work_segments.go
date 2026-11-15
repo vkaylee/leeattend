@@ -105,6 +105,7 @@ func (r WorkSegmentRepository) CreateSegment(ctx context.Context, req api.Create
 		segment, err = r.getSegmentTx(ctx, db, id)
 		return err
 	})
+	err = finishLifecycleMutation(ctx, tx, err)
 	if err != nil {
 		return api.WorkSegment{}, err
 	}
@@ -138,6 +139,7 @@ func (r WorkSegmentRepository) UpdateSegment(ctx context.Context, segmentID uuid
 		}
 		return err
 	})
+	err = finishLifecycleMutation(ctx, tx, err)
 	if err != nil {
 		return api.WorkSegment{}, err
 	}
@@ -145,12 +147,16 @@ func (r WorkSegmentRepository) UpdateSegment(ctx context.Context, segmentID uuid
 }
 
 func (r WorkSegmentRepository) DeleteSegment(ctx context.Context, segmentID uuid.UUID) error {
+	beginner, err := r.begin(ctx)
+	if err != nil {
+		return err
+	}
 	db, err := r.db(ctx)
 	if err != nil {
 		return err
 	}
 	if err := guardLifecycleSegmentMutation(ctx, db, segmentID); err != nil && !errors.Is(err, pgx.ErrNoRows) {
-		return err
+		return finishLifecycleMutation(ctx, beginner, err)
 	}
 	tag, err := db.Exec(ctx, `DELETE FROM work_segments WHERE id = $1`, segmentID)
 	if err != nil {
@@ -213,6 +219,7 @@ func (r WorkSegmentRepository) BulkCreateSegments(ctx context.Context, req api.B
 		}
 		return nil
 	})
+	err = finishLifecycleMutation(ctx, tx, err)
 	if err != nil {
 		return nil, err
 	}

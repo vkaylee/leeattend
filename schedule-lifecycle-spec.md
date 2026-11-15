@@ -1,6 +1,6 @@
 # Schedule Lifecycle Implementation Specification
 
-Status: Approved
+Status: Architecture direction approved — 2026-11-14. Detailed specification, including §§17–18 updates, awaits implementation review; no implementation authorized.
 
 ## 1. Goal và non-goals
 
@@ -29,7 +29,7 @@ Planning only. Chưa có bảng/API/permission nào dưới đây trong source h
 - **Conflict:** nhiều rule cùng precedence thắng hoặc source input không quyết định được một kết quả duy nhất; preview trả conflict và publication bị chặn.
 - **Employment:** bản ghi employment của employee, có `employer_id`, ngày hiệu lực và department. Official key dùng `employment_id`, không dùng employee ID.
 - **Employer:** pháp nhân trả lương, nguồn khóa period và attendance closure.
-- **Business date:** ngày lịch trong timezone của employment/location, không phải ngày UTC của punch.
+- **Business date:** ngày bắt đầu một ca trong timezone hiệu lực được snapshot, không phải ngày UTC của punch. Các segment thuộc cùng ca giữ business date đó dù bắt đầu sau nửa đêm. Một day revision có thể chứa nhiều ca bắt đầu trong cùng business date; §17.4 định nghĩa nhóm ca/day offset. Ngày nghỉ dùng ngày địa phương đã khai báo.
 - **Timezone:** IANA name lưu trên revision; precedence là active host assignment location, primary location của employment, rồi `UTC`. Nếu cả hai location missing, resolver ghi `UTC` và source trace `timezone_defaulted`.
 - **Publication:** transaction tạo batch/revision/segments và audit record.
 - **Notification delivery:** việc gửi thông báo sau publication; retry/failure không rollback publication.
@@ -94,7 +94,7 @@ Allocate `revision_number = COALESCE(MAX(revision_number), 0) + 1` over **all** 
 
 ### 4.3 Segment invariant
 
-Every official `work_segments` row has `schedule_revision_id`, `selected_shift_version_id`, `scheduled_start_at`, `scheduled_end_at`, `breaks_snapshot`, and the legacy `scheduled_start`/`scheduled_end` values for compatibility. `scheduled_start_at` and `scheduled_end_at` are concrete timestamptz values built from local business date/timezone. `scheduled_end_at > scheduled_start_at`; overnight end uses next local calendar date. `breaks_snapshot` is an ordered JSON array containing every break's local start/end, concrete timestamps, duration and deduction/overtime flags.
+Every official `work_segments` row has `schedule_revision_id`, `selected_shift_version_id`, `scheduled_start_at`, `scheduled_end_at`, `breaks_snapshot`, and the legacy `scheduled_start`/`scheduled_end` values for compatibility. `scheduled_start_at` and `scheduled_end_at` are concrete timestamptz values built from local business date/timezone. `scheduled_end_at > scheduled_start_at`; overnight end uses next local calendar date. `breaks_snapshot` preserves planned break definitions: fixed breaks have local boundaries, day offsets, concrete timestamps and derived duration; flexible breaks have explicit duration/window without fabricated exact timestamps. Deduction/OT decisions belong to resolved policy evidence (§18), not independently editable shift flags. Legacy snapshots retain their original flags and provenance; new policy resolution must not reinterpret them silently.
 
 A trigger rejects a segment whose revision employment/date differs from its own employment/date. A trigger rejects UPDATE/DELETE of a segment linked to any non-draft revision. Published revision content is append-only.
 
@@ -323,7 +323,7 @@ Reopen never deletes prior closure rows or changes their snapshots. Closing a pe
 
 ### 6.4 Payroll period interaction
 
-`payroll_periods` remains the only payroll lock table. `LockPayrollPeriod` locks employer/year/month, verifies attendance period is closed, then performs existing payroll lock audit in the same transaction. `ReopenPayrollPeriod` keeps existing reason/version behavior and does not erase closure. Schedule amendment, attendance reprocess, payroll calculation and payslip recalculation reject while payroll status is `locked` with `locked_period`.
+`payroll_periods` remains the only payroll lock table. `LockPayrollPeriod` follows §9.1 lock order, verifies its attendance period and every source closure used by cross-month valuation slices are closed (§17.4), then performs existing payroll lock audit in the same transaction. Exact source closure IDs must be retained with the calculation; reopening a referenced attendance closure is blocked by any dependent locked payroll period. `ReopenPayrollPeriod` keeps existing reason/version behavior and does not erase closure. Schedule amendment, attendance reprocess, payroll calculation and payslip recalculation reject while payroll status is `locked` with `locked_period`.
 
 ## 7. API contract
 
@@ -517,7 +517,7 @@ Publish/replan use `READ COMMITTED`, so an idempotency lookup after a waiting lo
 
 1. Transaction advisory lock `pg_advisory_xact_lock(hashtextextended('schedule-lifecycle:' || idempotency_key, 0))`. One key per request. Hash collisions only serialize unrelated requests. Preview/close/reopen do not take this key lock.
 2. Lookup committed batch and handle replay under §9.4 **before** any preview expiry/current-state precondition.
-3. Employer rows ordered by UUID: `SELECT id FROM employers WHERE ... AND deleted_at IS NULL ORDER BY id FOR UPDATE`.
+3. Employee rows for all affected people ordered by UUID `FOR UPDATE`, then employer rows ordered by UUID `FOR UPDATE`. Determine the complete set before locking; resolve all employments of those people for interval conflict checks, including other employer scopes without disclosing their data. Retry the transaction if the set changes. Every schedule writer and employment/employee reassignment path must share this order; never acquire another employee lock after an employer/period lock.
 4. Payroll period rows: insert if absent, then lock ordered by `(employer_id,period_year,period_month)`.
 5. Attendance period rows: insert if absent, then lock in the same period order.
 6. Employment rows ordered by UUID `FOR UPDATE`; current revisions ordered by employment/date `FOR UPDATE`. Allocate revision numbers over all states while holding these employment locks.
@@ -526,7 +526,7 @@ Publish/replan use `READ COMMITTED`, so an idempotency lookup after a waiting lo
 9. Raw attendance/time entries and attendance summaries for close/reprocess, ordered by employment/date/ID `FOR UPDATE`.
 10. Domain writes, synchronous audit INSERT, commit. Audit failure rolls back every domain write.
 
-Close/reopen begin at step 3, skip inapplicable classes, and recheck period status after locks. Payroll locking and every protected attendance writer use the same relative order. No worker holds an outbox claim lock while entering this sequence.
+Close/reopen begin at step 3, include the complete affected employee/employer/period set and cross-month closure/payroll dependencies (§17.4), skip inapplicable classes, and recheck period status after locks. Payroll locking and every protected attendance writer use the same relative order. No worker holds an outbox claim lock while entering this sequence.
 
 Preview uses a **read-write `REPEATABLE READ`** transaction: read authorized source inputs and current revisions from one consistent snapshot, compute result/diff, INSERT only `schedule_previews`, commit, then return its ID/hash. It does not create official revisions, segments, publication batches or publication audit events; it takes no domain mutation locks. Preview is advisory: publish/replan reloads inputs and compares hashes. A crash before commit exposes no usable preview ID.
 
@@ -540,9 +540,9 @@ Require payroll open, attendance open/reopened, complete work/off resolution and
 
 Replan requires `schedules:amend`, reason, Idempotency-Key and a replan preview/diff confirmation (§7.5). Use §9.4 replay first; for a new operation take the same lock sequence, require matching expected current revision and diff/result hashes, payroll open and attendance open/reopened. Allocate MAX+1, insert replacement batch/revision/segments, supersede only the expected current revision without changing its published_at/content, publish replacement, write audit and response snapshot, commit. Inherit mode and approval reference from the original batch; snapshot the human amendment authority separately in source_snapshot. Replan is not a new system office authorization and cannot silently expand an approved policy.
 
-Close locks employer, payroll period, attendance period, all employment/day rows and raw/summary rows. It checks coverage/open punches/approvals, inserts closure and closure-day snapshots, updates period, inserts audit, commits. It does not update attendance_daily_summaries or raw punches.
+Close determines the complete affected employee set, then locks employee, employer, payroll period, attendance period, all employment/day rows and raw/summary rows in §9.1 order. It checks coverage/open punches/approvals, inserts closure and closure-day snapshots, updates period, inserts audit, commits. It does not update attendance_daily_summaries or raw punches.
 
-Reopen locks employer, payroll period and attendance period; checks payroll open and expected version; updates only period status/version/updated_at, retaining current_closure_id. Insert `attendance.reopened` into existing audit_logs in the same transaction with period ID, closure ID, old/new period versions and reason; do not create another transition table or mutate closure rows. Reclose creates a new numbered immutable closure.
+Reopen locks the affected employees, employers, all dependent payroll periods and attendance periods in §9.1 order; checks all dependent payroll periods open, independent approval (§17.6) and expected version; updates only period status/version/updated_at, retaining current_closure_id. Insert `attendance.reopened` into existing audit_logs in the same transaction with period ID, closure ID, old/new period versions and reason; do not create another transition table or mutate closure rows. Reclose creates a new numbered immutable closure.
 
 ### 9.4 Concurrency and idempotency
 
@@ -562,8 +562,8 @@ Reopen locks employer, payroll period and attendance period; checks payroll open
 6. Employer attribution uses the active employment/contract relationship effective on business date. Transfer days are not copied into another employer closure.
 7. Timezone uses active host assignment location, then primary location, then UTC. Every interval converts local date/time to timestamptz before storage.
 8. Holiday overlay marks holiday/name/paid policy but does not erase schedule. Approved leave overlay marks attendance obligation exempt according to leave policy but does not mutate the official shift or convert missing to off. The overlay IDs and policy versions enter source snapshot.
-9. Load all shift default intervals ordered by `sort_order`; when no interval rows exist, create one virtual interval from shift version default start/end. Preserve every interval and break configuration.
-10. For local `end_time <= start_time`, end date is next local calendar date. Breaks crossing midnight use same local-date rule. Store exact `scheduled_start_at`/`scheduled_end_at` and break timestamps.
+9. Load all shift default intervals ordered by `sort_order`; preserve every interval and break configuration. A work template without valid intervals is a resolver conflict, not invented default hours; only an explicitly verified legacy conversion may supply an interval before activation.
+10. Resolve intervals using shift group and explicit local-day offsets (§17.4), then store exact `scheduled_start_at`/`scheduled_end_at` and break timestamps. Legacy unambiguous single intervals may derive next-day end when end_time < start_time; equal times require explicit duration/day offset, not an implicit 24-hour shift. Never infer the next segment's start date from end_time alone.
 11. Preview returns `provisional=true` and source trace. Official reports consume only current official revision; no-show does not synthesize hours.
 
 Current source does not yet load all intervals, leave overlays, or location timezone in `resolveEffectiveShift`; implementation must add those reads in the same resolver and add tests for the assumptions.
@@ -727,4 +727,192 @@ Migration up/down/integrity and fixture validation run through existing LeeDevKi
 - Existing `audit_logs` is partitioned and actor fields include nullable UUID-compatible `actor_id`; migration task must inspect all audit partitions before adding any trigger or column.
 - Existing baseline is fresh-only and later migrations use guarded down scripts; migration task must preserve this rollback boundary and test representative data volume before activation.
 
-Review corrections are specified and mapped to D1–D12 acceptance cases. This document remains Awaiting approval; these contracts are not proof of implementation, passing integration tests, or absence of further review findings.
+Review corrections are mapped to D1–D12; the approved long-term direction is detailed in §17 with L1–L12 acceptance. Architecture agreement does not authorize implementation or certify the detailed contracts. No runtime verification or legal compliance certification is claimed.
+
+## 17. Long-term HRM refinement — 2026-11-14
+
+### 17.1 Boundaries and approval
+
+Approved direction: effective-dated assignments, one resolver, published schedule revisions, separate actual/valued/closed attendance. This section refines the corresponding earlier sections; schema/API additions below must be reconciled into machine-readable contracts and ADR before implementation gate 1 passes. Reuse existing tables/workflows when they satisfy these invariants; no second resolver, microservice, event-sourcing platform or stand-alone scheduling dashboard.
+
+| Layer | Responsibility | Must not imply |
+|---|---|---|
+| Employment | Effective person/employer relationship and scope | Permission to schedule outside employment dates |
+| Work assignment | Pattern/rotation/fixed rule with effective range and anchor | Every future day is already published |
+| Official schedule | Published work/off, exact version, intervals and authority | Presence, approved OT or employee consent |
+| Actual attendance | Original punches and traceable paired sessions | Every recorded minute is payable |
+| Valuation | Standard/night/paid absence/approved OT with policy provenance | Overwriting original punches to fit payroll |
+| Closure/payroll | Reproducible approved outputs and separate payroll lock | Reopening erases previous evidence |
+
+Resolving effective-dated assignments on demand is valid for previews; it is not inherently bad HRM. This project chooses bounded persisted official schedules because swaps, no-show, multiple intervals and historical disputes need a stable shared contract. Vendor examples do not prescribe internal schema or prove statutory compliance.
+
+### 17.2 Onboarding and weekly UX
+
+- Reuse employment/assignment UI: select fixed weekly pattern, rotation with anchor, or assign later; require start date and validate any end date. Missing assignment does not prevent saving employment or ingesting punches.
+- Reuse roster view for weekly/monthly and bulk operations. Calendar cells show official work/off, missing, provisional draft or conflict; expose assignment status separately from publication coverage. No permanent `employee.is_scheduled` flag.
+- Draft means editable source inputs and provisional preview, not a durable `schedule_day_revisions.state=draft` record. Only publication transaction stages those revisions. If source inputs cannot represent a required draft edit, prove that gap before adding storage.
+- Approved leave overlays obligation without deleting the published shift. Missing punch is an unresolved attendance issue, not automatically confirmed unauthorized absence. Employee sees official assignments; any preview exposure is explicitly provisional and role-controlled.
+- Filters: missing official coverage, unpublished candidates, conflicts, and upcoming joiners with missing coverage. Provide authorized owner/action on each gap, existing retry/reconciliation status for failed auto-publication, and accessible loading/empty/error/i18n states.
+- A worker missing a schedule and a required shift missing workers are different concepts. Demand/headcount, qualifications, open-shift bidding and automatic optimization remain deferred; do not create demand tables for this phase.
+
+### 17.3 Coverage contract and bounded publication
+
+Expected days = requested planning window intersect employment effective dates and the approved scheduling scope. Office generation further intersects policy effective dates; days with no applicable policy remain visible coverage gaps, not silently removed from the operational list. Explicit off covers a day; missing/conflict does not. Outside employment is not applicable, not off/missing. An end date is inclusive, consistent with existing employment date semantics; changing it must reconcile affected future official days without deleting history.
+
+Office producer keeps §12.3's local today through end of next month horizon and approved authority. Do not fabricate publication for elapsed shifts. Rotating managers select an explicit date range, normally using the weekly view; selected batch is atomic and every targeted day must resolve to work/off. A narrower batch is allowed, but gaps outside it remain visible in the selected planning window. Assignment without end date does not authorize infinite generation or certify future compliance.
+
+Extend existing `GET /api/v1/schedules` additively, rather than adding a dashboard endpoint:
+- Bounded `start_date`/`end_date`, existing pagination and permission scope remain required. Add optional `coverage=all|missing|complete`; omission means all. Validate incompatible/unknown values. Apply employee/employment coverage filtering before pagination, not to the current page only.
+- Each employment row adds `coverage` with `expected_days`, `published_work_days`, `published_off_days`, `missing_official_days` and `complete`. Counts apply to the full requested eligible range, not visible cells only; `expected_days = published_work_days + published_off_days + missing_official_days`. Zero eligible days must not make an employee appear as a scheduled employee; omit out-of-range employment rows as today.
+- Official missing includes candidates still only in draft; GET must not silently resolve them into published work. Detailed draft/conflict diagnostics come from the existing preview contract. Existing published days whose inputs changed remain published; amendment-needed diagnostics are separate from missing coverage.
+- Publication changes become visible after commit and normal query invalidation. Multi-query coverage reads use one consistent DB snapshot so counts, filters and cells agree. No mutable duplicate coverage table or employee flag is needed initially.
+- Self-service exposes owned employments only; team/department/employer filters cannot expand authority. Tests verify total counts and cross-page filtering without PII leakage.
+
+### 17.4 Shift grouping, timestamps and valuation boundaries
+
+One day revision may contain several shift occurrences. Within it, every segment belongs to one `shift_group_key`, stable in that revision and paired with revision ID for identity; this is not a new shift-occurrence service/table. Source trace links the group to its source assignment/template and prior counterpart when applicable. Segment-level matching uses segment IDs, never business_date alone.
+
+Proposed additive schema/API delta, finalized with migration review:
+- Add nonnegative `start_day_offset` and `end_day_offset` to versioned interval definitions; zero means business date, one the following local date. Persist these offsets and `shift_group_key` on official segment snapshots alongside existing timestamptz columns. Legacy columns may be nullable until verified; official content must be complete. Include these fields in preview/diff/canonical hashes and evidence export.
+- First segment in each group starts on business date (offset 0); later segments can start after midnight. Validate resulting ordered, non-overlapping intervals and contained break ranges; apply policy duration limits rather than accepting arbitrary multi-day offsets. Concrete timestamp conversions must agree with local date/time/offset and IANA timezone.
+- Example: business date 30/04, intervals 22:00–02:00 (offsets 0/1) and 02:00–06:00 (1/1) remain one group, total eight elapsed hours in Asia/Ho_Chi_Minh. Sort order alone cannot establish day offsets.
+- Nonexistent DST local times fail validation. Ambiguous local times require an explicit valid UTC offset/disambiguation included in source snapshot/hash; never silently choose one. Automatic publication with ambiguity creates a gap requiring resolution. UTC fallback must remain visible in trace and undergo timezone coverage validation before activation.
+- Intervals use half-open bounds `[start,end)`. Touching endpoints are not overlaps, but rest-period rules still apply. No automatic equivalence between a break gap and paid standby.
+- Attendance grouping uses business date; valuation splits actual eligible intervals at holiday/night/rate and payroll-calendar boundaries. Preserve references to original schedule/segment/calculation; splits conserve minutes and money subject to explicit rounding policy. Cross-month payment slices may reference the preceding month's schedule/closure and must not require a fabricated schedule for the calendar date after midnight. Before payroll lock, all source closures referenced by its slices must be closed and exact IDs recorded; reopening a source closure is blocked while any dependent payroll period remains locked.
+- Existing one-employer-per-closure-day remains for supported cases. Mid-shift employer transfer with ambiguous attribution is a blocking reconciliation case until HR/legal approves a slice allocation contract and any required schema change. Do not assign the whole shift twice or silently choose one employer. Finalized/paid payslips are preserved; corrections use approved adjustment/off-cycle mechanisms, not overwrite.
+
+### 17.5 Person-level conflicts and transaction safety
+
+Publication, replan and swaps validate the resulting intervals against all current official intervals for the same employee across employments/employers and business dates, plus every candidate interval in the batch. Exclude only revisions explicitly being atomically replaced; never exclude the other employment just because it is outside the caller's display scope. Compare real timestamps, not only date equality. Load enough history for full week/month limits and configured recovery/rest windows; raw future open-ended assignment is not a validated full future calendar.
+
+Employee locks precede employer/period/employment locks as updated in §9.1. Schedule-affecting employment creation, transfer or employee reassignment must acquire the same employee locks; otherwise a new relationship could evade conflict checking. All code paths lock the complete sorted set before mutation; bulk operations and two-sided swaps use one transaction. Do not use per-employment uniqueness as proof of person-level non-overlap.
+
+Cross-scope conflict evaluation is an internal integrity operation, not a grant to read other schedules. Return a generic scoped conflict code without other employer names, person details or hidden shift payloads. Closure over a month must discover and stabilize its complete employee set before acquiring later locks; if membership changes, abort/retry from the beginning. DB integration tests must prove no deadlock/lost update under opposing transfers and cross-employer publication.
+
+Hard overlaps and applicable statutory prohibitions cannot be bypassed by `allow_warnings` or a reason. Only explicit policy warnings allow override when `AllowManagerOverride` and actor authority both permit it. On-call/standby coexistence, if needed, requires an approved activity compatibility rule; default is to block conflicts, not a generic override escape hatch.
+
+### 17.6 Authority, source changes and closure dependencies
+
+The role matrix in §8 is a maximum scope, not an unconditional grant. Enforce action permissions and state-dependent rules: technical admin alone cannot approve HR changes; started shifts or shifts with punches require authorized HR approval for changes to work obligation. Reopening requires an independently approved request and cannot be self-approved. Reuse generic approval instances only after verifying entity binding, expected revision and transaction behavior; add contract fields before implementation rather than treating generic approval status as execution.
+
+Voluntary swaps require target consent, manager approval and fresh validation of both workers' revisions, employment validity, leave and compliance at execution. Commit both replacements atomically; stale schedule or approval causes rollback. Notification is separate from publication and consent; do not claim delivery/read receipts without evidence. Ordinary schedules do not require blanket employee acknowledgement unless policy/law demands it.
+
+Future-effective assignment/template changes may update previews and enqueue coverage refresh but never amend published content implicitly. Do not block a valid future-only policy change merely because unrelated earlier attendance is closed. Changes that alter an official obligation use replan; changes that affect closed calculations require authorized reopen. Every dependent payroll lock, including a cross-month slice dependency (§17.4), must be checked. Raw device ingestion remains allowed and queues reconciliation.
+
+### 17.7 Implementation mapping and acceptance
+
+Reuse §14 tasks; no separate parallel implementation plan:
+- Tasks 1–3: finalize ADR, grouping/offset/API/approval deltas, employee lock order and cross-month dependencies; verify all required existing fields/workflows. Do not activate unresolved cases.
+- Task 4: H1/H2/H5 and offsets, person-level conflict inputs, leave/calendar/compensation semantics; cover source validation before publication.
+- Tasks 5–6 and 12: shared publication/amend/swap contract, state-sensitive authority, coverage queries and guards, no bypass through legacy writers.
+- Tasks 7–10: H3/H6/H7, exact segment pairing, grain-safe reports, approved valuation and closure/payroll dependencies; preserve zero compensation intentionally supplied.
+- Task 11: bounded producer, employment/policy events, failed publication visibility and no automatic rewrite of published schedules.
+- Task 13: onboarding and weekly coverage UX, bulk operations, authorized gap filters and state labels; no new dashboard.
+- Tasks 14–15: real DB, migration, concurrent writes, full API/UI workflows and complete suite. Test source facts again on implementation HEAD; previous static findings are not runtime reproductions.
+
+Add these acceptance scenarios to §15; H1–H7 remain required alongside these extensions. Test names are planned, not files claimed to exist.
+
+| ID | Suggested test / scope | Scenario and expected result |
+|---|---|---|
+| L1 | `TestOnboardingEffectiveCoverage` / API + UI | Join Wednesday; Monday/Tuesday not expected; weekend explicit off counts; assign later saves employment and exposes missing days without rejecting punches |
+| L2 | `TestAssignmentIsNotPublication` / API + UI | Active pattern with no official revision remains missing; draft candidate visibly provisional; published predecessor remains official after source change |
+| L3 | `TestCoverageFilterBeforePagination` / DB + API | Missing employee lies on later page; server filter/total selects correctly; counts/cells share snapshot, terminated/out-of-range excluded, no unauthorized rows |
+| L4 | `TestCrossEmploymentOverlap` / DB concurrency | Same person, different employers concurrently publish overlapping shifts; only one commit, generic conflict for loser, no scope leakage or partial batch |
+| L5 | `TestAdjacentNightShiftAndRest` / domain + DB | 22–06 vs 05–13 conflicts across dates; touching 06 endpoints not overlap but rest rule evaluated; full weekly/monthly history and override prohibition enforced |
+| L6 | `TestMultiSegmentDayOffsets` / domain + API | 22–02 + 02–06 retains business date/group, all timestamps and eight hours; invalid equal clock/offset/break/DST inputs rejected or explicitly disambiguated |
+| L7 | `TestSplitShiftAttendanceConsumers` / DB integration | Two segments/two sessions give correct totals/pagination; missing second shift still visible; overnight punches matched by segment, no fabricated hours |
+| L8 | `TestZeroCompensationAndPartialLeave` / domain + DB | Explicit 0 remains 0; omission alone defaults; Sunday worker, weekday off, partial/overnight leave and multiple breaks use eligible intersections without double deduction |
+| L9 | `TestSwapConsentAndAtomicReplan` / API + DB | Missing consent/HR approval where required denied; stale or overlapping swap rolls back both; success updates official reader chain and preserves prior revisions |
+| L10 | `TestCrossMonthValuationDependencies` / payroll integration | Holiday/night/month split conserves minutes, references exact originating closure; locked dependent payroll blocks reopening; paid original not overwritten |
+| L11 | `TestLateDataAndIndependentReopen` / API + DB | Late/out-of-order/duplicate punches preserved or deduplicated by defined identity, closed snapshot unchanged; self-approved reopening rejected; valid reopen/reclose retains evidence |
+| L12 | `TestActivationReconciliation` / migration + role E2E | Source changes, office horizon refill, missing/conflict cases, legacy provenance and all reader/writer paths reconcile; employee/team_lead/shift_manager/hr_manager/admin obey documented scope; unresolved employer-transfer/DST cases block affected scope |
+
+### 17.8 Remaining implementation gates and references
+
+Before code: HR/legal must validate actual jurisdiction-specific limits/rates and special employee categories; resolve mid-shift employer attribution if required for launch. Engineering must reconcile exact grouping/offset constraints, approval fields, coverage DTOs and payroll closure dependency persistence into §§5–9 and machine-readable contracts. These are explicit gates, not permission to guess, omit safeguards or claim unsupported cases work. Future features (staffing demand, skills optimizer, bidding) stay outside this delivery.
+
+External references support distinctions, not mandatory schema or legal certification:
+- Microsoft Graph shift resource: draftShift versus sharedShift — https://learn.microsoft.com/en-us/graph/api/resources/shift?view=graph-rest-1.0
+- Odoo Planning: templates, recurring shifts, open shifts and publish — https://www.odoo.com/documentation/19.0/applications/services/planning.html
+- Frappe HR Shift Assignment: effective ranges and attendance linkage — https://docs.frappe.io/hr/shift-assignment
+
+Documentation verification only: `git diff --check -- schedule-lifecycle.md schedule-lifecycle-spec.md`. Runtime commands in §15 remain unexecuted until implementation; approval of architecture is not a test result.
+
+## 18. Shift/policy ownership refinement — 2026-11-14
+
+Direction approved for planning: shift defines planned work/rest timing; attendance and valuation policies define interpretation, payable time and OT treatment. This section refines prior references to shift-level break/OT configuration; migrate ownership before finalizing lifecycle schema/contracts. It does not authorize code, automatic migration of ambiguous values, legal thresholds or deletion of historical evidence.
+
+### 18.1 Verified entry points and reuse
+
+Read current source again at implementation HEAD; these observations are static, not proof of end-to-end wiring:
+- `apiserver/internal/api/shifts.go:34`: interval DTO contains break timing alongside auto-deduction, early grace, early OT, aggregation and night flags.
+- `apiserver/internal/api/attendance_policies.go:31`: attendance rules already contain work unit, rounding, early-arrival strategy and grace. Do not introduce a second competing attendance-policy configuration.
+- `apiserver/internal/api/overtime.go:41`: OT rule currently exposes rate/time/day/holiday criteria; additional eligibility/aggregation fields are not assumed implemented. Existing request/consent/claim/approval flows remain distinct from policy settings.
+- `apiserver/internal/api/work_policy.go:26`: work-policy group references attendance, working-pattern, OT, work-credit and pay-basis policies with effective dates. Reuse this composition and verify resolution/membership semantics before routing all consumers through it; a DTO alone does not prove runtime use or child-policy immutability.
+- `webdashboard/src/pages/shifts/components/interval-draft-editor.tsx:73`: UI derives night flag from start > end; `grace-ot-section.tsx:20` groups grace and OT; `break-config-section.tsx:81` presents deduction/no-deduction/OT as exclusive choices. Refactor semantics, not only move UI controls.
+
+### 18.2 Field ownership and target meaning
+
+| Existing field/concept | Owner and target | Migration/validation condition |
+|---|---|---|
+| Name, report symbol, interval name/order, effective version | Shift template/version | Display metadata never determines monetary rates or payroll employer |
+| Start/end time and local-day offsets | Versioned shift intervals | All segments/breaks follow §17.4; do not equate sort order with calendar date |
+| Fixed break start/end | Planned break within shift | Derive duration from resolved timestamps; reject supplied contradictory duration |
+| Flexible break duration | Planned break within shift | Separate fixed/flexible semantics; optional allowed window, no invented actual break or punch |
+| `location_id`, `employer_id` | Template applicability/default context | Actual work location is captured in assigned schedule; payroll employer comes from effective employment. Default is not authorization or immutable payroll ownership |
+| `early_punch_in_grace_period_minutes` | Split by proven meaning: matching window versus lateness tolerance | Trace actual consumers and precedence before mapping; similar names are not proof of identical meaning |
+| Attendance `early_arrival_strategy` and lateness grace | Attendance policy | Keep matching eligibility, violation tolerance and time valuation separate; preserve raw punches |
+| `is_break_auto_deduct` | Attendance/valuation policy | Deduction method is distinct from paid/unpaid entitlement; false must not implicitly mean paid break |
+| `allow_early_ot`, `max_early_ot_minutes` | OT eligibility policy | Candidate time is not approved/payable OT; separate configuration cap from statutory limits |
+| `break_is_overtime` | OT eligibility plus actual evidence and approval | Paid rest, unrecorded rest and working during rest are different states; never approve OT from template boolean alone |
+| `ot_aggregation_mode` | OT valuation policy at defined aggregate scope | Declare segment/shift/day scope and rounding order; reject incompatible policies at a shared aggregate boundary rather than selecting one interval's setting |
+| `is_night_shift` | Replace arithmetic role with derived temporal attributes | Cross-midnight from offsets/timestamps; eligible night minutes from policy night window; optional display tag cannot determine pay |
+| Segment compensation/gap rate and break/OT overrides | Preserve event-level facts; valuation owns entitlement/rates | Audit consumers; explicit zero remains zero. Legacy free-form override JSON cannot override locked statutory/approval rules; no generic override hierarchy added |
+
+Break definition may classify planned rest type for policy matching; it must not duplicate the pay/deduction/approval algorithm. No standalone break-policy service/table is required unless existing policy structures cannot express an approved requirement. Night rules can reuse the existing valuation/OT domain but must support ordinary night work independently of OT eligibility; night work is not automatically overtime.
+
+### 18.3 Single policy authority, precedence and evidence
+
+- Resolve the effective work-policy membership/group for employment and business date, then effective child policies and any explicitly approved time-of-day/rate boundaries. Reuse existing policy resolution semantics; document and test the interaction with current user/group/default policy assignments before cutover. Overlapping equal-authority bindings are conflicts, not latest-row wins.
+- For activated scope, work-policy resolution is the single entry contract. Existing defaults or assignments may remain explicit inputs of that contract, not a second fallback in each consumer. No implicit `shift > employee > department > company` merge and no arbitrary per-field overrides. A demonstrated shift-dependent need should be an explicit policy criterion with deterministic priority/effective dates.
+- Missing required valuation policy blocks valuation/closure and surfaces a setup issue, never silently grants zero/full pay. Missing policy required for schedule validation blocks publication. Whether a non-scheduling pay-policy gap permits publication must be explicit in the gate-1 contract; raw data remains ingestible in either case.
+- Publication snapshots the schedule version and the policy inputs used to validate/interpret that publication. Valuation separately records exact policy versions/content, source membership, calculation algorithm version, approvals and source schedule revision used for each result. Do not assume a group version ID freezes mutable child policies; snapshot immutable content or reuse/add child versioning only where required.
+- Future policy changes do not mutate published shift timing. Revaluation in an open period creates traceable changed results using explicit effective policy selection; differences from publication-time assumptions remain visible. Closed/paid results remain protected by closure/payroll guards and controlled correction. Law/policy changes must not be ignored solely because an earlier schedule was published.
+- A shift swap changes schedule, not employee pay-basis or policy-group membership. Re-resolve applicable criteria for the new times under that employee's policy. Every caller (preview, publication validation, matching, attendance summary, reports, payroll) receives the appropriate phase's policy evidence through the shared contract, not a private reinterpretation of legacy flags.
+- Permissions stay separate: `shifts:manage` alone must not grant attendance/OT/payroll policy management. Policy links shown from shift UI obey their own read/manage permission and scope; no salary/private policy leakage.
+
+### 18.4 UX and API contract delta
+
+Shift editor keeps identity/applicability, version/effective date/reason, intervals with day offsets, planned breaks and timeline. Rename cross-midnight display accordingly; show derived night overlap only with a known policy context. Distinguish planned span, planned breaks, planned work duration and estimated payable time; estimates are not approved payroll.
+
+Policy controls move to existing attendance/OT/work-policy screens with current role boundaries. In shift editor show an optional read-only applied-policy summary only when employment/date are selected; otherwise show that policy depends on assignment/date. No claim that one policy applies universally to everyone using a template. Do not add a new settings dashboard or one policy copy per shift.
+
+Before implementation, update OpenAPI/DTOs/generated client: fixed/flexible break validation, moved policy fields, cross-midnight/night semantics, version/effective dates, source/provenance and phase-specific error handling. Omitted, false, zero and null must have distinct documented meanings. Legacy payload fields cannot be silently ignored: before cutover use explicit legacy semantics; after cutover reject unsupported writes with documented validation/compatibility response or translate only through an approved mapping with policy permissions and atomic audit. Follow API Governance/Change Management compatibility gates; no arbitrary forced removal of published contracts.
+
+### 18.5 Migration and ordered work (reuse §14)
+
+1. **Inventory before schema freeze (tasks 1–4):** map every old field's read/write callers, actual runtime behavior, defaults, policy precedence and existing tests. Include shift/interval/segment overrides, imports, bulk operations, API clients and historical snapshots. Record unresolved semantics and sample conflicting configurations without PII; never infer grace purpose from its name.
+2. **Contract and minimal expansion (tasks 1–3):** finalize §18.2 ownership; extend existing attendance/OT structures only for missing concepts; prove group/child-policy temporal evidence. Separate publication assumptions from valuation evidence in §§5–9. Agree supported policy combinations and required permissions; no universal rule engine.
+3. **Explicit mapping (tasks 2,4–6):** generate restartable migration records mapping legacy source/version/field/value to target policy/version/effective range and provenance. Reuse identical policy definitions only when semantics and applicability match; do not assign a migrated policy to unrelated users. Divergent same-day interval aggregation, ambiguous grace or unclear break entitlement needs HR review. Leave raw/closed historical evidence untouched; imported knowledge is marked as migration, not fabricated original approval.
+4. **Shared resolution and comparison (tasks 4–10,12):** switch code to one policy entry contract behind controlled rollout. Run old/new calculations on representative same inputs without publishing duplicate results. Require parity for intended-equivalent behavior; each intentional bug correction has an approved expected delta and regression test. Unexplained differences block activation; do not preserve a known bug just to achieve parity.
+5. **UI and synchronized cutover (tasks 6,11–13):** update editor/settings and API clients, all writers/readers, background jobs and snapshots together per supported scope. Stable existing official schedule/closed results remain unchanged. After evidence, fix forward; no fallback to legacy writes that bypass policy authority. Before evidence/activation, rollback only if no new data would be lost.
+6. **Retire and verify (tasks 14–15):** legacy fields/read adapters stop only after compatibility period, zero active legacy consumer, reconciled mappings and evidence replay. Any physical drop needs separate approval and guarded migration; keep historical snapshot fields. Run unit then full API/web and cross-target suites, migration and role-scoped E2E. No test skip or mock-only mapping test completes cutover.
+
+### 18.6 Acceptance additions
+
+B1–B10 supplement H1–H11/L1–L12 and §15, not replace them. Proposed symbols are implementation targets, not tests already present.
+
+| ID | Planned scenario | Expected evidence |
+|---|---|---|
+| B1 | `TestShiftPolicyOwnership` / API + UI | Shift form contains timing/planned-rest only; shift-only manager cannot alter pay/OT policy through legacy or new payload; contextual policy summary does not leak restricted data |
+| B2 | `TestMatchingGraceAndEarlyTimeAreIndependent` / domain + integration | Distinct punch matching buffer, lateness grace and early-arrival valuation produce independent outputs; raw timestamps unchanged; migration ambiguity rejected |
+| B3 | `TestFixedAndFlexibleBreaks` / domain + API | Fixed 12–13 derives 60 minutes; conflicting 45 rejected; flexible 45 has no invented 12–12:45 timestamps; overnight/multiple breaks stay valid |
+| B4 | `TestPaidBreakIsNotApprovedOT` / valuation integration | Paid rest/no auto-deduct alone creates no OT; work-during-rest needs evidence and required approval; no double deduction or double payment |
+| B5 | `TestOTAggregationScope` / domain + DB | Two intervals use deterministic approved aggregate/rounding scope; incompatible interval/policy settings conflict; early cap enforced without erasing actual time |
+| B6 | `TestNightWindowVersusCrossMidnight` / domain + API | Under fixture night window 22–06, 18–23 has 60 night minutes and 00–08 has 360 despite neither crossing midnight; offsets drive day crossing, flag never sets pay |
+| B7 | `TestPolicyTemporalEvidence` / DB integration | Child policy changes after publication do not alter closed result or shift timing; open revaluation records exact new policy inputs; group ID alone cannot hide mutable changes |
+| B8 | `TestSwapPreservesEmployeeEntitlements` / integration | Employees sharing/swapping shift retain their own effective policy-group/pay basis; new times re-evaluate applicable criteria; shift employer metadata cannot reassign payroll employer |
+| B9 | `TestPolicyMigrationParityAndProvenance` / migration + DB | Explicit 0/false versus missing preserved; repeat migration idempotent; ambiguity blocks affected scope; approved corrections show expected delta; legacy snapshots replay unchanged |
+| B10 | `TestPolicyCutoverAllConsumers` / API + worker + role E2E | Imports/bulk/jobs/old clients cannot bypass authority; all activated consumers use shared phase-appropriate policy contract; unexplained delta aborts activation, no silent fallback |
+
+Pending detailed-contract review: actual meaning of legacy grace and precedence, flexible break evidence model, valid aggregate combinations and temporal child-policy representation. These are bounded engineering/HR checks before gate 1, not defaults to invent. Documentation-only update; implementation and runtime tests remain unexecuted.
