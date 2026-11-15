@@ -448,7 +448,7 @@ type PayrollRepository interface {
 	ListPayrollFormulaRules(context.Context) ([]PayrollFormulaRule, error)
 	ListPayrollFormulaRuleVersions(context.Context, uuid.UUID) ([]PayrollFormulaRuleVersion, error)
 	CreatePayrollFormulaRule(context.Context, CreatePayrollFormulaRuleRequest, uuid.UUID) (PayrollFormulaRule, error)
-	CreatePayrollFormulaRuleVersion(context.Context, uuid.UUID, CreatePayrollFormulaRuleVersionRequest, uuid.UUID) (PayrollFormulaRuleVersion, error)
+	CreatePayrollFormulaRuleVersion(context.Context, ids.PayrollFormulaRuleID, CreatePayrollFormulaRuleVersionRequest, ids.UserID) (PayrollFormulaRuleVersion, error)
 	PublishPayrollFormulaRule(context.Context, ids.PayrollFormulaRuleID, ids.UserID) (PayrollFormulaRule, error)
 	RetirePayrollFormulaRule(context.Context, ids.PayrollFormulaRuleID, ids.UserID) (PayrollFormulaRule, error)
 	ListPayrollCalculationRuns(context.Context, uuid.UUID, int, int) ([]PayrollCalculationRun, error)
@@ -1208,7 +1208,7 @@ func (h PayrollHandler) CreatePayrollFormulaRuleVersion(w http.ResponseWriter, r
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}
-	version, err := h.Repository.CreatePayrollFormulaRuleVersion(r.Context(), ruleID, req, actorID)
+	version, err := h.Repository.CreatePayrollFormulaRuleVersion(r.Context(), ids.PayrollFormulaRuleID(ruleID), req, ids.UserID(actorID))
 	if err != nil {
 		h.writeError(w, r, err)
 		return

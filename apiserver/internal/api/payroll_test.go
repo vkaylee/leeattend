@@ -73,8 +73,8 @@ func (mockPayrollRepository) CreatePayrollFormulaRule(_ context.Context, req Cre
 	return PayrollFormulaRule{ID: uuid.New(), Code: req.Code, Name: req.Name, ComponentCode: req.ComponentCode, Version: 1, Expression: req.Expression, EffectiveFrom: req.EffectiveFrom, Status: "draft"}, nil
 }
 
-func (mockPayrollRepository) CreatePayrollFormulaRuleVersion(_ context.Context, ruleID uuid.UUID, req CreatePayrollFormulaRuleVersionRequest, actorID uuid.UUID) (PayrollFormulaRuleVersion, error) {
-	return PayrollFormulaRuleVersion{RuleID: ruleID, VersionID: uuid.New(), Version: 2, Expression: req.Expression, EffectiveFrom: req.EffectiveFrom, Status: "draft", CreatedBy: actorID}, nil
+func (mockPayrollRepository) CreatePayrollFormulaRuleVersion(_ context.Context, ruleID ids.PayrollFormulaRuleID, req CreatePayrollFormulaRuleVersionRequest, actorID ids.UserID) (PayrollFormulaRuleVersion, error) {
+	return PayrollFormulaRuleVersion{RuleID: uuid.UUID(ruleID), VersionID: uuid.New(), Version: 2, Expression: req.Expression, EffectiveFrom: req.EffectiveFrom, Status: "draft", CreatedBy: uuid.UUID(actorID)}, nil
 }
 
 func (mockPayrollRepository) PublishPayrollFormulaRule(_ context.Context, ruleID ids.PayrollFormulaRuleID, _ ids.UserID) (PayrollFormulaRule, error) {

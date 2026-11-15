@@ -1280,7 +1280,7 @@ func (r PayrollRepository) CreatePayrollFormulaRule(ctx context.Context, req api
 	return result, nil
 }
 
-func (r PayrollRepository) CreatePayrollFormulaRuleVersion(ctx context.Context, ruleID uuid.UUID, req api.CreatePayrollFormulaRuleVersionRequest, actorID uuid.UUID) (api.PayrollFormulaRuleVersion, error) {
+func (r PayrollRepository) CreatePayrollFormulaRuleVersion(ctx context.Context, ruleID ids.PayrollFormulaRuleID, req api.CreatePayrollFormulaRuleVersionRequest, actorID ids.UserID) (api.PayrollFormulaRuleVersion, error) {
 	db, err := r.db(ctx)
 	if err != nil {
 		return api.PayrollFormulaRuleVersion{}, err
@@ -1292,7 +1292,7 @@ func (r PayrollRepository) CreatePayrollFormulaRuleVersion(ctx context.Context, 
 	var result api.PayrollFormulaRuleVersion
 	err = service.WithTx(ctx, beginner, func(ctx context.Context, tx pgx.Tx) error {
 		var retired bool
-		if err := tx.QueryRow(ctx, `SELECT retired_at IS NOT NULL FROM payroll_formula_rules WHERE id = $1 FOR UPDATE`, ruleID).Scan(&retired); err != nil {
+		if err := tx.QueryRow(ctx, `SELECT retired_at IS NOT NULL FROM payroll_formula_rules WHERE id = $1 FOR UPDATE`, uuid.UUID(ruleID)).Scan(&retired); err != nil {
 			if errors.Is(err, pgx.ErrNoRows) {
 				return api.ErrRuleNotFound
 			}
@@ -1307,7 +1307,7 @@ func (r PayrollRepository) CreatePayrollFormulaRuleVersion(ctx context.Context, 
 			SELECT $1, COALESCE(MAX(version_number), 0) + 1, $2, $3::date, 'draft', $4
 			FROM payroll_formula_rule_versions
 			WHERE rule_id = $1
-			RETURNING id, rule_id, version_number, expression, effective_from::text, status, created_by, created_at`, ruleID, req.Expression, req.EffectiveFrom, actorID).Scan(
+			RETURNING id, rule_id, version_number, expression, effective_from::text, status, created_by, created_at`, uuid.UUID(ruleID), req.Expression, req.EffectiveFrom, uuid.UUID(actorID)).Scan(
 			&result.VersionID, &result.RuleID, &result.Version, &result.Expression, &result.EffectiveFrom, &result.Status, &result.CreatedBy, &created)
 		if err != nil {
 			if isConflictError(err) {
