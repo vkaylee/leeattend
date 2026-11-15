@@ -168,6 +168,34 @@ func TestEnsureDefaultRolesAndPermissions(t *testing.T) {
 		}
 	}
 
+	for _, grant := range []string{
+		"('hr_manager', 'schedules:activate')",
+		"('admin', 'schedules:activate')",
+		"('hr_manager', 'attendance:closure:close')",
+		"('admin', 'attendance:closure:reopen')",
+		"('shift_manager', 'schedules:publish:rotating')",
+		"('team_lead', 'schedules:read')",
+		"('employee', 'schedules:read')",
+	} {
+		if !strings.Contains(adminSeed, grant) {
+			t.Errorf("role seed missing allowed lifecycle grant %q", grant)
+		}
+	}
+	for _, grant := range []string{
+		"('shift_manager', 'schedules:activate')",
+		"('team_lead', 'schedules:activate')",
+		"('employee', 'schedules:activate')",
+		"('shift_manager', 'attendance:closure:close')",
+		"('team_lead', 'attendance:closure:close')",
+		"('employee', 'attendance:closure:close')",
+		"('shift_manager', 'schedules:publish:office')",
+		"('team_lead', 'schedules:publish:rotating')",
+	} {
+		if strings.Contains(adminSeed, grant) {
+			t.Errorf("role seed contains forbidden lifecycle grant %q", grant)
+		}
+	}
+
 	grants := regexp.MustCompile(`\('([^']+)', '([^']+)'\)`).FindAllStringSubmatch(adminSeed, -1)
 	seen := make(map[string]bool, len(grants))
 	for _, grant := range grants {
