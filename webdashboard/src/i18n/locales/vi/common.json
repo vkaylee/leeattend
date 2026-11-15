@@ -735,6 +735,7 @@
       "work_policy_effective": "Hiệu lực",
       "work_policy_empty": "Chưa cấu hình nhóm chính sách lao động",
       "work_policy_error": "Không thể tải nhóm chính sách lao động",
+      "work_policy_history": "Lịch sử phiên bản",
         "status": "Trạng thái",
         "std_days": "Số ngày công chuẩn",
         "std_days_history": "Lịch sử công chuẩn",

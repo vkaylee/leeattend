@@ -1,10 +1,11 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
 import { ShieldAlert, Clock, History } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import { useToast } from "@/components/ui/toast";
 import { Typography } from "@/components/ui/typography";
-import { fetchWorkPolicyGroups, updatePayrollSettings, fetchPayrollSettingsHistory } from "@/lib/api/payroll";
+import { fetchWorkPolicyGroupHistory, fetchWorkPolicyGroups, updatePayrollSettings, fetchPayrollSettingsHistory } from "@/lib/api/payroll";
 import { payrollKeys } from "@/lib/query-keys";
 
 import TemporalConfigTable from "../common/temporal-config-table";
@@ -14,11 +15,17 @@ export default function PayrollSettingsSection() {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const toast = useToast();
+  const [selectedPolicyGroupId, setSelectedPolicyGroupId] = useState<string>();
 
   const { data: history = [], isLoading: isHistoryLoading } = useQuery({ queryKey: payrollKeys.settingsHistory(), queryFn: () => fetchPayrollSettingsHistory() });
   const { data: workPolicies = [], isLoading: isWorkPoliciesLoading, isError: isWorkPoliciesError } = useQuery({
     queryKey: payrollKeys.workPolicyGroups(),
     queryFn: fetchWorkPolicyGroups,
+  });
+  const { data: selectedPolicyHistory = [], isLoading: isPolicyHistoryLoading } = useQuery({
+    queryKey: payrollKeys.workPolicyHistory(selectedPolicyGroupId),
+    queryFn: () => fetchWorkPolicyGroupHistory(selectedPolicyGroupId as string),
+    enabled: Boolean(selectedPolicyGroupId),
   });
 
   const handleSavePolicy = async (data: { std_working_days: number; hours_per_day: number; max_ot_hours_per_day: number | null; max_ot_hours_per_month: number | null; effective_date: string }) => {
@@ -88,7 +95,11 @@ export default function PayrollSettingsSection() {
               <tbody>
                 {workPolicies.map((policy) => (
                   <tr key={policy.id} className="border-t border-slate-200/70 dark:border-slate-800">
-                    <td className="px-3 py-3 font-medium">{policy.name}</td>
+                    <td className="px-3 py-3 font-medium">
+                      <button type="button" className="text-left text-primary-700 underline-offset-2 hover:underline" onClick={() => setSelectedPolicyGroupId(policy.group_id)}>
+                        {policy.name}
+                      </button>
+                    </td>
                     <td className="px-3 py-3">{policy.pay_method}</td>
                     <td className="px-3 py-3">{policy.minutes_per_credit}</td>
                     <td className="px-3 py-3">{policy.effective_from}{policy.effective_to ? ` – ${policy.effective_to}` : ""}</td>
@@ -96,6 +107,24 @@ export default function PayrollSettingsSection() {
                 ))}
               </tbody>
             </table>
+          </div>
+        )}
+        {selectedPolicyGroupId && (
+          <div className="mt-5 rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-950">
+            <div className="mb-3 flex items-center justify-between">
+              <Typography className="font-semibold" variant="h3">{t("common.payroll.settings.work_policy_history", "Version history")}</Typography>
+              <button type="button" className="text-sm text-slate-500 underline" onClick={() => setSelectedPolicyGroupId(undefined)}>{t("common.close", "Close")}</button>
+            </div>
+            {isPolicyHistoryLoading ? <div className="h-10 animate-pulse rounded bg-slate-200 dark:bg-slate-800" /> : (
+              <ul className="space-y-2 text-sm">
+                {selectedPolicyHistory.map((version) => (
+                  <li key={version.id} className="flex justify-between gap-4 border-b border-slate-100 py-2 last:border-0 dark:border-slate-800">
+                    <span>{version.effective_from}{version.effective_to ? ` – ${version.effective_to}` : ""}</span>
+                    <span className="font-medium">{version.pay_method}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
         )}
       </section>

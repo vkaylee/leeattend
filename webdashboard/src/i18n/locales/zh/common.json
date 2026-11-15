@@ -735,6 +735,7 @@
       "work_policy_effective": "生效日期",
       "work_policy_empty": "尚未配置劳动政策组",
       "work_policy_error": "无法加载劳动政策组",
+      "work_policy_history": "版本历史",
         "status": "状态",
         "std_days": "标准工作日",
         "std_days_history": "标准天数历史",

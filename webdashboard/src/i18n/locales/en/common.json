@@ -735,6 +735,7 @@
       "work_policy_effective": "Effective",
       "work_policy_empty": "No labor policy groups configured",
       "work_policy_error": "Unable to load labor policy groups",
+      "work_policy_history": "Version history",
         "status": "Status",
         "std_days": "Std. Work Days",
         "std_days_history": "Std. Days History",
