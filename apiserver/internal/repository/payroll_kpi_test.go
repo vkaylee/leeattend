@@ -85,3 +85,50 @@ func TestPersistKPICalculationSnapshotsWithoutFormulaIsAppendOnly(t *testing.T) 
 		t.Fatalf("policy-only snapshot must append without overwrite clause: %s", query)
 	}
 }
+
+func TestPersistKPICalculationHistoricalRerunPreservesOldPolicySnapshot(t *testing.T) {
+	payslipID := uuid.New()
+	policyA := &api.WorkPolicyGroupVersion{ID: uuid.New(), GroupID: uuid.New(), EffectiveFrom: "2026-01-01", PayMethod: workpolicy.PayMethodMonthly}
+	policyB := &api.WorkPolicyGroupVersion{ID: uuid.New(), GroupID: uuid.New(), EffectiveFrom: "2026-06-01", PayMethod: workpolicy.PayMethodHourly}
+	var snapshots [][]byte
+	db := &fakeDBTX{execFn: func(_ context.Context, query string, args ...any) (pgconn.CommandTag, error) {
+		if !strings.Contains(query, "INSERT INTO payroll_calculation_runs") {
+			return pgconn.NewCommandTag("UPDATE 0"), nil
+		}
+		if len(args) != 8 {
+			t.Fatalf("expected policy-only insert args, got %d", len(args))
+		}
+		input, ok := args[4].([]byte)
+		if !ok {
+			t.Fatalf("expected input snapshot bytes, got %T", args[4])
+		}
+		snapshots = append(snapshots, append([]byte(nil), input...))
+		return pgconn.NewCommandTag("INSERT 0 1"), nil
+	}}
+
+	if err := persistKPICalculation(context.Background(), db, uuid.New(), payslipID, 2026, 6, kpiCalculation{Policy: policyA}, nil); err != nil {
+		t.Fatalf("persist policy A snapshot: %v", err)
+	}
+	if err := persistKPICalculation(context.Background(), db, uuid.New(), payslipID, 2026, 6, kpiCalculation{Policy: policyB}, nil); err != nil {
+		t.Fatalf("persist policy B snapshot: %v", err)
+	}
+	if len(snapshots) != 2 {
+		t.Fatalf("expected two historical snapshots for one payslip, got %d", len(snapshots))
+	}
+
+	var first, second map[string]any
+	if err := json.Unmarshal(snapshots[0], &first); err != nil {
+		t.Fatalf("decode policy A snapshot: %v", err)
+	}
+	if err := json.Unmarshal(snapshots[1], &second); err != nil {
+		t.Fatalf("decode policy B snapshot: %v", err)
+	}
+	firstPolicy := first["policy"].(map[string]any)
+	secondPolicy := second["policy"].(map[string]any)
+	if firstPolicy["version_id"] != policyA.ID.String() {
+		t.Fatalf("old snapshot changed policy version: got %v, want %s", firstPolicy["version_id"], policyA.ID)
+	}
+	if secondPolicy["version_id"] != policyB.ID.String() {
+		t.Fatalf("new snapshot did not record policy B: got %v, want %s", secondPolicy["version_id"], policyB.ID)
+	}
+}
