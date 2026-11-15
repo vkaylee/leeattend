@@ -1,5 +1,6 @@
 /* eslint-disable max-lines -- API wrapper module: 300 lines of exported functions; splitting would scatter imports */
 import type { PayrollCalculationRun, PayrollFormulaRuleVersion, PayrollInput } from "./types-payroll";
+import { fetchWorkingPatterns } from "./working-patterns";
 
 export interface WorkPolicyGroupVersion {
   id: string;
@@ -17,6 +18,19 @@ export interface WorkPolicyGroupVersion {
   overtime_policy_id: string;
   effective_from: string;
   effective_to?: string;
+}
+
+export async function fetchWorkPolicyReferenceOptions(): Promise<{ attendance: { id: string; label: string }[]; patterns: { id: string; label: string }[]; overtime: { id: string; label: string }[] }> {
+  const [attendanceResponse, patterns, overtime] = await Promise.all([
+    client.GET<{ data?: { id: string; name?: string; valid_from?: string }[]; }>("/api/v1/attendance/rules/versions"),
+    fetchWorkingPatterns(),
+    fetchOvertimePolicies(),
+  ]);
+  return {
+    attendance: (attendanceResponse.data.data ?? []).map((item) => ({ id: item.id, label: item.name ?? `${item.id} (${item.valid_from ?? ""})` })),
+    patterns: patterns.map((item) => ({ id: item.id, label: item.name })),
+    overtime: overtime.map((item) => ({ id: item.id, label: item.name })),
+  };
 }
 
 export interface WorkPolicyMembership {

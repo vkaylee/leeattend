@@ -6,7 +6,7 @@ import { useTranslation } from "react-i18next";
 import Button from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
 import { Typography } from "@/components/ui/typography";
-import { createWorkPolicyMembership, createWorkPolicyGroupVersion, fetchWorkPolicyGroupHistory, fetchWorkPolicyGroups, fetchWorkPolicyMemberships, updatePayrollSettings, fetchPayrollSettingsHistory } from "@/lib/api/payroll";
+import { createWorkPolicyMembership, createWorkPolicyGroupVersion, fetchWorkPolicyGroupHistory, fetchWorkPolicyGroups, fetchWorkPolicyMemberships, fetchWorkPolicyReferenceOptions, updatePayrollSettings, fetchPayrollSettingsHistory } from "@/lib/api/payroll";
 import { payrollKeys } from "@/lib/query-keys";
 
 import TemporalConfigTable from "../common/temporal-config-table";
@@ -18,7 +18,7 @@ export default function PayrollSettingsSection() {
   const toast = useToast();
   const [selectedPolicyGroupId, setSelectedPolicyGroupId] = useState<string>();
   const [isCreatingVersion, setIsCreatingVersion] = useState(false);
-  const [versionForm, setVersionForm] = useState({ effective_from: "", minutes_per_credit: "", pay_method: "monthly" as "monthly" | "hourly" | "shift" });
+  const [versionForm, setVersionForm] = useState({ effective_from: "", minutes_per_credit: "", pay_method: "monthly" as "monthly" | "hourly" | "shift", attendance_policy_id: "", working_pattern_id: "", overtime_policy_id: "" });
   const [versionError, setVersionError] = useState<string>();
   const [membershipForm, setMembershipForm] = useState({ employment_id: "", effective_from: "", effective_to: "" });
   const [membershipError, setMembershipError] = useState<string>();
@@ -38,6 +38,7 @@ export default function PayrollSettingsSection() {
     queryFn: () => fetchWorkPolicyMemberships(selectedPolicyGroupId!),
     enabled: Boolean(selectedPolicyGroupId),
   });
+  const { data: referenceOptions } = useQuery({ queryKey: ["payroll-work-policy-reference-options"], queryFn: fetchWorkPolicyReferenceOptions });
 
   const handleCreateVersion = async () => {
     if (!selectedPolicyGroupId) return;
@@ -50,23 +51,26 @@ export default function PayrollSettingsSection() {
     setVersionError(undefined);
     try {
       const selected = workPolicies.find((policy) => policy.group_id === selectedPolicyGroupId);
-      if (!selected?.attendance_policy_id || !selected.working_pattern_id || !selected.overtime_policy_id) {
+      const attendancePolicyID = versionForm.attendance_policy_id || selected?.attendance_policy_id;
+      const workingPatternID = versionForm.working_pattern_id || selected?.working_pattern_id;
+      const overtimePolicyID = versionForm.overtime_policy_id || selected?.overtime_policy_id;
+      if (!selected || !attendancePolicyID || !workingPatternID || !overtimePolicyID) {
         throw new Error(t("common.payroll.settings.work_policy_missing_refs", "Selected policy lacks required references."));
       }
       await createWorkPolicyGroupVersion(selectedPolicyGroupId, {
         name: selected.name,
         minutes_per_credit: minutes,
-        attendance_policy_id: selected.attendance_policy_id,
-        working_pattern_id: selected.working_pattern_id,
+        attendance_policy_id: attendancePolicyID,
+        working_pattern_id: workingPatternID,
         pay_method: versionForm.pay_method,
         monthly_denominator: versionForm.pay_method === "monthly" ? "fixed" : undefined,
         monthly_standard_days: versionForm.pay_method === "monthly" ? (selected.monthly_standard_days ?? "26") : undefined,
         rate_component_definition_id: selected.rate_component_definition_id ?? null,
-        overtime_policy_id: selected.overtime_policy_id,
+        overtime_policy_id: overtimePolicyID,
         effective_from: versionForm.effective_from,
       });
       toast.success(t("common.success"));
-      setVersionForm({ effective_from: "", minutes_per_credit: "", pay_method: "monthly" });
+      setVersionForm({ effective_from: "", minutes_per_credit: "", pay_method: "monthly", attendance_policy_id: "", working_pattern_id: "", overtime_policy_id: "" });
       void queryClient.invalidateQueries({ queryKey: payrollKeys.workPolicyGroups() });
       void queryClient.invalidateQueries({ queryKey: payrollKeys.workPolicyHistory(selectedPolicyGroupId) });
     } catch (error: unknown) {
@@ -193,6 +197,18 @@ export default function PayrollSettingsSection() {
                 <label className="text-xs font-semibold text-slate-600 dark:text-slate-300" htmlFor="policy-minutes-per-credit">
                   {t("common.payroll.settings.work_policy_minutes", "Minutes / credit")}
                   <input id="policy-minutes-per-credit" type="number" min="1" step="1" value={versionForm.minutes_per_credit} onChange={(event) => setVersionForm((form) => ({ ...form, minutes_per_credit: event.target.value }))} className="mt-1 block h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm dark:border-slate-700 dark:bg-slate-900" />
+                </label>
+                <label className="text-xs font-semibold text-slate-600 dark:text-slate-300" htmlFor="policy-attendance-policy">
+                  {t("common.payroll.settings.work_policy_attendance", "Attendance policy")}
+                  <select id="policy-attendance-policy" value={versionForm.attendance_policy_id} onChange={(event) => setVersionForm((form) => ({ ...form, attendance_policy_id: event.target.value }))} className="mt-1 block h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm dark:border-slate-700 dark:bg-slate-900"><option value="">{t("common.select", "Select")}</option>{referenceOptions?.attendance.map((option) => <option key={option.id} value={option.id}>{option.label}</option>)}</select>
+                </label>
+                <label className="text-xs font-semibold text-slate-600 dark:text-slate-300" htmlFor="policy-working-pattern">
+                  {t("common.payroll.settings.work_policy_pattern", "Working pattern")}
+                  <select id="policy-working-pattern" value={versionForm.working_pattern_id} onChange={(event) => setVersionForm((form) => ({ ...form, working_pattern_id: event.target.value }))} className="mt-1 block h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm dark:border-slate-700 dark:bg-slate-900"><option value="">{t("common.select", "Select")}</option>{referenceOptions?.patterns.map((option) => <option key={option.id} value={option.id}>{option.label}</option>)}</select>
+                </label>
+                <label className="text-xs font-semibold text-slate-600 dark:text-slate-300" htmlFor="policy-overtime">
+                  {t("common.payroll.settings.work_policy_overtime", "Overtime policy")}
+                  <select id="policy-overtime" value={versionForm.overtime_policy_id} onChange={(event) => setVersionForm((form) => ({ ...form, overtime_policy_id: event.target.value }))} className="mt-1 block h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm dark:border-slate-700 dark:bg-slate-900"><option value="">{t("common.select", "Select")}</option>{referenceOptions?.overtime.map((option) => <option key={option.id} value={option.id}>{option.label}</option>)}</select>
                 </label>
                 <label className="text-xs font-semibold text-slate-600 dark:text-slate-300" htmlFor="policy-pay-method">
                   {t("common.payroll.settings.work_policy_method", "Pay method")}
