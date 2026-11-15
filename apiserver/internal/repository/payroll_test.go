@@ -512,7 +512,7 @@ func TestPayrollRepository_AssignPayrollRule_OrganizationAssigneeNullID(t *testi
 	}
 	repo := PayrollRepository{DB: db}
 	someID := uuid.New()
-	assignment, err := repo.AssignPayrollRule(context.Background(), ruleID, api.AssignPayrollRuleRequest{
+	assignment, err := repo.AssignPayrollRule(context.Background(), ids.PayrollRuleID(ruleID), api.AssignPayrollRuleRequest{
 		AssigneeType:  "organization",
 		AssigneeID:    &someID, // Even if passed, repository must normalize to nil
 		EffectiveFrom: "2026-01-01",
@@ -561,7 +561,7 @@ func TestPayrollRepository_AssignPayrollRule_DepartmentAssigneeWithID(t *testing
 		},
 	}
 	repo := PayrollRepository{DB: db}
-	assignment, err := repo.AssignPayrollRule(context.Background(), ruleID, api.AssignPayrollRuleRequest{
+	assignment, err := repo.AssignPayrollRule(context.Background(), ids.PayrollRuleID(ruleID), api.AssignPayrollRuleRequest{
 		AssigneeType:  "department",
 		AssigneeID:    &deptID,
 		EffectiveFrom: "2026-01-01",

@@ -437,7 +437,7 @@ type PayrollRepository interface {
 	CreatePayrollRuleTier(context.Context, ids.PayrollRuleID, CreatePayrollRuleTierRequest) (PayrollRuleTier, error)
 	DeletePayrollRuleTier(context.Context, ids.PayrollRuleID, ids.PayrollRuleTierID) error
 	ListPayrollRuleAssignments(context.Context, ids.PayrollRuleID) ([]PayrollRuleAssignment, error)
-	AssignPayrollRule(context.Context, uuid.UUID, AssignPayrollRuleRequest) (PayrollRuleAssignment, error)
+	AssignPayrollRule(context.Context, ids.PayrollRuleID, AssignPayrollRuleRequest) (PayrollRuleAssignment, error)
 	DeletePayrollRuleAssignment(context.Context, ids.PayrollRuleID, ids.PayrollRuleAssignmentID) error
 	CalculateEmployeePayroll(context.Context, ids.EmployeeID, int, int, ids.UserID) (FullPayslipResponse, error)
 	CalculateBatchPayroll(context.Context, BatchCalculatePayrollRequest, ids.UserID) (BatchCalculatePayrollResponse, error)
@@ -890,7 +890,7 @@ func (h PayrollHandler) AssignPayrollRule(w http.ResponseWriter, r *http.Request
 			return
 		}
 	}
-	assignment, err := h.Repository.AssignPayrollRule(r.Context(), ruleID, req)
+	assignment, err := h.Repository.AssignPayrollRule(r.Context(), ids.PayrollRuleID(ruleID), req)
 	if err != nil {
 		h.writeError(w, r, err)
 		return

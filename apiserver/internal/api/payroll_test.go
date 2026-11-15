@@ -395,7 +395,7 @@ func (mockPayrollRepository) ListPayrollRuleAssignments(_ context.Context, ruleI
 	}, nil
 }
 
-func (mockPayrollRepository) AssignPayrollRule(_ context.Context, ruleID uuid.UUID, req AssignPayrollRuleRequest) (PayrollRuleAssignment, error) {
+func (mockPayrollRepository) AssignPayrollRule(_ context.Context, ruleID ids.PayrollRuleID, req AssignPayrollRuleRequest) (PayrollRuleAssignment, error) {
 	if uuid.UUID(ruleID) == uuid.MustParse("00000000-0000-0000-0000-000000000099") {
 		return PayrollRuleAssignment{}, ErrRuleNotFound
 	}

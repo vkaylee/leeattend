@@ -1663,7 +1663,7 @@ ORDER BY created_at DESC`, uuid.UUID(ruleID))
 	return result, rows.Err()
 }
 
-func (r PayrollRepository) AssignPayrollRule(ctx context.Context, ruleID uuid.UUID, req api.AssignPayrollRuleRequest) (api.PayrollRuleAssignment, error) {
+func (r PayrollRepository) AssignPayrollRule(ctx context.Context, ruleID ids.PayrollRuleID, req api.AssignPayrollRuleRequest) (api.PayrollRuleAssignment, error) {
 	db, err := r.db(ctx)
 	if err != nil {
 		return api.PayrollRuleAssignment{}, err
@@ -1691,7 +1691,7 @@ func (r PayrollRepository) AssignPayrollRule(ctx context.Context, ruleID uuid.UU
 	}
 	err = db.QueryRow(ctx, `INSERT INTO payroll_rule_assignments (id, rule_definition_id, assignee_type, assignee_id, effective_from, effective_to, override_config, created_at)
 VALUES ($1, $2, $3, $4, $5::date, $6::date, $7, NOW())
-RETURNING created_at`, assignID, ruleID, req.AssigneeType, assigneeID, req.EffectiveFrom, req.EffectiveTo, overrideParam).Scan(&created)
+RETURNING created_at`, assignID, uuid.UUID(ruleID), req.AssigneeType, assigneeID, req.EffectiveFrom, req.EffectiveTo, overrideParam).Scan(&created)
 	if err != nil {
 		if isConflictError(err) {
 			return api.PayrollRuleAssignment{}, api.ErrConflict
@@ -1701,7 +1701,7 @@ RETURNING created_at`, assignID, ruleID, req.AssigneeType, assigneeID, req.Effec
 
 	return api.PayrollRuleAssignment{
 		ID:               assignID,
-		RuleDefinitionID: ruleID,
+		RuleDefinitionID: uuid.UUID(ruleID),
 		AssigneeType:     req.AssigneeType,
 		AssigneeID:       assigneeID,
 		EffectiveFrom:    req.EffectiveFrom,
