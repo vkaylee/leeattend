@@ -358,7 +358,7 @@ func (r ScheduleRepository) ResolveScheduleShadowMismatch(ctx context.Context, m
 	return service.WithTx(ctx, beginner, func(ctx context.Context, tx pgx.Tx) error {
 		note = strings.TrimSpace(note)
 		result, err := tx.Exec(ctx, `UPDATE schedule_shadow_mismatches
-			SET status = $2, resolution_note = $3, resolved_at = CURRENT_TIMESTAMP
+			SET status = CAST($2 AS varchar(16)), resolution_note = CAST($3 AS text), resolved_at = CURRENT_TIMESTAMP
 			WHERE id = $1 AND status = 'open'`, mismatchID, status, note)
 		if err != nil {
 			return err
@@ -367,7 +367,7 @@ func (r ScheduleRepository) ResolveScheduleShadowMismatch(ctx context.Context, m
 			return api.ErrScheduleShadowMismatchNotFound
 		}
 		_, err = tx.Exec(ctx, `INSERT INTO audit_logs (actor_id, target_resource_id, action, details, actor_type, created_at)
-			VALUES ($1, $2, 'schedule.shadow_mismatch.resolved', jsonb_build_object('status', $3, 'note', $4), 'human', CURRENT_TIMESTAMP)`, actorID, mismatchID, status, note)
+			VALUES ($1, $2, 'schedule.shadow_mismatch.resolved', jsonb_build_object('status', CAST($3 AS varchar(16)), 'note', CAST($4 AS text)), 'human', CURRENT_TIMESTAMP)`, actorID, mismatchID, status, note)
 		return err
 	})
 }
