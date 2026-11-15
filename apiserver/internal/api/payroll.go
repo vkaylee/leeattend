@@ -447,7 +447,7 @@ type PayrollRepository interface {
 	CorrectPayrollInput(context.Context, ids.PayrollInputID, CorrectPayrollInputRequest, ids.UserID) (PayrollInput, error)
 	ListPayrollFormulaRules(context.Context) ([]PayrollFormulaRule, error)
 	ListPayrollFormulaRuleVersions(context.Context, uuid.UUID) ([]PayrollFormulaRuleVersion, error)
-	CreatePayrollFormulaRule(context.Context, CreatePayrollFormulaRuleRequest, uuid.UUID) (PayrollFormulaRule, error)
+	CreatePayrollFormulaRule(context.Context, CreatePayrollFormulaRuleRequest, ids.UserID) (PayrollFormulaRule, error)
 	CreatePayrollFormulaRuleVersion(context.Context, ids.PayrollFormulaRuleID, CreatePayrollFormulaRuleVersionRequest, ids.UserID) (PayrollFormulaRuleVersion, error)
 	PublishPayrollFormulaRule(context.Context, ids.PayrollFormulaRuleID, ids.UserID) (PayrollFormulaRule, error)
 	RetirePayrollFormulaRule(context.Context, ids.PayrollFormulaRuleID, ids.UserID) (PayrollFormulaRule, error)
@@ -1165,7 +1165,7 @@ func (h PayrollHandler) CreatePayrollFormulaRule(w http.ResponseWriter, r *http.
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}
-	rule, err := h.Repository.CreatePayrollFormulaRule(r.Context(), req, actorID)
+	rule, err := h.Repository.CreatePayrollFormulaRule(r.Context(), req, ids.UserID(actorID))
 	if err != nil {
 		h.writeError(w, r, err)
 		return

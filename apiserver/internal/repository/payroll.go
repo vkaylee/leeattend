@@ -1250,7 +1250,7 @@ ORDER BY r.code ASC`)
 	return result, rows.Err()
 }
 
-func (r PayrollRepository) CreatePayrollFormulaRule(ctx context.Context, req api.CreatePayrollFormulaRuleRequest, actorID uuid.UUID) (api.PayrollFormulaRule, error) {
+func (r PayrollRepository) CreatePayrollFormulaRule(ctx context.Context, req api.CreatePayrollFormulaRuleRequest, actorID ids.UserID) (api.PayrollFormulaRule, error) {
 	db, err := r.db(ctx)
 	if err != nil {
 		return api.PayrollFormulaRule{}, err
@@ -1262,13 +1262,13 @@ func (r PayrollRepository) CreatePayrollFormulaRule(ctx context.Context, req api
 	var result api.PayrollFormulaRule
 	err = service.WithTx(ctx, beginner, func(ctx context.Context, tx pgx.Tx) error {
 		ruleID := uuid.New()
-		if _, err := tx.Exec(ctx, `INSERT INTO payroll_formula_rules (id, code, name, component_code, created_by) VALUES ($1, $2, $3, $4, $5)`, ruleID, strings.TrimSpace(req.Code), strings.TrimSpace(req.Name), strings.TrimSpace(req.ComponentCode), actorID); err != nil {
+		if _, err := tx.Exec(ctx, `INSERT INTO payroll_formula_rules (id, code, name, component_code, created_by) VALUES ($1, $2, $3, $4, $5)`, ruleID, strings.TrimSpace(req.Code), strings.TrimSpace(req.Name), strings.TrimSpace(req.ComponentCode), uuid.UUID(actorID)); err != nil {
 			if isConflictError(err) {
 				return api.ErrConflict
 			}
 			return err
 		}
-		if err := tx.QueryRow(ctx, `INSERT INTO payroll_formula_rule_versions (rule_id, version_number, expression, effective_from, status, created_by) VALUES ($1, 1, $2, $3::date, 'draft', $4) RETURNING $5::uuid, $6::text, $7::text, $8::text, id, version_number, expression, effective_from::text, status`, ruleID, req.Expression, req.EffectiveFrom, actorID, ruleID, req.Code, req.Name, req.ComponentCode).Scan(
+		if err := tx.QueryRow(ctx, `INSERT INTO payroll_formula_rule_versions (rule_id, version_number, expression, effective_from, status, created_by) VALUES ($1, 1, $2, $3::date, 'draft', $4) RETURNING $5::uuid, $6::text, $7::text, $8::text, id, version_number, expression, effective_from::text, status`, ruleID, req.Expression, req.EffectiveFrom, uuid.UUID(actorID), ruleID, req.Code, req.Name, req.ComponentCode).Scan(
 			&result.ID, &result.Code, &result.Name, &result.ComponentCode, &result.VersionID, &result.Version, &result.Expression, &result.EffectiveFrom, &result.Status); err != nil {
 			return err
 		}

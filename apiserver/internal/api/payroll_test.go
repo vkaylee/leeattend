@@ -69,7 +69,7 @@ func (mockPayrollRepository) RetirePayrollFormulaRule(_ context.Context, ruleID 
 	return PayrollFormulaRule{ID: uuid.UUID(ruleID), Status: "retired"}, nil
 }
 
-func (mockPayrollRepository) CreatePayrollFormulaRule(_ context.Context, req CreatePayrollFormulaRuleRequest, _ uuid.UUID) (PayrollFormulaRule, error) {
+func (mockPayrollRepository) CreatePayrollFormulaRule(_ context.Context, req CreatePayrollFormulaRuleRequest, _ ids.UserID) (PayrollFormulaRule, error) {
 	return PayrollFormulaRule{ID: uuid.New(), Code: req.Code, Name: req.Name, ComponentCode: req.ComponentCode, Version: 1, Expression: req.Expression, EffectiveFrom: req.EffectiveFrom, Status: "draft"}, nil
 }
 
