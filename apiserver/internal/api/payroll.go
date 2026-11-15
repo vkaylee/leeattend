@@ -425,7 +425,7 @@ type PayrollRepository interface {
 	GetPayrollSettings(context.Context) (*PayrollSettings, error)
 	GetPayrollSettingsHistory(context.Context) ([]PayrollSettings, error)
 	UpdatePayrollSettings(context.Context, UpdatePayrollSettingsRequest) (PayrollSettings, error)
-	GetEmployeePayrollConfigs(context.Context, uuid.UUID) ([]EmployeePayrollConfig, error)
+	GetEmployeePayrollConfigs(context.Context, ids.EmployeeID) ([]EmployeePayrollConfig, error)
 	SetEmployeePayrollConfig(context.Context, ids.EmployeeID, SetEmployeePayrollConfigRequest, ids.UserID) (EmployeePayrollConfig, error)
 	GetIncentivePolicies(context.Context) ([]PayrollIncentivePolicyResponse, error)
 	CreateIncentivePolicy(context.Context, CreatePayrollIncentivePolicyRequest) (PayrollIncentivePolicy, error)
@@ -636,7 +636,7 @@ func (h PayrollHandler) GetEmployeePayrollConfig(w http.ResponseWriter, r *http.
 		h.forbidden(w, r)
 		return
 	}
-	configs, err := h.Repository.GetEmployeePayrollConfigs(r.Context(), empID)
+	configs, err := h.Repository.GetEmployeePayrollConfigs(r.Context(), ids.EmployeeID(empID))
 	if err != nil {
 		h.writeError(w, r, err)
 		return

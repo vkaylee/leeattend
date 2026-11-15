@@ -582,13 +582,13 @@ WHERE scope_type = 'organization' AND scope_id IS NULL AND config_key = $1 AND e
 	}, nil
 }
 
-func (r PayrollRepository) GetEmployeePayrollConfigs(ctx context.Context, employeeID uuid.UUID) ([]api.EmployeePayrollConfig, error) {
+func (r PayrollRepository) GetEmployeePayrollConfigs(ctx context.Context, employeeID ids.EmployeeID) ([]api.EmployeePayrollConfig, error) {
 	db, err := r.db(ctx)
 	if err != nil {
 		return nil, err
 	}
 	var empExists bool
-	if err := db.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM employees WHERE id = $1 AND deleted_at IS NULL)`, employeeID).Scan(&empExists); err != nil {
+	if err := db.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM employees WHERE id = $1 AND deleted_at IS NULL)`, uuid.UUID(employeeID)).Scan(&empExists); err != nil {
 		return nil, err
 	}
 	if !empExists {
