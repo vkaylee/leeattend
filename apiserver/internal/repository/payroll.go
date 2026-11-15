@@ -1132,7 +1132,7 @@ WHERE i.batch_id = $1 ORDER BY i.id ASC`, batchID)
 	return result, rows.Err()
 }
 
-func (r PayrollRepository) CorrectPayrollInput(ctx context.Context, inputID uuid.UUID, req api.CorrectPayrollInputRequest, actorID uuid.UUID) (api.PayrollInput, error) {
+func (r PayrollRepository) CorrectPayrollInput(ctx context.Context, inputID ids.PayrollInputID, req api.CorrectPayrollInputRequest, actorID ids.UserID) (api.PayrollInput, error) {
 	db, err := r.db(ctx)
 	if err != nil {
 		return api.PayrollInput{}, err
@@ -1146,7 +1146,7 @@ func (r PayrollRepository) CorrectPayrollInput(ctx context.Context, inputID uuid
 	err = service.WithTx(ctx, beginner, func(ctx context.Context, tx pgx.Tx) error {
 		var oldValue, oldUnit, oldStatus string
 		var batchStatus string
-		if err := tx.QueryRow(ctx, `SELECT i.value::text, i.unit, i.status, b.status FROM payroll_inputs i JOIN payroll_input_batches b ON b.id = i.batch_id WHERE i.id = $1 FOR UPDATE`, inputID).Scan(&oldValue, &oldUnit, &oldStatus, &batchStatus); err != nil {
+		if err := tx.QueryRow(ctx, `SELECT i.value::text, i.unit, i.status, b.status FROM payroll_inputs i JOIN payroll_input_batches b ON b.id = i.batch_id WHERE i.id = $1 FOR UPDATE`, uuid.UUID(inputID)).Scan(&oldValue, &oldUnit, &oldStatus, &batchStatus); err != nil {
 			if errors.Is(err, pgx.ErrNoRows) {
 				return api.ErrPayrollInputNotFound
 			}
@@ -1160,10 +1160,10 @@ func (r PayrollRepository) CorrectPayrollInput(ctx context.Context, inputID uuid
 		if err != nil {
 			return err
 		}
-		if _, err := tx.Exec(ctx, `INSERT INTO payroll_input_corrections (input_id, old_value, new_value, old_unit, new_unit, reason, corrected_by) VALUES ($1, $2, $3, $4, $5, $6, $7)`, inputID, oldDecimal.String(), req.Value.String(), oldUnit, strings.TrimSpace(req.Unit), strings.TrimSpace(req.Reason), actorID); err != nil {
+		if _, err := tx.Exec(ctx, `INSERT INTO payroll_input_corrections (input_id, old_value, new_value, old_unit, new_unit, reason, corrected_by) VALUES ($1, $2, $3, $4, $5, $6, $7)`, uuid.UUID(inputID), oldDecimal.String(), req.Value.String(), oldUnit, strings.TrimSpace(req.Unit), strings.TrimSpace(req.Reason), uuid.UUID(actorID)); err != nil {
 			return err
 		}
-		return tx.QueryRow(ctx, `UPDATE payroll_inputs SET value = $1, unit = $2, status = 'corrected', validation_message = NULL, corrected_at = CURRENT_TIMESTAMP, corrected_by = $3 WHERE id = $4 RETURNING id, employment_id, (SELECT code FROM payroll_metric_definitions WHERE id = metric_definition_id), value::text, unit, status, validation_message, source_reference`, req.Value.String(), strings.TrimSpace(req.Unit), actorID, inputID).Scan(&result.ID, &result.EmploymentID, &result.MetricCode, &correctedValue, &result.Unit, &result.Status, &result.ValidationMessage, &result.SourceReference)
+		return tx.QueryRow(ctx, `UPDATE payroll_inputs SET value = $1, unit = $2, status = 'corrected', validation_message = NULL, corrected_at = CURRENT_TIMESTAMP, corrected_by = $3 WHERE id = $4 RETURNING id, employment_id, (SELECT code FROM payroll_metric_definitions WHERE id = metric_definition_id), value::text, unit, status, validation_message, source_reference`, req.Value.String(), strings.TrimSpace(req.Unit), uuid.UUID(actorID), uuid.UUID(inputID)).Scan(&result.ID, &result.EmploymentID, &result.MetricCode, &correctedValue, &result.Unit, &result.Status, &result.ValidationMessage, &result.SourceReference)
 	})
 	if err != nil {
 		return api.PayrollInput{}, err

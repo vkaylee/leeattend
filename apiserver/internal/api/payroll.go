@@ -444,7 +444,7 @@ type PayrollRepository interface {
 	ApprovePayrollInputBatch(context.Context, ids.PayrollInputBatchID, ids.UserID) (PayrollInputBatch, error)
 	LockPayrollInputBatch(context.Context, ids.PayrollInputBatchID, ids.UserID) (PayrollInputBatch, error)
 	ListPayrollInputs(context.Context, uuid.UUID) ([]PayrollInput, error)
-	CorrectPayrollInput(context.Context, uuid.UUID, CorrectPayrollInputRequest, uuid.UUID) (PayrollInput, error)
+	CorrectPayrollInput(context.Context, ids.PayrollInputID, CorrectPayrollInputRequest, ids.UserID) (PayrollInput, error)
 	ListPayrollFormulaRules(context.Context) ([]PayrollFormulaRule, error)
 	ListPayrollFormulaRuleVersions(context.Context, uuid.UUID) ([]PayrollFormulaRuleVersion, error)
 	CreatePayrollFormulaRule(context.Context, CreatePayrollFormulaRuleRequest, uuid.UUID) (PayrollFormulaRule, error)
@@ -1323,7 +1323,7 @@ func (h PayrollHandler) CorrectPayrollInput(w http.ResponseWriter, r *http.Reque
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}
-	input, err := h.Repository.CorrectPayrollInput(r.Context(), inputID, req, actorID)
+	input, err := h.Repository.CorrectPayrollInput(r.Context(), ids.PayrollInputID(inputID), req, ids.UserID(actorID))
 	if err != nil {
 		h.writeError(w, r, err)
 		return

@@ -49,8 +49,8 @@ func (mockPayrollRepository) ListPayrollInputs(context.Context, uuid.UUID) ([]Pa
 	return []PayrollInput{}, nil
 }
 
-func (mockPayrollRepository) CorrectPayrollInput(_ context.Context, inputID uuid.UUID, req CorrectPayrollInputRequest, _ uuid.UUID) (PayrollInput, error) {
-	return PayrollInput{ID: inputID, Value: req.Value, Unit: req.Unit, Status: "corrected"}, nil
+func (mockPayrollRepository) CorrectPayrollInput(_ context.Context, inputID ids.PayrollInputID, req CorrectPayrollInputRequest, _ ids.UserID) (PayrollInput, error) {
+	return PayrollInput{ID: uuid.UUID(inputID), Value: req.Value, Unit: req.Unit, Status: "corrected"}, nil
 }
 
 func (mockPayrollRepository) ListPayrollCalculationRuns(context.Context, uuid.UUID, int, int) ([]PayrollCalculationRun, error) {
