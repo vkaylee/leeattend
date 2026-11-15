@@ -418,7 +418,7 @@ func (r AttendanceRepository) EnterPaperOT(ctx context.Context, employee uuid.UU
 		return api.AttendanceDailySummary{}, err
 	}
 	if err := guardLifecycleDateMutation(ctx, db, []uuid.UUID{employmentID}, []string{req.Date}); err != nil {
-		return api.AttendanceDailySummary{}, err
+		return api.AttendanceDailySummary{}, finishLifecycleMutationDB(ctx, db, err)
 	}
 	return upsertPaperOT(ctx, db, employmentID, req, user)
 }
@@ -487,7 +487,7 @@ func (r AttendanceRepository) BulkPaperOT(ctx context.Context, rows []api.BulkPa
 				return errors.New("no active employment found for employee")
 			}
 			if guardErr := guardLifecycleDateMutation(ctx, db, []uuid.UUID{employmentID}, []string{row.Date}); guardErr != nil {
-				return guardErr
+				return finishLifecycleMutationDB(ctx, db, guardErr)
 			}
 			_, upsertErr := upsertPaperOT(ctx, db, employmentID, api.PaperOTRequest{Date: row.Date, ClaimedMinutes: row.ClaimedMinutes, Reason: row.Reason}, user)
 			return upsertErr

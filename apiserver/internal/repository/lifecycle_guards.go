@@ -63,6 +63,10 @@ type lifecycleSchema struct {
 }
 
 func recordLegacyMutationEvidence(ctx context.Context, db DBTX, employmentIDs []uuid.UUID, dates []string, operation string) error {
+	if len(employmentIDs) == 0 && len(dates) == 0 {
+		_, err := db.Exec(ctx, `INSERT INTO schedule_legacy_mutation_evidence (employment_id, business_date, operation, details) VALUES (NULL, NULL, $1, jsonb_build_object('scope', 'global'))`, operation)
+		return err
+	}
 	if len(employmentIDs) == 0 || len(dates) == 0 {
 		return nil
 	}
@@ -171,7 +175,7 @@ func guardLifecycleGlobalMutation(ctx context.Context, db DBTX) error {
 	if !schema.complete() {
 		return ErrLifecycleSchemaUnavailable
 	}
-	return ErrLifecycleMutationBlocked
+	return blockedMutation(nil, nil)
 }
 
 func guardLifecyclePatternMutation(ctx context.Context, db DBTX, patternID uuid.UUID) error {
