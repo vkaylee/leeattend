@@ -73,6 +73,7 @@ type AttendanceSummaryRow struct {
 	UnitCoefficientHours float64    `json:"unit_coefficient_hours"`
 	ComputedStdHours     float64    `json:"computed_std_hours"`
 	ComputedOTHours      float64    `json:"computed_ot_hours"`
+	StandardCredits      float64    `json:"standard_credits"`
 	EmployerID           *uuid.UUID `json:"employer_id"`
 	EmployerName         *string    `json:"employer_name"`
 }
@@ -94,6 +95,7 @@ type DailyAttendanceRow struct {
 	ComputedOTHours   float64   `json:"computed_ot_hours"`
 	StdWorkUnits      float64   `json:"std_work_units"`
 	OTWorkUnits       float64   `json:"ot_work_units"`
+	StandardCredits   float64   `json:"standard_credits"`
 	OTClaimStatus     string    `json:"ot_claim_status"`
 	Status            string    `json:"status"`
 	Timezone          *string   `json:"timezone,omitempty"`

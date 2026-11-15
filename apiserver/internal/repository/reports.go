@@ -152,7 +152,8 @@ func (r ReportRepository) GetAttendanceReport(ctx context.Context, params api.At
        COALESCE(ads.standard_minutes, 0),
        COALESCE(ads.approved_ot_minutes, 0),
        COALESCE(ads.ot_status::text, 'none'),
-       COALESCE(hours.hours_per_day, 8.0)::double precision
+       COALESCE(hours.hours_per_day, 8.0)::double precision,
+       COALESCE(credits.minutes_per_credit, 0)::double precision
 FROM employments emp
 JOIN employees e ON e.id = emp.employee_id
 JOIN attendance_daily_summaries ads ON ads.employment_id = emp.id
@@ -172,6 +173,17 @@ LEFT JOIN LATERAL (
 	         ce.effective_from DESC, ce.created_at DESC, ce.id DESC
 	LIMIT 1
 ) hours ON TRUE
+LEFT JOIN LATERAL (
+	SELECT wc.minutes_per_credit
+	FROM labor_policy_memberships m
+	JOIN labor_policy_group_versions v ON v.group_id = m.group_id
+	JOIN work_credit_policies wc ON wc.id = v.work_credit_policy_id
+	WHERE m.employment_id = emp.id
+	  AND m.effective_from <= ads.date AND (m.effective_to IS NULL OR m.effective_to > ads.date)
+	  AND v.effective_from <= ads.date AND (v.effective_to IS NULL OR v.effective_to > ads.date)
+	ORDER BY v.effective_from DESC, v.id DESC
+	LIMIT 1
+) credits ON TRUE
 LEFT JOIN official_schedule os ON os.employment_id = emp.id AND os.business_date = ads.date
 LEFT JOIN time_entries te ON te.employment_id = emp.id AND te.punch_in_time::date = ads.date
 WHERE %s%s
@@ -189,12 +201,12 @@ LIMIT $%d OFFSET $%d`, whereClause, filterClause, argIndex, argIndex+1)
 		for rows.Next() {
 			var row api.DailyAttendanceRow
 			var actMins, stdMins, otMins int
-			var hoursPerDay float64
+			var hoursPerDay, minutesPerCredit float64
 			var shiftName, schedStart, schedEnd, punchIn, punchOut *string
 			var otStatus string
 			if err := rows.Scan(&row.Date, &row.EmploymentID, &row.EmployeeID, &row.EmployeeName, &row.EmployeeIDNumber,
 				&shiftName, &schedStart, &schedEnd, &punchIn, &punchOut,
-				&actMins, &stdMins, &otMins, &otStatus, &hoursPerDay); err != nil {
+				&actMins, &stdMins, &otMins, &otStatus, &hoursPerDay, &minutesPerCredit); err != nil {
 				return api.PaginatedReportResponse{}, err
 			}
 			row.ShiftName = shiftName
@@ -211,6 +223,9 @@ LIMIT $%d OFFSET $%d`, whereClause, filterClause, argIndex, argIndex+1)
 			}
 			row.StdWorkUnits = math.Round((float64(stdMins)/denominator)*100) / 100
 			row.OTWorkUnits = math.Round((float64(otMins)/denominator)*100) / 100
+			if minutesPerCredit > 0 {
+				row.StandardCredits = math.Round((float64(stdMins)/minutesPerCredit)*100) / 100
+			}
 			row.OTClaimStatus = otStatus
 			if actMins > 0 || stdMins > 0 || (punchIn != nil && punchOut != nil) {
 				row.Status = "present"
@@ -288,6 +303,7 @@ LIMIT $%d OFFSET $%d`, whereClause, filterClause, argIndex, argIndex+1)
        ROUND((COALESCE(SUM(ads.standard_minutes), 0)::numeric / 60.0), 2) AS computed_std_hours,
        ROUND((COALESCE(SUM(ads.approved_ot_minutes), 0)::numeric / 60.0), 2) AS computed_ot_hours,
        COALESCE(hours.hours_per_day, 8.0)::double precision AS unit_coefficient_hours,
+       ROUND(COALESCE(SUM(CASE WHEN credits.minutes_per_credit > 0 THEN ads.standard_minutes::numeric / credits.minutes_per_credit ELSE 0 END), 0), 2)::double precision AS standard_credits,
        emp.employer_id, em.name AS employer_name
 FROM employments emp
 JOIN employees e ON e.id = emp.employee_id
@@ -309,6 +325,17 @@ LEFT JOIN LATERAL (
 	LIMIT 1
 ) hours ON TRUE
 LEFT JOIN attendance_daily_summaries ads ON ads.employment_id = emp.id AND ads.date >= $1::date AND ads.date <= $2::date
+LEFT JOIN LATERAL (
+	SELECT wc.minutes_per_credit
+	FROM labor_policy_memberships m
+	JOIN labor_policy_group_versions v ON v.group_id = m.group_id
+	JOIN work_credit_policies wc ON wc.id = v.work_credit_policy_id
+	WHERE m.employment_id = emp.id
+	  AND m.effective_from <= ads.date AND (m.effective_to IS NULL OR m.effective_to > ads.date)
+	  AND v.effective_from <= ads.date AND (v.effective_to IS NULL OR v.effective_to > ads.date)
+	ORDER BY v.effective_from DESC, v.id DESC
+	LIMIT 1
+) credits ON TRUE
 		WHERE %s%s
 		GROUP BY emp.id, e.id, e.full_name, COALESCE(t.employee_number, e.employee_id_number), e.employee_id_number, emp.employer_id, em.name
 		ORDER BY e.full_name ASC
@@ -328,7 +355,7 @@ LEFT JOIN attendance_daily_summaries ads ON ads.employment_id = emp.id AND ads.d
 		if err := rows.Scan(&row.EmploymentID, &row.EmployeeID, &row.EmployeeName, &row.EmployeeIDNumber,
 			&row.TotalStdUnits, &row.TotalOTUnits,
 			&row.ComputedStdHours, &row.ComputedOTHours, &row.UnitCoefficientHours,
-			&row.EmployerID, &row.EmployerName); err != nil {
+			&row.StandardCredits, &row.EmployerID, &row.EmployerName); err != nil {
 			return api.PaginatedReportResponse{}, err
 		}
 		summaries = append(summaries, row)

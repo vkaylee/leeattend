@@ -186,6 +186,40 @@ func TestReportRepository_GetAttendanceReportDailyMapsOTClaimStatus(t *testing.T
 	}
 }
 
+func TestReportRepository_GetAttendanceReportDailyUsesEffectiveWorkCreditPolicy(t *testing.T) {
+	employmentID, employeeID := uuid.New(), uuid.New()
+	var dataQuery string
+	db := &fakeDBTX{
+		queryRowFn: func(_ context.Context, _ string, _ ...any) pgx.Row {
+			return fakeRow{scanFn: func(dest ...any) error { *(dest[0].(*int64)) = 1; return nil }}
+		},
+		queryFn: func(_ context.Context, query string, _ ...any) (pgx.Rows, error) {
+			dataQuery = query
+			return &reportRows{rows: [][]any{{
+				"2026-01-01", employmentID, employeeID, "Employee", "EMP01",
+				nil, nil, nil, nil, nil,
+				480, 480, 0, "approved", 8.0, 450.0,
+			}}}, nil
+		},
+	}
+	response, err := (ReportRepository{DB: db}).GetAttendanceReport(context.Background(), api.AttendanceReportFilter{
+		StartDate: "2026-01-01", EndDate: "2026-01-31", ReportType: "daily", Page: 1, Limit: 20,
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !strings.Contains(dataQuery, "JOIN work_credit_policies wc") || !strings.Contains(dataQuery, "m.effective_to IS NULL OR m.effective_to > ads.date") {
+		t.Fatalf("daily query must resolve effective work-credit policy: %s", dataQuery)
+	}
+	var rows []api.DailyAttendanceRow
+	if err := json.Unmarshal(response.Data, &rows); err != nil {
+		t.Fatalf("failed to decode daily rows: %v", err)
+	}
+	if len(rows) != 1 || rows[0].StandardCredits != 1.07 {
+		t.Fatalf("expected 1.07 policy credits, got %+v", rows)
+	}
+}
+
 func TestReportRepository_GetAttendanceReportDailyUsesEffectiveHoursForUnits(t *testing.T) {
 	employmentID, employeeID := uuid.New(), uuid.New()
 	db := &fakeDBTX{
@@ -202,7 +236,7 @@ func TestReportRepository_GetAttendanceReportDailyUsesEffectiveHoursForUnits(t *
 			return &reportRows{rows: [][]any{{
 				"2026-01-01", employmentID, employeeID, "Employee", "EMP01",
 				nil, nil, nil, nil, nil,
-				480, 480, 60, "approved", 6.0,
+				480, 480, 60, "approved", 6.0, 450.0,
 			}}}, nil
 		},
 	}
