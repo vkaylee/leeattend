@@ -1,5 +1,6 @@
 import { ChevronRight, ChevronDown, Folder as FolderIcon, MoreVertical, Plus, Edit2, Trash2 } from "lucide-react";
 import React, { useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import type { components } from "@/types/api-generated";
 
@@ -36,6 +37,7 @@ export function FolderTree({
   onRenameFolder,
   onDeleteFolder,
 }: FolderTreeProps) {
+  const { t } = useTranslation();
   const tree = useMemo(() => {
     const map = new Map<string, FolderNode>();
     const roots: FolderNode[] = [];
@@ -83,7 +85,7 @@ export function FolderTree({
       >
         <div className="flex items-center gap-2 text-sm font-semibold text-slate-700 dark:text-slate-300">
           <FolderIcon className="w-4 h-4 text-primary-500" />
-          <span>All Documents</span>
+          <span>{t("documents.all_documents", "Tất cả tài liệu")}</span>
         </div>
         {!!onCreateFolder && (
           <Button

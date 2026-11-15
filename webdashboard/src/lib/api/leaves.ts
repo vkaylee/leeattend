@@ -40,7 +40,7 @@ export async function fetchLeaveRequests(
     limit?: number;
   }
 ): Promise<PaginatedResponse<LeaveRequest>> {
-  const { data: resData } = await client.GET<PaginatedResponse<LeaveRequest>>("/api/v1/leave/requests", {
+  const { data: resData } = await client.GET<PaginatedResponse<LeaveRequest> | LeaveRequest[]>("/api/v1/leave/requests", {
     params: {
       query: {
         status: params?.status,
@@ -50,6 +50,9 @@ export async function fetchLeaveRequests(
       },
     },
   });
+  if (Array.isArray(resData)) {
+    return { data: resData, total: resData.length, page: params?.page ?? 1, limit: params?.limit ?? 20 };
+  }
   return resData;
 }
 

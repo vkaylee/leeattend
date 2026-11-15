@@ -59,7 +59,7 @@ describe("MembersPage", () => {
     });
     vi.mocked(api.fetchOrganizationMembers).mockResolvedValue([
         { workspace_id: "test-ws-id", user_id: "user-1", email: "owner@example.com", full_name: "Workspace Owner", role_id: "role-owner", extra_role_ids: [] },
-        { workspace_id: "test-ws-id", user_id: "user-2", email: "admin@example.com", full_name: "Admin User", role_id: "role-admin", extra_role_ids: [] }
+        { workspace_id: "test-ws-id", user_id: "user-2", email: "admin@example.com", full_name: "Admin User", role_id: "role-admin", extra_role_ids: null as unknown as string[] }
     ]);
     vi.mocked(api.fetchOrganizationRoles).mockResolvedValue([
       { id: "role-owner", name: "Owner", is_system: true, color: "rose", scope_type: "global", created_at: "", updated_at: "" },

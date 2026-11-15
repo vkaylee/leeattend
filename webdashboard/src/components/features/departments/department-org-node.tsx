@@ -45,7 +45,7 @@ const DepartmentNodeActions = ({
         <DropdownMenuTrigger asChild>
           <Button
             aria-label={t("departments.columns.actions")}
-            className="h-8 w-8 rounded-lg hover:text-primary-600 dark:hover:text-primary-400 border-none bg-transparent hover:bg-slate-50 dark:hover:bg-slate-800"
+            className="h-11 w-11 rounded-lg hover:text-primary-600 dark:hover:text-primary-400 border-none bg-transparent hover:bg-slate-50 dark:hover:bg-slate-800"
             icon={<MoreHorizontal size={14} />}
             size="sm"
             variant="outline"
@@ -250,7 +250,7 @@ export const DepartmentNode = ({ data }: { data: DepartmentNodeData }) => {
           aria-label={isCollapsed ? t("departments.expand_all") : t("departments.collapse_all")}
           className="
             absolute bottom-1.5 left-1/2 -translate-x-1/2 translate-y-1/2 z-20 
-            w-6 h-6 min-w-0 p-0 rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700
+            h-11 w-11 min-w-0 rounded-full bg-white p-0 dark:bg-slate-800 border border-slate-200 dark:border-slate-700
             flex items-center justify-center text-slate-500 dark:text-slate-400 shadow-sm
             hover:border-primary-500 hover:text-primary-500 transition-all cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary-500
           "

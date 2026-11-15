@@ -2,8 +2,10 @@ import type { TFunction } from "i18next";
 
 import {
   Background,
+  ControlButton,
   Controls,
   MiniMap,
+  useReactFlow,
   ReactFlow,
   type Edge,
   type Node
@@ -102,6 +104,23 @@ interface DepartmentOrgDesktopChartProps {
   treeRoots: TreeNode[];
 }
 
+const DepartmentOrgFlowControls = ({ t }: { t: TFunction }) => {
+  const { fitView, zoomIn, zoomOut } = useReactFlow();
+  return (
+    <Controls aria-label="Điều khiển sơ đồ tổ chức" className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl" showFitView={false} showInteractive={false} showZoom={false}>
+      <ControlButton aria-label={t("common.zoom_in", { defaultValue: "Phóng to" })} className="!h-11 !w-11" onClick={() => { void zoomIn(); }} title={t("common.zoom_in", { defaultValue: "Phóng to" })}>
+        <span aria-hidden="true">+</span>
+      </ControlButton>
+      <ControlButton aria-label={t("common.zoom_out", { defaultValue: "Thu nhỏ" })} className="!h-11 !w-11" onClick={() => { void zoomOut(); }} title={t("common.zoom_out", { defaultValue: "Thu nhỏ" })}>
+        <span aria-hidden="true">−</span>
+      </ControlButton>
+      <ControlButton aria-label={t("common.zoom_reset", { defaultValue: "Đặt lại thu phóng" })} className="!h-11 !w-11" onClick={() => { void fitView(); }} title={t("common.zoom_reset", { defaultValue: "Đặt lại thu phóng" })}>
+        <span aria-hidden="true">⌂</span>
+      </ControlButton>
+    </Controls>
+  );
+};
+
 const DepartmentOrgDesktopChart = ({
   rfEdges,
   rfNodes,
@@ -133,7 +152,7 @@ const DepartmentOrgDesktopChart = ({
       proOptions={{ hideAttribution: true }}
     >
       <Background color="#cbd5e1" gap={24} size={1.5} />
-      <Controls className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl" showInteractive={false} />
+      <DepartmentOrgFlowControls t={t} />
       <MiniMap 
         className="bg-white/80 dark:bg-slate-900/80 backdrop-blur border border-slate-200 dark:border-slate-800 rounded-2xl hidden lg:block"
         maskColor="rgba(0, 0, 0, 0.05)"

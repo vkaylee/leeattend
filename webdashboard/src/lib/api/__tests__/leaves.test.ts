@@ -108,6 +108,18 @@ describe("leaves API", () => {
     expect(result).toEqual(mock);
   });
 
+  it("fetchLeaveRequests: normalizes legacy array response", async () => {
+    const mock = [{ id: "lr-legacy" }];
+    vi.mocked(apiFetch).mockResolvedValueOnce(okRes(mock));
+
+    await expect(fetchLeaveRequests({ page: 2, limit: 20 })).resolves.toEqual({
+      data: mock,
+      total: 1,
+      page: 2,
+      limit: 20,
+    });
+  });
+
   it("fetchLeaveRequests: employee_id 'all' becomes undefined", async () => {
     vi.mocked(apiFetch).mockResolvedValueOnce(okRes({ data: [], total: 0 }));
     await fetchLeaveRequests({ employee_id: "all" });

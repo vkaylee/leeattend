@@ -65,7 +65,7 @@ export function useLeaveRequests() {
       });
     },
     getNextPageParam: (lastPage, allPages) => {
-      const totalLoaded = allPages.reduce((sum, p) => sum + p.data.length, 0);
+      const totalLoaded = allPages.reduce((sum, p) => sum + (p.data?.length ?? 0), 0);
       return totalLoaded >= lastPage.total ? undefined : allPages.length + 1;
     },
     initialPageParam: 1,

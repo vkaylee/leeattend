@@ -122,6 +122,8 @@
     "collapse": "Collapse",
     "collapse_all": "Collapse All",
     "collapse_sidebar": "Collapse Sidebar",
+    "previous_year": "Previous year",
+    "next_year": "Next year",
     "optional": "Optional",
     "enabled": "Enabled",
     "colors": {
@@ -1911,6 +1913,7 @@
     "upload_failed": "Upload failed."
   },
   "documents": {
+    "all_documents": "All Documents",
     "loading_securely": "Loading document securely...",
     "preview_not_available": "Preview Not Available",
     "preview_not_supported_desc": "This file type ({{mimeType}}) cannot be previewed directly in the browser. Please download it to view its contents.",

@@ -122,6 +122,8 @@
     "collapse": "Thu gọn",
     "collapse_all": "Thu gọn tất cả",
     "collapse_sidebar": "Thu gọn menu",
+    "previous_year": "Năm trước",
+    "next_year": "Năm sau",
     "optional": "Tùy chọn",
     "enabled": "Đã bật",
     "colors": {
@@ -1911,6 +1913,7 @@
     "upload_failed": "Tải lên thất bại."
   },
   "documents": {
+    "all_documents": "Tất cả tài liệu",
     "loading_securely": "Đang tải tài liệu bảo mật...",
     "preview_not_available": "Xem trước không khả dụng",
     "preview_not_supported_desc": "Loại tệp này ({{mimeType}}) không thể xem trực tiếp trên trình duyệt. Vui lòng tải xuống để xem nội dung.",

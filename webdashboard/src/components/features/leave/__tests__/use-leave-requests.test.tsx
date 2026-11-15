@@ -78,6 +78,19 @@ describe("useLeaveRequests - Persistent Banner Dismiss", () => {
     localStorageMock.clear();
   });
 
+  it("does not crash when leave API omits data from a page", async () => {
+    vi.mocked(api.fetchLeaveRequests).mockResolvedValue({ total: 0, page: 1, limit: 20 } as unknown as api.PaginatedResponse<api.LeaveRequest>);
+
+    const { result } = renderHook(() => useLeaveRequests(), {
+      wrapper: createWrapper(),
+    });
+
+    await waitFor(() => {
+      expect(result.current.requests).toEqual([]);
+      expect(result.current.hasNextPage).toBe(false);
+    });
+  });
+
   it("should show import banner if job is not dismissed in localStorage", async () => {
     const mockJob = {
       id: "job-123",
