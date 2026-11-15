@@ -333,6 +333,16 @@ func TestScheduleHandler_PublishRequiresIdempotencyKey(t *testing.T) {
 	}
 }
 
+func TestScheduleHandler_LifecycleValidationErrorsReturn400(t *testing.T) {
+	handler := ScheduleHandler{}
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/schedules/publish", nil)
+	rec := httptest.NewRecorder()
+	handler.writeLifecycleError(rec, req, ErrScheduleValidation)
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("validation status=%d want 400", rec.Code)
+	}
+}
+
 func TestScheduleHandler_LifecycleReplayForbiddenReturns403(t *testing.T) {
 	handler := ScheduleHandler{}
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/schedules/publish", nil)

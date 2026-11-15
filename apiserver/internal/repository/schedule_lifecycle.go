@@ -1243,26 +1243,26 @@ func jsonArg(value any) []byte {
 
 func validatePublishInput(key string, request api.SchedulePublishRequest) error {
 	if strings.TrimSpace(key) == "" || len(key) > 128 || !isASCIIKey(key) || request.PreviewID == uuid.Nil || !isHash(request.PreviewHash) || strings.TrimSpace(request.Reason) == "" || len(request.EmploymentIDs) == 0 {
-		return errors.New("invalid schedule publication request")
+		return api.ErrScheduleValidation
 	}
 	if _, err := time.Parse("2006-01-02", request.StartDate); err != nil {
-		return err
+		return api.ErrScheduleValidation
 	}
 	if _, err := time.Parse("2006-01-02", request.EndDate); err != nil {
-		return err
+		return api.ErrScheduleValidation
 	}
 	if _, err := time.LoadLocation(request.Timezone); err != nil {
-		return err
+		return api.ErrScheduleValidation
 	}
 	return nil
 }
 
 func validateReplanInput(employmentID uuid.UUID, businessDate string, request api.ScheduleReplanPreviewRequest) error {
 	if employmentID == uuid.Nil || request.ExpectedRevision <= 0 || len(strings.TrimSpace(request.Reason)) == 0 || len(strings.TrimSpace(request.Reason)) > 2000 || !validReplacementShape(request.Replacement) {
-		return errors.New("invalid schedule replan request")
+		return api.ErrScheduleValidation
 	}
 	if _, err := time.Parse("2006-01-02", businessDate); err != nil {
-		return err
+		return api.ErrScheduleValidation
 	}
 	return nil
 }
@@ -1272,7 +1272,7 @@ func validateCommitReplanInput(employmentID uuid.UUID, businessDate, key string,
 		return err
 	}
 	if strings.TrimSpace(key) == "" || len(key) > 128 || !isASCIIKey(key) || request.PreviewID == uuid.Nil || !isHash(request.PreviewHash) || !isHash(request.ConfirmDiffHash) {
-		return errors.New("invalid schedule replan commit request")
+		return api.ErrScheduleValidation
 	}
 	return nil
 }
