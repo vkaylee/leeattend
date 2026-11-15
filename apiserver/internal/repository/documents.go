@@ -151,16 +151,24 @@ func (r DocumentRepository) GetTemplateVariables(ctx context.Context, employeeID
 		return vars, nil
 	}
 
-	var fullName, empNum string
-	if err := db.QueryRow(ctx, `SELECT full_name, employee_id_number FROM employees WHERE id = $1 AND deleted_at IS NULL`, employeeID).Scan(&fullName, &empNum); err == nil {
+	var fullName string
+	if err := db.QueryRow(ctx, `SELECT full_name FROM employees WHERE id = $1 AND deleted_at IS NULL`, employeeID).Scan(&fullName); err == nil {
 		vars["EMPLOYEE_NAME"] = fullName
-		vars["EMPLOYEE_ID_NUMBER"] = empNum
 	}
 
 	var empID uuid.UUID
 	var jobTitle *string
 	var startDate time.Time
-	if err := db.QueryRow(ctx, `SELECT id, job_title, start_date FROM employments WHERE employee_id = $1 AND deleted_at IS NULL ORDER BY (CASE WHEN status = 'active' THEN 0 ELSE 1 END), start_date DESC LIMIT 1`, employeeID).Scan(&empID, &jobTitle, &startDate); err == nil {
+	var empNum string
+	if err := db.QueryRow(ctx, `SELECT em.id, em.job_title, em.start_date, COALESCE(t.employee_number, e.employee_id_number)
+		FROM employments em
+		JOIN employees e ON e.id = em.employee_id AND e.deleted_at IS NULL
+		LEFT JOIN employment_relationships er ON er.id = em.relationship_id AND er.employee_id = em.employee_id
+		LEFT JOIN employee_tenures t ON t.id = er.tenure_id AND t.employee_id = e.id AND t.deleted_at IS NULL
+			AND t.start_date <= em.start_date AND (t.end_date IS NULL OR t.end_date >= em.start_date)
+		WHERE em.employee_id = $1 AND em.deleted_at IS NULL
+		ORDER BY (CASE WHEN em.status = 'active' THEN 0 ELSE 1 END), em.start_date DESC LIMIT 1`, employeeID).Scan(&empID, &jobTitle, &startDate, &empNum); err == nil {
+		vars["EMPLOYEE_ID_NUMBER"] = empNum
 		vars["HIRE_DATE"] = startDate.Format("02/01/2006")
 		if jobTitle != nil && *jobTitle != "" {
 			vars["JOB_TITLE"] = *jobTitle
