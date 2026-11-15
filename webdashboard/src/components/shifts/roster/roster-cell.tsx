@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next";
 import type { Shift } from "@/lib/api/types";
 
 import { ScheduleTracePopover } from "../schedule-trace-popover";
-import { getCellStyles, getHighestPrioritySource, getShiftSymbol } from "./roster-utils";
+import { getCellStyles, getHighestPrioritySource, getScheduleLifecycleCellState, getShiftSymbol } from "./roster-utils";
 
 interface RosterCellProps {
   complianceStatus?: "ok" | "warning" | "violation";
@@ -16,7 +16,7 @@ interface RosterCellProps {
   status?: "saving" | "saved" | "error";
 }
 
-function CellOverlays({ status, complianceStatus, isHoliday, holidayName, hasTraces, workingSchedules, shifts, highestSource, allTraces }: {
+function CellOverlays({ status, complianceStatus, isHoliday, holidayName, hasTraces, workingSchedules, shifts, highestSource, allTraces, lifecycleState }: {
   status?: "saving" | "saved" | "error";
   complianceStatus?: "ok" | "warning" | "violation";
   isHoliday: boolean;
@@ -26,6 +26,7 @@ function CellOverlays({ status, complianceStatus, isHoliday, holidayName, hasTra
   shifts?: Shift[];
   highestSource?: string;
   allTraces: import("@/lib/api/types").ScheduleTrace[];
+  lifecycleState: ReturnType<typeof getScheduleLifecycleCellState>;
 }) {
   const { t } = useTranslation();
   return (
@@ -60,6 +61,9 @@ function CellOverlays({ status, complianceStatus, isHoliday, holidayName, hasTra
       {hasTraces ? (
         <TracePopoverOverlay schedules={workingSchedules} shifts={shifts} source={highestSource ?? "none"} traces={allTraces} />
       ) : null}
+      {lifecycleState !== "published" && lifecycleState !== "draft" ? (
+        <span className="sr-only">{lifecycleState}</span>
+      ) : null}
     </>
   );
 }
@@ -79,15 +83,17 @@ export function RosterCellContent({
 }: RosterCellContentProps) {
   const workingSchedules = daySchedules.filter((s) => s.shift_id);
   const hasShift = workingSchedules.length > 0;
+  const lifecycleState = getScheduleLifecycleCellState(daySchedules);
   const isHoliday = daySchedules.some((s) => s.is_holiday);
   const holidayName = daySchedules.find((s) => s.holiday_name)?.holiday_name ?? undefined;
   const highestSource = getHighestPrioritySource(daySchedules);
   const allTraces = daySchedules.flatMap((s) => s.traces ?? []);
   const hasTraces = allTraces.length > 0;
 
+  const { t } = useTranslation();
   return (
     <div className="py-2.5 px-1 min-h-[44px] flex flex-col justify-center items-center gap-1">
-      <ShiftContent hasShift={hasShift} shifts={shifts} workingSchedules={workingSchedules} />
+      <ShiftContent hasShift={hasShift} lifecycleState={lifecycleState} shifts={shifts} workingSchedules={workingSchedules} stateLabel={t(`scheduleLifecycle.states.${lifecycleState}`)} />
 
       <SourceIndicator source={highestSource} />
 
@@ -101,6 +107,7 @@ export function RosterCellContent({
         shifts={shifts}
         status={status}
         workingSchedules={workingSchedules}
+        lifecycleState={lifecycleState}
       />
     </div>
   );
@@ -149,12 +156,16 @@ function ShiftContent({
   hasShift,
   shifts,
   workingSchedules,
+  lifecycleState,
+  stateLabel,
 }: {
   hasShift: boolean;
   shifts: Shift[] | undefined;
   workingSchedules: import("@/lib/api/types").EffectiveSchedule[];
+  lifecycleState: ReturnType<typeof getScheduleLifecycleCellState>;
+  stateLabel: string;
 }) {
-  if (!hasShift) return <span className="text-[10px] text-slate-350 dark:text-slate-600 font-bold">—</span>;
+  if (!hasShift) return <span aria-label={stateLabel} className={`text-[10px] font-bold ${lifecycleState === "missing" ? "text-rose-500" : lifecycleState === "explicit_off" ? "text-slate-500" : "text-slate-350 dark:text-slate-600"}`}>{lifecycleState === "missing" ? "?" : "—"}</span>;
   return (
     <div className="flex flex-col gap-1 items-center">
       {workingSchedules.slice(0, 3).map((s, idx) => {

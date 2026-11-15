@@ -3,6 +3,7 @@ import { describe, it, expect } from "vitest";
 import {
   getCellStyles,
   getHighestPrioritySource,
+  getScheduleLifecycleCellState,
   getShiftSymbol,
   isWeekend,
   orderSchedulesBySelection,
@@ -66,6 +67,17 @@ describe("getShiftSymbol", () => {
 
   it("handles single-char shift name", () => {
     expect(getShiftSymbol("A")).toBe("A");
+  });
+});
+
+describe("getScheduleLifecycleCellState", () => {
+  it("keeps explicit off distinct from missing", () => {
+    expect(getScheduleLifecycleCellState([{ source: "roster", schedule_status: "explicit_off" }] as any)).toBe("explicit_off");
+    expect(getScheduleLifecycleCellState([])).toBe("missing");
+  });
+
+  it("uses closed state before rendering an empty cell", () => {
+    expect(getScheduleLifecycleCellState([{ source: "roster", closed: true }] as any)).toBe("closed");
   });
 });
 

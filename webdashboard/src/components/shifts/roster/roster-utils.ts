@@ -61,6 +61,21 @@ const SOURCE_PRIORITY = [
   "department_fixed",
 ] as const;
 
+/** Resolve official lifecycle state for a cell, including empty missing days. */
+export type ScheduleLifecycleCellState = "published" | "explicit_off" | "missing" | "closed" | "draft" | "conflict" | "legacy_unverified";
+
+export function getScheduleLifecycleCellState(
+  schedules: EffectiveSchedule[],
+): ScheduleLifecycleCellState {
+  const state = schedules.find((schedule) => schedule.schedule_status)?.schedule_status;
+  if (state === "published" || state === "explicit_off" || state === "missing" || state === "closed" || state === "draft" || state === "conflict" || state === "legacy_unverified") {
+    return state;
+  }
+  if (schedules.some((schedule) => schedule.closed)) return "closed";
+  if (schedules.some((schedule) => schedule.shift_id)) return "published";
+  return "missing";
+}
+
 /** Get the highest-priority source from a list of schedules */
 export const getHighestPrioritySource = (
   schedules: EffectiveSchedule[],
