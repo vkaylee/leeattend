@@ -2,7 +2,7 @@
 
 | Property | Value |
 |---|---|
-| Status | Accepted for planning; implementation not started |
+| Status | Accepted; implementation in progress, production activation pending |
 | Date | 2026-11-13 |
 | Owner | LeeAttend backend and attendance domain owners |
 | Scope | Schedule preview, publication, amendment, attendance closure, and official schedule consumers |
@@ -159,4 +159,4 @@ After official publication or closure evidence exists, do not down-migrate, dele
 
 ## Verification gate
 
-Implementation is incomplete until repository-wrapper tests cover resolver semantics, migration up/down boundaries, publication atomicity, audit failure rollback, idempotency, concurrency, authorization scope, immutable segments, closure snapshots, payroll dependency, late punches, legacy writer bypass, outbox retry/dead-letter recovery, API contracts, frontend states, and the complete preview → publish → amend → close → reopen → reclose → evidence chain. Unit-only success is insufficient; integration and full-suite phases are required.
+Implementation remains incomplete until repository-wrapper tests cover resolver semantics, migration up/down boundaries, publication atomicity, audit failure rollback, idempotency, concurrency, authorization scope, immutable segments, closure snapshots, payroll dependency, late punches, legacy writer bypass, outbox retry/dead-letter recovery, API contracts, frontend states, and the complete preview → publish → amend → close → reopen → reclose → evidence chain. Existing focused tests prove foundation only; unit-only success is insufficient, and integration, role-scoped E2E and full-suite phases are required.

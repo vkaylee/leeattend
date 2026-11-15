@@ -1,6 +1,6 @@
 # Schedule Lifecycle Implementation Specification
 
-Status: Architecture direction approved — 2026-11-14. Detailed specification, including §§17–18 updates, awaits implementation review; no implementation authorized.
+Status: Architecture direction approved — 2026-11-14. Implementation in progress. Backend foundation is present; detailed acceptance, consumer cutover and production activation remain pending.
 
 ## 1. Goal và non-goals
 
@@ -12,7 +12,7 @@ Non-goals:
 - Không coi thiếu lịch là ngày nghỉ.
 - Không dùng notification delivery hoặc acknowledgement làm bằng chứng publication.
 
-Planning only. Chưa có bảng/API/permission nào dưới đây trong source hiện tại trừ các reuse point được ghi rõ.
+Implementation tracking. Tables, APIs, permissions and workers from this specification now exist in multiple phases; each acceptance row remains unverified until its required runtime evidence is recorded.
 
 ## 2. Locked decisions and terms
 
@@ -70,7 +70,7 @@ Planning only. Chưa có bảng/API/permission nào dưới đây trong source h
 | Baseline `apiserver/migrations/20261110000000_single_organization_baseline` | Existing `work_segments`, `shift_rosters`, `shift_versions`, `attendance_daily_summaries`, `audit_logs`, `outbox_jobs`; no lifecycle tables | Never edit baseline; use additive migration |
 | `apiserver/migrations/20261112030000_payroll_periods` | Additive payroll table with guarded down migration | Follow same marker/up/down/rollback boundary pattern |
 
-Current source does not contain official schedule, attendance closure, schedule publisher, or outbox consumer. These are planned additions, not existing capabilities.
+Current source contains official schedule, attendance closure, schedule publisher and outbox worker foundations. Their complete consumer cutover, live wiring and acceptance evidence remain implementation work; do not treat their presence as production activation.
 
 ## 4. Domain model and invariants
 

@@ -1,9 +1,9 @@
 # Hybrid Schedule Lifecycle
 
-Status: Architecture direction approved — 2026-11-14. Detailed plan/spec updated for review; chưa cho phép triển khai.
+Status: Architecture direction approved — 2026-11-14. Implementation in progress; backend lifecycle foundation exists, full acceptance and production cutover remain pending.
 
 ## Decision và scope
-**Planning only; chưa cho phép triển khai.** [Đặc tả triển khai](schedule-lifecycle-spec.md) mô tả schema, API, quyền, transaction, cutover và acceptance; §17 chi tiết hướng long-term đã đồng ý và các contract delta cần review trước code.
+**Implementation tracking.** [Đặc tả triển khai](schedule-lifecycle-spec.md) mô tả schema, API, quyền, transaction, cutover và acceptance. Backend foundation đã được triển khai theo từng phase; full acceptance, consumer cutover, role E2E và production activation vẫn là điều kiện bắt buộc trước khi đánh dấu hoàn tất.
 
 Hybrid: dùng lại `resolveEffectiveShift` cho preview và publication; hành chính tự công bố theo policy đã duyệt, ca xoay công bố batch. Official theo `employment_id + business_date`, current head rõ ràng, revision bất biến; reuse `work_segments` cho toàn bộ interval. Sửa ca tạo revision mới, bắt buộc reason/diff; không giả thời điểm publication; công bố muộn có quyền/reason/nhãn retroactive, không xóa punches/evidence. Missing khác explicit off. Chốt công theo employer/tháng; reuse `payroll_periods` làm khóa lương riêng. Dữ liệu muộn vẫn nhận, không tự sửa kết quả đã chốt. Không thêm service, resolver thứ hai hay event-sourcing platform.
 
@@ -72,4 +72,4 @@ Các phát hiện dưới đây từ khảo sát source trước đó, chưa tá
 ## Done criteria
 Office auto publish, rotating batch, amendment, close, authorized reopen/reclose và evidence export đạt acceptance matrix và H1–H11/L1–L12/B1–B10 đã duyệt. Mọi revision/closure cũ tái hiện được sau thay đổi nguồn; không double-count interval/employer, không bypass guard, không mất raw data. Reconciliation đủ coverage, không còn writer/reader legacy hoạt động trong scope đã bật. Mỗi H-ID phải có bằng chứng kiểm thử hành vi, không chỉ test mock query hoặc sự tồn tại của bảng/field.
 
-Tài liệu chưa phải bằng chứng triển khai: chưa code, chưa migration, chưa runtime test. Kiểm tra tài liệu duy nhất: `git diff --check -- schedule-lifecycle.md schedule-lifecycle-spec.md`.
+Tài liệu không thay thế bằng chứng runtime. Backend foundation, migrations và focused tests đã tồn tại trong repository; các gate còn mở phải có test/integration/E2E evidence riêng. Kiểm tra tài liệu: `git diff --check -- schedule-lifecycle.md schedule-lifecycle-spec.md`.
