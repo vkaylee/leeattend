@@ -62,7 +62,7 @@ function useAssignmentForm({
   const createAssignment = useCreateEmployeeAssignment();
   const updateAssignment = useUpdateEmployeeAssignment();
   const { data: locations, isError: locationsUnavailable } = useLocations();
-  const { employees } = useAllEmployees({ enabled: isOpen && !employeeId });
+  const { employees = [] } = useAllEmployees({ enabled: isOpen && !employeeId });
   const targetInitialEmployeeId = editingAssignment?.employee_id ?? employeeId ?? "";
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>(targetInitialEmployeeId);
   const [prevOpenState, setPrevOpenState] = useState({ editingAssignment, isOpen });

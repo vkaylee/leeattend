@@ -1,6 +1,7 @@
 {
   "common": {
     "actions": "Thao tác",
+    "breadcrumb": "Breadcrumb",
     "active": "Hiện tại",
     "add": "Thêm",
     "add_new": "Thêm mới",

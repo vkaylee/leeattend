@@ -1,6 +1,7 @@
 {
   "common": {
     "actions": "Actions",
+    "breadcrumb": "Breadcrumb",
     "active": "Active",
     "add": "Add",
     "add_new": "Add New",

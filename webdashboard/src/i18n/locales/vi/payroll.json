@@ -307,6 +307,7 @@
       "publish": "Phát hành",
       "retire": "Ngừng sử dụng",
       "action_conflict": "Trạng thái công thức đã thay đổi. Hãy tải lại lịch sử và thử lại.",
+      "retired_read_only": "Công thức đã ngừng sử dụng và chỉ được đọc.",
       "title": "Lịch sử công thức"
     },
     "calculation_trace": {

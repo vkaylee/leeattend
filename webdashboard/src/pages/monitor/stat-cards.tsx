@@ -100,8 +100,8 @@ export function MonitorStatCards({ isLoading, stats, t }: MonitorStatCardsProps)
   const utilization = activeWorkers != null && totalWorkers != null && totalWorkers > 0
     ? Math.round((activeWorkers / totalWorkers) * 100)
     : null;
-  const utilizationThreshold = stats?.thresholds.worker_utilization;
-  const queueThreshold = stats?.thresholds.queue_pressure;
+  const utilizationThreshold = stats?.thresholds?.worker_utilization;
+  const queueThreshold = stats?.thresholds?.queue_pressure;
   const thresholdUnavailable = t("monitor.threshold_unavailable", { defaultValue: "Unavailable" });
   const utilizationThresholdText = utilizationThreshold && utilizationThreshold.source !== "unavailable"
     ? t("monitor.percent_threshold", { defaultValue: "Warn {{warning}}% · critical {{critical}}%", warning: utilizationThreshold.warning_at_percent, critical: utilizationThreshold.critical_at_percent })

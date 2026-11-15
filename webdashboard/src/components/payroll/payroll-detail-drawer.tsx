@@ -123,7 +123,7 @@ export default function PayrollDetailDrawer({
   const activeEmployment = employments.find(emp => emp.id === employee.active_employment_id) ?? employments[0];
   const hireDate = maybeNull(activeEmployment)?.start_date ?? "—";
   const latestPayslip = payslips[0];
-  const tracePeriod = new Date(latestPayslip.period_start);
+  const tracePeriod = latestPayslip ? new Date(latestPayslip.period_start) : null;
 
   return (
     <Dialog.Root onOpenChange={onClose} open={isOpen}>
@@ -183,7 +183,7 @@ export default function PayrollDetailDrawer({
                     organization={organization}
                     payslips={payslips}
                   />
-                  {!Number.isNaN(tracePeriod.getTime()) ? (
+                  {tracePeriod && !Number.isNaN(tracePeriod.getTime()) ? (
                     <CalculationTrace
                       employmentId={activeEmployment.id}
                       month={tracePeriod.getUTCMonth() + 1}

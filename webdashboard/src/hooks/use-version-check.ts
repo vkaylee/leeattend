@@ -81,7 +81,7 @@ async function fetchServerBuildId(): Promise<string | null> {
       headers: { "Cache-Control": "no-cache" },
     });
     if (!res.ok) return null;
-    const contentType = res.headers.get("content-type");
+    const contentType = res.headers?.get?.("content-type");
     if (contentType && !contentType.includes("application/json")) {
       return null;
     }

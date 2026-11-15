@@ -149,7 +149,7 @@ export function JobsTable({ uniqueTypes, t }: JobsTableProps) {
   const durableJobs = useMemo(() => {
     const jobsById = new Map<string, MonitorInfraJobRecord>();
     for (const page of data?.pages ?? []) {
-      if (page.durable_jobs.status !== "available") continue;
+      if (page.durable_jobs?.status !== "available") continue;
       for (const job of page.durable_jobs.jobs ?? []) {
         jobsById.set(job.job_id, job);
       }

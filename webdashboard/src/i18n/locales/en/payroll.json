@@ -307,6 +307,7 @@
       "publish": "Publish",
       "retire": "Retire",
       "action_conflict": "Formula status changed. Refresh history and retry.",
+      "retired_read_only": "This formula is retired and read-only.",
       "title": "Formula history"
     },
     "calculation_trace": {

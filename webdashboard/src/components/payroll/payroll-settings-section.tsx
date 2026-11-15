@@ -37,6 +37,7 @@ export default function PayrollSettingsSection() {
  
     } catch (error: unknown) {
       toast.error(error instanceof Error ? error.message : t("common.error"));
+      throw error;
     }
   };
 

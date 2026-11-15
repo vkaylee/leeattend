@@ -48,7 +48,7 @@ export function useEmployeeSearch({
       return res ?? { data: [], limit: 50, page: pageParam, total: 0 };
     },
     getNextPageParam: (lastPage, allPages) => {
-      const totalLoaded = allPages.reduce((sum, p) => sum + p.data.length, 0);
+      const totalLoaded = allPages.reduce((sum, p) => sum + (Array.isArray(p.data) ? p.data.length : 0), 0);
       if (totalLoaded >= lastPage.total) return undefined;
       return allPages.length + 1;
     },
