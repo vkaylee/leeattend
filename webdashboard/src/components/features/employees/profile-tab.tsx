@@ -251,6 +251,7 @@ export default function ProfileTab({
                                 <dl className="mt-3 grid gap-2 text-sm sm:grid-cols-3">
                                     <div><dt className="text-slate-500">{t("employees.details.employment_id", "Employment ID")}</dt><dd className="font-mono text-xs">{employment.id}</dd></div>
                                     <div><dt className="text-slate-500">{t("employees.details.employer", "Employer")}</dt><dd>{employerNames.get(employment.employer_id) ?? (employersLoading ? t("common.loading", "Loading") : employersError ? t("common.error", "Unable to load") : "—")}</dd></div>
+                                    <div><dt className="text-slate-500">{t("employees.details.account_status", "Account")}</dt><dd>{index === tenureHistory.length - 1 ? (linkedUser ? t("employees.details.account_linked", "Linked") : employee.user_id ? t("common.loading", "Loading") : t("employees.details.account_unlinked", "Not linked")) : t("employees.details.historical_account", "Historical access isolated")}</dd></div>
                                     <div><dt className="text-slate-500">{t("employees.details.start_date", "Bắt đầu")}</dt><dd>{formatDate(employment.start_date)}</dd></div>
                                     <div><dt className="text-slate-500">{t("employees.details.end_date", "Kết thúc")}</dt><dd>{employment.end_date ? formatDate(employment.end_date) : "—"}</dd></div>
                                 </dl>
