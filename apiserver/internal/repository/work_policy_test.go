@@ -79,6 +79,47 @@ func TestWorkPolicyAssignmentAtSplitsExclusiveBoundaries(t *testing.T) {
 	}
 }
 
+func TestResolveWorkPolicyReturnsNotFoundWithoutEffectiveMembership(t *testing.T) {
+	employmentID := uuid.New()
+	var capturedQuery string
+	db := &fakeDBTX{queryRowFn: func(_ context.Context, query string, args ...any) pgx.Row {
+		capturedQuery = query
+		if len(args) != 2 || args[0] != employmentID || args[1] != "2026-06-01" {
+			t.Fatalf("unexpected resolver args: %#v", args)
+		}
+		return fakeRow{}
+	}}
+
+	_, err := (WorkPolicyRepository{DB: db}).ResolveWorkPolicy(
+		context.Background(), ids.EmploymentID(employmentID), time.Date(2026, 6, 1, 0, 0, 0, 0, time.UTC),
+	)
+	if !errors.Is(err, api.ErrWorkPolicyResolutionNotFound) {
+		t.Fatalf("expected missing effective membership to remain unresolved, got %v", err)
+	}
+	if !strings.Contains(capturedQuery, "m.effective_from <= $2::date") || !strings.Contains(capturedQuery, "v.effective_from <= $2::date") {
+		t.Fatalf("resolver must constrain both membership and version by as_of: %s", capturedQuery)
+	}
+}
+
+func TestResolveWorkPolicyDoesNotFallbackWhenReferenceIsMissing(t *testing.T) {
+	employmentID := uuid.New()
+	var capturedQuery string
+	db := &fakeDBTX{queryRowFn: func(_ context.Context, query string, _ ...any) pgx.Row {
+		capturedQuery = query
+		return fakeRow{}
+	}}
+
+	_, err := (WorkPolicyRepository{DB: db}).ResolveWorkPolicy(
+		context.Background(), ids.EmploymentID(employmentID), time.Date(2026, 6, 1, 0, 0, 0, 0, time.UTC),
+	)
+	if !errors.Is(err, api.ErrWorkPolicyResolutionNotFound) {
+		t.Fatalf("expected missing policy reference to remain unresolved, got %v", err)
+	}
+	if !strings.Contains(capturedQuery, "JOIN work_credit_policies wc") || !strings.Contains(capturedQuery, "JOIN pay_basis_policies pb") {
+		t.Fatalf("resolver must require complete policy references: %s", capturedQuery)
+	}
+}
+
 func TestResolveWorkPolicyUsesExclusiveEndBoundary(t *testing.T) {
 	employmentID := uuid.New()
 	policyID := uuid.New()
