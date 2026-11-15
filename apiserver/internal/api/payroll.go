@@ -440,7 +440,7 @@ type PayrollRepository interface {
 	DeletePayrollRuleAssignment(context.Context, uuid.UUID, uuid.UUID) error
 	CalculateEmployeePayroll(context.Context, ids.EmployeeID, int, int, ids.UserID) (FullPayslipResponse, error)
 	CalculateBatchPayroll(context.Context, BatchCalculatePayrollRequest, uuid.UUID) (BatchCalculatePayrollResponse, error)
-	CreatePayrollInputBatch(context.Context, CreatePayrollInputRequest, uuid.UUID) (PayrollInputBatch, error)
+	CreatePayrollInputBatch(context.Context, CreatePayrollInputRequest, ids.UserID) (PayrollInputBatch, error)
 	ApprovePayrollInputBatch(context.Context, ids.PayrollInputBatchID, ids.UserID) (PayrollInputBatch, error)
 	LockPayrollInputBatch(context.Context, ids.PayrollInputBatchID, ids.UserID) (PayrollInputBatch, error)
 	ListPayrollInputs(context.Context, uuid.UUID) ([]PayrollInput, error)
@@ -1038,7 +1038,7 @@ func (h PayrollHandler) CreatePayrollInputBatch(w http.ResponseWriter, r *http.R
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}
-	batch, err := h.Repository.CreatePayrollInputBatch(r.Context(), req, userID)
+	batch, err := h.Repository.CreatePayrollInputBatch(r.Context(), req, ids.UserID(userID))
 	if err != nil {
 		h.writeError(w, r, err)
 		return

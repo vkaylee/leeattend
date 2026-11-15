@@ -31,7 +31,7 @@ func (r *payrollAuditRecorder) Emit(_ context.Context, event audit.Event) error 
 	return nil
 }
 
-func (mockPayrollRepository) CreatePayrollInputBatch(_ context.Context, req CreatePayrollInputRequest, _ uuid.UUID) (PayrollInputBatch, error) {
+func (mockPayrollRepository) CreatePayrollInputBatch(_ context.Context, req CreatePayrollInputRequest, _ ids.UserID) (PayrollInputBatch, error) {
 	return PayrollInputBatch{ID: uuid.New(), PeriodYear: req.PeriodYear, PeriodMonth: req.PeriodMonth, Source: req.Source, IdempotencyKey: req.IdempotencyKey, Status: "submitted", InputCount: len(req.Inputs)}, nil
 }
 

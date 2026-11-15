@@ -918,7 +918,7 @@ VALUES ($1, $2, $3, $4, $5)`, tierID, newPolicyID, t.priority, t.payout.InexactF
 	}, nil
 }
 
-func (r PayrollRepository) CreatePayrollInputBatch(ctx context.Context, req api.CreatePayrollInputRequest, actorID uuid.UUID) (api.PayrollInputBatch, error) {
+func (r PayrollRepository) CreatePayrollInputBatch(ctx context.Context, req api.CreatePayrollInputRequest, actorID ids.UserID) (api.PayrollInputBatch, error) {
 	db, err := r.db(ctx)
 	if err != nil {
 		return api.PayrollInputBatch{}, err
@@ -1023,7 +1023,7 @@ func (r PayrollRepository) CreatePayrollInputBatch(ctx context.Context, req api.
 		batchID := uuid.New()
 		if err := tx.QueryRow(ctx, `INSERT INTO payroll_input_batches (id, period_year, period_month, source, idempotency_key, request_hash, status, submitted_by)
 			VALUES ($1, $2, $3, $4, $5, $6, 'submitted', $7)
-			RETURNING id, period_year, period_month, source, idempotency_key, status, 0, submitted_by, approved_by, locked_by, created_at`, batchID, req.PeriodYear, req.PeriodMonth, strings.TrimSpace(req.Source), req.IdempotencyKey, requestHash, actorID).Scan(
+			RETURNING id, period_year, period_month, source, idempotency_key, status, 0, submitted_by, approved_by, locked_by, created_at`, batchID, req.PeriodYear, req.PeriodMonth, strings.TrimSpace(req.Source), req.IdempotencyKey, requestHash, uuid.UUID(actorID)).Scan(
 			&result.ID, &result.PeriodYear, &result.PeriodMonth, &result.Source, &result.IdempotencyKey, &result.Status, &result.InputCount, &result.SubmittedBy, &result.ApprovedBy, &result.LockedBy, &result.CreatedAt); err != nil {
 			if isConflictError(err) {
 				return api.ErrPayrollInputConflict
