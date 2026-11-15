@@ -1619,13 +1619,13 @@ func (r PayrollRepository) DeletePayrollRuleTier(ctx context.Context, ruleID ids
 	return err
 }
 
-func (r PayrollRepository) ListPayrollRuleAssignments(ctx context.Context, ruleID uuid.UUID) ([]api.PayrollRuleAssignment, error) {
+func (r PayrollRepository) ListPayrollRuleAssignments(ctx context.Context, ruleID ids.PayrollRuleID) ([]api.PayrollRuleAssignment, error) {
 	db, err := r.db(ctx)
 	if err != nil {
 		return nil, err
 	}
 	var exists bool
-	if err := db.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM payroll_rule_definitions WHERE id = $1)`, ruleID).Scan(&exists); err != nil {
+	if err := db.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM payroll_rule_definitions WHERE id = $1)`, uuid.UUID(ruleID)).Scan(&exists); err != nil {
 		return nil, err
 	}
 	if !exists {
@@ -1635,7 +1635,7 @@ func (r PayrollRepository) ListPayrollRuleAssignments(ctx context.Context, ruleI
 	rows, err := db.Query(ctx, `SELECT id, rule_definition_id, assignee_type, assignee_id, effective_from::text, effective_to::text, override_config, created_at
 FROM payroll_rule_assignments
 WHERE rule_definition_id = $1
-ORDER BY created_at DESC`, ruleID)
+ORDER BY created_at DESC`, uuid.UUID(ruleID))
 	if err != nil {
 		return nil, err
 	}
@@ -1669,7 +1669,7 @@ func (r PayrollRepository) AssignPayrollRule(ctx context.Context, ruleID uuid.UU
 		return api.PayrollRuleAssignment{}, err
 	}
 	var exists bool
-	if err := db.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM payroll_rule_definitions WHERE id = $1)`, ruleID).Scan(&exists); err != nil {
+	if err := db.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM payroll_rule_definitions WHERE id = $1)`, uuid.UUID(ruleID)).Scan(&exists); err != nil {
 		return api.PayrollRuleAssignment{}, err
 	}
 	if !exists {
@@ -1711,12 +1711,12 @@ RETURNING created_at`, assignID, ruleID, req.AssigneeType, assigneeID, req.Effec
 	}, nil
 }
 
-func (r PayrollRepository) DeletePayrollRuleAssignment(ctx context.Context, ruleID, assignmentID uuid.UUID) error {
+func (r PayrollRepository) DeletePayrollRuleAssignment(ctx context.Context, ruleID ids.PayrollRuleID, assignmentID ids.PayrollRuleAssignmentID) error {
 	db, err := r.db(ctx)
 	if err != nil {
 		return err
 	}
-	_, err = db.Exec(ctx, `DELETE FROM payroll_rule_assignments WHERE id = $1 AND rule_definition_id = $2`, assignmentID, ruleID)
+	_, err = db.Exec(ctx, `DELETE FROM payroll_rule_assignments WHERE id = $1 AND rule_definition_id = $2`, uuid.UUID(assignmentID), uuid.UUID(ruleID))
 	return err
 }
 

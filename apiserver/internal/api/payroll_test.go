@@ -380,7 +380,7 @@ func (mockPayrollRepository) DeletePayrollRuleTier(_ context.Context, _ ids.Payr
 	return nil
 }
 
-func (mockPayrollRepository) ListPayrollRuleAssignments(_ context.Context, ruleID uuid.UUID) ([]PayrollRuleAssignment, error) {
+func (mockPayrollRepository) ListPayrollRuleAssignments(_ context.Context, ruleID ids.PayrollRuleID) ([]PayrollRuleAssignment, error) {
 	if uuid.UUID(ruleID) == uuid.MustParse("00000000-0000-0000-0000-000000000099") {
 		return nil, ErrRuleNotFound
 	}
@@ -414,8 +414,8 @@ func (mockPayrollRepository) AssignPayrollRule(_ context.Context, ruleID uuid.UU
 	}, nil
 }
 
-func (mockPayrollRepository) DeletePayrollRuleAssignment(_ context.Context, _, assignmentID uuid.UUID) error {
-	if assignmentID == uuid.MustParse("00000000-0000-0000-0000-000000000099") {
+func (mockPayrollRepository) DeletePayrollRuleAssignment(_ context.Context, _ ids.PayrollRuleID, assignmentID ids.PayrollRuleAssignmentID) error {
+	if uuid.UUID(assignmentID) == uuid.MustParse("00000000-0000-0000-0000-000000000099") {
 		return ErrAssignmentNotFound
 	}
 	return nil

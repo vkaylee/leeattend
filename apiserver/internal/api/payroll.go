@@ -436,9 +436,9 @@ type PayrollRepository interface {
 	ListPayrollRuleTiers(context.Context, ids.PayrollRuleID) ([]PayrollRuleTier, error)
 	CreatePayrollRuleTier(context.Context, ids.PayrollRuleID, CreatePayrollRuleTierRequest) (PayrollRuleTier, error)
 	DeletePayrollRuleTier(context.Context, ids.PayrollRuleID, ids.PayrollRuleTierID) error
-	ListPayrollRuleAssignments(context.Context, uuid.UUID) ([]PayrollRuleAssignment, error)
+	ListPayrollRuleAssignments(context.Context, ids.PayrollRuleID) ([]PayrollRuleAssignment, error)
 	AssignPayrollRule(context.Context, uuid.UUID, AssignPayrollRuleRequest) (PayrollRuleAssignment, error)
-	DeletePayrollRuleAssignment(context.Context, uuid.UUID, uuid.UUID) error
+	DeletePayrollRuleAssignment(context.Context, ids.PayrollRuleID, ids.PayrollRuleAssignmentID) error
 	CalculateEmployeePayroll(context.Context, ids.EmployeeID, int, int, ids.UserID) (FullPayslipResponse, error)
 	CalculateBatchPayroll(context.Context, BatchCalculatePayrollRequest, ids.UserID) (BatchCalculatePayrollResponse, error)
 	CreatePayrollInputBatch(context.Context, CreatePayrollInputRequest, ids.UserID) (PayrollInputBatch, error)
@@ -848,7 +848,7 @@ func (h PayrollHandler) ListPayrollRuleAssignments(w http.ResponseWriter, r *htt
 		h.forbidden(w, r)
 		return
 	}
-	assignments, err := h.Repository.ListPayrollRuleAssignments(r.Context(), ruleID)
+	assignments, err := h.Repository.ListPayrollRuleAssignments(r.Context(), ids.PayrollRuleID(ruleID))
 	if err != nil {
 		h.writeError(w, r, err)
 		return
@@ -906,7 +906,7 @@ func (h PayrollHandler) DeletePayrollRuleAssignment(w http.ResponseWriter, r *ht
 		h.forbidden(w, r)
 		return
 	}
-	if err := h.Repository.DeletePayrollRuleAssignment(r.Context(), ruleID, assignmentID); err != nil {
+	if err := h.Repository.DeletePayrollRuleAssignment(r.Context(), ids.PayrollRuleID(ruleID), ids.PayrollRuleAssignmentID(assignmentID)); err != nil {
 		h.writeError(w, r, err)
 		return
 	}
