@@ -153,6 +153,36 @@ func TestIntegrationPayrollPolicySnapshotsAreAppendOnlyAcrossReruns(t *testing.T
 	}
 }
 
+func TestIntegrationEnsurePayrollPeriodOpenRejectsLockedPeriod(t *testing.T) {
+	pool, ctx := requireIntegrationDatabase(t)
+	tx, err := pool.Begin(ctx)
+	if err != nil {
+		t.Fatalf("begin transaction: %v", err)
+	}
+	defer func() { _ = tx.Rollback(ctx) }()
+
+	employerID := uuid.New()
+	_, err = tx.Exec(ctx, `INSERT INTO employers (id, name) VALUES ($1, 'locked-period-test-employer')`, employerID)
+	if err != nil {
+		t.Fatalf("insert locked-period employer: %v", err)
+	}
+	_, err = tx.Exec(ctx, `INSERT INTO payroll_periods (employer_id, period_year, period_month, status) VALUES ($1, 2026, 6, 'locked')`, employerID)
+	if err != nil {
+		t.Fatalf("insert locked payroll period: %v", err)
+	}
+
+	if err := ensurePayrollPeriodOpen(ctx, tx, employerID, 2026, 6); !errors.Is(err, api.ErrPayrollPeriodConflict) {
+		t.Fatalf("locked period error = %v, want conflict", err)
+	}
+	var status string
+	if err := tx.QueryRow(ctx, `SELECT status FROM payroll_periods WHERE employer_id = $1 AND period_year = 2026 AND period_month = 6`, employerID).Scan(&status); err != nil {
+		t.Fatalf("read locked payroll period: %v", err)
+	}
+	if status != "locked" {
+		t.Fatalf("locked period status changed to %q", status)
+	}
+}
+
 func TestIntegrationResolveWorkPolicyUsesExclusiveMembershipAndVersionBoundaries(t *testing.T) {
 	pool, ctx := requireIntegrationDatabase(t)
 	tx, err := pool.Begin(ctx)
