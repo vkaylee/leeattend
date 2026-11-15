@@ -1784,7 +1784,7 @@ func ensurePayrollPeriodOpen(ctx context.Context, tx pgx.Tx, employerID uuid.UUI
 	return nil
 }
 
-func (r PayrollRepository) CalculateBatchPayroll(ctx context.Context, req api.BatchCalculatePayrollRequest, actorID uuid.UUID) (api.BatchCalculatePayrollResponse, error) {
+func (r PayrollRepository) CalculateBatchPayroll(ctx context.Context, req api.BatchCalculatePayrollRequest, actorID ids.UserID) (api.BatchCalculatePayrollResponse, error) {
 	db, err := r.db(ctx)
 	if err != nil {
 		return api.BatchCalculatePayrollResponse{}, err
@@ -1821,7 +1821,7 @@ func (r PayrollRepository) CalculateBatchPayroll(ctx context.Context, req api.Ba
 				response.Results = append(response.Results, api.BatchCalculateResult{EmploymentID: employmentID, EmployeeID: employeeID, Status: "error", ErrorMessage: &msg})
 				continue
 			}
-			fullResp, err := r.calculateEmploymentPayslip(ctx, tx, employmentID, employeeID, deptID, req.Year, req.Month, actorID)
+			fullResp, err := r.calculateEmploymentPayslip(ctx, tx, employmentID, employeeID, deptID, req.Year, req.Month, uuid.UUID(actorID))
 			if err != nil {
 				msg := err.Error()
 				response.Results = append(response.Results, api.BatchCalculateResult{EmploymentID: employmentID, EmployeeID: employeeID, Status: "error", ErrorMessage: &msg})

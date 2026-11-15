@@ -486,7 +486,7 @@ func (mockPayrollRepository) ReopenPayrollPeriod(_ context.Context, employerID u
 	return PayrollPeriod{ID: uuid.New(), EmployerID: employerID, Year: year, Month: month, Status: "open", Version: version + 1, ReopenReason: &reason}, nil
 }
 
-func (mockPayrollRepository) CalculateBatchPayroll(_ context.Context, req BatchCalculatePayrollRequest, _ uuid.UUID) (BatchCalculatePayrollResponse, error) {
+func (mockPayrollRepository) CalculateBatchPayroll(_ context.Context, req BatchCalculatePayrollRequest, _ ids.UserID) (BatchCalculatePayrollResponse, error) {
 	results := make([]BatchCalculateResult, 0, len(req.EmploymentIDs))
 	for _, id := range req.EmploymentIDs {
 		if id == uuid.MustParse("00000000-0000-0000-0000-000000000099") {
