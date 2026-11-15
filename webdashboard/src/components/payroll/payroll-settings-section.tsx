@@ -6,7 +6,7 @@ import { useTranslation } from "react-i18next";
 import Button from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
 import { Typography } from "@/components/ui/typography";
-import { createWorkPolicyGroupVersion, fetchWorkPolicyGroupHistory, fetchWorkPolicyGroups, updatePayrollSettings, fetchPayrollSettingsHistory } from "@/lib/api/payroll";
+import { createWorkPolicyMembership, createWorkPolicyGroupVersion, fetchWorkPolicyGroupHistory, fetchWorkPolicyGroups, fetchWorkPolicyMemberships, updatePayrollSettings, fetchPayrollSettingsHistory } from "@/lib/api/payroll";
 import { payrollKeys } from "@/lib/query-keys";
 
 import TemporalConfigTable from "../common/temporal-config-table";
@@ -20,6 +20,8 @@ export default function PayrollSettingsSection() {
   const [isCreatingVersion, setIsCreatingVersion] = useState(false);
   const [versionForm, setVersionForm] = useState({ effective_from: "", minutes_per_credit: "", pay_method: "monthly" as "monthly" | "hourly" | "shift" });
   const [versionError, setVersionError] = useState<string>();
+  const [membershipForm, setMembershipForm] = useState({ employment_id: "", effective_from: "", effective_to: "" });
+  const [membershipError, setMembershipError] = useState<string>();
 
   const { data: history = [], isLoading: isHistoryLoading } = useQuery({ queryKey: payrollKeys.settingsHistory(), queryFn: () => fetchPayrollSettingsHistory() });
   const { data: workPolicies = [], isLoading: isWorkPoliciesLoading, isError: isWorkPoliciesError } = useQuery({
@@ -29,6 +31,11 @@ export default function PayrollSettingsSection() {
   const { data: selectedPolicyHistory = [], isLoading: isPolicyHistoryLoading } = useQuery({
     queryKey: payrollKeys.workPolicyHistory(selectedPolicyGroupId),
     queryFn: () => fetchWorkPolicyGroupHistory(selectedPolicyGroupId!),
+    enabled: Boolean(selectedPolicyGroupId),
+  });
+  const { data: selectedMemberships = [], isLoading: isMembershipsLoading } = useQuery({
+    queryKey: payrollKeys.workPolicyMemberships(selectedPolicyGroupId),
+    queryFn: () => fetchWorkPolicyMemberships(selectedPolicyGroupId!),
     enabled: Boolean(selectedPolicyGroupId),
   });
 
@@ -66,6 +73,26 @@ export default function PayrollSettingsSection() {
       setVersionError(error instanceof Error ? error.message : t("common.error"));
     } finally {
       setIsCreatingVersion(false);
+    }
+  };
+
+  const handleCreateMembership = async () => {
+    if (!selectedPolicyGroupId || !membershipForm.employment_id || !membershipForm.effective_from) {
+      setMembershipError(t("common.payroll.settings.work_policy_membership_validation", "Enter employment ID and effective date."));
+      return;
+    }
+    setMembershipError(undefined);
+    try {
+      await createWorkPolicyMembership(selectedPolicyGroupId, {
+        employment_id: membershipForm.employment_id,
+        effective_from: membershipForm.effective_from,
+        effective_to: membershipForm.effective_to || undefined,
+      });
+      toast.success(t("common.success"));
+      setMembershipForm({ employment_id: "", effective_from: "", effective_to: "" });
+      void queryClient.invalidateQueries({ queryKey: payrollKeys.workPolicyMemberships(selectedPolicyGroupId) });
+    } catch (error: unknown) {
+      setMembershipError(error instanceof Error ? error.message : t("common.error"));
     }
   };
 
@@ -176,6 +203,17 @@ export default function PayrollSettingsSection() {
               </div>
               {versionError ? <p className="mb-3 text-sm text-red-600" role="alert">{versionError}</p> : null}
               <Button type="button" size="sm" disabled={isCreatingVersion} onClick={() => void handleCreateVersion()}>{isCreatingVersion ? t("common.loading", "Loading") : t("common.payroll.settings.work_policy_create", "Create policy version")}</Button>
+              <div className="mt-5 border-t border-slate-200 pt-4 dark:border-slate-800">
+                <Typography className="font-semibold" variant="h4">{t("common.payroll.settings.work_policy_memberships", "Assignments")}</Typography>
+                <div className="mt-3 grid gap-3 sm:grid-cols-3">
+                  <label className="text-xs font-semibold text-slate-600 dark:text-slate-300" htmlFor="policy-employment-id">{t("common.payroll.settings.work_policy_employment_id", "Employment ID")}<input id="policy-employment-id" value={membershipForm.employment_id} onChange={(event) => setMembershipForm((form) => ({ ...form, employment_id: event.target.value }))} className="mt-1 block h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm dark:border-slate-700 dark:bg-slate-900" /></label>
+                  <label className="text-xs font-semibold text-slate-600 dark:text-slate-300" htmlFor="policy-membership-from">{t("common.payroll.settings.work_policy_effective_from", "Effective from")}<input id="policy-membership-from" type="date" value={membershipForm.effective_from} onChange={(event) => setMembershipForm((form) => ({ ...form, effective_from: event.target.value }))} className="mt-1 block h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm dark:border-slate-700 dark:bg-slate-900" /></label>
+                  <label className="text-xs font-semibold text-slate-600 dark:text-slate-300" htmlFor="policy-membership-to">{t("common.payroll.settings.work_policy_effective_to", "Effective to")}<input id="policy-membership-to" type="date" value={membershipForm.effective_to} onChange={(event) => setMembershipForm((form) => ({ ...form, effective_to: event.target.value }))} className="mt-1 block h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm dark:border-slate-700 dark:bg-slate-900" /></label>
+                </div>
+                {membershipError ? <p className="mt-2 text-sm text-red-600" role="alert">{membershipError}</p> : null}
+                <Button className="mt-3" type="button" size="sm" onClick={() => void handleCreateMembership()}>{t("common.payroll.settings.work_policy_assign", "Assign membership")}</Button>
+                {isMembershipsLoading ? <div className="mt-3 h-8 animate-pulse rounded bg-slate-200 dark:bg-slate-800" /> : <ul className="mt-3 space-y-2 text-sm">{selectedMemberships.map((membership) => <li key={membership.id} className="flex justify-between gap-4 border-b border-slate-100 py-2 last:border-0 dark:border-slate-800"><span>{membership.employment_id}</span><span>{membership.effective_from}{membership.effective_to ? ` – ${membership.effective_to}` : ""}</span></li>)}</ul>}
+              </div>
               <ul className="mt-4 space-y-2 text-sm">
                 {selectedPolicyHistory.map((version) => (
                   <li key={version.id} className="flex justify-between gap-4 border-b border-slate-100 py-2 last:border-0 dark:border-slate-800">

@@ -109,6 +109,13 @@ export async function fetchWorkPolicyGroupHistory(groupId: string): Promise<Work
   return data?.data ?? [];
 }
 
+export async function createWorkPolicyMembership(groupId: string, body: { employment_id: string; effective_from: string; effective_to?: string }): Promise<WorkPolicyMembership> {
+  const { data } = await fetch<WorkPolicyMembership>("POST", "/api/v1/payroll/work-policy-groups/{group_id}/memberships", {
+    params: { path: { group_id: groupId } }, body,
+  });
+  return data;
+}
+
 export async function fetchWorkPolicyMemberships(groupId: string): Promise<WorkPolicyMembership[]> {
   const { data } = await fetch<WorkPolicyMembership[]>("GET", "/api/v1/payroll/work-policy-groups/{group_id}/memberships", {
     params: { path: { group_id: groupId } },

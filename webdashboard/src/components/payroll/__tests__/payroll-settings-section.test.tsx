@@ -18,6 +18,8 @@ vi.mock("@/lib/api/payroll", () => ({
   fetchWorkPolicyGroups: vi.fn(),
   fetchWorkPolicyGroupHistory: vi.fn(),
   createWorkPolicyGroupVersion: vi.fn(),
+  fetchWorkPolicyMemberships: vi.fn(),
+  createWorkPolicyMembership: vi.fn(),
 }));
 
 // Mock i18n
@@ -45,6 +47,7 @@ describe("PayrollSettingsSection", () => {
     ] as unknown as never);
     vi.mocked(api.fetchWorkPolicyGroups).mockResolvedValue([]);
     vi.mocked(api.fetchWorkPolicyGroupHistory).mockResolvedValue([]);
+    vi.mocked(api.fetchWorkPolicyMemberships).mockResolvedValue([]);
   });
 
   const renderWithProviders = (ui: React.ReactElement) => {
@@ -108,6 +111,7 @@ describe("PayrollSettingsSection", () => {
       effective_from: "2026-01-01",
     }]);
     vi.mocked(api.fetchWorkPolicyGroupHistory).mockResolvedValue([]);
+    vi.mocked(api.fetchWorkPolicyMemberships).mockResolvedValue([]);
     vi.mocked(api.createWorkPolicyGroupVersion).mockResolvedValue({} as never);
     renderWithProviders(<PayrollSettingsSection />);
 
@@ -134,6 +138,7 @@ describe("PayrollSettingsSection", () => {
       pay_method: "monthly", effective_from: "2026-01-01",
     }]);
     vi.mocked(api.fetchWorkPolicyGroupHistory).mockResolvedValue([]);
+    vi.mocked(api.fetchWorkPolicyMemberships).mockResolvedValue([]);
     renderWithProviders(<PayrollSettingsSection />);
 
     fireEvent.click(await screen.findByRole("button", { name: "Operations" }));
