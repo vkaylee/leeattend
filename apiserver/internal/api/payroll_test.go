@@ -217,7 +217,7 @@ func (mockPayrollRepository) GetEmployeePayrollConfigs(_ context.Context, employ
 	}, nil
 }
 
-func (mockPayrollRepository) SetEmployeePayrollConfig(_ context.Context, employeeID uuid.UUID, req SetEmployeePayrollConfigRequest, _ uuid.UUID) (EmployeePayrollConfig, error) {
+func (mockPayrollRepository) SetEmployeePayrollConfig(_ context.Context, employeeID ids.EmployeeID, req SetEmployeePayrollConfigRequest, _ ids.UserID) (EmployeePayrollConfig, error) {
 	if uuid.UUID(employeeID) == uuid.MustParse("00000000-0000-0000-0000-000000000044") {
 		return EmployeePayrollConfig{}, ErrEmployeeNotFound
 	}

@@ -596,7 +596,7 @@ func (r PayrollRepository) GetEmployeePayrollConfigs(ctx context.Context, employ
 	}
 
 	var activeEmploymentID uuid.UUID
-	err = db.QueryRow(ctx, `SELECT id FROM employments WHERE employee_id = $1 AND status = 'active' AND deleted_at IS NULL ORDER BY start_date DESC, id DESC LIMIT 1`, employeeID).Scan(&activeEmploymentID)
+	err = db.QueryRow(ctx, `SELECT id FROM employments WHERE employee_id = $1 AND status = 'active' AND deleted_at IS NULL ORDER BY start_date DESC, id DESC LIMIT 1`, uuid.UUID(employeeID)).Scan(&activeEmploymentID)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, api.ErrNoActiveEmployment
 	}
@@ -658,13 +658,13 @@ ORDER BY effective_from DESC, created_at DESC`
 	return result, nil
 }
 
-func (r PayrollRepository) SetEmployeePayrollConfig(ctx context.Context, employeeID uuid.UUID, req api.SetEmployeePayrollConfigRequest, actorID uuid.UUID) (api.EmployeePayrollConfig, error) {
+func (r PayrollRepository) SetEmployeePayrollConfig(ctx context.Context, employeeID ids.EmployeeID, req api.SetEmployeePayrollConfigRequest, actorID ids.UserID) (api.EmployeePayrollConfig, error) {
 	db, err := r.db(ctx)
 	if err != nil {
 		return api.EmployeePayrollConfig{}, err
 	}
 	var empExists bool
-	if err := db.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM employees WHERE id = $1 AND deleted_at IS NULL)`, employeeID).Scan(&empExists); err != nil {
+	if err := db.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM employees WHERE id = $1 AND deleted_at IS NULL)`, uuid.UUID(employeeID)).Scan(&empExists); err != nil {
 		return api.EmployeePayrollConfig{}, err
 	}
 	if !empExists {
@@ -672,7 +672,7 @@ func (r PayrollRepository) SetEmployeePayrollConfig(ctx context.Context, employe
 	}
 
 	var activeEmploymentID uuid.UUID
-	err = db.QueryRow(ctx, `SELECT id FROM employments WHERE employee_id = $1 AND status = 'active' AND deleted_at IS NULL ORDER BY start_date DESC, id DESC LIMIT 1`, employeeID).Scan(&activeEmploymentID)
+	err = db.QueryRow(ctx, `SELECT id FROM employments WHERE employee_id = $1 AND status = 'active' AND deleted_at IS NULL ORDER BY start_date DESC, id DESC LIMIT 1`, uuid.UUID(employeeID)).Scan(&activeEmploymentID)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return api.EmployeePayrollConfig{}, api.ErrNoActiveEmployment
 	}
@@ -689,13 +689,13 @@ RETURNING id, created_at`
 	fixedID := uuid.New()
 	var finalID uuid.UUID
 	var createdAt time.Time
-	err = db.QueryRow(ctx, upsertQuery, fixedID, activeEmploymentID, "payroll.fixed_std_days", req.StdWorkingDays, req.EffectiveDate, actorID).Scan(&finalID, &createdAt)
+	err = db.QueryRow(ctx, upsertQuery, fixedID, activeEmploymentID, "payroll.fixed_std_days", req.StdWorkingDays, req.EffectiveDate, uuid.UUID(actorID)).Scan(&finalID, &createdAt)
 	if err != nil {
 		return api.EmployeePayrollConfig{}, err
 	}
 
 	hoursID := uuid.New()
-	_, err = db.Exec(ctx, upsertQuery, hoursID, activeEmploymentID, "payroll.hours_per_day", req.HoursPerDay, req.EffectiveDate, actorID)
+	_, err = db.Exec(ctx, upsertQuery, hoursID, activeEmploymentID, "payroll.hours_per_day", req.HoursPerDay, req.EffectiveDate, uuid.UUID(actorID))
 	if err != nil {
 		return api.EmployeePayrollConfig{}, err
 	}

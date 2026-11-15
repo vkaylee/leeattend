@@ -459,11 +459,11 @@ func TestPayrollRepository_SetEmployeePayrollConfig_EmploymentScope(t *testing.T
 		},
 	}
 	repo := PayrollRepository{DB: db}
-	cfg, err := repo.SetEmployeePayrollConfig(context.Background(), empID, api.SetEmployeePayrollConfigRequest{
+	cfg, err := repo.SetEmployeePayrollConfig(context.Background(), ids.EmployeeID(empID), api.SetEmployeePayrollConfigRequest{
 		StdWorkingDays: decimal.NewFromInt(22),
 		HoursPerDay:    decimal.NewFromInt(8),
 		EffectiveDate:  "2026-06-01",
-	}, actorID)
+	}, ids.UserID(actorID))
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
