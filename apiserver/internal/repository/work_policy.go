@@ -142,6 +142,53 @@ func (r WorkPolicyRepository) GetWorkPolicyGroupVersion(ctx context.Context, gro
 	return result, err
 }
 
+func (r WorkPolicyRepository) ValidateWorkPolicyGroupVersion(ctx context.Context, groupID workpolicy.GroupID, versionID workpolicy.VersionID) (api.WorkPolicyValidationResponse, error) {
+	version, err := r.GetWorkPolicyGroupVersion(ctx, groupID, versionID)
+	if err != nil {
+		return api.WorkPolicyValidationResponse{}, err
+	}
+	result := api.WorkPolicyValidationResponse{
+		VersionID: version.ID,
+		Blockers:  make([]api.WorkPolicyValidationIssue, 0),
+		Warnings:  make([]api.WorkPolicyValidationIssue, 0),
+		CheckedAt: time.Now().UTC().Format(time.RFC3339),
+	}
+	workCredit := workpolicy.WorkCreditPolicy{
+		Name: version.WorkCreditPolicyName, MinutesPerCredit: version.MinutesPerCredit,
+		AttendancePolicyID: ids.AttendancePolicyID(version.AttendancePolicyID), WorkingPatternID: ids.WorkingPatternID(version.WorkingPatternID),
+	}
+	if err := workCredit.Validate(); err != nil {
+		result.Blockers = append(result.Blockers, api.WorkPolicyValidationIssue{Code: "work_credit_invalid", Field: "work_credit_policy", Severity: "blocker", Message: err.Error()})
+	}
+	payBasis := workpolicy.PayBasisPolicy{
+		Name: version.PayBasisPolicyName, Method: version.PayMethod,
+		MonthlyDenominator: version.MonthlyDenominator, MonthlyStandardDays: version.MonthlyStandardDays,
+		RateComponentDefinitionID: func() *ids.RateComponentDefinitionID {
+			if version.RateComponentDefinitionID == nil {
+				return nil
+			}
+			value := ids.RateComponentDefinitionID(*version.RateComponentDefinitionID)
+			return &value
+		}(),
+	}
+	if err := payBasis.Validate(); err != nil {
+		result.Blockers = append(result.Blockers, api.WorkPolicyValidationIssue{Code: "pay_basis_invalid", Field: "pay_basis_policy", Severity: "blocker", Message: err.Error()})
+	}
+	db, err := r.db(ctx)
+	if err != nil {
+		return api.WorkPolicyValidationResponse{}, err
+	}
+	var referencesExist bool
+	if err := db.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM attendance_policies WHERE id = $1) AND EXISTS (SELECT 1 FROM working_patterns WHERE id = $2 AND is_active = TRUE) AND EXISTS (SELECT 1 FROM overtime_policy_definitions WHERE id = $3)`, version.AttendancePolicyID, version.WorkingPatternID, version.OvertimePolicyID).Scan(&referencesExist); err != nil {
+		return api.WorkPolicyValidationResponse{}, err
+	}
+	if !referencesExist {
+		result.Blockers = append(result.Blockers, api.WorkPolicyValidationIssue{Code: "reference_missing_or_inactive", Field: "policy_references", Severity: "blocker", Message: "one or more referenced policies are missing or inactive"})
+	}
+	result.Valid = len(result.Blockers) == 0
+	return result, nil
+}
+
 func (r WorkPolicyRepository) CreateWorkPolicyGroup(ctx context.Context, req workpolicy.CreateGroupInput, actorID ids.UserID) (api.WorkPolicyGroupVersion, error) {
 	db, err := r.db(ctx)
 	if err != nil {

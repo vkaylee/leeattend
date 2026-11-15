@@ -9,6 +9,7 @@ func registerWorkPolicyRoutes(router chi.Router, handler api.WorkPolicyGroupHand
 	registerRoute(router, "GET /api/v1/payroll/work-policy-groups", handler.List)
 	registerRoute(router, "GET /api/v1/payroll/work-policy-groups/{group_id}/history", handler.History)
 	registerRoute(router, "GET /api/v1/payroll/work-policy-groups/{group_id}/versions/{version_id}", handler.Detail)
+	registerRoute(router, "POST /api/v1/payroll/work-policy-groups/{group_id}/versions/{version_id}/validate", handler.Validate)
 	registerRoute(router, "GET /api/v1/employments/{employment_id}/work-policy", handler.Resolve)
 	registerRoute(router, "POST /api/v1/payroll/work-policy-groups", handler.Create)
 	registerRoute(router, "POST /api/v1/payroll/work-policy-groups/{group_id}/versions", handler.CreateVersion)

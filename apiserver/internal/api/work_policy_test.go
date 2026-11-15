@@ -42,6 +42,10 @@ func (s *workPolicyRepositoryStub) GetWorkPolicyGroupVersion(_ context.Context, 
 	return WorkPolicyGroupVersion{GroupID: uuid.UUID(groupID), ID: uuid.UUID(versionID)}, nil
 }
 
+func (s *workPolicyRepositoryStub) ValidateWorkPolicyGroupVersion(_ context.Context, groupID workpolicy.GroupID, versionID workpolicy.VersionID) (WorkPolicyValidationResponse, error) {
+	return WorkPolicyValidationResponse{VersionID: uuid.UUID(versionID), Valid: uuid.UUID(groupID) != uuid.Nil}, nil
+}
+
 func (s *workPolicyRepositoryStub) CreateWorkPolicyGroup(_ context.Context, req workpolicy.CreateGroupInput, actorID ids.UserID) (WorkPolicyGroupVersion, error) {
 	s.created = true
 	return WorkPolicyGroupVersion{
@@ -89,6 +93,28 @@ func TestWorkPolicyDetailRequiresReadPermissionAndValidatesIDs(t *testing.T) {
 	req.SetPathValue("group_id", "bad")
 	req.SetPathValue("version_id", uuid.NewString())
 	handler.Detail(rec, req)
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("invalid group ID status = %d, want 400", rec.Code)
+	}
+}
+
+func TestWorkPolicyValidateRequiresReadPermissionAndValidatesIDs(t *testing.T) {
+	handler := WorkPolicyGroupHandler{Repository: &workPolicyRepositoryStub{}, Authorizer: payrollAuthorizer{allowedPerms: map[string]bool{"payroll:read": false}}}
+	rec := httptest.NewRecorder()
+	req := workPolicyRequest(http.MethodPost, "", uuid.New())
+	req.SetPathValue("group_id", uuid.NewString())
+	req.SetPathValue("version_id", uuid.NewString())
+	handler.Validate(rec, req)
+	if rec.Code != http.StatusForbidden {
+		t.Fatalf("status = %d, want 403", rec.Code)
+	}
+
+	handler.Authorizer = payrollAuthorizer{allowedPerms: map[string]bool{"payroll:read": true}}
+	rec = httptest.NewRecorder()
+	req = workPolicyRequest(http.MethodPost, "", uuid.New())
+	req.SetPathValue("group_id", "bad")
+	req.SetPathValue("version_id", uuid.NewString())
+	handler.Validate(rec, req)
 	if rec.Code != http.StatusBadRequest {
 		t.Fatalf("invalid group ID status = %d, want 400", rec.Code)
 	}

@@ -64,6 +64,45 @@ func TestWorkPolicyRepository_GetWorkPolicyGroupVersionScopesGroupAndVersion(t *
 	}
 }
 
+func TestWorkPolicyRepository_ValidateVersionReturnsReferenceBlocker(t *testing.T) {
+	groupID, versionID := uuid.New(), uuid.New()
+	db := &fakeDBTX{
+		queryRowFn: func(_ context.Context, query string, args ...any) pgx.Row {
+			if strings.Contains(query, "WHERE v.group_id = $1 AND v.id = $2") {
+				return fakeRow{scanFn: func(dest ...any) error {
+					*(dest[0].(*uuid.UUID)) = versionID
+					*(dest[1].(*uuid.UUID)) = groupID
+					*(dest[2].(*string)) = "Operations"
+					*(dest[3].(*uuid.UUID)) = uuid.New()
+					*(dest[4].(*string)) = "Work credit"
+					*(dest[5].(*int)) = 450
+					*(dest[6].(*uuid.UUID)) = uuid.New()
+					*(dest[7].(*uuid.UUID)) = uuid.New()
+					*(dest[8].(*uuid.UUID)) = uuid.New()
+					*(dest[9].(*string)) = "Pay basis"
+					*(dest[10].(*string)) = string(workpolicy.PayMethodHourly)
+					*(dest[11].(**string)) = nil
+					*(dest[12].(**string)) = nil
+					value := uuid.New()
+					*(dest[13].(**uuid.UUID)) = &value
+					*(dest[14].(*uuid.UUID)) = uuid.New()
+					*(dest[15].(*string)) = "2026-01-01"
+					*(dest[16].(**string)) = nil
+					return nil
+				}}
+			}
+			return fakeRow{scanFn: func(dest ...any) error { *(dest[0].(*bool)) = false; return nil }}
+		},
+	}
+	result, err := (WorkPolicyRepository{DB: db}).ValidateWorkPolicyGroupVersion(context.Background(), workpolicy.GroupID(groupID), workpolicy.VersionID(versionID))
+	if err != nil {
+		t.Fatalf("validate version: %v", err)
+	}
+	if result.Valid || len(result.Blockers) != 1 || result.Blockers[0].Code != "reference_missing_or_inactive" {
+		t.Fatalf("expected reference blocker, got %+v", result)
+	}
+}
+
 func TestWorkPolicyRepository_ListWorkPolicyGroupHistoryPaginatesByGroup(t *testing.T) {
 	groupID := uuid.New()
 	versionID := uuid.New()
