@@ -414,31 +414,59 @@ func (r OvertimeRepository) EmployeeDepartmentID(ctx context.Context, employeeID
 	return id, err
 }
 
-func resolveOvertimeMultiplier(ctx context.Context, db DBTX, employmentID uuid.UUID, asOf time.Time) (decimal.Decimal, error) {
-	var multiplier decimal.Decimal
-	err := db.QueryRow(ctx, `
-		SELECT COALESCE((
-			SELECT r.multiplier
-			FROM overtime_policy_assignments a
-			JOIN overtime_rules r ON r.policy_id = a.policy_id
-			WHERE a.effective_from <= $2::date
-			  AND (a.effective_to IS NULL OR a.effective_to >= $2::date)
-			  AND ((a.assignee_type = 'employee' AND a.assignee_id = e.employee_id)
-			    OR (a.assignee_type = 'department' AND a.assignee_id = e.department_id)
-			    OR (a.assignee_type = 'organization' AND a.assignee_id IS NULL))
-			ORDER BY CASE a.assignee_type WHEN 'employee' THEN 1 WHEN 'department' THEN 2 WHEN 'organization' THEN 3 END,
-			         a.effective_from DESC, r.priority DESC, r.id DESC
-			LIMIT 1
-		), 1.5)
+type overtimeMultiplierAssignment struct {
+	assigneeType  string
+	effectiveFrom time.Time
+	effectiveTo   *time.Time
+	multiplier    decimal.Decimal
+	priority      int
+	ruleID        uuid.UUID
+}
+
+func loadOvertimeMultiplierAssignments(ctx context.Context, db DBTX, employmentID uuid.UUID, start, end time.Time) ([]overtimeMultiplierAssignment, error) {
+	rows, err := db.Query(ctx, `
+		SELECT a.assignee_type, a.effective_from, a.effective_to, r.multiplier, r.priority, r.id
 		FROM employments e
-		WHERE e.id = $1 AND e.deleted_at IS NULL`, employmentID, asOf.Format("2006-01-02")).Scan(&multiplier)
+		JOIN overtime_policy_assignments a ON (
+			(a.assignee_type = 'employee' AND a.assignee_id = e.employee_id)
+			OR (a.assignee_type = 'department' AND a.assignee_id = e.department_id)
+			OR (a.assignee_type = 'organization' AND a.assignee_id IS NULL)
+		)
+		JOIN overtime_rules r ON r.policy_id = a.policy_id
+		WHERE e.id = $1 AND e.deleted_at IS NULL
+		  AND a.effective_from <= $3::date
+		  AND (a.effective_to IS NULL OR a.effective_to >= $2::date)
+		ORDER BY CASE a.assignee_type WHEN 'employee' THEN 1 WHEN 'department' THEN 2 WHEN 'organization' THEN 3 END,
+		         a.effective_from DESC, r.priority DESC, r.id DESC`,
+		employmentID, start.Format("2006-01-02"), end.Format("2006-01-02"))
 	if err != nil {
-		return decimal.Zero, err
+		return nil, err
 	}
-	if !multiplier.IsPositive() {
-		return decimal.RequireFromString("1.5"), nil
+	defer rows.Close()
+
+	assignments := make([]overtimeMultiplierAssignment, 0)
+	for rows.Next() {
+		var assignment overtimeMultiplierAssignment
+		if err := rows.Scan(&assignment.assigneeType, &assignment.effectiveFrom, &assignment.effectiveTo, &assignment.multiplier, &assignment.priority, &assignment.ruleID); err != nil {
+			return nil, err
+		}
+		assignments = append(assignments, assignment)
 	}
-	return multiplier, nil
+	return assignments, rows.Err()
+}
+
+func overtimeMultiplierAt(assignments []overtimeMultiplierAssignment, asOf time.Time) decimal.Decimal {
+	fallback := decimal.RequireFromString("1.5")
+	for _, assignment := range assignments {
+		if asOf.Before(assignment.effectiveFrom) || assignment.effectiveTo != nil && asOf.After(*assignment.effectiveTo) {
+			continue
+		}
+		if assignment.multiplier.IsPositive() {
+			return assignment.multiplier
+		}
+		return fallback
+	}
+	return fallback
 }
 
 func (r OvertimeRepository) ClaimOvertime(ctx context.Context, employeeID uuid.UUID, req api.ClaimOTRequest, user uuid.UUID) error {

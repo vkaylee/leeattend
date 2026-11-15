@@ -2,7 +2,6 @@ package repository
 
 import (
 	"context"
-	"errors"
 	"strings"
 	"testing"
 	"time"
@@ -94,70 +93,21 @@ func TestOvertimeRepository_CreateAndGetPolicy(t *testing.T) {
 	}
 }
 
-func TestResolveOvertimeMultiplier_UsesPolicyResolverQuery(t *testing.T) {
-	employmentID := uuid.New()
-	asOf := time.Date(2026, 10, 20, 0, 0, 0, 0, time.UTC)
-	multiplier := decimal.RequireFromString("2.25")
-	var gotSQL string
-	var gotArgs []any
-	db := &fakeDBTX{
-		queryRowFn: func(_ context.Context, sql string, args ...any) pgx.Row {
-			gotSQL = sql
-			gotArgs = args
-			return fakeRow{scanFn: func(dest ...any) error {
-				*(dest[0].(*decimal.Decimal)) = multiplier
-				return nil
-			}}
-		},
+func TestOvertimeMultiplierAtUsesEffectiveAssignmentOrder(t *testing.T) {
+	from := time.Date(2026, 10, 1, 0, 0, 0, 0, time.UTC)
+	to := time.Date(2026, 10, 15, 0, 0, 0, 0, time.UTC)
+	assignments := []overtimeMultiplierAssignment{
+		{assigneeType: "employee", effectiveFrom: from, effectiveTo: &to, multiplier: decimal.RequireFromString("2")},
+		{assigneeType: "organization", effectiveFrom: from, multiplier: decimal.RequireFromString("1.25")},
 	}
-
-	got, err := resolveOvertimeMultiplier(context.Background(), db, employmentID, asOf)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
+	if got := overtimeMultiplierAt(assignments, time.Date(2026, 10, 10, 0, 0, 0, 0, time.UTC)); !got.Equal(decimal.RequireFromString("2")) {
+		t.Fatalf("expected employee multiplier, got %s", got)
 	}
-	if !got.Equal(multiplier) {
-		t.Fatalf("expected multiplier %s, got %s", multiplier, got)
+	if got := overtimeMultiplierAt(assignments, time.Date(2026, 10, 15, 0, 0, 0, 0, time.UTC)); !got.Equal(decimal.RequireFromString("2")) {
+		t.Fatalf("expected employee multiplier through inclusive end, got %s", got)
 	}
-	if !strings.Contains(gotSQL, "overtime_policy_assignments") ||
-		!strings.Contains(gotSQL, "CASE a.assignee_type") ||
-		!strings.Contains(gotSQL, "r.priority DESC") {
-		t.Fatalf("resolver query lost precedence clauses: %s", gotSQL)
-	}
-	if len(gotArgs) != 2 || gotArgs[0] != employmentID || gotArgs[1] != asOf.Format("2006-01-02") {
-		t.Fatalf("unexpected resolver args: %#v", gotArgs)
-	}
-}
-
-func TestResolveOvertimeMultiplier_PropagatesDatabaseError(t *testing.T) {
-	expected := errors.New("database unavailable")
-	db := &fakeDBTX{
-		queryRowFn: func(_ context.Context, _ string, _ ...any) pgx.Row {
-			return fakeRow{scanFn: func(_ ...any) error { return expected }}
-		},
-	}
-
-	_, err := resolveOvertimeMultiplier(context.Background(), db, uuid.New(), time.Now().UTC())
-	if !errors.Is(err, expected) {
-		t.Fatalf("expected database error, got %v", err)
-	}
-}
-
-func TestResolveOvertimeMultiplier_NormalizesNonPositiveResultToLegacyFallback(t *testing.T) {
-	db := &fakeDBTX{
-		queryRowFn: func(_ context.Context, _ string, _ ...any) pgx.Row {
-			return fakeRow{scanFn: func(dest ...any) error {
-				*(dest[0].(*decimal.Decimal)) = decimal.Zero
-				return nil
-			}}
-		},
-	}
-
-	got, err := resolveOvertimeMultiplier(context.Background(), db, uuid.New(), time.Now().UTC())
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if !got.Equal(decimal.RequireFromString("1.5")) {
-		t.Fatalf("expected legacy fallback 1.5, got %s", got)
+	if got := overtimeMultiplierAt(assignments, time.Date(2026, 10, 16, 0, 0, 0, 0, time.UTC)); !got.Equal(decimal.RequireFromString("1.25")) {
+		t.Fatalf("expected organization multiplier after inclusive end, got %s", got)
 	}
 }
 

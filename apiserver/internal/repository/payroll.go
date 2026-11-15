@@ -2068,6 +2068,13 @@ ORDER BY start_date ASC, id ASC`, employeeID, endStr)
 	if err != nil {
 		return api.FullPayslipResponse{}, err
 	}
+	overtimeAssignments := make([]overtimeMultiplierAssignment, 0)
+	if len(policyAssignments) > 0 {
+		overtimeAssignments, err = loadOvertimeMultiplierAssignments(ctx, db, employmentID, startDate, endDate)
+		if err != nil {
+			return api.FullPayslipResponse{}, err
+		}
+	}
 	policyChanges := make([]time.Time, 0)
 	for _, assignment := range policyAssignments {
 		if effectiveFrom, parseErr := time.Parse("2006-01-02", assignment.policy.EffectiveFrom); parseErr == nil && effectiveFrom.After(startDate) && effectiveFrom.Before(endDate.AddDate(0, 0, 1)) {
@@ -2083,6 +2090,17 @@ ORDER BY start_date ASC, id ASC`, employeeID, endStr)
 				if boundary, parseErr := time.Parse("2006-01-02", *effectiveTo); parseErr == nil && boundary.After(startDate) && boundary.Before(endDate.AddDate(0, 0, 1)) {
 					policyChanges = append(policyChanges, boundary)
 				}
+			}
+		}
+	}
+	for _, assignment := range overtimeAssignments {
+		if assignment.effectiveFrom.After(startDate) && assignment.effectiveFrom.Before(endDate) {
+			policyChanges = append(policyChanges, assignment.effectiveFrom)
+		}
+		if assignment.effectiveTo != nil {
+			boundary := assignment.effectiveTo.AddDate(0, 0, 1)
+			if boundary.After(startDate) && boundary.Before(endDate.AddDate(0, 0, 1)) {
+				policyChanges = append(policyChanges, boundary)
 			}
 		}
 	}
@@ -2188,6 +2206,7 @@ WHERE employment_id = $1 AND date >= $2::date AND date <= $3::date`, employmentI
 		laborPolicyVersion *uuid.UUID
 	}
 	var segmentSnapshots []segSnapshot
+	var totalOvertimePay decimal.Decimal
 
 	minutesPerDay := hoursPerDay.Mul(decimal.NewFromInt(60))
 	if minutesPerDay.IsZero() {
@@ -2216,6 +2235,10 @@ WHERE employment_id = $1 AND date >= $2::date AND date <= $3::date`, employmentI
 		}
 
 		dailyRate := rates.CalculateDailyRate(segBase, segmentStdDays)
+		segmentMultiplier := decimal.RequireFromString("1.5")
+		if policy != nil {
+			segmentMultiplier = overtimeMultiplierAt(overtimeAssignments, seg.Start)
+		}
 		segStdMin := 0
 		segOtMin := 0
 
@@ -2238,6 +2261,9 @@ WHERE employment_id = $1 AND date >= $2::date AND date <= $3::date`, employmentI
 
 		stdUnits := int32(segStdMin / 60)
 		otUnits := int32(segOtMin / 60)
+		if len(policyAssignments) > 0 {
+			totalOvertimePay = totalOvertimePay.Add(rates.CalculateHourlyRate(segBase, segmentStdDays, hoursPerDay).Mul(decimal.NewFromInt(int64(otUnits))).Mul(segmentMultiplier).Round(2))
+		}
 		totalStdUnits += stdUnits
 		totalOtUnits += otUnits
 
@@ -2271,16 +2297,10 @@ WHERE employment_id = $1 AND date >= $2::date AND date <= $3::date`, employmentI
 		})
 	}
 
-	hourlyRate := rates.CalculateHourlyRate(totalBaseSalary, stdDays, hoursPerDay)
-	overtimeMultiplier := decimal.RequireFromString("1.5")
-	if policy := workPolicyAssignmentAt(policyAssignments, endDate); policy != nil {
-		if multiplier, multiplierErr := resolveOvertimeMultiplier(ctx, db, employmentID, endDate); multiplierErr != nil {
-			return api.FullPayslipResponse{}, multiplierErr
-		} else {
-			overtimeMultiplier = multiplier
-		}
+	if len(policyAssignments) == 0 {
+		hourlyRate := rates.CalculateHourlyRate(totalBaseSalary, stdDays, hoursPerDay)
+		totalOvertimePay = hourlyRate.Mul(decimal.NewFromInt(int64(totalOtUnits))).Mul(decimal.RequireFromString("1.5")).Round(2)
 	}
-	totalOvertimePay := hourlyRate.Mul(decimal.NewFromInt(int64(totalOtUnits))).Mul(overtimeMultiplier).Round(2)
 	if maxOtHours != nil {
 		cappedUnits, cappedPay := rates.ApplyOTCap(totalOtUnits, totalOvertimePay, *maxOtHours, 60)
 		totalOtUnits = cappedUnits
