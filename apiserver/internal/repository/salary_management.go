@@ -38,7 +38,7 @@ func (r PayrollRepository) ListSalaryManagementRows(ctx context.Context, query a
 	  AND er.deleted_at IS NULL
 	  AND em.start_date <= $1::date
 	  AND (em.end_date IS NULL OR em.end_date >= $1::date)
-	  AND ($2 = '' OR e.full_name ILIKE '%' || $2 || '%' OR e.employee_id_number ILIKE '%' || $2 || '%')
+	  AND ($2 = '' OR e.full_name ILIKE '%' || $2 || '%' OR COALESCE(tenure.employee_number, e.employee_id_number) ILIKE '%' || $2 || '%')
 	  AND ($3::uuid IS NULL OR em.employer_id = $3)
 	  AND ($4::uuid IS NULL OR em.department_id = $4)
 	  AND ($5 = '' OR em.status = $5)`
@@ -56,12 +56,13 @@ func (r PayrollRepository) ListSalaryManagementRows(ctx context.Context, query a
 FROM employments em
 JOIN employees e ON e.id = em.employee_id
 JOIN employers er ON er.id = em.employer_id
+LEFT JOIN LATERAL (SELECT t.employee_number FROM employee_tenures t WHERE t.employee_id = e.id AND t.deleted_at IS NULL AND t.start_date <= $1::date AND (t.end_date IS NULL OR t.end_date >= $1::date) ORDER BY t.start_date DESC, t.id DESC LIMIT 1) tenure ON TRUE
 ` + componentJoin + "\n" + where
 	if err := db.QueryRow(ctx, countSQL, args...).Scan(&total); err != nil {
 		return api.SalaryManagementResponse{}, err
 	}
 
-	rowsSQL := `SELECT em.id, e.id, e.employee_id_number, e.full_name,
+	rowsSQL := `SELECT em.id, e.id, COALESCE(tenure.employee_number, e.employee_id_number), e.full_name,
 	er.id, er.name, em.department_id, d.name, em.job_title, em.status,
 	em.employment_type, em.start_date::text, em.end_date::text,
 	configured_component.id, configured_component.component_definition_id,
@@ -70,8 +71,9 @@ FROM employments em
 JOIN employees e ON e.id = em.employee_id
 JOIN employers er ON er.id = em.employer_id
 LEFT JOIN departments d ON d.id = em.department_id
+LEFT JOIN LATERAL (SELECT t.employee_number FROM employee_tenures t WHERE t.employee_id = e.id AND t.deleted_at IS NULL AND t.start_date <= $1::date AND (t.end_date IS NULL OR t.end_date >= $1::date) ORDER BY t.start_date DESC, t.id DESC LIMIT 1) tenure ON TRUE
 ` + componentJoin + "\n" + where + `
-ORDER BY e.employee_id_number ASC, em.id ASC, configured_component.effective_date DESC, scd.code ASC, configured_component.id ASC
+ORDER BY COALESCE(tenure.employee_number, e.employee_id_number) ASC, em.id ASC, configured_component.effective_date DESC, scd.code ASC, configured_component.id ASC
 LIMIT $6 OFFSET $7`
 	args = append(args, query.Limit, offset)
 	rows, err := db.Query(ctx, rowsSQL, args...)
