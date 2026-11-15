@@ -14,6 +14,7 @@ import (
 	"github.com/shopspring/decimal"
 	"github.com/vkaylee/leeattend/apiserver/internal/apperror"
 	"github.com/vkaylee/leeattend/apiserver/internal/audit"
+	"github.com/vkaylee/leeattend/apiserver/internal/domain/ids"
 	"github.com/vkaylee/leeattend/apiserver/internal/domain/payroll/formula"
 	httpinfra "github.com/vkaylee/leeattend/apiserver/internal/infra/http"
 )
@@ -437,7 +438,7 @@ type PayrollRepository interface {
 	ListPayrollRuleAssignments(context.Context, uuid.UUID) ([]PayrollRuleAssignment, error)
 	AssignPayrollRule(context.Context, uuid.UUID, AssignPayrollRuleRequest) (PayrollRuleAssignment, error)
 	DeletePayrollRuleAssignment(context.Context, uuid.UUID, uuid.UUID) error
-	CalculateEmployeePayroll(context.Context, uuid.UUID, int, int, uuid.UUID) (FullPayslipResponse, error)
+	CalculateEmployeePayroll(context.Context, ids.EmployeeID, int, int, ids.UserID) (FullPayslipResponse, error)
 	CalculateBatchPayroll(context.Context, BatchCalculatePayrollRequest, uuid.UUID) (BatchCalculatePayrollResponse, error)
 	CreatePayrollInputBatch(context.Context, CreatePayrollInputRequest, uuid.UUID) (PayrollInputBatch, error)
 	ApprovePayrollInputBatch(context.Context, uuid.UUID, uuid.UUID) (PayrollInputBatch, error)
@@ -1014,7 +1015,7 @@ func (h PayrollHandler) CalculatePayroll(w http.ResponseWriter, r *http.Request)
 		h.forbidden(w, r)
 		return
 	}
-	resp, err := h.Repository.CalculateEmployeePayroll(r.Context(), empID, year, month, actorID)
+	resp, err := h.Repository.CalculateEmployeePayroll(r.Context(), ids.EmployeeID(empID), year, month, ids.UserID(actorID))
 	if err != nil {
 		h.writeError(w, r, err)
 		return

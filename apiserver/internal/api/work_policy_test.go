@@ -11,6 +11,8 @@ import (
 	"github.com/google/uuid"
 	"github.com/shopspring/decimal"
 	"github.com/vkaylee/leeattend/apiserver/internal/audit"
+	"github.com/vkaylee/leeattend/apiserver/internal/domain/ids"
+	"github.com/vkaylee/leeattend/apiserver/internal/domain/workpolicy"
 	httpinfra "github.com/vkaylee/leeattend/apiserver/internal/infra/http"
 )
 
@@ -32,33 +34,33 @@ func (s *workPolicyRepositoryStub) ListWorkPolicyGroupVersions(context.Context, 
 	return WorkPolicyGroupListResponse{}, nil
 }
 
-func (s *workPolicyRepositoryStub) ListWorkPolicyGroupHistory(context.Context, uuid.UUID, int, int) (WorkPolicyGroupListResponse, error) {
+func (s *workPolicyRepositoryStub) ListWorkPolicyGroupHistory(context.Context, workpolicy.GroupID, int, int) (WorkPolicyGroupListResponse, error) {
 	return WorkPolicyGroupListResponse{}, nil
 }
 
-func (s *workPolicyRepositoryStub) CreateWorkPolicyGroup(_ context.Context, req CreateWorkPolicyGroupRequest, actorID uuid.UUID) (WorkPolicyGroupVersion, error) {
+func (s *workPolicyRepositoryStub) CreateWorkPolicyGroup(_ context.Context, req workpolicy.CreateGroupInput, actorID ids.UserID) (WorkPolicyGroupVersion, error) {
 	s.created = true
 	return WorkPolicyGroupVersion{
-		GroupID: actorID,
+		GroupID: uuid.UUID(actorID),
 		Name:    req.Name,
 	}, nil
 }
 
-func (s *workPolicyRepositoryStub) ResolveWorkPolicy(context.Context, uuid.UUID, time.Time) (WorkPolicyGroupVersion, error) {
+func (s *workPolicyRepositoryStub) ResolveWorkPolicy(context.Context, ids.EmploymentID, time.Time) (WorkPolicyGroupVersion, error) {
 	return WorkPolicyGroupVersion{GroupID: uuid.New(), EffectiveFrom: "2026-01-01"}, nil
 }
 
-func (s *workPolicyRepositoryStub) CreateWorkPolicyGroupVersion(_ context.Context, groupID uuid.UUID, req CreateWorkPolicyGroupVersionRequest, _ uuid.UUID) (WorkPolicyGroupVersion, error) {
+func (s *workPolicyRepositoryStub) CreateWorkPolicyGroupVersion(_ context.Context, req workpolicy.CreateGroupVersionInput, _ ids.UserID) (WorkPolicyGroupVersion, error) {
 	s.versionCreated = true
-	return WorkPolicyGroupVersion{GroupID: groupID, Name: req.Name, EffectiveFrom: req.EffectiveFrom}, nil
+	return WorkPolicyGroupVersion{GroupID: uuid.UUID(req.GroupID), Name: req.Name, EffectiveFrom: req.EffectiveFrom}, nil
 }
 
-func (s *workPolicyRepositoryStub) ListWorkPolicyMemberships(context.Context, uuid.UUID) ([]WorkPolicyMembership, error) {
+func (s *workPolicyRepositoryStub) ListWorkPolicyMemberships(context.Context, workpolicy.GroupID) ([]WorkPolicyMembership, error) {
 	return []WorkPolicyMembership{}, nil
 }
 
-func (s *workPolicyRepositoryStub) CreateWorkPolicyMembership(_ context.Context, groupID uuid.UUID, req CreateWorkPolicyMembershipRequest, _ uuid.UUID) (WorkPolicyMembership, error) {
-	return WorkPolicyMembership{GroupID: groupID, EmploymentID: req.EmploymentID}, nil
+func (s *workPolicyRepositoryStub) CreateWorkPolicyMembership(_ context.Context, req workpolicy.CreateMembershipInput) (WorkPolicyMembership, error) {
+	return WorkPolicyMembership{GroupID: uuid.UUID(req.GroupID), EmploymentID: uuid.UUID(req.EmploymentID)}, nil
 }
 
 func workPolicyRequest(method string, body string, userID uuid.UUID) *http.Request {

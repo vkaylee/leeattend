@@ -6,24 +6,25 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/shopspring/decimal"
+	"github.com/vkaylee/leeattend/apiserver/internal/domain/ids"
 )
 
 func TestWorkCreditPolicyValidateRejectsNonPositiveUnit(t *testing.T) {
-	policy := WorkCreditPolicy{Name: "Custom", MinutesPerCredit: 0, AttendancePolicyID: uuid.New()}
+	policy := WorkCreditPolicy{Name: "Custom", MinutesPerCredit: 0, AttendancePolicyID: ids.AttendancePolicyID(uuid.New())}
 	if err := policy.Validate(); err != ErrMinutesPerCreditRequired {
 		t.Fatalf("expected non-positive unit error, got %v", err)
 	}
 }
 
 func TestWorkCreditPolicyValidateRequiresScheduleReference(t *testing.T) {
-	policy := WorkCreditPolicy{Name: "Custom", MinutesPerCredit: 450, AttendancePolicyID: uuid.New()}
+	policy := WorkCreditPolicy{Name: "Custom", MinutesPerCredit: 450, AttendancePolicyID: ids.AttendancePolicyID(uuid.New())}
 	if err := policy.Validate(); err != ErrReferenceRequired {
 		t.Fatalf("expected missing working pattern error, got %v", err)
 	}
 }
 
 func TestWorkCreditPolicyCalculateUsesConfiguredMinutes(t *testing.T) {
-	policy := WorkCreditPolicy{Name: "Custom", MinutesPerCredit: 450, AttendancePolicyID: uuid.New(), WorkingPatternID: uuid.New()}
+	policy := WorkCreditPolicy{Name: "Custom", MinutesPerCredit: 450, AttendancePolicyID: ids.AttendancePolicyID(uuid.New()), WorkingPatternID: ids.WorkingPatternID(uuid.New())}
 	result, err := policy.Calculate(675)
 	if err != nil {
 		t.Fatalf("calculate credits: %v", err)
@@ -49,7 +50,10 @@ func TestPayBasisPolicyValidateUsesMonthlyOptionsOnlyForMonthlyPay(t *testing.T)
 		t.Fatalf("expected rate component requirement for hourly pay, got %v", err)
 	}
 	rateComponent := uuid.New()
-	hourly = PayBasisPolicy{Name: "Hourly", Method: PayMethodHourly, RateComponentDefinitionID: &rateComponent}
+	hourly = PayBasisPolicy{Name: "Hourly", Method: PayMethodHourly, RateComponentDefinitionID: func() *ids.RateComponentDefinitionID {
+		converted := ids.RateComponentDefinitionID(rateComponent)
+		return &converted
+	}()}
 	if err := hourly.Validate(); err != nil {
 		t.Fatalf("valid hourly policy rejected: %v", err)
 	}
@@ -60,9 +64,9 @@ func TestLaborPolicyGroupValidateRejectsInvalidEffectiveRange(t *testing.T) {
 	to := from
 	group := LaborPolicyGroup{
 		Name:               "Operations",
-		WorkCreditPolicyID: uuid.New(),
-		PayBasisPolicyID:   uuid.New(),
-		OvertimePolicyID:   uuid.New(),
+		WorkCreditPolicyID: WorkCreditPolicyID(uuid.New()),
+		PayBasisPolicyID:   PayBasisPolicyID(uuid.New()),
+		OvertimePolicyID:   ids.OvertimePolicyID(uuid.New()),
 		EffectiveFrom:      from,
 		EffectiveTo:        &to,
 	}

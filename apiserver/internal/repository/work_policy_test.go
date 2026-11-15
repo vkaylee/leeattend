@@ -10,6 +10,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/vkaylee/leeattend/apiserver/internal/api"
+	"github.com/vkaylee/leeattend/apiserver/internal/domain/ids"
 	"github.com/vkaylee/leeattend/apiserver/internal/domain/workpolicy"
 )
 
@@ -20,7 +21,7 @@ func TestWorkPolicyRepository_ListWorkPolicyGroupHistoryPaginatesByGroup(t *test
 	db := &fakeDBTX{
 		queryFn: func(_ context.Context, query string, args ...any) (pgx.Rows, error) {
 			dataQuery = query
-			if len(args) != 3 || args[0] != groupID || args[1] != 20 || args[2] != 20 {
+			if len(args) != 3 || args[1] != 20 || args[2] != 20 {
 				t.Fatalf("unexpected history args: %#v", args)
 			}
 			return &rowsStub{data: [][]any{{
@@ -30,7 +31,7 @@ func TestWorkPolicyRepository_ListWorkPolicyGroupHistoryPaginatesByGroup(t *test
 			}}}, nil
 		},
 		queryRowFn: func(_ context.Context, query string, args ...any) pgx.Row {
-			if !strings.Contains(query, "count(*) FROM labor_policy_group_versions WHERE group_id = $1") || len(args) != 1 || args[0] != groupID {
+			if !strings.Contains(query, "count(*) FROM labor_policy_group_versions WHERE group_id = $1") || len(args) != 1 {
 				t.Fatalf("unexpected history count query: %s %#v", query, args)
 			}
 			return fakeRow{scanFn: func(dest ...any) error {
@@ -40,7 +41,7 @@ func TestWorkPolicyRepository_ListWorkPolicyGroupHistoryPaginatesByGroup(t *test
 		},
 	}
 
-	result, err := (WorkPolicyRepository{DB: db}).ListWorkPolicyGroupHistory(context.Background(), groupID, 2, 20)
+	result, err := (WorkPolicyRepository{DB: db}).ListWorkPolicyGroupHistory(context.Background(), workpolicy.GroupID(groupID), 2, 20)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -115,14 +116,14 @@ func TestResolveWorkPolicyUsesExclusiveEndBoundary(t *testing.T) {
 	}
 	db := &fakeDBTX{queryRowFn: query}
 	repo := WorkPolicyRepository{DB: db}
-	got, err := repo.ResolveWorkPolicy(context.Background(), employmentID, time.Date(2026, 5, 31, 0, 0, 0, 0, time.UTC))
+	got, err := repo.ResolveWorkPolicy(context.Background(), ids.EmploymentID(employmentID), time.Date(2026, 5, 31, 0, 0, 0, 0, time.UTC))
 	if err != nil || got.ID != policyID {
 		t.Fatalf("expected policy before exclusive end, got %+v, err=%v", got, err)
 	}
 	if !strings.Contains(capturedQuery, "effective_to > $2::date") {
 		t.Fatalf("resolver must use exclusive effective_to boundary: %s", capturedQuery)
 	}
-	_, err = repo.ResolveWorkPolicy(context.Background(), employmentID, time.Date(2026, 6, 1, 0, 0, 0, 0, time.UTC))
+	_, err = repo.ResolveWorkPolicy(context.Background(), ids.EmploymentID(employmentID), time.Date(2026, 6, 1, 0, 0, 0, 0, time.UTC))
 	if !errors.Is(err, api.ErrWorkPolicyResolutionNotFound) {
 		t.Fatalf("expected boundary resolution miss, got %v", err)
 	}

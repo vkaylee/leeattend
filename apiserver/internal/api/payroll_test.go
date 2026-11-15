@@ -14,6 +14,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/shopspring/decimal"
 	"github.com/vkaylee/leeattend/apiserver/internal/audit"
+	"github.com/vkaylee/leeattend/apiserver/internal/domain/ids"
 	httpinfra "github.com/vkaylee/leeattend/apiserver/internal/infra/http"
 )
 
@@ -198,10 +199,10 @@ func (mockPayrollRepository) UpdatePayrollSettings(_ context.Context, req Update
 }
 
 func (mockPayrollRepository) GetEmployeePayrollConfigs(_ context.Context, employeeID uuid.UUID) ([]EmployeePayrollConfig, error) {
-	if employeeID == uuid.MustParse("00000000-0000-0000-0000-000000000044") {
+	if uuid.UUID(employeeID) == uuid.MustParse("00000000-0000-0000-0000-000000000044") {
 		return nil, ErrEmployeeNotFound
 	}
-	if employeeID == uuid.MustParse("00000000-0000-0000-0000-000000000040") {
+	if uuid.UUID(employeeID) == uuid.MustParse("00000000-0000-0000-0000-000000000040") {
 		return nil, ErrNoActiveEmployment
 	}
 	return []EmployeePayrollConfig{
@@ -217,10 +218,10 @@ func (mockPayrollRepository) GetEmployeePayrollConfigs(_ context.Context, employ
 }
 
 func (mockPayrollRepository) SetEmployeePayrollConfig(_ context.Context, employeeID uuid.UUID, req SetEmployeePayrollConfigRequest, _ uuid.UUID) (EmployeePayrollConfig, error) {
-	if employeeID == uuid.MustParse("00000000-0000-0000-0000-000000000044") {
+	if uuid.UUID(employeeID) == uuid.MustParse("00000000-0000-0000-0000-000000000044") {
 		return EmployeePayrollConfig{}, ErrEmployeeNotFound
 	}
-	if employeeID == uuid.MustParse("00000000-0000-0000-0000-000000000040") {
+	if uuid.UUID(employeeID) == uuid.MustParse("00000000-0000-0000-0000-000000000040") {
 		return EmployeePayrollConfig{}, ErrNoActiveEmployment
 	}
 	return EmployeePayrollConfig{
@@ -417,11 +418,11 @@ func (mockPayrollRepository) DeletePayrollRuleAssignment(_ context.Context, _, a
 	return nil
 }
 
-func (mockPayrollRepository) CalculateEmployeePayroll(_ context.Context, employeeID uuid.UUID, _, _ int, _ uuid.UUID) (FullPayslipResponse, error) {
-	if employeeID == uuid.MustParse("00000000-0000-0000-0000-000000000044") {
+func (mockPayrollRepository) CalculateEmployeePayroll(_ context.Context, employeeID ids.EmployeeID, _, _ int, _ ids.UserID) (FullPayslipResponse, error) {
+	if uuid.UUID(employeeID) == uuid.MustParse("00000000-0000-0000-0000-000000000044") {
 		return FullPayslipResponse{}, ErrEmployeeNotFound
 	}
-	if employeeID == uuid.MustParse("00000000-0000-0000-0000-000000000040") {
+	if uuid.UUID(employeeID) == uuid.MustParse("00000000-0000-0000-0000-000000000040") {
 		return FullPayslipResponse{}, ErrNoActiveEmployment
 	}
 	payslipID := uuid.New()

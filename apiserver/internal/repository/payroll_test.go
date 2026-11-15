@@ -12,8 +12,18 @@ import (
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/shopspring/decimal"
 	"github.com/vkaylee/leeattend/apiserver/internal/api"
+	"github.com/vkaylee/leeattend/apiserver/internal/domain/ids"
 	"github.com/vkaylee/leeattend/apiserver/internal/domain/workpolicy"
 )
+
+func TestCalculateHourlyPolicyPay(t *testing.T) {
+	if got := calculateHourlyPolicyPay(decimal.RequireFromString("100"), 90); !got.Equal(decimal.RequireFromString("150")) {
+		t.Fatalf("expected 150 hourly pay, got %s", got)
+	}
+	if got := calculateHourlyPolicyPay(decimal.Zero, 90); !got.IsZero() {
+		t.Fatalf("zero rate must produce zero, got %s", got)
+	}
+}
 
 func TestPayrollStandardDaysForPolicy(t *testing.T) {
 	legacy := decimal.NewFromInt(26)
@@ -103,7 +113,7 @@ func TestPayrollRepository_CalculateEmployeePayroll_UsesEmploymentDepartmentHist
 		}
 		return &fakeRows{}, nil
 	}
-	_, err := (PayrollRepository{DB: tx}).CalculateEmployeePayroll(context.Background(), employeeID, 2026, 1, uuid.New())
+	_, err := (PayrollRepository{DB: tx}).CalculateEmployeePayroll(context.Background(), ids.EmployeeID(employeeID), 2026, 1, ids.UserID(uuid.New()))
 	if err != nil {
 		t.Fatalf("calculate payroll: %v", err)
 	}
@@ -181,7 +191,7 @@ func TestPayrollRepository_CalculateEmployeePayroll_RejectsLockedPeriod(t *testi
 		return &fakeRows{}, nil
 	}
 
-	_, err := (PayrollRepository{DB: tx}).CalculateEmployeePayroll(context.Background(), employeeID, 2026, 1, uuid.New())
+	_, err := (PayrollRepository{DB: tx}).CalculateEmployeePayroll(context.Background(), ids.EmployeeID(employeeID), 2026, 1, ids.UserID(uuid.New()))
 	if !errors.Is(err, api.ErrPayrollPeriodConflict) {
 		t.Fatalf("expected locked period conflict, got %v", err)
 	}
@@ -197,7 +207,7 @@ func TestPayrollRepository_CalculateEmployeePayroll_ProtectsFinalizedPayslip(t *
 	for _, status := range []string{"paid", "finalized"} {
 		t.Run(status, func(t *testing.T) {
 			tx := payrollCalculationFixture(uuid.New(), uuid.New(), uuid.New(), "open", status)
-			_, err := (PayrollRepository{DB: tx}).CalculateEmployeePayroll(context.Background(), uuid.New(), 2026, 1, uuid.New())
+			_, err := (PayrollRepository{DB: tx}).CalculateEmployeePayroll(context.Background(), ids.EmployeeID(uuid.New()), 2026, 1, ids.UserID(uuid.New()))
 			if !errors.Is(err, api.ErrPayslipConflict) {
 				t.Fatalf("expected payslip conflict for %s payslip, got %v", status, err)
 			}
@@ -218,7 +228,7 @@ func TestPayrollRepository_CalculateEmployeePayroll_PropagatesPayslipChildDelete
 		return pgconn.NewCommandTag("INSERT 0 1"), nil
 	}
 
-	_, err := (PayrollRepository{DB: tx}).CalculateEmployeePayroll(context.Background(), uuid.New(), 2026, 1, uuid.New())
+	_, err := (PayrollRepository{DB: tx}).CalculateEmployeePayroll(context.Background(), ids.EmployeeID(uuid.New()), 2026, 1, ids.UserID(uuid.New()))
 	if !errors.Is(err, deleteErr) {
 		t.Fatalf("expected child delete error, got %v", err)
 	}
@@ -567,13 +577,5 @@ func TestPayrollRepository_AssignPayrollRule_DepartmentAssigneeWithID(t *testing
 	}
 	if assignment.AssigneeID == nil || *assignment.AssigneeID != deptID {
 		t.Fatalf("expected AssigneeID %s, got %v", deptID, assignment.AssigneeID)
-	}
-}
-func TestCalculateHourlyPolicyPay(t *testing.T) {
-	if got := calculateHourlyPolicyPay(decimal.RequireFromString("100"), 90); !got.Equal(decimal.RequireFromString("150")) {
-		t.Fatalf("expected 150 hourly pay, got %s", got)
-	}
-	if got := calculateHourlyPolicyPay(decimal.Zero, 90); !got.IsZero() {
-		t.Fatalf("zero rate must produce zero, got %s", got)
 	}
 }

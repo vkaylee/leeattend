@@ -7,6 +7,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/shopspring/decimal"
+	"github.com/vkaylee/leeattend/apiserver/internal/domain/ids"
 )
 
 type PayMethod string
@@ -39,11 +40,11 @@ var (
 )
 
 type WorkCreditPolicy struct {
-	ID                 uuid.UUID
+	ID                 WorkCreditPolicyID
 	Name               string
 	MinutesPerCredit   int
-	AttendancePolicyID uuid.UUID
-	WorkingPatternID   uuid.UUID
+	AttendancePolicyID ids.AttendancePolicyID
+	WorkingPatternID   ids.WorkingPatternID
 }
 
 type WorkCreditResult struct {
@@ -71,19 +72,19 @@ func (p WorkCreditPolicy) Validate() error {
 	if p.MinutesPerCredit <= 0 {
 		return ErrMinutesPerCreditRequired
 	}
-	if p.AttendancePolicyID == uuid.Nil || p.WorkingPatternID == uuid.Nil {
+	if uuid.UUID(p.AttendancePolicyID) == uuid.Nil || uuid.UUID(p.WorkingPatternID) == uuid.Nil {
 		return ErrReferenceRequired
 	}
 	return nil
 }
 
 type PayBasisPolicy struct {
-	ID                        uuid.UUID
+	ID                        PayBasisPolicyID
 	Name                      string
 	Method                    PayMethod
 	MonthlyDenominator        *MonthlyDenominator
 	MonthlyStandardDays       *decimal.Decimal
-	RateComponentDefinitionID *uuid.UUID
+	RateComponentDefinitionID *ids.RateComponentDefinitionID
 }
 
 func (p PayBasisPolicy) Validate() error {
@@ -97,7 +98,7 @@ func (p PayBasisPolicy) Validate() error {
 		return p.validateMonthly()
 	}
 	if p.Method == PayMethodHourly || p.Method == PayMethodShift {
-		if p.RateComponentDefinitionID == nil || *p.RateComponentDefinitionID == uuid.Nil {
+		if p.RateComponentDefinitionID == nil || uuid.UUID(*p.RateComponentDefinitionID) == uuid.Nil {
 			return ErrRateComponentRequired
 		}
 		return p.validateNonMonthly()
@@ -132,11 +133,11 @@ func (p PayBasisPolicy) validateNonMonthly() error {
 }
 
 type LaborPolicyGroup struct {
-	ID                 uuid.UUID
+	ID                 GroupID
 	Name               string
-	WorkCreditPolicyID uuid.UUID
-	PayBasisPolicyID   uuid.UUID
-	OvertimePolicyID   uuid.UUID
+	WorkCreditPolicyID WorkCreditPolicyID
+	PayBasisPolicyID   PayBasisPolicyID
+	OvertimePolicyID   ids.OvertimePolicyID
 	EffectiveFrom      time.Time
 	EffectiveTo        *time.Time
 }
@@ -145,7 +146,7 @@ func (g LaborPolicyGroup) Validate() error {
 	if strings.TrimSpace(g.Name) == "" {
 		return ErrPolicyNameRequired
 	}
-	if g.WorkCreditPolicyID == uuid.Nil || g.PayBasisPolicyID == uuid.Nil || g.OvertimePolicyID == uuid.Nil {
+	if uuid.UUID(g.WorkCreditPolicyID) == uuid.Nil || uuid.UUID(g.PayBasisPolicyID) == uuid.Nil || uuid.UUID(g.OvertimePolicyID) == uuid.Nil {
 		return ErrReferenceRequired
 	}
 	if g.EffectiveFrom.IsZero() || (g.EffectiveTo != nil && !g.EffectiveTo.After(g.EffectiveFrom)) {
@@ -155,14 +156,14 @@ func (g LaborPolicyGroup) Validate() error {
 }
 
 type Membership struct {
-	EmploymentID  uuid.UUID
-	GroupID       uuid.UUID
+	EmploymentID  ids.EmploymentID
+	GroupID       GroupID
 	EffectiveFrom time.Time
 	EffectiveTo   *time.Time
 }
 
 func (m Membership) Validate() error {
-	if m.EmploymentID == uuid.Nil || m.GroupID == uuid.Nil {
+	if uuid.UUID(m.EmploymentID) == uuid.Nil || uuid.UUID(m.GroupID) == uuid.Nil {
 		return ErrReferenceRequired
 	}
 	if m.EffectiveFrom.IsZero() || (m.EffectiveTo != nil && !m.EffectiveTo.After(m.EffectiveFrom)) {

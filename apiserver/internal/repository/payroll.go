@@ -15,6 +15,7 @@ import (
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/shopspring/decimal"
 	"github.com/vkaylee/leeattend/apiserver/internal/api"
+	"github.com/vkaylee/leeattend/apiserver/internal/domain/ids"
 	"github.com/vkaylee/leeattend/apiserver/internal/domain/payroll"
 	"github.com/vkaylee/leeattend/apiserver/internal/domain/payroll/incentives"
 	"github.com/vkaylee/leeattend/apiserver/internal/domain/payroll/rates"
@@ -1719,7 +1720,7 @@ func (r PayrollRepository) DeletePayrollRuleAssignment(ctx context.Context, rule
 	return err
 }
 
-func (r PayrollRepository) CalculateEmployeePayroll(ctx context.Context, employeeID uuid.UUID, year, month int, actorID uuid.UUID) (api.FullPayslipResponse, error) {
+func (r PayrollRepository) CalculateEmployeePayroll(ctx context.Context, employeeID ids.EmployeeID, year, month int, actorID ids.UserID) (api.FullPayslipResponse, error) {
 	db, err := r.db(ctx)
 	if err != nil {
 		return api.FullPayslipResponse{}, err
@@ -1732,7 +1733,7 @@ func (r PayrollRepository) CalculateEmployeePayroll(ctx context.Context, employe
 	var response api.FullPayslipResponse
 	err = service.WithTx(ctx, beginner, func(ctx context.Context, tx pgx.Tx) error {
 		var empExists bool
-		if err := tx.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM employees WHERE id = $1 AND deleted_at IS NULL)`, employeeID).Scan(&empExists); err != nil {
+		if err := tx.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM employees WHERE id = $1 AND deleted_at IS NULL)`, uuid.UUID(employeeID)).Scan(&empExists); err != nil {
 			return err
 		}
 		if !empExists {
@@ -1741,7 +1742,7 @@ func (r PayrollRepository) CalculateEmployeePayroll(ctx context.Context, employe
 
 		var employmentID, employerID uuid.UUID
 		var deptID *uuid.UUID
-		err := tx.QueryRow(ctx, `SELECT id, department_id, employer_id FROM employments WHERE employee_id = $1 AND status = 'active' AND deleted_at IS NULL ORDER BY start_date DESC, id DESC LIMIT 1`, employeeID).Scan(&employmentID, &deptID, &employerID)
+		err := tx.QueryRow(ctx, `SELECT id, department_id, employer_id FROM employments WHERE employee_id = $1 AND status = 'active' AND deleted_at IS NULL ORDER BY start_date DESC, id DESC LIMIT 1`, uuid.UUID(employeeID)).Scan(&employmentID, &deptID, &employerID)
 		if errors.Is(err, pgx.ErrNoRows) {
 			return api.ErrNoActiveEmployment
 		}
@@ -1751,7 +1752,7 @@ func (r PayrollRepository) CalculateEmployeePayroll(ctx context.Context, employe
 		if err := ensurePayrollPeriodOpen(ctx, tx, employerID, year, month); err != nil {
 			return err
 		}
-		response, err = r.calculateEmploymentPayslip(ctx, tx, employmentID, employeeID, deptID, year, month, actorID)
+		response, err = r.calculateEmploymentPayslip(ctx, tx, employmentID, uuid.UUID(employeeID), deptID, year, month, uuid.UUID(actorID))
 		return err
 	})
 	if err != nil {
@@ -1951,6 +1952,13 @@ func workPolicyAssignmentAt(assignments []workPolicyAssignment, asOf time.Time) 
 		return &policy
 	}
 	return nil
+}
+
+func calculateHourlyPolicyPay(rate decimal.Decimal, standardMinutes int) decimal.Decimal {
+	if !rate.IsPositive() || standardMinutes <= 0 {
+		return decimal.Zero
+	}
+	return rate.Mul(decimal.NewFromInt(int64(standardMinutes))).Div(decimal.NewFromInt(60)).Round(2)
 }
 
 func payrollStandardDaysForPolicy(policy *api.WorkPolicyGroupVersion, legacy decimal.Decimal) (decimal.Decimal, error) {
@@ -2217,9 +2225,15 @@ WHERE employment_id = $1 AND date >= $2::date AND date <= $3::date`, employmentI
 
 	for _, seg := range segmentsList {
 		policy := workPolicyAssignmentAt(policyAssignments, seg.Start)
-		segmentStdDays, err := payrollStandardDaysForPolicy(policy, stdDays)
-		if err != nil {
-			return api.FullPayslipResponse{}, err
+		segmentStdDays := stdDays
+		if policy == nil || policy.PayMethod == workpolicy.PayMethodMonthly {
+			segmentStdDays, err = payrollStandardDaysForPolicy(policy, stdDays)
+			if err != nil {
+				return api.FullPayslipResponse{}, err
+			}
+		}
+		if policy != nil && policy.PayMethod == workpolicy.PayMethodShift {
+			return api.FullPayslipResponse{}, api.ErrPayrollValidation
 		}
 		segBase := decimal.Zero
 		seenDef := make(map[uuid.UUID]bool)
@@ -2237,6 +2251,27 @@ WHERE employment_id = $1 AND date >= $2::date AND date <= $3::date`, employmentI
 		}
 
 		dailyRate := rates.CalculateDailyRate(segBase, segmentStdDays)
+		segmentHourlyRate := rates.CalculateHourlyRate(segBase, segmentStdDays, hoursPerDay)
+		if policy != nil && policy.PayMethod == workpolicy.PayMethodHourly {
+			if policy.RateComponentDefinitionID == nil {
+				return api.FullPayslipResponse{}, api.ErrPayrollValidation
+			}
+			var hourlyComponent decimal.Decimal
+			for i := len(salaryHistory) - 1; i >= 0; i-- {
+				item := salaryHistory[i]
+				if item.defID == *policy.RateComponentDefinitionID {
+					if effectiveDate, parseErr := time.Parse("2006-01-02", item.effDate); parseErr == nil && !effectiveDate.After(seg.Start) {
+						hourlyComponent = item.amount
+						break
+					}
+				}
+			}
+			if !hourlyComponent.IsPositive() {
+				return api.FullPayslipResponse{}, api.ErrPayrollValidation
+			}
+			dailyRate = decimal.Zero
+			segmentHourlyRate = hourlyComponent
+		}
 		segmentMultiplier := decimal.RequireFromString("1.5")
 		if policy != nil {
 			segmentMultiplier = overtimeMultiplierAt(overtimeAssignments, seg.Start)
@@ -2259,12 +2294,15 @@ WHERE employment_id = $1 AND date >= $2::date AND date <= $3::date`, employmentI
 			actualDays = decimal.NewFromInt(int64(segStdMin)).Div(minutesPerDay)
 		}
 		segAmount := dailyRate.Mul(actualDays).Round(2)
+		if policy != nil && policy.PayMethod == workpolicy.PayMethodHourly {
+			segAmount = calculateHourlyPolicyPay(segmentHourlyRate, segStdMin)
+		}
 		totalBasePay = totalBasePay.Add(segAmount)
 
 		stdUnits := int32(segStdMin / 60)
 		otUnits := int32(segOtMin / 60)
 		if len(policyAssignments) > 0 {
-			totalOvertimePay = totalOvertimePay.Add(rates.CalculateHourlyRate(segBase, segmentStdDays, hoursPerDay).Mul(decimal.NewFromInt(int64(otUnits))).Mul(segmentMultiplier).Round(2))
+			totalOvertimePay = totalOvertimePay.Add(segmentHourlyRate.Mul(decimal.NewFromInt(int64(otUnits))).Mul(segmentMultiplier).Round(2))
 		}
 		totalStdUnits += stdUnits
 		totalOtUnits += otUnits
@@ -2398,8 +2436,8 @@ ORDER BY priority ASC`, policyIDs)
 		creditPolicy := workpolicy.WorkCreditPolicy{
 			Name:               "resolved labor policy",
 			MinutesPerCredit:   resolvedPolicy.MinutesPerCredit,
-			AttendancePolicyID: resolvedPolicy.AttendancePolicyID,
-			WorkingPatternID:   resolvedPolicy.WorkingPatternID,
+			AttendancePolicyID: ids.AttendancePolicyID(resolvedPolicy.AttendancePolicyID),
+			WorkingPatternID:   ids.WorkingPatternID(resolvedPolicy.WorkingPatternID),
 		}
 		creditResult, creditErr := creditPolicy.Calculate(int(totalStdUnits * 60))
 		if creditErr != nil {
@@ -2663,10 +2701,4 @@ VALUES ($1, $2, $3, $4, NOW())`, ruleEvaluationRecords[i].ID, finalPayslipID, ru
 		SalaryComponents: salaryComponents,
 		CalculationTrace: trace,
 	}, nil
-}
-func calculateHourlyPolicyPay(rate decimal.Decimal, standardMinutes int) decimal.Decimal {
-	if !rate.IsPositive() || standardMinutes <= 0 {
-		return decimal.Zero
-	}
-	return rate.Mul(decimal.NewFromInt(int64(standardMinutes))).Div(decimal.NewFromInt(60)).Round(2)
 }

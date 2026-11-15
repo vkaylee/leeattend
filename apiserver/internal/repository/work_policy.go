@@ -10,6 +10,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/shopspring/decimal"
 	"github.com/vkaylee/leeattend/apiserver/internal/api"
+	"github.com/vkaylee/leeattend/apiserver/internal/domain/ids"
 	"github.com/vkaylee/leeattend/apiserver/internal/domain/workpolicy"
 	"github.com/vkaylee/leeattend/apiserver/internal/service"
 )
@@ -80,7 +81,7 @@ func (r WorkPolicyRepository) ListWorkPolicyGroupVersions(ctx context.Context, p
 	return result, nil
 }
 
-func (r WorkPolicyRepository) ListWorkPolicyGroupHistory(ctx context.Context, groupID uuid.UUID, page, limit int) (api.WorkPolicyGroupListResponse, error) {
+func (r WorkPolicyRepository) ListWorkPolicyGroupHistory(ctx context.Context, groupID workpolicy.GroupID, page, limit int) (api.WorkPolicyGroupListResponse, error) {
 	db, err := r.db(ctx)
 	if err != nil {
 		return api.WorkPolicyGroupListResponse{}, err
@@ -97,7 +98,7 @@ func (r WorkPolicyRepository) ListWorkPolicyGroupHistory(ctx context.Context, gr
 		JOIN pay_basis_policies pb ON pb.id = v.pay_basis_policy_id
 		WHERE v.group_id = $1
 		ORDER BY v.effective_from DESC, v.id DESC
-		LIMIT $2 OFFSET $3`, groupID, limit, offset)
+		LIMIT $2 OFFSET $3`, uuid.UUID(groupID), limit, offset)
 	if err != nil {
 		return api.WorkPolicyGroupListResponse{}, err
 	}
@@ -113,13 +114,13 @@ func (r WorkPolicyRepository) ListWorkPolicyGroupHistory(ctx context.Context, gr
 	if err := rows.Err(); err != nil {
 		return api.WorkPolicyGroupListResponse{}, err
 	}
-	if err := db.QueryRow(ctx, `SELECT count(*) FROM labor_policy_group_versions WHERE group_id = $1`, groupID).Scan(&result.Total); err != nil {
+	if err := db.QueryRow(ctx, `SELECT count(*) FROM labor_policy_group_versions WHERE group_id = $1`, uuid.UUID(groupID)).Scan(&result.Total); err != nil {
 		return api.WorkPolicyGroupListResponse{}, err
 	}
 	return result, nil
 }
 
-func (r WorkPolicyRepository) CreateWorkPolicyGroup(ctx context.Context, req api.CreateWorkPolicyGroupRequest, actorID uuid.UUID) (api.WorkPolicyGroupVersion, error) {
+func (r WorkPolicyRepository) CreateWorkPolicyGroup(ctx context.Context, req workpolicy.CreateGroupInput, actorID ids.UserID) (api.WorkPolicyGroupVersion, error) {
 	db, err := r.db(ctx)
 	if err != nil {
 		return api.WorkPolicyGroupVersion{}, err
@@ -131,7 +132,7 @@ func (r WorkPolicyRepository) CreateWorkPolicyGroup(ctx context.Context, req api
 		SELECT 1 FROM working_patterns WHERE id = $2 AND is_active = TRUE
 	) AND EXISTS (
 		SELECT 1 FROM overtime_policy_definitions WHERE id = $3
-	)`, req.AttendancePolicyID, req.WorkingPatternID, req.OvertimePolicyID).Scan(&referencesExist); err != nil {
+	)`, uuid.UUID(req.AttendancePolicyID), uuid.UUID(req.WorkingPatternID), uuid.UUID(req.OvertimePolicyID)).Scan(&referencesExist); err != nil {
 		return api.WorkPolicyGroupVersion{}, err
 	}
 	if !referencesExist {
@@ -153,10 +154,13 @@ func (r WorkPolicyRepository) CreateWorkPolicyGroup(ctx context.Context, req api
 		}
 		to = &parsed
 	}
-	groupID, workCreditID, payBasisID, versionID := uuid.New(), uuid.New(), uuid.New(), uuid.New()
-	result := workPolicyGroupVersionResult(req, groupID, workCreditID, payBasisID, versionID)
+	groupID := workpolicy.GroupID(uuid.New())
+	workCreditID := workpolicy.WorkCreditPolicyID(uuid.New())
+	payBasisID := workpolicy.PayBasisPolicyID(uuid.New())
+	versionID := workpolicy.VersionID(uuid.New())
+	result := workPolicyGroupVersionResult(createGroupRequestFromInput(req), uuid.UUID(groupID), uuid.UUID(workCreditID), uuid.UUID(payBasisID), uuid.UUID(versionID))
 	err = service.WithTx(ctx, beginner, func(ctx context.Context, tx pgx.Tx) error {
-		return insertWorkPolicyGroup(ctx, tx, req, actorID, from, to, groupID, workCreditID, payBasisID, versionID)
+		return insertWorkPolicyGroup(ctx, tx, createGroupRequestFromInput(req), uuid.UUID(actorID), from, to, uuid.UUID(groupID), uuid.UUID(workCreditID), uuid.UUID(payBasisID), uuid.UUID(versionID))
 	})
 	if err != nil {
 		return api.WorkPolicyGroupVersion{}, err
@@ -164,26 +168,28 @@ func (r WorkPolicyRepository) CreateWorkPolicyGroup(ctx context.Context, req api
 	return result, nil
 }
 
-func (r WorkPolicyRepository) CreateWorkPolicyGroupVersion(ctx context.Context, groupID uuid.UUID, req api.CreateWorkPolicyGroupVersionRequest, actorID uuid.UUID) (api.WorkPolicyGroupVersion, error) {
+func (r WorkPolicyRepository) CreateWorkPolicyGroupVersion(ctx context.Context, req workpolicy.CreateGroupVersionInput, actorID ids.UserID) (api.WorkPolicyGroupVersion, error) {
 	db, err := r.db(ctx)
 	if err != nil {
 		return api.WorkPolicyGroupVersion{}, err
 	}
-	if err := validateVersionGroup(ctx, db, groupID, req); err != nil {
+	if err := validateVersionGroup(ctx, db, req); err != nil {
 		return api.WorkPolicyGroupVersion{}, err
 	}
 	from, to, err := parseWorkPolicyRange(req.EffectiveFrom, req.EffectiveTo)
 	if err != nil {
 		return api.WorkPolicyGroupVersion{}, api.ErrWorkPolicyGroupValidation
 	}
-	workCreditID, payBasisID, versionID := uuid.New(), uuid.New(), uuid.New()
-	result := workPolicyGroupVersionResult(api.CreateWorkPolicyGroupRequest(req), groupID, workCreditID, payBasisID, versionID)
+	workCreditID := workpolicy.WorkCreditPolicyID(uuid.New())
+	payBasisID := workpolicy.PayBasisPolicyID(uuid.New())
+	versionID := workpolicy.VersionID(uuid.New())
+	result := workPolicyGroupVersionResultFromInput(req, uuid.UUID(req.GroupID), uuid.UUID(workCreditID), uuid.UUID(payBasisID), uuid.UUID(versionID))
 	beginner, err := r.begin(ctx)
 	if err != nil {
 		return api.WorkPolicyGroupVersion{}, err
 	}
 	err = service.WithTx(ctx, beginner, func(ctx context.Context, tx pgx.Tx) error {
-		return insertWorkPolicyVersion(ctx, tx, req, actorID, from, to, groupID, workCreditID, payBasisID, versionID)
+		return insertWorkPolicyVersion(ctx, tx, req, actorID, from, to, req.GroupID, workCreditID, payBasisID, versionID)
 	})
 	if err != nil {
 		return api.WorkPolicyGroupVersion{}, err
@@ -191,9 +197,9 @@ func (r WorkPolicyRepository) CreateWorkPolicyGroupVersion(ctx context.Context, 
 	return result, nil
 }
 
-func validateVersionGroup(ctx context.Context, db DBTX, groupID uuid.UUID, req api.CreateWorkPolicyGroupVersionRequest) error {
+func validateVersionGroup(ctx context.Context, db DBTX, req workpolicy.CreateGroupVersionInput) error {
 	var groupName string
-	if err := db.QueryRow(ctx, `SELECT name FROM labor_policy_groups WHERE id = $1`, groupID).Scan(&groupName); err != nil {
+	if err := db.QueryRow(ctx, `SELECT name FROM labor_policy_groups WHERE id = $1`, uuid.UUID(req.GroupID)).Scan(&groupName); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return api.ErrWorkPolicyGroupNotFound
 		}
@@ -203,7 +209,7 @@ func validateVersionGroup(ctx context.Context, db DBTX, groupID uuid.UUID, req a
 		return api.ErrWorkPolicyGroupValidation
 	}
 	var referencesExist bool
-	if err := db.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM attendance_policies WHERE id = $1) AND EXISTS (SELECT 1 FROM working_patterns WHERE id = $2 AND is_active = TRUE) AND EXISTS (SELECT 1 FROM overtime_policy_definitions WHERE id = $3)`, req.AttendancePolicyID, req.WorkingPatternID, req.OvertimePolicyID).Scan(&referencesExist); err != nil {
+	if err := db.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM attendance_policies WHERE id = $1) AND EXISTS (SELECT 1 FROM working_patterns WHERE id = $2 AND is_active = TRUE) AND EXISTS (SELECT 1 FROM overtime_policy_definitions WHERE id = $3)`, uuid.UUID(req.AttendancePolicyID), uuid.UUID(req.WorkingPatternID), uuid.UUID(req.OvertimePolicyID)).Scan(&referencesExist); err != nil {
 		return err
 	}
 	if !referencesExist {
@@ -212,25 +218,53 @@ func validateVersionGroup(ctx context.Context, db DBTX, groupID uuid.UUID, req a
 	return nil
 }
 
-func insertWorkPolicyVersion(ctx context.Context, tx pgx.Tx, req api.CreateWorkPolicyGroupVersionRequest, actorID uuid.UUID, from, to *time.Time, groupID, workCreditID, payBasisID, versionID uuid.UUID) error {
-	if err := insertPolicyDefinitions(ctx, tx, req.Name, req.MinutesPerCredit, req.AttendancePolicyID, req.WorkingPatternID, req.PayMethod, req.MonthlyDenominator, req.MonthlyStandardDays, req.RateComponentDefinitionID, actorID, workCreditID, payBasisID); err != nil {
+func insertWorkPolicyVersion(ctx context.Context, tx pgx.Tx, req workpolicy.CreateGroupVersionInput, actorID ids.UserID, from, to *time.Time, groupID workpolicy.GroupID, workCreditID workpolicy.WorkCreditPolicyID, payBasisID workpolicy.PayBasisPolicyID, versionID workpolicy.VersionID) error {
+	if err := insertPolicyDefinitions(ctx, tx, req, actorID, workCreditID, payBasisID); err != nil {
 		return err
 	}
-	_, err := tx.Exec(ctx, `INSERT INTO labor_policy_group_versions (id, group_id, work_credit_policy_id, pay_basis_policy_id, overtime_policy_id, effective_from, effective_to, created_by) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`, versionID, groupID, workCreditID, payBasisID, req.OvertimePolicyID, from, to, actorID)
+	_, err := tx.Exec(ctx, `INSERT INTO labor_policy_group_versions (id, group_id, work_credit_policy_id, pay_basis_policy_id, overtime_policy_id, effective_from, effective_to, created_by) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`, uuid.UUID(versionID), uuid.UUID(groupID), uuid.UUID(workCreditID), uuid.UUID(payBasisID), uuid.UUID(req.OvertimePolicyID), from, to, uuid.UUID(actorID))
 	if isConflictError(err) {
 		return api.ErrConflict
 	}
 	return err
 }
 
-func insertPolicyDefinitions(ctx context.Context, tx pgx.Tx, name string, minutes int, attendancePolicyID, workingPatternID uuid.UUID, method workpolicy.PayMethod, denominator *workpolicy.MonthlyDenominator, days *decimal.Decimal, rateComponentID *uuid.UUID, actorID, workCreditID, payBasisID uuid.UUID) error {
-	if _, err := tx.Exec(ctx, `INSERT INTO work_credit_policies (id, name, minutes_per_credit, attendance_policy_id, working_pattern_id, created_by) VALUES ($1, $2, $3, $4, $5, $6)`, workCreditID, name, minutes, attendancePolicyID, workingPatternID, actorID); err != nil {
+func insertPolicyDefinitions(ctx context.Context, tx pgx.Tx, req workpolicy.CreateGroupVersionInput, actorID ids.UserID, workCreditID workpolicy.WorkCreditPolicyID, payBasisID workpolicy.PayBasisPolicyID) error {
+	if _, err := tx.Exec(ctx, `INSERT INTO work_credit_policies (id, name, minutes_per_credit, attendance_policy_id, working_pattern_id, created_by) VALUES ($1, $2, $3, $4, $5, $6)`, uuid.UUID(workCreditID), req.Name, req.MinutesPerCredit, uuid.UUID(req.AttendancePolicyID), uuid.UUID(req.WorkingPatternID), uuid.UUID(actorID)); err != nil {
 		return mapConstraintError(err)
 	}
-	if _, err := tx.Exec(ctx, `INSERT INTO pay_basis_policies (id, name, method, monthly_denominator, monthly_standard_days, rate_component_definition_id, created_by) VALUES ($1, $2, $3, $4, $5, $6, $7)`, payBasisID, name, method, denominator, days, rateComponentID, actorID); err != nil {
+	if _, err := tx.Exec(ctx, `INSERT INTO pay_basis_policies (id, name, method, monthly_denominator, monthly_standard_days, rate_component_definition_id, created_by) VALUES ($1, $2, $3, $4, $5, $6, $7)`, uuid.UUID(payBasisID), req.Name, req.PayMethod, req.MonthlyDenominator, req.MonthlyStandardDays, uuidPtr(req.RateComponentDefinitionID), uuid.UUID(actorID)); err != nil {
 		return mapConstraintError(err)
 	}
 	return nil
+}
+
+func uuidPtr(value *ids.RateComponentDefinitionID) *uuid.UUID {
+	if value == nil {
+		return nil
+	}
+	converted := uuid.UUID(*value)
+	return &converted
+}
+
+func createGroupRequestFromInput(req workpolicy.CreateGroupInput) api.CreateWorkPolicyGroupRequest {
+	return api.CreateWorkPolicyGroupRequest{
+		Name: req.Name, MinutesPerCredit: req.MinutesPerCredit,
+		AttendancePolicyID: uuid.UUID(req.AttendancePolicyID), WorkingPatternID: uuid.UUID(req.WorkingPatternID),
+		PayMethod: req.PayMethod, MonthlyDenominator: req.MonthlyDenominator, MonthlyStandardDays: req.MonthlyStandardDays,
+		RateComponentDefinitionID: uuidPtr(req.RateComponentDefinitionID), OvertimePolicyID: uuid.UUID(req.OvertimePolicyID),
+		EffectiveFrom: req.EffectiveFrom, EffectiveTo: req.EffectiveTo,
+	}
+}
+
+func createGroupRequestFromVersion(req workpolicy.CreateGroupVersionInput) api.CreateWorkPolicyGroupRequest {
+	return api.CreateWorkPolicyGroupRequest{
+		Name: req.Name, MinutesPerCredit: req.MinutesPerCredit,
+		AttendancePolicyID: uuid.UUID(req.AttendancePolicyID), WorkingPatternID: uuid.UUID(req.WorkingPatternID),
+		PayMethod: req.PayMethod, MonthlyDenominator: req.MonthlyDenominator, MonthlyStandardDays: req.MonthlyStandardDays,
+		RateComponentDefinitionID: uuidPtr(req.RateComponentDefinitionID), OvertimePolicyID: uuid.UUID(req.OvertimePolicyID),
+		EffectiveFrom: req.EffectiveFrom, EffectiveTo: req.EffectiveTo,
+	}
 }
 
 func workPolicyGroupVersion(row interface{ Scan(...any) error }) (api.WorkPolicyGroupVersion, error) {
@@ -255,6 +289,10 @@ func workPolicyGroupVersion(row interface{ Scan(...any) error }) (api.WorkPolicy
 		item.MonthlyStandardDays = &value
 	}
 	return item, nil
+}
+
+func workPolicyGroupVersionResultFromInput(req workpolicy.CreateGroupVersionInput, groupID, workCreditID, payBasisID, versionID uuid.UUID) api.WorkPolicyGroupVersion {
+	return workPolicyGroupVersionResult(createGroupRequestFromVersion(req), groupID, workCreditID, payBasisID, versionID)
 }
 
 func workPolicyGroupVersionResult(req api.CreateWorkPolicyGroupRequest, groupID, workCreditID, payBasisID, versionID uuid.UUID) api.WorkPolicyGroupVersion {
@@ -286,7 +324,7 @@ func insertWorkPolicyGroup(ctx context.Context, tx pgx.Tx, req api.CreateWorkPol
 	return nil
 }
 
-func (r WorkPolicyRepository) ResolveWorkPolicy(ctx context.Context, employmentID uuid.UUID, asOf time.Time) (api.WorkPolicyGroupVersion, error) {
+func (r WorkPolicyRepository) ResolveWorkPolicy(ctx context.Context, employmentID ids.EmploymentID, asOf time.Time) (api.WorkPolicyGroupVersion, error) {
 	db, err := r.db(ctx)
 	if err != nil {
 		return api.WorkPolicyGroupVersion{}, err
@@ -305,7 +343,7 @@ func (r WorkPolicyRepository) ResolveWorkPolicy(ctx context.Context, employmentI
 		  AND m.effective_from <= $2::date AND (m.effective_to IS NULL OR m.effective_to > $2::date)
 		  AND v.effective_from <= $2::date AND (v.effective_to IS NULL OR v.effective_to > $2::date)
 		ORDER BY v.effective_from DESC, v.id DESC
-		LIMIT 1`, employmentID, asOf.Format("2006-01-02"))
+		LIMIT 1`, uuid.UUID(employmentID), asOf.Format("2006-01-02"))
 	result, err := workPolicyGroupVersion(row)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return api.WorkPolicyGroupVersion{}, api.ErrWorkPolicyResolutionNotFound
@@ -313,12 +351,12 @@ func (r WorkPolicyRepository) ResolveWorkPolicy(ctx context.Context, employmentI
 	return result, err
 }
 
-func (r WorkPolicyRepository) ListWorkPolicyMemberships(ctx context.Context, groupID uuid.UUID) ([]api.WorkPolicyMembership, error) {
+func (r WorkPolicyRepository) ListWorkPolicyMemberships(ctx context.Context, groupID workpolicy.GroupID) ([]api.WorkPolicyMembership, error) {
 	db, err := r.db(ctx)
 	if err != nil {
 		return nil, err
 	}
-	rows, err := db.Query(ctx, `SELECT id, employment_id, group_id, effective_from::text, effective_to::text FROM labor_policy_memberships WHERE group_id = $1 ORDER BY effective_from DESC, id DESC`, groupID)
+	rows, err := db.Query(ctx, `SELECT id, employment_id, group_id, effective_from::text, effective_to::text FROM labor_policy_memberships WHERE group_id = $1 ORDER BY effective_from DESC, id DESC`, uuid.UUID(groupID))
 	if err != nil {
 		return nil, err
 	}
@@ -334,7 +372,7 @@ func (r WorkPolicyRepository) ListWorkPolicyMemberships(ctx context.Context, gro
 	return result, rows.Err()
 }
 
-func (r WorkPolicyRepository) CreateWorkPolicyMembership(ctx context.Context, groupID uuid.UUID, req api.CreateWorkPolicyMembershipRequest, actorID uuid.UUID) (api.WorkPolicyMembership, error) {
+func (r WorkPolicyRepository) CreateWorkPolicyMembership(ctx context.Context, req workpolicy.CreateMembershipInput) (api.WorkPolicyMembership, error) {
 	from, to, err := parseWorkPolicyRange(req.EffectiveFrom, req.EffectiveTo)
 	if err != nil {
 		return api.WorkPolicyMembership{}, api.ErrWorkPolicyGroupValidation
@@ -343,22 +381,22 @@ func (r WorkPolicyRepository) CreateWorkPolicyMembership(ctx context.Context, gr
 	if err != nil {
 		return api.WorkPolicyMembership{}, err
 	}
-	item := api.WorkPolicyMembership{ID: uuid.New(), EmploymentID: req.EmploymentID, GroupID: groupID, EffectiveFrom: req.EffectiveFrom, EffectiveTo: req.EffectiveTo}
+	item := api.WorkPolicyMembership{ID: uuid.New(), EmploymentID: uuid.UUID(req.EmploymentID), GroupID: uuid.UUID(req.GroupID), EffectiveFrom: req.EffectiveFrom, EffectiveTo: req.EffectiveTo}
 	err = service.WithTx(ctx, beginner, func(ctx context.Context, tx pgx.Tx) error {
 		var exists bool
-		if err := tx.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM labor_policy_groups WHERE id = $1)`, groupID).Scan(&exists); err != nil {
+		if err := tx.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM labor_policy_groups WHERE id = $1)`, uuid.UUID(req.GroupID)).Scan(&exists); err != nil {
 			return err
 		}
 		if !exists {
 			return api.ErrWorkPolicyGroupNotFound
 		}
-		if err := tx.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM employments WHERE id = $1 AND deleted_at IS NULL)`, req.EmploymentID).Scan(&exists); err != nil {
+		if err := tx.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM employments WHERE id = $1 AND deleted_at IS NULL)`, uuid.UUID(req.EmploymentID)).Scan(&exists); err != nil {
 			return err
 		}
 		if !exists {
 			return api.ErrEmploymentNotFound
 		}
-		_, err := tx.Exec(ctx, `INSERT INTO labor_policy_memberships (id, employment_id, group_id, effective_from, effective_to, created_by) VALUES ($1, $2, $3, $4, $5, $6)`, item.ID, req.EmploymentID, groupID, from, to, actorID)
+		_, err := tx.Exec(ctx, `INSERT INTO labor_policy_memberships (id, employment_id, group_id, effective_from, effective_to, created_by) VALUES ($1, $2, $3, $4, $5, $6)`, item.ID, uuid.UUID(req.EmploymentID), uuid.UUID(req.GroupID), from, to, uuid.UUID(req.ActorID))
 		if isConflictError(err) {
 			return api.ErrWorkPolicyMembershipConflict
 		}

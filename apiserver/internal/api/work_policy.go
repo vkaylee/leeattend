@@ -11,6 +11,7 @@ import (
 	"github.com/shopspring/decimal"
 	"github.com/vkaylee/leeattend/apiserver/internal/apperror"
 	"github.com/vkaylee/leeattend/apiserver/internal/audit"
+	"github.com/vkaylee/leeattend/apiserver/internal/domain/ids"
 	"github.com/vkaylee/leeattend/apiserver/internal/domain/workpolicy"
 	httpinfra "github.com/vkaylee/leeattend/apiserver/internal/infra/http"
 )
@@ -94,12 +95,12 @@ type CreateWorkPolicyGroupVersionRequest struct {
 
 type WorkPolicyGroupRepository interface {
 	ListWorkPolicyGroupVersions(context.Context, int, int) (WorkPolicyGroupListResponse, error)
-	ListWorkPolicyGroupHistory(context.Context, uuid.UUID, int, int) (WorkPolicyGroupListResponse, error)
-	CreateWorkPolicyGroup(context.Context, CreateWorkPolicyGroupRequest, uuid.UUID) (WorkPolicyGroupVersion, error)
-	CreateWorkPolicyGroupVersion(context.Context, uuid.UUID, CreateWorkPolicyGroupVersionRequest, uuid.UUID) (WorkPolicyGroupVersion, error)
-	ResolveWorkPolicy(context.Context, uuid.UUID, time.Time) (WorkPolicyGroupVersion, error)
-	ListWorkPolicyMemberships(context.Context, uuid.UUID) ([]WorkPolicyMembership, error)
-	CreateWorkPolicyMembership(context.Context, uuid.UUID, CreateWorkPolicyMembershipRequest, uuid.UUID) (WorkPolicyMembership, error)
+	ListWorkPolicyGroupHistory(context.Context, workpolicy.GroupID, int, int) (WorkPolicyGroupListResponse, error)
+	CreateWorkPolicyGroup(context.Context, workpolicy.CreateGroupInput, ids.UserID) (WorkPolicyGroupVersion, error)
+	CreateWorkPolicyGroupVersion(context.Context, workpolicy.CreateGroupVersionInput, ids.UserID) (WorkPolicyGroupVersion, error)
+	ResolveWorkPolicy(context.Context, ids.EmploymentID, time.Time) (WorkPolicyGroupVersion, error)
+	ListWorkPolicyMemberships(context.Context, workpolicy.GroupID) ([]WorkPolicyMembership, error)
+	CreateWorkPolicyMembership(context.Context, workpolicy.CreateMembershipInput) (WorkPolicyMembership, error)
 }
 
 type WorkPolicyGroupAudit interface {
@@ -150,7 +151,7 @@ func (h WorkPolicyGroupHandler) History(w http.ResponseWriter, r *http.Request) 
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}
-	result, err := h.Repository.ListWorkPolicyGroupHistory(r.Context(), groupID, pagination.Page, pagination.Limit)
+	result, err := h.Repository.ListWorkPolicyGroupHistory(r.Context(), workpolicy.GroupID(groupID), pagination.Page, pagination.Limit)
 	if err != nil {
 		h.writeError(w, r, err)
 		return
@@ -174,7 +175,7 @@ func (h WorkPolicyGroupHandler) Resolve(w http.ResponseWriter, r *http.Request) 
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyInvalidDateFormat))
 		return
 	}
-	result, err := h.Repository.ResolveWorkPolicy(r.Context(), employmentID, asOfTime)
+	result, err := h.Repository.ResolveWorkPolicy(r.Context(), ids.EmploymentID(employmentID), asOfTime)
 	if err != nil {
 		h.writeError(w, r, err)
 		return
@@ -198,7 +199,13 @@ func (h WorkPolicyGroupHandler) CreateVersion(w http.ResponseWriter, r *http.Req
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}
-	result, err := h.Repository.CreateWorkPolicyGroupVersion(r.Context(), groupID, req, userID)
+	result, err := h.Repository.CreateWorkPolicyGroupVersion(r.Context(), workpolicy.CreateGroupVersionInput{
+		GroupID: groupIDFromUUID(groupID), Name: req.Name, MinutesPerCredit: req.MinutesPerCredit,
+		AttendancePolicyID: ids.AttendancePolicyID(req.AttendancePolicyID), WorkingPatternID: ids.WorkingPatternID(req.WorkingPatternID),
+		PayMethod: req.PayMethod, MonthlyDenominator: req.MonthlyDenominator, MonthlyStandardDays: req.MonthlyStandardDays,
+		RateComponentDefinitionID: rateComponentID(req.RateComponentDefinitionID), OvertimePolicyID: ids.OvertimePolicyID(req.OvertimePolicyID),
+		EffectiveFrom: req.EffectiveFrom, EffectiveTo: req.EffectiveTo,
+	}, ids.UserID(userID))
 	if err != nil {
 		h.writeError(w, r, err)
 		return
@@ -222,7 +229,7 @@ func (h WorkPolicyGroupHandler) ListMemberships(w http.ResponseWriter, r *http.R
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}
-	result, err := h.Repository.ListWorkPolicyMemberships(r.Context(), groupID)
+	result, err := h.Repository.ListWorkPolicyMemberships(r.Context(), workpolicy.GroupID(groupID))
 	if err != nil {
 		h.writeError(w, r, err)
 		return
@@ -246,7 +253,10 @@ func (h WorkPolicyGroupHandler) CreateMembership(w http.ResponseWriter, r *http.
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}
-	result, err := h.Repository.CreateWorkPolicyMembership(r.Context(), groupID, req, userID)
+	result, err := h.Repository.CreateWorkPolicyMembership(r.Context(), workpolicy.CreateMembershipInput{
+		GroupID: groupIDFromUUID(groupID), EmploymentID: ids.EmploymentID(req.EmploymentID),
+		EffectiveFrom: req.EffectiveFrom, EffectiveTo: req.EffectiveTo, ActorID: ids.UserID(userID),
+	})
 	if err != nil {
 		h.writeError(w, r, err)
 		return
@@ -271,7 +281,13 @@ func (h WorkPolicyGroupHandler) Create(w http.ResponseWriter, r *http.Request) {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}
-	result, err := h.Repository.CreateWorkPolicyGroup(r.Context(), req, userID)
+	result, err := h.Repository.CreateWorkPolicyGroup(r.Context(), workpolicy.CreateGroupInput{
+		Name: req.Name, MinutesPerCredit: req.MinutesPerCredit,
+		AttendancePolicyID: ids.AttendancePolicyID(req.AttendancePolicyID), WorkingPatternID: ids.WorkingPatternID(req.WorkingPatternID),
+		PayMethod: req.PayMethod, MonthlyDenominator: req.MonthlyDenominator, MonthlyStandardDays: req.MonthlyStandardDays,
+		RateComponentDefinitionID: rateComponentID(req.RateComponentDefinitionID), OvertimePolicyID: ids.OvertimePolicyID(req.OvertimePolicyID),
+		EffectiveFrom: req.EffectiveFrom, EffectiveTo: req.EffectiveTo,
+	}, ids.UserID(userID))
 	if err != nil {
 		h.writeError(w, r, err)
 		return
@@ -284,6 +300,18 @@ func (h WorkPolicyGroupHandler) Create(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 	apperror.WriteJSON(w, http.StatusCreated, result)
+}
+
+func groupIDFromUUID(value uuid.UUID) workpolicy.GroupID {
+	return workpolicy.GroupID(value)
+}
+
+func rateComponentID(value *uuid.UUID) *ids.RateComponentDefinitionID {
+	if value == nil {
+		return nil
+	}
+	converted := ids.RateComponentDefinitionID(*value)
+	return &converted
 }
 
 func validateWorkPolicyMembershipRequest(req CreateWorkPolicyMembershipRequest) error {
@@ -302,12 +330,7 @@ func validateWorkPolicyGroupVersionRequest(req CreateWorkPolicyGroupVersionReque
 	if err != nil || req.OvertimePolicyID == uuid.Nil || strings.TrimSpace(req.Name) == "" || to != nil && !to.After(from) {
 		return ErrWorkPolicyGroupValidation
 	}
-	return validateWorkPolicyDefinitions(CreateWorkPolicyGroupRequest{
-		Name: req.Name, MinutesPerCredit: req.MinutesPerCredit, AttendancePolicyID: req.AttendancePolicyID,
-		WorkingPatternID: req.WorkingPatternID, PayMethod: req.PayMethod, MonthlyDenominator: req.MonthlyDenominator,
-		MonthlyStandardDays: req.MonthlyStandardDays, RateComponentDefinitionID: req.RateComponentDefinitionID, OvertimePolicyID: req.OvertimePolicyID,
-		EffectiveFrom: req.EffectiveFrom, EffectiveTo: req.EffectiveTo,
-	})
+	return validateWorkPolicyDefinitions(CreateWorkPolicyGroupRequest(req))
 }
 
 func validateWorkPolicyGroupRequest(req CreateWorkPolicyGroupRequest) error {
@@ -336,7 +359,7 @@ func workPolicyEffectiveRange(effectiveFrom string, effectiveTo *string) (time.T
 func validateWorkPolicyDefinitions(req CreateWorkPolicyGroupRequest) error {
 	workCredit := workpolicy.WorkCreditPolicy{
 		Name: req.Name, MinutesPerCredit: req.MinutesPerCredit,
-		AttendancePolicyID: req.AttendancePolicyID, WorkingPatternID: req.WorkingPatternID,
+		AttendancePolicyID: ids.AttendancePolicyID(req.AttendancePolicyID), WorkingPatternID: ids.WorkingPatternID(req.WorkingPatternID),
 	}
 	if err := workCredit.Validate(); err != nil {
 		return ErrWorkPolicyGroupValidation
@@ -344,7 +367,7 @@ func validateWorkPolicyDefinitions(req CreateWorkPolicyGroupRequest) error {
 	payBasis := workpolicy.PayBasisPolicy{
 		Name: req.Name, Method: req.PayMethod,
 		MonthlyDenominator: req.MonthlyDenominator, MonthlyStandardDays: req.MonthlyStandardDays,
-		RateComponentDefinitionID: req.RateComponentDefinitionID,
+		RateComponentDefinitionID: rateComponentID(req.RateComponentDefinitionID),
 	}
 	if err := payBasis.Validate(); err != nil {
 		return ErrWorkPolicyGroupValidation
