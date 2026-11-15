@@ -569,3 +569,11 @@ func TestPayrollRepository_AssignPayrollRule_DepartmentAssigneeWithID(t *testing
 		t.Fatalf("expected AssigneeID %s, got %v", deptID, assignment.AssigneeID)
 	}
 }
+func TestCalculateHourlyPolicyPay(t *testing.T) {
+	if got := calculateHourlyPolicyPay(decimal.RequireFromString("100"), 90); !got.Equal(decimal.RequireFromString("150")) {
+		t.Fatalf("expected 150 hourly pay, got %s", got)
+	}
+	if got := calculateHourlyPolicyPay(decimal.Zero, 90); !got.IsZero() {
+		t.Fatalf("zero rate must produce zero, got %s", got)
+	}
+}

@@ -2664,3 +2664,9 @@ VALUES ($1, $2, $3, $4, NOW())`, ruleEvaluationRecords[i].ID, finalPayslipID, ru
 		CalculationTrace: trace,
 	}, nil
 }
+func calculateHourlyPolicyPay(rate decimal.Decimal, standardMinutes int) decimal.Decimal {
+	if !rate.IsPositive() || standardMinutes <= 0 {
+		return decimal.Zero
+	}
+	return rate.Mul(decimal.NewFromInt(int64(standardMinutes))).Div(decimal.NewFromInt(60)).Round(2)
+}
