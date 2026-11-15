@@ -11,6 +11,7 @@ import (
 	"github.com/shopspring/decimal"
 	"github.com/vkaylee/leeattend/apiserver/internal/apperror"
 	"github.com/vkaylee/leeattend/apiserver/internal/audit"
+	"github.com/vkaylee/leeattend/apiserver/internal/domain/ids"
 	httpinfra "github.com/vkaylee/leeattend/apiserver/internal/infra/http"
 )
 
@@ -18,8 +19,8 @@ import (
 type SalaryManagementQuery struct {
 	AsOf             *time.Time
 	Search           string
-	EmployerID       *uuid.UUID
-	DepartmentID     *uuid.UUID
+	EmployerID       *ids.EmployerID
+	DepartmentID     *ids.DepartmentID
 	EmploymentStatus string
 	Unconfigured     *bool
 	Page             int
@@ -129,10 +130,10 @@ func parseSalaryManagementQuery(r *http.Request) (SalaryManagementQuery, error) 
 		}
 		query.AsOf = &asOf
 	}
-	if query.EmployerID, err = parseOptionalUUID(r.URL.Query().Get("employer_id")); err != nil {
+	if query.EmployerID, err = parseOptionalID[ids.EmployerID](r.URL.Query().Get("employer_id")); err != nil {
 		return SalaryManagementQuery{}, ErrPayrollValidation
 	}
-	if query.DepartmentID, err = parseOptionalUUID(r.URL.Query().Get("department_id")); err != nil {
+	if query.DepartmentID, err = parseOptionalID[ids.DepartmentID](r.URL.Query().Get("department_id")); err != nil {
 		return SalaryManagementQuery{}, ErrPayrollValidation
 	}
 	if raw := r.URL.Query().Get("unconfigured"); raw != "" {
@@ -145,7 +146,7 @@ func parseSalaryManagementQuery(r *http.Request) (SalaryManagementQuery, error) 
 	return query, nil
 }
 
-func parseOptionalUUID(raw string) (*uuid.UUID, error) {
+func parseOptionalID[T ~[16]byte](raw string) (*T, error) {
 	if raw == "" {
 		return nil, nil
 	}
@@ -153,5 +154,6 @@ func parseOptionalUUID(raw string) (*uuid.UUID, error) {
 	if err != nil || id == uuid.Nil {
 		return nil, ErrPayrollValidation
 	}
-	return &id, nil
+	converted := T(id)
+	return &converted, nil
 }

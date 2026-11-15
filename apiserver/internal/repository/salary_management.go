@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/shopspring/decimal"
 	"github.com/vkaylee/leeattend/apiserver/internal/api"
 )
@@ -22,7 +23,16 @@ func (r PayrollRepository) ListSalaryManagementRows(ctx context.Context, query a
 	}
 	asOfDate := asOf.Format("2006-01-02")
 	offset := (query.Page - 1) * query.Limit
-	args := []any{asOfDate, query.Search, query.EmployerID, query.DepartmentID, query.EmploymentStatus}
+	var employerID, departmentID *uuid.UUID
+	if query.EmployerID != nil {
+		value := uuid.UUID(*query.EmployerID)
+		employerID = &value
+	}
+	if query.DepartmentID != nil {
+		value := uuid.UUID(*query.DepartmentID)
+		departmentID = &value
+	}
+	args := []any{asOfDate, query.Search, employerID, departmentID, query.EmploymentStatus}
 	where := `WHERE e.deleted_at IS NULL
 	  AND em.deleted_at IS NULL
 	  AND er.deleted_at IS NULL
