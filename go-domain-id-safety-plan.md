@@ -1,7 +1,7 @@
 # Go domain ID safety: compiler-guided agent changes
 
-Status: Implemented (pilot)
-Scope: Plan only. Pilot work-policy writes, then expand only after verified results.
+Status: Completed (pilot + payroll rollout)
+Scope: Work-policy and payroll internal boundaries. Do not continue by raw UUID count; adopt per concrete ambiguity risk.
 
 ## Goal and evidence
 Reduce UUID mix-ups and agent context requirements using explicit Go types, small operation-specific inputs, and compiler feedback; preserve business behavior and external contracts. No runtime-speed claim.
@@ -18,13 +18,22 @@ Verified hotspots: `apiserver/internal/repository/work_policy.go:215,226,273,337
 - SQL `Exec(...any)` and positional `Scan` erase type protection. Retain local SQL adapters and test exact column/argument mapping with distinct fixture IDs. Do not claim compiler safety for SQL placeholders or same-type field swaps.
 - Keep UUID JSON strings, null/omitted semantics, schema, SQL constraints, transactions, authorization, errors and calculations unchanged. Prefer raw UUID scan locals and explicit conversion over custom pgx codecs; add methods only for demonstrated consumers. No custom JSON methods needed while DTOs remain raw UUIDs.
 
-## Ordered work (after approval)
-1. [ ] **Baseline and ownership:** refresh working-tree status; preserve concurrent edits; inspect all callers, domain struct consumers, test fixtures and existing ID conventions. Record impacted files and baseline failures. Verify dependency graph has no new cycle; final pilot scope is bounded before editing.
-2. [ ] **Protect behavior:** characterize create group, create version and membership with distinguishable IDs; cover HTTP DTO mapping, trusted actor provenance, nullable references and existing error paths. Reuse current API/repository test files. Verify assertions detect swapped SQL parameters, not merely successful responses.
-3. [ ] **Introduce types:** add only consumed types and minimal typed input structs. Preserve zero/nil validation semantics. Add one small stdlib-based type-check test or existing negative-compilation mechanism proving real distinct types cannot be assigned/passed interchangeably; include a valid control and avoid exact compiler-message matching. No new test framework/script.
-4. [ ] **Migrate one vertical write slice:** create group, create version, membership; update interface, handlers, repository helpers and stubs together. Replace long helper parameter lists with named typed inputs, reusing existing domain values where suitable. Compile after each coherent operation; fix callers without `any`, aliases or blind casts. Convert only required read-side helpers/consumers, not payroll wholesale.
-5. [ ] **Record adoption rule:** after approval, add one ADR under `docs/adr/` with ownership, boundary exceptions, alternatives, rollback and status. Add a short agent-facing convention to existing coding rules only with explicit policy-edit approval. Use existing gofmt/vet/staticcheck gates; no custom linter initially. Future modules adopt per complete operation, not by global search/replace.
-6. [ ] **Verification (last):** focused hermetic Go checks, then `./leedevkit test api --json` without skip/unit-only flags. Extend existing integration harness with real PostgreSQL create/version/membership/read-back checks and rollback/conflict cases. Confirm integration cases actually execute; skipped DB tests are not a pass. Review individual gate logs, API compatibility and diff boundaries before reporting completion.
+## Completed rollout
+- [x] Baseline and ownership reviewed; unrelated working-tree changes preserved.
+- [x] Work-policy typed IDs and named inputs migrated.
+- [x] Payroll employee, employment, employer, actor, period, input, formula, rule, tier, assignment, incentive, salary-component, payslip, and salary-management filter boundaries migrated where positional ambiguity was concrete.
+- [x] ADR recorded at `docs/adr/2026-11-15-go-domain-ids.md`.
+- [x] Each slice passed focused checks and canonical `./leedevkit test api --json`; no migration or HTTP contract changed.
+- [x] Rollout stopped at meaningful boundary coverage. Remaining raw UUIDs are DTO/output fields, SQL/scan locals, and unambiguous adapters; do not migrate by count.
+
+## Verification evidence
+Canonical full API gates passed after each affected slice. Final relevant gate evidence: unit, integration, and lint phases passed; skipped 0; failed 0; `full_regression: true`. One formatting failure was repaired through the hermetic wrapper before the final passing gate. Pre-existing complexity/U1000 reports outside scope were not changed.
+
+## Next adoption rule
+For future modules, first identify a concrete cross-entity or same-kind positional swap. Add one semantic type or operation input, migrate one complete boundary, run focused plus full API regression, and commit separately. Stop when remaining UUID use is a clear transport/SQL/output boundary.
+
+## Deferred
+No custom linter, generic ID framework, repository-wide raw UUID removal, frontend migration, database migration, or cross-domain transport model rewrite.
 
 ## Test impact / acceptance
 - Type boundary: GroupID vs VersionID, EmploymentID vs UserID rejected; valid calls compile. Same-type swaps and explicit conversions remain review/test responsibilities.
