@@ -26,6 +26,7 @@ LINT_BASE_REF="${LINT_BASE_REF:-origin/main}"
 FIX=false
 INTEGRATION=false
 FORMAT_FILE=""
+TEST_PATTERN=""
 while [ $# -gt 0 ]; do
     case "$1" in
         --lint-only) MODE="lint" ;;
@@ -33,6 +34,7 @@ while [ $# -gt 0 ]; do
         --integration) MODE="integration"; INTEGRATION=true ;;
         --fix) FIX=true ;;
         --format-file) FORMAT_FILE="${2:-}"; shift ;;
+        --test-pattern) TEST_PATTERN="${2:-}"; shift ;;
         --package) PACKAGE="${2:-./...}"; shift ;;
         --base-ref) LINT_BASE_REF="${2:-origin/main}"; shift ;;
         *) echo "unknown argument: $1" >&2; exit 2 ;;
@@ -115,7 +117,7 @@ if [ "${MODE}" = "integration" ]; then
     echo "== gofmt integration source =="
     gofmt -w "${FORMAT_FILE:-internal/repository}"
     echo "== go test -tags integration =="
-    LEEATTEND_DB_INTEGRATION=1 go test -tags=integration -count=1 ${PACKAGE} || fail "go test -tags integration"
+    LEEATTEND_DB_INTEGRATION=1 go test -tags=integration -count=1 ${PACKAGE} ${TEST_PATTERN:+-run "${TEST_PATTERN}"} || fail "go test -tags integration"
 elif [ "${MODE}" != "lint" ]; then
     echo "== go test -race =="
     go test -race -cover ${PACKAGE} || fail "go test -race"
@@ -135,7 +137,7 @@ if [ "$INTEGRATION" = "true" ]; then
         "${PROFILE_COMPOSE[@]}" exec -T db psql -v ON_ERROR_STOP=1 -U test_user -d test_database < "$migration_file" || fail "migration ${migration_dir##*/}"
     done
     exec "${PROFILE_COMPOSE[@]}" exec -T -w /workspace/apiserver "$SERVICE" \
-        env MODE="$MODE" PACKAGE="$PACKAGE" FIX="$FIX" FORMAT_FILE="$FORMAT_FILE" LINT_BASE_COMMIT="$LINT_BASE_COMMIT" LINT_GO_CHANGED="$LINT_GO_CHANGED" bash -c "$GATES"
+        env MODE="$MODE" PACKAGE="$PACKAGE" FIX="$FIX" FORMAT_FILE="$FORMAT_FILE" TEST_PATTERN="$TEST_PATTERN" LINT_BASE_COMMIT="$LINT_BASE_COMMIT" LINT_GO_CHANGED="$LINT_GO_CHANGED" bash -c "$GATES"
 fi
 
 exec "${COMPOSE[@]}" exec -T -w /workspace/apiserver "$SERVICE" \
