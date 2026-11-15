@@ -43,14 +43,14 @@ describe('SearchInput Component', () => {
     expect(container.firstChild).toHaveClass('h-[var(--ui-height-lg)]', 'text-base');
   });
 
-  it('uses shared double-ring focus treatment on its container', () => {
+  it('uses shared single-ring focus treatment on its container', () => {
     const { container } = render(<SearchInput aria-label="Search" />);
     expect(container.firstChild).toHaveClass(
       'focus-within:border-primary-500',
-      'focus-within:ring-2',
-      'focus-within:ring-offset-2',
-      'focus-within:ring-offset-[var(--background)]',
+      'focus-within:ring-1',
+      'focus-within:ring-offset-0',
     );
+    expect(screen.getByRole('textbox')).toHaveClass('focus-visible:!outline-none');
   });
 
   it('handles loading state with spinner', () => {

@@ -105,7 +105,7 @@ export const SearchInput = forwardRef<HTMLInputElement, SearchInputProps>(
         {/* Real input element */}
         <input
           className={cn(
-            'flex-1 min-w-0 bg-transparent border-0 p-0 font-medium text-slate-800 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 outline-none focus:outline-none focus:ring-0 focus-visible:outline-none shadow-none',
+            'flex-1 min-w-0 bg-transparent border-0 p-0 font-medium text-slate-800 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 outline-none focus:outline-none focus:ring-0 focus-visible:!outline-none shadow-none',
             className
           )}
           data-search-input=""

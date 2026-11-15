@@ -136,6 +136,66 @@ func TestReportRepository_GetAttendanceReportEmploymentNotFound(t *testing.T) {
 	}
 }
 
+func TestReportRepository_GetAttendanceReportSummaryGroupsEffectiveHours(t *testing.T) {
+	var dataQuery string
+	db := &fakeDBTX{
+		queryRowFn: func(_ context.Context, _ string, _ ...any) pgx.Row {
+			return fakeRow{scanFn: func(dest ...any) error { *(dest[0].(*int64)) = 0; return nil }}
+		},
+		queryFn: func(_ context.Context, query string, _ ...any) (pgx.Rows, error) {
+			dataQuery = query
+			return &fakeRows{}, nil
+		},
+	}
+
+	_, err := (ReportRepository{DB: db}).GetAttendanceReport(context.Background(), api.AttendanceReportFilter{
+		StartDate: "2026-01-01", EndDate: "2026-01-31", ReportType: "summary", Page: 1, Limit: 20,
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !strings.Contains(dataQuery, "em.name, hours.hours_per_day") {
+		t.Fatalf("summary query must group effective hours: %s", dataQuery)
+	}
+}
+
+func TestReportRepository_GetAttendanceReportAppliesEmployeeStatus(t *testing.T) {
+	for _, reportType := range []string{"summary", "daily"} {
+		t.Run(reportType, func(t *testing.T) {
+			var dataQuery string
+			var dataArgs []any
+			db := &fakeDBTX{
+				queryRowFn: func(_ context.Context, _ string, _ ...any) pgx.Row {
+					return fakeRow{scanFn: func(dest ...any) error {
+						*(dest[0].(*int64)) = 0
+						return nil
+					}}
+				},
+				queryFn: func(_ context.Context, query string, args ...any) (pgx.Rows, error) {
+					dataQuery = query
+					dataArgs = args
+					return &fakeRows{}, nil
+				},
+			}
+
+			status := "terminated"
+			_, err := (ReportRepository{DB: db}).GetAttendanceReport(context.Background(), api.AttendanceReportFilter{
+				StartDate: "2026-01-01", EndDate: "2026-01-31", ReportType: reportType, Page: 1, Limit: 20,
+				EmployeeStatus: &status,
+			})
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if !strings.Contains(dataQuery, "emp.status = $3") {
+				t.Fatalf("%s query must filter employment status: %s", reportType, dataQuery)
+			}
+			if len(dataArgs) < 3 || dataArgs[2] != status {
+				t.Fatalf("%s query must pass employee status as third argument, got %v", reportType, dataArgs)
+			}
+		})
+	}
+}
+
 func TestReportRepository_GetAttendanceReportDailyMapsOTClaimStatus(t *testing.T) {
 	employmentID, employeeID := uuid.New(), uuid.New()
 	statuses := []string{"none", "pending_employee", "pending_manager", "approved", "rejected"}

@@ -96,6 +96,13 @@ WHERE ba.assignee_user_id = $1
 	return ids, rows.Err()
 }
 
+func appendEmployeeStatusFilter(clause string, args []any, argIndex int, status *string) (string, []any, int) {
+	if status == nil || *status == "" || *status == "all" {
+		return clause, args, argIndex
+	}
+	return clause + fmt.Sprintf(" AND emp.status = $%d", argIndex), append(args, *status), argIndex + 1
+}
+
 func (r ReportRepository) GetAttendanceReport(ctx context.Context, params api.AttendanceReportFilter) (api.PaginatedReportResponse, error) {
 	db, err := r.db(ctx)
 	if err != nil {
@@ -139,6 +146,7 @@ func (r ReportRepository) GetAttendanceReport(ctx context.Context, params api.At
 			args = append(args, *params.EmploymentID)
 			argIndex++
 		}
+		filterClause, args, argIndex = appendEmployeeStatusFilter(filterClause, args, argIndex, params.EmployeeStatus)
 
 		var total int64
 		countQuery := fmt.Sprintf(`SELECT count(*) FROM employments emp JOIN employees e ON e.id = emp.employee_id JOIN attendance_daily_summaries ads ON ads.employment_id = emp.id LEFT JOIN employment_relationships er ON er.id = emp.relationship_id AND er.employee_id = emp.employee_id AND er.deleted_at IS NULL LEFT JOIN employee_tenures t ON t.id = er.tenure_id AND t.employee_id = e.id AND t.deleted_at IS NULL AND t.start_date <= ads.date AND (t.end_date IS NULL OR t.end_date >= ads.date) WHERE %s%s`, whereClause, filterClause)
@@ -290,6 +298,8 @@ LIMIT $%d OFFSET $%d`, whereClause, filterClause, argIndex, argIndex+1)
 		dataArgs = append(dataArgs, *params.EmploymentID)
 		dataArgIndex++
 	}
+	countFilterClause, countArgs, countArgIndex = appendEmployeeStatusFilter(countFilterClause, countArgs, countArgIndex, params.EmployeeStatus)
+	dataFilterClause, dataArgs, dataArgIndex = appendEmployeeStatusFilter(dataFilterClause, dataArgs, dataArgIndex, params.EmployeeStatus)
 
 	var total int64
 	countQuery := fmt.Sprintf(`SELECT count(DISTINCT (emp.id, t.id)) FROM employments emp JOIN employees e ON e.id = emp.employee_id LEFT JOIN employment_relationships er ON er.id = emp.relationship_id AND er.employee_id = emp.employee_id AND er.deleted_at IS NULL LEFT JOIN employee_tenures t ON t.id = er.tenure_id AND t.employee_id = e.id AND t.deleted_at IS NULL AND t.start_date <= $2::date AND (t.end_date IS NULL OR t.end_date >= $1::date) WHERE %s%s`, baseClause, countFilterClause)
@@ -337,7 +347,7 @@ LEFT JOIN LATERAL (
 	LIMIT 1
 ) credits ON TRUE
 		WHERE %s%s
-		GROUP BY emp.id, e.id, e.full_name, COALESCE(t.employee_number, e.employee_id_number), e.employee_id_number, emp.employer_id, em.name
+		GROUP BY emp.id, e.id, e.full_name, COALESCE(t.employee_number, e.employee_id_number), e.employee_id_number, emp.employer_id, em.name, hours.hours_per_day
 		ORDER BY e.full_name ASC
 		LIMIT $%d OFFSET $%d`, baseClause, dataFilterClause, dataArgIndex, dataArgIndex+1)
 
