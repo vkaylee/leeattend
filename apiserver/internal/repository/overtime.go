@@ -423,36 +423,114 @@ type overtimeMultiplierAssignment struct {
 	ruleID        uuid.UUID
 }
 
-func loadOvertimeMultiplierAssignments(ctx context.Context, db DBTX, employmentID uuid.UUID, start, end time.Time) ([]overtimeMultiplierAssignment, error) {
+func loadOvertimeMultiplierAssignments(ctx context.Context, db DBTX, policyAssignments []workPolicyAssignment) ([]overtimeMultiplierAssignment, error) {
+	policyIDs := make([]uuid.UUID, 0, len(policyAssignments))
+	seenPolicyIDs := make(map[uuid.UUID]struct{}, len(policyAssignments))
+	for _, assignment := range policyAssignments {
+		policyID := assignment.policy.OvertimePolicyID
+		if policyID == uuid.Nil {
+			continue
+		}
+		if _, exists := seenPolicyIDs[policyID]; !exists {
+			seenPolicyIDs[policyID] = struct{}{}
+			policyIDs = append(policyIDs, policyID)
+		}
+	}
+	if len(policyIDs) == 0 {
+		return []overtimeMultiplierAssignment{}, nil
+	}
+
 	rows, err := db.Query(ctx, `
-		SELECT a.assignee_type, a.effective_from, a.effective_to, r.multiplier, r.priority, r.id
-		FROM employments e
-		JOIN overtime_policy_assignments a ON (
-			(a.assignee_type = 'employee' AND a.assignee_id = e.employee_id)
-			OR (a.assignee_type = 'department' AND a.assignee_id = e.department_id)
-			OR (a.assignee_type = 'organization' AND a.assignee_id IS NULL)
-		)
-		JOIN overtime_rules r ON r.policy_id = a.policy_id
-		WHERE e.id = $1 AND e.deleted_at IS NULL
-		  AND a.effective_from <= $3::date
-		  AND (a.effective_to IS NULL OR a.effective_to >= $2::date)
-		ORDER BY CASE a.assignee_type WHEN 'employee' THEN 1 WHEN 'department' THEN 2 WHEN 'organization' THEN 3 END,
-		         a.effective_from DESC, r.priority DESC, r.id DESC`,
-		employmentID, start.Format("2006-01-02"), end.Format("2006-01-02"))
+		SELECT policy_id, multiplier, priority, id
+		FROM overtime_rules
+		WHERE policy_id = ANY($1)
+		ORDER BY priority DESC, id DESC`, policyIDs)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 
-	assignments := make([]overtimeMultiplierAssignment, 0)
+	type rule struct {
+		multiplier decimal.Decimal
+		priority   int
+		id         uuid.UUID
+	}
+	rulesByPolicy := make(map[uuid.UUID][]rule, len(policyIDs))
 	for rows.Next() {
-		var assignment overtimeMultiplierAssignment
-		if err := rows.Scan(&assignment.assigneeType, &assignment.effectiveFrom, &assignment.effectiveTo, &assignment.multiplier, &assignment.priority, &assignment.ruleID); err != nil {
+		var policyID uuid.UUID
+		var item rule
+		if err := rows.Scan(&policyID, &item.multiplier, &item.priority, &item.id); err != nil {
 			return nil, err
 		}
-		assignments = append(assignments, assignment)
+		rulesByPolicy[policyID] = append(rulesByPolicy[policyID], item)
 	}
-	return assignments, rows.Err()
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	assignments := make([]overtimeMultiplierAssignment, 0)
+	for _, policyAssignment := range policyAssignments {
+		from, err := policyAssignmentStart(policyAssignment)
+		if err != nil {
+			return nil, err
+		}
+		to, err := policyAssignmentEnd(policyAssignment)
+		if err != nil {
+			return nil, err
+		}
+		if to != nil && !to.After(from) {
+			continue
+		}
+		inclusiveTo := (*time.Time)(nil)
+		if to != nil {
+			value := to.AddDate(0, 0, -1)
+			inclusiveTo = &value
+		}
+		for _, item := range rulesByPolicy[policyAssignment.policy.OvertimePolicyID] {
+			assignments = append(assignments, overtimeMultiplierAssignment{
+				assigneeType:  "labor_policy",
+				effectiveFrom: from,
+				effectiveTo:   inclusiveTo,
+				multiplier:    item.multiplier,
+				priority:      item.priority,
+				ruleID:        item.id,
+			})
+		}
+	}
+	return assignments, nil
+}
+
+func policyAssignmentStart(assignment workPolicyAssignment) (time.Time, error) {
+	policyFrom, err := time.Parse("2006-01-02", assignment.policy.EffectiveFrom)
+	if err != nil {
+		return time.Time{}, err
+	}
+	membershipFrom, err := time.Parse("2006-01-02", assignment.membershipFrom)
+	if err != nil {
+		return time.Time{}, err
+	}
+	if membershipFrom.After(policyFrom) {
+		return membershipFrom, nil
+	}
+	return policyFrom, nil
+}
+
+func policyAssignmentEnd(assignment workPolicyAssignment) (*time.Time, error) {
+	var result *time.Time
+	for _, raw := range []*string{assignment.policy.EffectiveTo, assignment.membershipTo} {
+		if raw == nil {
+			continue
+		}
+		value, err := time.Parse("2006-01-02", *raw)
+		if err != nil {
+			return nil, err
+		}
+		if result == nil || value.Before(*result) {
+			copy := value
+			result = &copy
+		}
+	}
+	return result, nil
 }
 
 func overtimeMultiplierAt(assignments []overtimeMultiplierAssignment, asOf time.Time) decimal.Decimal {

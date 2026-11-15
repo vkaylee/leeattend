@@ -111,6 +111,37 @@ func TestOvertimeMultiplierAtUsesEffectiveAssignmentOrder(t *testing.T) {
 	}
 }
 
+func TestOvertimeMultiplierAssignmentsUseLaborPolicyRange(t *testing.T) {
+	policyID := uuid.New()
+	membershipTo := "2026-10-20"
+	policyTo := "2026-10-15"
+	assignments := []workPolicyAssignment{{
+		policy: api.WorkPolicyGroupVersion{
+			OvertimePolicyID: policyID,
+			EffectiveFrom:    "2026-10-01",
+			EffectiveTo:      &policyTo,
+		},
+		membershipFrom: "2026-10-05",
+		membershipTo:   &membershipTo,
+	}}
+
+	rows := &rowsStub{data: [][]any{{policyID, decimal.RequireFromString("2"), 10, uuid.New()}}}
+	db := &fakeDBTX{queryFn: func(_ context.Context, query string, args ...any) (pgx.Rows, error) {
+		if !strings.Contains(query, "FROM overtime_rules") || len(args) != 1 || args[0].([]uuid.UUID)[0] != policyID {
+			t.Fatalf("unexpected labor policy OT query: %s %#v", query, args)
+		}
+		return rows, nil
+	}}
+
+	got, err := loadOvertimeMultiplierAssignments(context.Background(), db, assignments)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(got) != 1 || got[0].effectiveFrom.Format("2006-01-02") != "2026-10-05" || got[0].effectiveTo.Format("2006-01-02") != "2026-10-14" {
+		t.Fatalf("unexpected effective labor policy range: %+v", got)
+	}
+}
+
 func TestOvertimeRepository_SubmitOvertimeRequest(t *testing.T) {
 	reqID := uuid.New()
 	empID := uuid.New()

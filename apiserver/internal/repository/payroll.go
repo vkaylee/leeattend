@@ -2070,7 +2070,7 @@ ORDER BY start_date ASC, id ASC`, employeeID, endStr)
 	}
 	overtimeAssignments := make([]overtimeMultiplierAssignment, 0)
 	if len(policyAssignments) > 0 {
-		overtimeAssignments, err = loadOvertimeMultiplierAssignments(ctx, db, employmentID, startDate, endDate)
+		overtimeAssignments, err = loadOvertimeMultiplierAssignments(ctx, db, policyAssignments)
 		if err != nil {
 			return api.FullPayslipResponse{}, err
 		}
