@@ -672,7 +672,7 @@ func (r ScheduleRepository) PublishSystemScheduleOffice(ctx context.Context, pay
 		preview := lockedPreview{ID: previewID, RequestHash: requestHash, ResultHash: resultHash, ActorType: "system", ActorName: stringPtr("schedule-publisher"), ExpiresAt: createdAt.Add(previewTTL), ResultSnapshot: jsonArg(result)}
 		actorName := "schedule-publisher"
 		actor := publicationActor{Type: "system", Name: &actorName}
-		if err := publishPreview(ctx, tx, actor, idempotencyKey, requestHash, request, preview, new(api.SchedulePublicationResponse)); err != nil {
+		if err := publishPreview(ctx, tx, actor, idempotencyKey, requestHash, request, preview, nil); err != nil {
 			return err
 		}
 		if err := tx.QueryRow(ctx, `SELECT id FROM schedule_publication_batches WHERE idempotency_key = $1`, idempotencyKey).Scan(&batchID); err != nil {
@@ -922,7 +922,7 @@ func lockScheduleRevisionTargets(ctx context.Context, tx DBTX, keys []scheduleRe
 	return nil
 }
 
-func publishPreview(ctx context.Context, tx pgx.Tx, actor publicationActor, idempotencyKey, requestHash string, request api.SchedulePublishRequest, preview lockedPreview, _ *api.SchedulePublicationResponse) error {
+func publishPreview(ctx context.Context, tx pgx.Tx, actor publicationActor, idempotencyKey, requestHash string, request api.SchedulePublishRequest, preview lockedPreview, response *api.SchedulePublicationResponse) error {
 	var snapshot struct {
 		Data []map[string]any `json:"data"`
 	}
@@ -954,14 +954,17 @@ func publishPreview(ctx context.Context, tx pgx.Tx, actor publicationActor, idem
 	}
 	revisionIDs := make([]uuid.UUID, 0, len(snapshot.Data))
 	for _, day := range snapshot.Data {
-		revisionID, err := insertPublishedDay(ctx, tx, batchID, actor, request.Reason, request.Timezone, day, publishedAt)
+		revisionID, err := insertPublishedDay(ctx, tx, batchID, actor, request.Reason, request.Timezone, day, publishedAt, nil)
 		if err != nil {
 			return err
 		}
 		revisionIDs = append(revisionIDs, revisionID)
 	}
-	response := api.SchedulePublicationResponse{BatchID: batchID, Status: "published", PublishedAt: publishedAt, RevisionIDs: revisionIDs, AffectedDays: len(revisionIDs)}
-	responseJSON, err := json.Marshal(response)
+	publicationResponse := api.SchedulePublicationResponse{BatchID: batchID, Status: "published", PublishedAt: publishedAt, RevisionIDs: revisionIDs, AffectedDays: len(revisionIDs)}
+	if response != nil {
+		*response = publicationResponse
+	}
+	responseJSON, err := json.Marshal(publicationResponse)
 	if err != nil {
 		return err
 	}
@@ -974,7 +977,7 @@ func publishPreview(ctx context.Context, tx pgx.Tx, actor publicationActor, idem
 	return nil
 }
 
-func insertPublishedDay(ctx context.Context, tx pgx.Tx, batchID uuid.UUID, actor publicationActor, reason, timezone string, day map[string]any, publishedAt time.Time) (uuid.UUID, error) {
+func insertPublishedDay(ctx context.Context, tx pgx.Tx, batchID uuid.UUID, actor publicationActor, reason, timezone string, day map[string]any, publishedAt time.Time, previousRevisionID *uuid.UUID) (uuid.UUID, error) {
 	employmentID, err := uuidFromMap(day, "employment_id")
 	if err != nil {
 		return uuid.Nil, err
@@ -997,7 +1000,7 @@ func insertPublishedDay(ctx context.Context, tx pgx.Tx, batchID uuid.UUID, actor
 		return uuid.Nil, err
 	}
 	sourceSnapshot := jsonArg(map[string]any{"source": source, "resolver_version": lifecycleResolverVersion, "preview_result": day})
-	if _, err := tx.Exec(ctx, `INSERT INTO schedule_day_revisions (id, employment_id, employer_id, business_date, timezone, revision_number, state, publication_batch_id, source, source_snapshot, resolver_version, reason, published_by, published_actor_type, published_actor_name, published_at) SELECT $1, e.id, e.employer_id, $2::date, $3, $4, 'draft', $5, $6, $7, $8, $9, $10, $11, $12, NULL FROM employments e WHERE e.id = $13`, revisionID, businessDate, timezone, revisionNumber, batchID, source, sourceSnapshot, lifecycleResolverVersion, strings.TrimSpace(reason), actor.ID, actor.Type, actor.Name, employmentID); err != nil {
+	if _, err := tx.Exec(ctx, `INSERT INTO schedule_day_revisions (id, employment_id, employer_id, business_date, timezone, revision_number, state, publication_batch_id, source, source_snapshot, resolver_version, reason, published_by, published_actor_type, published_actor_name, published_at, previous_revision_id) SELECT $1, e.id, e.employer_id, $2::date, $3, $4, 'draft', $5, $6, $7, $8, $9, $10, $11, $12, NULL, $13 FROM employments e WHERE e.id = $14`, revisionID, businessDate, timezone, revisionNumber, batchID, source, sourceSnapshot, lifecycleResolverVersion, strings.TrimSpace(reason), actor.ID, actor.Type, actor.Name, previousRevisionID, employmentID); err != nil {
 		return uuid.Nil, err
 	}
 	intervals := []normalizedInterval(nil)
@@ -1133,7 +1136,7 @@ func commitReplan(ctx context.Context, tx pgx.Tx, actorID uuid.UUID, idempotency
 		return err
 	}
 	replacement := result.Replacement
-	newRevisionID, err := insertPublishedDay(ctx, tx, batchID, publicationActor{ID: &actorID, Type: "human"}, request.Reason, current.Timezone, replacement, publishedAt)
+	newRevisionID, err := insertPublishedDay(ctx, tx, batchID, publicationActor{ID: &actorID, Type: "human"}, request.Reason, current.Timezone, replacement, publishedAt, &current.ID)
 	if err != nil {
 		return err
 	}

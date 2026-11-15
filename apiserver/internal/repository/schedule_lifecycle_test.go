@@ -243,6 +243,74 @@ func TestSanitizedPreviewDayExplicitOffMissingAndConflict(t *testing.T) {
 	}
 }
 
+func TestPublishPreviewPopulatesResponse(t *testing.T) {
+	actorID := uuid.New()
+	employmentID := uuid.New()
+	captured := make([]string, 0)
+	tx := &fakeTx{fakeDBTX: fakeDBTX{
+		queryRowFn: func(_ context.Context, query string, _ ...any) pgx.Row {
+			if strings.Contains(query, "MAX(revision_number)") {
+				return fakeRow{scanFn: func(dest ...any) error {
+					*(dest[0].(*int64)) = 1
+					return nil
+				}}
+			}
+			return fakeRow{scanFn: func(dest ...any) error {
+				return errors.New("unexpected query row")
+			}}
+		},
+		execFn: func(_ context.Context, query string, _ ...any) (pgconn.CommandTag, error) {
+			captured = append(captured, query)
+			return pgconn.NewCommandTag("INSERT 0 1"), nil
+		},
+	}}
+	preview := lockedPreview{ResultSnapshot: jsonArg(map[string]any{
+		"data": []map[string]any{{"employment_id": employmentID.String(), "business_date": "2026-11-16", "status": "explicit_off", "source": "roster"}},
+	})}
+	response := api.SchedulePublicationResponse{}
+	if err := publishPreview(context.Background(), tx, publicationActor{ID: &actorID, Type: "human"}, "publish-key", strings.Repeat("a", 64), api.SchedulePublishRequest{Timezone: "UTC", Reason: "approved", StartDate: "2026-11-16", EndDate: "2026-11-16"}, preview, &response); err != nil {
+		t.Fatalf("publish preview: %v", err)
+	}
+	if response.BatchID == uuid.Nil || response.Status != "published" || len(response.RevisionIDs) != 1 || response.AffectedDays != 1 {
+		t.Fatalf("publish response was not populated: %+v", response)
+	}
+	if len(captured) == 0 {
+		t.Fatal("expected publication writes")
+	}
+}
+
+func TestInsertPublishedDayCarriesPreviousRevisionID(t *testing.T) {
+	previousID := uuid.New()
+	employmentID := uuid.New()
+	var insertArgs []any
+	tx := &fakeTx{fakeDBTX: fakeDBTX{
+		queryRowFn: func(_ context.Context, query string, _ ...any) pgx.Row {
+			if !strings.Contains(query, "MAX(revision_number)") {
+				return fakeRow{}
+			}
+			return fakeRow{scanFn: func(dest ...any) error {
+				*(dest[0].(*int64)) = 2
+				return nil
+			}}
+		},
+		execFn: func(_ context.Context, query string, args ...any) (pgconn.CommandTag, error) {
+			if strings.Contains(query, "INSERT INTO schedule_day_revisions") {
+				insertArgs = args
+			}
+			return pgconn.NewCommandTag("INSERT 0 1"), nil
+		},
+	}}
+	_, err := insertPublishedDay(context.Background(), tx, uuid.New(), publicationActor{Type: "human"}, "amend", "UTC", map[string]any{
+		"employment_id": employmentID.String(), "business_date": "2026-11-16", "status": "explicit_off", "source": "manual",
+	}, time.Date(2026, 11, 16, 12, 0, 0, 0, time.UTC), &previousID)
+	if err != nil {
+		t.Fatalf("insert published day: %v", err)
+	}
+	if len(insertArgs) < 14 || insertArgs[12] != &previousID {
+		t.Fatalf("previous revision argument missing: %#v", insertArgs)
+	}
+}
+
 func TestValidateExpectedRevisionsDetectsMismatch(t *testing.T) {
 	employmentID := uuid.New()
 	date := time.Date(2026, 11, 16, 0, 0, 0, 0, time.UTC)
