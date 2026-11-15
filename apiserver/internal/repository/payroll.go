@@ -1238,11 +1238,15 @@ WHERE employment_id = $1 AND period_year = $2 AND period_month = $3 AND id = ANY
 	if before.formulaID != nil || after.formulaID != nil {
 		return api.PayrollImpactResponse{}, api.ErrPayrollImpactValidation
 	}
+	stale, staleReason, err := impactSnapshotStaleness(ctx, db, employmentID, year, month, after.input)
+	if err != nil {
+		return api.PayrollImpactResponse{}, err
+	}
 	delta, err := payroll.CompareImpactSnapshots(before.input, before.output, after.input, after.output)
 	if errors.Is(err, payroll.ErrImpactSnapshotIncomplete) {
 		return api.PayrollImpactResponse{
 			EmploymentID: uuid.UUID(employmentID), PeriodYear: year, PeriodMonth: month,
-			BeforeRunID: beforeRunID, AfterRunID: afterRunID, Computed: false,
+			BeforeRunID: beforeRunID, AfterRunID: afterRunID, Computed: false, Stale: stale, StaleReasons: staleReason,
 			Reason: "calculation output is incomplete",
 		}, nil
 	}
@@ -1254,11 +1258,46 @@ WHERE employment_id = $1 AND period_year = $2 AND period_month = $3 AND id = ANY
 	}
 	return api.PayrollImpactResponse{
 		EmploymentID: uuid.UUID(employmentID), PeriodYear: year, PeriodMonth: month,
-		BeforeRunID: beforeRunID, AfterRunID: afterRunID, Computed: delta.Complete,
+		BeforeRunID: beforeRunID, AfterRunID: afterRunID, Computed: delta.Complete, Stale: stale, StaleReasons: staleReason,
 		Reason: delta.Reason, BasePayDelta: delta.BasePayDelta, OvertimePayDelta: delta.OvertimePayDelta,
 		DeductionsDelta: delta.DeductionsDelta, NetPayDelta: delta.NetPayDelta,
 		StandardUnitsDelta: delta.StandardUnitsDelta, OvertimeUnitsDelta: delta.OvertimeUnitsDelta,
 	}, nil
+}
+
+func impactSnapshotStaleness(ctx context.Context, db DBTX, employmentID ids.EmploymentID, year, month int, input []byte) (bool, []string, error) {
+	var payload struct {
+		Policy *struct {
+			VersionID string `json:"version_id"`
+		} `json:"policy"`
+	}
+	if err := json.Unmarshal(input, &payload); err != nil || payload.Policy == nil || payload.Policy.VersionID == "" {
+		return false, nil, nil
+	}
+	versionID, err := uuid.Parse(payload.Policy.VersionID)
+	if err != nil {
+		return true, []string{"policy_version_invalid"}, nil
+	}
+	periodStart := time.Date(year, time.Month(month), 1, 0, 0, 0, 0, time.UTC)
+	var currentID *uuid.UUID
+	err = db.QueryRow(ctx, `
+		SELECT v.id
+		FROM labor_policy_memberships m
+		JOIN labor_policy_group_versions v ON v.group_id = m.group_id
+		WHERE m.employment_id = $1
+		  AND m.effective_from <= $2::date AND (m.effective_to IS NULL OR m.effective_to > $2::date)
+		  AND v.effective_from <= $2::date AND (v.effective_to IS NULL OR v.effective_to > $2::date)
+		ORDER BY v.effective_from DESC, v.id DESC LIMIT 1`, uuid.UUID(employmentID), periodStart.Format("2006-01-02")).Scan(&currentID)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return true, []string{"current_policy_missing"}, nil
+	}
+	if err != nil {
+		return false, nil, err
+	}
+	if currentID == nil || *currentID != versionID {
+		return true, []string{"policy_version_changed"}, nil
+	}
+	return false, nil, nil
 }
 
 func (r PayrollRepository) ListPayrollFormulaRuleVersions(ctx context.Context, ruleID uuid.UUID) ([]api.PayrollFormulaRuleVersion, error) {

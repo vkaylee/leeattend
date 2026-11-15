@@ -385,6 +385,8 @@ type PayrollImpactResponse struct {
 	BeforeRunID        uuid.UUID       `json:"before_run_id"`
 	AfterRunID         uuid.UUID       `json:"after_run_id"`
 	Computed           bool            `json:"computed"`
+	Stale              bool            `json:"stale"`
+	StaleReasons       []string        `json:"stale_reasons,omitempty"`
 	Reason             string          `json:"reason,omitempty"`
 	BasePayDelta       decimal.Decimal `json:"base_pay_delta"`
 	OvertimePayDelta   decimal.Decimal `json:"overtime_pay_delta"`
