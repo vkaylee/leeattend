@@ -336,6 +336,15 @@ func TestIntegrationResolveWorkPolicyUsesExclusiveMembershipAndVersionBoundaries
 	if err != nil {
 		t.Fatalf("insert resolver membership: %v", err)
 	}
+	if _, err := tx.Exec(ctx, `SAVEPOINT overlapping_membership`); err != nil {
+		t.Fatalf("create overlap savepoint: %v", err)
+	}
+	if _, err := tx.Exec(ctx, `INSERT INTO labor_policy_memberships (id, employment_id, group_id, effective_from, effective_to, created_by) VALUES ($1, $2, $3, DATE '2026-05-01', DATE '2026-07-01', $4)`, uuid.New(), employmentID, groupID, userID); err == nil {
+		t.Fatal("overlapping membership must be rejected by database constraint")
+	}
+	if _, err := tx.Exec(ctx, `ROLLBACK TO SAVEPOINT overlapping_membership`); err != nil {
+		t.Fatalf("rollback overlap savepoint: %v", err)
+	}
 
 	repo := WorkPolicyRepository{DB: tx}
 	beforeBoundary, err := repo.ResolveWorkPolicy(ctx, ids.EmploymentID(employmentID), time.Date(2026, 5, 31, 0, 0, 0, 0, time.UTC))
