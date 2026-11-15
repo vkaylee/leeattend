@@ -1104,14 +1104,14 @@ func payrollInputRequestHash(req api.CreatePayrollInputRequest) (string, error) 
 	return fmt.Sprintf("%x", sha256.Sum256(payload)), nil
 }
 
-func (r PayrollRepository) ListPayrollInputs(ctx context.Context, batchID uuid.UUID) ([]api.PayrollInput, error) {
+func (r PayrollRepository) ListPayrollInputs(ctx context.Context, batchID ids.PayrollInputBatchID) ([]api.PayrollInput, error) {
 	db, err := r.db(ctx)
 	if err != nil {
 		return nil, err
 	}
 	rows, err := db.Query(ctx, `SELECT i.id, i.employment_id, m.code, i.value::text, i.unit, i.status, i.validation_message, i.source_reference
 FROM payroll_inputs i JOIN payroll_metric_definitions m ON m.id = i.metric_definition_id
-WHERE i.batch_id = $1 ORDER BY i.id ASC`, batchID)
+WHERE i.batch_id = $1 ORDER BY i.id ASC`, uuid.UUID(batchID))
 	if err != nil {
 		return nil, err
 	}
@@ -1172,7 +1172,7 @@ func (r PayrollRepository) CorrectPayrollInput(ctx context.Context, inputID ids.
 	return result, err
 }
 
-func (r PayrollRepository) ListPayrollCalculationRuns(ctx context.Context, employmentID uuid.UUID, year, month int) ([]api.PayrollCalculationRun, error) {
+func (r PayrollRepository) ListPayrollCalculationRuns(ctx context.Context, employmentID ids.EmploymentID, year, month int) ([]api.PayrollCalculationRun, error) {
 	db, err := r.db(ctx)
 	if err != nil {
 		return nil, err
@@ -1180,7 +1180,7 @@ func (r PayrollRepository) ListPayrollCalculationRuns(ctx context.Context, emplo
 	rows, err := db.Query(ctx, `SELECT id, employment_id, payslip_id, period_year, period_month, formula_version_id, engine_version, input_snapshot, output_snapshot, calculation_trace, created_by, created_at
 FROM payroll_calculation_runs
 WHERE employment_id = $1 AND period_year = $2 AND period_month = $3
-ORDER BY created_at DESC, id DESC`, employmentID, year, month)
+ORDER BY created_at DESC, id DESC`, uuid.UUID(employmentID), year, month)
 	if err != nil {
 		return nil, err
 	}

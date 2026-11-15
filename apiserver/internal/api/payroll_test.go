@@ -46,7 +46,7 @@ func (mockPayrollRepository) LockPayrollInputBatch(_ context.Context, batchID id
 	return PayrollInputBatch{ID: batchUUID, Status: "locked", LockedBy: &actorUUID}, nil
 }
 
-func (mockPayrollRepository) ListPayrollInputs(context.Context, uuid.UUID) ([]PayrollInput, error) {
+func (mockPayrollRepository) ListPayrollInputs(context.Context, ids.PayrollInputBatchID) ([]PayrollInput, error) {
 	return []PayrollInput{}, nil
 }
 
@@ -54,7 +54,7 @@ func (mockPayrollRepository) CorrectPayrollInput(_ context.Context, inputID ids.
 	return PayrollInput{ID: uuid.UUID(inputID), Value: req.Value, Unit: req.Unit, Status: "corrected"}, nil
 }
 
-func (mockPayrollRepository) ListPayrollCalculationRuns(context.Context, uuid.UUID, int, int) ([]PayrollCalculationRun, error) {
+func (mockPayrollRepository) ListPayrollCalculationRuns(context.Context, ids.EmploymentID, int, int) ([]PayrollCalculationRun, error) {
 	return []PayrollCalculationRun{}, nil
 }
 

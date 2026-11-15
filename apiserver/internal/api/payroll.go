@@ -444,7 +444,7 @@ type PayrollRepository interface {
 	CreatePayrollInputBatch(context.Context, CreatePayrollInputRequest, ids.UserID) (PayrollInputBatch, error)
 	ApprovePayrollInputBatch(context.Context, ids.PayrollInputBatchID, ids.UserID) (PayrollInputBatch, error)
 	LockPayrollInputBatch(context.Context, ids.PayrollInputBatchID, ids.UserID) (PayrollInputBatch, error)
-	ListPayrollInputs(context.Context, uuid.UUID) ([]PayrollInput, error)
+	ListPayrollInputs(context.Context, ids.PayrollInputBatchID) ([]PayrollInput, error)
 	CorrectPayrollInput(context.Context, ids.PayrollInputID, CorrectPayrollInputRequest, ids.UserID) (PayrollInput, error)
 	ListPayrollFormulaRules(context.Context) ([]PayrollFormulaRule, error)
 	ListPayrollFormulaRuleVersions(context.Context, uuid.UUID) ([]PayrollFormulaRuleVersion, error)
@@ -452,7 +452,7 @@ type PayrollRepository interface {
 	CreatePayrollFormulaRuleVersion(context.Context, ids.PayrollFormulaRuleID, CreatePayrollFormulaRuleVersionRequest, ids.UserID) (PayrollFormulaRuleVersion, error)
 	PublishPayrollFormulaRule(context.Context, ids.PayrollFormulaRuleID, ids.UserID) (PayrollFormulaRule, error)
 	RetirePayrollFormulaRule(context.Context, ids.PayrollFormulaRuleID, ids.UserID) (PayrollFormulaRule, error)
-	ListPayrollCalculationRuns(context.Context, uuid.UUID, int, int) ([]PayrollCalculationRun, error)
+	ListPayrollCalculationRuns(context.Context, ids.EmploymentID, int, int) ([]PayrollCalculationRun, error)
 	GetPayrollPeriod(context.Context, ids.EmployerID, int, int) (PayrollPeriod, error)
 	LockPayrollPeriod(context.Context, payrolldomain.PayrollPeriodMutation) (PayrollPeriod, error)
 	ReopenPayrollPeriod(context.Context, payrolldomain.PayrollPeriodMutation) (PayrollPeriod, error)
@@ -1100,7 +1100,7 @@ func (h PayrollHandler) ListPayrollCalculationRuns(w http.ResponseWriter, r *htt
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}
-	runs, err := h.Repository.ListPayrollCalculationRuns(r.Context(), employmentID, year, month)
+	runs, err := h.Repository.ListPayrollCalculationRuns(r.Context(), ids.EmploymentID(employmentID), year, month)
 	if err != nil {
 		h.writeError(w, r, err)
 		return
@@ -1302,7 +1302,7 @@ func (h PayrollHandler) ListPayrollInputs(w http.ResponseWriter, r *http.Request
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}
-	inputs, err := h.Repository.ListPayrollInputs(r.Context(), batchID)
+	inputs, err := h.Repository.ListPayrollInputs(r.Context(), ids.PayrollInputBatchID(batchID))
 	if err != nil {
 		h.writeError(w, r, err)
 		return
