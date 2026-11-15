@@ -179,9 +179,9 @@ func FailScheduleOfficeJob(ctx context.Context, db DBTX, jobID, leaseToken strin
 	}
 	result, err := db.Exec(ctx, `
 		UPDATE outbox_jobs
-		SET status = CASE WHEN $3 >= $4 THEN 'dead_letter' ELSE 'pending' END,
-		    available_at = CASE WHEN $3 >= $4 THEN available_at ELSE NOW() + (CASE $3 WHEN 1 THEN INTERVAL '1 minute' WHEN 2 THEN INTERVAL '5 minutes' WHEN 3 THEN INTERVAL '15 minutes' ELSE INTERVAL '1 hour' END) END,
-		    dead_letter_at = CASE WHEN $3 >= $4 THEN NOW() ELSE NULL END,
+		SET status = CASE WHEN $3::integer >= $4::integer THEN 'dead_letter' ELSE 'pending' END,
+		    available_at = CASE WHEN $3::integer >= $4::integer THEN available_at ELSE NOW() + (CASE $3::integer WHEN 1 THEN INTERVAL '1 minute' WHEN 2 THEN INTERVAL '5 minutes' WHEN 3 THEN INTERVAL '15 minutes' ELSE INTERVAL '1 hour' END) END,
+		    dead_letter_at = CASE WHEN $3::integer >= $4::integer THEN NOW() ELSE NULL END,
 		    last_error = $5, lease_token = NULL, locked_until = NULL, updated_at = NOW()
 		WHERE id = $1 AND status = 'processing' AND lease_token = $2`, id, token, jobAttempt, maxScheduleOfficeAttempts, jobErr.Error())
 	if err != nil {
