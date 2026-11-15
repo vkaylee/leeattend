@@ -1841,7 +1841,7 @@ func resolveWorkPolicyOptional(ctx context.Context, db DBTX, employmentID uuid.U
 	row := db.QueryRow(ctx, `
 		SELECT v.id, v.group_id, g.name, v.work_credit_policy_id, wc.name, wc.minutes_per_credit,
 		       wc.attendance_policy_id, wc.working_pattern_id, v.pay_basis_policy_id, pb.name,
-		       pb.method, pb.monthly_denominator, pb.monthly_standard_days::text, v.overtime_policy_id,
+		       pb.method, pb.monthly_denominator, pb.monthly_standard_days::text, pb.rate_component_definition_id, v.overtime_policy_id,
 		       v.effective_from::text, v.effective_to::text
 		FROM labor_policy_memberships m
 		JOIN labor_policy_groups g ON g.id = m.group_id
@@ -1872,7 +1872,7 @@ func loadWorkPolicyAssignments(ctx context.Context, db DBTX, employmentID uuid.U
 	rows, err := db.Query(ctx, `
 		SELECT v.id, v.group_id, g.name, v.work_credit_policy_id, wc.name, wc.minutes_per_credit,
 		       wc.attendance_policy_id, wc.working_pattern_id, v.pay_basis_policy_id, pb.name,
-		       pb.method, pb.monthly_denominator, pb.monthly_standard_days::text, v.overtime_policy_id,
+		       pb.method, pb.monthly_denominator, pb.monthly_standard_days::text, pb.rate_component_definition_id, v.overtime_policy_id,
 		       v.effective_from::text, v.effective_to::text,
 		       m.effective_from::text, m.effective_to::text
 		FROM labor_policy_memberships m
@@ -1894,12 +1894,13 @@ func loadWorkPolicyAssignments(ctx context.Context, db DBTX, employmentID uuid.U
 		var assignment workPolicyAssignment
 		var method, denominator *string
 		var days *string
+		var rateComponentID *uuid.UUID
 		if err := rows.Scan(
 			&assignment.policy.ID, &assignment.policy.GroupID, &assignment.policy.Name,
 			&assignment.policy.WorkCreditPolicyID, &assignment.policy.WorkCreditPolicyName,
 			&assignment.policy.MinutesPerCredit, &assignment.policy.AttendancePolicyID,
 			&assignment.policy.WorkingPatternID, &assignment.policy.PayBasisPolicyID,
-			&assignment.policy.PayBasisPolicyName, &method, &denominator, &days,
+			&assignment.policy.PayBasisPolicyName, &method, &denominator, &days, &rateComponentID,
 			&assignment.policy.OvertimePolicyID, &assignment.policy.EffectiveFrom,
 			&assignment.policy.EffectiveTo, &assignment.membershipFrom,
 			&assignment.membershipTo,
@@ -1907,6 +1908,7 @@ func loadWorkPolicyAssignments(ctx context.Context, db DBTX, employmentID uuid.U
 			return nil, err
 		}
 		assignment.policy.PayMethod = workpolicy.PayMethod(*method)
+		assignment.policy.RateComponentDefinitionID = rateComponentID
 		if denominator != nil {
 			value := workpolicy.MonthlyDenominator(*denominator)
 			assignment.policy.MonthlyDenominator = &value
