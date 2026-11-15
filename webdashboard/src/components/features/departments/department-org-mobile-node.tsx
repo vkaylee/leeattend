@@ -1,7 +1,6 @@
 import type { TFunction } from "i18next";
 
-import { 
-  Calculator,
+import {
   ChevronDown,
   ChevronRight,
   Eye,
@@ -26,7 +25,6 @@ interface DepartmentOrgMobileNodeProps {
   manager: Employee | undefined;
   node: TreeNode;
   onClick: (dept: Department) => void;
-  onConfig: (dept: Department) => void;
   onDelete: (dept: Department) => void;
   onEdit: (dept: Department) => void;
   onToggleCollapse: (id: string, currentCollapsed: boolean) => void;
@@ -41,7 +39,6 @@ export const DepartmentOrgMobileNode = ({
   manager,
   node,
   onClick,
-  onConfig,
   onDelete,
   onEdit,
   onToggleCollapse,
@@ -123,10 +120,6 @@ export const DepartmentOrgMobileNode = ({
               />
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => { onConfig(node.dept); }}>
-                <Calculator className="mr-2 h-4 w-4" />
-                {t("payroll.settings.title")}
-              </DropdownMenuItem>
               <DropdownMenuItem onClick={() => { onEdit(node.dept); }}>
                 <Pencil className="mr-2 h-4 w-4" />
                 {t("common.edit")}

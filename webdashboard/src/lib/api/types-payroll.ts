@@ -114,18 +114,8 @@ export interface PayrollRuleAssignment {
 /** Payroll config for a single employee (returned by GET) — alias for ConfigRecord. */
 export type EmployeePayrollConfig = ConfigRecord;
 
-/** Payroll config for a department (returned by GET) — alias for ConfigRecord. */
-export type DepartmentPayrollConfig = ConfigRecord;
-
 /** Request body for setting employee payroll config. */
 export interface SetEmployeePayrollConfigRequest {
-  effective_date: string;
-  hours_per_day: string;
-  std_working_days: string;
-}
-
-/** Request body for setting department payroll config. */
-export interface SetDepartmentPayrollConfigRequest {
   effective_date: string;
   hours_per_day: string;
   std_working_days: string;

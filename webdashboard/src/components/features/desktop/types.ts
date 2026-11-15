@@ -10,6 +10,7 @@ export type WidgetCategory =
 export type WidgetColSpan =
   | "col-span-1"
   | "col-span-1 md:col-span-2"
+  | "col-span-1 xl:col-span-2"
   | "col-span-1 md:col-span-2 lg:col-span-3"
   | "col-span-full";
 

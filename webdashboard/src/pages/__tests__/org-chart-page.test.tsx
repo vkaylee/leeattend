@@ -10,11 +10,6 @@ import OrgChartPage from "../org-chart-page";
 // ── Mocks ──────────────────────────────────────────────────────────────────
 
 // Mock child components
-vi.mock("@/components/features/departments/department-config-modal", () => ({
-  DepartmentConfigModal: ({ isOpen }: { isOpen: boolean }) =>
-    isOpen ? <div data-testid="department-config-modal">Config Modal</div> : null,
-}));
-
 vi.mock("@/components/features/departments/department-detail-drawer", () => ({
   DepartmentDetailDrawer: ({ isOpen }: { isOpen: boolean }) =>
     isOpen ? <div data-testid="department-detail-drawer">Detail Drawer</div> : null,
@@ -98,14 +93,6 @@ describe("OrgChartPage", () => {
 
     // During loading, the org chart component still renders
     expect(screen.getByTestId("department-org-chart")).toBeDefined();
-  });
-
-  // ── Modal state management ──────────────────────────────────────────────
-
-  it("config modal is closed by default", () => {
-    renderOrgChart();
-
-    expect(screen.queryByTestId("department-config-modal")).toBeNull();
   });
 
   it("form modal is closed by default", () => {

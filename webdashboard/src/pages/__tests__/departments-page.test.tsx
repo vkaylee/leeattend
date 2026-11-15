@@ -27,8 +27,6 @@ vi.mock("../../lib/api", () => ({
   deleteDepartment: vi.fn(),
   fetchEmployees: vi.fn(),
   fetchWorkingPatterns: vi.fn(),
-  fetchDepartmentPayrollConfigs: vi.fn(),
-  setDepartmentPayrollConfig: vi.fn(),
 }));
 
 // Override i18n for this test to return keys

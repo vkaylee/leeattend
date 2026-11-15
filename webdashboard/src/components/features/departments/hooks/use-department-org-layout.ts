@@ -170,7 +170,6 @@ export function useDepartmentOrgLayout({
   hasMatchingDescendants,
   matchedIds,
   onClick,
-  onConfig,
   onDelete,
   onEdit,
   searchActive,
@@ -180,8 +179,8 @@ export function useDepartmentOrgLayout({
 }: UseDepartmentOrgLayoutOptions) {
   const buildContext = useMemo(() => ({
     autoExpanded, collapsedNodes, employees, hasMatchingDescendants, matchedIds,
-    onClick, onConfig, onDelete, onEdit, searchActive, setCollapsedNodes, t
-  }), [autoExpanded, collapsedNodes, employees, hasMatchingDescendants, matchedIds, onClick, onConfig, onDelete, onEdit, searchActive, setCollapsedNodes, t]);
+    onClick, onDelete, onEdit, searchActive, setCollapsedNodes, t
+  }), [autoExpanded, collapsedNodes, employees, hasMatchingDescendants, matchedIds, onClick, onDelete, onEdit, searchActive, setCollapsedNodes, t]);
 
   return useMemo(() => {
     const nodes: Node[] = [];

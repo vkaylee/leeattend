@@ -66,9 +66,7 @@ import {
   ConfigRecord,
   CreateOvertimePolicyRequest,
   EmployeePayrollConfig,
-  DepartmentPayrollConfig,
   SetEmployeePayrollConfigRequest,
-  SetDepartmentPayrollConfigRequest,
   IncentiveTier,
 } from "./types";
 
@@ -240,21 +238,6 @@ export async function addOvertimeRule(policyId: string, data: { days_of_week: nu
 export async function setEmployeePayrollConfig(employeeId: string, data: SetEmployeePayrollConfigRequest): Promise<EmployeePayrollConfig> {
   const { data: resData } = await client.POST<EmployeePayrollConfig>("/api/v1/employees/{id}/payroll-config", {
     params: { path: { id: employeeId } },
-    body: data,
-  });
-  return resData;
-}
-
-export async function fetchDepartmentPayrollConfigs(deptId: string): Promise<DepartmentPayrollConfig[]> {
-  const { data: resData } = await client.GET<DepartmentPayrollConfig[]>("/api/v1/departments/{id}/payroll-config", {
-    params: { path: { id: deptId } },
-  });
-  return resData;
-}
-
-export async function setDepartmentPayrollConfig(deptId: string, data: SetDepartmentPayrollConfigRequest): Promise<DepartmentPayrollConfig> {
-  const { data: resData } = await client.POST<DepartmentPayrollConfig>("/api/v1/departments/{id}/payroll-config", {
-    params: { path: { id: deptId } },
     body: data,
   });
   return resData;

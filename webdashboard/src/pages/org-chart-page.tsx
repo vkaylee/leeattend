@@ -2,7 +2,6 @@ import { FolderTree } from "lucide-react";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import { DepartmentConfigModal } from "@/components/features/departments/department-config-modal";
 import { DepartmentDetailDrawer } from "@/components/features/departments/department-detail-drawer";
 import { DepartmentFormModal } from "@/components/features/departments/department-form-modal";
 import { DepartmentOrgChart } from "@/components/features/departments/department-org-chart";
@@ -18,7 +17,6 @@ export default function OrgChartPage() {
   const { t } = useTranslation();
   
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isConfigModalOpen, setIsConfigModalOpen] = useState(false);
   const [editingDept, setEditingDept] = useState<Department | null>(null);
 
   // Detail Drawer state
@@ -71,7 +69,6 @@ export default function OrgChartPage() {
           <DepartmentOrgChart departments={departments}
           employees={employees}
           onClick={(d) => { setSelectedDeptForDetail(d); }}
-          onConfig={(d) => { setEditingDept(d); setIsConfigModalOpen(true); }}
           onDelete={(d) => { void handleDelete(d.id); }}
           onEdit={(d) => { setEditingDept(d); setIsModalOpen(true); }}
           searchQuery={searchQuery}
@@ -84,15 +81,10 @@ export default function OrgChartPage() {
       employees={employees}
       isOpen={Boolean(selectedDeptForDetail)}
       onClose={() => { setSelectedDeptForDetail(null); }}
-      onConfig={(d) => { setEditingDept(d); setIsConfigModalOpen(true); }}
       onDelete={(d) => { setSelectedDeptForDetail(null); void handleDelete(d.id); }}
       onEdit={(d) => { setEditingDept(d); setIsModalOpen(true); }}
       t={t}  />
 
-      <DepartmentConfigModal editingDept={editingDept}
-      isOpen={isConfigModalOpen}
-      onClose={() => { setIsConfigModalOpen(false); }}
-      t={t}  />
 
       <DepartmentFormModal departments={departments}
       editingDept={editingDept}

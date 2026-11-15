@@ -1,9 +1,7 @@
 /* eslint-disable max-lines-per-function */
-import { Plus, Building2, LayoutGrid, List, Search, MoreHorizontal, Calculator, Pencil, Trash2 } from "lucide-react";
+import { Plus, Building2, Search, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
 import React from "react";
 
-import { DepartmentCard } from "@/components/features/departments/department-card";
-import { DepartmentConfigModal } from "@/components/features/departments/department-config-modal";
 import { DepartmentDetailDrawer } from "@/components/features/departments/department-detail-drawer";
 import { DepartmentFormModal } from "@/components/features/departments/department-form-modal";
 import Button from "@/components/ui/button";
@@ -22,14 +20,10 @@ export default function DepartmentsPage() {
     t,
     isModalOpen,
     setIsModalOpen,
-    isConfigModalOpen,
-    setIsConfigModalOpen,
     editingDept,
     setEditingDept,
     selectedDeptForDetail,
     setSelectedDeptForDetail,
-    viewMode,
-    setViewMode,
     searchQuery,
     setSearchQuery,
     selectedManagerId,
@@ -38,7 +32,6 @@ export default function DepartmentsPage() {
     departments,
     isLoading,
     employees,
-    deleteMutation,
     handleDelete,
     managerOptions,
     filteredDepartments,
@@ -85,34 +78,13 @@ export default function DepartmentsPage() {
           </div>
         </div>
 
-        {/* View Mode Toggle Buttons */}
-        <div className="flex items-center gap-3 border border-slate-200 dark:border-slate-800 p-1.5 rounded-2xl bg-slate-50/50 dark:bg-slate-800/10">
-          <Button
-            className="h-10 px-4 rounded-xl font-bold"
-            icon={<LayoutGrid size={16} />}
-            onClick={() => { setViewMode("grid"); }}
-            size="sm"
-            variant={viewMode === "grid" ? "secondary" : "ghost"}
-          >
-            {t("departments.view_grid")}
-          </Button>
-          <Button
-            className="h-10 px-4 rounded-xl font-bold"
-            icon={<List size={16} />}
-            onClick={() => { setViewMode("table"); }}
-            size="sm"
-            variant={viewMode === "table" ? "secondary" : "ghost"}
-          >
-            {t("departments.view_list")}
-          </Button>
         </div>
-      </div>
 
       {/* Content Rendering based on View Mode */}
       {isLoading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        <div className="space-y-3">
           {Array.from({ length: 3 }).map((_, index) => (
-            <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-6 sm:p-10 rounded-2xl sm:rounded-[2.5rem] shadow-sm animate-pulse h-80" key={index} />
+            <div className="h-20 animate-pulse rounded-2xl border border-slate-100 bg-white dark:border-slate-800 dark:bg-slate-900" key={index} />
           ))}
         </div>
       ) : departments.length === 0 ? (
@@ -150,21 +122,6 @@ export default function DepartmentsPage() {
           icon={<Search size={40} />}
           title={t("departments.messages.no_results")}
         />
-      ) : viewMode === "grid" ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {filteredDepartments.map((dept) => (
-            <DepartmentCard
-              deleteMutationMutate={deleteMutation.mutate}
-              dept={dept}
-              employees={employees}
-              key={dept.id}
-              onClick={() => { setSelectedDeptForDetail(dept); }}
-              onConfig={(d) => { setEditingDept(d); setIsConfigModalOpen(true); }}
-              onEdit={(d) => { setEditingDept(d); setIsModalOpen(true); }}
-              t={t}
-            />
-          ))}
-        </div>
       ) : (
         <ResponsiveTable<typeof filteredDepartments[number]>
           data={filteredDepartments}
@@ -231,10 +188,6 @@ export default function DepartmentsPage() {
                       />
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setEditingDept(dept); setIsConfigModalOpen(true); }}>
-                        <Calculator className="mr-2 h-4 w-4" />
-                        {t("payroll.settings.title")}
-                      </DropdownMenuItem>
                       <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setEditingDept(dept); setIsModalOpen(true); }}>
                         <Pencil className="mr-2 h-4 w-4" />
                         {t("common.edit")}
@@ -307,10 +260,6 @@ export default function DepartmentsPage() {
                               />
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
-                              <DropdownMenuItem onClick={() => { setEditingDept(dept); setIsConfigModalOpen(true); }}>
-                                <Calculator className="mr-2 h-4 w-4" />
-                                {t("payroll.settings.title")}
-                              </DropdownMenuItem>
                               <DropdownMenuItem onClick={() => { setEditingDept(dept); setIsModalOpen(true); }}>
                                 <Pencil className="mr-2 h-4 w-4" />
                                 {t("common.edit")}
@@ -338,15 +287,10 @@ export default function DepartmentsPage() {
       employees={employees}
       isOpen={Boolean(selectedDeptForDetail)}
       onClose={() => { setSelectedDeptForDetail(null); }}
-      onConfig={(d) => { setEditingDept(d); setIsConfigModalOpen(true); }}
       onDelete={(d) => { setSelectedDeptForDetail(null); void handleDelete(d.id); }}
       onEdit={(d) => { setEditingDept(d); setIsModalOpen(true); }}
       t={t}  />
 
-      <DepartmentConfigModal editingDept={editingDept}
-      isOpen={isConfigModalOpen}
-      onClose={() => { setIsConfigModalOpen(false); }}
-      t={t}  />
 
       <DepartmentFormModal departments={departments}
       editingDept={editingDept}

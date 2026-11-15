@@ -32,7 +32,6 @@ export interface DepartmentOrgChartProps {
   departments: Department[];
   employees: Employee[];
   onClick: (dept: Department) => void;
-  onConfig: (dept: Department) => void;
   onDelete: (dept: Department) => void;
   onEdit: (dept: Department) => void;
   searchQuery: string;
@@ -166,7 +165,6 @@ export function DepartmentOrgChart({
   departments,
   employees,
   onClick,
-  onConfig,
   onDelete,
   onEdit,
   searchQuery,
@@ -222,7 +220,6 @@ export function DepartmentOrgChart({
     hasMatchingDescendants,
     matchedIds,
     onClick,
-    onConfig,
     onDelete,
     onEdit,
     searchActive,
@@ -250,7 +247,6 @@ export function DepartmentOrgChart({
           manager={employees.find(e => e.id === node.manager_id)}
           node={node}
           onClick={onClick}
-          onConfig={onConfig}
           onDelete={onDelete}
           onEdit={onEdit}
           onToggleCollapse={(id, currentCollapsed) => {

@@ -26,7 +26,6 @@ export interface DepartmentNodeData {
   manager: Employee | undefined;
   node: TreeNode;
   onClick: (dept: Department) => void;
-  onConfig: (dept: Department) => void;
   onDelete: (dept: Department) => void;
   onEdit: (dept: Department) => void;
   onToggleCollapse: (id: string) => void;
@@ -42,7 +41,6 @@ export interface NodeBuildContext {
   hasMatchingDescendants: Record<string, boolean>;
   matchedIds: Set<string>;
   onClick: (dept: Department) => void;
-  onConfig: (dept: Department) => void;
   onDelete: (dept: Department) => void;
   onEdit: (dept: Department) => void;
   searchActive: boolean;

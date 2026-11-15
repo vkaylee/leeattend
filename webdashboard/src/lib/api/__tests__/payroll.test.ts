@@ -29,8 +29,6 @@ import {
   createOvertimePolicy,
   addOvertimeRule,
   setEmployeePayrollConfig,
-  fetchDepartmentPayrollConfigs,
-  setDepartmentPayrollConfig,
   calculateBatchPayslips,
   fetchPayslips,
   assignOvertimePolicy,
@@ -268,22 +266,6 @@ describe("payroll API", () => {
   it("setEmployeePayrollConfig: POST", async () => {
     vi.mocked(apiFetch).mockResolvedValueOnce(okRes({ ok: true }));
     const result = await setEmployeePayrollConfig("emp-1", {
-      effective_date: "2026-01-01",
-      hours_per_day: "8",
-      std_working_days: "22",
-    });
-    expect(result).toEqual({ ok: true });
-  });
-
-  it("fetchDepartmentPayrollConfigs: GET", async () => {
-    vi.mocked(apiFetch).mockResolvedValueOnce(okRes({ cfg: true }));
-    const result = await fetchDepartmentPayrollConfigs("dept-1");
-    expect(result).toEqual({ cfg: true });
-  });
-
-  it("setDepartmentPayrollConfig: POST", async () => {
-    vi.mocked(apiFetch).mockResolvedValueOnce(okRes({ ok: true }));
-    const result = await setDepartmentPayrollConfig("dept-1", {
       effective_date: "2026-01-01",
       hours_per_day: "8",
       std_working_days: "22",

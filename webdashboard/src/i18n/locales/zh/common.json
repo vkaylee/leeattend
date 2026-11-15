@@ -122,6 +122,8 @@
     "collapse": "折叠",
     "collapse_all": "全部折叠",
     "collapse_sidebar": "收起侧边栏",
+    "previous_year": "上一年",
+    "next_year": "下一年",
     "optional": "选填",
     "enabled": "已启用",
     "colors": {
@@ -1661,6 +1663,11 @@
     "all_departments": "全部",
     "all_employers": "全部",
     "search_placeholder": "按员工姓名搜索...",
+    "active_filters": "筛选已启用",
+    "clear_filters": "清除筛选",
+    "department_search_placeholder": "搜索部门...",
+    "employer_search_placeholder": "搜索雇主...",
+    "search_label": "搜索员工",
     "no_shift": "无班次",
     "date_range": "日期范围",
     "employees": "员工",
@@ -1911,6 +1918,7 @@
     "upload_failed": "上传失败。"
   },
   "documents": {
+    "all_documents": "所有文档",
     "loading_securely": "安全加载文档中...",
     "preview_not_available": "预览不可用",
     "preview_not_supported_desc": "此文件类型 ({{mimeType}}) 无法直接在浏览器中预览。请下载查看其内容。",

@@ -2,9 +2,8 @@ import type { TFunction } from "i18next";
 
 import { Handle, Position } from "@xyflow/react";
 import { 
-  Building2, 
-  Calculator, 
-  ChevronDown, 
+  Building2,
+  ChevronDown,
   MoreHorizontal, 
   Pencil, 
   Trash2, 
@@ -24,7 +23,6 @@ import type { DepartmentNodeData, TreeNode } from "./department-org-types";
 
 interface DepartmentNodeActionsProps {
   node: TreeNode;
-  onConfig: (dept: Department) => void;
   onDelete: (dept: Department) => void;
   onEdit: (dept: Department) => void;
   t: TFunction;
@@ -32,7 +30,6 @@ interface DepartmentNodeActionsProps {
 
 const DepartmentNodeActions = ({
   node,
-  onConfig,
   onDelete,
   onEdit,
   t
@@ -52,10 +49,6 @@ const DepartmentNodeActions = ({
           />
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
-          <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onConfig(node.dept); }}>
-            <Calculator className="mr-2 h-4 w-4" />
-            {t("payroll.settings.title")}
-          </DropdownMenuItem>
           <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onEdit(node.dept); }}>
             <Pencil className="mr-2 h-4 w-4" />
             {t("common.edit")}
@@ -168,7 +161,6 @@ export const DepartmentNode = ({ data }: { data: DepartmentNodeData }) => {
     manager,
     node,
     onClick,
-    onConfig,
     onDelete,
     onEdit,
     onToggleCollapse,
@@ -219,7 +211,6 @@ export const DepartmentNode = ({ data }: { data: DepartmentNodeData }) => {
 
         <DepartmentNodeActions
           node={node}
-          onConfig={onConfig}
           onDelete={onDelete}
           onEdit={onEdit}
           t={t}

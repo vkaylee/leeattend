@@ -157,7 +157,6 @@ export const buildNode = ({
       manager: context.employees.find(e => e.id === node.manager_id),
       node,
       onClick: context.onClick,
-      onConfig: context.onConfig,
       onDelete: context.onDelete,
       onEdit: context.onEdit,
       onToggleCollapse: (id: string) => {

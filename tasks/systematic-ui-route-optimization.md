@@ -13,3 +13,12 @@
 - Failures: feature-flag API failure remains fail-closed; drawer close remains usable by button/backdrop/Escape.
 - Security: no credential or token changes; expected unauthenticated request noise removed.
 - Compatibility: React 19, TanStack Router, existing Sidebar tests and mobile layout.
+
+## Department cleanup test impact
+
+- Changed behavior: departments route keeps list/table management only; removes department cards and standard-workday/payroll configuration modal.
+- Preserved behavior: create, edit, delete, search, manager filter, detail drawer, and responsive list actions remain available.
+- Boundaries: empty list, filtered empty list, mobile card rendering, desktop table rendering, and action menu without configuration item.
+- Failures: department CRUD and detail drawer remain isolated from removed payroll configuration API.
+- Security: remove no authorization boundary; existing department permission gates remain.
+- Compatibility: generated routes unchanged; deleted config component has no remaining callers.

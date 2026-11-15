@@ -13,14 +13,12 @@ export function useDepartmentsPage() {
   const { t } = useTranslation();
   
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isConfigModalOpen, setIsConfigModalOpen] = useState(false);
   const [editingDept, setEditingDept] = useState<Department | null>(null);
 
   // Detail Drawer state
   const [selectedDeptForDetail, setSelectedDeptForDetail] = useState<Department | null>(null);
 
   // Search, Filter, and View Mode states
-  const [viewMode, setViewMode] = useState<"grid" | "table">("table");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedManagerId, setSelectedManagerId] = useState("all");
 
@@ -81,14 +79,10 @@ export function useDepartmentsPage() {
     t,
     isModalOpen,
     setIsModalOpen,
-    isConfigModalOpen,
-    setIsConfigModalOpen,
     editingDept,
     setEditingDept,
     selectedDeptForDetail,
     setSelectedDeptForDetail,
-    viewMode,
-    setViewMode,
     searchQuery,
     setSearchQuery,
     selectedManagerId,
