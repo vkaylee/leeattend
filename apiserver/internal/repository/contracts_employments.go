@@ -61,10 +61,16 @@ func (r ContractRepository) ListContracts(ctx context.Context) ([]api.EmployeeCo
 		c.id, c.employment_id, c.contract_number, c.contract_type::text,
 		c.status::text, c.start_date::text, c.end_date::text, c.document_id, c.notes,
 		c.created_at, c.updated_at,
-		e.full_name, e.employee_id_number, e.id
+		e.full_name, COALESCE(t.employee_number, e.employee_id_number), e.id
 	FROM employee_contracts c
 	INNER JOIN employments em ON em.id = c.employment_id
 	INNER JOIN employees e ON e.id = em.employee_id
+	LEFT JOIN employment_relationships er ON er.id = em.relationship_id
+	LEFT JOIN employee_tenures t ON t.id = er.tenure_id
+		AND t.employee_id = e.id
+		AND t.deleted_at IS NULL
+		AND t.start_date <= c.start_date
+		AND (t.end_date IS NULL OR t.end_date >= c.start_date)
 	WHERE c.deleted_at IS NULL
 	  AND em.deleted_at IS NULL
 	  AND e.deleted_at IS NULL
