@@ -145,7 +145,7 @@ func TestWorkPolicyGroupVersionCreateDelegatesValidatedRequest(t *testing.T) {
 	repo := &workPolicyRepositoryStub{}
 	handler := WorkPolicyGroupHandler{Repository: repo, Authorizer: payrollAuthorizer{allowedPerms: map[string]bool{"payroll:manage": true}}}
 	rec := httptest.NewRecorder()
-	req := workPolicyRequest(http.MethodPost, `{"name":"Operations","minutes_per_credit":450,"attendance_policy_id":"`+uuid.NewString()+`","working_pattern_id":"`+uuid.NewString()+`","pay_method":"hourly","overtime_policy_id":"`+uuid.NewString()+`","effective_from":"2026-06-01"}`, uuid.New())
+	req := workPolicyRequest(http.MethodPost, `{"name":"Operations","minutes_per_credit":450,"attendance_policy_id":"`+uuid.NewString()+`","working_pattern_id":"`+uuid.NewString()+`","pay_method":"hourly","rate_component_definition_id":"`+uuid.NewString()+`","overtime_policy_id":"`+uuid.NewString()+`","effective_from":"2026-06-01"}`, uuid.New())
 	req.SetPathValue("group_id", uuid.NewString())
 	handler.CreateVersion(rec, req)
 	if rec.Code != http.StatusCreated || !repo.versionCreated {

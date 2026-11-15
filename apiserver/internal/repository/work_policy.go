@@ -50,7 +50,7 @@ func (r WorkPolicyRepository) ListWorkPolicyGroupVersions(ctx context.Context, p
 	rows, err := db.Query(ctx, `
 		SELECT v.id, v.group_id, g.name, v.work_credit_policy_id, wc.name, wc.minutes_per_credit,
 		       wc.attendance_policy_id, wc.working_pattern_id, v.pay_basis_policy_id, pb.name,
-		       pb.method, pb.monthly_denominator, pb.monthly_standard_days::text, v.overtime_policy_id,
+		       pb.method, pb.monthly_denominator, pb.monthly_standard_days::text, pb.rate_component_definition_id, v.overtime_policy_id,
 		       v.effective_from::text, v.effective_to::text
 		FROM labor_policy_group_versions v
 		JOIN labor_policy_groups g ON g.id = v.group_id
@@ -89,7 +89,7 @@ func (r WorkPolicyRepository) ListWorkPolicyGroupHistory(ctx context.Context, gr
 	rows, err := db.Query(ctx, `
 		SELECT v.id, v.group_id, g.name, v.work_credit_policy_id, wc.name, wc.minutes_per_credit,
 		       wc.attendance_policy_id, wc.working_pattern_id, v.pay_basis_policy_id, pb.name,
-		       pb.method, pb.monthly_denominator, pb.monthly_standard_days::text, v.overtime_policy_id,
+		       pb.method, pb.monthly_denominator, pb.monthly_standard_days::text, pb.rate_component_definition_id, v.overtime_policy_id,
 		       v.effective_from::text, v.effective_to::text
 		FROM labor_policy_group_versions v
 		JOIN labor_policy_groups g ON g.id = v.group_id
@@ -213,7 +213,7 @@ func validateVersionGroup(ctx context.Context, db DBTX, groupID uuid.UUID, req a
 }
 
 func insertWorkPolicyVersion(ctx context.Context, tx pgx.Tx, req api.CreateWorkPolicyGroupVersionRequest, actorID uuid.UUID, from, to *time.Time, groupID, workCreditID, payBasisID, versionID uuid.UUID) error {
-	if err := insertPolicyDefinitions(ctx, tx, req.Name, req.MinutesPerCredit, req.AttendancePolicyID, req.WorkingPatternID, req.PayMethod, req.MonthlyDenominator, req.MonthlyStandardDays, actorID, workCreditID, payBasisID); err != nil {
+	if err := insertPolicyDefinitions(ctx, tx, req.Name, req.MinutesPerCredit, req.AttendancePolicyID, req.WorkingPatternID, req.PayMethod, req.MonthlyDenominator, req.MonthlyStandardDays, req.RateComponentDefinitionID, actorID, workCreditID, payBasisID); err != nil {
 		return err
 	}
 	_, err := tx.Exec(ctx, `INSERT INTO labor_policy_group_versions (id, group_id, work_credit_policy_id, pay_basis_policy_id, overtime_policy_id, effective_from, effective_to, created_by) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`, versionID, groupID, workCreditID, payBasisID, req.OvertimePolicyID, from, to, actorID)
@@ -223,11 +223,11 @@ func insertWorkPolicyVersion(ctx context.Context, tx pgx.Tx, req api.CreateWorkP
 	return err
 }
 
-func insertPolicyDefinitions(ctx context.Context, tx pgx.Tx, name string, minutes int, attendancePolicyID, workingPatternID uuid.UUID, method workpolicy.PayMethod, denominator *workpolicy.MonthlyDenominator, days *decimal.Decimal, actorID, workCreditID, payBasisID uuid.UUID) error {
+func insertPolicyDefinitions(ctx context.Context, tx pgx.Tx, name string, minutes int, attendancePolicyID, workingPatternID uuid.UUID, method workpolicy.PayMethod, denominator *workpolicy.MonthlyDenominator, days *decimal.Decimal, rateComponentID *uuid.UUID, actorID, workCreditID, payBasisID uuid.UUID) error {
 	if _, err := tx.Exec(ctx, `INSERT INTO work_credit_policies (id, name, minutes_per_credit, attendance_policy_id, working_pattern_id, created_by) VALUES ($1, $2, $3, $4, $5, $6)`, workCreditID, name, minutes, attendancePolicyID, workingPatternID, actorID); err != nil {
 		return mapConstraintError(err)
 	}
-	if _, err := tx.Exec(ctx, `INSERT INTO pay_basis_policies (id, name, method, monthly_denominator, monthly_standard_days, created_by) VALUES ($1, $2, $3, $4, $5, $6)`, payBasisID, name, method, denominator, days, actorID); err != nil {
+	if _, err := tx.Exec(ctx, `INSERT INTO pay_basis_policies (id, name, method, monthly_denominator, monthly_standard_days, rate_component_definition_id, created_by) VALUES ($1, $2, $3, $4, $5, $6, $7)`, payBasisID, name, method, denominator, days, rateComponentID, actorID); err != nil {
 		return mapConstraintError(err)
 	}
 	return nil
@@ -238,7 +238,8 @@ func workPolicyGroupVersion(row interface{ Scan(...any) error }) (api.WorkPolicy
 	var method string
 	var denominator *string
 	var days *string
-	if err := row.Scan(&item.ID, &item.GroupID, &item.Name, &item.WorkCreditPolicyID, &item.WorkCreditPolicyName, &item.MinutesPerCredit, &item.AttendancePolicyID, &item.WorkingPatternID, &item.PayBasisPolicyID, &item.PayBasisPolicyName, &method, &denominator, &days, &item.OvertimePolicyID, &item.EffectiveFrom, &item.EffectiveTo); err != nil {
+	var rateComponentID *uuid.UUID
+	if err := row.Scan(&item.ID, &item.GroupID, &item.Name, &item.WorkCreditPolicyID, &item.WorkCreditPolicyName, &item.MinutesPerCredit, &item.AttendancePolicyID, &item.WorkingPatternID, &item.PayBasisPolicyID, &item.PayBasisPolicyName, &method, &denominator, &days, &rateComponentID, &item.OvertimePolicyID, &item.EffectiveFrom, &item.EffectiveTo); err != nil {
 		return api.WorkPolicyGroupVersion{}, err
 	}
 	item.PayMethod = apiWorkPolicyMethod(method)
@@ -264,7 +265,8 @@ func workPolicyGroupVersionResult(req api.CreateWorkPolicyGroupRequest, groupID,
 		WorkingPatternID: req.WorkingPatternID, PayBasisPolicyID: payBasisID,
 		PayBasisPolicyName: req.Name, PayMethod: req.PayMethod,
 		MonthlyDenominator: req.MonthlyDenominator, MonthlyStandardDays: req.MonthlyStandardDays,
-		OvertimePolicyID: req.OvertimePolicyID, EffectiveFrom: req.EffectiveFrom, EffectiveTo: req.EffectiveTo,
+		RateComponentDefinitionID: req.RateComponentDefinitionID,
+		OvertimePolicyID:          req.OvertimePolicyID, EffectiveFrom: req.EffectiveFrom, EffectiveTo: req.EffectiveTo,
 	}
 }
 
@@ -272,7 +274,7 @@ func insertWorkPolicyGroup(ctx context.Context, tx pgx.Tx, req api.CreateWorkPol
 	if _, err := tx.Exec(ctx, `INSERT INTO work_credit_policies (id, name, minutes_per_credit, attendance_policy_id, working_pattern_id, created_by) VALUES ($1, $2, $3, $4, $5, $6)`, workCreditID, req.Name, req.MinutesPerCredit, req.AttendancePolicyID, req.WorkingPatternID, actorID); err != nil {
 		return mapConstraintError(err)
 	}
-	if _, err := tx.Exec(ctx, `INSERT INTO pay_basis_policies (id, name, method, monthly_denominator, monthly_standard_days, created_by) VALUES ($1, $2, $3, $4, $5, $6)`, payBasisID, req.Name, req.PayMethod, req.MonthlyDenominator, req.MonthlyStandardDays, actorID); err != nil {
+	if _, err := tx.Exec(ctx, `INSERT INTO pay_basis_policies (id, name, method, monthly_denominator, monthly_standard_days, rate_component_definition_id, created_by) VALUES ($1, $2, $3, $4, $5, $6, $7)`, payBasisID, req.Name, req.PayMethod, req.MonthlyDenominator, req.MonthlyStandardDays, req.RateComponentDefinitionID, actorID); err != nil {
 		return mapConstraintError(err)
 	}
 	if _, err := tx.Exec(ctx, `INSERT INTO labor_policy_groups (id, name, created_by) VALUES ($1, $2, $3)`, groupID, req.Name, actorID); err != nil {
@@ -292,7 +294,7 @@ func (r WorkPolicyRepository) ResolveWorkPolicy(ctx context.Context, employmentI
 	row := db.QueryRow(ctx, `
 		SELECT v.id, v.group_id, g.name, v.work_credit_policy_id, wc.name, wc.minutes_per_credit,
 		       wc.attendance_policy_id, wc.working_pattern_id, v.pay_basis_policy_id, pb.name,
-		       pb.method, pb.monthly_denominator, pb.monthly_standard_days::text, v.overtime_policy_id,
+		       pb.method, pb.monthly_denominator, pb.monthly_standard_days::text, pb.rate_component_definition_id, v.overtime_policy_id,
 		       v.effective_from::text, v.effective_to::text
 		FROM labor_policy_memberships m
 		JOIN labor_policy_groups g ON g.id = m.group_id

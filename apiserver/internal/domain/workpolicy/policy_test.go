@@ -45,8 +45,13 @@ func TestPayBasisPolicyValidateUsesMonthlyOptionsOnlyForMonthlyPay(t *testing.T)
 	}
 
 	hourly := PayBasisPolicy{Name: "Hourly", Method: PayMethodHourly, MonthlyDenominator: &denominator}
-	if err := hourly.Validate(); err != ErrMonthlyDaysUnexpected {
-		t.Fatalf("expected monthly options rejection for hourly pay, got %v", err)
+	if err := hourly.Validate(); err != ErrRateComponentRequired {
+		t.Fatalf("expected rate component requirement for hourly pay, got %v", err)
+	}
+	rateComponent := uuid.New()
+	hourly = PayBasisPolicy{Name: "Hourly", Method: PayMethodHourly, RateComponentDefinitionID: &rateComponent}
+	if err := hourly.Validate(); err != nil {
+		t.Fatalf("valid hourly policy rejected: %v", err)
 	}
 }
 

@@ -24,22 +24,23 @@ var (
 )
 
 type WorkPolicyGroupVersion struct {
-	ID                   uuid.UUID                      `json:"id"`
-	GroupID              uuid.UUID                      `json:"group_id"`
-	Name                 string                         `json:"name"`
-	WorkCreditPolicyID   uuid.UUID                      `json:"work_credit_policy_id"`
-	WorkCreditPolicyName string                         `json:"work_credit_policy_name"`
-	MinutesPerCredit     int                            `json:"minutes_per_credit"`
-	AttendancePolicyID   uuid.UUID                      `json:"attendance_policy_id"`
-	WorkingPatternID     uuid.UUID                      `json:"working_pattern_id"`
-	PayBasisPolicyID     uuid.UUID                      `json:"pay_basis_policy_id"`
-	PayBasisPolicyName   string                         `json:"pay_basis_policy_name"`
-	PayMethod            workpolicy.PayMethod           `json:"pay_method"`
-	MonthlyDenominator   *workpolicy.MonthlyDenominator `json:"monthly_denominator,omitempty"`
-	MonthlyStandardDays  *decimal.Decimal               `json:"monthly_standard_days,omitempty"`
-	OvertimePolicyID     uuid.UUID                      `json:"overtime_policy_id"`
-	EffectiveFrom        string                         `json:"effective_from"`
-	EffectiveTo          *string                        `json:"effective_to,omitempty"`
+	ID                        uuid.UUID                      `json:"id"`
+	GroupID                   uuid.UUID                      `json:"group_id"`
+	Name                      string                         `json:"name"`
+	WorkCreditPolicyID        uuid.UUID                      `json:"work_credit_policy_id"`
+	WorkCreditPolicyName      string                         `json:"work_credit_policy_name"`
+	MinutesPerCredit          int                            `json:"minutes_per_credit"`
+	AttendancePolicyID        uuid.UUID                      `json:"attendance_policy_id"`
+	WorkingPatternID          uuid.UUID                      `json:"working_pattern_id"`
+	PayBasisPolicyID          uuid.UUID                      `json:"pay_basis_policy_id"`
+	PayBasisPolicyName        string                         `json:"pay_basis_policy_name"`
+	PayMethod                 workpolicy.PayMethod           `json:"pay_method"`
+	MonthlyDenominator        *workpolicy.MonthlyDenominator `json:"monthly_denominator,omitempty"`
+	MonthlyStandardDays       *decimal.Decimal               `json:"monthly_standard_days,omitempty"`
+	RateComponentDefinitionID *uuid.UUID                     `json:"rate_component_definition_id,omitempty"`
+	OvertimePolicyID          uuid.UUID                      `json:"overtime_policy_id"`
+	EffectiveFrom             string                         `json:"effective_from"`
+	EffectiveTo               *string                        `json:"effective_to,omitempty"`
 }
 
 type WorkPolicyGroupListResponse struct {
@@ -64,29 +65,31 @@ type CreateWorkPolicyMembershipRequest struct {
 }
 
 type CreateWorkPolicyGroupRequest struct {
-	Name                string                         `json:"name"`
-	MinutesPerCredit    int                            `json:"minutes_per_credit"`
-	AttendancePolicyID  uuid.UUID                      `json:"attendance_policy_id"`
-	WorkingPatternID    uuid.UUID                      `json:"working_pattern_id"`
-	PayMethod           workpolicy.PayMethod           `json:"pay_method"`
-	MonthlyDenominator  *workpolicy.MonthlyDenominator `json:"monthly_denominator,omitempty"`
-	MonthlyStandardDays *decimal.Decimal               `json:"monthly_standard_days,omitempty"`
-	OvertimePolicyID    uuid.UUID                      `json:"overtime_policy_id"`
-	EffectiveFrom       string                         `json:"effective_from"`
-	EffectiveTo         *string                        `json:"effective_to,omitempty"`
+	Name                      string                         `json:"name"`
+	MinutesPerCredit          int                            `json:"minutes_per_credit"`
+	AttendancePolicyID        uuid.UUID                      `json:"attendance_policy_id"`
+	WorkingPatternID          uuid.UUID                      `json:"working_pattern_id"`
+	PayMethod                 workpolicy.PayMethod           `json:"pay_method"`
+	MonthlyDenominator        *workpolicy.MonthlyDenominator `json:"monthly_denominator,omitempty"`
+	MonthlyStandardDays       *decimal.Decimal               `json:"monthly_standard_days,omitempty"`
+	RateComponentDefinitionID *uuid.UUID                     `json:"rate_component_definition_id,omitempty"`
+	OvertimePolicyID          uuid.UUID                      `json:"overtime_policy_id"`
+	EffectiveFrom             string                         `json:"effective_from"`
+	EffectiveTo               *string                        `json:"effective_to,omitempty"`
 }
 
 type CreateWorkPolicyGroupVersionRequest struct {
-	Name                string                         `json:"name"`
-	MinutesPerCredit    int                            `json:"minutes_per_credit"`
-	AttendancePolicyID  uuid.UUID                      `json:"attendance_policy_id"`
-	WorkingPatternID    uuid.UUID                      `json:"working_pattern_id"`
-	PayMethod           workpolicy.PayMethod           `json:"pay_method"`
-	MonthlyDenominator  *workpolicy.MonthlyDenominator `json:"monthly_denominator,omitempty"`
-	MonthlyStandardDays *decimal.Decimal               `json:"monthly_standard_days,omitempty"`
-	OvertimePolicyID    uuid.UUID                      `json:"overtime_policy_id"`
-	EffectiveFrom       string                         `json:"effective_from"`
-	EffectiveTo         *string                        `json:"effective_to,omitempty"`
+	Name                      string                         `json:"name"`
+	MinutesPerCredit          int                            `json:"minutes_per_credit"`
+	AttendancePolicyID        uuid.UUID                      `json:"attendance_policy_id"`
+	WorkingPatternID          uuid.UUID                      `json:"working_pattern_id"`
+	PayMethod                 workpolicy.PayMethod           `json:"pay_method"`
+	MonthlyDenominator        *workpolicy.MonthlyDenominator `json:"monthly_denominator,omitempty"`
+	MonthlyStandardDays       *decimal.Decimal               `json:"monthly_standard_days,omitempty"`
+	RateComponentDefinitionID *uuid.UUID                     `json:"rate_component_definition_id,omitempty"`
+	OvertimePolicyID          uuid.UUID                      `json:"overtime_policy_id"`
+	EffectiveFrom             string                         `json:"effective_from"`
+	EffectiveTo               *string                        `json:"effective_to,omitempty"`
 }
 
 type WorkPolicyGroupRepository interface {
@@ -302,7 +305,7 @@ func validateWorkPolicyGroupVersionRequest(req CreateWorkPolicyGroupVersionReque
 	return validateWorkPolicyDefinitions(CreateWorkPolicyGroupRequest{
 		Name: req.Name, MinutesPerCredit: req.MinutesPerCredit, AttendancePolicyID: req.AttendancePolicyID,
 		WorkingPatternID: req.WorkingPatternID, PayMethod: req.PayMethod, MonthlyDenominator: req.MonthlyDenominator,
-		MonthlyStandardDays: req.MonthlyStandardDays, OvertimePolicyID: req.OvertimePolicyID,
+		MonthlyStandardDays: req.MonthlyStandardDays, RateComponentDefinitionID: req.RateComponentDefinitionID, OvertimePolicyID: req.OvertimePolicyID,
 		EffectiveFrom: req.EffectiveFrom, EffectiveTo: req.EffectiveTo,
 	})
 }
@@ -341,6 +344,7 @@ func validateWorkPolicyDefinitions(req CreateWorkPolicyGroupRequest) error {
 	payBasis := workpolicy.PayBasisPolicy{
 		Name: req.Name, Method: req.PayMethod,
 		MonthlyDenominator: req.MonthlyDenominator, MonthlyStandardDays: req.MonthlyStandardDays,
+		RateComponentDefinitionID: req.RateComponentDefinitionID,
 	}
 	if err := payBasis.Validate(); err != nil {
 		return ErrWorkPolicyGroupValidation

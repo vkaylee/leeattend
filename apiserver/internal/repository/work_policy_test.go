@@ -25,7 +25,7 @@ func TestWorkPolicyRepository_ListWorkPolicyGroupHistoryPaginatesByGroup(t *test
 			}
 			return &rowsStub{data: [][]any{{
 				versionID, groupID, "Operations", uuid.New(), "Work credit", 450,
-				uuid.New(), uuid.New(), uuid.New(), "Pay basis", "monthly", "fixed", "22",
+				uuid.New(), uuid.New(), uuid.New(), "Pay basis", "monthly", "fixed", "22", nil,
 				uuid.New(), "2026-01-01", nil,
 			}}}, nil
 		},
@@ -105,10 +105,11 @@ func TestResolveWorkPolicyUsesExclusiveEndBoundary(t *testing.T) {
 			*(dest[10].(*string)) = string(workpolicy.PayMethodHourly)
 			*(dest[11].(**string)) = nil
 			*(dest[12].(**string)) = nil
-			*(dest[13].(*uuid.UUID)) = uuid.New()
-			*(dest[14].(*string)) = "2026-01-01"
+			*(dest[13].(**uuid.UUID)) = nil
+			*(dest[14].(*uuid.UUID)) = uuid.New()
+			*(dest[15].(*string)) = "2026-01-01"
 			value := "2026-06-01"
-			*(dest[15].(**string)) = &value
+			*(dest[16].(**string)) = &value
 			return nil
 		}}
 	}

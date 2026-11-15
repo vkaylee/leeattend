@@ -33,6 +33,8 @@ var (
 	ErrMonthlyDenominatorInvalid = errors.New("work policy: monthly denominator is invalid")
 	ErrMonthlyDaysRequired       = errors.New("work policy: fixed monthly standard days must be positive")
 	ErrMonthlyDaysUnexpected     = errors.New("work policy: monthly standard days only applies to fixed monthly pay")
+	ErrRateComponentRequired     = errors.New("work policy: hourly and shift pay require a rate component")
+	ErrRateComponentUnexpected   = errors.New("work policy: monthly pay cannot define a rate component")
 	ErrEffectiveRangeInvalid     = errors.New("work policy: effective range is invalid")
 )
 
@@ -76,11 +78,12 @@ func (p WorkCreditPolicy) Validate() error {
 }
 
 type PayBasisPolicy struct {
-	ID                  uuid.UUID
-	Name                string
-	Method              PayMethod
-	MonthlyDenominator  *MonthlyDenominator
-	MonthlyStandardDays *decimal.Decimal
+	ID                        uuid.UUID
+	Name                      string
+	Method                    PayMethod
+	MonthlyDenominator        *MonthlyDenominator
+	MonthlyStandardDays       *decimal.Decimal
+	RateComponentDefinitionID *uuid.UUID
 }
 
 func (p PayBasisPolicy) Validate() error {
@@ -88,9 +91,15 @@ func (p PayBasisPolicy) Validate() error {
 		return ErrPolicyNameRequired
 	}
 	if p.Method == PayMethodMonthly {
+		if p.RateComponentDefinitionID != nil {
+			return ErrRateComponentUnexpected
+		}
 		return p.validateMonthly()
 	}
 	if p.Method == PayMethodHourly || p.Method == PayMethodShift {
+		if p.RateComponentDefinitionID == nil || *p.RateComponentDefinitionID == uuid.Nil {
+			return ErrRateComponentRequired
+		}
 		return p.validateNonMonthly()
 	}
 	return ErrPayMethodInvalid
