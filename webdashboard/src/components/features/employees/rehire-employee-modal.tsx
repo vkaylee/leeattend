@@ -12,7 +12,7 @@ import Modal from "@/components/ui/modal";
 import { useToast } from "@/components/ui/toast";
 import { Typography } from "@/components/ui/typography";
 import { useOrganizationMutation } from "@/hooks/common/use-organization-query";
-import { rehireEmployee, fetchEmployers, Employee } from "@/lib/api";
+import { fetchEmployeeEmployments, rehireEmployee, fetchEmployers, Employee } from "@/lib/api";
 import { employeeKeys, createQueryKey  } from "@/lib/query-keys";
 
 
@@ -35,6 +35,8 @@ export default function RehireEmployeeModal({
 
   const { data: employers = [] } = useQuery({ queryKey: createQueryKey("employers"), queryFn: () => fetchEmployers(),
   enabled: isOpen, });
+  const { data: employments = [], isLoading: employmentsLoading, isError: employmentsError } = useQuery({ queryKey: createQueryKey("employee-employments", employeeId), queryFn: () => employeeId ? fetchEmployeeEmployments(employeeId) : Promise.resolve([]), enabled: isOpen && !!employeeId });
+  const latestEmployment = employments[0];
 
   const rehireMutation = useOrganizationMutation<
     { hire_date: string; employer_id: string },
@@ -83,6 +85,11 @@ export default function RehireEmployeeModal({
           </Typography>
         </div>
         <form className="space-y-8" onSubmit={handleRehireSubmit}>
+          <div className="rounded-2xl border border-slate-200 dark:border-slate-700 p-4 text-sm text-slate-600 dark:text-slate-300">
+            <p className="font-semibold">{t("employees.rehire.previous_tenure", "Previous tenure")}</p>
+            <p className="mt-1 font-mono">{employmentsLoading ? t("common.loading", "Loading") : employmentsError ? t("common.error", "Unable to load") : latestEmployment ? `${latestEmployment.start_date}${latestEmployment.end_date ? ` — ${latestEmployment.end_date}` : ""}` : "—"}</p>
+            <p className="mt-1 text-xs">{t("employees.rehire.account_reset_notice", "New account access starts with this new tenure.")}</p>
+          </div>
           <div className="space-y-3 px-1">
             <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.2em]" htmlFor="rehire-form-employer-combobox">
               Pháp nhân trực thuộc

@@ -322,6 +322,8 @@
       "confirm_msg": "Confirm the date the employee starts their new work period",
       "rehire_date": "Rehire Date",
       "employee_number": "New employee number (leave blank to reuse old number)",
+      "previous_tenure": "Previous tenure",
+      "account_reset_notice": "New account access starts with this new tenure.",
       "cancel": "Cancel",
       "confirm": "Confirm",
       "processing": "Processing..."

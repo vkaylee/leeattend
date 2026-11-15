@@ -268,7 +268,7 @@ describe("EmployeeDetailDrawer", () => {
 
         // Verify resignation date is displayed
         expect(await screen.findByText(/employees\.details\.terminated_at/i)).toBeDefined();
-        expect(await screen.findByText(/2024-06-20/)).toBeDefined();
+        expect((await screen.findAllByText(/2024-06-20/)).length).toBeGreaterThan(0);
 
         await user.click(screen.getByTestId("employees-btn-rehire"));
         expect(onRehire).toHaveBeenCalledWith(terminatedEmployee);
@@ -282,7 +282,7 @@ describe("EmployeeDetailDrawer", () => {
         );
 
         // Wait for queries to load by expecting the resignation date in DOM
-        expect(await screen.findByText(/2024-06-20/)).toBeDefined();
+        expect((await screen.findAllByText(/2024-06-20/)).length).toBeGreaterThan(0);
 
         // Verify undo termination button is displayed
         const undoBtn = screen.getByTestId("employees-btn-undo-terminate");

@@ -322,6 +322,8 @@
       "confirm_msg": "Xác nhận ngày nhân viên bắt đầu giai đoạn làm việc mới",
       "rehire_date": "Ngày vào làm lại",
       "employee_number": "Mã nhân viên mới (để trống để dùng mã cũ)",
+      "previous_tenure": "Đợt tuyển dụng trước",
+      "account_reset_notice": "Quyền truy cập tài khoản mới bắt đầu từ đợt tuyển dụng này.",
       "cancel": "Hủy",
       "confirm": "Xác nhận",
       "processing": "Đang xử lý..."
