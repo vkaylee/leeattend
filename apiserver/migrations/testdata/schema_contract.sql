@@ -189,6 +189,35 @@ BEGIN
         RAISE EXCEPTION 'schema check failed: payroll_periods table is missing';
     END IF;
 
+    FOREACH v_required_table_name IN ARRAY ARRAY[
+        'schedule_day_revisions'::text,
+        'schedule_publication_batches'::text,
+        'schedule_legacy_mutation_evidence'::text
+    ] LOOP
+        IF to_regclass('public.' || v_required_table_name) IS NULL THEN
+            RAISE EXCEPTION 'schema check failed: schedule lifecycle table % is missing', v_required_table_name;
+        END IF;
+    END LOOP;
+
+    FOREACH v_required_table_name IN ARRAY ARRAY[
+        'trg_guard_legacy_shift_rosters'::text,
+        'trg_guard_legacy_employee_shifts'::text,
+        'trg_guard_legacy_employee_working_patterns'::text,
+        'trg_guard_legacy_working_pattern_details'::text,
+        'trg_guard_legacy_shift_versions'::text,
+        'trg_guard_legacy_shift_templates'::text,
+        'trg_guard_legacy_assignment_rules'::text,
+        'trg_guard_legacy_working_patterns'::text
+    ] LOOP
+        IF NOT EXISTS (
+            SELECT 1 FROM pg_trigger
+            WHERE tgname = v_required_table_name
+              AND NOT tgisinternal
+        ) THEN
+            RAISE EXCEPTION 'schema check failed: legacy schedule trigger % is missing', v_required_table_name;
+        END IF;
+    END LOOP;
+
     IF NOT EXISTS (
         SELECT 1
         FROM pg_constraint
@@ -251,6 +280,18 @@ BEGIN
 
     IF v_marker_count <> 1 THEN
         RAISE EXCEPTION 'schema check failed: labor policy migration marker is missing';
+    END IF;
+
+    IF to_regclass('public.department_payroll_reconciliation') IS NULL THEN
+        RAISE EXCEPTION 'schema check failed: department payroll reconciliation view is missing';
+    END IF;
+
+    SELECT count(*) INTO v_marker_count
+    FROM public.schema_migrations
+    WHERE version = '20261115010000_department_payroll_reconciliation';
+
+    IF v_marker_count <> 1 THEN
+        RAISE EXCEPTION 'schema check failed: department payroll reconciliation migration marker is missing';
     END IF;
 
     IF to_regclass('public.payroll_calculation_runs_policy_snapshot_idx') IS NULL THEN
