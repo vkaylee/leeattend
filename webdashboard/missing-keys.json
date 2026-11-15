@@ -1,1 +1,17 @@
-[]
+[
+  {
+    "file": "src/components/features/employees/profile-tab.tsx",
+    "key": "employees.details.employment_id",
+    "lang": "en"
+  },
+  {
+    "file": "src/components/features/employees/profile-tab.tsx",
+    "key": "employees.details.employment_id",
+    "lang": "vi"
+  },
+  {
+    "file": "src/components/features/employees/profile-tab.tsx",
+    "key": "employees.details.employment_id",
+    "lang": "zh"
+  }
+]
