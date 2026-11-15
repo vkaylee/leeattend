@@ -35,12 +35,14 @@ func (mockPayrollRepository) CreatePayrollInputBatch(_ context.Context, req Crea
 	return PayrollInputBatch{ID: uuid.New(), PeriodYear: req.PeriodYear, PeriodMonth: req.PeriodMonth, Source: req.Source, IdempotencyKey: req.IdempotencyKey, Status: "submitted", InputCount: len(req.Inputs)}, nil
 }
 
-func (mockPayrollRepository) ApprovePayrollInputBatch(_ context.Context, batchID, actorID uuid.UUID) (PayrollInputBatch, error) {
-	return PayrollInputBatch{ID: batchID, Status: "approved", ApprovedBy: &actorID}, nil
+func (mockPayrollRepository) ApprovePayrollInputBatch(_ context.Context, batchID ids.PayrollInputBatchID, actorID ids.UserID) (PayrollInputBatch, error) {
+	batchUUID, actorUUID := uuid.UUID(batchID), uuid.UUID(actorID)
+	return PayrollInputBatch{ID: batchUUID, Status: "approved", ApprovedBy: &actorUUID}, nil
 }
 
-func (mockPayrollRepository) LockPayrollInputBatch(_ context.Context, batchID, actorID uuid.UUID) (PayrollInputBatch, error) {
-	return PayrollInputBatch{ID: batchID, Status: "locked", LockedBy: &actorID}, nil
+func (mockPayrollRepository) LockPayrollInputBatch(_ context.Context, batchID ids.PayrollInputBatchID, actorID ids.UserID) (PayrollInputBatch, error) {
+	batchUUID, actorUUID := uuid.UUID(batchID), uuid.UUID(actorID)
+	return PayrollInputBatch{ID: batchUUID, Status: "locked", LockedBy: &actorUUID}, nil
 }
 
 func (mockPayrollRepository) ListPayrollInputs(context.Context, uuid.UUID) ([]PayrollInput, error) {

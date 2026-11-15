@@ -5,6 +5,7 @@ import "github.com/google/uuid"
 
 type UserID uuid.UUID
 type EmployeeID uuid.UUID
+type PayrollInputBatchID uuid.UUID
 type EmploymentID uuid.UUID
 type AttendancePolicyID uuid.UUID
 type WorkingPatternID uuid.UUID

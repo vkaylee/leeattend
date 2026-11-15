@@ -1380,7 +1380,7 @@ func (r PayrollRepository) PublishPayrollFormulaRule(ctx context.Context, ruleID
 	return result, nil
 }
 
-func (r PayrollRepository) transitionPayrollInputBatch(ctx context.Context, batchID, actorID uuid.UUID, fromStatus, toStatus string) (api.PayrollInputBatch, error) {
+func (r PayrollRepository) transitionPayrollInputBatch(ctx context.Context, batchID ids.PayrollInputBatchID, actorID ids.UserID, fromStatus, toStatus string) (api.PayrollInputBatch, error) {
 	db, err := r.db(ctx)
 	if err != nil {
 		return api.PayrollInputBatch{}, err
@@ -1392,7 +1392,7 @@ func (r PayrollRepository) transitionPayrollInputBatch(ctx context.Context, batc
 	    locked_by = CASE WHEN $1 = 'locked' THEN $2 ELSE locked_by END, updated_at = CURRENT_TIMESTAMP
 	WHERE id = $3 AND status = $4
 	RETURNING id, period_year, period_month, source, idempotency_key, status, 0, submitted_by, approved_by, locked_by, created_at`
-	if err := db.QueryRow(ctx, query, toStatus, actorID, batchID, fromStatus).Scan(
+	if err := db.QueryRow(ctx, query, toStatus, uuid.UUID(actorID), uuid.UUID(batchID), fromStatus).Scan(
 		&batch.ID, &batch.PeriodYear, &batch.PeriodMonth, &batch.Source, &batch.IdempotencyKey, &batch.Status, &batch.InputCount, &batch.SubmittedBy, &batch.ApprovedBy, &batch.LockedBy, &created); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			var exists bool
@@ -1410,11 +1410,11 @@ func (r PayrollRepository) transitionPayrollInputBatch(ctx context.Context, batc
 	return batch, nil
 }
 
-func (r PayrollRepository) ApprovePayrollInputBatch(ctx context.Context, batchID, actorID uuid.UUID) (api.PayrollInputBatch, error) {
+func (r PayrollRepository) ApprovePayrollInputBatch(ctx context.Context, batchID ids.PayrollInputBatchID, actorID ids.UserID) (api.PayrollInputBatch, error) {
 	return r.transitionPayrollInputBatch(ctx, batchID, actorID, "submitted", "approved")
 }
 
-func (r PayrollRepository) LockPayrollInputBatch(ctx context.Context, batchID, actorID uuid.UUID) (api.PayrollInputBatch, error) {
+func (r PayrollRepository) LockPayrollInputBatch(ctx context.Context, batchID ids.PayrollInputBatchID, actorID ids.UserID) (api.PayrollInputBatch, error) {
 	return r.transitionPayrollInputBatch(ctx, batchID, actorID, "approved", "locked")
 }
 

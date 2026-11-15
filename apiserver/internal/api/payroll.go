@@ -441,8 +441,8 @@ type PayrollRepository interface {
 	CalculateEmployeePayroll(context.Context, ids.EmployeeID, int, int, ids.UserID) (FullPayslipResponse, error)
 	CalculateBatchPayroll(context.Context, BatchCalculatePayrollRequest, uuid.UUID) (BatchCalculatePayrollResponse, error)
 	CreatePayrollInputBatch(context.Context, CreatePayrollInputRequest, uuid.UUID) (PayrollInputBatch, error)
-	ApprovePayrollInputBatch(context.Context, uuid.UUID, uuid.UUID) (PayrollInputBatch, error)
-	LockPayrollInputBatch(context.Context, uuid.UUID, uuid.UUID) (PayrollInputBatch, error)
+	ApprovePayrollInputBatch(context.Context, ids.PayrollInputBatchID, ids.UserID) (PayrollInputBatch, error)
+	LockPayrollInputBatch(context.Context, ids.PayrollInputBatchID, ids.UserID) (PayrollInputBatch, error)
 	ListPayrollInputs(context.Context, uuid.UUID) ([]PayrollInput, error)
 	CorrectPayrollInput(context.Context, uuid.UUID, CorrectPayrollInputRequest, uuid.UUID) (PayrollInput, error)
 	ListPayrollFormulaRules(context.Context) ([]PayrollFormulaRule, error)
@@ -1386,9 +1386,9 @@ func (h PayrollHandler) transitionPayrollInputBatch(w http.ResponseWriter, r *ht
 	var batch PayrollInputBatch
 	var err error
 	if action == "approve" {
-		batch, err = h.Repository.ApprovePayrollInputBatch(r.Context(), batchID, actorID)
+		batch, err = h.Repository.ApprovePayrollInputBatch(r.Context(), ids.PayrollInputBatchID(batchID), ids.UserID(actorID))
 	} else {
-		batch, err = h.Repository.LockPayrollInputBatch(r.Context(), batchID, actorID)
+		batch, err = h.Repository.LockPayrollInputBatch(r.Context(), ids.PayrollInputBatchID(batchID), ids.UserID(actorID))
 	}
 	if err != nil {
 		h.writeError(w, r, err)
