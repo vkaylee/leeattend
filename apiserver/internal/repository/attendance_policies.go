@@ -220,7 +220,7 @@ func (r AttendancePolicyRepository) ListPolicyAssignments(ctx context.Context, p
 	const assignmentQuery = `
 		SELECT DISTINCT ON (a.id) a.id, a.target_type, a.target_id, a.valid_from, a.valid_to, v.rules,
 			CASE WHEN a.target_type = 'GROUP' THEN d.name WHEN a.target_type = 'USER' THEN e.full_name ELSE NULL END,
-			CASE WHEN a.target_type = 'USER' THEN e.employee_id_number ELSE NULL END,
+			CASE WHEN a.target_type = 'USER' THEN tenure.employee_number ELSE NULL END,
 			CASE WHEN a.target_type = 'USER' THEN dept.name ELSE NULL END
 		FROM attendance_policy_assignments a
 		JOIN attendance_policies p ON p.id = a.policy_id
@@ -229,9 +229,10 @@ func (r AttendancePolicyRepository) ListPolicyAssignments(ctx context.Context, p
 		LEFT JOIN employees e ON a.target_type = 'USER' AND e.id = a.target_id AND e.deleted_at IS NULL
 		LEFT JOIN employments em ON em.employee_id = e.id AND em.status = 'active' AND em.deleted_at IS NULL
 		LEFT JOIN departments dept ON dept.id = em.department_id
+		LEFT JOIN LATERAL (SELECT t.employee_number FROM employee_tenures t WHERE t.employee_id = e.id AND t.deleted_at IS NULL AND t.start_date <= CURRENT_DATE AND (t.end_date IS NULL OR t.end_date >= CURRENT_DATE) ORDER BY t.start_date DESC, t.id DESC LIMIT 1) tenure ON TRUE
 		WHERE a.valid_from <= NOW() AND (a.valid_to IS NULL OR a.valid_to >= NOW())
 		  AND v.valid_from <= NOW() AND (v.valid_to IS NULL OR v.valid_to >= NOW())
-		  AND ($1 = '%%' OR COALESCE(d.name, e.full_name, e.employee_id_number, '') ILIKE $1)
+		  AND ($1 = '%%' OR COALESCE(d.name, e.full_name, tenure.employee_number, '') ILIKE $1)
 		  AND ($2 = '' OR a.target_type = $2)
 		ORDER BY a.id, v.valid_from DESC, v.created_at DESC
 		LIMIT $3 OFFSET $4`
@@ -261,7 +262,7 @@ func (r AttendancePolicyRepository) ListPolicyAssignments(ctx context.Context, p
 	if err := rows.Err(); err != nil {
 		return api.PolicyAssignmentListResponse{}, err
 	}
-	countQuery := `SELECT count(*) FROM attendance_policy_assignments a LEFT JOIN departments d ON a.target_type = 'GROUP' AND d.id = a.target_id LEFT JOIN employees e ON a.target_type = 'USER' AND e.id = a.target_id AND e.deleted_at IS NULL WHERE a.valid_from <= NOW() AND (a.valid_to IS NULL OR a.valid_to >= NOW()) AND ($1 = '%%' OR COALESCE(d.name, e.full_name, e.employee_id_number, '') ILIKE $1) AND ($2 = '' OR a.target_type = $2)`
+	countQuery := `SELECT count(*) FROM attendance_policy_assignments a LEFT JOIN departments d ON a.target_type = 'GROUP' AND d.id = a.target_id LEFT JOIN employees e ON a.target_type = 'USER' AND e.id = a.target_id AND e.deleted_at IS NULL LEFT JOIN LATERAL (SELECT t.employee_number FROM employee_tenures t WHERE t.employee_id = e.id AND t.deleted_at IS NULL AND t.start_date <= CURRENT_DATE AND (t.end_date IS NULL OR t.end_date >= CURRENT_DATE) ORDER BY t.start_date DESC, t.id DESC LIMIT 1) tenure ON TRUE WHERE a.valid_from <= NOW() AND (a.valid_to IS NULL OR a.valid_to >= NOW()) AND ($1 = '%%' OR COALESCE(d.name, e.full_name, tenure.employee_number, '') ILIKE $1) AND ($2 = '' OR a.target_type = $2)`
 	if err := db.QueryRow(ctx, countQuery, search, targetType).Scan(&result.Total); err != nil {
 		return api.PolicyAssignmentListResponse{}, err
 	}
@@ -333,7 +334,7 @@ func scanBehalf(row interface{ Scan(...any) error }) (api.BehalfAssignment, erro
 	return item, nil
 }
 
-const behalfColumns = `ba.id, ba.assignee_user_id, ba.target_employee_id, ba.target_department_id, ba.assignment_type, ba.created_at, ba.updated_at, ba.employer_id, te.full_name, te.employee_id_number, d.name`
+const behalfColumns = `ba.id, ba.assignee_user_id, ba.target_employee_id, ba.target_department_id, ba.assignment_type, ba.created_at, ba.updated_at, ba.employer_id, te.full_name, tenure.employee_number, d.name`
 
 func (r AttendancePolicyRepository) CreateBehalfAssignment(ctx context.Context, req api.CreateBehalfAssignmentRequest, assignmentType string) (api.BehalfAssignment, error) {
 	db, err := r.db(ctx)
@@ -346,7 +347,7 @@ func (r AttendancePolicyRepository) CreateBehalfAssignment(ctx context.Context, 
 	if err := r.validateBehalfAssignee(ctx, req.AssigneeUserID); err != nil {
 		return api.BehalfAssignment{}, err
 	}
-	return scanBehalf(db.QueryRow(ctx, `WITH inserted AS (INSERT INTO behalf_assignments (id, assignee_user_id, target_employee_id, target_department_id, assignment_type, employer_id, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW()) RETURNING *) SELECT `+behalfColumns+` FROM inserted ba LEFT JOIN employees te ON te.id = ba.target_employee_id AND te.deleted_at IS NULL LEFT JOIN departments d ON d.id = ba.target_department_id`, uuid.New(), req.AssigneeUserID, req.TargetEmployeeID, req.TargetDepartmentID, assignmentType, req.EmployerID))
+	return scanBehalf(db.QueryRow(ctx, `WITH inserted AS (INSERT INTO behalf_assignments (id, assignee_user_id, target_employee_id, target_department_id, assignment_type, employer_id, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW()) RETURNING *) SELECT `+behalfColumns+` FROM inserted ba LEFT JOIN employees te ON te.id = ba.target_employee_id AND te.deleted_at IS NULL LEFT JOIN departments d ON d.id = ba.target_department_id LEFT JOIN LATERAL (SELECT t.employee_number FROM employee_tenures t WHERE t.employee_id = te.id AND t.deleted_at IS NULL AND t.start_date <= CURRENT_DATE AND (t.end_date IS NULL OR t.end_date >= CURRENT_DATE) ORDER BY t.start_date DESC, t.id DESC LIMIT 1) tenure ON TRUE`, uuid.New(), req.AssigneeUserID, req.TargetEmployeeID, req.TargetDepartmentID, assignmentType, req.EmployerID))
 }
 
 func (r AttendancePolicyRepository) ListBehalfAssignments(ctx context.Context, assignmentType string) ([]api.BehalfAssignment, error) {
@@ -354,7 +355,7 @@ func (r AttendancePolicyRepository) ListBehalfAssignments(ctx context.Context, a
 	if err != nil {
 		return nil, err
 	}
-	rows, err := db.Query(ctx, `SELECT `+behalfColumns+` FROM behalf_assignments ba LEFT JOIN employees te ON te.id = ba.target_employee_id AND te.deleted_at IS NULL LEFT JOIN departments d ON d.id = ba.target_department_id WHERE ba.assignment_type = $1 ORDER BY ba.created_at DESC`, assignmentType)
+	rows, err := db.Query(ctx, `SELECT `+behalfColumns+` FROM behalf_assignments ba LEFT JOIN employees te ON te.id = ba.target_employee_id AND te.deleted_at IS NULL LEFT JOIN departments d ON d.id = ba.target_department_id LEFT JOIN LATERAL (SELECT t.employee_number FROM employee_tenures t WHERE t.employee_id = te.id AND t.deleted_at IS NULL AND t.start_date <= CURRENT_DATE AND (t.end_date IS NULL OR t.end_date >= CURRENT_DATE) ORDER BY t.start_date DESC, t.id DESC LIMIT 1) tenure ON TRUE WHERE ba.assignment_type = $1 ORDER BY ba.created_at DESC`, assignmentType)
 	if err != nil {
 		return nil, err
 	}
@@ -390,7 +391,7 @@ func (r AttendancePolicyRepository) ListMyBehalfTargets(ctx context.Context, use
 	if err != nil {
 		return nil, err
 	}
-	rows, err := db.Query(ctx, `SELECT DISTINCT e.id, e.user_id, e.full_name, e.employee_id_number, e.tags, e.created_at, e.updated_at, d.name, em.id, em.employer_id, em.primary_location_id FROM employees e JOIN employments em ON em.employee_id = e.id AND em.status = 'active' AND em.deleted_at IS NULL LEFT JOIN departments d ON d.id = em.department_id LEFT JOIN behalf_assignments ba ON ba.assignee_user_id = $1 AND ba.assignment_type = $2 AND (ba.target_employee_id = e.id OR ba.target_department_id = em.department_id) WHERE e.deleted_at IS NULL AND ba.id IS NOT NULL ORDER BY e.full_name, e.id`, userID, assignmentType)
+	rows, err := db.Query(ctx, `SELECT DISTINCT e.id, e.user_id, e.full_name, tenure.employee_number, e.tags, e.created_at, e.updated_at, d.name, em.id, em.employer_id, em.primary_location_id FROM employees e JOIN employments em ON em.employee_id = e.id LEFT JOIN LATERAL (SELECT t.employee_number FROM employee_tenures t WHERE t.employee_id = e.id AND t.deleted_at IS NULL AND t.start_date <= CURRENT_DATE AND (t.end_date IS NULL OR t.end_date >= CURRENT_DATE) ORDER BY t.start_date DESC, t.id DESC LIMIT 1) tenure ON TRUE AND em.status = 'active' AND em.deleted_at IS NULL LEFT JOIN departments d ON d.id = em.department_id LEFT JOIN behalf_assignments ba ON ba.assignee_user_id = $1 AND ba.assignment_type = $2 AND (ba.target_employee_id = e.id OR ba.target_department_id = em.department_id) WHERE e.deleted_at IS NULL AND ba.id IS NOT NULL ORDER BY e.full_name, e.id`, userID, assignmentType)
 	if err != nil {
 		return nil, err
 	}
