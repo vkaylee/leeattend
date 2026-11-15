@@ -87,12 +87,12 @@ func (r PayrollRepository) ListPayslips(ctx context.Context, start, end time.Tim
 	}
 	return result, rows.Err()
 }
-func (r PayrollRepository) ListEmployeePayslips(ctx context.Context, empID uuid.UUID) ([]api.PayslipRecord, error) {
+func (r PayrollRepository) ListEmployeePayslips(ctx context.Context, empID ids.EmployeeID) ([]api.PayslipRecord, error) {
 	db, err := r.db(ctx)
 	if err != nil {
 		return nil, err
 	}
-	rows, err := db.Query(ctx, `SELECT p.id,p.employment_id,p.period_start::text,p.period_end::text,p.base_pay_amount::text,p.overtime_pay_amount::text,p.deductions_amount::text,p.net_pay_amount::text,p.status,p.created_at,p.updated_at,p.standard_units,p.overtime_units,p.holiday_work_premium_amount::text FROM payslips p JOIN employments e ON e.id=p.employment_id WHERE e.employee_id=$1 ORDER BY p.period_start DESC,p.id DESC`, empID)
+	rows, err := db.Query(ctx, `SELECT p.id,p.employment_id,p.period_start::text,p.period_end::text,p.base_pay_amount::text,p.overtime_pay_amount::text,p.deductions_amount::text,p.net_pay_amount::text,p.status,p.created_at,p.updated_at,p.standard_units,p.overtime_units,p.holiday_work_premium_amount::text FROM payslips p JOIN employments e ON e.id=p.employment_id WHERE e.employee_id=$1 ORDER BY p.period_start DESC,p.id DESC`, uuid.UUID(empID))
 	if err != nil {
 		return nil, err
 	}

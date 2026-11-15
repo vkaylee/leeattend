@@ -417,7 +417,7 @@ type ReopenPayrollPeriodRequest struct {
 type PayrollRepository interface {
 	ListPayslips(context.Context, time.Time, time.Time) ([]PayslipRecord, error)
 	ListSalaryManagementRows(context.Context, SalaryManagementQuery) (SalaryManagementResponse, error)
-	ListEmployeePayslips(context.Context, uuid.UUID) ([]PayslipRecord, error)
+	ListEmployeePayslips(context.Context, ids.EmployeeID) ([]PayslipRecord, error)
 	ListSalaryComponents(context.Context) ([]SalaryComponentDefinition, error)
 	CreateSalaryComponent(context.Context, CreateSalaryComponentRequest) (SalaryComponentDefinition, error)
 	ListEmploymentSalaryComponents(context.Context, ids.EmploymentID) ([]EmploymentSalaryComponentResponse, error)
@@ -488,7 +488,7 @@ func (h PayrollHandler) ListEmployee(w http.ResponseWriter, r *http.Request) {
 		h.forbidden(w, r)
 		return
 	}
-	rows, err := h.Repository.ListEmployeePayslips(r.Context(), empID)
+	rows, err := h.Repository.ListEmployeePayslips(r.Context(), ids.EmployeeID(empID))
 	if err != nil {
 		h.writeError(w, r, err)
 		return

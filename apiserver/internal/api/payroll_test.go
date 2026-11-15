@@ -86,7 +86,7 @@ func (mockPayrollRepository) ListPayslips(context.Context, time.Time, time.Time)
 	return []PayslipRecord{{ID: uuid.New(), NetPayAmount: decimal.RequireFromString("1234.50")}}, nil
 }
 
-func (mockPayrollRepository) ListEmployeePayslips(context.Context, uuid.UUID) ([]PayslipRecord, error) {
+func (mockPayrollRepository) ListEmployeePayslips(context.Context, ids.EmployeeID) ([]PayslipRecord, error) {
 	return []PayslipRecord{{ID: uuid.New(), NetPayAmount: decimal.RequireFromString("1234.50")}}, nil
 }
 

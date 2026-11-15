@@ -11,6 +11,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/shopspring/decimal"
+	"github.com/vkaylee/leeattend/apiserver/internal/domain/ids"
 	httpinfra "github.com/vkaylee/leeattend/apiserver/internal/infra/http"
 )
 
@@ -139,8 +140,8 @@ type mockESSPayrollRepo struct {
 	lastEmployeeID uuid.UUID
 }
 
-func (m *mockESSPayrollRepo) ListEmployeePayslips(_ context.Context, employeeID uuid.UUID) ([]PayslipRecord, error) {
-	m.lastEmployeeID = employeeID
+func (m *mockESSPayrollRepo) ListEmployeePayslips(_ context.Context, employeeID ids.EmployeeID) ([]PayslipRecord, error) {
+	m.lastEmployeeID = uuid.UUID(employeeID)
 	return m.payslips, m.payslipsErr
 }
 

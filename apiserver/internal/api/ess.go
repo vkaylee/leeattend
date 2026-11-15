@@ -10,6 +10,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/vkaylee/leeattend/apiserver/internal/apperror"
+	"github.com/vkaylee/leeattend/apiserver/internal/domain/ids"
 	httpinfra "github.com/vkaylee/leeattend/apiserver/internal/infra/http"
 )
 
@@ -285,7 +286,7 @@ func (h ESSHandler) GetPayslips(w http.ResponseWriter, r *http.Request) {
 		h.writeError(w, r, err)
 		return
 	}
-	payslips, err := h.Payroll.ListEmployeePayslips(r.Context(), empID)
+	payslips, err := h.Payroll.ListEmployeePayslips(r.Context(), ids.EmployeeID(empID))
 	if err != nil {
 		h.writeError(w, r, err)
 		return

@@ -317,7 +317,7 @@ func TestPayrollRepository_ListEmployeePayslips_ScopeFree(t *testing.T) {
 		},
 	}
 	repo := PayrollRepository{DB: db}
-	payslips, err := repo.ListEmployeePayslips(context.Background(), empID)
+	payslips, err := repo.ListEmployeePayslips(context.Background(), ids.EmployeeID(empID))
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
