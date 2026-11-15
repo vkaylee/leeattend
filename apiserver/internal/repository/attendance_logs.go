@@ -299,10 +299,12 @@ func (r AttendanceRepository) ListAttendanceLogs(ctx context.Context, employee *
 		return nil, 0, err
 	}
 	n := len(args) + 1
-	query := `SELECT t.id, t.employment_id, t.punch_in_time, t.punch_out_time, t.duration_minutes, t.entry_type, t.note, t.generation_metadata, t.created_at, t.updated_at, e.full_name, e.employee_id_number
+	query := `SELECT t.id, t.employment_id, t.punch_in_time, t.punch_out_time, t.duration_minutes, t.entry_type, t.note, t.generation_metadata, t.created_at, t.updated_at, e.full_name, COALESCE(tenure.employee_number, e.employee_id_number)
 		FROM time_entries t
 		JOIN employments em ON em.id = t.employment_id
-		JOIN employees e ON e.id = em.employee_id` + where + ` ORDER BY t.punch_in_time DESC LIMIT $` + itoa(n) + ` OFFSET $` + itoa(n+1)
+		JOIN employees e ON e.id = em.employee_id
+		LEFT JOIN employment_relationships er ON er.id = em.relationship_id AND er.employee_id = em.employee_id
+		LEFT JOIN employee_tenures tenure ON tenure.id = er.tenure_id AND tenure.employee_id = e.id AND tenure.deleted_at IS NULL AND tenure.start_date <= t.punch_in_time::date AND (tenure.end_date IS NULL OR tenure.end_date >= t.punch_in_time::date)` + where + ` ORDER BY t.punch_in_time DESC LIMIT $` + itoa(n) + ` OFFSET $` + itoa(n+1)
 	args = append(args, limit, (page-1)*limit)
 	rows, err := db.Query(ctx, query, args...)
 	if err != nil {
