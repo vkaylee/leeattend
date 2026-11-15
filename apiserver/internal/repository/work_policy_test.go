@@ -45,6 +45,25 @@ func TestWorkPolicyGroupVersionScanPreservesRateComponent(t *testing.T) {
 	}
 }
 
+func TestWorkPolicyRepository_GetWorkPolicyGroupVersionScopesGroupAndVersion(t *testing.T) {
+	groupID, versionID := uuid.New(), uuid.New()
+	var captured string
+	db := &fakeDBTX{queryRowFn: func(_ context.Context, query string, args ...any) pgx.Row {
+		captured = query
+		if len(args) != 2 || args[0] != groupID || args[1] != versionID {
+			t.Fatalf("unexpected detail args: %#v", args)
+		}
+		return fakeRow{}
+	}}
+	_, err := (WorkPolicyRepository{DB: db}).GetWorkPolicyGroupVersion(context.Background(), workpolicy.GroupID(groupID), workpolicy.VersionID(versionID))
+	if !errors.Is(err, api.ErrWorkPolicyGroupNotFound) {
+		t.Fatalf("expected missing detail to return not found, got %v", err)
+	}
+	if !strings.Contains(captured, "WHERE v.group_id = $1 AND v.id = $2") {
+		t.Fatalf("detail query must scope group and version: %s", captured)
+	}
+}
+
 func TestWorkPolicyRepository_ListWorkPolicyGroupHistoryPaginatesByGroup(t *testing.T) {
 	groupID := uuid.New()
 	versionID := uuid.New()

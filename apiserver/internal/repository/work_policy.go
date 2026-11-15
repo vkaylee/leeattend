@@ -120,6 +120,28 @@ func (r WorkPolicyRepository) ListWorkPolicyGroupHistory(ctx context.Context, gr
 	return result, nil
 }
 
+func (r WorkPolicyRepository) GetWorkPolicyGroupVersion(ctx context.Context, groupID workpolicy.GroupID, versionID workpolicy.VersionID) (api.WorkPolicyGroupVersion, error) {
+	db, err := r.db(ctx)
+	if err != nil {
+		return api.WorkPolicyGroupVersion{}, err
+	}
+	row := db.QueryRow(ctx, `
+		SELECT v.id, v.group_id, g.name, v.work_credit_policy_id, wc.name, wc.minutes_per_credit,
+		       wc.attendance_policy_id, wc.working_pattern_id, v.pay_basis_policy_id, pb.name,
+		       pb.method, pb.monthly_denominator, pb.monthly_standard_days::text, pb.rate_component_definition_id, v.overtime_policy_id,
+		       v.effective_from::text, v.effective_to::text
+		FROM labor_policy_group_versions v
+		JOIN labor_policy_groups g ON g.id = v.group_id
+		JOIN work_credit_policies wc ON wc.id = v.work_credit_policy_id
+		JOIN pay_basis_policies pb ON pb.id = v.pay_basis_policy_id
+		WHERE v.group_id = $1 AND v.id = $2`, uuid.UUID(groupID), uuid.UUID(versionID))
+	result, err := workPolicyGroupVersion(row)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return api.WorkPolicyGroupVersion{}, api.ErrWorkPolicyGroupNotFound
+	}
+	return result, err
+}
+
 func (r WorkPolicyRepository) CreateWorkPolicyGroup(ctx context.Context, req workpolicy.CreateGroupInput, actorID ids.UserID) (api.WorkPolicyGroupVersion, error) {
 	db, err := r.db(ctx)
 	if err != nil {

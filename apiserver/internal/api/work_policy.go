@@ -96,6 +96,7 @@ type CreateWorkPolicyGroupVersionRequest struct {
 type WorkPolicyGroupRepository interface {
 	ListWorkPolicyGroupVersions(context.Context, int, int) (WorkPolicyGroupListResponse, error)
 	ListWorkPolicyGroupHistory(context.Context, workpolicy.GroupID, int, int) (WorkPolicyGroupListResponse, error)
+	GetWorkPolicyGroupVersion(context.Context, workpolicy.GroupID, workpolicy.VersionID) (WorkPolicyGroupVersion, error)
 	CreateWorkPolicyGroup(context.Context, workpolicy.CreateGroupInput, ids.UserID) (WorkPolicyGroupVersion, error)
 	CreateWorkPolicyGroupVersion(context.Context, workpolicy.CreateGroupVersionInput, ids.UserID) (WorkPolicyGroupVersion, error)
 	ResolveWorkPolicy(context.Context, ids.EmploymentID, time.Time) (WorkPolicyGroupVersion, error)
@@ -152,6 +153,25 @@ func (h WorkPolicyGroupHandler) History(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 	result, err := h.Repository.ListWorkPolicyGroupHistory(r.Context(), workpolicy.GroupID(groupID), pagination.Page, pagination.Limit)
+	if err != nil {
+		h.writeError(w, r, err)
+		return
+	}
+	apperror.WriteJSON(w, http.StatusOK, result)
+}
+
+func (h WorkPolicyGroupHandler) Detail(w http.ResponseWriter, r *http.Request) {
+	if !h.allowed(r, "payroll:read") {
+		apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
+		return
+	}
+	groupID, groupOK := pathUUID(r, "group_id")
+	versionID, versionOK := pathUUID(r, "version_id")
+	if !groupOK || !versionOK {
+		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
+		return
+	}
+	result, err := h.Repository.GetWorkPolicyGroupVersion(r.Context(), workpolicy.GroupID(groupID), workpolicy.VersionID(versionID))
 	if err != nil {
 		h.writeError(w, r, err)
 		return
