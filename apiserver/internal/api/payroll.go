@@ -429,8 +429,8 @@ type PayrollRepository interface {
 	SetEmployeePayrollConfig(context.Context, ids.EmployeeID, SetEmployeePayrollConfigRequest, ids.UserID) (EmployeePayrollConfig, error)
 	GetIncentivePolicies(context.Context) ([]PayrollIncentivePolicyResponse, error)
 	CreateIncentivePolicy(context.Context, CreatePayrollIncentivePolicyRequest) (PayrollIncentivePolicy, error)
-	DeleteIncentivePolicy(context.Context, uuid.UUID) error
-	CloneIncentivePolicy(context.Context, uuid.UUID) (PayrollIncentivePolicy, error)
+	DeleteIncentivePolicy(context.Context, ids.PayrollIncentivePolicyID) error
+	CloneIncentivePolicy(context.Context, ids.PayrollIncentivePolicyID) (PayrollIncentivePolicy, error)
 	ListPayrollRules(context.Context) ([]PayrollRuleDefinition, error)
 	CreatePayrollRule(context.Context, CreatePayrollRuleDefinitionRequest) (PayrollRuleDefinition, error)
 	ListPayrollRuleTiers(context.Context, ids.PayrollRuleID) ([]PayrollRuleTier, error)
@@ -726,7 +726,7 @@ func (h PayrollHandler) DeleteIncentivePolicy(w http.ResponseWriter, r *http.Req
 		h.forbidden(w, r)
 		return
 	}
-	if err := h.Repository.DeleteIncentivePolicy(r.Context(), policyID); err != nil {
+	if err := h.Repository.DeleteIncentivePolicy(r.Context(), ids.PayrollIncentivePolicyID(policyID)); err != nil {
 		h.writeError(w, r, err)
 		return
 	}
@@ -740,7 +740,7 @@ func (h PayrollHandler) CloneIncentivePolicy(w http.ResponseWriter, r *http.Requ
 		h.forbidden(w, r)
 		return
 	}
-	policy, err := h.Repository.CloneIncentivePolicy(r.Context(), policyID)
+	policy, err := h.Repository.CloneIncentivePolicy(r.Context(), ids.PayrollIncentivePolicyID(policyID))
 	if err != nil {
 		h.writeError(w, r, err)
 		return

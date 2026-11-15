@@ -274,15 +274,15 @@ func (mockPayrollRepository) CreateIncentivePolicy(_ context.Context, req Create
 	}, nil
 }
 
-func (mockPayrollRepository) DeleteIncentivePolicy(_ context.Context, policyID uuid.UUID) error {
-	if policyID == uuid.MustParse("00000000-0000-0000-0000-000000000099") {
+func (mockPayrollRepository) DeleteIncentivePolicy(_ context.Context, policyID ids.PayrollIncentivePolicyID) error {
+	if uuid.UUID(policyID) == uuid.MustParse("00000000-0000-0000-0000-000000000099") {
 		return ErrIncentivePolicyNotFound
 	}
 	return nil
 }
 
-func (mockPayrollRepository) CloneIncentivePolicy(_ context.Context, policyID uuid.UUID) (PayrollIncentivePolicy, error) {
-	if policyID == uuid.MustParse("00000000-0000-0000-0000-000000000099") {
+func (mockPayrollRepository) CloneIncentivePolicy(_ context.Context, policyID ids.PayrollIncentivePolicyID) (PayrollIncentivePolicy, error) {
+	if uuid.UUID(policyID) == uuid.MustParse("00000000-0000-0000-0000-000000000099") {
 		return PayrollIncentivePolicy{}, ErrIncentivePolicyNotFound
 	}
 	return PayrollIncentivePolicy{

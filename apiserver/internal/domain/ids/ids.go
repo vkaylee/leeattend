@@ -13,6 +13,7 @@ type PayrollFormulaRuleVersionID uuid.UUID
 type PayrollRuleID uuid.UUID
 type PayrollRuleTierID uuid.UUID
 type PayrollRuleAssignmentID uuid.UUID
+type PayrollIncentivePolicyID uuid.UUID
 type EmploymentID uuid.UUID
 type AttendancePolicyID uuid.UUID
 type WorkingPatternID uuid.UUID

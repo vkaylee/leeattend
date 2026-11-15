@@ -827,16 +827,16 @@ VALUES ($1, $2, $3, $4, $5)`, tierID, policyID, tier.Priority, tier.PayoutAmount
 	}, nil
 }
 
-func (r PayrollRepository) DeleteIncentivePolicy(ctx context.Context, policyID uuid.UUID) error {
+func (r PayrollRepository) DeleteIncentivePolicy(ctx context.Context, policyID ids.PayrollIncentivePolicyID) error {
 	db, err := r.db(ctx)
 	if err != nil {
 		return err
 	}
-	_, err = db.Exec(ctx, `UPDATE payroll_incentive_policies SET deleted_at = NOW() WHERE id = $1 AND deleted_at IS NULL`, policyID)
+	_, err = db.Exec(ctx, `UPDATE payroll_incentive_policies SET deleted_at = NOW() WHERE id = $1 AND deleted_at IS NULL`, uuid.UUID(policyID))
 	return err
 }
 
-func (r PayrollRepository) CloneIncentivePolicy(ctx context.Context, policyID uuid.UUID) (api.PayrollIncentivePolicy, error) {
+func (r PayrollRepository) CloneIncentivePolicy(ctx context.Context, policyID ids.PayrollIncentivePolicyID) (api.PayrollIncentivePolicy, error) {
 	db, err := r.db(ctx)
 	if err != nil {
 		return api.PayrollIncentivePolicy{}, err
@@ -844,7 +844,7 @@ func (r PayrollRepository) CloneIncentivePolicy(ctx context.Context, policyID uu
 	var origName, origPayout, origBaseStr string
 	err = db.QueryRow(ctx, `SELECT name, payout_type, base_amount::text
 FROM payroll_incentive_policies
-WHERE id = $1 AND deleted_at IS NULL`, policyID).Scan(&origName, &origPayout, &origBaseStr)
+WHERE id = $1 AND deleted_at IS NULL`, uuid.UUID(policyID)).Scan(&origName, &origPayout, &origBaseStr)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return api.PayrollIncentivePolicy{}, api.ErrIncentivePolicyNotFound
 	}
@@ -856,7 +856,7 @@ WHERE id = $1 AND deleted_at IS NULL`, policyID).Scan(&origName, &origPayout, &o
 	tierRows, err := db.Query(ctx, `SELECT priority, payout_amount::text, rule_config
 FROM payroll_incentive_tiers
 WHERE policy_id = $1
-ORDER BY priority ASC`, policyID)
+ORDER BY priority ASC`, uuid.UUID(policyID))
 	if err != nil {
 		return api.PayrollIncentivePolicy{}, err
 	}
