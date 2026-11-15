@@ -65,8 +65,8 @@ func (mockPayrollRepository) ListPayrollFormulaRules(context.Context) ([]Payroll
 	return []PayrollFormulaRule{}, nil
 }
 
-func (mockPayrollRepository) RetirePayrollFormulaRule(_ context.Context, ruleID, _ uuid.UUID) (PayrollFormulaRule, error) {
-	return PayrollFormulaRule{ID: ruleID, Status: "retired"}, nil
+func (mockPayrollRepository) RetirePayrollFormulaRule(_ context.Context, ruleID ids.PayrollFormulaRuleID, _ ids.UserID) (PayrollFormulaRule, error) {
+	return PayrollFormulaRule{ID: uuid.UUID(ruleID), Status: "retired"}, nil
 }
 
 func (mockPayrollRepository) CreatePayrollFormulaRule(_ context.Context, req CreatePayrollFormulaRuleRequest, _ uuid.UUID) (PayrollFormulaRule, error) {
@@ -77,8 +77,8 @@ func (mockPayrollRepository) CreatePayrollFormulaRuleVersion(_ context.Context, 
 	return PayrollFormulaRuleVersion{RuleID: ruleID, VersionID: uuid.New(), Version: 2, Expression: req.Expression, EffectiveFrom: req.EffectiveFrom, Status: "draft", CreatedBy: actorID}, nil
 }
 
-func (mockPayrollRepository) PublishPayrollFormulaRule(_ context.Context, ruleID, _ uuid.UUID) (PayrollFormulaRule, error) {
-	return PayrollFormulaRule{ID: ruleID, Version: 1, Status: "published"}, nil
+func (mockPayrollRepository) PublishPayrollFormulaRule(_ context.Context, ruleID ids.PayrollFormulaRuleID, _ ids.UserID) (PayrollFormulaRule, error) {
+	return PayrollFormulaRule{ID: uuid.UUID(ruleID), Version: 1, Status: "published"}, nil
 }
 
 func (mockPayrollRepository) ListPayslips(context.Context, time.Time, time.Time) ([]PayslipRecord, error) {

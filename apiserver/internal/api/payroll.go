@@ -449,8 +449,8 @@ type PayrollRepository interface {
 	ListPayrollFormulaRuleVersions(context.Context, uuid.UUID) ([]PayrollFormulaRuleVersion, error)
 	CreatePayrollFormulaRule(context.Context, CreatePayrollFormulaRuleRequest, uuid.UUID) (PayrollFormulaRule, error)
 	CreatePayrollFormulaRuleVersion(context.Context, uuid.UUID, CreatePayrollFormulaRuleVersionRequest, uuid.UUID) (PayrollFormulaRuleVersion, error)
-	PublishPayrollFormulaRule(context.Context, uuid.UUID, uuid.UUID) (PayrollFormulaRule, error)
-	RetirePayrollFormulaRule(context.Context, uuid.UUID, uuid.UUID) (PayrollFormulaRule, error)
+	PublishPayrollFormulaRule(context.Context, ids.PayrollFormulaRuleID, ids.UserID) (PayrollFormulaRule, error)
+	RetirePayrollFormulaRule(context.Context, ids.PayrollFormulaRuleID, ids.UserID) (PayrollFormulaRule, error)
 	ListPayrollCalculationRuns(context.Context, uuid.UUID, int, int) ([]PayrollCalculationRun, error)
 	GetPayrollPeriod(context.Context, uuid.UUID, int, int) (PayrollPeriod, error)
 	LockPayrollPeriod(context.Context, uuid.UUID, int, int, int64, uuid.UUID) (PayrollPeriod, error)
@@ -1238,7 +1238,7 @@ func (h PayrollHandler) RetirePayrollFormulaRule(w http.ResponseWriter, r *http.
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}
-	rule, err := h.Repository.RetirePayrollFormulaRule(r.Context(), ruleID, actorID)
+	rule, err := h.Repository.RetirePayrollFormulaRule(r.Context(), ids.PayrollFormulaRuleID(ruleID), ids.UserID(actorID))
 	if err != nil {
 		h.writeError(w, r, err)
 		return
@@ -1267,7 +1267,7 @@ func (h PayrollHandler) PublishPayrollFormulaRule(w http.ResponseWriter, r *http
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}
-	rule, err := h.Repository.PublishPayrollFormulaRule(r.Context(), ruleID, actorID)
+	rule, err := h.Repository.PublishPayrollFormulaRule(r.Context(), ids.PayrollFormulaRuleID(ruleID), ids.UserID(actorID))
 	if err != nil {
 		h.writeError(w, r, err)
 		return

@@ -1324,7 +1324,7 @@ func (r PayrollRepository) CreatePayrollFormulaRuleVersion(ctx context.Context, 
 	return result, nil
 }
 
-func (r PayrollRepository) RetirePayrollFormulaRule(ctx context.Context, ruleID, actorID uuid.UUID) (api.PayrollFormulaRule, error) {
+func (r PayrollRepository) RetirePayrollFormulaRule(ctx context.Context, ruleID ids.PayrollFormulaRuleID, actorID ids.UserID) (api.PayrollFormulaRule, error) {
 	db, err := r.db(ctx)
 	if err != nil {
 		return api.PayrollFormulaRule{}, err
@@ -1339,20 +1339,20 @@ func (r PayrollRepository) RetirePayrollFormulaRule(ctx context.Context, ruleID,
 		SET status = 'retired', retired_at = CURRENT_TIMESTAMP
 		FROM payroll_formula_rules r
 		WHERE v.rule_id = r.id AND r.id = $1 AND v.status = 'published'
-		RETURNING r.id, r.code, r.name, r.component_code, v.id, v.version_number, v.expression, v.effective_from::text, v.status`, ruleID).Scan(
+		RETURNING r.id, r.code, r.name, r.component_code, v.id, v.version_number, v.expression, v.effective_from::text, v.status`, uuid.UUID(ruleID)).Scan(
 			&result.ID, &result.Code, &result.Name, &result.ComponentCode, &result.VersionID, &result.Version, &result.Expression, &result.EffectiveFrom, &result.Status); err != nil {
 			if errors.Is(err, pgx.ErrNoRows) {
 				return api.ErrRuleNotFound
 			}
 			return err
 		}
-		_, err := tx.Exec(ctx, `UPDATE payroll_formula_rules SET retired_at = CURRENT_TIMESTAMP WHERE id = $1`, ruleID)
+		_, err := tx.Exec(ctx, `UPDATE payroll_formula_rules SET retired_at = CURRENT_TIMESTAMP WHERE id = $1`, uuid.UUID(ruleID))
 		return err
 	})
 	return result, err
 }
 
-func (r PayrollRepository) PublishPayrollFormulaRule(ctx context.Context, ruleID, actorID uuid.UUID) (api.PayrollFormulaRule, error) {
+func (r PayrollRepository) PublishPayrollFormulaRule(ctx context.Context, ruleID ids.PayrollFormulaRuleID, actorID ids.UserID) (api.PayrollFormulaRule, error) {
 	db, err := r.db(ctx)
 	if err != nil {
 		return api.PayrollFormulaRule{}, err
@@ -1362,11 +1362,11 @@ func (r PayrollRepository) PublishPayrollFormulaRule(ctx context.Context, ruleID
 	SET status = 'published', published_by = $2, published_at = CURRENT_TIMESTAMP
 	FROM payroll_formula_rules r
 	WHERE v.rule_id = r.id AND r.id = $1 AND v.status = 'draft'
-	RETURNING r.id, r.code, r.name, r.component_code, v.id, v.version_number, v.expression, v.effective_from::text, v.status`, ruleID, actorID).Scan(
+	RETURNING r.id, r.code, r.name, r.component_code, v.id, v.version_number, v.expression, v.effective_from::text, v.status`, uuid.UUID(ruleID), uuid.UUID(actorID)).Scan(
 		&result.ID, &result.Code, &result.Name, &result.ComponentCode, &result.VersionID, &result.Version, &result.Expression, &result.EffectiveFrom, &result.Status)
 	if errors.Is(err, pgx.ErrNoRows) {
 		var exists bool
-		if existsErr := db.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM payroll_formula_rules WHERE id = $1)`, ruleID).Scan(&exists); existsErr != nil {
+		if existsErr := db.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM payroll_formula_rules WHERE id = $1)`, uuid.UUID(ruleID)).Scan(&exists); existsErr != nil {
 			return api.PayrollFormulaRule{}, existsErr
 		}
 		if !exists {
