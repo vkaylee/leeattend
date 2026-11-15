@@ -31,6 +31,29 @@ func TestCompareImpactReturnsPayAndUnitDeltas(t *testing.T) {
 	}
 }
 
+func TestDecodeImpactSnapshotRejectsMissingFields(t *testing.T) {
+	_, err := DecodeImpactSnapshot([]byte(`{"base_pay":"100"}`))
+	if err != nil {
+		t.Fatalf("decode partial snapshot should defer completeness check, got %v", err)
+	}
+}
+
+func TestDecodeImpactSnapshotRejectsMalformedValues(t *testing.T) {
+	_, err := DecodeImpactSnapshot([]byte(`{"base_pay":"not-a-number"}`))
+	if !errors.Is(err, ErrImpactSnapshotMalformed) {
+		t.Fatalf("expected malformed snapshot error, got %v", err)
+	}
+}
+
+func TestEqualImpactInputsRequiresSameSnapshot(t *testing.T) {
+	if EqualImpactInputs([]byte(`{"policy":"a"}`), []byte(`{"policy":"b"}`)) {
+		t.Fatal("different input snapshots must not compare as equal")
+	}
+	if !EqualImpactInputs([]byte(`{"policy":"a"}`), []byte(`{"policy":"a"}`)) {
+		t.Fatal("same input snapshots must compare as equal")
+	}
+}
+
 func TestCompareImpactRejectsIncompleteSnapshot(t *testing.T) {
 	_, err := CompareImpact(ImpactSnapshot{}, ImpactSnapshot{})
 	if !errors.Is(err, ErrImpactSnapshotIncomplete) {
