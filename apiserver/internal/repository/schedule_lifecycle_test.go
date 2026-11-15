@@ -14,6 +14,21 @@ import (
 	"github.com/vkaylee/leeattend/apiserver/internal/api"
 )
 
+func TestFinishLifecycleMutationWritesEvidenceInIndependentTransaction(t *testing.T) {
+	employmentID, actorDate := uuid.New(), "2026-11-15"
+	writes := 0
+	tx := &fakeTx{fakeDBTX: fakeDBTX{execFn: func(_ context.Context, query string, _ ...any) (pgconn.CommandTag, error) {
+		if strings.Contains(query, "schedule_legacy_mutation_evidence") {
+			writes++
+		}
+		return pgconn.NewCommandTag("INSERT 0 1"), nil
+	}}}
+	err := finishLifecycleMutation(context.Background(), fakeTxBeginner{tx: tx}, blockedMutation([]uuid.UUID{employmentID}, []string{actorDate}))
+	if !errors.Is(err, ErrLifecycleMutationBlocked) || writes != 1 || !tx.committed {
+		t.Fatalf("evidence transaction = %v, writes=%d, committed=%v", err, writes, tx.committed)
+	}
+}
+
 func TestActivateScheduleEmployerWritesConfigAndAuditAtomically(t *testing.T) {
 	actorID, employerID := uuid.New(), uuid.New()
 	writes := 0
