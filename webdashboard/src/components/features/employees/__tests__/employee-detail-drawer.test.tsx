@@ -361,7 +361,7 @@ describe("EmployeeDetailDrawer", () => {
 
     it("displays formatted hire date", async () => {
         renderWithClient(<EmployeeDetailDrawer {...defaultProps} />);
-        expect(await screen.findByText("2024-06-15")).toBeDefined();
+        expect((await screen.findAllByText("2024-06-15")).length).toBeGreaterThan(0);
     });
 
     // ── Linked user section ────────────────────────────────────
