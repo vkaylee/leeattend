@@ -5,10 +5,35 @@ export interface WorkPolicyGroupVersion {
   id: string;
   group_id: string;
   name: string;
+  work_credit_policy_id?: string;
+  pay_basis_policy_id?: string;
   minutes_per_credit: number;
   pay_method: "monthly" | "hourly" | "shift";
   monthly_denominator?: "fixed" | "schedule";
   monthly_standard_days?: string;
+  rate_component_definition_id?: string | null;
+  overtime_policy_id: string;
+  effective_from: string;
+  effective_to?: string;
+}
+
+export interface WorkPolicyMembership {
+  id: string;
+  employment_id: string;
+  group_id: string;
+  effective_from: string;
+  effective_to?: string;
+}
+
+export interface CreateWorkPolicyGroupVersionRequest {
+  name: string;
+  minutes_per_credit: number;
+  attendance_policy_id: string;
+  working_pattern_id: string;
+  pay_method: "monthly" | "hourly" | "shift";
+  monthly_denominator?: "fixed" | "schedule";
+  monthly_standard_days?: string;
+  rate_component_definition_id?: string | null;
   overtime_policy_id: string;
   effective_from: string;
   effective_to?: string;
@@ -82,6 +107,27 @@ export async function fetchWorkPolicyGroupHistory(groupId: string): Promise<Work
     params: { path: { group_id: groupId }, query: { page: 1, limit: 100 } },
   });
   return data?.data ?? [];
+}
+
+export async function fetchWorkPolicyMemberships(groupId: string): Promise<WorkPolicyMembership[]> {
+  const { data } = await fetch<WorkPolicyMembership[]>("GET", "/api/v1/payroll/work-policy-groups/{group_id}/memberships", {
+    params: { path: { group_id: groupId } },
+  });
+  return data ?? [];
+}
+
+export async function resolveWorkPolicy(employmentId: string, asOf: string): Promise<WorkPolicyGroupVersion> {
+  const { data } = await fetch<WorkPolicyGroupVersion>("GET", "/api/v1/employments/{employment_id}/work-policy", {
+    params: { path: { employment_id: employmentId }, query: { as_of: asOf } },
+  });
+  return data;
+}
+
+export async function createWorkPolicyGroupVersion(groupId: string, body: CreateWorkPolicyGroupVersionRequest): Promise<WorkPolicyGroupVersion> {
+  const { data } = await fetch<WorkPolicyGroupVersion>("POST", "/api/v1/payroll/work-policy-groups/{group_id}/versions", {
+    params: { path: { group_id: groupId } }, body,
+  });
+  return data;
 }
 
 export async function fetchPayrollSettings(): Promise<PayrollSettings> {

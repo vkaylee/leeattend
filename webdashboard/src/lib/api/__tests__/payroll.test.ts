@@ -41,6 +41,9 @@ import {
   fetchPayrollRuleAssignments,
   createPayrollRuleAssignment,
   deletePayrollRuleAssignment,
+  fetchWorkPolicyMemberships,
+  resolveWorkPolicy,
+  createWorkPolicyGroupVersion,
 } from "../payroll";
 
 // --- response helpers -------------------------------------------------------
@@ -78,6 +81,28 @@ function errRes(status: number, statusText: string, body: unknown) {
 }
 
 describe("payroll API", () => {
+  it("fetches policy memberships", async () => {
+    const memberships = [{ id: "m-1", employment_id: "e-1", group_id: "g-1", effective_from: "2026-01-01" }];
+    vi.mocked(apiFetch).mockResolvedValueOnce(okRes(memberships));
+    await expect(fetchWorkPolicyMemberships("g-1")).resolves.toEqual(memberships);
+    expect(vi.mocked(apiFetch).mock.calls[0][0]).toContain("/work-policy-groups/g-1/memberships");
+  });
+
+  it("resolves policy at effective date", async () => {
+    const policy = { id: "v-1", group_id: "g-1", effective_from: "2026-01-01", pay_method: "hourly" };
+    vi.mocked(apiFetch).mockResolvedValueOnce(okRes(policy));
+    await expect(resolveWorkPolicy("e-1", "2026-06-01")).resolves.toEqual(policy);
+    expect(vi.mocked(apiFetch).mock.calls[0][0]).toContain("as_of=2026-06-01");
+  });
+
+  it("creates immutable policy version", async () => {
+    const body = { name: "Operations", minutes_per_credit: 450, attendance_policy_id: "a-1", working_pattern_id: "w-1", pay_method: "hourly" as const, overtime_policy_id: "o-1", effective_from: "2026-06-01" };
+    vi.mocked(apiFetch).mockResolvedValueOnce(okRes({ id: "v-2", group_id: "g-1", ...body }));
+    await createWorkPolicyGroupVersion("g-1", body);
+    const call = vi.mocked(apiFetch).mock.calls[0];
+    expect(call[0]).toContain("/work-policy-groups/g-1/versions");
+    expect((call[1] as RequestInit).method).toBe("POST");
+  });
   beforeEach(() => {
     vi.clearAllMocks();
   });
