@@ -1961,6 +1961,47 @@ func calculateHourlyPolicyPay(rate decimal.Decimal, standardMinutes int) decimal
 	return rate.Mul(decimal.NewFromInt(int64(standardMinutes))).Div(decimal.NewFromInt(60)).Round(2)
 }
 
+func calculateShiftPolicyPay(rate decimal.Decimal, completedShifts int) decimal.Decimal {
+	if !rate.IsPositive() || completedShifts <= 0 {
+		return decimal.Zero
+	}
+	return rate.Mul(decimal.NewFromInt(int64(completedShifts))).Round(2)
+}
+
+func shiftCountInRange(counts map[string]int, start, end time.Time) int {
+	result := 0
+	for current := start; !current.After(end); current = current.AddDate(0, 0, 1) {
+		result += counts[current.Format("2006-01-02")]
+	}
+	return result
+}
+
+func loadCompletedShiftCounts(ctx context.Context, db DBTX, employmentID uuid.UUID, startDate, endDate string) (map[string]int, error) {
+	rows, err := db.Query(ctx, `SELECT ws.date::text, count(DISTINCT ws.id)
+	FROM work_segments ws
+	JOIN time_entries te ON te.segment_id = ws.id AND te.punch_out_time IS NOT NULL
+	WHERE ws.employment_id = $1 AND ws.date >= $2::date AND ws.date <= $3::date AND ws.segment_status = 'completed'
+	GROUP BY ws.date`, employmentID, startDate, endDate)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	counts := make(map[string]int)
+	for rows.Next() {
+		var date string
+		var count int
+		if err := rows.Scan(&date, &count); err != nil {
+			return nil, err
+		}
+		counts[date] = count
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return counts, nil
+}
+
 func payrollStandardDaysForPolicy(policy *api.WorkPolicyGroupVersion, legacy decimal.Decimal) (decimal.Decimal, error) {
 	if policy == nil {
 		return legacy, nil
@@ -2196,6 +2237,18 @@ WHERE employment_id = $1 AND date >= $2::date AND date <= $3::date`, employmentI
 		}
 	}
 
+	completedShiftCounts := map[string]int{}
+	for _, assignment := range policyAssignments {
+		if assignment.policy.PayMethod != workpolicy.PayMethodShift {
+			continue
+		}
+		completedShiftCounts, err = loadCompletedShiftCounts(ctx, db, employmentID, startStr, endStr)
+		if err != nil {
+			return api.FullPayslipResponse{}, err
+		}
+		break
+	}
+
 	totalBasePay := decimal.Zero
 	var totalStdUnits int32
 	var totalOtUnits int32
@@ -2232,7 +2285,7 @@ WHERE employment_id = $1 AND date >= $2::date AND date <= $3::date`, employmentI
 				return api.FullPayslipResponse{}, err
 			}
 		}
-		if policy != nil && policy.PayMethod == workpolicy.PayMethodShift {
+		if policy != nil && policy.PayMethod == workpolicy.PayMethodShift && len(completedShiftCounts) == 0 {
 			return api.FullPayslipResponse{}, api.ErrPayrollValidation
 		}
 		segBase := decimal.Zero
@@ -2296,6 +2349,29 @@ WHERE employment_id = $1 AND date >= $2::date AND date <= $3::date`, employmentI
 		segAmount := dailyRate.Mul(actualDays).Round(2)
 		if policy != nil && policy.PayMethod == workpolicy.PayMethodHourly {
 			segAmount = calculateHourlyPolicyPay(segmentHourlyRate, segStdMin)
+		} else if policy != nil && policy.PayMethod == workpolicy.PayMethodShift {
+			if segOtMin > 0 {
+				return api.FullPayslipResponse{}, api.ErrPayrollValidation
+			}
+			completedShifts := shiftCountInRange(completedShiftCounts, seg.Start, seg.End)
+			if policy.RateComponentDefinitionID == nil {
+				return api.FullPayslipResponse{}, api.ErrPayrollValidation
+			}
+			shiftRate := decimal.Zero
+			for i := len(salaryHistory) - 1; i >= 0; i-- {
+				item := salaryHistory[i]
+				if item.defID == *policy.RateComponentDefinitionID {
+					if effectiveDate, parseErr := time.Parse("2006-01-02", item.effDate); parseErr == nil && !effectiveDate.After(seg.Start) {
+						shiftRate = item.amount
+						break
+					}
+				}
+			}
+			if !shiftRate.IsPositive() {
+				return api.FullPayslipResponse{}, api.ErrPayrollValidation
+			}
+			segAmount = calculateShiftPolicyPay(shiftRate, completedShifts)
+			segmentHourlyRate = shiftRate
 		}
 		totalBasePay = totalBasePay.Add(segAmount)
 

@@ -25,6 +25,15 @@ func TestCalculateHourlyPolicyPay(t *testing.T) {
 	}
 }
 
+func TestCalculateShiftPolicyPay(t *testing.T) {
+	if got := calculateShiftPolicyPay(decimal.RequireFromString("75.50"), 3); !got.Equal(decimal.RequireFromString("226.50")) {
+		t.Fatalf("expected 226.50 shift pay, got %s", got)
+	}
+	if got := calculateShiftPolicyPay(decimal.RequireFromString("75.50"), 0); !got.IsZero() {
+		t.Fatalf("zero completed shifts must produce zero, got %s", got)
+	}
+}
+
 func TestPayrollStandardDaysForPolicy(t *testing.T) {
 	legacy := decimal.NewFromInt(26)
 	if got, err := payrollStandardDaysForPolicy(nil, legacy); err != nil || !got.Equal(legacy) {
