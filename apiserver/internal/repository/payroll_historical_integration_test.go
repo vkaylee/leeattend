@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"os"
+	"sync"
 	"testing"
 	"time"
 
@@ -181,6 +182,69 @@ func TestIntegrationEnsurePayrollPeriodOpenRejectsLockedPeriod(t *testing.T) {
 	}
 	if status != "locked" {
 		t.Fatalf("locked period status changed to %q", status)
+	}
+}
+
+func TestIntegrationConcurrentPolicyMembershipInsertHasSingleWinner(t *testing.T) {
+	pool, ctx := requireIntegrationDatabase(t)
+	setup, err := pool.Begin(ctx)
+	if err != nil {
+		t.Fatalf("begin setup transaction: %v", err)
+	}
+	userID, employerID, employeeID, employmentID, groupID := uuid.New(), uuid.New(), uuid.New(), uuid.New(), uuid.New()
+	for _, query := range []struct {
+		sql  string
+		args []any
+	}{
+		{`INSERT INTO users (id, email, password_hash) VALUES ($1, $2, 'integration-test-hash')`, []any{userID, userID.String() + "@invalid.test"}},
+		{`INSERT INTO employers (id, name) VALUES ($1, 'concurrent-membership-employer')`, []any{employerID}},
+		{`INSERT INTO employees (id, employee_id_number, full_name, hire_date, original_hire_date) VALUES ($1, $2, 'concurrent-membership-employee', DATE '2026-01-01', DATE '2026-01-01')`, []any{employeeID, employeeID.String()}},
+		{`INSERT INTO employments (id, employee_id, employer_id, status, start_date) VALUES ($1, $2, $3, 'active', DATE '2026-01-01')`, []any{employmentID, employeeID, employerID}},
+		{`INSERT INTO labor_policy_groups (id, name, created_by) VALUES ($1, 'concurrent-membership-group', $2)`, []any{groupID, userID}},
+	} {
+		if _, err := setup.Exec(ctx, query.sql, query.args...); err != nil {
+			_ = setup.Rollback(ctx)
+			t.Fatalf("setup concurrent membership fixture: %v", err)
+		}
+	}
+	if err := setup.Commit(ctx); err != nil {
+		t.Fatalf("commit concurrent membership fixture: %v", err)
+	}
+
+	start := make(chan struct{})
+	results := make(chan error, 2)
+	var wg sync.WaitGroup
+	for i := 0; i < 2; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			tx, beginErr := pool.Begin(ctx)
+			if beginErr != nil {
+				results <- beginErr
+				return
+			}
+			<-start
+			_, insertErr := tx.Exec(ctx, `INSERT INTO labor_policy_memberships (id, employment_id, group_id, effective_from, effective_to, created_by) VALUES ($1, $2, $3, DATE '2026-04-01', DATE '2026-08-01', $4)`, uuid.New(), employmentID, groupID, userID)
+			if insertErr == nil {
+				insertErr = tx.Commit(ctx)
+			} else {
+				_ = tx.Rollback(ctx)
+			}
+			results <- insertErr
+		}()
+	}
+	close(start)
+	wg.Wait()
+	close(results)
+
+	winners := 0
+	for err := range results {
+		if err == nil {
+			winners++
+		}
+	}
+	if winners != 1 {
+		t.Fatalf("concurrent overlapping membership winners = %d, want exactly 1", winners)
 	}
 }
 
