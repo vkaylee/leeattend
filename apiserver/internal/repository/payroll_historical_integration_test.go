@@ -185,6 +185,53 @@ func TestIntegrationEnsurePayrollPeriodOpenRejectsLockedPeriod(t *testing.T) {
 	}
 }
 
+func TestIntegrationComparePayrollImpactUsesPolicyOnlyRunsWithoutMutation(t *testing.T) {
+	pool, ctx := requireIntegrationDatabase(t)
+	employerID, employeeID, employmentID, payslipID := uuid.New(), uuid.New(), uuid.New(), uuid.New()
+	if _, err := pool.Exec(ctx, `INSERT INTO employers (id, name) VALUES ($1, 'impact-test-employer')`, employerID); err != nil {
+		t.Fatalf("insert impact employer: %v", err)
+	}
+	if _, err := pool.Exec(ctx, `INSERT INTO employees (id, employee_id_number, full_name, hire_date, original_hire_date) VALUES ($1, $2, 'impact-test-employee', DATE '2026-01-01', DATE '2026-01-01')`, employeeID, employeeID.String()); err != nil {
+		t.Fatalf("insert impact employee: %v", err)
+	}
+	if _, err := pool.Exec(ctx, `INSERT INTO employments (id, employee_id, employer_id, status, start_date) VALUES ($1, $2, $3, 'active', DATE '2026-01-01')`, employmentID, employeeID, employerID); err != nil {
+		t.Fatalf("insert impact employment: %v", err)
+	}
+	if _, err := pool.Exec(ctx, `INSERT INTO payslips (id, employment_id, period_start, period_end, base_pay_amount, net_pay_amount) VALUES ($1, $2, DATE '2026-06-01', DATE '2026-06-30', 1000, 1000)`, payslipID, employmentID); err != nil {
+		t.Fatalf("insert impact payslip: %v", err)
+	}
+	var beforeRunID, afterRunID uuid.UUID
+	input := `{"kpi_inputs":{"production.output":"100"},"policy":{"version_id":"policy-a"}}`
+	beforeOutput := `{"base_pay":"1000","overtime_pay":"100","deductions":"50","net_pay":"1050","standard_units":"10","overtime_units":"2"}`
+	afterOutput := `{"base_pay":"1200","overtime_pay":"150","deductions":"60","net_pay":"1290","standard_units":"12","overtime_units":"3"}`
+	if err := pool.QueryRow(ctx, `INSERT INTO payroll_calculation_runs (employment_id, payslip_id, period_year, period_month, formula_version_id, engine_version, input_snapshot, output_snapshot) VALUES ($1, $2, 2026, 6, NULL, 'test', $3::jsonb, $4::jsonb) RETURNING id`, employmentID, payslipID, input, beforeOutput).Scan(&beforeRunID); err != nil {
+		t.Fatalf("insert before impact run: %v", err)
+	}
+	inputAfter := `{"kpi_inputs":{"production.output":"100"},"policy":{"version_id":"policy-b"}}`
+	if err := pool.QueryRow(ctx, `INSERT INTO payroll_calculation_runs (employment_id, payslip_id, period_year, period_month, formula_version_id, engine_version, input_snapshot, output_snapshot) VALUES ($1, $2, 2026, 6, NULL, 'test', $3::jsonb, $4::jsonb) RETURNING id`, employmentID, payslipID, inputAfter, afterOutput).Scan(&afterRunID); err != nil {
+		t.Fatalf("insert after impact run: %v", err)
+	}
+
+	beforeCount := 0
+	if err := pool.QueryRow(ctx, `SELECT count(*) FROM payslips WHERE id = $1`, payslipID).Scan(&beforeCount); err != nil {
+		t.Fatalf("count payslip before impact: %v", err)
+	}
+	result, err := (PayrollRepository{DB: pool}).ComparePayrollImpact(ctx, ids.EmploymentID(employmentID), 2026, 6, beforeRunID, afterRunID)
+	if err != nil {
+		t.Fatalf("compare payroll impact: %v", err)
+	}
+	if !result.Computed || !result.NetPayDelta.Equal(decimal.RequireFromString("240")) || result.StandardUnitsDelta != 2 || result.OvertimeUnitsDelta != 1 {
+		t.Fatalf("unexpected impact result: %+v", result)
+	}
+	afterCount := 0
+	if err := pool.QueryRow(ctx, `SELECT count(*) FROM payslips WHERE id = $1`, payslipID).Scan(&afterCount); err != nil {
+		t.Fatalf("count payslip after impact: %v", err)
+	}
+	if afterCount != beforeCount {
+		t.Fatalf("impact comparison mutated payslip rows: before=%d after=%d", beforeCount, afterCount)
+	}
+}
+
 func TestIntegrationConcurrentPolicyMembershipInsertHasSingleWinner(t *testing.T) {
 	pool, ctx := requireIntegrationDatabase(t)
 	setup, err := pool.Begin(ctx)
