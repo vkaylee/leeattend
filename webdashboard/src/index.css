@@ -247,11 +247,20 @@
   outline-offset: 2px !important;
 }
 
-/* Modal and command palette search inputs don't need harsh separate inner outline */
-[cmdk-input]:focus-visible,
-[data-no-focus-outline]:focus-visible,
-[data-search-input]:focus-visible {
-  outline: none !important;
+/* SearchInput and command palette wrappers provide visible focus rings. */
+[data-no-focus-outline]:focus-visible {
+  outline: 2px solid var(--primary-500) !important;
+  outline-offset: 2px !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-pulse,
+  .animate-in,
+  .animate-spin,
+  .animate-bounce {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
 }
 
 /* Roster Table Scrollbar - thicker for easier dragging */

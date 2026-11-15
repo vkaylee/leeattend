@@ -124,7 +124,7 @@ export const SearchInput = forwardRef<HTMLInputElement, SearchInputProps>(
             aria-label="Clear search input"
             className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md text-slate-400 hover:text-slate-700 dark:text-slate-500 dark:hover:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-slate-800 transition-colors"
             onClick={handleClear}
-            tabIndex={-1}
+            tabIndex={0}
             type="button"
           >
             <X className="h-3.5 w-3.5" />

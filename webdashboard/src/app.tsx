@@ -3,9 +3,9 @@ import { MutationCache, QueryCache, QueryClient, QueryClientProvider } from "@ta
 import { RouterProvider } from "@tanstack/react-router";
 import React, { Suspense } from "react";
 
-import { ErrorBoundary } from "./components/common/error-boundary";
 import { GlobalLoader } from "./components/common/global-loader";
 import { NewVersionBanner } from "./components/common/new-version-banner";
+import { RouteErrorFallback } from "./components/common/route-error-fallback";
 import { toast } from "./components/ui/toast-imperative";
 import { DarkModeProvider } from "./context/dark-mode-context";
 import { useVersionCheck } from "./hooks/use-version-check";
@@ -93,7 +93,9 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
         <DarkModeProvider>
-          <Sentry.ErrorBoundary fallback={(_error: unknown) => <ErrorBoundary>{null}</ErrorBoundary>}>
+          <Sentry.ErrorBoundary fallback={(error: unknown) => (
+            <RouteErrorFallback error={error instanceof Error ? error : new Error(i18n.t("errors.unknown"))} />
+          )}>
             <Suspense fallback={<GlobalLoader />}>
               <AppContent />
             </Suspense>

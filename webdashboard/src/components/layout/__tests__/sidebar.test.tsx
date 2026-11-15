@@ -128,4 +128,34 @@ describe("Sidebar Layout Component", () => {
     fireEvent.click(backdrop);
     expect(onMobileClose).toHaveBeenCalledTimes(1);
   });
+
+  it("closes the mobile drawer on Escape and restores focus to its trigger", () => {
+    const trigger = document.createElement("button");
+    document.body.appendChild(trigger);
+    trigger.focus();
+
+    const { rerender } = render(
+      <Sidebar
+        isCollapsed={false}
+        isMobileOpen={true}
+        onMobileClose={onMobileClose}
+        onToggleCollapse={onToggleCollapse}
+      />
+    );
+
+    expect(document.activeElement).toHaveAttribute("data-testid", "sidebar-logo");
+    fireEvent.keyDown(document, { key: "Escape" });
+    expect(onMobileClose).toHaveBeenCalledTimes(1);
+
+    rerender(
+      <Sidebar
+        isCollapsed={false}
+        isMobileOpen={false}
+        onMobileClose={onMobileClose}
+        onToggleCollapse={onToggleCollapse}
+      />
+    );
+    expect(document.activeElement).toBe(trigger);
+    trigger.remove();
+  });
 });

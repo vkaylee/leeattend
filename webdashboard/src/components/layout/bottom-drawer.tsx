@@ -142,9 +142,6 @@ export default function BottomDrawer({ isOpen, onClose }: BottomDrawerProps) {
           isOpen ? "opacity-100" : "opacity-0",
         )}
         onClick={onClose}
-        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") onClose(); }}
-        role="button"
-        tabIndex={0}
       />
 
       {/* Panel — role="dialog" is interactive */}

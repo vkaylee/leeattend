@@ -1,5 +1,6 @@
 import { useSyncExternalStore } from "react";
 
+import { getAccessToken, hasAuthSessionHint } from "@/lib/api/token-store";
 import { fetchEffectiveFeatureFlags } from "@/lib/api/feature-flags";
 
 // Build-time defaults remain the fail-closed fallback during bootstrap or API failure.
@@ -72,6 +73,13 @@ export function isFeatureEnabled(flag: FeatureFlagName): boolean {
 }
 
 export async function loadRuntimeFeatureFlags(): Promise<boolean> {
+  // Effective flags are protected. Skip bootstrap requests before auth so the
+  // login page does not turn expected 401 responses into console errors.
+  if (!getAccessToken() && !hasAuthSessionHint()) {
+    clearRuntimeFeatureFlags();
+    return false;
+  }
+
   try {
     setRuntimeFeatureFlags(await fetchEffectiveFeatureFlags());
     return true;

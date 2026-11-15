@@ -1,10 +1,16 @@
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { FEATURE_FLAGS, isFeatureEnabled } from "@/lib/feature-flags";
+import { fetchEffectiveFeatureFlags } from "@/lib/api/feature-flags";
+import { FEATURE_FLAGS, isFeatureEnabled, loadRuntimeFeatureFlags } from "@/lib/feature-flags";
+
+vi.mock("@/lib/api/feature-flags", () => ({
+  fetchEffectiveFeatureFlags: vi.fn(),
+}));
 
 describe("FEATURE_FLAGS", () => {
   afterEach(() => {
     localStorage.clear();
+    vi.clearAllMocks();
   });
 
   it("registers the econtracts flag with default OFF (backend not wired)", () => {
@@ -28,6 +34,11 @@ describe("FEATURE_FLAGS", () => {
   it("ignores invalid override values (anything but 'true' is off)", () => {
     localStorage.setItem("ff_econtracts", "yes");
     expect(isFeatureEnabled("ff_econtracts")).toBe(false);
+  });
+
+  it("skips protected flag loading when no auth session exists", async () => {
+    await expect(loadRuntimeFeatureFlags()).resolves.toBe(false);
+    expect(fetchEffectiveFeatureFlags).not.toHaveBeenCalled();
   });
 
   // Note: the production path (compiled default without localStorage

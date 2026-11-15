@@ -5,7 +5,7 @@ import {
   Clock,
   X,
 } from "lucide-react";
-import React, { useEffect } from "react";
+import React, { useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 
 import Button from "@/components/ui/button";
@@ -30,6 +30,53 @@ export function Sidebar({
   const location = useLocation();
   const { organization } = useOrganization();
   const { dashboard, settings, groups } = useFilteredMenuItems();
+  const mobileDrawerRef = useRef<HTMLDivElement>(null);
+  const onMobileCloseRef = useRef(onMobileClose);
+
+  useEffect(() => {
+    onMobileCloseRef.current = onMobileClose;
+  }, [onMobileClose]);
+
+  useEffect(() => {
+    if (!isMobileOpen) return;
+
+    const previousFocus = document.activeElement as HTMLElement | null;
+    const drawer = mobileDrawerRef.current;
+    const focusable = drawer?.querySelector<HTMLElement>(
+      'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+    );
+    focusable?.focus();
+
+    const handleDialogKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        onMobileCloseRef.current?.();
+        return;
+      }
+      if (event.key !== "Tab" || !drawer) return;
+
+      const elements = [...drawer.querySelectorAll<HTMLElement>(
+        'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+      )];
+      if (elements.length === 0) return;
+
+      const first = elements[0];
+      const last = elements[elements.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+
+    document.addEventListener("keydown", handleDialogKeyDown);
+    return () => {
+      document.removeEventListener("keydown", handleDialogKeyDown);
+      previousFocus?.focus();
+    };
+  }, [isMobileOpen]);
 
   // Keyboard shortcut: Cmd+B or Ctrl+B to toggle sidebar
   useEffect(() => {
@@ -275,7 +322,12 @@ export function Sidebar({
             onClick={onMobileClose}
           />
           {/* Drawer content */}
-          <div className="relative flex w-72 max-w-[80vw] flex-col bg-card border-r border-border shadow-2xl animate-in slide-in-from-left duration-200">
+          <div
+            ref={mobileDrawerRef}
+            aria-label="Navigation menu"
+            className="relative flex w-72 max-w-[80vw] flex-col bg-card border-r border-border shadow-2xl animate-in slide-in-from-left duration-200"
+            tabIndex={-1}
+          >
             {navContent}
           </div>
         </div>

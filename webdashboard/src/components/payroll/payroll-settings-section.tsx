@@ -1,8 +1,9 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
 import { ShieldAlert, Clock, History } from "lucide-react";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
+import Button from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
 import { Typography } from "@/components/ui/typography";
 import { fetchWorkPolicyGroupHistory, fetchWorkPolicyGroups, updatePayrollSettings, fetchPayrollSettingsHistory } from "@/lib/api/payroll";
@@ -24,7 +25,7 @@ export default function PayrollSettingsSection() {
   });
   const { data: selectedPolicyHistory = [], isLoading: isPolicyHistoryLoading } = useQuery({
     queryKey: payrollKeys.workPolicyHistory(selectedPolicyGroupId),
-    queryFn: () => fetchWorkPolicyGroupHistory(selectedPolicyGroupId as string),
+    queryFn: () => fetchWorkPolicyGroupHistory(selectedPolicyGroupId!),
     enabled: Boolean(selectedPolicyGroupId),
   });
 
@@ -96,9 +97,9 @@ export default function PayrollSettingsSection() {
                 {workPolicies.map((policy) => (
                   <tr key={policy.id} className="border-t border-slate-200/70 dark:border-slate-800">
                     <td className="px-3 py-3 font-medium">
-                      <button type="button" className="text-left text-primary-700 underline-offset-2 hover:underline" onClick={() => setSelectedPolicyGroupId(policy.group_id)}>
+                      <Button className="text-left text-primary-700 underline-offset-2 hover:underline" onClick={() => setSelectedPolicyGroupId(policy.group_id)} size="sm" type="button" variant="ghost">
                         {policy.name}
-                      </button>
+                      </Button>
                     </td>
                     <td className="px-3 py-3">{policy.pay_method}</td>
                     <td className="px-3 py-3">{policy.minutes_per_credit}</td>
@@ -113,7 +114,7 @@ export default function PayrollSettingsSection() {
           <div className="mt-5 rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-950">
             <div className="mb-3 flex items-center justify-between">
               <Typography className="font-semibold" variant="h3">{t("common.payroll.settings.work_policy_history", "Version history")}</Typography>
-              <button type="button" className="text-sm text-slate-500 underline" onClick={() => setSelectedPolicyGroupId(undefined)}>{t("common.close", "Close")}</button>
+              <Button className="text-sm text-slate-500 underline" onClick={() => setSelectedPolicyGroupId(undefined)} size="sm" type="button" variant="ghost">{t("common.close", "Close")}</Button>
             </div>
             {isPolicyHistoryLoading ? <div className="h-10 animate-pulse rounded bg-slate-200 dark:bg-slate-800" /> : (
               <ul className="space-y-2 text-sm">

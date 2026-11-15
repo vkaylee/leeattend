@@ -66,7 +66,7 @@ export default function AppShell({ variant: _variant }: AppShellProps) {
 
   return (
     <HeaderActionsProvider>
-      <div className="flex h-screen w-screen overflow-hidden bg-background text-foreground font-sans">
+      <div className="flex h-dvh w-screen overflow-hidden bg-background text-foreground font-sans">
         {/* ── Left Collapsible Navigation Sidebar ── */}
         {!isSettings && (
           <Sidebar
@@ -93,6 +93,7 @@ export default function AppShell({ variant: _variant }: AppShellProps) {
                 ? "overflow-hidden p-0 h-full flex flex-col"
                 : "overflow-y-auto p-4 md:p-6 lg:p-8"
             )}
+            data-app-scroll-container
             data-testid="main-content-viewport"
           >
             <ErrorBoundary>
