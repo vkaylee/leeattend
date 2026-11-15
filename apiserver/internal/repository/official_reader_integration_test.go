@@ -72,7 +72,7 @@ func TestIntegrationOfficialReaderAndNoShowUsePublishedRevisionSegments(t *testi
 		t.Fatalf("unexpected official day: %+v", day)
 	}
 
-	noShow, err := (ReportRepository{DB: pool}).GetNoShowReport(ctx, api.NoShowReportFilter{Date: "2026-11-20", Page: 1, Limit: 50})
+	noShow, err := (ReportRepository{DB: pool}).GetNoShowReport(ctx, api.NoShowReportFilter{Date: "2026-11-20", EmployeeIDs: []uuid.UUID{employeeID}, Page: 1, Limit: 50})
 	if err != nil {
 		t.Fatalf("no-show report: %v", err)
 	}
