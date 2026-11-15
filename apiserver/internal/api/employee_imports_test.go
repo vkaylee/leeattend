@@ -254,6 +254,50 @@ func TestEmployeeImport_Preview_Flow(t *testing.T) {
 	}
 }
 
+func TestEmployeeImport_Preview_RejectsMultipleActiveEmployments(t *testing.T) {
+	employeeID := uuid.New()
+	repo := &mockImportRepo{candidates: []TerminationCandidate{{
+		EmployeeID:   employeeID,
+		EmployeeCode: "EMP-MULTI",
+		FullName:     "Concurrent Employee",
+		Employments: []TerminationEmployment{
+			{ID: uuid.New(), Status: "active", StartDate: time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)},
+			{ID: uuid.New(), Status: "active", StartDate: time.Date(2026, 2, 1, 0, 0, 0, 0, time.UTC)},
+		},
+		Balances: map[int][]TerminationLeaveBalance{},
+	}}}
+	h := EmployeeImportHandler{
+		Repository: repo,
+		Authorizer: employeeSliceAuthorizer{perms: map[string]bool{string(auth.PermissionEmployeesUpdate): true}},
+	}
+	data := sampleXLSX([][]string{
+		{"employee_code", "termination_date", "termination_reason", "termination_notes"},
+		{"EMP-MULTI", "2026-06-30", "voluntary_resignation", ""},
+	})
+	contentType, body, err := createMultipartExcel("file", "termination.xlsx", data)
+	if err != nil {
+		t.Fatalf("create workbook: %v", err)
+	}
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/employees/import-termination/preview", body)
+	req.Header.Set("Content-Type", contentType)
+	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
+	rec := httptest.NewRecorder()
+	h.PreviewTermination(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", rec.Code, rec.Body.String())
+	}
+	var preview TerminationImportPreviewResponse
+	if err := json.Unmarshal(rec.Body.Bytes(), &preview); err != nil {
+		t.Fatalf("decode preview: %v", err)
+	}
+	if len(preview.ValidRows) != 0 || len(preview.InvalidRows) != 1 || preview.CanCommit {
+		t.Fatalf("ambiguous termination preview = %+v, want one invalid row and no commit", preview)
+	}
+	if preview.InvalidRows[0].Reason != "employee number matches multiple active employments; employer context is required" {
+		t.Fatalf("unexpected ambiguity reason: %q", preview.InvalidRows[0].Reason)
+	}
+}
+
 func TestEmployeeImport_Confirm_ValidationAndSuccess(t *testing.T) {
 	activeEmpID := uuid.New()
 	terminatedEmpID := uuid.New()

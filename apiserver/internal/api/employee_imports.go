@@ -276,15 +276,16 @@ func (h EmployeeImportHandler) buildTerminationPreview(ctx context.Context, mapp
 			response.InvalidRows = append(response.InvalidRows, InvalidTerminationImportRow{RowNumber: row.rowNumber, EmployeeCode: &row.code, RawTerminationDate: &row.rawDate, Reason: message})
 			continue
 		}
+		if len(active) > 1 {
+			response.InvalidRows = append(response.InvalidRows, InvalidTerminationImportRow{RowNumber: row.rowNumber, EmployeeCode: &row.code, RawTerminationDate: &row.rawDate, Reason: "employee number matches multiple active employments; employer context is required"})
+			continue
+		}
 		chosen := active[0]
 		if row.date.Before(chosen.StartDate) {
 			response.InvalidRows = append(response.InvalidRows, InvalidTerminationImportRow{RowNumber: row.rowNumber, EmployeeCode: &row.code, RawTerminationDate: &row.rawDate, Reason: "termination date cannot be before employment start date (" + chosen.StartDate.Format("02/01/2006") + ")"})
 			continue
 		}
 		warnings := make([]string, 0)
-		if len(active) > 1 {
-			warnings = append(warnings, "multiple non-terminated employments; latest employment selected")
-		}
 		leaves := make([]ProratedLeavePreview, 0)
 		for _, balance := range candidate.Balances[row.date.Year()] {
 			startOfYear := time.Date(row.date.Year(), 1, 1, 0, 0, 0, 0, time.UTC)
