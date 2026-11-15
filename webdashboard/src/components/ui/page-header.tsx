@@ -34,7 +34,7 @@ const PageHeader = memo(function PageHeader({
   return (
     <div
       className={cn(
-        "flex flex-col items-stretch md:flex-row md:items-center justify-between gap-6",
+        "flex flex-col items-stretch justify-between gap-6 xl:flex-row xl:items-center",
         className,
       )}
     >
@@ -66,7 +66,7 @@ const PageHeader = memo(function PageHeader({
         </div>
       )}
       {!!actions && (
-        <div className="flex w-full flex-wrap items-center justify-start gap-3 animate-in fade-in slide-in-from-right-4 duration-700 md:w-auto md:justify-end">
+        <div className="flex w-full flex-wrap items-center justify-start gap-3 animate-in fade-in slide-in-from-right-4 duration-700 xl:w-auto xl:justify-end">
           {actions}
         </div>
       )}

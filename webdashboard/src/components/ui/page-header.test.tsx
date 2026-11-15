@@ -47,7 +47,7 @@ describe("PageHeader Component", () => {
       />,
     );
     expect(screen.getByTestId("add-btn")).toBeInTheDocument();
-    expect(container.querySelector(".w-full.flex-wrap")).toHaveClass("md:w-auto");
+    expect(container.querySelector(".w-full.flex-wrap")).toHaveClass("xl:w-auto");
   });
 
   it("does not render actions container when not provided", () => {
