@@ -24,6 +24,7 @@ var (
 	ErrSchedulePreviewScope         = errors.New("schedule lifecycle preview scope is invalid")
 	ErrScheduleTimezoneMismatch     = errors.New("schedule lifecycle timezone does not match resolver")
 	ErrScheduleIdempotencyConflict  = errors.New("schedule lifecycle idempotency key conflicts with stored request")
+	ErrScheduleForbidden            = errors.New("schedule lifecycle replay is forbidden")
 )
 
 const (
@@ -446,6 +447,8 @@ func (h ScheduleHandler) writeLifecycleError(w http.ResponseWriter, r *http.Requ
 	switch {
 	case errors.Is(err, ErrScheduleLifecycleUnavailable):
 		h.lifecycleUnavailable(w, r)
+	case errors.Is(err, ErrScheduleForbidden):
+		apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
 	case errors.Is(err, ErrSchedulePreviewStale), errors.Is(err, ErrScheduleRevisionStale), errors.Is(err, ErrScheduleAlreadyPublished), errors.Is(err, ErrScheduleLockedPeriod), errors.Is(err, ErrScheduleNoCurrentRevision), errors.Is(err, ErrScheduleIdempotencyConflict):
 		apperror.WriteError(w, r, apperror.Conflict(apperror.KeyConflict))
 	case errors.Is(err, ErrSchedulePreviewScope), errors.Is(err, ErrScheduleTimezoneMismatch):

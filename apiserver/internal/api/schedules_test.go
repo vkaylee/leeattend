@@ -333,6 +333,16 @@ func TestScheduleHandler_PublishRequiresIdempotencyKey(t *testing.T) {
 	}
 }
 
+func TestScheduleHandler_LifecycleReplayForbiddenReturns403(t *testing.T) {
+	handler := ScheduleHandler{}
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/schedules/publish", nil)
+	rec := httptest.NewRecorder()
+	handler.writeLifecycleError(rec, req, ErrScheduleForbidden)
+	if rec.Code != http.StatusForbidden {
+		t.Fatalf("forbidden replay status=%d want 403", rec.Code)
+	}
+}
+
 func TestScheduleHandler_LifecycleConflictErrorsReturn409(t *testing.T) {
 	handler := ScheduleHandler{}
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/schedules", nil)

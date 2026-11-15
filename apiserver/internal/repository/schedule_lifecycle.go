@@ -769,7 +769,7 @@ type storedBatch struct {
 
 func replayPublication(actorID uuid.UUID, requestHash string, stored storedBatch, response *api.SchedulePublicationResponse) error {
 	if stored.ActorType != "human" || stored.RequestedBy == nil || *stored.RequestedBy != actorID {
-		return errors.New("schedule lifecycle replay is forbidden")
+		return api.ErrScheduleForbidden
 	}
 	if strings.TrimSpace(stored.RequestHash) != requestHash {
 		return ErrScheduleIdempotencyConflict
@@ -779,7 +779,7 @@ func replayPublication(actorID uuid.UUID, requestHash string, stored storedBatch
 
 func replayReplan(actorID uuid.UUID, requestHash string, stored storedBatch, response *api.ScheduleReplanResponse) error {
 	if stored.ActorType != "human" || stored.RequestedBy == nil || *stored.RequestedBy != actorID {
-		return errors.New("schedule lifecycle replay is forbidden")
+		return api.ErrScheduleForbidden
 	}
 	if strings.TrimSpace(stored.RequestHash) != requestHash {
 		return ErrScheduleIdempotencyConflict
