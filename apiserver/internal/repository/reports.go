@@ -425,7 +425,7 @@ WHERE ` + whereClause
 	}
 
 	dataQuery := fromClause + `os.revision_id, emp.id, e.id, e.full_name, COALESCE(t.employee_number, e.employee_id_number),
-       os.shift_name, os.scheduled_start, os.scheduled_end, $1::date, os.state` + joins + fmt.Sprintf(`
+       os.shift_name, os.scheduled_start, os.scheduled_end, $1::date::text, os.state` + joins + fmt.Sprintf(`
 WHERE %s
 ORDER BY e.full_name ASC, emp.id ASC
 LIMIT $%d OFFSET $%d`, whereClause, idx, idx+1)

@@ -214,7 +214,7 @@ func (r ScheduleRepository) GetOfficialSchedules(ctx context.Context, startDate,
 	), eligible_days AS (
 		SELECT ee.*, days.day::date AS business_date
 		FROM eligible_employments ee
-		CROSS JOIN LATERAL generate_series(GREATEST(ee.start_date, $1::date), LEAST(COALESCE(ee.end_date, $2::date), $2::date), interval '1 day') days
+		CROSS JOIN LATERAL generate_series(GREATEST(ee.start_date, $1::date), LEAST(COALESCE(ee.end_date, $2::date), $2::date), interval '1 day') AS days(day)
 	)
 	SELECT ed.employment_id, ed.employee_id, ed.full_name, ed.employee_id_number, ed.business_date::text,
 		r.id, r.state, r.timezone, r.published_at, r.source,
@@ -240,7 +240,7 @@ func (r ScheduleRepository) GetOfficialSchedules(ctx context.Context, startDate,
 	LEFT JOIN work_segments ws ON ws.schedule_revision_id = r.id
 	LEFT JOIN shift_versions sv ON sv.id = ws.selected_shift_version_id
 	LEFT JOIN shift_templates st ON st.id = ws.template_id
-	GROUP BY ed.employment_id, ed.employee_id, ed.full_name, ed.employee_id_number, ed.business_date, r.id, r.state, r.timezone, r.published_at, r.source
+	GROUP BY ed.employment_id, ed.employee_id, ed.full_name, ed.employee_id_number, ed.start_date, ed.business_date, r.id, r.state, r.timezone, r.published_at, r.source
 	ORDER BY ed.start_date DESC, ed.employment_id, ed.business_date
 	`, start, end, employmentIDs, limit, (page-1)*limit)
 	if err != nil {
@@ -289,6 +289,33 @@ func (r ScheduleRepository) GetOfficialSchedules(ctx context.Context, startDate,
 		return api.PaginatedEmployeeSchedules{}, err
 	}
 	return api.PaginatedEmployeeSchedules{Data: result, Total: total, Page: page, Limit: limit}, nil
+}
+
+func (r ScheduleRepository) GetActivationAwareSchedules(ctx context.Context, startDate, endDate time.Time, employmentIDs []uuid.UUID, page, limit int) (api.PaginatedEmployeeSchedules, error) {
+	db, err := r.db(ctx)
+	if err != nil {
+		return api.PaginatedEmployeeSchedules{}, err
+	}
+	var official bool
+	if err := db.QueryRow(ctx, `SELECT COALESCE(bool_and(COALESCE(c.value_bool, false)), false)
+		FROM employments e
+		CROSS JOIN generate_series(GREATEST(e.start_date, $2::date), LEAST(COALESCE(e.end_date, $3::date), $3::date), interval '1 day') days(day)
+		LEFT JOIN LATERAL (
+			SELECT c.value_bool FROM config_entries c
+			WHERE c.scope_type = 'employer' AND c.scope_id = e.employer_id
+			  AND c.config_key = 'schedule.lifecycle.enabled' AND c.effective_from <= days.day::date
+			  AND (c.effective_to IS NULL OR c.effective_to >= days.day::date)
+			ORDER BY c.effective_from DESC, c.id DESC LIMIT 1
+		) c ON true
+		WHERE e.deleted_at IS NULL AND e.start_date <= $3::date
+		  AND (e.end_date IS NULL OR e.end_date >= $2::date)
+		  AND (COALESCE(cardinality($1::uuid[]), 0) = 0 OR e.id = ANY($1::uuid[]))`, employmentIDs, startDate, endDate).Scan(&official); err != nil {
+		return api.PaginatedEmployeeSchedules{}, err
+	}
+	if official {
+		return r.GetOfficialSchedules(ctx, startDate, endDate, employmentIDs, page, limit)
+	}
+	return r.GetOrganizationSchedules(ctx, startDate, endDate, employmentIDs, page, limit)
 }
 
 func (r ScheduleRepository) GetOrganizationSchedules(ctx context.Context, startDate, endDate time.Time, employmentIDs []uuid.UUID, page, limit int) (api.PaginatedEmployeeSchedules, error) {
