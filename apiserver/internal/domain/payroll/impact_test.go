@@ -46,11 +46,11 @@ func TestDecodeImpactSnapshotRejectsMalformedValues(t *testing.T) {
 }
 
 func TestEqualImpactInputsRequiresSameSnapshot(t *testing.T) {
-	if EqualImpactInputs([]byte(`{"policy":"a"}`), []byte(`{"policy":"b"}`)) {
-		t.Fatal("different input snapshots must not compare as equal")
+	if EqualImpactInputs([]byte(`{"kpi_inputs":{"actual":"1"}}`), []byte(`{"kpi_inputs":{"actual":"2"}}`)) {
+		t.Fatal("different calculation inputs must not compare as equal")
 	}
-	if !EqualImpactInputs([]byte(`{"policy":"a"}`), []byte(`{"policy":"a"}`)) {
-		t.Fatal("same input snapshots must compare as equal")
+	if !EqualImpactInputs([]byte(`{"kpi_inputs":{"actual":"1"},"policy":"a"}`), []byte(`{"kpi_inputs":{"actual":"1"},"policy":"b"}`)) {
+		t.Fatal("policy provenance alone must not make inputs differ")
 	}
 }
 

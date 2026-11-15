@@ -112,10 +112,12 @@ func DecodeImpactSnapshot(raw []byte) (ImpactSnapshot, error) {
 }
 
 func EqualImpactInputs(before, after []byte) bool {
-	var left, right any
+	var left, right map[string]any
 	if json.Unmarshal(before, &left) != nil || json.Unmarshal(after, &right) != nil {
 		return false
 	}
+	delete(left, "policy")
+	delete(right, "policy")
 	return reflect.DeepEqual(left, right)
 }
 

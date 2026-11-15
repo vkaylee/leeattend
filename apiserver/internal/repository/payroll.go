@@ -1198,6 +1198,69 @@ ORDER BY created_at DESC, id DESC`, uuid.UUID(employmentID), year, month)
 	return result, rows.Err()
 }
 
+func (r PayrollRepository) ComparePayrollImpact(ctx context.Context, employmentID ids.EmploymentID, year, month int, beforeRunID, afterRunID uuid.UUID) (api.PayrollImpactResponse, error) {
+	db, err := r.db(ctx)
+	if err != nil {
+		return api.PayrollImpactResponse{}, err
+	}
+	if beforeRunID == uuid.Nil || afterRunID == uuid.Nil || beforeRunID == afterRunID || year < 2000 || year > 2100 || month < 1 || month > 12 {
+		return api.PayrollImpactResponse{}, api.ErrPayrollImpactValidation
+	}
+	rows, err := db.Query(ctx, `SELECT id, formula_version_id, input_snapshot, output_snapshot
+FROM payroll_calculation_runs
+WHERE employment_id = $1 AND period_year = $2 AND period_month = $3 AND id = ANY($4::uuid[])`, uuid.UUID(employmentID), year, month, []uuid.UUID{beforeRunID, afterRunID})
+	if err != nil {
+		return api.PayrollImpactResponse{}, err
+	}
+	defer rows.Close()
+	type snapshotRun struct {
+		formulaID *uuid.UUID
+		input     []byte
+		output    []byte
+	}
+	runs := make(map[uuid.UUID]snapshotRun, 2)
+	for rows.Next() {
+		var id uuid.UUID
+		var run snapshotRun
+		if err := rows.Scan(&id, &run.formulaID, &run.input, &run.output); err != nil {
+			return api.PayrollImpactResponse{}, err
+		}
+		runs[id] = run
+	}
+	if err := rows.Err(); err != nil {
+		return api.PayrollImpactResponse{}, err
+	}
+	before, beforeOK := runs[beforeRunID]
+	after, afterOK := runs[afterRunID]
+	if !beforeOK || !afterOK {
+		return api.PayrollImpactResponse{}, api.ErrPayrollImpactNotFound
+	}
+	if before.formulaID != nil || after.formulaID != nil {
+		return api.PayrollImpactResponse{}, api.ErrPayrollImpactValidation
+	}
+	delta, err := payroll.CompareImpactSnapshots(before.input, before.output, after.input, after.output)
+	if errors.Is(err, payroll.ErrImpactSnapshotIncomplete) {
+		return api.PayrollImpactResponse{
+			EmploymentID: uuid.UUID(employmentID), PeriodYear: year, PeriodMonth: month,
+			BeforeRunID: beforeRunID, AfterRunID: afterRunID, Computed: false,
+			Reason: "calculation output is incomplete",
+		}, nil
+	}
+	if errors.Is(err, payroll.ErrImpactInputMismatch) {
+		return api.PayrollImpactResponse{}, api.ErrPayrollImpactValidation
+	}
+	if err != nil {
+		return api.PayrollImpactResponse{}, err
+	}
+	return api.PayrollImpactResponse{
+		EmploymentID: uuid.UUID(employmentID), PeriodYear: year, PeriodMonth: month,
+		BeforeRunID: beforeRunID, AfterRunID: afterRunID, Computed: delta.Complete,
+		Reason: delta.Reason, BasePayDelta: delta.BasePayDelta, OvertimePayDelta: delta.OvertimePayDelta,
+		DeductionsDelta: delta.DeductionsDelta, NetPayDelta: delta.NetPayDelta,
+		StandardUnitsDelta: delta.StandardUnitsDelta, OvertimeUnitsDelta: delta.OvertimeUnitsDelta,
+	}, nil
+}
+
 func (r PayrollRepository) ListPayrollFormulaRuleVersions(ctx context.Context, ruleID uuid.UUID) ([]api.PayrollFormulaRuleVersion, error) {
 	db, err := r.db(ctx)
 	if err != nil {

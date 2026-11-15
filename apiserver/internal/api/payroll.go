@@ -36,6 +36,8 @@ var (
 	ErrPayslipConflict         = errors.New("payroll: payslip conflict")
 	ErrPayrollInputConflict    = errors.New("payroll: input batch conflict")
 	ErrPayrollInputNotFound    = errors.New("payroll: input batch not found")
+	ErrPayrollImpactNotFound   = errors.New("payroll: impact run not found")
+	ErrPayrollImpactValidation = errors.New("payroll: impact runs are invalid")
 )
 
 type CreateSalaryComponentRequest struct {
@@ -376,6 +378,22 @@ type PayrollFormulaRuleVersion struct {
 	CreatedAt     string     `json:"created_at"`
 }
 
+type PayrollImpactResponse struct {
+	EmploymentID       uuid.UUID       `json:"employment_id"`
+	PeriodYear         int             `json:"period_year"`
+	PeriodMonth        int             `json:"period_month"`
+	BeforeRunID        uuid.UUID       `json:"before_run_id"`
+	AfterRunID         uuid.UUID       `json:"after_run_id"`
+	Computed           bool            `json:"computed"`
+	Reason             string          `json:"reason,omitempty"`
+	BasePayDelta       decimal.Decimal `json:"base_pay_delta"`
+	OvertimePayDelta   decimal.Decimal `json:"overtime_pay_delta"`
+	DeductionsDelta    decimal.Decimal `json:"deductions_delta"`
+	NetPayDelta        decimal.Decimal `json:"net_pay_delta"`
+	StandardUnitsDelta int32           `json:"standard_units_delta"`
+	OvertimeUnitsDelta int32           `json:"overtime_units_delta"`
+}
+
 type PayrollCalculationRun struct {
 	ID               uuid.UUID       `json:"id"`
 	EmploymentID     uuid.UUID       `json:"employment_id"`
@@ -453,6 +471,7 @@ type PayrollRepository interface {
 	PublishPayrollFormulaRule(context.Context, ids.PayrollFormulaRuleID, ids.UserID) (PayrollFormulaRule, error)
 	RetirePayrollFormulaRule(context.Context, ids.PayrollFormulaRuleID, ids.UserID) (PayrollFormulaRule, error)
 	ListPayrollCalculationRuns(context.Context, ids.EmploymentID, int, int) ([]PayrollCalculationRun, error)
+	ComparePayrollImpact(context.Context, ids.EmploymentID, int, int, uuid.UUID, uuid.UUID) (PayrollImpactResponse, error)
 	GetPayrollPeriod(context.Context, ids.EmployerID, int, int) (PayrollPeriod, error)
 	LockPayrollPeriod(context.Context, payrolldomain.PayrollPeriodMutation) (PayrollPeriod, error)
 	ReopenPayrollPeriod(context.Context, payrolldomain.PayrollPeriodMutation) (PayrollPeriod, error)
@@ -1084,6 +1103,32 @@ func validPayrollInputRequest(req CreatePayrollInputRequest) bool {
 	return true
 }
 
+func (h PayrollHandler) ComparePayrollImpact(w http.ResponseWriter, r *http.Request) {
+	if !h.allowed(r, "payroll:sensitive:read") {
+		h.forbidden(w, r)
+		return
+	}
+	employmentID, ok := pathUUID(r, "id")
+	if !ok {
+		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
+		return
+	}
+	year, err := strconv.Atoi(r.URL.Query().Get("year"))
+	month, monthErr := strconv.Atoi(r.URL.Query().Get("month"))
+	beforeRunID, beforeErr := uuid.Parse(r.URL.Query().Get("before_run_id"))
+	afterRunID, afterErr := uuid.Parse(r.URL.Query().Get("after_run_id"))
+	if err != nil || monthErr != nil || beforeErr != nil || afterErr != nil || year < 2000 || year > 2100 || month < 1 || month > 12 || beforeRunID == uuid.Nil || afterRunID == uuid.Nil || beforeRunID == afterRunID {
+		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
+		return
+	}
+	result, err := h.Repository.ComparePayrollImpact(r.Context(), ids.EmploymentID(employmentID), year, month, beforeRunID, afterRunID)
+	if err != nil {
+		h.writeError(w, r, err)
+		return
+	}
+	apperror.WriteJSON(w, http.StatusOK, result)
+}
+
 func (h PayrollHandler) ListPayrollCalculationRuns(w http.ResponseWriter, r *http.Request) {
 	if !h.allowed(r, "payroll:read") {
 		h.forbidden(w, r)
@@ -1560,7 +1605,11 @@ func (h PayrollHandler) writeError(w http.ResponseWriter, r *http.Request, err e
 		apperror.WriteError(w, r, apperror.Validation("error.no_active_employment"))
 		return
 	}
-	if errors.Is(err, ErrPayrollValidation) || errors.Is(err, ErrPayrollPeriodValidation) {
+	if errors.Is(err, ErrPayrollImpactNotFound) {
+		apperror.WriteError(w, r, apperror.NotFound(apperror.KeyNotFound))
+		return
+	}
+	if errors.Is(err, ErrPayrollImpactValidation) || errors.Is(err, ErrPayrollValidation) || errors.Is(err, ErrPayrollPeriodValidation) {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}

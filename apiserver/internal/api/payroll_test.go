@@ -58,6 +58,10 @@ func (mockPayrollRepository) ListPayrollCalculationRuns(context.Context, ids.Emp
 	return []PayrollCalculationRun{}, nil
 }
 
+func (mockPayrollRepository) ComparePayrollImpact(context.Context, ids.EmploymentID, int, int, uuid.UUID, uuid.UUID) (PayrollImpactResponse, error) {
+	return PayrollImpactResponse{Computed: true}, nil
+}
+
 func (mockPayrollRepository) ListPayrollFormulaRuleVersions(context.Context, uuid.UUID) ([]PayrollFormulaRuleVersion, error) {
 	return []PayrollFormulaRuleVersion{}, nil
 }
@@ -1415,6 +1419,28 @@ func TestPayrollInputLifecycleEndpoints(t *testing.T) {
 	PayrollHandler{Repository: mockPayrollRepository{}, Authorizer: payrollAuthorizer{allowedPerms: map[string]bool{"payroll:manage": true}}}.LockPayrollInputBatch(lockedRec, lockedReq)
 	if lockedRec.Code != http.StatusOK {
 		t.Fatalf("lock status = %d, want 200", lockedRec.Code)
+	}
+}
+
+func TestPayrollImpactEndpointEnforcesSensitiveReadAndValidatesRuns(t *testing.T) {
+	employmentID := uuid.New()
+	request := func(permission bool, query string) *httptest.ResponseRecorder {
+		req := httptest.NewRequest(http.MethodGet, "/api/v1/employments/"+employmentID.String()+"/payroll/impact?"+query, nil)
+		req.SetPathValue("id", employmentID.String())
+		req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
+		rec := httptest.NewRecorder()
+		PayrollHandler{Repository: mockPayrollRepository{}, Authorizer: payrollAuthorizer{allowedPerms: map[string]bool{"payroll:sensitive:read": permission}}}.ComparePayrollImpact(rec, req)
+		return rec
+	}
+	validQuery := "year=2026&month=6&before_run_id=" + uuid.NewString() + "&after_run_id=" + uuid.NewString()
+	if got := request(false, validQuery).Code; got != http.StatusForbidden {
+		t.Fatalf("forbidden status = %d, want 403", got)
+	}
+	if got := request(true, "year=2026&month=6").Code; got != http.StatusBadRequest {
+		t.Fatalf("invalid run query status = %d, want 400", got)
+	}
+	if got := request(true, validQuery).Code; got != http.StatusOK {
+		t.Fatalf("valid impact status = %d, want 200", got)
 	}
 }
 
