@@ -14,6 +14,37 @@ import (
 	"github.com/vkaylee/leeattend/apiserver/internal/domain/workpolicy"
 )
 
+func TestWorkPolicyGroupVersionScanPreservesRateComponent(t *testing.T) {
+	versionID, groupID, rateComponentID := uuid.New(), uuid.New(), uuid.New()
+	row := fakeRow{scanFn: func(dest ...any) error {
+		*(dest[0].(*uuid.UUID)) = versionID
+		*(dest[1].(*uuid.UUID)) = groupID
+		*(dest[2].(*string)) = "Operations"
+		*(dest[3].(*uuid.UUID)) = uuid.New()
+		*(dest[4].(*string)) = "Work credit"
+		*(dest[5].(*int)) = 450
+		*(dest[6].(*uuid.UUID)) = uuid.New()
+		*(dest[7].(*uuid.UUID)) = uuid.New()
+		*(dest[8].(*uuid.UUID)) = uuid.New()
+		*(dest[9].(*string)) = "Pay basis"
+		*(dest[10].(*string)) = string(workpolicy.PayMethodHourly)
+		*(dest[11].(**string)) = nil
+		*(dest[12].(**string)) = nil
+		*(dest[13].(**uuid.UUID)) = &rateComponentID
+		*(dest[14].(*uuid.UUID)) = uuid.New()
+		*(dest[15].(*string)) = "2026-01-01"
+		*(dest[16].(**string)) = nil
+		return nil
+	}}
+	got, err := workPolicyGroupVersion(row)
+	if err != nil {
+		t.Fatalf("scan work policy version: %v", err)
+	}
+	if got.RateComponentDefinitionID == nil || *got.RateComponentDefinitionID != rateComponentID {
+		t.Fatalf("rate component provenance lost: %+v", got.RateComponentDefinitionID)
+	}
+}
+
 func TestWorkPolicyRepository_ListWorkPolicyGroupHistoryPaginatesByGroup(t *testing.T) {
 	groupID := uuid.New()
 	versionID := uuid.New()

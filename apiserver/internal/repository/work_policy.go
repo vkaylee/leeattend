@@ -288,6 +288,9 @@ func workPolicyGroupVersion(row interface{ Scan(...any) error }) (api.WorkPolicy
 		}
 		item.MonthlyStandardDays = &value
 	}
+	if rateComponentID != nil {
+		item.RateComponentDefinitionID = rateComponentID
+	}
 	return item, nil
 }
 
