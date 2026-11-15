@@ -67,6 +67,20 @@ func TestPayrollStandardDaysForPolicy(t *testing.T) {
 	}
 }
 
+func TestResolveMonthlyOTQuotaPrefersCanonicalOverLegacy(t *testing.T) {
+	canonical := decimal.RequireFromString("12")
+	legacy := decimal.RequireFromString("20")
+	if got := resolveMonthlyOTQuota(&canonical, &legacy); got == nil || !got.Equal(canonical) {
+		t.Fatalf("canonical quota must win, got %v", got)
+	}
+	if got := resolveMonthlyOTQuota(nil, &legacy); got == nil || !got.Equal(legacy) {
+		t.Fatalf("legacy quota must remain fallback, got %v", got)
+	}
+	if got := resolveMonthlyOTQuota(nil, nil); got != nil {
+		t.Fatalf("missing quota must remain unset, got %v", got)
+	}
+}
+
 func TestPayrollInputRowStatus(t *testing.T) {
 	status, message := payrollInputRowStatus(decimal.Zero)
 	if status != "warning" || message != "zero metric value requires review" {

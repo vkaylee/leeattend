@@ -1968,6 +1968,16 @@ func calculateShiftPolicyPay(rate decimal.Decimal, completedShifts int) decimal.
 	return rate.Mul(decimal.NewFromInt(int64(completedShifts))).Round(2)
 }
 
+func resolveMonthlyOTQuota(canonical, legacy *decimal.Decimal) *decimal.Decimal {
+	if canonical != nil && canonical.GreaterThanOrEqual(decimal.Zero) {
+		return canonical
+	}
+	if legacy != nil && legacy.GreaterThanOrEqual(decimal.Zero) {
+		return legacy
+	}
+	return nil
+}
+
 func shiftCountInRange(counts map[string]int, start, end time.Time) int {
 	result := 0
 	for current := start; !current.After(end); current = current.AddDate(0, 0, 1) {
@@ -2162,7 +2172,8 @@ ORDER BY start_date ASC, id ASC`, employeeID, endStr)
 
 	stdDays := decimal.NewFromInt(26)
 	hoursPerDay := decimal.NewFromInt(8)
-	var maxOtHours *decimal.Decimal
+	var canonicalMaxOtHours *decimal.Decimal
+	var legacyMaxOtHours *decimal.Decimal
 
 	orgCfgRows, err := db.Query(ctx, `SELECT config_key, value_decimal::text
 FROM config_entries
@@ -2187,8 +2198,10 @@ ORDER BY effective_from DESC, created_at DESC`, endStr)
 							if d.GreaterThan(decimal.Zero) {
 								hoursPerDay = d
 							}
+						case "overtime.max_hours_per_month":
+							canonicalMaxOtHours = &d
 						case "payroll.max_ot_hours_per_month":
-							maxOtHours = &d
+							legacyMaxOtHours = &d
 						}
 					}
 				}
@@ -2237,6 +2250,7 @@ WHERE employment_id = $1 AND date >= $2::date AND date <= $3::date`, employmentI
 		}
 	}
 
+	maxOtHours := resolveMonthlyOTQuota(canonicalMaxOtHours, legacyMaxOtHours)
 	completedShiftCounts := map[string]int{}
 	for _, assignment := range policyAssignments {
 		if assignment.policy.PayMethod != workpolicy.PayMethodShift {
