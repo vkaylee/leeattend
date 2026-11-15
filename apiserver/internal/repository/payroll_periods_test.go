@@ -11,6 +11,8 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/vkaylee/leeattend/apiserver/internal/api"
+	"github.com/vkaylee/leeattend/apiserver/internal/domain/ids"
+	payrolldomain "github.com/vkaylee/leeattend/apiserver/internal/domain/payroll"
 )
 
 type payrollPeriodTestTx struct {
@@ -58,7 +60,7 @@ func TestPayrollRepositoryLockPeriodAuditsAtomically(t *testing.T) {
 		return pgconn.NewCommandTag("INSERT 0 1"), nil
 	}
 	repo := PayrollRepository{DB: tx}
-	period, err := repo.LockPayrollPeriod(context.Background(), employerID, 2026, 1, 1, actorID)
+	period, err := repo.LockPayrollPeriod(context.Background(), payrolldomain.PayrollPeriodMutation{EmployerID: ids.EmployerID(employerID), Year: 2026, Month: 1, ExpectedVersion: 1, ActorID: ids.UserID(actorID)})
 	if err != nil {
 		t.Fatalf("lock payroll period: %v", err)
 	}
@@ -82,7 +84,7 @@ func TestPayrollRepositoryLockPeriodRequiresClosedAttendance(t *testing.T) {
 	tx.fakeDBTX.execFn = func(_ context.Context, _ string, _ ...any) (pgconn.CommandTag, error) {
 		return pgconn.NewCommandTag("INSERT 0 0"), nil
 	}
-	_, err := (PayrollRepository{DB: tx}).LockPayrollPeriod(context.Background(), uuid.New(), 2026, 1, 1, uuid.New())
+	_, err := (PayrollRepository{DB: tx}).LockPayrollPeriod(context.Background(), payrolldomain.PayrollPeriodMutation{EmployerID: ids.EmployerID(uuid.New()), Year: 2026, Month: 1, ExpectedVersion: 1, ActorID: ids.UserID(uuid.New())})
 	if !errors.Is(err, api.ErrPayrollPeriodConflict) || tx.committed || !tx.rolledBack {
 		t.Fatalf("error/transaction = %v/%t/%t, want attendance conflict/false/true", err, tx.committed, tx.rolledBack)
 	}
@@ -99,7 +101,7 @@ func TestPayrollRepositoryPeriodConflictDoesNotCommit(t *testing.T) {
 	tx.fakeDBTX.execFn = func(_ context.Context, _ string, _ ...any) (pgconn.CommandTag, error) {
 		return pgconn.NewCommandTag("INSERT 0 0"), nil
 	}
-	_, err := (PayrollRepository{DB: tx}).LockPayrollPeriod(context.Background(), uuid.New(), 2026, 1, 1, uuid.New())
+	_, err := (PayrollRepository{DB: tx}).LockPayrollPeriod(context.Background(), payrolldomain.PayrollPeriodMutation{EmployerID: ids.EmployerID(uuid.New()), Year: 2026, Month: 1, ExpectedVersion: 1, ActorID: ids.UserID(uuid.New())})
 	if !errors.Is(err, api.ErrPayrollPeriodConflict) || tx.committed || !tx.rolledBack {
 		t.Fatalf("error/transaction = %v/%t/%t, want period conflict/false/true", err, tx.committed, tx.rolledBack)
 	}

@@ -15,6 +15,7 @@ import (
 	"github.com/shopspring/decimal"
 	"github.com/vkaylee/leeattend/apiserver/internal/audit"
 	"github.com/vkaylee/leeattend/apiserver/internal/domain/ids"
+	payrolldomain "github.com/vkaylee/leeattend/apiserver/internal/domain/payroll"
 	httpinfra "github.com/vkaylee/leeattend/apiserver/internal/infra/http"
 )
 
@@ -474,16 +475,16 @@ func (mockPayrollRepository) CalculateEmployeePayroll(_ context.Context, employe
 	}, nil
 }
 
-func (mockPayrollRepository) GetPayrollPeriod(_ context.Context, employerID uuid.UUID, year, month int) (PayrollPeriod, error) {
-	return PayrollPeriod{ID: uuid.New(), EmployerID: employerID, Year: year, Month: month, Status: "open", Version: 1}, nil
+func (mockPayrollRepository) GetPayrollPeriod(_ context.Context, employerID ids.EmployerID, year, month int) (PayrollPeriod, error) {
+	return PayrollPeriod{ID: uuid.New(), EmployerID: uuid.UUID(employerID), Year: year, Month: month, Status: "open", Version: 1}, nil
 }
 
-func (mockPayrollRepository) LockPayrollPeriod(_ context.Context, employerID uuid.UUID, year, month int, version int64, _ uuid.UUID) (PayrollPeriod, error) {
-	return PayrollPeriod{ID: uuid.New(), EmployerID: employerID, Year: year, Month: month, Status: "locked", Version: version + 1}, nil
+func (mockPayrollRepository) LockPayrollPeriod(_ context.Context, input payrolldomain.PayrollPeriodMutation) (PayrollPeriod, error) {
+	return PayrollPeriod{ID: uuid.New(), EmployerID: uuid.UUID(input.EmployerID), Year: input.Year, Month: input.Month, Status: "locked", Version: input.ExpectedVersion + 1}, nil
 }
 
-func (mockPayrollRepository) ReopenPayrollPeriod(_ context.Context, employerID uuid.UUID, year, month int, version int64, reason string, _ uuid.UUID) (PayrollPeriod, error) {
-	return PayrollPeriod{ID: uuid.New(), EmployerID: employerID, Year: year, Month: month, Status: "open", Version: version + 1, ReopenReason: &reason}, nil
+func (mockPayrollRepository) ReopenPayrollPeriod(_ context.Context, input payrolldomain.PayrollPeriodMutation) (PayrollPeriod, error) {
+	return PayrollPeriod{ID: uuid.New(), EmployerID: uuid.UUID(input.EmployerID), Year: input.Year, Month: input.Month, Status: "open", Version: input.ExpectedVersion + 1, ReopenReason: &input.Reason}, nil
 }
 
 func (mockPayrollRepository) CalculateBatchPayroll(_ context.Context, req BatchCalculatePayrollRequest, _ ids.UserID) (BatchCalculatePayrollResponse, error) {

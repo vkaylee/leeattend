@@ -15,6 +15,7 @@ import (
 	"github.com/vkaylee/leeattend/apiserver/internal/apperror"
 	"github.com/vkaylee/leeattend/apiserver/internal/audit"
 	"github.com/vkaylee/leeattend/apiserver/internal/domain/ids"
+	payrolldomain "github.com/vkaylee/leeattend/apiserver/internal/domain/payroll"
 	"github.com/vkaylee/leeattend/apiserver/internal/domain/payroll/formula"
 	httpinfra "github.com/vkaylee/leeattend/apiserver/internal/infra/http"
 )
@@ -452,9 +453,9 @@ type PayrollRepository interface {
 	PublishPayrollFormulaRule(context.Context, ids.PayrollFormulaRuleID, ids.UserID) (PayrollFormulaRule, error)
 	RetirePayrollFormulaRule(context.Context, ids.PayrollFormulaRuleID, ids.UserID) (PayrollFormulaRule, error)
 	ListPayrollCalculationRuns(context.Context, uuid.UUID, int, int) ([]PayrollCalculationRun, error)
-	GetPayrollPeriod(context.Context, uuid.UUID, int, int) (PayrollPeriod, error)
-	LockPayrollPeriod(context.Context, uuid.UUID, int, int, int64, uuid.UUID) (PayrollPeriod, error)
-	ReopenPayrollPeriod(context.Context, uuid.UUID, int, int, int64, string, uuid.UUID) (PayrollPeriod, error)
+	GetPayrollPeriod(context.Context, ids.EmployerID, int, int) (PayrollPeriod, error)
+	LockPayrollPeriod(context.Context, payrolldomain.PayrollPeriodMutation) (PayrollPeriod, error)
+	ReopenPayrollPeriod(context.Context, payrolldomain.PayrollPeriodMutation) (PayrollPeriod, error)
 }
 type PayrollHandler struct {
 	Repository PayrollRepository
@@ -927,7 +928,7 @@ func (h PayrollHandler) GetPayrollPeriod(w http.ResponseWriter, r *http.Request)
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}
-	period, err := h.Repository.GetPayrollPeriod(r.Context(), employerID, year, month)
+	period, err := h.Repository.GetPayrollPeriod(r.Context(), ids.EmployerID(employerID), year, month)
 	if err != nil {
 		h.writeError(w, r, err)
 		return
@@ -956,7 +957,9 @@ func (h PayrollHandler) LockPayrollPeriod(w http.ResponseWriter, r *http.Request
 		return
 	}
 	actorID, _ := httpinfra.UserIDFromContext(r.Context())
-	period, err := h.Repository.LockPayrollPeriod(r.Context(), employerID, year, month, request.Version, actorID)
+	period, err := h.Repository.LockPayrollPeriod(r.Context(), payrolldomain.PayrollPeriodMutation{
+		EmployerID: ids.EmployerID(employerID), Year: year, Month: month, ExpectedVersion: request.Version, ActorID: ids.UserID(actorID),
+	})
 	if err != nil {
 		h.writeError(w, r, err)
 		return
@@ -985,7 +988,10 @@ func (h PayrollHandler) ReopenPayrollPeriod(w http.ResponseWriter, r *http.Reque
 		return
 	}
 	actorID, _ := httpinfra.UserIDFromContext(r.Context())
-	period, err := h.Repository.ReopenPayrollPeriod(r.Context(), employerID, year, month, request.Version, strings.TrimSpace(request.Reason), actorID)
+	period, err := h.Repository.ReopenPayrollPeriod(r.Context(), payrolldomain.PayrollPeriodMutation{
+		EmployerID: ids.EmployerID(employerID), Year: year, Month: month, ExpectedVersion: request.Version,
+		Reason: strings.TrimSpace(request.Reason), ActorID: ids.UserID(actorID),
+	})
 	if err != nil {
 		h.writeError(w, r, err)
 		return
