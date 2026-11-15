@@ -85,7 +85,7 @@ func (r EmployeeRepository) ListEmployees(ctx context.Context, page, limit int, 
 	}
 	offset := (page - 1) * limit
 	pattern := "%" + search + "%"
-	rows, err := db.Query(ctx, `SELECT e.id, e.user_id, e.full_name, e.employee_id_number, e.tags, e.created_at, e.updated_at, d.name AS department_name, emp.id AS active_employment_id, emp.employer_id, NULL::uuid AS primary_location_id FROM employees e LEFT JOIN employments emp ON emp.employee_id = e.id AND emp.status = 'active' AND emp.deleted_at IS NULL LEFT JOIN departments d ON d.id = emp.department_id WHERE e.deleted_at IS NULL AND ($1 = '%%' OR e.full_name ILIKE $1 OR e.employee_id_number ILIKE $1) ORDER BY e.employee_id_number ASC, e.id ASC LIMIT $2 OFFSET $3`, pattern, limit, offset)
+	rows, err := db.Query(ctx, `SELECT e.id, e.user_id, e.full_name, COALESCE(tenure.employee_number, e.employee_id_number), e.tags, e.created_at, e.updated_at, d.name AS department_name, emp.id AS active_employment_id, emp.employer_id, NULL::uuid AS primary_location_id FROM employees e LEFT JOIN employments emp ON emp.employee_id = e.id AND emp.status = 'active' AND emp.deleted_at IS NULL LEFT JOIN departments d ON d.id = emp.department_id LEFT JOIN LATERAL (SELECT t.employee_number FROM employee_tenures t WHERE t.employee_id = e.id AND t.deleted_at IS NULL AND t.start_date <= CURRENT_DATE AND (t.end_date IS NULL OR t.end_date >= CURRENT_DATE) ORDER BY t.start_date DESC, t.id DESC LIMIT 1) tenure ON TRUE WHERE e.deleted_at IS NULL AND ($1 = '%%' OR e.full_name ILIKE $1 OR EXISTS (SELECT 1 FROM employee_tenures search_t WHERE search_t.employee_id = e.id AND search_t.deleted_at IS NULL AND search_t.employee_number ILIKE $1)) ORDER BY COALESCE(tenure.employee_number, e.employee_id_number) ASC, e.id ASC LIMIT $2 OFFSET $3`, pattern, limit, offset)
 	if err != nil {
 		return api.EmployeeListResponse{}, err
 	}
@@ -104,7 +104,7 @@ func (r EmployeeRepository) ListEmployees(ctx context.Context, page, limit int, 
 	if err := rows.Err(); err != nil {
 		return api.EmployeeListResponse{}, err
 	}
-	if err := db.QueryRow(ctx, `SELECT count(*) FROM employees WHERE deleted_at IS NULL AND ($1 = '%%' OR full_name ILIKE $1 OR employee_id_number ILIKE $1)`, pattern).Scan(&result.Total); err != nil {
+	if err := db.QueryRow(ctx, `SELECT count(*) FROM employees e WHERE e.deleted_at IS NULL AND ($1 = '%%' OR e.full_name ILIKE $1 OR EXISTS (SELECT 1 FROM employee_tenures t WHERE t.employee_id = e.id AND t.deleted_at IS NULL AND t.employee_number ILIKE $1))`, pattern).Scan(&result.Total); err != nil {
 		return api.EmployeeListResponse{}, err
 	}
 	return result, nil
