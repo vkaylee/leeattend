@@ -7,6 +7,8 @@ export interface WorkPolicyGroupVersion {
   name: string;
   work_credit_policy_id?: string;
   pay_basis_policy_id?: string;
+  attendance_policy_id?: string;
+  working_pattern_id?: string;
   minutes_per_credit: number;
   pay_method: "monthly" | "hourly" | "shift";
   monthly_denominator?: "fixed" | "schedule";

@@ -6,7 +6,7 @@ import { useTranslation } from "react-i18next";
 import Button from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
 import { Typography } from "@/components/ui/typography";
-import { fetchWorkPolicyGroupHistory, fetchWorkPolicyGroups, updatePayrollSettings, fetchPayrollSettingsHistory } from "@/lib/api/payroll";
+import { createWorkPolicyGroupVersion, fetchWorkPolicyGroupHistory, fetchWorkPolicyGroups, updatePayrollSettings, fetchPayrollSettingsHistory } from "@/lib/api/payroll";
 import { payrollKeys } from "@/lib/query-keys";
 
 import TemporalConfigTable from "../common/temporal-config-table";
@@ -17,6 +17,9 @@ export default function PayrollSettingsSection() {
   const queryClient = useQueryClient();
   const toast = useToast();
   const [selectedPolicyGroupId, setSelectedPolicyGroupId] = useState<string>();
+  const [isCreatingVersion, setIsCreatingVersion] = useState(false);
+  const [versionForm, setVersionForm] = useState({ effective_from: "", minutes_per_credit: "", pay_method: "monthly" as "monthly" | "hourly" | "shift" });
+  const [versionError, setVersionError] = useState<string>();
 
   const { data: history = [], isLoading: isHistoryLoading } = useQuery({ queryKey: payrollKeys.settingsHistory(), queryFn: () => fetchPayrollSettingsHistory() });
   const { data: workPolicies = [], isLoading: isWorkPoliciesLoading, isError: isWorkPoliciesError } = useQuery({
@@ -28,6 +31,43 @@ export default function PayrollSettingsSection() {
     queryFn: () => fetchWorkPolicyGroupHistory(selectedPolicyGroupId!),
     enabled: Boolean(selectedPolicyGroupId),
   });
+
+  const handleCreateVersion = async () => {
+    if (!selectedPolicyGroupId) return;
+    const minutes = Number(versionForm.minutes_per_credit);
+    if (!versionForm.effective_from || !Number.isInteger(minutes) || minutes <= 0) {
+      setVersionError(t("common.payroll.settings.work_policy_validation", "Enter effective date and positive whole minutes."));
+      return;
+    }
+    setIsCreatingVersion(true);
+    setVersionError(undefined);
+    try {
+      const selected = workPolicies.find((policy) => policy.group_id === selectedPolicyGroupId);
+      if (!selected?.attendance_policy_id || !selected.working_pattern_id || !selected.overtime_policy_id) {
+        throw new Error(t("common.payroll.settings.work_policy_missing_refs", "Selected policy lacks required references."));
+      }
+      await createWorkPolicyGroupVersion(selectedPolicyGroupId, {
+        name: selected.name,
+        minutes_per_credit: minutes,
+        attendance_policy_id: selected.attendance_policy_id,
+        working_pattern_id: selected.working_pattern_id,
+        pay_method: versionForm.pay_method,
+        monthly_denominator: versionForm.pay_method === "monthly" ? "fixed" : undefined,
+        monthly_standard_days: versionForm.pay_method === "monthly" ? (selected.monthly_standard_days ?? "26") : undefined,
+        rate_component_definition_id: selected.rate_component_definition_id ?? null,
+        overtime_policy_id: selected.overtime_policy_id,
+        effective_from: versionForm.effective_from,
+      });
+      toast.success(t("common.success"));
+      setVersionForm({ effective_from: "", minutes_per_credit: "", pay_method: "monthly" });
+      void queryClient.invalidateQueries({ queryKey: payrollKeys.workPolicyGroups() });
+      void queryClient.invalidateQueries({ queryKey: payrollKeys.workPolicyHistory(selectedPolicyGroupId) });
+    } catch (error: unknown) {
+      setVersionError(error instanceof Error ? error.message : t("common.error"));
+    } finally {
+      setIsCreatingVersion(false);
+    }
+  };
 
   const handleSavePolicy = async (data: { std_working_days: number; hours_per_day: number; max_ot_hours_per_day: number | null; max_ot_hours_per_month: number | null; effective_date: string }) => {
     try {
@@ -117,7 +157,26 @@ export default function PayrollSettingsSection() {
               <Button className="text-sm text-slate-500 underline" onClick={() => setSelectedPolicyGroupId(undefined)} size="sm" type="button" variant="ghost">{t("common.close", "Close")}</Button>
             </div>
             {isPolicyHistoryLoading ? <div className="h-10 animate-pulse rounded bg-slate-200 dark:bg-slate-800" /> : (
-              <ul className="space-y-2 text-sm">
+              <>
+              <div className="mb-4 grid gap-3 sm:grid-cols-3" aria-label={t("common.payroll.settings.work_policy_create", "Create policy version")}>
+                <label className="text-xs font-semibold text-slate-600 dark:text-slate-300" htmlFor="policy-effective-from">
+                  {t("common.payroll.settings.work_policy_effective_from", "Effective from")}
+                  <input id="policy-effective-from" type="date" value={versionForm.effective_from} onChange={(event) => setVersionForm((form) => ({ ...form, effective_from: event.target.value }))} className="mt-1 block h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm dark:border-slate-700 dark:bg-slate-900" />
+                </label>
+                <label className="text-xs font-semibold text-slate-600 dark:text-slate-300" htmlFor="policy-minutes-per-credit">
+                  {t("common.payroll.settings.work_policy_minutes", "Minutes / credit")}
+                  <input id="policy-minutes-per-credit" type="number" min="1" step="1" value={versionForm.minutes_per_credit} onChange={(event) => setVersionForm((form) => ({ ...form, minutes_per_credit: event.target.value }))} className="mt-1 block h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm dark:border-slate-700 dark:bg-slate-900" />
+                </label>
+                <label className="text-xs font-semibold text-slate-600 dark:text-slate-300" htmlFor="policy-pay-method">
+                  {t("common.payroll.settings.work_policy_method", "Pay method")}
+                  <select id="policy-pay-method" value={versionForm.pay_method} onChange={(event) => setVersionForm((form) => ({ ...form, pay_method: event.target.value as typeof form.pay_method }))} className="mt-1 block h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm dark:border-slate-700 dark:bg-slate-900">
+                    <option value="monthly">monthly</option><option value="hourly">hourly</option><option value="shift">shift</option>
+                  </select>
+                </label>
+              </div>
+              {versionError ? <p className="mb-3 text-sm text-red-600" role="alert">{versionError}</p> : null}
+              <Button type="button" size="sm" disabled={isCreatingVersion} onClick={() => void handleCreateVersion()}>{isCreatingVersion ? t("common.loading", "Loading") : t("common.payroll.settings.work_policy_create", "Create policy version")}</Button>
+              <ul className="mt-4 space-y-2 text-sm">
                 {selectedPolicyHistory.map((version) => (
                   <li key={version.id} className="flex justify-between gap-4 border-b border-slate-100 py-2 last:border-0 dark:border-slate-800">
                     <span>{version.effective_from}{version.effective_to ? ` – ${version.effective_to}` : ""}</span>
@@ -125,6 +184,7 @@ export default function PayrollSettingsSection() {
                   </li>
                 ))}
               </ul>
+              </>
             )}
           </div>
         )}
