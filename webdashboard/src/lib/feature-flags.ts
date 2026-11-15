@@ -1,11 +1,12 @@
 import { useSyncExternalStore } from "react";
 
-import { getAccessToken, hasAuthSessionHint } from "@/lib/api/token-store";
 import { fetchEffectiveFeatureFlags } from "@/lib/api/feature-flags";
+import { getAccessToken, hasAuthSessionHint } from "@/lib/api/token-store";
 
 // Build-time defaults remain the fail-closed fallback during bootstrap or API failure.
 export const FEATURE_FLAGS = {
   ff_econtracts: false,
+  ff_ess: false,
 } as const;
 
 export type FeatureFlagName = keyof typeof FEATURE_FLAGS;
@@ -21,6 +22,11 @@ export const FEATURE_FLAG_CATALOG: Record<FeatureFlagName, FeatureFlagCatalogEnt
     description: "Enable the e-Contracts workflow and settings.",
     owner: "platform",
     removalTarget: "2026-12-13",
+  },
+  ff_ess: {
+    description: "Enable Employee Self-Service workflows and routes.",
+    owner: "platform",
+    removalTarget: "2026-12-15",
   },
 };
 

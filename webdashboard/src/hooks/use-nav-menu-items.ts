@@ -163,11 +163,13 @@ export function useNavMenuItems(): NavMenuStructure {
       label: t("common.sections.self_service"),
       testId: "sidebar-section-ess",
       items: [
-        { to: ROUTES.ESS_PROFILE, icon: UserCircle, label: t("ess.profile.title"), testId: "sidebar-link-ess-profile", permissions: ["ess:profile"] },
-        { to: ROUTES.ESS_ATTENDANCE, icon: History, label: t("ess.attendance.title"), testId: "sidebar-link-ess-attendance", permissions: ["ess:attendance"] },
-        { to: ROUTES.ESS_CLOCK, icon: Clock, label: t("ess.clock.title"), testId: "sidebar-link-ess-clock", permissions: ["ess:clock"] },
-        { to: ROUTES.ESS_OT, icon: Timer, label: t("ess.ot.title", "My OT"), testId: "sidebar-link-ess-ot", permissions: ["ess:ot"] },
-        { to: ROUTES.ESS_DOCUMENTS, icon: Folder, label: t("ess.documents.title", "My Documents"), testId: "sidebar-link-ess-documents", permissions: ["ess:documents"] },
+        ...(isFeatureEnabled("ff_ess") ? [
+          { to: ROUTES.ESS_PROFILE, icon: UserCircle, label: t("ess.profile.title"), testId: "sidebar-link-ess-profile", permissions: ["ess:profile"] },
+          { to: ROUTES.ESS_ATTENDANCE, icon: History, label: t("ess.attendance.title"), testId: "sidebar-link-ess-attendance", permissions: ["ess:attendance"] },
+          { to: ROUTES.ESS_CLOCK, icon: Clock, label: t("ess.clock.title"), testId: "sidebar-link-ess-clock", permissions: ["ess:clock"] },
+          { to: ROUTES.ESS_OT, icon: Timer, label: t("ess.ot.title", "My OT"), testId: "sidebar-link-ess-ot", permissions: ["ess:ot"] },
+          { to: ROUTES.ESS_DOCUMENTS, icon: Folder, label: t("ess.documents.title", "My Documents"), testId: "sidebar-link-ess-documents", permissions: ["ess:documents"] },
+        ] : []),
       ],
     },
   ];

@@ -15,6 +15,7 @@ const (
 	CodeRedisError         ErrorCode = "REDIS_ERROR"
 	CodeUnauthorized       ErrorCode = "UNAUTHORIZED"
 	CodeForbidden          ErrorCode = "FORBIDDEN"
+	CodeFeatureDisabled    ErrorCode = "FEATURE_DISABLED"
 	CodeNotFound           ErrorCode = "NOT_FOUND"
 	CodeValidationError    ErrorCode = "VALIDATION_ERROR"
 	CodePayloadTooLarge    ErrorCode = "PAYLOAD_TOO_LARGE"
@@ -34,7 +35,7 @@ func (c ErrorCode) DefaultStatus() int {
 		return http.StatusInternalServerError
 	case CodeUnauthorized:
 		return http.StatusUnauthorized
-	case CodeForbidden:
+	case CodeForbidden, CodeFeatureDisabled:
 		return http.StatusForbidden
 	case CodeNotFound:
 		return http.StatusNotFound
@@ -59,6 +60,7 @@ const (
 	KeyUnauthorized               = "error.unauthorized"
 	KeyAuthenticationRequired     = "error.authentication_required"
 	KeyForbidden                  = "error.forbidden"
+	KeyFeatureDisabled            = "error.feature_disabled"
 	KeyNotFound                   = "error.not_found"
 	KeyValidation                 = "error.validation"
 	KeyConflict                   = "error.conflict"
@@ -227,6 +229,10 @@ func ForbiddenArgs(key string, args map[string]string) *AppError {
 		key = KeyForbidden
 	}
 	return NewWithArgs(CodeForbidden, http.StatusForbidden, key, args)
+}
+
+func FeatureDisabled(feature string) *AppError {
+	return NewWithArgs(CodeFeatureDisabled, http.StatusForbidden, KeyFeatureDisabled, map[string]string{"feature": feature})
 }
 
 func NotFound(key string) *AppError {
@@ -437,6 +443,11 @@ var i18nCatalog = map[string]translationEntry{
 		en: "Permission denied",
 		vi: "Không có quyền truy cập",
 		zh: "权限拒绝",
+	},
+	"error.feature_disabled": {
+		en: "This feature is currently disabled",
+		vi: "Tính năng này hiện đang tắt",
+		zh: "此功能当前已禁用",
 	},
 	"error.not_found": {
 		en: "Resource not found",

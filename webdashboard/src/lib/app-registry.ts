@@ -308,6 +308,7 @@ export const APP_REGISTRY: AppDefinition[] = [
     to: ROUTES.ESS_PROFILE,
     group: "ess",
     permissions: ["ess:profile"],
+    featureFlag: "ff_ess",
     testId: "app-card-ess-profile",
   },
   {
@@ -318,6 +319,7 @@ export const APP_REGISTRY: AppDefinition[] = [
     to: ROUTES.ESS_ATTENDANCE,
     group: "ess",
     permissions: ["ess:attendance"],
+    featureFlag: "ff_ess",
     testId: "app-card-ess-attendance",
   },
   {
@@ -328,6 +330,7 @@ export const APP_REGISTRY: AppDefinition[] = [
     to: ROUTES.ESS_CLOCK,
     group: "ess",
     permissions: ["ess:clock"],
+    featureFlag: "ff_ess",
     testId: "app-card-ess-clock",
   },
 ];

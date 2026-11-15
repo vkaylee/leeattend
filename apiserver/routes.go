@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"log/slog"
 	"net/http"
 
@@ -135,7 +136,13 @@ func buildRouter(cfg *config.Config, db repository.DBTX, redisClient *redisinfra
 		Leaves:     leaveRepo,
 		ShiftSwaps: swapRepo,
 	}
-	registerESSRoutes(protectedRouter, essHandler)
+	registerESSRoutes(protectedRouter.With(httpinfra.FeatureFlagMiddleware("ff_ess", func(ctx context.Context, key string) (bool, error) {
+		flag, err := organizationRepo.GetFeatureFlag(ctx, key)
+		if err != nil {
+			return false, err
+		}
+		return flag.Enabled, nil
+	})), essHandler)
 	workflowRepo := repository.ApprovalWorkflowRepository{DB: db, SystemDB: db}
 	workflowHandler := api.ApprovalWorkflowHandler{Repository: workflowRepo, Authorizer: organizationAuthorizer}
 	registerWorkflowRoutes(protectedRouter, workflowHandler)

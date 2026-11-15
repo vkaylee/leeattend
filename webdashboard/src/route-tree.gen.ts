@@ -32,6 +32,7 @@ import { Route as AuthenticatedOrganizationLifecycleRouteImport } from "./routes
 import { Route as AuthenticatedOrganizationLeaveRequestsRouteImport } from "./routes/_authenticated/_organization/leave-requests"
 import { Route as AuthenticatedOrganizationLeaveBalancesRouteImport } from "./routes/_authenticated/_organization/leave-balances"
 import { Route as AuthenticatedOrganizationHolidaysRouteImport } from "./routes/_authenticated/_organization/holidays"
+import { Route as AuthenticatedOrganizationEssRouteImport } from "./routes/_authenticated/_organization/ess"
 import { Route as AuthenticatedOrganizationEmploymentPhasesRouteImport } from "./routes/_authenticated/_organization/employment-phases"
 import { Route as AuthenticatedOrganizationEmployeesRouteImport } from "./routes/_authenticated/_organization/employees"
 import { Route as AuthenticatedOrganizationEcontractsRouteImport } from "./routes/_authenticated/_organization/econtracts"
@@ -284,6 +285,12 @@ const AuthenticatedOrganizationHolidaysRoute =
       (d) => d.Route,
     ),
   )
+const AuthenticatedOrganizationEssRoute =
+  AuthenticatedOrganizationEssRouteImport.update({
+    id: "/ess",
+    path: "/ess",
+    getParentRoute: () => AuthenticatedOrganizationRoute,
+  } as any)
 const AuthenticatedOrganizationEmploymentPhasesRoute =
   AuthenticatedOrganizationEmploymentPhasesRouteImport.update({
     id: "/employment-phases",
@@ -694,9 +701,9 @@ const AuthenticatedOrganizationSalaryManagementSetupRoute =
   )
 const AuthenticatedOrganizationEssProfileRoute =
   AuthenticatedOrganizationEssProfileRouteImport.update({
-    id: "/ess/profile",
-    path: "/ess/profile",
-    getParentRoute: () => AuthenticatedOrganizationRoute,
+    id: "/profile",
+    path: "/profile",
+    getParentRoute: () => AuthenticatedOrganizationEssRoute,
   } as any).lazy(() =>
     import("./routes/_authenticated/_organization/ess/profile.lazy").then(
       (d) => d.Route,
@@ -704,9 +711,9 @@ const AuthenticatedOrganizationEssProfileRoute =
   )
 const AuthenticatedOrganizationEssOtRoute =
   AuthenticatedOrganizationEssOtRouteImport.update({
-    id: "/ess/ot",
-    path: "/ess/ot",
-    getParentRoute: () => AuthenticatedOrganizationRoute,
+    id: "/ot",
+    path: "/ot",
+    getParentRoute: () => AuthenticatedOrganizationEssRoute,
   } as any).lazy(() =>
     import("./routes/_authenticated/_organization/ess/ot.lazy").then(
       (d) => d.Route,
@@ -714,9 +721,9 @@ const AuthenticatedOrganizationEssOtRoute =
   )
 const AuthenticatedOrganizationEssDocumentsRoute =
   AuthenticatedOrganizationEssDocumentsRouteImport.update({
-    id: "/ess/documents",
-    path: "/ess/documents",
-    getParentRoute: () => AuthenticatedOrganizationRoute,
+    id: "/documents",
+    path: "/documents",
+    getParentRoute: () => AuthenticatedOrganizationEssRoute,
   } as any).lazy(() =>
     import("./routes/_authenticated/_organization/ess/documents.lazy").then(
       (d) => d.Route,
@@ -724,9 +731,9 @@ const AuthenticatedOrganizationEssDocumentsRoute =
   )
 const AuthenticatedOrganizationEssClockRoute =
   AuthenticatedOrganizationEssClockRouteImport.update({
-    id: "/ess/clock",
-    path: "/ess/clock",
-    getParentRoute: () => AuthenticatedOrganizationRoute,
+    id: "/clock",
+    path: "/clock",
+    getParentRoute: () => AuthenticatedOrganizationEssRoute,
   } as any).lazy(() =>
     import("./routes/_authenticated/_organization/ess/clock.lazy").then(
       (d) => d.Route,
@@ -734,9 +741,9 @@ const AuthenticatedOrganizationEssClockRoute =
   )
 const AuthenticatedOrganizationEssAttendanceRoute =
   AuthenticatedOrganizationEssAttendanceRouteImport.update({
-    id: "/ess/attendance",
-    path: "/ess/attendance",
-    getParentRoute: () => AuthenticatedOrganizationRoute,
+    id: "/attendance",
+    path: "/attendance",
+    getParentRoute: () => AuthenticatedOrganizationEssRoute,
   } as any).lazy(() =>
     import("./routes/_authenticated/_organization/ess/attendance.lazy").then(
       (d) => d.Route,
@@ -955,6 +962,7 @@ export interface FileRoutesByFullPath {
   "/econtracts": typeof AuthenticatedOrganizationEcontractsRoute
   "/employees": typeof AuthenticatedOrganizationEmployeesRoute
   "/employment-phases": typeof AuthenticatedOrganizationEmploymentPhasesRoute
+  "/ess": typeof AuthenticatedOrganizationEssRouteWithChildren
   "/holidays": typeof AuthenticatedOrganizationHolidaysRoute
   "/leave-balances": typeof AuthenticatedOrganizationLeaveBalancesRoute
   "/leave-requests": typeof AuthenticatedOrganizationLeaveRequestsRoute
@@ -1042,6 +1050,7 @@ export interface FileRoutesByTo {
   "/econtracts": typeof AuthenticatedOrganizationEcontractsRoute
   "/employees": typeof AuthenticatedOrganizationEmployeesRoute
   "/employment-phases": typeof AuthenticatedOrganizationEmploymentPhasesRoute
+  "/ess": typeof AuthenticatedOrganizationEssRouteWithChildren
   "/holidays": typeof AuthenticatedOrganizationHolidaysRoute
   "/leave-balances": typeof AuthenticatedOrganizationLeaveBalancesRoute
   "/leave-requests": typeof AuthenticatedOrganizationLeaveRequestsRoute
@@ -1128,6 +1137,7 @@ export interface FileRoutesById {
   "/_authenticated/_organization/econtracts": typeof AuthenticatedOrganizationEcontractsRoute
   "/_authenticated/_organization/employees": typeof AuthenticatedOrganizationEmployeesRoute
   "/_authenticated/_organization/employment-phases": typeof AuthenticatedOrganizationEmploymentPhasesRoute
+  "/_authenticated/_organization/ess": typeof AuthenticatedOrganizationEssRouteWithChildren
   "/_authenticated/_organization/holidays": typeof AuthenticatedOrganizationHolidaysRoute
   "/_authenticated/_organization/leave-balances": typeof AuthenticatedOrganizationLeaveBalancesRoute
   "/_authenticated/_organization/leave-requests": typeof AuthenticatedOrganizationLeaveRequestsRoute
@@ -1219,6 +1229,7 @@ export interface FileRouteTypes {
     | "/econtracts"
     | "/employees"
     | "/employment-phases"
+    | "/ess"
     | "/holidays"
     | "/leave-balances"
     | "/leave-requests"
@@ -1306,6 +1317,7 @@ export interface FileRouteTypes {
     | "/econtracts"
     | "/employees"
     | "/employment-phases"
+    | "/ess"
     | "/holidays"
     | "/leave-balances"
     | "/leave-requests"
@@ -1391,6 +1403,7 @@ export interface FileRouteTypes {
     | "/_authenticated/_organization/econtracts"
     | "/_authenticated/_organization/employees"
     | "/_authenticated/_organization/employment-phases"
+    | "/_authenticated/_organization/ess"
     | "/_authenticated/_organization/holidays"
     | "/_authenticated/_organization/leave-balances"
     | "/_authenticated/_organization/leave-requests"
@@ -1632,6 +1645,13 @@ declare module "@tanstack/react-router" {
       path: "/holidays"
       fullPath: "/holidays"
       preLoaderRoute: typeof AuthenticatedOrganizationHolidaysRouteImport
+      parentRoute: typeof AuthenticatedOrganizationRoute
+    }
+    "/_authenticated/_organization/ess": {
+      id: "/_authenticated/_organization/ess"
+      path: "/ess"
+      fullPath: "/ess"
+      preLoaderRoute: typeof AuthenticatedOrganizationEssRouteImport
       parentRoute: typeof AuthenticatedOrganizationRoute
     }
     "/_authenticated/_organization/employment-phases": {
@@ -1930,38 +1950,38 @@ declare module "@tanstack/react-router" {
     }
     "/_authenticated/_organization/ess/profile": {
       id: "/_authenticated/_organization/ess/profile"
-      path: "/ess/profile"
+      path: "/profile"
       fullPath: "/ess/profile"
       preLoaderRoute: typeof AuthenticatedOrganizationEssProfileRouteImport
-      parentRoute: typeof AuthenticatedOrganizationRoute
+      parentRoute: typeof AuthenticatedOrganizationEssRoute
     }
     "/_authenticated/_organization/ess/ot": {
       id: "/_authenticated/_organization/ess/ot"
-      path: "/ess/ot"
+      path: "/ot"
       fullPath: "/ess/ot"
       preLoaderRoute: typeof AuthenticatedOrganizationEssOtRouteImport
-      parentRoute: typeof AuthenticatedOrganizationRoute
+      parentRoute: typeof AuthenticatedOrganizationEssRoute
     }
     "/_authenticated/_organization/ess/documents": {
       id: "/_authenticated/_organization/ess/documents"
-      path: "/ess/documents"
+      path: "/documents"
       fullPath: "/ess/documents"
       preLoaderRoute: typeof AuthenticatedOrganizationEssDocumentsRouteImport
-      parentRoute: typeof AuthenticatedOrganizationRoute
+      parentRoute: typeof AuthenticatedOrganizationEssRoute
     }
     "/_authenticated/_organization/ess/clock": {
       id: "/_authenticated/_organization/ess/clock"
-      path: "/ess/clock"
+      path: "/clock"
       fullPath: "/ess/clock"
       preLoaderRoute: typeof AuthenticatedOrganizationEssClockRouteImport
-      parentRoute: typeof AuthenticatedOrganizationRoute
+      parentRoute: typeof AuthenticatedOrganizationEssRoute
     }
     "/_authenticated/_organization/ess/attendance": {
       id: "/_authenticated/_organization/ess/attendance"
-      path: "/ess/attendance"
+      path: "/attendance"
       fullPath: "/ess/attendance"
       preLoaderRoute: typeof AuthenticatedOrganizationEssAttendanceRouteImport
-      parentRoute: typeof AuthenticatedOrganizationRoute
+      parentRoute: typeof AuthenticatedOrganizationEssRoute
     }
     "/_authenticated/_organization/employees_/$employeeId": {
       id: "/_authenticated/_organization/employees_/$employeeId"
@@ -2131,6 +2151,32 @@ const AuthenticatedOrganizationAssignmentRulesRouteChildren: AuthenticatedOrgani
 const AuthenticatedOrganizationAssignmentRulesRouteWithChildren =
   AuthenticatedOrganizationAssignmentRulesRoute._addFileChildren(
     AuthenticatedOrganizationAssignmentRulesRouteChildren,
+  )
+
+interface AuthenticatedOrganizationEssRouteChildren {
+  AuthenticatedOrganizationEssAttendanceRoute: typeof AuthenticatedOrganizationEssAttendanceRoute
+  AuthenticatedOrganizationEssClockRoute: typeof AuthenticatedOrganizationEssClockRoute
+  AuthenticatedOrganizationEssDocumentsRoute: typeof AuthenticatedOrganizationEssDocumentsRoute
+  AuthenticatedOrganizationEssOtRoute: typeof AuthenticatedOrganizationEssOtRoute
+  AuthenticatedOrganizationEssProfileRoute: typeof AuthenticatedOrganizationEssProfileRoute
+}
+
+const AuthenticatedOrganizationEssRouteChildren: AuthenticatedOrganizationEssRouteChildren =
+  {
+    AuthenticatedOrganizationEssAttendanceRoute:
+      AuthenticatedOrganizationEssAttendanceRoute,
+    AuthenticatedOrganizationEssClockRoute:
+      AuthenticatedOrganizationEssClockRoute,
+    AuthenticatedOrganizationEssDocumentsRoute:
+      AuthenticatedOrganizationEssDocumentsRoute,
+    AuthenticatedOrganizationEssOtRoute: AuthenticatedOrganizationEssOtRoute,
+    AuthenticatedOrganizationEssProfileRoute:
+      AuthenticatedOrganizationEssProfileRoute,
+  }
+
+const AuthenticatedOrganizationEssRouteWithChildren =
+  AuthenticatedOrganizationEssRoute._addFileChildren(
+    AuthenticatedOrganizationEssRouteChildren,
   )
 
 interface AuthenticatedOrganizationSalaryManagementRouteChildren {
@@ -2335,6 +2381,7 @@ interface AuthenticatedOrganizationRouteChildren {
   AuthenticatedOrganizationEcontractsRoute: typeof AuthenticatedOrganizationEcontractsRoute
   AuthenticatedOrganizationEmployeesRoute: typeof AuthenticatedOrganizationEmployeesRoute
   AuthenticatedOrganizationEmploymentPhasesRoute: typeof AuthenticatedOrganizationEmploymentPhasesRoute
+  AuthenticatedOrganizationEssRoute: typeof AuthenticatedOrganizationEssRouteWithChildren
   AuthenticatedOrganizationHolidaysRoute: typeof AuthenticatedOrganizationHolidaysRoute
   AuthenticatedOrganizationLeaveBalancesRoute: typeof AuthenticatedOrganizationLeaveBalancesRoute
   AuthenticatedOrganizationLeaveRequestsRoute: typeof AuthenticatedOrganizationLeaveRequestsRoute
@@ -2354,11 +2401,6 @@ interface AuthenticatedOrganizationRouteChildren {
   AuthenticatedOrganizationApprovalsOtRoute: typeof AuthenticatedOrganizationApprovalsOtRoute
   AuthenticatedOrganizationDocumentsTemplatesRoute: typeof AuthenticatedOrganizationDocumentsTemplatesRoute
   AuthenticatedOrganizationEmployeesEmployeeIdRoute: typeof AuthenticatedOrganizationEmployeesEmployeeIdRoute
-  AuthenticatedOrganizationEssAttendanceRoute: typeof AuthenticatedOrganizationEssAttendanceRoute
-  AuthenticatedOrganizationEssClockRoute: typeof AuthenticatedOrganizationEssClockRoute
-  AuthenticatedOrganizationEssDocumentsRoute: typeof AuthenticatedOrganizationEssDocumentsRoute
-  AuthenticatedOrganizationEssOtRoute: typeof AuthenticatedOrganizationEssOtRoute
-  AuthenticatedOrganizationEssProfileRoute: typeof AuthenticatedOrganizationEssProfileRoute
   AuthenticatedOrganizationApprovalsIndexRoute: typeof AuthenticatedOrganizationApprovalsIndexRoute
   AuthenticatedOrganizationDocumentsIndexRoute: typeof AuthenticatedOrganizationDocumentsIndexRoute
 }
@@ -2389,6 +2431,8 @@ const AuthenticatedOrganizationRouteChildren: AuthenticatedOrganizationRouteChil
       AuthenticatedOrganizationEmployeesRoute,
     AuthenticatedOrganizationEmploymentPhasesRoute:
       AuthenticatedOrganizationEmploymentPhasesRoute,
+    AuthenticatedOrganizationEssRoute:
+      AuthenticatedOrganizationEssRouteWithChildren,
     AuthenticatedOrganizationHolidaysRoute:
       AuthenticatedOrganizationHolidaysRoute,
     AuthenticatedOrganizationLeaveBalancesRoute:
@@ -2426,15 +2470,6 @@ const AuthenticatedOrganizationRouteChildren: AuthenticatedOrganizationRouteChil
       AuthenticatedOrganizationDocumentsTemplatesRoute,
     AuthenticatedOrganizationEmployeesEmployeeIdRoute:
       AuthenticatedOrganizationEmployeesEmployeeIdRoute,
-    AuthenticatedOrganizationEssAttendanceRoute:
-      AuthenticatedOrganizationEssAttendanceRoute,
-    AuthenticatedOrganizationEssClockRoute:
-      AuthenticatedOrganizationEssClockRoute,
-    AuthenticatedOrganizationEssDocumentsRoute:
-      AuthenticatedOrganizationEssDocumentsRoute,
-    AuthenticatedOrganizationEssOtRoute: AuthenticatedOrganizationEssOtRoute,
-    AuthenticatedOrganizationEssProfileRoute:
-      AuthenticatedOrganizationEssProfileRoute,
     AuthenticatedOrganizationApprovalsIndexRoute:
       AuthenticatedOrganizationApprovalsIndexRoute,
     AuthenticatedOrganizationDocumentsIndexRoute:

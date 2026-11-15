@@ -3,6 +3,7 @@
 | Key | Default | Owner | Removal target | Purpose |
 |---|---:|---|---|---|
 | `ff_econtracts` | off | platform | 2026-12-13 | Controls e-Contracts workflow and settings |
+| `ff_ess` | off | platform | 2026-12-15 | Controls Employee Self-Service workflows and routes |
 
 ## Operations
 

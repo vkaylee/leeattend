@@ -13,7 +13,8 @@ describe("FEATURE_FLAGS", () => {
     vi.clearAllMocks();
   });
 
-  it("registers the econtracts flag with default OFF (backend not wired)", () => {
+  it("registers ESS and econtracts with default OFF", () => {
+    expect(FEATURE_FLAGS.ff_ess).toBe(false);
     expect(FEATURE_FLAGS.ff_econtracts).toBe(false);
   });
 

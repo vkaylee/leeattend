@@ -65,6 +65,7 @@ describe("APP_REGISTRY", () => {
     for (const app of essApps) {
       expect(app.permissions).toBeDefined();
       expect(app.permissions!.some((p) => p.startsWith("ess:"))).toBe(true);
+      expect(app.featureFlag).toBe("ff_ess");
     }
   });
 
