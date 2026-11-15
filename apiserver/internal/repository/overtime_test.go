@@ -93,6 +93,20 @@ func TestOvertimeRepository_CreateAndGetPolicy(t *testing.T) {
 	}
 }
 
+func TestLoadOvertimeMultiplierAssignmentsRejectsMissingPolicyRules(t *testing.T) {
+	policyID := uuid.New()
+	assignments := []workPolicyAssignment{{
+		policy:         api.WorkPolicyGroupVersion{OvertimePolicyID: policyID, EffectiveFrom: "2026-10-01"},
+		membershipFrom: "2026-10-01",
+	}}
+	db := &fakeDBTX{queryFn: func(_ context.Context, _ string, _ ...any) (pgx.Rows, error) {
+		return &rowsStub{}, nil
+	}}
+	if _, err := loadOvertimeMultiplierAssignments(context.Background(), db, assignments); err != api.ErrPayrollValidation {
+		t.Fatalf("expected missing OT rule validation error, got %v", err)
+	}
+}
+
 func TestOvertimeMultiplierAtUsesEffectiveAssignmentOrder(t *testing.T) {
 	from := time.Date(2026, 10, 1, 0, 0, 0, 0, time.UTC)
 	to := time.Date(2026, 10, 15, 0, 0, 0, 0, time.UTC)

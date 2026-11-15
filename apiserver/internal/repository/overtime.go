@@ -467,6 +467,17 @@ func loadOvertimeMultiplierAssignments(ctx context.Context, db DBTX, policyAssig
 	if err := rows.Err(); err != nil {
 		return nil, err
 	}
+	for _, policyID := range policyIDs {
+		policyRules := rulesByPolicy[policyID]
+		if len(policyRules) == 0 {
+			return nil, api.ErrPayrollValidation
+		}
+		for _, item := range policyRules {
+			if !item.multiplier.IsPositive() {
+				return nil, api.ErrPayrollValidation
+			}
+		}
+	}
 
 	assignments := make([]overtimeMultiplierAssignment, 0)
 	for _, policyAssignment := range policyAssignments {
