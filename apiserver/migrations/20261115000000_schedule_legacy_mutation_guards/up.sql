@@ -22,7 +22,18 @@ BEGIN
         SELECT EXISTS (
             SELECT 1
             FROM schedule_day_revisions r
-            WHERE r.state IN ('published', 'explicit_off')
+            JOIN employments em ON em.id = r.employment_id AND em.deleted_at IS NULL
+            JOIN config_entries c
+              ON c.scope_type = 'employer'
+             AND c.scope_id = em.employer_id
+             AND c.config_key = 'schedule.lifecycle.enabled'
+             AND c.value_bool = true
+             AND c.effective_from <= r.business_date
+             AND (c.effective_to IS NULL OR c.effective_to >= r.business_date)
+            CROSS JOIN feature_flags ff
+            WHERE ff.flag_key = 'schedule_lifecycle'
+              AND ff.enabled = true
+              AND r.state IN ('published', 'explicit_off')
               AND r.employment_id = employment_text::uuid
               AND (start_text IS NULL OR r.business_date >= start_text::date)
               AND (end_text IS NULL OR r.business_date <= end_text::date)
@@ -32,23 +43,40 @@ BEGIN
             SELECT 1
             FROM employee_working_patterns a
             JOIN schedule_day_revisions r ON r.employment_id = a.employment_id
-            WHERE a.pattern_id = COALESCE(new_data->>'pattern_id', old_data->>'pattern_id')::uuid
+            JOIN employments em ON em.id = r.employment_id AND em.deleted_at IS NULL
+            JOIN config_entries c
+              ON c.scope_type = 'employer'
+             AND c.scope_id = em.employer_id
+             AND c.config_key = 'schedule.lifecycle.enabled'
+             AND c.value_bool = true
+             AND c.effective_from <= r.business_date
+             AND (c.effective_to IS NULL OR c.effective_to >= r.business_date)
+            CROSS JOIN feature_flags ff
+            WHERE ff.flag_key = 'schedule_lifecycle'
+              AND ff.enabled = true
+              AND a.pattern_id = COALESCE(new_data->>'pattern_id', old_data->>'pattern_id')::uuid
               AND r.state IN ('published', 'explicit_off')
         ) INTO blocked;
-    ELSIF TG_TABLE_NAME = 'shift_versions' THEN
+    ELSIF TG_TABLE_NAME IN ('shift_versions', 'shift_templates') THEN
         SELECT EXISTS (
             SELECT 1
             FROM work_segments ws
             JOIN schedule_day_revisions r ON r.id = ws.schedule_revision_id
-            WHERE ws.template_id = COALESCE(NEW.template_id, OLD.template_id)
-              AND r.state IN ('published', 'explicit_off')
-        ) INTO blocked;
-    ELSIF TG_TABLE_NAME = 'shift_templates' THEN
-        SELECT EXISTS (
-            SELECT 1
-            FROM work_segments ws
-            JOIN schedule_day_revisions r ON r.id = ws.schedule_revision_id
-            WHERE ws.template_id = COALESCE(NEW.id, OLD.id)
+            JOIN employments em ON em.id = r.employment_id AND em.deleted_at IS NULL
+            JOIN config_entries c
+              ON c.scope_type = 'employer'
+             AND c.scope_id = em.employer_id
+             AND c.config_key = 'schedule.lifecycle.enabled'
+             AND c.value_bool = true
+             AND c.effective_from <= r.business_date
+             AND (c.effective_to IS NULL OR c.effective_to >= r.business_date)
+            CROSS JOIN feature_flags ff
+            WHERE ff.flag_key = 'schedule_lifecycle'
+              AND ff.enabled = true
+              AND ws.template_id = CASE
+                    WHEN TG_TABLE_NAME = 'shift_versions' THEN COALESCE((new_data->>'template_id')::uuid, (old_data->>'template_id')::uuid)
+                    ELSE COALESCE((new_data->>'id')::uuid, (old_data->>'id')::uuid)
+                  END
               AND r.state IN ('published', 'explicit_off')
         ) INTO blocked;
     ELSIF TG_TABLE_NAME IN ('assignment_rules', 'working_patterns') THEN
@@ -80,7 +108,10 @@ BEGIN
     IF blocked THEN
         RAISE EXCEPTION 'legacy schedule source mutation blocked after official publication';
     END IF;
-    RETURN COALESCE(NEW, OLD);
+    IF TG_OP = 'DELETE' THEN
+        RETURN OLD;
+    END IF;
+    RETURN NEW;
 END;
 $$;
 
