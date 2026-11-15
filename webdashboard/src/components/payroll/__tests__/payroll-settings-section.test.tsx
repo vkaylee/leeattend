@@ -20,6 +20,8 @@ vi.mock("@/lib/api/payroll", () => ({
   createWorkPolicyGroupVersion: vi.fn(),
   fetchWorkPolicyMemberships: vi.fn(),
   createWorkPolicyMembership: vi.fn(),
+  fetchWorkPolicyReferenceOptions: vi.fn(),
+  validateWorkPolicyGroupVersion: vi.fn(),
 }));
 
 // Mock i18n
@@ -48,6 +50,7 @@ describe("PayrollSettingsSection", () => {
     vi.mocked(api.fetchWorkPolicyGroups).mockResolvedValue([]);
     vi.mocked(api.fetchWorkPolicyGroupHistory).mockResolvedValue([]);
     vi.mocked(api.fetchWorkPolicyMemberships).mockResolvedValue([]);
+    vi.mocked(api.fetchWorkPolicyReferenceOptions).mockResolvedValue({ attendance: [], patterns: [], overtime: [] });
   });
 
   const renderWithProviders = (ui: React.ReactElement) => {
@@ -112,6 +115,7 @@ describe("PayrollSettingsSection", () => {
     }]);
     vi.mocked(api.fetchWorkPolicyGroupHistory).mockResolvedValue([]);
     vi.mocked(api.fetchWorkPolicyMemberships).mockResolvedValue([]);
+    vi.mocked(api.fetchWorkPolicyReferenceOptions).mockResolvedValue({ attendance: [], patterns: [], overtime: [] });
     vi.mocked(api.createWorkPolicyGroupVersion).mockResolvedValue({} as never);
     renderWithProviders(<PayrollSettingsSection />);
 
@@ -131,6 +135,31 @@ describe("PayrollSettingsSection", () => {
     });
   });
 
+  it("validates selected policy version and shows blockers", async () => {
+    vi.mocked(api.fetchWorkPolicyGroups).mockResolvedValue([{
+      id: "v-1", group_id: "g-1", name: "Operations", attendance_policy_id: "attendance-1",
+      working_pattern_id: "pattern-1", overtime_policy_id: "overtime-1", minutes_per_credit: 480,
+      pay_method: "monthly", effective_from: "2026-01-01",
+    }]);
+    vi.mocked(api.fetchWorkPolicyGroupHistory).mockResolvedValue([{
+      id: "v-1", group_id: "g-1", name: "Operations", attendance_policy_id: "attendance-1",
+      working_pattern_id: "pattern-1", overtime_policy_id: "overtime-1", minutes_per_credit: 480,
+      pay_method: "monthly", effective_from: "2026-01-01",
+    }]);
+    vi.mocked(api.fetchWorkPolicyMemberships).mockResolvedValue([]);
+    vi.mocked(api.validateWorkPolicyGroupVersion).mockResolvedValue({
+      version_id: "v-1", valid: false, blockers: [{ code: "reference_missing_or_inactive", field: "policy_references", severity: "blocker", message: "working pattern inactive" }], warnings: [], checked_at: "2026-11-16T00:00:00Z",
+    });
+    renderWithProviders(<PayrollSettingsSection />);
+
+    fireEvent.click(await screen.findByRole("button", { name: "Operations" }));
+    fireEvent.click(await screen.findByRole("button", { name: "common.payroll.settings.work_policy_validate" }));
+
+    await waitFor(() => expect(api.validateWorkPolicyGroupVersion).toHaveBeenCalledWith("g-1", "v-1"));
+    expect(await screen.findByText(/working pattern inactive/i)).toBeInTheDocument();
+    expect(screen.getByText("common.payroll.settings.work_policy_blocked")).toBeInTheDocument();
+  });
+
   it("rejects policy version without date or positive whole minutes", async () => {
     vi.mocked(api.fetchWorkPolicyGroups).mockResolvedValue([{
       id: "v-1", group_id: "g-1", name: "Operations", attendance_policy_id: "attendance-1",
@@ -139,6 +168,7 @@ describe("PayrollSettingsSection", () => {
     }]);
     vi.mocked(api.fetchWorkPolicyGroupHistory).mockResolvedValue([]);
     vi.mocked(api.fetchWorkPolicyMemberships).mockResolvedValue([]);
+    vi.mocked(api.fetchWorkPolicyReferenceOptions).mockResolvedValue({ attendance: [], patterns: [], overtime: [] });
     renderWithProviders(<PayrollSettingsSection />);
 
     fireEvent.click(await screen.findByRole("button", { name: "Operations" }));

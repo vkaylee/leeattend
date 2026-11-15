@@ -1,6 +1,7 @@
 /* eslint-disable max-lines -- API wrapper module: 300 lines of exported functions; splitting would scatter imports */
 import type { PayrollCalculationRun, PayrollFormulaRuleVersion, PayrollInput } from "./types-payroll";
 import { fetchWorkingPatterns } from "./working-patterns";
+import type { AttendancePolicyVersion } from "./attendance-rules";
 
 export interface WorkPolicyGroupVersion {
   id: string;
@@ -21,16 +22,31 @@ export interface WorkPolicyGroupVersion {
 }
 
 export async function fetchWorkPolicyReferenceOptions(): Promise<{ attendance: { id: string; label: string }[]; patterns: { id: string; label: string }[]; overtime: { id: string; label: string }[] }> {
-  const [attendanceResponse, patterns, overtime] = await Promise.all([
-    client.GET<{ data?: { id: string; name?: string; valid_from?: string }[]; }>("/api/v1/attendance/rules/versions"),
+  const [attendance, patterns, overtime] = await Promise.all([
+    client.GET<AttendancePolicyVersion[]>("/api/v1/attendance/rules/versions").then((response) => response.data),
     fetchWorkingPatterns(),
     fetchOvertimePolicies(),
   ]);
   return {
-    attendance: (attendanceResponse.data.data ?? []).map((item) => ({ id: item.id, label: item.name ?? `${item.id} (${item.valid_from ?? ""})` })),
+    attendance: (attendance ?? []).map((item) => ({ id: item.id, label: `${item.id} (${item.valid_from})` })),
     patterns: patterns.map((item) => ({ id: item.id, label: item.name })),
     overtime: overtime.map((item) => ({ id: item.id, label: item.name })),
   };
+}
+
+export interface WorkPolicyValidationIssue {
+  code: string;
+  field: string;
+  severity: "blocker" | "warning";
+  message: string;
+}
+
+export interface WorkPolicyValidationResponse {
+  version_id: string;
+  valid: boolean;
+  blockers: WorkPolicyValidationIssue[];
+  warnings: WorkPolicyValidationIssue[];
+  checked_at: string;
 }
 
 export interface WorkPolicyMembership {
@@ -121,6 +137,13 @@ export async function fetchWorkPolicyGroupHistory(groupId: string): Promise<Work
     params: { path: { group_id: groupId }, query: { page: 1, limit: 100 } },
   });
   return data?.data ?? [];
+}
+
+export async function validateWorkPolicyGroupVersion(groupId: string, versionId: string): Promise<WorkPolicyValidationResponse> {
+  const { data } = await fetch<WorkPolicyValidationResponse>("POST", "/api/v1/payroll/work-policy-groups/{group_id}/versions/{version_id}/validate", {
+    params: { path: { group_id: groupId, version_id: versionId } },
+  });
+  return data;
 }
 
 export async function createWorkPolicyMembership(groupId: string, body: { employment_id: string; effective_from: string; effective_to?: string }): Promise<WorkPolicyMembership> {

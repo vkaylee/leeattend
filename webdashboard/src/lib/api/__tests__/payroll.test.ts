@@ -42,6 +42,7 @@ import {
   fetchWorkPolicyMemberships,
   resolveWorkPolicy,
   createWorkPolicyGroupVersion,
+  fetchWorkPolicyReferenceOptions,
 } from "../payroll";
 
 // --- response helpers -------------------------------------------------------
@@ -101,6 +102,14 @@ describe("payroll API", () => {
     expect(call[0]).toContain("/work-policy-groups/g-1/versions");
     expect((call[1] as RequestInit).method).toBe("POST");
   });
+  it("fetches labor policy reference options in parallel", async () => {
+    vi.mocked(apiFetch).mockResolvedValueOnce(okRes([{ id: "attendance-1", valid_from: "2026-01-01" }]));
+    vi.mocked(apiFetch).mockResolvedValueOnce(okRes([{ id: "pattern-1", name: "Weekly" }]));
+    vi.mocked(apiFetch).mockResolvedValueOnce(okRes({ data: [{ id: "overtime-1", name: "Standard OT" }] }));
+    const result = await fetchWorkPolicyReferenceOptions();
+    expect(result.attendance[0]).toEqual({ id: "attendance-1", label: "attendance-1 (2026-01-01)" });
+  });
+
   beforeEach(() => {
     vi.clearAllMocks();
   });

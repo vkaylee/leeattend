@@ -6,7 +6,7 @@ import { useTranslation } from "react-i18next";
 import Button from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
 import { Typography } from "@/components/ui/typography";
-import { createWorkPolicyMembership, createWorkPolicyGroupVersion, fetchWorkPolicyGroupHistory, fetchWorkPolicyGroups, fetchWorkPolicyMemberships, fetchWorkPolicyReferenceOptions, updatePayrollSettings, fetchPayrollSettingsHistory } from "@/lib/api/payroll";
+import { createWorkPolicyMembership, createWorkPolicyGroupVersion, fetchWorkPolicyGroupHistory, fetchWorkPolicyGroups, fetchWorkPolicyMemberships, fetchWorkPolicyReferenceOptions, updatePayrollSettings, fetchPayrollSettingsHistory, validateWorkPolicyGroupVersion, type WorkPolicyGroupVersion, type WorkPolicyValidationResponse } from "@/lib/api/payroll";
 import { payrollKeys } from "@/lib/query-keys";
 
 import TemporalConfigTable from "../common/temporal-config-table";
@@ -22,6 +22,8 @@ export default function PayrollSettingsSection() {
   const [versionError, setVersionError] = useState<string>();
   const [membershipForm, setMembershipForm] = useState({ employment_id: "", effective_from: "", effective_to: "" });
   const [membershipError, setMembershipError] = useState<string>();
+  const [validationByVersion, setValidationByVersion] = useState<Record<string, WorkPolicyValidationResponse>>({});
+  const [validatingVersionId, setValidatingVersionId] = useState<string>();
 
   const { data: history = [], isLoading: isHistoryLoading } = useQuery({ queryKey: payrollKeys.settingsHistory(), queryFn: () => fetchPayrollSettingsHistory() });
   const { data: workPolicies = [], isLoading: isWorkPoliciesLoading, isError: isWorkPoliciesError } = useQuery({
@@ -38,7 +40,12 @@ export default function PayrollSettingsSection() {
     queryFn: () => fetchWorkPolicyMemberships(selectedPolicyGroupId!),
     enabled: Boolean(selectedPolicyGroupId),
   });
-  const { data: referenceOptions } = useQuery({ queryKey: ["payroll-work-policy-reference-options"], queryFn: fetchWorkPolicyReferenceOptions });
+  const { data: referenceOptions } = useQuery({ queryKey: payrollKeys.workPolicyReferences(), queryFn: fetchWorkPolicyReferenceOptions });
+
+  const selectPolicyForEdit = (policy: WorkPolicyGroupVersion) => {
+    setSelectedPolicyGroupId(policy.group_id);
+    setVersionForm((form) => ({ ...form, attendance_policy_id: policy.attendance_policy_id ?? "", working_pattern_id: policy.working_pattern_id ?? "", overtime_policy_id: policy.overtime_policy_id }));
+  };
 
   const handleCreateVersion = async () => {
     if (!selectedPolicyGroupId) return;
@@ -77,6 +84,18 @@ export default function PayrollSettingsSection() {
       setVersionError(error instanceof Error ? error.message : t("common.error"));
     } finally {
       setIsCreatingVersion(false);
+    }
+  };
+
+  const handleValidateVersion = async (version: WorkPolicyGroupVersion) => {
+    setValidatingVersionId(version.id);
+    try {
+      const result = await validateWorkPolicyGroupVersion(version.group_id, version.id);
+      setValidationByVersion((current) => ({ ...current, [version.id]: result }));
+    } catch (error: unknown) {
+      toast.error(error instanceof Error ? error.message : t("common.error"));
+    } finally {
+      setValidatingVersionId(undefined);
     }
   };
 
@@ -168,7 +187,7 @@ export default function PayrollSettingsSection() {
                 {workPolicies.map((policy) => (
                   <tr key={policy.id} className="border-t border-slate-200/70 dark:border-slate-800">
                     <td className="px-3 py-3 font-medium">
-                      <Button className="text-left text-primary-700 underline-offset-2 hover:underline" onClick={() => setSelectedPolicyGroupId(policy.group_id)} size="sm" type="button" variant="ghost">
+                      <Button className="text-left text-primary-700 underline-offset-2 hover:underline" onClick={() => selectPolicyForEdit(policy)} size="sm" type="button" variant="ghost">
                         {policy.name}
                       </Button>
                     </td>
@@ -232,9 +251,26 @@ export default function PayrollSettingsSection() {
               </div>
               <ul className="mt-4 space-y-2 text-sm">
                 {selectedPolicyHistory.map((version) => (
-                  <li key={version.id} className="flex justify-between gap-4 border-b border-slate-100 py-2 last:border-0 dark:border-slate-800">
-                    <span>{version.effective_from}{version.effective_to ? ` – ${version.effective_to}` : ""}</span>
-                    <span className="font-medium">{version.pay_method}</span>
+                  <li key={version.id} className="border-b border-slate-100 py-2 last:border-0 dark:border-slate-800">
+                    <div className="flex justify-between gap-4">
+                      <span>{version.effective_from}{version.effective_to ? ` – ${version.effective_to}` : ""}</span>
+                      <span className="font-medium">{version.pay_method}</span>
+                    </div>
+                    <Button className="mt-1 text-xs underline" disabled={validatingVersionId === version.id} onClick={() => void handleValidateVersion(version)} size="sm" type="button" variant="ghost">
+                      {validatingVersionId === version.id ? t("common.loading", "Loading") : t("common.payroll.settings.work_policy_validate", "Validate")}
+                    </Button>
+                    {validationByVersion[version.id] ? (
+                      <div className="mt-2 space-y-1 text-xs" role="status">
+                        <p className={validationByVersion[version.id].valid ? "text-emerald-700" : "text-red-700"}>
+                          {validationByVersion[version.id].valid ? t("common.payroll.settings.work_policy_valid", "Valid") : t("common.payroll.settings.work_policy_blocked", "Blocked")}
+                        </p>
+                        {[...validationByVersion[version.id].blockers, ...validationByVersion[version.id].warnings].map((issue) => (
+                          <p key={`${issue.code}-${issue.field}`} className={issue.severity === "blocker" ? "text-red-700" : "text-amber-700"}>
+                            {issue.field}: {issue.message}
+                          </p>
+                        ))}
+                      </div>
+                    ) : null}
                   </li>
                 ))}
               </ul>
