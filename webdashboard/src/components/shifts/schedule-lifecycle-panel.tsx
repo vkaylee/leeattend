@@ -25,7 +25,7 @@ import {
   publishSchedules,
 } from "@/lib/api";
 import { createQueryKey } from "@/lib/query-keys";
-
+import { formatScheduleLocalTime } from "./schedule-lifecycle-utils";
 
 interface ScheduleLifecyclePanelProps {
   employeeSchedule: EmployeeSchedule;
@@ -107,14 +107,15 @@ export function ScheduleLifecyclePanel({ employeeSchedule, weekDays }: ScheduleL
   const selectedSchedule = scheduleByDate.get(selectedDate);
   const selectedRevision = evidence?.revisions.at(-1);
   const selectedSegment = evidence?.segments.at(-1);
-  const replacement = selectedSegment?.selected_shift_version_id
+  const selectedTimezone = selectedRevision?.timezone ?? selectedSchedule?.timezone ?? organization?.timezone ?? "UTC";
+  const replacementStart = formatScheduleLocalTime(selectedSegment?.scheduled_start_at, selectedTimezone);
+  const replacementEnd = formatScheduleLocalTime(selectedSegment?.scheduled_end_at, selectedTimezone);
+  const replacement = selectedSegment?.selected_shift_version_id && replacementStart && replacementEnd
     ? {
         status: "work" as const,
         source: "manual",
         shift_version_id: selectedSegment.selected_shift_version_id,
-        intervals: selectedSegment.scheduled_start_at && selectedSegment.scheduled_end_at
-          ? [{ sort_order: 0, start: selectedSegment.scheduled_start_at, end: selectedSegment.scheduled_end_at, breaks: [] }]
-          : [],
+        intervals: [{ sort_order: 0, start: replacementStart, end: replacementEnd, breaks: [] }],
       }
     : null;
 
