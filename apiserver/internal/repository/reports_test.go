@@ -383,6 +383,79 @@ func TestReportRepository_GetNoShowReportAggregatesOfficialIntervals(t *testing.
 	}
 }
 
+func TestReportRepository_HistoricalNumbersUseEffectiveTenure(t *testing.T) {
+	cases := []struct {
+		name       string
+		invoke     func(*ReportRepository) error
+		dataMarker string
+	}{
+		{
+			name: "daily",
+			invoke: func(repo *ReportRepository) error {
+				_, err := repo.GetAttendanceReport(context.Background(), api.AttendanceReportFilter{
+					ReportType: "daily", StartDate: "2026-01-01", EndDate: "2026-01-31", Page: 1, Limit: 10,
+				})
+				return err
+			},
+			dataMarker: "ads.date",
+		},
+		{
+			name: "summary",
+			invoke: func(repo *ReportRepository) error {
+				_, err := repo.GetAttendanceReport(context.Background(), api.AttendanceReportFilter{
+					ReportType: "summary", StartDate: "2026-01-01", EndDate: "2026-01-31", Page: 1, Limit: 10,
+				})
+				return err
+			},
+			dataMarker: "$1::date",
+		},
+		{
+			name: "no-show",
+			invoke: func(repo *ReportRepository) error {
+				_, err := repo.GetNoShowReport(context.Background(), api.NoShowReportFilter{
+					Date: "2026-01-01", Page: 1, Limit: 10,
+				})
+				return err
+			},
+			dataMarker: "$1::date",
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			var dataQuery string
+			db := &fakeDBTX{
+				queryRowFn: func(_ context.Context, _ string, _ ...any) pgx.Row {
+					return fakeRow{scanFn: func(dest ...any) error {
+						*(dest[0].(*int64)) = 0
+						return nil
+					}}
+				},
+				queryFn: func(_ context.Context, query string, _ ...any) (pgx.Rows, error) {
+					dataQuery = query
+					return &fakeRows{}, nil
+				},
+			}
+			if err := tc.invoke(&ReportRepository{DB: db}); err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			for _, fragment := range []string{
+				"LEFT JOIN employment_relationships er ON er.id = emp.relationship_id",
+				"LEFT JOIN employee_tenures t ON t.id = er.tenure_id",
+				"COALESCE(t.employee_number, e.employee_id_number)",
+				tc.dataMarker,
+			} {
+				if !strings.Contains(dataQuery, fragment) {
+					t.Fatalf("historical number query missing %q: %s", fragment, dataQuery)
+				}
+			}
+			if !strings.Contains(dataQuery, "t.start_date <=") || !strings.Contains(dataQuery, "t.end_date") {
+				t.Fatalf("historical number query must be date-effective: %s", dataQuery)
+			}
+		})
+	}
+}
+
 func TestReportRepository_ResolveBehalfEmployeeIDs(t *testing.T) {
 	userID := uuid.New()
 	employeeID := uuid.New()

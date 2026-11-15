@@ -46,7 +46,7 @@ func (r AttendanceRepository) ProcessAttendanceImport(ctx context.Context, userI
 	failed := 0
 	var errorLines []string
 	for _, row := range rows {
-		employeeID, lookupErr := findEmployeeByNumber(ctx, db, row.EmployeeCode)
+		employmentID, lookupErr := resolveImportedEmployment(ctx, db, row.EmployeeCode, row.PunchTime)
 		if errors.Is(lookupErr, pgx.ErrNoRows) {
 			if err := stageUnknownPunch(ctx, db, row); err != nil {
 				return err
@@ -56,13 +56,13 @@ func (r AttendanceRepository) ProcessAttendanceImport(ctx context.Context, userI
 			continue
 		}
 		if lookupErr != nil {
-			return lookupErr
-		}
-		employmentID, empErr := employmentForEmployee(ctx, db, employeeID)
-		if empErr != nil {
 			failed++
 			errorLines = append(errorLines, row.EmployeeCode)
-			if err := recordLogError(ctx, db, row.EmployeeCode, "no active employment"); err != nil {
+			message := "no active employment"
+			if errors.Is(lookupErr, errAmbiguousImportedEmployment) {
+				message = "employee number is ambiguous for punch date"
+			}
+			if err := recordLogError(ctx, db, row.EmployeeCode, message); err != nil {
 				return err
 			}
 			continue
@@ -97,10 +97,47 @@ func (r AttendanceRepository) ProcessAttendanceImport(ctx context.Context, userI
 	return nil
 }
 
-func findEmployeeByNumber(ctx context.Context, db DBTX, code string) (uuid.UUID, error) {
-	var id uuid.UUID
-	err := db.QueryRow(ctx, `SELECT id FROM employees WHERE UPPER(employee_id_number) = UPPER($1) AND deleted_at IS NULL`, code).Scan(&id)
-	return id, err
+var errAmbiguousImportedEmployment = errors.New("attendance import employee number matches multiple employments")
+
+func resolveImportedEmployment(ctx context.Context, db DBTX, code string, punchTime time.Time) (uuid.UUID, error) {
+	var (
+		candidateCount int
+		employmentID   *uuid.UUID
+	)
+	err := db.QueryRow(ctx, `WITH candidates AS (
+		SELECT em.id
+		FROM employments em
+		JOIN employment_relationships er
+		  ON er.id = em.relationship_id
+		 AND er.employee_id = em.employee_id
+		 AND er.employer_id = em.employer_id
+		JOIN employee_tenures t
+		  ON t.id = er.tenure_id
+		 AND t.employee_id = er.employee_id
+		JOIN employees e ON e.id = t.employee_id
+		WHERE UPPER(t.employee_number) = UPPER($1)
+		  AND e.deleted_at IS NULL
+		  AND t.deleted_at IS NULL
+		  AND t.start_date <= $2::date
+		  AND (t.end_date IS NULL OR t.end_date >= $2::date)
+		  AND er.deleted_at IS NULL
+		  AND er.start_date <= $2::date
+		  AND (er.end_date IS NULL OR er.end_date >= $2::date)
+		  AND em.deleted_at IS NULL
+		  AND em.start_date <= $2::date
+		  AND (em.end_date IS NULL OR em.end_date >= $2::date)
+	)
+	SELECT count(*)::int, (array_agg(id ORDER BY id))[1] FROM candidates`, code, punchTime).Scan(&candidateCount, &employmentID)
+	if err != nil {
+		return uuid.Nil, err
+	}
+	if candidateCount > 1 {
+		return uuid.Nil, errAmbiguousImportedEmployment
+	}
+	if candidateCount == 0 || employmentID == nil {
+		return uuid.Nil, pgx.ErrNoRows
+	}
+	return *employmentID, nil
 }
 
 func stageUnknownPunch(ctx context.Context, db DBTX, row api.AttendanceImportRow) error {
@@ -475,16 +512,16 @@ func (r AttendanceRepository) BulkPaperOT(ctx context.Context, rows []api.BulkPa
 			if row.Reason == "" {
 				return errors.New("reason is required")
 			}
-			if _, parseErr := time.Parse("2006-01-02", row.Date); parseErr != nil {
+			date, parseErr := time.Parse("2006-01-02", row.Date)
+			if parseErr != nil {
 				return errors.New("invalid date format: " + row.Date + ". Expected YYYY-MM-DD")
 			}
-			employeeID, lookupErr := findEmployeeByNumber(ctx, db, row.EmployeeCode)
+			employmentID, lookupErr := resolveImportedEmployment(ctx, db, row.EmployeeCode, date)
 			if lookupErr != nil {
+				if errors.Is(lookupErr, errAmbiguousImportedEmployment) {
+					return errors.New("employee number is ambiguous for date")
+				}
 				return errors.New("employee not found")
-			}
-			employmentID, empErr := employmentForEmployee(ctx, db, employeeID)
-			if empErr != nil {
-				return errors.New("no active employment found for employee")
 			}
 			if guardErr := guardLifecycleDateMutation(ctx, db, []uuid.UUID{employmentID}, []string{row.Date}); guardErr != nil {
 				return finishLifecycleMutationDB(ctx, db, guardErr)

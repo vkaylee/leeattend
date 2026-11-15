@@ -141,11 +141,11 @@ func (r ReportRepository) GetAttendanceReport(ctx context.Context, params api.At
 		}
 
 		var total int64
-		countQuery := fmt.Sprintf(`SELECT count(*) FROM employments emp JOIN employees e ON e.id = emp.employee_id JOIN attendance_daily_summaries ads ON ads.employment_id = emp.id WHERE %s%s`, whereClause, filterClause)
+		countQuery := fmt.Sprintf(`SELECT count(*) FROM employments emp JOIN employees e ON e.id = emp.employee_id JOIN attendance_daily_summaries ads ON ads.employment_id = emp.id LEFT JOIN employment_relationships er ON er.id = emp.relationship_id AND er.employee_id = emp.employee_id AND er.deleted_at IS NULL LEFT JOIN employee_tenures t ON t.id = er.tenure_id AND t.employee_id = e.id AND t.deleted_at IS NULL AND t.start_date <= ads.date AND (t.end_date IS NULL OR t.end_date >= ads.date) WHERE %s%s`, whereClause, filterClause)
 		if err := db.QueryRow(ctx, countQuery, args...).Scan(&total); err != nil {
 			return api.PaginatedReportResponse{}, err
 		}
-		dataQuery := fmt.Sprintf(officialScheduleCTE+` SELECT ads.date::text, emp.id AS employment_id, e.id AS employee_id, e.full_name, e.employee_id_number,
+		dataQuery := fmt.Sprintf(officialScheduleCTE+` SELECT ads.date::text, emp.id AS employment_id, e.id AS employee_id, e.full_name, COALESCE(t.employee_number, e.employee_id_number),
        os.shift_name, os.scheduled_start, os.scheduled_end,
        te.punch_in_time::text, te.punch_out_time::text,
        COALESCE(ads.actual_work_minutes, 0),
@@ -156,6 +156,8 @@ func (r ReportRepository) GetAttendanceReport(ctx context.Context, params api.At
 FROM employments emp
 JOIN employees e ON e.id = emp.employee_id
 JOIN attendance_daily_summaries ads ON ads.employment_id = emp.id
+LEFT JOIN employment_relationships er ON er.id = emp.relationship_id AND er.employee_id = emp.employee_id AND er.deleted_at IS NULL
+LEFT JOIN employee_tenures t ON t.id = er.tenure_id AND t.employee_id = e.id AND t.deleted_at IS NULL AND t.start_date <= ads.date AND (t.end_date IS NULL OR t.end_date >= ads.date)
 LEFT JOIN LATERAL (
 	SELECT ce.value_decimal AS hours_per_day
 	FROM config_entries ce
@@ -275,12 +277,12 @@ LIMIT $%d OFFSET $%d`, whereClause, filterClause, argIndex, argIndex+1)
 	}
 
 	var total int64
-	countQuery := fmt.Sprintf(`SELECT count(DISTINCT emp.id) FROM employments emp JOIN employees e ON e.id = emp.employee_id WHERE %s%s`, baseClause, countFilterClause)
+	countQuery := fmt.Sprintf(`SELECT count(DISTINCT (emp.id, t.id)) FROM employments emp JOIN employees e ON e.id = emp.employee_id LEFT JOIN employment_relationships er ON er.id = emp.relationship_id AND er.employee_id = emp.employee_id AND er.deleted_at IS NULL LEFT JOIN employee_tenures t ON t.id = er.tenure_id AND t.employee_id = e.id AND t.deleted_at IS NULL AND t.start_date <= $2::date AND (t.end_date IS NULL OR t.end_date >= $1::date) WHERE %s%s`, baseClause, countFilterClause)
 	if err := db.QueryRow(ctx, countQuery, countArgs...).Scan(&total); err != nil {
 		return api.PaginatedReportResponse{}, err
 	}
 
-	dataQuery := fmt.Sprintf(`SELECT emp.id AS employment_id, e.id AS employee_id, e.full_name, e.employee_id_number,
+	dataQuery := fmt.Sprintf(`SELECT emp.id AS employment_id, e.id AS employee_id, e.full_name, COALESCE(t.employee_number, e.employee_id_number),
        FLOOR(COALESCE(SUM(ads.standard_minutes), 0)::numeric / (COALESCE(hours.hours_per_day, 8.0) * 60))::int AS total_std_units,
        FLOOR(COALESCE(SUM(ads.approved_ot_minutes), 0)::numeric / (COALESCE(hours.hours_per_day, 8.0) * 60))::int AS total_ot_units,
        ROUND((COALESCE(SUM(ads.standard_minutes), 0)::numeric / 60.0), 2) AS computed_std_hours,
@@ -289,6 +291,8 @@ LIMIT $%d OFFSET $%d`, whereClause, filterClause, argIndex, argIndex+1)
        emp.employer_id, em.name AS employer_name
 FROM employments emp
 JOIN employees e ON e.id = emp.employee_id
+LEFT JOIN employment_relationships er ON er.id = emp.relationship_id AND er.employee_id = emp.employee_id AND er.deleted_at IS NULL
+LEFT JOIN employee_tenures t ON t.id = er.tenure_id AND t.employee_id = e.id AND t.deleted_at IS NULL AND t.start_date <= $2::date AND (t.end_date IS NULL OR t.end_date >= $1::date)
 LEFT JOIN employers em ON em.id = emp.employer_id
 LEFT JOIN LATERAL (
 	SELECT ce.value_decimal AS hours_per_day
@@ -306,7 +310,7 @@ LEFT JOIN LATERAL (
 ) hours ON TRUE
 LEFT JOIN attendance_daily_summaries ads ON ads.employment_id = emp.id AND ads.date >= $1::date AND ads.date <= $2::date
 		WHERE %s%s
-		GROUP BY emp.id, e.id, e.full_name, e.employee_id_number, emp.employer_id, em.name
+		GROUP BY emp.id, e.id, e.full_name, COALESCE(t.employee_number, e.employee_id_number), e.employee_id_number, emp.employer_id, em.name
 		ORDER BY e.full_name ASC
 		LIMIT $%d OFFSET $%d`, baseClause, dataFilterClause, dataArgIndex, dataArgIndex+1)
 
@@ -372,7 +376,9 @@ func (r ReportRepository) GetNoShowReport(ctx context.Context, params api.NoShow
 	joins := `
 FROM employments emp
 JOIN employees e ON e.id = emp.employee_id
-LEFT JOIN official_schedule os ON os.employment_id = emp.id AND os.business_date = $1::date`
+LEFT JOIN employment_relationships er ON er.id = emp.relationship_id AND er.employee_id = emp.employee_id AND er.deleted_at IS NULL
+	LEFT JOIN employee_tenures t ON t.id = er.tenure_id AND t.employee_id = e.id AND t.deleted_at IS NULL AND t.start_date <= $1::date AND (t.end_date IS NULL OR t.end_date >= $1::date)
+	LEFT JOIN official_schedule os ON os.employment_id = emp.id AND os.business_date = $1::date`
 
 	var total int64
 	countQuery := officialScheduleCTE + ` SELECT count(*)` + joins + `
@@ -381,7 +387,7 @@ WHERE ` + whereClause
 		return api.PaginatedReportResponse{}, err
 	}
 
-	dataQuery := fromClause + `os.revision_id, emp.id, e.id, e.full_name, e.employee_id_number,
+	dataQuery := fromClause + `os.revision_id, emp.id, e.id, e.full_name, COALESCE(t.employee_number, e.employee_id_number),
        os.shift_name, os.scheduled_start, os.scheduled_end, $1::date, os.state` + joins + fmt.Sprintf(`
 WHERE %s
 ORDER BY e.full_name ASC, emp.id ASC
