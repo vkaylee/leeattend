@@ -33,6 +33,9 @@ func (r AttendanceRepository) PunchIn(ctx context.Context, employmentID uuid.UUI
 	}
 	var record api.TimeEntryRecord
 	err = service.WithTx(ctx, tx, func(ctx context.Context, tx pgx.Tx) error {
+		if err := guardLifecycleDateMutation(ctx, tx, []uuid.UUID{employmentID}, []string{punchTime.UTC().Format("2006-01-02")}); err != nil {
+			return err
+		}
 		var active bool
 		if err := tx.QueryRow(ctx, `SELECT status = 'active' FROM employments WHERE id = $1 AND deleted_at IS NULL`, employmentID).Scan(&active); err != nil {
 			return err
@@ -77,6 +80,9 @@ func (r AttendanceRepository) PunchOut(ctx context.Context, employeeID uuid.UUID
 		if err != nil {
 			return err
 		}
+		if err := guardLifecycleDateMutation(ctx, db, []uuid.UUID{employmentID}, []string{punchTime.UTC().Format("2006-01-02")}); err != nil {
+			return err
+		}
 		rawData, err := json.Marshal(struct {
 			Punch  int     `json:"punch"`
 			Status int     `json:"status"`
@@ -110,6 +116,9 @@ func (r AttendanceRepository) ESSPunch(ctx context.Context, employeeID uuid.UUID
 	err = service.WithTx(ctx, tx, func(ctx context.Context, db pgx.Tx) error {
 		employmentID, err := resolveActiveEmployment(ctx, db, employeeID)
 		if err != nil {
+			return err
+		}
+		if err := guardLifecycleDateMutation(ctx, db, []uuid.UUID{employmentID}, []string{punchTime.UTC().Format("2006-01-02")}); err != nil {
 			return err
 		}
 		var openEntryID *uuid.UUID
@@ -321,7 +330,7 @@ func (r AttendanceRepository) ApproveAdjustment(ctx context.Context, adjustmentI
 	if err != nil {
 		return err
 	}
-	return service.WithTx(ctx, tx, func(ctx context.Context, db pgx.Tx) error {
+	err = service.WithTx(ctx, tx, func(ctx context.Context, db pgx.Tx) error {
 		var employmentID uuid.UUID
 		var requestedPunchTime time.Time
 		row := db.QueryRow(ctx, `SELECT employment_id, requested_punch_time FROM attendance_adjustment_requests WHERE id = $1 FOR UPDATE`, adjustmentID)
@@ -344,6 +353,7 @@ func (r AttendanceRepository) ApproveAdjustment(ctx context.Context, adjustmentI
 		_, err = db.Exec(ctx, `INSERT INTO raw_attendance_logs (id, employment_id, punch_time, source, raw_data, punch, status, created_at) VALUES ($1, $2, $3, 'manual', NULL, 0, 0, CURRENT_TIMESTAMP)`, uuid.New(), employmentID, requestedPunchTime)
 		return err
 	})
+	return finishLifecycleMutation(ctx, tx, err)
 }
 
 func scanAdjustment(row pgx.Row, record *api.AdjustmentRecord) error {
