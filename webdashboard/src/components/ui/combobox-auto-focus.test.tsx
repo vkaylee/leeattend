@@ -23,7 +23,7 @@ vi.mock("@radix-ui/react-popover", () => ({
  
   Trigger: ({ children }: { children: React.ReactNode }) => <div data-testid="popover-trigger">{children}</div>,
   Portal: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-  Content: ({ children }: { children: React.ReactNode }) => <div data-testid="popover-content">{children}</div>,
+  Content: ({ children, className }: { children: React.ReactNode, className?: string }) => <div className={className} data-testid="popover-content">{children}</div>,
 }));
 
  
@@ -34,10 +34,10 @@ vi.mock("cmdk", () => ({
  
     ),
     {
-      Input: vi.fn(({ autoFocus, placeholder }: { autoFocus?: boolean, placeholder?: string }) => (
- 
-        <input data-autofocus={autoFocus} data-testid="cmdk-input" placeholder={placeholder} />
- 
+      Input: vi.fn(({ autoFocus, className, placeholder }: { autoFocus?: boolean, className?: string, placeholder?: string }) => (
+
+        <input className={className} data-autofocus={autoFocus} data-testid="cmdk-input" placeholder={placeholder} />
+
       )),
  
       List: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,

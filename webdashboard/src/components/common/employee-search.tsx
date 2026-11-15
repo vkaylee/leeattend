@@ -37,10 +37,10 @@ export interface EmployeeSearchProps {
 function highlightMatch(text: string, query: string) {
   if (!query.trim()) return text;
   const escapedQuery = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  const regex = new RegExp(`(${escapedQuery})`, 'gi');
+  const regex = new RegExp(`(${escapedQuery})`, 'i');
   return (
     <>
-      {text.split(regex).map((part, idx) =>
+      {text.split(new RegExp(`(${escapedQuery})`, 'gi')).map((part, idx) =>
         regex.test(part) ? (
           <span className="text-primary-600 dark:text-primary-400 font-black" key={idx}>{part}</span>
         ) : (
@@ -65,7 +65,7 @@ const mapToOption = (emp: Employee, debouncedSearchTerm: string) => {
         {dept ? <span className='opacity-70'>{` · ${dept}`}</span> : null}
       </>
     ),
-    icon: <User className='h-4 w-4 text-slate-500 dark:text-slate-400' />,
+    icon: <User aria-hidden="true" className='h-4 w-4 text-slate-500 dark:text-slate-400' />,
   };
 };
 
@@ -218,7 +218,9 @@ export function EmployeeSearch({
       <div className="flex items-center gap-2">
         <div className="flex-1 min-w-0">
           <Combobox
+            className="border-slate-200 bg-white text-slate-700 shadow-sm hover:border-primary-300 hover:bg-white dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
             clearOnEscape={clearOnEscape}
+            contentClassName="rounded-[1.5rem] border-slate-200 p-2 shadow-xl shadow-slate-900/10 dark:border-slate-700"
             data-testid={testId}
             hasMore={hasNextPage}
             id={id}
@@ -227,8 +229,10 @@ export function EmployeeSearch({
             onChange={handleSelect}
             onLoadMore={() => { void fetchNextPage(); }}
             onSearchChange={setSearchTerm}
+            optionClassName="rounded-xl px-3 py-3 text-sm normal-case tracking-normal"
             options={options}
             placeholder={placeholder ?? t('common.search')}
+            searchInputClassName="h-11 rounded-xl border border-slate-200 bg-slate-50 px-3 font-medium dark:border-slate-700 dark:bg-slate-800"
             size={size}
             value={selectedValue}
           />
@@ -238,7 +242,8 @@ export function EmployeeSearch({
             const deptOptions = (departments ?? []).map(d => ({ value: d.id, label: d.name }));
             return (
               <FilterPanel
-                container="dropdown"
+                className="rounded-xl"
+                container="popover"
                 mode="multi"
                 onClear={() => { handleDeptChange([]); }}
                 onToggle={(id) => {
@@ -249,6 +254,8 @@ export function EmployeeSearch({
                   );
                 }}
                 options={deptOptions}
+                searchable
+                searchPlaceholder={t('common.search')}
                 selected={effectiveDeptIds}
                 trigger={
                   <FilterTrigger
