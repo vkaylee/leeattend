@@ -12,6 +12,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/shopspring/decimal"
 	"github.com/vkaylee/leeattend/apiserver/internal/api"
 	"github.com/vkaylee/leeattend/apiserver/internal/domain/ids"
 	"github.com/vkaylee/leeattend/apiserver/internal/domain/workpolicy"
@@ -180,6 +181,73 @@ func TestIntegrationEnsurePayrollPeriodOpenRejectsLockedPeriod(t *testing.T) {
 	}
 	if status != "locked" {
 		t.Fatalf("locked period status changed to %q", status)
+	}
+}
+
+func TestIntegrationLegacyPayrollCalculationKeepsArithmeticAcrossReruns(t *testing.T) {
+	pool, ctx := requireIntegrationDatabase(t)
+	employerID := uuid.New()
+	employeeID := uuid.New()
+	employmentID := uuid.New()
+	componentID := uuid.New()
+	componentDefinitionID := uuid.New()
+
+	_, err := pool.Exec(ctx, `INSERT INTO employers (id, name) VALUES ($1, 'legacy-parity-test-employer')`, employerID)
+	if err != nil {
+		t.Fatalf("insert parity employer: %v", err)
+	}
+	_, err = pool.Exec(ctx, `INSERT INTO employees (id, employee_id_number, full_name, hire_date, original_hire_date) VALUES ($1, $2, 'legacy-parity-test-employee', DATE '2026-01-01', DATE '2026-01-01')`, employeeID, employeeID.String())
+	if err != nil {
+		t.Fatalf("insert parity employee: %v", err)
+	}
+	_, err = pool.Exec(ctx, `INSERT INTO employments (id, employee_id, employer_id, status, start_date) VALUES ($1, $2, $3, 'active', DATE '2026-01-01')`, employmentID, employeeID, employerID)
+	if err != nil {
+		t.Fatalf("insert parity employment: %v", err)
+	}
+	_, err = pool.Exec(ctx, `INSERT INTO salary_component_definitions (id, name, code, component_type) VALUES ($1, 'Legacy base salary', $2, 'base_salary')`, componentDefinitionID, "LEGACY_BASE_"+componentDefinitionID.String()[:8])
+	if err != nil {
+		t.Fatalf("insert parity salary definition: %v", err)
+	}
+	_, err = pool.Exec(ctx, `INSERT INTO employee_salary_components (id, component_definition_id, amount, effective_date, employment_id) VALUES ($1, $2, 2600, DATE '2026-01-01', $3)`, componentID, componentDefinitionID, employmentID)
+	if err != nil {
+		t.Fatalf("insert parity salary component: %v", err)
+	}
+	_, err = pool.Exec(ctx, `
+		INSERT INTO attendance_daily_summaries (id, date, employment_id, standard_minutes)
+		SELECT gen_random_uuid(), DATE '2026-01-01' + day, $1, 480
+		FROM generate_series(0, 21) AS days(day)`, employmentID)
+	if err != nil {
+		t.Fatalf("insert parity attendance summaries: %v", err)
+	}
+
+	repo := PayrollRepository{DB: pool}
+	first, err := repo.CalculateEmployeePayroll(ctx, ids.EmployeeID(employeeID), 2026, 1, ids.UserID(uuid.New()))
+	if err != nil {
+		t.Fatalf("first legacy payroll calculation: %v", err)
+	}
+	second, err := repo.CalculateEmployeePayroll(ctx, ids.EmployeeID(employeeID), 2026, 1, ids.UserID(uuid.New()))
+	if err != nil {
+		t.Fatalf("second legacy payroll calculation: %v", err)
+	}
+	if first.ID != second.ID {
+		t.Fatalf("rerun changed payslip ID: first=%s second=%s", first.ID, second.ID)
+	}
+	if !first.BasePayAmount.Equal(decimal.RequireFromString("2200")) || !second.BasePayAmount.Equal(first.BasePayAmount) {
+		t.Fatalf("legacy base pay changed: first=%s second=%s want 2200", first.BasePayAmount, second.BasePayAmount)
+	}
+	if !first.NetPayAmount.Equal(decimal.RequireFromString("2200")) || !second.NetPayAmount.Equal(first.NetPayAmount) {
+		t.Fatalf("legacy net pay changed: first=%s second=%s want 2200", first.NetPayAmount, second.NetPayAmount)
+	}
+	if first.StandardUnits != 176 || second.StandardUnits != first.StandardUnits {
+		t.Fatalf("legacy standard units changed: first=%d second=%d want 176", first.StandardUnits, second.StandardUnits)
+	}
+
+	var snapshotCount int
+	if err := pool.QueryRow(ctx, `SELECT count(*) FROM payroll_calculation_runs WHERE payslip_id = $1 AND formula_version_id IS NULL`, first.ID).Scan(&snapshotCount); err != nil {
+		t.Fatalf("count legacy policy snapshots: %v", err)
+	}
+	if snapshotCount != 2 {
+		t.Fatalf("expected append-only legacy snapshots after two calculations, got %d", snapshotCount)
 	}
 }
 
