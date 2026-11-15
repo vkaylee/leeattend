@@ -126,6 +126,7 @@ export default function ProfileTab({
     enabled: !!employee.id, });
     const activeEmployment = employments.find(e => e.status === "active") ?? employments[0];
     const terminatedEmployment = employments.find(e => e.status === "terminated");
+    const tenureHistory = [...employments].sort((a, b) => a.start_date.localeCompare(b.start_date));
     const activeLocationId = maybeNull(activeEmployment)?.primary_location_id ?? "";
 
     const selectedLocationId = selectedLocationIdState ?? activeLocationId;
@@ -221,6 +222,39 @@ export default function ProfileTab({
                     t={t}
                 />
             </GridWrap>
+
+            <section aria-labelledby="employee-tenure-history" className="space-y-4">
+                <h3 id="employee-employment-history" className="text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider">
+                    {t("employees.details.tenure_history", "Lịch sử đợt tuyển dụng")}
+                </h3>
+                {tenureHistory.length === 0 ? (
+                    <p className="rounded-2xl border border-dashed border-slate-200 dark:border-slate-700 p-5 text-sm text-slate-500">
+                        {t("employees.details.no_tenure_history", "Chưa có dữ liệu đợt tuyển dụng")}
+                    </p>
+                ) : (
+                    <ol className="space-y-3">
+                        {tenureHistory.map((employment, index) => (
+                            <li key={employment.id} className="rounded-2xl border border-slate-200 dark:border-slate-800 p-4">
+                                <div className="flex flex-wrap items-center justify-between gap-2">
+                                    <span className="font-semibold text-slate-800 dark:text-slate-100">
+                                        {index === tenureHistory.length - 1
+                                            ? t("employees.details.current_tenure", "Đợt hiện tại / gần nhất")
+                                            : t("employees.details.historical_tenure", "Đợt lịch sử")}
+                                    </span>
+                                    <StatusBadge variant={employment.status === "active" ? "success" : "neutral"}>
+                                        {employment.status}
+                                    </StatusBadge>
+                                </div>
+                                <dl className="mt-3 grid gap-2 text-sm sm:grid-cols-3">
+                                    <div><dt className="text-slate-500">{t("employees.details.employment_id", "Employment ID")}</dt><dd className="font-mono text-xs">{employment.id}</dd></div>
+                                    <div><dt className="text-slate-500">{t("employees.details.start_date", "Bắt đầu")}</dt><dd>{formatDate(employment.start_date)}</dd></div>
+                                    <div><dt className="text-slate-500">{t("employees.details.end_date", "Kết thúc")}</dt><dd>{employment.end_date ? formatDate(employment.end_date) : "—"}</dd></div>
+                                </dl>
+                            </li>
+                        ))}
+                    </ol>
+                )}
+            </section>
 
             <CustomFieldSection entityId={employee.id} entityType="employee" />
 
