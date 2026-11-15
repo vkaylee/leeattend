@@ -1657,13 +1657,9 @@
     "export_matrix_csv": "Export Matrix (CSV)",
     "view_raw_logs": "View Raw Logs",
     "view_raw_logs_short": "Raw Logs",
-    "filters": {
-      "title": "Report filters",
-      "period_label": "Reporting period",
-      "status_label": "Employee status"
-    },
     "active_filters": "Filters active",
     "clear_filters": "Clear filters",
+    "department_filter_label": "Department",
     "department_search_placeholder": "Search departments...",
     "employer_search_placeholder": "Search employers...",
     "search_label": "Search employees",

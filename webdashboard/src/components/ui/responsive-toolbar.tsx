@@ -191,7 +191,7 @@ export default function ResponsiveToolbar({
 
   return (
     <>
-      <div className={cn("flex w-full items-center gap-2", mobileOnly && "lg:hidden", className)}>
+      <div className={cn("flex w-full min-w-0 flex-wrap items-center gap-2", mobileOnly && "lg:hidden", className)}>
         {desktopContent ? (
           <div className={cn(desktop, "min-w-0 flex-1 items-center", mobileOnly && "lg:hidden")}>
             {desktopContent}

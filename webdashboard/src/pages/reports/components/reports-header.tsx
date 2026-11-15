@@ -4,7 +4,7 @@ import React from "react";
 import { useTranslation } from "react-i18next";
 
 import Button from "@/components/ui/button";
-import { PageHeader } from "@/components/ui/page-header";
+import { Typography } from "@/components/ui/typography";
 import { cn } from "@/lib/utils";
 
 import type { ReportViewMode } from "../hooks/use-reports-page";
@@ -23,58 +23,64 @@ export function ReportsHeader({
   viewMode = "summary",
 }: ReportsHeaderProps) {
   const { t } = useTranslation();
+  const viewLabel = t("reports.view_mode_group", "Chế độ xem báo cáo");
 
   return (
-    <PageHeader
-      actions={
-        <div className="flex items-center gap-3 flex-wrap">
-          {/* View Mode Switcher (Matrix Grid vs Summary Hours) */}
-          {!!onViewModeChange && (
-            <div
-              aria-label={t("reports.view_mode_group", "Chế độ xem báo cáo")}
-              className="flex items-center bg-slate-100 dark:bg-slate-800/80 p-1 rounded-2xl border border-slate-200 dark:border-slate-700"
-              role="group"
+    <header className="space-y-4" data-testid="reports-header">
+      <div>
+        <Typography as="h1" className="mb-1 font-bold normal-case" variant="h3">
+          {t("reports.title")}
+        </Typography>
+        <Typography className="text-sm font-medium text-slate-500 dark:text-slate-400" variant="tagline">
+          {t("reports.subtitle")}
+        </Typography>
+      </div>
+
+      <div className="flex w-full flex-wrap items-center gap-2">
+        {!!onViewModeChange && (
+          <div
+            aria-label={viewLabel}
+            className="flex shrink-0 items-center rounded-xl border border-slate-200 bg-slate-100 p-1 dark:border-slate-700 dark:bg-slate-800/80"
+            role="group"
+          >
+            <Button
+              aria-controls="attendance-report-panel"
+              aria-pressed={viewMode === "matrix"}
+              className={cn(
+                "min-h-9 shrink-0 rounded-lg px-3 text-xs font-semibold normal-case tracking-normal transition-colors sm:px-4",
+                viewMode === "matrix"
+                  ? "bg-white text-primary-600 shadow-sm dark:bg-slate-900 dark:text-primary-400"
+                  : "text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200",
+              )}
+              onClick={() => { onViewModeChange("matrix"); }}
+              type="button"
+              variant="ghost"
             >
-              <Button
-                aria-label={t("reports.view_matrix", "Bảng công tháng (Lưới 31 ngày)")}
-                aria-pressed={viewMode === "matrix"}
-                className={cn(
-                  "flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-semibold normal-case tracking-normal transition-all",
-                  viewMode === "matrix"
-                    ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm"
-                    : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
-                )}
-                onClick={() => {
-                  onViewModeChange("matrix");
-                }}
-                variant="ghost"
-              >
-                <LayoutGrid size={15} />
-                <span>{t("reports.view_matrix", "Bảng công tháng")}</span>
-              </Button>
+              <LayoutGrid aria-hidden="true" size={15} />
+              <span>{t("reports.view_matrix", "Bảng công tháng")}</span>
+            </Button>
+            <Button
+              aria-controls="attendance-report-panel"
+              aria-pressed={viewMode === "summary"}
+              className={cn(
+                "min-h-9 shrink-0 rounded-lg px-3 text-xs font-semibold normal-case tracking-normal transition-colors sm:px-4",
+                viewMode === "summary"
+                  ? "bg-white text-primary-600 shadow-sm dark:bg-slate-900 dark:text-primary-400"
+                  : "text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200",
+              )}
+              onClick={() => { onViewModeChange("summary"); }}
+              type="button"
+              variant="ghost"
+            >
+              <Table aria-hidden="true" size={15} />
+              <span>{t("reports.view_summary", "Tổng hợp giờ")}</span>
+            </Button>
+          </div>
+        )}
 
-              <Button
-                aria-label={t("reports.view_summary", "Tổng hợp số giờ")}
-                aria-pressed={viewMode === "summary"}
-                className={cn(
-                  "flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-semibold normal-case tracking-normal transition-all",
-                  viewMode === "summary"
-                    ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm"
-                    : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
-                )}
-                onClick={() => {
-                  onViewModeChange("summary");
-                }}
-                variant="ghost"
-              >
-                <Table size={15} />
-                <span>{t("reports.view_summary", "Tổng hợp giờ")}</span>
-              </Button>
-            </div>
-          )}
-
+        <div className="ml-auto flex shrink-0 flex-wrap items-center gap-2">
           <Link
-            className="flex items-center gap-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 px-4 py-2 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-all font-semibold text-xs tracking-wide shadow-sm active:scale-95"
+            className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 shadow-sm transition-colors hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800 sm:px-4"
             search={{
               tab: "recorded" as const,
               mode: "custom" as const,
@@ -83,13 +89,13 @@ export function ReportsHeader({
             }}
             to="/attendance-logs"
           >
-            <CalendarCheck size={16} /> {t("reports.view_raw_logs", "Xem nhật ký thô")}
+            <CalendarCheck aria-hidden="true" size={16} />
+            <span>{t("reports.view_raw_logs", "Xem nhật ký thô")}</span>
           </Link>
-
           <Button
-            className="flex items-center gap-2 h-10 px-4 rounded-xl font-semibold text-xs normal-case tracking-normal shadow-sm"
+            className="min-h-10 rounded-xl px-3 text-xs font-semibold normal-case tracking-normal sm:px-4"
             data-testid="export-report-btn"
-            icon={<Download size={16} />}
+            icon={<Download aria-hidden="true" size={16} />}
             onClick={onExportClick}
             variant="outline"
           >
@@ -98,10 +104,7 @@ export function ReportsHeader({
               : t("reports.export_excel", "Xuất Excel")}
           </Button>
         </div>
-      }
-      className="px-2"
-      subtitle={t("reports.subtitle")}
-      title={t("reports.title")}
-    />
+      </div>
+    </header>
   );
 }

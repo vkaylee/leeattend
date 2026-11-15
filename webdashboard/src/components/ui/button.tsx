@@ -68,9 +68,9 @@ const Button = memo(
           "inline-flex items-center justify-center transition-all active:scale-95 disabled:bg-slate-200 disabled:text-slate-600 disabled:shadow-none disabled:cursor-not-allowed dark:disabled:bg-slate-800 dark:disabled:text-slate-400",
           CONTROL_FOCUS_RING,
           VARIANT_STYLES[variant],
-          className,
           SIZE_STYLES[size],
           CONTROL_TEXT_STYLE,
+          className,
         )}
         data-component="Button"
         disabled={Boolean(disabled || loading)}

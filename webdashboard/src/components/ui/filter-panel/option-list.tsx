@@ -44,14 +44,17 @@ export function OptionList({
     <>
       {searchable ? (
         <Command>
-          <div className="flex items-center border-b border-slate-50 dark:border-slate-800 px-3 pb-3 mb-1">
-            <Search className="mr-3 h-4 w-4 shrink-0 text-slate-300 dark:text-slate-500" />
-            <Command.Input
-              className="flex h-10 w-full rounded-md bg-transparent text-sm text-primary-700 dark:text-primary-300 outline-none placeholder:text-slate-300 dark:placeholder:text-slate-600 font-bold"
-              onValueChange={setSearch}
-              placeholder={searchPlaceholder ?? t("common.combobox.search")}
-              value={search}
-            />
+          <div className="border-b border-slate-100 px-2 pb-2 mb-1 dark:border-slate-800">
+            <div className="relative">
+              <Search aria-hidden="true" className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400 dark:text-slate-500" />
+              <Command.Input
+                aria-label={searchPlaceholder ?? t("common.combobox.search")}
+                className="flex h-9 w-full rounded-lg border border-transparent bg-slate-50 pl-9 pr-2.5 text-sm font-medium text-slate-800 outline-none placeholder:text-slate-400 transition-colors focus:border-primary-400 focus:ring-2 focus:ring-primary-500/15 dark:bg-slate-800 dark:text-slate-100 dark:placeholder:text-slate-500 dark:focus:border-primary-500"
+                onValueChange={setSearch}
+                placeholder={searchPlaceholder ?? t("common.combobox.search")}
+                value={search}
+              />
+            </div>
           </div>
         </Command>
       ) : null}

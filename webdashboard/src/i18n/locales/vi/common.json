@@ -1657,13 +1657,9 @@
     "export_matrix_csv": "Xuất ma trận (CSV)",
     "view_raw_logs": "Xem nhật ký thô",
     "view_raw_logs_short": "Nhật ký thô",
-    "filters": {
-      "title": "Bộ lọc báo cáo",
-      "period_label": "Khoảng thời gian",
-      "status_label": "Trạng thái nhân viên"
-    },
     "active_filters": "Đang lọc",
     "clear_filters": "Xóa bộ lọc",
+    "department_filter_label": "Phòng ban",
     "department_search_placeholder": "Tìm phòng ban...",
     "employer_search_placeholder": "Tìm công ty...",
     "search_label": "Tìm nhân viên",

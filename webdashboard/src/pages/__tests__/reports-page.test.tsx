@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen, waitFor, fireEvent, within } from "@testing-library/react";
+import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 import React from "react";
 
 import userEvent from "@testing-library/user-event";
@@ -595,12 +595,15 @@ describe("ReportsPage", () => {
 
     renderWithProviders(<ReportsPage />);
 
-    // Wait for the department chips to render
-    const engineeringChip = await screen.findByRole("button", { name: /Engineering/i });
-    expect(engineeringChip).toBeDefined();
+    // Wait for the scalable department selector to render
+    const departmentTrigger = await screen.findByTestId("department-filter-trigger");
+    expect(departmentTrigger).toHaveAccessibleName(/Tất cả|All/i);
 
-    // Click the Engineering chip
-    await user.click(engineeringChip);
+    await user.click(departmentTrigger);
+    const engineeringOption = await screen.findByRole("option", { name: /Engineering/i });
+
+    // Select Engineering from searchable department menu
+    await user.click(engineeringOption);
 
     // Verify fetchAttendanceReport is called with department_id="dept-1" (9th arg, index 8)
     await waitFor(() => {
@@ -609,11 +612,9 @@ describe("ReportsPage", () => {
       expect(latestCall[0].departmentId).toBe("dept-1");
     });
 
-    // Verify that clicking "All" clears the department filter (null is passed)
-    const chipsContainer = await screen.findByTestId("department-chips");
-    const allChip = await within(chipsContainer).findByRole("button", { name: /all|tất cả/i });
- 
-    await user.click(allChip);
+    // Verify that clearing the department filter resets the API parameter.
+    await user.click(await screen.findByTestId("department-filter-trigger"));
+    await user.click(await screen.findByText(/Xóa bộ lọc|Clear filter/i));
 
     await waitFor(() => {
       const calls = vi.mocked(api.fetchAttendanceReport).mock.calls;
@@ -706,7 +707,7 @@ describe("ReportsPage", () => {
     });
   });
 
-  it("renders department chips with wrapping layout", async () => {
+  it("renders a compact searchable department selector", async () => {
     vi.mocked(api.fetchDepartments).mockResolvedValue([
       { id: "dept-1", name: "Engineering", workspace_id: "test-ws-id", created_at: "2025-01-01T00:00:00Z", updated_at: "2025-01-01T00:00:00Z", active_employee_count: 0 },
       { id: "dept-2", name: "HR", workspace_id: "test-ws-id", created_at: "2025-01-01T00:00:00Z", updated_at: "2025-01-01T00:00:00Z", active_employee_count: 0 },
@@ -715,14 +716,10 @@ describe("ReportsPage", () => {
 
     renderWithProviders(<ReportsPage />);
 
-    const chipsContainer = await screen.findByTestId("department-chips");
-    
-    // Verify wrap class is present
-    expect(chipsContainer.className).toContain("flex-wrap");
-    
-    // Verify overflow-x-auto is removed
-    expect(chipsContainer.className).not.toContain("overflow-x-auto");
-    expect(chipsContainer.className).not.toContain("scrollbar-thin");
+    const departmentTrigger = await screen.findByTestId("department-filter-trigger");
+
+    expect(departmentTrigger).toHaveAttribute("aria-haspopup", "listbox");
+    expect(departmentTrigger).toHaveAccessibleName(/All|Tất cả/i);
   });
 
   it("toggles between summary hours and 31-day timesheet matrix views", async () => {

@@ -149,10 +149,11 @@ export default function ReportsPage() {
       <ResponsiveToolbar
         filterCount={
           [
-            filterMode !== "this_month",
+            filterMode !== "last_month",
             employeeStatus !== "active",
             selectedDepartmentId !== null,
             selectedEmployerId !== null,
+            Boolean(searchQuery.trim()),
           ].filter(Boolean).length
         }
       >

@@ -100,7 +100,7 @@ function PopoverFilterPanel({
         <Popover.Content
           align={align}
           className={cn(
-            "z-[10000] overflow-hidden rounded-[2rem] border border-slate-100 dark:border-slate-700 bg-white dark:bg-slate-900 p-2.5 shadow-2xl dark:shadow-black/30 animate-in fade-in zoom-in-95 duration-200",
+            "z-[10000] overflow-hidden rounded-xl border border-slate-200 bg-white p-1.5 shadow-lg shadow-slate-900/10 dark:border-slate-700 dark:bg-slate-900 dark:shadow-black/25 animate-in fade-in zoom-in-95 duration-200",
             searchable ? "w-80" : "w-56",
           )}
           data-testid={testId ? `${testId}-content` : undefined}
