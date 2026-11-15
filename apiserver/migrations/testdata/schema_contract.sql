@@ -76,6 +76,49 @@ BEGIN
         RAISE EXCEPTION 'schema check failed: employment_relationships table is missing';
     END IF;
 
+    IF to_regclass('public.employee_tenures') IS NULL
+       OR to_regclass('public.employee_tenure_reconciliation') IS NULL THEN
+        RAISE EXCEPTION 'schema check failed: employee tenure tables are missing';
+    END IF;
+
+    IF NOT EXISTS (
+        SELECT 1
+        FROM pg_constraint
+        WHERE conrelid = 'public.employee_tenures'::regclass
+          AND conname = 'employee_tenures_dates_check'
+          AND contype = 'c'
+    ) OR NOT EXISTS (
+        SELECT 1
+        FROM pg_constraint
+        WHERE conrelid = 'public.employee_tenures'::regclass
+          AND conname = 'employee_tenures_no_overlap_person'
+          AND contype = 'x'
+    ) OR NOT EXISTS (
+        SELECT 1
+        FROM pg_constraint
+        WHERE conrelid = 'public.employee_tenures'::regclass
+          AND conname = 'employee_tenures_no_overlap_number'
+          AND contype = 'x'
+    ) THEN
+        RAISE EXCEPTION 'schema check failed: employee tenure temporal constraints are missing';
+    END IF;
+
+    IF NOT EXISTS (
+        SELECT 1
+        FROM pg_attribute
+        WHERE attrelid = 'public.employment_relationships'::regclass
+          AND attname = 'tenure_id'
+          AND NOT attisdropped
+    ) OR NOT EXISTS (
+        SELECT 1
+        FROM pg_constraint
+        WHERE conrelid = 'public.employment_relationships'::regclass
+          AND conname = 'employment_relationships_tenure_identity_fkey'
+          AND contype = 'f'
+    ) THEN
+        RAISE EXCEPTION 'schema check failed: relationship tenure link is missing';
+    END IF;
+
     IF NOT EXISTS (
         SELECT 1
         FROM pg_constraint
@@ -162,6 +205,22 @@ BEGIN
 
     IF v_marker_count <> 1 THEN
         RAISE EXCEPTION 'schema check failed: employment relationship backfill marker is missing';
+    END IF;
+
+    SELECT count(*) INTO v_marker_count
+    FROM public.schema_migrations
+    WHERE version = '20261115030000_employee_tenures';
+
+    IF v_marker_count <> 1 THEN
+        RAISE EXCEPTION 'schema check failed: employee tenure migration marker is missing';
+    END IF;
+
+    IF EXISTS (
+        SELECT 1
+        FROM public.employee_tenure_reconciliation
+        WHERE status NOT IN ('pending', 'resolved', 'blocked')
+    ) THEN
+        RAISE EXCEPTION 'schema check failed: invalid tenure reconciliation status exists';
     END IF;
 
     IF EXISTS (

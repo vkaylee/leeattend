@@ -10,10 +10,27 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/vkaylee/leeattend/apiserver/internal/api"
+	"github.com/vkaylee/leeattend/apiserver/internal/service"
 )
 
 type EmployeeRepository struct {
-	DB DBTX
+	DB      DBTX
+	BeginTx func(context.Context) (service.TxBeginner, error)
+}
+
+func (r EmployeeRepository) begin(ctx context.Context) (service.TxBeginner, error) {
+	if r.BeginTx != nil {
+		return r.BeginTx(ctx)
+	}
+	db, err := r.db(ctx)
+	if err != nil {
+		return nil, err
+	}
+	beginner, ok := db.(service.TxBeginner)
+	if !ok {
+		return nil, errors.New("employee repository: database does not support transactions")
+	}
+	return beginner, nil
 }
 
 func (r EmployeeRepository) db(ctx context.Context) (DBTX, error) {
@@ -24,18 +41,40 @@ func (r EmployeeRepository) db(ctx context.Context) (DBTX, error) {
 }
 
 func (r EmployeeRepository) CreateEmployee(ctx context.Context, req api.CreateEmployeeRequest) (api.EmployeeRecord, error) {
-	db, err := r.db(ctx)
+	beginner, err := r.begin(ctx)
 	if err != nil {
 		return api.EmployeeRecord{}, err
 	}
 	var record api.EmployeeRecord
-	var createdAt, updatedAt time.Time
-	err = db.QueryRow(ctx, `INSERT INTO employees (employee_id_number, full_name, tags, hire_date, original_hire_date) VALUES ($1, $2, $3, $4::date, $4::date) RETURNING id, user_id, full_name, employee_id_number, tags, created_at, updated_at`, req.EmployeeIDNumber, strings.TrimSpace(req.FullName), req.Tags, req.HireDate).Scan(&record.ID, &record.UserID, &record.FullName, &record.EmployeeIDNumber, &record.Tags, &createdAt, &updatedAt)
+	err = service.WithTx(ctx, beginner, func(ctx context.Context, tx pgx.Tx) error {
+		var createdAt, updatedAt time.Time
+		if err := tx.QueryRow(ctx, `INSERT INTO employees (employee_id_number, full_name, tags, hire_date, original_hire_date) VALUES ($1, $2, $3, $4::date, $4::date) RETURNING id, user_id, full_name, employee_id_number, tags, created_at, updated_at`, strings.TrimSpace(req.EmployeeIDNumber), strings.TrimSpace(req.FullName), req.Tags, req.HireDate).
+			Scan(&record.ID, &record.UserID, &record.FullName, &record.EmployeeIDNumber, &record.Tags, &createdAt, &updatedAt); err != nil {
+			return mapConstraintError(err)
+		}
+		if err := tx.QueryRow(ctx, `INSERT INTO employee_tenures (employee_id, employee_number, start_date) VALUES ($1, $2, $3::date) RETURNING id`, record.ID, record.EmployeeIDNumber, req.HireDate).Scan(new(uuid.UUID)); err != nil {
+			return mapConstraintError(err)
+		}
+		if req.EmployerID != nil {
+			var tenureID uuid.UUID
+			if err := tx.QueryRow(ctx, `SELECT id FROM employee_tenures WHERE employee_id = $1 AND deleted_at IS NULL AND end_date IS NULL ORDER BY start_date DESC, id DESC LIMIT 1`, record.ID).Scan(&tenureID); err != nil {
+				return err
+			}
+			relationshipID := uuid.New()
+			if err := tx.QueryRow(ctx, `INSERT INTO employment_relationships (id, employee_id, employer_id, tenure_id, status, start_date, created_at, updated_at) VALUES ($1, $2, $3, $4, 'active', $5::date, NOW(), NOW()) RETURNING id`, relationshipID, record.ID, *req.EmployerID, tenureID, req.HireDate).Scan(new(uuid.UUID)); err != nil {
+				return mapConstraintError(err)
+			}
+			if _, err := tx.Exec(ctx, `INSERT INTO employments (id, employee_id, employer_id, relationship_id, primary_location_id, department_id, status, start_date, employment_type, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6, 'active', $7::date, 'full_time', NOW(), NOW())`, uuid.New(), record.ID, *req.EmployerID, relationshipID, req.PrimaryLocationID, req.DepartmentID, req.HireDate); err != nil {
+				return mapConstraintError(err)
+			}
+		}
+		record.CreatedAt = createdAt.UTC().Format(time.RFC3339)
+		record.UpdatedAt = updatedAt.UTC().Format(time.RFC3339)
+		return nil
+	})
 	if err != nil {
-		return api.EmployeeRecord{}, mapConstraintError(err)
+		return api.EmployeeRecord{}, err
 	}
-	record.CreatedAt = createdAt.UTC().Format(time.RFC3339)
-	record.UpdatedAt = updatedAt.UTC().Format(time.RFC3339)
 	return record, nil
 }
 
@@ -150,18 +189,55 @@ func (r EmployeeRepository) SoftDeleteEmployee(ctx context.Context, employeeID u
 	return nil
 }
 
-func (r EmployeeRepository) RehireEmployee(ctx context.Context, employeeID uuid.UUID, _ api.RehireEmployeeRequest) (api.EmployeeRecord, error) {
-	db, err := r.db(ctx)
+func (r EmployeeRepository) RehireEmployee(ctx context.Context, employeeID uuid.UUID, req api.RehireEmployeeRequest) (api.EmployeeRecord, error) {
+	beginner, err := r.begin(ctx)
 	if err != nil {
 		return api.EmployeeRecord{}, err
 	}
 	var record api.EmployeeRecord
-	var createdAt, updatedAt time.Time
-	err = db.QueryRow(ctx, `UPDATE employees SET deleted_at = NULL, updated_at = CURRENT_TIMESTAMP WHERE id = $1 RETURNING id, user_id, full_name, employee_id_number, tags, created_at, updated_at`, employeeID).Scan(&record.ID, &record.UserID, &record.FullName, &record.EmployeeIDNumber, &record.Tags, &createdAt, &updatedAt)
+	err = service.WithTx(ctx, beginner, func(ctx context.Context, tx pgx.Tx) error {
+		var current api.EmployeeRecord
+		var createdAt, updatedAt time.Time
+		if err := tx.QueryRow(ctx, `SELECT id, user_id, full_name, employee_id_number, tags, created_at, updated_at FROM employees WHERE id = $1 AND deleted_at IS NOT NULL FOR UPDATE`, employeeID).
+			Scan(&current.ID, &current.UserID, &current.FullName, &current.EmployeeIDNumber, &current.Tags, &createdAt, &updatedAt); err != nil {
+			return err
+		}
+		employeeNumber := current.EmployeeIDNumber
+		if req.EmployeeIDNumber != nil && strings.TrimSpace(*req.EmployeeIDNumber) != "" {
+			employeeNumber = strings.TrimSpace(*req.EmployeeIDNumber)
+		}
+		if req.EmployerID == nil {
+			return errors.New("rehire employer is required")
+		}
+		if _, err := tx.Exec(ctx, `UPDATE employee_tenures SET end_date = ($2::date - 1), updated_at = CURRENT_TIMESTAMP WHERE employee_id = $1 AND deleted_at IS NULL AND end_date IS NULL`, employeeID, req.HireDate); err != nil {
+			return err
+		}
+		if _, err := tx.Exec(ctx, `UPDATE employment_relationships SET status = 'terminated', end_date = ($2::date - 1), updated_at = CURRENT_TIMESTAMP WHERE employee_id = $1 AND deleted_at IS NULL AND end_date IS NULL`, employeeID, req.HireDate); err != nil {
+			return err
+		}
+		if _, err := tx.Exec(ctx, `UPDATE employees SET employee_id_number = $2, deleted_at = NULL, updated_at = CURRENT_TIMESTAMP WHERE id = $1`, employeeID, employeeNumber); err != nil {
+			return err
+		}
+		var tenureID uuid.UUID
+		if err := tx.QueryRow(ctx, `INSERT INTO employee_tenures (employee_id, employee_number, start_date) VALUES ($1, $2, $3::date) RETURNING id`, employeeID, employeeNumber, req.HireDate).Scan(&tenureID); err != nil {
+			return mapConstraintError(err)
+		}
+		relationshipID := uuid.New()
+		if err := tx.QueryRow(ctx, `INSERT INTO employment_relationships (id, employee_id, employer_id, tenure_id, status, start_date, created_at, updated_at) VALUES ($1, $2, $3, $4, 'active', $5::date, NOW(), NOW()) RETURNING id`, relationshipID, employeeID, *req.EmployerID, tenureID, req.HireDate).Scan(new(uuid.UUID)); err != nil {
+			return mapConstraintError(err)
+		}
+		if err := tx.QueryRow(ctx, `INSERT INTO employments (id, employee_id, employer_id, relationship_id, primary_location_id, status, start_date, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, 'active', $6::date, NOW(), NOW()) RETURNING id`, uuid.New(), employeeID, *req.EmployerID, relationshipID, req.PrimaryLocationID, req.HireDate).Scan(new(uuid.UUID)); err != nil {
+			return mapConstraintError(err)
+		}
+		current.UserID = nil
+		current.EmployeeIDNumber = employeeNumber
+		current.CreatedAt = createdAt.UTC().Format(time.RFC3339)
+		current.UpdatedAt = updatedAt.UTC().Format(time.RFC3339)
+		record = current
+		return nil
+	})
 	if err != nil {
 		return api.EmployeeRecord{}, err
 	}
-	record.CreatedAt = createdAt.UTC().Format(time.RFC3339)
-	record.UpdatedAt = updatedAt.UTC().Format(time.RFC3339)
 	return record, nil
 }

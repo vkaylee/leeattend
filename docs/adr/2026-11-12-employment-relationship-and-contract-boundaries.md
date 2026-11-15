@@ -24,20 +24,23 @@ Business decisions:
 
 Use five explicit concepts:
 
-1. **Employee** — persistent person record.
-2. **Employment relationship** — stable identity for one employment episode with one employer. Rehire creates a new relationship, including rehire by the same employer.
-3. **Employment segment** — dated assignment within a relationship: department, title, location, and manager. Existing `employments` rows remain segments during migration to avoid rewriting historical foreign keys.
-4. **Contract** — legal employment document linked to the relationship. Existing `employment_id` remains a compatibility link until all consumers can use relationship context.
-5. **Signing envelope** — an electronic-signing attempt/history for a contract. Envelope state does not determine employment or contract effective state.
+1. **Employee** — persistent person record. `employees.id` remains the stable person identifier.
+2. **Employee tenure** — one hiring episode with one HR employee number and one HRM account context. A transfer between employers during the same episode keeps the tenure and number; rehire creates a new tenure and may reuse the previous number or choose a new number.
+3. **Employment relationship** — stable identity for one tenure's relationship with one employer. Rehire creates a new relationship for the new tenure, including rehire by the same employer. Different employers may overlap when they belong to the same tenure.
+4. **Employment segment** — dated assignment within a relationship: department, title, location, and manager. Existing `employments` rows remain segments during migration to avoid rewriting historical foreign keys.
+5. **Contract** — legal employment document linked to the relationship. Existing `employment_id` remains a compatibility link until all consumers can use relationship context.
+6. **Signing envelope** — an electronic-signing attempt/history for a contract. Envelope state does not determine employment or contract effective state.
 
 Employment phases remain lifecycle milestones. A phase MAY attach to a segment where assignment-specific behavior is required; it MUST NOT replace relationship or contract lifecycle state.
 
 ### Identity and history rules
 
-- Department transfer creates or updates a dated segment within the same relationship. It does not create a relationship or contract automatically.
+- Department or employer transfer during one hiring episode creates or updates a dated segment or relationship within the same tenure and preserves its HR number. It does not create a tenure or contract automatically.
+- Rehire closes the previous tenure and creates a new tenure, relationship, and initial segment in one transaction. HR may reuse the previous number or choose a new number; the number is never the technical identity. Rehire does not create a second person profile.
+- A newly linked employee account is scoped to the current effective tenure; it does not inherit access to prior-tenure attendance, leave, payroll, documents, or signed history. HR access to history remains permission-scoped.
 - Contract renewal or replacement creates a new legal document record. It does not create a relationship automatically.
-- Termination closes the relationship and applies explicit contract/phase transitions. It does not delete attendance, leave, payroll, or signed-document history.
-- Resolver code MUST require relationship/segment context when an employee has multiple employers. It MUST NOT choose the newest employment record as an implicit employer.
+- Termination closes the affected relationship and applies explicit contract/phase transitions. It does not delete attendance, leave, payroll, or signed-document history.
+- Resolver code MUST require tenure plus relationship/segment context when an employee has multiple employers or historical numbers. It MUST NOT choose the newest employment record as an implicit employer or resolve a historical number to the current tenure without date/employer context.
 - Contract content that is effective or signed is immutable. Amend, replace, terminate, or archive operations preserve prior versions.
 
 ## Alternatives
@@ -63,11 +66,14 @@ Rejected for the first migration slice. It has the largest blast radius and weak
 - `/econtracts` can later manage signing envelopes without pretending provider actions succeeded.
 - Historical employment IDs remain valid for attendance and payroll consumers during migration.
 - Different-employer concurrent employment becomes explicit instead of inferred.
+- HR/IT employee numbers remain stable during one hiring episode; rehire may reuse or change the number while history remains auditable without duplicating person profiles.
+- Employee-facing access can be restricted to the current tenure without deleting historical payroll, attendance, contract, or document records.
 
 ### Negative
 
-- Transitional responses contain both relationship context and legacy employment IDs.
-- Resolver and authorization code must handle relationship, segment, employer, and department scope explicitly.
+- Transitional responses contain tenure context, relationship context, and legacy employment IDs.
+- Resolver and authorization code must handle tenure, relationship, segment, employer, and department scope explicitly.
+- Existing employee-number readers currently use the person row; they need temporal/tenure-aware resolution before rehire numbers can be enabled.
 - Existing contract overlap and auto-close behavior needs replacement with explicit legal-document transitions.
 - Backfill may produce ambiguous cases that require HR decisions; the system MUST NOT guess those mappings.
 
@@ -92,9 +98,10 @@ No destructive schema cleanup is part of this ADR.
 
 ## Acceptance criteria
 
-- Employee, relationship, segment, contract, envelope, and phase have distinct ownership and lifecycle semantics.
-- Department transfer preserves relationship and contract identity.
-- Rehire creates a new relationship; different employers can overlap.
+- Employee, tenure, relationship, segment, contract, envelope, and phase have distinct ownership and lifecycle semantics.
+- Department or employer transfer within one hiring episode preserves tenure number, relationship where applicable, and contract identity.
+- Rehire creates a new tenure, relationship, and initial segment; HR may reuse the previous number or supply a new number, and different employers can overlap within one tenure.
+- A newly linked employee account cannot access prior-tenure employee-owned data; HR history access remains permission-scoped.
 - Locked payroll periods reject retroactive mutations without side effects.
 - `/contracts` is separate from `/econtracts`; provider integration remains unavailable until separately implemented.
 - API, authorization, migration, rollback, and affected-consumer tests verify the decision.

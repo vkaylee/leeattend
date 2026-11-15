@@ -10,6 +10,10 @@ DECLARE
     v_employer_b_id uuid := gen_random_uuid();
     v_relationship_a_id uuid := gen_random_uuid();
     v_relationship_b_id uuid := gen_random_uuid();
+    v_tenure_a_id uuid := gen_random_uuid();
+    v_tenure_b_id uuid := gen_random_uuid();
+    v_other_employee_id uuid := gen_random_uuid();
+    v_tenure_conflict_id uuid := gen_random_uuid();
     v_segment_a_id uuid := gen_random_uuid();
     v_segment_b_id uuid := gen_random_uuid();
     v_contract_id uuid := gen_random_uuid();
@@ -21,6 +25,40 @@ BEGIN
         v_employee_id, 'schema-contract-test-' || replace(v_employee_id::text, '-', ''),
         'Schema Contract Test', DATE '2026-01-01', DATE '2026-01-01'
     );
+
+    INSERT INTO public.employee_tenures (
+        id, employee_id, employee_number, start_date, end_date
+    ) VALUES (
+        v_tenure_a_id, v_employee_id, '1541', DATE '2026-01-01', DATE '2026-01-31'
+    );
+
+    -- Reusing a number for the same person is valid after the prior tenure closes.
+    INSERT INTO public.employee_tenures (
+        id, employee_id, employee_number, start_date
+    ) VALUES (
+        v_tenure_b_id, v_employee_id, '1541', DATE '2026-02-01'
+    );
+
+    INSERT INTO public.employees (
+        id, employee_id_number, full_name, hire_date, original_hire_date
+    ) VALUES (
+        v_other_employee_id, 'schema-contract-other-' || replace(v_other_employee_id::text, '-', ''),
+        'Schema Contract Other Employee', DATE '2026-01-01', DATE '2026-01-01'
+    );
+
+    v_rejected := false;
+    BEGIN
+        INSERT INTO public.employee_tenures (
+            id, employee_id, employee_number, start_date, end_date
+        ) VALUES (
+            v_tenure_conflict_id, v_other_employee_id, '1541', DATE '2026-01-15', DATE '2026-02-15'
+        );
+    EXCEPTION WHEN exclusion_violation THEN
+        v_rejected := true;
+    END;
+    IF NOT v_rejected THEN
+        RAISE EXCEPTION 'employee number overlap across people was accepted';
+    END IF;
 
     INSERT INTO public.employers (id, name)
     VALUES (v_employer_a_id, 'Schema Contract Employer A');

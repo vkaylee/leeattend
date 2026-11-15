@@ -59,9 +59,11 @@ export default function RehireEmployeeModal({
       return;
     }
     const formData = new FormData(e.currentTarget);
+    const employeeIDNumber = (formData.get("employee_id_number") as string).trim();
     rehireMutation.mutate({
       hire_date: formData.get("hire_date") as string,
       employer_id: selectedEmployerId,
+      ...(employeeIDNumber ? { employee_id_number: employeeIDNumber } : {}),
     });
   };
 
@@ -99,6 +101,12 @@ export default function RehireEmployeeModal({
               value={selectedEmployerId}
             />
           </div>
+          <FormField
+            defaultValue=""
+            label={t("employees.rehire.employee_number")}
+            name="employee_id_number"
+            type="text"
+          />
           <FormField
             defaultValue={format(new Date(), "yyyy-MM-dd")}
             label={t("employees.rehire.rehire_date")}

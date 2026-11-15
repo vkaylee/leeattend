@@ -89,12 +89,9 @@ export async function fetchEmploymentHistory(_id: string): Promise<EmploymentPer
   return Promise.resolve([]);
 }
 
-export interface RehireEmployeeRequest {
-  department_id?: string | null;
-  employer_id: string;
-  hire_date: string;
-  primary_location_id?: string | null;
-}
+export type RehireEmployeeRequest = components["schemas"]["RehireEmployeeRequest"] & {
+  employee_id_number?: string;
+};
 
 export async function rehireEmployee(
   id: string,

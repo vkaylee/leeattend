@@ -47,6 +47,7 @@ type CreateEmployeeRequest struct {
 }
 type RehireEmployeeRequest struct {
 	HireDate          string     `json:"hire_date"`
+	EmployeeIDNumber  *string    `json:"employee_id_number,omitempty"`
 	EmployerID        *uuid.UUID `json:"employer_id"`
 	PrimaryLocationID *uuid.UUID `json:"primary_location_id"`
 }
@@ -161,7 +162,7 @@ func (h EmployeeHandler) Rehire(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	request, err := DecodeJSON[RehireEmployeeRequest](r, 1<<20)
-	if err != nil || request.HireDate == "" {
+	if err != nil || request.HireDate == "" || request.EmployerID == nil {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}

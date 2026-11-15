@@ -312,6 +312,7 @@
       "subtitle": "Kích hoạt hồ sơ",
       "confirm_msg": "Xác nhận ngày nhân viên bắt đầu giai đoạn làm việc mới",
       "rehire_date": "Ngày vào làm lại",
+      "employee_number": "Mã nhân viên mới (để trống để dùng mã cũ)",
       "cancel": "Hủy",
       "confirm": "Xác nhận",
       "processing": "Đang xử lý..."

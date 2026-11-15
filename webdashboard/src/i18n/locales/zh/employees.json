@@ -312,6 +312,7 @@
       "subtitle": "激活档案",
       "confirm_msg": "确认员工开始新工作期间的日期",
       "rehire_date": "重新入职日期",
+      "employee_number": "新员工编号（留空则沿用旧编号）",
       "cancel": "取消",
       "confirm": "确认",
       "processing": "正在处理..."
