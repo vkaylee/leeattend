@@ -945,16 +945,20 @@ func (r LeaveRepository) ProcessLeaveImport(ctx context.Context, userID uuid.UUI
 	failed := 0
 	var errorLines []string
 	for _, row := range rows {
-		var employeeID uuid.UUID
-		if err := db.QueryRow(ctx, `SELECT id FROM employees WHERE UPPER(employee_id_number) = UPPER($1) AND deleted_at IS NULL LIMIT 1`, row.EmployeeCode).Scan(&employeeID); err != nil {
+		startDate, startErr := time.Parse("2006-01-02", row.StartDate)
+		if startErr != nil {
 			failed++
-			errorLines = append(errorLines, fmt.Sprintf("line %d: employee %s not found", row.LineNumber, row.EmployeeCode))
+			errorLines = append(errorLines, fmt.Sprintf("line %d: invalid start date", row.LineNumber))
 			continue
 		}
-		var employmentID uuid.UUID
-		if err := db.QueryRow(ctx, `SELECT id FROM employments WHERE employee_id = $1 AND deleted_at IS NULL AND status = 'active' ORDER BY start_date DESC LIMIT 1`, employeeID).Scan(&employmentID); err != nil {
+		employmentID, resolveErr := resolveImportedEmployment(ctx, db, row.EmployeeCode, startDate)
+		if resolveErr != nil {
 			failed++
-			errorLines = append(errorLines, fmt.Sprintf("line %d: active employment for %s not found", row.LineNumber, row.EmployeeCode))
+			message := "employee not found"
+			if errors.Is(resolveErr, errAmbiguousImportedEmployment) {
+				message = "employee number is ambiguous for date"
+			}
+			errorLines = append(errorLines, fmt.Sprintf("line %d: %s", row.LineNumber, message))
 			continue
 		}
 		var leaveTypeID uuid.UUID
