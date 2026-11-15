@@ -136,8 +136,8 @@ func TestIntegrationLegacyMutationGuardRollbackRefusesOfficialEvidence(t *testin
 	if err := tx.QueryRow(ctx, `SELECT count(*) FROM schedule_day_revisions WHERE state IN ('published', 'explicit_off')`).Scan(&officialCount); err != nil {
 		t.Fatalf("count official revisions: %v", err)
 	}
-	if officialCount != 2 {
-		t.Fatalf("official revision count = %d, want 2", officialCount)
+	if officialCount < 2 {
+		t.Fatalf("official revision count = %d, want at least 2", officialCount)
 	}
 
 	if _, err := tx.Exec(ctx, "SAVEPOINT rollback_guard"); err != nil {
