@@ -23,9 +23,23 @@ type officialScheduleRepositoryMock struct {
 	officialCalled bool
 }
 
+type activationAwareScheduleRepositoryMock struct {
+	mockScheduleRepository
+	activationAwareCalled bool
+}
+
+func (m *activationAwareScheduleRepositoryMock) GetActivationAwareSchedules(_ context.Context, _, _ time.Time, _ []uuid.UUID, page, limit int) (PaginatedEmployeeSchedules, error) {
+	m.activationAwareCalled = true
+	return PaginatedEmployeeSchedules{Page: page, Limit: limit}, nil
+}
+
 func (m *officialScheduleRepositoryMock) GetOfficialSchedules(_ context.Context, _, _ time.Time, _ []uuid.UUID, page, limit int) (PaginatedEmployeeSchedules, error) {
 	m.officialCalled = true
 	return PaginatedEmployeeSchedules{Data: []EmployeeSchedule{{Schedules: []EffectiveSchedule{{Date: "2026-10-20", RevisionID: new(uuid.UUID), ScheduleStatus: "missing", Provisional: false}}}}, Page: page, Limit: limit}, nil
+}
+
+func (m *mockScheduleRepository) GetActivationAwareSchedules(ctx context.Context, start, end time.Time, ids []uuid.UUID, page, limit int) (PaginatedEmployeeSchedules, error) {
+	return m.GetOrganizationSchedules(ctx, start, end, ids, page, limit)
 }
 
 func (m *mockScheduleRepository) GetOrganizationSchedules(_ context.Context, _, _ time.Time, _ []uuid.UUID, page, limit int) (PaginatedEmployeeSchedules, error) {
@@ -359,6 +373,18 @@ func TestScheduleHandler_LifecycleUnavailableIsExplicit(t *testing.T) {
 	}
 }
 
+func TestScheduleHandler_ActivationAwareViewUsesActivationCapability(t *testing.T) {
+	repo := &activationAwareScheduleRepositoryMock{}
+	handler := ScheduleHandler{Repository: repo, Authorizer: mockScheduleAuthorizer{isMember: true}}
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/schedules?start_date=2026-10-01&end_date=2026-10-31&view=activation-aware", nil)
+	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
+	rec := httptest.NewRecorder()
+	handler.List(rec, req)
+	if rec.Code != http.StatusOK || !repo.activationAwareCalled || repo.called {
+		t.Fatalf("activation-aware view status=%d activation=%v legacy=%v", rec.Code, repo.activationAwareCalled, repo.called)
+	}
+}
+
 func TestScheduleHandler_OfficialViewUsesOfficialCapability(t *testing.T) {
 	repo := &officialScheduleRepositoryMock{}
 	handler := ScheduleHandler{Repository: repo, Authorizer: mockScheduleAuthorizer{isMember: true}}
@@ -392,6 +418,18 @@ func TestScheduleHandler_UnknownViewRejected(t *testing.T) {
 	handler.List(rec, req)
 	if rec.Code != http.StatusBadRequest || repo.called {
 		t.Fatalf("unknown view status=%d legacy=%v", rec.Code, repo.called)
+	}
+}
+
+func TestScheduleHandler_DefaultViewUsesActivationAwareCapability(t *testing.T) {
+	repo := &activationAwareScheduleRepositoryMock{}
+	handler := ScheduleHandler{Repository: repo, Authorizer: mockScheduleAuthorizer{isMember: true}}
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/schedules?start_date=2026-10-01&end_date=2026-10-31", nil)
+	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
+	rec := httptest.NewRecorder()
+	handler.List(rec, req)
+	if rec.Code != http.StatusOK || !repo.activationAwareCalled || repo.called {
+		t.Fatalf("default view status=%d activation=%v legacy=%v", rec.Code, repo.activationAwareCalled, repo.called)
 	}
 }
 

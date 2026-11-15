@@ -211,6 +211,10 @@ type OfficialScheduleRepository interface {
 	GetOfficialSchedules(context.Context, time.Time, time.Time, []uuid.UUID, int, int) (PaginatedEmployeeSchedules, error)
 }
 
+type ActivationAwareScheduleRepository interface {
+	GetActivationAwareSchedules(context.Context, time.Time, time.Time, []uuid.UUID, int, int) (PaginatedEmployeeSchedules, error)
+}
+
 type ScheduleHandler struct {
 	Repository ScheduleRepository
 	Lifecycle  ScheduleLifecycleRepository
@@ -578,6 +582,13 @@ func (h ScheduleHandler) List(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		result, err = official.GetOfficialSchedules(r.Context(), query.start, query.end, query.employmentIDs, query.page, query.limit)
+	} else if query.view == "activation-aware" {
+		activationAware, ok := h.Repository.(ActivationAwareScheduleRepository)
+		if !ok {
+			apperror.WriteError(w, r, apperror.ServiceUnavailable(apperror.KeyServiceUnavailable))
+			return
+		}
+		result, err = activationAware.GetActivationAwareSchedules(r.Context(), query.start, query.end, query.employmentIDs, query.page, query.limit)
 	} else {
 		result, err = h.Repository.GetOrganizationSchedules(r.Context(), query.start, query.end, query.employmentIDs, query.page, query.limit)
 	}
@@ -615,9 +626,9 @@ func parseOrganizationSchedulesQuery(r *http.Request) (parsedOrganizationSchedul
 	}
 	view := strings.TrimSpace(values.Get("view"))
 	if view == "" {
-		view = "legacy"
+		view = "activation-aware"
 	}
-	if view != "legacy" && view != "official" {
+	if view != "legacy" && view != "official" && view != "activation-aware" {
 		return parsedOrganizationSchedulesQuery{}, errors.New("unsupported schedule view")
 	}
 	ids := make([]uuid.UUID, 0)
