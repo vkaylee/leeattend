@@ -48,6 +48,7 @@ const mockMembers = [
 vi.mock("@/lib/api", () => ({
     fetchOrganization: vi.fn().mockResolvedValue({ date_format: "DD/MM/YYYY", timezone: "UTC", default_language: "en" }),
     fetchOrganizationMembers: vi.fn(() => Promise.resolve(mockMembers)),
+    fetchEmployers: vi.fn(() => Promise.resolve([{ id: "employer-1", name: "Acme" }])),
     updateEmployee: vi.fn(() => Promise.resolve({})),
     fetchEmployeeEmployments: vi.fn((employeeId) => {
         if (employeeId === "emp-2") {

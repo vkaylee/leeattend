@@ -14,7 +14,7 @@ import Button from "@/components/ui/button";
 import StatusBadge from "@/components/ui/status-badge";
 import { useToast } from "@/components/ui/toast";
 import { useOrganizationMutation } from "@/hooks/common/use-organization-query";
-import { fetchEmployeeEmployments, updateEmployeeEmployment } from "@/lib/api";
+import { fetchEmployeeEmployments, fetchEmployers, updateEmployeeEmployment } from "@/lib/api";
 import { employeeKeys, createQueryKey  } from "@/lib/query-keys";
 import { maybeNull } from "@/types/api-overrides";
 
@@ -125,6 +125,8 @@ export default function ProfileTab({
 
     const { data: employments = [] } = useQuery({ queryKey: createQueryKey("employee-employments", employee.id), queryFn: () => fetchEmployeeEmployments(employee.id),
     enabled: !!employee.id, });
+    const { data: employers = [], isLoading: employersLoading, isError: employersError } = useQuery({ queryKey: createQueryKey("employers"), queryFn: fetchEmployers });
+    const employerNames = new Map(employers.map((employer) => [employer.id, employer.name]));
     const activeEmployment = employments.find(e => e.status === "active") ?? employments[0];
     const terminatedEmployment = employments.find(e => e.status === "terminated");
     const tenureHistory = [...employments].sort((a, b) => a.start_date.localeCompare(b.start_date));
@@ -248,6 +250,7 @@ export default function ProfileTab({
                                 </div>
                                 <dl className="mt-3 grid gap-2 text-sm sm:grid-cols-3">
                                     <div><dt className="text-slate-500">{t("employees.details.employment_id", "Employment ID")}</dt><dd className="font-mono text-xs">{employment.id}</dd></div>
+                                    <div><dt className="text-slate-500">{t("employees.details.employer", "Employer")}</dt><dd>{employerNames.get(employment.employer_id) ?? (employersLoading ? t("common.loading", "Loading") : employersError ? t("common.error", "Unable to load") : "—")}</dd></div>
                                     <div><dt className="text-slate-500">{t("employees.details.start_date", "Bắt đầu")}</dt><dd>{formatDate(employment.start_date)}</dd></div>
                                     <div><dt className="text-slate-500">{t("employees.details.end_date", "Kết thúc")}</dt><dd>{employment.end_date ? formatDate(employment.end_date) : "—"}</dd></div>
                                 </dl>
