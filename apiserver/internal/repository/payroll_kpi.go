@@ -13,13 +13,14 @@ import (
 )
 
 type kpiCalculation struct {
-	Amount        decimal.Decimal
-	FormulaID     *uuid.UUID
-	Inputs        map[string]string
-	Trace         []map[string]string
-	Policy        *api.WorkPolicyGroupVersion
-	StandardUnits int32
-	OvertimeUnits int32
+	Amount          decimal.Decimal
+	FormulaID       *uuid.UUID
+	Inputs          map[string]string
+	Trace           []map[string]string
+	Policy          *api.WorkPolicyGroupVersion
+	StandardUnits   int32
+	OvertimeUnits   int32
+	StandardCredits decimal.Decimal
 }
 
 func calculateKPIBonus(ctx context.Context, db DBTX, employmentID uuid.UUID, year, month int, asOf string) (kpiCalculation, error) {
@@ -135,9 +136,10 @@ func persistKPICalculation(ctx context.Context, db DBTX, employmentID, payslipID
 		return err
 	}
 	outputSnapshot, err := json.Marshal(map[string]string{
-		"KPI_BONUS":      calc.Amount.String(),
-		"standard_units": decimal.NewFromInt32(calc.StandardUnits).String(),
-		"overtime_units": decimal.NewFromInt32(calc.OvertimeUnits).String(),
+		"KPI_BONUS":        calc.Amount.String(),
+		"standard_units":   decimal.NewFromInt32(calc.StandardUnits).String(),
+		"overtime_units":   decimal.NewFromInt32(calc.OvertimeUnits).String(),
+		"standard_credits": calc.StandardCredits.String(),
 	})
 	if err != nil {
 		return err

@@ -139,7 +139,7 @@ func insertImportedRawLog(ctx context.Context, db DBTX, employmentID uuid.UUID, 
 
 func insertApprovedAdjustment(ctx context.Context, db DBTX, employmentID, userID uuid.UUID, row api.AttendanceImportRow) error {
 	if err := guardLifecycleDateMutation(ctx, db, []uuid.UUID{employmentID}, []string{row.PunchTime.UTC().Format("2006-01-02")}); err != nil {
-		return err
+		return finishLifecycleMutationDB(ctx, db, err)
 	}
 	_, err := db.Exec(ctx, `INSERT INTO attendance_adjustment_requests (id, requested_punch_time, reason, status, requested_by_user_id, approved_by_user_id, employment_id, created_at, updated_at)
 		VALUES ($1, $2, 'Import from Excel/CSV', 'approved', $3, $3, $4, NOW(), NOW())`,
@@ -350,7 +350,7 @@ func (r AttendanceRepository) ResolveStagingLog(ctx context.Context, id, employe
 	if err != nil {
 		return err
 	}
-	return service.WithTx(ctx, tx, func(ctx context.Context, db pgx.Tx) error {
+	err = service.WithTx(ctx, tx, func(ctx context.Context, db pgx.Tx) error {
 		var punchTime time.Time
 		var raw json.RawMessage
 		var status string
@@ -394,6 +394,7 @@ func (r AttendanceRepository) ResolveStagingLog(ctx context.Context, id, employe
 		_, err := db.Exec(ctx, `UPDATE attendance_staging_logs SET status = 'processed' WHERE id = $1`, id)
 		return err
 	})
+	return finishLifecycleMutation(ctx, tx, err)
 }
 
 // DismissStagingLog marks an open staging entry dismissed.

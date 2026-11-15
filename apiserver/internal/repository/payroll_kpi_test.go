@@ -8,6 +8,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgconn"
+	"github.com/shopspring/decimal"
 	"github.com/vkaylee/leeattend/apiserver/internal/api"
 	"github.com/vkaylee/leeattend/apiserver/internal/domain/workpolicy"
 )
@@ -36,6 +37,16 @@ func TestMarshalKPICalculationInputsIncludesEffectivePolicyWithoutSalary(t *test
 	}
 	if !strings.Contains(text, policy.ID.String()) || !strings.Contains(text, "2026-06-01") {
 		t.Fatalf("snapshot omitted policy version metadata: %s", text)
+	}
+}
+
+func TestMarshalKPICalculationOutputIncludesStandardCredits(t *testing.T) {
+	calc := kpiCalculation{StandardCredits: decimal.RequireFromString("1.5")}
+	output, err := json.Marshal(map[string]string{
+		"standard_credits": calc.StandardCredits.String(),
+	})
+	if err != nil || !strings.Contains(string(output), "1.5") {
+		t.Fatalf("expected standard credits in output, got %s, err=%v", output, err)
 	}
 }
 

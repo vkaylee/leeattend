@@ -2393,6 +2393,25 @@ ORDER BY priority ASC`, policyIDs)
 	kpiCalc.StandardUnits = totalStdUnits
 	kpiCalc.OvertimeUnits = totalOtUnits
 	if resolvedPolicy != nil {
+		creditPolicy := workpolicy.WorkCreditPolicy{
+			Name:               "resolved labor policy",
+			MinutesPerCredit:   resolvedPolicy.MinutesPerCredit,
+			AttendancePolicyID: resolvedPolicy.AttendancePolicyID,
+			WorkingPatternID:   resolvedPolicy.WorkingPatternID,
+		}
+		creditResult, creditErr := creditPolicy.Calculate(int(totalStdUnits * 60))
+		if creditErr != nil {
+			return api.FullPayslipResponse{}, creditErr
+		}
+		kpiCalc.StandardCredits = creditResult.Credits
+		kpiCalc.Trace = append(kpiCalc.Trace, map[string]string{
+			"step":       "work_credit",
+			"rule":       "minutes_per_credit",
+			"expression": fmt.Sprintf("%d / %d", creditResult.EligibleMinutes, resolvedPolicy.MinutesPerCredit),
+			"result":     creditResult.Credits.String(),
+		})
+	}
+	if resolvedPolicy != nil {
 		kpiCalc.Trace = append(kpiCalc.Trace, map[string]string{"step": "policy", "rule": "labor_policy_group", "expression": "effective membership resolution", "result": resolvedPolicy.ID.String()})
 	} else {
 		kpiCalc.Trace = append(kpiCalc.Trace, map[string]string{"step": "policy", "rule": "labor_policy_group", "expression": "effective membership resolution", "result": "not_configured"})
