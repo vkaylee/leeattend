@@ -150,8 +150,7 @@ func persistKPICalculation(ctx context.Context, db DBTX, employmentID, payslipID
 	}
 	if calc.FormulaID == nil {
 		_, err = db.Exec(ctx, `INSERT INTO payroll_calculation_runs (employment_id, payslip_id, period_year, period_month, formula_version_id, engine_version, input_snapshot, output_snapshot, calculation_trace, created_by)
-		VALUES ($1, $2, $3, $4, NULL, 'payroll-v1', $5, $6, $7, $8)
-		`, employmentID, payslipID, year, month, inputSnapshot, outputSnapshot, trace, actorID)
+		VALUES ($1, $2, $3, $4, NULL, 'payroll-v1', $5, $6, $7, $8)`, employmentID, payslipID, year, month, inputSnapshot, outputSnapshot, trace, actorID)
 		return err
 	}
 	formulaID := *calc.FormulaID
