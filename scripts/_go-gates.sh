@@ -9,6 +9,7 @@
 #   scripts/_go-gates.sh              # all gates + race tests
 #   scripts/_go-gates.sh --lint-only  # format/vet/staticcheck/govulncheck/mod verify/generated diff
 #   scripts/_go-gates.sh --unit-only  # go test -race only
+#   scripts/_go-gates.sh --integration # migrate disposable DB and run tagged DB tests
 #   scripts/_go-gates.sh --package ./internal/domain/pairing
 set -euo pipefail
 
@@ -23,11 +24,15 @@ MODE="all"
 PACKAGE="./..."
 LINT_BASE_REF="${LINT_BASE_REF:-origin/main}"
 FIX=false
+INTEGRATION=false
+FORMAT_FILE=""
 while [ $# -gt 0 ]; do
     case "$1" in
         --lint-only) MODE="lint" ;;
         --unit-only) MODE="unit" ;;
+        --integration) MODE="integration"; INTEGRATION=true ;;
         --fix) FIX=true ;;
+        --format-file) FORMAT_FILE="${2:-}"; shift ;;
         --package) PACKAGE="${2:-./...}"; shift ;;
         --base-ref) LINT_BASE_REF="${2:-origin/main}"; shift ;;
         *) echo "unknown argument: $1" >&2; exit 2 ;;
@@ -67,11 +72,15 @@ fail() { echo "GATE FAIL: $1" >&2; exit 1; }
 git config --global --add safe.directory '*' 2>/dev/null || true
 export GOFLAGS="-mod=mod -buildvcs=false"
 
-if [ "${MODE}" != "unit" ]; then
+if [ "${MODE}" != "unit" ] && [ "${MODE}" != "integration" ]; then
     if [ "${FIX}" = "true" ]; then
         gofmt -w $(find . -name "*.go")
     fi
-    UNFORMATTED="$(find . -name "*.go" -exec gofmt -l {} +)" || fail "gofmt"
+    if [ -n "${FORMAT_FILE}" ]; then
+        UNFORMATTED="$(gofmt -l "${FORMAT_FILE}")" || fail "gofmt"
+    else
+        UNFORMATTED="$(find . -name "*.go" -exec gofmt -l {} +)" || fail "gofmt"
+    fi
     [ -z "$UNFORMATTED" ] || { echo "$UNFORMATTED"; fail "gofmt listed unformatted files"; }
 
     echo "== go vet =="
@@ -102,12 +111,32 @@ if [ "${MODE}" != "unit" ]; then
     fi
 fi
 
-if [ "${MODE}" != "lint" ]; then
+if [ "${MODE}" = "integration" ]; then
+    echo "== gofmt integration source =="
+    gofmt -w "${FORMAT_FILE:-internal/repository}"
+    echo "== go test -tags integration =="
+    LEEATTEND_DB_INTEGRATION=1 go test -tags=integration -count=1 ${PACKAGE} || fail "go test -tags integration"
+elif [ "${MODE}" != "lint" ]; then
     echo "== go test -race =="
     go test -race -cover ${PACKAGE} || fail "go test -race"
 fi
 echo "ALL GATES PASSED"
 GATES_EOF
+
+if [ "$INTEGRATION" = "true" ]; then
+    PROFILE_COMPOSE=("${ENGINE[@]}" -p "$PROJECT_NAME" -f "$COMPOSE_FILE" --profile int-go --profile infra-db --profile infra-pooler)
+    "${PROFILE_COMPOSE[@]}" up -d db pgbouncer "$SERVICE" >/dev/null
+    "${PROFILE_COMPOSE[@]}" exec -T db sh -c 'until pg_isready -U test_user -d test_database; do sleep 1; done' </dev/null
+    "${PROFILE_COMPOSE[@]}" exec -T db psql -v ON_ERROR_STOP=1 -U test_user -d postgres -c 'DROP DATABASE IF EXISTS test_database WITH (FORCE);' </dev/null
+    "${PROFILE_COMPOSE[@]}" exec -T db psql -v ON_ERROR_STOP=1 -U test_user -d postgres -c 'CREATE DATABASE test_database;' </dev/null
+    for migration_dir in $(find "$PROJECT_ROOT/apiserver/migrations" -mindepth 1 -maxdepth 1 -type d -name '[0-9]*_*' -print | sort); do
+        migration_file="$migration_dir/up.sql"
+        [ -f "$migration_file" ] || continue
+        "${PROFILE_COMPOSE[@]}" exec -T db psql -v ON_ERROR_STOP=1 -U test_user -d test_database < "$migration_file" || fail "migration ${migration_dir##*/}"
+    done
+    exec "${PROFILE_COMPOSE[@]}" exec -T -w /workspace/apiserver "$SERVICE" \
+        env MODE="$MODE" PACKAGE="$PACKAGE" FIX="$FIX" FORMAT_FILE="$FORMAT_FILE" LINT_BASE_COMMIT="$LINT_BASE_COMMIT" LINT_GO_CHANGED="$LINT_GO_CHANGED" bash -c "$GATES"
+fi
 
 exec "${COMPOSE[@]}" exec -T -w /workspace/apiserver "$SERVICE" \
     env MODE="$MODE" PACKAGE="$PACKAGE" FIX="$FIX" LINT_BASE_COMMIT="$LINT_BASE_COMMIT" LINT_GO_CHANGED="$LINT_GO_CHANGED" bash -c "$GATES"

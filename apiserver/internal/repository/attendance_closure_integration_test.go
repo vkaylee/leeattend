@@ -10,7 +10,6 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/vkaylee/leeattend/apiserver/internal/api"
 )
 
@@ -123,10 +122,10 @@ func TestIntegrationAttendanceClosureEvidenceIsImmutable(t *testing.T) {
 	}
 }
 
-func createAttendanceClosureFixture(t *testing.T, ctx context.Context, tx *pgxpool.Tx, payrollLocked bool) struct {
-	employerID uuid.UUID
+func createAttendanceClosureFixture(t *testing.T, ctx context.Context, tx pgx.Tx, payrollLocked bool) struct {
+	employerID   uuid.UUID
 	employmentID uuid.UUID
-	actorID uuid.UUID
+	actorID      uuid.UUID
 } {
 	t.Helper()
 	employerID, employeeID, employmentID, actorID := uuid.New(), uuid.New(), uuid.New(), uuid.New()
@@ -138,7 +137,7 @@ func createAttendanceClosureFixture(t *testing.T, ctx context.Context, tx *pgxpo
 	}
 	mustExec(`INSERT INTO employers (id, name) VALUES ($1, 'closure-test-employer')`, employerID)
 	mustExec(`INSERT INTO employees (id, employee_id_number, full_name, hire_date, original_hire_date) VALUES ($1, $2, 'closure-test-employee', DATE '2026-01-01', DATE '2026-01-01')`, employeeID, employeeID.String())
-	mustExec(`INSERT INTO employments (id, employee_id, employer_id, status, start_date) VALUES ($1, $2, $3, 'active', DATE '2026-01-01')`, employmentID, employeeID, employerID)
+	mustExec(`INSERT INTO employments (id, employee_id, employer_id, status, start_date, end_date) VALUES ($1, $2, $3, 'active', DATE '2026-01-01', DATE '2026-11-01')`, employmentID, employeeID, employerID)
 	mustExec(`INSERT INTO users (id, email, password_hash) VALUES ($1, $2, 'integration-test-hash')`, actorID, actorID.String()+"@invalid.test")
 	payrollStatus := "open"
 	if payrollLocked {
@@ -150,11 +149,12 @@ func createAttendanceClosureFixture(t *testing.T, ctx context.Context, tx *pgxpo
 	mustExec(`INSERT INTO shift_templates (id, name) VALUES ($1, 'closure-template')`, templateID)
 	mustExec(`INSERT INTO shift_versions (id, template_id, version_number, name, effective_from, change_type, created_by) VALUES ($1, $2, 1, 'closure-version', DATE '2026-01-01', 'create', $3)`, versionID, templateID, actorID)
 	mustExec(`INSERT INTO schedule_day_revisions (id, employment_id, employer_id, business_date, timezone, revision_number, state, publication_batch_id, source, source_snapshot, resolver_version, reason, published_by, published_actor_type, published_at) VALUES ($1, $2, $3, DATE '2026-11-01', 'UTC', 1, 'published', $4, 'manual', '{}'::jsonb, 'integration-test', 'closure fixture', $5, 'human', CURRENT_TIMESTAMP)`, revisionID, employmentID, employerID, batchID, actorID)
+	mustExec(`SELECT set_config('schedule.lifecycle_publication', 'on', true)`)
 	mustExec(`INSERT INTO work_segments (employment_id, date, sort_order, scheduled_start, scheduled_end, segment_type, segment_status, compensation_rate, gap_compensation_before, gap_compensation_rate_before, source, source_detail, generation_metadata, template_id, schedule_revision_id, selected_shift_version_id, scheduled_start_at, scheduled_end_at, breaks_snapshot) VALUES ($1, DATE '2026-11-01', 0, '08:00', '17:00', 'work', 'scheduled', 1, 'unpaid', 0, 'manual', '{}'::jsonb, '{}'::jsonb, $2, $3, $4, TIMESTAMPTZ '2026-11-01 08:00:00+00', TIMESTAMPTZ '2026-11-01 17:00:00+00', '[]'::jsonb)`, employmentID, templateID, revisionID, versionID)
 	mustExec(`INSERT INTO attendance_daily_summaries (id, date, employment_id, actual_work_minutes, standard_minutes) VALUES ($1, DATE '2026-11-01', $2, 480, 480)`, uuid.New(), employmentID)
 	return struct {
-		employerID uuid.UUID
+		employerID   uuid.UUID
 		employmentID uuid.UUID
-		actorID uuid.UUID
+		actorID      uuid.UUID
 	}{employerID: employerID, employmentID: employmentID, actorID: actorID}
 }
