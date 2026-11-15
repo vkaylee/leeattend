@@ -1,9 +1,9 @@
 # Payroll historical rerun snapshot
 
-Status: in progress
+Status: verified
 
-- `TEST-01`: append integration and regression coverage for immutable calculation history.
-- `DB-03`: change persistence/index contract without overwriting historical snapshots; reversible migration.
+- `TEST-01`: append integration and regression coverage for immutable calculation history; disposable PostgreSQL rehearsal passed.
+- `DB-03`: change persistence/index contract without overwriting historical snapshots; reversible migration; forward migration chain passed after fixing a PostgreSQL-invalid `DISTINCT` plus `FOR UPDATE` query.
 - `ARCH-01`: keep calculation provenance in existing `payroll_calculation_runs`; no second snapshot store.
 
 Scope:

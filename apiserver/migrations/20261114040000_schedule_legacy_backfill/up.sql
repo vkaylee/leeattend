@@ -14,8 +14,12 @@ WITH legacy_days AS (
 ), locked_employments AS (
     SELECT e.id, e.employer_id
     FROM public.employments e
-    JOIN (SELECT DISTINCT employment_id FROM legacy_days) d ON d.employment_id = e.id
     WHERE e.deleted_at IS NULL
+      AND EXISTS (
+          SELECT 1
+          FROM legacy_days d
+          WHERE d.employment_id = e.id
+      )
     FOR UPDATE
 ), candidates AS (
     SELECT
