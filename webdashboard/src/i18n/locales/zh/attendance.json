@@ -183,6 +183,7 @@
     "reason_hint": "必填，最多 2,000 个字符。",
     "retry": "重试",
     "actions": { "close": "结算周期", "reopen": "重新开放" },
+    "evidence": { "number": "结算编号", "days": "快照天数", "hash": "快照哈希" },
     "empty": { "title": "暂无结算状态", "description": "选择雇主以查看考勤结算状态。" },
     "errors": {
       "load": "无法加载考勤结算状态。",

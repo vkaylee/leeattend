@@ -126,7 +126,10 @@ func (r AttendanceRepository) GetAttendancePeriodStatus(ctx context.Context, emp
 	response.CurrentClosureID = closureID
 	response.PayrollPeriodFound = payrollFound
 	if closureID != nil {
-		if err := db.QueryRow(ctx, `SELECT closure_number, snapshot_hash FROM attendance_closures WHERE id = $1`, *closureID).Scan(&response.ClosureNumber, &response.SnapshotHash); err != nil {
+		if err := db.QueryRow(ctx, `
+			SELECT c.closure_number, c.snapshot_hash,
+				(SELECT COUNT(*)::int FROM attendance_closure_days cd WHERE cd.closure_id = c.id)
+			FROM attendance_closures c WHERE c.id = $1`, *closureID).Scan(&response.ClosureNumber, &response.SnapshotHash, &response.DayCount); err != nil {
 			return api.AttendancePeriodStatusResponse{}, err
 		}
 	}

@@ -5,6 +5,7 @@ export type AttendancePeriodState = "open" | "closed" | "reopened" | string;
 export interface AttendancePeriodStatus {
   closure_id?: string | null;
   closure_number?: number;
+  day_count?: number;
   payroll_period_found?: boolean;
   payroll_status?: string;
   period_id?: string | null;

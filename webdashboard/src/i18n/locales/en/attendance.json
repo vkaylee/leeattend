@@ -183,6 +183,7 @@
     "reason_hint": "Required. Maximum 2,000 characters.",
     "retry": "Retry",
     "actions": { "close": "Close period", "reopen": "Reopen period" },
+    "evidence": { "number": "Closure #", "days": "Snapshot days", "hash": "Snapshot hash" },
     "empty": { "title": "No closure status", "description": "Select employer to view attendance closure status." },
     "errors": {
       "load": "Unable to load attendance closure status.",

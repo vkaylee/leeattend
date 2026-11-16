@@ -36,6 +36,7 @@ type AttendancePeriodStatusResponse struct {
 	Version            int64      `json:"version"`
 	CurrentClosureID   *uuid.UUID `json:"current_closure_id,omitempty"`
 	ClosureNumber      int        `json:"closure_number,omitempty"`
+	DayCount           int        `json:"day_count,omitempty"`
 	SnapshotHash       string     `json:"snapshot_hash,omitempty"`
 	PayrollPeriodFound bool       `json:"payroll_period_found"`
 	PayrollStatus      string     `json:"payroll_status,omitempty"`

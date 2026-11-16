@@ -104,6 +104,13 @@ export default function AttendanceClosurePanel({ employerId, month, year }: Atte
         </div>
         {payrollLocked && <p className="text-sm text-amber-700 dark:text-amber-300" role="status">{t("closure.errors.locked_period")}</p>}
       </div>
+      {isClosed && (
+        <div className="grid gap-3 border-b border-slate-100 p-5 text-sm dark:border-slate-800 sm:grid-cols-3" data-testid="closure-evidence">
+          <span>{t("closure.evidence.number")}: {data.closure_number ?? "—"}</span>
+          <span>{t("closure.evidence.days")}: {data.day_count ?? "—"}</span>
+          <span className="truncate" title={data.snapshot_hash ?? undefined}>{t("closure.evidence.hash")}: {data.snapshot_hash ?? "—"}</span>
+        </div>
+      )}
       {(canClose || canReopen) && (
         <div className="space-y-4 p-5">
           <label className="block text-sm font-medium text-slate-700 dark:text-slate-200" htmlFor="closure-reason">{t("closure.reason")}</label>

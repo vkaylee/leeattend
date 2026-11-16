@@ -183,6 +183,7 @@
     "reason_hint": "Bắt buộc. Tối đa 2.000 ký tự.",
     "retry": "Thử lại",
     "actions": { "close": "Chốt kỳ", "reopen": "Mở lại kỳ" },
+    "evidence": { "number": "Lần chốt", "days": "Số ngày snapshot", "hash": "Mã snapshot" },
     "empty": { "title": "Chưa có trạng thái chốt", "description": "Chọn đơn vị trả lương để xem trạng thái." },
     "errors": {
       "load": "Không thể tải trạng thái chốt kỳ công.",
