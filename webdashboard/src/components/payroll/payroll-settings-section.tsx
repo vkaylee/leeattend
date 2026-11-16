@@ -6,7 +6,7 @@ import { useTranslation } from "react-i18next";
 import Button from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
 import { Typography } from "@/components/ui/typography";
-import { createWorkPolicyMembership, createWorkPolicyGroupVersion, fetchWorkPolicyGroupHistory, fetchWorkPolicyGroups, fetchWorkPolicyMemberships, fetchWorkPolicyReferenceOptions, updatePayrollSettings, fetchPayrollSettingsHistory, validateWorkPolicyGroupVersion, type WorkPolicyGroupVersion, type WorkPolicyValidationResponse } from "@/lib/api/payroll";
+import { createWorkPolicyMembership, createWorkPolicyGroupVersion, fetchPayrollImpactBatch, fetchWorkPolicyGroupHistory, fetchWorkPolicyGroups, fetchWorkPolicyMemberships, fetchWorkPolicyReferenceOptions, updatePayrollSettings, fetchPayrollSettingsHistory, validateWorkPolicyGroupVersion, type PayrollImpactBatchResponse, type WorkPolicyGroupVersion, type WorkPolicyValidationResponse } from "@/lib/api/payroll";
 import { payrollKeys } from "@/lib/query-keys";
 
 import TemporalConfigTable from "../common/temporal-config-table";
@@ -24,6 +24,10 @@ export default function PayrollSettingsSection() {
   const [membershipError, setMembershipError] = useState<string>();
   const [validationByVersion, setValidationByVersion] = useState<Record<string, WorkPolicyValidationResponse>>({});
   const [validatingVersionId, setValidatingVersionId] = useState<string>();
+  const [impactForm, setImpactForm] = useState({ employment_ids: "", year: "2026", month: "1", before_run_id: "", after_run_id: "" });
+  const [impactResult, setImpactResult] = useState<PayrollImpactBatchResponse>();
+  const [impactError, setImpactError] = useState<string>();
+  const [isLoadingImpact, setIsLoadingImpact] = useState(false);
 
   const { data: history = [], isLoading: isHistoryLoading } = useQuery({ queryKey: payrollKeys.settingsHistory(), queryFn: () => fetchPayrollSettingsHistory() });
   const { data: workPolicies = [], isLoading: isWorkPoliciesLoading, isError: isWorkPoliciesError } = useQuery({
@@ -116,6 +120,25 @@ export default function PayrollSettingsSection() {
       void queryClient.invalidateQueries({ queryKey: payrollKeys.workPolicyMemberships(selectedPolicyGroupId) });
     } catch (error: unknown) {
       setMembershipError(error instanceof Error ? error.message : t("common.error"));
+    }
+  };
+
+  const handleImpactPreview = async () => {
+    const employment_ids = impactForm.employment_ids.split(/[\s,]+/).map((id) => id.trim()).filter(Boolean);
+    const year = Number(impactForm.year);
+    const month = Number(impactForm.month);
+    if (employment_ids.length === 0 || employment_ids.length > 100 || !Number.isInteger(year) || !Number.isInteger(month) || month < 1 || month > 12 || !impactForm.before_run_id || !impactForm.after_run_id || impactForm.before_run_id === impactForm.after_run_id) {
+      setImpactError(t("common.payroll.settings.impact_validation", "Enter up to 100 employment IDs, a valid period, and two different calculation run IDs."));
+      return;
+    }
+    setIsLoadingImpact(true);
+    setImpactError(undefined);
+    try {
+      setImpactResult(await fetchPayrollImpactBatch({ employment_ids, year, month, before_run_id: impactForm.before_run_id, after_run_id: impactForm.after_run_id }));
+    } catch (error: unknown) {
+      setImpactError(error instanceof Error ? error.message : t("common.error"));
+    } finally {
+      setIsLoadingImpact(false);
     }
   };
 
@@ -282,6 +305,28 @@ export default function PayrollSettingsSection() {
             )}
           </div>
         )}
+      </section>
+
+      <section className="mt-8 rounded-2xl border border-slate-200/80 bg-white p-6 dark:border-slate-800 dark:bg-slate-950" aria-labelledby="payroll-impact-preview-title">
+        <Typography id="payroll-impact-preview-title" className="font-bold" variant="h2">{t("common.payroll.settings.impact_title", "Impact preview")}</Typography>
+        <Typography className="mt-1 text-xs text-slate-500" variant="small">{t("common.payroll.settings.impact_desc", "Compare persisted policy-only runs. Preview never changes payroll.")}</Typography>
+        <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+          <label className="text-xs font-semibold text-slate-600 dark:text-slate-300 sm:col-span-2 lg:col-span-2" htmlFor="payroll-impact-employments">{t("common.payroll.settings.impact_employments", "Employment IDs")}
+            <input id="payroll-impact-employments" aria-describedby="payroll-impact-employments-help" value={impactForm.employment_ids} onChange={(event) => setImpactForm((form) => ({ ...form, employment_ids: event.target.value }))} placeholder="UUIDs separated by comma or space" className="mt-1 block h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm dark:border-slate-700 dark:bg-slate-900" />
+            <span id="payroll-impact-employments-help" className="mt-1 block font-normal text-slate-500">{t("common.payroll.settings.impact_limit", "Maximum 100 IDs")}</span>
+          </label>
+          {(["year", "month", "before_run_id", "after_run_id"] as const).map((field) => (
+            <label key={field} className="text-xs font-semibold text-slate-600 dark:text-slate-300" htmlFor={`payroll-impact-${field}`}>{t(`common.payroll.settings.impact_${field}`, field.replaceAll("_", " "))}
+              <input id={`payroll-impact-${field}`} type={field === "year" || field === "month" ? "number" : "text"} value={impactForm[field]} onChange={(event) => setImpactForm((form) => ({ ...form, [field]: event.target.value }))} className="mt-1 block h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm dark:border-slate-700 dark:bg-slate-900" />
+            </label>
+          ))}
+        </div>
+        {impactError ? <p className="mt-3 text-sm text-red-700" role="alert">{impactError}</p> : null}
+        <Button className="mt-4" type="button" disabled={isLoadingImpact} onClick={() => void handleImpactPreview()}>{isLoadingImpact ? t("common.loading", "Loading") : t("common.payroll.settings.impact_run", "Run impact preview")}</Button>
+        {impactResult ? <div className="mt-5 grid gap-3 sm:grid-cols-4" role="status">
+          {(["total", "computed", "affected", "uncomputable"] as const).map((key) => <div key={key} className="rounded-lg border border-slate-200 p-3 dark:border-slate-800"><p className="text-xs text-slate-500">{t(`common.payroll.settings.impact_${key}`, key)}</p><p className="text-xl font-bold">{impactResult[key]}</p></div>)}
+          <div className="sm:col-span-4 space-y-2 text-sm">{impactResult.items.map((item) => <div key={item.employment_id} className="rounded-lg border border-slate-200 p-3 dark:border-slate-800"><div className="flex flex-wrap justify-between gap-2"><span>{item.employment_id}</span><span>{item.computed ? t("common.payroll.settings.impact_computed", "Computed") : t("common.payroll.settings.impact_uncomputable", "Uncomputable")}{item.stale ? ` · ${t("common.payroll.settings.impact_stale", "Stale")}` : ""}</span></div>{item.stale_reasons?.length ? <p className="mt-1 text-amber-700">{item.stale_reasons.join(", ")}</p> : null}{item.reason ? <p className="mt-1 text-red-700">{item.reason}</p> : null}{item.delta ? <p className="mt-1 text-slate-600">{t("common.payroll.settings.impact_net_delta", "Net delta")}: {item.delta.net_pay_delta}</p> : null}</div>)}</div>
+        </div> : null}
       </section>
 
       <div className="mt-8 p-6 bg-blue-50 dark:bg-blue-950/50 border border-blue-100 dark:border-blue-800 rounded-2xl flex gap-4">

@@ -358,6 +358,22 @@ export interface PayrollImpactResponse {
   overtime_units_delta: number;
 }
 
+export interface PayrollImpactBatchItem {
+  employment_id: string;
+  computed: boolean;
+  stale: boolean;
+  stale_reasons?: string[];
+  reason?: string;
+  delta?: PayrollImpactResponse;
+}
+
+export interface PayrollImpactBatchResponse {
+  total: number;
+  computed: number;
+  affected: number;
+  uncomputable: number;
+  items: PayrollImpactBatchItem[];
+}
 export async function fetchPayrollCalculationRuns(employmentId: string, year: number, month: number): Promise<PayrollCalculationRun[]> {
   const { data: response } = await fetch<PayrollCalculationRun[]>("GET", "/api/v1/employments/{id}/payroll/calculation-runs", { params: { path: { id: employmentId }, query: { year, month } } });
   return response;
@@ -367,6 +383,11 @@ export async function fetchPayrollImpact(employmentId: string, year: number, mon
   const { data: response } = await fetch<PayrollImpactResponse>("GET", "/api/v1/employments/{id}/payroll/impact", {
     params: { path: { id: employmentId }, query: { year, month, before_run_id: beforeRunId, after_run_id: afterRunId } },
   });
+  return response;
+}
+
+export async function fetchPayrollImpactBatch(data: { employment_ids: string[]; year: number; month: number; before_run_id: string; after_run_id: string }): Promise<PayrollImpactBatchResponse> {
+  const { data: response } = await fetch<PayrollImpactBatchResponse>("POST", "/api/v1/payroll/impact/batch", { body: data });
   return response;
 }
 

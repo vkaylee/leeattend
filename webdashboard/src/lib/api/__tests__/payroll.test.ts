@@ -44,6 +44,7 @@ import {
   createWorkPolicyGroupVersion,
   fetchWorkPolicyReferenceOptions,
   fetchPayrollImpact,
+  fetchPayrollImpactBatch,
 } from "../payroll";
 
 // --- response helpers -------------------------------------------------------
@@ -109,6 +110,14 @@ describe("payroll API", () => {
     await expect(fetchPayrollImpact("e-1", 2026, 6, "r-1", "r-2")).resolves.toEqual(impact);
     expect(vi.mocked(apiFetch).mock.calls[0][0]).toContain("/employments/e-1/payroll/impact");
     expect(vi.mocked(apiFetch).mock.calls[0][0]).toContain("before_run_id=r-1");
+  });
+
+  it("fetches bounded payroll impact batches", async () => {
+    const result = { total: 1, computed: 1, affected: 1, uncomputable: 0, items: [] };
+    vi.mocked(apiFetch).mockResolvedValueOnce(okRes(result));
+    await expect(fetchPayrollImpactBatch({ employment_ids: ["e-1"], year: 2026, month: 6, before_run_id: "r-1", after_run_id: "r-2" })).resolves.toEqual(result);
+    expect(vi.mocked(apiFetch).mock.calls[0][0]).toContain("/payroll/impact/batch");
+    expect((vi.mocked(apiFetch).mock.calls[0][1] as RequestInit).method).toBe("POST");
   });
 
   it("fetches labor policy reference options in parallel", async () => {

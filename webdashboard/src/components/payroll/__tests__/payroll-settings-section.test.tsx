@@ -22,6 +22,7 @@ vi.mock("@/lib/api/payroll", () => ({
   createWorkPolicyMembership: vi.fn(),
   fetchWorkPolicyReferenceOptions: vi.fn(),
   validateWorkPolicyGroupVersion: vi.fn(),
+  fetchPayrollImpactBatch: vi.fn(),
 }));
 
 // Mock i18n
@@ -62,6 +63,17 @@ describe("PayrollSettingsSection", () => {
       </QueryClientProvider>
     );
   };
+
+  it("shows bounded impact preview results and stale state", async () => {
+    vi.mocked(api.fetchPayrollImpactBatch).mockResolvedValue({ total: 1, computed: 1, affected: 1, uncomputable: 0, items: [{ employment_id: "e-1", computed: true, stale: true, stale_reasons: ["policy_version_changed"], delta: { net_pay_delta: "240" } as never }] });
+    renderWithProviders(<PayrollSettingsSection />);
+    fireEvent.change(await screen.findByLabelText(/impact_employments/i), { target: { value: "e-1" } });
+    fireEvent.change(screen.getByLabelText(/impact_before_run_id/i), { target: { value: "r-1" } });
+    fireEvent.change(screen.getByLabelText(/impact_after_run_id/i), { target: { value: "r-2" } });
+    fireEvent.click(screen.getByRole("button", { name: "common.payroll.settings.impact_run" }));
+    expect(await screen.findByText("policy_version_changed")).toBeInTheDocument();
+    expect(screen.getByText(/240/)).toBeInTheDocument();
+  });
 
   it("renders settings correctly", async () => {
     renderWithProviders(<PayrollSettingsSection   />);
