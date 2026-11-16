@@ -65,6 +65,7 @@ export function useUnifiedInbox(): UseUnifiedInboxReturn {
   );
   const canManageSwaps = hasAnyPermission("shift_swaps:manage");
   const canApproveOvertime = hasAnyPermission("overtime:approve");
+  const canReadEmployees = hasAnyPermission("employees:read");
 
   // ── Filters & Selection ──────────────────────────────────────────────
   const [filter, setFilterState] = useState<UnifiedInboxFilter>(() => {
@@ -93,7 +94,10 @@ export function useUnifiedInbox(): UseUnifiedInboxReturn {
   }, []);
 
   // ── Organizational context ───────────────────────────────────────────
-  const { employees } = useAllEmployees();
+  const { employees } = useAllEmployees({
+    enabled: canReadEmployees,
+    permission: "employees:read",
+  });
   const { data: departments } = useDepartments();
 
   const employeeMap = useMemo(() => {
