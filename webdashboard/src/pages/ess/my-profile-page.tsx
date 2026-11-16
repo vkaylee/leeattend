@@ -1,9 +1,5 @@
 
-import { useQuery } from "@tanstack/react-query";
-
 import { PageContainer } from "@/components/ui/page-container";
-import { fetchEmployeeEmployments } from "@/lib/api";
-import { createQueryKey } from "@/lib/query-keys";
 
 import { AddContactModal } from "./components/add-contact-modal";
 import { BankDetailsSection } from "./components/bank-details-section";
@@ -13,8 +9,7 @@ import { ErrorState, Header, LoadingState } from "./components/profile-common";
 import { ProfileHero } from "./components/profile-hero";
 import { useMyProfilePage } from "./hooks/use-my-profile-page";
 
-
-  // eslint-disable-next-line complexity
+// eslint-disable-next-line complexity
 export default function MyProfilePage() {
   const {
     t,
@@ -40,20 +35,13 @@ export default function MyProfilePage() {
   } = useMyProfilePage();
 
 
-  const { data: employments = [] } = useQuery({
-    queryKey: createQueryKey("employments", employee?.id),
-    queryFn: () => employee ? fetchEmployeeEmployments(employee.id) : Promise.resolve([]),
-    enabled: !!employee,
-  });
-
   if (isLoading) return <LoadingState />;
 
   if (isError || !employee) {
     return <ErrorState t={t} />;
   }
 
-  const activeEmployment = employments.find(emp => emp.id === employee.active_employment_id);
-  const hireDate = activeEmployment?.start_date ?? "—";
+  const hireDate = employee.hire_date ?? "—";
 
   return (
     <PageContainer>
