@@ -72,10 +72,14 @@ type ScheduleReplanReplacement struct {
 }
 
 type ScheduleReplanInterval struct {
-	SortOrder int                   `json:"sort_order"`
-	Start     string                `json:"start"`
-	End       string                `json:"end"`
-	Breaks    []ScheduleReplanBreak `json:"breaks"`
+	SortOrder              int                   `json:"sort_order"`
+	Start                  string                `json:"start"`
+	End                    string                `json:"end"`
+	StartDayOffset         int                   `json:"start_day_offset"`
+	EndDayOffset           int                   `json:"end_day_offset"`
+	StartUTCOffsetMinutes  *int                  `json:"start_utc_offset_minutes,omitempty"`
+	EndUTCOffsetMinutes    *int                  `json:"end_utc_offset_minutes,omitempty"`
+	Breaks                 []ScheduleReplanBreak `json:"breaks"`
 }
 
 type ScheduleReplanBreak struct {

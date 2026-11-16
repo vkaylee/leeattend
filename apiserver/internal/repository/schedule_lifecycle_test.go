@@ -114,6 +114,23 @@ func TestDeactivateScheduleEmployerWritesDisableAndAuditAtomically(t *testing.T)
 	}
 }
 
+func TestEnsureMutationPeriodOpenForRangeChecksAnyIntersectingPeriod(t *testing.T) {
+	var query string
+	db := &fakeDBTX{queryRowFn: func(_ context.Context, sql string, _ ...any) pgx.Row {
+		query = sql
+		return fakeRow{scanFn: func(dest ...any) error {
+			*(dest[0].(*bool)) = true
+			return nil
+		}}
+	}}
+	if err := ensureMutationPeriodOpenForRange(context.Background(), db, []uuid.UUID{uuid.New()}, "2026-11-30", "2026-12-02"); !errors.Is(err, ErrScheduleLockedPeriod) {
+		t.Fatalf("intersecting locked period error = %v, want locked period", err)
+	}
+	if !strings.Contains(query, "<= $3::date") || !strings.Contains(query, ">= $2::date") {
+		t.Fatalf("range guard must test period intersection, query=%s", query)
+	}
+}
+
 func TestLockScheduleRevisionTargetsSortsBusinessDates(t *testing.T) {
 	var args []any
 	db := &fakeDBTX{execFn: func(_ context.Context, query string, values ...any) (pgconn.CommandTag, error) {
@@ -296,6 +313,32 @@ func TestPreviewIntervalsPreservesSplitAndOvernightIntervals(t *testing.T) {
 	nightEndAt := intervals[1]["end_at"].(time.Time)
 	if first.Format(time.RFC3339) != "2026-11-16T08:00:00Z" || nightEndAt.Format(time.RFC3339) != "2026-11-17T06:00:00Z" {
 		t.Fatalf("unexpected interval timestamps: first=%s night_end=%s", first, nightEndAt)
+	}
+}
+
+func TestPreviewIntervalsPreservesDayOffsetsAndRejectsDSTAmbiguity(t *testing.T) {
+	startA, endA := "22:00:00", "02:00:00"
+	startB, endB := "02:00:00", "06:00:00"
+	version := shiftVersionInfo{id: uuid.New(), intervals: []shiftIntervalInfo{
+		{sortOrder: 0, startTime: &startA, endTime: &endA, startDayOffset: 0, endDayOffset: 1},
+		{sortOrder: 1, startTime: &startB, endTime: &endB, startDayOffset: 1, endDayOffset: 1},
+	}}
+	intervals, err := previewIntervals(version, "2026-04-30", "Asia/Ho_Chi_Minh")
+	if err != nil {
+		t.Fatalf("preview multi-segment offsets: %v", err)
+	}
+	if intervals[0]["end_at"].(time.Time).Format(time.RFC3339) != "2026-05-01T02:00:00+07:00" || intervals[1]["start_at"].(time.Time).Format(time.RFC3339) != "2026-05-01T02:00:00+07:00" {
+		t.Fatalf("unexpected offset timestamps: %+v", intervals)
+	}
+	ambiguousStart, ambiguousEnd := "01:30:00", "03:30:00"
+	_, err = previewIntervals(shiftVersionInfo{id: uuid.New(), intervals: []shiftIntervalInfo{{sortOrder: 0, startTime: &ambiguousStart, endTime: &ambiguousEnd}}}, "2026-11-01", "America/New_York")
+	if err == nil {
+		t.Fatal("ambiguous DST local time accepted without UTC offset")
+	}
+	nonexistentStart, nonexistentEnd := "02:30:00", "03:30:00"
+	_, err = previewIntervals(shiftVersionInfo{id: uuid.New(), intervals: []shiftIntervalInfo{{sortOrder: 0, startTime: &nonexistentStart, endTime: &nonexistentEnd}}}, "2026-03-08", "America/New_York")
+	if err == nil {
+		t.Fatal("nonexistent DST local time accepted")
 	}
 }
 

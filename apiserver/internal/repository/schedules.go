@@ -65,6 +65,10 @@ type shiftIntervalInfo struct {
 	sortOrder                      int
 	startTime                      *string
 	endTime                        *string
+	startDayOffset                 int
+	endDayOffset                   int
+	startUTCOffsetMinutes          *int
+	endUTCOffsetMinutes            *int
 	breakDurationMinutes           *int
 	breakStart                     *string
 	breakEnd                       *string
@@ -1105,7 +1109,7 @@ func loadShifts(ctx context.Context, db DBTX) (map[uuid.UUID]shiftTemplateInfo, 
 	rows, err := db.Query(ctx, `SELECT st.id, st.name, sv.id, sv.report_symbol, sv.effective_from, sv.effective_to,
 		sdi.sort_order, sdi.start_time::text, sdi.end_time::text, sdi.break_duration_minutes, sdi.break_start::text, sdi.break_end::text,
 		sdi.is_break_auto_deduct, sdi.early_punch_in_grace_period_minutes, sdi.allow_early_ot, sdi.break_is_overtime,
-		sdi.max_early_ot_minutes
+		sdi.max_early_ot_minutes, sdi.start_day_offset, sdi.end_day_offset, sdi.start_utc_offset_minutes, sdi.end_utc_offset_minutes
 		FROM shift_templates st
 		LEFT JOIN shift_versions sv ON sv.template_id = st.id
 		LEFT JOIN shift_default_intervals sdi ON sdi.version_id = sv.id
@@ -1126,7 +1130,7 @@ func loadShifts(ctx context.Context, db DBTX) (map[uuid.UUID]shiftTemplateInfo, 
 		if err := rows.Scan(&templateID, &info.name, &versionID, &reportSymbol, &effectiveFrom, &effectiveTo,
 			&sortOrder, &interval.startTime, &interval.endTime, &interval.breakDurationMinutes, &interval.breakStart, &interval.breakEnd,
 			&interval.isBreakAutoDeduct, &interval.earlyPunchInGracePeriodMinutes, &interval.allowEarlyOT, &interval.breakIsOvertime,
-			&interval.maxEarlyOTMinutes); err != nil {
+			&interval.maxEarlyOTMinutes, &interval.startDayOffset, &interval.endDayOffset, &interval.startUTCOffsetMinutes, &interval.endUTCOffsetMinutes); err != nil {
 			return nil, err
 		}
 		current := res[templateID]

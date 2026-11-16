@@ -35,6 +35,10 @@ type ShiftIntervalRequest struct {
 	IntervalName                   *string `json:"interval_name,omitempty"`
 	StartTime                      string  `json:"start_time"`
 	EndTime                        string  `json:"end_time"`
+	StartDayOffset                 int     `json:"start_day_offset"`
+	EndDayOffset                   int     `json:"end_day_offset"`
+	StartUTCOffsetMinutes          *int    `json:"start_utc_offset_minutes,omitempty"`
+	EndUTCOffsetMinutes            *int    `json:"end_utc_offset_minutes,omitempty"`
 	BreakDurationMinutes           int     `json:"break_duration_minutes"`
 	BreakStart                     *string `json:"break_start,omitempty"`
 	BreakEnd                       *string `json:"break_end,omitempty"`
@@ -99,6 +103,10 @@ type ShiftIntervalRecord struct {
 	IntervalName                   *string   `json:"interval_name"`
 	StartTime                      string    `json:"start_time"`
 	EndTime                        string    `json:"end_time"`
+	StartDayOffset                 int       `json:"start_day_offset"`
+	EndDayOffset                   int       `json:"end_day_offset"`
+	StartUTCOffsetMinutes          *int      `json:"start_utc_offset_minutes,omitempty"`
+	EndUTCOffsetMinutes            *int      `json:"end_utc_offset_minutes,omitempty"`
 	BreakDurationMinutes           int       `json:"break_duration_minutes"`
 	BreakStart                     *string   `json:"break_start"`
 	BreakEnd                       *string   `json:"break_end"`
@@ -291,7 +299,10 @@ func validateIntervals(intervals []ShiftIntervalRequest) error {
 				return ErrShiftValidation
 			}
 		}
-		if interval.BreakDurationMinutes < 0 || interval.EarlyPunchInGracePeriodMinutes < 0 {
+		if interval.BreakDurationMinutes < 0 || interval.EarlyPunchInGracePeriodMinutes < 0 || interval.StartDayOffset < 0 || interval.EndDayOffset < 0 || interval.EndDayOffset < interval.StartDayOffset {
+			return ErrShiftValidation
+		}
+		if interval.StartUTCOffsetMinutes != nil && !validUTCOffset(*interval.StartUTCOffsetMinutes) || interval.EndUTCOffsetMinutes != nil && !validUTCOffset(*interval.EndUTCOffsetMinutes) {
 			return ErrShiftValidation
 		}
 	}
@@ -300,6 +311,10 @@ func validateIntervals(intervals []ShiftIntervalRequest) error {
 
 func parseClock(value string) (time.Time, error) {
 	return time.Parse("15:04:05", value)
+}
+
+func validUTCOffset(minutes int) bool {
+	return minutes >= -14*60 && minutes <= 14*60 && minutes%15 == 0
 }
 
 func optionalUUID(value string) (*uuid.UUID, error) {

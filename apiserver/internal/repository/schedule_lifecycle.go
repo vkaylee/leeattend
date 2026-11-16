@@ -77,13 +77,18 @@ type lifecycleRevision struct {
 }
 
 type lifecycleSegment struct {
-	ID             uuid.UUID
-	SortOrder      int
-	TemplateID     uuid.UUID
-	ShiftVersionID uuid.UUID
-	StartAt        time.Time
-	EndAt          time.Time
-	Breaks         json.RawMessage
+	ID                   uuid.UUID
+	SortOrder             int
+	TemplateID            uuid.UUID
+	ShiftVersionID        uuid.UUID
+	StartAt               time.Time
+	EndAt                 time.Time
+	Breaks                json.RawMessage
+	StartDayOffset        *int
+	EndDayOffset          *int
+	ShiftGroupKey         *string
+	StartUTCOffsetMinutes *int
+	EndUTCOffsetMinutes   *int
 }
 
 func (r ScheduleRepository) beginLifecycle(ctx context.Context) (TxBeginner, error) {
@@ -471,12 +476,26 @@ func previewIntervals(version shiftVersionInfo, businessDate, timezone string) (
 		if err != nil {
 			return nil, err
 		}
-		startAt := time.Date(year, month, day, start.Hour(), start.Minute(), start.Second(), 0, loc)
-		endDate := startAt
-		if !end.After(start) {
-			endDate = endDate.AddDate(0, 0, 1)
+		startOffset, endOffset := interval.startDayOffset, interval.endDayOffset
+		if startOffset == 0 && endOffset == 0 && !end.After(start) {
+			endOffset = 1
 		}
-		endAt := time.Date(endDate.Year(), endDate.Month(), endDate.Day(), end.Hour(), end.Minute(), end.Second(), 0, loc)
+		if startOffset < 0 || endOffset < startOffset {
+			return nil, errors.New("schedule interval day offsets are invalid")
+		}
+		startDate := time.Date(year, month, day+startOffset, 0, 0, 0, 0, loc)
+		endDate := time.Date(year, month, day+endOffset, 0, 0, 0, 0, loc)
+		startAt, err := localDateTime(startDate, start, interval.startUTCOffsetMinutes)
+		if err != nil {
+			return nil, err
+		}
+		endAt, err := localDateTime(endDate, end, interval.endUTCOffsetMinutes)
+		if err != nil {
+			return nil, err
+		}
+		if !endAt.After(startAt) {
+			return nil, errors.New("schedule interval ends before it starts")
+		}
 		breaks := make([]map[string]any, 0)
 		if interval.breakStart != nil || interval.breakEnd != nil {
 			if interval.breakStart == nil || interval.breakEnd == nil {
@@ -487,7 +506,7 @@ func previewIntervals(version shiftVersionInfo, businessDate, timezone string) (
 				return nil, err
 			}
 		}
-		result = append(result, map[string]any{"sort_order": interval.sortOrder, "start": start.Format("15:04:05"), "end": end.Format("15:04:05"), "start_at": startAt, "end_at": endAt, "shift_version_id": version.id.String(), "breaks": breaks})
+		result = append(result, map[string]any{"sort_order": interval.sortOrder, "start": start.Format("15:04:05"), "end": end.Format("15:04:05"), "start_day_offset": interval.startDayOffset, "end_day_offset": interval.endDayOffset, "start_utc_offset_minutes": interval.startUTCOffsetMinutes, "end_utc_offset_minutes": interval.endUTCOffsetMinutes, "start_at": startAt, "end_at": endAt, "shift_version_id": version.id.String(), "breaks": breaks})
 	}
 	return result, nil
 }
@@ -908,7 +927,7 @@ func ensureMutationPeriodOpen(ctx context.Context, tx DBTX, employerID uuid.UUID
 
 func ensureMutationPeriodOpenForRange(ctx context.Context, tx DBTX, employmentIDs []uuid.UUID, startDate, endDate string) error {
 	var blocked bool
-	err := tx.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM payroll_periods pp JOIN employments e ON e.employer_id = pp.employer_id WHERE e.id = ANY($1) AND pp.status = 'locked' AND make_date(pp.period_year, pp.period_month, 1) <= $2::date AND (make_date(pp.period_year, pp.period_month, 1) + interval '1 month - 1 day') >= $3::date) OR EXISTS (SELECT 1 FROM attendance_periods ap JOIN employments e ON e.employer_id = ap.employer_id WHERE e.id = ANY($1) AND ap.status = 'closed' AND make_date(ap.period_year, ap.period_month, 1) <= $2::date AND (make_date(ap.period_year, ap.period_month, 1) + interval '1 month - 1 day') >= $3::date)`, employmentIDs, startDate, endDate).Scan(&blocked)
+	err := tx.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM payroll_periods pp JOIN employments e ON e.employer_id = pp.employer_id WHERE e.id = ANY($1) AND pp.status = 'locked' AND make_date(pp.period_year, pp.period_month, 1) <= $3::date AND (make_date(pp.period_year, pp.period_month, 1) + interval '1 month - 1 day') >= $2::date) OR EXISTS (SELECT 1 FROM attendance_periods ap JOIN employments e ON e.employer_id = ap.employer_id WHERE e.id = ANY($1) AND ap.status = 'closed' AND make_date(ap.period_year, ap.period_month, 1) <= $3::date AND (make_date(ap.period_year, ap.period_month, 1) + interval '1 month - 1 day') >= $2::date)`, employmentIDs, startDate, endDate).Scan(&blocked)
 	if err != nil {
 		return err
 	}
@@ -1140,8 +1159,9 @@ func insertPublishedDay(ctx context.Context, tx pgx.Tx, batchID uuid.UUID, actor
 			return uuid.Nil, err
 		}
 	}
+	groupKey := fmt.Sprintf("%s:%s", employmentID, businessDate)
 	for _, interval := range intervals {
-		if _, err := tx.Exec(ctx, `INSERT INTO work_segments (id, employment_id, date, template_id, interval_id, sort_order, scheduled_start, scheduled_end, segment_type, segment_status, source, source_detail, schedule_revision_id, selected_shift_version_id, scheduled_start_at, scheduled_end_at, breaks_snapshot) SELECT $1, $2, $3::date, sv.template_id, NULL, $4, $5::time, $6::time, 'work', 'scheduled', $7, '{}'::jsonb, $8, $9, $10, $11, $12 FROM shift_versions sv WHERE sv.id = $9`, uuid.New(), employmentID, businessDate, interval.SortOrder, interval.StartLocal, interval.EndLocal, source, revisionID, interval.ShiftVersionID, interval.StartAt, interval.EndAt, jsonArg(interval.Breaks)); err != nil {
+		if _, err := tx.Exec(ctx, `INSERT INTO work_segments (id, employment_id, date, template_id, interval_id, sort_order, scheduled_start, scheduled_end, segment_type, segment_status, source, source_detail, schedule_revision_id, selected_shift_version_id, scheduled_start_at, scheduled_end_at, breaks_snapshot, start_day_offset, end_day_offset, shift_group_key, start_utc_offset_minutes, end_utc_offset_minutes) SELECT $1, $2, $3::date, sv.template_id, NULL, $4, $5::time, $6::time, 'work', 'scheduled', $7, '{}'::jsonb, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17 FROM shift_versions sv WHERE sv.id = $9`, uuid.New(), employmentID, businessDate, interval.SortOrder, interval.StartLocal, interval.EndLocal, source, revisionID, interval.ShiftVersionID, interval.StartAt, interval.EndAt, jsonArg(interval.Breaks), interval.StartDayOffset, interval.EndDayOffset, groupKey, interval.StartUTCOffsetMinutes, interval.EndUTCOffsetMinutes); err != nil {
 			return uuid.Nil, err
 		}
 	}
@@ -1156,13 +1176,54 @@ func insertPublishedDay(ctx context.Context, tx pgx.Tx, batchID uuid.UUID, actor
 }
 
 type normalizedInterval struct {
-	SortOrder      int              `json:"sort_order"`
-	StartLocal     string           `json:"start"`
-	EndLocal       string           `json:"end"`
-	StartAt        time.Time        `json:"start_at"`
-	EndAt          time.Time        `json:"end_at"`
-	ShiftVersionID uuid.UUID        `json:"shift_version_id"`
-	Breaks         []map[string]any `json:"breaks"`
+	SortOrder             int              `json:"sort_order"`
+	StartLocal            string           `json:"start"`
+	EndLocal              string           `json:"end"`
+	StartDayOffset        int              `json:"start_day_offset"`
+	EndDayOffset          int              `json:"end_day_offset"`
+	StartUTCOffsetMinutes *int             `json:"start_utc_offset_minutes,omitempty"`
+	EndUTCOffsetMinutes   *int             `json:"end_utc_offset_minutes,omitempty"`
+	StartAt               time.Time        `json:"start_at"`
+	EndAt                 time.Time        `json:"end_at"`
+	ShiftVersionID        uuid.UUID        `json:"shift_version_id"`
+	Breaks                []map[string]any `json:"breaks"`
+}
+
+func localDateTime(date time.Time, clock time.Time, explicitOffset *int) (time.Time, error) {
+	loc := date.Location()
+	candidates := make([]time.Time, 0, 2)
+	for offset := -14 * 60; offset <= 14*60; offset += 15 {
+		instant := time.Date(date.Year(), date.Month(), date.Day(), clock.Hour(), clock.Minute(), clock.Second(), 0, time.FixedZone("candidate", offset*60))
+		inLocation := instant.In(loc)
+		if inLocation.Year() == date.Year() && inLocation.Month() == date.Month() && inLocation.Day() == date.Day() && inLocation.Hour() == clock.Hour() && inLocation.Minute() == clock.Minute() && inLocation.Second() == clock.Second() {
+			found := false
+			for _, candidate := range candidates {
+				if candidate.Equal(instant) {
+					found = true
+					break
+				}
+			}
+			if !found {
+				candidates = append(candidates, instant)
+			}
+		}
+	}
+	if len(candidates) == 0 {
+		return time.Time{}, errors.New("schedule local time does not exist in timezone")
+	}
+	if explicitOffset != nil {
+		for _, candidate := range candidates {
+			_, offset := candidate.In(loc).Zone()
+			if offset == *explicitOffset*60 {
+				return candidate.In(loc), nil
+			}
+		}
+		return time.Time{}, errors.New("schedule UTC offset does not disambiguate local time")
+	}
+	if len(candidates) > 1 {
+		return time.Time{}, errors.New("schedule local time is ambiguous; explicit UTC offset required")
+	}
+	return candidates[0].In(loc), nil
 }
 
 func normalizeReplacement(replacement api.ScheduleReplanReplacement, timezone, businessDate string, employmentID uuid.UUID) (map[string]any, error) {
@@ -1186,12 +1247,22 @@ func normalizeReplacement(replacement api.ScheduleReplanReplacement, timezone, b
 			return nil, err
 		}
 		year, month, day := parseDateParts(businessDate)
-		startAt := time.Date(year, month, day, start.Hour(), start.Minute(), start.Second(), 0, loc)
-		endDate := startAt
-		if !end.After(start) {
-			endDate = endDate.AddDate(0, 0, 1)
+		if item.StartDayOffset < 0 || item.EndDayOffset < item.StartDayOffset {
+			return nil, errors.New("schedule replacement day offsets are invalid")
 		}
-		endAt := time.Date(endDate.Year(), endDate.Month(), endDate.Day(), end.Hour(), end.Minute(), end.Second(), 0, loc)
+		startDate := time.Date(year, month, day+item.StartDayOffset, 0, 0, 0, 0, loc)
+		endDate := time.Date(year, month, day+item.EndDayOffset, 0, 0, 0, 0, loc)
+		startAt, err := localDateTime(startDate, start, item.StartUTCOffsetMinutes)
+		if err != nil {
+			return nil, err
+		}
+		endAt, err := localDateTime(endDate, end, item.EndUTCOffsetMinutes)
+		if err != nil {
+			return nil, err
+		}
+		if !endAt.After(startAt) {
+			return nil, errors.New("schedule lifecycle replacement interval ends before it starts")
+		}
 		if !endAt.After(startAt) {
 			return nil, errors.New("schedule lifecycle replacement interval ends before it starts")
 		}
@@ -1199,7 +1270,7 @@ func normalizeReplacement(replacement api.ScheduleReplanReplacement, timezone, b
 		if err != nil {
 			return nil, err
 		}
-		intervals = append(intervals, normalizedInterval{SortOrder: item.SortOrder, StartLocal: start.Format("15:04:05"), EndLocal: end.Format("15:04:05"), StartAt: startAt, EndAt: endAt, ShiftVersionID: *replacement.ShiftVersionID, Breaks: breaks})
+		intervals = append(intervals, normalizedInterval{SortOrder: item.SortOrder, StartLocal: start.Format("15:04:05"), EndLocal: end.Format("15:04:05"), StartDayOffset: item.StartDayOffset, EndDayOffset: item.EndDayOffset, StartUTCOffsetMinutes: item.StartUTCOffsetMinutes, EndUTCOffsetMinutes: item.EndUTCOffsetMinutes, StartAt: startAt, EndAt: endAt, ShiftVersionID: *replacement.ShiftVersionID, Breaks: breaks})
 	}
 	sort.Slice(intervals, func(i, j int) bool { return intervals[i].SortOrder < intervals[j].SortOrder })
 	for i := 1; i < len(intervals); i++ {
@@ -1236,7 +1307,7 @@ func normalizeBreaks(breaks []api.ScheduleReplanBreak, startAt time.Time, loc *t
 }
 
 func loadRevisionDocument(ctx context.Context, tx DBTX, revision lifecycleRevision) (map[string]any, error) {
-	rows, err := tx.Query(ctx, `SELECT id, sort_order, template_id, selected_shift_version_id, scheduled_start_at, scheduled_end_at, breaks_snapshot FROM work_segments WHERE schedule_revision_id = $1 ORDER BY sort_order, id`, revision.ID)
+	rows, err := tx.Query(ctx, `SELECT id, sort_order, template_id, selected_shift_version_id, scheduled_start_at, scheduled_end_at, breaks_snapshot, start_day_offset, end_day_offset, shift_group_key, start_utc_offset_minutes, end_utc_offset_minutes FROM work_segments WHERE schedule_revision_id = $1 ORDER BY sort_order, id`, revision.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -1244,7 +1315,7 @@ func loadRevisionDocument(ctx context.Context, tx DBTX, revision lifecycleRevisi
 	intervals := make([]map[string]any, 0)
 	for rows.Next() {
 		var segment lifecycleSegment
-		if err := rows.Scan(&segment.ID, &segment.SortOrder, &segment.TemplateID, &segment.ShiftVersionID, &segment.StartAt, &segment.EndAt, &segment.Breaks); err != nil {
+		if err := rows.Scan(&segment.ID, &segment.SortOrder, &segment.TemplateID, &segment.ShiftVersionID, &segment.StartAt, &segment.EndAt, &segment.Breaks, &segment.StartDayOffset, &segment.EndDayOffset, &segment.ShiftGroupKey, &segment.StartUTCOffsetMinutes, &segment.EndUTCOffsetMinutes); err != nil {
 			return nil, err
 		}
 		location, err := time.LoadLocation(revision.Timezone)
@@ -1252,8 +1323,13 @@ func loadRevisionDocument(ctx context.Context, tx DBTX, revision lifecycleRevisi
 			return nil, err
 		}
 		intervals = append(intervals, map[string]any{
-			"sort_order":       segment.SortOrder,
-			"shift_version_id": segment.ShiftVersionID.String(),
+			"sort_order":                segment.SortOrder,
+			"shift_version_id":          segment.ShiftVersionID.String(),
+			"start_day_offset":          segment.StartDayOffset,
+			"end_day_offset":            segment.EndDayOffset,
+			"shift_group_key":           segment.ShiftGroupKey,
+			"start_utc_offset_minutes":  segment.StartUTCOffsetMinutes,
+			"end_utc_offset_minutes":    segment.EndUTCOffsetMinutes,
 			"start":            segment.StartAt.In(location).Format("15:04:05"),
 			"end":              segment.EndAt.In(location).Format("15:04:05"),
 			"start_at":         segment.StartAt,
