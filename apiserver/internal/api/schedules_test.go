@@ -317,6 +317,17 @@ func TestScheduleHandler_LifecycleAuthRunsBeforeValidation(t *testing.T) {
 	}
 }
 
+func TestScheduleHandler_RotatingPublishRequiresPermissionBeforePayload(t *testing.T) {
+	handler := ScheduleHandler{Lifecycle: lifecycleRepositoryMock{}, Authorizer: schedulePermissionAuthorizer{allowed: false}}
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/schedules/publish/rotating", strings.NewReader(`{"unknown":true}`))
+	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
+	rec := httptest.NewRecorder()
+	handler.PublishRotating(rec, req)
+	if rec.Code != http.StatusForbidden {
+		t.Fatalf("rotating publish auth status=%d want 403", rec.Code)
+	}
+}
+
 func TestScheduleHandler_PublishRequiresIdempotencyKey(t *testing.T) {
 	userID := uuid.New()
 	handler := ScheduleHandler{

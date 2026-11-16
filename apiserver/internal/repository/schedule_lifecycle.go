@@ -200,13 +200,15 @@ func (r ScheduleRepository) CreatePreview(ctx context.Context, actorID uuid.UUID
 		if err := validatePreviewScope(resolution, request.EmploymentIDs, startDate, endDate); err != nil {
 			return err
 		}
-		if err := validateHumanOfficeApproval(ctx, tx, api.SchedulePublishRequest{
-			EmploymentIDs: request.EmploymentIDs,
-			StartDate: request.StartDate,
-			EndDate: request.EndDate,
-			ApprovalInstanceID: request.ApprovalInstanceID,
-		}); err != nil {
-			return err
+		if request.Mode != "rotating" {
+			if err := validateHumanOfficeApproval(ctx, tx, api.SchedulePublishRequest{
+				EmploymentIDs: request.EmploymentIDs,
+				StartDate: request.StartDate,
+				EndDate: request.EndDate,
+				ApprovalInstanceID: request.ApprovalInstanceID,
+			}); err != nil {
+				return err
+			}
 		}
 		currentRevisions, err := loadCurrentRevisionNumbers(ctx, tx, request.EmploymentIDs, request.StartDate, request.EndDate)
 		if err != nil {
@@ -999,7 +1001,11 @@ func publishPreview(ctx context.Context, tx pgx.Tx, actor publicationActor, idem
 	}
 	batchID := uuid.New()
 	publishedAt := time.Now().UTC()
-	if _, err := tx.Exec(ctx, `INSERT INTO schedule_publication_batches (id, idempotency_key, request_hash, mode, status, requested_by, operation, response_snapshot, actor_type, actor_name, approval_instance_id, reason, timezone, range_start, range_end, published_at, affected_days) VALUES ($1, $2, $3, 'office', 'published', $4, 'publish', '{}'::jsonb, $5, $6, $7, $8, $9, $10::date, $11::date, $12, $13)`, batchID, idempotencyKey, requestHash, actor.ID, actor.Type, actor.Name, request.ApprovalInstanceID, strings.TrimSpace(request.Reason), request.Timezone, request.StartDate, request.EndDate, publishedAt, len(snapshot.Data)); err != nil {
+	mode := request.Mode
+	if mode == "" {
+		mode = "office"
+	}
+	if _, err := tx.Exec(ctx, `INSERT INTO schedule_publication_batches (id, idempotency_key, request_hash, mode, status, requested_by, operation, response_snapshot, actor_type, actor_name, approval_instance_id, reason, timezone, range_start, range_end, published_at, affected_days) VALUES ($1, $2, $3, $4, 'published', $5, 'publish', '{}'::jsonb, $6, $7, $8, $9, $10, $11::date, $12::date, $13, $14)`, batchID, idempotencyKey, requestHash, mode, actor.ID, actor.Type, actor.Name, request.ApprovalInstanceID, strings.TrimSpace(request.Reason), request.Timezone, request.StartDate, request.EndDate, publishedAt, len(snapshot.Data)); err != nil {
 		return err
 	}
 	if _, err := tx.Exec(ctx, `SELECT set_config('schedule.lifecycle_publication', 'on', true)`); err != nil {
@@ -1255,7 +1261,11 @@ func publishHashInput(actorID uuid.UUID, request api.SchedulePublishRequest, pre
 	if request.ApprovalInstanceID != nil {
 		approval = request.ApprovalInstanceID.String()
 	}
-	return lifecycleRequestHashInput{Operation: "publish", ActorID: actorID.String(), EmploymentIDs: uuidStrings(request.EmploymentIDs), StartDate: request.StartDate, EndDate: request.EndDate, Timezone: request.Timezone, Mode: "office", ApprovalInstanceID: stringPtr(approval), ExpectedRevisions: expectedRevisionList(request.ExpectedRevisions), Reason: strings.TrimSpace(request.Reason), Retroactive: request.Retroactive, PreviewID: previewID, PreviewHash: previewHash}
+	mode := request.Mode
+	if mode == "" {
+		mode = "office"
+	}
+	return lifecycleRequestHashInput{Operation: "publish", ActorID: actorID.String(), EmploymentIDs: uuidStrings(request.EmploymentIDs), StartDate: request.StartDate, EndDate: request.EndDate, Timezone: request.Timezone, Mode: mode, ApprovalInstanceID: stringPtr(approval), ExpectedRevisions: expectedRevisionList(request.ExpectedRevisions), Reason: strings.TrimSpace(request.Reason), Retroactive: request.Retroactive, PreviewID: previewID, PreviewHash: previewHash}
 }
 
 func replanHashInput(actorID, employmentID uuid.UUID, businessDate string, request api.ScheduleReplanPreviewRequest, previewID, previewHash, confirmDiffHash string) lifecycleRequestHashInput {

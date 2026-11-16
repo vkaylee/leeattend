@@ -50,6 +50,7 @@ type SchedulePreviewRequest struct {
 }
 
 type SchedulePublishRequest struct {
+	Mode               string           `json:"mode"`
 	EmploymentIDs      []uuid.UUID      `json:"employment_ids"`
 	StartDate          string           `json:"start_date"`
 	EndDate            string           `json:"end_date"`
@@ -310,6 +311,29 @@ func (h ScheduleHandler) Activate(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
+func (h ScheduleHandler) PreviewRotating(w http.ResponseWriter, r *http.Request) {
+	userID, ok := h.requirePermission(w, r, "schedules:publish:rotating")
+	if !ok {
+		return
+	}
+	request, err := DecodeJSON[SchedulePreviewRequest](r, 1<<20)
+	if err != nil || request.Mode != "rotating" || !validPreviewRequest(request) {
+		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
+		return
+	}
+	lifecycle, ok := h.lifecycleRepository()
+	if !ok {
+		h.lifecycleUnavailable(w, r)
+		return
+	}
+	result, err := lifecycle.CreatePreview(r.Context(), userID, request)
+	if err != nil {
+		h.writeLifecycleError(w, r, err)
+		return
+	}
+	apperror.WriteJSON(w, http.StatusOK, result)
+}
+
 func (h ScheduleHandler) Preview(w http.ResponseWriter, r *http.Request) {
 	userID, ok := h.requirePermission(w, r, scheduleLifecyclePermissionPreview)
 	if !ok {
@@ -331,6 +355,34 @@ func (h ScheduleHandler) Preview(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	apperror.WriteJSON(w, http.StatusOK, result)
+}
+
+func (h ScheduleHandler) PublishRotating(w http.ResponseWriter, r *http.Request) {
+	userID, ok := h.requirePermission(w, r, "schedules:publish:rotating")
+	if !ok {
+		return
+	}
+	key, err := idempotencyKey(r)
+	if err != nil {
+		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
+		return
+	}
+	request, err := DecodeJSON[SchedulePublishRequest](r, 1<<20)
+	if err != nil || !validPublishRequest(request) || request.Mode != "rotating" || request.ApprovalInstanceID != nil {
+		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
+		return
+	}
+	lifecycle, ok := h.lifecycleRepository()
+	if !ok {
+		h.lifecycleUnavailable(w, r)
+		return
+	}
+	result, err := lifecycle.Publish(r.Context(), userID, key, request)
+	if err != nil {
+		h.writeLifecycleError(w, r, err)
+		return
+	}
+	apperror.WriteJSON(w, http.StatusCreated, result)
 }
 
 func (h ScheduleHandler) Publish(w http.ResponseWriter, r *http.Request) {
@@ -493,7 +545,10 @@ func lifecyclePath(w http.ResponseWriter, r *http.Request) (uuid.UUID, string, b
 
 func validPreviewRequest(request SchedulePreviewRequest) bool {
 	start, err := ParseDate(request.StartDate)
-	if err != nil || request.EndDate == "" || len(request.EmploymentIDs) == 0 || len(request.EmploymentIDs) > 500 || request.Mode != "office" {
+	if err != nil || request.EndDate == "" || len(request.EmploymentIDs) == 0 || len(request.EmploymentIDs) > 500 || (request.Mode != "office" && request.Mode != "rotating") {
+		return false
+	}
+	if request.Mode == "rotating" && request.ApprovalInstanceID != nil {
 		return false
 	}
 	end, err := ParseDate(request.EndDate)
@@ -507,7 +562,14 @@ func validPreviewRequest(request SchedulePreviewRequest) bool {
 }
 
 func validPublishRequest(request SchedulePublishRequest) bool {
-	return validPreviewRequest(SchedulePreviewRequest{EmploymentIDs: request.EmploymentIDs, StartDate: request.StartDate, EndDate: request.EndDate, Timezone: request.Timezone, Mode: "office", ApprovalInstanceID: request.ApprovalInstanceID, Reason: request.Reason, Retroactive: request.Retroactive, ExpectedRevisions: request.ExpectedRevisions}) && request.PreviewID != uuid.Nil && validHash(request.PreviewHash) && strings.TrimSpace(request.Reason) != ""
+	mode := request.Mode
+	if mode == "" {
+		mode = "office"
+	}
+	if mode != "office" && mode != "rotating" {
+		return false
+	}
+	return validPreviewRequest(SchedulePreviewRequest{EmploymentIDs: request.EmploymentIDs, StartDate: request.StartDate, EndDate: request.EndDate, Timezone: request.Timezone, Mode: mode, ApprovalInstanceID: request.ApprovalInstanceID, Reason: request.Reason, Retroactive: request.Retroactive, ExpectedRevisions: request.ExpectedRevisions}) && request.PreviewID != uuid.Nil && validHash(request.PreviewHash) && strings.TrimSpace(request.Reason) != ""
 }
 
 func validExpectedRevisions(ids []uuid.UUID, start, end time.Time, revisions map[string]int64) bool {
