@@ -194,7 +194,9 @@ func (r ShiftSwapRepository) ApproveSwap(ctx context.Context, requestID, approve
 		var requesterID, targetID uuid.UUID
 		var swapDate string
 		var reqShift, tgtShift *uuid.UUID
-		err := db.QueryRow(ctx, `SELECT status, requester_id, target_id, swap_date::text, requester_template_id, target_template_id FROM shift_swap_requests WHERE id = $1`, requestID).Scan(&currentStatus, &requesterID, &targetID, &swapDate, &reqShift, &tgtShift)
+		var requesterRevisionID, targetRevisionID *uuid.UUID
+		var requesterRevisionNumber, targetRevisionNumber *int64
+		err := db.QueryRow(ctx, `SELECT status, requester_id, target_id, swap_date::text, requester_template_id, target_template_id, requester_revision_id, requester_revision_number, target_revision_id, target_revision_number FROM shift_swap_requests WHERE id = $1`, requestID).Scan(&currentStatus, &requesterID, &targetID, &swapDate, &reqShift, &tgtShift, &requesterRevisionID, &requesterRevisionNumber, &targetRevisionID, &targetRevisionNumber)
 		if errors.Is(err, pgx.ErrNoRows) {
 			return api.ErrShiftSwapNotFound
 		}
@@ -216,6 +218,15 @@ func (r ShiftSwapRepository) ApproveSwap(ctx context.Context, requestID, approve
 			tgtEmp, err := resolveEmploymentOnDate(ctx, db, targetID, swapDate)
 			if err != nil {
 				return err
+			}
+			if requesterRevisionID != nil || targetRevisionID != nil {
+				if requesterRevisionID == nil || targetRevisionID == nil || requesterRevisionNumber == nil || targetRevisionNumber == nil {
+					return api.ErrShiftSwapConflict
+				}
+				if err := verifyOfficialSwapRevisions(ctx, db, reqEmp, tgtEmp, swapDate, *requesterRevisionID, *requesterRevisionNumber, *targetRevisionID, *targetRevisionNumber); err != nil {
+					return err
+				}
+				return api.ErrShiftSwapConflict
 			}
 			if err := guardLifecycleDateMutation(ctx, db, []uuid.UUID{reqEmp, tgtEmp}, []string{swapDate}); err != nil {
 				if errors.Is(err, ErrLifecycleMutationBlocked) || errors.Is(err, ErrLifecycleSchemaUnavailable) {
@@ -443,6 +454,23 @@ func (r ShiftSwapRepository) CancelSwap(ctx context.Context, requesterID, reques
 		_, err = db.Exec(ctx, `UPDATE shift_swap_requests SET status = 'cancelled', updated_at = $1 WHERE id = $2`, now, requestID)
 		return err
 	})
+}
+
+func verifyOfficialSwapRevisions(ctx context.Context, db DBTX, requesterEmploymentID, targetEmploymentID uuid.UUID, date string, requesterRevisionID uuid.UUID, requesterRevisionNumber int64, targetRevisionID uuid.UUID, targetRevisionNumber int64) error {
+	var count int
+	if err := db.QueryRow(ctx, `SELECT COUNT(*) FROM schedule_day_revisions WHERE id = $1 AND employment_id = $2 AND business_date = $3::date AND state IN ('published', 'explicit_off') AND revision_number = $4`, requesterRevisionID, requesterEmploymentID, date, requesterRevisionNumber).Scan(&count); err != nil {
+		return err
+	}
+	if count != 1 {
+		return api.ErrShiftSwapConflict
+	}
+	if err := db.QueryRow(ctx, `SELECT COUNT(*) FROM schedule_day_revisions WHERE id = $1 AND employment_id = $2 AND business_date = $3::date AND state IN ('published', 'explicit_off') AND revision_number = $4`, targetRevisionID, targetEmploymentID, date, targetRevisionNumber).Scan(&count); err != nil {
+		return err
+	}
+	if count != 1 {
+		return api.ErrShiftSwapConflict
+	}
+	return nil
 }
 
 func currentOfficialRevision(ctx context.Context, db DBTX, employmentID uuid.UUID, date string) (*uuid.UUID, *int64, error) {
