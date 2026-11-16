@@ -45,6 +45,7 @@ vi.mock("@/components/ui/toast", () => ({
 vi.mock("@/hooks/use-permissions", () => ({
   useMyPermissions: () => ({
     hasAnyPermission: () => true,
+    hasRole: () => true,
     isLoading: false,
   }),
 }));
