@@ -202,9 +202,9 @@ func (r ScheduleRepository) CreatePreview(ctx context.Context, actorID uuid.UUID
 		}
 		if request.Mode != "rotating" {
 			if err := validateHumanOfficeApproval(ctx, tx, api.SchedulePublishRequest{
-				EmploymentIDs: request.EmploymentIDs,
-				StartDate: request.StartDate,
-				EndDate: request.EndDate,
+				EmploymentIDs:      request.EmploymentIDs,
+				StartDate:          request.StartDate,
+				EndDate:            request.EndDate,
 				ApprovalInstanceID: request.ApprovalInstanceID,
 			}); err != nil {
 				return err
@@ -608,7 +608,7 @@ func (r ScheduleRepository) Publish(ctx context.Context, actorID uuid.UUID, idem
 		if preview.RequestHash != requestHash {
 			return ErrSchedulePreviewStale
 		}
-			if err := ensureMutationPeriodOpenForRange(ctx, tx, request.EmploymentIDs, request.StartDate, request.EndDate); err != nil {
+		if err := ensureMutationPeriodOpenForRange(ctx, tx, request.EmploymentIDs, request.StartDate, request.EndDate); err != nil {
 			return err
 		}
 		if err := validateHumanOfficeApproval(ctx, tx, request); err != nil {
@@ -977,6 +977,61 @@ func lockScheduleRevisionTargets(ctx context.Context, tx DBTX, keys []scheduleRe
 	return nil
 }
 
+func rejectConcreteScheduleOverlaps(ctx context.Context, tx DBTX, days []map[string]any) error {
+	type candidate struct {
+		EmploymentID string    `json:"employment_id"`
+		StartAt      time.Time `json:"start_at"`
+		EndAt        time.Time `json:"end_at"`
+	}
+	candidates := make([]candidate, 0)
+	for _, day := range days {
+		if status, _ := day["status"].(string); status != "work" {
+			continue
+		}
+		employmentID, err := uuidFromMap(day, "employment_id")
+		if err != nil {
+			return err
+		}
+		intervals, err := dayIntervals(day, "UTC", "")
+		if err != nil {
+			return err
+		}
+		for _, interval := range intervals {
+			candidates = append(candidates, candidate{EmploymentID: employmentID.String(), StartAt: interval.StartAt, EndAt: interval.EndAt})
+		}
+	}
+	if len(candidates) == 0 {
+		return nil
+	}
+	var conflict bool
+	err := tx.QueryRow(ctx, `
+		WITH candidates AS (
+			SELECT * FROM jsonb_to_recordset($1::jsonb) AS c(employment_id uuid, start_at timestamptz, end_at timestamptz)
+		), candidate_people AS (
+			SELECT c.*, em.employee_id
+			FROM candidates c JOIN employments em ON em.id = c.employment_id
+		), existing AS (
+			SELECT ws.scheduled_start_at AS start_at, ws.scheduled_end_at AS end_at, em.employee_id, ws.employment_id
+			FROM work_segments ws
+			JOIN schedule_day_revisions r ON r.id = ws.schedule_revision_id AND r.state IN ('published', 'explicit_off')
+			JOIN employments em ON em.id = ws.employment_id
+		)
+		SELECT EXISTS (
+			SELECT 1 FROM candidate_people c JOIN existing e ON e.employee_id = c.employee_id
+			WHERE e.employment_id <> c.employment_id AND c.start_at < e.end_at AND e.start_at < c.end_at
+			UNION ALL
+			SELECT 1 FROM candidate_people a JOIN candidate_people b ON a.employee_id = b.employee_id
+			WHERE a.employment_id < b.employment_id AND a.start_at < b.end_at AND b.start_at < a.end_at
+		)`, jsonArg(candidates)).Scan(&conflict)
+	if err != nil {
+		return err
+	}
+	if conflict {
+		return api.ErrScheduleConflict
+	}
+	return nil
+}
+
 func publishPreview(ctx context.Context, tx pgx.Tx, actor publicationActor, idempotencyKey, requestHash string, request api.SchedulePublishRequest, preview lockedPreview, response *api.SchedulePublicationResponse) error {
 	var snapshot struct {
 		Data []map[string]any `json:"data"`
@@ -997,6 +1052,9 @@ func publishPreview(ctx context.Context, tx pgx.Tx, actor publicationActor, idem
 		keys = append(keys, scheduleRevisionLockKey{employmentID: employmentID, businessDate: businessDate})
 	}
 	if err := lockScheduleRevisionTargets(ctx, tx, keys); err != nil {
+		return err
+	}
+	if err := rejectConcreteScheduleOverlaps(ctx, tx, snapshot.Data); err != nil {
 		return err
 	}
 	batchID := uuid.New()

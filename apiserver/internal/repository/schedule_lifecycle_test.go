@@ -128,6 +128,35 @@ func TestLockScheduleRevisionTargetsLocksEmployeeBeforeEmployment(t *testing.T) 
 	}
 }
 
+func TestRejectConcreteScheduleOverlapsFailsClosed(t *testing.T) {
+	db := &fakeDBTX{queryRowFn: func(_ context.Context, query string, _ ...any) pgx.Row {
+		if !strings.Contains(query, "candidate_people") || !strings.Contains(query, "scheduled_start_at") {
+			t.Fatalf("overlap query missing person/timestamp checks: %s", query)
+		}
+		return fakeRow{scanFn: func(dest ...any) error {
+			*(dest[0].(*bool)) = true
+			return nil
+		}}
+	}}
+	day := map[string]any{
+		"employment_id": uuid.NewString(),
+		"business_date": "2026-11-16",
+		"status":        "work",
+		"intervals": []map[string]any{{
+			"sort_order":       0,
+			"start":            "08:00:00",
+			"end":              "17:00:00",
+			"start_at":         "2026-11-16T08:00:00Z",
+			"end_at":           "2026-11-16T17:00:00Z",
+			"shift_version_id": uuid.NewString(),
+			"breaks":           []map[string]any{},
+		}},
+	}
+	if err := rejectConcreteScheduleOverlaps(context.Background(), db, []map[string]any{day}); !errors.Is(err, api.ErrScheduleConflict) {
+		t.Fatalf("overlap error = %v, want schedule conflict", err)
+	}
+}
+
 func TestValidateHumanOfficeApprovalRequiresApprovedPolicyCoverage(t *testing.T) {
 	approvalID := uuid.New()
 	employmentID := uuid.New()

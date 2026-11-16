@@ -27,6 +27,7 @@ var (
 	ErrScheduleForbidden            = errors.New("schedule lifecycle replay is forbidden")
 	ErrScheduleValidation           = errors.New("schedule lifecycle validation failed")
 	ErrScheduleApprovalInvalid      = errors.New("schedule lifecycle approval is invalid")
+	ErrScheduleConflict              = errors.New("schedule lifecycle schedule conflict")
 )
 
 const (
@@ -503,7 +504,7 @@ func (h ScheduleHandler) writeLifecycleError(w http.ResponseWriter, r *http.Requ
 		h.lifecycleUnavailable(w, r)
 	case errors.Is(err, ErrScheduleForbidden):
 		apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
-	case errors.Is(err, ErrSchedulePreviewStale), errors.Is(err, ErrScheduleRevisionStale), errors.Is(err, ErrScheduleAlreadyPublished), errors.Is(err, ErrScheduleLockedPeriod), errors.Is(err, ErrScheduleNoCurrentRevision), errors.Is(err, ErrScheduleIdempotencyConflict):
+	case errors.Is(err, ErrSchedulePreviewStale), errors.Is(err, ErrScheduleRevisionStale), errors.Is(err, ErrScheduleAlreadyPublished), errors.Is(err, ErrScheduleLockedPeriod), errors.Is(err, ErrScheduleNoCurrentRevision), errors.Is(err, ErrScheduleIdempotencyConflict), errors.Is(err, ErrScheduleConflict):
 		apperror.WriteError(w, r, apperror.Conflict(apperror.KeyConflict))
 	case errors.Is(err, ErrSchedulePreviewScope), errors.Is(err, ErrScheduleTimezoneMismatch), errors.Is(err, ErrScheduleValidation), errors.Is(err, ErrScheduleApprovalInvalid):
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
