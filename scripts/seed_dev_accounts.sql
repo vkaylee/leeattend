@@ -68,6 +68,18 @@ BEGIN
         ('b0000000-0000-0000-0000-000000000008', 'f0000000-0000-0000-0000-000000000008', v_employer_id, v_dept_tech, 'active', CURRENT_DATE - INTERVAL '120 days', 'Software Engineer', 'full_time')
     ON CONFLICT (id) DO UPDATE SET department_id = EXCLUDED.department_id, job_title = EXCLUDED.job_title;
 
+    -- ESS account fixtures need current tenure rows for tenure-aware profile resolution.
+    INSERT INTO employee_tenures (employee_id, employee_number, user_id, start_date)
+    SELECT e.id, e.employee_id_number, e.user_id, e.hire_date
+    FROM employees e
+    WHERE e.user_id IS NOT NULL
+      AND e.employee_id_number IN ('EMP001', 'EMP005', 'EMP006', 'EMP007', 'EMP008')
+      AND NOT EXISTS (
+          SELECT 1
+          FROM employee_tenures t
+          WHERE t.employee_id = e.id AND t.deleted_at IS NULL AND t.end_date IS NULL
+      );
+
     UPDATE departments SET manager_id = 'f0000000-0000-0000-0000-000000000005' WHERE id = v_dept_hr;
     UPDATE departments SET manager_id = 'f0000000-0000-0000-0000-000000000007' WHERE id = v_dept_tech;
 
