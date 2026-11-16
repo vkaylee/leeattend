@@ -142,6 +142,19 @@ func TestWorkPolicyRepository_ListWorkPolicyGroupHistoryPaginatesByGroup(t *test
 	}
 }
 
+func ptrTime(value time.Time) *time.Time { return &value }
+
+func TestValidatePolicyMembershipRangeRejectsOutsideEmployment(t *testing.T) {
+	start := time.Date(2026, 1, 10, 0, 0, 0, 0, time.UTC)
+	end := time.Date(2026, 2, 1, 0, 0, 0, 0, time.UTC)
+	if err := validatePolicyMembershipRange(ptrTime(time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)), &end, start, &end); !errors.Is(err, api.ErrWorkPolicyGroupValidation) {
+		t.Fatalf("outside membership error=%v, want validation", err)
+	}
+	if err := validatePolicyMembershipRange(ptrTime(time.Date(2026, 1, 10, 0, 0, 0, 0, time.UTC)), &end, start, &end); err != nil {
+		t.Fatalf("boundary membership error=%v", err)
+	}
+}
+
 func TestParseWorkPolicyRangeRejectsNonIncreasingEnd(t *testing.T) {
 	for _, end := range []string{"2026-01-01", "2025-12-31"} {
 		_, _, err := parseWorkPolicyRange("2026-01-01", &end)

@@ -403,11 +403,14 @@ func resolveWorkPolicyByDate(ctx context.Context, db DBTX, employmentID uuid.UUI
 		       pb.method, pb.monthly_denominator, pb.monthly_standard_days::text, pb.rate_component_definition_id, v.overtime_policy_id,
 		       v.effective_from::text, v.effective_to::text
 		FROM labor_policy_memberships m
+		JOIN employments e ON e.id = m.employment_id
 		JOIN labor_policy_groups g ON g.id = m.group_id
 		JOIN labor_policy_group_versions v ON v.group_id = m.group_id
 		JOIN work_credit_policies wc ON wc.id = v.work_credit_policy_id
 		JOIN pay_basis_policies pb ON pb.id = v.pay_basis_policy_id
 		WHERE m.employment_id = $1
+		  AND e.deleted_at IS NULL
+		  AND e.start_date <= $2::date AND (e.end_date IS NULL OR e.end_date >= $2::date)
 		  AND m.effective_from <= $2::date AND (m.effective_to IS NULL OR m.effective_to > $2::date)
 		  AND v.effective_from <= $2::date AND (v.effective_to IS NULL OR v.effective_to > $2::date)
 		ORDER BY v.effective_from DESC, v.id DESC
@@ -472,6 +475,14 @@ func (r WorkPolicyRepository) CreateWorkPolicyMembership(ctx context.Context, re
 		if !exists {
 			return api.ErrEmploymentNotFound
 		}
+		var employmentStart time.Time
+		var employmentEnd *time.Time
+		if err := tx.QueryRow(ctx, `SELECT start_date, end_date FROM employments WHERE id = $1 AND deleted_at IS NULL`, uuid.UUID(req.EmploymentID)).Scan(&employmentStart, &employmentEnd); err != nil {
+			return err
+		}
+		if err := validatePolicyMembershipRange(from, to, employmentStart, employmentEnd); err != nil {
+			return err
+		}
 		_, err := tx.Exec(ctx, `INSERT INTO labor_policy_memberships (id, employment_id, group_id, effective_from, effective_to, created_by) VALUES ($1, $2, $3, $4, $5, $6)`, item.ID, uuid.UUID(req.EmploymentID), uuid.UUID(req.GroupID), from, to, uuid.UUID(req.ActorID))
 		if isConflictError(err) {
 			return api.ErrWorkPolicyMembershipConflict
@@ -482,6 +493,19 @@ func (r WorkPolicyRepository) CreateWorkPolicyMembership(ctx context.Context, re
 		return api.WorkPolicyMembership{}, err
 	}
 	return item, nil
+}
+
+func validatePolicyMembershipRange(from, to *time.Time, employmentStart time.Time, employmentEnd *time.Time) error {
+	if from == nil || from.Before(employmentStart) {
+		return api.ErrWorkPolicyGroupValidation
+	}
+	if employmentEnd != nil {
+		employmentExclusiveEnd := employmentEnd.AddDate(0, 0, 1)
+		if !from.Before(employmentExclusiveEnd) || to != nil && to.After(employmentExclusiveEnd) {
+			return api.ErrWorkPolicyGroupValidation
+		}
+	}
+	return nil
 }
 
 func parseWorkPolicyRange(fromValue string, toValue *string) (*time.Time, *time.Time, error) {
