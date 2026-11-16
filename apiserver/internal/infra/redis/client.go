@@ -2,6 +2,7 @@ package redis
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/url"
@@ -9,6 +10,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/google/uuid"
 	goredis "github.com/redis/go-redis/v9"
 )
 
@@ -53,7 +55,7 @@ type Config struct {
 	MinIdleConns int
 }
 
-// DefaultConfig provides conservative timeouts matching Rust connection manager bounds.
+// DefaultConfig provides conservative connection timeouts.
 func DefaultConfig() Config {
 	return Config{
 		DialTimeout:  5 * time.Second,
@@ -164,6 +166,32 @@ func (c *Client) Blocking() (*goredis.Client, error) {
 }
 
 // Ping verifies connectivity on the shared client with context timeout.
+func (c *Client) WriteWorkerHeartbeat(ctx context.Context, workerID uuid.UUID, status string, taskType *string, lastSeenAt time.Time) error {
+	client, err := c.Shared()
+	if err != nil {
+		return err
+	}
+	payload, err := json.Marshal(struct {
+		ID              uuid.UUID `json:"id"`
+		Host            string    `json:"host"`
+		Status          string    `json:"status"`
+		CurrentTaskType *string   `json:"current_task_type"`
+		LastSeenAt      time.Time `json:"last_seen_at"`
+	}{ID: workerID, Host: "apiserver", Status: status, CurrentTaskType: taskType, LastSeenAt: lastSeenAt.UTC()})
+	if err != nil {
+		return err
+	}
+	return client.Set(ctx, KeyMonitorWorker(workerID), payload, TTLWorkerHeartbeat).Err()
+}
+
+func (c *Client) DeleteWorkerHeartbeat(ctx context.Context, workerID uuid.UUID) error {
+	client, err := c.Shared()
+	if err != nil {
+		return err
+	}
+	return client.Del(ctx, KeyMonitorWorker(workerID)).Err()
+}
+
 func (c *Client) Ping(ctx context.Context) error {
 	client, err := c.Shared()
 	if err != nil {

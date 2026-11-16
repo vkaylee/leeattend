@@ -119,10 +119,11 @@ func main() {
 		Handler: handler,
 	}
 
-	officeWorker, workerErr := service.NewScheduleOfficeWorker(
+	officeWorker, workerErr := service.NewScheduleOfficeWorkerWithHeartbeat(
 		repository.ScheduleOfficeOutboxStore{DB: db},
 		repository.ScheduleOfficeProducer{DB: db, Source: repository.ApprovedScheduleOfficePolicySource{}, Shadow: repository.ScheduleRepository{DB: db}.RunScheduleShadowComparison},
 		repository.ScheduleOfficePublisher{Publisher: repository.ScheduleRepository{DB: db}},
+		redisClient,
 	)
 	if workerErr != nil {
 		logger.Warn("schedule office worker disabled", "error", workerErr)

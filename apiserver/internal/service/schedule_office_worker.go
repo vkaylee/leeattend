@@ -6,12 +6,15 @@ import (
 	"errors"
 	"sync"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 const (
 	ScheduleOfficeScanInterval = 15 * time.Minute
 	ScheduleOfficeLease        = 5 * time.Minute
 	ScheduleOfficeHeartbeat    = time.Minute
+	ScheduleOfficeJobType      = "ScheduleOfficeCoverageRefresh"
 )
 
 var (
@@ -43,13 +46,28 @@ type ScheduleOfficeWorker struct {
 	closed    chan struct{}
 	once      sync.Once
 	closeOnce sync.Once
+	workerID  uuid.UUID
+	heartbeatWriter WorkerHeartbeatWriter
+}
+
+type WorkerHeartbeatWriter interface {
+	WriteWorkerHeartbeat(context.Context, uuid.UUID, string, *string, time.Time) error
+	DeleteWorkerHeartbeat(context.Context, uuid.UUID) error
 }
 
 func NewScheduleOfficeWorker(store ScheduleOfficeJobStore, producer ScheduleOfficeProducer, publisher ScheduleOfficePublisher) (*ScheduleOfficeWorker, error) {
+	return NewScheduleOfficeWorkerWithHeartbeat(store, producer, publisher, nil)
+}
+
+func NewScheduleOfficeWorkerWithHeartbeat(store ScheduleOfficeJobStore, producer ScheduleOfficeProducer, publisher ScheduleOfficePublisher, heartbeatWriter WorkerHeartbeatWriter) (*ScheduleOfficeWorker, error) {
 	if store == nil || producer == nil {
 		return nil, ErrScheduleOfficeWorkerStore
 	}
-	return &ScheduleOfficeWorker{store: store, producer: producer, publisher: publisher, done: make(chan struct{}), closed: make(chan struct{})}, nil
+	return &ScheduleOfficeWorker{
+		store: store, producer: producer, publisher: publisher,
+		done: make(chan struct{}), closed: make(chan struct{}),
+		workerID: uuid.New(), heartbeatWriter: heartbeatWriter,
+	}, nil
 }
 
 func (w *ScheduleOfficeWorker) Start(ctx context.Context) {
@@ -74,16 +92,21 @@ func (w *ScheduleOfficeWorker) Shutdown(ctx context.Context) error {
 
 func (w *ScheduleOfficeWorker) run(ctx context.Context) {
 	defer close(w.closed)
+	w.publishHeartbeat(ctx, "live", nil)
+	defer w.deleteHeartbeat(context.Background())
 	w.scanAndDrain(ctx)
 	ticker := time.NewTicker(ScheduleOfficeScanInterval)
 	defer ticker.Stop()
 	for {
 		select {
 		case <-ctx.Done():
+			w.publishHeartbeat(context.Background(), "stopped", nil)
 			return
 		case <-w.done:
+			w.publishHeartbeat(context.Background(), "stopped", nil)
 			return
 		case <-ticker.C:
+			w.publishHeartbeat(ctx, "live", nil)
 			w.scanAndDrain(ctx)
 		}
 	}
@@ -101,6 +124,8 @@ func (w *ScheduleOfficeWorker) scanAndDrain(ctx context.Context) {
 }
 
 func (w *ScheduleOfficeWorker) process(ctx context.Context, id string, payload []byte, attempt int, lease string) {
+	w.publishHeartbeat(ctx, "busy", stringPtr(ScheduleOfficeJobType))
+	defer w.publishHeartbeat(ctx, "live", nil)
 	if w.publisher == nil {
 		_ = w.store.FailScheduleOfficeJob(ctx, id, lease, attempt, ErrScheduleOfficePublisher)
 		return
@@ -129,6 +154,22 @@ func (w *ScheduleOfficeWorker) process(ctx context.Context, id string, payload [
 		return
 	}
 	_ = w.store.CompleteScheduleOfficeJob(ctx, id, lease, batchID)
+}
+
+func stringPtr(value string) *string { return &value }
+
+func (w *ScheduleOfficeWorker) publishHeartbeat(ctx context.Context, status string, taskType *string) {
+	if w.heartbeatWriter == nil || w.workerID == uuid.Nil {
+		return
+	}
+	_ = w.heartbeatWriter.WriteWorkerHeartbeat(ctx, w.workerID, status, taskType, time.Now().UTC())
+}
+
+func (w *ScheduleOfficeWorker) deleteHeartbeat(ctx context.Context) {
+	if w.heartbeatWriter == nil || w.workerID == uuid.Nil {
+		return
+	}
+	_ = w.heartbeatWriter.DeleteWorkerHeartbeat(ctx, w.workerID)
 }
 
 func (w *ScheduleOfficeWorker) heartbeat(ctx context.Context, id, lease string, done chan<- struct{}) {
