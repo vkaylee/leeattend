@@ -23,6 +23,7 @@ vi.mock("@/lib/api/payroll", () => ({
   fetchWorkPolicyReferenceOptions: vi.fn(),
   validateWorkPolicyGroupVersion: vi.fn(),
   fetchPayrollImpactBatch: vi.fn(),
+  simulatePayrollWithPolicy: vi.fn(),
 }));
 
 // Mock i18n

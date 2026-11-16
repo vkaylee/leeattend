@@ -6,8 +6,9 @@ import { useTranslation } from "react-i18next";
 import Button from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
 import { Typography } from "@/components/ui/typography";
-import { createWorkPolicyMembership, createWorkPolicyGroupVersion, fetchPayrollImpactBatch, fetchWorkPolicyGroupHistory, fetchWorkPolicyGroups, fetchWorkPolicyMemberships, fetchWorkPolicyReferenceOptions, updatePayrollSettings, fetchPayrollSettingsHistory, validateWorkPolicyGroupVersion, type PayrollImpactBatchResponse, type WorkPolicyGroupVersion, type WorkPolicyValidationResponse } from "@/lib/api/payroll";
-import { payrollKeys } from "@/lib/query-keys";
+import { createWorkPolicyMembership, createWorkPolicyGroupVersion, fetchPayrollImpactBatch, fetchWorkPolicyGroupHistory, fetchWorkPolicyGroups, fetchWorkPolicyMemberships, fetchWorkPolicyReferenceOptions, simulatePayrollWithPolicy, updatePayrollSettings, fetchPayrollSettingsHistory, validateWorkPolicyGroupVersion, type PayrollImpactBatchResponse, type WorkPolicyGroupVersion, type WorkPolicyValidationResponse } from "@/lib/api/payroll";
+import { fetchEmployeeEmployments, fetchEmployees } from "@/lib/api/employees";
+import { employeeKeys, payrollKeys } from "@/lib/query-keys";
 
 import TemporalConfigTable from "../common/temporal-config-table";
 
@@ -20,8 +21,13 @@ export default function PayrollSettingsSection() {
   const [isCreatingVersion, setIsCreatingVersion] = useState(false);
   const [versionForm, setVersionForm] = useState({ effective_from: "", minutes_per_credit: "", pay_method: "monthly" as "monthly" | "hourly" | "shift", monthly_denominator: "fixed" as "fixed" | "schedule", monthly_standard_days: "26", attendance_policy_id: "", working_pattern_id: "", overtime_policy_id: "", rate_component_definition_id: "" });
   const [versionError, setVersionError] = useState<string>();
+  const [membershipEmployeeId, setMembershipEmployeeId] = useState("");
   const [membershipForm, setMembershipForm] = useState({ employment_id: "", effective_from: "", effective_to: "" });
   const [membershipError, setMembershipError] = useState<string>();
+  const [draftSimulationForm, setDraftSimulationForm] = useState({ employee_id: "", year: "2026", month: "1", policy_version_id: "" });
+  const [draftSimulationResult, setDraftSimulationResult] = useState<{ base_pay_amount: string; net_pay_amount: string }>();
+  const [draftSimulationError, setDraftSimulationError] = useState<string>();
+  const [isLoadingDraftSimulation, setIsLoadingDraftSimulation] = useState(false);
   const [validationByVersion, setValidationByVersion] = useState<Record<string, WorkPolicyValidationResponse>>({});
   const [validatingVersionId, setValidatingVersionId] = useState<string>();
   const [impactForm, setImpactForm] = useState({ employment_ids: "", year: "2026", month: "1", before_run_id: "", after_run_id: "" });
@@ -45,6 +51,9 @@ export default function PayrollSettingsSection() {
     enabled: Boolean(selectedPolicyGroupId),
   });
   const { data: referenceOptions } = useQuery({ queryKey: payrollKeys.workPolicyReferences(), queryFn: fetchWorkPolicyReferenceOptions });
+  const { data: employeesResponse } = useQuery({ queryKey: employeeKeys.list({ status: "active", emptyQueryBehavior: "all" }), queryFn: () => fetchEmployees(1, 100, "employees:read") });
+  const employees = employeesResponse?.data ?? [];
+  const { data: membershipEmployments = [] } = useQuery({ queryKey: ["payroll-settings-membership-employments", membershipEmployeeId], queryFn: () => fetchEmployeeEmployments(membershipEmployeeId), enabled: Boolean(membershipEmployeeId) });
 
   const selectPolicyForEdit = (policy: WorkPolicyGroupVersion) => {
     setSelectedPolicyGroupId(policy.group_id);
@@ -100,6 +109,25 @@ export default function PayrollSettingsSection() {
       toast.error(error instanceof Error ? error.message : t("common.error"));
     } finally {
       setValidatingVersionId(undefined);
+    }
+  };
+
+  const handleDraftSimulation = async () => {
+    const year = Number(draftSimulationForm.year);
+    const month = Number(draftSimulationForm.month);
+    if (!draftSimulationForm.employee_id || !draftSimulationForm.policy_version_id || !Number.isInteger(year) || !Number.isInteger(month) || month < 1 || month > 12) {
+      setDraftSimulationError(t("common.payroll.settings.draft_simulation_validation", "Choose employee, policy version, and valid period."));
+      return;
+    }
+    setIsLoadingDraftSimulation(true);
+    setDraftSimulationError(undefined);
+    try {
+      const result = await simulatePayrollWithPolicy(draftSimulationForm.employee_id, year, month, draftSimulationForm.policy_version_id);
+      setDraftSimulationResult({ base_pay_amount: result.base_pay_amount, net_pay_amount: result.net_pay_amount });
+    } catch (error: unknown) {
+      setDraftSimulationError(error instanceof Error ? error.message : t("common.error"));
+    } finally {
+      setIsLoadingDraftSimulation(false);
     }
   };
 
@@ -268,7 +296,8 @@ export default function PayrollSettingsSection() {
               <div className="mt-5 border-t border-slate-200 pt-4 dark:border-slate-800">
                 <Typography className="font-semibold" variant="h4">{t("common.payroll.settings.work_policy_memberships", "Assignments")}</Typography>
                 <div className="mt-3 grid gap-3 sm:grid-cols-3">
-                  <label className="text-xs font-semibold text-slate-600 dark:text-slate-300" htmlFor="policy-employment-id">{t("common.payroll.settings.work_policy_employment_id", "Employment ID")}<input id="policy-employment-id" value={membershipForm.employment_id} onChange={(event) => setMembershipForm((form) => ({ ...form, employment_id: event.target.value }))} className="mt-1 block h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm dark:border-slate-700 dark:bg-slate-900" /></label>
+                  <label className="text-xs font-semibold text-slate-600 dark:text-slate-300" htmlFor="policy-membership-employee">{t("common.payroll.settings.work_policy_employee", "Employee")}<select id="policy-membership-employee" value={membershipEmployeeId} onChange={(event) => { setMembershipEmployeeId(event.target.value); setMembershipForm((form) => ({ ...form, employment_id: "" })); }} className="mt-1 block h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm dark:border-slate-700 dark:bg-slate-900"><option value="">{t("common.select", "Select")}</option>{employees.map((employee) => <option key={employee.id} value={employee.id}>{employee.full_name ?? employee.employee_id_number ?? employee.id}</option>)}</select></label>
+                  <label className="text-xs font-semibold text-slate-600 dark:text-slate-300" htmlFor="policy-employment-id">{t("common.payroll.settings.work_policy_employment_id", "Employment ID")}<select id="policy-employment-id" value={membershipForm.employment_id} onChange={(event) => setMembershipForm((form) => ({ ...form, employment_id: event.target.value }))} className="mt-1 block h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm dark:border-slate-700 dark:bg-slate-900"><option value="">{t("common.select", "Select")}</option>{membershipEmployments.map((employment) => <option key={employment.id} value={employment.id}>{employment.id} · {employment.status}</option>)}</select></label>
                   <label className="text-xs font-semibold text-slate-600 dark:text-slate-300" htmlFor="policy-membership-from">{t("common.payroll.settings.work_policy_effective_from", "Effective from")}<input id="policy-membership-from" type="date" value={membershipForm.effective_from} onChange={(event) => setMembershipForm((form) => ({ ...form, effective_from: event.target.value }))} className="mt-1 block h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm dark:border-slate-700 dark:bg-slate-900" /></label>
                   <label className="text-xs font-semibold text-slate-600 dark:text-slate-300" htmlFor="policy-membership-to">{t("common.payroll.settings.work_policy_effective_to", "Effective to")}<input id="policy-membership-to" type="date" value={membershipForm.effective_to} onChange={(event) => setMembershipForm((form) => ({ ...form, effective_to: event.target.value }))} className="mt-1 block h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm dark:border-slate-700 dark:bg-slate-900" /></label>
                 </div>
@@ -276,6 +305,22 @@ export default function PayrollSettingsSection() {
                 <Button className="mt-3" type="button" size="sm" onClick={() => void handleCreateMembership()}>{t("common.payroll.settings.work_policy_assign", "Assign membership")}</Button>
                 {isMembershipsLoading ? <div className="mt-3 h-8 animate-pulse rounded bg-slate-200 dark:bg-slate-800" /> : <ul className="mt-3 space-y-2 text-sm">{selectedMemberships.map((membership) => <li key={membership.id} className="flex justify-between gap-4 border-b border-slate-100 py-2 last:border-0 dark:border-slate-800"><span>{membership.employment_id}</span><span>{membership.effective_from}{membership.effective_to ? ` – ${membership.effective_to}` : ""}</span></li>)}</ul>}
               </div>
+              <section className="mt-5 border-t border-slate-200 pt-4 dark:border-slate-800" aria-labelledby="draft-policy-simulation-title">
+                <Typography id="draft-policy-simulation-title" className="font-semibold" variant="h4">{t("common.payroll.settings.draft_simulation_title", "Draft policy simulation")}</Typography>
+                <Typography className="mt-1 text-xs text-slate-500" variant="small">{t("common.payroll.settings.draft_simulation_desc", "Runs same payroll calculation path and rolls back all writes.")}</Typography>
+                <div className="mt-3 grid gap-3 sm:grid-cols-4">
+                  <label className="text-xs font-semibold text-slate-600 dark:text-slate-300" htmlFor="draft-simulation-employee">{t("common.payroll.settings.draft_simulation_employee", "Employee")}
+                    <select id="draft-simulation-employee" value={draftSimulationForm.employee_id} onChange={(event) => setDraftSimulationForm((form) => ({ ...form, employee_id: event.target.value }))} className="mt-1 block h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm dark:border-slate-700 dark:bg-slate-900"><option value="">{t("common.select", "Select")}</option>{employees.map((employee) => <option key={employee.id} value={employee.id}>{employee.full_name ?? employee.employee_id_number ?? employee.id}</option>)}</select>
+                  </label>
+                  <label className="text-xs font-semibold text-slate-600 dark:text-slate-300" htmlFor="draft-simulation-policy">{t("common.payroll.settings.draft_simulation_policy", "Policy version")}
+                    <select id="draft-simulation-policy" value={draftSimulationForm.policy_version_id} onChange={(event) => setDraftSimulationForm((form) => ({ ...form, policy_version_id: event.target.value }))} className="mt-1 block h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm dark:border-slate-700 dark:bg-slate-900"><option value="">{t("common.select", "Select")}</option>{selectedPolicyHistory.map((version) => <option key={version.id} value={version.id}>{version.id} · {version.effective_from}</option>)}</select>
+                  </label>
+                  {(["year", "month"] as const).map((field) => <label key={field} className="text-xs font-semibold text-slate-600 dark:text-slate-300" htmlFor={`draft-simulation-${field}`}>{t(`common.payroll.settings.draft_simulation_${field}`, field)}<input id={`draft-simulation-${field}`} type="number" value={draftSimulationForm[field]} onChange={(event) => setDraftSimulationForm((form) => ({ ...form, [field]: event.target.value }))} className="mt-1 block h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm dark:border-slate-700 dark:bg-slate-900" /></label>)}
+                </div>
+                {draftSimulationError ? <p className="mt-2 text-sm text-red-700" role="alert">{draftSimulationError}</p> : null}
+                <Button className="mt-3" type="button" disabled={isLoadingDraftSimulation} onClick={() => void handleDraftSimulation()}>{isLoadingDraftSimulation ? t("common.loading", "Loading") : t("common.payroll.settings.draft_simulation_run", "Run draft simulation")}</Button>
+                {draftSimulationResult ? <div className="mt-3 grid gap-3 sm:grid-cols-2" role="status"><div className="rounded-lg border border-slate-200 p-3 dark:border-slate-800"><span className="text-xs text-slate-500">{t("common.payroll.settings.draft_simulation_base", "Base pay")}</span><p className="font-bold">{draftSimulationResult.base_pay_amount}</p></div><div className="rounded-lg border border-slate-200 p-3 dark:border-slate-800"><span className="text-xs text-slate-500">{t("common.payroll.settings.draft_simulation_net", "Net pay")}</span><p className="font-bold">{draftSimulationResult.net_pay_amount}</p></div></div> : null}
+              </section>
               <ul className="mt-4 space-y-2 text-sm">
                 {selectedPolicyHistory.map((version) => (
                   <li key={version.id} className="border-b border-slate-100 py-2 last:border-0 dark:border-slate-800">
