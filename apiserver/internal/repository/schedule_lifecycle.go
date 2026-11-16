@@ -1247,12 +1247,28 @@ func loadRevisionDocument(ctx context.Context, tx DBTX, revision lifecycleRevisi
 		if err := rows.Scan(&segment.ID, &segment.SortOrder, &segment.TemplateID, &segment.ShiftVersionID, &segment.StartAt, &segment.EndAt, &segment.Breaks); err != nil {
 			return nil, err
 		}
-		intervals = append(intervals, map[string]any{"sort_order": segment.SortOrder, "shift_version_id": segment.ShiftVersionID.String(), "start_at": segment.StartAt, "end_at": segment.EndAt, "breaks": json.RawMessage(segment.Breaks)})
+		location, err := time.LoadLocation(revision.Timezone)
+		if err != nil {
+			return nil, err
+		}
+		intervals = append(intervals, map[string]any{
+			"sort_order":       segment.SortOrder,
+			"shift_version_id": segment.ShiftVersionID.String(),
+			"start":            segment.StartAt.In(location).Format("15:04:05"),
+			"end":              segment.EndAt.In(location).Format("15:04:05"),
+			"start_at":         segment.StartAt,
+			"end_at":           segment.EndAt,
+			"breaks":           json.RawMessage(segment.Breaks),
+		})
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
 	}
-	return map[string]any{"employment_id": revision.EmploymentID.String(), "business_date": revision.BusinessDate, "timezone": revision.Timezone, "status": revision.State, "source": revision.Source, "revision_id": revision.ID.String(), "revision_number": revision.RevisionNumber, "intervals": intervals}, nil
+	status := "explicit_off"
+	if revision.State == "published" {
+		status = "work"
+	}
+	return map[string]any{"employment_id": revision.EmploymentID.String(), "business_date": revision.BusinessDate, "timezone": revision.Timezone, "status": status, "source": revision.Source, "revision_id": revision.ID.String(), "revision_number": revision.RevisionNumber, "intervals": intervals}, nil
 }
 
 func commitReplan(ctx context.Context, tx pgx.Tx, actorID uuid.UUID, idempotencyKey, requestHash string, request api.ScheduleReplanRequest, current lifecycleRevision, result replanResult, response *api.ScheduleReplanResponse) error {

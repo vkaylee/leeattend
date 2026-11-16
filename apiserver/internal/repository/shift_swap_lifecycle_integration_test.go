@@ -3,7 +3,6 @@
 package repository
 
 import (
-	"errors"
 	"testing"
 
 	"github.com/google/uuid"
@@ -37,17 +36,30 @@ func TestIntegrationApprovedShiftSwapRollsBackOnOfficialSchedule(t *testing.T) {
 	mustExec(`SELECT set_config('schedule.lifecycle_publication', 'on', true)`)
 	mustExec(`INSERT INTO work_segments (employment_id, date, sort_order, scheduled_start, scheduled_end, segment_type, segment_status, compensation_rate, gap_compensation_before, gap_compensation_rate_before, source, source_detail, generation_metadata, template_id, schedule_revision_id, selected_shift_version_id, scheduled_start_at, scheduled_end_at, breaks_snapshot) VALUES ($1, $2::date, 0, '08:00', '17:00', 'work', 'scheduled', 1, 'unpaid', 0, 'manual', '{}'::jsonb, '{}'::jsonb, $3, $4, $5, TIMESTAMPTZ '2026-11-20 08:00:00+00', TIMESTAMPTZ '2026-11-20 17:00:00+00', '[]'::jsonb), ($6, $2::date, 0, '09:00', '18:00', 'work', 'scheduled', 1, 'unpaid', 0, 'manual', '{}'::jsonb, '{}'::jsonb, $7, $8, $9, TIMESTAMPTZ '2026-11-20 09:00:00+00', TIMESTAMPTZ '2026-11-20 18:00:00+00', '[]'::jsonb)`, employmentA, date, templateA, revisionA, versionA, employmentB, templateB, revisionB, versionB)
 	mustExec(`UPDATE schedule_day_revisions SET state = 'published', published_at = CURRENT_TIMESTAMP WHERE id IN ($1, $2)`, revisionA, revisionB)
-	mustExec(`INSERT INTO shift_swap_requests (id, requester_id, target_id, swap_date, requester_template_id, target_template_id, status, reason, requested_by_user_id, created_at, updated_at) VALUES ($1, $2, $3, $4::date, $5, $6, 'pending_admin', 'swap official day', $7, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`, swapID, employeeA, employeeB, date, templateA, templateB, actorID)
+	mustExec(`INSERT INTO shift_swap_requests (id, requester_id, target_id, swap_date, requester_template_id, target_template_id, requester_revision_id, requester_revision_number, target_revision_id, target_revision_number, status, reason, requested_by_user_id, created_at, updated_at) VALUES ($1, $2, $3, $4::date, $5, $6, $7, 1, $8, 1, 'pending_admin', 'swap official day', $9, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`, swapID, employeeA, employeeB, date, templateA, templateB, revisionA, revisionB, actorID)
 
-	err := (ShiftSwapRepository{DB: pool}).ApproveSwap(ctx, swapID, actorID, api.ShiftSwapApproved)
-	if !errors.Is(err, api.ErrShiftSwapConflict) {
-		t.Fatalf("approve official swap error = %v, want conflict", err)
+	if err := (ShiftSwapRepository{DB: pool}).ApproveSwap(ctx, swapID, actorID, api.ShiftSwapApproved); err != nil {
+		t.Fatalf("approve official swap: %v", err)
 	}
 	var status string
 	if err := pool.QueryRow(ctx, `SELECT status FROM shift_swap_requests WHERE id = $1`, swapID).Scan(&status); err != nil {
 		t.Fatalf("read swap status: %v", err)
 	}
-	if status != string(api.ShiftSwapPendingAdmin) {
-		t.Fatalf("swap status=%s, want rollback to pending_admin", status)
+	if status != string(api.ShiftSwapApproved) {
+		t.Fatalf("swap status=%s, want approved", status)
+	}
+	var superseded, current int
+	if err := pool.QueryRow(ctx, `SELECT count(*) FILTER (WHERE state = 'superseded'), count(*) FILTER (WHERE state IN ('published', 'explicit_off')) FROM schedule_day_revisions WHERE employment_id IN ($1, $2) AND business_date = $3::date`, employmentA, employmentB, date).Scan(&superseded, &current); err != nil {
+		t.Fatalf("read revision states: %v", err)
+	}
+	if superseded != 2 || current != 2 {
+		t.Fatalf("revision states superseded=%d current=%d, want 2/2", superseded, current)
+	}
+	var operation string
+	if err := pool.QueryRow(ctx, `SELECT operation FROM schedule_publication_batches WHERE idempotency_key = $1`, "shift-swap:"+swapID.String()).Scan(&operation); err != nil {
+		t.Fatalf("read swap publication: %v", err)
+	}
+	if operation != "replan" {
+		t.Fatalf("swap publication operation=%s, want replan", operation)
 	}
 }
