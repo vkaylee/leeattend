@@ -26,6 +26,7 @@ export const useCustomFieldDefinitions = (entityType?: string) => {
   return useOrganizationQuery({
     queryKey: customFieldKeys.definitionList(entityType),
     queryFn: () => fetchCustomFieldDefinitions(entityType),
+    meta: { suppressErrorToast: [403] },
   });
 };
 
