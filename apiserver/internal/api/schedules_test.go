@@ -117,21 +117,6 @@ func (m *activationRepositoryMock) DeactivateScheduleEmployer(context.Context, u
 
 type lifecycleRepositoryMock struct{}
 
-type lifecycleErrorMock struct{ err error }
-
-func (m lifecycleErrorMock) CreatePreview(context.Context, uuid.UUID, SchedulePreviewRequest) (SchedulePreviewResponse, error) {
-	return SchedulePreviewResponse{}, m.err
-}
-func (lifecycleErrorMock) Publish(context.Context, uuid.UUID, string, SchedulePublishRequest) (SchedulePublicationResponse, error) {
-	return SchedulePublicationResponse{}, ErrScheduleLifecycleUnavailable
-}
-func (lifecycleErrorMock) PreviewReplan(context.Context, uuid.UUID, uuid.UUID, string, ScheduleReplanPreviewRequest) (ScheduleReplanPreviewResponse, error) {
-	return ScheduleReplanPreviewResponse{}, ErrScheduleLifecycleUnavailable
-}
-func (lifecycleErrorMock) CommitReplan(context.Context, uuid.UUID, uuid.UUID, string, string, ScheduleReplanRequest) (ScheduleReplanResponse, error) {
-	return ScheduleReplanResponse{}, ErrScheduleLifecycleUnavailable
-}
-
 func (lifecycleRepositoryMock) CreatePreview(context.Context, uuid.UUID, SchedulePreviewRequest) (SchedulePreviewResponse, error) {
 	return SchedulePreviewResponse{}, ErrScheduleLifecycleUnavailable
 }

@@ -5,10 +5,25 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/google/uuid"
 	httpinfra "github.com/vkaylee/leeattend/apiserver/internal/infra/http"
 )
+
+func TestPayrollPeriodParsingHelpersPreserveBoundaries(t *testing.T) {
+	valid := httptest.NewRequest(http.MethodGet, "/?year=2026&month=1", nil)
+	start, end, err := parsePayrollPeriod(valid)
+	if err != nil || !start.Equal(time.Date(2026, time.January, 1, 0, 0, 0, 0, time.UTC)) || !end.Equal(time.Date(2026, time.February, 1, 0, 0, 0, 0, time.UTC)) {
+		t.Fatalf("period = %v, %v, %v", start, end, err)
+	}
+	for _, query := range []string{"year=1999&month=1", "year=2026&month=0", "year=2026&month=13", "year=bad&month=1"} {
+		req := httptest.NewRequest(http.MethodGet, "/?"+query, nil)
+		if _, _, err := parsePayrollPeriod(req); err == nil {
+			t.Fatalf("query %q accepted invalid payroll period", query)
+		}
+	}
+}
 
 func TestPayrollPeriodHandlersValidateAuthorizationAndPayload(t *testing.T) {
 	if _, ok := payrollPeriodEmployer(httptest.NewRequest(http.MethodGet, "/?employer_id="+uuid.NewString(), nil)); !ok {

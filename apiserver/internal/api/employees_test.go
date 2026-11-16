@@ -33,9 +33,7 @@ func (employeeSliceAuthorizer) GetManagedDepartmentIDs(context.Context, uuid.UUI
 }
 func (employeeSliceAuthorizer) IsGlobalManager(context.Context, uuid.UUID) bool { return false }
 
-type mockEmployeeRepo struct {
-	rehireRequest *RehireEmployeeRequest
-}
+type mockEmployeeRepo struct{}
 
 func (mockEmployeeRepo) CreateEmployee(_ context.Context, req CreateEmployeeRequest) (EmployeeRecord, error) {
 	return EmployeeRecord{ID: uuid.New(), FullName: req.FullName, EmployeeIDNumber: req.EmployeeIDNumber}, nil

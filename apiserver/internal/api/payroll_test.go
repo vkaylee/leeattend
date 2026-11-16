@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -12,6 +13,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/shopspring/decimal"
 	"github.com/vkaylee/leeattend/apiserver/internal/audit"
 	"github.com/vkaylee/leeattend/apiserver/internal/domain/ids"
@@ -20,7 +22,9 @@ import (
 )
 
 type mockPayrollRepository struct {
-	settingsNotFound bool
+	settingsNotFound  bool
+	listPayslipsErr   error
+	listComponentsErr error
 }
 
 type payrollAuditRecorder struct {
@@ -90,7 +94,10 @@ func (mockPayrollRepository) PublishPayrollFormulaRule(_ context.Context, ruleID
 	return PayrollFormulaRule{ID: uuid.UUID(ruleID), Version: 1, Status: "published"}, nil
 }
 
-func (mockPayrollRepository) ListPayslips(context.Context, time.Time, time.Time) ([]PayslipRecord, error) {
+func (m mockPayrollRepository) ListPayslips(context.Context, time.Time, time.Time) ([]PayslipRecord, error) {
+	if m.listPayslipsErr != nil {
+		return nil, m.listPayslipsErr
+	}
 	return []PayslipRecord{{ID: uuid.New(), NetPayAmount: decimal.RequireFromString("1234.50")}}, nil
 }
 
@@ -98,7 +105,10 @@ func (mockPayrollRepository) ListEmployeePayslips(context.Context, ids.EmployeeI
 	return []PayslipRecord{{ID: uuid.New(), NetPayAmount: decimal.RequireFromString("1234.50")}}, nil
 }
 
-func (mockPayrollRepository) ListSalaryComponents(context.Context) ([]SalaryComponentDefinition, error) {
+func (m mockPayrollRepository) ListSalaryComponents(context.Context) ([]SalaryComponentDefinition, error) {
+	if m.listComponentsErr != nil {
+		return nil, m.listComponentsErr
+	}
 	return []SalaryComponentDefinition{
 		{
 			ID:        uuid.MustParse("11111111-1111-1111-1111-111111111111"),
@@ -579,6 +589,44 @@ func contains(value, fragment string) bool {
 		}
 	}
 	return false
+}
+
+func TestPayrollHandlersMapRepositoryFailures(t *testing.T) {
+	actor := uuid.New()
+	for _, test := range []struct {
+		name string
+		err  error
+		want int
+	}{
+		{name: "not found", err: pgx.ErrNoRows, want: http.StatusNotFound},
+		{name: "internal", err: errors.New("repository unavailable"), want: http.StatusInternalServerError},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			handler := PayrollHandler{
+				Repository: mockPayrollRepository{listPayslipsErr: test.err},
+				Authorizer: payrollAuthorizer{allowedPerms: map[string]bool{"payroll:read": true}},
+			}
+			req := httptest.NewRequest(http.MethodGet, "/api/v1/payroll/payslips?year=2026&month=1", nil)
+			req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), actor))
+			rec := httptest.NewRecorder()
+			handler.ListPayslips(rec, req)
+			if rec.Code != test.want {
+				t.Fatalf("status = %d, want %d: %s", rec.Code, test.want, rec.Body.String())
+			}
+		})
+	}
+}
+
+func TestPayrollHandlersRejectMissingUserBeforeRepository(t *testing.T) {
+	handler := PayrollHandler{
+		Repository: mockPayrollRepository{listPayslipsErr: errors.New("repository should not be called")},
+		Authorizer: payrollAuthorizer{allowedPerms: map[string]bool{"payroll:read": true}},
+	}
+	rec := httptest.NewRecorder()
+	handler.ListPayslips(rec, httptest.NewRequest(http.MethodGet, "/api/v1/payroll/payslips?year=2026&month=1", nil))
+	if rec.Code != http.StatusForbidden {
+		t.Fatalf("status = %d, want 403", rec.Code)
+	}
 }
 
 func TestPayrollSimulatePayrollAcceptsDraftPolicyVersion(t *testing.T) {

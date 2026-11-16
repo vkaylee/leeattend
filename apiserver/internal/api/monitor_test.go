@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -17,11 +18,12 @@ import (
 )
 
 type mockMonitorRepo struct {
-	alerts       map[uuid.UUID]MonitorAlertResponse
-	alertEvents  map[uuid.UUID][]MonitorAlertEventResponse
-	durableJobs  []MonitorInfraJobRecord
-	auditLogs    []AuditLogRecord
-	acknowledged map[uuid.UUID]bool
+	listAlertsErr error
+	alerts        map[uuid.UUID]MonitorAlertResponse
+	alertEvents   map[uuid.UUID][]MonitorAlertEventResponse
+	durableJobs   []MonitorInfraJobRecord
+	auditLogs     []AuditLogRecord
+	acknowledged  map[uuid.UUID]bool
 }
 
 func newMockMonitorRepo() *mockMonitorRepo {
@@ -35,6 +37,9 @@ func newMockMonitorRepo() *mockMonitorRepo {
 }
 
 func (m *mockMonitorRepo) ListAlerts(_ context.Context, status, severity *string, limit int, _ *string) ([]MonitorAlertResponse, int64, *string, error) {
+	if m.listAlertsErr != nil {
+		return nil, 0, nil, m.listAlertsErr
+	}
 	result := make([]MonitorAlertResponse, 0)
 	for _, a := range m.alerts {
 		if status != nil && *status != "" && !strings.EqualFold(a.Status, *status) {
@@ -224,6 +229,20 @@ func monitorInfraAuthz(users ...uuid.UUID) *mockMonitorAuthz {
 		infraUsers[userID] = true
 	}
 	return &mockMonitorAuthz{members: make(map[uuid.UUID]bool), permissions: make(map[string]bool), infraUsers: infraUsers}
+}
+
+func TestMonitorHandlersMapRepositoryFailures(t *testing.T) {
+	admin := uuid.New()
+	handler := MonitorHandler{Repo: &mockMonitorRepo{listAlertsErr: errors.New("monitor unavailable")}, Authorizer: monitorInfraAuthz(admin)}
+	req := setInfraReqContext(httptest.NewRequest(http.MethodGet, "/api/v1/monitor/alerts", nil), admin)
+	rec := httptest.NewRecorder()
+	handler.ListAlerts(rec, req)
+	if rec.Code != http.StatusInternalServerError {
+		t.Fatalf("status = %d, want 500: %s", rec.Code, rec.Body.String())
+	}
+	if strings.Contains(rec.Body.String(), "monitor unavailable") {
+		t.Fatal("response leaked repository error")
+	}
 }
 
 func TestMonitorOverview_Auth(t *testing.T) {

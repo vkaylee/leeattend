@@ -1,12 +1,15 @@
 package main
 
 import (
+	"encoding/json"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/vkaylee/leeattend/apiserver/internal/api"
+	"github.com/vkaylee/leeattend/apiserver/internal/config"
 	httpinfra "github.com/vkaylee/leeattend/apiserver/internal/infra/http"
 )
 
@@ -124,5 +127,122 @@ func TestRouteParamNames(t *testing.T) {
 		if got[i] != want[i] {
 			t.Errorf("param[%d] = %q, want %q", i, got[i], want[i])
 		}
+	}
+}
+
+func TestCompatibilityRouteRegistrationsRemainReachable(t *testing.T) {
+	router := chi.NewRouter()
+	registerAttendanceRoutes(router, &api.AttendanceHandler{}, &api.AttendanceLogsHandler{}, &api.AttendancePolicyHandler{})
+	registerLeaveRoutes(router, &api.LeaveHandler{}, &api.HolidayHandler{})
+
+	tests := []struct {
+		name   string
+		method string
+		path   string
+	}{
+		{"attendance approval legacy path", http.MethodPut, "/api/v1/attendance/adjustments/00000000-0000-0000-0000-000000000001/approve"},
+		{"attendance approval current path", http.MethodPost, "/api/v1/attendance/adjustments/00000000-0000-0000-0000-000000000001/approve"},
+		{"paper overtime bulk legacy path", http.MethodPost, "/api/v1/attendance/bulk-upload-paper-ot"},
+		{"paper overtime bulk current path", http.MethodPost, "/api/v1/attendance/paper-forms/overtime/bulk"},
+		{"paper overtime employee legacy path", http.MethodPost, "/api/v1/attendance/enter-paper-ot/00000000-0000-0000-0000-000000000001"},
+		{"paper overtime employee current path", http.MethodPost, "/api/v1/attendance/paper-forms/overtime/00000000-0000-0000-0000-000000000001"},
+		{"holiday put alias", http.MethodPut, "/api/v1/holidays/00000000-0000-0000-0000-000000000001"},
+		{"holiday patch alias", http.MethodPatch, "/api/v1/holidays/00000000-0000-0000-0000-000000000001"},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			rec := httptest.NewRecorder()
+			router.ServeHTTP(rec, httptest.NewRequest(test.method, test.path, nil))
+			if rec.Code == http.StatusNotFound || rec.Code == http.StatusMethodNotAllowed {
+				t.Fatalf("compatibility route %s %s unreachable: status %d", test.method, test.path, rec.Code)
+			}
+		})
+	}
+}
+
+func TestBuildRouterPreservesPublicProtectedESSAndWebSocketScopes(t *testing.T) {
+	cfg := &config.Config{
+		JWTSecret:           config.JWTSecret("test-secret-at-least-32-chars-long-for-jwt!!"),
+		S3EndpointURL:       "://invalid",
+		RateLimitMaxRead:    1000,
+		RateLimitMaxWrite:   1000,
+		RateLimitWindowSecs: 60,
+		AllowedOrigins:      []string{"https://example.test"},
+	}
+	logger := slog.New(slog.NewTextHandler(httptest.NewRecorder(), nil))
+	router := buildRouter(cfg, nil, nil, &api.AuthHandler{}, logger)
+
+	tests := []struct {
+		name   string
+		method string
+		path   string
+		want   int
+	}{
+		{"public health", http.MethodGet, "/api/v1/health", http.StatusOK},
+		{"protected payroll", http.MethodGet, "/api/v1/payroll/payslips", http.StatusUnauthorized},
+		{"protected ESS", http.MethodGet, "/api/v1/ess/profile", http.StatusUnauthorized},
+		{"public websocket pre-upgrade auth", http.MethodGet, "/api/v1/ws/reports/00000000-0000-0000-0000-000000000001", http.StatusUnauthorized},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			rec := httptest.NewRecorder()
+			router.ServeHTTP(rec, httptest.NewRequest(test.method, test.path, nil))
+			if rec.Code != test.want {
+				t.Fatalf("%s %s status = %d, want %d; body=%s", test.method, test.path, rec.Code, test.want, rec.Body.String())
+			}
+		})
+	}
+}
+
+func TestBuildRouterReturns404And405ForUnknownAndWrongMethods(t *testing.T) {
+	cfg := &config.Config{
+		JWTSecret:           config.JWTSecret("test-secret-at-least-32-chars-long-for-jwt!!"),
+		S3EndpointURL:       "://invalid",
+		RateLimitMaxRead:    1000,
+		RateLimitMaxWrite:   1000,
+		RateLimitWindowSecs: 60,
+	}
+	router := buildRouter(cfg, nil, nil, &api.AuthHandler{}, slog.Default())
+	for _, test := range []struct {
+		name   string
+		method string
+		path   string
+		want   int
+	}{
+		{"unknown path", http.MethodGet, "/api/v1/route-does-not-exist", http.StatusNotFound},
+		{"wrong method", http.MethodPost, "/api/v1/health", http.StatusMethodNotAllowed},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			rec := httptest.NewRecorder()
+			router.ServeHTTP(rec, httptest.NewRequest(test.method, test.path, nil))
+			if rec.Code != test.want {
+				t.Fatalf("%s %s status = %d, want %d", test.method, test.path, rec.Code, test.want)
+			}
+		})
+	}
+}
+
+func TestBuildRouterReadinessNilDependenciesRemainDegradedOnlyByRedis(t *testing.T) {
+	cfg := &config.Config{
+		JWTSecret:           config.JWTSecret("test-secret-at-least-32-chars-long-for-jwt!!"),
+		S3EndpointURL:       "://invalid",
+		RateLimitMaxRead:    1000,
+		RateLimitMaxWrite:   1000,
+		RateLimitWindowSecs: 60,
+	}
+	router := buildRouter(cfg, nil, nil, &api.AuthHandler{}, slog.Default())
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/api/v1/health/ready", nil))
+	if rec.Code != http.StatusOK {
+		t.Fatalf("readiness status = %d, want 200: %s", rec.Code, rec.Body.String())
+	}
+	var body struct {
+		Checks map[string]string `json:"checks"`
+	}
+	if err := json.NewDecoder(rec.Body).Decode(&body); err != nil {
+		t.Fatalf("decode readiness response: %v", err)
+	}
+	if body.Checks["database"] != "ok" || body.Checks["redis"] != "disabled" {
+		t.Fatalf("readiness checks = %#v, want database=ok redis=disabled", body.Checks)
 	}
 }

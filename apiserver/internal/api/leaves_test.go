@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -10,6 +11,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/shopspring/decimal"
 	httpinfra "github.com/vkaylee/leeattend/apiserver/internal/infra/http"
 )
@@ -335,6 +337,33 @@ func TestLeaveHandlerLifecycleForbidden(t *testing.T) {
 		t.Fatalf("expected 403, got %d", rec.Code)
 	}
 }
+func TestLeaveHandlersMapRepositoryFailures(t *testing.T) {
+	for _, test := range []struct {
+		name string
+		err  error
+		want int
+	}{
+		{name: "not found", err: pgx.ErrNoRows, want: http.StatusNotFound},
+		{name: "validation", err: ErrLeaveValidation, want: http.StatusBadRequest},
+		{name: "conflict", err: ErrLeaveConflict, want: http.StatusConflict},
+		{name: "internal", err: errors.New("leave repository unavailable"), want: http.StatusInternalServerError},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			repo := &mockLeaveRepository{wsErr: test.err}
+			handler := LeaveHandler{Repository: repo, Authorizer: mockLeaveAuthorizer{allowed: map[string]bool{"leave:balances:read": true}}}
+			req := leaveRequest(t, http.MethodGet, "/api/v1/leave/balances", "")
+			rec := httptest.NewRecorder()
+			handler.OrganizationBalances(rec, req)
+			if rec.Code != test.want {
+				t.Fatalf("status = %d, want %d: %s", rec.Code, test.want, rec.Body.String())
+			}
+			if strings.Contains(rec.Body.String(), "leave repository unavailable") {
+				t.Fatal("response leaked repository error")
+			}
+		})
+	}
+}
+
 func TestLeaveHandlerOrganizationBalances(t *testing.T) {
 	repo := &mockLeaveRepository{
 		wsBalances: []OrganizationLeaveBalance{
