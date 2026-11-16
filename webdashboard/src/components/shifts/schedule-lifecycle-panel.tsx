@@ -95,6 +95,7 @@ export function ScheduleLifecyclePanel({ approvalInstanceId, employeeSchedule, w
 
   const dateRange = useMemo(() => ({ start: formatDate(weekDays[0]), end: formatDate(weekDays[weekDays.length - 1]) }), [weekDays]);
   const scheduleByDate = new Map(employeeSchedule.schedules.map((day) => [day.date, day]));
+  const coverage = employeeSchedule.coverage;
   const expectedRevisions = Object.fromEntries(
     weekDays.map((day) => {
       const date = formatDate(day);
@@ -108,7 +109,7 @@ export function ScheduleLifecyclePanel({ approvalInstanceId, employeeSchedule, w
   const selectedSchedule = scheduleByDate.get(selectedDate);
   const selectedRevision = evidence?.revisions.at(-1);
   const selectedSegment = evidence?.segments.at(-1);
-  const selectedTimezone = selectedRevision?.timezone ?? selectedSchedule?.timezone ?? organization?.timezone ?? "UTC";
+  const selectedTimezone = selectedRevision?.timezone ?? organization?.timezone ?? "UTC";
   const replacementStart = formatScheduleLocalTime(selectedSegment?.scheduled_start_at, selectedTimezone);
   const replacementEnd = formatScheduleLocalTime(selectedSegment?.scheduled_end_at, selectedTimezone);
   const replacement = selectedSegment?.selected_shift_version_id && replacementStart && replacementEnd
@@ -220,6 +221,7 @@ export function ScheduleLifecyclePanel({ approvalInstanceId, employeeSchedule, w
         </div>
       </div>
 
+      {coverage ? <div aria-label={t("scheduleLifecycle.coverageLabel")} className="grid gap-2 text-xs text-slate-600 dark:text-slate-300 sm:grid-cols-4"><span>{t("scheduleLifecycle.expectedDays")}: {coverage.expected_days}</span><span>{t("scheduleLifecycle.publishedWorkDays")}: {coverage.published_work_days}</span><span>{t("scheduleLifecycle.publishedOffDays")}: {coverage.published_off_days}</span><span className={coverage.missing_official_days > 0 ? "font-semibold text-amber-700 dark:text-amber-300" : ""}>{t("scheduleLifecycle.missingDays")}: {coverage.missing_official_days}</span></div> : null}
       <LifecycleStatusList schedule={employeeSchedule} t={t} />
 
       <div className="grid gap-3 lg:grid-cols-[1fr_auto]">

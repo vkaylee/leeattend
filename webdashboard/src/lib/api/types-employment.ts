@@ -72,7 +72,16 @@ export interface EffectiveSchedule {
   traces?: ScheduleTrace[];
 }
 
+export interface ScheduleCoverage {
+  complete: boolean;
+  expected_days: number;
+  missing_official_days: number;
+  published_off_days: number;
+  published_work_days: number;
+}
+
 export interface EmployeeSchedule {
+  coverage?: ScheduleCoverage;
   department_name?: string | null;
   employee_id?: string;
   employee_id_number?: string;

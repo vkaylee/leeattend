@@ -51,7 +51,8 @@ export async function assignShift(
 export const fetchSchedules = async (
   startDate: string,
   endDate: string,
-  employmentIds?: string[]
+  employmentIds?: string[],
+  coverage: "all" | "missing" | "complete" = "all",
 ): Promise<EmployeeSchedule[]> => {
   const { data } = await client.GET<PaginatedResponse<EmployeeSchedule>>("/api/v1/schedules", {
     params: {
@@ -59,6 +60,7 @@ export const fetchSchedules = async (
         start_date: startDate,
         end_date: endDate,
         employment_ids: employmentIds?.join(",") ?? undefined,
+        coverage,
         limit: employmentIds && employmentIds.length > 0 ? 1000 : undefined,
       },
     },
