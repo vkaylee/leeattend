@@ -788,7 +788,8 @@ func (r ScheduleRepository) CommitReplan(ctx context.Context, actorID, employmen
 		if err != nil {
 			return err
 		}
-		if result.DiffHash != request.ConfirmDiffHash || result.ReplacementHash != replacementHash(request.Replacement, current.Timezone, businessDate, employmentID) {
+		storedReplacementHash := canonicalStoredReplacementHash(result.Replacement, current.Timezone, businessDate, employmentID)
+		if result.DiffHash != request.ConfirmDiffHash || storedReplacementHash == "" || storedReplacementHash != replacementHash(request.Replacement, current.Timezone, businessDate, employmentID) {
 			return ErrSchedulePreviewStale
 		}
 		return commitReplan(ctx, tx, actorID, idempotencyKey, requestHash, request, current, result, &response)
@@ -877,16 +878,20 @@ func lockPreview(ctx context.Context, tx DBTX, actorID, id uuid.UUID, operation,
 }
 
 func loadCurrentRevision(ctx context.Context, tx DBTX, employmentID uuid.UUID, businessDate string, forUpdate bool) (lifecycleRevision, error) {
-	lock := ""
-	if forUpdate {
-		lock = " FOR UPDATE"
-	}
 	var revision lifecycleRevision
-	err := tx.QueryRow(ctx, `SELECT r.id, r.employment_id, r.employer_id, r.business_date::text, r.timezone, r.revision_number, r.state, r.publication_batch_id, r.source, r.source_snapshot, r.published_at FROM schedule_day_revisions r WHERE employment_id = $1 AND business_date = $2::date AND state IN ('published', 'explicit_off') ORDER BY revision_number DESC LIMIT 1`+lock, employmentID, businessDate).Scan(&revision.ID, &revision.EmploymentID, &revision.EmployerID, &revision.BusinessDate, &revision.Timezone, &revision.RevisionNumber, &revision.State, &revision.BatchID, &revision.Source, &revision.SourceSnapshot, &revision.PublishedAt)
+	err := tx.QueryRow(ctx, `SELECT r.id, r.employment_id, r.employer_id, r.business_date::text, r.timezone, r.revision_number, r.state, r.publication_batch_id, r.source, r.source_snapshot, r.published_at, b.mode, b.approval_instance_id FROM schedule_day_revisions r LEFT JOIN schedule_publication_batches b ON b.id = r.publication_batch_id WHERE r.employment_id = $1 AND r.business_date = $2::date AND r.state IN ('published', 'explicit_off') ORDER BY r.revision_number DESC LIMIT 1`, employmentID, businessDate).Scan(&revision.ID, &revision.EmploymentID, &revision.EmployerID, &revision.BusinessDate, &revision.Timezone, &revision.RevisionNumber, &revision.State, &revision.BatchID, &revision.Source, &revision.SourceSnapshot, &revision.PublishedAt, &revision.Mode, &revision.ApprovalInstanceID)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return lifecycleRevision{}, ErrScheduleNoCurrentRevision
 	}
-	return revision, err
+	if err != nil {
+		return lifecycleRevision{}, err
+	}
+	if forUpdate {
+		if _, err := tx.Exec(ctx, `SELECT id FROM schedule_day_revisions WHERE id = $1 FOR UPDATE`, revision.ID); err != nil {
+			return lifecycleRevision{}, err
+		}
+	}
+	return revision, nil
 }
 
 func ensureMutationPeriodOpen(ctx context.Context, tx DBTX, employerID uuid.UUID, businessDate string) error {
@@ -1253,10 +1258,13 @@ func loadRevisionDocument(ctx context.Context, tx DBTX, revision lifecycleRevisi
 func commitReplan(ctx context.Context, tx pgx.Tx, actorID uuid.UUID, idempotencyKey, requestHash string, request api.ScheduleReplanRequest, current lifecycleRevision, result replanResult, response *api.ScheduleReplanResponse) error {
 	batchID := uuid.New()
 	publishedAt := time.Now().UTC()
-	if _, err := tx.Exec(ctx, `INSERT INTO schedule_publication_batches (id, idempotency_key, request_hash, mode, status, requested_by, operation, response_snapshot, actor_type, reason, timezone, range_start, range_end, published_at, affected_days, approval_instance_id) SELECT $1, $2, $3, 'office', 'published', $4, 'replan', '{}'::jsonb, 'human', $5, timezone, business_date, business_date, $6, 1, NULL FROM schedule_day_revisions WHERE id = $7`, batchID, idempotencyKey, requestHash, actorID, strings.TrimSpace(request.Reason), publishedAt, current.ID); err != nil {
+	if _, err := tx.Exec(ctx, `INSERT INTO schedule_publication_batches (id, idempotency_key, request_hash, mode, status, requested_by, operation, response_snapshot, actor_type, reason, timezone, range_start, range_end, published_at, affected_days, approval_instance_id) SELECT $1, $2, $3, COALESCE(b.mode, 'rotating'), 'published', $4, 'replan', '{}'::jsonb, 'human', $5, r.timezone, r.business_date, r.business_date, $6, 1, b.approval_instance_id FROM schedule_day_revisions r LEFT JOIN schedule_publication_batches b ON b.id = r.publication_batch_id WHERE r.id = $7`, batchID, idempotencyKey, requestHash, actorID, strings.TrimSpace(request.Reason), publishedAt, current.ID); err != nil {
 		return err
 	}
 	if _, err := tx.Exec(ctx, `SELECT set_config('schedule.lifecycle_publication', 'on', true)`); err != nil {
+		return err
+	}
+	if _, err := tx.Exec(ctx, `UPDATE schedule_day_revisions SET state = 'superseded' WHERE id = $1 AND state IN ('published', 'explicit_off')`, current.ID); err != nil {
 		return err
 	}
 	replacement := result.Replacement
@@ -1265,9 +1273,6 @@ func commitReplan(ctx context.Context, tx pgx.Tx, actorID uuid.UUID, idempotency
 	}
 	newRevisionID, err := insertPublishedDay(ctx, tx, batchID, publicationActor{ID: &actorID, Type: "human"}, request.Reason, current.Timezone, replacement, publishedAt, &current.ID)
 	if err != nil {
-		return err
-	}
-	if _, err := tx.Exec(ctx, `UPDATE schedule_day_revisions SET state = 'superseded' WHERE id = $1 AND state IN ('published', 'explicit_off')`, current.ID); err != nil {
 		return err
 	}
 	*response = api.ScheduleReplanResponse{BatchID: batchID, OriginalRevisionID: current.ID, ReplacementRevisionID: newRevisionID, RevisionNumber: current.RevisionNumber + 1, Reason: strings.TrimSpace(request.Reason), ActualTime: publishedAt, Retroactive: false, Diff: result.Diff}
@@ -1299,6 +1304,18 @@ func decodeReplanResult(raw []byte) (replanResult, error) {
 		return replanResult{}, ErrSchedulePreviewStale
 	}
 	return replanResult{Replacement: value.Replacement, Diff: value.Diff, DiffHash: value.DiffHash, ReplacementHash: hashMap(value.Replacement)}, nil
+}
+
+func canonicalStoredReplacementHash(replacement map[string]any, timezone, businessDate string, employmentID uuid.UUID) string {
+	payload, err := json.Marshal(replacement)
+	if err != nil {
+		return ""
+	}
+	var typed api.ScheduleReplanReplacement
+	if err := json.Unmarshal(payload, &typed); err != nil {
+		return ""
+	}
+	return replacementHash(typed, timezone, businessDate, employmentID)
 }
 
 func replacementHash(replacement api.ScheduleReplanReplacement, timezone, businessDate string, employmentID uuid.UUID) string {
