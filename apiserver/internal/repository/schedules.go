@@ -291,6 +291,39 @@ func (r ScheduleRepository) GetOfficialSchedules(ctx context.Context, startDate,
 	return api.PaginatedEmployeeSchedules{Data: result, Total: total, Page: page, Limit: limit}, nil
 }
 
+func (r ScheduleRepository) GetOfficialSchedulesWithCoverage(ctx context.Context, startDate, endDate time.Time, employmentIDs []uuid.UUID, page, limit int, coverage string) (api.PaginatedEmployeeSchedules, error) {
+	result, err := r.GetOfficialSchedules(ctx, startDate, endDate, employmentIDs, page, limit)
+	if err != nil {
+		return api.PaginatedEmployeeSchedules{}, err
+	}
+	for i := range result.Data {
+		var counts api.ScheduleCoverage
+		for _, day := range result.Data[i].Schedules {
+			counts.ExpectedDays++
+			switch day.ScheduleStatus {
+			case "published", "work":
+				counts.PublishedWorkDays++
+			case "explicit_off":
+				counts.PublishedOffDays++
+			default:
+				counts.MissingOfficialDays++
+			}
+		}
+		counts.Complete = counts.MissingOfficialDays == 0
+		result.Data[i].Coverage = counts
+	}
+	if coverage == "missing" || coverage == "complete" {
+		filtered := result.Data[:0]
+		for _, item := range result.Data {
+			if (coverage == "missing" && item.Coverage.MissingOfficialDays > 0) || (coverage == "complete" && item.Coverage.Complete) {
+				filtered = append(filtered, item)
+			}
+		}
+		result.Data = filtered
+	}
+	return result, nil
+}
+
 func (r ScheduleRepository) GetActivationAwareSchedules(ctx context.Context, startDate, endDate time.Time, employmentIDs []uuid.UUID, page, limit int) (api.PaginatedEmployeeSchedules, error) {
 	db, err := r.db(ctx)
 	if err != nil {

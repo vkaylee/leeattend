@@ -33,6 +33,11 @@ func (m *activationAwareScheduleRepositoryMock) GetActivationAwareSchedules(_ co
 	return PaginatedEmployeeSchedules{Page: page, Limit: limit}, nil
 }
 
+func (m *officialScheduleRepositoryMock) GetOfficialSchedulesWithCoverage(_ context.Context, _, _ time.Time, _ []uuid.UUID, page, limit int, _ string) (PaginatedEmployeeSchedules, error) {
+	m.officialCalled = true
+	return PaginatedEmployeeSchedules{Page: page, Limit: limit}, nil
+}
+
 func (m *officialScheduleRepositoryMock) GetOfficialSchedules(_ context.Context, _, _ time.Time, _ []uuid.UUID, page, limit int) (PaginatedEmployeeSchedules, error) {
 	m.officialCalled = true
 	return PaginatedEmployeeSchedules{Data: []EmployeeSchedule{{Schedules: []EffectiveSchedule{{Date: "2026-10-20", RevisionID: new(uuid.UUID), ScheduleStatus: "missing", Provisional: false}}}}, Page: page, Limit: limit}, nil

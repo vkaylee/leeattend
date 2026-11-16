@@ -193,11 +193,20 @@ type EffectiveSchedule struct {
 	HolidayName                    *string           `json:"holiday_name"`
 }
 
+type ScheduleCoverage struct {
+	ExpectedDays        int64 `json:"expected_days"`
+	PublishedWorkDays   int64 `json:"published_work_days"`
+	PublishedOffDays    int64 `json:"published_off_days"`
+	MissingOfficialDays int64 `json:"missing_official_days"`
+	Complete            bool  `json:"complete"`
+}
+
 type EmployeeSchedule struct {
 	EmploymentID     uuid.UUID           `json:"employment_id"`
 	EmployeeID       uuid.UUID           `json:"employee_id"`
 	EmployeeIDNumber string              `json:"employee_id_number"`
 	FullName         string              `json:"full_name"`
+	Coverage         ScheduleCoverage    `json:"coverage"`
 	Schedules        []EffectiveSchedule `json:"schedules"`
 }
 
@@ -214,6 +223,7 @@ type ScheduleRepository interface {
 
 type OfficialScheduleRepository interface {
 	GetOfficialSchedules(context.Context, time.Time, time.Time, []uuid.UUID, int, int) (PaginatedEmployeeSchedules, error)
+	GetOfficialSchedulesWithCoverage(context.Context, time.Time, time.Time, []uuid.UUID, int, int, string) (PaginatedEmployeeSchedules, error)
 }
 
 type ActivationAwareScheduleRepository interface {
@@ -649,7 +659,11 @@ func (h ScheduleHandler) List(w http.ResponseWriter, r *http.Request) {
 			apperror.WriteError(w, r, apperror.ServiceUnavailable(apperror.KeyServiceUnavailable))
 			return
 		}
-		result, err = official.GetOfficialSchedules(r.Context(), query.start, query.end, query.employmentIDs, query.page, query.limit)
+		if query.coverage == "all" {
+			result, err = official.GetOfficialSchedules(r.Context(), query.start, query.end, query.employmentIDs, query.page, query.limit)
+		} else {
+			result, err = official.GetOfficialSchedulesWithCoverage(r.Context(), query.start, query.end, query.employmentIDs, query.page, query.limit, query.coverage)
+		}
 	} else if query.view == "activation-aware" {
 		activationAware, ok := h.Repository.(ActivationAwareScheduleRepository)
 		if !ok {
@@ -672,6 +686,7 @@ type parsedOrganizationSchedulesQuery struct {
 	employmentIDs []uuid.UUID
 	page, limit   int
 	view          string
+	coverage      string
 }
 
 func parseOrganizationSchedulesQuery(r *http.Request) (parsedOrganizationSchedulesQuery, error) {
@@ -699,6 +714,13 @@ func parseOrganizationSchedulesQuery(r *http.Request) (parsedOrganizationSchedul
 	if view != "legacy" && view != "official" && view != "activation-aware" {
 		return parsedOrganizationSchedulesQuery{}, errors.New("unsupported schedule view")
 	}
+	coverage := strings.TrimSpace(values.Get("coverage"))
+	if coverage == "" {
+		coverage = "all"
+	}
+	if coverage != "all" && coverage != "missing" && coverage != "complete" {
+		return parsedOrganizationSchedulesQuery{}, errors.New("unsupported schedule coverage")
+	}
 	ids := make([]uuid.UUID, 0)
 	if raw := strings.TrimSpace(values.Get("employment_ids")); raw != "" {
 		for _, value := range strings.Split(raw, ",") {
@@ -709,5 +731,5 @@ func parseOrganizationSchedulesQuery(r *http.Request) (parsedOrganizationSchedul
 			ids = append(ids, id)
 		}
 	}
-	return parsedOrganizationSchedulesQuery{start: start, end: end, employmentIDs: ids, page: pagination.Page, limit: minInt(pagination.Limit, MaxLimit), view: view}, nil
+	return parsedOrganizationSchedulesQuery{start: start, end: end, employmentIDs: ids, page: pagination.Page, limit: minInt(pagination.Limit, MaxLimit), view: view, coverage: coverage}, nil
 }
