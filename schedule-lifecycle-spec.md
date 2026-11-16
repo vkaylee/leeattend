@@ -836,7 +836,7 @@ External references support distinctions, not mandatory schema or legal certific
 - Odoo Planning: templates, recurring shifts, open shifts and publish — https://www.odoo.com/documentation/19.0/applications/services/planning.html
 - Frappe HR Shift Assignment: effective ranges and attendance linkage — https://docs.frappe.io/hr/shift-assignment
 
-Documentation verification only: `git diff --check -- schedule-lifecycle.md schedule-lifecycle-spec.md`. Runtime commands in §15 remain unexecuted until implementation; approval of architecture is not a test result.
+Documentation verification: `git diff --check -- schedule-lifecycle.md schedule-lifecycle-spec.md`. Runtime verification is tracked separately in commit/test evidence; approval of architecture is not a test result.
 
 ## 18. Shift/policy ownership refinement — 2026-11-14
 
@@ -915,4 +915,4 @@ B1–B10 supplement H1–H11/L1–L12 and §15, not replace them. Proposed symbo
 | B9 | `TestPolicyMigrationParityAndProvenance` / migration + DB | Explicit 0/false versus missing preserved; repeat migration idempotent; ambiguity blocks affected scope; approved corrections show expected delta; legacy snapshots replay unchanged |
 | B10 | `TestPolicyCutoverAllConsumers` / API + worker + role E2E | Imports/bulk/jobs/old clients cannot bypass authority; all activated consumers use shared phase-appropriate policy contract; unexplained delta aborts activation, no silent fallback |
 
-Pending detailed-contract review: actual meaning of legacy grace and precedence, flexible break evidence model, valid aggregate combinations and temporal child-policy representation. These are bounded engineering/HR checks before gate 1, not defaults to invent. Documentation-only update; implementation and runtime tests remain unexecuted.
+Pending detailed-contract review: actual meaning of legacy grace and precedence, flexible break evidence model, valid aggregate combinations and temporal child-policy representation. These are bounded engineering/HR checks; do not invent defaults. Backend implementation exists, but these contracts and their runtime acceptance remain open.
