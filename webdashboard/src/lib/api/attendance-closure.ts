@@ -1,6 +1,6 @@
 import { client } from "./client";
 
-export type AttendancePeriodState = "open" | "closed" | "reopened" | string;
+export type AttendancePeriodState = string;
 
 export interface AttendancePeriodStatus {
   closure_id?: string | null;

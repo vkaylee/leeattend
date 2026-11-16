@@ -7,8 +7,8 @@ vi.mock("../client", () => ({
   },
 }));
 
-import { client } from "../client";
 import { closeAttendancePeriod, fetchAttendancePeriodStatus, reopenAttendancePeriod } from "../attendance-closure";
+import { client } from "../client";
 
 describe("attendance closure API", () => {
   beforeEach(() => vi.clearAllMocks());
