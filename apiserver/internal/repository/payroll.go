@@ -1399,22 +1399,14 @@ func impactSnapshotStaleness(ctx context.Context, db DBTX, employmentID ids.Empl
 		return true, []string{"policy_version_invalid"}, nil
 	}
 	periodStart := time.Date(year, time.Month(month), 1, 0, 0, 0, 0, time.UTC)
-	var currentID *uuid.UUID
-	err = db.QueryRow(ctx, `
-		SELECT v.id
-		FROM labor_policy_memberships m
-		JOIN labor_policy_group_versions v ON v.group_id = m.group_id
-		WHERE m.employment_id = $1
-		  AND m.effective_from <= $2::date AND (m.effective_to IS NULL OR m.effective_to > $2::date)
-		  AND v.effective_from <= $2::date AND (v.effective_to IS NULL OR v.effective_to > $2::date)
-		ORDER BY v.effective_from DESC, v.id DESC LIMIT 1`, uuid.UUID(employmentID), periodStart.Format("2006-01-02")).Scan(&currentID)
+	currentPolicy, err := resolveWorkPolicyByDate(ctx, db, uuid.UUID(employmentID), periodStart)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return true, []string{"current_policy_missing"}, nil
 	}
 	if err != nil {
 		return false, nil, err
 	}
-	if currentID == nil || *currentID != versionID {
+	if currentPolicy.ID != versionID {
 		return true, []string{"policy_version_changed"}, nil
 	}
 	return false, nil, nil
