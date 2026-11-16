@@ -118,6 +118,11 @@ func (r AttendanceRepository) GetAttendancePeriodStatus(ctx context.Context, emp
 		if errors.Is(err, pgx.ErrNoRows) {
 			response.Status = "open"
 			response.Version = 1
+			if err := db.QueryRow(ctx, `
+				SELECT EXISTS (SELECT 1 FROM payroll_periods WHERE employer_id = $1 AND period_year = $2 AND period_month = $3),
+				COALESCE((SELECT status FROM payroll_periods WHERE employer_id = $1 AND period_year = $2 AND period_month = $3 LIMIT 1), '')`, employerID, year, month).Scan(&payrollFound, &response.PayrollStatus); err != nil {
+				return api.AttendancePeriodStatusResponse{}, err
+			}
 		} else {
 			return api.AttendancePeriodStatusResponse{}, err
 		}
