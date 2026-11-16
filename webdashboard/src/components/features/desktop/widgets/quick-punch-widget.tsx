@@ -14,7 +14,7 @@ export function QuickPunchWidget() {
   const { success, error } = useToast();
   const { employee, isLoading: isLoadingProfile } = useMyProfile();
   const { activeEntry, isPunching, punch, isLoading } = useMyClock({
-    enabled: !isLoadingProfile && Boolean(employee),
+    enabled: !isLoadingProfile && Boolean(employee?.active_employment_id),
     suppressErrors: true,
   });
   const [currentTime, setCurrentTime] = useState(() => new Date());
