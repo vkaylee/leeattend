@@ -12,6 +12,7 @@ func registerPeopleRoutes(router chi.Router, departments api.DepartmentHandler, 
 	registerRoute(router, "DELETE /api/v1/departments/{id}", departments.Delete)
 	registerRoute(router, "GET /api/v1/departments/{id}/payroll-config", departments.GetPayrollConfig)
 	registerRoute(router, "POST /api/v1/departments/{id}/payroll-config", departments.SetPayrollConfig)
+	registerRoute(router, "GET /api/v1/departments/payroll-reconciliation", departments.ListPayrollReconciliation)
 	registerRoute(router, "GET /api/v1/locations", locations.List)
 	registerRoute(router, "POST /api/v1/locations", locations.Create)
 	registerRoute(router, "GET /api/v1/locations/{id}", locations.Get)

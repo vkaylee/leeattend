@@ -242,6 +242,50 @@ func (r DepartmentRepository) GetDepartmentPayrollConfigs(ctx context.Context, d
 	return result, nil
 }
 
+func (r DepartmentRepository) ListDepartmentPayrollReconciliation(ctx context.Context, page, limit int, status string) (api.DepartmentPayrollReconciliationResponse, error) {
+	db, err := r.db(ctx)
+	if err != nil {
+		return api.DepartmentPayrollReconciliationResponse{}, err
+	}
+	offset := (page - 1) * limit
+	where := ""
+	args := []any{limit, offset}
+	if status != "" {
+		where = " WHERE reconciliation_status = $3"
+		args = append(args, status)
+	}
+	query := `SELECT department_id, department_name, legacy_std_working_days, canonical_effective_from::text, canonical_std_working_days, reconciliation_status
+		FROM department_payroll_reconciliation` + where + `
+		ORDER BY department_name ASC, department_id ASC
+		LIMIT $1 OFFSET $2`
+	rows, err := db.Query(ctx, query, args...)
+	if err != nil {
+		return api.DepartmentPayrollReconciliationResponse{}, err
+	}
+	defer rows.Close()
+	result := api.DepartmentPayrollReconciliationResponse{Data: make([]api.DepartmentPayrollReconciliation, 0), Page: page, Limit: limit}
+	for rows.Next() {
+		var item api.DepartmentPayrollReconciliation
+		if err := rows.Scan(&item.DepartmentID, &item.DepartmentName, &item.LegacyStdWorkingDays, &item.CanonicalEffectiveFrom, &item.CanonicalStdWorkingDays, &item.Status); err != nil {
+			return api.DepartmentPayrollReconciliationResponse{}, err
+		}
+		result.Data = append(result.Data, item)
+	}
+	if err := rows.Err(); err != nil {
+		return api.DepartmentPayrollReconciliationResponse{}, err
+	}
+	countQuery := `SELECT count(*) FROM department_payroll_reconciliation`
+	countArgs := []any{}
+	if status != "" {
+		countQuery += ` WHERE reconciliation_status = $1`
+		countArgs = append(countArgs, status)
+	}
+	if err := db.QueryRow(ctx, countQuery, countArgs...).Scan(&result.Total); err != nil {
+		return api.DepartmentPayrollReconciliationResponse{}, err
+	}
+	return result, nil
+}
+
 func (r DepartmentRepository) SetDepartmentPayrollConfig(ctx context.Context, deptID uuid.UUID, req api.SetDepartmentPayrollConfigRequest, actorID uuid.UUID) (api.DepartmentPayrollConfig, error) {
 	db, err := r.db(ctx)
 	if err != nil {

@@ -5,6 +5,7 @@ import (
 	"context"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/google/uuid"
@@ -76,6 +77,18 @@ func (m mockDepartmentRepo) GetDepartmentPayrollConfigs(_ context.Context, deptI
 	}, nil
 }
 
+func (m mockDepartmentRepo) ListDepartmentPayrollReconciliation(_ context.Context, page, limit int, status string) (DepartmentPayrollReconciliationResponse, error) {
+	if m.notFound {
+		return DepartmentPayrollReconciliationResponse{}, ErrDepartmentNotFound
+	}
+	return DepartmentPayrollReconciliationResponse{
+		Data: []DepartmentPayrollReconciliation{{
+			DepartmentID: uuid.New(), DepartmentName: "Engineering", Status: status,
+		}},
+		Total: 1, Page: page, Limit: limit,
+	}, nil
+}
+
 func (m mockDepartmentRepo) SetDepartmentPayrollConfig(_ context.Context, deptID uuid.UUID, req SetDepartmentPayrollConfigRequest, _ uuid.UUID) (DepartmentPayrollConfig, error) {
 	if m.notFound {
 		return DepartmentPayrollConfig{}, ErrDepartmentNotFound
@@ -124,6 +137,35 @@ func (a mockDepartmentAuthz) IsGlobalManager(_ context.Context, _ uuid.UUID) boo
 func departmentRequest(method, path, body string, userID uuid.UUID) *http.Request {
 	req := httptest.NewRequest(method, path, bytes.NewBufferString(body))
 	return req.WithContext(httpinfra.WithUserIDForTest(req.Context(), userID))
+}
+
+func TestDepartmentHandler_PayrollReconciliation(t *testing.T) {
+	userID := uuid.New()
+	h := DepartmentHandler{Repository: mockDepartmentRepo{}, Authorizer: mockDepartmentAuthz{permissions: map[string]bool{"payroll:read": true}}}
+	req := departmentRequest(http.MethodGet, "/api/v1/departments/payroll-reconciliation?status=value_mismatch&page=2&limit=10", "", userID)
+	rec := httptest.NewRecorder()
+	h.ListPayrollReconciliation(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", rec.Code, rec.Body.String())
+	}
+	if !strings.Contains(rec.Body.String(), `"reconciliation_status":"value_mismatch"`) {
+		t.Fatalf("expected reconciliation status in response: %s", rec.Body.String())
+	}
+
+	req = departmentRequest(http.MethodGet, "/api/v1/departments/payroll-reconciliation?status=unknown", "", userID)
+	rec = httptest.NewRecorder()
+	h.ListPayrollReconciliation(rec, req)
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400 for invalid status, got %d", rec.Code)
+	}
+
+	h = DepartmentHandler{Repository: mockDepartmentRepo{}, Authorizer: mockDepartmentAuthz{permissions: map[string]bool{}}}
+	req = departmentRequest(http.MethodGet, "/api/v1/departments/payroll-reconciliation", "", userID)
+	rec = httptest.NewRecorder()
+	h.ListPayrollReconciliation(rec, req)
+	if rec.Code != http.StatusForbidden {
+		t.Fatalf("expected 403 without payroll read permission, got %d", rec.Code)
+	}
 }
 
 func TestDepartmentHandler_List(t *testing.T) {

@@ -50,6 +50,10 @@ func (m *mockFailingDBRepo) GetDepartmentPayrollConfigs(ctx context.Context, dep
 	return nil, nil
 }
 
+func (m *mockFailingDBRepo) ListDepartmentPayrollReconciliation(ctx context.Context, page, limit int, status string) (DepartmentPayrollReconciliationResponse, error) {
+	return DepartmentPayrollReconciliationResponse{}, nil
+}
+
 func (m *mockFailingDBRepo) SetDepartmentPayrollConfig(ctx context.Context, deptID uuid.UUID, req SetDepartmentPayrollConfigRequest, actorID uuid.UUID) (DepartmentPayrollConfig, error) {
 	return DepartmentPayrollConfig{}, nil
 }

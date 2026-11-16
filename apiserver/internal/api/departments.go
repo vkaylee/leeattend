@@ -58,6 +58,22 @@ type DepartmentPayrollConfig struct {
 	CreatedAt      string          `json:"created_at"`
 }
 
+type DepartmentPayrollReconciliation struct {
+	DepartmentID            uuid.UUID        `json:"department_id"`
+	DepartmentName          string           `json:"department_name"`
+	LegacyStdWorkingDays    *decimal.Decimal `json:"legacy_std_working_days,omitempty"`
+	CanonicalEffectiveFrom  *string          `json:"canonical_effective_from,omitempty"`
+	CanonicalStdWorkingDays *decimal.Decimal `json:"canonical_std_working_days,omitempty"`
+	Status                  string           `json:"reconciliation_status"`
+}
+
+type DepartmentPayrollReconciliationResponse struct {
+	Data  []DepartmentPayrollReconciliation `json:"data"`
+	Total int64                             `json:"total"`
+	Page  int                               `json:"page"`
+	Limit int                               `json:"limit"`
+}
+
 type SetDepartmentPayrollConfigRequest struct {
 	StdWorkingDays decimal.Decimal `json:"std_working_days"`
 	HoursPerDay    decimal.Decimal `json:"hours_per_day"`
@@ -71,6 +87,7 @@ type DepartmentRepository interface {
 	UpdateDepartment(ctx context.Context, deptID uuid.UUID, req UpdateDepartmentRequest) (DepartmentRecord, error)
 	DeleteDepartment(ctx context.Context, deptID uuid.UUID) error
 	GetDepartmentPayrollConfigs(ctx context.Context, deptID uuid.UUID) ([]DepartmentPayrollConfig, error)
+	ListDepartmentPayrollReconciliation(ctx context.Context, page, limit int, status string) (DepartmentPayrollReconciliationResponse, error)
 	SetDepartmentPayrollConfig(ctx context.Context, deptID uuid.UUID, req SetDepartmentPayrollConfigRequest, actorID uuid.UUID) (DepartmentPayrollConfig, error)
 }
 
@@ -162,6 +179,34 @@ func (h DepartmentHandler) Delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
+}
+
+func (h DepartmentHandler) ListPayrollReconciliation(w http.ResponseWriter, r *http.Request) {
+	userID, userOK := httpinfra.UserIDFromContext(r.Context())
+	if !userOK || h.Authorizer == nil || !h.Authorizer.HasPermission(r.Context(), userID, string(auth.PermissionPayrollRead)) {
+		apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
+		return
+	}
+	pagination, err := ParsePagination(r.URL.Query())
+	if err != nil {
+		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
+		return
+	}
+	status := strings.TrimSpace(r.URL.Query().Get("status"))
+	if status != "" {
+		switch status {
+		case "matched", "missing_legacy_value", "missing_canonical_config", "value_mismatch":
+		default:
+			apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
+			return
+		}
+	}
+	result, err := h.Repository.ListDepartmentPayrollReconciliation(r.Context(), pagination.Page, pagination.Limit, status)
+	if err != nil {
+		h.writeError(w, r, err)
+		return
+	}
+	apperror.WriteJSON(w, http.StatusOK, result)
 }
 
 func (h DepartmentHandler) GetPayrollConfig(w http.ResponseWriter, r *http.Request) {
