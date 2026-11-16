@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"sort"
 	"time"
 
 	"github.com/google/uuid"
@@ -227,6 +228,18 @@ func (r ShiftSwapRepository) ApproveSwap(ctx context.Context, requestID, approve
 					return err
 				}
 				return api.ErrShiftSwapConflict
+			}
+			if requesterRevisionID != nil || targetRevisionID != nil {
+				if requesterRevisionID == nil || targetRevisionID == nil || requesterRevisionNumber == nil || targetRevisionNumber == nil {
+					return api.ErrShiftSwapConflict
+				}
+				handled, err := approveOfficialSwap(ctx, db, requestID, approverID, requesterID, targetID, reqEmp, tgtEmp, swapDate, *requesterRevisionID, *requesterRevisionNumber, *targetRevisionID, *targetRevisionNumber)
+				if err != nil {
+					return err
+				}
+				if handled {
+					return nil
+				}
 			}
 			if err := guardLifecycleDateMutation(ctx, db, []uuid.UUID{reqEmp, tgtEmp}, []string{swapDate}); err != nil {
 				if errors.Is(err, ErrLifecycleMutationBlocked) || errors.Is(err, ErrLifecycleSchemaUnavailable) {
@@ -471,6 +484,91 @@ func verifyOfficialSwapRevisions(ctx context.Context, db DBTX, requesterEmployme
 		return api.ErrShiftSwapConflict
 	}
 	return nil
+}
+
+func approveOfficialSwap(ctx context.Context, db pgx.Tx, requestID, approverID, requesterID, targetID, requesterEmploymentID, targetEmploymentID uuid.UUID, date string, requesterRevisionID uuid.UUID, requesterRevisionNumber int64, targetRevisionID uuid.UUID, targetRevisionNumber int64) (bool, error) {
+	if requesterRevisionID == uuid.Nil || targetRevisionID == uuid.Nil {
+		return false, nil
+	}
+	employees := []uuid.UUID{requesterID, targetID}
+	sort.Slice(employees, func(i, j int) bool { return employees[i].String() < employees[j].String() })
+	if _, err := db.Exec(ctx, `SELECT id FROM employees WHERE id = ANY($1) ORDER BY id FOR UPDATE`, employees); err != nil {
+		return false, err
+	}
+	employments := []uuid.UUID{requesterEmploymentID, targetEmploymentID}
+	sort.Slice(employments, func(i, j int) bool { return employments[i].String() < employments[j].String() })
+	if _, err := db.Exec(ctx, `SELECT id FROM employments WHERE id = ANY($1) ORDER BY id FOR UPDATE`, employments); err != nil {
+		return false, err
+	}
+	requester, err := loadCurrentRevision(ctx, db, requesterEmploymentID, date, true)
+	if err != nil {
+		return false, err
+	}
+	target, err := loadCurrentRevision(ctx, db, targetEmploymentID, date, true)
+	if err != nil {
+		return false, err
+	}
+	if requester.ID != requesterRevisionID || requester.RevisionNumber != requesterRevisionNumber || target.ID != targetRevisionID || target.RevisionNumber != targetRevisionNumber {
+		return false, api.ErrShiftSwapConflict
+	}
+	if err := ensureMutationPeriodOpen(ctx, db, requester.EmployerID, date); err != nil {
+		return false, err
+	}
+	if err := ensureMutationPeriodOpen(ctx, db, target.EmployerID, date); err != nil {
+		return false, err
+	}
+	requesterDoc, err := loadRevisionDocument(ctx, db, requester)
+	if err != nil {
+		return false, err
+	}
+	targetDoc, err := loadRevisionDocument(ctx, db, target)
+	if err != nil {
+		return false, err
+	}
+	requesterDoc["employment_id"], targetDoc["employment_id"] = requesterEmploymentID.String(), targetEmploymentID.String()
+	replaceShiftVersion(requesterDoc, targetDoc)
+	replaceShiftVersion(targetDoc, requesterDoc)
+	batchID, now := uuid.New(), time.Now().UTC()
+	key := "shift-swap:" + requestID.String()
+	hash, err := hashJSON(map[string]any{"request_id": requestID.String(), "requester_revision": requesterRevisionID.String(), "target_revision": targetRevisionID.String()})
+	if err != nil {
+		return false, err
+	}
+	reason := "Shift swap #" + requestID.String()
+	if _, err := db.Exec(ctx, `INSERT INTO schedule_publication_batches (id, idempotency_key, request_hash, mode, status, requested_by, operation, response_snapshot, actor_type, reason, timezone, range_start, range_end, published_at, affected_days) VALUES ($1, $2, $3, 'rotating', 'published', $4, 'swap', '{}'::jsonb, 'human', $5, $6, $7::date, $7::date, $8, 2)`, batchID, key, hash, approverID, reason, requester.Timezone, date, now); err != nil {
+		return false, err
+	}
+	if _, err := db.Exec(ctx, `SELECT set_config('schedule.lifecycle_publication', 'on', true)`); err != nil {
+		return false, err
+	}
+	if _, err := db.Exec(ctx, `UPDATE schedule_day_revisions SET state = 'superseded' WHERE id IN ($1, $2) AND state IN ('published', 'explicit_off')`, requester.ID, target.ID); err != nil {
+		return false, err
+	}
+	newRequester, err := insertPublishedDay(ctx, db, batchID, publicationActor{ID: &approverID, Type: "human"}, reason, requester.Timezone, requesterDoc, now, &requester.ID)
+	if err != nil {
+		return false, err
+	}
+	newTarget, err := insertPublishedDay(ctx, db, batchID, publicationActor{ID: &approverID, Type: "human"}, reason, target.Timezone, targetDoc, now, &target.ID)
+	if err != nil {
+		return false, err
+	}
+	response := jsonArg(map[string]any{"request_id": requestID.String(), "revision_ids": []string{newRequester.String(), newTarget.String()}})
+	if _, err := db.Exec(ctx, `UPDATE schedule_publication_batches SET response_snapshot = $2, updated_at = CURRENT_TIMESTAMP WHERE id = $1`, batchID, response); err != nil {
+		return false, err
+	}
+	if _, err := db.Exec(ctx, `INSERT INTO audit_logs (actor_id, target_resource_id, action, details, created_at, actor_type) VALUES ($1, $2, 'schedule.swap_replanned', $3, CURRENT_TIMESTAMP, 'human')`, approverID, batchID, response); err != nil {
+		return false, err
+	}
+	return true, nil
+}
+
+func replaceShiftVersion(source, donor map[string]any) {
+	if intervals, ok := donor["intervals"].([]map[string]any); ok {
+		source["intervals"] = intervals
+	}
+	if value, ok := donor["shift_version_id"]; ok {
+		source["shift_version_id"] = value
+	}
 }
 
 func currentOfficialRevision(ctx context.Context, db DBTX, employmentID uuid.UUID, date string) (*uuid.UUID, *int64, error) {
