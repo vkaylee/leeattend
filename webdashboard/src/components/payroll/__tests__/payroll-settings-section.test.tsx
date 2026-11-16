@@ -6,11 +6,18 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 
 import { ToastProvider } from "@/components/ui/toast";
 import * as api from "@/lib/api/payroll";
+import * as employeeApi from "@/lib/api/employees";
+import { ApiError } from "@/lib/api/errors";
 
 import PayrollSettingsSection from "../payroll-settings-section";
 
 
 // Mock API
+vi.mock("@/lib/api/employees", () => ({
+  fetchEmployees: vi.fn(),
+  fetchEmployeeEmployments: vi.fn(),
+}));
+
 vi.mock("@/lib/api/payroll", () => ({
   fetchPayrollSettings: vi.fn(),
   updatePayrollSettings: vi.fn(),
@@ -50,6 +57,8 @@ describe("PayrollSettingsSection", () => {
     vi.mocked(api.fetchPayrollSettingsHistory).mockResolvedValue([
       { fixed_std_days: 26, hours_per_day: 8, effective_date: "2026-01-01" }
     ] as unknown as never);
+    vi.mocked(employeeApi.fetchEmployees).mockResolvedValue({ data: [{ id: "employee-1", full_name: "Test Employee" }], total: 1, page: 1, limit: 100 } as never);
+    vi.mocked(employeeApi.fetchEmployeeEmployments).mockResolvedValue([]);
     vi.mocked(api.fetchWorkPolicyGroups).mockResolvedValue([]);
     vi.mocked(api.fetchWorkPolicyGroupHistory).mockResolvedValue([]);
     vi.mocked(api.fetchWorkPolicyMemberships).mockResolvedValue([]);
@@ -170,6 +179,28 @@ describe("PayrollSettingsSection", () => {
         overtime_policy_id: "overtime-1",
       }));
     });
+  });
+
+  it("preserves draft and offers refresh after version conflict", async () => {
+    vi.mocked(api.fetchWorkPolicyGroups).mockResolvedValue([{
+      id: "v-1", group_id: "g-1", name: "Operations", attendance_policy_id: "attendance-1",
+      working_pattern_id: "pattern-1", overtime_policy_id: "overtime-1", minutes_per_credit: 480,
+      pay_method: "monthly", effective_from: "2026-01-01",
+    }]);
+    vi.mocked(api.fetchWorkPolicyGroupHistory).mockResolvedValue([]);
+    vi.mocked(api.fetchWorkPolicyMemberships).mockResolvedValue([]);
+    vi.mocked(api.createWorkPolicyGroupVersion).mockRejectedValue(new ApiError(409, "Conflict", "conflict"));
+    renderWithProviders(<PayrollSettingsSection />);
+    fireEvent.click(await screen.findByRole("button", { name: "Operations" }));
+    const date = (await screen.findAllByLabelText("common.payroll.settings.work_policy_effective_from"))[0];
+    const minutes = await screen.findByLabelText("common.payroll.settings.work_policy_minutes");
+    fireEvent.change(date, { target: { value: "2026-07-01" } });
+    fireEvent.change(minutes, { target: { value: "480" } });
+    fireEvent.click(screen.getByRole("button", { name: "common.payroll.settings.work_policy_create" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent("common.payroll.settings.work_policy_conflict");
+    expect(date).toHaveValue("2026-07-01");
+    expect(minutes).toHaveValue(480);
+    expect(screen.getByRole("button", { name: "common.payroll.settings.work_policy_refresh" })).toBeInTheDocument();
   });
 
   it("validates selected policy version and shows blockers", async () => {

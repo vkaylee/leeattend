@@ -6,6 +6,7 @@ import { useTranslation } from "react-i18next";
 import Button from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
 import { Typography } from "@/components/ui/typography";
+import { ApiError } from "@/lib/api/errors";
 import { createWorkPolicyMembership, createWorkPolicyGroupVersion, fetchPayrollImpactBatch, fetchWorkPolicyGroupHistory, fetchWorkPolicyGroups, fetchWorkPolicyMemberships, fetchWorkPolicyReferenceOptions, simulatePayroll, simulatePayrollWithPolicy, updatePayrollSettings, fetchPayrollSettingsHistory, validateWorkPolicyGroupVersion, type PayrollImpactBatchResponse, type WorkPolicyGroupVersion, type WorkPolicyValidationResponse } from "@/lib/api/payroll";
 import { fetchEmployeeEmployments, fetchEmployees } from "@/lib/api/employees";
 import { employeeKeys, payrollKeys } from "@/lib/query-keys";
@@ -21,6 +22,7 @@ export default function PayrollSettingsSection() {
   const [isCreatingVersion, setIsCreatingVersion] = useState(false);
   const [versionForm, setVersionForm] = useState({ effective_from: "", minutes_per_credit: "", pay_method: "monthly" as "monthly" | "hourly" | "shift", monthly_denominator: "fixed" as "fixed" | "schedule", monthly_standard_days: "26", attendance_policy_id: "", working_pattern_id: "", overtime_policy_id: "", rate_component_definition_id: "" });
   const [versionError, setVersionError] = useState<string>();
+  const [versionConflict, setVersionConflict] = useState(false);
   const [membershipEmployeeId, setMembershipEmployeeId] = useState("");
   const [membershipForm, setMembershipForm] = useState({ employment_id: "", effective_from: "", effective_to: "" });
   const [membershipError, setMembershipError] = useState<string>();
@@ -81,6 +83,7 @@ export default function PayrollSettingsSection() {
     }
     setIsCreatingVersion(true);
     setVersionError(undefined);
+    setVersionConflict(false);
     try {
       const selected = workPolicies.find((policy) => policy.group_id === selectedPolicyGroupId);
       const attendancePolicyID = versionForm.attendance_policy_id || selected?.attendance_policy_id;
@@ -107,7 +110,9 @@ export default function PayrollSettingsSection() {
       void queryClient.invalidateQueries({ queryKey: payrollKeys.workPolicyGroups() });
       void queryClient.invalidateQueries({ queryKey: payrollKeys.workPolicyHistory(selectedPolicyGroupId) });
     } catch (error: unknown) {
-      setVersionError(error instanceof Error ? error.message : t("common.error"));
+      const conflict = error instanceof ApiError && error.isConflict;
+      setVersionConflict(conflict);
+      setVersionError(conflict ? t("common.payroll.settings.work_policy_conflict", "Policy changed on server. Review current versions, then retry your draft.") : error instanceof Error ? error.message : t("common.error"));
     } finally {
       setIsCreatingVersion(false);
     }
@@ -310,6 +315,7 @@ export default function PayrollSettingsSection() {
               </div>
               {isDraftDirty ? <p className="mb-3 text-sm text-amber-700" role="status">{t("common.payroll.settings.unsaved_changes", "Unsaved policy changes")}</p> : null}
               {versionError ? <p className="mb-3 text-sm text-red-600" role="alert">{versionError}</p> : null}
+              {versionConflict ? <Button className="mb-3 underline" type="button" size="sm" variant="ghost" onClick={() => { void queryClient.invalidateQueries({ queryKey: payrollKeys.workPolicyHistory(selectedPolicyGroupId) }); setVersionConflict(false); }}>{t("common.payroll.settings.work_policy_refresh", "Refresh current versions")}</Button> : null}
               <Button type="button" size="sm" disabled={isCreatingVersion} onClick={() => void handleCreateVersion()}>{isCreatingVersion ? t("common.loading", "Loading") : t("common.payroll.settings.work_policy_create", "Create policy version")}</Button>
               <div className="mt-5 border-t border-slate-200 pt-4 dark:border-slate-800">
                 <Typography className="font-semibold" variant="h4">{t("common.payroll.settings.work_policy_memberships", "Assignments")}</Typography>
