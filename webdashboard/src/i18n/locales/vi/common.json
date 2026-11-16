@@ -768,6 +768,7 @@
       "draft_simulation_base": "Lương cơ bản",
       "draft_simulation_net": "Lương thực nhận",
       "draft_simulation_validation": "Chọn employment, phiên bản chính sách và kỳ hợp lệ.",
+      "draft_simulation_partial": "Mô phỏng chưa hoàn tất: cần có cả kết quả hiện tại và bản nháp.",
         "status": "Trạng thái",
         "std_days": "Số ngày công chuẩn",
         "std_days_history": "Lịch sử công chuẩn",

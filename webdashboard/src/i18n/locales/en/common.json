@@ -768,6 +768,7 @@
       "draft_simulation_base": "Base pay",
       "draft_simulation_net": "Net pay",
       "draft_simulation_validation": "Choose employee, policy version, and valid period.",
+      "draft_simulation_partial": "Simulation incomplete: both current and draft results are required.",
         "status": "Status",
         "std_days": "Std. Work Days",
         "std_days_history": "Std. Days History",

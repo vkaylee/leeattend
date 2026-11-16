@@ -768,6 +768,7 @@
       "draft_simulation_base": "基本工资",
       "draft_simulation_net": "实发工资",
       "draft_simulation_validation": "请选择 employment、政策版本和有效期间。",
+      "draft_simulation_partial": "模拟未完成：需要当前和草稿两份结果。",
         "status": "状态",
         "std_days": "标准工作日",
         "std_days_history": "标准天数历史",

@@ -98,6 +98,27 @@ describe("PayrollSettingsSection", () => {
     expect(await screen.findByText("common.payroll.settings.draft_simulation_current_net")).toBeInTheDocument();
   });
 
+  it("does not show partial simulation as complete", async () => {
+    vi.mocked(api.fetchWorkPolicyGroups).mockResolvedValue([{
+      id: "v-1", group_id: "g-1", name: "Operations", attendance_policy_id: "attendance-1",
+      working_pattern_id: "pattern-1", overtime_policy_id: "overtime-1", minutes_per_credit: 480,
+      pay_method: "monthly", effective_from: "2026-01-01",
+    }]);
+    vi.mocked(api.fetchWorkPolicyGroupHistory).mockResolvedValue([{
+      id: "v-1", group_id: "g-1", name: "Operations", attendance_policy_id: "attendance-1",
+      working_pattern_id: "pattern-1", overtime_policy_id: "overtime-1", minutes_per_credit: 480,
+      pay_method: "monthly", effective_from: "2026-01-01",
+    }]);
+    vi.mocked(api.simulatePayroll).mockRejectedValue(new Error("current unavailable"));
+    renderWithProviders(<PayrollSettingsSection />);
+    fireEvent.click(await screen.findByRole("button", { name: "Operations" }));
+    fireEvent.change(await screen.findByLabelText("common.payroll.settings.draft_simulation_employee"), { target: { value: "employee-1" } });
+    fireEvent.change(await screen.findByLabelText("common.payroll.settings.draft_simulation_policy"), { target: { value: "v-1" } });
+    fireEvent.click(screen.getByRole("button", { name: "common.payroll.settings.draft_simulation_run" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent("common.payroll.settings.draft_simulation_partial");
+    expect(screen.queryByText("common.payroll.settings.draft_simulation_current_net")).not.toBeInTheDocument();
+  });
+
   it("shows bounded impact preview results and stale state", async () => {
     vi.mocked(api.fetchPayrollImpactBatch).mockResolvedValue({ total: 1, computed: 1, affected: 1, uncomputable: 0, items: [{ employment_id: "e-1", computed: true, stale: true, stale_reasons: ["policy_version_changed"], delta: { net_pay_delta: "240" } as never }] });
     renderWithProviders(<PayrollSettingsSection />);

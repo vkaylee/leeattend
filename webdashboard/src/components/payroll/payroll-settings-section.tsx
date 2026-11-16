@@ -147,13 +147,20 @@ export default function PayrollSettingsSection({ onDirtyChange }: PayrollSetting
     }
     setIsLoadingDraftSimulation(true);
     setDraftSimulationError(undefined);
+    setCurrentSimulationResult(undefined);
+    setDraftSimulationResult(undefined);
     try {
-      const [current, draft] = await Promise.all([
+      const results = await Promise.allSettled([
         simulatePayroll(draftSimulationForm.employee_id, year, month),
         simulatePayrollWithPolicy(draftSimulationForm.employee_id, year, month, draftSimulationForm.policy_version_id),
       ]);
-      setCurrentSimulationResult({ base_pay_amount: current.base_pay_amount, net_pay_amount: current.net_pay_amount });
-      setDraftSimulationResult({ base_pay_amount: draft.base_pay_amount, net_pay_amount: draft.net_pay_amount });
+      const [current, draft] = results;
+      if (current.status !== "fulfilled" || draft.status !== "fulfilled") {
+        setDraftSimulationError(t("common.payroll.settings.draft_simulation_partial", "Simulation incomplete: both current and draft results are required."));
+        return;
+      }
+      setCurrentSimulationResult({ base_pay_amount: current.value.base_pay_amount, net_pay_amount: current.value.net_pay_amount });
+      setDraftSimulationResult({ base_pay_amount: draft.value.base_pay_amount, net_pay_amount: draft.value.net_pay_amount });
     } catch (error: unknown) {
       setDraftSimulationError(error instanceof Error ? error.message : t("common.error"));
     } finally {
