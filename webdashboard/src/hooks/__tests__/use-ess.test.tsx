@@ -74,6 +74,20 @@ describe("useMyClock optimistic updates", () => {
     expect(cachedData).toEqual([newEntry, ...mockEntries]);
   });
 
+  it("requests date-only bounds for the clock endpoint", async () => {
+    vi.mocked(api.fetchMyTimeEntries).mockResolvedValue([]);
+
+    const { Wrapper } = createWrapper();
+    renderHook(() => useMyClock(), { wrapper: Wrapper });
+
+    await waitFor(() => {
+      expect(api.fetchMyTimeEntries).toHaveBeenCalledWith({
+        start_date: expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/),
+        end_date: expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/),
+      });
+    });
+  });
+
   it("does not fetch clock entries when clock access is disabled", async () => {
     const { Wrapper } = createWrapper();
     const { result } = renderHook(() => useMyClock({ enabled: false }), {

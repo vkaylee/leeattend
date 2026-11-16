@@ -61,8 +61,9 @@ export function useMyClock({ enabled = true }: UseMyClockOptions = {}): UseMyClo
   const { startDate, endDate } = useMemo(() => {
     const now = new Date();
     const futureDate = new Date(now.getTime() + 24 * 60 * 60 * 1000);
-    const endDate = futureDate.toISOString();
-    const startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString();
+    const dateOnly = (value: Date) => value.toISOString().slice(0, 10);
+    const endDate = dateOnly(futureDate);
+    const startDate = dateOnly(new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000));
     return { startDate, endDate };
   }, []);
 

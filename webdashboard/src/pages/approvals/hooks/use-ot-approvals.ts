@@ -95,7 +95,8 @@ export function useOtApprovals() {
   const { data: employeesData } = useQuery<PaginatedResponse<Employee>>({
     queryKey: createQueryKey("employees-list-all", organization?.id),
     queryFn: () => fetchEmployees(1, 1000),
-    enabled: !!organization?.id,
+    enabled: !!organization?.id && (canApprove || canClaimOnBehalf || canCreateOnBehalf || canManagePolicies),
+    meta: { suppressErrorToast: [403] },
   });
 
   // ── Memoized maps ────────────────────────────────────────────────
