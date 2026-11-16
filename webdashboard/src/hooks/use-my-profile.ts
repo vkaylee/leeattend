@@ -29,12 +29,13 @@ export interface UseMyProfileReturn {
   updateProfile: (data: UpdateProfileRequest) => Promise<EmployeeProfile>;
 }
 
-export function useMyProfile(): UseMyProfileReturn {
+export function useMyProfile(options: { enabled?: boolean } = {}): UseMyProfileReturn {
   const queryClient = useQueryClient();
 
   const profileQuery = useQuery<MyProfileResponse>({
     queryKey: essKeys.profile(),
     queryFn: fetchMyProfile,
+    enabled: options.enabled ?? true,
     meta: { suppressErrorToast: [403] },
   });
 

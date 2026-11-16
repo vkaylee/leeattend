@@ -29,6 +29,7 @@ export const DESKTOP_WIDGET_REGISTRY: DesktopWidgetDefinition[] = [
     colSpan: "col-span-1",
     icon: Clock,
     component: QuickPunchWidget,
+    permissions: ["ess:clock"],
   },
   {
     id: "today-overview",

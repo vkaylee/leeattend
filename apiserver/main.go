@@ -129,14 +129,24 @@ func main() {
 		logger.Warn("schedule office worker disabled", "error", workerErr)
 	}
 	var hooks []func(context.Context) error
+	reportWorker, reportWorkerErr := repository.NewReportWorker(redisClient, repository.ReportRepository{DB: db})
+	if reportWorkerErr != nil {
+		logger.Warn("report worker disabled", "error", reportWorkerErr)
+	}
 	if officeWorker != nil {
 		hooks = append(hooks, officeWorker.Shutdown)
+	}
+	if reportWorker != nil {
+		hooks = append(hooks, reportWorker.Shutdown)
 	}
 	application := app.New(server, hooks...)
 	ctx, cancel := app.NotifySignals(context.Background())
 	defer cancel()
 	if officeWorker != nil {
 		officeWorker.Start(ctx)
+	}
+	if reportWorker != nil {
+		reportWorker.Start(ctx)
 	}
 
 	if err := application.Run(ctx); err != nil {

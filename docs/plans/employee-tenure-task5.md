@@ -30,10 +30,14 @@ Status: in progress
 - Source audit found no report worker implementation beyond enqueue metadata; export historical snapshot remains blocked.
 - Runtime readers now resolve tenure number and return empty when tenure mapping is absent; legacy employee projection is not used by readers.
 - Signed-file mutation paths now reject delete/version changes and signer endpoint requires authenticated identity; repository/API tests cover signing without file snapshot rewrite.
-- `./leedevkit test api`: PASS on current branch (Go unit, integration phase, format, vet).
-- Focused tenure integration: PASS for historical report old/new number and ambiguous import rejection.
-- Signed-file characterization tests: PASS through API unit gate.
-- Added PostgreSQL integration test `TestIntegrationSignedDocumentCannotBeDeletedOrVersioned`; execution blocked before test start by shared environment (`leeattend-test_apiserver_1` already exists and `test_database` already exists). No container/database cleanup performed because concurrent work may own them.
-- `./leedevkit test web`: FAIL. Current log: 326 unit files passed, 6 failed; E2E 55 passed, 5 failed; typecheck/i18n passed; lint 0 errors with warnings. Report-export E2E failures keep export compatibility unverified.
-- `./scripts/_go-gates.sh --integration --package ./internal/repository`: prior run failed on unrelated payroll/schedule/work-policy tests; focused tenure run passed.
-- Task 5 remains incomplete: active Go report worker is absent, export payload has no immutable tenure snapshot, export E2E fails, and reconciliation aggregate metrics need a target dataset.
+- Current API gate completed successfully: `./leedevkit test api` exit 0; Go unit, integration phase, format, and vet phases selected by LeeDevKit passed. The integration phase emitted no test details in captured output, so this does not replace focused PostgreSQL evidence.
+- Signed-file characterization tests pass through the API unit phase.
+- Added PostgreSQL integration test `TestIntegrationSignedDocumentCannotBeDeletedOrVersioned`; execution remains blocked before test start by shared environment (`leeattend-test_apiserver_1` and `test_database`). Ownership inspection proved active stack mounts `/home/elt1541/lee/leeattend`, not this worktree; no stop/remove/reset performed.
+- Current web evidence: `Unit_Tests_webdashboard.log` reports 326 test files passed and 6 failed, 3014 tests passed and 39 failed; `Integration_&_E2E_playwright-e2e.log` reports 55 passed and 5 failed. Typecheck/i18n and lint phases emitted no failure status, but full web target is failed. Report-export E2E produced `TypeError: Failed to fetch` and failed URL/progress assertions.
+- `./scripts/_go-gates.sh --integration --package ./internal/repository` with a unique project/port was blocked by broken Podman network metadata before test execution; no shared environment cleanup performed.
+- Current source audit confirms request/enqueue only: `AttendanceReport` has no production consumer, report result writer, status transition, or worker startup. Export payload stores request metadata but no immutable tenure/number snapshot.
+- Disposable reconciliation fixture metrics captured before cleanup: employees=7 (2 masked seed rows + 5 documented-role rows), tenure rows=5, pending reconciliation=0, blocked reconciliation=0, affected accounts=5. These are disposable-fixture metrics, not production counts.
+- Redis worker integration test now passes on disposable stack: `TestIntegrationReportWorkerConsumesRedisJobAndStoresResult`; `./scripts/_go-gates.sh --integration --package ./internal/repository --test-pattern ReportWorker` returned `ALL GATES PASSED` after bounded BLPOP shutdown fix.
+- Last safe rollback point remains before first tenure write, per `20261115030000_employee_tenures/down.sql`; after tenure writes, retain history and roll forward.
+- Disposable UI lifecycle execution was blocked by browser network policy: Playwright sessions could not navigate to `127.0.0.1:18082`, `localhost:18082`, or `host.docker.internal:18082` (`ERR_BLOCKED_BY_CLIENT`). No lifecycle mutation was executed.
+- Task 5 remains incomplete: active Go report worker absent, immutable export snapshot absent, export E2E failed, signed-document PostgreSQL execution blocked, and reconciliation metrics unavailable.

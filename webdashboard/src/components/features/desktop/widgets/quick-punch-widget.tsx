@@ -6,6 +6,7 @@ import { useTranslation } from "react-i18next";
 import Button from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
 import { useMyProfile } from "@/hooks/use-ess";
+import { useMyPermissions } from "@/hooks/use-permissions";
 import { useMyClock } from "@/hooks/use-my-attendance";
 import { ROUTES } from "@/lib/routes";
 
@@ -37,9 +38,11 @@ function NoEmployeeState({ t }: { t: ReturnType<typeof useTranslation>["t"] }) {
 export function QuickPunchWidget() {
   const { t } = useTranslation();
   const { success, error } = useToast();
-  const { employee, isLoading: isLoadingProfile } = useMyProfile();
+  const { hasRole } = useMyPermissions();
+  const canUseClock = hasRole("employee");
+  const { employee, isLoading: isLoadingProfile } = useMyProfile({ enabled: canUseClock });
   const { activeEntry, isPunching, punch, isLoading } = useMyClock({
-    enabled: !isLoadingProfile && Boolean(employee?.active_employment_id),
+    enabled: canUseClock && !isLoadingProfile && Boolean(employee?.active_employment_id),
     suppressErrors: true,
   });
   const [currentTime, setCurrentTime] = useState(() => new Date());

@@ -27,6 +27,7 @@ vi.mock("react-i18next", () => ({
 import { Route as InfraRoute } from "../_authenticated/_infra";
 import { Route as AssignmentsRoute } from "../_authenticated/_organization/assignments";
 import { Route as ContractsRoute } from "../_authenticated/_organization/contracts";
+import { Route as EmployeesRoute } from "../_authenticated/_organization/employees";
 import { Route as EmployeeDetailRoute } from "../_authenticated/_organization/employees_.$employeeId";
 import { Route as LifecycleRoute } from "../_authenticated/_organization/lifecycle";
 import { Route as PayrollRoute } from "../_authenticated/_organization/payroll";
@@ -42,6 +43,7 @@ interface RouteOptions {
 
 const settingsBeforeLoad = (SettingsRoute.options as RouteOptions).beforeLoad!;
 const infraBeforeLoad = (InfraRoute.options as RouteOptions).beforeLoad!;
+const employeesBeforeLoad = (EmployeesRoute.options as RouteOptions).beforeLoad!;
 const contractsBeforeLoad = (ContractsRoute.options as RouteOptions).beforeLoad!;
 const personnelHubBeforeLoads = [
   (AssignmentsRoute.options as RouteOptions).beforeLoad!,
@@ -85,6 +87,24 @@ describe("permission route guards", () => {
       isRedirect: true,
       to: "/",
     });
+  });
+
+  it("redirects employees route without employee read permission", async () => {
+    fetchMyPermissions.mockResolvedValue({ permissions: ["ess:attendance"] });
+
+    await expect(employeesBeforeLoad()).rejects.toMatchObject({ isRedirect: true, to: "/" });
+  });
+
+  it("allows employees route with employee read permission", async () => {
+    fetchMyPermissions.mockResolvedValue({ permissions: ["employees:read"] });
+
+    await expect(employeesBeforeLoad()).resolves.toBeUndefined();
+  });
+
+  it("fails closed for employees route when permission lookup fails", async () => {
+    fetchMyPermissions.mockRejectedValue(new Error("permission service unavailable"));
+
+    await expect(employeesBeforeLoad()).rejects.toMatchObject({ isRedirect: true, to: "/" });
   });
 
   it("allows contracts users with contract read permission", async () => {

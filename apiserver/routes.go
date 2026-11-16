@@ -159,7 +159,7 @@ func buildRouter(cfg *config.Config, db repository.DBTX, redisClient *redisinfra
 	workPolicyHandler := &api.WorkPolicyGroupHandler{Repository: workPolicyRepo, Authorizer: organizationAuthorizer, Audit: repository.AuditLogWriter{DB: db}}
 	registerWorkPolicyRoutes(protectedRouter, workPolicyHandler)
 	reportRepo := repository.ReportRepository{DB: db}
-	reportQueue := &repository.RedisReportQueue{Client: redisClient}
+	reportQueue := &repository.RedisReportQueue{Client: redisClient, RequireRedis: true}
 	reportHandler := &api.ReportHandler{Repository: reportRepo, Queue: reportQueue, Authorizer: organizationAuthorizer}
 	registerReportRoutes(protectedRouter, reportHandler)
 	fileRepo := repository.FileRepository{DB: db}

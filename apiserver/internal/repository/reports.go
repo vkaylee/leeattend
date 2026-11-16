@@ -46,6 +46,34 @@ func (r ReportRepository) db(ctx context.Context) (DBTX, error) {
 	return r.DB, nil
 }
 
+func (r ReportRepository) SnapshotExportRequest(ctx context.Context, req api.ExportReportRequest) (api.ExportReportRequest, error) {
+	if len(req.EmployeeIDs) == 0 {
+		return req, nil
+	}
+	db, err := r.db(ctx)
+	if err != nil {
+		return req, err
+	}
+	rows, err := db.Query(ctx, `SELECT t.employee_id, t.employee_number, t.start_date::text, t.end_date::text
+		FROM employee_tenures t
+		WHERE t.employee_id = ANY($1) AND t.deleted_at IS NULL
+		  AND t.start_date <= $3::date AND (t.end_date IS NULL OR t.end_date >= $2::date)
+		ORDER BY t.employee_id, t.start_date, t.id`, req.EmployeeIDs, req.StartDate, req.EndDate)
+	if err != nil {
+		return req, err
+	}
+	defer rows.Close()
+	req.TenureSnapshots = nil
+	for rows.Next() {
+		var snapshot api.ExportTenureSnapshot
+		if err := rows.Scan(&snapshot.EmployeeID, &snapshot.EmployeeNumber, &snapshot.StartDate, &snapshot.EndDate); err != nil {
+			return req, err
+		}
+		req.TenureSnapshots = append(req.TenureSnapshots, snapshot)
+	}
+	return req, rows.Err()
+}
+
 func (r ReportRepository) CreateExportJob(ctx context.Context, job api.ReportJob, req api.ExportReportRequest) error {
 	db, err := r.db(ctx)
 	if err != nil {
@@ -54,10 +82,11 @@ func (r ReportRepository) CreateExportJob(ctx context.Context, job api.ReportJob
 	payload, err := json.Marshal(map[string]any{
 		"job_id": job.JobID,
 		"request": map[string]any{
-			"report_type":  req.ReportType,
-			"start_date":   req.StartDate,
-			"end_date":     req.EndDate,
-			"employee_ids": req.EmployeeIDs,
+			"report_type":      req.ReportType,
+			"start_date":       req.StartDate,
+			"end_date":         req.EndDate,
+			"employee_ids":     req.EmployeeIDs,
+			"tenure_snapshots": req.TenureSnapshots,
 		},
 		"requester_id": job.RequesterID,
 	})
@@ -474,6 +503,7 @@ LIMIT $%d OFFSET $%d`, whereClause, idx, idx+1)
 
 type RedisReportQueue struct {
 	Client          *redisinfra.Client
+	RequireRedis    bool
 	Fallback        sync.Map
 	ResultsFallback sync.Map
 }
@@ -496,23 +526,38 @@ func (q *RedisReportQueue) EnqueueReport(ctx context.Context, job api.ReportJob,
 		return err
 	}
 	q.Fallback.Store(job.JobID.String(), job)
-	if q.Client != nil {
-		shared, err := q.Client.Shared()
-		if err == nil && shared != nil {
-			pipe := shared.TxPipeline()
-			pipe.Set(ctx, redisinfra.KeyReportMeta(job.JobID), encoded, 24*time.Hour)
-			pipe.Set(ctx, fmt.Sprintf("job:metadata:%s", job.JobID.String()), encoded, 24*time.Hour)
-			workerPayload, _ := json.Marshal(map[string]any{
-				"task_type":     "attendance_report",
-				"request_id":    job.JobID.String(),
-				"parent_job_id": job.JobID.String(),
-				"priority":      "high",
-			})
-			pipe.RPush(ctx, "worker:jobs:high", workerPayload)
-			_, _ = pipe.Exec(ctx)
+	if q.Client == nil {
+		if q.RequireRedis {
+			return errors.New("report queue: redis is not configured")
 		}
+		return nil
 	}
-	return nil
+	shared, err := q.Client.Shared()
+	if err != nil || shared == nil {
+		if !q.RequireRedis {
+			return nil
+		}
+		if err == nil {
+			err = errors.New("report queue: redis client is unavailable")
+		}
+		return err
+	}
+	workerPayload, err := json.Marshal(map[string]any{
+		"task_type":     "attendance_report",
+		"request_id":    job.JobID.String(),
+		"parent_job_id": job.JobID.String(),
+		"priority":      "high",
+		"request":       req,
+	})
+	if err != nil {
+		return err
+	}
+	pipe := shared.TxPipeline()
+	pipe.Set(ctx, redisinfra.KeyReportMeta(job.JobID), encoded, 24*time.Hour)
+	pipe.Set(ctx, fmt.Sprintf("job:metadata:%s", job.JobID.String()), encoded, 24*time.Hour)
+	pipe.RPush(ctx, "worker:jobs:high", workerPayload)
+	_, err = pipe.Exec(ctx)
+	return err
 }
 
 func (q *RedisReportQueue) GetReport(ctx context.Context, jobID uuid.UUID) (api.ReportJob, error) {

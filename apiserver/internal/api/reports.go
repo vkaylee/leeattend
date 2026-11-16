@@ -23,11 +23,18 @@ var (
 )
 
 type ExportReportRequest struct {
-	ReportType  string      `json:"report_type"`
-	StartDate   string      `json:"start_date"`
-	EndDate     string      `json:"end_date"`
-	EmployeeIDs []uuid.UUID `json:"employee_ids,omitempty"`
-	Format      string      `json:"format,omitempty"`
+	ReportType      string                 `json:"report_type"`
+	StartDate       string                 `json:"start_date"`
+	EndDate         string                 `json:"end_date"`
+	EmployeeIDs     []uuid.UUID            `json:"employee_ids,omitempty"`
+	Format          string                 `json:"format,omitempty"`
+	TenureSnapshots []ExportTenureSnapshot `json:"tenure_snapshots,omitempty"`
+}
+type ExportTenureSnapshot struct {
+	EmployeeID     uuid.UUID `json:"employee_id"`
+	EmployeeNumber string    `json:"employee_number"`
+	StartDate      string    `json:"start_date"`
+	EndDate        *string   `json:"end_date,omitempty"`
 }
 type ExportJobResponse struct {
 	JobID            uuid.UUID `json:"job_id"`
@@ -172,6 +179,16 @@ func (h *ReportHandler) CreateExport(w http.ResponseWriter, r *http.Request) {
 	job := ReportJob{JobID: uuid.New(), RequesterID: userID, Status: "pending", TotalBatches: 1, CreatedAt: time.Now().UTC()}
 	if len(request.EmployeeIDs) > 50 {
 		job.TotalBatches = (len(request.EmployeeIDs) + 49) / 50
+	}
+	if resolver, ok := h.Repository.(interface {
+		SnapshotExportRequest(context.Context, ExportReportRequest) (ExportReportRequest, error)
+	}); ok {
+		var err error
+		request, err = resolver.SnapshotExportRequest(r.Context(), request)
+		if err != nil {
+			apperror.WriteError(w, r, apperror.Internal(err))
+			return
+		}
 	}
 	if h.Repository == nil || h.Queue == nil || h.Repository.CreateExportJob(r.Context(), job, request) != nil || h.Queue.EnqueueReport(r.Context(), job, request) != nil {
 		apperror.WriteError(w, r, apperror.Internal(errors.New("report export unavailable")))
