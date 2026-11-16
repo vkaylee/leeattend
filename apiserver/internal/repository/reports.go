@@ -298,7 +298,7 @@ LIMIT $%d OFFSET $%d`, whereClause, filterClause, argIndex, argIndex+1)
 		dataArgs = append(dataArgs, *params.EmploymentID)
 		dataArgIndex++
 	}
-	countFilterClause, countArgs, countArgIndex = appendEmployeeStatusFilter(countFilterClause, countArgs, countArgIndex, params.EmployeeStatus)
+	countFilterClause, countArgs, _ = appendEmployeeStatusFilter(countFilterClause, countArgs, countArgIndex, params.EmployeeStatus)
 	dataFilterClause, dataArgs, dataArgIndex = appendEmployeeStatusFilter(dataFilterClause, dataArgs, dataArgIndex, params.EmployeeStatus)
 
 	var total int64
