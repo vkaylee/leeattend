@@ -1198,8 +1198,19 @@ ORDER BY created_at DESC, id DESC`, uuid.UUID(employmentID), year, month)
 	return result, rows.Err()
 }
 
+func hasDuplicatePayrollImpactEmploymentIDs(values []uuid.UUID) bool {
+	seen := make(map[uuid.UUID]struct{}, len(values))
+	for _, value := range values {
+		if _, exists := seen[value]; exists {
+			return true
+		}
+		seen[value] = struct{}{}
+	}
+	return false
+}
+
 func (r PayrollRepository) ComparePayrollImpactBatch(ctx context.Context, req api.PayrollImpactBatchRequest) (api.PayrollImpactBatchResponse, error) {
-	if len(req.EmploymentIDs) == 0 || len(req.EmploymentIDs) > 100 || req.BeforeRunID == uuid.Nil || req.AfterRunID == uuid.Nil || req.BeforeRunID == req.AfterRunID {
+	if len(req.EmploymentIDs) == 0 || len(req.EmploymentIDs) > 100 || hasDuplicatePayrollImpactEmploymentIDs(req.EmploymentIDs) || req.BeforeRunID == uuid.Nil || req.AfterRunID == uuid.Nil || req.BeforeRunID == req.AfterRunID {
 		return api.PayrollImpactBatchResponse{}, api.ErrPayrollImpactValidation
 	}
 	db, err := r.db(ctx)

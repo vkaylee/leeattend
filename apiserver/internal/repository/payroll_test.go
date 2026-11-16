@@ -126,6 +126,20 @@ func TestResolveMonthlyOTQuotaPrefersCanonicalOverLegacy(t *testing.T) {
 	}
 }
 
+func TestComparePayrollImpactBatchRejectsDuplicateEmploymentIDs(t *testing.T) {
+	first, second := uuid.New(), uuid.New()
+	for _, values := range [][]uuid.UUID{{first, first}, {first, second, first}} {
+		_, err := (PayrollRepository{}).ComparePayrollImpactBatch(context.Background(), api.PayrollImpactBatchRequest{
+			EmploymentIDs: values,
+			BeforeRunID:   uuid.New(),
+			AfterRunID:    uuid.New(),
+		})
+		if !errors.Is(err, api.ErrPayrollImpactValidation) {
+			t.Fatalf("duplicate employment IDs %v: error = %v, want validation", values, err)
+		}
+	}
+}
+
 func TestImpactSnapshotStalenessIgnoresLegacySnapshotWithoutPolicy(t *testing.T) {
 	stale, reasons, err := impactSnapshotStaleness(context.Background(), &fakeDBTX{}, ids.EmploymentID(uuid.New()), 2026, 6, []byte(`{"kpi_inputs":{"actual":"1"}}`))
 	if err != nil || stale || len(reasons) != 0 {
