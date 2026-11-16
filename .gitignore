@@ -30,9 +30,8 @@ venv/
 .pytest_cache/
 .mypy_cache/
 
-# Rust
+# Build artifacts
 **/target/
-**/*.rs.bk
 
 # Node / Next.js
 node_modules/
@@ -78,7 +77,6 @@ dbbackup/
 
 # Docker Test Cache
 docker-test-cache/
-/.sqlx
 .migration-squash-work/
 scratch/
 *.txt

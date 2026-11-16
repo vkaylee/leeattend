@@ -8,7 +8,7 @@ import (
 	"github.com/google/uuid"
 )
 
-// TTL Policies matching Rust apiserver constants and inventory
+// TTL policies for Redis-backed state.
 const (
 	TTLZero                 time.Duration = 0
 	TTLAgentPresence        time.Duration = 60 * time.Second

@@ -36,7 +36,7 @@ bun install
 bun run dev
 ```
 
-Set `VITE_API_URL` to the apiserver URL. Build production assets with `bun run build`; Tauri packaging remains optional.
+Set `VITE_API_URL` to the apiserver URL only when deployment does not provide a reverse proxy. Build production assets with `bun run build`.
 
 ## Windows service
 

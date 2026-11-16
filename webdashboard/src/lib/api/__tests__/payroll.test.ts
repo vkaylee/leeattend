@@ -45,6 +45,7 @@ import {
   fetchWorkPolicyReferenceOptions,
   fetchPayrollImpact,
   fetchPayrollImpactBatch,
+  simulatePayroll,
   simulatePayrollWithPolicy,
 } from "../payroll";
 
@@ -119,6 +120,15 @@ describe("payroll API", () => {
     await expect(fetchPayrollImpactBatch({ employment_ids: ["e-1"], year: 2026, month: 6, before_run_id: "r-1", after_run_id: "r-2" })).resolves.toEqual(result);
     expect(vi.mocked(apiFetch).mock.calls[0][0]).toContain("/payroll/impact/batch");
     expect((vi.mocked(apiFetch).mock.calls[0][1] as RequestInit).method).toBe("POST");
+  });
+
+  it("simulates payroll with current policy", async () => {
+    vi.mocked(apiFetch).mockResolvedValueOnce(okRes({ id: "p-1", base_pay_amount: "1000", net_pay_amount: "900" }));
+    await expect(simulatePayroll("employee-1", 2026, 6)).resolves.toMatchObject({ id: "p-1" });
+    const call = vi.mocked(apiFetch).mock.calls[0];
+    expect(call[0]).toContain("/employees/employee-1/simulate-payroll");
+    expect(call[0]).not.toContain("policy_version_id");
+    expect((call[1] as RequestInit).method).toBe("POST");
   });
 
   it("simulates payroll with selected policy version", async () => {

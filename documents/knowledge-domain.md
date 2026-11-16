@@ -74,7 +74,7 @@ Configurable leave types (annual, sick, unpaid) with accrual rules, seniority bo
 
 ## Database Schema
 
-**Engine**: PostgreSQL 15+ via SQLx (compile-time verified)
+**Engine**: PostgreSQL 15+ via Go `pgx` and typed SQL
 
 **Migration count**: 89 migration files (incremental schema evolution)
 

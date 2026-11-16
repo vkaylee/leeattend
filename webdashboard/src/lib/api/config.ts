@@ -1,12 +1,8 @@
-// VITE_API_URL: Full API base URL including /api prefix
-// Examples:
-//   Dev container:   http://apiserver:3000/api  (only used for Vite proxy target)
-//   Standalone EXE:  http://127.0.0.1:3003/api  (frontend calls directly)
-//   Tauri App:       http://localhost:3000/api   (frontend calls directly)
+// VITE_API_URL: Full API base URL including /api prefix.
 const BASE_URL_FROM_ENV: string | undefined = (import.meta.env.VITE_API_URL as string | undefined)?.replace(/\/$/, "");
 
-// Dev mode: Vite proxy handles /api → apiserver, so frontend just uses "/api"
-// Production/Tauri: No proxy, use VITE_API_URL directly (must include /api)
+// Dev mode: Vite proxy handles /api → apiserver, so frontend just uses "/api".
+// Production: use VITE_API_URL directly when no reverse proxy exists.
 export const API_BASE_URL: string = import.meta.env.DEV
   ? "/api"
   : (BASE_URL_FROM_ENV ?? "/api");

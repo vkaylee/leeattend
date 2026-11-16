@@ -15,7 +15,7 @@ Remove `/system/tenants` and `/system/roles` completely from the standalone prod
 ## Implementation status
 
 - Completed: standalone authorization replacement, backend system-role removal, frontend route/navigation removal, migration/rollback documentation, active environment cleanup, security audit, migration fixture validation, and canonical Go gates.
-- Blocked: source OpenAPI artifact is absent, so generated TypeScript contracts cannot be regenerated safely; frontend lint/E2E and full LeeDevKit API gates fail on pre-existing dashboard/Rust-toolchain issues unrelated to removed SaaS surfaces.
+- Blocked: source OpenAPI artifact is absent, so generated TypeScript contracts cannot be regenerated safely; frontend lint/E2E and full LeeDevKit API gates have unrelated pre-existing failures.
 
 
 ### Phase 0 — Contract and inventory
@@ -57,7 +57,7 @@ Remove `/system/tenants` and `/system/roles` completely from the standalone prod
 ### Phase 6 — Repository-wide cleanup and verification
 - [x] Search for and classify all remaining `system/tenants`, `system/roles`, `system_roles`, `user_system_roles`, `platform_admin`, `billing_admin`, and `support` references.
 - [x] Remove obsolete files, translations, fixtures, snapshots, comments, and dead exports while preserving legitimate generic role/admin concepts.
-- [ ] Run backend unit/integration and frontend unit/integration/E2E suites using LeeDevKit wrappers. **Blocked:** Rust compatibility jobs lack `cargo`; frontend lint/unit/E2E have unrelated existing failures.
+- [ ] Run backend unit/integration and frontend unit/integration/E2E suites using LeeDevKit wrappers. **Blocked:** frontend lint/unit/E2E have unrelated existing failures.
 - [x] Run generated-contract, migration, authorization, security, and standalone smoke checks; record exact results, warnings, skipped checks, and residual risks.
 
 ## Test impact matrix
@@ -73,4 +73,4 @@ Remove `/system/tenants` and `/system/roles` completely from the standalone prod
 - [ ] No supported source, generated contract, runtime, test, fixture, or documentation reference exposes the removed tenant/platform-role surfaces. **Blocked:** frozen generated TypeScript and historical migration evidence retain legacy references.
 - [x] Retained system routes authorize standalone organization admins and deny all other identities or authorization failures.
 - [x] Clean and existing database migration/bootstrap paths preserve admin access and pass reconciliation.
-- [ ] Applicable LeeDevKit frontend, backend, integration, E2E, contract, migration, authorization, security, and standalone checks pass. **Blocked:** frontend/Rust/OpenAPI prerequisites documented above.
+- [ ] Applicable LeeDevKit frontend, backend, integration, E2E, contract, migration, authorization, security, and standalone checks pass. **Blocked:** frontend/OpenAPI prerequisites documented above.

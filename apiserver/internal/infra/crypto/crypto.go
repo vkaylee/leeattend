@@ -22,7 +22,7 @@ var (
 	ErrInvalidKeyLength = errors.New("crypto: invalid key length")
 )
 
-// Service provides AES-256-GCM encryption and decryption with key rotation matching Rust CryptoService.
+// Service provides AES-256-GCM encryption and decryption with key rotation.
 type Service struct {
 	keys        map[string][]byte
 	activeKeyID string

@@ -765,6 +765,16 @@ func TestPayrollSettingsEndpoints(t *testing.T) {
 		t.Fatalf("expected 403, got %d: %s", rec.Code, rec.Body.String())
 	}
 
+	// 1d. PATCH /payroll-settings requires payroll:manage even for members.
+	memberOnlyHandler := PayrollHandler{Repository: mockPayrollRepository{}, Authorizer: payrollAuthorizer{isMember: true, allowedPerms: map[string]bool{"payroll:manage": false}}}
+	req = httptest.NewRequest(http.MethodPatch, "/api/v1/payroll-settings", bytes.NewBufferString(`{"fixed_std_days":"25","effective_date":"2026-06-01"}`))
+	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
+	rec = httptest.NewRecorder()
+	memberOnlyHandler.UpdatePayrollSettings(rec, req)
+	if rec.Code != http.StatusForbidden {
+		t.Fatalf("expected 403 for member without payroll:manage, got %d", rec.Code)
+	}
+
 	// 2. PATCH /payroll-settings (200 OK)
 	patchBody := `{"std_working_day_mode":"custom","fixed_std_days":"25","effective_date":"2026-06-01"}`
 	req = httptest.NewRequest(http.MethodPatch, "/api/v1/payroll-settings", bytes.NewBufferString(patchBody))
@@ -840,8 +850,19 @@ func TestEmployeePayrollConfigEndpoints(t *testing.T) {
 		t.Fatalf("expected 400, got %d: %s", rec.Code, rec.Body.String())
 	}
 
-	// 5. POST /employees/{id}/payroll-config (201 Created)
+	// 4d. POST /employees/{id}/payroll-config requires payroll:manage even for members.
+	memberOnlyHandler := PayrollHandler{Repository: mockPayrollRepository{}, Authorizer: payrollAuthorizer{isMember: true, allowedPerms: map[string]bool{"payroll:manage": false}}}
 	createBody := `{"std_working_days":"22","hours_per_day":"8","effective_date":"2026-06-01"}`
+	req = httptest.NewRequest(http.MethodPost, "/api/v1/employees/"+validEmpID.String()+"/payroll-config", bytes.NewBufferString(createBody))
+	req.SetPathValue("id", validEmpID.String())
+	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
+	rec = httptest.NewRecorder()
+	memberOnlyHandler.SetEmployeePayrollConfig(rec, req)
+	if rec.Code != http.StatusForbidden {
+		t.Fatalf("expected 403 for member without payroll:manage, got %d", rec.Code)
+	}
+
+	// 5. POST /employees/{id}/payroll-config (201 Created)
 	req = httptest.NewRequest(http.MethodPost, "/api/v1/employees/"+validEmpID.String()+"/payroll-config", bytes.NewBufferString(createBody))
 	req.SetPathValue("id", validEmpID.String())
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))

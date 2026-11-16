@@ -6,7 +6,7 @@
 |---|---|
 | **Workspace** | An isolated tenant/organization unit. All data is scoped to a workspace. Equivalent to a company or branch. |
 | **Employee** | A staff member tracked in the attendance system. May or may not have a user account for self-service. |
-| **Agent** | An on-premise Rust application that communicates with ZKTeco devices and syncs data to the central API server. |
+| **Agent** | An on-premise attendance connector that communicates with ZKTeco devices and syncs data to the central API server. |
 | **Device** | A ZKTeco biometric attendance machine (fingerprint, face recognition, or card) used for punch-in/punch-out. |
 
 ## Attendance Terms
@@ -75,11 +75,6 @@
 
 | Term | Definition |
 |---|---|
-| **sqlx** | Rust SQL toolkit with compile-time query verification against a live PostgreSQL database. |
-| **Axum** | Async Rust web framework used for the API server. |
-| **rustzk** | Rust library for ZKTeco device communication (TCP/UDP protocol). |
-| **Moka** | In-memory caching library for Rust (async-compatible). |
-| **Tauri** | Framework for building cross-platform desktop apps with web technologies (used for the web dashboard). |
 
 ## Status Values
 

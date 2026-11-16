@@ -391,6 +391,13 @@ export async function fetchPayrollImpactBatch(data: { employment_ids: string[]; 
   return response;
 }
 
+export async function simulatePayroll(employeeId: string, year: number, month: number): Promise<Payslip> {
+  const { data: response } = await client.POST<Payslip>("/api/v1/employees/{id}/simulate-payroll", {
+    params: { path: { id: employeeId }, query: { year, month } },
+  });
+  return response;
+}
+
 export async function simulatePayrollWithPolicy(employeeId: string, year: number, month: number, policyVersionId: string): Promise<Payslip> {
   const { data: response } = await client.POST<Payslip>("/api/v1/employees/{id}/simulate-payroll", {
     params: { path: { id: employeeId }, query: { year, month, policy_version_id: policyVersionId } },

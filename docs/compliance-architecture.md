@@ -49,7 +49,7 @@ The compliance posture was upgraded from a developer-centric codebase (**58/100*
 
 ### 6. Operations & Infrastructure
 - **Business Continuity:** DB RPO is set to <15 mins, RTO is <1 hour. Daily automated backups are encrypted and stored multi-region.
-- **Supply Chain Security:** Automated daily vulnerability scanning (`cargo audit`, `npm audit`). Requires SBOM metadata for Docker packages.
+- **Supply Chain Security:** Automated vulnerability scanning (`govulncheck`, `npm audit`). Requires SBOM metadata for Docker packages.
 - **Observability:** Centralized JSON logging structure. Alerting is configured on P0/P1 error metrics.
 
 ---

@@ -7,7 +7,7 @@ import (
 	"strings"
 )
 
-// ErrorCode is the canonical wire error code string matching Rust AppError.
+// ErrorCode is the canonical wire error code string.
 type ErrorCode string
 
 const (
@@ -117,7 +117,7 @@ const (
 	KeyComplianceOverrideRequired = "error.compliance_override_required"
 )
 
-// AppError is the canonical application error type matching Rust AppError.
+// AppError is the canonical application error type.
 type AppError struct {
 	Code        ErrorCode         `json:"-"`
 	Status      int               `json:"-"`
@@ -364,7 +364,7 @@ func Template(err error) *AppError {
 	}
 }
 
-// ponytail: in-memory translation table matches 152 static keys in Rust utils/i18n.rs. Upgrade to dynamic catalog if runtime localization bundles needed.
+// ponytail: in-memory translation table covers current static keys. Upgrade to dynamic catalog if runtime localization bundles are needed.
 type translationEntry struct {
 	en string
 	vi string

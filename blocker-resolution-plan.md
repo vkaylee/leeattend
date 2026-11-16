@@ -3,10 +3,10 @@
 Status: Awaiting approval
 
 ## Goal
-Make standalone cutover verifiable end-to-end by restoring a trustworthy API contract pipeline, fixing frontend quality gates, and removing stale Rust-only test orchestration without weakening assertions or hiding failures.
+Make standalone cutover verifiable end-to-end by restoring a trustworthy API contract pipeline and fixing frontend quality gates without weakening assertions or hiding failures.
 
 ## Constraints and interfaces
-- Go is the only active API runtime; Rust is archival and MUST NOT remain a required verification dependency.
+- Go is the only active API runtime and all verification must use current Go/web targets.
 - `webdashboard/src/types/api-generated.ts` is generated and MUST NOT be hand-edited.
 - API contract removal is breaking. Contract source, generated clients, compatibility evidence, and consumer tests MUST move together under approved change control.
 - Existing failing tests MUST be fixed at their root cause; no skips, retries, warning suppression, or weakened assertions.
@@ -25,14 +25,14 @@ Make standalone cutover verifiable end-to-end by restoring a trustworthy API con
 
 - [ ] **Diagnose and fix E2E failures by failure cluster.** First reproduce dashboard, responsive, branding, and overtime groups separately with traces/error contexts. Check shared bootstrap/API mocks, viewport breakpoints, route readiness, and state isolation before changing product code. Fix the shared root cause, then repair individual flow contracts. Address the test image’s missing `git` only if it affects version/build behavior. Verify all E2E projects, including retries disabled during diagnosis.
 
-- [ ] **Remove stale Rust test orchestration.** Trace `rust-backend`, `cargo`, `db_system`, and integration healthcheck phases to their LeeDevKit/compose source. Update the active API test target to run Go lint/unit/integration gates with PostgreSQL/Redis migrations, not archival Rust jobs. Keep historical Rust evidence outside the active gate. Verify `./leedevkit test api` and `./leedevkit test all` execute the intended services and fail on real Go/API regressions.
+- [ ] **Verify current test orchestration.** Trace API, database, Redis, and integration healthcheck phases to their LeeDevKit/compose source. Verify `./leedevkit test api` and `./leedevkit test all` execute intended services and fail on real regressions.
 
 - [ ] **Run final cross-surface verification and review.** Run security audit, migration fixture validation, canonical Go gates, frontend lint/typecheck/unit/build, E2E, contract generation/validation, compose validation, and standalone smoke checks. Review the complete diff for generated artifacts, secrets, stale routes, and accidental warning suppression. Obtain required code review before merge.
 
 ## Test impact matrix
-- Changed behavior: generated API contract removes obsolete control-plane operations; frontend tests and E2E harness become reliable; active API gate switches from Rust compatibility jobs to Go.
+- Changed behavior: generated API contract removes obsolete control-plane operations; frontend tests and E2E harness become reliable; active API gate uses current Go/web targets.
 - Existing behavior: retained SMTP, health, monitor, organization-admin RBAC, dashboard, responsive navigation, branding, and overtime flows remain unchanged.
-- Boundaries: missing OpenAPI source, generated drift, missing mock response methods, absent mocked namespace, viewport-specific layout, stale auth/API state, missing database/Redis readiness, and unavailable Rust tooling.
+- Boundaries: missing OpenAPI source, generated drift, missing mock response methods, absent mocked namespace, viewport-specific layout, stale auth/API state, and missing database/Redis readiness.
 - Failures: generator mismatch, contract incompatibility, lint accessibility violations, API mock failures, browser startup/build failure, migration/healthcheck timeout, and real Go integration regression.
 - Security: no bypass, no raw secrets in logs or fixtures, retained authorization negative paths remain enforced.
 - Compatibility: removed API paths are an approved breaking change; generated clients and migration documentation must agree.
@@ -41,7 +41,7 @@ Make standalone cutover verifiable end-to-end by restoring a trustworthy API con
 ## Done when
 - [ ] Current OpenAPI source is identified and generated contract no longer exposes removed control-plane paths, or an explicit maintainer-approved source decision blocks implementation.
 - [ ] Frontend lint has zero errors; typecheck, unit tests, build, and E2E pass.
-- [ ] Go/API full gate runs without Rust-only jobs and passes unit/integration verification.
+- [ ] Go/API full gate passes unit/integration verification.
 - [ ] Existing standalone security, migration, authorization, and Go gates remain green.
 - [ ] No generated files are hand-edited, no tests are weakened/skipped, and final diff receives required review.
 

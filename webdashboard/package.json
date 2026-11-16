@@ -21,7 +21,6 @@
     "test": "NODE_OPTIONS='--experimental-require-module' vitest run",
     "test:coverage": "NODE_OPTIONS='--experimental-require-module' vitest run --coverage",
     "test:e2e": "PLAYWRIGHT_TEST=true npx playwright test",
-    "tauri": "tauri",
     "gen-template": "node generate_template.cjs",
     "gen-api": "bunx openapi-typescript openapi.json -o src/types/api-generated.ts"
   },
@@ -67,7 +66,6 @@
     "@playwright/test": "^1.57.0",
     "@tailwindcss/postcss": "^4",
     "@tanstack/router-vite-plugin": "^1.166.42",
-    "@tauri-apps/cli": "^2.9.6",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.1",
     "@testing-library/user-event": "^14.6.1",

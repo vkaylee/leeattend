@@ -11,7 +11,7 @@ import (
 	"github.com/vkaylee/leeattend/apiserver/internal/domain/compliance"
 )
 
-// patternComplianceValidator mirrors rust check_pattern_compliance:
+// patternComplianceValidator validates schedule pattern compliance:
 // expand assignment dates, map each date to a 1-indexed schedule day, group by
 // shift id, then validate each group against organization compliance rules.
 func patternComplianceValidator(ctx context.Context, db DBTX, employmentID uuid.UUID, req api.AssignPatternRequest) error {

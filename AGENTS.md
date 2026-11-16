@@ -9,7 +9,7 @@ trigger: always_on
 <project_soul>
 **LeeAttend** is an Enterprise-Grade Premium Pro Max HRM & Attendance system.
 - **Architecture:** Go 1.26+ `net/http` API backend + React/Vite/TypeScript SPA frontend.
-- **Runtime:** PostgreSQL, Redis, and MinIO support the Go API and React dashboard. Rust is historical migration context only, not an active LeeAttend runtime component.
+- **Runtime:** PostgreSQL, Redis, and MinIO support the Go API and React dashboard.
 - **Security:** Total PII masking. Zero hardcoded secrets. Strict Hermetic containerized execution.
 - **Mindset:** Project Context is King. External skills serve the project, not the other way around. Leave the codebase cleaner than you found it (Boy Scout).
 </project_soul>
@@ -156,7 +156,6 @@ Run `./leedevkit --help` for available project commands.
 | `powershell-windows` | PowerShell Windows patterns. Critical pitfalls, operator syntax, error handling. | `.leedevkit/.agent/skills/powershell-windows/SKILL.md` |
 | `python-patterns` | Python development principles and decision-making. Framework selection, async patterns, type hints, project structure. Teaches thinking, not copying. | `.leedevkit/.agent/skills/python-patterns/SKILL.md` |
 | `red-team-tactics` | Red team tactics principles based on MITRE ATT&CK. Attack phases, detection evasion, reporting. | `.leedevkit/.agent/skills/red-team-tactics/SKILL.md` |
-| `rust-pro` | Master Rust 1.75+ with modern async patterns, advanced type system features, production-ready systems programming, Tokio, axum, and cutting-edge crates. Use proactively for Rust development, performance optimization, or systems programming. | `.leedevkit/.agent/skills/rust-pro/SKILL.md` |
 | `seo-fundamentals` | SEO fundamentals, E-E-A-T, Core Web Vitals, and Google algorithm principles. | `.leedevkit/.agent/skills/seo-fundamentals/SKILL.md` |
 | `server-management` | Server management principles and decision-making. Process management, monitoring strategy, and scaling decisions. Teaches thinking, not commands. | `.leedevkit/.agent/skills/server-management/SKILL.md` |
 | `systematic-debugging` | 4-phase systematic debugging methodology with root cause analysis and evidence-based verification. Use when debugging complex issues. | `.leedevkit/.agent/skills/systematic-debugging/SKILL.md` |

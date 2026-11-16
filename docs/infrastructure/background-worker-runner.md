@@ -15,7 +15,7 @@ LeeAttend employs a distributed, asynchronous job-processing pipeline built arou
                                       │ (HTTP POST)
                                       ▼
                         ┌───────────────────────────┐
-                        │      apiserver (Axum)     │
+                        │      apiserver (Go)       │
                         └─────────────┬─────────────┘
                                       │
                ┌──────────────────────┴──────────────────────┐
@@ -43,19 +43,19 @@ LeeAttend employs a distributed, asynchronous job-processing pipeline built arou
 ## 2. Core Components
 
 ### 2.1. `ReportCoordinator`
-- **Location**: [`report_coordinator.rs`](file:///home/elt1541/lee/leeattend/apiserver/src/services/report_coordinator.rs)
+- **Location**: `apiserver/internal/service` report coordination package
 - **Role**: Coordinates distributed jobs, generates metadata, and splits large datasets into manageable micro-batches.
 - **Batching**: Splits massive operations (e.g., generating attendance reports for 7,000+ employees) into micro-batches of `BATCH_SIZE = 50`. Each batch handles up to 50 employees, which keeps peak memory consumption within a safe ~50MB limit per container.
 
 ### 2.2. `OutboxJobService`
-- **Location**: [`outbox_job_service.rs`](file:///home/elt1541/lee/leeattend/apiserver/src/services/outbox_job_service.rs)
+- **Location**: `apiserver/internal/service` outbox job service
 - **Role**: Standardized API for managing Postgres-persisted background jobs.
 - **Outbox Pattern**: Before enqueuing any job payload into Redis, the service writes the job's parameters and states directly to the PostgreSQL `outbox_jobs` table. This guarantees that jobs are never lost in case of a Redis failover or worker crash.
 
 ### 2.3. `JobWorker` (Runner)
-- **Location**: [`runner.rs`](file:///home/elt1541/lee/leeattend/apiserver/src/worker/runner.rs)
+- **Location**: `apiserver/internal/worker` runner package
 - **Role**: The main worker engine. It polls Redis queues using cancellation-aware asynchronous `BLPOP` loops, dynamically routes tasks to their corresponding handlers, and updates status metrics.
-- **Concurrency**: Governed by a `tokio::sync::Semaphore` to cap concurrent execution threads and protect workers from out-of-memory (OOM) crashes.
+- **Concurrency**: Governed by a bounded worker pool to cap concurrent execution and protect workers from out-of-memory (OOM) crashes.
 
 ### 2.4. `OutboxSweepScheduler`
 - **Location**: [`outbox_sweep.rs`](file:///home/elt1541/lee/leeattend/apiserver/src/worker/outbox_sweep.rs)
@@ -104,7 +104,7 @@ To ensure 100% execution guarantees, the background worker relies on a dual-data
 ## 4. Worker Configuration & Concurrency Control
 
 ### 4.1. Concurrency Management
-Each worker process uses a `tokio::sync::Semaphore` to limit concurrent job handling.
+Each worker process uses a bounded semaphore or worker-pool limit to control concurrent job handling.
 - **Permit Acquisition**: The worker loop acquires a permit from the semaphore *before* polling a job from Redis. If the maximum concurrency is reached, the worker suspends polling until in-flight jobs complete and release permits.
 - **Graceful Shutdown**: On cancellation signals, the runner attempts to acquire all permits to guarantee that all in-flight jobs complete safely before exiting.
 

@@ -19,7 +19,6 @@
 | F13 | Assignment Rules | ✅ Live | `assignment_rules`, `rule_evaluator` |
 | F14 | Department Management | ✅ Live | `employees` |
 | F15 | Dashboard | ✅ Live | `DashboardPage` |
-| F16 | Desktop App (Tauri) | ⚠️ WIP | `webdashboard/tauri` |
 
 ---
 

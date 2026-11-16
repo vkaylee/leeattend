@@ -17,7 +17,7 @@ type OpenAPIContract struct {
 	ExpectedHash string
 }
 
-// ValidateOpenAPIArtifact hashes artifact and compares it to expected Rust/frontend baseline.
+// ValidateOpenAPIArtifact hashes artifact and compares it to the expected frontend baseline.
 // Missing artifacts and hashes fail closed; no schema is silently regenerated.
 func ValidateOpenAPIArtifact(contract OpenAPIContract) error {
 	if contract.ArtifactPath == "" || contract.ExpectedHash == "" {

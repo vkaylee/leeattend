@@ -33,7 +33,7 @@ var (
 )
 
 // Claims identifies an authenticated user and token lifetime.
-// ponytail: HMAC-SHA256 symmetric secret matches Rust apiserver. Upgrade to RS256/EdDSA asymmetric keys if public key verification needed without sharing secret.
+// ponytail: HMAC-SHA256 is current symmetric token signing. Upgrade to RS256/EdDSA if public-key verification is needed without sharing a secret.
 type Claims struct {
 	jwt.RegisteredClaims
 }

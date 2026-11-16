@@ -4,7 +4,7 @@ import (
 	"strings"
 )
 
-// MaskEmail masks email addresses according to the Rust reference implementation.
+// MaskEmail masks email addresses before logging.
 //
 // If valid email with local and domain parts:
 //   - local len <= 2: "***@domain"
@@ -38,7 +38,7 @@ func MaskEmail(email string) string {
 	return maskedLocal + "@" + domainPart
 }
 
-// MaskPhone masks phone numbers according to the Rust reference implementation.
+// MaskPhone masks phone numbers before logging.
 //
 // If len <= 6: "***"
 // Otherwise: first 3 chars + (len-6) '*' + last 3 chars.
@@ -53,7 +53,7 @@ func MaskPhone(phone string) string {
 	return first + stars + last
 }
 
-// MaskBankAccount masks bank accounts or account numbers according to the Rust reference implementation.
+// MaskBankAccount masks bank accounts or account numbers before logging.
 //
 // If len <= 4: "****"
 // Otherwise: (len-4) '*' + last 4 chars.
@@ -69,7 +69,7 @@ func MaskBankAccount(account string) string {
 
 // MaskPIIValue applies centralized classification-safe field masking based on field key.
 //
-// Matches Rust apiserver/src/utils/logging.rs:15-35:
+// Applies centralized PII masking to logging attributes:
 //   - Contains "email" -> MaskEmail
 //   - Contains "phone" -> MaskPhone
 //   - Contains "bank_account" or "account_number" -> MaskBankAccount

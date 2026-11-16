@@ -8179,7 +8179,7 @@ export interface components {
             workspace_id: string;
         };
         /**
-         * @description Diesel entity for `shift_default_intervals`.
+         * @description Shift interval entity for `shift_default_intervals`.
          *     FK changed from `shift_id` (→ shifts.id) to `version_id` (→ shift_versions.id).
          */
         ShiftDefaultIntervalEntity: {

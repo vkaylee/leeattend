@@ -71,8 +71,8 @@ LeeAttend processes employee attendance, personal information, and payroll data 
 | Control | Status |
 |---|---|
 | Automated testing | ✅ CI via Docker containers |
-| Compile-time verification | ✅ sqlx macros, Rust strict linting |
-| Code quality | ✅ `warnings = deny`, `unwrap_used = deny` |
+| Compile-time verification | ✅ Go compiler, `go vet`, static analysis |
+| Code quality | ✅ `gofmt`, `go vet`, `golangci-lint` |
 | Integration tests | ✅ Holiday CRUD, reports, OT, attendance |
 | Change management | ✅ 89 versioned DB migrations |
 

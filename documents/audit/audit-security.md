@@ -41,33 +41,32 @@ LeeAttend implements a multi-tier security architecture with JWT authentication,
 
 | Area | Validation |
 |---|---|
-| Request body | Axum extractors with `serde` deserialization |
-| SQL queries | Compile-time verified via `sqlx::query!` macros — SQL injection not possible |
-| Path parameters | UUID parsing at extractor level |
-| Date inputs | `NaiveDate`/`DateTime` parsing via `chrono` |
+| Request body | Go JSON decoding with explicit validation |
+| SQL queries | Parameterized `pgx` queries and repository validation |
+| Path parameters | UUID parsing at handler boundary |
+| Date inputs | Explicit Go time parsing and domain validation |
 
 ### Findings
 
 - **SEC-004** (Low): No explicit rate limiting on authentication endpoints
-- **SEC-005** (Info): `sqlx::query!` compile-time verification eliminates SQL injection risk entirely
+- **SEC-005** (Info): Parameterized repository queries reduce injection risk; continue boundary and integration testing
 
 ## Infrastructure Security
 
 | Control | Status |
 |---|---|
 | HTTPS | ⚠️ Depends on deployment (Nginx/reverse proxy) |
-| CORS | ✅ Configured via `tower_http::cors` |
-| Database connections | ✅ Connection pool via `sqlx::PgPool` |
+| CORS | ✅ Configured in Go HTTP middleware |
+| Database connections | ✅ Connection pool via `pgxpool` |
 | Redis | ⚠️ Connection without TLS in dev mode |
 | Docker isolation | ✅ All services containerized |
 | Secret management | ⚠️ Environment variables (`.env` file) |
 
 ## Dependency Security
 
-### Rust Dependencies
-- All dependencies from crates.io (trusted registry)
-- `clippy::unwrap_used = "deny"` prevents panic-causing unwraps in production
-- `warnings = "deny"` enforces clean compilation
+### Go Dependencies
+- Dependencies are pinned in `apiserver/go.mod` and `apiserver/go.sum`.
+- CI runs formatting, vet, static analysis, vulnerability scanning, and module verification.
 
 ### Frontend Dependencies
 - React 19 (latest stable)
@@ -80,11 +79,11 @@ LeeAttend implements a multi-tier security architecture with JWT authentication,
 |---|---|---|
 | A01: Broken Access Control | Low | RBAC implemented, workspace isolation |
 | A02: Cryptographic Failures | Low | bcrypt for passwords, JWT for tokens |
-| A03: Injection | None | Compile-time SQL verification |
+| A03: Injection | Low | Parameterized SQL and input validation |
 | A04: Insecure Design | Low | Layered architecture, input validation |
 | A05: Security Misconfiguration | Medium | Dev mode bypass needs production hardening |
 | A06: Vulnerable Components | Low | Up-to-date dependencies |
 | A07: Auth Failures | Low | JWT with refresh, bcrypt hashing |
-| A08: Data Integrity | Low | sqlx compile-time checks |
+| A08: Data Integrity | Low | Typed Go repositories, transactions, and database constraints |
 | A09: Logging & Monitoring | Medium | Basic tracing, needs audit logging |
 | A10: SSRF | Low | No user-controlled URL fetching |

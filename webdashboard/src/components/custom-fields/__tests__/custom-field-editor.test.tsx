@@ -162,7 +162,7 @@ describe("CustomFieldEditor", () => {
         field_label: "Skills",
         field_key: "skills",
         options: [
-          { value: "rust", label: "Rust" },
+          { value: "go", label: "Go" },
           { value: "ts", label: "TypeScript" },
         ],
       });

@@ -2,8 +2,6 @@
 
 Central high-performance API server for LeeAttend, built with Go 1.26+, `github.com/go-chi/chi/v5`, `oapi-codegen` strict server, `pgx/v5` connection pool, and `sqlc`.
 
-> **Migration Note:** Migrated from Rust/Axum to Go in October 2026 (Phase 9 Production Cutover complete). Legacy Rust source in `src/` and `Cargo.toml` is decommissioned and retained for archival reference only. Database schema migrations in `migrations/` remain active.
-
 ### Prerequisites
 
 - **Go 1.26+**: Install via [golang.org](https://go.dev/)

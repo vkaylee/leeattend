@@ -1,53 +1,43 @@
 # LeeAttend Web Dashboard
 
-A centralized management dashboard for the LeeAttend system, built with React + Vite + Tailwind CSS and integrated with Tauri for desktop application packaging.
+Centralized management dashboard for LeeAttend, built with React, Vite, and Tailwind CSS.
 
 ## Technology Stack
 
-- **React 19**: The core UI library.
-- **Vite**: Extremely fast build tool and dev server.
-- **React Router 7**: SPA navigation management.
-- **Tailwind CSS 4**: Utility-first CSS framework.
-- **Lucide React**: Beautiful icon set.
-- **TanStack Query**: Server state and caching management.
-- **Tauri**: Rust-based desktop application packaging.
+- React 19
+- Vite
+- React Router 7
+- Tailwind CSS 4
+- Lucide React
+- TanStack Query
 
 ## Development Guide
 
-### 1. Installation
+### Installation
 
 ```bash
-npm install
+bun install
 ```
 
-### 2. Configuration
+### Configuration
 
-Copy the `.env.example` file to `.env.local` and adjust `VITE_API_URL` to point to the address of the API Server (default is `http://localhost:3000`).
+Copy `.env.example` to `.env.local` and set `VITE_API_URL` only when deployment does not provide a reverse proxy.
 
-### 3. Run Development Environment
+### Run Development Environment
 
 ```bash
-# Run web dashboard in the browser (default port 1420)
-npm run dev
-
-# Run Desktop application (Tauri)
-npm run tauri dev
+bun run dev
 ```
 
-### 4. Build Application
+### Build Application
 
 ```bash
-# Build static web
-npm run build
-
-# Build Desktop application (Tauri)
-npm run tauri build
+bun run build
 ```
 
 ## Directory Structure
 
-- `src/app.tsx`: Main Router and Layout configuration.
-- `src/pages/`: Pages (Dashboard, Agents, Devices, etc.).
+- `src/app.tsx`: Main router and layout configuration.
+- `src/pages/`: Application pages.
 - `src/components/`: Shared components.
-- `src/lib/api.ts`: API call functions to apiserver.
-- `src-tauri/`: Rust source code for the Desktop application.
+- `src/lib/api.ts`: API client functions for `apiserver`.

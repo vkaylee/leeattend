@@ -12,7 +12,7 @@ Internet → Caddy → Go API (:3000) → PostgreSQL / Redis / MinIO
                     └──────────────→ React/Vite dashboard
 ```
 
-LeeAttend has one active API runtime. Rust migration material is historical evidence under `docs/migration/rust-go/` and is not a deployment target.
+LeeAttend has one active API runtime: the Go `apiserver`. Retired implementation archives are not deployment targets.
 
 ## 2. Staging deployment
 

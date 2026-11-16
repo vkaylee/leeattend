@@ -23,6 +23,7 @@ vi.mock("@/lib/api/payroll", () => ({
   fetchWorkPolicyReferenceOptions: vi.fn(),
   validateWorkPolicyGroupVersion: vi.fn(),
   fetchPayrollImpactBatch: vi.fn(),
+  simulatePayroll: vi.fn(),
   simulatePayrollWithPolicy: vi.fn(),
 }));
 
@@ -53,6 +54,8 @@ describe("PayrollSettingsSection", () => {
     vi.mocked(api.fetchWorkPolicyGroupHistory).mockResolvedValue([]);
     vi.mocked(api.fetchWorkPolicyMemberships).mockResolvedValue([]);
     vi.mocked(api.fetchWorkPolicyReferenceOptions).mockResolvedValue({ attendance: [], patterns: [], overtime: [], salaryComponents: [] });
+    vi.mocked(api.simulatePayroll).mockResolvedValue({ base_pay_amount: "100", net_pay_amount: "90" } as never);
+    vi.mocked(api.simulatePayrollWithPolicy).mockResolvedValue({ base_pay_amount: "110", net_pay_amount: "99" } as never);
   });
 
   const renderWithProviders = (ui: React.ReactElement) => {
@@ -64,6 +67,27 @@ describe("PayrollSettingsSection", () => {
       </QueryClientProvider>
     );
   };
+
+  it("shows current and draft simulation results from same period", async () => {
+    vi.mocked(api.fetchWorkPolicyGroups).mockResolvedValue([{
+      id: "v-1", group_id: "g-1", name: "Operations", attendance_policy_id: "attendance-1",
+      working_pattern_id: "pattern-1", overtime_policy_id: "overtime-1", minutes_per_credit: 480,
+      pay_method: "monthly", effective_from: "2026-01-01",
+    }]);
+    vi.mocked(api.fetchWorkPolicyGroupHistory).mockResolvedValue([{
+      id: "v-1", group_id: "g-1", name: "Operations", attendance_policy_id: "attendance-1",
+      working_pattern_id: "pattern-1", overtime_policy_id: "overtime-1", minutes_per_credit: 480,
+      pay_method: "monthly", effective_from: "2026-01-01",
+    }]);
+    renderWithProviders(<PayrollSettingsSection />);
+    fireEvent.click(await screen.findByRole("button", { name: "Operations" }));
+    fireEvent.change(await screen.findByLabelText("common.payroll.settings.draft_simulation_employee"), { target: { value: "employee-1" } });
+    fireEvent.change(await screen.findByLabelText("common.payroll.settings.draft_simulation_policy"), { target: { value: "v-1" } });
+    fireEvent.click(screen.getByRole("button", { name: "common.payroll.settings.draft_simulation_run" }));
+    await waitFor(() => expect(api.simulatePayroll).toHaveBeenCalledWith("employee-1", 2026, 1));
+    expect(api.simulatePayrollWithPolicy).toHaveBeenCalledWith("employee-1", 2026, 1, "v-1");
+    expect(await screen.findByText("common.payroll.settings.draft_simulation_current_net")).toBeInTheDocument();
+  });
 
   it("shows bounded impact preview results and stale state", async () => {
     vi.mocked(api.fetchPayrollImpactBatch).mockResolvedValue({ total: 1, computed: 1, affected: 1, uncomputable: 0, items: [{ employment_id: "e-1", computed: true, stale: true, stale_reasons: ["policy_version_changed"], delta: { net_pay_delta: "240" } as never }] });

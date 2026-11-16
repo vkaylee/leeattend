@@ -8,7 +8,7 @@ Xây nền payroll mở rộng theo mô hình `source metric → payroll input �
 
 ## Current context
 
-- Backend runtime hiện tại là Go `net/http` + PostgreSQL; các ADR cũ còn mô tả Rust, cần cập nhật trước khi dùng làm source of truth.
+- Backend runtime hiện tại là Go `net/http` + PostgreSQL; ADRs phải mô tả đúng runtime trước khi dùng làm source of truth.
 - Đã có salary components, payroll rules/tiers/assignments, incentive policies và payroll period `open/locked`.
 - `routes_payroll.go` đã có các endpoint cho salary components, incentive policies, payroll rules, calculate và period lock/reopen.
 - Không thay thế toàn bộ payroll engine hiện tại trong phase đầu; thêm lớp input/rule/snapshot theo vertical slice rồi migrate từng component.
@@ -28,9 +28,9 @@ Xây nền payroll mở rộng theo mô hình `source metric → payroll input �
 ### 1. Chốt domain vocabulary và cập nhật ADR
 
 - [x] Inventory schema/API/domain hiện tại; map bảng cũ vào 6 khái niệm mới, ưu tiên reuse `salary_component_definitions`, `payroll_rule_definitions`, incentive policy và period thay vì tạo bản sao.
-- [x] Cập nhật/tách ADR formula engine và lifecycle theo runtime Go/PostgreSQL thực tế; ghi rõ vertical slice, immutable versions, safe DSL boundary và migration/rollback. Historical Rust/template-DAG sections remain explicitly deferred.
+- [x] Cập nhật/tách ADR formula engine và lifecycle theo runtime Go/PostgreSQL thực tế; ghi rõ vertical slice, immutable versions, safe DSL boundary và migration/rollback.
 - [x] Chốt code convention và canonical examples: `production.output`, `production.quality_rate`, `kpi.output_score`, `KPI_BONUS`.
-- **Verify:** review schema hiện tại, route/handler/repository callers, ADR consistency; không còn quyết định Rust/schema workspace trái với runtime thực tế.
+- **Verify:** review schema hiện tại, route/handler/repository callers, ADR consistency; không còn quyết định trái với runtime thực tế.
 
 ### 2. Thiết kế registry và migration tương thích
 

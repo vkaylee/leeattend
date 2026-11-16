@@ -42,7 +42,7 @@ Relationship là một đợt làm việc với một pháp nhân; segment là l
 - Đã thêm route danh sách contract theo employee, permission checks và parent ownership tests trong working tree; chưa hoàn tất department/employer scope.
 - Expand schema/backfill đã có bằng chứng dev ghi tại Task 3/4; không đồng nghĩa production đã migrate hoặc concurrency/date-containment đã đạt đủ gate.
 - Commit `8166c6fd9` thêm termination segment + relationship cùng transaction và date validation; unit/format/vet PASS. Lệnh `./leedevkit test api` kết thúc exit `0`, nhưng log integration chỉ có start/teardown, không có kết quả test cụ thể: chưa chứng minh PostgreSQL integration cho termination. Test rollback hiện kiểm no-commit, chưa kiểm persisted rollback.
-- `use-payroll-lifecycle.ts` lưu lock trong `localStorage`; chưa tìm thấy `payroll_periods` trong runtime/migrations đã rà. ADR payroll lifecycle là `Proposed`, có ví dụ workspace/Rust cũ, không phải contract triển khai hiện tại. Payroll persist có nhánh xóa snapshot rồi ghi lại; cần transaction và kiểm lỗi trước khi khóa có hiệu lực.
+- `use-payroll-lifecycle.ts` lưu lock trong `localStorage`; chưa tìm thấy `payroll_periods` trong runtime/migrations đã rà. ADR payroll lifecycle là `Proposed`, có ví dụ workspace cũ, không phải contract triển khai hiện tại. Payroll persist có nhánh xóa snapshot rồi ghi lại; cần transaction và kiểm lỗi trước khi khóa có hiệu lực.
 
 ## Thực hiện — 10 đầu việc theo thứ tự
 

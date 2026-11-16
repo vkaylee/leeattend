@@ -37,10 +37,6 @@
 - Run integration and end-to-end phases after focused checks. Unit-only output is insufficient.
 - Capture output under `logs/` and inspect warnings, skipped phases, and integration failures.
 
-## Historical migration boundary
-
-Rust/Axum implementation details under `docs/migration/rust-go/` are immutable migration evidence only. They are not active LeeAttend build, test, or runtime instructions.
-
 ## Frontend testing
 
 - Use Playwright for cross-component workflows and verify accessible, user-visible behavior.

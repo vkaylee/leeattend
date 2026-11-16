@@ -53,7 +53,7 @@ Detailed record of significant changes, features, and fixes in LeeAttend.
 **Tests:**
 - All adaptive_polling unit tests updated and passing (100% line coverage)
 - All config tests updated and passing (100% line coverage)
-- Full smoke test suite: agent-main + apiserver (clippy + unit) all pass
+- Full smoke test suite: API and worker unit checks pass
 
 ---
 
@@ -218,13 +218,13 @@ Detailed record of significant changes, features, and fixes in LeeAttend.
 **Impact:** Prevented logs from syncing when outgoing queue was busy
 
 **Problem:**
-- WS Connection Manager used single `tokio::select!` loop for both reading ACKs and writing outgoing messages
+- WebSocket connection manager used one event loop for ACK reads and outgoing writes
 - When sync loop queued many outgoing messages, select loop starved read branch
 - ACKs never received → logs stuck as unsynced indefinitely
 - Affected high-volume installations with 500+ logs per sync cycle
 
 **Solution:**
-- Split into independent read/write tokio tasks
+- Split into independent read/write tasks
 - Read task: Dedicated for processing incoming ACKs and server messages
 - Write task: Dedicated for sending attendance logs and heartbeats
 - Graceful shutdown via `oneshot` channel preserves `mpsc::Receiver` across reconnections

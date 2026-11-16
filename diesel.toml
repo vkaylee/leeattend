@@ -1,3 +1,0 @@
-# Diesel migrations configuration
-[migrations_directory]
-dir = "apiserver/migrations"

@@ -17,7 +17,7 @@ All system and business tables share one PostgreSQL database. The final schema u
 
 ### `webdashboard/`
 
-React 19, Vite, TypeScript, Tailwind CSS 4, TanStack Query, and Tauri. The dashboard manages organization settings, employees, attendance, payroll, files, and monitoring.
+React 19, Vite, TypeScript, Tailwind CSS 4, and TanStack Query. The dashboard manages organization settings, employees, attendance, payroll, files, and monitoring.
 
 
 ### Supporting infrastructure

@@ -16,9 +16,9 @@ import (
 	"github.com/vkaylee/leeattend/apiserver/internal/observability"
 )
 
-// ErrEmailNotConfigured matches Rust's test-email failure when no transport is configured.
+// ErrEmailNotConfigured indicates that no email transport is configured.
 //
-//lint:ignore ST1005 preserve Rust-compatible diagnostic text
+//lint:ignore ST1005 preserve user-facing diagnostic text
 var ErrEmailNotConfigured = errors.New("Email is not configured. Insert a 'smtp' record into system_settings with either SMTP host/port or an 'http_api' block.")
 
 // SettingsReader reads a raw JSON value from system_settings.
@@ -70,7 +70,7 @@ func (s EmailService) loadConfig(ctx context.Context) (SMTPConfig, error) {
 	return cfg, nil
 }
 
-// SendTestEmail mirrors Rust EmailService::send_test_email without rate limiting.
+// SendTestEmail sends a diagnostic email without rate limiting.
 func (s EmailService) SendTestEmail(ctx context.Context, toEmail string) (string, error) {
 	cfg, err := s.loadConfig(ctx)
 	if err != nil {
@@ -107,12 +107,12 @@ func (s EmailService) SendTestEmail(ctx context.Context, toEmail string) (string
 	}
 	fromAddress, err := mail.ParseAddress(from)
 	if err != nil {
-		//lint:ignore ST1005 preserve Rust-compatible SMTP diagnostic text
+		//lint:ignore ST1005 preserve user-facing SMTP diagnostic text
 		return "", fmt.Errorf("Failed to parse SMTP_FROM: %v", err)
 	}
 	toAddress, err := mail.ParseAddress(toEmail)
 	if err != nil {
-		//lint:ignore ST1005 preserve Rust-compatible SMTP diagnostic text
+		//lint:ignore ST1005 preserve user-facing SMTP diagnostic text
 		return "", fmt.Errorf("Failed to parse recipient: %v", err)
 	}
 	mailer := external.SMTPMailer{
@@ -123,7 +123,7 @@ func (s EmailService) SendTestEmail(ctx context.Context, toEmail string) (string
 		From:     *fromAddress,
 	}
 	if err := mailer.Send(ctx, *toAddress, subject, body); err != nil {
-		//lint:ignore ST1005 preserve Rust-compatible SMTP diagnostic text
+		//lint:ignore ST1005 preserve user-facing SMTP diagnostic text
 		return "", fmt.Errorf("Failed to send test email via SMTP: %v\n\nPlease verify your SMTP settings in system_settings (key='smtp').", err)
 	}
 	return fmt.Sprintf("Test email sent successfully. Check %s for the message.", toEmail), nil
@@ -161,7 +161,7 @@ func (s EmailService) sendViaHTTP(ctx context.Context, cfg SMTPConfig, to, subje
 	}
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, api.URL, bytes.NewBufferString(payload))
 	if err != nil {
-		//lint:ignore ST1005 preserve Rust-compatible HTTP API diagnostic text
+		//lint:ignore ST1005 preserve user-facing HTTP API diagnostic text
 		return fmt.Errorf("Failed to send email via HTTP API: %v", err)
 	}
 	req.Header.Set("Content-Type", "application/json")
@@ -170,7 +170,7 @@ func (s EmailService) sendViaHTTP(ctx context.Context, cfg SMTPConfig, to, subje
 	}
 	resp, err := client.Do(req)
 	if err != nil {
-		//lint:ignore ST1005 preserve Rust-compatible HTTP API diagnostic text
+		//lint:ignore ST1005 preserve user-facing HTTP API diagnostic text
 		return fmt.Errorf("Failed to send email via HTTP API: %v", err)
 	}
 	defer func() {
@@ -178,23 +178,23 @@ func (s EmailService) sendViaHTTP(ctx context.Context, cfg SMTPConfig, to, subje
 		_ = resp.Body.Close()
 	}()
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		//lint:ignore ST1005 preserve Rust-compatible HTTP API diagnostic text
+		//lint:ignore ST1005 preserve user-facing HTTP API diagnostic text
 		return fmt.Errorf("Email API returned HTTP %d", resp.StatusCode)
 	}
 	if api.SuccessField != "" && len(api.SuccessValue) > 0 {
 		respBody, err := io.ReadAll(io.LimitReader(resp.Body, 1<<20))
 		if err != nil {
-			//lint:ignore ST1005 preserve Rust-compatible HTTP API diagnostic text
+			//lint:ignore ST1005 preserve user-facing HTTP API diagnostic text
 			return fmt.Errorf("Failed to parse email API response: %v", err)
 		}
 		var decoded map[string]json.RawMessage
 		if err := json.Unmarshal(respBody, &decoded); err != nil {
-			//lint:ignore ST1005 preserve Rust-compatible HTTP API diagnostic text
+			//lint:ignore ST1005 preserve user-facing HTTP API diagnostic text
 			return fmt.Errorf("Failed to parse email API response: %v", err)
 		}
 		actual, ok := decoded[api.SuccessField]
 		if !ok || string(bytes.TrimSpace(actual)) != string(bytes.TrimSpace(api.SuccessValue)) {
-			//lint:ignore ST1005 preserve Rust-compatible HTTP API diagnostic text
+			//lint:ignore ST1005 preserve user-facing HTTP API diagnostic text
 			return fmt.Errorf("Email API indicated failure: field '%s' was %s, expected %s", api.SuccessField, string(actual), string(api.SuccessValue))
 		}
 	}

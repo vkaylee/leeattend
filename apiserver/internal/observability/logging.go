@@ -21,7 +21,7 @@ type HandlerOptions struct {
 
 // JSONHandler implements slog.Handler with frozen production envelope and PII masking.
 //
-// Matches Rust apiserver/src/utils/logging.rs ProductionJsonFormatter:
+// Preserves production JSON log envelope:
 // - Fixed keys: timestamp (UTC millisecond RFC3339), level (uppercase string), message, service ("apiserver")
 // - Correlation keys: request_id, actor_id, span_id (omitted if absent)
 // - On ERROR level: extracts error.type if error attribute exists

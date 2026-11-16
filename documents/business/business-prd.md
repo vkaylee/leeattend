@@ -32,7 +32,6 @@ Vietnamese and Southeast Asian enterprises using ZKTeco biometric devices face:
 | P1 | Holiday-aware scheduling and reporting | All statuses correctly reflect holidays |
 | P1 | Employee Self-Service portal | 80% employee adoption |
 | P2 | Multi-workspace SaaS operation | Support 50+ independent organizations |
-| P2 | Desktop app (Tauri) for offline scenarios | Offline data collection |
 
 ## Non-Functional Requirements
 
@@ -40,7 +39,7 @@ Vietnamese and Southeast Asian enterprises using ZKTeco biometric devices face:
 |---|---|
 | Availability | 99.5% uptime |
 | Latency | < 500ms API response |
-| Data Integrity | Compile-time SQL verification (sqlx) |
+| Data Integrity | Go compiler, typed SQL, and database constraints |
 | Security | JWT authentication, role-based access |
 | Internationalization | English + Vietnamese |
 | Testing | Automated CI via Docker containers |
@@ -49,10 +48,10 @@ Vietnamese and Southeast Asian enterprises using ZKTeco biometric devices face:
 ## Constraints
 
 - Must work on **WSL2** (primary development environment)
-- All tests must run inside **Docker containers** (no host `cargo test`)
-- ZKTeco device protocol via `rustzk` (TCP/UDP, proprietary)
+- All tests must run inside **Docker containers**
+- ZKTeco device protocol via the approved attendance connector (TCP/UDP, proprietary)
 - PostgreSQL as the only supported RDBMS
-- Compile-time SQL checking requires live DB during `cargo build`
+- Database integration tests require a live PostgreSQL service
 
 ## Stakeholders
 

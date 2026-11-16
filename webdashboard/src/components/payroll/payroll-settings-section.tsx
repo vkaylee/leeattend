@@ -1,12 +1,12 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ShieldAlert, Clock, History } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import Button from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
 import { Typography } from "@/components/ui/typography";
-import { createWorkPolicyMembership, createWorkPolicyGroupVersion, fetchPayrollImpactBatch, fetchWorkPolicyGroupHistory, fetchWorkPolicyGroups, fetchWorkPolicyMemberships, fetchWorkPolicyReferenceOptions, simulatePayrollWithPolicy, updatePayrollSettings, fetchPayrollSettingsHistory, validateWorkPolicyGroupVersion, type PayrollImpactBatchResponse, type WorkPolicyGroupVersion, type WorkPolicyValidationResponse } from "@/lib/api/payroll";
+import { createWorkPolicyMembership, createWorkPolicyGroupVersion, fetchPayrollImpactBatch, fetchWorkPolicyGroupHistory, fetchWorkPolicyGroups, fetchWorkPolicyMemberships, fetchWorkPolicyReferenceOptions, simulatePayroll, simulatePayrollWithPolicy, updatePayrollSettings, fetchPayrollSettingsHistory, validateWorkPolicyGroupVersion, type PayrollImpactBatchResponse, type WorkPolicyGroupVersion, type WorkPolicyValidationResponse } from "@/lib/api/payroll";
 import { fetchEmployeeEmployments, fetchEmployees } from "@/lib/api/employees";
 import { employeeKeys, payrollKeys } from "@/lib/query-keys";
 
@@ -26,8 +26,10 @@ export default function PayrollSettingsSection() {
   const [membershipError, setMembershipError] = useState<string>();
   const [draftSimulationForm, setDraftSimulationForm] = useState({ employee_id: "", year: "2026", month: "1", policy_version_id: "" });
   const [draftSimulationResult, setDraftSimulationResult] = useState<{ base_pay_amount: string; net_pay_amount: string }>();
+  const [currentSimulationResult, setCurrentSimulationResult] = useState<{ base_pay_amount: string; net_pay_amount: string }>();
   const [draftSimulationError, setDraftSimulationError] = useState<string>();
   const [isLoadingDraftSimulation, setIsLoadingDraftSimulation] = useState(false);
+  const [isDraftDirty, setIsDraftDirty] = useState(false);
   const [validationByVersion, setValidationByVersion] = useState<Record<string, WorkPolicyValidationResponse>>({});
   const [validatingVersionId, setValidatingVersionId] = useState<string>();
   const [impactForm, setImpactForm] = useState({ employment_ids: "", year: "2026", month: "1", before_run_id: "", after_run_id: "" });
@@ -60,6 +62,16 @@ export default function PayrollSettingsSection() {
     setVersionForm((form) => ({ ...form, attendance_policy_id: policy.attendance_policy_id ?? "", working_pattern_id: policy.working_pattern_id ?? "", overtime_policy_id: policy.overtime_policy_id }));
   };
 
+  useEffect(() => {
+    if (!isDraftDirty) return;
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = "";
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [isDraftDirty]);
+
   const handleCreateVersion = async () => {
     if (!selectedPolicyGroupId) return;
     const minutes = Number(versionForm.minutes_per_credit);
@@ -90,6 +102,7 @@ export default function PayrollSettingsSection() {
         effective_from: versionForm.effective_from,
       });
       toast.success(t("common.success"));
+      setIsDraftDirty(false);
       setVersionForm({ effective_from: "", minutes_per_credit: "", pay_method: "monthly", monthly_denominator: "fixed", monthly_standard_days: "26", attendance_policy_id: "", working_pattern_id: "", overtime_policy_id: "", rate_component_definition_id: "" });
       void queryClient.invalidateQueries({ queryKey: payrollKeys.workPolicyGroups() });
       void queryClient.invalidateQueries({ queryKey: payrollKeys.workPolicyHistory(selectedPolicyGroupId) });
@@ -122,8 +135,12 @@ export default function PayrollSettingsSection() {
     setIsLoadingDraftSimulation(true);
     setDraftSimulationError(undefined);
     try {
-      const result = await simulatePayrollWithPolicy(draftSimulationForm.employee_id, year, month, draftSimulationForm.policy_version_id);
-      setDraftSimulationResult({ base_pay_amount: result.base_pay_amount, net_pay_amount: result.net_pay_amount });
+      const [current, draft] = await Promise.all([
+        simulatePayroll(draftSimulationForm.employee_id, year, month),
+        simulatePayrollWithPolicy(draftSimulationForm.employee_id, year, month, draftSimulationForm.policy_version_id),
+      ]);
+      setCurrentSimulationResult({ base_pay_amount: current.base_pay_amount, net_pay_amount: current.net_pay_amount });
+      setDraftSimulationResult({ base_pay_amount: draft.base_pay_amount, net_pay_amount: draft.net_pay_amount });
     } catch (error: unknown) {
       setDraftSimulationError(error instanceof Error ? error.message : t("common.error"));
     } finally {
@@ -262,35 +279,36 @@ export default function PayrollSettingsSection() {
               <div className="mb-4 grid gap-3 sm:grid-cols-3" aria-label={t("common.payroll.settings.work_policy_create", "Create policy version")}>
                 <label className="text-xs font-semibold text-slate-600 dark:text-slate-300" htmlFor="policy-effective-from">
                   {t("common.payroll.settings.work_policy_effective_from", "Effective from")}
-                  <input id="policy-effective-from" type="date" value={versionForm.effective_from} onChange={(event) => setVersionForm((form) => ({ ...form, effective_from: event.target.value }))} className="mt-1 block h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm dark:border-slate-700 dark:bg-slate-900" />
+                  <input id="policy-effective-from" type="date" value={versionForm.effective_from} onChange={(event) => { setIsDraftDirty(true); setVersionForm((form) => ({ ...form, effective_from: event.target.value })); }} className="mt-1 block h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm dark:border-slate-700 dark:bg-slate-900" />
                 </label>
                 <label className="text-xs font-semibold text-slate-600 dark:text-slate-300" htmlFor="policy-minutes-per-credit">
                   {t("common.payroll.settings.work_policy_minutes", "Minutes / credit")}
-                  <input id="policy-minutes-per-credit" type="number" min="1" step="1" value={versionForm.minutes_per_credit} onChange={(event) => setVersionForm((form) => ({ ...form, minutes_per_credit: event.target.value }))} className="mt-1 block h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm dark:border-slate-700 dark:bg-slate-900" />
+                  <input id="policy-minutes-per-credit" type="number" min="1" step="1" value={versionForm.minutes_per_credit} onChange={(event) => { setIsDraftDirty(true); setVersionForm((form) => ({ ...form, minutes_per_credit: event.target.value })); }} className="mt-1 block h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm dark:border-slate-700 dark:bg-slate-900" />
                 </label>
                 <label className="text-xs font-semibold text-slate-600 dark:text-slate-300" htmlFor="policy-attendance-policy">
                   {t("common.payroll.settings.work_policy_attendance", "Attendance policy")}
-                  <select id="policy-attendance-policy" value={versionForm.attendance_policy_id} onChange={(event) => setVersionForm((form) => ({ ...form, attendance_policy_id: event.target.value }))} className="mt-1 block h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm dark:border-slate-700 dark:bg-slate-900"><option value="">{t("common.select", "Select")}</option>{referenceOptions?.attendance.map((option) => <option key={option.id} value={option.id}>{option.label}</option>)}</select>
+                  <select id="policy-attendance-policy" value={versionForm.attendance_policy_id} onChange={(event) => { setIsDraftDirty(true); setVersionForm((form) => ({ ...form, attendance_policy_id: event.target.value })); }} className="mt-1 block h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm dark:border-slate-700 dark:bg-slate-900"><option value="">{t("common.select", "Select")}</option>{referenceOptions?.attendance.map((option) => <option key={option.id} value={option.id}>{option.label}</option>)}</select>
                 </label>
                 <label className="text-xs font-semibold text-slate-600 dark:text-slate-300" htmlFor="policy-working-pattern">
                   {t("common.payroll.settings.work_policy_pattern", "Working pattern")}
-                  <select id="policy-working-pattern" value={versionForm.working_pattern_id} onChange={(event) => setVersionForm((form) => ({ ...form, working_pattern_id: event.target.value }))} className="mt-1 block h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm dark:border-slate-700 dark:bg-slate-900"><option value="">{t("common.select", "Select")}</option>{referenceOptions?.patterns.map((option) => <option key={option.id} value={option.id}>{option.label}</option>)}</select>
+                  <select id="policy-working-pattern" value={versionForm.working_pattern_id} onChange={(event) => { setIsDraftDirty(true); setVersionForm((form) => ({ ...form, working_pattern_id: event.target.value })); }} className="mt-1 block h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm dark:border-slate-700 dark:bg-slate-900"><option value="">{t("common.select", "Select")}</option>{referenceOptions?.patterns.map((option) => <option key={option.id} value={option.id}>{option.label}</option>)}</select>
                 </label>
                 <label className="text-xs font-semibold text-slate-600 dark:text-slate-300" htmlFor="policy-overtime">
                   {t("common.payroll.settings.work_policy_overtime", "Overtime policy")}
-                  <select id="policy-overtime" value={versionForm.overtime_policy_id} onChange={(event) => setVersionForm((form) => ({ ...form, overtime_policy_id: event.target.value }))} className="mt-1 block h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm dark:border-slate-700 dark:bg-slate-900"><option value="">{t("common.select", "Select")}</option>{referenceOptions?.overtime.map((option) => <option key={option.id} value={option.id}>{option.label}</option>)}</select>
+                  <select id="policy-overtime" value={versionForm.overtime_policy_id} onChange={(event) => { setIsDraftDirty(true); setVersionForm((form) => ({ ...form, overtime_policy_id: event.target.value })); }} className="mt-1 block h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm dark:border-slate-700 dark:bg-slate-900"><option value="">{t("common.select", "Select")}</option>{referenceOptions?.overtime.map((option) => <option key={option.id} value={option.id}>{option.label}</option>)}</select>
                 </label>
                 {versionForm.pay_method === "monthly" ? <>
-                <label className="text-xs font-semibold text-slate-600 dark:text-slate-300" htmlFor="policy-monthly-denominator">{t("common.payroll.settings.work_policy_denominator", "Monthly denominator")}<select id="policy-monthly-denominator" value={versionForm.monthly_denominator} onChange={(event) => setVersionForm((form) => ({ ...form, monthly_denominator: event.target.value as typeof form.monthly_denominator }))} className="mt-1 block h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm dark:border-slate-700 dark:bg-slate-900"><option value="fixed">fixed</option><option value="schedule">schedule</option></select></label>
-                {versionForm.monthly_denominator === "fixed" ? <label className="text-xs font-semibold text-slate-600 dark:text-slate-300" htmlFor="policy-monthly-days">{t("common.payroll.settings.work_policy_days", "Monthly standard days")}<input id="policy-monthly-days" type="number" min="1" step="0.01" value={versionForm.monthly_standard_days} onChange={(event) => setVersionForm((form) => ({ ...form, monthly_standard_days: event.target.value }))} className="mt-1 block h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm dark:border-slate-700 dark:bg-slate-900" /></label> : null}
-                </> : <label className="text-xs font-semibold text-slate-600 dark:text-slate-300" htmlFor="policy-rate-component">{t("common.payroll.settings.work_policy_rate_component", "Rate component")}<select id="policy-rate-component" value={versionForm.rate_component_definition_id} onChange={(event) => setVersionForm((form) => ({ ...form, rate_component_definition_id: event.target.value }))} className="mt-1 block h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm dark:border-slate-700 dark:bg-slate-900"><option value="">{t("common.select", "Select")}</option>{referenceOptions?.salaryComponents.map((option) => <option key={option.id} value={option.id}>{option.label}</option>)}</select></label>}
+                <label className="text-xs font-semibold text-slate-600 dark:text-slate-300" htmlFor="policy-monthly-denominator">{t("common.payroll.settings.work_policy_denominator", "Monthly denominator")}<select id="policy-monthly-denominator" value={versionForm.monthly_denominator} onChange={(event) => { setIsDraftDirty(true); setVersionForm((form) => ({ ...form, monthly_denominator: event.target.value as typeof form.monthly_denominator })); }} className="mt-1 block h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm dark:border-slate-700 dark:bg-slate-900"><option value="fixed">fixed</option><option value="schedule">schedule</option></select></label>
+                {versionForm.monthly_denominator === "fixed" ? <label className="text-xs font-semibold text-slate-600 dark:text-slate-300" htmlFor="policy-monthly-days">{t("common.payroll.settings.work_policy_days", "Monthly standard days")}<input id="policy-monthly-days" type="number" min="1" step="0.01" value={versionForm.monthly_standard_days} onChange={(event) => { setIsDraftDirty(true); setVersionForm((form) => ({ ...form, monthly_standard_days: event.target.value })); }} className="mt-1 block h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm dark:border-slate-700 dark:bg-slate-900" /></label> : null}
+                </> : <label className="text-xs font-semibold text-slate-600 dark:text-slate-300" htmlFor="policy-rate-component">{t("common.payroll.settings.work_policy_rate_component", "Rate component")}<select id="policy-rate-component" value={versionForm.rate_component_definition_id} onChange={(event) => { setIsDraftDirty(true); setVersionForm((form) => ({ ...form, rate_component_definition_id: event.target.value })); }} className="mt-1 block h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm dark:border-slate-700 dark:bg-slate-900"><option value="">{t("common.select", "Select")}</option>{referenceOptions?.salaryComponents.map((option) => <option key={option.id} value={option.id}>{option.label}</option>)}</select></label>}
                 <label className="text-xs font-semibold text-slate-600 dark:text-slate-300" htmlFor="policy-pay-method">
                   {t("common.payroll.settings.work_policy_method", "Pay method")}
-                  <select id="policy-pay-method" value={versionForm.pay_method} onChange={(event) => setVersionForm((form) => ({ ...form, pay_method: event.target.value as typeof form.pay_method }))} className="mt-1 block h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm dark:border-slate-700 dark:bg-slate-900">
+                  <select id="policy-pay-method" value={versionForm.pay_method} onChange={(event) => { setIsDraftDirty(true); setVersionForm((form) => ({ ...form, pay_method: event.target.value as typeof form.pay_method })); }} className="mt-1 block h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm dark:border-slate-700 dark:bg-slate-900">
                     <option value="monthly">monthly</option><option value="hourly">hourly</option><option value="shift">shift</option>
                   </select>
                 </label>
               </div>
+              {isDraftDirty ? <p className="mb-3 text-sm text-amber-700" role="status">{t("common.payroll.settings.unsaved_changes", "Unsaved policy changes")}</p> : null}
               {versionError ? <p className="mb-3 text-sm text-red-600" role="alert">{versionError}</p> : null}
               <Button type="button" size="sm" disabled={isCreatingVersion} onClick={() => void handleCreateVersion()}>{isCreatingVersion ? t("common.loading", "Loading") : t("common.payroll.settings.work_policy_create", "Create policy version")}</Button>
               <div className="mt-5 border-t border-slate-200 pt-4 dark:border-slate-800">
@@ -306,6 +324,12 @@ export default function PayrollSettingsSection() {
                 {isMembershipsLoading ? <div className="mt-3 h-8 animate-pulse rounded bg-slate-200 dark:bg-slate-800" /> : <ul className="mt-3 space-y-2 text-sm">{selectedMemberships.map((membership) => <li key={membership.id} className="flex justify-between gap-4 border-b border-slate-100 py-2 last:border-0 dark:border-slate-800"><span>{membership.employment_id}</span><span>{membership.effective_from}{membership.effective_to ? ` – ${membership.effective_to}` : ""}</span></li>)}</ul>}
               </div>
               <section className="mt-5 border-t border-slate-200 pt-4 dark:border-slate-800" aria-labelledby="draft-policy-simulation-title">
+                <div className="mb-4 grid gap-3 sm:grid-cols-4" aria-label={t("common.payroll.settings.work_policy_parts", "Policy editor sections")}>
+                  <div className="rounded-lg border border-slate-200 p-3 dark:border-slate-800"><Typography className="font-semibold" variant="small">{t("common.payroll.settings.work_policy_schedule", "Schedule")}</Typography><p className="mt-1 text-xs text-slate-500">{t("common.payroll.settings.work_policy_schedule_desc", "Working pattern reference")}</p></div>
+                  <div className="rounded-lg border border-slate-200 p-3 dark:border-slate-800"><Typography className="font-semibold" variant="small">{t("common.payroll.settings.work_policy_credit_section", "Work credit")}</Typography><p className="mt-1 text-xs text-slate-500">{t("common.payroll.settings.work_policy_credit_desc", "Attendance source and minutes")}</p></div>
+                  <div className="rounded-lg border border-slate-200 p-3 dark:border-slate-800"><Typography className="font-semibold" variant="small">{t("common.payroll.settings.work_policy_pay_basis", "Pay basis")}</Typography><p className="mt-1 text-xs text-slate-500">{t("common.payroll.settings.work_policy_pay_basis_desc", "Monthly, hourly, or shift")}</p></div>
+                  <div className="rounded-lg border border-slate-200 p-3 dark:border-slate-800"><Typography className="font-semibold" variant="small">{t("common.payroll.settings.work_policy_overtime_section", "Overtime")}</Typography><p className="mt-1 text-xs text-slate-500">{t("common.payroll.settings.work_policy_overtime_desc", "Approval and quota reference")}</p></div>
+                </div>
                 <Typography id="draft-policy-simulation-title" className="font-semibold" variant="h4">{t("common.payroll.settings.draft_simulation_title", "Draft policy simulation")}</Typography>
                 <Typography className="mt-1 text-xs text-slate-500" variant="small">{t("common.payroll.settings.draft_simulation_desc", "Runs same payroll calculation path and rolls back all writes.")}</Typography>
                 <div className="mt-3 grid gap-3 sm:grid-cols-4">
@@ -319,7 +343,7 @@ export default function PayrollSettingsSection() {
                 </div>
                 {draftSimulationError ? <p className="mt-2 text-sm text-red-700" role="alert">{draftSimulationError}</p> : null}
                 <Button className="mt-3" type="button" disabled={isLoadingDraftSimulation} onClick={() => void handleDraftSimulation()}>{isLoadingDraftSimulation ? t("common.loading", "Loading") : t("common.payroll.settings.draft_simulation_run", "Run draft simulation")}</Button>
-                {draftSimulationResult ? <div className="mt-3 grid gap-3 sm:grid-cols-2" role="status"><div className="rounded-lg border border-slate-200 p-3 dark:border-slate-800"><span className="text-xs text-slate-500">{t("common.payroll.settings.draft_simulation_base", "Base pay")}</span><p className="font-bold">{draftSimulationResult.base_pay_amount}</p></div><div className="rounded-lg border border-slate-200 p-3 dark:border-slate-800"><span className="text-xs text-slate-500">{t("common.payroll.settings.draft_simulation_net", "Net pay")}</span><p className="font-bold">{draftSimulationResult.net_pay_amount}</p></div></div> : null}
+                {draftSimulationResult ? <div className="mt-3 grid gap-3 sm:grid-cols-2" role="status"><div className="rounded-lg border border-slate-200 p-3 dark:border-slate-800"><span className="text-xs text-slate-500">{t("common.payroll.settings.draft_simulation_base", "Base pay")}</span><p className="font-bold">{draftSimulationResult.base_pay_amount}</p><p className="text-xs text-slate-500">{t("common.payroll.settings.draft_simulation_draft", "Draft")}</p></div><div className="rounded-lg border border-slate-200 p-3 dark:border-slate-800"><span className="text-xs text-slate-500">{t("common.payroll.settings.draft_simulation_net", "Net pay")}</span><p className="font-bold">{draftSimulationResult.net_pay_amount}</p><p className="text-xs text-slate-500">{t("common.payroll.settings.draft_simulation_draft", "Draft")}</p></div>{currentSimulationResult ? <><div className="rounded-lg border border-slate-200 p-3 dark:border-slate-800"><span className="text-xs text-slate-500">{t("common.payroll.settings.draft_simulation_current_base", "Current base pay")}</span><p className="font-bold">{currentSimulationResult.base_pay_amount}</p></div><div className="rounded-lg border border-slate-200 p-3 dark:border-slate-800"><span className="text-xs text-slate-500">{t("common.payroll.settings.draft_simulation_current_net", "Current net pay")}</span><p className="font-bold">{currentSimulationResult.net_pay_amount}</p></div></> : null}</div> : null}
               </section>
               <ul className="mt-4 space-y-2 text-sm">
                 {selectedPolicyHistory.map((version) => (

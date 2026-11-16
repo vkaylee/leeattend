@@ -6,7 +6,7 @@
 
 ## New contract
 
-The backend owns typed Rust DTOs in `apiserver/src/models/dashboard_metrics.rs`. The frontend owns matching TypeScript/Zod runtime schemas in `webdashboard/src/hooks/dashboard-metric-contract.ts`.
+The backend owns typed Go DTOs in `apiserver/internal/api`. The frontend owns matching TypeScript/Zod runtime schemas in `webdashboard/src/hooks/dashboard-metric-contract.ts`.
 
 Canonical rules:
 

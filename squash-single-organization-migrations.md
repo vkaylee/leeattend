@@ -9,7 +9,7 @@ Gộp migration chain hiện tại thành một baseline PostgreSQL single-organ
 - Database dev: reset/recreate.
 - Không hỗ trợ migrate database đã chạy chain cũ.
 - Xoá compatibility artifacts khỏi active runtime/schema: table, column, query, route, fixture, script.
-- Giữ tài liệu lịch sử Rust-to-Go nếu chỉ là historical context, không dùng khi chạy app.
+- Keep only active Go migration and schema documentation in repository context.
 - Không commit hoặc chạy thao tác xoá database thật trước khi kiểm tra target và xác nhận volume dev.
 
 ## Rule IDs áp dụng
@@ -74,7 +74,7 @@ Tạo `docs/adr/ADR-013-single-organization-persistence-boundary.md` ghi context
 ## Legacy classification
 
 - Xoá khỏi active: migration chain cũ, apply scripts, `fresh_baseline.sql`, upgrade fixture, runtime SQL/Go/API compatibility.
-- Giữ chỉ historical: `docs/migration/rust-go/` và changelog không được load khi chạy app.
+- Do not load historical changelog material when running the application.
 - Sửa active tests/docs sang organization terminology.
 
 ## Database reset procedure

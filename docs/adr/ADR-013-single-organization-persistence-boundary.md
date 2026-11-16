@@ -30,7 +30,7 @@ Organization scope comes from trusted server bootstrap. Clients cannot select or
 - Existing development databases must be reset.
 - Databases created by the old chain fail with an explicit reset/recovery message.
 - No automatic rollback can reconstruct former tenant boundaries after schema contraction.
-- Historical Rust-to-Go migration material may mention workspace terminology but is not active runtime input.
+- Historical migration material may mention workspace terminology but is not active runtime input.
 
 ## Security and privacy
 

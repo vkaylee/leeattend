@@ -334,15 +334,15 @@ func (r EmployeeImportRepository) TerminateEmploymentsTransactional(ctx context.
 	return successCount, nil
 }
 
-// EmployeeImportQueue publishes Rust-compatible worker envelopes onto the shared
-// Redis job queues consumed by the apiserver worker.
+// EmployeeImportQueue publishes worker envelopes onto shared Redis job queues
+// consumed by the apiserver worker.
 type EmployeeImportQueue struct {
 	RedisClient *redisinfra.Client
 	Repo        EmployeeImportRepository
 }
 
-// queuedJob mirrors the JSON shape of the Rust `Job` envelope. Field names and
-// ordering of required fields are part of the cross-language queue contract.
+// queuedJob defines the JSON shape of the worker job envelope. Field names and
+// ordering of required fields are part of the queue contract.
 type queuedJob[T any] struct {
 	JobID        uuid.UUID           `json:"job_id"`
 	ParentJobID  uuid.UUID           `json:"parent_job_id"`
@@ -356,7 +356,7 @@ type queuedJob[T any] struct {
 	TraceContext *string             `json:"trace_context"`
 }
 
-// queuedJobPayload mirrors the Rust `JobPayload` tagged enum.
+// queuedJobPayload defines tagged worker job payload data.
 type queuedJobPayload[T any] struct {
 	Type string `json:"type"`
 	Data T      `json:"data"`
@@ -371,7 +371,7 @@ type terminationJobData struct {
 	Rows []api.TerminationJobRow `json:"rows"`
 }
 
-// jobMetadata mirrors the Rust `JobMetadata` Redis record.
+// jobMetadata stores Redis job state and progress.
 type jobMetadata struct {
 	JobID            uuid.UUID `json:"job_id"`
 	Status           string    `json:"status"`

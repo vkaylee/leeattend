@@ -5,7 +5,7 @@
 LeeAttend runs one application service pair:
 
 - `apiserver/`: Go HTTP API, background jobs, and report-stream WebSockets.
-- `webdashboard/`: React/Vite browser and Tauri client.
+- `webdashboard/`: React/Vite browser dashboard.
 
 PostgreSQL stores organization business, attendance, and payroll data in one database. The final schema uses `organization_settings`, `roles`, `role_permissions`, and `user_roles` with no workspace columns or tables. Redis provides rate limiting, queue coordination, and report Pub/Sub. MinIO stores uploaded files.
 
@@ -43,7 +43,7 @@ Metrics cover pull success/failure, provider latency, lag, fetched/imported/dedu
                                   |--object storage--> [MinIO]
 ```
 
-Compose deploys `apiserver`, `webdashboard`, one PostgreSQL database, Redis, and MinIO. No tenant pooler, external attendance provider, or Rust application build belongs in the runtime topology.
+Compose deploys `apiserver`, `webdashboard`, one PostgreSQL database, Redis, and MinIO. No tenant pooler, external attendance provider, or desktop application build belongs in the runtime topology.
 
 ## Verification boundaries
 

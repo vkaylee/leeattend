@@ -638,7 +638,7 @@ func (h PayrollHandler) GetPayrollSettings(w http.ResponseWriter, r *http.Reques
 
 func (h PayrollHandler) UpdatePayrollSettings(w http.ResponseWriter, r *http.Request) {
 
-	if !h.allowedMember(r) {
+	if !h.allowedManage(r) {
 		h.forbidden(w, r)
 		return
 	}
@@ -699,7 +699,7 @@ func (h PayrollHandler) GetEmployeePayrollConfig(w http.ResponseWriter, r *http.
 func (h PayrollHandler) SetEmployeePayrollConfig(w http.ResponseWriter, r *http.Request) {
 
 	empID, empOK := pathUUID(r, "id")
-	if !empOK || !h.allowedMember(r) {
+	if !empOK || !h.allowedManage(r) {
 		h.forbidden(w, r)
 		return
 	}

@@ -8,7 +8,7 @@ This file provides a comprehensive list of all documentation intended for AI con
 
 ## Technical Standards
 - [PROJECT_OS.md](file:///home/elt1541/lee/leeattend/PROJECT_OS.md): Critical execution protocols.
-- [Code Standards](file:///home/elt1541/lee/leeattend/docs/code-standards.md): Rust and TypeScript conventions.
+- [Code Standards](file:///home/elt1541/lee/leeattend/docs/code-standards.md): Go and TypeScript conventions.
 - [UI/UX Standards](file:///home/elt1541/lee/leeattend/docs/ui-ux-standards.md): Tailwind V4 and Metro-style design principles.
 
 ## Business Logic & Architecture

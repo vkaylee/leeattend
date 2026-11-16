@@ -34,18 +34,15 @@
     - **Persistent Results Tracking**: Implemented file-based results tracking (`.test_logs/results.txt`) to preserve task metadata across subshells and phases.
     - **Real-time Progress Indicator**: Added active task tracking with `[WAIT] Running: ...` status updates for better visibility during parallel execution.
 - **Webdashboard Testing Stabilization**:
-    - **Mock API Architecture**: Implemented full backend mocking using Playwright Intercept (`page.route`). Frontend tests are now 100% decoupled from Rust backend and database.
+    - **Mock API Architecture**: Implemented full backend mocking using Playwright Intercept (`page.route`). Frontend tests are decoupled from backend and database.
     - **Strict 1-Worker Policy**: Playwright is now forced to run with a single worker in Docker to eliminate resource contention and flakiness.
     - **Multi-language Support**: Standardized Unit and E2E tests to support both English and Vietnamese locales using regex matchers.
     - **Stable Timezone Logic**: Standardized date formatting to `en-GB` with `h23` to prevent "24:00" discrepancies across environments.
     - **Extended Timeouts**: Increased global timeouts to 90s for E2E and 60s for Unit Tests to accommodate Docker overhead.
 - **Unified Test Infrastructure v3**:
     - **Full Containerization**: All tests now run inside Docker containers, ensuring clean environments and isolation.
-    - **Cargo Nextest Integration**: Switched to `nextest` for 2x faster Rust test execution and better process management.
-    - **Docker Build Optimization**: Integrated `cargo-chef` for multi-stage builds, caching Rust dependencies separately from source code to reduce build times from minutes to seconds.
     - **Internal Networking**: Removed host port mapping (`5433:5432`) for the test database; all services now communicate via internal Docker network.
     - **Postgres Tuning**: Optimized test database with `fsync=off` and `synchronous_commit=off` for maximum data throughput.
-    - **SQLx Offline Pre-compilation**: Improved CI/local workflow by using prepared metadata for host-side builds.
 - **Unit Test Coverage**: Successfully reached **447/447 passing tests** (100%) for webdashboard logic.
 
 ### Fixed

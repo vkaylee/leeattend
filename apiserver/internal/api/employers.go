@@ -64,9 +64,8 @@ type CreateEmployerRequest struct {
 	CurrencyCode       *string    `json:"currency_code"`
 }
 
-// UpdateEmployerRequest mirrors Rust Option<Option<T>> for parent_id and
-// relationship_type. ParentID/RelationshipType use **T so JSON null is distinct
-// from an omitted field, and the *Present flags record whether the key appeared.
+// UpdateEmployerRequest uses **T so JSON null is distinct from an omitted
+// field, and the *Present flags record whether each key appeared.
 type UpdateEmployerRequest struct {
 	Name                    *string     `json:"name"`
 	TaxCode                 *string     `json:"tax_code"`
@@ -238,9 +237,8 @@ func (h EmployerHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
-// validParent mirrors Rust employer_service::validate_parent_employer. On
-// create (employerID is uuid.Nil) only parent existence is checked; on update
-// self-parent and circular chains are rejected.
+// validParent checks parent existence on create and rejects self-parent or
+// circular chains on update.
 func (h EmployerHandler) validParent(ctx context.Context, employerID uuid.UUID, parentID *uuid.UUID) bool {
 	if parentID == nil {
 		return true
@@ -294,8 +292,8 @@ func (h EmployerHandler) writeError(w http.ResponseWriter, r *http.Request, err 
 	}
 }
 
-// emitAudit records Rust's employer.* events when an audit emitter is wired.
-// Details mirror the Rust payload; the shared writer redacts phone/email keys.
+// emitAudit records employer.* events when an audit emitter is wired.
+// The shared writer redacts phone/email keys.
 func (h EmployerHandler) emitAudit(r *http.Request, name string, employer Employer) {
 	if h.Audit == nil {
 		return

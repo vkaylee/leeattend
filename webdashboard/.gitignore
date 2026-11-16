@@ -30,8 +30,6 @@ yarn-error.log*
 .env.production
 .web_port
 
-# tauri
-src-tauri/target
 
 # typescript
 *.tsbuildinfo

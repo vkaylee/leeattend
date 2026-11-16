@@ -15,7 +15,7 @@ leeattend/
 
 1. **`apiserver`**: Go 1.26+ (`net/http`, `pgx/v5`, `sqlc`) API for attendance, payroll, files, monitoring, and dashboard access.
 2. **`webdashboard`**: React, Vite, and TypeScript web interface for system management and monitoring.
-3. **`docs`**: Detailed guidance and operational documentation. The Rust-to-Go migration record remains under `docs/migration/rust-go/` as historical context only.
+3. **`docs`**: Detailed guidance and operational documentation. LeeAttend runtime uses Go plus React/Vite/TypeScript; retired implementation archives are not part of active project context.
 
 
 ## 🤖 For AI Agents & Developers

@@ -52,7 +52,7 @@ func (h *Handler) Liveness(w http.ResponseWriter, _ *http.Request) {
 	writeJSON(w, code, Response{Status: status, Version: h.version, UptimeSeconds: h.uptime()})
 }
 
-// Readiness performs the Rust-compatible database and Redis checks.
+// Readiness performs database and Redis dependency checks.
 func (h *Handler) Readiness(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), 3*time.Second)
 	defer cancel()

@@ -107,7 +107,6 @@ func GetSpanID(ctx context.Context) string {
 // RequestIDMiddleware is an outermost HTTP middleware that ensures every request and
 // response carries an x-request-id header and propagates the ID in context.
 //
-// Matches Rust apiserver/src/mw/request_id.rs:
 // 1. Extracts x-request-id from incoming header; if valid UUID retains it, otherwise generates UUIDv7.
 // 2. Downstream request header is rewritten to canonical UUID.
 // 3. Request context is populated with request_id and trace_context.

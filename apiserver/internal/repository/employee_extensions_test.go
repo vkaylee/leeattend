@@ -298,7 +298,7 @@ func TestCompensationHistoryRepository_Timeline(t *testing.T) {
 		t.Fatalf("get compensation history failed: %v", err)
 	}
 
-	// Rust returns newest first -> 3 events
+	// Results return newest first -> 3 events
 	if len(res.Timeline) != 3 {
 		t.Fatalf("expected 3 events, got %d", len(res.Timeline))
 	}
