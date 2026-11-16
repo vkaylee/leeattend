@@ -75,7 +75,7 @@ type ConditionTypeHandler struct {
 	Authorizer Authorizer
 }
 
-func (h ConditionTypeHandler) List(w http.ResponseWriter, r *http.Request) {
+func (h *ConditionTypeHandler) List(w http.ResponseWriter, r *http.Request) {
 	if !h.allowed(r, "organization:settings:read") {
 		h.forbidden(w, r)
 		return
@@ -93,7 +93,7 @@ func (h ConditionTypeHandler) List(w http.ResponseWriter, r *http.Request) {
 	apperror.WriteJSON(w, http.StatusOK, records)
 }
 
-func (h ConditionTypeHandler) Get(w http.ResponseWriter, r *http.Request) {
+func (h *ConditionTypeHandler) Get(w http.ResponseWriter, r *http.Request) {
 	id, idOK := pathUUID(r, "id")
 	if !idOK || !h.allowed(r, "organization:settings:read") {
 		h.forbidden(w, r)
@@ -111,7 +111,7 @@ func (h ConditionTypeHandler) Get(w http.ResponseWriter, r *http.Request) {
 	apperror.WriteJSON(w, http.StatusOK, record)
 }
 
-func (h ConditionTypeHandler) Create(w http.ResponseWriter, r *http.Request) {
+func (h *ConditionTypeHandler) Create(w http.ResponseWriter, r *http.Request) {
 	if !h.allowed(r, "organization:settings:write") {
 		h.forbidden(w, r)
 		return
@@ -161,7 +161,7 @@ func (h ConditionTypeHandler) Create(w http.ResponseWriter, r *http.Request) {
 	apperror.WriteJSON(w, http.StatusCreated, created)
 }
 
-func (h ConditionTypeHandler) Update(w http.ResponseWriter, r *http.Request) {
+func (h *ConditionTypeHandler) Update(w http.ResponseWriter, r *http.Request) {
 	id, idOK := pathUUID(r, "id")
 	if !idOK || !h.allowed(r, "organization:settings:write") {
 		h.forbidden(w, r)
@@ -184,7 +184,7 @@ func (h ConditionTypeHandler) Update(w http.ResponseWriter, r *http.Request) {
 	apperror.WriteJSON(w, http.StatusOK, updated)
 }
 
-func (h ConditionTypeHandler) Delete(w http.ResponseWriter, r *http.Request) {
+func (h *ConditionTypeHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	id, idOK := pathUUID(r, "id")
 	if !idOK || !h.allowed(r, "organization:settings:write") {
 		h.forbidden(w, r)
@@ -201,20 +201,20 @@ func (h ConditionTypeHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
-func (h ConditionTypeHandler) allowed(r *http.Request, p string) bool {
+func (h *ConditionTypeHandler) allowed(r *http.Request, p string) bool {
 	u, ok := httpinfra.UserIDFromContext(r.Context())
 	return ok && h.Authorizer != nil && h.Authorizer.HasPermission(r.Context(), u, p)
 }
 
-func (h ConditionTypeHandler) forbidden(w http.ResponseWriter, r *http.Request) {
+func (h *ConditionTypeHandler) forbidden(w http.ResponseWriter, r *http.Request) {
 	apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
 }
 
-func (h ConditionTypeHandler) validation(w http.ResponseWriter, r *http.Request) {
+func (h *ConditionTypeHandler) validation(w http.ResponseWriter, r *http.Request) {
 	apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 }
 
-func (h ConditionTypeHandler) writeError(w http.ResponseWriter, r *http.Request, err error) {
+func (h *ConditionTypeHandler) writeError(w http.ResponseWriter, r *http.Request, err error) {
 	if errors.Is(err, ErrConditionTypeNotFound) {
 		apperror.WriteError(w, r, apperror.NotFound(apperror.KeyNotFound))
 		return

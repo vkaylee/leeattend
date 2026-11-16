@@ -5,7 +5,7 @@ import (
 	"github.com/vkaylee/leeattend/apiserver/internal/api"
 )
 
-func registerFileRoutes(router chi.Router, files api.FileHandler) {
+func registerFileRoutes(router chi.Router, files *api.FileHandler) {
 	registerRoute(router, "POST /api/v1/files/upload", files.UploadFile)
 	registerRoute(router, "POST /api/v1/files/presigned", files.CreateUploadURL)
 	registerRoute(router, "GET /api/v1/files/{id}", files.GetMetadata)
@@ -20,7 +20,7 @@ func registerFileRoutes(router chi.Router, files api.FileHandler) {
 	registerRoute(router, "POST /api/v1/ess/signatures/{request_id}/sign", files.SignDocument)
 }
 
-func registerDocumentRoutes(router chi.Router, handler api.DocumentHandler) {
+func registerDocumentRoutes(router chi.Router, handler *api.DocumentHandler) {
 	registerRoute(router, "GET /api/v1/documents/folders", handler.ListFolders)
 	registerRoute(router, "POST /api/v1/documents/folders", handler.CreateFolder)
 	registerRoute(router, "GET /api/v1/documents/folders/{id}", handler.GetFolder)

@@ -144,7 +144,7 @@ type ShiftHandler struct {
 	Authorizer Authorizer
 }
 
-func (h ShiftHandler) Create(w http.ResponseWriter, r *http.Request) {
+func (h *ShiftHandler) Create(w http.ResponseWriter, r *http.Request) {
 	if !h.allowed(r, "shifts:create") {
 		h.forbidden(w, r)
 		return
@@ -171,7 +171,7 @@ func (h ShiftHandler) Create(w http.ResponseWriter, r *http.Request) {
 	apperror.WriteJSON(w, http.StatusCreated, shift)
 }
 
-func (h ShiftHandler) List(w http.ResponseWriter, r *http.Request) {
+func (h *ShiftHandler) List(w http.ResponseWriter, r *http.Request) {
 	pagination, err := ParsePagination(r.URL.Query())
 	if err != nil {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
@@ -195,7 +195,7 @@ func (h ShiftHandler) List(w http.ResponseWriter, r *http.Request) {
 	apperror.WriteJSON(w, http.StatusOK, shifts)
 }
 
-func (h ShiftHandler) Update(w http.ResponseWriter, r *http.Request) {
+func (h *ShiftHandler) Update(w http.ResponseWriter, r *http.Request) {
 	templateID, templateOK := pathUUID(r, "shift_id")
 	if !templateOK || !h.allowed(r, "shifts:update") {
 		h.forbidden(w, r)
@@ -225,7 +225,7 @@ func (h ShiftHandler) Update(w http.ResponseWriter, r *http.Request) {
 	apperror.WriteJSON(w, http.StatusOK, shift)
 }
 
-func (h ShiftHandler) Versions(w http.ResponseWriter, r *http.Request) {
+func (h *ShiftHandler) Versions(w http.ResponseWriter, r *http.Request) {
 	templateID, templateOK := pathUUID(r, "shift_id")
 	if !templateOK || !h.allowed(r, "shifts:read") {
 		h.forbidden(w, r)
@@ -239,7 +239,7 @@ func (h ShiftHandler) Versions(w http.ResponseWriter, r *http.Request) {
 	apperror.WriteJSON(w, http.StatusOK, versions)
 }
 
-func (h ShiftHandler) Assign(w http.ResponseWriter, r *http.Request) {
+func (h *ShiftHandler) Assign(w http.ResponseWriter, r *http.Request) {
 	if !h.allowed(r, "shifts:assign") {
 		h.forbidden(w, r)
 		return
@@ -313,16 +313,16 @@ func optionalUUID(value string) (*uuid.UUID, error) {
 	return &parsed, nil
 }
 
-func (h ShiftHandler) allowed(r *http.Request, permission string) bool {
+func (h *ShiftHandler) allowed(r *http.Request, permission string) bool {
 	userID, ok := httpinfra.UserIDFromContext(r.Context())
 	return ok && h.Authorizer != nil && h.Authorizer.HasPermission(r.Context(), userID, permission)
 }
 
-func (h ShiftHandler) forbidden(w http.ResponseWriter, r *http.Request) {
+func (h *ShiftHandler) forbidden(w http.ResponseWriter, r *http.Request) {
 	apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
 }
 
-func (h ShiftHandler) writeError(w http.ResponseWriter, r *http.Request, err error) {
+func (h *ShiftHandler) writeError(w http.ResponseWriter, r *http.Request, err error) {
 	var complianceErr *ShiftComplianceError
 	if errors.As(err, &complianceErr) {
 		if complianceErr.Hard {

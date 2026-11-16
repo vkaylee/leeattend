@@ -132,7 +132,7 @@ type EmployerHandler struct {
 	Audit      EmployerAudit
 }
 
-func (h EmployerHandler) List(w http.ResponseWriter, r *http.Request) {
+func (h *EmployerHandler) List(w http.ResponseWriter, r *http.Request) {
 	if !h.isMember(r) {
 		h.forbidden(w, r)
 		return
@@ -150,7 +150,7 @@ func (h EmployerHandler) List(w http.ResponseWriter, r *http.Request) {
 	apperror.WriteJSON(w, http.StatusOK, result)
 }
 
-func (h EmployerHandler) Create(w http.ResponseWriter, r *http.Request) {
+func (h *EmployerHandler) Create(w http.ResponseWriter, r *http.Request) {
 	if !h.isMember(r) {
 		h.forbidden(w, r)
 		return
@@ -172,7 +172,7 @@ func (h EmployerHandler) Create(w http.ResponseWriter, r *http.Request) {
 	apperror.WriteJSON(w, http.StatusCreated, employer)
 }
 
-func (h EmployerHandler) Get(w http.ResponseWriter, r *http.Request) {
+func (h *EmployerHandler) Get(w http.ResponseWriter, r *http.Request) {
 	id, idOK := pathUUID(r, "id")
 	if !idOK || !h.isMember(r) {
 		h.forbidden(w, r)
@@ -186,7 +186,7 @@ func (h EmployerHandler) Get(w http.ResponseWriter, r *http.Request) {
 	apperror.WriteJSON(w, http.StatusOK, employer)
 }
 
-func (h EmployerHandler) Update(w http.ResponseWriter, r *http.Request) {
+func (h *EmployerHandler) Update(w http.ResponseWriter, r *http.Request) {
 	id, idOK := pathUUID(r, "id")
 	if !idOK || !h.isMember(r) {
 		h.forbidden(w, r)
@@ -218,7 +218,7 @@ func (h EmployerHandler) Update(w http.ResponseWriter, r *http.Request) {
 	apperror.WriteJSON(w, http.StatusOK, employer)
 }
 
-func (h EmployerHandler) Delete(w http.ResponseWriter, r *http.Request) {
+func (h *EmployerHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	id, idOK := pathUUID(r, "id")
 	if !idOK || !h.isMember(r) {
 		h.forbidden(w, r)
@@ -239,7 +239,7 @@ func (h EmployerHandler) Delete(w http.ResponseWriter, r *http.Request) {
 
 // validParent checks parent existence on create and rejects self-parent or
 // circular chains on update.
-func (h EmployerHandler) validParent(ctx context.Context, employerID uuid.UUID, parentID *uuid.UUID) bool {
+func (h *EmployerHandler) validParent(ctx context.Context, employerID uuid.UUID, parentID *uuid.UUID) bool {
 	if parentID == nil {
 		return true
 	}
@@ -268,7 +268,7 @@ func (h EmployerHandler) validParent(ctx context.Context, employerID uuid.UUID, 
 	}
 }
 
-func (h EmployerHandler) isMember(r *http.Request) bool {
+func (h *EmployerHandler) isMember(r *http.Request) bool {
 	userID, ok := httpinfra.UserIDFromContext(r.Context())
 	if !ok || h.Authorizer == nil {
 		return false
@@ -277,11 +277,11 @@ func (h EmployerHandler) isMember(r *http.Request) bool {
 	return err == nil && member
 }
 
-func (h EmployerHandler) forbidden(w http.ResponseWriter, r *http.Request) {
+func (h *EmployerHandler) forbidden(w http.ResponseWriter, r *http.Request) {
 	apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
 }
 
-func (h EmployerHandler) writeError(w http.ResponseWriter, r *http.Request, err error) {
+func (h *EmployerHandler) writeError(w http.ResponseWriter, r *http.Request, err error) {
 	switch {
 	case errors.Is(err, ErrEmployerNotFound), errors.Is(err, pgx.ErrNoRows):
 		apperror.WriteError(w, r, apperror.NotFound(apperror.KeyNotFound))
@@ -294,7 +294,7 @@ func (h EmployerHandler) writeError(w http.ResponseWriter, r *http.Request, err 
 
 // emitAudit records employer.* events when an audit emitter is wired.
 // The shared writer redacts phone/email keys.
-func (h EmployerHandler) emitAudit(r *http.Request, name string, employer Employer) {
+func (h *EmployerHandler) emitAudit(r *http.Request, name string, employer Employer) {
 	if h.Audit == nil {
 		return
 	}

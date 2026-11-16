@@ -544,7 +544,7 @@ type DashboardAnalyticsHandler struct {
 	Audit      DashboardAnalyticsAudit
 }
 
-func (h DashboardAnalyticsHandler) resolveContext(w http.ResponseWriter, r *http.Request) (uuid.UUID, bool) {
+func (h *DashboardAnalyticsHandler) resolveContext(w http.ResponseWriter, r *http.Request) (uuid.UUID, bool) {
 	userID, ok := httpinfra.UserIDFromContext(r.Context())
 	if !ok || h.Authorizer == nil {
 		apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
@@ -557,7 +557,7 @@ func (h DashboardAnalyticsHandler) resolveContext(w http.ResponseWriter, r *http
 	return userID, true
 }
 
-func (h DashboardAnalyticsHandler) resolveDepartmentScope(ctx context.Context, userID uuid.UUID, requested []uuid.UUID) ([]uuid.UUID, error) {
+func (h *DashboardAnalyticsHandler) resolveDepartmentScope(ctx context.Context, userID uuid.UUID, requested []uuid.UUID) ([]uuid.UUID, error) {
 	if h.Authorizer == nil {
 		return nil, apperror.Forbidden(apperror.KeyForbidden)
 	}
@@ -591,7 +591,7 @@ func (h DashboardAnalyticsHandler) resolveDepartmentScope(ctx context.Context, u
 	return managed, nil
 }
 
-func (h DashboardAnalyticsHandler) getTimezone(ctx context.Context, requested string) (*time.Location, string, error) {
+func (h *DashboardAnalyticsHandler) getTimezone(ctx context.Context, requested string) (*time.Location, string, error) {
 	if requested != "" {
 		loc, err := timezone.ValidateTZ(requested)
 		if err != nil {
@@ -622,7 +622,7 @@ func validateCustomRange(start, end, today time.Time) error {
 }
 
 // 1. GET /api/v1/dashboard/executive-overview
-func (h DashboardAnalyticsHandler) ExecutiveOverview(w http.ResponseWriter, r *http.Request) {
+func (h *DashboardAnalyticsHandler) ExecutiveOverview(w http.ResponseWriter, r *http.Request) {
 	userID, ok := h.resolveContext(w, r)
 	if !ok {
 		return
@@ -780,7 +780,7 @@ func (h DashboardAnalyticsHandler) ExecutiveOverview(w http.ResponseWriter, r *h
 }
 
 // 2. GET /api/v1/dashboard/overtime-breakdown
-func (h DashboardAnalyticsHandler) OvertimeBreakdown(w http.ResponseWriter, r *http.Request) {
+func (h *DashboardAnalyticsHandler) OvertimeBreakdown(w http.ResponseWriter, r *http.Request) {
 	userID, ok := h.resolveContext(w, r)
 	if !ok {
 		return
@@ -884,7 +884,7 @@ func (h DashboardAnalyticsHandler) OvertimeBreakdown(w http.ResponseWriter, r *h
 }
 
 // 3. GET /api/v1/dashboard/organization-stats
-func (h DashboardAnalyticsHandler) OrganizationStats(w http.ResponseWriter, r *http.Request) {
+func (h *DashboardAnalyticsHandler) OrganizationStats(w http.ResponseWriter, r *http.Request) {
 	userID, ok := h.resolveContext(w, r)
 	if !ok {
 		return
@@ -908,7 +908,7 @@ func (h DashboardAnalyticsHandler) OrganizationStats(w http.ResponseWriter, r *h
 }
 
 // 4. GET /api/v1/dashboard/attendance-trend
-func (h DashboardAnalyticsHandler) AttendanceTrend(w http.ResponseWriter, r *http.Request) {
+func (h *DashboardAnalyticsHandler) AttendanceTrend(w http.ResponseWriter, r *http.Request) {
 	userID, ok := h.resolveContext(w, r)
 	if !ok {
 		return
@@ -943,7 +943,7 @@ func (h DashboardAnalyticsHandler) AttendanceTrend(w http.ResponseWriter, r *htt
 }
 
 // 5. GET /api/v1/dashboard/department-attendance
-func (h DashboardAnalyticsHandler) DepartmentAttendance(w http.ResponseWriter, r *http.Request) {
+func (h *DashboardAnalyticsHandler) DepartmentAttendance(w http.ResponseWriter, r *http.Request) {
 	userID, ok := h.resolveContext(w, r)
 	if !ok {
 		return
@@ -1009,7 +1009,7 @@ func (h DashboardAnalyticsHandler) DepartmentAttendance(w http.ResponseWriter, r
 }
 
 // 6. GET /api/v1/dashboard/unexcused-absences
-func (h DashboardAnalyticsHandler) UnexcusedAbsences(w http.ResponseWriter, r *http.Request) {
+func (h *DashboardAnalyticsHandler) UnexcusedAbsences(w http.ResponseWriter, r *http.Request) {
 	userID, ok := h.resolveContext(w, r)
 	if !ok {
 		return
@@ -1059,7 +1059,7 @@ func (h DashboardAnalyticsHandler) UnexcusedAbsences(w http.ResponseWriter, r *h
 }
 
 // 7. GET /api/v1/dashboard/overtime-trend
-func (h DashboardAnalyticsHandler) OvertimeTrend(w http.ResponseWriter, r *http.Request) {
+func (h *DashboardAnalyticsHandler) OvertimeTrend(w http.ResponseWriter, r *http.Request) {
 	_, ok := h.resolveContext(w, r)
 	if !ok {
 		return
@@ -1084,7 +1084,7 @@ func (h DashboardAnalyticsHandler) OvertimeTrend(w http.ResponseWriter, r *http.
 }
 
 // 8. GET /api/v1/dashboard/peak-times
-func (h DashboardAnalyticsHandler) PeakTimes(w http.ResponseWriter, r *http.Request) {
+func (h *DashboardAnalyticsHandler) PeakTimes(w http.ResponseWriter, r *http.Request) {
 	_, ok := h.resolveContext(w, r)
 	if !ok {
 		return
@@ -1109,7 +1109,7 @@ func (h DashboardAnalyticsHandler) PeakTimes(w http.ResponseWriter, r *http.Requ
 }
 
 // 9. GET /api/v1/dashboard/leave-types
-func (h DashboardAnalyticsHandler) LeaveTypes(w http.ResponseWriter, r *http.Request) {
+func (h *DashboardAnalyticsHandler) LeaveTypes(w http.ResponseWriter, r *http.Request) {
 	_, ok := h.resolveContext(w, r)
 	if !ok {
 		return
@@ -1134,7 +1134,7 @@ func (h DashboardAnalyticsHandler) LeaveTypes(w http.ResponseWriter, r *http.Req
 }
 
 // 10. GET /api/v1/dashboard/lateness-by-day
-func (h DashboardAnalyticsHandler) LatenessByDay(w http.ResponseWriter, r *http.Request) {
+func (h *DashboardAnalyticsHandler) LatenessByDay(w http.ResponseWriter, r *http.Request) {
 	userID, ok := h.resolveContext(w, r)
 	if !ok {
 		return
@@ -1169,7 +1169,7 @@ func (h DashboardAnalyticsHandler) LatenessByDay(w http.ResponseWriter, r *http.
 }
 
 // 11. GET /api/v1/dashboard/turnover-analytics
-func (h DashboardAnalyticsHandler) TurnoverAnalytics(w http.ResponseWriter, r *http.Request) {
+func (h *DashboardAnalyticsHandler) TurnoverAnalytics(w http.ResponseWriter, r *http.Request) {
 	_, ok := h.resolveContext(w, r)
 	if !ok {
 		return
@@ -1248,7 +1248,7 @@ func (h DashboardAnalyticsHandler) TurnoverAnalytics(w http.ResponseWriter, r *h
 }
 
 // 12. GET /api/v1/dashboard/recruitment-effectiveness
-func (h DashboardAnalyticsHandler) RecruitmentEffectiveness(w http.ResponseWriter, r *http.Request) {
+func (h *DashboardAnalyticsHandler) RecruitmentEffectiveness(w http.ResponseWriter, r *http.Request) {
 	userID, ok := h.resolveContext(w, r)
 	if !ok {
 		return

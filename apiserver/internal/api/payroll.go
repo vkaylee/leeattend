@@ -512,7 +512,7 @@ type PayrollHandler struct {
 	Audit      PayrollAudit
 }
 
-func (h PayrollHandler) ListPayslips(w http.ResponseWriter, r *http.Request) {
+func (h *PayrollHandler) ListPayslips(w http.ResponseWriter, r *http.Request) {
 
 	if !h.allowed(r, "payroll:read") {
 		h.forbidden(w, r)
@@ -530,7 +530,7 @@ func (h PayrollHandler) ListPayslips(w http.ResponseWriter, r *http.Request) {
 	}
 	apperror.WriteJSON(w, http.StatusOK, rows)
 }
-func (h PayrollHandler) ListEmployee(w http.ResponseWriter, r *http.Request) {
+func (h *PayrollHandler) ListEmployee(w http.ResponseWriter, r *http.Request) {
 
 	empID, empOK := pathUUID(r, "employee_id")
 	if !empOK || !h.allowed(r, "payroll:read") {
@@ -544,7 +544,7 @@ func (h PayrollHandler) ListEmployee(w http.ResponseWriter, r *http.Request) {
 	}
 	apperror.WriteJSON(w, http.StatusOK, rows)
 }
-func (h PayrollHandler) ListSalaryComponents(w http.ResponseWriter, r *http.Request) {
+func (h *PayrollHandler) ListSalaryComponents(w http.ResponseWriter, r *http.Request) {
 
 	if !h.allowedRead(r) {
 		h.forbidden(w, r)
@@ -561,7 +561,7 @@ func (h PayrollHandler) ListSalaryComponents(w http.ResponseWriter, r *http.Requ
 	apperror.WriteJSON(w, http.StatusOK, rows)
 }
 
-func (h PayrollHandler) CreateSalaryComponent(w http.ResponseWriter, r *http.Request) {
+func (h *PayrollHandler) CreateSalaryComponent(w http.ResponseWriter, r *http.Request) {
 
 	if !h.allowedManage(r) {
 		h.forbidden(w, r)
@@ -580,7 +580,7 @@ func (h PayrollHandler) CreateSalaryComponent(w http.ResponseWriter, r *http.Req
 	apperror.WriteJSON(w, http.StatusCreated, comp)
 }
 
-func (h PayrollHandler) ListEmploymentSalaryComponents(w http.ResponseWriter, r *http.Request) {
+func (h *PayrollHandler) ListEmploymentSalaryComponents(w http.ResponseWriter, r *http.Request) {
 
 	empID, empOK := employmentIDFromRequest(r)
 	if !empOK || !h.allowedRead(r) {
@@ -598,7 +598,7 @@ func (h PayrollHandler) ListEmploymentSalaryComponents(w http.ResponseWriter, r 
 	apperror.WriteJSON(w, http.StatusOK, comps)
 }
 
-func (h PayrollHandler) AssignEmploymentSalaryComponent(w http.ResponseWriter, r *http.Request) {
+func (h *PayrollHandler) AssignEmploymentSalaryComponent(w http.ResponseWriter, r *http.Request) {
 
 	empID, empOK := employmentIDFromRequest(r)
 	if !empOK || !h.allowedManage(r) {
@@ -622,7 +622,7 @@ func (h PayrollHandler) AssignEmploymentSalaryComponent(w http.ResponseWriter, r
 	apperror.WriteJSON(w, http.StatusCreated, comp)
 }
 
-func (h PayrollHandler) GetPayrollSettings(w http.ResponseWriter, r *http.Request) {
+func (h *PayrollHandler) GetPayrollSettings(w http.ResponseWriter, r *http.Request) {
 
 	if !h.allowedMember(r) {
 		h.forbidden(w, r)
@@ -636,7 +636,7 @@ func (h PayrollHandler) GetPayrollSettings(w http.ResponseWriter, r *http.Reques
 	apperror.WriteJSON(w, http.StatusOK, settings)
 }
 
-func (h PayrollHandler) UpdatePayrollSettings(w http.ResponseWriter, r *http.Request) {
+func (h *PayrollHandler) UpdatePayrollSettings(w http.ResponseWriter, r *http.Request) {
 
 	if !h.allowedManage(r) {
 		h.forbidden(w, r)
@@ -661,7 +661,7 @@ func (h PayrollHandler) UpdatePayrollSettings(w http.ResponseWriter, r *http.Req
 	apperror.WriteJSON(w, http.StatusOK, settings)
 }
 
-func (h PayrollHandler) GetPayrollSettingsHistory(w http.ResponseWriter, r *http.Request) {
+func (h *PayrollHandler) GetPayrollSettingsHistory(w http.ResponseWriter, r *http.Request) {
 
 	if !h.allowedMember(r) {
 		h.forbidden(w, r)
@@ -678,7 +678,7 @@ func (h PayrollHandler) GetPayrollSettingsHistory(w http.ResponseWriter, r *http
 	apperror.WriteJSON(w, http.StatusOK, history)
 }
 
-func (h PayrollHandler) GetEmployeePayrollConfig(w http.ResponseWriter, r *http.Request) {
+func (h *PayrollHandler) GetEmployeePayrollConfig(w http.ResponseWriter, r *http.Request) {
 
 	empID, empOK := pathUUID(r, "id")
 	if !empOK || !h.allowedMember(r) {
@@ -696,7 +696,7 @@ func (h PayrollHandler) GetEmployeePayrollConfig(w http.ResponseWriter, r *http.
 	apperror.WriteJSON(w, http.StatusOK, configs)
 }
 
-func (h PayrollHandler) SetEmployeePayrollConfig(w http.ResponseWriter, r *http.Request) {
+func (h *PayrollHandler) SetEmployeePayrollConfig(w http.ResponseWriter, r *http.Request) {
 
 	empID, empOK := pathUUID(r, "id")
 	if !empOK || !h.allowedManage(r) {
@@ -725,7 +725,7 @@ func (h PayrollHandler) SetEmployeePayrollConfig(w http.ResponseWriter, r *http.
 	apperror.WriteJSON(w, http.StatusCreated, config)
 }
 
-func (h PayrollHandler) GetIncentivePolicies(w http.ResponseWriter, r *http.Request) {
+func (h *PayrollHandler) GetIncentivePolicies(w http.ResponseWriter, r *http.Request) {
 
 	if !h.allowedMember(r) {
 		h.forbidden(w, r)
@@ -742,7 +742,7 @@ func (h PayrollHandler) GetIncentivePolicies(w http.ResponseWriter, r *http.Requ
 	apperror.WriteJSON(w, http.StatusOK, policies)
 }
 
-func (h PayrollHandler) CreateIncentivePolicy(w http.ResponseWriter, r *http.Request) {
+func (h *PayrollHandler) CreateIncentivePolicy(w http.ResponseWriter, r *http.Request) {
 
 	if !h.allowedMember(r) {
 		h.forbidden(w, r)
@@ -768,7 +768,7 @@ func (h PayrollHandler) CreateIncentivePolicy(w http.ResponseWriter, r *http.Req
 	apperror.WriteJSON(w, http.StatusCreated, policy)
 }
 
-func (h PayrollHandler) DeleteIncentivePolicy(w http.ResponseWriter, r *http.Request) {
+func (h *PayrollHandler) DeleteIncentivePolicy(w http.ResponseWriter, r *http.Request) {
 
 	policyID, pOK := pathUUID(r, "policy_id")
 	if !pOK || !h.allowedMember(r) {
@@ -782,7 +782,7 @@ func (h PayrollHandler) DeleteIncentivePolicy(w http.ResponseWriter, r *http.Req
 	w.WriteHeader(http.StatusNoContent)
 }
 
-func (h PayrollHandler) CloneIncentivePolicy(w http.ResponseWriter, r *http.Request) {
+func (h *PayrollHandler) CloneIncentivePolicy(w http.ResponseWriter, r *http.Request) {
 
 	policyID, pOK := pathUUID(r, "policy_id")
 	if !pOK || !h.allowedMember(r) {
@@ -797,7 +797,7 @@ func (h PayrollHandler) CloneIncentivePolicy(w http.ResponseWriter, r *http.Requ
 	apperror.WriteJSON(w, http.StatusCreated, policy)
 }
 
-func (h PayrollHandler) ListPayrollRules(w http.ResponseWriter, r *http.Request) {
+func (h *PayrollHandler) ListPayrollRules(w http.ResponseWriter, r *http.Request) {
 
 	if !h.allowedMember(r) {
 		h.forbidden(w, r)
@@ -814,7 +814,7 @@ func (h PayrollHandler) ListPayrollRules(w http.ResponseWriter, r *http.Request)
 	apperror.WriteJSON(w, http.StatusOK, rules)
 }
 
-func (h PayrollHandler) CreatePayrollRule(w http.ResponseWriter, r *http.Request) {
+func (h *PayrollHandler) CreatePayrollRule(w http.ResponseWriter, r *http.Request) {
 
 	if !h.allowedMember(r) {
 		h.forbidden(w, r)
@@ -833,7 +833,7 @@ func (h PayrollHandler) CreatePayrollRule(w http.ResponseWriter, r *http.Request
 	apperror.WriteJSON(w, http.StatusCreated, rule)
 }
 
-func (h PayrollHandler) ListPayrollRuleTiers(w http.ResponseWriter, r *http.Request) {
+func (h *PayrollHandler) ListPayrollRuleTiers(w http.ResponseWriter, r *http.Request) {
 
 	ruleID, rOK := pathUUID(r, "rule_id")
 	if !rOK || !h.allowedMember(r) {
@@ -851,7 +851,7 @@ func (h PayrollHandler) ListPayrollRuleTiers(w http.ResponseWriter, r *http.Requ
 	apperror.WriteJSON(w, http.StatusOK, tiers)
 }
 
-func (h PayrollHandler) CreatePayrollRuleTier(w http.ResponseWriter, r *http.Request) {
+func (h *PayrollHandler) CreatePayrollRuleTier(w http.ResponseWriter, r *http.Request) {
 
 	ruleID, rOK := pathUUID(r, "rule_id")
 	if !rOK || !h.allowedMember(r) {
@@ -875,7 +875,7 @@ func (h PayrollHandler) CreatePayrollRuleTier(w http.ResponseWriter, r *http.Req
 	apperror.WriteJSON(w, http.StatusCreated, tier)
 }
 
-func (h PayrollHandler) DeletePayrollRuleTier(w http.ResponseWriter, r *http.Request) {
+func (h *PayrollHandler) DeletePayrollRuleTier(w http.ResponseWriter, r *http.Request) {
 
 	ruleID, rOK := pathUUID(r, "rule_id")
 	tierID, tOK := pathUUID(r, "tier_id")
@@ -890,7 +890,7 @@ func (h PayrollHandler) DeletePayrollRuleTier(w http.ResponseWriter, r *http.Req
 	apperror.WriteJSON(w, http.StatusOK, map[string]bool{"success": true})
 }
 
-func (h PayrollHandler) ListPayrollRuleAssignments(w http.ResponseWriter, r *http.Request) {
+func (h *PayrollHandler) ListPayrollRuleAssignments(w http.ResponseWriter, r *http.Request) {
 
 	ruleID, rOK := pathUUID(r, "rule_id")
 	if !rOK || !h.allowedMember(r) {
@@ -908,7 +908,7 @@ func (h PayrollHandler) ListPayrollRuleAssignments(w http.ResponseWriter, r *htt
 	apperror.WriteJSON(w, http.StatusOK, assignments)
 }
 
-func (h PayrollHandler) AssignPayrollRule(w http.ResponseWriter, r *http.Request) {
+func (h *PayrollHandler) AssignPayrollRule(w http.ResponseWriter, r *http.Request) {
 
 	ruleID, rOK := pathUUID(r, "rule_id")
 	if !rOK || !h.allowedMember(r) {
@@ -947,7 +947,7 @@ func (h PayrollHandler) AssignPayrollRule(w http.ResponseWriter, r *http.Request
 	apperror.WriteJSON(w, http.StatusCreated, assignment)
 }
 
-func (h PayrollHandler) DeletePayrollRuleAssignment(w http.ResponseWriter, r *http.Request) {
+func (h *PayrollHandler) DeletePayrollRuleAssignment(w http.ResponseWriter, r *http.Request) {
 
 	ruleID, rOK := pathUUID(r, "rule_id")
 	assignmentID, aOK := pathUUID(r, "assignment_id")
@@ -962,7 +962,7 @@ func (h PayrollHandler) DeletePayrollRuleAssignment(w http.ResponseWriter, r *ht
 	apperror.WriteJSON(w, http.StatusOK, map[string]bool{"success": true})
 }
 
-func (h PayrollHandler) GetPayrollPeriod(w http.ResponseWriter, r *http.Request) {
+func (h *PayrollHandler) GetPayrollPeriod(w http.ResponseWriter, r *http.Request) {
 	if !h.allowed(r, "payroll:read") {
 		h.forbidden(w, r)
 		return
@@ -985,7 +985,7 @@ func (h PayrollHandler) GetPayrollPeriod(w http.ResponseWriter, r *http.Request)
 	apperror.WriteJSON(w, http.StatusOK, period)
 }
 
-func (h PayrollHandler) LockPayrollPeriod(w http.ResponseWriter, r *http.Request) {
+func (h *PayrollHandler) LockPayrollPeriod(w http.ResponseWriter, r *http.Request) {
 	if !h.allowed(r, "payroll:periods:lock") {
 		h.forbidden(w, r)
 		return
@@ -1016,7 +1016,7 @@ func (h PayrollHandler) LockPayrollPeriod(w http.ResponseWriter, r *http.Request
 	apperror.WriteJSON(w, http.StatusOK, period)
 }
 
-func (h PayrollHandler) ReopenPayrollPeriod(w http.ResponseWriter, r *http.Request) {
+func (h *PayrollHandler) ReopenPayrollPeriod(w http.ResponseWriter, r *http.Request) {
 	if !h.allowed(r, "payroll:periods:reopen") {
 		h.forbidden(w, r)
 		return
@@ -1048,7 +1048,7 @@ func (h PayrollHandler) ReopenPayrollPeriod(w http.ResponseWriter, r *http.Reque
 	apperror.WriteJSON(w, http.StatusOK, period)
 }
 
-func (h PayrollHandler) CalculatePayroll(w http.ResponseWriter, r *http.Request) {
+func (h *PayrollHandler) CalculatePayroll(w http.ResponseWriter, r *http.Request) {
 
 	empID, eOK := pathUUID(r, "id")
 	if !eOK || !h.allowedCalculate(r) {
@@ -1078,7 +1078,7 @@ func (h PayrollHandler) CalculatePayroll(w http.ResponseWriter, r *http.Request)
 	apperror.WriteJSON(w, http.StatusOK, resp)
 }
 
-func (h PayrollHandler) CreatePayrollInputBatch(w http.ResponseWriter, r *http.Request) {
+func (h *PayrollHandler) CreatePayrollInputBatch(w http.ResponseWriter, r *http.Request) {
 	if !h.allowed(r, "payroll:inputs:manage") && !h.allowed(r, "payroll:manage") {
 		h.forbidden(w, r)
 		return
@@ -1133,7 +1133,7 @@ func validPayrollInputRequest(req CreatePayrollInputRequest) bool {
 	return true
 }
 
-func (h PayrollHandler) ComparePayrollImpact(w http.ResponseWriter, r *http.Request) {
+func (h *PayrollHandler) ComparePayrollImpact(w http.ResponseWriter, r *http.Request) {
 	if !h.allowed(r, "payroll:sensitive:read") {
 		h.forbidden(w, r)
 		return
@@ -1159,7 +1159,7 @@ func (h PayrollHandler) ComparePayrollImpact(w http.ResponseWriter, r *http.Requ
 	apperror.WriteJSON(w, http.StatusOK, result)
 }
 
-func (h PayrollHandler) ComparePayrollImpactBatch(w http.ResponseWriter, r *http.Request) {
+func (h *PayrollHandler) ComparePayrollImpactBatch(w http.ResponseWriter, r *http.Request) {
 	if !h.allowed(r, "payroll:sensitive:read") {
 		h.forbidden(w, r)
 		return
@@ -1177,7 +1177,7 @@ func (h PayrollHandler) ComparePayrollImpactBatch(w http.ResponseWriter, r *http
 	apperror.WriteJSON(w, http.StatusOK, result)
 }
 
-func (h PayrollHandler) ListPayrollCalculationRuns(w http.ResponseWriter, r *http.Request) {
+func (h *PayrollHandler) ListPayrollCalculationRuns(w http.ResponseWriter, r *http.Request) {
 	if !h.allowed(r, "payroll:read") {
 		h.forbidden(w, r)
 		return
@@ -1204,7 +1204,7 @@ func (h PayrollHandler) ListPayrollCalculationRuns(w http.ResponseWriter, r *htt
 	apperror.WriteJSON(w, http.StatusOK, runs)
 }
 
-func (h PayrollHandler) ListPayrollFormulaRuleVersions(w http.ResponseWriter, r *http.Request) {
+func (h *PayrollHandler) ListPayrollFormulaRuleVersions(w http.ResponseWriter, r *http.Request) {
 	if !h.allowed(r, "payroll:read") {
 		h.forbidden(w, r)
 		return
@@ -1225,7 +1225,7 @@ func (h PayrollHandler) ListPayrollFormulaRuleVersions(w http.ResponseWriter, r 
 	apperror.WriteJSON(w, http.StatusOK, versions)
 }
 
-func (h PayrollHandler) ListPayrollFormulaRules(w http.ResponseWriter, r *http.Request) {
+func (h *PayrollHandler) ListPayrollFormulaRules(w http.ResponseWriter, r *http.Request) {
 	if !h.allowed(r, "payroll:read") {
 		h.forbidden(w, r)
 		return
@@ -1241,7 +1241,7 @@ func (h PayrollHandler) ListPayrollFormulaRules(w http.ResponseWriter, r *http.R
 	apperror.WriteJSON(w, http.StatusOK, rules)
 }
 
-func (h PayrollHandler) CreatePayrollFormulaRule(w http.ResponseWriter, r *http.Request) {
+func (h *PayrollHandler) CreatePayrollFormulaRule(w http.ResponseWriter, r *http.Request) {
 	if !h.allowed(r, "payroll:manage") {
 		h.forbidden(w, r)
 		return
@@ -1283,7 +1283,7 @@ func (h PayrollHandler) CreatePayrollFormulaRule(w http.ResponseWriter, r *http.
 	apperror.WriteJSON(w, http.StatusCreated, rule)
 }
 
-func (h PayrollHandler) CreatePayrollFormulaRuleVersion(w http.ResponseWriter, r *http.Request) {
+func (h *PayrollHandler) CreatePayrollFormulaRuleVersion(w http.ResponseWriter, r *http.Request) {
 	if !h.allowed(r, "payroll:manage") {
 		h.forbidden(w, r)
 		return
@@ -1326,7 +1326,7 @@ func (h PayrollHandler) CreatePayrollFormulaRuleVersion(w http.ResponseWriter, r
 	apperror.WriteJSON(w, http.StatusCreated, version)
 }
 
-func (h PayrollHandler) RetirePayrollFormulaRule(w http.ResponseWriter, r *http.Request) {
+func (h *PayrollHandler) RetirePayrollFormulaRule(w http.ResponseWriter, r *http.Request) {
 	if !h.allowed(r, "payroll:manage") {
 		h.forbidden(w, r)
 		return
@@ -1355,7 +1355,7 @@ func (h PayrollHandler) RetirePayrollFormulaRule(w http.ResponseWriter, r *http.
 	apperror.WriteJSON(w, http.StatusOK, rule)
 }
 
-func (h PayrollHandler) PublishPayrollFormulaRule(w http.ResponseWriter, r *http.Request) {
+func (h *PayrollHandler) PublishPayrollFormulaRule(w http.ResponseWriter, r *http.Request) {
 	if !h.allowed(r, "payroll:manage") {
 		h.forbidden(w, r)
 		return
@@ -1385,7 +1385,7 @@ func (h PayrollHandler) PublishPayrollFormulaRule(w http.ResponseWriter, r *http
 	apperror.WriteJSON(w, http.StatusOK, rule)
 }
 
-func (h PayrollHandler) ListPayrollInputs(w http.ResponseWriter, r *http.Request) {
+func (h *PayrollHandler) ListPayrollInputs(w http.ResponseWriter, r *http.Request) {
 	if !h.allowed(r, "payroll:read") {
 		h.forbidden(w, r)
 		return
@@ -1406,7 +1406,7 @@ func (h PayrollHandler) ListPayrollInputs(w http.ResponseWriter, r *http.Request
 	apperror.WriteJSON(w, http.StatusOK, inputs)
 }
 
-func (h PayrollHandler) CorrectPayrollInput(w http.ResponseWriter, r *http.Request) {
+func (h *PayrollHandler) CorrectPayrollInput(w http.ResponseWriter, r *http.Request) {
 	if !h.allowed(r, "payroll:manage") {
 		h.forbidden(w, r)
 		return
@@ -1441,7 +1441,7 @@ func (h PayrollHandler) CorrectPayrollInput(w http.ResponseWriter, r *http.Reque
 	apperror.WriteJSON(w, http.StatusOK, input)
 }
 
-func (h PayrollHandler) PreviewPayrollFormula(w http.ResponseWriter, r *http.Request) {
+func (h *PayrollHandler) PreviewPayrollFormula(w http.ResponseWriter, r *http.Request) {
 	if !h.allowed(r, "payroll:manage") {
 		h.forbidden(w, r)
 		return
@@ -1459,15 +1459,15 @@ func (h PayrollHandler) PreviewPayrollFormula(w http.ResponseWriter, r *http.Req
 	apperror.WriteJSON(w, http.StatusOK, PreviewPayrollFormulaResponse{Value: value.String()})
 }
 
-func (h PayrollHandler) ApprovePayrollInputBatch(w http.ResponseWriter, r *http.Request) {
+func (h *PayrollHandler) ApprovePayrollInputBatch(w http.ResponseWriter, r *http.Request) {
 	h.transitionPayrollInputBatch(w, r, "approve")
 }
 
-func (h PayrollHandler) LockPayrollInputBatch(w http.ResponseWriter, r *http.Request) {
+func (h *PayrollHandler) LockPayrollInputBatch(w http.ResponseWriter, r *http.Request) {
 	h.transitionPayrollInputBatch(w, r, "lock")
 }
 
-func (h PayrollHandler) transitionPayrollInputBatch(w http.ResponseWriter, r *http.Request, action string) {
+func (h *PayrollHandler) transitionPayrollInputBatch(w http.ResponseWriter, r *http.Request, action string) {
 	permission := "payroll:manage"
 	if action == "approve" {
 		permission = "payroll:approve"
@@ -1509,7 +1509,7 @@ func (h PayrollHandler) transitionPayrollInputBatch(w http.ResponseWriter, r *ht
 	apperror.WriteJSON(w, http.StatusOK, batch)
 }
 
-func (h PayrollHandler) SimulatePayroll(w http.ResponseWriter, r *http.Request) {
+func (h *PayrollHandler) SimulatePayroll(w http.ResponseWriter, r *http.Request) {
 	empID, ok := pathUUID(r, "id")
 	if !ok || !h.allowedCalculate(r) {
 		h.forbidden(w, r)
@@ -1548,7 +1548,7 @@ func (h PayrollHandler) SimulatePayroll(w http.ResponseWriter, r *http.Request) 
 	apperror.WriteJSON(w, http.StatusOK, result)
 }
 
-func (h PayrollHandler) CalculateBatchPayroll(w http.ResponseWriter, r *http.Request) {
+func (h *PayrollHandler) CalculateBatchPayroll(w http.ResponseWriter, r *http.Request) {
 
 	if !h.allowedCalculate(r) {
 		h.forbidden(w, r)
@@ -1583,7 +1583,7 @@ func (h PayrollHandler) CalculateBatchPayroll(w http.ResponseWriter, r *http.Req
 	apperror.WriteJSON(w, http.StatusOK, resp)
 }
 
-func (h PayrollHandler) allowedCalculate(r *http.Request) bool {
+func (h *PayrollHandler) allowedCalculate(r *http.Request) bool {
 	u, ok := httpinfra.UserIDFromContext(r.Context())
 	if !ok || h.Authorizer == nil {
 		return false
@@ -1591,7 +1591,7 @@ func (h PayrollHandler) allowedCalculate(r *http.Request) bool {
 	return h.Authorizer.HasPermission(r.Context(), u, "payroll:calculate")
 }
 
-func (h PayrollHandler) allowedRead(r *http.Request) bool {
+func (h *PayrollHandler) allowedRead(r *http.Request) bool {
 	u, ok := httpinfra.UserIDFromContext(r.Context())
 	if !ok || h.Authorizer == nil {
 		return false
@@ -1603,7 +1603,7 @@ func (h PayrollHandler) allowedRead(r *http.Request) bool {
 	return err == nil && member
 }
 
-func (h PayrollHandler) allowedMember(r *http.Request) bool {
+func (h *PayrollHandler) allowedMember(r *http.Request) bool {
 	u, ok := httpinfra.UserIDFromContext(r.Context())
 	if !ok || h.Authorizer == nil {
 		return false
@@ -1614,7 +1614,7 @@ func (h PayrollHandler) allowedMember(r *http.Request) bool {
 	return h.Authorizer.HasPermission(r.Context(), u, "payroll:read")
 }
 
-func (h PayrollHandler) allowedManage(r *http.Request) bool {
+func (h *PayrollHandler) allowedManage(r *http.Request) bool {
 	u, ok := httpinfra.UserIDFromContext(r.Context())
 	if !ok || h.Authorizer == nil {
 		return false
@@ -1659,12 +1659,12 @@ func parsePayrollPeriod(r *http.Request) (time.Time, time.Time, error) {
 	return start, start.AddDate(0, 1, 0), nil
 }
 
-func (h PayrollHandler) allowed(r *http.Request, permission string) bool {
+func (h *PayrollHandler) allowed(r *http.Request, permission string) bool {
 	u, ok := httpinfra.UserIDFromContext(r.Context())
 	return ok && h.Authorizer != nil && h.Authorizer.HasPermission(r.Context(), u, permission)
 }
 
-func (h PayrollHandler) emitPayrollAudit(r *http.Request, event audit.Event) {
+func (h *PayrollHandler) emitPayrollAudit(r *http.Request, event audit.Event) {
 	if h.Audit == nil {
 		return
 	}
@@ -1676,10 +1676,10 @@ func (h PayrollHandler) emitPayrollAudit(r *http.Request, event audit.Event) {
 	_ = h.Audit.Emit(r.Context(), event)
 }
 
-func (h PayrollHandler) forbidden(w http.ResponseWriter, r *http.Request) {
+func (h *PayrollHandler) forbidden(w http.ResponseWriter, r *http.Request) {
 	apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
 }
-func (h PayrollHandler) writeError(w http.ResponseWriter, r *http.Request, err error) {
+func (h *PayrollHandler) writeError(w http.ResponseWriter, r *http.Request, err error) {
 	if errors.Is(err, pgx.ErrNoRows) || errors.Is(err, ErrComponentNotFound) || errors.Is(err, ErrEmploymentNotFound) || errors.Is(err, ErrPayrollSettingsNotFound) || errors.Is(err, ErrIncentivePolicyNotFound) || errors.Is(err, ErrPayrollInputNotFound) || errors.Is(err, ErrRuleNotFound) || errors.Is(err, ErrTierNotFound) || errors.Is(err, ErrAssignmentNotFound) || errors.Is(err, ErrPayrollPeriodNotFound) || errors.Is(err, ErrEmployerNotFound) {
 		apperror.WriteError(w, r, apperror.NotFound(apperror.KeyNotFound))
 		return

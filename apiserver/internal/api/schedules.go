@@ -238,7 +238,7 @@ type ScheduleHandler struct {
 	Authorizer Authorizer
 }
 
-func (h ScheduleHandler) Deactivate(w http.ResponseWriter, r *http.Request) {
+func (h *ScheduleHandler) Deactivate(w http.ResponseWriter, r *http.Request) {
 	userID, ok := h.requirePermission(w, r, scheduleLifecyclePermissionActivate)
 	if !ok {
 		return
@@ -280,7 +280,7 @@ func (h ScheduleHandler) Deactivate(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
-func (h ScheduleHandler) Activate(w http.ResponseWriter, r *http.Request) {
+func (h *ScheduleHandler) Activate(w http.ResponseWriter, r *http.Request) {
 	userID, ok := h.requirePermission(w, r, scheduleLifecyclePermissionActivate)
 	if !ok {
 		return
@@ -322,7 +322,7 @@ func (h ScheduleHandler) Activate(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
-func (h ScheduleHandler) PreviewRotating(w http.ResponseWriter, r *http.Request) {
+func (h *ScheduleHandler) PreviewRotating(w http.ResponseWriter, r *http.Request) {
 	userID, ok := h.requirePermission(w, r, "schedules:publish:rotating")
 	if !ok {
 		return
@@ -345,7 +345,7 @@ func (h ScheduleHandler) PreviewRotating(w http.ResponseWriter, r *http.Request)
 	apperror.WriteJSON(w, http.StatusOK, result)
 }
 
-func (h ScheduleHandler) Preview(w http.ResponseWriter, r *http.Request) {
+func (h *ScheduleHandler) Preview(w http.ResponseWriter, r *http.Request) {
 	userID, ok := h.requirePermission(w, r, scheduleLifecyclePermissionPreview)
 	if !ok {
 		return
@@ -368,7 +368,7 @@ func (h ScheduleHandler) Preview(w http.ResponseWriter, r *http.Request) {
 	apperror.WriteJSON(w, http.StatusOK, result)
 }
 
-func (h ScheduleHandler) PublishRotating(w http.ResponseWriter, r *http.Request) {
+func (h *ScheduleHandler) PublishRotating(w http.ResponseWriter, r *http.Request) {
 	userID, ok := h.requirePermission(w, r, "schedules:publish:rotating")
 	if !ok {
 		return
@@ -396,7 +396,7 @@ func (h ScheduleHandler) PublishRotating(w http.ResponseWriter, r *http.Request)
 	apperror.WriteJSON(w, http.StatusCreated, result)
 }
 
-func (h ScheduleHandler) Publish(w http.ResponseWriter, r *http.Request) {
+func (h *ScheduleHandler) Publish(w http.ResponseWriter, r *http.Request) {
 	userID, ok := h.requirePermission(w, r, scheduleLifecyclePermissionPublish)
 	if !ok {
 		return
@@ -424,7 +424,7 @@ func (h ScheduleHandler) Publish(w http.ResponseWriter, r *http.Request) {
 	apperror.WriteJSON(w, http.StatusCreated, result)
 }
 
-func (h ScheduleHandler) PreviewReplan(w http.ResponseWriter, r *http.Request) {
+func (h *ScheduleHandler) PreviewReplan(w http.ResponseWriter, r *http.Request) {
 	userID, ok := h.requirePermission(w, r, scheduleLifecyclePermissionAmend)
 	if !ok {
 		return
@@ -451,7 +451,7 @@ func (h ScheduleHandler) PreviewReplan(w http.ResponseWriter, r *http.Request) {
 	apperror.WriteJSON(w, http.StatusOK, result)
 }
 
-func (h ScheduleHandler) CommitReplan(w http.ResponseWriter, r *http.Request) {
+func (h *ScheduleHandler) CommitReplan(w http.ResponseWriter, r *http.Request) {
 	userID, ok := h.requirePermission(w, r, scheduleLifecyclePermissionAmend)
 	if !ok {
 		return
@@ -483,7 +483,7 @@ func (h ScheduleHandler) CommitReplan(w http.ResponseWriter, r *http.Request) {
 	apperror.WriteJSON(w, http.StatusCreated, result)
 }
 
-func (h ScheduleHandler) requirePermission(w http.ResponseWriter, r *http.Request, permission string) (uuid.UUID, bool) {
+func (h *ScheduleHandler) requirePermission(w http.ResponseWriter, r *http.Request, permission string) (uuid.UUID, bool) {
 	userID, ok := httpinfra.UserIDFromContext(r.Context())
 	if !ok {
 		apperror.WriteError(w, r, apperror.Unauthorized(apperror.KeyAuthenticationRequired))
@@ -496,7 +496,7 @@ func (h ScheduleHandler) requirePermission(w http.ResponseWriter, r *http.Reques
 	return userID, true
 }
 
-func (h ScheduleHandler) lifecycleRepository() (ScheduleLifecycleRepository, bool) {
+func (h *ScheduleHandler) lifecycleRepository() (ScheduleLifecycleRepository, bool) {
 	if h.Lifecycle != nil {
 		return h.Lifecycle, true
 	}
@@ -504,11 +504,11 @@ func (h ScheduleHandler) lifecycleRepository() (ScheduleLifecycleRepository, boo
 	return lifecycle, ok
 }
 
-func (h ScheduleHandler) lifecycleUnavailable(w http.ResponseWriter, r *http.Request) {
+func (h *ScheduleHandler) lifecycleUnavailable(w http.ResponseWriter, r *http.Request) {
 	apperror.WriteError(w, r, apperror.ServiceUnavailable(apperror.KeyServiceUnavailable))
 }
 
-func (h ScheduleHandler) writeLifecycleError(w http.ResponseWriter, r *http.Request, err error) {
+func (h *ScheduleHandler) writeLifecycleError(w http.ResponseWriter, r *http.Request, err error) {
 	switch {
 	case errors.Is(err, ErrScheduleLifecycleUnavailable):
 		h.lifecycleUnavailable(w, r)
@@ -628,7 +628,7 @@ func validHash(value string) bool {
 	return err == nil
 }
 
-func (h ScheduleHandler) List(w http.ResponseWriter, r *http.Request) {
+func (h *ScheduleHandler) List(w http.ResponseWriter, r *http.Request) {
 	userID, ok := httpinfra.UserIDFromContext(r.Context())
 	if !ok {
 		apperror.WriteError(w, r, apperror.Unauthorized(apperror.KeyAuthenticationRequired))

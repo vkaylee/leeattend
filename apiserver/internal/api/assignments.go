@@ -209,7 +209,7 @@ type AssignmentHandler struct {
 	Authorizer  Authorizer
 }
 
-func (h AssignmentHandler) member(w http.ResponseWriter, r *http.Request) bool {
+func (h *AssignmentHandler) member(w http.ResponseWriter, r *http.Request) bool {
 	userID, ok := httpinfra.UserIDFromContext(r.Context())
 	if !ok {
 		apperror.WriteError(w, r, apperror.Unauthorized(apperror.KeyAuthenticationRequired))
@@ -231,7 +231,7 @@ func (h AssignmentHandler) member(w http.ResponseWriter, r *http.Request) bool {
 	return true
 }
 
-func (h AssignmentHandler) permission(w http.ResponseWriter, r *http.Request, permission string) bool {
+func (h *AssignmentHandler) permission(w http.ResponseWriter, r *http.Request, permission string) bool {
 	userID, ok := httpinfra.UserIDFromContext(r.Context())
 	if !ok {
 		apperror.WriteError(w, r, apperror.Unauthorized(apperror.KeyAuthenticationRequired))
@@ -286,7 +286,7 @@ func validCreateEmployeeAssignmentRequest(req CreateEmployeeAssignmentRequest) b
 	return req.HostLocationID != uuid.Nil && validAssignmentDate(req.StartDate) && (req.EndDate == nil || validAssignmentDate(*req.EndDate))
 }
 
-func (h AssignmentHandler) validateEmployee(w http.ResponseWriter, r *http.Request, employeeID uuid.UUID) bool {
+func (h *AssignmentHandler) validateEmployee(w http.ResponseWriter, r *http.Request, employeeID uuid.UUID) bool {
 	if h.Employees == nil {
 		return true
 	}
@@ -300,7 +300,7 @@ func (h AssignmentHandler) validateEmployee(w http.ResponseWriter, r *http.Reque
 	return false
 }
 
-func (h AssignmentHandler) assignmentError(w http.ResponseWriter, r *http.Request, err error) {
+func (h *AssignmentHandler) assignmentError(w http.ResponseWriter, r *http.Request, err error) {
 	switch {
 	case errors.Is(err, ErrEmployeeAssignmentNotFound):
 		apperror.WriteError(w, r, apperror.NotFound("error.employee_assignment_not_found"))
@@ -317,7 +317,7 @@ func (h AssignmentHandler) assignmentError(w http.ResponseWriter, r *http.Reques
 	}
 }
 
-func (h AssignmentHandler) ListAssignments(w http.ResponseWriter, r *http.Request) {
+func (h *AssignmentHandler) ListAssignments(w http.ResponseWriter, r *http.Request) {
 	if !h.member(w, r) || !h.permission(w, r, "employees:read") {
 		return
 	}
@@ -329,7 +329,7 @@ func (h AssignmentHandler) ListAssignments(w http.ResponseWriter, r *http.Reques
 	apperror.WriteJSON(w, http.StatusOK, items)
 }
 
-func (h AssignmentHandler) ListEmployeeAssignments(w http.ResponseWriter, r *http.Request) {
+func (h *AssignmentHandler) ListEmployeeAssignments(w http.ResponseWriter, r *http.Request) {
 	ids, ok := assignmentIDs(r, "employee_id")
 	if !ok || !h.member(w, r) {
 		return
@@ -342,7 +342,7 @@ func (h AssignmentHandler) ListEmployeeAssignments(w http.ResponseWriter, r *htt
 	apperror.WriteJSON(w, http.StatusOK, items)
 }
 
-func (h AssignmentHandler) GetEmployeeAssignment(w http.ResponseWriter, r *http.Request) {
+func (h *AssignmentHandler) GetEmployeeAssignment(w http.ResponseWriter, r *http.Request) {
 	ids, ok := assignmentIDs(r, "employee_id", "assignment_id")
 	if !ok || !h.member(w, r) {
 		return
@@ -355,7 +355,7 @@ func (h AssignmentHandler) GetEmployeeAssignment(w http.ResponseWriter, r *http.
 	apperror.WriteJSON(w, http.StatusOK, item)
 }
 
-func (h AssignmentHandler) CreateEmployeeAssignment(w http.ResponseWriter, r *http.Request) {
+func (h *AssignmentHandler) CreateEmployeeAssignment(w http.ResponseWriter, r *http.Request) {
 	ids, ok := assignmentIDs(r, "employee_id")
 	if !ok || !h.member(w, r) {
 		return
@@ -389,7 +389,7 @@ func (h AssignmentHandler) CreateEmployeeAssignment(w http.ResponseWriter, r *ht
 	apperror.WriteJSON(w, http.StatusOK, item)
 }
 
-func (h AssignmentHandler) UpdateEmployeeAssignment(w http.ResponseWriter, r *http.Request) {
+func (h *AssignmentHandler) UpdateEmployeeAssignment(w http.ResponseWriter, r *http.Request) {
 	ids, ok := assignmentIDs(r, "employee_id", "assignment_id")
 	if !ok || !h.member(w, r) {
 		return
@@ -407,7 +407,7 @@ func (h AssignmentHandler) UpdateEmployeeAssignment(w http.ResponseWriter, r *ht
 	apperror.WriteJSON(w, http.StatusOK, item)
 }
 
-func (h AssignmentHandler) DeleteEmployeeAssignment(w http.ResponseWriter, r *http.Request) {
+func (h *AssignmentHandler) DeleteEmployeeAssignment(w http.ResponseWriter, r *http.Request) {
 	ids, ok := assignmentIDs(r, "employee_id", "assignment_id")
 	if !ok || !h.member(w, r) {
 		return
@@ -419,7 +419,7 @@ func (h AssignmentHandler) DeleteEmployeeAssignment(w http.ResponseWriter, r *ht
 	apperror.WriteJSON(w, http.StatusOK, nil)
 }
 
-func (h AssignmentHandler) ListAssignmentRules(w http.ResponseWriter, r *http.Request) {
+func (h *AssignmentHandler) ListAssignmentRules(w http.ResponseWriter, r *http.Request) {
 	if !h.permission(w, r, "assignment_rules:manage") {
 		return
 	}
@@ -431,7 +431,7 @@ func (h AssignmentHandler) ListAssignmentRules(w http.ResponseWriter, r *http.Re
 	apperror.WriteJSON(w, http.StatusOK, items)
 }
 
-func (h AssignmentHandler) CreateAssignmentRule(w http.ResponseWriter, r *http.Request) {
+func (h *AssignmentHandler) CreateAssignmentRule(w http.ResponseWriter, r *http.Request) {
 	if !h.permission(w, r, "assignment_rules:manage") {
 		return
 	}
@@ -448,7 +448,7 @@ func (h AssignmentHandler) CreateAssignmentRule(w http.ResponseWriter, r *http.R
 	apperror.WriteJSON(w, http.StatusCreated, item)
 }
 
-func (h AssignmentHandler) UpdateAssignmentRule(w http.ResponseWriter, r *http.Request) {
+func (h *AssignmentHandler) UpdateAssignmentRule(w http.ResponseWriter, r *http.Request) {
 	ids, ok := assignmentIDs(r, "rule_id")
 	if !ok || !h.permission(w, r, "assignment_rules:manage") {
 		return
@@ -466,7 +466,7 @@ func (h AssignmentHandler) UpdateAssignmentRule(w http.ResponseWriter, r *http.R
 	apperror.WriteJSON(w, http.StatusOK, item)
 }
 
-func (h AssignmentHandler) DeleteAssignmentRule(w http.ResponseWriter, r *http.Request) {
+func (h *AssignmentHandler) DeleteAssignmentRule(w http.ResponseWriter, r *http.Request) {
 	ids, ok := assignmentIDs(r, "rule_id")
 	if !ok || !h.permission(w, r, "assignment_rules:manage") {
 		return
@@ -478,7 +478,7 @@ func (h AssignmentHandler) DeleteAssignmentRule(w http.ResponseWriter, r *http.R
 	w.WriteHeader(http.StatusNoContent)
 }
 
-func (h AssignmentHandler) AssignmentHistory(w http.ResponseWriter, r *http.Request) {
+func (h *AssignmentHandler) AssignmentHistory(w http.ResponseWriter, r *http.Request) {
 	if !h.member(w, r) {
 		return
 	}

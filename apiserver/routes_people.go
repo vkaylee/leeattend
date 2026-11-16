@@ -5,7 +5,7 @@ import (
 	"github.com/vkaylee/leeattend/apiserver/internal/api"
 )
 
-func registerPeopleRoutes(router chi.Router, departments api.DepartmentHandler, locations api.LocationHandler, employers api.EmployerHandler, recruitment api.RecruitmentSourceHandler) {
+func registerPeopleRoutes(router chi.Router, departments *api.DepartmentHandler, locations *api.LocationHandler, employers *api.EmployerHandler, recruitment *api.RecruitmentSourceHandler) {
 	registerRoute(router, "GET /api/v1/departments", departments.List)
 	registerRoute(router, "POST /api/v1/departments", departments.Create)
 	registerRoute(router, "PATCH /api/v1/departments/{id}", departments.Update)

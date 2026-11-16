@@ -99,7 +99,7 @@ func main() {
 		TokenStore: redisClient,
 		JWTSecret:  cfg.JWTSecret.Expose(),
 	}
-	authHandler := api.AuthHandler{
+	authHandler := &api.AuthHandler{
 		Service:      authService,
 		CookieDomain: cfg.CookieDomain,
 	}

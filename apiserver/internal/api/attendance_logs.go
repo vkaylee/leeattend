@@ -169,16 +169,16 @@ type AttendanceLogsHandler struct {
 	StorageDir string
 }
 
-func (h AttendanceLogsHandler) allowed(r *http.Request, permission string) bool {
+func (h *AttendanceLogsHandler) allowed(r *http.Request, permission string) bool {
 	user, ok := httpinfra.UserIDFromContext(r.Context())
 	return ok && h.Authorizer != nil && h.Authorizer.HasPermission(r.Context(), user, permission)
 }
 
-func (h AttendanceLogsHandler) forbidden(w http.ResponseWriter, r *http.Request) {
+func (h *AttendanceLogsHandler) forbidden(w http.ResponseWriter, r *http.Request) {
 	apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
 }
 
-func (h AttendanceLogsHandler) fail(w http.ResponseWriter, r *http.Request, err error) {
+func (h *AttendanceLogsHandler) fail(w http.ResponseWriter, r *http.Request, err error) {
 	var appErr *apperror.AppError
 	if errors.As(err, &appErr) {
 		apperror.WriteError(w, r, appErr)
@@ -187,21 +187,21 @@ func (h AttendanceLogsHandler) fail(w http.ResponseWriter, r *http.Request, err 
 	apperror.WriteError(w, r, apperror.Internal(err))
 }
 
-func (h AttendanceLogsHandler) user(r *http.Request) (uuid.UUID, bool) {
+func (h *AttendanceLogsHandler) user(r *http.Request) (uuid.UUID, bool) {
 	return httpinfra.UserIDFromContext(r.Context())
 }
 
 // Upload handles POST .../attendance/upload (adjustment import target).
-func (h AttendanceLogsHandler) Upload(w http.ResponseWriter, r *http.Request) {
+func (h *AttendanceLogsHandler) Upload(w http.ResponseWriter, r *http.Request) {
 	h.upload(w, r, "adjustment")
 }
 
 // UploadLogs handles POST .../attendance/logs/upload (raw log import target).
-func (h AttendanceLogsHandler) UploadLogs(w http.ResponseWriter, r *http.Request) {
+func (h *AttendanceLogsHandler) UploadLogs(w http.ResponseWriter, r *http.Request) {
 	h.upload(w, r, "log")
 }
 
-func (h AttendanceLogsHandler) upload(w http.ResponseWriter, r *http.Request, target string) {
+func (h *AttendanceLogsHandler) upload(w http.ResponseWriter, r *http.Request, target string) {
 	user, userOK := h.user(r)
 	if !userOK || !h.allowed(r, string(auth.PermissionAttendanceLogsImport)) {
 		h.forbidden(w, r)
@@ -264,7 +264,7 @@ func parseAttendanceImportTime(value string) (time.Time, error) {
 }
 
 // Latest handles GET .../attendance/import-jobs/latest.
-func (h AttendanceLogsHandler) Latest(w http.ResponseWriter, r *http.Request) {
+func (h *AttendanceLogsHandler) Latest(w http.ResponseWriter, r *http.Request) {
 
 	if !h.allowed(r, string(auth.PermissionAttendanceLogsImport)) {
 		h.forbidden(w, r)
@@ -287,7 +287,7 @@ func (h AttendanceLogsHandler) Latest(w http.ResponseWriter, r *http.Request) {
 }
 
 // Job handles GET .../attendance/import-jobs/{id}.
-func (h AttendanceLogsHandler) Job(w http.ResponseWriter, r *http.Request) {
+func (h *AttendanceLogsHandler) Job(w http.ResponseWriter, r *http.Request) {
 
 	id, idOK := pathUUID(r, "id")
 	if !idOK || !h.allowed(r, string(auth.PermissionAttendanceLogsImport)) {
@@ -311,7 +311,7 @@ func (h AttendanceLogsHandler) Job(w http.ResponseWriter, r *http.Request) {
 }
 
 // ErrorFile handles GET .../attendance/import-jobs/{id}/error-file.
-func (h AttendanceLogsHandler) ErrorFile(w http.ResponseWriter, r *http.Request) {
+func (h *AttendanceLogsHandler) ErrorFile(w http.ResponseWriter, r *http.Request) {
 
 	id, idOK := pathUUID(r, "id")
 	if !idOK || !h.allowed(r, string(auth.PermissionAttendanceLogsImport)) {
@@ -336,16 +336,16 @@ func (h AttendanceLogsHandler) ErrorFile(w http.ResponseWriter, r *http.Request)
 var errRowNotFound = errors.New("no rows in result set")
 
 // Logs handles GET .../attendance/logs.
-func (h AttendanceLogsHandler) Logs(w http.ResponseWriter, r *http.Request) {
+func (h *AttendanceLogsHandler) Logs(w http.ResponseWriter, r *http.Request) {
 	h.listLogs(w, r, false)
 }
 
 // RawLogs handles GET .../attendance/raw-logs.
-func (h AttendanceLogsHandler) RawLogs(w http.ResponseWriter, r *http.Request) {
+func (h *AttendanceLogsHandler) RawLogs(w http.ResponseWriter, r *http.Request) {
 	h.listLogs(w, r, true)
 }
 
-func (h AttendanceLogsHandler) listLogs(w http.ResponseWriter, r *http.Request, raw bool) {
+func (h *AttendanceLogsHandler) listLogs(w http.ResponseWriter, r *http.Request, raw bool) {
 
 	if !h.allowed(r, string(auth.PermissionAttendanceLogsRead)) {
 		h.forbidden(w, r)
@@ -423,7 +423,7 @@ func parseAttendanceLogFilters(r *http.Request) (*uuid.UUID, *time.Time, *time.T
 }
 
 // Staging handles GET .../attendance/staging-logs.
-func (h AttendanceLogsHandler) Staging(w http.ResponseWriter, r *http.Request) {
+func (h *AttendanceLogsHandler) Staging(w http.ResponseWriter, r *http.Request) {
 
 	if !h.allowed(r, string(auth.PermissionAttendanceStagingManage)) {
 		h.forbidden(w, r)
@@ -464,7 +464,7 @@ type ResolveStagingRequest struct {
 }
 
 // Resolve handles POST .../attendance/staging-logs/{id}/resolve.
-func (h AttendanceLogsHandler) Resolve(w http.ResponseWriter, r *http.Request) {
+func (h *AttendanceLogsHandler) Resolve(w http.ResponseWriter, r *http.Request) {
 
 	id, idOK := pathUUID(r, "id")
 	if !idOK || !h.allowed(r, string(auth.PermissionAttendanceStagingManage)) {
@@ -486,7 +486,7 @@ func (h AttendanceLogsHandler) Resolve(w http.ResponseWriter, r *http.Request) {
 }
 
 // Dismiss handles DELETE .../attendance/staging-logs/{id}.
-func (h AttendanceLogsHandler) Dismiss(w http.ResponseWriter, r *http.Request) {
+func (h *AttendanceLogsHandler) Dismiss(w http.ResponseWriter, r *http.Request) {
 
 	id, idOK := pathUUID(r, "id")
 	if !idOK || !h.allowed(r, string(auth.PermissionAttendanceStagingManage)) {
@@ -506,7 +506,7 @@ func (h AttendanceLogsHandler) Dismiss(w http.ResponseWriter, r *http.Request) {
 }
 
 // EnterPaperOT handles POST .../attendance/enter-paper-ot/{employee_id}.
-func (h AttendanceLogsHandler) EnterPaperOT(w http.ResponseWriter, r *http.Request) {
+func (h *AttendanceLogsHandler) EnterPaperOT(w http.ResponseWriter, r *http.Request) {
 
 	employeeID, empOK := pathUUID(r, "employee_id")
 	user, userOK := h.user(r)
@@ -532,7 +532,7 @@ func (h AttendanceLogsHandler) EnterPaperOT(w http.ResponseWriter, r *http.Reque
 }
 
 // BulkPaperOT handles POST .../attendance/bulk-upload-paper-ot.
-func (h AttendanceLogsHandler) BulkPaperOT(w http.ResponseWriter, r *http.Request) {
+func (h *AttendanceLogsHandler) BulkPaperOT(w http.ResponseWriter, r *http.Request) {
 
 	user, userOK := h.user(r)
 	if !userOK || !h.allowed(r, string(auth.PermissionOvertimePaperUpload)) {

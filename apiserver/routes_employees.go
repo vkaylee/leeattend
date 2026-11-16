@@ -7,11 +7,11 @@ import (
 
 func registerEmployeeRoutes(
 	router chi.Router,
-	employee api.EmployeeHandler,
-	employeeImport api.EmployeeImportHandler,
-	conditions api.EmployeeConditionHandler,
-	departments api.EmployeeDepartmentHandler,
-	compensation api.CompensationHistoryHandler,
+	employee *api.EmployeeHandler,
+	employeeImport *api.EmployeeImportHandler,
+	conditions *api.EmployeeConditionHandler,
+	departments *api.EmployeeDepartmentHandler,
+	compensation *api.CompensationHistoryHandler,
 ) {
 	registerRoute(router, "POST /api/v1/employees", employee.Create)
 	registerRoute(router, "GET /api/v1/employees", employee.List)

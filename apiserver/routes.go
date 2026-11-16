@@ -17,7 +17,7 @@ import (
 	"github.com/vkaylee/leeattend/apiserver/internal/service"
 )
 
-func buildRouter(cfg *config.Config, db repository.DBTX, redisClient *redisinfra.Client, authHandler api.AuthHandler, logger *slog.Logger) http.Handler {
+func buildRouter(cfg *config.Config, db repository.DBTX, redisClient *redisinfra.Client, authHandler *api.AuthHandler, logger *slog.Logger) http.Handler {
 
 	router := chi.NewRouter()
 
@@ -31,7 +31,7 @@ func buildRouter(cfg *config.Config, db repository.DBTX, redisClient *redisinfra
 
 	organizationAuthorizer := repository.OrganizationAuthorizer{DB: db}
 	organizationRepo := repository.OrganizationRepository{DB: db}
-	organizationHandler := api.OrganizationHandler{
+	organizationHandler := &api.OrganizationHandler{
 		Repository: organizationRepo,
 		Authorizer: organizationAuthorizer,
 		Audit:      repository.AuditLogWriter{DB: db},
@@ -45,7 +45,7 @@ func buildRouter(cfg *config.Config, db repository.DBTX, redisClient *redisinfra
 		}
 	}
 	rbacRepo := repository.OrganizationRBACRepository{SystemDB: db}
-	rbacHandler := api.OrganizationRBACHandler{
+	rbacHandler := &api.OrganizationRBACHandler{
 		Repository:    rbacRepo,
 		Authorizer:    organizationAuthorizer,
 		Crypto:        cryptoService,
@@ -57,19 +57,19 @@ func buildRouter(cfg *config.Config, db repository.DBTX, redisClient *redisinfra
 	healthHandler := health.NewHandler(Version, nil, nil)
 	healthHandler.SetLive(true)
 	departmentRepo := repository.DepartmentRepository{DB: db}
-	departmentHandler := api.DepartmentHandler{Repository: departmentRepo, Authorizer: organizationAuthorizer}
+	departmentHandler := &api.DepartmentHandler{Repository: departmentRepo, Authorizer: organizationAuthorizer}
 
 	locationRepo := repository.LocationRepository{DB: db}
-	locationHandler := api.LocationHandler{Repository: locationRepo, Authorizer: organizationAuthorizer}
+	locationHandler := &api.LocationHandler{Repository: locationRepo, Authorizer: organizationAuthorizer}
 	employerRepo := repository.EmployerRepository{DB: db}
-	employerHandler := api.EmployerHandler{Repository: employerRepo, Authorizer: organizationAuthorizer}
+	employerHandler := &api.EmployerHandler{Repository: employerRepo, Authorizer: organizationAuthorizer}
 	recruitmentRepo := repository.RecruitmentSourceRepository{DB: db}
-	recruitmentHandler := api.RecruitmentSourceHandler{Repository: recruitmentRepo, Authorizer: organizationAuthorizer}
+	recruitmentHandler := &api.RecruitmentSourceHandler{Repository: recruitmentRepo, Authorizer: organizationAuthorizer}
 	registerPeopleRoutes(protectedRouter, departmentHandler, locationHandler, employerHandler, recruitmentHandler)
 	employeeRepo := repository.EmployeeRepository{DB: db}
-	employeeHandler := api.EmployeeHandler{Repository: employeeRepo, Authorizer: organizationAuthorizer}
+	employeeHandler := &api.EmployeeHandler{Repository: employeeRepo, Authorizer: organizationAuthorizer}
 	employeeImportRepo := repository.EmployeeImportRepository{DB: db}
-	employeeImportHandler := api.EmployeeImportHandler{
+	employeeImportHandler := &api.EmployeeImportHandler{
 		Repository: employeeImportRepo,
 		Queue: repository.EmployeeImportQueue{
 			RedisClient: redisClient,
@@ -79,57 +79,57 @@ func buildRouter(cfg *config.Config, db repository.DBTX, redisClient *redisinfra
 		StorageDir: cfg.StorageDir,
 	}
 	employeeConditionRepo := repository.EmployeeConditionRepository{DB: db}
-	employeeConditionHandler := api.EmployeeConditionHandler{Repository: employeeConditionRepo, Authorizer: organizationAuthorizer}
+	employeeConditionHandler := &api.EmployeeConditionHandler{Repository: employeeConditionRepo, Authorizer: organizationAuthorizer}
 	employeeDepartmentRepo := repository.EmployeeDepartmentRepository{DB: db}
-	employeeDepartmentHandler := api.EmployeeDepartmentHandler{Repository: employeeDepartmentRepo, Authorizer: organizationAuthorizer}
+	employeeDepartmentHandler := &api.EmployeeDepartmentHandler{Repository: employeeDepartmentRepo, Authorizer: organizationAuthorizer}
 	compensationHistoryRepo := repository.CompensationHistoryRepository{DB: db}
-	compensationHistoryHandler := api.CompensationHistoryHandler{Repository: compensationHistoryRepo, Authorizer: organizationAuthorizer}
+	compensationHistoryHandler := &api.CompensationHistoryHandler{Repository: compensationHistoryRepo, Authorizer: organizationAuthorizer}
 	attendanceRepo := repository.AttendanceRepository{DB: db}
-	attendanceHandler := api.AttendanceHandler{Repository: attendanceRepo, Authorizer: organizationAuthorizer}
-	attendanceLogsHandler := api.AttendanceLogsHandler{Repository: attendanceRepo, Authorizer: organizationAuthorizer, StorageDir: cfg.StorageDir}
+	attendanceHandler := &api.AttendanceHandler{Repository: attendanceRepo, Authorizer: organizationAuthorizer}
+	attendanceLogsHandler := &api.AttendanceLogsHandler{Repository: attendanceRepo, Authorizer: organizationAuthorizer, StorageDir: cfg.StorageDir}
 	attendancePolicyRepo := repository.AttendancePolicyRepository{DB: db, SystemDB: db}
-	attendancePolicyHandler := api.AttendancePolicyHandler{PolicyRepository: attendancePolicyRepo, BehalfRepository: attendancePolicyRepo, Authorizer: organizationAuthorizer}
+	attendancePolicyHandler := &api.AttendancePolicyHandler{PolicyRepository: attendancePolicyRepo, BehalfRepository: attendancePolicyRepo, Authorizer: organizationAuthorizer}
 	overtimeRepo := repository.OvertimeRepository{DB: db}
-	overtimeHandler := api.OvertimeHandler{Repository: overtimeRepo, BehalfRepository: attendancePolicyRepo, Authorizer: organizationAuthorizer}
+	overtimeHandler := &api.OvertimeHandler{Repository: overtimeRepo, BehalfRepository: attendancePolicyRepo, Authorizer: organizationAuthorizer}
 	registerOvertimeRoutes(protectedRouter, overtimeHandler)
 	shiftRepo := repository.ShiftRepository{DB: db}
-	shiftHandler := api.ShiftHandler{Repository: shiftRepo, Authorizer: organizationAuthorizer}
+	shiftHandler := &api.ShiftHandler{Repository: shiftRepo, Authorizer: organizationAuthorizer}
 	employeeAssignmentRepo := repository.EmployeeAssignmentRepository{DB: db}
 	assignmentRuleRepo := repository.AssignmentRuleRepository{DB: db}
 	assignmentHistoryRepo := repository.AssignmentHistoryRepository{DB: db}
-	assignmentHandler := api.AssignmentHandler{Assignments: employeeAssignmentRepo, Rules: assignmentRuleRepo, History: assignmentHistoryRepo, Employees: employeeRepo, Authorizer: organizationAuthorizer}
+	assignmentHandler := &api.AssignmentHandler{Assignments: employeeAssignmentRepo, Rules: assignmentRuleRepo, History: assignmentHistoryRepo, Employees: employeeRepo, Authorizer: organizationAuthorizer}
 	registerAttendanceRoutes(protectedRouter, attendanceHandler, attendanceLogsHandler, attendancePolicyHandler)
 	patternRepo := repository.WorkingPatternRepository{DB: db}
-	patternHandler := api.WorkingPatternHandler{Repository: patternRepo, Authorizer: organizationAuthorizer, Compliance: patternRepo}
+	patternHandler := &api.WorkingPatternHandler{Repository: patternRepo, Authorizer: organizationAuthorizer, Compliance: patternRepo}
 	rosterRepo := repository.RosterRepository{DB: db}
-	rosterHandler := api.RosterHandler{Repository: rosterRepo, Authorizer: organizationAuthorizer}
+	rosterHandler := &api.RosterHandler{Repository: rosterRepo, Authorizer: organizationAuthorizer}
 	scheduleRepo := repository.ScheduleRepository{DB: db}
-	scheduleHandler := api.ScheduleHandler{Repository: scheduleRepo, Lifecycle: scheduleRepo, Shadow: scheduleRepo, Activation: scheduleRepo, Authorizer: organizationAuthorizer}
+	scheduleHandler := &api.ScheduleHandler{Repository: scheduleRepo, Lifecycle: scheduleRepo, Shadow: scheduleRepo, Activation: scheduleRepo, Authorizer: organizationAuthorizer}
 	swapRepo := repository.ShiftSwapRepository{DB: db}
-	swapHandler := api.ShiftSwapHandler{Repository: swapRepo, Authorizer: organizationAuthorizer}
+	swapHandler := &api.ShiftSwapHandler{Repository: swapRepo, Authorizer: organizationAuthorizer}
 	segmentRepo := repository.WorkSegmentRepository{DB: db}
-	segmentHandler := api.WorkSegmentHandler{Repository: segmentRepo, Authorizer: organizationAuthorizer}
+	segmentHandler := &api.WorkSegmentHandler{Repository: segmentRepo, Authorizer: organizationAuthorizer}
 	registerSchedulingRoutes(protectedRouter, shiftHandler, patternHandler, rosterHandler, scheduleHandler, swapHandler, segmentHandler)
 	registerEmployeeRoutes(protectedRouter, employeeHandler, employeeImportHandler, employeeConditionHandler, employeeDepartmentHandler, compensationHistoryHandler)
 	customFieldRepo := repository.CustomFieldRepository{DB: db}
-	customFieldHandler := api.CustomFieldHandler{Repository: customFieldRepo, Authorizer: organizationAuthorizer}
+	customFieldHandler := &api.CustomFieldHandler{Repository: customFieldRepo, Authorizer: organizationAuthorizer}
 	contractRepo := repository.ContractRepository{DB: db}
 	employmentRepo := repository.EmploymentRepository{DB: db}
-	contractEmploymentHandler := api.ContractEmploymentHandler{Contracts: contractRepo, Employments: employmentRepo, CustomFields: customFieldRepo, Authorizer: organizationAuthorizer}
+	contractEmploymentHandler := &api.ContractEmploymentHandler{Contracts: contractRepo, Employments: employmentRepo, CustomFields: customFieldRepo, Authorizer: organizationAuthorizer}
 	registerEmploymentRoutes(protectedRouter, contractEmploymentHandler, assignmentHandler, customFieldHandler)
 	leaveRepo := repository.LeaveRepository{DB: db}
-	leaveHandler := api.LeaveHandler{
+	leaveHandler := &api.LeaveHandler{
 		Repository:       leaveRepo,
 		BehalfRepository: attendancePolicyRepo,
 		Authorizer:       organizationAuthorizer,
 		StorageDir:       cfg.StorageDir,
 	}
 	holidayRepo := repository.HolidayRepository{DB: db}
-	holidayHandler := api.HolidayHandler{Repository: holidayRepo, Authorizer: organizationAuthorizer}
+	holidayHandler := &api.HolidayHandler{Repository: holidayRepo, Authorizer: organizationAuthorizer}
 	registerLeaveRoutes(protectedRouter, leaveHandler, holidayHandler)
 	payrollRepo := repository.PayrollRepository{DB: db}
 	essRepo := repository.ESSRepository{DB: db}
-	essHandler := api.ESSHandler{
+	essHandler := &api.ESSHandler{
 		Repository: essRepo,
 		Attendance: attendanceRepo,
 		Payroll:    payrollRepo,
@@ -144,49 +144,49 @@ func buildRouter(cfg *config.Config, db repository.DBTX, redisClient *redisinfra
 		return flag.Enabled, nil
 	})), essHandler)
 	workflowRepo := repository.ApprovalWorkflowRepository{DB: db, SystemDB: db}
-	workflowHandler := api.ApprovalWorkflowHandler{Repository: workflowRepo, Authorizer: organizationAuthorizer}
+	workflowHandler := &api.ApprovalWorkflowHandler{Repository: workflowRepo, Authorizer: organizationAuthorizer}
 	registerWorkflowRoutes(protectedRouter, workflowHandler)
 	notifRepo := repository.NotificationRepository{SystemDB: db}
-	notifHandler := api.NotificationHandler{Repository: notifRepo}
+	notifHandler := &api.NotificationHandler{Repository: notifRepo}
 	registerNotificationRoutes(protectedRouter, notifHandler)
-	payrollHandler := api.PayrollHandler{
+	payrollHandler := &api.PayrollHandler{
 		Repository: payrollRepo,
 		Authorizer: organizationAuthorizer,
 		Audit:      repository.AuditLogWriter{DB: db},
 	}
 	registerPayrollRoutes(protectedRouter, payrollHandler)
 	workPolicyRepo := repository.WorkPolicyRepository{DB: db}
-	workPolicyHandler := api.WorkPolicyGroupHandler{Repository: workPolicyRepo, Authorizer: organizationAuthorizer, Audit: repository.AuditLogWriter{DB: db}}
+	workPolicyHandler := &api.WorkPolicyGroupHandler{Repository: workPolicyRepo, Authorizer: organizationAuthorizer, Audit: repository.AuditLogWriter{DB: db}}
 	registerWorkPolicyRoutes(protectedRouter, workPolicyHandler)
 	reportRepo := repository.ReportRepository{DB: db}
 	reportQueue := &repository.RedisReportQueue{Client: redisClient}
-	reportHandler := api.ReportHandler{Repository: reportRepo, Queue: reportQueue, Authorizer: organizationAuthorizer}
+	reportHandler := &api.ReportHandler{Repository: reportRepo, Queue: reportQueue, Authorizer: organizationAuthorizer}
 	registerReportRoutes(protectedRouter, reportHandler)
 	fileRepo := repository.FileRepository{DB: db}
 	var fileStorage api.FileStorage
 	if s3Client, err := external.NewS3Client(cfg.S3EndpointURL, cfg.S3BucketName, cfg.S3AccessKey.Expose(), cfg.S3SecretKey.Expose(), cfg.S3Region, cfg.S3UsePathStyle, nil); err == nil {
 		fileStorage = s3Client
 	}
-	fileHandler := api.FileHandler{Repository: fileRepo, Storage: fileStorage, Authorizer: organizationAuthorizer}
+	fileHandler := &api.FileHandler{Repository: fileRepo, Storage: fileStorage, Authorizer: organizationAuthorizer}
 	registerFileRoutes(protectedRouter, fileHandler)
 	documentRepo := repository.DocumentRepository{DB: db}
-	documentHandler := api.DocumentHandler{Repository: documentRepo, Authorizer: organizationAuthorizer}
+	documentHandler := &api.DocumentHandler{Repository: documentRepo, Authorizer: organizationAuthorizer}
 	registerDocumentRoutes(protectedRouter, documentHandler)
 	conditionRepo := repository.ConditionTypeRepository{DB: db}
-	conditionHandler := api.ConditionTypeHandler{Repository: conditionRepo, Authorizer: organizationAuthorizer}
+	conditionHandler := &api.ConditionTypeHandler{Repository: conditionRepo, Authorizer: organizationAuthorizer}
 	phaseRepo := repository.EmploymentPhaseRepository{DB: db}
-	phaseHandler := api.EmploymentPhaseHandler{Repository: phaseRepo, Authorizer: organizationAuthorizer}
+	phaseHandler := &api.EmploymentPhaseHandler{Repository: phaseRepo, Authorizer: organizationAuthorizer}
 	lifecycleRepo := repository.LifecycleRepository{DB: db}
-	lifecycleHandler := api.LifecycleHandler{
+	lifecycleHandler := &api.LifecycleHandler{
 		Repository: lifecycleRepo,
 		Authorizer: organizationAuthorizer,
 	}
 	registerLifecycleRoutes(protectedRouter, conditionHandler, phaseHandler, lifecycleHandler)
 
-	systemHealthHandler := api.SystemHealthHandler{Authorizer: organizationAuthorizer}
+	systemHealthHandler := &api.SystemHealthHandler{Authorizer: organizationAuthorizer}
 
 	systemSettingsRepo := repository.SystemSettingsRepository{DB: db}
-	systemAdminHandler := api.SystemAdminHandler{
+	systemAdminHandler := &api.SystemAdminHandler{
 		Authorizer:  organizationAuthorizer,
 		Settings:    systemSettingsRepo,
 		EmailSender: service.EmailService{Settings: systemSettingsRepo},
@@ -195,7 +195,7 @@ func buildRouter(cfg *config.Config, db repository.DBTX, redisClient *redisinfra
 	registerSystemRoutes(protectedRouter, systemHealthHandler, systemAdminHandler)
 
 	monitorRepo := repository.MonitorRepository{DB: db, SystemDB: db}
-	monitorHandler := api.MonitorHandler{
+	monitorHandler := &api.MonitorHandler{
 		Repo:       monitorRepo,
 		Authorizer: organizationAuthorizer,
 		Redis:      redisClient,
@@ -207,9 +207,9 @@ func buildRouter(cfg *config.Config, db repository.DBTX, redisClient *redisinfra
 	registerPublicAuthRoutes(router, authHandler)
 	registerAuthRoutes(protectedRouter, authHandler)
 	preferencesRepo := repository.DashboardPreferencesRepository{DB: db}
-	preferencesHandler := api.DashboardPreferencesHandler{Repository: preferencesRepo, Authorizer: organizationAuthorizer}
+	preferencesHandler := &api.DashboardPreferencesHandler{Repository: preferencesRepo, Authorizer: organizationAuthorizer}
 	dashboardAnalyticsRepo := repository.DashboardAnalyticsRepository{DB: db}
-	dashboardAnalyticsHandler := api.DashboardAnalyticsHandler{
+	dashboardAnalyticsHandler := &api.DashboardAnalyticsHandler{
 		Repository: dashboardAnalyticsRepo,
 		Authorizer: organizationAuthorizer,
 	}

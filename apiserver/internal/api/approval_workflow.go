@@ -133,7 +133,7 @@ type ApprovalWorkflowHandler struct {
 	Authorizer Authorizer
 }
 
-func (h ApprovalWorkflowHandler) List(w http.ResponseWriter, r *http.Request) {
+func (h *ApprovalWorkflowHandler) List(w http.ResponseWriter, r *http.Request) {
 	if !h.allowed(r, "approval_workflows:read") {
 		h.forbidden(w, r)
 		return
@@ -156,7 +156,7 @@ func (h ApprovalWorkflowHandler) List(w http.ResponseWriter, r *http.Request) {
 }
 
 // PendingTasks handles GET /api/v1/approval-workflows/pending-tasks.
-func (h ApprovalWorkflowHandler) PendingTasks(w http.ResponseWriter, r *http.Request) {
+func (h *ApprovalWorkflowHandler) PendingTasks(w http.ResponseWriter, r *http.Request) {
 	if !h.allowed(r, "approval_workflows:read") {
 		h.forbidden(w, r)
 		return
@@ -179,7 +179,7 @@ func (h ApprovalWorkflowHandler) PendingTasks(w http.ResponseWriter, r *http.Req
 	apperror.WriteJSON(w, http.StatusOK, tasks)
 }
 
-func (h ApprovalWorkflowHandler) Create(w http.ResponseWriter, r *http.Request) {
+func (h *ApprovalWorkflowHandler) Create(w http.ResponseWriter, r *http.Request) {
 	userID, userOK := httpinfra.UserIDFromContext(r.Context())
 	if !userOK || !h.allowed(r, "approval_workflows:manage") {
 		h.forbidden(w, r)
@@ -198,7 +198,7 @@ func (h ApprovalWorkflowHandler) Create(w http.ResponseWriter, r *http.Request) 
 	apperror.WriteJSON(w, http.StatusCreated, workflow)
 }
 
-func (h ApprovalWorkflowHandler) Get(w http.ResponseWriter, r *http.Request) {
+func (h *ApprovalWorkflowHandler) Get(w http.ResponseWriter, r *http.Request) {
 	id, idOK := pathUUID(r, "id")
 	if !idOK || !h.allowed(r, "approval_workflows:read") {
 		h.forbidden(w, r)
@@ -212,7 +212,7 @@ func (h ApprovalWorkflowHandler) Get(w http.ResponseWriter, r *http.Request) {
 	apperror.WriteJSON(w, http.StatusOK, workflow)
 }
 
-func (h ApprovalWorkflowHandler) Update(w http.ResponseWriter, r *http.Request) {
+func (h *ApprovalWorkflowHandler) Update(w http.ResponseWriter, r *http.Request) {
 	id, idOK := pathUUID(r, "id")
 	if !idOK || !h.allowed(r, "approval_workflows:manage") {
 		h.forbidden(w, r)
@@ -231,7 +231,7 @@ func (h ApprovalWorkflowHandler) Update(w http.ResponseWriter, r *http.Request) 
 	apperror.WriteJSON(w, http.StatusOK, workflow)
 }
 
-func (h ApprovalWorkflowHandler) Delete(w http.ResponseWriter, r *http.Request) {
+func (h *ApprovalWorkflowHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	id, idOK := pathUUID(r, "id")
 	if !idOK || !h.allowed(r, string(auth.PermissionApprovalWorkflowsManage)) {
 		h.forbidden(w, r)
@@ -244,7 +244,7 @@ func (h ApprovalWorkflowHandler) Delete(w http.ResponseWriter, r *http.Request) 
 	w.WriteHeader(http.StatusOK)
 }
 
-func (h ApprovalWorkflowHandler) Process(w http.ResponseWriter, r *http.Request) {
+func (h *ApprovalWorkflowHandler) Process(w http.ResponseWriter, r *http.Request) {
 	userID, userOK := httpinfra.UserIDFromContext(r.Context())
 	if !userOK {
 		h.forbidden(w, r)
@@ -266,7 +266,7 @@ func (h ApprovalWorkflowHandler) Process(w http.ResponseWriter, r *http.Request)
 	w.WriteHeader(http.StatusOK)
 }
 
-func (h ApprovalWorkflowHandler) History(w http.ResponseWriter, r *http.Request) {
+func (h *ApprovalWorkflowHandler) History(w http.ResponseWriter, r *http.Request) {
 	entityID, entityOK := pathUUID(r, "id")
 	if !entityOK {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
@@ -289,14 +289,14 @@ func validApprovalAction(action string) bool {
 		return false
 	}
 }
-func (h ApprovalWorkflowHandler) allowed(r *http.Request, permission string) bool {
+func (h *ApprovalWorkflowHandler) allowed(r *http.Request, permission string) bool {
 	userID, ok := httpinfra.UserIDFromContext(r.Context())
 	return ok && h.Authorizer != nil && h.Authorizer.HasPermission(r.Context(), userID, permission)
 }
-func (h ApprovalWorkflowHandler) forbidden(w http.ResponseWriter, r *http.Request) {
+func (h *ApprovalWorkflowHandler) forbidden(w http.ResponseWriter, r *http.Request) {
 	apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
 }
-func (h ApprovalWorkflowHandler) writeError(w http.ResponseWriter, r *http.Request, err error) {
+func (h *ApprovalWorkflowHandler) writeError(w http.ResponseWriter, r *http.Request, err error) {
 	if errors.Is(err, pgx.ErrNoRows) || errors.Is(err, ErrWorkflowNotFound) {
 		apperror.WriteError(w, r, apperror.NotFound(apperror.KeyNotFound))
 		return

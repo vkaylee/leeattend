@@ -73,7 +73,7 @@ type EmployeeHandler struct {
 	Authorizer Authorizer
 }
 
-func (h EmployeeHandler) Create(w http.ResponseWriter, r *http.Request) {
+func (h *EmployeeHandler) Create(w http.ResponseWriter, r *http.Request) {
 	if !h.allowed(r, "employees:create") {
 		h.forbidden(w, r)
 		return
@@ -91,7 +91,7 @@ func (h EmployeeHandler) Create(w http.ResponseWriter, r *http.Request) {
 	apperror.WriteJSON(w, http.StatusCreated, employee)
 }
 
-func (h EmployeeHandler) List(w http.ResponseWriter, r *http.Request) {
+func (h *EmployeeHandler) List(w http.ResponseWriter, r *http.Request) {
 	if !h.allowed(r, "employees:read") {
 		h.forbidden(w, r)
 		return
@@ -109,7 +109,7 @@ func (h EmployeeHandler) List(w http.ResponseWriter, r *http.Request) {
 	apperror.WriteJSON(w, http.StatusOK, result)
 }
 
-func (h EmployeeHandler) Get(w http.ResponseWriter, r *http.Request) {
+func (h *EmployeeHandler) Get(w http.ResponseWriter, r *http.Request) {
 	employeeID, employeeOK := pathUUID(r, "id")
 	if !employeeOK || !h.allowed(r, "employees:read") {
 		h.forbidden(w, r)
@@ -123,7 +123,7 @@ func (h EmployeeHandler) Get(w http.ResponseWriter, r *http.Request) {
 	apperror.WriteJSON(w, http.StatusOK, employee)
 }
 
-func (h EmployeeHandler) Update(w http.ResponseWriter, r *http.Request) {
+func (h *EmployeeHandler) Update(w http.ResponseWriter, r *http.Request) {
 	employeeID, employeeOK := pathUUID(r, "id")
 	if !employeeOK || !h.allowed(r, "employees:update") {
 		h.forbidden(w, r)
@@ -142,7 +142,7 @@ func (h EmployeeHandler) Update(w http.ResponseWriter, r *http.Request) {
 	apperror.WriteJSON(w, http.StatusOK, employee)
 }
 
-func (h EmployeeHandler) Delete(w http.ResponseWriter, r *http.Request) {
+func (h *EmployeeHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	employeeID, employeeOK := pathUUID(r, "id")
 	if !employeeOK || !h.allowed(r, "employees:delete") {
 		h.forbidden(w, r)
@@ -155,7 +155,7 @@ func (h EmployeeHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
-func (h EmployeeHandler) Rehire(w http.ResponseWriter, r *http.Request) {
+func (h *EmployeeHandler) Rehire(w http.ResponseWriter, r *http.Request) {
 	employeeID, employeeOK := pathUUID(r, "id")
 	if !employeeOK || !h.allowed(r, "employees:rehire") {
 		h.forbidden(w, r)
@@ -174,14 +174,14 @@ func (h EmployeeHandler) Rehire(w http.ResponseWriter, r *http.Request) {
 	apperror.WriteJSON(w, http.StatusOK, employee)
 }
 
-func (h EmployeeHandler) allowed(r *http.Request, permission string) bool {
+func (h *EmployeeHandler) allowed(r *http.Request, permission string) bool {
 	userID, ok := httpinfra.UserIDFromContext(r.Context())
 	return ok && h.Authorizer != nil && h.Authorizer.HasPermission(r.Context(), userID, permission)
 }
-func (h EmployeeHandler) forbidden(w http.ResponseWriter, r *http.Request) {
+func (h *EmployeeHandler) forbidden(w http.ResponseWriter, r *http.Request) {
 	apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
 }
-func (h EmployeeHandler) writeError(w http.ResponseWriter, r *http.Request, err error) {
+func (h *EmployeeHandler) writeError(w http.ResponseWriter, r *http.Request, err error) {
 	if errors.Is(err, ErrConflict) {
 		apperror.WriteError(w, r, apperror.Conflict(apperror.KeyConflict))
 		return

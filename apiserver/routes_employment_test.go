@@ -11,7 +11,7 @@ import (
 
 func TestRegisterEmploymentRoutesIncludesEmployeeRelationshipList(t *testing.T) {
 	router := chi.NewRouter()
-	registerEmploymentRoutes(router, api.ContractEmploymentHandler{}, api.AssignmentHandler{}, api.CustomFieldHandler{})
+	registerEmploymentRoutes(router, &api.ContractEmploymentHandler{}, &api.AssignmentHandler{}, &api.CustomFieldHandler{})
 
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/employees/00000000-0000-0000-0000-000000000001/employment-relationships", nil)
 	rec := httptest.NewRecorder()
@@ -27,7 +27,7 @@ func TestRegisterEmploymentRoutesIncludesEmployeeRelationshipList(t *testing.T) 
 
 func TestRegisterEmploymentRoutesIncludesEmployeeContractList(t *testing.T) {
 	router := chi.NewRouter()
-	registerEmploymentRoutes(router, api.ContractEmploymentHandler{}, api.AssignmentHandler{}, api.CustomFieldHandler{})
+	registerEmploymentRoutes(router, &api.ContractEmploymentHandler{}, &api.AssignmentHandler{}, &api.CustomFieldHandler{})
 
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/employees/00000000-0000-0000-0000-000000000001/contracts", nil)
 	rec := httptest.NewRecorder()

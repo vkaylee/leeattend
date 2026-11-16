@@ -5,7 +5,7 @@ import (
 	"github.com/vkaylee/leeattend/apiserver/internal/api"
 )
 
-func registerWorkflowRoutes(router chi.Router, handler api.ApprovalWorkflowHandler) {
+func registerWorkflowRoutes(router chi.Router, handler *api.ApprovalWorkflowHandler) {
 	registerRoute(router, "GET /api/v1/approval-workflows", handler.List)
 	registerRoute(router, "POST /api/v1/approval-workflows", handler.Create)
 	registerRoute(router, "POST /api/v1/approval-workflows/approve", handler.Process)
@@ -16,7 +16,7 @@ func registerWorkflowRoutes(router chi.Router, handler api.ApprovalWorkflowHandl
 	registerRoute(router, "GET /api/v1/approval-workflows/pending-tasks", handler.PendingTasks)
 }
 
-func registerNotificationRoutes(router chi.Router, handler api.NotificationHandler) {
+func registerNotificationRoutes(router chi.Router, handler *api.NotificationHandler) {
 	registerRoute(router, "GET /api/v1/notifications", handler.List)
 	registerRoute(router, "GET /api/v1/notifications/unread-count", handler.UnreadCount)
 	registerRoute(router, "PATCH /api/v1/notifications/{id}/read", handler.MarkRead)

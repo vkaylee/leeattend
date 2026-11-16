@@ -179,7 +179,7 @@ type OrganizationRBACHandler struct {
 	StorageTester StorageConnectionTester
 }
 
-func (h OrganizationRBACHandler) permission(r *http.Request, permission string) (uuid.UUID, bool) {
+func (h *OrganizationRBACHandler) permission(r *http.Request, permission string) (uuid.UUID, bool) {
 	uid, ok := httpinfra.UserIDFromContext(r.Context())
 	if !ok || h.Authorizer == nil || !h.Authorizer.HasPermission(r.Context(), uid, permission) {
 		return uuid.Nil, false
@@ -200,11 +200,11 @@ func writeRBACError(w http.ResponseWriter, r *http.Request, err error) {
 		apperror.WriteError(w, r, apperror.Internal(err))
 	}
 }
-func (h OrganizationRBACHandler) require(w http.ResponseWriter, r *http.Request, p string) (uuid.UUID, bool) {
+func (h *OrganizationRBACHandler) require(w http.ResponseWriter, r *http.Request, p string) (uuid.UUID, bool) {
 	return h.requireAny(w, r, p)
 }
 
-func (h OrganizationRBACHandler) requireAny(w http.ResponseWriter, r *http.Request, permissions ...string) (uuid.UUID, bool) {
+func (h *OrganizationRBACHandler) requireAny(w http.ResponseWriter, r *http.Request, permissions ...string) (uuid.UUID, bool) {
 	for _, permission := range permissions {
 		if uid, ok := h.permission(r, permission); ok {
 			return uid, true
@@ -214,19 +214,19 @@ func (h OrganizationRBACHandler) requireAny(w http.ResponseWriter, r *http.Reque
 	return uuid.Nil, false
 }
 
-func (h OrganizationRBACHandler) requireMemberRoleAssignment(w http.ResponseWriter, r *http.Request) (uuid.UUID, bool) {
+func (h *OrganizationRBACHandler) requireMemberRoleAssignment(w http.ResponseWriter, r *http.Request) (uuid.UUID, bool) {
 	return h.requireAny(w, r, "members:roles:assign", "members:roles:manage")
 }
 
-func (h OrganizationRBACHandler) requireRoleManagement(w http.ResponseWriter, r *http.Request) (uuid.UUID, bool) {
+func (h *OrganizationRBACHandler) requireRoleManagement(w http.ResponseWriter, r *http.Request) (uuid.UUID, bool) {
 	return h.requireAny(w, r, "roles:manage", "members:roles:manage")
 }
 
-func (h OrganizationRBACHandler) requireMemberPermissionManagement(w http.ResponseWriter, r *http.Request) (uuid.UUID, bool) {
+func (h *OrganizationRBACHandler) requireMemberPermissionManagement(w http.ResponseWriter, r *http.Request) (uuid.UUID, bool) {
 	return h.requireAny(w, r, "members:permissions:manage", "members:roles:manage")
 }
 
-func (h OrganizationRBACHandler) ListMembers(w http.ResponseWriter, r *http.Request) {
+func (h *OrganizationRBACHandler) ListMembers(w http.ResponseWriter, r *http.Request) {
 	if _, ok := h.memberContext(w, r); !ok {
 		return
 	}
@@ -255,7 +255,7 @@ func (h OrganizationRBACHandler) ListMembers(w http.ResponseWriter, r *http.Requ
 	}
 	apperror.WriteJSON(w, http.StatusOK, MemberListResponse{Data: data, Total: total, Page: p.Page, Limit: p.Limit})
 }
-func (h OrganizationRBACHandler) memberContext(w http.ResponseWriter, r *http.Request) (uuid.UUID, bool) {
+func (h *OrganizationRBACHandler) memberContext(w http.ResponseWriter, r *http.Request) (uuid.UUID, bool) {
 	uid, ok := httpinfra.UserIDFromContext(r.Context())
 	if !ok {
 		apperror.WriteError(w, r, apperror.Unauthorized(apperror.KeyAuthenticationRequired))
@@ -272,7 +272,7 @@ func (h OrganizationRBACHandler) memberContext(w http.ResponseWriter, r *http.Re
 	}
 	return uid, true
 }
-func (h OrganizationRBACHandler) AddMember(w http.ResponseWriter, r *http.Request) {
+func (h *OrganizationRBACHandler) AddMember(w http.ResponseWriter, r *http.Request) {
 	if _, ok := h.require(w, r, "members:invite"); !ok {
 		return
 	}
@@ -292,7 +292,7 @@ func (h OrganizationRBACHandler) AddMember(w http.ResponseWriter, r *http.Reques
 	}
 	w.WriteHeader(http.StatusCreated)
 }
-func (h OrganizationRBACHandler) UpdateMemberRole(w http.ResponseWriter, r *http.Request) {
+func (h *OrganizationRBACHandler) UpdateMemberRole(w http.ResponseWriter, r *http.Request) {
 	user, userOK := pathUUID(r, "user_id")
 	if !userOK {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
@@ -312,7 +312,7 @@ func (h OrganizationRBACHandler) UpdateMemberRole(w http.ResponseWriter, r *http
 	}
 	w.WriteHeader(http.StatusOK)
 }
-func (h OrganizationRBACHandler) RemoveMember(w http.ResponseWriter, r *http.Request) {
+func (h *OrganizationRBACHandler) RemoveMember(w http.ResponseWriter, r *http.Request) {
 	user, userOK := pathUUID(r, "user_id")
 	if !userOK {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
@@ -332,7 +332,7 @@ func (h OrganizationRBACHandler) RemoveMember(w http.ResponseWriter, r *http.Req
 	}
 	w.WriteHeader(http.StatusNoContent)
 }
-func (h OrganizationRBACHandler) GetMemberRoles(w http.ResponseWriter, r *http.Request) {
+func (h *OrganizationRBACHandler) GetMemberRoles(w http.ResponseWriter, r *http.Request) {
 	user, userOK := pathUUID(r, "user_id")
 	if !userOK {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
@@ -348,7 +348,7 @@ func (h OrganizationRBACHandler) GetMemberRoles(w http.ResponseWriter, r *http.R
 	}
 	apperror.WriteJSON(w, http.StatusOK, map[string]any{"primary": primary, "extra": extra})
 }
-func (h OrganizationRBACHandler) AssignExtraRole(w http.ResponseWriter, r *http.Request) {
+func (h *OrganizationRBACHandler) AssignExtraRole(w http.ResponseWriter, r *http.Request) {
 	user, userOK := pathUUID(r, "user_id")
 	if !userOK {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
@@ -369,7 +369,7 @@ func (h OrganizationRBACHandler) AssignExtraRole(w http.ResponseWriter, r *http.
 	}
 	apperror.WriteJSON(w, http.StatusCreated, x)
 }
-func (h OrganizationRBACHandler) RevokeExtraRole(w http.ResponseWriter, r *http.Request) {
+func (h *OrganizationRBACHandler) RevokeExtraRole(w http.ResponseWriter, r *http.Request) {
 	_, userOK := pathUUID(r, "user_id")
 	role, roleOK := pathUUID(r, "role_id")
 	if !userOK || !roleOK {
@@ -390,7 +390,7 @@ func (h OrganizationRBACHandler) RevokeExtraRole(w http.ResponseWriter, r *http.
 	}
 	w.WriteHeader(http.StatusNoContent)
 }
-func (h OrganizationRBACHandler) GetMemberPermissions(w http.ResponseWriter, r *http.Request) {
+func (h *OrganizationRBACHandler) GetMemberPermissions(w http.ResponseWriter, r *http.Request) {
 	user, userOK := pathUUID(r, "user_id")
 	if !userOK {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
@@ -406,7 +406,7 @@ func (h OrganizationRBACHandler) GetMemberPermissions(w http.ResponseWriter, r *
 	}
 	apperror.WriteJSON(w, http.StatusOK, x)
 }
-func (h OrganizationRBACHandler) AssignExtraPermission(w http.ResponseWriter, r *http.Request) {
+func (h *OrganizationRBACHandler) AssignExtraPermission(w http.ResponseWriter, r *http.Request) {
 	user, userOK := pathUUID(r, "user_id")
 	if !userOK {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
@@ -436,7 +436,7 @@ func (h OrganizationRBACHandler) AssignExtraPermission(w http.ResponseWriter, r 
 	}
 	apperror.WriteJSON(w, http.StatusCreated, x)
 }
-func (h OrganizationRBACHandler) RevokeExtraPermission(w http.ResponseWriter, r *http.Request) {
+func (h *OrganizationRBACHandler) RevokeExtraPermission(w http.ResponseWriter, r *http.Request) {
 	_, userOK := pathUUID(r, "user_id")
 	perm, permOK := pathUUID(r, "perm_id")
 	if !userOK || !permOK {
@@ -457,7 +457,7 @@ func (h OrganizationRBACHandler) RevokeExtraPermission(w http.ResponseWriter, r 
 	}
 	w.WriteHeader(http.StatusNoContent)
 }
-func (h OrganizationRBACHandler) ListRoles(w http.ResponseWriter, r *http.Request) {
+func (h *OrganizationRBACHandler) ListRoles(w http.ResponseWriter, r *http.Request) {
 	if _, ok := h.memberContext(w, r); !ok {
 		return
 	}
@@ -473,7 +473,7 @@ func (h OrganizationRBACHandler) ListRoles(w http.ResponseWriter, r *http.Reques
 	}
 	apperror.WriteJSON(w, http.StatusOK, RoleListResponse{Data: x, Total: total, Page: p.Page, Limit: p.Limit})
 }
-func (h OrganizationRBACHandler) CreateRole(w http.ResponseWriter, r *http.Request) {
+func (h *OrganizationRBACHandler) CreateRole(w http.ResponseWriter, r *http.Request) {
 	if _, ok := h.requireRoleManagement(w, r); !ok {
 		return
 	}
@@ -496,7 +496,7 @@ func (h OrganizationRBACHandler) CreateRole(w http.ResponseWriter, r *http.Reque
 	}
 	apperror.WriteJSON(w, http.StatusCreated, x)
 }
-func (h OrganizationRBACHandler) UpdateRole(w http.ResponseWriter, r *http.Request) {
+func (h *OrganizationRBACHandler) UpdateRole(w http.ResponseWriter, r *http.Request) {
 	role, roleOK := pathUUID(r, "role_id")
 	if !roleOK {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
@@ -517,7 +517,7 @@ func (h OrganizationRBACHandler) UpdateRole(w http.ResponseWriter, r *http.Reque
 	}
 	apperror.WriteJSON(w, http.StatusOK, x)
 }
-func (h OrganizationRBACHandler) DeleteRole(w http.ResponseWriter, r *http.Request) {
+func (h *OrganizationRBACHandler) DeleteRole(w http.ResponseWriter, r *http.Request) {
 	role, roleOK := pathUUID(r, "role_id")
 	if !roleOK {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
@@ -537,7 +537,7 @@ func (h OrganizationRBACHandler) DeleteRole(w http.ResponseWriter, r *http.Reque
 	}
 	w.WriteHeader(http.StatusNoContent)
 }
-func (h OrganizationRBACHandler) GetRolePermissions(w http.ResponseWriter, r *http.Request) {
+func (h *OrganizationRBACHandler) GetRolePermissions(w http.ResponseWriter, r *http.Request) {
 	role, roleOK := pathUUID(r, "role_id")
 	if !roleOK {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
@@ -553,7 +553,7 @@ func (h OrganizationRBACHandler) GetRolePermissions(w http.ResponseWriter, r *ht
 	}
 	apperror.WriteJSON(w, http.StatusOK, x)
 }
-func (h OrganizationRBACHandler) SetRolePermissions(w http.ResponseWriter, r *http.Request) {
+func (h *OrganizationRBACHandler) SetRolePermissions(w http.ResponseWriter, r *http.Request) {
 	role, roleOK := pathUUID(r, "role_id")
 	if !roleOK {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
@@ -582,7 +582,7 @@ func (h OrganizationRBACHandler) SetRolePermissions(w http.ResponseWriter, r *ht
 	}
 	apperror.WriteJSON(w, http.StatusOK, req.Permissions)
 }
-func (h OrganizationRBACHandler) PermissionCatalog(w http.ResponseWriter, r *http.Request) {
+func (h *OrganizationRBACHandler) PermissionCatalog(w http.ResponseWriter, r *http.Request) {
 	if _, ok := h.requireRoleManagement(w, r); !ok {
 		return
 	}
@@ -593,7 +593,7 @@ func (h OrganizationRBACHandler) PermissionCatalog(w http.ResponseWriter, r *htt
 	}
 	apperror.WriteJSON(w, http.StatusOK, x)
 }
-func (h OrganizationRBACHandler) AvailablePermissions(w http.ResponseWriter, r *http.Request) {
+func (h *OrganizationRBACHandler) AvailablePermissions(w http.ResponseWriter, r *http.Request) {
 	if _, ok := h.requireRoleManagement(w, r); !ok {
 		return
 	}
@@ -644,7 +644,7 @@ func permissionGroup(id string) string {
 	}
 }
 
-func (h OrganizationRBACHandler) GetStorage(w http.ResponseWriter, r *http.Request) {
+func (h *OrganizationRBACHandler) GetStorage(w http.ResponseWriter, r *http.Request) {
 	if _, ok := h.memberContext(w, r); !ok {
 		return
 	}
@@ -661,7 +661,7 @@ func (h OrganizationRBACHandler) GetStorage(w http.ResponseWriter, r *http.Reque
 	response.AccessKeyMasked = "***"
 	apperror.WriteJSON(w, http.StatusOK, response)
 }
-func (h OrganizationRBACHandler) PutStorage(w http.ResponseWriter, r *http.Request) {
+func (h *OrganizationRBACHandler) PutStorage(w http.ResponseWriter, r *http.Request) {
 	if _, ok := h.memberContext(w, r); !ok {
 		return
 	}
@@ -694,7 +694,7 @@ func (h OrganizationRBACHandler) PutStorage(w http.ResponseWriter, r *http.Reque
 	response.AccessKeyMasked = "***"
 	apperror.WriteJSON(w, http.StatusOK, response)
 }
-func (h OrganizationRBACHandler) DeleteStorage(w http.ResponseWriter, r *http.Request) {
+func (h *OrganizationRBACHandler) DeleteStorage(w http.ResponseWriter, r *http.Request) {
 	if _, ok := h.memberContext(w, r); !ok {
 		return
 	}
@@ -704,7 +704,7 @@ func (h OrganizationRBACHandler) DeleteStorage(w http.ResponseWriter, r *http.Re
 	}
 	apperror.WriteJSON(w, http.StatusOK, struct{}{})
 }
-func (h OrganizationRBACHandler) TestStorage(w http.ResponseWriter, r *http.Request) {
+func (h *OrganizationRBACHandler) TestStorage(w http.ResponseWriter, r *http.Request) {
 	if _, ok := h.memberContext(w, r); !ok {
 		return
 	}

@@ -124,12 +124,12 @@ func (customFieldAuthorizer) GetManagedDepartmentIDs(context.Context, uuid.UUID)
 }
 func (customFieldAuthorizer) IsGlobalManager(context.Context, uuid.UUID) bool { return false }
 
-func customFieldHandler(repo CustomFieldRepository, permissions ...string) CustomFieldHandler {
+func customFieldHandler(repo CustomFieldRepository, permissions ...string) *CustomFieldHandler {
 	grants := make(map[string]bool, len(permissions))
 	for _, p := range permissions {
 		grants[p] = true
 	}
-	return CustomFieldHandler{Repository: repo, Authorizer: customFieldAuthorizer{permissions: grants}}
+	return &CustomFieldHandler{Repository: repo, Authorizer: customFieldAuthorizer{permissions: grants}}
 }
 
 func customFieldRequest(method, target string, body []byte, userID uuid.UUID) *http.Request {

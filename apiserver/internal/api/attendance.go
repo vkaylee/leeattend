@@ -155,7 +155,7 @@ type AttendanceHandler struct {
 }
 
 // PunchIn handles POST /api/v1/time/punch-in.
-func (h AttendanceHandler) PunchIn(w http.ResponseWriter, r *http.Request) {
+func (h *AttendanceHandler) PunchIn(w http.ResponseWriter, r *http.Request) {
 	if !h.allowed(r, "ess:clock") {
 		h.forbidden(w, r)
 		return
@@ -179,7 +179,7 @@ func (h AttendanceHandler) PunchIn(w http.ResponseWriter, r *http.Request) {
 
 // PunchOut handles POST /api/v1/time/punch-out/{employee_id}.
 // Requires attendance:force_clock_out; closes the active time entry for the target employee.
-func (h AttendanceHandler) PunchOut(w http.ResponseWriter, r *http.Request) {
+func (h *AttendanceHandler) PunchOut(w http.ResponseWriter, r *http.Request) {
 	employeeID, empOK := pathUUID(r, "employee_id")
 	if !empOK || !h.allowed(r, "attendance:force_clock_out") {
 		h.forbidden(w, r)
@@ -200,7 +200,7 @@ func (h AttendanceHandler) PunchOut(w http.ResponseWriter, r *http.Request) {
 
 // TimeHistory handles GET /api/v1/time/history/{employee_id}.
 // Admin: requires attendance:logs:read; employee: self-only.
-func (h AttendanceHandler) TimeHistory(w http.ResponseWriter, r *http.Request) {
+func (h *AttendanceHandler) TimeHistory(w http.ResponseWriter, r *http.Request) {
 	employeeID, empOK := pathUUID(r, "employee_id")
 	if !empOK {
 		h.forbidden(w, r)
@@ -254,7 +254,7 @@ func parseTimeHistoryQuery(r *http.Request) (TimeHistoryQuery, bool) {
 
 // CreateAdjustment handles POST /api/v1/attendance/adjustments.
 // Requires attendance:adjustments:submit; creates a pending adjustment awaiting approval.
-func (h AttendanceHandler) CreateAdjustment(w http.ResponseWriter, r *http.Request) {
+func (h *AttendanceHandler) CreateAdjustment(w http.ResponseWriter, r *http.Request) {
 	if !h.allowed(r, "attendance:adjustments:submit") {
 		h.forbidden(w, r)
 		return
@@ -278,7 +278,7 @@ func (h AttendanceHandler) CreateAdjustment(w http.ResponseWriter, r *http.Reque
 }
 
 // ListAdjustments handles GET /api/v1/attendance/adjustments.
-func (h AttendanceHandler) ListAdjustments(w http.ResponseWriter, r *http.Request) {
+func (h *AttendanceHandler) ListAdjustments(w http.ResponseWriter, r *http.Request) {
 	if !h.allowed(r, "attendance:adjustments:approve") {
 		h.forbidden(w, r)
 		return
@@ -314,7 +314,7 @@ func (h AttendanceHandler) ListAdjustments(w http.ResponseWriter, r *http.Reques
 }
 
 // ListEmployeeAdjustments handles GET /api/v1/employees/{id}/attendance/adjustments.
-func (h AttendanceHandler) ListEmployeeAdjustments(w http.ResponseWriter, r *http.Request) {
+func (h *AttendanceHandler) ListEmployeeAdjustments(w http.ResponseWriter, r *http.Request) {
 	employeeID, ok := pathUUID(r, "id")
 	userID, userOK := httpinfra.UserIDFromContext(r.Context())
 	if !ok || !userOK {
@@ -337,7 +337,7 @@ func (h AttendanceHandler) ListEmployeeAdjustments(w http.ResponseWriter, r *htt
 }
 
 // ApproveAdjustment handles PUT /api/v1/attendance/adjustments/{id}/approve.
-func (h AttendanceHandler) ApproveAdjustment(w http.ResponseWriter, r *http.Request) {
+func (h *AttendanceHandler) ApproveAdjustment(w http.ResponseWriter, r *http.Request) {
 	adjustmentID, adjustmentOK := pathUUID(r, "id")
 	if !adjustmentOK || !h.allowed(r, "attendance:adjustments:approve") {
 		h.forbidden(w, r)
@@ -361,7 +361,7 @@ func (h AttendanceHandler) ApproveAdjustment(w http.ResponseWriter, r *http.Requ
 }
 
 // Summaries handles GET /api/v1/attendance/summaries.
-func (h AttendanceHandler) Summaries(w http.ResponseWriter, r *http.Request) {
+func (h *AttendanceHandler) Summaries(w http.ResponseWriter, r *http.Request) {
 	userID, userOK := httpinfra.UserIDFromContext(r.Context())
 	if !userOK {
 		h.forbidden(w, r)
@@ -420,7 +420,7 @@ func (h AttendanceHandler) Summaries(w http.ResponseWriter, r *http.Request) {
 }
 
 // ReprocessAll handles POST /api/v1/attendance/reprocess-all.
-func (h AttendanceHandler) ReprocessAll(w http.ResponseWriter, r *http.Request) {
+func (h *AttendanceHandler) ReprocessAll(w http.ResponseWriter, r *http.Request) {
 	if !h.allowed(r, "attendance:reprocess") {
 		h.forbidden(w, r)
 		return
@@ -446,7 +446,7 @@ func (h AttendanceHandler) ReprocessAll(w http.ResponseWriter, r *http.Request) 
 }
 
 // ReprocessEmployee handles POST /api/v1/attendance/reprocess/{employee_id}.
-func (h AttendanceHandler) ReprocessEmployee(w http.ResponseWriter, r *http.Request) {
+func (h *AttendanceHandler) ReprocessEmployee(w http.ResponseWriter, r *http.Request) {
 	employeeID, empOK := pathUUID(r, "employee_id")
 	if !empOK || !h.allowed(r, "attendance:reprocess") {
 		h.forbidden(w, r)
@@ -474,7 +474,7 @@ func (h AttendanceHandler) ReprocessEmployee(w http.ResponseWriter, r *http.Requ
 }
 
 // UpdateTimeEntry handles PUT /api/v1/time/entries/{id}.
-func (h AttendanceHandler) UpdateTimeEntry(w http.ResponseWriter, r *http.Request) {
+func (h *AttendanceHandler) UpdateTimeEntry(w http.ResponseWriter, r *http.Request) {
 	entryID, entryOK := pathUUID(r, "id")
 	if !entryOK || !h.allowed(r, "attendance:logs:import") {
 		h.forbidden(w, r)
@@ -498,7 +498,7 @@ func (h AttendanceHandler) UpdateTimeEntry(w http.ResponseWriter, r *http.Reques
 }
 
 // DeleteTimeEntry handles DELETE /api/v1/time/entries/{id}.
-func (h AttendanceHandler) DeleteTimeEntry(w http.ResponseWriter, r *http.Request) {
+func (h *AttendanceHandler) DeleteTimeEntry(w http.ResponseWriter, r *http.Request) {
 	entryID, entryOK := pathUUID(r, "id")
 	if !entryOK || !h.allowed(r, "attendance:logs:import") {
 		h.forbidden(w, r)
@@ -516,16 +516,16 @@ func (h AttendanceHandler) DeleteTimeEntry(w http.ResponseWriter, r *http.Reques
 	w.WriteHeader(http.StatusNoContent)
 }
 
-func (h AttendanceHandler) allowed(r *http.Request, permission string) bool {
+func (h *AttendanceHandler) allowed(r *http.Request, permission string) bool {
 	userID, ok := httpinfra.UserIDFromContext(r.Context())
 	return ok && h.Authorizer != nil && h.Authorizer.HasPermission(r.Context(), userID, permission)
 }
 
-func (h AttendanceHandler) forbidden(w http.ResponseWriter, r *http.Request) {
+func (h *AttendanceHandler) forbidden(w http.ResponseWriter, r *http.Request) {
 	apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
 }
 
-func (h AttendanceHandler) writeError(w http.ResponseWriter, r *http.Request, err error) {
+func (h *AttendanceHandler) writeError(w http.ResponseWriter, r *http.Request, err error) {
 	if errors.Is(err, ErrEmploymentInactive) {
 		apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
 		return

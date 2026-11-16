@@ -120,14 +120,14 @@ type EmployeeImportHandler struct {
 	StorageDir string
 }
 
-func (h EmployeeImportHandler) allowed(r *http.Request, permission string) bool {
+func (h *EmployeeImportHandler) allowed(r *http.Request, permission string) bool {
 	userID, ok := httpinfra.UserIDFromContext(r.Context())
 	return ok && h.Authorizer != nil && h.Authorizer.HasPermission(r.Context(), userID, permission)
 }
-func (h EmployeeImportHandler) forbidden(w http.ResponseWriter, r *http.Request) {
+func (h *EmployeeImportHandler) forbidden(w http.ResponseWriter, r *http.Request) {
 	apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
 }
-func (h EmployeeImportHandler) fail(w http.ResponseWriter, r *http.Request, err error) {
+func (h *EmployeeImportHandler) fail(w http.ResponseWriter, r *http.Request, err error) {
 	var appErr *apperror.AppError
 	if errors.As(err, &appErr) {
 		apperror.WriteError(w, r, appErr)
@@ -135,11 +135,11 @@ func (h EmployeeImportHandler) fail(w http.ResponseWriter, r *http.Request, err 
 	}
 	apperror.WriteError(w, r, apperror.Internal(err))
 }
-func (h EmployeeImportHandler) userID(r *http.Request) (uuid.UUID, bool) {
+func (h *EmployeeImportHandler) userID(r *http.Request) (uuid.UUID, bool) {
 	return httpinfra.UserIDFromContext(r.Context())
 }
 
-func (h EmployeeImportHandler) Upload(w http.ResponseWriter, r *http.Request) {
+func (h *EmployeeImportHandler) Upload(w http.ResponseWriter, r *http.Request) {
 	userID, userOK := h.userID(r)
 	if !userOK || !h.allowed(r, string(auth.PermissionEmployeesUpload)) {
 		h.forbidden(w, r)
@@ -181,7 +181,7 @@ func (h EmployeeImportHandler) Upload(w http.ResponseWriter, r *http.Request) {
 	}{jobID})
 }
 
-func (h EmployeeImportHandler) PreviewTermination(w http.ResponseWriter, r *http.Request) {
+func (h *EmployeeImportHandler) PreviewTermination(w http.ResponseWriter, r *http.Request) {
 	if !h.allowed(r, string(auth.PermissionEmployeesUpdate)) {
 		h.forbidden(w, r)
 		return
@@ -204,7 +204,7 @@ func (h EmployeeImportHandler) PreviewTermination(w http.ResponseWriter, r *http
 	apperror.WriteJSON(w, http.StatusOK, response)
 }
 
-func (h EmployeeImportHandler) buildTerminationPreview(ctx context.Context, mapped []map[string]string) (TerminationImportPreviewResponse, error) {
+func (h *EmployeeImportHandler) buildTerminationPreview(ctx context.Context, mapped []map[string]string) (TerminationImportPreviewResponse, error) {
 	response := TerminationImportPreviewResponse{ValidRows: make([]ValidTerminationImportRow, 0), InvalidRows: make([]InvalidTerminationImportRow, 0)}
 	codes := make([]string, 0, len(mapped))
 	parsed := make([]terminationParsedRow, 0, len(mapped))
@@ -347,7 +347,7 @@ func parseTerminationDate(value string) (time.Time, error) {
 	return time.Time{}, errors.New("invalid date")
 }
 
-func (h EmployeeImportHandler) ConfirmTermination(w http.ResponseWriter, r *http.Request) {
+func (h *EmployeeImportHandler) ConfirmTermination(w http.ResponseWriter, r *http.Request) {
 	userID, userOK := h.userID(r)
 	if !userOK || !h.allowed(r, string(auth.PermissionEmployeesUpdate)) {
 		h.forbidden(w, r)
@@ -400,7 +400,7 @@ func (h EmployeeImportHandler) ConfirmTermination(w http.ResponseWriter, r *http
 	apperror.WriteJSON(w, http.StatusOK, ConfirmTerminationImportResponse{SuccessCount: len(rows), JobID: jobID})
 }
 
-func (h EmployeeImportHandler) TerminationTemplate(w http.ResponseWriter, r *http.Request) {
+func (h *EmployeeImportHandler) TerminationTemplate(w http.ResponseWriter, r *http.Request) {
 	if !h.allowed(r, string(auth.PermissionEmployeesUpdate)) {
 		h.forbidden(w, r)
 		return

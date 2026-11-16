@@ -95,7 +95,7 @@ type ShiftSwapHandler struct {
 	Authorizer Authorizer
 }
 
-func (h ShiftSwapHandler) Create(w http.ResponseWriter, r *http.Request) {
+func (h *ShiftSwapHandler) Create(w http.ResponseWriter, r *http.Request) {
 	userID, userOK := httpinfra.UserIDFromContext(r.Context())
 	if !userOK || !h.allowed(r, "shift_swaps:manage") {
 		h.forbidden(w, r)
@@ -114,7 +114,7 @@ func (h ShiftSwapHandler) Create(w http.ResponseWriter, r *http.Request) {
 	apperror.WriteJSON(w, http.StatusCreated, swap)
 }
 
-func (h ShiftSwapHandler) List(w http.ResponseWriter, r *http.Request) {
+func (h *ShiftSwapHandler) List(w http.ResponseWriter, r *http.Request) {
 	if !h.allowed(r, "shift_swaps:manage") {
 		h.forbidden(w, r)
 		return
@@ -136,7 +136,7 @@ func (h ShiftSwapHandler) List(w http.ResponseWriter, r *http.Request) {
 	apperror.WriteJSON(w, http.StatusOK, data)
 }
 
-func (h ShiftSwapHandler) Approve(w http.ResponseWriter, r *http.Request) {
+func (h *ShiftSwapHandler) Approve(w http.ResponseWriter, r *http.Request) {
 	requestID, requestOK := pathUUID(r, "id")
 	userID, userOK := httpinfra.UserIDFromContext(r.Context())
 	if !requestOK || !userOK || !h.allowed(r, "shift_swaps:approve") {
@@ -155,7 +155,7 @@ func (h ShiftSwapHandler) Approve(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-func (h ShiftSwapHandler) Stats(w http.ResponseWriter, r *http.Request) {
+func (h *ShiftSwapHandler) Stats(w http.ResponseWriter, r *http.Request) {
 	if !h.allowed(r, "shift_swaps:manage") {
 		h.forbidden(w, r)
 		return
@@ -168,16 +168,16 @@ func (h ShiftSwapHandler) Stats(w http.ResponseWriter, r *http.Request) {
 	apperror.WriteJSON(w, http.StatusOK, stats)
 }
 
-func (h ShiftSwapHandler) allowed(r *http.Request, permission string) bool {
+func (h *ShiftSwapHandler) allowed(r *http.Request, permission string) bool {
 	userID, ok := httpinfra.UserIDFromContext(r.Context())
 	return ok && h.Authorizer != nil && h.Authorizer.HasPermission(r.Context(), userID, permission)
 }
 
-func (h ShiftSwapHandler) forbidden(w http.ResponseWriter, r *http.Request) {
+func (h *ShiftSwapHandler) forbidden(w http.ResponseWriter, r *http.Request) {
 	apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
 }
 
-func (h ShiftSwapHandler) writeError(w http.ResponseWriter, r *http.Request, err error) {
+func (h *ShiftSwapHandler) writeError(w http.ResponseWriter, r *http.Request, err error) {
 	if errors.Is(err, ErrShiftSwapNotFound) {
 		apperror.WriteError(w, r, apperror.NotFound(apperror.KeyNotFound))
 		return

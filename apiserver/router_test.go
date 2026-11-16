@@ -89,7 +89,7 @@ func TestPublicRouterDoesNotRequireAuthentication(t *testing.T) {
 
 func TestPayrollRoutesRetireSalaryBases(t *testing.T) {
 	router := chi.NewRouter()
-	registerPayrollRoutes(router, api.PayrollHandler{})
+	registerPayrollRoutes(router, &api.PayrollHandler{})
 	for _, route := range []struct {
 		method string
 		path   string

@@ -96,7 +96,7 @@ type DepartmentHandler struct {
 	Authorizer Authorizer
 }
 
-func (h DepartmentHandler) List(w http.ResponseWriter, r *http.Request) {
+func (h *DepartmentHandler) List(w http.ResponseWriter, r *http.Request) {
 	_, userOK := httpinfra.UserIDFromContext(r.Context())
 	if !userOK {
 		apperror.WriteError(w, r, apperror.Unauthorized(apperror.KeyAuthenticationRequired))
@@ -115,7 +115,7 @@ func (h DepartmentHandler) List(w http.ResponseWriter, r *http.Request) {
 	apperror.WriteJSON(w, http.StatusOK, res)
 }
 
-func (h DepartmentHandler) Create(w http.ResponseWriter, r *http.Request) {
+func (h *DepartmentHandler) Create(w http.ResponseWriter, r *http.Request) {
 	userID, userOK := httpinfra.UserIDFromContext(r.Context())
 	if !userOK || h.Authorizer == nil || !h.Authorizer.HasPermission(r.Context(), userID, string(auth.PermissionDepartmentsCreate)) {
 		apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
@@ -135,7 +135,7 @@ func (h DepartmentHandler) Create(w http.ResponseWriter, r *http.Request) {
 	apperror.WriteJSON(w, http.StatusCreated, dept)
 }
 
-func (h DepartmentHandler) Update(w http.ResponseWriter, r *http.Request) {
+func (h *DepartmentHandler) Update(w http.ResponseWriter, r *http.Request) {
 	deptID, deptOK := pathUUID(r, "id")
 	if !deptOK {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
@@ -163,7 +163,7 @@ func (h DepartmentHandler) Update(w http.ResponseWriter, r *http.Request) {
 	apperror.WriteJSON(w, http.StatusOK, dept)
 }
 
-func (h DepartmentHandler) Delete(w http.ResponseWriter, r *http.Request) {
+func (h *DepartmentHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	deptID, deptOK := pathUUID(r, "id")
 	if !deptOK {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
@@ -181,7 +181,7 @@ func (h DepartmentHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
-func (h DepartmentHandler) ListPayrollReconciliation(w http.ResponseWriter, r *http.Request) {
+func (h *DepartmentHandler) ListPayrollReconciliation(w http.ResponseWriter, r *http.Request) {
 	userID, userOK := httpinfra.UserIDFromContext(r.Context())
 	if !userOK || h.Authorizer == nil || !h.Authorizer.HasPermission(r.Context(), userID, string(auth.PermissionPayrollRead)) {
 		apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
@@ -209,7 +209,7 @@ func (h DepartmentHandler) ListPayrollReconciliation(w http.ResponseWriter, r *h
 	apperror.WriteJSON(w, http.StatusOK, result)
 }
 
-func (h DepartmentHandler) GetPayrollConfig(w http.ResponseWriter, r *http.Request) {
+func (h *DepartmentHandler) GetPayrollConfig(w http.ResponseWriter, r *http.Request) {
 	deptID, deptOK := pathUUID(r, "id")
 	if !deptOK {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
@@ -228,7 +228,7 @@ func (h DepartmentHandler) GetPayrollConfig(w http.ResponseWriter, r *http.Reque
 	apperror.WriteJSON(w, http.StatusOK, configs)
 }
 
-func (h DepartmentHandler) SetPayrollConfig(w http.ResponseWriter, r *http.Request) {
+func (h *DepartmentHandler) SetPayrollConfig(w http.ResponseWriter, r *http.Request) {
 	deptID, deptOK := pathUUID(r, "id")
 	if !deptOK {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
@@ -256,7 +256,7 @@ func (h DepartmentHandler) SetPayrollConfig(w http.ResponseWriter, r *http.Reque
 	}
 	apperror.WriteJSON(w, http.StatusCreated, config)
 }
-func (h DepartmentHandler) writeError(w http.ResponseWriter, r *http.Request, err error) {
+func (h *DepartmentHandler) writeError(w http.ResponseWriter, r *http.Request, err error) {
 	if errors.Is(err, ErrDepartmentNotFound) || errors.Is(err, pgx.ErrNoRows) {
 		apperror.WriteError(w, r, apperror.NotFound(apperror.KeyNotFound))
 		return
@@ -268,7 +268,7 @@ func (h DepartmentHandler) writeError(w http.ResponseWriter, r *http.Request, er
 	apperror.WriteError(w, r, apperror.Internal(err))
 }
 
-func (h DepartmentHandler) writePayrollError(w http.ResponseWriter, r *http.Request, err error) {
+func (h *DepartmentHandler) writePayrollError(w http.ResponseWriter, r *http.Request, err error) {
 	if errors.Is(err, ErrDepartmentNotFound) || errors.Is(err, pgx.ErrNoRows) {
 		apperror.WriteError(w, r, apperror.NotFound(apperror.KeyDepartmentNotFound))
 		return

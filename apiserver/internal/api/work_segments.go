@@ -115,7 +115,7 @@ type WorkSegmentHandler struct {
 	Authorizer Authorizer
 }
 
-func (h WorkSegmentHandler) List(w http.ResponseWriter, r *http.Request) {
+func (h *WorkSegmentHandler) List(w http.ResponseWriter, r *http.Request) {
 	if !h.allowed(r, "rosters:read") {
 		h.forbidden(w, r)
 		return
@@ -138,7 +138,7 @@ func (h WorkSegmentHandler) List(w http.ResponseWriter, r *http.Request) {
 	apperror.WriteJSON(w, http.StatusOK, result)
 }
 
-func (h WorkSegmentHandler) Get(w http.ResponseWriter, r *http.Request) {
+func (h *WorkSegmentHandler) Get(w http.ResponseWriter, r *http.Request) {
 	segmentID, segmentOK := pathUUID(r, "segment_id")
 	if !segmentOK || !h.allowed(r, "rosters:read") {
 		h.forbidden(w, r)
@@ -152,7 +152,7 @@ func (h WorkSegmentHandler) Get(w http.ResponseWriter, r *http.Request) {
 	apperror.WriteJSON(w, http.StatusOK, segment)
 }
 
-func (h WorkSegmentHandler) Create(w http.ResponseWriter, r *http.Request) {
+func (h *WorkSegmentHandler) Create(w http.ResponseWriter, r *http.Request) {
 	if !h.allowed(r, "rosters:manage") {
 		h.forbidden(w, r)
 		return
@@ -173,7 +173,7 @@ func (h WorkSegmentHandler) Create(w http.ResponseWriter, r *http.Request) {
 	apperror.WriteJSON(w, http.StatusCreated, segment)
 }
 
-func (h WorkSegmentHandler) Update(w http.ResponseWriter, r *http.Request) {
+func (h *WorkSegmentHandler) Update(w http.ResponseWriter, r *http.Request) {
 	segmentID, segmentOK := pathUUID(r, "segment_id")
 	if !segmentOK || !h.allowed(r, "rosters:manage") {
 		h.forbidden(w, r)
@@ -192,7 +192,7 @@ func (h WorkSegmentHandler) Update(w http.ResponseWriter, r *http.Request) {
 	apperror.WriteJSON(w, http.StatusOK, segment)
 }
 
-func (h WorkSegmentHandler) Delete(w http.ResponseWriter, r *http.Request) {
+func (h *WorkSegmentHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	segmentID, segmentOK := pathUUID(r, "segment_id")
 	if !segmentOK || !h.allowed(r, "rosters:manage") {
 		h.forbidden(w, r)
@@ -205,7 +205,7 @@ func (h WorkSegmentHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
-func (h WorkSegmentHandler) BulkCreate(w http.ResponseWriter, r *http.Request) {
+func (h *WorkSegmentHandler) BulkCreate(w http.ResponseWriter, r *http.Request) {
 	if !h.allowed(r, "rosters:manage") {
 		h.forbidden(w, r)
 		return
@@ -302,16 +302,16 @@ func optionalDateString(value string) *string {
 	return &value
 }
 
-func (h WorkSegmentHandler) allowed(r *http.Request, permission string) bool {
+func (h *WorkSegmentHandler) allowed(r *http.Request, permission string) bool {
 	userID, ok := httpinfra.UserIDFromContext(r.Context())
 	return ok && h.Authorizer != nil && h.Authorizer.HasPermission(r.Context(), userID, permission)
 }
 
-func (h WorkSegmentHandler) forbidden(w http.ResponseWriter, r *http.Request) {
+func (h *WorkSegmentHandler) forbidden(w http.ResponseWriter, r *http.Request) {
 	apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
 }
 
-func (h WorkSegmentHandler) writeError(w http.ResponseWriter, r *http.Request, err error) {
+func (h *WorkSegmentHandler) writeError(w http.ResponseWriter, r *http.Request, err error) {
 	if errors.Is(err, pgx.ErrNoRows) || errors.Is(err, ErrWorkSegmentNotFound) {
 		apperror.WriteError(w, r, apperror.NotFound(apperror.KeyNotFound))
 		return

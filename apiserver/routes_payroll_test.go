@@ -11,7 +11,7 @@ import (
 
 func TestPayrollRoutesRegisterPayrollPeriodEndpoints(t *testing.T) {
 	router := chi.NewRouter()
-	registerPayrollRoutes(router, api.PayrollHandler{})
+	registerPayrollRoutes(router, &api.PayrollHandler{})
 
 	employerID := "00000000-0000-0000-0000-000000000001"
 	for _, test := range []struct {
@@ -39,7 +39,7 @@ func TestPayrollRoutesRegisterPayrollPeriodEndpoints(t *testing.T) {
 
 func TestPayrollRoutesRegisterSalaryManagement(t *testing.T) {
 	router := chi.NewRouter()
-	registerPayrollRoutes(router, api.PayrollHandler{})
+	registerPayrollRoutes(router, &api.PayrollHandler{})
 
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/salary-management", nil)
 	rec := httptest.NewRecorder()

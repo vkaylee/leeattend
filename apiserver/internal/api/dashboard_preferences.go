@@ -156,13 +156,13 @@ func normalizedPreferences(p DashboardPreferences) (DashboardPreferences, error)
 	}
 	return p, nil
 }
-func (h DashboardPreferencesHandler) Get(w http.ResponseWriter, r *http.Request) {
+func (h *DashboardPreferencesHandler) Get(w http.ResponseWriter, r *http.Request) {
 	h.handle(w, r, false)
 }
-func (h DashboardPreferencesHandler) Put(w http.ResponseWriter, r *http.Request) {
+func (h *DashboardPreferencesHandler) Put(w http.ResponseWriter, r *http.Request) {
 	h.handle(w, r, true)
 }
-func (h DashboardPreferencesHandler) handle(w http.ResponseWriter, r *http.Request, put bool) {
+func (h *DashboardPreferencesHandler) handle(w http.ResponseWriter, r *http.Request, put bool) {
 	uid, uok := httpinfra.UserIDFromContext(r.Context())
 	if !uok || h.Authorizer == nil || !h.Authorizer.HasPermission(r.Context(), uid, string(auth.PermissionDashboardPreferences)) {
 		apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))

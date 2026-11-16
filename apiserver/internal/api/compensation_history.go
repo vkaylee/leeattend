@@ -69,7 +69,7 @@ type CompensationHistoryHandler struct {
 	Authorizer Authorizer
 }
 
-func (h CompensationHistoryHandler) Get(w http.ResponseWriter, r *http.Request) {
+func (h *CompensationHistoryHandler) Get(w http.ResponseWriter, r *http.Request) {
 	employeeID, ok := employeePath(r)
 	if !ok {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))

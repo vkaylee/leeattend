@@ -5,7 +5,7 @@ import (
 	"github.com/vkaylee/leeattend/apiserver/internal/api"
 )
 
-func registerAttendanceRoutes(router chi.Router, attendance api.AttendanceHandler, logs api.AttendanceLogsHandler, policy api.AttendancePolicyHandler) {
+func registerAttendanceRoutes(router chi.Router, attendance *api.AttendanceHandler, logs *api.AttendanceLogsHandler, policy *api.AttendancePolicyHandler) {
 	registerRoute(router, "POST /api/v1/time/punch-in", attendance.PunchIn)
 	registerRoute(router, "POST /api/v1/time/punch-out/{employee_id}", attendance.PunchOut)
 	registerRoute(router, "GET /api/v1/time/history/{employee_id}", attendance.TimeHistory)

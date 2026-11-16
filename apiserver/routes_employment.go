@@ -7,9 +7,9 @@ import (
 
 func registerEmploymentRoutes(
 	router chi.Router,
-	contracts api.ContractEmploymentHandler,
-	assignments api.AssignmentHandler,
-	customFields api.CustomFieldHandler,
+	contracts *api.ContractEmploymentHandler,
+	assignments *api.AssignmentHandler,
+	customFields *api.CustomFieldHandler,
 ) {
 	registerRoute(router, "GET /api/v1/contracts", contracts.ListContracts)
 	registerRoute(router, "GET /api/v1/employees/{employee_id}/contracts", contracts.ListEmployeeContracts)

@@ -98,7 +98,7 @@ type CustomFieldHandler struct {
 	Authorizer Authorizer
 }
 
-func (h CustomFieldHandler) CreateDefinition(w http.ResponseWriter, r *http.Request) {
+func (h *CustomFieldHandler) CreateDefinition(w http.ResponseWriter, r *http.Request) {
 	if !h.allowed(r, "organization:settings:write") {
 		h.forbidden(w, r)
 		return
@@ -145,7 +145,7 @@ func (h CustomFieldHandler) CreateDefinition(w http.ResponseWriter, r *http.Requ
 	apperror.WriteJSON(w, http.StatusCreated, created)
 }
 
-func (h CustomFieldHandler) GetDefinition(w http.ResponseWriter, r *http.Request) {
+func (h *CustomFieldHandler) GetDefinition(w http.ResponseWriter, r *http.Request) {
 	id, idOK := pathUUID(r, "id")
 	if !idOK || !h.allowed(r, "organization:settings:read") {
 		h.forbidden(w, r)
@@ -163,7 +163,7 @@ func (h CustomFieldHandler) GetDefinition(w http.ResponseWriter, r *http.Request
 	apperror.WriteJSON(w, http.StatusOK, record)
 }
 
-func (h CustomFieldHandler) ListDefinitions(w http.ResponseWriter, r *http.Request) {
+func (h *CustomFieldHandler) ListDefinitions(w http.ResponseWriter, r *http.Request) {
 	var entityType *string
 	if raw := r.URL.Query().Get("entity_type"); raw != "" {
 		entityType = &raw
@@ -193,7 +193,7 @@ func (h CustomFieldHandler) ListDefinitions(w http.ResponseWriter, r *http.Reque
 	apperror.WriteJSON(w, http.StatusOK, list)
 }
 
-func (h CustomFieldHandler) UpdateDefinition(w http.ResponseWriter, r *http.Request) {
+func (h *CustomFieldHandler) UpdateDefinition(w http.ResponseWriter, r *http.Request) {
 	id, idOK := pathUUID(r, "id")
 	if !idOK || !h.allowed(r, "organization:settings:write") {
 		h.forbidden(w, r)
@@ -216,7 +216,7 @@ func (h CustomFieldHandler) UpdateDefinition(w http.ResponseWriter, r *http.Requ
 	apperror.WriteJSON(w, http.StatusOK, updated)
 }
 
-func (h CustomFieldHandler) DeleteDefinition(w http.ResponseWriter, r *http.Request) {
+func (h *CustomFieldHandler) DeleteDefinition(w http.ResponseWriter, r *http.Request) {
 	id, idOK := pathUUID(r, "id")
 	if !idOK || !h.allowed(r, "organization:settings:write") {
 		h.forbidden(w, r)
@@ -233,7 +233,7 @@ func (h CustomFieldHandler) DeleteDefinition(w http.ResponseWriter, r *http.Requ
 	w.WriteHeader(http.StatusNoContent)
 }
 
-func (h CustomFieldHandler) GetValues(w http.ResponseWriter, r *http.Request) {
+func (h *CustomFieldHandler) GetValues(w http.ResponseWriter, r *http.Request) {
 	entityType := r.PathValue("entity_type")
 	entityID, idOK := pathUUID(r, "entity_id")
 	if !idOK {
@@ -260,7 +260,7 @@ func (h CustomFieldHandler) GetValues(w http.ResponseWriter, r *http.Request) {
 	apperror.WriteJSON(w, http.StatusOK, values)
 }
 
-func (h CustomFieldHandler) SetValues(w http.ResponseWriter, r *http.Request) {
+func (h *CustomFieldHandler) SetValues(w http.ResponseWriter, r *http.Request) {
 	entityType := r.PathValue("entity_type")
 	entityID, idOK := pathUUID(r, "entity_id")
 	if !idOK {
@@ -292,20 +292,20 @@ func (h CustomFieldHandler) SetValues(w http.ResponseWriter, r *http.Request) {
 	apperror.WriteJSON(w, http.StatusOK, values)
 }
 
-func (h CustomFieldHandler) allowed(r *http.Request, p string) bool {
+func (h *CustomFieldHandler) allowed(r *http.Request, p string) bool {
 	u, ok := httpinfra.UserIDFromContext(r.Context())
 	return ok && h.Authorizer != nil && h.Authorizer.HasPermission(r.Context(), u, p)
 }
 
-func (h CustomFieldHandler) forbidden(w http.ResponseWriter, r *http.Request) {
+func (h *CustomFieldHandler) forbidden(w http.ResponseWriter, r *http.Request) {
 	apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
 }
 
-func (h CustomFieldHandler) validation(w http.ResponseWriter, r *http.Request) {
+func (h *CustomFieldHandler) validation(w http.ResponseWriter, r *http.Request) {
 	apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 }
 
-func (h CustomFieldHandler) writeError(w http.ResponseWriter, r *http.Request, err error) {
+func (h *CustomFieldHandler) writeError(w http.ResponseWriter, r *http.Request, err error) {
 	if errors.Is(err, ErrCustomFieldNotFound) {
 		apperror.WriteError(w, r, apperror.NotFound(apperror.KeyNotFound))
 		return

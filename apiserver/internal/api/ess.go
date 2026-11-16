@@ -126,7 +126,7 @@ type ESSHandler struct {
 	ShiftSwaps ShiftSwapRepository
 }
 
-func (h ESSHandler) resolveContext(r *http.Request) (uuid.UUID, uuid.UUID, error) {
+func (h *ESSHandler) resolveContext(r *http.Request) (uuid.UUID, uuid.UUID, error) {
 	userID, ok := httpinfra.UserIDFromContext(r.Context())
 	if !ok || userID == uuid.Nil {
 		return uuid.Nil, uuid.Nil, ErrESSNoEmployeeRecord
@@ -138,7 +138,7 @@ func (h ESSHandler) resolveContext(r *http.Request) (uuid.UUID, uuid.UUID, error
 	return employeeID, userID, nil
 }
 
-func (h ESSHandler) GetProfile(w http.ResponseWriter, r *http.Request) {
+func (h *ESSHandler) GetProfile(w http.ResponseWriter, r *http.Request) {
 	empID, _, err := h.resolveContext(r)
 	if err != nil {
 		h.writeError(w, r, err)
@@ -152,7 +152,7 @@ func (h ESSHandler) GetProfile(w http.ResponseWriter, r *http.Request) {
 	apperror.WriteJSON(w, http.StatusOK, profile)
 }
 
-func (h ESSHandler) UpdateProfile(w http.ResponseWriter, r *http.Request) {
+func (h *ESSHandler) UpdateProfile(w http.ResponseWriter, r *http.Request) {
 	empID, _, err := h.resolveContext(r)
 	if err != nil {
 		h.writeError(w, r, err)
@@ -177,7 +177,7 @@ func (h ESSHandler) UpdateProfile(w http.ResponseWriter, r *http.Request) {
 	apperror.WriteJSON(w, http.StatusOK, profile)
 }
 
-func (h ESSHandler) GetContacts(w http.ResponseWriter, r *http.Request) {
+func (h *ESSHandler) GetContacts(w http.ResponseWriter, r *http.Request) {
 	empID, _, err := h.resolveContext(r)
 	if err != nil {
 		h.writeError(w, r, err)
@@ -191,7 +191,7 @@ func (h ESSHandler) GetContacts(w http.ResponseWriter, r *http.Request) {
 	apperror.WriteJSON(w, http.StatusOK, contacts)
 }
 
-func (h ESSHandler) AddContact(w http.ResponseWriter, r *http.Request) {
+func (h *ESSHandler) AddContact(w http.ResponseWriter, r *http.Request) {
 	empID, _, err := h.resolveContext(r)
 	if err != nil {
 		h.writeError(w, r, err)
@@ -210,7 +210,7 @@ func (h ESSHandler) AddContact(w http.ResponseWriter, r *http.Request) {
 	apperror.WriteJSON(w, http.StatusCreated, contact)
 }
 
-func (h ESSHandler) DeleteContact(w http.ResponseWriter, r *http.Request) {
+func (h *ESSHandler) DeleteContact(w http.ResponseWriter, r *http.Request) {
 	empID, _, err := h.resolveContext(r)
 	if err != nil {
 		h.writeError(w, r, err)
@@ -228,7 +228,7 @@ func (h ESSHandler) DeleteContact(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
-func (h ESSHandler) GetPendingDocuments(w http.ResponseWriter, r *http.Request) {
+func (h *ESSHandler) GetPendingDocuments(w http.ResponseWriter, r *http.Request) {
 	empID, _, err := h.resolveContext(r)
 	if err != nil {
 		h.writeError(w, r, err)
@@ -245,7 +245,7 @@ func (h ESSHandler) GetPendingDocuments(w http.ResponseWriter, r *http.Request) 
 	apperror.WriteJSON(w, http.StatusOK, pending)
 }
 
-func (h ESSHandler) AcknowledgeDocument(w http.ResponseWriter, r *http.Request) {
+func (h *ESSHandler) AcknowledgeDocument(w http.ResponseWriter, r *http.Request) {
 	empID, _, err := h.resolveContext(r)
 	if err != nil {
 		h.writeError(w, r, err)
@@ -263,7 +263,7 @@ func (h ESSHandler) AcknowledgeDocument(w http.ResponseWriter, r *http.Request) 
 	apperror.WriteJSON(w, http.StatusOK, map[string]string{"status": "acknowledged"})
 }
 
-func (h ESSHandler) GetDocuments(w http.ResponseWriter, r *http.Request) {
+func (h *ESSHandler) GetDocuments(w http.ResponseWriter, r *http.Request) {
 	empID, _, err := h.resolveContext(r)
 	if err != nil {
 		h.writeError(w, r, err)
@@ -280,7 +280,7 @@ func (h ESSHandler) GetDocuments(w http.ResponseWriter, r *http.Request) {
 	apperror.WriteJSON(w, http.StatusOK, docs)
 }
 
-func (h ESSHandler) GetPayslips(w http.ResponseWriter, r *http.Request) {
+func (h *ESSHandler) GetPayslips(w http.ResponseWriter, r *http.Request) {
 	empID, _, err := h.resolveContext(r)
 	if err != nil {
 		h.writeError(w, r, err)
@@ -297,7 +297,7 @@ func (h ESSHandler) GetPayslips(w http.ResponseWriter, r *http.Request) {
 	apperror.WriteJSON(w, http.StatusOK, payslips)
 }
 
-func (h ESSHandler) GetAttendance(w http.ResponseWriter, r *http.Request) {
+func (h *ESSHandler) GetAttendance(w http.ResponseWriter, r *http.Request) {
 	empID, _, err := h.resolveContext(r)
 	if err != nil {
 		h.writeError(w, r, err)
@@ -337,7 +337,7 @@ func (h ESSHandler) GetAttendance(w http.ResponseWriter, r *http.Request) {
 	apperror.WriteJSON(w, http.StatusOK, entries)
 }
 
-func (h ESSHandler) Punch(w http.ResponseWriter, r *http.Request) {
+func (h *ESSHandler) Punch(w http.ResponseWriter, r *http.Request) {
 	empID, _, err := h.resolveContext(r)
 	if err != nil {
 		h.writeError(w, r, err)
@@ -358,7 +358,7 @@ func (h ESSHandler) Punch(w http.ResponseWriter, r *http.Request) {
 	apperror.WriteJSON(w, http.StatusCreated, entry)
 }
 
-func (h ESSHandler) GetTimeEntries(w http.ResponseWriter, r *http.Request) {
+func (h *ESSHandler) GetTimeEntries(w http.ResponseWriter, r *http.Request) {
 	empID, _, err := h.resolveContext(r)
 	if err != nil {
 		h.writeError(w, r, err)
@@ -406,7 +406,7 @@ func (h ESSHandler) GetTimeEntries(w http.ResponseWriter, r *http.Request) {
 	apperror.WriteJSON(w, http.StatusOK, entries)
 }
 
-func (h ESSHandler) GetLeaveBalances(w http.ResponseWriter, r *http.Request) {
+func (h *ESSHandler) GetLeaveBalances(w http.ResponseWriter, r *http.Request) {
 	empID, _, err := h.resolveContext(r)
 	if err != nil {
 		h.writeError(w, r, err)
@@ -432,7 +432,7 @@ func (h ESSHandler) GetLeaveBalances(w http.ResponseWriter, r *http.Request) {
 	apperror.WriteJSON(w, http.StatusOK, result)
 }
 
-func (h ESSHandler) GetLeaveRequests(w http.ResponseWriter, r *http.Request) {
+func (h *ESSHandler) GetLeaveRequests(w http.ResponseWriter, r *http.Request) {
 	empID, _, err := h.resolveContext(r)
 	if err != nil {
 		h.writeError(w, r, err)
@@ -449,7 +449,7 @@ func (h ESSHandler) GetLeaveRequests(w http.ResponseWriter, r *http.Request) {
 	apperror.WriteJSON(w, http.StatusOK, requests)
 }
 
-func (h ESSHandler) GetShiftSwaps(w http.ResponseWriter, r *http.Request) {
+func (h *ESSHandler) GetShiftSwaps(w http.ResponseWriter, r *http.Request) {
 	empID, _, err := h.resolveContext(r)
 	if err != nil {
 		h.writeError(w, r, err)
@@ -466,7 +466,7 @@ func (h ESSHandler) GetShiftSwaps(w http.ResponseWriter, r *http.Request) {
 	apperror.WriteJSON(w, http.StatusOK, swaps)
 }
 
-func (h ESSHandler) CreateShiftSwap(w http.ResponseWriter, r *http.Request) {
+func (h *ESSHandler) CreateShiftSwap(w http.ResponseWriter, r *http.Request) {
 	empID, userID, err := h.resolveContext(r)
 	if err != nil {
 		h.writeError(w, r, err)
@@ -485,7 +485,7 @@ func (h ESSHandler) CreateShiftSwap(w http.ResponseWriter, r *http.Request) {
 	apperror.WriteJSON(w, http.StatusCreated, swap)
 }
 
-func (h ESSHandler) RespondShiftSwap(w http.ResponseWriter, r *http.Request) {
+func (h *ESSHandler) RespondShiftSwap(w http.ResponseWriter, r *http.Request) {
 	empID, _, err := h.resolveContext(r)
 	if err != nil {
 		h.writeError(w, r, err)
@@ -508,7 +508,7 @@ func (h ESSHandler) RespondShiftSwap(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-func (h ESSHandler) CancelShiftSwap(w http.ResponseWriter, r *http.Request) {
+func (h *ESSHandler) CancelShiftSwap(w http.ResponseWriter, r *http.Request) {
 	empID, _, err := h.resolveContext(r)
 	if err != nil {
 		h.writeError(w, r, err)
@@ -526,7 +526,7 @@ func (h ESSHandler) CancelShiftSwap(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
-func (h ESSHandler) writeError(w http.ResponseWriter, r *http.Request, err error) {
+func (h *ESSHandler) writeError(w http.ResponseWriter, r *http.Request, err error) {
 	if errors.Is(err, pgx.ErrNoRows) || errors.Is(err, ErrESSNotFound) || errors.Is(err, ErrShiftSwapNotFound) {
 		apperror.WriteError(w, r, apperror.NotFound(apperror.KeyNotFound))
 		return

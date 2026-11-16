@@ -63,7 +63,7 @@ type DocumentHandler struct {
 	Authorizer Authorizer
 }
 
-func (h DocumentHandler) isMember(r *http.Request) bool {
+func (h *DocumentHandler) isMember(r *http.Request) bool {
 	if h.Authorizer == nil {
 		return false
 	}
@@ -75,7 +75,7 @@ func (h DocumentHandler) isMember(r *http.Request) bool {
 	return err == nil && member
 }
 
-func (h DocumentHandler) ListFolders(w http.ResponseWriter, r *http.Request) {
+func (h *DocumentHandler) ListFolders(w http.ResponseWriter, r *http.Request) {
 	if !h.isMember(r) {
 		apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
 		return
@@ -92,7 +92,7 @@ func (h DocumentHandler) ListFolders(w http.ResponseWriter, r *http.Request) {
 	apperror.WriteJSON(w, http.StatusOK, folders)
 }
 
-func (h DocumentHandler) CreateFolder(w http.ResponseWriter, r *http.Request) {
+func (h *DocumentHandler) CreateFolder(w http.ResponseWriter, r *http.Request) {
 	if !h.isMember(r) {
 		apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
 		return
@@ -127,7 +127,7 @@ func (h DocumentHandler) CreateFolder(w http.ResponseWriter, r *http.Request) {
 	apperror.WriteJSON(w, http.StatusOK, folder)
 }
 
-func (h DocumentHandler) GetFolder(w http.ResponseWriter, r *http.Request) {
+func (h *DocumentHandler) GetFolder(w http.ResponseWriter, r *http.Request) {
 	folderID, idOK := pathUUID(r, "id")
 	if !idOK || !h.isMember(r) {
 		apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
@@ -149,7 +149,7 @@ func (h DocumentHandler) GetFolder(w http.ResponseWriter, r *http.Request) {
 	apperror.WriteJSON(w, http.StatusOK, folder)
 }
 
-func (h DocumentHandler) RenameFolder(w http.ResponseWriter, r *http.Request) {
+func (h *DocumentHandler) RenameFolder(w http.ResponseWriter, r *http.Request) {
 	folderID, idOK := pathUUID(r, "id")
 	if !idOK || !h.isMember(r) {
 		apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
@@ -181,7 +181,7 @@ func (h DocumentHandler) RenameFolder(w http.ResponseWriter, r *http.Request) {
 	apperror.WriteJSON(w, http.StatusOK, folder)
 }
 
-func (h DocumentHandler) DeleteFolder(w http.ResponseWriter, r *http.Request) {
+func (h *DocumentHandler) DeleteFolder(w http.ResponseWriter, r *http.Request) {
 	folderID, idOK := pathUUID(r, "id")
 	if !idOK || !h.isMember(r) {
 		apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
@@ -202,7 +202,7 @@ func (h DocumentHandler) DeleteFolder(w http.ResponseWriter, r *http.Request) {
 	apperror.WriteJSON(w, http.StatusOK, map[string]string{"status": "success"})
 }
 
-func (h DocumentHandler) Distribute(w http.ResponseWriter, r *http.Request) {
+func (h *DocumentHandler) Distribute(w http.ResponseWriter, r *http.Request) {
 	if !h.isMember(r) {
 		apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
 		return
@@ -241,7 +241,7 @@ func FillTemplate(template string, vars map[string]string) string {
 	})
 }
 
-func (h DocumentHandler) PreviewTemplate(w http.ResponseWriter, r *http.Request) {
+func (h *DocumentHandler) PreviewTemplate(w http.ResponseWriter, r *http.Request) {
 	if !h.isMember(r) {
 		apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
 		return
@@ -268,7 +268,7 @@ func (h DocumentHandler) PreviewTemplate(w http.ResponseWriter, r *http.Request)
 	})
 }
 
-func (h DocumentHandler) GenerateTemplate(w http.ResponseWriter, r *http.Request) {
+func (h *DocumentHandler) GenerateTemplate(w http.ResponseWriter, r *http.Request) {
 	_, idOK := pathUUID(r, "id")
 	if !idOK || !h.isMember(r) {
 		apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))

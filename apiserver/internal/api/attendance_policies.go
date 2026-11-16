@@ -134,16 +134,16 @@ type AttendancePolicyHandler struct {
 	Authorizer       Authorizer
 }
 
-func (h AttendancePolicyHandler) allowed(r *http.Request, permission string) bool {
+func (h *AttendancePolicyHandler) allowed(r *http.Request, permission string) bool {
 	userID, ok := httpinfra.UserIDFromContext(r.Context())
 	return ok && h.Authorizer != nil && h.Authorizer.HasPermission(r.Context(), userID, permission)
 }
 
-func (h AttendancePolicyHandler) forbidden(w http.ResponseWriter, r *http.Request) {
+func (h *AttendancePolicyHandler) forbidden(w http.ResponseWriter, r *http.Request) {
 	apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
 }
 
-func (h AttendancePolicyHandler) fail(w http.ResponseWriter, r *http.Request, err error) {
+func (h *AttendancePolicyHandler) fail(w http.ResponseWriter, r *http.Request, err error) {
 	if errors.Is(err, pgx.ErrNoRows) {
 		apperror.WriteError(w, r, apperror.NotFound(apperror.KeyNotFound))
 		return
@@ -167,7 +167,7 @@ func validPolicyTarget(target string) bool {
 	return target == AttendanceTargetUser || target == AttendanceTargetGroup
 }
 
-func (h AttendancePolicyHandler) GetRules(w http.ResponseWriter, r *http.Request) {
+func (h *AttendancePolicyHandler) GetRules(w http.ResponseWriter, r *http.Request) {
 	if !h.allowed(r, string(auth.PermissionOrganizationSettingsRead)) {
 		h.forbidden(w, r)
 		return
@@ -180,7 +180,7 @@ func (h AttendancePolicyHandler) GetRules(w http.ResponseWriter, r *http.Request
 	apperror.WriteJSON(w, http.StatusOK, rules)
 }
 
-func (h AttendancePolicyHandler) UpdateRules(w http.ResponseWriter, r *http.Request) {
+func (h *AttendancePolicyHandler) UpdateRules(w http.ResponseWriter, r *http.Request) {
 	userID, userOK := httpinfra.UserIDFromContext(r.Context())
 	if !userOK || !h.allowed(r, string(auth.PermissionOrganizationSettingsWrite)) {
 		h.forbidden(w, r)
@@ -209,7 +209,7 @@ func (h AttendancePolicyHandler) UpdateRules(w http.ResponseWriter, r *http.Requ
 	apperror.WriteJSON(w, http.StatusOK, result)
 }
 
-func (h AttendancePolicyHandler) ListRuleVersions(w http.ResponseWriter, r *http.Request) {
+func (h *AttendancePolicyHandler) ListRuleVersions(w http.ResponseWriter, r *http.Request) {
 	if !h.allowed(r, string(auth.PermissionOrganizationSettingsRead)) && !h.allowed(r, string(auth.PermissionPayrollRead)) {
 		h.forbidden(w, r)
 		return
@@ -222,7 +222,7 @@ func (h AttendancePolicyHandler) ListRuleVersions(w http.ResponseWriter, r *http
 	apperror.WriteJSON(w, http.StatusOK, result)
 }
 
-func (h AttendancePolicyHandler) ListAssignments(w http.ResponseWriter, r *http.Request) {
+func (h *AttendancePolicyHandler) ListAssignments(w http.ResponseWriter, r *http.Request) {
 	if !h.allowed(r, string(auth.PermissionAttendancePolicyAssignmentsRead)) {
 		h.forbidden(w, r)
 		return
@@ -246,7 +246,7 @@ func (h AttendancePolicyHandler) ListAssignments(w http.ResponseWriter, r *http.
 	apperror.WriteJSON(w, http.StatusOK, result)
 }
 
-func (h AttendancePolicyHandler) UpsertAssignment(w http.ResponseWriter, r *http.Request) {
+func (h *AttendancePolicyHandler) UpsertAssignment(w http.ResponseWriter, r *http.Request) {
 	userID, userOK := httpinfra.UserIDFromContext(r.Context())
 	if !userOK || !h.allowed(r, string(auth.PermissionAttendancePolicyAssignmentsManage)) {
 		h.forbidden(w, r)
@@ -271,7 +271,7 @@ func (h AttendancePolicyHandler) UpsertAssignment(w http.ResponseWriter, r *http
 	apperror.WriteJSON(w, http.StatusOK, result)
 }
 
-func (h AttendancePolicyHandler) DeleteAssignment(w http.ResponseWriter, r *http.Request) {
+func (h *AttendancePolicyHandler) DeleteAssignment(w http.ResponseWriter, r *http.Request) {
 	assignmentID, assignmentOK := pathUUID(r, "assignment_id")
 	if !assignmentOK || !h.allowed(r, string(auth.PermissionAttendancePolicyAssignmentsManage)) {
 		h.forbidden(w, r)
@@ -284,7 +284,7 @@ func (h AttendancePolicyHandler) DeleteAssignment(w http.ResponseWriter, r *http
 	w.WriteHeader(http.StatusNoContent)
 }
 
-func (h AttendancePolicyHandler) ListBehalfAssignments(w http.ResponseWriter, r *http.Request) {
+func (h *AttendancePolicyHandler) ListBehalfAssignments(w http.ResponseWriter, r *http.Request) {
 	if !h.allowed(r, string(auth.PermissionAttendanceAdjustmentsManageBehalf)) {
 		h.forbidden(w, r)
 		return
@@ -297,7 +297,7 @@ func (h AttendancePolicyHandler) ListBehalfAssignments(w http.ResponseWriter, r 
 	apperror.WriteJSON(w, http.StatusOK, result)
 }
 
-func (h AttendancePolicyHandler) CreateBehalfAssignment(w http.ResponseWriter, r *http.Request) {
+func (h *AttendancePolicyHandler) CreateBehalfAssignment(w http.ResponseWriter, r *http.Request) {
 	if !h.allowed(r, string(auth.PermissionAttendanceAdjustmentsManageBehalf)) {
 		h.forbidden(w, r)
 		return
@@ -315,7 +315,7 @@ func (h AttendancePolicyHandler) CreateBehalfAssignment(w http.ResponseWriter, r
 	apperror.WriteJSON(w, http.StatusOK, result)
 }
 
-func (h AttendancePolicyHandler) DeleteBehalfAssignment(w http.ResponseWriter, r *http.Request) {
+func (h *AttendancePolicyHandler) DeleteBehalfAssignment(w http.ResponseWriter, r *http.Request) {
 	assignmentID, assignmentOK := pathUUID(r, "id")
 	if !assignmentOK || !h.allowed(r, string(auth.PermissionAttendanceAdjustmentsManageBehalf)) {
 		h.forbidden(w, r)
@@ -328,7 +328,7 @@ func (h AttendancePolicyHandler) DeleteBehalfAssignment(w http.ResponseWriter, r
 	w.WriteHeader(http.StatusOK)
 }
 
-func (h AttendancePolicyHandler) MyBehalfTargets(w http.ResponseWriter, r *http.Request) {
+func (h *AttendancePolicyHandler) MyBehalfTargets(w http.ResponseWriter, r *http.Request) {
 	userID, userOK := httpinfra.UserIDFromContext(r.Context())
 	if !userOK {
 		apperror.WriteError(w, r, apperror.Unauthorized(apperror.KeyAuthenticationRequired))

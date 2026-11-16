@@ -256,7 +256,7 @@ type FileHandler struct {
 	Authorizer Authorizer
 }
 
-func (h FileHandler) CreateUploadURL(w http.ResponseWriter, r *http.Request) {
+func (h *FileHandler) CreateUploadURL(w http.ResponseWriter, r *http.Request) {
 	userID, userOK := httpinfra.UserIDFromContext(r.Context())
 	if !userOK || !h.allowed(r, "files:manage") {
 		h.forbidden(w, r)
@@ -329,7 +329,7 @@ func (h FileHandler) CreateUploadURL(w http.ResponseWriter, r *http.Request) {
 	apperror.WriteJSON(w, http.StatusOK, CreateUploadUrlResponse{File: file, UploadURL: uploadURL})
 }
 
-func (h FileHandler) GetMetadata(w http.ResponseWriter, r *http.Request) {
+func (h *FileHandler) GetMetadata(w http.ResponseWriter, r *http.Request) {
 	fileID, idOK := pathUUID(r, "id")
 	if !idOK || !h.allowed(r, "files:read") {
 		h.forbidden(w, r)
@@ -351,7 +351,7 @@ func (h FileHandler) GetMetadata(w http.ResponseWriter, r *http.Request) {
 	apperror.WriteJSON(w, http.StatusOK, file)
 }
 
-func (h FileHandler) GetURL(w http.ResponseWriter, r *http.Request) {
+func (h *FileHandler) GetURL(w http.ResponseWriter, r *http.Request) {
 	fileID, idOK := pathUUID(r, "id")
 	if !idOK || !h.allowed(r, "files:read") {
 		h.forbidden(w, r)
@@ -379,7 +379,7 @@ func (h FileHandler) GetURL(w http.ResponseWriter, r *http.Request) {
 	apperror.WriteJSON(w, http.StatusOK, FileURLResponse{URL: downloadURL})
 }
 
-func (h FileHandler) DeleteFile(w http.ResponseWriter, r *http.Request) {
+func (h *FileHandler) DeleteFile(w http.ResponseWriter, r *http.Request) {
 	fileID, idOK := pathUUID(r, "id")
 	if !idOK || !h.allowed(r, "files:manage") {
 		h.forbidden(w, r)
@@ -404,7 +404,7 @@ func (h FileHandler) DeleteFile(w http.ResponseWriter, r *http.Request) {
 	apperror.WriteJSON(w, http.StatusOK, struct{}{})
 }
 
-func (h FileHandler) CreateSignatureRequest(w http.ResponseWriter, r *http.Request) {
+func (h *FileHandler) CreateSignatureRequest(w http.ResponseWriter, r *http.Request) {
 	docID, docOK := pathUUID(r, "document_id")
 	if !docOK || !h.allowed(r, "documents:manage") {
 		h.forbidden(w, r)
@@ -433,7 +433,7 @@ func (h FileHandler) CreateSignatureRequest(w http.ResponseWriter, r *http.Reque
 	apperror.WriteJSON(w, http.StatusOK, sigReq)
 }
 
-func (h FileHandler) ListPendingSignatures(w http.ResponseWriter, r *http.Request) {
+func (h *FileHandler) ListPendingSignatures(w http.ResponseWriter, r *http.Request) {
 	userID, userOK := httpinfra.UserIDFromContext(r.Context())
 	if !userOK {
 		h.forbidden(w, r)
@@ -451,7 +451,7 @@ func (h FileHandler) ListPendingSignatures(w http.ResponseWriter, r *http.Reques
 	apperror.WriteJSON(w, http.StatusOK, list)
 }
 
-func (h FileHandler) SignDocument(w http.ResponseWriter, r *http.Request) {
+func (h *FileHandler) SignDocument(w http.ResponseWriter, r *http.Request) {
 	reqID, reqOK := pathUUID(r, "request_id")
 	if !reqOK {
 		h.forbidden(w, r)
@@ -477,20 +477,20 @@ func (h FileHandler) SignDocument(w http.ResponseWriter, r *http.Request) {
 	apperror.WriteJSON(w, http.StatusOK, struct{}{})
 }
 
-func (h FileHandler) allowed(r *http.Request, p string) bool {
+func (h *FileHandler) allowed(r *http.Request, p string) bool {
 	u, ok := httpinfra.UserIDFromContext(r.Context())
 	return ok && h.Authorizer != nil && h.Authorizer.HasPermission(r.Context(), u, p)
 }
 
-func (h FileHandler) forbidden(w http.ResponseWriter, r *http.Request) {
+func (h *FileHandler) forbidden(w http.ResponseWriter, r *http.Request) {
 	apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
 }
 
-func (h FileHandler) validation(w http.ResponseWriter, r *http.Request) {
+func (h *FileHandler) validation(w http.ResponseWriter, r *http.Request) {
 	apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 }
 
-func (h FileHandler) isMember(r *http.Request) bool {
+func (h *FileHandler) isMember(r *http.Request) bool {
 	u, ok := httpinfra.UserIDFromContext(r.Context())
 	if !ok || h.Authorizer == nil {
 		return false
@@ -499,7 +499,7 @@ func (h FileHandler) isMember(r *http.Request) bool {
 	return err == nil && m
 }
 
-func (h FileHandler) UploadFile(w http.ResponseWriter, r *http.Request) {
+func (h *FileHandler) UploadFile(w http.ResponseWriter, r *http.Request) {
 	userID, userOK := httpinfra.UserIDFromContext(r.Context())
 	if !userOK || !h.isMember(r) {
 		h.forbidden(w, r)
@@ -620,7 +620,7 @@ func (h FileHandler) UploadFile(w http.ResponseWriter, r *http.Request) {
 	apperror.WriteJSON(w, http.StatusCreated, record)
 }
 
-func (h FileHandler) UpdateFile(w http.ResponseWriter, r *http.Request) {
+func (h *FileHandler) UpdateFile(w http.ResponseWriter, r *http.Request) {
 	fileID, idOK := pathUUID(r, "id")
 	userID, userOK := httpinfra.UserIDFromContext(r.Context())
 	if !idOK || !userOK || !h.isMember(r) {
@@ -731,7 +731,7 @@ func (h FileHandler) UpdateFile(w http.ResponseWriter, r *http.Request) {
 	apperror.WriteJSON(w, http.StatusOK, created)
 }
 
-func (h FileHandler) DownloadFile(w http.ResponseWriter, r *http.Request) {
+func (h *FileHandler) DownloadFile(w http.ResponseWriter, r *http.Request) {
 	fileID, idOK := pathUUID(r, "id")
 	if !idOK || !h.isMember(r) {
 		h.forbidden(w, r)
@@ -778,7 +778,7 @@ func (h FileHandler) DownloadFile(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, downloadURL, http.StatusTemporaryRedirect)
 }
 
-func (h FileHandler) ListVersions(w http.ResponseWriter, r *http.Request) {
+func (h *FileHandler) ListVersions(w http.ResponseWriter, r *http.Request) {
 	fileID, idOK := pathUUID(r, "id")
 	if !idOK || !h.isMember(r) {
 		h.forbidden(w, r)
@@ -798,7 +798,7 @@ func (h FileHandler) ListVersions(w http.ResponseWriter, r *http.Request) {
 	apperror.WriteJSON(w, http.StatusOK, versions)
 }
 
-func (h FileHandler) ListByOwner(w http.ResponseWriter, r *http.Request) {
+func (h *FileHandler) ListByOwner(w http.ResponseWriter, r *http.Request) {
 	if !h.isMember(r) {
 		h.forbidden(w, r)
 		return

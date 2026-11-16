@@ -52,7 +52,7 @@ type permissionsResponse struct {
 	ManagedDepartmentIDs []string `json:"managed_department_ids"`
 }
 
-func (h AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
+func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	request, err := DecodeJSON[loginRequest](r, 1<<20)
 	if err != nil {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
@@ -66,7 +66,7 @@ func (h AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	h.writeResponse(w, r, result)
 }
 
-func (h AuthHandler) Refresh(w http.ResponseWriter, r *http.Request) {
+func (h *AuthHandler) Refresh(w http.ResponseWriter, r *http.Request) {
 	request, err := DecodeJSON[refreshRequest](r, 1<<20)
 	if err != nil {
 		request.RefreshToken = refreshCookie(r)
@@ -83,7 +83,7 @@ func (h AuthHandler) Refresh(w http.ResponseWriter, r *http.Request) {
 	h.writeResponse(w, r, result)
 }
 
-func (h AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
+func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
 	refreshToken := ""
 	if request, err := DecodeJSON[refreshRequest](r, 1<<20); err == nil {
 		refreshToken = request.RefreshToken
@@ -100,7 +100,7 @@ func (h AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-func (h AuthHandler) Me(w http.ResponseWriter, r *http.Request) {
+func (h *AuthHandler) Me(w http.ResponseWriter, r *http.Request) {
 	userID, ok := httpinfra.UserIDFromContext(r.Context())
 	if !ok || h.Service.Repository == nil {
 		apperror.WritePrimitiveAuthRequired(w)
@@ -118,7 +118,7 @@ func (h AuthHandler) Me(w http.ResponseWriter, r *http.Request) {
 	apperror.WriteJSON(w, http.StatusOK, toUserResponse(user))
 }
 
-func (h AuthHandler) UpdateMe(w http.ResponseWriter, r *http.Request) {
+func (h *AuthHandler) UpdateMe(w http.ResponseWriter, r *http.Request) {
 	userID, ok := httpinfra.UserIDFromContext(r.Context())
 	if !ok {
 		apperror.WritePrimitiveAuthRequired(w)
@@ -156,7 +156,7 @@ func toUserResponse(user service.UserRecord) userResponse {
 	}
 }
 
-func (h AuthHandler) MyPermissions(w http.ResponseWriter, r *http.Request) {
+func (h *AuthHandler) MyPermissions(w http.ResponseWriter, r *http.Request) {
 	userID, ok := httpinfra.UserIDFromContext(r.Context())
 	if !ok {
 		apperror.WritePrimitiveAuthRequired(w)
@@ -196,7 +196,7 @@ func (h AuthHandler) MyPermissions(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-func (h AuthHandler) OrganizationUsers(w http.ResponseWriter, r *http.Request) {
+func (h *AuthHandler) OrganizationUsers(w http.ResponseWriter, r *http.Request) {
 	userID, ok := httpinfra.UserIDFromContext(r.Context())
 	if !ok {
 		apperror.WritePrimitiveAuthRequired(w)
@@ -230,12 +230,12 @@ func clearAuthCookies(w http.ResponseWriter, r *http.Request, domain string) {
 	http.SetCookie(w, &http.Cookie{Name: "access_token", Value: "", Path: "/", Domain: domain, HttpOnly: true, Secure: secure, SameSite: sameSite, MaxAge: -1})
 	http.SetCookie(w, &http.Cookie{Name: "refresh_token", Value: "", Path: "/", Domain: domain, HttpOnly: true, Secure: secure, SameSite: sameSite, MaxAge: -1})
 }
-func (h AuthHandler) writeResponse(w http.ResponseWriter, r *http.Request, result service.AuthResponse) {
+func (h *AuthHandler) writeResponse(w http.ResponseWriter, r *http.Request, result service.AuthResponse) {
 	setAuthCookies(w, r, result.AccessToken, result.RefreshToken, h.CookieDomain)
 	apperror.WriteJSON(w, http.StatusOK, authResponse{AccessToken: result.AccessToken, RefreshToken: result.RefreshToken, User: toUserResponse(result.User)})
 }
 
-func (h AuthHandler) writeAuthError(w http.ResponseWriter, r *http.Request, err error) {
+func (h *AuthHandler) writeAuthError(w http.ResponseWriter, r *http.Request, err error) {
 	switch {
 	case errors.Is(err, service.ErrAccountLocked):
 		apperror.WriteError(w, r, apperror.New(apperror.CodeTooManyRequests, http.StatusTooManyRequests, apperror.KeyLoginLocked))
@@ -294,7 +294,7 @@ type messageResponse struct {
 	Message string `json:"message"`
 }
 
-func (h AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
+func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 	request, err := DecodeJSON[registerRequest](r, 1<<20)
 	if err != nil {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
@@ -308,7 +308,7 @@ func (h AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 	h.writeResponse(w, r, result)
 }
 
-func (h AuthHandler) ForgotPassword(w http.ResponseWriter, r *http.Request) {
+func (h *AuthHandler) ForgotPassword(w http.ResponseWriter, r *http.Request) {
 	request, err := DecodeJSON[forgotPasswordRequest](r, 1<<20)
 	if err == nil {
 		_ = h.Service.ForgotPassword(r.Context(), request.Email)
@@ -316,7 +316,7 @@ func (h AuthHandler) ForgotPassword(w http.ResponseWriter, r *http.Request) {
 	apperror.WriteJSON(w, http.StatusOK, messageResponse{Message: "If this email is registered, a reset link will be sent."})
 }
 
-func (h AuthHandler) ResetPassword(w http.ResponseWriter, r *http.Request) {
+func (h *AuthHandler) ResetPassword(w http.ResponseWriter, r *http.Request) {
 	request, err := DecodeJSON[resetPasswordRequest](r, 1<<20)
 	if err != nil {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
@@ -329,7 +329,7 @@ func (h AuthHandler) ResetPassword(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-func (h AuthHandler) ChangePassword(w http.ResponseWriter, r *http.Request) {
+func (h *AuthHandler) ChangePassword(w http.ResponseWriter, r *http.Request) {
 	userID, ok := httpinfra.UserIDFromContext(r.Context())
 	if !ok {
 		apperror.WritePrimitiveAuthRequired(w)

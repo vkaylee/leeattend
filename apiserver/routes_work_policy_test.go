@@ -11,7 +11,7 @@ import (
 
 func TestWorkPolicyRoutesRequireAuthorization(t *testing.T) {
 	router := chi.NewRouter()
-	registerWorkPolicyRoutes(router, api.WorkPolicyGroupHandler{})
+	registerWorkPolicyRoutes(router, &api.WorkPolicyGroupHandler{})
 
 	for _, test := range []struct {
 		method string

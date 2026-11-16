@@ -5,7 +5,7 @@ import (
 	"github.com/vkaylee/leeattend/apiserver/internal/api"
 )
 
-func registerMonitorRoutes(router chi.Router, handler api.MonitorHandler) {
+func registerMonitorRoutes(router chi.Router, handler *api.MonitorHandler) {
 	registerRoute(router, "GET /api/v1/monitor/overview", handler.GetOverview)
 	registerRoute(router, "GET /api/v1/monitor/jobs", handler.GetMonitorJobs)
 	registerRoute(router, "GET /api/v1/monitor/correlations", handler.GetMonitorCorrelations)
@@ -19,6 +19,6 @@ func registerMonitorRoutes(router chi.Router, handler api.MonitorHandler) {
 	registerRoute(router, "GET /api/v1/monitor/jobs/{job_id}", handler.GetMonitorJob)
 }
 
-func registerReportWebSocketRoute(router chi.Router, handler api.MonitorHandler) {
+func registerReportWebSocketRoute(router chi.Router, handler *api.MonitorHandler) {
 	registerRoute(router, "GET /api/v1/ws/reports/{job_id}", handler.ReportStreamWS)
 }

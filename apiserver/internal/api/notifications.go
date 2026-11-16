@@ -46,7 +46,7 @@ type NotificationHandler struct {
 	Repository NotificationRepository
 }
 
-func (h NotificationHandler) List(w http.ResponseWriter, r *http.Request) {
+func (h *NotificationHandler) List(w http.ResponseWriter, r *http.Request) {
 	userID, ok := httpinfra.UserIDFromContext(r.Context())
 	if !ok {
 		apperror.WritePrimitiveAuthRequired(w)
@@ -81,7 +81,7 @@ func (h NotificationHandler) List(w http.ResponseWriter, r *http.Request) {
 	apperror.WriteJSON(w, http.StatusOK, result)
 }
 
-func (h NotificationHandler) UnreadCount(w http.ResponseWriter, r *http.Request) {
+func (h *NotificationHandler) UnreadCount(w http.ResponseWriter, r *http.Request) {
 	userID, ok := httpinfra.UserIDFromContext(r.Context())
 	if !ok {
 		apperror.WritePrimitiveAuthRequired(w)
@@ -95,7 +95,7 @@ func (h NotificationHandler) UnreadCount(w http.ResponseWriter, r *http.Request)
 	apperror.WriteJSON(w, http.StatusOK, UnreadCountResponse{Count: result.UnreadCount})
 }
 
-func (h NotificationHandler) MarkRead(w http.ResponseWriter, r *http.Request) {
+func (h *NotificationHandler) MarkRead(w http.ResponseWriter, r *http.Request) {
 	userID, ok := httpinfra.UserIDFromContext(r.Context())
 	notificationID, idOK := pathUUID(r, "id")
 	if !ok || !idOK {
@@ -109,7 +109,7 @@ func (h NotificationHandler) MarkRead(w http.ResponseWriter, r *http.Request) {
 	apperror.WriteJSON(w, http.StatusOK, struct{}{})
 }
 
-func (h NotificationHandler) MarkAllRead(w http.ResponseWriter, r *http.Request) {
+func (h *NotificationHandler) MarkAllRead(w http.ResponseWriter, r *http.Request) {
 	userID, ok := httpinfra.UserIDFromContext(r.Context())
 	if !ok {
 		apperror.WritePrimitiveAuthRequired(w)
@@ -122,7 +122,7 @@ func (h NotificationHandler) MarkAllRead(w http.ResponseWriter, r *http.Request)
 	apperror.WriteJSON(w, http.StatusOK, struct{}{})
 }
 
-func (h NotificationHandler) writeError(w http.ResponseWriter, r *http.Request, err error) {
+func (h *NotificationHandler) writeError(w http.ResponseWriter, r *http.Request, err error) {
 	if errors.Is(err, pgx.ErrNoRows) || errors.Is(err, ErrNotificationNotFound) {
 		apperror.WriteError(w, r, apperror.NotFound(apperror.KeyNotFound))
 		return

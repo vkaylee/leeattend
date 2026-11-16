@@ -352,7 +352,7 @@ type MonitorHandler struct {
 	JWTSecret  string
 }
 
-func (h MonitorHandler) requireInfraMonitor(r *http.Request) (uuid.UUID, *apperror.AppError) {
+func (h *MonitorHandler) requireInfraMonitor(r *http.Request) (uuid.UUID, *apperror.AppError) {
 	userID, ok := httpinfra.UserIDFromContext(r.Context())
 	if !ok {
 		return uuid.Nil, apperror.Unauthorized(apperror.KeyUnauthorized)
@@ -363,7 +363,7 @@ func (h MonitorHandler) requireInfraMonitor(r *http.Request) (uuid.UUID, *apperr
 	return userID, nil
 }
 
-func (h MonitorHandler) requireMember(r *http.Request) (uuid.UUID, *apperror.AppError) {
+func (h *MonitorHandler) requireMember(r *http.Request) (uuid.UUID, *apperror.AppError) {
 	userID, ok := httpinfra.UserIDFromContext(r.Context())
 	if !ok {
 		return uuid.Nil, apperror.Unauthorized(apperror.KeyUnauthorized)
@@ -378,7 +378,7 @@ func (h MonitorHandler) requireMember(r *http.Request) (uuid.UUID, *apperror.App
 	return userID, nil
 }
 
-func (h MonitorHandler) requireAuditPermission(r *http.Request) (uuid.UUID, *apperror.AppError) {
+func (h *MonitorHandler) requireAuditPermission(r *http.Request) (uuid.UUID, *apperror.AppError) {
 	userID, appErr := h.requireMember(r)
 	if appErr != nil {
 		return uuid.Nil, appErr
@@ -414,7 +414,7 @@ func sanitizeSummary(val string) string {
 	return res
 }
 
-func (h MonitorHandler) buildOperationalSnapshot(ctx context.Context) (MonitorOperationalSnapshot, error) {
+func (h *MonitorHandler) buildOperationalSnapshot(ctx context.Context) (MonitorOperationalSnapshot, error) {
 	observedAt := time.Now().UTC()
 	var (
 		pendingHigh    uint64
@@ -764,7 +764,7 @@ func (h MonitorHandler) buildOperationalSnapshot(ctx context.Context) (MonitorOp
 }
 
 // 1. GET /api/v1/monitor/overview
-func (h MonitorHandler) GetOverview(w http.ResponseWriter, r *http.Request) {
+func (h *MonitorHandler) GetOverview(w http.ResponseWriter, r *http.Request) {
 	if _, appErr := h.requireInfraMonitor(r); appErr != nil {
 		apperror.WriteError(w, r, appErr)
 		return
@@ -778,7 +778,7 @@ func (h MonitorHandler) GetOverview(w http.ResponseWriter, r *http.Request) {
 }
 
 // 2. GET /api/v1/monitor/jobs
-func (h MonitorHandler) GetMonitorJobs(w http.ResponseWriter, r *http.Request) {
+func (h *MonitorHandler) GetMonitorJobs(w http.ResponseWriter, r *http.Request) {
 	if _, appErr := h.requireInfraMonitor(r); appErr != nil {
 		apperror.WriteError(w, r, appErr)
 		return
@@ -966,7 +966,7 @@ func (h MonitorHandler) GetMonitorJobs(w http.ResponseWriter, r *http.Request) {
 }
 
 // 3. GET /api/v1/monitor/correlations
-func (h MonitorHandler) GetMonitorCorrelations(w http.ResponseWriter, r *http.Request) {
+func (h *MonitorHandler) GetMonitorCorrelations(w http.ResponseWriter, r *http.Request) {
 	if _, appErr := h.requireInfraMonitor(r); appErr != nil {
 		apperror.WriteError(w, r, appErr)
 		return
@@ -1027,7 +1027,7 @@ func (h MonitorHandler) GetMonitorCorrelations(w http.ResponseWriter, r *http.Re
 }
 
 // 4. GET /api/v1/monitor/stream
-func (h MonitorHandler) Stream(w http.ResponseWriter, r *http.Request) {
+func (h *MonitorHandler) Stream(w http.ResponseWriter, r *http.Request) {
 	if _, appErr := h.requireInfraMonitor(r); appErr != nil {
 		apperror.WriteError(w, r, appErr)
 		return
@@ -1079,7 +1079,7 @@ func (h MonitorHandler) Stream(w http.ResponseWriter, r *http.Request) {
 }
 
 // 5. GET /api/v1/monitor/alerts
-func (h MonitorHandler) ListAlerts(w http.ResponseWriter, r *http.Request) {
+func (h *MonitorHandler) ListAlerts(w http.ResponseWriter, r *http.Request) {
 	if _, appErr := h.requireInfraMonitor(r); appErr != nil {
 		apperror.WriteError(w, r, appErr)
 		return
@@ -1136,7 +1136,7 @@ func (h MonitorHandler) ListAlerts(w http.ResponseWriter, r *http.Request) {
 }
 
 // 6. GET /api/v1/monitor/alerts/{alert_id}
-func (h MonitorHandler) GetAlert(w http.ResponseWriter, r *http.Request) {
+func (h *MonitorHandler) GetAlert(w http.ResponseWriter, r *http.Request) {
 	if _, appErr := h.requireInfraMonitor(r); appErr != nil {
 		apperror.WriteError(w, r, appErr)
 		return
@@ -1175,7 +1175,7 @@ func (h MonitorHandler) GetAlert(w http.ResponseWriter, r *http.Request) {
 }
 
 // 7. POST /api/v1/monitor/alerts/{alert_id}/acknowledge
-func (h MonitorHandler) AcknowledgeAlert(w http.ResponseWriter, r *http.Request) {
+func (h *MonitorHandler) AcknowledgeAlert(w http.ResponseWriter, r *http.Request) {
 	userID, appErr := h.requireInfraMonitor(r)
 	if appErr != nil {
 		apperror.WriteError(w, r, appErr)
@@ -1229,7 +1229,7 @@ func (h MonitorHandler) AcknowledgeAlert(w http.ResponseWriter, r *http.Request)
 }
 
 // 8. POST /api/v1/monitor/alerts/{alert_id}/resolve
-func (h MonitorHandler) ResolveAlert(w http.ResponseWriter, r *http.Request) {
+func (h *MonitorHandler) ResolveAlert(w http.ResponseWriter, r *http.Request) {
 	userID, appErr := h.requireInfraMonitor(r)
 	if appErr != nil {
 		apperror.WriteError(w, r, appErr)
@@ -1283,7 +1283,7 @@ func (h MonitorHandler) ResolveAlert(w http.ResponseWriter, r *http.Request) {
 }
 
 // 9. GET /api/v1/ws/reports/{job_id}
-func (h MonitorHandler) ReportStreamWS(w http.ResponseWriter, r *http.Request) {
+func (h *MonitorHandler) ReportStreamWS(w http.ResponseWriter, r *http.Request) {
 	// Extract JWT token
 	token := r.URL.Query().Get("token")
 	if token == "" {
@@ -1502,7 +1502,7 @@ func writeWSCloseFrame(w io.Writer) error {
 }
 
 // 10. GET /api/v1/audit-logs
-func (h MonitorHandler) GetAuditLogs(w http.ResponseWriter, r *http.Request) {
+func (h *MonitorHandler) GetAuditLogs(w http.ResponseWriter, r *http.Request) {
 	if _, appErr := h.requireAuditPermission(r); appErr != nil {
 		apperror.WriteError(w, r, appErr)
 		return
@@ -1572,7 +1572,7 @@ func (h MonitorHandler) GetAuditLogs(w http.ResponseWriter, r *http.Request) {
 }
 
 // 11. GET /api/v1/jobs/{job_id}
-func (h MonitorHandler) GetJobStatus(w http.ResponseWriter, r *http.Request) {
+func (h *MonitorHandler) GetJobStatus(w http.ResponseWriter, r *http.Request) {
 	jobID, err := uuid.Parse(r.PathValue("job_id"))
 	if err != nil {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
@@ -1651,7 +1651,7 @@ func (h MonitorHandler) GetJobStatus(w http.ResponseWriter, r *http.Request) {
 }
 
 // 12. GET /api/v1/monitor/jobs/{job_id}
-func (h MonitorHandler) GetMonitorJob(w http.ResponseWriter, r *http.Request) {
+func (h *MonitorHandler) GetMonitorJob(w http.ResponseWriter, r *http.Request) {
 	jobID, err := uuid.Parse(r.PathValue("job_id"))
 	if err != nil {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))

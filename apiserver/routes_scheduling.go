@@ -7,12 +7,12 @@ import (
 
 func registerSchedulingRoutes(
 	router chi.Router,
-	shift api.ShiftHandler,
-	pattern api.WorkingPatternHandler,
-	roster api.RosterHandler,
-	schedule api.ScheduleHandler,
-	swap api.ShiftSwapHandler,
-	segment api.WorkSegmentHandler,
+	shift *api.ShiftHandler,
+	pattern *api.WorkingPatternHandler,
+	roster *api.RosterHandler,
+	schedule *api.ScheduleHandler,
+	swap *api.ShiftSwapHandler,
+	segment *api.WorkSegmentHandler,
 ) {
 	registerRoute(router, "POST /api/v1/shifts", shift.Create)
 	registerRoute(router, "GET /api/v1/shifts", shift.List)

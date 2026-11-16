@@ -120,7 +120,7 @@ func (mockPhaseAuthorizer) GetUsersWithPermission(context.Context, string) ([]uu
 func TestEmploymentPhaseDefinitionsAndPermissions(t *testing.T) {
 	userID := uuid.New()
 	repo := &mockEmploymentPhaseRepo{}
-	handler := EmploymentPhaseHandler{
+	handler := &EmploymentPhaseHandler{
 		Repository: repo,
 		Authorizer: mockPhaseAuthorizer{allowed: map[string]bool{
 			"employment_phases:manage": true,
@@ -155,7 +155,7 @@ func TestEmploymentPhaseDefinitionsAndPermissions(t *testing.T) {
 
 func TestEmploymentPhaseListUsesReadPermission(t *testing.T) {
 	userID := uuid.New()
-	handler := EmploymentPhaseHandler{Repository: &mockEmploymentPhaseRepo{}, Authorizer: mockPhaseAuthorizer{allowed: map[string]bool{"employment_phases:read": true}}}
+	handler := &EmploymentPhaseHandler{Repository: &mockEmploymentPhaseRepo{}, Authorizer: mockPhaseAuthorizer{allowed: map[string]bool{"employment_phases:read": true}}}
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/employment-phase-assignments?page=1&limit=10", nil).WithContext(httpinfra.WithUserIDForTest(context.Background(), userID))
 	rec := httptest.NewRecorder()
 	handler.ListOrganization(rec, req)
@@ -167,7 +167,7 @@ func TestEmploymentPhaseListUsesReadPermission(t *testing.T) {
 func TestEmploymentPhaseListValidatesEmployeeFilter(t *testing.T) {
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/employment-phase-assignments?employee_id=bad", nil).WithContext(httpinfra.WithUserIDForTest(context.Background(), uuid.New()))
 	rec := httptest.NewRecorder()
-	EmploymentPhaseHandler{Repository: &mockEmploymentPhaseRepo{}, Authorizer: mockPhaseAuthorizer{allowed: map[string]bool{"employment_phases:read": true}}}.ListOrganization(rec, req)
+	(&EmploymentPhaseHandler{Repository: &mockEmploymentPhaseRepo{}, Authorizer: mockPhaseAuthorizer{allowed: map[string]bool{"employment_phases:read": true}}}).ListOrganization(rec, req)
 	if rec.Code != http.StatusBadRequest && rec.Code != http.StatusUnprocessableEntity {
 		t.Fatalf("expected validation error, got %d", rec.Code)
 	}
@@ -178,7 +178,7 @@ func TestEmploymentPhaseListPassesEmployeeFilter(t *testing.T) {
 	repo := &mockEmploymentPhaseRepo{}
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/employment-phase-assignments?employee_id="+employeeID.String(), nil).WithContext(httpinfra.WithUserIDForTest(context.Background(), uuid.New()))
 	rec := httptest.NewRecorder()
-	EmploymentPhaseHandler{Repository: repo, Authorizer: mockPhaseAuthorizer{allowed: map[string]bool{"employment_phases:read": true}}}.ListOrganization(rec, req)
+	(&EmploymentPhaseHandler{Repository: repo, Authorizer: mockPhaseAuthorizer{allowed: map[string]bool{"employment_phases:read": true}}}).ListOrganization(rec, req)
 	if rec.Code != http.StatusOK || repo.organizationQuery == nil || *repo.organizationQuery != employeeID {
 		t.Fatalf("expected employee filter to reach repository, status=%d", rec.Code)
 	}
@@ -187,7 +187,7 @@ func TestEmploymentPhaseListPassesEmployeeFilter(t *testing.T) {
 func TestEmploymentPhaseListForbiddenWithoutReadPermission(t *testing.T) {
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/employment-phase-assignments", nil).WithContext(httpinfra.WithUserIDForTest(context.Background(), uuid.New()))
 	rec := httptest.NewRecorder()
-	EmploymentPhaseHandler{Repository: &mockEmploymentPhaseRepo{}, Authorizer: mockPhaseAuthorizer{allowed: map[string]bool{}}}.ListOrganization(rec, req)
+	(&EmploymentPhaseHandler{Repository: &mockEmploymentPhaseRepo{}, Authorizer: mockPhaseAuthorizer{allowed: map[string]bool{}}}).ListOrganization(rec, req)
 	if rec.Code != http.StatusForbidden {
 		t.Fatalf("expected 403, got %d", rec.Code)
 	}
@@ -198,7 +198,7 @@ func TestEmploymentPhaseAssignOverlapTransition(t *testing.T) {
 	userID := uuid.New()
 	defID := uuid.New()
 	repo := &mockEmploymentPhaseRepo{}
-	handler := EmploymentPhaseHandler{
+	handler := &EmploymentPhaseHandler{
 		Repository: repo,
 		Authorizer: mockPhaseAuthorizer{allowed: map[string]bool{"employment_phases:manage": true}},
 	}

@@ -261,7 +261,7 @@ type LeaveHandler struct {
 	StorageDir       string
 }
 
-func (h LeaveHandler) CreateType(w http.ResponseWriter, r *http.Request) {
+func (h *LeaveHandler) CreateType(w http.ResponseWriter, r *http.Request) {
 
 	if !h.allowed(r, "leave:types:manage") {
 		h.forbidden(w, r)
@@ -280,7 +280,7 @@ func (h LeaveHandler) CreateType(w http.ResponseWriter, r *http.Request) {
 	apperror.WriteJSON(w, http.StatusCreated, lt)
 }
 
-func (h LeaveHandler) ListTypes(w http.ResponseWriter, r *http.Request) {
+func (h *LeaveHandler) ListTypes(w http.ResponseWriter, r *http.Request) {
 	types, err := h.Repository.ListLeaveTypes(r.Context())
 	if err != nil {
 		h.writeError(w, r, err)
@@ -289,7 +289,7 @@ func (h LeaveHandler) ListTypes(w http.ResponseWriter, r *http.Request) {
 	apperror.WriteJSON(w, http.StatusOK, types)
 }
 
-func (h LeaveHandler) UpdateTypeConfig(w http.ResponseWriter, r *http.Request) {
+func (h *LeaveHandler) UpdateTypeConfig(w http.ResponseWriter, r *http.Request) {
 
 	leaveTypeID, idOK := pathUUID(r, "id")
 	if !idOK || !h.allowed(r, "leave:types:manage") {
@@ -309,7 +309,7 @@ func (h LeaveHandler) UpdateTypeConfig(w http.ResponseWriter, r *http.Request) {
 	apperror.WriteJSON(w, http.StatusOK, record)
 }
 
-func (h LeaveHandler) DeleteType(w http.ResponseWriter, r *http.Request) {
+func (h *LeaveHandler) DeleteType(w http.ResponseWriter, r *http.Request) {
 
 	leaveTypeID, idOK := pathUUID(r, "id")
 	if !idOK || !h.allowed(r, "leave:types:manage") {
@@ -323,7 +323,7 @@ func (h LeaveHandler) DeleteType(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
-func (h LeaveHandler) RestoreType(w http.ResponseWriter, r *http.Request) {
+func (h *LeaveHandler) RestoreType(w http.ResponseWriter, r *http.Request) {
 
 	leaveTypeID, idOK := pathUUID(r, "id")
 	if !idOK || !h.allowed(r, "leave:types:manage") {
@@ -360,7 +360,7 @@ func validLeaveTypeConfig(value json.RawMessage) bool {
 	return true
 }
 
-func (h LeaveHandler) Submit(w http.ResponseWriter, r *http.Request) {
+func (h *LeaveHandler) Submit(w http.ResponseWriter, r *http.Request) {
 
 	if !h.allowed(r, "leave:requests:submit") {
 		h.forbidden(w, r)
@@ -385,7 +385,7 @@ func (h LeaveHandler) Submit(w http.ResponseWriter, r *http.Request) {
 	apperror.WriteJSON(w, http.StatusCreated, record)
 }
 
-func (h LeaveHandler) ListRequests(w http.ResponseWriter, r *http.Request) {
+func (h *LeaveHandler) ListRequests(w http.ResponseWriter, r *http.Request) {
 
 	if !h.allowed(r, "leave:requests:read") {
 		h.forbidden(w, r)
@@ -403,7 +403,7 @@ func (h LeaveHandler) ListRequests(w http.ResponseWriter, r *http.Request) {
 	apperror.WriteJSON(w, http.StatusOK, records)
 }
 
-func (h LeaveHandler) Approve(w http.ResponseWriter, r *http.Request) {
+func (h *LeaveHandler) Approve(w http.ResponseWriter, r *http.Request) {
 
 	requestID, reqOK := pathUUID(r, "id")
 	if !reqOK || !h.hasAnyPermission(r, "leave:requests:approve", "leave:approve:l1", "leave:approve:l2") {
@@ -427,7 +427,7 @@ func (h LeaveHandler) Approve(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-func (h LeaveHandler) Balances(w http.ResponseWriter, r *http.Request) {
+func (h *LeaveHandler) Balances(w http.ResponseWriter, r *http.Request) {
 
 	employeeID, empOK := pathUUID(r, "id")
 	if !empOK {
@@ -503,12 +503,12 @@ func validateSubmitLeaveRequest(req SubmitLeaveRequest) error {
 	return nil
 }
 
-func (h LeaveHandler) allowed(r *http.Request, permission string) bool {
+func (h *LeaveHandler) allowed(r *http.Request, permission string) bool {
 	userID, ok := httpinfra.UserIDFromContext(r.Context())
 	return ok && h.Authorizer != nil && h.Authorizer.HasPermission(r.Context(), userID, permission)
 }
 
-func (h LeaveHandler) hasAnyPermission(r *http.Request, permissions ...string) bool {
+func (h *LeaveHandler) hasAnyPermission(r *http.Request, permissions ...string) bool {
 	userID, ok := httpinfra.UserIDFromContext(r.Context())
 	if !ok || h.Authorizer == nil {
 		return false
@@ -521,11 +521,11 @@ func (h LeaveHandler) hasAnyPermission(r *http.Request, permissions ...string) b
 	return false
 }
 
-func (h LeaveHandler) forbidden(w http.ResponseWriter, r *http.Request) {
+func (h *LeaveHandler) forbidden(w http.ResponseWriter, r *http.Request) {
 	apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
 }
 
-func (h LeaveHandler) writeError(w http.ResponseWriter, r *http.Request, err error) {
+func (h *LeaveHandler) writeError(w http.ResponseWriter, r *http.Request, err error) {
 	if errors.Is(err, pgx.ErrNoRows) || errors.Is(err, ErrLeaveNotFound) || errors.Is(err, ErrLeaveTypeNotFound) || errors.Is(err, ErrLeaveNoEmployment) {
 		apperror.WriteError(w, r, apperror.NotFound(apperror.KeyNotFound))
 		return
@@ -540,7 +540,7 @@ func (h LeaveHandler) writeError(w http.ResponseWriter, r *http.Request, err err
 	}
 	apperror.WriteError(w, r, apperror.Internal(err))
 }
-func (h LeaveHandler) importRepo() LeaveImportRepository {
+func (h *LeaveHandler) importRepo() LeaveImportRepository {
 	if h.ImportRepository != nil {
 		return h.ImportRepository
 	}
@@ -550,7 +550,7 @@ func (h LeaveHandler) importRepo() LeaveImportRepository {
 	return nil
 }
 
-func (h LeaveHandler) behalfRepo() BehalfAssignmentRepository {
+func (h *LeaveHandler) behalfRepo() BehalfAssignmentRepository {
 	if h.BehalfRepository != nil {
 		return h.BehalfRepository
 	}
@@ -560,7 +560,7 @@ func (h LeaveHandler) behalfRepo() BehalfAssignmentRepository {
 	return nil
 }
 
-func (h LeaveHandler) OrganizationBalances(w http.ResponseWriter, r *http.Request) {
+func (h *LeaveHandler) OrganizationBalances(w http.ResponseWriter, r *http.Request) {
 
 	if !h.allowed(r, "leave:balances:read") {
 		h.forbidden(w, r)
@@ -585,7 +585,7 @@ func (h LeaveHandler) OrganizationBalances(w http.ResponseWriter, r *http.Reques
 	apperror.WriteJSON(w, http.StatusOK, PaginatedOrganizationLeaveBalances{Data: data, Total: total, Page: p.Page, Limit: p.Limit})
 }
 
-func (h LeaveHandler) EmployeeHistory(w http.ResponseWriter, r *http.Request) {
+func (h *LeaveHandler) EmployeeHistory(w http.ResponseWriter, r *http.Request) {
 
 	emp, empOK := pathUUID(r, "id")
 	if !empOK {
@@ -631,7 +631,7 @@ func (h LeaveHandler) EmployeeHistory(w http.ResponseWriter, r *http.Request) {
 	apperror.WriteJSON(w, http.StatusOK, data)
 }
 
-func (h LeaveHandler) AdjustBalance(w http.ResponseWriter, r *http.Request) {
+func (h *LeaveHandler) AdjustBalance(w http.ResponseWriter, r *http.Request) {
 
 	emp, empOK := pathUUID(r, "id")
 	if !empOK || !h.allowed(r, "leave:balances:adjust") {
@@ -654,7 +654,7 @@ func (h LeaveHandler) AdjustBalance(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-func (h LeaveHandler) MyRequests(w http.ResponseWriter, r *http.Request) {
+func (h *LeaveHandler) MyRequests(w http.ResponseWriter, r *http.Request) {
 
 	emp, empOK := pathUUID(r, "id")
 	user, userOK := httpinfra.UserIDFromContext(r.Context())
@@ -681,7 +681,7 @@ func (h LeaveHandler) MyRequests(w http.ResponseWriter, r *http.Request) {
 	apperror.WriteJSON(w, http.StatusOK, data)
 }
 
-func (h LeaveHandler) ListPolicies(w http.ResponseWriter, r *http.Request) {
+func (h *LeaveHandler) ListPolicies(w http.ResponseWriter, r *http.Request) {
 
 	_, userOK := httpinfra.UserIDFromContext(r.Context())
 	if !userOK {
@@ -696,7 +696,7 @@ func (h LeaveHandler) ListPolicies(w http.ResponseWriter, r *http.Request) {
 	apperror.WriteJSON(w, http.StatusOK, data)
 }
 
-func (h LeaveHandler) CreatePolicy(w http.ResponseWriter, r *http.Request) {
+func (h *LeaveHandler) CreatePolicy(w http.ResponseWriter, r *http.Request) {
 
 	if !h.allowed(r, "leave:policies:manage") {
 		h.forbidden(w, r)
@@ -715,7 +715,7 @@ func (h LeaveHandler) CreatePolicy(w http.ResponseWriter, r *http.Request) {
 	apperror.WriteJSON(w, http.StatusCreated, data)
 }
 
-func (h LeaveHandler) UpdatePolicy(w http.ResponseWriter, r *http.Request) {
+func (h *LeaveHandler) UpdatePolicy(w http.ResponseWriter, r *http.Request) {
 
 	id, idOK := pathUUID(r, "policy_id")
 	if !idOK || !h.allowed(r, "leave:policies:manage") {
@@ -735,7 +735,7 @@ func (h LeaveHandler) UpdatePolicy(w http.ResponseWriter, r *http.Request) {
 	apperror.WriteJSON(w, http.StatusOK, data)
 }
 
-func (h LeaveHandler) DeletePolicy(w http.ResponseWriter, r *http.Request) {
+func (h *LeaveHandler) DeletePolicy(w http.ResponseWriter, r *http.Request) {
 
 	id, idOK := pathUUID(r, "policy_id")
 	if !idOK || !h.allowed(r, "leave:policies:manage") {
@@ -749,7 +749,7 @@ func (h LeaveHandler) DeletePolicy(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
-func (h LeaveHandler) AssignPolicy(w http.ResponseWriter, r *http.Request) {
+func (h *LeaveHandler) AssignPolicy(w http.ResponseWriter, r *http.Request) {
 
 	if !h.allowed(r, "leave:policies:manage") {
 		h.forbidden(w, r)
@@ -772,7 +772,7 @@ func (h LeaveHandler) AssignPolicy(w http.ResponseWriter, r *http.Request) {
 	apperror.WriteJSON(w, http.StatusCreated, data)
 }
 
-func (h LeaveHandler) ListPolicyAssignments(w http.ResponseWriter, r *http.Request) {
+func (h *LeaveHandler) ListPolicyAssignments(w http.ResponseWriter, r *http.Request) {
 
 	if !h.allowed(r, "leave:policies:manage") {
 		h.forbidden(w, r)
@@ -786,7 +786,7 @@ func (h LeaveHandler) ListPolicyAssignments(w http.ResponseWriter, r *http.Reque
 	apperror.WriteJSON(w, http.StatusOK, data)
 }
 
-func (h LeaveHandler) DeletePolicyAssignment(w http.ResponseWriter, r *http.Request) {
+func (h *LeaveHandler) DeletePolicyAssignment(w http.ResponseWriter, r *http.Request) {
 
 	id, idOK := pathUUID(r, "assignment_id")
 	if !idOK || !h.allowed(r, "leave:policies:manage") {
@@ -800,7 +800,7 @@ func (h LeaveHandler) DeletePolicyAssignment(w http.ResponseWriter, r *http.Requ
 	w.WriteHeader(http.StatusNoContent)
 }
 
-func (h LeaveHandler) TriggerAccrual(w http.ResponseWriter, r *http.Request) {
+func (h *LeaveHandler) TriggerAccrual(w http.ResponseWriter, r *http.Request) {
 
 	if !h.allowed(r, "leave:accrual:run") {
 		h.forbidden(w, r)
@@ -832,7 +832,7 @@ func (h LeaveHandler) TriggerAccrual(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-func (h LeaveHandler) JobStatus(w http.ResponseWriter, r *http.Request) {
+func (h *LeaveHandler) JobStatus(w http.ResponseWriter, r *http.Request) {
 
 	jobID, jobOK := pathUUID(r, "job_id")
 	_, userOK := httpinfra.UserIDFromContext(r.Context())
@@ -848,7 +848,7 @@ func (h LeaveHandler) JobStatus(w http.ResponseWriter, r *http.Request) {
 	apperror.WriteJSON(w, http.StatusOK, status)
 }
 
-func (h LeaveHandler) UploadExcel(w http.ResponseWriter, r *http.Request) {
+func (h *LeaveHandler) UploadExcel(w http.ResponseWriter, r *http.Request) {
 
 	user, userOK := httpinfra.UserIDFromContext(r.Context())
 	if !userOK || !h.allowed(r, "leave:requests:submit") {
@@ -925,7 +925,7 @@ func (h LeaveHandler) UploadExcel(w http.ResponseWriter, r *http.Request) {
 	apperror.WriteJSON(w, http.StatusOK, map[string]any{"job_id": job.ID, "status": "enqueued"})
 }
 
-func (h LeaveHandler) LatestImport(w http.ResponseWriter, r *http.Request) {
+func (h *LeaveHandler) LatestImport(w http.ResponseWriter, r *http.Request) {
 
 	if !h.allowed(r, "leave:requests:submit") {
 		h.forbidden(w, r)
@@ -944,7 +944,7 @@ func (h LeaveHandler) LatestImport(w http.ResponseWriter, r *http.Request) {
 	apperror.WriteJSON(w, http.StatusOK, job)
 }
 
-func (h LeaveHandler) ImportErrors(w http.ResponseWriter, r *http.Request) {
+func (h *LeaveHandler) ImportErrors(w http.ResponseWriter, r *http.Request) {
 
 	jobID, jobOK := pathUUID(r, "job_id")
 	if !jobOK || !h.allowed(r, "leave:requests:submit") {
@@ -971,7 +971,7 @@ func (h LeaveHandler) ImportErrors(w http.ResponseWriter, r *http.Request) {
 	_, _ = w.Write(data)
 }
 
-func (h LeaveHandler) UploadTemplate(w http.ResponseWriter, r *http.Request) {
+func (h *LeaveHandler) UploadTemplate(w http.ResponseWriter, r *http.Request) {
 
 	if !h.allowed(r, "leave:requests:submit") {
 		h.forbidden(w, r)
@@ -1015,7 +1015,7 @@ func (h LeaveHandler) UploadTemplate(w http.ResponseWriter, r *http.Request) {
 	_, _ = w.Write(templateBytes)
 }
 
-func (h LeaveHandler) ListBehalfAssignments(w http.ResponseWriter, r *http.Request) {
+func (h *LeaveHandler) ListBehalfAssignments(w http.ResponseWriter, r *http.Request) {
 
 	if !h.allowed(r, "leave:policies:manage") {
 		h.forbidden(w, r)
@@ -1034,7 +1034,7 @@ func (h LeaveHandler) ListBehalfAssignments(w http.ResponseWriter, r *http.Reque
 	apperror.WriteJSON(w, http.StatusOK, items)
 }
 
-func (h LeaveHandler) CreateBehalfAssignment(w http.ResponseWriter, r *http.Request) {
+func (h *LeaveHandler) CreateBehalfAssignment(w http.ResponseWriter, r *http.Request) {
 
 	if !h.allowed(r, "leave:policies:manage") {
 		h.forbidden(w, r)
@@ -1058,7 +1058,7 @@ func (h LeaveHandler) CreateBehalfAssignment(w http.ResponseWriter, r *http.Requ
 	apperror.WriteJSON(w, http.StatusOK, result)
 }
 
-func (h LeaveHandler) GetMyBehalfTargets(w http.ResponseWriter, r *http.Request) {
+func (h *LeaveHandler) GetMyBehalfTargets(w http.ResponseWriter, r *http.Request) {
 
 	user, userOK := httpinfra.UserIDFromContext(r.Context())
 	if !userOK {
@@ -1078,7 +1078,7 @@ func (h LeaveHandler) GetMyBehalfTargets(w http.ResponseWriter, r *http.Request)
 	apperror.WriteJSON(w, http.StatusOK, targets)
 }
 
-func (h LeaveHandler) DeleteBehalfAssignment(w http.ResponseWriter, r *http.Request) {
+func (h *LeaveHandler) DeleteBehalfAssignment(w http.ResponseWriter, r *http.Request) {
 
 	id, idOK := pathUUID(r, "id")
 	if !idOK || !h.allowed(r, "leave:policies:manage") {

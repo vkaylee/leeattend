@@ -7,9 +7,9 @@ import (
 
 func registerLifecycleRoutes(
 	router chi.Router,
-	conditionTypes api.ConditionTypeHandler,
-	phases api.EmploymentPhaseHandler,
-	lifecycle api.LifecycleHandler,
+	conditionTypes *api.ConditionTypeHandler,
+	phases *api.EmploymentPhaseHandler,
+	lifecycle *api.LifecycleHandler,
 ) {
 	registerRoute(router, "GET /api/v1/condition-types", conditionTypes.List)
 	registerRoute(router, "GET /api/v1/condition-types/{id}", conditionTypes.Get)

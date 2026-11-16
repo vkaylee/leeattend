@@ -65,7 +65,7 @@ type EmployeeConditionHandler struct {
 	Authorizer Authorizer
 }
 
-func (h EmployeeConditionHandler) ListConditions(w http.ResponseWriter, r *http.Request) {
+func (h *EmployeeConditionHandler) ListConditions(w http.ResponseWriter, r *http.Request) {
 	userID, ok := httpinfra.UserIDFromContext(r.Context())
 	if !ok {
 		apperror.WriteError(w, r, apperror.Unauthorized(apperror.KeyAuthenticationRequired))
@@ -83,7 +83,7 @@ func (h EmployeeConditionHandler) ListConditions(w http.ResponseWriter, r *http.
 	apperror.WriteJSON(w, http.StatusOK, items)
 }
 
-func (h EmployeeConditionHandler) List(w http.ResponseWriter, r *http.Request) {
+func (h *EmployeeConditionHandler) List(w http.ResponseWriter, r *http.Request) {
 	employeeID, ok := employeePath(r)
 	if !ok {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
@@ -106,7 +106,7 @@ func (h EmployeeConditionHandler) List(w http.ResponseWriter, r *http.Request) {
 	apperror.WriteJSON(w, http.StatusOK, result)
 }
 
-func (h EmployeeConditionHandler) Create(w http.ResponseWriter, r *http.Request) {
+func (h *EmployeeConditionHandler) Create(w http.ResponseWriter, r *http.Request) {
 	employeeID, ok := employeePath(r)
 	if !ok {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
@@ -143,7 +143,7 @@ func (h EmployeeConditionHandler) Create(w http.ResponseWriter, r *http.Request)
 	apperror.WriteJSON(w, http.StatusCreated, condition)
 }
 
-func (h EmployeeConditionHandler) Delete(w http.ResponseWriter, r *http.Request) {
+func (h *EmployeeConditionHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	employeeID, ok := employeePath(r)
 	conditionID, conditionOK := pathUUID(r, "cond_id")
 	if !ok || !conditionOK {
@@ -181,18 +181,18 @@ func validConditionDate(value string) bool {
 	return err == nil
 }
 
-func (h EmployeeConditionHandler) allowedScoped(ctx context.Context, userID uuid.UUID, permission string, dept *uuid.UUID) bool {
+func (h *EmployeeConditionHandler) allowedScoped(ctx context.Context, userID uuid.UUID, permission string, dept *uuid.UUID) bool {
 	if h.Authorizer == nil {
 		return false
 	}
 	return h.Authorizer.HasScopedPermission(ctx, userID, permission, dept)
 }
 
-func (h EmployeeConditionHandler) forbidden(w http.ResponseWriter, r *http.Request) {
+func (h *EmployeeConditionHandler) forbidden(w http.ResponseWriter, r *http.Request) {
 	apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
 }
 
-func (h EmployeeConditionHandler) writeError(w http.ResponseWriter, r *http.Request, err error) {
+func (h *EmployeeConditionHandler) writeError(w http.ResponseWriter, r *http.Request, err error) {
 	switch {
 	case errors.Is(err, ErrEmployeeNotFound):
 		apperror.WriteError(w, r, apperror.NotFound(apperror.KeyEmployeeNotFound))

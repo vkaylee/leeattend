@@ -46,7 +46,7 @@ type SystemAdminHandler struct {
 	Redis       RedisClient
 }
 
-func (h SystemAdminHandler) requireStandalonePermission(r *http.Request, permission string) (uuid.UUID, *apperror.AppError) {
+func (h *SystemAdminHandler) requireStandalonePermission(r *http.Request, permission string) (uuid.UUID, *apperror.AppError) {
 	userID, ok := httpinfra.UserIDFromContext(r.Context())
 	if !ok || userID == uuid.Nil {
 		return uuid.Nil, apperror.Unauthorized(apperror.KeyUnauthorized)
@@ -57,7 +57,7 @@ func (h SystemAdminHandler) requireStandalonePermission(r *http.Request, permiss
 	return userID, nil
 }
 
-func (h SystemAdminHandler) invalidateRedisKey(ctx context.Context, key string) {
+func (h *SystemAdminHandler) invalidateRedisKey(ctx context.Context, key string) {
 	if h.Redis == nil {
 		return
 	}
@@ -69,7 +69,7 @@ func (h SystemAdminHandler) invalidateRedisKey(ctx context.Context, key string) 
 }
 
 // 1. GET /api/v1/system/smtp/config
-func (h SystemAdminHandler) GetSMTPConfig(w http.ResponseWriter, r *http.Request) {
+func (h *SystemAdminHandler) GetSMTPConfig(w http.ResponseWriter, r *http.Request) {
 	if _, appErr := h.requireStandalonePermission(r, string(auth.PermissionSecuritySettingsManage)); appErr != nil {
 		apperror.WriteError(w, r, appErr)
 		return
@@ -93,7 +93,7 @@ func (h SystemAdminHandler) GetSMTPConfig(w http.ResponseWriter, r *http.Request
 }
 
 // 2. PUT /api/v1/system/smtp/config
-func (h SystemAdminHandler) SetSMTPConfig(w http.ResponseWriter, r *http.Request) {
+func (h *SystemAdminHandler) SetSMTPConfig(w http.ResponseWriter, r *http.Request) {
 	if _, appErr := h.requireStandalonePermission(r, string(auth.PermissionSecuritySettingsManage)); appErr != nil {
 		apperror.WriteError(w, r, appErr)
 		return
@@ -116,7 +116,7 @@ func (h SystemAdminHandler) SetSMTPConfig(w http.ResponseWriter, r *http.Request
 }
 
 // 3. POST /api/v1/system/smtp/test
-func (h SystemAdminHandler) TestSMTP(w http.ResponseWriter, r *http.Request) {
+func (h *SystemAdminHandler) TestSMTP(w http.ResponseWriter, r *http.Request) {
 	if _, appErr := h.requireStandalonePermission(r, string(auth.PermissionSecuritySettingsManage)); appErr != nil {
 		apperror.WriteError(w, r, appErr)
 		return

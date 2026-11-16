@@ -81,7 +81,7 @@ type RecruitmentSourceHandler struct {
 	Authorizer Authorizer
 }
 
-func (h RecruitmentSourceHandler) List(w http.ResponseWriter, r *http.Request) {
+func (h *RecruitmentSourceHandler) List(w http.ResponseWriter, r *http.Request) {
 	if !h.isMember(r) {
 		h.forbidden(w, r)
 		return
@@ -99,7 +99,7 @@ func (h RecruitmentSourceHandler) List(w http.ResponseWriter, r *http.Request) {
 	apperror.WriteJSON(w, http.StatusOK, result)
 }
 
-func (h RecruitmentSourceHandler) Create(w http.ResponseWriter, r *http.Request) {
+func (h *RecruitmentSourceHandler) Create(w http.ResponseWriter, r *http.Request) {
 	if !h.allowed(r, "recruitment:manage") {
 		h.forbidden(w, r)
 		return
@@ -118,7 +118,7 @@ func (h RecruitmentSourceHandler) Create(w http.ResponseWriter, r *http.Request)
 	apperror.WriteJSON(w, http.StatusCreated, item)
 }
 
-func (h RecruitmentSourceHandler) Update(w http.ResponseWriter, r *http.Request) {
+func (h *RecruitmentSourceHandler) Update(w http.ResponseWriter, r *http.Request) {
 	id, idOK := pathUUID(r, "id")
 	if !idOK || !h.allowed(r, "recruitment:manage") {
 		h.forbidden(w, r)
@@ -145,7 +145,7 @@ func (h RecruitmentSourceHandler) Update(w http.ResponseWriter, r *http.Request)
 	apperror.WriteJSON(w, http.StatusOK, item)
 }
 
-func (h RecruitmentSourceHandler) Delete(w http.ResponseWriter, r *http.Request) {
+func (h *RecruitmentSourceHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	id, idOK := pathUUID(r, "id")
 	if !idOK || !h.allowed(r, "recruitment:manage") {
 		h.forbidden(w, r)
@@ -158,7 +158,7 @@ func (h RecruitmentSourceHandler) Delete(w http.ResponseWriter, r *http.Request)
 	w.WriteHeader(http.StatusNoContent)
 }
 
-func (h RecruitmentSourceHandler) Dashboard(w http.ResponseWriter, r *http.Request) {
+func (h *RecruitmentSourceHandler) Dashboard(w http.ResponseWriter, r *http.Request) {
 	if !h.allowed(r, "dashboard:read") {
 		h.forbidden(w, r)
 		return
@@ -171,7 +171,7 @@ func (h RecruitmentSourceHandler) Dashboard(w http.ResponseWriter, r *http.Reque
 	apperror.WriteJSON(w, http.StatusOK, result)
 }
 
-func (h RecruitmentSourceHandler) isMember(r *http.Request) bool {
+func (h *RecruitmentSourceHandler) isMember(r *http.Request) bool {
 	userID, ok := httpinfra.UserIDFromContext(r.Context())
 	if !ok || h.Authorizer == nil {
 		return false
@@ -180,16 +180,16 @@ func (h RecruitmentSourceHandler) isMember(r *http.Request) bool {
 	return err == nil && member
 }
 
-func (h RecruitmentSourceHandler) allowed(r *http.Request, permission string) bool {
+func (h *RecruitmentSourceHandler) allowed(r *http.Request, permission string) bool {
 	userID, ok := httpinfra.UserIDFromContext(r.Context())
 	return ok && h.Authorizer != nil && h.Authorizer.HasPermission(r.Context(), userID, permission)
 }
 
-func (h RecruitmentSourceHandler) forbidden(w http.ResponseWriter, r *http.Request) {
+func (h *RecruitmentSourceHandler) forbidden(w http.ResponseWriter, r *http.Request) {
 	apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
 }
 
-func (h RecruitmentSourceHandler) writeError(w http.ResponseWriter, r *http.Request, err error) {
+func (h *RecruitmentSourceHandler) writeError(w http.ResponseWriter, r *http.Request, err error) {
 	if errors.Is(err, ErrRecruitmentSourceNotFound) || errors.Is(err, pgx.ErrNoRows) {
 		apperror.WriteError(w, r, apperror.NotFound(apperror.KeyNotFound))
 		return

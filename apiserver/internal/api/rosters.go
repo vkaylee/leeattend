@@ -64,7 +64,7 @@ type RosterHandler struct {
 	Authorizer Authorizer
 }
 
-func (h RosterHandler) ListEmployee(w http.ResponseWriter, r *http.Request) {
+func (h *RosterHandler) ListEmployee(w http.ResponseWriter, r *http.Request) {
 	employeeID, ok := pathUUID(r, "id")
 	if !ok || !h.allowed(r, "rosters:read") {
 		h.forbidden(w, r)
@@ -88,7 +88,7 @@ func (h RosterHandler) ListEmployee(w http.ResponseWriter, r *http.Request) {
 	apperror.WriteJSON(w, http.StatusOK, result)
 }
 
-func (h RosterHandler) Upsert(w http.ResponseWriter, r *http.Request) {
+func (h *RosterHandler) Upsert(w http.ResponseWriter, r *http.Request) {
 	employeeID, ok := pathUUID(r, "id")
 	if !ok || !h.allowed(r, "rosters:manage") {
 		h.forbidden(w, r)
@@ -117,7 +117,7 @@ func (h RosterHandler) Upsert(w http.ResponseWriter, r *http.Request) {
 	apperror.WriteJSON(w, http.StatusOK, roster)
 }
 
-func (h RosterHandler) BulkUpsert(w http.ResponseWriter, r *http.Request) {
+func (h *RosterHandler) BulkUpsert(w http.ResponseWriter, r *http.Request) {
 	employeeID, ok := pathUUID(r, "id")
 	if !ok || !h.allowed(r, "rosters:manage") {
 		h.forbidden(w, r)
@@ -140,7 +140,7 @@ func (h RosterHandler) BulkUpsert(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusAccepted)
 }
 
-func (h RosterHandler) Delete(w http.ResponseWriter, r *http.Request) {
+func (h *RosterHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	employeeID, ok := pathUUID(r, "id")
 	if !ok || !h.allowed(r, "rosters:manage") {
 		h.forbidden(w, r)
@@ -201,16 +201,16 @@ func duplicateRosterDates(items []RosterItem) bool {
 	return false
 }
 
-func (h RosterHandler) allowed(r *http.Request, permission string) bool {
+func (h *RosterHandler) allowed(r *http.Request, permission string) bool {
 	userID, ok := httpinfra.UserIDFromContext(r.Context())
 	return ok && h.Authorizer != nil && h.Authorizer.HasPermission(r.Context(), userID, permission)
 }
 
-func (h RosterHandler) forbidden(w http.ResponseWriter, r *http.Request) {
+func (h *RosterHandler) forbidden(w http.ResponseWriter, r *http.Request) {
 	apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
 }
 
-func (h RosterHandler) writeError(w http.ResponseWriter, r *http.Request, err error) {
+func (h *RosterHandler) writeError(w http.ResponseWriter, r *http.Request, err error) {
 	if errors.Is(err, ErrEmploymentNotFound) || errors.Is(err, ErrRosterNotFound) {
 		apperror.WriteError(w, r, apperror.NotFound(apperror.KeyNotFound))
 		return

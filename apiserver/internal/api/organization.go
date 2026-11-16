@@ -179,7 +179,7 @@ type OrganizationHandler struct {
 	Audit      OrganizationFeatureFlagAudit
 }
 
-func (h OrganizationHandler) Get(w http.ResponseWriter, r *http.Request) {
+func (h *OrganizationHandler) Get(w http.ResponseWriter, r *http.Request) {
 	_, userOK := httpinfra.UserIDFromContext(r.Context())
 	if !userOK {
 		apperror.WriteError(w, r, apperror.Unauthorized(apperror.KeyAuthenticationRequired))
@@ -197,7 +197,7 @@ func (h OrganizationHandler) Get(w http.ResponseWriter, r *http.Request) {
 	apperror.WriteJSON(w, http.StatusOK, org)
 }
 
-func (h OrganizationHandler) ListConfigs(w http.ResponseWriter, r *http.Request) {
+func (h *OrganizationHandler) ListConfigs(w http.ResponseWriter, r *http.Request) {
 	userID, userOK := httpinfra.UserIDFromContext(r.Context())
 	if !userOK || h.Authorizer == nil || !h.Authorizer.HasPermission(r.Context(), userID, "organization:settings:read") {
 		apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
@@ -220,7 +220,7 @@ func (h OrganizationHandler) ListConfigs(w http.ResponseWriter, r *http.Request)
 	apperror.WriteJSON(w, http.StatusOK, configs)
 }
 
-func (h OrganizationHandler) GetConfig(w http.ResponseWriter, r *http.Request) {
+func (h *OrganizationHandler) GetConfig(w http.ResponseWriter, r *http.Request) {
 	userID, userOK := httpinfra.UserIDFromContext(r.Context())
 	if !userOK || h.Authorizer == nil || !h.Authorizer.HasPermission(r.Context(), userID, "organization:settings:read") {
 		apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
@@ -313,7 +313,7 @@ func parseConfigReadRequest(r *http.Request) (ConfigReadRequest, error) {
 	return request, nil
 }
 
-func (h OrganizationHandler) DeleteConfig(w http.ResponseWriter, r *http.Request) {
+func (h *OrganizationHandler) DeleteConfig(w http.ResponseWriter, r *http.Request) {
 	entryID, idOK := pathUUID(r, "key")
 	if !idOK {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
@@ -331,7 +331,7 @@ func (h OrganizationHandler) DeleteConfig(w http.ResponseWriter, r *http.Request
 	w.WriteHeader(http.StatusOK)
 }
 
-func (h OrganizationHandler) Patch(w http.ResponseWriter, r *http.Request) {
+func (h *OrganizationHandler) Patch(w http.ResponseWriter, r *http.Request) {
 	userID, ok := httpinfra.UserIDFromContext(r.Context())
 	if !ok || h.Authorizer == nil || !h.Authorizer.HasPermission(r.Context(), userID, "organization:settings:write") {
 		apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
@@ -350,7 +350,7 @@ func (h OrganizationHandler) Patch(w http.ResponseWriter, r *http.Request) {
 	apperror.WriteJSON(w, http.StatusOK, org)
 }
 
-func (h OrganizationHandler) ListFeatureFlags(w http.ResponseWriter, r *http.Request) {
+func (h *OrganizationHandler) ListFeatureFlags(w http.ResponseWriter, r *http.Request) {
 	userID, userOK := httpinfra.UserIDFromContext(r.Context())
 	if !userOK || h.Authorizer == nil || !h.Authorizer.HasPermission(r.Context(), userID, "feature_flags:read") {
 		apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
@@ -366,7 +366,7 @@ func (h OrganizationHandler) ListFeatureFlags(w http.ResponseWriter, r *http.Req
 
 // ListEffectiveFeatureFlags exposes only runtime state needed by authenticated clients.
 // Management metadata remains protected by feature_flags:read.
-func (h OrganizationHandler) ListEffectiveFeatureFlags(w http.ResponseWriter, r *http.Request) {
+func (h *OrganizationHandler) ListEffectiveFeatureFlags(w http.ResponseWriter, r *http.Request) {
 	if _, ok := httpinfra.UserIDFromContext(r.Context()); !ok {
 		apperror.WriteError(w, r, apperror.Unauthorized(apperror.KeyAuthenticationRequired))
 		return
@@ -383,7 +383,7 @@ func (h OrganizationHandler) ListEffectiveFeatureFlags(w http.ResponseWriter, r 
 	apperror.WriteJSON(w, http.StatusOK, effective)
 }
 
-func (h OrganizationHandler) CreateFeatureFlag(w http.ResponseWriter, r *http.Request) {
+func (h *OrganizationHandler) CreateFeatureFlag(w http.ResponseWriter, r *http.Request) {
 	userID, userOK := httpinfra.UserIDFromContext(r.Context())
 	if !userOK || h.Authorizer == nil || !h.Authorizer.HasPermission(r.Context(), userID, "feature_flags:manage") {
 		apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
@@ -403,7 +403,7 @@ func (h OrganizationHandler) CreateFeatureFlag(w http.ResponseWriter, r *http.Re
 	apperror.WriteJSON(w, http.StatusCreated, flag)
 }
 
-func (h OrganizationHandler) GetFeatureFlagByID(w http.ResponseWriter, r *http.Request) {
+func (h *OrganizationHandler) GetFeatureFlagByID(w http.ResponseWriter, r *http.Request) {
 	flagID, flagOK := pathUUID(r, "id")
 	if !flagOK {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
@@ -426,7 +426,7 @@ func (h OrganizationHandler) GetFeatureFlagByID(w http.ResponseWriter, r *http.R
 	apperror.WriteJSON(w, http.StatusOK, flag)
 }
 
-func (h OrganizationHandler) UpdateFeatureFlag(w http.ResponseWriter, r *http.Request) {
+func (h *OrganizationHandler) UpdateFeatureFlag(w http.ResponseWriter, r *http.Request) {
 	flagID, flagOK := pathUUID(r, "id")
 	if !flagOK {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
@@ -457,7 +457,7 @@ func (h OrganizationHandler) UpdateFeatureFlag(w http.ResponseWriter, r *http.Re
 	apperror.WriteJSON(w, http.StatusOK, flag)
 }
 
-func (h OrganizationHandler) UpsertFeatureFlag(w http.ResponseWriter, r *http.Request) {
+func (h *OrganizationHandler) UpsertFeatureFlag(w http.ResponseWriter, r *http.Request) {
 	userID, userOK := httpinfra.UserIDFromContext(r.Context())
 	if !userOK || h.Authorizer == nil || !h.Authorizer.HasPermission(r.Context(), userID, "feature_flags:manage") {
 		apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
@@ -477,7 +477,7 @@ func (h OrganizationHandler) UpsertFeatureFlag(w http.ResponseWriter, r *http.Re
 	apperror.WriteJSON(w, http.StatusOK, flag)
 }
 
-func (h OrganizationHandler) DeleteFeatureFlag(w http.ResponseWriter, r *http.Request) {
+func (h *OrganizationHandler) DeleteFeatureFlag(w http.ResponseWriter, r *http.Request) {
 	flagID, flagOK := pathUUID(r, "id")
 	if !flagOK {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
@@ -508,7 +508,7 @@ func (h OrganizationHandler) DeleteFeatureFlag(w http.ResponseWriter, r *http.Re
 	w.WriteHeader(http.StatusNoContent)
 }
 
-func (h OrganizationHandler) emitFeatureFlagAudit(r *http.Request, name string, flag FeatureFlagRecord) {
+func (h *OrganizationHandler) emitFeatureFlagAudit(r *http.Request, name string, flag FeatureFlagRecord) {
 	if h.Audit == nil {
 		return
 	}
@@ -522,7 +522,7 @@ func (h OrganizationHandler) emitFeatureFlagAudit(r *http.Request, name string, 
 	})
 }
 
-func (h OrganizationHandler) CheckFeatureFlag(w http.ResponseWriter, r *http.Request) {
+func (h *OrganizationHandler) CheckFeatureFlag(w http.ResponseWriter, r *http.Request) {
 	userID, userOK := httpinfra.UserIDFromContext(r.Context())
 	if !userOK || h.Authorizer == nil || !h.Authorizer.HasPermission(r.Context(), userID, "feature_flags:read") {
 		apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
@@ -554,7 +554,7 @@ func isSupportedConfigScope(scopeType string) bool {
 	}
 }
 
-func (h OrganizationHandler) PutConfig(w http.ResponseWriter, r *http.Request) {
+func (h *OrganizationHandler) PutConfig(w http.ResponseWriter, r *http.Request) {
 	userID, userOK := httpinfra.UserIDFromContext(r.Context())
 	if !userOK || h.Authorizer == nil || !h.Authorizer.HasPermission(r.Context(), userID, "organization:settings:write") {
 		apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
@@ -589,7 +589,7 @@ func (h OrganizationHandler) PutConfig(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-func (h OrganizationHandler) emitConfigAudit(r *http.Request, request ConfigEntryRequest) {
+func (h *OrganizationHandler) emitConfigAudit(r *http.Request, request ConfigEntryRequest) {
 	if h.Audit == nil {
 		return
 	}
@@ -617,7 +617,7 @@ func (h OrganizationHandler) emitConfigAudit(r *http.Request, request ConfigEntr
 	})
 }
 
-func (h OrganizationHandler) writeRepositoryError(w http.ResponseWriter, r *http.Request, err error) {
+func (h *OrganizationHandler) writeRepositoryError(w http.ResponseWriter, r *http.Request, err error) {
 	if errors.Is(err, ErrConflict) {
 		apperror.WriteError(w, r, apperror.Conflict(apperror.KeyConflict))
 		return

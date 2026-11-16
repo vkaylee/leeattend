@@ -158,7 +158,7 @@ type HolidayHandler struct {
 	Authorizer Authorizer
 }
 
-func (h HolidayHandler) List(w http.ResponseWriter, r *http.Request) {
+func (h *HolidayHandler) List(w http.ResponseWriter, r *http.Request) {
 	if !h.authenticateAndAuthorizeMember(w, r) {
 		return
 	}
@@ -219,7 +219,7 @@ func (h HolidayHandler) List(w http.ResponseWriter, r *http.Request) {
 	apperror.WriteJSON(w, http.StatusOK, res)
 }
 
-func (h HolidayHandler) Get(w http.ResponseWriter, r *http.Request) {
+func (h *HolidayHandler) Get(w http.ResponseWriter, r *http.Request) {
 	holidayID, idOK := pathUUID(r, "id")
 	if !idOK {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
@@ -237,7 +237,7 @@ func (h HolidayHandler) Get(w http.ResponseWriter, r *http.Request) {
 	apperror.WriteJSON(w, http.StatusOK, record)
 }
 
-func (h HolidayHandler) Create(w http.ResponseWriter, r *http.Request) {
+func (h *HolidayHandler) Create(w http.ResponseWriter, r *http.Request) {
 	if !h.checkManagePermission(w, r) {
 		return
 	}
@@ -277,7 +277,7 @@ func (h HolidayHandler) Create(w http.ResponseWriter, r *http.Request) {
 	apperror.WriteJSON(w, http.StatusCreated, record)
 }
 
-func (h HolidayHandler) Update(w http.ResponseWriter, r *http.Request) {
+func (h *HolidayHandler) Update(w http.ResponseWriter, r *http.Request) {
 	holidayID, idOK := pathUUID(r, "id")
 	if !idOK {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
@@ -327,7 +327,7 @@ func (h HolidayHandler) Update(w http.ResponseWriter, r *http.Request) {
 	apperror.WriteJSON(w, http.StatusOK, record)
 }
 
-func (h HolidayHandler) Delete(w http.ResponseWriter, r *http.Request) {
+func (h *HolidayHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	holidayID, idOK := pathUUID(r, "id")
 	if !idOK {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
@@ -344,7 +344,7 @@ func (h HolidayHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
-func (h HolidayHandler) ProcessLeave(w http.ResponseWriter, r *http.Request) {
+func (h *HolidayHandler) ProcessLeave(w http.ResponseWriter, r *http.Request) {
 	holidayID, idOK := pathUUID(r, "id")
 	if !idOK {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
@@ -362,7 +362,7 @@ func (h HolidayHandler) ProcessLeave(w http.ResponseWriter, r *http.Request) {
 	apperror.WriteJSON(w, http.StatusOK, results)
 }
 
-func (h HolidayHandler) authenticateAndAuthorizeMember(w http.ResponseWriter, r *http.Request) bool {
+func (h *HolidayHandler) authenticateAndAuthorizeMember(w http.ResponseWriter, r *http.Request) bool {
 	userID, ok := httpinfra.UserIDFromContext(r.Context())
 	if !ok {
 		apperror.WriteError(w, r, apperror.Unauthorized(apperror.KeyAuthenticationRequired))
@@ -384,7 +384,7 @@ func (h HolidayHandler) authenticateAndAuthorizeMember(w http.ResponseWriter, r 
 	return true
 }
 
-func (h HolidayHandler) checkManagePermission(w http.ResponseWriter, r *http.Request) bool {
+func (h *HolidayHandler) checkManagePermission(w http.ResponseWriter, r *http.Request) bool {
 	userID, ok := httpinfra.UserIDFromContext(r.Context())
 	if !ok {
 		apperror.WriteError(w, r, apperror.Unauthorized(apperror.KeyAuthenticationRequired))
@@ -397,7 +397,7 @@ func (h HolidayHandler) checkManagePermission(w http.ResponseWriter, r *http.Req
 	return true
 }
 
-func (h HolidayHandler) writeError(w http.ResponseWriter, r *http.Request, err error) {
+func (h *HolidayHandler) writeError(w http.ResponseWriter, r *http.Request, err error) {
 	if errors.Is(err, ErrHolidayNotFound) || errors.Is(err, pgx.ErrNoRows) {
 		apperror.WriteError(w, r, apperror.NotFound(apperror.KeyHolidayNotFound))
 		return

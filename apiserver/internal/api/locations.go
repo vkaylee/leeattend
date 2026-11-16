@@ -68,7 +68,7 @@ type LocationHandler struct {
 	Authorizer Authorizer
 }
 
-func (h LocationHandler) List(w http.ResponseWriter, r *http.Request) {
+func (h *LocationHandler) List(w http.ResponseWriter, r *http.Request) {
 	if !h.isMember(r) {
 		h.forbidden(w, r)
 		return
@@ -86,7 +86,7 @@ func (h LocationHandler) List(w http.ResponseWriter, r *http.Request) {
 	apperror.WriteJSON(w, http.StatusOK, res)
 }
 
-func (h LocationHandler) Create(w http.ResponseWriter, r *http.Request) {
+func (h *LocationHandler) Create(w http.ResponseWriter, r *http.Request) {
 	if !h.isMember(r) {
 		h.forbidden(w, r)
 		return
@@ -109,7 +109,7 @@ func (h LocationHandler) Create(w http.ResponseWriter, r *http.Request) {
 	apperror.WriteJSON(w, http.StatusCreated, loc)
 }
 
-func (h LocationHandler) Get(w http.ResponseWriter, r *http.Request) {
+func (h *LocationHandler) Get(w http.ResponseWriter, r *http.Request) {
 	id, idOK := pathUUID(r, "id")
 	if !idOK || !h.isMember(r) {
 		h.forbidden(w, r)
@@ -123,7 +123,7 @@ func (h LocationHandler) Get(w http.ResponseWriter, r *http.Request) {
 	apperror.WriteJSON(w, http.StatusOK, loc)
 }
 
-func (h LocationHandler) Update(w http.ResponseWriter, r *http.Request) {
+func (h *LocationHandler) Update(w http.ResponseWriter, r *http.Request) {
 	id, idOK := pathUUID(r, "id")
 	if !idOK || !h.isMember(r) {
 		h.forbidden(w, r)
@@ -150,7 +150,7 @@ func (h LocationHandler) Update(w http.ResponseWriter, r *http.Request) {
 	apperror.WriteJSON(w, http.StatusOK, loc)
 }
 
-func (h LocationHandler) Delete(w http.ResponseWriter, r *http.Request) {
+func (h *LocationHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	id, idOK := pathUUID(r, "id")
 	if !idOK || !h.isMember(r) {
 		h.forbidden(w, r)
@@ -163,7 +163,7 @@ func (h LocationHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
-func (h LocationHandler) isMember(r *http.Request) bool {
+func (h *LocationHandler) isMember(r *http.Request) bool {
 	userID, ok := httpinfra.UserIDFromContext(r.Context())
 	if !ok || h.Authorizer == nil {
 		return false
@@ -172,11 +172,11 @@ func (h LocationHandler) isMember(r *http.Request) bool {
 	return err == nil && isMem
 }
 
-func (h LocationHandler) forbidden(w http.ResponseWriter, r *http.Request) {
+func (h *LocationHandler) forbidden(w http.ResponseWriter, r *http.Request) {
 	apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
 }
 
-func (h LocationHandler) writeError(w http.ResponseWriter, r *http.Request, err error) {
+func (h *LocationHandler) writeError(w http.ResponseWriter, r *http.Request, err error) {
 	if errors.Is(err, pgx.ErrNoRows) || errors.Is(err, ErrLocationNotFound) {
 		apperror.WriteError(w, r, apperror.NotFound(apperror.KeyNotFound))
 		return

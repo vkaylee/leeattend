@@ -264,7 +264,7 @@ func validContractEmploymentDate(v string) bool {
 }
 func dateBefore(a, b string) bool { return a < b }
 
-func (h ContractEmploymentHandler) member(r *http.Request) bool {
+func (h *ContractEmploymentHandler) member(r *http.Request) bool {
 	uid, ok := httpinfra.UserIDFromContext(r.Context())
 	if !ok || h.Authorizer == nil {
 		return false
@@ -272,7 +272,7 @@ func (h ContractEmploymentHandler) member(r *http.Request) bool {
 	member, err := h.Authorizer.IsMember(r.Context(), uid)
 	return err == nil && member
 }
-func (h ContractEmploymentHandler) auth(w http.ResponseWriter, r *http.Request) bool {
+func (h *ContractEmploymentHandler) auth(w http.ResponseWriter, r *http.Request) bool {
 	if h.member(r) {
 		return true
 	}
@@ -284,7 +284,7 @@ func (h ContractEmploymentHandler) auth(w http.ResponseWriter, r *http.Request) 
 	return false
 }
 
-func (h ContractEmploymentHandler) permission(w http.ResponseWriter, r *http.Request, required string) bool {
+func (h *ContractEmploymentHandler) permission(w http.ResponseWriter, r *http.Request, required string) bool {
 	userID, ok := httpinfra.UserIDFromContext(r.Context())
 	if !ok {
 		apperror.WriteError(w, r, apperror.Unauthorized(apperror.KeyAuthenticationRequired))
@@ -297,37 +297,37 @@ func (h ContractEmploymentHandler) permission(w http.ResponseWriter, r *http.Req
 	return true
 }
 
-func (h ContractEmploymentHandler) canReadEmployee(w http.ResponseWriter, r *http.Request) bool {
+func (h *ContractEmploymentHandler) canReadEmployee(w http.ResponseWriter, r *http.Request) bool {
 	return h.permission(w, r, string(authz.PermissionEmployeesRead))
 }
 
-func (h ContractEmploymentHandler) canManageEmployee(w http.ResponseWriter, r *http.Request) bool {
+func (h *ContractEmploymentHandler) canManageEmployee(w http.ResponseWriter, r *http.Request) bool {
 	return h.permission(w, r, string(authz.PermissionEmployeesUpdate))
 }
 
-func (h ContractEmploymentHandler) canCreateEmployee(w http.ResponseWriter, r *http.Request) bool {
+func (h *ContractEmploymentHandler) canCreateEmployee(w http.ResponseWriter, r *http.Request) bool {
 	return h.permission(w, r, string(authz.PermissionEmployeesCreate))
 }
 
-func (h ContractEmploymentHandler) canDeleteEmployee(w http.ResponseWriter, r *http.Request) bool {
+func (h *ContractEmploymentHandler) canDeleteEmployee(w http.ResponseWriter, r *http.Request) bool {
 	return h.permission(w, r, string(authz.PermissionEmployeesDelete))
 }
 
-func (h ContractEmploymentHandler) canReadContract(w http.ResponseWriter, r *http.Request) bool {
+func (h *ContractEmploymentHandler) canReadContract(w http.ResponseWriter, r *http.Request) bool {
 	return h.permission(w, r, string(authz.PermissionDocumentsContractRead))
 }
 
-func (h ContractEmploymentHandler) canManageContract(w http.ResponseWriter, r *http.Request) bool {
+func (h *ContractEmploymentHandler) canManageContract(w http.ResponseWriter, r *http.Request) bool {
 	return h.permission(w, r, string(authz.PermissionDocumentsManage))
 }
 
-func (h ContractEmploymentHandler) employeePermission(w http.ResponseWriter, r *http.Request, manage bool) bool {
+func (h *ContractEmploymentHandler) employeePermission(w http.ResponseWriter, r *http.Request, manage bool) bool {
 	if manage {
 		return h.canManageEmployee(w, r)
 	}
 	return h.canReadEmployee(w, r)
 }
-func (h ContractEmploymentHandler) error(w http.ResponseWriter, r *http.Request, err error) {
+func (h *ContractEmploymentHandler) error(w http.ResponseWriter, r *http.Request, err error) {
 	switch {
 	case errors.Is(err, ErrContractNotFound):
 		apperror.WriteError(w, r, apperror.NotFound("error.contract_not_found"))
@@ -343,7 +343,7 @@ func (h ContractEmploymentHandler) error(w http.ResponseWriter, r *http.Request,
 		apperror.WriteError(w, r, apperror.Internal(err))
 	}
 }
-func (h ContractEmploymentHandler) path(w http.ResponseWriter, r *http.Request, names ...string) ([]uuid.UUID, bool) {
+func (h *ContractEmploymentHandler) path(w http.ResponseWriter, r *http.Request, names ...string) ([]uuid.UUID, bool) {
 	if !h.auth(w, r) {
 		return nil, false
 	}
@@ -359,7 +359,7 @@ func (h ContractEmploymentHandler) path(w http.ResponseWriter, r *http.Request, 
 	return ids, true
 }
 
-func (h ContractEmploymentHandler) ListContracts(w http.ResponseWriter, r *http.Request) {
+func (h *ContractEmploymentHandler) ListContracts(w http.ResponseWriter, r *http.Request) {
 	if !h.auth(w, r) || !h.canReadContract(w, r) {
 		return
 	}
@@ -370,7 +370,7 @@ func (h ContractEmploymentHandler) ListContracts(w http.ResponseWriter, r *http.
 	}
 	apperror.WriteJSON(w, http.StatusOK, result)
 }
-func (h ContractEmploymentHandler) ListEmployeeContracts(w http.ResponseWriter, r *http.Request) {
+func (h *ContractEmploymentHandler) ListEmployeeContracts(w http.ResponseWriter, r *http.Request) {
 	if !h.canReadContract(w, r) {
 		return
 	}
@@ -385,7 +385,7 @@ func (h ContractEmploymentHandler) ListEmployeeContracts(w http.ResponseWriter, 
 	}
 	apperror.WriteJSON(w, http.StatusOK, result)
 }
-func (h ContractEmploymentHandler) contractForEmployee(ctx context.Context, employeeID, contractID uuid.UUID) (EmployeeContract, error) {
+func (h *ContractEmploymentHandler) contractForEmployee(ctx context.Context, employeeID, contractID uuid.UUID) (EmployeeContract, error) {
 	contract, err := h.Contracts.GetContract(ctx, contractID)
 	if err != nil {
 		return EmployeeContract{}, err
@@ -402,7 +402,7 @@ func (h ContractEmploymentHandler) contractForEmployee(ctx context.Context, empl
 	}
 	return contract, nil
 }
-func (h ContractEmploymentHandler) CreateContract(w http.ResponseWriter, r *http.Request) {
+func (h *ContractEmploymentHandler) CreateContract(w http.ResponseWriter, r *http.Request) {
 	if !h.canManageContract(w, r) {
 		return
 	}
@@ -431,7 +431,7 @@ func (h ContractEmploymentHandler) CreateContract(w http.ResponseWriter, r *http
 	}
 	apperror.WriteJSON(w, http.StatusCreated, result)
 }
-func (h ContractEmploymentHandler) GetContract(w http.ResponseWriter, r *http.Request) {
+func (h *ContractEmploymentHandler) GetContract(w http.ResponseWriter, r *http.Request) {
 	if !h.canReadContract(w, r) {
 		return
 	}
@@ -446,7 +446,7 @@ func (h ContractEmploymentHandler) GetContract(w http.ResponseWriter, r *http.Re
 	}
 	apperror.WriteJSON(w, http.StatusOK, result)
 }
-func (h ContractEmploymentHandler) UpdateContract(w http.ResponseWriter, r *http.Request) {
+func (h *ContractEmploymentHandler) UpdateContract(w http.ResponseWriter, r *http.Request) {
 	if !h.canManageContract(w, r) {
 		return
 	}
@@ -470,7 +470,7 @@ func (h ContractEmploymentHandler) UpdateContract(w http.ResponseWriter, r *http
 	}
 	apperror.WriteJSON(w, http.StatusOK, result)
 }
-func (h ContractEmploymentHandler) DeleteContract(w http.ResponseWriter, r *http.Request) {
+func (h *ContractEmploymentHandler) DeleteContract(w http.ResponseWriter, r *http.Request) {
 	if !h.canManageContract(w, r) {
 		return
 	}
@@ -489,7 +489,7 @@ func (h ContractEmploymentHandler) DeleteContract(w http.ResponseWriter, r *http
 	w.WriteHeader(http.StatusNoContent)
 }
 
-func (h ContractEmploymentHandler) addCustomFields(ctx context.Context, emp Employment) (Employment, error) {
+func (h *ContractEmploymentHandler) addCustomFields(ctx context.Context, emp Employment) (Employment, error) {
 	if h.CustomFields == nil {
 		return emp, nil
 	}
@@ -500,7 +500,7 @@ func (h ContractEmploymentHandler) addCustomFields(ctx context.Context, emp Empl
 	emp.CustomFields = values
 	return emp, nil
 }
-func (h ContractEmploymentHandler) CreateEmploymentRelationship(w http.ResponseWriter, r *http.Request) {
+func (h *ContractEmploymentHandler) CreateEmploymentRelationship(w http.ResponseWriter, r *http.Request) {
 	if !h.canCreateEmployee(w, r) {
 		return
 	}
@@ -521,7 +521,7 @@ func (h ContractEmploymentHandler) CreateEmploymentRelationship(w http.ResponseW
 	apperror.WriteJSON(w, http.StatusCreated, result)
 }
 
-func (h ContractEmploymentHandler) ListEmploymentRelationships(w http.ResponseWriter, r *http.Request) {
+func (h *ContractEmploymentHandler) ListEmploymentRelationships(w http.ResponseWriter, r *http.Request) {
 	if !h.employeePermission(w, r, false) {
 		return
 	}
@@ -560,7 +560,7 @@ func (h ContractEmploymentHandler) ListEmploymentRelationships(w http.ResponseWr
 	apperror.WriteJSON(w, http.StatusOK, result)
 }
 
-func (h ContractEmploymentHandler) GetEmploymentRelationship(w http.ResponseWriter, r *http.Request) {
+func (h *ContractEmploymentHandler) GetEmploymentRelationship(w http.ResponseWriter, r *http.Request) {
 	if !h.employeePermission(w, r, false) {
 		return
 	}
@@ -580,7 +580,7 @@ func (h ContractEmploymentHandler) GetEmploymentRelationship(w http.ResponseWrit
 	apperror.WriteJSON(w, http.StatusOK, relationship)
 }
 
-func (h ContractEmploymentHandler) ListEmployments(w http.ResponseWriter, r *http.Request) {
+func (h *ContractEmploymentHandler) ListEmployments(w http.ResponseWriter, r *http.Request) {
 	if !h.employeePermission(w, r, false) {
 		return
 	}
@@ -605,7 +605,7 @@ func (h ContractEmploymentHandler) ListEmployments(w http.ResponseWriter, r *htt
 	}
 	apperror.WriteJSON(w, http.StatusOK, list)
 }
-func (h ContractEmploymentHandler) CreateEmployment(w http.ResponseWriter, r *http.Request) {
+func (h *ContractEmploymentHandler) CreateEmployment(w http.ResponseWriter, r *http.Request) {
 	if !h.canCreateEmployee(w, r) {
 		return
 	}
@@ -645,7 +645,7 @@ func (h ContractEmploymentHandler) CreateEmployment(w http.ResponseWriter, r *ht
 	}
 	apperror.WriteJSON(w, http.StatusCreated, result)
 }
-func (h ContractEmploymentHandler) employmentForEmployee(ctx context.Context, employeeID, employmentID uuid.UUID) (Employment, error) {
+func (h *ContractEmploymentHandler) employmentForEmployee(ctx context.Context, employeeID, employmentID uuid.UUID) (Employment, error) {
 	employment, err := h.Employments.GetEmployment(ctx, employmentID)
 	if err != nil {
 		return Employment{}, err
@@ -655,7 +655,7 @@ func (h ContractEmploymentHandler) employmentForEmployee(ctx context.Context, em
 	}
 	return employment, nil
 }
-func (h ContractEmploymentHandler) GetEmployment(w http.ResponseWriter, r *http.Request) {
+func (h *ContractEmploymentHandler) GetEmployment(w http.ResponseWriter, r *http.Request) {
 	if !h.employeePermission(w, r, false) {
 		return
 	}
@@ -675,7 +675,7 @@ func (h ContractEmploymentHandler) GetEmployment(w http.ResponseWriter, r *http.
 	}
 	apperror.WriteJSON(w, http.StatusOK, result)
 }
-func (h ContractEmploymentHandler) UpdateEmployment(w http.ResponseWriter, r *http.Request) {
+func (h *ContractEmploymentHandler) UpdateEmployment(w http.ResponseWriter, r *http.Request) {
 	if !h.employeePermission(w, r, true) {
 		return
 	}
@@ -731,7 +731,7 @@ func (h ContractEmploymentHandler) UpdateEmployment(w http.ResponseWriter, r *ht
 	}
 	apperror.WriteJSON(w, http.StatusOK, result)
 }
-func (h ContractEmploymentHandler) DeleteEmployment(w http.ResponseWriter, r *http.Request) {
+func (h *ContractEmploymentHandler) DeleteEmployment(w http.ResponseWriter, r *http.Request) {
 	if !h.canDeleteEmployee(w, r) {
 		return
 	}

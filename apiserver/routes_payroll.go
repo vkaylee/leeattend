@@ -1,11 +1,17 @@
 package main
 
 import (
+	"net/http"
+
 	"github.com/go-chi/chi/v5"
 	"github.com/vkaylee/leeattend/apiserver/internal/api"
 )
 
-func registerPayrollRoutes(router chi.Router, handler api.PayrollHandler) {
+var _ interface {
+	ListPayslips(http.ResponseWriter, *http.Request)
+} = (*api.PayrollHandler)(nil)
+
+func registerPayrollRoutes(router chi.Router, handler *api.PayrollHandler) {
 	registerRoute(router, "GET /api/v1/payroll/payslips", handler.ListPayslips)
 	registerRoute(router, "GET /api/v1/salary-management", handler.ListSalaryManagement)
 	registerRoute(router, "GET /api/v1/employees/{employee_id}/payslips", handler.ListEmployee)

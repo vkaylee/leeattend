@@ -12,7 +12,7 @@ func registerOrganizationSettingsRoutes(router chi.Router, get, patch http.Handl
 	registerRoute(router, "GET /api/v1", get)
 }
 
-func registerOrganizationRoutes(router chi.Router, organization api.OrganizationHandler, rbac api.OrganizationRBACHandler) {
+func registerOrganizationRoutes(router chi.Router, organization *api.OrganizationHandler, rbac *api.OrganizationRBACHandler) {
 	registerOrganizationSettingsRoutes(router, organization.Get, organization.Patch)
 	registerRoute(router, "GET /api/v1/feature-flags", organization.ListFeatureFlags)
 	registerRoute(router, "GET /api/v1/feature-flags/effective", organization.ListEffectiveFeatureFlags)

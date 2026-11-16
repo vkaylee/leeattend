@@ -64,7 +64,7 @@ type PayrollAudit interface {
 	Emit(context.Context, audit.Event) error
 }
 
-func (h PayrollHandler) ListSalaryManagement(w http.ResponseWriter, r *http.Request) {
+func (h *PayrollHandler) ListSalaryManagement(w http.ResponseWriter, r *http.Request) {
 	if !h.allowed(r, "payroll:read") {
 		h.forbidden(w, r)
 		return

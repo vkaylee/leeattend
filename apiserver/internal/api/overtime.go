@@ -180,25 +180,25 @@ type OvertimeHandler struct {
 	Authorizer       Authorizer
 }
 
-func (h OvertimeHandler) userID(r *http.Request) (uuid.UUID, bool) {
+func (h *OvertimeHandler) userID(r *http.Request) (uuid.UUID, bool) {
 	return httpinfra.UserIDFromContext(r.Context())
 }
 
-func (h OvertimeHandler) allowed(r *http.Request, permission string) bool {
+func (h *OvertimeHandler) allowed(r *http.Request, permission string) bool {
 	userID, ok := h.userID(r)
 	return ok && h.Authorizer != nil && h.Authorizer.HasPermission(r.Context(), userID, permission)
 }
 
-func (h OvertimeHandler) scopedAllowed(r *http.Request, permission string, departmentID *uuid.UUID) bool {
+func (h *OvertimeHandler) scopedAllowed(r *http.Request, permission string, departmentID *uuid.UUID) bool {
 	userID, ok := h.userID(r)
 	return ok && h.Authorizer != nil && h.Authorizer.HasScopedPermission(r.Context(), userID, permission, departmentID)
 }
 
-func (h OvertimeHandler) forbidden(w http.ResponseWriter, r *http.Request) {
+func (h *OvertimeHandler) forbidden(w http.ResponseWriter, r *http.Request) {
 	apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
 }
 
-func (h OvertimeHandler) fail(w http.ResponseWriter, r *http.Request, err error) {
+func (h *OvertimeHandler) fail(w http.ResponseWriter, r *http.Request, err error) {
 	if errors.Is(err, pgx.ErrNoRows) {
 		apperror.WriteError(w, r, apperror.NotFound(apperror.KeyNotFound))
 		return
@@ -232,7 +232,7 @@ func validOvertimeClock(raw *string) bool {
 	return err == nil
 }
 
-func (h OvertimeHandler) ListPolicies(w http.ResponseWriter, r *http.Request) {
+func (h *OvertimeHandler) ListPolicies(w http.ResponseWriter, r *http.Request) {
 
 	if _, userOK := h.userID(r); !userOK {
 		h.forbidden(w, r)
@@ -251,7 +251,7 @@ func (h OvertimeHandler) ListPolicies(w http.ResponseWriter, r *http.Request) {
 	apperror.WriteJSON(w, http.StatusOK, result)
 }
 
-func (h OvertimeHandler) CreatePolicy(w http.ResponseWriter, r *http.Request) {
+func (h *OvertimeHandler) CreatePolicy(w http.ResponseWriter, r *http.Request) {
 
 	if !h.allowed(r, PermissionOvertimePoliciesManage) {
 		h.forbidden(w, r)
@@ -270,7 +270,7 @@ func (h OvertimeHandler) CreatePolicy(w http.ResponseWriter, r *http.Request) {
 	apperror.WriteJSON(w, http.StatusCreated, result)
 }
 
-func (h OvertimeHandler) GetPolicy(w http.ResponseWriter, r *http.Request) {
+func (h *OvertimeHandler) GetPolicy(w http.ResponseWriter, r *http.Request) {
 
 	policyID, policyOK := pathUUID(r, "policy_id")
 	if !policyOK {
@@ -285,7 +285,7 @@ func (h OvertimeHandler) GetPolicy(w http.ResponseWriter, r *http.Request) {
 	apperror.WriteJSON(w, http.StatusOK, result)
 }
 
-func (h OvertimeHandler) AddRule(w http.ResponseWriter, r *http.Request) {
+func (h *OvertimeHandler) AddRule(w http.ResponseWriter, r *http.Request) {
 
 	policyID, policyOK := pathUUID(r, "policy_id")
 	if !policyOK || !h.allowed(r, PermissionOvertimePoliciesManage) {
@@ -305,7 +305,7 @@ func (h OvertimeHandler) AddRule(w http.ResponseWriter, r *http.Request) {
 	apperror.WriteJSON(w, http.StatusCreated, result)
 }
 
-func (h OvertimeHandler) AssignPolicy(w http.ResponseWriter, r *http.Request) {
+func (h *OvertimeHandler) AssignPolicy(w http.ResponseWriter, r *http.Request) {
 
 	if !h.allowed(r, PermissionOvertimePoliciesManage) {
 		h.forbidden(w, r)
@@ -338,7 +338,7 @@ func (h OvertimeHandler) AssignPolicy(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-func (h OvertimeHandler) ListRequests(w http.ResponseWriter, r *http.Request) {
+func (h *OvertimeHandler) ListRequests(w http.ResponseWriter, r *http.Request) {
 
 	if !h.allowed(r, PermissionOvertimeRequestRead) {
 		h.forbidden(w, r)
@@ -357,7 +357,7 @@ func (h OvertimeHandler) ListRequests(w http.ResponseWriter, r *http.Request) {
 	apperror.WriteJSON(w, http.StatusOK, result)
 }
 
-func (h OvertimeHandler) CreateRequest(w http.ResponseWriter, r *http.Request) {
+func (h *OvertimeHandler) CreateRequest(w http.ResponseWriter, r *http.Request) {
 
 	userID, userOK := h.userID(r)
 	if !userOK || !h.allowed(r, PermissionOvertimeRequestCreate) {
@@ -391,7 +391,7 @@ func (h OvertimeHandler) CreateRequest(w http.ResponseWriter, r *http.Request) {
 	apperror.WriteJSON(w, http.StatusCreated, result)
 }
 
-func (h OvertimeHandler) GetRequest(w http.ResponseWriter, r *http.Request) {
+func (h *OvertimeHandler) GetRequest(w http.ResponseWriter, r *http.Request) {
 
 	requestID, requestOK := pathUUID(r, "id")
 	if !requestOK || !h.allowed(r, PermissionOvertimeRequestRead) {
@@ -406,7 +406,7 @@ func (h OvertimeHandler) GetRequest(w http.ResponseWriter, r *http.Request) {
 	apperror.WriteJSON(w, http.StatusOK, result)
 }
 
-func (h OvertimeHandler) SubmitRequest(w http.ResponseWriter, r *http.Request) {
+func (h *OvertimeHandler) SubmitRequest(w http.ResponseWriter, r *http.Request) {
 
 	requestID, requestOK := pathUUID(r, "id")
 	if !requestOK || !h.allowed(r, PermissionOvertimeRequestCreate) {
@@ -420,7 +420,7 @@ func (h OvertimeHandler) SubmitRequest(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-func (h OvertimeHandler) ConsentRequest(w http.ResponseWriter, r *http.Request) {
+func (h *OvertimeHandler) ConsentRequest(w http.ResponseWriter, r *http.Request) {
 
 	requestID, requestOK := pathUUID(r, "id")
 	employeeID, employeeOK := pathUUID(r, "emp_id")
@@ -452,7 +452,7 @@ func (h OvertimeHandler) ConsentRequest(w http.ResponseWriter, r *http.Request) 
 	w.WriteHeader(http.StatusOK)
 }
 
-func (h OvertimeHandler) ListRequestBehalf(w http.ResponseWriter, r *http.Request) {
+func (h *OvertimeHandler) ListRequestBehalf(w http.ResponseWriter, r *http.Request) {
 
 	if _, userOK := h.userID(r); !userOK {
 		h.forbidden(w, r)
@@ -480,7 +480,7 @@ func (h OvertimeHandler) ListRequestBehalf(w http.ResponseWriter, r *http.Reques
 	apperror.WriteJSON(w, http.StatusOK, AttendancePage[BehalfAssignment]{Data: items[start:end], Total: int64(total), Page: pagination.Page, Limit: pagination.Limit})
 }
 
-func (h OvertimeHandler) CreateRequestBehalf(w http.ResponseWriter, r *http.Request) {
+func (h *OvertimeHandler) CreateRequestBehalf(w http.ResponseWriter, r *http.Request) {
 
 	if !h.allowed(r, PermissionOvertimePoliciesManage) {
 		h.forbidden(w, r)
@@ -499,7 +499,7 @@ func (h OvertimeHandler) CreateRequestBehalf(w http.ResponseWriter, r *http.Requ
 	apperror.WriteJSON(w, http.StatusOK, result)
 }
 
-func (h OvertimeHandler) RequestBehalfTargets(w http.ResponseWriter, r *http.Request) {
+func (h *OvertimeHandler) RequestBehalfTargets(w http.ResponseWriter, r *http.Request) {
 
 	userID, userOK := h.userID(r)
 	if !userOK {
@@ -514,7 +514,7 @@ func (h OvertimeHandler) RequestBehalfTargets(w http.ResponseWriter, r *http.Req
 	apperror.WriteJSON(w, http.StatusOK, result)
 }
 
-func (h OvertimeHandler) DeleteRequestBehalf(w http.ResponseWriter, r *http.Request) {
+func (h *OvertimeHandler) DeleteRequestBehalf(w http.ResponseWriter, r *http.Request) {
 
 	assignmentID, assignmentOK := pathUUID(r, "id")
 	if !assignmentOK || !h.allowed(r, PermissionOvertimePoliciesManage) {
@@ -528,7 +528,7 @@ func (h OvertimeHandler) DeleteRequestBehalf(w http.ResponseWriter, r *http.Requ
 	w.WriteHeader(http.StatusOK)
 }
 
-func (h OvertimeHandler) ClaimOT(w http.ResponseWriter, r *http.Request) {
+func (h *OvertimeHandler) ClaimOT(w http.ResponseWriter, r *http.Request) {
 
 	employeeID, employeeOK := pathUUID(r, "employee_id")
 	userID, userOK := h.userID(r)
@@ -558,7 +558,7 @@ func (h OvertimeHandler) ClaimOT(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-func (h OvertimeHandler) ApproveOT(w http.ResponseWriter, r *http.Request) {
+func (h *OvertimeHandler) ApproveOT(w http.ResponseWriter, r *http.Request) {
 
 	employeeID, employeeOK := pathUUID(r, "employee_id")
 	userID, userOK := h.userID(r)
@@ -587,7 +587,7 @@ func (h OvertimeHandler) ApproveOT(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-func (h OvertimeHandler) ListClaimBehalf(w http.ResponseWriter, r *http.Request) {
+func (h *OvertimeHandler) ListClaimBehalf(w http.ResponseWriter, r *http.Request) {
 
 	if _, userOK := h.userID(r); !userOK {
 		h.forbidden(w, r)
@@ -601,7 +601,7 @@ func (h OvertimeHandler) ListClaimBehalf(w http.ResponseWriter, r *http.Request)
 	apperror.WriteJSON(w, http.StatusOK, items)
 }
 
-func (h OvertimeHandler) CreateClaimBehalf(w http.ResponseWriter, r *http.Request) {
+func (h *OvertimeHandler) CreateClaimBehalf(w http.ResponseWriter, r *http.Request) {
 
 	if !h.allowed(r, PermissionOvertimePoliciesManage) {
 		h.forbidden(w, r)
@@ -620,7 +620,7 @@ func (h OvertimeHandler) CreateClaimBehalf(w http.ResponseWriter, r *http.Reques
 	apperror.WriteJSON(w, http.StatusOK, result)
 }
 
-func (h OvertimeHandler) DeleteClaimBehalf(w http.ResponseWriter, r *http.Request) {
+func (h *OvertimeHandler) DeleteClaimBehalf(w http.ResponseWriter, r *http.Request) {
 
 	assignmentID, assignmentOK := pathUUID(r, "id")
 	if !assignmentOK || !h.allowed(r, PermissionOvertimePoliciesManage) {

@@ -69,7 +69,7 @@ func parseAttendancePeriodPath(r *http.Request) (int, int, uuid.UUID, bool) {
 	return year, month, employerID, yearErr == nil && monthErr == nil && employerErr == nil
 }
 
-func (h AttendanceHandler) closureAllowed(r *http.Request, permission string) bool {
+func (h *AttendanceHandler) closureAllowed(r *http.Request, permission string) bool {
 	userID, ok := httpinfra.UserIDFromContext(r.Context())
 	if !ok || h.Authorizer == nil || !h.Authorizer.HasPermission(r.Context(), userID, permission) {
 		return false
@@ -80,7 +80,7 @@ func (h AttendanceHandler) closureAllowed(r *http.Request, permission string) bo
 }
 
 // GetAttendancePeriodStatus returns current attendance period and payroll lock state.
-func (h AttendanceHandler) GetAttendancePeriodStatus(w http.ResponseWriter, r *http.Request) {
+func (h *AttendanceHandler) GetAttendancePeriodStatus(w http.ResponseWriter, r *http.Request) {
 	if !h.closureAllowed(r, "attendance:closure:read") {
 		h.forbidden(w, r)
 		return
@@ -108,11 +108,11 @@ func (h AttendanceHandler) GetAttendancePeriodStatus(w http.ResponseWriter, r *h
 }
 
 // CloseAttendancePeriod handles monthly attendance closure.
-func (h AttendanceHandler) CloseAttendancePeriod(w http.ResponseWriter, r *http.Request) {
+func (h *AttendanceHandler) CloseAttendancePeriod(w http.ResponseWriter, r *http.Request) {
 	h.closeAttendancePeriod(w, r)
 }
 
-func (h AttendanceHandler) closeAttendancePeriod(w http.ResponseWriter, r *http.Request) {
+func (h *AttendanceHandler) closeAttendancePeriod(w http.ResponseWriter, r *http.Request) {
 	if !h.closureAllowed(r, "attendance:closure:close") {
 		h.forbidden(w, r)
 		return
@@ -146,11 +146,11 @@ func (h AttendanceHandler) closeAttendancePeriod(w http.ResponseWriter, r *http.
 }
 
 // ReopenAttendancePeriod reopens monthly attendance without changing closure evidence.
-func (h AttendanceHandler) ReopenAttendancePeriod(w http.ResponseWriter, r *http.Request) {
+func (h *AttendanceHandler) ReopenAttendancePeriod(w http.ResponseWriter, r *http.Request) {
 	h.reopenAttendancePeriod(w, r)
 }
 
-func (h AttendanceHandler) reopenAttendancePeriod(w http.ResponseWriter, r *http.Request) {
+func (h *AttendanceHandler) reopenAttendancePeriod(w http.ResponseWriter, r *http.Request) {
 	if !h.closureAllowed(r, "attendance:closure:reopen") {
 		h.forbidden(w, r)
 		return
@@ -183,7 +183,7 @@ func (h AttendanceHandler) reopenAttendancePeriod(w http.ResponseWriter, r *http
 	apperror.WriteJSON(w, http.StatusOK, response)
 }
 
-func (h AttendanceHandler) writeClosureError(w http.ResponseWriter, r *http.Request, err error) {
+func (h *AttendanceHandler) writeClosureError(w http.ResponseWriter, r *http.Request, err error) {
 	switch {
 	case errors.Is(err, ErrAttendanceMissingCoverage):
 		apperror.WriteError(w, r, apperror.Conflict("error.missing_coverage"))

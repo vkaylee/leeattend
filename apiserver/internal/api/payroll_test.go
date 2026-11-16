@@ -1333,7 +1333,7 @@ func TestPayrollInputImportValidatesAndAuthorizes(t *testing.T) {
 		req := httptest.NewRequest(http.MethodPost, "/api/v1/payroll/inputs/import", bytes.NewBufferString(payload))
 		req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
 		rec := httptest.NewRecorder()
-		PayrollHandler{Repository: mockPayrollRepository{}, Authorizer: authorizer}.CreatePayrollInputBatch(rec, req)
+		(&PayrollHandler{Repository: mockPayrollRepository{}, Authorizer: authorizer}).CreatePayrollInputBatch(rec, req)
 		return rec
 	}
 	if got := request(payrollAuthorizer{allowedPerms: map[string]bool{}}, body).Code; got != http.StatusForbidden {
@@ -1432,7 +1432,7 @@ func TestPayrollFormulaRuleEndpointsRequireManage(t *testing.T) {
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/payroll/formulas", bytes.NewBufferString(`{"code":"kpi.bonus","name":"KPI Bonus","component_code":"KPI_BONUS","expression":"actual * rate","effective_from":"2026-10-01"}`))
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
 	rec := httptest.NewRecorder()
-	PayrollHandler{Repository: mockPayrollRepository{}, Authorizer: payrollAuthorizer{allowedPerms: map[string]bool{}}}.CreatePayrollFormulaRule(rec, req)
+	(&PayrollHandler{Repository: mockPayrollRepository{}, Authorizer: payrollAuthorizer{allowedPerms: map[string]bool{}}}).CreatePayrollFormulaRule(rec, req)
 	if rec.Code != http.StatusForbidden {
 		t.Fatalf("create forbidden status = %d, want 403", rec.Code)
 	}
@@ -1443,7 +1443,7 @@ func TestPayrollFormulaPreviewRequiresManageAndEvaluates(t *testing.T) {
 		req := httptest.NewRequest(http.MethodPost, "/api/v1/payroll/formulas/preview", bytes.NewBufferString(body))
 		req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
 		rec := httptest.NewRecorder()
-		PayrollHandler{Repository: mockPayrollRepository{}, Authorizer: payrollAuthorizer{allowedPerms: map[string]bool{"payroll:manage": permission}}}.PreviewPayrollFormula(rec, req)
+		(&PayrollHandler{Repository: mockPayrollRepository{}, Authorizer: payrollAuthorizer{allowedPerms: map[string]bool{"payroll:manage": permission}}}).PreviewPayrollFormula(rec, req)
 		return rec
 	}
 	if got := request(false, `{"expression":"1 + 1","values":{}}`).Code; got != http.StatusForbidden {
@@ -1466,7 +1466,7 @@ func TestPayrollInputLifecycleEndpoints(t *testing.T) {
 		req.SetPathValue("batch_id", batchID.String())
 		req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), actorID))
 		rec := httptest.NewRecorder()
-		PayrollHandler{Repository: mockPayrollRepository{}, Authorizer: payrollAuthorizer{allowedPerms: map[string]bool{permission: true}}}.ApprovePayrollInputBatch(rec, req)
+		(&PayrollHandler{Repository: mockPayrollRepository{}, Authorizer: payrollAuthorizer{allowedPerms: map[string]bool{permission: true}}}).ApprovePayrollInputBatch(rec, req)
 		return rec
 	}
 	if got := request("/api/v1/payroll/inputs/"+batchID.String()+"/approve", "payroll:approve").Code; got != http.StatusOK {
@@ -1476,7 +1476,7 @@ func TestPayrollInputLifecycleEndpoints(t *testing.T) {
 	lockedReq.SetPathValue("batch_id", batchID.String())
 	lockedReq = lockedReq.WithContext(httpinfra.WithUserIDForTest(lockedReq.Context(), actorID))
 	lockedRec := httptest.NewRecorder()
-	PayrollHandler{Repository: mockPayrollRepository{}, Authorizer: payrollAuthorizer{allowedPerms: map[string]bool{"payroll:manage": true}}}.LockPayrollInputBatch(lockedRec, lockedReq)
+	(&PayrollHandler{Repository: mockPayrollRepository{}, Authorizer: payrollAuthorizer{allowedPerms: map[string]bool{"payroll:manage": true}}}).LockPayrollInputBatch(lockedRec, lockedReq)
 	if lockedRec.Code != http.StatusOK {
 		t.Fatalf("lock status = %d, want 200", lockedRec.Code)
 	}
@@ -1489,7 +1489,7 @@ func TestPayrollImpactEndpointEnforcesSensitiveReadAndValidatesRuns(t *testing.T
 		req.SetPathValue("id", employmentID.String())
 		req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
 		rec := httptest.NewRecorder()
-		PayrollHandler{Repository: mockPayrollRepository{}, Authorizer: payrollAuthorizer{allowedPerms: map[string]bool{"payroll:sensitive:read": permission}}}.ComparePayrollImpact(rec, req)
+		(&PayrollHandler{Repository: mockPayrollRepository{}, Authorizer: payrollAuthorizer{allowedPerms: map[string]bool{"payroll:sensitive:read": permission}}}).ComparePayrollImpact(rec, req)
 		return rec
 	}
 	validQuery := "year=2026&month=6&before_run_id=" + uuid.NewString() + "&after_run_id=" + uuid.NewString()

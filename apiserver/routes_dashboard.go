@@ -5,7 +5,7 @@ import (
 	"github.com/vkaylee/leeattend/apiserver/internal/api"
 )
 
-func registerDashboardRoutes(router chi.Router, preferences api.DashboardPreferencesHandler, analytics api.DashboardAnalyticsHandler) {
+func registerDashboardRoutes(router chi.Router, preferences *api.DashboardPreferencesHandler, analytics *api.DashboardAnalyticsHandler) {
 	registerRoute(router, "GET /api/v1/dashboard/preferences", preferences.Get)
 	registerRoute(router, "PUT /api/v1/dashboard/preferences", preferences.Put)
 	registerRoute(router, "GET /api/v1/dashboard/executive-overview", analytics.ExecutiveOverview)

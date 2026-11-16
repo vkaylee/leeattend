@@ -106,7 +106,7 @@ type WorkingPatternHandler struct {
 	Compliance PatternComplianceChecker
 }
 
-func (h WorkingPatternHandler) Create(w http.ResponseWriter, r *http.Request) {
+func (h *WorkingPatternHandler) Create(w http.ResponseWriter, r *http.Request) {
 	if !h.allowed(r, "patterns:create") {
 		h.forbidden(w, r)
 		return
@@ -124,7 +124,7 @@ func (h WorkingPatternHandler) Create(w http.ResponseWriter, r *http.Request) {
 	apperror.WriteJSON(w, http.StatusCreated, pattern)
 }
 
-func (h WorkingPatternHandler) List(w http.ResponseWriter, r *http.Request) {
+func (h *WorkingPatternHandler) List(w http.ResponseWriter, r *http.Request) {
 	patterns, err := h.Repository.ListPatterns(r.Context())
 	if err != nil {
 		h.writeError(w, r, err)
@@ -133,7 +133,7 @@ func (h WorkingPatternHandler) List(w http.ResponseWriter, r *http.Request) {
 	apperror.WriteJSON(w, http.StatusOK, patterns)
 }
 
-func (h WorkingPatternHandler) Details(w http.ResponseWriter, r *http.Request) {
+func (h *WorkingPatternHandler) Details(w http.ResponseWriter, r *http.Request) {
 	patternID, patternOK := pathUUID(r, "pattern_id")
 	if !patternOK {
 		h.forbidden(w, r)
@@ -147,7 +147,7 @@ func (h WorkingPatternHandler) Details(w http.ResponseWriter, r *http.Request) {
 	apperror.WriteJSON(w, http.StatusOK, details)
 }
 
-func (h WorkingPatternHandler) Update(w http.ResponseWriter, r *http.Request) {
+func (h *WorkingPatternHandler) Update(w http.ResponseWriter, r *http.Request) {
 	patternID, patternOK := pathUUID(r, "pattern_id")
 	if !patternOK || !h.allowed(r, "patterns:create") {
 		h.forbidden(w, r)
@@ -166,7 +166,7 @@ func (h WorkingPatternHandler) Update(w http.ResponseWriter, r *http.Request) {
 	apperror.WriteJSON(w, http.StatusOK, pattern)
 }
 
-func (h WorkingPatternHandler) Delete(w http.ResponseWriter, r *http.Request) {
+func (h *WorkingPatternHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	patternID, patternOK := pathUUID(r, "pattern_id")
 	if !patternOK || !h.allowed(r, "patterns:delete") {
 		h.forbidden(w, r)
@@ -179,7 +179,7 @@ func (h WorkingPatternHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
-func (h WorkingPatternHandler) Assign(w http.ResponseWriter, r *http.Request) {
+func (h *WorkingPatternHandler) Assign(w http.ResponseWriter, r *http.Request) {
 	employmentID, employmentOK := pathUUID(r, "employment_id")
 	if !employmentOK || !h.allowed(r, "patterns:assign") {
 		h.forbidden(w, r)
@@ -204,7 +204,7 @@ func (h WorkingPatternHandler) Assign(w http.ResponseWriter, r *http.Request) {
 	apperror.WriteJSON(w, http.StatusOK, assignment)
 }
 
-func (h WorkingPatternHandler) BulkAssign(w http.ResponseWriter, r *http.Request) {
+func (h *WorkingPatternHandler) BulkAssign(w http.ResponseWriter, r *http.Request) {
 	if !h.allowed(r, "patterns:assign") {
 		h.forbidden(w, r)
 		return
@@ -228,7 +228,7 @@ func (h WorkingPatternHandler) BulkAssign(w http.ResponseWriter, r *http.Request
 	apperror.WriteJSON(w, http.StatusOK, result)
 }
 
-func (h WorkingPatternHandler) History(w http.ResponseWriter, r *http.Request) {
+func (h *WorkingPatternHandler) History(w http.ResponseWriter, r *http.Request) {
 	employmentID, employmentOK := pathUUID(r, "employment_id")
 	if !employmentOK {
 		h.forbidden(w, r)
@@ -285,16 +285,16 @@ func validateAssignmentDates(start string, end *string) error {
 	return nil
 }
 
-func (h WorkingPatternHandler) allowed(r *http.Request, permission string) bool {
+func (h *WorkingPatternHandler) allowed(r *http.Request, permission string) bool {
 	userID, ok := httpinfra.UserIDFromContext(r.Context())
 	return ok && h.Authorizer != nil && h.Authorizer.HasPermission(r.Context(), userID, permission)
 }
 
-func (h WorkingPatternHandler) forbidden(w http.ResponseWriter, r *http.Request) {
+func (h *WorkingPatternHandler) forbidden(w http.ResponseWriter, r *http.Request) {
 	apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
 }
 
-func (h WorkingPatternHandler) writeError(w http.ResponseWriter, r *http.Request, err error) {
+func (h *WorkingPatternHandler) writeError(w http.ResponseWriter, r *http.Request, err error) {
 	var compErr *ShiftComplianceError
 	if errors.As(err, &compErr) {
 		if compErr.Hard {

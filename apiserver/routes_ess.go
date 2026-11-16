@@ -5,7 +5,7 @@ import (
 	"github.com/vkaylee/leeattend/apiserver/internal/api"
 )
 
-func registerESSRoutes(router chi.Router, handler api.ESSHandler) {
+func registerESSRoutes(router chi.Router, handler *api.ESSHandler) {
 	registerRoute(router, "GET /api/v1/ess/profile", handler.GetProfile)
 	registerRoute(router, "PUT /api/v1/ess/profile", handler.UpdateProfile)
 	registerRoute(router, "GET /api/v1/ess/emergency-contacts", handler.GetContacts)

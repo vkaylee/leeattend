@@ -37,7 +37,7 @@ type EmployeeDepartmentHandler struct {
 	Authorizer Authorizer
 }
 
-func (h EmployeeDepartmentHandler) List(w http.ResponseWriter, r *http.Request) {
+func (h *EmployeeDepartmentHandler) List(w http.ResponseWriter, r *http.Request) {
 	employeeID, ok := employeePath(r)
 	if !ok {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
@@ -55,7 +55,7 @@ func (h EmployeeDepartmentHandler) List(w http.ResponseWriter, r *http.Request) 
 	apperror.WriteJSON(w, http.StatusOK, history)
 }
 
-func (h EmployeeDepartmentHandler) Transfer(w http.ResponseWriter, r *http.Request) {
+func (h *EmployeeDepartmentHandler) Transfer(w http.ResponseWriter, r *http.Request) {
 	employeeID, ok := employeePath(r)
 	if !ok {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
@@ -88,7 +88,7 @@ func (h EmployeeDepartmentHandler) Transfer(w http.ResponseWriter, r *http.Reque
 	apperror.WriteJSON(w, http.StatusOK, history)
 }
 
-func (h EmployeeDepartmentHandler) writeError(w http.ResponseWriter, r *http.Request, err error) {
+func (h *EmployeeDepartmentHandler) writeError(w http.ResponseWriter, r *http.Request, err error) {
 	switch {
 	case errors.Is(err, ErrEmployeeNotFound):
 		apperror.WriteError(w, r, apperror.NotFound(apperror.KeyEmployeeNotFound))

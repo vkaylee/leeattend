@@ -17,7 +17,7 @@ type systemHealthResponse struct {
 	ViewerUserID string `json:"viewer_user_id"`
 }
 
-func (h SystemHealthHandler) Get(w http.ResponseWriter, r *http.Request) {
+func (h *SystemHealthHandler) Get(w http.ResponseWriter, r *http.Request) {
 	userID, ok := httpinfra.UserIDFromContext(r.Context())
 	if !ok {
 		apperror.WriteError(w, r, apperror.Unauthorized(apperror.KeyUnauthorized))

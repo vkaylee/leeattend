@@ -190,7 +190,7 @@ type ScheduleShadowMismatchResolutionRequest struct {
 	Note   string `json:"note"`
 }
 
-func (h ScheduleHandler) ActivationReadiness(w http.ResponseWriter, r *http.Request) {
+func (h *ScheduleHandler) ActivationReadiness(w http.ResponseWriter, r *http.Request) {
 	if !h.requireScheduleEvidencePermission(w, r, scheduleHistoryPermission) {
 		return
 	}
@@ -233,7 +233,7 @@ func (h ScheduleHandler) ActivationReadiness(w http.ResponseWriter, r *http.Requ
 	apperror.WriteJSON(w, http.StatusOK, result)
 }
 
-func (h ScheduleHandler) ResolveShadowMismatch(w http.ResponseWriter, r *http.Request) {
+func (h *ScheduleHandler) ResolveShadowMismatch(w http.ResponseWriter, r *http.Request) {
 	if !h.requireScheduleEvidencePermission(w, r, scheduleEvidencePermission) {
 		return
 	}
@@ -273,7 +273,7 @@ func (h ScheduleHandler) ResolveShadowMismatch(w http.ResponseWriter, r *http.Re
 	w.WriteHeader(http.StatusNoContent)
 }
 
-func (h ScheduleHandler) ListShadowMismatches(w http.ResponseWriter, r *http.Request) {
+func (h *ScheduleHandler) ListShadowMismatches(w http.ResponseWriter, r *http.Request) {
 	if !h.requireScheduleEvidencePermission(w, r, scheduleHistoryPermission) {
 		return
 	}
@@ -321,7 +321,7 @@ func (h ScheduleHandler) ListShadowMismatches(w http.ResponseWriter, r *http.Req
 	apperror.WriteJSON(w, http.StatusOK, map[string]any{"data": mismatches})
 }
 
-func (h ScheduleHandler) History(w http.ResponseWriter, r *http.Request) {
+func (h *ScheduleHandler) History(w http.ResponseWriter, r *http.Request) {
 	if !h.requireScheduleEvidencePermission(w, r, scheduleHistoryPermission) {
 		return
 	}
@@ -353,7 +353,7 @@ func (h ScheduleHandler) History(w http.ResponseWriter, r *http.Request) {
 	apperror.WriteJSON(w, http.StatusOK, result)
 }
 
-func (h ScheduleHandler) Evidence(w http.ResponseWriter, r *http.Request) {
+func (h *ScheduleHandler) Evidence(w http.ResponseWriter, r *http.Request) {
 	if !h.requireScheduleEvidencePermission(w, r, scheduleEvidencePermission) {
 		return
 	}
@@ -390,7 +390,7 @@ func (h ScheduleHandler) Evidence(w http.ResponseWriter, r *http.Request) {
 	apperror.WriteJSON(w, http.StatusOK, result)
 }
 
-func (h ScheduleHandler) requireScheduleEvidencePermission(w http.ResponseWriter, r *http.Request, permission string) bool {
+func (h *ScheduleHandler) requireScheduleEvidencePermission(w http.ResponseWriter, r *http.Request, permission string) bool {
 	userID, ok := httpinfra.UserIDFromContext(r.Context())
 	if !ok {
 		apperror.WriteError(w, r, apperror.Unauthorized(apperror.KeyAuthenticationRequired))
@@ -403,12 +403,12 @@ func (h ScheduleHandler) requireScheduleEvidencePermission(w http.ResponseWriter
 	return true
 }
 
-func (h ScheduleHandler) scheduleEvidenceRepository() (ScheduleEvidenceRepository, bool) {
+func (h *ScheduleHandler) scheduleEvidenceRepository() (ScheduleEvidenceRepository, bool) {
 	repository, ok := h.Repository.(ScheduleEvidenceRepository)
 	return repository, ok && repository != nil
 }
 
-func (h ScheduleHandler) scheduleEmployerEvidenceAuthorizer() (ScheduleEmployerEvidenceAuthorizer, bool) {
+func (h *ScheduleHandler) scheduleEmployerEvidenceAuthorizer() (ScheduleEmployerEvidenceAuthorizer, bool) {
 	if authorizer, ok := h.Repository.(ScheduleEmployerEvidenceAuthorizer); ok {
 		return authorizer, true
 	}
@@ -418,7 +418,7 @@ func (h ScheduleHandler) scheduleEmployerEvidenceAuthorizer() (ScheduleEmployerE
 	return nil, false
 }
 
-func (h ScheduleHandler) scheduleMismatchEvidenceAuthorizer() (ScheduleMismatchEvidenceAuthorizer, bool) {
+func (h *ScheduleHandler) scheduleMismatchEvidenceAuthorizer() (ScheduleMismatchEvidenceAuthorizer, bool) {
 	if authorizer, ok := h.Repository.(ScheduleMismatchEvidenceAuthorizer); ok {
 		return authorizer, true
 	}

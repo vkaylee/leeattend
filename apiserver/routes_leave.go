@@ -5,7 +5,7 @@ import (
 	"github.com/vkaylee/leeattend/apiserver/internal/api"
 )
 
-func registerLeaveRoutes(router chi.Router, leave api.LeaveHandler, holiday api.HolidayHandler) {
+func registerLeaveRoutes(router chi.Router, leave *api.LeaveHandler, holiday *api.HolidayHandler) {
 	registerRoute(router, "GET /api/v1/leave/types", leave.ListTypes)
 	registerRoute(router, "POST /api/v1/leave/types", leave.CreateType)
 	registerRoute(router, "PUT /api/v1/leave/types/{id}/config", leave.UpdateTypeConfig)

@@ -130,12 +130,12 @@ type WorkPolicyGroupHandler struct {
 	Audit      WorkPolicyGroupAudit
 }
 
-func (h WorkPolicyGroupHandler) allowed(r *http.Request, permission string) bool {
+func (h *WorkPolicyGroupHandler) allowed(r *http.Request, permission string) bool {
 	userID, ok := httpinfra.UserIDFromContext(r.Context())
 	return ok && h.Authorizer != nil && h.Authorizer.HasPermission(r.Context(), userID, permission)
 }
 
-func (h WorkPolicyGroupHandler) List(w http.ResponseWriter, r *http.Request) {
+func (h *WorkPolicyGroupHandler) List(w http.ResponseWriter, r *http.Request) {
 	if !h.allowed(r, "payroll:read") {
 		apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
 		return
@@ -153,7 +153,7 @@ func (h WorkPolicyGroupHandler) List(w http.ResponseWriter, r *http.Request) {
 	apperror.WriteJSON(w, http.StatusOK, result)
 }
 
-func (h WorkPolicyGroupHandler) History(w http.ResponseWriter, r *http.Request) {
+func (h *WorkPolicyGroupHandler) History(w http.ResponseWriter, r *http.Request) {
 	if !h.allowed(r, "payroll:read") {
 		apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
 		return
@@ -176,7 +176,7 @@ func (h WorkPolicyGroupHandler) History(w http.ResponseWriter, r *http.Request) 
 	apperror.WriteJSON(w, http.StatusOK, result)
 }
 
-func (h WorkPolicyGroupHandler) Detail(w http.ResponseWriter, r *http.Request) {
+func (h *WorkPolicyGroupHandler) Detail(w http.ResponseWriter, r *http.Request) {
 	if !h.allowed(r, "payroll:read") {
 		apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
 		return
@@ -195,7 +195,7 @@ func (h WorkPolicyGroupHandler) Detail(w http.ResponseWriter, r *http.Request) {
 	apperror.WriteJSON(w, http.StatusOK, result)
 }
 
-func (h WorkPolicyGroupHandler) Validate(w http.ResponseWriter, r *http.Request) {
+func (h *WorkPolicyGroupHandler) Validate(w http.ResponseWriter, r *http.Request) {
 	if !h.allowed(r, "payroll:read") {
 		apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
 		return
@@ -214,7 +214,7 @@ func (h WorkPolicyGroupHandler) Validate(w http.ResponseWriter, r *http.Request)
 	apperror.WriteJSON(w, http.StatusOK, result)
 }
 
-func (h WorkPolicyGroupHandler) Resolve(w http.ResponseWriter, r *http.Request) {
+func (h *WorkPolicyGroupHandler) Resolve(w http.ResponseWriter, r *http.Request) {
 	if !h.allowed(r, "payroll:read") {
 		apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
 		return
@@ -238,7 +238,7 @@ func (h WorkPolicyGroupHandler) Resolve(w http.ResponseWriter, r *http.Request) 
 	apperror.WriteJSON(w, http.StatusOK, result)
 }
 
-func (h WorkPolicyGroupHandler) CreateVersion(w http.ResponseWriter, r *http.Request) {
+func (h *WorkPolicyGroupHandler) CreateVersion(w http.ResponseWriter, r *http.Request) {
 	userID, ok := httpinfra.UserIDFromContext(r.Context())
 	if !ok || !h.allowed(r, "payroll:manage") {
 		apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
@@ -274,7 +274,7 @@ func (h WorkPolicyGroupHandler) CreateVersion(w http.ResponseWriter, r *http.Req
 	apperror.WriteJSON(w, http.StatusCreated, result)
 }
 
-func (h WorkPolicyGroupHandler) ListMemberships(w http.ResponseWriter, r *http.Request) {
+func (h *WorkPolicyGroupHandler) ListMemberships(w http.ResponseWriter, r *http.Request) {
 	if !h.allowed(r, "payroll:read") {
 		apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
 		return
@@ -292,7 +292,7 @@ func (h WorkPolicyGroupHandler) ListMemberships(w http.ResponseWriter, r *http.R
 	apperror.WriteJSON(w, http.StatusOK, result)
 }
 
-func (h WorkPolicyGroupHandler) CreateMembership(w http.ResponseWriter, r *http.Request) {
+func (h *WorkPolicyGroupHandler) CreateMembership(w http.ResponseWriter, r *http.Request) {
 	userID, ok := httpinfra.UserIDFromContext(r.Context())
 	if !ok || !h.allowed(r, "payroll:manage") {
 		apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
@@ -325,7 +325,7 @@ func (h WorkPolicyGroupHandler) CreateMembership(w http.ResponseWriter, r *http.
 	apperror.WriteJSON(w, http.StatusCreated, result)
 }
 
-func (h WorkPolicyGroupHandler) Create(w http.ResponseWriter, r *http.Request) {
+func (h *WorkPolicyGroupHandler) Create(w http.ResponseWriter, r *http.Request) {
 	userID, ok := httpinfra.UserIDFromContext(r.Context())
 	if !ok || !h.allowed(r, "payroll:manage") {
 		apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
@@ -430,7 +430,7 @@ func validateWorkPolicyDefinitions(req CreateWorkPolicyGroupRequest) error {
 	return nil
 }
 
-func (h WorkPolicyGroupHandler) writeError(w http.ResponseWriter, r *http.Request, err error) {
+func (h *WorkPolicyGroupHandler) writeError(w http.ResponseWriter, r *http.Request, err error) {
 	switch {
 	case errors.Is(err, ErrWorkPolicyGroupNotFound), errors.Is(err, ErrWorkPolicyReferenceNotFound), errors.Is(err, ErrWorkPolicyResolutionNotFound):
 		apperror.WriteError(w, r, apperror.NotFound(apperror.KeyNotFound))

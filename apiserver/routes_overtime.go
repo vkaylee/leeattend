@@ -5,7 +5,7 @@ import (
 	"github.com/vkaylee/leeattend/apiserver/internal/api"
 )
 
-func registerOvertimeRoutes(router chi.Router, handler api.OvertimeHandler) {
+func registerOvertimeRoutes(router chi.Router, handler *api.OvertimeHandler) {
 	registerRoute(router, "GET /api/v1/overtime/policies", handler.ListPolicies)
 	registerRoute(router, "POST /api/v1/overtime/policies", handler.CreatePolicy)
 	registerRoute(router, "GET /api/v1/overtime/policies/{policy_id}", handler.GetPolicy)

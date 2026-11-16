@@ -158,7 +158,7 @@ type ReportHandler struct {
 	Authorizer Authorizer
 }
 
-func (h ReportHandler) CreateExport(w http.ResponseWriter, r *http.Request) {
+func (h *ReportHandler) CreateExport(w http.ResponseWriter, r *http.Request) {
 	userID, userOK := httpinfra.UserIDFromContext(r.Context())
 	if !userOK || !h.allowed(r, userID) {
 		h.forbidden(w, r)
@@ -180,7 +180,7 @@ func (h ReportHandler) CreateExport(w http.ResponseWriter, r *http.Request) {
 	apperror.WriteJSON(w, http.StatusAccepted, ExportJobResponse{JobID: job.JobID, Status: job.Status, TotalBatches: job.TotalBatches, EstimatedSeconds: job.TotalBatches, StatusURL: "/api/v1/reports/jobs/" + job.JobID.String()})
 }
 
-func (h ReportHandler) Status(w http.ResponseWriter, r *http.Request) {
+func (h *ReportHandler) Status(w http.ResponseWriter, r *http.Request) {
 	jobID, jobOK := pathUUID(r, "job_id")
 	userID, userOK := httpinfra.UserIDFromContext(r.Context())
 	if !jobOK || !userOK || !h.allowed(r, userID) {
@@ -208,7 +208,7 @@ func (h ReportHandler) Status(w http.ResponseWriter, r *http.Request) {
 	apperror.WriteJSON(w, http.StatusOK, response)
 }
 
-func (h ReportHandler) Cancel(w http.ResponseWriter, r *http.Request) {
+func (h *ReportHandler) Cancel(w http.ResponseWriter, r *http.Request) {
 	jobID, jobOK := pathUUID(r, "job_id")
 	userID, userOK := httpinfra.UserIDFromContext(r.Context())
 	if !jobOK || !userOK || !h.allowed(r, userID) {
@@ -235,7 +235,7 @@ func (h ReportHandler) Cancel(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
-func (h ReportHandler) Download(w http.ResponseWriter, r *http.Request) {
+func (h *ReportHandler) Download(w http.ResponseWriter, r *http.Request) {
 	jobID, jobOK := pathUUID(r, "job_id")
 	userID, userOK := httpinfra.UserIDFromContext(r.Context())
 	if !jobOK || !userOK || !h.allowed(r, userID) {
@@ -280,7 +280,7 @@ func (h ReportHandler) Download(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (h ReportHandler) AttendanceReport(w http.ResponseWriter, r *http.Request) {
+func (h *ReportHandler) AttendanceReport(w http.ResponseWriter, r *http.Request) {
 	userID, userOK := httpinfra.UserIDFromContext(r.Context())
 	if !userOK {
 		h.validation(w, r)
@@ -426,7 +426,7 @@ func (h ReportHandler) AttendanceReport(w http.ResponseWriter, r *http.Request) 
 	apperror.WriteJSON(w, http.StatusOK, report)
 }
 
-func (h ReportHandler) NoShowReport(w http.ResponseWriter, r *http.Request) {
+func (h *ReportHandler) NoShowReport(w http.ResponseWriter, r *http.Request) {
 	userID, userOK := httpinfra.UserIDFromContext(r.Context())
 	if !userOK {
 		h.validation(w, r)
@@ -548,18 +548,18 @@ func formatTime(value *time.Time) *string {
 	formatted := value.UTC().Format(time.RFC3339)
 	return &formatted
 }
-func (h ReportHandler) forbidden(w http.ResponseWriter, r *http.Request) {
+func (h *ReportHandler) forbidden(w http.ResponseWriter, r *http.Request) {
 	apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
 }
-func (h ReportHandler) validation(w http.ResponseWriter, r *http.Request) {
+func (h *ReportHandler) validation(w http.ResponseWriter, r *http.Request) {
 	apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 }
 
-func (h ReportHandler) allowed(r *http.Request, userID uuid.UUID) bool {
+func (h *ReportHandler) allowed(r *http.Request, userID uuid.UUID) bool {
 	return h.Authorizer != nil && h.Authorizer.HasPermission(r.Context(), userID, "reports:export")
 }
 
-func (h ReportHandler) writeReportError(w http.ResponseWriter, r *http.Request, err error) {
+func (h *ReportHandler) writeReportError(w http.ResponseWriter, r *http.Request, err error) {
 	switch {
 	case errors.Is(err, ErrReportNotFound):
 		apperror.WriteError(w, r, apperror.NotFound(apperror.KeyJobNotFound))
