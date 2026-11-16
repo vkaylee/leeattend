@@ -128,6 +128,13 @@ func TestLockScheduleRevisionTargetsLocksEmployeeBeforeEmployment(t *testing.T) 
 	}
 }
 
+func TestRotatingPublishSkipsOfficeApprovalValidation(t *testing.T) {
+	request := api.SchedulePublishRequest{Mode: "rotating", EmploymentIDs: []uuid.UUID{uuid.New()}, StartDate: "2026-11-16", EndDate: "2026-11-16", Timezone: "UTC", Reason: "rotating batch", PreviewID: uuid.New(), PreviewHash: strings.Repeat("a", 64)}
+	if err := validatePublishInput("rotating-key", request); err != nil {
+		t.Fatalf("rotating request validation: %v", err)
+	}
+}
+
 func TestRejectConcreteScheduleOverlapsFailsClosed(t *testing.T) {
 	db := &fakeDBTX{queryRowFn: func(_ context.Context, query string, _ ...any) pgx.Row {
 		if !strings.Contains(query, "candidate_people") || !strings.Contains(query, "scheduled_start_at") {

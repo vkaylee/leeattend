@@ -611,8 +611,10 @@ func (r ScheduleRepository) Publish(ctx context.Context, actorID uuid.UUID, idem
 		if err := ensureMutationPeriodOpenForRange(ctx, tx, request.EmploymentIDs, request.StartDate, request.EndDate); err != nil {
 			return err
 		}
-		if err := validateHumanOfficeApproval(ctx, tx, request); err != nil {
-			return err
+		if request.Mode != "rotating" {
+			if err := validateHumanOfficeApproval(ctx, tx, request); err != nil {
+				return err
+			}
 		}
 		if err := verifyFirstPublicationTargets(ctx, tx, request); err != nil {
 			return err
