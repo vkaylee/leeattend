@@ -966,6 +966,7 @@ func lockScheduleRevisionTargets(ctx context.Context, tx DBTX, keys []scheduleRe
 			seenEmployments[key.employmentID] = struct{}{}
 		}
 	}
+	sort.Strings(dates)
 	sort.Slice(employmentIDs, func(i, j int) bool { return employmentIDs[i].String() < employmentIDs[j].String() })
 	if _, err := tx.Exec(ctx, `SELECT e.id FROM employees e JOIN employments em ON em.employee_id = e.id WHERE em.id = ANY($1) ORDER BY e.id FOR UPDATE`, employmentIDs); err != nil {
 		return err
