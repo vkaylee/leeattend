@@ -22,10 +22,11 @@ export const customFieldKeys = {
   values: (entityType: string, entityId: string) => [...customFieldKeys.all, "values", entityType, entityId] as const,
 };
 
-export const useCustomFieldDefinitions = (entityType?: string) => {
+export const useCustomFieldDefinitions = (entityType?: string, enabled = true) => {
   return useOrganizationQuery({
     queryKey: customFieldKeys.definitionList(entityType),
     queryFn: () => fetchCustomFieldDefinitions(entityType),
+    enabled,
     meta: { suppressErrorToast: [403] },
   });
 };

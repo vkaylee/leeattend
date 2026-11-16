@@ -7,6 +7,7 @@ import { FilterPanel } from "@/components/ui/filter-panel";
 import { FilterTrigger } from "@/components/ui/filter-trigger";
 import FormField from "@/components/ui/form-field";
 import { useCustomFieldDefinitions } from "@/hooks/use-custom-fields";
+import { useMyPermissions } from "@/hooks/use-permissions";
 
 interface CustomFieldsFilterPopoverProps {
   customFieldFilters: Record<string, string>;
@@ -18,9 +19,10 @@ export function CustomFieldsFilterPopover({
   setCustomFieldFilters,
 }: CustomFieldsFilterPopoverProps) {
   const { t } = useTranslation(["custom_fields", "common"]);
+  const { hasPermission } = useMyPermissions();
 
   // Fetch definitions for employee entity
-  const { data: definitions = [] } = useCustomFieldDefinitions("employee");
+  const { data: definitions = [] } = useCustomFieldDefinitions("employee", hasPermission("employees:read"));
 
   // Filter only those marked as filterable
   const filterableDefs = definitions.filter((def) => def.is_filterable);

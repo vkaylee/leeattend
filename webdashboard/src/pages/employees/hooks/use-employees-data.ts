@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 import { useToast } from "@/components/ui/toast";
 import { useOrganizationInfiniteQuery, useOrganizationMutation, useOrganizationQuery } from "@/hooks/common/use-organization-query";
 import { useDepartments } from "@/hooks/use-departments";
+import { useMyPermissions } from "@/hooks/use-permissions";
 import {
   searchEmployees,
   updateEmployee,
@@ -46,6 +47,8 @@ export const useEmployeesData = ({
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const toast = useToast();
+  const { hasPermission } = useMyPermissions();
+  const canReadEmployees = hasPermission("employees:read");
 
   const {
     data: employeesPages,
@@ -87,6 +90,7 @@ export const useEmployeesData = ({
     return allPages.length + 1;
   },
   initialPageParam: 1,
+  enabled: canReadEmployees,
   placeholderData: "keepPreviousData", });
 
   const employees = useMemo(() => {
