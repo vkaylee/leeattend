@@ -357,6 +357,7 @@ func (r ScheduleRepository) GetOfficialSchedulesWithCoverage(ctx context.Context
 	for i := range result.Data {
 		result.Data[i].Coverage = counts[result.Data[i].EmploymentID]
 	}
+	result.Total = int64(len(ids))
 	return result, nil
 }
 
