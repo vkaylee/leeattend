@@ -95,17 +95,21 @@ func (r ShiftSwapRepository) CreateSwap(ctx context.Context, userID uuid.UUID, r
 			return err
 		}
 		result = api.ShiftSwapRequest{
-			ID:                id,
-			RequesterID:       req.RequesterID,
-			TargetID:          req.TargetID,
-			SwapDate:          req.SwapDate,
-			RequesterShiftID:  reqShift,
-			TargetShiftID:     tgtShift,
-			Status:            api.ShiftSwapPendingAdmin,
-			Reason:            req.Reason,
-			RequestedByUserID: &userID,
-			CreatedAt:         now.Format(time.RFC3339),
-			UpdatedAt:         now.Format(time.RFC3339),
+			ID:                      id,
+			RequesterID:             req.RequesterID,
+			TargetID:                req.TargetID,
+			SwapDate:                req.SwapDate,
+			RequesterRevisionID:     requesterRevisionID,
+			RequesterRevisionNumber: requesterRevisionNumber,
+			TargetRevisionID:        targetRevisionID,
+			TargetRevisionNumber:    targetRevisionNumber,
+			RequesterShiftID:        reqShift,
+			TargetShiftID:           tgtShift,
+			Status:                  api.ShiftSwapPendingAdmin,
+			Reason:                  req.Reason,
+			RequestedByUserID:       &userID,
+			CreatedAt:               now.Format(time.RFC3339),
+			UpdatedAt:               now.Format(time.RFC3339),
 		}
 		return nil
 	})
@@ -122,9 +126,9 @@ func (r ShiftSwapRepository) ListSwaps(ctx context.Context, status *api.ShiftSwa
 	}
 	var rows pgx.Rows
 	if status != nil {
-		rows, err = db.Query(ctx, `SELECT id, requester_id, target_id, swap_date::text, requester_template_id, target_template_id, status, reason, requested_by_user_id, approved_by_user_id, created_at, updated_at FROM shift_swap_requests WHERE status = $1 ORDER BY created_at DESC LIMIT 100`, string(*status))
+		rows, err = db.Query(ctx, `SELECT id, requester_id, target_id, swap_date::text, requester_revision_id, requester_revision_number, target_revision_id, target_revision_number, requester_template_id, target_template_id, status, reason, requested_by_user_id, approved_by_user_id, created_at, updated_at FROM shift_swap_requests WHERE status = $1 ORDER BY created_at DESC LIMIT 100`, string(*status))
 	} else {
-		rows, err = db.Query(ctx, `SELECT id, requester_id, target_id, swap_date::text, requester_template_id, target_template_id, status, reason, requested_by_user_id, approved_by_user_id, created_at, updated_at FROM shift_swap_requests ORDER BY created_at DESC LIMIT 100`)
+		rows, err = db.Query(ctx, `SELECT id, requester_id, target_id, swap_date::text, requester_revision_id, requester_revision_number, target_revision_id, target_revision_number, requester_template_id, target_template_id, status, reason, requested_by_user_id, approved_by_user_id, created_at, updated_at FROM shift_swap_requests ORDER BY created_at DESC LIMIT 100`)
 	}
 	if err != nil {
 		return nil, err
@@ -137,7 +141,7 @@ func (r ShiftSwapRepository) ListSwaps(ctx context.Context, status *api.ShiftSwa
 		var s api.ShiftSwapRequestWithNames
 		var statusStr string
 		var createdAt, updatedAt time.Time
-		if err := rows.Scan(&s.ID, &s.RequesterID, &s.TargetID, &s.SwapDate, &s.RequesterShiftID, &s.TargetShiftID, &statusStr, &s.Reason, &s.RequestedByUserID, &s.ApprovedByUserID, &createdAt, &updatedAt); err != nil {
+		if err := rows.Scan(&s.ID, &s.RequesterID, &s.TargetID, &s.SwapDate, &s.RequesterRevisionID, &s.RequesterRevisionNumber, &s.TargetRevisionID, &s.TargetRevisionNumber, &s.RequesterShiftID, &s.TargetShiftID, &statusStr, &s.Reason, &s.RequestedByUserID, &s.ApprovedByUserID, &createdAt, &updatedAt); err != nil {
 			return nil, err
 		}
 		s.Status = api.ShiftSwapStatus(statusStr)
@@ -224,15 +228,6 @@ func (r ShiftSwapRepository) ApproveSwap(ctx context.Context, requestID, approve
 				if requesterRevisionID == nil || targetRevisionID == nil || requesterRevisionNumber == nil || targetRevisionNumber == nil {
 					return api.ErrShiftSwapConflict
 				}
-				if err := verifyOfficialSwapRevisions(ctx, db, reqEmp, tgtEmp, swapDate, *requesterRevisionID, *requesterRevisionNumber, *targetRevisionID, *targetRevisionNumber); err != nil {
-					return err
-				}
-				return api.ErrShiftSwapConflict
-			}
-			if requesterRevisionID != nil || targetRevisionID != nil {
-				if requesterRevisionID == nil || targetRevisionID == nil || requesterRevisionNumber == nil || targetRevisionNumber == nil {
-					return api.ErrShiftSwapConflict
-				}
 				handled, err := approveOfficialSwap(ctx, db, requestID, approverID, requesterID, targetID, reqEmp, tgtEmp, swapDate, *requesterRevisionID, *requesterRevisionNumber, *targetRevisionID, *targetRevisionNumber)
 				if err != nil {
 					return err
@@ -277,7 +272,7 @@ func (r ShiftSwapRepository) ListEmployeeSwaps(ctx context.Context, employeeID u
 	if err != nil {
 		return nil, err
 	}
-	rows, err := db.Query(ctx, `SELECT s.id, s.requester_id, s.target_id, s.swap_date::text, s.requester_template_id, s.target_template_id, s.status, s.reason, s.requested_by_user_id, s.approved_by_user_id, s.created_at, s.updated_at FROM shift_swap_requests s WHERE (s.requester_id = $1 OR s.target_id = $1) AND EXISTS (SELECT 1 FROM employments em JOIN employment_relationships er ON er.id = em.relationship_id AND er.employee_id = em.employee_id JOIN employee_tenures t ON t.id = er.tenure_id AND t.employee_id = er.employee_id WHERE em.employee_id = $1 AND em.deleted_at IS NULL AND t.deleted_at IS NULL AND t.start_date <= CURRENT_DATE AND (t.end_date IS NULL OR t.end_date >= CURRENT_DATE)) ORDER BY created_at DESC LIMIT 50`, employeeID)
+	rows, err := db.Query(ctx, `SELECT s.id, s.requester_id, s.target_id, s.swap_date::text, s.requester_revision_id, s.requester_revision_number, s.target_revision_id, s.target_revision_number, s.requester_template_id, s.target_template_id, s.status, s.reason, s.requested_by_user_id, s.approved_by_user_id, s.created_at, s.updated_at FROM shift_swap_requests s WHERE (s.requester_id = $1 OR s.target_id = $1) AND EXISTS (SELECT 1 FROM employments em JOIN employment_relationships er ON er.id = em.relationship_id AND er.employee_id = em.employee_id JOIN employee_tenures t ON t.id = er.tenure_id AND t.employee_id = er.employee_id WHERE em.employee_id = $1 AND em.deleted_at IS NULL AND t.deleted_at IS NULL AND t.start_date <= CURRENT_DATE AND (t.end_date IS NULL OR t.end_date >= CURRENT_DATE)) ORDER BY created_at DESC LIMIT 50`, employeeID)
 	if err != nil {
 		return nil, err
 	}
@@ -289,7 +284,7 @@ func (r ShiftSwapRepository) ListEmployeeSwaps(ctx context.Context, employeeID u
 		var s api.ShiftSwapRequestWithNames
 		var statusStr string
 		var createdAt, updatedAt time.Time
-		if err := rows.Scan(&s.ID, &s.RequesterID, &s.TargetID, &s.SwapDate, &s.RequesterShiftID, &s.TargetShiftID, &statusStr, &s.Reason, &s.RequestedByUserID, &s.ApprovedByUserID, &createdAt, &updatedAt); err != nil {
+		if err := rows.Scan(&s.ID, &s.RequesterID, &s.TargetID, &s.SwapDate, &s.RequesterRevisionID, &s.RequesterRevisionNumber, &s.TargetRevisionID, &s.TargetRevisionNumber, &s.RequesterShiftID, &s.TargetShiftID, &statusStr, &s.Reason, &s.RequestedByUserID, &s.ApprovedByUserID, &createdAt, &updatedAt); err != nil {
 			return nil, err
 		}
 		s.Status = api.ShiftSwapStatus(statusStr)
@@ -391,17 +386,21 @@ func (r ShiftSwapRepository) CreateESSSwap(ctx context.Context, requesterID, use
 			return err
 		}
 		result = api.ShiftSwapRequest{
-			ID:                id,
-			RequesterID:       requesterID,
-			TargetID:          req.TargetID,
-			SwapDate:          req.SwapDate,
-			RequesterShiftID:  reqShift,
-			TargetShiftID:     tgtShift,
-			Status:            api.ShiftSwapPendingTarget,
-			Reason:            req.Reason,
-			RequestedByUserID: &userID,
-			CreatedAt:         now.Format(time.RFC3339),
-			UpdatedAt:         now.Format(time.RFC3339),
+			ID:                      id,
+			RequesterID:             requesterID,
+			TargetID:                req.TargetID,
+			SwapDate:                req.SwapDate,
+			RequesterRevisionID:     requesterRevisionID,
+			RequesterRevisionNumber: requesterRevisionNumber,
+			TargetRevisionID:        targetRevisionID,
+			TargetRevisionNumber:    targetRevisionNumber,
+			RequesterShiftID:        reqShift,
+			TargetShiftID:           tgtShift,
+			Status:                  api.ShiftSwapPendingTarget,
+			Reason:                  req.Reason,
+			RequestedByUserID:       &userID,
+			CreatedAt:               now.Format(time.RFC3339),
+			UpdatedAt:               now.Format(time.RFC3339),
 		}
 		return nil
 	})
@@ -469,23 +468,6 @@ func (r ShiftSwapRepository) CancelSwap(ctx context.Context, requesterID, reques
 	})
 }
 
-func verifyOfficialSwapRevisions(ctx context.Context, db DBTX, requesterEmploymentID, targetEmploymentID uuid.UUID, date string, requesterRevisionID uuid.UUID, requesterRevisionNumber int64, targetRevisionID uuid.UUID, targetRevisionNumber int64) error {
-	var count int
-	if err := db.QueryRow(ctx, `SELECT COUNT(*) FROM schedule_day_revisions WHERE id = $1 AND employment_id = $2 AND business_date = $3::date AND state IN ('published', 'explicit_off') AND revision_number = $4`, requesterRevisionID, requesterEmploymentID, date, requesterRevisionNumber).Scan(&count); err != nil {
-		return err
-	}
-	if count != 1 {
-		return api.ErrShiftSwapConflict
-	}
-	if err := db.QueryRow(ctx, `SELECT COUNT(*) FROM schedule_day_revisions WHERE id = $1 AND employment_id = $2 AND business_date = $3::date AND state IN ('published', 'explicit_off') AND revision_number = $4`, targetRevisionID, targetEmploymentID, date, targetRevisionNumber).Scan(&count); err != nil {
-		return err
-	}
-	if count != 1 {
-		return api.ErrShiftSwapConflict
-	}
-	return nil
-}
-
 func approveOfficialSwap(ctx context.Context, db pgx.Tx, requestID, approverID, requesterID, targetID, requesterEmploymentID, targetEmploymentID uuid.UUID, date string, requesterRevisionID uuid.UUID, requesterRevisionNumber int64, targetRevisionID uuid.UUID, targetRevisionNumber int64) (bool, error) {
 	if requesterRevisionID == uuid.Nil || targetRevisionID == uuid.Nil {
 		return false, nil
@@ -535,7 +517,7 @@ func approveOfficialSwap(ctx context.Context, db pgx.Tx, requestID, approverID, 
 		return false, err
 	}
 	reason := "Shift swap #" + requestID.String()
-	if _, err := db.Exec(ctx, `INSERT INTO schedule_publication_batches (id, idempotency_key, request_hash, mode, status, requested_by, operation, response_snapshot, actor_type, reason, timezone, range_start, range_end, published_at, affected_days) VALUES ($1, $2, $3, 'rotating', 'published', $4, 'swap', '{}'::jsonb, 'human', $5, $6, $7::date, $7::date, $8, 2)`, batchID, key, hash, approverID, reason, requester.Timezone, date, now); err != nil {
+	if _, err := db.Exec(ctx, `INSERT INTO schedule_publication_batches (id, idempotency_key, request_hash, mode, status, requested_by, operation, response_snapshot, actor_type, reason, timezone, range_start, range_end, published_at, affected_days) VALUES ($1, $2, $3, 'rotating', 'published', $4, 'replan', '{}'::jsonb, 'human', $5, $6, $7::date, $7::date, $8, 2)`, batchID, key, hash, approverID, reason, requester.Timezone, date, now); err != nil {
 		return false, err
 	}
 	if _, err := db.Exec(ctx, `SELECT set_config('schedule.lifecycle_publication', 'on', true)`); err != nil {
