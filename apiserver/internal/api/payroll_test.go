@@ -1547,6 +1547,13 @@ func TestPayrollImpactEndpointEnforcesSensitiveReadAndValidatesRuns(t *testing.T
 	if got := request(true, "year=2026&month=6").Code; got != http.StatusBadRequest {
 		t.Fatalf("invalid run query status = %d, want 400", got)
 	}
+	batchRequest := httptest.NewRequest(http.MethodPost, "/api/v1/payroll/impact/batch", bytes.NewBufferString(`{"employment_ids":["`+employmentID.String()+`","`+employmentID.String()+`"],"year":2026,"month":6,"before_run_id":"`+uuid.NewString()+`","after_run_id":"`+uuid.NewString()+`"}`))
+	batchRequest = batchRequest.WithContext(httpinfra.WithUserIDForTest(batchRequest.Context(), uuid.New()))
+	batchRecorder := httptest.NewRecorder()
+	(&PayrollHandler{Repository: mockPayrollRepository{}, Authorizer: payrollAuthorizer{allowedPerms: map[string]bool{"payroll:sensitive:read": true}}}).ComparePayrollImpactBatch(batchRecorder, batchRequest)
+	if batchRecorder.Code != http.StatusBadRequest {
+		t.Fatalf("duplicate employment IDs status = %d, want 400", batchRecorder.Code)
+	}
 	if got := request(true, validQuery).Code; got != http.StatusOK {
 		t.Fatalf("valid impact status = %d, want 200", got)
 	}

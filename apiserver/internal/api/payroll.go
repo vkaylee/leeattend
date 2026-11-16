@@ -1165,7 +1165,7 @@ func (h *PayrollHandler) ComparePayrollImpactBatch(w http.ResponseWriter, r *htt
 		return
 	}
 	req, err := DecodeJSON[PayrollImpactBatchRequest](r, 1<<20)
-	if err != nil || len(req.EmploymentIDs) == 0 || len(req.EmploymentIDs) > 100 || req.Year < 2000 || req.Year > 2100 || req.Month < 1 || req.Month > 12 || req.BeforeRunID == uuid.Nil || req.AfterRunID == uuid.Nil || req.BeforeRunID == req.AfterRunID {
+	if err != nil || len(req.EmploymentIDs) == 0 || len(req.EmploymentIDs) > 100 || hasDuplicateUUIDs(req.EmploymentIDs) || req.Year < 2000 || req.Year > 2100 || req.Month < 1 || req.Month > 12 || req.BeforeRunID == uuid.Nil || req.AfterRunID == uuid.Nil || req.BeforeRunID == req.AfterRunID {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}
@@ -1175,6 +1175,17 @@ func (h *PayrollHandler) ComparePayrollImpactBatch(w http.ResponseWriter, r *htt
 		return
 	}
 	apperror.WriteJSON(w, http.StatusOK, result)
+}
+
+func hasDuplicateUUIDs(values []uuid.UUID) bool {
+	seen := make(map[uuid.UUID]struct{}, len(values))
+	for _, value := range values {
+		if _, exists := seen[value]; exists {
+			return true
+		}
+		seen[value] = struct{}{}
+	}
+	return false
 }
 
 func (h *PayrollHandler) ListPayrollCalculationRuns(w http.ResponseWriter, r *http.Request) {
