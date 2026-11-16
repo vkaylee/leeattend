@@ -390,6 +390,7 @@ type PayrollImpactBatchItem struct {
 	EmploymentID uuid.UUID              `json:"employment_id"`
 	Computed     bool                   `json:"computed"`
 	Stale        bool                   `json:"stale"`
+	StaleReasons []string               `json:"stale_reasons,omitempty"`
 	Reason       string                 `json:"reason,omitempty"`
 	Delta        *PayrollImpactResponse `json:"delta,omitempty"`
 }

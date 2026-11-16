@@ -1233,6 +1233,10 @@ ORDER BY employment_id, id`, req.EmploymentIDs, req.Year, req.Month, []uuid.UUID
 	if err := rows.Err(); err != nil {
 		return api.PayrollImpactBatchResponse{}, err
 	}
+	currentPolicies, err := currentImpactPolicies(ctx, db, req.EmploymentIDs, req.Year, req.Month)
+	if err != nil {
+		return api.PayrollImpactBatchResponse{}, err
+	}
 	result := api.PayrollImpactBatchResponse{Total: len(req.EmploymentIDs), Items: make([]api.PayrollImpactBatchItem, 0, len(req.EmploymentIDs))}
 	for _, employmentID := range req.EmploymentIDs {
 		item := api.PayrollImpactBatchItem{EmploymentID: employmentID}
@@ -1252,7 +1256,11 @@ ORDER BY employment_id, id`, req.EmploymentIDs, req.Year, req.Month, []uuid.UUID
 			continue
 		}
 		item.Computed = true
-		item.Delta = &api.PayrollImpactResponse{EmploymentID: employmentID, PeriodYear: req.Year, PeriodMonth: req.Month, BeforeRunID: req.BeforeRunID, AfterRunID: req.AfterRunID, Computed: true, BasePayDelta: delta.BasePayDelta, OvertimePayDelta: delta.OvertimePayDelta, DeductionsDelta: delta.DeductionsDelta, NetPayDelta: delta.NetPayDelta, StandardUnitsDelta: delta.StandardUnitsDelta, OvertimeUnitsDelta: delta.OvertimeUnitsDelta}
+		if stale, reasons := impactStalenessForPolicy(currentPolicies[employmentID], after.input); stale {
+			item.Stale = true
+			item.StaleReasons = reasons
+		}
+		item.Delta = &api.PayrollImpactResponse{EmploymentID: employmentID, PeriodYear: req.Year, PeriodMonth: req.Month, BeforeRunID: req.BeforeRunID, AfterRunID: req.AfterRunID, Computed: true, Stale: item.Stale, StaleReasons: item.StaleReasons, BasePayDelta: delta.BasePayDelta, OvertimePayDelta: delta.OvertimePayDelta, DeductionsDelta: delta.DeductionsDelta, NetPayDelta: delta.NetPayDelta, StandardUnitsDelta: delta.StandardUnitsDelta, OvertimeUnitsDelta: delta.OvertimeUnitsDelta}
 		if !delta.BasePayDelta.IsZero() || !delta.OvertimePayDelta.IsZero() || !delta.DeductionsDelta.IsZero() || !delta.NetPayDelta.IsZero() || delta.StandardUnitsDelta != 0 || delta.OvertimeUnitsDelta != 0 {
 			result.Affected++
 		}
@@ -1260,6 +1268,54 @@ ORDER BY employment_id, id`, req.EmploymentIDs, req.Year, req.Month, []uuid.UUID
 		result.Items = append(result.Items, item)
 	}
 	return result, nil
+}
+
+func currentImpactPolicies(ctx context.Context, db DBTX, employmentIDs []uuid.UUID, year, month int) (map[uuid.UUID]*uuid.UUID, error) {
+	rows, err := db.Query(ctx, `
+		SELECT DISTINCT ON (m.employment_id) m.employment_id, v.id
+		FROM labor_policy_memberships m
+		JOIN labor_policy_group_versions v ON v.group_id = m.group_id
+		WHERE m.employment_id = ANY($1::uuid[])
+		  AND m.effective_from <= make_date($2, $3, 1)
+		  AND (m.effective_to IS NULL OR m.effective_to > make_date($2, $3, 1))
+		  AND v.effective_from <= make_date($2, $3, 1)
+		  AND (v.effective_to IS NULL OR v.effective_to > make_date($2, $3, 1))
+		ORDER BY m.employment_id, v.effective_from DESC, v.id DESC`, employmentIDs, year, month)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	result := make(map[uuid.UUID]*uuid.UUID, len(employmentIDs))
+	for rows.Next() {
+		var employmentID, policyID uuid.UUID
+		if err := rows.Scan(&employmentID, &policyID); err != nil {
+			return nil, err
+		}
+		result[employmentID] = &policyID
+	}
+	return result, rows.Err()
+}
+
+func impactStalenessForPolicy(currentID *uuid.UUID, input []byte) (bool, []string) {
+	var payload struct {
+		Policy *struct {
+			VersionID string `json:"version_id"`
+		} `json:"policy"`
+	}
+	if err := json.Unmarshal(input, &payload); err != nil || payload.Policy == nil || payload.Policy.VersionID == "" {
+		return false, nil
+	}
+	versionID, err := uuid.Parse(payload.Policy.VersionID)
+	if err != nil {
+		return true, []string{"policy_version_invalid"}
+	}
+	if currentID == nil {
+		return true, []string{"current_policy_missing"}
+	}
+	if *currentID != versionID {
+		return true, []string{"policy_version_changed"}
+	}
+	return false, nil
 }
 
 func (r PayrollRepository) ComparePayrollImpact(ctx context.Context, employmentID ids.EmploymentID, year, month int, beforeRunID, afterRunID uuid.UUID) (api.PayrollImpactResponse, error) {
