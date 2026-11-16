@@ -307,7 +307,7 @@ func validateHumanOfficeApproval(ctx context.Context, db DBTX, request api.Sched
 }
 
 func validatePreviewInput(actorID uuid.UUID, request api.SchedulePreviewRequest) (time.Time, time.Time, error) {
-	if actorID == uuid.Nil || request.Mode != "office" || len(request.EmploymentIDs) == 0 || len(request.EmploymentIDs) > 500 || strings.TrimSpace(request.Reason) == "" || request.ApprovalInstanceID == nil {
+	if actorID == uuid.Nil || (request.Mode != "office" && request.Mode != "rotating") || len(request.EmploymentIDs) == 0 || len(request.EmploymentIDs) > 500 || strings.TrimSpace(request.Reason) == "" || (request.Mode == "office" && request.ApprovalInstanceID == nil) || (request.Mode == "rotating" && request.ApprovalInstanceID != nil) {
 		return time.Time{}, time.Time{}, ErrSchedulePreviewScope
 	}
 	startDate, err := time.Parse("2006-01-02", request.StartDate)
