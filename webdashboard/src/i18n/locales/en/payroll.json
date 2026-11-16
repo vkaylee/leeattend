@@ -312,6 +312,7 @@
     },
     "calculation_trace": {
       "empty": "No calculation trace",
+      "partial": "Trace is partial or unavailable; some steps were omitted.",
       "title": "Calculation trace"
     },
     "scope_employee": "Employee",

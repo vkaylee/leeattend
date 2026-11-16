@@ -10,6 +10,12 @@ import { payrollKeys } from "@/lib/query-keys";
 
 interface TraceStep { expression?: string; result?: string; rule?: string; step?: string }
 
+function isTraceStep(value: unknown): value is TraceStep {
+  if (typeof value !== "object" || value === null) return false;
+  const step = value as Record<string, unknown>;
+  return ["step", "rule", "expression", "result"].some((key) => typeof step[key] === "string");
+}
+
 export function CalculationTrace({ employmentId, year, month }: { employmentId: string; year: number; month: number }) {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
@@ -38,8 +44,14 @@ export function CalculationTrace({ employmentId, year, month }: { employmentId: 
             <Typography className="text-slate-500" variant="small">{t("payroll.calculation_trace.empty", "No calculation trace")}</Typography>
           ) : null}
           {data?.map((run) => {
-            const trace = Array.isArray(run.calculation_trace) ? run.calculation_trace as TraceStep[] : [];
-            return <div className="space-y-2" key={run.id}><Typography className="font-semibold" variant="small">{run.engine_version} · {run.created_at}</Typography>{trace.map((step, index) => <div className="rounded-lg bg-slate-50 p-3 text-xs dark:bg-slate-800" key={`${run.id}-${index}`}><div className="font-semibold">{step.step} · {step.rule}</div><code>{step.expression}</code><div>{step.result}</div></div>)}</div>;
+            const rawTrace = Array.isArray(run.calculation_trace) ? run.calculation_trace : [];
+            const trace = rawTrace.filter(isTraceStep);
+            const hasMalformedSteps = trace.length !== rawTrace.length || !Array.isArray(run.calculation_trace);
+            return <div className="space-y-2" key={run.id}>
+              <Typography className="font-semibold" variant="small">{run.engine_version} · {run.created_at}</Typography>
+              {hasMalformedSteps ? <Typography className="text-amber-700" role="status" variant="small">{t("payroll.calculation_trace.partial", "Trace is partial or unavailable; some steps were omitted.")}</Typography> : null}
+              {trace.map((step, index) => <div className="rounded-lg bg-slate-50 p-3 text-xs dark:bg-slate-800" key={`${run.id}-${index}`}><div className="font-semibold">{step.step} · {step.rule}</div><code>{step.expression}</code><div>{step.result}</div></div>)}
+            </div>;
           })}
         </div>
       ) : null}

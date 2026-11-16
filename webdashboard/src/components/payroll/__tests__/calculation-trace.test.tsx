@@ -48,6 +48,19 @@ describe("CalculationTrace", () => {
     expect(screen.getByText(/formula-v1/)).toBeInTheDocument();
   });
 
+  it("warns when trace payload is partial or malformed", async () => {
+    vi.mocked(fetchPayrollCalculationRuns).mockResolvedValueOnce([{
+      id: "run-2", employment_id: "employment-1", period_year: 2026, period_month: 10,
+      engine_version: "formula-v1", input_snapshot: {}, output_snapshot: {},
+      calculation_trace: [{ step: "formula", result: "100" }, { unexpected: true }],
+      created_at: "2026-10-31T00:00:00Z",
+    }]);
+    renderTrace();
+    fireEvent.click(screen.getByRole("button"));
+    expect(await screen.findByText("payroll.calculation_trace.partial")).toBeInTheDocument();
+    expect(screen.getByText("100")).toBeInTheDocument();
+  });
+
   it("renders empty state", async () => {
     vi.mocked(fetchPayrollCalculationRuns).mockResolvedValueOnce([]);
     renderTrace();

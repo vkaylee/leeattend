@@ -312,6 +312,7 @@
     },
     "calculation_trace": {
       "empty": "暂无计算记录",
+      "partial": "计算记录不完整或不可用；部分步骤已省略。",
       "title": "计算明细"
     },
     "scope_employee": "员工",

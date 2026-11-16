@@ -312,6 +312,7 @@
     },
     "calculation_trace": {
       "empty": "Chưa có nhật ký tính toán",
+      "partial": "Nhật ký không đầy đủ hoặc không khả dụng; một số bước đã được bỏ qua.",
       "title": "Chi tiết tính toán"
     },
     "scope_employee": "Nhân viên",
