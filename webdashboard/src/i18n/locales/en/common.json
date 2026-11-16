@@ -2021,6 +2021,7 @@
     "statusesLabel": "Schedule status by day",
     "provisionalNotice": "Preview is provisional and does not count as official evidence.",
     "diffNotice": "Review server-generated diff before confirming replan.",
+    "approvalRequired": "An approved office scheduling policy is required before publishing.",
     "previewRequired": "Create a preview before publishing.",
     "evidenceRequired": "Load evidence before replanning.",
     "replanPreviewRequired": "Create a replan preview before confirming.",

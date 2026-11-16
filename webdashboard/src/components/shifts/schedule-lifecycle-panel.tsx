@@ -28,6 +28,7 @@ import { createQueryKey } from "@/lib/query-keys";
 import { formatScheduleLocalTime } from "./schedule-lifecycle-utils";
 
 interface ScheduleLifecyclePanelProps {
+  approvalInstanceId?: string | null;
   employeeSchedule: EmployeeSchedule;
   weekDays: Date[];
 }
@@ -81,7 +82,7 @@ function LifecycleStatusList({ schedule, t }: { schedule: EmployeeSchedule; t: (
   );
 }
 
-export function ScheduleLifecyclePanel({ employeeSchedule, weekDays }: ScheduleLifecyclePanelProps) {
+export function ScheduleLifecyclePanel({ approvalInstanceId, employeeSchedule, weekDays }: ScheduleLifecyclePanelProps) {
   const { t } = useTranslation();
   const { organization } = useOrganization();
   const queryClient = useQueryClient();
@@ -120,28 +121,32 @@ export function ScheduleLifecyclePanel({ employeeSchedule, weekDays }: ScheduleL
     : null;
 
   const previewMutation = useMutation({
-    mutationFn: () => previewSchedules({
-      employment_ids: [employeeSchedule.employment_id],
-      start_date: dateRange.start,
-      end_date: dateRange.end,
-      timezone: organization?.timezone ?? "UTC",
-      mode: "office",
-      approval_instance_id: null,
-      reason: reason.trim(),
-      retroactive: false,
-      expected_revisions: expectedRevisions,
-    }),
+    mutationFn: () => {
+      if (!approvalInstanceId) throw new Error("scheduleLifecycle.approvalRequired");
+      return previewSchedules({
+        employment_ids: [employeeSchedule.employment_id],
+        start_date: dateRange.start,
+        end_date: dateRange.end,
+        timezone: organization?.timezone ?? "UTC",
+        mode: "office",
+        approval_instance_id: approvalInstanceId,
+        reason: reason.trim(),
+        retroactive: false,
+        expected_revisions: expectedRevisions,
+      });
+    },
     onSuccess: ({ data }) => { setPreview(data); },
   });
   const publishMutation = useMutation({
     mutationFn: () => {
       if (!preview) throw new Error("scheduleLifecycle.previewRequired");
+      if (!approvalInstanceId) throw new Error("scheduleLifecycle.approvalRequired");
       return publishSchedules({
         employment_ids: [employeeSchedule.employment_id],
         start_date: dateRange.start,
         end_date: dateRange.end,
         timezone: organization?.timezone ?? "UTC",
-        approval_instance_id: null,
+        approval_instance_id: approvalInstanceId,
         preview_id: preview.preview_id,
         preview_hash: preview.preview_hash,
         reason: reason.trim(),
@@ -224,11 +229,12 @@ export function ScheduleLifecyclePanel({ employeeSchedule, weekDays }: ScheduleL
           <span className="mt-1 block font-normal text-slate-500" id="schedule-lifecycle-reason-hint">{t("scheduleLifecycle.reasonHint")}</span>
         </label>
         <div className="flex flex-wrap items-end gap-2">
-          <Button icon={<RefreshCw size={15} />} loading={previewMutation.isPending} onClick={() => { previewMutation.mutate(); }} variant="outline">{t("scheduleLifecycle.preview")}</Button>
-          <Button disabled={!preview} icon={<Send size={15} />} loading={publishMutation.isPending} onClick={() => { publishMutation.mutate(); }}>{t("scheduleLifecycle.publish")}</Button>
+          <Button disabled={!approvalInstanceId} icon={<RefreshCw size={15} />} loading={previewMutation.isPending} onClick={() => { previewMutation.mutate(); }} variant="outline">{t("scheduleLifecycle.preview")}</Button>
+          <Button disabled={!preview || !approvalInstanceId} icon={<Send size={15} />} loading={publishMutation.isPending} onClick={() => { publishMutation.mutate(); }}>{t("scheduleLifecycle.publish")}</Button>
         </div>
       </div>
 
+      {!approvalInstanceId ? <p className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-200" role="status">{t("scheduleLifecycle.approvalRequired")}</p> : null}
       {preview ? <div className="space-y-2 rounded-xl border border-blue-200 bg-blue-50 p-3 dark:border-blue-900 dark:bg-blue-950/30"><div className="flex items-center gap-2 text-xs font-semibold text-blue-800 dark:text-blue-200"><CheckCircle2 size={15} />{t("scheduleLifecycle.provisionalNotice")} <StatusBadge variant="info">{t("scheduleLifecycle.states.provisional")}</StatusBadge></div><JsonPreview value={preview.data} /></div> : null}
 
       <div className="flex flex-wrap gap-2 border-t border-slate-100 pt-4 dark:border-slate-800">

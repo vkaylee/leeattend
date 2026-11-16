@@ -2021,6 +2021,7 @@
     "statusesLabel": "Trạng thái lịch theo ngày",
     "provisionalNotice": "Bản xem trước là tạm thời và không phải bằng chứng chính thức.",
     "diffNotice": "Kiểm tra diff do máy chủ tạo trước khi xác nhận.",
+    "approvalRequired": "Cần chính sách xếp lịch văn phòng đã được duyệt trước khi công bố.",
     "previewRequired": "Tạo bản xem trước trước khi công bố.",
     "evidenceRequired": "Tải bằng chứng trước khi lập lại lịch.",
     "replanPreviewRequired": "Tạo bản xem trước lập lại lịch trước khi xác nhận.",
