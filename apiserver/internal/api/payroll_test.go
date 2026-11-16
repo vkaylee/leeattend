@@ -62,6 +62,10 @@ func (mockPayrollRepository) ComparePayrollImpact(context.Context, ids.Employmen
 	return PayrollImpactResponse{Computed: true}, nil
 }
 
+func (mockPayrollRepository) ComparePayrollImpactBatch(_ context.Context, req PayrollImpactBatchRequest) (PayrollImpactBatchResponse, error) {
+	return PayrollImpactBatchResponse{Total: len(req.EmploymentIDs)}, nil
+}
+
 func (mockPayrollRepository) ListPayrollFormulaRuleVersions(context.Context, uuid.UUID) ([]PayrollFormulaRuleVersion, error) {
 	return []PayrollFormulaRuleVersion{}, nil
 }

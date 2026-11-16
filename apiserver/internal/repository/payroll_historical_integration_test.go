@@ -362,6 +362,47 @@ func TestIntegrationLegacyPayrollCalculationKeepsArithmeticAcrossReruns(t *testi
 	}
 }
 
+func TestIntegrationComparePayrollImpactBatchAggregatesWithoutMutation(t *testing.T) {
+	pool, ctx := requireIntegrationDatabase(t)
+	employerID, employeeID, employmentID := uuid.New(), uuid.New(), uuid.New()
+	if _, err := pool.Exec(ctx, `INSERT INTO employers (id, name) VALUES ($1, 'batch-impact-employer')`, employerID); err != nil {
+		t.Fatalf("insert impact employer: %v", err)
+	}
+	if _, err := pool.Exec(ctx, `INSERT INTO employees (id, employee_id_number, full_name, hire_date, original_hire_date) VALUES ($1, $2, 'batch-impact-employee', DATE '2026-01-01', DATE '2026-01-01')`, employeeID, employeeID.String()); err != nil {
+		t.Fatalf("insert impact employee: %v", err)
+	}
+	if _, err := pool.Exec(ctx, `INSERT INTO employments (id, employee_id, employer_id, status, start_date) VALUES ($1, $2, $3, 'active', DATE '2026-01-01')`, employmentID, employeeID, employerID); err != nil {
+		t.Fatalf("insert impact employment: %v", err)
+	}
+	beforeRunID, afterRunID := uuid.New(), uuid.New()
+	beforeInput := `{"kpi_inputs":{"production.output":"100"},"policy":{"version_id":"policy-a"}}`
+	afterInput := `{"kpi_inputs":{"production.output":"100"},"policy":{"version_id":"policy-b"}}`
+	beforeOutput := `{"base_pay":"1000","overtime_pay":"0","deductions":"0","net_pay":"1000","standard_units":"10","overtime_units":"0"}`
+	afterOutput := `{"base_pay":"1200","overtime_pay":"0","deductions":"0","net_pay":"1200","standard_units":"12","overtime_units":"0"}`
+	for _, item := range []struct {
+		id            uuid.UUID
+		input, output string
+	}{{beforeRunID, beforeInput, beforeOutput}, {afterRunID, afterInput, afterOutput}} {
+		if _, err := pool.Exec(ctx, `INSERT INTO payroll_calculation_runs (id, employment_id, period_year, period_month, formula_version_id, engine_version, input_snapshot, output_snapshot) VALUES ($1, $2, 2026, 6, NULL, 'test', $3::jsonb, $4::jsonb)`, item.id, employmentID, item.input, item.output); err != nil {
+			t.Fatalf("insert impact run: %v", err)
+		}
+	}
+	result, err := (PayrollRepository{DB: pool}).ComparePayrollImpactBatch(ctx, api.PayrollImpactBatchRequest{EmploymentIDs: []uuid.UUID{employmentID}, Year: 2026, Month: 6, BeforeRunID: beforeRunID, AfterRunID: afterRunID})
+	if err != nil {
+		t.Fatalf("compare batch impact: %v", err)
+	}
+	if result.Total != 1 || result.Computed != 1 || result.Affected != 1 || result.Uncomputable != 0 || len(result.Items) != 1 || result.Items[0].Delta == nil || !result.Items[0].Delta.NetPayDelta.Equal(decimal.RequireFromString("200")) {
+		t.Fatalf("unexpected batch impact: %+v", result)
+	}
+	var payslipCount int
+	if err := pool.QueryRow(ctx, `SELECT count(*) FROM payslips WHERE employment_id = $1`, employmentID).Scan(&payslipCount); err != nil {
+		t.Fatalf("count batch impact payslips: %v", err)
+	}
+	if payslipCount != 0 {
+		t.Fatalf("batch impact mutated payslips: %d", payslipCount)
+	}
+}
+
 func TestIntegrationSimulatePayrollRollsBackAllPayrollWrites(t *testing.T) {
 	pool, ctx := requireIntegrationDatabase(t)
 	employerID, employeeID, employmentID := uuid.New(), uuid.New(), uuid.New()

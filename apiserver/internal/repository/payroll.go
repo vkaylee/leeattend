@@ -1198,6 +1198,70 @@ ORDER BY created_at DESC, id DESC`, uuid.UUID(employmentID), year, month)
 	return result, rows.Err()
 }
 
+func (r PayrollRepository) ComparePayrollImpactBatch(ctx context.Context, req api.PayrollImpactBatchRequest) (api.PayrollImpactBatchResponse, error) {
+	if len(req.EmploymentIDs) == 0 || len(req.EmploymentIDs) > 100 || req.BeforeRunID == uuid.Nil || req.AfterRunID == uuid.Nil || req.BeforeRunID == req.AfterRunID {
+		return api.PayrollImpactBatchResponse{}, api.ErrPayrollImpactValidation
+	}
+	db, err := r.db(ctx)
+	if err != nil {
+		return api.PayrollImpactBatchResponse{}, err
+	}
+	rows, err := db.Query(ctx, `SELECT employment_id, id, formula_version_id, input_snapshot, output_snapshot
+FROM payroll_calculation_runs
+WHERE employment_id = ANY($1::uuid[]) AND period_year = $2 AND period_month = $3 AND id = ANY($4::uuid[])
+ORDER BY employment_id, id`, req.EmploymentIDs, req.Year, req.Month, []uuid.UUID{req.BeforeRunID, req.AfterRunID})
+	if err != nil {
+		return api.PayrollImpactBatchResponse{}, err
+	}
+	defer rows.Close()
+	type run struct {
+		formulaID     *uuid.UUID
+		input, output []byte
+	}
+	runs := make(map[uuid.UUID]map[uuid.UUID]run)
+	for rows.Next() {
+		var employmentID, runID uuid.UUID
+		var item run
+		if err := rows.Scan(&employmentID, &runID, &item.formulaID, &item.input, &item.output); err != nil {
+			return api.PayrollImpactBatchResponse{}, err
+		}
+		if runs[employmentID] == nil {
+			runs[employmentID] = make(map[uuid.UUID]run, 2)
+		}
+		runs[employmentID][runID] = item
+	}
+	if err := rows.Err(); err != nil {
+		return api.PayrollImpactBatchResponse{}, err
+	}
+	result := api.PayrollImpactBatchResponse{Total: len(req.EmploymentIDs), Items: make([]api.PayrollImpactBatchItem, 0, len(req.EmploymentIDs))}
+	for _, employmentID := range req.EmploymentIDs {
+		item := api.PayrollImpactBatchItem{EmploymentID: employmentID}
+		before, beforeOK := runs[employmentID][req.BeforeRunID]
+		after, afterOK := runs[employmentID][req.AfterRunID]
+		if !beforeOK || !afterOK || before.formulaID != nil || after.formulaID != nil {
+			item.Reason = "calculation runs are incomplete or formula-linked"
+			result.Uncomputable++
+			result.Items = append(result.Items, item)
+			continue
+		}
+		delta, compareErr := payroll.CompareImpactSnapshots(before.input, before.output, after.input, after.output)
+		if compareErr != nil {
+			item.Reason = compareErr.Error()
+			result.Uncomputable++
+			result.Items = append(result.Items, item)
+			continue
+		}
+		item.Computed = true
+		item.Delta = &api.PayrollImpactResponse{EmploymentID: employmentID, PeriodYear: req.Year, PeriodMonth: req.Month, BeforeRunID: req.BeforeRunID, AfterRunID: req.AfterRunID, Computed: true, BasePayDelta: delta.BasePayDelta, OvertimePayDelta: delta.OvertimePayDelta, DeductionsDelta: delta.DeductionsDelta, NetPayDelta: delta.NetPayDelta, StandardUnitsDelta: delta.StandardUnitsDelta, OvertimeUnitsDelta: delta.OvertimeUnitsDelta}
+		if !delta.BasePayDelta.IsZero() || !delta.OvertimePayDelta.IsZero() || !delta.DeductionsDelta.IsZero() || !delta.NetPayDelta.IsZero() || delta.StandardUnitsDelta != 0 || delta.OvertimeUnitsDelta != 0 {
+			result.Affected++
+		}
+		result.Computed++
+		result.Items = append(result.Items, item)
+	}
+	return result, nil
+}
+
 func (r PayrollRepository) ComparePayrollImpact(ctx context.Context, employmentID ids.EmploymentID, year, month int, beforeRunID, afterRunID uuid.UUID) (api.PayrollImpactResponse, error) {
 	db, err := r.db(ctx)
 	if err != nil {

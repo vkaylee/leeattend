@@ -378,6 +378,30 @@ type PayrollFormulaRuleVersion struct {
 	CreatedAt     string     `json:"created_at"`
 }
 
+type PayrollImpactBatchRequest struct {
+	EmploymentIDs []uuid.UUID `json:"employment_ids"`
+	Year          int         `json:"year"`
+	Month         int         `json:"month"`
+	BeforeRunID   uuid.UUID   `json:"before_run_id"`
+	AfterRunID    uuid.UUID   `json:"after_run_id"`
+}
+
+type PayrollImpactBatchItem struct {
+	EmploymentID uuid.UUID              `json:"employment_id"`
+	Computed     bool                   `json:"computed"`
+	Stale        bool                   `json:"stale"`
+	Reason       string                 `json:"reason,omitempty"`
+	Delta        *PayrollImpactResponse `json:"delta,omitempty"`
+}
+
+type PayrollImpactBatchResponse struct {
+	Total        int                      `json:"total"`
+	Computed     int                      `json:"computed"`
+	Affected     int                      `json:"affected"`
+	Uncomputable int                      `json:"uncomputable"`
+	Items        []PayrollImpactBatchItem `json:"items"`
+}
+
 type PayrollImpactResponse struct {
 	EmploymentID       uuid.UUID       `json:"employment_id"`
 	PeriodYear         int             `json:"period_year"`
@@ -475,6 +499,7 @@ type PayrollRepository interface {
 	RetirePayrollFormulaRule(context.Context, ids.PayrollFormulaRuleID, ids.UserID) (PayrollFormulaRule, error)
 	ListPayrollCalculationRuns(context.Context, ids.EmploymentID, int, int) ([]PayrollCalculationRun, error)
 	ComparePayrollImpact(context.Context, ids.EmploymentID, int, int, uuid.UUID, uuid.UUID) (PayrollImpactResponse, error)
+	ComparePayrollImpactBatch(context.Context, PayrollImpactBatchRequest) (PayrollImpactBatchResponse, error)
 	GetPayrollPeriod(context.Context, ids.EmployerID, int, int) (PayrollPeriod, error)
 	LockPayrollPeriod(context.Context, payrolldomain.PayrollPeriodMutation) (PayrollPeriod, error)
 	ReopenPayrollPeriod(context.Context, payrolldomain.PayrollPeriodMutation) (PayrollPeriod, error)
@@ -1125,6 +1150,24 @@ func (h PayrollHandler) ComparePayrollImpact(w http.ResponseWriter, r *http.Requ
 		return
 	}
 	result, err := h.Repository.ComparePayrollImpact(r.Context(), ids.EmploymentID(employmentID), year, month, beforeRunID, afterRunID)
+	if err != nil {
+		h.writeError(w, r, err)
+		return
+	}
+	apperror.WriteJSON(w, http.StatusOK, result)
+}
+
+func (h PayrollHandler) ComparePayrollImpactBatch(w http.ResponseWriter, r *http.Request) {
+	if !h.allowed(r, "payroll:sensitive:read") {
+		h.forbidden(w, r)
+		return
+	}
+	req, err := DecodeJSON[PayrollImpactBatchRequest](r, 1<<20)
+	if err != nil || len(req.EmploymentIDs) == 0 || len(req.EmploymentIDs) > 100 || req.Year < 2000 || req.Year > 2100 || req.Month < 1 || req.Month > 12 || req.BeforeRunID == uuid.Nil || req.AfterRunID == uuid.Nil || req.BeforeRunID == req.AfterRunID {
+		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
+		return
+	}
+	result, err := h.Repository.ComparePayrollImpactBatch(r.Context(), req)
 	if err != nil {
 		h.writeError(w, r, err)
 		return
