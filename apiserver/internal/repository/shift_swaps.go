@@ -81,7 +81,15 @@ func (r ShiftSwapRepository) CreateSwap(ctx context.Context, userID uuid.UUID, r
 		if sameShift(reqShift, tgtShift) {
 			return api.ErrShiftSwapValidation
 		}
-		_, err = db.Exec(ctx, `INSERT INTO shift_swap_requests (id, requester_id, target_id, swap_date, requester_template_id, target_template_id, status, reason, requested_by_user_id, approved_by_user_id, created_at, updated_at) VALUES ($1, $2, $3, $4::date, $5, $6, 'pending_admin', $7, $8, NULL, $9, $9)`, id, req.RequesterID, req.TargetID, req.SwapDate, reqShift, tgtShift, req.Reason, userID, now)
+		requesterRevisionID, requesterRevisionNumber, err := currentOfficialRevision(ctx, db, reqEmployment, req.SwapDate)
+		if err != nil {
+			return err
+		}
+		targetRevisionID, targetRevisionNumber, err := currentOfficialRevision(ctx, db, tgtEmployment, req.SwapDate)
+		if err != nil {
+			return err
+		}
+		_, err = db.Exec(ctx, `INSERT INTO shift_swap_requests (id, requester_id, target_id, swap_date, requester_template_id, target_template_id, requester_revision_id, requester_revision_number, target_revision_id, target_revision_number, status, reason, requested_by_user_id, approved_by_user_id, created_at, updated_at) VALUES ($1, $2, $3, $4::date, $5, $6, $7, $8, $9, $10, 'pending_admin', $11, $12, NULL, $13, $13)`, id, req.RequesterID, req.TargetID, req.SwapDate, reqShift, tgtShift, requesterRevisionID, requesterRevisionNumber, targetRevisionID, targetRevisionNumber, req.Reason, userID, now)
 		if err != nil {
 			return err
 		}
@@ -346,7 +354,15 @@ func (r ShiftSwapRepository) CreateESSSwap(ctx context.Context, requesterID, use
 		if sameShift(reqShift, tgtShift) {
 			return api.ErrShiftSwapValidation
 		}
-		_, err = db.Exec(ctx, `INSERT INTO shift_swap_requests (id, requester_id, target_id, swap_date, requester_template_id, target_template_id, status, reason, requested_by_user_id, approved_by_user_id, created_at, updated_at) VALUES ($1, $2, $3, $4::date, $5, $6, 'pending_target', $7, $8, NULL, $9, $9)`, id, requesterID, req.TargetID, req.SwapDate, reqShift, tgtShift, req.Reason, userID, now)
+		requesterRevisionID, requesterRevisionNumber, err := currentOfficialRevision(ctx, db, reqEmployment, req.SwapDate)
+		if err != nil {
+			return err
+		}
+		targetRevisionID, targetRevisionNumber, err := currentOfficialRevision(ctx, db, tgtEmployment, req.SwapDate)
+		if err != nil {
+			return err
+		}
+		_, err = db.Exec(ctx, `INSERT INTO shift_swap_requests (id, requester_id, target_id, swap_date, requester_template_id, target_template_id, requester_revision_id, requester_revision_number, target_revision_id, target_revision_number, status, reason, requested_by_user_id, approved_by_user_id, created_at, updated_at) VALUES ($1, $2, $3, $4::date, $5, $6, $7, $8, $9, $10, 'pending_target', $11, $12, NULL, $13, $13)`, id, requesterID, req.TargetID, req.SwapDate, reqShift, tgtShift, requesterRevisionID, requesterRevisionNumber, targetRevisionID, targetRevisionNumber, req.Reason, userID, now)
 		if err != nil {
 			return err
 		}
@@ -427,6 +443,18 @@ func (r ShiftSwapRepository) CancelSwap(ctx context.Context, requesterID, reques
 		_, err = db.Exec(ctx, `UPDATE shift_swap_requests SET status = 'cancelled', updated_at = $1 WHERE id = $2`, now, requestID)
 		return err
 	})
+}
+
+func currentOfficialRevision(ctx context.Context, db DBTX, employmentID uuid.UUID, date string) (*uuid.UUID, *int64, error) {
+	var revisionID *uuid.UUID
+	var revisionNumber *int64
+	if err := db.QueryRow(ctx, `SELECT id, revision_number FROM schedule_day_revisions WHERE employment_id = $1 AND business_date = $2::date AND state IN ('published', 'explicit_off') ORDER BY revision_number DESC LIMIT 1`, employmentID, date).Scan(&revisionID, &revisionNumber); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, nil, nil
+		}
+		return nil, nil, err
+	}
+	return revisionID, revisionNumber, nil
 }
 
 func resolveEmploymentOnDate(ctx context.Context, db DBTX, employeeID uuid.UUID, date string) (uuid.UUID, error) {
