@@ -85,7 +85,7 @@ func (r EmployeeRepository) ListEmployees(ctx context.Context, page, limit int, 
 	}
 	offset := (page - 1) * limit
 	pattern := "%" + search + "%"
-	rows, err := db.Query(ctx, `SELECT e.id, e.user_id, e.full_name, COALESCE(tenure.employee_number, e.employee_id_number), e.tags, e.created_at, e.updated_at, d.name AS department_name, emp.id AS active_employment_id, emp.employer_id, NULL::uuid AS primary_location_id FROM employees e LEFT JOIN employments emp ON emp.employee_id = e.id AND emp.status = 'active' AND emp.deleted_at IS NULL LEFT JOIN departments d ON d.id = emp.department_id LEFT JOIN LATERAL (SELECT t.employee_number FROM employee_tenures t WHERE t.employee_id = e.id AND t.deleted_at IS NULL AND t.start_date <= CURRENT_DATE AND (t.end_date IS NULL OR t.end_date >= CURRENT_DATE) ORDER BY t.start_date DESC, t.id DESC LIMIT 1) tenure ON TRUE WHERE e.deleted_at IS NULL AND ($1 = '%%' OR e.full_name ILIKE $1 OR EXISTS (SELECT 1 FROM employee_tenures search_t WHERE search_t.employee_id = e.id AND search_t.deleted_at IS NULL AND search_t.employee_number ILIKE $1)) ORDER BY COALESCE(tenure.employee_number, e.employee_id_number) ASC, e.id ASC LIMIT $2 OFFSET $3`, pattern, limit, offset)
+	rows, err := db.Query(ctx, `SELECT e.id, e.user_id, e.full_name, COALESCE(tenure.employee_number, ''), e.tags, e.created_at, e.updated_at, d.name AS department_name, emp.id AS active_employment_id, emp.employer_id, NULL::uuid AS primary_location_id FROM employees e LEFT JOIN employments emp ON emp.employee_id = e.id AND emp.status = 'active' AND emp.deleted_at IS NULL LEFT JOIN departments d ON d.id = emp.department_id LEFT JOIN LATERAL (SELECT t.employee_number FROM employee_tenures t WHERE t.employee_id = e.id AND t.deleted_at IS NULL AND t.start_date <= CURRENT_DATE AND (t.end_date IS NULL OR t.end_date >= CURRENT_DATE) ORDER BY t.start_date DESC, t.id DESC LIMIT 1) tenure ON TRUE WHERE e.deleted_at IS NULL AND ($1 = '%%' OR e.full_name ILIKE $1 OR EXISTS (SELECT 1 FROM employee_tenures search_t WHERE search_t.employee_id = e.id AND search_t.deleted_at IS NULL AND search_t.employee_number ILIKE $1)) ORDER BY COALESCE(tenure.employee_number, '') ASC, e.id ASC LIMIT $2 OFFSET $3`, pattern, limit, offset)
 	if err != nil {
 		return api.EmployeeListResponse{}, err
 	}
@@ -117,7 +117,7 @@ func (r EmployeeRepository) GetEmployee(ctx context.Context, employeeID uuid.UUI
 	}
 	var record api.EmployeeRecord
 	var createdAt, updatedAt time.Time
-	err = db.QueryRow(ctx, `SELECT e.id, e.user_id, e.full_name, COALESCE(tenure.employee_number, e.employee_id_number), e.tags, e.created_at, e.updated_at, d.name AS department_name, emp.id AS active_employment_id, emp.employer_id, NULL::uuid AS primary_location_id FROM employees e LEFT JOIN employments emp ON emp.employee_id = e.id AND emp.status = 'active' AND emp.deleted_at IS NULL LEFT JOIN departments d ON d.id = emp.department_id LEFT JOIN LATERAL (SELECT t.employee_number FROM employee_tenures t WHERE t.employee_id = e.id AND t.deleted_at IS NULL AND t.start_date <= CURRENT_DATE AND (t.end_date IS NULL OR t.end_date >= CURRENT_DATE) ORDER BY t.start_date DESC, t.id DESC LIMIT 1) tenure ON TRUE WHERE e.id = $1 AND e.deleted_at IS NULL`, employeeID).
+	err = db.QueryRow(ctx, `SELECT e.id, e.user_id, e.full_name, COALESCE(tenure.employee_number, ''), e.tags, e.created_at, e.updated_at, d.name AS department_name, emp.id AS active_employment_id, emp.employer_id, NULL::uuid AS primary_location_id FROM employees e LEFT JOIN employments emp ON emp.employee_id = e.id AND emp.status = 'active' AND emp.deleted_at IS NULL LEFT JOIN departments d ON d.id = emp.department_id LEFT JOIN LATERAL (SELECT t.employee_number FROM employee_tenures t WHERE t.employee_id = e.id AND t.deleted_at IS NULL AND t.start_date <= CURRENT_DATE AND (t.end_date IS NULL OR t.end_date >= CURRENT_DATE) ORDER BY t.start_date DESC, t.id DESC LIMIT 1) tenure ON TRUE WHERE e.id = $1 AND e.deleted_at IS NULL`, employeeID).
 		Scan(&record.ID, &record.UserID, &record.FullName, &record.EmployeeIDNumber, &record.Tags, &createdAt, &updatedAt, &record.DepartmentName, &record.ActiveEmploymentID, &record.EmployerID, &record.PrimaryLocationID)
 	if err != nil {
 		return api.EmployeeRecord{}, err
@@ -128,6 +128,9 @@ func (r EmployeeRepository) GetEmployee(ctx context.Context, employeeID uuid.UUI
 }
 
 func (r EmployeeRepository) UpdateEmployee(ctx context.Context, employeeID uuid.UUID, req api.UpdateEmployeeRequest) (api.EmployeeRecord, error) {
+	if req.EmployeeIDNumber != nil {
+		return api.EmployeeRecord{}, api.ErrConflict
+	}
 	beginner, err := r.begin(ctx)
 	if err != nil {
 		return api.EmployeeRecord{}, err

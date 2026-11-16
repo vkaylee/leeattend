@@ -61,7 +61,7 @@ func (r ContractRepository) ListContracts(ctx context.Context) ([]api.EmployeeCo
 		c.id, c.employment_id, c.contract_number, c.contract_type::text,
 		c.status::text, c.start_date::text, c.end_date::text, c.document_id, c.notes,
 		c.created_at, c.updated_at,
-		e.full_name, COALESCE(t.employee_number, e.employee_id_number), e.id
+		e.full_name, COALESCE(t.employee_number, ''), e.id
 	FROM employee_contracts c
 	INNER JOIN employments em ON em.id = c.employment_id
 	INNER JOIN employees e ON e.id = em.employee_id

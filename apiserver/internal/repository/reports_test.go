@@ -477,7 +477,7 @@ func TestReportRepository_GetNoShowReportAggregatesOfficialIntervals(t *testing.
 	}
 }
 
-func TestReportRepository_HistoricalNumbersUseEffectiveTenure(t *testing.T) {
+func TestReportRepository_HistoricalNumbersUseEffectiveTenureWithoutProjectionFallback(t *testing.T) {
 	cases := []struct {
 		name       string
 		invoke     func(*ReportRepository) error
@@ -536,7 +536,7 @@ func TestReportRepository_HistoricalNumbersUseEffectiveTenure(t *testing.T) {
 			for _, fragment := range []string{
 				"LEFT JOIN employment_relationships er ON er.id = emp.relationship_id",
 				"LEFT JOIN employee_tenures t ON t.id = er.tenure_id",
-				"COALESCE(t.employee_number, e.employee_id_number)",
+				"COALESCE(t.employee_number, '')",
 				tc.dataMarker,
 			} {
 				if !strings.Contains(dataQuery, fragment) {

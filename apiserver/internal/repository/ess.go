@@ -58,7 +58,7 @@ func (r ESSRepository) GetMyProfile(ctx context.Context, employeeID uuid.UUID) (
 	}
 	var emp api.EmployeeRecord
 	var createdAt, updatedAt time.Time
-	err = db.QueryRow(ctx, `SELECT e.id, e.user_id, e.full_name, COALESCE(tenure.employee_number, e.employee_id_number), e.tags, e.created_at, e.updated_at FROM employees e LEFT JOIN LATERAL (SELECT t.employee_number FROM employee_tenures t WHERE t.employee_id = e.id AND t.deleted_at IS NULL AND t.start_date <= CURRENT_DATE AND (t.end_date IS NULL OR t.end_date >= CURRENT_DATE) ORDER BY t.start_date DESC, t.id DESC LIMIT 1) tenure ON TRUE WHERE e.id = $1 AND e.deleted_at IS NULL`, employeeID).Scan(
+	err = db.QueryRow(ctx, `SELECT e.id, e.user_id, e.full_name, COALESCE(tenure.employee_number, ''), e.tags, e.created_at, e.updated_at FROM employees e LEFT JOIN LATERAL (SELECT t.employee_number FROM employee_tenures t WHERE t.employee_id = e.id AND t.deleted_at IS NULL AND t.start_date <= CURRENT_DATE AND (t.end_date IS NULL OR t.end_date >= CURRENT_DATE) ORDER BY t.start_date DESC, t.id DESC LIMIT 1) tenure ON TRUE WHERE e.id = $1 AND e.deleted_at IS NULL`, employeeID).Scan(
 		&emp.ID, &emp.UserID, &emp.FullName, &emp.EmployeeIDNumber, &emp.Tags, &createdAt, &updatedAt,
 	)
 	if errors.Is(err, pgx.ErrNoRows) {

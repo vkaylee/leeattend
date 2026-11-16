@@ -200,7 +200,7 @@ func (r ScheduleRepository) GetOfficialSchedules(ctx context.Context, startDate,
 	}
 	rows, err := db.Query(ctx, `WITH eligible_employments AS (
 		SELECT emp.id AS employment_id, e.id AS employee_id, e.full_name,
-			COALESCE(t.employee_number, e.employee_id_number) AS employee_id_number,
+			COALESCE(t.employee_number, '') AS employee_id_number,
 			emp.start_date, emp.end_date
 		FROM employments emp
 		JOIN employees e ON e.id = emp.employee_id
@@ -444,7 +444,7 @@ func resolveScheduleData(ctx context.Context, db DBTX, startDate, endDate time.T
 		if err := db.QueryRow(ctx, `SELECT count(*) FROM employees e JOIN employments emp ON emp.employee_id = e.id WHERE emp.deleted_at IS NULL AND emp.id = ANY($1)`, employmentIDs).Scan(&total); err != nil {
 			return scheduleResolution{}, 0, err
 		}
-		rows, err := db.Query(ctx, `SELECT emp.id, e.full_name, COALESCE(t.employee_number, e.employee_id_number), e.tags, emp.primary_location_id, e.id, emp.start_date::text, emp.end_date::text FROM employees e JOIN employments emp ON emp.employee_id = e.id LEFT JOIN employment_relationships er ON er.id = emp.relationship_id AND er.employee_id = emp.employee_id LEFT JOIN employee_tenures t ON t.id = er.tenure_id AND t.employee_id = e.id AND t.deleted_at IS NULL AND t.start_date <= emp.start_date AND (t.end_date IS NULL OR t.end_date >= emp.start_date) WHERE emp.deleted_at IS NULL AND emp.id = ANY($1) ORDER BY emp.start_date DESC, emp.id ASC LIMIT $2 OFFSET $3`, employmentIDs, limit, offset)
+		rows, err := db.Query(ctx, `SELECT emp.id, e.full_name, COALESCE(t.employee_number, ''), e.tags, emp.primary_location_id, e.id, emp.start_date::text, emp.end_date::text FROM employees e JOIN employments emp ON emp.employee_id = e.id LEFT JOIN employment_relationships er ON er.id = emp.relationship_id AND er.employee_id = emp.employee_id LEFT JOIN employee_tenures t ON t.id = er.tenure_id AND t.employee_id = e.id AND t.deleted_at IS NULL AND t.start_date <= emp.start_date AND (t.end_date IS NULL OR t.end_date >= emp.start_date) WHERE emp.deleted_at IS NULL AND emp.id = ANY($1) ORDER BY emp.start_date DESC, emp.id ASC LIMIT $2 OFFSET $3`, employmentIDs, limit, offset)
 		if err != nil {
 			return scheduleResolution{}, 0, err
 		}
@@ -457,7 +457,7 @@ func resolveScheduleData(ctx context.Context, db DBTX, startDate, endDate time.T
 		if err := db.QueryRow(ctx, `SELECT count(*) FROM employees e JOIN employments emp ON emp.employee_id = e.id WHERE emp.deleted_at IS NULL AND emp.start_date <= $1::date AND (emp.end_date IS NULL OR emp.end_date >= $2::date)`, endStr, startStr).Scan(&total); err != nil {
 			return scheduleResolution{}, 0, err
 		}
-		rows, err := db.Query(ctx, `SELECT emp.id, e.full_name, COALESCE(t.employee_number, e.employee_id_number), e.tags, emp.primary_location_id, e.id, emp.start_date::text, emp.end_date::text FROM employees e JOIN employments emp ON emp.employee_id = e.id LEFT JOIN employment_relationships er ON er.id = emp.relationship_id AND er.employee_id = emp.employee_id LEFT JOIN employee_tenures t ON t.id = er.tenure_id AND t.employee_id = e.id AND t.deleted_at IS NULL AND t.start_date <= $1::date AND (t.end_date IS NULL OR t.end_date >= $2::date) WHERE emp.deleted_at IS NULL AND emp.start_date <= $1::date AND (emp.end_date IS NULL OR emp.end_date >= $2::date) ORDER BY emp.start_date DESC, emp.id ASC LIMIT $3 OFFSET $4`, endStr, startStr, limit, offset)
+		rows, err := db.Query(ctx, `SELECT emp.id, e.full_name, COALESCE(t.employee_number, ''), e.tags, emp.primary_location_id, e.id, emp.start_date::text, emp.end_date::text FROM employees e JOIN employments emp ON emp.employee_id = e.id LEFT JOIN employment_relationships er ON er.id = emp.relationship_id AND er.employee_id = emp.employee_id LEFT JOIN employee_tenures t ON t.id = er.tenure_id AND t.employee_id = e.id AND t.deleted_at IS NULL AND t.start_date <= $1::date AND (t.end_date IS NULL OR t.end_date >= $2::date) WHERE emp.deleted_at IS NULL AND emp.start_date <= $1::date AND (emp.end_date IS NULL OR emp.end_date >= $2::date) ORDER BY emp.start_date DESC, emp.id ASC LIMIT $3 OFFSET $4`, endStr, startStr, limit, offset)
 		if err != nil {
 			return scheduleResolution{}, 0, err
 		}

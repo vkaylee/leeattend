@@ -109,6 +109,13 @@ func (r FileRepository) DeleteFile(ctx context.Context, fileID uuid.UUID) error 
 	if err != nil {
 		return err
 	}
+	var signed bool
+	if err := db.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM signature_requests WHERE document_id = $1 AND status = 'signed')`, fileID).Scan(&signed); err != nil {
+		return err
+	}
+	if signed {
+		return api.ErrFileImmutable
+	}
 	tag, err := db.Exec(ctx, `UPDATE files SET is_active = false, updated_at = NOW() WHERE id = $1 AND is_active = true`, fileID)
 	if err != nil {
 		return err
@@ -163,12 +170,12 @@ func (r FileRepository) ListPendingSignatures(ctx context.Context, signerID uuid
 	return result, rows.Err()
 }
 
-func (r FileRepository) SignDocument(ctx context.Context, requestID uuid.UUID) error {
+func (r FileRepository) SignDocument(ctx context.Context, requestID, signerID uuid.UUID) error {
 	db, err := r.db(ctx)
 	if err != nil {
 		return err
 	}
-	tag, err := db.Exec(ctx, `UPDATE signature_requests SET status = 'signed', signed_at = NOW(), updated_at = NOW() WHERE id = $1 AND status = 'pending'`, requestID)
+	tag, err := db.Exec(ctx, `UPDATE signature_requests sr SET status = 'signed', signed_at = NOW(), updated_at = NOW() FROM employees e WHERE sr.id = $1 AND sr.signer_id = e.id AND e.user_id = $2 AND sr.status = 'pending'`, requestID, signerID)
 	if err != nil {
 		return err
 	}
@@ -182,6 +189,13 @@ func (r FileRepository) CreateFileVersion(ctx context.Context, oldFileID uuid.UU
 	db, err := r.db(ctx)
 	if err != nil {
 		return api.FileRecord{}, err
+	}
+	var signed bool
+	if err := db.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM signature_requests WHERE document_id = $1 AND status = 'signed')`, oldFileID).Scan(&signed); err != nil {
+		return api.FileRecord{}, err
+	}
+	if signed {
+		return api.FileRecord{}, api.ErrFileImmutable
 	}
 	_, err = db.Exec(ctx, `UPDATE files SET is_latest = false, updated_at = NOW() WHERE id = $1`, oldFileID)
 	if err != nil {

@@ -47,7 +47,7 @@ func (r EmployeeAssignmentRepository) ListAssignments(ctx context.Context) ([]ap
 		return nil, err
 	}
 	rows, err := db.Query(ctx, `SELECT `+employeeAssignmentColumns+`,
-		e.id, e.full_name, COALESCE(t.employee_number, e.employee_id_number),
+		e.id, e.full_name, COALESCE(t.employee_number, ''),
 		COALESCE(hl.name, ''), COALESCE(hostl.name, '')
 		FROM employee_assignments ea
 		JOIN employments em ON em.id = ea.employment_id

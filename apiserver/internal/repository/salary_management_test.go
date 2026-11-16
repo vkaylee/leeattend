@@ -32,7 +32,7 @@ func TestPayrollRepository_ListSalaryManagementRows_IsPaginatedAndSinglePageQuer
 		},
 		queryFn: func(_ context.Context, query string, args ...any) (pgx.Rows, error) {
 			queryCount++
-			if !strings.Contains(query, "ORDER BY COALESCE(tenure.employee_number, e.employee_id_number) ASC, em.id ASC, configured_component.effective_date DESC") {
+			if !strings.Contains(query, "ORDER BY COALESCE(tenure.employee_number, '') ASC, em.id ASC, configured_component.effective_date DESC") {
 				t.Fatalf("missing stable tenure-aware ordering: %s", query)
 			}
 			if !strings.Contains(query, "LIMIT $6 OFFSET $7") {

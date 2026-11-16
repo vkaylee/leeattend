@@ -102,8 +102,8 @@ func (m *mockFileRepo) ListPendingSignatures(ctx context.Context, signerID uuid.
 	return list, nil
 }
 
-func (m *mockFileRepo) SignDocument(ctx context.Context, requestID uuid.UUID) error {
-	if s, ok := m.Signatures[requestID]; ok && s.Status == "pending" {
+func (m *mockFileRepo) SignDocument(ctx context.Context, requestID, signerID uuid.UUID) error {
+	if s, ok := m.Signatures[requestID]; ok && s.Status == "pending" && s.SignerID == signerID {
 		s.Status = "signed"
 		m.Signatures[requestID] = s
 		return nil

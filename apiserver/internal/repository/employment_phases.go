@@ -218,13 +218,13 @@ func (r EmploymentPhaseRepository) ListOrganizationPhases(ctx context.Context, p
 	search := "%" + query + "%"
 	rows, err := db.Query(ctx, `SELECT ep.id, ep.employment_id, ep.phase_definition_id, ep.start_date::text, ep.end_date::text,
 		ep.status, ep.override_config, ep.evaluation_notes, ep.evaluated_by, ep.completed_at, ep.created_at, ep.updated_at,
-		e.id, e.full_name, COALESCE(t.employee_number, e.employee_id_number), d.name, pd.name, pd.phase_type
+		e.id, e.full_name, COALESCE(t.employee_number, ''), d.name, pd.name, pd.phase_type
 		FROM employee_phases ep
 		JOIN employments em ON em.id = ep.employment_id AND em.deleted_at IS NULL
 		JOIN employees e ON e.id = em.employee_id AND e.deleted_at IS NULL
 		LEFT JOIN departments d ON d.id = em.department_id
 		JOIN employment_phase_definitions pd ON pd.id = ep.phase_definition_id
-		WHERE ($1 = '%%' OR e.full_name ILIKE $1 OR COALESCE(t.employee_number, e.employee_id_number) ILIKE $1 OR pd.name ILIKE $1)
+		WHERE ($1 = '%%' OR e.full_name ILIKE $1 OR COALESCE(t.employee_number, '') ILIKE $1 OR pd.name ILIKE $1)
 		  AND ($2 = '' OR ep.status = $2)
 		  AND ($5::uuid IS NULL OR e.id = $5::uuid)
 		ORDER BY ep.start_date DESC, ep.id ASC LIMIT $3 OFFSET $4`, search, status, limit, offset, employeeID)
@@ -253,7 +253,7 @@ func (r EmploymentPhaseRepository) ListOrganizationPhases(ctx context.Context, p
 	if err := rows.Err(); err != nil {
 		return api.EmploymentPhaseAssignmentListResponse{}, err
 	}
-	if err := db.QueryRow(ctx, `SELECT count(*) FROM employee_phases ep JOIN employments em ON em.id = ep.employment_id AND em.deleted_at IS NULL JOIN employees e ON e.id = em.employee_id AND e.deleted_at IS NULL LEFT JOIN employment_relationships er ON er.id = em.relationship_id AND er.employee_id = em.employee_id LEFT JOIN employee_tenures t ON t.id = er.tenure_id AND t.employee_id = e.id AND t.deleted_at IS NULL AND t.start_date <= ep.start_date AND (t.end_date IS NULL OR t.end_date >= ep.start_date) JOIN employment_phase_definitions pd ON pd.id = ep.phase_definition_id WHERE ($1 = '%%' OR e.full_name ILIKE $1 OR COALESCE(t.employee_number, e.employee_id_number) ILIKE $1 OR pd.name ILIKE $1) AND ($2 = '' OR ep.status = $2) AND ($3::uuid IS NULL OR e.id = $3::uuid)`, search, status, employeeID).Scan(&result.Total); err != nil {
+	if err := db.QueryRow(ctx, `SELECT count(*) FROM employee_phases ep JOIN employments em ON em.id = ep.employment_id AND em.deleted_at IS NULL JOIN employees e ON e.id = em.employee_id AND e.deleted_at IS NULL LEFT JOIN employment_relationships er ON er.id = em.relationship_id AND er.employee_id = em.employee_id LEFT JOIN employee_tenures t ON t.id = er.tenure_id AND t.employee_id = e.id AND t.deleted_at IS NULL AND t.start_date <= ep.start_date AND (t.end_date IS NULL OR t.end_date >= ep.start_date) JOIN employment_phase_definitions pd ON pd.id = ep.phase_definition_id WHERE ($1 = '%%' OR e.full_name ILIKE $1 OR COALESCE(t.employee_number, '') ILIKE $1 OR pd.name ILIKE $1) AND ($2 = '' OR ep.status = $2) AND ($3::uuid IS NULL OR e.id = $3::uuid)`, search, status, employeeID).Scan(&result.Total); err != nil {
 		return api.EmploymentPhaseAssignmentListResponse{}, err
 	}
 	return result, nil

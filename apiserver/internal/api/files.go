@@ -23,6 +23,7 @@ import (
 var (
 	ErrFileValidation = errors.New("file: validation failed")
 	ErrFileNotFound   = errors.New("file: not found")
+	ErrFileImmutable  = errors.New("file: signed document is immutable")
 )
 
 type CreateUploadUrlRequest struct {
@@ -70,7 +71,7 @@ type FileRepository interface {
 	DeleteFile(ctx context.Context, fileID uuid.UUID) error
 	CreateSignatureRequest(ctx context.Context, req SignatureRequestRecord) error
 	ListPendingSignatures(ctx context.Context, signerID uuid.UUID) ([]SignatureRequestRecord, error)
-	SignDocument(ctx context.Context, requestID uuid.UUID) error
+	SignDocument(ctx context.Context, requestID, signerID uuid.UUID) error
 	CreateFileVersion(ctx context.Context, oldFileID uuid.UUID, newFile FileRecord) (FileRecord, error)
 	ListFileVersions(ctx context.Context, fileID uuid.UUID) ([]FileRecord, error)
 	ListFilesByOwner(ctx context.Context, ownerType string, ownerID uuid.UUID) ([]FileRecord, error)
@@ -393,6 +394,10 @@ func (h FileHandler) DeleteFile(w http.ResponseWriter, r *http.Request) {
 			apperror.WriteError(w, r, apperror.NotFound(apperror.KeyNotFound))
 			return
 		}
+		if errors.Is(err, ErrFileImmutable) {
+			apperror.WriteError(w, r, apperror.Conflict(apperror.KeyConflict))
+			return
+		}
 		apperror.WriteError(w, r, apperror.Internal(err))
 		return
 	}
@@ -452,11 +457,16 @@ func (h FileHandler) SignDocument(w http.ResponseWriter, r *http.Request) {
 		h.forbidden(w, r)
 		return
 	}
+	if _, userOK := httpinfra.UserIDFromContext(r.Context()); !userOK {
+		h.forbidden(w, r)
+		return
+	}
 	if h.Repository == nil {
 		apperror.WriteError(w, r, apperror.NotFound(apperror.KeyNotFound))
 		return
 	}
-	if err := h.Repository.SignDocument(r.Context(), reqID); err != nil {
+	userID, _ := httpinfra.UserIDFromContext(r.Context())
+	if err := h.Repository.SignDocument(r.Context(), reqID, userID); err != nil {
 		if errors.Is(err, ErrFileNotFound) {
 			apperror.WriteError(w, r, apperror.NotFound(apperror.KeyNotFound))
 			return
@@ -710,6 +720,10 @@ func (h FileHandler) UpdateFile(w http.ResponseWriter, r *http.Request) {
 
 	created, err := h.Repository.CreateFileVersion(r.Context(), currentFile.ID, newRecord)
 	if err != nil {
+		if errors.Is(err, ErrFileImmutable) {
+			apperror.WriteError(w, r, apperror.Conflict(apperror.KeyConflict))
+			return
+		}
 		apperror.WriteError(w, r, apperror.Internal(err))
 		return
 	}

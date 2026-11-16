@@ -153,7 +153,7 @@ func (r ReportRepository) GetAttendanceReport(ctx context.Context, params api.At
 		if err := db.QueryRow(ctx, countQuery, args...).Scan(&total); err != nil {
 			return api.PaginatedReportResponse{}, err
 		}
-		dataQuery := fmt.Sprintf(officialScheduleCTE+` SELECT ads.date::text, emp.id AS employment_id, e.id AS employee_id, e.full_name, COALESCE(t.employee_number, e.employee_id_number),
+		dataQuery := fmt.Sprintf(officialScheduleCTE+` SELECT ads.date::text, emp.id AS employment_id, e.id AS employee_id, e.full_name, COALESCE(t.employee_number, ''),
        os.shift_name, os.scheduled_start, os.scheduled_end,
        te.punch_in_time::text, te.punch_out_time::text,
        COALESCE(ads.actual_work_minutes, 0),
@@ -307,7 +307,7 @@ LIMIT $%d OFFSET $%d`, whereClause, filterClause, argIndex, argIndex+1)
 		return api.PaginatedReportResponse{}, err
 	}
 
-	dataQuery := fmt.Sprintf(`SELECT emp.id AS employment_id, e.id AS employee_id, e.full_name, COALESCE(t.employee_number, e.employee_id_number),
+	dataQuery := fmt.Sprintf(`SELECT emp.id AS employment_id, e.id AS employee_id, e.full_name, COALESCE(t.employee_number, ''),
        FLOOR(COALESCE(SUM(ads.standard_minutes), 0)::numeric / (COALESCE(hours.hours_per_day, 8.0) * 60))::int AS total_std_units,
        FLOOR(COALESCE(SUM(ads.approved_ot_minutes), 0)::numeric / (COALESCE(hours.hours_per_day, 8.0) * 60))::int AS total_ot_units,
        ROUND((COALESCE(SUM(ads.standard_minutes), 0)::numeric / 60.0), 2) AS computed_std_hours,
@@ -347,7 +347,7 @@ LEFT JOIN LATERAL (
 	LIMIT 1
 ) credits ON TRUE
 		WHERE %s%s
-		GROUP BY emp.id, e.id, e.full_name, COALESCE(t.employee_number, e.employee_id_number), e.employee_id_number, emp.employer_id, em.name, hours.hours_per_day
+		GROUP BY emp.id, e.id, e.full_name, COALESCE(t.employee_number, ''), emp.employer_id, em.name, hours.hours_per_day
 		ORDER BY e.full_name ASC
 		LIMIT $%d OFFSET $%d`, baseClause, dataFilterClause, dataArgIndex, dataArgIndex+1)
 
@@ -424,7 +424,7 @@ WHERE ` + whereClause
 		return api.PaginatedReportResponse{}, err
 	}
 
-	dataQuery := fromClause + `os.revision_id, emp.id, e.id, e.full_name, COALESCE(t.employee_number, e.employee_id_number),
+	dataQuery := fromClause + `os.revision_id, emp.id, e.id, e.full_name, COALESCE(t.employee_number, ''),
        os.shift_name, os.scheduled_start, os.scheduled_end, $1::date::text, os.state` + joins + fmt.Sprintf(`
 WHERE %s
 ORDER BY e.full_name ASC, emp.id ASC

@@ -64,7 +64,7 @@ func (r EmployeeConditionRepository) ListOrganizationConditions(ctx context.Cont
 	rows, err := db.Query(ctx, `SELECT
 		wc.id, wc.employment_id, wc.type, wc.condition_type_id, wc.minute_allowance, wc.is_paid,
 		wc.start_date::text, wc.end_date::text,
-		e.id, e.full_name, COALESCE(t.employee_number, e.employee_id_number)
+		e.id, e.full_name, COALESCE(t.employee_number, '')
 		FROM working_conditions wc
 		JOIN employments em ON em.id = wc.employment_id
 		JOIN employees e ON e.id = em.employee_id
