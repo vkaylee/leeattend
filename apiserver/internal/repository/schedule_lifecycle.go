@@ -77,7 +77,7 @@ type lifecycleRevision struct {
 }
 
 type lifecycleSegment struct {
-	ID                   uuid.UUID
+	ID                    uuid.UUID
 	SortOrder             int
 	TemplateID            uuid.UUID
 	ShiftVersionID        uuid.UUID
@@ -1307,7 +1307,7 @@ func normalizeBreaks(breaks []api.ScheduleReplanBreak, startAt time.Time, loc *t
 }
 
 func loadRevisionDocument(ctx context.Context, tx DBTX, revision lifecycleRevision) (map[string]any, error) {
-	rows, err := tx.Query(ctx, `SELECT id, sort_order, template_id, selected_shift_version_id, scheduled_start_at, scheduled_end_at, breaks_snapshot, start_day_offset, end_day_offset, shift_group_key, start_utc_offset_minutes, end_utc_offset_minutes FROM work_segments WHERE schedule_revision_id = $1 ORDER BY sort_order, id`, revision.ID)
+	rows, err := tx.Query(ctx, `SELECT id, sort_order, template_id, selected_shift_version_id, scheduled_start_at, scheduled_end_at, breaks_snapshot, COALESCE(start_day_offset, 0), COALESCE(end_day_offset, 0), shift_group_key, start_utc_offset_minutes, end_utc_offset_minutes FROM work_segments WHERE schedule_revision_id = $1 ORDER BY sort_order, id`, revision.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -1323,18 +1323,18 @@ func loadRevisionDocument(ctx context.Context, tx DBTX, revision lifecycleRevisi
 			return nil, err
 		}
 		intervals = append(intervals, map[string]any{
-			"sort_order":                segment.SortOrder,
-			"shift_version_id":          segment.ShiftVersionID.String(),
-			"start_day_offset":          segment.StartDayOffset,
-			"end_day_offset":            segment.EndDayOffset,
-			"shift_group_key":           segment.ShiftGroupKey,
-			"start_utc_offset_minutes":  segment.StartUTCOffsetMinutes,
-			"end_utc_offset_minutes":    segment.EndUTCOffsetMinutes,
-			"start":            segment.StartAt.In(location).Format("15:04:05"),
-			"end":              segment.EndAt.In(location).Format("15:04:05"),
-			"start_at":         segment.StartAt,
-			"end_at":           segment.EndAt,
-			"breaks":           json.RawMessage(segment.Breaks),
+			"sort_order":               segment.SortOrder,
+			"shift_version_id":         segment.ShiftVersionID.String(),
+			"start_day_offset":         segment.StartDayOffset,
+			"end_day_offset":           segment.EndDayOffset,
+			"shift_group_key":          segment.ShiftGroupKey,
+			"start_utc_offset_minutes": segment.StartUTCOffsetMinutes,
+			"end_utc_offset_minutes":   segment.EndUTCOffsetMinutes,
+			"start":                    segment.StartAt.In(location).Format("15:04:05"),
+			"end":                      segment.EndAt.In(location).Format("15:04:05"),
+			"start_at":                 segment.StartAt,
+			"end_at":                   segment.EndAt,
+			"breaks":                   json.RawMessage(segment.Breaks),
 		})
 	}
 	if err := rows.Err(); err != nil {

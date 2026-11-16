@@ -1109,7 +1109,7 @@ func loadShifts(ctx context.Context, db DBTX) (map[uuid.UUID]shiftTemplateInfo, 
 	rows, err := db.Query(ctx, `SELECT st.id, st.name, sv.id, sv.report_symbol, sv.effective_from, sv.effective_to,
 		sdi.sort_order, sdi.start_time::text, sdi.end_time::text, sdi.break_duration_minutes, sdi.break_start::text, sdi.break_end::text,
 		sdi.is_break_auto_deduct, sdi.early_punch_in_grace_period_minutes, sdi.allow_early_ot, sdi.break_is_overtime,
-		sdi.max_early_ot_minutes, sdi.start_day_offset, sdi.end_day_offset, sdi.start_utc_offset_minutes, sdi.end_utc_offset_minutes
+		sdi.max_early_ot_minutes, COALESCE(sdi.start_day_offset, 0), COALESCE(sdi.end_day_offset, 0), sdi.start_utc_offset_minutes, sdi.end_utc_offset_minutes
 		FROM shift_templates st
 		LEFT JOIN shift_versions sv ON sv.template_id = st.id
 		LEFT JOIN shift_default_intervals sdi ON sdi.version_id = sv.id
