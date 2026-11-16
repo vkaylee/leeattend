@@ -1,47 +1,28 @@
-# 📚 LeeAttend Documentation Map
+# LeeAttend Documentation Map
 
-Welcome to the project documentation. To maintain clarity, please follow this structure when adding or searching for documents.
+Read [`ai-context.md`](ai-context.md) first for compact agent context. Use [`source-of-truth.md`](source-of-truth.md) to find canonical documents. See [`documentation-inventory.md`](documentation-inventory.md) for classified tracked docs.
 
----
+## Technical
 
-## 🏗️ 1. Technical Documentation (`/docs`)
-*Target Audience: Developers & AI Agents*
+- [`architecture/`](architecture/): runtime, database, and codebase structure.
+- [`api/`](api/): REST/WebSocket contracts and API migration notes.
+- [`operations/`](operations/): deployment, backup, worker, infrastructure, and operational runbooks.
+- [`development/`](development/): coding, UI, testing, and compliance standards.
+- [`decisions/`](decisions/): accepted/proposed architecture decisions.
+- [`plans/`](plans/): active implementation plans and task specifications.
+- [`features/`](features/): feature contracts and implementation specifications.
 
-- **[Codebase Summary](./codebase-summary.md)**: High-level overview of the project structure and tech stack.
-- **[System Architecture](./system-architecture.md)**: Diagrams and descriptions of the backend/frontend interaction.
-- **[API Reference](./api-reference.md)**: Documentation for REST and WebSocket endpoints.
-- **[Code Standards](./code-standards.md)**: Mandatory coding patterns and naming conventions.
-- **[Compliance Architecture](./compliance-architecture.md)**: SOC 2 & ISO 27001 compliance coding rules and control mapping.
-- **[Deployment Guide](./deployment-guide.md)**: Instructions for production and staging environments.
-- **[UI/UX Standards](./ui-ux-standards.md)**: Design system and styling rules.
+## Product and assurance
 
-### Sub-folders:
-- **[/infrastructure](./infrastructure/)**: Documentation for agents, workers, and hardware integration.
-  - **[Background Worker Runner](./infrastructure/background-worker-runner.md)**: Main background job processing engine, outbox model, concurrency management, and deadlock prevention.
-- **[/research](./research/)**: Deep dives into technical issues (e.g., Redis TTL analysis).
-- **[/features](./features/)**: Technical specifications for specific feature implementations.
-- **[/archive](./archive/)**: Deprecated or old documentation for historical reference.
+- [`business/`](business/): PRDs, workflows, feature catalog, glossary.
+- [`domain/`](domain/): domain knowledge and system concepts.
+- [`audit/`](audit/): security, compliance, dataflow, and recommendations.
 
----
+## History
 
-## 💼 2. Business & Domain (`/documents`)
-*Target Audience: Product Owners & Stakeholders*
+- [`archive/`](archive/): completed, superseded, or historical material. Not active instructions.
+- [`project-changelog.md`](project-changelog.md): project history.
 
-- **[/business](../documents/business/)**: PRDs, workflows, and business glossaries.
-- **[/audit](../documents/audit/)**: Compliance, security audits, and data flow analysis.
-- **Knowledge Base**: Domain-specific logic located in the root of `/documents`.
+## Rules
 
----
-
-## 🗺️ 3. Execution & Roadmap (`/plans`)
-- Contains timestamped implementation plans for every major feature.
-
----
-
-## 🚦 4. Global Governance
-- Follow repository guidance in `AGENTS.md` and `.agent/rules/`.
-
----
-
-### 🤖 Note for AI Agents
-If you create a new technical document, place it in the appropriate `/docs` sub-folder and update this map. Keep files under 200 lines by modularizing content.
+New docs must follow [`documentation-policy.md`](documentation-policy.md), state status where applicable, and update this map only when adding a new documentation category.

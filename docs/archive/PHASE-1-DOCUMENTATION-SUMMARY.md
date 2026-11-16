@@ -18,10 +18,10 @@ Successfully completed comprehensive documentation updates for Phase 1 of the ti
 
 | File | Changes | Lines Added |
 |------|---------|-------------|
-| `docs/codebase-summary.md` | Added MyClockPage refactoring and component details | +5 |
-| `docs/system-architecture.md` | Added Section 13.4: Self-Service Clock Interface | +8 |
-| `docs/code-standards.md` | Added Time-Tracking Component Architecture section | +46 |
-| `docs/ui-ux-standards.md` | Added Section 11: Time-Tracking UI Components | +58 |
+| `docs/architecture/codebase-summary.md` | Added MyClockPage refactoring and component details | +5 |
+| `docs/architecture/system-architecture.md` | Added Section 13.4: Self-Service Clock Interface | +8 |
+| `docs/development/code-standards.md` | Added Time-Tracking Component Architecture section | +46 |
+| `docs/development/ui-ux-standards.md` | Added Section 11: Time-Tracking UI Components | +58 |
 
 ### Files Created (2)
 

@@ -87,11 +87,11 @@ Lưu trữ các nhiệm vụ phê duyệt đang chờ xử lý cho bước hiệ
 ### Bước 1: Khởi Tạo Luồng (`submit_to_workflow`)
 Khi đơn từ được gửi duyệt:
 1. Tìm cấu hình quy trình (`is_active = true`) có `entity_type` tương ứng.
-2. **Nếu không cấu hình quy trình duyệt:** 
+2. **Nếu không cấu hình quy trình duyệt:**
    - Kích hoạt **Fallback**: Xác định phòng ban của người thụ hưởng. Giao nhiệm vụ cho Trưởng phòng ban đó (tạo task `assignee_type = 'department_manager'`, `assignee_target_id = department_id`). Nếu không có phòng ban hoặc trưởng phòng, giao thẳng cho Workspace Admin (`assignee_type = 'specific_user'`).
 3. **Nếu có cấu hình quy trình duyệt:**
    - Tạo instance và lưu cấu hình các bước vào `steps_snapshot`.
-   - **Kích hoạt Bước 1:** Phân giải tiêu chí người duyệt của Bước 1 và sinh các task tương ứng. 
+   - **Kích hoạt Bước 1:** Phân giải tiêu chí người duyệt của Bước 1 và sinh các task tương ứng.
 4. **Cơ chế Chống Tự Duyệt (Self-Approval Prevention):**
    - Nếu tiêu chí chỉ định đích danh chính người nộp đơn:
      - Nếu `can_skip = true`: Đánh dấu task là `completed` / `skipped` ngay lập tức và chuyển bước.
@@ -129,7 +129,7 @@ Khi người dùng B đăng nhập, hệ thống sẽ lấy ra các thông tin h
 
 Query SQL tải danh sách công việc chờ B duyệt sẽ cực kỳ nhanh và tận dụng tối đa index:
 ```sql
-SELECT t.*, inst.entity_type, inst.entity_id 
+SELECT t.*, inst.entity_type, inst.entity_id
 FROM approval_workflow_tasks t
 JOIN approval_workflow_instances inst ON t.instance_id = inst.id
 WHERE t.status = 'pending' AND (

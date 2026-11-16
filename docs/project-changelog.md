@@ -249,7 +249,7 @@ Detailed record of significant changes, features, and fixes in LeeAttend.
 - No regressions in existing WebSocket connection tests
 
 **Related Documentation:**
-- Updated `docs/system-architecture.md` section 2.1 with split read/write architecture
+- Updated `docs/architecture/system-architecture.md` section 2.1 with split read/write architecture
 
 ---
 

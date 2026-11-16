@@ -5,7 +5,7 @@
    245	) -> impl IntoResponse {
    246	    let id = Uuid::new_v4();
    247	    let port = req.port.unwrap_or(4370);
-   248	
+   248
    249	    match sqlx::query(
    250	        "INSERT INTO devices (id, agent_id, name, ip, port, workspace_id) VALUES ($1, $2, $3, $4, $5, $6)",
    251	    )
@@ -25,7 +25,7 @@
    265	        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response(),
    266	    }
    267	}
-   268	
+   268
    269	pub async fn update_device(
    270	    Path(id): Path<Uuid>,
    271	    State(state): State<Arc<AppState>>,
@@ -43,12 +43,12 @@
    283	        Ok(d) => d,
    284	        Err(_) => return StatusCode::NOT_FOUND.into_response(),
    285	    };
-   286	
+   286
    287	    let name = req.name.unwrap_or(current_device.name);
    288	    let ip = req.ip.unwrap_or(current_device.ip);
    289	    let port = req.port.unwrap_or(current_device.port);
    290	    let is_enabled = req.is_enabled.unwrap_or(current_device.is_enabled);
-   291	
+   291
    292	    match sqlx::query(
    293	        "UPDATE devices SET name = $1, ip = $2, port = $3, is_enabled = $4 WHERE id = $5 AND workspace_id = $6",
    294	    )
@@ -68,7 +68,7 @@
    308	        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response(),
    309	    }
    310	}
-   311	
+   311
    312	pub async fn delete_device(
    313	    Path(id): Path<Uuid>,
    314	    State(state): State<Arc<AppState>>,
