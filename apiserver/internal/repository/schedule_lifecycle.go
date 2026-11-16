@@ -1305,7 +1305,11 @@ func jsonArg(value any) []byte {
 }
 
 func validatePublishInput(key string, request api.SchedulePublishRequest) error {
-	if strings.TrimSpace(key) == "" || len(key) > 128 || !isASCIIKey(key) || request.PreviewID == uuid.Nil || !isHash(request.PreviewHash) || strings.TrimSpace(request.Reason) == "" || len(request.EmploymentIDs) == 0 {
+	mode := request.Mode
+	if mode == "" {
+		mode = "office"
+	}
+	if strings.TrimSpace(key) == "" || len(key) > 128 || !isASCIIKey(key) || (mode != "office" && mode != "rotating") || (mode == "office" && request.ApprovalInstanceID == nil) || (mode == "rotating" && request.ApprovalInstanceID != nil) || request.PreviewID == uuid.Nil || !isHash(request.PreviewHash) || strings.TrimSpace(request.Reason) == "" || len(request.EmploymentIDs) == 0 {
 		return api.ErrScheduleValidation
 	}
 	if _, err := time.Parse("2006-01-02", request.StartDate); err != nil {
