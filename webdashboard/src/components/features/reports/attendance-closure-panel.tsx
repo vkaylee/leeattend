@@ -35,13 +35,15 @@ export default function AttendanceClosurePanel({ employerId, month, year }: Atte
   const { hasPermission, isLoading: isLoadingPermissions } = useMyPermissions();
   const [reason, setReason] = useState("");
   const [actionError, setActionError] = useState<string | null>(null);
+  const canRead = hasPermission("attendance:closure:read");
   const { data, isLoading, isError, refetch, close, reopen, isClosing, isReopening, error } = useAttendanceClosure(
     year,
     month,
     employerId,
+    canRead && !isLoadingPermissions,
   );
 
-  if (!employerId) return null;
+  if (!employerId || (!isLoadingPermissions && !canRead)) return null;
   if (isLoading || isLoadingPermissions) {
     return <Skeleton className="h-36 w-full rounded-3xl" data-testid="closure-skeleton" />;
   }
@@ -68,8 +70,9 @@ export default function AttendanceClosurePanel({ employerId, month, year }: Atte
   }
 
   const isClosed = data.status === "closed";
-  const canClose = hasPermission("attendance:closure:close") && !isClosed;
-  const canReopen = hasPermission("attendance:closure:reopen") && isClosed;
+  const payrollLocked = data.payroll_status === "locked";
+  const canClose = canRead && hasPermission("attendance:closure:close") && !isClosed && !payrollLocked;
+  const canReopen = canRead && hasPermission("attendance:closure:reopen") && isClosed && !payrollLocked;
   const isMutating = isClosing || isReopening;
   const runAction = async (action: "close" | "reopen") => {
     if (!reason.trim()) {
@@ -99,11 +102,12 @@ export default function AttendanceClosurePanel({ employerId, month, year }: Atte
           <CheckCircle2 aria-hidden="true" size={16} />
           {t(isClosed ? "closure.badge.closed" : "closure.badge.open")}
         </div>
+        {payrollLocked && <p className="text-sm text-amber-700 dark:text-amber-300" role="status">{t("closure.errors.locked_period")}</p>}
       </div>
       {(canClose || canReopen) && (
         <div className="space-y-4 p-5">
           <label className="block text-sm font-medium text-slate-700 dark:text-slate-200" htmlFor="closure-reason">{t("closure.reason")}</label>
-          <textarea aria-describedby="closure-reason-hint" className="min-h-20 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none transition focus-visible:ring-2 focus-visible:ring-primary-500 dark:border-slate-700 dark:bg-slate-950" id="closure-reason" onChange={(event) => setReason(event.target.value)} placeholder={t("closure.reason_placeholder")} value={reason} />
+          <textarea aria-describedby="closure-reason-hint" className="min-h-20 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none transition focus-visible:ring-2 focus-visible:ring-primary-500 dark:border-slate-700 dark:bg-slate-950" id="closure-reason" maxLength={2000} onChange={(event) => setReason(event.target.value)} placeholder={t("closure.reason_placeholder")} value={reason} />
           <p className="text-xs text-slate-500 dark:text-slate-400" id="closure-reason-hint">{t("closure.reason_hint")}</p>
           {(actionError || error) && <p className="text-sm font-medium text-rose-700 dark:text-rose-300" role="alert">{t(actionError ?? getErrorKey(error))}</p>}
           <div className="flex flex-wrap gap-3">

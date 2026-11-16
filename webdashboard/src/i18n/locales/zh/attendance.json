@@ -174,6 +174,28 @@
     "upload_limit": "Excel (最大 10MB)",
     "upload_prompt": "点击或将文件拖到此处"
   },
+  "closure": {
+    "title": "考勤结算",
+    "status": { "closed": "考勤已结算", "open": "考勤已开放" },
+    "badge": { "closed": "已结算", "open": "开放" },
+    "reason": "原因",
+    "reason_placeholder": "说明本次考勤周期变更",
+    "reason_hint": "必填，最多 2,000 个字符。",
+    "retry": "重试",
+    "actions": { "close": "结算周期", "reopen": "重新开放" },
+    "empty": { "title": "暂无结算状态", "description": "选择雇主以查看考勤结算状态。" },
+    "errors": {
+      "load": "无法加载考勤结算状态。",
+      "generic": "考勤结算失败。",
+      "validation": "请检查周期和原因。",
+      "reason_required": "必须填写原因。",
+      "closure_conflict": "请先处理待审批的考勤事项。",
+      "locked_period": "工资周期已锁定。",
+      "missing_coverage": "正式排班覆盖不完整。",
+      "open_punch": "存在未结束的打卡记录。",
+      "stale_period": "周期已变更。刷新后重试。"
+    }
+  },
   "attendance_logs": {
     "ambiguous_employment": "存在多个雇佣关系",
     "assign": "分配",

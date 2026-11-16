@@ -174,6 +174,28 @@
     "upload_limit": "Excel (Max 10MB)",
     "upload_prompt": "Click or drag file here"
   },
+  "closure": {
+    "title": "Attendance closure",
+    "status": { "closed": "Attendance is closed", "open": "Attendance is open" },
+    "badge": { "closed": "Closed", "open": "Open" },
+    "reason": "Reason",
+    "reason_placeholder": "Explain this attendance period change",
+    "reason_hint": "Required. Maximum 2,000 characters.",
+    "retry": "Retry",
+    "actions": { "close": "Close period", "reopen": "Reopen period" },
+    "empty": { "title": "No closure status", "description": "Select employer to view attendance closure status." },
+    "errors": {
+      "load": "Unable to load attendance closure status.",
+      "generic": "Attendance closure failed.",
+      "validation": "Check period and reason.",
+      "reason_required": "Reason is required.",
+      "closure_conflict": "Resolve pending attendance approvals first.",
+      "locked_period": "Payroll period is locked.",
+      "missing_coverage": "Official schedule coverage is incomplete.",
+      "open_punch": "An open punch blocks closure.",
+      "stale_period": "Period changed. Refresh and try again."
+    }
+  },
   "attendance_logs": {
     "ambiguous_employment": "Multiple employments",
     "assign": "Assign",

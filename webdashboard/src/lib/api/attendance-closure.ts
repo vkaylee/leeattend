@@ -5,7 +5,10 @@ export type AttendancePeriodState = "open" | "closed" | "reopened" | string;
 export interface AttendancePeriodStatus {
   closure_id?: string | null;
   closure_number?: number;
-  period_id: string;
+  payroll_period_found?: boolean;
+  payroll_status?: string;
+  period_id?: string | null;
+  snapshot_hash?: string;
   status: AttendancePeriodState;
   version: number;
 }
@@ -27,11 +30,13 @@ export async function fetchAttendancePeriodStatus(
   year: number,
   month: number,
   employerId: string,
-): Promise<AttendancePeriodStatus | null> {
+): Promise<AttendancePeriodStatus> {
   const { data, response } = await client.GET<AttendancePeriodStatus | null>(periodPath, {
     params: { path: { year, month }, query: { employer_id: employerId } },
   });
-  if (response.status === 204 || data === null) return null;
+  if (response.status === 204 || data === null) {
+    return { status: "open", version: 1, payroll_period_found: false };
+  }
   return data;
 }
 

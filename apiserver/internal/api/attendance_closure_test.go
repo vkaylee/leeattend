@@ -27,6 +27,10 @@ func (r *closureTestRepository) ReopenAttendancePeriod(context.Context, uuid.UUI
 	return AttendanceClosureResponse{PeriodID: uuid.New(), Status: "reopened", Version: 3}, nil
 }
 
+func (r *closureTestRepository) GetAttendancePeriodStatus(context.Context, uuid.UUID, int, int) (AttendancePeriodStatusResponse, error) {
+	return AttendancePeriodStatusResponse{PeriodID: ptrUUID(uuid.New()), Status: "closed", Version: 2, ClosureNumber: 1, SnapshotHash: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", PayrollPeriodFound: true, PayrollStatus: "open"}, nil
+}
+
 func ptrUUID(value uuid.UUID) *uuid.UUID { return &value }
 
 type closureTestAuthorizer struct {
@@ -57,6 +61,26 @@ func closureRequest(method, path, body string, userID uuid.UUID) *http.Request {
 	req.SetPathValue("year", "2026")
 	req.SetPathValue("month", "1")
 	return req.WithContext(httpinfra.WithUserIDForTest(req.Context(), userID))
+}
+
+func TestGetAttendancePeriodStatusChecksPermissionBeforeLookup(t *testing.T) {
+	repo := &closureTestRepository{}
+	handler := AttendanceHandler{Repository: repo, Authorizer: closureTestAuthorizer{allowed: false, global: false}}
+	rec := httptest.NewRecorder()
+	handler.GetAttendancePeriodStatus(rec, closureRequest(http.MethodGet, "/api/v1/attendance/periods/2026/1?employer_id=bad", "", uuid.New()))
+	if rec.Code != http.StatusForbidden {
+		t.Fatalf("expected permission denial before path validation, got %d", rec.Code)
+	}
+}
+
+func TestGetAttendancePeriodStatusContract(t *testing.T) {
+	handler := AttendanceHandler{Repository: &closureTestRepository{}, Authorizer: closureTestAuthorizer{allowed: true, global: true}}
+	rec := httptest.NewRecorder()
+	employerID := uuid.New()
+	handler.GetAttendancePeriodStatus(rec, closureRequest(http.MethodGet, "/api/v1/attendance/periods/2026/1?employer_id="+employerID.String(), "", uuid.New()))
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", rec.Code, rec.Body.String())
+	}
 }
 
 func TestCloseAttendancePeriodChecksPermissionBeforePayload(t *testing.T) {

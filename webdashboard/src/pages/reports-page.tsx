@@ -7,6 +7,7 @@ import {
 } from "@/components/features/attendance/timesheet-matrix-grid";
 import EmployeeDailyDrawer from "@/components/features/reports/employee-daily-drawer";
 import ReportExportDialog from "@/components/features/reports/report-export-dialog";
+import AttendanceClosurePanel from "@/components/features/reports/attendance-closure-panel";
 import ReportFilters from "@/components/features/reports/report-filters";
 import ResponsiveToolbar from "@/components/ui/responsive-toolbar";
 
@@ -181,6 +182,12 @@ export default function ReportsPage() {
           t={(key, fallback) => t(key, { defaultValue: fallback })}
         />
       </ResponsiveToolbar>
+
+      <AttendanceClosurePanel
+        employerId={selectedEmployerId}
+        month={activeMonthYear.month}
+        year={activeMonthYear.year}
+      />
 
       {viewMode === "matrix" ? (
         <div className="h-[calc(100vh-16rem)] min-h-[500px]">

@@ -93,6 +93,46 @@ var (
 	errAttendanceClosureInvalidPeriod = errors.New("attendance closure: invalid period")
 )
 
+func (r AttendanceRepository) GetAttendancePeriodStatus(ctx context.Context, employerID uuid.UUID, year, month int) (api.AttendancePeriodStatusResponse, error) {
+	if employerID == uuid.Nil {
+		return api.AttendancePeriodStatusResponse{}, api.ErrAttendanceClosureValidation
+	}
+	if _, _, err := closurePeriodDates(year, month); err != nil {
+		return api.AttendancePeriodStatusResponse{}, api.ErrAttendanceClosureValidation
+	}
+	db, err := r.db(ctx)
+	if err != nil {
+		return api.AttendancePeriodStatusResponse{}, err
+	}
+	var response api.AttendancePeriodStatusResponse
+	var periodID, closureID *uuid.UUID
+	var payrollFound bool
+	if err := db.QueryRow(ctx, `
+		SELECT p.id, p.status, p.version, p.current_closure_id,
+			EXISTS (SELECT 1 FROM payroll_periods pp WHERE pp.employer_id = p.employer_id AND pp.period_year = p.period_year AND pp.period_month = p.period_month),
+			COALESCE((SELECT pp.status FROM payroll_periods pp WHERE pp.employer_id = p.employer_id AND pp.period_year = p.period_year AND pp.period_month = p.period_month LIMIT 1), '')
+		FROM attendance_periods p
+		WHERE p.employer_id = $1 AND p.period_year = $2 AND p.period_month = $3`, employerID, year, month).Scan(
+		&periodID, &response.Status, &response.Version, &closureID, &payrollFound, &response.PayrollStatus,
+	); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			response.Status = "open"
+			response.Version = 1
+		} else {
+			return api.AttendancePeriodStatusResponse{}, err
+		}
+	}
+	response.PeriodID = periodID
+	response.CurrentClosureID = closureID
+	response.PayrollPeriodFound = payrollFound
+	if closureID != nil {
+		if err := db.QueryRow(ctx, `SELECT closure_number, snapshot_hash FROM attendance_closures WHERE id = $1`, *closureID).Scan(&response.ClosureNumber, &response.SnapshotHash); err != nil {
+			return api.AttendancePeriodStatusResponse{}, err
+		}
+	}
+	return response, nil
+}
+
 func closurePeriodDates(year, month int) (time.Time, time.Time, error) {
 	if year < 2000 || year > 2100 || month < 1 || month > 12 {
 		return time.Time{}, time.Time{}, errAttendanceClosureInvalidPeriod

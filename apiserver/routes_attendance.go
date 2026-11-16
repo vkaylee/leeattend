@@ -43,6 +43,7 @@ func registerAttendanceRoutes(router chi.Router, attendance api.AttendanceHandle
 	registerRoute(router, "POST /api/v1/attendance/adjustments/behalf-assignments", policy.CreateBehalfAssignment)
 	registerRoute(router, "DELETE /api/v1/attendance/adjustments/behalf-assignments/{id}", policy.DeleteBehalfAssignment)
 	registerRoute(router, "GET /api/v1/attendance/adjustments/behalf-assignments/my-targets", policy.MyBehalfTargets)
+	registerRoute(router, "GET /api/v1/attendance/periods/{year}/{month}", attendance.GetAttendancePeriodStatus)
 	registerRoute(router, "POST /api/v1/attendance/periods/{year}/{month}/close", attendance.CloseAttendancePeriod)
 	registerRoute(router, "POST /api/v1/attendance/periods/{year}/{month}/reopen", attendance.ReopenAttendancePeriod)
 }

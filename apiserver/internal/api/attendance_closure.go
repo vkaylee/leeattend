@@ -30,6 +30,17 @@ type AttendanceClosureRequest struct {
 	Reason  string `json:"reason"`
 }
 
+type AttendancePeriodStatusResponse struct {
+	PeriodID           *uuid.UUID `json:"period_id,omitempty"`
+	Status             string     `json:"status"`
+	Version            int64      `json:"version"`
+	CurrentClosureID   *uuid.UUID `json:"current_closure_id,omitempty"`
+	ClosureNumber      int        `json:"closure_number,omitempty"`
+	SnapshotHash       string     `json:"snapshot_hash,omitempty"`
+	PayrollPeriodFound bool       `json:"payroll_period_found"`
+	PayrollStatus      string     `json:"payroll_status,omitempty"`
+}
+
 type AttendanceClosureResponse struct {
 	PeriodID       uuid.UUID  `json:"period_id"`
 	ClosureID      *uuid.UUID `json:"closure_id,omitempty"`
@@ -44,6 +55,10 @@ type AttendanceClosureResponse struct {
 type AttendanceClosureRepository interface {
 	CloseAttendancePeriod(context.Context, uuid.UUID, int, int, int64, string, uuid.UUID) (AttendanceClosureResponse, error)
 	ReopenAttendancePeriod(context.Context, uuid.UUID, int, int, int64, string, uuid.UUID) (AttendanceClosureResponse, error)
+}
+
+type AttendanceClosureStatusRepository interface {
+	GetAttendancePeriodStatus(context.Context, uuid.UUID, int, int) (AttendancePeriodStatusResponse, error)
 }
 
 func parseAttendancePeriodPath(r *http.Request) (int, int, uuid.UUID, bool) {
@@ -61,6 +76,34 @@ func (h AttendanceHandler) closureAllowed(r *http.Request, permission string) bo
 	// Existing authorizer exposes only global-manager scope for employer-wide closure.
 	// Scoped department authorization cannot prove employer coverage; deny closed-loop mutation.
 	return h.Authorizer.IsGlobalManager(r.Context(), userID)
+}
+
+// GetAttendancePeriodStatus returns current attendance period and payroll lock state.
+func (h AttendanceHandler) GetAttendancePeriodStatus(w http.ResponseWriter, r *http.Request) {
+	if !h.closureAllowed(r, "attendance:closure:read") {
+		h.forbidden(w, r)
+		return
+	}
+	year, month, employerID, ok := parseAttendancePeriodPath(r)
+	if !ok {
+		apperror.WriteError(w, r, apperror.Validation(apperror.KeyInvalidYearMonth))
+		return
+	}
+	if h.Repository == nil {
+		apperror.WriteError(w, r, apperror.Internal(errors.New("attendance closure repository unavailable")))
+		return
+	}
+	repository, ok := h.Repository.(AttendanceClosureStatusRepository)
+	if !ok {
+		apperror.WriteError(w, r, apperror.Internal(errors.New("attendance closure status repository unavailable")))
+		return
+	}
+	status, err := repository.GetAttendancePeriodStatus(r.Context(), employerID, year, month)
+	if err != nil {
+		h.writeClosureError(w, r, err)
+		return
+	}
+	apperror.WriteJSON(w, http.StatusOK, status)
 }
 
 // CloseAttendancePeriod handles monthly attendance closure.
