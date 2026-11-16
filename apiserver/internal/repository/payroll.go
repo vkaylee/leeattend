@@ -1974,7 +1974,7 @@ func (r PayrollRepository) CalculateEmployeePayroll(ctx context.Context, employe
 		if err := ensurePayrollPeriodOpen(ctx, tx, employerID, year, month); err != nil {
 			return err
 		}
-		response, err = r.calculateEmploymentPayslip(ctx, tx, employmentID, uuid.UUID(employeeID), deptID, year, month, uuid.UUID(actorID))
+		response, err = r.calculateEmploymentPayslip(ctx, tx, employmentID, uuid.UUID(employeeID), deptID, year, month, uuid.UUID(actorID), nil)
 		return err
 	})
 	if err != nil {
@@ -2007,6 +2007,17 @@ func ensurePayrollPeriodOpen(ctx context.Context, tx pgx.Tx, employerID uuid.UUI
 }
 
 func (r PayrollRepository) SimulateEmployeePayroll(ctx context.Context, employeeID ids.EmployeeID, year, month int, actorID ids.UserID) (api.FullPayslipResponse, error) {
+	return r.simulateEmployeePayroll(ctx, employeeID, year, month, nil, actorID)
+}
+
+func (r PayrollRepository) SimulateEmployeePayrollWithPolicy(ctx context.Context, employeeID ids.EmployeeID, year, month int, policyVersionID uuid.UUID, actorID ids.UserID) (api.FullPayslipResponse, error) {
+	if policyVersionID == uuid.Nil {
+		return api.FullPayslipResponse{}, api.ErrPayrollValidation
+	}
+	return r.simulateEmployeePayroll(ctx, employeeID, year, month, &policyVersionID, actorID)
+}
+
+func (r PayrollRepository) simulateEmployeePayroll(ctx context.Context, employeeID ids.EmployeeID, year, month int, policyVersionID *uuid.UUID, actorID ids.UserID) (api.FullPayslipResponse, error) {
 	db, err := r.db(ctx)
 	if err != nil {
 		return api.FullPayslipResponse{}, err
@@ -2028,7 +2039,7 @@ func (r PayrollRepository) SimulateEmployeePayroll(ctx context.Context, employee
 		if err := ensurePayrollPeriodOpen(ctx, tx, employerID, year, month); err != nil {
 			return err
 		}
-		response, err = r.calculateEmploymentPayslip(ctx, tx, employmentID, uuid.UUID(employeeID), deptID, year, month, uuid.UUID(actorID))
+		response, err = r.calculateEmploymentPayslip(ctx, tx, employmentID, uuid.UUID(employeeID), deptID, year, month, uuid.UUID(actorID), policyVersionID)
 		return err
 	})
 	return response, err
@@ -2071,7 +2082,7 @@ func (r PayrollRepository) CalculateBatchPayroll(ctx context.Context, req api.Ba
 				response.Results = append(response.Results, api.BatchCalculateResult{EmploymentID: employmentID, EmployeeID: employeeID, Status: "error", ErrorMessage: &msg})
 				continue
 			}
-			fullResp, err := r.calculateEmploymentPayslip(ctx, tx, employmentID, employeeID, deptID, req.Year, req.Month, uuid.UUID(actorID))
+			fullResp, err := r.calculateEmploymentPayslip(ctx, tx, employmentID, employeeID, deptID, req.Year, req.Month, uuid.UUID(actorID), nil)
 			if err != nil {
 				msg := err.Error()
 				response.Results = append(response.Results, api.BatchCalculateResult{EmploymentID: employmentID, EmployeeID: employeeID, Status: "error", ErrorMessage: &msg})
@@ -2174,6 +2185,71 @@ func loadWorkPolicyAssignments(ctx context.Context, db DBTX, employmentID uuid.U
 		assignments = append(assignments, assignment)
 	}
 	return assignments, rows.Err()
+}
+
+func loadDraftWorkPolicyAssignment(ctx context.Context, db DBTX, employmentID, policyVersionID uuid.UUID, start, end time.Time) ([]workPolicyAssignment, error) {
+	rows, err := db.Query(ctx, `
+		SELECT v.id, v.group_id, g.name, v.work_credit_policy_id, wc.name, wc.minutes_per_credit,
+		       wc.attendance_policy_id, wc.working_pattern_id, v.pay_basis_policy_id, pb.name,
+		       pb.method, pb.monthly_denominator, pb.monthly_standard_days::text, pb.rate_component_definition_id, v.overtime_policy_id,
+		       v.effective_from::text, v.effective_to::text,
+		       m.effective_from::text, m.effective_to::text
+		FROM labor_policy_memberships m
+		JOIN labor_policy_groups g ON g.id = m.group_id
+		JOIN labor_policy_group_versions v ON v.group_id = m.group_id AND v.id = $2
+		JOIN work_credit_policies wc ON wc.id = v.work_credit_policy_id
+		JOIN pay_basis_policies pb ON pb.id = v.pay_basis_policy_id
+		WHERE m.employment_id = $1
+		  AND m.effective_from < $4::date AND (m.effective_to IS NULL OR m.effective_to > $3::date)
+		  AND v.effective_from < $4::date AND (v.effective_to IS NULL OR v.effective_to > $3::date)
+		ORDER BY m.effective_from DESC, m.id DESC`, employmentID, policyVersionID, start.Format("2006-01-02"), end.Format("2006-01-02"))
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	assignments := make([]workPolicyAssignment, 0, 1)
+	for rows.Next() {
+		var assignment workPolicyAssignment
+		var method, denominator *string
+		var days *string
+		var rateComponentID *uuid.UUID
+		if err := rows.Scan(
+			&assignment.policy.ID, &assignment.policy.GroupID, &assignment.policy.Name,
+			&assignment.policy.WorkCreditPolicyID, &assignment.policy.WorkCreditPolicyName,
+			&assignment.policy.MinutesPerCredit, &assignment.policy.AttendancePolicyID,
+			&assignment.policy.WorkingPatternID, &assignment.policy.PayBasisPolicyID,
+			&assignment.policy.PayBasisPolicyName, &method, &denominator, &days, &rateComponentID,
+			&assignment.policy.OvertimePolicyID, &assignment.policy.EffectiveFrom,
+			&assignment.policy.EffectiveTo, &assignment.membershipFrom,
+			&assignment.membershipTo,
+		); err != nil {
+			return nil, err
+		}
+		if method == nil {
+			return nil, api.ErrPayrollValidation
+		}
+		assignment.policy.PayMethod = workpolicy.PayMethod(*method)
+		assignment.policy.RateComponentDefinitionID = rateComponentID
+		if denominator != nil {
+			value := workpolicy.MonthlyDenominator(*denominator)
+			assignment.policy.MonthlyDenominator = &value
+		}
+		if days != nil {
+			value, err := decimal.NewFromString(*days)
+			if err != nil {
+				return nil, err
+			}
+			assignment.policy.MonthlyStandardDays = &value
+		}
+		assignments = append(assignments, assignment)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	if len(assignments) == 0 {
+		return nil, api.ErrPayrollValidation
+	}
+	return assignments, nil
 }
 
 func workPolicyAssignmentAt(assignments []workPolicyAssignment, asOf time.Time) *api.WorkPolicyGroupVersion {
@@ -2319,7 +2395,7 @@ func loadScheduledWorkdayCounts(ctx context.Context, db DBTX, employmentID uuid.
 	return counts, nil
 }
 
-func (r PayrollRepository) calculateEmploymentPayslip(ctx context.Context, db DBTX, employmentID, employeeID uuid.UUID, deptID *uuid.UUID, year, month int, actorID uuid.UUID) (api.FullPayslipResponse, error) {
+func (r PayrollRepository) calculateEmploymentPayslip(ctx context.Context, db DBTX, employmentID, employeeID uuid.UUID, deptID *uuid.UUID, year, month int, actorID uuid.UUID, overridePolicyVersionID *uuid.UUID) (api.FullPayslipResponse, error) {
 	startDate, endDate, err := payroll.MonthBoundaries(year, month)
 	if err != nil {
 		return api.FullPayslipResponse{}, api.ErrPayrollValidation
@@ -2421,6 +2497,12 @@ ORDER BY start_date ASC, id ASC`, employeeID, endStr)
 	policyAssignments, err := loadWorkPolicyAssignments(ctx, db, employmentID, startDate, endDate.AddDate(0, 0, 1))
 	if err != nil {
 		return api.FullPayslipResponse{}, err
+	}
+	if overridePolicyVersionID != nil {
+		policyAssignments, err = loadDraftWorkPolicyAssignment(ctx, db, employmentID, *overridePolicyVersionID, startDate, endDate.AddDate(0, 0, 1))
+		if err != nil {
+			return api.FullPayslipResponse{}, err
+		}
 	}
 	overtimeAssignments := make([]overtimeMultiplierAssignment, 0)
 	if len(policyAssignments) > 0 {
@@ -2828,9 +2910,17 @@ ORDER BY priority ASC`, policyIDs)
 	if err != nil {
 		return api.FullPayslipResponse{}, err
 	}
-	resolvedPolicy, policyErr := resolveWorkPolicyOptional(ctx, db, employmentID, endDate)
-	if policyErr != nil {
-		return api.FullPayslipResponse{}, policyErr
+	var resolvedPolicy *api.WorkPolicyGroupVersion
+	if overridePolicyVersionID != nil {
+		resolvedPolicy = workPolicyAssignmentAt(policyAssignments, endDate.AddDate(0, 0, -1))
+		if resolvedPolicy == nil {
+			return api.FullPayslipResponse{}, api.ErrPayrollValidation
+		}
+	} else {
+		resolvedPolicy, err = resolveWorkPolicyOptional(ctx, db, employmentID, endDate)
+		if err != nil {
+			return api.FullPayslipResponse{}, err
+		}
 	}
 	kpiCalc.Policy = resolvedPolicy
 	kpiCalc.StandardUnits = totalStdUnits

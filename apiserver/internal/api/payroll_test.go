@@ -499,6 +499,10 @@ func (mockPayrollRepository) SimulateEmployeePayroll(_ context.Context, employee
 	return FullPayslipResponse{PayslipRecord: PayslipRecord{EmploymentID: uuid.UUID(employeeID)}}, nil
 }
 
+func (mockPayrollRepository) SimulateEmployeePayrollWithPolicy(_ context.Context, employeeID ids.EmployeeID, _, _ int, _ uuid.UUID, _ ids.UserID) (FullPayslipResponse, error) {
+	return FullPayslipResponse{PayslipRecord: PayslipRecord{EmploymentID: uuid.UUID(employeeID)}}, nil
+}
+
 func (mockPayrollRepository) CalculateBatchPayroll(_ context.Context, req BatchCalculatePayrollRequest, _ ids.UserID) (BatchCalculatePayrollResponse, error) {
 	results := make([]BatchCalculateResult, 0, len(req.EmploymentIDs))
 	for _, id := range req.EmploymentIDs {
@@ -575,6 +579,33 @@ func contains(value, fragment string) bool {
 		}
 	}
 	return false
+}
+
+func TestPayrollSimulatePayrollAcceptsDraftPolicyVersion(t *testing.T) {
+	handler := PayrollHandler{Repository: mockPayrollRepository{}, Authorizer: payrollAuthorizer{allowedPerms: map[string]bool{"payroll:calculate": true}}}
+	employeeID := uuid.New()
+	policyVersionID := uuid.New()
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/employees/"+employeeID.String()+"/simulate-payroll?year=2026&month=6&policy_version_id="+policyVersionID.String(), nil)
+	req.SetPathValue("id", employeeID.String())
+	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
+	rec := httptest.NewRecorder()
+	handler.SimulatePayroll(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", rec.Code, rec.Body.String())
+	}
+}
+
+func TestPayrollSimulatePayrollRejectsMalformedDraftPolicyVersion(t *testing.T) {
+	handler := PayrollHandler{Repository: mockPayrollRepository{}, Authorizer: payrollAuthorizer{allowedPerms: map[string]bool{"payroll:calculate": true}}}
+	employeeID := uuid.New()
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/employees/"+employeeID.String()+"/simulate-payroll?year=2026&month=6&policy_version_id=bad", nil)
+	req.SetPathValue("id", employeeID.String())
+	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
+	rec := httptest.NewRecorder()
+	handler.SimulatePayroll(rec, req)
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400, got %d", rec.Code)
+	}
 }
 
 func TestPayrollListPayslipsValidatesPeriod(t *testing.T) {

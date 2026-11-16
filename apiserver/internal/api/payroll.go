@@ -486,6 +486,7 @@ type PayrollRepository interface {
 	DeletePayrollRuleAssignment(context.Context, ids.PayrollRuleID, ids.PayrollRuleAssignmentID) error
 	CalculateEmployeePayroll(context.Context, ids.EmployeeID, int, int, ids.UserID) (FullPayslipResponse, error)
 	SimulateEmployeePayroll(context.Context, ids.EmployeeID, int, int, ids.UserID) (FullPayslipResponse, error)
+	SimulateEmployeePayrollWithPolicy(context.Context, ids.EmployeeID, int, int, uuid.UUID, ids.UserID) (FullPayslipResponse, error)
 	CalculateBatchPayroll(context.Context, BatchCalculatePayrollRequest, ids.UserID) (BatchCalculatePayrollResponse, error)
 	CreatePayrollInputBatch(context.Context, CreatePayrollInputRequest, ids.UserID) (PayrollInputBatch, error)
 	ApprovePayrollInputBatch(context.Context, ids.PayrollInputBatchID, ids.UserID) (PayrollInputBatch, error)
@@ -1529,7 +1530,17 @@ func (h PayrollHandler) SimulatePayroll(w http.ResponseWriter, r *http.Request) 
 		h.forbidden(w, r)
 		return
 	}
-	result, err := h.Repository.SimulateEmployeePayroll(r.Context(), ids.EmployeeID(empID), year, month, ids.UserID(actorID))
+	var result FullPayslipResponse
+	if rawPolicyVersionID := strings.TrimSpace(r.URL.Query().Get("policy_version_id")); rawPolicyVersionID != "" {
+		policyVersionID, parseErr := uuid.Parse(rawPolicyVersionID)
+		if parseErr != nil {
+			apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
+			return
+		}
+		result, err = h.Repository.SimulateEmployeePayrollWithPolicy(r.Context(), ids.EmployeeID(empID), year, month, policyVersionID, ids.UserID(actorID))
+	} else {
+		result, err = h.Repository.SimulateEmployeePayroll(r.Context(), ids.EmployeeID(empID), year, month, ids.UserID(actorID))
+	}
 	if err != nil {
 		h.writeError(w, r, err)
 		return
