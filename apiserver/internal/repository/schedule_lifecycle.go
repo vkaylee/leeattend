@@ -979,9 +979,10 @@ func lockScheduleRevisionTargets(ctx context.Context, tx DBTX, keys []scheduleRe
 
 func rejectConcreteScheduleOverlaps(ctx context.Context, tx DBTX, days []map[string]any) error {
 	type candidate struct {
-		EmploymentID string    `json:"employment_id"`
-		StartAt      time.Time `json:"start_at"`
-		EndAt        time.Time `json:"end_at"`
+		EmploymentID  string    `json:"employment_id"`
+		BusinessDate  string    `json:"business_date"`
+		StartAt       time.Time `json:"start_at"`
+		EndAt         time.Time `json:"end_at"`
 	}
 	candidates := make([]candidate, 0)
 	for _, day := range days {
@@ -996,8 +997,9 @@ func rejectConcreteScheduleOverlaps(ctx context.Context, tx DBTX, days []map[str
 		if err != nil {
 			return err
 		}
+		businessDate, _ := day["business_date"].(string)
 		for _, interval := range intervals {
-			candidates = append(candidates, candidate{EmploymentID: employmentID.String(), StartAt: interval.StartAt, EndAt: interval.EndAt})
+			candidates = append(candidates, candidate{EmploymentID: employmentID.String(), BusinessDate: businessDate, StartAt: interval.StartAt, EndAt: interval.EndAt})
 		}
 	}
 	if len(candidates) == 0 {
@@ -1006,7 +1008,7 @@ func rejectConcreteScheduleOverlaps(ctx context.Context, tx DBTX, days []map[str
 	var conflict bool
 	err := tx.QueryRow(ctx, `
 		WITH candidates AS (
-			SELECT * FROM jsonb_to_recordset($1::jsonb) AS c(employment_id uuid, start_at timestamptz, end_at timestamptz)
+			SELECT * FROM jsonb_to_recordset($1::jsonb) AS c(employment_id uuid, business_date date, start_at timestamptz, end_at timestamptz)
 		), candidate_people AS (
 			SELECT c.*, em.employee_id
 			FROM candidates c JOIN employments em ON em.id = c.employment_id
@@ -1021,7 +1023,8 @@ func rejectConcreteScheduleOverlaps(ctx context.Context, tx DBTX, days []map[str
 			WHERE e.employment_id <> c.employment_id AND c.start_at < e.end_at AND e.start_at < c.end_at
 			UNION ALL
 			SELECT 1 FROM candidate_people a JOIN candidate_people b ON a.employee_id = b.employee_id
-			WHERE a.employment_id < b.employment_id AND a.start_at < b.end_at AND b.start_at < a.end_at
+			WHERE (a.employment_id, a.business_date, a.start_at) < (b.employment_id, b.business_date, b.start_at)
+			  AND a.start_at < b.end_at AND b.start_at < a.end_at
 		)`, jsonArg(candidates)).Scan(&conflict)
 	if err != nil {
 		return err
