@@ -1253,6 +1253,9 @@ func commitReplan(ctx context.Context, tx pgx.Tx, actorID uuid.UUID, idempotency
 		return err
 	}
 	replacement := result.Replacement
+	if err := rejectConcreteScheduleOverlaps(ctx, tx, []map[string]any{replacement}); err != nil {
+		return err
+	}
 	newRevisionID, err := insertPublishedDay(ctx, tx, batchID, publicationActor{ID: &actorID, Type: "human"}, request.Reason, current.Timezone, replacement, publishedAt, &current.ID)
 	if err != nil {
 		return err
