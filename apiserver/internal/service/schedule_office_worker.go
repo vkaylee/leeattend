@@ -39,14 +39,14 @@ type ScheduleOfficeProducer interface {
 }
 
 type ScheduleOfficeWorker struct {
-	store     ScheduleOfficeJobStore
-	producer  ScheduleOfficeProducer
-	publisher ScheduleOfficePublisher
-	done      chan struct{}
-	closed    chan struct{}
-	once      sync.Once
-	closeOnce sync.Once
-	workerID  uuid.UUID
+	store           ScheduleOfficeJobStore
+	producer        ScheduleOfficeProducer
+	publisher       ScheduleOfficePublisher
+	done            chan struct{}
+	closed          chan struct{}
+	once            sync.Once
+	closeOnce       sync.Once
+	workerID        uuid.UUID
 	heartbeatWriter WorkerHeartbeatWriter
 }
 
