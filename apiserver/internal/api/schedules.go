@@ -27,7 +27,7 @@ var (
 	ErrScheduleForbidden            = errors.New("schedule lifecycle replay is forbidden")
 	ErrScheduleValidation           = errors.New("schedule lifecycle validation failed")
 	ErrScheduleApprovalInvalid      = errors.New("schedule lifecycle approval is invalid")
-	ErrScheduleConflict              = errors.New("schedule lifecycle schedule conflict")
+	ErrScheduleConflict             = errors.New("schedule lifecycle schedule conflict")
 )
 
 const (
