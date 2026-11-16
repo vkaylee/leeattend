@@ -1,4 +1,7 @@
 import React from "react";
+import { useTranslation } from "react-i18next";
+
+import { Combobox } from "@/components/ui/combobox";
 
 import { AssignmentHistory } from "@/components/shifts/assignment-history";
 import { useMonthlyRoster } from "@/components/shifts/hooks/use-monthly-roster";
@@ -17,10 +20,13 @@ interface ShiftsContentProps {
 
  
 export function ShiftsContent({ hook, monthlyRoster }: ShiftsContentProps) {
+  const { t } = useTranslation();
   const {
     activeTab,
     viewMode,
     currentDate,
+    coverageFilter,
+    setCoverageFilter,
     deleteRosterMutation,
     employeeSchedule,
     history,
@@ -35,7 +41,7 @@ export function ShiftsContent({ hook, monthlyRoster }: ShiftsContentProps) {
   } = hook;
 
   if (activeTab === "weekly-roster" && viewMode === "month") {
-    return <MonthlyRosterGrid hook={hook} monthlyRoster={monthlyRoster} />;
+    return <div className="space-y-4"><div className="flex items-center justify-end"><Combobox aria-label={t("scheduleLifecycle.coverageLabel")} onChange={(value) => { setCoverageFilter(value as "all" | "missing" | "complete"); }} options={[{ label: t("scheduleLifecycle.coverageAll"), value: "all" }, { label: t("scheduleLifecycle.coverageMissing"), value: "missing" }, { label: t("scheduleLifecycle.coverageComplete"), value: "complete" }]} placeholder={t("scheduleLifecycle.coverageLabel")} searchPlaceholder={t("common.combobox.search")} value={coverageFilter} /></div><MonthlyRosterGrid hook={hook} monthlyRoster={monthlyRoster} /></div>;
   }
 
   if (!selectedEmployee && activeTab !== "directory" && viewMode === "week") {

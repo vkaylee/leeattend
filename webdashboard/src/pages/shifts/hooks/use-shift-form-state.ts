@@ -14,6 +14,8 @@ import type { ShiftsSearch } from "../search-schema";
 import type { TabType, ViewMode } from "./use-shifts-types";
 
 
+export type ScheduleCoverageFilter = "all" | "missing" | "complete";
+
 export function useShiftFormState() {
   // useSearch({ strict: false }) returns a permissive type; we cast to
   // ShiftsSearch to match the route's validateSearch contract (codebase idiom
@@ -41,6 +43,7 @@ export function useShiftFormState() {
   // Selection states
   const initialIds = search.employeeIds ? search.employeeIds.split(",") : [];
   const [selectedEmployeeIds, setSelectedEmployeeIdsState] = useState<string[]>(initialIds);
+  const [coverageFilter, setCoverageFilter] = useState<ScheduleCoverageFilter>("all");
   const [selectedEmployees, setSelectedEmployeesState] = useState<Employee[]>([]);
 
   const [selectedDays, setSelectedDays] = useState<string[]>([]);
@@ -182,6 +185,7 @@ export function useShiftFormState() {
     isCorrection, setIsCorrection,
     correctionEffectiveDate, setCorrectionEffectiveDate,
     selectedEmployeeIds, setSelectedEmployeeIds,
-    selectedEmployees, setSelectedEmployees
+    selectedEmployees, setSelectedEmployees,
+    coverageFilter, setCoverageFilter
   };
 }

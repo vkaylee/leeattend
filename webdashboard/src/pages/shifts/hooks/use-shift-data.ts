@@ -21,12 +21,14 @@ import {
 import { createQueryKey } from "@/lib/query-keys";
 
 import type { ViewMode } from "./use-shifts-types";
+import type { ScheduleCoverageFilter } from "./use-shift-form-state";
 
 
 interface UseShiftDataProps { monthEnd?: Date;
 monthStart?: Date;
 selectedEmployee?: Employee | null;
 selectedEmployeeIds?: string[];
+coverageFilter?: ScheduleCoverageFilter;
 startOfWeek: Date;
 viewMode: ViewMode;
 weekDays: Date[];  }
@@ -40,6 +42,7 @@ export function useShiftData({
   monthEnd,
   selectedEmployee,
   selectedEmployeeIds,
+  coverageFilter = "all",
 }: UseShiftDataProps) {
   const { data: shifts } = useQuery<Shift[]>({
     queryKey: createQueryKey("shifts"),
@@ -85,14 +88,15 @@ export function useShiftData({
     error: monthError,
     refetch: refetchMonthSchedules,
   } = useQuery<EmployeeSchedule[]>({
-    queryKey: createQueryKey("schedules", monthStart ? format(monthStart, 'yyyy-MM-dd') : "", "monthly", selectedEmploymentIds),
+    queryKey: createQueryKey("schedules", monthStart ? format(monthStart, 'yyyy-MM-dd') : "", "monthly", selectedEmploymentIds, coverageFilter),
     queryFn: () => {
       if (!monthStart || !monthEnd) {
         return Promise.resolve([]);
       }
       return fetchSchedules(format(monthStart, 'yyyy-MM-dd'),
       format(monthEnd, 'yyyy-MM-dd'),
-      selectedEmploymentIds.length > 0 ? selectedEmploymentIds : undefined);
+      selectedEmploymentIds.length > 0 ? selectedEmploymentIds : undefined,
+      coverageFilter);
     },
     enabled: viewMode === "month" && !!monthStart && !!monthEnd && selectedEmploymentIds.length > 0,
   });

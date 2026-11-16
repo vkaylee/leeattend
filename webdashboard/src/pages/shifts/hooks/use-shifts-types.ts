@@ -30,6 +30,8 @@ assignPatternMutation: UseMutationResult<EmployeeWorkingPattern, Error, AssignPa
 bulkRosterMutation: UseMutationResult<unknown, Error, { date: string; shift_id: string | null }[]>;
 complianceModalOpen: boolean;
 complianceViolations: ComplianceViolation[];
+coverageFilter: "all" | "missing" | "complete";
+setCoverageFilter: (value: "all" | "missing" | "complete") => void;
 correctionEffectiveDate: string;
 createShiftMutation: UseMutationResult<Shift, Error, CreateShiftRequest>;
 currentDate: Date;

@@ -26,6 +26,7 @@ export function useShifts(): UseShiftsReturn {
     monthEnd: monthNav.monthEnd,
     selectedEmployee: form.selectedEmployee,
     selectedEmployeeIds: form.selectedEmployeeIds,
+    coverageFilter: form.coverageFilter,
   });
 
   // ── Compliance state (shared between mutations and roster handlers) ───
