@@ -22,8 +22,9 @@ Implement only contract-compatible AttendanceReport processing on existing Redis
 - Operations: bounded batch/page size, retry/lease semantics using existing queue contract, masked metrics.
 
 ## Completion evidence
-- Focused worker unit tests pass.
+- Focused worker tests pass, including date-effective number selection and pagination beyond the 3000-row page limit.
+- Disposable Redis integration proves queued job consumption, historical number application, terminal metadata, and stored CSV result.
 - Disposable PostgreSQL integration proves historical number snapshot and signed artifact immutability.
 - Export request survives current-number change with original effective number.
-- CSV/XLSX download has expected totals/grouping.
-- API/web/all gates pass or exact phase blockers recorded.
+- CSV download is proven; XLSX is only a minimal one-sheet workbook and the business two-sheet contract remains unproven.
+- Full API/web/all gates remain in progress; exact phase blockers must be recorded before completion.
