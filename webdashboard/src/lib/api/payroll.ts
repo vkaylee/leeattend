@@ -340,8 +340,33 @@ export async function retirePayrollFormulaRule(ruleId: string): Promise<PayrollF
   return response;
 }
 
+export interface PayrollImpactResponse {
+  employment_id: string;
+  period_year: number;
+  period_month: number;
+  before_run_id: string;
+  after_run_id: string;
+  computed: boolean;
+  stale: boolean;
+  stale_reasons?: string[];
+  reason?: string;
+  base_pay_delta: string;
+  overtime_pay_delta: string;
+  deductions_delta: string;
+  net_pay_delta: string;
+  standard_units_delta: number;
+  overtime_units_delta: number;
+}
+
 export async function fetchPayrollCalculationRuns(employmentId: string, year: number, month: number): Promise<PayrollCalculationRun[]> {
   const { data: response } = await fetch<PayrollCalculationRun[]>("GET", "/api/v1/employments/{id}/payroll/calculation-runs", { params: { path: { id: employmentId }, query: { year, month } } });
+  return response;
+}
+
+export async function fetchPayrollImpact(employmentId: string, year: number, month: number, beforeRunId: string, afterRunId: string): Promise<PayrollImpactResponse> {
+  const { data: response } = await fetch<PayrollImpactResponse>("GET", "/api/v1/employments/{id}/payroll/impact", {
+    params: { path: { id: employmentId }, query: { year, month, before_run_id: beforeRunId, after_run_id: afterRunId } },
+  });
   return response;
 }
 

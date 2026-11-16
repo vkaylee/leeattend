@@ -43,6 +43,7 @@ import {
   resolveWorkPolicy,
   createWorkPolicyGroupVersion,
   fetchWorkPolicyReferenceOptions,
+  fetchPayrollImpact,
 } from "../payroll";
 
 // --- response helpers -------------------------------------------------------
@@ -102,6 +103,14 @@ describe("payroll API", () => {
     expect(call[0]).toContain("/work-policy-groups/g-1/versions");
     expect((call[1] as RequestInit).method).toBe("POST");
   });
+  it("fetches payroll impact with stale metadata", async () => {
+    const impact = { employment_id: "e-1", period_year: 2026, period_month: 6, before_run_id: "r-1", after_run_id: "r-2", computed: true, stale: true, stale_reasons: ["policy_version_changed"], base_pay_delta: "200", overtime_pay_delta: "50", deductions_delta: "10", net_pay_delta: "240", standard_units_delta: 2, overtime_units_delta: 1 };
+    vi.mocked(apiFetch).mockResolvedValueOnce(okRes(impact));
+    await expect(fetchPayrollImpact("e-1", 2026, 6, "r-1", "r-2")).resolves.toEqual(impact);
+    expect(vi.mocked(apiFetch).mock.calls[0][0]).toContain("/employments/e-1/payroll/impact");
+    expect(vi.mocked(apiFetch).mock.calls[0][0]).toContain("before_run_id=r-1");
+  });
+
   it("fetches labor policy reference options in parallel", async () => {
     vi.mocked(apiFetch).mockResolvedValueOnce(okRes([{ id: "attendance-1", valid_from: "2026-01-01" }]));
     vi.mocked(apiFetch).mockResolvedValueOnce(okRes([{ id: "pattern-1", name: "Weekly" }]));

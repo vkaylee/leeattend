@@ -86,6 +86,8 @@ export const payrollKeys = {
   all: () => ["payroll"] as const,
   calculationRuns: (employmentId?: string, year?: number, month?: number) =>
     ["payroll-calculation-runs", employmentId, year, month] as const,
+  impact: (employmentId?: string, year?: number, month?: number, beforeRunId?: string, afterRunId?: string) =>
+    ["payroll-impact", employmentId, year, month, beforeRunId, afterRunId] as const,
   settings: () => ["payroll-settings"] as const,
   settingsHistory: () => ["payroll-settings-history"] as const,
   workPolicyGroups: () => ["payroll-work-policy-groups"] as const,
