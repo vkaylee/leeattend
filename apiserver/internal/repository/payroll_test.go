@@ -97,6 +97,20 @@ func TestResolveMonthlyOTQuotaPrefersCanonicalOverLegacy(t *testing.T) {
 	}
 }
 
+func TestImpactSnapshotStalenessIgnoresLegacySnapshotWithoutPolicy(t *testing.T) {
+	stale, reasons, err := impactSnapshotStaleness(context.Background(), &fakeDBTX{}, ids.EmploymentID(uuid.New()), 2026, 6, []byte(`{"kpi_inputs":{"actual":"1"}}`))
+	if err != nil || stale || len(reasons) != 0 {
+		t.Fatalf("legacy snapshot should remain non-stale: stale=%t reasons=%v err=%v", stale, reasons, err)
+	}
+}
+
+func TestImpactSnapshotStalenessRejectsInvalidPolicyVersion(t *testing.T) {
+	stale, reasons, err := impactSnapshotStaleness(context.Background(), &fakeDBTX{}, ids.EmploymentID(uuid.New()), 2026, 6, []byte(`{"policy":{"version_id":"bad"}}`))
+	if err != nil || !stale || len(reasons) != 1 || reasons[0] != "policy_version_invalid" {
+		t.Fatalf("invalid policy snapshot should be stale: stale=%t reasons=%v err=%v", stale, reasons, err)
+	}
+}
+
 func TestPayrollInputRowStatus(t *testing.T) {
 	status, message := payrollInputRowStatus(decimal.Zero)
 	if status != "warning" || message != "zero metric value requires review" {
