@@ -51,6 +51,7 @@ export function useOtApprovals() {
   const canClaimOnBehalf = hasPermission("overtime:claim_on_behalf");
   const canManagePolicies = hasPermission("overtime:policies:manage");
   const canCreateOnBehalf = hasPermission("overtime:request:create_on_behalf");
+  const canReadEmployees = hasPermission("employees:read");
 
   // ── State ────────────────────────────────────────────────────────
   const [currentMonth, setCurrentMonth] = useState(new Date());
@@ -95,7 +96,7 @@ export function useOtApprovals() {
   const { data: employeesData } = useQuery<PaginatedResponse<Employee>>({
     queryKey: createQueryKey("employees-list-all", organization?.id),
     queryFn: () => fetchEmployees(1, 1000),
-    enabled: !!organization?.id && (canApprove || canClaimOnBehalf || canCreateOnBehalf || canManagePolicies),
+    enabled: !!organization?.id && canReadEmployees && (canApprove || canClaimOnBehalf || canCreateOnBehalf || canManagePolicies),
     meta: { suppressErrorToast: [403] },
   });
 

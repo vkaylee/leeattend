@@ -15,6 +15,7 @@ export function QuickPunchWidget() {
   const { employee, isLoading: isLoadingProfile } = useMyProfile();
   const { activeEntry, isPunching, punch, isLoading } = useMyClock({
     enabled: !isLoadingProfile && Boolean(employee),
+    suppressErrors: true,
   });
   const [currentTime, setCurrentTime] = useState(() => new Date());
 
