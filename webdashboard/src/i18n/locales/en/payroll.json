@@ -318,6 +318,7 @@
       "output_snapshot": "Output snapshot available",
       "partial": "Trace is partial or unavailable; some steps were omitted.",
       "payslip": "Payslip",
+      "provenance_incomplete": "Provenance is incomplete; do not use this trace as a full historical explanation.",
       "title": "Calculation trace"
     },
     "scope_employee": "Employee",

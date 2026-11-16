@@ -318,6 +318,7 @@
       "output_snapshot": "Có ảnh chụp output",
       "partial": "Nhật ký không đầy đủ hoặc không khả dụng; một số bước đã được bỏ qua.",
       "payslip": "Phiếu lương",
+      "provenance_incomplete": "Nguồn truy nguyên chưa đầy đủ; không dùng nhật ký này như giải thích lịch sử hoàn chỉnh.",
       "title": "Chi tiết tính toán"
     },
     "scope_employee": "Nhân viên",

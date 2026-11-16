@@ -51,6 +51,7 @@ export function CalculationTrace({ employmentId, year, month }: { employmentId: 
             const rawTrace = Array.isArray(run.calculation_trace) ? run.calculation_trace : [];
             const trace = rawTrace.filter(isTraceStep);
             const hasMalformedSteps = trace.length !== rawTrace.length || !Array.isArray(run.calculation_trace);
+            const hasIncompleteProvenance = !hasSnapshot(run.input_snapshot) || !hasSnapshot(run.output_snapshot) || !run.formula_version_id;
             return <div className="space-y-2" key={run.id}>
               <Typography className="font-semibold" variant="small">{run.engine_version} · {run.created_at}</Typography>
               <div className="flex flex-wrap gap-2 text-xs text-slate-500" aria-label={t("payroll.calculation_trace.metadata", "Trace metadata")}>
@@ -60,6 +61,7 @@ export function CalculationTrace({ employmentId, year, month }: { employmentId: 
                 {hasSnapshot(run.output_snapshot) ? <span>{t("payroll.calculation_trace.output_snapshot", "Output snapshot available")}</span> : null}
               </div>
               {hasMalformedSteps ? <Typography className="text-amber-700" role="status" variant="small">{t("payroll.calculation_trace.partial", "Trace is partial or unavailable; some steps were omitted.")}</Typography> : null}
+              {hasIncompleteProvenance ? <Typography className="text-amber-700" role="status" variant="small">{t("payroll.calculation_trace.provenance_incomplete", "Provenance is incomplete; do not use this trace as a full historical explanation.")}</Typography> : null}
               {trace.map((step, index) => <div className="rounded-lg bg-slate-50 p-3 text-xs dark:bg-slate-800" key={`${run.id}-${index}`}><div className="font-semibold">{step.step} · {step.rule}</div><code>{step.expression}</code><div>{step.result}</div></div>)}
             </div>;
           })}

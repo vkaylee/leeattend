@@ -318,6 +318,7 @@
       "output_snapshot": "输出快照可用",
       "partial": "计算记录不完整或不可用；部分步骤已省略。",
       "payslip": "工资单",
+      "provenance_incomplete": "溯源信息不完整；请勿将此记录作为完整的历史说明。",
       "title": "计算明细"
     },
     "scope_employee": "员工",
