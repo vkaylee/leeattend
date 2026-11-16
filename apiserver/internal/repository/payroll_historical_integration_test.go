@@ -362,6 +362,41 @@ func TestIntegrationLegacyPayrollCalculationKeepsArithmeticAcrossReruns(t *testi
 	}
 }
 
+func TestIntegrationPayrollUsesApprovedOvertimeOnly(t *testing.T) {
+	pool, ctx := requireIntegrationDatabase(t)
+	employerID, employeeID, employmentID := uuid.New(), uuid.New(), uuid.New()
+	componentID, componentDefinitionID := uuid.New(), uuid.New()
+	if _, err := pool.Exec(ctx, `INSERT INTO employers (id, name) VALUES ($1, 'approved-ot-parity-employer')`, employerID); err != nil {
+		t.Fatalf("insert approved OT employer: %v", err)
+	}
+	if _, err := pool.Exec(ctx, `INSERT INTO employees (id, employee_id_number, full_name, hire_date, original_hire_date) VALUES ($1, $2, 'approved-ot-parity-employee', DATE '2026-01-01', DATE '2026-01-01')`, employeeID, employeeID.String()); err != nil {
+		t.Fatalf("insert approved OT employee: %v", err)
+	}
+	if _, err := pool.Exec(ctx, `INSERT INTO employments (id, employee_id, employer_id, status, start_date) VALUES ($1, $2, $3, 'active', DATE '2026-01-01')`, employmentID, employeeID, employerID); err != nil {
+		t.Fatalf("insert approved OT employment: %v", err)
+	}
+	if _, err := pool.Exec(ctx, `INSERT INTO salary_component_definitions (id, name, code, component_type) VALUES ($1, 'Approved OT base salary', $2, 'base_salary')`, componentDefinitionID, "APPROVED_OT_BASE_"+componentDefinitionID.String()[:8]); err != nil {
+		t.Fatalf("insert approved OT salary definition: %v", err)
+	}
+	if _, err := pool.Exec(ctx, `INSERT INTO employee_salary_components (id, component_definition_id, amount, effective_date, employment_id) VALUES ($1, $2, 2600, DATE '2026-01-01', $3)`, componentID, componentDefinitionID, employmentID); err != nil {
+		t.Fatalf("insert approved OT salary component: %v", err)
+	}
+	if _, err := pool.Exec(ctx, `INSERT INTO attendance_daily_summaries (id, date, employment_id, standard_minutes, system_detected_ot_minutes, claimed_ot_minutes, approved_ot_minutes, early_ot_minutes, late_ot_minutes) VALUES ($1, DATE '2026-01-15', $2, 480, 180, 120, 120, 0, 0)`, uuid.New(), employmentID); err != nil {
+		t.Fatalf("insert approved OT summary: %v", err)
+	}
+
+	result, err := (PayrollRepository{DB: pool}).CalculateEmployeePayroll(ctx, ids.EmployeeID(employeeID), 2026, 1, ids.UserID(uuid.New()))
+	if err != nil {
+		t.Fatalf("calculate approved OT payroll: %v", err)
+	}
+	if result.OvertimeUnits != 2 {
+		t.Fatalf("overtime units = %d, want 2 approved hours", result.OvertimeUnits)
+	}
+	if !result.OvertimePayAmount.Equal(decimal.RequireFromString("37.50")) {
+		t.Fatalf("overtime pay = %s, want 37.50 from approved OT only", result.OvertimePayAmount)
+	}
+}
+
 func TestIntegrationComparePayrollImpactBatchAggregatesWithoutMutation(t *testing.T) {
 	pool, ctx := requireIntegrationDatabase(t)
 	employerID, employeeID, employmentID := uuid.New(), uuid.New(), uuid.New()

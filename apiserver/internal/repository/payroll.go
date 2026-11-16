@@ -2529,7 +2529,7 @@ ORDER BY effective_from DESC`, employmentID, endStr)
 		otMin  int
 	}
 	summariesMap := make(map[string]summaryItem)
-	sumRows, err := db.Query(ctx, `SELECT date::text, COALESCE(standard_minutes, 0), COALESCE(early_ot_minutes + late_ot_minutes, 0)
+	sumRows, err := db.Query(ctx, `SELECT date::text, COALESCE(standard_minutes, 0), COALESCE(approved_ot_minutes, 0)
 FROM attendance_daily_summaries
 WHERE employment_id = $1 AND date >= $2::date AND date <= $3::date`, employmentID, startStr, endStr)
 	if err == nil {
