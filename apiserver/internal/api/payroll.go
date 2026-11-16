@@ -460,6 +460,7 @@ type PayrollRepository interface {
 	AssignPayrollRule(context.Context, ids.PayrollRuleID, AssignPayrollRuleRequest) (PayrollRuleAssignment, error)
 	DeletePayrollRuleAssignment(context.Context, ids.PayrollRuleID, ids.PayrollRuleAssignmentID) error
 	CalculateEmployeePayroll(context.Context, ids.EmployeeID, int, int, ids.UserID) (FullPayslipResponse, error)
+	SimulateEmployeePayroll(context.Context, ids.EmployeeID, int, int, ids.UserID) (FullPayslipResponse, error)
 	CalculateBatchPayroll(context.Context, BatchCalculatePayrollRequest, ids.UserID) (BatchCalculatePayrollResponse, error)
 	CreatePayrollInputBatch(context.Context, CreatePayrollInputRequest, ids.UserID) (PayrollInputBatch, error)
 	ApprovePayrollInputBatch(context.Context, ids.PayrollInputBatchID, ids.UserID) (PayrollInputBatch, error)
@@ -1461,6 +1462,35 @@ func (h PayrollHandler) transitionPayrollInputBatch(w http.ResponseWriter, r *ht
 		},
 	})
 	apperror.WriteJSON(w, http.StatusOK, batch)
+}
+
+func (h PayrollHandler) SimulatePayroll(w http.ResponseWriter, r *http.Request) {
+	empID, ok := pathUUID(r, "id")
+	if !ok || !h.allowedCalculate(r) {
+		h.forbidden(w, r)
+		return
+	}
+	year, err := strconv.Atoi(r.URL.Query().Get("year"))
+	if err != nil {
+		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
+		return
+	}
+	month, err := strconv.Atoi(r.URL.Query().Get("month"))
+	if err != nil || year < 2000 || year > 2100 || month < 1 || month > 12 {
+		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
+		return
+	}
+	actorID, ok := httpinfra.UserIDFromContext(r.Context())
+	if !ok {
+		h.forbidden(w, r)
+		return
+	}
+	result, err := h.Repository.SimulateEmployeePayroll(r.Context(), ids.EmployeeID(empID), year, month, ids.UserID(actorID))
+	if err != nil {
+		h.writeError(w, r, err)
+		return
+	}
+	apperror.WriteJSON(w, http.StatusOK, result)
 }
 
 func (h PayrollHandler) CalculateBatchPayroll(w http.ResponseWriter, r *http.Request) {

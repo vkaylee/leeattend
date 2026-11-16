@@ -491,6 +491,10 @@ func (mockPayrollRepository) ReopenPayrollPeriod(_ context.Context, input payrol
 	return PayrollPeriod{ID: uuid.New(), EmployerID: uuid.UUID(input.EmployerID), Year: input.Year, Month: input.Month, Status: "open", Version: input.ExpectedVersion + 1, ReopenReason: &input.Reason}, nil
 }
 
+func (mockPayrollRepository) SimulateEmployeePayroll(_ context.Context, employeeID ids.EmployeeID, _, _ int, _ ids.UserID) (FullPayslipResponse, error) {
+	return FullPayslipResponse{PayslipRecord: PayslipRecord{EmploymentID: uuid.UUID(employeeID)}}, nil
+}
+
 func (mockPayrollRepository) CalculateBatchPayroll(_ context.Context, req BatchCalculatePayrollRequest, _ ids.UserID) (BatchCalculatePayrollResponse, error) {
 	results := make([]BatchCalculateResult, 0, len(req.EmploymentIDs))
 	for _, id := range req.EmploymentIDs {

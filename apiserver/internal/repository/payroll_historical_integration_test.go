@@ -362,6 +362,52 @@ func TestIntegrationLegacyPayrollCalculationKeepsArithmeticAcrossReruns(t *testi
 	}
 }
 
+func TestIntegrationSimulatePayrollRollsBackAllPayrollWrites(t *testing.T) {
+	pool, ctx := requireIntegrationDatabase(t)
+	employerID, employeeID, employmentID := uuid.New(), uuid.New(), uuid.New()
+	componentID, componentDefinitionID := uuid.New(), uuid.New()
+	if _, err := pool.Exec(ctx, `INSERT INTO employers (id, name) VALUES ($1, 'simulation-test-employer')`, employerID); err != nil {
+		t.Fatalf("insert simulation employer: %v", err)
+	}
+	if _, err := pool.Exec(ctx, `INSERT INTO employees (id, employee_id_number, full_name, hire_date, original_hire_date) VALUES ($1, $2, 'simulation-test-employee', DATE '2026-01-01', DATE '2026-01-01')`, employeeID, employeeID.String()); err != nil {
+		t.Fatalf("insert simulation employee: %v", err)
+	}
+	if _, err := pool.Exec(ctx, `INSERT INTO employments (id, employee_id, employer_id, status, start_date) VALUES ($1, $2, $3, 'active', DATE '2026-01-01')`, employmentID, employeeID, employerID); err != nil {
+		t.Fatalf("insert simulation employment: %v", err)
+	}
+	if _, err := pool.Exec(ctx, `INSERT INTO salary_component_definitions (id, name, code, component_type) VALUES ($1, 'Simulation base salary', $2, 'base_salary')`, componentDefinitionID, "SIM_BASE_"+componentDefinitionID.String()[:8]); err != nil {
+		t.Fatalf("insert simulation salary definition: %v", err)
+	}
+	if _, err := pool.Exec(ctx, `INSERT INTO employee_salary_components (id, component_definition_id, amount, effective_date, employment_id) VALUES ($1, $2, 2600, DATE '2026-01-01', $3)`, componentID, componentDefinitionID, employmentID); err != nil {
+		t.Fatalf("insert simulation salary component: %v", err)
+	}
+	if _, err := pool.Exec(ctx, `INSERT INTO attendance_daily_summaries (id, date, employment_id, standard_minutes) SELECT gen_random_uuid(), DATE '2026-01-01' + day, $1, 480 FROM generate_series(0, 21) AS days(day)`, employmentID); err != nil {
+		t.Fatalf("insert simulation attendance: %v", err)
+	}
+
+	result, err := (PayrollRepository{DB: pool}).SimulateEmployeePayroll(ctx, ids.EmployeeID(employeeID), 2026, 1, ids.UserID(uuid.New()))
+	if err != nil {
+		t.Fatalf("simulate payroll: %v", err)
+	}
+	if !result.BasePayAmount.Equal(decimal.RequireFromString("2200")) {
+		t.Fatalf("unexpected simulation base pay: %s", result.BasePayAmount)
+	}
+
+	var payslipCount, runCount, periodCount int
+	if err := pool.QueryRow(ctx, `SELECT count(*) FROM payslips WHERE employment_id = $1`, employmentID).Scan(&payslipCount); err != nil {
+		t.Fatalf("count simulation payslips: %v", err)
+	}
+	if err := pool.QueryRow(ctx, `SELECT count(*) FROM payroll_calculation_runs WHERE employment_id = $1 AND period_year = 2026 AND period_month = 1`, employmentID).Scan(&runCount); err != nil {
+		t.Fatalf("count simulation runs: %v", err)
+	}
+	if err := pool.QueryRow(ctx, `SELECT count(*) FROM payroll_periods WHERE employer_id = $1 AND period_year = 2026 AND period_month = 1`, employerID).Scan(&periodCount); err != nil {
+		t.Fatalf("count simulation periods: %v", err)
+	}
+	if payslipCount != 0 || runCount != 0 || periodCount != 0 {
+		t.Fatalf("simulation persisted payroll state: payslips=%d runs=%d periods=%d", payslipCount, runCount, periodCount)
+	}
+}
+
 func TestIntegrationResolveWorkPolicyUsesExclusiveMembershipAndVersionBoundaries(t *testing.T) {
 	pool, ctx := requireIntegrationDatabase(t)
 	tx, err := pool.Begin(ctx)

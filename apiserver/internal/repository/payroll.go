@@ -1886,6 +1886,34 @@ func ensurePayrollPeriodOpen(ctx context.Context, tx pgx.Tx, employerID uuid.UUI
 	return nil
 }
 
+func (r PayrollRepository) SimulateEmployeePayroll(ctx context.Context, employeeID ids.EmployeeID, year, month int, actorID ids.UserID) (api.FullPayslipResponse, error) {
+	db, err := r.db(ctx)
+	if err != nil {
+		return api.FullPayslipResponse{}, err
+	}
+	beginner, ok := db.(service.TxBeginner)
+	if !ok {
+		return api.FullPayslipResponse{}, errors.New("payroll repository: database does not support transactions")
+	}
+	var response api.FullPayslipResponse
+	err = service.WithTx(ctx, beginner, func(ctx context.Context, tx pgx.Tx) error {
+		var employmentID, employerID uuid.UUID
+		var deptID *uuid.UUID
+		if err := tx.QueryRow(ctx, `SELECT id, department_id, employer_id FROM employments WHERE employee_id = $1 AND status = 'active' AND deleted_at IS NULL ORDER BY start_date DESC, id DESC LIMIT 1`, uuid.UUID(employeeID)).Scan(&employmentID, &deptID, &employerID); err != nil {
+			if errors.Is(err, pgx.ErrNoRows) {
+				return api.ErrNoActiveEmployment
+			}
+			return err
+		}
+		if err := ensurePayrollPeriodOpen(ctx, tx, employerID, year, month); err != nil {
+			return err
+		}
+		response, err = r.calculateEmploymentPayslip(ctx, tx, employmentID, uuid.UUID(employeeID), deptID, year, month, uuid.UUID(actorID))
+		return err
+	})
+	return response, err
+}
+
 func (r PayrollRepository) CalculateBatchPayroll(ctx context.Context, req api.BatchCalculatePayrollRequest, actorID ids.UserID) (api.BatchCalculatePayrollResponse, error) {
 	db, err := r.db(ctx)
 	if err != nil {
