@@ -39,15 +39,16 @@ type ScheduleOfficeProducer interface {
 }
 
 type ScheduleOfficeWorker struct {
-	store           ScheduleOfficeJobStore
-	producer        ScheduleOfficeProducer
-	publisher       ScheduleOfficePublisher
-	done            chan struct{}
-	closed          chan struct{}
-	once            sync.Once
-	closeOnce       sync.Once
-	workerID        uuid.UUID
-	heartbeatWriter WorkerHeartbeatWriter
+	store             ScheduleOfficeJobStore
+	producer          ScheduleOfficeProducer
+	publisher         ScheduleOfficePublisher
+	done              chan struct{}
+	closed            chan struct{}
+	once              sync.Once
+	closeOnce         sync.Once
+	workerID          uuid.UUID
+	heartbeatWriter   WorkerHeartbeatWriter
+	heartbeatInterval time.Duration
 }
 
 type WorkerHeartbeatWriter interface {
@@ -66,7 +67,7 @@ func NewScheduleOfficeWorkerWithHeartbeat(store ScheduleOfficeJobStore, producer
 	return &ScheduleOfficeWorker{
 		store: store, producer: producer, publisher: publisher,
 		done: make(chan struct{}), closed: make(chan struct{}),
-		workerID: uuid.New(), heartbeatWriter: heartbeatWriter,
+		workerID: uuid.New(), heartbeatWriter: heartbeatWriter, heartbeatInterval: ScheduleOfficeHeartbeat,
 	}, nil
 }
 
@@ -132,7 +133,8 @@ func (w *ScheduleOfficeWorker) process(ctx context.Context, id string, payload [
 	}
 	workCtx, cancel := context.WithCancel(ctx)
 	heartbeatDone := make(chan struct{})
-	go w.heartbeat(workCtx, id, lease, heartbeatDone)
+	leaseLost := make(chan error, 1)
+	go w.heartbeat(workCtx, id, lease, heartbeatDone, leaseLost)
 	defer func() {
 		cancel()
 		<-heartbeatDone
@@ -153,6 +155,12 @@ func (w *ScheduleOfficeWorker) process(ctx context.Context, id string, payload [
 		_ = w.store.FailScheduleOfficeJob(ctx, id, lease, attempt, err)
 		return
 	}
+	select {
+	case leaseErr := <-leaseLost:
+		_ = w.store.FailScheduleOfficeJob(ctx, id, lease, attempt, leaseErr)
+		return
+	default:
+	}
 	_ = w.store.CompleteScheduleOfficeJob(ctx, id, lease, batchID)
 }
 
@@ -172,9 +180,13 @@ func (w *ScheduleOfficeWorker) deleteHeartbeat(ctx context.Context) {
 	_ = w.heartbeatWriter.DeleteWorkerHeartbeat(ctx, w.workerID)
 }
 
-func (w *ScheduleOfficeWorker) heartbeat(ctx context.Context, id, lease string, done chan<- struct{}) {
+func (w *ScheduleOfficeWorker) heartbeat(ctx context.Context, id, lease string, done chan<- struct{}, leaseLost chan<- error) {
 	defer close(done)
-	ticker := time.NewTicker(ScheduleOfficeHeartbeat)
+	interval := w.heartbeatInterval
+	if interval <= 0 {
+		interval = ScheduleOfficeHeartbeat
+	}
+	ticker := time.NewTicker(interval)
 	defer ticker.Stop()
 	for {
 		select {
@@ -182,6 +194,10 @@ func (w *ScheduleOfficeWorker) heartbeat(ctx context.Context, id, lease string, 
 			return
 		case <-ticker.C:
 			if err := w.store.HeartbeatScheduleOfficeJob(ctx, id, lease, ScheduleOfficeLease); err != nil {
+				select {
+				case leaseLost <- err:
+				default:
+				}
 				return
 			}
 		}

@@ -54,6 +54,31 @@ func TestIntegrationScheduleOfficeOutboxDeduplicatesAndLeases(t *testing.T) {
 	}
 }
 
+func TestIntegrationScheduleOfficeOutboxReclaimsExpiredLease(t *testing.T) {
+	pool, ctx := requireIntegrationDatabase(t)
+	event := ScheduleOfficeCoverageEvent{ApprovalInstanceID: uuid.New(), EmployerID: uuid.New(), EmploymentID: uuid.New(), BusinessDate: "2026-11-22", Mode: "office"}
+	if inserted, err := EnqueueScheduleOfficeCoverageRefresh(ctx, pool, event); err != nil || !inserted {
+		t.Fatalf("enqueue = inserted:%v err:%v", inserted, err)
+	}
+	id, _, firstAttempt, firstLease, found, err := ClaimScheduleOfficeJob(ctx, pool, time.Minute)
+	if err != nil || !found || firstAttempt != 1 {
+		t.Fatalf("first claim = id:%q attempt:%d found:%v err:%v", id, firstAttempt, found, err)
+	}
+	if _, err := pool.Exec(ctx, `UPDATE outbox_jobs SET locked_until = NOW() - interval '1 second' WHERE id = $1`, id); err != nil {
+		t.Fatalf("expire lease: %v", err)
+	}
+	claimedID, _, secondAttempt, secondLease, found, err := ClaimScheduleOfficeJob(ctx, pool, time.Minute)
+	if err != nil || !found || claimedID != id || secondAttempt != 2 || secondLease == firstLease {
+		t.Fatalf("reclaimed claim = id:%q attempt:%d lease:%q found:%v err:%v", claimedID, secondAttempt, secondLease, found, err)
+	}
+	if err := CompleteScheduleOfficeJob(ctx, pool, id, firstLease, uuid.NewString()); !errors.Is(err, ErrOutboxLeaseLost) {
+		t.Fatalf("stale completion error=%v, want lease lost", err)
+	}
+	if err := CompleteScheduleOfficeJob(ctx, pool, id, secondLease, uuid.NewString()); err != nil {
+		t.Fatalf("current completion: %v", err)
+	}
+}
+
 func TestIntegrationScheduleOfficeOutboxDeadLettersAtFiveAttempts(t *testing.T) {
 	pool, ctx := requireIntegrationDatabase(t)
 	event := ScheduleOfficeCoverageEvent{ApprovalInstanceID: uuid.New(), EmployerID: uuid.New(), EmploymentID: uuid.New(), BusinessDate: "2026-11-21", Mode: "office"}
