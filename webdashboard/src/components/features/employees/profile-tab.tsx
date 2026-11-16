@@ -228,11 +228,11 @@ export default function ProfileTab({
 
             <section aria-labelledby="employee-tenure-history" className="space-y-4">
                 <h3 id="employee-employment-history" className="text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider">
-                    {t("employees.details.tenure_history", "Lịch sử đợt tuyển dụng")}
+                    {t("employees.details.tenure_history")}
                 </h3>
                 {tenureHistory.length === 0 ? (
                     <p className="rounded-2xl border border-dashed border-slate-200 dark:border-slate-700 p-5 text-sm text-slate-500">
-                        {t("employees.details.no_tenure_history", "Chưa có dữ liệu đợt tuyển dụng")}
+                        {t("employees.details.no_tenure_history")}
                     </p>
                 ) : (
                     <ol className="space-y-3">
@@ -241,19 +241,19 @@ export default function ProfileTab({
                                 <div className="flex flex-wrap items-center justify-between gap-2">
                                     <span className="font-semibold text-slate-800 dark:text-slate-100">
                                         {index === tenureHistory.length - 1
-                                            ? t("employees.details.current_tenure", "Đợt hiện tại / gần nhất")
-                                            : t("employees.details.historical_tenure", "Đợt lịch sử")}
+                                            ? t("employees.details.current_tenure")
+                                            : t("employees.details.historical_tenure")}
                                     </span>
                                     <StatusBadge variant={employment.status === "active" ? "success" : "neutral"}>
                                         {employment.status}
                                     </StatusBadge>
                                 </div>
                                 <dl className="mt-3 grid gap-2 text-sm sm:grid-cols-3">
-                                    <div><dt className="text-slate-500">{t("employees.details.employment_id", "Employment ID")}</dt><dd className="font-mono text-xs">{employment.id}</dd></div>
-                                    <div><dt className="text-slate-500">{t("employees.details.employer", "Employer")}</dt><dd>{employerNames.get(employment.employer_id) ?? (employersLoading ? t("common.loading", "Loading") : employersError ? t("common.error", "Unable to load") : "—")}</dd></div>
-                                    <div><dt className="text-slate-500">{t("employees.details.account_status", "Account")}</dt><dd>{index === tenureHistory.length - 1 ? (linkedUser ? t("employees.details.account_linked", "Linked") : employee.user_id ? t("common.loading", "Loading") : t("employees.details.account_unlinked", "Not linked")) : t("employees.details.historical_account", "Historical access isolated")}</dd></div>
-                                    <div><dt className="text-slate-500">{t("employees.details.start_date", "Bắt đầu")}</dt><dd>{formatDate(employment.start_date)}</dd></div>
-                                    <div><dt className="text-slate-500">{t("employees.details.end_date", "Kết thúc")}</dt><dd>{employment.end_date ? formatDate(employment.end_date) : "—"}</dd></div>
+                                    <div><dt className="text-slate-500">{t("employees.details.employment_id")}</dt><dd className="font-mono text-xs">{employment.id}</dd></div>
+                                    <div><dt className="text-slate-500">{t("employees.details.employer")}</dt><dd>{employerNames.get(employment.employer_id) ?? (employersLoading ? t("common.loading") : employersError ? t("common.error") : "—")}</dd></div>
+                                    <div><dt className="text-slate-500">{t("employees.details.account_status")}</dt><dd>{index === tenureHistory.length - 1 ? (linkedUser ? t("employees.details.account_linked") : employee.user_id ? t("common.loading") : t("employees.details.account_unlinked")) : t("employees.details.historical_account")}</dd></div>
+                                    <div><dt className="text-slate-500">{t("employees.details.start_date")}</dt><dd>{formatDate(employment.start_date)}</dd></div>
+                                    <div><dt className="text-slate-500">{t("employees.details.end_date")}</dt><dd>{employment.end_date ? formatDate(employment.end_date) : "—"}</dd></div>
                                 </dl>
                             </li>
                         ))}

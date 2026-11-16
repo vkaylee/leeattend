@@ -36,6 +36,7 @@ const mockEmployees = [
 
 vi.mock("@/hooks/use-employees", () => ({
   useAllEmployees: () => ({
+    employees: mockEmployees,
     data: mockEmployees,
     isLoading: false,
   }),

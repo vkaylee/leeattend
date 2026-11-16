@@ -341,7 +341,7 @@ func (r LeaveRepository) GetOrganizationLeaveBalances(ctx context.Context, year,
 		CROSS JOIN leave_types lt
 		LEFT JOIN employments emp ON e.id = emp.employee_id AND emp.deleted_at IS NULL AND emp.status = 'active'
 		WHERE e.deleted_at IS NULL AND emp.id IS NOT NULL AND lt.deleted_at IS NULL
-		  AND ($1 = '' OR e.full_name ILIKE '%' || $1 || '%' OR e.employee_id_number ILIKE '%' || $1 || '%' OR lt.name ILIKE '%' || $1 || '%' OR lt.code ILIKE '%' || $1 || '%')
+		  AND ($1 = '' OR e.full_name ILIKE '%' || $1 || '%' OR EXISTS (SELECT 1 FROM employee_tenures search_t WHERE search_t.employee_id = e.id AND search_t.deleted_at IS NULL AND search_t.employee_number ILIKE '%' || $1 || '%') OR lt.name ILIKE '%' || $1 || '%' OR lt.code ILIKE '%' || $1 || '%')
 	`
 	var total int64
 	if err := db.QueryRow(ctx, countSQL, searchTerm).Scan(&total); err != nil {
@@ -416,7 +416,7 @@ func (r LeaveRepository) GetOrganizationLeaveBalances(ctx context.Context, year,
 		LEFT JOIN leave_usage lu ON e.id = lu.employee_id AND lt.id = lu.leave_type_id
 		LEFT JOIN best_policy bp ON e.id = bp.emp_id AND lt.id = bp.lt_id
 		WHERE e.deleted_at IS NULL AND emp.id IS NOT NULL AND lt.deleted_at IS NULL
-		  AND ($2 = '' OR e.full_name ILIKE '%' || $2 || '%' OR e.employee_id_number ILIKE '%' || $2 || '%' OR lt.name ILIKE '%' || $2 || '%' OR lt.code ILIKE '%' || $2 || '%')
+		  AND ($2 = '' OR e.full_name ILIKE '%' || $2 || '%' OR EXISTS (SELECT 1 FROM employee_tenures search_t WHERE search_t.employee_id = e.id AND search_t.deleted_at IS NULL AND search_t.employee_number ILIKE '%' || $2 || '%') OR lt.name ILIKE '%' || $2 || '%' OR lt.code ILIKE '%' || $2 || '%')
 		ORDER BY e.full_name ASC, lt.name ASC
 		LIMIT $3 OFFSET $4
 	`

@@ -47,11 +47,13 @@ func (r EmployeeAssignmentRepository) ListAssignments(ctx context.Context) ([]ap
 		return nil, err
 	}
 	rows, err := db.Query(ctx, `SELECT `+employeeAssignmentColumns+`,
-		e.id, e.full_name, e.employee_id_number,
+		e.id, e.full_name, COALESCE(t.employee_number, e.employee_id_number),
 		COALESCE(hl.name, ''), COALESCE(hostl.name, '')
 		FROM employee_assignments ea
 		JOIN employments em ON em.id = ea.employment_id
 		JOIN employees e ON e.id = em.employee_id
+		LEFT JOIN employment_relationships er ON er.id = em.relationship_id AND er.employee_id = em.employee_id
+		LEFT JOIN employee_tenures t ON t.id = er.tenure_id AND t.employee_id = e.id AND t.deleted_at IS NULL AND t.start_date <= ea.start_date AND (t.end_date IS NULL OR t.end_date >= ea.start_date)
 		LEFT JOIN work_locations hl ON hl.id = ea.home_location_id
 		LEFT JOIN work_locations hostl ON hostl.id = ea.host_location_id
 		WHERE em.deleted_at IS NULL AND e.deleted_at IS NULL
