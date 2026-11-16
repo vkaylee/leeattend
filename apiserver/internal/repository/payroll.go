@@ -2937,6 +2937,15 @@ ORDER BY priority ASC`, policyIDs)
 		}
 	}
 	kpiCalc.Policy = resolvedPolicy
+	for _, snap := range segmentSnapshots {
+		if snap.laborPolicyVersion != nil {
+			kpiCalc.PolicySegments = append(kpiCalc.PolicySegments, policySegmentSnapshot{
+				StartDate: snap.start.Format("2006-01-02"),
+				EndDate:   snap.end.Format("2006-01-02"),
+				VersionID: *snap.laborPolicyVersion,
+			})
+		}
+	}
 	kpiCalc.StandardUnits = totalStdUnits
 	kpiCalc.OvertimeUnits = totalOtUnits
 	kpiCalc.StandardCredits = totalStandardCredits

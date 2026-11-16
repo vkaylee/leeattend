@@ -40,6 +40,24 @@ func TestMarshalKPICalculationInputsIncludesEffectivePolicyWithoutSalary(t *test
 	}
 }
 
+func TestMarshalKPICalculationInputsIncludesPolicySegments(t *testing.T) {
+	versionID := uuid.New()
+	payload, err := marshalKPICalculationInputs(kpiCalculation{
+		PolicySegments: []policySegmentSnapshot{{StartDate: "2026-06-01", EndDate: "2026-06-14", VersionID: versionID}},
+	})
+	if err != nil {
+		t.Fatalf("marshal policy segments: %v", err)
+	}
+	var decoded map[string]any
+	if err := json.Unmarshal(payload, &decoded); err != nil {
+		t.Fatalf("decode policy segments: %v", err)
+	}
+	segments, ok := decoded["policy_segments"].([]any)
+	if !ok || len(segments) != 1 || !strings.Contains(string(payload), versionID.String()) {
+		t.Fatalf("policy segments missing from snapshot: %s", payload)
+	}
+}
+
 func TestMarshalKPICalculationOutputIncludesImpactFields(t *testing.T) {
 	calc := kpiCalculation{
 		StandardCredits: decimal.RequireFromString("1.5"),

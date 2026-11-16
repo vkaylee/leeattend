@@ -33,6 +33,18 @@ import { getShiftAccent, type ShiftAccent } from "./shift-badge-style";
 
 const noop = () => undefined;
 
+function navigateRosterPeriod(
+  hook: ReturnType<typeof useShifts>,
+  viewMode: "week" | "month",
+  direction: "prev" | "next",
+) {
+  if (viewMode === "week") {
+    hook.handleNavigateWeek(direction);
+    return;
+  }
+  hook.handleNavigateMonth(direction);
+}
+
 const dateLocales: Partial<Record<string, Locale>> = {
   vi: vi,
   en: enUS,
@@ -163,6 +175,26 @@ export const RosterActionBar = memo(function RosterActionBar({
 });
 RosterActionBar.displayName = "RosterActionBar";
 
+function RosterPeriodText({
+  currentLocale,
+  formatDate,
+  hook,
+  viewMode,
+}: {
+  currentLocale: Locale;
+  formatDate: (date: Date | string) => string;
+  hook: ReturnType<typeof useShifts>;
+  viewMode: "week" | "month";
+}) {
+  return (
+    <span className="min-w-[140px] text-center font-bold text-xs uppercase tracking-widest text-slate-700">
+      {viewMode === "week"
+        ? `${formatDate(hook.weekDays[0])} - ${formatDate(hook.weekDays[6])}`
+        : format(hook.currentMonth, "MMMM yyyy", { locale: currentLocale })}
+    </span>
+  );
+}
+
 // ── RosterNavHeader ─────────────────────────────────────
 
 export function RosterNavHeader({
@@ -200,21 +232,17 @@ export function RosterNavHeader({
           <Button
             aria-label={viewMode === "week" ? t("shifts.prev_week", { defaultValue: "Tuần trước" }) : t("common.prev_period", { defaultValue: "Kỳ trước" })}
             className="p-2 rounded-xl hover:bg-slate-100 border border-slate-100"
-            onClick={() => { if (viewMode === "week") hook.handleNavigateWeek("prev"); else hook.handleNavigateMonth("prev"); }}
+            onClick={() => { navigateRosterPeriod(hook, viewMode, "prev"); }}
             type="button"
             variant="ghost"
           >
             <ChevronLeft size={16} />
           </Button>
-          <span className="min-w-[140px] text-center font-bold text-xs uppercase tracking-widest text-slate-700">
-            {viewMode === "week"
-              ? `${formatDate(hook.weekDays[0])} - ${formatDate(hook.weekDays[6])}`
-              : format(hook.currentMonth, "MMMM yyyy", { locale: currentLocale })}
-          </span>
+          <RosterPeriodText currentLocale={currentLocale} formatDate={formatDate} hook={hook} viewMode={viewMode} />
           <Button
             aria-label={viewMode === "week" ? t("shifts.next_week", { defaultValue: "Tuần tiếp theo" }) : t("common.next_period", { defaultValue: "Kỳ tiếp theo" })}
             className="p-2 rounded-xl hover:bg-slate-100 border border-slate-100"
-            onClick={() => { if (viewMode === "week") hook.handleNavigateWeek("next"); else hook.handleNavigateMonth("next"); }}
+            onClick={() => { navigateRosterPeriod(hook, viewMode, "next"); }}
             type="button"
             variant="ghost"
           >

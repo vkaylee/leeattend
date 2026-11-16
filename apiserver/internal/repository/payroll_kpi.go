@@ -12,12 +12,19 @@ import (
 	"github.com/vkaylee/leeattend/apiserver/internal/domain/payroll/formula"
 )
 
+type policySegmentSnapshot struct {
+	StartDate string    `json:"start_date"`
+	EndDate   string    `json:"end_date"`
+	VersionID uuid.UUID `json:"version_id"`
+}
+
 type kpiCalculation struct {
 	Amount          decimal.Decimal
 	FormulaID       *uuid.UUID
 	Inputs          map[string]string
 	Trace           []map[string]string
 	Policy          *api.WorkPolicyGroupVersion
+	PolicySegments  []policySegmentSnapshot
 	StandardUnits   int32
 	OvertimeUnits   int32
 	StandardCredits decimal.Decimal
@@ -177,6 +184,9 @@ func marshalKPICalculationInputs(calc kpiCalculation) ([]byte, error) {
 			"work_credit_policy_id": calc.Policy.WorkCreditPolicyID.String(), "pay_basis_policy_id": calc.Policy.PayBasisPolicyID.String(),
 			"overtime_policy_id": calc.Policy.OvertimePolicyID.String(), "pay_method": string(calc.Policy.PayMethod),
 		}
+	}
+	if len(calc.PolicySegments) > 0 {
+		inputPayload["policy_segments"] = calc.PolicySegments
 	}
 	return json.Marshal(inputPayload)
 }
