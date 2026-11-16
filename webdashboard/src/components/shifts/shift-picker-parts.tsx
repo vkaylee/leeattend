@@ -103,16 +103,13 @@ export function PickerEmptyState({
 // ── OFF day option ───────────────────────────────────────────────────
 
 /**
- * Marks the selected dates as a day off. Uses a native <button> rather than the
- * design-system Button because that component is a fixed-height, centred
- * inline-flex row and this option is a two-line card with a leading icon tile.
+ * Marks selected dates as day off.
  */
 export function OffDayOption({ onSelect, t }: { onSelect: () => void; t: TFunction }) {
   return (
-    // eslint-disable-next-line react/forbid-elements -- multi-line card layout; see note above
-    <button
+    <Button
       className={cn(
-        "group w-full rounded-3xl border-2 border-dashed p-4 text-left",
+        "!h-auto !min-h-0 !p-4 group w-full rounded-3xl border-2 border-dashed text-left",
         "transition-all duration-200 active:scale-[0.99]",
         "border-slate-200 bg-slate-50/60 hover:border-rose-300 hover:bg-rose-50/50",
         "dark:border-slate-700 dark:bg-slate-800/30 dark:hover:border-rose-800 dark:hover:bg-rose-950/20",
@@ -121,6 +118,8 @@ export function OffDayOption({ onSelect, t }: { onSelect: () => void; t: TFuncti
       )}
       onClick={onSelect}
       type="button"
+      size="sm"
+      variant="ghost"
     >
       <span className="flex items-center gap-3">
         <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-slate-200/70 text-slate-500 transition-colors group-hover:bg-rose-100 group-hover:text-rose-600 dark:bg-slate-700/60 dark:text-slate-300 dark:group-hover:bg-rose-950/50 dark:group-hover:text-rose-400">
@@ -135,6 +134,6 @@ export function OffDayOption({ onSelect, t }: { onSelect: () => void; t: TFuncti
           </span>
         </span>
       </span>
-    </button>
+    </Button>
   );
 }

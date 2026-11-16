@@ -130,7 +130,7 @@ function PolicyAssignmentsSectionContent({ options = {} }: { options?: PolicyAss
   );
 
   if (isLoadingAssignments) return <div className="h-40 animate-pulse rounded-2xl bg-slate-100 dark:bg-slate-800" data-testid="policy-assignments-skeleton"></div>;
-  if (isAssignmentsError) return <div className="rounded-2xl border border-rose-200 bg-rose-50 p-6 text-sm text-rose-700 dark:border-rose-900 dark:bg-rose-950/30 dark:text-rose-300"><p>{t("common.error", { defaultValue: "Unable to load data." })}</p><Button className="mt-3" onClick={() => { void refetchAssignments(); }} variant="outline">{t("common.retry", { defaultValue: "Retry" })}</Button></div>;
+  if (isAssignmentsError) return <div className="rounded-2xl border border-rose-200 bg-rose-50 p-6 text-sm text-rose-700 dark:border-rose-900 dark:bg-rose-950/30 dark:text-rose-300"><Typography variant="p">{t("common.error", { defaultValue: "Unable to load data." })}</Typography><Button className="mt-3" onClick={() => { void refetchAssignments(); }} variant="outline">{t("common.retry", { defaultValue: "Retry" })}</Button></div>;
 
   return (
     <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">

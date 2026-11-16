@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import type { DashboardMetric, DashboardMetricsResponse } from "@/hooks/dashboard-metric-contract";
 
 import Button from "@/components/ui/button";
+import { Typography } from "@/components/ui/typography";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 
@@ -87,16 +88,16 @@ function MetricCard({ metric, currency }: { metric: DashboardMetric; currency?: 
     <article className="group flex min-h-44 flex-col justify-between rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:shadow-md dark:border-slate-800 dark:bg-slate-950">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-200">{t(`dashboard.executive.metrics.${key}.label`)}</h2>
-          <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">{t(`dashboard.executive.metrics.${key}.formula`)}</p>
+          <Typography variant="h2" className="text-sm font-semibold text-slate-700 dark:text-slate-200">{t(`dashboard.executive.metrics.${key}.label`)}</Typography>
+          <Typography variant="p" className="mt-1 text-xs text-slate-500 dark:text-slate-400">{t(`dashboard.executive.metrics.${key}.formula`)}</Typography>
         </div>
         <span className={cn("inline-flex items-center gap-1 rounded-full border px-2 py-1 text-[11px] font-semibold", tone)}>
           {statusIcon(metric)} {t(`dashboard.executive.status.${metric.status}`)}
         </span>
       </div>
       <div>
-        <p className="mt-5 text-2xl font-bold tracking-tight text-slate-950 dark:text-white">{valueText(metric, t, currency)}</p>
-        {numerator !== null && denominator !== null ? <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">{numerator.toLocaleString()} / {denominator.toLocaleString()} {metric.numerator?.unit}</p> : null}
+        <Typography variant="p" className="mt-5 text-2xl font-bold tracking-tight text-slate-950 dark:text-white">{valueText(metric, t, currency)}</Typography>
+        {numerator !== null && denominator !== null ? <Typography variant="p" className="mt-1 text-xs text-slate-500 dark:text-slate-400">{numerator.toLocaleString()} / {denominator.toLocaleString()} {metric.numerator?.unit}</Typography> : null}
         <div className="mt-3 flex items-center justify-between gap-2 text-xs text-slate-500 dark:text-slate-400">
           <span className="inline-flex items-center gap-1" title={t("dashboard.executive.comparison_help")}>{deltaIcon(metric)} {deltaText(metric, t, currency)}</span>
           <span className="inline-flex items-center gap-1" title={t("dashboard.executive.freshness_help")}><CircleHelp aria-hidden="true" className="h-3.5 w-3.5" /> {new Date(metric.freshness.as_of).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>

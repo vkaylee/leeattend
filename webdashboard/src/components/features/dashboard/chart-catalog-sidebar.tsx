@@ -94,12 +94,11 @@ function WidgetToggleItem({ widgetId, widgetMap, visibleWidgets, collapsed, onTo
   const label = t(widget.labelKey);
 
   return (
-    // eslint-disable-next-line react/forbid-elements -- role="switch" button with ARIA needs native button semantics
-    <button
+    <Button
       aria-checked={isVisible}
       className={cn(
         "w-full flex items-center gap-3 rounded-xl transition-all duration-150",
-        collapsed ? "justify-center px-0 py-2.5" : "px-3 py-2",
+        collapsed ? "justify-center !px-0 py-2.5" : "!px-3 py-2",
         isVisible
           ? "bg-primary-50 dark:bg-primary-950 text-primary-600 dark:text-primary-400"
           : "text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/50 hover:text-slate-700 dark:hover:text-slate-200",
@@ -109,6 +108,8 @@ function WidgetToggleItem({ widgetId, widgetMap, visibleWidgets, collapsed, onTo
       tabIndex={0}
       title={collapsed ? label : undefined}
       type="button"
+      size="sm"
+      variant="ghost"
     >
       {/* Checkbox circle */}
       <CheckIndicator isVisible={isVisible} />
@@ -120,7 +121,7 @@ function WidgetToggleItem({ widgetId, widgetMap, visibleWidgets, collapsed, onTo
           {label}
         </span>
       )}
-    </button>
+    </Button>
   );
 }
 

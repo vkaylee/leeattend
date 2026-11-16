@@ -1,4 +1,3 @@
-/* eslint-disable react/forbid-elements */
 import { useQueries } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { CalendarRange, Calendar, Save } from "lucide-react";
@@ -140,8 +139,8 @@ export function PatternAssignmentForm({
                     value={endDate}
                   />
                 )}
-                <button
-                  className={`absolute right-1.5 top-1/2 -translate-y-1/2 text-[12px] font-extrabold px-1.5 py-0.5 rounded-lg border transition-all h-[26px] w-[26px] flex items-center justify-center ${
+                <Button
+                  className={`absolute right-1.5 top-1/2 -translate-y-1/2 text-[12px] font-extrabold !px-1.5 !py-0.5 rounded-lg border transition-all !h-[26px] !min-h-0 !w-[26px] flex items-center justify-center ${
                     isForever
                       ? 'bg-primary-600 text-white border-primary-600 shadow-sm shadow-primary-500/20'
                       : 'bg-white dark:bg-slate-700 text-slate-500 dark:text-slate-350 border-slate-200 dark:border-slate-650 hover:bg-slate-50 dark:hover:bg-slate-600'
@@ -149,9 +148,11 @@ export function PatternAssignmentForm({
                   onClick={() => { setIsForever(!isForever); }}
                   title={isForever ? t("common.definite") : t("common.indefinite")}
                   type="button"
+                  size="sm"
+                  variant="ghost"
                 >
                   ∞
-                </button>
+                </Button>
               </div>
             </div>
             <Button className="flex-grow bg-slate-900 text-white font-bold py-2 rounded-xl flex items-center justify-center gap-1.5 hover:bg-primary-700 transition-all active:scale-[0.98] disabled:opacity-50 shadow-md shadow-slate-100 dark:shadow-black/20 uppercase tracking-widest text-[10px] h-[38px] self-end"

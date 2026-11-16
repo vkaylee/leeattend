@@ -131,7 +131,7 @@ function GeneralSettingsContent({ organization }: { organization: Organization }
       {/* Apple HIG Segmented Control with mobile horizontal scroll */}
       <div className="flex max-w-full items-center pb-1">
         <div className="grid w-full grid-cols-1 gap-1 rounded-xl border border-slate-200/60 bg-slate-100/90 p-1 dark:border-slate-700/60 dark:bg-slate-800/80 sm:inline-flex sm:w-auto sm:grid-cols-none" role="tablist">
-          <button
+          <Button
             aria-selected={activeTab === "localization"}
             className={cn(
               "flex min-w-0 items-center justify-center gap-2 rounded-lg px-4 py-2 text-xs font-semibold transition-all duration-150 select-none sm:whitespace-nowrap",
@@ -143,11 +143,13 @@ function GeneralSettingsContent({ organization }: { organization: Organization }
             onClick={() => { setActiveTab("localization"); }}
             role="tab"
             type="button"
+            size="sm"
+            variant="ghost"
           >
             <Globe size={14} />
             <span>{t("common.settings.tabs.localization")}</span>
-          </button>
-          <button
+          </Button>
+          <Button
             aria-selected={activeTab === "appearance"}
             className={cn(
               "flex min-w-0 items-center justify-center gap-2 rounded-lg px-4 py-2 text-xs font-semibold transition-all duration-150 select-none sm:whitespace-nowrap",
@@ -159,10 +161,12 @@ function GeneralSettingsContent({ organization }: { organization: Organization }
             onClick={() => { setActiveTab("appearance"); }}
             role="tab"
             type="button"
+            size="sm"
+            variant="ghost"
           >
             <Palette size={14} />
             <span>{t("common.settings.tabs.appearance")}</span>
-          </button>
+          </Button>
         </div>
       </div>
 

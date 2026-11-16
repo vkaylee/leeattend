@@ -1,4 +1,4 @@
-/* eslint-disable react/forbid-elements */
+import Button from "@/components/ui/button";
 import { useLocation, useNavigate } from "@tanstack/react-router";
 import { CalendarRange, LayoutGrid, Zap } from "lucide-react";
 import React from "react";
@@ -24,7 +24,7 @@ export function ShiftsSectionNav() {
   // Can't use <Link> for rules segments — TanStack Router considers both
   // /shifts/rules?tab=patterns and /shifts/rules?tab=rules as exact matches
   // for the same path, auto-activating both <Link> children simultaneously.
-  // Manual <button> + navigate avoids this.
+  // Manual navigation avoids ambiguous query-string route matches.
   const isOnRules = pathname.startsWith(ROUTES.SHIFTS_RULES);
   const tab = isOnRules
     ? new URLSearchParams(searchStr).get("tab") ?? "patterns"
@@ -37,27 +37,33 @@ export function ShiftsSectionNav() {
 
   return (
     <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-700/50 p-1.5 rounded-[22px] w-fit border border-slate-200 dark:border-slate-700/50">
-      <button
+      <Button
         className={`${baseClass} ${active === "roster" ? activeClass : inactiveClass}`}
         onClick={() => void navigate({ to: ROUTES.SHIFTS, search: { tab: "weekly-roster", view: "week" } })}
         type="button"
+        size="sm"
+        variant="ghost"
       >
         <LayoutGrid size={14} /> {t("shifts.title")}
-      </button>
-      <button
+      </Button>
+      <Button
         className={`${baseClass} ${active === "patterns" ? activeClass : inactiveClass}`}
         onClick={() => void navigate({ to: ROUTES.SHIFTS_RULES, search: { tab: "patterns" } })}
         type="button"
+        size="sm"
+        variant="ghost"
       >
         <CalendarRange size={14} /> {t("patterns.title", "Working Patterns")}
-      </button>
-      <button
+      </Button>
+      <Button
         className={`${baseClass} ${active === "rules" ? activeClass : inactiveClass}`}
         onClick={() => void navigate({ to: ROUTES.SHIFTS_RULES, search: { tab: "rules" } })}
         type="button"
+        size="sm"
+        variant="ghost"
       >
         <Zap size={14} /> {t("rules.title", "Assignment Rules")}
-      </button>
+      </Button>
     </div>
   );
 }

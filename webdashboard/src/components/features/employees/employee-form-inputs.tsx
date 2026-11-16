@@ -3,6 +3,7 @@ import type { TFunction } from "i18next";
 import type { OrganizationMember } from "@/lib/api";
 import type { WorkLocation } from "@/lib/api/locations";
 
+import { Typography } from "@/components/ui/typography";
 import { Combobox } from "@/components/ui/combobox";
 import FormField from "@/components/ui/form-field";
 import { Employee, Employment, Employer } from "@/lib/api";
@@ -88,9 +89,9 @@ export default function EmployeeFormInputs({
             {t("employees.form.location")}
           </span>
           {locationsUnavailable ? (
-          <p className="text-sm text-slate-500 dark:text-slate-400" role="status">
+          <Typography variant="p" className="text-sm text-slate-500 dark:text-slate-400" role="status">
             {t("employees.form.location_unavailable")}
-          </p>
+          </Typography>
         ) : (
           <Combobox
             clearOnEscape

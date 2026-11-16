@@ -10,6 +10,7 @@ import React from "react";
 import { useTranslation } from "react-i18next";
 
 import Button from "@/components/ui/button";
+import { Typography } from "@/components/ui/typography";
 import { cn } from "@/lib/utils";
 
 import {
@@ -169,14 +170,14 @@ export function ApprovalItemRow({
             </span>
           </div>
 
-          <p className="text-xs text-slate-600 dark:text-slate-400 font-medium truncate">
+          <Typography variant="p" className="text-xs text-slate-600 dark:text-slate-400 font-medium truncate">
             {item.subtitle}
-          </p>
+          </Typography>
 
           {!!item.details.reason && (
-            <p className="text-xs text-slate-500 dark:text-slate-500 italic line-clamp-1">
+            <Typography variant="p" className="text-xs text-slate-500 dark:text-slate-500 italic line-clamp-1">
               &quot;{item.details.reason}&quot;
-            </p>
+            </Typography>
           )}
         </div>
       </div>
@@ -184,9 +185,9 @@ export function ApprovalItemRow({
       {/* Right: Date, Impact Badge & Quick Inline Actions */}
       <div className="flex items-center justify-between sm:justify-end gap-3 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-100 dark:border-slate-800">
         <div className="text-left sm:text-right space-y-0.5">
-          <p className="text-xs font-semibold text-slate-800 dark:text-slate-200">
+          <Typography variant="p" className="text-xs font-semibold text-slate-800 dark:text-slate-200">
             {item.targetDate}
-          </p>
+          </Typography>
           {!!item.impact && item.impact.colleaguesAwayCount > 0 && (
             <span
               className={cn(

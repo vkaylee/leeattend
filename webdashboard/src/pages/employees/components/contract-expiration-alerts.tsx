@@ -3,6 +3,7 @@ import React, { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import Button from "@/components/ui/button";
+import { Typography } from "@/components/ui/typography";
 import { Employee } from "@/lib/api/types";
 
 interface ContractExpirationAlertsProps {
@@ -45,15 +46,15 @@ export function ContractExpirationAlerts({
             <CalendarClock size={20} />
           </div>
           <div>
-            <h4 className="text-sm font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
+            <Typography variant="h4" className="text-sm font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
               <span>{t("employees.alerts.title")}</span>
               <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
                 {activeCount} {t("employees.alerts.active_count")}
               </span>
-            </h4>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+            </Typography>
+            <Typography variant="p" className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
               {t("employees.alerts.subtitle")}
-            </p>
+            </Typography>
           </div>
         </div>
 

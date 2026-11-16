@@ -1,3 +1,4 @@
+import { Typography } from "@/components/ui/typography";
 import { AlertCircle, CheckCircle2, Users } from "lucide-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
@@ -32,13 +33,13 @@ export function TeamScheduleImpactCard({
       >
         <CheckCircle2 className="h-5 w-5 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
         <div className="text-xs space-y-0.5">
-          <p className="font-semibold">
+          <Typography variant="p" className="font-semibold">
             {t(
               "approvals.impact.no_conflict_title",
               "Không có xung đột nhân sự"
             )}
-          </p>
-          <p className="text-emerald-700/90 dark:text-emerald-300/80">
+          </Typography>
+          <Typography variant="p" className="text-emerald-700/90 dark:text-emerald-300/80">
             {departmentName
               ? t(
                   "approvals.impact.no_conflict_dept",
@@ -49,7 +50,7 @@ export function TeamScheduleImpactCard({
                   "approvals.impact.no_conflict_generic",
                   "Lịch làm việc của đội ngũ đảm bảo an toàn vận hành."
                 )}
-          </p>
+          </Typography>
         </div>
       </div>
     );
@@ -71,26 +72,26 @@ export function TeamScheduleImpactCard({
       )}
       <div className="text-xs space-y-1 w-full">
         <div className="flex items-center justify-between gap-2">
-          <p className="font-bold text-amber-900 dark:text-amber-300">
+          <Typography variant="p" className="font-bold text-amber-900 dark:text-amber-300">
             {isHighImpact
               ? t(
                   "approvals.impact.understaffing_alert",
                   "Cảnh báo thiếu hụt nhân sự"
                 )
               : t("approvals.impact.colleagues_away", "Nhân sự vắng mặt cùng ngày")}
-          </p>
+          </Typography>
           <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-200/80 dark:bg-amber-900/60 text-amber-900 dark:text-amber-200">
             {colleaguesAwayCount}{" "}
             {t("approvals.impact.people_count", "người vắng")}
           </span>
         </div>
-        <p className="text-amber-800/90 dark:text-amber-300/80">
+        <Typography variant="p" className="text-amber-800/90 dark:text-amber-300/80">
           {!!departmentName && <span className="font-medium">[{departmentName}] </span>}
           {t("approvals.impact.away_list", "Đã có người nghỉ phép:")}{" "}
           <span className="font-semibold underline">
             {colleaguesAwayNames.join(", ")}
           </span>
-        </p>
+        </Typography>
       </div>
     </div>
   );

@@ -51,7 +51,7 @@ export function PayrollFormulaHistory({ ruleId }: { ruleId: string }) {
         <textarea aria-describedby={isConflict ? `formula-error-${ruleId}` : undefined} className="min-h-20 w-full rounded-lg border border-slate-200 bg-white p-2 text-xs dark:border-slate-700 dark:bg-slate-900" id={`formula-expression-${ruleId}`} onChange={(event) => { setExpression(event.target.value); }} required value={expression} />
         <label className="block text-xs font-medium" htmlFor={`formula-effective-from-${ruleId}`}>{t("payroll.formula_history.effective_from", "Effective from")}</label>
         <input className="w-full rounded-lg border border-slate-200 bg-white p-2 text-xs dark:border-slate-700 dark:bg-slate-900" id={`formula-effective-from-${ruleId}`} onChange={(event) => { setEffectiveFrom(event.target.value); }} required type="date" value={effectiveFrom} />
-        {createMutation.isError ? <p className="text-xs text-red-600" id={`formula-error-${ruleId}`}>{isConflict ? t("payroll.formula_history.conflict", "Formula version conflicts with an existing version.") : t("common.error")}</p> : null}
+        {createMutation.isError ? <Typography variant="p" className="text-xs text-red-600" id={`formula-error-${ruleId}`}>{isConflict ? t("payroll.formula_history.conflict", "Formula version conflicts with an existing version.") : t("common.error")}</Typography> : null}
         <Button disabled={createMutation.isPending} type="submit" variant="primary">{createMutation.isPending ? t("common.saving") : t("payroll.formula_history.create_version", "Create draft version")}</Button>
       </form>
       {!data?.length ? <div className="p-4 text-sm text-slate-500">{t("payroll.formula_history.empty", "No versions")}</div> : null}
@@ -65,7 +65,7 @@ export function PayrollFormulaHistory({ ruleId }: { ruleId: string }) {
           <Typography className="mt-2 block text-slate-500" variant="small">{version.effective_from}</Typography>
           {version.status === "draft" ? <Button disabled={actionMutation.isPending} onClick={() => { actionMutation.mutate({ action: "publish" }); }} size="sm" type="button" variant="outline">{t("payroll.formula_history.publish", "Publish")}</Button> : null}
           {version.status === "published" ? <Button disabled={actionMutation.isPending} onClick={() => { actionMutation.mutate({ action: "retire" }); }} size="sm" type="button" variant="destructive">{t("payroll.formula_history.retire", "Retire")}</Button> : null}
-          {actionMutation.isError ? <p className="mt-2 text-xs text-red-600" role="alert">{actionConflict ? t("payroll.formula_history.action_conflict", "Formula status changed. Refresh history and retry.") : t("common.error")}</p> : null}
+          {actionMutation.isError ? <Typography variant="p" className="mt-2 text-xs text-red-600" role="alert">{actionConflict ? t("payroll.formula_history.action_conflict", "Formula status changed. Refresh history and retry.") : t("common.error")}</Typography> : null}
         </div>
       ))}
     </div>

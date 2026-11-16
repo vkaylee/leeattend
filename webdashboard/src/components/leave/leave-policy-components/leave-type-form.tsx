@@ -67,13 +67,12 @@ export function LeaveTypeForm({
             value={formData.code}
           />
           {isDuplicateCode ? (
-  // eslint-disable-next-line react/forbid-elements
-            <p className="mt-1.5 ml-1 text-[11px] font-semibold text-rose-500">
+            <Typography variant="p" className="mt-1.5 ml-1 text-[11px] font-semibold text-rose-500">
               {t(
                 "settings.leave.type_manager.create_error_duplicate_code",
                 "A leave type with this code already exists",
               )}
-            </p>
+            </Typography>
           ) : null}
         </div>
 

@@ -1,3 +1,4 @@
+import { Typography } from "@/components/ui/typography";
 import { KeyRound } from "lucide-react";
 import React, { useMemo } from "react";
 import { useTranslation } from "react-i18next";
@@ -142,9 +143,9 @@ export function PermissionsMatrix(props: PermissionsMatrixProps) {
             togglePermission={togglePermission}
           />
         )) : (
-          <p className="p-6 text-center text-sm text-slate-500 dark:text-slate-400">
+          <Typography variant="p" className="p-6 text-center text-sm text-slate-500 dark:text-slate-400">
             {t("permissions.no_roles", { defaultValue: "No roles available." })}
-          </p>
+          </Typography>
         )}
       </div>
 

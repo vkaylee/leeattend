@@ -11,6 +11,7 @@ import { useTranslation } from "react-i18next";
 import type { Employee, LeaveRequest, LeaveType } from "@/lib/api/types";
 
 import Button from "@/components/ui/button";
+import { Typography } from "@/components/ui/typography";
 import Sheet from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 
@@ -159,9 +160,9 @@ export function LeaveDetailSheet({
             <FileText className="h-4 w-4 text-primary" />
             <span>{t("common.reason", "Lý do xin nghỉ")}</span>
           </div>
-          <p className="text-sm text-foreground/90 whitespace-pre-wrap rounded-lg bg-muted/30 p-3 leading-relaxed">
+          <Typography variant="p" className="text-sm text-foreground/90 whitespace-pre-wrap rounded-lg bg-muted/30 p-3 leading-relaxed">
             {request.reason || t("common.no_notes", "Không có ghi chú")}
-          </p>
+          </Typography>
         </div>
 
         {/* Approval Actions (if pending) */}

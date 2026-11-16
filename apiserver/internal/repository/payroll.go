@@ -2316,6 +2316,23 @@ func loadCompletedShiftCounts(ctx context.Context, db DBTX, employmentID uuid.UU
 	return counts, nil
 }
 
+func calculatePolicyCredits(policy *api.WorkPolicyGroupVersion, eligibleMinutes int) (decimal.Decimal, error) {
+	if policy == nil {
+		return decimal.Zero, nil
+	}
+	creditPolicy := workpolicy.WorkCreditPolicy{
+		Name:               "resolved labor policy",
+		MinutesPerCredit:   policy.MinutesPerCredit,
+		AttendancePolicyID: ids.AttendancePolicyID(policy.AttendancePolicyID),
+		WorkingPatternID:   ids.WorkingPatternID(policy.WorkingPatternID),
+	}
+	result, err := creditPolicy.Calculate(eligibleMinutes)
+	if err != nil {
+		return decimal.Zero, err
+	}
+	return result.Credits, nil
+}
+
 func payrollStandardDaysForPolicy(policy *api.WorkPolicyGroupVersion, legacy, scheduledDays decimal.Decimal) (decimal.Decimal, error) {
 	if policy == nil {
 		return legacy, nil
@@ -2634,6 +2651,7 @@ WHERE employment_id = $1 AND date >= $2::date AND date <= $3::date`, employmentI
 	totalBasePay := decimal.Zero
 	var totalStdUnits int32
 	var totalOtUnits int32
+	var totalStandardCredits decimal.Decimal
 	stdSource := "organization_settings"
 
 	type segSnapshot struct {
@@ -2769,6 +2787,13 @@ WHERE employment_id = $1 AND date >= $2::date AND date <= $3::date`, employmentI
 		}
 		totalStdUnits += stdUnits
 		totalOtUnits += otUnits
+		if policy != nil {
+			credits, creditErr := calculatePolicyCredits(policy, segStdMin)
+			if creditErr != nil {
+				return api.FullPayslipResponse{}, creditErr
+			}
+			totalStandardCredits = totalStandardCredits.Add(credits)
+		}
 
 		reason := "Standard"
 		if seg.Start.Day() != 1 {
@@ -2903,23 +2928,13 @@ ORDER BY priority ASC`, policyIDs)
 	kpiCalc.Policy = resolvedPolicy
 	kpiCalc.StandardUnits = totalStdUnits
 	kpiCalc.OvertimeUnits = totalOtUnits
+	kpiCalc.StandardCredits = totalStandardCredits
 	if resolvedPolicy != nil {
-		creditPolicy := workpolicy.WorkCreditPolicy{
-			Name:               "resolved labor policy",
-			MinutesPerCredit:   resolvedPolicy.MinutesPerCredit,
-			AttendancePolicyID: ids.AttendancePolicyID(resolvedPolicy.AttendancePolicyID),
-			WorkingPatternID:   ids.WorkingPatternID(resolvedPolicy.WorkingPatternID),
-		}
-		creditResult, creditErr := creditPolicy.Calculate(int(totalStdUnits * 60))
-		if creditErr != nil {
-			return api.FullPayslipResponse{}, creditErr
-		}
-		kpiCalc.StandardCredits = creditResult.Credits
 		kpiCalc.Trace = append(kpiCalc.Trace, map[string]string{
 			"step":       "work_credit",
 			"rule":       "minutes_per_credit",
-			"expression": fmt.Sprintf("%d / %d", creditResult.EligibleMinutes, resolvedPolicy.MinutesPerCredit),
-			"result":     creditResult.Credits.String(),
+			"expression": "segment effective policy minutes",
+			"result":     totalStandardCredits.String(),
 		})
 	}
 	if resolvedPolicy != nil {

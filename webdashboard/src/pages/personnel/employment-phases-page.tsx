@@ -13,6 +13,7 @@ import AssignMilestoneModal from "@/components/features/employees/assign-milesto
 import UpdatePhaseStatusModal from "@/components/features/employees/update-phase-status-modal";
 import EmploymentPhaseManager from "@/components/people/employment-phase-manager";
 import Button from "@/components/ui/button";
+import { Typography } from "@/components/ui/typography";
 import { Combobox } from "@/components/ui/combobox";
 import { PageContainer } from "@/components/ui/page-container";
 import PageHeader from "@/components/ui/page-header";
@@ -139,7 +140,7 @@ export default function EmploymentPhasesPage() {
         </select>
       </div>
 
-      {isError ? <div className="rounded-2xl border border-rose-200 bg-rose-50 p-6 text-sm text-rose-700"><p>{t("common.error", { defaultValue: "Unable to load data." })}</p><Button className="mt-3" onClick={() => { void refetch(); }} variant="outline">{t("common.retry", { defaultValue: "Retry" })}</Button></div> : null}
+      {isError ? <div className="rounded-2xl border border-rose-200 bg-rose-50 p-6 text-sm text-rose-700"><Typography variant="p">{t("common.error", { defaultValue: "Unable to load data." })}</Typography><Button className="mt-3" onClick={() => { void refetch(); }} variant="outline">{t("common.retry", { defaultValue: "Retry" })}</Button></div> : null}
       <ResponsiveTable
         columns={columns}
         data={rows}

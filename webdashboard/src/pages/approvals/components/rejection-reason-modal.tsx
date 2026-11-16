@@ -3,6 +3,7 @@ import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import Button from "@/components/ui/button";
+import { Typography } from "@/components/ui/typography";
 import Modal from "@/components/ui/modal";
 
 interface RejectionReasonModalProps {
@@ -88,12 +89,12 @@ export function RejectionReasonModal({
             value={reason}
           />
           {!!error && (
-            <p
+            <Typography variant="p"
               className="text-xs font-medium text-rose-600 dark:text-rose-400 animate-in fade-in"
               id="rejection-reason-error"
             >
               {error}
-            </p>
+            </Typography>
           )}
         </div>
 

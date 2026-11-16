@@ -167,12 +167,12 @@ export default function UnifiedInboxPage() {
               </span>
             )}
           </div>
-          <p className="text-xs text-slate-500 dark:text-slate-400">
+          <Typography variant="p" className="text-xs text-slate-500 dark:text-slate-400">
             {t(
               "approvals.inbox.subtitle",
               "Quản lý và phê duyệt tập trung các yêu cầu Nghỉ phép, Tăng ca, Giải trình công và Đổi ca"
             )}
-          </p>
+          </Typography>
         </div>
 
         <div className="flex items-center gap-2">

@@ -263,9 +263,9 @@ export default function EmployeeAssignmentFormModal({
               Địa điểm đến (Tùy chọn)
             </span>
             {locationsUnavailable ? (
-              <p className="text-sm text-slate-500 dark:text-slate-400" id="assignment-location-unavailable" role="status">
+              <Typography variant="p" className="text-sm text-slate-500 dark:text-slate-400" id="assignment-location-unavailable" role="status">
                 {t("employees.form.location_unavailable")}
-              </p>
+              </Typography>
             ) : (
               <Controller
                 control={control}

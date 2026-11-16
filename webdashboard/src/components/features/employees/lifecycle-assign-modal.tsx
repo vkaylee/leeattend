@@ -184,11 +184,11 @@ export default function LifecycleAssignModal({
                 value={selectedEmployeeId}
               />
               {!!selectedEmployee && !selectedEmployee.active_employment_id && (
-                <p className="text-xs text-rose-500 font-medium">
+                <Typography variant="p" className="text-xs text-rose-500 font-medium">
                   {t("lifecycle.errors.employee_has_no_employment", {
                     defaultValue: "Nhân sự này hiện không có hồ sơ công tác hợp lệ.",
                   })}
-                </p>
+                </Typography>
               )}
             </div>
           )}

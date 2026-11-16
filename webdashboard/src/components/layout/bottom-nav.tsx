@@ -1,3 +1,4 @@
+import Button from "@/components/ui/button";
 import { Link, useLocation } from "@tanstack/react-router";
 import { LayoutDashboard, Timer, Folder, User, MoreHorizontal } from "lucide-react";
 import { useTranslation } from "react-i18next";
@@ -87,12 +88,14 @@ export default function BottomNav({ activeGroup, onMoreClick, unreadCount = 0 }:
         ) : null}
 
         {/* More */}
-        <button
+        <Button
           aria-label={t("common.more", "More")}
-          className="flex flex-col items-center justify-center flex-1 h-full relative transition-transform active:scale-95 focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 focus:outline-none"
+          className="flex flex-col items-center justify-center flex-1 !h-full !min-h-0 !px-0 !py-0 relative transition-transform active:scale-95 focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 focus:outline-none"
           data-testid="bottom-nav-more"
           onClick={onMoreClick}
           type="button"
+          size="sm"
+          variant="ghost"
         >
           <div className="relative">
             <MoreHorizontal className={cn(
@@ -108,7 +111,7 @@ export default function BottomNav({ activeGroup, onMoreClick, unreadCount = 0 }:
           <span className="text-[10px] font-bold mt-1 text-slate-400 dark:text-slate-500">
             {t("common.more", "More")}
           </span>
-        </button>
+        </Button>
       </div>
     </nav>
   );

@@ -1,4 +1,3 @@
-/* eslint-disable react/forbid-elements */
 import type { TFunction } from "i18next";
 
 import { Link } from "@tanstack/react-router";
@@ -91,11 +90,11 @@ function DesktopTabNav({
 
   return (
     <div className="hidden md:flex items-center gap-1">
-      <button
+      <Button
         aria-hidden={!canScrollLeft}
         aria-label={t("common.scroll_left", "Scroll tabs left")}
         className={cn(
-          "shrink-0 size-9 rounded-[14px] flex items-center justify-center transition-all border",
+          "shrink-0 !size-9 !min-h-0 !px-0 !py-0 rounded-[14px] flex items-center justify-center transition-all border",
           canScrollLeft
             ? "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-500 hover:text-primary-600 shadow-sm cursor-pointer"
             : "border-transparent text-transparent pointer-events-none",
@@ -104,9 +103,11 @@ function DesktopTabNav({
         onClick={() => { scroll("left"); }}
         tabIndex={canScrollLeft ? 0 : -1}
         type="button"
+        size="sm"
+        variant="ghost"
       >
         <ChevronLeft size={16} />
-      </button>
+      </Button>
 
       <div className="relative flex-1 min-w-0">
         {/* Gradient fades */}
@@ -156,11 +157,11 @@ function DesktopTabNav({
         </div>
       </div>
 
-      <button
+      <Button
         aria-hidden={!canScrollRight}
         aria-label={t("common.scroll_right", "Scroll tabs right")}
         className={cn(
-          "shrink-0 size-9 rounded-[14px] flex items-center justify-center transition-all border",
+          "shrink-0 !size-9 !min-h-0 !px-0 !py-0 rounded-[14px] flex items-center justify-center transition-all border",
           canScrollRight
             ? "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-500 hover:text-primary-600 shadow-sm cursor-pointer"
             : "border-transparent text-transparent pointer-events-none",
@@ -169,9 +170,11 @@ function DesktopTabNav({
         onClick={() => { scroll("right"); }}
         tabIndex={canScrollRight ? 0 : -1}
         type="button"
+        size="sm"
+        variant="ghost"
       >
         <ChevronRight size={16} />
-      </button>
+      </Button>
     </div>
   );
 }

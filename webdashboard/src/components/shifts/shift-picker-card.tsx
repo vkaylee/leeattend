@@ -1,3 +1,4 @@
+import Button from "@/components/ui/button";
 import type { TFunction } from "i18next";
 
 import { Coffee, Clock, Moon, Star, SplitSquareHorizontal } from "lucide-react";
@@ -200,13 +201,10 @@ export const ShiftPickerCard = forwardRef<HTMLButtonElement, ShiftPickerCardProp
       .join(". ");
 
     return (
-      /* <Button> pins a fixed height and centres its content via inline-flex,
-         which collapses this multi-row card. Focus ring reproduced below. */
-      // eslint-disable-next-line react/forbid-elements -- see note above
-      <button
+      <Button
         aria-label={ariaLabel}
         className={cn(
-          "group relative w-full overflow-hidden rounded-3xl border-2 p-4 pl-5 text-left",
+          "!h-auto !min-h-0 !p-4 !pl-5 group relative w-full overflow-hidden rounded-3xl border-2 text-left",
           "transition-all duration-200 active:scale-[0.99]",
           "focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2",
           "dark:focus-visible:ring-offset-slate-900",
@@ -219,6 +217,8 @@ export const ShiftPickerCard = forwardRef<HTMLButtonElement, ShiftPickerCardProp
         onMouseEnter={onMouseEnter}
         ref={ref}
         type="button"
+        size="sm"
+        variant="ghost"
       >
         {/* Accent strip — decorative, meaning is duplicated in the badge text */}
         <span
@@ -240,7 +240,7 @@ export const ShiftPickerCard = forwardRef<HTMLButtonElement, ShiftPickerCardProp
           {/* Row 3: 24h mini timeline */}
           <ShiftCardTimeline accentClassName={badge.accent} segments={metrics.segments} />
         </div>
-      </button>
+      </Button>
     );
   },
 );

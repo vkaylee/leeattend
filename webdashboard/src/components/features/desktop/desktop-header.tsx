@@ -47,14 +47,14 @@ export function DesktopHeader({ onOpenCustomizer }: DesktopHeaderProps) {
       <div className="space-y-1">
         <div className="flex items-center gap-2">
           <GreetingIcon className={`w-5 h-5 ${greeting.color}`} />
-          <h1 className="text-xl sm:text-2xl font-black tracking-tight text-slate-800 dark:text-slate-100">
+          <Typography variant="h1" className="text-xl sm:text-2xl font-black tracking-tight text-slate-800 dark:text-slate-100">
             {greeting.text},{" "}
             <GradientText>{displayName}</GradientText>
-          </h1>
+          </Typography>
         </div>
-        <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">
+        <Typography variant="p" className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">
           {t("desktop.subtitle", "Bảng điều khiển quản trị nhân sự LeeAttend")}
-        </p>
+        </Typography>
       </div>
 
       {/* Right: Actions */}

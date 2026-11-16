@@ -34,6 +34,35 @@ func TestCalculateShiftPolicyPay(t *testing.T) {
 	}
 }
 
+func TestCalculatePolicyCreditsUsesExactSegmentMinutes(t *testing.T) {
+	policyA := &api.WorkPolicyGroupVersion{
+		Name:               "Policy A",
+		MinutesPerCredit:   480,
+		AttendancePolicyID: uuid.New(),
+		WorkingPatternID:   uuid.New(),
+	}
+	policyB := &api.WorkPolicyGroupVersion{
+		Name:               "Policy B",
+		MinutesPerCredit:   450,
+		AttendancePolicyID: uuid.New(),
+		WorkingPatternID:   uuid.New(),
+	}
+	creditA, err := calculatePolicyCredits(policyA, 90)
+	if err != nil {
+		t.Fatalf("policy A credits: %v", err)
+	}
+	creditB, err := calculatePolicyCredits(policyB, 450)
+	if err != nil {
+		t.Fatalf("policy B credits: %v", err)
+	}
+	if got := creditA.Add(creditB); !got.Equal(decimal.RequireFromString("1.1875")) {
+		t.Fatalf("segment credits = %s, want 1.1875", got)
+	}
+	if got, err := calculatePolicyCredits(nil, 90); err != nil || !got.IsZero() {
+		t.Fatalf("legacy no-policy credits = %s, err=%v; want zero without error", got, err)
+	}
+}
+
 func TestPayrollStandardDaysForPolicy(t *testing.T) {
 	legacy := decimal.NewFromInt(26)
 	if got, err := payrollStandardDaysForPolicy(nil, legacy, decimal.Zero); err != nil || !got.Equal(legacy) {
