@@ -47,6 +47,7 @@ function wrapper({ children }: { children: React.ReactNode }) {
 describe("useNavMenuItems", () => {
   beforeEach(() => {
     activePermissions.clear();
+    localStorage.setItem("ff_ess", "true");
     vi.clearAllMocks();
   });
 

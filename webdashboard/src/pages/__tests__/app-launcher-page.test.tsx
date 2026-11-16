@@ -92,6 +92,7 @@ describe("AppLauncherPage", () => {
     activePermissions.clear();
     mockPermsLoading = false;
     localStorage.clear();
+    localStorage.setItem("ff_ess", "true");
     vi.clearAllMocks();
   });
 

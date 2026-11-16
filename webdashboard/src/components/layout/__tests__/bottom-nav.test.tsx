@@ -88,6 +88,7 @@ describe("BottomNav", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockUnreadCount = 0;
+    localStorage.setItem("ff_ess", "true");
   });
 
   // ── Rendering ────────────────────────────────────────────────

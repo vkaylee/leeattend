@@ -67,7 +67,11 @@ func BuildSegments(startDate, endDate time.Time, salaryChanges, departmentChange
 	result := make([]DateRange, 0, len(points)-1)
 	for index := 0; index+1 < len(points); index++ {
 		if index == 0 || !points[index].Equal(points[index-1]) {
-			result = append(result, DateRange{Start: points[index], End: points[index+1]})
+			end := points[index+1]
+			if index+1 < len(points)-1 {
+				end = end.AddDate(0, 0, -1)
+			}
+			result = append(result, DateRange{Start: points[index], End: end})
 		}
 	}
 	return result

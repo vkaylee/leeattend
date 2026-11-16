@@ -136,6 +136,7 @@ describe("app filtering logic", () => {
   });
 
   it("non-privileged employee sees only dashboard + ESS apps", () => {
+    localStorage.setItem("ff_ess", "true");
     const visible = filterApps(APP_REGISTRY, ["ess:profile", "ess:attendance", "ess:clock"]);
     expect(visible.find((a) => a.id === "dashboard")).toBeDefined();
     expect(visible.find((a) => a.id === "dashboard-analytics")).toBeDefined();

@@ -16,13 +16,13 @@ func TestAssemblePayslip_ComputesNetPay(t *testing.T) {
 	}
 }
 
-func TestBuildSegments_DeduplicatesSortedChanges(t *testing.T) {
+func TestBuildSegments_DeduplicatesSortedChangesWithoutOverlappingBoundary(t *testing.T) {
 	start := time.Date(2026, 10, 1, 0, 0, 0, 0, time.UTC)
 	end := time.Date(2026, 10, 31, 0, 0, 0, 0, time.UTC)
 	change := start.AddDate(0, 0, 10)
 	segments := BuildSegments(start, end, []time.Time{change}, []time.Time{change})
-	if len(segments) != 2 || !segments[0].Start.Equal(start) || !segments[0].End.Equal(change) || !segments[1].Start.Equal(change) {
-		t.Fatalf("unexpected segments: %+v", segments)
+	if len(segments) != 2 || !segments[0].Start.Equal(start) || !segments[0].End.Equal(change.AddDate(0, 0, -1)) || !segments[1].Start.Equal(change) {
+		t.Fatalf("unexpected non-overlapping segments: %+v", segments)
 	}
 }
 
