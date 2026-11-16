@@ -210,7 +210,7 @@ func (h AttendancePolicyHandler) UpdateRules(w http.ResponseWriter, r *http.Requ
 }
 
 func (h AttendancePolicyHandler) ListRuleVersions(w http.ResponseWriter, r *http.Request) {
-	if !h.allowed(r, string(auth.PermissionOrganizationSettingsRead)) {
+	if !h.allowed(r, string(auth.PermissionOrganizationSettingsRead)) && !h.allowed(r, string(auth.PermissionPayrollRead)) {
 		h.forbidden(w, r)
 		return
 	}

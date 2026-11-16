@@ -15,10 +15,14 @@ import (
 )
 
 type mockAttendancePolicyAuthorizer struct {
-	allowed bool
+	allowed     bool
+	permissions map[string]bool
 }
 
-func (m mockAttendancePolicyAuthorizer) HasPermission(_ context.Context, _ uuid.UUID, _ string) bool {
+func (m mockAttendancePolicyAuthorizer) HasPermission(_ context.Context, _ uuid.UUID, permission string) bool {
+	if m.permissions != nil {
+		return m.permissions[permission]
+	}
 	return m.allowed
 }
 func (m mockAttendancePolicyAuthorizer) IsMember(context.Context, uuid.UUID) (bool, error) {
@@ -142,6 +146,16 @@ func TestAttendancePolicy_UpdateRules_Success(t *testing.T) {
 	h.UpdateRules(rec, req)
 	if rec.Code != http.StatusOK {
 		t.Fatalf("expected 200 got %d: %s", rec.Code, rec.Body.String())
+	}
+}
+
+func TestAttendancePolicy_ListRuleVersions_AllowsPayrollRead(t *testing.T) {
+	h := AttendancePolicyHandler{PolicyRepository: &mockAttendancePolicyRepo{}, Authorizer: mockAttendancePolicyAuthorizer{permissions: map[string]bool{"payroll:read": true}}}
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/attendance/rules/versions", nil).WithContext(httpinfra.WithUserIDForTest(context.Background(), uuid.New()))
+	rec := httptest.NewRecorder()
+	h.ListRuleVersions(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("payroll read should access reference versions, got %d", rec.Code)
 	}
 }
 
