@@ -30,6 +30,9 @@ Status: in progress
 - Source audit found no report worker implementation beyond enqueue metadata; export historical snapshot remains blocked.
 - Runtime readers now resolve tenure number and return empty when tenure mapping is absent; legacy employee projection is not used by readers.
 - Signed-file mutation paths now reject delete/version changes and signer endpoint requires authenticated identity; repository/API tests cover signing without file snapshot rewrite.
-- `./leedevkit test api`: PASS (unit, integration phase had no reported test output, lint/vet passed).
-- `./scripts/_go-gates.sh --integration --package ./internal/repository`: FAIL. Existing concurrent failures: payroll impact batch, payroll simulation rollback, schedule coverage, work-policy conflict. No tenure-specific failure shown.
-- Task 5 remains incomplete until export snapshot/worker evidence and required integration tests run successfully.
+- `./leedevkit test api`: PASS on current branch (Go unit, integration phase, format, vet).
+- Focused tenure integration: PASS for historical report old/new number and ambiguous import rejection.
+- Signed-file characterization tests: PASS through API unit gate; no PostgreSQL signed-file mutation integration exists.
+- `./leedevkit test web`: FAIL. Current log: 326 unit files passed, 6 failed; E2E 55 passed, 5 failed; typecheck/i18n passed; lint 0 errors with warnings. Report-export E2E failures keep export compatibility unverified.
+- `./scripts/_go-gates.sh --integration --package ./internal/repository`: prior run failed on unrelated payroll/schedule/work-policy tests; focused tenure run passed.
+- Task 5 remains incomplete: active Go report worker is absent, export payload has no immutable tenure snapshot, export E2E fails, and reconciliation aggregate metrics need a target dataset.
