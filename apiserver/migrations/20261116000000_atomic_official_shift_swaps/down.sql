@@ -1,3 +1,18 @@
+BEGIN;
+
+DO $$
+BEGIN
+    IF EXISTS (
+        SELECT 1
+        FROM public.shift_swap_requests
+        WHERE requester_revision_id IS NOT NULL
+           OR target_revision_id IS NOT NULL
+    ) THEN
+        RAISE EXCEPTION 'atomic official shift swap rollback blocked: revision evidence exists';
+    END IF;
+END;
+$$;
+
 DROP INDEX IF EXISTS public.shift_swap_requests_official_revisions_idx;
 
 ALTER TABLE public.shift_swap_requests
@@ -9,3 +24,5 @@ ALTER TABLE public.shift_swap_requests
     DROP COLUMN IF EXISTS requester_revision_number,
     DROP COLUMN IF EXISTS target_revision_id,
     DROP COLUMN IF EXISTS target_revision_number;
+
+COMMIT;

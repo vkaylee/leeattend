@@ -201,7 +201,7 @@ func (r ShiftSwapRepository) ApproveSwap(ctx context.Context, requestID, approve
 		var reqShift, tgtShift *uuid.UUID
 		var requesterRevisionID, targetRevisionID *uuid.UUID
 		var requesterRevisionNumber, targetRevisionNumber *int64
-		err := db.QueryRow(ctx, `SELECT status, requester_id, target_id, swap_date::text, requester_template_id, target_template_id, requester_revision_id, requester_revision_number, target_revision_id, target_revision_number FROM shift_swap_requests WHERE id = $1`, requestID).Scan(&currentStatus, &requesterID, &targetID, &swapDate, &reqShift, &tgtShift, &requesterRevisionID, &requesterRevisionNumber, &targetRevisionID, &targetRevisionNumber)
+		err := db.QueryRow(ctx, `SELECT status, requester_id, target_id, swap_date::text, requester_template_id, target_template_id, requester_revision_id, requester_revision_number, target_revision_id, target_revision_number FROM shift_swap_requests WHERE id = $1 FOR UPDATE`, requestID).Scan(&currentStatus, &requesterID, &targetID, &swapDate, &reqShift, &tgtShift, &requesterRevisionID, &requesterRevisionNumber, &targetRevisionID, &targetRevisionNumber)
 		if errors.Is(err, pgx.ErrNoRows) {
 			return api.ErrShiftSwapNotFound
 		}
@@ -419,7 +419,7 @@ func (r ShiftSwapRepository) RespondSwap(ctx context.Context, targetID, requestI
 	return service.WithTx(ctx, tx, func(ctx context.Context, db pgx.Tx) error {
 		var currentStatus string
 		var swapTargetID uuid.UUID
-		err := db.QueryRow(ctx, `SELECT status, target_id FROM shift_swap_requests WHERE id = $1`, requestID).Scan(&currentStatus, &swapTargetID)
+		err := db.QueryRow(ctx, `SELECT status, target_id FROM shift_swap_requests WHERE id = $1 FOR UPDATE`, requestID).Scan(&currentStatus, &swapTargetID)
 		if errors.Is(err, pgx.ErrNoRows) {
 			return api.ErrShiftSwapNotFound
 		}
@@ -450,7 +450,7 @@ func (r ShiftSwapRepository) CancelSwap(ctx context.Context, requesterID, reques
 	return service.WithTx(ctx, tx, func(ctx context.Context, db pgx.Tx) error {
 		var currentStatus string
 		var swapRequesterID uuid.UUID
-		err := db.QueryRow(ctx, `SELECT status, requester_id FROM shift_swap_requests WHERE id = $1`, requestID).Scan(&currentStatus, &swapRequesterID)
+		err := db.QueryRow(ctx, `SELECT status, requester_id FROM shift_swap_requests WHERE id = $1 FOR UPDATE`, requestID).Scan(&currentStatus, &swapRequesterID)
 		if errors.Is(err, pgx.ErrNoRows) {
 			return api.ErrShiftSwapNotFound
 		}
@@ -508,8 +508,12 @@ func approveOfficialSwap(ctx context.Context, db pgx.Tx, requestID, approverID, 
 		return false, err
 	}
 	requesterDoc["employment_id"], targetDoc["employment_id"] = requesterEmploymentID.String(), targetEmploymentID.String()
+	requesterIntervals, requesterShiftVersion, requesterStatus := requesterDoc["intervals"], requesterDoc["shift_version_id"], requesterDoc["status"]
+	targetIntervals, targetShiftVersion, targetStatus := targetDoc["intervals"], targetDoc["shift_version_id"], targetDoc["status"]
 	replaceShiftVersion(requesterDoc, targetDoc)
 	replaceShiftVersion(targetDoc, requesterDoc)
+	targetDoc["intervals"], targetDoc["shift_version_id"], targetDoc["status"] = requesterIntervals, requesterShiftVersion, requesterStatus
+	requesterDoc["intervals"], requesterDoc["shift_version_id"], requesterDoc["status"] = targetIntervals, targetShiftVersion, targetStatus
 	batchID, now := uuid.New(), time.Now().UTC()
 	key := "shift-swap:" + requestID.String()
 	hash, err := hashJSON(map[string]any{"request_id": requestID.String(), "requester_revision": requesterRevisionID.String(), "target_revision": targetRevisionID.String()})
@@ -524,6 +528,9 @@ func approveOfficialSwap(ctx context.Context, db pgx.Tx, requestID, approverID, 
 		return false, err
 	}
 	if _, err := db.Exec(ctx, `UPDATE schedule_day_revisions SET state = 'superseded' WHERE id IN ($1, $2) AND state IN ('published', 'explicit_off')`, requester.ID, target.ID); err != nil {
+		return false, err
+	}
+	if err := rejectConcreteScheduleOverlaps(ctx, db, []map[string]any{requesterDoc, targetDoc}); err != nil {
 		return false, err
 	}
 	newRequester, err := insertPublishedDay(ctx, db, batchID, publicationActor{ID: &approverID, Type: "human"}, reason, requester.Timezone, requesterDoc, now, &requester.ID)
@@ -550,6 +557,9 @@ func replaceShiftVersion(source, donor map[string]any) {
 	}
 	if value, ok := donor["shift_version_id"]; ok {
 		source["shift_version_id"] = value
+	}
+	if value, ok := donor["status"]; ok {
+		source["status"] = value
 	}
 }
 
