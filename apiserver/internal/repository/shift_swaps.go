@@ -209,7 +209,13 @@ func (r ShiftSwapRepository) ApproveSwap(ctx context.Context, requestID, approve
 			if err != nil {
 				return err
 			}
-			note := fmt.Sprintf("Shift swap #%s", requestID)
+			if err := guardLifecycleDateMutation(ctx, db, []uuid.UUID{reqEmp, tgtEmp}, []string{swapDate}); err != nil {
+					if errors.Is(err, ErrLifecycleMutationBlocked) || errors.Is(err, ErrLifecycleSchemaUnavailable) {
+						return api.ErrShiftSwapConflict
+					}
+					return err
+				}
+				note := fmt.Sprintf("Shift swap #%s", requestID)
 			if _, err := db.Exec(ctx, `INSERT INTO shift_rosters (id, employment_id, template_id, date, status, notes, created_at, updated_at) VALUES ($1, $2, $3, $4::date, 'active', $5, $6, $6) ON CONFLICT (employment_id, date) DO UPDATE SET template_id = EXCLUDED.template_id, status = EXCLUDED.status, notes = EXCLUDED.notes, updated_at = EXCLUDED.updated_at`, uuid.New(), reqEmp, tgtShift, swapDate, note, now); err != nil {
 				return err
 			}
