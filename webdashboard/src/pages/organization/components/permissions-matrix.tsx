@@ -1,8 +1,8 @@
-import { Typography } from "@/components/ui/typography";
 import { KeyRound } from "lucide-react";
 import React, { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 
+import { Typography } from "@/components/ui/typography";
 import { permissionGroupIcons } from "@/lib/permission-groups";
 
 import type { PermissionCatalogItem, OrganizationRole } from "../../../lib/api/types";
@@ -143,7 +143,7 @@ export function PermissionsMatrix(props: PermissionsMatrixProps) {
             togglePermission={togglePermission}
           />
         )) : (
-          <Typography variant="p" className="p-6 text-center text-sm text-slate-500 dark:text-slate-400">
+          <Typography className="p-6 text-center text-sm text-slate-500 dark:text-slate-400" variant="p">
             {t("permissions.no_roles", { defaultValue: "No roles available." })}
           </Typography>
         )}

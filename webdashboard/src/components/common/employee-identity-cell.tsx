@@ -4,6 +4,8 @@ import React from "react";
 import Button from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
+import { getEmployeeInitials } from "./employee-identity-utils";
+
 export interface EmployeeIdentityCellProps {
   avatarSize?: "sm" | "md";
   className?: string;
@@ -12,13 +14,6 @@ export interface EmployeeIdentityCellProps {
   name: string;
   onClick?: () => void;
   showAvatar?: boolean;
-}
-
-export function getEmployeeInitials(name: string): string {
-  if (!name.trim()) return "?";
-  const parts = name.trim().split(/\s+/);
-  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
-  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
 }
 
 export const EmployeeIdentityCell: React.FC<EmployeeIdentityCellProps> = ({

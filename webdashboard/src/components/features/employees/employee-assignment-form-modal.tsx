@@ -114,7 +114,9 @@ function useAssignmentForm({
 
   const onSubmit = async (data: AssignmentFormValues) => {
     try {
-      const targetEmployeeId = employeeId || editingAssignment?.employee_id || selectedEmployeeId;
+      const targetEmployeeId = employeeId === undefined || employeeId === ""
+        ? editingAssignment?.employee_id ?? selectedEmployeeId
+        : employeeId;
       if (!targetEmployeeId) {
         toast.error("Vui lòng chọn nhân sự");
         return;
@@ -219,7 +221,7 @@ export default function EmployeeAssignmentFormModal({
               </label>
               {editingAssignment ? (
                 <div className="px-3 py-2.5 bg-slate-100 dark:bg-slate-800 rounded-xl text-sm font-semibold text-slate-800 dark:text-slate-200">
-                  {editingAssignment.employee_name || "Nhân sự"} {editingAssignment.employee_code ? `(${editingAssignment.employee_code})` : ""}
+                  {editingAssignment.employee_name ?? "Nhân sự"} {editingAssignment.employee_code ? `(${editingAssignment.employee_code})` : ""}
                 </div>
               ) : (
                 <Combobox
@@ -263,7 +265,7 @@ export default function EmployeeAssignmentFormModal({
               Địa điểm đến (Tùy chọn)
             </span>
             {locationsUnavailable ? (
-              <Typography variant="p" className="text-sm text-slate-500 dark:text-slate-400" id="assignment-location-unavailable" role="status">
+              <Typography className="text-sm text-slate-500 dark:text-slate-400" id="assignment-location-unavailable" role="status" variant="p">
                 {t("employees.form.location_unavailable")}
               </Typography>
             ) : (

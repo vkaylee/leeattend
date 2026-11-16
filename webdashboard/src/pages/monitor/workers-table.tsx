@@ -5,7 +5,7 @@ import { formatDistanceToNow } from "date-fns";
 import { TFunction } from "i18next";
 
 import ResponsiveTable from "@/components/ui/responsive-table";
-import TableEmptyRow from "@/components/ui/table-empty-row";
+import { TableEmptyRow } from "@/components/ui/table-empty-row";
 import { Typography } from "@/components/ui/typography";
 import { useHorizontalDragScroll } from "@/hooks/use-horizontal-drag-scroll";
 import { WorkerHeartbeat } from "@/lib/api/types";

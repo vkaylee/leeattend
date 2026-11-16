@@ -78,8 +78,6 @@ const TOOLTIP_STYLE = {
 
 const TREND_RATE_COLOR = "#6366f1";
 const TREND_LEAVERS_COLOR = "#ef4444";
-const TENURE_COLOR = "#6366f1";
-const DEPT_COLOR = "#3b82f6";
 const CLASSIFICATION_COLORS: Record<string, string> = {
     voluntary: "#22c55e",
     involuntary: "#ef4444",
@@ -171,12 +169,6 @@ function WarningStrip({ warnings, t }: { warnings: TurnoverAnalytics["warnings"]
     return (
         <div aria-live="polite" className="mb-5 space-y-2">
             {warnings.map((w) => {
-                const labelKey =
-                    w.code === "LOW_DENOMINATOR"
-                        ? "dashboard.hr.turnover_warning_low_denominator"
-                        : w.code === "NO_DATA_SOURCE"
-                            ? "dashboard.hr.turnover_warning_no_data_source"
-                            : "dashboard.hr.turnover_warning_incomplete_data";
                 const label = w.message.startsWith("dashboard.") ? t(w.message) : w.message;
                 return (
                     <div
@@ -603,7 +595,7 @@ function CohortChart({ data, t }: { data: TurnoverAnalytics["cohort_retention"];
                     <thead className="sticky top-0 bg-slate-50 dark:bg-slate-800/80 text-slate-500 dark:text-slate-400 uppercase text-[9px] tracking-widest">
                         <tr>
                             {columns.map((col) => (
-                                <th className="px-4 py-3 font-bold whitespace-nowrap" key={String(col.key)} scope="col">
+                                <th className="px-4 py-3 font-bold whitespace-nowrap" key={col.key} scope="col">
                                     {t(col.header)}
                                 </th>
                             ))}
@@ -620,7 +612,7 @@ function CohortChart({ data, t }: { data: TurnoverAnalytics["cohort_retention"];
                             chartData.map((row, index) => (
                                 <tr className="hover:bg-slate-50 dark:hover:bg-slate-800/40" key={`${row.cohort_month}-${row.months_since_hire}`}>
                                     {columns.map((col) => (
-                                        <td className="px-4 py-2.5 whitespace-nowrap" key={String(col.key)}>
+                                        <td className="px-4 py-2.5 whitespace-nowrap" key={col.key}>
                                             {col.render ? col.render(row) : String(row[col.key] ?? "")}
                                         </td>
                                     ))}
@@ -646,7 +638,7 @@ function HorizontalBarChart<T extends { count: number }>({
     colorKey,
     chartKey,
     emptyMessage,
-    t,
+    t: _t,
 }: {
     rows: T[];
     nameKey: (row: T) => string;

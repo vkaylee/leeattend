@@ -38,8 +38,6 @@ const renderWithProviders = (ui: React.ReactNode) => {
 };
 
 describe("BonusPolicyManager", () => {
-  const mockWsId = "ws-123";
-
   beforeEach(() => {
     vi.clearAllMocks();
  

@@ -5,11 +5,11 @@ import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 
 import Button from "@/components/ui/button";
-import { Typography } from "@/components/ui/typography";
 import EmptyState from "@/components/ui/empty-state";
 import { PageContainer } from "@/components/ui/page-container";
-import PageHeader from "@/components/ui/page-header";
+import { PageHeader } from "@/components/ui/page-header";
 import { SearchInput } from "@/components/ui/search-input";
+import { Typography } from "@/components/ui/typography";
 import { fetchSalaryManagement, type SalaryManagementRow } from "@/lib/api/salary-management";
 import { createQueryKey } from "@/lib/query-keys";
 

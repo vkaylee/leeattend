@@ -2,9 +2,9 @@ import { Search, SlidersHorizontal, Sun, Moon, Sunset } from "lucide-react";
 import React, { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 
-import { openCommandPalette } from "@/components/layout/command-palette";
+import { openCommandPalette } from "@/components/layout/command-palette-events";
 import Button from "@/components/ui/button";
-import { GradientText } from "@/components/ui/typography";
+import { GradientText, Typography } from "@/components/ui/typography";
 import { useProfile } from "@/hooks/use-profile";
 
 interface DesktopHeaderProps {
@@ -39,7 +39,9 @@ export function DesktopHeader({ onOpenCustomizer }: DesktopHeaderProps) {
   }, [t]);
 
   const GreetingIcon = greeting.icon;
-  const displayName = user?.full_name || user?.email.split("@")[0] || "đồng nghiệp";
+  const displayName = user?.full_name === ""
+    ? user.email.split("@")[0] || "đồng nghiệp"
+    : user?.full_name ?? user?.email.split("@")[0] ?? "đồng nghiệp";
 
   return (
     <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 pb-2">
@@ -47,12 +49,12 @@ export function DesktopHeader({ onOpenCustomizer }: DesktopHeaderProps) {
       <div className="space-y-1">
         <div className="flex items-center gap-2">
           <GreetingIcon className={`w-5 h-5 ${greeting.color}`} />
-          <Typography variant="h1" className="text-xl sm:text-2xl font-black tracking-tight text-slate-800 dark:text-slate-100">
+          <Typography className="text-xl sm:text-2xl font-black tracking-tight text-slate-800 dark:text-slate-100" variant="h1">
             {greeting.text},{" "}
             <GradientText>{displayName}</GradientText>
           </Typography>
         </div>
-        <Typography variant="p" className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">
+        <Typography className="text-xs sm:text-sm text-slate-500 dark:text-slate-400" variant="p">
           {t("desktop.subtitle", "Bảng điều khiển quản trị nhân sự LeeAttend")}
         </Typography>
       </div>

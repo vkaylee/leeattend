@@ -6,7 +6,8 @@ import { cn } from "@/lib/utils";
 
 import type { ZonedNoShowRow } from "../../hooks/use-no-show-rows";
 
-import { formatDateTime, formatShiftTime, zoneLabel, ZoneIcon } from "./utils";
+import { ZoneIcon } from "./utils";
+import { formatDateTime, formatShiftTime, zoneLabel } from "./utils-helpers";
 
 export interface NoShowRowSharedProps {
   columns: Record<string, string>;

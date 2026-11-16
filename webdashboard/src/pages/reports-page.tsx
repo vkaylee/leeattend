@@ -1,12 +1,12 @@
-import React from "react";
+import { useCallback, useMemo, useRef } from "react";
 import { useTranslation } from "react-i18next";
 
 import {
   TimesheetMatrixGrid,
   type TimesheetMatrixGridHandle,
 } from "@/components/features/attendance/timesheet-matrix-grid";
-import EmployeeDailyDrawer from "@/components/features/reports/employee-daily-drawer";
 import AttendanceClosurePanel from "@/components/features/reports/attendance-closure-panel";
+import EmployeeDailyDrawer from "@/components/features/reports/employee-daily-drawer";
 import ReportExportDialog from "@/components/features/reports/report-export-dialog";
 import ReportFilters from "@/components/features/reports/report-filters";
 import ResponsiveToolbar from "@/components/ui/responsive-toolbar";
@@ -56,11 +56,11 @@ export default function ReportsPage() {
     viewMode,
   } = useReportsPage();
 
-  const matrixGridRef = React.useRef<TimesheetMatrixGridHandle>(null);
+  const matrixGridRef = useRef<TimesheetMatrixGridHandle>(null);
 
   const startDate = dateRange.start;
   // Active month & year for matrix should be synchronized with dateRange and specificMonth!
-  const activeMonthYear = React.useMemo(() => {
+  const activeMonthYear = useMemo(() => {
     if (filterMode === "specific_month") {
       return specificMonth;
     }
@@ -84,7 +84,7 @@ export default function ReportsPage() {
   });
 
   // Filter employees for TimesheetMatrixGrid using shared active filter state
-  const matrixFilteredEmployees = React.useMemo(() => {
+  const matrixFilteredEmployees = useMemo(() => {
     let result = allEmployees;
 
     if (searchQuery.trim()) {
@@ -93,9 +93,9 @@ export default function ReportsPage() {
         (emp) =>
           emp.full_name.toLowerCase().includes(q) ||
           emp.employee_id_number.toLowerCase().includes(q) ||
-          emp.department_name?.toLowerCase().includes(q) ||
-          (emp as { employee_code?: string }).employee_code?.toLowerCase().includes(q) ||
-          (emp as { department?: string }).department?.toLowerCase().includes(q)
+          (emp.department_name ?? "").toLowerCase().includes(q) ||
+          ((emp as { employee_code?: string }).employee_code ?? "").toLowerCase().includes(q) ||
+          ((emp as { department?: string }).department ?? "").toLowerCase().includes(q)
       );
     }
 
@@ -117,7 +117,7 @@ export default function ReportsPage() {
   }, [allEmployees, searchQuery, selectedDepartmentId, selectedEmployerId, employeeStatus]);
 
   // Context-aware export trigger: CSV for Matrix, Dialog for Summary
-  const handleExport = React.useCallback(() => {
+  const handleExport = useCallback(() => {
     if (viewMode === "matrix") {
       matrixGridRef.current?.exportCSV();
     } else {

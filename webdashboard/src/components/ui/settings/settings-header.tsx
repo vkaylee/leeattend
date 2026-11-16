@@ -37,8 +37,9 @@ export function SettingsHeader({
           <div
             className={cn(
               "w-10 h-10 rounded-xl flex items-center justify-center shrink-0 shadow-2xs border",
-              iconBg ||
-                "bg-primary-50 dark:bg-primary-950/70 text-primary-600 dark:text-primary-400 border-primary-100/50 dark:border-primary-900/50"
+              iconBg !== undefined && iconBg !== ""
+                ? iconBg
+                : "bg-primary-50 dark:bg-primary-950/70 text-primary-600 dark:text-primary-400 border-primary-100/50 dark:border-primary-900/50"
             )}
           >
             {icon}

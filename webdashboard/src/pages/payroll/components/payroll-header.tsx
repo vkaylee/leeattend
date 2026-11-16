@@ -19,7 +19,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import PageHeader from "@/components/ui/page-header";
+import { PageHeader } from "@/components/ui/page-header";
 import { cn } from "@/lib/utils";
 
 interface PayrollHeaderProps {

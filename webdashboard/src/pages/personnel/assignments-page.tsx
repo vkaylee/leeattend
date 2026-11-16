@@ -10,7 +10,7 @@ import { AssignmentsFilters } from "@/components/features/personnel/assignments-
 import { AssignmentsTable } from "@/components/features/personnel/assignments-table";
 import Button from "@/components/ui/button";
 import { PageContainer } from "@/components/ui/page-container";
-import PageHeader from "@/components/ui/page-header";
+import { PageHeader } from "@/components/ui/page-header";
 import { useToast } from "@/components/ui/toast";
 import { Typography } from "@/components/ui/typography";
 import { useConfirm } from "@/hooks/use-confirm";
@@ -213,14 +213,14 @@ export default function PersonnelAssignmentsPage() {
       </div>
 
       {/* ── Dual-Mode Assignment Form Modal ────────────────────────── */}
-      {!!isFormOpen && (
+      {isFormOpen ? (
         <EmployeeAssignmentFormModal editingAssignment={editingAssignment}
         isOpen={isFormOpen}
         onClose={() => {
           setIsFormOpen(false);
           setEditingAssignment(null);
         }}  />
-      )}
+      ) : null}
 
       <ConfirmationDialog />
     </PageContainer>

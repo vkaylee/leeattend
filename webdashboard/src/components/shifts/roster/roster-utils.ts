@@ -19,36 +19,23 @@ export const getShiftSymbol = (
   return shiftName.substring(0, 2).toUpperCase();
 };
 
+const BASE_CELL_STYLES =
+  "group transition-all relative border border-slate-100 dark:border-slate-800 text-center select-none cursor-pointer ";
+const SOURCE_CELL_STYLES: Record<string, string> = {
+  roster: "bg-teal-50/90 dark:bg-teal-950/40 hover:bg-teal-100 dark:hover:bg-teal-900/50",
+  pattern: "bg-blue-50/40 dark:bg-blue-950/20 hover:bg-blue-100/30 dark:hover:bg-blue-900/30",
+  assignment_rule: "bg-violet-50/40 dark:bg-violet-950/20 hover:bg-violet-100/30 dark:hover:bg-violet-900/30",
+  department_pattern: "bg-slate-50/50 dark:bg-slate-800/30 hover:bg-slate-100/40 dark:hover:bg-slate-700/30",
+  fixed: "bg-emerald-50/40 dark:bg-emerald-950/20 hover:bg-emerald-100/30 dark:hover:bg-emerald-900/30",
+  department_fixed: "bg-emerald-50/40 dark:bg-emerald-950/20 hover:bg-emerald-100/30 dark:hover:bg-emerald-900/30",
+};
+
 /** Get cell color styles based on priority source */
 export const getCellStyles = (source?: string, isSelected?: boolean): string => {
-  const baseStyles =
-    "group transition-all relative border border-slate-100 dark:border-slate-800 text-center select-none cursor-pointer ";
-
   if (isSelected) {
-    return baseStyles +
-      "ring-2 ring-primary-500 ring-inset bg-primary-50 dark:bg-primary-950/40 z-[5]";
+    return BASE_CELL_STYLES + "ring-2 ring-primary-500 ring-inset bg-primary-50 dark:bg-primary-950/40 z-[5]";
   }
-
-  switch (source) {
-    case "roster":
-      return baseStyles +
-        "bg-teal-50/90 dark:bg-teal-950/40 hover:bg-teal-100 dark:hover:bg-teal-900/50";
-    case "pattern":
-      return baseStyles +
-        "bg-blue-50/40 dark:bg-blue-950/20 hover:bg-blue-100/30 dark:hover:bg-blue-900/30";
-    case "assignment_rule":
-      return baseStyles +
-        "bg-violet-50/40 dark:bg-violet-950/20 hover:bg-violet-100/30 dark:hover:bg-violet-900/30";
-    case "department_pattern":
-      return baseStyles +
-        "bg-slate-50/50 dark:bg-slate-800/30 hover:bg-slate-100/40 dark:hover:bg-slate-700/30";
-    case "fixed":
-    case "department_fixed":
-      return baseStyles +
-        "bg-emerald-50/40 dark:bg-emerald-950/20 hover:bg-emerald-100/30 dark:hover:bg-emerald-900/30";
-    default:
-      return baseStyles + "hover:bg-slate-50 dark:hover:bg-slate-800/50";
-  }
+  return BASE_CELL_STYLES + (SOURCE_CELL_STYLES[source ?? ""] ?? "hover:bg-slate-50 dark:hover:bg-slate-800/50");
 };
 
 /** Priority-ordered source list for determining dominant source */
@@ -107,6 +94,22 @@ export interface TranslatedRosterEntry {
   rosterEntries: { date: string; shift_id: string | null }[];
 }
 
+function translateScheduleEntries(
+  schedules: EffectiveSchedule[],
+  currentYearMonth: string,
+  validDates: Set<string>,
+): { date: string; shift_id: string | null }[] {
+  return schedules
+    .filter((schedule) => schedule.source === "roster" && Boolean(schedule.shift_id))
+    .map((schedule) => {
+      const targetDate = `${currentYearMonth}-${schedule.date.substring(8)}`;
+      return validDates.has(targetDate)
+        ? { date: targetDate, shift_id: schedule.shift_id ?? null }
+        : null;
+    })
+    .filter((entry): entry is { date: string; shift_id: string | null } => entry !== null);
+}
+
 /**
  * Translate roster-backed schedules from a previous month into the target
  * month, preserving day-of-month. Only entries whose source is "roster" and
@@ -118,20 +121,11 @@ export function translateRosterEntriesToMonth(
   validDates: Set<string>,
 ): TranslatedRosterEntry[] {
   return prevSchedules
-    .filter((empSchedule): empSchedule is EmployeeSchedule & { employee_id: string } => Boolean(empSchedule.employee_id))
-    .map((empSchedule) => {
-      const rosterEntries = empSchedule.schedules
-        .filter((s: EffectiveSchedule) => s.source === "roster" && !!s.shift_id)
-        .map((s: EffectiveSchedule) => {
-          const targetDateStr = `${currentYearMonth}-${s.date.substring(8)}`;
-          if (validDates.has(targetDateStr)) {
-            return { date: targetDateStr, shift_id: s.shift_id ?? null };
-          }
-          return null;
-        })
-        .filter((item): item is { date: string; shift_id: string | null } => item !== null);
-      return { employeeId: empSchedule.employee_id, rosterEntries };
-    })
+    .filter((schedule): schedule is EmployeeSchedule & { employee_id: string } => Boolean(schedule.employee_id))
+    .map((schedule) => ({
+      employeeId: schedule.employee_id,
+      rosterEntries: translateScheduleEntries(schedule.schedules, currentYearMonth, validDates),
+    }))
     .filter(({ rosterEntries }) => rosterEntries.length > 0);
 }
 
@@ -145,12 +139,12 @@ export function groupCellsByEmployee(
 ): Record<string, string[]> {
   return Array.from(selectedCells).reduce<Record<string, string[]>>(
     (acc, key) => {
-      const [empId, d] = key.split(":");
+      const [empId, date] = key.split(":");
       const list = acc[empId];
       if (maybeNull(list)) {
-        list.push(d);
+        list.push(date);
       } else {
-        acc[empId] = [d];
+        acc[empId] = [date];
       }
       return acc;
     },
@@ -172,16 +166,15 @@ export function getComplianceStatus(
 ): ComplianceCellStatus {
   if (!violations || violations.length === 0) return "ok";
 
-  const matchingViolations = violations.filter((v) => {
-    const matchesEmployee = v.details.employment_id === employeeId;
-    const matchesDate = v.details.conflicting_dates.includes(dateStr);
-    return matchesEmployee && matchesDate;
-  });
+  const hasMatchingViolation = violations.some((violation) => (
+    violation.details.employment_id === employeeId && violation.details.conflicting_dates.includes(dateStr)
+  ));
+  if (!hasMatchingViolation) return "ok";
 
-  if (matchingViolations.length === 0) return "ok";
-
-  const hasHardViolation = matchingViolations.some(
-    (v) => v.violation_type === "overlap" || v.severity === "hard",
-  );
+  const hasHardViolation = violations.some((violation) => (
+    violation.details.employment_id === employeeId &&
+    violation.details.conflicting_dates.includes(dateStr) &&
+    (violation.violation_type === "overlap" || violation.severity === "hard")
+  ));
   return hasHardViolation ? "violation" : "warning";
 }

@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next";
 
 import Button from "@/components/ui/button";
 import { PageContainer } from "@/components/ui/page-container";
-import PageHeader from "@/components/ui/page-header";
+import { PageHeader } from "@/components/ui/page-header";
 import { useMyProfile } from "@/hooks/use-ess";
 import { useMyOtAssignments } from "@/hooks/use-overtime-requests";
 

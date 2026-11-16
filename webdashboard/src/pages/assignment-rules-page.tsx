@@ -4,7 +4,7 @@ import React from "react";
 
 import Button from "@/components/ui/button";
 import { PageContainer } from "@/components/ui/page-container";
-import PageHeader from "@/components/ui/page-header";
+import { PageHeader } from "@/components/ui/page-header";
 import { Typography } from "@/components/ui/typography";
 
 import { AssignmentRulesTable } from "./assignment-rules/components/assignment-rules-table";

@@ -1,9 +1,10 @@
 import { AlignJustify, Maximize2, Rows } from "lucide-react";
-import React, { useCallback, useState } from "react";
+import React from "react";
 import { useTranslation } from "react-i18next";
 
 import Button from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+
 
 export type TableDensity = "compact" | "normal" | "comfortable";
 
@@ -11,42 +12,6 @@ export interface TableDensityToggleProps {
   className?: string;
   density: TableDensity;
   onDensityChange: (density: TableDensity) => void;
-}
-
-export function useTableDensity(
-  storageKey = "hrm_table_density",
-  defaultDensity: TableDensity = "normal"
-) {
-  const [density, setDensityState] = useState<TableDensity>(() => {
-    if (typeof window === "undefined") return defaultDensity;
-    try {
-      const saved = localStorage.getItem(storageKey);
-      if (
-        saved === "compact" ||
-        saved === "normal" ||
-        saved === "comfortable"
-      ) {
-        return saved;
-      }
-    } catch {
-      // Ignore localStorage access errors
-    }
-    return defaultDensity;
-  });
-
-  const setDensity = useCallback(
-    (newDensity: TableDensity) => {
-      setDensityState(newDensity);
-      try {
-        localStorage.setItem(storageKey, newDensity);
-      } catch {
-        // Ignore localStorage access errors
-      }
-    },
-    [storageKey]
-  );
-
-  return { density, setDensity };
 }
 
 export function TableDensityToggle({

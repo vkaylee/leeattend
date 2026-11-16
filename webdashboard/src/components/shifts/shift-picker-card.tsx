@@ -1,4 +1,3 @@
-import Button from "@/components/ui/button";
 import type { TFunction } from "i18next";
 
 import { Coffee, Clock, Moon, Star, SplitSquareHorizontal } from "lucide-react";
@@ -6,6 +5,7 @@ import { forwardRef } from "react";
 
 import type { ShiftCardMetrics } from "@/lib/shift-card-metrics";
 
+import Button from "@/components/ui/button";
 import { Shift } from "@/lib/api";
 import { formatDurationShort } from "@/lib/shift-card-metrics";
 import { cn } from "@/lib/utils";
@@ -216,8 +216,8 @@ export const ShiftPickerCard = forwardRef<HTMLButtonElement, ShiftPickerCardProp
         onClick={onClick}
         onMouseEnter={onMouseEnter}
         ref={ref}
-        type="button"
         size="sm"
+        type="button"
         variant="ghost"
       >
         {/* Accent strip — decorative, meaning is duplicated in the badge text */}

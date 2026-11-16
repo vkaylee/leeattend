@@ -1,14 +1,10 @@
 import { useSearch } from "@tanstack/react-router";
 import React from "react";
-import { useTranslation } from "react-i18next";
 
 import AssignmentRulesPage from "./assignment-rules-page";
 import WorkingPatternsPage from "./working-patterns-page";
 
 export default function ShiftsRulesPage() {
-  const { t } = useTranslation();
-  
-
   // Safe search param parsing
   const search = useSearch({ strict: false });
   const activeTab = search.tab ?? "patterns";

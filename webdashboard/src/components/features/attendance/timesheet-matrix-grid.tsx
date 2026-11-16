@@ -1,5 +1,5 @@
 import { HelpCircle, User } from "lucide-react";
-import React, { useImperativeHandle, useMemo, useState } from "react";
+import { forwardRef, useCallback, useImperativeHandle, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import type { DailyAttendanceReport } from "@/lib/api";
@@ -36,7 +36,7 @@ export interface TimesheetMatrixGridProps {
 // Days of week in Vietnamese
 const DAY_NAMES = ["CN", "T2", "T3", "T4", "T5", "T6", "T7"];
 
-export const TimesheetMatrixGrid = React.forwardRef<
+export const TimesheetMatrixGrid = forwardRef<
   TimesheetMatrixGridHandle,
   TimesheetMatrixGridProps
 >(
@@ -81,7 +81,7 @@ export const TimesheetMatrixGrid = React.forwardRef<
     }, [daysInMonth, year, month]);
 
     // Real attendance code resolver using O(1) indexed attendanceMap
-    const getEmployeeDayCode = React.useCallback((empId: string, day: number, isWeekend: boolean) => {
+    const getEmployeeDayCode = useCallback((empId: string, day: number, isWeekend: boolean) => {
       if (attendanceMap) {
         const dateStr = formatDayKey(year, month, day);
         const cellKey = makeTimesheetCellKey(empId, dateStr);
@@ -94,7 +94,7 @@ export const TimesheetMatrixGrid = React.forwardRef<
 
     const registeredCodes = useMemo(() => getAllAttendanceCodes(), []);
 
-    const handleExportMatrixCSV = React.useCallback(() => {
+    const handleExportMatrixCSV = useCallback(() => {
       const headers = [
         "Mã NV",
         "Họ và tên",
@@ -116,8 +116,12 @@ export const TimesheetMatrixGrid = React.forwardRef<
         });
         const payableDays = workDays + leaveDays;
 
-        const empCode = emp.employee_id_number || (emp as { employee_code?: string }).employee_code || (emp.id ? emp.id.slice(0, 8) : "");
-        const deptName = emp.department_name || (emp as { department?: string }).department || "";
+        const empCode = emp.employee_id_number === ""
+          ? (emp as { employee_code?: string }).employee_code ?? (emp.id ? emp.id.slice(0, 8) : "")
+          : emp.employee_id_number;
+        const deptName = emp.department_name === ""
+          ? (emp as { department?: string }).department ?? ""
+          : emp.department_name;
         return [
           `"${empCode}"`,
           `"${emp.full_name}"`,
@@ -182,7 +186,7 @@ export const TimesheetMatrixGrid = React.forwardRef<
         </div>
 
         {/* Expandable Legend Bar */}
-        {!!isLegendOpen && (
+        {isLegendOpen ? (
           <div className="px-4 py-2.5 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/60 flex flex-wrap items-center gap-2 text-xs animate-in slide-in-from-top-2 duration-200">
             <span className="font-semibold text-slate-700 dark:text-slate-200 shrink-0">
               {t("reports.legend_rules", "Quy ước ký hiệu:")}
@@ -204,7 +208,7 @@ export const TimesheetMatrixGrid = React.forwardRef<
               </div>
             ))}
           </div>
-        )}
+        ) : null}
 
         {/* Main Matrix Table */}
         <div
@@ -275,8 +279,12 @@ export const TimesheetMatrixGrid = React.forwardRef<
                       <td className="sticky left-0 z-10 bg-white dark:bg-slate-900 group-hover:bg-slate-50 dark:group-hover:bg-slate-800 px-4 py-2 border-r border-slate-200 dark:border-slate-700 shadow-xs">
                         <EmployeeIdentityCell
                           avatarSize="sm"
-                          code={emp.employee_id_number || (emp as { employee_code?: string }).employee_code || (emp.id ? emp.id.slice(0, 8) : "—")}
-                          employerName={emp.department_name || (emp as { department?: string }).department || "Toàn công ty"}
+                          code={emp.employee_id_number === ""
+                            ? (emp as { employee_code?: string }).employee_code ?? (emp.id ? emp.id.slice(0, 8) : "—")
+                            : emp.employee_id_number}
+                          employerName={emp.department_name === ""
+                            ? (emp as { department?: string }).department ?? "Toàn công ty"
+                            : emp.department_name}
                           name={emp.full_name}
                           onClick={() => {
                             onEmployeeClick?.(emp);

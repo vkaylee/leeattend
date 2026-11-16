@@ -117,8 +117,8 @@ export function OffDayOption({ onSelect, t }: { onSelect: () => void; t: TFuncti
         "dark:focus-visible:ring-offset-slate-900",
       )}
       onClick={onSelect}
-      type="button"
       size="sm"
+      type="button"
       variant="ghost"
     >
       <span className="flex items-center gap-3">

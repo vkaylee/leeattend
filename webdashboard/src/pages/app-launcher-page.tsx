@@ -6,7 +6,7 @@ import type { NavGroup } from "@/hooks/use-nav-menu-items";
 
 import AppCard from "@/components/features/app-launcher/app-card";
 import QuickStatsBar from "@/components/features/app-launcher/quick-stats-bar";
-import { openCommandPalette } from "@/components/layout/command-palette";
+import { openCommandPalette } from "@/components/layout/command-palette-events";
 import Button from "@/components/ui/button";
 import EmptyState from "@/components/ui/empty-state";
 import { Skeleton } from "@/components/ui/skeleton";

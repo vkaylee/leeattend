@@ -9,7 +9,7 @@ import { FilterModeButtons } from "@/components/common/filter-mode-buttons";
 import Button from "@/components/ui/button";
 import { LABEL_BASE } from "@/components/ui/form-field";
 import ResponsiveToolbar from "@/components/ui/responsive-toolbar";
-import ToolbarRow from "@/components/ui/toolbar-row";
+import { ToolbarRow } from "@/components/ui/toolbar-row";
 import { cn } from "@/lib/utils";
 
 import type { FilterMode } from "../hooks/use-attendance-logs-page";

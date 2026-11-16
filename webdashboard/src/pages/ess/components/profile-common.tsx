@@ -4,7 +4,7 @@ import React from "react";
 import { TFunction } from "i18next";
 
 import Button from "@/components/ui/button";
-import PageHeader from "@/components/ui/page-header";
+import { PageHeader } from "@/components/ui/page-header";
 import { Typography } from "@/components/ui/typography";
 import { cn } from "@/lib/utils";
 

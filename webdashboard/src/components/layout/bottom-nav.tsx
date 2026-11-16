@@ -1,10 +1,10 @@
-import Button from "@/components/ui/button";
 import { Link, useLocation } from "@tanstack/react-router";
-import { LayoutDashboard, Timer, Folder, User, MoreHorizontal } from "lucide-react";
+import { Folder, LayoutDashboard, MoreHorizontal, Timer, User } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import type { NavGroup } from "@/hooks/use-nav-menu-items";
 
+import Button from "@/components/ui/button";
 import { useFilteredMenuItems, getActiveNavGroup } from "@/hooks/use-nav-menu-items";
 import { ROUTES } from "@/lib/routes";
 import { cn } from "@/lib/utils";
@@ -93,8 +93,8 @@ export default function BottomNav({ activeGroup, onMoreClick, unreadCount = 0 }:
           className="flex flex-col items-center justify-center flex-1 !h-full !min-h-0 !px-0 !py-0 relative transition-transform active:scale-95 focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 focus:outline-none"
           data-testid="bottom-nav-more"
           onClick={onMoreClick}
-          type="button"
           size="sm"
+          type="button"
           variant="ghost"
         >
           <div className="relative">
@@ -141,20 +141,8 @@ function BottomNavItem({
       data-testid={testId}
       to={to as "/"}
     >
-      <div className="relative">
-        <Icon className={cn(
-          "w-6 h-6 transition-colors",
-          isActive
-            ? "text-primary-600 dark:text-primary-400"
-            : "text-slate-400 dark:text-slate-500"
-        )} />
-      </div>
-      <span className={cn(
-        "text-[10px] font-bold mt-1 transition-colors",
-        isActive
-          ? "text-primary-600 dark:text-primary-400"
-          : "text-slate-400 dark:text-slate-500"
-      )}>
+      <Icon className={cn("w-6 h-6 transition-colors", isActive ? "text-primary-600 dark:text-primary-400" : "text-slate-400 dark:text-slate-500")} />
+      <span className={cn("text-[10px] font-bold mt-1 transition-colors", isActive ? "text-primary-600 dark:text-primary-400" : "text-slate-400 dark:text-slate-500")}>
         {label}
       </span>
       {isActive ? <span className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-1 rounded-b-full bg-primary-500 dark:bg-primary-400" /> : null}

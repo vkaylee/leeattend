@@ -2,12 +2,13 @@ import { Globe, Mail, Save, User as UserIcon, UserCircle } from "lucide-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
 
+import type { User } from "@/lib/api";
+
 import Button from "@/components/ui/button";
 import { Combobox } from "@/components/ui/combobox";
 import { LABEL_BASE } from "@/components/ui/form-field";
 import { Typography } from "@/components/ui/typography";
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
-import { User } from "@/lib/api";
 
 interface ProfileTabProps {
   formData: {

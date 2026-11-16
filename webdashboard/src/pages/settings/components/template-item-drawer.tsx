@@ -2,9 +2,9 @@ import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 
 import type {
-  LifecycleChecklistTemplateItem,
-  ChecklistCategory,
   ChecklistAssigneeType,
+  ChecklistCategory,
+  LifecycleChecklistTemplateItem,
 } from "@/lib/api/types";
 
 import Button from "@/components/ui/button";
@@ -26,29 +26,137 @@ interface TemplateItemDrawerProps {
   templateId: string;
 }
 
-  interface ItemFormState {
-    assigneeType: ChecklistAssigneeType;
-    assigneeUserId: string;
-    category: ChecklistCategory;
-    description: string;
-    displayOrder: string;
-    dueDaysOffset: string;
-    isRequired: boolean;
-    title: string;
-  }
+interface ItemFormState {
+  assigneeType: ChecklistAssigneeType;
+  assigneeUserId: string;
+  category: ChecklistCategory;
+  description: string;
+  displayOrder: string;
+  dueDaysOffset: string;
+  isRequired: boolean;
+  title: string;
+}
 
-  const EMPTY_ITEM_FORM: ItemFormState = {
-    title: "",
-    description: "",
-    category: "hr_admin",
-    assigneeType: "hr_manager",
-    assigneeUserId: "",
-    isRequired: true,
-    dueDaysOffset: "0",
-    displayOrder: "0",
-  };
+interface ItemFormFieldsProps {
+  form: ItemFormState;
+  memberOptions: { label: string; value: string }[];
+  onFormChange: (update: (form: ItemFormState) => ItemFormState) => void;
+  t: (key: string, options?: { defaultValue?: string }) => string;
+}
 
-  // eslint-disable-next-line max-lines-per-function
+const EMPTY_ITEM_FORM: ItemFormState = {
+  title: "",
+  description: "",
+  category: "hr_admin",
+  assigneeType: "hr_manager",
+  assigneeUserId: "",
+  isRequired: true,
+  dueDaysOffset: "0",
+  displayOrder: "0",
+};
+
+function ItemFormFields({ form, memberOptions, onFormChange, t }: ItemFormFieldsProps) {
+  return (
+    <>
+      <FormField
+        label="Item Title"
+        onChange={(event) => { onFormChange((previous) => ({ ...previous, title: event.target.value })); }}
+        placeholder="e.g., Assign laptop and corporate email"
+        value={form.title}
+      />
+      <FormField
+        label="Description / Instructions"
+        onChange={(event) => { onFormChange((previous) => ({ ...previous, description: event.target.value })); }}
+        placeholder="Add detailed instructions for completion"
+        type="textarea"
+        value={form.description}
+      />
+
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block" htmlFor="item-category">
+            Category
+          </label>
+          <select
+            className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5 text-sm"
+            id="item-category"
+            onChange={(event) => { onFormChange((previous) => ({ ...previous, category: event.target.value as ChecklistCategory })); }}
+            value={form.category}
+          >
+            <option value="hr_admin">{t("settings.lifecycle.template.category_hr_admin", { defaultValue: "HR Admin" })}</option>
+            <option value="it_setup">{t("settings.lifecycle.template.category_it_setup", { defaultValue: "IT Setup" })}</option>
+            <option value="documentation">{t("settings.lifecycle.template.category_documentation", { defaultValue: "Documentation" })}</option>
+            <option value="training">{t("settings.lifecycle.template.category_training", { defaultValue: "Training" })}</option>
+            <option value="equipment">{t("settings.lifecycle.template.category_equipment", { defaultValue: "Equipment" })}</option>
+          </select>
+        </div>
+
+        <div className="space-y-2">
+          <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block" htmlFor="item-assignee-type">
+            Assignee Type
+          </label>
+          <select
+            className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5 text-sm"
+            id="item-assignee-type"
+            onChange={(event) => { onFormChange((previous) => ({ ...previous, assigneeType: event.target.value as ChecklistAssigneeType })); }}
+            value={form.assigneeType}
+          >
+            <option value="hr_manager">{t("settings.lifecycle.template.assignee_hr_manager", { defaultValue: "HR Manager" })}</option>
+            <option value="direct_manager">{t("settings.lifecycle.template.assignee_direct_manager", { defaultValue: "Direct Manager" })}</option>
+            <option value="it_admin">{t("settings.lifecycle.template.assignee_it_admin", { defaultValue: "IT Admin" })}</option>
+            <option value="employee">{t("settings.lifecycle.template.assignee_employee", { defaultValue: "Self (Employee)" })}</option>
+            <option value="specific_user">{t("settings.lifecycle.template.assignee_specific_user", { defaultValue: "Specific Organization User" })}</option>
+          </select>
+        </div>
+      </div>
+
+      {form.assigneeType === "specific_user" && (
+        <div className="space-y-2">
+          <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block" htmlFor="item-assignee">
+            Select Specific Assignee
+          </label>
+          <Combobox
+            onChange={(value) => { onFormChange((previous) => ({ ...previous, assigneeUserId: value })); }}
+            options={memberOptions}
+            placeholder="Search user..."
+            value={form.assigneeUserId}
+          />
+        </div>
+      )}
+
+      <div className="grid grid-cols-2 gap-4">
+        <FormField
+          label="Due Days Offset"
+          onChange={(event) => { onFormChange((previous) => ({ ...previous, dueDaysOffset: event.target.value })); }}
+          placeholder="e.g., -5 (5 days before) or 2 (2 days after)"
+          type="number"
+          value={form.dueDaysOffset}
+        />
+        <FormField
+          label="Display Order"
+          onChange={(event) => { onFormChange((previous) => ({ ...previous, displayOrder: event.target.value })); }}
+          placeholder="Order priority"
+          type="number"
+          value={form.displayOrder}
+        />
+      </div>
+
+      <div className="flex items-center gap-3 bg-slate-50 dark:bg-slate-800/30 p-4 rounded-2xl border border-slate-100 dark:border-slate-800">
+        <input
+          checked={form.isRequired}
+          className="w-4 h-4 text-primary-600 focus:ring-primary-500 border-slate-300 rounded"
+          id="isRequired"
+          onChange={(event) => { onFormChange((previous) => ({ ...previous, isRequired: event.target.checked })); }}
+          type="checkbox"
+        />
+        <label className="text-sm font-semibold text-slate-700 dark:text-slate-300 cursor-pointer" htmlFor="isRequired">
+          Mark this task item as required to complete the checklist
+        </label>
+      </div>
+    </>
+  );
+}
+
 export function TemplateItemDrawer({ isOpen, onClose, editingItem, templateId }: TemplateItemDrawerProps) {
   const { t } = useTranslation();
   const toast = useToast();
@@ -56,7 +164,6 @@ export function TemplateItemDrawer({ isOpen, onClose, editingItem, templateId }:
   const updateMutation = useUpdateLifecycleTemplateItem(templateId);
   const { members } = useOrganizationMembers();
 
-  // Compute external form values — stabilized via useMemo.
   const externalForm = useMemo((): ItemFormState => {
     if (editingItem) {
       return {
@@ -94,148 +201,45 @@ export function TemplateItemDrawer({ isOpen, onClose, editingItem, templateId }:
 
     if (editingItem) {
       updateMutation.mutate(
-        {
-          id: editingItem.id,
-          payload,
-        },
+        { id: editingItem.id, payload },
         {
           onSuccess: () => {
             toast.success("Checklist item updated");
             onClose();
           },
-          onError: (err) => {
-            toast.error(err instanceof Error ? err.message : "Failed to update item");
+          onError: (error) => {
+            toast.error(error instanceof Error ? error.message : "Failed to update item");
           },
-        }
+        },
       );
-    } else {
-      createMutation.mutate(payload, {
-        onSuccess: () => {
-          toast.success("Checklist item added");
-          onClose();
-        },
-        onError: (err) => {
-          toast.error(err instanceof Error ? err.message : "Failed to add item");
-        },
-      });
+      return;
     }
+
+    createMutation.mutate(payload, {
+      onSuccess: () => {
+        toast.success("Checklist item added");
+        onClose();
+      },
+      onError: (error) => {
+        toast.error(error instanceof Error ? error.message : "Failed to add item");
+      },
+    });
   };
 
-  const memberOptions = members.map((m) => ({
-    value: m.user_id,
-    label: m.full_name ?? m.email,
+  const memberOptions = members.map((member) => ({
+    value: member.user_id,
+    label: member.full_name ?? member.email,
   }));
 
   return (
-    <Sheet
-      isOpen={isOpen}
-      onClose={onClose}
-      title={editingItem ? "Edit Checklist Item" : "Add Checklist Item"}
-    >
+    <Sheet isOpen={isOpen} onClose={onClose} title={editingItem ? "Edit Checklist Item" : "Add Checklist Item"}>
       <div className="space-y-6 pt-4 pr-2">
-        <FormField
-          label="Item Title"
-          onChange={(e) => { setForm(prev => ({ ...prev, title: e.target.value })); }}
-          placeholder="e.g., Assign laptop and corporate email"
-          value={form.title}
-        />
-        <FormField
-          label="Description / Instructions"
-          onChange={(e) => { setForm(prev => ({ ...prev, description: e.target.value })); }}
-          placeholder="Add detailed instructions for completion"
-          type="textarea"
-          value={form.description}
-        />
-
-        <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block" htmlFor="item-category">
-              Category
-            </label>
-            <select
-              className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5 text-sm"
-              id="item-category"
-              onChange={(e) => { setForm(prev => ({ ...prev, category: e.target.value as ChecklistCategory })); }}
-              value={form.category}
-            >
-              <option value="hr_admin">{t("settings.lifecycle.template.category_hr_admin", { defaultValue: "HR Admin" })}</option>
-              <option value="it_setup">{t("settings.lifecycle.template.category_it_setup", { defaultValue: "IT Setup" })}</option>
-              <option value="documentation">{t("settings.lifecycle.template.category_documentation", { defaultValue: "Documentation" })}</option>
-              <option value="training">{t("settings.lifecycle.template.category_training", { defaultValue: "Training" })}</option>
-              <option value="equipment">{t("settings.lifecycle.template.category_equipment", { defaultValue: "Equipment" })}</option>
-            </select>
-          </div>
-
-          <div className="space-y-2">
-            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block" htmlFor="item-assignee-type">
-              Assignee Type
-            </label>
-            <select
-              className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5 text-sm"
-              id="item-assignee-type"
-              onChange={(e) => { setForm(prev => ({ ...prev, assigneeType: e.target.value as ChecklistAssigneeType })); }}
-              value={form.assigneeType}
-            >
-              <option value="hr_manager">{t("settings.lifecycle.template.assignee_hr_manager", { defaultValue: "HR Manager" })}</option>
-              <option value="direct_manager">{t("settings.lifecycle.template.assignee_direct_manager", { defaultValue: "Direct Manager" })}</option>
-              <option value="it_admin">{t("settings.lifecycle.template.assignee_it_admin", { defaultValue: "IT Admin" })}</option>
-              <option value="employee">{t("settings.lifecycle.template.assignee_employee", { defaultValue: "Self (Employee)" })}</option>
-              <option value="specific_user">{t("settings.lifecycle.template.assignee_specific_user", { defaultValue: "Specific Organization User" })}</option>
-            </select>
-          </div>
-        </div>
-
-        {form.assigneeType === "specific_user" && (
-          <div className="space-y-2">
-            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block" htmlFor="item-assignee">
-              Select Specific Assignee
-            </label>
-            <Combobox
-              onChange={(v) => { setForm(prev => ({ ...prev, assigneeUserId: v })); }}
-              options={memberOptions}
-              placeholder="Search user..."
-              value={form.assigneeUserId}
-            />
-          </div>
-        )}
-
-        <div className="grid grid-cols-2 gap-4">
-          <FormField
-            label="Due Days Offset"
-            onChange={(e) => { setForm(prev => ({ ...prev, dueDaysOffset: e.target.value })); }}
-            placeholder="e.g., -5 (5 days before) or 2 (2 days after)"
-            type="number"
-            value={form.dueDaysOffset}
-          />
-          <FormField
-            label="Display Order"
-            onChange={(e) => { setForm(prev => ({ ...prev, displayOrder: e.target.value })); }}
-            placeholder="Order priority"
-            type="number"
-            value={form.displayOrder}
-          />
-        </div>
-
-        <div className="flex items-center gap-3 bg-slate-50 dark:bg-slate-800/30 p-4 rounded-2xl border border-slate-100 dark:border-slate-800">
-          <input
-            checked={form.isRequired}
-            className="w-4 h-4 text-primary-600 focus:ring-primary-500 border-slate-300 rounded"
-            id="isRequired"
-            onChange={(e) => { setForm(prev => ({ ...prev, isRequired: e.target.checked })); }}
-            type="checkbox"
-          />
-          <label className="text-sm font-semibold text-slate-700 dark:text-slate-300 cursor-pointer" htmlFor="isRequired">
-            Mark this task item as required to complete the checklist
-          </label>
-        </div>
-
+        <ItemFormFields form={form} memberOptions={memberOptions} onFormChange={setForm} t={t} />
         <div className="flex justify-end gap-3 pt-6 border-t border-slate-100 dark:border-slate-800">
           <Button onClick={onClose} variant="ghost">
             CANCEL
           </Button>
-          <Button onClick={handleSave}>
-            SAVE ITEM
-          </Button>
+          <Button onClick={handleSave}>SAVE ITEM</Button>
         </div>
       </div>
     </Sheet>

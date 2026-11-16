@@ -36,8 +36,8 @@ export function useCurrency() {
       const rawLang = i18n.language || "vi";
       const baseLang = rawLang.split("-")[0].toLowerCase();
       const { locale, currency } =
-        LOCALE_CURRENCY_MAP[rawLang] ||
-        LOCALE_CURRENCY_MAP[baseLang] ||
+        LOCALE_CURRENCY_MAP[rawLang] ??
+        LOCALE_CURRENCY_MAP[baseLang] ??
         DEFAULT_LOCALE;
       return new Intl.NumberFormat(locale, {
         style: "currency",

@@ -1,6 +1,6 @@
  
-import { Coins, Calculator, FileText, Blocks, Sparkles } from "lucide-react";
 import { useBlocker } from "@tanstack/react-router";
+import { Coins, Calculator, FileText, Blocks, Sparkles } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 

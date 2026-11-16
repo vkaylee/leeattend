@@ -113,13 +113,14 @@ function SmartTableCellInner<T>({
     }
   }
 
+  const densityClass = density === "compact"
+    ? "px-3 py-1.5 text-xs"
+    : density === "comfortable"
+      ? "px-6 py-4 text-sm"
+      : "px-5 py-2.5 text-sm";
   const cellClass = useMemo(() => cn(
     "group relative font-medium text-slate-700 dark:text-slate-200 border-r border-slate-100 dark:border-slate-800 last:border-r-0 truncate outline-none",
-    density === "compact"
-      ? "px-3 py-1.5 text-xs"
-      : density === "comfortable"
-        ? "px-6 py-4 text-sm"
-        : "px-5 py-2.5 text-sm",
+    densityClass,
     isPinned && "bg-white dark:bg-slate-900 group-hover/row:bg-slate-50/50 dark:group-hover/row:bg-slate-800/30",
     isCellFocused && (hasError ? "ring-2 ring-rose-500 ring-inset z-10" : "ring-2 ring-primary-500 ring-inset z-10"),
     isCellEditing && "p-0.5",
@@ -127,7 +128,7 @@ function SmartTableCellInner<T>({
     isFirstPinnedRight && "border-l border-l-slate-200 dark:border-l-slate-700 shadow-[-2px_0_5px_-2px_rgba(0,0,0,0.1)]",
     hasError && "border border-rose-500 bg-rose-50/20 dark:bg-rose-950/25 focus-visible:ring-rose-500",
     meta?.cellClassName,
-  ), [density, isPinned, isCellFocused, isCellEditing, isLastPinnedLeft, isFirstPinnedRight, hasError, meta?.cellClassName]);
+  ), [densityClass, isPinned, isCellFocused, isCellEditing, isLastPinnedLeft, isFirstPinnedRight, hasError, meta?.cellClassName]);
 
   return (
     <td

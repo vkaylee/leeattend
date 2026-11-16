@@ -122,7 +122,9 @@ export function AttendanceStatusBadge({
   const { t } = useTranslation();
   const config = statusConfig[status];
 
-  const baseText = customLabel || t(config.labelKey, config.defaultLabel);
+  const baseText = customLabel !== undefined && customLabel !== ""
+    ? customLabel
+    : t(config.labelKey, config.defaultLabel);
   const displayText =
     minutes !== undefined && minutes > 0 ? `${baseText} (${minutes}p)` : baseText;
 
@@ -136,7 +138,7 @@ export function AttendanceStatusBadge({
       data-status={status}
       data-testid={`attendance-status-${status}`}
     >
-      {!!showIcon && <span className="shrink-0">{config.icon}</span>}
+      {showIcon ? <span className="shrink-0">{config.icon}</span> : null}
       <span className="truncate">{displayText}</span>
     </span>
   );

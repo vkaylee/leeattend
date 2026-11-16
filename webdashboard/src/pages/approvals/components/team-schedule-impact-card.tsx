@@ -1,7 +1,8 @@
-import { Typography } from "@/components/ui/typography";
 import { AlertCircle, CheckCircle2, Users } from "lucide-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
+
+import { Typography } from "@/components/ui/typography";
 
 import { TeamImpactInfo } from "../types/unified-approvals";
 
@@ -33,13 +34,13 @@ export function TeamScheduleImpactCard({
       >
         <CheckCircle2 className="h-5 w-5 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
         <div className="text-xs space-y-0.5">
-          <Typography variant="p" className="font-semibold">
+          <Typography className="font-semibold" variant="p">
             {t(
               "approvals.impact.no_conflict_title",
               "Không có xung đột nhân sự"
             )}
           </Typography>
-          <Typography variant="p" className="text-emerald-700/90 dark:text-emerald-300/80">
+          <Typography className="text-emerald-700/90 dark:text-emerald-300/80" variant="p">
             {departmentName
               ? t(
                   "approvals.impact.no_conflict_dept",
@@ -72,7 +73,7 @@ export function TeamScheduleImpactCard({
       )}
       <div className="text-xs space-y-1 w-full">
         <div className="flex items-center justify-between gap-2">
-          <Typography variant="p" className="font-bold text-amber-900 dark:text-amber-300">
+          <Typography className="font-bold text-amber-900 dark:text-amber-300" variant="p">
             {isHighImpact
               ? t(
                   "approvals.impact.understaffing_alert",
@@ -85,7 +86,7 @@ export function TeamScheduleImpactCard({
             {t("approvals.impact.people_count", "người vắng")}
           </span>
         </div>
-        <Typography variant="p" className="text-amber-800/90 dark:text-amber-300/80">
+        <Typography className="text-amber-800/90 dark:text-amber-300/80" variant="p">
           {!!departmentName && <span className="font-medium">[{departmentName}] </span>}
           {t("approvals.impact.away_list", "Đã có người nghỉ phép:")}{" "}
           <span className="font-semibold underline">

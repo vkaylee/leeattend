@@ -1,5 +1,5 @@
 import { Search, X, Loader2 } from 'lucide-react';
-import React, { forwardRef, useCallback, useRef } from 'react';
+import { type ButtonHTMLAttributes, type ChangeEvent, type InputHTMLAttributes, forwardRef, useCallback, useRef } from 'react';
 
 import { cn } from '@/lib/utils';
 
@@ -11,7 +11,7 @@ import {
 } from './control-styles';
 
 export interface SearchInputProps
-  extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'size'> {
+  extends Omit<InputHTMLAttributes<HTMLInputElement>, 'size'> {
   /** Extra container styling */
   containerClassName?: string;
   /** Show spinner instead of search icon */
@@ -31,6 +31,11 @@ const iconSizes = {
   md: 'h-4 w-4',
   lg: 'h-5 w-5',
 };
+
+function SearchIcon({ loading, size }: { loading?: boolean; size: keyof typeof iconSizes }) {
+  const Icon = loading ? Loader2 : Search;
+  return <Icon className={cn('shrink-0', loading ? 'animate-spin text-primary-500' : 'text-slate-400 dark:text-slate-500 transition-colors group-hover:text-slate-600 dark:group-hover:text-slate-400 group-focus-within:text-primary-600 dark:group-focus-within:text-primary-400', iconSizes[size])} />;
+}
 
 /**
  * Clean VitePress-inspired SearchInput component
@@ -55,7 +60,6 @@ export const SearchInput = forwardRef<HTMLInputElement, SearchInputProps>(
   ) => {
     const internalRef = useRef<HTMLInputElement>(null);
     const inputRef = typeof forwardedRef === 'function' ? internalRef : forwardedRef ?? internalRef;
-
     const hasValue = value !== undefined ? Boolean(value) : false;
 
     const handleClear = useCallback(() => {
@@ -66,7 +70,7 @@ export const SearchInput = forwardRef<HTMLInputElement, SearchInputProps>(
         const event = {
           target: { value: '' },
           currentTarget: { value: '' },
-        } as React.ChangeEvent<HTMLInputElement>;
+        } as ChangeEvent<HTMLInputElement>;
         onChange(event);
       }
       inputRef.current?.focus();
@@ -86,21 +90,7 @@ export const SearchInput = forwardRef<HTMLInputElement, SearchInputProps>(
         )}
       >
         {/* Left search/loading icon */}
-        {loading ? (
-          <Loader2
-            className={cn(
-              'shrink-0 animate-spin text-primary-500',
-              iconSizes[size]
-            )}
-          />
-        ) : (
-          <Search
-            className={cn(
-              'shrink-0 text-slate-400 dark:text-slate-500 transition-colors group-hover:text-slate-600 dark:group-hover:text-slate-400 group-focus-within:text-primary-600 dark:group-focus-within:text-primary-400',
-              iconSizes[size]
-            )}
-          />
-        )}
+        <SearchIcon loading={loading} size={size} />
 
         {/* Real input element */}
         <input
@@ -119,7 +109,7 @@ export const SearchInput = forwardRef<HTMLInputElement, SearchInputProps>(
         />
 
         {/* Clear button (when input has value) */}
-        {!!hasValue && (
+        {hasValue ? (
           <button
             aria-label="Clear search input"
             className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md text-slate-400 hover:text-slate-700 dark:text-slate-500 dark:hover:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-slate-800 transition-colors"
@@ -129,7 +119,7 @@ export const SearchInput = forwardRef<HTMLInputElement, SearchInputProps>(
           >
             <X className="h-3.5 w-3.5" />
           </button>
-        )}
+        ) : null}
 
         {/* Shortcut badge (e.g. ⌘K or /) */}
         {!!shortcut && !hasValue && (
@@ -144,7 +134,7 @@ export const SearchInput = forwardRef<HTMLInputElement, SearchInputProps>(
 SearchInput.displayName = 'SearchInput';
 
 export interface SearchTriggerButtonProps
-  extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+  extends ButtonHTMLAttributes<HTMLButtonElement> {
   /** Placeholder / label text */
   placeholder?: string;
   /** Shortcut text, defaults to "⌘K" */

@@ -11,7 +11,7 @@ import {
 } from "@/components/time-tracking/adjustment-request-modal";
 import { PunchCard } from "@/components/time-tracking/punch-card";
 import { PageContainer } from "@/components/ui/page-container";
-import PageHeader from "@/components/ui/page-header";
+import { PageHeader } from "@/components/ui/page-header";
 import { useToast } from "@/components/ui/toast";
 import { Typography } from "@/components/ui/typography";
 import { useMyClock, useMyProfile } from "@/hooks/use-ess";

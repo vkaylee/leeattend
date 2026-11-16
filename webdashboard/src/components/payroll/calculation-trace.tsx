@@ -54,7 +54,7 @@ export function CalculationTrace({ employmentId, year, month }: { employmentId: 
             const hasIncompleteProvenance = !hasSnapshot(run.input_snapshot) || !hasSnapshot(run.output_snapshot) || !run.formula_version_id;
             return <div className="space-y-2" key={run.id}>
               <Typography className="font-semibold" variant="small">{run.engine_version} · {run.created_at}</Typography>
-              <div className="flex flex-wrap gap-2 text-xs text-slate-500" aria-label={t("payroll.calculation_trace.metadata", "Trace metadata")}>
+              <div aria-label={t("payroll.calculation_trace.metadata", "Trace metadata")} className="flex flex-wrap gap-2 text-xs text-slate-500">
                 {run.formula_version_id ? <span>{t("payroll.calculation_trace.formula_version", "Formula")}: {run.formula_version_id}</span> : null}
                 {run.payslip_id ? <span>{t("payroll.calculation_trace.payslip", "Payslip")}: {run.payslip_id}</span> : null}
                 {hasSnapshot(run.input_snapshot) ? <span>{t("payroll.calculation_trace.input_snapshot", "Input snapshot available")}</span> : null}

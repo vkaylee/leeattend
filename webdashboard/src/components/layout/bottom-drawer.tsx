@@ -6,7 +6,7 @@ import { useTranslation } from "react-i18next";
 
 import type { NavGroup } from "@/hooks/use-nav-menu-items";
 
-import { openCommandPalette } from "@/components/layout/command-palette";
+import { openCommandPalette } from "@/components/layout/command-palette-events";
 import Button from "@/components/ui/button";
 import { Typography } from "@/components/ui/typography";
 import { useDarkModeContext } from "@/context/use-dark-mode-context";

@@ -5,7 +5,7 @@ import { useTranslation } from "react-i18next";
 
 import PermissionGate from "@/components/common/permission-gate";
 import Button from "@/components/ui/button";
-import PageHeader from "@/components/ui/page-header";
+import { PageHeader } from "@/components/ui/page-header";
 
 import type { Employee } from "../../../lib/api/types";
 import type { EmployeeModalState } from "../types/employee-modals";

@@ -1,11 +1,11 @@
-/* eslint-disable complexity, max-lines, @typescript-eslint/no-unnecessary-condition, @typescript-eslint/no-confusing-void-expression, perfectionist/sort-jsx-props, perfectionist/sort-imports, import-x/no-named-as-default-member -- Monitor page composes the operational dashboard and alert controls. */
+/* eslint-disable complexity, max-lines, @typescript-eslint/no-unnecessary-condition, @typescript-eslint/no-confusing-void-expression, perfectionist/sort-jsx-props, perfectionist/sort-imports -- Monitor page composes the operational dashboard and alert controls. */
 import {
   AlertTriangle,
   CheckCircle2,
   CircleHelp,
   Loader2,
 } from "lucide-react";
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { TFunction } from "i18next";
@@ -59,8 +59,8 @@ function localizeMonitorValue(t: TFunction, namespace: string, value: string): s
 }
 
 function MonitorAlertsSection({ t }: { t: TFunction }) {
-  const [selectedAlertId, setSelectedAlertId] = React.useState<string | null>(null);
-  const [reason, setReason] = React.useState("");
+  const [selectedAlertId, setSelectedAlertId] = useState<string | null>(null);
+  const [reason, setReason] = useState("");
   const alertsQuery = useMonitorAlerts({ status: "active", limit: 20 });
   const detailQuery = useMonitorAlert(selectedAlertId);
   const { acknowledge, resolve } = useMonitorAlertMutations();

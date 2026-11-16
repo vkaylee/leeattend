@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next";
 
 import EmptyState from "@/components/ui/empty-state";
 import { PageContainer } from "@/components/ui/page-container";
-import PageHeader from "@/components/ui/page-header";
+import { PageHeader } from "@/components/ui/page-header";
 
 export default function EContractsPlaceholderPage() {
   const { t } = useTranslation();

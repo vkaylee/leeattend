@@ -3,7 +3,7 @@ import React from "react";
 
 import EmptyState from "@/components/ui/empty-state";
 import { PageContainer } from "@/components/ui/page-container";
-import PageHeader from "@/components/ui/page-header";
+import { PageHeader } from "@/components/ui/page-header";
 
 /** e-Contracts e-signature integration — feature gate placeholder.
  *  Backend HTTP endpoints are pending wiring

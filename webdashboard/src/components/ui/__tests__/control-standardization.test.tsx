@@ -3,7 +3,7 @@ import React from "react";
 
 import fs from "fs";
 import path from "path";
-import ts from "typescript";
+import * as ts from "typescript";
 import { describe, expect, it, vi } from "vitest";
 
 import Button from "../button";

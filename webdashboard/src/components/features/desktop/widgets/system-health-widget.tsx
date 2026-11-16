@@ -70,7 +70,7 @@ export function SystemHealthWidget() {
       </div>
 
       {/* Footer Details */}
-      {!!canViewMonitor && (
+      {canViewMonitor ? (
         <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs text-slate-400">
           <span>LeeAttend v1.26 Enterprise</span>
           <Link
@@ -81,7 +81,7 @@ export function SystemHealthWidget() {
             <ExternalLink className="w-3.5 h-3.5" />
           </Link>
         </div>
-      )}
+      ) : null}
     </div>
   );
 }

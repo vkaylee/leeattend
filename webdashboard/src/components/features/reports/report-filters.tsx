@@ -12,7 +12,7 @@ import {
 import { FilterPanel } from "@/components/ui/filter-panel";
 import { FilterTrigger } from "@/components/ui/filter-trigger";
 import { SearchInput } from "@/components/ui/search-input";
-import ToolbarRow from "@/components/ui/toolbar-row";
+import { ToolbarRow } from "@/components/ui/toolbar-row";
 import { cn } from "@/lib/utils";
 
 interface ReportFiltersProps {

@@ -1,7 +1,7 @@
 import * as Sentry from "@sentry/react";
 import { MutationCache, QueryCache, QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { RouterProvider } from "@tanstack/react-router";
-import React, { Suspense } from "react";
+import { Suspense, useEffect } from "react";
 
 import { GlobalLoader } from "./components/common/global-loader";
 import { NewVersionBanner } from "./components/common/new-version-banner";
@@ -32,6 +32,23 @@ function showErrorToast(error: unknown) {
   }
 }
 
+function getErrorStatus(error: unknown): number | undefined {
+  return error && typeof error === "object" && "status" in error && typeof error.status === "number" ? error.status : undefined;
+}
+
+function hasSuppressedStatus(error: unknown, suppress: unknown): boolean {
+  return Array.isArray(suppress) && suppress.includes(getErrorStatus(error));
+}
+
+function shouldSuppressQueryError(error: unknown, query: { meta?: unknown; state: { data: unknown } }): boolean {
+  const meta = query.meta;
+  if (meta && typeof meta === "object" && "suppressErrorToast" in meta) {
+    const suppress = meta.suppressErrorToast;
+    if (suppress === true || hasSuppressedStatus(error, suppress)) return true;
+  }
+  return query.state.data !== undefined;
+}
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -43,21 +60,7 @@ const queryClient = new QueryClient({
   },
   queryCache: new QueryCache({
     onError: (_error, query) => {
-      const meta = query.meta;
-      if (meta && typeof meta === "object" && "suppressErrorToast" in meta) {
-        const suppress = meta.suppressErrorToast;
-        if (suppress === true) return;
-        if (Array.isArray(suppress)) {
-          const status = "status" in _error && typeof _error.status === "number"
-            ? _error.status
-            : undefined;
-          if (status !== undefined && suppress.includes(status)) return;
-        }
-      }
-      // Suppress toast for background refetch (query already has data)
-      if (query.state.data === undefined) {
-        showErrorToast(_error);
-      }
+      if (!shouldSuppressQueryError(_error, query)) showErrorToast(_error);
     },
   }),
   mutationCache: new MutationCache({
@@ -72,7 +75,7 @@ const router = createAppRouter(queryClient);
 function AppContent() {
   const { hasNewVersion, dismiss, refresh } = useVersionCheck();
 
-  React.useEffect(() => {
+  useEffect(() => {
     void loadRuntimeFeatureFlags();
   }, []);
 

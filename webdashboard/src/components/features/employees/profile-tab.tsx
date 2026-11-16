@@ -227,7 +227,7 @@ export default function ProfileTab({
             </GridWrap>
 
             <section aria-labelledby="employee-tenure-history" className="space-y-4">
-                <h3 id="employee-employment-history" className="text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider">
+                <h3 className="text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider" id="employee-employment-history">
                     {t("employees.details.tenure_history")}
                 </h3>
                 {tenureHistory.length === 0 ? (
@@ -237,7 +237,7 @@ export default function ProfileTab({
                 ) : (
                     <ol className="space-y-3">
                         {tenureHistory.map((employment, index) => (
-                            <li key={employment.id} className="rounded-2xl border border-slate-200 dark:border-slate-800 p-4">
+                            <li className="rounded-2xl border border-slate-200 dark:border-slate-800 p-4" key={employment.id}>
                                 <div className="flex flex-wrap items-center justify-between gap-2">
                                     <span className="font-semibold text-slate-800 dark:text-slate-100">
                                         {index === tenureHistory.length - 1

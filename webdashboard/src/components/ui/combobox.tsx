@@ -37,11 +37,11 @@ interface ComboboxProps {
   keyboardShortcut?: string | string[];
   onChange: (value: string) => void;
   onLoadMore?: () => void;
-  optionClassName?: string;
-  searchInputClassName?: string;
   onSearchChange?: (value: string) => void;
+  optionClassName?: string;
   options: ComboboxOption[];
   placeholder?: string;
+  searchInputClassName?: string;
   searchPlaceholder?: string;
   shouldFilter?: boolean;
   size?: ControlSize;

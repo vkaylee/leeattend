@@ -5,7 +5,8 @@ import { cn } from "@/lib/utils";
 
 import type { NoShowRowSharedProps } from "./no-show-mobile-card";
 
-import { formatDateTime, formatShiftTime, zoneLabel, ZoneIcon } from "./utils";
+import { ZoneIcon } from "./utils";
+import { formatDateTime, formatShiftTime, zoneLabel } from "./utils-helpers";
 
 function zoneRowBg(zone: string): string {
   switch (zone) {

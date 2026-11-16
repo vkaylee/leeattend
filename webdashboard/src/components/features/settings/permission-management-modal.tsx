@@ -225,11 +225,11 @@ export default function PermissionManagementModal({
                         </div>
                     )}
 
-                    {!!isCatalogError && (
+                    {isCatalogError ? (
                         <Typography className="text-sm text-rose-600 dark:text-rose-400" role="alert" variant="p">
                             {t("permissions.catalog_load_error", { defaultValue: "Permission catalog could not be loaded. Please try again." })}
                         </Typography>
-                      )}
+                      ) : null}
 
                     {/* Assign new permission */}
                     <AssignPermissionForm 

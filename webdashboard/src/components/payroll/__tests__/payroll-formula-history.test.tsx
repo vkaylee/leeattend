@@ -4,7 +4,7 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 import { ApiError } from "@/lib/api/errors";
-import { createPayrollFormulaVersion, fetchPayrollFormulaVersions, publishPayrollFormulaRule, retirePayrollFormulaRule } from "@/lib/api/payroll";
+import { createPayrollFormulaVersion, fetchPayrollFormulaVersions } from "@/lib/api/payroll";
 
 import { PayrollFormulaHistory } from "../payroll-formula-history";
 

@@ -4,7 +4,7 @@ import type { FileRecord } from "@/lib/api/types";
 
 import { FileGrid } from "@/components/documents/file-grid";
 import { FolderTree } from "@/components/documents/folder-tree";
-import PageHeader from "@/components/ui/page-header";
+import { PageHeader } from "@/components/ui/page-header";
 import { useFolders } from "@/hooks/use-documents";
 import { useOrganization } from "@/hooks/use-organization";
 

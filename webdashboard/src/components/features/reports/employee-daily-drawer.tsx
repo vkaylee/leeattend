@@ -327,13 +327,21 @@ function handleScroll(e: KeyboardEvent, contentRef: React.RefObject<HTMLDivEleme
     }
 }
 
-function useDrawerKeyboardNavigation(
-    isOpen: boolean,
-    viewMode: "daily" | "raw",
-    setViewMode: (mode: "daily" | "raw") => void,
-    contentRef: React.RefObject<HTMLDivElement | null>,
-    tabRefs: DrawerTabRefs,
-) {
+interface DrawerKeyboardNavigationOptions {
+    contentRef: React.RefObject<HTMLDivElement | null>;
+    isOpen: boolean;
+    setViewMode: (mode: "daily" | "raw") => void;
+    tabRefs: DrawerTabRefs;
+    viewMode: "daily" | "raw";
+}
+
+function useDrawerKeyboardNavigation({
+    contentRef,
+    isOpen,
+    setViewMode,
+    tabRefs,
+    viewMode,
+}: DrawerKeyboardNavigationOptions) {
     useEffect(() => {
         if (!isOpen) return;
 
@@ -359,13 +367,13 @@ export default function EmployeeDailyDrawer(props: EmployeeDailyDrawerProps) {
     const data = useEmployeeDailyDrawer(props);
 
     // Keyboard navigation for tabs + scroll
-    useDrawerKeyboardNavigation(
-        isOpen,
-        data.viewMode,
-        data.setViewMode,
+    useDrawerKeyboardNavigation({
         contentRef,
-        { daily: dailyTabRef, raw: rawTabRef },
-    );
+        isOpen,
+        setViewMode: data.setViewMode,
+        tabRefs: { daily: dailyTabRef, raw: rawTabRef },
+        viewMode: data.viewMode,
+    });
 
     return (
         <>

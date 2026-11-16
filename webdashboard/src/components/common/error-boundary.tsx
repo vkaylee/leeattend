@@ -1,16 +1,15 @@
-/* eslint-disable import-x/no-named-as-default, import-x/no-named-as-default-member */
-import React, { Component } from "react";
+import { Component, type ErrorInfo, type ReactNode } from "react";
 
-import i18n from "i18next";
+import { t } from "i18next";
 
 import Button from "@/components/ui/button";
 import { Typography } from "@/components/ui/typography";
 import { logError } from "@/lib/logger";
 
 interface ErrorBoundaryProps {
-  children?: React.ReactNode;
-  fallback?: React.ReactNode;
-  onError?: (error: Error, errorInfo: React.ErrorInfo) => void;
+  children?: ReactNode;
+  fallback?: ReactNode;
+  onError?: (error: Error, errorInfo: ErrorInfo) => void;
   onErrorChange?: (hasError: boolean) => void;
   variant?: "full" | "compact";
 }
@@ -33,7 +32,7 @@ export class ErrorBoundary extends Component<
     return { hasError: true, error };
   }
 
-  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     logError(error, {
       component: "ErrorBoundary",
       extra: { componentStack: errorInfo.componentStack },
@@ -67,17 +66,17 @@ export class ErrorBoundary extends Component<
         </div>
         <div>
           <Typography className="text-sm font-bold text-slate-700 dark:text-slate-200 uppercase tracking-wider" variant="h4">
-            {i18n.t("common.error_boundary.widget_error")}
+            {t("common.error_boundary.widget_error")}
           </Typography>
           <Typography className="text-[11px] text-slate-400 dark:text-slate-500 mt-1 max-w-xs" variant="p">
-            {this.state.error?.message ?? i18n.t("common.error_boundary.unexpected_error")}
+            {this.state.error?.message ?? t("common.error_boundary.unexpected_error")}
           </Typography>
         </div>
         <Button className="flex items-center gap-2 px-4 py-2 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-xl border border-slate-100 dark:border-slate-800 transition-all text-xs font-semibold active:scale-95"
           onClick={this.handleRetry}
           variant="ghost"
         >
-          {i18n.t("common.retry")}
+          {t("common.retry")}
         </Button>
       </div>
     );
@@ -95,23 +94,23 @@ export class ErrorBoundary extends Component<
             </svg>
           </div>
           <Typography className="text-lg font-semibold text-slate-800 dark:text-slate-200" variant="h2">
-            {i18n.t("common.error_boundary.something_went_wrong")}
+            {t("common.error_boundary.something_went_wrong")}
           </Typography>
           <Typography className="text-sm text-slate-500 dark:text-slate-400" variant="p">
-            {this.state.error?.message ?? i18n.t("common.error_boundary.unexpected_error")}
+            {this.state.error?.message ?? t("common.error_boundary.unexpected_error")}
           </Typography>
           <div className="flex justify-center gap-3">
             <Button className="px-4 py-2 text-sm font-medium rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors"
               onClick={this.handleRetry}
               variant="ghost"
             >
-              {i18n.t("common.retry")}
+              {t("common.retry")}
             </Button>
             <Button className="px-4 py-2 text-sm font-medium rounded-lg border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
               onClick={this.handleHardReload}
               variant="ghost"
             >
-              {i18n.t("common.error_boundary.reload_page")}
+              {t("common.error_boundary.reload_page")}
             </Button>
           </div>
           {this.state.error && import.meta.env.DEV ? (

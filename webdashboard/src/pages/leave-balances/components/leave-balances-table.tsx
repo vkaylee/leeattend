@@ -6,7 +6,7 @@ import type { OrganizationLeaveBalance } from "@/lib/api/types";
 
 import Button from "@/components/ui/button";
 import ResponsiveTable from "@/components/ui/responsive-table";
-import TableEmptyRow from "@/components/ui/table-empty-row";
+import { TableEmptyRow } from "@/components/ui/table-empty-row";
 import { useHorizontalDragScroll } from "@/hooks/use-horizontal-drag-scroll";
 import { cn } from "@/lib/utils";
 

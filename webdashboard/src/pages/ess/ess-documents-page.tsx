@@ -1,6 +1,6 @@
 import React from "react";
 
-import PageHeader from "@/components/ui/page-header";
+import { PageHeader } from "@/components/ui/page-header";
 import { Typography } from "@/components/ui/typography";
 
 export function ESSDocumentsPage() {

@@ -30,9 +30,8 @@ assignPatternMutation: UseMutationResult<EmployeeWorkingPattern, Error, AssignPa
 bulkRosterMutation: UseMutationResult<unknown, Error, { date: string; shift_id: string | null }[]>;
 complianceModalOpen: boolean;
 complianceViolations: ComplianceViolation[];
-coverageFilter: "all" | "missing" | "complete";
-setCoverageFilter: (value: "all" | "missing" | "complete") => void;
 correctionEffectiveDate: string;
+coverageFilter: "all" | "missing" | "complete";
 createShiftMutation: UseMutationResult<Shift, Error, CreateShiftRequest>;
 currentDate: Date;
 currentMonth: Date;
@@ -45,9 +44,9 @@ employeesError: Error | null;
 endDate: string;
 handleApplyShift: (shiftId: string | null) => void;
 handleAssign: () => void;
-
-
 handleAssignAllWeek: (shiftId: string | null) => void;
+
+
 handleAssignBulk: (shiftId: string | null) => void;
 handleCopyPreviousMonth: () => Promise<void>;
 handleCopyPreviousWeek: () => Promise<unknown>;
@@ -97,6 +96,7 @@ setActiveTab: (v: TabType) => void;
 setAllowEarlyOt: (v: boolean) => void;
 setComplianceModalOpen: (v: boolean) => void;
 setCorrectionEffectiveDate: (v: string) => void;
+setCoverageFilter: (value: "all" | "missing" | "complete") => void;
 setCurrentDate: (v: Date) => void;
 setEditingShift: (v: Shift | null) => void;
 setEndDate: (v: string) => void;

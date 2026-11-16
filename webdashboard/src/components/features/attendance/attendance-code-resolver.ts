@@ -8,7 +8,6 @@
 import type { DailyAttendanceReport } from "@/lib/api";
 
 import {
-  ATTENDANCE_CODE_REGISTRY,
   getAttendanceCodeConfig,
   type AttendanceCodeConfig,
 } from "./attendance-code-registry";
@@ -17,83 +16,63 @@ export interface ResolveCodeOptions {
   isWeekend?: boolean;
 }
 
-/**
- * Resolves an attendance report row into a standardized attendance code.
- *
- * Rules:
- * 1. Holiday: if row.is_holiday is true -> "L"
- * 2. Custom shift symbol override (e.g. "CT", "TS", "Ô")
- * 3. Leave: if row.status === "leave"
- *    - if row.is_leave_paid is true -> "P" (Phép năm hưởng lương)
- *    - else -> "KL" (Nghỉ không lương)
- * 4. Work hours:
- *    - >= 7.0 standard hours -> "X" (1.0 công đủ)
- *    - >= 3.5 standard hours -> "X/2" (0.5 công)
- *    - > 0 standard hours -> "X/2"
- * 5. Present status with punches even if computed hours are pending -> "X"
- * 6. Absent / No show:
- *    - If weekend -> "Ro" (Nghỉ ca / tuần)
- *    - If weekday -> "V" (Vắng)
- * 7. Fallback / No row:
- *    - If weekend -> "Ro"
- *    - Else -> "-" (Chưa có dữ liệu)
- */
-export function resolveDailyAttendanceCode(
-  row?: DailyAttendanceReport | null,
-  options?: ResolveCodeOptions
-): AttendanceCodeConfig {
-  const isWeekend = options?.isWeekend ?? false;
+type CodeResolver = () => AttendanceCodeConfig | undefined;
 
-  if (!row) {
-    if (isWeekend) return getAttendanceCodeConfig("Ro");
-    return getAttendanceCodeConfig("-");
-  }
+function resolveHoursCode(row: DailyAttendanceReport): AttendanceCodeConfig | undefined {
+  const standardHours = row.computed_std_hours || row.std_work_units * 8;
+  if (standardHours >= 7) return getAttendanceCodeConfig("X");
+  if (standardHours > 0) return getAttendanceCodeConfig("X/2");
+  return undefined;
+}
 
-  // 1. Holiday takes precedence
-  if (row.is_holiday) {
-    return getAttendanceCodeConfig("L");
-  }
+function resolveLeaveCode(row: DailyAttendanceReport): AttendanceCodeConfig | undefined {
+  if (row.status !== "leave") return undefined;
+  return getAttendanceCodeConfig(row.is_leave_paid === true ? "P" : "KL");
+}
 
-  // 2. Custom shift symbol override (e.g. "CT", "TS", "Ô")
-  if (row.shift_symbol) {
-    return getAttendanceCodeConfig(row.shift_symbol);
-  }
-
-  // 3. Leave records
-  if (row.status === "leave") {
-    if (row.is_leave_paid === true) {
-      return getAttendanceCodeConfig("P");
-    }
-    return getAttendanceCodeConfig("KL");
-  }
-
-  // 4. Standard Work Hours
-  const stdHours = row.computed_std_hours || row.std_work_units * 8;
-  if (stdHours >= 7.0) {
-    return getAttendanceCodeConfig("X");
-  }
-  if (stdHours >= 3.5) {
-    return getAttendanceCodeConfig("X/2");
-  }
-  if (stdHours > 0) {
-    return getAttendanceCodeConfig("X/2");
-  }
-
-  // 5. Present status with punches even if computed hours are pending
+function resolvePresenceCode(row: DailyAttendanceReport): AttendanceCodeConfig | undefined {
   if (row.status === "present" || (row.actual_punch_in && row.actual_punch_out)) {
     return getAttendanceCodeConfig("X");
   }
+  return undefined;
+}
 
-  // 6. Absent / No show
-  if (row.status === "absent" || row.status === "no_show") {
-    if (isWeekend) return getAttendanceCodeConfig("Ro");
-    return getAttendanceCodeConfig("V");
+function resolveAbsenceCode(
+  row: DailyAttendanceReport,
+  isWeekend: boolean,
+): AttendanceCodeConfig | undefined {
+  if (row.status !== "absent" && row.status !== "no_show") return undefined;
+  return getAttendanceCodeConfig(isWeekend ? "Ro" : "V");
+}
+
+function resolveRowCode(row: DailyAttendanceReport, isWeekend: boolean): AttendanceCodeConfig {
+  const resolvers: CodeResolver[] = [
+    () => row.is_holiday ? getAttendanceCodeConfig("L") : undefined,
+    () => row.shift_symbol ? getAttendanceCodeConfig(row.shift_symbol) : undefined,
+    () => resolveLeaveCode(row),
+    () => resolveHoursCode(row),
+    () => resolvePresenceCode(row),
+    () => resolveAbsenceCode(row, isWeekend),
+    () => isWeekend ? getAttendanceCodeConfig("Ro") : undefined,
+  ];
+
+  for (const resolve of resolvers) {
+    const code = resolve();
+    if (code) return code;
   }
-
-  // 7. Weekend fallback for non-work days
-  if (isWeekend) {
-    return getAttendanceCodeConfig("Ro");
-  }
-
   return getAttendanceCodeConfig("V");
+}
+
+/**
+ * Resolves an attendance report row into a standardized attendance code.
+ * Holidays, custom shift symbols, leave, work hours, presence, and absence
+ * are checked in that order.
+ */
+export function resolveDailyAttendanceCode(
+  row?: DailyAttendanceReport | null,
+  options?: ResolveCodeOptions,
+): AttendanceCodeConfig {
+  const isWeekend = options?.isWeekend ?? false;
+  if (!row) return getAttendanceCodeConfig(isWeekend ? "Ro" : "-");
+  return resolveRowCode(row, isWeekend);
 }

@@ -132,7 +132,7 @@ export function Sidebar({
         </Link>
 
         {/* Mobile close button */}
-        {!!isMobileOpen && !!onMobileClose && (
+        {isMobileOpen && onMobileClose ? (
           <Button
             aria-label="Close navigation"
             className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground xl:hidden"
@@ -143,7 +143,7 @@ export function Sidebar({
           >
             <X className="h-4 w-4" />
           </Button>
-        )}
+        ) : null}
       </div>
 
       {/* ── Navigation Items ── */}
@@ -229,7 +229,7 @@ export function Sidebar({
 
       {/* ── Bottom Section: Settings & Toggle ── */}
       <div className="border-t border-border p-2 space-y-1 shrink-0 bg-card/40">
-        {settings.to && (
+        {settings.to ? (
           <Link
             aria-label={settings.label}
             className={cn(
@@ -252,7 +252,7 @@ export function Sidebar({
             )}
             {!isCollapsed && <span className="truncate">{settings.label}</span>}
           </Link>
-        )}
+        ) : null}
 
         {/* Desktop Collapse Toggle */}
         <Button
@@ -307,7 +307,7 @@ export function Sidebar({
       </aside>
 
       {/* Mobile Drawer (with backdrop) */}
-      {!!isMobileOpen && (
+      {isMobileOpen ? (
         <div
           aria-modal="true"
           className="fixed inset-0 z-50 flex xl:hidden"
@@ -323,15 +323,15 @@ export function Sidebar({
           />
           {/* Drawer content */}
           <div
-            ref={mobileDrawerRef}
             aria-label="Navigation menu"
             className="relative flex w-72 max-w-[80vw] flex-col bg-card border-r border-border shadow-2xl animate-in slide-in-from-left duration-200"
+            ref={mobileDrawerRef}
             tabIndex={-1}
           >
             {navContent}
           </div>
         </div>
-      )}
+      ) : null}
     </>
   );
 }

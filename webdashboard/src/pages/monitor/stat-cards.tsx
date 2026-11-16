@@ -89,7 +89,7 @@ function MetricCard({
         <div className="flex justify-between gap-2"><dt className="text-slate-500 dark:text-slate-400">{t("monitor.threshold", { defaultValue: "Threshold" })}</dt><dd className="text-right font-medium text-slate-700 dark:text-slate-300">{threshold}</dd></div>
         <div className="flex justify-between gap-2"><dt className="text-slate-500 dark:text-slate-400">{t("monitor.trend", { defaultValue: "Trend" })}</dt><dd className="text-right font-medium text-slate-500 dark:text-slate-400">{t("monitor.trend_unavailable", { defaultValue: "Unavailable" })}</dd></div>
       </dl>
-      {metric?.unknown ? <Typography variant="p" className="mt-2 text-xs text-amber-700 dark:text-amber-300">{t("monitor.unknown_metric_explanation", { defaultValue: "The source did not provide a trustworthy value." })}</Typography> : null}
+      {metric?.unknown ? <Typography className="mt-2 text-xs text-amber-700 dark:text-amber-300" variant="p">{t("monitor.unknown_metric_explanation", { defaultValue: "The source did not provide a trustworthy value." })}</Typography> : null}
     </article>
   );
 }
@@ -119,7 +119,7 @@ export function MonitorStatCards({ isLoading, stats, t }: MonitorStatCardsProps)
         <div className="mb-3 flex items-end justify-between gap-3">
           <div>
             <Typography className="text-lg font-bold tracking-tight text-slate-800 dark:text-slate-100" id="monitor-fleet-heading" variant="h4">{t("monitor.worker_fleet", { defaultValue: "Worker fleet & capacity" })}</Typography>
-            <Typography variant="p" className="mt-1 text-xs text-slate-500 dark:text-slate-400">{t("monitor.worker_fleet_description", { defaultValue: "Capacity signals for deciding whether to scale, investigate, or hold." })}</Typography>
+            <Typography className="mt-1 text-xs text-slate-500 dark:text-slate-400" variant="p">{t("monitor.worker_fleet_description", { defaultValue: "Capacity signals for deciding whether to scale, investigate, or hold." })}</Typography>
           </div>
         </div>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
@@ -133,7 +133,7 @@ export function MonitorStatCards({ isLoading, stats, t }: MonitorStatCardsProps)
         <div className="mb-3 flex items-end justify-between gap-3">
           <div>
             <Typography className="text-lg font-bold tracking-tight text-slate-800 dark:text-slate-100" id="monitor-queue-signals-heading" variant="h4">{t("monitor.queue_signals", { defaultValue: "Queue signals" })}</Typography>
-            <Typography variant="p" className="mt-1 text-xs text-slate-500 dark:text-slate-400">{t("monitor.queue_signals_description", { defaultValue: "Measured queue counts; zero means empty, unavailable means unmeasured." })}</Typography>
+            <Typography className="mt-1 text-xs text-slate-500 dark:text-slate-400" variant="p">{t("monitor.queue_signals_description", { defaultValue: "Measured queue counts; zero means empty, unavailable means unmeasured." })}</Typography>
           </div>
         </div>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">

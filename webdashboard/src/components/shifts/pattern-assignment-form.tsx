@@ -146,9 +146,9 @@ export function PatternAssignmentForm({
                       : 'bg-white dark:bg-slate-700 text-slate-500 dark:text-slate-350 border-slate-200 dark:border-slate-650 hover:bg-slate-50 dark:hover:bg-slate-600'
                   }`}
                   onClick={() => { setIsForever(!isForever); }}
+                  size="sm"
                   title={isForever ? t("common.definite") : t("common.indefinite")}
                   type="button"
-                  size="sm"
                   variant="ghost"
                 >
                   ∞

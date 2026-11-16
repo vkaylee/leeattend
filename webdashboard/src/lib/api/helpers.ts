@@ -86,69 +86,83 @@ export interface ApiFetchOptions extends RequestInit {
  * @param url - API endpoint URL
  * @param options - Fetch options with optional timeout (default: 10 seconds)
  */
+const PUBLIC_AUTH_ENDPOINT = /\/auth\/(?:login|register|refresh|logout|forgot-password|reset-password)(?:$|[/?])/;
+
+function isPublicAuthEndpoint(url: string): boolean {
+  return PUBLIC_AUTH_ENDPOINT.test(url);
+}
+
+async function refreshExpiringToken(token: string | null, isPublicEndpoint: boolean): Promise<void> {
+  if (!token || isPublicEndpoint || !isAccessTokenExpiring(token)) return;
+  const refreshed = await forceRefreshToken();
+  if (!refreshed) handleSessionExpired();
+}
+
+function applyHeaderEntries(headers: Headers, entries: Iterable<[string, string]>): void {
+  for (const [key, value] of entries) {
+    if (value) headers.set(key, value);
+  }
+}
+
+function createHeaders(customHeaders?: HeadersInit): Headers {
+  const headers = new Headers();
+  applyHeaderEntries(headers, Object.entries(getHeaders()));
+  if (!customHeaders) return headers;
+
+  if (customHeaders instanceof Headers) {
+    customHeaders.forEach((value, key) => {
+      headers.set(key, value);
+    });
+  } else if (Array.isArray(customHeaders)) {
+    customHeaders.forEach(([key, value]) => {
+      headers.set(key, value);
+    });
+  } else {
+    applyHeaderEntries(headers, Object.entries(customHeaders));
+  }
+  return headers;
+}
+
+function prepareFetchOptions(options: ApiFetchOptions, headers: Headers): RequestInit {
+  const { timeout: _timeout, ...fetchOptions } = options;
+  if (fetchOptions.body instanceof FormData) headers.delete("Content-Type");
+  return { ...fetchOptions, headers };
+}
+
 export async function apiFetch(
   url: string,
   options: ApiFetchOptions = {},
 ): Promise<Response> {
   const fullUrl = getFullUrl(url);
-  const isPublicAuthEndpoint = /\/auth\/(?:login|register|refresh|logout|forgot-password|reset-password)(?:$|[/?])/.test(fullUrl);
-  const token = getAccessToken();
-
-  if (token && !isPublicAuthEndpoint && isAccessTokenExpiring(token)) {
-    const refreshed = await forceRefreshToken();
-    if (!refreshed) handleSessionExpired();
-  }
+  const isPublicEndpoint = isPublicAuthEndpoint(fullUrl);
+  await refreshExpiringToken(getAccessToken(), isPublicEndpoint);
 
   const controller = new AbortController();
   const timeoutMs = options.timeout ?? TIMEOUT.DEFAULT;
-  const id = setTimeout(() => { controller.abort(); }, timeoutMs);
-  const headers = new Headers();
-
-  const baseHeaders = getHeaders();
-  Object.entries(baseHeaders).forEach(([k, v]) => {
-    if (v) headers.set(k, v);
-  });
-
-  if (options.headers) {
-    if (options.headers instanceof Headers) {
-      options.headers.forEach((v, k) => { headers.set(k, v); });
-    } else if (Array.isArray(options.headers)) {
-      options.headers.forEach(([k, v]) => { headers.set(k, v); });
-    } else {
-      Object.entries(options.headers).forEach(([k, v]) => {
-        if (v) headers.set(k, v);
-      });
-    }
-  }
-
-  const { timeout: _timeout, ...fetchOptions } = options;
-
-  if (fetchOptions.body instanceof FormData) {
-    headers.delete("Content-Type");
-  }
+  const timeoutId = setTimeout(() => {
+    controller.abort();
+  }, timeoutMs);
+  const headers = createHeaders(options.headers);
+  const fetchOptions = prepareFetchOptions(options, headers);
 
   try {
     const response = await fetch(fullUrl, {
       ...fetchOptions,
-      headers,
       credentials: "include",
       signal: controller.signal,
     });
-    clearTimeout(id);
+    clearTimeout(timeoutId);
 
-    if (response.status === 401 && !isPublicAuthEndpoint) {
-      return await handleUnauthorized({
-        fullUrl,
-        fetchOptions,
-        headers,
-        controller,
-        timeoutId: id,
-      });
-    }
-
-    return response;
+    if (response.status !== 401 || isPublicEndpoint) return response;
+    return await handleUnauthorized({
+      fullUrl,
+      fetchOptions,
+      headers,
+      controller,
+      timeoutId,
+    });
   } catch (error) {
-    clearTimeout(id);
+    clearTimeout(timeoutId);
     throw error;
   }
 }

@@ -78,7 +78,6 @@ const renderWithProviders = (component: React.ReactElement) => {
     );
 };
 
-const rate = (value: string | null) => value;
 
 type EffectivenessData = dashboardHooks.RecruitmentEffectivenessAnalytics;
 

@@ -11,8 +11,8 @@ import { useTranslation } from "react-i18next";
 import type { Employee, LeaveRequest, LeaveType } from "@/lib/api/types";
 
 import Button from "@/components/ui/button";
-import { Typography } from "@/components/ui/typography";
 import Sheet from "@/components/ui/sheet";
+import { Typography } from "@/components/ui/typography";
 import { cn } from "@/lib/utils";
 
 export interface LeaveDetailSheetProps {
@@ -39,7 +39,7 @@ export function LeaveDetailSheet({
   if (!request) return null;
 
   const leaveType = leaveTypes.find((lt) => lt.id === request.leave_type_id);
-  const typeName = leaveType?.name || request.leave_type_id;
+  const typeName = leaveType?.name === "" ? request.leave_type_id : leaveType?.name ?? request.leave_type_id;
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -160,7 +160,7 @@ export function LeaveDetailSheet({
             <FileText className="h-4 w-4 text-primary" />
             <span>{t("common.reason", "Lý do xin nghỉ")}</span>
           </div>
-          <Typography variant="p" className="text-sm text-foreground/90 whitespace-pre-wrap rounded-lg bg-muted/30 p-3 leading-relaxed">
+          <Typography className="text-sm text-foreground/90 whitespace-pre-wrap rounded-lg bg-muted/30 p-3 leading-relaxed" variant="p">
             {request.reason || t("common.no_notes", "Không có ghi chú")}
           </Typography>
         </div>

@@ -2,7 +2,7 @@ import { Clock } from "lucide-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
 
-import TableEmptyRow from "@/components/ui/table-empty-row";
+import { TableEmptyRow } from "@/components/ui/table-empty-row";
 
 interface AdjustmentsTableEmptyProps {
   colSpan: number;

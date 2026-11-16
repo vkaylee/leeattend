@@ -24,7 +24,7 @@ import {
   TableHead,
   TableCell,
 } from "@/components/ui/table";
-import TableEmptyRow from "@/components/ui/table-empty-row";
+import { TableEmptyRow } from "@/components/ui/table-empty-row";
 import { useConfirm } from "@/hooks/use-confirm";
 import { useOrganizationMembers, useOrganizationRoles } from "@/hooks/use-organization";
 import { useMyPermissions } from "@/hooks/use-permissions";
@@ -32,21 +32,7 @@ import { OrganizationRole, OrganizationMember } from "@/lib/api";
 import { logError } from "@/lib/logger";
 import { cn, maskEmail } from "@/lib/utils";
 
-export function formatRoleName(
-  name: string,
-  t: (key: string, options?: { defaultValue?: string }) => string,
-): string {
-  const roleKey = name.toLowerCase().replace(/[\s-]+/g, "_");
-  const knownRoles: Record<string, string> = {
-    admin: t("roles.admin", { defaultValue: "Quản trị viên" }),
-    owner: t("roles.owner", { defaultValue: "Chủ sở hữu" }),
-    hr_manager: t("roles.hr_manager", { defaultValue: "Quản lý nhân sự" }),
-    shift_manager: t("roles.shift_manager", { defaultValue: "Quản lý ca" }),
-    team_lead: t("roles.team_lead", { defaultValue: "Trưởng nhóm" }),
-    employee: t("roles.employee", { defaultValue: "Nhân viên" }),
-  };
-  return knownRoles[roleKey] ?? name;
-}
+import { formatRoleName } from "./member-utils";
 
 /**
  * MemberMobileCard — mobile card for organization members.

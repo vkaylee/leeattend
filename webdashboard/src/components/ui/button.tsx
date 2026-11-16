@@ -73,7 +73,7 @@ const Button = memo(
           className,
         )}
         data-component="Button"
-        disabled={Boolean(disabled || loading)}
+        disabled={disabled ? true : loading}
         ref={ref}
         type={type}
         {...rest}

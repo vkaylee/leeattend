@@ -29,8 +29,7 @@ vi.mock('react-i18next', () => ({
 
 describe("EmploymentPhaseManager", () => {
   let queryClient: QueryClient;
-  const mockWsId = "ws-123";
-  const mockPhases = [
+    const mockPhases = [
     { id: "1", name: "Thử việc 2 tháng", phase_type: "probation", default_duration_days: 60, is_active: true },
   ];
 

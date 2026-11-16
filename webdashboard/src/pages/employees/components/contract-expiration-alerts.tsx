@@ -14,8 +14,8 @@ interface ContractExpirationAlertsProps {
 
 export function ContractExpirationAlerts({
   employees,
-  onFilterProbation,
-  onFilterRenewals,
+  onFilterProbation: _onFilterProbation,
+  onFilterRenewals: _onFilterRenewals,
 }: ContractExpirationAlertsProps) {
   const { t } = useTranslation();
   const [isExpanded, setIsExpanded] = useState(false);
@@ -46,13 +46,13 @@ export function ContractExpirationAlerts({
             <CalendarClock size={20} />
           </div>
           <div>
-            <Typography variant="h4" className="text-sm font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
+            <Typography className="text-sm font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2" variant="h4">
               <span>{t("employees.alerts.title")}</span>
               <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
                 {activeCount} {t("employees.alerts.active_count")}
               </span>
             </Typography>
-            <Typography variant="p" className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+            <Typography className="text-xs text-slate-500 dark:text-slate-400 mt-0.5" variant="p">
               {t("employees.alerts.subtitle")}
             </Typography>
           </div>
@@ -93,7 +93,7 @@ export function ContractExpirationAlerts({
         </div>
       </div>
 
-      {!!isExpanded && (
+      {isExpanded ? (
         <div className="px-5 py-3 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/20 text-xs space-y-2 animate-in slide-in-from-top-1 duration-200">
           <div className="text-slate-600 dark:text-slate-300 flex items-center gap-2">
             <span className="font-semibold">
@@ -123,7 +123,7 @@ export function ContractExpirationAlerts({
             </div>
           )}
         </div>
-      )}
+      ) : null}
     </div>
   );
 }

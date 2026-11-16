@@ -1,13 +1,10 @@
-import { createContext, useContext, useEffect, type ReactNode } from "react";
+import { type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 
 import { Typography } from "@/components/ui/typography";
 
-interface DashboardChartErrorContextValue {
-  reportError: (hasError: boolean) => void;
-}
-
-const DashboardChartErrorContext = createContext<DashboardChartErrorContextValue | null>(null);
+import { DashboardChartErrorContext } from "./dashboard-chart-context";
+import { useDashboardChartError } from "./use-dashboard-chart-error";
 
 interface DashboardChartErrorProviderProps {
   children: ReactNode;
@@ -20,17 +17,6 @@ export function DashboardChartErrorProvider({ children, onErrorChange }: Dashboa
       {children}
     </DashboardChartErrorContext.Provider>
   );
-}
-
-export function useDashboardChartError(hasError: boolean) {
-  const context = useContext(DashboardChartErrorContext);
-
-  useEffect(() => {
-    context?.reportError(hasError);
-    return () => {
-      context?.reportError(false);
-    };
-  }, [context, hasError]);
 }
 
 interface DashboardChartErrorProps {

@@ -11,7 +11,7 @@ import { WorkingConditionsFilters } from "@/components/features/personnel/workin
 import { WorkingConditionsTable } from "@/components/features/personnel/working-conditions-table";
 import Button from "@/components/ui/button";
 import { PageContainer } from "@/components/ui/page-container";
-import PageHeader from "@/components/ui/page-header";
+import { PageHeader } from "@/components/ui/page-header";
 import { useToast } from "@/components/ui/toast";
 import { Typography } from "@/components/ui/typography";
 import { useConfirm } from "@/hooks/use-confirm";
@@ -82,7 +82,8 @@ export default function PersonnelWorkingConditionsPage() {
     return conditions.filter((c) => {
       const q = search.toLowerCase();
       const def = typeDefs.find((d) => d.code === c.type.toUpperCase());
-      const displayName = def?.name_i18n[currentLang] || def?.name_i18n.en || c.type;
+      const currentDisplayName = def?.name_i18n[currentLang] ?? "";
+      const displayName = currentDisplayName === "" ? def?.name_i18n.en ?? c.type : currentDisplayName;
 
       const matchSearch =
         !search ||
@@ -251,12 +252,12 @@ export default function PersonnelWorkingConditionsPage() {
       </div>
 
       {/* ── Dual-Mode Working Condition Form Modal ─────────────────── */}
-      {!!isModalOpen && (
+      {isModalOpen ? (
         <WorkingConditionFormModal isOpen={isModalOpen}
         onClose={() => {
           setIsModalOpen(false);
         }}  />
-      )}
+      ) : null}
 
       <ConfirmationDialog />
     </PageContainer>

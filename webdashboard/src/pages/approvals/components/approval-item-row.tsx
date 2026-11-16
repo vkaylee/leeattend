@@ -170,12 +170,12 @@ export function ApprovalItemRow({
             </span>
           </div>
 
-          <Typography variant="p" className="text-xs text-slate-600 dark:text-slate-400 font-medium truncate">
+          <Typography className="text-xs text-slate-600 dark:text-slate-400 font-medium truncate" variant="p">
             {item.subtitle}
           </Typography>
 
           {!!item.details.reason && (
-            <Typography variant="p" className="text-xs text-slate-500 dark:text-slate-500 italic line-clamp-1">
+            <Typography className="text-xs text-slate-500 dark:text-slate-500 italic line-clamp-1" variant="p">
               &quot;{item.details.reason}&quot;
             </Typography>
           )}
@@ -185,7 +185,7 @@ export function ApprovalItemRow({
       {/* Right: Date, Impact Badge & Quick Inline Actions */}
       <div className="flex items-center justify-between sm:justify-end gap-3 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-100 dark:border-slate-800">
         <div className="text-left sm:text-right space-y-0.5">
-          <Typography variant="p" className="text-xs font-semibold text-slate-800 dark:text-slate-200">
+          <Typography className="text-xs font-semibold text-slate-800 dark:text-slate-200" variant="p">
             {item.targetDate}
           </Typography>
           {!!item.impact && item.impact.colleaguesAwayCount > 0 && (

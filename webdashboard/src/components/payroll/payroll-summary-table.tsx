@@ -16,8 +16,8 @@ import { useTranslation } from "react-i18next";
 
 import PaginationControls from "@/components/common/pagination-controls";
 import ResponsiveTable, { type EditableCellValue } from "@/components/ui/responsive-table";
-import { useTableDensity } from "@/components/ui/table-density-toggle";
 import { useToast } from "@/components/ui/toast";
+import { useTableDensity } from "@/components/ui/use-table-density";
 import { useCurrency } from "@/hooks/use-currency";
 import { useMyPermissions } from "@/hooks/use-permissions";
 import { Employee, Payslip } from "@/lib/api/types";
@@ -329,7 +329,7 @@ export default function PayrollSummaryTable({
         </div>
       ) : (
         <>
-          {!!isLocked && (
+          {isLocked ? (
             <div className="mx-6 my-2 px-4 py-2.5 rounded-2xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-between text-xs text-rose-700 dark:text-rose-300">
               <div className="flex items-center gap-2">
                 <Lock className="w-4 h-4 text-rose-600 dark:text-rose-400 shrink-0" />
@@ -342,7 +342,7 @@ export default function PayrollSummaryTable({
                 </span>
               )}
             </div>
-          )}
+          ) : null}
           <SelectionBanner 
             filteredCount={filteredEmployees.length}
             isAllFilteredSelected={isAllFilteredSelected}

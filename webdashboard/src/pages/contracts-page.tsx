@@ -13,7 +13,7 @@ import { ContractsTable } from "@/components/features/employees/contracts-table"
 import Button from "@/components/ui/button";
 import Modal from "@/components/ui/modal";
 import { PageContainer } from "@/components/ui/page-container";
-import PageHeader from "@/components/ui/page-header";
+import { PageHeader } from "@/components/ui/page-header";
 import { useToast } from "@/components/ui/toast";
 import { useConfirm } from "@/hooks/use-confirm";
 import { deleteEmployeeContract, fetchContracts } from "@/lib/api/contracts";

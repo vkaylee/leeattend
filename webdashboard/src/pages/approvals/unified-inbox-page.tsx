@@ -167,7 +167,7 @@ export default function UnifiedInboxPage() {
               </span>
             )}
           </div>
-          <Typography variant="p" className="text-xs text-slate-500 dark:text-slate-400">
+          <Typography className="text-xs text-slate-500 dark:text-slate-400" variant="p">
             {t(
               "approvals.inbox.subtitle",
               "Quản lý và phê duyệt tập trung các yêu cầu Nghỉ phép, Tăng ca, Giải trình công và Đổi ca"
@@ -277,9 +277,9 @@ export default function UnifiedInboxPage() {
                 "Tìm kiếm nhân sự, lý do..."
               )}
               type="text"
-              value={filter.searchQuery || ""}
+              value={filter.searchQuery ?? ""}
             />
-            {!!filter.searchQuery && (
+            {filter.searchQuery ? (
               <Button
                 aria-label={t("common.clear", "Xóa tìm kiếm")}
                 className="absolute right-2 top-1/2 -translate-y-1/2 h-5 w-5 p-0 text-slate-400 hover:text-slate-600 rounded-full"
@@ -289,7 +289,7 @@ export default function UnifiedInboxPage() {
               >
                 <X className="h-3.5 w-3.5" />
               </Button>
-            )}
+            ) : null}
           </div>
         </div>
       </div>

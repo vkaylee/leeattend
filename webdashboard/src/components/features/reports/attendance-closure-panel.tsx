@@ -102,24 +102,24 @@ export default function AttendanceClosurePanel({ employerId, month, year }: Atte
           <CheckCircle2 aria-hidden="true" size={16} />
           {t(isClosed ? "closure.badge.closed" : "closure.badge.open")}
         </div>
-        {payrollLocked && <p className="text-sm text-amber-700 dark:text-amber-300" role="status">{t("closure.errors.locked_period")}</p>}
+        {!!payrollLocked && <p className="text-sm text-amber-700 dark:text-amber-300" role="status">{t("closure.errors.locked_period")}</p>}
       </div>
-      {isClosed && (
+      {!!isClosed && (
         <div className="grid gap-3 border-b border-slate-100 p-5 text-sm dark:border-slate-800 sm:grid-cols-3" data-testid="closure-evidence">
           <span>{t("closure.evidence.number")}: {data.closure_number ?? "—"}</span>
           <span>{t("closure.evidence.days")}: {data.day_count ?? "—"}</span>
           <span className="truncate" title={data.snapshot_hash ?? undefined}>{t("closure.evidence.hash")}: {data.snapshot_hash ?? "—"}</span>
         </div>
       )}
-      {(canClose || canReopen) && (
+      {!!(canClose || canReopen) && (
         <div className="space-y-4 p-5">
           <label className="block text-sm font-medium text-slate-700 dark:text-slate-200" htmlFor="closure-reason">{t("closure.reason")}</label>
-          <textarea aria-describedby="closure-reason-hint" className="min-h-20 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none transition focus-visible:ring-2 focus-visible:ring-primary-500 dark:border-slate-700 dark:bg-slate-950" id="closure-reason" maxLength={2000} onChange={(event) => setReason(event.target.value)} placeholder={t("closure.reason_placeholder")} value={reason} />
+          <textarea aria-describedby="closure-reason-hint" className="min-h-20 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none transition focus-visible:ring-2 focus-visible:ring-primary-500 dark:border-slate-700 dark:bg-slate-950" id="closure-reason" maxLength={2000} onChange={(event) => { setReason(event.target.value); }} placeholder={t("closure.reason_placeholder")} value={reason} />
           <p className="text-xs text-slate-500 dark:text-slate-400" id="closure-reason-hint">{t("closure.reason_hint")}</p>
-          {(actionError || error) && <p className="text-sm font-medium text-rose-700 dark:text-rose-300" role="alert">{t(actionError ?? getErrorKey(error))}</p>}
+          {!!(actionError || error) && <p className="text-sm font-medium text-rose-700 dark:text-rose-300" role="alert">{t(actionError ?? getErrorKey(error))}</p>}
           <div className="flex flex-wrap gap-3">
-            {canClose && <Button loading={isClosing} onClick={() => void runAction("close")} disabled={isMutating}>{t("closure.actions.close")}</Button>}
-            {canReopen && <Button loading={isReopening} onClick={() => void runAction("reopen")} disabled={isMutating} variant="outline">{t("closure.actions.reopen")}</Button>}
+            {!!canClose && <Button disabled={isMutating} loading={isClosing} onClick={() => void runAction("close")}>{t("closure.actions.close")}</Button>}
+            {!!canReopen && <Button disabled={isMutating} loading={isReopening} onClick={() => void runAction("reopen")} variant="outline">{t("closure.actions.reopen")}</Button>}
           </div>
         </div>
       )}

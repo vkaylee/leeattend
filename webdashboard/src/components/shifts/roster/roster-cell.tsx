@@ -93,7 +93,7 @@ export function RosterCellContent({
   const { t } = useTranslation();
   return (
     <div className="py-2.5 px-1 min-h-[44px] flex flex-col justify-center items-center gap-1">
-      <ShiftContent hasShift={hasShift} lifecycleState={lifecycleState} shifts={shifts} workingSchedules={workingSchedules} stateLabel={t(`scheduleLifecycle.states.${lifecycleState}`)} />
+      <ShiftContent hasShift={hasShift} lifecycleState={lifecycleState} shifts={shifts} stateLabel={t(`scheduleLifecycle.states.${lifecycleState}`)} workingSchedules={workingSchedules} />
 
       <SourceIndicator source={highestSource} />
 
@@ -104,10 +104,10 @@ export function RosterCellContent({
         highestSource={highestSource}
         holidayName={holidayName}
         isHoliday={isHoliday}
+        lifecycleState={lifecycleState}
         shifts={shifts}
         status={status}
         workingSchedules={workingSchedules}
-        lifecycleState={lifecycleState}
       />
     </div>
   );

@@ -58,7 +58,7 @@ export function SettingsRow({
       tabIndex={isClickable ? 0 : undefined}
     >
       <div className="flex min-w-0 items-center gap-3.5 flex-1">
-        {!!icon && (
+        {icon ? (
           <div
             className={cn(
               "flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-primary-600 dark:text-primary-400",
@@ -67,7 +67,7 @@ export function SettingsRow({
           >
             {icon}
           </div>
-        )}
+        ) : null}
         <div className="min-w-0 flex-1">
           <div
             className={cn(
@@ -79,20 +79,20 @@ export function SettingsRow({
           >
             {label}
           </div>
-          {!!description && (
+          {description ? (
             <div className="mt-0.5 text-[11px] leading-normal text-slate-400 dark:text-slate-500">
               {description}
             </div>
-          )}
+          ) : null}
         </div>
       </div>
 
-      {!!(control || disclosure) && (
+      {(control || disclosure) ? (
         <div className="flex shrink-0 items-center gap-2">
           {control}
-          {!!disclosure && <ChevronRight className="h-4 w-4 text-slate-400 dark:text-slate-500" />}
+          {disclosure ? <ChevronRight className="h-4 w-4 text-slate-400 dark:text-slate-500" /> : null}
         </div>
-      )}
+      ) : null}
     </div>
   );
 

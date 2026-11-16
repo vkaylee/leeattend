@@ -7,7 +7,7 @@ import { PolicyAssignmentsSection } from "@/components/features/attendance/polic
 import Button from "@/components/ui/button";
 import { CONTROL_FOCUS_RING } from "@/components/ui/control-styles";
 import { PageContainer } from "@/components/ui/page-container";
-import PageHeader from "@/components/ui/page-header";
+import { PageHeader } from "@/components/ui/page-header";
 import { SearchInput } from "@/components/ui/search-input";
 
 export default function AttendancePolicyAssignmentsPage() {

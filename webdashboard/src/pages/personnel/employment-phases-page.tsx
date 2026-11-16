@@ -13,12 +13,12 @@ import AssignMilestoneModal from "@/components/features/employees/assign-milesto
 import UpdatePhaseStatusModal from "@/components/features/employees/update-phase-status-modal";
 import EmploymentPhaseManager from "@/components/people/employment-phase-manager";
 import Button from "@/components/ui/button";
-import { Typography } from "@/components/ui/typography";
 import { Combobox } from "@/components/ui/combobox";
 import { PageContainer } from "@/components/ui/page-container";
-import PageHeader from "@/components/ui/page-header";
+import { PageHeader } from "@/components/ui/page-header";
 import ResponsiveTable from "@/components/ui/responsive-table";
 import StatusBadge from "@/components/ui/status-badge";
+import { Typography } from "@/components/ui/typography";
 import { fetchEmployeeContracts } from "@/lib/api/contracts";
 import { fetchEmploymentPhaseAssignments, fetchEmploymentPhases, type EmploymentPhaseAssignment } from "@/lib/api/employee-phases";
 import { fetchEmployees, fetchEmployeeEmployments } from "@/lib/api/employees";

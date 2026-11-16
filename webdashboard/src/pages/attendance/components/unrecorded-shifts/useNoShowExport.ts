@@ -10,7 +10,7 @@ import {
 import { exportNoShowToExcel, type NoShowRow } from "@/lib/excel-no-show";
 
 import { computeNoShowRows } from "../../hooks/use-no-show-rows";
-import { zoneLabel } from "./utils";
+import { zoneLabel } from "./utils-helpers";
 
 interface UseNoShowExportParams { employeeMap: Map<string, { department_name: string; employee_id_number: string }>;
 fetchNextPage: () => Promise<unknown>;

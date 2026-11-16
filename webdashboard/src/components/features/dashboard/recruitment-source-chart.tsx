@@ -58,8 +58,6 @@ const SOURCE_TYPE_COLORS: Record<string, string> = {
 };
 
 const HIRES_TREND_COLOR = "#6366f1";
-const RETENTION_COLOR = "#10b981";
-const COST_COLOR = "#f59e0b";
 
 function toISODate(d: Date): string {
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
@@ -121,12 +119,6 @@ function WarningStrip({ warnings, t }: { warnings: RecruitmentEffectivenessAnaly
     return (
         <div aria-live="polite" className="mb-5 space-y-2">
             {warnings.map((w) => {
-                const labelKey =
-                    w.code === "LOW_DENOMINATOR"
-                        ? "dashboard.hr.effective_warning_low_sample"
-                        : w.code === "NO_DATA_SOURCE"
-                            ? "dashboard.hr.effective_warning_no_data_source"
-                            : "dashboard.hr.effective_warning_incomplete_data";
                 const label = w.message.startsWith("dashboard.") ? t(w.message) : w.message;
                 return (
                     <div
@@ -168,7 +160,7 @@ function ComparisonBadge({ data, t }: { data: RecruitmentEffectivenessAnalytics;
 function KpiHeader({ data, t }: { data: RecruitmentEffectivenessAnalytics; t: TranslateFn }) {
     const { overview } = data;
     const retention = overview.retention_90d != null ? `${overview.retention_90d}%` : t("dashboard.hr.rate_no_value");
-    const avgCost = overview.average_cost_per_hire != null ? overview.average_cost_per_hire : t("dashboard.hr.rate_no_value");
+    const avgCost = overview.average_cost_per_hire ?? t("dashboard.hr.rate_no_value");
     return (
         <div className="mb-6">
             <div className="flex flex-wrap gap-3">
@@ -248,18 +240,6 @@ function ChartHeader({
         { label: t("dashboard.hr.effective_source_referral"), value: "referral" },
         { label: t("dashboard.hr.effective_source_agency"), value: "agency" },
     ];
-
-    const toggleValue = (
-        current: string[],
-        value: string,
-        setter: (v: string[]) => void,
-    ) => {
-        if (current.includes(value)) {
-            setter(current.filter((v) => v !== value));
-        } else {
-            setter([...current, value]);
-        }
-    };
 
     return (
         <div className="flex flex-col gap-4 mb-6">

@@ -1,22 +1,22 @@
 import { CalendarDays, GitCompareArrows, RotateCcw } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import Button from "@/components/ui/button";
+import { FilterPanel } from "@/components/ui/filter-panel";
+import { FilterTrigger } from "@/components/ui/filter-trigger";
 import { Typography } from "@/components/ui/typography";
-import FilterPanel from "@/components/ui/filter-panel";
-import FilterTrigger from "@/components/ui/filter-trigger";
 import {
   canonicalizeDashboardMetricsFilters,
   dashboardComparisons,
   dashboardPeriods,
   parseDashboardComparison,
-  parseDashboardMetricsFilters,
   parseDashboardPeriod,
   serializeDashboardMetricsFilters,
   type DashboardMetricsFilters,
 } from "@/hooks/dashboard-metrics-filters";
 import { useDepartments } from "@/hooks/use-departments";
+
 
 const periodLabels: Record<(typeof dashboardPeriods)[number], string> = {
   today: "dashboard.filters.period.today",
@@ -35,11 +35,6 @@ const comparisonLabels: Record<(typeof dashboardComparisons)[number], string> = 
   budget: "dashboard.filters.comparison.budget",
   benchmark: "dashboard.filters.comparison.benchmark",
 };
-
-function initialFilters(): DashboardMetricsFilters {
-  if (typeof window === "undefined") return canonicalizeDashboardMetricsFilters({});
-  return parseDashboardMetricsFilters(window.location.search);
-}
 
 interface DashboardFilterBarProps {
   filters: DashboardMetricsFilters;
@@ -151,8 +146,8 @@ export function DashboardFilterBar({ filters, onChange }: DashboardFilterBarProp
         ) : null}
       </div>
       <div className="flex flex-col gap-2 border-t border-slate-100 pt-3 dark:border-slate-800 sm:flex-row sm:items-center sm:justify-between">
-        <Typography variant="p" aria-live="polite" className="text-xs text-slate-500 dark:text-slate-400">{t("dashboard.filters.timezone_hint")}</Typography>
-        {dateError ? <Typography variant="p" className="text-xs font-medium text-rose-600 dark:text-rose-400" id="dashboard-custom-date-error" role="alert">{dateError}</Typography> : null}
+        <Typography aria-live="polite" className="text-xs text-slate-500 dark:text-slate-400" variant="p">{t("dashboard.filters.timezone_hint")}</Typography>
+        {dateError ? <Typography className="text-xs font-medium text-rose-600 dark:text-rose-400" id="dashboard-custom-date-error" role="alert" variant="p">{dateError}</Typography> : null}
         <div className="flex justify-end gap-2">
           <Button aria-label={t("dashboard.filters.reset")} className="gap-1.5" disabled={!hasChanges} onClick={reset} type="button" variant="ghost"><RotateCcw className="h-3.5 w-3.5" />{t("dashboard.filters.reset")}</Button>
           <Button disabled={!hasChanges || !!dateError} onClick={apply} type="button" variant="primary">{t("dashboard.filters.apply")}</Button>
@@ -161,15 +156,3 @@ export function DashboardFilterBar({ filters, onChange }: DashboardFilterBarProp
     </section>
   );
 }
-
-export function useDashboardFilterState() {
-  const [filters, setFilters] = useState<DashboardMetricsFilters>(initialFilters);
-  useEffect(() => {
-    const handlePopState = () => { setFilters(initialFilters()); };
-    window.addEventListener("popstate", handlePopState);
-    return () => { window.removeEventListener("popstate", handlePopState); };
-  }, []);
-  return [filters, setFilters] as const;
-}
-
-export { initialFilters };

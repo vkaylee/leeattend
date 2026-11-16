@@ -1,5 +1,5 @@
 import { SlidersHorizontal, X } from "lucide-react";
-import React, { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 
@@ -9,108 +9,79 @@ import { useFocusTrap } from "@/hooks/use-focus-trap";
 import { useScrollLock } from "@/hooks/use-scroll-lock";
 import { cn } from "@/lib/utils";
 
-// ── Types ──────────────────────────────────────────────────────────
-
 export interface ResponsiveToolbarProps {
-  /** Action buttons (export, add, etc.) — rendered inline on desktop, icon-only strip on mobile */
-  actions?: React.ReactNode;
-  /** Breakpoint to switch. Default: "lg" */
+  actions?: ReactNode;
   breakpoint?: "md" | "lg" | "xl";
-  /** Filter controls — inline on desktop, bottom sheet on mobile */
-  children: React.ReactNode;
-  /** Additional class for the desktop toolbar wrapper */
+  children: ReactNode;
   className?: string;
-  /** Unified desktop content. Prefer this over separate searchSlot and children layout. */
-  desktopContent?: React.ReactNode;
-  /** Number of active filters (for badge on mobile trigger button). If > 0, a badge is shown. */
+  desktopContent?: ReactNode;
   filterCount?: number;
-  /** Hide the inline desktop filter group while retaining the mobile sheet. */
   mobileOnly?: boolean;
-  /** Search input slot — legacy desktop slot; use desktopContent for new callers. */
-  searchSlot?: React.ReactNode;
+  searchSlot?: ReactNode;
 }
 
-// ── Breakpoint Visibility Map ──────────────────────────────────────
+type Breakpoint = NonNullable<ResponsiveToolbarProps["breakpoint"]>;
+interface VisibilityClasses {
+  desktop: string;
+  mobile: string;
+}
 
-const BP: Record<NonNullable<ResponsiveToolbarProps["breakpoint"]>, { desktop: string; mobile: string }> = {
+const BP: Record<Breakpoint, VisibilityClasses> = {
   md: { desktop: "hidden md:flex", mobile: "md:hidden" },
   lg: { desktop: "hidden lg:flex", mobile: "lg:hidden" },
   xl: { desktop: "hidden xl:flex", mobile: "xl:hidden" },
 };
 
-// ── Internal: Bottom Sheet State (reused pattern from bottom-drawer.tsx) ──
-
 function useBottomSheetState(isOpen: boolean, onClose: () => void) {
   const [isVisible, setIsVisible] = useState(false);
   const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  if (isOpen && !isVisible) {
-    setIsVisible(true);
-  }
+  if (isOpen && !isVisible) setIsVisible(true);
 
   useEffect(() => {
     if (isOpen) {
-      if (closeTimerRef.current) {
-        clearTimeout(closeTimerRef.current);
-        closeTimerRef.current = null;
-      }
-      const handleKeyDown = (e: KeyboardEvent) => {
-        if (e.key === "Escape") onClose();
-      };
+      if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
+      const handleKeyDown = (event: KeyboardEvent) => { if (event.key === "Escape") onClose(); };
       window.addEventListener("keydown", handleKeyDown);
-      return () => {
-        window.removeEventListener("keydown", handleKeyDown);
-      };
+      return () => { window.removeEventListener("keydown", handleKeyDown); };
     }
-
-    closeTimerRef.current = setTimeout(() => {
-      setIsVisible(false);
-      closeTimerRef.current = null;
-    }, 300);
-    return () => {
-      if (closeTimerRef.current) {
-        clearTimeout(closeTimerRef.current);
-        closeTimerRef.current = null;
-      }
-    };
+    closeTimerRef.current = setTimeout(() => { setIsVisible(false); closeTimerRef.current = null; }, 300);
+    return () => { if (closeTimerRef.current) clearTimeout(closeTimerRef.current); };
   }, [isOpen, onClose]);
 
   return isVisible;
 }
 
-// ── Internal: Filter Bottom Sheet (mobile) ─────────────────────────
+function SheetHeader({ filterCount, onClose }: { filterCount: number; onClose: () => void }) {
+  const { t } = useTranslation();
+  return <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4 dark:border-slate-800"><Typography className="font-bold" variant="h2">{t("common.filters.title", "Filters")}{filterCount > 0 ? ` (${filterCount})` : ""}</Typography><Button aria-label={t("common.close", "Close")} onClick={onClose} size="icon" variant="ghost"><X className="h-4 w-4" /></Button></div>;
+}
 
-function FilterSheet({
-  isOpen,
-  onClose,
-  children,
-  filterCount,
-}: {
-  children: React.ReactNode;
+interface FilterSheetProps {
+  children: ReactNode;
   filterCount: number;
   isOpen: boolean;
   onClose: () => void;
-}) {
+}
+
+function FilterSheet({ children, filterCount, isOpen, onClose }: FilterSheetProps) {
   const { t } = useTranslation();
   const containerRef = useFocusTrap(isOpen);
   const isVisible = useBottomSheetState(isOpen, onClose);
   useScrollLock(isOpen);
-
   if (!isVisible && !isOpen) return null;
 
   return createPortal(
     <div className="fixed inset-0 z-[1000] flex items-end">
-      {/* Backdrop */}
-      {/* eslint-disable-next-line jsx-a11y/no-static-element-interactions, jsx-a11y/click-events-have-key-events */}
-      <div
+      <button
+        aria-label={t("common.close", "Close")}
         className={cn(
           "fixed inset-0 bg-slate-900/40 dark:bg-slate-950/60 backdrop-blur-sm transition-opacity duration-300",
           isOpen ? "opacity-100" : "opacity-0",
         )}
         onClick={onClose}
+        type="button"
       />
-
-      {/* Panel */}
       <div
         aria-label={t("common.filters.title", "Filters")}
         aria-modal="true"
@@ -123,40 +94,10 @@ function FilterSheet({
         ref={containerRef}
         role="dialog"
       >
-        {/* Drag handle */}
-        <div className="flex justify-center pt-3 pb-1 shrink-0">
-          <div className="w-10 h-1 rounded-full bg-slate-300 dark:bg-slate-700" />
-        </div>
-
-        {/* Header */}
-        <div className="flex items-center justify-between px-5 py-3 border-b border-slate-100 dark:border-slate-800 shrink-0">
-          <div className="flex items-center gap-2">
-            <SlidersHorizontal className="h-4 w-4 text-slate-500 dark:text-slate-400" />
-            <Typography className="text-sm font-bold text-slate-700 dark:text-slate-200 uppercase tracking-widest" variant="h2">
-              {t("common.filters.title", "Filters")}
-            </Typography>
-            {filterCount > 0 ? (
-              <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-primary-500 text-white text-[10px] font-bold">
-                {filterCount}
-              </span>
-            ) : null}
-          </div>
-          <Button
-            aria-label={t("common.close")}
-            className="h-8 w-8 text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
-            data-testid="filter-sheet-close"
-            icon={<X className="h-4 w-4" />}
-            onClick={onClose}
-            variant="ghost"
-          />
-        </div>
-
-        {/* Scrollable filter content */}
+        <SheetHeader filterCount={filterCount} onClose={onClose} />
         <div className="flex-1 overflow-y-auto overscroll-contain px-5 py-4 space-y-4">
           {children}
         </div>
-
-        {/* Footer with apply button */}
         <div className="shrink-0 border-t border-slate-100 dark:border-slate-800 px-5 py-3 pb-safe">
           <Button
             className="w-full py-3.5 rounded-2xl font-bold uppercase tracking-widest text-xs"

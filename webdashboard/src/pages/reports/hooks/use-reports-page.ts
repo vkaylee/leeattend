@@ -1,4 +1,4 @@
-import React from "react";
+import { type KeyboardEvent, type RefObject, useCallback, useState } from "react";
 
 import { useDebounce } from "@/hooks/use-debounce";
 import { useAllEmployees } from "@/hooks/use-employees";
@@ -38,9 +38,9 @@ export interface UseReportsPageReturn {
   isExportDialogOpen: boolean;
   isFetchingNextPage: boolean;
   isLoading: boolean;
-  keyDownRef: React.RefObject<((e: React.KeyboardEvent<HTMLInputElement>) => void) | null>;
+  keyDownRef: RefObject<((e: KeyboardEvent<HTMLInputElement>) => void) | null>;
   quickStats: { otHours: string; stdHours: string; totalEmployees: number };
-  searchInputRef: React.RefObject<HTMLInputElement | null>;
+  searchInputRef: RefObject<HTMLInputElement | null>;
   searchQuery: string;
   selectedDepartmentId: string | null;
   selectedEmployee: { employerId?: string; id: string; name: string } | null;
@@ -75,7 +75,7 @@ export function useReportsPage(): UseReportsPageReturn {
     keyDownRef,
     focusSearch
   } = useReportsFilters();
-  const [viewMode, setViewModeState] = React.useState<ReportViewMode>(() => {
+  const [viewMode, setViewModeState] = useState<ReportViewMode>(() => {
     if (typeof window === "undefined") return "summary";
     try {
       const stored = localStorage.getItem("leeattend_reports_view_mode");
@@ -86,7 +86,7 @@ export function useReportsPage(): UseReportsPageReturn {
     return "summary";
   });
 
-  const setViewMode = React.useCallback((mode: ReportViewMode) => {
+  const setViewMode = useCallback((mode: ReportViewMode) => {
     setViewModeState(mode);
     try {
       localStorage.setItem("leeattend_reports_view_mode", mode);

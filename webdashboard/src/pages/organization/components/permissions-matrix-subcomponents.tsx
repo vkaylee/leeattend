@@ -295,8 +295,8 @@ export const MobilePermissionRoleSection = ({
                       key={perm.id}
                     >
                       <div className="min-w-0 flex-1">
-                        <Typography variant="p" className="truncate text-sm font-bold text-slate-700 dark:text-slate-200">{permissionLabel}</Typography>
-                        <Typography variant="p" className="mt-0.5 line-clamp-2 text-xs text-slate-500 dark:text-slate-400">
+                        <Typography className="truncate text-sm font-bold text-slate-700 dark:text-slate-200" variant="p">{permissionLabel}</Typography>
+                        <Typography className="mt-0.5 line-clamp-2 text-xs text-slate-500 dark:text-slate-400" variant="p">
                           {t(perm.label_key.replace(/\.name$/, ".desc"), { defaultValue: perm.id })}
                         </Typography>
                       </div>

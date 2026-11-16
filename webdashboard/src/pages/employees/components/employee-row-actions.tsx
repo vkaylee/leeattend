@@ -26,7 +26,7 @@ interface EmployeeRowActionsProps {
 export function EmployeeRowActions({
   employee,
   onOpenModal,
-  onSelect,
+  onSelect: _onSelect,
 }: EmployeeRowActionsProps) {
   const { t } = useTranslation();
   const isActive = Boolean(employee.active_employment_id);

@@ -9,7 +9,7 @@ import { Combobox } from "@/components/ui/combobox";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import EmptyState from "@/components/ui/empty-state";
 import { PageContainer } from "@/components/ui/page-container";
-import PageHeader from "@/components/ui/page-header";
+import { PageHeader } from "@/components/ui/page-header";
 import ResponsiveTable from "@/components/ui/responsive-table";
 import { useHorizontalDragScroll } from "@/hooks/use-horizontal-drag-scroll";
 

@@ -426,7 +426,6 @@ describe("attendance API (extended)", () => {
   });
 
   it("createBehalfAssignment: POST returns record", async () => {
-    const mock = { id: "ba-new" };
     vi.mocked(apiFetch).mockResolvedValueOnce(okRes({ id: "ba-new" }));
     const result = await createBehalfAssignment({ assignee_user_id: "u1" });
     expect(result).toEqual({ id: "ba-new" });
@@ -455,7 +454,6 @@ describe("attendance API (extended)", () => {
   });
 
   it("createAdjustmentBehalfAssignment: POST", async () => {
-    const mock = { id: "ba-new" };
     vi.mocked(apiFetch).mockResolvedValueOnce(okRes({ id: "ba-new" }));
     const result = await createAdjustmentBehalfAssignment({ assignee_user_id: "u1" });
     expect(result).toEqual({ id: "ba-new" });

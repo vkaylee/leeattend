@@ -2,7 +2,7 @@ import { CreditCard, CheckCircle2 } from "lucide-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
 
-import PageHeader from "@/components/ui/page-header";
+import { PageHeader } from "@/components/ui/page-header";
 import { Typography } from "@/components/ui/typography";
 
 export default function OrganizationBillingPage() {

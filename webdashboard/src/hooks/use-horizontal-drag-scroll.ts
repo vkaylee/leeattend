@@ -29,6 +29,19 @@ function isInteractiveTarget(target: EventTarget | null): boolean {
   return target instanceof Element && target.closest(INTERACTIVE_SELECTOR) !== null;
 }
 
+function canStartDrag(element: HTMLElement, event: PointerEvent): boolean {
+  return event.pointerType === "mouse"
+    && event.button === 0
+    && event.isPrimary
+    && !event.shiftKey
+    && !event.ctrlKey
+    && !event.metaKey
+    && !event.altKey
+    && !isInteractiveTarget(event.target)
+    && !isScrollbarTarget(element, event)
+    && hasHorizontalOverflow(element);
+}
+
 function isScrollbarTarget(element: HTMLElement, event: PointerEvent): boolean {
   const rect = element.getBoundingClientRect();
   const localX = event.clientX - rect.left;
@@ -45,6 +58,18 @@ function isScrollbarTarget(element: HTMLElement, event: PointerEvent): boolean {
 
 function hasHorizontalOverflow(element: HTMLElement): boolean {
   return element.scrollWidth > element.clientWidth;
+}
+
+function getDragIntent(drag: DragState, event: PointerEvent): "pending" | "vertical" | "horizontal" {
+  const deltaX = event.clientX - drag.startX;
+  const deltaY = event.clientY - drag.startY;
+  if (Math.max(Math.abs(deltaX), Math.abs(deltaY)) < DRAG_THRESHOLD_PX) return "pending";
+  return Math.abs(deltaX) <= Math.abs(deltaY) ? "vertical" : "horizontal";
+}
+
+function clampScrollLeft(element: HTMLElement, initialScrollLeft: number, deltaX: number): number {
+  const maximumScrollLeft = Math.max(0, element.scrollWidth - element.clientWidth);
+  return Math.min(maximumScrollLeft, Math.max(0, initialScrollLeft - deltaX));
 }
 
 export interface HorizontalDragScrollOptions {
@@ -93,18 +118,7 @@ export function useHorizontalDragScroll<T extends HTMLElement>(
 
     const handlePointerDown = (event: PointerEvent) => {
       suppressClickRef.current = false;
-      if (
-        event.pointerType !== "mouse" ||
-        event.button !== 0 ||
-        !event.isPrimary ||
-        event.shiftKey ||
-        event.ctrlKey ||
-        event.metaKey ||
-        event.altKey ||
-        isInteractiveTarget(event.target) ||
-        isScrollbarTarget(element, event) ||
-        !hasHorizontalOverflow(element)
-      ) {
+      if (!canStartDrag(element, event)) {
         return;
       }
 
@@ -124,10 +138,10 @@ export function useHorizontalDragScroll<T extends HTMLElement>(
       if (event.pointerId !== drag?.pointerId) return;
 
       const deltaX = event.clientX - drag.startX;
-      const deltaY = event.clientY - drag.startY;
       if (!drag.active) {
-        if (Math.max(Math.abs(deltaX), Math.abs(deltaY)) < DRAG_THRESHOLD_PX) return;
-        if (Math.abs(deltaX) <= Math.abs(deltaY)) {
+        const intent = getDragIntent(drag, event);
+        if (intent === "pending") return;
+        if (intent === "vertical") {
           dragRef.current = null;
           return;
         }
@@ -139,11 +153,7 @@ export function useHorizontalDragScroll<T extends HTMLElement>(
       }
 
       event.preventDefault();
-      const maximumScrollLeft = Math.max(0, element.scrollWidth - element.clientWidth);
-      element.scrollLeft = Math.min(
-        maximumScrollLeft,
-        Math.max(0, drag.initialScrollLeft - deltaX),
-      );
+      element.scrollLeft = clampScrollLeft(element, drag.initialScrollLeft, deltaX);
     };
 
     const handleLostPointerCapture = (event: PointerEvent) => {

@@ -74,7 +74,7 @@ export default function LeaveRequestsPage() {
  
    const {
     isModalOpen, setIsModalOpen,
-    isImportModalOpen, setIsImportModalOpen,
+    setIsImportModalOpen,
     activeTab, setActiveTab,
     statusFilter, setStatusFilter,
     employeeId, setEmployeeId,
@@ -83,7 +83,6 @@ export default function LeaveRequestsPage() {
     approveMutation,
     importJob,
     importBannerDismissed, setImportBannerDismissed,
-    handleImportComplete,
     t
   } = useLeaveRequests();
 

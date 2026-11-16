@@ -175,7 +175,7 @@ export const FloatingDock = memo(function FloatingDock({
               to={item.to}
             >
               <Icon className="w-4 h-4 transition-transform duration-200 group-hover:scale-110" />
-              {!!active && <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-primary-500 shadow-xs shadow-primary-500/80" />}
+              {active ? <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-primary-500 shadow-xs shadow-primary-500/80" /> : null}
             </Link>
           );
         })}

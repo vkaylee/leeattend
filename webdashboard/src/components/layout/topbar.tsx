@@ -1,13 +1,5 @@
 import { Link, useLocation } from "@tanstack/react-router";
-import {
-  ArrowLeft,
-  Bell,
-  ChevronRight,
-  Menu,
-  Search,
-  UserCircle,
-} from "lucide-react";
-import React from "react";
+import { ArrowLeft, Bell, ChevronRight, Menu, Search, UserCircle } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import Button from "@/components/ui/button";
@@ -18,6 +10,7 @@ import { useNotifications } from "@/hooks/use-notifications";
 import { useProfile } from "@/hooks/use-profile";
 import { getRouteMetadata } from "@/lib/route-metadata";
 import { ROUTES } from "@/lib/routes";
+
 export interface TopbarProps {
   isSettings?: boolean;
   onOpenMobileMenu?: () => void;
@@ -163,7 +156,7 @@ export function Topbar({
         >
           {user?.avatar_url ? (
             <img
-              alt={user.full_name || user.email || "Profile"}
+              alt={[user.full_name, user.email].find((value) => Boolean(value)) ?? "Profile"}
               className="h-6 w-6 rounded-md object-cover border border-border"
               src={user.avatar_url}
             />

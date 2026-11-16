@@ -197,7 +197,7 @@ export function useUnifiedInbox(): UseUnifiedInboxReturn {
             l.end_date >= dateStr &&
             employeeMap.get(l.employment_id)?.departmentName === deptName
         )
-        .map((l) => employeeMap.get(l.employment_id)?.name || l.employment_id);
+        .map((l) => employeeMap.get(l.employment_id)?.name ?? l.employment_id);
 
       return {
         departmentName: deptName,
@@ -389,7 +389,7 @@ export function useUnifiedInbox(): UseUnifiedInboxReturn {
   // ── Filtered items ───────────────────────────────────────────────────
   const items = useMemo(() => {
     const cleanSearch = removeDiacritics(
-      (filter.searchQuery || "").trim().toLowerCase()
+      (filter.searchQuery ?? "").trim().toLowerCase()
     );
 
     return allItems.filter((item) => {
@@ -413,7 +413,7 @@ export function useUnifiedInbox(): UseUnifiedInboxReturn {
           item.requester.name.toLowerCase()
         ).includes(cleanSearch);
         const idMatch = removeDiacritics(
-          (item.requester.idNumber || "").toLowerCase()
+          (item.requester.idNumber ?? "").toLowerCase()
         ).includes(cleanSearch);
         const titleMatch = removeDiacritics(item.title.toLowerCase()).includes(
           cleanSearch
@@ -422,7 +422,7 @@ export function useUnifiedInbox(): UseUnifiedInboxReturn {
           item.subtitle.toLowerCase()
         ).includes(cleanSearch);
         const reasonMatch = removeDiacritics(
-          (item.details.reason || "").toLowerCase()
+          (item.details.reason ?? "").toLowerCase()
         ).includes(cleanSearch);
 
         return (

@@ -63,10 +63,6 @@ export function StorageCredentialForm({
 }: StorageCredentialFormProps) {
   const { t } = useTranslation();
 
-  const handleToggle = (e: React.ChangeEvent<HTMLInputElement>) => {
-    onToggleCustom(e.target.checked);
-  };
-
   return (
     <div className="bg-white dark:bg-slate-900/90 p-6 sm:p-8 rounded-2xl border border-slate-200/80 dark:border-slate-800/80 shadow-2xs space-y-6">
       {/* Toggle Custom Storage using SettingsGroup & SettingsRow */}

@@ -1,24 +1,25 @@
 /* eslint-disable max-lines -- API wrapper module: 300 lines of exported functions; splitting would scatter imports */
-import type { PayrollCalculationRun, PayrollFormulaRuleVersion, PayrollInput } from "./types-payroll";
-import { fetchWorkingPatterns } from "./working-patterns";
 import type { AttendancePolicyVersion } from "./attendance-rules";
+import type { PayrollCalculationRun, PayrollFormulaRuleVersion, PayrollInput } from "./types-payroll";
+
+import { fetchWorkingPatterns } from "./working-patterns";
 
 export interface WorkPolicyGroupVersion {
-  id: string;
-  group_id: string;
-  name: string;
-  work_credit_policy_id?: string;
-  pay_basis_policy_id?: string;
   attendance_policy_id?: string;
-  working_pattern_id?: string;
-  minutes_per_credit: number;
-  pay_method: "monthly" | "hourly" | "shift";
-  monthly_denominator?: "fixed" | "schedule";
-  monthly_standard_days?: string;
-  rate_component_definition_id?: string | null;
-  overtime_policy_id: string;
   effective_from: string;
   effective_to?: string;
+  group_id: string;
+  id: string;
+  minutes_per_credit: number;
+  monthly_denominator?: "fixed" | "schedule";
+  monthly_standard_days?: string;
+  name: string;
+  overtime_policy_id: string;
+  pay_basis_policy_id?: string;
+  pay_method: "monthly" | "hourly" | "shift";
+  rate_component_definition_id?: string | null;
+  work_credit_policy_id?: string;
+  working_pattern_id?: string;
 }
 
 export async function fetchWorkPolicyReferenceOptions(): Promise<{ attendance: { id: string; label: string }[]; patterns: { id: string; label: string }[]; overtime: { id: string; label: string }[]; salaryComponents: { id: string; label: string }[] }> {
@@ -39,45 +40,45 @@ export async function fetchWorkPolicyReferenceOptions(): Promise<{ attendance: {
 export interface WorkPolicyValidationIssue {
   code: string;
   field: string;
-  severity: "blocker" | "warning";
   message: string;
+  severity: "blocker" | "warning";
 }
 
 export interface WorkPolicyValidationResponse {
-  version_id: string;
-  valid: boolean;
   blockers: WorkPolicyValidationIssue[];
-  warnings: WorkPolicyValidationIssue[];
   checked_at: string;
+  valid: boolean;
+  version_id: string;
+  warnings: WorkPolicyValidationIssue[];
 }
 
 export interface WorkPolicyMembership {
-  id: string;
-  employment_id: string;
-  group_id: string;
   effective_from: string;
   effective_to?: string;
+  employment_id: string;
+  group_id: string;
+  id: string;
 }
 
 export interface CreateWorkPolicyGroupVersionRequest {
-  name: string;
-  minutes_per_credit: number;
   attendance_policy_id: string;
-  working_pattern_id: string;
-  pay_method: "monthly" | "hourly" | "shift";
-  monthly_denominator?: "fixed" | "schedule";
-  monthly_standard_days?: string;
-  rate_component_definition_id?: string | null;
-  overtime_policy_id: string;
   effective_from: string;
   effective_to?: string;
+  minutes_per_credit: number;
+  monthly_denominator?: "fixed" | "schedule";
+  monthly_standard_days?: string;
+  name: string;
+  overtime_policy_id: string;
+  pay_method: "monthly" | "hourly" | "shift";
+  rate_component_definition_id?: string | null;
+  working_pattern_id: string;
 }
 
 interface WorkPolicyGroupListResponse {
   data: WorkPolicyGroupVersion[];
-  total: number;
-  page: number;
   limit: number;
+  page: number;
+  total: number;
 }
 
 import { client, fetch } from "./client";
@@ -341,38 +342,38 @@ export async function retirePayrollFormulaRule(ruleId: string): Promise<PayrollF
 }
 
 export interface PayrollImpactResponse {
-  employment_id: string;
-  period_year: number;
-  period_month: number;
-  before_run_id: string;
   after_run_id: string;
+  base_pay_delta: string;
+  before_run_id: string;
   computed: boolean;
+  deductions_delta: string;
+  employment_id: string;
+  net_pay_delta: string;
+  overtime_pay_delta: string;
+  overtime_units_delta: number;
+  period_month: number;
+  period_year: number;
+  reason?: string;
   stale: boolean;
   stale_reasons?: string[];
-  reason?: string;
-  base_pay_delta: string;
-  overtime_pay_delta: string;
-  deductions_delta: string;
-  net_pay_delta: string;
   standard_units_delta: number;
-  overtime_units_delta: number;
 }
 
 export interface PayrollImpactBatchItem {
-  employment_id: string;
   computed: boolean;
+  delta?: PayrollImpactResponse;
+  employment_id: string;
+  reason?: string;
   stale: boolean;
   stale_reasons?: string[];
-  reason?: string;
-  delta?: PayrollImpactResponse;
 }
 
 export interface PayrollImpactBatchResponse {
-  total: number;
-  computed: number;
   affected: number;
-  uncomputable: number;
+  computed: number;
   items: PayrollImpactBatchItem[];
+  total: number;
+  uncomputable: number;
 }
 export async function fetchPayrollCalculationRuns(employmentId: string, year: number, month: number): Promise<PayrollCalculationRun[]> {
   const { data: response } = await fetch<PayrollCalculationRun[]>("GET", "/api/v1/employments/{id}/payroll/calculation-runs", { params: { path: { id: employmentId }, query: { year, month } } });

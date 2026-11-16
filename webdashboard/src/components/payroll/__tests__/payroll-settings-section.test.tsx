@@ -5,9 +5,9 @@ import React from "react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 import { ToastProvider } from "@/components/ui/toast";
-import * as api from "@/lib/api/payroll";
 import * as employeeApi from "@/lib/api/employees";
 import { ApiError } from "@/lib/api/errors";
+import * as api from "@/lib/api/payroll";
 
 import PayrollSettingsSection from "../payroll-settings-section";
 

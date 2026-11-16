@@ -3,10 +3,8 @@ import React from "react";
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import {
-  TableDensityToggle,
-  useTableDensity,
-} from "../table-density-toggle";
+import { TableDensityToggle } from "../table-density-toggle";
+import { useTableDensity } from "../use-table-density";
 
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({

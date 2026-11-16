@@ -50,7 +50,7 @@ export function useCreateEmployeeAssignment() {
       employeeId: string;
       data: CreateEmployeeAssignmentRequest;
     }) => createEmployeeAssignment(employeeId, data),
-    onSuccess: (data, variables) => {
+    onSuccess: () => {
       void queryClient.invalidateQueries({
         queryKey: employeeAssignmentKeys.all,
       });
@@ -71,7 +71,7 @@ export function useUpdateEmployeeAssignment() {
       assignmentId: string;
       data: UpdateEmployeeAssignmentRequest;
     }) => updateEmployeeAssignment(employeeId, assignmentId, data),
-    onSuccess: (data, variables) => {
+    onSuccess: () => {
       void queryClient.invalidateQueries({
         queryKey: employeeAssignmentKeys.all,
       });
@@ -90,7 +90,7 @@ export function useDeleteEmployeeAssignment() {
       employeeId: string;
       assignmentId: string;
     }) => deleteEmployeeAssignment(employeeId, assignmentId),
-    onSuccess: (_, variables) => {
+    onSuccess: () => {
       void queryClient.invalidateQueries({
         queryKey: employeeAssignmentKeys.all,
       });

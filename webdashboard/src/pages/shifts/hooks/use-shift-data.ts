@@ -20,15 +20,15 @@ import {
 } from "@/lib/api/types";
 import { createQueryKey } from "@/lib/query-keys";
 
-import type { ViewMode } from "./use-shifts-types";
 import type { ScheduleCoverageFilter } from "./use-shift-form-state";
+import type { ViewMode } from "./use-shifts-types";
 
 
-interface UseShiftDataProps { monthEnd?: Date;
+interface UseShiftDataProps { coverageFilter?: ScheduleCoverageFilter;
+monthEnd?: Date;
 monthStart?: Date;
 selectedEmployee?: Employee | null;
 selectedEmployeeIds?: string[];
-coverageFilter?: ScheduleCoverageFilter;
 startOfWeek: Date;
 viewMode: ViewMode;
 weekDays: Date[];  }

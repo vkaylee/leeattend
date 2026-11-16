@@ -101,9 +101,9 @@ function DesktopTabNav({
         )}
         data-testid="employees-tab-scroll-left"
         onClick={() => { scroll("left"); }}
+        size="sm"
         tabIndex={canScrollLeft ? 0 : -1}
         type="button"
-        size="sm"
         variant="ghost"
       >
         <ChevronLeft size={16} />
@@ -168,9 +168,9 @@ function DesktopTabNav({
         )}
         data-testid="employees-tab-scroll-right"
         onClick={() => { scroll("right"); }}
+        size="sm"
         tabIndex={canScrollRight ? 0 : -1}
         type="button"
-        size="sm"
         variant="ghost"
       >
         <ChevronRight size={16} />

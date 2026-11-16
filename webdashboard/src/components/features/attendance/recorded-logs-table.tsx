@@ -5,8 +5,9 @@ import { useTranslation } from 'react-i18next';
 
 import InfiniteScrollSentinel from '@/components/common/infinite-scroll-sentinel';
 import ResponsiveTable from '@/components/ui/responsive-table';
-import { TableDensityToggle, useTableDensity } from '@/components/ui/table-density-toggle';
+import { TableDensityToggle } from '@/components/ui/table-density-toggle';
 import { useToast } from "@/components/ui/toast";
+import { useTableDensity } from '@/components/ui/use-table-density';
 import { useInfiniteScroll } from '@/hooks/use-infinite-scroll';
 import { RawAttendanceLog } from '@/lib/api/types';
 import { logError } from "@/lib/logger";

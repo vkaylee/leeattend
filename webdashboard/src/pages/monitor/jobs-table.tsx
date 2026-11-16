@@ -8,7 +8,7 @@ import Button from "@/components/ui/button";
 import { FilterPanel } from "@/components/ui/filter-panel";
 import { FilterTrigger } from "@/components/ui/filter-trigger";
 import ResponsiveTable from "@/components/ui/responsive-table";
-import TableEmptyRow from "@/components/ui/table-empty-row";
+import { TableEmptyRow } from "@/components/ui/table-empty-row";
 import { Typography } from "@/components/ui/typography";
 import { useDebounce } from "@/hooks/use-debounce";
 import { useHorizontalDragScroll } from "@/hooks/use-horizontal-drag-scroll";
@@ -17,7 +17,8 @@ import { useWorkerJobs } from "@/hooks/use-worker-monitor";
 import { MonitorInfraJobRecord, RecentJob } from "@/lib/api/types";
 import { cn } from "@/lib/utils";
 
-import { getStatusStyle, JobDetailsDrawer } from "./job-details-drawer";
+import { JobDetailsDrawer } from "./job-details-drawer";
+import { getStatusStyle } from "./status-style";
 
 function jobStatusLabel(t: TFunction, status: string): string {
   const defaults: Record<string, string> = {

@@ -147,14 +147,12 @@ describe("EmployeeBulkActionBar", () => {
 
 describe("EmployeeRowActions", () => {
   it("renders dropdown trigger button", () => {
-    const onSelect = vi.fn();
     const onOpenModal = vi.fn();
 
     render(
       <EmployeeRowActions
         employee={mockEmployees[0]}
         onOpenModal={onOpenModal}
-        onSelect={onSelect}
       />
     );
 

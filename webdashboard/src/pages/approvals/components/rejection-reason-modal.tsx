@@ -3,8 +3,8 @@ import { useState, type SubmitEvent } from "react";
 import { useTranslation } from "react-i18next";
 
 import Button from "@/components/ui/button";
-import { Typography } from "@/components/ui/typography";
 import Modal from "@/components/ui/modal";
+import { Typography } from "@/components/ui/typography";
 
 interface RejectionReasonModalProps {
   isOpen: boolean;
@@ -89,9 +89,9 @@ export function RejectionReasonModal({
             value={reason}
           />
           {!!error && (
-            <Typography variant="p"
-              className="text-xs font-medium text-rose-600 dark:text-rose-400 animate-in fade-in"
+            <Typography className="text-xs font-medium text-rose-600 dark:text-rose-400 animate-in fade-in"
               id="rejection-reason-error"
+              variant="p"
             >
               {error}
             </Typography>
@@ -117,7 +117,7 @@ export function RejectionReasonModal({
             type="submit"
             variant="primary"
           >
-            {!!isProcessing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            {isProcessing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
             {t("approvals.rejection.confirm_btn", "Xác nhận từ chối")}
           </Button>
         </div>

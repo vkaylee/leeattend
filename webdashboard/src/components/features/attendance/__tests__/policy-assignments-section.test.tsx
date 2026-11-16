@@ -40,8 +40,6 @@ const renderWithProviders = (ui: React.ReactNode) => {
 };
 
 describe("PolicyAssignmentsSection", () => {
-  const mockWsId = "ws-123";
-
   beforeEach(() => {
     vi.clearAllMocks();
     (api.fetchPolicyAssignments as Mock).mockResolvedValue({ data: [], total: 0, page: 1, limit: 50 });

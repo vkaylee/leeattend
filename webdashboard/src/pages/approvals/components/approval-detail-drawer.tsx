@@ -10,8 +10,8 @@ import React from "react";
 import { useTranslation } from "react-i18next";
 
 import Button from "@/components/ui/button";
-import { Typography } from "@/components/ui/typography";
 import Sheet from "@/components/ui/sheet";
+import { Typography } from "@/components/ui/typography";
 
 import { UnifiedApprovalItem } from "../types/unified-approvals";
 import { TeamScheduleImpactCard } from "./team-schedule-impact-card";
@@ -57,7 +57,7 @@ export function ApprovalDetailDrawer({
             {item.requester.name.charAt(0).toUpperCase()}
           </div>
           <div className="space-y-0.5 min-w-0 flex-1">
-            <Typography variant="h4" className="font-bold text-base text-slate-900 dark:text-slate-100 truncate">
+            <Typography className="font-bold text-base text-slate-900 dark:text-slate-100 truncate" variant="h4">
               {item.requester.name}
             </Typography>
             <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
@@ -71,7 +71,7 @@ export function ApprovalDetailDrawer({
         {/* Smart Team Schedule Impact Card */}
         {!!item.impact && (
           <div className="space-y-2">
-            <Typography variant="h5" className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+            <Typography className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400" variant="h5">
               {t("approvals.drawer.team_context", "Bối cảnh lịch làm việc đội ngũ")}
             </Typography>
             <TeamScheduleImpactCard
@@ -83,7 +83,7 @@ export function ApprovalDetailDrawer({
 
         {/* Detailed Key-Values */}
         <div className="space-y-3">
-          <Typography variant="h5" className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+          <Typography className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400" variant="h5">
             {t("approvals.drawer.details_title", "Thông tin chi tiết yêu cầu")}
           </Typography>
 
@@ -134,7 +134,7 @@ export function ApprovalDetailDrawer({
                   <FileText className="h-4 w-4" />
                   {t("approvals.drawer.reason", "Lý do")}
                 </span>
-                <Typography variant="p" className="text-slate-800 dark:text-slate-200 pl-6 text-sm whitespace-pre-wrap">
+                <Typography className="text-slate-800 dark:text-slate-200 pl-6 text-sm whitespace-pre-wrap" variant="p">
                   {item.details.reason}
                 </Typography>
               </div>
@@ -143,7 +143,7 @@ export function ApprovalDetailDrawer({
         </div>
 
         {/* Bottom Actions if Pending */}
-        {!!isPending && (
+        {isPending ? (
           <div className="pt-4 flex items-center justify-end gap-3 mt-auto border-t border-slate-200 dark:border-slate-800">
             <Button
               className="bg-rose-600/90 hover:bg-rose-500 text-white font-semibold"
@@ -168,7 +168,7 @@ export function ApprovalDetailDrawer({
               {t("approvals.batch.approve_btn", "Duyệt yêu cầu")}
             </Button>
           </div>
-        )}
+        ) : null}
       </div>
     </Sheet>
   );

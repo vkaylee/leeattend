@@ -328,7 +328,7 @@ export default function EmployeeDetailPage() {
       departments={departments}
       deptHistory={deptHistory}
       formatDate={formatDate}
-      handleDrawerClose={() => {}}
+      handleDrawerClose={() => undefined}
       openModal={modals.openModal}
       prefillEnrollmentId={modals.prefillEnrollmentId}
       selectedDeptId={modals.selectedDeptId}

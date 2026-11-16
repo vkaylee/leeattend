@@ -22,15 +22,10 @@ import {
 } from "@/lib/feature-registry";
 import { removeDiacritics } from "@/lib/utils";
 
+
 export interface CommandPaletteProps {
   isOpen: boolean;
   onClose: () => void;
-}
-
-export function openCommandPalette(): void {
-  if (typeof window !== "undefined") {
-    window.dispatchEvent(new CustomEvent("open-command-palette"));
-  }
 }
 
 export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {

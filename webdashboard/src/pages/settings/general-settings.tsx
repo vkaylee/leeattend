@@ -7,8 +7,8 @@ import type { ThemeMode } from "@/hooks/use-dark-mode";
 
 import Button from "@/components/ui/button";
 import { Combobox } from "@/components/ui/combobox";
-const SETTINGS_LABEL = "text-xs font-semibold text-slate-700 dark:text-slate-300 ml-0.5";
 import { SettingsHeader } from "@/components/ui/settings/settings-header";
+const SETTINGS_LABEL = "text-xs font-semibold text-slate-700 dark:text-slate-300 ml-0.5";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/components/ui/toast";
 import { Typography } from "@/components/ui/typography";
@@ -142,8 +142,8 @@ function GeneralSettingsContent({ organization }: { organization: Organization }
             data-testid="tab-localization"
             onClick={() => { setActiveTab("localization"); }}
             role="tab"
-            type="button"
             size="sm"
+            type="button"
             variant="ghost"
           >
             <Globe size={14} />
@@ -160,8 +160,8 @@ function GeneralSettingsContent({ organization }: { organization: Organization }
             data-testid="tab-appearance"
             onClick={() => { setActiveTab("appearance"); }}
             role="tab"
-            type="button"
             size="sm"
+            type="button"
             variant="ghost"
           >
             <Palette size={14} />

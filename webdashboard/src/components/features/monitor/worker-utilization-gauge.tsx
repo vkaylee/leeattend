@@ -118,16 +118,16 @@ export default function WorkerUtilizationGauge({ data, isLoading }: Props) {
       </div>
 
       {/* Scaling hints */}
-      {!isLoading && data.percent !== null && !!data.thresholdsAvailable && data.percent >= (data.criticalAtPercent ?? Number.POSITIVE_INFINITY) && (
+      {!isLoading && data.percent !== null && data.thresholdsAvailable && data.percent >= (data.criticalAtPercent ?? Number.POSITIVE_INFINITY) ? (
         <Typography className="text-[10px] text-rose-500 dark:text-rose-400 font-medium text-center" variant="p">
           {t("monitor.charts.scale_up_warning")}
         </Typography>
-      )}
-      {!isLoading && data.percent !== null && !!data.thresholdsAvailable && data.percent < (data.scaleDownBelowPercent ?? 0) && data.percent > 0 && (
+      ) : null}
+      {!isLoading && data.percent !== null && data.thresholdsAvailable && data.percent < (data.scaleDownBelowPercent ?? 0) && data.percent > 0 ? (
         <Typography className="text-[10px] text-sky-500 dark:text-sky-400 font-medium text-center" variant="p">
           {t("monitor.charts.scale_down_hint")}
         </Typography>
-      )}
+      ) : null}
     </div>
   );
 }

@@ -3,7 +3,7 @@ import React from "react";
 
 import { describe, it, expect } from "vitest";
 
-import PageHeader from "./page-header";
+import { PageHeader } from "./page-header";
 
 describe("PageHeader Component", () => {
   // ── Title ───────────────────────────────────────────────────────

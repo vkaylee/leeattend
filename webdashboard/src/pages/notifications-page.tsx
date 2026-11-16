@@ -7,7 +7,7 @@ import { enUS, vi } from "date-fns/locale";
 
 import { ErrorBoundary } from "@/components/common/error-boundary";
 import Button from "@/components/ui/button";
-import PageHeader from "@/components/ui/page-header";
+import { PageHeader } from "@/components/ui/page-header";
 import { Typography } from "@/components/ui/typography";
 import { useNotifications } from "@/hooks/use-notifications";
 import { Notification, NotificationType } from "@/lib/api";

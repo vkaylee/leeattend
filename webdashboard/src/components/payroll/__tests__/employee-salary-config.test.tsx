@@ -36,8 +36,7 @@ vi.mock('react-i18next', () => ({
 
 describe("EmployeeSalaryConfig", () => {
   let queryClient: QueryClient;
-  const mockWsId = "ws-123";
-  const mockEmpId = "emp-456";
+    const mockEmpId = "emp-456";
 
   beforeEach(() => {
     vi.clearAllMocks();

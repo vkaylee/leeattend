@@ -78,10 +78,10 @@ function AssignmentMobileCard({
 
       {/* Locations */}
       <div className="flex items-center gap-2 text-xs font-semibold text-slate-700 dark:text-slate-300 bg-slate-50 dark:bg-slate-800/40 px-3 py-2 rounded-xl">
-        <span className="truncate">{assignment.home_location_name || t("assignments.home_location", { defaultValue: "Trụ sở chính" })}</span>
+        <span className="truncate">{assignment.home_location_name === "" ? t("assignments.home_location", { defaultValue: "Trụ sở chính" }) : assignment.home_location_name ?? t("assignments.home_location", { defaultValue: "Trụ sở chính" })}</span>
         <ArrowRight className="text-slate-400 shrink-0" size={12} />
         <span className="truncate text-primary-600 dark:text-primary-400 font-bold">
-          {assignment.host_location_name || t("assignments.host_location", { defaultValue: "Điểm phái cử" })}
+          {assignment.host_location_name === "" ? t("assignments.host_location", { defaultValue: "Điểm phái cử" }) : assignment.host_location_name ?? t("assignments.host_location", { defaultValue: "Điểm phái cử" })}
         </span>
       </div>
 
@@ -97,7 +97,7 @@ function AssignmentMobileCard({
         </div>
         {!!assignment.reason && (
           <div className="italic text-slate-500 dark:text-slate-400 text-[11px] line-clamp-2">
-            "{assignment.reason}"
+            &quot;{assignment.reason}&quot;
           </div>
         )}
       </div>
@@ -129,6 +129,68 @@ function AssignmentMobileCard({
   );
 }
 
+function AssignmentsDesktopTable({
+  assignments,
+  formatDate,
+  onDelete,
+  onEdit,
+  t,
+}: {
+  assignments: EmployeeAssignmentWithEmployee[];
+  formatDate: (date: string) => string;
+  onDelete: (assignment: EmployeeAssignmentWithEmployee) => void;
+  onEdit: (assignment: EmployeeAssignmentWithEmployee) => void;
+  t: (key: string, options?: { defaultValue?: string }) => string;
+}) {
+  const { onClickCapture, setRef } = useHorizontalDragScroll<HTMLDivElement>();
+  const headerClass = "px-8 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest";
+  const headers = [
+    ["assignments.table.employee", "NHÂN SỰ"],
+    ["assignments.table.locations", "ĐỊA ĐIỂM (TỪ → ĐẾN)"],
+    ["assignments.table.duration", "THỜI HẠN"],
+    ["assignments.table.reason", "LÝ DO / GHI CHÚ"],
+    ["common.status", "TRẠNG THÁI"],
+  ] as const;
+
+  return (
+    <div className="overflow-x-auto overscroll-contain" onClickCapture={onClickCapture} ref={setRef}>
+      <table className="w-full min-w-[980px] text-left border-collapse">
+        <thead><tr className="border-b border-slate-100 dark:border-slate-800/60">
+          {headers.map(([key, fallback]) => <th className={headerClass} key={key}>{t(key, { defaultValue: fallback })}</th>)}
+          <th className={`${headerClass} text-right`}>{t("common.actions", { defaultValue: "THAO TÁC" })}</th>
+        </tr></thead>
+        <tbody>{assignments.map((assignment) => <AssignmentDesktopRow assignment={assignment} formatDate={formatDate} key={assignment.id} onDelete={onDelete} onEdit={onEdit} t={t} />)}</tbody>
+      </table>
+    </div>
+  );
+}
+
+function AssignmentDesktopRow({
+  assignment,
+  formatDate,
+  onDelete,
+  onEdit,
+  t,
+}: {
+  assignment: EmployeeAssignmentWithEmployee;
+  formatDate: (date: string) => string;
+  onDelete: (assignment: EmployeeAssignmentWithEmployee) => void;
+  onEdit: (assignment: EmployeeAssignmentWithEmployee) => void;
+  t: (key: string, options?: { defaultValue?: string }) => string;
+}) {
+  const actionClass = "p-2 text-slate-400 hover:text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900/30 rounded-xl transition-colors h-auto w-auto shadow-none";
+  return (
+    <tr className="border-b border-slate-50 dark:border-slate-800/50 hover:bg-slate-50/40 dark:hover:bg-slate-800/20 transition-colors group">
+      <td className="px-8 py-5"><div className="flex flex-col"><Link className="text-xs font-bold text-slate-800 dark:text-slate-100 uppercase tracking-wide group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors flex items-center gap-1.5" params={{ employeeId: assignment.employee_id }} search={{ tab: "assignments" }} to="/employees/$employeeId"><span>{assignment.employee_name}</span><ExternalLink className="opacity-0 group-hover:opacity-70 transition-opacity" size={11} /></Link>{!!assignment.employee_code && <span className="text-[10px] font-mono text-slate-400 mt-0.5 font-bold">{assignment.employee_code}</span>}</div></td>
+      <td className="px-8 py-5"><div className="flex items-center gap-2 text-xs font-semibold text-slate-600 dark:text-slate-300"><span>{assignment.home_location_name || t("assignments.home_location", { defaultValue: "Trụ sở chính" })}</span><ArrowRight className="text-slate-400 shrink-0" size={12} /><span className="font-bold text-primary-600 dark:text-primary-400">{assignment.host_location_name || t("assignments.host_location", { defaultValue: "Điểm phái cử" })}</span></div></td>
+      <td className="px-8 py-5 text-xs text-slate-600 dark:text-slate-300 font-medium">{formatDate(assignment.start_date)}{" → "}{assignment.end_date ? formatDate(assignment.end_date) : t("assignments.indefinite", { defaultValue: "Chưa xác định" })}</td>
+      <td className="px-8 py-5 text-xs text-slate-500 dark:text-slate-400 max-w-xs truncate">{assignment.reason || "—"}</td>
+      <td className="px-8 py-5"><span className={cn("text-[9px] font-bold uppercase tracking-widest px-2.5 py-0.5 border rounded-full shadow-xs", getStatusColor(assignment.status))}>{assignment.status}</span></td>
+      <td className="px-8 py-5 text-right"><div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity"><Button aria-label={t("assignments.actions.edit", { defaultValue: "Chỉnh sửa" })} className={actionClass} onClick={() => { onEdit(assignment); }} size="icon" variant="ghost"><Pencil size={14} /></Button><Button aria-label={t("assignments.actions.delete", { defaultValue: "Xóa" })} className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/30 rounded-xl transition-colors h-auto w-auto shadow-none" onClick={() => { onDelete(assignment); }} size="icon" variant="ghost"><Trash2 size={14} /></Button></div></td>
+    </tr>
+  );
+}
+
 export interface AssignmentsTableProps {
   assignments: EmployeeAssignmentWithEmployee[];
   isLoading: boolean;
@@ -150,11 +212,7 @@ export function AssignmentsTable({
 }: AssignmentsTableProps) {
   const { t } = useTranslation();
   const { formatDate } = useDateTimeFormatter();
-  const {
-    onClickCapture: handleHorizontalDragClick,
-    setRef: setHorizontalDragScrollRef,
-  } = useHorizontalDragScroll<HTMLDivElement>();
-
+  const { onClickCapture, setRef } = useHorizontalDragScroll<HTMLDivElement>();
   if (isLoading) {
     return (
       <div className="p-8 space-y-4 animate-pulse">
@@ -218,8 +276,8 @@ export function AssignmentsTable({
       renderDesktopTable={() => (
         <div
           className="overflow-x-auto overscroll-contain"
-          onClickCapture={handleHorizontalDragClick}
-          ref={setHorizontalDragScrollRef}
+          onClickCapture={onClickCapture}
+          ref={setRef}
         >
           <table className="w-full min-w-[980px] text-left border-collapse">
             <thead>
@@ -270,10 +328,10 @@ export function AssignmentsTable({
                   </td>
                   <td className="px-8 py-5">
                     <div className="flex items-center gap-2 text-xs font-semibold text-slate-600 dark:text-slate-300">
-                      <span>{a.home_location_name || t("assignments.home_location", { defaultValue: "Trụ sở chính" })}</span>
+                      <span>{a.home_location_name ?? t("assignments.home_location", { defaultValue: "Trụ sở chính" })}</span>
                       <ArrowRight className="text-slate-400 shrink-0" size={12} />
                       <span className="font-bold text-primary-600 dark:text-primary-400">
-                        {a.host_location_name || t("assignments.host_location", { defaultValue: "Điểm phái cử" })}
+                        {a.host_location_name ?? t("assignments.host_location", { defaultValue: "Điểm phái cử" })}
                       </span>
                     </div>
                   </td>
@@ -283,7 +341,7 @@ export function AssignmentsTable({
                     {a.end_date ? formatDate(a.end_date) : t("assignments.indefinite", { defaultValue: "Chưa xác định" })}
                   </td>
                   <td className="px-8 py-5 text-xs text-slate-500 dark:text-slate-400 max-w-xs truncate">
-                    {a.reason || "—"}
+                    {a.reason === "" ? "—" : a.reason ?? "—"}
                   </td>
                   <td className="px-8 py-5">
                     <span

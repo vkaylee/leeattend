@@ -105,10 +105,10 @@ function WidgetToggleItem({ widgetId, widgetMap, visibleWidgets, collapsed, onTo
       )}
       onClick={() => { onToggleWidget(widgetId); }}
       role="switch"
+      size="sm"
       tabIndex={0}
       title={collapsed ? label : undefined}
       type="button"
-      size="sm"
       variant="ghost"
     >
       {/* Checkbox circle */}

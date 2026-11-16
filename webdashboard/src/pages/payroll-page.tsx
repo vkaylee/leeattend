@@ -8,7 +8,6 @@ import { usePayroll } from "./payroll/hooks/use-payroll";
 
 export default function PayrollPage() {
   const {
-    t,
     selectedEmployee,
     selectedIds,
     searchTerm,

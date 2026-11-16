@@ -112,7 +112,7 @@ export default function WorkingConditionFormModal({
 
   const onSubmit = async (values: ConditionFormValues) => {
     try {
-      const targetEmpId = employeeId || selectedEmployeeId;
+      const targetEmpId = employeeId ?? selectedEmployeeId;
       if (!targetEmpId) {
         toast.error("Vui lòng chọn nhân sự");
         return;
@@ -124,7 +124,7 @@ export default function WorkingConditionFormModal({
         type_: values.type_,
         condition_type_id: matchingDef?.id ?? null,
         start_date: values.start_date,
-        end_date: values.end_date ? values.end_date : null,
+        end_date: values.end_date === "" ? null : values.end_date ?? null,
         is_paid: values.is_paid,
         minute_allowance: values.minute_allowance ?? 0,
       });

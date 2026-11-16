@@ -14,8 +14,9 @@ import {
 
 import { ChartSummary } from "@/components/features/dashboard/chart-summary";
 import { ChartTableTwin, type ChartTableColumn } from "@/components/features/dashboard/chart-table-twin";
-import { DashboardChartError, useDashboardChartError } from "@/components/features/dashboard/dashboard-chart-state";
+import { DashboardChartError } from "@/components/features/dashboard/dashboard-chart-state";
 import { DashboardDateRange } from "@/components/features/dashboard/dashboard-date-range";
+import { useDashboardChartError } from "@/components/features/dashboard/use-dashboard-chart-error";
 import { Typography } from "@/components/ui/typography";
 import { useDepartmentAttendance, type DepartmentAttendancePoint } from "@/hooks/use-dashboard";
 import { useOrganization } from "@/hooks/use-organization";

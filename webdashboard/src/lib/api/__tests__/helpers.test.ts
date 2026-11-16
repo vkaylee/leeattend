@@ -202,8 +202,7 @@ describe('forceRefreshToken failure path', () => {
   });
 
   it('returns false and logs when refresh fetch rejects (catch path)', async () => {
-  // eslint-disable-next-line @typescript-eslint/no-empty-function
-    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
     const result = await forceRefreshToken();
     expect(result).toBe(false);
     expect(errorSpy).toHaveBeenCalledWith(
@@ -248,7 +247,7 @@ describe('handleUnauthorized (401 retry-on-refresh) via apiFetch', () => {
     });
     const mockFetch = globalThis.fetch as Mock;
     mockFetch.mockResolvedValueOnce(new Response('unauthenticated', { status: 401 }));
-    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
 
     await expect(apiFetch('/api/v1/secured')).rejects.toThrow('Session expired');
 

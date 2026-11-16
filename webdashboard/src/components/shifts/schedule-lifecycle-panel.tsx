@@ -12,10 +12,10 @@ import type {
 } from "@/lib/api";
 
 import Button from "@/components/ui/button";
-import { Typography } from "@/components/ui/typography";
 import { Combobox } from "@/components/ui/combobox";
 import { Skeleton } from "@/components/ui/skeleton";
 import StatusBadge from "@/components/ui/status-badge";
+import { Typography } from "@/components/ui/typography";
 import { useOrganization } from "@/hooks/use-organization";
 import {
   commitScheduleReplan,
@@ -67,7 +67,7 @@ function JsonPreview({ value }: { value: unknown }) {
 
 function LifecycleStatusList({ schedule, t }: { schedule: EmployeeSchedule; t: (key: string) => string }) {
   if (schedule.schedules.length === 0) {
-    return <Typography variant="p" className="text-sm text-slate-500 dark:text-slate-400">{t("scheduleLifecycle.empty")}</Typography>;
+    return <Typography className="text-sm text-slate-500 dark:text-slate-400" variant="p">{t("scheduleLifecycle.empty")}</Typography>;
   }
 
   return (
@@ -207,9 +207,9 @@ export function ScheduleLifecyclePanel({ approvalInstanceId, employeeSchedule, w
         <div>
           <div className="flex items-center gap-2">
             <ShieldCheck className="text-primary-600" size={18} />
-            <Typography variant="h2" className="text-base font-bold text-slate-800 dark:text-slate-100" id="schedule-lifecycle-title">{t("scheduleLifecycle.title")}</Typography>
+            <Typography className="text-base font-bold text-slate-800 dark:text-slate-100" id="schedule-lifecycle-title" variant="h2">{t("scheduleLifecycle.title")}</Typography>
           </div>
-          <Typography variant="p" className="mt-1 text-xs text-slate-500 dark:text-slate-400">{t("scheduleLifecycle.subtitle")}</Typography>
+          <Typography className="mt-1 text-xs text-slate-500 dark:text-slate-400" variant="p">{t("scheduleLifecycle.subtitle")}</Typography>
         </div>
         <div className="min-w-48">
           <span className="mb-1 block text-xs font-semibold text-slate-600 dark:text-slate-300">{t("scheduleLifecycle.dateLabel")}</span>
@@ -238,7 +238,7 @@ export function ScheduleLifecyclePanel({ approvalInstanceId, employeeSchedule, w
         </div>
       </div>
 
-      {!approvalInstanceId ? <p className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-200" role="status">{t("scheduleLifecycle.approvalRequired")}</p> : null}
+      {!approvalInstanceId ? <Typography className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-200" role="status" variant="p">{t("scheduleLifecycle.approvalRequired")}</Typography> : null}
       {preview ? <div className="space-y-2 rounded-xl border border-blue-200 bg-blue-50 p-3 dark:border-blue-900 dark:bg-blue-950/30"><div className="flex items-center gap-2 text-xs font-semibold text-blue-800 dark:text-blue-200"><CheckCircle2 size={15} />{t("scheduleLifecycle.provisionalNotice")} <StatusBadge variant="info">{t("scheduleLifecycle.states.provisional")}</StatusBadge></div><JsonPreview value={preview.data} /></div> : null}
 
       <div className="flex flex-wrap gap-2 border-t border-slate-100 pt-4 dark:border-slate-800">
@@ -247,10 +247,10 @@ export function ScheduleLifecyclePanel({ approvalInstanceId, employeeSchedule, w
         <Button disabled={!replacement || !selectedSchedule?.revision_number} icon={<RefreshCw size={15} />} loading={replanPreviewMutation.isPending} onClick={() => { replanPreviewMutation.mutate(); }} variant="outline">{t("scheduleLifecycle.replan")}</Button>
       </div>
 
-      {history ? <div aria-live="polite" className="space-y-3"><Typography variant="h3" className="text-sm font-bold text-slate-700 dark:text-slate-200">{t("scheduleLifecycle.history")}</Typography>{history.data.length === 0 ? <Typography variant="p" className="text-sm text-slate-500">{t("scheduleLifecycle.noHistory")}</Typography> : history.data.map((entry) => <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-200 p-3 dark:border-slate-700" key={entry.revision_id}><span className="font-mono text-xs">{entry.business_date} · r{entry.revision_number}</span><StatusBadge variant={lifecycleStatus(entry.state)}>{t(`scheduleLifecycle.states.${entry.state}`)}</StatusBadge><span className="text-xs text-slate-500">{entry.reason || t("scheduleLifecycle.noReason")}</span></div>)}</div> : null}
-      {evidence ? <div aria-live="polite" className="space-y-3"><Typography variant="h3" className="text-sm font-bold text-slate-700 dark:text-slate-200">{t("scheduleLifecycle.evidence")}</Typography><div className="grid gap-2 text-xs text-slate-600 dark:text-slate-300 sm:grid-cols-3"><span>{t("scheduleLifecycle.revisions")}: {evidence.revisions.length}</span><span>{t("scheduleLifecycle.segments")}: {evidence.segments.length}</span><span>{t("scheduleLifecycle.closures")}: {evidence.closure_days.length}</span></div><JsonPreview value={{ diff_chain: evidence.diff_chain, audit_actions: evidence.audit_actions, events: evidence.events }} /></div> : null}
+      {history ? <div aria-live="polite" className="space-y-3"><Typography className="text-sm font-bold text-slate-700 dark:text-slate-200" variant="h3">{t("scheduleLifecycle.history")}</Typography>{history.data.length === 0 ? <Typography className="text-sm text-slate-500" variant="p">{t("scheduleLifecycle.noHistory")}</Typography> : history.data.map((entry) => <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-200 p-3 dark:border-slate-700" key={entry.revision_id}><span className="font-mono text-xs">{entry.business_date} · r{entry.revision_number}</span><StatusBadge variant={lifecycleStatus(entry.state)}>{t(`scheduleLifecycle.states.${entry.state}`)}</StatusBadge><span className="text-xs text-slate-500">{entry.reason || t("scheduleLifecycle.noReason")}</span></div>)}</div> : null}
+      {evidence ? <div aria-live="polite" className="space-y-3"><Typography className="text-sm font-bold text-slate-700 dark:text-slate-200" variant="h3">{t("scheduleLifecycle.evidence")}</Typography><div className="grid gap-2 text-xs text-slate-600 dark:text-slate-300 sm:grid-cols-3"><span>{t("scheduleLifecycle.revisions")}: {evidence.revisions.length}</span><span>{t("scheduleLifecycle.segments")}: {evidence.segments.length}</span><span>{t("scheduleLifecycle.closures")}: {evidence.closure_days.length}</span></div><JsonPreview value={{ diff_chain: evidence.diff_chain, audit_actions: evidence.audit_actions, events: evidence.events }} /></div> : null}
       {replanPreview ? <div className="space-y-3 rounded-xl border border-amber-200 bg-amber-50 p-3 dark:border-amber-900 dark:bg-amber-950/30"><div className="flex items-center gap-2 text-xs font-semibold text-amber-800 dark:text-amber-200"><AlertTriangle size={15} />{t("scheduleLifecycle.diffNotice")}</div><JsonPreview value={replanPreview.diff} /><Button disabled={reason.trim().length === 0} loading={replanMutation.isPending} onClick={() => { replanMutation.mutate(); }}>{t("scheduleLifecycle.confirmReplan")}</Button></div> : null}
-      {activeError ? <Typography variant="p" className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700 dark:border-rose-900 dark:bg-rose-950/30 dark:text-rose-200" role="alert">{t(safeErrorMessage(activeError))}</Typography> : null}
+      {activeError ? <Typography className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700 dark:border-rose-900 dark:bg-rose-950/30 dark:text-rose-200" role="alert" variant="p">{t(safeErrorMessage(activeError))}</Typography> : null}
       {isBusy && !preview && !history && !evidence ? <div aria-label={t("common.loading")} className="space-y-2"><Skeleton className="h-4 w-1/2" /><Skeleton className="h-16 w-full" /></div> : null}
     </section>
   );

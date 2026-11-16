@@ -135,6 +135,52 @@ function ConditionMobileCard({
   );
 }
 
+function ConditionsDesktopTable({
+  conditions,
+  currentLang,
+  formatDate,
+  onDelete,
+  t,
+  typeDefs,
+}: {
+  conditions: WorkingConditionWithEmployee[];
+  currentLang: string;
+  formatDate: (date: string) => string;
+  onDelete: (condition: WorkingConditionWithEmployee) => void;
+  t: (key: string, options?: { defaultValue?: string }) => string;
+  typeDefs: ConditionTypeDefinition[];
+}) {
+  const { onClickCapture, setRef } = useHorizontalDragScroll<HTMLDivElement>();
+  const headerClass = "px-8 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest";
+  const headers = [["working_conditions.table.employee", "NHÂN SỰ"], ["working_conditions.table.condition_type", "LOẠI ĐIỀU KIỆN"], ["working_conditions.table.duration", "THỜI HẠN ÁP DỤNG"], ["working_conditions.table.payment_regime", "CHẾ ĐỘ HƯỞNG LƯƠNG"]] as const;
+  return (
+    <div className="overflow-x-auto overscroll-contain" onClickCapture={onClickCapture} ref={setRef}><table className="w-full min-w-[820px] text-left border-collapse"><thead><tr className="border-b border-slate-100 dark:border-slate-800/60">{headers.map(([key, fallback]) => <th className={headerClass} key={key}>{t(key, { defaultValue: fallback })}</th>)}<th className={`${headerClass} text-right`}>{t("common.actions", { defaultValue: "THAO TÁC" })}</th></tr></thead><tbody>{conditions.map((condition) => <ConditionDesktopRow condition={condition} currentLang={currentLang} formatDate={formatDate} key={condition.id} onDelete={onDelete} t={t} typeDefs={typeDefs} />)}</tbody></table></div>
+  );
+}
+
+function ConditionDesktopRow({
+  condition,
+  currentLang,
+  formatDate,
+  onDelete,
+  t,
+  typeDefs,
+}: {
+  condition: WorkingConditionWithEmployee;
+  currentLang: string;
+  formatDate: (date: string) => string;
+  onDelete: (condition: WorkingConditionWithEmployee) => void;
+  t: (key: string, options?: { defaultValue?: string }) => string;
+  typeDefs: ConditionTypeDefinition[];
+}) {
+  const displayName = getConditionDisplayName(typeDefs, condition.type, currentLang);
+  const icon = getConditionIcon(typeDefs, condition.type);
+  const paymentClass = condition.is_paid ? "bg-emerald-50 text-emerald-600 border-emerald-100 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800" : "bg-slate-50 text-slate-500 border-slate-100 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700";
+  return (
+    <tr className="border-b border-slate-50 dark:border-slate-800/50 hover:bg-slate-50/40 dark:hover:bg-slate-800/20 transition-colors group"><td className="px-8 py-5"><div className="flex flex-col"><Link className="text-xs font-bold text-slate-800 dark:text-slate-100 uppercase tracking-wide group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors flex items-center gap-1.5" params={{ employeeId: condition.employee_id }} search={{ tab: "working-conditions" }} to="/employees/$employeeId"><span>{condition.employee_name}</span><ExternalLink className="opacity-0 group-hover:opacity-70 transition-opacity" size={11} /></Link>{!!condition.employee_code && <span className="text-[10px] font-mono text-slate-400 mt-0.5 font-bold">{condition.employee_code}</span>}</div></td><td className="px-8 py-5"><div className="flex items-center gap-2.5"><div className="w-8 h-8 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-600 dark:text-slate-300 shrink-0">{icon}</div><span className="text-xs font-bold text-slate-700 dark:text-slate-200 uppercase tracking-wide">{displayName}</span></div></td><td className="px-8 py-5 text-xs text-slate-600 dark:text-slate-300 font-medium">{formatDate(condition.start_date)}{" → "}{condition.end_date ? formatDate(condition.end_date) : t("common.present", { defaultValue: "Hiện tại" })}</td><td className="px-8 py-5"><span className={cn("text-[9px] font-bold uppercase tracking-widest px-2.5 py-0.5 border rounded-full shadow-xs", paymentClass)}>{condition.is_paid ? t("working_conditions.paid", { defaultValue: "Có hưởng lương" }) : t("working_conditions.unpaid", { defaultValue: "Không hưởng lương" })}</span></td><td className="px-8 py-5 text-right"><div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity"><Button aria-label={t("working_conditions.actions.delete", { defaultValue: "Xóa" })} className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/30 rounded-xl transition-colors h-auto w-auto shadow-none" onClick={() => { onDelete(condition); }} size="icon" variant="ghost"><Trash2 size={14} /></Button></div></td></tr>
+  );
+}
+
 export interface WorkingConditionsTableProps {
   conditions: WorkingConditionWithEmployee[];
   isLoading: boolean;
@@ -158,10 +204,6 @@ export function WorkingConditionsTable({
 }: WorkingConditionsTableProps) {
   const { t, i18n } = useTranslation();
   const { formatDate } = useDateTimeFormatter();
-  const {
-    onClickCapture: handleHorizontalDragClick,
-    setRef: setHorizontalDragScrollRef,
-  } = useHorizontalDragScroll<HTMLDivElement>();
   const currentLang = i18n.language.split("-")[0];
 
   if (isLoading) {
@@ -233,109 +275,7 @@ export function WorkingConditionsTable({
           typeDefs={typeDefs}
         />
       )}
-      renderDesktopTable={() => (
-        <div
-          className="overflow-x-auto overscroll-contain"
-          onClickCapture={handleHorizontalDragClick}
-          ref={setHorizontalDragScrollRef}
-        >
-          <table className="w-full min-w-[820px] text-left border-collapse">
-            <thead>
-              <tr className="border-b border-slate-100 dark:border-slate-800/60">
-                <th className="px-8 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                  {t("working_conditions.table.employee", { defaultValue: "NHÂN SỰ" })}
-                </th>
-                <th className="px-8 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                  {t("working_conditions.table.condition_type", { defaultValue: "LOẠI ĐIỀU KIỆN" })}
-                </th>
-                <th className="px-8 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                  {t("working_conditions.table.duration", { defaultValue: "THỜI HẠN ÁP DỤNG" })}
-                </th>
-                <th className="px-8 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                  {t("working_conditions.table.payment_regime", { defaultValue: "CHẾ ĐỘ HƯỞNG LƯƠNG" })}
-                </th>
-                <th className="px-8 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-right">
-                  {t("common.actions", { defaultValue: "THAO TÁC" })}
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {conditions.map((c) => {
-                const displayName = getConditionDisplayName(typeDefs, c.type, currentLang);
-                const icon = getConditionIcon(typeDefs, c.type);
-
-                return (
-                  <tr
-                    className="border-b border-slate-50 dark:border-slate-800/50 hover:bg-slate-50/40 dark:hover:bg-slate-800/20 transition-colors group"
-                    key={c.id}
-                  >
-                    <td className="px-8 py-5">
-                      <div className="flex flex-col">
-                        <Link
-                          className="text-xs font-bold text-slate-800 dark:text-slate-100 uppercase tracking-wide group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors flex items-center gap-1.5"
-                          params={{ employeeId: c.employee_id }}
-                          search={{ tab: "working-conditions" }}
-                          to="/employees/$employeeId"
-                        >
-                          <span>{c.employee_name}</span>
-                          <ExternalLink className="opacity-0 group-hover:opacity-70 transition-opacity" size={11} />
-                        </Link>
-                        {!!c.employee_code && (
-                          <span className="text-[10px] font-mono text-slate-400 mt-0.5 font-bold">
-                            {c.employee_code}
-                          </span>
-                        )}
-                      </div>
-                    </td>
-                    <td className="px-8 py-5">
-                      <div className="flex items-center gap-2.5">
-                        <div className="w-8 h-8 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-600 dark:text-slate-300 shrink-0">
-                          {icon}
-                        </div>
-                        <span className="text-xs font-bold text-slate-700 dark:text-slate-200 uppercase tracking-wide">
-                          {displayName}
-                        </span>
-                      </div>
-                    </td>
-                    <td className="px-8 py-5 text-xs text-slate-600 dark:text-slate-300 font-medium">
-                      {formatDate(c.start_date)}
-                      {" → "}
-                      {c.end_date ? formatDate(c.end_date) : t("common.present", { defaultValue: "Hiện tại" })}
-                    </td>
-                    <td className="px-8 py-5">
-                      <span
-                        className={cn(
-                          "text-[9px] font-bold uppercase tracking-widest px-2.5 py-0.5 border rounded-full shadow-xs",
-                          c.is_paid
-                            ? "bg-emerald-50 text-emerald-600 border-emerald-100 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800"
-                            : "bg-slate-50 text-slate-500 border-slate-100 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700"
-                        )}
-                      >
-                        {c.is_paid
-                          ? t("working_conditions.paid", { defaultValue: "Có hưởng lương" })
-                          : t("working_conditions.unpaid", { defaultValue: "Không hưởng lương" })}
-                      </span>
-                    </td>
-                    <td className="px-8 py-5 text-right">
-                      <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <Button
-                          aria-label={t("working_conditions.actions.delete", { defaultValue: "Xóa" })}
-                          className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30 rounded-xl transition-colors h-auto w-auto shadow-none"
-                          onClick={() => { onDelete(c); }}
-                          size="icon"
-                          variant="ghost"
-                        >
-                          <Trash2 size={14} />
-                        </Button>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      )}
+      renderDesktopTable={() => <ConditionsDesktopTable conditions={conditions} currentLang={currentLang} formatDate={formatDate} onDelete={onDelete} t={t} typeDefs={typeDefs} />}
     />
   );
 }

@@ -1,4 +1,4 @@
-import React, { createContext, memo, useCallback, useContext, useId, useMemo } from "react";
+import { type ComponentPropsWithoutRef, type HTMLAttributes, type KeyboardEvent, type MouseEvent, type ReactNode, createContext, memo, useCallback, useContext, useId, useMemo } from "react";
 
 import { type ControlSize, CONTROL_SIZE_STYLES, CONTROL_TEXT_STYLE } from "@/components/ui/control-styles";
 import { cn } from "@/lib/utils";
@@ -11,8 +11,16 @@ interface TabsContextProps {
 
 const TabsContext = createContext<TabsContextProps | undefined>(undefined);
 
+function getNextTabIndex(currentIndex: number, key: string, length: number): number {
+  if (key === "ArrowRight" || key === "ArrowDown") return (currentIndex + 1) % length;
+  if (key === "ArrowLeft" || key === "ArrowUp") return (currentIndex - 1 + length) % length;
+  if (key === "Home") return 0;
+  if (key === "End") return length - 1;
+  return currentIndex;
+}
+
 export interface TabsProps {
-  children: React.ReactNode;
+  children: ReactNode;
   className?: string;
   onValueChange: (value: string) => void;
   value: string;
@@ -33,8 +41,8 @@ export const Tabs = memo(function Tabs({ value, onValueChange, children, classNa
 });
 Tabs.displayName = "Tabs";
 
-export interface TabsListProps extends React.HTMLAttributes<HTMLDivElement> {
-  children: React.ReactNode;
+export interface TabsListProps extends HTMLAttributes<HTMLDivElement> {
+  children: ReactNode;
 }
 
 export const TabsList = memo(function TabsList({ children, className, ...props }: TabsListProps) {
@@ -48,10 +56,10 @@ TabsList.displayName = "TabsList";
 
 type TabsTriggerProps = {
   value: string;
-  children: React.ReactNode;
+  children: ReactNode;
   className?: string;
   size?: ControlSize;
-} & Omit<React.ComponentPropsWithoutRef<"button">, "className" | "children">;
+} & Omit<ComponentPropsWithoutRef<"button">, "className" | "children">;
 
 export const TabsTrigger = memo(function TabsTrigger({
   value,
@@ -76,7 +84,7 @@ export const TabsTrigger = memo(function TabsTrigger({
   }, [disabled, onValueChange, value]);
 
   const handleClick = useCallback(
-    (event: React.MouseEvent<HTMLButtonElement>) => {
+    (event: MouseEvent<HTMLButtonElement>) => {
       onClick?.(event);
       if (!event.defaultPrevented) select();
     },
@@ -84,7 +92,7 @@ export const TabsTrigger = memo(function TabsTrigger({
   );
 
   const handleKeyDown = useCallback(
-    (event: React.KeyboardEvent<HTMLButtonElement>) => {
+    (event: KeyboardEvent<HTMLButtonElement>) => {
       onKeyDown?.(event);
       if (event.defaultPrevented || disabled) return;
 
@@ -94,11 +102,7 @@ export const TabsTrigger = memo(function TabsTrigger({
       const currentIndex = triggers.indexOf(event.currentTarget);
       if (currentIndex < 0) return;
 
-      let nextIndex = currentIndex;
-      if (event.key === "ArrowRight" || event.key === "ArrowDown") nextIndex = (currentIndex + 1) % triggers.length;
-      if (event.key === "ArrowLeft" || event.key === "ArrowUp") nextIndex = (currentIndex - 1 + triggers.length) % triggers.length;
-      if (event.key === "Home") nextIndex = 0;
-      if (event.key === "End") nextIndex = triggers.length - 1;
+      const nextIndex = getNextTabIndex(currentIndex, event.key, triggers.length);
       if (nextIndex === currentIndex) return;
 
       event.preventDefault();
@@ -139,8 +143,8 @@ export const TabsTrigger = memo(function TabsTrigger({
 });
 TabsTrigger.displayName = "TabsTrigger";
 
-export interface TabsContentProps extends React.HTMLAttributes<HTMLDivElement> {
-  children: React.ReactNode;
+export interface TabsContentProps extends HTMLAttributes<HTMLDivElement> {
+  children: ReactNode;
   value: string;
 }
 

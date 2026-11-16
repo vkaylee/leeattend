@@ -3,7 +3,7 @@ import React from "react";
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import SettingsSidebar from "../components/settings-sidebar";
+import { SettingsSidebar } from "../components/settings-sidebar";
 import * as hooks from "../hooks/use-settings-nav";
 
 // ── Mocks ─────────────────────────────────────────────────────────────

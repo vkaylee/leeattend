@@ -1,4 +1,4 @@
-import { AlertCircle, Eye, FileText, Search, Calendar } from "lucide-react";
+import { AlertCircle, Calendar, Eye, FileText, Search } from "lucide-react";
 import React, { useState } from "react";
 
 import Button from "@/components/ui/button";
@@ -15,27 +15,114 @@ interface EContractsEnvelopesTabProps {
   isLoading: boolean;
 }
 
-// eslint-disable-next-line max-lines-per-function -- table with envelope tracking, log modal, pagination; 10 lines over threshold
-export default function EContractsEnvelopesTab({
-  envelopes,
-  isLoading,
-}: EContractsEnvelopesTabProps) {
+interface EnvelopeActionProps {
+  envelope: EContractEnvelope;
+  onOpenLogs: (envelope: EContractEnvelope) => void;
+}
+
+function getEnvelopeStatusClass(status: string): string {
+  if (status === "completed") {
+    return "bg-emerald-50 text-emerald-600 border-emerald-100 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800";
+  }
+  if (status === "sent") {
+    return "bg-amber-50 text-amber-600 border-amber-100 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800";
+  }
+  return "bg-slate-50 text-slate-500 border-slate-100 dark:bg-slate-800/50 dark:text-slate-400 dark:border-slate-750";
+}
+
+function EnvelopeStatus({ status }: { status: string }) {
+  return (
+    <span className={cn("text-[9px] font-bold uppercase tracking-widest px-2.5 py-0.5 rounded-full border shadow-sm", getEnvelopeStatusClass(status))}>
+      {status}
+    </span>
+  );
+}
+
+function EnvelopeAction({ envelope, onOpenLogs }: EnvelopeActionProps) {
+  return (
+    <Button
+      className="flex items-center gap-1 text-[10px] font-bold text-slate-500 hover:text-primary-600 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-850 hover:bg-slate-50 transition-colors"
+      onClick={() => { onOpenLogs(envelope); }}
+      size="sm"
+      variant="ghost"
+    >
+      <Eye className="mr-1" size={12} /> WEBHOOK LOGS
+    </Button>
+  );
+}
+
+interface EnvelopeCardProps extends EnvelopeActionProps {
+  formatDate: (date: string) => string;
+}
+
+function EnvelopeCard({ envelope, formatDate, onOpenLogs }: EnvelopeCardProps) {
+  return (
+    <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0 flex-1">
+          <div className="truncate font-mono text-xs font-bold text-slate-800 dark:text-slate-200">{envelope.external_envelope_id}</div>
+          <div className="mt-1 text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">{envelope.provider_type}</div>
+        </div>
+        <EnvelopeStatus status={envelope.status} />
+      </div>
+      <div className="mt-4 flex items-center gap-2 border-t border-slate-100 pt-4 dark:border-slate-800">
+        <Calendar className="h-3.5 w-3.5 text-slate-400" />
+        <span className="text-xs font-mono text-slate-500 dark:text-slate-400">{formatDate(envelope.created_at)}</span>
+      </div>
+      <div className="mt-4 flex items-center justify-end border-t border-slate-100 pt-4 dark:border-slate-800">
+        <EnvelopeAction envelope={envelope} onOpenLogs={onOpenLogs} />
+      </div>
+    </div>
+  );
+}
+
+interface EnvelopeDesktopTableProps {
+  envelopes: EContractEnvelope[];
+  formatDate: (date: string) => string;
+  onOpenLogs: (envelope: EContractEnvelope) => void;
+}
+
+function EnvelopeDesktopTable({ envelopes, formatDate, onOpenLogs }: EnvelopeDesktopTableProps) {
+  return (
+    <table className="w-full text-left border-collapse">
+      <thead>
+        <tr className="bg-slate-50 dark:bg-slate-800/10">
+          {['External ID', 'Provider', 'Status', 'Date Generated', ''].map((heading) => (
+            <th className="px-8 py-5 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest border-b border-slate-50 dark:border-slate-800" key={heading}>
+              {heading}
+            </th>
+          ))}
+        </tr>
+      </thead>
+      <tbody>
+        {envelopes.map((envelope) => (
+          <tr className="border-b border-slate-50 dark:border-slate-800/50 hover:bg-slate-50/50 dark:hover:bg-slate-800/10 transition-colors" key={envelope.id}>
+            <td className="px-8 py-6 text-xs font-mono font-bold text-slate-800 dark:text-slate-200">{envelope.external_envelope_id}</td>
+            <td className="px-8 py-6 text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-350">{envelope.provider_type}</td>
+            <td className="px-8 py-6"><EnvelopeStatus status={envelope.status} /></td>
+            <td className="px-8 py-6 text-xs font-mono text-slate-500 dark:text-slate-400">{formatDate(envelope.created_at)}</td>
+            <td className="px-8 py-6 text-right"><EnvelopeAction envelope={envelope} onOpenLogs={onOpenLogs} /></td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+}
+
+export default function EContractsEnvelopesTab({ envelopes, isLoading }: EContractsEnvelopesTabProps) {
   const [selectedEnvelopeForLog, setSelectedEnvelopeForLog] = useState<EContractEnvelope | null>(null);
   const { formatDate } = useDateTimeFormatter();
-
-  // Filters for Envelope dashboard
   const [envFilterSearch, setEnvFilterSearch] = useState("");
   const [envFilterProvider, setEnvFilterProvider] = useState("all");
   const [envFilterStatus, setEnvFilterStatus] = useState("all");
-
-  const filteredEnvelopes = envelopes.filter((env) => {
-    const matchesSearch =
-      env.external_envelope_id.toLowerCase().includes(envFilterSearch.toLowerCase()) ||
-      env.id.toLowerCase().includes(envFilterSearch.toLowerCase());
-    const matchesProvider = envFilterProvider === "all" || env.provider_type === envFilterProvider;
-    const matchesStatus = envFilterStatus === "all" || env.status === envFilterStatus;
+  const searchTerm = envFilterSearch.toLowerCase();
+  const filteredEnvelopes = envelopes.filter((envelope) => {
+    const matchesSearch = envelope.external_envelope_id.toLowerCase().includes(searchTerm) || envelope.id.toLowerCase().includes(searchTerm);
+    const matchesProvider = envFilterProvider === "all" || envelope.provider_type === envFilterProvider;
+    const matchesStatus = envFilterStatus === "all" || envelope.status === envFilterStatus;
     return matchesSearch && matchesProvider && matchesStatus;
   });
+  const openLogs = (envelope: EContractEnvelope) => { setSelectedEnvelopeForLog(envelope); };
 
   return (
     <div className="space-y-6">
@@ -47,141 +134,22 @@ export default function EContractsEnvelopesTab({
         setEnvFilterSearch={setEnvFilterSearch}
         setEnvFilterStatus={setEnvFilterStatus}
       />
-
       <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl sm:rounded-[2.5rem] overflow-hidden shadow-sm">
         {isLoading ? (
           <div className="p-8 text-center text-xs text-slate-500 animate-pulse">Loading envelopes...</div>
         ) : filteredEnvelopes.length === 0 ? (
-          <EmptyState
-            description="No signing envelope transactions match the filter criteria."
-            icon={<FileText size={40} />}
-            title="No Envelopes Found"
-          />
+          <EmptyState description="No signing envelope transactions match the filter criteria." icon={<FileText size={40} />} title="No Envelopes Found" />
         ) : (
           <ResponsiveTable<EContractEnvelope>
             data={filteredEnvelopes}
-            getCardKey={(env) => env.id}
+            getCardKey={(envelope) => envelope.id}
             isLoading={false}
-            renderCard={(env) => (
-              <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-                {/* Header: External ID + Status */}
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0 flex-1">
-                    <div className="truncate font-mono text-xs font-bold text-slate-800 dark:text-slate-200">
-                      {env.external_envelope_id}
-                    </div>
-                    <div className="mt-1 text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                      {env.provider_type}
-                    </div>
-                  </div>
-                  <span
-                    className={cn(
-                      "shrink-0 text-[9px] font-bold uppercase tracking-widest px-2.5 py-0.5 rounded-full border shadow-sm",
-                      env.status === "completed"
-                        ? "bg-emerald-50 text-emerald-600 border-emerald-100 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800"
-                        : env.status === "sent"
-                        ? "bg-amber-50 text-amber-600 border-amber-100 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800"
-                        : "bg-slate-50 text-slate-500 border-slate-100 dark:bg-slate-800/50 dark:text-slate-400 dark:border-slate-750"
-                    )}
-                  >
-                    {env.status}
-                  </span>
-                </div>
-
-                {/* Detail */}
-                <div className="mt-4 flex items-center gap-2 border-t border-slate-100 pt-4 dark:border-slate-800">
-                  <Calendar className="h-3.5 w-3.5 text-slate-400" />
-                  <span className="text-xs font-mono text-slate-500 dark:text-slate-400">
-                    {formatDate(env.created_at)}
-                  </span>
-                </div>
-
-                {/* Actions */}
-                <div className="mt-4 flex items-center justify-end border-t border-slate-100 pt-4 dark:border-slate-800">
-                  <Button
-                    className="flex items-center gap-1 text-[10px] font-bold text-slate-500 hover:text-primary-600 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-850 hover:bg-slate-50 transition-colors"
-                    onClick={() => { setSelectedEnvelopeForLog(env); }}
-                    size="sm"
-                    variant="ghost"
-                  >
-                    <Eye className="mr-1" size={12} /> WEBHOOK LOGS
-                  </Button>
-                </div>
-              </div>
-            )}
-            renderDesktopTable={() => (
-              <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className="bg-slate-50 dark:bg-slate-800/10">
-                    <th className="px-8 py-5 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest border-b border-slate-50 dark:border-slate-800">
-                      External ID
-                    </th>
-                    <th className="px-8 py-5 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest border-b border-slate-50 dark:border-slate-800">
-                      Provider
-                    </th>
-                    <th className="px-8 py-5 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest border-b border-slate-50 dark:border-slate-800">
-                      Status
-                    </th>
-                    <th className="px-8 py-5 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest border-b border-slate-50 dark:border-slate-800">
-                      Date Generated
-                    </th>
-                    <th className="px-8 py-5 border-b border-slate-50 dark:border-slate-800"></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredEnvelopes.map((env) => (
-                    <tr
-                      className="border-b border-slate-50 dark:border-slate-800/50 hover:bg-slate-50/50 dark:hover:bg-slate-800/10 transition-colors"
-                      key={env.id}
-                    >
-                      <td className="px-8 py-6 text-xs font-mono font-bold text-slate-800 dark:text-slate-200">
-                        {env.external_envelope_id}
-                      </td>
-                      <td className="px-8 py-6 text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-350">
-                        {env.provider_type}
-                      </td>
-                      <td className="px-8 py-6">
-                        <span
-                          className={cn(
-                            "text-[9px] font-bold uppercase tracking-widest px-2.5 py-0.5 rounded-full border shadow-sm",
-                            env.status === "completed"
-                              ? "bg-emerald-50 text-emerald-600 border-emerald-100 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800"
-                              : env.status === "sent"
-                              ? "bg-amber-50 text-amber-600 border-amber-100 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800"
-                              : "bg-slate-50 text-slate-500 border-slate-100 dark:bg-slate-800/50 dark:text-slate-400 dark:border-slate-750"
-                          )}
-                        >
-                          {env.status}
-                        </span>
-                      </td>
-                      <td className="px-8 py-6 text-xs font-mono text-slate-500 dark:text-slate-400">
-                        {formatDate(env.created_at)}
-                      </td>
-                      <td className="px-8 py-6 text-right">
-                        <Button
-                          className="flex items-center gap-1 text-[10px] font-bold text-slate-500 hover:text-primary-600 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-850 hover:bg-slate-50 transition-colors"
-                          onClick={() => { setSelectedEnvelopeForLog(env); }}
-                          size="sm"
-                          variant="ghost"
-                        >
-                          <Eye className="mr-1" size={12} /> WEBHOOK LOGS
-                        </Button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
+            renderCard={(envelope) => <EnvelopeCard envelope={envelope} formatDate={formatDate} onOpenLogs={openLogs} />}
+            renderDesktopTable={() => <EnvelopeDesktopTable envelopes={filteredEnvelopes} formatDate={formatDate} onOpenLogs={openLogs} />}
           />
         )}
       </div>
-
-      <WebhookLogsModal
-        envelope={selectedEnvelopeForLog}
-        onClose={() => {
-          setSelectedEnvelopeForLog(null);
-        }}
-      />
+      <WebhookLogsModal envelope={selectedEnvelopeForLog} onClose={() => { setSelectedEnvelopeForLog(null); }} />
     </div>
   );
 }
@@ -190,19 +158,12 @@ interface EnvelopeFiltersProps {
   envFilterProvider: string;
   envFilterSearch: string;
   envFilterStatus: string;
-  setEnvFilterProvider: (val: string) => void;
-  setEnvFilterSearch: (val: string) => void;
-  setEnvFilterStatus: (val: string) => void;
+  setEnvFilterProvider: (value: string) => void;
+  setEnvFilterSearch: (value: string) => void;
+  setEnvFilterStatus: (value: string) => void;
 }
 
-function EnvelopeFilters({
-  envFilterProvider,
-  envFilterSearch,
-  envFilterStatus,
-  setEnvFilterProvider,
-  setEnvFilterSearch,
-  setEnvFilterStatus,
-}: EnvelopeFiltersProps) {
+function EnvelopeFilters({ envFilterProvider, envFilterSearch, envFilterStatus, setEnvFilterProvider, setEnvFilterSearch, setEnvFilterStatus }: EnvelopeFiltersProps) {
   return (
     <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-6 rounded-[2rem] shadow-sm flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
       <div className="relative flex-1 max-w-md">
@@ -210,53 +171,20 @@ function EnvelopeFilters({
         <input
           aria-label="Search envelopes by ID"
           className="w-full h-11 pl-11 pr-4 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-semibold tracking-tight text-slate-700 dark:text-slate-200 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all dark:bg-slate-850 dark:border-slate-800"
-          onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-            setEnvFilterSearch(e.target.value);
-          }}
+          onChange={(event: React.ChangeEvent<HTMLInputElement>) => { setEnvFilterSearch(event.target.value); }}
           placeholder="Search envelopes by ID..."
           type="text"
           value={envFilterSearch}
         />
       </div>
-
       <div className="flex flex-wrap items-center gap-3">
         <div className="w-40">
-          <label className="sr-only" htmlFor="provider-filter">
-            Filter by Provider
-          </label>
-          <Combobox
-            id="provider-filter"
-            onChange={setEnvFilterProvider}
-            options={[
-              { value: "all", label: "All Providers" },
-              { value: "smartca", label: "VN SmartCA" },
-              { value: "hsm", label: "Corporate HSM" },
-              { value: "fpt", label: "FPT CeCA" },
-              { value: "docusign", label: "DocuSign" },
-              { value: "mock", label: "Mock Sandbox" },
-            ]}
-            placeholder="All Providers"
-            value={envFilterProvider}
-          />
+          <label className="sr-only" htmlFor="provider-filter">Filter by Provider</label>
+          <Combobox id="provider-filter" onChange={setEnvFilterProvider} options={[{ value: "all", label: "All Providers" }, { value: "smartca", label: "VN SmartCA" }, { value: "hsm", label: "Corporate HSM" }, { value: "fpt", label: "FPT CeCA" }, { value: "docusign", label: "DocuSign" }, { value: "mock", label: "Mock Sandbox" }]} placeholder="All Providers" value={envFilterProvider} />
         </div>
-
         <div className="w-40">
-          <label className="sr-only" htmlFor="status-filter">
-            Filter by Status
-          </label>
-          <Combobox
-            id="status-filter"
-            onChange={setEnvFilterStatus}
-            options={[
-              { value: "all", label: "All Statuses" },
-              { value: "draft", label: "Draft" },
-              { value: "sent", label: "Sent" },
-              { value: "completed", label: "Completed" },
-              { value: "voided", label: "Voided" },
-            ]}
-            placeholder="All Statuses"
-            value={envFilterStatus}
-          />
+          <label className="sr-only" htmlFor="status-filter">Filter by Status</label>
+          <Combobox id="status-filter" onChange={setEnvFilterStatus} options={[{ value: "all", label: "All Statuses" }, { value: "draft", label: "Draft" }, { value: "sent", label: "Sent" }, { value: "completed", label: "Completed" }, { value: "voided", label: "Voided" }]} placeholder="All Statuses" value={envFilterStatus} />
         </div>
       </div>
     </div>
@@ -270,28 +198,14 @@ interface WebhookLogsModalProps {
 
 function WebhookLogsModal({ envelope, onClose }: WebhookLogsModalProps) {
   return (
-    <Modal
-      icon={<AlertCircle size={24} />}
-      isOpen={Boolean(envelope)}
-      onClose={onClose}
-      subtitle={`Audit events & incoming webhook responses for ${envelope?.external_envelope_id}`}
-      title="Webhooks & Audit Trail"
-    >
+    <Modal icon={<AlertCircle size={24} />} isOpen={Boolean(envelope)} onClose={onClose} subtitle={`Audit events & incoming webhook responses for ${envelope?.external_envelope_id}`} title="Webhooks & Audit Trail">
       {!!envelope && (
         <div className="space-y-6 pt-4">
           <div className="bg-slate-950 p-6 rounded-3xl font-mono text-[11px] text-emerald-400 overflow-x-auto select-all max-h-96 shadow-inner">
-            <pre>
-              {JSON.stringify(
-                envelope.audit_trail_metadata ?? { message: "No callback metadata captured" },
-                null,
-                2
-              )}
-            </pre>
+            <pre>{JSON.stringify(envelope.audit_trail_metadata ?? { message: "No callback metadata captured" }, null, 2)}</pre>
           </div>
           <div className="flex items-center justify-end pt-4 border-t border-slate-100 dark:border-slate-800">
-            <Button onClick={onClose} type="button" variant="outline">
-              CLOSE
-            </Button>
+            <Button onClick={onClose} type="button" variant="outline">CLOSE</Button>
           </div>
         </div>
       )}

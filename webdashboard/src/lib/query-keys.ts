@@ -95,6 +95,7 @@ export const payrollKeys = {
   workPolicyValidation: (versionId?: string) => ["payroll-work-policy-validation", versionId] as const,
   workPolicyMemberships: (groupId?: string) => ["payroll-work-policy-memberships", groupId] as const,
   workPolicyReferences: () => ["payroll-work-policy-reference-options"] as const,
+  membershipEmployments: (employeeId?: string) => ["payroll-settings-membership-employments", employeeId] as const,
   workPolicyResolved: (employmentId?: string, asOf?: string) => ["payroll-work-policy-resolved", employmentId, asOf] as const,
   rules: () => ["payroll-rules"] as const,
   ruleTiers: (ruleId?: string) => ["payroll-rule-tiers", ruleId] as const,

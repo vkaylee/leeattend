@@ -1,6 +1,6 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, fireEvent, waitFor, within } from "@testing-library/react";
-import React from "react";
+import { type ReactNode, useState } from "react";
 
 import userEvent from "@testing-library/user-event";
 import { describe, it, expect, vi, beforeEach, type Mock } from "vitest";
@@ -24,7 +24,7 @@ vi.mock("react-i18next", () => ({
 // Mock TanStack Router
 vi.mock("@tanstack/react-router", () => ({
   useSearch: () => ({ q: "" }),
-  Link: ({ to, children, ...props }: { to?: string; children: React.ReactNode }) => (
+  Link: ({ to, children, ...props }: { to?: string; children: ReactNode }) => (
     <a href={to} {...props}>
       {children}
     </a>
@@ -62,7 +62,7 @@ vi.mock("@/hooks/use-confirm", () => ({
 // Mock ContractFormModal
 vi.mock("@/components/common/employee-search", () => ({
   EmployeeSearch: ({ onChange, placeholder, value }: { onChange: (value: string) => void; placeholder?: string; value?: string }) => {
-    const [query, setQuery] = React.useState("");
+    const [query, setQuery] = useState("");
     const options = [
       { id: "emp-1", name: "John Doe", code: "EMP001" },
       { id: "emp-2", name: "Jane Smith", code: "EMP002" },

@@ -52,7 +52,6 @@ export function ShiftSwapCreateForm({
           value={requesterId}
         />
         <EmployeeSelect
-          disabled={!requesterId}
           excludeId={requesterId}
           label={t("shift_swaps.target")}
           onChange={setTargetId}
@@ -111,7 +110,7 @@ export function ShiftSwapCreateForm({
 }
 
 function EmployeeSelect({
-  disabled,
+  disabled: _disabled,
   excludeId,
   label,
   onChange,

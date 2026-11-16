@@ -22,10 +22,10 @@ interface Props {
 interface FormErrors {
   date?: string;
   days?: string;
+  form?: string;
   hours?: string;
   otDay?: string;
   otMonth?: string;
-  form?: string;
 }
 
 interface TemporalConfigAddFormProps {
@@ -92,13 +92,13 @@ function TemporalConfigAddForm({
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
         <div className="space-y-3">
           <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1" htmlFor={`${fieldIdPrefix}-ot-day`}>{t("payroll.settings.max_ot_hours_per_day")}</label>
-          <input aria-describedby={errors.otDay ? "work-policy-ot-day-error" : undefined} aria-invalid={!!errors.otDay} className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl px-5 py-4 text-sm font-bold focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all font-mono" id={`${fieldIdPrefix}-ot-day`} onChange={e => { setNewMaxOtDay(e.target.value); }} placeholder={t("payroll.settings.no_limit") || ""} min="0" step="0.01" type="number" value={newMaxOtDay} />
+          <input aria-describedby={errors.otDay ? "work-policy-ot-day-error" : undefined} aria-invalid={!!errors.otDay} className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl px-5 py-4 text-sm font-bold focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all font-mono" id={`${fieldIdPrefix}-ot-day`} min="0" onChange={e => { setNewMaxOtDay(e.target.value); }} placeholder={t("payroll.settings.no_limit") || ""} step="0.01" type="number" value={newMaxOtDay} />
           {!!errors.otDay && <Typography className="text-xs text-red-600" id="work-policy-ot-day-error" variant="p">{errors.otDay}</Typography>}
           <Typography className="text-[9px] text-slate-400 ml-1" variant="p">{t("payroll.settings.ot_empty_hint")}</Typography>
         </div>
         <div className="space-y-3">
           <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1" htmlFor={`${fieldIdPrefix}-ot-month`}>{t("payroll.settings.max_ot_hours_per_month")}</label>
-          <input aria-describedby={errors.otMonth ? "work-policy-ot-month-error" : undefined} aria-invalid={!!errors.otMonth} className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl px-5 py-4 text-sm font-bold focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all font-mono" id={`${fieldIdPrefix}-ot-month`} onChange={e => { setNewMaxOtMonth(e.target.value); }} placeholder={t("payroll.settings.no_limit") || ""} min="0" step="0.01" type="number" value={newMaxOtMonth} />
+          <input aria-describedby={errors.otMonth ? "work-policy-ot-month-error" : undefined} aria-invalid={!!errors.otMonth} className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl px-5 py-4 text-sm font-bold focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all font-mono" id={`${fieldIdPrefix}-ot-month`} min="0" onChange={e => { setNewMaxOtMonth(e.target.value); }} placeholder={t("payroll.settings.no_limit") || ""} step="0.01" type="number" value={newMaxOtMonth} />
           {!!errors.otMonth && <Typography className="text-xs text-red-600" id="work-policy-ot-month-error" variant="p">{errors.otMonth}</Typography>}
           <Typography className="text-[9px] text-slate-400 ml-1" variant="p">{t("payroll.settings.ot_empty_hint")}</Typography>
         </div>

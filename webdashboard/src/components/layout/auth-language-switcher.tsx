@@ -1,4 +1,3 @@
-import Button from "@/components/ui/button";
 import {
   Globe,
   Check,
@@ -6,6 +5,7 @@ import {
 import { useState, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 
+import Button from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 import { VietnameseFlag, EnglishFlag, ChineseFlag } from "../ui/icons/flags";
@@ -55,8 +55,8 @@ export function AuthLanguageSwitcher() {
         )}
         data-testid="auth-language-switcher"
         onClick={() => { setOpen((v) => !v); }}
-        type="button"
         size="sm"
+        type="button"
         variant="ghost"
       >
         <currentDef.Flag className="w-4 h-4" />
@@ -95,8 +95,8 @@ export function AuthLanguageSwitcher() {
                   key={code}
                   onClick={() => { void handleSelect(code); }}
                   role="option"
-                  type="button"
                   size="sm"
+                  type="button"
                   variant="ghost"
                 >
                   <Flag className="w-4 h-4" />

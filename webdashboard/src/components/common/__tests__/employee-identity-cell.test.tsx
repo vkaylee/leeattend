@@ -3,7 +3,8 @@ import React from "react";
 
 import { describe, expect, it, vi } from "vitest";
 
-import { EmployeeIdentityCell, getEmployeeInitials } from "../employee-identity-cell";
+import { EmployeeIdentityCell } from "../employee-identity-cell";
+import { getEmployeeInitials } from "../employee-identity-utils";
 
 describe("getEmployeeInitials", () => {
   it("calculates initials correctly for single and multi-word names", () => {

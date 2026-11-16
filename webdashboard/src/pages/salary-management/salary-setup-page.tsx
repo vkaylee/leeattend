@@ -10,22 +10,11 @@ import EmployeeSalaryConfig from "@/components/payroll/employee-salary-config";
 import Button from "@/components/ui/button";
 import EmptyState from "@/components/ui/empty-state";
 import { PageContainer } from "@/components/ui/page-container";
-import PageHeader from "@/components/ui/page-header";
+import { PageHeader } from "@/components/ui/page-header";
 import { Typography } from "@/components/ui/typography";
 import { fetchEmployee, fetchEmployeeEmployments } from "@/lib/api/employees";
 import { createQueryKey } from "@/lib/query-keys";
 
-
-interface SalarySetupSearch {
-  as_of?: string;
-  department_id?: string;
-  employee_id?: string;
-  employer_id?: string;
-  employment_id?: string;
-  page?: number;
-  search?: string;
-  status?: string;
-}
 
 function SetupSkeleton() {
   return (

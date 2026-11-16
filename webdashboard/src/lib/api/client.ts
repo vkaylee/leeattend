@@ -49,6 +49,30 @@ function buildQueryString(query: QueryParams | undefined): string {
   return serialized ? `?${serialized}` : "";
 }
 
+function buildRequestOptions(method: string, init?: ClientRequestInit): RequestInit {
+  const options: RequestInit = { method };
+  if (init?.headers) options.headers = init.headers;
+  if (init?.body === undefined || !["POST", "PUT", "PATCH"].includes(method)) return options;
+
+  if (init.body instanceof FormData || init.body instanceof Blob) {
+    options.body = init.body;
+    return options;
+  }
+
+  options.headers = { "Content-Type": "application/json", ...(init.headers ?? {}) };
+  options.body = JSON.stringify(init.body);
+  return options;
+}
+
+async function parseResponseData<T>(method: string, response: Response): Promise<T> {
+  if (method === "DELETE" && response.status === 204) return undefined as T;
+
+  const contentType = response.headers.get("content-type") ?? "";
+  return (contentType.includes("application/json")
+    ? await response.json()
+    : await response.text()) as T;
+}
+
 export function buildUrl(path: string, params?: { path?: PathParams; query?: QueryParams }): string {
   const interpolated = path.replace(/\{([^{}]+)\}/g, (_match, name: string) => {
     const value = params?.path?.[name];
@@ -66,29 +90,10 @@ async function request<T = unknown>(
   path: string,
   init?: ClientRequestInit,
 ): Promise<ClientResponse<T>> {
-  const options: RequestInit = { method };
-  if (init?.headers) options.headers = init.headers;
-
-  if (init?.body !== undefined && (method === "POST" || method === "PUT" || method === "PATCH")) {
-    if (init.body instanceof FormData || init.body instanceof Blob) {
-      options.body = init.body;
-    } else {
-      options.headers = { "Content-Type": "application/json", ...(init.headers ?? {}) };
-      options.body = JSON.stringify(init.body);
-    }
-  }
-
-  const response = await apiFetch(buildUrl(path, init?.params), options);
+  const response = await apiFetch(buildUrl(path, init?.params), buildRequestOptions(method, init));
   if (!response.ok) await ApiError.rejectResponse(response);
-  if (method === "DELETE" && response.status === 204) {
-    return { data: undefined as T, response };
-  }
 
-  const contentType = response.headers.get("content-type") ?? "";
-  const data = (contentType.includes("application/json")
-    ? await response.json()
-    : await response.text()) as T;
-  return { data, response };
+  return { data: await parseResponseData<T>(method, response), response };
 }
 
 export const client = {

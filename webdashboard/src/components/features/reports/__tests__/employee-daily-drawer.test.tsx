@@ -266,7 +266,7 @@ describe("EmployeeDailyDrawer", () => {
     });
 
     it("keeps KPI slots mounted while report data is loading", async () => {
-        (api.fetchAttendanceReport as Mock).mockReturnValueOnce(new Promise(() => {}));
+        (api.fetchAttendanceReport as Mock).mockReturnValueOnce(new Promise(() => undefined));
 
         renderWithProviders(<EmployeeDailyDrawer {...defaultProps} />);
 

@@ -8,7 +8,7 @@ import { LifecycleFilters } from "@/components/features/personnel/lifecycle-filt
 import { LifecycleTable } from "@/components/features/personnel/lifecycle-table";
 import Button from "@/components/ui/button";
 import { PageContainer } from "@/components/ui/page-container";
-import PageHeader from "@/components/ui/page-header";
+import { PageHeader } from "@/components/ui/page-header";
 import { Typography } from "@/components/ui/typography";
 import { useOrganizationLifecycleInstances } from "@/hooks/use-lifecycle";
 import { type LifecycleInstanceSummary } from "@/lib/api";
@@ -183,12 +183,12 @@ export default function PersonnelLifecyclePage() {
       </div>
 
       {/* ── Assign Modal ────────────────────────────────────────────── */}
-      {!!isModalOpen && (
+      {isModalOpen ? (
         <LifecycleAssignModal isOpen={isModalOpen}
         onClose={() => {
           setIsModalOpen(false);
         }}  />
-      )}
+      ) : null}
     </PageContainer>
   );
 }

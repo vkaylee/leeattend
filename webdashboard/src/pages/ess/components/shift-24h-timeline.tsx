@@ -1,8 +1,8 @@
-import { Typography } from "@/components/ui/typography";
 import { Clock } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
+import { Typography } from "@/components/ui/typography";
 import { cn } from "@/lib/utils";
 
 interface ShiftTimeWindow {
@@ -95,11 +95,11 @@ export function Shift24hTimeline({
     >
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
         <div className="space-y-0.5">
-          <Typography variant="h4" className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+          <Typography className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2" variant="h4">
             <Clock className="h-4 w-4 text-primary-600 dark:text-primary-400" />
             {t("ess.clock.timeline_title", "Dòng thời gian ca làm việc 24h")}
           </Typography>
-          <Typography variant="p" className="text-xs text-slate-500 dark:text-slate-400">
+          <Typography className="text-xs text-slate-500 dark:text-slate-400" variant="p">
             {scheduledShift.label}: {formatMinsToTime(shiftStartMin)} →{" "}
             {formatMinsToTime(shiftEndMin)} (Nghỉ trưa:{" "}
             {formatMinsToTime(breakStartMin)} - {formatMinsToTime(breakEndMin)})

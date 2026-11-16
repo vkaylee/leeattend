@@ -1,6 +1,36 @@
 [
   {
     "file": "src/components/payroll/payroll-settings-section.tsx",
+    "key": "common.payroll.settings.work_policy_references_unavailable",
+    "lang": "en"
+  },
+  {
+    "file": "src/components/payroll/payroll-settings-section.tsx",
+    "key": "common.payroll.settings.work_policy_references_unavailable",
+    "lang": "vi"
+  },
+  {
+    "file": "src/components/payroll/payroll-settings-section.tsx",
+    "key": "common.payroll.settings.work_policy_references_unavailable",
+    "lang": "zh"
+  },
+  {
+    "file": "src/components/payroll/payroll-settings-section.tsx",
+    "key": "common.payroll.settings.work_policy_conflict",
+    "lang": "en"
+  },
+  {
+    "file": "src/components/payroll/payroll-settings-section.tsx",
+    "key": "common.payroll.settings.work_policy_conflict",
+    "lang": "vi"
+  },
+  {
+    "file": "src/components/payroll/payroll-settings-section.tsx",
+    "key": "common.payroll.settings.work_policy_conflict",
+    "lang": "zh"
+  },
+  {
+    "file": "src/components/payroll/payroll-settings-section.tsx",
     "key": "common.payroll.settings.impact_validation",
     "lang": "en"
   },
@@ -16,6 +46,21 @@
   },
   {
     "file": "src/components/payroll/payroll-settings-section.tsx",
+    "key": "common.payroll.settings.work_policy_references_unavailable",
+    "lang": "en"
+  },
+  {
+    "file": "src/components/payroll/payroll-settings-section.tsx",
+    "key": "common.payroll.settings.work_policy_references_unavailable",
+    "lang": "vi"
+  },
+  {
+    "file": "src/components/payroll/payroll-settings-section.tsx",
+    "key": "common.payroll.settings.work_policy_references_unavailable",
+    "lang": "zh"
+  },
+  {
+    "file": "src/components/payroll/payroll-settings-section.tsx",
     "key": "common.payroll.settings.unsaved_changes",
     "lang": "en"
   },
@@ -27,6 +72,21 @@
   {
     "file": "src/components/payroll/payroll-settings-section.tsx",
     "key": "common.payroll.settings.unsaved_changes",
+    "lang": "zh"
+  },
+  {
+    "file": "src/components/payroll/payroll-settings-section.tsx",
+    "key": "common.payroll.settings.work_policy_refresh",
+    "lang": "en"
+  },
+  {
+    "file": "src/components/payroll/payroll-settings-section.tsx",
+    "key": "common.payroll.settings.work_policy_refresh",
+    "lang": "vi"
+  },
+  {
+    "file": "src/components/payroll/payroll-settings-section.tsx",
+    "key": "common.payroll.settings.work_policy_refresh",
     "lang": "zh"
   },
   {

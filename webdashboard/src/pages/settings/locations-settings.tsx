@@ -64,7 +64,7 @@ export default function LocationsSettings() {
 
       <div className="flex flex-col gap-4 animate-in slide-in-from-bottom-4 duration-500">
         {isError ? (
-          <Typography variant="p" className="text-sm text-slate-500 dark:text-slate-400" role="status">
+          <Typography className="text-sm text-slate-500 dark:text-slate-400" role="status" variant="p">
             {t("settings.locations.unavailable", { defaultValue: "Work locations are unavailable for your account." })}
           </Typography>
         ) : isLoading ? (

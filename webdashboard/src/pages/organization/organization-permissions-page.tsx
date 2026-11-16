@@ -6,7 +6,6 @@ import { useOrganizationPermissionsPage } from "./hooks/use-organization-permiss
 
 export default function OrganizationPermissionsPage() {
   const {
-    t,
     roles,
     catalog,
     isCatalogError,

@@ -1,9 +1,9 @@
-import Button from "@/components/ui/button";
 import { useLocation, useNavigate } from "@tanstack/react-router";
 import { CalendarRange, LayoutGrid, Zap } from "lucide-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
 
+import Button from "@/components/ui/button";
 import { ROUTES } from "@/lib/routes";
 
 type Section = "roster" | "patterns" | "rules";
@@ -40,8 +40,8 @@ export function ShiftsSectionNav() {
       <Button
         className={`${baseClass} ${active === "roster" ? activeClass : inactiveClass}`}
         onClick={() => void navigate({ to: ROUTES.SHIFTS, search: { tab: "weekly-roster", view: "week" } })}
-        type="button"
         size="sm"
+        type="button"
         variant="ghost"
       >
         <LayoutGrid size={14} /> {t("shifts.title")}
@@ -49,8 +49,8 @@ export function ShiftsSectionNav() {
       <Button
         className={`${baseClass} ${active === "patterns" ? activeClass : inactiveClass}`}
         onClick={() => void navigate({ to: ROUTES.SHIFTS_RULES, search: { tab: "patterns" } })}
-        type="button"
         size="sm"
+        type="button"
         variant="ghost"
       >
         <CalendarRange size={14} /> {t("patterns.title", "Working Patterns")}
@@ -58,8 +58,8 @@ export function ShiftsSectionNav() {
       <Button
         className={`${baseClass} ${active === "rules" ? activeClass : inactiveClass}`}
         onClick={() => void navigate({ to: ROUTES.SHIFTS_RULES, search: { tab: "rules" } })}
-        type="button"
         size="sm"
+        type="button"
         variant="ghost"
       >
         <Zap size={14} /> {t("rules.title", "Assignment Rules")}

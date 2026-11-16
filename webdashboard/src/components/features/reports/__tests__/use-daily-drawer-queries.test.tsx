@@ -1,6 +1,6 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { renderHook, waitFor } from "@testing-library/react";
-import React from "react";
+import { createElement, type ReactNode } from "react";
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
@@ -68,9 +68,8 @@ describe("useDailyDrawerQueries — Adjustment Map", () => {
         });
     });
 
-    const wrapper = ({ children }: { children: React.ReactNode }) => (
-  // eslint-disable-next-line import-x/no-named-as-default-member
-        React.createElement(QueryClientProvider, { client: queryClient }, children)
+    const wrapper = ({ children }: { children: ReactNode }) => (
+        createElement(QueryClientProvider, { client: queryClient }, children)
     );
 
     it("queries daily rows by employee and employer group", async () => {

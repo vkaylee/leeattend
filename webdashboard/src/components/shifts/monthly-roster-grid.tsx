@@ -29,6 +29,111 @@ interface MonthlyRosterGridProps {
   monthlyRoster: ReturnType<typeof useMonthlyRoster>;
 }
 
+type MonthlyRosterContentProps = Pick<
+  MonthlyRosterGridProps["hook"],
+  | "complianceViolations"
+  | "employees"
+  | "isEmployeesError"
+  | "isEmployeesLoading"
+  | "isMonthError"
+  | "isMonthLoading"
+  | "monthDays"
+  | "shifts"
+> &
+  Pick<
+    MonthlyRosterGridProps["monthlyRoster"],
+    | "filteredSchedules"
+    | "handleCellClick"
+    | "handleCellKeyDown"
+    | "handleCellPointerDown"
+    | "handleCellPointerEnter"
+    | "isDragging"
+    | "rowStatus"
+    | "selectedCells"
+    | "selectedEmployeeIds"
+  > & {
+    employeesLabel: string;
+    containerRef: React.RefObject<HTMLDivElement | null>;
+    currentLocale: Locale;
+    onRetry: () => void;
+  };
+
+function MonthlyRosterContent({
+  complianceViolations,
+  containerRef,
+  currentLocale,
+  employees,
+  employeesLabel,
+  filteredSchedules,
+  handleCellClick,
+  handleCellKeyDown,
+  handleCellPointerDown,
+  handleCellPointerEnter,
+  isEmployeesError,
+  isEmployeesLoading,
+  isDragging,
+  isMonthError,
+  isMonthLoading,
+  monthDays,
+  onRetry,
+  rowStatus,
+  selectedCells,
+  selectedEmployeeIds,
+  shifts,
+}: MonthlyRosterContentProps) {
+  if (isMonthError || isEmployeesError) {
+    return <RosterErrorState onRetry={onRetry} />;
+  }
+
+  if (isMonthLoading || isEmployeesLoading || !employees) {
+    return <RosterSkeleton />;
+  }
+
+  if (employees.length === 0) {
+    return <NoEmployeesState />;
+  }
+
+  if (selectedEmployeeIds.length === 0) {
+    return <NoSelectionState />;
+  }
+
+  if (filteredSchedules.length === 0) {
+    return <NoResultsState />;
+  }
+
+  return (
+    <>
+      <div className="hidden lg:block" data-testid="monthly-roster-desktop">
+        <RosterGridTable
+          complianceViolations={complianceViolations}
+          containerRef={containerRef}
+          currentLocale={currentLocale}
+          employeesLabel={employeesLabel}
+          isDragging={isDragging}
+          monthDays={monthDays}
+          monthSchedules={filteredSchedules}
+          onCellPointerDown={handleCellPointerDown}
+          onCellPointerEnter={handleCellPointerEnter}
+          rowStatus={rowStatus}
+          selectedCells={selectedCells}
+          shifts={shifts}
+        />
+      </div>
+      <RosterMobileList
+        complianceViolations={complianceViolations}
+        currentLocale={currentLocale}
+        monthDays={monthDays}
+        monthSchedules={filteredSchedules}
+        onCellClick={handleCellClick}
+        onCellKeyDown={handleCellKeyDown}
+        rowStatus={rowStatus}
+        selectedCells={selectedCells}
+        shifts={shifts}
+      />
+    </>
+  );
+}
+
 export function MonthlyRosterGrid({
   hook,
   monthlyRoster,
@@ -138,62 +243,6 @@ export function MonthlyRosterGrid({
     [selectedCells],
   );
 
-  // ── Render content ──────────────────────────────────────────────────
-
-  const renderContent = () => {
-    if (isMonthError || isEmployeesError) {
-      return <RosterErrorState onRetry={handleRetry} />;
-    }
-
-    if (isMonthLoading || isEmployeesLoading || !employees) {
-      return <RosterSkeleton />;
-    }
-
-    if (employees.length === 0) {
-      return <NoEmployeesState />;
-    }
-
-    if (selectedEmployeeIds.length === 0) {
-      return <NoSelectionState />;
-    }
-
-    if (filteredSchedules.length === 0) {
-      return <NoResultsState />;
-    }
-
-    return (
-      <>
-        <div className="hidden lg:block" data-testid="monthly-roster-desktop">
-          <RosterGridTable
-            complianceViolations={complianceViolations}
-            containerRef={gridContainerRef}
-            currentLocale={currentLocale}
-            employeesLabel={t("shifts.monthly.all_employees")}
-            isDragging={isDragging}
-            monthDays={monthDays}
-            monthSchedules={filteredSchedules}
-            onCellPointerDown={handleCellPointerDown}
-            onCellPointerEnter={handleCellPointerEnter}
-            rowStatus={rowStatus}
-            selectedCells={selectedCells}
-            shifts={shifts}
-          />
-        </div>
-        <RosterMobileList
-          complianceViolations={complianceViolations}
-          currentLocale={currentLocale}
-          monthDays={monthDays}
-          monthSchedules={filteredSchedules}
-          onCellClick={handleCellClick}
-          onCellKeyDown={handleCellKeyDown}
-          rowStatus={rowStatus}
-          selectedCells={selectedCells}
-          shifts={shifts}
-        />
-      </>
-    );
-  };
-
   return (
     <div className="space-y-4">
       {isShiftPickerOpen ? (
@@ -216,7 +265,29 @@ export function MonthlyRosterGrid({
           />
         </div>
 
-        {renderContent()}
+        <MonthlyRosterContent
+          complianceViolations={complianceViolations}
+          containerRef={gridContainerRef}
+          currentLocale={currentLocale}
+          employees={employees}
+          employeesLabel={t("shifts.monthly.all_employees")}
+          filteredSchedules={filteredSchedules}
+          handleCellClick={handleCellClick}
+          handleCellKeyDown={handleCellKeyDown}
+          handleCellPointerDown={handleCellPointerDown}
+          handleCellPointerEnter={handleCellPointerEnter}
+          isDragging={isDragging}
+          isEmployeesError={isEmployeesError}
+          isEmployeesLoading={isEmployeesLoading}
+          isMonthError={isMonthError}
+          isMonthLoading={isMonthLoading}
+          monthDays={monthDays}
+          onRetry={handleRetry}
+          rowStatus={rowStatus}
+          selectedCells={selectedCells}
+          selectedEmployeeIds={selectedEmployeeIds}
+          shifts={shifts}
+        />
       </div>
     </div>
   );

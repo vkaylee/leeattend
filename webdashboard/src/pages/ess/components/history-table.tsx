@@ -2,7 +2,7 @@ import { Clock, History } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import ResponsiveTable from "@/components/ui/responsive-table";
-import TableEmptyRow from "@/components/ui/table-empty-row";
+import { TableEmptyRow } from "@/components/ui/table-empty-row";
 import { Typography } from "@/components/ui/typography";
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
 import { AttendanceEntry } from "@/lib/api/types";

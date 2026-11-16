@@ -80,8 +80,12 @@ export default function LifecycleAssignModal({
     return employees.find((emp: Employee) => emp.id === selectedEmployeeId);
   }, [employees, selectedEmployeeId, initialEmploymentId]);
 
-  const effectiveEmploymentId = initialEmploymentId || selectedEmployee?.active_employment_id || "";
-  const effectiveEmployeeName = initialEmployeeName || selectedEmployee?.full_name || "";
+  const effectiveEmploymentId = initialEmploymentId === undefined || initialEmploymentId === ""
+    ? selectedEmployee?.active_employment_id ?? ""
+    : initialEmploymentId;
+  const effectiveEmployeeName = initialEmployeeName === undefined || initialEmployeeName === ""
+    ? selectedEmployee?.full_name ?? ""
+    : initialEmployeeName;
 
   const mutation = useMutation({
     mutationFn: async () => {
@@ -184,7 +188,7 @@ export default function LifecycleAssignModal({
                 value={selectedEmployeeId}
               />
               {!!selectedEmployee && !selectedEmployee.active_employment_id && (
-                <Typography variant="p" className="text-xs text-rose-500 font-medium">
+                <Typography className="text-xs text-rose-500 font-medium" variant="p">
                   {t("lifecycle.errors.employee_has_no_employment", {
                     defaultValue: "Nhân sự này hiện không có hồ sơ công tác hợp lệ.",
                   })}

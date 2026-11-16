@@ -14,8 +14,9 @@ import {
 
 import { ChartSummary } from "@/components/features/dashboard/chart-summary";
 import { ChartTableTwin, type ChartTableColumn } from "@/components/features/dashboard/chart-table-twin";
-import { DashboardChartError, useDashboardChartError } from "@/components/features/dashboard/dashboard-chart-state";
+import { DashboardChartError } from "@/components/features/dashboard/dashboard-chart-state";
 import { MetricSelector } from "@/components/features/dashboard/metric-selector";
+import { useDashboardChartError } from "@/components/features/dashboard/use-dashboard-chart-error";
 import { Typography } from "@/components/ui/typography";
 import { useLatenessByDay, type LatenessByDay } from "@/hooks/use-dashboard";
 

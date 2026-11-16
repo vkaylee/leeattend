@@ -74,7 +74,6 @@ function DailyReportMobileCard({
   row,
   adjustmentMap,
   confirmingRow,
-  expandedDebugRows,
   formatDate,
   formatTime,
   hideEmployeeName,
@@ -82,7 +81,7 @@ function DailyReportMobileCard({
   onConfirmClick,
   onReprocessClick,
   onResolveUnscheduled,
-  onToggleExpandRow,
+  onToggleExpandRow: _onToggleExpandRow,
   reprocessingRow,
   t,
 }: {
@@ -101,9 +100,7 @@ function DailyReportMobileCard({
   row: DailyAttendanceReport;
   t: (key: string) => string;
 }) {
-  const segmentKey = `${row.employee_id}-${row.date}-${row.segment_id ?? row.sort_order ?? '0'}`;
   const dayKeyEmployee = `${row.employee_id}-${row.date}`;
-  const isExpanded = expandedDebugRows.has(segmentKey);
   const isReprocessing = reprocessingRow === dayKeyEmployee;
   const isConfirming = confirmingRow === dayKeyEmployee;
   const existingAdjustment = adjustmentMap[`${row.employment_id}-${row.date}`];

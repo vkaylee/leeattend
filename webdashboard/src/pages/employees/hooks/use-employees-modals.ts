@@ -114,7 +114,7 @@ export const useEmployeesModals = () => {
     isTransferModalOpen,
     setIsTransferModalOpen,
     isHistoryModalOpen: false,
-    setIsHistoryModalOpen: () => {},
+    setIsHistoryModalOpen: () => undefined,
     isRehireModalOpen,
     setIsRehireModalOpen,
     isTerminateModalOpen,

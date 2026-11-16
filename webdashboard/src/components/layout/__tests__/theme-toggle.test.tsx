@@ -57,7 +57,7 @@ vi.mock("@/components/ui/language-switcher", () => ({
   LanguageSwitcher: () => <div data-testid="language-switcher-mock" />,
 }));
 
-import FloatingDock from "../floating-dock";
+import { FloatingDock } from "../floating-dock";
 
 const mockSetMode = vi.fn();
 
