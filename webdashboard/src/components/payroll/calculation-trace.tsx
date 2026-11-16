@@ -16,6 +16,10 @@ function isTraceStep(value: unknown): value is TraceStep {
   return ["step", "rule", "expression", "result"].some((key) => typeof step[key] === "string");
 }
 
+function hasSnapshot(value: unknown): boolean {
+  return typeof value === "object" && value !== null;
+}
+
 export function CalculationTrace({ employmentId, year, month }: { employmentId: string; year: number; month: number }) {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
@@ -49,6 +53,12 @@ export function CalculationTrace({ employmentId, year, month }: { employmentId: 
             const hasMalformedSteps = trace.length !== rawTrace.length || !Array.isArray(run.calculation_trace);
             return <div className="space-y-2" key={run.id}>
               <Typography className="font-semibold" variant="small">{run.engine_version} · {run.created_at}</Typography>
+              <div className="flex flex-wrap gap-2 text-xs text-slate-500" aria-label={t("payroll.calculation_trace.metadata", "Trace metadata")}>
+                {run.formula_version_id ? <span>{t("payroll.calculation_trace.formula_version", "Formula")}: {run.formula_version_id}</span> : null}
+                {run.payslip_id ? <span>{t("payroll.calculation_trace.payslip", "Payslip")}: {run.payslip_id}</span> : null}
+                {hasSnapshot(run.input_snapshot) ? <span>{t("payroll.calculation_trace.input_snapshot", "Input snapshot available")}</span> : null}
+                {hasSnapshot(run.output_snapshot) ? <span>{t("payroll.calculation_trace.output_snapshot", "Output snapshot available")}</span> : null}
+              </div>
               {hasMalformedSteps ? <Typography className="text-amber-700" role="status" variant="small">{t("payroll.calculation_trace.partial", "Trace is partial or unavailable; some steps were omitted.")}</Typography> : null}
               {trace.map((step, index) => <div className="rounded-lg bg-slate-50 p-3 text-xs dark:bg-slate-800" key={`${run.id}-${index}`}><div className="font-semibold">{step.step} · {step.rule}</div><code>{step.expression}</code><div>{step.result}</div></div>)}
             </div>;

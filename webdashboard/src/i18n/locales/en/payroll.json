@@ -312,7 +312,12 @@
     },
     "calculation_trace": {
       "empty": "No calculation trace",
+      "formula_version": "Formula",
+      "input_snapshot": "Input snapshot available",
+      "metadata": "Trace metadata",
+      "output_snapshot": "Output snapshot available",
       "partial": "Trace is partial or unavailable; some steps were omitted.",
+      "payslip": "Payslip",
       "title": "Calculation trace"
     },
     "scope_employee": "Employee",

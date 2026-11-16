@@ -31,8 +31,10 @@ describe("CalculationTrace", () => {
       period_year: 2026,
       period_month: 10,
       engine_version: "formula-v1",
-      input_snapshot: {},
-      output_snapshot: {},
+      formula_version_id: "formula-version-1",
+      payslip_id: "payslip-1",
+      input_snapshot: { source: "test" },
+      output_snapshot: { result: "redacted" },
       calculation_trace: [{ step: "formula", rule: "kpi.bonus", expression: "actual * rate", result: "100" }],
       created_at: "2026-10-31T00:00:00Z",
     }]);
@@ -46,6 +48,9 @@ describe("CalculationTrace", () => {
       expect(screen.getByText("actual * rate")).toBeInTheDocument();
     });
     expect(screen.getByText(/formula-v1/)).toBeInTheDocument();
+    expect(screen.getByText(/formula-version-1/)).toBeInTheDocument();
+    expect(screen.getByText("payroll.calculation_trace.input_snapshot")).toBeInTheDocument();
+    expect(screen.getByText("payroll.calculation_trace.output_snapshot")).toBeInTheDocument();
   });
 
   it("warns when trace payload is partial or malformed", async () => {

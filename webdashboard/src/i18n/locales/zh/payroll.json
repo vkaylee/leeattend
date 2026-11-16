@@ -312,7 +312,12 @@
     },
     "calculation_trace": {
       "empty": "暂无计算记录",
+      "formula_version": "公式",
+      "input_snapshot": "输入快照可用",
+      "metadata": "计算记录元数据",
+      "output_snapshot": "输出快照可用",
       "partial": "计算记录不完整或不可用；部分步骤已省略。",
+      "payslip": "工资单",
       "title": "计算明细"
     },
     "scope_employee": "员工",

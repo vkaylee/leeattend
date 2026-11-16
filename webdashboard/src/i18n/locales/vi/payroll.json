@@ -312,7 +312,12 @@
     },
     "calculation_trace": {
       "empty": "Chưa có nhật ký tính toán",
+      "formula_version": "Công thức",
+      "input_snapshot": "Có ảnh chụp input",
+      "metadata": "Siêu dữ liệu tính toán",
+      "output_snapshot": "Có ảnh chụp output",
       "partial": "Nhật ký không đầy đủ hoặc không khả dụng; một số bước đã được bỏ qua.",
+      "payslip": "Phiếu lương",
       "title": "Chi tiết tính toán"
     },
     "scope_employee": "Nhân viên",
