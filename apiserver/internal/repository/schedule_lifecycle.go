@@ -1013,14 +1013,15 @@ func rejectConcreteScheduleOverlaps(ctx context.Context, tx DBTX, days []map[str
 			SELECT c.*, em.employee_id
 			FROM candidates c JOIN employments em ON em.id = c.employment_id
 		), existing AS (
-			SELECT ws.scheduled_start_at AS start_at, ws.scheduled_end_at AS end_at, em.employee_id, ws.employment_id
+			SELECT r.business_date, ws.scheduled_start_at AS start_at, ws.scheduled_end_at AS end_at, em.employee_id, ws.employment_id
 			FROM work_segments ws
 			JOIN schedule_day_revisions r ON r.id = ws.schedule_revision_id AND r.state IN ('published', 'explicit_off')
 			JOIN employments em ON em.id = ws.employment_id
 		)
 		SELECT EXISTS (
 			SELECT 1 FROM candidate_people c JOIN existing e ON e.employee_id = c.employee_id
-			WHERE e.employment_id <> c.employment_id AND c.start_at < e.end_at AND e.start_at < c.end_at
+			WHERE (e.employment_id <> c.employment_id OR e.business_date <> c.business_date)
+			  AND c.start_at < e.end_at AND e.start_at < c.end_at
 			UNION ALL
 			SELECT 1 FROM candidate_people a JOIN candidate_people b ON a.employee_id = b.employee_id
 			WHERE (a.employment_id, a.business_date, a.start_at) < (b.employment_id, b.business_date, b.start_at)
