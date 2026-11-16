@@ -159,26 +159,14 @@ func (w *ReportWorker) process(ctx context.Context, client *goredis.Client, payl
 	rows := make([]map[string]any, 0)
 	var total int64
 	for index, employeeIDs := range ids {
-		report, err := w.repository.GetAttendanceReport(ctx, api.AttendanceReportFilter{
-			StartDate:   envelope.Request.StartDate,
-			EndDate:     envelope.Request.EndDate,
-			ReportType:  reportType,
-			EmployeeIDs: employeeIDs,
-			Page:        1,
-			Limit:       3000,
-		})
+		batchRows, batchTotal, err := w.readReportPages(ctx, reportType, envelope.Request, employeeIDs)
 		if err != nil {
-			w.fail(ctx, client, jobID, meta, err)
-			return
-		}
-		var batchRows []map[string]any
-		if err := json.Unmarshal(report.Data, &batchRows); err != nil {
 			w.fail(ctx, client, jobID, meta, err)
 			return
 		}
 		applyTenureSnapshots(batchRows, envelope.Request.TenureSnapshots)
 		rows = append(rows, batchRows...)
-		total += report.Total
+		total += batchTotal
 		meta.CompletedBatches = index + 1
 		if err := writeReportMetadataValue(ctx, client, jobID, meta); err != nil {
 			return
@@ -206,6 +194,33 @@ func (w *ReportWorker) process(ctx context.Context, client *goredis.Client, payl
 		return
 	}
 	_ = client.Publish(ctx, redisinfra.ChannelReportStream(jobID), fmt.Sprintf(`{"type":"DONE","total_batches":%d,"total_records":%d}`, meta.TotalBatches, total)).Err()
+}
+
+func (w *ReportWorker) readReportPages(ctx context.Context, reportType string, request api.ExportReportRequest, employeeIDs []uuid.UUID) ([]map[string]any, int64, error) {
+	const pageSize = 3000
+	rows := make([]map[string]any, 0)
+	for page := 1; ; page++ {
+		report, err := w.repository.GetAttendanceReport(ctx, api.AttendanceReportFilter{
+			StartDate:   request.StartDate,
+			EndDate:     request.EndDate,
+			ReportType:  reportType,
+			EmployeeIDs: employeeIDs,
+			Page:        page,
+			Limit:       pageSize,
+		})
+		if err != nil {
+			return nil, 0, err
+		}
+		var pageRows []map[string]any
+		if err := json.Unmarshal(report.Data, &pageRows); err != nil {
+			return nil, 0, err
+		}
+		rows = append(rows, pageRows...)
+		pageTotal := report.Total
+		if pageTotal == 0 || len(pageRows) == 0 || int64(page*pageSize) >= pageTotal {
+			return rows, int64(len(rows)), nil
+		}
+	}
 }
 
 func (w *ReportWorker) fail(ctx context.Context, client *goredis.Client, jobID uuid.UUID, meta reportMetadata, cause error) {
