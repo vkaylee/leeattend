@@ -396,11 +396,7 @@ func insertWorkPolicyGroup(ctx context.Context, tx pgx.Tx, req api.CreateWorkPol
 	return nil
 }
 
-func (r WorkPolicyRepository) ResolveWorkPolicy(ctx context.Context, employmentID ids.EmploymentID, asOf time.Time) (api.WorkPolicyGroupVersion, error) {
-	db, err := r.db(ctx)
-	if err != nil {
-		return api.WorkPolicyGroupVersion{}, err
-	}
+func resolveWorkPolicyByDate(ctx context.Context, db DBTX, employmentID uuid.UUID, asOf time.Time) (api.WorkPolicyGroupVersion, error) {
 	row := db.QueryRow(ctx, `
 		SELECT v.id, v.group_id, g.name, v.work_credit_policy_id, wc.name, wc.minutes_per_credit,
 		       wc.attendance_policy_id, wc.working_pattern_id, v.pay_basis_policy_id, pb.name,
@@ -415,8 +411,16 @@ func (r WorkPolicyRepository) ResolveWorkPolicy(ctx context.Context, employmentI
 		  AND m.effective_from <= $2::date AND (m.effective_to IS NULL OR m.effective_to > $2::date)
 		  AND v.effective_from <= $2::date AND (v.effective_to IS NULL OR v.effective_to > $2::date)
 		ORDER BY v.effective_from DESC, v.id DESC
-		LIMIT 1`, uuid.UUID(employmentID), asOf.Format("2006-01-02"))
-	result, err := workPolicyGroupVersion(row)
+		LIMIT 1`, employmentID, asOf.Format("2006-01-02"))
+	return workPolicyGroupVersion(row)
+}
+
+func (r WorkPolicyRepository) ResolveWorkPolicy(ctx context.Context, employmentID ids.EmploymentID, asOf time.Time) (api.WorkPolicyGroupVersion, error) {
+	db, err := r.db(ctx)
+	if err != nil {
+		return api.WorkPolicyGroupVersion{}, err
+	}
+	result, err := resolveWorkPolicyByDate(ctx, db, uuid.UUID(employmentID), asOf)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return api.WorkPolicyGroupVersion{}, api.ErrWorkPolicyResolutionNotFound
 	}
