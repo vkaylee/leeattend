@@ -22,18 +22,22 @@ const (
 )
 
 type ShiftSwapRequest struct {
-	ID                uuid.UUID       `json:"id"`
-	RequesterID       uuid.UUID       `json:"requester_id"`
-	TargetID          uuid.UUID       `json:"target_id"`
-	SwapDate          string          `json:"swap_date"`
-	RequesterShiftID  *uuid.UUID      `json:"requester_shift_id"`
-	TargetShiftID     *uuid.UUID      `json:"target_shift_id"`
-	Status            ShiftSwapStatus `json:"status"`
-	Reason            *string         `json:"reason"`
-	RequestedByUserID *uuid.UUID      `json:"requested_by_user_id"`
-	ApprovedByUserID  *uuid.UUID      `json:"approved_by_user_id"`
-	CreatedAt         string          `json:"created_at"`
-	UpdatedAt         string          `json:"updated_at"`
+	ID                      uuid.UUID       `json:"id"`
+	RequesterID             uuid.UUID       `json:"requester_id"`
+	TargetID                uuid.UUID       `json:"target_id"`
+	SwapDate                string          `json:"swap_date"`
+	RequesterRevisionID     *uuid.UUID      `json:"requester_revision_id,omitempty"`
+	RequesterRevisionNumber *int64          `json:"requester_revision_number,omitempty"`
+	TargetRevisionID        *uuid.UUID      `json:"target_revision_id,omitempty"`
+	TargetRevisionNumber    *int64          `json:"target_revision_number,omitempty"`
+	RequesterShiftID        *uuid.UUID      `json:"requester_shift_id"`
+	TargetShiftID           *uuid.UUID      `json:"target_shift_id"`
+	Status                  ShiftSwapStatus `json:"status"`
+	Reason                  *string         `json:"reason"`
+	RequestedByUserID       *uuid.UUID      `json:"requested_by_user_id"`
+	ApprovedByUserID        *uuid.UUID      `json:"approved_by_user_id"`
+	CreatedAt               string          `json:"created_at"`
+	UpdatedAt               string          `json:"updated_at"`
 }
 
 type ShiftSwapRequestWithNames struct {
