@@ -979,10 +979,10 @@ func lockScheduleRevisionTargets(ctx context.Context, tx DBTX, keys []scheduleRe
 
 func rejectConcreteScheduleOverlaps(ctx context.Context, tx DBTX, days []map[string]any) error {
 	type candidate struct {
-		EmploymentID  string    `json:"employment_id"`
-		BusinessDate  string    `json:"business_date"`
-		StartAt       time.Time `json:"start_at"`
-		EndAt         time.Time `json:"end_at"`
+		EmploymentID string    `json:"employment_id"`
+		BusinessDate string    `json:"business_date"`
+		StartAt      time.Time `json:"start_at"`
+		EndAt        time.Time `json:"end_at"`
 	}
 	candidates := make([]candidate, 0)
 	for _, day := range days {
