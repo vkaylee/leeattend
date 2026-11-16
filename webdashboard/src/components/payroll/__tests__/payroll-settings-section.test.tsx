@@ -167,6 +167,21 @@ describe("PayrollSettingsSection", () => {
     expect(screen.getByText(/common.save/i)).toBeInTheDocument();
   });
 
+  it("shows retry state and blocks editing when policy references fail", async () => {
+    vi.mocked(api.fetchWorkPolicyGroups).mockResolvedValue([{
+      id: "v-1", group_id: "g-1", name: "Operations", attendance_policy_id: "attendance-1",
+      working_pattern_id: "pattern-1", overtime_policy_id: "overtime-1", minutes_per_credit: 480,
+      pay_method: "monthly", effective_from: "2026-01-01",
+    }]);
+    vi.mocked(api.fetchWorkPolicyGroupHistory).mockRejectedValue(new Error("history unavailable"));
+    vi.mocked(api.fetchWorkPolicyReferenceOptions).mockResolvedValue({ attendance: [], patterns: [], overtime: [], salaryComponents: [] });
+    renderWithProviders(<PayrollSettingsSection />);
+    fireEvent.click(await screen.findByRole("button", { name: "Operations" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent("common.payroll.settings.work_policy_references_unavailable");
+    expect(screen.getByRole("button", { name: "common.retry" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "common.payroll.settings.work_policy_create" })).not.toBeInTheDocument();
+  });
+
   it("creates a new effective policy version from selected policy references", async () => {
     vi.mocked(api.fetchWorkPolicyGroups).mockResolvedValue([{
       id: "v-1",

@@ -48,7 +48,7 @@ export default function PayrollSettingsSection({ onDirtyChange }: PayrollSetting
     queryKey: payrollKeys.workPolicyGroups(),
     queryFn: fetchWorkPolicyGroups,
   });
-  const { data: selectedPolicyHistory = [], isLoading: isPolicyHistoryLoading } = useQuery({
+  const { data: selectedPolicyHistory = [], isLoading: isPolicyHistoryLoading, isError: isPolicyHistoryError, refetch: refetchPolicyHistory } = useQuery({
     queryKey: payrollKeys.workPolicyHistory(selectedPolicyGroupId),
     queryFn: () => fetchWorkPolicyGroupHistory(selectedPolicyGroupId!),
     enabled: Boolean(selectedPolicyGroupId),
@@ -58,7 +58,7 @@ export default function PayrollSettingsSection({ onDirtyChange }: PayrollSetting
     queryFn: () => fetchWorkPolicyMemberships(selectedPolicyGroupId!),
     enabled: Boolean(selectedPolicyGroupId),
   });
-  const { data: referenceOptions } = useQuery({ queryKey: payrollKeys.workPolicyReferences(), queryFn: fetchWorkPolicyReferenceOptions });
+  const { data: referenceOptions, isLoading: isReferenceOptionsLoading, isError: isReferenceOptionsError, refetch: refetchReferenceOptions } = useQuery({ queryKey: payrollKeys.workPolicyReferences(), queryFn: fetchWorkPolicyReferenceOptions });
   const { data: employeesResponse } = useQuery({ queryKey: employeeKeys.list({ status: "active", emptyQueryBehavior: "all" }), queryFn: () => fetchEmployees(1, 100, "employees:read") });
   const employees = employeesResponse?.data ?? [];
   const { data: membershipEmployments = [] } = useQuery({ queryKey: ["payroll-settings-membership-employments", membershipEmployeeId], queryFn: () => fetchEmployeeEmployments(membershipEmployeeId), enabled: Boolean(membershipEmployeeId) });
@@ -84,6 +84,10 @@ export default function PayrollSettingsSection({ onDirtyChange }: PayrollSetting
 
   const handleCreateVersion = async () => {
     if (!selectedPolicyGroupId) return;
+    if (isPolicyHistoryError || isReferenceOptionsError || !referenceOptions) {
+      setVersionError(t("common.payroll.settings.work_policy_references_unavailable", "Policy references are unavailable. Refresh before creating a version."));
+      return;
+    }
     const minutes = Number(versionForm.minutes_per_credit);
     if (!versionForm.effective_from || !Number.isInteger(minutes) || minutes <= 0) {
       setVersionError(t("common.payroll.settings.work_policy_validation", "Enter effective date and positive whole minutes."));
@@ -294,7 +298,12 @@ export default function PayrollSettingsSection({ onDirtyChange }: PayrollSetting
               <Typography className="font-semibold" variant="h3">{t("common.payroll.settings.work_policy_history", "Version history")}</Typography>
               <Button className="text-sm text-slate-500 underline" onClick={() => setSelectedPolicyGroupId(undefined)} size="sm" type="button" variant="ghost">{t("common.close", "Close")}</Button>
             </div>
-            {isPolicyHistoryLoading ? <div className="h-10 animate-pulse rounded bg-slate-200 dark:bg-slate-800" /> : (
+            {isPolicyHistoryLoading || isReferenceOptionsLoading ? <div className="h-10 animate-pulse rounded bg-slate-200 dark:bg-slate-800" /> : isPolicyHistoryError || isReferenceOptionsError ? (
+              <div className="space-y-2" role="alert">
+                <p className="text-sm text-red-600">{t("common.payroll.settings.work_policy_references_unavailable", "Policy references are unavailable. Refresh before editing.")}</p>
+                <Button type="button" size="sm" variant="ghost" className="underline" onClick={() => { void refetchPolicyHistory(); void refetchReferenceOptions(); }}>{t("common.retry", "Retry")}</Button>
+              </div>
+            ) : (
               <>
               <div className="mb-4 grid gap-3 sm:grid-cols-3" aria-label={t("common.payroll.settings.work_policy_create", "Create policy version")}>
                 <label className="text-xs font-semibold text-slate-600 dark:text-slate-300" htmlFor="policy-effective-from">
