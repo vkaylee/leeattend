@@ -292,34 +292,70 @@ func (r ScheduleRepository) GetOfficialSchedules(ctx context.Context, startDate,
 }
 
 func (r ScheduleRepository) GetOfficialSchedulesWithCoverage(ctx context.Context, startDate, endDate time.Time, employmentIDs []uuid.UUID, page, limit int, coverage string) (api.PaginatedEmployeeSchedules, error) {
-	result, err := r.GetOfficialSchedules(ctx, startDate, endDate, employmentIDs, page, limit)
+	db, err := r.db(ctx)
+	if err != nil {
+		return api.PaginatedEmployeeSchedules{}, err
+	}
+	start, end := startDate.Format("2006-01-02"), endDate.Format("2006-01-02")
+	rows, err := db.Query(ctx, `
+		WITH eligible AS (
+			SELECT emp.id AS employment_id, emp.start_date, emp.end_date
+			FROM employments emp
+			WHERE emp.deleted_at IS NULL
+			  AND emp.start_date <= $2::date
+			  AND (emp.end_date IS NULL OR emp.end_date >= $1::date)
+			  AND (COALESCE(cardinality($3::uuid[]), 0) = 0 OR emp.id = ANY($3::uuid[]))
+		), days AS (
+			SELECT e.employment_id, gs.day::date AS business_date
+			FROM eligible e CROSS JOIN LATERAL generate_series(GREATEST(e.start_date, $1::date), LEAST(COALESCE(e.end_date, $2::date), $2::date), interval '1 day') gs(day)
+		), states AS (
+			SELECT d.employment_id, d.business_date, r.state
+			FROM days d
+			LEFT JOIN schedule_day_revisions r
+			  ON r.employment_id = d.employment_id
+			 AND r.business_date = d.business_date
+			 AND r.state IN ('published', 'explicit_off')
+		), coverage AS (
+			SELECT employment_id,
+				count(*) AS expected_days,
+				count(*) FILTER (WHERE state = 'published') AS published_work_days,
+				count(*) FILTER (WHERE state = 'explicit_off') AS published_off_days,
+				count(*) FILTER (WHERE state IS NULL) AS missing_official_days
+			FROM states GROUP BY employment_id
+		)
+		SELECT employment_id, expected_days, published_work_days, published_off_days, missing_official_days
+		FROM coverage
+		WHERE ($4 = 'all')
+		   OR ($4 = 'missing' AND missing_official_days > 0)
+		   OR ($4 = 'complete' AND missing_official_days = 0)
+		ORDER BY employment_id`, start, end, employmentIDs, coverage)
+	if err != nil {
+		return api.PaginatedEmployeeSchedules{}, err
+	}
+	defer rows.Close()
+	ids := make([]uuid.UUID, 0)
+	counts := make(map[uuid.UUID]api.ScheduleCoverage)
+	for rows.Next() {
+		var id uuid.UUID
+		var expected, work, off, missing int64
+		if err := rows.Scan(&id, &expected, &work, &off, &missing); err != nil {
+			return api.PaginatedEmployeeSchedules{}, err
+		}
+		ids = append(ids, id)
+		counts[id] = api.ScheduleCoverage{ExpectedDays: expected, PublishedWorkDays: work, PublishedOffDays: off, MissingOfficialDays: missing, Complete: missing == 0}
+	}
+	if err := rows.Err(); err != nil {
+		return api.PaginatedEmployeeSchedules{}, err
+	}
+	if len(ids) == 0 {
+		return api.PaginatedEmployeeSchedules{Data: []api.EmployeeSchedule{}, Total: 0, Page: normalizedPage(page), Limit: normalizedLimit(limit)}, nil
+	}
+	result, err := r.GetOfficialSchedules(ctx, startDate, endDate, ids, page, limit)
 	if err != nil {
 		return api.PaginatedEmployeeSchedules{}, err
 	}
 	for i := range result.Data {
-		var counts api.ScheduleCoverage
-		for _, day := range result.Data[i].Schedules {
-			counts.ExpectedDays++
-			switch day.ScheduleStatus {
-			case "published", "work":
-				counts.PublishedWorkDays++
-			case "explicit_off":
-				counts.PublishedOffDays++
-			default:
-				counts.MissingOfficialDays++
-			}
-		}
-		counts.Complete = counts.MissingOfficialDays == 0
-		result.Data[i].Coverage = counts
-	}
-	if coverage == "missing" || coverage == "complete" {
-		filtered := result.Data[:0]
-		for _, item := range result.Data {
-			if (coverage == "missing" && item.Coverage.MissingOfficialDays > 0) || (coverage == "complete" && item.Coverage.Complete) {
-				filtered = append(filtered, item)
-			}
-		}
-		result.Data = filtered
+		result.Data[i].Coverage = counts[result.Data[i].EmploymentID]
 	}
 	return result, nil
 }
