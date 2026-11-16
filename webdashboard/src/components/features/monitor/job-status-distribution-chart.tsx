@@ -1,6 +1,6 @@
 import { useTranslation } from "react-i18next";
 
-import { PieChart, Pie, Cell, Tooltip } from "recharts";
+import { PieChart, Pie, Tooltip } from "recharts";
 
 import type { JobStatusCount } from "@/hooks/use-monitor-charts";
 
@@ -33,6 +33,8 @@ function jobStatusLabel(t: ReturnType<typeof useTranslation>["t"], status: strin
 
 export default function JobStatusDistributionChart({ data, isLoading, unavailable = false }: Props) {
   const { t } = useTranslation();
+
+  const chartData = data.map((entry) => ({ ...entry, fill: entry.color }));
 
   return (
     <div className="bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl border border-slate-200/60 dark:border-slate-700/60 rounded-[2rem] p-6 shadow-lg dark:shadow-black/20 flex flex-col items-center gap-4 relative overflow-hidden group">
@@ -73,19 +75,14 @@ export default function JobStatusDistributionChart({ data, isLoading, unavailabl
             cornerRadius={4}
             cx="50%"
             cy="50%"
-            data={data}
+            data={chartData}
             dataKey="count"
             innerRadius={45}
             nameKey="status"
             outerRadius={70}
             paddingAngle={3}
             strokeWidth={0}
-          >
-            {data.map((entry, index) => {
-              // eslint-disable-next-line @typescript-eslint/no-deprecated
-              return <Cell fill={entry.color} key={index} />;
-            })}
-          </Pie>
+          />
           <Tooltip
             contentStyle={{
               borderRadius: "1rem",

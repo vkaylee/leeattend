@@ -6,7 +6,6 @@ import {
     Bar,
     BarChart,
     CartesianGrid,
-    Cell,
     ResponsiveContainer,
     Tooltip,
     XAxis,
@@ -21,6 +20,18 @@ import { MetricSelector } from "@/components/features/dashboard/metric-selector"
 import { Typography } from "@/components/ui/typography";
 
 type ViewKey = "hours" | "cost";
+
+const SERIES_COLORS: Record<string, string> = {
+  system_ot_hours: "#f59e0b",
+  approved_ot_hours: "#10b981",
+  unapproved_ot_hours: "#ef4444",
+  overtime_cost: "#f59e0b",
+  ot_cost_per_employee: "#10b981",
+  labor_cost: "#3b82f6",
+  payroll_actual: "#6366f1",
+  payroll_forecast: "#94a3b8",
+  budget_variance: "#ef4444",
+};
 
 /**
  * One axis type per view — never mix units (no dual-axis). The hours view plots
@@ -38,19 +49,8 @@ const COST_BARS = [
   "budget_variance",
 ] as const;
 
-const SERIES_COLORS: Record<string, string> = {
-  system_ot_hours: "#f59e0b",
-  approved_ot_hours: "#10b981",
-  unapproved_ot_hours: "#ef4444",
-  overtime_cost: "#f59e0b",
-  ot_cost_per_employee: "#10b981",
-  labor_cost: "#3b82f6",
-  payroll_actual: "#6366f1",
-  payroll_forecast: "#94a3b8",
-  budget_variance: "#ef4444",
-};
-
 interface BarRow {
+  fill: string;
   key: string;
   label: string;
   unit: string;
@@ -98,6 +98,7 @@ export function ExecutiveCostPanel({ data, currency }: { data?: DashboardMetrics
       if (!metric) continue;
       const value = number(metric.value);
       rows.push({
+        fill: SERIES_COLORS[key] ?? "#6366f1",
         key,
         label: t(`dashboard.executive.metrics.${key}.label`),
         value: value ?? 0,
@@ -208,14 +209,7 @@ export function ExecutiveCostPanel({ data, currency }: { data?: DashboardMetrics
                   dataKey="value"
                   name={barRows.map((r) => r.label).join(", ")}
                   radius={[6, 6, 0, 0]}
-                >
-                  {barRows.map((row) => (
-                    <Cell
-                      fill={SERIES_COLORS[row.key] ?? "#6366f1"}
-                      key={row.key}
-                    />
-                  ))}
-                </Bar>
+                />
               </BarChart>
             </ResponsiveContainer>
           </div>

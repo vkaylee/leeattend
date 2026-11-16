@@ -1,9 +1,9 @@
 import { z } from "zod";
 
 const decimalString = z.string().regex(/^-?\d+(?:\.\d+)?$/, "Expected decimal value");
-const decimalValue = z.union([z.number().finite(), decimalString]);
+const decimalValue = z.union([z.number(), decimalString]);
 const date = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Expected YYYY-MM-DD");
-const rfc3339 = z.string().datetime({ offset: true });
+const rfc3339 = z.iso.datetime({ offset: true });
 const uuid = z.uuid();
 
 const metricStatusValues = ["available", "not_applicable", "data_gap", "restricted"] as const;
@@ -107,7 +107,7 @@ export const dashboardDataQualitySchema = z.object({
   sources: z.array(z.object({
     key: z.string().min(1),
     status: z.enum(dataQualityStatusValues),
-    coverage_ratio: z.number().finite().min(0).max(1).nullable(),
+    coverage_ratio: z.number().min(0).max(1).nullable(),
     freshness: dashboardMetricFreshnessSchema,
     warnings: z.array(z.string().min(1)),
   }).strict()),

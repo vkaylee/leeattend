@@ -5,7 +5,6 @@ import {
     Bar,
     BarChart,
     CartesianGrid,
-    Cell,
     Legend,
     Line,
     LineChart,
@@ -603,6 +602,7 @@ function FunnelTab({ data, t }: { data: RecruitmentEffectivenessAnalytics; t: Tr
         hasData: stage.count != null,
         countValue: stage.count ?? 0,
         conversionValue: stage.conversion_rate != null ? parseFloat(stage.conversion_rate) : null,
+        fill: stage.count != null ? "#6366f1" : "#cbd5e1",
     }));
 
     const columns: ChartTableColumn<(typeof funnelRows)[number]>[] = [
@@ -661,15 +661,7 @@ function FunnelTab({ data, t }: { data: RecruitmentEffectivenessAnalytics; t: Tr
                                 return [displayValue, displayName];
                             }}
                         />
-                        <Bar dataKey="countValue" radius={[0, 8, 8, 0]}>
-                            {funnelRows.map((row) => (
-                                // eslint-disable-next-line @typescript-eslint/no-deprecated
-                                <Cell
-                                    fill={row.hasData ? "#6366f1" : "#cbd5e1"}
-                                    key={row.stage}
-                                />
-                            ))}
-                        </Bar>
+                        <Bar dataKey="countValue" radius={[0, 8, 8, 0]} />
                     </BarChart>
                 </ResponsiveContainer>
             </div>
@@ -762,12 +754,7 @@ function RankingTab({ data, t }: { data: RecruitmentEffectivenessAnalytics; t: T
                         <Legend
                             wrapperStyle={{ fontSize: "9px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.15em" }}
                         />
-                        <Bar dataKey="value" radius={[0, 8, 8, 0]}>
-                            {chartData.map((entry) => (
-                                // eslint-disable-next-line @typescript-eslint/no-deprecated
-                                <Cell fill={entry.fill} key={entry.name} />
-                            ))}
-                        </Bar>
+                        <Bar dataKey="value" radius={[0, 8, 8, 0]} />
                     </BarChart>
                 </ResponsiveContainer>
             </div>

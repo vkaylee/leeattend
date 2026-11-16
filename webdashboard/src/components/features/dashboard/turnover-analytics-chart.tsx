@@ -5,7 +5,6 @@ import {
     Bar,
     BarChart,
     CartesianGrid,
-    Cell,
     Legend,
     Line,
     LineChart,
@@ -700,12 +699,7 @@ function HorizontalBarChart<T extends { count: number }>({
                             width={120}
                         />
                         <Tooltip contentStyle={TOOLTIP_STYLE} />
-                        <Bar dataKey="value" radius={[0, 8, 8, 0]}>
-                            {chartData.map((entry) => (
-                                // eslint-disable-next-line @typescript-eslint/no-deprecated
-                                <Cell fill={entry.fill} key={entry.name} />
-                            ))}
-                        </Bar>
+                        <Bar dataKey="value" radius={[0, 8, 8, 0]} />
                     </BarChart>
                 </ResponsiveContainer>
             </div>
@@ -805,12 +799,7 @@ function ReasonsTab({ data, t }: { data: TurnoverAnalytics; t: TranslateFn }) {
                                 <XAxis allowDecimals={false} axisLine={false} tick={{ fontSize: 11, fill: "#94a3b8" }} tickLine={false} type="number" />
                                 <YAxis axisLine={false} dataKey="name" tick={{ fontSize: 11, fill: "#94a3b8" }} tickLine={false} type="category" width={110} />
                                 <Tooltip contentStyle={TOOLTIP_STYLE} />
-                                <Bar dataKey="value" radius={[0, 8, 8, 0]}>
-                                    {classificationRows.map((entry) => (
-                                        // eslint-disable-next-line @typescript-eslint/no-deprecated
-                                        <Cell fill={entry.fill} key={entry.name} />
-                                    ))}
-                                </Bar>
+                                <Bar dataKey="value" radius={[0, 8, 8, 0]} />
                             </BarChart>
                         </ResponsiveContainer>
                     </div>

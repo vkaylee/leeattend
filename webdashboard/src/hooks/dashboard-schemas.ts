@@ -3,7 +3,7 @@ import { z } from "zod";
 import { dashboardMetricsResponseSchema } from "./dashboard-metric-contract";
 
 const dateString = z.string().min(1);
-const count = z.number().finite();
+const count = z.number();
 
 /** A percentage rate plus its raw numerator/denominator. `value` is null when the denominator is zero. */
 export const rateQuantitySchema = z.object({
@@ -188,7 +188,7 @@ export const turnoverAnalyticsSchema = z.object({
   warnings: z.array(turnoverWarningSchema),
 });
 
-const nullableCount = z.number().finite().nullable();
+const nullableCount = z.number().nullable();
 const nullableDecimal = z.string().nullable();
 
 const recruitmentFunnelStageSchema = z.object({
@@ -253,9 +253,9 @@ export const overtimeBreakdownSchema = z.object({
   rows: z.array(z.object({
     department_id: z.string().min(1),
     department_name: z.string().min(1),
-    system_ot_hours: z.number().finite(),
-    approved_ot_hours: z.number().finite(),
-    unapproved_ot_hours: z.number().finite(),
+    system_ot_hours: z.number(),
+    approved_ot_hours: z.number(),
+    unapproved_ot_hours: z.number(),
     overtime_cost: z.string().nullable(),
     cost_available: z.boolean(),
   })),

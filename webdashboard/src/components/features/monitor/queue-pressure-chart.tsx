@@ -1,6 +1,6 @@
 import { useTranslation } from "react-i18next";
 
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from "recharts";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 
 import type { QueuePressureData, PressureLevel } from "@/hooks/use-monitor-charts";
 
@@ -131,12 +131,7 @@ export default function QueuePressureChart({ data, isLoading }: Props) {
                 fontWeight: 600,
               }}
             />
-            <Bar barSize={20} dataKey="value" radius={[0, 8, 8, 0]}>
-              {chartData.map((entry, index) => {
-                // eslint-disable-next-line @typescript-eslint/no-deprecated
-                return <Cell fill={entry.fill} key={index} />;
-              })}
-            </Bar>
+            <Bar barSize={20} dataKey="value" radius={[0, 8, 8, 0]} />
           </BarChart>
         </ResponsiveContainer>
       )}

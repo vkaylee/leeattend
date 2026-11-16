@@ -1,5 +1,5 @@
 import { AlertTriangle, Loader2 } from "lucide-react";
-import React, { useState } from "react";
+import { useState, type SubmitEvent } from "react";
 import { useTranslation } from "react-i18next";
 
 import Button from "@/components/ui/button";
@@ -25,7 +25,7 @@ export function RejectionReasonModal({
   const [reason, setReason] = useState("");
   const [error, setError] = useState<string | null>(null);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = (e: SubmitEvent) => {
     e.preventDefault();
     const trimmed = reason.trim();
     if (!trimmed) {

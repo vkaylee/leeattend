@@ -1,7 +1,7 @@
 import { Users2 } from "lucide-react";
 
 import { type TFunction } from "i18next";
-import { Cell, PieChart, Pie, ResponsiveContainer, Tooltip } from "recharts";
+import { PieChart, Pie, ResponsiveContainer, Tooltip } from "recharts";
 
 import { Typography } from "@/components/ui/typography";
 import { type OrganizationStats } from "@/hooks/use-dashboard";
@@ -60,11 +60,7 @@ export function AttendanceBreakdown({ donutData, hasDonutData, hrStats, t }: Att
                   outerRadius={110}
                   paddingAngle={3}
                   stroke="none"
-                >
-                  {donutData.map((entry) => (
-                    <Cell fill={entry.fill} key={entry.name} />
-                  ))}
-                </Pie>
+                />
                 <Tooltip
                   contentStyle={{
                     borderRadius: "1rem",

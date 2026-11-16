@@ -4,7 +4,6 @@ import { useTranslation } from "react-i18next";
 import {
     PieChart,
     Pie,
-    Cell,
     ResponsiveContainer,
     Tooltip,
     Legend,
@@ -32,6 +31,7 @@ export default function LeaveTypesChart() {
     const chartData = (leaveTypes ?? []).map((item, index) => ({
         ...item,
         color: LEAVE_COLORS[index % LEAVE_COLORS.length],
+        fill: LEAVE_COLORS[index % LEAVE_COLORS.length],
     }));
 
     const hasData = chartData.length > 0 && chartData.some((d) => d.count > 0);
@@ -79,12 +79,7 @@ export default function LeaveTypesChart() {
                                 outerRadius={105}
                                 paddingAngle={3}
                                 stroke="none"
-                            >
-                                {chartData.map((entry, index) => (
-                                    // eslint-disable-next-line @typescript-eslint/no-deprecated
-                                    <Cell fill={entry.color} key={`cell-${index}`} />
-                                ))}
-                            </Pie>
+                            />
                             <Tooltip
                                 contentStyle={{
                                     borderRadius: "1rem",

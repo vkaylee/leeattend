@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { ClipboardList, UserCheck } from "lucide-react";
-import React, { useMemo, useState } from "react";
+import { useMemo, useState, type SubmitEvent } from "react";
 import { useTranslation } from "react-i18next";
 
 import { z } from "zod";
@@ -108,7 +108,7 @@ export default function LifecycleAssignModal({
     },
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = (e: SubmitEvent) => {
     e.preventDefault();
     if (!effectiveEmploymentId) {
       setErrorMsg(
