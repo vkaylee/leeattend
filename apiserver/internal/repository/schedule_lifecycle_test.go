@@ -128,6 +128,39 @@ func TestLockScheduleRevisionTargetsLocksEmployeeBeforeEmployment(t *testing.T) 
 	}
 }
 
+func TestValidateHumanOfficeApprovalRequiresApprovedPolicyCoverage(t *testing.T) {
+	approvalID := uuid.New()
+	employmentID := uuid.New()
+	queries := 0
+	db := &fakeDBTX{queryRowFn: func(_ context.Context, query string, _ ...any) pgx.Row {
+		queries++
+		if !strings.Contains(query, "schedule_office_policies") || !strings.Contains(query, "approval_workflow_instances") || !strings.Contains(query, "generate_series") {
+			t.Fatalf("approval coverage query missing policy/date binding: %s", query)
+		}
+		return fakeRow{scanFn: func(dest ...any) error {
+			*(dest[0].(*bool)) = true
+			return nil
+		}}
+	}}
+	request := api.SchedulePublishRequest{EmploymentIDs: []uuid.UUID{employmentID}, StartDate: "2026-11-16", EndDate: "2026-11-17", ApprovalInstanceID: &approvalID}
+	if err := validateHumanOfficeApproval(context.Background(), db, request); err != nil || queries != 1 {
+		t.Fatalf("approved office policy validation err=%v queries=%d", err, queries)
+	}
+}
+
+func TestValidateHumanOfficeApprovalFailsClosed(t *testing.T) {
+	approvalID := uuid.New()
+	db := &fakeDBTX{queryRowFn: func(context.Context, string, ...any) pgx.Row {
+		return fakeRow{scanFn: func(dest ...any) error {
+			*(dest[0].(*bool)) = false
+			return nil
+		}}
+	}}
+	if err := validateHumanOfficeApproval(context.Background(), db, api.SchedulePublishRequest{EmploymentIDs: []uuid.UUID{uuid.New()}, StartDate: "2026-11-16", EndDate: "2026-11-16", ApprovalInstanceID: &approvalID}); !errors.Is(err, api.ErrScheduleApprovalInvalid) {
+		t.Fatalf("expected invalid approval, got %v", err)
+	}
+}
+
 func TestValidateSystemOfficePublicationAuthorityChecksApprovalEmployerAndDate(t *testing.T) {
 	approvalID, employerID, employmentID := uuid.New(), uuid.New(), uuid.New()
 	queries := 0

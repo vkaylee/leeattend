@@ -200,6 +200,14 @@ func (r ScheduleRepository) CreatePreview(ctx context.Context, actorID uuid.UUID
 		if err := validatePreviewScope(resolution, request.EmploymentIDs, startDate, endDate); err != nil {
 			return err
 		}
+		if err := validateHumanOfficeApproval(ctx, tx, api.SchedulePublishRequest{
+			EmploymentIDs: request.EmploymentIDs,
+			StartDate: request.StartDate,
+			EndDate: request.EndDate,
+			ApprovalInstanceID: request.ApprovalInstanceID,
+		}); err != nil {
+			return err
+		}
 		currentRevisions, err := loadCurrentRevisionNumbers(ctx, tx, request.EmploymentIDs, request.StartDate, request.EndDate)
 		if err != nil {
 			return err
@@ -252,6 +260,43 @@ func (r ScheduleRepository) CreatePreview(ctx context.Context, actorID uuid.UUID
 		return api.SchedulePreviewResponse{}, err
 	}
 	return response, nil
+}
+
+func validateHumanOfficeApproval(ctx context.Context, db DBTX, request api.SchedulePublishRequest) error {
+	if request.ApprovalInstanceID == nil || *request.ApprovalInstanceID == uuid.Nil || len(request.EmploymentIDs) == 0 {
+		return api.ErrScheduleApprovalInvalid
+	}
+	var valid bool
+	err := db.QueryRow(ctx, `
+		SELECT NOT EXISTS (
+			SELECT 1
+			FROM employments e
+			CROSS JOIN LATERAL generate_series(
+				GREATEST(e.start_date, $2::date),
+				LEAST(COALESCE(e.end_date, $3::date), $3::date),
+				interval '1 day'
+			) days(day)
+			WHERE e.id = ANY($1::uuid[])
+			  AND NOT EXISTS (
+				SELECT 1
+				FROM schedule_office_policies p
+				JOIN approval_workflow_instances i ON i.id = p.approval_instance_id
+				WHERE p.approval_instance_id = $4
+				  AND p.employer_id = e.employer_id
+				  AND p.status = 'active'
+				  AND p.effective_from <= days.day::date
+				  AND (p.effective_to IS NULL OR p.effective_to >= days.day::date)
+				  AND i.entity_type = 'schedule_policy'
+				  AND i.status = 'approved'
+			  )
+		)`, request.EmploymentIDs, request.StartDate, request.EndDate, *request.ApprovalInstanceID).Scan(&valid)
+	if err != nil {
+		return err
+	}
+	if !valid {
+		return api.ErrScheduleApprovalInvalid
+	}
+	return nil
 }
 
 func validatePreviewInput(actorID uuid.UUID, request api.SchedulePreviewRequest) (time.Time, time.Time, error) {
@@ -556,7 +601,10 @@ func (r ScheduleRepository) Publish(ctx context.Context, actorID uuid.UUID, idem
 		if preview.RequestHash != requestHash {
 			return ErrSchedulePreviewStale
 		}
-		if err := ensureMutationPeriodOpenForRange(ctx, tx, request.EmploymentIDs, request.StartDate, request.EndDate); err != nil {
+			if err := ensureMutationPeriodOpenForRange(ctx, tx, request.EmploymentIDs, request.StartDate, request.EndDate); err != nil {
+			return err
+		}
+		if err := validateHumanOfficeApproval(ctx, tx, request); err != nil {
 			return err
 		}
 		if err := verifyFirstPublicationTargets(ctx, tx, request); err != nil {
