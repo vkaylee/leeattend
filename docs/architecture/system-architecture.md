@@ -43,7 +43,7 @@ Metrics cover pull success/failure, provider latency, lag, fetched/imported/dedu
                                   |--object storage--> [MinIO]
 ```
 
-Compose deploys `apiserver`, `webdashboard`, one PostgreSQL database, Redis, and MinIO. No tenant pooler, external attendance provider, or desktop application build belongs in the runtime topology.
+Compose deploys `apiserver`, `webdashboard`, one PostgreSQL database, Redis, and MinIO. No tenant pooler or desktop application build belongs in the runtime topology.
 
 ## Verification boundaries
 

@@ -27,7 +27,7 @@
 - Email/password login with JWT tokens
 - Token refresh flow
 - Role-based access: `Owner`, `Admin`, `Member`
-- `MemberContext` middleware for workspace-scoped authorization
+- Authenticated user context and explicit permission checks for organization data
 - Dev mode bypass for local testing
 
 ## F3: Attendance Log Ingestion
@@ -40,7 +40,7 @@
 ## F4: Punch Pairing
 
 - Multiple algorithms: `greedy`, `optimal`
-- Configurable per workspace via `pairing_algorithm` setting
+- Configurable per organization via `pairing_algorithm` setting
 - Handles overnight shifts crossing midnight
 - Break detection within shift windows
 

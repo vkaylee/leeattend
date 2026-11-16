@@ -40,8 +40,8 @@ Mô hình thiết kế **Late-Binding Task Worklist** của LeeAttend tuân th�
 6. **Bảo mật thông tin cá nhân & GDPR:**
    - Việc tách thông tin gán động (Late-Binding) kết hợp với các chính sách che giấu dữ liệu PII (Personally Identifiable Information) đảm bảo chỉ những người duyệt thực sự có thẩm quyền mới có thể truy cập và xem chi tiết thông tin đơn từ của nhân viên.
 
-7. **Kiến trúc Đa thuê tối ưu (Multi-Tenant Performance Standards):**
-   - Cô lập hoàn toàn dữ liệu giữa các doanh nghiệp (`workspace_id`) trên cả ba cấp độ: Định nghĩa quy trình, Trạng thái Instance, và Danh sách nhiệm vụ Tasks.
+7. **Tiêu chuẩn hiệu năng trong tổ chức đơn:**
+   - Dữ liệu quy trình, trạng thái instance, và task thuộc cùng tổ chức; quyền truy cập vẫn kiểm tra theo user, role, permission, và department.
    - **Không N+1 Queries:** Tải danh sách công việc cần duyệt trong O(1) bằng một câu lệnh truy vấn SQL sử dụng toán tử `IN` kết hợp với index trên `assignee_type` và `assignee_target_id`.
 
 ---
@@ -54,7 +54,7 @@ Lưu trữ trạng thái tiến trình tổng quan của luồng duyệt.
 | Trường | Kiểu dữ liệu | Ràng buộc | Mô tả |
 | :--- | :--- | :--- | :--- |
 | `id` | `UUID` | PRIMARY KEY | Định danh duy nhất của instance duyệt. |
-| `workspace_id` | `UUID` | NOT NULL | Định danh doanh nghiệp (Multi-tenant). |
+| `organization_id` | `UUID` | compatibility/internal | Organization boundary when retained by persistence schema. |
 | `workflow_id` | `UUID` | REFERENCES | Trỏ tới cấu hình gốc. |
 | `entity_type` | `VARCHAR(50)` | NOT NULL | Loại đơn từ (ví dụ: `leave_request`, `ot_request`). |
 | `entity_id` | `UUID` | NOT NULL | ID của bản ghi đơn tương ứng. |
@@ -88,14 +88,14 @@ Lưu trữ các nhiệm vụ phê duyệt đang chờ xử lý cho bước hiệ
 Khi đơn từ được gửi duyệt:
 1. Tìm cấu hình quy trình (`is_active = true`) có `entity_type` tương ứng.
 2. **Nếu không cấu hình quy trình duyệt:**
-   - Kích hoạt **Fallback**: Xác định phòng ban của người thụ hưởng. Giao nhiệm vụ cho Trưởng phòng ban đó (tạo task `assignee_type = 'department_manager'`, `assignee_target_id = department_id`). Nếu không có phòng ban hoặc trưởng phòng, giao thẳng cho Workspace Admin (`assignee_type = 'specific_user'`).
+   - Kích hoạt **Fallback**: Xác định phòng ban của người thụ hưởng. Giao nhiệm vụ cho Trưởng phòng ban đó (tạo task `assignee_type = 'department_manager'`, `assignee_target_id = department_id`). Nếu không có phòng ban hoặc trưởng phòng, giao thẳng cho Organization Admin (`assignee_type = 'specific_user'`).
 3. **Nếu có cấu hình quy trình duyệt:**
    - Tạo instance và lưu cấu hình các bước vào `steps_snapshot`.
    - **Kích hoạt Bước 1:** Phân giải tiêu chí người duyệt của Bước 1 và sinh các task tương ứng.
 4. **Cơ chế Chống Tự Duyệt (Self-Approval Prevention):**
    - Nếu tiêu chí chỉ định đích danh chính người nộp đơn:
      - Nếu `can_skip = true`: Đánh dấu task là `completed` / `skipped` ngay lập tức và chuyển bước.
-     - Nếu `can_skip = false`: Chuyển hướng giao nhiệm vụ (Reassign) cho Workspace Admin.
+     - Nếu `can_skip = false`: Chuyển hướng giao nhiệm vụ (Reassign) cho Organization Admin.
 
 ### Bước 2: Phê Duyệt Bước (`process_approval_action`)
 Khi một người duyệt thực hiện hành động duyệt:

@@ -11,7 +11,7 @@ LeeAttend is an enterprise-grade **Attendance Management Platform** that bridges
 | **HR Admin** | Human resources managers | Configure shifts, holidays, leave policies; generate payroll |
 | **Department Manager** | Team supervisors | Approve OT claims, review attendance, manage schedules |
 | **Employee** | Office/factory staff | View attendance, submit leave requests, check payslips |
-| **IT Administrator** | System administrator | Manage agents, devices, workspace settings |
+| **IT Administrator** | System administrator | Manage attendance sources, devices, and organization settings |
 | **Business Owner** | Company leadership | Dashboard overviews, compliance reports |
 
 ## Problem Statement
@@ -31,7 +31,7 @@ Vietnamese and Southeast Asian enterprises using ZKTeco biometric devices face:
 | P0 | Accurate payroll calculation with OT and holiday multipliers | < 0.1% calculation error rate |
 | P1 | Holiday-aware scheduling and reporting | All statuses correctly reflect holidays |
 | P1 | Employee Self-Service portal | 80% employee adoption |
-| P2 | Multi-workspace SaaS operation | Support 50+ independent organizations |
+| P2 | Single-organization on-premise operation | Run one organization reliably on a local appliance |
 
 ## Non-Functional Requirements
 
@@ -43,7 +43,7 @@ Vietnamese and Southeast Asian enterprises using ZKTeco biometric devices face:
 | Security | JWT authentication, role-based access |
 | Internationalization | English + Vietnamese |
 | Testing | Automated CI via Docker containers |
-| Scalability | Multi-workspace data isolation |
+| Scalability | Bounded single-organization appliance workload |
 
 ## Constraints
 

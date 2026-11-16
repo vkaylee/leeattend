@@ -1,143 +1,59 @@
 # LeeAttend — Domain Knowledge
 
-## Core Domain Entities
+## Scope
 
-### Employee
-Primary entity representing a staff member. Linked to user accounts for self-service.
+LeeAttend serves one organization per on-premise appliance. Organization scope comes from trusted server bootstrap; clients cannot select tenant or workspace scope.
 
-| Field | Type | Description |
-|---|---|---|
-| `id` | UUID | Primary key |
-| `workspace_id` | UUID | Workspace isolation |
-| `user_id` | UUID (nullable) | Linked user account for ESS |
-| `full_name` | String | Display name |
-| `employee_id_number` | String | Company-assigned ID |
-| `department_name` | String (nullable) | Current department |
-| `hire_date` | Date | First employment date |
-| `termination_date` | Date (nullable) | End of employment |
-| `is_active` | Boolean | Active status |
+## Core entities
 
-**Relationships**: Has many `TimeEntry`, `ShiftRoster`, `EmploymentPeriod`, `EmployeeSalaryComponent`, `LeaveRequest`
+- **Employee**: Staff member tracked for attendance, employment, leave, and payroll. May have a user account for self-service.
+- **Employment**: Effective-dated employment relationship used by attendance and payroll calculations.
+- **Attendance source**: Approved source of raw attendance events, including biometric device integrations and imports.
+- **Time entry**: Paired punch-in and punch-out record representing one work session.
+- **Daily summary**: Per-employee, per-date aggregate used by reports, overtime, and payroll.
+- **Shift**: Work schedule with start/end times, breaks, grace periods, and overtime rules.
+- **Working pattern**: Reusable schedule template assigned through effective-dated rules.
+- **Holiday**: Organization calendar entry with paid status and optional overtime multiplier.
+- **Leave type/policy**: Configurable leave category and accrual/carry-over rules.
+- **Payslip**: Monthly payroll result with salary, overtime, incentive, and deduction segments.
 
-### Workspace
-Multi-tenant isolation unit. All data is scoped to a workspace.
+## Organization settings
 
-Key configuration fields:
-- `work_unit_minutes` — Granularity for work calculations (e.g., 30 = 30-minute units)
-- `rounding_policy` — How to round work time
-- `timezone` — Workspace timezone for time calculations
-- `early_arrival_strategy` — `allow` | `block` | `clamp` for early punch-ins
-- `pairing_algorithm` — Punch pairing strategy
-- `holiday_overnight_strategy` — How overnight shifts split across holidays
-- `default_holiday_ot_multiplier` — Default OT rate for holidays (e.g., 3.0 = 300%)
+- `work_unit_minutes`: calculation granularity.
+- `rounding_policy`: work-time rounding behavior.
+- `timezone`: organization timezone for calculations.
+- `early_arrival_strategy`: `allow`, `block`, or `clamp`.
+- `pairing_algorithm`: punch pairing strategy.
+- `holiday_overnight_strategy`: handling for shifts crossing midnight.
+- `default_holiday_ot_multiplier`: organization default, commonly 3.0 for 300% holiday overtime.
 
-### Shift
-Work schedule definition with break policies.
+## Data flow
 
-| Field | Type | Description |
-|---|---|---|
-| `start_time` / `end_time` | NaiveTime | Shift hours |
-| `break_duration_minutes` | Integer | Break length |
-| `break_start` / `break_end` | NaiveTime (nullable) | Fixed break window |
-| `is_break_auto_deduct` | Boolean | Auto-deduct break from work time |
-| `is_break_overtime` | Boolean | Count break as overtime |
-| `report_symbol` | String (nullable) | Short code for reports (e.g., "S8") |
-| `early_punch_in_grace_period_minutes` | Integer (nullable) | Grace period |
+```text
+Attendance source → Go apiserver → raw attendance logs
+                                 ↓
+                         punch pairing and policy resolution
+                                 ↓
+                         daily attendance summaries
+                                 ↓
+                    reports, overtime, and payroll calculations
+```
 
-### Holiday
-Workspace holiday calendar entry.
+## Database boundary
 
-| Field | Type | Description |
-|---|---|---|
-| `name` | String | Holiday name (e.g., "Tết Dương Lịch") |
-| `date` | Date | Holiday date (unique per workspace) |
-| `holiday_type` | String | `national` | `company` | `regional` |
-| `is_paid` | Boolean | Whether holiday is paid |
-| `ot_multiplier` | Decimal (nullable) | Override workspace default |
+PostgreSQL stores organization, identity, attendance, payroll, file, and audit data. The baseline schema uses `organization_settings`, `roles`, `role_permissions`, and `user_roles`; it does not expose workspace or tenant tables in the active runtime contract.
 
-### TimeEntry
-A paired punch-in/punch-out record representing a work session.
+Repositories use parameterized `pgx` queries. Migrations under `apiserver/migrations/` are schema source of truth.
 
-### RawAttendanceLog
-Raw biometric device data before pairing.
+## API boundary
 
-### AttendanceDailySummary
-Aggregated daily attendance metrics used for OT claims and payroll.
+Canonical public routes use flat `/api/v1/...` paths. See [`../api/api-reference.md`](../api/api-reference.md). Authentication and explicit permission checks apply to protected routes.
 
-Key fields: `actual_work_minutes`, `system_detected_ot_minutes`, `claimed_ot_minutes`, `approved_ot_minutes`, `is_holiday`, `holiday_name`
+## Business rules
 
-### Payslip
-Monthly payroll calculation result with segments, incentives, and salary components.
-
-### LeaveType / LeavePolicy
-Configurable leave types (annual, sick, unpaid) with accrual rules, seniority bonuses, and carry-over limits.
-
-## Database Schema
-
-**Engine**: PostgreSQL 15+ via Go `pgx` and typed SQL
-
-**Migration count**: 89 migration files (incremental schema evolution)
-
-**Key tables**:
-| Table | Purpose |
-|---|---|
-| `workspaces` | Multi-tenant workspace config |
-| `users` / `workspace_members` | Authentication and authorization |
-| `employees` / `employment_periods` | Employee lifecycle |
-| `devices` / `authorized_agents` | Hardware device management |
-| `shifts` / `shift_rosters` | Schedule definitions and assignments |
-| `working_patterns` / `working_pattern_details` | Weekly pattern templates |
-| `time_entries` | Paired attendance records |
-| `raw_attendance_logs` | Raw device data |
-| `attendance_daily_summaries` | Aggregated daily metrics |
-| `holidays` | Holiday calendar |
-| `leave_types` / `leave_policies` | Leave configuration |
-| `leave_balances` / `leave_requests` | Leave tracking |
-| `salary_component_definitions` / `employee_salary_components` | Salary structure |
-| `payslips` / `payslip_segments` | Payroll results |
-| `payroll_incentive_policies` / `incentive_tiers` | Bonus policies |
-| `departments` / `employee_department_history` | Organization structure |
-| `overtime_rules` | OT calculation rules |
-| `assignment_rules` | Auto shift assignment rules |
-
-## API Contracts
-
-### Authentication
-| Endpoint | Method | Auth | Description |
-|---|---|---|---|
-| `/auth/login` | POST | Public | Email/password login → JWT |
-| `/auth/register` | POST | Public | User registration |
-| `/auth/refresh` | POST | Refresh token | Token refresh |
-| `/auth/me` | GET | JWT | Current user profile |
-
-### Holiday CRUD
-| Endpoint | Method | Auth |
-|---|---|---|
-| `/workspaces/:ws_id/holidays` | GET | Member |
-| `/workspaces/:ws_id/holidays` | POST | Admin |
-| `/workspaces/:ws_id/holidays/:id` | GET | Member |
-| `/workspaces/:ws_id/holidays/:id` | PUT | Admin |
-| `/workspaces/:ws_id/holidays/:id` | DELETE | Admin |
-
-### Reports
-| Endpoint | Method | Description |
-|---|---|---|
-| `/workspaces/:ws_id/reports/daily` | GET | Daily attendance report (paginated) |
-| `/workspaces/:ws_id/reports/summary` | GET | Period summary report |
-| `/workspaces/:ws_id/reports/export` | POST | Async Excel export job |
-| `/workspaces/:ws_id/reports/export/:job_id` | GET | Export job status |
-
-### Payroll
-| Endpoint | Method | Description |
-|---|---|---|
-| `/workspaces/:ws_id/payroll/calculate` | POST | Batch payslip calculation |
-| `/workspaces/:ws_id/payroll/payslips` | GET | List payslips |
-
-## Business Rules
-
-1. **Work Unit Rounding**: All work time is rounded to workspace-configured `work_unit_minutes` (e.g., 30 min units)
-2. **Holiday Status**: `holiday` (no punch on holiday) vs `holiday_work` (punched on holiday)
-3. **OT Multiplier**: Holiday OT uses per-holiday or workspace-default multiplier (default 300%)
-4. **Incentive Eligibility**: Late/early counts on holidays are excluded from diligence bonus evaluation
-5. **Leave Accrual**: Monthly/quarterly/yearly accrual with seniority bonuses and carry-over limits
-6. **Shift Resolution Priority**: Roster → Pattern → Assignment Rule → Department Pattern → Fixed Schedule
+1. Work time rounds using organization `work_unit_minutes` and `rounding_policy`.
+2. Holiday status distinguishes no work from work performed on a holiday.
+3. Holiday overtime uses the holiday multiplier or organization default.
+4. Holiday late/early counts do not affect diligence bonus eligibility.
+5. Leave accrual supports monthly, quarterly, and yearly schedules with seniority and carry-over rules.
+6. Shift resolution follows roster → pattern → assignment rule → department/default schedule.

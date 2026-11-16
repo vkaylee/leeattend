@@ -169,13 +169,13 @@ export function useMyClock() {
 - Balances responsiveness with server load
 - User perceives active session status updates
 - No WebSocket complexity (HTTP polling simpler to manage)
-- Can be adjusted per workspace in Phase 4
+- Can be adjusted per organization in Phase 4
 
 ### 4. Timezone Handling
 **Decision**: Convert input times to UTC in AdjustmentRequestModal
 **Rationale**:
 - Prevents timezone mismatch errors
-- Uses workspace-configured timezone (not browser timezone)
+- Uses organization-configured timezone (not browser timezone)
 - Stores UTC timestamps in database
 - Enables accurate time tracking across regions
 
@@ -294,7 +294,7 @@ None. Phase 1 is purely additive (new components) and refactoring existing page.
 
 ## Known Limitations
 1. Manual refresh only (no WebSocket real-time)
-2. Single timezone per workspace (not per-user)
+2. Single timezone per organization (not per-user)
 3. Punch times limited to today + historical dates (no future punch requests)
 
 ---

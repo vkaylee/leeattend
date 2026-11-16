@@ -9,10 +9,10 @@
 
 ## Overview
 
-Phase 1 replaced the hardcoded working-condition types (`REGULAR`, `MATERNITY`, `SICK`, `UNPAID`, and the resolver's hardcoded `"EARLY_LEAVE"` / `"BREASTFEEDING"` string matches) with a workspace-scoped catalog (`condition_type_definitions`) that lets each workspace define its own condition types with an `affects_rules` JSONB describing which `PolicyRules` fields a type touches.
+Phase 1 replaced the hardcoded working-condition types (`REGULAR`, `MATERNITY`, `SICK`, `UNPAID`, and the resolver's hardcoded `"EARLY_LEAVE"` / `"BREASTFEEDING"` string matches) with a organization catalog (`condition_type_definitions`) that lets the organization define its own condition types with an `affects_rules` JSONB describing which `PolicyRules` fields a type touches.
 
 This built:
-- Migration: `condition_type_definitions` table + `condition_type_id` FK on `working_conditions` (nullable, `ON DELETE SET NULL`) + trigger to auto-seed 5 system types per new workspace
+- Migration: `condition_type_definitions` table + `condition_type_id` FK on `working_conditions` (nullable, `ON DELETE SET NULL`) + trigger to auto-seed 5 system types for the organization baseline
 - Full CRUD: repository, service (with validation + system-type delete protection), handlers, routes
 - Settings UI: catalog management page, wired into Settings Hub nav
 - `WorkingConditionConfig` component refactored off the hardcoded enum, now fetches types from the catalog
@@ -25,19 +25,17 @@ This built:
 
 All real calculation call sites still call the non-catalog resolver functions, meaning custom condition types created via the Settings UI have **zero effect on computed attendance/payroll rules** today. Confirmed call sites still on the old path:
 
-| File | Line(s) | Function called |
+| Area | Current Go location | Required follow-up |
 |---|---|---|
-| `apiserver/src/services/report_service/daily.rs` | 395, 859 | `build_rules_from_conditions` |
-| `apiserver/src/services/report_service/summary.rs` | 283 | `build_rules_from_conditions` |
-| `apiserver/src/worker/handlers/attendance.rs` | 356, 563 | `build_rules_from_conditions` |
-| `apiserver/src/services/policy_resolver_service.rs` | 205, 237 | `resolve_attendance_rules_pure` |
+| Attendance and payroll policy resolution | `apiserver/internal/domain/workpolicy/` and callers under `apiserver/internal/api/` and `apiserver/internal/repository/` | Trace production callers and pass active catalog into calculation paths |
+| Attendance processing | `apiserver/internal/repository/attendance.go` and `apiserver/internal/repository/attendance_logs.go` | Add end-to-end custom-condition coverage before enabling catalog-driven behavior |
 
-Only the 5 **system-seeded** types (`EARLY_LEAVE`, `BREASTFEEDING`, `MATERNITY`, `SICK`, `UNPAID`) behave correctly today, because the hardcoded fallback match still handles those two codes exactly as before. Any **custom** type a workspace admin creates through the new catalog UI will save fine, display fine in the employee drawer, but **silently no-op** in daily reports, summary reports, the attendance worker, and payroll-adjacent policy resolution.
+Only the 5 **system-seeded** types (`EARLY_LEAVE`, `BREASTFEEDING`, `MATERNITY`, `SICK`, `UNPAID`) behave correctly today, because the hardcoded fallback match still handles those two codes exactly as before. Any **custom** type an administrator creates through the new catalog UI will save fine, display fine in the employee drawer, but **silently no-op** in daily reports, summary reports, the attendance worker, and payroll-adjacent policy resolution.
 
 ### What Phase 2 must do
 
-1. At each of the 7 call sites above, fetch the workspace's active catalog (`ConditionTypeRepository::list_condition_types(auth_token, active_only=true)`) once per batch/request and pass it into the `_with_catalog` variant instead of the current call.
+1. At each of the 7 call sites above, fetch the organization's active catalog (`ConditionTypeRepository::list_condition_types(auth_token, active_only=true)`) once per batch/request and pass it into the `_with_catalog` variant instead of the current call.
 2. These are payroll-adjacent hot paths (daily/summary reports, attendance worker batch processing, policy resolver service) — changes need integration tests that assert a **custom** condition type (not just the 5 system ones) actually changes a computed `PolicyRules` output end-to-end, not just at the resolver unit-test level.
-3. Decide on caching strategy for the catalog fetch (per-workspace, likely short-TTL cache) since these paths run in batch loops over many employees/dates — re-fetching the catalog per employee would be an N+1.
+3. Decide on caching strategy for the catalog fetch (per-organization, likely short-TTL cache) since these paths run in batch loops over many employees/dates — re-fetching the catalog per employee would be an N+1.
 
 This was deliberately deferred rather than done opportunistically in Phase 1, since wiring it in touches live payroll/attendance calculation logic and deserves its own reviewed change with dedicated integration coverage, rather than being bundled into the catalog CRUD work.

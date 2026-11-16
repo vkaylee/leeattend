@@ -4,7 +4,7 @@
 
 | Term | Definition |
 |---|---|
-| **Workspace** | An isolated tenant/organization unit. All data is scoped to a workspace. Equivalent to a company or branch. |
+| **Organization** | The single company served by one LeeAttend on-premise appliance. Organization scope is resolved by trusted server bootstrap. |
 | **Employee** | A staff member tracked in the attendance system. May or may not have a user account for self-service. |
 | **Agent** | An on-premise attendance connector that communicates with ZKTeco devices and syncs data to the central API server. |
 | **Device** | A ZKTeco biometric attendance machine (fingerprint, face recognition, or card) used for punch-in/punch-out. |
@@ -33,7 +33,7 @@
 
 | Term | Definition |
 |---|---|
-| **Work Unit** | The minimum granularity for time calculations. Configured per workspace (e.g., 30 minutes). |
+| **Work Unit** | The minimum granularity for time calculations. Configured per organization (e.g., 30 minutes). |
 | **Standard Work Units** | Work time within the scheduled shift hours. |
 | **OT Work Units** | Work time exceeding the scheduled shift hours. |
 | **Rounding Policy** | How work time is rounded to work units (round up, round down, round nearest). |

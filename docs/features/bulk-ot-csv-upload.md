@@ -1,16 +1,16 @@
 # Bulk OT CSV Upload Feature
 
 ## Overview
-Allows Admin/Owner users to upload multiple paper-based OT claims via CSV file, reducing data entry time from 8-16 hours to 30 minutes for 1000 entries.
+Allows Admin users to upload multiple paper-based OT claims via CSV file, reducing data entry time from 8-16 hours to 30 minutes for 1000 entries.
 
 ## Endpoint
 ```
-POST /api/workspaces/:ws_id/attendance/bulk-upload-paper-ot
+POST /api/v1/attendance/bulk-upload-paper-ot
 ```
 
 ## Authentication
-- **Authorization**: Admin or Owner role required
-- **Headers**: Standard workspace authentication
+- **Authorization**: Admin role required
+- **Headers**: Standard organization authentication
 
 ## Request Format
 - **Content-Type**: `multipart/form-data`
@@ -41,7 +41,7 @@ E003,2026-01-27,60,Machine maintenance work
 
 ### Row-Level Validation
 - ✅ Employee ID must not be empty
-- ✅ Employee must exist in workspace
+- ✅ Employee must exist in organization
 - ✅ Date must be in `YYYY-MM-DD` format
 - ✅ Date cannot be in the future
 - ✅ Minutes must be > 0
@@ -66,7 +66,7 @@ E003,2026-01-27,60,Machine maintenance work
     {
       "line_number": 3,
       "employee_id": "E999",
-      "error_message": "Employee not found in workspace"
+      "error_message": "Employee not found in organization"
     }
   ]
 }
@@ -144,30 +144,24 @@ E003,2026-01-27,60,Machine maintenance work
 ### Code Structure
 ```
 apiserver/
-├── src/
-│   ├── handlers/
-│   │   └── attendance.rs          # bulk_upload_paper_ot handler
-│   ├── models.rs                  # BulkOtUploadResult, BulkOtEntryError
-│   └── services/
-│       └── attendance_summary_service.rs  # enter_paper_ot (reused)
+├── internal/api/          # HTTP handlers and request validation
+├── internal/repository/   # Attendance and overtime persistence
+└── internal/domain/       # Overtime and attendance rules
 ```
 
 ### Key Features
-- ✅ CSV parsing with `csv` crate
 - ✅ Row-by-row validation without stopping on errors
 - ✅ Duplicate detection within upload
-- ✅ Code reuse from `enter_paper_ot` service method
-- ✅ RBAC enforcement (Admin/Owner only)
+- ✅ Reuse of existing attendance/overtime persistence rules
+- ✅ RBAC enforcement
 - ✅ Comprehensive error reporting
 
 ### Testing
-- `tests/ot_workflow_tests.rs`:
-  - `test_bulk_csv_ot_upload`: Happy path with valid entries
-  - `test_bulk_csv_upload_validation_errors`: All error scenarios
+- API unit and integration tests cover valid uploads and validation failures.
 
 ## Security Considerations
 
-1. **Access Control**: Admin/Owner role enforced at handler level
+1. **Access Control**: Admin role enforced at handler level
 2. **File Size Limits**: Prevents memory exhaustion attacks
 3. **Row Count Limits**: Prevents database overload
 4. **CSV Injection**: Input is not directly executed or rendered

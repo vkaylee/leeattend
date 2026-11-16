@@ -2,38 +2,29 @@
 
 ## WF1: Attendance Data Flow
 
-```
-┌──────────────┐     ┌──────────────┐     ┌──────────────┐
-│  ZKTeco      │────▶│  Agent       │────▶│  API Server  │
-│  Device      │ TCP │  (rustzk)    │ HTTP│  (Ingestion)  │
-└──────────────┘     └──────────────┘     └──────┬───────┘
-                                                 │
-                                    ┌────────────▼────────────┐
-                                    │   Raw Attendance Logs   │
-                                    └────────────┬────────────┘
-                                                 │
-                                    ┌────────────▼────────────┐
-                                    │   Pairing Service       │
-                                    │   (punch in/out match)  │
-                                    └────────────┬────────────┘
-                                                 │
-                                    ┌────────────▼────────────┐
-                                    │   Time Entries          │
-                                    │   (paired records)      │
-                                    └────────────┬────────────┘
-                                                 │
-                                    ┌────────────▼────────────┐
-                                    │   Attendance Calculator │
-                                    │   (work units, rounding)│
-                                    └────────────┬────────────┘
-                                                 │
-                                    ┌────────────▼────────────┐
-                                    │   Attendance Summary    │
-                                    │   (daily aggregation)   │
-                                    └─────────────────────────┘
+```text
+[ZKTeco device]
+        │ TCP
+        ▼
+[Attendance source connector]
+        │ HTTP
+        ▼
+[Go apiserver]
+        │
+        ▼
+[Raw attendance logs]
+        │
+        ▼
+[Punch pairing and policy resolution]
+        │
+        ▼
+[Time entries]
+        │
+        ▼
+[Daily attendance summaries]
 ```
 
-**Trigger**: Agent heartbeat sync (configurable interval)
+**Trigger**: Attendance-source sync (configurable interval)
 **Output**: Daily attendance summary per employee
 
 ---
@@ -42,7 +33,7 @@
 
 1. Admin selects date range and optional filters (department, employee)
 2. `report_service.get_daily_attendance_report()` executes:
-   - Fetches workspace schedules, shifts, and employees
+   - Fetches organization schedules, shifts, and employees
    - Fetches holidays for date range (batch lookup)
    - For each employee × date:
      - Resolves effective shift (roster → pattern → rule → department)
@@ -112,7 +103,7 @@ Balance deducted
 
 1. Admin navigates to Settings → Holidays
 2. Creates holiday with name, date, type, OT multiplier
-3. System validates: unique date per workspace
+3. System validates: unique date per organization
 4. On create/update/delete:
    - Recalculates attendance summaries for affected date(s)
    - Updates `is_holiday` flag in daily summaries
@@ -162,7 +153,7 @@ Approved OT → used in payroll calculation
 1. Agent starts → registers with API server (agent token auth)
 2. Agent discovers ZKTeco devices on local network
 3. Periodic sync cycle:
-   a. Connect to device via TCP (rustzk protocol)
+   a. Connect to device via TCP approved connector protocol
    b. Fetch attendance logs since last sync
    c. Store in local SQLite (resilience)
    d. POST logs to API server
