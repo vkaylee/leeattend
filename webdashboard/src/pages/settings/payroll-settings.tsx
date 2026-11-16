@@ -1,5 +1,6 @@
  
 import { Coins, Calculator, FileText, Blocks, Sparkles } from "lucide-react";
+import { useBlocker } from "@tanstack/react-router";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -8,16 +9,17 @@ import OvertimePolicyManager from "@/components/payroll/overtime-policy-manager"
 import PayrollRulesManager from "@/components/payroll/payroll-rules-manager";
 import PayrollSettingsSection from "@/components/payroll/payroll-settings-section";
 import SalaryComponentManager from "@/components/payroll/salary-component-manager";
+import ConfirmDialog from "@/components/ui/confirm-dialog";
 import { PageTabs } from "@/components/ui/page-tabs";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Typography } from "@/components/ui/typography";
 
 type TabType = "policy" | "components" | "incentives" | "overtime" | "statutory_rules";
 
-function PayrollTabContent({ activeTab }: { activeTab: TabType }) {
+function PayrollTabContent({ activeTab, onPolicyDirtyChange }: { activeTab: TabType; onPolicyDirtyChange: (isDirty: boolean) => void }) {
   switch (activeTab) {
     case "policy":
-      return <PayrollSettingsSection   />;
+      return <PayrollSettingsSection onDirtyChange={onPolicyDirtyChange} />;
     case "components":
       return <SalaryComponentManager   />;
     case "overtime":
@@ -33,6 +35,8 @@ function PayrollTabContent({ activeTab }: { activeTab: TabType }) {
 
 export default function PayrollSettings() {
   const { t } = useTranslation();
+  const [isPolicyDirty, setIsPolicyDirty] = useState(false);
+  const blocker = useBlocker({ shouldBlockFn: () => isPolicyDirty, withResolver: true });
   
 
   type ParentGroupType = "core" | "formulas" | "benefits";
@@ -128,9 +132,19 @@ export default function PayrollSettings() {
 
         {/* Panel content area */}
         <div className="p-8 animate-in slide-in-from-right-4 duration-500">
-          <PayrollTabContent activeTab={activeTab}  />
+          <PayrollTabContent activeTab={activeTab} onPolicyDirtyChange={setIsPolicyDirty} />
         </div>
       </div>
+      <ConfirmDialog
+        cancelLabel={t("patterns.form.unsaved_changes_cancel", "Stay")}
+        confirmLabel={t("patterns.form.unsaved_changes_confirm", "Leave")}
+        isOpen={blocker.status === "blocked"}
+        message={t("patterns.form.unsaved_changes", "You have unsaved changes. Are you sure you want to leave this page?")}
+        onClose={() => { blocker.reset?.(); }}
+        onConfirm={() => { blocker.proceed?.(); }}
+        title={t("common.warning", "Warning")}
+        variant="warning"
+      />
     </div>
   );
 }

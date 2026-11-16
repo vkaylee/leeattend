@@ -4,6 +4,10 @@ import { vi, describe, it, expect, beforeEach } from "vitest";
 
 import PayrollSettings from "../payroll-settings";
 
+vi.mock("@tanstack/react-router", () => ({
+  useBlocker: () => ({ status: "unblocked", proceed: vi.fn(), reset: vi.fn() }),
+}));
+
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({ t: (key: string) => key }),
 }));

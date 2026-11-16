@@ -14,7 +14,11 @@ import { employeeKeys, payrollKeys } from "@/lib/query-keys";
 import TemporalConfigTable from "../common/temporal-config-table";
 
 
-export default function PayrollSettingsSection() {
+interface PayrollSettingsSectionProps {
+  onDirtyChange?: (isDirty: boolean) => void;
+}
+
+export default function PayrollSettingsSection({ onDirtyChange }: PayrollSettingsSectionProps) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const toast = useToast();
@@ -63,6 +67,10 @@ export default function PayrollSettingsSection() {
     setSelectedPolicyGroupId(policy.group_id);
     setVersionForm((form) => ({ ...form, attendance_policy_id: policy.attendance_policy_id ?? "", working_pattern_id: policy.working_pattern_id ?? "", overtime_policy_id: policy.overtime_policy_id }));
   };
+
+  useEffect(() => {
+    onDirtyChange?.(isDraftDirty);
+  }, [isDraftDirty, onDirtyChange]);
 
   useEffect(() => {
     if (!isDraftDirty) return;
