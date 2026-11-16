@@ -201,11 +201,11 @@ func (r ShiftSwapRepository) ApproveSwap(ctx context.Context, requestID, approve
 			return err
 		}
 		if newStatus == api.ShiftSwapApproved {
-			reqEmp, err := resolveActiveEmployment(ctx, db, requesterID)
+			reqEmp, err := resolveEmploymentOnDate(ctx, db, requesterID, swapDate)
 			if err != nil {
 				return err
 			}
-			tgtEmp, err := resolveActiveEmployment(ctx, db, targetID)
+			tgtEmp, err := resolveEmploymentOnDate(ctx, db, targetID, swapDate)
 			if err != nil {
 				return err
 			}
@@ -427,6 +427,15 @@ func (r ShiftSwapRepository) CancelSwap(ctx context.Context, requesterID, reques
 		_, err = db.Exec(ctx, `UPDATE shift_swap_requests SET status = 'cancelled', updated_at = $1 WHERE id = $2`, now, requestID)
 		return err
 	})
+}
+
+func resolveEmploymentOnDate(ctx context.Context, db DBTX, employeeID uuid.UUID, date string) (uuid.UUID, error) {
+	var employmentID uuid.UUID
+	err := db.QueryRow(ctx, `SELECT em.id FROM employments em JOIN employment_relationships er ON er.id = em.relationship_id AND er.employee_id = em.employee_id JOIN employee_tenures t ON t.id = er.tenure_id AND t.employee_id = er.employee_id WHERE em.employee_id = $1 AND em.deleted_at IS NULL AND em.start_date <= $2::date AND (em.end_date IS NULL OR em.end_date >= $2::date) AND er.start_date <= $2::date AND (er.end_date IS NULL OR er.end_date >= $2::date) AND t.deleted_at IS NULL AND t.start_date <= $2::date AND (t.end_date IS NULL OR t.end_date >= $2::date) ORDER BY (em.status = 'active') DESC, em.start_date DESC, em.id DESC LIMIT 1`, employeeID, date).Scan(&employmentID)
+	if err != nil {
+		return uuid.Nil, api.ErrNoActiveEmployment
+	}
+	return employmentID, nil
 }
 
 func lookupShiftOnDate(ctx context.Context, db DBTX, employmentID uuid.UUID, date string) (*uuid.UUID, error) {
