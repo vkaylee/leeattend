@@ -268,16 +268,19 @@ func validateHumanOfficeApproval(ctx context.Context, db DBTX, request api.Sched
 	}
 	var valid bool
 	err := db.QueryRow(ctx, `
-		SELECT NOT EXISTS (
-			SELECT 1
+		WITH target_employments AS (
+			SELECT e.id, e.employer_id, e.start_date, e.end_date
 			FROM employments e
+			WHERE e.id = ANY($1::uuid[]) AND e.deleted_at IS NULL
+		), uncovered_days AS (
+			SELECT e.id
+			FROM target_employments e
 			CROSS JOIN LATERAL generate_series(
 				GREATEST(e.start_date, $2::date),
 				LEAST(COALESCE(e.end_date, $3::date), $3::date),
 				interval '1 day'
 			) days(day)
-			WHERE e.id = ANY($1::uuid[])
-			  AND NOT EXISTS (
+			WHERE NOT EXISTS (
 				SELECT 1
 				FROM schedule_office_policies p
 				JOIN approval_workflow_instances i ON i.id = p.approval_instance_id
@@ -288,8 +291,10 @@ func validateHumanOfficeApproval(ctx context.Context, db DBTX, request api.Sched
 				  AND (p.effective_to IS NULL OR p.effective_to >= days.day::date)
 				  AND i.entity_type = 'schedule_policy'
 				  AND i.status = 'approved'
-			  )
-		)`, request.EmploymentIDs, request.StartDate, request.EndDate, *request.ApprovalInstanceID).Scan(&valid)
+			)
+		)
+		SELECT (SELECT count(*) FROM target_employments) = cardinality($1::uuid[])
+		   AND NOT EXISTS (SELECT 1 FROM uncovered_days)`, request.EmploymentIDs, request.StartDate, request.EndDate, *request.ApprovalInstanceID).Scan(&valid)
 	if err != nil {
 		return err
 	}
