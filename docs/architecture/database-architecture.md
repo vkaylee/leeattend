@@ -1,13 +1,14 @@
 # Database Architecture
 
-LeeAttend is a single-organization appliance with one PostgreSQL database and one `public` schema. Fresh installation uses one baseline migration that creates the final organization-scoped model directly.
+LeeAttend is a single-organization appliance with one PostgreSQL database and one `public` schema. Fresh installation uses five readable migration phases that create the final organization-scoped model directly: `foundation`, `hr_core`, `attendance_schedule`, `payroll`, and `runtime_seeds`.
 
 ## Topology
 
 | Component | Contract |
 |---|---|
 | PostgreSQL | One database, one `public` schema |
-| Baseline migration | `apiserver/migrations/20261110000000_single_organization_baseline/` |
+| Fresh-install phases | `docs/plans/migration-phase-manifest.yaml` |
+| Historical schema oracle | `apiserver/migrations/20261110000000_single_organization_baseline/` plus current numeric migrations |
 | Runtime pools | API and worker pools connect to the same database; no tenant routing |
 | Migration runner | `apiserver/migrations/run-dev.sh` |
 
@@ -15,7 +16,7 @@ Physical database split is gone. The baseline creates final organization tables 
 
 ## Schema groups
 
-The unified baseline contains all existing system and business objects:
+The phased fresh-install schema contains all existing system and business objects. Historical baseline currently owns most of these objects and remains schema oracle until phased catalog comparison passes:
 
 - Authentication and platform objects: `users`, `sessions`, `organization_settings`, `roles`, `role_permissions`, `user_roles`, `user_extra_roles`, `user_extra_permissions`, notifications, storage, and infrastructure ledger tables.
 - Business objects: employees, departments, shifts, attendance, leave, payroll, contracts, workflows, files, reports, and outbox tables.
@@ -38,22 +39,25 @@ No tenant database is created, selected, cached, evicted, or provisioned. Runtim
 ## Migrations
 
 ```text
-apiserver/migrations/
-├── 20261110000000_single_organization_baseline/
-└── 20261112000000_config_entries_integrity/
+foundation
+  -> hr_core
+  -> attendance_schedule
+  -> payroll
+  -> runtime_seeds
+```
 
-Apply baseline once against fresh target database. `run-dev.sh` then applies each unapplied post-baseline directory in version order. `down.sql` files are rollback/recovery artifacts and require verified backup before use.
+Fresh install target is described by `docs/plans/migration-phase-manifest.yaml`. Active fresh phases live under `apiserver/migrations/phases/`. Current numeric migrations remain schema oracle and historical upgrade context; do not apply them through active runner. Apply historical chain only on disposable verification databases. `down.sql` files are rollback/recovery artifacts and require verified backup before use.
 
-Migration directory versions MUST remain unique. New post-baseline changes MUST use new migration directory under `apiserver/migrations/`; do not recreate `system/` or `tenant/` directories.
+Migration phase versions MUST remain unique. New post-production changes MUST append to the active phase runner; do not rewrite an installed phase.
 
 `config_entries` uses typed values, explicit business-key registry in Go, effective dates, and NULL-safe uniqueness for organization scope. `system_settings` remains JSON key/value storage for system/integration documents such as `smtp`; it is not business configuration.
 
 ## Deployment and rollback
 
-1. Take an encrypted PostgreSQL backup and record the application/image version.
-2. Apply `20261110000000_single_organization_baseline` only to a fresh target database.
-3. Verify migration history, expected table/partition counts, constraints, triggers, and bootstrap compatibility.
-4. For disposable recovery testing only, run `down.sql`, recreate `public`, then re-apply `up.sql`.
+1. Take an encrypted PostgreSQL backup and record the application/image version before any non-disposable operation.
+2. Apply the five fresh-install phases only to a fresh target database.
+3. Verify phase markers, expected table/partition counts, constraints, triggers, views, seeds, and bootstrap compatibility.
+4. For disposable recovery testing only, run phase `down.sql` artifacts or recreate the database, then re-apply phases.
 5. For an existing database, restore a compatible backup or recreate the disposable database; do not attempt an old-chain upgrade.
 
 ## Target architecture after all phases

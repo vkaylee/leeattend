@@ -126,16 +126,23 @@ echo "ALL GATES PASSED"
 GATES_EOF
 
 if [ "$INTEGRATION" = "true" ]; then
-    PROFILE_COMPOSE=("${ENGINE[@]}" -p "$PROJECT_NAME" -f "$COMPOSE_FILE" --profile int-go --profile infra-db --profile infra-pooler)
-    "${PROFILE_COMPOSE[@]}" up -d db pgbouncer "$SERVICE" >/dev/null
+    PROFILE_COMPOSE=("${ENGINE[@]}" -p "$PROJECT_NAME" -f "$COMPOSE_FILE" --profile int-go --profile infra-db --profile infra-pooler --profile infra-redis)
+    "${PROFILE_COMPOSE[@]}" up -d db pgbouncer redis "$SERVICE" >/dev/null
     "${PROFILE_COMPOSE[@]}" exec -T db sh -c 'until pg_isready -U test_user -d test_database; do sleep 1; done' </dev/null
+    "${PROFILE_COMPOSE[@]}" exec -T redis sh -c 'until redis-cli ping >/dev/null; do sleep 1; done' </dev/null
     "${PROFILE_COMPOSE[@]}" exec -T db psql -v ON_ERROR_STOP=1 -U test_user -d postgres -c 'DROP DATABASE IF EXISTS test_database WITH (FORCE);' </dev/null
     "${PROFILE_COMPOSE[@]}" exec -T db psql -v ON_ERROR_STOP=1 -U test_user -d postgres -c 'CREATE DATABASE test_database;' </dev/null
-    for migration_dir in $(find "$PROJECT_ROOT/apiserver/migrations" -mindepth 1 -maxdepth 1 -type d -name '[0-9]*_*' -print | sort); do
-        migration_file="$migration_dir/up.sql"
-        [ -f "$migration_file" ] || continue
-        "${PROFILE_COMPOSE[@]}" exec -T db psql -v ON_ERROR_STOP=1 -U test_user -d test_database < "$migration_file" || fail "migration ${migration_dir##*/}"
+    for phase in foundation hr_core attendance_schedule payroll; do
+        migration_file="$PROJECT_ROOT/apiserver/migrations/phases/$phase/up.sql"
+        [ -f "$migration_file" ] || fail "missing migration phase $phase"
+        "${PROFILE_COMPOSE[@]}" exec -T db psql -v ON_ERROR_STOP=1 -U test_user -d test_database < "$migration_file" || fail "migration phase $phase"
     done
+    "${PROFILE_COMPOSE[@]}" exec -T db psql -v ON_ERROR_STOP=1 -U test_user -d test_database \
+        --set=seed_effective_date="$(date -u +%F)" < "$PROJECT_ROOT/apiserver/migrations/phases/runtime_seeds.up.sql" \
+        || fail "migration phase runtime_seeds"
+    "${PROFILE_COMPOSE[@]}" exec -T db psql -v ON_ERROR_STOP=1 -U test_user -d test_database \
+        -f /workspace/apiserver/migrations/testdata/phased_schema_contract.sql \
+        || fail "phased schema contract"
     exec "${PROFILE_COMPOSE[@]}" exec -T -w /workspace/apiserver "$SERVICE" \
         env MODE="$MODE" PACKAGE="$PACKAGE" FIX="$FIX" FORMAT_FILE="$FORMAT_FILE" TEST_PATTERN="$TEST_PATTERN" LINT_BASE_COMMIT="$LINT_BASE_COMMIT" LINT_GO_CHANGED="$LINT_GO_CHANGED" bash -c "$GATES"
 fi

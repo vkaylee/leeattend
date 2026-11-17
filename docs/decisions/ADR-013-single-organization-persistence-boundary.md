@@ -1,7 +1,7 @@
 # ADR-013: Single-organization persistence boundary
 
-- Status: Accepted
-- Date: 2026-11-10
+- Status: Accepted — phased fresh-install amendment
+- Date: 2026-11-10; amendment 2026-11-17
 - Scope: PostgreSQL schema, migration lifecycle, API organization context
 
 ## Context
@@ -14,7 +14,9 @@ The application has not entered production. No old production database upgrade p
 
 Use one PostgreSQL database and one implicit organization scope. The fresh baseline schema uses `organization_settings` as the singleton organization settings table and has no `workspaces`, `workspace_*` tables, or `workspace_id` columns.
 
-Squash the historical migration chain into one fresh-install baseline. Development and test databases are reset/recreated. The migration runner rejects stale or partially migrated databases instead of silently dropping data or attempting an old-schema upgrade.
+Squash the historical migration chain into a fresh-install schema organized into five readable phases: `foundation`, `hr_core`, `attendance_schedule`, `payroll`, and `runtime_seeds`. Development and test databases are reset/recreated. The migration runner rejects stale or partially migrated databases instead of silently dropping data or attempting an old-schema upgrade. Historical numeric migrations remain the schema oracle until catalog comparison and runtime verification pass.
+
+Existing-data backfills are not run on fresh databases. Destructive compatibility cleanup is represented directly in final schema state. Runtime seed data is idempotent; user-dependent formula seeds run only after standalone bootstrap creates its administrator.
 
 Organization scope comes from trusted server bootstrap. Clients cannot select organization scope through URL, headers, request data, or tokens.
 
@@ -40,11 +42,13 @@ Removing client-selectable tenant scope reduces accidental cross-organization ro
 
 The baseline runs atomically. Before any destructive development reset, confirm database/volume is disposable. Recovery means recreating a disposable database or restoring a backup/snapshot. Do not treat `down.sql` as a production recovery mechanism.
 
-The migration acceptance gate compares final schema catalogs for tables, columns, types, defaults, nullability, constraints, indexes, triggers, functions, comments, and extensions before legacy migration files are removed.
+The migration acceptance gate compares final schema catalogs for tables, columns, types, defaults, nullability, constraints, indexes, triggers, functions, views, comments, and extensions before legacy migration files are removed. Phase ownership and cross-phase/cyclic foreign-key handling are recorded in `docs/plans/migration-phase-object-matrix.md`; phase SQL must add final constraints after referenced tables exist, without weakening them.
 
 ## Migration and ownership
 
-- Baseline: `apiserver/migrations/20261110000000_single_organization_baseline/`
+- Phase inventory: `docs/plans/migration-phase-inventory.md`
+- Phase manifest: `docs/plans/migration-phase-manifest.yaml`
+- Historical schema oracle: `apiserver/migrations/20261110000000_single_organization_baseline/` plus current numeric migrations
 - Runner: `apiserver/migrations/run-dev.sh`
 - Owner: LeeAttend repository maintainer
-- Removal criterion: no active runtime, migration runner, or schema object depends on workspace terminology
+- Removal criterion: phased catalog comparison, schema contract, bootstrap, API integration, and full-suite verification pass; no active runtime, migration runner, or schema object depends on workspace terminology

@@ -1,6 +1,8 @@
 # Squash migrations thành single-organization baseline
 
-Status: Approved
+Status: Superseded for fresh-install layout by [`migration-phase-inventory.md`](migration-phase-inventory.md).
+
+The original single-baseline plan remains schema-oracle and recovery context. Fresh installs now target five readable phases: `foundation`, `hr_core`, `attendance_schedule`, `payroll`, and `runtime_seeds`. Do not execute deletion, reset, or runner replacement from this historical plan until the phased catalog comparison passes.
 
 ## Goal
 Gộp migration chain hiện tại thành một baseline PostgreSQL single-organization; database mới không tạo `workspaces`, `workspace_*`, hoặc `workspace_id`; reset database dev thay vì hỗ trợ nâng cấp dữ liệu cũ.
