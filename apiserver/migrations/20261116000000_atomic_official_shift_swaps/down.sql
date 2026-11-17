@@ -25,4 +25,7 @@ ALTER TABLE public.shift_swap_requests
     DROP COLUMN IF EXISTS target_revision_id,
     DROP COLUMN IF EXISTS target_revision_number;
 
+DELETE FROM public.schema_migrations
+WHERE version = '20261116000000_atomic_official_shift_swaps';
+
 COMMIT;

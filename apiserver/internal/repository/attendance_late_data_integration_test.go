@@ -35,4 +35,12 @@ func TestIntegrationRawPunchIngestRemainsAllowedAfterClosedAttendanceSnapshot(t 
 	if count != 1 {
 		t.Fatalf("late raw punch count = %d, want 1", count)
 	}
+
+	punchIn, err := (AttendanceRepository{DB: pool}).PunchIn(ctx, employmentID, "work", nil, false, punch.Add(time.Hour))
+	if err != nil {
+		t.Fatalf("late punch-in rejected after closure: %v", err)
+	}
+	if punchIn.EmploymentID != employmentID {
+		t.Fatalf("late punch-in employment = %s, want %s", punchIn.EmploymentID, employmentID)
+	}
 }

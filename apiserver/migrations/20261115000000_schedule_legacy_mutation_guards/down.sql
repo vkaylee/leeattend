@@ -2,8 +2,9 @@ BEGIN;
 
 DO $$
 BEGIN
-    IF EXISTS (SELECT 1 FROM schedule_day_revisions WHERE state IN ('published', 'explicit_off')) THEN
-        RAISE EXCEPTION 'legacy mutation guard rollback blocked: official schedule evidence exists';
+    IF EXISTS (SELECT 1 FROM schedule_day_revisions WHERE state IN ('published', 'explicit_off'))
+       OR EXISTS (SELECT 1 FROM schedule_legacy_mutation_evidence) THEN
+        RAISE EXCEPTION 'legacy mutation guard rollback blocked: lifecycle evidence exists';
     END IF;
 END;
 $$;

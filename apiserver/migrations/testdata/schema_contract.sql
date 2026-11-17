@@ -258,6 +258,14 @@ BEGIN
         END IF;
     END LOOP;
 
+    SELECT count(*) INTO v_marker_count
+    FROM public.schema_migrations
+    WHERE version = '20261115000000_schedule_legacy_mutation_guards';
+
+    IF v_marker_count <> 1 THEN
+        RAISE EXCEPTION 'schema check failed: legacy schedule guard migration marker is missing';
+    END IF;
+
     FOREACH v_required_table_name IN ARRAY ARRAY[
         'trg_guard_legacy_shift_rosters'::text,
         'trg_guard_legacy_employee_shifts'::text,
@@ -382,12 +390,36 @@ BEGIN
         RAISE EXCEPTION 'schema check failed: payslip segment labor policy snapshot storage is missing';
     END IF;
 
+    IF to_regclass('public.shift_swap_requests_official_revisions_idx') IS NULL
+       OR NOT EXISTS (
+           SELECT 1 FROM pg_constraint
+           WHERE conrelid = 'public.shift_swap_requests'::regclass
+             AND conname = 'shift_swap_requests_requester_revision_fkey'
+             AND contype = 'f'
+       )
+       OR NOT EXISTS (
+           SELECT 1 FROM pg_constraint
+           WHERE conrelid = 'public.shift_swap_requests'::regclass
+             AND conname = 'shift_swap_requests_target_revision_fkey'
+             AND contype = 'f'
+       ) THEN
+        RAISE EXCEPTION 'schema check failed: official shift swap revision contract is missing';
+    END IF;
+
     SELECT count(*) INTO v_marker_count
     FROM public.schema_migrations
     WHERE version = '20261112030000_payroll_periods';
 
     IF v_marker_count <> 1 THEN
         RAISE EXCEPTION 'schema check failed: payroll period migration marker is missing';
+    END IF;
+
+    SELECT count(*) INTO v_marker_count
+    FROM public.schema_migrations
+    WHERE version = '20261116000000_atomic_official_shift_swaps';
+
+    IF v_marker_count <> 1 THEN
+        RAISE EXCEPTION 'schema check failed: official shift swap migration marker is missing';
     END IF;
 
     RAISE NOTICE 'schema contract check: PASS';

@@ -1,3 +1,5 @@
+BEGIN;
+
 ALTER TABLE public.shift_swap_requests
     ADD COLUMN requester_revision_id uuid,
     ADD COLUMN requester_revision_number bigint,
@@ -19,3 +21,8 @@ ALTER TABLE public.shift_swap_requests
 CREATE INDEX shift_swap_requests_official_revisions_idx
     ON public.shift_swap_requests (requester_revision_id, target_revision_id)
     WHERE requester_revision_id IS NOT NULL OR target_revision_id IS NOT NULL;
+
+INSERT INTO public.schema_migrations(version)
+VALUES ('20261116000000_atomic_official_shift_swaps');
+
+COMMIT;

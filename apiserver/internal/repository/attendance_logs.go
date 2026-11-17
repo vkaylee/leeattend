@@ -163,6 +163,7 @@ func recordLogError(ctx context.Context, db DBTX, code, message string) error {
 }
 
 func insertImportedRawLog(ctx context.Context, db DBTX, employmentID uuid.UUID, row api.AttendanceImportRow) error {
+	// Raw attendance ingestion remains allowed after closure; later reconciliation must not rewrite evidence.
 	raw, err := json.Marshal(map[string]any{"employee_code": row.EmployeeCode, "line": row.LineNumber})
 	if err != nil {
 		return err

@@ -33,9 +33,6 @@ func (r AttendanceRepository) PunchIn(ctx context.Context, employmentID uuid.UUI
 	}
 	var record api.TimeEntryRecord
 	err = service.WithTx(ctx, tx, func(ctx context.Context, tx pgx.Tx) error {
-		if err := guardLifecycleDateMutation(ctx, tx, []uuid.UUID{employmentID}, []string{punchTime.UTC().Format("2006-01-02")}); err != nil {
-			return err
-		}
 		var active bool
 		if err := tx.QueryRow(ctx, `SELECT status = 'active' FROM employments WHERE id = $1 AND deleted_at IS NULL`, employmentID).Scan(&active); err != nil {
 			return err
@@ -80,9 +77,6 @@ func (r AttendanceRepository) PunchOut(ctx context.Context, employeeID uuid.UUID
 		if err != nil {
 			return err
 		}
-		if err := guardLifecycleDateMutation(ctx, db, []uuid.UUID{employmentID}, []string{punchTime.UTC().Format("2006-01-02")}); err != nil {
-			return err
-		}
 		rawData, err := json.Marshal(struct {
 			Punch  int     `json:"punch"`
 			Status int     `json:"status"`
@@ -116,9 +110,6 @@ func (r AttendanceRepository) ESSPunch(ctx context.Context, employeeID uuid.UUID
 	err = service.WithTx(ctx, tx, func(ctx context.Context, db pgx.Tx) error {
 		employmentID, err := resolveActiveEmployment(ctx, db, employeeID)
 		if err != nil {
-			return err
-		}
-		if err := guardLifecycleDateMutation(ctx, db, []uuid.UUID{employmentID}, []string{punchTime.UTC().Format("2006-01-02")}); err != nil {
 			return err
 		}
 		var openEntryID *uuid.UUID
@@ -481,6 +472,7 @@ func (r AttendanceRepository) GetEmployeeIDByUserID(ctx context.Context, userID 
 }
 
 // UpdateTimeEntry updates time entry fields.
+// UpdateTimeEntry changes an attendance entry and remains guarded because it can alter closed evidence.
 func (r AttendanceRepository) UpdateTimeEntry(ctx context.Context, entryID uuid.UUID, req api.UpdateTimeEntryRequest) (api.TimeEntryRecord, error) {
 	db, err := r.db(ctx)
 	if err != nil {
@@ -492,14 +484,10 @@ func (r AttendanceRepository) UpdateTimeEntry(ctx context.Context, entryID uuid.
 		return api.TimeEntryRecord{}, err
 	}
 
-	businessDate, err := time.Parse(time.RFC3339, record.PunchInTime)
+	originalPunchIn, err := time.Parse(time.RFC3339, record.PunchInTime)
 	if err != nil {
 		return api.TimeEntryRecord{}, err
 	}
-	if err := guardLifecycleDateMutation(ctx, db, []uuid.UUID{record.EmploymentID}, []string{businessDate.UTC().Format("2006-01-02")}); err != nil {
-		return api.TimeEntryRecord{}, finishLifecycleMutationDB(ctx, db, err)
-	}
-
 	punchInTime := record.PunchInTime
 	if req.PunchInTime != nil {
 		punchInTime = *req.PunchInTime
@@ -521,20 +509,29 @@ func (r AttendanceRepository) UpdateTimeEntry(ctx context.Context, entryID uuid.
 		segmentID = req.SegmentID
 	}
 
-	var pIn time.Time
-	if t, err := time.Parse(time.RFC3339, punchInTime); err == nil {
-		pIn = t
+	pIn, err := time.Parse(time.RFC3339, punchInTime)
+	if err != nil {
+		return api.TimeEntryRecord{}, err
 	}
 	var pOut *time.Time
 	var durationMinutes *int
 	if punchOutTime != nil && *punchOutTime != "" {
-		if t, err := time.Parse(time.RFC3339, *punchOutTime); err == nil {
-			pOut = &t
-			mins := int(t.Sub(pIn).Minutes())
-			if mins >= 0 {
-				durationMinutes = &mins
-			}
+		t, parseErr := time.Parse(time.RFC3339, *punchOutTime)
+		if parseErr != nil {
+			return api.TimeEntryRecord{}, parseErr
 		}
+		pOut = &t
+		mins := int(t.Sub(pIn).Minutes())
+		if mins >= 0 {
+			durationMinutes = &mins
+		}
+	}
+	guardDates := []string{originalPunchIn.UTC().Format("2006-01-02"), pIn.UTC().Format("2006-01-02")}
+	if pOut != nil {
+		guardDates = append(guardDates, pOut.UTC().Format("2006-01-02"))
+	}
+	if err := guardLifecycleDateMutation(ctx, db, []uuid.UUID{record.EmploymentID}, guardDates); err != nil {
+		return api.TimeEntryRecord{}, finishLifecycleMutationDB(ctx, db, err)
 	}
 
 	updateRow := db.QueryRow(ctx, `UPDATE time_entries SET punch_in_time = $1, punch_out_time = $2, duration_minutes = $3, entry_type = $4, note = $5, segment_id = $6, updated_at = CURRENT_TIMESTAMP WHERE id = $7 RETURNING id, employment_id, shift_id, segment_id, punch_in_time, punch_out_time, duration_minutes, is_break_overtime, entry_type, note, generation_metadata, created_at, updated_at`, pIn, pOut, durationMinutes, entryType, note, segmentID, entryID)
