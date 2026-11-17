@@ -1,216 +1,170 @@
 import { Link, useSearch } from "@tanstack/react-router";
 import { Clock, ListTodo, Plus, UserMinus, UserPlus, Users, X } from "lucide-react";
-import type { ReactNode } from "react";
-import { useMemo, useState } from "react";
+import React, { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+
+import type { LifecycleInstanceSummary } from "@/lib/api";
 
 import LifecycleAssignModal from "@/components/features/employees/lifecycle-assign-modal";
 import { LifecycleFilters } from "@/components/features/personnel/lifecycle-filters";
 import { LifecycleTable } from "@/components/features/personnel/lifecycle-table";
 import Button from "@/components/ui/button";
 import { PageContainer } from "@/components/ui/page-container";
-import PageHeader from "@/components/ui/page-header";
+import { PageHeader } from "@/components/ui/page-header";
 import { Typography } from "@/components/ui/typography";
 import { useOrganizationLifecycleInstances } from "@/hooks/use-lifecycle";
-import { type LifecycleInstanceSummary } from "@/lib/api";
-
-interface LifecycleMetrics {
-  inProgress: number;
-  offboarding: number;
-  onboarding: number;
-  total: number;
-}
-
-interface MetricCardProps {
-  icon: ReactNode;
-  iconClassName: string;
-  label: string;
-  value: number;
-  valueClassName: string;
-}
-
-interface LifecycleMetricsCardsProps {
-  metrics: LifecycleMetrics;
-}
-
-interface LifecycleFilterChipProps {
-  isVisible: boolean;
-}
-
-interface LifecyclePageHeaderProps {
-  onCreate: () => void;
-}
-
-interface LifecycleFilterState {
-  employeeFilter?: string;
-  search: string;
-  selectedStatus: string;
-  selectedType: string;
-}
-
-function getLifecycleMetrics(instances: LifecycleInstanceSummary[]): LifecycleMetrics {
-  return instances.reduce<LifecycleMetrics>(
-    (metrics, instance) => {
-      metrics.total += 1;
-      if (instance.status !== "in_progress") return metrics;
-
-      metrics.inProgress += 1;
-      const checklistType = instance.checklist_type.toLowerCase();
-      if (checklistType === "onboarding") metrics.onboarding += 1;
-      if (checklistType === "offboarding") metrics.offboarding += 1;
-      return metrics;
-    },
-    { inProgress: 0, offboarding: 0, onboarding: 0, total: 0 }
-  );
-}
-
-function filterLifecycleInstances(
-  instances: LifecycleInstanceSummary[],
-  { employeeFilter, search, selectedStatus, selectedType }: LifecycleFilterState
-): LifecycleInstanceSummary[] {
-  const query = search.toLowerCase();
-
-  return instances.filter((instance) => {
-    const checklistType = instance.checklist_type.toLowerCase();
-    const matchesSearch =
-      !search ||
-      instance.employee_name.toLowerCase().includes(query) ||
-      instance.employee_code.toLowerCase().includes(query) ||
-      (instance.department_name?.toLowerCase().includes(query) ?? false) ||
-      (instance.template_name?.toLowerCase().includes(query) ?? false) ||
-      checklistType.includes(query);
-    const matchesType = selectedType === "all" || checklistType === selectedType.toLowerCase();
-    const matchesStatus = selectedStatus === "all" || instance.status.toLowerCase() === selectedStatus.toLowerCase();
-    const matchesEmployee = !employeeFilter || instance.employee_id === employeeFilter;
-
-    return matchesSearch && matchesType && matchesStatus && matchesEmployee;
-  });
-}
-
-function MetricCard({ icon, iconClassName, label, value, valueClassName }: MetricCardProps) {
-  return (
-    <div className="rounded-3xl border border-slate-100 bg-white p-5 shadow-xs dark:border-slate-800 dark:bg-slate-900">
-      <div className={`mb-2 flex items-center justify-between ${iconClassName}`}>
-        <span className="text-[11px] font-bold uppercase tracking-wider">{label}</span>
-        {icon}
-      </div>
-      <Typography className={`text-2xl font-black ${valueClassName}`} variant="h3">
-        {value}
-      </Typography>
-    </div>
-  );
-}
-
-function LifecycleMetricsCards({ metrics }: LifecycleMetricsCardsProps) {
-  const { t } = useTranslation();
-
-  return (
-    <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-      <MetricCard
-        icon={<Users size={16} />}
-        iconClassName="text-slate-400"
-        label={t("lifecycle.metrics.total", { defaultValue: "Tổng quy trình" })}
-        value={metrics.total}
-        valueClassName="text-slate-800 dark:text-slate-100"
-      />
-      <MetricCard
-        icon={<Clock size={16} />}
-        iconClassName="text-blue-500"
-        label={t("lifecycle.metrics.in_progress", { defaultValue: "Đang tiến hành" })}
-        value={metrics.inProgress}
-        valueClassName="text-blue-600 dark:text-blue-400"
-      />
-      <MetricCard
-        icon={<UserPlus size={16} />}
-        iconClassName="text-emerald-500"
-        label={t("lifecycle.metrics.onboarding", { defaultValue: "Đang Onboarding" })}
-        value={metrics.onboarding}
-        valueClassName="text-emerald-600 dark:text-emerald-400"
-      />
-      <MetricCard
-        icon={<UserMinus size={16} />}
-        iconClassName="text-rose-500"
-        label={t("lifecycle.metrics.offboarding", { defaultValue: "Đang Bàn giao" })}
-        value={metrics.offboarding}
-        valueClassName="text-rose-600 dark:text-rose-400"
-      />
-    </div>
-  );
-}
-
-function LifecyclePageHeader({ onCreate }: LifecyclePageHeaderProps) {
-  const { t } = useTranslation();
-
-  return (
-    <PageHeader
-      actions={
-        <Button
-          className="h-10 rounded-2xl px-5 text-xs font-bold uppercase tracking-wider shadow-sm"
-          icon={<Plus size={16} />}
-          onClick={onCreate}
-          variant="secondary"
-        >
-          {t("lifecycle.actions.create", { defaultValue: "KHỞI TẠO QUY TRÌNH" })}
-        </Button>
-      }
-      icon={<ListTodo size={24} />}
-      subtitle={t("lifecycle.subtitle", {
-        defaultValue: "Quản lý tập trung tiến độ onboarding, thử việc, điều chuyển và bàn giao nghỉ việc của nhân sự",
-      })}
-      title={t("lifecycle.title", { defaultValue: "Quản lý Quy trình & Vòng đời Nhân sự" })}
-    />
-  );
-}
-
-function LifecycleFilterChip({ isVisible }: LifecycleFilterChipProps) {
-  const { t } = useTranslation();
-
-  if (!isVisible) return null;
-
-  return (
-    <div className="flex items-center gap-2" data-testid="employee-filter-chip">
-      <span className="rounded-full border border-primary-200 bg-primary-50 px-3 py-1 text-xs font-semibold text-primary-700 dark:border-primary-800 dark:bg-primary-950 dark:text-primary-300">
-        {t("employees.details.filtered_employee", { defaultValue: "Đang lọc theo nhân viên" })}
-      </span>
-      <Link
-        aria-label={t("common.clear_filter", { defaultValue: "Bỏ bộ lọc" })}
-        className="rounded-full p-1 text-slate-500 hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 dark:hover:bg-slate-800"
-        search={{}}
-        to="/lifecycle"
-      >
-        <X aria-hidden size={14} />
-      </Link>
-    </div>
-  );
-}
 
 export default function PersonnelLifecyclePage() {
+  const { t } = useTranslation();
   const searchParams = useSearch({ strict: false });
   const employeeFilter = searchParams.employeeId;
-  const [search, setSearch] = useState(searchParams.q ?? "");
-  const [selectedType, setSelectedType] = useState("all");
-  const [selectedStatus, setSelectedStatus] = useState("all");
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const { data: instances = [], isLoading } = useOrganizationLifecycleInstances();
-  const metrics = useMemo(() => getLifecycleMetrics(instances), [instances]);
-  const filteredInstances = useMemo(
-    () => filterLifecycleInstances(instances, { employeeFilter, search, selectedStatus, selectedType }),
-    [employeeFilter, instances, search, selectedStatus, selectedType]
-  );
 
-  const clearFilters = () => {
-    setSearch("");
-    setSelectedType("all");
-    setSelectedStatus("all");
-  };
+  const [search, setSearch] = useState(searchParams.q ?? "");
+  const [selectedType, setSelectedType] = useState<string>("all");
+  const [selectedStatus, setSelectedStatus] = useState<string>("all");
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  const { data: instances = [], isLoading } = useOrganizationLifecycleInstances();
+
+  // Metrics
+  const metrics = useMemo(() => {
+    const total = instances.length;
+    const inProgress = instances.filter((c) => c.status === "in_progress").length;
+    const onboarding = instances.filter(
+      (c) => c.status === "in_progress" && c.checklist_type.toLowerCase() === "onboarding"
+    ).length;
+    const offboarding = instances.filter(
+      (c) => c.status === "in_progress" && c.checklist_type.toLowerCase() === "offboarding"
+    ).length;
+    return { total, inProgress, onboarding, offboarding };
+  }, [instances]);
+
+  // Filtering
+  const filteredInstances = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    const typeFilter = selectedType.toLowerCase();
+    const statusFilter = selectedStatus.toLowerCase();
+
+    const matchesSearch = (c: LifecycleInstanceSummary) => {
+      if (!q) return true;
+      const haystack = [
+        c.employee_name,
+        c.employee_code,
+        c.department_name,
+        c.template_name,
+        c.checklist_type,
+      ];
+      return haystack.some((val) => val?.toLowerCase().includes(q));
+    };
+
+    return instances.filter((c: LifecycleInstanceSummary) => {
+      const matchType = selectedType === "all" || c.checklist_type.toLowerCase() === typeFilter;
+      const matchStatus = selectedStatus === "all" || c.status.toLowerCase() === statusFilter;
+      const matchEmployee = !employeeFilter || c.employee_id === employeeFilter;
+      return matchType && matchStatus && matchEmployee && matchesSearch(c);
+    });
+  }, [instances, search, selectedType, selectedStatus, employeeFilter]);
+
+
 
   return (
     <PageContainer>
-      <LifecyclePageHeader onCreate={() => { setIsModalOpen(true); }} />
-      <LifecycleFilterChip isVisible={Boolean(employeeFilter)} />
-      <LifecycleMetricsCards metrics={metrics} />
+      <PageHeader
+        actions={
+          <div className="flex flex-wrap items-center gap-3">
+            <Button
+              className="font-bold text-xs shadow-sm tracking-wider uppercase h-10 px-5 rounded-2xl"
+              icon={<Plus size={16} />}
+              onClick={() => {
+                setIsModalOpen(true);
+              }}
+              variant="secondary"
+            >
+              {t("lifecycle.actions.create", { defaultValue: "KHỞI TẠO QUY TRÌNH" })}
+            </Button>
+          </div>
+        }
+        icon={<ListTodo size={24} />}
+        subtitle={t("lifecycle.subtitle", {
+          defaultValue: "Quản lý tập trung tiến độ onboarding, thử việc, điều chuyển và bàn giao nghỉ việc của nhân sự",
+        })}
+        title={t("lifecycle.title", { defaultValue: "Quản lý Quy trình & Vòng đời Nhân sự" })}
+      />
+
+      {employeeFilter ? (
+        <div className="flex items-center gap-2" data-testid="employee-filter-chip">
+          <span className="rounded-full border border-primary-200 bg-primary-50 px-3 py-1 text-xs font-semibold text-primary-700 dark:border-primary-800 dark:bg-primary-950 dark:text-primary-300">
+            {t("employees.details.filtered_employee", { defaultValue: "Đang lọc theo nhân viên" })}
+          </span>
+          <Link
+            aria-label={t("common.clear_filter", { defaultValue: "Bỏ bộ lọc" })}
+            className="rounded-full p-1 text-slate-500 hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 dark:hover:bg-slate-800"
+            search={{}}
+            to="/lifecycle"
+          >
+            <X aria-hidden size={14} />
+          </Link>
+        </div>
+      ) : null}
+
+      {/* ── KPI Metric Cards ────────────────────────────────────────── */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-5 rounded-3xl shadow-xs">
+          <div className="flex items-center justify-between text-slate-400 mb-2">
+            <span className="text-[11px] font-bold uppercase tracking-wider">
+              {t("lifecycle.metrics.total", { defaultValue: "Tổng quy trình" })}
+            </span>
+            <Users size={16} />
+          </div>
+          <Typography className="text-2xl font-black text-slate-800 dark:text-slate-100" variant="h3">
+            {metrics.total}
+          </Typography>
+        </div>
+
+        <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-5 rounded-3xl shadow-xs">
+          <div className="flex items-center justify-between text-blue-500 mb-2">
+            <span className="text-[11px] font-bold uppercase tracking-wider">
+              {t("lifecycle.metrics.in_progress", { defaultValue: "Đang tiến hành" })}
+            </span>
+            <Clock size={16} />
+          </div>
+          <Typography className="text-2xl font-black text-blue-600 dark:text-blue-400" variant="h3">
+            {metrics.inProgress}
+          </Typography>
+        </div>
+
+        <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-5 rounded-3xl shadow-xs">
+          <div className="flex items-center justify-between text-emerald-500 mb-2">
+            <span className="text-[11px] font-bold uppercase tracking-wider">
+              {t("lifecycle.metrics.onboarding", { defaultValue: "Đang Onboarding" })}
+            </span>
+            <UserPlus size={16} />
+          </div>
+          <Typography className="text-2xl font-black text-emerald-600 dark:text-emerald-400" variant="h3">
+            {metrics.onboarding}
+          </Typography>
+        </div>
+
+        <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-5 rounded-3xl shadow-xs">
+          <div className="flex items-center justify-between text-rose-500 mb-2">
+            <span className="text-[11px] font-bold uppercase tracking-wider">
+              {t("lifecycle.metrics.offboarding", { defaultValue: "Đang Bàn giao" })}
+            </span>
+            <UserMinus size={16} />
+          </div>
+          <Typography className="text-2xl font-black text-rose-600 dark:text-rose-400" variant="h3">
+            {metrics.offboarding}
+          </Typography>
+        </div>
+      </div>
+
+      {/* ── Filters ──────────────────────────────────────────────────── */}
       <LifecycleFilters
-        onClearFilters={clearFilters}
+        onClearFilters={() => {
+          setSearch("");
+          setSelectedType("all");
+          setSelectedStatus("all");
+        }}
         onSearchChange={setSearch}
         onStatusChange={setSelectedStatus}
         onTypeChange={setSelectedType}
@@ -218,18 +172,31 @@ export default function PersonnelLifecyclePage() {
         selectedStatus={selectedStatus}
         selectedType={selectedType}
       />
-      <div className="relative min-h-[400px] overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-xs dark:border-slate-800 dark:bg-slate-900 sm:rounded-[2.5rem]">
+
+      {/* ── Table Container ─────────────────────────────────────────── */}
+      <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl sm:rounded-[2.5rem] shadow-xs overflow-hidden relative min-h-[400px]">
         <LifecycleTable
           instances={filteredInstances}
           isLoading={isLoading}
-          onClearFilters={clearFilters}
+          onClearFilters={() => {
+            setSearch("");
+            setSelectedType("all");
+            setSelectedStatus("all");
+          }}
           search={search}
           selectedStatus={selectedStatus}
           selectedType={selectedType}
         />
       </div>
+
+      {/* ── Assign Modal ────────────────────────────────────────────── */}
       {isModalOpen ? (
-        <LifecycleAssignModal isOpen={isModalOpen} onClose={() => { setIsModalOpen(false); }} />
+        <LifecycleAssignModal
+          isOpen={isModalOpen}
+          onClose={() => {
+            setIsModalOpen(false);
+          }}
+        />
       ) : null}
     </PageContainer>
   );

@@ -1,8 +1,6 @@
-import type { TFunction } from "i18next";
-
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { ClipboardList, UserCheck } from "lucide-react";
-import { useMemo, useState, type FormEvent } from "react";
+import React, { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { z } from "zod";
@@ -28,232 +26,123 @@ export interface LifecycleAssignModalProps {
   onClose: () => void;
 }
 
-type Translation = TFunction;
-interface SelectOption {
-  description?: string;
-  label: string;
-  value: string;
+export function formatChecklistTypeLabel(type: string, t: (k: string, opts?: { defaultValue?: string }) => string): string {
+  switch (type.toLowerCase()) {
+    case "onboarding":
+      return t("lifecycle.types.onboarding", { defaultValue: "Tiếp nhận nhân sự mới (Onboarding)" });
+    case "offboarding":
+      return t("lifecycle.types.offboarding", { defaultValue: "Bàn giao nghỉ việc (Offboarding)" });
+    case "probation_end":
+      return t("lifecycle.types.probation", { defaultValue: "Đánh giá hết thử việc (Probation)" });
+    case "transfer":
+      return t("lifecycle.types.transfer", { defaultValue: "Điều chuyển vị trí / luân chuyển (Transfer)" });
+    default:
+      return type.toUpperCase();
+  }
 }
 
-export const formatChecklistTypeLabel = (type: string, t: Translation): string => {
-  const labels: Record<string, string> = {
-    onboarding: "lifecycle.types.onboarding",
-    offboarding: "lifecycle.types.offboarding",
-    probation_end: "lifecycle.types.probation",
-    transfer: "lifecycle.types.transfer",
-  };
-  const defaultValues: Record<string, string> = {
-    onboarding: "Tiếp nhận nhân sự mới (Onboarding)",
-    offboarding: "Bàn giao nghỉ việc (Offboarding)",
-    probation_end: "Đánh giá hết thử việc (Probation)",
-    transfer: "Điều chuyển vị trí / luân chuyển (Transfer)",
-  };
-  const normalizedType = type.toLowerCase();
-  return labels[normalizedType]
-    ? t(labels[normalizedType], { defaultValue: defaultValues[normalizedType] })
-    : type.toUpperCase();
-};
-
-function getErrorMessage(error: unknown): string {
-  return error instanceof Error && error.message ? error.message : "Không thể khởi tạo quy trình checklist";
-}
-
-function useLifecycleForm({
-  employmentId: initialEmploymentId,
-  employeeName: initialEmployeeName,
+export default function LifecycleAssignModal({
   isOpen,
-  onClose,
+  onClose,employmentId: initialEmploymentId,
+  employeeName: initialEmployeeName,
 }: LifecycleAssignModalProps) {
   const { t } = useTranslation();
   const toast = useToast();
   const queryClient = useQueryClient();
-  const [selectedEmployeeId, setSelectedEmployeeId] = useState("");
-  const [selectedTemplateId, setSelectedTemplateId] = useState("");
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const [previousOpen, setPreviousOpen] = useState(isOpen);
-  const { employees } = useAllEmployees({ enabled: isOpen && !initialEmploymentId });
-  const { data: templates = [], isLoading: isLoadingTemplates } = useLifecycleTemplates();
 
-  if (isOpen !== previousOpen) {
-    setPreviousOpen(isOpen);
+  const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>("");
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string>("");
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [prevIsOpen, setPrevIsOpen] = useState(isOpen);
+
+  if (isOpen !== prevIsOpen) {
+    setPrevIsOpen(isOpen);
     if (isOpen) {
       setSelectedTemplateId("");
       setErrorMsg(null);
-      if (!initialEmploymentId) setSelectedEmployeeId("");
+      if (!initialEmploymentId) {
+        setSelectedEmployeeId("");
+      }
     }
   }
 
+  const { employees } = useAllEmployees({ enabled: isOpen && !initialEmploymentId });
+  const { data: templates = [], isLoading: isLoadingTemplates } = useLifecycleTemplates();
+
+  // Active templates only
+  const activeTemplates = useMemo(() => {
+    return templates.filter((tpl: LifecycleChecklistTemplate) => tpl.is_active);
+  }, [templates]);
+
+  // Derive target employment ID and employee name
   const selectedEmployee = useMemo(() => {
     if (initialEmploymentId) return null;
-    return employees.find((employee: Employee) => employee.id === selectedEmployeeId);
-  }, [employees, initialEmploymentId, selectedEmployeeId]);
+    return employees.find((emp: Employee) => emp.id === selectedEmployeeId);
+  }, [employees, selectedEmployeeId, initialEmploymentId]);
+
   const effectiveEmploymentId = initialEmploymentId || selectedEmployee?.active_employment_id || "";
   const effectiveEmployeeName = initialEmployeeName || selectedEmployee?.full_name || "";
-  const activeTemplates = useMemo(
-    () => templates.filter((template: LifecycleChecklistTemplate) => template.is_active),
-    [templates],
-  );
+
   const mutation = useMutation({
     mutationFn: async () => {
-      const parsed = assignSchema.parse({ employment_id: effectiveEmploymentId, template_id: selectedTemplateId });
-      return createLifecycleChecklist(parsed.employment_id, { template_id: parsed.template_id });
+      const parsed = assignSchema.parse({
+        employment_id: effectiveEmploymentId,
+        template_id: selectedTemplateId,
+      });
+      return createLifecycleChecklist(parsed.employment_id, {
+        template_id: parsed.template_id,
+      });
     },
-    onError: (error: unknown) => { setErrorMsg(getErrorMessage(error)); },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: lifecycleKeys.all });
-      toast.success(t("lifecycle.assign_success", { defaultValue: `Đã khởi tạo quy trình thành công cho ${effectiveEmployeeName}` }));
+      toast.success(
+        t("lifecycle.assign_success", {
+          defaultValue: `Đã khởi tạo quy trình thành công cho ${effectiveEmployeeName}`,
+        })
+      );
       onClose();
+    },
+    onError: (err: unknown) => {
+      const error = err as Error;
+      setErrorMsg(error.message || "Không thể khởi tạo quy trình checklist");
     },
   });
 
-  const submit = (event: FormEvent): void => {
-    event.preventDefault();
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
     if (!effectiveEmploymentId) {
-      setErrorMsg(t("lifecycle.errors.no_active_employment", { defaultValue: "Nhân sự được chọn không có hồ sơ việc làm (employment) đang hoạt động." }));
+      setErrorMsg(
+        t("lifecycle.errors.no_active_employment", {
+          defaultValue: "Nhân sự được chọn không có hồ sơ việc làm (employment) đang hoạt động.",
+        })
+      );
       return;
     }
     if (!selectedTemplateId) {
-      setErrorMsg(t("lifecycle.errors.no_template_selected", { defaultValue: "Vui lòng chọn một mẫu quy trình." }));
+      setErrorMsg(
+        t("lifecycle.errors.no_template_selected", {
+          defaultValue: "Vui lòng chọn một mẫu quy trình.",
+        })
+      );
       return;
     }
     setErrorMsg(null);
     mutation.mutate();
   };
 
-  return {
-    activeTemplates,
-    effectiveEmployeeName,
-    effectiveEmploymentId,
-    employees,
-    errorMsg,
-    isLoadingTemplates,
-    isPending: mutation.isPending,
-    selectedEmployee,
-    selectedEmployeeId,
-    selectedTemplateId,
-    setSelectedEmployeeId,
-    setSelectedTemplateId,
-    submit,
-    t,
-  };
-}
-
-function EmployeePicker({
-  employees,
-  selectedEmployee,
-  selectedEmployeeId,
-  setSelectedEmployeeId,
-  t,
-}: {
-  employees: Employee[];
-  selectedEmployee: Employee | undefined;
-  selectedEmployeeId: string;
-  setSelectedEmployeeId: (value: string) => void;
-  t: Translation;
-}) {
-  const options: SelectOption[] = employees
-    .filter((employee) => Boolean(employee.active_employment_id))
-    .map((employee) => ({
-      value: employee.id,
-      label: `${employee.full_name}${employee.employee_id_number ? ` (${employee.employee_id_number})` : ""}`,
-      description: employee.department_name ?? employee.job_title ?? undefined,
-    }));
-
-  return (
-    <div className="space-y-2">
-      <label className="text-[11px] font-bold text-slate-500 uppercase tracking-widest" htmlFor="lifecycle-employee-combobox">
-        {t("lifecycle.fields.employee", { defaultValue: "Nhân sự áp dụng" })} *
-      </label>
-      <Combobox
-        clearOnEscape
-        data-testid="lifecycle-employee-combobox"
-        id="lifecycle-employee-combobox"
-        onChange={setSelectedEmployeeId}
-        options={options}
-        placeholder={t("lifecycle.placeholders.select_employee", { defaultValue: "Tìm kiếm nhân sự đang công tác..." })}
-        value={selectedEmployeeId}
-      />
-      {!!selectedEmployee && !selectedEmployee.active_employment_id && (
-        <p className="text-xs text-rose-500 font-medium">
-          {t("lifecycle.errors.employee_has_no_employment", { defaultValue: "Nhân sự này hiện không có hồ sơ công tác hợp lệ." })}
-        </p>
-      )}
-    </div>
-  );
-}
-
-function LockedEmployee({ employeeName, t }: { employeeName: string; t: Translation }) {
-  return (
-    <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 flex items-center gap-3">
-      <div className="w-9 h-9 rounded-xl bg-primary-100 dark:bg-primary-900/40 text-primary-600 dark:text-primary-400 flex items-center justify-center font-bold">
-        <UserCheck size={18} />
-      </div>
-      <div>
-        <Typography className="text-xs font-bold text-slate-800 dark:text-slate-100 uppercase" variant="p">{employeeName}</Typography>
-        <Typography className="text-[11px] text-slate-400 font-mono" variant="p">
-          {t("lifecycle.labels.active_employment", { defaultValue: "Hồ sơ công tác hiện hành" })}
-        </Typography>
-      </div>
-    </div>
-  );
-}
-
-function TemplatePicker({
-  activeTemplates,
-  isLoading,
-  selectedTemplateId,
-  setSelectedTemplateId,
-  t,
-}: {
-  activeTemplates: LifecycleChecklistTemplate[];
-  isLoading: boolean;
-  selectedTemplateId: string;
-  setSelectedTemplateId: (value: string) => void;
-  t: Translation;
-}) {
-  const options: SelectOption[] = activeTemplates.map((template) => ({
-    value: template.id,
-    label: template.name,
-    description: formatChecklistTypeLabel(template.checklist_type, t),
+  const templateOptions = activeTemplates.map((tpl: LifecycleChecklistTemplate) => ({
+    value: tpl.id,
+    label: tpl.name,
+    description: formatChecklistTypeLabel(tpl.checklist_type, t),
   }));
 
-  return (
-    <div className="space-y-2">
-      <label className="text-[11px] font-bold text-slate-500 uppercase tracking-widest" htmlFor="lifecycle-template-combobox">
-        {t("lifecycle.fields.template", { defaultValue: "Mẫu quy trình Checklist" })} *
-      </label>
-      <Combobox
-        clearOnEscape
-        data-testid="lifecycle-template-combobox"
-        disabled={isLoading}
-        id="lifecycle-template-combobox"
-        onChange={setSelectedTemplateId}
-        options={options}
-        placeholder={t("lifecycle.placeholders.select_template", { defaultValue: "Chọn mẫu quy trình (Onboarding, Thử việc, Bàn giao...)" })}
-        value={selectedTemplateId}
-      />
-    </div>
-  );
-}
-
-function LifecycleFooter({
-  canSubmit,
-  isPending,
-  onClose,
-  t,
-}: { canSubmit: boolean; isPending: boolean; onClose: () => void; t: Translation }) {
-  return (
-    <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100 dark:border-slate-800">
-      <Button disabled={isPending} onClick={onClose} type="button" variant="ghost">{t("common.cancel", { defaultValue: "HỦY" })}</Button>
-      <Button disabled={isPending || !canSubmit} type="submit" variant="secondary">{t("lifecycle.actions.submit_assign", { defaultValue: "KHỞI TẠO QUY TRÌNH" })}</Button>
-    </div>
-  );
-}
-
-export default function LifecycleAssignModal(props: LifecycleAssignModalProps) {
-  const { employeeName: initialEmployeeName, employmentId: initialEmploymentId, isOpen, onClose } = props;
-  const form = useLifecycleForm(props);
-  const { t } = form;
+  const employeeOptions = employees
+    .filter((emp: Employee) => Boolean(emp.active_employment_id))
+    .map((emp: Employee) => ({
+      value: emp.id,
+      label: `${emp.full_name}${emp.employee_id_number ? ` (${emp.employee_id_number})` : ""}`,
+      description: emp.department_name ?? emp.job_title ?? undefined,
+    }));
 
   return (
     <Modal
@@ -261,42 +150,107 @@ export default function LifecycleAssignModal(props: LifecycleAssignModalProps) {
       isOpen={isOpen}
       maxWidth="md"
       onClose={onClose}
-      subtitle={initialEmploymentId
-        ? t("lifecycle.modal.subtitle_employee", { defaultValue: `Gán checklist công việc cho nhân sự ${form.effectiveEmployeeName}` })
-        : t("lifecycle.modal.subtitle_hub", { defaultValue: "Khởi tạo quy trình mới (Onboarding, Thử việc, Bàn giao) cho nhân sự" })}
+      subtitle={
+        initialEmploymentId
+          ? t("lifecycle.modal.subtitle_employee", {
+              defaultValue: `Gán checklist công việc cho nhân sự ${effectiveEmployeeName}`,
+            })
+          : t("lifecycle.modal.subtitle_hub", {
+              defaultValue: "Khởi tạo quy trình mới (Onboarding, Thử việc, Bàn giao) cho nhân sự",
+            })
+      }
       title={t("lifecycle.modal.title", { defaultValue: "Khởi tạo Quy trình Vòng đời" })}
     >
-      <form className="space-y-6 pt-4" onSubmit={form.submit}>
+      <form className="space-y-6 pt-4" onSubmit={handleSubmit}>
         <div className="space-y-4">
+          {/* Employee Selection (if in Hub mode) */}
           {!initialEmploymentId && (
-            <EmployeePicker
-              employees={form.employees}
-              selectedEmployee={form.selectedEmployee ?? undefined}
-              selectedEmployeeId={form.selectedEmployeeId}
-              setSelectedEmployeeId={form.setSelectedEmployeeId}
-              t={t}
-            />
+            <div className="space-y-2">
+              <label
+                className="text-[11px] font-bold text-slate-500 uppercase tracking-widest"
+                htmlFor="lifecycle-employee-combobox"
+              >
+                {t("lifecycle.fields.employee", { defaultValue: "Nhân sự áp dụng" })} *
+              </label>
+              <Combobox
+                clearOnEscape
+                data-testid="lifecycle-employee-combobox"
+                id="lifecycle-employee-combobox"
+                onChange={setSelectedEmployeeId}
+                options={employeeOptions}
+                placeholder={t("lifecycle.placeholders.select_employee", {
+                  defaultValue: "Tìm kiếm nhân sự đang công tác...",
+                })}
+                value={selectedEmployeeId}
+              />
+              {!!selectedEmployee && !selectedEmployee.active_employment_id && (
+                <Typography className="text-xs text-rose-500 font-medium" variant="p">
+                  {t("lifecycle.errors.employee_has_no_employment", {
+                    defaultValue: "Nhân sự này hiện không có hồ sơ công tác hợp lệ.",
+                  })}
+                </Typography>
+              )}
+            </div>
           )}
-          {!!initialEmploymentId && <LockedEmployee employeeName={initialEmployeeName || form.effectiveEmployeeName} t={t} />}
-          <TemplatePicker
-            activeTemplates={form.activeTemplates}
-            isLoading={form.isLoadingTemplates}
-            selectedTemplateId={form.selectedTemplateId}
-            setSelectedTemplateId={form.setSelectedTemplateId}
-            t={t}
-          />
-          {!!form.errorMsg && (
-            <div className="p-3 text-xs font-semibold text-rose-600 bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900 rounded-xl" role="alert">
-              {form.errorMsg}
+
+          {/* Locked Employee info (if in Employee Detail mode) */}
+          {Boolean(initialEmploymentId) && (
+            <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-primary-100 dark:bg-primary-900/40 text-primary-600 dark:text-primary-400 flex items-center justify-center font-bold">
+                <UserCheck size={18} />
+              </div>
+              <div>
+                <Typography className="text-xs font-bold text-slate-800 dark:text-slate-100 uppercase" variant="p">
+                  {effectiveEmployeeName}
+                </Typography>
+                <Typography className="text-[11px] text-slate-400 font-mono" variant="p">
+                  {t("lifecycle.labels.active_employment", { defaultValue: "Hồ sơ công tác hiện hành" })}
+                </Typography>
+              </div>
+            </div>
+          )}
+
+          {/* Template Selection */}
+          <div className="space-y-2">
+            <label
+              className="text-[11px] font-bold text-slate-500 uppercase tracking-widest"
+              htmlFor="lifecycle-template-combobox"
+            >
+              {t("lifecycle.fields.template", { defaultValue: "Mẫu quy trình Checklist" })} *
+            </label>
+            <Combobox
+              clearOnEscape
+              data-testid="lifecycle-template-combobox"
+              disabled={isLoadingTemplates}
+              id="lifecycle-template-combobox"
+              onChange={setSelectedTemplateId}
+              options={templateOptions}
+              placeholder={t("lifecycle.placeholders.select_template", {
+                defaultValue: "Chọn mẫu quy trình (Onboarding, Thử việc, Bàn giao...)",
+              })}
+              value={selectedTemplateId}
+            />
+          </div>
+
+          {!!errorMsg && (
+            <div className="p-3 text-xs font-semibold text-rose-600 bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900 rounded-xl">
+              {errorMsg}
             </div>
           )}
         </div>
-        <LifecycleFooter
-          canSubmit={Boolean(form.effectiveEmploymentId && form.selectedTemplateId)}
-          isPending={form.isPending}
-          onClose={onClose}
-          t={t}
-        />
+
+        <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100 dark:border-slate-800">
+          <Button disabled={mutation.isPending} onClick={onClose} type="button" variant="ghost">
+            {t("common.cancel", { defaultValue: "HỦY" })}
+          </Button>
+          <Button
+            disabled={mutation.isPending || !effectiveEmploymentId || !selectedTemplateId}
+            type="submit"
+            variant="secondary"
+          >
+            {t("lifecycle.actions.submit_assign", { defaultValue: "KHỞI TẠO QUY TRÌNH" })}
+          </Button>
+        </div>
       </form>
     </Modal>
   );
