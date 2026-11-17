@@ -232,7 +232,7 @@ export async function calculate_payroll(
   month: number,
 ): Promise<Payslip> {
   const { data: resData } = await client.POST<Payslip>("/api/v1/employees/{employee_id}/calculate-payroll", {
-    params: { 
+    params: {
       path: { employee_id: employeeId },
       query: { year, month }
     }
@@ -301,7 +301,7 @@ export async function calculateBatchPayslips(data: { employment_ids: string[]; y
 
 export async function fetchPayslips(year: number, month: number): Promise<Payslip[]> {
   const { data: resData } = await client.GET<Payslip[]>("/api/v1/payroll/payslips", {
-    params: { 
+    params: {
       query: { year, month }
     }
   });

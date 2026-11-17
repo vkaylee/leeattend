@@ -140,7 +140,7 @@ export default function EmploymentPhasesPage() {
         </select>
       </div>
 
-      {isError ? <div className="rounded-2xl border border-rose-200 bg-rose-50 p-6 text-sm text-rose-700"><Typography variant="p">{t("common.error", { defaultValue: "Unable to load data." })}</Typography><Button className="mt-3" onClick={() => { void refetch(); }} variant="outline">{t("common.retry", { defaultValue: "Retry" })}</Button></div> : null}
+      {isError ? <div className="rounded-2xl border border-rose-200 bg-rose-50 p-6 text-sm text-rose-700"><Typography as="p" variant="body">{t("common.error", { defaultValue: "Unable to load data." })}</Typography><Button className="mt-3" onClick={() => { void refetch(); }} variant="outline">{t("common.retry", { defaultValue: "Retry" })}</Button></div> : null}
       <ResponsiveTable
         columns={columns}
         data={rows}

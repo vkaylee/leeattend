@@ -6,7 +6,7 @@ import type { EmployeeModalState } from "../types/employee-modals";
 
 export const useEmployeesModals = () => {
   const [searchParams] = useState(() => new URLSearchParams(typeof window !== "undefined" ? window.location.search : ""));
-  
+
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
   const [activeModal, setActiveModal] = useState<EmployeeModalState>(() =>
     searchParams.get("enrollment_id") ? { type: "create" } : null
