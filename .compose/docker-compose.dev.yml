@@ -31,8 +31,6 @@ services:
       CLIENT_TLS_SSLMODE: disable
       SERVER_TLS_SSLMODE: disable
     volumes: []
-    ports:
-      - "127.0.0.1:${PGBOUNCER_HOST_PORT:-6432}:6432"
     networks: [backend_net]
     depends_on:
       db:
@@ -142,6 +140,8 @@ services:
       S3_SECRET_KEY: ${MINIO_ROOT_PASSWORD:-development-password}
       S3_USE_PATH_STYLE: "true"
     read_only: false
+    dns:
+      - 10.255.255.254
     volumes:
       - .:/app
       - go-module-cache:/go/pkg/mod

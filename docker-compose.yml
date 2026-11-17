@@ -47,8 +47,6 @@ services:
       CLIENT_TLS_CERT_FILE: /run/pgbouncer/tls/server.crt
       CLIENT_TLS_KEY_FILE: /run/pgbouncer/tls/server.key
       SERVER_TLS_SSLMODE: require
-    ports:
-      - "127.0.0.1:${PGBOUNCER_HOST_PORT:-6432}:6432"
     volumes:
       - ${PGBOUNCER_TLS_DIR:?set PGBOUNCER_TLS_DIR}:/run/pgbouncer/tls:ro
     networks: [backend]
