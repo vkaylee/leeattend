@@ -130,6 +130,16 @@ describe("PayrollSettingsSection", () => {
     expect(screen.getByText(/240/)).toBeInTheDocument();
   });
 
+  it("rejects duplicate employment IDs before impact request", async () => {
+    renderWithProviders(<PayrollSettingsSection />);
+    fireEvent.change(await screen.findByLabelText(/impact_employments/i), { target: { value: "e-1 e-1" } });
+    fireEvent.change(screen.getByLabelText(/impact_before_run_id/i), { target: { value: "r-1" } });
+    fireEvent.change(screen.getByLabelText(/impact_after_run_id/i), { target: { value: "r-2" } });
+    fireEvent.click(screen.getByRole("button", { name: "common.payroll.settings.impact_run" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent("common.payroll.settings.impact_validation");
+    expect(api.fetchPayrollImpactBatch).not.toHaveBeenCalled();
+  });
+
   it("renders settings correctly", async () => {
     renderWithProviders(<PayrollSettingsSection   />);
 

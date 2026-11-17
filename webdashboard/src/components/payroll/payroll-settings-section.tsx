@@ -197,10 +197,11 @@ export default function PayrollSettingsSection({ onDirtyChange }: PayrollSetting
 
   const handleImpactPreview = async () => {
     const employment_ids = impactForm.employment_ids.split(/[\s,]+/).map((id) => id.trim()).filter(Boolean);
+    const hasDuplicateEmploymentIDs = new Set(employment_ids).size !== employment_ids.length;
     const year = Number(impactForm.year);
     const month = Number(impactForm.month);
-    if (employment_ids.length === 0 || employment_ids.length > 100 || !Number.isInteger(year) || !Number.isInteger(month) || month < 1 || month > 12 || !impactForm.before_run_id || !impactForm.after_run_id || impactForm.before_run_id === impactForm.after_run_id) {
-      setImpactError(t("common.payroll.settings.impact_validation", "Enter up to 100 employment IDs, a valid period, and two different calculation run IDs."));
+    if (employment_ids.length === 0 || employment_ids.length > 100 || hasDuplicateEmploymentIDs || !Number.isInteger(year) || !Number.isInteger(month) || month < 1 || month > 12 || !impactForm.before_run_id || !impactForm.after_run_id || impactForm.before_run_id === impactForm.after_run_id) {
+      setImpactError(t("common.payroll.settings.impact_validation", "Enter up to 100 unique employment IDs, a valid period, and two different calculation run IDs."));
       return;
     }
     setIsLoadingImpact(true);
