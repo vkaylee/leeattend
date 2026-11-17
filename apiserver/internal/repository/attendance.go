@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math"
 	"strings"
 	"time"
 
@@ -429,7 +430,22 @@ func (r AttendanceRepository) GetAttendanceSummaries(ctx context.Context, startD
 		return api.PaginatedSummaries{}, err
 	}
 
-	dataQuery := fmt.Sprintf(`SELECT s.id, s.employment_id, s.date::text, s.actual_work_minutes, s.standard_minutes, s.system_detected_ot_minutes, s.claimed_ot_minutes, s.approved_ot_minutes, s.early_ot_minutes, s.late_ot_minutes, s.break_ot_minutes, s.ot_status::text, s.ot_reason, s.manager_note, s.is_weekend, s.is_holiday, s.holiday_name, s.created_at, s.updated_at FROM attendance_daily_summaries s WHERE %s ORDER BY s.date DESC LIMIT $%d OFFSET $%d`, whereSQL, idx, idx+1)
+	dataQuery := fmt.Sprintf(`SELECT s.id, s.employment_id, s.date::text, s.actual_work_minutes, s.standard_minutes, s.system_detected_ot_minutes, s.claimed_ot_minutes, s.approved_ot_minutes, s.early_ot_minutes, s.late_ot_minutes, s.break_ot_minutes, COALESCE(policy.minutes_per_credit, 0)::double precision, policy.version_id, s.ot_status::text, s.ot_reason, s.manager_note, s.is_weekend, s.is_holiday, s.holiday_name, s.created_at, s.updated_at
+FROM attendance_daily_summaries s
+LEFT JOIN LATERAL (
+	SELECT wc.minutes_per_credit, v.id AS version_id
+	FROM labor_policy_memberships m
+	JOIN labor_policy_group_versions v ON v.group_id = m.group_id
+	JOIN work_credit_policies wc ON wc.id = v.work_credit_policy_id
+	WHERE m.employment_id = s.employment_id
+	  AND m.effective_from <= s.date
+	  AND (m.effective_to IS NULL OR m.effective_to > s.date)
+	  AND v.effective_from <= s.date
+	  AND (v.effective_to IS NULL OR v.effective_to > s.date)
+	ORDER BY v.effective_from DESC, v.id DESC
+	LIMIT 1
+) policy ON TRUE
+WHERE %s ORDER BY s.date DESC LIMIT $%d OFFSET $%d`, whereSQL, idx, idx+1)
 	args = append(args, limit, offset)
 
 	rows, err := db.Query(ctx, dataQuery, args...)
@@ -441,8 +457,12 @@ func (r AttendanceRepository) GetAttendanceSummaries(ctx context.Context, startD
 	var data []api.AttendanceDailySummaryRecord
 	for rows.Next() {
 		var rec api.AttendanceDailySummaryRecord
-		if err := rows.Scan(&rec.ID, &rec.EmploymentID, &rec.Date, &rec.ActualWorkMinutes, &rec.StandardMinutes, &rec.SystemDetectedOTMinutes, &rec.ClaimedOTMinutes, &rec.ApprovedOTMinutes, &rec.EarlyOTMinutes, &rec.LateOTMinutes, &rec.BreakOTMinutes, &rec.OTStatus, &rec.OTReason, &rec.ManagerNote, &rec.IsWeekend, &rec.IsHoliday, &rec.HolidayName, &rec.CreatedAt, &rec.UpdatedAt); err != nil {
+		var minutesPerCredit float64
+		if err := rows.Scan(&rec.ID, &rec.EmploymentID, &rec.Date, &rec.ActualWorkMinutes, &rec.StandardMinutes, &rec.SystemDetectedOTMinutes, &rec.ClaimedOTMinutes, &rec.ApprovedOTMinutes, &rec.EarlyOTMinutes, &rec.LateOTMinutes, &rec.BreakOTMinutes, &minutesPerCredit, &rec.WorkPolicyVersionID, &rec.OTStatus, &rec.OTReason, &rec.ManagerNote, &rec.IsWeekend, &rec.IsHoliday, &rec.HolidayName, &rec.CreatedAt, &rec.UpdatedAt); err != nil {
 			return api.PaginatedSummaries{}, err
+		}
+		if minutesPerCredit > 0 {
+			rec.StandardCredits = math.Round(float64(rec.StandardMinutes)/minutesPerCredit*100) / 100
 		}
 		data = append(data, rec)
 	}

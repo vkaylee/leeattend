@@ -112,8 +112,10 @@ type AttendanceDailySummaryRecord struct {
 	ApprovedOTMinutes       int       `json:"approved_ot_minutes"`
 	EarlyOTMinutes          int       `json:"early_ot_minutes"`
 	LateOTMinutes           int       `json:"late_ot_minutes"`
-	BreakOTMinutes          int       `json:"break_ot_minutes"`
-	OTStatus                string    `json:"ot_status"`
+	BreakOTMinutes          int        `json:"break_ot_minutes"`
+	StandardCredits         float64    `json:"standard_credits"`
+	WorkPolicyVersionID     *uuid.UUID `json:"work_policy_version_id,omitempty"`
+	OTStatus                string     `json:"ot_status"`
 	OTReason                *string   `json:"ot_reason,omitempty"`
 	ManagerNote             *string   `json:"manager_note,omitempty"`
 	IsWeekend               bool      `json:"is_weekend"`
