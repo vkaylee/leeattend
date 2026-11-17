@@ -112,6 +112,7 @@ describe("Topbar Layout Component", () => {
 
     const mobileBtn = screen.getByTestId("topbar-mobile-menu-btn");
     expect(mobileBtn).toBeInTheDocument();
+    expect(mobileBtn).toHaveClass("xl:hidden");
     fireEvent.click(mobileBtn);
     expect(onOpenMobileMenu).toHaveBeenCalledTimes(1);
   });
