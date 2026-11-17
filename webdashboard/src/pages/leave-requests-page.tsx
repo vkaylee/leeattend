@@ -1,8 +1,12 @@
+import type { TFunction } from "i18next";
+import type { RefObject } from "react";
+
 import { Clock, Plus, ShieldCheck, Upload } from "lucide-react";
 import { useMemo, useState } from "react";
-import type { RefObject } from "react";
 import { useTranslation } from "react-i18next";
-import type { TFunction } from "i18next";
+
+import type { LeaveStatusFilter, TabType } from "@/components/features/leave/use-leave-requests";
+import type { Employee, LeaveRequest } from "@/lib/api";
 
 import { EmployeeSearch } from "@/components/common/employee-search";
 import FloatingRecordBadge from "@/components/common/floating-record-badge";
@@ -14,7 +18,6 @@ import { LeaveImportBanner } from "@/components/features/leave/leave-import-bann
 import { LeaveRequestMobileCard } from "@/components/features/leave/leave-request-mobile-card";
 import { LeaveRequestRow } from "@/components/features/leave/leave-request-row";
 import { LeaveStatusFilterHeader } from "@/components/features/leave/leave-status-filter-header";
-import type { LeaveStatusFilter, TabType } from "@/components/features/leave/use-leave-requests";
 import { useLeaveRequests } from "@/components/features/leave/use-leave-requests";
 import { PDFPreviewModal } from "@/components/files/pdf-preview-modal";
 import ApprovalListLayout from "@/components/templates/approval-list-layout";
@@ -29,7 +32,6 @@ import ResponsiveToolbar from "@/components/ui/responsive-toolbar";
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
 import { useDepartments } from "@/hooks/use-departments";
 import { useMyPermissions } from "@/hooks/use-permissions";
-import type { Employee, LeaveRequest } from "@/lib/api";
 
 import { BehalfAssignmentsTab } from "./approvals/components/behalf-assignments-tab";
 
@@ -64,8 +66,8 @@ function StatusFilterDropdown({ setStatusFilter, statusFilter }: StatusFilterDro
 }
 
 interface LeavePageActionsProps {
-    onImport: () => void;
     onCreate: () => void;
+    onImport: () => void;
     t: TFunction;
 }
 
@@ -85,8 +87,8 @@ function LeavePageActions({ onImport, onCreate, t }: LeavePageActionsProps) {
 interface LeavePageNavigationProps {
     activeTab: TabType;
     canManageBehalf: boolean;
-    employeeId: string;
     departments: ReturnType<typeof useDepartments>["data"];
+    employeeId: string;
     setActiveTab: (tab: TabType) => void;
     setEmployeeId: (employeeId: string) => void;
     t: TFunction;
@@ -118,6 +120,7 @@ function LeavePageNavigation({ activeTab, canManageBehalf, employeeId, departmen
 }
 
 interface LeaveRequestListProps {
+    activeTab: TabType;
     employeeMap: Map<string, Employee>;
     formatDate: (date: string) => string;
     hasNextPage: boolean;
@@ -129,7 +132,6 @@ interface LeaveRequestListProps {
     onSelect: (request: LeaveRequest) => void;
     requests: LeaveRequest[];
     requestsLoading: boolean;
-    activeTab: TabType;
     setActiveTab: (tab: TabType) => void;
     setStatusFilter: (status: LeaveStatusFilter) => void;
     statusFilter: LeaveStatusFilter;
@@ -192,6 +194,7 @@ interface LeaveRequestOverlaysProps {
     employeeMap: Map<string, Employee>;
     formatDate: (date: string) => string;
     isModalOpen: boolean;
+    isPreviewOpen: boolean;
     leaveTypes: ReturnType<typeof useLeaveRequests>["leaveTypes"];
     onApprove: (id: string, status: string) => void;
     onCloseDetails: () => void;
@@ -201,7 +204,6 @@ interface LeaveRequestOverlaysProps {
     previewTitle: string;
     selectedRequest: LeaveRequest | null;
     t: TFunction;
-    isPreviewOpen: boolean;
 }
 
 function LeaveRequestOverlays({ employeeMap, formatDate, isModalOpen, leaveTypes, onApprove, onCloseDetails, onCloseModal, onClosePreview, previewFileUrl, previewTitle, selectedRequest, t, isPreviewOpen }: LeaveRequestOverlaysProps) {

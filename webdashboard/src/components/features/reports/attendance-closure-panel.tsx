@@ -2,12 +2,13 @@ import { AlertCircle, CheckCircle2, LockKeyhole, UnlockKeyhole } from "lucide-re
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
+import type { AttendanceClosureRequest, AttendancePeriodStatus } from "@/lib/api/attendance-closure";
+
 import Button from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Typography } from "@/components/ui/typography";
 import { useAttendanceClosure } from "@/hooks/use-attendance-closure";
 import { useMyPermissions } from "@/hooks/use-permissions";
-import type { AttendanceClosureRequest, AttendancePeriodStatus } from "@/lib/api/attendance-closure";
 import { ApiError } from "@/lib/api/errors";
 
 interface AttendanceClosurePanelProps {

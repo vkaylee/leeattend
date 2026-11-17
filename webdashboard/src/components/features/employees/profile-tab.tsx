@@ -1,10 +1,10 @@
 /* eslint-disable complexity -- multi-section profile tab with 5 defensive optional chains on API data */
-import type { Department, Employee, OrganizationMember } from "@/lib/api";
-import type { WorkLocation } from "@/lib/api/locations";
-
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Pencil, RotateCcw, Trash2, UserPlus } from "lucide-react";
 import React, { useState } from "react";
+
+import type { Department, Employee, OrganizationMember } from "@/lib/api";
+import type { WorkLocation } from "@/lib/api/locations";
 
 import PermissionGate from "@/components/common/permission-gate";
 import { CustomFieldSection } from "@/components/custom-fields/custom-field-section";
