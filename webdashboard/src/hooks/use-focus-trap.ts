@@ -32,7 +32,7 @@ export function useFocusTrap(isOpen: boolean) {
         "[tabindex]:not([tabindex='-1'])",
         "[contenteditable]"
       ];
-      
+
       return Array.from(
         container.querySelectorAll<HTMLElement>(selectors.join(", "))
       ).filter((el) => {

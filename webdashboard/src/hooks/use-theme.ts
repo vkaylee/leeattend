@@ -39,7 +39,7 @@ export function useTheme() {
     window.addEventListener('theme-change', handleStorage);
     // Live preview event
     window.addEventListener('theme-preview', handlePreview);
-    
+
     return () => {
       window.removeEventListener('storage', handleStorage);
       window.removeEventListener('theme-change', handleStorage);
@@ -51,7 +51,7 @@ export function useTheme() {
 
   useEffect(() => {
     const root = document.documentElement;
-    
+
     const shades = {
       50: adjustBrightness(primaryColor, 95),
       100: adjustBrightness(primaryColor, 85),

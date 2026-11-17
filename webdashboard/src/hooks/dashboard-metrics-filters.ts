@@ -1,185 +1,54 @@
-import { z } from "zod";
+export {
+  DEFAULT_DASHBOARD_METRICS_FILTERS,
+  dashboardComparisons,
+  dashboardPeriods,
+  dashboardRiskThresholds,
+  parseDashboardComparison,
+  parseDashboardPeriod,
+  parseDashboardRiskThreshold,
+  parseDashboardTopN,
+  type DashboardComparison,
+  type DashboardMetricsFilters,
+  type DashboardPeriod,
+  type DashboardRiskThreshold,
+} from "./dashboard-metrics-filter-types";
 
-export const dashboardPeriods = [
-  "today",
-  "this_week",
-  "this_month",
-  "this_quarter",
-  "year_to_date",
-  "custom",
-] as const;
-
-export const dashboardComparisons = [
-  "none",
-  "previous_period",
-  "same_period_last_year",
-  "target",
-  "budget",
-  "benchmark",
-] as const;
-
-export const dashboardRiskThresholds = ["info", "watch", "high", "critical"] as const;
-
-const datePattern = /^\d{4}-\d{2}-\d{2}$/;
-const uuid = z.uuid();
-const periodSchema = z.enum(dashboardPeriods);
-const comparisonSchema = z.enum(dashboardComparisons);
-const riskThresholdSchema = z.enum(dashboardRiskThresholds);
-const topNSchema = z.number().int().min(1).max(100);
-
-export type DashboardPeriod = (typeof dashboardPeriods)[number];
-export type DashboardComparison = (typeof dashboardComparisons)[number];
-export type DashboardRiskThreshold = (typeof dashboardRiskThresholds)[number];
-
-export function parseDashboardPeriod(value: string | null | undefined): DashboardPeriod | undefined {
-  const parsed = periodSchema.safeParse(value);
-  return parsed.success ? parsed.data : undefined;
-}
-
-export function parseDashboardComparison(
-  value: string | null | undefined,
-): DashboardComparison | undefined {
-  const parsed = comparisonSchema.safeParse(value);
-  return parsed.success ? parsed.data : undefined;
-}
-
-export function parseDashboardRiskThreshold(
-  value: string | null | undefined,
-): DashboardRiskThreshold | undefined {
-  const parsed = riskThresholdSchema.safeParse(value);
-  return parsed.success ? parsed.data : undefined;
-}
-
-export function parseDashboardTopN(value: string | null | undefined): number | undefined {
-  if (!value || !/^\d+$/.test(value)) return undefined;
-  const parsed = topNSchema.safeParse(Number(value));
-  return parsed.success ? parsed.data : undefined;
-}
-
-export interface DashboardMetricsFilters {
-  businessUnitIds: string[];
-  comparison: DashboardComparison;
-  departmentIds: string[];
-  employeeStatuses: string[];
-  employmentTypes: string[];
-  endDate?: string;
-  locationIds: string[];
-  managerIds: string[];
-  period: DashboardPeriod;
-  riskThreshold: DashboardRiskThreshold;
-  shiftIds: string[];
-  startDate?: string;
-  topN: number;
-}
-
-export const DEFAULT_DASHBOARD_METRICS_FILTERS: DashboardMetricsFilters = {
-  businessUnitIds: [],
-  comparison: "none",
-  departmentIds: [],
-  employeeStatuses: [],
-  employmentTypes: [],
-  locationIds: [],
-  managerIds: [],
-  period: "this_month",
-  riskThreshold: "watch",
-  shiftIds: [],
-  topN: 10,
-};
-
-function sortedUniqueIds(values: readonly string[]) {
-  return [
-    ...new Set(
-      values.flatMap((value) => value.split(",")).flatMap((value) => {
-        const normalized = value.trim().toLowerCase();
-        return uuid.safeParse(normalized).success ? [normalized] : [];
-      }),
-    ),
-  ].sort();
-}
-
-function sortedUniqueValues(values: readonly string[]) {
-  return [
-    ...new Set(
-      values
-        .flatMap((value) => value.split(","))
-        .map((value) => value.trim())
-        .filter(Boolean),
-    ),
-  ].sort();
-}
-
-function validDate(value: string | undefined) {
-  if (!value || !datePattern.test(value)) return undefined;
-  const [year, month, day] = value.split("-").map(Number);
-  const leapYear = year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0);
-  const daysInMonth = [
-    31,
-    leapYear ? 29 : 28,
-    31,
-    30,
-    31,
-    30,
-    31,
-    31,
-    30,
-    31,
-    30,
-    31,
-  ][month - 1];
-  return year > 0 && daysInMonth && day >= 1 && day <= daysInMonth ? value : undefined;
-}
+import {
+  DEFAULT_DASHBOARD_METRICS_FILTERS,
+  parseDashboardComparison,
+  parseDashboardPeriod,
+  parseDashboardRiskThreshold,
+  parseDashboardTopN,
+  type DashboardMetricsFilters,
+} from "./dashboard-metrics-filter-types";
+import { canonicalFilterParts, isInvalidCustomRange } from "./dashboard-metrics-filter-helpers";
 
 export function canonicalizeDashboardMetricsFilters(
   filters: Partial<DashboardMetricsFilters>,
 ): DashboardMetricsFilters {
-  const periodResult = periodSchema.safeParse(filters.period);
-  const comparisonResult = comparisonSchema.safeParse(filters.comparison);
-  const riskThresholdResult = riskThresholdSchema.safeParse(filters.riskThreshold);
-  const topNResult = topNSchema.safeParse(filters.topN);
-  const period = periodResult.success
-    ? periodResult.data
-    : DEFAULT_DASHBOARD_METRICS_FILTERS.period;
-  const comparison = comparisonResult.success
-    ? comparisonResult.data
-    : DEFAULT_DASHBOARD_METRICS_FILTERS.comparison;
-  const riskThreshold = riskThresholdResult.success
-    ? riskThresholdResult.data
-    : DEFAULT_DASHBOARD_METRICS_FILTERS.riskThreshold;
-  const topN = topNResult.success ? topNResult.data : DEFAULT_DASHBOARD_METRICS_FILTERS.topN;
-  const startDate = validDate(filters.startDate);
-  const endDate = validDate(filters.endDate);
-  const dimensions = {
-    businessUnitIds: sortedUniqueIds(filters.businessUnitIds ?? []),
-    departmentIds: sortedUniqueIds(filters.departmentIds ?? []),
-    employeeStatuses: sortedUniqueValues(filters.employeeStatuses ?? []),
-    employmentTypes: sortedUniqueValues(filters.employmentTypes ?? []),
-    locationIds: sortedUniqueIds(filters.locationIds ?? []),
-    managerIds: sortedUniqueIds(filters.managerIds ?? []),
-    shiftIds: sortedUniqueIds(filters.shiftIds ?? []),
-  };
-
-  if (period === "custom" && (!startDate || !endDate || endDate < startDate)) {
+  const parts = canonicalFilterParts(filters);
+  if (isInvalidCustomRange(parts)) {
     return {
       ...DEFAULT_DASHBOARD_METRICS_FILTERS,
-      comparison,
-      ...dimensions,
-      riskThreshold,
-      topN,
+      comparison: parts.comparison,
+      ...parts.dimensions,
+      riskThreshold: parts.riskThreshold,
+      topN: parts.topN,
     };
   }
 
   return {
-    ...dimensions,
-    comparison,
-    endDate: period === "custom" ? endDate : undefined,
-    period,
-    riskThreshold,
-    startDate: period === "custom" ? startDate : undefined,
-    topN,
+    ...parts.dimensions,
+    comparison: parts.comparison,
+    endDate: parts.period === "custom" ? parts.endDate : undefined,
+    period: parts.period,
+    riskThreshold: parts.riskThreshold,
+    startDate: parts.period === "custom" ? parts.startDate : undefined,
+    topN: parts.topN,
   };
 }
 
-function queryValues(params: URLSearchParams, key: string) {
+function queryValues(params: URLSearchParams, key: string): string[] {
   return params.getAll(key);
 }
 
@@ -213,13 +82,13 @@ export function serializeDashboardMetricsFilters(
   }
   if (canonical.startDate) params.set("start_date", canonical.startDate);
   if (canonical.endDate) params.set("end_date", canonical.endDate);
-  canonical.departmentIds.forEach((id) => { params.append("department_ids", id); });
-  canonical.locationIds.forEach((id) => { params.append("location_ids", id); });
-  canonical.businessUnitIds.forEach((id) => { params.append("business_unit_ids", id); });
-  canonical.managerIds.forEach((id) => { params.append("manager_ids", id); });
-  canonical.employmentTypes.forEach((value) => { params.append("employment_types", value); });
-  canonical.employeeStatuses.forEach((value) => { params.append("employee_statuses", value); });
-  canonical.shiftIds.forEach((id) => { params.append("shift_ids", id); });
+  appendValues(params, "department_ids", canonical.departmentIds);
+  appendValues(params, "location_ids", canonical.locationIds);
+  appendValues(params, "business_unit_ids", canonical.businessUnitIds);
+  appendValues(params, "manager_ids", canonical.managerIds);
+  appendValues(params, "employment_types", canonical.employmentTypes);
+  appendValues(params, "employee_statuses", canonical.employeeStatuses);
+  appendValues(params, "shift_ids", canonical.shiftIds);
   if (canonical.topN !== DEFAULT_DASHBOARD_METRICS_FILTERS.topN) {
     params.set("top_n", String(canonical.topN));
   }
@@ -227,6 +96,10 @@ export function serializeDashboardMetricsFilters(
     params.set("risk_threshold", canonical.riskThreshold);
   }
   return params.toString();
+}
+
+function appendValues(params: URLSearchParams, key: string, values: readonly string[]): void {
+  values.forEach((value) => params.append(key, value));
 }
 
 export function dashboardMetricsQuery(filters: DashboardMetricsFilters): string {

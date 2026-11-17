@@ -65,7 +65,7 @@ export function useCalendarPreview() {
 
       let cycleIndex = -1;
       let dayShifts: string[] = [];
-      
+
       if (cycleLengthDays > 0 && anchorMidnight > 0) {
         const diffTime = cellMidnight - anchorMidnight;
         const daysDiff = Math.round(diffTime / (1000 * 60 * 60 * 24));

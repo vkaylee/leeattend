@@ -10,7 +10,7 @@ import { useCreateOvertimeRequest } from "@/hooks/use-overtime-requests";
 export function useCreateOtRequestForm(onSuccess?: () => void) {
   const { t } = useTranslation();
   const toast = useToast();
-  
+
   const [open, setOpen] = useState(false);
   const [selectedEmployees, setSelectedEmployees] = useState<string[]>([]);
   const [plannedDate, setPlannedDate] = useState(format(new Date(), "yyyy-MM-dd"));
@@ -73,7 +73,7 @@ export function useCreateOtRequestForm(onSuccess?: () => void) {
   };
 
   const toggleEmployee = (id: string) => {
-    setSelectedEmployees(prev => 
+    setSelectedEmployees(prev =>
       prev.includes(id) ? prev.filter(e => e !== id) : [...prev, id]
     );
   };

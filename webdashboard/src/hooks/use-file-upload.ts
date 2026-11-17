@@ -91,13 +91,13 @@ export function useFileUpload({
             const xhr = new XMLHttpRequest();
             xhr.open('PUT', upload_url, true);
             xhr.setRequestHeader('Content-Type', file.type || 'application/octet-stream');
-            
+
             xhr.upload.onprogress = (e) => {
                 if (e.lengthComputable) {
                     setProgress(Math.round((e.loaded / e.total) * 100));
                 }
             };
-            
+
             xhr.onload = () => {
                 if (xhr.status >= 200 && xhr.status < 300) {
                     resolve(true);
@@ -105,7 +105,7 @@ export function useFileUpload({
                     reject(new Error(t('errors.s3_upload_failed')));
                 }
             };
-            
+
             xhr.onerror = () => { reject(new Error(t('errors.network_error'))); };
             xhr.send(file);
         });

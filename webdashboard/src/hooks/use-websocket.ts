@@ -5,12 +5,12 @@ import { useEffect, useRef, useState } from "react";
 import { WS_BASE_URL } from "@/lib/api";
 import { logError } from "@/lib/logger";
 
-export type ReportStreamMessage = 
+export type ReportStreamMessage =
   | { type: "CHUNK"; batch_index: number; total_batches: number; data: string }
   | { type: "DONE"; total_batches: number; total_records: number }
   | { type: "ERROR"; message: string; batch_index: number | null };
 
-export type WsMessage = 
+export type WsMessage =
   | { type: "handshake"; client_type: "dashboard" | "agent" }
   | ReportStreamMessage
   | { type: string; [key: string]: unknown }; // Fallback for other message types
@@ -27,7 +27,7 @@ export function useWebSocket() {
 
     socket.onopen = () => {
       setIsConnected(true);
-      
+
 
       // Handshake cho Dashboard (nếu cần phân biệt với Agent)
       const handshake: WsMessage = {
@@ -56,7 +56,7 @@ export function useWebSocket() {
 
     socket.onclose = () => {
       setIsConnected(false);
-      
+
     };
 
     return () => {
