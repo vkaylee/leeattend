@@ -3,13 +3,12 @@ import { forwardRef, useCallback, useImperativeHandle, useMemo, useState } from 
 import { useTranslation } from "react-i18next";
 
 import type { DailyAttendanceReport } from "@/lib/api";
+import type { Employee } from "@/lib/api/types";
 
 import { EmployeeIdentityCell } from "@/components/common/employee-identity-cell";
 import Button from "@/components/ui/button";
 import EmptyState from "@/components/ui/empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
-import type { Employee } from "@/lib/api/types";
-
 import { useHorizontalDragScroll } from "@/hooks/use-horizontal-drag-scroll";
 import { cn } from "@/lib/utils";
 import { formatDayKey, makeTimesheetCellKey } from "@/pages/reports/hooks/use-monthly-timesheet-data";
@@ -36,26 +35,19 @@ export interface TimesheetMatrixGridProps {
 }
 
 interface TimesheetDay {
-  date: Date;
   dayName: string;
   dayNum: number;
-  dayOfWeek: number;
   isWeekend: boolean;
 }
 
 interface LegacyEmployeeFields {
-  department?: string;
-  employee_code?: string;
+  department?: string | null;
+  employee_code?: string | null;
 }
 
-type GetEmployeeDayCode = (
-  employeeId: string,
-  day: number,
-  isWeekend: boolean,
-) => AttendanceCodeConfig;
+type GetEmployeeDayCode = (employeeId: string, day: number, isWeekend: boolean) => AttendanceCodeConfig;
 
 const DAY_NAMES = ["CN", "T2", "T3", "T4", "T5", "T6", "T7"];
-const LEGACY_EMPLOYEE_FIELDS = (employee: Employee) => employee as Employee & LegacyEmployeeFields;
 
 function getDaysInMonth(year: number, month: number): number {
   return new Date(year, month, 0).getDate();
@@ -64,29 +56,27 @@ function getDaysInMonth(year: number, month: number): number {
 function createDaysList(year: number, month: number, daysInMonth: number): TimesheetDay[] {
   return Array.from({ length: daysInMonth }, (_, index) => {
     const dayNum = index + 1;
-    const date = new Date(year, month - 1, dayNum);
-    const dayOfWeek = date.getDay();
+    const dayOfWeek = new Date(year, month - 1, dayNum).getDay();
 
     return {
-      date,
       dayName: DAY_NAMES[dayOfWeek],
       dayNum,
-      dayOfWeek,
       isWeekend: dayOfWeek === 0 || dayOfWeek === 6,
     };
   });
 }
 
-function firstTruthyValue(...values: (string | undefined | null)[]): string | undefined {
-  for (const value of values) {
-    if (value) return value;
-  }
-  return undefined;
+function getLegacyEmployeeFields(employee: Employee): LegacyEmployeeFields {
+  return employee as LegacyEmployeeFields;
+}
+
+function getFirstValue(...values: (string | null | undefined)[]): string | undefined {
+  return values.find((value): value is string => Boolean(value));
 }
 
 function getEmployeeCode(employee: Employee, fallback: string): string {
-  const legacyEmployee = LEGACY_EMPLOYEE_FIELDS(employee);
-  return firstTruthyValue(
+  const legacyEmployee = getLegacyEmployeeFields(employee);
+  return getFirstValue(
     employee.employee_id_number,
     legacyEmployee.employee_code,
     employee.id ? employee.id.slice(0, 8) : fallback,
@@ -94,8 +84,8 @@ function getEmployeeCode(employee: Employee, fallback: string): string {
 }
 
 function getDepartmentName(employee: Employee, fallback: string): string {
-  const legacyEmployee = LEGACY_EMPLOYEE_FIELDS(employee);
-  return firstTruthyValue(employee.department_name, legacyEmployee.department) ?? fallback;
+  const legacyEmployee = getLegacyEmployeeFields(employee);
+  return getFirstValue(employee.department_name, legacyEmployee.department) ?? fallback;
 }
 
 interface TimesheetCsvOptions {
@@ -104,6 +94,31 @@ interface TimesheetCsvOptions {
   getEmployeeDayCode: GetEmployeeDayCode;
   month: number;
   year: number;
+}
+
+function createCsvEmployeeRow(
+  employee: Employee,
+  daysList: TimesheetDay[],
+  getEmployeeDayCode: GetEmployeeDayCode,
+): string {
+  let workDays = 0;
+  let leaveDays = 0;
+  const dayCodes = daysList.map((day) => {
+    const config = getEmployeeDayCode(employee.id, day.dayNum, day.isWeekend);
+    if (config.category === "work") workDays += config.paidMultiplier;
+    if (config.category === "paid_leave") leaveDays += config.paidMultiplier;
+    return config.code;
+  });
+
+  return [
+    `"${getEmployeeCode(employee, "")}"`,
+    `"${employee.full_name}"`,
+    `"${getDepartmentName(employee, "")}"`,
+    ...dayCodes.map((code) => `"${code}"`),
+    `"${workDays.toFixed(1)}"`,
+    `"${leaveDays.toFixed(1)}"`,
+    `"${(workDays + leaveDays).toFixed(1)}"`,
+  ].join(",");
 }
 
 function downloadTimesheetCsv({
@@ -122,7 +137,6 @@ function downloadTimesheetCsv({
     "Số ngày phép",
     "Tổng công tính lương",
   ];
-
   const rows = employees.map((employee) => createCsvEmployeeRow(employee, daysList, getEmployeeDayCode));
   const csvContent = "﻿" + [headers.join(","), ...rows].join("\n");
   const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
@@ -135,32 +149,6 @@ function downloadTimesheetCsv({
   link.click();
   document.body.removeChild(link);
   URL.revokeObjectURL(url);
-}
-
-function createCsvEmployeeRow(
-  employee: Employee,
-  daysList: TimesheetDay[],
-  getEmployeeDayCode: GetEmployeeDayCode,
-): string {
-  let workDays = 0;
-  let leaveDays = 0;
-  const dayCodes = daysList.map((day) => {
-    const config = getEmployeeDayCode(employee.id, day.dayNum, day.isWeekend);
-    if (config.category === "work") workDays += config.paidMultiplier;
-    if (config.category === "paid_leave") leaveDays += config.paidMultiplier;
-    return config.code;
-  });
-  const payableDays = workDays + leaveDays;
-
-  return [
-    `"${getEmployeeCode(employee, "")}"`,
-    `"${employee.full_name}"`,
-    `"${getDepartmentName(employee, "")}"`,
-    ...dayCodes.map((code) => `"${code}"`),
-    `"${workDays.toFixed(1)}"`,
-    `"${leaveDays.toFixed(1)}"`,
-    `"${payableDays.toFixed(1)}"`,
-  ].join(",");
 }
 
 interface GridHeaderProps {
@@ -181,18 +169,15 @@ function GridHeader({ employeeCount, onToggleLegend }: GridHeaderProps) {
           • {employeeCount} {t("reports.employees", "nhân viên")}
         </span>
       </div>
-
-      <div className="flex items-center gap-2">
-        <Button
-          aria-label={t("reports.legend", "Bảng giải thích ký hiệu")}
-          className="flex items-center gap-1.5 text-xs text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 px-3 py-1.5 rounded-xl transition-all font-semibold normal-case tracking-normal"
-          onClick={onToggleLegend}
-          variant="ghost"
-        >
-          <HelpCircle size={15} />
-          <span>{t("reports.legend", "Ký hiệu công")}</span>
-        </Button>
-      </div>
+      <Button
+        aria-label={t("reports.legend", "Bảng giải thích ký hiệu")}
+        className="flex items-center gap-1.5 text-xs text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 px-3 py-1.5 rounded-xl transition-all font-semibold normal-case tracking-normal"
+        onClick={onToggleLegend}
+        variant="ghost"
+      >
+        <HelpCircle size={15} />
+        <span>{t("reports.legend", "Ký hiệu công")}</span>
+      </Button>
     </div>
   );
 }
@@ -208,12 +193,7 @@ function LegendBar() {
       </span>
       {registeredCodes.map((code) => (
         <div key={code.code} title={code.description}>
-          <span
-            className={cn(
-              "font-bold px-1.5 py-0.5 rounded text-[11px] border",
-              code.badgeClass,
-            )}
-          >
+          <span className={cn("font-bold px-1.5 py-0.5 rounded text-[11px] border", code.badgeClass)}>
             {code.code}
           </span>
           <span className="text-slate-600 dark:text-slate-300">{code.label}</span>
@@ -254,14 +234,7 @@ interface MatrixTableProps {
   year: number;
 }
 
-function MatrixTable({
-  daysList,
-  employees,
-  getEmployeeDayCode,
-  month,
-  onEmployeeClick,
-  year,
-}: MatrixTableProps) {
+function MatrixTable({ daysList, employees, getEmployeeDayCode, month, onEmployeeClick, year }: MatrixTableProps) {
   const { t } = useTranslation();
 
   return (
@@ -271,9 +244,7 @@ function MatrixTable({
           <th className="sticky left-0 z-30 bg-slate-100 dark:bg-slate-800 px-4 py-3 font-semibold text-slate-700 dark:text-slate-200 w-64 min-w-[16rem] border-r border-slate-200 dark:border-slate-700 shadow-xs">
             {t("reports.table.employee", "Nhân viên")}
           </th>
-          {daysList.map((day) => (
-            <DayHeader day={day} key={day.dayNum} />
-          ))}
+          {daysList.map((day) => <DayHeader day={day} key={day.dayNum} />)}
           <SummaryHeader className="right-[112px]" label={t("reports.table.std_hours", "Công")} tone="emerald" />
           <SummaryHeader className="right-[56px]" label={t("reports.table.leave_days", "Phép")} tone="blue" />
           <SummaryHeader className="right-0" label={t("reports.table.total_hours", "Tổng tính")} tone="purple" />
@@ -339,13 +310,8 @@ function SummaryHeader({ className, label, tone }: SummaryHeaderProps) {
   );
 }
 
-interface MatrixRowProps {
-  daysList: TimesheetDay[];
+interface MatrixRowProps extends Omit<MatrixTableProps, "employees"> {
   employee: Employee;
-  getEmployeeDayCode: GetEmployeeDayCode;
-  month: number;
-  onEmployeeClick?: (employee: Employee) => void;
-  year: number;
 }
 
 interface DayCellData {
@@ -358,30 +324,22 @@ interface RowTotals {
   work: number;
 }
 
-function getRowCells(
-  employeeId: string,
-  daysList: TimesheetDay[],
-  getEmployeeDayCode: GetEmployeeDayCode,
-): { cells: DayCellData[]; totals: RowTotals } {
-  const totals: RowTotals = { work: 0, leave: 0 };
+function getRowCells(employeeId: string, daysList: TimesheetDay[], getEmployeeDayCode: GetEmployeeDayCode): {
+  cells: DayCellData[];
+  totals: RowTotals;
+} {
+  const totals: RowTotals = { leave: 0, work: 0 };
   const cells = daysList.map((day) => {
     const config = getEmployeeDayCode(employeeId, day.dayNum, day.isWeekend);
     if (config.category === "work") totals.work += config.paidMultiplier;
     if (config.category === "paid_leave") totals.leave += config.paidMultiplier;
-    return { day, config };
+    return { config, day };
   });
 
   return { cells, totals };
 }
 
-function MatrixRow({
-  daysList,
-  employee,
-  getEmployeeDayCode,
-  month,
-  onEmployeeClick,
-  year,
-}: MatrixRowProps) {
+function MatrixRow({ daysList, employee, getEmployeeDayCode, month, onEmployeeClick, year }: MatrixRowProps) {
   const { cells, totals } = getRowCells(employee.id, daysList, getEmployeeDayCode);
 
   return (
@@ -397,7 +355,7 @@ function MatrixRow({
           }}
         />
       </td>
-      {cells.map(({ day, config }) => (
+      {cells.map(({ config, day }) => (
         <DayCell config={config} day={day} key={day.dayNum} month={month} year={year} />
       ))}
       <SummaryCell className="right-[112px]" tone="emerald" value={totals.work} />
@@ -416,12 +374,7 @@ interface DayCellProps {
 
 function DayCell({ config, day, month, year }: DayCellProps) {
   return (
-    <td
-      className={cn(
-        "px-1 py-1.5 text-center border-r border-slate-100 dark:border-slate-800",
-        day.isWeekend && "bg-amber-500/5 dark:bg-amber-500/5",
-      )}
-    >
+    <td className={cn("px-1 py-1.5 text-center border-r border-slate-100 dark:border-slate-800", day.isWeekend && "bg-amber-500/5 dark:bg-amber-500/5")}>
       <span
         className={cn(
           "inline-flex items-center justify-center w-7 h-6 rounded-md font-bold text-[10px] border shadow-2xs cursor-default select-none transition-transform hover:scale-110",
@@ -450,84 +403,41 @@ const SUMMARY_CELL_TONE_CLASSES: Record<SummaryCellProps["tone"], string> = {
 
 function SummaryCell({ className, strong = false, tone, value }: SummaryCellProps) {
   return (
-    <td
-      className={cn(
-        "sticky z-10 px-2 py-2 text-center font-bold shadow-[-2px_0_5px_rgba(0,0,0,0.04)]",
-        className,
-        SUMMARY_CELL_TONE_CLASSES[tone],
-        strong && "font-black",
-      )}
-    >
+    <td className={cn("sticky z-10 px-2 py-2 text-center font-bold shadow-[-2px_0_5px_rgba(0,0,0,0.04)]", className, SUMMARY_CELL_TONE_CLASSES[tone], strong && "font-black")}>
       {value.toFixed(1)}
     </td>
   );
 }
 
-export const TimesheetMatrixGrid = forwardRef<
-  TimesheetMatrixGridHandle,
-  TimesheetMatrixGridProps
->(
-  (
-    {
-      attendanceMap,
-      employees,
-      isLoading = false,
-      isLoadingAttendance = false,
-      month,
-      onEmployeeClick,
-      year,
-    },
-    ref,
-  ) => {
+export const TimesheetMatrixGrid = forwardRef<TimesheetMatrixGridHandle, TimesheetMatrixGridProps>(
+  ({ attendanceMap, employees, isLoading = false, isLoadingAttendance = false, month, onEmployeeClick, year }, ref) => {
     const [isLegendOpen, setIsLegendOpen] = useState(false);
-    const {
-      onClickCapture: handleHorizontalDragClick,
-      setRef: setHorizontalDragScrollRef,
-    } = useHorizontalDragScroll<HTMLDivElement>();
+    const { onClickCapture: handleHorizontalDragClick, setRef: setHorizontalDragScrollRef } = useHorizontalDragScroll<HTMLDivElement>();
     const daysInMonth = useMemo(() => getDaysInMonth(year, month), [month, year]);
-    const daysList = useMemo(
-      () => createDaysList(year, month, daysInMonth),
-      [daysInMonth, month, year],
-    );
+    const daysList = useMemo(() => createDaysList(year, month, daysInMonth), [daysInMonth, month, year]);
     const getEmployeeDayCode = useCallback<GetEmployeeDayCode>(
       (employeeId, day, isWeekend) => {
         if (attendanceMap) {
           const dateStr = formatDayKey(year, month, day);
-          const cellKey = makeTimesheetCellKey(employeeId, dateStr);
-          const row = attendanceMap.get(cellKey);
+          const row = attendanceMap.get(makeTimesheetCellKey(employeeId, dateStr));
           return resolveDailyAttendanceCode(row, { isWeekend });
         }
-        if (isWeekend) return getAttendanceCodeConfig("Ro");
-        return getAttendanceCodeConfig("-");
+        return getAttendanceCodeConfig(isWeekend ? "Ro" : "-");
       },
       [attendanceMap, month, year],
     );
-    const handleExportMatrixCSV = useCallback(
-      () => {
-        downloadTimesheetCsv({
-          daysList,
-          employees,
-          getEmployeeDayCode,
-          month,
-          year,
-        });
-      },
-      [daysList, employees, getEmployeeDayCode, month, year],
-    );
+    const handleExportMatrixCsv = useCallback(() => {
+      downloadTimesheetCsv({ daysList, employees, getEmployeeDayCode, month, year });
+    }, [daysList, employees, getEmployeeDayCode, month, year]);
 
-    useImperativeHandle(ref, () => ({ exportCSV: handleExportMatrixCSV }), [handleExportMatrixCSV]);
+    useImperativeHandle(ref, () => ({ exportCSV: handleExportMatrixCsv }), [handleExportMatrixCsv]);
 
     return (
       <div
         className="flex flex-col h-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-sm overflow-hidden animate-in fade-in duration-300"
         data-testid="timesheet-matrix-grid"
       >
-        <GridHeader
-          employeeCount={employees.length}
-          onToggleLegend={() => {
-            setIsLegendOpen((previous) => !previous);
-          }}
-        />
+        <GridHeader employeeCount={employees.length} onToggleLegend={() => { setIsLegendOpen((previous) => !previous); }} />
         {isLegendOpen ? <LegendBar /> : null}
         <div
           className="flex-1 min-h-0 overflow-auto overscroll-contain"
