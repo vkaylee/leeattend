@@ -28,6 +28,9 @@ export function ShiftsContent({ hook, monthlyRoster }: ShiftsContentProps) {
     setCoverageFilter,
     deleteRosterMutation,
     employeeSchedule,
+    isScheduleLoading,
+    isScheduleError,
+    scheduleError,
     history,
     openEditModal,
     selectedDays,
@@ -76,7 +79,13 @@ export function ShiftsContent({ hook, monthlyRoster }: ShiftsContentProps) {
           weekDays={weekDays}
         />
         <PriorityLegend />
-        {employeeSchedule ? <ScheduleLifecyclePanel employeeSchedule={employeeSchedule} weekDays={weekDays} /> : null}
+        <ScheduleLifecyclePanel
+          employeeSchedule={employeeSchedule}
+          isLoading={isScheduleLoading}
+          isError={isScheduleError}
+          error={scheduleError}
+          weekDays={weekDays}
+        />
         <AssignmentHistory
           history={history}
           selectedEmployee={selectedEmployee}

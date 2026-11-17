@@ -29,7 +29,10 @@ import { createQueryKey } from "@/lib/query-keys";
 
 
 interface ScheduleLifecyclePanelProps {
-  employeeSchedule: EmployeeSchedule;
+  employeeSchedule?: EmployeeSchedule;
+  error?: Error | null;
+  isError?: boolean;
+  isLoading?: boolean;
   weekDays: Date[];
 }
 
@@ -82,11 +85,22 @@ function LifecycleStatusList({ schedule, t }: { schedule: EmployeeSchedule; t: (
   );
 }
 
-export function ScheduleLifecyclePanel({ employeeSchedule, weekDays }: ScheduleLifecyclePanelProps) {
+export function ScheduleLifecyclePanel({ employeeSchedule, error, isError = false, isLoading = false, weekDays }: ScheduleLifecyclePanelProps) {
   const { t } = useTranslation();
+  const scheduleErrorMessage = error?.message ?? "scheduleLifecycle.requestFailed";
+  const scheduleState = isLoading ? "loading" : isError ? "error" : employeeSchedule ? "ready" : "missing";
   const { organization } = useOrganization();
   const queryClient = useQueryClient();
   const [reason, setReason] = useState("");
+  if (scheduleState === "loading") {
+    return <section aria-busy="true" aria-labelledby="schedule-lifecycle-title" className="space-y-4 rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900"><Typography id="schedule-lifecycle-title" variant="h2">{t("scheduleLifecycle.title")}</Typography><Skeleton className="h-5 w-1/2" /><Skeleton className="h-16 w-full" /></section>;
+  }
+  if (scheduleState === "error") {
+    return <section aria-labelledby="schedule-lifecycle-title" className="space-y-4 rounded-[28px] border border-rose-200 bg-rose-50 p-5 dark:border-rose-900 dark:bg-rose-950/30"><Typography id="schedule-lifecycle-title" variant="h2">{t("scheduleLifecycle.title")}</Typography><Typography role="alert">{t(scheduleErrorMessage === "scheduleLifecycle.requestFailed" ? scheduleErrorMessage : "scheduleLifecycle.requestFailed")}</Typography></section>;
+  }
+  if (!employeeSchedule) {
+    return <section aria-labelledby="schedule-lifecycle-title" className="space-y-4 rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900"><Typography id="schedule-lifecycle-title" variant="h2">{t("scheduleLifecycle.title")}</Typography><Typography>{t("scheduleLifecycle.empty")}</Typography></section>;
+  }
   const [selectedDate, setSelectedDate] = useState(employeeSchedule.schedules[0]?.date ?? formatDate(weekDays[0]));
   const [preview, setPreview] = useState<SchedulePreviewResponse | null>(null);
   const [replanPreview, setReplanPreview] = useState<ScheduleReplanPreviewResponse | null>(null);

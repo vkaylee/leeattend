@@ -56,7 +56,12 @@ export function useShiftData({
 
   const selectedEmploymentId = selectedEmployee?.active_employment_id;
 
-  const { data: allSchedules } = useQuery<EmployeeSchedule[]>({
+  const {
+    data: allSchedules,
+    isLoading: isScheduleLoading,
+    isError: isScheduleError,
+    error: scheduleError,
+  } = useQuery<EmployeeSchedule[]>({
     queryKey: createQueryKey("schedules", format(startOfWeek, 'yyyy-MM-dd'), selectedEmploymentId),
     queryFn: () => fetchSchedules(format(weekDays[0], 'yyyy-MM-dd'),
     format(weekDays[6], 'yyyy-MM-dd'),
@@ -112,6 +117,9 @@ export function useShiftData({
     shifts,
     patterns,
     allSchedules,
+    isScheduleLoading,
+    isScheduleError,
+    scheduleError,
     history,
     monthSchedules,
     isMonthLoading,
