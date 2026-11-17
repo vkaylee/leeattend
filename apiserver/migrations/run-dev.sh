@@ -11,7 +11,9 @@ if [ "${SEED_EFFECTIVE_DATE:-}" != "" ] && ! printf '%s' "$SEED_EFFECTIVE_DATE" 
 fi
 
 MIGRATIONS_DIR="/workspace/apiserver/migrations/phases"
+DEV_ACCOUNTS_FILE="/workspace/scripts/seed_dev_accounts.sql"
 SEED_EFFECTIVE_DATE="${SEED_EFFECTIVE_DATE:-$(date -u +%F)}"
+SEED_DEV_ACCOUNTS="${SEED_DEV_ACCOUNTS:-true}"
 
 until pg_isready -U "$POSTGRES_USER" -d "$POSTGRES_DB"; do
   sleep 1
@@ -59,6 +61,15 @@ if [ "$required_objects" != "10" ]; then
   printf 'phase marker exists but required objects are missing: expected 10, found %s; reset disposable database before retrying\n' \
     "$required_objects" >&2
   exit 1
+fi
+
+if [ "$SEED_DEV_ACCOUNTS" = "true" ]; then
+  if [ ! -f "$DEV_ACCOUNTS_FILE" ]; then
+    printf '%s\n' 'development account seed file is missing' >&2
+    exit 1
+  fi
+  psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -v ON_ERROR_STOP=1 \
+    --single-transaction -f "$DEV_ACCOUNTS_FILE"
 fi
 
 exit 0

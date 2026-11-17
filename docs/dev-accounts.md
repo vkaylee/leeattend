@@ -11,6 +11,8 @@ Hệ thống tinh gọn chuẩn gồm **5 vai trò duy nhất**:
 
 **Mật khẩu dùng chung cho tất cả tài khoản (development-only fixture):** `development-password`
 
+Dev compose tự động nạp 5 account, role, employee, department và employment fixtures khi database mới chạy `apiserver/migrations/run-dev.sh`. Đặt `SEED_DEV_ACCOUNTS=false` nếu cần schema-only dev database.
+
 ---
 
 ## 1. Bảng Chi Tiết 5 Tài Khoản Thử Nghiệm
