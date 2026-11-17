@@ -1,55 +1,52 @@
-# ==============================================================================
-# 1. BASELINE (Inherited from .gitignore)
-# Prevents secrets, cache, and heavy build directories from leaking into image.
-# ==============================================================================
-.env
-.env.test
-.env.example
-
-**/node_modules
-.pnpm-store
-.bun-cache
+# Secrets, local state, caches, and generated artifacts
+.env*
+**/.env*
+**/node_modules/
+.pnpm-store/
+.bun-cache/
 **/target/
-webdashboard/dist/
-webdashboard/.next/
-webdashboard/playwright-report/
-webdashboard/test-results/
-
-.pytest_cache
-.mypy_cache
-.ruff_cache
+**/dist/
+**/.next/
+**/.tanstack/
+**/coverage/
+**/playwright-report/
+**/test-results/
+**/test-results-new/
+**/playwright/.auth/
+**/*.tsbuildinfo
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
 .coverage
 .coveragerc
-
 logs/
+**/logs/
 .test_logs/
 scratch/
+**/scratch/
 documents/
 backups/
-
+storage/
+**/storage/
 *.log
-*.txt
+*.tmp
+*.bak
+.DS_Store
 
-# ==============================================================================
-# 2. DOCKER-SPECIFIC (Build Context Optimization)
-# Excludes files to minimize build context size and maximize layer cache hits.
-# ==============================================================================
-# Git history (huge, unnecessary for runtime)
+# Git and local tooling
 .git/
 .gitignore
-
-# AI & IDE Configurations (changes often, irrelevant to build)
 .cursorrules
 .gemini/
 .ai/
 .agent/
+.claude/
 .vscode/
+.cursor/
 
-# Documentation (Changing docs shouldn't trigger a rebuild)
-*.md
+# Documentation and local orchestration
 docs/
-
-# Compose files & Local tooling (Changing compose shouldn't rebuild the image)
+*.md
 docker-compose*.yml
 .compose/
 manage.sh

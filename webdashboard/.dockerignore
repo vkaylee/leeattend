@@ -1,16 +1,23 @@
+# Production image only needs package manifests, app source, public assets, and Caddyfile
 node_modules/
-target/
 .git/
-.test_logs/
-dist/
 .env*
 *.log
 .DS_Store
 
-# Generated test and build artifacts
-playwright-report/
-test-results/
-test-results-new/
+# Generated, local, and test-only artifacts
+.dist/
+dist/
 coverage/
 logs/
 scratch/
+playwright/
+playwright-report/
+test-results/
+test-results-new/
+**/*.tsbuildinfo
+**/*.png
+build_windows.sh
+install_service.bat
+uninstall_service.bat
+README.md

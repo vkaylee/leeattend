@@ -1,8 +1,12 @@
-target/
-node_modules/
+# Build context only needs Go source and migration/runtime assets
+**/*_test.go
+**/testdata/
+**/storage/
+**/target/
 .git/
-.test_logs/
 .env*
 *.log
+*.md
+*.txt
 .DS_Store
 
