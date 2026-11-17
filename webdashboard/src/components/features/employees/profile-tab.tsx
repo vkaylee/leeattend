@@ -1,9 +1,9 @@
-/* eslint-disable complexity -- multi-section profile tab with 5 defensive optional chains on API data */
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Pencil, RotateCcw, Trash2, UserPlus } from "lucide-react";
-import React, { useState } from "react";
+import { useState } from "react";
+import type { ReactNode } from "react";
 
-import type { Department, Employee, OrganizationMember } from "@/lib/api";
+import type { Department, Employee, Employment, OrganizationMember } from "@/lib/api";
 import type { WorkLocation } from "@/lib/api/locations";
 
 import PermissionGate from "@/components/common/permission-gate";
@@ -11,18 +11,27 @@ import { CustomFieldSection } from "@/components/custom-fields/custom-field-sect
 import EditTerminationModal from "@/components/features/employees/edit-termination-modal";
 import UndoTerminationModal from "@/components/features/employees/undo-termination-modal";
 import Button from "@/components/ui/button";
-import StatusBadge from "@/components/ui/status-badge";
 import { useToast } from "@/components/ui/toast";
-import { Typography } from "@/components/ui/typography";
 import { useOrganizationMutation } from "@/hooks/common/use-organization-query";
-import { fetchEmployeeEmployments, fetchEmployers, updateEmployeeEmployment } from "@/lib/api";
-import { employeeKeys, createQueryKey  } from "@/lib/query-keys";
+import { fetchEmployeeEmployments, updateEmployeeEmployment } from "@/lib/api";
+import { createQueryKey, employeeKeys } from "@/lib/query-keys";
 import { maybeNull } from "@/types/api-overrides";
 
+import { DepartmentSection, HireDatesSection, LocationSection, UserSection } from "./profile-sections";
 import type { DeptHistoryEntry } from "./profile-sections";
 
-import { DepartmentSection, LocationSection, UserSection, HireDatesSection } from "./profile-sections";
-
+interface ProfileActionsProps {
+    employee: Employee;
+    onEdit: (employee: Employee) => void;
+    onTerminate: (employee: Employee) => void;
+    onRehire: (employee: Employee) => void;
+    onUndoTerminate?: (employee: Employee) => void;
+    t: (key: string) => string;
+    terminationDate?: string | null;
+    formatDate: (date: string) => string;
+    onEditTerminationDate?: () => void;
+    showEditTerminationDate?: boolean;
+}
 
 export function ProfileActions({
     employee,
@@ -35,48 +44,37 @@ export function ProfileActions({
     formatDate,
     onEditTerminationDate,
     showEditTerminationDate,
-}: {
-    employee: Employee;
-    onEdit: (e: Employee) => void;
-    onRehire: (e: Employee) => void;
-    onTerminate: (e: Employee) => void;
-    onUndoTerminate?: (e: Employee) => void;
-    t: (k: string) => string;
-    terminationDate?: string | null;
-    formatDate: (date: string) => string;
-    onEditTerminationDate?: () => void;
-    showEditTerminationDate?: boolean;
-}) {
+}: ProfileActionsProps) {
     return (
-        <div className="grid grid-cols-2 gap-6 items-stretch">
+        <div className="grid grid-cols-2 items-stretch gap-6">
             <PermissionGate permission="employees:update">
-                <Button className="flex items-center justify-center gap-3 py-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 font-bold rounded-2xl hover:bg-slate-50 dark:hover:bg-slate-800 hover:border-slate-300 dark:hover:border-slate-600 transition-all text-xs uppercase tracking-widest shadow-sm active:scale-95 h-full" data-testid="employees-btn-edit" onClick={() => { onEdit(employee); }} type="button" variant="outline"><Pencil size={18} /> {t("employees.details.edit_profile").toUpperCase()}</Button>
+                <Button className="flex h-full items-center justify-center gap-3 rounded-2xl border border-slate-200 bg-white py-4 text-xs font-bold uppercase tracking-widest text-slate-700 shadow-sm transition-all hover:border-slate-300 hover:bg-slate-50 active:scale-95 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-slate-600 dark:hover:bg-slate-800" data-testid="employees-btn-edit" onClick={() => { onEdit(employee); }} type="button" variant="outline">
+                    <Pencil size={18} /> {t("employees.details.edit_profile").toUpperCase()}
+                </Button>
             </PermissionGate>
             <PermissionGate permission="employees:update">
                 {employee.active_employment_id ? (
-                    <Button className="flex items-center justify-center gap-3 py-4 bg-rose-50 dark:bg-rose-950 text-rose-600 dark:text-rose-300 font-bold rounded-2xl hover:bg-rose-100 dark:bg-rose-900 transition-all text-xs uppercase tracking-widest active:scale-95 shadow-sm shadow-rose-900/5 h-auto" data-testid="employees-btn-terminate" onClick={() => { onTerminate(employee); }} type="button" variant="destructive"><Trash2 size={18} /> {t("employees.details.terminate").toUpperCase()}</Button>
+                    <Button className="flex h-full items-center justify-center gap-3 rounded-2xl bg-rose-50 py-4 text-xs font-bold uppercase tracking-widest text-rose-600 shadow-sm shadow-rose-900/5 transition-all hover:bg-rose-100 active:scale-95 dark:bg-rose-950 dark:text-rose-300 dark:hover:bg-rose-900" data-testid="employees-btn-terminate" onClick={() => { onTerminate(employee); }} type="button" variant="destructive">
+                        <Trash2 size={18} /> {t("employees.details.terminate").toUpperCase()}
+                    </Button>
                 ) : (
-                    <div className="flex flex-col gap-2 w-full justify-between h-full">
-                        <div className="flex items-center justify-center gap-2 py-3 px-4 bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-semibold rounded-2xl border border-slate-100 dark:border-slate-700/50 text-xs uppercase tracking-wider h-11 shadow-inner relative group">
-                            <span className="w-1.5 h-1.5 rounded-full bg-slate-400 dark:bg-slate-500 animate-pulse" />
+                    <div className="flex h-full w-full flex-col justify-between gap-2">
+                        <div className="relative flex h-11 items-center justify-center gap-2 rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3 text-xs font-semibold uppercase tracking-wider text-slate-700 shadow-inner dark:border-slate-700/50 dark:bg-slate-800 dark:text-slate-200">
+                            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-slate-400 dark:bg-slate-500" />
                             {t("employees.details.terminated_at")}: {terminationDate ? formatDate(terminationDate) : "—"}
-                            {!!showEditTerminationDate && !!onEditTerminationDate && (
-                                <Button
-                                    aria-label={t("employees.terminate.edit_date_title")}
-                                    className="ml-2 !h-auto !min-w-0 !p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors cursor-pointer"
-                                    data-testid="edit-termination-date-btn"
-                                    onClick={onEditTerminationDate}
-                                    title={t("employees.terminate.edit_date_title")}
-                                    type="button"
-                                    variant="ghost"
-                                >
+                            {showEditTerminationDate && onEditTerminationDate ? (
+                                <Button aria-label={t("employees.terminate.edit_date_title")} className="ml-2 !h-auto !min-w-0 !p-1 text-slate-400 transition-colors hover:text-slate-600 dark:hover:text-slate-200" data-testid="edit-termination-date-btn" onClick={onEditTerminationDate} title={t("employees.terminate.edit_date_title")} type="button" variant="ghost">
                                     <Pencil size={12} />
                                 </Button>
-                              )}
+                            ) : null}
                         </div>
-                        <div className="flex gap-4 w-full">
-                            <Button className="flex items-center justify-center gap-2 py-2.5 bg-primary-600 hover:bg-primary-700 text-white font-bold rounded-2xl transition-all text-xs uppercase tracking-wider shadow-md active:scale-95 h-9 flex-1" data-testid="employees-btn-rehire" onClick={() => { onRehire(employee); }} type="button" variant="primary"><UserPlus size={14} /> {t("employees.details.rehire").toUpperCase()}</Button>
-                            <Button className="flex items-center justify-center gap-2 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 font-bold rounded-2xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-all text-xs uppercase tracking-wider shadow-sm active:scale-95 h-9 flex-1" data-testid="employees-btn-undo-terminate" onClick={() => { onUndoTerminate?.(employee); }} type="button" variant="outline"><RotateCcw size={14} /> {t("employees.details.undo_terminate").toUpperCase()}</Button>
+                        <div className="flex w-full gap-4">
+                            <Button className="flex h-9 flex-1 items-center justify-center gap-2 rounded-2xl bg-primary-600 py-2.5 text-xs font-bold uppercase tracking-wider text-white shadow-md transition-all hover:bg-primary-700 active:scale-95" data-testid="employees-btn-rehire" onClick={() => { onRehire(employee); }} type="button" variant="primary">
+                                <UserPlus size={14} /> {t("employees.details.rehire").toUpperCase()}
+                            </Button>
+                            <Button className="flex h-9 flex-1 items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white py-2.5 text-xs font-bold uppercase tracking-wider text-slate-700 shadow-sm transition-all hover:bg-slate-50 active:scale-95 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800" data-testid="employees-btn-undo-terminate" onClick={() => { onUndoTerminate?.(employee); }} type="button" variant="outline">
+                                <RotateCcw size={14} /> {t("employees.details.undo_terminate").toUpperCase()}
+                            </Button>
                         </div>
                     </div>
                 )}
@@ -85,99 +83,102 @@ export function ProfileActions({
     );
 }
 
-function GridWrap({ children }: { children: React.ReactNode }) {
+function GridWrap({ children }: { children: ReactNode }) {
     return <div className="w-full">{children}</div>;
 }
 
-export interface ProfileTabProps {
-    departments?: Department[];
-    deptHistory?: DeptHistoryEntry[];
+interface LocationEditorProps {
     employee: Employee;
-    formatDate: (date: string) => string;
-    linkedUser: OrganizationMember | undefined;
+    employments: Employment[];
     locations?: WorkLocation[];
-    onEdit: (e: Employee) => void;
-    onEmployeeUpdate?: (emp: Employee) => void;
-    onRehire: (e: Employee) => void;
-    onTerminate: (e: Employee) => void;
-    onTransfer: (id: string) => void;
-    t: (k: string) => string;
+    t: (key: string) => string;
 }
 
-export default function ProfileTab({
-    departments,
-    deptHistory,
-    employee,
-    locations,formatDate,
-    linkedUser,
-    onEdit,
-    onRehire,
-    onTerminate,
-    onTransfer,
-    t,
-    onEmployeeUpdate
-}: ProfileTabProps) {
+function LocationEditor({ employee, employments, locations, t }: LocationEditorProps) {
     const queryClient = useQueryClient();
     const toast = useToast();
     const [isEditingLocation, setIsEditingLocation] = useState(false);
     const [selectedLocationIdState, setSelectedLocationIdState] = useState<string | null>(null);
-    const [isEditTerminationModalOpen, setIsEditTerminationModalOpen] = useState(false);
-    const [isUndoTerminationModalOpen, setIsUndoTerminationModalOpen] = useState(false);
-
-    const { data: employments = [] } = useQuery({ queryKey: createQueryKey("employee-employments", employee.id), queryFn: () => fetchEmployeeEmployments(employee.id),
-    enabled: !!employee.id, });
-    const { data: employers = [], isLoading: employersLoading, isError: employersError } = useQuery({ queryKey: createQueryKey("employers"), queryFn: fetchEmployers });
-    const employerNames = new Map(employers.map((employer) => [employer.id, employer.name]));
-    const activeEmployment = employments.find(e => e.status === "active") ?? employments[0];
-    const terminatedEmployment = employments.find(e => e.status === "terminated");
-    const tenureHistory = [...employments].sort((a, b) => a.start_date.localeCompare(b.start_date));
+    const activeEmployment = employments.find((employment) => employment.status === "active") ?? employments[0];
     const activeLocationId = maybeNull(activeEmployment)?.primary_location_id ?? "";
-
     const selectedLocationId = selectedLocationIdState ?? activeLocationId;
+    const currentLocation = locations?.find((location) => location.id === activeLocationId);
 
-    const handleSetIsEditingLocation = (editing: boolean) => {
+    const setIsEditing = (editing: boolean) => {
         setIsEditingLocation(editing);
-        if (!editing) {
-            setSelectedLocationIdState(null);
-        }
+        if (!editing) setSelectedLocationIdState(null);
     };
 
-    const handleSetSelectedLocationId = (id: string) => {
-        setSelectedLocationIdState(id);
-    };
-
-    const updateLocationMutation = useOrganizationMutation<
-        string,
-        Awaited<ReturnType<typeof updateEmployeeEmployment>>
-    >({
+    const updateLocationMutation = useOrganizationMutation<string, Awaited<ReturnType<typeof updateEmployeeEmployment>>>({
         keys: [employeeKeys.all()],
         mutationFn: (locationId) => {
             if (!maybeNull(activeEmployment)) return Promise.reject(new Error("No active employment found"));
             return updateEmployeeEmployment(employee.id, activeEmployment.id, { primary_location_id: locationId });
         },
         onSuccess: () => {
-            void queryClient.invalidateQueries({ queryKey: createQueryKey("employee-employments",employee.id) });
-            handleSetIsEditingLocation(false);
+            void queryClient.invalidateQueries({ queryKey: createQueryKey("employee-employments", employee.id) });
+            setIsEditing(false);
             toast.success(t("common.success"));
         },
         onError: () => {
             toast.error("Failed to update location");
             setSelectedLocationIdState(null);
-        }
+        },
     });
 
-    const handleSaveLocation = () => {
+    const saveLocation = () => {
         if (selectedLocationId !== activeLocationId) {
             updateLocationMutation.mutate(selectedLocationId);
-        } else {
-            handleSetIsEditingLocation(false);
+            return;
         }
+        setIsEditing(false);
     };
 
-    const currentLocation = locations?.find(l => l.id === activeLocationId);
+    return (
+        <LocationSection
+            activeLocationId={activeLocationId}
+            currentLocation={currentLocation}
+            employee={employee}
+            handleSaveLocation={saveLocation}
+            isEditingLocation={isEditingLocation}
+            locations={locations}
+            selectedLocationId={selectedLocationId}
+            setIsEditingLocation={setIsEditing}
+            setSelectedLocationId={setSelectedLocationIdState}
+            t={t}
+            updateLocationMutation={updateLocationMutation}
+        />
+    );
+}
+
+interface ProfileTerminationProps {
+    activeEmployment?: Employment;
+    employee: Employee;
+    formatDate: (date: string) => string;
+    onEdit: (employee: Employee) => void;
+    onEmployeeUpdate?: (employee: Employee) => void;
+    onRehire: (employee: Employee) => void;
+    onTerminate: (employee: Employee) => void;
+    terminatedEmployment?: Employment;
+    t: (key: string) => string;
+}
+
+function ProfileTermination({
+    activeEmployment,
+    employee,
+    formatDate,
+    onEdit,
+    onEmployeeUpdate,
+    onRehire,
+    onTerminate,
+    terminatedEmployment,
+    t,
+}: ProfileTerminationProps) {
+    const [isEditTerminationModalOpen, setIsEditTerminationModalOpen] = useState(false);
+    const [isUndoTerminationModalOpen, setIsUndoTerminationModalOpen] = useState(false);
 
     return (
-        <div className="space-y-10">
+        <>
             <ProfileActions
                 employee={employee}
                 formatDate={formatDate}
@@ -190,106 +191,88 @@ export default function ProfileTab({
                 t={t}
                 terminationDate={!employee.active_employment_id ? maybeNull(activeEmployment)?.end_date : null}
             />
-
-            <DepartmentSection
-                departments={departments}
-                deptHistory={deptHistory}
-                formatDate={formatDate}
-                onTransfer={onTransfer}
-                t={t}
-            />
-
-            <LocationSection
-                activeLocationId={activeLocationId}
-                currentLocation={currentLocation}
-                employee={employee}
-                handleSaveLocation={handleSaveLocation}
-                isEditingLocation={isEditingLocation}
-                locations={locations}
-                selectedLocationId={selectedLocationId}
-                setIsEditingLocation={handleSetIsEditingLocation}
-                setSelectedLocationId={handleSetSelectedLocationId}
-                t={t}
-                updateLocationMutation={updateLocationMutation}
-            />
-
-            <UserSection
-                employee={employee}
-                linkedUser={linkedUser}
-                t={t}
-            />
-
-            <GridWrap>
-                <HireDatesSection
-                    employments={employments}
-                    formatDate={formatDate}
-                    t={t}
-                />
-            </GridWrap>
-
-            <section aria-labelledby="employee-tenure-history" className="space-y-4">
-                <Typography className="text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider" id="employee-employment-history" variant="h3">
-                    {t("employees.details.tenure_history")}
-                </Typography>
-                {tenureHistory.length === 0 ? (
-                    <Typography className="rounded-2xl border border-dashed border-slate-200 dark:border-slate-700 p-5 text-sm text-slate-500" variant="p">
-                        {t("employees.details.no_tenure_history")}
-                    </Typography>
-                ) : (
-                    <ol className="space-y-3">
-                        {tenureHistory.map((employment, index) => (
-                            <li className="rounded-2xl border border-slate-200 dark:border-slate-800 p-4" key={employment.id}>
-                                <div className="flex flex-wrap items-center justify-between gap-2">
-                                    <span className="font-semibold text-slate-800 dark:text-slate-100">
-                                        {index === tenureHistory.length - 1
-                                            ? t("employees.details.current_tenure")
-                                            : t("employees.details.historical_tenure")}
-                                    </span>
-                                    <StatusBadge variant={employment.status === "active" ? "success" : "neutral"}>
-                                        {employment.status}
-                                    </StatusBadge>
-                                </div>
-                                <dl className="mt-3 grid gap-2 text-sm sm:grid-cols-3">
-                                    <div><dt className="text-slate-500">{t("employees.details.employment_id")}</dt><dd className="font-mono text-xs">{employment.id}</dd></div>
-                                    <div><dt className="text-slate-500">{t("employees.details.employer")}</dt><dd>{employerNames.get(employment.employer_id) ?? (employersLoading ? t("common.loading") : employersError ? t("common.error") : "—")}</dd></div>
-                                    <div><dt className="text-slate-500">{t("employees.details.account_status")}</dt><dd>{index === tenureHistory.length - 1 ? (linkedUser ? t("employees.details.account_linked") : employee.user_id ? t("common.loading") : t("employees.details.account_unlinked")) : t("employees.details.historical_account")}</dd></div>
-                                    <div><dt className="text-slate-500">{t("employees.details.start_date")}</dt><dd>{formatDate(employment.start_date)}</dd></div>
-                                    <div><dt className="text-slate-500">{t("employees.details.end_date")}</dt><dd>{employment.end_date ? formatDate(employment.end_date) : "—"}</dd></div>
-                                </dl>
-                            </li>
-                        ))}
-                    </ol>
-                )}
-            </section>
-
-            <CustomFieldSection entityId={employee.id} entityType="employee" />
-
-            {!!maybeNull(activeEmployment)?.id && (
-                <CustomFieldSection entityId={activeEmployment.id} entityType="employment" />
-            )}
-
             {isEditTerminationModalOpen && terminatedEmployment ? (
-                <EditTerminationModal currentEndDate={terminatedEmployment.end_date ?? null}
-                employeeId={employee.id}
-                employmentId={terminatedEmployment.id}
-                isOpen={isEditTerminationModalOpen}
-                onClose={() => { setIsEditTerminationModalOpen(false); }}  />
-              ) : null}
-
+                <EditTerminationModal
+                    currentEndDate={terminatedEmployment.end_date ?? null}
+                    employeeId={employee.id}
+                    employmentId={terminatedEmployment.id}
+                    isOpen={isEditTerminationModalOpen}
+                    onClose={() => { setIsEditTerminationModalOpen(false); }}
+                />
+            ) : null}
             {isUndoTerminationModalOpen && terminatedEmployment ? (
-                <UndoTerminationModal employeeId={employee.id}
-                employmentId={terminatedEmployment.id}
-                isOpen={isUndoTerminationModalOpen}
-                onClose={() => { setIsUndoTerminationModalOpen(false); }}
-                onSuccess={() => {
-                    if (onEmployeeUpdate && maybeNull(terminatedEmployment)) {
-                        onEmployeeUpdate({
-                            ...employee,
-                            active_employment_id: terminatedEmployment.id,
-                        });
-                    }
-                }}  />
-              ) : null}
+                <UndoTerminationModal
+                    employeeId={employee.id}
+                    employmentId={terminatedEmployment.id}
+                    isOpen={isUndoTerminationModalOpen}
+                    onClose={() => { setIsUndoTerminationModalOpen(false); }}
+                    onSuccess={() => {
+                        if (onEmployeeUpdate && maybeNull(terminatedEmployment)) {
+                            onEmployeeUpdate({ ...employee, active_employment_id: terminatedEmployment.id });
+                        }
+                    }}
+                />
+            ) : null}
+        </>
+    );
+}
+
+export interface ProfileTabProps {
+    departments?: Department[];
+    deptHistory?: DeptHistoryEntry[];
+    employee: Employee;
+    formatDate: (date: string) => string;
+    linkedUser: OrganizationMember | undefined;
+    locations?: WorkLocation[];
+    onEdit: (employee: Employee) => void;
+    onEmployeeUpdate?: (employee: Employee) => void;
+    onRehire: (employee: Employee) => void;
+    onTerminate: (employee: Employee) => void;
+    onTransfer: (id: string) => void;
+    t: (key: string) => string;
+}
+
+export default function ProfileTab({
+    departments,
+    deptHistory,
+    employee,
+    locations,
+    formatDate,
+    linkedUser,
+    onEdit,
+    onEmployeeUpdate,
+    onRehire,
+    onTerminate,
+    onTransfer,
+    t,
+}: ProfileTabProps) {
+    const { data: employments = [] } = useQuery({
+        queryKey: createQueryKey("employee-employments", employee.id),
+        queryFn: () => fetchEmployeeEmployments(employee.id),
+        enabled: !!employee.id,
+    });
+    const activeEmployment = employments.find((employment) => employment.status === "active") ?? employments[0];
+    const terminatedEmployment = employments.find((employment) => employment.status === "terminated");
+
+    return (
+        <div className="space-y-10">
+            <ProfileTermination
+                activeEmployment={activeEmployment}
+                employee={employee}
+                formatDate={formatDate}
+                onEdit={onEdit}
+                onEmployeeUpdate={onEmployeeUpdate}
+                onRehire={onRehire}
+                onTerminate={onTerminate}
+                terminatedEmployment={terminatedEmployment}
+                t={t}
+            />
+            <DepartmentSection departments={departments} deptHistory={deptHistory} formatDate={formatDate} onTransfer={onTransfer} t={t} />
+            <LocationEditor employee={employee} employments={employments} locations={locations} t={t} />
+            <UserSection employee={employee} linkedUser={linkedUser} t={t} />
+            <GridWrap><HireDatesSection employments={employments} formatDate={formatDate} t={t} /></GridWrap>
+            <CustomFieldSection entityId={employee.id} entityType="employee" />
+            {maybeNull(activeEmployment)?.id ? <CustomFieldSection entityId={activeEmployment.id} entityType="employment" /> : null}
         </div>
     );
 }
