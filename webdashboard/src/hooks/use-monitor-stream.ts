@@ -1,17 +1,19 @@
 import type { QueryClient } from "@tanstack/react-query";
+import type { RefObject } from "react";
+
 import { useQueryClient } from "@tanstack/react-query";
-import type { MutableRefObject } from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import type { WorkerMonitorStats } from "@/lib/api/types";
+
 import { logError } from "@/lib/logger";
 
-import { monitorKeys } from "./use-worker-monitor";
 import {
   compareSnapshotSequence,
   isMonitorSnapshot,
   readMonitorErrorCode,
 } from "./use-monitor-stream-validation";
+import { monitorKeys } from "./use-worker-monitor";
 
 /** SSE base URL – mirrors the REST API_BASE_URL logic. */
 const SSE_BASE = import.meta.env.DEV
@@ -28,10 +30,10 @@ const STALE_CHECK_INTERVAL_MS = 5_000;
 export type MonitorStreamStatus = "connecting" | "live" | "degraded" | "stale" | "error";
 
 interface StreamState {
+  lastEventAt: RefObject<number | null>;
+  lastSequence: RefObject<string | null>;
   queryClient: QueryClient;
-  lastEventAt: MutableRefObject<number | null>;
-  lastSequence: MutableRefObject<string | null>;
-  retryCount: MutableRefObject<number>;
+  retryCount: RefObject<number>;
   setErrorCode: (value: string | null) => void;
   setIsFresh: (value: boolean) => void;
   setLastUpdateAt: (value: number | null) => void;
@@ -142,7 +144,9 @@ export function useMonitorStream() {
       setConnected(true);
       if (!lastEventAt.current) setStatus("connecting");
     };
-    eventSource.addEventListener("monitor-update", (event: MessageEvent) => handleMonitorUpdate(event, state));
+    eventSource.addEventListener("monitor-update", (event: MessageEvent) => {
+      handleMonitorUpdate(event, state);
+    });
     eventSource.addEventListener("monitor-error", (event: MessageEvent) => {
       markStreamIssue(state, "degraded", readMonitorErrorCode(parseMonitorErrorPayload(event.data)));
     });
