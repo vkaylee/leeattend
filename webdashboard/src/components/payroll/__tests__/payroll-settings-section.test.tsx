@@ -239,6 +239,24 @@ describe("PayrollSettingsSection", () => {
     expect(screen.getByRole("button", { name: "common.payroll.settings.work_policy_refresh" })).toBeInTheDocument();
   });
 
+  it("preserves membership draft and offers refresh after conflict", async () => {
+    vi.mocked(api.fetchWorkPolicyGroups).mockResolvedValue([{ id: "v-1", group_id: "g-1", name: "Operations", attendance_policy_id: "attendance-1", working_pattern_id: "pattern-1", overtime_policy_id: "overtime-1", minutes_per_credit: 480, pay_method: "monthly", effective_from: "2026-01-01" }]);
+    vi.mocked(api.fetchWorkPolicyGroupHistory).mockResolvedValue([]);
+    vi.mocked(api.fetchWorkPolicyMemberships).mockResolvedValue([]);
+    vi.mocked(employeeApi.fetchEmployeeEmployments).mockResolvedValue([{ id: "employment-1", status: "active" }] as never);
+    vi.mocked(api.createWorkPolicyMembership).mockRejectedValue(new ApiError(409, "Conflict", "conflict"));
+    renderWithProviders(<PayrollSettingsSection />);
+    fireEvent.click(await screen.findByRole("button", { name: "Operations" }));
+    fireEvent.change(await screen.findByLabelText("common.payroll.settings.work_policy_employee"), { target: { value: "employee-1" } });
+    await waitFor(() => expect(screen.getByRole("option", { name: /employment-1/ })).toBeInTheDocument());
+    fireEvent.change(screen.getByLabelText("common.payroll.settings.work_policy_employment_id"), { target: { value: "employment-1" } });
+    fireEvent.change(screen.getByLabelText("common.payroll.settings.work_policy_effective_from", { selector: "#policy-membership-from" }), { target: { value: "2026-07-01" } });
+    fireEvent.click(screen.getByRole("button", { name: "common.payroll.settings.work_policy_assign" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent("common.payroll.settings.work_policy_membership_conflict");
+    expect(screen.getByRole("button", { name: "common.payroll.settings.work_policy_membership_refresh" })).toBeInTheDocument();
+    expect(screen.getByLabelText("common.payroll.settings.work_policy_effective_from", { selector: "#policy-membership-from" })).toHaveValue("2026-07-01");
+  });
+
   it("validates selected policy version and shows blockers", async () => {
     vi.mocked(api.fetchWorkPolicyGroups).mockResolvedValue([{
       id: "v-1", group_id: "g-1", name: "Operations", attendance_policy_id: "attendance-1",

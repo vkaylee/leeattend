@@ -30,6 +30,7 @@ export default function PayrollSettingsSection({ onDirtyChange }: PayrollSetting
   const [membershipEmployeeId, setMembershipEmployeeId] = useState("");
   const [membershipForm, setMembershipForm] = useState({ employment_id: "", effective_from: "", effective_to: "" });
   const [membershipError, setMembershipError] = useState<string>();
+  const [membershipConflict, setMembershipConflict] = useState(false);
   const [draftSimulationForm, setDraftSimulationForm] = useState({ employee_id: "", year: "2026", month: "1", policy_version_id: "" });
   const [draftSimulationResult, setDraftSimulationResult] = useState<{ base_pay_amount: string; net_pay_amount: string }>();
   const [currentSimulationResult, setCurrentSimulationResult] = useState<{ base_pay_amount: string; net_pay_amount: string }>();
@@ -177,6 +178,7 @@ export default function PayrollSettingsSection({ onDirtyChange }: PayrollSetting
       return;
     }
     setMembershipError(undefined);
+    setMembershipConflict(false);
     try {
       await createWorkPolicyMembership(selectedPolicyGroupId, {
         employment_id: membershipForm.employment_id,
@@ -187,7 +189,9 @@ export default function PayrollSettingsSection({ onDirtyChange }: PayrollSetting
       setMembershipForm({ employment_id: "", effective_from: "", effective_to: "" });
       void queryClient.invalidateQueries({ queryKey: payrollKeys.workPolicyMemberships(selectedPolicyGroupId) });
     } catch (error: unknown) {
-      setMembershipError(error instanceof Error ? error.message : t("common.error"));
+      const conflict = error instanceof ApiError && error.isConflict;
+      setMembershipConflict(conflict);
+      setMembershipError(conflict ? t("common.payroll.settings.work_policy_membership_conflict", "Assignment overlaps a current membership. Refresh assignments and choose a non-overlapping range.") : error instanceof Error ? error.message : t("common.error"));
     }
   };
 
@@ -348,6 +352,7 @@ export default function PayrollSettingsSection({ onDirtyChange }: PayrollSetting
                   <label className="text-xs font-semibold text-slate-600 dark:text-slate-300" htmlFor="policy-membership-to">{t("common.payroll.settings.work_policy_effective_to", "Effective to")}<input className="mt-1 block h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm dark:border-slate-700 dark:bg-slate-900" id="policy-membership-to" onChange={(event) => { setMembershipForm((form) => ({ ...form, effective_to: event.target.value })); }} type="date" value={membershipForm.effective_to} /></label>
                 </div>
                 {membershipError ? <Typography className="mt-2 text-sm text-red-600"role="alert" variant="p">{membershipError}</Typography> : null}
+                {membershipConflict ? <Button className="mt-2 underline" onClick={() => { void queryClient.invalidateQueries({ queryKey: payrollKeys.workPolicyMemberships(selectedPolicyGroupId) }); setMembershipConflict(false); }} size="sm" type="button" variant="ghost">{t("common.payroll.settings.work_policy_membership_refresh", "Refresh current assignments")}</Button> : null}
                 <Button className="mt-3" onClick={() => void handleCreateMembership()} size="sm" type="button">{t("common.payroll.settings.work_policy_assign", "Assign membership")}</Button>
                 {isMembershipsLoading ? <div className="mt-3 h-8 animate-pulse rounded bg-slate-200 dark:bg-slate-800" /> : <ul className="mt-3 space-y-2 text-sm">{selectedMemberships.map((membership) => <li className="flex justify-between gap-4 border-b border-slate-100 py-2 last:border-0 dark:border-slate-800" key={membership.id}><span>{membership.employment_id}</span><span>{membership.effective_from}{membership.effective_to ? ` – ${membership.effective_to}` : ""}</span></li>)}</ul>}
               </div>
