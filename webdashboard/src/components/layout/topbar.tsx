@@ -156,7 +156,7 @@ interface TopbarActionsProps {
 
 function TopbarActions({ onOpenSearch, unreadCount, profile }: TopbarActionsProps) {
   const { t } = useTranslation("common");
-  const notificationsLabel = t("notifications", "Notifications");
+  const notificationsLabel = t("common.notifications", { defaultValue: "Notifications" });
 
   return (
     <div className="flex items-center gap-1.5 shrink-0">
@@ -173,7 +173,7 @@ function TopbarActions({ onOpenSearch, unreadCount, profile }: TopbarActionsProp
       </Button>
       <NotificationLink
         ariaLabel={notificationsLabel}
-        title={t("notifications", "Thông báo")}
+        title={t("common.notifications", { defaultValue: "Thông báo" })}
         unreadCount={unreadCount}
       />
       <div className="flex items-center px-1">

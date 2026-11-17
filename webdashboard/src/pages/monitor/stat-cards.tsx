@@ -217,7 +217,7 @@ function FleetSection({ activeWorkers, idleWorkers, isLoading, t, thresholdUnava
 }
 
 function QueueSection({ isLoading, stats, t, thresholdUnavailable }: MonitorStatSectionOptions) {
-  const queueThreshold = stats?.thresholds.queue_pressure;
+  const queueThreshold = stats?.thresholds?.queue_pressure;
   return (
     <section aria-labelledby="monitor-queue-signals-heading">
       <div className="mb-3 flex items-end justify-between gap-3">
@@ -253,7 +253,7 @@ export function MonitorStatCards({ isLoading, stats, t }: MonitorStatCardsProps)
   const { activeWorkers, idleWorkers, totalWorkers, utilization } = getWorkerValues(stats);
   const utilizationThresholdText = formatUtilizationThreshold({
     t,
-    threshold: stats?.thresholds.worker_utilization,
+    threshold: stats?.thresholds?.worker_utilization,
     thresholdUnavailable,
   });
   const sectionOptions = { isLoading, stats, t, thresholdUnavailable };

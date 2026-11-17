@@ -159,15 +159,16 @@ export default function TemporalConfigTable({ title, records, onSave, isLoading 
   } = useHorizontalDragScroll<HTMLDivElement>();
   const { formatDate } = useDateTimeFormatter();
   const [isAdding, setIsAdding] = useState(false);
-  const [newDays, setNewDays] = useState<number>(26);
-  const [newHours, setNewHours] = useState<number>(8);
-  const [newMaxOtDay, setNewMaxOtDay] = useState<string>("4");
-  const [newMaxOtMonth, setNewMaxOtMonth] = useState<string>("40");
+  const [newDays, setNewDays] = useState<number>(Number.NaN);
+  const [newHours, setNewHours] = useState<number>(Number.NaN);
+  const [newMaxOtDay, setNewMaxOtDay] = useState<string>("");
+  const [newMaxOtMonth, setNewMaxOtMonth] = useState<string>("");
 
   const firstOfMonth = new Date(); firstOfMonth.setDate(1);
   const [newEffectiveDate, setNewEffectiveDate] = useState(firstOfMonth.toISOString().split('T')[0]);
 
   const handleSave = async () => {
+    if (!Number.isFinite(newDays) || newDays <= 0 || !Number.isFinite(newHours) || newHours <= 0) return;
     await onSave({
       std_working_days: newDays,
       hours_per_day: newHours,

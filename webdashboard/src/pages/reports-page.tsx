@@ -1,13 +1,13 @@
-import { useCallback, useMemo, useRef } from "react";
+import { lazy, Suspense, useCallback, useMemo, useRef } from "react";
 import { useTranslation } from "react-i18next";
 
 import {
   TimesheetMatrixGrid,
   type TimesheetMatrixGridHandle,
 } from "@/components/features/attendance/timesheet-matrix-grid";
-import AttendanceClosurePanel from "@/components/features/reports/attendance-closure-panel";
-import EmployeeDailyDrawer from "@/components/features/reports/employee-daily-drawer";
-import ReportExportDialog from "@/components/features/reports/report-export-dialog";
+const AttendanceClosurePanel = lazy(() => import("@/components/features/reports/attendance-closure-panel"));
+const EmployeeDailyDrawer = lazy(() => import("@/components/features/reports/employee-daily-drawer"));
+const ReportExportDialog = lazy(() => import("@/components/features/reports/report-export-dialog"));
 import ReportFilters from "@/components/features/reports/report-filters";
 import ResponsiveToolbar from "@/components/ui/responsive-toolbar";
 
@@ -183,11 +183,13 @@ export default function ReportsPage() {
         />
       </ResponsiveToolbar>
 
-      <AttendanceClosurePanel
-        employerId={selectedEmployerId}
-        month={activeMonthYear.month}
-        year={activeMonthYear.year}
-      />
+      <Suspense fallback={null}>
+        <AttendanceClosurePanel
+          employerId={selectedEmployerId}
+          month={activeMonthYear.month}
+          year={activeMonthYear.year}
+        />
+      </Suspense>
 
       {viewMode === "matrix" ? (
         <div className="h-[calc(100vh-16rem)] min-h-[500px]">
@@ -237,7 +239,8 @@ export default function ReportsPage() {
         />
       )}
 
-      <EmployeeDailyDrawer dateRange={dateRange}
+      <Suspense fallback={null}>
+        <EmployeeDailyDrawer dateRange={dateRange}
       employeeId={selectedEmployee?.id ?? ""}
       employeeName={selectedEmployee?.name ?? ""}
       employerId={selectedEmployee?.employerId}
@@ -248,9 +251,11 @@ export default function ReportsPage() {
           ? `${selectedEmployee.id}:${selectedEmployee.employerId ?? "none"}`
           : "closed"
       }
-      onClose={handleDrawerClose}  />
+        onClose={handleDrawerClose}  />
+      </Suspense>
 
-      <ReportExportDialog employeeIds={
+      <Suspense fallback={null}>
+        <ReportExportDialog employeeIds={
         searchQuery && filteredData.length > 0
           ? filteredData
               .map((d) => d.employee_id)
@@ -262,8 +267,9 @@ export default function ReportsPage() {
       onClose={() => {
         setIsExportDialogOpen(false);
       }}
-      reportType="detail"
-      startDate={dateRange.start}  />
+        reportType="detail"
+        startDate={dateRange.start}  />
+      </Suspense>
     </div>
   );
 }

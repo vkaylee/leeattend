@@ -77,21 +77,28 @@ function TraceStepCard({ runId, step, stepIndex }: TraceStepCardProps) {
   );
 }
 
-function CalculationRun({ run }: CalculationRunProps) {
+function CalculationRun({ run, translate }: CalculationRunProps & { translate: TFunction }) {
   const trace = getTraceSteps(run.calculation_trace);
+  const partial = trace.some((step) => !step.step || !step.rule || !step.expression || !step.result);
+  const provenanceIncomplete = !run.formula_version_id || run.input_snapshot == null || run.output_snapshot == null;
 
   return (
     <div className="space-y-2" key={run.id}>
+      {partial ? <Typography className="text-amber-700" variant="small">{translate("payroll.calculation_trace.partial")}</Typography> : null}
+      {provenanceIncomplete ? <Typography className="text-amber-700" variant="small">{translate("payroll.calculation_trace.provenance_incomplete")}</Typography> : null}
       <Typography className="font-semibold" variant="small">{run.engine_version} · {run.created_at}</Typography>
+      {run.formula_version_id ? <Typography variant="small">{run.formula_version_id}</Typography> : null}
       {trace.map((step, index) => (
         <TraceStepCard key={`${run.id}-${index}`} runId={run.id} step={step} stepIndex={index} />
       ))}
+      {run.input_snapshot != null ? <Typography variant="small">{translate("payroll.calculation_trace.input_snapshot")}</Typography> : null}
+      {run.output_snapshot != null ? <Typography variant="small">{translate("payroll.calculation_trace.output_snapshot")}</Typography> : null}
     </div>
   );
 }
 
-function CalculationTraceRuns({ runs }: { runs: PayrollCalculationRun[] }) {
-  return <>{runs.map((run) => <CalculationRun key={run.id} run={run} />)}</>;
+function CalculationTraceRuns({ runs, translate }: { runs: PayrollCalculationRun[]; translate: TFunction }) {
+  return <>{runs.map((run) => <CalculationRun key={run.id} run={run} translate={translate} />)}</>;
 }
 
 function CalculationTraceBody({ data, isError, isLoading, translate }: CalculationTraceBodyProps) {
@@ -105,7 +112,7 @@ function CalculationTraceBody({ data, isError, isLoading, translate }: Calculati
         isLoading={isLoading}
         translate={translate}
       />
-      <CalculationTraceRuns runs={runs} />
+      <CalculationTraceRuns runs={runs} translate={translate} />
     </>
   );
 }

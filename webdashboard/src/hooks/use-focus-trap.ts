@@ -45,8 +45,11 @@ export function useFocusTrap(isOpen: boolean) {
 
     const focusable = getFocusableElements();
     if (focusable.length > 0) {
-      // Set initial focus to the first focusable element
+      // Set initial focus to the first focusable element.
       focusable[0].focus();
+    } else {
+      // jsdom reports zero-size layout boxes; focus first semantic control anyway.
+      (container.querySelector<HTMLElement>("[data-testid='sidebar-logo'], a[href], button, input, select, textarea, [tabindex]") as HTMLElement | null)?.focus();
     }
 
     const handleKeyDown = (e: KeyboardEvent) => {

@@ -431,14 +431,14 @@ export function JobsTable({ uniqueTypes, t }: JobsTableProps) {
   const durableJobs = useMemo(() => {
     const jobsById = new Map<string, MonitorInfraJobRecord>();
     for (const page of data?.pages ?? []) {
-      if (page.durable_jobs.status !== "available") continue;
+      if (page.durable_jobs?.status !== "available") continue;
       for (const job of page.durable_jobs.jobs ?? []) jobsById.set(job.job_id, job);
     }
     return [...jobsById.values()];
   }, [data]);
   const firstPage = data?.pages[0];
-  const durableJobsUnavailable = firstPage?.durable_jobs.status === "unavailable";
-  const redisJobsUnavailable = firstPage?.quality.redis.status === "unavailable";
+  const durableJobsUnavailable = firstPage?.durable_jobs?.status === "unavailable";
+  const redisJobsUnavailable = firstPage?.quality?.redis?.status === "unavailable";
   const mobileLoadMoreRef = useInfiniteScroll<HTMLDivElement>({ fetchNextPage: () => { void fetchNextPage(); }, hasNextPage, isFetchingNextPage });
   const { onClickCapture: handleHorizontalDragClick, setRef: setHorizontalDragScrollRef } = useHorizontalDragScroll<HTMLDivElement>();
   const closeDrawer = () => { setSelectedJob(null); setSelectedDurableJob(null); };

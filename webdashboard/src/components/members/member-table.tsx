@@ -58,7 +58,7 @@ function MemberMobileCard({
   t: (key: string, options?: { defaultValue?: string }) => string;
 }) {
   const primaryRole = roles.find((r) => r.id === member.role_id);
-  const extraRoles = member.extra_role_ids
+  const extraRoles = (member.extra_role_ids ?? [])
     .map((id) => roles.find((r) => r.id === id))
     .filter(Boolean) as OrganizationRole[];
 
@@ -171,7 +171,7 @@ function MemberRoleCell({ member, roles }: { member: OrganizationMember; roles: 
   const primaryRole = roles.find((r) => r.id === member.role_id);
   if (!primaryRole) return <div className="h-6 w-16 bg-slate-200 dark:bg-slate-800 rounded-full animate-pulse"></div>;
 
-  const extraRoles = member.extra_role_ids
+  const extraRoles = (member.extra_role_ids ?? [])
     .map((id) => roles.find((r) => r.id === id))
     .filter(Boolean) as OrganizationRole[];
 

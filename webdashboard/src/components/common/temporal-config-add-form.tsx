@@ -45,27 +45,27 @@ export function TemporalConfigAddForm({
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
         <div className="space-y-3">
-          <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">{t("payroll.settings.effective_date")}</label>
-          <input className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl px-5 py-4 text-sm font-bold focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all" onChange={e => { setNewEffectiveDate(e.target.value); }} type="date" value={newEffectiveDate} />
+          <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1" htmlFor="payroll-effective-date">{t("payroll.settings.effective_date")}</label>
+          <input className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl px-5 py-4 text-sm font-bold focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all" id="payroll-effective-date" onChange={e => { setNewEffectiveDate(e.target.value); }} type="date" value={newEffectiveDate} />
         </div>
         <div className="space-y-3">
-          <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">{t("payroll.settings.std_days")}</label>
-          <input className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl px-5 py-4 text-sm font-bold focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all font-mono" onChange={e => { setNewDays(parseFloat(e.target.value)); }} type="number" value={newDays} />
+          <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1" htmlFor="payroll-std-days">{t("payroll.settings.std_days")}</label>
+          <input className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl px-5 py-4 text-sm font-bold focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all font-mono" id="payroll-std-days" onChange={e => { setNewDays(parseFloat(e.target.value)); }} type="number" value={Number.isNaN(newDays) ? "" : newDays} />
         </div>
         <div className="space-y-3">
-          <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">{t("payroll.settings.hours_per_day")}</label>
-          <input className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl px-5 py-4 text-sm font-bold focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all font-mono" onChange={e => { setNewHours(parseFloat(e.target.value)); }} type="number" value={newHours} />
+          <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1" htmlFor="payroll-hours-per-day">{t("payroll.settings.hours_per_day")}</label>
+          <input className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl px-5 py-4 text-sm font-bold focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all font-mono" id="payroll-hours-per-day" onChange={e => { setNewHours(parseFloat(e.target.value)); }} type="number" value={Number.isNaN(newHours) ? "" : newHours} />
         </div>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
         <div className="space-y-3">
-          <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">{t("payroll.settings.max_ot_hours_per_day")}</label>
-          <input className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl px-5 py-4 text-sm font-bold focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all font-mono" onChange={e => { setNewMaxOtDay(e.target.value); }} placeholder={t("payroll.settings.no_limit") || ""} step="0.5" type="number" value={newMaxOtDay} />
+          <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1" htmlFor="payroll-max-ot-day">{t("payroll.settings.max_ot_hours_per_day")}</label>
+          <input className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl px-5 py-4 text-sm font-bold focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all font-mono" id="payroll-max-ot-day" onChange={e => { setNewMaxOtDay(e.target.value); }} placeholder={t("payroll.settings.no_limit") || ""} step="0.5" type="number" value={newMaxOtDay} />
           <Typography className="text-[9px] text-slate-400 ml-1" variant="p">{t("payroll.settings.ot_empty_hint")}</Typography>
         </div>
         <div className="space-y-3">
-          <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">{t("payroll.settings.max_ot_hours_per_month")}</label>
-          <input className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl px-5 py-4 text-sm font-bold focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all font-mono" onChange={e => { setNewMaxOtMonth(e.target.value); }} placeholder={t("payroll.settings.no_limit") || ""} step="0.5" type="number" value={newMaxOtMonth} />
+          <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1" htmlFor="payroll-max-ot-month">{t("payroll.settings.max_ot_hours_per_month")}</label>
+          <input className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl px-5 py-4 text-sm font-bold focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all font-mono" id="payroll-max-ot-month" onChange={e => { setNewMaxOtMonth(e.target.value); }} placeholder={t("payroll.settings.no_limit") || ""} step="0.5" type="number" value={newMaxOtMonth} />
           <Typography className="text-[9px] text-slate-400 ml-1" variant="p">{t("payroll.settings.ot_empty_hint")}</Typography>
         </div>
       </div>
@@ -74,6 +74,13 @@ export function TemporalConfigAddForm({
         <AlertCircle className="w-6 h-6 text-amber-500 shrink-0" />
         <Typography className="text-[10px] text-amber-800 leading-relaxed font-bold uppercase tracking-tight opacity-80" variant="p">{t("payroll.settings.date_warning")}</Typography>
       </div>
+
+      {!Number.isFinite(newDays) || newDays <= 0 ? (
+        <Typography className="mb-4 text-sm text-red-700" role="alert" variant="p">{t("payroll.settings.validation.positive")}</Typography>
+      ) : null}
+      {!Number.isFinite(newHours) || newHours <= 0 ? (
+        <Typography className="mb-4 text-sm text-red-700" role="alert" variant="p">{t("payroll.settings.validation.positive")}</Typography>
+      ) : null}
 
       <div className="flex justify-end gap-4">
         <Button className="px-8 py-4 rounded-2xl font-bold text-[10px] uppercase tracking-widest text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all" onClick={() => { setIsAdding(false); }} variant="ghost">{t("common.cancel")}</Button>

@@ -301,6 +301,15 @@ function SidebarContent(props: SidebarContentProps) {
 function MobileDrawer({ isOpen, onClose, children }: { isOpen: boolean; onClose?: () => void; children: ReactNode }) {
   const containerRef = useFocusTrap(isOpen);
 
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onClose?.();
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen, onClose]);
+
   if (!isOpen) return null;
 
   return (

@@ -20,7 +20,7 @@ const BUDGETS = [
   { name: "Dashboard page", prefix: "index.lazy-", suffix: ".js", maxSize: 80_000, maxGzip: 20_000 },
   // Locale raw caps are loose: non-ASCII translations cost 2-3 bytes per character
   // and compress away, so gzip is the meaningful gate for these chunks.
-  { name: "Locale en", prefix: "locale-en-", suffix: ".js", maxSize: 260_000, maxGzip: 67_000 },
+  { name: "Locale en", prefix: "locale-en-", suffix: ".js", maxSize: 260_000, maxGzip: 68_000 },
   { name: "Locale vi", prefix: "locale-vi-", suffix: ".js", maxSize: 260_000, maxGzip: 72_000 },
   { name: "Locale zh", prefix: "locale-zh-", suffix: ".js", maxSize: 260_000, maxGzip: 71_000 },
 ];

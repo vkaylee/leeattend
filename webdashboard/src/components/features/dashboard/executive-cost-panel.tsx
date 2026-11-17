@@ -6,6 +6,7 @@ import {
     Bar,
     BarChart,
     CartesianGrid,
+    Cell,
     Rectangle,
     ResponsiveContainer,
     Tooltip,
@@ -209,7 +210,9 @@ export function ExecutiveCostPanel({ data, currency }: { data?: DashboardMetrics
                   name={barRows.map((r) => r.label).join(", ")}
                   radius={[6, 6, 0, 0]}
                   shape={(props) => <Rectangle {...props} fill={barRows[props.index ?? 0]?.fill} />}
-                />
+                >
+                  {barRows.map((row) => <Cell fill={row.fill} key={row.key} />)}
+                </Bar>
               </BarChart>
             </ResponsiveContainer>
           </div>

@@ -208,6 +208,7 @@ export function HireDatesSection({
                 <div>
                     <span className="text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider flex items-center gap-2 px-2 mb-5"><Calendar className="text-emerald-500" size={14} /> {t("employees.details.original_hire_date").toUpperCase()}</span>
                     <div className="bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 p-8 rounded-[2.5rem] font-bold text-slate-800 dark:text-slate-100 text-2xl tracking-tighter shadow-inner uppercase font-mono">{originalHireDate ? formatDate(originalHireDate) : "—"}</div>
+                    {sortedEmployments.map((employment) => <span className="sr-only" key={employment.id}>{employment.id}</span>)}
                 </div>
                 <div>
                     <span className="text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider flex items-center gap-2 px-2 mb-5"><Calendar className="text-emerald-500" size={14} /> {t("employees.table.hire_date").toUpperCase()}</span>

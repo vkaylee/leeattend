@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import {
     Bar,
     BarChart,
+    Cell,
     CartesianGrid,
     Legend,
     Rectangle,
@@ -735,7 +736,9 @@ function RankingTab({ data, t }: { data: RecruitmentEffectivenessAnalytics; t: T
                         <Legend
                             wrapperStyle={{ fontSize: "9px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.15em" }}
                         />
-                        <Bar dataKey="value" radius={[0, 8, 8, 0]} shape={(props) => <Rectangle {...props} fill={chartData[props.index ?? 0]?.fill} />} />
+                        <Bar dataKey="value" radius={[0, 8, 8, 0]} shape={(props) => <Rectangle {...props} fill={chartData[props.index ?? 0]?.fill} />}>
+                            {chartData.map((row) => <Cell fill={row.fill} key={row.name} />)}
+                        </Bar>
                     </BarChart>
                 </ResponsiveContainer>
             </div>
