@@ -1,11 +1,12 @@
 import type { TFunction } from "i18next";
+
 import { Briefcase } from "lucide-react";
-import { z } from "zod";
 import { useEffect, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 
 import { standardSchemaResolver } from "@hookform/resolvers/standard-schema";
+import { z } from "zod";
 
 import Button from "@/components/ui/button";
 import { Combobox } from "@/components/ui/combobox";
@@ -168,7 +169,7 @@ export default function EmployeeAssignmentFormModal({ editingAssignment, employe
       <EmployeeSelector editingAssignment={editingAssignment} employeeId={employeeId} employees={form.employees} selectedEmployeeId={form.selectedEmployeeId} setSelectedEmployeeId={form.setSelectedEmployeeId} t={t} />
       <AssignmentDates errors={form.errors} register={form.register} t={t} />
       <AssignmentLocation control={form.control} errors={form.errors} locations={form.locations} locationsUnavailable={form.locationsUnavailable} t={t} />
-      {editingAssignment && <AssignmentStatus register={form.register} />}
+      {!!editingAssignment && <AssignmentStatus register={form.register} />}
       <FormField error={form.errors.reason?.message} label="Lý do / Ghi chú" placeholder="Ghi chú thêm về việc phái cử..." {...form.register("reason")} />
     </div><AssignmentFooter isEditing={Boolean(editingAssignment)} isSubmitting={form.isSubmitting} onClose={onClose} t={t} /></form>
   </Modal>;

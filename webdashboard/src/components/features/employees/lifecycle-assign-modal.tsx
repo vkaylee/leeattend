@@ -1,8 +1,10 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query";
 import type { TFunction } from "i18next";
+
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { ClipboardList, UserCheck } from "lucide-react";
 import { useMemo, useState, type FormEvent } from "react";
 import { useTranslation } from "react-i18next";
+
 import { z } from "zod";
 
 import Button from "@/components/ui/button";
@@ -28,9 +30,9 @@ export interface LifecycleAssignModalProps {
 
 type Translation = TFunction;
 interface SelectOption {
-  value: string;
-  label: string;
   description?: string;
+  label: string;
+  value: string;
 }
 
 export const formatChecklistTypeLabel = (type: string, t: Translation): string => {
@@ -96,7 +98,7 @@ function useLifecycleForm({
       const parsed = assignSchema.parse({ employment_id: effectiveEmploymentId, template_id: selectedTemplateId });
       return createLifecycleChecklist(parsed.employment_id, { template_id: parsed.template_id });
     },
-    onError: (error: unknown) => setErrorMsg(getErrorMessage(error)),
+    onError: (error: unknown) => { setErrorMsg(getErrorMessage(error)); },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: lifecycleKeys.all });
       toast.success(t("lifecycle.assign_success", { defaultValue: `Đã khởi tạo quy trình thành công cho ${effectiveEmployeeName}` }));
@@ -275,7 +277,7 @@ export default function LifecycleAssignModal(props: LifecycleAssignModalProps) {
               t={t}
             />
           )}
-          {initialEmploymentId && <LockedEmployee employeeName={initialEmployeeName || form.effectiveEmployeeName} t={t} />}
+          {!!initialEmploymentId && <LockedEmployee employeeName={initialEmployeeName || form.effectiveEmployeeName} t={t} />}
           <TemplatePicker
             activeTemplates={form.activeTemplates}
             isLoading={form.isLoadingTemplates}

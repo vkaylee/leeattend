@@ -1,3 +1,5 @@
+import type { TFunction } from "i18next";
+
 import { Link } from "@tanstack/react-router";
 import {
   ArrowLeftRight,
@@ -8,7 +10,6 @@ import {
   UserMinus,
   UserPlus,
 } from "lucide-react";
-import type { TFunction } from "i18next";
 import React from "react";
 import { useTranslation } from "react-i18next";
 

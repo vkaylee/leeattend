@@ -3,11 +3,12 @@ import { History, Plus } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
+import type { PayrollFormulaRuleVersion } from "@/lib/api/types-payroll";
+
 import Button from "@/components/ui/button";
 import { Typography } from "@/components/ui/typography";
 import { ApiError } from "@/lib/api/errors";
-import { createPayrollFormulaVersion, fetchPayrollFormulaRules, fetchPayrollFormulaVersions, publishPayrollFormulaRule, retirePayrollFormulaRule } from "@/lib/api/payroll";
-import type { PayrollFormulaRuleVersion } from "@/lib/api/types-payroll";
+import { createPayrollFormulaVersion, fetchPayrollFormulaVersions, publishPayrollFormulaRule, retirePayrollFormulaRule } from "@/lib/api/payroll";
 import { payrollKeys } from "@/lib/query-keys";
 
 type FormulaAction = "publish" | "retire";
@@ -121,9 +122,6 @@ export function PayrollFormulaHistory({ ruleId }: { ruleId: string }) {
     queryKey: payrollKeys.formulaVersions(ruleId),
     queryFn: () => fetchPayrollFormulaVersions(ruleId),
   });
-  const { data: rules } = useQuery({ queryKey: payrollKeys.rules(), queryFn: fetchPayrollFormulaRules });
-  const rule = rules?.find((candidate) => candidate.id === ruleId);
-
   const createMutation = useMutation({
     mutationFn: () => createPayrollFormulaVersion(ruleId, { expression: expression.trim(), effective_from: effectiveFrom }),
     onSuccess: () => {
