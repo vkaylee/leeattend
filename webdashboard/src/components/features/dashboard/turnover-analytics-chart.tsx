@@ -392,14 +392,6 @@ export default function TurnoverAnalyticsChart() {
         );
     }
 
-    const isEmpty =
-        !data ||
-        (data.tenure_distribution.length === 0 &&
-            data.by_source.length === 0 &&
-            data.by_department.length === 0 &&
-            data.termination_reasons.length === 0 &&
-            data.monthly_trend.length === 0);
-
     return (
         <div className="bg-white dark:bg-slate-900 rounded-3xl sm:rounded-[3rem] p-6 sm:p-10 border border-slate-100 dark:border-slate-800 shadow-sm">
             <ChartHeader
@@ -412,43 +404,87 @@ export default function TurnoverAnalyticsChart() {
                 setSelectedPeriod={setSelectedPeriod}
                 t={t}
             />
-
-            {data ? <WarningStrip t={t} warnings={data.warnings} /> : null}
-
-            <ChartTabs
+            <TurnoverContent
                 activeTab={activeTab}
+                data={data}
+                formatDate={formatDate}
                 setActiveTab={setActiveTab}
                 t={t}
                 tabs={tabs}
             />
-
-            {isEmpty ? (
-                <div className="flex items-center justify-center h-64 text-slate-400">
-                    {t("common.no_data")}
-                </div>
-            ) : (
-                <div className="space-y-6">
-                    <KpiHeader data={data} t={t} />
-
-                    {activeTab === "overview" && <OverviewTab data={data} formatDate={formatDate} t={t} />}
-                    {activeTab === "tenure" && <TenureTab data={data} t={t} />}
-                    {activeTab === "source" && <SourceTab data={data} t={t} />}
-                    {activeTab === "department" && <DepartmentTab data={data} t={t} />}
-                    {activeTab === "reasons" && <ReasonsTab data={data} t={t} />}
-                    {activeTab === "breakdown" && <BreakdownTab data={data} t={t} />}
-                </div>
-            )}
         </div>
     );
 }
 
 // ── Tabs ──────────────────────────────────────────────────────────────
 
+function isEmptyTurnoverData(data: TurnoverAnalytics): boolean {
+    return data.tenure_distribution.length === 0 &&
+        data.by_source.length === 0 &&
+        data.by_department.length === 0 &&
+        data.termination_reasons.length === 0 &&
+        data.monthly_trend.length === 0;
+}
+
 function OverviewTab({ data, t, formatDate }: { data: TurnoverAnalytics; t: TranslateFn; formatDate: (d: string | Date | null | undefined) => string }) {
     return (
         <>
             {data.monthly_trend.length > 0 ? <TrendChart data={data.monthly_trend} formatDate={formatDate} t={t} /> : null}
             {data.cohort_retention.length > 0 ? <CohortChart data={data.cohort_retention} t={t} /> : null}
+        </>
+    );
+}
+
+function ActiveTurnoverTab({ activeTab, data, formatDate, t }: { activeTab: TabKey; data: TurnoverAnalytics; formatDate: (d: string | Date | null | undefined) => string; t: TranslateFn }) {
+    switch (activeTab) {
+        case "overview":
+            return <OverviewTab data={data} formatDate={formatDate} t={t} />;
+        case "tenure":
+            return <TenureTab data={data} t={t} />;
+        case "source":
+            return <SourceTab data={data} t={t} />;
+        case "department":
+            return <DepartmentTab data={data} t={t} />;
+        case "reasons":
+            return <ReasonsTab data={data} t={t} />;
+        case "breakdown":
+            return <BreakdownTab data={data} t={t} />;
+    }
+}
+
+function TurnoverContent({ activeTab, data, formatDate, t, tabs, setActiveTab }: {
+    activeTab: TabKey;
+    data: TurnoverAnalytics | undefined;
+    formatDate: (d: string | Date | null | undefined) => string;
+    setActiveTab: (tab: TabKey) => void;
+    t: TranslateFn;
+    tabs: { key: TabKey; labelKey: string }[];
+}) {
+    if (data) {
+        return (
+            <>
+                <WarningStrip t={t} warnings={data.warnings} />
+                <ChartTabs activeTab={activeTab} setActiveTab={setActiveTab} t={t} tabs={tabs} />
+                {isEmptyTurnoverData(data) ? (
+                    <div className="flex items-center justify-center h-64 text-slate-400">
+                        {t("common.no_data")}
+                    </div>
+                ) : (
+                    <div className="space-y-6">
+                        <KpiHeader data={data} t={t} />
+                        <ActiveTurnoverTab activeTab={activeTab} data={data} formatDate={formatDate} t={t} />
+                    </div>
+                )}
+            </>
+        );
+    }
+
+    return (
+        <>
+            <ChartTabs activeTab={activeTab} setActiveTab={setActiveTab} t={t} tabs={tabs} />
+            <div className="flex items-center justify-center h-64 text-slate-400">
+                {t("common.no_data")}
+            </div>
         </>
     );
 }
@@ -609,7 +645,7 @@ function CohortChart({ data, t }: { data: TurnoverAnalytics["cohort_retention"];
                                 </td>
                             </tr>
                         ) : (
-                            chartData.map((row, index) => (
+                            chartData.map((row) => (
                                 <tr className="hover:bg-slate-50 dark:hover:bg-slate-800/40" key={`${row.cohort_month}-${row.months_since_hire}`}>
                                     {columns.map((col) => (
                                         <td className="px-4 py-2.5 whitespace-nowrap" key={col.key}>

@@ -83,20 +83,6 @@ function metricTone(metric: DashboardMetric): string {
   return "border-amber-200 bg-amber-50/60 text-amber-700 dark:border-amber-900 dark:bg-amber-950/20 dark:text-amber-300";
 }
 
-function MetricFooter({ metric, t, currency }: { currency?: string; metric: DashboardMetric; t: TFunction }) {
-  return (
-    <div className="mt-3 flex items-center justify-between gap-2 text-xs text-slate-500 dark:text-slate-400">
-      <span className="inline-flex items-center gap-1" title={t("dashboard.executive.comparison_help")}>
-        <DeltaIcon metric={metric} /> {deltaText(metric, t, currency)}
-      </span>
-      <span className="inline-flex items-center gap-1" title={t("dashboard.executive.freshness_help")}>
-        <CircleHelp aria-hidden="true" className="h-3.5 w-3.5" />
-        {new Date(metric.freshness.as_of).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-      </span>
-    </div>
-  );
-}
-
 function MetricCard({ metric, currency }: { currency?: string; metric: DashboardMetric }) {
   const { t } = useTranslation();
   const key = metric.key === "overtime_cost" || metric.key === "overtime_hours" ? "overtime" : metric.key;

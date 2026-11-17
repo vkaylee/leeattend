@@ -27,10 +27,8 @@ import {
 } from "@/lib/api";
 import { createQueryKey } from "@/lib/query-keys";
 
-import { formatScheduleLocalTime } from "./schedule-lifecycle-utils";
 
 interface ScheduleLifecyclePanelProps {
-  approvalInstanceId?: string | null;
   employeeSchedule: EmployeeSchedule;
   weekDays: Date[];
 }
@@ -84,7 +82,7 @@ function LifecycleStatusList({ schedule, t }: { schedule: EmployeeSchedule; t: (
   );
 }
 
-export function ScheduleLifecyclePanel({ approvalInstanceId, employeeSchedule, weekDays }: ScheduleLifecyclePanelProps) {
+export function ScheduleLifecyclePanel({ employeeSchedule, weekDays }: ScheduleLifecyclePanelProps) {
   const { t } = useTranslation();
   const { organization } = useOrganization();
   const queryClient = useQueryClient();
@@ -97,7 +95,6 @@ export function ScheduleLifecyclePanel({ approvalInstanceId, employeeSchedule, w
 
   const dateRange = useMemo(() => ({ start: formatDate(weekDays[0]), end: formatDate(weekDays[weekDays.length - 1]) }), [weekDays]);
   const scheduleByDate = new Map(employeeSchedule.schedules.map((day) => [day.date, day]));
-  const coverage = employeeSchedule.coverage;
   const expectedRevisions = Object.fromEntries(
     weekDays.map((day) => {
       const date = formatDate(day);
@@ -111,45 +108,40 @@ export function ScheduleLifecyclePanel({ approvalInstanceId, employeeSchedule, w
   const selectedSchedule = scheduleByDate.get(selectedDate);
   const selectedRevision = evidence?.revisions.at(-1);
   const selectedSegment = evidence?.segments.at(-1);
-  const selectedTimezone = selectedRevision?.timezone ?? organization?.timezone ?? "UTC";
-  const replacementStart = formatScheduleLocalTime(selectedSegment?.scheduled_start_at, selectedTimezone);
-  const replacementEnd = formatScheduleLocalTime(selectedSegment?.scheduled_end_at, selectedTimezone);
-  const replacement = selectedSegment?.selected_shift_version_id && replacementStart && replacementEnd
+  const replacement = selectedSegment?.selected_shift_version_id
     ? {
         status: "work" as const,
         source: "manual",
         shift_version_id: selectedSegment.selected_shift_version_id,
-        intervals: [{ sort_order: 0, start: replacementStart, end: replacementEnd, breaks: [] }],
+        intervals: selectedSegment.scheduled_start_at && selectedSegment.scheduled_end_at
+          ? [{ sort_order: 0, start: selectedSegment.scheduled_start_at, end: selectedSegment.scheduled_end_at, breaks: [] }]
+          : [],
       }
     : null;
 
   const previewMutation = useMutation({
-    mutationFn: () => {
-      if (!approvalInstanceId) throw new Error("scheduleLifecycle.approvalRequired");
-      return previewSchedules({
-        employment_ids: [employeeSchedule.employment_id],
-        start_date: dateRange.start,
-        end_date: dateRange.end,
-        timezone: organization?.timezone ?? "UTC",
-        mode: "office",
-        approval_instance_id: approvalInstanceId,
-        reason: reason.trim(),
-        retroactive: false,
-        expected_revisions: expectedRevisions,
-      });
-    },
+    mutationFn: () => previewSchedules({
+      employment_ids: [employeeSchedule.employment_id],
+      start_date: dateRange.start,
+      end_date: dateRange.end,
+      timezone: organization?.timezone ?? "UTC",
+      mode: "office",
+      approval_instance_id: null,
+      reason: reason.trim(),
+      retroactive: false,
+      expected_revisions: expectedRevisions,
+    }),
     onSuccess: ({ data }) => { setPreview(data); },
   });
   const publishMutation = useMutation({
     mutationFn: () => {
       if (!preview) throw new Error("scheduleLifecycle.previewRequired");
-      if (!approvalInstanceId) throw new Error("scheduleLifecycle.approvalRequired");
       return publishSchedules({
         employment_ids: [employeeSchedule.employment_id],
         start_date: dateRange.start,
         end_date: dateRange.end,
         timezone: organization?.timezone ?? "UTC",
-        approval_instance_id: approvalInstanceId,
+        approval_instance_id: null,
         preview_id: preview.preview_id,
         preview_hash: preview.preview_hash,
         reason: reason.trim(),
@@ -223,7 +215,6 @@ export function ScheduleLifecyclePanel({ approvalInstanceId, employeeSchedule, w
         </div>
       </div>
 
-      {coverage ? <div aria-label={t("scheduleLifecycle.coverageLabel")} className="grid gap-2 text-xs text-slate-600 dark:text-slate-300 sm:grid-cols-4"><span>{t("scheduleLifecycle.expectedDays")}: {coverage.expected_days}</span><span>{t("scheduleLifecycle.publishedWorkDays")}: {coverage.published_work_days}</span><span>{t("scheduleLifecycle.publishedOffDays")}: {coverage.published_off_days}</span><span className={coverage.missing_official_days > 0 ? "font-semibold text-amber-700 dark:text-amber-300" : ""}>{t("scheduleLifecycle.missingDays")}: {coverage.missing_official_days}</span></div> : null}
       <LifecycleStatusList schedule={employeeSchedule} t={t} />
 
       <div className="grid gap-3 lg:grid-cols-[1fr_auto]">
@@ -233,12 +224,11 @@ export function ScheduleLifecyclePanel({ approvalInstanceId, employeeSchedule, w
           <span className="mt-1 block font-normal text-slate-500" id="schedule-lifecycle-reason-hint">{t("scheduleLifecycle.reasonHint")}</span>
         </label>
         <div className="flex flex-wrap items-end gap-2">
-          <Button disabled={!approvalInstanceId} icon={<RefreshCw size={15} />} loading={previewMutation.isPending} onClick={() => { previewMutation.mutate(); }} variant="outline">{t("scheduleLifecycle.preview")}</Button>
-          <Button disabled={!preview || !approvalInstanceId} icon={<Send size={15} />} loading={publishMutation.isPending} onClick={() => { publishMutation.mutate(); }}>{t("scheduleLifecycle.publish")}</Button>
+          <Button icon={<RefreshCw size={15} />} loading={previewMutation.isPending} onClick={() => { previewMutation.mutate(); }} variant="outline">{t("scheduleLifecycle.preview")}</Button>
+          <Button disabled={!preview} icon={<Send size={15} />} loading={publishMutation.isPending} onClick={() => { publishMutation.mutate(); }}>{t("scheduleLifecycle.publish")}</Button>
         </div>
       </div>
 
-      {!approvalInstanceId ? <Typography className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-200" role="status" variant="p">{t("scheduleLifecycle.approvalRequired")}</Typography> : null}
       {preview ? <div className="space-y-2 rounded-xl border border-blue-200 bg-blue-50 p-3 dark:border-blue-900 dark:bg-blue-950/30"><div className="flex items-center gap-2 text-xs font-semibold text-blue-800 dark:text-blue-200"><CheckCircle2 size={15} />{t("scheduleLifecycle.provisionalNotice")} <StatusBadge variant="info">{t("scheduleLifecycle.states.provisional")}</StatusBadge></div><JsonPreview value={preview.data} /></div> : null}
 
       <div className="flex flex-wrap gap-2 border-t border-slate-100 pt-4 dark:border-slate-800">

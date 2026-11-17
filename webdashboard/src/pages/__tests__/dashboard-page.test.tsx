@@ -18,9 +18,8 @@ vi.mock("react-i18next", () => ({
 }));
 
 vi.mock("i18next", () => ({
-  default: {
-    t: (key: string) => key,
-  },
+  t: (key: string) => key,
+  default: { t: (key: string) => key },
 }));
 
 

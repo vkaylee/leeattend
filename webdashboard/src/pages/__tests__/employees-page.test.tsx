@@ -71,6 +71,19 @@ vi.mock("../../lib/api", async (importOriginal) => {
     };
 });
 
+vi.mock("@/hooks/use-permissions", () => ({
+    useMyPermissions: () => ({
+        hasPermission: () => true,
+        hasAnyPermission: () => true,
+        hasRole: () => true,
+        hasScopedPermission: () => true,
+        permissions: ["employees:read", "employees:create", "employees:update", "employees:delete"],
+        roles: ["admin"],
+        managedDepartmentIds: null,
+        isLoading: false,
+    }),
+}));
+
 // Override i18n
 vi.mock("react-i18next", () => ({
  

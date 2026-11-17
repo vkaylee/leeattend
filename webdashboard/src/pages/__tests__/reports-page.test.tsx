@@ -614,7 +614,7 @@ describe("ReportsPage", () => {
 
     // Verify that clearing the department filter resets the API parameter.
     await user.click(await screen.findByTestId("department-filter-trigger"));
-    await user.click(await screen.findByText(/Xóa bộ lọc|Clear filter/i));
+    await user.click((await screen.findAllByText(/Xóa bộ lọc|Clear filter/i))[0]);
 
     await waitFor(() => {
       const calls = vi.mocked(api.fetchAttendanceReport).mock.calls;

@@ -13,6 +13,7 @@ import UndoTerminationModal from "@/components/features/employees/undo-terminati
 import Button from "@/components/ui/button";
 import StatusBadge from "@/components/ui/status-badge";
 import { useToast } from "@/components/ui/toast";
+import { Typography } from "@/components/ui/typography";
 import { useOrganizationMutation } from "@/hooks/common/use-organization-query";
 import { fetchEmployeeEmployments, fetchEmployers, updateEmployeeEmployment } from "@/lib/api";
 import { employeeKeys, createQueryKey  } from "@/lib/query-keys";
@@ -227,13 +228,13 @@ export default function ProfileTab({
             </GridWrap>
 
             <section aria-labelledby="employee-tenure-history" className="space-y-4">
-                <h3 className="text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider" id="employee-employment-history">
+                <Typography className="text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider" id="employee-employment-history" variant="h3">
                     {t("employees.details.tenure_history")}
-                </h3>
+                </Typography>
                 {tenureHistory.length === 0 ? (
-                    <p className="rounded-2xl border border-dashed border-slate-200 dark:border-slate-700 p-5 text-sm text-slate-500">
+                    <Typography className="rounded-2xl border border-dashed border-slate-200 dark:border-slate-700 p-5 text-sm text-slate-500" variant="p">
                         {t("employees.details.no_tenure_history")}
-                    </p>
+                    </Typography>
                 ) : (
                     <ol className="space-y-3">
                         {tenureHistory.map((employment, index) => (

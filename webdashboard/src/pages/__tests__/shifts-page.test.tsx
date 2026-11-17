@@ -513,7 +513,8 @@ describe("ShiftsPage - Shift Picker Modal", () => {
         expect(api.fetchSchedules).toHaveBeenCalledWith(
           expect.any(String),
           expect.any(String),
-          ["employment-1"]
+          ["employment-1"],
+          "all"
         );
       });
     });

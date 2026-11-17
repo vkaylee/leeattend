@@ -8,6 +8,7 @@ import {
   UserMinus,
   UserPlus,
 } from "lucide-react";
+import type { TFunction } from "i18next";
 import React from "react";
 import { useTranslation } from "react-i18next";
 
@@ -20,6 +21,9 @@ import { useDateTimeFormatter } from "@/hooks/use-datetime";
 import { useHorizontalDragScroll } from "@/hooks/use-horizontal-drag-scroll";
 import { cn } from "@/lib/utils";
 
+import { formatChecklistTypeLabel } from "../employees/lifecycle-assign-modal";
+
+type Translation = TFunction;
 
 function getTypeIcon(type: string): React.ReactNode {
   switch (type.toLowerCase()) {
@@ -34,11 +38,6 @@ function getTypeIcon(type: string): React.ReactNode {
     default:
       return <ListTodo size={16} />;
   }
-}
-
-function formatChecklistTypeLabel(type: string, t: (key: string, options?: { defaultValue?: string }) => string): string {
-  const key = `common.checklist_types.${type}`;
-  return t(key, { defaultValue: type.replaceAll("_", " ") });
 }
 
 function getTypeBadgeClass(type: string): string {
@@ -118,7 +117,7 @@ function LifecycleMobileCard({
       </div>
 
       <div className="text-xs font-semibold text-slate-700 dark:text-slate-300 bg-slate-50 dark:bg-slate-800/40 px-3 py-2 rounded-xl flex items-center justify-between">
-        <span className="font-bold">{instance.template_name === "" ? formatChecklistTypeLabel(instance.checklist_type, t) : instance.template_name ?? formatChecklistTypeLabel(instance.checklist_type, t)}</span>
+        <span className="font-bold">{instance.template_name ?? formatChecklistTypeLabel(instance.checklist_type, t as Translation)}</span>
         <span className="text-[10px] text-slate-400 font-medium">
           {instance.completed_items}/{instance.total_items} {t("lifecycle.items_label", { defaultValue: "việc" })}
         </span>
@@ -165,57 +164,6 @@ function LifecycleMobileCard({
   );
 }
 
-function LifecycleDesktopTable({
-  instances,
-  formatDate,
-  t,
-}: {
-  formatDate: (date: string) => string;
-  instances: LifecycleInstanceSummary[];
-  t: (key: string, options?: { defaultValue?: string }) => string;
-}) {
-  const { onClickCapture, setRef } = useHorizontalDragScroll<HTMLDivElement>();
-  const headerClass = "px-8 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest";
-  const headers = [
-    ["lifecycle.table.employee", "NHÂN SỰ"],
-    ["lifecycle.table.process_name", "QUY TRÌNH CHECKLIST"],
-    ["lifecycle.table.progress", "TIẾN ĐỘ THỰC HIỆN"],
-    ["lifecycle.table.status", "TRẠNG THÁI"],
-    ["lifecycle.table.started_date", "NGÀY BẮT ĐẦU"],
-  ] as const;
-
-  return (
-    <div className="overflow-x-auto overscroll-contain" onClickCapture={onClickCapture} ref={setRef}>
-      <table className="w-full min-w-[980px] text-left border-collapse"><thead><tr className="border-b border-slate-100 dark:border-slate-800/60">{headers.map(([key, fallback]) => <th className={headerClass} key={key}>{t(key, { defaultValue: fallback })}</th>)}<th className={`${headerClass} text-right`}>{t("common.actions", { defaultValue: "THAO TÁC" })}</th></tr></thead>
-        <tbody>{instances.map((instance) => <LifecycleDesktopRow formatDate={formatDate} instance={instance} key={instance.id} t={t} />)}</tbody>
-      </table>
-    </div>
-  );
-}
-
-function LifecycleDesktopRow({
-  formatDate,
-  instance,
-  t,
-}: {
-  formatDate: (date: string) => string;
-  instance: LifecycleInstanceSummary;
-  t: (key: string, options?: { defaultValue?: string }) => string;
-}) {
-  const isCompleted = instance.status === "completed";
-  const statusClass = isCompleted ? "bg-emerald-50 text-emerald-600 border-emerald-100 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800" : "bg-blue-50 text-blue-600 border-blue-100 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800";
-  return (
-    <tr className="border-b border-slate-50 dark:border-slate-800/50 hover:bg-slate-50/40 dark:hover:bg-slate-800/20 transition-colors group">
-      <td className="px-8 py-5"><div className="flex flex-col"><Link className="text-xs font-bold text-slate-800 dark:text-slate-100 uppercase tracking-wide group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors flex items-center gap-1.5" params={{ employeeId: instance.employee_id }} search={{ tab: "lifecycle" }} to="/employees/$employeeId"><span>{instance.employee_name}</span><ExternalLink className="opacity-0 group-hover:opacity-70 transition-opacity" size={11} /></Link><div className="flex items-center gap-2 mt-0.5 text-[10px] font-mono text-slate-400 font-bold">{!!instance.employee_code && <span>{instance.employee_code}</span>}{!!instance.department_name && <><span>•</span><span className="font-sans normal-case text-slate-500 dark:text-slate-400 font-medium">{instance.department_name}</span></>}</div></div></td>
-      <td className="px-8 py-5"><div className="flex items-center gap-2.5"><div className={cn("w-8 h-8 rounded-xl flex items-center justify-center shrink-0 border", getTypeBadgeClass(instance.checklist_type))}>{getTypeIcon(instance.checklist_type)}</div><div className="flex flex-col"><span className="text-xs font-bold text-slate-700 dark:text-slate-200 uppercase tracking-wide">{instance.template_name || formatChecklistTypeLabel(instance.checklist_type, t)}</span><span className="text-[10px] text-slate-400 font-medium">{formatChecklistTypeLabel(instance.checklist_type, t)}</span></div></div></td>
-      <td className="px-8 py-5 min-w-[180px]"><div className="space-y-1.5"><div className="flex items-center justify-between text-[11px] font-bold"><span className="text-slate-500 dark:text-slate-400 font-mono text-[10px]">{instance.completed_items}/{instance.total_items} {t("lifecycle.items_label", { defaultValue: "việc" })}</span><span className={cn("font-mono", isCompleted ? "text-emerald-600 dark:text-emerald-400" : "text-primary-600 dark:text-primary-400")}>{instance.progress_percent}%</span></div><div className="w-full bg-slate-100 dark:bg-slate-800 h-2 rounded-full overflow-hidden"><div className={cn("h-full transition-all duration-500 rounded-full", isCompleted ? "bg-emerald-500" : "bg-primary-600")} style={{ width: `${instance.progress_percent}%` }} /></div></div></td>
-      <td className="px-8 py-5"><span className={cn("text-[9px] font-bold uppercase tracking-widest px-2.5 py-0.5 border rounded-full shadow-xs", statusClass)}>{isCompleted ? t("lifecycle.status.completed", { defaultValue: "Đã hoàn thành" }) : t("lifecycle.status.in_progress", { defaultValue: "Đang tiến hành" })}</span></td>
-      <td className="px-8 py-5 text-xs text-slate-600 dark:text-slate-300 font-medium">{formatDate(instance.started_at)}</td>
-      <td className="px-8 py-5 text-right"><Link className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-slate-600 dark:text-slate-300 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors" params={{ employeeId: instance.employee_id }} search={{ tab: "lifecycle" }} to="/employees/$employeeId"><span>{t("lifecycle.view_detail", { defaultValue: "Xem checklist" })}</span><ArrowRight size={13} /></Link></td>
-    </tr>
-  );
-}
-
 export interface LifecycleTableProps {
   instances: LifecycleInstanceSummary[];
   isLoading: boolean;
@@ -235,7 +183,11 @@ export function LifecycleTable({
 }: LifecycleTableProps) {
   const { t } = useTranslation();
   const { formatDate } = useDateTimeFormatter();
-  const { onClickCapture, setRef } = useHorizontalDragScroll<HTMLDivElement>();
+  const {
+    onClickCapture: handleHorizontalDragClick,
+    setRef: setHorizontalDragScrollRef,
+  } = useHorizontalDragScroll<HTMLDivElement>();
+
   if (isLoading) {
     return (
       <div className="p-8 space-y-4 animate-pulse">
@@ -305,8 +257,8 @@ export function LifecycleTable({
       renderDesktopTable={() => (
         <div
           className="overflow-x-auto overscroll-contain"
-          onClickCapture={onClickCapture}
-          ref={setRef}
+          onClickCapture={handleHorizontalDragClick}
+          ref={setHorizontalDragScrollRef}
         >
           <table className="w-full min-w-[980px] text-left border-collapse">
             <thead>
@@ -376,7 +328,7 @@ export function LifecycleTable({
                         </div>
                         <div className="flex flex-col">
                           <span className="text-xs font-bold text-slate-700 dark:text-slate-200 uppercase tracking-wide">
-                            {c.template_name === "" ? formatChecklistTypeLabel(c.checklist_type, t) : c.template_name ?? formatChecklistTypeLabel(c.checklist_type, t)}
+                            {c.template_name ?? formatChecklistTypeLabel(c.checklist_type, t)}
                           </span>
                           <span className="text-[10px] text-slate-400 font-medium">
                             {formatChecklistTypeLabel(c.checklist_type, t)}

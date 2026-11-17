@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 
 import Button from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Typography } from "@/components/ui/typography";
 import { useAttendanceClosure } from "@/hooks/use-attendance-closure";
 import { useMyPermissions } from "@/hooks/use-permissions";
 import { ApiError } from "@/lib/api/errors";
@@ -53,7 +54,7 @@ export default function AttendanceClosurePanel({ employerId, month, year }: Atte
         <div className="flex items-start gap-3">
           <AlertCircle aria-hidden="true" className="mt-0.5 shrink-0" size={20} />
           <div className="space-y-2">
-            <p className="font-semibold">{t("closure.errors.load")}</p>
+            <Typography className="font-semibold" variant="p">{t("closure.errors.load")}</Typography>
             <Button onClick={() => void refetch()} size="sm" variant="outline">{t("closure.retry")}</Button>
           </div>
         </div>
@@ -63,8 +64,8 @@ export default function AttendanceClosurePanel({ employerId, month, year }: Atte
   if (!data) {
     return (
       <section className="rounded-3xl border border-slate-200 bg-white p-5 text-slate-700 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200" data-testid="closure-empty">
-        <p className="font-semibold">{t("closure.empty.title")}</p>
-        <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">{t("closure.empty.description")}</p>
+        <Typography className="font-semibold" variant="p">{t("closure.empty.title")}</Typography>
+        <Typography className="mt-1 text-sm text-slate-500 dark:text-slate-400" variant="p">{t("closure.empty.description")}</Typography>
       </section>
     );
   }
@@ -94,35 +95,35 @@ export default function AttendanceClosurePanel({ employerId, month, year }: Atte
         <div className="flex items-start gap-3">
           {isClosed ? <LockKeyhole aria-hidden="true" className="mt-0.5 text-emerald-600" size={21} /> : <UnlockKeyhole aria-hidden="true" className="mt-0.5 text-slate-500" size={21} />}
           <div>
-            <h2 className="font-semibold text-slate-900 dark:text-slate-100">{t("closure.title")}</h2>
-            <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">{t(isClosed ? "closure.status.closed" : "closure.status.open")}</p>
+            <Typography className="font-semibold text-slate-900 dark:text-slate-100" variant="h2">{t("closure.title")}</Typography>
+            <Typography className="mt-1 text-sm text-slate-500 dark:text-slate-400" variant="p">{t(isClosed ? "closure.status.closed" : "closure.status.open")}</Typography>
           </div>
         </div>
         <div className={isClosed ? "inline-flex items-center gap-2 rounded-full bg-emerald-50 px-3 py-1.5 text-sm font-semibold text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300" : "inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1.5 text-sm font-semibold text-slate-700 dark:bg-slate-800 dark:text-slate-200"}>
           <CheckCircle2 aria-hidden="true" size={16} />
           {t(isClosed ? "closure.badge.closed" : "closure.badge.open")}
         </div>
-        {!!payrollLocked && <p className="text-sm text-amber-700 dark:text-amber-300" role="status">{t("closure.errors.locked_period")}</p>}
+        {payrollLocked ? <Typography className="text-sm text-amber-700 dark:text-amber-300" role="status" variant="p">{t("closure.errors.locked_period")}</Typography> : null}
       </div>
-      {!!isClosed && (
+      {isClosed ? (
         <div className="grid gap-3 border-b border-slate-100 p-5 text-sm dark:border-slate-800 sm:grid-cols-3" data-testid="closure-evidence">
           <span>{t("closure.evidence.number")}: {data.closure_number ?? "—"}</span>
           <span>{t("closure.evidence.days")}: {data.day_count ?? "—"}</span>
           <span className="truncate" title={data.snapshot_hash ?? undefined}>{t("closure.evidence.hash")}: {data.snapshot_hash ?? "—"}</span>
         </div>
-      )}
-      {!!(canClose || canReopen) && (
+      ) : null}
+      {canClose || canReopen ? (
         <div className="space-y-4 p-5">
           <label className="block text-sm font-medium text-slate-700 dark:text-slate-200" htmlFor="closure-reason">{t("closure.reason")}</label>
           <textarea aria-describedby="closure-reason-hint" className="min-h-20 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none transition focus-visible:ring-2 focus-visible:ring-primary-500 dark:border-slate-700 dark:bg-slate-950" id="closure-reason" maxLength={2000} onChange={(event) => { setReason(event.target.value); }} placeholder={t("closure.reason_placeholder")} value={reason} />
-          <p className="text-xs text-slate-500 dark:text-slate-400" id="closure-reason-hint">{t("closure.reason_hint")}</p>
-          {!!(actionError || error) && <p className="text-sm font-medium text-rose-700 dark:text-rose-300" role="alert">{t(actionError ?? getErrorKey(error))}</p>}
+          <Typography className="text-xs text-slate-500 dark:text-slate-400" id="closure-reason-hint" variant="p">{t("closure.reason_hint")}</Typography>
+          {actionError || error ? <Typography className="text-sm font-medium text-rose-700 dark:text-rose-300" role="alert" variant="p">{t(actionError ?? getErrorKey(error))}</Typography> : null}
           <div className="flex flex-wrap gap-3">
-            {!!canClose && <Button disabled={isMutating} loading={isClosing} onClick={() => void runAction("close")}>{t("closure.actions.close")}</Button>}
-            {!!canReopen && <Button disabled={isMutating} loading={isReopening} onClick={() => void runAction("reopen")} variant="outline">{t("closure.actions.reopen")}</Button>}
+            {canClose ? <Button disabled={isMutating} loading={isClosing} onClick={() => void runAction("close")}>{t("closure.actions.close")}</Button> : null}
+            {canReopen ? <Button disabled={isMutating} loading={isReopening} onClick={() => void runAction("reopen")} variant="outline">{t("closure.actions.reopen")}</Button> : null}
           </div>
         </div>
-      )}
+      ) : null}
     </section>
   );
 }

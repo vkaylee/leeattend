@@ -120,9 +120,9 @@ export default function PayrollDetailDrawer({
 
   if (!employee) return null;
 
-  const activeEmployment = employments.find(emp => emp.id === employee.active_employment_id) ?? employments[0];
-  const hireDate = maybeNull(activeEmployment)?.start_date ?? "—";
-  const latestPayslip = payslips[0];
+  const activeEmployment = maybeNull(employments.find(emp => emp.id === employee.active_employment_id) ?? employments[0]);
+  const hireDate = activeEmployment?.start_date ?? "—";
+  const latestPayslip = maybeNull(payslips[0]);
   const tracePeriod = latestPayslip ? new Date(latestPayslip.period_start) : null;
 
   return (
@@ -183,7 +183,7 @@ export default function PayrollDetailDrawer({
                     organization={organization}
                     payslips={payslips}
                   />
-                  {tracePeriod && !Number.isNaN(tracePeriod.getTime()) ? (
+                  {activeEmployment && tracePeriod && !Number.isNaN(tracePeriod.getTime()) ? (
                     <CalculationTrace
                       employmentId={activeEmployment.id}
                       month={tracePeriod.getUTCMonth() + 1}
@@ -194,7 +194,7 @@ export default function PayrollDetailDrawer({
               </div>
             ) : (
               <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
-                <EmployeeSalaryConfig employeeId={employee.id} employmentId={maybeNull(activeEmployment)?.id ?? ""}  />
+                <EmployeeSalaryConfig employeeId={employee.id} employmentId={activeEmployment?.id ?? ""}  />
               </div>
             )}
           </main>

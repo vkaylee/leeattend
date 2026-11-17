@@ -1,5 +1,6 @@
 import { HelpCircle, User } from "lucide-react";
-import { forwardRef, useCallback, useImperativeHandle, useMemo, useState } from "react";
+import React, { useImperativeHandle, useMemo, useState } from "react";
+import type { TFunction } from "i18next";
 import { useTranslation } from "react-i18next";
 
 import type { DailyAttendanceReport } from "@/lib/api";
@@ -16,6 +17,7 @@ import { formatDayKey, makeTimesheetCellKey } from "@/pages/reports/hooks/use-mo
 import {
   getAllAttendanceCodes,
   getAttendanceCodeConfig,
+  type AttendanceCodeConfig,
 } from "./attendance-code-registry";
 import { resolveDailyAttendanceCode } from "./attendance-code-resolver";
 
@@ -36,7 +38,138 @@ export interface TimesheetMatrixGridProps {
 // Days of week in Vietnamese
 const DAY_NAMES = ["CN", "T2", "T3", "T4", "T5", "T6", "T7"];
 
-export const TimesheetMatrixGrid = forwardRef<
+
+interface TimesheetDay {
+  date: Date;
+  dayName: string;
+  dayNum: number;
+  dayOfWeek: number;
+  isWeekend: boolean;
+}
+
+interface TimesheetMatrixHeaderProps {
+  employeeCount: number;
+  isLegendOpen: boolean;
+  onLegendToggle: () => void;
+  registeredCodes: AttendanceCodeConfig[];
+  t: TFunction;
+}
+
+interface TimesheetMatrixContentProps {
+  daysList: TimesheetDay[];
+  employees: Employee[];
+  getEmployeeDayCode: (employeeId: string, day: number, isWeekend: boolean) => AttendanceCodeConfig;
+  isLoading: boolean;
+  isLoadingAttendance: boolean;
+  month: number;
+  onEmployeeClick?: (employee: Employee) => void;
+  t: TFunction;
+  year: number;
+}
+
+function TimesheetMatrixHeader({ employeeCount, isLegendOpen, onLegendToggle, registeredCodes, t }: TimesheetMatrixHeaderProps) {
+  return (
+    <>
+      <div className="flex flex-wrap items-center justify-between gap-4 px-5 py-3.5 border-b border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30">
+        <div className="flex items-center gap-2.5">
+          <span className="text-sm font-semibold text-slate-800 dark:text-slate-100">{t("reports.timesheet_matrix_31_days", "Bảng công 31 ngày")}</span>
+          <span className="text-xs font-medium text-slate-500 dark:text-slate-400">• {employeeCount} {t("reports.employees", "nhân viên")}</span>
+        </div>
+        <Button aria-label={t("reports.legend", "Bảng giải thích ký hiệu")} className="flex items-center gap-1.5 text-xs text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 px-3 py-1.5 rounded-xl transition-all font-semibold normal-case tracking-normal" onClick={onLegendToggle} variant="ghost">
+          <HelpCircle size={15} />
+          <span>{t("reports.legend", "Ký hiệu công")}</span>
+        </Button>
+      </div>
+      {!!isLegendOpen && (
+        <div className="px-4 py-2.5 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/60 flex flex-wrap items-center gap-2 text-xs animate-in slide-in-from-top-2 duration-200">
+          <span className="font-semibold text-slate-700 dark:text-slate-200 shrink-0">{t("reports.legend_rules", "Quy ước ký hiệu:")}</span>
+          {registeredCodes.map((code) => (
+            <div key={code.code} title={code.description}>
+              <span className={cn("font-bold px-1.5 py-0.5 rounded text-[11px] border", code.badgeClass)}>{code.code}</span>
+              <span className="text-slate-600 dark:text-slate-300">{code.label}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </>
+  );
+}
+
+function TimesheetMatrixContent({ daysList, employees, getEmployeeDayCode, isLoading, isLoadingAttendance, month, onEmployeeClick, t, year }: TimesheetMatrixContentProps) {
+  if (isLoading || isLoadingAttendance) {
+    return <div className="p-12 space-y-3">{Array.from({ length: 6 }).map((_, index) => <Skeleton className="h-10 w-full rounded-xl" key={index} />)}</div>;
+  }
+
+  if (employees.length === 0) {
+    return <EmptyState description={t("common.no_records_found")} icon={<User className="w-10 h-10 text-slate-400" />} title={t("common.no_records_found", "Không tìm thấy nhân viên")} />;
+  }
+
+  return (
+    <table className="w-full text-left border-collapse border-spacing-0 text-xs">
+      <thead>
+        <tr className="bg-slate-100/80 dark:bg-slate-800/80 sticky top-0 z-20 backdrop-blur-xs border-b border-slate-200 dark:border-slate-700">
+          <th className="sticky left-0 z-30 bg-slate-100 dark:bg-slate-800 px-4 py-3 font-semibold text-slate-700 dark:text-slate-200 w-64 min-w-[16rem] border-r border-slate-200 dark:border-slate-700 shadow-xs">{t("reports.table.employee", "Nhân viên")}</th>
+          {daysList.map((day) => (
+            <th className={cn("px-1.5 py-2 text-center font-medium min-w-[36px] w-[36px] border-r border-slate-200/60 dark:border-slate-700/60", day.isWeekend ? "bg-amber-500/10 dark:bg-amber-500/5 text-amber-700 dark:text-amber-300 font-bold" : "text-slate-600 dark:text-slate-300")} key={day.dayNum}>
+              <div className="text-[11px] leading-tight font-bold">{day.dayNum}</div>
+              <div className="text-[9px] uppercase opacity-75">{day.dayName}</div>
+            </th>
+          ))}
+          <th className="sticky right-[112px] z-30 px-3 py-3 text-center font-semibold text-emerald-700 dark:text-emerald-300 bg-emerald-500/10 min-w-[56px] border-l border-slate-200 dark:border-slate-700 shadow-[-2px_0_5px_rgba(0,0,0,0.04)]">{t("reports.table.std_hours", "Công")}</th>
+          <th className="sticky right-[56px] z-30 px-3 py-3 text-center font-semibold text-blue-700 dark:text-blue-300 bg-blue-500/10 min-w-[56px] shadow-[-2px_0_5px_rgba(0,0,0,0.04)]">{t("reports.table.leave_days", "Phép")}</th>
+          <th className="sticky right-0 z-30 px-3 py-3 text-center font-semibold text-purple-700 dark:text-purple-300 bg-purple-500/10 min-w-[56px] shadow-[-2px_0_5px_rgba(0,0,0,0.04)]">{t("reports.table.total_hours", "Tổng tính")}</th>
+        </tr>
+      </thead>
+      <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+        {employees.map((employee) => <TimesheetMatrixRow daysList={daysList} employee={employee} getEmployeeDayCode={getEmployeeDayCode} key={employee.id} month={month} onEmployeeClick={onEmployeeClick} year={year} />)}
+      </tbody>
+    </table>
+  );
+}
+
+interface TimesheetMatrixRowProps {
+  daysList: TimesheetDay[];
+  employee: Employee;
+  getEmployeeDayCode: (employeeId: string, day: number, isWeekend: boolean) => AttendanceCodeConfig;
+  month: number;
+  onEmployeeClick?: (employee: Employee) => void;
+  year: number;
+}
+
+function TimesheetMatrixRow({ daysList, employee, getEmployeeDayCode, month, onEmployeeClick, year }: TimesheetMatrixRowProps) {
+  const totals = daysList.reduce(
+    (result, day) => {
+      const config = getEmployeeDayCode(employee.id, day.dayNum, day.isWeekend);
+      if (config.category === "work") result.work += config.paidMultiplier;
+      if (config.category === "paid_leave") result.leave += config.paidMultiplier;
+      return result;
+    },
+    { leave: 0, work: 0 },
+  );
+  const employeeCode = employee.employee_id_number || (employee as { employee_code?: string }).employee_code || (employee.id ? employee.id.slice(0, 8) : "—");
+  const departmentName = employee.department_name || (employee as { department?: string }).department || "Toàn công ty";
+
+  return (
+    <tr className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors group">
+      <td className="sticky left-0 z-10 bg-white dark:bg-slate-900 group-hover:bg-slate-50 dark:group-hover:bg-slate-800 px-4 py-2 border-r border-slate-200 dark:border-slate-700 shadow-xs">
+        <EmployeeIdentityCell avatarSize="sm" code={employeeCode} employerName={departmentName} name={employee.full_name} onClick={() => { onEmployeeClick?.(employee); }} />
+      </td>
+      {daysList.map((day) => {
+        const config = getEmployeeDayCode(employee.id, day.dayNum, day.isWeekend);
+        return (
+          <td className={cn("px-1 py-1.5 text-center border-r border-slate-100 dark:border-slate-800", day.isWeekend && "bg-amber-500/5 dark:bg-amber-500/5")} key={day.dayNum}>
+            <span className={cn("inline-flex items-center justify-center w-7 h-6 rounded-md font-bold text-[10px] border shadow-2xs cursor-default select-none transition-transform hover:scale-110", config.badgeClass)} title={`${day.dayNum}/${month}/${year} (${day.dayName}): ${config.label} - ${config.description}`}>{config.code}</span>
+          </td>
+        );
+      })}
+      <td className="sticky right-[112px] z-10 px-2 py-2 text-center font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-500/5 border-l border-slate-200 dark:border-slate-700 shadow-[-2px_0_5px_rgba(0,0,0,0.04)]">{totals.work.toFixed(1)}</td>
+      <td className="sticky right-[56px] z-10 px-2 py-2 text-center font-bold text-blue-700 dark:text-blue-300 bg-blue-500/5 shadow-[-2px_0_5px_rgba(0,0,0,0.04)]">{totals.leave.toFixed(1)}</td>
+      <td className="sticky right-0 z-10 px-2 py-2 text-center font-black text-purple-700 dark:text-purple-300 bg-purple-500/5 shadow-[-2px_0_5px_rgba(0,0,0,0.04)]">{(totals.work + totals.leave).toFixed(1)}</td>
+    </tr>
+  );
+}
+
+export const TimesheetMatrixGrid = React.forwardRef<
   TimesheetMatrixGridHandle,
   TimesheetMatrixGridProps
 >(
@@ -81,7 +214,7 @@ export const TimesheetMatrixGrid = forwardRef<
     }, [daysInMonth, year, month]);
 
     // Real attendance code resolver using O(1) indexed attendanceMap
-    const getEmployeeDayCode = useCallback((empId: string, day: number, isWeekend: boolean) => {
+    const getEmployeeDayCode = React.useCallback((empId: string, day: number, isWeekend: boolean) => {
       if (attendanceMap) {
         const dateStr = formatDayKey(year, month, day);
         const cellKey = makeTimesheetCellKey(empId, dateStr);
@@ -94,7 +227,7 @@ export const TimesheetMatrixGrid = forwardRef<
 
     const registeredCodes = useMemo(() => getAllAttendanceCodes(), []);
 
-    const handleExportMatrixCSV = useCallback(() => {
+    const handleExportMatrixCSV = React.useCallback(() => {
       const headers = [
         "Mã NV",
         "Họ và tên",
@@ -116,12 +249,8 @@ export const TimesheetMatrixGrid = forwardRef<
         });
         const payableDays = workDays + leaveDays;
 
-        const empCode = emp.employee_id_number === ""
-          ? (emp as { employee_code?: string }).employee_code ?? (emp.id ? emp.id.slice(0, 8) : "")
-          : emp.employee_id_number;
-        const deptName = emp.department_name === ""
-          ? (emp as { department?: string }).department ?? ""
-          : emp.department_name;
+        const empCode = emp.employee_id_number || (emp as { employee_code?: string }).employee_code || (emp.id ? emp.id.slice(0, 8) : "");
+        const deptName = emp.department_name || (emp as { department?: string }).department || "";
         return [
           `"${empCode}"`,
           `"${emp.full_name}"`,
@@ -159,186 +288,25 @@ export const TimesheetMatrixGrid = forwardRef<
         className="flex flex-col h-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-sm overflow-hidden animate-in fade-in duration-300"
         data-testid="timesheet-matrix-grid"
       >
-        {/* Header bar: info & legend toggle */}
-        <div className="flex flex-wrap items-center justify-between gap-4 px-5 py-3.5 border-b border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30">
-          <div className="flex items-center gap-2.5">
-            <span className="text-sm font-semibold text-slate-800 dark:text-slate-100">
-              {t("reports.timesheet_matrix_31_days", "Bảng công 31 ngày")}
-            </span>
-            <span className="text-xs font-medium text-slate-500 dark:text-slate-400">
-              • {employees.length} {t("reports.employees", "nhân viên")}
-            </span>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <Button
-              aria-label={t("reports.legend", "Bảng giải thích ký hiệu")}
-              className="flex items-center gap-1.5 text-xs text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 px-3 py-1.5 rounded-xl transition-all font-semibold normal-case tracking-normal"
-              onClick={() => {
-                setIsLegendOpen((prev) => !prev);
-              }}
-              variant="ghost"
-            >
-              <HelpCircle size={15} />
-              <span>{t("reports.legend", "Ký hiệu công")}</span>
-            </Button>
-          </div>
-        </div>
-
-        {/* Expandable Legend Bar */}
-        {isLegendOpen ? (
-          <div className="px-4 py-2.5 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/60 flex flex-wrap items-center gap-2 text-xs animate-in slide-in-from-top-2 duration-200">
-            <span className="font-semibold text-slate-700 dark:text-slate-200 shrink-0">
-              {t("reports.legend_rules", "Quy ước ký hiệu:")}
-            </span>
-            {registeredCodes.map((c) => (
-              <div
-                key={c.code}
-                title={c.description}
-              >
-                <span
-                  className={cn(
-                    "font-bold px-1.5 py-0.5 rounded text-[11px] border",
-                    c.badgeClass
-                  )}
-                >
-                  {c.code}
-                </span>
-                <span className="text-slate-600 dark:text-slate-300">{c.label}</span>
-              </div>
-            ))}
-          </div>
-        ) : null}
-
-        {/* Main Matrix Table */}
-        <div
-          className="flex-1 min-h-0 overflow-auto overscroll-contain"
-          onClickCapture={handleHorizontalDragClick}
-          ref={setHorizontalDragScrollRef}
-        >
-          {isLoading || isLoadingAttendance ? (
-            <div className="p-12 space-y-3">
-              {Array.from({ length: 6 }).map((_, i) => (
-                <Skeleton className="h-10 w-full rounded-xl" key={i} />
-              ))}
-            </div>
-          ) : employees.length === 0 ? (
-            <EmptyState
-              description={t("common.no_records_found")}
-              icon={<User className="w-10 h-10 text-slate-400" />}
-              title={t("common.no_records_found", "Không tìm thấy nhân viên")}
-            />
-          ) : (
-            <table className="w-full text-left border-collapse border-spacing-0 text-xs">
-              <thead>
-                <tr className="bg-slate-100/80 dark:bg-slate-800/80 sticky top-0 z-20 backdrop-blur-xs border-b border-slate-200 dark:border-slate-700">
-                  {/* Fixed Left Employee Column */}
-                  <th className="sticky left-0 z-30 bg-slate-100 dark:bg-slate-800 px-4 py-3 font-semibold text-slate-700 dark:text-slate-200 w-64 min-w-[16rem] border-r border-slate-200 dark:border-slate-700 shadow-xs">
-                    {t("reports.table.employee", "Nhân viên")}
-                  </th>
-
-                  {/* Day Columns */}
-                  {daysList.map((d) => (
-                    <th
-                      className={cn(
-                        "px-1.5 py-2 text-center font-medium min-w-[36px] w-[36px] border-r border-slate-200/60 dark:border-slate-700/60",
-                        d.isWeekend
-                          ? "bg-amber-500/10 dark:bg-amber-500/5 text-amber-700 dark:text-amber-300 font-bold"
-                          : "text-slate-600 dark:text-slate-300"
-                      )}
-                      key={d.dayNum}
-                    >
-                      <div className="text-[11px] leading-tight font-bold">{d.dayNum}</div>
-                      <div className="text-[9px] uppercase opacity-75">{d.dayName}</div>
-                    </th>
-                  ))}
-
-                  {/* Fixed Right Summary Header Columns */}
-                  <th className="sticky right-[112px] z-30 px-3 py-3 text-center font-semibold text-emerald-700 dark:text-emerald-300 bg-emerald-500/10 min-w-[56px] border-l border-slate-200 dark:border-slate-700 shadow-[-2px_0_5px_rgba(0,0,0,0.04)]">
-                    {t("reports.table.std_hours", "Công")}
-                  </th>
-                  <th className="sticky right-[56px] z-30 px-3 py-3 text-center font-semibold text-blue-700 dark:text-blue-300 bg-blue-500/10 min-w-[56px] shadow-[-2px_0_5px_rgba(0,0,0,0.04)]">
-                    {t("reports.table.leave_days", "Phép")}
-                  </th>
-                  <th className="sticky right-0 z-30 px-3 py-3 text-center font-semibold text-purple-700 dark:text-purple-300 bg-purple-500/10 min-w-[56px] shadow-[-2px_0_5px_rgba(0,0,0,0.04)]">
-                    {t("reports.table.total_hours", "Tổng tính")}
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                {employees.map((emp) => {
-                  let totalWork = 0;
-                  let totalLeave = 0;
-
-                  return (
-                    <tr
-                      className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors group"
-                      key={emp.id}
-                    >
-                      {/* Fixed Left Employee Cell using shared EmployeeIdentityCell */}
-                      <td className="sticky left-0 z-10 bg-white dark:bg-slate-900 group-hover:bg-slate-50 dark:group-hover:bg-slate-800 px-4 py-2 border-r border-slate-200 dark:border-slate-700 shadow-xs">
-                        <EmployeeIdentityCell
-                          avatarSize="sm"
-                          code={emp.employee_id_number === ""
-                            ? (emp as { employee_code?: string }).employee_code ?? (emp.id ? emp.id.slice(0, 8) : "—")
-                            : emp.employee_id_number}
-                          employerName={emp.department_name === ""
-                            ? (emp as { department?: string }).department ?? "Toàn công ty"
-                            : emp.department_name}
-                          name={emp.full_name}
-                          onClick={() => {
-                            onEmployeeClick?.(emp);
-                          }}
-                        />
-                      </td>
-
-                      {/* Day Cells */}
-                      {daysList.map((d) => {
-                        const config = getEmployeeDayCode(emp.id, d.dayNum, d.isWeekend);
-
-                        if (config.category === "work") {
-                          totalWork += config.paidMultiplier;
-                        } else if (config.category === "paid_leave") {
-                          totalLeave += config.paidMultiplier;
-                        }
-
-                        return (
-                          <td
-                            className={cn(
-                              "px-1 py-1.5 text-center border-r border-slate-100 dark:border-slate-800",
-                              d.isWeekend && "bg-amber-500/5 dark:bg-amber-500/5"
-                            )}
-                            key={d.dayNum}
-                          >
-                            <span
-                              className={cn(
-                                "inline-flex items-center justify-center w-7 h-6 rounded-md font-bold text-[10px] border shadow-2xs cursor-default select-none transition-transform hover:scale-110",
-                                config.badgeClass
-                              )}
-                              title={`${d.dayNum}/${month}/${year} (${d.dayName}): ${config.label} - ${config.description}`}
-                            >
-                              {config.code}
-                            </span>
-                          </td>
-                        );
-                      })}
-
-                      {/* Right Summary Totals */}
-                      <td className="sticky right-[112px] z-10 px-2 py-2 text-center font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-500/5 border-l border-slate-200 dark:border-slate-700 shadow-[-2px_0_5px_rgba(0,0,0,0.04)]">
-                        {totalWork.toFixed(1)}
-                      </td>
-                      <td className="sticky right-[56px] z-10 px-2 py-2 text-center font-bold text-blue-700 dark:text-blue-300 bg-blue-500/5 shadow-[-2px_0_5px_rgba(0,0,0,0.04)]">
-                        {totalLeave.toFixed(1)}
-                      </td>
-                      <td className="sticky right-0 z-10 px-2 py-2 text-center font-black text-purple-700 dark:text-purple-300 bg-purple-500/5 shadow-[-2px_0_5px_rgba(0,0,0,0.04)]">
-                        {(totalWork + totalLeave).toFixed(1)}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          )}
+        <TimesheetMatrixHeader
+          employeeCount={employees.length}
+          isLegendOpen={isLegendOpen}
+          onLegendToggle={() => { setIsLegendOpen((previous) => !previous); }}
+          registeredCodes={registeredCodes}
+          t={t}
+        />
+        <div className="flex-1 min-h-0 overflow-auto overscroll-contain" onClickCapture={handleHorizontalDragClick} ref={setHorizontalDragScrollRef}>
+          <TimesheetMatrixContent
+            daysList={daysList}
+            employees={employees}
+            getEmployeeDayCode={getEmployeeDayCode}
+            isLoading={isLoading}
+            isLoadingAttendance={isLoadingAttendance}
+            month={month}
+            onEmployeeClick={onEmployeeClick}
+            t={t}
+            year={year}
+          />
         </div>
       </div>
     );

@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 
 import { logError } from "@/lib/logger";
+import { maybeNull } from "@/types/api-overrides";
 
 const CHECK_INTERVAL_MS = 5 * 60 * 1000;
 const DISMISSED_VERSION_KEY = "dismissedVersion";
@@ -81,12 +82,12 @@ async function fetchServerBuildId(): Promise<string | null> {
       headers: { "Cache-Control": "no-cache" },
     });
     if (!res.ok) return null;
-    const contentType = res.headers?.get?.("content-type");
+    const contentType = maybeNull(res.headers)?.get("content-type");
     if (contentType && !contentType.includes("application/json")) {
       return null;
     }
-    const manifest = (await res.json()) as { buildId?: unknown };
-    if (typeof manifest.buildId === "string" && manifest.buildId.length > 0) {
+    const manifest = (await res.json()) as { buildId?: unknown } | null | undefined;
+    if (typeof manifest?.buildId === "string" && manifest.buildId.length > 0) {
       return manifest.buildId;
     }
     return null;

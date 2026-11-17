@@ -46,12 +46,12 @@ vi.mock("react-i18next", () => ({
 
 vi.mock("@/hooks/use-permissions", () => ({
   useMyPermissions: vi.fn(() => ({
-    hasPermission: (perm: string) => perm === "overtime:approve",
+    hasPermission: (perm: string) => perm === "overtime:approve" || perm === "employees:read",
     hasAnyPermission: () => true,
     hasScopedPermission: () => true,
     hasRole: () => true,
     isLoading: false,
-    permissions: ["overtime:approve"],
+    permissions: ["overtime:approve", "employees:read"],
     roles: ["admin"],
     managedDepartmentIds: null,
   })),
@@ -602,12 +602,12 @@ describe("OtApprovalsPage", () => {
   describe("Behalf Assignments Tab Integration", () => {
     it("hides Behalf tab by default", () => {
       vi.mocked(useMyPermissions).mockReturnValue({
-        hasPermission: (perm: string) => perm === "overtime:approve",
+        hasPermission: (perm: string) => perm === "overtime:approve" || perm === "employees:read",
         hasAnyPermission: () => true,
         hasScopedPermission: () => true,
         hasRole: () => true,
         isLoading: false,
-        permissions: ["overtime:approve"],
+        permissions: ["overtime:approve", "employees:read"],
         roles: ["admin"],
         managedDepartmentIds: null,
       });

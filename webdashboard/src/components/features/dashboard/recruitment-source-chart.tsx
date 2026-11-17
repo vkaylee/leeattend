@@ -6,6 +6,7 @@ import {
     BarChart,
     CartesianGrid,
     Legend,
+    Rectangle,
     Line,
     LineChart,
     ResponsiveContainer,
@@ -734,7 +735,7 @@ function RankingTab({ data, t }: { data: RecruitmentEffectivenessAnalytics; t: T
                         <Legend
                             wrapperStyle={{ fontSize: "9px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.15em" }}
                         />
-                        <Bar dataKey="value" radius={[0, 8, 8, 0]} />
+                        <Bar dataKey="value" radius={[0, 8, 8, 0]} shape={(props) => <Rectangle {...props} fill={chartData[props.index ?? 0]?.fill} />} />
                     </BarChart>
                 </ResponsiveContainer>
             </div>

@@ -6,6 +6,7 @@ import {
     Bar,
     BarChart,
     CartesianGrid,
+    Rectangle,
     ResponsiveContainer,
     Tooltip,
     XAxis,
@@ -106,7 +107,6 @@ export function ExecutiveCostPanel({ data, currency }: { data?: DashboardMetrics
       });
     }
     return rows;
-     
   }, [bars, metrics, t]);
 
   // Text-reported percent metric (approval rate) — kept off the hour axis.
@@ -115,7 +115,6 @@ export function ExecutiveCostPanel({ data, currency }: { data?: DashboardMetrics
     return HOUR_TEXT_METRICS
       .map((key) => metrics.get(key))
       .filter((metric): metric is DashboardMetric => metric !== undefined);
-     
   }, [view, metrics]);
 
   const columns: ChartTableColumn<BarRow>[] = [
@@ -209,6 +208,7 @@ export function ExecutiveCostPanel({ data, currency }: { data?: DashboardMetrics
                   dataKey="value"
                   name={barRows.map((r) => r.label).join(", ")}
                   radius={[6, 6, 0, 0]}
+                  shape={(props) => <Rectangle {...props} fill={barRows[props.index ?? 0]?.fill} />}
                 />
               </BarChart>
             </ResponsiveContainer>

@@ -176,6 +176,9 @@ services:
       context: ../webdashboard
       dockerfile: Dockerfile
       target: test
+    x-leedevkit-build-inputs:
+      - package.json
+      - bun.lock
     networks:
       - test_net
     working_dir: /workspace/webdashboard
@@ -211,6 +214,9 @@ services:
       context: ../webdashboard
       dockerfile: Dockerfile
       target: test
+    x-leedevkit-build-inputs:
+      - package.json
+      - bun.lock
     tty: true
     depends_on:
       bun_init:
