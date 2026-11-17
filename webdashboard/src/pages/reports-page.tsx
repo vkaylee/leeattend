@@ -135,7 +135,7 @@ export default function ReportsPage() {
     employerName: row.employer_name ?? t("common.employer"),
   }));
 
-  
+
 
   return (
     <div className="space-y-6 pb-20 animate-in fade-in duration-700" data-testid="reports-page">

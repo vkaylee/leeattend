@@ -125,7 +125,7 @@ export const useEmployeeColumns = ({
           <span className="inline-flex items-center">
             {t("common.department")}{renderSortIcon("department")}
           </span>
-          <DepartmentFilterHeader 
+          <DepartmentFilterHeader
             departments={departments}
             filterDeptIds={filterDeptIds}
             setFilterDeptIds={setFilterDeptIds}
