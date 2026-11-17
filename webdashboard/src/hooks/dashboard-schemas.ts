@@ -1,5 +1,10 @@
 import { dashboardMetricsResponseSchema } from "./dashboard-metric-contract";
 import {
+  overtimeBreakdownSchema,
+  recruitmentEffectivenessSchema,
+  turnoverAnalyticsSchema,
+} from "./dashboard-schemas-advanced";
+import {
   attendanceTrendSchema,
   departmentAttendanceSchema,
   latenessByDaySchema,
@@ -10,11 +15,6 @@ import {
   recruitmentSourceBreakdownSchema,
   unexcusedAbsencesSchema,
 } from "./dashboard-schemas-core";
-import {
-  overtimeBreakdownSchema,
-  recruitmentEffectivenessSchema,
-  turnoverAnalyticsSchema,
-} from "./dashboard-schemas-advanced";
 
 export {
   attendanceTrendSchema,

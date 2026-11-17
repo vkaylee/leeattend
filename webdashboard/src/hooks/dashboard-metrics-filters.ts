@@ -13,6 +13,7 @@ export {
   type DashboardRiskThreshold,
 } from "./dashboard-metrics-filter-types";
 
+import { canonicalFilterParts, isInvalidCustomRange } from "./dashboard-metrics-filter-helpers";
 import {
   DEFAULT_DASHBOARD_METRICS_FILTERS,
   parseDashboardComparison,
@@ -21,7 +22,6 @@ import {
   parseDashboardTopN,
   type DashboardMetricsFilters,
 } from "./dashboard-metrics-filter-types";
-import { canonicalFilterParts, isInvalidCustomRange } from "./dashboard-metrics-filter-helpers";
 
 export function canonicalizeDashboardMetricsFilters(
   filters: Partial<DashboardMetricsFilters>,
@@ -99,7 +99,9 @@ export function serializeDashboardMetricsFilters(
 }
 
 function appendValues(params: URLSearchParams, key: string, values: readonly string[]): void {
-  values.forEach((value) => params.append(key, value));
+  values.forEach((value) => {
+    params.append(key, value);
+  });
 }
 
 export function dashboardMetricsQuery(filters: DashboardMetricsFilters): string {

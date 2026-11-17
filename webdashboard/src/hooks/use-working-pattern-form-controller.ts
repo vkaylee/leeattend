@@ -28,7 +28,12 @@ function usePatternGridState() {
   const [patternType, setPatternType] = useState<"weekly" | "rotation">("weekly");
   const [cycleLengthDays, setCycleLengthDays] = useState(7);
   const [isDirty, setIsDirty] = useState(false);
-  const gridState = useWorkingPatternGrid({ initialLength: 7, onDirty: () => setIsDirty(true) });
+  const gridState = useWorkingPatternGrid({
+    initialLength: 7,
+    onDirty: () => {
+      setIsDirty(true);
+    },
+  });
 
   const handlePatternTypeChange = (type: "weekly" | "rotation") => {
     setPatternType(type);
@@ -65,7 +70,9 @@ function useCreatePatternMutation({ t, setIsDirty }: MutationParams) {
       setIsDirty(false);
       void navigate({ to: "/shifts/rules", search: { tab: "patterns" } });
     },
-    onError: () => toast.error(t("patterns.messages.create_error")),
+    onError: () => {
+      toast.error(t("patterns.messages.create_error"));
+    },
   });
 }
 
@@ -82,7 +89,9 @@ function useUpdatePatternMutation({ patternId, t, setIsDirty }: MutationParams) 
       setIsDirty(false);
       void navigate({ to: "/shifts/rules", search: { tab: "patterns" } });
     },
-    onError: () => toast.error(t("patterns.messages.update_error")),
+    onError: () => {
+      toast.error(t("patterns.messages.update_error"));
+    },
   });
 }
 
@@ -127,7 +136,10 @@ export function useWorkingPatternForm(patternId?: string) {
 
   const prefillStandard = () => {
     const firstShift = getFirstShiftId(shifts);
-    if (!firstShift) return toast.error(t("patterns.messages.no_shifts_available"));
+    if (!firstShift) {
+      toast.error(t("patterns.messages.no_shifts_available"));
+      return;
+    }
     gridState.prefillStandard(firstShift);
   };
   const createMutation = useCreatePatternMutation({ t, setIsDirty: gridState.setIsDirty });

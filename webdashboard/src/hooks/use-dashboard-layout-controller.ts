@@ -8,16 +8,16 @@ import {
   type DashboardPreferencesUpdate,
 } from "./dashboard-layout-api";
 import {
+  useDashboardLayoutActions,
+  type LocalOverrides,
+} from "./use-dashboard-layout-actions";
+import {
   ALL_WIDGETS,
   getActiveView,
   getCollapsedSections,
   getCurrentVisibleWidgets,
   getCurrentWidgetOrder,
 } from "./use-dashboard-layout-presets";
-import {
-  useDashboardLayoutActions,
-  type LocalOverrides,
-} from "./use-dashboard-layout-actions";
 
 export type { DashboardView, WidgetId } from "./use-dashboard-layout-presets";
 export { ALL_WIDGETS } from "./use-dashboard-layout-presets";
@@ -70,8 +70,12 @@ export function useDashboardLayout() {
   const startWrite = (write: PendingDashboardWrite): void => {
     activeWriteRef.current = write;
     void mutation.mutateAsync(write.update).then(
-      (data) => handleWriteSuccess(write, data),
-      (error: unknown) => handleWriteFailure(write, error),
+      (data) => {
+        handleWriteSuccess(write, data);
+      },
+      (error: unknown) => {
+        handleWriteFailure(write, error);
+      },
     );
   };
 

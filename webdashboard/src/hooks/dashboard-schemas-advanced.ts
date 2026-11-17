@@ -3,8 +3,8 @@ import { z } from "zod";
 import { rateQuantitySchema } from "./dashboard-schemas-core";
 
 const dateString = z.string().min(1);
-const count = z.number().finite();
-const nullableCount = z.number().finite().nullable();
+const count = z.number();
+const nullableCount = z.number().nullable();
 const nullableDecimal = z.string().nullable();
 
 const turnoverBucketSchema = z.object({ bucket: z.string(), count });
@@ -114,9 +114,9 @@ export const overtimeBreakdownSchema = z.object({
   rows: z.array(z.object({
     department_id: z.string().min(1),
     department_name: z.string().min(1),
-    system_ot_hours: z.number().finite(),
-    approved_ot_hours: z.number().finite(),
-    unapproved_ot_hours: z.number().finite(),
+    system_ot_hours: z.number(),
+    approved_ot_hours: z.number(),
+    unapproved_ot_hours: z.number(),
     overtime_cost: z.string().nullable(),
     cost_available: z.boolean(),
   })),

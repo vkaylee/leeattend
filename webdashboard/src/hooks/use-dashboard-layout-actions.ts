@@ -1,7 +1,9 @@
-import type { DashboardLayoutPreferences, DashboardView, WidgetId } from "./use-dashboard-layout-presets";
 import {
   getNewOrderForView,
   getNewVisibleForView,
+  type DashboardLayoutPreferences,
+  type DashboardView,
+  type WidgetId,
 } from "./use-dashboard-layout-presets";
 
 export type DashboardPreferencesUpdate = Partial<Omit<DashboardLayoutPreferences, "id" | "user_id">>;
@@ -21,11 +23,11 @@ interface EffectiveState {
 }
 
 interface DashboardLayoutActions {
+  resetToDefault: () => void;
   setActiveView: (view: DashboardView) => void;
   setWidgetOrder: (order: WidgetId[]) => void;
   toggleSection: (sectionId: string) => void;
   toggleWidget: (widgetId: WidgetId) => void;
-  resetToDefault: () => void;
 }
 
 export function useDashboardLayoutActions(

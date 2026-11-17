@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 const dateString = z.string().min(1);
-const count = z.number().finite();
+const count = z.number();
 
 export const rateQuantitySchema = z.object({
   value: z.string().nullable(),
