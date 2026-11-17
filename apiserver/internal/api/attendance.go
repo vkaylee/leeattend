@@ -102,27 +102,27 @@ type UpdateTimeEntryRequest struct {
 
 // AttendanceDailySummaryRecord models the JSON response for daily summaries.
 type AttendanceDailySummaryRecord struct {
-	ID                      uuid.UUID `json:"id"`
-	EmploymentID            uuid.UUID `json:"employment_id"`
-	Date                    string    `json:"date"`
-	ActualWorkMinutes       int       `json:"actual_work_minutes"`
-	StandardMinutes         int       `json:"standard_minutes"`
-	SystemDetectedOTMinutes int       `json:"system_detected_ot_minutes"`
-	ClaimedOTMinutes        int       `json:"claimed_ot_minutes"`
-	ApprovedOTMinutes       int       `json:"approved_ot_minutes"`
-	EarlyOTMinutes          int       `json:"early_ot_minutes"`
-	LateOTMinutes           int       `json:"late_ot_minutes"`
+	ID                      uuid.UUID  `json:"id"`
+	EmploymentID            uuid.UUID  `json:"employment_id"`
+	Date                    string     `json:"date"`
+	ActualWorkMinutes       int        `json:"actual_work_minutes"`
+	StandardMinutes         int        `json:"standard_minutes"`
+	SystemDetectedOTMinutes int        `json:"system_detected_ot_minutes"`
+	ClaimedOTMinutes        int        `json:"claimed_ot_minutes"`
+	ApprovedOTMinutes       int        `json:"approved_ot_minutes"`
+	EarlyOTMinutes          int        `json:"early_ot_minutes"`
+	LateOTMinutes           int        `json:"late_ot_minutes"`
 	BreakOTMinutes          int        `json:"break_ot_minutes"`
 	StandardCredits         float64    `json:"standard_credits"`
 	WorkPolicyVersionID     *uuid.UUID `json:"work_policy_version_id,omitempty"`
 	OTStatus                string     `json:"ot_status"`
-	OTReason                *string   `json:"ot_reason,omitempty"`
-	ManagerNote             *string   `json:"manager_note,omitempty"`
-	IsWeekend               bool      `json:"is_weekend"`
-	IsHoliday               bool      `json:"is_holiday"`
-	HolidayName             *string   `json:"holiday_name,omitempty"`
-	CreatedAt               time.Time `json:"created_at"`
-	UpdatedAt               time.Time `json:"updated_at"`
+	OTReason                *string    `json:"ot_reason,omitempty"`
+	ManagerNote             *string    `json:"manager_note,omitempty"`
+	IsWeekend               bool       `json:"is_weekend"`
+	IsHoliday               bool       `json:"is_holiday"`
+	HolidayName             *string    `json:"holiday_name,omitempty"`
+	CreatedAt               time.Time  `json:"created_at"`
+	UpdatedAt               time.Time  `json:"updated_at"`
 }
 
 // PaginatedSummaries wraps paginated attendance daily summaries.
