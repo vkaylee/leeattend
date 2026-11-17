@@ -1,6 +1,6 @@
 import type { TFunction } from "i18next";
 
-import { Plus, Calendar, History, Save, Calculator, AlertCircle, CheckCircle2 } from "lucide-react";
+import { AlertCircle, Calendar, Calculator, CheckCircle2, History, Plus } from "lucide-react";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -11,89 +11,13 @@ import { useHorizontalDragScroll } from "@/hooks/use-horizontal-drag-scroll";
 import { ConfigRecord } from "@/lib/api/types";
 import { cn } from "@/lib/utils";
 
+import { TemporalConfigAddForm } from "./temporal-config-add-form";
+
 interface Props {
   isLoading?: boolean;
   onSave: (data: { std_working_days: number; hours_per_day: number; max_ot_hours_per_day: number | null; max_ot_hours_per_month: number | null; effective_date: string }) => Promise<void>;
   records: ConfigRecord[];
   title: string;
-}
-
-interface TemporalConfigAddFormProps {
-  handleSave: () => Promise<void>;
-  newDays: number;
-  newEffectiveDate: string;
-  newHours: number;
-  newMaxOtDay: string;
-  newMaxOtMonth: string;
-  setIsAdding: (val: boolean) => void;
-  setNewDays: (val: number) => void;
-  setNewEffectiveDate: (val: string) => void;
-  setNewHours: (val: number) => void;
-  setNewMaxOtDay: (val: string) => void;
-  setNewMaxOtMonth: (val: string) => void;
-  t: TFunction;
-}
-
-function TemporalConfigAddForm({
-  newEffectiveDate,
-  setNewEffectiveDate,
-  newDays,
-  setNewDays,
-  newHours,
-  setNewHours,
-  newMaxOtDay,
-  setNewMaxOtDay,
-  newMaxOtMonth,
-  setNewMaxOtMonth,
-  setIsAdding,
-  handleSave,
-  t
-}: TemporalConfigAddFormProps) {
-  return (
-    <div className="bg-white dark:bg-slate-900 border-2 border-primary-100 dark:border-primary-800 rounded-[2.5rem] p-4 sm:p-8 shadow-xl shadow-primary-50/50 animate-in slide-in-from-top-4 duration-500">
-      <div className="flex items-center gap-3 mb-8 text-primary-700 dark:text-primary-300">
-        <div className="w-8 h-8 rounded-xl bg-primary-50 dark:bg-primary-950 flex items-center justify-center shadow-inner"><Plus size={16} /></div>
-        <Typography className="text-[10px] font-bold uppercase tracking-[0.2em]" variant="h4">{t("payroll.settings.add_version")}</Typography>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
-        <div className="space-y-3">
-          <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1" htmlFor="temporal-config-effective-date">{t("payroll.settings.effective_date")}</label>
-          <input className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl px-5 py-4 text-sm font-bold focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all" id="temporal-config-effective-date" onChange={e => { setNewEffectiveDate(e.target.value); }} type="date" value={newEffectiveDate} />
-        </div>
-        <div className="space-y-3">
-          <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1" htmlFor="temporal-config-std-days">{t("payroll.settings.std_days")}</label>
-          <input className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl px-5 py-4 text-sm font-bold focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all font-mono" id="temporal-config-std-days" onChange={e => { setNewDays(parseFloat(e.target.value)); }} type="number" value={newDays} />
-        </div>
-        <div className="space-y-3">
-          <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1" htmlFor="temporal-config-hours-per-day">{t("payroll.settings.hours_per_day")}</label>
-          <input className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl px-5 py-4 text-sm font-bold focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all font-mono" id="temporal-config-hours-per-day" onChange={e => { setNewHours(parseFloat(e.target.value)); }} type="number" value={newHours} />
-        </div>
-      </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
-        <div className="space-y-3">
-          <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1" htmlFor="temporal-config-max-ot-day">{t("payroll.settings.max_ot_hours_per_day")}</label>
-          <input className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl px-5 py-4 text-sm font-bold focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all font-mono" id="temporal-config-max-ot-day" onChange={e => { setNewMaxOtDay(e.target.value); }} placeholder={t("payroll.settings.no_limit") || ""} step="0.5" type="number" value={newMaxOtDay} />
-          <Typography className="text-[9px] text-slate-400 ml-1" variant="p">{t("payroll.settings.ot_empty_hint")}</Typography>
-        </div>
-        <div className="space-y-3">
-          <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1" htmlFor="temporal-config-max-ot-month">{t("payroll.settings.max_ot_hours_per_month")}</label>
-          <input className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl px-5 py-4 text-sm font-bold focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all font-mono" id="temporal-config-max-ot-month" onChange={e => { setNewMaxOtMonth(e.target.value); }} placeholder={t("payroll.settings.no_limit") || ""} step="0.5" type="number" value={newMaxOtMonth} />
-          <Typography className="text-[9px] text-slate-400 ml-1" variant="p">{t("payroll.settings.ot_empty_hint")}</Typography>
-        </div>
-      </div>
-
-      <div className="p-6 bg-amber-50 dark:bg-amber-950/50 border border-amber-100 dark:border-amber-800 rounded-[1.5rem] flex gap-4 mb-8 shadow-inner">
-        <AlertCircle className="w-6 h-6 text-amber-500 shrink-0" />
-        <Typography className="text-[10px] text-amber-800 leading-relaxed font-bold uppercase tracking-tight opacity-80" variant="p">{t("payroll.settings.date_warning")}</Typography>
-      </div>
-
-      <div className="flex justify-end gap-4">
-        <Button className="px-8 py-4 rounded-2xl font-bold text-[10px] uppercase tracking-widest text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all" onClick={() => { setIsAdding(false); }} variant="ghost">{t("common.cancel")}</Button>
-        <Button className="flex items-center gap-3 bg-primary-600 text-white px-10 py-4 rounded-2xl font-bold text-[10px] uppercase tracking-widest hover:bg-primary-700 transition-all shadow-xl shadow-primary-100 dark:shadow-black/30 active:scale-95" onClick={handleSave} variant="primary"><Save size={16} /> {t("common.save").toUpperCase()}</Button>
-      </div>
-    </div>
-  );
 }
 
 interface TemporalConfigTableContentProps {
@@ -173,31 +97,6 @@ function TemporalConfigStatusBadge({
   );
 }
 
-interface TemporalConfigLimitCellProps {
-  isActive: boolean;
-  limit: number | null;
-}
-
-function TemporalConfigLimitCell({ limit, isActive }: TemporalConfigLimitCellProps) {
-  const displayValue = limit != null ? `${limit}h` : "∞";
-  return (
-    <td className="px-8 py-6 text-right font-mono font-bold">
-      <span className={cn("text-sm", isActive ? "text-amber-600 dark:text-amber-400" : "text-slate-300 dark:text-slate-600")}>
-        {displayValue}
-      </span>
-    </td>
-  );
-}
-
-interface TemporalConfigRowProps {
-  activeIndex: number;
-  formatDate: (date: string) => string;
-  index: number;
-  now: Date;
-  record: ConfigRecord;
-  t: TFunction;
-}
-
 function TemporalConfigRow({
   record,
   index,
@@ -205,10 +104,16 @@ function TemporalConfigRow({
   now,
   t,
   formatDate,
-}: TemporalConfigRowProps) {
+}: {
+  activeIndex: number;
+  formatDate: (date: string) => string;
+  index: number;
+  now: Date;
+  record: ConfigRecord;
+  t: TFunction;
+}) {
   const isActive = index === activeIndex;
   const isFuture = new Date(record.effective_date) > now;
-  const effectiveDateText = record.is_virtual ? t("common.from_start") : formatDate(record.effective_date);
 
   return (
     <tr className={cn("group transition-all hover:bg-slate-50 dark:hover:bg-slate-800/50", isActive && "bg-emerald-50 dark:bg-emerald-950/30")}>
@@ -220,23 +125,11 @@ function TemporalConfigRow({
           t={t}
         />
       </td>
-      <td className="px-8 py-6">
-        <div className={cn("text-sm font-bold uppercase tracking-tight", isActive ? "text-slate-700 dark:text-slate-200" : "text-slate-500 dark:text-slate-400")}>
-          {effectiveDateText}
-        </div>
-      </td>
-      <td className="px-8 py-6 text-right font-mono font-bold">
-        <span className={cn("text-sm", isActive ? "text-primary-600 dark:text-primary-400" : "text-slate-500 dark:text-slate-400")}>
-          {record.std_working_days} {t("common.days_short")}
-        </span>
-      </td>
-      <td className="px-8 py-6 text-right font-mono font-bold">
-        <span className={cn("text-sm", isActive ? "text-slate-700 dark:text-slate-200" : "text-slate-300 dark:text-slate-600")}>
-          {record.hours_per_day}h / {t("common.day_short")}
-        </span>
-      </td>
-      <TemporalConfigLimitCell isActive={isActive} limit={record.max_ot_hours_per_day ?? null} />
-      <TemporalConfigLimitCell isActive={isActive} limit={record.max_ot_hours_per_month ?? null} />
+      <td className="px-8 py-6"><div className={cn("text-sm font-bold uppercase tracking-tight", isActive ? "text-slate-700 dark:text-slate-200" : "text-slate-500 dark:text-slate-400")}>{record.is_virtual ? t("common.from_start") : formatDate(record.effective_date)}</div></td>
+      <td className="px-8 py-6 text-right font-mono font-bold"><span className={cn("text-sm", isActive ? "text-primary-600 dark:text-primary-400" : "text-slate-500 dark:text-slate-400")}>{record.std_working_days} {t("common.days_short")}</span></td>
+      <td className="px-8 py-6 text-right font-mono font-bold"><span className={cn("text-sm", isActive ? "text-slate-700 dark:text-slate-200" : "text-slate-300 dark:text-slate-600")}>{record.hours_per_day}h / {t("common.day_short")}</span></td>
+      <td className="px-8 py-6 text-right font-mono font-bold"><span className={cn("text-sm", isActive ? "text-amber-600 dark:text-amber-400" : "text-slate-300 dark:text-slate-600")}>{record.max_ot_hours_per_day != null ? `${record.max_ot_hours_per_day}h` : "∞"}</span></td>
+      <td className="px-8 py-6 text-right font-mono font-bold"><span className={cn("text-sm", isActive ? "text-amber-600 dark:text-amber-400" : "text-slate-300 dark:text-slate-600")}>{record.max_ot_hours_per_month != null ? `${record.max_ot_hours_per_month}h` : "∞"}</span></td>
     </tr>
   );
 }
