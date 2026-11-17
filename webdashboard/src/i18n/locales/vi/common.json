@@ -784,6 +784,8 @@
       "impact_validation": "Kiểm tra chính sách trước khi xem tác động.",
       "unsaved_changes": "Thay đổi chưa lưu",
       "work_policy_conflict": "Chính sách đã thay đổi trên máy chủ. Kiểm tra phiên bản hiện tại rồi thử lại.",
+      "work_policy_membership_conflict": "Khoảng gán bị chồng lấn với membership hiện tại. Hãy làm mới danh sách và chọn khoảng không chồng lấn.",
+      "work_policy_membership_refresh": "Làm mới assignments hiện tại",
       "work_policy_credit_desc": "Số phút cho một công.",
       "work_policy_credit_section": "Chính sách công",
       "work_policy_overtime_desc": "Chính sách OT của phiên bản hiệu lực.",

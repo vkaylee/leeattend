@@ -784,6 +784,8 @@
       "impact_validation": "Validate policy before running impact preview.",
       "unsaved_changes": "Unsaved changes",
       "work_policy_conflict": "Policy changed on server. Review current versions, then retry your draft.",
+      "work_policy_membership_conflict": "Assignment overlaps a current membership. Refresh assignments and choose a non-overlapping range.",
+      "work_policy_membership_refresh": "Refresh current assignments",
       "work_policy_credit_desc": "Minutes per work credit.",
       "work_policy_credit_section": "Work credit policy",
       "work_policy_overtime_desc": "Overtime policy used for this effective version.",
