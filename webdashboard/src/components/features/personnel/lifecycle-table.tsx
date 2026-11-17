@@ -1,5 +1,3 @@
-import type { TFunction } from "i18next";
-
 import { Link } from "@tanstack/react-router";
 import {
   ArrowLeftRight,
@@ -22,9 +20,7 @@ import { useDateTimeFormatter } from "@/hooks/use-datetime";
 import { useHorizontalDragScroll } from "@/hooks/use-horizontal-drag-scroll";
 import { cn } from "@/lib/utils";
 
-import { formatChecklistTypeLabel } from "../employees/lifecycle-assign-modal";
-
-type Translation = TFunction;
+import { formatChecklistTypeLabel } from "../employees/lifecycle-formatters";
 
 function getTypeIcon(type: string): React.ReactNode {
   switch (type.toLowerCase()) {
@@ -118,7 +114,7 @@ function LifecycleMobileCard({
       </div>
 
       <div className="text-xs font-semibold text-slate-700 dark:text-slate-300 bg-slate-50 dark:bg-slate-800/40 px-3 py-2 rounded-xl flex items-center justify-between">
-        <span className="font-bold">{instance.template_name ?? formatChecklistTypeLabel(instance.checklist_type, t as Translation)}</span>
+        <span className="font-bold">{instance.template_name || formatChecklistTypeLabel(instance.checklist_type, t)}</span>
         <span className="text-[10px] text-slate-400 font-medium">
           {instance.completed_items}/{instance.total_items} {t("lifecycle.items_label", { defaultValue: "việc" })}
         </span>
@@ -329,7 +325,7 @@ export function LifecycleTable({
                         </div>
                         <div className="flex flex-col">
                           <span className="text-xs font-bold text-slate-700 dark:text-slate-200 uppercase tracking-wide">
-                            {c.template_name ?? formatChecklistTypeLabel(c.checklist_type, t)}
+                            {c.template_name || formatChecklistTypeLabel(c.checklist_type, t)}
                           </span>
                           <span className="text-[10px] text-slate-400 font-medium">
                             {formatChecklistTypeLabel(c.checklist_type, t)}

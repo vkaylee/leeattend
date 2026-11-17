@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { ClipboardList, UserCheck } from "lucide-react";
-import React, { useMemo, useState } from "react";
+import { useMemo, useState, type FormEvent } from "react";
 import { useTranslation } from "react-i18next";
 
 import { z } from "zod";
@@ -14,6 +14,8 @@ import { useAllEmployees } from "@/hooks/use-employees";
 import { lifecycleKeys, useLifecycleTemplates } from "@/hooks/use-lifecycle";
 import { createLifecycleChecklist, type Employee, type LifecycleChecklistTemplate } from "@/lib/api";
 
+import { formatChecklistTypeLabel } from "./lifecycle-formatters";
+
 const assignSchema = z.object({
   employment_id: z.string().min(1, "Vui lòng chọn nhân sự có hợp đồng lao động đang hoạt động"),
   template_id: z.string().min(1, "Vui lòng chọn mẫu quy trình checklist"),
@@ -24,21 +26,6 @@ export interface LifecycleAssignModalProps {
   employmentId?: string;
   isOpen: boolean;
   onClose: () => void;
-}
-
-export function formatChecklistTypeLabel(type: string, t: (k: string, opts?: { defaultValue?: string }) => string): string {
-  switch (type.toLowerCase()) {
-    case "onboarding":
-      return t("lifecycle.types.onboarding", { defaultValue: "Tiếp nhận nhân sự mới (Onboarding)" });
-    case "offboarding":
-      return t("lifecycle.types.offboarding", { defaultValue: "Bàn giao nghỉ việc (Offboarding)" });
-    case "probation_end":
-      return t("lifecycle.types.probation", { defaultValue: "Đánh giá hết thử việc (Probation)" });
-    case "transfer":
-      return t("lifecycle.types.transfer", { defaultValue: "Điều chuyển vị trí / luân chuyển (Transfer)" });
-    default:
-      return type.toUpperCase();
-  }
 }
 
 export default function LifecycleAssignModal({
@@ -80,8 +67,8 @@ export default function LifecycleAssignModal({
     return employees.find((emp: Employee) => emp.id === selectedEmployeeId);
   }, [employees, selectedEmployeeId, initialEmploymentId]);
 
-  const effectiveEmploymentId = initialEmploymentId || selectedEmployee?.active_employment_id || "";
-  const effectiveEmployeeName = initialEmployeeName || selectedEmployee?.full_name || "";
+  const effectiveEmploymentId = initialEmploymentId ?? selectedEmployee?.active_employment_id ?? "";
+  const effectiveEmployeeName = initialEmployeeName ?? selectedEmployee?.full_name ?? "";
 
   const mutation = useMutation({
     mutationFn: async () => {
@@ -104,11 +91,11 @@ export default function LifecycleAssignModal({
     },
     onError: (err: unknown) => {
       const error = err as Error;
-      setErrorMsg(error.message || "Không thể khởi tạo quy trình checklist");
+      setErrorMsg(error.message ?? "Không thể khởi tạo quy trình checklist");
     },
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!effectiveEmploymentId) {
       setErrorMsg(

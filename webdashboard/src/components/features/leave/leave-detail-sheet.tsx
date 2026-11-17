@@ -39,7 +39,7 @@ export function LeaveDetailSheet({
   if (!request) return null;
 
   const leaveType = leaveTypes.find((lt) => lt.id === request.leave_type_id);
-  const typeName = leaveType?.name || request.leave_type_id;
+  const typeName = leaveType?.name ?? request.leave_type_id;
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -161,7 +161,7 @@ export function LeaveDetailSheet({
             <span>{t("common.reason", "Lý do xin nghỉ")}</span>
           </div>
           <Typography className="text-sm text-foreground/90 whitespace-pre-wrap rounded-lg bg-muted/30 p-3 leading-relaxed" variant="p">
-            {request.reason || t("common.no_notes", "Không có ghi chú")}
+            {request.reason ?? t("common.no_notes", "Không có ghi chú")}
           </Typography>
         </div>
 

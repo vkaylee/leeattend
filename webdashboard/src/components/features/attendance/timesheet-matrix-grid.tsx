@@ -1,5 +1,5 @@
 import { HelpCircle, User } from "lucide-react";
-import React, { useImperativeHandle, useMemo, useState } from "react";
+import { forwardRef, useCallback, useImperativeHandle, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import type { DailyAttendanceReport } from "@/lib/api";
@@ -8,8 +8,9 @@ import { EmployeeIdentityCell } from "@/components/common/employee-identity-cell
 import Button from "@/components/ui/button";
 import EmptyState from "@/components/ui/empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useHorizontalDragScroll } from "@/hooks/use-horizontal-drag-scroll";
 import type { Employee } from "@/lib/api/types";
+
+import { useHorizontalDragScroll } from "@/hooks/use-horizontal-drag-scroll";
 import { cn } from "@/lib/utils";
 import { formatDayKey, makeTimesheetCellKey } from "@/pages/reports/hooks/use-monthly-timesheet-data";
 
@@ -348,8 +349,8 @@ interface MatrixRowProps {
 }
 
 interface DayCellData {
-  day: TimesheetDay;
   config: AttendanceCodeConfig;
+  day: TimesheetDay;
 }
 
 interface RowTotals {
@@ -391,15 +392,17 @@ function MatrixRow({
           code={getEmployeeCode(employee, "—")}
           employerName={getDepartmentName(employee, "Toàn công ty")}
           name={employee.full_name}
-          onClick={() => onEmployeeClick?.(employee)}
+          onClick={() => {
+            onEmployeeClick?.(employee);
+          }}
         />
       </td>
       {cells.map(({ day, config }) => (
-        <DayCell day={day} config={config} key={day.dayNum} month={month} year={year} />
+        <DayCell config={config} day={day} key={day.dayNum} month={month} year={year} />
       ))}
       <SummaryCell className="right-[112px]" tone="emerald" value={totals.work} />
       <SummaryCell className="right-[56px]" tone="blue" value={totals.leave} />
-      <SummaryCell className="right-0" tone="purple" value={totals.work + totals.leave} strong />
+      <SummaryCell className="right-0" strong tone="purple" value={totals.work + totals.leave} />
     </tr>
   );
 }
@@ -460,7 +463,7 @@ function SummaryCell({ className, strong = false, tone, value }: SummaryCellProp
   );
 }
 
-export const TimesheetMatrixGrid = React.forwardRef<
+export const TimesheetMatrixGrid = forwardRef<
   TimesheetMatrixGridHandle,
   TimesheetMatrixGridProps
 >(
@@ -486,7 +489,7 @@ export const TimesheetMatrixGrid = React.forwardRef<
       () => createDaysList(year, month, daysInMonth),
       [daysInMonth, month, year],
     );
-    const getEmployeeDayCode = React.useCallback<GetEmployeeDayCode>(
+    const getEmployeeDayCode = useCallback<GetEmployeeDayCode>(
       (employeeId, day, isWeekend) => {
         if (attendanceMap) {
           const dateStr = formatDayKey(year, month, day);
@@ -499,15 +502,16 @@ export const TimesheetMatrixGrid = React.forwardRef<
       },
       [attendanceMap, month, year],
     );
-    const handleExportMatrixCSV = React.useCallback(
-      () =>
+    const handleExportMatrixCSV = useCallback(
+      () => {
         downloadTimesheetCsv({
           daysList,
           employees,
           getEmployeeDayCode,
           month,
           year,
-        }),
+        });
+      },
       [daysList, employees, getEmployeeDayCode, month, year],
     );
 
@@ -520,7 +524,9 @@ export const TimesheetMatrixGrid = React.forwardRef<
       >
         <GridHeader
           employeeCount={employees.length}
-          onToggleLegend={() => setIsLegendOpen((previous) => !previous)}
+          onToggleLegend={() => {
+            setIsLegendOpen((previous) => !previous);
+          }}
         />
         {isLegendOpen ? <LegendBar /> : null}
         <div
