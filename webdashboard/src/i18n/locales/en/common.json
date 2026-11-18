@@ -711,6 +711,8 @@
         "dept_title": "Department Payroll Config",
         "effective_date": "Effective Date",
         "impact_evaluated_at": "Evaluated at",
+        "impact_expires_at": "Expires at",
+        "impact_expired": "Impact preview expired. Refresh before using it.",
         "fixed_days": "Fixed Work Days",
         "global_history": "System-wide Config History",
         "hours_per_day": "Std. Hours per Day",

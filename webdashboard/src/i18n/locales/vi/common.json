@@ -711,6 +711,8 @@
         "dept_title": "Cấu hình lương phòng ban",
         "effective_date": "Ngày có hiệu lực",
         "impact_evaluated_at": "Đánh giá lúc",
+        "impact_expires_at": "Hết hạn lúc",
+        "impact_expired": "Bản xem trước đã hết hạn. Hãy làm mới trước khi sử dụng.",
         "fixed_days": "Số ngày công cố định",
         "global_history": "Lịch sử cấu hình toàn hệ thống",
         "hours_per_day": "Số giờ làm việc chuẩn/ngày",
