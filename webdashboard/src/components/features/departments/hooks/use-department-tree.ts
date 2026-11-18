@@ -84,6 +84,7 @@ export function useDepartmentTree({
           manager_id: null,
           name: t("departments.virtual_root_name", { defaultValue: "ORGANIZATION" }),
           updated_at: new Date().toISOString(),
+          workspace_id: departments[0]?.workspace_id ?? "",
         },
         description: t("departments.virtual_root_description", { defaultValue: "Sơ đồ phòng ban doanh nghiệp" }),
         id: "virtual-root",
