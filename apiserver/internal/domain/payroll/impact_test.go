@@ -3,9 +3,16 @@ package payroll
 import (
 	"errors"
 	"testing"
+	"time"
 
 	"github.com/shopspring/decimal"
 )
+
+func TestImpactFreshnessTTLIsPositiveAndBounded(t *testing.T) {
+	if ImpactFreshnessTTL <= 0 || ImpactFreshnessTTL > time.Hour {
+		t.Fatalf("impact freshness TTL = %s, want >0 and <=1h", ImpactFreshnessTTL)
+	}
+}
 
 func TestCompareImpactReturnsPayAndUnitDeltas(t *testing.T) {
 	beforeBase := decimal.RequireFromString("1000")

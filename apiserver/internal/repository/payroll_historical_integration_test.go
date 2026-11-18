@@ -426,7 +426,7 @@ func TestIntegrationComparePayrollImpactBatchAggregatesWithoutMutation(t *testin
 	if err != nil {
 		t.Fatalf("compare batch impact: %v", err)
 	}
-	if result.Total != 1 || result.Computed != 1 || result.Affected != 1 || result.Uncomputable != 0 || len(result.Items) != 1 || result.Items[0].Delta == nil || !result.Items[0].Delta.NetPayDelta.Equal(decimal.RequireFromString("200")) || !result.Items[0].Stale || len(result.Items[0].StaleReasons) != 1 || result.Items[0].StaleReasons[0] != "current_policy_missing" {
+	if result.Total != 1 || result.Computed != 1 || result.Affected != 1 || result.Uncomputable != 0 || len(result.Items) != 1 || result.Items[0].Delta == nil || !result.Items[0].Delta.NetPayDelta.Equal(decimal.RequireFromString("200")) || !result.Items[0].Stale || len(result.Items[0].StaleReasons) != 1 || result.Items[0].StaleReasons[0] != "current_policy_missing" || result.EvaluatedAt == "" || result.ExpiresAt == "" || result.StaleAfterSeconds != 900 {
 		t.Fatalf("unexpected batch impact: %+v", result)
 	}
 	var payslipCount int

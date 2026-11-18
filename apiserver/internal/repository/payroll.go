@@ -1248,8 +1248,10 @@ ORDER BY employment_id, id`, req.EmploymentIDs, req.Year, req.Month, []uuid.UUID
 	if err != nil {
 		return api.PayrollImpactBatchResponse{}, err
 	}
-	evaluatedAt := time.Now().UTC().Format(time.RFC3339)
-	result := api.PayrollImpactBatchResponse{Total: len(req.EmploymentIDs), EvaluatedAt: evaluatedAt, Items: make([]api.PayrollImpactBatchItem, 0, len(req.EmploymentIDs))}
+	evaluated := time.Now().UTC()
+	evaluatedAt := evaluated.Format(time.RFC3339)
+	expiresAt := evaluated.Add(payroll.ImpactFreshnessTTL).Format(time.RFC3339)
+	result := api.PayrollImpactBatchResponse{Total: len(req.EmploymentIDs), EvaluatedAt: evaluatedAt, ExpiresAt: expiresAt, StaleAfterSeconds: int(payroll.ImpactFreshnessTTL / time.Second), Items: make([]api.PayrollImpactBatchItem, 0, len(req.EmploymentIDs))}
 	for _, employmentID := range req.EmploymentIDs {
 		item := api.PayrollImpactBatchItem{EmploymentID: employmentID}
 		before, beforeOK := runs[employmentID][req.BeforeRunID]
@@ -1376,8 +1378,9 @@ WHERE employment_id = $1 AND period_year = $2 AND period_month = $3 AND id = ANY
 	}
 	delta, err := payroll.CompareImpactSnapshots(before.input, before.output, after.input, after.output)
 	if errors.Is(err, payroll.ErrImpactSnapshotIncomplete) {
+		evaluated := time.Now().UTC()
 		return api.PayrollImpactResponse{
-			EmploymentID: uuid.UUID(employmentID), EvaluatedAt: time.Now().UTC().Format(time.RFC3339), PeriodYear: year, PeriodMonth: month,
+			EmploymentID: uuid.UUID(employmentID), EvaluatedAt: evaluated.Format(time.RFC3339), ExpiresAt: evaluated.Add(payroll.ImpactFreshnessTTL).Format(time.RFC3339), StaleAfterSeconds: int(payroll.ImpactFreshnessTTL / time.Second), PeriodYear: year, PeriodMonth: month,
 			BeforeRunID: beforeRunID, AfterRunID: afterRunID, Computed: false, Stale: stale, StaleReasons: staleReason,
 			Reason: "calculation output is incomplete",
 		}, nil
@@ -1388,8 +1391,9 @@ WHERE employment_id = $1 AND period_year = $2 AND period_month = $3 AND id = ANY
 	if err != nil {
 		return api.PayrollImpactResponse{}, err
 	}
+	evaluated := time.Now().UTC()
 	return api.PayrollImpactResponse{
-		EmploymentID: uuid.UUID(employmentID), EvaluatedAt: time.Now().UTC().Format(time.RFC3339), PeriodYear: year, PeriodMonth: month,
+		EmploymentID: uuid.UUID(employmentID), EvaluatedAt: evaluated.Format(time.RFC3339), ExpiresAt: evaluated.Add(payroll.ImpactFreshnessTTL).Format(time.RFC3339), StaleAfterSeconds: int(payroll.ImpactFreshnessTTL / time.Second), PeriodYear: year, PeriodMonth: month,
 		BeforeRunID: beforeRunID, AfterRunID: afterRunID, Computed: delta.Complete, Stale: stale, StaleReasons: staleReason,
 		Reason: delta.Reason, BasePayDelta: delta.BasePayDelta, OvertimePayDelta: delta.OvertimePayDelta,
 		DeductionsDelta: delta.DeductionsDelta, NetPayDelta: delta.NetPayDelta,

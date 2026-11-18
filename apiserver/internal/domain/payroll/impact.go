@@ -5,9 +5,12 @@ import (
 	"errors"
 	"reflect"
 	"strconv"
+	"time"
 
 	"github.com/shopspring/decimal"
 )
+
+const ImpactFreshnessTTL = 15 * time.Minute
 
 var (
 	ErrImpactSnapshotIncomplete = errors.New("payroll impact: snapshot is incomplete")

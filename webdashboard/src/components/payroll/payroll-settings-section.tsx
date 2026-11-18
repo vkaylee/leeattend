@@ -42,6 +42,7 @@ export default function PayrollSettingsSection({ onDirtyChange }: PayrollSetting
   const [impactForm, setImpactForm] = useState({ employment_ids: "", year: "2026", month: "1", before_run_id: "", after_run_id: "" });
   const [impactResult, setImpactResult] = useState<PayrollImpactBatchResponse>();
   const [impactError, setImpactError] = useState<string>();
+  const [now] = useState(Date.now);
   const [isLoadingImpact, setIsLoadingImpact] = useState(false);
 
   const { data: history = [], isLoading: isHistoryLoading } = useQuery({ queryKey: payrollKeys.settingsHistory(), queryFn: () => fetchPayrollSettingsHistory() });
@@ -427,7 +428,8 @@ export default function PayrollSettingsSection({ onDirtyChange }: PayrollSetting
         {impactError ? <Typography className="mt-3 text-sm text-red-700"role="alert" variant="p">{impactError}</Typography> : null}
         <Button className="mt-4" disabled={isLoadingImpact} onClick={() => void handleImpactPreview()} type="button">{isLoadingImpact ? t("common.loading", "Loading") : t("common.payroll.settings.impact_run", "Run impact preview")}</Button>
         {impactResult ? <div className="mt-5 grid gap-3 sm:grid-cols-4" role="status">
-          {impactResult.evaluated_at ? <Typography className="sm:col-span-4 text-xs text-slate-500" variant="p">{t("common.payroll.settings.impact_evaluated_at", "Evaluated at")}: {impactResult.evaluated_at}</Typography> : null}
+          {impactResult.evaluated_at ? <Typography className="sm:col-span-4 text-xs text-slate-500" variant="p">{t("common.payroll.settings.impact_evaluated_at", "Evaluated at")}: {impactResult.evaluated_at}{impactResult.expires_at ? ` · ${t("common.payroll.settings.impact_expires_at", "Expires at")}: ${impactResult.expires_at}` : ""}</Typography> : null}
+          {impactResult.expires_at && Date.parse(impactResult.expires_at) <= now ? <Typography className="sm:col-span-4 text-sm text-amber-700" role="alert" variant="p">{t("common.payroll.settings.impact_expired", "Impact preview expired. Refresh before using it.")}</Typography> : null}
           {(["total", "computed", "affected", "uncomputable"] as const).map((key) => <div className="rounded-lg border border-slate-200 p-3 dark:border-slate-800" key={key}><Typography className="text-xs text-slate-500"variant="p">{t(`common.payroll.settings.impact_${key}`, key)}</Typography><Typography className="text-xl font-bold"variant="p">{impactResult[key]}</Typography></div>)}
           <div className="sm:col-span-4 space-y-2 text-sm">{impactResult.items.map((item) => <div className="rounded-lg border border-slate-200 p-3 dark:border-slate-800" key={item.employment_id}><div className="flex flex-wrap justify-between gap-2"><span>{item.employment_id}</span><span>{item.computed ? t("common.payroll.settings.impact_computed", "Computed") : t("common.payroll.settings.impact_uncomputable", "Uncomputable")}{item.stale ? ` · ${t("common.payroll.settings.impact_stale", "Stale")}` : ""}</span></div>{item.stale_reasons?.length ? <Typography className="mt-1 text-amber-700"variant="p">{item.stale_reasons.join(", ")}</Typography> : null}{item.reason ? <Typography className="mt-1 text-red-700"variant="p">{item.reason}</Typography> : null}{item.delta ? <Typography className="mt-1 text-slate-600"variant="p">{t("common.payroll.settings.impact_net_delta", "Net delta")}: {item.delta.net_pay_delta}</Typography> : null}</div>)}</div>
         </div> : null}
