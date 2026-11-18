@@ -1248,7 +1248,8 @@ ORDER BY employment_id, id`, req.EmploymentIDs, req.Year, req.Month, []uuid.UUID
 	if err != nil {
 		return api.PayrollImpactBatchResponse{}, err
 	}
-	result := api.PayrollImpactBatchResponse{Total: len(req.EmploymentIDs), Items: make([]api.PayrollImpactBatchItem, 0, len(req.EmploymentIDs))}
+	evaluatedAt := time.Now().UTC().Format(time.RFC3339)
+	result := api.PayrollImpactBatchResponse{Total: len(req.EmploymentIDs), EvaluatedAt: evaluatedAt, Items: make([]api.PayrollImpactBatchItem, 0, len(req.EmploymentIDs))}
 	for _, employmentID := range req.EmploymentIDs {
 		item := api.PayrollImpactBatchItem{EmploymentID: employmentID}
 		before, beforeOK := runs[employmentID][req.BeforeRunID]
@@ -1271,7 +1272,7 @@ ORDER BY employment_id, id`, req.EmploymentIDs, req.Year, req.Month, []uuid.UUID
 			item.Stale = true
 			item.StaleReasons = reasons
 		}
-		item.Delta = &api.PayrollImpactResponse{EmploymentID: employmentID, PeriodYear: req.Year, PeriodMonth: req.Month, BeforeRunID: req.BeforeRunID, AfterRunID: req.AfterRunID, Computed: true, Stale: item.Stale, StaleReasons: item.StaleReasons, BasePayDelta: delta.BasePayDelta, OvertimePayDelta: delta.OvertimePayDelta, DeductionsDelta: delta.DeductionsDelta, NetPayDelta: delta.NetPayDelta, StandardUnitsDelta: delta.StandardUnitsDelta, OvertimeUnitsDelta: delta.OvertimeUnitsDelta}
+		item.Delta = &api.PayrollImpactResponse{EmploymentID: employmentID, EvaluatedAt: evaluatedAt, PeriodYear: req.Year, PeriodMonth: req.Month, BeforeRunID: req.BeforeRunID, AfterRunID: req.AfterRunID, Computed: true, Stale: item.Stale, StaleReasons: item.StaleReasons, BasePayDelta: delta.BasePayDelta, OvertimePayDelta: delta.OvertimePayDelta, DeductionsDelta: delta.DeductionsDelta, NetPayDelta: delta.NetPayDelta, StandardUnitsDelta: delta.StandardUnitsDelta, OvertimeUnitsDelta: delta.OvertimeUnitsDelta}
 		if !delta.BasePayDelta.IsZero() || !delta.OvertimePayDelta.IsZero() || !delta.DeductionsDelta.IsZero() || !delta.NetPayDelta.IsZero() || delta.StandardUnitsDelta != 0 || delta.OvertimeUnitsDelta != 0 {
 			result.Affected++
 		}
@@ -1376,7 +1377,7 @@ WHERE employment_id = $1 AND period_year = $2 AND period_month = $3 AND id = ANY
 	delta, err := payroll.CompareImpactSnapshots(before.input, before.output, after.input, after.output)
 	if errors.Is(err, payroll.ErrImpactSnapshotIncomplete) {
 		return api.PayrollImpactResponse{
-			EmploymentID: uuid.UUID(employmentID), PeriodYear: year, PeriodMonth: month,
+			EmploymentID: uuid.UUID(employmentID), EvaluatedAt: time.Now().UTC().Format(time.RFC3339), PeriodYear: year, PeriodMonth: month,
 			BeforeRunID: beforeRunID, AfterRunID: afterRunID, Computed: false, Stale: stale, StaleReasons: staleReason,
 			Reason: "calculation output is incomplete",
 		}, nil
@@ -1388,7 +1389,7 @@ WHERE employment_id = $1 AND period_year = $2 AND period_month = $3 AND id = ANY
 		return api.PayrollImpactResponse{}, err
 	}
 	return api.PayrollImpactResponse{
-		EmploymentID: uuid.UUID(employmentID), PeriodYear: year, PeriodMonth: month,
+		EmploymentID: uuid.UUID(employmentID), EvaluatedAt: time.Now().UTC().Format(time.RFC3339), PeriodYear: year, PeriodMonth: month,
 		BeforeRunID: beforeRunID, AfterRunID: afterRunID, Computed: delta.Complete, Stale: stale, StaleReasons: staleReason,
 		Reason: delta.Reason, BasePayDelta: delta.BasePayDelta, OvertimePayDelta: delta.OvertimePayDelta,
 		DeductionsDelta: delta.DeductionsDelta, NetPayDelta: delta.NetPayDelta,

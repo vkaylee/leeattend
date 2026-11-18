@@ -400,11 +400,13 @@ type PayrollImpactBatchResponse struct {
 	Computed     int                      `json:"computed"`
 	Affected     int                      `json:"affected"`
 	Uncomputable int                      `json:"uncomputable"`
+	EvaluatedAt  string                   `json:"evaluated_at"`
 	Items        []PayrollImpactBatchItem `json:"items"`
 }
 
 type PayrollImpactResponse struct {
 	EmploymentID       uuid.UUID       `json:"employment_id"`
+	EvaluatedAt        string          `json:"evaluated_at"`
 	PeriodYear         int             `json:"period_year"`
 	PeriodMonth        int             `json:"period_month"`
 	BeforeRunID        uuid.UUID       `json:"before_run_id"`
