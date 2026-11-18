@@ -233,7 +233,7 @@ func TestReportExportValidation(t *testing.T) {
 }
 
 func TestReportExportAcceptsOnlyXLSX(t *testing.T) {
-	for name, format, wantValid := range map[string]struct {
+	for name, testCase := range map[string]struct {
 		format    string
 		wantValid bool
 	}{
@@ -242,12 +242,12 @@ func TestReportExportAcceptsOnlyXLSX(t *testing.T) {
 		"csv format":     {format: "csv", wantValid: false},
 	} {
 		t.Run(name, func(t *testing.T) {
-			request := ExportReportRequest{ReportType: "summary", StartDate: "2026-01-01", EndDate: "2026-01-31", Format: format}
+			request := ExportReportRequest{ReportType: "summary", StartDate: "2026-01-01", EndDate: "2026-01-31", Format: testCase.format}
 			err := validateExportRequest(&request)
-			if (err == nil) != wantValid {
-				t.Fatalf("validation error = %v, want valid=%t", err, wantValid)
+			if (err == nil) != testCase.wantValid {
+				t.Fatalf("validation error = %v, want valid=%t", err, testCase.wantValid)
 			}
-			if wantValid && request.Format != "xlsx" {
+			if testCase.wantValid && request.Format != "xlsx" {
 				t.Fatalf("format = %q, want xlsx", request.Format)
 			}
 		})
