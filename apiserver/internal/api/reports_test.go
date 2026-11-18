@@ -232,6 +232,28 @@ func TestReportExportValidation(t *testing.T) {
 	}
 }
 
+func TestReportExportAcceptsOnlyXLSX(t *testing.T) {
+	for name, format, wantValid := range map[string]struct {
+		format    string
+		wantValid bool
+	}{
+		"default format": {format: "", wantValid: true},
+		"xlsx format":    {format: "xlsx", wantValid: true},
+		"csv format":     {format: "csv", wantValid: false},
+	} {
+		t.Run(name, func(t *testing.T) {
+			request := ExportReportRequest{ReportType: "summary", StartDate: "2026-01-01", EndDate: "2026-01-31", Format: format}
+			err := validateExportRequest(&request)
+			if (err == nil) != wantValid {
+				t.Fatalf("validation error = %v, want valid=%t", err, wantValid)
+			}
+			if wantValid && request.Format != "xlsx" {
+				t.Fatalf("format = %q, want xlsx", request.Format)
+			}
+		})
+	}
+}
+
 func TestReportJobNotFound(t *testing.T) {
 	queue := &mockReportQueue{Jobs: make(map[uuid.UUID]ReportJob)}
 	handler := ReportHandler{

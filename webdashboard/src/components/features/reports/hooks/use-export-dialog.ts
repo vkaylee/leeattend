@@ -108,7 +108,7 @@ export function useExportDialog({ isOpen,startDate, endDate, reportType, employe
   const handleStartExport = async () => {
     setPhase("starting"); setError(null);
     try {
-      const response = await createReportExportJob({ start_date: startDate, end_date: endDate, report_type: reportType, employee_ids: employeeIds });
+      const response = await createReportExportJob({ start_date: startDate, end_date: endDate, format: "xlsx", report_type: reportType, employee_ids: employeeIds });
       setJobId(response.job_id); setTotalBatches(response.total_batches);
     } catch (err) {
       setPhase("failed"); setError(err instanceof Error ? err.message : t("report_export.status.failed"));

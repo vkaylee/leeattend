@@ -14841,6 +14841,8 @@ components:
           type: string
         format:
           type: string
+          enum:
+            - xlsx
         report_type:
           type: string
         start_date:

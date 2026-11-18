@@ -3,7 +3,6 @@ package repository
 import (
 	"archive/zip"
 	"context"
-	"encoding/csv"
 	"encoding/json"
 	"encoding/xml"
 	"errors"
@@ -283,14 +282,6 @@ func encodeReportRows(rows []map[string]any, format, reportType string) ([]byte,
 			}
 		}
 		records = append(records, record)
-	}
-	if format == "csv" {
-		var builder strings.Builder
-		writer := csv.NewWriter(&builder)
-		if err := writer.WriteAll(records); err != nil {
-			return nil, "", err
-		}
-		return []byte(builder.String()), "attendance-" + reportType + ".csv", nil
 	}
 	return xlsxBytes(records), "attendance-" + reportType + ".xlsx", nil
 }

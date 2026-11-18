@@ -66,7 +66,7 @@ func TestIntegrationReportWorkerConsumesRedisJobAndStoresResult(t *testing.T) {
 			ReportType: "detail",
 			StartDate:  "2026-06-01",
 			EndDate:    "2026-06-30",
-			Format:     "csv",
+			Format:     "xlsx",
 			TenureSnapshots: []api.ExportTenureSnapshot{{
 				EmployeeID: uuid.MustParse("00000000-0000-0000-0000-000000000101"), EmployeeNumber: "old-1541", StartDate: "2026-01-01",
 			}},

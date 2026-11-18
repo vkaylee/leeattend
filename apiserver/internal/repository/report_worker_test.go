@@ -1,8 +1,11 @@
 package repository
 
 import (
+	"archive/zip"
+	"bytes"
 	"context"
 	"encoding/json"
+	"io"
 	"strings"
 	"testing"
 
@@ -67,16 +70,37 @@ func (r reportWorkerPageRepository) GetAttendanceReport(_ context.Context, filte
 	return api.PaginatedReportResponse{Data: data, Total: 3001, Page: filter.Page, Limit: filter.Limit}, err
 }
 
-func TestReportWorkerCSVOutputPreservesRows(t *testing.T) {
-	data, filename, err := encodeReportRows([]map[string]any{{"employee_id_number": "old-1541", "status": "present"}}, "csv", "daily")
+func TestReportWorkerXLSXOutputPreservesRows(t *testing.T) {
+	data, filename, err := encodeReportRows([]map[string]any{{"employee_id_number": "old-1541", "status": "present"}}, "xlsx", "daily")
 	if err != nil {
 		t.Fatalf("encode report: %v", err)
 	}
-	if filename != "attendance-daily.csv" || !strings.Contains(string(data), "old-1541") {
+	if filename != "attendance-daily.xlsx" || !strings.HasPrefix(string(data), "PK") {
 		t.Fatalf("filename/data = %q/%q", filename, data)
 	}
-	var rows []map[string]any
-	if err := json.Unmarshal([]byte(`[{"employee_id_number":"old-1541"}]`), &rows); err != nil {
-		t.Fatal(err)
+	archive, err := zip.NewReader(bytes.NewReader(data), int64(len(data)))
+	if err != nil {
+		t.Fatalf("open xlsx archive: %v", err)
+	}
+	var workbook, sheet string
+	for _, file := range archive.File {
+		content, readErr := file.Open()
+		if readErr != nil {
+			t.Fatalf("open xlsx entry %s: %v", file.Name, readErr)
+		}
+		value, readErr := io.ReadAll(content)
+		_ = content.Close()
+		if readErr != nil {
+			t.Fatalf("read xlsx entry %s: %v", file.Name, readErr)
+		}
+		if file.Name == "xl/workbook.xml" {
+			workbook = string(value)
+		}
+		if file.Name == "xl/worksheets/sheet1.xml" {
+			sheet = string(value)
+		}
+	}
+	if !strings.Contains(workbook, `sheet name="Report"`) || !strings.Contains(sheet, "old-1541") {
+		t.Fatalf("xlsx workbook/sheet missing report data")
 	}
 }

@@ -545,12 +545,10 @@ func intersectUUIDs(a, b []uuid.UUID) []uuid.UUID {
 }
 
 func validateExportRequest(request *ExportReportRequest) error {
-	if request.ReportType != "summary" && request.ReportType != "detail" || request.Format != "" && request.Format != "xlsx" && request.Format != "csv" {
+	if request.ReportType != "summary" && request.ReportType != "detail" || request.Format != "" && request.Format != "xlsx" {
 		return ErrReportValidation
 	}
-	if request.Format == "" {
-		request.Format = "xlsx"
-	}
+	request.Format = "xlsx"
 	start, startErr := time.Parse("2006-01-02", request.StartDate)
 	end, endErr := time.Parse("2006-01-02", request.EndDate)
 	if startErr != nil || endErr != nil || end.Before(start) || end.Sub(start) > 366*24*time.Hour {

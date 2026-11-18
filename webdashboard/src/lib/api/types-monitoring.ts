@@ -267,6 +267,7 @@ export interface ReportExportJob {
 export interface CreateReportExportRequest {
   employee_ids?: string[];
   end_date: string;
+  format?: "xlsx";
   report_type: "summary" | "detail";
   start_date: string;
 }
