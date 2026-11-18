@@ -342,6 +342,7 @@ export async function retirePayrollFormulaRule(ruleId: string): Promise<PayrollF
 }
 
 export interface PayrollImpactResponse {
+  evaluated_at?: string;
   after_run_id: string;
   base_pay_delta: string;
   before_run_id: string;
@@ -369,6 +370,7 @@ export interface PayrollImpactBatchItem {
 }
 
 export interface PayrollImpactBatchResponse {
+  evaluated_at?: string;
   affected: number;
   computed: number;
   items: PayrollImpactBatchItem[];
