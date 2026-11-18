@@ -12,6 +12,7 @@ async function globalSetup(config: FullConfig) {
   await page.evaluate(({ user }) => {
     localStorage.setItem('access_token', 'mock-access-token');
     localStorage.setItem('refresh_token', 'mock-refresh-token');
+    localStorage.setItem('leeattend.authenticated', '1');
     localStorage.setItem('active_user_id', user.id);
     localStorage.setItem('currentUser', JSON.stringify(user));
     localStorage.setItem('e2e_test_mode', 'true');

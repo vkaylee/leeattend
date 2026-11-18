@@ -14,8 +14,8 @@ test.describe("Responsive layout contracts", () => {
   const isDesktop = (testInfo: { project: { metadata?: { category?: string } } }) =>
     categoryOf(testInfo) === "desktop";
 
-  const usesMobileChrome = (testInfo: { project: { metadata?: { category?: string } } }) =>
-    categoryOf(testInfo) === "mobile" || categoryOf(testInfo) === "tablet";
+  const usesMobileChrome = (testInfo: { project: { metadata?: { category?: string }; use?: { viewport?: { width?: number } } } }) =>
+    (testInfo.project.use?.viewport?.width ?? 0) < 1024;
 
   test("uses sidebar and topbar navigation across viewports", async ({ page }, testInfo) => {
     const topbar = page.getByTestId("topbar-container");
