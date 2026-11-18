@@ -1573,7 +1573,7 @@ func (h *PayrollHandler) CalculateBatchPayroll(w http.ResponseWriter, r *http.Re
 	if len(req.EmploymentIDs) == 0 && len(req.EmployeeIDs) > 0 {
 		req.EmploymentIDs = req.EmployeeIDs
 	}
-	if len(req.EmploymentIDs) == 0 || len(req.EmploymentIDs) > 500 {
+	if len(req.EmploymentIDs) == 0 || len(req.EmploymentIDs) > 500 || hasDuplicateUUIDs(req.EmploymentIDs) {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}

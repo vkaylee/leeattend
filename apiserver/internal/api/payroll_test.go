@@ -1559,6 +1559,19 @@ func TestPayrollImpactEndpointEnforcesSensitiveReadAndValidatesRuns(t *testing.T
 	}
 }
 
+func TestPayrollBatchRejectsDuplicateEmploymentIDs(t *testing.T) {
+	userID := uuid.New()
+	employmentID := uuid.New()
+	handler := PayrollHandler{Repository: mockPayrollRepository{}, Authorizer: payrollAuthorizer{allowedPerms: map[string]bool{"payroll:calculate": true}}}
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/payroll/calculate-batch", bytes.NewBufferString(`{"employment_ids":["`+employmentID.String()+`","`+employmentID.String()+`"],"year":2026,"month":1}`))
+	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), userID))
+	rec := httptest.NewRecorder()
+	handler.CalculateBatchPayroll(rec, req)
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("duplicate batch IDs status = %d, want 400", rec.Code)
+	}
+}
+
 func TestPayrollCalculationEndpoints(t *testing.T) {
 	calcAuthorizer := payrollAuthorizer{
 		isMember:     true,
