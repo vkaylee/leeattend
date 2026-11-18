@@ -12,7 +12,7 @@ services:
       PGTZ: ${TZ:-Asia/Ho_Chi_Minh}
     volumes:
       - postgres_dev_data_v18:/var/lib/postgresql
-    networks: [backend_net]
+    networks: [backend]
   pgbouncer:
     image: ${PGBOUNCER_IMAGE:-edoburu/pgbouncer:v1.26.1-p0}
     restart: unless-stopped
@@ -31,7 +31,7 @@ services:
       CLIENT_TLS_SSLMODE: disable
       SERVER_TLS_SSLMODE: disable
     volumes: []
-    networks: [backend_net]
+    networks: [backend]
     depends_on:
       db:
         condition: service_healthy
@@ -41,7 +41,7 @@ services:
     command: ["redis-server"]
     volumes:
       - redis_dev_data:/data
-    networks: [backend_net]
+    networks: [backend]
 
   redisinsight:
     image: ghcr.io/redis-developer/redisinsight:latest
@@ -49,7 +49,7 @@ services:
     profiles: ["manual"]
     ports:
       - "5540:5540"
-    networks: [backend_net]
+    networks: [backend]
     environment:
       RI_REDIS_HOST: redis
       RI_REDIS_PORT: 6379
@@ -66,7 +66,7 @@ services:
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-development-password}
     volumes:
       - minio_dev_data:/data
-    networks: [backend_net]
+    networks: [backend]
     healthcheck:
       test: "curl -fsS http://localhost:9000/health/ready >/dev/null"
       interval: 10s
@@ -77,7 +77,7 @@ services:
     pull_policy: missing
     ports:
       - "8978:8978"
-    networks: [backend_net]
+    networks: [backend]
     environment:
       DB_NAME: ${DB_NAME:-leeattend}
       DB_USER: ${DB_USER:-postgres}
@@ -106,7 +106,7 @@ services:
       PGPASSWORD: ${DB_PASSWORD:-postgres}
     volumes:
       - .:/workspace:ro
-    networks: [backend_net]
+    networks: [backend]
     depends_on:
       pgbouncer:
         condition: service_healthy
@@ -119,7 +119,8 @@ services:
       APP_ENV: development
       APP_HOST: 0.0.0.0
       APP_PORT: "3000"
-      GOCACHE: /tmp/go-build
+      GOCACHE: /go/tmp-cache
+      GOTMPDIR: /go/tmp
       DB_PRIMARY_URL: postgres://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@pgbouncer:6432/${DB_NAME:-leeattend}
       DB_POOLER_TX_URL: postgres://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@pgbouncer:6432/${DB_NAME:-leeattend}
       DB_POOLER_SESS_URL: postgres://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@pgbouncer:6432/${DB_NAME:-leeattend}
@@ -140,12 +141,16 @@ services:
       S3_SECRET_KEY: ${MINIO_ROOT_PASSWORD:-development-password}
       S3_USE_PATH_STYLE: "true"
     read_only: false
-    dns:
-      - 10.255.255.254
+    # Keep dependency cache persistent; do not move build/temp paths to disk.
     volumes:
       - .:/app
       - go-module-cache:/go/pkg/mod
-    networks: [backend_net, frontend_net]
+    # Go compiles and runs from these paths. RAM avoids disk writes; exec is
+    # required because Kiri mounts tmpfs as noexec unless explicitly overridden.
+    tmpfs:
+      - /go/tmp-cache:exec
+      - /go/tmp:exec
+    networks: [backend, frontend]
     depends_on:
       db-migrate:
         condition: service_completed_successfully
@@ -172,7 +177,7 @@ services:
     environment:
       VITE_API_URL: http://apiserver:3000/api
       CHOKIDAR_USEPOLLING: "true"
-    networks: [frontend_net]
+    networks: [frontend]
     volumes:
       - ./webdashboard:/app
       - webdashboard-node-modules:/app/node_modules
@@ -182,7 +187,7 @@ services:
     image: public.ecr.aws/docker/library/caddy:alpine
     pull_policy: missing
     restart: unless-stopped
-    networks: [frontend_net]
+    networks: [frontend]
     depends_on:
       apiserver:
         condition: service_healthy
@@ -218,14 +223,18 @@ services:
       - /root/.cache
       - /root/.config
       - /root/.local
-    networks: [frontend_net]
+    networks: [frontend]
 
 
 networks:
-  backend_net:
-    name: ${COMPOSE_PROJECT_NAME:-leedevkit-dev}_backend
-  frontend_net:
-    name: ${COMPOSE_PROJECT_NAME:-leedevkit-dev}_frontend
+  # Dev services need outbound access for Go module downloads and image tooling.
+  # Keep these distinct from production's internal-only networks.
+  backend:
+    name: ${COMPOSE_PROJECT_NAME:-leedevkit-dev}_dev_backend
+    internal: false
+  frontend:
+    name: ${COMPOSE_PROJECT_NAME:-leedevkit-dev}_dev_frontend
+    internal: false
 
 volumes:
   postgres_dev_data_v18:
