@@ -55,7 +55,11 @@ export type BatchCalculatePayrollResponse = components["schemas"]["BatchCalculat
 export type EmployeeDepartmentHistory = components["schemas"]["EmployeeDepartmentHistory"];
 export type ShiftRoster = components["schemas"]["ShiftRoster"];
 export type AttendanceImportJob = components["schemas"]["AttendanceImportJob"];
-export type LeaveTypeConfig = { approval_required?: boolean; requires_document?: boolean; allow_negative_balance?: boolean };
+export interface LeaveTypeConfig {
+  approval_required?: boolean;
+  requires_document?: boolean;
+  allow_negative_balance?: boolean;
+}
 export type LeaveType = components["schemas"]["LeaveType"];
 export type AssignmentHistory = components["schemas"]["AssignmentHistory"];
 export type LeaveHistoryItem = components["schemas"]["LeaveHistoryItem"];

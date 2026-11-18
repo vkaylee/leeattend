@@ -40,6 +40,7 @@ type CreateEmployeeRequest struct {
 	FullName          string     `json:"full_name"`
 	EmployeeIDNumber  string     `json:"employee_id_number"`
 	HireDate          string     `json:"hire_date"`
+	UserID            *uuid.UUID `json:"user_id"`
 	PrimaryLocationID *uuid.UUID `json:"primary_location_id"`
 	EmployerID        *uuid.UUID `json:"employer_id"`
 	DepartmentID      *uuid.UUID `json:"department_id"`

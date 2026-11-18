@@ -12290,6 +12290,9 @@ components:
           type: array
           items:
             type: string
+        user_id:
+          type: string
+          nullable: true
     CreateEmployerRequest:
       properties:
         business_type:

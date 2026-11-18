@@ -5926,6 +5926,7 @@ export interface components {
             hire_date?: string;
             primary_location_id?: string | null;
             tags?: string[];
+            user_id?: string | null;
         };
         CreateEmployerRequest: {
             business_type?: string | null;

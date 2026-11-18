@@ -7,7 +7,11 @@ import Modal from "@/components/ui/modal";
 import { Typography } from "@/components/ui/typography";
 import { LeaveType } from "@/lib/api/types";
 
-type LeaveTypeConfig = { approval_required: boolean; requires_document: boolean; allow_negative_balance: boolean };
+interface LeaveTypeConfig {
+  approval_required: boolean;
+  requires_document: boolean;
+  allow_negative_balance: boolean;
+}
 import { cn } from "@/lib/utils";
 
 interface ToggleRowProps {

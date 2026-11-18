@@ -48,11 +48,11 @@ func (r EmployeeRepository) CreateEmployee(ctx context.Context, req api.CreateEm
 	var record api.EmployeeRecord
 	err = service.WithTx(ctx, beginner, func(ctx context.Context, tx pgx.Tx) error {
 		var createdAt, updatedAt time.Time
-		if err := tx.QueryRow(ctx, `INSERT INTO employees (employee_id_number, full_name, tags, hire_date, original_hire_date) VALUES ($1, $2, $3, $4::date, $4::date) RETURNING id, user_id, full_name, employee_id_number, tags, created_at, updated_at`, strings.TrimSpace(req.EmployeeIDNumber), strings.TrimSpace(req.FullName), req.Tags, req.HireDate).
+		if err := tx.QueryRow(ctx, `INSERT INTO employees (employee_id_number, user_id, full_name, tags, hire_date, original_hire_date) VALUES ($1, $2, $3, $4, $5::date, $5::date) RETURNING id, user_id, full_name, employee_id_number, tags, created_at, updated_at`, strings.TrimSpace(req.EmployeeIDNumber), req.UserID, strings.TrimSpace(req.FullName), req.Tags, req.HireDate).
 			Scan(&record.ID, &record.UserID, &record.FullName, &record.EmployeeIDNumber, &record.Tags, &createdAt, &updatedAt); err != nil {
 			return mapConstraintError(err)
 		}
-		if err := tx.QueryRow(ctx, `INSERT INTO employee_tenures (employee_id, employee_number, start_date) VALUES ($1, $2, $3::date) RETURNING id`, record.ID, record.EmployeeIDNumber, req.HireDate).Scan(new(uuid.UUID)); err != nil {
+		if err := tx.QueryRow(ctx, `INSERT INTO employee_tenures (employee_id, user_id, employee_number, start_date) VALUES ($1, $2, $3, $4::date) RETURNING id`, record.ID, req.UserID, record.EmployeeIDNumber, req.HireDate).Scan(new(uuid.UUID)); err != nil {
 			return mapConstraintError(err)
 		}
 		if req.EmployerID != nil {

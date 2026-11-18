@@ -38,6 +38,16 @@ type mockEmployeeRepo struct{}
 func (mockEmployeeRepo) CreateEmployee(_ context.Context, req CreateEmployeeRequest) (EmployeeRecord, error) {
 	return EmployeeRecord{ID: uuid.New(), FullName: req.FullName, EmployeeIDNumber: req.EmployeeIDNumber}, nil
 }
+
+type captureCreateRepo struct {
+	mockEmployeeRepo
+	request CreateEmployeeRequest
+}
+
+func (m *captureCreateRepo) CreateEmployee(_ context.Context, request CreateEmployeeRequest) (EmployeeRecord, error) {
+	m.request = request
+	return EmployeeRecord{ID: uuid.New(), FullName: request.FullName, EmployeeIDNumber: request.EmployeeIDNumber}, nil
+}
 func (mockEmployeeRepo) ListEmployees(_ context.Context, page, limit int, _ string) (EmployeeListResponse, error) {
 	return EmployeeListResponse{Data: []EmployeeRecord{{ID: uuid.New(), FullName: "Emp"}}, Total: 1, Page: page, Limit: limit}, nil
 }
@@ -64,6 +74,23 @@ type captureRehireRepo struct {
 func (m *captureRehireRepo) RehireEmployee(_ context.Context, empID uuid.UUID, request RehireEmployeeRequest) (EmployeeRecord, error) {
 	m.request = request
 	return EmployeeRecord{ID: empID, FullName: "Rehired"}, nil
+}
+
+func TestEmployeeHandler_CreatePreservesOptionalUserID(t *testing.T) {
+	repo := &captureCreateRepo{}
+	userID := uuid.New()
+	h := EmployeeHandler{Repository: repo, Authorizer: employeeSliceAuthorizer{perms: map[string]bool{"employees:create": true}}}
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/employees", bytes.NewBufferString(`{"full_name":"New Emp","employee_id_number":"EMP-100","hire_date":"2025-01-01","user_id":"`+userID.String()+`"}`))
+	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
+	rec := httptest.NewRecorder()
+
+	h.Create(rec, req)
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("expected 201, got %d: %s", rec.Code, rec.Body.String())
+	}
+	if repo.request.UserID == nil || *repo.request.UserID != userID {
+		t.Fatalf("create user_id = %v, want %s", repo.request.UserID, userID)
+	}
 }
 
 func TestEmployeeHandler_RehireAcceptsOptionalEmployeeNumber(t *testing.T) {
