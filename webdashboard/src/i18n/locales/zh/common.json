@@ -2404,6 +2404,9 @@
     }
   },
   "ess": {
+    "ot": {
+      "profile_unavailable": "员工资料不可用。"
+    },
     "punchOutSuccess": "Đã ghi nhận tan ca",
     "punchInSuccess": "Đã ghi nhận vào ca thành công",
     "punchErrorDesc": "Vui lòng thử lại hoặc kiểm tra kết nối mạng",

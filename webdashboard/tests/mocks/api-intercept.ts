@@ -161,6 +161,11 @@ export async function setupApiMocks(page: Page) {
       });
     };
 
+    // Runtime feature flags: enable ESS for authenticated E2E route coverage.
+    if (pathname === '/api/feature-flags/effective') {
+      return fulfill([{ key: 'ff_ess', enabled: true }, { key: 'ff_econtracts', enabled: true }]);
+    }
+
     // 1. Health check
     if (pathname === '/api/health') {
       return fulfill({ status: "ok" });

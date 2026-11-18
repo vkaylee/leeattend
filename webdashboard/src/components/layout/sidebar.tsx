@@ -136,7 +136,7 @@ function SidebarBrand({
       {isMobileOpen && onMobileClose ? (
         <Button
           aria-label="Close navigation"
-          className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground xl:hidden"
+          className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground lg:hidden"
           data-testid="sidebar-mobile-close-btn"
           onClick={onMobileClose}
           size="sm"
@@ -261,7 +261,7 @@ function SidebarFooter({
       <Button
         aria-label={isCollapsed ? expandLabel : collapseLabel}
         className={cn(
-          "w-full text-muted-foreground hover:text-foreground hover:bg-muted transition-colors hidden xl:flex items-center",
+          "w-full text-muted-foreground hover:text-foreground hover:bg-muted transition-colors hidden lg:flex items-center",
           isCollapsed ? "justify-center px-0 h-9" : "justify-between px-2.5 h-9"
         )}
         data-testid="sidebar-toggle-btn"
@@ -315,7 +315,7 @@ function MobileDrawer({ isOpen, onClose, children }: { isOpen: boolean; onClose?
   return (
     <div
       aria-modal="true"
-      className="fixed inset-0 z-50 flex xl:hidden"
+      className="fixed inset-0 z-50 flex lg:hidden"
       data-testid="sidebar-mobile-drawer"
       role="dialog"
     >
@@ -367,7 +367,7 @@ export function Sidebar({
       <aside
         aria-label="Application Sidebar"
         className={cn(
-          "hidden xl:flex flex-col border-r border-border bg-card transition-all duration-200 ease-in-out shrink-0 select-none h-dvh",
+          "hidden lg:flex flex-col border-r border-border bg-card transition-all duration-200 ease-in-out shrink-0 select-none h-dvh",
           isCollapsed ? "w-16" : "w-64"
         )}
         data-collapsed={isCollapsed}

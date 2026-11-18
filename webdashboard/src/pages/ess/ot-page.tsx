@@ -20,7 +20,19 @@ export default function EssOtPage() {
 
   const { data: assignments, isLoading: loadingAssignments } = useMyOtAssignments(employee?.active_employment_id ?? undefined);
 
-  if (!employeeId) return null;
+  if (!employeeId) {
+    return (
+      <PageContainer>
+        <PageHeader
+          data-testid="ess-ot-title"
+          icon={<Clock size={24} />}
+          subtitle={t("ess.ot.subtitle", { defaultValue: "Request overtime or respond to assignments" })}
+          title={t("ess.ot.title", { defaultValue: "My Overtime" })}
+        />
+        <MyOtAssignmentsList assignments={[]} isLoading={false} />
+      </PageContainer>
+    );
+  }
 
   return (
     <PageContainer>

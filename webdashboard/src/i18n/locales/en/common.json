@@ -2401,6 +2401,9 @@
     }
   },
   "ess": {
+    "ot": {
+      "profile_unavailable": "Employee profile is unavailable."
+    },
     "punchOutSuccess": "Clock-out recorded successfully",
     "punchInSuccess": "Clock-in recorded successfully",
     "punchErrorDesc": "Please try again or check your network connection",

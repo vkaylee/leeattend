@@ -63,7 +63,7 @@ describe("Sidebar Layout Component", () => {
 
     const sidebar = screen.getByTestId("sidebar-container");
     expect(sidebar).toBeInTheDocument();
-    expect(sidebar).toHaveClass("w-64", "xl:flex");
+    expect(sidebar).toHaveClass("w-64", "lg:flex");
     expect(screen.getByText("LeeAttend")).toBeInTheDocument();
     expect(screen.getByText("Acme Corp")).toBeInTheDocument();
     expect(screen.getByTestId("sidebar-link-dashboard")).toBeInTheDocument();
@@ -121,7 +121,7 @@ describe("Sidebar Layout Component", () => {
       />
     );
 
-    expect(screen.getByTestId("sidebar-mobile-drawer")).toHaveClass("xl:hidden");
+    expect(screen.getByTestId("sidebar-mobile-drawer")).toHaveClass("lg:hidden");
     const drawer = screen.getByTestId("sidebar-mobile-drawer");
     expect(drawer).toBeInTheDocument();
 

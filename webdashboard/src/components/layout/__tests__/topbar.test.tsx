@@ -112,7 +112,7 @@ describe("Topbar Layout Component", () => {
 
     const mobileBtn = screen.getByTestId("topbar-mobile-menu-btn");
     expect(mobileBtn).toBeInTheDocument();
-    expect(mobileBtn).toHaveClass("xl:hidden");
+    expect(mobileBtn).toHaveClass("lg:hidden");
     fireEvent.click(mobileBtn);
     expect(onOpenMobileMenu).toHaveBeenCalledTimes(1);
   });
@@ -156,7 +156,7 @@ describe("Topbar Layout Component", () => {
     const backBtn = screen.getByTestId("topbar-back-btn");
     expect(backBtn).toBeInTheDocument();
     expect(backBtn).toHaveAttribute("href", "/");
-    expect(backBtn).toHaveClass("xl:hidden");
+    expect(backBtn).toHaveClass("lg:hidden");
     expect(screen.queryByTestId("topbar-mobile-menu-btn")).not.toBeInTheDocument();
   });
 });

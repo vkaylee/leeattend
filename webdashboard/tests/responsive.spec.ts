@@ -14,12 +14,15 @@ test.describe("Responsive layout contracts", () => {
   const isDesktop = (testInfo: { project: { metadata?: { category?: string } } }) =>
     categoryOf(testInfo) === "desktop";
 
+  const usesMobileChrome = (testInfo: { project: { metadata?: { category?: string } } }) =>
+    categoryOf(testInfo) === "mobile" || categoryOf(testInfo) === "tablet";
+
   test("uses sidebar and topbar navigation across viewports", async ({ page }, testInfo) => {
     const topbar = page.getByTestId("topbar-container");
     const sidebar = page.getByTestId("sidebar-container");
 
     await expect(topbar).toBeVisible();
-    if (isMobile(testInfo)) {
+    if (usesMobileChrome(testInfo)) {
       await expect(sidebar).toBeHidden();
       await expect(page.getByTestId("topbar-mobile-menu-btn")).toBeVisible();
     } else {
