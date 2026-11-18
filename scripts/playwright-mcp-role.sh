@@ -6,10 +6,14 @@ source "$ROOT/scripts/playwright-timeout.sh"
 playwright_timeout_init
 
 SUPERVISED=false
-if [[ "${1:-}" == --supervised ]]; then
-  SUPERVISED=true
+BUILD=false
+while [[ "${1:-}" == --supervised || "${1:-}" == --build ]]; do
+  case "$1" in
+    --supervised) SUPERVISED=true ;;
+    --build) BUILD=true ;;
+  esac
   shift
-fi
+done
 
 ROLE="${PLAYWRIGHT_ROLE:-employee}"
 if [[ "${1:-}" != --* && -n "${1:-}" ]]; then
@@ -25,7 +29,7 @@ case "$ROLE" in
 esac
 
 if [[ "${1:-}" != --endpoint || -z "${2:-}" ]]; then
-  printf '%s\n' 'Usage: playwright-mcp-role.sh ROLE --endpoint ENDPOINT [MCP_ARGS...]' >&2
+  printf '%s\n' 'Usage: playwright-mcp-role.sh [--build] ROLE --endpoint ENDPOINT [MCP_ARGS...]' >&2
   exit 2
 fi
 ENDPOINT="$2"
@@ -71,6 +75,21 @@ PY
 )"
 ROLE_INSTRUCTIONS="Use Playwright MCP only for UI tasks. This browser session starts unauthenticated; open ${ENDPOINT}/login before authentication. ${ROLE_GUIDANCE} Never bypass application authorization or inspect secrets, cookies, or storage tokens. ${VIEWPORT_GUIDANCE}"
 
+if [[ "$SUPERVISED" == false && "$BUILD" == true ]]; then
+  if [[ -n "${DOCKER_COMPOSE_CMD:-}" ]]; then
+    read -r -a COMPOSE <<<"${DOCKER_COMPOSE_CMD}"
+  elif command -v podman-compose >/dev/null 2>&1; then
+    COMPOSE=(podman-compose)
+  elif command -v docker >/dev/null 2>&1; then
+    COMPOSE=(docker compose)
+  else
+    printf '%s\n' 'No supported Compose engine found.' >&2
+    exit 1
+  fi
+  PLAYWRIGHT_COMPOSE=("${COMPOSE[@]}" -p leedevkit-dev -f "$ROOT/.compose/docker-compose.dev.yml" --profile mcp)
+  playwright_timeout_run "${PLAYWRIGHT_COMPOSE[@]}" build playwright-mcp </dev/null >&2
+fi
+
 if [[ "$SUPERVISED" == false ]]; then
   PYTHON="$ROOT/.venv/bin/python3"
   if [[ ! -x "$PYTHON" ]]; then
@@ -79,6 +98,7 @@ if [[ "$SUPERVISED" == false ]]; then
   fi
   exec "$PYTHON" "$ROOT/scripts/playwright-idle-watchdog.py" \
     --idle-seconds "${PLAYWRIGHT_MCP_IDLE_TIMEOUT_SECS:-10}" \
+    --session-idle-seconds "${PLAYWRIGHT_MCP_SESSION_IDLE_TIMEOUT_SECS:-300}" \
     --initialize-instructions "$ROLE_INSTRUCTIONS" \
     -- bash "$ROOT/scripts/playwright-mcp-role.sh" --supervised "$ROLE" --endpoint "$ENDPOINT" "$@"
 fi
@@ -113,7 +133,22 @@ MCP_COMMAND=(
 
 
 PLAYWRIGHT_COMPOSE=("${COMPOSE[@]}" -p leedevkit-dev -f "$ROOT/.compose/docker-compose.dev.yml" --profile mcp)
-playwright_build_image_if_missing "localhost/leedevkit-dev_playwright-mcp:latest" "${PLAYWRIGHT_COMPOSE[@]}"
+IMAGE="localhost/leedevkit-dev_playwright-mcp:latest"
+if [[ "$BUILD" == true ]]; then
+  playwright_timeout_run "${PLAYWRIGHT_COMPOSE[@]}" build playwright-mcp </dev/null >&2
+elif [[ "${COMPOSE[0]}" == podman-compose || "${COMPOSE[0]}" == podman ]]; then
+  podman image exists "$IMAGE" || {
+    printf 'Playwright MCP image missing: %s\n' "$IMAGE" >&2
+    printf 'Build it with: %s --build %s --endpoint %s\n' "$0" "$ROLE" "$ENDPOINT" >&2
+    exit 1
+  }
+else
+  docker image inspect "$IMAGE" >/dev/null 2>&1 || {
+    printf 'Playwright MCP image missing: %s\n' "$IMAGE" >&2
+    printf 'Build it with: %s --build %s --endpoint %s\n' "$0" "$ROLE" "$ENDPOINT" >&2
+    exit 1
+  }
+fi
 exec "${PLAYWRIGHT_COMPOSE[@]}" \
   "${RUN_ARGS[@]}" playwright-mcp \
   "${MCP_COMMAND[@]}"

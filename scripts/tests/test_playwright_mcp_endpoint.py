@@ -47,6 +47,85 @@ def test_wrapper_selects_role_from_environment(tmp_path: Path) -> None:
     assert args_file.exists()
 
 
+def test_wrapper_requires_explicit_build_for_missing_image(tmp_path: Path) -> None:
+    compose = tmp_path / "compose"
+    docker = tmp_path / "docker"
+    compose_args = tmp_path / "compose-args"
+    compose.write_text('#!/bin/sh\nprintf "%s\\n" "$@" > "$COMPOSE_ARGS_FILE"\n')
+    docker.write_text('#!/bin/sh\nexit 1\n')
+    compose.chmod(0o755)
+    docker.chmod(0o755)
+
+    result = subprocess.run(
+        ["bash", str(WRAPPER), "--supervised", "employee", "--endpoint", "http://example.com"],
+        cwd=ROOT,
+        env={
+            **os.environ,
+            "PATH": f"{tmp_path}:{os.environ['PATH']}",
+            "DOCKER_COMPOSE_CMD": str(compose),
+            "COMPOSE_ARGS_FILE": str(compose_args),
+        },
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+    assert result.returncode == 1
+    assert "Playwright MCP image missing" in result.stderr
+    assert not compose_args.exists()
+
+
+def test_wrapper_builds_only_with_explicit_flag(tmp_path: Path) -> None:
+    compose = tmp_path / "compose"
+    docker = tmp_path / "docker"
+    args_file = tmp_path / "compose-args"
+    compose.write_text('#!/bin/sh\nprintf "%s\\n" "$@" >> "$COMPOSE_ARGS_FILE"\n')
+    docker.write_text('#!/bin/sh\nexit 0\n')
+    compose.chmod(0o755)
+    docker.chmod(0o755)
+
+    result = subprocess.run(
+        ["bash", str(WRAPPER), "--build", "--supervised", "employee", "--endpoint", "http://example.com"],
+        cwd=ROOT,
+        env={
+            **os.environ,
+            "PATH": f"{tmp_path}:{os.environ['PATH']}",
+            "DOCKER_COMPOSE_CMD": str(compose),
+            "COMPOSE_ARGS_FILE": str(args_file),
+        },
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+    assert result.returncode == 0, result.stderr
+    args = args_file.read_text().splitlines()
+    assert args.count("build") == 1
+    assert "playwright-mcp" in args
+
+
+def test_wrapper_passes_session_idle_timeout_to_watchdog(tmp_path: Path) -> None:
+    compose = tmp_path / "compose"
+    compose.write_text('#!/bin/sh\nexit 0\n')
+    compose.chmod(0o755)
+
+    result = subprocess.run(
+        ["bash", str(WRAPPER), "employee", "--endpoint", "http://example.com"],
+        cwd=ROOT,
+        env={
+            **os.environ,
+            "DOCKER_COMPOSE_CMD": str(compose),
+            "PLAYWRIGHT_MCP_SESSION_IDLE_TIMEOUT_SECS": "0",
+        },
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+    assert result.returncode == 2
+    assert "--session-idle-seconds" in result.stderr
+
+
 def test_wrapper_rejects_unknown_environment_role(tmp_path: Path) -> None:
     compose = tmp_path / "compose"
     compose.write_text('#!/bin/sh\nexit 0\n')
