@@ -1,5 +1,5 @@
 [devkit]
-version = "0.9.1"
+version = "0.10.0"
 install = "per-project"
 source = "release"
 
@@ -42,6 +42,9 @@ int-api = ["apiserver"]
 lint-go = ["apiserver"]
 unit-go = ["apiserver"]
 int-go = ["apiserver"]
+lint-web = ["bun_init", "webdashboard"]
+unit-web = ["bun_init", "webdashboard"]
+e2e-web = ["bun_init", "webdashboard"]
 
 [ai]
 rules_dir = ".agent/rules"
