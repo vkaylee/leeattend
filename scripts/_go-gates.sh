@@ -141,8 +141,8 @@ if [ "$INTEGRATION" = "true" ]; then
         --set=seed_effective_date="$(date -u +%F)" < "$PROJECT_ROOT/apiserver/migrations/phases/runtime_seeds.up.sql" \
         || fail "migration phase runtime_seeds"
     "${PROFILE_COMPOSE[@]}" exec -T db psql -v ON_ERROR_STOP=1 -U test_user -d test_database \
-        -f /workspace/apiserver/migrations/testdata/phased_schema_contract.sql \
-        || fail "phased schema contract"
+        < "$PROJECT_ROOT/apiserver/migrations/testdata/phased_schema_contract.sql" \
+        || { echo "GATE FAIL: phased schema contract" >&2; exit 1; }
     exec "${PROFILE_COMPOSE[@]}" exec -T -w /workspace/apiserver "$SERVICE" \
         env MODE="$MODE" PACKAGE="$PACKAGE" FIX="$FIX" FORMAT_FILE="$FORMAT_FILE" TEST_PATTERN="$TEST_PATTERN" LINT_BASE_COMMIT="$LINT_BASE_COMMIT" LINT_GO_CHANGED="$LINT_GO_CHANGED" bash -c "$GATES"
 fi
