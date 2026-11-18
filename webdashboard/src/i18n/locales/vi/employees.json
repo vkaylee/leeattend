@@ -426,7 +426,7 @@
       "no_history_desc": "Dữ liệu lịch sử lương và các thành phần phụ cấp của nhân viên sẽ xuất hiện tại đây khi được cập nhật.",
       "fetch_error": "Không thể tải lịch sử lương."
     },
-    "select_workspace": "Vui lòng chọn tổ chức",
+    "select_organization": "Vui lòng chọn tổ chức",
     "hire_date": "Ngày vào làm",
     "bulk_import_title": "Nhập nhân viên hàng loạt",
     "bulk_import_btn": "Nhập từ File",

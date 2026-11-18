@@ -10,7 +10,7 @@ import { cn } from "@/lib/utils";
 export function HistoryItemRow({ item }: { item: LeaveHistoryItem }) {
   const { t } = useTranslation();
   const { formatDate } = useDateTimeFormatter();
-  const isPositive = item.amount > 0;
+  const isPositive = Number(item.amount) > 0;
 
   return (
     <div className="flex items-center gap-4 p-4 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl hover:border-primary-100 dark:border-primary-800 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-all group">

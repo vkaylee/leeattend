@@ -18,6 +18,7 @@ import { cn } from "@/lib/utils";
 import { WorkingPatternCalendarPreview } from "@/pages/attendance/components/working-pattern-calendar-preview";
 import { WorkingPatternDesignEditor } from "@/pages/attendance/components/working-pattern-design-editor";
 import { WorkingPatternSettingsSidebar } from "@/pages/attendance/components/working-pattern-settings-sidebar";
+import type { UpdateWorkingPatternRequest } from "@/lib/api/types";
 
 /* eslint-disable complexity, max-lines-per-function */
 export default function WorkingPatternsEditorPage() {
@@ -73,7 +74,7 @@ export default function WorkingPatternsEditorPage() {
     };
 
     if (isEditMode) {
-      updatePattern(payload);
+      updatePattern(payload as UpdateWorkingPatternRequest);
     } else {
       createPattern(payload);
     }

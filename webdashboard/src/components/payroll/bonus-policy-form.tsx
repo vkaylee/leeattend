@@ -160,7 +160,7 @@ export function BonusPolicyForm({ onCancel, onSave, isPending }: BonusPolicyForm
       effective_from: effectiveFrom,
       tiers: tiers.map(t => ({
         ...t,
-        payout_amount: t.payout_amount,
+        payout_amount: String(t.payout_amount),
         rule_config: t.rule_config
       }))
     });

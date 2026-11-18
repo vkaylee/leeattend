@@ -1,177 +1,100 @@
-# Background Worker Runner Architecture
+# Background Worker Runner
 
-This document describes the design, implementation, and operations of the background worker runner model in **LeeAttend**. The background system is responsible for handling long-running, resource-intensive, or asynchronous operations (e.g., generating report batches, importing employees/leaves, reprocessing attendance records, nightly maintenance) without blocking the responsive HTTP interface of the `apiserver`.
+## Scope
 
----
+LeeAttend runs background work inside the Go `apiserver` process. PostgreSQL remains authoritative for durable schedule work; Redis provides transport, cache, authentication state, rate limiting, and report progress/pub/sub. No separate worker container or Rust runtime is part of the current deployment.
 
-## 1. System Overview & Architecture
+## Runtime topology
 
-LeeAttend employs a distributed, asynchronous job-processing pipeline built around a **Postgres Outbox Pattern** for durability, a **Redis Queue** for fast delivery and horizontal scaling, and a **Semaphore-controlled Worker Pool** for execution.
-
-```
-                  ┌────────────────────────────────────────┐
-                  │            Client Request              │
-                  └───────────────────┬────────────────────┘
-                                      │ (HTTP POST)
-                                      ▼
-                        ┌───────────────────────────┐
-                        │      apiserver (Go)       │
-                        └─────────────┬─────────────┘
-                                      │
-               ┌──────────────────────┴──────────────────────┐
-               │ 1. Transaction                              │ 2. Async Enqueue
-               ▼                                             ▼
-  ┌─────────────────────────┐                   ┌─────────────────────────┐
-  │      PostgreSQL         │                   │      Redis Queue        │
-  │   (outbox_jobs table)   │                   │  (report:jobs:queue)    │
-  └─────────────────────────┘                   └────────────┬────────────┘
-               ▲                                             │
-               │                                             │ (BLPOP Poll)
-               │ (Update state / status)                     ▼
-               │                                ┌─────────────────────────┐
-               └────────────────────────────────┤     JobWorker Pool      │
-                                                └─────────────────────────┘
-                                                             │ (Execute Task)
-                                                             ▼
-                                                ┌─────────────────────────┐
-                                                │   Task-Specific Handler │
-                                                └─────────────────────────┘
+```text
+HTTP request
+  ├─ PostgreSQL outbox_jobs
+  │    └─ ScheduleOfficeWorker
+  │         ├─ claim with FOR UPDATE SKIP LOCKED
+  │         ├─ lease heartbeat and fencing token
+  │         ├─ publish official schedule work
+  │         └─ complete, retry, or dead-letter
+  └─ Redis report/import transport
+       ├─ report metadata, progress, result, Pub/Sub
+       └─ report worker consumes report jobs
 ```
 
----
+`organization_settings` is singleton organization context. Job identity does not contain a client-selected workspace or tenant ID. Business authorization still uses authenticated identity, permissions, ownership, employer, department, and employment boundaries.
 
-## 2. Core Components
+## PostgreSQL schedule outbox
 
-### 2.1. `ReportCoordinator`
-- **Location**: `apiserver/internal/service` report coordination package
-- **Role**: Coordinates distributed jobs, generates metadata, and splits large datasets into manageable micro-batches.
-- **Batching**: Splits massive operations (e.g., generating attendance reports for 7,000+ employees) into micro-batches of `BATCH_SIZE = 50`. Each batch handles up to 50 employees, which keeps peak memory consumption within a safe ~50MB limit per container.
+### `ScheduleOfficeWorker`
 
-### 2.2. `OutboxJobService`
-- **Location**: `apiserver/internal/service` outbox job service
-- **Role**: Standardized API for managing Postgres-persisted background jobs.
-- **Outbox Pattern**: Before enqueuing any job payload into Redis, the service writes the job's parameters and states directly to the PostgreSQL `outbox_jobs` table. This guarantees that jobs are never lost in case of a Redis failover or worker crash.
+Source: `apiserver/internal/service/schedule_office_worker.go`.
 
-### 2.3. `JobWorker` (Runner)
-- **Location**: `apiserver/internal/worker` runner package
-- **Role**: The main worker engine. It polls Redis queues using cancellation-aware asynchronous `BLPOP` loops, dynamically routes tasks to their corresponding handlers, and updates status metrics.
-- **Concurrency**: Governed by a bounded worker pool to cap concurrent execution and protect workers from out-of-memory (OOM) crashes.
+- Scans the bounded schedule horizon on startup and every 15 minutes.
+- Claims `ScheduleOfficeCoverageRefresh` jobs through `ScheduleOfficeOutboxStore`.
+- Uses a five-minute lease and one-minute heartbeat.
+- Validates payloads before publication.
+- Publishes official schedule work through the schedule repository.
+- Completes only while the lease token is still valid.
+- Routes malformed payloads, publisher failures, and lease loss through the failure path.
+- Publishes and removes worker heartbeats during lifecycle changes.
+- Shuts down through the application hook and drains the active processing path.
 
-### 2.4. `OutboxSweepScheduler`
-- **Location**: [`outbox_sweep.rs`](file:///home/elt1541/lee/leeattend/apiserver/src/worker/outbox_sweep.rs)
-- **Role**: A background reconciliation routine that acts as a reliability layer.
-- **Reconciliation**: Runs every **30 seconds** looking for stuck jobs older than **5 minutes** (jobs still in `pending` or `running` state). When a stuck job is found, it deserializes the saved Outbox payload and safely re-enqueues it to the Redis pipeline.
+### Outbox invariants
 
----
+Source: `apiserver/internal/repository/outbox.go`.
 
-## 3. Outbox State Transitions & Reconciliation
+- Enqueue is durable in PostgreSQL before work is considered accepted.
+- `ClaimScheduleOfficeJob` uses a transaction and `FOR UPDATE SKIP LOCKED`.
+- Pending jobs and expired processing leases are claimable.
+- Each claim increments attempts and receives a UUID lease token.
+- Heartbeat, completion, and failure require the current lease token.
+- Failed jobs retry with bounded backoff; exhausted jobs become `dead_letter`.
+- Dedupe keys prevent duplicate schedule coverage work.
+- A stale worker cannot complete a job after lease ownership changes.
 
-To ensure 100% execution guarantees, the background worker relies on a dual-database state tracking model:
+PostgreSQL schedule revisions, publication batches, evidence, and audit rows remain business truth. The outbox is transport/work scheduling, not the schedule lifecycle ledger.
 
-### 3.1. Job States in Postgres
-1. **`pending`**: Initial state immediately after the client requests an action. The outbox row is created in Postgres before pushing the ticket to Redis.
-2. **`running`**: Updated when a worker dequeues a task and begins processing or when the reconciliation loop initiates a re-enqueue.
-3. **`completed`**: Updated upon successful processing of the job (or after a batch-based job's final merge is finished).
-4. **`failed`**: Updated when a handler encounters an unrecoverable error or when a re-enqueue operation fails.
+## Redis report worker
 
-```
-       [ Client Request ]
-               │
-               ▼
-         ┌───────────┐
-         │  pending  │  (Postgres Record Created)
-         └─────┬─────┘
-               │ (Worker pops from Redis)
-               ▼
-         ┌───────────┐
-         │  running  │  (Worker Begins Execution)
-         └─────┬─────┘
-               │
-       ┌───────┴───────┐
-       ▼               ▼ (Succeeded)
- ┌───────────┐   ┌───────────┐
- │  failed   │   │ completed │
- └───────────┘   └───────────┘
-```
+Source: `apiserver/internal/repository/report_worker.go` and `reports.go`.
 
-### 3.2. Reconciliation Parameters
-- **Check Interval**: Runs every **30 seconds**.
-- **Stuck Threshold**: Jobs older than **5 minutes** (based on `updated_at` time stamp) that are in `pending` or `running` state.
-- **Payload Recovery**: For `AttendanceReport` jobs, the scheduler deserializes a structured payload containing `CreateJobRequest` and `requester_id`, updates the outbox state to `running` to prevent double-sweeping, and passes it to `ReportCoordinator::enqueue_report_job_internal` for re-enqueuing.
+- `ReportRepository.CreateExportJob` records the accepted report job.
+- `RedisReportQueue` publishes the report envelope to `worker:jobs:high` and stores report metadata.
+- `ReportWorker` consumes the high-priority queue with cancellation-aware `BLPOP`.
+- Large employee selections are chunked; report pages are read with bounded page size.
+- Progress and final result metadata are stored in Redis with expiry.
+- Report result streams use Redis Pub/Sub for WebSocket progress updates.
+- Invalid envelopes and invalid request IDs are ignored without executing work.
+- Redis outage follows the repository's explicit report availability/fallback policy; it must not be represented as fabricated success.
 
----
+Employee import also uses `EmployeeImportQueue` and has a synchronous database fallback for supported operations when Redis is unavailable. Do not remove these producers as part of workspace cleanup without a separate behavior migration and replacement consumer.
 
-## 4. Worker Configuration & Concurrency Control
+## Redis services unrelated to queue transport
 
-### 4.1. Concurrency Management
-Each worker process uses a bounded semaphore or worker-pool limit to control concurrent job handling.
-- **Permit Acquisition**: The worker loop acquires a permit from the semaphore *before* polling a job from Redis. If the maximum concurrency is reached, the worker suspends polling until in-flight jobs complete and release permits.
-- **Graceful Shutdown**: On cancellation signals, the runner attempts to acquire all permits to guarantee that all in-flight jobs complete safely before exiting.
+Redis remains required for:
 
-### 4.2. Configuration Environment Variables
-Configuration is loaded via `WorkerConfig::from_env()` with the following variables:
+- JWT/session revocation and token state.
+- Login and HTTP rate limiting.
+- Report metadata, results, and progress streams.
+- Worker heartbeat and monitor signals.
+- Supported import/report transport.
 
-| Environment Variable | Default Value | Purpose |
-|----------------------|---------------|---------|
-| `DB_WORKER_MAX_CONN` | `5` | Maximum concurrent jobs handled by a single worker process (`max_concurrent_jobs`). |
-| `WORKER_POLL_TIMEOUT_SECS` | `30.0` | BLPOP blocking timeout for polling the Redis queue. Must be `> 0` and `<= 300.0`. |
-| `WORKER_MAX_RETRIES` | `3` | Maximum retry attempts for transient job failures. |
-| `WORKER_JOB_TIMEOUT_SECS` | `300` | Job execution timeout (in seconds). Handlers exceeding this are forcibly aborted. |
+Removing SaaS workspace scope does not remove Redis.
 
-### 4.3. Worker Heartbeat and Health Monitoring
-Each `JobWorker` instance registers its presence and monitors health by writing heartbeats to Redis:
-- **Redis Key Pattern**: `monitor:worker:{worker_id}`
-- **Heartbeat Interval**: Every **5 seconds**.
-- **Heartbeat TTL**: **15 seconds** (if 3 consecutive heartbeats are missed, the worker is considered dead).
-- **Payload (`WorkerHeartbeat`)**:
-  - `id`: Unique UUID of the worker.
-  - `host`: The system hostname running the container.
-  - `status`: `IDLE` or `PROCESSING`.
-  - `current_task_type`: Name of the active task type (if processing).
-  - `last_seen_at`: Timestamp of the last heartbeat.
+## Shutdown and recovery
 
----
+The application registers worker shutdown hooks. A worker crash or expired lease makes eligible PostgreSQL schedule work claimable by a later scan. Lease fencing prevents stale workers from committing terminal state. Operators must preserve job IDs and event history, avoid manual deletion of Redis keys or PostgreSQL ledger rows, and use the infrastructure reliability runbook for reconciliation, retry, and dead-letter incidents.
 
-## 5. Connection Pooling & Deadlock Prevention
+## Security and data handling
 
-### 5.1. The Single Connection Constraint
-To avoid draining connection pool capacity and causing severe application-wide deadlocks:
-- **Rule**: Every job thread/handler MUST strictly check out and use **exactly one database connection** at any given time.
-- **Anti-pattern**: Acquiring a database connection, starting an async operation, and then checking out *another* connection from the pool (e.g., via nested transactions, helper methods, or triggering parallel db calls). If the connection pool is saturated, checking out the second connection will block indefinitely, resulting in a deadlock.
+Job payloads and operational logs must contain only minimized identifiers and required business fields. Never write passwords, tokens, raw attendance rows, email addresses, phone numbers, salary data, or unmasked PII to job payloads, logs, monitor responses, or replay material. Authorization is checked at the application boundary; clients cannot select organization scope.
 
-### 5.2. Deadlock Detection in Tests
-This constraint is validated during integration tests:
-- **Location**: [`worker_pool.rs`](file:///home/elt1541/lee/leeattend/apiserver/tests/integration/misc/worker_pool.rs)
-- **Mechanism**: The test suite initializes the application DB pool with `max_connections(1)`. It then executes all registered `TaskType` jobs sequentially. If any handler violates the single connection rule by attempting to acquire a second connection, the test immediately deadlocks. The test is wrapped in a 15-second timeout and fails if a deadlock occurs, ensuring regressions are caught before shipping.
+## Verification
 
----
+Run focused tests for:
 
-## 6. Job Execution & Task Routing
+- outbox deduplication, claim ordering, lease heartbeat, stale-lease fencing, retry backoff, and dead-letter transitions;
+- schedule worker malformed payload, publisher failure, lease loss, startup scan, and shutdown;
+- Redis report queue lifecycle, result storage, cancellation, Pub/Sub, and Redis-unavailable behavior;
+- employee import Redis fallback;
+- auth revocation, login limiting, rate limiting, and monitor freshness/degraded states.
 
-The `JobWorker` matches dequeued jobs against its handler registry inside `process_job`:
-
-### 6.1. Task Routing Directory
-
-| Task Type | Payload Struct | Handler Method |
-|-----------|----------------|----------------|
-| `AttendanceReport` | `ReportPayload` | `AttendanceHandler::handle` |
-| `MergeResults` | `MergePayload` | `MergeHandler::handle` |
-| `LeaveAccrual` | `AccrualPayload` | `AccrualHandler::handle` |
-| `LogIngestion` | `LogIngestionPayload` | `LogIngestionHandler::handle` |
-| `ReprocessAttendance` | `ReprocessPayload` | `ReprocessAttendanceHandler::handle` |
-| `ClaimStagedLogs` | `ClaimStagedLogsPayload` | `ClaimStagedLogsHandler::handle` |
-| `LeaveImport` | `LeaveImportPayload` | `LeaveImportHandler::handle` |
-| `LeaveImportChunk` | `LeaveImportChunkPayload` | `LeaveImportChunkHandler::handle` |
-| `EmployeeImport` | `EmployeeImportPayload` | `EmployeeImportHandler::handle` |
-| `EmployeeImportChunk` | `EmployeeImportChunkPayload` | `EmployeeImportChunkHandler::handle` |
-| `FinalizeImport` | `FinalizeImportPayload` | `FinalizeImportHandler::handle` |
-| `NightlyHousekeeping` | `HousekeepingPayload` | `NightlyHousekeepingHandler::handle` |
-| `SyncEmployeeHireDate` | `SyncHireDatePayload` | `SyncHireDateHandler::process` |
-
-### 6.2. Batch Aggregation vs Standalone Jobs
-- **Standalone Jobs** (e.g., `LogIngestion`, `SyncEmployeeHireDate`): Execute directly and complete independently.
-- **Batch Jobs** (e.g., `AttendanceReport`):
-  1. The `ReportCoordinator` splits a report request into multiple micro-jobs.
-  2. Workers process individual micro-jobs and report completion back to the coordinator using `ReportCoordinator::on_batch_complete`.
-  3. The coordinator increments completion counters in Redis.
-  4. Once `completed_batches >= total_batches`, the coordinator enqueues a final `MergeResults` task to consolidate the results and write the final output (e.g., generating the Excel report, uploading to S3, and updating the outbox status to `completed`).
+Then run the applicable full LeeDevKit target. Inspect per-phase logs; a final green summary alone is not sufficient evidence.

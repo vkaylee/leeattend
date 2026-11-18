@@ -5,7 +5,7 @@ import ResponsiveTable from "@/components/ui/responsive-table";
 import { cn } from "@/lib/utils";
 
 interface HistoryItem {
-  amount: number;
+  amount: number | string;
   date: string;
   id: string;
   reason?: string | null;
@@ -43,8 +43,8 @@ function HistoryMobileCard({ item, formatDate }: { formatDate: (date: string) =>
 
       <div className="mt-3 flex items-center justify-between border-t border-slate-100 pt-3 dark:border-slate-800">
         <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Amount</span>
-        <span className={cn("font-mono text-sm font-bold", item.amount > 0 ? "text-emerald-600 dark:text-emerald-300" : "text-rose-600 dark:text-rose-300")}>
-          {item.amount > 0 ? "+" : ""}{item.amount}
+        <span className={cn("font-mono text-sm font-bold", Number(item.amount) > 0 ? "text-emerald-600 dark:text-emerald-300" : "text-rose-600 dark:text-rose-300")}>
+          {Number(item.amount) > 0 ? "+" : ""}{item.amount}
         </span>
       </div>
 
@@ -94,8 +94,8 @@ export function HistoryTable({ history, isLoading, formatDate, t }: HistoryTable
                       {item.transaction_type}
                     </span>
                   </td>
-                  <td className={cn("px-6 py-5 text-right font-mono text-sm font-bold tracking-tighter", item.amount > 0 ? "text-emerald-600 dark:text-emerald-300" : "text-rose-600 dark:text-rose-300")}>
-                    {item.amount > 0 ? "+" : ""}{item.amount}
+                  <td className={cn("px-6 py-5 text-right font-mono text-sm font-bold tracking-tighter", Number(item.amount) > 0 ? "text-emerald-600 dark:text-emerald-300" : "text-rose-600 dark:text-rose-300")}>
+                    {Number(item.amount) > 0 ? "+" : ""}{item.amount}
                   </td>
                   <td className="max-w-[200px] truncate px-6 py-5 text-[10px] font-bold uppercase tracking-tighter text-slate-500 dark:text-slate-400" title={item.reason ?? ""}>
                     {item.reason ?? "-"}

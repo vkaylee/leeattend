@@ -210,7 +210,7 @@ export default function ContractFormModal({ isOpen, onClose, editingContract,emp
   useEffect(() => {
     if (!isOpen) return;
     if (editingContract) {
-      reset({ contract_type: editingContract.contract_type, status: editingContract.status, start_date: editingContract.start_date, end_date: editingContract.end_date ?? "", contract_number: editingContract.contract_number ?? "", notes: editingContract.notes ?? "" });
+      reset({ contract_type: editingContract.contract_type as ContractFormValues["contract_type"], status: editingContract.status as ContractFormValues["status"], start_date: editingContract.start_date, end_date: editingContract.end_date ?? "", contract_number: editingContract.contract_number ?? "", notes: editingContract.notes ?? "" });
     } else {
       reset({ contract_type: "probation", status: "active", start_date: activeEmployment?.start_date ?? new Date().toISOString().split("T")[0], end_date: "", contract_number: "", notes: "", assign_phase_id: "" });
     }

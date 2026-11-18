@@ -2,7 +2,8 @@ import { useState } from "react";
 
 import type { IncentiveTier, RuleCondition } from "@/lib/api/types";
 
-export type TierInput = Omit<IncentiveTier, "id" | "policy_id" | "rule_config"> & {
+export type TierInput = Omit<IncentiveTier, "id" | "policy_id" | "rule_config" | "payout_amount"> & {
+  payout_amount: number;
   rule_config: RuleCondition[];
 };
 

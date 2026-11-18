@@ -146,16 +146,13 @@
     "confirm_delete": "Bạn có chắc chắn muốn xóa mục này?",
     "copied": "Copied to clipboard",
     "create": "Tạo mới",
-    "create_workspace": "Tạo tổ chức",
-    "create_workspace_error": "Không thể tạo tổ chức. Vui lòng thử lại.",
+    "create_organization": "Tạo tổ chức",
+    "create_organization_error": "Không thể tạo tổ chức. Vui lòng thử lại.",
     "creating": "Đang tạo...",
     "currency": "VND",
     "custom": "Tùy chỉnh",
     "danger_zone": "Vùng nguy hiểm",
     "dashboard": "Bảng điều khiển",
-    "database_url_hint": "Cung cấp chuỗi kết nối của một database PostgreSQL đã tồn tại. Hệ thống sẽ chạy migration trên database này.",
-    "database_url_label": "URL kết nối Database",
-    "database_url_placeholder": "postgres://user:password@host:5432/database",
     "date": "Ngày",
     "day_short": "ngày",
     "days": {
@@ -315,8 +312,8 @@
           "department_desc": "Áp dụng cho một phòng ban cụ thể",
           "employee": "Cá nhân nhân viên",
           "employee_desc": "Chỉ áp dụng cho một người được chọn",
-          "workspace": "Toàn tổ chức (Tất cả)",
-          "workspace_desc": "Áp dụng cho tất cả nhân viên trong tổ chức"
+          "organization": "Toàn tổ chức (Tất cả)",
+          "organization_desc": "Áp dụng cho tất cả nhân viên trong tổ chức"
         },
         "carry_over_limit": "Hạn mức chuyển tiếp",
         "edit_assignment_subtitle": "Modify assignment rules and effective dates.",
@@ -382,7 +379,7 @@
     "load_more": "Tải thêm",
     "loading": "Đang tải dữ liệu...",
     "loading_more": "Đang tải thêm...",
-    "loading_workspace": "Đang tải tổ chức...",
+    "loading_organization": "Đang tải tổ chức...",
     "logout": "Đăng xuất",
     "logs": "Nhật ký",
     "members": {
@@ -482,13 +479,6 @@
     "office_branch": "Văn phòng / Chi nhánh",
     "offline": "Ngoại tuyến",
     "onboarding": {
-      "db_mode_auto": "Tự động khởi tạo (Khuyên dùng)",
-      "db_mode_auto_desc": "Hệ thống sẽ tự động cấp phát Database an toàn, cô lập và chạy migrations ngay lập tức. Phù hợp cho hầu hết doanh nghiệp.",
-      "db_mode_byod": "Tự cung cấp database (BYOD)",
-      "db_mode_byod_desc": "Kết nối tới PostgreSQL cluster riêng của bạn để toàn quyền kiểm soát và lưu trữ dữ liệu nội bộ.",
-      "db_mode_label": "Chế độ Cơ sở dữ liệu",
-      "db_placeholder": "postgres://username:password@hostname:port/database",
-      "db_validation_error": "Đường dẫn Database không hợp lệ. Phải bắt đầu bằng postgres:// hoặc postgresql://",
       "messages": {
         "create_error": "Không thể tạo tổ chức. Vui lòng thử lại."
       },
@@ -506,9 +496,9 @@
       "start_now_btn": "Bắt đầu ngay",
       "welcome_subtitle": "Hãy thiết lập tổ chức của bạn",
       "welcome_title": "Chào mừng!",
-      "workspace_desc": "Tổ chức giúp tập hợp nhân sự và các cài đặt của bạn tại một nơi."
+      "organization_desc": "Tổ chức giúp tập hợp nhân sự và các cài đặt của bạn tại một nơi."
     },
-    "workspace_desc": "Tổ chức giúp tập hợp nhân sự và các cài đặt của bạn tại một nơi.",
+    "organization_desc": "Tổ chức giúp tập hợp nhân sự và các cài đặt của bạn tại một nơi.",
     "org_chart": "Sơ đồ tổ chức",
     "org_name_label": "Tên tổ chức / Dự án",
     "org_name_placeholder": "Ví dụ: Công ty ABC, Team Freelance...",
@@ -711,6 +701,7 @@
         "dept_title": "Cấu hình lương phòng ban",
         "effective_date": "Ngày có hiệu lực",
         "impact_evaluated_at": "Đánh giá lúc",
+        "impact_evaluated_at": "Đánh giá lúc",
         "impact_expires_at": "Hết hạn lúc",
         "impact_expired": "Bản xem trước đã hết hạn. Hãy làm mới trước khi sử dụng.",
         "fixed_days": "Số ngày công cố định",
@@ -838,7 +829,7 @@
         "pending_adjustments": "Có hiệu chỉnh chờ xử lý",
         "recalc_needed": "Cần tính toán lại",
         "view_adjustments": "Xem hiệu chỉnh",
-        "workspace_default": "Mặc định tổ chức"
+        "organization_default": "Mặc định tổ chức"
       },
       "validation": {
         "base_pay_positive": "Base pay must be a positive number",
@@ -935,8 +926,8 @@
     "select_department": "Chọn phòng ban",
     "select_employee": "Chọn nhân viên",
     "select_month": "Chọn tháng",
-    "select_workspace": "Chọn tổ chức",
-    "select_workspace_desc": "Chọn văn phòng hoặc chi nhánh bạn muốn làm việc.",
+    "select_organization": "Chọn tổ chức",
+    "select_organization_desc": "Chọn văn phòng hoặc chi nhánh bạn muốn làm việc.",
     "selected": "đã chọn",
     "selected_count": "Đã chọn {{selected}}/{{total}}",
     "sending": "Đang gửi...",
@@ -1018,7 +1009,7 @@
     "work": "Làm việc",
     "work_day": "Ngày làm việc",
     "working": "Đang xử lý...",
-    "workspace_owner": "Chủ sở hữu",
+    "organization_owner": "Chủ sở hữu",
     "organization_settings": {
       "attendance_config": "Cấu hình chấm công",
       "branding": "Nhận diện thương hiệu",
@@ -1681,18 +1672,11 @@
   },
   "onboarding": {
     "welcome_title": "Chào mừng bạn!",
-    "workspace_desc": "Tổ chức giúp tập hợp nhân sự và các cài đặt của bạn tại một nơi.",
+    "organization_desc": "Tổ chức giúp tập hợp nhân sự và các cài đặt của bạn tại một nơi.",
     "welcome_subtitle": "Hãy thiết lập tổ chức của bạn",
     "org_name_label": "Tên tổ chức",
     "org_name_placeholder": "VD: Công ty ABC, LeeAttend Team...",
     "start_now_btn": "Bắt đầu ngay",
-    "db_mode_label": "Chế độ Cơ sở dữ liệu",
-    "db_mode_auto": "Tự động khởi tạo (Khuyên dùng)",
-    "db_mode_auto_desc": "Hệ thống sẽ tự động cấp phát Database an toàn, cô lập và chạy migrations ngay lập tức. Phù hợp cho hầu hết doanh nghiệp.",
-    "db_mode_byod": "Tự cung cấp database (BYOD)",
-    "db_mode_byod_desc": "Kết nối tới PostgreSQL cluster riêng của bạn để toàn quyền kiểm soát và lưu trữ dữ liệu nội bộ.",
-    "db_validation_error": "Đường dẫn Database không hợp lệ. Phải bắt đầu bằng postgres:// hoặc postgresql://",
-    "db_placeholder": "postgres://username:password@hostname:port/database",
     "progress": {
       "title": "Đang thiết lập tổ chức...",
       "subtitle": "Vui lòng giữ kết nối. Chúng tôi đang chuẩn bị môi trường bảo mật cho bạn.",
@@ -1866,7 +1850,7 @@
     "title": "Thanh toán"
   },
   "overview": {
-    "activeWorkspace": "Tổ chức đang hoạt động",
+    "activeOrganization": "Tổ chức đang hoạt động",
     "adminFallback": "Quản trị viên dự phòng",
     "adminMembers": "Thành viên quản trị",
     "admins": "Quản trị viên",

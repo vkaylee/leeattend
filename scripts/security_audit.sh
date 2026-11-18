@@ -44,12 +44,12 @@ fi
 
 echo ""
 echo "--- Static check 2: canonical middleware and route references ---"
-MAIN_SRC="apiserver/main.go"
-LEGACY_ROUTE_ALIASES=$(grep -n -E '"/(api/auth|api/me|api/users|v1/|ws/)' "$MAIN_SRC" || true)
-if grep -q 'AuthMiddlewareWithRevocation' "$MAIN_SRC" && [ -z "$LEGACY_ROUTE_ALIASES" ]; then
-    pass_check "JWT middleware present and legacy route aliases absent from $MAIN_SRC"
+ROUTES_SRC="apiserver/routes.go"
+LEGACY_ROUTE_ALIASES=$(grep -n -E '"/(api/auth|api/me|api/users|v1/|ws/)' "$ROUTES_SRC" || true)
+if grep -q 'AuthMiddlewareWithRevocation' "$ROUTES_SRC" && [ -z "$LEGACY_ROUTE_ALIASES" ]; then
+    pass_check "JWT middleware present and legacy route aliases absent from $ROUTES_SRC"
 else
-    fail_check "Canonical middleware and routes" "Legacy aliases or authentication middleware mismatch in $MAIN_SRC: ${LEGACY_ROUTE_ALIASES:-missing middleware}"
+    fail_check "Canonical middleware and routes" "Legacy aliases or authentication middleware mismatch in $ROUTES_SRC: ${LEGACY_ROUTE_ALIASES:-missing middleware}"
 fi
 
 echo ""
@@ -90,9 +90,9 @@ fi
 
 echo ""
 echo "--- Static check 7: legacy SQL predicate patterns ---"
-TENANT_SQL=$(grep -rn -E 'WHERE[^`]*workspace_id[[:space:]]*=[[:space:]]*\$|workspace_id[[:space:]]*=[[:space:]]*ANY' "$REPO_DIR" --include='*.go' | grep -v '_test.go' || true)
-if [ -n "$TENANT_SQL" ]; then
-    fail_check "Legacy SQL predicate pattern" "$TENANT_SQL"
+LEGACY_SCOPE_SQL=$(grep -rn -E 'WHERE[^`]*workspace_id[[:space:]]*=[[:space:]]*\$|workspace_id[[:space:]]*=[[:space:]]*ANY' "$REPO_DIR" --include='*.go' | grep -v '_test.go' || true)
+if [ -n "$LEGACY_SCOPE_SQL" ]; then
+    fail_check "Legacy SQL predicate pattern" "$LEGACY_SCOPE_SQL"
 else
     pass_check "No scanned legacy SQL predicate patterns found"
 fi

@@ -15,7 +15,7 @@ export interface TimeEntry {
   punch_out_time: string | null;
 }
 
-// Minutes since the base date's midnight, measured in the WORKSPACE timezone
+// Minutes since the base date's midnight, measured in the organization timezone
 // (not the viewer's browser timezone). Keeps timeline positions aligned with
 // the Excel export and the report table.
 function getMinutesFromDayStart(isoString: string, baseDateStr: string, timezone: string) {

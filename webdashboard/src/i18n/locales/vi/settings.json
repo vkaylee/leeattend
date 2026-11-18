@@ -330,8 +330,7 @@
         "bool_true": "Đúng (True)",
         "bool_false": "Sai (False)",
         "scopes": {
-            "organization": "Tổ chức",
-          "workspace": "Tổ chức",
+          "organization": "Tổ chức",
           "employer": "Đơn vị tuyển dụng",
           "department": "Phòng ban",
           "employee": "Nhân viên"

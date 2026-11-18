@@ -51,6 +51,16 @@ BEGIN
         RAISE EXCEPTION 'baseline schema check failed: organization singleton constraint missing';
     END IF;
 
+    IF EXISTS (
+        SELECT 1
+        FROM pg_attribute a
+        WHERE a.attrelid = 'public.organization_settings'::regclass
+          AND a.attname = 'custom_db_url_encrypted'
+          AND NOT a.attisdropped
+    ) THEN
+        RAISE EXCEPTION 'baseline schema check failed: obsolete custom database routing field remains';
+    END IF;
+
     SELECT count(*) INTO v_marker_count
     FROM public.schema_migrations
     WHERE version = '20261110000000_single_organization_baseline';

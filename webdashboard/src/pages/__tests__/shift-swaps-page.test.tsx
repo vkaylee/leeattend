@@ -74,7 +74,7 @@ vi.mock("react-i18next", () => ({
         "common.approve": "Approve",
         "common.reject": "Reject",
         "common.no_notes": "No notes",
-        "common.select_organization": "Select workspace",
+        "common.select_organization": "Select organization",
       };
       return translations[key] || key;
     },

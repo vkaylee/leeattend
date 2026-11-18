@@ -330,8 +330,7 @@
         "bool_true": "真 (True)",
         "bool_false": "假 (False)",
         "scopes": {
-            "organization": "组织",
-          "workspace": "组织",
+          "organization": "组织",
           "employer": "雇主",
           "department": "部门",
           "employee": "员工"

@@ -30,7 +30,7 @@ export function useDailyDrawerModalState() {
 }
 
 // Convert a wall-clock time ("HH:mm" on `dateString`) to a UTC ISO timestamp,
-// interpreting the wall-clock in the WORKSPACE timezone (Excel parity), not the
+// interpreting the wall-clock in the organization timezone (Excel parity), not the
 // viewer's browser timezone. Converges via offset iteration to handle DST.
 export const createIsoFromLocal = (dateString: string, hhmm: string, timezone: string): string | null => {
     if (!hhmm) return null;

@@ -146,16 +146,13 @@
     "confirm_delete": "Are you sure you want to delete this item?",
     "copied": "Copied to clipboard",
     "create": "Create",
-    "create_workspace": "Create Organization",
-    "create_workspace_error": "Could not create organization. Please try again.",
+    "create_organization": "Create Organization",
+    "create_organization_error": "Could not create organization. Please try again.",
     "creating": "Creating...",
     "currency": "USD",
     "custom": "Custom",
     "danger_zone": "Danger Zone",
     "dashboard": "Dashboard",
-    "database_url_hint": "Provide the connection string of an existing PostgreSQL database. The system will run migrations on it.",
-    "database_url_label": "Database Connection URL",
-    "database_url_placeholder": "postgres://user:password@host:5432/database",
     "date": "Date",
     "day_short": "day",
     "days": {
@@ -315,8 +312,8 @@
           "department_desc": "Applies to a specific department",
           "employee": "Individual Employee",
           "employee_desc": "Applies to only one selected person",
-          "workspace": "Organization-wide (All)",
-          "workspace_desc": "Applies to all employees in the organization"
+          "organization": "Organization-wide (All)",
+          "organization_desc": "Applies to all employees in the organization"
         },
         "carry_over_limit": "Carry-over Limit",
         "edit_assignment_subtitle": "Modify assignment rules and effective dates.",
@@ -382,7 +379,7 @@
     "load_more": "Load More",
     "loading": "Loading data...",
     "loading_more": "Loading more...",
-    "loading_workspace": "Loading organization...",
+    "loading_organization": "Loading organization...",
     "logout": "Logout",
     "logs": "Logs",
     "members": {
@@ -482,13 +479,6 @@
     "office_branch": "Office / Branch",
     "offline": "Offline",
     "onboarding": {
-      "db_mode_auto": "Auto Provision (Recommended)",
-      "db_mode_auto_desc": "The system will automatically provision a secure, isolated database and run migrations. Recommended for most organizations.",
-      "db_mode_byod": "Bring Your Own Database (BYOD)",
-      "db_mode_byod_desc": "Connect to your own PostgreSQL cluster to maintain full control and store your data internally.",
-      "db_mode_label": "Database Mode",
-      "db_placeholder": "postgres://username:password@hostname:port/database",
-      "db_validation_error": "Invalid Database URL. Must start with postgres:// or postgresql://",
       "messages": {
         "create_error": "Could not create organization. Please try again."
       },
@@ -506,9 +496,9 @@
       "start_now_btn": "Start Now",
       "welcome_subtitle": "Let's set up your organization",
       "welcome_title": "Welcome!",
-      "workspace_desc": "Your organization brings your people and settings together."
+      "organization_desc": "Your organization brings your people and settings together."
     },
-    "workspace_desc": "Your organization brings your people and settings together.",
+    "organization_desc": "Your organization brings your people and settings together.",
     "org_chart": "Org Chart",
     "org_name_label": "Organization / Project Name",
     "org_name_placeholder": "Ex: ABC Company, Freelance Team...",
@@ -711,6 +701,7 @@
         "dept_title": "Department Payroll Config",
         "effective_date": "Effective Date",
         "impact_evaluated_at": "Evaluated at",
+        "impact_evaluated_at": "Evaluated at",
         "impact_expires_at": "Expires at",
         "impact_expired": "Impact preview expired. Refresh before using it.",
         "fixed_days": "Fixed Work Days",
@@ -838,7 +829,7 @@
         "pending_adjustments": "Has pending adjustments",
         "recalc_needed": "Recalculation needed",
         "view_adjustments": "View adjustments",
-        "workspace_default": "Organization Default"
+        "organization_default": "Organization Default"
       },
       "validation": {
         "base_pay_positive": "Base pay must be a positive number",
@@ -935,8 +926,8 @@
     "select_department": "Select Department",
     "select_employee": "Select Employee",
     "select_month": "Select Month",
-    "select_workspace": "Select Organization",
-    "select_workspace_desc": "Select the office or branch you want to work in.",
+    "select_organization": "Select Organization",
+    "select_organization_desc": "Select the office or branch you want to work in.",
     "selected": "selected",
     "selected_count": "Selected {{selected}}/{{total}}",
     "sending": "Sending...",
@@ -1018,7 +1009,7 @@
     "work": "Work",
     "work_day": "Work Day",
     "working": "Working...",
-    "workspace_owner": "Owner",
+    "organization_owner": "Owner",
     "organization_settings": {
       "attendance_config": "Attendance Configuration",
       "branding": "Branding",
@@ -1681,18 +1672,11 @@
   },
   "onboarding": {
     "welcome_title": "Welcome!",
-    "workspace_desc": "Your organization brings your people and settings together.",
+    "organization_desc": "Your organization brings your people and settings together.",
     "welcome_subtitle": "Let's set up your organization",
     "org_name_label": "Organization Name",
     "org_name_placeholder": "Ex: ABC Company, LeeAttend Team...",
     "start_now_btn": "Start Now",
-    "db_mode_label": "Database Mode",
-    "db_mode_auto": "Auto Provision (Recommended)",
-    "db_mode_auto_desc": "The system will automatically provision a secure, isolated database and run migrations. Recommended for most organizations.",
-    "db_mode_byod": "Bring Your Own Database (BYOD)",
-    "db_mode_byod_desc": "Connect to your own PostgreSQL cluster to maintain full control and store your data internally.",
-    "db_validation_error": "Invalid Database URL. Must start with postgres:// or postgresql://",
-    "db_placeholder": "postgres://username:password@hostname:port/database",
     "progress": {
       "title": "Setting up your Organization...",
       "subtitle": "Please keep this page open. We are preparing your secure environment.",
@@ -1866,7 +1850,7 @@
     "title": "Billing"
   },
   "overview": {
-    "activeWorkspace": "Active Organization",
+    "activeOrganization": "Active Organization",
     "adminFallback": "Admin Fallback",
     "adminMembers": "Admin Members",
     "admins": "Admins",

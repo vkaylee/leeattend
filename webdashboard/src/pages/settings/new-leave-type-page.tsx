@@ -79,7 +79,7 @@ export function NewLeaveTypePage() {
         requires_document: false,
         allow_negative_balance: false,
       },
-    } as LeaveType),
+    } as unknown as LeaveType),
     [formData, t]
   );
 

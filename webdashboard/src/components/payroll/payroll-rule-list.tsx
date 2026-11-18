@@ -108,7 +108,7 @@ export function RuleRow({ rule, expandedRuleId, setExpandedRuleId}: RuleRowProps
       {isExpanded ? (
         <div className="px-12 pb-8 pt-2 animate-in slide-in-from-top-4 duration-300 space-y-6">
           {rule.calculation_method === "tiered" ? <RuleTierManager ruleId={rule.id}  /> : null}
-          <RuleAssignmentManager calculationMethod={rule.calculation_method} ruleId={rule.id}  />
+          <RuleAssignmentManager calculationMethod={rule.calculation_method as "fixed" | "percentage" | "tiered"} ruleId={rule.id}  />
           {rule.code.startsWith("kpi.") ? <PayrollFormulaHistory ruleId={rule.id} /> : null}
         </div>
       ) : null}

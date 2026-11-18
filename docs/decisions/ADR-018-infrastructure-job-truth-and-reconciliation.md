@@ -35,7 +35,7 @@ The monitor API must use one snapshot builder for REST and SSE. Snapshot respons
 `infra_job_records` stores only operational metadata:
 
 - stable job ID and optional parent/batch ID;
-- workspace ID and task type/priority;
+- task type/priority within the single implicit organization;
 - current state, attempt count, lease owner/deadline, and next retry time;
 - created/queued/claimed/finished timestamps;
 - sanitized error code and summary;
@@ -55,7 +55,7 @@ Retention and purge must be implemented as an audited housekeeping operation. An
 5. A popped-but-unclaimed job is recoverable by reconciliation.
 6. A job that cannot be recovered is explicitly marked `lost`; it is never represented as an ordinary zero/empty dashboard state.
 7. Parent jobs aggregate child outcomes by stable child identity; duplicate callbacks do not overcount.
-8. All tenant data access remains workspace-scoped and authorization is checked at the handler boundary.
+8. Business authorization remains explicit at the handler boundary; no client-selected organization or workspace scope is part of job identity.
 
 ## Rollout and compatibility
 

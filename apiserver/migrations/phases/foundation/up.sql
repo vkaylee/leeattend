@@ -3516,8 +3516,6 @@ CREATE TABLE public.organization_settings (
 
     tagline text,
 
-    custom_db_url_encrypted text,
-
     CONSTRAINT chk_organization_name CHECK ((length((name)::text) > 0))
 
 );

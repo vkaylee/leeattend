@@ -426,7 +426,7 @@
       "no_history_desc": "更新后，员工薪资历史和津贴明细将显示在此处。",
       "fetch_error": "无法加载薪资历史。"
     },
-    "select_workspace": "请选择组织",
+    "select_organization": "请选择组织",
     "hire_date": "入职日期",
     "bulk_import_title": "批量导入员工",
     "bulk_import_btn": "从文件导入",

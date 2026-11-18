@@ -12,6 +12,7 @@ import { TFunction } from "i18next";
 
 import type { MonitorStreamStatus } from "@/hooks/use-monitor-stream";
 import type { MonitorMetric, WorkerMonitorStats } from "@/lib/api/types-monitoring";
+import type { WorkerHeartbeat } from "@/lib/api/types";
 
 import JobStatusDistributionChart from "@/components/features/monitor/job-status-distribution-chart";
 import QueuePressureChart from "@/components/features/monitor/queue-pressure-chart";
@@ -460,7 +461,7 @@ export default function WorkerMonitorPage() {
       </section>
 
       <StreamStatusIndicator isFetching={isFetching} status={stream.status} t={t} />
-      <WorkersTable isUnavailable={workerHeartbeatsUnavailable} t={t} workers={workers} />
+      <WorkersTable isUnavailable={workerHeartbeatsUnavailable} t={t} workers={workers as WorkerHeartbeat[]} />
       <JobTypeStatsSection jobTypeStats={jobTypeStats} t={t} />
       <JobsTable t={t} uniqueTypes={uniqueTypes} />
     </main>

@@ -14,7 +14,7 @@ function TierRulesRenderer({ tier }: { tier: IncentiveTier }) {
     if (tier.rule_config.length === 0) return <span className="text-[7px] font-bold text-slate-500 dark:text-slate-400 uppercase italic">Default</span>;
     return (
       <>
-        {tier.rule_config.map((r: RuleCondition, i) => (
+        {(tier.rule_config as RuleCondition[]).map((r: RuleCondition, i) => (
           <span className="text-[7px] font-bold text-slate-500 dark:text-slate-400 uppercase" key={i}>
             {r.metric.replace(/_/g, ' ')} {r.operator} {r.value}
           </span>
@@ -63,7 +63,7 @@ export function BonusPolicyCard({ policy, onClone, onDelete }: BonusPolicyCardPr
             <Typography className="text-xl font-bold text-slate-700 dark:text-slate-200 uppercase tracking-tight" variant="h3">{policy.name}</Typography>
             <div className="flex items-center gap-4 mt-1.5">
               <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest bg-slate-50 dark:bg-slate-800 px-3 py-1 rounded-lg border border-slate-100 dark:border-slate-800">
-                BASE: {new Intl.NumberFormat('vi-VN').format(policy.base_amount)} VND
+                BASE: {new Intl.NumberFormat('vi-VN').format(Number(policy.base_amount))} VND
               </span>
               {policy.is_active ? (
                 <span className="flex items-center gap-1.5 text-[10px] font-bold text-emerald-600 dark:text-emerald-300 uppercase tracking-widest">
@@ -88,7 +88,7 @@ export function BonusPolicyCard({ policy, onClone, onDelete }: BonusPolicyCardPr
             <div className="bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl px-5 py-4 flex flex-col items-center min-w-[140px] shadow-inner" key={tier.id}>
               <span className="text-[8px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-2">Tier {tier.priority}</span>
               <span className="text-sm font-bold text-primary-600 dark:text-primary-400 font-mono tracking-tighter">
-                +{new Intl.NumberFormat('vi-VN').format(tier.payout_amount)}
+                +{new Intl.NumberFormat('vi-VN').format(Number(tier.payout_amount))}
               </span>
               <div className="mt-2 flex flex-col items-center gap-1 opacity-60">
                 <TierRulesRenderer tier={tier} />

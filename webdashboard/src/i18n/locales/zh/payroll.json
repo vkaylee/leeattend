@@ -247,7 +247,6 @@
     "select_department": "选择部门",
     "select_department_placeholder": "选择一个部门...",
     "organization_scope_info": "应用于整个组织。",
-    "workspace_scope_info": "应用于整个组织。",
     "effective_to": "有效期至",
     "override_config": "覆盖配置",
     "override_config_desc": "为特定规则配置自定义薪资覆盖值。",
@@ -324,15 +323,12 @@
     "scope_employee": "员工",
     "scope_department": "部门",
     "scope_organization": "组织",
-    "scope_workspace": "组织",
     "scope_level_employee": "员工级别",
     "scope_level_department": "部门级别",
-    "scope_level_organization": "组织级别",
-    "scope_level_workspace": "组织级别"
+    "scope_level_organization": "组织级别"
   },
   "payroll_rules": {
     "scope_organization": "组织范围",
-    "scope_workspace": "组织范围",
     "rule_assignments": "规则分配"
   }
 }

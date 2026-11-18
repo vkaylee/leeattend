@@ -38,7 +38,7 @@
     "assignment_types": {
       "employee": "Cá nhân",
       "department": "Phòng ban",
-      "workspace": "Tổ chức"
+      "organization": "Tổ chức"
     },
     "history": {
       "title": "Lịch sử nghỉ phép",
@@ -127,8 +127,6 @@
       "assignee_types": {
         "organization": "Toàn tổ chức (Tất cả)",
         "organization_desc": "Áp dụng cho mọi nhân viên trong tổ chức",
-        "workspace": "Toàn tổ chức (Tất cả)",
-        "workspace_desc": "Áp dụng cho mọi nhân viên trong tổ chức",
         "department": "Theo phòng ban",
         "department_desc": "Áp dụng cho một phòng ban cụ thể",
         "employee": "Cá nhân nhân viên",

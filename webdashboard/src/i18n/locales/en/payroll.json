@@ -247,7 +247,6 @@
     "select_department": "Select Department",
     "select_department_placeholder": "Choose a department...",
     "organization_scope_info": "Applied organization-wide.",
-    "workspace_scope_info": "Applied organization-wide.",
     "effective_to": "Effective To",
     "override_config": "Override Configuration",
     "override_config_desc": "Configure custom salary override values for specific rules.",
@@ -324,15 +323,12 @@
     "scope_employee": "Employee",
     "scope_department": "Department",
     "scope_organization": "Organization",
-    "scope_workspace": "Organization",
     "scope_level_employee": "Employee Level",
     "scope_level_department": "Department Level",
-    "scope_level_organization": "Organization Level",
-    "scope_level_workspace": "Organization Level"
+    "scope_level_organization": "Organization Level"
   },
   "payroll_rules": {
     "scope_organization": "Organization Wide",
-    "scope_workspace": "Organization Wide",
     "rule_assignments": "Rule Assignments"
   }
 }

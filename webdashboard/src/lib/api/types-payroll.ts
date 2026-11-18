@@ -117,8 +117,8 @@ export type EmployeePayrollConfig = ConfigRecord;
 /** Request body for setting employee payroll config. */
 export interface SetEmployeePayrollConfigRequest {
   effective_date: string;
-  hours_per_day: string;
-  std_working_days: string;
+  hours_per_day: string | number;
+  std_working_days: string | number;
 }
 
 /** Request body for creating an overtime policy with rules. */

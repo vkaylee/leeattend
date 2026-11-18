@@ -14,7 +14,7 @@ import type { components } from "@/types/api-generated";
 
 export type ContractStatus = components["schemas"]["ContractStatus"];
 export type EmployeeContract = components["schemas"]["EmployeeContract"];
-export type EmployeeContractWithEmployee = components["schemas"]["EmployeeContractWithEmployee"];
+export type EmployeeContractWithEmployee = components["schemas"]["EmployeeContract"] & components["schemas"]["EmployeeContractWithEmployee"];
 export type CreateContractRequest = components["schemas"]["CreateContractRequest"];
 export type UpdateContractRequest = components["schemas"]["UpdateContractRequest"];
 
@@ -55,7 +55,7 @@ export type BatchCalculatePayrollResponse = components["schemas"]["BatchCalculat
 export type EmployeeDepartmentHistory = components["schemas"]["EmployeeDepartmentHistory"];
 export type ShiftRoster = components["schemas"]["ShiftRoster"];
 export type AttendanceImportJob = components["schemas"]["AttendanceImportJob"];
-export type LeaveTypeConfig = components["schemas"]["LeaveTypeConfig"];
+export type LeaveTypeConfig = { approval_required?: boolean; requires_document?: boolean; allow_negative_balance?: boolean };
 export type LeaveType = components["schemas"]["LeaveType"];
 export type AssignmentHistory = components["schemas"]["AssignmentHistory"];
 export type LeaveHistoryItem = components["schemas"]["LeaveHistoryItem"];
@@ -85,7 +85,7 @@ export type OvertimeRequestEmployee = components["schemas"]["OvertimeRequestEmpl
 export type OvertimeRequest = components["schemas"]["OvertimeRequest"];
 export type OvertimeRequestDetail = components["schemas"]["OvertimeRequestDetail"];
 export type CreateOvertimeRequestPayload = components["schemas"]["CreateOvertimeRequestPayload"];
-export type BehalfAssignment = Omit<components["schemas"]["BehalfAssignment"], "assignee_employee_id_number" | "assignee_name" | "workspace_id">;
+export type BehalfAssignment = Omit<components["schemas"]["BehalfAssignment"], "assignee_employee_id_number" | "assignee_name">;
 export type CreateBehalfAssignmentRequest = components["schemas"]["CreateBehalfAssignmentRequest"];
 export type CustomFieldDefinition = components["schemas"]["CustomFieldDefinition"];
 export type CreateCustomFieldDefinitionRequest = components["schemas"]["CreateCustomFieldDefinitionRequest"];

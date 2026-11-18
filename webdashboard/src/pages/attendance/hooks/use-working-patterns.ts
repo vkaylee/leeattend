@@ -120,12 +120,14 @@ function useWorkingPatternMutations(setters: {
   const bulkAssignMutation = useMutation<BulkAssignResponse, Error, BulkAssignPatternRequestLocal>({
     mutationFn: (data) => bulkAssignPattern(data),
     onSuccess: (data) => {
-      if (data.success_count > 0) {
-        toast.success(t("patterns.messages.bulk_assign_success_count", { count: data.success_count }));
+      const successCount = data.success_count ?? 0;
+      const failedEmployees = data.failed_employees ?? [];
+      if (successCount > 0) {
+        toast.success(t("patterns.messages.bulk_assign_success_count", { count: successCount }));
         setters.setIsBulkModalOpen(false); setters.setSelectedEmployeeIds([]);
         void queryClient.invalidateQueries({ queryKey: createQueryKey("schedules") });
-      } else if (data.failed_employees.length > 0) {
-        toast.error(t("patterns.messages.bulk_assign_conflict", { count: data.failed_employees.length }));
+      } else if (failedEmployees.length > 0) {
+        toast.error(t("patterns.messages.bulk_assign_conflict", { count: failedEmployees.length }));
       }
     },
     onError: (error: Error) => {

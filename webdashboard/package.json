@@ -22,7 +22,7 @@
     "test:coverage": "NODE_OPTIONS='--experimental-require-module' vitest run --coverage",
     "test:e2e": "PLAYWRIGHT_TEST=true npx playwright test",
     "gen-template": "node generate_template.cjs",
-    "gen-api": "bunx openapi-typescript openapi.json -o src/types/api-generated.ts"
+    "gen-api": "bunx openapi-typescript ../apiserver/openapi.yaml -o src/types/api-generated.ts"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

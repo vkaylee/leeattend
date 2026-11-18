@@ -42,7 +42,7 @@ export function LeaveHistoryModal({employeeId, employeeName, leaveTypeId, leaveT
   enabled: isOpen });
 
   const adjustMutation = useMutation({
-    mutationFn: (data: { leave_type_id: string; amount: number; reason: string; transaction_date: string }) => adjustLeaveBalance(employeeId, data),
+    mutationFn: (data: { leave_type_id: string; amount: number; reason: string; transaction_date: string }) => adjustLeaveBalance(employeeId, { ...data, amount: String(data.amount) }),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: createQueryKey("leave-history") });
       void queryClient.invalidateQueries({ queryKey: createQueryKey("leave-balances") });

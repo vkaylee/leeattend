@@ -202,7 +202,7 @@ export default function WorkingConditionFormModal({ isOpen, onClose, employeeId 
         end_date: values.end_date ? values.end_date : null,
         is_paid: values.is_paid,
         minute_allowance: values.minute_allowance ?? 0,
-      });
+      } as Parameters<typeof createWorkingCondition>[1]);
       void queryClient.invalidateQueries({ queryKey: createQueryKey("working-conditions") });
       toast.success(t("working_conditions.create_success", { defaultValue: "Đã gán điều kiện làm việc thành công" }));
       onClose();

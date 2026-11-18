@@ -156,7 +156,7 @@ export default function EmployeeFormModal({
         hire_date: getFormString(fd, "hire_date"),
         employer_id: defaults.selectedEmployerId || "",
         primary_location_id: defaults.selectedLocationId || undefined,
-        user_id: defaults.selectedUserId || undefined,
+        tags: [],
       };
       createMutation.mutate(payload);
     }

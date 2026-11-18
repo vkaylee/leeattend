@@ -146,16 +146,13 @@
     "confirm_delete": "您确定要删除此项吗？",
     "copied": "Copied to clipboard",
     "create": "创建",
-    "create_workspace": "创建组织",
-    "create_workspace_error": "无法创建组织。请再试一次。",
+    "create_organization": "创建组织",
+    "create_organization_error": "无法创建组织。请再试一次。",
     "creating": "正在创建...",
     "currency": "元",
     "custom": "自定义",
     "danger_zone": "危险区域",
     "dashboard": "仪表板",
-    "database_url_hint": "提供现有 PostgreSQL 数据库的连接字符串。系统将在该数据库上运行迁移。",
-    "database_url_label": "数据库连接 URL",
-    "database_url_placeholder": "postgres://user:password@host:5432/database",
     "date": "日期",
     "day_short": "天",
     "days": {
@@ -315,8 +312,8 @@
           "department_desc": "适用于特定部门",
           "employee": "个人员工",
           "employee_desc": "仅适用于选定的一名人员",
-          "workspace": "全组织（所有人员）",
-          "workspace_desc": "适用于组织内的所有员工"
+          "organization": "全组织（所有人员）",
+          "organization_desc": "适用于组织内的所有员工"
         },
         "carry_over_limit": "结转限制",
         "edit_assignment_subtitle": "Modify assignment rules and effective dates.",
@@ -382,7 +379,7 @@
     "load_more": "加载更多",
     "loading": "正在加载数据...",
     "loading_more": "加载更多...",
-    "loading_workspace": "正在加载组织...",
+    "loading_organization": "正在加载组织...",
     "logout": "退出登录",
     "logs": "日志",
     "members": {
@@ -482,13 +479,6 @@
     "office_branch": "办公室/分公司",
     "offline": "离线",
     "onboarding": {
-      "db_mode_auto": "自动托管（推荐）",
-      "db_mode_auto_desc": "系统将自动分配安全、隔离的数据库并运行迁移。推荐大多数企业使用。",
-      "db_mode_byod": "自带数据库 (BYOD)",
-      "db_mode_byod_desc": "连接到您自己的 PostgreSQL 集群，以完全控制和存储您的内部数据。",
-      "db_mode_label": "数据库模式",
-      "db_placeholder": "postgres://username:password@hostname:port/database",
-      "db_validation_error": "数据库连接地址无效。必须以 postgres:// 或 postgresql:// 开头",
       "messages": {
         "create_error": "无法创建组织。请再试一次。"
       },
@@ -506,9 +496,9 @@
       "start_now_btn": "立即开始",
       "welcome_subtitle": "让我们设置您的组织",
       "welcome_title": "欢迎！",
-      "workspace_desc": "组织将您的人员和设置集中在一处。"
+      "organization_desc": "组织将您的人员和设置集中在一处。"
     },
-    "workspace_desc": "组织将您的人员和设置集中在一处。",
+    "organization_desc": "组织将您的人员和设置集中在一处。",
     "org_chart": "架构图",
     "org_name_label": "组织/项目名称",
     "org_name_placeholder": "例：ABC 公司、自由职业团队...",
@@ -711,8 +701,9 @@
         "dept_title": "部门薪资配置",
         "effective_date": "生效日期",
         "impact_evaluated_at": "评估时间",
+        "impact_evaluated_at": "评估时间",
         "impact_expires_at": "到期时间",
-        "impact_expired": "影响预览已过期。使用前请刷新。"
+        "impact_expired": "影响预览已过期。使用前请刷新。",
         "fixed_days": "固定工作天数",
         "global_history": "全系统配置历史",
         "hours_per_day": "标准每天工时",
@@ -838,7 +829,7 @@
         "pending_adjustments": "有待处理的调整",
         "recalc_needed": "需要重新计算",
         "view_adjustments": "查看调整",
-        "workspace_default": "组织默认"
+        "organization_default": "组织默认"
       },
       "validation": {
         "base_pay_positive": "Base pay must be a positive number",
@@ -935,8 +926,8 @@
     "select_department": "选择部门",
     "select_employee": "选择员工",
     "select_month": "选择月份",
-    "select_workspace": "选择组织",
-    "select_workspace_desc": "选择您想工作的办公室或分公司。",
+    "select_organization": "选择组织",
+    "select_organization_desc": "选择您想工作的办公室或分公司。",
     "selected": "已选择",
     "selected_count": "已选 {{selected}}/{{total}}",
     "sending": "正在发送...",
@@ -1018,7 +1009,7 @@
     "work": "工作",
     "work_day": "工作日",
     "working": "正在处理...",
-    "workspace_owner": "所有者",
+    "organization_owner": "所有者",
     "organization_settings": {
       "attendance_config": "考勤配置",
       "branding": "品牌标识",
@@ -1681,18 +1672,11 @@
   },
   "onboarding": {
     "welcome_title": "欢迎！",
-    "workspace_desc": "组织将您的人员和设置集中在一处。",
+    "organization_desc": "组织将您的人员和设置集中在一处。",
     "welcome_subtitle": "让我们设置您的组织",
     "org_name_label": "组织名称",
     "org_name_placeholder": "例：ABC 公司、LeeAttend 团队...",
     "start_now_btn": "立即开始",
-    "db_mode_label": "数据库模式",
-    "db_mode_auto": "自动托管（推荐）",
-    "db_mode_auto_desc": "系统将自动分配安全、隔离的数据库并运行迁移。推荐大多数企业使用。",
-    "db_mode_byod": "自带数据库 (BYOD)",
-    "db_mode_byod_desc": "连接到您自己的 PostgreSQL 集群，以完全控制和存储您的内部数据。",
-    "db_validation_error": "数据库连接地址无效。必须以 postgres:// 或 postgresql:// 开头",
-    "db_placeholder": "postgres://username:password@hostname:port/database",
     "progress": {
       "title": "正在配置组织...",
       "subtitle": "请保持此页面打开。我们正在为您准备安全的环境。",
@@ -1869,7 +1853,7 @@
     "title": "账单"
   },
   "overview": {
-    "activeWorkspace": "活跃组织",
+    "activeOrganization": "活跃组织",
     "adminFallback": "备用管理员",
     "adminMembers": "管理员成员",
     "admins": "管理员",

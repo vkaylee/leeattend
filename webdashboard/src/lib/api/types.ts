@@ -5,10 +5,7 @@ import type { components } from "@/types/api-generated";
 // interfaces, and schema gaps (Group B/C).
 // Anchor aliases: Group A names referenced by overrides below.
 // Kept here (not in the barrel) so they can be used in local scope.
-export type Department = Omit<components["schemas"]["Department"], "workspace_id"> & {
-  /** Legacy generated-schema field; runtime API no longer supplies workspace scope. */
-  workspace_id?: string;
-};
+export type Department = components["schemas"]["Department"];
 export type Employee = components["schemas"]["Employee"] & {
   employment_status?: string | null;
   hire_date?: string | null;

@@ -330,8 +330,7 @@
         "bool_true": "True",
         "bool_false": "False",
         "scopes": {
-            "organization": "Organization",
-          "workspace": "Organization",
+          "organization": "Organization",
           "employer": "Employer",
           "department": "Department",
           "employee": "Employee"

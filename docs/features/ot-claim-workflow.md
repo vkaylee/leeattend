@@ -44,15 +44,15 @@ The OT Claim and Approval Workflow ensures that overtime compensation is accurat
 ## API Endpoints
 
 ### Employee Actions
-- `POST /api/v1/workspaces/:id/attendance/claim-ot/:employee_id`
+- `POST /api/v1/attendance/claim-ot/:employee_id`
     - Payload: `{ "date": "2024-01-01", "claimed_minutes": 60, "reason": "Bug fix" }`
 
 ### Manager Actions
-- `POST /api/v1/workspaces/:id/attendance/approve-ot/:employee_id`
+- `POST /api/v1/attendance/approve-ot/:employee_id`
     - Payload: `{ "date": "2024-01-01", "approved_minutes": 60, "status": "approved", "manager_note": "Ok" }`
 
 ### Data Retrieval
-- `GET /api/v1/workspaces/:id/attendance/summaries`
+- `GET /api/v1/attendance/summaries`
     - Query Params: `start_date`, `end_date`, `employee_id` (optional for admins).
 
 ## UI Components

@@ -38,7 +38,7 @@
     "assignment_types": {
       "employee": "个人",
       "department": "部门",
-      "workspace": "组织"
+      "organization": "组织"
     },
     "history": {
       "title": "休假历史",
@@ -127,8 +127,6 @@
       "assignee_types": {
         "organization": "全组织 (全部)",
         "organization_desc": "适用于组织中的所有员工",
-        "workspace": "全组织 (全部)",
-        "workspace_desc": "适用于组织中的所有员工",
         "department": "按部门",
         "department_desc": "适用于特定部门",
         "employee": "个人员工",

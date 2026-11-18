@@ -66,9 +66,10 @@ jobs:
             docker run --rm -v "$PWD:/workspace" -w /workspace/apiserver \
               localhost/leeattend-test_go sqlc diff
           fi
-          if [ -f oapi-codegen.yaml ] || [ -f internal/api/oapi-codegen.yaml ]; then
-            docker run --rm -v "$PWD:/workspace" -w /workspace/apiserver \
-              localhost/leeattend-test_go bash -c \
-              'git config --global --add safe.directory /workspace && oapi-codegen --config internal/api/oapi-codegen.yaml ../../shared/openapi.json && git diff --exit-code internal/api'
-          fi
-          echo "Generated-code freshness check passed."
+          docker run --rm -v "$PWD:/workspace" -w /workspace \
+            localhost/leeattend-test_go bash -c \
+            'python3 -I scripts/validate_openapi_contract.py && git diff --exit-code apiserver/openapi.yaml'
+          docker run --rm -v "$PWD:/workspace" -w /workspace/webdashboard \
+            localhost/leeattend-test_go bash -c \
+            'bunx openapi-typescript ../apiserver/openapi.yaml -o src/types/api-generated.ts && git diff --exit-code src/types/api-generated.ts'
+          echo "OpenAPI source and generated frontend types are fresh."

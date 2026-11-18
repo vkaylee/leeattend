@@ -289,7 +289,6 @@ export interface OtClaimBehalfAssignment {
   target_department_id?: string | null;
   target_employee_id?: string | null;
   updated_at: string;
-  workspace_id: string;
 }
 
 const otClaimBehalfApi = createBehalfAssignmentApi<OtClaimBehalfAssignment>({

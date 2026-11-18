@@ -5,7 +5,9 @@ import { useTranslation } from "react-i18next";
 import Button from "@/components/ui/button";
 import Modal from "@/components/ui/modal";
 import { Typography } from "@/components/ui/typography";
-import { LeaveType, LeaveTypeConfig } from "@/lib/api/types";
+import { LeaveType } from "@/lib/api/types";
+
+type LeaveTypeConfig = { approval_required: boolean; requires_document: boolean; allow_negative_balance: boolean };
 import { cn } from "@/lib/utils";
 
 interface ToggleRowProps {
@@ -59,11 +61,11 @@ interface EditLeaveTypeModalProps {
 
 export default function EditLeaveTypeModal({ leaveType, onClose, onSave, isSaving }: EditLeaveTypeModalProps) {
   const { t } = useTranslation();
-  const [config, setConfig] = useState(() => ({
+  const [config, setConfig] = useState<LeaveTypeConfig>(() => ({
     approval_required: true,
     requires_document: false,
     allow_negative_balance: false,
-    ...leaveType.policy_config,
+    ...(leaveType.policy_config && typeof leaveType.policy_config === "object" && !Array.isArray(leaveType.policy_config) ? leaveType.policy_config : {}),
   }));
 
   const setField = (field: keyof typeof config) => (value: boolean) => {

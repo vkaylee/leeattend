@@ -18,7 +18,7 @@ import { RestoreTypeModal } from "./leave-policy-components/restore-type-modal";
 
 function PolicyBadges({ type, t }: { type: LeaveType; t: ((k: string, d?: string) => string) | ((k: string) => string) }) {
   // Generated types say policy_config is non-null, but API may omit it at runtime
-  const policy = type.policy_config as LeaveType["policy_config"] | null | undefined;
+  const policy = (type.policy_config && typeof type.policy_config === "object" && !Array.isArray(type.policy_config) ? type.policy_config : undefined) as { approval_required?: boolean; requires_document?: boolean; allow_negative_balance?: boolean } | undefined;
   const hasPolicy = !!policy;
   return (
     <>

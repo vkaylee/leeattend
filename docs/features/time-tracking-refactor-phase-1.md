@@ -80,7 +80,7 @@ interface TimeEntryRowProps {
 - Date picker (single date selection)
 - Time inputs (HH:MM format)
 - Reason textarea with validation
-- UTC timezone conversion based on workspace config
+- UTC timezone conversion based on organization settings
 - Chronological validation (punch-in < punch-out)
 
 **Props Interface**:
