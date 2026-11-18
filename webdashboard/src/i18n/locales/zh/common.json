@@ -710,6 +710,7 @@
         "days_per_week": "每周工作天数",
         "dept_title": "部门薪资配置",
         "effective_date": "生效日期",
+        "impact_evaluated_at": "评估时间",
         "fixed_days": "固定工作天数",
         "global_history": "全系统配置历史",
         "hours_per_day": "标准每天工时",

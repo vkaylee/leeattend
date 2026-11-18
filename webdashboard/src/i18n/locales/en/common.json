@@ -710,6 +710,7 @@
         "days_per_week": "Work Days per Week",
         "dept_title": "Department Payroll Config",
         "effective_date": "Effective Date",
+        "impact_evaluated_at": "Evaluated at",
         "fixed_days": "Fixed Work Days",
         "global_history": "System-wide Config History",
         "hours_per_day": "Std. Hours per Day",

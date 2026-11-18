@@ -710,6 +710,7 @@
         "days_per_week": "Số ngày làm việc/tuần",
         "dept_title": "Cấu hình lương phòng ban",
         "effective_date": "Ngày có hiệu lực",
+        "impact_evaluated_at": "Đánh giá lúc",
         "fixed_days": "Số ngày công cố định",
         "global_history": "Lịch sử cấu hình toàn hệ thống",
         "hours_per_day": "Số giờ làm việc chuẩn/ngày",
