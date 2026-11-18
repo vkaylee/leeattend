@@ -19,6 +19,12 @@ interface TraceStep {
   step?: string;
 }
 
+interface PolicySegmentTrace {
+  end_date?: string;
+  start_date?: string;
+  version_id?: string;
+}
+
 interface CalculationTraceProps {
   employmentId: string;
   month: number;
@@ -53,6 +59,12 @@ function getTraceSteps(value: unknown): TraceStep[] {
   return Array.isArray(value) ? value as TraceStep[] : [];
 }
 
+function getPolicySegments(value: unknown): PolicySegmentTrace[] {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return [];
+  const segments = (value as { policy_segments?: unknown }).policy_segments;
+  return Array.isArray(segments) ? segments as PolicySegmentTrace[] : [];
+}
+
 function CalculationTraceStatus({ hasRuns, isError, isLoading, translate }: CalculationTraceStatusProps) {
   return (
     <>
@@ -81,6 +93,7 @@ function CalculationRun({ run, translate }: CalculationRunProps & { translate: T
   const trace = getTraceSteps(run.calculation_trace);
   const partial = trace.some((step) => !step.step || !step.rule || !step.expression || !step.result);
   const provenanceIncomplete = !run.formula_version_id || run.input_snapshot == null || run.output_snapshot == null;
+  const policySegments = getPolicySegments(run.input_snapshot);
 
   return (
     <div className="space-y-2" key={run.id}>
@@ -92,6 +105,16 @@ function CalculationRun({ run, translate }: CalculationRunProps & { translate: T
         <TraceStepCard key={`${run.id}-${index}`} runId={run.id} step={step} stepIndex={index} />
       ))}
       {run.input_snapshot != null ? <Typography variant="small">{translate("payroll.calculation_trace.input_snapshot")}</Typography> : null}
+      {policySegments.length > 0 ? (
+        <div className="space-y-1" role="list" aria-label={translate("payroll.calculation_trace.policy_segments", "Policy segments")}>
+          <Typography className="font-semibold" variant="small">{translate("payroll.calculation_trace.policy_segments", "Policy segments")}</Typography>
+          {policySegments.map((segment, index) => (
+            <Typography key={`${run.id}-policy-${index}`} variant="small">
+              {segment.start_date ?? "?"} – {segment.end_date ?? "?"}: {segment.version_id ?? translate("payroll.calculation_trace.unknown_policy", "Unknown policy version")}
+            </Typography>
+          ))}
+        </div>
+      ) : null}
       {run.output_snapshot != null ? <Typography variant="small">{translate("payroll.calculation_trace.output_snapshot")}</Typography> : null}
     </div>
   );

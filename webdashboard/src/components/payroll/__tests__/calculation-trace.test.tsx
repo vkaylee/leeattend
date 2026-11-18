@@ -33,7 +33,7 @@ describe("CalculationTrace", () => {
       engine_version: "formula-v1",
       formula_version_id: "formula-version-1",
       payslip_id: "payslip-1",
-      input_snapshot: { source: "test" },
+      input_snapshot: { policy_segments: [{ start_date: "2026-06-01", end_date: "2026-06-14", version_id: "policy-a" }] },
       output_snapshot: { result: "redacted" },
       calculation_trace: [{ step: "formula", rule: "kpi.bonus", expression: "actual * rate", result: "100" }],
       created_at: "2026-10-31T00:00:00Z",
@@ -50,6 +50,7 @@ describe("CalculationTrace", () => {
     expect(screen.getByText(/formula-v1/)).toBeInTheDocument();
     expect(screen.getByText(/formula-version-1/)).toBeInTheDocument();
     expect(screen.getByText("payroll.calculation_trace.input_snapshot")).toBeInTheDocument();
+    expect(screen.getByText(/2026-06-01.*policy-a/)).toBeInTheDocument();
     expect(screen.getByText("payroll.calculation_trace.output_snapshot")).toBeInTheDocument();
   });
 
