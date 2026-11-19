@@ -23,6 +23,34 @@ def test_mcp_config_exposes_isolated_server_per_role() -> None:
         assert config["mcpServers"][f"playwright-{role}"]["args"] == [role, "--endpoint", "http://caddy"]
 
 
+def test_wrapper_allows_disposable_compose_project_and_file(tmp_path: Path) -> None:
+    compose = tmp_path / "compose"
+    args_file = tmp_path / "compose-args"
+    compose.write_text('#!/bin/sh\nprintf "%s\\n" "$@" > "$COMPOSE_ARGS_FILE"\n')
+    compose.chmod(0o755)
+    (tmp_path / "disposable-compose.yml").write_text("services: {}\n")
+
+    result = subprocess.run(
+        ["bash", str(WRAPPER), "--supervised", "employee", "--endpoint", "http://caddy"],
+        cwd=ROOT,
+        env={
+            **os.environ,
+            "DOCKER_COMPOSE_CMD": str(compose),
+            "COMPOSE_ARGS_FILE": str(args_file),
+            "PLAYWRIGHT_COMPOSE_PROJECT": "leeattend-tenure-ui",
+            "PLAYWRIGHT_COMPOSE_FILE": str(tmp_path / "disposable-compose.yml"),
+        },
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+    assert result.returncode == 0, result.stderr
+    args = args_file.read_text().splitlines()
+    assert "leeattend-tenure-ui" in args
+    assert str(tmp_path / "disposable-compose.yml") in args
+
+
 def test_wrapper_selects_role_from_environment(tmp_path: Path) -> None:
     compose = tmp_path / "compose"
     args_file = tmp_path / "compose-args"

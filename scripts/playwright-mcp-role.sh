@@ -35,6 +35,13 @@ fi
 ENDPOINT="$2"
 shift 2
 
+COMPOSE_PROJECT="${PLAYWRIGHT_COMPOSE_PROJECT:-leedevkit-dev}"
+COMPOSE_FILE="${PLAYWRIGHT_COMPOSE_FILE:-$ROOT/.compose/docker-compose.dev.yml}"
+if [[ ! -f "$COMPOSE_FILE" ]]; then
+  printf 'Missing Playwright Compose file: %s\n' "$COMPOSE_FILE" >&2
+  exit 1
+fi
+
 case "$ROLE" in
   employee) ROLE_GUIDANCE="Access only pages and actions permitted to an employee." ;;
   team-lead) ROLE_GUIDANCE="Access only pages and actions permitted to a team lead." ;;
@@ -86,7 +93,7 @@ if [[ "$SUPERVISED" == false && "$BUILD" == true ]]; then
     printf '%s\n' 'No supported Compose engine found.' >&2
     exit 1
   fi
-  PLAYWRIGHT_COMPOSE=("${COMPOSE[@]}" -p leedevkit-dev -f "$ROOT/.compose/docker-compose.dev.yml" --profile mcp)
+  PLAYWRIGHT_COMPOSE=("${COMPOSE[@]}" -p "$COMPOSE_PROJECT" -f "$COMPOSE_FILE" --profile mcp)
   playwright_timeout_run "${PLAYWRIGHT_COMPOSE[@]}" build playwright-mcp </dev/null >&2
 fi
 
@@ -132,7 +139,7 @@ MCP_COMMAND=(
 )
 
 
-PLAYWRIGHT_COMPOSE=("${COMPOSE[@]}" -p leedevkit-dev -f "$ROOT/.compose/docker-compose.dev.yml" --profile mcp)
+PLAYWRIGHT_COMPOSE=("${COMPOSE[@]}" -p "$COMPOSE_PROJECT" -f "$COMPOSE_FILE" --profile mcp)
 IMAGE="localhost/leedevkit-dev_playwright-mcp:latest"
 if [[ "$BUILD" == true ]]; then
   playwright_timeout_run "${PLAYWRIGHT_COMPOSE[@]}" build playwright-mcp </dev/null >&2
