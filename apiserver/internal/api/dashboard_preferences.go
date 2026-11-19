@@ -9,6 +9,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/vkaylee/leeattend/apiserver/internal/apperror"
 	"github.com/vkaylee/leeattend/apiserver/internal/auth"
+	"github.com/vkaylee/leeattend/apiserver/internal/domain/ids"
 	httpinfra "github.com/vkaylee/leeattend/apiserver/internal/infra/http"
 )
 
@@ -29,8 +30,8 @@ type UpdateDashboardPreferences struct {
 	WindowLayout      *json.RawMessage `json:"window_layout"`
 }
 type DashboardPreferencesRepository interface {
-	GetDashboardPreferences(context.Context, uuid.UUID) (DashboardPreferences, error)
-	UpdateDashboardPreferences(context.Context, uuid.UUID, UpdateDashboardPreferences) (DashboardPreferences, error)
+	GetDashboardPreferences(context.Context, ids.UserID) (DashboardPreferences, error)
+	UpdateDashboardPreferences(context.Context, ids.UserID, UpdateDashboardPreferences) (DashboardPreferences, error)
 }
 type DashboardPreferencesHandler struct {
 	Repository DashboardPreferencesRepository
@@ -163,8 +164,8 @@ func (h *DashboardPreferencesHandler) Put(w http.ResponseWriter, r *http.Request
 	h.handle(w, r, true)
 }
 func (h *DashboardPreferencesHandler) handle(w http.ResponseWriter, r *http.Request, put bool) {
-	uid, uok := httpinfra.UserIDFromContext(r.Context())
-	if !uok || h.Authorizer == nil || !h.Authorizer.HasPermission(r.Context(), uid, string(auth.PermissionDashboardPreferences)) {
+	uid, uok := httpinfra.UserIDValueFromContext(r.Context())
+	if !uok || h.Authorizer == nil || !h.Authorizer.HasPermission(r.Context(), uid.UUID(), string(auth.PermissionDashboardPreferences)) {
 		apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
 		return
 	}

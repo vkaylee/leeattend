@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
+	"github.com/vkaylee/leeattend/apiserver/internal/domain/ids"
 	httpinfra "github.com/vkaylee/leeattend/apiserver/internal/infra/http"
 )
 
@@ -19,24 +20,24 @@ type mockPreferencesRepo struct {
 	users map[uuid.UUID]DashboardPreferences
 }
 
-func (m *mockPreferencesRepo) GetDashboardPreferences(ctx context.Context, u uuid.UUID) (DashboardPreferences, error) {
+func (m *mockPreferencesRepo) GetDashboardPreferences(ctx context.Context, u ids.UserID) (DashboardPreferences, error) {
 	if m.err != nil {
 		return DashboardPreferences{}, m.err
 	}
-	if p, ok := m.users[u]; ok {
+	if p, ok := m.users[u.UUID()]; ok {
 		return p, nil
 	}
 	res := m.pref
-	res.UserID = u
+	res.UserID = u.UUID()
 	return res, nil
 }
-func (m *mockPreferencesRepo) UpdateDashboardPreferences(ctx context.Context, u uuid.UUID, r UpdateDashboardPreferences) (DashboardPreferences, error) {
+func (m *mockPreferencesRepo) UpdateDashboardPreferences(ctx context.Context, u ids.UserID, r UpdateDashboardPreferences) (DashboardPreferences, error) {
 	m.req = r
 	if m.err != nil {
 		return DashboardPreferences{}, m.err
 	}
 	res := m.pref
-	res.UserID = u
+	res.UserID = u.UUID()
 	if r.ActiveView != nil {
 		res.ActiveView = *r.ActiveView
 	}
@@ -49,7 +50,7 @@ func (m *mockPreferencesRepo) UpdateDashboardPreferences(ctx context.Context, u 
 	if r.CollapsedSections != nil {
 		res.CollapsedSections = *r.CollapsedSections
 	}
-	m.users = map[uuid.UUID]DashboardPreferences{u: res}
+	m.users = map[uuid.UUID]DashboardPreferences{u.UUID(): res}
 	return res, nil
 }
 
