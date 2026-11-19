@@ -22,6 +22,7 @@ import (
 
 var (
 	ErrPayrollValidation       = errors.New("payroll: validation failed")
+	ErrPayrollPolicyMissing    = errors.New("payroll: work policy is missing")
 	ErrComponentNotFound       = errors.New("payroll: component not found")
 	ErrComponentConflict       = errors.New("payroll: component already exists")
 	ErrPayrollSettingsNotFound = errors.New("payroll: settings not found")
@@ -1676,7 +1677,7 @@ func (h *PayrollHandler) writeError(w http.ResponseWriter, r *http.Request, err 
 		apperror.WriteError(w, r, apperror.NotFound(apperror.KeyNotFound))
 		return
 	}
-	if errors.Is(err, ErrPayrollImpactValidation) || errors.Is(err, ErrPayrollValidation) || errors.Is(err, ErrPayrollPeriodValidation) {
+	if errors.Is(err, ErrPayrollImpactValidation) || errors.Is(err, ErrPayrollValidation) || errors.Is(err, ErrPayrollPolicyMissing) || errors.Is(err, ErrPayrollPeriodValidation) {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}
