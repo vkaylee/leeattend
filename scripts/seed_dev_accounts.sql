@@ -37,6 +37,31 @@ BEGIN
         ('a0000000-0000-0000-0000-000000000006', 'employee', 'Standard employee with self-service access', 'gray', true, 'scoped')
     ON CONFLICT (name) DO UPDATE SET description = EXCLUDED.description, color = EXCLUDED.color, is_system = EXCLUDED.is_system, scope_type = EXCLUDED.scope_type;
 
+    -- Reconcile grants left by older development seeds. Role upserts do not
+    -- remove permissions that were valid in a previous catalog.
+    DELETE FROM role_permissions rp
+    USING roles r
+    WHERE rp.role_id = r.id
+      AND (
+          (r.name = 'team_lead' AND rp.permission_name IN (
+              'attendance:adjustments:approve',
+              'attendance:adjustments:submit',
+              'attendance:logs:read',
+              'attendance:summaries:read',
+              'dashboard:read',
+              'employees:read',
+              'leave:balances:read',
+              'leave:requests:read',
+              'leave:requests:submit',
+              'overtime:approve',
+              'overtime:request:read',
+              'rosters:read',
+              'shift_swaps:read'
+          ))
+          OR (r.name IN ('shift_manager', 'team_lead', 'employee') AND rp.permission_name = 'employees:read')
+          OR (r.name = 'employee' AND rp.permission_name = 'attendance:adjustments:submit')
+      );
+
     -- Upsert only documented development identities; never delete other users.
     INSERT INTO users (id, email, password_hash, full_name, created_at)
     VALUES
