@@ -91,7 +91,7 @@ func (p WorkCreditPolicy) Validate() error {
 	if p.EarlyOTMaxMinutes != nil && *p.EarlyOTMaxMinutes < 0 {
 		return ErrEarlyOTMaxInvalid
 	}
-	if p.OTAggregationMode != "aggregate" && p.OTAggregationMode != "per_segment" {
+	if p.OTAggregationMode != "" && p.OTAggregationMode != "aggregate" && p.OTAggregationMode != "per_segment" {
 		return ErrOTAggregationModeInvalid
 	}
 	return nil

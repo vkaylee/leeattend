@@ -30,6 +30,23 @@ func TestCalculateBuckets_StandardAndOvertime(t *testing.T) {
 	}
 }
 
+func TestCalculateBuckets_AppliesPolicyGraceAndCap(t *testing.T) {
+	date := time.Date(2026, 10, 19, 0, 0, 0, 0, time.UTC)
+	punchIn := date.Add(7 * time.Hour)
+	punchOut := date.Add(17 * time.Hour)
+	shiftStart := date.Add(8 * time.Hour)
+	shiftEnd := date.Add(17 * time.Hour)
+	max := int32(20)
+	buckets := CalculateBuckets(DailyCalcInput{
+		PunchIn: punchIn, PunchOut: punchOut, ShiftStart: &shiftStart, ShiftEnd: &shiftEnd,
+		AllowEarlyOT: true, GracePeriodMinutes: 15, MaxEarlyOTMinutes: &max,
+	})
+	if buckets.EarlyOTMinutes != 20 {
+		t.Fatalf("expected 20 eligible early OT minutes after cap, got %d", buckets.EarlyOTMinutes)
+	}
+}
+
+
 func TestCalculateBreakDeduction_IntersectsPunchWindow(t *testing.T) {
 	date := time.Date(2026, 10, 19, 0, 0, 0, 0, time.UTC)
 	breakStart := date.Add(12 * time.Hour)

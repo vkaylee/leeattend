@@ -112,6 +112,12 @@ func CalculateBuckets(input DailyCalcInput) WorkBuckets {
 	var early, late int32
 	if input.AllowEarlyOT && input.ShiftStart != nil && input.PunchIn.Before(*input.ShiftStart) {
 		early = int32((*input.ShiftStart).Sub(input.PunchIn) / time.Minute)
+		if input.GracePeriodMinutes > 0 {
+			early -= input.GracePeriodMinutes
+			if early < 0 {
+				early = 0
+			}
+		}
 		if input.MaxEarlyOTMinutes != nil && early > *input.MaxEarlyOTMinutes {
 			early = *input.MaxEarlyOTMinutes
 		}
