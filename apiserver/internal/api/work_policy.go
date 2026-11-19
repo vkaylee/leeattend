@@ -25,23 +25,30 @@ var (
 )
 
 type WorkPolicyGroupVersion struct {
-	ID                        uuid.UUID                      `json:"id"`
-	GroupID                   uuid.UUID                      `json:"group_id"`
-	Name                      string                         `json:"name"`
-	WorkCreditPolicyID        uuid.UUID                      `json:"work_credit_policy_id"`
-	WorkCreditPolicyName      string                         `json:"work_credit_policy_name"`
-	MinutesPerCredit          int                            `json:"minutes_per_credit"`
-	AttendancePolicyID        uuid.UUID                      `json:"attendance_policy_id"`
-	WorkingPatternID          uuid.UUID                      `json:"working_pattern_id"`
-	PayBasisPolicyID          uuid.UUID                      `json:"pay_basis_policy_id"`
-	PayBasisPolicyName        string                         `json:"pay_basis_policy_name"`
-	PayMethod                 workpolicy.PayMethod           `json:"pay_method"`
-	MonthlyDenominator        *workpolicy.MonthlyDenominator `json:"monthly_denominator,omitempty"`
-	MonthlyStandardDays       *decimal.Decimal               `json:"monthly_standard_days,omitempty"`
-	RateComponentDefinitionID *uuid.UUID                     `json:"rate_component_definition_id,omitempty"`
-	OvertimePolicyID          uuid.UUID                      `json:"overtime_policy_id"`
-	EffectiveFrom             string                         `json:"effective_from"`
-	EffectiveTo               *string                        `json:"effective_to,omitempty"`
+	ID                               uuid.UUID                      `json:"id"`
+	GroupID                          uuid.UUID                      `json:"group_id"`
+	Name                             string                         `json:"name"`
+	WorkCreditPolicyID               uuid.UUID                      `json:"work_credit_policy_id"`
+	WorkCreditPolicyName             string                         `json:"work_credit_policy_name"`
+	MinutesPerCredit                 int                            `json:"minutes_per_credit"`
+	AttendancePolicyID               uuid.UUID                      `json:"attendance_policy_id"`
+	WorkingPatternID                 uuid.UUID                      `json:"working_pattern_id"`
+	LateArrivalGraceMinutes          int                            `json:"late_arrival_grace_minutes"`
+	EarlyOTEnabled                   bool                           `json:"early_ot_enabled"`
+	EarlyOTQualificationGraceMinutes int                            `json:"early_ot_qualification_grace_minutes"`
+	EarlyOTMaxMinutes                *int                           `json:"early_ot_max_minutes,omitempty"`
+	BreakAutoDeduct                  bool                           `json:"break_auto_deduct"`
+	BreakIsOvertime                  bool                           `json:"break_is_overtime"`
+	OTAggregationMode                string                         `json:"ot_aggregation_mode"`
+	PayBasisPolicyID                 uuid.UUID                      `json:"pay_basis_policy_id"`
+	PayBasisPolicyName               string                         `json:"pay_basis_policy_name"`
+	PayMethod                        workpolicy.PayMethod           `json:"pay_method"`
+	MonthlyDenominator               *workpolicy.MonthlyDenominator `json:"monthly_denominator,omitempty"`
+	MonthlyStandardDays              *decimal.Decimal               `json:"monthly_standard_days,omitempty"`
+	RateComponentDefinitionID        *uuid.UUID                     `json:"rate_component_definition_id,omitempty"`
+	OvertimePolicyID                 uuid.UUID                      `json:"overtime_policy_id"`
+	EffectiveFrom                    string                         `json:"effective_from"`
+	EffectiveTo                      *string                        `json:"effective_to,omitempty"`
 }
 
 type WorkPolicyGroupListResponse struct {
@@ -81,31 +88,45 @@ type CreateWorkPolicyMembershipRequest struct {
 }
 
 type CreateWorkPolicyGroupRequest struct {
-	Name                      string                         `json:"name"`
-	MinutesPerCredit          int                            `json:"minutes_per_credit"`
-	AttendancePolicyID        uuid.UUID                      `json:"attendance_policy_id"`
-	WorkingPatternID          uuid.UUID                      `json:"working_pattern_id"`
-	PayMethod                 workpolicy.PayMethod           `json:"pay_method"`
-	MonthlyDenominator        *workpolicy.MonthlyDenominator `json:"monthly_denominator,omitempty"`
-	MonthlyStandardDays       *decimal.Decimal               `json:"monthly_standard_days,omitempty"`
-	RateComponentDefinitionID *uuid.UUID                     `json:"rate_component_definition_id,omitempty"`
-	OvertimePolicyID          uuid.UUID                      `json:"overtime_policy_id"`
-	EffectiveFrom             string                         `json:"effective_from"`
-	EffectiveTo               *string                        `json:"effective_to,omitempty"`
+	Name                             string                         `json:"name"`
+	MinutesPerCredit                 int                            `json:"minutes_per_credit"`
+	AttendancePolicyID               uuid.UUID                      `json:"attendance_policy_id"`
+	WorkingPatternID                 uuid.UUID                      `json:"working_pattern_id"`
+	LateArrivalGraceMinutes          int                            `json:"late_arrival_grace_minutes"`
+	EarlyOTEnabled                   bool                           `json:"early_ot_enabled"`
+	EarlyOTQualificationGraceMinutes int                            `json:"early_ot_qualification_grace_minutes"`
+	EarlyOTMaxMinutes                *int                           `json:"early_ot_max_minutes,omitempty"`
+	BreakAutoDeduct                  bool                           `json:"break_auto_deduct"`
+	BreakIsOvertime                  bool                           `json:"break_is_overtime"`
+	OTAggregationMode                string                         `json:"ot_aggregation_mode"`
+	PayMethod                        workpolicy.PayMethod           `json:"pay_method"`
+	MonthlyDenominator               *workpolicy.MonthlyDenominator `json:"monthly_denominator,omitempty"`
+	MonthlyStandardDays              *decimal.Decimal               `json:"monthly_standard_days,omitempty"`
+	RateComponentDefinitionID        *uuid.UUID                     `json:"rate_component_definition_id,omitempty"`
+	OvertimePolicyID                 uuid.UUID                      `json:"overtime_policy_id"`
+	EffectiveFrom                    string                         `json:"effective_from"`
+	EffectiveTo                      *string                        `json:"effective_to,omitempty"`
 }
 
 type CreateWorkPolicyGroupVersionRequest struct {
-	Name                      string                         `json:"name"`
-	MinutesPerCredit          int                            `json:"minutes_per_credit"`
-	AttendancePolicyID        uuid.UUID                      `json:"attendance_policy_id"`
-	WorkingPatternID          uuid.UUID                      `json:"working_pattern_id"`
-	PayMethod                 workpolicy.PayMethod           `json:"pay_method"`
-	MonthlyDenominator        *workpolicy.MonthlyDenominator `json:"monthly_denominator,omitempty"`
-	MonthlyStandardDays       *decimal.Decimal               `json:"monthly_standard_days,omitempty"`
-	RateComponentDefinitionID *uuid.UUID                     `json:"rate_component_definition_id,omitempty"`
-	OvertimePolicyID          uuid.UUID                      `json:"overtime_policy_id"`
-	EffectiveFrom             string                         `json:"effective_from"`
-	EffectiveTo               *string                        `json:"effective_to,omitempty"`
+	Name                             string                         `json:"name"`
+	MinutesPerCredit                 int                            `json:"minutes_per_credit"`
+	AttendancePolicyID               uuid.UUID                      `json:"attendance_policy_id"`
+	WorkingPatternID                 uuid.UUID                      `json:"working_pattern_id"`
+	LateArrivalGraceMinutes          int                            `json:"late_arrival_grace_minutes"`
+	EarlyOTEnabled                   bool                           `json:"early_ot_enabled"`
+	EarlyOTQualificationGraceMinutes int                            `json:"early_ot_qualification_grace_minutes"`
+	EarlyOTMaxMinutes                *int                           `json:"early_ot_max_minutes,omitempty"`
+	BreakAutoDeduct                  bool                           `json:"break_auto_deduct"`
+	BreakIsOvertime                  bool                           `json:"break_is_overtime"`
+	OTAggregationMode                string                         `json:"ot_aggregation_mode"`
+	PayMethod                        workpolicy.PayMethod           `json:"pay_method"`
+	MonthlyDenominator               *workpolicy.MonthlyDenominator `json:"monthly_denominator,omitempty"`
+	MonthlyStandardDays              *decimal.Decimal               `json:"monthly_standard_days,omitempty"`
+	RateComponentDefinitionID        *uuid.UUID                     `json:"rate_component_definition_id,omitempty"`
+	OvertimePolicyID                 uuid.UUID                      `json:"overtime_policy_id"`
+	EffectiveFrom                    string                         `json:"effective_from"`
+	EffectiveTo                      *string                        `json:"effective_to,omitempty"`
 }
 
 type WorkPolicyGroupRepository interface {
@@ -257,6 +278,9 @@ func (h *WorkPolicyGroupHandler) CreateVersion(w http.ResponseWriter, r *http.Re
 	result, err := h.Repository.CreateWorkPolicyGroupVersion(r.Context(), workpolicy.CreateGroupVersionInput{
 		GroupID: groupIDFromUUID(groupID), Name: req.Name, MinutesPerCredit: req.MinutesPerCredit,
 		AttendancePolicyID: ids.AttendancePolicyID(req.AttendancePolicyID), WorkingPatternID: ids.WorkingPatternID(req.WorkingPatternID),
+		LateArrivalGraceMinutes: req.LateArrivalGraceMinutes, EarlyOTEnabled: req.EarlyOTEnabled,
+		EarlyOTQualificationGraceMinutes: req.EarlyOTQualificationGraceMinutes, EarlyOTMaxMinutes: req.EarlyOTMaxMinutes,
+		BreakAutoDeduct: req.BreakAutoDeduct, BreakIsOvertime: req.BreakIsOvertime, OTAggregationMode: req.OTAggregationMode,
 		PayMethod: req.PayMethod, MonthlyDenominator: req.MonthlyDenominator, MonthlyStandardDays: req.MonthlyStandardDays,
 		RateComponentDefinitionID: rateComponentID(req.RateComponentDefinitionID), OvertimePolicyID: ids.OvertimePolicyID(req.OvertimePolicyID),
 		EffectiveFrom: req.EffectiveFrom, EffectiveTo: req.EffectiveTo,
@@ -339,6 +363,9 @@ func (h *WorkPolicyGroupHandler) Create(w http.ResponseWriter, r *http.Request) 
 	result, err := h.Repository.CreateWorkPolicyGroup(r.Context(), workpolicy.CreateGroupInput{
 		Name: req.Name, MinutesPerCredit: req.MinutesPerCredit,
 		AttendancePolicyID: ids.AttendancePolicyID(req.AttendancePolicyID), WorkingPatternID: ids.WorkingPatternID(req.WorkingPatternID),
+		LateArrivalGraceMinutes: req.LateArrivalGraceMinutes, EarlyOTEnabled: req.EarlyOTEnabled,
+		EarlyOTQualificationGraceMinutes: req.EarlyOTQualificationGraceMinutes, EarlyOTMaxMinutes: req.EarlyOTMaxMinutes,
+		BreakAutoDeduct: req.BreakAutoDeduct, BreakIsOvertime: req.BreakIsOvertime, OTAggregationMode: req.OTAggregationMode,
 		PayMethod: req.PayMethod, MonthlyDenominator: req.MonthlyDenominator, MonthlyStandardDays: req.MonthlyStandardDays,
 		RateComponentDefinitionID: rateComponentID(req.RateComponentDefinitionID), OvertimePolicyID: ids.OvertimePolicyID(req.OvertimePolicyID),
 		EffectiveFrom: req.EffectiveFrom, EffectiveTo: req.EffectiveTo,
@@ -415,6 +442,9 @@ func validateWorkPolicyDefinitions(req CreateWorkPolicyGroupRequest) error {
 	workCredit := workpolicy.WorkCreditPolicy{
 		Name: req.Name, MinutesPerCredit: req.MinutesPerCredit,
 		AttendancePolicyID: ids.AttendancePolicyID(req.AttendancePolicyID), WorkingPatternID: ids.WorkingPatternID(req.WorkingPatternID),
+		LateArrivalGraceMinutes: req.LateArrivalGraceMinutes, EarlyOTEnabled: req.EarlyOTEnabled,
+		EarlyOTQualificationGraceMinutes: req.EarlyOTQualificationGraceMinutes, EarlyOTMaxMinutes: req.EarlyOTMaxMinutes,
+		BreakAutoDeduct: req.BreakAutoDeduct, BreakIsOvertime: req.BreakIsOvertime, OTAggregationMode: req.OTAggregationMode,
 	}
 	if err := workCredit.Validate(); err != nil {
 		return ErrWorkPolicyGroupValidation

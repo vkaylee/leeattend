@@ -60,7 +60,7 @@ func (r ShiftRepository) CreateShift(ctx context.Context, actorID uuid.UUID, req
 			return err
 		}
 		for index, interval := range req.Intervals {
-			if _, err := db.Exec(ctx, `INSERT INTO shift_default_intervals (id, version_id, sort_order, interval_name, start_time, end_time, break_duration_minutes, break_start, break_end, is_break_auto_deduct, break_is_overtime, early_punch_in_grace_period_minutes, allow_early_ot, max_early_ot_minutes, ot_aggregation_mode, is_night_shift, start_day_offset, end_day_offset, start_utc_offset_minutes, end_utc_offset_minutes, created_at, updated_at) VALUES ($1, $2, $3, $4, $5::time, $6::time, $7, $8::time, $9::time, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $21)`, uuid.New(), versionID, index, interval.IntervalName, interval.StartTime, interval.EndTime, interval.BreakDurationMinutes, nullableClock(interval.BreakStart), nullableClock(interval.BreakEnd), interval.IsBreakAutoDeduct, interval.BreakIsOvertime, interval.EarlyPunchInGracePeriodMinutes, interval.AllowEarlyOT, interval.MaxEarlyOTMinutes, interval.OTAggregationMode, interval.IsNightShift, interval.StartDayOffset, interval.EndDayOffset, interval.StartUTCOffsetMinutes, interval.EndUTCOffsetMinutes, now); err != nil {
+			if _, err := db.Exec(ctx, `INSERT INTO shift_default_intervals (id, version_id, sort_order, interval_name, start_time, end_time, break_duration_minutes, break_start, break_end, start_day_offset, end_day_offset, start_utc_offset_minutes, end_utc_offset_minutes, created_at, updated_at) VALUES ($1, $2, $3, $4, $5::time, $6::time, $7, $8::time, $9::time, $10, $11, $12, $13, $14, $14)`, uuid.New(), versionID, index, interval.IntervalName, interval.StartTime, interval.EndTime, interval.BreakDurationMinutes, nullableClock(interval.BreakStart), nullableClock(interval.BreakEnd), interval.StartDayOffset, interval.EndDayOffset, interval.StartUTCOffsetMinutes, interval.EndUTCOffsetMinutes, now); err != nil {
 				return err
 			}
 		}
@@ -125,7 +125,7 @@ func scanShift(ctx context.Context, db DBTX, templateID uuid.UUID, record *api.S
 }
 
 func loadIntervals(ctx context.Context, db DBTX, versionID uuid.UUID, intervals *[]api.ShiftIntervalRecord) error {
-	rows, err := db.Query(ctx, `SELECT id, version_id, sort_order, interval_name, start_time::text, end_time::text, break_duration_minutes, break_start::text, break_end::text, is_break_auto_deduct, break_is_overtime, early_punch_in_grace_period_minutes, allow_early_ot, max_early_ot_minutes, ot_aggregation_mode, is_night_shift, start_day_offset, end_day_offset, start_utc_offset_minutes, end_utc_offset_minutes FROM shift_default_intervals WHERE version_id = $1 ORDER BY sort_order ASC`, versionID)
+	rows, err := db.Query(ctx, `SELECT id, version_id, sort_order, interval_name, start_time::text, end_time::text, break_duration_minutes, break_start::text, break_end::text, start_day_offset, end_day_offset, start_utc_offset_minutes, end_utc_offset_minutes FROM shift_default_intervals WHERE version_id = $1 ORDER BY sort_order ASC`, versionID)
 	if err != nil {
 		return err
 	}
@@ -133,7 +133,7 @@ func loadIntervals(ctx context.Context, db DBTX, versionID uuid.UUID, intervals 
 	*intervals = make([]api.ShiftIntervalRecord, 0)
 	for rows.Next() {
 		var interval api.ShiftIntervalRecord
-		if err := rows.Scan(&interval.ID, &interval.VersionID, &interval.SortOrder, &interval.IntervalName, &interval.StartTime, &interval.EndTime, &interval.BreakDurationMinutes, &interval.BreakStart, &interval.BreakEnd, &interval.IsBreakAutoDeduct, &interval.BreakIsOvertime, &interval.EarlyPunchInGracePeriodMinutes, &interval.AllowEarlyOT, &interval.MaxEarlyOTMinutes, &interval.OTAggregationMode, &interval.IsNightShift, &interval.StartDayOffset, &interval.EndDayOffset, &interval.StartUTCOffsetMinutes, &interval.EndUTCOffsetMinutes); err != nil {
+		if err := rows.Scan(&interval.ID, &interval.VersionID, &interval.SortOrder, &interval.IntervalName, &interval.StartTime, &interval.EndTime, &interval.BreakDurationMinutes, &interval.BreakStart, &interval.BreakEnd, &interval.StartDayOffset, &interval.EndDayOffset, &interval.StartUTCOffsetMinutes, &interval.EndUTCOffsetMinutes); err != nil {
 			return err
 		}
 		*intervals = append(*intervals, interval)
@@ -190,7 +190,7 @@ func (r ShiftRepository) UpdateShift(ctx context.Context, templateID, actorID uu
 			return err
 		}
 		for index, interval := range req.Intervals {
-			if _, err := db.Exec(ctx, `INSERT INTO shift_default_intervals (id, version_id, sort_order, interval_name, start_time, end_time, break_duration_minutes, break_start, break_end, is_break_auto_deduct, break_is_overtime, early_punch_in_grace_period_minutes, allow_early_ot, max_early_ot_minutes, ot_aggregation_mode, is_night_shift, start_day_offset, end_day_offset, start_utc_offset_minutes, end_utc_offset_minutes, created_at, updated_at) VALUES ($1, $2, $3, $4, $5::time, $6::time, $7, $8::time, $9::time, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $21)`, uuid.New(), newVersionID, index, interval.IntervalName, interval.StartTime, interval.EndTime, interval.BreakDurationMinutes, nullableClock(interval.BreakStart), nullableClock(interval.BreakEnd), interval.IsBreakAutoDeduct, interval.BreakIsOvertime, interval.EarlyPunchInGracePeriodMinutes, interval.AllowEarlyOT, interval.MaxEarlyOTMinutes, interval.OTAggregationMode, interval.IsNightShift, interval.StartDayOffset, interval.EndDayOffset, interval.StartUTCOffsetMinutes, interval.EndUTCOffsetMinutes, now); err != nil {
+			if _, err := db.Exec(ctx, `INSERT INTO shift_default_intervals (id, version_id, sort_order, interval_name, start_time, end_time, break_duration_minutes, break_start, break_end, start_day_offset, end_day_offset, start_utc_offset_minutes, end_utc_offset_minutes, created_at, updated_at) VALUES ($1, $2, $3, $4, $5::time, $6::time, $7, $8::time, $9::time, $10, $11, $12, $13, $14, $14)`, uuid.New(), newVersionID, index, interval.IntervalName, interval.StartTime, interval.EndTime, interval.BreakDurationMinutes, nullableClock(interval.BreakStart), nullableClock(interval.BreakEnd), interval.StartDayOffset, interval.EndDayOffset, interval.StartUTCOffsetMinutes, interval.EndUTCOffsetMinutes, now); err != nil {
 				return err
 			}
 		}
@@ -251,7 +251,7 @@ func (r ShiftRepository) ListShiftVersions(ctx context.Context, templateID uuid.
 	if len(versionIDs) == 0 {
 		return versions, nil
 	}
-	intervalRows, err := db.Query(ctx, `SELECT id, version_id, sort_order, interval_name, start_time::text, end_time::text, break_duration_minutes, break_start::text, break_end::text, is_break_auto_deduct, break_is_overtime, early_punch_in_grace_period_minutes, allow_early_ot, max_early_ot_minutes, ot_aggregation_mode, is_night_shift, start_day_offset, end_day_offset, start_utc_offset_minutes, end_utc_offset_minutes FROM shift_default_intervals WHERE version_id = ANY($1) ORDER BY sort_order ASC`, versionIDs)
+	intervalRows, err := db.Query(ctx, `SELECT id, version_id, sort_order, interval_name, start_time::text, end_time::text, break_duration_minutes, break_start::text, break_end::text, start_day_offset, end_day_offset, start_utc_offset_minutes, end_utc_offset_minutes FROM shift_default_intervals WHERE version_id = ANY($1) ORDER BY sort_order ASC`, versionIDs)
 	if err != nil {
 		return nil, err
 	}
@@ -259,7 +259,7 @@ func (r ShiftRepository) ListShiftVersions(ctx context.Context, templateID uuid.
 	byVersion := make(map[uuid.UUID][]api.ShiftIntervalRecord, len(versionIDs))
 	for intervalRows.Next() {
 		var interval api.ShiftIntervalRecord
-		if err := intervalRows.Scan(&interval.ID, &interval.VersionID, &interval.SortOrder, &interval.IntervalName, &interval.StartTime, &interval.EndTime, &interval.BreakDurationMinutes, &interval.BreakStart, &interval.BreakEnd, &interval.IsBreakAutoDeduct, &interval.BreakIsOvertime, &interval.EarlyPunchInGracePeriodMinutes, &interval.AllowEarlyOT, &interval.MaxEarlyOTMinutes, &interval.OTAggregationMode, &interval.IsNightShift, &interval.StartDayOffset, &interval.EndDayOffset, &interval.StartUTCOffsetMinutes, &interval.EndUTCOffsetMinutes); err != nil {
+		if err := intervalRows.Scan(&interval.ID, &interval.VersionID, &interval.SortOrder, &interval.IntervalName, &interval.StartTime, &interval.EndTime, &interval.BreakDurationMinutes, &interval.BreakStart, &interval.BreakEnd, &interval.StartDayOffset, &interval.EndDayOffset, &interval.StartUTCOffsetMinutes, &interval.EndUTCOffsetMinutes); err != nil {
 			return nil, err
 		}
 		byVersion[interval.VersionID] = append(byVersion[interval.VersionID], interval)
@@ -390,7 +390,7 @@ func shiftEndDate(startDate string, endDate *string) string {
 }
 
 func loadComplianceShiftIntervals(ctx context.Context, db pgx.Tx, templateID uuid.UUID) (map[uuid.UUID][]compliance.Interval, error) {
-	rows, err := db.Query(ctx, `SELECT t.id, i.start_time::text, i.end_time::text, i.break_duration_minutes, i.is_break_auto_deduct FROM shift_templates t JOIN shift_versions v ON v.id = t.current_version_id JOIN shift_default_intervals i ON i.version_id = v.id WHERE t.id = $1 ORDER BY i.sort_order`, templateID)
+	rows, err := db.Query(ctx, `SELECT t.id, i.start_time::text, i.end_time::text, i.break_duration_minutes FROM shift_templates t JOIN shift_versions v ON v.id = t.current_version_id JOIN shift_default_intervals i ON i.version_id = v.id WHERE t.id = $1 ORDER BY i.sort_order`, templateID)
 	if err != nil {
 		return nil, err
 	}
@@ -399,7 +399,7 @@ func loadComplianceShiftIntervals(ctx context.Context, db pgx.Tx, templateID uui
 	for rows.Next() {
 		var id uuid.UUID
 		var interval compliance.Interval
-		if err := rows.Scan(&id, &interval.StartTime, &interval.EndTime, &interval.BreakDurationMinutes, &interval.IsBreakAutoDeduct); err != nil {
+		if err := rows.Scan(&id, &interval.StartTime, &interval.EndTime, &interval.BreakDurationMinutes); err != nil {
 			return nil, err
 		}
 		intervals = append(intervals, interval)

@@ -24,20 +24,14 @@ import { createQueryKey } from "@/lib/query-keys";
 
 
 export interface IntervalDraft {
-  allowEarlyOt: boolean;
   breakDuration: number;
   breakEnd: string;
   breakStart: string;
   endTime: string;
-  gracePeriodMinutes: number;
   intervalName: string;
-  isAutoDeduct: boolean;
-  isBreakOvertime: boolean;
   isFixedBreak: boolean;
   isNightShift: boolean;
   key: string;
-  maxEarlyOtMinutes: number | null;
-  otAggregationMode: "aggregate" | "per_segment";
   startTime: string;
 }
 
@@ -77,12 +71,6 @@ function makeDefaultInterval(): IntervalDraft {
     breakStart: "",
     breakEnd: "",
     isFixedBreak: false,
-    isAutoDeduct: true,
-    isBreakOvertime: false,
-    gracePeriodMinutes: 15,
-    allowEarlyOt: false,
-    maxEarlyOtMinutes: null,
-    otAggregationMode: "aggregate",
     isNightShift: false,
   };
 }
@@ -183,13 +171,7 @@ export function useShiftEditor(shiftId?: string) {
         breakStart: (iv.break_start ?? "").substring(0, 5),
         breakEnd: (iv.break_end ?? "").substring(0, 5),
         isFixedBreak: !!iv.break_start,
-        isAutoDeduct: iv.is_break_auto_deduct,
-        isBreakOvertime: iv.break_is_overtime,
-        gracePeriodMinutes: iv.early_punch_in_grace_period_minutes,
-        allowEarlyOt: iv.allow_early_ot,
-        maxEarlyOtMinutes: iv.max_early_ot_minutes ?? null,
-        otAggregationMode: iv.ot_aggregation_mode === "per_segment" ? "per_segment" : "aggregate",
-        isNightShift: iv.is_night_shift,
+        isNightShift: iv.start_time > iv.end_time,
       }));
     }
     return [makeDefaultInterval()];
@@ -240,13 +222,6 @@ export function useShiftEditor(shiftId?: string) {
       break_duration_minutes: iv.breakDuration,
       break_start: iv.isFixedBreak && iv.breakStart ? padTime(iv.breakStart) : null,
       break_end: iv.isFixedBreak && iv.breakEnd ? padTime(iv.breakEnd) : null,
-      is_break_auto_deduct: iv.isAutoDeduct,
-      break_is_overtime: iv.isBreakOvertime,
-      early_punch_in_grace_period_minutes: iv.gracePeriodMinutes,
-      allow_early_ot: iv.allowEarlyOt,
-      max_early_ot_minutes: iv.allowEarlyOt ? iv.maxEarlyOtMinutes : null,
-      ot_aggregation_mode: iv.otAggregationMode,
-      is_night_shift: iv.isNightShift,
     }));
 
     return {

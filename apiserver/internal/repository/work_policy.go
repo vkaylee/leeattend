@@ -52,7 +52,8 @@ func (r WorkPolicyRepository) ListWorkPolicyGroupVersions(ctx context.Context, p
 		SELECT v.id, v.group_id, g.name, v.work_credit_policy_id, wc.name, wc.minutes_per_credit,
 		       wc.attendance_policy_id, wc.working_pattern_id, v.pay_basis_policy_id, pb.name,
 		       pb.method, pb.monthly_denominator, pb.monthly_standard_days::text, pb.rate_component_definition_id, v.overtime_policy_id,
-		       v.effective_from::text, v.effective_to::text
+		       v.effective_from::text, v.effective_to::text,
+		       wc.late_arrival_grace_minutes, wc.early_ot_enabled, wc.early_ot_qualification_grace_minutes, wc.early_ot_max_minutes, wc.break_auto_deduct, wc.break_is_overtime, wc.ot_aggregation_mode
 		FROM labor_policy_group_versions v
 		JOIN labor_policy_groups g ON g.id = v.group_id
 		JOIN work_credit_policies wc ON wc.id = v.work_credit_policy_id
@@ -91,7 +92,8 @@ func (r WorkPolicyRepository) ListWorkPolicyGroupHistory(ctx context.Context, gr
 		SELECT v.id, v.group_id, g.name, v.work_credit_policy_id, wc.name, wc.minutes_per_credit,
 		       wc.attendance_policy_id, wc.working_pattern_id, v.pay_basis_policy_id, pb.name,
 		       pb.method, pb.monthly_denominator, pb.monthly_standard_days::text, pb.rate_component_definition_id, v.overtime_policy_id,
-		       v.effective_from::text, v.effective_to::text
+		       v.effective_from::text, v.effective_to::text,
+		       wc.late_arrival_grace_minutes, wc.early_ot_enabled, wc.early_ot_qualification_grace_minutes, wc.early_ot_max_minutes, wc.break_auto_deduct, wc.break_is_overtime, wc.ot_aggregation_mode
 		FROM labor_policy_group_versions v
 		JOIN labor_policy_groups g ON g.id = v.group_id
 		JOIN work_credit_policies wc ON wc.id = v.work_credit_policy_id
@@ -129,7 +131,8 @@ func (r WorkPolicyRepository) GetWorkPolicyGroupVersion(ctx context.Context, gro
 		SELECT v.id, v.group_id, g.name, v.work_credit_policy_id, wc.name, wc.minutes_per_credit,
 		       wc.attendance_policy_id, wc.working_pattern_id, v.pay_basis_policy_id, pb.name,
 		       pb.method, pb.monthly_denominator, pb.monthly_standard_days::text, pb.rate_component_definition_id, v.overtime_policy_id,
-		       v.effective_from::text, v.effective_to::text
+		       v.effective_from::text, v.effective_to::text,
+		       wc.late_arrival_grace_minutes, wc.early_ot_enabled, wc.early_ot_qualification_grace_minutes, wc.early_ot_max_minutes, wc.break_auto_deduct, wc.break_is_overtime, wc.ot_aggregation_mode
 		FROM labor_policy_group_versions v
 		JOIN labor_policy_groups g ON g.id = v.group_id
 		JOIN work_credit_policies wc ON wc.id = v.work_credit_policy_id
@@ -299,7 +302,7 @@ func insertWorkPolicyVersion(ctx context.Context, tx pgx.Tx, req workpolicy.Crea
 }
 
 func insertPolicyDefinitions(ctx context.Context, tx pgx.Tx, req workpolicy.CreateGroupVersionInput, actorID ids.UserID, workCreditID workpolicy.WorkCreditPolicyID, payBasisID workpolicy.PayBasisPolicyID) error {
-	if _, err := tx.Exec(ctx, `INSERT INTO work_credit_policies (id, name, minutes_per_credit, attendance_policy_id, working_pattern_id, created_by) VALUES ($1, $2, $3, $4, $5, $6)`, uuid.UUID(workCreditID), req.Name, req.MinutesPerCredit, uuid.UUID(req.AttendancePolicyID), uuid.UUID(req.WorkingPatternID), uuid.UUID(actorID)); err != nil {
+	if _, err := tx.Exec(ctx, `INSERT INTO work_credit_policies (id, name, minutes_per_credit, attendance_policy_id, working_pattern_id, late_arrival_grace_minutes, early_ot_enabled, early_ot_qualification_grace_minutes, early_ot_max_minutes, break_auto_deduct, break_is_overtime, ot_aggregation_mode, created_by) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)`, uuid.UUID(workCreditID), req.Name, req.MinutesPerCredit, uuid.UUID(req.AttendancePolicyID), uuid.UUID(req.WorkingPatternID), req.LateArrivalGraceMinutes, req.EarlyOTEnabled, req.EarlyOTQualificationGraceMinutes, req.EarlyOTMaxMinutes, req.BreakAutoDeduct, req.BreakIsOvertime, req.OTAggregationMode, uuid.UUID(actorID)); err != nil {
 		return mapConstraintError(err)
 	}
 	if _, err := tx.Exec(ctx, `INSERT INTO pay_basis_policies (id, name, method, monthly_denominator, monthly_standard_days, rate_component_definition_id, created_by) VALUES ($1, $2, $3, $4, $5, $6, $7)`, uuid.UUID(payBasisID), req.Name, req.PayMethod, req.MonthlyDenominator, req.MonthlyStandardDays, uuidPtr(req.RateComponentDefinitionID), uuid.UUID(actorID)); err != nil {
@@ -320,6 +323,9 @@ func createGroupRequestFromInput(req workpolicy.CreateGroupInput) api.CreateWork
 	return api.CreateWorkPolicyGroupRequest{
 		Name: req.Name, MinutesPerCredit: req.MinutesPerCredit,
 		AttendancePolicyID: uuid.UUID(req.AttendancePolicyID), WorkingPatternID: uuid.UUID(req.WorkingPatternID),
+		LateArrivalGraceMinutes: req.LateArrivalGraceMinutes, EarlyOTEnabled: req.EarlyOTEnabled,
+		EarlyOTQualificationGraceMinutes: req.EarlyOTQualificationGraceMinutes, EarlyOTMaxMinutes: req.EarlyOTMaxMinutes,
+		BreakAutoDeduct: req.BreakAutoDeduct, BreakIsOvertime: req.BreakIsOvertime, OTAggregationMode: req.OTAggregationMode,
 		PayMethod: req.PayMethod, MonthlyDenominator: req.MonthlyDenominator, MonthlyStandardDays: req.MonthlyStandardDays,
 		RateComponentDefinitionID: uuidPtr(req.RateComponentDefinitionID), OvertimePolicyID: uuid.UUID(req.OvertimePolicyID),
 		EffectiveFrom: req.EffectiveFrom, EffectiveTo: req.EffectiveTo,
@@ -330,6 +336,9 @@ func createGroupRequestFromVersion(req workpolicy.CreateGroupVersionInput) api.C
 	return api.CreateWorkPolicyGroupRequest{
 		Name: req.Name, MinutesPerCredit: req.MinutesPerCredit,
 		AttendancePolicyID: uuid.UUID(req.AttendancePolicyID), WorkingPatternID: uuid.UUID(req.WorkingPatternID),
+		LateArrivalGraceMinutes: req.LateArrivalGraceMinutes, EarlyOTEnabled: req.EarlyOTEnabled,
+		EarlyOTQualificationGraceMinutes: req.EarlyOTQualificationGraceMinutes, EarlyOTMaxMinutes: req.EarlyOTMaxMinutes,
+		BreakAutoDeduct: req.BreakAutoDeduct, BreakIsOvertime: req.BreakIsOvertime, OTAggregationMode: req.OTAggregationMode,
 		PayMethod: req.PayMethod, MonthlyDenominator: req.MonthlyDenominator, MonthlyStandardDays: req.MonthlyStandardDays,
 		RateComponentDefinitionID: uuidPtr(req.RateComponentDefinitionID), OvertimePolicyID: uuid.UUID(req.OvertimePolicyID),
 		EffectiveFrom: req.EffectiveFrom, EffectiveTo: req.EffectiveTo,
@@ -342,7 +351,7 @@ func workPolicyGroupVersion(row interface{ Scan(...any) error }) (api.WorkPolicy
 	var denominator *string
 	var days *string
 	var rateComponentID *uuid.UUID
-	if err := row.Scan(&item.ID, &item.GroupID, &item.Name, &item.WorkCreditPolicyID, &item.WorkCreditPolicyName, &item.MinutesPerCredit, &item.AttendancePolicyID, &item.WorkingPatternID, &item.PayBasisPolicyID, &item.PayBasisPolicyName, &method, &denominator, &days, &rateComponentID, &item.OvertimePolicyID, &item.EffectiveFrom, &item.EffectiveTo); err != nil {
+	if err := row.Scan(&item.ID, &item.GroupID, &item.Name, &item.WorkCreditPolicyID, &item.WorkCreditPolicyName, &item.MinutesPerCredit, &item.AttendancePolicyID, &item.WorkingPatternID, &item.PayBasisPolicyID, &item.PayBasisPolicyName, &method, &denominator, &days, &rateComponentID, &item.OvertimePolicyID, &item.EffectiveFrom, &item.EffectiveTo, &item.LateArrivalGraceMinutes, &item.EarlyOTEnabled, &item.EarlyOTQualificationGraceMinutes, &item.EarlyOTMaxMinutes, &item.BreakAutoDeduct, &item.BreakIsOvertime, &item.OTAggregationMode); err != nil {
 		return api.WorkPolicyGroupVersion{}, err
 	}
 	item.PayMethod = apiWorkPolicyMethod(method)
@@ -372,7 +381,10 @@ func workPolicyGroupVersionResult(req api.CreateWorkPolicyGroupRequest, groupID,
 		ID: versionID, GroupID: groupID, Name: req.Name,
 		WorkCreditPolicyID: workCreditID, WorkCreditPolicyName: req.Name,
 		MinutesPerCredit: req.MinutesPerCredit, AttendancePolicyID: req.AttendancePolicyID,
-		WorkingPatternID: req.WorkingPatternID, PayBasisPolicyID: payBasisID,
+		WorkingPatternID: req.WorkingPatternID, LateArrivalGraceMinutes: req.LateArrivalGraceMinutes,
+		EarlyOTEnabled: req.EarlyOTEnabled, EarlyOTQualificationGraceMinutes: req.EarlyOTQualificationGraceMinutes,
+		EarlyOTMaxMinutes: req.EarlyOTMaxMinutes, BreakAutoDeduct: req.BreakAutoDeduct,
+		BreakIsOvertime: req.BreakIsOvertime, OTAggregationMode: req.OTAggregationMode, PayBasisPolicyID: payBasisID,
 		PayBasisPolicyName: req.Name, PayMethod: req.PayMethod,
 		MonthlyDenominator: req.MonthlyDenominator, MonthlyStandardDays: req.MonthlyStandardDays,
 		RateComponentDefinitionID: req.RateComponentDefinitionID,
@@ -381,7 +393,7 @@ func workPolicyGroupVersionResult(req api.CreateWorkPolicyGroupRequest, groupID,
 }
 
 func insertWorkPolicyGroup(ctx context.Context, tx pgx.Tx, req api.CreateWorkPolicyGroupRequest, actorID uuid.UUID, from time.Time, to *time.Time, groupID, workCreditID, payBasisID, versionID uuid.UUID) error {
-	if _, err := tx.Exec(ctx, `INSERT INTO work_credit_policies (id, name, minutes_per_credit, attendance_policy_id, working_pattern_id, created_by) VALUES ($1, $2, $3, $4, $5, $6)`, workCreditID, req.Name, req.MinutesPerCredit, req.AttendancePolicyID, req.WorkingPatternID, actorID); err != nil {
+	if _, err := tx.Exec(ctx, `INSERT INTO work_credit_policies (id, name, minutes_per_credit, attendance_policy_id, working_pattern_id, late_arrival_grace_minutes, early_ot_enabled, early_ot_qualification_grace_minutes, early_ot_max_minutes, break_auto_deduct, break_is_overtime, ot_aggregation_mode, created_by) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)`, workCreditID, req.Name, req.MinutesPerCredit, req.AttendancePolicyID, req.WorkingPatternID, req.LateArrivalGraceMinutes, req.EarlyOTEnabled, req.EarlyOTQualificationGraceMinutes, req.EarlyOTMaxMinutes, req.BreakAutoDeduct, req.BreakIsOvertime, req.OTAggregationMode, actorID); err != nil {
 		return mapConstraintError(err)
 	}
 	if _, err := tx.Exec(ctx, `INSERT INTO pay_basis_policies (id, name, method, monthly_denominator, monthly_standard_days, rate_component_definition_id, created_by) VALUES ($1, $2, $3, $4, $5, $6, $7)`, payBasisID, req.Name, req.PayMethod, req.MonthlyDenominator, req.MonthlyStandardDays, req.RateComponentDefinitionID, actorID); err != nil {
@@ -401,7 +413,8 @@ func resolveWorkPolicyByDate(ctx context.Context, db DBTX, employmentID uuid.UUI
 		SELECT v.id, v.group_id, g.name, v.work_credit_policy_id, wc.name, wc.minutes_per_credit,
 		       wc.attendance_policy_id, wc.working_pattern_id, v.pay_basis_policy_id, pb.name,
 		       pb.method, pb.monthly_denominator, pb.monthly_standard_days::text, pb.rate_component_definition_id, v.overtime_policy_id,
-		       v.effective_from::text, v.effective_to::text
+		       v.effective_from::text, v.effective_to::text,
+		       wc.late_arrival_grace_minutes, wc.early_ot_enabled, wc.early_ot_qualification_grace_minutes, wc.early_ot_max_minutes, wc.break_auto_deduct, wc.break_is_overtime, wc.ot_aggregation_mode
 		FROM labor_policy_memberships m
 		JOIN employments e ON e.id = m.employment_id
 		JOIN labor_policy_groups g ON g.id = m.group_id

@@ -11,6 +11,13 @@ export interface WorkPolicyGroupVersion {
   group_id: string;
   id: string;
   minutes_per_credit: number;
+  late_arrival_grace_minutes: number;
+  early_ot_enabled: boolean;
+  early_ot_qualification_grace_minutes: number;
+  early_ot_max_minutes?: number | null;
+  break_auto_deduct: boolean;
+  break_is_overtime: boolean;
+  ot_aggregation_mode: "aggregate" | "per_segment";
   monthly_denominator?: "fixed" | "schedule";
   monthly_standard_days?: string;
   name: string;
@@ -65,6 +72,13 @@ export interface CreateWorkPolicyGroupVersionRequest {
   effective_from: string;
   effective_to?: string;
   minutes_per_credit: number;
+  late_arrival_grace_minutes: number;
+  early_ot_enabled: boolean;
+  early_ot_qualification_grace_minutes: number;
+  early_ot_max_minutes?: number | null;
+  break_auto_deduct: boolean;
+  break_is_overtime: boolean;
+  ot_aggregation_mode: "aggregate" | "per_segment";
   monthly_denominator?: "fixed" | "schedule";
   monthly_standard_days?: string;
   name: string;

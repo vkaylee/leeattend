@@ -36,15 +36,25 @@ var (
 	ErrMonthlyDaysUnexpected     = errors.New("work policy: monthly standard days only applies to fixed monthly pay")
 	ErrRateComponentRequired     = errors.New("work policy: hourly and shift pay require a rate component")
 	ErrRateComponentUnexpected   = errors.New("work policy: monthly pay cannot define a rate component")
-	ErrEffectiveRangeInvalid     = errors.New("work policy: effective range is invalid")
+	ErrEffectiveRangeInvalid           = errors.New("work policy: effective range is invalid")
+	ErrGraceMinutesInvalid             = errors.New("work policy: grace minutes must not be negative")
+	ErrEarlyOTMaxInvalid               = errors.New("work policy: early OT max must not be negative")
+	ErrOTAggregationModeInvalid        = errors.New("work policy: OT aggregation mode is invalid")
 )
 
 type WorkCreditPolicy struct {
-	ID                 WorkCreditPolicyID
-	Name               string
-	MinutesPerCredit   int
-	AttendancePolicyID ids.AttendancePolicyID
-	WorkingPatternID   ids.WorkingPatternID
+	ID                               WorkCreditPolicyID
+	Name                             string
+	MinutesPerCredit                 int
+	AttendancePolicyID               ids.AttendancePolicyID
+	WorkingPatternID                 ids.WorkingPatternID
+	LateArrivalGraceMinutes          int
+	EarlyOTEnabled                   bool
+	EarlyOTQualificationGraceMinutes int
+	EarlyOTMaxMinutes                *int
+	BreakAutoDeduct                  bool
+	BreakIsOvertime                  bool
+	OTAggregationMode                string
 }
 
 type WorkCreditResult struct {
@@ -74,6 +84,15 @@ func (p WorkCreditPolicy) Validate() error {
 	}
 	if uuid.UUID(p.AttendancePolicyID) == uuid.Nil || uuid.UUID(p.WorkingPatternID) == uuid.Nil {
 		return ErrReferenceRequired
+	}
+	if p.LateArrivalGraceMinutes < 0 || p.EarlyOTQualificationGraceMinutes < 0 {
+		return ErrGraceMinutesInvalid
+	}
+	if p.EarlyOTMaxMinutes != nil && *p.EarlyOTMaxMinutes < 0 {
+		return ErrEarlyOTMaxInvalid
+	}
+	if p.OTAggregationMode != "aggregate" && p.OTAggregationMode != "per_segment" {
+		return ErrOTAggregationModeInvalid
 	}
 	return nil
 }

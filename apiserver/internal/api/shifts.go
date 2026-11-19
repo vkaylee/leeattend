@@ -32,23 +32,16 @@ func (e *ShiftComplianceError) Error() string {
 }
 
 type ShiftIntervalRequest struct {
-	IntervalName                   *string `json:"interval_name,omitempty"`
-	StartTime                      string  `json:"start_time"`
-	EndTime                        string  `json:"end_time"`
-	StartDayOffset                 int     `json:"start_day_offset"`
-	EndDayOffset                   int     `json:"end_day_offset"`
-	StartUTCOffsetMinutes          *int    `json:"start_utc_offset_minutes,omitempty"`
-	EndUTCOffsetMinutes            *int    `json:"end_utc_offset_minutes,omitempty"`
-	BreakDurationMinutes           int     `json:"break_duration_minutes"`
-	BreakStart                     *string `json:"break_start,omitempty"`
-	BreakEnd                       *string `json:"break_end,omitempty"`
-	IsBreakAutoDeduct              bool    `json:"is_break_auto_deduct"`
-	BreakIsOvertime                bool    `json:"break_is_overtime"`
-	EarlyPunchInGracePeriodMinutes int     `json:"early_punch_in_grace_period_minutes"`
-	AllowEarlyOT                   bool    `json:"allow_early_ot"`
-	MaxEarlyOTMinutes              *int    `json:"max_early_ot_minutes,omitempty"`
-	OTAggregationMode              string  `json:"ot_aggregation_mode"`
-	IsNightShift                   bool    `json:"is_night_shift"`
+	IntervalName          *string `json:"interval_name,omitempty"`
+	StartTime             string  `json:"start_time"`
+	EndTime               string  `json:"end_time"`
+	StartDayOffset        int     `json:"start_day_offset"`
+	EndDayOffset          int     `json:"end_day_offset"`
+	StartUTCOffsetMinutes *int    `json:"start_utc_offset_minutes,omitempty"`
+	EndUTCOffsetMinutes   *int    `json:"end_utc_offset_minutes,omitempty"`
+	BreakDurationMinutes  int     `json:"break_duration_minutes"`
+	BreakStart            *string `json:"break_start,omitempty"`
+	BreakEnd              *string `json:"break_end,omitempty"`
 }
 
 type CreateShiftRequest struct {
@@ -97,26 +90,19 @@ type AssignShiftRequest struct {
 	OverrideReason *string   `json:"override_reason,omitempty"`
 }
 type ShiftIntervalRecord struct {
-	ID                             uuid.UUID `json:"id"`
-	VersionID                      uuid.UUID `json:"version_id"`
-	SortOrder                      int       `json:"sort_order"`
-	IntervalName                   *string   `json:"interval_name"`
-	StartTime                      string    `json:"start_time"`
-	EndTime                        string    `json:"end_time"`
-	StartDayOffset                 int       `json:"start_day_offset"`
-	EndDayOffset                   int       `json:"end_day_offset"`
-	StartUTCOffsetMinutes          *int      `json:"start_utc_offset_minutes,omitempty"`
-	EndUTCOffsetMinutes            *int      `json:"end_utc_offset_minutes,omitempty"`
-	BreakDurationMinutes           int       `json:"break_duration_minutes"`
-	BreakStart                     *string   `json:"break_start"`
-	BreakEnd                       *string   `json:"break_end"`
-	IsBreakAutoDeduct              bool      `json:"is_break_auto_deduct"`
-	BreakIsOvertime                bool      `json:"break_is_overtime"`
-	EarlyPunchInGracePeriodMinutes int       `json:"early_punch_in_grace_period_minutes"`
-	AllowEarlyOT                   bool      `json:"allow_early_ot"`
-	MaxEarlyOTMinutes              *int      `json:"max_early_ot_minutes"`
-	OTAggregationMode              string    `json:"ot_aggregation_mode"`
-	IsNightShift                   bool      `json:"is_night_shift"`
+	ID                    uuid.UUID `json:"id"`
+	VersionID             uuid.UUID `json:"version_id"`
+	SortOrder             int       `json:"sort_order"`
+	IntervalName          *string   `json:"interval_name"`
+	StartTime             string    `json:"start_time"`
+	EndTime               string    `json:"end_time"`
+	StartDayOffset        int       `json:"start_day_offset"`
+	EndDayOffset          int       `json:"end_day_offset"`
+	StartUTCOffsetMinutes *int      `json:"start_utc_offset_minutes,omitempty"`
+	EndUTCOffsetMinutes   *int      `json:"end_utc_offset_minutes,omitempty"`
+	BreakDurationMinutes  int       `json:"break_duration_minutes"`
+	BreakStart            *string   `json:"break_start"`
+	BreakEnd              *string   `json:"break_end"`
 }
 
 type ShiftRecord struct {
@@ -299,7 +285,7 @@ func validateIntervals(intervals []ShiftIntervalRequest) error {
 				return ErrShiftValidation
 			}
 		}
-		if interval.BreakDurationMinutes < 0 || interval.EarlyPunchInGracePeriodMinutes < 0 || interval.StartDayOffset < 0 || interval.EndDayOffset < 0 || interval.EndDayOffset < interval.StartDayOffset {
+		if interval.BreakDurationMinutes < 0 || interval.StartDayOffset < 0 || interval.EndDayOffset < 0 || interval.EndDayOffset < interval.StartDayOffset {
 			return ErrShiftValidation
 		}
 		if interval.StartUTCOffsetMinutes != nil && !validUTCOffset(*interval.StartUTCOffsetMinutes) || interval.EndUTCOffsetMinutes != nil && !validUTCOffset(*interval.EndUTCOffsetMinutes) {

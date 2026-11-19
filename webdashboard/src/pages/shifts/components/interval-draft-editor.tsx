@@ -7,8 +7,6 @@ import Button from "@/components/ui/button";
 import type { IntervalDraft } from "../hooks/use-shift-editor";
 
 import BreakConfigSection from "./break-config-section";
-import GraceAndOtSection from "./grace-ot-section";
-import OtAggregationSection from "./ot-aggregation-section";
 
 interface IntervalDraftEditorProps {
   index: number;
@@ -109,11 +107,6 @@ function IntervalDraftEditor({
       {/* Break Config */}
       <BreakConfigSection interval={iv} onUpdate={onUpdate} />
 
-      {/* Grace period & Early OT */}
-      <GraceAndOtSection interval={iv} onUpdate={onUpdate} />
-
-      {/* OT Aggregation Mode */}
-      <OtAggregationSection interval={iv} onUpdate={onUpdate} />
     </div>
   );
 }

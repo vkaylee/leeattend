@@ -10,6 +10,6 @@ export function parseShiftInterval(shift: Shift) {
     breakStart: iv?.break_start ?? null,
     breakEnd: iv?.break_end ?? null,
     breakDuration: iv?.break_duration_minutes ?? 0,
-    isAutoDeduct: iv?.is_break_auto_deduct ?? true,
+    isAutoDeduct: true,
   };
 }

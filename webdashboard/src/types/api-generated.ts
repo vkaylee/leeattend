@@ -8588,21 +8588,14 @@ export interface components {
             updated_at: string;
         };
         ShiftIntervalRecord: {
-            allow_early_ot: boolean;
             break_duration_minutes: number;
             break_end?: string | null;
-            break_is_overtime: boolean;
             break_start?: string | null;
-            early_punch_in_grace_period_minutes: number;
             end_day_offset: number;
             end_time: string;
             end_utc_offset_minutes?: number | null;
             id: string;
             interval_name?: string | null;
-            is_break_auto_deduct: boolean;
-            is_night_shift: boolean;
-            max_early_ot_minutes?: number | null;
-            ot_aggregation_mode: string;
             sort_order: number;
             start_day_offset: number;
             start_time: string;
@@ -8610,20 +8603,13 @@ export interface components {
             version_id: string;
         };
         ShiftIntervalRequest: {
-            allow_early_ot?: boolean;
             break_duration_minutes?: number;
             break_end?: string | null;
-            break_is_overtime?: boolean;
             break_start?: string | null;
-            early_punch_in_grace_period_minutes?: number;
             end_day_offset?: number;
             end_time?: string;
             end_utc_offset_minutes?: number | null;
             interval_name?: string | null;
-            is_break_auto_deduct?: boolean;
-            is_night_shift?: boolean;
-            max_early_ot_minutes?: number | null;
-            ot_aggregation_mode?: string;
             start_day_offset?: number;
             start_time?: string;
             start_utc_offset_minutes?: number | null;

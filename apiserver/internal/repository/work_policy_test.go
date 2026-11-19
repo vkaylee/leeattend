@@ -88,6 +88,13 @@ func TestWorkPolicyRepository_ValidateVersionReturnsReferenceBlocker(t *testing.
 					*(dest[14].(*uuid.UUID)) = uuid.New()
 					*(dest[15].(*string)) = "2026-01-01"
 					*(dest[16].(**string)) = nil
+					*(dest[17].(*int)) = 15
+					*(dest[18].(*bool)) = true
+					*(dest[19].(*int)) = 5
+					*(dest[20].(**int)) = nil
+					*(dest[21].(*bool)) = true
+					*(dest[22].(*bool)) = false
+					*(dest[23].(*string)) = "aggregate"
 					return nil
 				}}
 			}

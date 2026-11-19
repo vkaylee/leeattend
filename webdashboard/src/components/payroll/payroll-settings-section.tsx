@@ -24,7 +24,7 @@ export default function PayrollSettingsSection({ onDirtyChange }: PayrollSetting
   const toast = useToast();
   const [selectedPolicyGroupId, setSelectedPolicyGroupId] = useState<string>();
   const [isCreatingVersion, setIsCreatingVersion] = useState(false);
-  const [versionForm, setVersionForm] = useState({ effective_from: "", minutes_per_credit: "", pay_method: "monthly" as "monthly" | "hourly" | "shift", monthly_denominator: "fixed" as "fixed" | "schedule", monthly_standard_days: "26", attendance_policy_id: "", working_pattern_id: "", overtime_policy_id: "", rate_component_definition_id: "" });
+  const [versionForm, setVersionForm] = useState({ effective_from: "", minutes_per_credit: "", late_arrival_grace_minutes: "0", early_ot_enabled: false, early_ot_qualification_grace_minutes: "0", early_ot_max_minutes: "", break_auto_deduct: true, break_is_overtime: false, ot_aggregation_mode: "aggregate" as "aggregate" | "per_segment", pay_method: "monthly" as "monthly" | "hourly" | "shift", monthly_denominator: "fixed" as "fixed" | "schedule", monthly_standard_days: "26", attendance_policy_id: "", working_pattern_id: "", overtime_policy_id: "", rate_component_definition_id: "" });
   const [versionError, setVersionError] = useState<string>();
   const [versionConflict, setVersionConflict] = useState(false);
   const [membershipEmployeeId, setMembershipEmployeeId] = useState("");
@@ -67,7 +67,7 @@ export default function PayrollSettingsSection({ onDirtyChange }: PayrollSetting
 
   const selectPolicyForEdit = (policy: WorkPolicyGroupVersion) => {
     setSelectedPolicyGroupId(policy.group_id);
-    setVersionForm((form) => ({ ...form, attendance_policy_id: policy.attendance_policy_id ?? "", working_pattern_id: policy.working_pattern_id ?? "", overtime_policy_id: policy.overtime_policy_id }));
+    setVersionForm((form) => ({ ...form, attendance_policy_id: policy.attendance_policy_id ?? "", working_pattern_id: policy.working_pattern_id ?? "", overtime_policy_id: policy.overtime_policy_id, late_arrival_grace_minutes: String(policy.late_arrival_grace_minutes), early_ot_enabled: policy.early_ot_enabled, early_ot_qualification_grace_minutes: String(policy.early_ot_qualification_grace_minutes), early_ot_max_minutes: policy.early_ot_max_minutes == null ? "" : String(policy.early_ot_max_minutes), break_auto_deduct: policy.break_auto_deduct, break_is_overtime: policy.break_is_overtime, ot_aggregation_mode: policy.ot_aggregation_mode }));
   };
 
   useEffect(() => {
@@ -115,11 +115,18 @@ export default function PayrollSettingsSection({ onDirtyChange }: PayrollSetting
         monthly_standard_days: versionForm.pay_method === "monthly" && versionForm.monthly_denominator === "fixed" ? versionForm.monthly_standard_days : undefined,
         rate_component_definition_id: versionForm.pay_method === "monthly" ? null : (versionForm.rate_component_definition_id || selected.rate_component_definition_id || null),
         overtime_policy_id: overtimePolicyID,
+        late_arrival_grace_minutes: Number(versionForm.late_arrival_grace_minutes),
+        early_ot_enabled: versionForm.early_ot_enabled,
+        early_ot_qualification_grace_minutes: Number(versionForm.early_ot_qualification_grace_minutes),
+        early_ot_max_minutes: versionForm.early_ot_enabled && versionForm.early_ot_max_minutes !== "" ? Number(versionForm.early_ot_max_minutes) : null,
+        break_auto_deduct: versionForm.break_auto_deduct,
+        break_is_overtime: versionForm.break_is_overtime,
+        ot_aggregation_mode: versionForm.ot_aggregation_mode,
         effective_from: versionForm.effective_from,
       });
       toast.success(t("common.success"));
       setIsDraftDirty(false);
-      setVersionForm({ effective_from: "", minutes_per_credit: "", pay_method: "monthly", monthly_denominator: "fixed", monthly_standard_days: "26", attendance_policy_id: "", working_pattern_id: "", overtime_policy_id: "", rate_component_definition_id: "" });
+      setVersionForm({ effective_from: "", minutes_per_credit: "", late_arrival_grace_minutes: "0", early_ot_enabled: false, early_ot_qualification_grace_minutes: "0", early_ot_max_minutes: "", break_auto_deduct: true, break_is_overtime: false, ot_aggregation_mode: "aggregate", pay_method: "monthly", monthly_denominator: "fixed", monthly_standard_days: "26", attendance_policy_id: "", working_pattern_id: "", overtime_policy_id: "", rate_component_definition_id: "" });
       void queryClient.invalidateQueries({ queryKey: payrollKeys.workPolicyGroups() });
       void queryClient.invalidateQueries({ queryKey: payrollKeys.workPolicyHistory(selectedPolicyGroupId) });
     } catch (error: unknown) {
@@ -334,6 +341,34 @@ export default function PayrollSettingsSection({ onDirtyChange }: PayrollSetting
                 <label className="text-xs font-semibold text-slate-600 dark:text-slate-300" htmlFor="policy-monthly-denominator">{t("common.payroll.settings.work_policy_denominator", "Monthly denominator")}<select className="mt-1 block h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm dark:border-slate-700 dark:bg-slate-900" id="policy-monthly-denominator" onChange={(event) => { setIsDraftDirty(true); setVersionForm((form) => ({ ...form, monthly_denominator: event.target.value as typeof form.monthly_denominator })); }} value={versionForm.monthly_denominator}><option value="fixed">fixed</option><option value="schedule">schedule</option></select></label>
                 {versionForm.monthly_denominator === "fixed" ? <label className="text-xs font-semibold text-slate-600 dark:text-slate-300" htmlFor="policy-monthly-days">{t("common.payroll.settings.work_policy_days", "Monthly standard days")}<input className="mt-1 block h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm dark:border-slate-700 dark:bg-slate-900" id="policy-monthly-days" min="1" onChange={(event) => { setIsDraftDirty(true); setVersionForm((form) => ({ ...form, monthly_standard_days: event.target.value })); }} step="0.01" type="number" value={versionForm.monthly_standard_days} /></label> : null}
                 </> : <label className="text-xs font-semibold text-slate-600 dark:text-slate-300" htmlFor="policy-rate-component">{t("common.payroll.settings.work_policy_rate_component", "Rate component")}<select className="mt-1 block h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm dark:border-slate-700 dark:bg-slate-900" id="policy-rate-component" onChange={(event) => { setIsDraftDirty(true); setVersionForm((form) => ({ ...form, rate_component_definition_id: event.target.value })); }} value={versionForm.rate_component_definition_id}><option value="">{t("common.select", "Select")}</option>{referenceOptions?.salaryComponents.map((option) => <option key={option.id} value={option.id}>{option.label}</option>)}</select></label>}
+                <label className="text-xs font-semibold text-slate-600 dark:text-slate-300" htmlFor="policy-late-grace">
+                  Late arrival grace (minutes)
+                  <input className="mt-1 block h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm dark:border-slate-700 dark:bg-slate-900" id="policy-late-grace" min="0" onChange={(event) => { setIsDraftDirty(true); setVersionForm((form) => ({ ...form, late_arrival_grace_minutes: event.target.value })); }} type="number" value={versionForm.late_arrival_grace_minutes} />
+                </label>
+                <label className="text-xs font-semibold text-slate-600 dark:text-slate-300" htmlFor="policy-early-ot-grace">
+                  Early OT qualification grace (minutes)
+                  <input className="mt-1 block h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm dark:border-slate-700 dark:bg-slate-900" id="policy-early-ot-grace" min="0" onChange={(event) => { setIsDraftDirty(true); setVersionForm((form) => ({ ...form, early_ot_qualification_grace_minutes: event.target.value })); }} type="number" value={versionForm.early_ot_qualification_grace_minutes} />
+                </label>
+                <label className="flex items-center gap-2 text-xs font-semibold text-slate-600 dark:text-slate-300" htmlFor="policy-early-ot-enabled">
+                  <input checked={versionForm.early_ot_enabled} className="h-4 w-4" id="policy-early-ot-enabled" onChange={(event) => { setIsDraftDirty(true); setVersionForm((form) => ({ ...form, early_ot_enabled: event.target.checked })); }} type="checkbox" />
+                  Allow Early OT
+                </label>
+                {versionForm.early_ot_enabled ? <label className="text-xs font-semibold text-slate-600 dark:text-slate-300" htmlFor="policy-early-ot-max">
+                  Maximum Early OT (minutes)
+                  <input className="mt-1 block h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm dark:bg-slate-900" id="policy-early-ot-max" min="0" onChange={(event) => { setIsDraftDirty(true); setVersionForm((form) => ({ ...form, early_ot_max_minutes: event.target.value })); }} type="number" value={versionForm.early_ot_max_minutes} />
+                </label> : null}
+                <label className="text-xs font-semibold text-slate-600 dark:text-slate-300" htmlFor="policy-ot-aggregation">
+                  OT aggregation
+                  <select className="mt-1 block h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm dark:bg-slate-900" id="policy-ot-aggregation" onChange={(event) => { setIsDraftDirty(true); setVersionForm((form) => ({ ...form, ot_aggregation_mode: event.target.value as typeof form.ot_aggregation_mode })); }} value={versionForm.ot_aggregation_mode}><option value="aggregate">Aggregate</option><option value="per_segment">Per segment</option></select>
+                </label>
+                <label className="flex items-center gap-2 text-xs font-semibold text-slate-600 dark:text-slate-300" htmlFor="policy-break-deduct">
+                  <input checked={versionForm.break_auto_deduct} className="h-4 w-4" id="policy-break-deduct" onChange={(event) => { setIsDraftDirty(true); setVersionForm((form) => ({ ...form, break_auto_deduct: event.target.checked })); }} type="checkbox" />
+                  Automatically deduct break
+                </label>
+                <label className="flex items-center gap-2 text-xs font-semibold text-slate-600 dark:text-slate-300" htmlFor="policy-break-ot">
+                  <input checked={versionForm.break_is_overtime} className="h-4 w-4" id="policy-break-ot" onChange={(event) => { setIsDraftDirty(true); setVersionForm((form) => ({ ...form, break_is_overtime: event.target.checked })); }} type="checkbox" />
+                  Count break as OT
+                </label>
                 <label className="text-xs font-semibold text-slate-600 dark:text-slate-300" htmlFor="policy-pay-method">
                   {t("common.payroll.settings.work_policy_method", "Pay method")}
                   <select className="mt-1 block h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm dark:border-slate-700 dark:bg-slate-900" id="policy-pay-method" onChange={(event) => { setIsDraftDirty(true); setVersionForm((form) => ({ ...form, pay_method: event.target.value as typeof form.pay_method })); }} value={versionForm.pay_method}>

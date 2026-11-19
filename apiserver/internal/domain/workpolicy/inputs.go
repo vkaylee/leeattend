@@ -6,32 +6,46 @@ import (
 )
 
 type CreateGroupInput struct {
-	Name                      string
-	MinutesPerCredit          int
-	AttendancePolicyID        ids.AttendancePolicyID
-	WorkingPatternID          ids.WorkingPatternID
-	PayMethod                 PayMethod
-	MonthlyDenominator        *MonthlyDenominator
-	MonthlyStandardDays       *decimal.Decimal
-	RateComponentDefinitionID *ids.RateComponentDefinitionID
-	OvertimePolicyID          ids.OvertimePolicyID
-	EffectiveFrom             string
-	EffectiveTo               *string
+	Name                             string
+	MinutesPerCredit                 int
+	AttendancePolicyID               ids.AttendancePolicyID
+	WorkingPatternID                 ids.WorkingPatternID
+	LateArrivalGraceMinutes          int
+	EarlyOTEnabled                   bool
+	EarlyOTQualificationGraceMinutes int
+	EarlyOTMaxMinutes                *int
+	BreakAutoDeduct                  bool
+	BreakIsOvertime                  bool
+	OTAggregationMode                string
+	PayMethod                        PayMethod
+	MonthlyDenominator               *MonthlyDenominator
+	MonthlyStandardDays              *decimal.Decimal
+	RateComponentDefinitionID        *ids.RateComponentDefinitionID
+	OvertimePolicyID                 ids.OvertimePolicyID
+	EffectiveFrom                    string
+	EffectiveTo                      *string
 }
 
 type CreateGroupVersionInput struct {
-	GroupID                   GroupID
-	Name                      string
-	MinutesPerCredit          int
-	AttendancePolicyID        ids.AttendancePolicyID
-	WorkingPatternID          ids.WorkingPatternID
-	PayMethod                 PayMethod
-	MonthlyDenominator        *MonthlyDenominator
-	MonthlyStandardDays       *decimal.Decimal
-	RateComponentDefinitionID *ids.RateComponentDefinitionID
-	OvertimePolicyID          ids.OvertimePolicyID
-	EffectiveFrom             string
-	EffectiveTo               *string
+	GroupID                          GroupID
+	Name                             string
+	MinutesPerCredit                 int
+	AttendancePolicyID               ids.AttendancePolicyID
+	WorkingPatternID                 ids.WorkingPatternID
+	LateArrivalGraceMinutes          int
+	EarlyOTEnabled                   bool
+	EarlyOTQualificationGraceMinutes int
+	EarlyOTMaxMinutes                *int
+	BreakAutoDeduct                  bool
+	BreakIsOvertime                  bool
+	OTAggregationMode                string
+	PayMethod                        PayMethod
+	MonthlyDenominator               *MonthlyDenominator
+	MonthlyStandardDays              *decimal.Decimal
+	RateComponentDefinitionID        *ids.RateComponentDefinitionID
+	OvertimePolicyID                 ids.OvertimePolicyID
+	EffectiveFrom                    string
+	EffectiveTo                      *string
 }
 
 type CreateMembershipInput struct {

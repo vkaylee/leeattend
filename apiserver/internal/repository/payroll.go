@@ -2130,6 +2130,7 @@ func loadWorkPolicyAssignments(ctx context.Context, db DBTX, employmentID uuid.U
 		       wc.attendance_policy_id, wc.working_pattern_id, v.pay_basis_policy_id, pb.name,
 		       pb.method, pb.monthly_denominator, pb.monthly_standard_days::text, pb.rate_component_definition_id, v.overtime_policy_id,
 		       v.effective_from::text, v.effective_to::text,
+		       wc.late_arrival_grace_minutes, wc.early_ot_enabled, wc.early_ot_qualification_grace_minutes, wc.early_ot_max_minutes, wc.break_auto_deduct, wc.break_is_overtime, wc.ot_aggregation_mode,
 		       m.effective_from::text, m.effective_to::text
 		FROM labor_policy_memberships m
 		JOIN labor_policy_groups g ON g.id = m.group_id
@@ -2158,7 +2159,9 @@ func loadWorkPolicyAssignments(ctx context.Context, db DBTX, employmentID uuid.U
 			&assignment.policy.WorkingPatternID, &assignment.policy.PayBasisPolicyID,
 			&assignment.policy.PayBasisPolicyName, &method, &denominator, &days, &rateComponentID,
 			&assignment.policy.OvertimePolicyID, &assignment.policy.EffectiveFrom,
-			&assignment.policy.EffectiveTo, &assignment.membershipFrom,
+			&assignment.policy.EffectiveTo, &assignment.policy.LateArrivalGraceMinutes, &assignment.policy.EarlyOTEnabled,
+			&assignment.policy.EarlyOTQualificationGraceMinutes, &assignment.policy.EarlyOTMaxMinutes, &assignment.policy.BreakAutoDeduct,
+			&assignment.policy.BreakIsOvertime, &assignment.policy.OTAggregationMode, &assignment.membershipFrom,
 			&assignment.membershipTo,
 		); err != nil {
 			return nil, err
@@ -2187,6 +2190,7 @@ func loadDraftWorkPolicyAssignment(ctx context.Context, db DBTX, employmentID, p
 		       wc.attendance_policy_id, wc.working_pattern_id, v.pay_basis_policy_id, pb.name,
 		       pb.method, pb.monthly_denominator, pb.monthly_standard_days::text, pb.rate_component_definition_id, v.overtime_policy_id,
 		       v.effective_from::text, v.effective_to::text,
+		       wc.late_arrival_grace_minutes, wc.early_ot_enabled, wc.early_ot_qualification_grace_minutes, wc.early_ot_max_minutes, wc.break_auto_deduct, wc.break_is_overtime, wc.ot_aggregation_mode,
 		       m.effective_from::text, m.effective_to::text
 		FROM labor_policy_memberships m
 		JOIN labor_policy_groups g ON g.id = m.group_id
@@ -2214,7 +2218,9 @@ func loadDraftWorkPolicyAssignment(ctx context.Context, db DBTX, employmentID, p
 			&assignment.policy.WorkingPatternID, &assignment.policy.PayBasisPolicyID,
 			&assignment.policy.PayBasisPolicyName, &method, &denominator, &days, &rateComponentID,
 			&assignment.policy.OvertimePolicyID, &assignment.policy.EffectiveFrom,
-			&assignment.policy.EffectiveTo, &assignment.membershipFrom,
+			&assignment.policy.EffectiveTo, &assignment.policy.LateArrivalGraceMinutes, &assignment.policy.EarlyOTEnabled,
+			&assignment.policy.EarlyOTQualificationGraceMinutes, &assignment.policy.EarlyOTMaxMinutes, &assignment.policy.BreakAutoDeduct,
+			&assignment.policy.BreakIsOvertime, &assignment.policy.OTAggregationMode, &assignment.membershipFrom,
 			&assignment.membershipTo,
 		); err != nil {
 			return nil, err

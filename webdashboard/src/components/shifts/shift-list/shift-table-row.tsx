@@ -58,8 +58,6 @@ export function ShiftTableRow({ shift, onEdit, onDelete, onViewHistory, formatTi
   const iv = shift.intervals?.[0];
   const startTime = iv?.start_time ?? null;
   const endTime = iv?.end_time ?? null;
-  const isAutoDeduct = iv?.is_break_auto_deduct ?? true;
-
   return (
     <TableRow className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-all group" key={shift.id}>
       <TableCell className="px-8 py-6">
@@ -71,7 +69,7 @@ export function ShiftTableRow({ shift, onEdit, onDelete, onViewHistory, formatTi
         <div className="text-[10px] text-slate-500 dark:text-slate-400 font-mono font-bold tracking-tighter mt-1">{shift.id}</div>
       </TableCell>
       <ShiftTimeCell endTime={endTime} formatTime={formatTime} startTime={startTime} />
-      <BreakDisplayDesktop endTime={endTime} interval={iv} isAutoDeduct={isAutoDeduct} startTime={startTime} />
+      <BreakDisplayDesktop endTime={endTime} interval={iv} startTime={startTime} />
       <TableCell className="px-8 py-6 text-center"><ScopeBadges shift={shift} /></TableCell>
       <ShiftRowActions onDelete={onDelete} onEdit={onEdit} onViewHistory={onViewHistory} shift={shift} />
     </TableRow>

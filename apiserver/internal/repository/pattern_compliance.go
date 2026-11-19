@@ -104,7 +104,7 @@ func patternComplianceValidator(ctx context.Context, db DBTX, employmentID uuid.
 }
 
 func loadPatternComplianceShifts(ctx context.Context, db DBTX, shiftID uuid.UUID) (map[uuid.UUID][]compliance.Interval, error) {
-	rows, err := db.Query(ctx, `SELECT t.id, i.start_time::text, i.end_time::text, i.break_duration_minutes, i.is_break_auto_deduct FROM shift_templates t JOIN shift_versions v ON v.id = t.current_version_id JOIN shift_default_intervals i ON i.version_id = v.id WHERE t.id = $1 ORDER BY i.sort_order`, shiftID)
+	rows, err := db.Query(ctx, `SELECT t.id, i.start_time::text, i.end_time::text, i.break_duration_minutes FROM shift_templates t JOIN shift_versions v ON v.id = t.current_version_id JOIN shift_default_intervals i ON i.version_id = v.id WHERE t.id = $1 ORDER BY i.sort_order`, shiftID)
 	if err != nil {
 		return nil, err
 	}
@@ -113,7 +113,7 @@ func loadPatternComplianceShifts(ctx context.Context, db DBTX, shiftID uuid.UUID
 	for rows.Next() {
 		var templateID uuid.UUID
 		var interval compliance.Interval
-		if err := rows.Scan(&templateID, &interval.StartTime, &interval.EndTime, &interval.BreakDurationMinutes, &interval.IsBreakAutoDeduct); err != nil {
+		if err := rows.Scan(&templateID, &interval.StartTime, &interval.EndTime, &interval.BreakDurationMinutes); err != nil {
 			return nil, err
 		}
 		intervals = append(intervals, interval)
