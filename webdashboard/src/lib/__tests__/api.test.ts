@@ -287,9 +287,19 @@ describe("api.ts comprehensive tests", () => {
       expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/api/v1/schedules"), expect.any(Object));
     });
 
-    it("fetchAssignmentHistory", async () => {
-      mockSuccess([]);
-      await api.fetchAssignmentHistory();
+    it("fetchAssignmentHistory unwraps paginated data", async () => {
+      const history = [{
+        id: "history-1",
+        employee_id: "employee-1",
+        employee_name: "Employee",
+        assignment_type: "fixed",
+        shift_name: null,
+        date_range: "2026-01-01 -> 2026-06-30",
+        created_at: "2026-01-01T00:00:00Z",
+      }];
+      mockSuccess({ data: history, total: 1, page: 1, limit: 50 });
+
+      await expect(api.fetchAssignmentHistory()).resolves.toEqual(history);
       expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/api/v1/assignment-history"), expect.any(Object));
     });
 

@@ -69,8 +69,8 @@ export const fetchSchedules = async (
 };
 
 export const fetchAssignmentHistory = async (): Promise<AssignmentHistory[]> => {
-  const { data } = await client.GET<AssignmentHistory[]>("/api/v1/assignment-history");
-  return data;
+  const { data } = await client.GET<PaginatedResponse<AssignmentHistory>>("/api/v1/assignment-history");
+  return data.data;
 };
 
 export const fetchEmployeeRosters = async (
