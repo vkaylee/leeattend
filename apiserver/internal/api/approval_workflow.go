@@ -12,6 +12,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/vkaylee/leeattend/apiserver/internal/apperror"
 	"github.com/vkaylee/leeattend/apiserver/internal/auth"
+	"github.com/vkaylee/leeattend/apiserver/internal/domain/ids"
 	httpinfra "github.com/vkaylee/leeattend/apiserver/internal/infra/http"
 )
 
@@ -123,9 +124,9 @@ type ApprovalWorkflowRepository interface {
 	GetWorkflow(context.Context, uuid.UUID) (ApprovalWorkflowRecord, error)
 	UpdateWorkflow(context.Context, uuid.UUID, UpdateWorkflowRequest) (ApprovalWorkflowRecord, error)
 	DeleteWorkflow(context.Context, uuid.UUID) error
-	ProcessApproval(context.Context, uuid.UUID, ProcessApprovalRequest) error
+	ProcessApproval(context.Context, ids.UserID, ProcessApprovalRequest) error
 	ListHistory(context.Context, string, uuid.UUID) ([]ApprovalActionLogRecord, error)
-	GetPendingTasksForUser(context.Context, uuid.UUID, int, int) (PaginatedTasksResponse, error)
+	GetPendingTasksForUser(context.Context, ids.UserID, int, int) (PaginatedTasksResponse, error)
 }
 
 type ApprovalWorkflowHandler struct {
@@ -161,7 +162,7 @@ func (h *ApprovalWorkflowHandler) PendingTasks(w http.ResponseWriter, r *http.Re
 		h.forbidden(w, r)
 		return
 	}
-	userID, ok := httpinfra.UserIDFromContext(r.Context())
+	userID, ok := httpinfra.UserIDValueFromContext(r.Context())
 	if !ok {
 		h.forbidden(w, r)
 		return
@@ -180,7 +181,7 @@ func (h *ApprovalWorkflowHandler) PendingTasks(w http.ResponseWriter, r *http.Re
 }
 
 func (h *ApprovalWorkflowHandler) Create(w http.ResponseWriter, r *http.Request) {
-	userID, userOK := httpinfra.UserIDFromContext(r.Context())
+	userID, userOK := httpinfra.UserIDValueFromContext(r.Context())
 	if !userOK || !h.allowed(r, "approval_workflows:manage") {
 		h.forbidden(w, r)
 		return
@@ -190,7 +191,7 @@ func (h *ApprovalWorkflowHandler) Create(w http.ResponseWriter, r *http.Request)
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}
-	workflow, err := h.Repository.CreateWorkflow(r.Context(), userID, req)
+	workflow, err := h.Repository.CreateWorkflow(r.Context(), userID.UUID(), req)
 	if err != nil {
 		h.writeError(w, r, err)
 		return
@@ -245,7 +246,7 @@ func (h *ApprovalWorkflowHandler) Delete(w http.ResponseWriter, r *http.Request)
 }
 
 func (h *ApprovalWorkflowHandler) Process(w http.ResponseWriter, r *http.Request) {
-	userID, userOK := httpinfra.UserIDFromContext(r.Context())
+	userID, userOK := httpinfra.UserIDValueFromContext(r.Context())
 	if !userOK {
 		h.forbidden(w, r)
 		return
@@ -255,7 +256,7 @@ func (h *ApprovalWorkflowHandler) Process(w http.ResponseWriter, r *http.Request
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}
-	if req.EntityType == "ot_request" && (h.Authorizer == nil || !h.Authorizer.HasPermission(r.Context(), userID, string(auth.PermissionOvertimeApproveWorkflow))) {
+	if req.EntityType == "ot_request" && (h.Authorizer == nil || !h.Authorizer.HasPermission(r.Context(), userID.UUID(), string(auth.PermissionOvertimeApproveWorkflow))) {
 		h.forbidden(w, r)
 		return
 	}
@@ -290,8 +291,8 @@ func validApprovalAction(action string) bool {
 	}
 }
 func (h *ApprovalWorkflowHandler) allowed(r *http.Request, permission string) bool {
-	userID, ok := httpinfra.UserIDFromContext(r.Context())
-	return ok && h.Authorizer != nil && h.Authorizer.HasPermission(r.Context(), userID, permission)
+	userID, ok := httpinfra.UserIDValueFromContext(r.Context())
+	return ok && h.Authorizer != nil && h.Authorizer.HasPermission(r.Context(), userID.UUID(), permission)
 }
 func (h *ApprovalWorkflowHandler) forbidden(w http.ResponseWriter, r *http.Request) {
 	apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))

@@ -11,6 +11,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/vkaylee/leeattend/apiserver/internal/api"
+	"github.com/vkaylee/leeattend/apiserver/internal/domain/ids"
 	"github.com/vkaylee/leeattend/apiserver/internal/service"
 )
 
@@ -206,7 +207,7 @@ func (r ApprovalWorkflowRepository) DeleteWorkflow(ctx context.Context, workflow
 	return nil
 }
 
-func (r ApprovalWorkflowRepository) ProcessApproval(ctx context.Context, actorID uuid.UUID, req api.ProcessApprovalRequest) error {
+func (r ApprovalWorkflowRepository) ProcessApproval(ctx context.Context, actorID ids.UserID, req api.ProcessApprovalRequest) error {
 	tx, err := r.begin(ctx)
 	if err != nil {
 		return err
@@ -223,7 +224,7 @@ func (r ApprovalWorkflowRepository) ProcessApproval(ctx context.Context, actorID
 			return err
 		}
 		action := normalizeApprovalAction(req.Action)
-		if _, err := db.Exec(ctx, `INSERT INTO approval_action_log (id, entity_type, entity_id, step_order, step_name, acted_by_user_id, action, note, acted_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, now())`, uuid.New(), req.EntityType, req.EntityID, stepOrder, stepName, actorID, action, req.Note); err != nil {
+		if _, err := db.Exec(ctx, `INSERT INTO approval_action_log (id, entity_type, entity_id, step_order, step_name, acted_by_user_id, action, note, acted_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, now())`, uuid.New(), req.EntityType, req.EntityID, stepOrder, stepName, actorID.UUID(), action, req.Note); err != nil {
 			return err
 		}
 		status := "pending"
@@ -277,7 +278,7 @@ func (r ApprovalWorkflowRepository) ListHistory(ctx context.Context, entityType 
 }
 
 // GetPendingTasksForUser returns pending approval workflow tasks matching the caller.
-func (r ApprovalWorkflowRepository) GetPendingTasksForUser(ctx context.Context, userID uuid.UUID, page, limit int) (api.PaginatedTasksResponse, error) {
+func (r ApprovalWorkflowRepository) GetPendingTasksForUser(ctx context.Context, userID ids.UserID, page, limit int) (api.PaginatedTasksResponse, error) {
 	db, err := r.db(ctx)
 	if err != nil {
 		return api.PaginatedTasksResponse{}, err
@@ -300,7 +301,7 @@ func (r ApprovalWorkflowRepository) GetPendingTasksForUser(ctx context.Context, 
 			SELECT role_id FROM user_roles WHERE user_id = $1
 			UNION
 			SELECT role_id FROM user_extra_roles WHERE user_id = $1 AND expires_at > NOW()
-		`, userID)
+		`, userID.UUID())
 		if err == nil && roleRows != nil {
 			for roleRows.Next() {
 				var rid uuid.UUID

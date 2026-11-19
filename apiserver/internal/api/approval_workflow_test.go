@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
+	"github.com/vkaylee/leeattend/apiserver/internal/domain/ids"
 	httpinfra "github.com/vkaylee/leeattend/apiserver/internal/infra/http"
 )
 
@@ -50,14 +51,14 @@ func (m *mockApprovalWorkflowRepository) UpdateWorkflow(_ context.Context, id uu
 func (m *mockApprovalWorkflowRepository) DeleteWorkflow(context.Context, uuid.UUID) error {
 	return m.deleteErr
 }
-func (m *mockApprovalWorkflowRepository) ProcessApproval(context.Context, uuid.UUID, ProcessApprovalRequest) error {
+func (m *mockApprovalWorkflowRepository) ProcessApproval(context.Context, ids.UserID, ProcessApprovalRequest) error {
 	m.processCalls++
 	return m.processErr
 }
 func (m *mockApprovalWorkflowRepository) ListHistory(context.Context, string, uuid.UUID) ([]ApprovalActionLogRecord, error) {
 	return m.history, m.historyErr
 }
-func (m *mockApprovalWorkflowRepository) GetPendingTasksForUser(context.Context, uuid.UUID, int, int) (PaginatedTasksResponse, error) {
+func (m *mockApprovalWorkflowRepository) GetPendingTasksForUser(context.Context, ids.UserID, int, int) (PaginatedTasksResponse, error) {
 	return PaginatedTasksResponse{Data: []ApprovalWorkflowTaskRecord{}, Total: 0, Page: 1, Limit: 50}, nil
 }
 
