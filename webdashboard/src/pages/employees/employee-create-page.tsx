@@ -70,7 +70,7 @@ export default function EmployeeCreatePage() {
   };
 
   return (
-    <div className="mx-auto max-w-4xl space-y-6 pb-20 animate-in fade-in duration-500">
+    <div className="mx-auto max-w-6xl space-y-6 px-4 pb-20 animate-in fade-in duration-500 sm:px-6">
       <header className="flex flex-col gap-5 border-b border-slate-200/80 pb-6 dark:border-slate-800/80 lg:flex-row lg:items-center lg:justify-between">
         <div className="flex items-center gap-3 sm:gap-4">
           <Button aria-label={t("common.back", { defaultValue: "Quay lại" })} className="shrink-0 p-3" onClick={handleCancel} size="icon" type="button" variant="ghost">
