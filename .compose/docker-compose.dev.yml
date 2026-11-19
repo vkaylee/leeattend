@@ -13,6 +13,11 @@ services:
     volumes:
       - postgres_dev_data_v18:/var/lib/postgresql
     networks: [backend]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
   pgbouncer:
     image: ${PGBOUNCER_IMAGE:-edoburu/pgbouncer:v1.26.1-p0}
     restart: unless-stopped
@@ -32,6 +37,11 @@ services:
       SERVER_TLS_SSLMODE: disable
     volumes: []
     networks: [backend]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -p 6432 -U $${DB_USER} -d $${DB_NAME}"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
     depends_on:
       db:
         condition: service_healthy
@@ -42,6 +52,11 @@ services:
     volumes:
       - redis_dev_data:/data
     networks: [backend]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
 
   redisinsight:
     image: ghcr.io/redis-developer/redisinsight:latest
