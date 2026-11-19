@@ -170,6 +170,8 @@ func TestEnsureDefaultRolesAndPermissions(t *testing.T) {
 
 	for _, grant := range []string{
 		"('hr_manager', 'schedules:activate')",
+		"('hr_manager', 'departments:transfer')",
+		"('hr_manager', 'employees:rehire')",
 		"('admin', 'schedules:activate')",
 		"('hr_manager', 'attendance:closure:close')",
 		"('admin', 'attendance:closure:reopen')",

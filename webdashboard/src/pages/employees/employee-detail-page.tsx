@@ -327,6 +327,7 @@ export default function EmployeeDetailPage() {
       closeModal={modals.closeModal}
       departments={departments}
       deptHistory={deptHistory}
+      activeEmploymentId={activeEmployment?.id ?? null}
       formatDate={formatDate}
       handleDrawerClose={() => undefined}
       openModal={modals.openModal}

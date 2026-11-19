@@ -15,6 +15,8 @@ def test_dev_seed_revokes_permissions_removed_from_role_catalog() -> None:
     assert "rp.permission_name = 'employees:read'" in sql
     assert "r.name = 'employee'" in sql
     assert "rp.permission_name = 'attendance:adjustments:submit'" in sql
+    assert "('departments:transfer'), ('employees:rehire')" in sql
+    assert "WHERE name = 'hr_manager'" in sql
 
 
 def test_dev_seed_keeps_role_upsert_non_destructive() -> None:

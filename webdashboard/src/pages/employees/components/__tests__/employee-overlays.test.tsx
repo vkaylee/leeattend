@@ -63,6 +63,7 @@ function createDefaults(overrides: Partial<Parameters<typeof EmployeeOverlays>[0
   return {
     departments: [],
     deptHistory: [],
+    activeEmploymentId: null,
     editingEmployee: null,
     formatDate: (d: string) => d,
     handleDrawerClose: vi.fn(),

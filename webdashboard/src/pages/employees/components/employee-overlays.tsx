@@ -19,6 +19,7 @@ interface EmployeeOverlaysProps { activeModal?: EmployeeModalState;
 closeModal?: () => void;
 departments: Department[] | undefined;
 deptHistory: EmployeeDepartmentHistory[] | undefined;
+activeEmploymentId?: string | null;
 editingEmployee?: Employee | null;
 formatDate: (date: string) => string;
 handleDrawerClose: () => void;
@@ -50,6 +51,7 @@ export function EmployeeOverlays(props: EmployeeOverlaysProps) {
     closeModal,
     departments,
     deptHistory,
+    activeEmploymentId,
     editingEmployee,
     formatDate,
     handleDrawerClose,
@@ -145,7 +147,7 @@ export function EmployeeOverlays(props: EmployeeOverlaysProps) {
       </Suspense>
 
       <Suspense fallback={<OverlayFallback />}>
-        <TerminateEmployeeModal activeEmploymentId={currentTerminateEmployee?.active_employment_id ?? null}
+        <TerminateEmployeeModal activeEmploymentId={activeEmploymentId ?? currentTerminateEmployee?.active_employment_id ?? null}
         employeeId={currentTerminateEmployee?.id ?? null}
         isOpen={terminateOpen}
         onClose={handleClose}

@@ -62,6 +62,13 @@ BEGIN
           OR (r.name = 'employee' AND rp.permission_name = 'attendance:adjustments:submit')
       );
 
+    INSERT INTO role_permissions (role_id, permission_name)
+    SELECT id, permission_name
+    FROM roles
+    CROSS JOIN (VALUES ('departments:transfer'), ('employees:rehire')) AS grants(permission_name)
+    WHERE name = 'hr_manager'
+    ON CONFLICT (role_id, permission_name) DO NOTHING;
+
     -- Upsert only documented development identities; never delete other users.
     INSERT INTO users (id, email, password_hash, full_name, created_at)
     VALUES
