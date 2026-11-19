@@ -431,6 +431,12 @@
       "subtitle": "Manage access and permissions within the system.",
       "table": {
         "confirm_remove": "Are you sure you want to remove this member?",
+        "employee_link": "Employee record",
+        "employee_linked": "Linked",
+        "unlink_employee": "Unlink",
+        "select_employee": "Select employee",
+        "link_employee": "Link employee",
+        "confirm_unlink_employee": "Unlink this employee account?",
         "manage_permissions": "Manage Permissions",
         "manage_roles": "Manage Roles",
         "messages": {
@@ -442,6 +448,7 @@
       "title": "Members & Roles"
     },
     "minutes": "minutes",
+    "count": "times",
     "month": "Month",
     "month_short": "Month {{month}}",
     "more": "More",

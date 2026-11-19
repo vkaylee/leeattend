@@ -13,19 +13,12 @@ import {
 
 function makeInterval(overrides: Partial<ShiftInterval> = {}): ShiftInterval {
   return {
-    allow_early_ot: false,
     break_duration_minutes: 0,
     break_end: null,
-    break_is_overtime: false,
     break_start: null,
-    early_punch_in_grace_period_minutes: 0,
     end_time: "17:00:00",
     id: "iv-1",
     interval_name: null,
-    is_break_auto_deduct: false,
-    is_night_shift: false,
-    max_early_ot_minutes: null,
-    ot_aggregation_mode: "daily",
     sort_order: 0,
     start_time: "08:00:00",
     version_id: "v-1",
@@ -79,6 +72,8 @@ describe("getShiftCardMetrics — single block", () => {
     const metrics = getShiftCardMetrics(makeShift([]));
     expect(metrics.blockCount).toBe(0);
     expect(metrics.totalWorkMinutes).toBe(0);
+    expect(metrics.totalDurationMinutes).toBe(0);
+    expect(metrics.expectedPunches).toBe(0);
     expect(metrics.segments).toEqual([]);
     expect(metrics.spanStart).toBe("");
   });
@@ -88,6 +83,8 @@ describe("getShiftCardMetrics — single block", () => {
     expect(metrics.blockCount).toBe(1);
     expect(metrics.totalWorkMinutes).toBe(540);
     expect(metrics.totalBreakMinutes).toBe(0);
+    expect(metrics.totalDurationMinutes).toBe(540);
+    expect(metrics.expectedPunches).toBe(2);
     expect(metrics.spanStart).toBe("08:00:00");
     expect(metrics.spanEnd).toBe("17:00:00");
     expect(metrics.crossesMidnight).toBe(false);
@@ -102,17 +99,12 @@ describe("getShiftCardMetrics — single block", () => {
     expect(metrics.intervals[0].isFixedBreak).toBe(true);
   });
 
-  it("deducts a floating break only when auto-deduct is on", () => {
-    const deducted = getShiftCardMetrics(
-      makeShift([makeInterval({ break_duration_minutes: 30, is_break_auto_deduct: true })]),
+  it("deducts floating breaks from work minutes", () => {
+    const metrics = getShiftCardMetrics(
+      makeShift([makeInterval({ break_duration_minutes: 30 })]),
     );
-    expect(deducted.totalWorkMinutes).toBe(510);
-
-    const paid = getShiftCardMetrics(
-      makeShift([makeInterval({ break_duration_minutes: 30, is_break_auto_deduct: false })]),
-    );
-    expect(paid.totalWorkMinutes).toBe(540);
-    expect(paid.totalBreakMinutes).toBe(30);
+    expect(metrics.totalWorkMinutes).toBe(510);
+    expect(metrics.totalBreakMinutes).toBe(30);
   });
 
   it("emits one work segment and one break segment for a fixed break", () => {
@@ -127,7 +119,7 @@ describe("getShiftCardMetrics — single block", () => {
 
   it("emits no break segment for a floating break", () => {
     const metrics = getShiftCardMetrics(
-      makeShift([makeInterval({ break_duration_minutes: 30, is_break_auto_deduct: true })]),
+      makeShift([makeInterval({ break_duration_minutes: 30 })]),
     );
     expect(metrics.segments.filter((s) => s.kind === "break")).toEqual([]);
   });
@@ -188,7 +180,10 @@ describe("getShiftCardMetrics — split shift", () => {
   });
 
   it("sums work minutes across every block, not just the first", () => {
-    expect(getShiftCardMetrics(splitShift).totalWorkMinutes).toBe(480);
+    const metrics = getShiftCardMetrics(splitShift);
+    expect(metrics.totalWorkMinutes).toBe(480);
+    expect(metrics.totalDurationMinutes).toBe(480);
+    expect(metrics.expectedPunches).toBe(4);
   });
 
   it("spans from the first block start to the last block end", () => {

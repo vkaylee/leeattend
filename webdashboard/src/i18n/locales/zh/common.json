@@ -431,6 +431,12 @@
       "subtitle": "管理系统内的访问权限。",
       "table": {
         "confirm_remove": "您确定要移除该成员吗？",
+        "employee_link": "员工档案",
+        "employee_linked": "已关联",
+        "unlink_employee": "解除关联",
+        "select_employee": "选择员工",
+        "link_employee": "关联员工",
+        "confirm_unlink_employee": "确定要解除此员工账户关联吗？",
         "manage_permissions": "管理权限 (详情)",
         "manage_roles": "管理权限",
         "messages": {
@@ -442,6 +448,7 @@
       "title": "成员与角色"
     },
     "minutes": "分钟",
+    "count": "次",
     "month": "月",
     "month_short": "月",
     "more": "更多",

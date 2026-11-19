@@ -431,6 +431,12 @@
       "subtitle": "Quản lý truy cập và quyền hạn trong hệ thống.",
       "table": {
         "confirm_remove": "Bạn có chắc chắn muốn xóa thành viên này không?",
+        "employee_link": "Hồ sơ nhân viên",
+        "employee_linked": "Đã liên kết",
+        "unlink_employee": "Hủy liên kết",
+        "select_employee": "Chọn nhân viên",
+        "link_employee": "Liên kết nhân viên",
+        "confirm_unlink_employee": "Hủy liên kết tài khoản nhân viên này?",
         "manage_permissions": "Quản lý quyền (chi tiết)",
         "manage_roles": "Quản lý quyền",
         "messages": {
@@ -442,6 +448,7 @@
       "title": "Thành viên & Vai trò"
     },
     "minutes": "phút",
+    "count": "lần",
     "month": "Tháng",
     "month_short": "Tháng {{month}}",
     "more": "Thêm",

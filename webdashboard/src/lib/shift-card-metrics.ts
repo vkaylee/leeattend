@@ -44,12 +44,24 @@ export interface ShiftIntervalMetrics {
 export interface ShiftCardMetrics {
   blockCount: number;
   crossesMidnight: boolean;
+  expectedPunches: number;
   intervals: ShiftIntervalMetrics[];
   segments: ShiftSegment[];
   spanEnd: string;
   spanStart: string;
   totalBreakMinutes: number;
+  totalDurationMinutes: number;
   totalWorkMinutes: number;
+}
+
+export interface ShiftDraftIntervalInput {
+  breakDuration: number;
+  breakEnd: string;
+  breakStart: string;
+  endTime: string;
+  intervalName: string;
+  isFixedBreak: boolean;
+  startTime: string;
 }
 
 /**
@@ -97,21 +109,30 @@ function measureInterval(interval: ShiftInterval): ShiftIntervalMetrics {
   const endTime = interval.end_time;
   const breakStart = interval.break_start ?? "";
   const breakEnd = interval.break_end ?? "";
-  const isFixedBreak = Boolean(breakStart && breakEnd);
-
   const startMin = timeToMinutes(startTime);
   const endMin = timeToMinutes(endTime);
-  const durationMinutes = calculateShiftDuration(startTime, endTime, startMin, endMin);
-  const breakMinutes = calculateBreakDuration(
-    isFixedBreak,
-    breakStart,
-    breakEnd,
-    interval.break_duration_minutes,
-  );
+  const hasValidWorkRange = Boolean(startTime && endTime)
+    && Number.isFinite(startMin)
+    && Number.isFinite(endMin);
+  const isFixedBreak = Boolean(breakStart && breakEnd);
+  const breakStartMin = timeToMinutes(breakStart);
+  const breakEndMin = timeToMinutes(breakEnd);
+  const hasValidFixedBreak = isFixedBreak
+    && Number.isFinite(breakStartMin)
+    && Number.isFinite(breakEndMin);
+  const durationMinutes = hasValidWorkRange
+    ? calculateShiftDuration(startTime, endTime, startMin, endMin)
+    : 0;
+  const breakMinutes = hasValidFixedBreak || !isFixedBreak
+    ? calculateBreakDuration(
+      hasValidFixedBreak,
+      breakStart,
+      breakEnd,
+      interval.break_duration_minutes,
+    )
+    : 0;
 
-  // Mirrors ShiftTimelinePreview: a fixed break is always carved out of paid
-  // time, a floating break only when auto-deduct is on.
-  const isBreakDeducted = interval.is_break_auto_deduct || isFixedBreak;
+  const isBreakDeducted = breakMinutes > 0;
 
   return {
     breakEnd,
@@ -131,11 +152,13 @@ function measureInterval(interval: ShiftInterval): ShiftIntervalMetrics {
 const EMPTY_METRICS: ShiftCardMetrics = {
   blockCount: 0,
   crossesMidnight: false,
+  expectedPunches: 0,
   intervals: [],
   segments: [],
   spanEnd: "",
   spanStart: "",
   totalBreakMinutes: 0,
+  totalDurationMinutes: 0,
   totalWorkMinutes: 0,
 };
 
@@ -158,14 +181,19 @@ export function getShiftCardMetrics(shift: Shift): ShiftCardMetrics {
 
   const last = measured[measured.length - 1];
 
+  const totalBreakMinutes = measured.reduce((sum, iv) => sum + iv.breakMinutes, 0);
+  const totalDurationMinutes = measured.reduce((sum, iv) => sum + iv.durationMinutes, 0);
+
   return {
     blockCount: measured.length,
     crossesMidnight: measured.some((iv) => iv.crossesMidnight),
+    expectedPunches: measured.length * 2,
     intervals: measured,
     segments,
     spanEnd: last.endTime,
     spanStart: measured[0].startTime,
-    totalBreakMinutes: measured.reduce((sum, iv) => sum + iv.breakMinutes, 0),
+    totalBreakMinutes,
+    totalDurationMinutes,
     totalWorkMinutes: measured.reduce((sum, iv) => sum + iv.workMinutes, 0),
   };
 }
