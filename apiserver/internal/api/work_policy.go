@@ -260,7 +260,7 @@ func (h *WorkPolicyGroupHandler) Resolve(w http.ResponseWriter, r *http.Request)
 }
 
 func (h *WorkPolicyGroupHandler) CreateVersion(w http.ResponseWriter, r *http.Request) {
-	userID, ok := httpinfra.UserIDFromContext(r.Context())
+	userID, ok := httpinfra.UserIDValueFromContext(r.Context())
 	if !ok || !h.allowed(r, "payroll:manage") {
 		apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
 		return
@@ -284,7 +284,7 @@ func (h *WorkPolicyGroupHandler) CreateVersion(w http.ResponseWriter, r *http.Re
 		PayMethod: req.PayMethod, MonthlyDenominator: req.MonthlyDenominator, MonthlyStandardDays: req.MonthlyStandardDays,
 		RateComponentDefinitionID: rateComponentID(req.RateComponentDefinitionID), OvertimePolicyID: ids.OvertimePolicyID(req.OvertimePolicyID),
 		EffectiveFrom: req.EffectiveFrom, EffectiveTo: req.EffectiveTo,
-	}, ids.UserID(userID))
+	}, userID)
 	if err != nil {
 		h.writeError(w, r, err)
 		return
@@ -317,7 +317,7 @@ func (h *WorkPolicyGroupHandler) ListMemberships(w http.ResponseWriter, r *http.
 }
 
 func (h *WorkPolicyGroupHandler) CreateMembership(w http.ResponseWriter, r *http.Request) {
-	userID, ok := httpinfra.UserIDFromContext(r.Context())
+	userID, ok := httpinfra.UserIDValueFromContext(r.Context())
 	if !ok || !h.allowed(r, "payroll:manage") {
 		apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
 		return
@@ -334,7 +334,7 @@ func (h *WorkPolicyGroupHandler) CreateMembership(w http.ResponseWriter, r *http
 	}
 	result, err := h.Repository.CreateWorkPolicyMembership(r.Context(), workpolicy.CreateMembershipInput{
 		GroupID: groupIDFromUUID(groupID), EmploymentID: ids.EmploymentID(req.EmploymentID),
-		EffectiveFrom: req.EffectiveFrom, EffectiveTo: req.EffectiveTo, ActorID: ids.UserID(userID),
+		EffectiveFrom: req.EffectiveFrom, EffectiveTo: req.EffectiveTo, ActorID: userID,
 	})
 	if err != nil {
 		h.writeError(w, r, err)
@@ -350,7 +350,7 @@ func (h *WorkPolicyGroupHandler) CreateMembership(w http.ResponseWriter, r *http
 }
 
 func (h *WorkPolicyGroupHandler) Create(w http.ResponseWriter, r *http.Request) {
-	userID, ok := httpinfra.UserIDFromContext(r.Context())
+	userID, ok := httpinfra.UserIDValueFromContext(r.Context())
 	if !ok || !h.allowed(r, "payroll:manage") {
 		apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
 		return
@@ -369,7 +369,7 @@ func (h *WorkPolicyGroupHandler) Create(w http.ResponseWriter, r *http.Request) 
 		PayMethod: req.PayMethod, MonthlyDenominator: req.MonthlyDenominator, MonthlyStandardDays: req.MonthlyStandardDays,
 		RateComponentDefinitionID: rateComponentID(req.RateComponentDefinitionID), OvertimePolicyID: ids.OvertimePolicyID(req.OvertimePolicyID),
 		EffectiveFrom: req.EffectiveFrom, EffectiveTo: req.EffectiveTo,
-	}, ids.UserID(userID))
+	}, userID)
 	if err != nil {
 		h.writeError(w, r, err)
 		return

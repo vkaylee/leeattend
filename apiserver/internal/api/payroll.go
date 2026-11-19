@@ -723,8 +723,8 @@ func (h *PayrollHandler) SetEmployeePayrollConfig(w http.ResponseWriter, r *http
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}
-	userID, _ := httpinfra.UserIDFromContext(r.Context())
-	config, err := h.Repository.SetEmployeePayrollConfig(r.Context(), ids.EmployeeID(empID), req, ids.UserID(userID))
+	userID, _ := httpinfra.UserIDValueFromContext(r.Context())
+	config, err := h.Repository.SetEmployeePayrollConfig(r.Context(), ids.EmployeeID(empID), req, userID)
 	if err != nil {
 		h.writeError(w, r, err)
 		return
@@ -1012,9 +1012,9 @@ func (h *PayrollHandler) LockPayrollPeriod(w http.ResponseWriter, r *http.Reques
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}
-	actorID, _ := httpinfra.UserIDFromContext(r.Context())
+	actorID, _ := httpinfra.UserIDValueFromContext(r.Context())
 	period, err := h.Repository.LockPayrollPeriod(r.Context(), payrolldomain.PayrollPeriodMutation{
-		EmployerID: ids.EmployerID(employerID), Year: year, Month: month, ExpectedVersion: request.Version, ActorID: ids.UserID(actorID),
+		EmployerID: ids.EmployerID(employerID), Year: year, Month: month, ExpectedVersion: request.Version, ActorID: actorID,
 	})
 	if err != nil {
 		h.writeError(w, r, err)
@@ -1043,10 +1043,10 @@ func (h *PayrollHandler) ReopenPayrollPeriod(w http.ResponseWriter, r *http.Requ
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}
-	actorID, _ := httpinfra.UserIDFromContext(r.Context())
+	actorID, _ := httpinfra.UserIDValueFromContext(r.Context())
 	period, err := h.Repository.ReopenPayrollPeriod(r.Context(), payrolldomain.PayrollPeriodMutation{
 		EmployerID: ids.EmployerID(employerID), Year: year, Month: month, ExpectedVersion: request.Version,
-		Reason: strings.TrimSpace(request.Reason), ActorID: ids.UserID(actorID),
+		Reason: strings.TrimSpace(request.Reason), ActorID: actorID,
 	})
 	if err != nil {
 		h.writeError(w, r, err)
@@ -1072,12 +1072,12 @@ func (h *PayrollHandler) CalculatePayroll(w http.ResponseWriter, r *http.Request
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}
-	actorID, actorOK := httpinfra.UserIDFromContext(r.Context())
+	actorID, actorOK := httpinfra.UserIDValueFromContext(r.Context())
 	if !actorOK {
 		h.forbidden(w, r)
 		return
 	}
-	resp, err := h.Repository.CalculateEmployeePayroll(r.Context(), ids.EmployeeID(empID), year, month, ids.UserID(actorID))
+	resp, err := h.Repository.CalculateEmployeePayroll(r.Context(), ids.EmployeeID(empID), year, month, actorID)
 	if err != nil {
 		h.writeError(w, r, err)
 		return
@@ -1090,7 +1090,7 @@ func (h *PayrollHandler) CreatePayrollInputBatch(w http.ResponseWriter, r *http.
 		h.forbidden(w, r)
 		return
 	}
-	userID, ok := httpinfra.UserIDFromContext(r.Context())
+	userID, ok := httpinfra.UserIDValueFromContext(r.Context())
 	if !ok {
 		h.forbidden(w, r)
 		return
@@ -1100,7 +1100,7 @@ func (h *PayrollHandler) CreatePayrollInputBatch(w http.ResponseWriter, r *http.
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}
-	batch, err := h.Repository.CreatePayrollInputBatch(r.Context(), req, ids.UserID(userID))
+	batch, err := h.Repository.CreatePayrollInputBatch(r.Context(), req, userID)
 	if err != nil {
 		h.writeError(w, r, err)
 		return
@@ -1264,7 +1264,7 @@ func (h *PayrollHandler) CreatePayrollFormulaRule(w http.ResponseWriter, r *http
 		h.forbidden(w, r)
 		return
 	}
-	actorID, ok := httpinfra.UserIDFromContext(r.Context())
+	actorID, ok := httpinfra.UserIDValueFromContext(r.Context())
 	if !ok {
 		h.forbidden(w, r)
 		return
@@ -1282,7 +1282,7 @@ func (h *PayrollHandler) CreatePayrollFormulaRule(w http.ResponseWriter, r *http
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}
-	rule, err := h.Repository.CreatePayrollFormulaRule(r.Context(), req, ids.UserID(actorID))
+	rule, err := h.Repository.CreatePayrollFormulaRule(r.Context(), req, actorID)
 	if err != nil {
 		h.writeError(w, r, err)
 		return
@@ -1307,7 +1307,7 @@ func (h *PayrollHandler) CreatePayrollFormulaRuleVersion(w http.ResponseWriter, 
 		return
 	}
 	ruleID, ok := pathUUID(r, "rule_id")
-	actorID, actorOK := httpinfra.UserIDFromContext(r.Context())
+	actorID, actorOK := httpinfra.UserIDValueFromContext(r.Context())
 	if !ok || !actorOK {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
@@ -1325,7 +1325,7 @@ func (h *PayrollHandler) CreatePayrollFormulaRuleVersion(w http.ResponseWriter, 
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}
-	version, err := h.Repository.CreatePayrollFormulaRuleVersion(r.Context(), ids.PayrollFormulaRuleID(ruleID), req, ids.UserID(actorID))
+	version, err := h.Repository.CreatePayrollFormulaRuleVersion(r.Context(), ids.PayrollFormulaRuleID(ruleID), req, actorID)
 	if err != nil {
 		h.writeError(w, r, err)
 		return
@@ -1350,12 +1350,12 @@ func (h *PayrollHandler) RetirePayrollFormulaRule(w http.ResponseWriter, r *http
 		return
 	}
 	ruleID, ok := pathUUID(r, "rule_id")
-	actorID, actorOK := httpinfra.UserIDFromContext(r.Context())
+	actorID, actorOK := httpinfra.UserIDValueFromContext(r.Context())
 	if !ok || !actorOK {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}
-	rule, err := h.Repository.RetirePayrollFormulaRule(r.Context(), ids.PayrollFormulaRuleID(ruleID), ids.UserID(actorID))
+	rule, err := h.Repository.RetirePayrollFormulaRule(r.Context(), ids.PayrollFormulaRuleID(ruleID), actorID)
 	if err != nil {
 		h.writeError(w, r, err)
 		return
@@ -1379,12 +1379,12 @@ func (h *PayrollHandler) PublishPayrollFormulaRule(w http.ResponseWriter, r *htt
 		return
 	}
 	ruleID, ok := pathUUID(r, "rule_id")
-	actorID, actorOK := httpinfra.UserIDFromContext(r.Context())
+	actorID, actorOK := httpinfra.UserIDValueFromContext(r.Context())
 	if !ok || !actorOK {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}
-	rule, err := h.Repository.PublishPayrollFormulaRule(r.Context(), ids.PayrollFormulaRuleID(ruleID), ids.UserID(actorID))
+	rule, err := h.Repository.PublishPayrollFormulaRule(r.Context(), ids.PayrollFormulaRuleID(ruleID), actorID)
 	if err != nil {
 		h.writeError(w, r, err)
 		return
@@ -1430,7 +1430,7 @@ func (h *PayrollHandler) CorrectPayrollInput(w http.ResponseWriter, r *http.Requ
 		return
 	}
 	inputID, ok := pathUUID(r, "input_id")
-	actorID, actorOK := httpinfra.UserIDFromContext(r.Context())
+	actorID, actorOK := httpinfra.UserIDValueFromContext(r.Context())
 	if !ok || !actorOK {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
@@ -1440,7 +1440,7 @@ func (h *PayrollHandler) CorrectPayrollInput(w http.ResponseWriter, r *http.Requ
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}
-	input, err := h.Repository.CorrectPayrollInput(r.Context(), ids.PayrollInputID(inputID), req, ids.UserID(actorID))
+	input, err := h.Repository.CorrectPayrollInput(r.Context(), ids.PayrollInputID(inputID), req, actorID)
 	if err != nil {
 		h.writeError(w, r, err)
 		return
@@ -1495,7 +1495,7 @@ func (h *PayrollHandler) transitionPayrollInputBatch(w http.ResponseWriter, r *h
 		return
 	}
 	batchID, ok := pathUUID(r, "batch_id")
-	actorID, actorOK := httpinfra.UserIDFromContext(r.Context())
+	actorID, actorOK := httpinfra.UserIDValueFromContext(r.Context())
 	if !ok || !actorOK {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
@@ -1503,9 +1503,9 @@ func (h *PayrollHandler) transitionPayrollInputBatch(w http.ResponseWriter, r *h
 	var batch PayrollInputBatch
 	var err error
 	if action == "approve" {
-		batch, err = h.Repository.ApprovePayrollInputBatch(r.Context(), ids.PayrollInputBatchID(batchID), ids.UserID(actorID))
+		batch, err = h.Repository.ApprovePayrollInputBatch(r.Context(), ids.PayrollInputBatchID(batchID), actorID)
 	} else {
-		batch, err = h.Repository.LockPayrollInputBatch(r.Context(), ids.PayrollInputBatchID(batchID), ids.UserID(actorID))
+		batch, err = h.Repository.LockPayrollInputBatch(r.Context(), ids.PayrollInputBatchID(batchID), actorID)
 	}
 	if err != nil {
 		h.writeError(w, r, err)
@@ -1543,7 +1543,7 @@ func (h *PayrollHandler) SimulatePayroll(w http.ResponseWriter, r *http.Request)
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}
-	actorID, ok := httpinfra.UserIDFromContext(r.Context())
+	actorID, ok := httpinfra.UserIDValueFromContext(r.Context())
 	if !ok {
 		h.forbidden(w, r)
 		return
@@ -1555,9 +1555,9 @@ func (h *PayrollHandler) SimulatePayroll(w http.ResponseWriter, r *http.Request)
 			apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 			return
 		}
-		result, err = h.Repository.SimulateEmployeePayrollWithPolicy(r.Context(), ids.EmployeeID(empID), year, month, policyVersionID, ids.UserID(actorID))
+		result, err = h.Repository.SimulateEmployeePayrollWithPolicy(r.Context(), ids.EmployeeID(empID), year, month, policyVersionID, actorID)
 	} else {
-		result, err = h.Repository.SimulateEmployeePayroll(r.Context(), ids.EmployeeID(empID), year, month, ids.UserID(actorID))
+		result, err = h.Repository.SimulateEmployeePayroll(r.Context(), ids.EmployeeID(empID), year, month, actorID)
 	}
 	if err != nil {
 		h.writeError(w, r, err)
@@ -1588,12 +1588,12 @@ func (h *PayrollHandler) CalculateBatchPayroll(w http.ResponseWriter, r *http.Re
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}
-	actorID, actorOK := httpinfra.UserIDFromContext(r.Context())
+	actorID, actorOK := httpinfra.UserIDValueFromContext(r.Context())
 	if !actorOK {
 		h.forbidden(w, r)
 		return
 	}
-	resp, err := h.Repository.CalculateBatchPayroll(r.Context(), req, ids.UserID(actorID))
+	resp, err := h.Repository.CalculateBatchPayroll(r.Context(), req, actorID)
 	if err != nil {
 		h.writeError(w, r, err)
 		return
@@ -1649,7 +1649,7 @@ func (h *PayrollHandler) emitPayrollAudit(r *http.Request, event audit.Event) {
 	if h.Audit == nil {
 		return
 	}
-	actorID, ok := httpinfra.UserIDFromContext(r.Context())
+	actorID, ok := httpinfra.UserIDValueFromContext(r.Context())
 	if !ok {
 		return
 	}
