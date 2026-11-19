@@ -806,11 +806,23 @@ CREATE TABLE public.work_credit_policies (
 
     working_pattern_id uuid NOT NULL,
 
+    late_arrival_grace_minutes integer NOT NULL DEFAULT 0,
+    early_ot_enabled boolean NOT NULL DEFAULT false,
+    early_ot_qualification_grace_minutes integer NOT NULL DEFAULT 0,
+    early_ot_max_minutes integer,
+    break_auto_deduct boolean NOT NULL DEFAULT true,
+    break_is_overtime boolean NOT NULL DEFAULT false,
+    ot_aggregation_mode text NOT NULL DEFAULT 'aggregate',
+
     created_by uuid NOT NULL,
 
     created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
 
     CONSTRAINT work_credit_policies_minutes_check CHECK ((minutes_per_credit > 0)),
+    CONSTRAINT work_credit_policies_late_grace_check CHECK (late_arrival_grace_minutes >= 0),
+    CONSTRAINT work_credit_policies_early_grace_check CHECK (early_ot_qualification_grace_minutes >= 0),
+    CONSTRAINT work_credit_policies_early_max_check CHECK (early_ot_max_minutes IS NULL OR early_ot_max_minutes >= 0),
+    CONSTRAINT work_credit_policies_ot_aggregation_check CHECK (ot_aggregation_mode IN ('aggregate', 'per_segment')),
 
     CONSTRAINT work_credit_policies_name_check CHECK (((length(btrim(name)) >= 1) AND (length(btrim(name)) <= 255)))
 
