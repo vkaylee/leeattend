@@ -32,6 +32,18 @@ func TestWorkCreditPolicyCalculateUsesConfiguredMinutes(t *testing.T) {
 	if result.Credits.String() != "1.5" {
 		t.Fatalf("expected 1.5 credits, got %s", result.Credits)
 	}
+
+	invalidGrace := policy
+	invalidGrace.LateArrivalGraceMinutes = -1
+	if err := invalidGrace.Validate(); err != ErrGraceMinutesInvalid {
+		t.Fatalf("expected invalid grace error, got %v", err)
+	}
+
+	invalidMode := policy
+	invalidMode.OTAggregationMode = "daily"
+	if err := invalidMode.Validate(); err != ErrOTAggregationModeInvalid {
+		t.Fatalf("expected invalid aggregation error, got %v", err)
+	}
 	if _, err := policy.Calculate(-1); err != ErrEligibleMinutesInvalid {
 		t.Fatalf("expected negative eligible minutes error, got %v", err)
 	}
