@@ -9,6 +9,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/vkaylee/leeattend/apiserver/internal/auth"
+	"github.com/vkaylee/leeattend/apiserver/internal/domain/ids"
 )
 
 const testSecret = "test-secret-at-least-32-chars-long-for-jwt!!"
@@ -88,7 +89,7 @@ func TestAuthMiddleware_Unauthorized(t *testing.T) {
 }
 
 func TestAuthMiddleware_Authorized(t *testing.T) {
-	userID := uuid.New()
+	userID := ids.UserID(uuid.New())
 	token, err := auth.GenerateToken(userID, testSecret, 15*time.Minute)
 	if err != nil {
 		t.Fatalf("token gen error: %v", err)
@@ -112,7 +113,7 @@ func TestAuthMiddleware_Authorized(t *testing.T) {
 	if rec.Code != http.StatusOK {
 		t.Fatalf("expected 200, got %d", rec.Code)
 	}
-	if extractedID != userID {
+	if extractedID != userID.UUID() {
 		t.Errorf("expected user id %s, got %s", userID, extractedID)
 	}
 }

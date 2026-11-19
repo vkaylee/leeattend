@@ -8,12 +8,13 @@ import (
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
+	"github.com/vkaylee/leeattend/apiserver/internal/domain/ids"
 )
 
 const testSecret = "test-jwt-secret-with-minimum-entropy-32-chars!!"
 
 func TestGenerateAndVerifyToken(t *testing.T) {
-	userID := uuid.New()
+	userID := ids.UserID(uuid.New())
 
 	tokenStr, err := GenerateToken(userID, testSecret, 15*time.Minute)
 	if err != nil {
@@ -39,7 +40,7 @@ func TestGenerateAndVerifyToken(t *testing.T) {
 }
 
 func TestExpiredTokenRejection(t *testing.T) {
-	userID := uuid.New()
+	userID := ids.UserID(uuid.New())
 	now := time.Now().UTC()
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, Claims{
 		RegisteredClaims: jwt.RegisteredClaims{
@@ -63,7 +64,7 @@ func TestExpiredTokenRejection(t *testing.T) {
 }
 
 func TestInvalidSignatureRejection(t *testing.T) {
-	userID := uuid.New()
+	userID := ids.UserID(uuid.New())
 	tokenStr, err := GenerateToken(userID, testSecret, 15*time.Minute)
 	if err != nil {
 		t.Fatalf("failed to generate token: %v", err)
@@ -125,7 +126,7 @@ func TestRefreshTokenMetadataAndKeyFormatting(t *testing.T) {
 		t.Errorf("RevokedSignatureKey mismatch: %s", key)
 	}
 
-	userID := uuid.New()
+	userID := ids.UserID(uuid.New())
 	if key := UserRevokedAtKey(userID); key != "user:revoked_at:"+userID.String() {
 		t.Errorf("UserRevokedAtKey mismatch: %s", key)
 	}

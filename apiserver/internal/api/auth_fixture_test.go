@@ -11,6 +11,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/vkaylee/leeattend/apiserver/internal/auth"
+	"github.com/vkaylee/leeattend/apiserver/internal/domain/ids"
 	httpinfra "github.com/vkaylee/leeattend/apiserver/internal/infra/http"
 	"github.com/vkaylee/leeattend/apiserver/internal/service"
 )
@@ -159,7 +160,7 @@ func TestAuthFixtures_Parity(t *testing.T) {
 
 	t.Run("AUTH-003: Expired token returns 401", func(t *testing.T) {
 		now := time.Now().UTC()
-		expiredToken, err := auth.GenerateTokenWithTimes(uuid.New(), secret, now.Add(-20*time.Minute), now.Add(-10*time.Minute))
+		expiredToken, err := auth.GenerateTokenWithTimes(ids.UserID(uuid.New()), secret, now.Add(-20*time.Minute), now.Add(-10*time.Minute))
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -177,7 +178,7 @@ func TestAuthFixtures_Parity(t *testing.T) {
 	})
 
 	t.Run("AUTH-004: Revoked token signature in blocklist returns 401", func(t *testing.T) {
-		validToken, err := auth.GenerateToken(uuid.New(), secret, 15*time.Minute)
+		validToken, err := auth.GenerateToken(ids.UserID(uuid.New()), secret, 15*time.Minute)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -199,7 +200,7 @@ func TestAuthFixtures_Parity(t *testing.T) {
 
 	t.Run("AUTH-006: Missing permission on protected route returns 403 FORBIDDEN", func(t *testing.T) {
 		memberID := uuid.MustParse("018d0000-0000-7000-8000-000000000020")
-		token, err := auth.GenerateToken(memberID, secret, 15*time.Minute)
+		token, err := auth.GenerateToken(ids.UserID(memberID), secret, 15*time.Minute)
 		if err != nil {
 			t.Fatal(err)
 		}

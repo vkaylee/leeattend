@@ -11,6 +11,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/vkaylee/leeattend/apiserver/internal/auth"
+	"github.com/vkaylee/leeattend/apiserver/internal/domain/ids"
 )
 
 var (
@@ -162,7 +163,7 @@ func (s AuthService) issueSession(ctx context.Context, user UserRecord) (AuthRes
 	if refreshTTL <= 0 {
 		refreshTTL = auth.RefreshTokenDuration
 	}
-	accessToken, err := auth.GenerateToken(user.ID, s.JWTSecret, accessTTL)
+	accessToken, err := auth.GenerateToken(ids.UserID(user.ID), s.JWTSecret, accessTTL)
 	if err != nil {
 		return AuthResponse{}, fmt.Errorf("generate access token: %w", err)
 	}

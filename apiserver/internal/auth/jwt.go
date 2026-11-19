@@ -11,6 +11,7 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 	"github.com/vkaylee/leeattend/apiserver/internal/apperror"
+	"github.com/vkaylee/leeattend/apiserver/internal/domain/ids"
 )
 
 // HashRefreshToken returns a one-way SHA-256 digest suitable for session storage.
@@ -39,7 +40,7 @@ type Claims struct {
 }
 
 // GenerateToken creates an HMAC-SHA256 access token for the given user ID.
-func GenerateToken(userID uuid.UUID, secret string, duration time.Duration) (string, error) {
+func GenerateToken(userID ids.UserID, secret string, duration time.Duration) (string, error) {
 	if duration <= 0 {
 		duration = AccessTokenDuration
 	}
@@ -48,7 +49,7 @@ func GenerateToken(userID uuid.UUID, secret string, duration time.Duration) (str
 }
 
 // GenerateTokenWithTimes creates an HMAC-SHA256 access token with explicit issued-at and expiration timestamps.
-func GenerateTokenWithTimes(userID uuid.UUID, secret string, issuedAt, expiresAt time.Time) (string, error) {
+func GenerateTokenWithTimes(userID ids.UserID, secret string, issuedAt, expiresAt time.Time) (string, error) {
 	claims := Claims{RegisteredClaims: jwt.RegisteredClaims{
 		Subject:   userID.String(),
 		ExpiresAt: jwt.NewNumericDate(expiresAt),
@@ -89,15 +90,15 @@ func VerifyTokenClaims(tokenStr string, secret string) (*Claims, error) {
 	return claims, nil
 }
 
-// VerifyToken validates the token and returns the parsed user UUID from the subject.
-func VerifyToken(tokenStr string, secret string) (uuid.UUID, error) {
+// VerifyToken validates the token and returns the parsed user ID from the subject.
+func VerifyToken(tokenStr string, secret string) (ids.UserID, error) {
 	claims, err := VerifyTokenClaims(tokenStr, secret)
 	if err != nil {
-		return uuid.Nil, err
+		return ids.UserID{}, err
 	}
-	userID, err := uuid.Parse(claims.Subject)
+	userID, err := ids.ParseUserID(claims.Subject)
 	if err != nil {
-		return uuid.Nil, ErrInvalidSubject
+		return ids.UserID{}, ErrInvalidSubject
 	}
 	return userID, nil
 }
@@ -137,7 +138,7 @@ func RevokedSignatureKey(tokenStr string) string {
 }
 
 // UserRevokedAtKey returns Redis key for user timestamp revocation: user:revoked_at:{user_id}.
-func UserRevokedAtKey(userID uuid.UUID) string {
+func UserRevokedAtKey(userID ids.UserID) string {
 	return "user:revoked_at:" + userID.String()
 }
 

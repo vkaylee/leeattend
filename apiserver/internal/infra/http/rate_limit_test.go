@@ -10,6 +10,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/vkaylee/leeattend/apiserver/internal/auth"
+	"github.com/vkaylee/leeattend/apiserver/internal/domain/ids"
 )
 
 type mockRateLimiterBackend struct {
@@ -85,7 +86,7 @@ func TestRateLimitMiddleware_ExceededReturns429(t *testing.T) {
 func TestRateLimitMiddleware_IdentityResolution(t *testing.T) {
 	secret := "jwt-secret-with-sufficient-length-32-bytes!!"
 	userID := uuid.New()
-	token, err := auth.GenerateToken(userID, secret, 15*time.Minute)
+	token, err := auth.GenerateToken(ids.UserID(userID), secret, 15*time.Minute)
 	if err != nil {
 		t.Fatal(err)
 	}

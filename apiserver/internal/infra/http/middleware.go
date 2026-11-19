@@ -9,6 +9,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/vkaylee/leeattend/apiserver/internal/apperror"
 	"github.com/vkaylee/leeattend/apiserver/internal/auth"
+	"github.com/vkaylee/leeattend/apiserver/internal/domain/ids"
 	"github.com/vkaylee/leeattend/apiserver/internal/observability"
 )
 
@@ -133,7 +134,7 @@ func AuthMiddlewareWithRevocation(jwtSecret string, publicPrefixes []string, rev
 				apperror.WritePrimitiveAuthRequired(w)
 				return
 			}
-			userID, err := uuid.Parse(claims.Subject)
+			userID, err := ids.ParseUserID(claims.Subject)
 			if err != nil {
 				apperror.WritePrimitiveAuthRequired(w)
 				return
@@ -145,7 +146,7 @@ func AuthMiddlewareWithRevocation(jwtSecret string, publicPrefixes []string, rev
 					return
 				}
 				if claims.IssuedAt != nil {
-					revokedAt, checkErr := revocations.UserRevokedAt(r.Context(), userID)
+					revokedAt, checkErr := revocations.UserRevokedAt(r.Context(), userID.UUID())
 					if checkErr == nil && !revokedAt.IsZero() && !claims.IssuedAt.Time.After(revokedAt) {
 						apperror.WritePrimitiveAuthRequired(w)
 						return
@@ -170,13 +171,19 @@ func bearerToken(r *http.Request) string {
 	return ""
 }
 
-// UserIDFromContext retrieves authenticated user UUID.
+// UserIDFromContext retrieves authenticated user UUID for existing handler boundaries.
 func UserIDFromContext(ctx context.Context) (uuid.UUID, bool) {
-	val, ok := ctx.Value(contextKeyUserID).(uuid.UUID)
+	userID, ok := UserIDValueFromContext(ctx)
+	return userID.UUID(), ok
+}
+
+// UserIDValueFromContext retrieves authenticated user ID for typed domain boundaries.
+func UserIDValueFromContext(ctx context.Context) (ids.UserID, bool) {
+	val, ok := ctx.Value(contextKeyUserID).(ids.UserID)
 	return val, ok
 }
 
 // WithUserIDForTest is a package test helper for handler contract tests.
 func WithUserIDForTest(ctx context.Context, id uuid.UUID) context.Context {
-	return context.WithValue(ctx, contextKeyUserID, id)
+	return context.WithValue(ctx, contextKeyUserID, ids.UserID(id))
 }

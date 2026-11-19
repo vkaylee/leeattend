@@ -4,6 +4,22 @@ package ids
 import "github.com/google/uuid"
 
 type UserID uuid.UUID
+
+func ParseUserID(value string) (UserID, error) {
+	parsed, err := uuid.Parse(value)
+	if err != nil {
+		return UserID{}, err
+	}
+	return UserID(parsed), nil
+}
+
+func (id UserID) UUID() uuid.UUID {
+	return uuid.UUID(id)
+}
+
+func (id UserID) String() string {
+	return id.UUID().String()
+}
 type EmployerID uuid.UUID
 type DepartmentID uuid.UUID
 type EmployeeID uuid.UUID
