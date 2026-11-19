@@ -228,7 +228,15 @@ CREATE TABLE public.attendance_daily_summaries (
 
     late_minutes integer DEFAULT 0 NOT NULL,
 
-    early_departure_minutes integer DEFAULT 0 NOT NULL
+    early_departure_minutes integer DEFAULT 0 NOT NULL,
+
+    work_policy_version_id uuid,
+    shift_version_id uuid,
+
+    CONSTRAINT attendance_daily_summaries_minutes_nonnegative CHECK (
+        actual_work_minutes >= 0 AND standard_minutes >= 0 AND system_detected_ot_minutes >= 0
+        AND early_ot_minutes >= 0 AND late_ot_minutes >= 0 AND break_ot_minutes >= 0
+    )
 
 );
 

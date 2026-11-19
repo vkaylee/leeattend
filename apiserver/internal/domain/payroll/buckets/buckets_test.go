@@ -57,4 +57,7 @@ func TestCalculateBreakDeduction_IntersectsPunchWindow(t *testing.T) {
 	if got != 15 {
 		t.Fatalf("expected 15 minutes, got %d", got)
 	}
+	if got := CalculateBreakOvertime(BreakDeductionInput{IsBreakOvertime: true, BreakStart: &breakStart, BreakEnd: &breakEnd, PunchIn: &punchIn, PunchOut: &punchOut}); got != 15 {
+		t.Fatalf("expected 15 break overtime minutes, got %d", got)
+	}
 }

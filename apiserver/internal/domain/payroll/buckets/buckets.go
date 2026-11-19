@@ -60,6 +60,17 @@ func CalculateBreakDeduction(input BreakDeductionInput) int32 {
 	if input.IsBreakOvertime || !input.IsBreakAutoDeduct {
 		return 0
 	}
+	return calculateBreakOverlap(input)
+}
+
+func CalculateBreakOvertime(input BreakDeductionInput) int32 {
+	if !input.IsBreakOvertime {
+		return 0
+	}
+	return calculateBreakOverlap(input)
+}
+
+func calculateBreakOverlap(input BreakDeductionInput) int32 {
 	if input.BreakStart == nil || input.BreakEnd == nil || input.PunchIn == nil || input.PunchOut == nil {
 		return input.ScheduledBreakMinutes
 	}
@@ -104,7 +115,9 @@ func CalculateBuckets(input DailyCalcInput) WorkBuckets {
 	if input.ShiftEnd != nil {
 		standardEnd = minTime(standardEnd, *input.ShiftEnd)
 	}
-	breakDeduction := CalculateBreakDeduction(BreakDeductionInput{ActualBreakMinutes: input.ActualBreakMinutes, ScheduledBreakMinutes: input.ScheduledBreakMinutes, IsBreakAutoDeduct: input.IsBreakAutoDeduct, IsBreakOvertime: input.IsBreakOvertime, BreakStart: input.BreakStart, BreakEnd: input.BreakEnd, PunchIn: &input.PunchIn, PunchOut: &input.PunchOut})
+	breakInput := BreakDeductionInput{ActualBreakMinutes: input.ActualBreakMinutes, ScheduledBreakMinutes: input.ScheduledBreakMinutes, IsBreakAutoDeduct: input.IsBreakAutoDeduct, IsBreakOvertime: input.IsBreakOvertime, BreakStart: input.BreakStart, BreakEnd: input.BreakEnd, PunchIn: &input.PunchIn, PunchOut: &input.PunchOut}
+	breakDeduction := CalculateBreakDeduction(breakInput)
+	breakOvertime := CalculateBreakOvertime(breakInput)
 	standardMinutes := int32(maxDuration(standardEnd.Sub(standardStart))/time.Minute) - breakDeduction
 	if standardMinutes < 0 {
 		standardMinutes = 0
@@ -128,7 +141,7 @@ func CalculateBuckets(input DailyCalcInput) WorkBuckets {
 			late = int32(input.OTCeiling.Sub(*input.ShiftEnd) / time.Minute)
 		}
 	}
-	return WorkBuckets{StandardMinutes: standardMinutes, EarlyOTMinutes: early, LateOTMinutes: late}
+	return WorkBuckets{StandardMinutes: standardMinutes, EarlyOTMinutes: early, LateOTMinutes: late, BreakOTMinutes: breakOvertime}
 }
 
 func maxTime(a, b time.Time) time.Time {
