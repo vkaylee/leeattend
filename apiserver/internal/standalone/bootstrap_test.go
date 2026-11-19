@@ -182,7 +182,10 @@ func TestEnsureDefaultRolesAndPermissions(t *testing.T) {
 		}
 	}
 	for _, grant := range []string{
-		"('shift_manager', 'schedules:activate')",
+		"('shift_manager', 'employees:read')",
+			"('team_lead', 'employees:read')",
+			"('employee', 'employees:read')",
+			"('shift_manager', 'schedules:activate')",
 		"('team_lead', 'schedules:activate')",
 		"('employee', 'schedules:activate')",
 		"('shift_manager', 'attendance:closure:close')",

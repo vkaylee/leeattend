@@ -286,7 +286,6 @@ FROM (VALUES
     ('shift_manager', 'dashboard:preferences'),
     ('shift_manager', 'dashboard:read'),
     ('shift_manager', 'departments:read'),
-    ('shift_manager', 'employees:read'),
     ('shift_manager', 'ess:attendance'),
     ('shift_manager', 'ess:clock'),
     ('shift_manager', 'ess:leave'),
