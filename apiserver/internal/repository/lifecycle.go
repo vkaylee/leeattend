@@ -717,7 +717,7 @@ func (r LifecycleRepository) ListChecklists(ctx context.Context) ([]api.Lifecycl
 		return nil, err
 	}
 	query := `SELECT
-		c.id, c.employment_id, em.employee_id, e.full_name, COALESCE(t.employee_number, ''), d.name,
+		c.id, c.employment_id, em.employee_id, e.full_name, COALESCE(e.employee_id_number, ''), d.name,
 		c.template_id, t.name, c.checklist_type, c.status, c.progress_percent,
 		COALESCE(item_counts.total_items, 0), COALESCE(item_counts.completed_items, 0),
 		c.started_at, c.completed_at, c.created_at, c.updated_at
