@@ -50,9 +50,22 @@ A future implementation must prove all of these in one contract:
 - Payroll history remains unchanged; no destructive migration or dual-write activation path is added.
 - Cutover cannot be declared complete until attendance summaries, batch execution, worker paths, snapshot provenance, and controlled rehearsal have evidence.
 
+## Controlled cutover rehearsal (documentation only)
+
+This is a rehearsal contract, not an executable activation path. It does not authorize or create persisted activation state.
+
+- **Owner:** backend, payroll, attendance, and reporting domain owners jointly; release owner records approval and evidence revision.
+- **Preconditions:** canonical source ownership is approved; every consumer has shared resolver/gate integration; reconciliation has no open unexplained differences; API, worker, snapshot, and route-role tests pass; backup/restore rehearsal and migration rollback evidence are current.
+- **Writes during rehearsal:** only ordinary policy group/version/membership writes through existing RBAC-protected APIs; no activation row, flag, marker, dual-write, legacy-field drop, or consumer switch.
+- **Abort criteria:** any consumer bypasses shared resolver; stale fingerprint/version is accepted; concurrency does not return `409`; reconciliation count changes unexpectedly; locked payroll history or immutable snapshots would be rewritten; error, latency, lock, or resource limits exceed approved thresholds; required evidence or owner approval is missing.
+- **Abort action:** stop new policy configuration writes, preserve all evidence and immutable history, keep legacy readers/writers unchanged, and open a disposition for each affected difference. Do not claim cutover.
+- **Roll-forward:** after policy-backed payroll or closure evidence exists, resolve differences through a new policy version, corrected membership, or explicit reconciliation disposition. Never rewrite or delete historical snapshots.
+- **Rollback boundary:** before any official policy-backed result, revert only the rehearsal deployment/configuration and retain additive schema/data. After official results exist, rollback means roll-forward and reconciliation only; never restore an unguarded competing writer.
+- **Adapter removal:** remove legacy adapters only after one representative payroll/closure cycle proves zero active legacy writes, all consumers read canonical policy semantics, reconciliation is complete, monitoring is clean, and rollback no longer requires old binaries. Keep legacy fields/paths until separate destructive-change approval.
+
 ## Rollback and removal
 
-No runtime activation switch exists, so no activation rollback is claimed. Future cutover must first support a pre-evidence abort path. After official policy-backed payroll or closure evidence exists, rollback must be roll-forward/reconciliation only; it must not delete immutable history or silently restore an unguarded competing writer.
+No runtime activation switch exists, so no activation rollback is claimed. Future cutover must first support the rehearsal contract above. After official policy-backed payroll or closure evidence exists, rollback must be roll-forward/reconciliation only; it must not delete immutable history or silently restore an unguarded competing writer.
 
 ## Verification
 
