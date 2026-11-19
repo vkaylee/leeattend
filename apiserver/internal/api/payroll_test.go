@@ -1657,6 +1657,9 @@ func TestPayrollCalculationEndpoints(t *testing.T) {
 	if batchResp.Results[0].Status != "success" || batchResp.Results[1].Status != "error" {
 		t.Fatalf("unexpected statuses: %v, %v", batchResp.Results[0].Status, batchResp.Results[1].Status)
 	}
+	if batchResp.Results[0].EmploymentID != validEmp1 || batchResp.Results[1].EmploymentID != missingEmp {
+		t.Fatalf("batch results must preserve request order: got %v, %v", batchResp.Results[0].EmploymentID, batchResp.Results[1].EmploymentID)
+	}
 
 	// 10b. POST calculate-batch empty list (400)
 	req = httptest.NewRequest(http.MethodPost, "/api/v1/payroll/calculate-batch", bytes.NewBufferString(`{"employment_ids":[],"year":2026,"month":1}`))
