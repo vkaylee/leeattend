@@ -12,6 +12,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/vkaylee/leeattend/apiserver/internal/api"
+	"github.com/vkaylee/leeattend/apiserver/internal/domain/ids"
 	"github.com/vkaylee/leeattend/apiserver/internal/service"
 )
 
@@ -235,7 +236,7 @@ func (r AttendanceRepository) IsEmployeeOwnedByUser(ctx context.Context, employe
 }
 
 // CreateAdjustment inserts a pending manual adjustment matching schema.
-func (r AttendanceRepository) CreateAdjustment(ctx context.Context, req api.AdjustmentRequest, requestedByUserID uuid.UUID) (api.AdjustmentRecord, error) {
+func (r AttendanceRepository) CreateAdjustment(ctx context.Context, req api.AdjustmentRequest, requestedByUserID ids.UserID) (api.AdjustmentRecord, error) {
 	db, err := r.db(ctx)
 	if err != nil {
 		return api.AdjustmentRecord{}, err
@@ -256,7 +257,7 @@ func (r AttendanceRepository) CreateAdjustment(ctx context.Context, req api.Adju
 	var record api.AdjustmentRecord
 	var reqPunchTime, createdAt, updatedAt time.Time
 	var fileIDs []uuid.UUID
-	err = db.QueryRow(ctx, `INSERT INTO attendance_adjustment_requests (id, employment_id, time_entry_id, requested_punch_time, reason, status, requested_by_user_id, attachment_file_ids, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, 'pending', $6, $7, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP) RETURNING id, employment_id, time_entry_id, requested_punch_time, reason, status, requested_by_user_id, approved_by_user_id, attachment_file_ids, created_at, updated_at`, adjID, req.EmploymentID, req.TimeEntryID, requestedTime, req.Reason, requestedByUserID, req.AttachmentFileIDs).Scan(&record.ID, &record.EmploymentID, &record.TimeEntryID, &reqPunchTime, &record.Reason, &record.Status, &record.RequestedByUserID, &record.ApprovedByUserID, &fileIDs, &createdAt, &updatedAt)
+	err = db.QueryRow(ctx, `INSERT INTO attendance_adjustment_requests (id, employment_id, time_entry_id, requested_punch_time, reason, status, requested_by_user_id, attachment_file_ids, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, 'pending', $6, $7, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP) RETURNING id, employment_id, time_entry_id, requested_punch_time, reason, status, requested_by_user_id, approved_by_user_id, attachment_file_ids, created_at, updated_at`, adjID, req.EmploymentID, req.TimeEntryID, requestedTime, req.Reason, requestedByUserID.UUID(), req.AttachmentFileIDs).Scan(&record.ID, &record.EmploymentID, &record.TimeEntryID, &reqPunchTime, &record.Reason, &record.Status, &record.RequestedByUserID, &record.ApprovedByUserID, &fileIDs, &createdAt, &updatedAt)
 	if err != nil {
 		return api.AdjustmentRecord{}, err
 	}

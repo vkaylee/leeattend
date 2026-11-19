@@ -11,6 +11,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/vkaylee/leeattend/apiserver/internal/apperror"
+	"github.com/vkaylee/leeattend/apiserver/internal/domain/ids"
 	httpinfra "github.com/vkaylee/leeattend/apiserver/internal/infra/http"
 )
 
@@ -138,7 +139,7 @@ type AttendanceRepository interface {
 	PunchIn(ctx context.Context, employmentID uuid.UUID, entryType string, note *string, isBreakOvertime bool, punchTime time.Time) (TimeEntryRecord, error)
 	PunchOut(ctx context.Context, employeeID uuid.UUID, note *string, punchTime time.Time) (TimeEntryRecord, error)
 	ListTimeHistory(ctx context.Context, employeeID uuid.UUID, start, end time.Time) ([]TimeEntryRecord, error)
-	CreateAdjustment(ctx context.Context, req AdjustmentRequest, requestedByUserID uuid.UUID) (AdjustmentRecord, error)
+	CreateAdjustment(ctx context.Context, req AdjustmentRequest, requestedByUserID ids.UserID) (AdjustmentRecord, error)
 	ListAdjustments(ctx context.Context, status *string, employeeID *uuid.UUID, page, limit int) (PaginatedAdjustments, error)
 	ListEmployeeAdjustments(ctx context.Context, employeeID uuid.UUID) ([]AdjustmentRecord, error)
 	ApproveAdjustment(ctx context.Context, adjustmentID, approverID uuid.UUID, status string) error
@@ -266,7 +267,7 @@ func (h *AttendanceHandler) CreateAdjustment(w http.ResponseWriter, r *http.Requ
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}
-	userID, ok := httpinfra.UserIDFromContext(r.Context())
+	userID, ok := httpinfra.UserIDValueFromContext(r.Context())
 	if !ok {
 		h.forbidden(w, r)
 		return

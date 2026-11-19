@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/vkaylee/leeattend/apiserver/internal/domain/ids"
 	httpinfra "github.com/vkaylee/leeattend/apiserver/internal/infra/http"
 )
 
@@ -83,11 +84,11 @@ func (m *mockAttendanceRepo) ListTimeHistory(_ context.Context, _ uuid.UUID, _, 
 	return []TimeEntryRecord{}, nil
 }
 
-func (m *mockAttendanceRepo) CreateAdjustment(_ context.Context, req AdjustmentRequest, userID uuid.UUID) (AdjustmentRecord, error) {
+func (m *mockAttendanceRepo) CreateAdjustment(_ context.Context, req AdjustmentRequest, userID ids.UserID) (AdjustmentRecord, error) {
 	if m.err != nil {
 		return AdjustmentRecord{}, m.err
 	}
-	record := AdjustmentRecord{ID: uuid.New(), EmploymentID: req.EmploymentID, RequestedPunchTime: req.RequestedPunchTime, Reason: req.Reason, Status: "pending", RequestedByUserID: &userID}
+	record := AdjustmentRecord{ID: uuid.New(), EmploymentID: req.EmploymentID, RequestedPunchTime: req.RequestedPunchTime, Reason: req.Reason, Status: "pending", RequestedByUserID: func() *uuid.UUID { value := userID.UUID(); return &value }()}
 	return record, nil
 }
 
