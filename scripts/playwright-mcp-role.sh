@@ -35,6 +35,13 @@ fi
 ENDPOINT="$2"
 shift 2
 
+ENDPOINT_HOST="${ENDPOINT#*://}"
+ENDPOINT_HOST="${ENDPOINT_HOST%%/*}"
+if [[ -z "$ENDPOINT_HOST" ]]; then
+  printf 'Invalid Playwright endpoint: %s\n' "$ENDPOINT" >&2
+  exit 2
+fi
+
 COMPOSE_PROJECT="${PLAYWRIGHT_COMPOSE_PROJECT:-leedevkit-dev}"
 COMPOSE_FILE="${PLAYWRIGHT_COMPOSE_FILE:-$ROOT/.compose/docker-compose.dev.yml}"
 if [[ ! -f "$COMPOSE_FILE" ]]; then
@@ -130,6 +137,7 @@ MCP_COMMAND=(
   --caps=vision,pdf,devtools
   --console-level=info
   --snapshot-boxes
+  "--allowed-hosts=$ENDPOINT_HOST"
   "--allowed-origins=$ENDPOINT"
   --timeout-action=5000
   --timeout-navigation=30000

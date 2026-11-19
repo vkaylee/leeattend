@@ -201,6 +201,7 @@ def test_wrapper_forwards_configured_endpoint_to_cli(tmp_path: Path, extra_args:
 
     assert result.returncode == 0, result.stderr
     args = args_file.read_text().splitlines()
+    assert "--allowed-hosts=example.com" in args
     assert "--allowed-origins=http://example.com" in args
     assert "--idle-timeout=0" in args
     if extra_args:
