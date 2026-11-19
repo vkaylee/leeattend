@@ -45,6 +45,16 @@ The server uses the least-privileged `employee` role by default. To use another 
 
 The endpoint is declared with `--endpoint` in `.mcp.json`. The wrapper forwards that origin to Playwright as `--allowed-origins`; navigation remains limited to the configured origin. Set it to the host reachable from the browser container.
 
+For isolated UI acceptance, keep browser cookies per role but point wrapper Compose at owned disposable stack:
+
+```bash
+PLAYWRIGHT_COMPOSE_PROJECT=leeattend-tenure-ui \
+PLAYWRIGHT_COMPOSE_FILE=/path/to/disposable-mcp-compose.yml \
+./scripts/playwright-mcp-role.sh employee --endpoint http://caddy
+```
+
+Disposable MCP Compose must join disposable frontend network and expose `playwright-mcp` only; application stack owns `caddy`, API, DB, and Redis. Each role still signs in through `/login` in its own MCP context. Default remains `leedevkit-dev`; no shared fixture mutation is part of disposable workflow.
+
 ### Playwright MCP login-first sessions
 
 Every interactive Playwright MCP session starts unauthenticated. Sign in through the UI only when a scenario requires authentication. Do not create or reuse `.secrets/playwright-auth/*.json` for interactive MCP.
