@@ -22,6 +22,9 @@ interface Props {
   setSelectedEmployerId: (val: string) => void;
   setSelectedLocationId: (val: string) => void;
   setSelectedUserId: (val: string) => void;
+  basicOnly?: boolean;
+  employmentOnly?: boolean;
+  showUserLink?: boolean;
   t: TFunction;
 }
 
@@ -32,6 +35,9 @@ export default function EmployeeFormInputs({
   members,
   selectedUserId,
   setSelectedUserId,
+  basicOnly = false,
+  employmentOnly = false,
+  showUserLink = true,
   locations,
   locationsUnavailable = false,
   selectedLocationId,
@@ -43,6 +49,7 @@ export default function EmployeeFormInputs({
 }: Props) {
   return (
     <>
+      {!employmentOnly && <>
       <FormField
         data-testid="employees-form-name-input"
         defaultValue={editingEmployee?.full_name}
@@ -66,23 +73,27 @@ export default function EmployeeFormInputs({
         required
         type="date"
       />
-      <div className="space-y-3 px-1">
-        <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.2em]">
-          {t("employees.form.link_user")}
-        </label>
-        <Combobox
-          clearOnEscape
-          data-testid="employees-form-user-combobox"
-          onChange={setSelectedUserId}
-          options={members.map((m) => ({
-            value: m.user_id,
-            label: m.full_name ?? m.email,
-            description: m.email,
-          }))}
-          placeholder={t("employees.form.select_user")}
-          value={selectedUserId}
-        />
-      </div>
+      </>}
+      {!basicOnly && !employmentOnly && showUserLink ? (
+        <div className="space-y-3 px-1">
+          <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.2em]">
+            {t("employees.form.link_user")}
+          </label>
+          <Combobox
+            clearOnEscape
+            data-testid="employees-form-user-combobox"
+            onChange={setSelectedUserId}
+            options={members.map((m) => ({
+              value: m.user_id,
+              label: m.full_name ?? m.email,
+              description: m.email,
+            }))}
+            placeholder={t("employees.form.select_user")}
+            value={selectedUserId}
+          />
+        </div>
+      ) : null}
+      {!basicOnly && <>
       <div className="space-y-3 px-1">
         <div aria-labelledby="employees-form-location-label" role="group">
           <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.2em]" id="employees-form-location-label">
@@ -143,6 +154,7 @@ export default function EmployeeFormInputs({
           {t("employees.form.is_active")}
         </label>
       </div>
+      </>}
     </>
   );
 }

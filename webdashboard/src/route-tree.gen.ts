@@ -80,6 +80,7 @@ import { Route as AuthenticatedOrganizationEssOtRouteImport } from "./routes/_au
 import { Route as AuthenticatedOrganizationEssDocumentsRouteImport } from "./routes/_authenticated/_organization/ess/documents"
 import { Route as AuthenticatedOrganizationEssClockRouteImport } from "./routes/_authenticated/_organization/ess/clock"
 import { Route as AuthenticatedOrganizationEssAttendanceRouteImport } from "./routes/_authenticated/_organization/ess/attendance"
+import { Route as AuthenticatedOrganizationEmployeesNewRouteImport } from "./routes/_authenticated/_organization/employees_.new"
 import { Route as AuthenticatedOrganizationEmployeesEmployeeIdRouteImport } from "./routes/_authenticated/_organization/employees_.$employeeId"
 import { Route as AuthenticatedOrganizationDocumentsTemplatesRouteImport } from "./routes/_authenticated/_organization/documents.templates"
 import { Route as AuthenticatedOrganizationAssignmentRulesNewRouteImport } from "./routes/_authenticated/_organization/assignment-rules.new"
@@ -749,6 +750,16 @@ const AuthenticatedOrganizationEssAttendanceRoute =
       (d) => d.Route,
     ),
   )
+const AuthenticatedOrganizationEmployeesNewRoute =
+  AuthenticatedOrganizationEmployeesNewRouteImport.update({
+    id: "/employees_/new",
+    path: "/employees/new",
+    getParentRoute: () => AuthenticatedOrganizationRoute,
+  } as any).lazy(() =>
+    import("./routes/_authenticated/_organization/employees_.new.lazy").then(
+      (d) => d.Route,
+    ),
+  )
 const AuthenticatedOrganizationEmployeesEmployeeIdRoute =
   AuthenticatedOrganizationEmployeesEmployeeIdRouteImport.update({
     id: "/employees_/$employeeId",
@@ -984,6 +995,7 @@ export interface FileRoutesByFullPath {
   "/assignment-rules/new": typeof AuthenticatedOrganizationAssignmentRulesNewRoute
   "/documents/templates": typeof AuthenticatedOrganizationDocumentsTemplatesRoute
   "/employees/$employeeId": typeof AuthenticatedOrganizationEmployeesEmployeeIdRoute
+  "/employees/new": typeof AuthenticatedOrganizationEmployeesNewRoute
   "/ess/attendance": typeof AuthenticatedOrganizationEssAttendanceRoute
   "/ess/clock": typeof AuthenticatedOrganizationEssClockRoute
   "/ess/documents": typeof AuthenticatedOrganizationEssDocumentsRoute
@@ -1069,6 +1081,7 @@ export interface FileRoutesByTo {
   "/assignment-rules/new": typeof AuthenticatedOrganizationAssignmentRulesNewRoute
   "/documents/templates": typeof AuthenticatedOrganizationDocumentsTemplatesRoute
   "/employees/$employeeId": typeof AuthenticatedOrganizationEmployeesEmployeeIdRoute
+  "/employees/new": typeof AuthenticatedOrganizationEmployeesNewRoute
   "/ess/attendance": typeof AuthenticatedOrganizationEssAttendanceRoute
   "/ess/clock": typeof AuthenticatedOrganizationEssClockRoute
   "/ess/documents": typeof AuthenticatedOrganizationEssDocumentsRoute
@@ -1160,6 +1173,7 @@ export interface FileRoutesById {
   "/_authenticated/_organization/assignment-rules/new": typeof AuthenticatedOrganizationAssignmentRulesNewRoute
   "/_authenticated/_organization/documents/templates": typeof AuthenticatedOrganizationDocumentsTemplatesRoute
   "/_authenticated/_organization/employees_/$employeeId": typeof AuthenticatedOrganizationEmployeesEmployeeIdRoute
+  "/_authenticated/_organization/employees_/new": typeof AuthenticatedOrganizationEmployeesNewRoute
   "/_authenticated/_organization/ess/attendance": typeof AuthenticatedOrganizationEssAttendanceRoute
   "/_authenticated/_organization/ess/clock": typeof AuthenticatedOrganizationEssClockRoute
   "/_authenticated/_organization/ess/documents": typeof AuthenticatedOrganizationEssDocumentsRoute
@@ -1251,6 +1265,7 @@ export interface FileRouteTypes {
     | "/assignment-rules/new"
     | "/documents/templates"
     | "/employees/$employeeId"
+    | "/employees/new"
     | "/ess/attendance"
     | "/ess/clock"
     | "/ess/documents"
@@ -1336,6 +1351,7 @@ export interface FileRouteTypes {
     | "/assignment-rules/new"
     | "/documents/templates"
     | "/employees/$employeeId"
+    | "/employees/new"
     | "/ess/attendance"
     | "/ess/clock"
     | "/ess/documents"
@@ -1426,6 +1442,7 @@ export interface FileRouteTypes {
     | "/_authenticated/_organization/assignment-rules/new"
     | "/_authenticated/_organization/documents/templates"
     | "/_authenticated/_organization/employees_/$employeeId"
+    | "/_authenticated/_organization/employees_/new"
     | "/_authenticated/_organization/ess/attendance"
     | "/_authenticated/_organization/ess/clock"
     | "/_authenticated/_organization/ess/documents"
@@ -1983,6 +2000,13 @@ declare module "@tanstack/react-router" {
       preLoaderRoute: typeof AuthenticatedOrganizationEssAttendanceRouteImport
       parentRoute: typeof AuthenticatedOrganizationEssRoute
     }
+    "/_authenticated/_organization/employees_/new": {
+      id: "/_authenticated/_organization/employees_/new"
+      path: "/employees/new"
+      fullPath: "/employees/new"
+      preLoaderRoute: typeof AuthenticatedOrganizationEmployeesNewRouteImport
+      parentRoute: typeof AuthenticatedOrganizationRoute
+    }
     "/_authenticated/_organization/employees_/$employeeId": {
       id: "/_authenticated/_organization/employees_/$employeeId"
       path: "/employees/$employeeId"
@@ -2401,6 +2425,7 @@ interface AuthenticatedOrganizationRouteChildren {
   AuthenticatedOrganizationApprovalsOtRoute: typeof AuthenticatedOrganizationApprovalsOtRoute
   AuthenticatedOrganizationDocumentsTemplatesRoute: typeof AuthenticatedOrganizationDocumentsTemplatesRoute
   AuthenticatedOrganizationEmployeesEmployeeIdRoute: typeof AuthenticatedOrganizationEmployeesEmployeeIdRoute
+  AuthenticatedOrganizationEmployeesNewRoute: typeof AuthenticatedOrganizationEmployeesNewRoute
   AuthenticatedOrganizationApprovalsIndexRoute: typeof AuthenticatedOrganizationApprovalsIndexRoute
   AuthenticatedOrganizationDocumentsIndexRoute: typeof AuthenticatedOrganizationDocumentsIndexRoute
 }
@@ -2470,6 +2495,8 @@ const AuthenticatedOrganizationRouteChildren: AuthenticatedOrganizationRouteChil
       AuthenticatedOrganizationDocumentsTemplatesRoute,
     AuthenticatedOrganizationEmployeesEmployeeIdRoute:
       AuthenticatedOrganizationEmployeesEmployeeIdRoute,
+    AuthenticatedOrganizationEmployeesNewRoute:
+      AuthenticatedOrganizationEmployeesNewRoute,
     AuthenticatedOrganizationApprovalsIndexRoute:
       AuthenticatedOrganizationApprovalsIndexRoute,
     AuthenticatedOrganizationDocumentsIndexRoute:

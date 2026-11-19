@@ -37,12 +37,17 @@ type AssignPermissionRequest struct {
 	ExpiresAt  time.Time `json:"expires_at"`
 }
 
+type LinkMemberEmployeeRequest struct {
+	EmployeeID uuid.UUID `json:"employee_id"`
+}
+
 type MemberDetail struct {
-	UserID    uuid.UUID `json:"user_id"`
-	RoleID    uuid.UUID `json:"role_id"`
-	Email     string    `json:"email"`
-	FullName  *string   `json:"full_name"`
-	AvatarURL *string   `json:"avatar_url"`
+	UserID     uuid.UUID  `json:"user_id"`
+	RoleID     uuid.UUID  `json:"role_id"`
+	Email      string     `json:"email"`
+	FullName   *string    `json:"full_name"`
+	AvatarURL  *string    `json:"avatar_url"`
+	EmployeeID *uuid.UUID `json:"employee_id"`
 }
 type MemberDetailResponse struct {
 	MemberDetail
@@ -157,6 +162,8 @@ type OrganizationRBACRepository interface {
 	ListMemberPermissions(context.Context, uuid.UUID) ([]MemberExtraPermission, error)
 	AssignExtraPermission(context.Context, uuid.UUID, string, time.Time, uuid.UUID) (MemberExtraPermission, error)
 	RevokeExtraPermission(context.Context, uuid.UUID) (int64, error)
+	LinkMemberEmployee(context.Context, uuid.UUID, uuid.UUID, uuid.UUID) error
+	UnlinkMemberEmployee(context.Context, uuid.UUID, uuid.UUID) error
 	ListRoles(context.Context, int, int) ([]Role, int64, error)
 	CreateRole(context.Context, CreateRoleRequest) (Role, error)
 	UpdateRole(context.Context, uuid.UUID, UpdateRoleRequest) (Role, error)
@@ -436,6 +443,45 @@ func (h *OrganizationRBACHandler) AssignExtraPermission(w http.ResponseWriter, r
 	}
 	apperror.WriteJSON(w, http.StatusCreated, x)
 }
+func (h *OrganizationRBACHandler) LinkMemberEmployee(w http.ResponseWriter, r *http.Request) {
+	userID, ok := pathUUID(r, "user_id")
+	if !ok {
+		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
+		return
+	}
+	actorID, ok := h.require(w, r, "members:employee:link")
+	if !ok {
+		return
+	}
+	request, err := DecodeJSON[LinkMemberEmployeeRequest](r, 1<<20)
+	if err != nil || request.EmployeeID == uuid.Nil {
+		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
+		return
+	}
+	if err := h.Repository.LinkMemberEmployee(r.Context(), actorID, userID, request.EmployeeID); err != nil {
+		writeRBACError(w, r, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func (h *OrganizationRBACHandler) UnlinkMemberEmployee(w http.ResponseWriter, r *http.Request) {
+	userID, ok := pathUUID(r, "user_id")
+	if !ok {
+		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
+		return
+	}
+	actorID, ok := h.require(w, r, "members:employee:link")
+	if !ok {
+		return
+	}
+	if err := h.Repository.UnlinkMemberEmployee(r.Context(), actorID, userID); err != nil {
+		writeRBACError(w, r, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
 func (h *OrganizationRBACHandler) RevokeExtraPermission(w http.ResponseWriter, r *http.Request) {
 	_, userOK := pathUUID(r, "user_id")
 	perm, permOK := pathUUID(r, "perm_id")

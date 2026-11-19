@@ -14,6 +14,7 @@ import PermissionGate from "@/components/common/permission-gate";
 import { TableSkeleton } from "@/components/common/table-skeleton";
 import PermissionManagementModal from "@/components/features/settings/permission-management-modal";
 import RoleManagementModal from "@/components/features/settings/role-management-modal";
+import EmployeeLinkControl from "@/components/members/employee-link-control";
 import Button from "@/components/ui/button";
 import ResponsiveTable from "@/components/ui/responsive-table";
 import {
@@ -92,6 +93,8 @@ function MemberMobileCard({
           </div>
         </div>
       </div>
+
+      <EmployeeLinkControl employeeId={member.employee_id} userId={member.user_id} />
 
       {/* Roles */}
       <div className="mt-4 space-y-2 border-t border-slate-100 pt-4 dark:border-slate-800">
@@ -296,6 +299,7 @@ export default function MemberTable() {
                           <div className="text-[10px] text-slate-500 dark:text-slate-400 font-mono font-bold flex items-center gap-2 opacity-70">
                             <Mail className="text-primary-400" size={12} /> {canReadPII ? member.email : maskEmail(member.email)}
                           </div>
+                          <EmployeeLinkControl employeeId={member.employee_id} userId={member.user_id} />
                         </div>
                       </div>
                     </TableCell>

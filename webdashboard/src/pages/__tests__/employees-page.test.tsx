@@ -331,7 +331,7 @@ describe("EmployeesPage", () => {
     // Employee CRUD
     // ────────────────────────────────────────────────────────────
 
-    it("opens add-employee modal when clicking the add button", async () => {
+    it("navigates to the employee create page when clicking the add button", async () => {
         const user = userEvent.setup();
         renderPage();
         void (await screen.findAllByText("Alice Nguyen"))[0];
@@ -339,9 +339,7 @@ describe("EmployeesPage", () => {
         const addButton = await screen.findByTestId("add-employee-btn");
         await user.click(addButton);
 
-        // Form inputs should be visible
-        expect(screen.getByTestId("employees-form-name-input")).toBeDefined();
-        expect(screen.getByTestId("employees-form-id-input")).toBeDefined();
+        expect(mockNavigate).toHaveBeenCalledWith({ to: "/employees/new" });
     });
 
     it("handles terminating an employee with useConfirm", async () => {

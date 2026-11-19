@@ -20,6 +20,8 @@ func registerOrganizationRoutes(router chi.Router, organization *api.Organizatio
 	registerRoute(router, "POST /api/v1/members", rbac.AddMember)
 	registerRoute(router, "PATCH /api/v1/members/{user_id}", rbac.UpdateMemberRole)
 	registerRoute(router, "DELETE /api/v1/members/{user_id}", rbac.RemoveMember)
+	registerRoute(router, "PUT /api/v1/members/{user_id}/employee", rbac.LinkMemberEmployee)
+	registerRoute(router, "DELETE /api/v1/members/{user_id}/employee", rbac.UnlinkMemberEmployee)
 	registerRoute(router, "GET /api/v1/members/{user_id}/roles", rbac.GetMemberRoles)
 	registerRoute(router, "POST /api/v1/members/{user_id}/roles", rbac.AssignExtraRole)
 	registerRoute(router, "DELETE /api/v1/members/{user_id}/roles/{role_id}", rbac.RevokeExtraRole)

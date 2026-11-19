@@ -54,10 +54,10 @@
 
 ## Phase 4 — User/Member linking UI
 
-- [ ] **T4.1** Add Members-side link/unlink control with permission gate.
-- [ ] **T4.2** Add linked/unlinked/loading/empty/error/conflict/pending states and explicit unlink confirmation; no force-transfer in v1.
-- [ ] **T4.3** Use bounded employee candidate search; invalidate member and employee queries on success.
-- [ ] **T4.4** Add member UI/API contract tests and PII-safe artifact checks.
+- [x] **T4.1** Add Members-side link/unlink control with `members:employee:link` permission gate.
+- [x] **T4.2** Add linked/unlinked/loading/empty/error/conflict/pending states and explicit unlink confirmation; no force-transfer in v1.
+- [x] **T4.3** Use bounded employee candidate search; invalidate member and employee queries on success.
+- [ ] **T4.4** Add member UI/API contract tests and PII-safe artifact checks (existing member regression passes; dedicated link UI tests pending).
 - [ ] **T4.5** Add read-only linked-account status on employee detail if absent.
 
 ### Checkpoint E

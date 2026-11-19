@@ -1,4 +1,4 @@
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { Upload, UserPlus, FileText } from "lucide-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
@@ -7,14 +7,11 @@ import PermissionGate from "@/components/common/permission-gate";
 import Button from "@/components/ui/button";
 import { PageHeader } from "@/components/ui/page-header";
 
-import type { Employee } from "../../../lib/api/types";
 import type { EmployeeModalState } from "../types/employee-modals";
 
 interface EmployeesPageHeaderProps {
   openModal?: (modal: EmployeeModalState) => void;
-  setEditingEmployee?: (emp: Employee | null) => void;
   setIsImportDialogOpen?: (open: boolean) => void;
-  setIsModalOpen?: (open: boolean) => void;
   setIsTerminationImportOpen?: (open: boolean) => void;
 }
 
@@ -22,10 +19,9 @@ export const EmployeesPageHeader = ({
   openModal,
   setIsImportDialogOpen,
   setIsTerminationImportOpen,
-  setEditingEmployee,
-  setIsModalOpen,
 }: EmployeesPageHeaderProps) => {
   const { t } = useTranslation();
+  const navigate = useNavigate();
 
   return (
     <PageHeader
@@ -69,11 +65,7 @@ export const EmployeesPageHeader = ({
               data-testid="add-employee-btn"
               icon={<UserPlus size={16} />}
               onClick={() => {
-                if (openModal) openModal({ type: "create" });
-                else {
-                  setEditingEmployee?.(null);
-                  setIsModalOpen?.(true);
-                }
+                void navigate({ to: "/employees/new" });
               }}
             >
               {t("employees.add_btn")}

@@ -15,6 +15,7 @@ export interface Organization {
 
 export interface OrganizationMember {
   avatar_url?: string | null;
+  employee_id?: string | null;
   email: string;
   extra_role_ids: string[];
   full_name?: string | null;

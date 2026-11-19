@@ -47,6 +47,14 @@ export async function removeOrganizationMember(userId: string): Promise<void> {
   await client.DELETE(`/api/v1/members/${userId}`);
 }
 
+export async function linkMemberEmployee(userId: string, employeeId: string): Promise<void> {
+  await client.PUT(`/api/v1/members/${userId}/employee`, { body: { employee_id: employeeId } });
+}
+
+export async function unlinkMemberEmployee(userId: string): Promise<void> {
+  await client.DELETE(`/api/v1/members/${userId}/employee`);
+}
+
 export async function updateOrganizationMemberRole(userId: string, roleId: string): Promise<void> {
   await client.PATCH(`/api/v1/members/${userId}`, { body: { role_id: roleId } });
 }

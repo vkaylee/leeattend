@@ -61,7 +61,7 @@ func (r OrganizationRBACRepository) ListMembers(ctx context.Context, page, limit
 	if offset < 0 {
 		offset = 0
 	}
-	rows, err := r.SystemDB.Query(ctx, `SELECT ur.user_id, ur.role_id, u.email, u.full_name, u.avatar_url FROM user_roles ur JOIN users u ON u.id = ur.user_id ORDER BY ur.user_id LIMIT $1 OFFSET $2`, limit, offset)
+	rows, err := r.SystemDB.Query(ctx, `SELECT ur.user_id, ur.role_id, u.email, u.full_name, u.avatar_url, e.id FROM user_roles ur JOIN users u ON u.id = ur.user_id LEFT JOIN employees e ON e.user_id = ur.user_id AND e.deleted_at IS NULL ORDER BY ur.user_id LIMIT $1 OFFSET $2`, limit, offset)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -69,7 +69,7 @@ func (r OrganizationRBACRepository) ListMembers(ctx context.Context, page, limit
 	var list []api.MemberDetail
 	for rows.Next() {
 		var d api.MemberDetail
-		if err := rows.Scan(&d.UserID, &d.RoleID, &d.Email, &d.FullName, &d.AvatarURL); err != nil {
+		if err := rows.Scan(&d.UserID, &d.RoleID, &d.Email, &d.FullName, &d.AvatarURL, &d.EmployeeID); err != nil {
 			return nil, 0, err
 		}
 		list = append(list, d)
@@ -338,6 +338,60 @@ func (r OrganizationRBACRepository) AssignExtraPermission(ctx context.Context, u
 		return api.MemberExtraPermission{}, mapConstraintError(err)
 	}
 	return api.MemberExtraPermission{ID: id, UserID: user, Permission: perm, ExpiresAt: expires, AssignedBy: assignedBy, AssignedAt: &now}, nil
+}
+
+func (r OrganizationRBACRepository) LinkMemberEmployee(ctx context.Context, actorID, userID, employeeID uuid.UUID) error {
+	return r.withTx(ctx, func(ctx context.Context, tx DBTX) error {
+		var userExists bool
+		if err := tx.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM user_roles WHERE user_id = $1)`, userID).Scan(&userExists); err != nil {
+			return err
+		}
+		if !userExists {
+			return api.ErrRBACUserNotFound
+		}
+		var employeeExists bool
+		if err := tx.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM employees WHERE id = $1 AND deleted_at IS NULL)`, employeeID).Scan(&employeeExists); err != nil {
+			return err
+		}
+		if !employeeExists {
+			return api.ErrRBACNotFound
+		}
+		var alreadyLinked bool
+		if err := tx.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM employees WHERE user_id = $1 AND id <> $2 AND deleted_at IS NULL) OR EXISTS (SELECT 1 FROM employees WHERE id = $2 AND user_id IS NOT NULL AND deleted_at IS NULL)`, userID, employeeID).Scan(&alreadyLinked); err != nil {
+			return err
+		}
+		if alreadyLinked {
+			return api.ErrConflict
+		}
+		if _, err := tx.Exec(ctx, `UPDATE employees SET user_id = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2 AND deleted_at IS NULL`, userID, employeeID); err != nil {
+			return mapConstraintError(err)
+		}
+		if _, err := tx.Exec(ctx, `UPDATE employee_tenures SET user_id = $1, updated_at = CURRENT_TIMESTAMP WHERE employee_id = $2 AND deleted_at IS NULL AND start_date <= CURRENT_DATE AND (end_date IS NULL OR end_date >= CURRENT_DATE)`, userID, employeeID); err != nil {
+			return err
+		}
+		_, err := tx.Exec(ctx, `INSERT INTO audit_logs (actor_id, target_resource_id, action, details, created_at) VALUES ($1, $2, 'member.employee_linked', jsonb_build_object('user_id', $3, 'employee_id', $2), CURRENT_TIMESTAMP)`, actorID, employeeID, userID)
+		return err
+	})
+}
+
+func (r OrganizationRBACRepository) UnlinkMemberEmployee(ctx context.Context, actorID, userID uuid.UUID) error {
+	return r.withTx(ctx, func(ctx context.Context, tx DBTX) error {
+		var employeeID uuid.UUID
+		if err := tx.QueryRow(ctx, `SELECT id FROM employees WHERE user_id = $1 AND deleted_at IS NULL`, userID).Scan(&employeeID); err != nil {
+			if errors.Is(err, pgx.ErrNoRows) {
+				return nil
+			}
+			return err
+		}
+		if _, err := tx.Exec(ctx, `UPDATE employees SET user_id = NULL, updated_at = CURRENT_TIMESTAMP WHERE id = $1`, employeeID); err != nil {
+			return err
+		}
+		if _, err := tx.Exec(ctx, `UPDATE employee_tenures SET user_id = NULL, updated_at = CURRENT_TIMESTAMP WHERE employee_id = $1 AND deleted_at IS NULL`, employeeID); err != nil {
+			return err
+		}
+		_, err := tx.Exec(ctx, `INSERT INTO audit_logs (actor_id, target_resource_id, action, details, created_at) VALUES ($1, $2, 'member.employee_unlinked', jsonb_build_object('user_id', $3, 'employee_id', $2), CURRENT_TIMESTAMP)`, actorID, employeeID, userID)
+		return err
+	})
 }
 
 func (r OrganizationRBACRepository) RevokeExtraPermission(ctx context.Context, permID uuid.UUID) (int64, error) {

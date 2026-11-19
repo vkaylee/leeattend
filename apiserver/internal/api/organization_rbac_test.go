@@ -24,9 +24,11 @@ type mockRBACRepo struct {
 	rolePerms       map[uuid.UUID][]string
 	storageConfig   *StorageConfigRecord
 	userEmails      map[string]uuid.UUID
-	roleIsMutableFn func(role uuid.UUID) (bool, error)
-	deleteRoleFn    func(role uuid.UUID) (int64, error)
-	updateRoleFn    func(role uuid.UUID, req UpdateRoleRequest) (Role, error)
+	roleIsMutableFn      func(role uuid.UUID) (bool, error)
+	deleteRoleFn         func(role uuid.UUID) (int64, error)
+	updateRoleFn         func(role uuid.UUID, req UpdateRoleRequest) (Role, error)
+	linkMemberEmployeeFn func(actorID, userID, employeeID uuid.UUID) error
+	unlinkMemberEmployeeFn func(actorID, userID uuid.UUID) error
 }
 
 func (m *mockRBACRepo) ListMembers(_ context.Context, _, _ int) ([]MemberDetail, int64, error) {
@@ -95,6 +97,18 @@ func (m *mockRBACRepo) AssignExtraPermission(_ context.Context, user uuid.UUID, 
 	x := MemberExtraPermission{ID: uuid.New(), UserID: user, Permission: p, ExpiresAt: exp, AssignedBy: &by}
 	m.permissions = append(m.permissions, x)
 	return x, nil
+}
+func (m *mockRBACRepo) LinkMemberEmployee(_ context.Context, actorID, userID, employeeID uuid.UUID) error {
+	if m.linkMemberEmployeeFn != nil {
+		return m.linkMemberEmployeeFn(actorID, userID, employeeID)
+	}
+	return nil
+}
+func (m *mockRBACRepo) UnlinkMemberEmployee(_ context.Context, actorID, userID uuid.UUID) error {
+	if m.unlinkMemberEmployeeFn != nil {
+		return m.unlinkMemberEmployeeFn(actorID, userID)
+	}
+	return nil
 }
 func (m *mockRBACRepo) RevokeExtraPermission(_ context.Context, permID uuid.UUID) (int64, error) {
 	for i, x := range m.permissions {
@@ -237,6 +251,60 @@ func TestOrganizationRBAC_Permissions(t *testing.T) {
 	h.AssignExtraPermission(rec, req)
 	if rec.Code != http.StatusBadRequest {
 		t.Fatalf("expected 400 for past expiration, got %d", rec.Code)
+	}
+}
+
+func TestOrganizationRBAC_MemberEmployeeLinkLifecycle(t *testing.T) {
+	actorID, userID, employeeID := uuid.New(), uuid.New(), uuid.New()
+	linked := false
+	repo := &mockRBACRepo{
+		linkMemberEmployeeFn: func(gotActor, gotUser, gotEmployee uuid.UUID) error {
+			if gotActor != actorID || gotUser != userID || gotEmployee != employeeID {
+				t.Fatalf("unexpected link args: %s %s %s", gotActor, gotUser, gotEmployee)
+			}
+			linked = true
+			return nil
+		},
+		unlinkMemberEmployeeFn: func(gotActor, gotUser uuid.UUID) error {
+			if gotActor != actorID || gotUser != userID {
+				t.Fatalf("unexpected unlink args: %s %s", gotActor, gotUser)
+			}
+			linked = false
+			return nil
+		},
+	}
+	authz := rbacAuthorizer{perms: map[string]bool{"members:employee:link": true}, member: true}
+	h := OrganizationRBACHandler{Repository: repo, Authorizer: authz}
+
+	req := httptest.NewRequest(http.MethodPut, "/api/v1/members/"+userID.String()+"/employee", bytes.NewBufferString(`{"employee_id":"`+employeeID.String()+`"}`))
+	req.SetPathValue("user_id", userID.String())
+	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), actorID))
+	rec := httptest.NewRecorder()
+	h.LinkMemberEmployee(rec, req)
+	if rec.Code != http.StatusNoContent || !linked {
+		t.Fatalf("expected link 204 and linked state, got %d linked=%t", rec.Code, linked)
+	}
+
+	req = httptest.NewRequest(http.MethodDelete, "/api/v1/members/"+userID.String()+"/employee", nil)
+	req.SetPathValue("user_id", userID.String())
+	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), actorID))
+	rec = httptest.NewRecorder()
+	h.UnlinkMemberEmployee(rec, req)
+	if rec.Code != http.StatusNoContent || linked {
+		t.Fatalf("expected unlink 204 and unlinked state, got %d linked=%t", rec.Code, linked)
+	}
+}
+
+func TestOrganizationRBAC_MemberEmployeeLinkRequiresPermission(t *testing.T) {
+	actorID, userID := uuid.New(), uuid.New()
+	h := OrganizationRBACHandler{Repository: &mockRBACRepo{}, Authorizer: rbacAuthorizer{member: true}}
+	req := httptest.NewRequest(http.MethodDelete, "/api/v1/members/"+userID.String()+"/employee", nil)
+	req.SetPathValue("user_id", userID.String())
+	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), actorID))
+	rec := httptest.NewRecorder()
+	h.UnlinkMemberEmployee(rec, req)
+	if rec.Code != http.StatusForbidden {
+		t.Fatalf("expected 403 without link permission, got %d", rec.Code)
 	}
 }
 

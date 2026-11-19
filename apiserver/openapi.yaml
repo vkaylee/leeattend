@@ -7021,6 +7021,53 @@ paths:
           $ref: '#/components/responses/NotFound'
         '500':
           $ref: '#/components/responses/InternalError'
+  "/api/v1/members/{user_id}/employee":
+    parameters:
+      - name: user_id
+        in: path
+        required: true
+        schema:
+          type: string
+    put:
+      operationId: put_api_v1_members_user_id_employee
+      tags: [runtime]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LinkMemberEmployeeRequest'
+      responses:
+        '204':
+          description: Successful response without body
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    delete:
+      operationId: delete_api_v1_members_user_id_employee
+      tags: [runtime]
+      responses:
+        '204':
+          description: Successful response without body
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
   "/api/v1/members/{user_id}/permissions":
     parameters:
       - name: user_id
@@ -10801,6 +10848,12 @@ components:
         - employee_id
         - id
         - status
+    LinkMemberEmployeeRequest:
+      properties:
+        employee_id:
+          type: string
+      required:
+        - employee_id
     AddMemberRequest:
       properties:
         email:
@@ -15844,6 +15897,9 @@ components:
         avatar_url:
           type: string
           nullable: true
+        employee_id:
+          type: string
+          nullable: true
         email:
           type: string
         full_name:
@@ -15860,6 +15916,9 @@ components:
     MemberDetailResponse:
       properties:
         avatar_url:
+          type: string
+          nullable: true
+        employee_id:
           type: string
           nullable: true
         email:
