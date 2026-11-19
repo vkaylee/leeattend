@@ -112,7 +112,7 @@
 
 ## Phase 3 — Remaining authenticated-user consumers
 
-- [ ] **U3.1** Migrate only authenticated user/actor parameters in authorization and handlers.
+- [x] **U3.1** Migrate bounded authenticated actor path for attendance adjustments; full Authorizer caller migration remains pending.
 - [ ] **U3.2** Leave DTOs, path IDs, unrelated IDs, map keys, SQL locals, and infrastructure storage fields unchanged unless boundary analysis proves otherwise.
 - [ ] **U3.3** Classify remaining raw user UUID uses and remove accidental semantic mixing.
 
