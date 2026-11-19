@@ -165,5 +165,5 @@ else
   }
 fi
 exec "${PLAYWRIGHT_COMPOSE[@]}" \
-  "${RUN_ARGS[@]}" playwright-mcp \
+  "${RUN_ARGS[@]}" --quiet playwright-mcp \
   "${MCP_COMMAND[@]}"
