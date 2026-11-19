@@ -54,6 +54,7 @@ WHERE rp.role_id = r.id
           'rosters:read',
           'shift_swaps:read'
       ))
+      OR (r.name IN ('shift_manager', 'team_lead', 'employee') AND rp.permission_name = 'employees:read')
       OR (r.name = 'employee' AND rp.permission_name = 'attendance:adjustments:submit')
   );
 
