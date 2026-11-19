@@ -3,6 +3,7 @@ package auth
 import (
 	"github.com/google/uuid"
 	"github.com/vkaylee/leeattend/apiserver/internal/apperror"
+	"github.com/vkaylee/leeattend/apiserver/internal/domain/ids"
 )
 
 // Permission represents a granular action permission in the system.
@@ -21,6 +22,7 @@ const (
 	PermissionMembersRolesAssign       Permission = "members:roles:assign"
 	PermissionMembersPermissionsManage Permission = "members:permissions:manage"
 	PermissionMembersRemove            Permission = "members:remove"
+	PermissionMembersEmployeeLink       Permission = "members:employee:link"
 	PermissionRolesManage              Permission = "roles:manage"
 
 	// Employees
@@ -193,6 +195,7 @@ var allCanonicalPermissions = []Permission{
 	PermissionMembersRolesAssign,
 	PermissionMembersPermissionsManage,
 	PermissionMembersRemove,
+	PermissionMembersEmployeeLink,
 	PermissionRolesManage,
 	PermissionEmployeesRead,
 	PermissionEmployeesCreate,
@@ -334,7 +337,7 @@ type OrganizationContext = MemberContext
 // MemberContext models an authenticated caller's organization membership.
 // ponytail: permissions stored as map[Permission]bool for O(1) checks. Upgrade to bitset if memory critical for high-concurrency pools.
 type MemberContext struct {
-	UserID               uuid.UUID
+	UserID               ids.UserID
 	UserName             string
 	UserEmail            string
 	Roles                []uuid.UUID

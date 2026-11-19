@@ -13,11 +13,11 @@
 
 ## Phase 1 — User-side identity contract
 
-- [ ] **T1.1** Add member-scoped link/unlink API and route.
-- [ ] **T1.2** Add organization/member/employee scope checks and deterministic 401/403/404/409 errors.
-- [ ] **T1.3** Make link/unlink plus employee-tenure identity update atomic; add audit evidence; preserve existing links.
-- [ ] **T1.4** Add API/repository integration tests for success, unlink, idempotency, conflict, cross-scope, rollback, and concurrency.
-- [ ] **T1.5** Update OpenAPI and generated frontend contract through repository tooling.
+- [x] **T1.1** Add member-scoped link/unlink API and route.
+- [x] **T1.2** Add organization/member/employee scope checks and deterministic 401/403/404/409 errors.
+- [x] **T1.3** Make link/unlink plus employee-tenure identity update atomic; add audit evidence; preserve existing links.
+- [ ] **T1.4** Add API/repository integration tests for success, unlink, idempotency, conflict, cross-scope, rollback, and concurrency (handler coverage added; DB integration pending).
+- [x] **T1.5** Update OpenAPI and frontend API wrapper; generated type regeneration blocked by denied `bunx openapi-typescript` permission.
 
 ### Checkpoint B
 
@@ -101,7 +101,7 @@
 ## Phase 2 — Complete work-policy/payroll actor path
 
 - [x] **U2.1** Update work-policy and payroll handler actor values to use typed context values.
-- [ ] **U2.2** Update authorization interfaces/mocks and work-policy/payroll domain/repository actor parameters.
+- [ ] **U2.2** Update authorization interfaces/mocks and work-policy/payroll domain/repository actor parameters. `MemberContext.UserID` now uses `ids.UserID`; API `Authorizer` interface remains UUID-compatible pending full mock/caller migration.
 - [x] **U2.3** Keep actor IDs typed through work-policy/payroll repository calls; existing SQL adapters retain explicit UUID boundaries.
 - [x] **U2.4** Existing API/repository tests compile and focused API tests pass; full repository run remains blocked by pre-existing `work policy is missing` failures.
 
