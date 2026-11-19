@@ -12,12 +12,14 @@ const {
   fetchAttendanceAdjustments,
   fetchShiftSwaps,
   fetchAttendanceSummaries,
+  useAllEmployees,
 } = vi.hoisted(() => ({
   permissions: new Set<string>(),
   fetchLeaveRequests: vi.fn().mockResolvedValue({ data: [] }),
   fetchAttendanceAdjustments: vi.fn().mockResolvedValue({ data: [] }),
   fetchShiftSwaps: vi.fn().mockResolvedValue([]),
   fetchAttendanceSummaries: vi.fn().mockResolvedValue([]),
+  useAllEmployees: vi.fn(() => ({ employees: [] })),
 }));
 
 vi.mock("react-i18next", () => ({
@@ -28,6 +30,7 @@ vi.mock("@/hooks/use-permissions", () => ({
   useMyPermissions: () => ({
     hasAnyPermission: (...required: string[]) =>
       required.some((permission) => permissions.has(permission)),
+    hasPermission: (permission: string) => permissions.has(permission),
   }),
 }));
 
@@ -36,7 +39,7 @@ vi.mock("@/hooks/use-departments", () => ({
 }));
 
 vi.mock("@/hooks/use-employees", () => ({
-  useAllEmployees: () => ({ employees: [] }),
+  useAllEmployees: (...args: Parameters<typeof useAllEmployees>) => useAllEmployees(...args),
 }));
 
 vi.mock("@/lib/api", () => ({
@@ -70,6 +73,16 @@ describe("useUnifiedInbox", () => {
   beforeEach(() => {
     permissions.clear();
     vi.clearAllMocks();
+  });
+
+  it("does not fetch the employee roster without employee read permission", async () => {
+    renderHook(() => useUnifiedInbox(), { wrapper: createWrapper() });
+
+    await waitFor(() => {
+      expect(fetchLeaveRequests).not.toHaveBeenCalled();
+    });
+
+    expect(useAllEmployees).toHaveBeenCalledWith({ enabled: false });
   });
 
   it("does not fetch approval sources outside current permissions", async () => {

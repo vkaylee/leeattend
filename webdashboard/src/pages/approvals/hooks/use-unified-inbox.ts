@@ -143,7 +143,7 @@ function useSelection(items: UnifiedApprovalItem[]) {
 
 export function useUnifiedInbox(): UseUnifiedInboxReturn {
   const { t } = useTranslation();
-  const { hasAnyPermission } = useMyPermissions();
+  const { hasAnyPermission, hasPermission } = useMyPermissions();
   const permissions = useMemo<ApprovalPermissions>(() => ({
     canReadLeaves: hasAnyPermission(
       "leave:requests:read",
@@ -160,7 +160,8 @@ export function useUnifiedInbox(): UseUnifiedInboxReturn {
     setFilterState((previous) => ({ ...previous, ...patch }));
   }, []);
 
-  const { employees } = useAllEmployees();
+  const canReadEmployees = hasPermission("employees:read");
+  const { employees } = useAllEmployees({ enabled: canReadEmployees });
   const employeeMap = useMemo(() => createEmployeeMap(employees), [employees]);
   const now = useMemo(() => new Date(), []);
   const startDate = format(startOfMonth(now), "yyyy-MM-dd");
