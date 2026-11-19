@@ -247,9 +247,18 @@
   outline-offset: 2px !important;
 }
 
-/* SearchInput and command palette wrappers provide visible focus rings. */
+/* Composite search controls own focus styling on their wrapper. */
 [data-no-focus-outline]:focus-visible {
   outline: 2px solid var(--primary-500) !important;
+  outline-offset: 2px !important;
+}
+
+.command-palette-input:focus-visible {
+  outline: none !important;
+}
+
+.command-palette-modal:focus-visible {
+  outline: 2px solid hsl(var(--primary) / 0.3) !important;
   outline-offset: 2px !important;
 }
 

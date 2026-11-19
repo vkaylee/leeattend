@@ -143,10 +143,10 @@ function FeatureGroup({ heading, items, onSelect, t, variant }: FeatureGroupProp
 
 function SearchBar({ search, setSearch, t }: SearchBarProps) {
   return (
-    <div className="flex items-center border-b border-border bg-slate-50/50 dark:bg-slate-900/40 px-4 py-3 gap-3">
+    <div className="flex items-center gap-3 border-b border-border bg-slate-50/50 px-4 py-3 transition-colors focus-within:bg-background dark:bg-slate-900/40">
       <Search className="h-4 w-4 shrink-0 text-slate-400 dark:text-slate-500" />
       <Command.Input
-        className="flex-1 bg-transparent text-sm font-medium text-foreground placeholder:text-muted-foreground border-none outline-none focus:outline-none focus:ring-0 focus-visible:outline-none shadow-none"
+        className="command-palette-input flex-1 bg-transparent text-sm font-medium text-foreground placeholder:text-muted-foreground border-none outline-none focus:outline-none focus:ring-0 focus-visible:!outline-none shadow-none"
         data-testid="command-palette-input"
         onValueChange={setSearch}
         placeholder={t(
@@ -295,7 +295,7 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
         />
         <Dialog.Content
           aria-label={t("common.search", "Command Palette")}
-          className="fixed top-[15%] left-1/2 z-50 w-full max-w-xl -translate-x-1/2 overflow-hidden rounded-xl border border-border bg-card p-0 shadow-2xl animate-in zoom-in-95 duration-150 outline-none"
+          className="command-palette-modal fixed top-[15%] left-1/2 z-50 w-full max-w-xl -translate-x-1/2 overflow-hidden rounded-xl border border-border bg-card p-0 shadow-2xl animate-in zoom-in-95 duration-150 outline-none"
           data-testid="command-palette-modal"
         >
           <Dialog.Title className="sr-only">
