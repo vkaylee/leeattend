@@ -2515,14 +2515,13 @@ ORDER BY start_date ASC, id ASC`, employeeID, endStr)
 	if err != nil {
 		return api.FullPayslipResponse{}, err
 	}
-	if len(policyAssignments) == 0 {
-		return api.FullPayslipResponse{}, api.ErrPayrollPolicyMissing
-	}
 	if overridePolicyVersionID != nil {
 		policyAssignments, err = loadDraftWorkPolicyAssignment(ctx, db, employmentID, *overridePolicyVersionID, startDate, endDate.AddDate(0, 0, 1))
 		if err != nil {
 			return api.FullPayslipResponse{}, err
 		}
+	} else if len(policyAssignments) == 0 {
+		return api.FullPayslipResponse{}, api.ErrPayrollPolicyMissing
 	}
 	overtimeAssignments := make([]overtimeMultiplierAssignment, 0)
 	if len(policyAssignments) > 0 {
