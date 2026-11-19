@@ -9,6 +9,10 @@ import { employeeKeys } from "@/lib/query-keys";
 import { EmployeeSearch } from "../employee-search";
 
 // Mock the query hooks from react-query
+vi.mock("@/hooks/use-permissions", () => ({
+  useMyPermissions: () => ({ hasPermission: () => true }),
+}));
+
 vi.mock("@tanstack/react-query", async () => {
   const actual = await vi.importActual("@tanstack/react-query");
   return {

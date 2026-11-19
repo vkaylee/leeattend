@@ -12,6 +12,7 @@ export interface UseEmployeeSearchOptions {
   emptyQueryBehavior?: 'prompt-to-type' | 'all';
   permission?: string;
   selectedIds: string[];
+  enabled?: boolean;
 }
 
 export function useEmployeeSearch({
@@ -20,6 +21,7 @@ export function useEmployeeSearch({
   emptyQueryBehavior = 'all',
   permission,
   departmentIds,
+  enabled = true,
 }: UseEmployeeSearchOptions) {
   const isQueryEmpty = debouncedSearchTerm.trim() === '';
   const isEnabled = emptyQueryBehavior === 'all' || !isQueryEmpty;
@@ -53,7 +55,7 @@ export function useEmployeeSearch({
       return allPages.length + 1;
     },
     initialPageParam: 1,
-    enabled: isEnabled,
+    enabled: isEnabled && enabled,
   });
 
   const employees = useMemo(() => {

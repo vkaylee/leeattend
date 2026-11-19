@@ -25,6 +25,10 @@ vi.mock("@tanstack/react-router", async () => {
 });
 
 // Mock the API library
+vi.mock("@/hooks/use-permissions", () => ({
+  useMyPermissions: () => ({ hasPermission: () => true }),
+}));
+
 vi.mock("../../lib/api", () => ({
   fetchEmployees: vi.fn(),
   searchEmployees: vi.fn(),

@@ -8,6 +8,8 @@ import Button from "@/components/ui/button";
 import { FilterPanel } from "@/components/ui/filter-panel";
 import { FilterTrigger } from "@/components/ui/filter-trigger";
 
+import { useMyPermissions } from '@/hooks/use-permissions';
+
 import { useDebounce } from '../../hooks/use-debounce';
 import { useEmployeeSearch } from '../../hooks/use-employee-search';
 import { useEmployeeSelection } from '../../hooks/use-employee-selection';
@@ -166,6 +168,7 @@ export function EmployeeSearch({
   size = "md",
 }: EmployeeSearchProps) {
   const { t } = useTranslation();
+  const { hasPermission } = useMyPermissions();
   const [searchTerm, setSearchTerm] = useState('');
   const debouncedSearchTerm = useDebounce(searchTerm, 300);
   const selectedIds = useNormalizedIds(value);
@@ -190,6 +193,7 @@ export function EmployeeSearch({
     emptyQueryBehavior,
     permission,
     departmentIds: effectiveDeptIds,
+    enabled: hasPermission("employees:read"),
   });
 
   const { selectedValue, handleSelect } = useEmployeeSelection({

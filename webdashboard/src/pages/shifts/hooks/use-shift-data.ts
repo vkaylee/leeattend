@@ -4,6 +4,7 @@ import { useMemo } from "react";
 import { format } from "date-fns";
 
 import { useDepartments } from "@/hooks/use-departments";
+import { useMyPermissions } from "@/hooks/use-permissions";
 import { useAllEmployees } from "@/hooks/use-employees";
 import {
   fetchAssignmentHistory,
@@ -44,6 +45,8 @@ export function useShiftData({
   selectedEmployeeIds,
   coverageFilter = "all",
 }: UseShiftDataProps) {
+  const { hasPermission } = useMyPermissions();
+  const canReadEmployees = hasPermission("employees:read");
   const { data: shifts } = useQuery<Shift[]>({
     queryKey: createQueryKey("shifts"),
     queryFn: () => fetchShifts(),
@@ -75,7 +78,7 @@ export function useShiftData({
     isError: isEmployeesError,
     error: employeesError,
     refetch: refetchEmployees,
-  } = useAllEmployees({ enabled: viewMode === "month" });
+  } = useAllEmployees({ enabled: viewMode === "month" && canReadEmployees });
 
   const selectedEmploymentIds = useMemo(() => {
     // employees may be undefined before query resolves; selectedEmployeeIds can be empty
