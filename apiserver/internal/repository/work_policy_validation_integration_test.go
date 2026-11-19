@@ -55,6 +55,21 @@ func TestIntegrationValidateWorkPolicyGroupVersionChecksLiveReferences(t *testin
 	}
 
 	repo := WorkPolicyRepository{DB: tx}
+	detail, err := repo.GetWorkPolicyGroupVersion(ctx, workpolicy.GroupID(groupID), workpolicy.VersionID(versionID))
+	if err != nil {
+		t.Fatalf("load persisted policy detail: %v", err)
+	}
+	if detail.ID != versionID || detail.GroupID != groupID || detail.EffectiveFrom != "2026-01-01" {
+		t.Fatalf("unexpected persisted policy detail: %+v", detail)
+	}
+	history, err := repo.ListWorkPolicyGroupHistory(ctx, workpolicy.GroupID(groupID), 1, 20)
+	if err != nil {
+		t.Fatalf("load policy history: %v", err)
+	}
+	if history.Total != 1 || len(history.Data) != 1 || history.Data[0].ID != versionID {
+		t.Fatalf("unexpected policy history: %+v", history)
+	}
+
 	valid, err := repo.ValidateWorkPolicyGroupVersion(ctx, workpolicy.GroupID(groupID), workpolicy.VersionID(versionID))
 	if err != nil {
 		t.Fatalf("validate active references: %v", err)
@@ -136,5 +151,20 @@ func TestIntegrationCreateWorkPolicyGroupVersionRollsBackDefinitionsOnVersionCon
 	}
 	if count != 0 {
 		t.Fatalf("rolled-back pay policy count = %d, want 0", count)
+	}
+
+	// Rollback leaves no partial definitions, so retry with a non-overlapping date can proceed.
+	_, err = repo.CreateWorkPolicyGroupVersion(ctx, workpolicy.CreateGroupVersionInput{
+		GroupID:            workpolicy.GroupID(groupID),
+		Name:               "rollback-group",
+		MinutesPerCredit:   450,
+		AttendancePolicyID: ids.AttendancePolicyID(attendanceID),
+		WorkingPatternID:   ids.WorkingPatternID(patternID),
+		PayMethod:          workpolicy.PayMethodHourly,
+		OvertimePolicyID:   ids.OvertimePolicyID(overtimeID),
+		EffectiveFrom:      "2026-02-01",
+	}, ids.UserID(userID))
+	if err != nil {
+		t.Fatalf("retry after rolled-back conflict: %v", err)
 	}
 }
