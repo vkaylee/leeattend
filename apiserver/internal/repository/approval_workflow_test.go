@@ -10,6 +10,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/vkaylee/leeattend/apiserver/internal/api"
+	"github.com/vkaylee/leeattend/apiserver/internal/domain/ids"
 )
 
 type fakeRows struct {
@@ -89,7 +90,7 @@ func TestApprovalWorkflowRepository_GetPendingTasksForUser_SystemDBRoles(t *test
 		SystemDB: systemDB,
 	}
 
-	res, err := repo.GetPendingTasksForUser(context.Background(), userID, 1, 50)
+	res, err := repo.GetPendingTasksForUser(context.Background(), ids.UserID(userID), 1, 50)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -156,7 +157,7 @@ func TestApprovalWorkflowRepository_ProcessApproval_PreservesLockAndState(t *tes
 		},
 	}
 
-	err := repo.ProcessApproval(context.Background(), actorID, api.ProcessApprovalRequest{
+	err := repo.ProcessApproval(context.Background(), ids.UserID(actorID), api.ProcessApprovalRequest{
 		EntityType: "leave_request",
 		EntityID:   entityID,
 		Action:     "approve",

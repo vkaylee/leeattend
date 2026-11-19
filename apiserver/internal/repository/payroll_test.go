@@ -200,6 +200,9 @@ func TestPayrollRepository_CalculateEmployeePayroll_UsesEmploymentDepartmentHist
 		if strings.Contains(sql, "FROM employee_salary_components") {
 			return &fakeRows{}, nil
 		}
+		if strings.Contains(sql, "FROM labor_policy_memberships") {
+			return &payrollPolicyRows{}, nil
+		}
 		if strings.Contains(sql, "FROM employments\nWHERE employee_id") {
 			querySeen = true
 			if strings.Contains(sql, "employee_department_history") || !strings.Contains(sql, "deleted_at IS NULL") {
@@ -359,11 +362,77 @@ func payrollCalculationFixture(employeeID, employmentID, employerID uuid.UUID, p
 			return fakeRow{}
 		}
 	}
-	tx.queryFn = func(_ context.Context, _ string, _ ...any) (pgx.Rows, error) {
+	tx.queryFn = func(_ context.Context, sql string, _ ...any) (pgx.Rows, error) {
+		if strings.Contains(sql, "FROM labor_policy_memberships") {
+			return &payrollPolicyRows{}, nil
+		}
 		return &fakeRows{}, nil
 	}
 	return tx
 }
+
+type payrollPolicyRows struct {
+	read bool
+}
+
+func (r *payrollPolicyRows) Close()                                       {}
+func (r *payrollPolicyRows) Err() error                                   { return nil }
+func (r *payrollPolicyRows) CommandTag() pgconn.CommandTag                { return pgconn.CommandTag{} }
+func (r *payrollPolicyRows) FieldDescriptions() []pgconn.FieldDescription { return nil }
+func (r *payrollPolicyRows) Next() bool {
+	if r.read {
+		return false
+	}
+	r.read = true
+	return true
+}
+func (r *payrollPolicyRows) Scan(dest ...any) error {
+	if len(dest) != 26 {
+		return errors.New("payroll policy row: unexpected column count")
+	}
+	groupID := uuid.New()
+	creditID := uuid.New()
+	attendanceID := uuid.New()
+	workingPatternID := uuid.New()
+	payBasisID := uuid.New()
+	overtimeID := uuid.Nil
+	method := "monthly"
+	denominator := "fixed"
+	days := "26"
+	policyFrom := "2026-01-01"
+	membershipFrom := "2026-01-01"
+	otAggregation := "per_segment"
+	*(dest[0].(*uuid.UUID)) = uuid.New()
+	*(dest[1].(*uuid.UUID)) = groupID
+	*(dest[2].(*string)) = "Test policy"
+	*(dest[3].(*uuid.UUID)) = creditID
+	*(dest[4].(*string)) = "Test credit policy"
+	*(dest[5].(*int)) = 480
+	*(dest[6].(*uuid.UUID)) = attendanceID
+	*(dest[7].(*uuid.UUID)) = workingPatternID
+	*(dest[8].(*uuid.UUID)) = payBasisID
+	*(dest[9].(*string)) = "Monthly"
+	*(dest[10].(**string)) = &method
+	*(dest[11].(**string)) = &denominator
+	*(dest[12].(**string)) = &days
+	*(dest[13].(**uuid.UUID)) = nil
+	*(dest[14].(*uuid.UUID)) = overtimeID
+	*(dest[15].(*string)) = policyFrom
+	*(dest[16].(**string)) = nil
+	*(dest[17].(*int)) = 0
+	*(dest[18].(*bool)) = false
+	*(dest[19].(*int)) = 0
+	*(dest[20].(**int)) = nil
+	*(dest[21].(*bool)) = false
+	*(dest[22].(*bool)) = false
+	*(dest[23].(*string)) = otAggregation
+	*(dest[24].(*string)) = membershipFrom
+	*(dest[25].(**string)) = nil
+	return nil
+}
+func (r *payrollPolicyRows) Values() ([]any, error) { return nil, nil }
+func (r *payrollPolicyRows) RawValues() [][]byte    { return nil }
+func (r *payrollPolicyRows) Conn() *pgx.Conn        { return nil }
 
 func TestPayrollRepository_ListPayslips_ScopeFree(t *testing.T) {
 	queryExecuted := false

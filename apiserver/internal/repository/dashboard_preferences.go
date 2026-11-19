@@ -85,5 +85,5 @@ func (r DashboardPreferencesRepository) UpdateDashboardPreferences(ctx context.C
 			return api.DashboardPreferences{}, err
 		}
 	}
-	return r.GetDashboardPreferences(ctx, userID.UUID())
+	return r.GetDashboardPreferences(ctx, userID)
 }
