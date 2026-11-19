@@ -27,19 +27,32 @@ NC='\033[0m'
 leeattend_bootstrap_env() {
     # Set essential variables
     export CONTAINER_ENGINE="${CONTAINER_ENGINE:-podman}"
-    local _COMPOSE_ENGINE="${DOCKER_COMPOSE_CMD:-podman-compose}"
+    local _COMPOSE_ENGINE="${DOCKER_COMPOSE_CMD:-}"
+    if [[ -z "$_COMPOSE_ENGINE" ]]; then
+        if command -v podman-compose &>/dev/null; then
+            _COMPOSE_ENGINE="podman-compose"
+        elif command -v docker-compose &>/dev/null; then
+            _COMPOSE_ENGINE="docker-compose"
+        elif command -v docker &>/dev/null; then
+            _COMPOSE_ENGINE="docker compose"
+        else
+            echo "No supported Compose engine found." >&2
+            return 1
+        fi
+    fi
     export COMPOSE_PROJECT_NAME="${COMPOSE_PROJECT_NAME:-leeattend-test}"
     export PODMAN_COMPOSE_PROJECT_NAME="$COMPOSE_PROJECT_NAME"
+    export PROJECT_ROOT
     export DOCKER_COMPOSE_CMD="$_COMPOSE_ENGINE -p $COMPOSE_PROJECT_NAME -f $PROJECT_ROOT/.compose/docker-compose.test.yml"
     export USE_DOCKER=true
 
     # Profile Injection: Ensure podman-compose sees services in profiles
     if [[ -z "${PROFILES:-}" ]]; then
         case "${MODE:-all}" in
-            api) export DOCKER_COMPOSE_CMD="$DOCKER_COMPOSE_CMD --profile lint-api --profile unit-api --profile infra-db-init --profile infra-db" ;;
-            integration) export DOCKER_COMPOSE_CMD="$DOCKER_COMPOSE_CMD --profile lint-api --profile unit-api --profile int-api --profile infra-db --profile infra-db-init --profile infra-redis" ;;
+            api) export DOCKER_COMPOSE_CMD="$DOCKER_COMPOSE_CMD --profile lint-api --profile unit-api --profile infra-db --profile infra-redis" ;;
+            integration) export DOCKER_COMPOSE_CMD="$DOCKER_COMPOSE_CMD --profile lint-api --profile unit-api --profile int-api --profile infra-db --profile infra-redis" ;;
             web) export DOCKER_COMPOSE_CMD="$DOCKER_COMPOSE_CMD --profile lint-web --profile unit-web --profile e2e-web" ;;
-            all) export DOCKER_COMPOSE_CMD="$DOCKER_COMPOSE_CMD --profile lint-api --profile unit-api --profile int-api --profile lint-web --profile unit-web --profile e2e-web --profile infra-db --profile infra-db-init --profile infra-redis" ;;
+            all) export DOCKER_COMPOSE_CMD="$DOCKER_COMPOSE_CMD --profile lint-api --profile unit-api --profile int-api --profile lint-web --profile unit-web --profile e2e-web --profile infra-db --profile infra-redis" ;;
         esac
     else
         export DOCKER_COMPOSE_CMD="$DOCKER_COMPOSE_CMD $PROFILES"

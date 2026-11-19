@@ -19,11 +19,18 @@ PROJECT_ROOT="$(cd "$_TOOLBOX_DIR/.." && pwd)"
 export PROJECT_ROOT
 
 if [[ -z "${TOOLBOX_COMPOSE_CMD:-}" ]]; then
-    _ENGINE="podman-compose"
-    command -v podman-compose &>/dev/null || _ENGINE="docker-compose"
-    # --profile flags ensure toolbox scripts can always access their target
-    # containers. The test compose file is self-contained (no base merge).
-    export TOOLBOX_COMPOSE_CMD="$_ENGINE -p leeattend-test --profile backend --profile frontend -f $PROJECT_ROOT/.compose/docker-compose.test.yml"
+    if command -v podman-compose &>/dev/null; then
+        _ENGINE="podman-compose"
+    elif command -v docker-compose &>/dev/null; then
+        _ENGINE="docker-compose"
+    elif command -v docker &>/dev/null; then
+        _ENGINE="docker compose"
+    else
+        echo "No supported Compose engine found." >&2
+        return 1
+    fi
+    # The test Compose file is self-contained; enable both infrastructure and application profiles.
+    export TOOLBOX_COMPOSE_CMD="$_ENGINE -p leeattend-test --profile infra-db --profile infra-redis --profile api --profile frontend -f $PROJECT_ROOT/.compose/docker-compose.test.yml"
 fi
 
 unset _TOOLBOX_DIR _ENGINE

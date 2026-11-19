@@ -9,8 +9,10 @@ import (
 	"log/slog"
 	"net"
 	"net/http"
+	"net/url"
 	"os"
 	"strconv"
+	"time"
 
 	"github.com/vkaylee/leeattend/apiserver/internal/api"
 	"github.com/vkaylee/leeattend/apiserver/internal/app"
@@ -27,7 +29,35 @@ import (
 // Version is the current apiserver Go component version.
 const Version = "0.1.0"
 
+func runHealthcheck(rawURL string) error {
+	target, err := url.Parse(rawURL)
+	if err != nil {
+		return err
+	}
+	if target.Scheme != "http" && target.Scheme != "https" {
+		return fmt.Errorf("unsupported healthcheck scheme %q", target.Scheme)
+	}
+	client := http.Client{Timeout: 3 * time.Second}
+	response, err := client.Get(target.String())
+	if err != nil {
+		return err
+	}
+	defer response.Body.Close()
+	if response.StatusCode < http.StatusOK || response.StatusCode >= http.StatusMultipleChoices {
+		return fmt.Errorf("unexpected status %s", response.Status)
+	}
+	return nil
+}
+
 func main() {
+	if len(os.Args) == 3 && os.Args[1] == "--healthcheck" {
+		if err := runHealthcheck(os.Args[2]); err != nil {
+			fmt.Fprintf(os.Stderr, "healthcheck failed: %v\n", err)
+			os.Exit(1)
+		}
+		return
+	}
+
 	cfg, err := config.Load()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "CONFIGURATION FAILED: %v\n", err)

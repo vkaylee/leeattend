@@ -18,6 +18,15 @@ services:
     image: public.ecr.aws/docker/library/postgres:18-alpine
     profiles:
       - infra-db
+      - backend
+      - api
+      - int-api
+      - lint-api
+      - unit-api
+      - lint-go
+      - unit-go
+      - int-go
+      - go
     networks:
       - test_net
     command: postgres -c fsync=off -c synchronous_commit=off -c full_page_writes=off -c max_connections=1000
@@ -39,6 +48,15 @@ services:
     image: ${PGBOUNCER_IMAGE:-edoburu/pgbouncer:v1.26.1-p0}
     profiles:
       - infra-db
+      - backend
+      - api
+      - int-api
+      - lint-api
+      - unit-api
+      - lint-go
+      - unit-go
+      - int-go
+      - go
     networks:
       - test_net
     environment:
@@ -53,8 +71,6 @@ services:
       MAX_CLIENT_CONN: "200"
       DEFAULT_POOL_SIZE: "25"
       MAX_PREPARED_STATEMENTS: "250"
-    ports:
-      - "127.0.0.1:${PGBOUNCER_TEST_HOST_PORT:-6433}:6432"
     depends_on:
       db:
         condition: service_healthy
@@ -69,6 +85,15 @@ services:
     image: public.ecr.aws/docker/library/redis:7-alpine
     profiles:
       - infra-redis
+      - backend
+      - api
+      - int-api
+      - lint-api
+      - unit-api
+      - lint-go
+      - unit-go
+      - int-go
+      - go
     networks:
       - test_net
     command: []
@@ -86,6 +111,8 @@ services:
 
   apiserver:
     profiles:
+      - backend
+
       - api
       - int-api
       - lint-api
@@ -100,6 +127,11 @@ services:
       dockerfile: .compose/go/Dockerfile
     networks:
       - test_net
+    depends_on:
+      pgbouncer:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     working_dir: /workspace/apiserver
     entrypoint: ["sleep", "infinity"]
     healthcheck:
@@ -113,6 +145,7 @@ services:
       - DB_POOLER_TX_URL=postgres://test_user:test_password@pgbouncer:6432/test_database?sslmode=disable
       - DB_POOLER_SESS_URL=postgres://test_user:test_password@pgbouncer:6432/test_database?sslmode=disable
       - DB_READER_URL=postgres://test_user:test_password@pgbouncer:6432/test_database?sslmode=disable
+      - REDIS_URL=redis://redis:6379
       - PGBOUNCER_HOST=pgbouncer
       - PGBOUNCER_PORT=6432
       - ORGANIZATION_NAME=Test Organization
@@ -122,12 +155,14 @@ services:
       - LICENSE_PUBLIC_KEY=AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
       - JWT_SECRET=test-jwt-secret-at-least-32-characters-long
     volumes:
-      - ${PROJECT_ROOT}:/workspace
+      - ${PROJECT_ROOT:-..}:/workspace
       - go-module-cache:/go/pkg/mod
       - go-build-cache:/root/.cache/go-build
 
   go:
     profiles:
+      - backend
+
       - go
       - unit-go
       - lint-go
@@ -138,6 +173,11 @@ services:
       dockerfile: .compose/go/Dockerfile
     networks:
       - test_net
+    depends_on:
+      pgbouncer:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     working_dir: /workspace/apiserver
     entrypoint: ["sleep", "infinity"]
     healthcheck:
@@ -151,6 +191,7 @@ services:
       - DB_POOLER_TX_URL=postgres://test_user:test_password@pgbouncer:6432/test_database?sslmode=disable
       - DB_POOLER_SESS_URL=postgres://test_user:test_password@pgbouncer:6432/test_database?sslmode=disable
       - DB_READER_URL=postgres://test_user:test_password@pgbouncer:6432/test_database?sslmode=disable
+      - REDIS_URL=redis://redis:6379
       - PGBOUNCER_HOST=pgbouncer
       - PGBOUNCER_PORT=6432
       - ORGANIZATION_NAME=Test Organization
@@ -160,7 +201,7 @@ services:
       - LICENSE_PUBLIC_KEY=AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
       - JWT_SECRET=test-jwt-secret-at-least-32-characters-long
     volumes:
-      - ${PROJECT_ROOT}:/workspace
+      - ${PROJECT_ROOT:-..}:/workspace
       - go-module-cache:/go/pkg/mod
       - go-build-cache:/root/.cache/go-build
 
@@ -198,8 +239,8 @@ services:
       timeout: 5s
       retries: 30
     volumes:
-      - ${PROJECT_ROOT}:/workspace
-      - ${PROJECT_ROOT}/webdashboard/node_modules:/workspace/webdashboard/node_modules
+      - ${PROJECT_ROOT:-..}:/workspace
+      - ${PROJECT_ROOT:-..}/webdashboard/node_modules:/workspace/webdashboard/node_modules
       - bun-cache:/workspace/.bun-cache
 
   webdashboard:
@@ -238,12 +279,12 @@ services:
       - 8.8.8.8
       - 1.1.1.1
     volumes:
-      - ${PROJECT_ROOT}:/workspace
-      - ${PROJECT_ROOT}/webdashboard/node_modules:/workspace/webdashboard/node_modules
+      - ${PROJECT_ROOT:-..}:/workspace
+      - ${PROJECT_ROOT:-..}/webdashboard/node_modules:/workspace/webdashboard/node_modules
       - shared-data:/workspace/shared
       - bun-cache:/workspace/.bun-cache
-      - ${PROJECT_ROOT}/webdashboard/test-results:/workspace/webdashboard/test-results
-      - ${PROJECT_ROOT}/webdashboard/playwright-report:/workspace/webdashboard/playwright-report
+      - ${PROJECT_ROOT:-..}/webdashboard/test-results:/workspace/webdashboard/test-results
+      - ${PROJECT_ROOT:-..}/webdashboard/playwright-report:/workspace/webdashboard/playwright-report
 
 volumes:
   shared-data:

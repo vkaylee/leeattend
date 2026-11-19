@@ -126,9 +126,10 @@ echo "ALL GATES PASSED"
 GATES_EOF
 
 if [ "$INTEGRATION" = "true" ]; then
-    PROFILE_COMPOSE=("${ENGINE[@]}" -p "$PROJECT_NAME" -f "$COMPOSE_FILE" --profile int-go --profile infra-db --profile infra-pooler --profile infra-redis)
+    PROFILE_COMPOSE=("${ENGINE[@]}" -p "$PROJECT_NAME" -f "$COMPOSE_FILE" --profile int-go --profile infra-db --profile infra-redis)
     "${PROFILE_COMPOSE[@]}" up -d db pgbouncer redis "$SERVICE" >/dev/null
     "${PROFILE_COMPOSE[@]}" exec -T db sh -c 'until pg_isready -U test_user -d test_database; do sleep 1; done' </dev/null
+    "${PROFILE_COMPOSE[@]}" exec -T pgbouncer sh -c 'until pg_isready -h 127.0.0.1 -p 6432 -U test_user -d test_database; do sleep 1; done' </dev/null
     "${PROFILE_COMPOSE[@]}" exec -T redis sh -c 'until redis-cli ping >/dev/null; do sleep 1; done' </dev/null
     "${PROFILE_COMPOSE[@]}" exec -T db psql -v ON_ERROR_STOP=1 -U test_user -d postgres -c 'DROP DATABASE IF EXISTS test_database WITH (FORCE);' </dev/null
     "${PROFILE_COMPOSE[@]}" exec -T db psql -v ON_ERROR_STOP=1 -U test_user -d postgres -c 'CREATE DATABASE test_database;' </dev/null

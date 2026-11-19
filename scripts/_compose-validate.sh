@@ -14,15 +14,17 @@ else
 fi
 
 cd "$ROOT"
-if [[ -n "${POSTGRES_IMAGE:-}" && -n "${PGBOUNCER_IMAGE:-}" \
-  && -n "${POSTGRES_TLS_DIR:-}" && -n "${PGBOUNCER_TLS_DIR:-}" \
-  && -n "${LICENSE_FILE:-}" ]]; then
-  "${COMPOSE[@]}" -f docker-compose.yml config >/dev/null
-else
-  printf '%s\n' 'Production Compose validation skipped: standalone deployment variables are not configured.' >&2
+VALIDATION_ENV_FILE="${COMPOSE_VALIDATION_ENV_FILE:-.env.standalone.example}"
+if [[ ! -f "$VALIDATION_ENV_FILE" ]]; then
+  printf 'Production Compose validation env file missing: %s\n' "$VALIDATION_ENV_FILE" >&2
+  exit 1
 fi
+"${COMPOSE[@]}" --env-file "$VALIDATION_ENV_FILE" -f docker-compose.yml config >/dev/null
 "${COMPOSE[@]}" -f .compose/docker-compose.dev.yml config >/dev/null
 PROJECT_ROOT="$ROOT" "${COMPOSE[@]}" \
   --profile infra-db --profile infra-redis --profile int-go --profile web \
   -f .compose/docker-compose.test.yml config >/dev/null
-printf '%s\n' 'Compose configuration valid: production, development, test'
+PROJECT_ROOT="$ROOT" "${COMPOSE[@]}" \
+  --profile infra-db --profile infra-redis --profile int-go --profile web \
+  -f .compose/docker-compose.test.yml -f .compose/docker-compose.ci.yml config >/dev/null
+printf '%s\n' 'Compose configuration valid: production, development, test, CI'

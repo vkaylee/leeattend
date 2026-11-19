@@ -105,8 +105,8 @@ services:
       CLOUDBEAVER_APP_GRANT_CONNECTIONS_ACCESS_TO_ANONYMOUS_TEAM: "true"
     volumes:
       - cloudbeaver_dev_data:/opt/cloudbeaver/workspace
-      - ./.compose/cloudbeaver-entrypoint.sh:/opt/cloudbeaver/cloudbeaver-entrypoint.sh:ro
-      - ./.compose/cloudbeaver-initial-data-sources.conf:/opt/cloudbeaver/conf/initial-data-sources.conf.tpl:ro
+      - ../.compose/cloudbeaver-entrypoint.sh:/opt/cloudbeaver/cloudbeaver-entrypoint.sh:ro
+      - ../.compose/cloudbeaver-initial-data-sources.conf:/opt/cloudbeaver/conf/initial-data-sources.conf.tpl:ro
     entrypoint: /opt/cloudbeaver/cloudbeaver-entrypoint.sh
     depends_on:
       pgbouncer:
@@ -120,7 +120,7 @@ services:
       POSTGRES_USER: ${DB_USER:-postgres}
       PGPASSWORD: ${DB_PASSWORD:-postgres}
     volumes:
-      - .:/workspace:ro
+      - ..:/workspace:ro
     networks: [backend]
     depends_on:
       pgbouncer:
@@ -158,7 +158,7 @@ services:
     read_only: false
     # Keep dependency cache persistent; do not move build/temp paths to disk.
     volumes:
-      - .:/app
+      - ..:/app
       - go-module-cache:/go/pkg/mod
     # Go compiles and runs from these paths. RAM avoids disk writes; exec is
     # required because Kiri mounts tmpfs as noexec unless explicitly overridden.
@@ -183,7 +183,7 @@ services:
 
   webdashboard:
     build:
-      context: ./webdashboard
+      context: ../webdashboard
       dockerfile: Dockerfile
       target: dev
     command: >-
@@ -194,9 +194,9 @@ services:
       CHOKIDAR_USEPOLLING: "true"
     networks: [frontend]
     volumes:
-      - ./webdashboard:/app
+      - ../webdashboard:/app
       - webdashboard-node-modules:/app/node_modules
-      - ./logs:/var/log/app
+      - ../logs:/var/log/app
 
   caddy:
     image: public.ecr.aws/docker/library/caddy:alpine
@@ -211,14 +211,14 @@ services:
     ports:
       - "${DEV_PORT:-8080}:80"
     volumes:
-      - ./Caddyfile-dev:/etc/caddy/Caddyfile:ro
+      - ../Caddyfile-dev:/etc/caddy/Caddyfile:ro
   playwright-mcp:
     init: true
     image: localhost/leedevkit-dev_playwright-mcp:latest
     pull_policy: missing
     profiles: ["mcp"]
     build:
-      context: ./playwright-mcp
+      context: ../playwright-mcp
       dockerfile: Dockerfile
     command:
       - --headless

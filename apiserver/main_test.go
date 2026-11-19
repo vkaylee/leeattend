@@ -9,6 +9,20 @@ import (
 	"github.com/vkaylee/leeattend/apiserver/internal/infra/health"
 )
 
+func TestRunHealthcheck(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusNoContent)
+	}))
+	defer server.Close()
+
+	if err := runHealthcheck(server.URL); err != nil {
+		t.Fatalf("expected healthcheck to pass: %v", err)
+	}
+	if err := runHealthcheck("ftp://localhost/health"); err == nil {
+		t.Fatal("expected unsupported scheme to fail")
+	}
+}
+
 func TestHealthRoutesMounted(t *testing.T) {
 	mux := chi.NewRouter()
 	h := health.NewHandler(Version, nil, nil)
