@@ -101,6 +101,10 @@ func TestAuthMiddleware_Authorized(t *testing.T) {
 		if !ok {
 			t.Error("expected user id in context")
 		}
+		typedID, ok := UserIDValueFromContext(r.Context())
+		if !ok || typedID.UUID() != userID.UUID() {
+			t.Errorf("expected typed user id %s, got %s", userID, typedID)
+		}
 		w.WriteHeader(http.StatusOK)
 	}))
 
