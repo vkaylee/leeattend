@@ -27,6 +27,16 @@ BEGIN
         (v_dept_tech, 'Phòng Kỹ Thuật', 'Engineering & Operations')
     ON CONFLICT (id) DO NOTHING;
 
+    -- Seed role catalog before memberships; standalone bootstrap may not have run yet.
+    INSERT INTO roles (id, name, description, color, is_system, scope_type)
+    VALUES
+        ('a0000000-0000-0000-0000-000000000002', 'admin', 'Administrator with full access', 'rose', true, 'global'),
+        ('a0000000-0000-0000-0000-000000000003', 'hr_manager', 'HR Manager with employee and attendance control', 'purple', true, 'global'),
+        ('a0000000-0000-0000-0000-000000000004', 'shift_manager', 'Shift Manager for schedule planning', 'blue', true, 'global'),
+        ('a0000000-0000-0000-0000-000000000005', 'team_lead', 'Team Lead for daily attendance monitoring', 'green', true, 'scoped'),
+        ('a0000000-0000-0000-0000-000000000006', 'employee', 'Standard employee with self-service access', 'gray', true, 'scoped')
+    ON CONFLICT (name) DO UPDATE SET description = EXCLUDED.description, color = EXCLUDED.color, is_system = EXCLUDED.is_system, scope_type = EXCLUDED.scope_type;
+
     -- Upsert only documented development identities; never delete other users.
     INSERT INTO users (id, email, password_hash, full_name, created_at)
     VALUES
