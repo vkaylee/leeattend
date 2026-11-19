@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
+	"github.com/vkaylee/leeattend/apiserver/internal/domain/ids"
 	httpinfra "github.com/vkaylee/leeattend/apiserver/internal/infra/http"
 )
 
@@ -17,12 +18,12 @@ type closureTestRepository struct {
 	opened bool
 }
 
-func (r *closureTestRepository) CloseAttendancePeriod(context.Context, uuid.UUID, int, int, int64, string, uuid.UUID) (AttendanceClosureResponse, error) {
+func (r *closureTestRepository) CloseAttendancePeriod(context.Context, uuid.UUID, int, int, int64, string, ids.UserID) (AttendanceClosureResponse, error) {
 	r.closed = true
 	return AttendanceClosureResponse{PeriodID: uuid.New(), ClosureID: ptrUUID(uuid.New()), ClosureNumber: 1, Status: "closed", Version: 2, DayCount: 1, SnapshotHash: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}, nil
 }
 
-func (r *closureTestRepository) ReopenAttendancePeriod(context.Context, uuid.UUID, int, int, int64, string, uuid.UUID) (AttendanceClosureResponse, error) {
+func (r *closureTestRepository) ReopenAttendancePeriod(context.Context, uuid.UUID, int, int, int64, string, ids.UserID) (AttendanceClosureResponse, error) {
 	r.opened = true
 	return AttendanceClosureResponse{PeriodID: uuid.New(), Status: "reopened", Version: 3}, nil
 }

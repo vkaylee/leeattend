@@ -10,6 +10,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/vkaylee/leeattend/apiserver/internal/apperror"
+	"github.com/vkaylee/leeattend/apiserver/internal/domain/ids"
 	httpinfra "github.com/vkaylee/leeattend/apiserver/internal/infra/http"
 )
 
@@ -54,8 +55,8 @@ type AttendanceClosureResponse struct {
 }
 
 type AttendanceClosureRepository interface {
-	CloseAttendancePeriod(context.Context, uuid.UUID, int, int, int64, string, uuid.UUID) (AttendanceClosureResponse, error)
-	ReopenAttendancePeriod(context.Context, uuid.UUID, int, int, int64, string, uuid.UUID) (AttendanceClosureResponse, error)
+	CloseAttendancePeriod(context.Context, uuid.UUID, int, int, int64, string, ids.UserID) (AttendanceClosureResponse, error)
+	ReopenAttendancePeriod(context.Context, uuid.UUID, int, int, int64, string, ids.UserID) (AttendanceClosureResponse, error)
 }
 
 type AttendanceClosureStatusRepository interface {
@@ -70,13 +71,13 @@ func parseAttendancePeriodPath(r *http.Request) (int, int, uuid.UUID, bool) {
 }
 
 func (h *AttendanceHandler) closureAllowed(r *http.Request, permission string) bool {
-	userID, ok := httpinfra.UserIDFromContext(r.Context())
-	if !ok || h.Authorizer == nil || !h.Authorizer.HasPermission(r.Context(), userID, permission) {
+	userID, ok := httpinfra.UserIDValueFromContext(r.Context())
+	if !ok || h.Authorizer == nil || !h.Authorizer.HasPermission(r.Context(), userID.UUID(), permission) {
 		return false
 	}
 	// Existing authorizer exposes only global-manager scope for employer-wide closure.
 	// Scoped department authorization cannot prove employer coverage; deny closed-loop mutation.
-	return h.Authorizer.IsGlobalManager(r.Context(), userID)
+	return h.Authorizer.IsGlobalManager(r.Context(), userID.UUID())
 }
 
 // GetAttendancePeriodStatus returns current attendance period and payroll lock state.
@@ -127,7 +128,7 @@ func (h *AttendanceHandler) closeAttendancePeriod(w http.ResponseWriter, r *http
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyInvalidYearMonth))
 		return
 	}
-	actorID, ok := httpinfra.UserIDFromContext(r.Context())
+	actorID, ok := httpinfra.UserIDValueFromContext(r.Context())
 	if !ok || h.Repository == nil {
 		h.forbidden(w, r)
 		return
@@ -165,7 +166,7 @@ func (h *AttendanceHandler) reopenAttendancePeriod(w http.ResponseWriter, r *htt
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyInvalidYearMonth))
 		return
 	}
-	actorID, ok := httpinfra.UserIDFromContext(r.Context())
+	actorID, ok := httpinfra.UserIDValueFromContext(r.Context())
 	if !ok || h.Repository == nil {
 		h.forbidden(w, r)
 		return

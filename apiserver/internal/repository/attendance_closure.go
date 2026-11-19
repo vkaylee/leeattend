@@ -13,6 +13,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/vkaylee/leeattend/apiserver/internal/api"
+	"github.com/vkaylee/leeattend/apiserver/internal/domain/ids"
 	"github.com/vkaylee/leeattend/apiserver/internal/service"
 )
 
@@ -158,9 +159,9 @@ func validateClosureRequest(year, month int, expectedVersion int64, reason strin
 }
 
 // CloseAttendancePeriod closes or recloses one employer month with immutable evidence.
-func (r AttendanceRepository) CloseAttendancePeriod(ctx context.Context, employerID uuid.UUID, year, month int, expectedVersion int64, reason string, actorID uuid.UUID) (api.AttendanceClosureResponse, error) {
+func (r AttendanceRepository) CloseAttendancePeriod(ctx context.Context, employerID uuid.UUID, year, month int, expectedVersion int64, reason string, actorID ids.UserID) (api.AttendanceClosureResponse, error) {
 	start, end, err := validateClosureRequest(year, month, expectedVersion, reason)
-	if err != nil || employerID == uuid.Nil || actorID == uuid.Nil {
+	if err != nil || employerID == uuid.Nil || actorID.UUID() == uuid.Nil {
 		return api.AttendanceClosureResponse{}, api.ErrAttendanceClosureValidation
 	}
 	beginner, err := r.begin(ctx)
@@ -178,7 +179,7 @@ func (r AttendanceRepository) CloseAttendancePeriod(ctx context.Context, employe
 	return response, err
 }
 
-func (r AttendanceRepository) closeAttendancePeriodTx(ctx context.Context, tx pgx.Tx, employerID uuid.UUID, year, month int, start, end time.Time, expectedVersion int64, reason string, actorID uuid.UUID) (api.AttendanceClosureResponse, error) {
+func (r AttendanceRepository) closeAttendancePeriodTx(ctx context.Context, tx pgx.Tx, employerID uuid.UUID, year, month int, start, end time.Time, expectedVersion int64, reason string, actorID ids.UserID) (api.AttendanceClosureResponse, error) {
 	var lockedEmployerID uuid.UUID
 	if err := tx.QueryRow(ctx, `SELECT id FROM employers WHERE id = $1 AND deleted_at IS NULL FOR UPDATE`, employerID).Scan(&lockedEmployerID); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -320,7 +321,7 @@ func (r AttendanceRepository) closeAttendancePeriodTx(ctx context.Context, tx pg
 	closureID := uuid.New()
 	hash := sha256.Sum256(snapshot)
 	snapshotHash := hex.EncodeToString(hash[:])
-	if _, err := tx.Exec(ctx, `INSERT INTO attendance_closures (id, period_id, employer_id, closure_number, status, closed_by, closed_actor_type, snapshot_hash) VALUES ($1, $2, $3, $4, 'closed', $5, 'human', $6)`, closureID, *periodID, employerID, closureNumber, actorID, snapshotHash); err != nil {
+	if _, err := tx.Exec(ctx, `INSERT INTO attendance_closures (id, period_id, employer_id, closure_number, status, closed_by, closed_actor_type, snapshot_hash) VALUES ($1, $2, $3, $4, 'closed', $5, 'human', $6)`, closureID, *periodID, employerID, closureNumber, actorID.UUID(), snapshotHash); err != nil {
 		return api.AttendanceClosureResponse{}, err
 	}
 	if _, err := tx.Exec(ctx, closureDayPayloadCTE+`INSERT INTO attendance_closure_days (
@@ -339,16 +340,16 @@ func (r AttendanceRepository) closeAttendancePeriodTx(ctx context.Context, tx pg
 	if err != nil {
 		return api.AttendanceClosureResponse{}, err
 	}
-	if _, err := tx.Exec(ctx, `INSERT INTO audit_logs (actor_id, target_resource_id, action, details) VALUES ($1, $2, 'attendance.closed', $3)`, actorID, *periodID, details); err != nil {
+	if _, err := tx.Exec(ctx, `INSERT INTO audit_logs (actor_id, target_resource_id, action, details) VALUES ($1, $2, 'attendance.closed', $3)`, actorID.UUID(), *periodID, details); err != nil {
 		return api.AttendanceClosureResponse{}, fmt.Errorf("%w: %v", api.ErrAttendanceAuditFailure, err)
 	}
 	return api.AttendanceClosureResponse{PeriodID: *periodID, ClosureID: &closureID, ClosureNumber: closureNumber, Status: "closed", Version: newVersion, DayCount: totalDays, SnapshotHash: snapshotHash}, nil
 }
 
 // ReopenAttendancePeriod reopens attendance without changing immutable closure evidence.
-func (r AttendanceRepository) ReopenAttendancePeriod(ctx context.Context, employerID uuid.UUID, year, month int, expectedVersion int64, reason string, actorID uuid.UUID) (api.AttendanceClosureResponse, error) {
+func (r AttendanceRepository) ReopenAttendancePeriod(ctx context.Context, employerID uuid.UUID, year, month int, expectedVersion int64, reason string, actorID ids.UserID) (api.AttendanceClosureResponse, error) {
 	_, _, err := validateClosureRequest(year, month, expectedVersion, reason)
-	if err != nil || employerID == uuid.Nil || actorID == uuid.Nil {
+	if err != nil || employerID == uuid.Nil || actorID.UUID() == uuid.Nil {
 		return api.AttendanceClosureResponse{}, api.ErrAttendanceClosureValidation
 	}
 	beginner, err := r.begin(ctx)
@@ -377,7 +378,7 @@ func lockClosureRows(ctx context.Context, tx pgx.Tx, query string, args ...any) 
 	return rows.Err()
 }
 
-func (r AttendanceRepository) reopenAttendancePeriodTx(ctx context.Context, tx pgx.Tx, employerID uuid.UUID, year, month int, expectedVersion int64, reason string, actorID uuid.UUID) (api.AttendanceClosureResponse, error) {
+func (r AttendanceRepository) reopenAttendancePeriodTx(ctx context.Context, tx pgx.Tx, employerID uuid.UUID, year, month int, expectedVersion int64, reason string, actorID ids.UserID) (api.AttendanceClosureResponse, error) {
 	var lockedEmployerID uuid.UUID
 	if err := tx.QueryRow(ctx, `SELECT id FROM employers WHERE id = $1 AND deleted_at IS NULL FOR UPDATE`, employerID).Scan(&lockedEmployerID); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -415,7 +416,7 @@ func (r AttendanceRepository) reopenAttendancePeriodTx(ctx context.Context, tx p
 	if err != nil {
 		return api.AttendanceClosureResponse{}, err
 	}
-	if _, err := tx.Exec(ctx, `INSERT INTO audit_logs (actor_id, target_resource_id, action, details) VALUES ($1, $2, 'attendance.reopened', $3)`, actorID, *periodID, details); err != nil {
+	if _, err := tx.Exec(ctx, `INSERT INTO audit_logs (actor_id, target_resource_id, action, details) VALUES ($1, $2, 'attendance.reopened', $3)`, actorID.UUID(), *periodID, details); err != nil {
 		return api.AttendanceClosureResponse{}, fmt.Errorf("%w: %v", api.ErrAttendanceAuditFailure, err)
 	}
 	return api.AttendanceClosureResponse{PeriodID: *periodID, ClosureID: priorClosureID, Status: "reopened", Version: newVersion, PriorClosureID: priorClosureID}, nil
