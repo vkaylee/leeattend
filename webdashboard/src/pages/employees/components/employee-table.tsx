@@ -16,9 +16,8 @@ import type { EmployeeModalState } from "../types/employee-modals";
 
 import { useEmployeeColumns } from "../hooks/use-employee-columns";
 
-function EmployeeMobileCard({ employee, isSelected, onSelect }: {
+function EmployeeMobileCard({ employee, onSelect }: {
   employee: Employee;
-  isSelected: boolean;
   onSelect: () => void;
 }) {
   const { t } = useTranslation();
@@ -27,9 +26,7 @@ function EmployeeMobileCard({ employee, isSelected, onSelect }: {
     <Button
       className={cn(
         "!h-auto w-full min-w-0 flex-col items-stretch justify-start rounded-2xl border bg-white p-5 text-left shadow-sm transition-all active:scale-[0.99] dark:bg-slate-900",
-        isSelected
-          ? "border-primary-300 ring-2 ring-primary-500/20 dark:border-primary-700"
-          : "border-slate-100 dark:border-slate-800",
+        "border-slate-100 dark:border-slate-800",
       )}
       onClick={onSelect}
       type="button"
@@ -38,9 +35,7 @@ function EmployeeMobileCard({ employee, isSelected, onSelect }: {
       <div className="flex min-w-0 items-start gap-3">
         <div className={cn(
           "flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border font-bold uppercase",
-          isSelected
-            ? "border-primary-500 bg-primary-600 text-white"
-            : "border-slate-100 bg-slate-100 text-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300",
+          "border-slate-100 bg-slate-100 text-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300",
         )}>
           {employee.full_name[0]}
         </div>
@@ -90,7 +85,6 @@ interface EmployeeTableProps {
   onToggleSelectRow?: (id: string) => void;
   searchInputRef: React.RefObject<HTMLInputElement | null>;
   searchTerm: string;
-  selectedEmployee: Employee | null;
   selectedRowIds?: string[];
   setCustomFieldFilters: (filters: Record<string, string>) => void;
   setFilterDeptIds: (ids: string[]) => void;
@@ -125,7 +119,6 @@ export function EmployeeTable(props: EmployeeTableProps) {
     onToggleSelectRow,
     searchInputRef,
     searchTerm,
-    selectedEmployee,
     selectedRowIds,
     setCustomFieldFilters,
     setFilterDeptIds,
@@ -148,7 +141,6 @@ export function EmployeeTable(props: EmployeeTableProps) {
     onSelectEmployee: setSelectedEmployee,
     onToggleSelectAll,
     onToggleSelectRow,
-    selectedEmployee,
     selectedRowIds,
     setFilterDeptIds,
     setFilterStatus,
@@ -213,7 +205,6 @@ export function EmployeeTable(props: EmployeeTableProps) {
         renderMobileCard={(employee) => (
           <EmployeeMobileCard
             employee={employee}
-            isSelected={selectedEmployee?.id === employee.id}
             onSelect={() => { setSelectedEmployee(employee); }}
           />
         )}
@@ -223,7 +214,6 @@ export function EmployeeTable(props: EmployeeTableProps) {
         searchPlaceholder={t("employees.search_placeholder")}
         searchTestId="employee-search"
         searchValue={searchTerm}
-        selectedKey={selectedEmployee?.id}
         showChevron
         testIdPrefix="employees-row"
       />

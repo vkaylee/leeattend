@@ -85,7 +85,6 @@ export default function EmployeesPage() {
         onToggleSelectRow={bulk.toggleSelect}
         searchInputRef={page.searchInputRef}
         searchTerm={page.searchTerm}
-        selectedEmployee={page.selectedEmployee}
         selectedRowIds={bulk.selectedIds}
         setCustomFieldFilters={page.setCustomFieldFilters}
         setFilterDeptIds={page.setFilterDeptIds}
