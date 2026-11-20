@@ -4,7 +4,12 @@ import React from "react";
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-import { useShiftEditor } from "../use-shift-editor";
+import {
+  getBreakValidation,
+  getIntervalPreview,
+  useShiftEditor,
+  type IntervalDraft,
+} from "../use-shift-editor";
 
 // ── Mocks ──────────────────────────────────────────────────────────────────
 
@@ -48,6 +53,44 @@ function createWrapper() {
 }
 
 // ── Tests ──────────────────────────────────────────────────────────────────
+
+function interval(overrides: Partial<IntervalDraft> = {}): IntervalDraft {
+  return {
+    breakCreditMode: "scheduled",
+    breakDuration: 60,
+    breakEnd: "13:00",
+    breakPunchMode: "none",
+    breakStart: "12:00",
+    endDayOffset: 0,
+    endTime: "17:00",
+    intervalName: "",
+    isAutoDeduct: true,
+    isBreakOvertime: false,
+    isFixedBreak: true,
+    isNightShift: false,
+    key: "test",
+    startDayOffset: 0,
+    startTime: "08:00",
+    ...overrides,
+  };
+}
+
+describe("break interval calculations", () => {
+  it("calculates deducted working time", () => {
+    const result = getIntervalPreview(interval());
+    expect(result).toMatchObject({ workMinutes: 480, breakMinutes: 60, breakLabel: "scheduled" });
+  });
+
+  it("supports an overnight break using day offsets", () => {
+    const value = interval({ startTime: "22:00", endTime: "06:00", endDayOffset: 1, breakStart: "01:00", breakEnd: "01:30" });
+    expect(getBreakValidation(value)).toEqual({ key: null, breakMinutes: 30 });
+  });
+
+  it("rejects a break outside the work period", () => {
+    const value = interval({ breakStart: "07:00", breakEnd: "07:30" });
+    expect(getBreakValidation(value).key).toBe("break_outside_interval");
+  });
+});
 
 describe("useShiftEditor", () => {
   beforeEach(() => {

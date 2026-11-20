@@ -108,6 +108,48 @@ func TestShiftIntervalRequest_DefaultsBreakPolicy(t *testing.T) {
 	}
 }
 
+func TestValidateIntervalsBreakAndDayBoundaries(t *testing.T) {
+	tests := []struct {
+		name    string
+		input   ShiftIntervalRequest
+		wantErr bool
+	}{
+		{
+			name: "break inside interval",
+			input: ShiftIntervalRequest{StartTime: "08:00:00", EndTime: "17:00:00", BreakStart: stringPtr("12:00:00"), BreakEnd: stringPtr("13:00:00")},
+		},
+		{
+			name: "break outside interval",
+			input: ShiftIntervalRequest{StartTime: "08:00:00", EndTime: "17:00:00", BreakStart: stringPtr("07:00:00"), BreakEnd: stringPtr("08:00:00")},
+			wantErr: true,
+		},
+		{
+			name: "reversed break",
+			input: ShiftIntervalRequest{StartTime: "08:00:00", EndTime: "17:00:00", BreakStart: stringPtr("13:00:00"), BreakEnd: stringPtr("12:00:00")},
+			wantErr: true,
+		},
+		{
+			name: "overnight break with offsets",
+			input: ShiftIntervalRequest{StartTime: "22:00:00", EndTime: "06:00:00", EndDayOffset: 1, BreakStart: stringPtr("01:00:00"), BreakEnd: stringPtr("01:30:00")},
+		},
+		{
+			name: "zero length interval",
+			input: ShiftIntervalRequest{StartTime: "08:00:00", EndTime: "08:00:00"},
+			wantErr: true,
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			err := validateIntervals([]ShiftIntervalRequest{test.input})
+			if (err != nil) != test.wantErr {
+				t.Fatalf("validateIntervals() error = %v, wantErr %v", err, test.wantErr)
+			}
+		})
+	}
+}
+
+func stringPtr(value string) *string { return &value }
+
 func TestCreateShift_Success(t *testing.T) {
 	handler := ShiftHandler{Repository: &mockShiftRepository{}, Authorizer: mockAttendanceAuthorizer{allowed: true}}
 	body := []byte(`{"name":"Day","report_symbol":"D","intervals":[{"start_time":"08:00:00","end_time":"17:00:00","break_duration_minutes":30}]}`)

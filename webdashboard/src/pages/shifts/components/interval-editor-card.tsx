@@ -42,15 +42,6 @@ export function IntervalEditorCard({
             )}
           </p>
         </div>
-        <Button
-          className="text-xs min-h-11"
-          onClick={onAddInterval}
-          size="sm"
-          type="button"
-          variant="outline"
-        >
-          + {t("work_segments.intervals.add_interval", "Thêm khoảng làm việc")}
-        </Button>
       </div>
 
       {intervalDrafts.length === 0 ? (
@@ -76,14 +67,23 @@ export function IntervalEditorCard({
         </div>
       )}
 
-      {intervalDrafts.length === 1 ? (
+      <div className="flex flex-col items-start gap-3 border-t border-slate-100 dark:border-slate-800 pt-4">
+        <Button
+          className="text-xs min-h-11"
+          onClick={onAddInterval}
+          size="sm"
+          type="button"
+          variant="outline"
+        >
+          + {t("work_segments.intervals.add_interval", "Add work period")}
+        </Button>
         <p className="text-xs text-slate-500 dark:text-slate-400">
           {t(
             "work_segments.intervals.split_help",
-            "Chỉ thêm khoảng thứ hai khi thời gian làm việc bị tách rời, ví dụ 07:30–11:30 và 13:00–17:00.",
+            "Add another period only when work is separated, for example 07:30–11:30 and 13:00–17:00.",
           )}
         </p>
-      ) : null}
+      </div>
     </section>
   );
 }

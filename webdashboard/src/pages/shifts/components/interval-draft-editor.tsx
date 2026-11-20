@@ -4,7 +4,11 @@ import { useTranslation } from "react-i18next";
 
 import Button from "@/components/ui/button";
 
-import type { IntervalDraft } from "../hooks/use-shift-editor";
+import {
+  getBreakValidation,
+  intervalAbsoluteMinutes,
+  type IntervalDraft,
+} from "../hooks/use-shift-editor";
 
 import BreakConfigSection from "./break-config-section";
 
@@ -25,7 +29,9 @@ function IntervalDraftEditor({
 }: IntervalDraftEditorProps) {
   const { t } = useTranslation();
   const [showAdvanced, setShowAdvanced] = useState(Boolean(iv.intervalName));
-  const isInvalidFixedBreak = iv.isFixedBreak && Boolean(iv.breakStart) !== Boolean(iv.breakEnd);
+  const breakValidation = getBreakValidation(iv);
+  const isInvalidFixedBreak = Boolean(breakValidation.key);
+  const intervalRange = intervalAbsoluteMinutes(iv);
 
   return (
     <fieldset className="border border-slate-100 dark:border-slate-800 rounded-2xl p-5 space-y-4 relative">
@@ -61,7 +67,15 @@ function IntervalDraftEditor({
             className="w-full mt-1 min-h-11 px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-xl text-sm bg-slate-50 dark:bg-slate-800"
             id={`interval-start-${iv.key}`}
             onChange={(e) => {
-              onUpdate(iv.key, { startTime: e.target.value, isNightShift: e.target.value > iv.endTime });
+              const nextStart = e.target.value;
+              const nextEndDayOffset = iv.endDayOffset - iv.startDayOffset <= 1
+                ? (nextStart > iv.endTime ? iv.startDayOffset + 1 : iv.startDayOffset)
+                : iv.endDayOffset;
+              onUpdate(iv.key, {
+                endDayOffset: nextEndDayOffset,
+                isNightShift: nextStart > iv.endTime,
+                startTime: nextStart,
+              });
             }}
             type="time"
             value={iv.startTime}
@@ -75,7 +89,15 @@ function IntervalDraftEditor({
             className="w-full mt-1 min-h-11 px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-xl text-sm bg-slate-50 dark:bg-slate-800"
             id={`interval-end-${iv.key}`}
             onChange={(e) => {
-              onUpdate(iv.key, { endTime: e.target.value, isNightShift: iv.startTime > e.target.value });
+              const nextEnd = e.target.value;
+              const nextEndDayOffset = iv.endDayOffset === iv.startDayOffset + 1 && iv.startTime <= nextEnd
+                ? iv.startDayOffset
+                : iv.endDayOffset;
+              onUpdate(iv.key, {
+                endDayOffset: nextEndDayOffset,
+                endTime: nextEnd,
+                isNightShift: iv.startTime > nextEnd,
+              });
             }}
             type="time"
             value={iv.endTime}
@@ -83,10 +105,10 @@ function IntervalDraftEditor({
         </div>
       </div>
 
-      {iv.startTime > iv.endTime ? (
+      {iv.startDayOffset < iv.endDayOffset || iv.startTime > iv.endTime ? (
         <div className="text-xs text-indigo-500 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/20 px-3 py-2 rounded-lg flex items-center gap-2" role="status">
           <Clock aria-hidden="true" size={14} />
-          {t("work_segments.night_shift.description", "Ca làm việc qua nửa đêm; giờ công tính theo ngày bắt đầu.")}
+          {t("work_segments.night_shift.description", "Shift crosses midnight — hours attributed to start day")}
         </div>
       ) : null}
 
@@ -122,7 +144,12 @@ function IntervalDraftEditor({
 
       {isInvalidFixedBreak ? (
         <p className="text-xs text-red-600 dark:text-red-400" role="alert">
-          {t("shifts.messages.validation_break_times", "Vui lòng nhập đủ giờ bắt đầu và kết thúc giờ nghỉ.")}
+          {t(`shifts.modal.${breakValidation.key}`, "Please check the work and break times.")}
+        </p>
+      ) : null}
+      {intervalRange && intervalRange.end <= intervalRange.start ? (
+        <p className="text-xs text-red-600 dark:text-red-400" role="alert">
+          {t("shifts.messages.interval_order", "Work period end must be after its start.")}
         </p>
       ) : null}
     </fieldset>

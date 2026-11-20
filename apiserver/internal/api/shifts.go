@@ -56,6 +56,9 @@ func (r ShiftIntervalRequest) BreakPunchModeValue() string {
 }
 
 func (r ShiftIntervalRequest) BreakCreditModeValue() string {
+	if r.BreakPunchModeValue() == "required" {
+		return "actual"
+	}
 	if r.BreakCreditMode != "" {
 		return r.BreakCreditMode
 	}
@@ -66,7 +69,7 @@ func (r ShiftIntervalRequest) BreakCreditModeValue() string {
 }
 
 func (r ShiftIntervalRequest) IsBreakAutoDeductValue() bool {
-	return r.IsBreakAutoDeduct == nil || *r.IsBreakAutoDeduct
+	return r.BreakPunchModeValue() != "required" && (r.IsBreakAutoDeduct == nil || *r.IsBreakAutoDeduct)
 }
 
 func (r ShiftIntervalRequest) BreakIsOvertimeValue() bool {
@@ -320,21 +323,30 @@ func validateIntervals(intervals []ShiftIntervalRequest) error {
 		if interval.BreakPunchModeValue() == "required" && interval.BreakCreditModeValue() == "scheduled" {
 			return ErrShiftValidation
 		}
-		if interval.BreakPunchModeValue() == "required" && (interval.BreakStart == nil || interval.BreakEnd == nil) {
+		if interval.StartDayOffset < 0 || interval.EndDayOffset < interval.StartDayOffset {
+			return ErrShiftValidation
+		}
+		startClock, _ := parseClock(interval.StartTime)
+		endClock, _ := parseClock(interval.EndTime)
+		intervalStart := interval.StartDayOffset*24*60 + startClock.Hour()*60 + startClock.Minute()
+		intervalEnd := interval.EndDayOffset*24*60 + endClock.Hour()*60 + endClock.Minute()
+		if intervalEnd <= intervalStart {
 			return ErrShiftValidation
 		}
 		if (interval.BreakStart == nil) != (interval.BreakEnd == nil) {
 			return ErrShiftValidation
 		}
 		if interval.BreakStart != nil {
-			if _, err := parseClock(*interval.BreakStart); err != nil {
+			breakStart, err := breakClockInInterval(*interval.BreakStart, intervalStart, intervalEnd)
+			if err != nil {
 				return ErrShiftValidation
 			}
-			if _, err := parseClock(*interval.BreakEnd); err != nil {
+			breakEnd, err := breakClockInInterval(*interval.BreakEnd, intervalStart, intervalEnd)
+			if err != nil || breakEnd <= breakStart {
 				return ErrShiftValidation
 			}
 		}
-		if interval.BreakDurationMinutes < 0 || interval.StartDayOffset < 0 || interval.EndDayOffset < 0 || interval.EndDayOffset < interval.StartDayOffset {
+		if interval.BreakDurationMinutes < 0 || (interval.BreakPunchModeValue() == "none" && interval.BreakCreditModeValue() == "scheduled" && interval.BreakDurationMinutes > intervalEnd-intervalStart) {
 			return ErrShiftValidation
 		}
 		if interval.StartUTCOffsetMinutes != nil && !validUTCOffset(*interval.StartUTCOffsetMinutes) || interval.EndUTCOffsetMinutes != nil && !validUTCOffset(*interval.EndUTCOffsetMinutes) {
@@ -346,6 +358,23 @@ func validateIntervals(intervals []ShiftIntervalRequest) error {
 
 func parseClock(value string) (time.Time, error) {
 	return time.Parse("15:04:05", value)
+}
+
+func breakClockInInterval(value string, intervalStart, intervalEnd int) (int, error) {
+	clock, err := parseClock(value)
+	if err != nil {
+		return 0, err
+	}
+	minutes := clock.Hour()*60 + clock.Minute()
+	firstDay := intervalStart / (24 * 60)
+	lastDay := intervalEnd / (24 * 60)
+	for day := firstDay; day <= lastDay; day++ {
+		candidate := day*24*60 + minutes
+		if candidate >= intervalStart && candidate <= intervalEnd {
+			return candidate, nil
+		}
+	}
+	return 0, ErrShiftValidation
 }
 
 func validUTCOffset(minutes int) bool {

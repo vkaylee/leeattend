@@ -28,6 +28,7 @@ export interface IntervalDraft {
   breakEnd: string;
   breakStart: string;
   endTime: string;
+  endDayOffset: number;
   intervalName: string;
   breakCreditMode: "scheduled" | "actual" | "none";
   breakPunchMode: "none" | "required";
@@ -36,7 +37,82 @@ export interface IntervalDraft {
   isFixedBreak: boolean;
   isNightShift: boolean;
   key: string;
+  startDayOffset: number;
   startTime: string;
+}
+
+export type BreakValidationKey =
+  | "break_start_required"
+  | "break_end_required"
+  | "break_order"
+  | "break_outside_interval"
+  | "break_duration_exceeds_interval"
+  | "interval_order";
+
+export function parseTimeMinutes(value: string): number | null {
+  const match = /^(\d{2}):(\d{2})/.exec(value);
+  if (!match) return null;
+  const hours = Number(match[1]);
+  const minutes = Number(match[2]);
+  return hours >= 0 && hours < 24 && minutes >= 0 && minutes < 60
+    ? hours * 60 + minutes
+    : null;
+}
+
+export function intervalAbsoluteMinutes(interval: Pick<IntervalDraft, "startTime" | "endTime" | "startDayOffset" | "endDayOffset">) {
+  const start = parseTimeMinutes(interval.startTime);
+  const end = parseTimeMinutes(interval.endTime);
+  if (start === null || end === null) return null;
+  return {
+    start: interval.startDayOffset * 1440 + start,
+    end: interval.endDayOffset * 1440 + end,
+  };
+}
+
+function resolveClockInInterval(clock: string, start: number, end: number): number | null {
+  const minutes = parseTimeMinutes(clock);
+  if (minutes === null) return null;
+  const firstDay = Math.floor(start / 1440);
+  const lastDay = Math.floor(end / 1440);
+  for (let day = firstDay; day <= lastDay; day += 1) {
+    const candidate = day * 1440 + minutes;
+    if (candidate >= start && candidate <= end) return candidate;
+  }
+  return null;
+}
+
+export function getBreakValidation(interval: IntervalDraft): { key: BreakValidationKey | null; breakMinutes: number | null } {
+  const range = intervalAbsoluteMinutes(interval);
+  if (!range) return { key: "interval_order", breakMinutes: null };
+  if (range.end <= range.start) return { key: "interval_order", breakMinutes: null };
+  if (!interval.isFixedBreak) {
+    if (interval.breakPunchMode === "none" && interval.isAutoDeduct && interval.breakDuration > range.end - range.start) {
+      return { key: "break_duration_exceeds_interval", breakMinutes: null };
+    }
+    return { key: null, breakMinutes: null };
+  }
+  if (!interval.breakStart) return { key: "break_start_required", breakMinutes: null };
+  if (!interval.breakEnd) return { key: "break_end_required", breakMinutes: null };
+  const breakStart = resolveClockInInterval(interval.breakStart, range.start, range.end);
+  const breakEnd = resolveClockInInterval(interval.breakEnd, range.start, range.end);
+  if (breakStart === null || breakEnd === null) return { key: "break_outside_interval", breakMinutes: null };
+  if (breakEnd <= breakStart) return { key: "break_order", breakMinutes: null };
+  return { key: null, breakMinutes: breakEnd - breakStart };
+}
+
+export function getIntervalPreview(interval: IntervalDraft): { workMinutes: number; breakMinutes: number | null; breakLabel: "scheduled" | "actual" | "paid" } | null {
+  const range = intervalAbsoluteMinutes(interval);
+  if (!range || range.end <= range.start) return null;
+  const validation = getBreakValidation(interval);
+  if (validation.key) return null;
+  if (interval.breakPunchMode === "required") {
+    return { workMinutes: range.end - range.start, breakMinutes: null, breakLabel: "actual" };
+  }
+  if (!interval.isAutoDeduct) {
+    return { workMinutes: range.end - range.start, breakMinutes: 0, breakLabel: "paid" };
+  }
+  const breakMinutes = interval.isFixedBreak ? validation.breakMinutes : Math.max(0, interval.breakDuration);
+  return { workMinutes: range.end - range.start - (breakMinutes ?? 0), breakMinutes, breakLabel: "scheduled" };
 }
 
 interface ShiftFormState {
@@ -75,6 +151,8 @@ function makeDefaultInterval(): IntervalDraft {
     isBreakOvertime: false,
     startTime: "08:00",
     endTime: "17:00",
+    startDayOffset: 0,
+    endDayOffset: 0,
     breakDuration: 60,
     breakStart: "",
     breakEnd: "",
@@ -156,7 +234,31 @@ export function useShiftEditor(shiftId?: string) {
   };
 
   const updateIntervalDraft = (key: string, patch: Partial<IntervalDraft>) => {
-    setIntervalDrafts(prev => prev.map(iv => iv.key === key ? { ...iv, ...patch } : iv));
+    setIntervalDrafts(prev => prev.map(iv => {
+      if (iv.key !== key) return iv;
+      const next = { ...iv, ...patch };
+      if (patch.breakPunchMode === "required") {
+        next.breakPunchMode = "required";
+        next.breakCreditMode = "actual";
+        next.isAutoDeduct = false;
+      } else if (patch.breakPunchMode === "none") {
+        next.breakPunchMode = "none";
+        next.breakCreditMode = next.isAutoDeduct ? "scheduled" : "none";
+      }
+      if (patch.isAutoDeduct !== undefined && next.breakPunchMode === "none") {
+        next.breakCreditMode = patch.isAutoDeduct ? "scheduled" : "none";
+        if (!patch.isAutoDeduct) {
+          next.breakStart = "";
+          next.breakEnd = "";
+          next.isFixedBreak = false;
+        }
+      }
+      if (patch.isFixedBreak === false) {
+        next.breakStart = "";
+        next.breakEnd = "";
+      }
+      return next;
+    }));
     setIsDirty(true);
   };
 
@@ -179,6 +281,8 @@ export function useShiftEditor(shiftId?: string) {
         isBreakOvertime: iv.break_is_overtime ?? false,
         startTime: iv.start_time.substring(0, 5),
         endTime: iv.end_time.substring(0, 5),
+        startDayOffset: iv.start_day_offset ?? 0,
+        endDayOffset: iv.end_day_offset ?? (iv.start_time > iv.end_time ? 1 : 0),
         breakDuration: iv.break_duration_minutes,
         breakStart: (iv.break_start ?? "").substring(0, 5),
         breakEnd: (iv.break_end ?? "").substring(0, 5),
@@ -221,7 +325,7 @@ export function useShiftEditor(shiftId?: string) {
   });
 
   const isSaving = createShiftMutation.isPending || updateShiftMutation.isPending;
-  const hasValidIntervals = intervalDrafts.length > 0 && intervalDrafts.every(iv => iv.startTime && iv.endTime);
+  const hasValidIntervals = intervalDrafts.length > 0 && intervalDrafts.every(iv => Boolean(iv.startTime && iv.endTime) && !getBreakValidation(iv).key);
   const isSaveDisabled = isSaving || !shiftName || !hasValidIntervals;
 
   const padTime = (t: string) => t.length === 5 ? t + ":00" : t;
@@ -231,12 +335,14 @@ export function useShiftEditor(shiftId?: string) {
       interval_name: iv.intervalName || null,
       start_time: padTime(iv.startTime),
       end_time: padTime(iv.endTime),
-      break_duration_minutes: iv.breakDuration,
+      start_day_offset: iv.startDayOffset,
+      end_day_offset: iv.endDayOffset,
+      break_duration_minutes: iv.isFixedBreak ? getBreakValidation(iv).breakMinutes ?? 0 : iv.breakDuration,
       break_start: iv.isFixedBreak && iv.breakStart ? padTime(iv.breakStart) : null,
       break_end: iv.isFixedBreak && iv.breakEnd ? padTime(iv.breakEnd) : null,
-      break_credit_mode: iv.breakCreditMode,
+      break_credit_mode: iv.breakPunchMode === "required" ? "actual" : iv.isAutoDeduct ? "scheduled" : "none",
       break_punch_mode: iv.breakPunchMode,
-      is_break_auto_deduct: iv.isAutoDeduct,
+      is_break_auto_deduct: iv.breakPunchMode === "none" && iv.isAutoDeduct,
       break_is_overtime: iv.isBreakOvertime,
     }));
 
