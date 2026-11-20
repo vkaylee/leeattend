@@ -433,24 +433,44 @@ func (r AttendanceRepository) ReprocessAttendance(ctx context.Context, startDate
 		}
 		var scheduledStart, scheduledEnd *time.Time = startAt, endAt
 		var breakStart, breakEnd *time.Time
+		var breakWindows []buckets.BreakPair
 		var scheduledBreak int32
 		if len(breaks) > 0 {
 			var parsed []struct {
 				Start    string `json:"start"`
 				End      string `json:"end"`
+				StartAt  string `json:"start_at"`
+				EndAt    string `json:"end_at"`
 				Duration int    `json:"duration_minutes"`
 			}
-			_ = json.Unmarshal(breaks, &parsed)
-			if len(parsed) > 0 {
-				if parsed[0].Start != "" {
-					v, _ := time.Parse(time.RFC3339, parsed[0].Start)
-					breakStart = &v
+			if err := json.Unmarshal(breaks, &parsed); err != nil {
+				return api.ReprocessResponse{}, err
+			}
+			for _, item := range parsed {
+				startRaw, endRaw := item.StartAt, item.EndAt
+				if startRaw == "" {
+					startRaw = item.Start
 				}
-				if parsed[0].End != "" {
-					v, _ := time.Parse(time.RFC3339, parsed[0].End)
-					breakEnd = &v
+				if endRaw == "" {
+					endRaw = item.End
 				}
-				scheduledBreak = int32(parsed[0].Duration)
+				if startRaw == "" || endRaw == "" {
+					continue
+				}
+				start, startErr := time.Parse(time.RFC3339, startRaw)
+				end, endErr := time.Parse(time.RFC3339, endRaw)
+				if startErr != nil || endErr != nil || !end.After(start) {
+					continue
+				}
+				breakWindows = append(breakWindows, buckets.BreakPair{Start: start, End: end})
+				if breakStart == nil {
+					breakStart, breakEnd = &start, &end
+				}
+				if item.Duration > 0 {
+					scheduledBreak += int32(item.Duration)
+				} else {
+					scheduledBreak += int32(end.Sub(start) / time.Minute)
+				}
 			}
 		}
 		key := d.employmentID.String() + ":" + d.date
@@ -469,7 +489,7 @@ func (r AttendanceRepository) ReprocessAttendance(ctx context.Context, startDate
 		}()}
 		calculated := buckets.CalculateBuckets(input)
 		item.scheduledBreak += int(scheduledBreak)
-		item.deductedBreak += int(buckets.CalculateBreakDeduction(buckets.BreakDeductionInput{ScheduledBreakMinutes: scheduledBreak, IsBreakAutoDeduct: breakAuto, IsBreakOvertime: breakOT, BreakStart: breakStart, BreakEnd: breakEnd, PunchIn: &punchIn, PunchOut: &punchOut}))
+		item.deductedBreak += int(buckets.CalculateBreakDeduction(buckets.BreakDeductionInput{ScheduledBreakMinutes: scheduledBreak, IsBreakAutoDeduct: breakAuto, IsBreakOvertime: breakOT, BreakStart: breakStart, BreakEnd: breakEnd, BreakWindows: breakWindows, PunchIn: &punchIn, PunchOut: &punchOut}))
 		item.netWork += int(calculated.StandardMinutes)
 		item.netPaid += int(calculated.StandardMinutes + calculated.BreakOTMinutes)
 		item.standard += int(calculated.StandardMinutes)

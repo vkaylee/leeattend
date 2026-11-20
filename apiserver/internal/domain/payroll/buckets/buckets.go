@@ -82,6 +82,7 @@ type BreakDeductionInput struct {
 	ActualBreakMinutes, ScheduledBreakMinutes int32
 	IsBreakAutoDeduct, IsBreakOvertime        bool
 	BreakStart, BreakEnd, PunchIn, PunchOut   *time.Time
+	BreakWindows                              []BreakPair
 }
 type DailyCalcInput struct {
 	PunchIn, PunchOut                                time.Time
@@ -222,15 +223,25 @@ func CalculateBreakOvertime(input BreakDeductionInput) int32 {
 }
 
 func calculateBreakOverlap(input BreakDeductionInput) int32 {
-	if input.BreakStart == nil || input.BreakEnd == nil || input.PunchIn == nil || input.PunchOut == nil {
+	if input.PunchIn == nil || input.PunchOut == nil {
 		return input.ScheduledBreakMinutes
 	}
-	start := maxTime(*input.BreakStart, *input.PunchIn)
-	end := minTime(*input.BreakEnd, *input.PunchOut)
-	if !end.After(start) {
-		return 0
+	windows := input.BreakWindows
+	if len(windows) == 0 && input.BreakStart != nil && input.BreakEnd != nil {
+		windows = []BreakPair{{Start: *input.BreakStart, End: *input.BreakEnd}}
 	}
-	return int32(end.Sub(start) / time.Minute)
+	if len(windows) == 0 {
+		return input.ScheduledBreakMinutes
+	}
+	var total int32
+	for _, window := range windows {
+		start := maxTime(window.Start, *input.PunchIn)
+		end := minTime(window.End, *input.PunchOut)
+		if end.After(start) {
+			total += int32(end.Sub(start) / time.Minute)
+		}
+	}
+	return total
 }
 
 func CalculateUnits(minutes, unitSize int32, policy RoundingPolicy) int32 {

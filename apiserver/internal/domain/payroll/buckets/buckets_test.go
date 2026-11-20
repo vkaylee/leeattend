@@ -228,7 +228,7 @@ func TestCalculateAttendance_ApprovedBreakWorkedCannotOverlapActualBreak(t *test
 		PunchIn: date.Add(8 * time.Hour), PunchOut: date.Add(17 * time.Hour),
 		BreakPunchMode: BreakPunchModeNone, BreakCreditMode: BreakCreditModeScheduled,
 		ScheduledBreakMinutes: 60, ScheduledBreakStart: &breakStart, ScheduledBreakEnd: &breakEnd,
-		ActualBreaks: []BreakPair{{Start: date.Add(12 * time.Hour), End: date.Add(12 * time.Hour + 30*time.Minute)}},
+		ActualBreaks:                 []BreakPair{{Start: date.Add(12 * time.Hour), End: date.Add(12*time.Hour + 30*time.Minute)}},
 		ApprovedBreakWorkedIntervals: []BreakWorkedInterval{{BreakPair: BreakPair{Start: date.Add(12*time.Hour + 15*time.Minute), End: date.Add(12*time.Hour + 45*time.Minute)}, Status: "approved"}},
 	})
 	if !errors.Is(err, ErrInvalidAttendanceCalculation) {
@@ -261,8 +261,8 @@ func TestCalculateAttendance_ApprovedBreakWorkedRequiresScheduledWindow(t *testi
 	_, err := CalculateAttendance(AttendanceCalculationInput{
 		PunchIn: date.Add(8 * time.Hour), PunchOut: date.Add(17 * time.Hour),
 		BreakPunchMode: BreakPunchModeNone, BreakCreditMode: BreakCreditModeScheduled,
-		ScheduledBreakMinutes: 60,
-		ApprovedBreakWorkedIntervals: []BreakWorkedInterval{{BreakPair: BreakPair{Start: date.Add(12 * time.Hour), End: date.Add(12 * time.Hour + 30*time.Minute)}, Status: "approved"}},
+		ScheduledBreakMinutes:        60,
+		ApprovedBreakWorkedIntervals: []BreakWorkedInterval{{BreakPair: BreakPair{Start: date.Add(12 * time.Hour), End: date.Add(12*time.Hour + 30*time.Minute)}, Status: "approved"}},
 	})
 	if !errors.Is(err, ErrInvalidAttendanceCalculation) {
 		t.Fatalf("expected scheduled break window validation, got %v", err)
