@@ -1,0 +1,12 @@
+{
+  "members": {
+    "table": {
+      "employee_link": "员工档案",
+      "employee_linked": "已关联",
+      "unlink_employee": "解除关联",
+      "select_employee": "选择员工",
+      "link_employee": "关联员工",
+      "confirm_unlink_employee": "确定要解除此员工账户关联吗？"
+    }
+  }
+}

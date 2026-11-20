@@ -1,0 +1,12 @@
+{
+  "members": {
+    "table": {
+      "employee_link": "Employee record",
+      "employee_linked": "Linked",
+      "unlink_employee": "Unlink",
+      "select_employee": "Select employee",
+      "link_employee": "Link employee",
+      "confirm_unlink_employee": "Unlink this employee account?"
+    }
+  }
+}

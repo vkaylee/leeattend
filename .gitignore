@@ -87,7 +87,6 @@ webdashboard/playwright/
 # LeeDevKit — per-project install (no global install)
 .leedevkit/
 .leedevkit.bak
-/leedevkit
 
 # Codebase memory
 .codebase-memory/

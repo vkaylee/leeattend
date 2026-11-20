@@ -1,0 +1,12 @@
+{
+  "members": {
+    "table": {
+      "employee_link": "Hồ sơ nhân viên",
+      "employee_linked": "Đã liên kết",
+      "unlink_employee": "Hủy liên kết",
+      "select_employee": "Chọn nhân viên",
+      "link_employee": "Liên kết nhân viên",
+      "confirm_unlink_employee": "Hủy liên kết tài khoản nhân viên này?"
+    }
+  }
+}
