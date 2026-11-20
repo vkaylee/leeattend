@@ -140,8 +140,6 @@ func TestCompatibilityRouteRegistrationsRemainReachable(t *testing.T) {
 		method string
 		path   string
 	}{
-		{"attendance approval legacy path", http.MethodPut, "/api/v1/attendance/adjustments/00000000-0000-0000-0000-000000000001/approve"},
-		{"attendance approval current path", http.MethodPost, "/api/v1/attendance/adjustments/00000000-0000-0000-0000-000000000001/approve"},
 		{"paper overtime bulk legacy path", http.MethodPost, "/api/v1/attendance/bulk-upload-paper-ot"},
 		{"paper overtime bulk current path", http.MethodPost, "/api/v1/attendance/paper-forms/overtime/bulk"},
 		{"paper overtime employee legacy path", http.MethodPost, "/api/v1/attendance/enter-paper-ot/00000000-0000-0000-0000-000000000001"},

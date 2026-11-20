@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"testing"
 
@@ -34,10 +35,33 @@ func (r *attendancePolicyRows) Scan(dest ...any) error {
 	for i, value := range row {
 		switch target := dest[i].(type) {
 		case *uuid.UUID:
-			*target = value.(uuid.UUID)
+			switch value := value.(type) {
+			case uuid.UUID:
+				*target = value
+			case string:
+				id, err := uuid.Parse(value)
+				if err != nil {
+					return err
+				}
+				*target = id
+			default:
+				return fmt.Errorf("unsupported UUID value %T", value)
+			}
 		case **uuid.UUID:
 			if value != nil {
-				id := value.(uuid.UUID)
+				var id uuid.UUID
+				switch value := value.(type) {
+				case uuid.UUID:
+					id = value
+				case string:
+					parsed, err := uuid.Parse(value)
+					if err != nil {
+						return err
+					}
+					id = parsed
+				default:
+					return fmt.Errorf("unsupported nullable UUID value %T", value)
+				}
 				*target = &id
 			}
 		case *string:
@@ -74,7 +98,7 @@ func TestAttendanceSummariesUseEffectiveWorkPolicy(t *testing.T) {
 			query = sql
 			return &attendancePolicyRows{rows: [][]any{{
 				summaryID, employmentID, "2026-06-15", 450, 450, 0, 0, 0, 0, 0, 0,
-				0, 0, 450, 450, 450, false, nil, 450.0, versionID, "none", nil, nil, false, false, nil,
+				0, 0, 450, 450, 450, false, nil, 450.0, versionID, nil, "none", nil, nil, false, false, nil,
 				"2026-06-15T00:00:00Z", "2026-06-15T00:00:00Z",
 			}}}, nil
 		},
@@ -104,7 +128,7 @@ func TestAttendanceSummariesKeepMissingPolicyUnconfigured(t *testing.T) {
 		queryFn: func(_ context.Context, _ string, _ ...any) (pgx.Rows, error) {
 			return &attendancePolicyRows{rows: [][]any{{
 				summaryID, employmentID, "2026-06-15", 90, 90, 0, 0, 0, 0, 0, 0,
-				0, 0, 90, 90, 90, false, nil, 0.0, nil, "none", nil, nil, false, false, nil,
+				0, 0, 90, 90, 90, false, nil, 0.0, nil, nil, "none", nil, nil, false, false, nil,
 				"2026-06-15T00:00:00Z", "2026-06-15T00:00:00Z",
 			}}}, nil
 		},

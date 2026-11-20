@@ -65,7 +65,11 @@ func TestVerifyRejectsTamperedPayload(t *testing.T) {
 	if start < len(marker) {
 		t.Fatal("signature marker missing")
 	}
-	data[start] = 'A'
+	if data[start] == 'A' {
+		data[start] = 'B'
+	} else {
+		data[start] = 'A'
+	}
 	if _, err := verifier.Verify(data); !errors.Is(err, ErrInvalidSignature) {
 		t.Fatalf("expected invalid signature, got %v", err)
 	}
