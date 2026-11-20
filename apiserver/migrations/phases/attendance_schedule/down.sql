@@ -105,6 +105,9 @@ DROP TABLE IF EXISTS public.attendance_adjustment_requests CASCADE;
 
 DROP TABLE IF EXISTS public.assignment_rules CASCADE;
 
+DROP TABLE IF EXISTS public.attendance_action_idempotency CASCADE;
+DROP TABLE IF EXISTS public.time_entry_breaks CASCADE;
+
 DROP TRIGGER IF EXISTS trg_attendance_punch_events_immutable ON public.attendance_punch_events;
 DROP FUNCTION IF EXISTS public.guard_attendance_punch_events_immutable();
 DROP TABLE IF EXISTS public.attendance_punch_events CASCADE;

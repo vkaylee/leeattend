@@ -3,10 +3,12 @@
 package repository
 
 import (
+	"errors"
 	"testing"
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/vkaylee/leeattend/apiserver/internal/api"
 )
 
 func TestIntegrationPunchInPinsUniqueMaterializedSegmentSnapshot(t *testing.T) {
@@ -77,5 +79,46 @@ func TestIntegrationRawPunchIngestRemainsAllowedAfterClosedAttendanceSnapshot(t 
 	}
 	if punchIn.EmploymentID != employmentID {
 		t.Fatalf("late punch-in employment = %s, want %s", punchIn.EmploymentID, employmentID)
+	}
+}
+
+func TestIntegrationRequiredBreakWorkOutRejectsOpenOrMissingBreak(t *testing.T) {
+	pool, ctx := requireIntegrationDatabase(t)
+	employerID, employeeID, employmentID, actorID := uuid.New(), uuid.New(), uuid.New(), uuid.New()
+	tenureID, relationshipID := uuid.New(), uuid.New()
+	templateID, versionID, segmentID := uuid.New(), uuid.New(), uuid.New()
+	mustExec := func(query string, args ...any) {
+		t.Helper()
+		if _, err := pool.Exec(ctx, query, args...); err != nil {
+			t.Fatalf("fixture query failed: %v", err)
+		}
+	}
+	mustExec(`INSERT INTO employers (id, name) VALUES ($1, 'required-break-employer')`, employerID)
+	mustExec(`INSERT INTO employees (id, employee_id_number, full_name, hire_date, original_hire_date) VALUES ($1, $2, 'required-break-employee', DATE '2026-01-01', DATE '2026-01-01')`, employeeID, employeeID.String())
+	mustExec(`INSERT INTO employee_tenures (id, employee_id, employee_number, start_date) VALUES ($1, $2, $3, DATE '2026-01-01')`, tenureID, employeeID, employeeID.String())
+	mustExec(`INSERT INTO employment_relationships (id, employee_id, employer_id, tenure_id, status, start_date) VALUES ($1, $2, $3, $4, 'active', DATE '2026-01-01')`, relationshipID, employeeID, employerID, tenureID)
+	mustExec(`INSERT INTO employments (id, employee_id, employer_id, relationship_id, status, start_date) VALUES ($1, $2, $3, $4, 'active', DATE '2026-01-01')`, employmentID, employeeID, employerID, relationshipID)
+	mustExec(`INSERT INTO users (id, email, password_hash) VALUES ($1, $2, 'integration-test-hash')`, actorID, actorID.String()+"@invalid.test")
+	mustExec(`INSERT INTO shift_templates (id, name) VALUES ($1, 'required-break-template')`, templateID)
+	mustExec(`INSERT INTO shift_versions (id, template_id, version_number, name, effective_from, change_type, created_by) VALUES ($1, $2, 1, 'required-break-version', DATE '2026-01-01', 'create', $3)`, versionID, templateID, actorID)
+	breaks := []byte(`[{"break_punch_mode":"required"}]`)
+	mustExec(`INSERT INTO work_segments (id, employment_id, date, sort_order, scheduled_start, scheduled_end, segment_type, segment_status, compensation_rate, gap_compensation_before, gap_compensation_rate_before, source, source_detail, generation_metadata, template_id, selected_shift_version_id, scheduled_start_at, scheduled_end_at, breaks_snapshot) VALUES ($1, $2, DATE '2026-11-20', 0, '08:00', '17:00', 'work', 'scheduled', 1, 'unpaid', 0, 'manual', '{}'::jsonb, '{}'::jsonb, $3, $4, TIMESTAMPTZ '2026-11-20 08:00:00+00', TIMESTAMPTZ '2026-11-20 17:00:00+00', $5::jsonb)`, segmentID, employmentID, templateID, versionID, breaks)
+
+	repo := AttendanceRepository{DB: pool}
+	if _, err := repo.ESSAttendanceAction(ctx, employeeID, "work_in", nil, "required-break-in", time.Date(2026, 11, 20, 9, 0, 0, 0, time.UTC)); err != nil {
+		t.Fatalf("work-in failed: %v", err)
+	}
+	if _, err := repo.ESSAttendanceAction(ctx, employeeID, "work_out", nil, "required-break-out", time.Date(2026, 11, 20, 17, 0, 0, 0, time.UTC)); !errors.Is(err, api.ErrAttendanceInvalidTransition) {
+		t.Fatalf("work-out error=%v, want invalid transition", err)
+	}
+	var openCount, eventCount int
+	if err := pool.QueryRow(ctx, `SELECT count(*) FROM time_entries WHERE employment_id = $1 AND punch_out_time IS NULL`, employmentID).Scan(&openCount); err != nil {
+		t.Fatalf("read open entry: %v", err)
+	}
+	if err := pool.QueryRow(ctx, `SELECT count(*) FROM attendance_punch_events WHERE employment_id = $1`, employmentID).Scan(&eventCount); err != nil {
+		t.Fatalf("read punch events: %v", err)
+	}
+	if openCount != 1 || eventCount != 1 {
+		t.Fatalf("state after rejected work-out: open_entries=%d events=%d, want 1/1", openCount, eventCount)
 	}
 }

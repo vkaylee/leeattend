@@ -176,11 +176,21 @@ func (r AttendanceRepository) ESSAttendanceAction(ctx context.Context, employeeI
 			if !hasOpenEntry {
 				return api.ErrAttendanceNotWorking
 			}
+			var requiredBreak, completedBreak bool
+			if err := db.QueryRow(ctx, `SELECT COALESCE(jsonb_path_exists(breaks_snapshot, '$[*] ? (@.break_punch_mode == "required")'), false), EXISTS (SELECT 1 FROM time_entry_breaks WHERE time_entry_id = $1 AND break_end_at IS NOT NULL) FROM time_entries WHERE id = $1`, entryID).Scan(&requiredBreak, &completedBreak); err != nil {
+				return err
+			}
+			if requiredBreak && !completedBreak {
+				return api.ErrAttendanceInvalidTransition
+			}
 			var impliedBreak *api.AttendanceBreakRecord
 			var missingBreakEnd string
 			var openBreakID uuid.UUID
 			breakErr := db.QueryRow(ctx, `SELECT id FROM time_entry_breaks WHERE time_entry_id = $1 AND break_end_at IS NULL FOR UPDATE`, entryID).Scan(&openBreakID)
 			if breakErr == nil {
+				if requiredBreak {
+					return api.ErrAttendanceInvalidTransition
+				}
 				if _, err := db.Exec(ctx, `UPDATE time_entry_breaks SET break_end_at = $1, source = 'system_implied', close_reason = 'work_out', updated_at = CURRENT_TIMESTAMP WHERE id = $2`, actionTime, openBreakID); err != nil {
 					return err
 				}
