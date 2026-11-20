@@ -121,4 +121,11 @@ func TestIntegrationRequiredBreakWorkOutRejectsOpenOrMissingBreak(t *testing.T) 
 	if openCount != 1 || eventCount != 1 {
 		t.Fatalf("state after rejected work-out: open_entries=%d events=%d, want 1/1", openCount, eventCount)
 	}
+	response, err := repo.ESSAttendanceAction(ctx, employeeID, "work_in", nil, "required-break-in", time.Date(2026, 11, 20, 9, 0, 0, 0, time.UTC))
+	if err != nil || !response.Deduplicated {
+		t.Fatalf("duplicate work-in response=%+v err=%v, want deduplicated", response, err)
+	}
+	if _, err := repo.ESSAttendanceAction(ctx, employeeID, "break_start", nil, "required-break-out-of-order", time.Date(2026, 11, 20, 8, 59, 0, 0, time.UTC)); !errors.Is(err, api.ErrAttendanceInvalidTransition) {
+		t.Fatalf("out-of-order break-start error=%v, want invalid transition", err)
+	}
 }

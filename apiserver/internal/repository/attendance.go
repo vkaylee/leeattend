@@ -156,6 +156,15 @@ func (r AttendanceRepository) ESSAttendanceAction(ctx context.Context, employeeI
 		if openErr != nil && !errors.Is(openErr, pgx.ErrNoRows) {
 			return openErr
 		}
+		if hasOpenEntry {
+			var lastEventAt time.Time
+			if err := db.QueryRow(ctx, `SELECT GREATEST(punch_in_time, COALESCE((SELECT max(occurred_at) FROM attendance_punch_events WHERE time_entry_id = $1), punch_in_time)) FROM time_entries WHERE id = $1`, entryID).Scan(&lastEventAt); err != nil {
+				return err
+			}
+			if actionTime.Before(lastEventAt) {
+				return api.ErrAttendanceInvalidTransition
+			}
+		}
 		switch action {
 		case api.AttendanceActionWorkIn:
 			if hasOpenEntry {
