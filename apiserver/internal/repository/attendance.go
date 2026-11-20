@@ -427,7 +427,7 @@ func (r AttendanceRepository) ReprocessAttendance(ctx context.Context, startDate
 			return api.ReprocessResponse{}, err
 		}
 		if policyID == nil {
-			return api.ReprocessResponse{}, api.ErrPayrollPolicyMissing
+			return api.ReprocessResponse{}, api.ErrAttendancePolicyMissing
 		}
 		var scheduledStart, scheduledEnd *time.Time = startAt, endAt
 		var breakStart, breakEnd *time.Time

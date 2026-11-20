@@ -24,6 +24,7 @@ var ErrAttendanceBreakNotRequired = errors.New("attendance: break not required")
 var ErrAttendanceBreakNotOpen = errors.New("attendance: break not open")
 var ErrAttendanceIdempotencyConflict = errors.New("attendance: idempotency conflict")
 var ErrInvalidAttendanceAdjustment = errors.New("attendance: invalid adjustment")
+var ErrAttendancePolicyMissing = errors.New("attendance: work policy is missing")
 
 const (
 	AttendanceAdjustmentBreakWorked          = "break_worked"
@@ -667,6 +668,10 @@ func (h *AttendanceHandler) writeError(w http.ResponseWriter, r *http.Request, e
 		return
 	}
 	if errors.Is(err, ErrNoActiveEmployment) {
+		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
+		return
+	}
+	if errors.Is(err, ErrAttendancePolicyMissing) {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}

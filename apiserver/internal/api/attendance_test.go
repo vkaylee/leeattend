@@ -161,6 +161,13 @@ func (m *mockAttendanceRepo) DeleteTimeEntry(_ context.Context, _ uuid.UUID) err
 	return m.err
 }
 
+func (m *mockAttendanceRepo) ReprocessAttendance(_ context.Context, startDate, endDate string, employeeID *uuid.UUID) (ReprocessResponse, error) {
+	if m.err != nil {
+		return ReprocessResponse{}, m.err
+	}
+	return ReprocessResponse{EmploymentID: employeeID, StartDate: startDate, EndDate: endDate, Days: 1, Recalculated: 1}, nil
+}
+
 func TestPunchIn_PermissionDenied(t *testing.T) {
 	userID := uuid.New()
 	handler := AttendanceHandler{
@@ -489,7 +496,7 @@ func TestAttendanceSummaries_Success(t *testing.T) {
 	}
 }
 
-func TestAttendanceReprocessAllUnavailable(t *testing.T) {
+func TestAttendanceReprocessAllReturnsResult(t *testing.T) {
 	userID := uuid.New()
 	handler := AttendanceHandler{
 		Repository: &mockAttendanceRepo{},
@@ -501,11 +508,11 @@ func TestAttendanceReprocessAllUnavailable(t *testing.T) {
 
 	rec := httptest.NewRecorder()
 	handler.ReprocessAll(rec, req)
-	if rec.Code != http.StatusServiceUnavailable {
-		t.Fatalf("expected 503, got %d", rec.Code)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", rec.Code, rec.Body.String())
 	}
-	if strings.Contains(rec.Body.String(), "job_id") {
-		t.Fatalf("did not expect fabricated job_id: %s", rec.Body.String())
+	if !strings.Contains(rec.Body.String(), "recalculated") {
+		t.Fatalf("expected reprocess result: %s", rec.Body.String())
 	}
 }
 
@@ -523,11 +530,11 @@ func TestAttendanceReprocessEmployeeUnavailable(t *testing.T) {
 
 	rec := httptest.NewRecorder()
 	handler.ReprocessEmployee(rec, req)
-	if rec.Code != http.StatusServiceUnavailable {
-		t.Fatalf("expected 503, got %d", rec.Code)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", rec.Code, rec.Body.String())
 	}
-	if strings.Contains(rec.Body.String(), "job_id") {
-		t.Fatalf("did not expect fabricated job_id: %s", rec.Body.String())
+	if !strings.Contains(rec.Body.String(), "recalculated") {
+		t.Fatalf("expected reprocess result: %s", rec.Body.String())
 	}
 }
 
