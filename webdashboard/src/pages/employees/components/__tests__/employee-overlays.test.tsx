@@ -1,7 +1,10 @@
 import { render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import React from "react";
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
+
+import Button from "@/components/ui/button";
 
 import { EmployeeOverlays } from "../employee-overlays";
 
@@ -19,7 +22,12 @@ vi.mock("@/components/features/employees/employee-detail-drawer", () => ({
 
 vi.mock("@/components/features/employees/employee-form-modal", () => ({
   default: (props: { isOpen: boolean; onClose: () => void }) =>
-    props.isOpen ? <div data-testid="employee-form-modal">Form</div> : null,
+    props.isOpen ? (
+      <div data-testid="employee-form-modal">
+        Form
+        <Button data-testid="employee-form-modal-close" onClick={props.onClose} type="button" variant="ghost">Close</Button>
+      </div>
+    ) : null,
 }));
 
 vi.mock("@/components/features/attendance/attendance-import-dialog", () => ({
@@ -120,9 +128,27 @@ describe("EmployeeOverlays", () => {
       });
     });
 
-    it("does not render for closed modal state", () => {
-      render(<EmployeeOverlays {...createDefaults()} />);
+    it("closes through shared close handler", async () => {
+      const closeModal = vi.fn();
+      render(
+        <EmployeeOverlays
+          {...createDefaults({
+            activeModal: { type: "edit", employee: mockEmployee },
+            closeModal,
+          })}
+        />,
+      );
+
+      await userEvent.setup().click(await screen.findByTestId("employee-form-modal-close"));
+      expect(closeModal).toHaveBeenCalledTimes(1);
+    });
+
+    it("does not render for closed or non-edit modal states", async () => {
+      const { rerender } = render(<EmployeeOverlays {...createDefaults()} />);
       expect(screen.queryByTestId("employee-form-modal")).toBeNull();
+
+      rerender(<EmployeeOverlays {...createDefaults({ activeModal: { type: "import" } })} />);
+      await waitFor(() => expect(screen.queryByTestId("employee-form-modal")).toBeNull());
     });
   });
 
