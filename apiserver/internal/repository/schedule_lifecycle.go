@@ -550,7 +550,7 @@ func (r ScheduleRepository) MarkBreakWorked(ctx context.Context, actorID, employ
 		var employerID uuid.UUID
 		var scheduledStart, scheduledEnd time.Time
 		var breaks []byte
-		if err := tx.QueryRow(ctx, `SELECT e.employer_id, ws.scheduled_start_at, ws.scheduled_end_at, ws.breaks_snapshot FROM work_segments ws JOIN employments e ON e.id = ws.employment_id WHERE ws.id = $1 AND ws.employment_id = $2 AND ws.date = $3::date FOR UPDATE`, request.SegmentID, employmentID, businessDate).Scan(&employerID, &scheduledStart, &scheduledEnd, &breaks); err != nil {
+		if err := tx.QueryRow(ctx, `SELECT e.employer_id, ws.scheduled_start_at, ws.scheduled_end_at, ws.breaks_snapshot FROM work_segments ws JOIN employments e ON e.id = ws.employment_id WHERE ws.id = $1::uuid AND ws.employment_id = $2::uuid AND ws.date = $3::date FOR UPDATE`, request.SegmentID, employmentID, businessDate).Scan(&employerID, &scheduledStart, &scheduledEnd, &breaks); err != nil {
 			if errors.Is(err, pgx.ErrNoRows) {
 				return api.ErrScheduleBreakOverrideInvalid
 			}
@@ -586,7 +586,7 @@ func (r ScheduleRepository) MarkBreakWorked(ctx context.Context, actorID, employ
 			return api.ErrScheduleBreakOverrideInvalid
 		}
 		var overlap bool
-		if err := tx.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM schedule_day_overrides WHERE employment_id = $1 AND business_date = $2::date AND status IN ('approved', 'pending') AND start_at < $4 AND end_at > $3)`, employmentID, businessDate, start, end).Scan(&overlap); err != nil {
+		if err := tx.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM schedule_day_overrides WHERE employment_id = $1::uuid AND business_date = $2::date AND status IN ('approved', 'pending') AND start_at < $4::timestamptz AND end_at > $3::timestamptz)`, employmentID, businessDate, start, end).Scan(&overlap); err != nil {
 			return err
 		}
 		if overlap {
@@ -594,10 +594,10 @@ func (r ScheduleRepository) MarkBreakWorked(ctx context.Context, actorID, employ
 		}
 		minutes := int(end.Sub(start).Minutes())
 		id := uuid.New()
-		if _, err := tx.Exec(ctx, `INSERT INTO schedule_day_overrides (id, employment_id, business_date, work_segment_id, override_type, start_at, end_at, minutes, reason, status, created_by, created_at) VALUES ($1, $2, $3::date, $4, 'break_worked', $5, $6, $7, $8, 'approved', $9, CURRENT_TIMESTAMP)`, id, employmentID, businessDate, request.SegmentID, start, end, minutes, strings.TrimSpace(request.Reason), actorID); err != nil {
+		if _, err := tx.Exec(ctx, `INSERT INTO schedule_day_overrides (id, employment_id, business_date, work_segment_id, override_type, start_at, end_at, minutes, reason, status, created_by, created_at) VALUES ($1::uuid, $2::uuid, $3::date, $4::uuid, 'break_worked', $5::timestamptz, $6::timestamptz, $7::integer, $8::text, 'approved', $9::uuid, CURRENT_TIMESTAMP)`, id, employmentID, businessDate, request.SegmentID, start, end, minutes, strings.TrimSpace(request.Reason), actorID); err != nil {
 			return err
 		}
-		if _, err := tx.Exec(ctx, `INSERT INTO audit_logs (actor_id, target_resource_id, action, details, actor_type, created_at) VALUES ($1, $2, 'schedule.break_worked.marked', jsonb_build_object('employment_id', $3, 'business_date', $4, 'segment_id', $5, 'start', $6, 'end', $7, 'minutes', $8, 'reason', $9), 'human', CURRENT_TIMESTAMP)`, actorID, id, employmentID, businessDate, request.SegmentID, start, end, minutes, strings.TrimSpace(request.Reason)); err != nil {
+		if _, err := tx.Exec(ctx, `INSERT INTO audit_logs (actor_id, target_resource_id, action, details, actor_type, created_at) VALUES ($1, $2, 'schedule.break_worked.marked', jsonb_build_object('employment_id', $3::uuid, 'business_date', $4::text, 'segment_id', $5::uuid, 'start', $6::timestamptz, 'end', $7::timestamptz, 'minutes', $8::integer, 'reason', $9::text), 'human', CURRENT_TIMESTAMP)`, actorID, id, employmentID, businessDate, request.SegmentID, start, end, minutes, strings.TrimSpace(request.Reason)); err != nil {
 			return err
 		}
 		response = api.MarkBreakWorkedResponse{ID: id, EmploymentID: employmentID, BusinessDate: businessDate, SegmentID: request.SegmentID, Start: start, End: end, Minutes: minutes, Status: "approved"}
