@@ -248,7 +248,7 @@ export interface paths {
         };
         get?: never;
         put: operations["put_api_v1_attendance_adjustments_id_approve"];
-        post: operations["post_api_v1_attendance_adjustments_id_approve"];
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -4839,6 +4839,25 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/schedules/{employment_id}/{business_date}/break-worked": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                employment_id: string;
+                business_date: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["post_api_v1_schedules_employment_id_business_date_break_worked"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/schedules/{employment_id}/{business_date}/replan": {
         parameters: {
             query?: never;
@@ -5308,22 +5327,36 @@ export interface components {
         AdjustmentRecord: {
             approved_by_user_id?: string | null;
             attachment_file_ids: string[];
+            corrected_punch_in?: string | null;
+            corrected_punch_out?: string | null;
             created_at: string;
+            direction?: string | null;
             employment_id: string;
+            end?: string | null;
             id: string;
             reason?: string | null;
             requested_by_user_id?: string | null;
             requested_punch_time: string;
+            segment_id?: string | null;
+            start?: string | null;
             status: string;
             time_entry_id?: string | null;
+            type: string;
             updated_at: string;
         };
         AdjustmentRequest: {
             attachment_file_ids?: string[];
+            corrected_punch_in?: string;
+            corrected_punch_out?: string;
+            direction?: string;
             employment_id?: string;
+            end?: string;
             reason?: string | null;
             requested_punch_time?: string;
+            segment_id?: string | null;
+            start?: string;
             time_entry_id?: string | null;
+            type?: string;
         };
         ApprovalActionLog: {
             acted_at: string;
@@ -5558,6 +5591,7 @@ export interface components {
             ot_reason?: string | null;
             ot_status: string;
             scheduled_break_minutes: number;
+            shift_version_id?: string | null;
             standard_credits: number;
             standard_minutes: number;
             system_detected_ot_minutes: number;
@@ -6136,6 +6170,7 @@ export interface components {
             notes?: string | null;
             override_reason?: string | null;
             shift_id?: string | null;
+            shift_version_id?: string | null;
         };
         CreateSalaryComponentRequest: {
             code?: string;
@@ -6159,17 +6194,17 @@ export interface components {
         };
         CreateStorageConfigRequest: components["schemas"]["StorageConfigRequest"];
         CreateUploadUrlRequest: {
-            category?: string;
+            category: string;
             expires_in_secs?: number | null;
-            file_name?: string;
-            file_size?: number;
-            mime_type?: string;
-            owner_id?: string;
-            owner_type?: string;
+            file_name: string;
+            file_size: number;
+            mime_type: string;
+            owner_id: string;
+            owner_type: string;
         };
         CreateUploadUrlResponse: {
-            file?: components["schemas"]["FileRecord"];
-            upload_url?: string;
+            file: components["schemas"]["FileRecord"];
+            upload_url: string;
         };
         CreateWorkPolicyGroupRequest: {
             attendance_policy_id?: string;
@@ -6538,6 +6573,7 @@ export interface components {
             break_is_overtime?: boolean | null;
             break_punch_mode?: string | null;
             break_start?: string | null;
+            break_worked_overrides: components["schemas"]["ScheduleBreakWorkedOverride"][];
             date: string;
             end_time?: string | null;
             holiday_name?: string | null;
@@ -7281,6 +7317,22 @@ export interface components {
         LockPayrollPeriodRequest: {
             version?: number;
         };
+        MarkBreakWorkedRequest: {
+            end?: string;
+            reason?: string;
+            segment_id?: string;
+            start?: string;
+        };
+        MarkBreakWorkedResponse: {
+            business_date: string;
+            employment_id: string;
+            end: string;
+            id: string;
+            minutes: number;
+            segment_id: string;
+            start: string;
+            status: string;
+        };
         MemberDetail: {
             avatar_url?: string | null;
             email: string;
@@ -7882,6 +7934,7 @@ export interface components {
             computed: boolean;
             delta?: components["schemas"]["PayrollImpactResponse"];
             employment_id: string;
+            input_fingerprint: string;
             reason: string;
             stale: boolean;
             stale_reasons: string[];
@@ -7912,6 +7965,7 @@ export interface components {
             employment_id: string;
             evaluated_at: string;
             expires_at: string;
+            input_fingerprint: string;
             net_pay_delta: string;
             overtime_pay_delta: string;
             overtime_units_delta: number;
@@ -8250,6 +8304,13 @@ export interface components {
             reason?: string;
             version?: number;
         };
+        ReprocessResponse: {
+            days: number;
+            employment_id?: string | null;
+            end_date: string;
+            recalculated: number;
+            start_date: string;
+        };
         ResolveStagingRequest: {
             employee_id?: string;
             employment_id?: string | null;
@@ -8283,6 +8344,7 @@ export interface components {
             date: string;
             notes?: string | null;
             shift_id?: string | null;
+            shift_version_id?: string | null;
         };
         SMTPTestRequest: {
             to_email?: string;
@@ -8347,6 +8409,14 @@ export interface components {
             open_mismatch_count: number;
             ready: boolean;
             required_office_days: number;
+        };
+        ScheduleBreakWorkedOverride: {
+            end: string;
+            id: string;
+            minutes: number;
+            segment_id: string;
+            start: string;
+            status: string;
         };
         ScheduleCoverage: {
             complete: boolean;
@@ -8659,6 +8729,7 @@ export interface components {
             id: string;
             notes?: string | null;
             shift_id?: string | null;
+            shift_version_id?: string | null;
             status: string;
             updated_at: string;
         };
@@ -8806,6 +8877,9 @@ export interface components {
         };
         TerminationPreviewResponse: components["schemas"]["TerminationImportPreviewResponse"];
         TimeEntry: {
+            breaks_snapshot?: (string | number | boolean | {
+                [key: string]: unknown;
+            } | unknown[]) | null;
             created_at: string;
             duration_minutes?: number | null;
             employment_id: string;
@@ -8820,9 +8894,13 @@ export interface components {
             punch_out_time?: string | null;
             segment_id?: string | null;
             shift_id?: string | null;
+            shift_version_id?: string | null;
             updated_at: string;
         };
         TimeEntryRecord: {
+            breaks_snapshot?: (string | number | boolean | {
+                [key: string]: unknown;
+            } | unknown[]) | null;
             created_at: string;
             duration_minutes?: number | null;
             employment_id: string;
@@ -8837,6 +8915,7 @@ export interface components {
             punch_out_time?: string | null;
             segment_id?: string | null;
             shift_id?: string | null;
+            shift_version_id?: string | null;
             updated_at: string;
         };
         TransferEmployeeRequest: {
@@ -10209,40 +10288,6 @@ export interface operations {
         };
     };
     put_api_v1_attendance_adjustments_id_approve: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["JsonObject"];
-                };
-            };
-            /** @description Successful response without body */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            400: components["responses"]["BadRequest"];
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-            404: components["responses"]["NotFound"];
-            500: components["responses"]["InternalError"];
-        };
-    };
-    post_api_v1_attendance_adjustments_id_approve: {
         parameters: {
             query?: never;
             header?: never;
@@ -16493,7 +16538,11 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateUploadUrlRequest"];
+            };
+        };
         responses: {
             /** @description Successful response */
             200: {
@@ -16501,7 +16550,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["JsonObject"];
+                    "application/json": components["schemas"]["CreateUploadUrlResponse"];
                 };
             };
             /** @description Successful response without body */
@@ -16525,15 +16574,26 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "multipart/form-data": {
+                    /** Format: binary */
+                    file: string;
+                    category: string;
+                    owner_type: string;
+                    /** Format: uuid */
+                    owner_id?: string;
+                };
+            };
+        };
         responses: {
             /** @description Successful response */
-            200: {
+            201: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["JsonObject"];
+                    "application/json": components["schemas"]["FileRecord"];
                 };
             };
             /** @description Successful response without body */
@@ -22287,6 +22347,41 @@ export interface operations {
             header?: never;
             path: {
                 mismatch_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JsonObject"];
+                };
+            };
+            /** @description Successful response without body */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    post_api_v1_schedules_employment_id_business_date_break_worked: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                employment_id: string;
+                business_date: string;
             };
             cookie?: never;
         };

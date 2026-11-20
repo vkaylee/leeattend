@@ -56,17 +56,17 @@ type AttendanceSummaryRow struct {
 }
 
 type DailyAttendanceRow struct {
-	Date              string    `json:"date"`
-	EmploymentID      uuid.UUID `json:"employment_id"`
-	EmployeeID        uuid.UUID `json:"employee_id"`
-	EmployeeName      string    `json:"employee_name"`
-	EmployeeIDNumber  string    `json:"employee_id_number"`
-	ShiftSymbol       *string   `json:"shift_symbol,omitempty"`
-	ShiftName         *string   `json:"shift_name,omitempty"`
-	ScheduledStart    *string   `json:"scheduled_start,omitempty"`
-	ScheduledEnd      *string   `json:"scheduled_end,omitempty"`
-	ActualPunchIn     *string   `json:"actual_punch_in,omitempty"`
-	ActualPunchOut    *string   `json:"actual_punch_out,omitempty"`
+	Date                  string    `json:"date"`
+	EmploymentID          uuid.UUID `json:"employment_id"`
+	EmployeeID            uuid.UUID `json:"employee_id"`
+	EmployeeName          string    `json:"employee_name"`
+	EmployeeIDNumber      string    `json:"employee_id_number"`
+	ShiftSymbol           *string   `json:"shift_symbol,omitempty"`
+	ShiftName             *string   `json:"shift_name,omitempty"`
+	ScheduledStart        *string   `json:"scheduled_start,omitempty"`
+	ScheduledEnd          *string   `json:"scheduled_end,omitempty"`
+	ActualPunchIn         *string   `json:"actual_punch_in,omitempty"`
+	ActualPunchOut        *string   `json:"actual_punch_out,omitempty"`
 	ActualWorkMinutes     int       `json:"actual_work_minutes"`
 	ScheduledBreakMinutes int       `json:"scheduled_break_minutes"`
 	ActualBreakMinutes    int       `json:"actual_break_minutes"`
@@ -76,13 +76,13 @@ type DailyAttendanceRow struct {
 	BreakProvisional      bool      `json:"break_provisional"`
 	BreakExceptionCode    *string   `json:"break_exception_code,omitempty"`
 	ComputedStdHours      float64   `json:"computed_std_hours"`
-	ComputedOTHours   float64   `json:"computed_ot_hours"`
-	StdWorkUnits      float64   `json:"std_work_units"`
-	OTWorkUnits       float64   `json:"ot_work_units"`
-	StandardCredits   float64   `json:"standard_credits"`
-	OTClaimStatus     string    `json:"ot_claim_status"`
-	Status            string    `json:"status"`
-	Timezone          *string   `json:"timezone,omitempty"`
+	ComputedOTHours       float64   `json:"computed_ot_hours"`
+	StdWorkUnits          float64   `json:"std_work_units"`
+	OTWorkUnits           float64   `json:"ot_work_units"`
+	StandardCredits       float64   `json:"standard_credits"`
+	OTClaimStatus         string    `json:"ot_claim_status"`
+	Status                string    `json:"status"`
+	Timezone              *string   `json:"timezone,omitempty"`
 }
 
 type NoShowReportRow struct {
@@ -183,8 +183,14 @@ func (h *ReportHandler) CreateExport(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	data, filename, err := h.Repository.ExportAttendanceReport(r.Context(), request)
-	if errors.Is(err, ErrReportExportTooLarge) { apperror.WriteError(w, r, apperror.PayloadTooLarge(apperror.KeyFileTooLarge)); return }
-	if err != nil { apperror.WriteError(w, r, apperror.Internal(err)); return }
+	if errors.Is(err, ErrReportExportTooLarge) {
+		apperror.WriteError(w, r, apperror.PayloadTooLarge(apperror.KeyFileTooLarge))
+		return
+	}
+	if err != nil {
+		apperror.WriteError(w, r, apperror.Internal(err))
+		return
+	}
 	w.Header().Set("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
 	w.Header().Set("Content-Disposition", fmt.Sprintf(`attachment; filename="%s"`, filename))
 	w.Header().Set("X-Content-Type-Options", "nosniff")

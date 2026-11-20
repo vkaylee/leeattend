@@ -13,11 +13,9 @@ import { useFileUpload, type UseFileUploadOptions } from "../use-file-upload";
 const ERROR_MSG = common.errors;
 
 const clientMock = vi.hoisted(() => ({ POST: vi.fn() }));
-const legacyFetchMock = vi.hoisted(() => vi.fn());
 
 vi.mock("@/lib/api/client", () => ({
   client: clientMock,
-  fetch: legacyFetchMock,
 }));
 
 const hashMock = vi.hoisted(() => ({ computeSHA256: vi.fn() }));
@@ -117,7 +115,7 @@ describe("useFileUpload", () => {
       expect(onSuccess).toHaveBeenCalledWith(dbFile);
       expect(result.current.progress).toBe(100);
       expect(result.current.error).toBeNull();
-      expect(legacyFetchMock).not.toHaveBeenCalled();
+      expect(clientMock.POST).toHaveBeenCalledTimes(1);
     });
 
     it("throws the backend error message and invokes onError", async () => {
@@ -182,7 +180,7 @@ describe("useFileUpload", () => {
     const dbFile = { id: "file-2", file_name: "big.zip" };
 
     it("requests a presigned URL, PUTs the file and returns the stored file", async () => {
-      (legacyFetchMock as Mock).mockResolvedValue({
+      (clientMock.POST as Mock).mockResolvedValue({
         data: { file: dbFile, upload_url: "https://s3.example/upload" },
       });
       const onSuccess = vi.fn();
@@ -197,12 +195,10 @@ describe("useFileUpload", () => {
       });
       await waitFor(() => expect(FakeXHR.instances.length).toBeGreaterThan(0));
 
-      const [method, url, init] = (legacyFetchMock as Mock).mock.calls[0];
-      expect(method).toBe("POST");
+      const [url, init] = (clientMock.POST as Mock).mock.calls[0];
       expect(url).toBe("/api/v1/files/presigned");
       expect(init.body).toMatchObject({
         category: "onboarding",
-        content_hash: "hash123",
         file_name: "big.zip",
         file_size: LARGE,
         mime_type: "application/octet-stream",
@@ -220,12 +216,12 @@ describe("useFileUpload", () => {
       });
 
       expect(onSuccess).toHaveBeenCalledWith(dbFile);
-      expect(clientMock.POST).not.toHaveBeenCalled();
+      expect(clientMock.POST).toHaveBeenCalledTimes(1);
     });
 
     it("tracks upload progress from the XHR progress events", async () => {
       FakeXHR.behavior = "manual";
-      (legacyFetchMock as Mock).mockResolvedValue({
+      (clientMock.POST as Mock).mockResolvedValue({
         data: { file: dbFile, upload_url: "https://s3.example/upload" },
       });
       const onSuccess = vi.fn();
@@ -261,7 +257,7 @@ describe("useFileUpload", () => {
     });
 
     it("rejects when the presigned request fails and invokes onError", async () => {
-      (legacyFetchMock as Mock).mockRejectedValue(new Error("presigned-boom"));
+      (clientMock.POST as Mock).mockRejectedValue(new Error("presigned-boom"));
       const onError = vi.fn();
       const { result } = renderHook(
         () => useFileUpload({ ...defaultOptions, onError }),
@@ -280,7 +276,7 @@ describe("useFileUpload", () => {
     });
 
     it("rejects when the presigned response body is null", async () => {
-      (legacyFetchMock as Mock).mockResolvedValue({ data: null });
+      (clientMock.POST as Mock).mockResolvedValue({ data: null });
       const onError = vi.fn();
       const { result } = renderHook(
         () => useFileUpload({ ...defaultOptions, onError }),
@@ -301,7 +297,7 @@ describe("useFileUpload", () => {
     it("rejects with the s3 error when the PUT returns a non-2xx status", async () => {
       FakeXHR.behavior = "manual";
       FakeXHR.status = 500;
-      (legacyFetchMock as Mock).mockResolvedValue({
+      (clientMock.POST as Mock).mockResolvedValue({
         data: { file: dbFile, upload_url: "https://s3.example/upload" },
       });
       const onError = vi.fn();
@@ -330,7 +326,7 @@ describe("useFileUpload", () => {
 
     it("rejects with the network error when the PUT fails to send", async () => {
       FakeXHR.behavior = "manual";
-      (legacyFetchMock as Mock).mockResolvedValue({
+      (clientMock.POST as Mock).mockResolvedValue({
         data: { file: dbFile, upload_url: "https://s3.example/upload" },
       });
       const onError = vi.fn();

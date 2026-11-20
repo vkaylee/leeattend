@@ -43,6 +43,25 @@ FORBIDDEN_SCHEMA = re.compile(
 )
 
 
+ROUTE_REQUEST_SCHEMAS = {
+    ("POST", "/api/v1/files/presigned"): "CreateUploadUrlRequest",
+}
+
+ROUTE_MULTIPART_REQUESTS = {
+    ("POST", "/api/v1/files/upload"),
+}
+
+ROUTE_RESPONSE_SCHEMAS = {
+    ("POST", "/api/v1/files/presigned"): ("200", "CreateUploadUrlResponse"),
+    ("POST", "/api/v1/files/upload"): ("201", "FileRecord"),
+}
+
+REQUIRED_SCHEMA_FIELDS = {
+    "CreateUploadUrlRequest": ("category", "file_name", "file_size", "mime_type", "owner_type"),
+    "CreateUploadUrlResponse": ("file", "upload_url"),
+}
+
+
 SCHEMA_ALIASES = {
     "Employee": "EmployeeRecord",
     "Department": "DepartmentRecord",
@@ -188,6 +207,42 @@ def yaml_quote(value: str) -> str:
     return '"' + value.replace("\\", "\\\\").replace('"', '\\"') + '"'
 
 
+def route_request_body(method: str, path: str) -> list[str]:
+    route = (method, path)
+    schema = ROUTE_REQUEST_SCHEMAS.get(route)
+    if schema:
+        return [
+            "      requestBody:",
+            "        required: true",
+            "        content:",
+            "          application/json:",
+            "            schema:",
+            f"              $ref: '#/components/schemas/{schema}'",
+        ]
+    if route in ROUTE_MULTIPART_REQUESTS:
+        return [
+            "      requestBody:",
+            "        required: true",
+            "        content:",
+            "          multipart/form-data:",
+            "            schema:",
+            "              type: object",
+            "              properties:",
+            "                file:",
+            "                  type: string",
+            "                  format: binary",
+            "                category:",
+            "                  type: string",
+            "                owner_type:",
+            "                  type: string",
+            "                owner_id:",
+            "                  type: string",
+            "                  format: uuid",
+            "              required: [file, category, owner_type]",
+        ]
+    return []
+
+
 def generate() -> str:
     routes = route_inventory()
     lines = [
@@ -222,18 +277,28 @@ def generate() -> str:
                     ]
                 )
         for method in methods:
+            request_body = route_request_body(method, path)
+            response_status, response_schema = ROUTE_RESPONSE_SCHEMAS.get(
+                (method, path), ("200", "JsonObject")
+            )
             lines.extend(
                 [
                     f"    {method.lower()}:",
                     f"      operationId: {operation_id(method, path)}",
                     "      tags: [runtime]",
+                ]
+            )
+            if request_body:
+                lines.extend(request_body)
+            lines.extend(
+                [
                     "      responses:",
-                    "        '200':",
+                    f"        '{response_status}':",
                     "          description: Successful response",
                     "          content:",
                     "            application/json:",
                     "              schema:",
-                    "                $ref: '#/components/schemas/JsonObject'",
+                    f"                $ref: '#/components/schemas/{response_schema}'",
                     "        '204':",
                     "          description: Successful response without body",
                     "        '400':",
@@ -317,8 +382,9 @@ def generate() -> str:
             lines.extend(schema_lines(prop, go_type, known))
             if is_required:
                 required.append(prop)
-        if required and not (name.endswith("Request") or name.startswith(("Create", "Update", "Assign", "Bulk"))):
-            lines.extend(["      required:"] + [f"        - {prop}" for prop in required])
+        required.extend(REQUIRED_SCHEMA_FIELDS.get(name, ()))
+        if required and (not name.endswith("Request") and not name.startswith(("Create", "Update", "Assign", "Bulk")) or name in REQUIRED_SCHEMA_FIELDS):
+            lines.extend(["      required:"] + [f"        - {prop}" for prop in sorted(set(required))])
     return "\n".join(lines) + "\n"
 
 

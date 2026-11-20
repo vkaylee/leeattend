@@ -115,26 +115,26 @@ func TestValidateIntervalsBreakAndDayBoundaries(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "break inside interval",
+			name:  "break inside interval",
 			input: ShiftIntervalRequest{StartTime: "08:00:00", EndTime: "17:00:00", BreakStart: stringPtr("12:00:00"), BreakEnd: stringPtr("13:00:00")},
 		},
 		{
-			name: "break outside interval",
-			input: ShiftIntervalRequest{StartTime: "08:00:00", EndTime: "17:00:00", BreakStart: stringPtr("07:00:00"), BreakEnd: stringPtr("08:00:00")},
+			name:    "break outside interval",
+			input:   ShiftIntervalRequest{StartTime: "08:00:00", EndTime: "17:00:00", BreakStart: stringPtr("07:00:00"), BreakEnd: stringPtr("08:00:00")},
 			wantErr: true,
 		},
 		{
-			name: "reversed break",
-			input: ShiftIntervalRequest{StartTime: "08:00:00", EndTime: "17:00:00", BreakStart: stringPtr("13:00:00"), BreakEnd: stringPtr("12:00:00")},
+			name:    "reversed break",
+			input:   ShiftIntervalRequest{StartTime: "08:00:00", EndTime: "17:00:00", BreakStart: stringPtr("13:00:00"), BreakEnd: stringPtr("12:00:00")},
 			wantErr: true,
 		},
 		{
-			name: "overnight break with offsets",
+			name:  "overnight break with offsets",
 			input: ShiftIntervalRequest{StartTime: "22:00:00", EndTime: "06:00:00", EndDayOffset: 1, BreakStart: stringPtr("01:00:00"), BreakEnd: stringPtr("01:30:00")},
 		},
 		{
-			name: "zero length interval",
-			input: ShiftIntervalRequest{StartTime: "08:00:00", EndTime: "08:00:00"},
+			name:    "zero length interval",
+			input:   ShiftIntervalRequest{StartTime: "08:00:00", EndTime: "08:00:00"},
 			wantErr: true,
 		},
 	}
