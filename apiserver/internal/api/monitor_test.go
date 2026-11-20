@@ -614,30 +614,3 @@ func TestDurableMonitorJob(t *testing.T) {
 		t.Fatalf("expected 200, got %d", w.Code)
 	}
 }
-
-func TestReportStreamWS_PreUpgradeAuth(t *testing.T) {
-	jwtSecret := "supersecretjwtkey123456789012345"
-	jobID := uuid.New()
-
-	handler := MonitorHandler{
-		JWTSecret: jwtSecret,
-	}
-
-	// 1. Missing token -> 401
-	req := httptest.NewRequest(http.MethodGet, "/api/v1/ws/reports/"+jobID.String(), nil)
-	req.SetPathValue("job_id", jobID.String())
-	w := httptest.NewRecorder()
-	handler.ReportStreamWS(w, req)
-	if w.Code != http.StatusUnauthorized {
-		t.Fatalf("expected 401 for missing token, got %d", w.Code)
-	}
-
-	// 2. Invalid token -> 401
-	req = httptest.NewRequest(http.MethodGet, "/api/v1/ws/reports/"+jobID.String()+"?token=invalid.token.here", nil)
-	req.SetPathValue("job_id", jobID.String())
-	w = httptest.NewRecorder()
-	handler.ReportStreamWS(w, req)
-	if w.Code != http.StatusUnauthorized {
-		t.Fatalf("expected 401 for invalid token, got %d", w.Code)
-	}
-}

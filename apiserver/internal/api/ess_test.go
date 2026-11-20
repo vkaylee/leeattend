@@ -95,37 +95,20 @@ type mockESSAttendanceRepo struct {
 	history        []TimeEntryRecord
 	historyErr     error
 	lastEmployeeID uuid.UUID
-	toggleStatus   bool
+	actionResponse AttendanceActionResponse
 }
 
-func (m *mockESSAttendanceRepo) ESSPunch(_ context.Context, empID uuid.UUID, entryType string, note *string, punchTime time.Time) (TimeEntryRecord, error) {
+func (m *mockESSAttendanceRepo) ESSAttendanceAction(_ context.Context, empID uuid.UUID, action string, note *string, _ string, actionTime time.Time) (AttendanceActionResponse, error) {
 	m.lastEmployeeID = empID
-	if m.punchErr != nil {
-		return TimeEntryRecord{}, m.punchErr
-	}
-	if !m.toggleStatus {
-		m.toggleStatus = true
-		return TimeEntryRecord{
-			ID:           uuid.New(),
-			EmploymentID: empID,
-			PunchInTime:  punchTime.Format(time.RFC3339),
-			EntryType:    entryType,
-			Note:         note,
-		}, nil
-	}
-	m.toggleStatus = false
-	inTime := punchTime.Add(-8 * time.Hour).Format(time.RFC3339)
-	outTime := punchTime.Format(time.RFC3339)
-	dur := 480
-	return TimeEntryRecord{
-		ID:              uuid.New(),
-		EmploymentID:    empID,
-		PunchInTime:     inTime,
-		PunchOutTime:    &outTime,
-		DurationMinutes: &dur,
-		EntryType:       entryType,
-		Note:            note,
-	}, nil
+	if m.punchErr != nil { return AttendanceActionResponse{}, m.punchErr }
+	if m.actionResponse.State != "" { return m.actionResponse, nil }
+	return AttendanceActionResponse{State: action, NextAllowedActions: []string{AttendanceActionWorkIn}, Entry: &TimeEntryRecord{ID: uuid.New(), EmploymentID: empID, PunchInTime: actionTime.Format(time.RFC3339), EntryType: "work", Note: note}}, nil
+}
+
+func (m *mockESSAttendanceRepo) GetESSAttendanceState(_ context.Context, employeeID uuid.UUID) (AttendanceActionResponse, error) {
+	m.lastEmployeeID = employeeID
+	if m.punchErr != nil { return AttendanceActionResponse{}, m.punchErr }
+	return m.actionResponse, nil
 }
 
 func (m *mockESSAttendanceRepo) ListTimeHistory(_ context.Context, employeeID uuid.UUID, _, _ time.Time) ([]TimeEntryRecord, error) {
@@ -438,54 +421,30 @@ func TestESSGetAttendanceSuccess(t *testing.T) {
 	}
 }
 
-func TestESSPunchToggle(t *testing.T) {
+func TestESSAttendanceAction(t *testing.T) {
 	userID, empID := uuid.New(), uuid.New()
 	repo := &mockESSRepository{empID: empID, resolveByUser: map[uuid.UUID]uuid.UUID{userID: empID}}
 	attendance := &mockESSAttendanceRepo{}
-	handler := ESSHandler{Repository: repo, Attendance: attendance}
+	handler := ESSHandler{Repository: repo, Attendance: attendance, Authorizer: mockAttendanceAuthorizer{allowed: true}}
 
-	// 1. Punch In
-	req1 := essRequestAs(t, userID, http.MethodPost, "/api/v1/ess/punch", `{"note":"starting shift"}`)
-	rec1 := httptest.NewRecorder()
-	handler.Punch(rec1, req1)
-	if rec1.Code != http.StatusCreated {
-		t.Fatalf("expected 201 for punch in, got %d: %s", rec1.Code, rec1.Body.String())
-	}
-	if attendance.lastEmployeeID != empID {
-		t.Fatalf("expected punch for employee %s, got %s", empID, attendance.lastEmployeeID)
-	}
-	var entry1 TimeEntryRecord
-	if err := json.Unmarshal(rec1.Body.Bytes(), &entry1); err != nil || entry1.PunchOutTime != nil {
-		t.Fatalf("expected open entry, got %+v", entry1)
-	}
-
-	// 2. Punch Out
-	req2 := essRequestAs(t, userID, http.MethodPost, "/api/v1/ess/punch", `{"note":"ending shift"}`)
-	rec2 := httptest.NewRecorder()
-	handler.Punch(rec2, req2)
-	if rec2.Code != http.StatusCreated {
-		t.Fatalf("expected 201 for punch out, got %d: %s", rec2.Code, rec2.Body.String())
-	}
-	if attendance.lastEmployeeID != empID {
-		t.Fatalf("expected punch for employee %s, got %s", empID, attendance.lastEmployeeID)
-	}
-	var entry2 TimeEntryRecord
-	if err := json.Unmarshal(rec2.Body.Bytes(), &entry2); err != nil || entry2.PunchOutTime == nil {
-		t.Fatalf("expected closed entry with punch_out_time, got %+v", entry2)
-	}
+	req := essRequestAs(t, userID, http.MethodPost, "/api/v1/ess/attendance/actions", `{"action":"work_in","note":"starting shift"}`)
+	req.Header.Set("Idempotency-Key", uuid.NewString())
+	rec := httptest.NewRecorder()
+	handler.AttendanceAction(rec, req)
+	if rec.Code != http.StatusCreated { t.Fatalf("expected 201, got %d: %s", rec.Code, rec.Body.String()) }
+	if attendance.lastEmployeeID != empID { t.Fatalf("expected action for employee %s, got %s", empID, attendance.lastEmployeeID) }
 }
 
-func TestESSPunchNoActiveEmployment(t *testing.T) {
+func TestESSAttendanceActionNoActiveEmployment(t *testing.T) {
 	userID, empID := uuid.New(), uuid.New()
 	repo := &mockESSRepository{empID: empID, resolveByUser: map[uuid.UUID]uuid.UUID{userID: empID}}
 	attendance := &mockESSAttendanceRepo{punchErr: ErrNoActiveEmployment}
-	handler := ESSHandler{Repository: repo, Attendance: attendance}
-	req := essRequestAs(t, userID, http.MethodPost, "/api/v1/ess/punch", `{}`)
+	handler := ESSHandler{Repository: repo, Attendance: attendance, Authorizer: mockAttendanceAuthorizer{allowed: true}}
+	req := essRequestAs(t, userID, http.MethodPost, "/api/v1/ess/attendance/actions", `{"action":"work_in"}`)
+	req.Header.Set("Idempotency-Key", uuid.NewString())
 	rec := httptest.NewRecorder()
-	handler.Punch(rec, req)
-	if rec.Code != http.StatusBadRequest {
-		t.Fatalf("expected 400 for no active employment, got %d", rec.Code)
-	}
+	handler.AttendanceAction(rec, req)
+	if rec.Code != http.StatusBadRequest { t.Fatalf("expected 400 for no active employment, got %d", rec.Code) }
 }
 
 func TestESSGetTimeEntriesSuccess(t *testing.T) {

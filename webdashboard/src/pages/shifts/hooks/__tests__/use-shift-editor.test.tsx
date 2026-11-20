@@ -80,8 +80,6 @@ describe("useShiftEditor", () => {
       expect(iv.startTime).toBe("08:00");
       expect(iv.endTime).toBe("17:00");
       expect(iv.breakDuration).toBe(60);
-      expect(iv.isAutoDeduct).toBe(true);
-      expect(iv.otAggregationMode).toBe("aggregate");
     });
 
     it("isSaveDisabled is true when shiftName is empty", () => {

@@ -38,6 +38,11 @@ export const ShiftDetailsList = memo(function ShiftDetailsList({ intervals, t }:
               {interval.isFixedBreak
                 ? `${interval.breakStart || "--:--"} - ${interval.breakEnd || "--:--"}`
                 : `${interval.breakDuration} ${t("common.minutes", "phút")}`}
+              <span className="block text-[10px] font-normal text-slate-400">
+                {interval.isAutoDeduct
+                  ? t("shifts.modal.break_policy_auto_deduct", "Tự động trừ")
+                  : t("shifts.modal.break_policy_no_deduct", "Không tự động trừ")}
+              </span>
             </span>
           </div>
         </div>

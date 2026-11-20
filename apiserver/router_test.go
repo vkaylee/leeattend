@@ -181,7 +181,6 @@ func TestBuildRouterPreservesPublicProtectedESSAndWebSocketScopes(t *testing.T) 
 		{"public health", http.MethodGet, "/api/v1/health", http.StatusOK},
 		{"protected payroll", http.MethodGet, "/api/v1/payroll/payslips", http.StatusUnauthorized},
 		{"protected ESS", http.MethodGet, "/api/v1/ess/profile", http.StatusUnauthorized},
-		{"public websocket pre-upgrade auth", http.MethodGet, "/api/v1/ws/reports/00000000-0000-0000-0000-000000000001", http.StatusUnauthorized},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {

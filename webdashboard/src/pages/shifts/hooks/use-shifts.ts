@@ -57,12 +57,9 @@ export function useShifts(): UseShiftsReturn {
         form.setNewShiftStart("08:00");
         form.setNewShiftEnd("17:00");
         form.setNewShiftBreak(60);
-        form.setNewShiftGrace(15);
         form.setNewBreakStart("");
         form.setNewBreakEnd("");
         form.setIsFixedBreak(false);
-        form.setIsAutoDeduct(true);
-        form.setIsBreakOvertime(false);
         form.setIsCreateModalOpen(false);
         form.setActiveTab("directory");
       } else if (type === "updateShift") {

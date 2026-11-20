@@ -19,7 +19,7 @@ interface ReportExportDialogProps {
   startDate: string;
 }
 
-export type ExportPhase = "idle" | "starting" | "polling" | "downloading" | "completed" | "failed";
+export type ExportPhase = "idle" | "starting" | "downloading" | "completed" | "failed";
 
 interface ExportInfoPanelProps {
   employeeIds?: string[];
@@ -51,17 +51,13 @@ function ExportInfoPanel({ startDate, endDate, reportType, employeeIds, t }: Exp
 }
 
 interface ExportProgressPanelProps {
-  completedBatches: number;
   error: string | null;
-  percentage: number;
   phase: ExportPhase;
   t: TFunction;
-  totalBatches: number;
-  useFallbackPolling: boolean;
 }
 
 function ExportPhaseIcon({ phase }: { phase: ExportPhase }) {
-  if (phase === "starting" || phase === "polling" || phase === "downloading") {
+  if (phase === "starting" || phase === "downloading") {
     return <Loader2 className="w-5 h-5 text-primary-600 dark:text-primary-400 animate-spin" />;
   }
   if (phase === "completed") return <CheckCircle2 className="w-5 h-5 text-emerald-500" />;
@@ -76,7 +72,6 @@ function ExportStatusText({ phase, t }: { phase: ExportPhase; t: TFunction }) {
     "text-slate-700 dark:text-slate-200";
   const messages: Partial<Record<ExportPhase, string>> = {
     starting: t("report_export.status.preparing"),
-    polling: t("report_export.status.processing"),
     completed: t("report_export.status.completed"),
     failed: t("report_export.status.failed"),
     downloading: t("report_export.status.downloading"),
@@ -104,21 +99,15 @@ function ExportProgressBar({ phase, percentage }: { percentage: number; phase: E
   );
 }
 
-function ExportProgressPanel({ phase, percentage, totalBatches, completedBatches, error, useFallbackPolling, t }: ExportProgressPanelProps) {
+function ExportProgressPanel({ phase, error, t }: ExportProgressPanelProps) {
   return (
     <div className="space-y-4">
-      <ExportProgressBar percentage={percentage} phase={phase} />
+      <ExportProgressBar percentage={phase === "completed" ? 100 : 0} phase={phase} />
 
       <div className="flex items-center justify-center gap-3">
         <ExportPhaseIcon phase={phase} />
         <ExportStatusText phase={phase} t={t} />
       </div>
-
-      {phase === "polling" && totalBatches > 0 && (
-        <Typography className="text-center text-sm text-slate-500 dark:text-slate-400" data-testid="report-export-batch-counter" variant="p">
-          {t("report_export.batches_completed", { completed: completedBatches, total: totalBatches })}
-        </Typography>
-      )}
 
       {error ? (
         <div className="bg-rose-50 dark:bg-rose-950 border border-rose-200 rounded-xl p-4" data-testid="report-export-error">
@@ -126,24 +115,18 @@ function ExportProgressPanel({ phase, percentage, totalBatches, completedBatches
         </div>
       ) : null}
 
-      {useFallbackPolling && phase === "polling" ? (
-        <div className="bg-amber-50 dark:bg-amber-950 border border-amber-200 rounded-xl p-3" data-testid="report-export-fallback-notice">
-          <Typography className="text-xs text-amber-700 dark:text-amber-300" variant="p">{t("report_export.fallback_mode")}</Typography>
-        </div>
-      ) : null}
     </div>
   );
 }
 
 interface ExportActionsPanelProps {
-  handleDownload: () => Promise<void>;
   handleStartExport: () => Promise<void>;
   onClose: () => void;
   phase: ExportPhase;
   t: TFunction;
 }
 
-function ExportActionsPanel({ phase, onClose, handleStartExport, handleDownload, t }: ExportActionsPanelProps) {
+function ExportActionsPanel({ phase, onClose, handleStartExport, t }: ExportActionsPanelProps) {
   return (
     <div className="flex gap-3 pt-2">
       {phase === "idle" && (
@@ -168,37 +151,15 @@ function ExportActionsPanel({ phase, onClose, handleStartExport, handleDownload,
         </>
       )}
 
-      {(phase === "starting" || phase === "polling") && (
+      {phase === "completed" && (
         <Button
-          className="flex-1 h-auto py-3 px-6 font-medium"
-          data-testid="report-export-background-button"
+          className="flex-1 h-auto py-3 px-6"
+          data-testid="report-export-close-button"
           onClick={onClose}
           variant="outline"
         >
-          {t("report_export.run_background")}
+          {t("common.close")}
         </Button>
-      )}
-
-      {phase === "completed" && (
-        <>
-          <Button
-            className="flex-1 h-auto py-3 px-6 font-medium"
-            data-testid="report-export-close-button"
-            onClick={onClose}
-            variant="outline"
-          >
-            {t("common.close")}
-          </Button>
-          <Button
-            className="flex-1 h-auto py-3 px-6 bg-emerald-600 hover:bg-emerald-700 text-white font-medium"
-            data-testid="report-export-download-button"
-            icon={<Download size={18} />}
-            onClick={handleDownload}
-            variant="primary"
-          >
-            {t("report_export.download_button")}
-          </Button>
-        </>
       )}
 
       {phase === "failed" && (
@@ -222,24 +183,13 @@ function ExportActionsPanel({ phase, onClose, handleStartExport, handleDownload,
         </>
       )}
 
-      {phase === "downloading" && (
-        <Button
-          className="flex-1 h-auto py-3 px-6 bg-slate-300 text-slate-500 dark:text-slate-400 font-medium"
-          data-testid="report-export-downloading-button"
-          disabled
-          loading
-          variant="ghost"
-        >
-          {t("report_export.status.downloading")}
-        </Button>
-      )}
     </div>
   );
 }
 
 export default function ReportExportDialog({ isOpen, onClose,startDate, endDate, reportType, employeeIds }: ReportExportDialogProps) {
   const { t } = useTranslation();
-  const { phase, error, totalBatches, useFallbackPolling, percentage, completedBatches, handleStartExport, handleDownload } = useExportDialog({
+  const { phase, error, handleStartExport } = useExportDialog({
     isOpen,startDate, endDate, reportType, employeeIds, onClose,
   });
 
@@ -248,9 +198,9 @@ export default function ReportExportDialog({ isOpen, onClose,startDate, endDate,
       <div className="p-6 space-y-6">
         <ExportInfoPanel employeeIds={employeeIds} endDate={endDate} reportType={reportType} startDate={startDate} t={t} />
         {phase !== "idle" ? (
-          <ExportProgressPanel completedBatches={completedBatches} error={error} percentage={percentage} phase={phase} t={t} totalBatches={totalBatches} useFallbackPolling={useFallbackPolling} />
+          <ExportProgressPanel error={error} phase={phase} t={t} />
         ) : null}
-        <ExportActionsPanel handleDownload={handleDownload} handleStartExport={handleStartExport} onClose={onClose} phase={phase} t={t} />
+        <ExportActionsPanel handleStartExport={handleStartExport} onClose={onClose} phase={phase} t={t} />
       </div>
     </Modal>
   );

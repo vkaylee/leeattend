@@ -285,6 +285,9 @@
     },
     "form": {
       "add_title": "Thêm nhân viên",
+      "basic_info": "Thông tin cơ bản",
+      "employment_info": "Quan hệ lao động",
+      "unsaved_changes": "Bạn có thay đổi chưa lưu. Rời trang sẽ mất dữ liệu.",
       "edit_title": "Sửa hồ sơ",
       "subtitle": "Hồ sơ nhân sự",
       "full_name": "Họ và tên",

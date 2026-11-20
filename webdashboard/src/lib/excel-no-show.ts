@@ -3,7 +3,7 @@
  *
  * Uses the same styling conventions as `excel-builder.ts` (title row, date
  * row, styled header, auto-filter, frozen panes) but is self-contained so the
- * tab does not pull in the heavier report-stream machinery.
+ * tab does not pull in report export machinery.
  */
 
 import type { Worksheet, Cell } from "exceljs";

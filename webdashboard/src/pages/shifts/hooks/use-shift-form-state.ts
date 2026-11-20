@@ -64,14 +64,9 @@ export function useShiftFormState() {
   const [newShiftStart, setNewShiftStart] = useState("08:00");
   const [newShiftEnd, setNewShiftEnd] = useState("17:00");
   const [newShiftBreak, setNewShiftBreak] = useState(60);
-  const [newShiftGrace, setNewShiftGrace] = useState(15);
   const [newBreakStart, setNewBreakStart] = useState("");
   const [newBreakEnd, setNewBreakEnd] = useState("");
   const [isFixedBreak, setIsFixedBreakState] = useState(false);
-  const [isAutoDeduct, setIsAutoDeduct] = useState(true);
-  const [isBreakOvertime, setIsBreakOvertime] = useState(false);
-  const [allowEarlyOt, setAllowEarlyOt] = useState(false);
-  const [maxEarlyOtMinutes, setMaxEarlyOtMinutes] = useState(60);
 
   // Load initial selected employee from URL query parameter if present on mount.
   // Do not gate on selectedEmployee — that would create a circular TDZ with the
@@ -144,10 +139,6 @@ export function useShiftFormState() {
 
   const setIsFixedBreak = (val: boolean) => {
     setIsFixedBreakState(val);
-    if (!val && isBreakOvertime) {
-      setIsBreakOvertime(false);
-      setIsAutoDeduct(true);
-    }
   };
 
   // Edit Shift State
@@ -173,14 +164,9 @@ export function useShiftFormState() {
     newShiftStart, setNewShiftStart,
     newShiftEnd, setNewShiftEnd,
     newShiftBreak, setNewShiftBreak,
-    newShiftGrace, setNewShiftGrace,
     newBreakStart, setNewBreakStart,
     newBreakEnd, setNewBreakEnd,
     isFixedBreak, setIsFixedBreak,
-    isAutoDeduct, setIsAutoDeduct,
-    isBreakOvertime, setIsBreakOvertime,
-    allowEarlyOt, setAllowEarlyOt,
-    maxEarlyOtMinutes, setMaxEarlyOtMinutes,
     editingShift, setEditingShift,
     isCorrection, setIsCorrection,
     correctionEffectiveDate, setCorrectionEffectiveDate,

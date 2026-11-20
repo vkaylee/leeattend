@@ -46,6 +46,16 @@ func TestCalculateBuckets_AppliesPolicyGraceAndCap(t *testing.T) {
 	}
 }
 
+func TestCalculateBreakDeduction_DisabledPolicyDoesNotDeduct(t *testing.T) {
+	date := time.Date(2026, 10, 19, 0, 0, 0, 0, time.UTC)
+	breakStart := date.Add(12 * time.Hour)
+	breakEnd := date.Add(13 * time.Hour)
+	punchIn := date.Add(8 * time.Hour)
+	punchOut := date.Add(17 * time.Hour)
+	if got := CalculateBreakDeduction(BreakDeductionInput{IsBreakAutoDeduct: false, BreakStart: &breakStart, BreakEnd: &breakEnd, PunchIn: &punchIn, PunchOut: &punchOut}); got != 0 {
+		t.Fatalf("expected no deduction, got %d", got)
+	}
+}
 
 func TestCalculateBreakDeduction_IntersectsPunchWindow(t *testing.T) {
 	date := time.Date(2026, 10, 19, 0, 0, 0, 0, time.UTC)

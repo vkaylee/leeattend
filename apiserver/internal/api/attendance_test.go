@@ -114,11 +114,14 @@ func (m *mockAttendanceRepo) ApproveAdjustment(_ context.Context, _, _ uuid.UUID
 	return m.err
 }
 
-func (m *mockAttendanceRepo) ESSPunch(_ context.Context, empID uuid.UUID, entryType string, note *string, punchTime time.Time) (TimeEntryRecord, error) {
-	if m.err != nil {
-		return TimeEntryRecord{}, m.err
-	}
-	return m.PunchIn(context.Background(), empID, entryType, note, false, punchTime)
+func (m *mockAttendanceRepo) ESSAttendanceAction(_ context.Context, empID uuid.UUID, action string, note *string, _ string, actionTime time.Time) (AttendanceActionResponse, error) {
+	if m.err != nil { return AttendanceActionResponse{}, m.err }
+	return AttendanceActionResponse{State: action, Entry: &TimeEntryRecord{ID: uuid.New(), EmploymentID: empID, PunchInTime: actionTime.Format(time.RFC3339), EntryType: "work", Note: note}}, nil
+}
+
+func (m *mockAttendanceRepo) GetESSAttendanceState(_ context.Context, _ uuid.UUID) (AttendanceActionResponse, error) {
+	if m.err != nil { return AttendanceActionResponse{}, m.err }
+	return AttendanceActionResponse{State: "off", NextAllowedActions: []string{AttendanceActionWorkIn}}, nil
 }
 
 func (m *mockAttendanceRepo) GetAttendanceSummaries(_ context.Context, _, _ string, _ *uuid.UUID, _ *string, page, limit int) (PaginatedSummaries, error) {

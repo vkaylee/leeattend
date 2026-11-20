@@ -21,12 +21,10 @@ describe("ShiftTimelinePreview Tests", () => {
           breakDuration: 60,
           breakStart: "",
           breakEnd: "",
+          breakCreditMode: "scheduled",
+    breakPunchMode: "none",
+    isAutoDeduct: true,
           isFixedBreak: false,
-          isAutoDeduct: true,
-          isBreakOvertime: false,
-          gracePeriodMinutes: 15,
-          allowEarlyOt: false,
-          maxEarlyOtMinutes: 0,
         }]}
       />
     );
@@ -49,12 +47,10 @@ describe("ShiftTimelinePreview Tests", () => {
           breakDuration: 60,
           breakStart: "",
           breakEnd: "",
+          breakCreditMode: "scheduled",
+    breakPunchMode: "none",
+    isAutoDeduct: true,
           isFixedBreak: false,
-          isAutoDeduct: true,
-          isBreakOvertime: false,
-          gracePeriodMinutes: 0,
-          allowEarlyOt: false,
-          maxEarlyOtMinutes: 0,
         }]}
       />
     );
@@ -75,12 +71,10 @@ describe("ShiftTimelinePreview Tests", () => {
           breakDuration: 0,
           breakStart: "12:00",
           breakEnd: "13:00",
+          breakCreditMode: "scheduled",
+    breakPunchMode: "none",
+    isAutoDeduct: true,
           isFixedBreak: true,
-          isAutoDeduct: true,
-          isBreakOvertime: false,
-          gracePeriodMinutes: 0,
-          allowEarlyOt: false,
-          maxEarlyOtMinutes: 0,
         }]}
       />
     );
@@ -89,28 +83,4 @@ describe("ShiftTimelinePreview Tests", () => {
     expect(screen.getByText("12:00 - 13:00")).toBeDefined();
   });
 
-  it("renders early OT details when allowed", () => {
-    render(
-      <ShiftTimelinePreview
-        intervals={[{
-          intervalName: "OT Shift",
-          startTime: "08:00",
-          endTime: "17:00",
-          breakDuration: 0,
-          breakStart: "",
-          breakEnd: "",
-          isFixedBreak: false,
-          isAutoDeduct: false,
-          isBreakOvertime: false,
-          gracePeriodMinutes: 0,
-          allowEarlyOt: true,
-          maxEarlyOtMinutes: 60,
-        }]}
-      />
-    );
-
-    // Check for allow early OT label/text
-    expect(screen.getByText("shifts.modal.allow_early_ot")).toBeDefined();
-    expect(screen.getByText(/60/)).toBeDefined();
-  });
 });

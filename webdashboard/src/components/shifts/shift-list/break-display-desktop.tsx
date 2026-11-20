@@ -1,16 +1,15 @@
-import { Clock, Zap } from "lucide-react";
+import { Clock } from "lucide-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
 
 interface BreakDisplayDesktopProps {
   endTime: string | null;
   interval: { break_start?: string | null; break_end?: string | null; break_duration_minutes?: number } | undefined;
-  isAutoDeduct: boolean;
   startTime: string | null;
 }
 
 /** Desktop break column: fixed break times or simple duration. */
-export function BreakDisplayDesktop({ interval, isAutoDeduct }: BreakDisplayDesktopProps) {
+export function BreakDisplayDesktop({ interval }: BreakDisplayDesktopProps) {
   const { t } = useTranslation();
   const breakStart = interval?.break_start ?? null;
   const breakEnd = interval?.break_end ?? null;
@@ -30,11 +29,6 @@ export function BreakDisplayDesktop({ interval, isAutoDeduct }: BreakDisplayDesk
               {breakEnd.substring(0, 5)}
             </span>
           </div>
-          {isAutoDeduct ? (
-            <div className="text-[8px] font-bold text-blue-500 uppercase tracking-widest flex items-center gap-1 opacity-80">
-              <Zap className="fill-blue-500" size={10} /> {t("shifts.auto_deduct")}
-            </div>
-          ) : null}
         </div>
       ) : (
         <div className="flex items-center justify-center gap-2 font-bold text-[10px] text-slate-500 dark:text-slate-400 uppercase tracking-widest">

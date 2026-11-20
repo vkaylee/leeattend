@@ -130,6 +130,7 @@ func buildRouter(cfg *config.Config, db repository.DBTX, redisClient *redisinfra
 	payrollRepo := repository.PayrollRepository{DB: db}
 	essRepo := repository.ESSRepository{DB: db}
 	essHandler := &api.ESSHandler{
+			Authorizer: organizationAuthorizer,
 		Repository: essRepo,
 		Attendance: attendanceRepo,
 		Payroll:    payrollRepo,
@@ -159,8 +160,7 @@ func buildRouter(cfg *config.Config, db repository.DBTX, redisClient *redisinfra
 	workPolicyHandler := &api.WorkPolicyGroupHandler{Repository: workPolicyRepo, Authorizer: organizationAuthorizer, Audit: repository.AuditLogWriter{DB: db}}
 	registerWorkPolicyRoutes(protectedRouter, workPolicyHandler)
 	reportRepo := repository.ReportRepository{DB: db}
-	reportQueue := &repository.RedisReportQueue{Client: redisClient, RequireRedis: true}
-	reportHandler := &api.ReportHandler{Repository: reportRepo, Queue: reportQueue, Authorizer: organizationAuthorizer}
+		reportHandler := &api.ReportHandler{Repository: reportRepo, Authorizer: organizationAuthorizer}
 	registerReportRoutes(protectedRouter, reportHandler)
 	fileRepo := repository.FileRepository{DB: db}
 	var fileStorage api.FileStorage
@@ -203,7 +203,6 @@ func buildRouter(cfg *config.Config, db repository.DBTX, redisClient *redisinfra
 	}
 	registerMonitorRoutes(protectedRouter, monitorHandler)
 	registerPublicRoutes(router, healthHandler)
-	registerReportWebSocketRoute(router, monitorHandler)
 	registerPublicAuthRoutes(router, authHandler)
 	registerAuthRoutes(protectedRouter, authHandler)
 	preferencesRepo := repository.DashboardPreferencesRepository{DB: db}

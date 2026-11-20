@@ -72,6 +72,10 @@ type shiftIntervalInfo struct {
 	breakDurationMinutes  *int
 	breakStart            *string
 	breakEnd              *string
+	isBreakAutoDeduct     *bool
+	breakIsOvertime       *bool
+	breakPunchMode        *string
+	breakCreditMode       *string
 }
 
 func primaryShiftInterval(version shiftVersionInfo) *shiftIntervalInfo {
@@ -419,6 +423,8 @@ func (r ScheduleRepository) GetOrganizationSchedules(ctx context.Context, startD
 							if interval := primaryShiftInterval(version); interval != nil {
 								effective.StartTime, effective.EndTime = interval.startTime, interval.endTime
 								effective.BreakDurationMinutes, effective.BreakStart, effective.BreakEnd = interval.breakDurationMinutes, interval.breakStart, interval.breakEnd
+								effective.IsBreakAutoDeduct, effective.BreakIsOvertime = interval.isBreakAutoDeduct, interval.breakIsOvertime
+	effective.BreakPunchMode, effective.BreakCreditMode = interval.breakPunchMode, interval.breakCreditMode
 							}
 						}
 					}
@@ -1100,7 +1106,7 @@ func loadDeptHistory(ctx context.Context, db DBTX, employeeIDs []uuid.UUID) (map
 
 func loadShifts(ctx context.Context, db DBTX) (map[uuid.UUID]shiftTemplateInfo, error) {
 	rows, err := db.Query(ctx, `SELECT st.id, st.name, sv.id, sv.report_symbol, sv.effective_from, sv.effective_to,
-		sdi.sort_order, sdi.start_time::text, sdi.end_time::text, sdi.break_duration_minutes, sdi.break_start::text, sdi.break_end::text,
+		sdi.sort_order, sdi.start_time::text, sdi.end_time::text, sdi.break_duration_minutes, sdi.break_start::text, sdi.break_end::text, sdi.is_break_auto_deduct, sdi.break_is_overtime, sdi.break_punch_mode, sdi.break_credit_mode,
 				COALESCE(sdi.start_day_offset, 0), COALESCE(sdi.end_day_offset, 0), sdi.start_utc_offset_minutes, sdi.end_utc_offset_minutes
 		FROM shift_templates st
 		LEFT JOIN shift_versions sv ON sv.template_id = st.id
@@ -1121,7 +1127,7 @@ func loadShifts(ctx context.Context, db DBTX) (map[uuid.UUID]shiftTemplateInfo, 
 		var interval shiftIntervalInfo
 		if err := rows.Scan(&templateID, &info.name, &versionID, &reportSymbol, &effectiveFrom, &effectiveTo,
 			&sortOrder, &interval.startTime, &interval.endTime, &interval.breakDurationMinutes, &interval.breakStart, &interval.breakEnd,
-			&interval.startDayOffset, &interval.endDayOffset, &interval.startUTCOffsetMinutes, &interval.endUTCOffsetMinutes); err != nil {
+			&interval.isBreakAutoDeduct, &interval.breakIsOvertime, &interval.breakPunchMode, &interval.breakCreditMode, &interval.startDayOffset, &interval.endDayOffset, &interval.startUTCOffsetMinutes, &interval.endUTCOffsetMinutes); err != nil {
 			return nil, err
 		}
 		current := res[templateID]

@@ -19,6 +19,7 @@ import {
   reprocessAttendance,
   reprocessAllAttendance,
   checkReprocessStatus,
+  exportAttendanceReport,
   approveOt,
   fetchAttendanceSummaries,
   fetchAttendanceSummariesPaginated,
@@ -27,10 +28,6 @@ import {
   fetchStagingLogs,
   resolveStagingLog,
   dismissStagingLog,
-  createReportExportJob,
-  fetchExportJobStatus,
-  cancelExportJob,
-  downloadExportReport,
   fetchMonitorOverview,
   fetchMonitorJobs,
   fetchMonitorAlerts,
@@ -266,45 +263,36 @@ describe("attendance API (extended)", () => {
     expect((call[1] as RequestInit).method).toBe("DELETE");
   });
 
-  it("createReportExportJob: POST returns export response", async () => {
-    vi.mocked(apiFetch).mockResolvedValueOnce(okRes({ job_id: "j-1" }));
-    const result = await createReportExportJob({ format: "xlsx" } as never);
-    expect(result).toEqual({ job_id: "j-1" });
-  });
-
-  it("fetchExportJobStatus: GET status", async () => {
-    vi.mocked(apiFetch).mockResolvedValueOnce(okRes({ job_id: "j-1", status: "completed" }));
-    const result = await fetchExportJobStatus("j-1");
-    expect(result).toEqual({ job_id: "j-1", status: "completed" });
-  });
-
-  it("cancelExportJob: DELETE", async () => {
-    vi.mocked(apiFetch).mockResolvedValueOnce(okRes(undefined));
-    await cancelExportJob("j-1");
-    const call = vi.mocked(apiFetch).mock.calls[0];
-    expect(call[0]).toContain("/reports/jobs/j-1");
-    expect((call[1] as RequestInit).method).toBe("DELETE");
-  });
-
-  it("downloadExportReport: GET returns blob", async () => {
+  it("exportAttendanceReport: POST returns XLSX blob", async () => {
     const blob = new Blob(["xlsx"]);
     vi.mocked(apiFetch).mockResolvedValueOnce({
       ok: true,
       status: 200,
       blob: () => Promise.resolve(blob),
     } as unknown as Response);
-    const result = await downloadExportReport("j-1");
+    const result = await exportAttendanceReport({
+      report_type: "summary",
+      start_date: "2026-01-01",
+      end_date: "2026-01-31",
+      format: "xlsx",
+    });
     expect(result).toBe(blob);
-    expect(vi.mocked(apiFetch).mock.calls[0][0]).toContain("/reports/jobs/j-1/download");
+    const [url, options] = vi.mocked(apiFetch).mock.calls[0];
+    expect(url).toBe("/api/v1/reports/export");
+    expect((options as RequestInit).method).toBe("POST");
   });
 
-  it("downloadExportReport: throws on non-ok", async () => {
+  it("exportAttendanceReport: throws on non-ok", async () => {
     vi.mocked(apiFetch).mockResolvedValueOnce({
       ok: false,
       status: 500,
       blob: () => Promise.resolve(new Blob()),
     } as unknown as Response);
-    await expect(downloadExportReport("j-1")).rejects.toThrow("[500]");
+    await expect(exportAttendanceReport({
+      report_type: "summary",
+      start_date: "2026-01-01",
+      end_date: "2026-01-31",
+    })).rejects.toThrow("[500]");
   });
 
   it("fetchMonitorOverview: GET global", async () => {

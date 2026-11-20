@@ -1,6 +1,4 @@
 
-import type { components } from "@/types/api-generated";
-
 import { submitAttendanceAdjustment, approveAttendanceAdjustment } from "./attendance-core";
 import { createBehalfAssignmentApi } from "./behalf-assignment-factory";
 import { client } from "./client";
@@ -16,38 +14,15 @@ import {
   MonitorJobsResponse,
   MonitorMetric,
   CreateReportExportRequest,
-  CreateReportExportResponse,
 } from "./types";
 
 // --- Report Export ---
 
-export async function createReportExportJob(
-  request: CreateReportExportRequest
-): Promise<CreateReportExportResponse> {
-  const { data: resData } = await client.POST<CreateReportExportResponse>("/api/v1/reports/export", {
-    body: request,
-  });
-  return resData;
-}
-
-export async function fetchExportJobStatus(
-  jobId: string
-): Promise<components["schemas"]["JobStatusResponse"]> {
-  const { data: resData } = await client.GET<components["schemas"]["JobStatusResponse"]>(
-    "/api/v1/reports/jobs/{job_id}",
-    { params: { path: { job_id: jobId } } },
-  );
-  return resData;
-}
-
-export async function cancelExportJob(jobId: string): Promise<void> {
-  await client.DELETE("/api/v1/reports/jobs/{job_id}", {
-    params: { path: { job_id: jobId } },
-  });
-}
-
-export async function downloadExportReport(jobId: string): Promise<Blob> {
-  const response = await apiFetch(`/api/v1/reports/jobs/${encodeURIComponent(jobId)}/download`, {
+export async function exportAttendanceReport(request: CreateReportExportRequest): Promise<Blob> {
+  const response = await apiFetch("/api/v1/reports/export", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(request),
     timeout: TIMEOUT.REPORT_OPERATION,
   });
   if (!response.ok) await ApiError.rejectResponse(response);

@@ -285,6 +285,9 @@
     },
     "form": {
       "add_title": "添加员工",
+      "basic_info": "基本信息",
+      "employment_info": "雇佣信息",
+      "unsaved_changes": "您有未保存的更改，离开页面将丢失这些内容。",
       "edit_title": "编辑档案",
       "subtitle": "人员档案",
       "full_name": "全名",

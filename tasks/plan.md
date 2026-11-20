@@ -442,6 +442,262 @@ Generated OpenAPI/types + TanStack route tree
 
 ---
 
+# Implementation Plan: Duplicate Employee Detection After Employee Tenures
+
+## Context
+
+Employee creation currently accepts name, employee number, and hire date but cannot determine whether person already exists. `employee_profiles` already stores phone, date of birth, and national ID; `employee_tenures` stores historical employment periods. Current duplicate protection mostly relies on tenure date-range exclusion, so no person-level preflight exists and historical employee numbers can be reused.
+
+Target flow: **Search existing → explicitly reuse existing employee or create new employee**. Never fuzzy-auto-merge. Reuse keeps `employee.id` and employee code, then creates new tenure/employment. Create-new creates employee/profile/first tenure atomically. No raw PII in URLs, logs, metrics, screenshots, or match responses.
+
+## Decisions
+
+- Hard match: exact normalized national ID or exact normalized phone. Empty values never match. DOB alone never hard-matches.
+- Soft match: normalized name + DOB, or name + partial phone. Warning only; never automatic reuse.
+- Global employee code policy: normalize uppercase/trim; do not reuse historical codes; no `MAX()+1` allocation in V1.
+- New endpoint: `POST /api/v1/employees/match`; PII stays in POST body, never query string.
+- Reuse endpoint: `POST /api/v1/employees/{employee_id}/tenures`.
+- New permission: `employees:identity:match`, granted to `admin` and `hr_manager`; server enforces authorization and scope.
+- Raw profile fields remain existing restricted fields. Add deterministic HMAC lookup hashes using configured secret; never use plaintext or unsalted indexes.
+- Feature flag defaults off. Rollback disables new behavior; additive schema remains until all readers are removed.
+
+## Dependency graph
+
+```text
+Identity policy + privacy + permission
+  -> lookup hash migration + duplicate report/backfill
+    -> read-only match API/repository
+      -> atomic create-new and reuse-tenure commands
+        -> /employees/new preflight UI
+          -> attendance staging integration + route audit
+```
+
+## Vertical tasks
+
+### Phase 0 — Policy and baseline
+
+#### Task D0 — Freeze matching policy and inventory duplicates
+
+**Acceptance criteria:**
+- [ ] Normalize rules defined for phone, national ID, name, DOB, and employee code.
+- [ ] Hard/soft match rules, global code reuse policy, permission, audit, rate limit, and feature flag documented.
+- [ ] Disposable DB report counts duplicate profiles, duplicate codes, tenure overlaps, profile mismatches, and reconciliation rows without printing PII.
+
+**Verification:** inspect `employee_profiles`, `employees`, `employee_tenures` on disposable DB; record aggregate counts only.
+
+**Dependencies:** None
+
+**Estimated scope:** Small
+
+### Checkpoint D-A
+
+- [ ] Human approves identity matching, code reuse, privacy, and rollout policy.
+
+### Phase 1 — Lookup foundation
+
+#### Task D1 — Add reversible identity lookup migration
+
+**Acceptance criteria:**
+- [ ] Add nullable `national_id_lookup_hash` and `phone_lookup_hash` to `employee_profiles`.
+- [ ] Add indexes/partial uniqueness only after duplicate report is clean; NULL/empty values never collide.
+- [ ] Existing raw identity columns and historical rows remain unchanged.
+- [ ] `up.sql` and `down.sql` work on fresh and upgraded disposable DB.
+
+**Files likely touched:**
+- `apiserver/migrations/<timestamp>_employee_identity_matching/up.sql`
+- `apiserver/migrations/<timestamp>_employee_identity_matching/down.sql`
+- schema/data inventory contract files
+
+**Verification:** forward/down migration, schema contract, duplicate fixture, rollback test.
+
+**Dependencies:** D0
+
+**Estimated scope:** Medium
+
+#### Task D2 — Add bounded application backfill/reconciliation
+
+**Acceptance criteria:**
+- [ ] Normalize + HMAC existing phone/national ID in bounded idempotent batches.
+- [ ] Missing secret fails closed.
+- [ ] Collisions are reported for manual resolution; no winner selected automatically.
+- [ ] Logs/metrics contain counts and status only, never raw PII.
+
+**Files likely touched:** repository/admin job, configuration validation, migration evidence, tests.
+
+**Verification:** first run, rerun idempotency, collision fixture, secret-missing test.
+
+**Dependencies:** D1
+
+**Estimated scope:** Medium
+
+### Checkpoint D-B
+
+- [ ] Lookup columns populated or collision queue explicitly documented.
+- [ ] No unique index activated while unresolved collisions exist.
+
+### Phase 2 — Match API
+
+#### Task D3 — Implement redacted read-only match endpoint
+
+**Acceptance criteria:**
+- [ ] `POST /api/v1/employees/match` validates typed request and rejects unknown fields.
+- [ ] Exact hash matching produces hard candidates; name/DOB or partial-phone produces soft candidates.
+- [ ] Response contains only candidate ID, safe name/code/status, and non-sensitive reason labels.
+- [ ] No raw phone, national ID, DOB, lookup hash, or PII query string appears in response/log/audit details.
+- [ ] 401/403 fail closed; rate limit and audit lookup outcome/type exist.
+
+**Files likely touched:**
+- `apiserver/internal/api/employees.go`
+- `apiserver/internal/repository/employees.go` or `employee_identity.go`
+- `apiserver/routes_employees.go`
+- `apiserver/openapi.yaml`
+- API/repository tests
+
+**Verification:** handler auth/validation tests, hard/soft/none cases, redaction, rate-limit, OpenAPI contract.
+
+**Dependencies:** D2
+
+**Estimated scope:** Large; keep endpoint and repository matcher in one slice.
+
+### Phase 3 — Atomic write paths
+
+#### Task D4 — Harden create-new with profile and first tenure
+
+**Acceptance criteria:**
+- [ ] Create-new writes employee, profile, first tenure, and employment relationship in one transaction.
+- [ ] Identity and employee-code uniqueness rechecked under transaction lock.
+- [ ] Concurrent same identity/code requests cannot create duplicates; races return deterministic 409.
+- [ ] Old clients remain compatible while feature flag is off.
+
+**Verification:** DB integration success, rollback, duplicate identity/code, concurrent race, retry tests.
+
+**Dependencies:** D3
+
+**Estimated scope:** Large
+
+#### Task D5 — Add explicit reuse-tenure command
+
+**Acceptance criteria:**
+- [ ] `POST /api/v1/employees/{employee_id}/tenures` locks and revalidates employee candidate.
+- [ ] Reuse keeps employee ID/code and creates only new tenure/employment.
+- [ ] Active employee reuse, stale candidate, date overlap, and invalid scope return deterministic errors.
+- [ ] Tenure history remains immutable and no partial writes survive failure.
+
+**Verification:** terminated employee reuse, active rejection, overlap, employer transfer, stale candidate, concurrent reuse.
+
+**Dependencies:** D4
+
+**Estimated scope:** Large
+
+### Checkpoint D-C
+
+- [ ] New person creates profile + first tenure atomically.
+- [ ] Existing person creates tenure only.
+- [ ] ESS, attendance, reports, employee detail resolve correct employee/tenure.
+
+### Phase 4 — UX integration
+
+#### Task D6 — Add preflight identity step to `/employees/new`
+
+**Acceptance criteria:**
+- [ ] Form collects phone, DOB, and national ID under role policy.
+- [ ] Debounced match displays loading, none, hard, soft, stale, conflict, and error states.
+- [ ] Hard candidate requires explicit `Reuse existing` or safe correction; no silent reuse.
+- [ ] Soft candidate warns and permits explicit `Not this person — continue create`; never auto-reuses.
+- [ ] Reuse calls tenure endpoint; new create calls create-new path; duplicate click blocked.
+- [ ] Keyboard/focus/aria, vi/en/zh strings, responsive layout, and PII-safe artifacts pass.
+
+**Files likely touched:**
+- `webdashboard/src/pages/employees/employee-create-page.tsx`
+- `webdashboard/src/components/features/employees/employee-form-inputs.tsx`
+- `webdashboard/src/lib/api/employees.ts`
+- locale employee files
+- page/component tests
+
+**Verification:** hard/soft/none, reuse/create, stale result, API failure, keyboard/a11y, route tests.
+
+**Dependencies:** D5
+
+**Estimated scope:** Large
+
+#### Task D7 — Integrate attendance staging
+
+**Acceptance criteria:**
+- [ ] Staging unknown log uses same preflight path.
+- [ ] Existing employee can be assigned; create-new uses safe enrollment prefill.
+- [ ] `raw_user_id` is never treated as proof of identity.
+- [ ] Staging row identity and refresh/resolve behavior remain intact.
+
+**Files likely touched:**
+- `webdashboard/src/components/features/attendance/staging-logs-table.tsx`
+- `webdashboard/src/pages/attendance/hooks/use-attendance-logs-page.ts`
+- staging tests
+
+**Verification:** staging component/hook tests and disposable E2E flow.
+
+**Dependencies:** D6
+
+**Estimated scope:** Medium
+
+### Checkpoint D-D
+
+- [ ] Search-before-create works from employee page and attendance staging.
+- [ ] Hard match cannot accidentally duplicate; soft match never auto-reuses.
+
+### Phase 5 — Rollout and final verification
+
+#### Task D8 — Shadow/pilot rollout and observability
+
+**Acceptance criteria:**
+- [ ] Feature flag defaults off and has clear owner/removal date.
+- [ ] Pilot enables admin/HR only.
+- [ ] Metrics include aggregate match tier, conflicts, latency, and rollback counts only.
+- [ ] Rollback disables behavior without destructive schema changes.
+
+#### Task D9 — Full verification
+
+**Verification:**
+- [ ] Regenerate OpenAPI TypeScript artifacts through repository wrapper; never hand-edit generated output.
+- [ ] Run `./leedevkit test web --unit-only`, then full web/API/all targets as applicable.
+- [ ] Read `.test_logs/` per phase.
+- [ ] Browser audit all five roles at `1920x1080`, then mobile smoke; verify direct URL, refresh, match states, 403/409, console/network, and no PII artifacts.
+
+**Dependencies:** D8
+
+### Final checkpoint
+
+- [ ] Search existing → explicit reuse/create works.
+- [ ] New employee has profile + first tenure atomically.
+- [ ] Reuse adds tenure only.
+- [ ] Concurrent identity/code races are safe.
+- [ ] No PII leaks; rollback evidence recorded.
+
+## Duplicate detection test-impact matrix
+
+| Dimension | Protection |
+|---|---|
+| Changed behavior | Search existing before create; explicit reuse/create; reuse adds tenure only. |
+| Existing behavior | List/detail, rehire, staging, ESS, attendance, reports, historical tenure remain. |
+| Inputs | Empty/normalized phone/national ID, DOB-only, name variants, duplicate code, malformed date/UUID, unknown fields. |
+| State | None/hard/soft match, stale candidate, active/terminated employee, dirty/pending/retry. |
+| Failures | 401, 403, 404, 409, 422, 5xx, timeout, rollback, race, duplicate submit. |
+| Security | Exact-only T2 lookup, HMAC secret failure, scope checks, rate limit, no URL/log/artifact PII. |
+| Compatibility | Existing create/rehire while flag off, old profile rows, generated contracts, migration down. |
+| Operations | Audit lookup/write, aggregate metrics, collision queue, bounded backfill, flag rollback. |
+
+## Verification commands
+
+```bash
+./leedevkit test web --unit-only
+./leedevkit test web </dev/null
+./leedevkit test api </dev/null
+./leedevkit test all </dev/null
+```
+
+Browser: read `docs/dev-accounts.md`, cover all five roles, set and verify `1920x1080` first, then mobile; never store credentials/tokens/raw PII.
+
+---
+
 # Implementation Plan: Typed UserID Internal Boundary
 
 ## Context
@@ -536,3 +792,125 @@ Inspect per-phase `.test_logs/`; report pass/fail/skip/warnings. Confirm unrelat
 - Existing worktree changes get overwritten: no reset, checkout, stash, or broad formatting.
 
 **Ponytail:** skip wrapper structs and whole-repository UUID migration; add only when compile-time domain safety needs behavior beyond defined types.
+
+---
+
+# Plan: Optimize `/shifts/new` UX for HR operations
+
+## Context
+
+Replace technical interval language with clear work-period language. Keep one normal work period simple (`07:30–16:30` plus break); reveal split-shift configuration only when explicitly requested. Preserve inline interval API payload, edit hydration, overnight behavior, save/cancel, dirty blocker, version history, and all unrelated worktree changes. Frontend only; no backend schema or API change.
+
+## Dependency graph
+
+```text
+useShiftEditor state/defaults/hydration/payload
+  -> shift-editor-page.tsx
+  -> IntervalEditorCard
+  -> IntervalDraftEditor
+  -> BreakConfigSection
+  -> IntervalDraft[]
+  -> getShiftCardMetrics + ShiftTimelinePreview
+  -> MetricsGrid / ShiftDetailsList / TimelineBar
+
+attendance.json (en/vi/zh) -> all visible copy and validation
+Tests: metrics -> hook payload -> components -> preview -> E2E
+```
+
+## Vertical tasks
+
+### Phase 0 — Baseline and contract freeze
+
+- Capture current diff and preserve unrelated changes.
+- Verify `/shifts/new`, inline `CreateIntervalRequest[]`, locale parity, and focused test targets.
+- Confirm no backend/API/schema files enter scope.
+
+Acceptance: existing changes preserved; current payload and non-goals documented.
+Verification: `git status --short`; `./leedevkit --help`; `./leedevkit test --help`; inspect existing shift tests.
+
+**Checkpoint A:** contract and scope confirmed.
+
+### Phase 1 — Operational metrics
+
+Files: `webdashboard/src/lib/shift-card-metrics.ts`, `webdashboard/src/lib/shift-timeline-math.ts` only if needed, metric tests.
+
+- Reuse `getShiftCardMetrics` for all-interval duration, break, net work, sorting, and midnight wrapping.
+- Add smallest missing expected-punch summary value.
+- Cover single period, split period, duration/fixed break, overnight, crossing-midnight break, empty/incomplete input.
+
+Acceptance: `07:30–16:30` + 60-minute break reports 9h presence, 1h break, 8h net; split shift aggregates both blocks; incomplete drafts do not crash.
+
+### Phase 2 — Hook and payload
+
+Files: `webdashboard/src/pages/shifts/hooks/use-shift-editor.ts` and its tests.
+
+- Keep one default draft, optional `intervalName`, edit hydration, add/remove/update, overnight detection, seconds padding, and inline intervals array.
+- Ensure duration mode sends clock fields `null`; fixed mode sends both clock fields.
+- Block or clearly flag incomplete fixed-break boundaries before submit.
+
+Acceptance: existing create/edit payload remains compatible; all intervals serialize; save/correction behavior remains unchanged.
+
+**Checkpoint B:** metrics/hook tests and typecheck pass; API contract unchanged.
+
+### Phase 3 — Basic interval editor
+
+Files: `interval-editor-card.tsx`, `interval-draft-editor.tsx`, `break-config-section.tsx`, focused component tests.
+
+- Replace visible technical wording with translated `Khoảng làm việc` / locale equivalents.
+- Hide interval name in default flow; expose optional name through accessible advanced disclosure.
+- Explain that `07:30–16:30` is one work period; add another only for separated work.
+- Use explicit break modes: duration vs fixed clock times; show only relevant fields.
+- Add accessible labels, descriptions, inline validation, and accessible remove action.
+
+Acceptance: normal HR flow needs only name, start/end, and break; second period appears only after explicit add; fixed mode requires both times.
+
+### Phase 4 — Operational preview
+
+Files: `shift-timeline-preview.tsx`, `metrics-grid.tsx`, `shift-details-list.tsx`, `types.ts`, preview tests.
+
+- Stop using `intervals[0]` only. Feed all drafts through reusable metrics.
+- Show total presence, total break, net work, expected punches, and useful per-period details.
+- Preserve overnight timeline and empty/incomplete safety.
+
+Acceptance: single and split summaries reconcile; summary updates immediately; no technical/blank interval name in normal flow.
+
+**Checkpoint C:** component tests pass; no first-period-only calculation remains.
+
+### Phase 5 — Page wiring and i18n
+
+Files: `shift-editor-page.tsx`, `webdashboard/src/i18n/locales/{en,vi,zh}/attendance.json`, locale tests.
+
+- Add matching keys for work-period explanation, split guidance, break modes, summary, expected punches, and validation.
+- Remove hardcoded changed copy/placeholders.
+- Preserve loading/error, save/cancel, dirty blocker, edit, and history behavior.
+
+Acceptance: locale trees remain equal; Vietnamese consistently uses `Khoảng làm việc`, `Nghỉ giữa ca`, `Công thực tế`; no new hardcoded user-facing copy.
+
+### Phase 6 — Browser proof
+
+File: `webdashboard/tests/shifts-flow.spec.ts`.
+
+- Cover basic form, `07:30–16:30` + duration break, split shift, fixed break, overnight, request payload, and cancel/dirty navigation.
+- Use documented least-privileged account, route × role matrix, and 1920×1080 viewport before UI interaction.
+- Capture console/network evidence without credentials, tokens, or PII.
+
+Acceptance: basic, split, break-mode, overnight, save/cancel flows pass; request preserves existing inline contract; no unexpected 404/5xx/crash.
+
+## Test impact matrix
+
+| Dimension | Protection |
+|---|---|
+| Changed behavior | Work-period terms, break-mode choice, split disclosure, aggregate preview |
+| Existing behavior | Payload, edit hydration, overnight, save/cancel, dirty blocker, history |
+| Boundaries | Empty/incomplete fields, fixed-break boundary, midnight, multiple periods |
+| Failures | Validation, API error, loading/error state |
+| Compatibility | No backend/schema/API field changes; old interval names preserved |
+| Operations | No PII/secrets in logs or browser artifacts |
+
+## Verification
+
+Run focused unit/component tests first, then locale parity, typecheck, lint, build, focused E2E, and applicable full LeeDevKit web/all targets. Inspect `.test_logs/` per phase; do not rely on trailing green summary.
+
+## Non-goals
+
+No backend redesign, interval CRUD flow, new dependency, schedule lifecycle change, or attendance policy change.

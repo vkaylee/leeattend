@@ -1,18 +1,18 @@
 package repository
 
 import (
+	"archive/zip"
 	"context"
 	"encoding/json"
+	"encoding/xml"
 	"errors"
 	"fmt"
 	"math"
-	"sync"
-	"time"
+	"sort"
+	"strings"
 
 	"github.com/google/uuid"
-	goredis "github.com/redis/go-redis/v9"
 	"github.com/vkaylee/leeattend/apiserver/internal/api"
-	redisinfra "github.com/vkaylee/leeattend/apiserver/internal/infra/redis"
 )
 
 type ReportRepository struct {
@@ -74,28 +74,97 @@ func (r ReportRepository) SnapshotExportRequest(ctx context.Context, req api.Exp
 	return req, rows.Err()
 }
 
-func (r ReportRepository) CreateExportJob(ctx context.Context, job api.ReportJob, req api.ExportReportRequest) error {
-	db, err := r.db(ctx)
-	if err != nil {
-		return err
+const (
+	reportPageSize       = 3000
+	maxSyncExportRows    = 100000
+	maxSyncExportBytes   = 32 << 20
+)
+
+func (r ReportRepository) ExportAttendanceReport(ctx context.Context, req api.ExportReportRequest) ([]byte, string, error) {
+	pageSize := reportPageSize
+	allRows := make([]map[string]any, 0)
+	reportType := req.ReportType
+	if reportType == "detail" { reportType = "daily" }
+	for page := 1; ; page++ {
+		if err := ctx.Err(); err != nil {
+			return nil, "", err
+		}
+		pageReport, err := r.GetAttendanceReport(ctx, api.AttendanceReportFilter{StartDate: req.StartDate, EndDate: req.EndDate, ReportType: reportType, EmployeeIDs: req.EmployeeIDs, Page: page, Limit: pageSize})
+		if err != nil { return nil, "", err }
+		var rows []map[string]any
+		if err := json.Unmarshal(pageReport.Data, &rows); err != nil { return nil, "", err }
+		allRows = append(allRows, rows...)
+		if len(allRows) > maxSyncExportRows || pageReport.Total > maxSyncExportRows { return nil, "", api.ErrReportExportTooLarge }
+		if len(rows) == 0 || int64(page*pageSize) >= pageReport.Total { break }
 	}
-	payload, err := json.Marshal(map[string]any{
-		"job_id": job.JobID,
-		"request": map[string]any{
-			"report_type":      req.ReportType,
-			"start_date":       req.StartDate,
-			"end_date":         req.EndDate,
-			"employee_ids":     req.EmployeeIDs,
-			"tenure_snapshots": req.TenureSnapshots,
-		},
-		"requester_id": job.RequesterID,
-	})
+	data, filename, err := encodeReportRowsSync(allRows, reportType)
 	if err != nil {
-		return err
+		return nil, "", err
 	}
-	_, err = db.Exec(ctx, `INSERT INTO outbox_jobs (id, job_type, payload, status, created_at, updated_at) VALUES ($1, 'AttendanceReport', $2, 'pending', NOW(), NOW())`, job.JobID, payload)
-	return err
+	if len(data) > maxSyncExportBytes {
+		return nil, "", api.ErrReportExportTooLarge
+	}
+	return data, filename, nil
 }
+
+func encodeReportRowsSync(rows []map[string]any, reportType string) ([]byte, string, error) {
+	headers := make([]string, 0)
+	seen := map[string]struct{}{}
+	for _, row := range rows { for key := range row { if _, ok := seen[key]; !ok { seen[key] = struct{}{}; headers = append(headers, key) } } }
+	sort.Strings(headers)
+	records := make([][]string, 0, len(rows)+1)
+	records = append(records, headers)
+	for _, row := range rows { record := make([]string, len(headers)); for i, header := range headers { if row[header] != nil { record[i] = fmt.Sprint(row[header]) } }; records = append(records, record) }
+	return xlsxBytesSync(records), "attendance-" + reportType + ".xlsx", nil
+}
+
+func xlsxBytesSync(records [][]string) []byte {
+	var output strings.Builder
+	var sheet strings.Builder
+	sheet.WriteString(`<?xml version="1.0" encoding="UTF-8"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetData>`)
+	for rowIndex, row := range records {
+		fmt.Fprintf(&sheet, `<row r="%d">`, rowIndex+1)
+		for colIndex, value := range row {
+			fmt.Fprintf(&sheet, `<c r="%s%d" t="inlineStr"><is><t>%s</t></is></c>`, columnNameSync(colIndex), rowIndex+1, xmlEscapeSync(value))
+		}
+		sheet.WriteString(`</row>`)
+	}
+	sheet.WriteString(`</sheetData></worksheet>`)
+	files := map[string]string{
+		"[Content_Types].xml": `<?xml version="1.0" encoding="UTF-8"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/></Types>`,
+		"_rels/.rels": `<?xml version="1.0" encoding="UTF-8"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>`,
+		"xl/_rels/workbook.xml.rels": `<?xml version="1.0" encoding="UTF-8"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/></Relationships>`,
+		"xl/workbook.xml": `<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="Report" sheetId="1" r:id="rId1"/></sheets></workbook>`,
+		"xl/worksheets/sheet1.xml": sheet.String(),
+	}
+	zw := zip.NewWriter(&stringWriterSync{builder: &output})
+	for name, content := range files {
+		f, _ := zw.Create(name)
+		_, _ = f.Write([]byte(content))
+	}
+	_ = zw.Close()
+	return []byte(output.String())
+}
+
+func columnNameSync(index int) string {
+	name := ""
+	for index >= 0 {
+		name = string(rune('A'+index%26)) + name
+		index = index/26 - 1
+	}
+	return name
+}
+
+func xmlEscapeSync(value string) string {
+	encoded, _ := xml.Marshal(value)
+	text := string(encoded)
+	return text[1 : len(text)-1]
+}
+
+type stringWriterSync struct{ builder *strings.Builder }
+
+func (w *stringWriterSync) Write(p []byte) (int, error) { return w.builder.Write(p) }
+
 func (r ReportRepository) ResolveBehalfEmployeeIDs(ctx context.Context, userID uuid.UUID) ([]uuid.UUID, error) {
 	db, err := r.db(ctx)
 	if err != nil {
@@ -186,6 +255,13 @@ func (r ReportRepository) GetAttendanceReport(ctx context.Context, params api.At
        os.shift_name, os.scheduled_start, os.scheduled_end,
        te.punch_in_time::text, te.punch_out_time::text,
        COALESCE(ads.actual_work_minutes, 0),
+       COALESCE(ads.scheduled_break_minutes, 0),
+       COALESCE(ads.actual_break_minutes, 0),
+       COALESCE(ads.deducted_break_minutes, 0),
+       COALESCE(ads.net_work_minutes, ads.actual_work_minutes, 0),
+       COALESCE(ads.net_paid_minutes, ads.net_work_minutes, ads.actual_work_minutes, 0),
+       COALESCE(ads.break_provisional, false),
+       ads.break_exception_code,
        COALESCE(ads.standard_minutes, 0),
        COALESCE(ads.approved_ot_minutes, 0),
        COALESCE(ads.ot_status::text, 'none'),
@@ -222,7 +298,11 @@ LEFT JOIN LATERAL (
 	LIMIT 1
 ) credits ON TRUE
 LEFT JOIN official_schedule os ON os.employment_id = emp.id AND os.business_date = ads.date
-LEFT JOIN time_entries te ON te.employment_id = emp.id AND te.punch_in_time::date = ads.date
+LEFT JOIN LATERAL (
+       SELECT MIN(te.punch_in_time)::text AS punch_in_time, MAX(te.punch_out_time)::text AS punch_out_time
+       FROM time_entries te
+       WHERE te.employment_id = emp.id AND te.entry_type = 'work' AND te.punch_in_time::date = ads.date
+) te ON TRUE
 WHERE %s%s
 ORDER BY ads.date ASC, e.full_name ASC
 LIMIT $%d OFFSET $%d`, whereClause, filterClause, argIndex, argIndex+1)
@@ -237,13 +317,15 @@ LIMIT $%d OFFSET $%d`, whereClause, filterClause, argIndex, argIndex+1)
 		results := make([]api.DailyAttendanceRow, 0)
 		for rows.Next() {
 			var row api.DailyAttendanceRow
-			var actMins, stdMins, otMins int
+			var actMins, scheduledBreakMins, actualBreakMins, deductedBreakMins, netWorkMins, netPaidMins, stdMins, otMins int
+				var breakProvisional bool
+				var breakExceptionCode *string
 			var hoursPerDay, minutesPerCredit float64
 			var shiftName, schedStart, schedEnd, punchIn, punchOut *string
 			var otStatus string
 			if err := rows.Scan(&row.Date, &row.EmploymentID, &row.EmployeeID, &row.EmployeeName, &row.EmployeeIDNumber,
 				&shiftName, &schedStart, &schedEnd, &punchIn, &punchOut,
-				&actMins, &stdMins, &otMins, &otStatus, &hoursPerDay, &minutesPerCredit); err != nil {
+				&actMins, &scheduledBreakMins, &actualBreakMins, &deductedBreakMins, &netWorkMins, &netPaidMins, &breakProvisional, &breakExceptionCode, &stdMins, &otMins, &otStatus, &hoursPerDay, &minutesPerCredit); err != nil {
 				return api.PaginatedReportResponse{}, err
 			}
 			row.ShiftName = shiftName
@@ -252,6 +334,13 @@ LIMIT $%d OFFSET $%d`, whereClause, filterClause, argIndex, argIndex+1)
 			row.ActualPunchIn = punchIn
 			row.ActualPunchOut = punchOut
 			row.ActualWorkMinutes = actMins
+				row.ScheduledBreakMinutes = scheduledBreakMins
+				row.ActualBreakMinutes = actualBreakMins
+				row.DeductedBreakMinutes = deductedBreakMins
+				row.NetWorkMinutes = netWorkMins
+				row.NetPaidMinutes = netPaidMins
+				row.BreakProvisional = breakProvisional
+				row.BreakExceptionCode = breakExceptionCode
 			row.ComputedStdHours = math.Round((float64(stdMins)/60.0)*100) / 100
 			row.ComputedOTHours = math.Round((float64(otMins)/60.0)*100) / 100
 			denominator := hoursPerDay * 60
@@ -499,210 +588,4 @@ LIMIT $%d OFFSET $%d`, whereClause, idx, idx+1)
 		Page:  params.Page,
 		Limit: params.Limit,
 	}, nil
-}
-
-type RedisReportQueue struct {
-	Client          *redisinfra.Client
-	RequireRedis    bool
-	Fallback        sync.Map
-	ResultsFallback sync.Map
-}
-
-func (q *RedisReportQueue) EnqueueReport(ctx context.Context, job api.ReportJob, req api.ExportReportRequest) error {
-	if q == nil {
-		return errors.New("report queue is nil")
-	}
-	meta := map[string]any{
-		"job_id":            job.JobID.String(),
-		"requester_id":      job.RequesterID.String(),
-		"status":            job.Status,
-		"total_batches":     job.TotalBatches,
-		"completed_batches": 0,
-		"failed_batches":    0,
-		"created_at":        job.CreatedAt.Format(time.RFC3339),
-	}
-	encoded, err := json.Marshal(meta)
-	if err != nil {
-		return err
-	}
-	q.Fallback.Store(job.JobID.String(), job)
-	if q.Client == nil {
-		if q.RequireRedis {
-			return errors.New("report queue: redis is not configured")
-		}
-		return nil
-	}
-	shared, err := q.Client.Shared()
-	if err != nil || shared == nil {
-		if !q.RequireRedis {
-			return nil
-		}
-		if err == nil {
-			err = errors.New("report queue: redis client is unavailable")
-		}
-		return err
-	}
-	workerPayload, err := json.Marshal(map[string]any{
-		"task_type":     "attendance_report",
-		"request_id":    job.JobID.String(),
-		"parent_job_id": job.JobID.String(),
-		"priority":      "high",
-		"request":       req,
-	})
-	if err != nil {
-		return err
-	}
-	pipe := shared.TxPipeline()
-	pipe.Set(ctx, redisinfra.KeyReportMeta(job.JobID), encoded, 24*time.Hour)
-	pipe.Set(ctx, fmt.Sprintf("job:metadata:%s", job.JobID.String()), encoded, 24*time.Hour)
-	pipe.RPush(ctx, "worker:jobs:high", workerPayload)
-	_, err = pipe.Exec(ctx)
-	return err
-}
-
-func (q *RedisReportQueue) GetReport(ctx context.Context, jobID uuid.UUID) (api.ReportJob, error) {
-	if q == nil {
-		return api.ReportJob{}, errors.New("report queue is nil")
-	}
-	if q.Client != nil {
-		shared, err := q.Client.Shared()
-		if err == nil && shared != nil {
-			val, err := shared.Get(ctx, redisinfra.KeyReportMeta(jobID)).Result()
-			if errors.Is(err, goredis.Nil) {
-				val, err = shared.Get(ctx, fmt.Sprintf("job:metadata:%s", jobID.String())).Result()
-			}
-			if err == nil {
-				var meta struct {
-					JobID            string  `json:"job_id"`
-					RequesterID      string  `json:"requester_id"`
-					Status           string  `json:"status"`
-					TotalBatches     int     `json:"total_batches"`
-					CompletedBatches int     `json:"completed_batches"`
-					FailedBatches    int     `json:"failed_batches"`
-					ErrorMessage     *string `json:"error_message"`
-					CreatedAt        *string `json:"created_at"`
-					CompletedAt      *string `json:"completed_at"`
-				}
-				if json.Unmarshal([]byte(val), &meta) == nil {
-					parsedJobID, _ := uuid.Parse(meta.JobID)
-					parsedReqID, _ := uuid.Parse(meta.RequesterID)
-					createdAt := time.Now().UTC()
-					if meta.CreatedAt != nil {
-						if t, err := time.Parse(time.RFC3339, *meta.CreatedAt); err == nil {
-							createdAt = t
-						}
-					}
-					var completedAt *time.Time
-					if meta.CompletedAt != nil {
-						if t, err := time.Parse(time.RFC3339, *meta.CompletedAt); err == nil {
-							completedAt = &t
-						}
-					}
-					return api.ReportJob{
-						JobID:            parsedJobID,
-						RequesterID:      parsedReqID,
-						Status:           meta.Status,
-						TotalBatches:     meta.TotalBatches,
-						CompletedBatches: meta.CompletedBatches,
-						FailedBatches:    meta.FailedBatches,
-						Error:            meta.ErrorMessage,
-						CreatedAt:        createdAt,
-						CompletedAt:      completedAt,
-					}, nil
-				}
-			} else if !errors.Is(err, goredis.Nil) {
-				return api.ReportJob{}, err
-			}
-		}
-	}
-	if val, ok := q.Fallback.Load(jobID.String()); ok {
-		if job, ok := val.(api.ReportJob); ok {
-			return job, nil
-		}
-	}
-
-	return api.ReportJob{}, api.ErrReportNotFound
-}
-func (q *RedisReportQueue) CancelReport(ctx context.Context, jobID uuid.UUID) error {
-	if q == nil {
-		return errors.New("report queue is nil")
-	}
-	job, err := q.GetReport(ctx, jobID)
-	if err != nil {
-		return err
-	}
-	if job.Status == "completed" || job.Status == "failed" {
-		return api.ErrReportCannotCancel
-	}
-	now := time.Now().UTC()
-	cancelledErrMsg := "Cancelled by user"
-	job.Status = "failed"
-	job.Error = &cancelledErrMsg
-	job.CompletedAt = &now
-
-	q.Fallback.Store(jobID.String(), job)
-
-	if q.Client != nil {
-		shared, err := q.Client.Shared()
-		if err == nil && shared != nil {
-			meta := map[string]any{
-				"job_id":            job.JobID.String(),
-				"requester_id":      job.RequesterID.String(),
-				"status":            "failed",
-				"total_batches":     job.TotalBatches,
-				"completed_batches": job.CompletedBatches,
-				"failed_batches":    job.FailedBatches,
-				"error_message":     cancelledErrMsg,
-				"created_at":        job.CreatedAt.Format(time.RFC3339),
-				"completed_at":      now.Format(time.RFC3339),
-			}
-			if encoded, err := json.Marshal(meta); err == nil {
-				pipe := shared.TxPipeline()
-				pipe.Set(ctx, redisinfra.KeyReportMeta(jobID), encoded, 24*time.Hour)
-				pipe.Set(ctx, fmt.Sprintf("job:metadata:%s", jobID.String()), encoded, 24*time.Hour)
-				_, _ = pipe.Exec(ctx)
-			}
-		}
-	}
-	return nil
-}
-
-func (q *RedisReportQueue) GetResultData(ctx context.Context, jobID uuid.UUID) ([]byte, string, error) {
-	if q == nil {
-		return nil, "", errors.New("report queue is nil")
-	}
-	if q.Client != nil {
-		shared, err := q.Client.Shared()
-		if err == nil && shared != nil {
-			dataKey := redisinfra.KeyReportResultData(jobID)
-			fnameKey := redisinfra.KeyReportResultFilename(jobID)
-
-			pipe := shared.TxPipeline()
-			dataCmd := pipe.Get(ctx, dataKey)
-			fnameCmd := pipe.Get(ctx, fnameKey)
-			_, err := pipe.Exec(ctx)
-			if err == nil {
-				dataBytes, dataErr := dataCmd.Bytes()
-				fname, fnameErr := fnameCmd.Result()
-				if dataErr == nil && fnameErr == nil && len(dataBytes) > 0 {
-					return dataBytes, fname, nil
-				}
-			}
-		}
-	}
-	if val, ok := q.ResultsFallback.Load(jobID.String()); ok {
-		if res, ok := val.(ReportResultPayload); ok {
-			return res.Data, res.Filename, nil
-		}
-	}
-	return nil, "", api.ErrReportResultNotFound
-}
-
-type ReportResultPayload struct {
-	Data     []byte
-	Filename string
-}
-
-func (q *RedisReportQueue) StoreResultForTest(jobID uuid.UUID, data []byte, filename string) {
-	q.ResultsFallback.Store(jobID.String(), ReportResultPayload{Data: data, Filename: filename})
 }

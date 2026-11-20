@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
-import type { SummaryRow, DetailRow, AttendanceRow } from "@/types/report-stream";
+import type { SummaryRow, DetailRow, AttendanceRow } from "@/lib/excel-builder";
 
 import { generateExcel, isSummaryRow, isDetailRow } from "../excel-builder";
 

@@ -54,16 +54,6 @@ export interface ShiftCardMetrics {
   totalWorkMinutes: number;
 }
 
-export interface ShiftDraftIntervalInput {
-  breakDuration: number;
-  breakEnd: string;
-  breakStart: string;
-  endTime: string;
-  intervalName: string;
-  isFixedBreak: boolean;
-  startTime: string;
-}
-
 /**
  * Read `sort_order` defensively: the generated schema types it as required, but
  * older payloads (and hand-built test fixtures) may omit it.
@@ -132,7 +122,8 @@ function measureInterval(interval: ShiftInterval): ShiftIntervalMetrics {
     )
     : 0;
 
-  const isBreakDeducted = breakMinutes > 0;
+  const isBreakAutoDeduct = interval.is_break_auto_deduct ?? true;
+  const isBreakDeducted = isBreakAutoDeduct && breakMinutes > 0;
 
   return {
     breakEnd,

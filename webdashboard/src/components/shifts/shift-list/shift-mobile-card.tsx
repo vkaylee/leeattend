@@ -1,4 +1,4 @@
-import { ChevronRight, Clock, History, Zap, Pencil, Trash2 } from "lucide-react";
+import { ChevronRight, Clock, History, Pencil, Trash2 } from "lucide-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
 
@@ -33,11 +33,10 @@ interface BreakDisplayProps {
   breakDuration: number;
   breakEnd: string | null;
   breakStart: string | null;
-  isAutoDeduct: boolean;
 }
 
 /** Shows either fixed break times or a simple duration. */
-function BreakDisplay({ breakStart, breakEnd, breakDuration, isAutoDeduct }: BreakDisplayProps) {
+function BreakDisplay({ breakStart, breakEnd, breakDuration }: BreakDisplayProps) {
   const { t } = useTranslation();
   if (breakStart && breakEnd) {
     return (
@@ -49,11 +48,6 @@ function BreakDisplay({ breakStart, breakEnd, breakDuration, isAutoDeduct }: Bre
         <span className="rounded-lg border border-slate-100 bg-slate-50 px-3 py-1 font-mono text-[10px] font-bold text-slate-600 shadow-inner dark:border-slate-800 dark:bg-slate-800 dark:text-slate-300">
           {breakEnd.substring(0, 5)}
         </span>
-        {isAutoDeduct ? (
-          <span className="flex items-center gap-1 text-[8px] font-bold uppercase tracking-widest text-blue-500 opacity-80">
-            <Zap className="fill-blue-500" size={10} /> {t("shifts.auto_deduct")}
-          </span>
-        ) : null}
       </div>
     );
   }
@@ -95,7 +89,7 @@ function ShiftCardHeader({ shift }: { shift: Shift }) {
 
 // ── ShiftCardBreakInfo ─────────────────────────────────────────────────────
 
-function ShiftCardBreakInfo({ breakStart, breakEnd, breakDuration, isAutoDeduct }: BreakDisplayProps) {
+function ShiftCardBreakInfo({ breakStart, breakEnd, breakDuration }: BreakDisplayProps) {
   const { t } = useTranslation();
   return (
     <div className="mt-3">
@@ -103,7 +97,7 @@ function ShiftCardBreakInfo({ breakStart, breakEnd, breakDuration, isAutoDeduct 
         {t("shifts.table.break_time")}
       </div>
       <div className="mt-1">
-        <BreakDisplay breakDuration={breakDuration} breakEnd={breakEnd} breakStart={breakStart} isAutoDeduct={isAutoDeduct} />
+        <BreakDisplay breakDuration={breakDuration} breakEnd={breakEnd} breakStart={breakStart} />
       </div>
     </div>
   );
@@ -155,7 +149,7 @@ export function ShiftMobileCard({
   onEdit,
   onViewHistory,
 }: ShiftMobileCardProps) {
-  const { startTime, endTime, breakStart, breakEnd, breakDuration, isAutoDeduct } = parseShiftInterval(shift);
+  const { startTime, endTime, breakStart, breakEnd, breakDuration } = parseShiftInterval(shift);
 
   return (
     <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm transition-all active:scale-[0.99] dark:border-slate-800 dark:bg-slate-900">
@@ -168,7 +162,7 @@ export function ShiftMobileCard({
 
       <ShiftCardTimeRange endTime={endTime} startTime={startTime} />
 
-      <ShiftCardBreakInfo breakDuration={breakDuration} breakEnd={breakEnd} breakStart={breakStart} isAutoDeduct={isAutoDeduct} />
+      <ShiftCardBreakInfo breakDuration={breakDuration} breakEnd={breakEnd} breakStart={breakStart} />
 
       <ShiftCardActions onDelete={onDelete} onEdit={onEdit} onViewHistory={onViewHistory} shift={shift} />
     </div>

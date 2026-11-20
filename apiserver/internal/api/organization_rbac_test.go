@@ -17,17 +17,17 @@ import (
 )
 
 type mockRBACRepo struct {
-	members         []MemberDetail
-	roles           []Role
-	extraRoles      []MemberExtraRole
-	permissions     []MemberExtraPermission
-	rolePerms       map[uuid.UUID][]string
-	storageConfig   *StorageConfigRecord
-	userEmails      map[string]uuid.UUID
-	roleIsMutableFn      func(role uuid.UUID) (bool, error)
-	deleteRoleFn         func(role uuid.UUID) (int64, error)
-	updateRoleFn         func(role uuid.UUID, req UpdateRoleRequest) (Role, error)
-	linkMemberEmployeeFn func(actorID, userID, employeeID uuid.UUID) error
+	members                []MemberDetail
+	roles                  []Role
+	extraRoles             []MemberExtraRole
+	permissions            []MemberExtraPermission
+	rolePerms              map[uuid.UUID][]string
+	storageConfig          *StorageConfigRecord
+	userEmails             map[string]uuid.UUID
+	roleIsMutableFn        func(role uuid.UUID) (bool, error)
+	deleteRoleFn           func(role uuid.UUID) (int64, error)
+	updateRoleFn           func(role uuid.UUID, req UpdateRoleRequest) (Role, error)
+	linkMemberEmployeeFn   func(actorID, userID, employeeID uuid.UUID) error
 	unlinkMemberEmployeeFn func(actorID, userID uuid.UUID) error
 }
 

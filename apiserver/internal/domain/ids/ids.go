@@ -20,6 +20,7 @@ func (id UserID) UUID() uuid.UUID {
 func (id UserID) String() string {
 	return id.UUID().String()
 }
+
 type EmployerID uuid.UUID
 type DepartmentID uuid.UUID
 type EmployeeID uuid.UUID

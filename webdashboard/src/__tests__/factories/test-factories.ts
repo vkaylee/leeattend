@@ -98,15 +98,12 @@ export function createMockUseMyClockReturn(overrides?: Partial<UseMyClockReturn>
     isError: false,
     isLoading: false,
     isPunching: false,
-    punch: async () => Promise.resolve({
-      id: 'entry-123',
-      employment_id: 'employment-123',
-      entry_type: 'Work',
-      is_break_overtime: false,
-      punch_in_time: new Date().toISOString(),
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-      }),
+    attendanceState: undefined,
+    submitAction: async () => Promise.resolve({
+      state: "working",
+      next_allowed_actions: ["work_out"],
+      deduplicated: false,
+    }),
     refetch: async () => Promise.resolve(),
     ...overrides,
   };

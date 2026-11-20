@@ -1,10 +1,3 @@
-export interface ReportExportJobProgress {
-  completed_batches: number;
-  failed_batches: number;
-  percentage: number;
-  total_batches: number;
-}
-
 export type MonitorInfraJobState =
   | "dispatching"
   | "queued"
@@ -254,30 +247,12 @@ export interface MonitorJobsResponse {
   quality: MonitorQuality;
 }
 
-export interface ReportExportJob {
-  completed_at?: string;
-  created_at: string;
-  error?: string;
-  job_id: string;
-  progress: ReportExportJobProgress;
-  result_url?: string;
-  status: "pending" | "processing" | "completed" | "failed";
-}
-
 export interface CreateReportExportRequest {
   employee_ids?: string[];
   end_date: string;
   format?: "xlsx";
   report_type: "summary" | "detail";
   start_date: string;
-}
-
-export interface CreateReportExportResponse {
-  estimated_seconds: number;
-  job_id: string;
-  status: string;
-  status_url: string;
-  total_batches: number;
 }
 
 export interface ProcessResponse {

@@ -200,7 +200,7 @@ export interface GenericJobStatus {
 }
 
 export async function checkReprocessStatus(jobId: string): Promise<GenericJobStatus> {
-  const { data: resData } = await client.GET<GenericJobStatus>("/api/v1/reports/jobs/{job_id}", {
+  const { data: resData } = await client.GET<GenericJobStatus>("/api/v1/jobs/{job_id}", {
     params: { path: { job_id: jobId } },
   });
   return resData;

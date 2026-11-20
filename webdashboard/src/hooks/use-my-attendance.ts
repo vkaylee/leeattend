@@ -7,10 +7,13 @@ import {
   AttendanceParams,
   TimeEntry,
   fetchMyAttendance,
+  fetchMyAttendanceState,
   fetchMyAttendanceSummaries,
   fetchMyTimeEntries,
-  punchMySelf,
+  submitMyAttendanceAction,
   submitMyOtClaim,
+  type AttendanceAction,
+  type AttendanceActionResponse,
 } from "@/lib/api";
 import { createQueryKey } from "@/lib/query-keys";
 
@@ -42,12 +45,13 @@ export function useMyAttendance(params?: AttendanceParams): UseMyAttendanceRetur
 
 export interface UseMyClockReturn {
   activeEntry: TimeEntry | undefined;
+  attendanceState: AttendanceActionResponse | undefined;
   entries: TimeEntry[];
   error: Error | null;
   isError: boolean;
   isLoading: boolean;
   isPunching: boolean;
-  punch: (data?: { note?: string }) => Promise<TimeEntry>;
+  submitAction: (action: AttendanceAction, note?: string) => Promise<AttendanceActionResponse>;
   refetch: () => Promise<unknown>;
 }
 
@@ -76,33 +80,34 @@ export function useMyClock({ enabled = true, suppressErrors = false }: UseMyCloc
     refetchInterval: enabled ? 30000 : false,
   });
 
-  const activeEntry = entriesQuery.data?.find((e) => !e.punch_out_time);
+  const stateQuery = useQuery<AttendanceActionResponse>({
+    queryKey: createQueryKey(...essKeys.all, "attendance-state"),
+    queryFn: fetchMyAttendanceState,
+    enabled,
+    meta: suppressErrors ? { suppressErrorToast: true } : undefined,
+    refetchInterval: enabled ? 30000 : false,
+  });
 
-  const punchMutation = useMutation<TimeEntry, Error, { note?: string } | undefined>({
-    mutationFn: (data?: { note?: string }) =>
-      punchMySelf(data ?? {}),
-    onSuccess: (newEntry) => {
-      queryClient.setQueryData<TimeEntry[]>(essKeys.clockEntries(), (oldData) => {
-        if (!oldData) return [newEntry];
-        const exists = oldData.some((e) => e.id === newEntry.id);
-        if (exists) {
-          return oldData.map((e) => (e.id === newEntry.id ? newEntry : e));
-        }
-        return [newEntry, ...oldData];
-      });
+  const activeEntry = stateQuery.data?.entry ?? entriesQuery.data?.find((e) => !e.punch_out_time);
+
+  const actionMutation = useMutation<AttendanceActionResponse, Error, { action: AttendanceAction; note?: string }>({
+    mutationFn: ({ action, note }) => submitMyAttendanceAction(action, crypto.randomUUID(), note),
+    onSuccess: (response) => {
+      queryClient.setQueryData(createQueryKey(...essKeys.all, "attendance-state"), response);
       void queryClient.invalidateQueries({ queryKey: essKeys.all });
     },
   });
 
   return {
     entries: entriesQuery.data ?? [],
-    isLoading: entriesQuery.isLoading,
-    isError: entriesQuery.isError,
-    error: entriesQuery.error,
-    refetch: entriesQuery.refetch,
+    isLoading: entriesQuery.isLoading || stateQuery.isLoading,
+    isError: entriesQuery.isError || stateQuery.isError,
+    error: entriesQuery.error ?? stateQuery.error,
+    refetch: async () => { await Promise.all([entriesQuery.refetch(), stateQuery.refetch()]); },
     activeEntry,
-    punch: punchMutation.mutateAsync,
-    isPunching: punchMutation.isPending,
+    attendanceState: stateQuery.data,
+    submitAction: (action, note) => actionMutation.mutateAsync({ action, note }),
+    isPunching: actionMutation.isPending,
   };
 }
 

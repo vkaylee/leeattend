@@ -22,6 +22,48 @@ function BreakConfigSection({
         {t("shifts.modal.break_config_help", "Chọn cách hệ thống tính giờ nghỉ trong khoảng làm việc này.")}
       </div>
 
+      <div aria-label={t("shifts.modal.break_capture_label", "Cách ghi nhận giờ nghỉ")} className="grid grid-cols-1 sm:grid-cols-2 gap-3" role="radiogroup">
+        <label aria-label={t("shifts.modal.break_capture_none", "Không cần chấm công nghỉ")} className="flex items-start gap-3 p-3 min-h-11 rounded-xl border border-slate-200 dark:border-slate-700 cursor-pointer" htmlFor={`${modeId}-no-punch`}>
+          <input checked={iv.breakPunchMode === "none"} className="mt-1" id={`${modeId}-no-punch`} name={`${modeId}-capture`} onChange={() => { onUpdate(iv.key, { breakPunchMode: "none", breakCreditMode: iv.isAutoDeduct ? "scheduled" : "none" }); }} type="radio" />
+          <span><span className="block text-sm font-bold text-slate-700 dark:text-slate-200">{t("shifts.modal.break_capture_none", "Không cần chấm công nghỉ")}</span><span className="block text-xs text-slate-500 dark:text-slate-400">{t("shifts.modal.break_capture_none_help", "Hệ thống tính theo chính sách giờ nghỉ.")}</span></span>
+        </label>
+        <label aria-label={t("shifts.modal.break_capture_required", "Bắt buộc chấm công nghỉ")} className="flex items-start gap-3 p-3 min-h-11 rounded-xl border border-slate-200 dark:border-slate-700 cursor-pointer" htmlFor={`${modeId}-required`}>
+          <input checked={iv.breakPunchMode === "required"} className="mt-1" id={`${modeId}-required`} name={`${modeId}-capture`} onChange={() => { onUpdate(iv.key, { breakPunchMode: "required", breakCreditMode: "actual", isFixedBreak: true }); }} type="radio" />
+          <span><span className="block text-sm font-bold text-slate-700 dark:text-slate-200">{t("shifts.modal.break_capture_required", "Bắt buộc chấm công nghỉ")}</span><span className="block text-xs text-slate-500 dark:text-slate-400">{t("shifts.modal.break_capture_required_help", "Nhân viên bấm bắt đầu và kết thúc giờ nghỉ.")}</span></span>
+        </label>
+      </div>
+
+      <div aria-label={t("shifts.modal.break_policy_label", "Chính sách giờ nghỉ")} className="grid grid-cols-1 sm:grid-cols-2 gap-3" role="radiogroup">
+        <label aria-label={t("shifts.modal.break_policy_auto_deduct", "Tự động trừ giờ nghỉ")} className="flex items-start gap-3 p-3 min-h-11 rounded-xl border border-slate-200 dark:border-slate-700 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/60" htmlFor={`${modeId}-auto-deduct`}>
+          <input
+            checked={iv.isAutoDeduct}
+            className="mt-1"
+            id={`${modeId}-auto-deduct`}
+            name={`${modeId}-policy`}
+            onChange={() => { onUpdate(iv.key, { isAutoDeduct: true }); }}
+            type="radio"
+          />
+          <span>
+            <span className="block text-sm font-bold text-slate-700 dark:text-slate-200">{t("shifts.modal.break_policy_auto_deduct", "Tự động trừ giờ nghỉ")}</span>
+            <span className="block text-xs text-slate-500 dark:text-slate-400">{t("shifts.modal.break_policy_auto_deduct_help", "Không cần chấm công khi bắt đầu hoặc kết thúc nghỉ.")}</span>
+          </span>
+        </label>
+        <label aria-label={t("shifts.modal.break_policy_no_deduct", "Không tự động trừ")} className="flex items-start gap-3 p-3 min-h-11 rounded-xl border border-slate-200 dark:border-slate-700 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/60" htmlFor={`${modeId}-paid-break`}>
+          <input
+            checked={!iv.isAutoDeduct}
+            className="mt-1"
+            id={`${modeId}-paid-break`}
+            name={`${modeId}-policy`}
+            onChange={() => { onUpdate(iv.key, { isAutoDeduct: false }); }}
+            type="radio"
+          />
+          <span>
+            <span className="block text-sm font-bold text-slate-700 dark:text-slate-200">{t("shifts.modal.break_policy_no_deduct", "Không tự động trừ")}</span>
+            <span className="block text-xs text-slate-500 dark:text-slate-400">{t("shifts.modal.break_policy_no_deduct_help", "Khoảng nghỉ vẫn được tính vào thời gian hiện diện.")}</span>
+          </span>
+        </label>
+      </div>
+
       <div aria-label={t("shifts.modal.break_mode", "Cách cấu hình giờ nghỉ")} className="grid grid-cols-1 sm:grid-cols-2 gap-3" role="radiogroup">
         <label aria-label={t("shifts.modal.break_mode_duration", "Theo thời lượng")} className="flex items-start gap-3 p-3 min-h-11 rounded-xl border border-slate-200 dark:border-slate-700 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/60" htmlFor={`${modeId}-duration`}>
           <input
@@ -37,11 +79,12 @@ function BreakConfigSection({
               {t("shifts.modal.break_mode_duration", "Theo thời lượng")}
             </span>
             <span className="block text-xs text-slate-500 dark:text-slate-400">
-              {t("shifts.modal.break_mode_duration_help", "Ví dụ: tự động trừ 60 phút. Nhân viên thường chỉ cần chấm công 2 lần/ngày.")}
+              {t("shifts.modal.break_mode_duration_help", "Ví dụ: 60 phút. Cách trừ giờ nghỉ tuân theo chính sách phía trên.")}
             </span>
           </span>
         </label>
         <label aria-label={t("shifts.modal.break_mode_fixed", "Theo giờ cố định")} className="flex items-start gap-3 p-3 min-h-11 rounded-xl border border-slate-200 dark:border-slate-700 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/60" htmlFor={`${modeId}-fixed`}>
+
           <input
             checked={iv.isFixedBreak}
             className="mt-1"

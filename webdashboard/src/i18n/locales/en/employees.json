@@ -285,6 +285,9 @@
     },
     "form": {
       "add_title": "Add Employee",
+      "basic_info": "Basic information",
+      "employment_info": "Employment information",
+      "unsaved_changes": "You have unsaved changes. Leaving will discard them.",
       "edit_title": "Edit Profile",
       "subtitle": "Personnel Profile",
       "full_name": "Full Name",

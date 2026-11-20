@@ -126,8 +126,12 @@ export type OtStatus = "none" | "pending_employee" | "pending_manager" | "approv
 
 export interface AttendanceDailySummary {
   actual_work_minutes: number;
+  actual_break_minutes?: number;
   approved_ot_minutes: number;
+  break_exception_code?: string | null;
   break_ot_minutes?: number;
+  break_provisional?: boolean;
+  deducted_break_minutes?: number;
   claim_entered_at?: string | null;
   claim_entered_by_user_id?: string | null;
   claimed_ot_minutes: number;
@@ -145,6 +149,9 @@ export interface AttendanceDailySummary {
   ot_reason?: string | null;
   ot_status: string;
   paper_form_photo_url?: string | null;
+  net_paid_minutes?: number;
+  net_work_minutes?: number;
+  scheduled_break_minutes?: number;
   standard_minutes?: number;
   system_detected_ot_minutes: number;
   updated_at: string;

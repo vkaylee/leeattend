@@ -36,7 +36,7 @@ export default function MyClockPage() {
     entries,
     isLoading: isLoadingClock,
     isPunching,
-    punch,
+    submitAction,
   } = useMyClock({ enabled: !isLoadingProfile && Boolean(employee) });
 
   const { data: organization } = useQuery({
@@ -70,7 +70,7 @@ export default function MyClockPage() {
   }, [nowMs, todayPunches]);
   const handlePunch = async () => {
     try {
-      await punch({});
+      await submitAction(activeEntry ? "work_out" : "work_in");
       toast.success(t("ess.clock.punch_success", "Chấm công thành công"));
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : "Unknown error";

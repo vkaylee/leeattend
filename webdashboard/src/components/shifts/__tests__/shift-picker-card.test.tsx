@@ -50,7 +50,7 @@ function iv(overrides: IntervalFixture = {}) {
     early_punch_in_grace_period_minutes: 0,
     end_time: "17:00:00",
     id: `iv-${Math.random().toString(36).slice(2, 8)}`,
-    is_break_auto_deduct: false,
+    is_break_auto_deduct: true,
     is_night_shift: false,
     ot_aggregation_mode: "daily",
     sort_order: 0,

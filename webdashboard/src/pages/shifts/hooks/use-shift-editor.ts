@@ -2,7 +2,7 @@
 /* eslint-disable max-lines-per-function, max-lines */
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useBlocker, useNavigate } from "@tanstack/react-router";
-import { useState, useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { format } from "date-fns";
@@ -29,6 +29,10 @@ export interface IntervalDraft {
   breakStart: string;
   endTime: string;
   intervalName: string;
+  breakCreditMode: "scheduled" | "actual" | "none";
+  breakPunchMode: "none" | "required";
+  isAutoDeduct: boolean;
+  isBreakOvertime: boolean;
   isFixedBreak: boolean;
   isNightShift: boolean;
   key: string;
@@ -65,6 +69,10 @@ function makeDefaultInterval(): IntervalDraft {
   return {
     key: nextIntervalKey(),
     intervalName: "",
+    breakCreditMode: "scheduled",
+    breakPunchMode: "none",
+    isAutoDeduct: true,
+    isBreakOvertime: false,
     startTime: "08:00",
     endTime: "17:00",
     breakDuration: 60,
@@ -162,9 +170,13 @@ export function useShiftEditor(shiftId?: string) {
   // Compute external intervals — stabilized via useMemo.
   const externalIntervals = useMemo((): IntervalDraft[] => {
     if (isEditMode && editingShift?.intervals?.length) {
-      return editingShift.intervals.map((iv) => ({
+      return editingShift.intervals.map((iv): IntervalDraft => ({
         key: nextIntervalKey(),
         intervalName: iv.interval_name ?? "",
+        breakCreditMode: iv.break_credit_mode === "actual" || iv.break_credit_mode === "none" ? iv.break_credit_mode : "scheduled",
+        breakPunchMode: iv.break_punch_mode === "required" ? "required" : "none",
+        isAutoDeduct: iv.is_break_auto_deduct ?? true,
+        isBreakOvertime: iv.break_is_overtime ?? false,
         startTime: iv.start_time.substring(0, 5),
         endTime: iv.end_time.substring(0, 5),
         breakDuration: iv.break_duration_minutes,
@@ -222,6 +234,10 @@ export function useShiftEditor(shiftId?: string) {
       break_duration_minutes: iv.breakDuration,
       break_start: iv.isFixedBreak && iv.breakStart ? padTime(iv.breakStart) : null,
       break_end: iv.isFixedBreak && iv.breakEnd ? padTime(iv.breakEnd) : null,
+      break_credit_mode: iv.breakCreditMode,
+      break_punch_mode: iv.breakPunchMode,
+      is_break_auto_deduct: iv.isAutoDeduct,
+      break_is_overtime: iv.isBreakOvertime,
     }));
 
     return {

@@ -18,7 +18,3 @@ func registerMonitorRoutes(router chi.Router, handler *api.MonitorHandler) {
 	registerRoute(router, "GET /api/v1/jobs/{job_id}", handler.GetJobStatus)
 	registerRoute(router, "GET /api/v1/monitor/jobs/{job_id}", handler.GetMonitorJob)
 }
-
-func registerReportWebSocketRoute(router chi.Router, handler *api.MonitorHandler) {
-	registerRoute(router, "GET /api/v1/ws/reports/{job_id}", handler.ReportStreamWS)
-}

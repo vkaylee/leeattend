@@ -11,7 +11,8 @@ import { useMyClock, essKeys } from "../use-ess";
 // Mock the API
 vi.mock("@/lib/api", () => ({
   fetchMyTimeEntries: vi.fn(),
-  punchMySelf: vi.fn(),
+  fetchMyAttendanceState: vi.fn(),
+  submitMyAttendanceAction: vi.fn(),
 }));
 
 const createWrapper = () => {
@@ -52,8 +53,8 @@ describe("useMyClock optimistic updates", () => {
     vi.mocked(api.fetchMyTimeEntries)
       .mockResolvedValueOnce(mockEntries as unknown as api.TimeEntry[])
       .mockResolvedValueOnce([newEntry, ...mockEntries] as unknown as api.TimeEntry[]);
-
-    vi.mocked(api.punchMySelf).mockResolvedValue(newEntry as unknown as api.TimeEntry);
+    vi.mocked(api.fetchMyAttendanceState).mockResolvedValue({ state: "off", next_allowed_actions: ["work_in"], deduplicated: false });
+    vi.mocked(api.submitMyAttendanceAction).mockResolvedValue({ state: "working", next_allowed_actions: ["work_out"], entry: newEntry as unknown as api.TimeEntry, deduplicated: false });
 
     const { Wrapper, queryClient } = createWrapper();
     const { result } = renderHook(() => useMyClock(), {
@@ -67,7 +68,7 @@ describe("useMyClock optimistic updates", () => {
     expect(result.current.entries).toEqual(mockEntries);
 
     // Call punch
-    await result.current.punch({});
+    await result.current.submitAction("work_in");
 
     // Expect the optimistic update to be present in the cache immediately
     const cachedData = queryClient.getQueryData(essKeys.clockEntries());
@@ -117,7 +118,8 @@ describe("useMyClock optimistic updates", () => {
       .mockResolvedValueOnce(mockEntries as unknown as api.TimeEntry[])
       .mockResolvedValueOnce([updatedEntry] as unknown as api.TimeEntry[]);
 
-    vi.mocked(api.punchMySelf).mockResolvedValue(updatedEntry as unknown as api.TimeEntry);
+    vi.mocked(api.fetchMyAttendanceState).mockResolvedValue({ state: "working", next_allowed_actions: ["work_out"], entry: mockEntries[0] as unknown as api.TimeEntry, deduplicated: false });
+    vi.mocked(api.submitMyAttendanceAction).mockResolvedValue({ state: "completed", next_allowed_actions: ["work_in"], entry: updatedEntry as unknown as api.TimeEntry, deduplicated: false });
 
     const { Wrapper, queryClient } = createWrapper();
     const { result } = renderHook(() => useMyClock(), {
@@ -131,7 +133,7 @@ describe("useMyClock optimistic updates", () => {
     expect(result.current.entries).toEqual(mockEntries);
 
     // Call punch
-    await result.current.punch({});
+    await result.current.submitAction("work_in");
 
     // Expect the optimistic update to replace the old entry
     const cachedData = queryClient.getQueryData(essKeys.clockEntries());

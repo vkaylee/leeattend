@@ -74,7 +74,7 @@ func TestAttendanceSummariesUseEffectiveWorkPolicy(t *testing.T) {
 			query = sql
 			return &attendancePolicyRows{rows: [][]any{{
 				summaryID, employmentID, "2026-06-15", 450, 450, 0, 0, 0, 0, 0, 0,
-				450.0, versionID, "none", nil, nil, false, false, nil,
+				0, 0, 450, 450, 450, false, nil, 450.0, versionID, "none", nil, nil, false, false, nil,
 				"2026-06-15T00:00:00Z", "2026-06-15T00:00:00Z",
 			}}}, nil
 		},
@@ -104,7 +104,7 @@ func TestAttendanceSummariesKeepMissingPolicyUnconfigured(t *testing.T) {
 		queryFn: func(_ context.Context, _ string, _ ...any) (pgx.Rows, error) {
 			return &attendancePolicyRows{rows: [][]any{{
 				summaryID, employmentID, "2026-06-15", 90, 90, 0, 0, 0, 0, 0, 0,
-				0.0, nil, "none", nil, nil, false, false, nil,
+				0, 0, 90, 90, 90, false, nil, 0.0, nil, "none", nil, nil, false, false, nil,
 				"2026-06-15T00:00:00Z", "2026-06-15T00:00:00Z",
 			}}}, nil
 		},

@@ -85,6 +85,71 @@
 
 ---
 
+# Duplicate employee detection after employee_tenures
+
+## Phase D0 — Policy and baseline
+
+- [ ] **D0.1** Freeze normalization, hard/soft match, global employee-code, permission, privacy, audit, rate-limit, and feature-flag policy.
+- [ ] **D0.2** Generate disposable aggregate duplicate report: profiles, codes, tenure overlaps, mismatches, reconciliation rows; no raw PII.
+
+### Checkpoint D-A
+
+- [ ] Human approves identity and code policy before schema/API work.
+
+## Phase D1 — Lookup foundation
+
+- [ ] **D1.1** Add reversible nullable phone/national-ID HMAC lookup columns and indexes.
+- [ ] **D1.2** Add bounded idempotent backfill/reconciliation; fail closed without secret; block unique indexes on unresolved collisions.
+
+### Checkpoint D-B
+
+- [ ] Migration forward/down and backfill rerun pass.
+- [ ] No raw PII in logs/artifacts.
+
+## Phase D2 — Match API
+
+- [ ] **D2.1** Add `POST /api/v1/employees/match` with `employees:identity:match`, exact hard matching, soft candidates, redacted response, audit, and rate limit.
+- [ ] **D2.2** Add API/repository/OpenAPI tests for auth, validation, hard/soft/none, redaction, and rate limit.
+
+## Phase D3 — Atomic write paths
+
+- [ ] **D3.1** Harden create-new: employee + profile + first tenure + employment in one transaction; recheck identity/code under lock.
+- [ ] **D3.2** Add `POST /api/v1/employees/{employee_id}/tenures`; lock/revalidate, keep employee identity/code, insert tenure only.
+- [ ] **D3.3** Add integration tests for rollback, duplicate/race, stale candidate, overlap, terminated reuse, and active rejection.
+
+### Checkpoint D-C
+
+- [ ] New person creates one employee and first tenure.
+- [ ] Existing person creates tenure only.
+- [ ] ESS/attendance/reports resolve correct identity.
+
+## Phase D4 — UX integration
+
+- [ ] **D4.1** Add phone/DOB/national-ID fields and debounced preflight to `/employees/new`.
+- [ ] **D4.2** Implement explicit hard reuse/create and soft review states; never auto-reuse; keep PII out of URL/artifacts; localize/a11y.
+- [ ] **D4.3** Route attendance staging through same preflight; raw user ID is not identity proof.
+- [ ] **D4.4** Add page/component/staging tests for match states, stale/error, reuse/create, keyboard/focus, and duplicate submit.
+
+### Checkpoint D-D
+
+- [ ] Search-before-create works from employee page and attendance staging.
+- [ ] Hard match cannot accidentally duplicate; soft match never auto-reuses.
+
+## Phase D5 — Rollout and final verification
+
+- [ ] **D5.1** Feature flag defaults off; pilot admin/HR; aggregate metrics only; rollback documented.
+- [ ] **D5.2** Regenerate API types, run focused tests then full web/API/all gates, inspect `.test_logs/`, and audit all five roles at 1920x1080 then mobile.
+
+### Final duplicate-detection checkpoint
+
+- [ ] Search existing → explicit reuse/create works.
+- [ ] New employee has profile + first tenure atomically.
+- [ ] Reuse adds tenure only.
+- [ ] Concurrent identity/code races are safe.
+- [ ] No PII leaks; rollback evidence recorded.
+
+---
+
 # Typed UserID Internal Boundary — task list
 
 ## Phase 1 — Foundation and authentication
@@ -134,3 +199,111 @@
 - [ ] `ids.UserID` protects internal authenticated-user boundaries.
 - [ ] JWT, HTTP, JSON, PostgreSQL, authorization, audit, and revocation contracts remain compatible.
 - [ ] Negative, validation, persistence, and regression evidence recorded.
+
+---
+
+# `/shifts/new` HR UX — actionable checklist
+
+## Phase 0 — Baseline
+
+- [ ] Capture `git status --short`; preserve unrelated worktree changes.
+- [ ] Run `./leedevkit --help` and `./leedevkit test --help`.
+- [ ] Confirm inline interval payload and frontend-only scope.
+
+## Phase 1 — Metrics
+
+- [ ] Reuse `getShiftCardMetrics` for all-period aggregation.
+- [ ] Add expected-punch summary without duplicating existing arithmetic.
+- [ ] Test normal, split, duration/fixed break, overnight, midnight break, empty/incomplete drafts.
+
+## Phase 2 — Hook contract
+
+- [ ] Preserve default/add/remove/edit hydration/overnight behavior.
+- [ ] Test all intervals serialize with HH:MM:SS.
+- [ ] Test duration mode sends null clock fields.
+- [ ] Test fixed mode sends both clock fields and rejects incomplete values.
+- [ ] Checkpoint: focused hook tests + typecheck.
+
+## Phase 3 — Editor UX
+
+- [ ] Rename visible interval copy to `Khoảng làm việc` and locale equivalents.
+- [ ] Hide optional interval name in normal flow; expose accessible advanced control.
+- [ ] Explain one normal period and when to add split period.
+- [ ] Replace ambiguous fixed-break toggle with duration/fixed-time choice.
+- [ ] Add labels, helper text, inline validation, keyboard/a11y coverage.
+
+## Phase 4 — Preview
+
+- [ ] Remove first-period-only preview calculation.
+- [ ] Show presence, break, net work, expected punches.
+- [ ] Test split/overnight/empty summaries and preserve timeline behavior.
+- [ ] Checkpoint: component tests + 1920×1080 visual verification.
+
+## Phase 5 — i18n and page regression
+
+- [ ] Add matching keys to en/vi/zh `attendance.json`.
+- [ ] Remove new hardcoded labels/placeholders.
+- [ ] Preserve save/cancel, dirty blocker, edit, history, loading/error behavior.
+- [ ] Run locale parity, translation usage, typecheck, lint, and build.
+
+## Phase 6 — E2E and full verification
+
+- [ ] Extend `/shifts/new` E2E: basic, split, duration break, fixed break, overnight, payload, cancel/dirty.
+- [ ] Read `docs/dev-accounts.md`; use least-privileged documented account.
+- [ ] Create route × role acceptance matrix before browser testing.
+- [ ] Announce/use 1920×1080 viewport; capture console/network evidence without PII/secrets.
+- [ ] Run focused E2E through project wrapper.
+- [ ] Run applicable full web/integration suite.
+- [ ] Inspect `.test_logs/`; record pass/fail/skip/warnings and remaining risks.
+- [ ] Final checkpoint: unrelated worktree changes preserved; no backend/schema changes.
+
+---
+
+# HRM break capture and credit lifecycle — task list
+
+## Phase 0 — Contract and baseline
+
+- [ ] Verify actual latest migration, schema markers, UUID/FK conventions, current generated contracts, and all time-entry scan sites.
+- [ ] Freeze explicit `break_punch_mode` and `break_credit_mode`; remove ambiguous legacy semantics in same cutover.
+- [ ] Record required-mode rule: fixed break boundaries only; required + automatic deduction rejected.
+
+## Phase 1 — Schema and resolved policy
+
+- [x] Add `break_punch_mode` and `break_credit_mode` to shift intervals and future `work_segments.breaks_snapshot` values.
+- [x] Add child `time_entry_breaks`, action idempotency storage, unique/open-state indexes, and rollback migration.
+- [x] Add scheduled/actual/deducted/net/provisional/exception fields to daily summaries and closure snapshots.
+- [ ] Add API/generated type round-trip and migration invariant tests.
+
+## Phase 2 — Transactional actions
+
+- [x] Add explicit ESS action/state endpoints: `work_in`, `work_out`, `break_start`, `break_end`.
+- [x] Replace implicit toggle behavior; malformed/missing action returns validation error.
+- [x] Implement employment/open-entry locking, request hash replay/conflict, duplicate protection, and audit evidence.
+- [x] Implement state machine, system-implied work-out break close, and blocking missing-break exception.
+
+## Phase 3 — Calculation and summaries
+
+- [ ] Implement one pure calculation path for scheduled overlap, paid break, and actual required break.
+- [ ] Keep time-entry duration gross; recompute daily summary deterministically without double deduction.
+- [ ] Handle overnight business date/timezone and split interval ownership.
+
+## Phase 4 — Reports, payroll, closure
+
+- [ ] Make reports/payroll read daily summary net fields only.
+- [ ] Pre-aggregate punch display data; guarantee one report row per employment/business date.
+- [ ] Extend closure locking/snapshot and block open/provisional break exceptions.
+- [ ] Update Go/TS/docs report contracts and consumer tests.
+
+## Phase 5 — Frontend rollout
+
+- [x] Add explicit capture/credit controls to shift editor and payload.
+- [x] Add ESS state/action UI, timers, invalid-action disabling, idempotency key, and exception state.
+- [ ] Update en/vi/zh translations and accessibility tests.
+- [ ] Enable `required` per shift after shadow comparison; default new policies to `none`.
+
+## Verification
+
+- [ ] Run focused API/web tests through wrappers.
+- [ ] Run migration up/down and invariant queries on disposable DB.
+- [ ] Run `./leedevkit test api </dev/null`, `./leedevkit test web </dev/null`, then `./leedevkit test all </dev/null`.
+- [ ] Inspect `.test_logs/`; preserve unrelated worktree changes and avoid `.leedevkit/`.

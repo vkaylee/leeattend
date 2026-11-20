@@ -42,6 +42,35 @@ type ShiftIntervalRequest struct {
 	BreakDurationMinutes  int     `json:"break_duration_minutes"`
 	BreakStart            *string `json:"break_start,omitempty"`
 	BreakEnd              *string `json:"break_end,omitempty"`
+	BreakPunchMode        string  `json:"break_punch_mode,omitempty"`
+	BreakCreditMode       string  `json:"break_credit_mode,omitempty"`
+	IsBreakAutoDeduct     *bool   `json:"is_break_auto_deduct,omitempty"`
+	BreakIsOvertime       *bool   `json:"break_is_overtime,omitempty"`
+}
+
+func (r ShiftIntervalRequest) BreakPunchModeValue() string {
+	if r.BreakPunchMode == "" {
+		return "none"
+	}
+	return r.BreakPunchMode
+}
+
+func (r ShiftIntervalRequest) BreakCreditModeValue() string {
+	if r.BreakCreditMode != "" {
+		return r.BreakCreditMode
+	}
+	if r.IsBreakAutoDeductValue() {
+		return "scheduled"
+	}
+	return "none"
+}
+
+func (r ShiftIntervalRequest) IsBreakAutoDeductValue() bool {
+	return r.IsBreakAutoDeduct == nil || *r.IsBreakAutoDeduct
+}
+
+func (r ShiftIntervalRequest) BreakIsOvertimeValue() bool {
+	return r.BreakIsOvertime != nil && *r.BreakIsOvertime
 }
 
 type CreateShiftRequest struct {
@@ -103,6 +132,10 @@ type ShiftIntervalRecord struct {
 	BreakDurationMinutes  int       `json:"break_duration_minutes"`
 	BreakStart            *string   `json:"break_start"`
 	BreakEnd              *string   `json:"break_end"`
+	BreakPunchMode        string    `json:"break_punch_mode"`
+	BreakCreditMode       string    `json:"break_credit_mode"`
+	IsBreakAutoDeduct     bool      `json:"is_break_auto_deduct"`
+	BreakIsOvertime       bool      `json:"break_is_overtime"`
 }
 
 type ShiftRecord struct {
@@ -275,12 +308,28 @@ func validateIntervals(intervals []ShiftIntervalRequest) error {
 		if _, err := parseClock(interval.EndTime); err != nil {
 			return ErrShiftValidation
 		}
+		if interval.BreakDurationMinutes < 0 {
+			return ErrShiftValidation
+		}
+		if interval.BreakPunchModeValue() != "none" && interval.BreakPunchModeValue() != "required" {
+			return ErrShiftValidation
+		}
+		if interval.BreakCreditModeValue() != "scheduled" && interval.BreakCreditModeValue() != "actual" && interval.BreakCreditModeValue() != "none" {
+			return ErrShiftValidation
+		}
+		if interval.BreakPunchModeValue() == "required" && interval.BreakCreditModeValue() == "scheduled" {
+			return ErrShiftValidation
+		}
+		if interval.BreakPunchModeValue() == "required" && (interval.BreakStart == nil || interval.BreakEnd == nil) {
+			return ErrShiftValidation
+		}
+		if (interval.BreakStart == nil) != (interval.BreakEnd == nil) {
+			return ErrShiftValidation
+		}
 		if interval.BreakStart != nil {
 			if _, err := parseClock(*interval.BreakStart); err != nil {
 				return ErrShiftValidation
 			}
-		}
-		if interval.BreakEnd != nil {
 			if _, err := parseClock(*interval.BreakEnd); err != nil {
 				return ErrShiftValidation
 			}

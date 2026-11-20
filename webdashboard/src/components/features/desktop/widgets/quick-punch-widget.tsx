@@ -71,7 +71,7 @@ export function QuickPunchWidget() {
   const { success, error } = useToast();
   const canUseClock = useMyPermissions().hasRole("employee");
   const { employee, isLoading: isLoadingProfile } = useMyProfile({ enabled: canUseClock });
-  const { activeEntry, isPunching, punch, isLoading } = useMyClock({
+  const { activeEntry, isPunching, submitAction, isLoading } = useMyClock({
     enabled: canUseClock && !isLoadingProfile && Boolean(employee?.active_employment_id),
     suppressErrors: true,
   });
@@ -88,7 +88,7 @@ export function QuickPunchWidget() {
 
   const handlePunch = async () => {
     try {
-      await punch();
+      await submitAction(isClockedIn ? "work_out" : "work_in");
       success(t(isClockedIn ? "ess.punchOutSuccess" : "ess.punchInSuccess", isClockedIn ? "Đã ghi nhận tan ca" : "Đã ghi nhận vào ca thành công"));
     } catch {
       error(t("ess.punchErrorDesc", "Vui lòng thử lại hoặc kiểm tra kết nối mạng"), t("ess.punchError", "Không thể thực hiện chấm công"));

@@ -457,6 +457,13 @@ func sanitizedTrace(traces []api.ScheduleTrace) []map[string]any {
 	return result
 }
 
+func valueOrDefault(value *string, fallback string) string {
+	if value == nil || *value == "" {
+		return fallback
+	}
+	return *value
+}
+
 func previewIntervals(version shiftVersionInfo, businessDate, timezone string) ([]map[string]any, error) {
 	loc, err := time.LoadLocation(timezone)
 	if err != nil {
@@ -501,12 +508,12 @@ func previewIntervals(version shiftVersionInfo, businessDate, timezone string) (
 			if interval.breakStart == nil || interval.breakEnd == nil {
 				return nil, ErrScheduleResolverUnavailable
 			}
-			breaks, err = normalizeBreaks([]api.ScheduleReplanBreak{{Start: *interval.breakStart, End: *interval.breakEnd}}, startAt, loc)
+			breaks, err = normalizeBreaks([]api.ScheduleReplanBreak{{Start: *interval.breakStart, End: *interval.breakEnd, BreakPunchMode: valueOrDefault(interval.breakPunchMode, "none"), BreakCreditMode: valueOrDefault(interval.breakCreditMode, "scheduled")}}, startAt, loc)
 			if err != nil {
 				return nil, err
 			}
 		}
-		result = append(result, map[string]any{"sort_order": interval.sortOrder, "start": start.Format("15:04:05"), "end": end.Format("15:04:05"), "start_day_offset": interval.startDayOffset, "end_day_offset": interval.endDayOffset, "start_utc_offset_minutes": interval.startUTCOffsetMinutes, "end_utc_offset_minutes": interval.endUTCOffsetMinutes, "start_at": startAt, "end_at": endAt, "shift_version_id": version.id.String(), "breaks": breaks})
+		result = append(result, map[string]any{"sort_order": interval.sortOrder, "start": start.Format("15:04:05"), "end": end.Format("15:04:05"), "start_day_offset": interval.startDayOffset, "end_day_offset": interval.endDayOffset, "start_utc_offset_minutes": interval.startUTCOffsetMinutes, "end_utc_offset_minutes": interval.endUTCOffsetMinutes, "start_at": startAt, "end_at": endAt, "shift_version_id": version.id.String(), "breaks": breaks, "break_punch_mode": valueOrDefault(interval.breakPunchMode, "none"), "break_credit_mode": valueOrDefault(interval.breakCreditMode, "scheduled")})
 	}
 	return result, nil
 }
@@ -1187,6 +1194,8 @@ type normalizedInterval struct {
 	EndAt                 time.Time        `json:"end_at"`
 	ShiftVersionID        uuid.UUID        `json:"shift_version_id"`
 	Breaks                []map[string]any `json:"breaks"`
+	BreakPunchMode        string           `json:"break_punch_mode"`
+	BreakCreditMode       string           `json:"break_credit_mode"`
 }
 
 func localDateTime(date time.Time, clock time.Time, explicitOffset *int) (time.Time, error) {
@@ -1270,7 +1279,7 @@ func normalizeReplacement(replacement api.ScheduleReplanReplacement, timezone, b
 		if err != nil {
 			return nil, err
 		}
-		intervals = append(intervals, normalizedInterval{SortOrder: item.SortOrder, StartLocal: start.Format("15:04:05"), EndLocal: end.Format("15:04:05"), StartDayOffset: item.StartDayOffset, EndDayOffset: item.EndDayOffset, StartUTCOffsetMinutes: item.StartUTCOffsetMinutes, EndUTCOffsetMinutes: item.EndUTCOffsetMinutes, StartAt: startAt, EndAt: endAt, ShiftVersionID: *replacement.ShiftVersionID, Breaks: breaks})
+		intervals = append(intervals, normalizedInterval{SortOrder: item.SortOrder, StartLocal: start.Format("15:04:05"), EndLocal: end.Format("15:04:05"), StartDayOffset: item.StartDayOffset, EndDayOffset: item.EndDayOffset, StartUTCOffsetMinutes: item.StartUTCOffsetMinutes, EndUTCOffsetMinutes: item.EndUTCOffsetMinutes, StartAt: startAt, EndAt: endAt, ShiftVersionID: *replacement.ShiftVersionID, Breaks: breaks, BreakPunchMode: valueOrDefault(&item.BreakPunchMode, "none"), BreakCreditMode: valueOrDefault(&item.BreakCreditMode, "scheduled")})
 	}
 	sort.Slice(intervals, func(i, j int) bool { return intervals[i].SortOrder < intervals[j].SortOrder })
 	for i := 1; i < len(intervals); i++ {
@@ -1301,7 +1310,7 @@ func normalizeBreaks(breaks []api.ScheduleReplanBreak, startAt time.Time, loc *t
 		if !breakEnd.After(breakStart) {
 			breakEnd = breakEnd.AddDate(0, 0, 1)
 		}
-		result = append(result, map[string]any{"start": start.Format("15:04:05"), "end": end.Format("15:04:05"), "start_at": breakStart, "end_at": breakEnd})
+		result = append(result, map[string]any{"start": start.Format("15:04:05"), "end": end.Format("15:04:05"), "start_at": breakStart, "end_at": breakEnd, "break_punch_mode": valueOrDefault(&item.BreakPunchMode, "none"), "break_credit_mode": valueOrDefault(&item.BreakCreditMode, "scheduled")})
 	}
 	return result, nil
 }
@@ -1581,6 +1590,8 @@ func dayIntervals(day map[string]any, timezone string, businessDate string) ([]n
 		EndAt          time.Time        `json:"end_at"`
 		ShiftVersionID string           `json:"shift_version_id"`
 		Breaks         []map[string]any `json:"breaks"`
+			BreakPunchMode  string           `json:"break_punch_mode"`
+			BreakCreditMode string           `json:"break_credit_mode"`
 	}
 	if err := json.Unmarshal(encoded, &intervals); err != nil {
 		return nil, err
@@ -1591,7 +1602,7 @@ func dayIntervals(day map[string]any, timezone string, businessDate string) ([]n
 		if err != nil {
 			return nil, err
 		}
-		result = append(result, normalizedInterval{SortOrder: item.SortOrder, StartLocal: item.Start, EndLocal: item.End, StartAt: item.StartAt, EndAt: item.EndAt, ShiftVersionID: versionID, Breaks: item.Breaks})
+		result = append(result, normalizedInterval{SortOrder: item.SortOrder, StartLocal: item.Start, EndLocal: item.End, StartAt: item.StartAt, EndAt: item.EndAt, ShiftVersionID: versionID, Breaks: item.Breaks, BreakPunchMode: item.BreakPunchMode, BreakCreditMode: item.BreakCreditMode})
 	}
 	if len(result) == 0 {
 		return nil, errors.New("schedule lifecycle preview has no work intervals")

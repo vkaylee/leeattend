@@ -22,7 +22,7 @@ const (
 	PermissionMembersRolesAssign       Permission = "members:roles:assign"
 	PermissionMembersPermissionsManage Permission = "members:permissions:manage"
 	PermissionMembersRemove            Permission = "members:remove"
-	PermissionMembersEmployeeLink       Permission = "members:employee:link"
+	PermissionMembersEmployeeLink      Permission = "members:employee:link"
 	PermissionRolesManage              Permission = "roles:manage"
 
 	// Employees

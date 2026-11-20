@@ -91,6 +91,23 @@ func TestCreateShift_RejectsInvalidInterval(t *testing.T) {
 	}
 }
 
+func TestShiftIntervalRequest_DefaultsBreakPolicy(t *testing.T) {
+	var request ShiftIntervalRequest
+	if err := json.Unmarshal([]byte(`{"start_time":"08:00:00","end_time":"17:00:00"}`), &request); err != nil {
+		t.Fatal(err)
+	}
+	if !request.IsBreakAutoDeductValue() || request.BreakIsOvertimeValue() {
+		t.Fatalf("unexpected default break policy: auto=%v overtime=%v", request.IsBreakAutoDeductValue(), request.BreakIsOvertimeValue())
+	}
+
+	if err := json.Unmarshal([]byte(`{"start_time":"08:00:00","end_time":"17:00:00","is_break_auto_deduct":false,"break_is_overtime":true}`), &request); err != nil {
+		t.Fatal(err)
+	}
+	if request.IsBreakAutoDeductValue() || !request.BreakIsOvertimeValue() {
+		t.Fatalf("unexpected explicit break policy: auto=%v overtime=%v", request.IsBreakAutoDeductValue(), request.BreakIsOvertimeValue())
+	}
+}
+
 func TestCreateShift_Success(t *testing.T) {
 	handler := ShiftHandler{Repository: &mockShiftRepository{}, Authorizer: mockAttendanceAuthorizer{allowed: true}}
 	body := []byte(`{"name":"Day","report_symbol":"D","intervals":[{"start_time":"08:00:00","end_time":"17:00:00","break_duration_minutes":30}]}`)

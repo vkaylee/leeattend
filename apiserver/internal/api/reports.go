@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"strconv"
 	"strings"
@@ -17,10 +18,11 @@ import (
 
 var (
 	ErrReportValidation     = errors.New("report: validation failed")
-	ErrReportNotFound       = errors.New("report: job not found")
-	ErrReportCannotCancel   = errors.New("report: cannot cancel completed or failed job")
-	ErrReportResultNotFound = errors.New("report: result file not found")
+	ErrReportExportTooLarge = errors.New("report: export exceeds synchronous limit")
+	ErrReportNotFound       = errors.New("report: not found")
 )
+
+const maxExportRequestBytes = 1 << 20
 
 type ExportReportRequest struct {
 	ReportType      string                 `json:"report_type"`
@@ -35,38 +37,6 @@ type ExportTenureSnapshot struct {
 	EmployeeNumber string    `json:"employee_number"`
 	StartDate      string    `json:"start_date"`
 	EndDate        *string   `json:"end_date,omitempty"`
-}
-type ExportJobResponse struct {
-	JobID            uuid.UUID `json:"job_id"`
-	Status           string    `json:"status"`
-	TotalBatches     int       `json:"total_batches"`
-	EstimatedSeconds int       `json:"estimated_seconds"`
-	StatusURL        string    `json:"status_url"`
-}
-type JobProgress struct {
-	TotalBatches     int     `json:"total_batches"`
-	CompletedBatches int     `json:"completed_batches"`
-	FailedBatches    int     `json:"failed_batches"`
-	Percentage       float64 `json:"percentage"`
-}
-type JobStatusResponse struct {
-	JobID       uuid.UUID   `json:"job_id"`
-	Status      string      `json:"status"`
-	Progress    JobProgress `json:"progress"`
-	Error       *string     `json:"error"`
-	CreatedAt   string      `json:"created_at"`
-	CompletedAt *string     `json:"completed_at"`
-}
-type ReportJob struct {
-	JobID            uuid.UUID
-	RequesterID      uuid.UUID
-	Status           string
-	TotalBatches     int
-	CompletedBatches int
-	FailedBatches    int
-	Error            *string
-	CreatedAt        time.Time
-	CompletedAt      *time.Time
 }
 type AttendanceSummaryRow struct {
 	EmploymentID         uuid.UUID  `json:"employment_id"`
@@ -97,8 +67,15 @@ type DailyAttendanceRow struct {
 	ScheduledEnd      *string   `json:"scheduled_end,omitempty"`
 	ActualPunchIn     *string   `json:"actual_punch_in,omitempty"`
 	ActualPunchOut    *string   `json:"actual_punch_out,omitempty"`
-	ActualWorkMinutes int       `json:"actual_work_minutes"`
-	ComputedStdHours  float64   `json:"computed_std_hours"`
+	ActualWorkMinutes     int       `json:"actual_work_minutes"`
+	ScheduledBreakMinutes int       `json:"scheduled_break_minutes"`
+	ActualBreakMinutes    int       `json:"actual_break_minutes"`
+	DeductedBreakMinutes  int       `json:"deducted_break_minutes"`
+	NetWorkMinutes        int       `json:"net_work_minutes"`
+	NetPaidMinutes        int       `json:"net_paid_minutes"`
+	BreakProvisional      bool      `json:"break_provisional"`
+	BreakExceptionCode    *string   `json:"break_exception_code,omitempty"`
+	ComputedStdHours      float64   `json:"computed_std_hours"`
 	ComputedOTHours   float64   `json:"computed_ot_hours"`
 	StdWorkUnits      float64   `json:"std_work_units"`
 	OTWorkUnits       float64   `json:"ot_work_units"`
@@ -148,20 +125,13 @@ type PaginatedReportResponse struct {
 }
 
 type ReportRepository interface {
-	CreateExportJob(context.Context, ReportJob, ExportReportRequest) error
+	ExportAttendanceReport(context.Context, ExportReportRequest) ([]byte, string, error)
 	GetAttendanceReport(context.Context, AttendanceReportFilter) (PaginatedReportResponse, error)
 	GetNoShowReport(context.Context, NoShowReportFilter) (PaginatedReportResponse, error)
 	ResolveBehalfEmployeeIDs(context.Context, uuid.UUID) ([]uuid.UUID, error)
 }
-type ReportQueue interface {
-	EnqueueReport(context.Context, ReportJob, ExportReportRequest) error
-	GetReport(context.Context, uuid.UUID) (ReportJob, error)
-	CancelReport(context.Context, uuid.UUID) error
-	GetResultData(context.Context, uuid.UUID) ([]byte, string, error)
-}
 type ReportHandler struct {
 	Repository ReportRepository
-	Queue      ReportQueue
 	Authorizer Authorizer
 }
 
@@ -171,130 +141,71 @@ func (h *ReportHandler) CreateExport(w http.ResponseWriter, r *http.Request) {
 		h.forbidden(w, r)
 		return
 	}
+	if r.ContentLength > maxExportRequestBytes {
+		apperror.WriteError(w, r, apperror.PayloadTooLarge(apperror.KeyFileTooLarge))
+		return
+	}
 	var request ExportReportRequest
-	if json.NewDecoder(r.Body).Decode(&request) != nil || validateExportRequest(&request) != nil {
+	decoder := json.NewDecoder(io.LimitReader(r.Body, maxExportRequestBytes+1))
+	if decoder.Decode(&request) != nil || validateExportRequest(&request) != nil {
 		h.validation(w, r)
 		return
 	}
-	job := ReportJob{JobID: uuid.New(), RequesterID: userID, Status: "pending", TotalBatches: 1, CreatedAt: time.Now().UTC()}
-	if len(request.EmployeeIDs) > 50 {
-		job.TotalBatches = (len(request.EmployeeIDs) + 49) / 50
+	if decoder.Decode(&struct{}{}) != io.EOF {
+		h.validation(w, r)
+		return
+	}
+	if len(request.EmployeeIDs) > 1000 {
+		apperror.WriteError(w, r, apperror.PayloadTooLarge(apperror.KeyFileTooLarge))
+		return
+	}
+	if h.Repository == nil {
+		apperror.WriteError(w, r, apperror.Internal(errors.New("report repository unavailable")))
+		return
+	}
+	var err error
+	request, err = h.scopeExportRequest(r.Context(), userID, request)
+	if err != nil {
+		apperror.WriteError(w, r, apperror.Internal(err))
+		return
+	}
+	if len(request.EmployeeIDs) > 1000 {
+		apperror.WriteError(w, r, apperror.PayloadTooLarge(apperror.KeyFileTooLarge))
+		return
 	}
 	if resolver, ok := h.Repository.(interface {
 		SnapshotExportRequest(context.Context, ExportReportRequest) (ExportReportRequest, error)
 	}); ok {
-		var err error
 		request, err = resolver.SnapshotExportRequest(r.Context(), request)
 		if err != nil {
 			apperror.WriteError(w, r, apperror.Internal(err))
 			return
 		}
 	}
-	if h.Repository == nil || h.Queue == nil || h.Repository.CreateExportJob(r.Context(), job, request) != nil || h.Queue.EnqueueReport(r.Context(), job, request) != nil {
-		apperror.WriteError(w, r, apperror.Internal(errors.New("report export unavailable")))
-		return
-	}
-	apperror.WriteJSON(w, http.StatusAccepted, ExportJobResponse{JobID: job.JobID, Status: job.Status, TotalBatches: job.TotalBatches, EstimatedSeconds: job.TotalBatches, StatusURL: "/api/v1/reports/jobs/" + job.JobID.String()})
+	data, filename, err := h.Repository.ExportAttendanceReport(r.Context(), request)
+	if errors.Is(err, ErrReportExportTooLarge) { apperror.WriteError(w, r, apperror.PayloadTooLarge(apperror.KeyFileTooLarge)); return }
+	if err != nil { apperror.WriteError(w, r, apperror.Internal(err)); return }
+	w.Header().Set("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+	w.Header().Set("Content-Disposition", fmt.Sprintf(`attachment; filename="%s"`, filename))
+	w.Header().Set("X-Content-Type-Options", "nosniff")
+	w.WriteHeader(http.StatusOK)
+	_, _ = w.Write(data)
 }
 
-func (h *ReportHandler) Status(w http.ResponseWriter, r *http.Request) {
-	jobID, jobOK := pathUUID(r, "job_id")
-	userID, userOK := httpinfra.UserIDFromContext(r.Context())
-	if !jobOK || !userOK || !h.allowed(r, userID) {
-		h.forbidden(w, r)
-		return
+func (h *ReportHandler) scopeExportRequest(ctx context.Context, userID uuid.UUID, request ExportReportRequest) (ExportReportRequest, error) {
+	if h.Authorizer == nil || h.Authorizer.IsGlobalManager(ctx, userID) {
+		return request, nil
 	}
-	if h.Queue == nil {
-		apperror.WriteError(w, r, apperror.Internal(errors.New("report queue unavailable")))
-		return
-	}
-	job, err := h.Queue.GetReport(r.Context(), jobID)
+	behalfIDs, err := h.Repository.ResolveBehalfEmployeeIDs(ctx, userID)
 	if err != nil {
-		h.writeReportError(w, r, err)
-		return
+		return request, err
 	}
-	if job.RequesterID != userID {
-		h.forbidden(w, r)
-		return
+	if len(request.EmployeeIDs) == 0 {
+		request.EmployeeIDs = behalfIDs
+	} else {
+		request.EmployeeIDs = intersectUUIDs(request.EmployeeIDs, behalfIDs)
 	}
-	percentage := 0.0
-	if job.TotalBatches > 0 {
-		percentage = float64(job.CompletedBatches) * 100 / float64(job.TotalBatches)
-	}
-	response := JobStatusResponse{JobID: job.JobID, Status: job.Status, Progress: JobProgress{TotalBatches: job.TotalBatches, CompletedBatches: job.CompletedBatches, FailedBatches: job.FailedBatches, Percentage: percentage}, Error: job.Error, CreatedAt: job.CreatedAt.UTC().Format(time.RFC3339), CompletedAt: formatTime(job.CompletedAt)}
-	apperror.WriteJSON(w, http.StatusOK, response)
-}
-
-func (h *ReportHandler) Cancel(w http.ResponseWriter, r *http.Request) {
-	jobID, jobOK := pathUUID(r, "job_id")
-	userID, userOK := httpinfra.UserIDFromContext(r.Context())
-	if !jobOK || !userOK || !h.allowed(r, userID) {
-		h.forbidden(w, r)
-		return
-	}
-	if h.Queue == nil {
-		apperror.WriteError(w, r, apperror.Internal(errors.New("report queue unavailable")))
-		return
-	}
-	job, err := h.Queue.GetReport(r.Context(), jobID)
-	if err != nil {
-		h.writeReportError(w, r, err)
-		return
-	}
-	if job.RequesterID != userID {
-		h.forbidden(w, r)
-		return
-	}
-	if err := h.Queue.CancelReport(r.Context(), jobID); err != nil {
-		h.writeReportError(w, r, err)
-		return
-	}
-	w.WriteHeader(http.StatusNoContent)
-}
-
-func (h *ReportHandler) Download(w http.ResponseWriter, r *http.Request) {
-	jobID, jobOK := pathUUID(r, "job_id")
-	userID, userOK := httpinfra.UserIDFromContext(r.Context())
-	if !jobOK || !userOK || !h.allowed(r, userID) {
-		h.forbidden(w, r)
-		return
-	}
-	if h.Queue == nil {
-		apperror.WriteError(w, r, apperror.Internal(errors.New("report queue unavailable")))
-		return
-	}
-	job, err := h.Queue.GetReport(r.Context(), jobID)
-	if err != nil {
-		h.writeReportError(w, r, err)
-		return
-	}
-	if job.RequesterID != userID {
-		h.forbidden(w, r)
-		return
-	}
-	switch job.Status {
-	case "pending", "processing":
-		w.WriteHeader(http.StatusAccepted)
-		_, _ = w.Write([]byte("Job not yet complete. Continue polling status endpoint."))
-	case "failed":
-		apperror.WriteError(w, r, apperror.Internal(errors.New("report job failed")))
-	case "completed":
-		data, filename, err := h.Queue.GetResultData(r.Context(), jobID)
-		if err != nil {
-			h.writeReportError(w, r, err)
-			return
-		}
-		contentType := "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-		if strings.HasSuffix(strings.ToLower(filename), ".csv") {
-			contentType = "text/csv"
-		}
-		w.Header().Set("Content-Type", contentType)
-		w.Header().Set("Content-Disposition", fmt.Sprintf(`attachment; filename="%s"`, filename))
-		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write(data)
-	default:
-		apperror.WriteError(w, r, apperror.Internal(fmt.Errorf("unknown report job status: %s", job.Status)))
-	}
+	return request, nil
 }
 
 func (h *ReportHandler) AttendanceReport(w http.ResponseWriter, r *http.Request) {
@@ -556,13 +467,6 @@ func validateExportRequest(request *ExportReportRequest) error {
 	}
 	return nil
 }
-func formatTime(value *time.Time) *string {
-	if value == nil {
-		return nil
-	}
-	formatted := value.UTC().Format(time.RFC3339)
-	return &formatted
-}
 func (h *ReportHandler) forbidden(w http.ResponseWriter, r *http.Request) {
 	apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
 }
@@ -571,18 +475,9 @@ func (h *ReportHandler) validation(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *ReportHandler) allowed(r *http.Request, userID uuid.UUID) bool {
-	return h.Authorizer != nil && h.Authorizer.HasPermission(r.Context(), userID, "reports:export")
-}
-
-func (h *ReportHandler) writeReportError(w http.ResponseWriter, r *http.Request, err error) {
-	switch {
-	case errors.Is(err, ErrReportNotFound):
-		apperror.WriteError(w, r, apperror.NotFound(apperror.KeyJobNotFound))
-	case errors.Is(err, ErrReportCannotCancel):
-		apperror.WriteError(w, r, apperror.Conflict(apperror.KeyCannotCancelJob))
-	case errors.Is(err, ErrReportResultNotFound):
-		apperror.WriteError(w, r, apperror.NotFound(apperror.KeyNoReportFileGenerated))
-	default:
-		apperror.WriteError(w, r, apperror.Internal(err))
+	if h.Authorizer == nil {
+		return false
 	}
+	return h.Authorizer.HasPermission(r.Context(), userID, "reports:export") ||
+		h.Authorizer.HasPermission(r.Context(), userID, "overtime:claim_on_behalf")
 }

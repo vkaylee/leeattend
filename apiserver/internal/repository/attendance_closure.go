@@ -54,6 +54,11 @@ WITH days AS (
 			  AND te.punch_in_time::date = cd.business_date
 			ORDER BY te.id
 		) AS time_entry_ids,
+		COALESCE((
+			SELECT jsonb_agg(jsonb_build_object('id', te.id, 'employment_id', te.employment_id, 'punch_in_time', te.punch_in_time, 'punch_out_time', te.punch_out_time, 'duration_minutes', te.duration_minutes, 'entry_type', te.entry_type, 'is_break_overtime', te.is_break_overtime, 'segment_id', te.segment_id) ORDER BY te.punch_in_time, te.id)
+			FROM time_entries te
+			WHERE te.employment_id = cd.employment_id AND te.punch_in_time::date = cd.business_date
+		), '[]'::jsonb) AS time_entry_snapshot,
 		ARRAY(
 			SELECT ral.id
 			FROM raw_attendance_logs ral
@@ -83,9 +88,16 @@ WITH days AS (
 			'early_ot_minutes', attendance->'early_ot_minutes',
 			'late_ot_minutes', attendance->'late_ot_minutes',
 			'break_ot_minutes', attendance->'break_ot_minutes',
+				'scheduled_break_minutes', attendance->'scheduled_break_minutes',
+				'actual_break_minutes', attendance->'actual_break_minutes',
+				'deducted_break_minutes', attendance->'deducted_break_minutes',
+				'net_work_minutes', attendance->'net_work_minutes',
+				'net_paid_minutes', attendance->'net_paid_minutes',
+				'break_provisional', attendance->'break_provisional',
+				'break_exception_code', attendance->'break_exception_code',
 			'ot_status', attendance->'ot_status'
 		) AS calculation_snapshot,
-		time_entry_ids, raw_attendance_log_ids
+		time_entry_ids, time_entry_snapshot, raw_attendance_log_ids
 	FROM day_payloads
 )
 `
@@ -326,9 +338,9 @@ func (r AttendanceRepository) closeAttendancePeriodTx(ctx context.Context, tx pg
 	}
 	if _, err := tx.Exec(ctx, closureDayPayloadCTE+`INSERT INTO attendance_closure_days (
 		id, closure_id, period_id, employer_id, employment_id, business_date, schedule_revision_id,
-		schedule_state, schedule_snapshot, attendance_snapshot, calculation_snapshot, time_entry_ids, raw_attendance_log_ids
+		schedule_state, schedule_snapshot, attendance_snapshot, calculation_snapshot, time_entry_ids, time_entry_snapshot, raw_attendance_log_ids
 	) SELECT gen_random_uuid(), $4, $5, $1, employment_id, business_date, revision_id, state,
-		schedule_snapshot, attendance_snapshot, calculation_snapshot, time_entry_ids, raw_attendance_log_ids
+		schedule_snapshot, attendance_snapshot, calculation_snapshot, time_entry_ids, time_entry_snapshot, raw_attendance_log_ids
 	FROM day_documents`, employerID, start, end, closureID, *periodID); err != nil {
 		return api.AttendanceClosureResponse{}, err
 	}

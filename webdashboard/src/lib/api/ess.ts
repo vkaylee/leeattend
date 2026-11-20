@@ -100,6 +100,24 @@ export async function fetchMyAttendance(
 
 // --- Time Clock ---
 
+export type AttendanceAction = "work_in" | "work_out" | "break_start" | "break_end";
+
+export interface AttendanceActionResponse {
+  state: "off" | "working" | "on_break" | "completed" | "exception";
+  next_allowed_actions: AttendanceAction[];
+  entry?: TimeEntry;
+  break?: {
+    id: string;
+    time_entry_id: string;
+    start_at: string;
+    end_at?: string | null;
+    source: string;
+    close_reason?: string | null;
+  };
+  exception_code?: string | null;
+  deduplicated: boolean;
+}
+
 export async function fetchMyTimeEntries(
   params?: { start_date?: string; end_date?: string }
 ): Promise<TimeEntry[]> {
@@ -114,11 +132,19 @@ export async function fetchMyTimeEntries(
   return resData;
 }
 
-export async function punchMySelf(
-  data?: { note?: string }
-): Promise<TimeEntry> {
-  const { data: resData } = await client.POST<TimeEntry>("/api/v1/ess/punch", {
-    body: data ?? {},
+export async function fetchMyAttendanceState(): Promise<AttendanceActionResponse> {
+  const { data: resData } = await client.GET<AttendanceActionResponse>("/api/v1/ess/attendance/state");
+  return resData;
+}
+
+export async function submitMyAttendanceAction(
+  action: AttendanceAction,
+  idempotencyKey: string,
+  note?: string,
+): Promise<AttendanceActionResponse> {
+  const { data: resData } = await client.POST<AttendanceActionResponse>("/api/v1/ess/attendance/actions", {
+    body: { action, ...(note ? { note } : {}) },
+    headers: { "Idempotency-Key": idempotencyKey },
   });
   return resData;
 }

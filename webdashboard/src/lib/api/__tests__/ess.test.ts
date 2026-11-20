@@ -30,7 +30,8 @@ import {
   fetchMyPayslips,
   fetchMyAttendance,
   fetchMyTimeEntries,
-  punchMySelf,
+  fetchMyAttendanceState,
+  submitMyAttendanceAction,
   fetchEssLeaveBalances,
   fetchEssLeaveRequests,
   fetchMyAttendanceSummaries,
@@ -133,13 +134,21 @@ describe("Employee Self-Service (ESS) API Client", () => {
     expect(result).toEqual(mockEntries);
   });
 
-  it("punchMySelf should make a POST call with body", async () => {
-    const mockPunch = { id: "punch-1" };
-    vi.mocked(client.POST).mockResolvedValueOnce({ data: mockPunch } as any);
+  it("fetchMyAttendanceState should make a GET call", async () => {
+    const state = { state: "off", next_allowed_actions: ["work_in"], deduplicated: false };
+    vi.mocked(client.GET).mockResolvedValueOnce({ data: state } as any);
+    await expect(fetchMyAttendanceState()).resolves.toEqual(state);
+    expect(client.GET).toHaveBeenCalledWith("/api/v1/ess/attendance/state");
+  });
 
-    const result = await punchMySelf({ note: "punching in" });
-    expect(client.POST).toHaveBeenCalledWith("/api/v1/ess/punch", { body: { note: "punching in" } });
-    expect(result).toEqual(mockPunch);
+  it("submitMyAttendanceAction should send explicit action and idempotency key", async () => {
+    const response = { state: "working", next_allowed_actions: ["work_out"], deduplicated: false };
+    vi.mocked(client.POST).mockResolvedValueOnce({ data: response } as any);
+    await expect(submitMyAttendanceAction("work_in", "key-1", "punching in")).resolves.toEqual(response);
+    expect(client.POST).toHaveBeenCalledWith("/api/v1/ess/attendance/actions", {
+      body: { action: "work_in", note: "punching in" },
+      headers: { "Idempotency-Key": "key-1" },
+    });
   });
 
   it("fetchEssLeaveBalances should make a GET call", async () => {

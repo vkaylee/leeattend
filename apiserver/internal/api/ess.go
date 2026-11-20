@@ -92,11 +92,6 @@ type EmployeeDocumentRecord struct {
 	CreatedAt    string     `json:"created_at"`
 }
 
-type EssPunchRequest struct {
-	Note      *string `json:"note,omitempty"`
-	EntryType string  `json:"entry_type,omitempty"`
-}
-
 type EssLeaveBalance struct {
 	LeaveType     string  `json:"leave_type"`
 	Entitlement   int     `json:"entitlement"`
@@ -121,9 +116,15 @@ type ESSRepository interface {
 type ESSHandler struct {
 	Repository ESSRepository
 	Attendance AttendanceRepository
+	Authorizer Authorizer
 	Payroll    PayrollRepository
 	Leaves     LeaveRepository
 	ShiftSwaps ShiftSwapRepository
+}
+
+func (h *ESSHandler) allowed(r *http.Request, permission string) bool {
+	userID, ok := httpinfra.UserIDFromContext(r.Context())
+	return ok && h.Authorizer != nil && h.Authorizer.HasPermission(r.Context(), userID, permission)
 }
 
 func (h *ESSHandler) resolveContext(r *http.Request) (uuid.UUID, uuid.UUID, error) {
@@ -337,25 +338,56 @@ func (h *ESSHandler) GetAttendance(w http.ResponseWriter, r *http.Request) {
 	apperror.WriteJSON(w, http.StatusOK, entries)
 }
 
-func (h *ESSHandler) Punch(w http.ResponseWriter, r *http.Request) {
+func (h *ESSHandler) AttendanceAction(w http.ResponseWriter, r *http.Request) {
+	if !h.allowed(r, "ess:clock") {
+		apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
+		return
+	}
 	empID, _, err := h.resolveContext(r)
 	if err != nil {
 		h.writeError(w, r, err)
 		return
 	}
-	var req EssPunchRequest
-	if r.Body != nil && r.ContentLength != 0 {
-		decoded, err := DecodeJSON[EssPunchRequest](r, 1<<20)
-		if err == nil {
-			req = decoded
-		}
+	key := strings.TrimSpace(r.Header.Get("Idempotency-Key"))
+	if key == "" || len(key) > 128 {
+		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
+		return
 	}
-	entry, err := h.Attendance.ESSPunch(r.Context(), empID, req.EntryType, req.Note, time.Now().UTC())
+	req, err := DecodeJSON[AttendanceActionRequest](r, 1<<20)
+	if err != nil || !validAttendanceAction(req.Action) {
+		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
+		return
+	}
+	response, err := h.Attendance.ESSAttendanceAction(r.Context(), empID, req.Action, req.Note, key, time.Now().UTC())
 	if err != nil {
 		h.writeError(w, r, err)
 		return
 	}
-	apperror.WriteJSON(w, http.StatusCreated, entry)
+	status := http.StatusOK
+	if !response.Deduplicated { status = http.StatusCreated }
+	apperror.WriteJSON(w, status, response)
+}
+
+func (h *ESSHandler) AttendanceState(w http.ResponseWriter, r *http.Request) {
+	if !h.allowed(r, "ess:clock") {
+		apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
+		return
+	}
+	empID, _, err := h.resolveContext(r)
+	if err != nil {
+		h.writeError(w, r, err)
+		return
+	}
+	state, err := h.Attendance.GetESSAttendanceState(r.Context(), empID)
+	if err != nil {
+		h.writeError(w, r, err)
+		return
+	}
+	apperror.WriteJSON(w, http.StatusOK, state)
+}
+
+func validAttendanceAction(action string) bool {
+	return action == AttendanceActionWorkIn || action == AttendanceActionWorkOut || action == AttendanceActionBreakStart || action == AttendanceActionBreakEnd
 }
 
 func (h *ESSHandler) GetTimeEntries(w http.ResponseWriter, r *http.Request) {
@@ -531,7 +563,7 @@ func (h *ESSHandler) writeError(w http.ResponseWriter, r *http.Request, err erro
 		apperror.WriteError(w, r, apperror.NotFound(apperror.KeyNotFound))
 		return
 	}
-	if errors.Is(err, ErrESSValidation) || errors.Is(err, ErrNoActiveEmployment) || errors.Is(err, ErrShiftSwapValidation) {
+	if errors.Is(err, ErrESSValidation) || errors.Is(err, ErrNoActiveEmployment) || errors.Is(err, ErrShiftSwapValidation) || errors.Is(err, ErrAttendanceBreakNotRequired) || errors.Is(err, ErrAttendanceBreakNotOpen) {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}
@@ -543,7 +575,7 @@ func (h *ESSHandler) writeError(w http.ResponseWriter, r *http.Request, err erro
 		apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
 		return
 	}
-	if errors.Is(err, ErrShiftSwapConflict) {
+	if errors.Is(err, ErrShiftSwapConflict) || errors.Is(err, ErrAttendanceAlreadyWorking) || errors.Is(err, ErrAttendanceNotWorking) || errors.Is(err, ErrAttendanceInvalidTransition) || errors.Is(err, ErrAttendanceIdempotencyConflict) {
 		apperror.WriteError(w, r, apperror.Conflict(apperror.KeyConflict))
 		return
 	}

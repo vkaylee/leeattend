@@ -36,10 +36,10 @@ var (
 	ErrMonthlyDaysUnexpected     = errors.New("work policy: monthly standard days only applies to fixed monthly pay")
 	ErrRateComponentRequired     = errors.New("work policy: hourly and shift pay require a rate component")
 	ErrRateComponentUnexpected   = errors.New("work policy: monthly pay cannot define a rate component")
-	ErrEffectiveRangeInvalid           = errors.New("work policy: effective range is invalid")
-	ErrGraceMinutesInvalid             = errors.New("work policy: grace minutes must not be negative")
-	ErrEarlyOTMaxInvalid               = errors.New("work policy: early OT max must not be negative")
-	ErrOTAggregationModeInvalid        = errors.New("work policy: OT aggregation mode is invalid")
+	ErrEffectiveRangeInvalid     = errors.New("work policy: effective range is invalid")
+	ErrGraceMinutesInvalid       = errors.New("work policy: grace minutes must not be negative")
+	ErrEarlyOTMaxInvalid         = errors.New("work policy: early OT max must not be negative")
+	ErrOTAggregationModeInvalid  = errors.New("work policy: OT aggregation mode is invalid")
 )
 
 type WorkCreditPolicy struct {

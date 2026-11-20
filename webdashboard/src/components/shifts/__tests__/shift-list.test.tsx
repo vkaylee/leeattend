@@ -34,14 +34,12 @@ const mockShifts: Shift[] = [
     break_start: "12:00:00",
     break_end: "13:00:00",
     break_duration_minutes: 60,
-    is_break_auto_deduct: true,
     intervals: [{
       start_time: "08:00:00",
       end_time: "17:00:00",
       break_start: "12:00:00",
       break_end: "13:00:00",
       break_duration_minutes: 60,
-      is_break_auto_deduct: true,
     }],
   } as unknown as Shift,
   {
@@ -52,14 +50,12 @@ const mockShifts: Shift[] = [
     break_start: null,
     break_end: null,
     break_duration_minutes: 30,
-    is_break_auto_deduct: false,
     intervals: [{
       start_time: "22:00:00",
       end_time: "06:00:00",
       break_start: null,
       break_end: null,
       break_duration_minutes: 30,
-      is_break_auto_deduct: false,
     }],
   } as unknown as Shift,
 ];
@@ -85,7 +81,6 @@ describe("ShiftList Component", () => {
     expect(screen.getAllByText("17:00")[0]).toBeInTheDocument();
     expect(screen.getAllByText("12:00")[0]).toBeInTheDocument();
     expect(screen.getAllByText("13:00")[0]).toBeInTheDocument();
-    expect(screen.getAllByText("shifts.auto_deduct")[0]).toBeInTheDocument();
 
     // Check Night Shift Row (with break duration minutes only)
     expect(screen.getAllByText("Night Shift")[0]).toBeInTheDocument();

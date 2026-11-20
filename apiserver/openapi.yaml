@@ -4595,6 +4595,52 @@ paths:
           $ref: '#/components/responses/NotFound'
         '500':
           $ref: '#/components/responses/InternalError'
+  "/api/v1/ess/attendance/actions":
+    post:
+      operationId: post_api_v1_ess_attendance_actions
+      tags: [runtime]
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JsonObject'
+        '204':
+          description: Successful response without body
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  "/api/v1/ess/attendance/state":
+    get:
+      operationId: get_api_v1_ess_attendance_state
+      tags: [runtime]
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JsonObject'
+        '204':
+          description: Successful response without body
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
   "/api/v1/ess/documents":
     get:
       operationId: get_api_v1_ess_documents
@@ -4838,29 +4884,6 @@ paths:
           $ref: '#/components/responses/InternalError'
     put:
       operationId: put_api_v1_ess_profile
-      tags: [runtime]
-      responses:
-        '200':
-          description: Successful response
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/JsonObject'
-        '204':
-          description: Successful response without body
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '500':
-          $ref: '#/components/responses/InternalError'
-  "/api/v1/ess/punch":
-    post:
-      operationId: post_api_v1_ess_punch
       tags: [runtime]
       responses:
         '200':
@@ -7028,16 +7051,16 @@ paths:
         required: true
         schema:
           type: string
-    put:
-      operationId: put_api_v1_members_user_id_employee
+    delete:
+      operationId: delete_api_v1_members_user_id_employee
       tags: [runtime]
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/LinkMemberEmployeeRequest'
       responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JsonObject'
         '204':
           description: Successful response without body
         '400':
@@ -7048,14 +7071,18 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
-        '409':
-          $ref: '#/components/responses/Conflict'
         '500':
           $ref: '#/components/responses/InternalError'
-    delete:
-      operationId: delete_api_v1_members_user_id_employee
+    put:
+      operationId: put_api_v1_members_user_id_employee
       tags: [runtime]
       responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JsonObject'
         '204':
           description: Successful response without body
         '400':
@@ -9210,86 +9237,6 @@ paths:
           $ref: '#/components/responses/NotFound'
         '500':
           $ref: '#/components/responses/InternalError'
-  "/api/v1/reports/jobs/{job_id}":
-    parameters:
-      - name: job_id
-        in: path
-        required: true
-        schema:
-          type: string
-    delete:
-      operationId: delete_api_v1_reports_jobs_job_id
-      tags: [runtime]
-      responses:
-        '200':
-          description: Successful response
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/JsonObject'
-        '204':
-          description: Successful response without body
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '500':
-          $ref: '#/components/responses/InternalError'
-    get:
-      operationId: get_api_v1_reports_jobs_job_id
-      tags: [runtime]
-      responses:
-        '200':
-          description: Successful response
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/JsonObject'
-        '204':
-          description: Successful response without body
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '500':
-          $ref: '#/components/responses/InternalError'
-  "/api/v1/reports/jobs/{job_id}/download":
-    parameters:
-      - name: job_id
-        in: path
-        required: true
-        schema:
-          type: string
-    get:
-      operationId: get_api_v1_reports_jobs_job_id_download
-      tags: [runtime]
-      responses:
-        '200':
-          description: Successful response
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/JsonObject'
-        '204':
-          description: Successful response without body
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '500':
-          $ref: '#/components/responses/InternalError'
   "/api/v1/reports/no-show":
     get:
       operationId: get_api_v1_reports_no_show
@@ -10765,35 +10712,6 @@ paths:
           $ref: '#/components/responses/NotFound'
         '500':
           $ref: '#/components/responses/InternalError'
-  "/api/v1/ws/reports/{job_id}":
-    parameters:
-      - name: job_id
-        in: path
-        required: true
-        schema:
-          type: string
-    get:
-      operationId: get_api_v1_ws_reports_job_id
-      tags: [runtime]
-      responses:
-        '200':
-          description: Successful response
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/JsonObject'
-        '204':
-          description: Successful response without body
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '500':
-          $ref: '#/components/responses/InternalError'
 components:
   securitySchemes:
     bearerAuth:
@@ -10848,12 +10766,6 @@ components:
         - employee_id
         - id
         - status
-    LinkMemberEmployeeRequest:
-      properties:
-        employee_id:
-          type: string
-      required:
-        - employee_id
     AddMemberRequest:
       properties:
         email:
@@ -11272,6 +11184,57 @@ components:
           type: array
           items:
             type: string
+    AttendanceActionRequest:
+      properties:
+        action:
+          type: string
+        note:
+          type: string
+          nullable: true
+    AttendanceActionResponse:
+      properties:
+        break:
+          $ref: '#/components/schemas/AttendanceBreakRecord'
+          nullable: true
+        deduplicated:
+          type: boolean
+        entry:
+          $ref: '#/components/schemas/TimeEntryRecord'
+          nullable: true
+        exception_code:
+          type: string
+          nullable: true
+        next_allowed_actions:
+          type: array
+          items:
+            type: string
+        state:
+          type: string
+      required:
+        - deduplicated
+        - next_allowed_actions
+        - state
+    AttendanceBreakRecord:
+      properties:
+        close_reason:
+          type: string
+          nullable: true
+        end_at:
+          type: string
+          nullable: true
+        id:
+          type: string
+        source:
+          type: string
+        start_at:
+          type: string
+        time_entry_id:
+          type: string
+      required:
+        - id
+        - source
+        - start_at
+        - time_entry_id
     AttendanceClosureRequest:
       properties:
         reason:
@@ -11364,18 +11327,27 @@ components:
         - updated_at
     AttendanceDailySummaryRecord:
       properties:
+        actual_break_minutes:
+          type: number
         actual_work_minutes:
           type: number
         approved_ot_minutes:
           type: number
+        break_exception_code:
+          type: string
+          nullable: true
         break_ot_minutes:
           type: number
+        break_provisional:
+          type: boolean
         claimed_ot_minutes:
           type: number
         created_at:
           type: string
         date:
           type: string
+        deducted_break_minutes:
+          type: number
         early_ot_minutes:
           type: number
         employment_id:
@@ -11394,11 +11366,17 @@ components:
         manager_note:
           type: string
           nullable: true
+        net_paid_minutes:
+          type: number
+        net_work_minutes:
+          type: number
         ot_reason:
           type: string
           nullable: true
         ot_status:
           type: string
+        scheduled_break_minutes:
+          type: number
         standard_credits:
           type: number
         standard_minutes:
@@ -11411,19 +11389,25 @@ components:
           type: string
           nullable: true
       required:
+        - actual_break_minutes
         - actual_work_minutes
         - approved_ot_minutes
         - break_ot_minutes
+        - break_provisional
         - claimed_ot_minutes
         - created_at
         - date
+        - deducted_break_minutes
         - early_ot_minutes
         - employment_id
         - id
         - is_holiday
         - is_weekend
         - late_ot_minutes
+        - net_paid_minutes
+        - net_work_minutes
         - ot_status
+        - scheduled_break_minutes
         - standard_credits
         - standard_minutes
         - system_detected_ot_minutes
@@ -12860,11 +12844,24 @@ components:
       properties:
         attendance_policy_id:
           type: string
+        break_auto_deduct:
+          type: boolean
+        break_is_overtime:
+          type: boolean
+        early_ot_enabled:
+          type: boolean
+        early_ot_max_minutes:
+          type: number
+          nullable: true
+        early_ot_qualification_grace_minutes:
+          type: number
         effective_from:
           type: string
         effective_to:
           type: string
           nullable: true
+        late_arrival_grace_minutes:
+          type: number
         minutes_per_credit:
           type: number
         monthly_denominator:
@@ -12874,6 +12871,8 @@ components:
           type: string
           nullable: true
         name:
+          type: string
+        ot_aggregation_mode:
           type: string
         overtime_policy_id:
           type: string
@@ -12888,11 +12887,24 @@ components:
       properties:
         attendance_policy_id:
           type: string
+        break_auto_deduct:
+          type: boolean
+        break_is_overtime:
+          type: boolean
+        early_ot_enabled:
+          type: boolean
+        early_ot_max_minutes:
+          type: number
+          nullable: true
+        early_ot_qualification_grace_minutes:
+          type: number
         effective_from:
           type: string
         effective_to:
           type: string
           nullable: true
+        late_arrival_grace_minutes:
+          type: number
         minutes_per_credit:
           type: number
         monthly_denominator:
@@ -12902,6 +12914,8 @@ components:
           type: string
           nullable: true
         name:
+          type: string
+        ot_aggregation_mode:
           type: string
         overtime_policy_id:
           type: string
@@ -13174,6 +13188,8 @@ components:
         - field_type
     DailyAttendanceRow:
       properties:
+        actual_break_minutes:
+          type: number
         actual_punch_in:
           type: string
           nullable: true
@@ -13182,12 +13198,19 @@ components:
           nullable: true
         actual_work_minutes:
           type: number
+        break_exception_code:
+          type: string
+          nullable: true
+        break_provisional:
+          type: boolean
         computed_ot_hours:
           type: number
         computed_std_hours:
           type: number
         date:
           type: string
+        deducted_break_minutes:
+          type: number
         employee_id:
           type: string
         employee_id_number:
@@ -13196,9 +13219,15 @@ components:
           type: string
         employment_id:
           type: string
+        net_paid_minutes:
+          type: number
+        net_work_minutes:
+          type: number
         ot_claim_status:
           type: string
         ot_work_units:
+          type: number
+        scheduled_break_minutes:
           type: number
         scheduled_end:
           type: string
@@ -13222,16 +13251,22 @@ components:
           type: string
           nullable: true
       required:
+        - actual_break_minutes
         - actual_work_minutes
+        - break_provisional
         - computed_ot_hours
         - computed_std_hours
         - date
+        - deducted_break_minutes
         - employee_id
         - employee_id_number
         - employee_name
         - employment_id
+        - net_paid_minutes
+        - net_work_minutes
         - ot_claim_status
         - ot_work_units
+        - scheduled_break_minutes
         - standard_credits
         - status
         - std_work_units
@@ -13766,8 +13801,8 @@ components:
         - name
     EffectiveSchedule:
       properties:
-        allow_early_ot:
-          type: boolean
+        break_credit_mode:
+          type: string
           nullable: true
         break_duration_minutes:
           type: number
@@ -13778,14 +13813,14 @@ components:
         break_is_overtime:
           type: boolean
           nullable: true
+        break_punch_mode:
+          type: string
+          nullable: true
         break_start:
           type: string
           nullable: true
         date:
           type: string
-        early_punch_in_grace_period_minutes:
-          type: number
-          nullable: true
         end_time:
           type: string
           nullable: true
@@ -13803,9 +13838,6 @@ components:
           type: boolean
         is_holiday_paid:
           type: boolean
-        max_early_ot_minutes:
-          type: number
-          nullable: true
         provisional:
           type: boolean
         published_at:
@@ -14859,31 +14891,6 @@ components:
         - leave_type
         - remaining
         - used
-    EssPunchRequest:
-      properties:
-        entry_type:
-          type: string
-        note:
-          type: string
-          nullable: true
-    ExportJobResponse:
-      properties:
-        estimated_seconds:
-          type: number
-        job_id:
-          type: string
-        status:
-          type: string
-        status_url:
-          type: string
-        total_batches:
-          type: number
-      required:
-        - estimated_seconds
-        - job_id
-        - status
-        - status_url
-        - total_batches
     ExportReportRequest:
       properties:
         employee_ids:
@@ -14894,8 +14901,6 @@ components:
           type: string
         format:
           type: string
-          enum:
-            - xlsx
         report_type:
           type: string
         start_date:
@@ -15316,21 +15321,6 @@ components:
     InvalidTerminationRow:
       allOf:
         - $ref: '#/components/schemas/InvalidTerminationImportRow'
-    JobProgress:
-      properties:
-        completed_batches:
-          type: number
-        failed_batches:
-          type: number
-        percentage:
-          type: number
-        total_batches:
-          type: number
-      required:
-        - completed_batches
-        - failed_batches
-        - percentage
-        - total_batches
     JobProgressStatus:
       properties:
         completed_batches:
@@ -15346,27 +15336,6 @@ components:
         - failed_batches
         - percentage
         - total_batches
-    JobStatusResponse:
-      properties:
-        completed_at:
-          type: string
-          nullable: true
-        created_at:
-          type: string
-        error:
-          type: string
-          nullable: true
-        job_id:
-          type: string
-        progress:
-          $ref: '#/components/schemas/JobProgress'
-        status:
-          type: string
-      required:
-        - created_at
-        - job_id
-        - progress
-        - status
     JobTypeStats:
       properties:
         count:
@@ -15868,6 +15837,10 @@ components:
         - status
         - total_items
         - updated_at
+    LinkMemberEmployeeRequest:
+      properties:
+        employee_id:
+          type: string
     LocationListResponse:
       properties:
         data:
@@ -15897,11 +15870,11 @@ components:
         avatar_url:
           type: string
           nullable: true
+        email:
+          type: string
         employee_id:
           type: string
           nullable: true
-        email:
-          type: string
         full_name:
           type: string
           nullable: true
@@ -15918,11 +15891,11 @@ components:
         avatar_url:
           type: string
           nullable: true
+        email:
+          type: string
         employee_id:
           type: string
           nullable: true
-        email:
-          type: string
         extra_role_ids:
           type: array
           items:
@@ -16625,6 +16598,8 @@ components:
         - employee
     NoShowReportRow:
       properties:
+        actual_break_minutes:
+          type: number
         actual_punch_in:
           type: string
           nullable: true
@@ -16633,12 +16608,19 @@ components:
           nullable: true
         actual_work_minutes:
           type: number
+        break_exception_code:
+          type: string
+          nullable: true
+        break_provisional:
+          type: boolean
         computed_ot_hours:
           type: number
         computed_std_hours:
           type: number
         date:
           type: string
+        deducted_break_minutes:
+          type: number
         employee_id:
           type: string
         employee_id_number:
@@ -16650,12 +16632,18 @@ components:
         expected_end_at:
           type: string
           nullable: true
+        net_paid_minutes:
+          type: number
+        net_work_minutes:
+          type: number
         ot_claim_status:
           type: string
         ot_work_units:
           type: number
         recording_issue:
           type: string
+        scheduled_break_minutes:
+          type: number
         scheduled_end:
           type: string
           nullable: true
@@ -16678,17 +16666,23 @@ components:
           type: string
           nullable: true
       required:
+        - actual_break_minutes
         - actual_work_minutes
+        - break_provisional
         - computed_ot_hours
         - computed_std_hours
         - date
+        - deducted_break_minutes
         - employee_id
         - employee_id_number
         - employee_name
         - employment_id
+        - net_paid_minutes
+        - net_work_minutes
         - ot_claim_status
         - ot_work_units
         - recording_issue
+        - scheduled_break_minutes
         - standard_credits
         - status
         - std_work_units
@@ -19116,15 +19110,25 @@ components:
           type: string
     ScheduleReplanBreak:
       properties:
+        break_credit_mode:
+          type: string
+        break_punch_mode:
+          type: string
         end:
           type: string
         start:
           type: string
       required:
+        - break_credit_mode
+        - break_punch_mode
         - end
         - start
     ScheduleReplanInterval:
       properties:
+        break_credit_mode:
+          type: string
+        break_punch_mode:
+          type: string
         breaks:
           type: array
           items:
@@ -19146,6 +19150,8 @@ components:
           type: number
           nullable: true
       required:
+        - break_credit_mode
+        - break_punch_mode
         - breaks
         - end
         - end_day_offset
@@ -19424,8 +19430,8 @@ components:
         - updated_at
     ShiftIntervalRecord:
       properties:
-        allow_early_ot:
-          type: boolean
+        break_credit_mode:
+          type: string
         break_duration_minutes:
           type: number
         break_end:
@@ -19433,11 +19439,11 @@ components:
           nullable: true
         break_is_overtime:
           type: boolean
+        break_punch_mode:
+          type: string
         break_start:
           type: string
           nullable: true
-        early_punch_in_grace_period_minutes:
-          type: number
         end_day_offset:
           type: number
         end_time:
@@ -19452,13 +19458,6 @@ components:
           nullable: true
         is_break_auto_deduct:
           type: boolean
-        is_night_shift:
-          type: boolean
-        max_early_ot_minutes:
-          type: number
-          nullable: true
-        ot_aggregation_mode:
-          type: string
         sort_order:
           type: number
         start_day_offset:
@@ -19471,24 +19470,22 @@ components:
         version_id:
           type: string
       required:
-        - allow_early_ot
+        - break_credit_mode
         - break_duration_minutes
         - break_is_overtime
-        - early_punch_in_grace_period_minutes
+        - break_punch_mode
         - end_day_offset
         - end_time
         - id
         - is_break_auto_deduct
-        - is_night_shift
-        - ot_aggregation_mode
         - sort_order
         - start_day_offset
         - start_time
         - version_id
     ShiftIntervalRequest:
       properties:
-        allow_early_ot:
-          type: boolean
+        break_credit_mode:
+          type: string
         break_duration_minutes:
           type: number
         break_end:
@@ -19496,11 +19493,12 @@ components:
           nullable: true
         break_is_overtime:
           type: boolean
+          nullable: true
+        break_punch_mode:
+          type: string
         break_start:
           type: string
           nullable: true
-        early_punch_in_grace_period_minutes:
-          type: number
         end_day_offset:
           type: number
         end_time:
@@ -19513,13 +19511,7 @@ components:
           nullable: true
         is_break_auto_deduct:
           type: boolean
-        is_night_shift:
-          type: boolean
-        max_early_ot_minutes:
-          type: number
           nullable: true
-        ot_aggregation_mode:
-          type: string
         start_day_offset:
           type: number
         start_time:
@@ -21136,6 +21128,17 @@ components:
       properties:
         attendance_policy_id:
           type: string
+        break_auto_deduct:
+          type: boolean
+        break_is_overtime:
+          type: boolean
+        early_ot_enabled:
+          type: boolean
+        early_ot_max_minutes:
+          type: number
+          nullable: true
+        early_ot_qualification_grace_minutes:
+          type: number
         effective_from:
           type: string
         effective_to:
@@ -21145,6 +21148,8 @@ components:
           type: string
         id:
           type: string
+        late_arrival_grace_minutes:
+          type: number
         minutes_per_credit:
           type: number
         monthly_denominator:
@@ -21154,6 +21159,8 @@ components:
           type: string
           nullable: true
         name:
+          type: string
+        ot_aggregation_mode:
           type: string
         overtime_policy_id:
           type: string
@@ -21174,11 +21181,17 @@ components:
           type: string
       required:
         - attendance_policy_id
+        - break_auto_deduct
+        - break_is_overtime
+        - early_ot_enabled
+        - early_ot_qualification_grace_minutes
         - effective_from
         - group_id
         - id
+        - late_arrival_grace_minutes
         - minutes_per_credit
         - name
+        - ot_aggregation_mode
         - overtime_policy_id
         - pay_basis_policy_id
         - pay_basis_policy_name

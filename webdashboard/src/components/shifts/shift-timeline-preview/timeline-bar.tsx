@@ -5,13 +5,11 @@ import { getSegmentStyles, timeToMinutes } from "@/lib/shift-timeline-math";
 import type { TimelineBarProps } from "./types";
 
 export const TimelineBar = memo(function TimelineBar({
-  allowEarlyOt,
   breakEnd,
   breakStart,
   endMin,
   isCrossMidnight,
   isFixedBreak,
-  maxEarlyOtMinutes,
   shiftEnd,
   shiftStart,
   startMin,
@@ -19,7 +17,6 @@ export const TimelineBar = memo(function TimelineBar({
   const bStart = timeToMinutes(breakStart);
   const bEnd = timeToMinutes(breakEnd);
   const bCross = bEnd < bStart;
-  const earlyMin = Math.max(0, startMin - maxEarlyOtMinutes);
 
   return (
     <div className="relative h-14 bg-slate-200 dark:bg-slate-900 rounded-3xl overflow-hidden shadow-inner border border-slate-150 dark:border-slate-800">
@@ -90,14 +87,6 @@ export const TimelineBar = memo(function TimelineBar({
             </div>
           </>
         )
-      ) : null}
-
-      {/* Visual indicators for grace/early OT */}
-      {allowEarlyOt && shiftStart ? (
-        <div
-          className="absolute h-full border-l-2 border-dashed border-blue-400 dark:border-blue-500/80 bg-blue-400/10 z-0 pointer-events-none"
-          style={getSegmentStyles(earlyMin, startMin)}
-        />
       ) : null}
     </div>
   );

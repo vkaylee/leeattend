@@ -99,6 +99,22 @@ describe("getShiftCardMetrics — single block", () => {
     expect(metrics.intervals[0].isFixedBreak).toBe(true);
   });
 
+  it("does not deduct a fixed break when auto deduction is disabled", () => {
+    const metrics = getShiftCardMetrics(
+      makeShift([makeInterval({ break_end: "13:00:00", break_start: "12:00:00", is_break_auto_deduct: false })]),
+    );
+    expect(metrics.totalBreakMinutes).toBe(60);
+    expect(metrics.totalWorkMinutes).toBe(540);
+  });
+
+  it("does not deduct a floating break when auto deduction is disabled", () => {
+    const metrics = getShiftCardMetrics(
+      makeShift([makeInterval({ break_duration_minutes: 30, is_break_auto_deduct: false })]),
+    );
+    expect(metrics.totalBreakMinutes).toBe(30);
+    expect(metrics.totalWorkMinutes).toBe(540);
+  });
+
   it("deducts floating breaks from work minutes", () => {
     const metrics = getShiftCardMetrics(
       makeShift([makeInterval({ break_duration_minutes: 30 })]),

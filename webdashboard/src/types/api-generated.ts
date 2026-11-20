@@ -2195,6 +2195,38 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/ess/attendance/actions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["post_api_v1_ess_attendance_actions"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ess/attendance/state": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["get_api_v1_ess_attendance_state"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/ess/documents": {
         parameters: {
             query?: never;
@@ -2337,22 +2369,6 @@ export interface paths {
         get: operations["get_api_v1_ess_profile"];
         put: operations["put_api_v1_ess_profile"];
         post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/ess/punch": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: operations["post_api_v1_ess_punch"];
         delete?: never;
         options?: never;
         head?: never;
@@ -3362,6 +3378,24 @@ export interface paths {
         options?: never;
         head?: never;
         patch: operations["patch_api_v1_members_user_id"];
+        trace?: never;
+    };
+    "/api/v1/members/{user_id}/employee": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                user_id: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["put_api_v1_members_user_id_employee"];
+        post?: never;
+        delete: operations["delete_api_v1_members_user_id_employee"];
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/api/v1/members/{user_id}/permissions": {
@@ -4504,42 +4538,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/reports/jobs/{job_id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                job_id: string;
-            };
-            cookie?: never;
-        };
-        get: operations["get_api_v1_reports_jobs_job_id"];
-        put?: never;
-        post?: never;
-        delete: operations["delete_api_v1_reports_jobs_job_id"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/reports/jobs/{job_id}/download": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                job_id: string;
-            };
-            cookie?: never;
-        };
-        get: operations["get_api_v1_reports_jobs_job_id_download"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/v1/reports/no-show": {
         parameters: {
             query?: never;
@@ -5279,24 +5277,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/ws/reports/{job_id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                job_id: string;
-            };
-            cookie?: never;
-        };
-        get: operations["get_api_v1_ws_reports_job_id"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -5500,6 +5480,26 @@ export interface components {
             location_id?: string | null;
             tags?: string[];
         };
+        AttendanceActionRequest: {
+            action?: string;
+            note?: string | null;
+        };
+        AttendanceActionResponse: {
+            break?: components["schemas"]["AttendanceBreakRecord"];
+            deduplicated: boolean;
+            entry?: components["schemas"]["TimeEntryRecord"];
+            exception_code?: string | null;
+            next_allowed_actions: string[];
+            state: string;
+        };
+        AttendanceBreakRecord: {
+            close_reason?: string | null;
+            end_at?: string | null;
+            id: string;
+            source: string;
+            start_at: string;
+            time_entry_id: string;
+        };
         AttendanceClosureRequest: {
             reason?: string;
             version?: number;
@@ -5535,12 +5535,16 @@ export interface components {
             updated_at: string;
         };
         AttendanceDailySummaryRecord: {
+            actual_break_minutes: number;
             actual_work_minutes: number;
             approved_ot_minutes: number;
+            break_exception_code?: string | null;
             break_ot_minutes: number;
+            break_provisional: boolean;
             claimed_ot_minutes: number;
             created_at: string;
             date: string;
+            deducted_break_minutes: number;
             early_ot_minutes: number;
             employment_id: string;
             holiday_name?: string | null;
@@ -5549,8 +5553,11 @@ export interface components {
             is_weekend: boolean;
             late_ot_minutes: number;
             manager_note?: string | null;
+            net_paid_minutes: number;
+            net_work_minutes: number;
             ot_reason?: string | null;
             ot_status: string;
+            scheduled_break_minutes: number;
             standard_credits: number;
             standard_minutes: number;
             system_detected_ot_minutes: number;
@@ -6166,12 +6173,19 @@ export interface components {
         };
         CreateWorkPolicyGroupRequest: {
             attendance_policy_id?: string;
+            break_auto_deduct?: boolean;
+            break_is_overtime?: boolean;
+            early_ot_enabled?: boolean;
+            early_ot_max_minutes?: number | null;
+            early_ot_qualification_grace_minutes?: number;
             effective_from?: string;
             effective_to?: string | null;
+            late_arrival_grace_minutes?: number;
             minutes_per_credit?: number;
             monthly_denominator?: string | null;
             monthly_standard_days?: string | null;
             name?: string;
+            ot_aggregation_mode?: string;
             overtime_policy_id?: string;
             pay_method?: string;
             rate_component_definition_id?: string | null;
@@ -6179,12 +6193,19 @@ export interface components {
         };
         CreateWorkPolicyGroupVersionRequest: {
             attendance_policy_id?: string;
+            break_auto_deduct?: boolean;
+            break_is_overtime?: boolean;
+            early_ot_enabled?: boolean;
+            early_ot_max_minutes?: number | null;
+            early_ot_qualification_grace_minutes?: number;
             effective_from?: string;
             effective_to?: string | null;
+            late_arrival_grace_minutes?: number;
             minutes_per_credit?: number;
             monthly_denominator?: string | null;
             monthly_standard_days?: string | null;
             name?: string;
+            ot_aggregation_mode?: string;
             overtime_policy_id?: string;
             pay_method?: string;
             rate_component_definition_id?: string | null;
@@ -6289,18 +6310,25 @@ export interface components {
             } | unknown[]) | null;
         };
         DailyAttendanceRow: {
+            actual_break_minutes: number;
             actual_punch_in?: string | null;
             actual_punch_out?: string | null;
             actual_work_minutes: number;
+            break_exception_code?: string | null;
+            break_provisional: boolean;
             computed_ot_hours: number;
             computed_std_hours: number;
             date: string;
+            deducted_break_minutes: number;
             employee_id: string;
             employee_id_number: string;
             employee_name: string;
             employment_id: string;
+            net_paid_minutes: number;
+            net_work_minutes: number;
             ot_claim_status: string;
             ot_work_units: number;
+            scheduled_break_minutes: number;
             scheduled_end?: string | null;
             scheduled_start?: string | null;
             shift_name?: string | null;
@@ -6504,20 +6532,19 @@ export interface components {
             parent_folder_id?: string | null;
         };
         EffectiveSchedule: {
-            allow_early_ot?: boolean | null;
+            break_credit_mode?: string | null;
             break_duration_minutes?: number | null;
             break_end?: string | null;
             break_is_overtime?: boolean | null;
+            break_punch_mode?: string | null;
             break_start?: string | null;
             date: string;
-            early_punch_in_grace_period_minutes?: number | null;
             end_time?: string | null;
             holiday_name?: string | null;
             intervals: Record<string, never>[];
             is_break_auto_deduct?: boolean | null;
             is_holiday: boolean;
             is_holiday_paid: boolean;
-            max_early_ot_minutes?: number | null;
             provisional: boolean;
             published_at?: string | null;
             revision_id?: string | null;
@@ -6897,17 +6924,6 @@ export interface components {
             remaining: number;
             used: number;
         };
-        EssPunchRequest: {
-            entry_type?: string;
-            note?: string | null;
-        };
-        ExportJobResponse: {
-            estimated_seconds: number;
-            job_id: string;
-            status: string;
-            status_url: string;
-            total_batches: number;
-        };
         ExportReportRequest: {
             employee_ids?: string[];
             end_date?: string;
@@ -7064,25 +7080,11 @@ export interface components {
             row_number: number;
         };
         InvalidTerminationRow: components["schemas"]["InvalidTerminationImportRow"];
-        JobProgress: {
-            completed_batches: number;
-            failed_batches: number;
-            percentage: number;
-            total_batches: number;
-        };
         JobProgressStatus: {
             completed_batches: number;
             failed_batches: number;
             percentage: number;
             total_batches: number;
-        };
-        JobStatusResponse: {
-            completed_at?: string | null;
-            created_at: string;
-            error?: string | null;
-            job_id: string;
-            progress: components["schemas"]["JobProgress"];
-            status: string;
         };
         JobTypeStats: {
             count: number;
@@ -7266,6 +7268,9 @@ export interface components {
             total_items: number;
             updated_at: string;
         };
+        LinkMemberEmployeeRequest: {
+            employee_id?: string;
+        };
         LocationListResponse: {
             data: components["schemas"]["WorkLocation"][];
             limit: number;
@@ -7279,6 +7284,7 @@ export interface components {
         MemberDetail: {
             avatar_url?: string | null;
             email: string;
+            employee_id?: string | null;
             full_name?: string | null;
             role_id: string;
             user_id: string;
@@ -7286,6 +7292,7 @@ export interface components {
         MemberDetailResponse: {
             avatar_url?: string | null;
             email: string;
+            employee_id?: string | null;
             extra_role_ids: string[];
             full_name?: string | null;
             role_id: string;
@@ -7542,20 +7549,27 @@ export interface components {
             profile?: components["schemas"]["EmployeeProfileRecord"];
         };
         NoShowReportRow: {
+            actual_break_minutes: number;
             actual_punch_in?: string | null;
             actual_punch_out?: string | null;
             actual_work_minutes: number;
+            break_exception_code?: string | null;
+            break_provisional: boolean;
             computed_ot_hours: number;
             computed_std_hours: number;
             date: string;
+            deducted_break_minutes: number;
             employee_id: string;
             employee_id_number: string;
             employee_name: string;
             employment_id: string;
             expected_end_at?: string | null;
+            net_paid_minutes: number;
+            net_work_minutes: number;
             ot_claim_status: string;
             ot_work_units: number;
             recording_issue: string;
+            scheduled_break_minutes: number;
             scheduled_end?: string | null;
             scheduled_start?: string | null;
             shift_name?: string | null;
@@ -8467,10 +8481,14 @@ export interface components {
             timezone?: string;
         };
         ScheduleReplanBreak: {
+            break_credit_mode: string;
+            break_punch_mode: string;
             end: string;
             start: string;
         };
         ScheduleReplanInterval: {
+            break_credit_mode: string;
+            break_punch_mode: string;
             breaks: components["schemas"]["ScheduleReplanBreak"][];
             end: string;
             end_day_offset: number;
@@ -8588,14 +8606,18 @@ export interface components {
             updated_at: string;
         };
         ShiftIntervalRecord: {
+            break_credit_mode: string;
             break_duration_minutes: number;
             break_end?: string | null;
+            break_is_overtime: boolean;
+            break_punch_mode: string;
             break_start?: string | null;
             end_day_offset: number;
             end_time: string;
             end_utc_offset_minutes?: number | null;
             id: string;
             interval_name?: string | null;
+            is_break_auto_deduct: boolean;
             sort_order: number;
             start_day_offset: number;
             start_time: string;
@@ -8603,13 +8625,17 @@ export interface components {
             version_id: string;
         };
         ShiftIntervalRequest: {
+            break_credit_mode?: string;
             break_duration_minutes?: number;
             break_end?: string | null;
+            break_is_overtime?: boolean | null;
+            break_punch_mode?: string;
             break_start?: string | null;
             end_day_offset?: number;
             end_time?: string;
             end_utc_offset_minutes?: number | null;
             interval_name?: string | null;
+            is_break_auto_deduct?: boolean | null;
             start_day_offset?: number;
             start_time?: string;
             start_utc_offset_minutes?: number | null;
@@ -9229,14 +9255,21 @@ export interface components {
         };
         WorkPolicyGroupVersion: {
             attendance_policy_id: string;
+            break_auto_deduct: boolean;
+            break_is_overtime: boolean;
+            early_ot_enabled: boolean;
+            early_ot_max_minutes?: number | null;
+            early_ot_qualification_grace_minutes: number;
             effective_from: string;
             effective_to?: string | null;
             group_id: string;
             id: string;
+            late_arrival_grace_minutes: number;
             minutes_per_credit: number;
             monthly_denominator?: string | null;
             monthly_standard_days?: string | null;
             name: string;
+            ot_aggregation_mode: string;
             overtime_policy_id: string;
             pay_basis_policy_id: string;
             pay_basis_policy_name: string;
@@ -15504,6 +15537,70 @@ export interface operations {
             500: components["responses"]["InternalError"];
         };
     };
+    post_api_v1_ess_attendance_actions: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JsonObject"];
+                };
+            };
+            /** @description Successful response without body */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    get_api_v1_ess_attendance_state: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JsonObject"];
+                };
+            };
+            /** @description Successful response without body */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            500: components["responses"]["InternalError"];
+        };
+    };
     get_api_v1_ess_documents: {
         parameters: {
             query?: never;
@@ -15829,38 +15926,6 @@ export interface operations {
         };
     };
     put_api_v1_ess_profile: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["JsonObject"];
-                };
-            };
-            /** @description Successful response without body */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            400: components["responses"]["BadRequest"];
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-            404: components["responses"]["NotFound"];
-            500: components["responses"]["InternalError"];
-        };
-    };
-    post_api_v1_ess_punch: {
         parameters: {
             query?: never;
             header?: never;
@@ -18739,6 +18804,74 @@ export interface operations {
             500: components["responses"]["InternalError"];
         };
     };
+    put_api_v1_members_user_id_employee: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                user_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JsonObject"];
+                };
+            };
+            /** @description Successful response without body */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    delete_api_v1_members_user_id_employee: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                user_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JsonObject"];
+                };
+            };
+            /** @description Successful response without body */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            500: components["responses"]["InternalError"];
+        };
+    };
     get_api_v1_members_user_id_permissions: {
         parameters: {
             query?: never;
@@ -21461,108 +21594,6 @@ export interface operations {
             500: components["responses"]["InternalError"];
         };
     };
-    get_api_v1_reports_jobs_job_id: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                job_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["JsonObject"];
-                };
-            };
-            /** @description Successful response without body */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            400: components["responses"]["BadRequest"];
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-            404: components["responses"]["NotFound"];
-            500: components["responses"]["InternalError"];
-        };
-    };
-    delete_api_v1_reports_jobs_job_id: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                job_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["JsonObject"];
-                };
-            };
-            /** @description Successful response without body */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            400: components["responses"]["BadRequest"];
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-            404: components["responses"]["NotFound"];
-            500: components["responses"]["InternalError"];
-        };
-    };
-    get_api_v1_reports_jobs_job_id_download: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                job_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["JsonObject"];
-                };
-            };
-            /** @description Successful response without body */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            400: components["responses"]["BadRequest"];
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-            404: components["responses"]["NotFound"];
-            500: components["responses"]["InternalError"];
-        };
-    };
     get_api_v1_reports_no_show: {
         parameters: {
             query?: never;
@@ -23504,40 +23535,6 @@ export interface operations {
             header?: never;
             path: {
                 pattern_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["JsonObject"];
-                };
-            };
-            /** @description Successful response without body */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            400: components["responses"]["BadRequest"];
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-            404: components["responses"]["NotFound"];
-            500: components["responses"]["InternalError"];
-        };
-    };
-    get_api_v1_ws_reports_job_id: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                job_id: string;
             };
             cookie?: never;
         };

@@ -17,6 +17,42 @@ import (
 
 var ErrEmploymentInactive = errors.New("attendance: employment inactive")
 var ErrNoActiveEmployment = errors.New("attendance: no active employment")
+var ErrAttendanceAlreadyWorking = errors.New("attendance: already working")
+var ErrAttendanceNotWorking = errors.New("attendance: not working")
+var ErrAttendanceInvalidTransition = errors.New("attendance: invalid transition")
+var ErrAttendanceBreakNotRequired = errors.New("attendance: break not required")
+var ErrAttendanceBreakNotOpen = errors.New("attendance: break not open")
+var ErrAttendanceIdempotencyConflict = errors.New("attendance: idempotency conflict")
+
+const (
+	AttendanceActionWorkIn     = "work_in"
+	AttendanceActionWorkOut    = "work_out"
+	AttendanceActionBreakStart = "break_start"
+	AttendanceActionBreakEnd   = "break_end"
+)
+
+type AttendanceActionRequest struct {
+	Action string  `json:"action"`
+	Note   *string `json:"note,omitempty"`
+}
+
+type AttendanceBreakRecord struct {
+	ID         uuid.UUID `json:"id"`
+	TimeEntryID uuid.UUID `json:"time_entry_id"`
+	StartAt    string    `json:"start_at"`
+	EndAt      *string   `json:"end_at,omitempty"`
+	Source     string    `json:"source"`
+	CloseReason *string  `json:"close_reason,omitempty"`
+}
+
+type AttendanceActionResponse struct {
+	State              string                 `json:"state"`
+	NextAllowedActions []string               `json:"next_allowed_actions"`
+	Entry              *TimeEntryRecord       `json:"entry,omitempty"`
+	Break              *AttendanceBreakRecord `json:"break,omitempty"`
+	ExceptionCode      *string                `json:"exception_code,omitempty"`
+	Deduplicated       bool                   `json:"deduplicated"`
+}
 
 // PunchInRequest models the self-service punch-in payload.
 type PunchInRequest struct {
@@ -114,6 +150,13 @@ type AttendanceDailySummaryRecord struct {
 	EarlyOTMinutes          int        `json:"early_ot_minutes"`
 	LateOTMinutes           int        `json:"late_ot_minutes"`
 	BreakOTMinutes          int        `json:"break_ot_minutes"`
+	ScheduledBreakMinutes   int        `json:"scheduled_break_minutes"`
+	ActualBreakMinutes      int        `json:"actual_break_minutes"`
+	DeductedBreakMinutes    int        `json:"deducted_break_minutes"`
+	NetWorkMinutes          int        `json:"net_work_minutes"`
+	NetPaidMinutes          int        `json:"net_paid_minutes"`
+	BreakProvisional        bool       `json:"break_provisional"`
+	BreakExceptionCode      *string    `json:"break_exception_code,omitempty"`
 	StandardCredits         float64    `json:"standard_credits"`
 	WorkPolicyVersionID     *uuid.UUID `json:"work_policy_version_id,omitempty"`
 	OTStatus                string     `json:"ot_status"`
@@ -144,7 +187,8 @@ type AttendanceRepository interface {
 	ListEmployeeAdjustments(ctx context.Context, employeeID uuid.UUID) ([]AdjustmentRecord, error)
 	ApproveAdjustment(ctx context.Context, adjustmentID, approverID uuid.UUID, status string) error
 	IsEmployeeOwnedByUser(ctx context.Context, employeeID, userID uuid.UUID) (bool, error)
-	ESSPunch(ctx context.Context, employeeID uuid.UUID, entryType string, note *string, punchTime time.Time) (TimeEntryRecord, error)
+	ESSAttendanceAction(ctx context.Context, employeeID uuid.UUID, action string, note *string, idempotencyKey string, actionTime time.Time) (AttendanceActionResponse, error)
+	GetESSAttendanceState(ctx context.Context, employeeID uuid.UUID) (AttendanceActionResponse, error)
 	GetAttendanceSummaries(ctx context.Context, startDate, endDate string, employeeID *uuid.UUID, otStatus *string, page, limit int) (PaginatedSummaries, error)
 	GetEmployeeIDByUserID(ctx context.Context, userID uuid.UUID) (uuid.UUID, error)
 	UpdateTimeEntry(ctx context.Context, entryID uuid.UUID, req UpdateTimeEntryRequest) (TimeEntryRecord, error)

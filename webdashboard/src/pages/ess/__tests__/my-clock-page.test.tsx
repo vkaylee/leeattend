@@ -104,7 +104,7 @@ describe("MyClockPage", () => {
     }));
     vi.mocked(essHooks.useMyClock).mockReturnValue(createMockUseMyClockReturn({ 
       isLoading: false,
-      punch: mockPunch,
+      submitAction: mockPunch,
       activeEntry: undefined,
       entries: [],
       isPunching: false,
@@ -130,7 +130,7 @@ describe("MyClockPage", () => {
     }));
     vi.mocked(essHooks.useMyClock).mockReturnValue(createMockUseMyClockReturn({ 
       isLoading: false,
-      punch: mockPunch,
+      submitAction: mockPunch,
     }));
 
     render(<MyClockPage />);
