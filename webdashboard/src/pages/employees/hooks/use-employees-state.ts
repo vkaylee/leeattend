@@ -31,14 +31,11 @@ export const useEmployeesState = () => {
 
   const updateCustomFieldFilter = (key: string, val: string) => {
     setCustomFieldFilters((prev) => {
-      const next = { ...prev };
       if (!val.trim()) {
-  // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
-        delete next[key];
-      } else {
-        next[key] = val;
+        const { [key]: _removed, ...rest } = prev;
+        return rest;
       }
-      return next;
+      return { ...prev, [key]: val };
     });
   };
 
